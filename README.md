@@ -1,4 +1,4 @@
-# VectorBase
+# Vectorsearch
 
-a scalable search service for deep learning vectors
+a scalable search service of deep learning vectors
 
