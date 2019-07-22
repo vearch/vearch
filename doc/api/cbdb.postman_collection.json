@@ -1,0 +1,1900 @@
+{
+	"info": {
+		"_postman_id": "bad07428-04f5-49a2-a8cd-fec93b8fbb22",
+		"name": "cbdb",
+		"description": "cbdb document",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "user",
+			"item": [
+				{
+					"name": "create user",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "application/x-www-form-urlencoded",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "user_name",
+									"value": "cb",
+									"type": "text"
+								},
+								{
+									"key": "user_password",
+									"value": "1234",
+									"type": "text"
+								},
+								{
+									"key": "privilege",
+									"value": "create|alter|drop|truncate|insert|delete|update|select",
+									"type": "text"
+								},
+								{
+									"key": "user_host",
+									"value": "%",
+									"type": "text"
+								},
+								{
+									"key": "user_db_list",
+									"value": "ansj|ansj_test",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "root:secret@127.0.0.1:8817/manage/user/create",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"auth": {
+								"user": "root",
+								"password": "secret"
+							},
+							"port": "8817",
+							"path": [
+								"manage",
+								"user",
+								"create"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "list user",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "application/x-www-form-urlencoded",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "user_name",
+									"value": "cb",
+									"type": "text"
+								},
+								{
+									"key": "user_password",
+									"value": "1234",
+									"type": "text"
+								},
+								{
+									"key": "privilege",
+									"value": "create|alter|drop|truncate|insert|delete|update|select",
+									"type": "text"
+								},
+								{
+									"key": "user_host",
+									"value": "%",
+									"type": "text"
+								},
+								{
+									"key": "user_db_list",
+									"value": "ansj|ansj_test",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "root:secret@127.0.0.1:8817/manage/user/list",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"auth": {
+								"user": "root",
+								"password": "secret"
+							},
+							"port": "8817",
+							"path": [
+								"manage",
+								"user",
+								"list"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get user",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/x-www-form-urlencoded"
+							}
+						],
+						"body": {},
+						"url": {
+							"raw": "root:secret@127.0.0.1:8817/manage/user/get?user_name=cb",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"auth": {
+								"user": "root",
+								"password": "secret"
+							},
+							"port": "8817",
+							"path": [
+								"manage",
+								"user",
+								"get"
+							],
+							"query": [
+								{
+									"key": "user_name",
+									"value": "cb"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "delete user",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/x-www-form-urlencoded"
+							}
+						],
+						"body": {},
+						"url": {
+							"raw": "root:secret@127.0.0.1:8817/manage/user/delete?user_name=cb",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"auth": {
+								"user": "root",
+								"password": "secret"
+							},
+							"port": "8817",
+							"path": [
+								"manage",
+								"user",
+								"delete"
+							],
+							"query": [
+								{
+									"key": "user_name",
+									"value": "cb"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "user add db",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/x-www-form-urlencoded"
+							}
+						],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "user_name",
+									"value": "cb",
+									"type": "text"
+								},
+								{
+									"key": "user_db_list",
+									"value": "new_db",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "root:secret@127.0.0.1:8817/manage/user/grant/db",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"auth": {
+								"user": "root",
+								"password": "secret"
+							},
+							"port": "8817",
+							"path": [
+								"manage",
+								"user",
+								"grant",
+								"db"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "user del db",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/x-www-form-urlencoded"
+							}
+						],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "user_name",
+									"value": "cb",
+									"type": "text"
+								},
+								{
+									"key": "user_db_list",
+									"value": "new_db",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "root:secret@127.0.0.1:8817/manage/user/revoke/db",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"auth": {
+								"user": "root",
+								"password": "secret"
+							},
+							"port": "8817",
+							"path": [
+								"manage",
+								"user",
+								"revoke",
+								"db"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "user list",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/x-www-form-urlencoded"
+							}
+						],
+						"body": {},
+						"url": {
+							"raw": "root:secret@127.0.0.1:8817/manage/user/list",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"auth": {
+								"user": "root",
+								"password": "secret"
+							},
+							"port": "8817",
+							"path": [
+								"manage",
+								"user",
+								"list"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "user password",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/x-www-form-urlencoded"
+							}
+						],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "user_name",
+									"value": "cb",
+									"type": "text"
+								},
+								{
+									"key": "user_password",
+									"value": "1234",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "http://root:secret:1234@127.0.0.1:8817/manage/user/passwd/update",
+							"protocol": "http",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"auth": {
+								"user": "root",
+								"password": "secret"
+							},
+							"port": "8817",
+							"path": [
+								"manage",
+								"user",
+								"passwd",
+								"update"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "privilege add",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/x-www-form-urlencoded"
+							}
+						],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "user_name",
+									"value": "cb",
+									"type": "text"
+								},
+								{
+									"key": "privilege",
+									"value": "drop",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "http://root:secret@127.0.0.1:8817/manage/user/grant/priv",
+							"protocol": "http",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"auth": {
+								"user": "root",
+								"password": "secret"
+							},
+							"port": "8817",
+							"path": [
+								"manage",
+								"user",
+								"grant",
+								"priv"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "privilege del",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/x-www-form-urlencoded"
+							}
+						],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "user_name",
+									"value": "cb",
+									"type": "text"
+								},
+								{
+									"key": "privilege",
+									"value": "drop",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "root:secret@127.0.0.1:8817/manage/user/revoke/priv",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"auth": {
+								"user": "root",
+								"password": "secret"
+							},
+							"port": "8817",
+							"path": [
+								"manage",
+								"user",
+								"revoke",
+								"priv"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "search query",
+			"item": [
+				{
+					"name": "match all",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"match_all\": {\n        \"boost\": 1\n    }\n}"
+						},
+						"url": {
+							"raw": "cb:1234@127.0.0.1:9001/ansj/ansj_table/_search",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"auth": {
+								"user": "cb",
+								"password": "1234"
+							},
+							"port": "9001",
+							"path": [
+								"ansj",
+								"ansj_table",
+								"_search"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "term",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"query\": {\n        \"term\": {\n            \"city\": \"Brogan\"\n        }\n    }\n}"
+						},
+						"url": {
+							"raw": "cb:1234@127.0.0.1:9001/ansj/ansj_table/_search?size=10",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"auth": {
+								"user": "cb",
+								"password": "1234"
+							},
+							"port": "9001",
+							"path": [
+								"ansj",
+								"ansj_table",
+								"_search"
+							],
+							"query": [
+								{
+									"key": "size",
+									"value": "10"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "match",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"query\": {\n        \"match\": {\n            \"content\": \"我爱你门\"\n        }\n    }\n}"
+						},
+						"url": {
+							"raw": "cb:1234@127.0.0.1:9001/ansj/ansj_table/_search?size=10",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"auth": {
+								"user": "cb",
+								"password": "1234"
+							},
+							"port": "9001",
+							"path": [
+								"ansj",
+								"ansj_table",
+								"_search"
+							],
+							"query": [
+								{
+									"key": "size",
+									"value": "10"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "match_phrase",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"query\": {\n        \"match_phrase\": {\n            \"content\": \"我爱北京\"\n        }\n    }\n}"
+						},
+						"url": {
+							"raw": "cb:1234@127.0.0.1:9001/ansj/ansj_table/_search?size=10",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"auth": {
+								"user": "cb",
+								"password": "1234"
+							},
+							"port": "9001",
+							"path": [
+								"ansj",
+								"ansj_table",
+								"_search"
+							],
+							"query": [
+								{
+									"key": "size",
+									"value": "10"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "query string",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"query\": {\n        \"query_string\": {\n            \"query\": \"content:我 AND (content:爱  OR content:你)\"\n        }\n    }\n}"
+						},
+						"url": {
+							"raw": "cb:1234@127.0.0.1:9001/ansj/ansj_table/_search?size=10",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"auth": {
+								"user": "cb",
+								"password": "1234"
+							},
+							"port": "9001",
+							"path": [
+								"ansj",
+								"ansj_table",
+								"_search"
+							],
+							"query": [
+								{
+									"key": "size",
+									"value": "10"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "match_phrase_prefix",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"query\": {\n        \"match_phrase_prefix\": {\n            \"content\": \"我爱北\"\n        }\n    }\n}"
+						},
+						"url": {
+							"raw": "cb:1234@127.0.0.1:9001/ansj/ansj_table/_search?size=10",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"auth": {
+								"user": "cb",
+								"password": "1234"
+							},
+							"port": "9001",
+							"path": [
+								"ansj",
+								"ansj_table",
+								"_search"
+							],
+							"query": [
+								{
+									"key": "size",
+									"value": "10"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "script_fields",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"query\" : {\n        \"match_all\" : {}\n    },\n    \"script_fields\" : {\n        \"test1\" : {\n            \"script\" : {\n                \"inline\": \"_source.content+'    '+'test1'\"\n            }\n        },\n\t\t\"test2\" : {\n            \"script\" : {\n                \"inline\": \"_source['age']=null; _source.city+'     '+'test2'\"\n            }\n        }\n    }\n\n}"
+						},
+						"url": {
+							"raw": "cb:1234@127.0.0.1:9001/ansj/ansj_table/_search?size=10",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"auth": {
+								"user": "cb",
+								"password": "1234"
+							},
+							"port": "9001",
+							"path": [
+								"ansj",
+								"ansj_table",
+								"_search"
+							],
+							"query": [
+								{
+									"key": "size",
+									"value": "10"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "script_fields fun",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"query\" : {\n        \"match_all\" : {}\n    },\n    \"script_fields\" : {\n        \"test1\" : {\n            \"script\" : {\n                \"fun\": \"sin\",\n                \"params\":{\n                \t\"key\":\"age\"\n                }\n            }\n        }\n    }\n\n}"
+						},
+						"url": {
+							"raw": "cb:1234@127.0.0.1:9001/ansj/ansj_table/_search?size=10",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"auth": {
+								"user": "cb",
+								"password": "1234"
+							},
+							"port": "9001",
+							"path": [
+								"ansj",
+								"ansj_table",
+								"_search"
+							],
+							"query": [
+								{
+									"key": "size",
+									"value": "10"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "script_query",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"query\": {\n\t\t\"script\": {\n\t\t\t\"script\": {\n\t\t\t\t\"inline\": \"_source('age')!=null?_source('age')%2==0:false\"\n\t\t\t}\n\t\t}\n\t}\n}"
+						},
+						"url": {
+							"raw": "cb:1234@127.0.0.1:9001/ansj/ansj_table/_search?size=10",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"auth": {
+								"user": "cb",
+								"password": "1234"
+							},
+							"port": "9001",
+							"path": [
+								"ansj",
+								"ansj_table",
+								"_search"
+							],
+							"query": [
+								{
+									"key": "size",
+									"value": "10"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "sort query",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{ \n  \"from\": 8,\n  \"size\": 10,\n  \"query\": {\n    \"bool\": {\n      \"must\": [\n        {\n          \"match_all\": {}\n        },\n        {\n          \"bool\": {\n            \"should\": [\n              {\n                \"term\": {\n                  \"age\": {\n                    \"value\": 1,\n                    \"boost\": 1\n                  }\n                }\n              },\n              {\n                \"term\": {\n                  \"age\": {\n                    \"value\": 2,\n                    \"boost\": 1\n                  }\n                }\n              },\n              {\n                \"term\": {\n                  \"age\": {\n                    \"value\": 3,\n                    \"boost\": 1\n                  }\n                }\n              },\n              {\n                \"term\": {\n                  \"age\": {\n                    \"value\": 4,\n                    \"boost\": 1\n                  }\n                }\n              },\n              {\n                \"term\": {\n                  \"age\": {\n                    \"value\": 5,\n                    \"boost\": 1\n                  }\n                }\n              },\n              {\n                \"term\": {\n                  \"age\": {\n                    \"value\": 5,\n                    \"boost\": 1\n                  }\n                }\n              },\n              {\n                \"term\": {\n                  \"age\": {\n                    \"value\": 5,\n                    \"boost\": 1\n                  }\n                }\n              },\n              {\n                \"term\": {\n                  \"age\": {\n                    \"value\": 5,\n                    \"boost\": 1\n                  }\n                }\n              }\n            ],\n            \"adjust_pure_negative\": true,\n            \"boost\": 1\n          }\n        }\n      ],\n      \"adjust_pure_negative\": true,\n      \"boost\": 1\n    }\n  }\n}\n"
+						},
+						"url": {
+							"raw": "cb:1234@127.0.0.1:9001/ansj/ansj_table/_search?size=10",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"auth": {
+								"user": "cb",
+								"password": "1234"
+							},
+							"port": "9001",
+							"path": [
+								"ansj",
+								"ansj_table",
+								"_search"
+							],
+							"query": [
+								{
+									"key": "size",
+									"value": "10"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "aggs query",
+			"item": [
+				{
+					"name": "max",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"size\":0,\n    \"aggs\": {\n        \"maxage\": {\n            \"max\": {\"field\":\"age\"}\n        }\n    }\n}"
+						},
+						"url": {
+							"raw": "cb:1234@127.0.0.1:9001/ansj/ansj_table/_search?size=0",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"auth": {
+								"user": "cb",
+								"password": "1234"
+							},
+							"port": "9001",
+							"path": [
+								"ansj",
+								"ansj_table",
+								"_search"
+							],
+							"query": [
+								{
+									"key": "size",
+									"value": "0"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "avg",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"size\":0,\n    \"aggs\": {\n        \"maxage\": {\n            \"avg\": {\"field\":\"age\"}\n        }\n    }\n}"
+						},
+						"url": {
+							"raw": "cb:1234@127.0.0.1:9001/ansj/ansj_table/_search?size=0&typed_keys=true",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"auth": {
+								"user": "cb",
+								"password": "1234"
+							},
+							"port": "9001",
+							"path": [
+								"ansj",
+								"ansj_table",
+								"_search"
+							],
+							"query": [
+								{
+									"key": "size",
+									"value": "0"
+								},
+								{
+									"key": "typed_keys",
+									"value": "true"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "term avg",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"size\": 0, \n    \"query\": {\n        \"match_all\": {\n            \"boost\": 1\n        }\n    }, \n    \"aggs\": {\n    \"age\": {\n      \"terms\": {\n        \"field\": \"age\",\n        \"order\":{\"_term\":\"asc\"},\n        \"size\":50,\n        \"keyed\":true\n      },\n      \"aggs\": {\n              \"avg_name\": {\n                 \"avg\": {\n                    \"field\": \"age\"\n                 }\n              }\n           }\n    }\n  }\n}"
+						},
+						"url": {
+							"raw": "cb:1234@127.0.0.1:9001/ansj/ansj_table/_search?size=0&typed_keys=true",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"auth": {
+								"user": "cb",
+								"password": "1234"
+							},
+							"port": "9001",
+							"path": [
+								"ansj",
+								"ansj_table",
+								"_search"
+							],
+							"query": [
+								{
+									"key": "size",
+									"value": "0"
+								},
+								{
+									"key": "typed_keys",
+									"value": "true"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "document",
+			"item": [
+				{
+					"name": "document get",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "cb:1234@127.0.0.1:9001/ansj/ansj_table/1",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"auth": {
+								"user": "cb",
+								"password": "1234"
+							},
+							"port": "9001",
+							"path": [
+								"ansj",
+								"ansj_table",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "document create",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\n    \"city\": \"Brogan\",\n    \"age\": 32,\n    \"insert_time\":\"1985-08-28\",\n    \"content\":\"我爱北京\"\n}"
+						},
+						"url": {
+							"raw": "cb:1234@127.0.0.1:9001/ansj/ansj_table/1",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"auth": {
+								"user": "cb",
+								"password": "1234"
+							},
+							"port": "9001",
+							"path": [
+								"ansj",
+								"ansj_table",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "document create dynamic mapping",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"city\": \"Brogan\",\n    \"age\": 32,\n    \"insert_time\":\"1985-08-28\",\n    \"new_field\":\"1985-08-28\",\n    \"aaaa\":{\n    \t\"bbb\":\"love\",\n    \t\"efg\":\"love\",\n    \t\"ccc\":123,\n    \t\"inner\":{\"_id\":\"abc\",\"name\":123}\n    }\n}"
+						},
+						"url": {
+							"raw": "cb:1234@127.0.0.1:9001/ansj/ansj_table/1",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"auth": {
+								"user": "cb",
+								"password": "1234"
+							},
+							"port": "9001",
+							"path": [
+								"ansj",
+								"ansj_table",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "document create without id",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\n    \"city\": \"Brogan\",\n    \"age\": 32,\n    \"insert_time\":\"1985-08-28\",\n    \"content\":\"我爱北京\"\n}"
+						},
+						"url": {
+							"raw": "cb:1234@127.0.0.1:9001/ansj/ansj_table",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"auth": {
+								"user": "cb",
+								"password": "1234"
+							},
+							"port": "9001",
+							"path": [
+								"ansj",
+								"ansj_table"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "document search",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "cb:1234@127.0.0.1:9001/ansj/ansj_table/_search?size=10",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"auth": {
+								"user": "cb",
+								"password": "1234"
+							},
+							"port": "9001",
+							"path": [
+								"ansj",
+								"ansj_table",
+								"_search"
+							],
+							"query": [
+								{
+									"key": "size",
+									"value": "10"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "document delete",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "cb:1234@127.0.0.1:9001/ansj/ansj_table/1",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"auth": {
+								"user": "cb",
+								"password": "1234"
+							},
+							"port": "9001",
+							"path": [
+								"ansj",
+								"ansj_table",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "document update merge",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"age2\": 32\n}"
+						},
+						"url": {
+							"raw": "cb:1234@127.0.0.1:9001/ansj/ansj_table/1/_update",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"auth": {
+								"user": "cb",
+								"password": "1234"
+							},
+							"port": "9001",
+							"path": [
+								"ansj",
+								"ansj_table",
+								"1",
+								"_update"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "space",
+			"item": [
+				{
+					"name": "space delete",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "root:secret@127.0.0.1:8817/space/ansj/ansj_table",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"auth": {
+								"user": "root",
+								"password": "secret"
+							},
+							"port": "8817",
+							"path": [
+								"space",
+								"ansj",
+								"ansj_table"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "space create",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"ansj_table\",\n    \"dynamic\": true,\n    \"partition_num\": 20,\n    \"replica_num\": 1,\n    \"engine\": \"scorch\",\n    \"properties\": {\n        \"city\": {\n            \"type\": \"string\"\n        },\n        \"age\": {\n            \"type\": \"integer\"\n        },\n        \"insert_time\": {\n            \"type\": \"date\"\n        },\n        \"geo_location\": {\n            \"type\": \"geo_point\"\n        },\n        \"content\": {\n            \"type\": \"string\",\n            \"analyzer\": \"standard\"\n        }\n    }\n}"
+						},
+						"url": {
+							"raw": "root:secret@127.0.0.1:8817/space/ansj/_create",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"auth": {
+								"user": "root",
+								"password": "secret"
+							},
+							"port": "8817",
+							"path": [
+								"space",
+								"ansj",
+								"_create"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "space list",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "root:secret@127.0.0.1:8817/list/space?db=114",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"auth": {
+								"user": "root",
+								"password": "secret"
+							},
+							"port": "8817",
+							"path": [
+								"list",
+								"space"
+							],
+							"query": [
+								{
+									"key": "db",
+									"value": "114"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "space get",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "root:secret@127.0.0.1:8817/space/ansj/ansj_table",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"auth": {
+								"user": "root",
+								"password": "secret"
+							},
+							"port": "8817",
+							"path": [
+								"space",
+								"ansj",
+								"ansj_table"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "get space",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": ""
+								},
+								"url": {
+									"raw": "127.0.0.1:8817/space/ansj/ansj_table",
+									"host": [
+										"127",
+										"0",
+										"0",
+										"1"
+									],
+									"port": "8817",
+									"path": [
+										"space",
+										"ansj",
+										"ansj_table"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								},
+								{
+									"key": "Date",
+									"value": "Fri, 01 Mar 2019 13:34:20 GMT"
+								},
+								{
+									"key": "Content-Length",
+									"value": "1950"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"code\": 200,\n    \"msg\": \"success\",\n    \"data\": {\n        \"id\": 2,\n        \"version\": 1,\n        \"db_id\": 1,\n        \"enabled\": true,\n        \"partitions\": [\n            {\n                \"id\": 22,\n                \"space_id\": 2,\n                \"db_id\": 1,\n                \"partition_slot\": 0,\n                \"replicas\": [\n                    1\n                ]\n            },\n            {\n                \"id\": 23,\n                \"space_id\": 2,\n                \"db_id\": 1,\n                \"partition_slot\": 214748364,\n                \"replicas\": [\n                    1\n                ]\n            },\n            {\n                \"id\": 24,\n                \"space_id\": 2,\n                \"db_id\": 1,\n                \"partition_slot\": 429496728,\n                \"replicas\": [\n                    1\n                ]\n            },\n            {\n                \"id\": 25,\n                \"space_id\": 2,\n                \"db_id\": 1,\n                \"partition_slot\": 644245092,\n                \"replicas\": [\n                    1\n                ]\n            },\n            {\n                \"id\": 26,\n                \"space_id\": 2,\n                \"db_id\": 1,\n                \"partition_slot\": 858993456,\n                \"replicas\": [\n                    1\n                ]\n            },\n            {\n                \"id\": 27,\n                \"space_id\": 2,\n                \"db_id\": 1,\n                \"partition_slot\": 1073741820,\n                \"replicas\": [\n                    1\n                ]\n            },\n            {\n                \"id\": 28,\n                \"space_id\": 2,\n                \"db_id\": 1,\n                \"partition_slot\": 1288490184,\n                \"replicas\": [\n                    1\n                ]\n            },\n            {\n                \"id\": 29,\n                \"space_id\": 2,\n                \"db_id\": 1,\n                \"partition_slot\": 1503238548,\n                \"replicas\": [\n                    1\n                ]\n            },\n            {\n                \"id\": 30,\n                \"space_id\": 2,\n                \"db_id\": 1,\n                \"partition_slot\": 1717986912,\n                \"replicas\": [\n                    1\n                ]\n            },\n            {\n                \"id\": 31,\n                \"space_id\": 2,\n                \"db_id\": 1,\n                \"partition_slot\": 1932735276,\n                \"replicas\": [\n                    1\n                ]\n            },\n            {\n                \"id\": 32,\n                \"space_id\": 2,\n                \"db_id\": 1,\n                \"partition_slot\": 2147483640,\n                \"replicas\": [\n                    1\n                ]\n            },\n            {\n                \"id\": 33,\n                \"space_id\": 2,\n                \"db_id\": 1,\n                \"partition_slot\": 2362232004,\n                \"replicas\": [\n                    1\n                ]\n            },\n            {\n                \"id\": 34,\n                \"space_id\": 2,\n                \"db_id\": 1,\n                \"partition_slot\": 2576980368,\n                \"replicas\": [\n                    1\n                ]\n            },\n            {\n                \"id\": 35,\n                \"space_id\": 2,\n                \"db_id\": 1,\n                \"partition_slot\": 2791728732,\n                \"replicas\": [\n                    1\n                ]\n            },\n            {\n                \"id\": 36,\n                \"space_id\": 2,\n                \"db_id\": 1,\n                \"partition_slot\": 3006477096,\n                \"replicas\": [\n                    1\n                ]\n            },\n            {\n                \"id\": 37,\n                \"space_id\": 2,\n                \"db_id\": 1,\n                \"partition_slot\": 3221225460,\n                \"replicas\": [\n                    1\n                ]\n            },\n            {\n                \"id\": 38,\n                \"space_id\": 2,\n                \"db_id\": 1,\n                \"partition_slot\": 3435973824,\n                \"replicas\": [\n                    1\n                ]\n            },\n            {\n                \"id\": 39,\n                \"space_id\": 2,\n                \"db_id\": 1,\n                \"partition_slot\": 3650722188,\n                \"replicas\": [\n                    1\n                ]\n            },\n            {\n                \"id\": 40,\n                \"space_id\": 2,\n                \"db_id\": 1,\n                \"partition_slot\": 3865470552,\n                \"replicas\": [\n                    1\n                ]\n            },\n            {\n                \"id\": 41,\n                \"space_id\": 2,\n                \"db_id\": 1,\n                \"partition_slot\": 4080218916,\n                \"replicas\": [\n                    1\n                ]\n            }\n        ],\n        \"fields\": {\n            \"city\": 12,\n            \"content\": 11,\n            \"geo_location\": 10,\n            \"insert_time\": 14,\n            \"age\": 13\n        },\n        \"name\": \"ansj_table\",\n        \"dynamic\": true,\n        \"partition_num\": 20,\n        \"replica_num\": 1,\n        \"properties\": {\n            \"city\": {\n                \"type\": \"string\"\n            },\n            \"age\": {\n                \"type\": \"integer\"\n            },\n            \"insert_time\": {\n                \"type\": \"date\"\n            },\n            \"geo_location\": {\n                \"type\": \"geo_point\"\n            },\n            \"content\": {\n                \"type\": \"string\",\n                \"analyzer\": \"standard\"\n            }\n        },\n        \"engine\": \"scorch\"\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "space change",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"ansj_table\",\n    \"dynamic\": true,\n    \"partition_num\": 2,\n    \"replica_num\": 1,\n    \"engine\":\"scorch\",\n    \"properties\": {\n        \"city\": {\n            \"type\": \"text\"\n        },\n        \"age\": {\n            \"type\": \"integer\"\n        },\n        \"age2\": {\n            \"type\": \"integer\"\n        },\n        \"insert_time2\": {\n            \"type\": \"date\"\n        },\n        \"geo_location3\": {\n            \"type\": \"geo_point\"\n        }\n    }\n}"
+						},
+						"url": {
+							"raw": "root:secret@127.0.0.1:8817/space/ansj/ansj_table",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"auth": {
+								"user": "root",
+								"password": "secret"
+							},
+							"port": "8817",
+							"path": [
+								"space",
+								"ansj",
+								"ansj_table"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "database",
+			"item": [
+				{
+					"name": "db get",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "127.0.0.1:8817/db/ansj",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"port": "8817",
+							"path": [
+								"db",
+								"ansj"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "db delete",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "root:secret@127.0.0.1:8817/db/ansj",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"auth": {
+								"user": "root",
+								"password": "secret"
+							},
+							"port": "8817",
+							"path": [
+								"db",
+								"ansj"
+							],
+							"query": [
+								{
+									"key": "engine",
+									"value": "scorch",
+									"disabled": true
+								},
+								{
+									"key": "db_name",
+									"value": "ansj",
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "db create",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"name\":\"ansj\"\n}"
+						},
+						"url": {
+							"raw": "root:secret@127.0.0.1:8817/db/_create",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"auth": {
+								"user": "root",
+								"password": "secret"
+							},
+							"port": "8817",
+							"path": [
+								"db",
+								"_create"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "db list",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "root:secret@127.0.0.1:8817/list/db",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"auth": {
+								"user": "root",
+								"password": "secret"
+							},
+							"port": "8817",
+							"path": [
+								"list",
+								"db"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "lock clean",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"name\": \"ansj_table\",\n    \"dynamic\": true,\n    \"partition_num\": 2,\n    \"replica_num\": 1,\n    \"engine\":\"scorch\",\n    \"properties\": {\n        \"city\": {\n            \"type\": \"text\"\n        },\n        \"age\": {\n            \"type\": \"integer\"\n        },\n        \"insert_time\": {\n            \"type\": \"date\"\n        },\n        \"geo_location\": {\n            \"type\": \"geo_point\"\n        }\n    }\n}"
+				},
+				"url": {
+					"raw": "root:secret@127.0.0.1:8817/clean_lock",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"auth": {
+						"user": "root",
+						"password": "secret"
+					},
+					"port": "8817",
+					"path": [
+						"clean_lock"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "config",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "root:secret@127.0.0.1:8817/conf",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"auth": {
+						"user": "root",
+						"password": "secret"
+					},
+					"port": "8817",
+					"path": [
+						"conf"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "server list",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "root:secret@127.0.0.1:8817/list/server",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"auth": {
+						"user": "root",
+						"password": "secret"
+					},
+					"port": "8817",
+					"path": [
+						"list",
+						"server"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "server stats",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "root:secret@127.0.0.1:8817/_cluster/stats",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"auth": {
+						"user": "root",
+						"password": "secret"
+					},
+					"port": "8817",
+					"path": [
+						"_cluster",
+						"stats"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
