@@ -1,4 +1,4 @@
-# ChubaoSearch
+# Vectorbase
 
-ChubaoSearch is a scalable search service of deep learning vectors
+It is a scalable search service of deep learning vectors
 
