@@ -1,4 +1,4 @@
-# Vectorbase
+# VectBase
 
-It is a scalable search service of deep learning vectors
+It is a scalable system for deep learning vector search. 
 
