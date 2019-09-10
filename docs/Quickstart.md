@@ -1,69 +1,31 @@
-# API for Visual Search
+# Quickstart
 
-Vearch Plugin is aimed to build a simple and fast image retrieval system. Through this system, you can easily build your own image retrieval system, including image object detection,  feature extraction and similarity search. This API demonstrates how to use it.
+Vearch is aimed to build a simple and fast image retrieval system. Through this system, you can easily build your own image retrieval system, including image object detection,  feature extraction and similarity search. This quickstart demonstrates how to use it.
+
+
+
+
+## Before you begin
+
+1. Deploy Vearch system referred to [Deploy.md](Deploy.md).
+2. Download the [weight](https://pjreddie.com/media/files/yolov3.weights) of object detect model in model/image_detect folder.
+
+ And you can download  [coco data](https://pjreddie.com/media/files/val2014.zip) for testing, or  use the images in images folder we choose from [coco data](https://pjreddie.com/media/files/val2014.zip).
+
+
+## Deploy your own plugin service
+
+This requires only two operations:
+
+1. Modify parameters `ip_address` in `config/config.py`;
+2. Execution script `run.sh`;
+
 
 
 ## Create a database and space
-The first step is to create a database and space, a database can have many spaces. A space is just like a table in database, you can define your data structure. The name of database and space are defined in the request path. In the path of request, `ip` is the address of your service, `port` is the port your service run on, default value is 4101, you can change this  by modifying the value of port defined in config/config.py. `database` and `space` are simply defined as "test" in the API. In the body of request,the parameter of db is used to distinguish whether to create a new database and space or only create a new space in this database. The value of `db` is true or false; `columns` is a dict mapping the fields in this space, `imageurl`, `boundingbox`  and `label` are required in each space, you can add other filed such as `sku` in `columns` ; `feature` is defined to assign a model to extract feature. Specifically as follows:
 
-**HTTP request**
+Before inserting and searching, you should create a database and space. Use the following `curl` command to create a new database and space.
 
-```shell
-POST http://{ip}:{port}/{database}/{space}/_create
-```
-
-path parameters:
-
-| Parameter | Type   | Explain                           |
-| --------- | ------ | --------------------------------- |
-| ip        | string | the address of service            |
-| port      | string | the port of service               |
-| database  | string | the name of db you want create    |
-| space     | string | the name of space you want create |
-
-
-
-**Request body**
-
-| Parameter | Type   | Required | Default | Explain                                          |
-| --------- | ------ | -------- | ------- | ------------------------------------------------ |
-| db        | bool   | no       | true    | whether to create DB                             |
-| columns   | dict   | yes      |         | the filed in the space                           |
-| feature   | dict   | yes      |         | define  a model to extract features from a field |
-
-columns parameters:
-The columns is a dictionary, mapping the type of each field in your data. The value of each type should be one of ["keyword", "int", "float", "vector", "null", "text", "bool", "date"]. `imageurl`,`boundingbox` and `label` are required, if you only have the url of image, You can delete this field and the system will generate one by default.
-
-
-| Parameter   | Type | Required | Explain                                                      |
-| ----------- | ---- | -------- | ------------------------------------------------------------ |
-| imageurl    | dict | yes      | image URI for an publicly accessible online image or image path stored in images folders |
-| boundingbox | dict | yes      | the boundingbox of the subject of the image.                 |
-| label       | dict | yes      | the categories of  image                                     |
-| sku         | dict | no       | other field in your data                                     |
-
-
-feature parameters
-
-
-| Parameter | Type    | Required | Explain                        |
-| --------- | ------- | -------- | ------------------------------ |
-| type      | string  | yes      | the type of feature            |
-| filed     | string  | yes      | the filed need extract feature |
-| model_id  | string  | yes      | the model to extract feature   |
-| dimension | integer | yes      | the dimension of  feature      |
-
-**Response body**
-
-| Parameter | Type    | Explain                           |
-| --------- | ------- | --------------------------------- |
-| code      | integer | the code of result,200 is success |
-| db_msg    | string  | the message of creating database  |
-| space_msg | string  | the message of creating space     |
-
-**Example**
-
-In this example, we create a database and space ,both name of them are "test". 
 ```shell
 curl -XPOST -H "content-type:application/json" -d '{
     "db": true,
@@ -88,7 +50,7 @@ curl -XPOST -H "content-type:application/json" -d '{
 }' http://{ip}:{port}/test/test/_create
 ```
 
-A successful response like this:
+A successful response looks like this:
 
 ```shell
 {"code": 200, "db_msg": "success", "space_msg": "success"}
@@ -98,34 +60,8 @@ A successful response like this:
 
 ## Delete a database and space
 
-If your database or space is created incorrectly, or you just don't want it, you can delete it by this way. The parameters in request path is same as above. You can delete both database and space or just delete space. The values of `db` and `space` are true or false.
+If you want delete a database and space. Use the following `curl` command to delete a database and space
 
-**HTTP request**
-
-```shell
-POST http://{ip}:{port}/{database}/{space}/_delete
-```
-
-`path` parameters same like above.
-
-**Request body**
-
-| Parameter | Type | Required | Explain                 |
-| --------- | ---- | -------- | ----------------------- |
-| db        | bool | yes      | whether to delete DB    |
-| space     | bool | yes      | whether to delete space |
-
-**Response body**
-
-| Parameter | Type    | Explain                           |
-| --------- | ------- | --------------------------------- |
-| code      | integer | the code of result,200 is success |
-| db_msg    | string  | the message of deleting database  |
-| space_msg | string  | the message of deleting space     |
-
-**Example**
-
-In this example, we only delete space.
 ```shell
 curl -XPOST -H "content-type:application/json" -d '{
     "db": false,
@@ -133,7 +69,7 @@ curl -XPOST -H "content-type:application/json" -d '{
 }' http://{ip}:{port}/test/test/_delete
 ```
 
-A successful response like this:
+A successful response looks like this:
 
 ```shell
 {"code": 200, "db_msg": "success", "space_msg": "success"}
@@ -143,40 +79,10 @@ A successful response like this:
 
 ## Insert data into space
 
-After creating space, you can import data into space. There are two ways to import,single or batch. You can control single import or batch import by parameter `method`. `imageurl` is an image URI for an publicly accessible online image or an image path stored in images local folder ,when `method` is "single". Otherwise, `imageurl` is the local path of csv file which including lots of image URIs. If you want to detect the subject of the image, you can set the parameter `detection`  true, otherwise false. If you set it true, the bounding box and label of image will be added when inserting records.
+We support both single and bulk imports. Use the following `curl` command to insert single data into space.
 
-**HTTP request**
+The method of single import demo:
 
-```shell
-POST http://{ip}:{port}/{database}/{space}/_insert
-```
-
-`path` parameters same like above.
-
-**Request body**
-
-| Parameter   | Type   | Required | Explain                                      |
-| ----------- | ------ | -------- | -------------------------------------------- |
-| method      | string | yes      | single or batch import                       |
-| imageurl    | string | yes      | image URI or csv file path, required if method is single      |
-| detection   | bool   | no       | whether object detection is required         |
-| boundingbox | string | no       | the boundingbox of the subject of the image. |
-| label       | string | no       | the categories of  image                     |
-
-`boundingbox` and `label` should exist together, `detection` should be false at the same time. If `detection` is true, `boundingbox` and `label` will be overrided.  If you do not need object detect or crop image,you can set `boundingbox` and `label` to None, and  `detection` to false .
-
-**Response body**
-
-| Parameter  | Type    | Explain                                       |
-| ---------- | ------- | --------------------------------------------- |
-| db         | string  | the name of database                          |
-| space      | string  | the name of space                             |
-| ids        | dict    | a dict mapping index is successful or failed. |
-| successful | integer | the number of successful record               |
-
-**Example**
-
- The method of single import demo:
 ```shell
 # single insert
 curl -XPOST -H "content-type:application/json" -d '{
@@ -188,12 +94,12 @@ curl -XPOST -H "content-type:application/json" -d '{
 
 ```
 
-The method of batch import demo:
+The method of bulk import demo:
 
 ```shell
-# batch insert
+# bulk insert
 curl -XPOST -H "content-type:application/json" -d '{
-    "method": "batch",
+    "method": "bulk",
     "imageurl": "./images/test.csv",
     "detection": true
 }' http://{ip}:{port}/test/test/_insert
@@ -243,41 +149,15 @@ A successful response like this:
 }
 ```
 
-
 ## Get record by ID
 
-You can use the ids returned above to check the status of the bulk import operation.
-
-**HTTP request**
-
-```shell
-GET http://{ip}:{port}/{database}/{space}/${id}
-```
-
-`path` parameters same like above, `id` is unique id of record  .
-
-**Response body**
-
-| Parameter | Type    | Explain                              |
-| --------- | ------- | ------------------------------------ |
-| _index    | string  | the name of db                       |
-| _type     | string  | the name of space                    |
-| _id       | string  | record unique ID                     |
-| found     | bool    | true or false                        |
-| _version  | integer | the version of this record           |
-| _source   | dict    | a dict mapping all fields in a space |
-
-**Example**
+Use the following `curl` command to get a record by ID
 
 ```shell
 # request
 curl -XGET http://{ip}:{port}/test/test/AWz2IFBSJG6WicwQVTog
 
-```
-
-A successful response like this:
-
-```shell
+# response
 {
     "_index": "test",
     "_type": "test",
@@ -292,38 +172,16 @@ A successful response like this:
 }
 ```
 
+
+
 ## Delete record by ID
 
-If you want delete a record and you know the unique id of this record, you can delete this record by this method.
-
-**HTTP request**
-
-```shell
-DELETE http://{ip}:{port}/{database}/{space}/${id}
-```
-
-`path` parameters same like above, `id` is unique id of record  .
-
-**Response body**
-
-| Parameter | Type    | Explain                      |
-| --------- | ------- | ---------------------------- |
-| code      | integer | the status code of result    |
-| msg       | string  | the status message of reuslt |
-
-**Example**
-
-In this example, we delete the record whose id is AWz2IFBSJG6WicwQVTog in test space.
+Use the following `curl` command to delete a record by ID
 
 ```shell
 # request
 curl -XDELETE http://{ip}:{port}/test/test/AWz2IFBSJG6WicwQVTog
 
-```
-
-A successful response like this:
-
-```shell
 # response
 {
     "code": 200,
@@ -332,38 +190,18 @@ A successful response like this:
 ```
 
 
+
 ## Update record by ID
 
-If you want update a record and you know the unique id of this record, you can update this record by this method. The body of request is same to body of request when inserting a record.
-
-**HTTP request**
+Use the following `curl` command to update a record by ID
 
 ```shell
-POST http://{ip}:{port}/{database}/{space}/_update?id=${id}
-```
-
-`path` parameters same like above, `id` is unique id of record  .
-
-**Request body**
-
-same as Insert data into space
-
-**Response body**
-
-same as Insert data into space
-
-**Example**
-
-```shell
+# request
 curl -XPOST -H "content-type:application/json" -d '{
     "imageurl": "images/test/COCO_val2014_000000123599.jpg",
     "detection": true
 }' http://{ip}:{port}/test/test/_update?id=AWz2IFBSJG6WicwQVTog
-```
-
-A successful response like this:
-
-```shell
+    
 # response
 {
     "db": "test",
@@ -378,41 +216,14 @@ A successful response like this:
 ```
 
 
+
 ## Search similar result from space 
 
-You can search using a base64 encoded local image, or use an image URI for an publicly accessible online image or an image stored in a local path such as the image below.
+You can search using a base64 encoded local image, or use an image URI for an publicly accessible online image or an image stored in images folders.
 
-![img/plugin/COCO_val2014_000000123599.jpg](img/plugin/COCO_val2014_000000123599.jpg)
-
-**HTTP request**
+Search using an image stored in images folders or image URI on Internet. Use the following `curl` command to search  similar result from space
 
 ```shell
-POST http://{ip}:{port}/{database}/{space}/_search
-```
-
-`path` parameters same like above.
-
-**Request body**
-
-| Parameter   | Type    | Required | Explain                              |
-| ----------- | ------- | -------- | ------------------------------------ |
-| imageurl    | string  | yes      | image URI or base64 encoded image    |
-| detection   | string  | no       | whether object detection is required |
-| boundingbox | string  | no       | the boundingbox of the image.        |
-| size        | integer | no       | the num of  search result            |
-| filter      | list    | no       | the fileds required filter           |
-| label       | string  | no       | the categories of  image             |
-
-**Response body**
-
-just like following
-
-**Example**
-
-Search using an image stored in images folders or image URI on Internet 
-
-```shell
-# request
 curl -XPOST -H "content-type:application/json" -d '{
     "imageurl": "images/test/COCO_val2014_000000123599.jpg",
     "detection": true,
@@ -428,19 +239,17 @@ curl -XPOST -H "content-type:application/json" -d '{
     ],
     "size": 5
 }' http://{ip}:{port}/test/test/_search
-
-
 ```
 
-Search using an base64 encoded image 
+or you can simply use the following `curl` command:
 
 ```shell
 curl -XPOST -H "content-type:application/json" -d '{
-    "imageurl": "$(base64 -w 0 images/test/COCO_val2014_000000123599.jpg)"
-}'http://{ip}:{port}/test/test/_search
+    "imageurl": "images/test/COCO_val2014_000000123599.jpg"
+}' http://{ip}:{port}/test/test/_search
 ```
 
-A successful response
+A successful response looks like this:
 
 ```shell
 {
@@ -698,10 +507,12 @@ A successful response
         ]
     }
 }
+
 ```
 
 search result look like this
 
-![img/plugin/COCO_val2014_000000123599.jpg](img/plugin/COCO_val2014_000000123599.jpg)
+![docs/img/plugin/COCO_val2014_000000123599.jpg](img/plugin/COCO_val2014_000000123599.jpg)
 
-![img/plugin/result.jpg](img/plugin/result.jpg)
+![docs/img/plugin/result.jpg](img/plugin/result.jpg)
+
