@@ -382,7 +382,7 @@ A successful response like this:
 
 You can search using a base64 encoded local image, or use an image URI for an publicly accessible online image or an image stored in a local path such as the image below.
 
-![images/COCO_val2014_000000123599.jpg](plugin/images/COCO_val2014_000000123599.jpg)
+![docs/img/plugin/COCO_val2014_000000123599.jpg](docs/img/plugin/COCO_val2014_000000123599.jpg)
 
 **HTTP request**
 
@@ -702,6 +702,6 @@ A successful response
 
 search result look like this
 
-![docs/plugin/images/COCO_val2014_000000123599.jpg](docs/plugin/images/COCO_val2014_000000123599.jpg)
+![docs/img/plugin/COCO_val2014_000000123599.jpg](docs/img/plugin/COCO_val2014_000000123599.jpg)
 
-![docs/plugin/images/result.jpg](docs/plugin/images/result.jpg)
+![docs/img/plugin/result.jpg](docs/img/plugin/result.jpg)
