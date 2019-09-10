@@ -702,6 +702,6 @@ A successful response
 
 search result look like this
 
-![plugin/images/COCO_val2014_000000123599.jpg](plugin/images/COCO_val2014_000000123599.jpg)
+![docs/plugin/images/COCO_val2014_000000123599.jpg](docs/plugin/images/COCO_val2014_000000123599.jpg)
 
-![plugin/images/result.jpg](plugin/images/result.jpg)
+![docs/plugin/images/result.jpg](docs/plugin/images/result.jpg)
