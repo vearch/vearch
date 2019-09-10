@@ -1,8 +1,6 @@
 # Vearch
-<div align="center">
-  <img src="docs/img/vearch_logo.png">
-</div>
-Vearch is a scalable system for deep learning vector search, and particularly it can works as an open source visual search engine.
+
+Distributed deep learning vector search system
 
 ## Architecture
 
@@ -29,21 +27,3 @@ Vearch is a scalable system for deep learning vector search, and particularly it
 
   > Gamma`is the core vector search engine. It provides the ability of storing, indexing and retrieving the vectors and scalars.
 
-
-## Quick start
-
-* Quickly build a distributed vector search system with Restful api, please see [docs/Deploy.md](docs/Deploy.md).
-
-
-* Quickly build a complete visual search system, which can support billion-scale images. The image retrieval plugin about object detection and feature extraction should be extra required, For more information, please refer to [plugin/README.md](plugin/README.md).
-
-## API
-
-### VisualSearchAPI
-* [docs/APIVisualSearch.md](docs/APIVisualSearch.md)
-
-### LowLevelAPI
-* [docs/APILowLevel.md](docs/APILowLevel.md)
-
-## License
-Licensed under the Apache License, Version 2.0. For detail see LICENSE and NOTICE.
