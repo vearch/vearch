@@ -7,7 +7,7 @@ Vearch is aimed to build a simple and fast image retrieval system. Through this 
 
 ## Before you begin
 
-1. Deploy Vearch system referred to [Deploy.md](docs/Deploy.md).
+1. Deploy Vearch system referred to [Deploy.md](Deploy.md).
 2. Download the [weight](https://pjreddie.com/media/files/yolov3.weights) of object detect model in model/image_detect folder.
 
  And you can download  [coco data](https://pjreddie.com/media/files/val2014.zip) for testing, or  use the images in images folder we choose from [coco data](https://pjreddie.com/media/files/val2014.zip).
@@ -512,7 +512,7 @@ A successful response looks like this:
 
 search result look like this
 
-![docs/img/plugin/COCO_val2014_000000123599.jpg](docs/img/plugin/COCO_val2014_000000123599.jpg)
+![docs/img/plugin/COCO_val2014_000000123599.jpg](img/plugin/COCO_val2014_000000123599.jpg)
 
-![docs/img/plugin/result.jpg](docs/img/plugin/result.jpg)
+![docs/img/plugin/result.jpg](img/plugin/result.jpg)
 
