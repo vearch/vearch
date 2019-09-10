@@ -1,4 +1,3 @@
-# Vearch
 <div align="center">
   <img src="docs/img/vearch_logo.png">
 </div>
