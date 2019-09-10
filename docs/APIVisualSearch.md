@@ -1,4 +1,4 @@
-# Vearch Plugin API
+# API for Visual Search
 
 Vearch Plugin is aimed to build a simple and fast image retrieval system. Through this system, you can easily build your own image retrieval system, including image object detection,  feature extraction and similarity search. This API demonstrates how to use it.
 
