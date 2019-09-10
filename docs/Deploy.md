@@ -1,7 +1,5 @@
 # Vearch Compile and Deploy
 
-[TOC]
-
 ## Compile
 
 #### Dependent Environment 
