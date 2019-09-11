@@ -1,7 +1,0 @@
-/home/lijie/vectordb/baudvs/dev/tmp/vearch.github/tmp/vearch/engine/gamma/release/CMakeFiles/install/strip.dir
-/home/lijie/vectordb/baudvs/dev/tmp/vearch.github/tmp/vearch/engine/gamma/release/CMakeFiles/install/local.dir
-/home/lijie/vectordb/baudvs/dev/tmp/vearch.github/tmp/vearch/engine/gamma/release/CMakeFiles/install.dir
-/home/lijie/vectordb/baudvs/dev/tmp/vearch.github/tmp/vearch/engine/gamma/release/CMakeFiles/list_install_components.dir
-/home/lijie/vectordb/baudvs/dev/tmp/vearch.github/tmp/vearch/engine/gamma/release/CMakeFiles/rebuild_cache.dir
-/home/lijie/vectordb/baudvs/dev/tmp/vearch.github/tmp/vearch/engine/gamma/release/CMakeFiles/edit_cache.dir
-/home/lijie/vectordb/baudvs/dev/tmp/vearch.github/tmp/vearch/engine/gamma/release/CMakeFiles/gamma.dir
