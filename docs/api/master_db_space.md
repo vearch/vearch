@@ -159,7 +159,7 @@ PUT 127.0.0.1:8817/space/ansj/_create
 ```
 {
     "code": 500,
-    "msg": "dbname baud1 is exists"
+    "msg": "dbname db1 is exists"
 }
 ```
 
