@@ -4,11 +4,17 @@
 
 
 ## Overview
-Vearch is a scalable system for deep learning vector search, and particularly it can works as an open source visual search engine.
+
+Vearch is a scalable distributed system for efficient similarity search of deep learning vectors. 
+
 
 ## Architecture
 
 ![arc](docs/img/VearchArch.jpg)
+
+* Data Model
+
+  space, documents, vectors, scalars
 
 * Components
 
@@ -16,36 +22,38 @@ Vearch is a scalable system for deep learning vector search, and particularly it
 
 * Master 
 
-  When you crate database or space you must use this service , default port is `8817` when you create dabase is only create a scope associate user permissions.
-
-  When you create space ,the master will select relatively idel machine to create partition , when you delete space the master notice the related machines to delete local partition.
-
-  Responsible for the management of distributed configurations.
+  Responsible for schema mananagement, cluster-level metadata, and resource coordination. 
+  
 * Router
 
-  Supports restful api.`create`  , `delete`  `search` and `update` ， also when write document it routing function to related machine , to save it , you can define your routing args default is `_id` , and merge multiple searching results to one result.
+  Provides RESTful API: `create`  , `delete`  `search` and `update` ; request routing, and result merging. 
 
 * PartitionServer (PS)
 
-  Hosts document partitions, raft-based replication.
+  Hosts document partitions with raft-based replication.
 
   Gamma`is the core vector search engine. It provides the ability of storing, indexing and retrieving the vectors and scalars.
 
 
 ## Quick start
 
-* Quickly build a distributed vector search system with Restful api, please see [docs/Deploy.md](docs/Deploy.md).
+* Quickly build a distributed vector search system with RESTful API, please see [docs/Deploy.md](docs/Deploy.md).
 
 
-* Quickly build a complete visual search system, which can support billion-scale images. The image retrieval plugin about object detection and feature extraction should be extra required, For more information, please refer to [docs/Quickstart.md](docs/Quickstart.md).
+* Vearch can be leveraged to build a complete visual search system to index billions of images. The image retrieval plugin for object detection and feature extraction is also required. For more information, please refer to [docs/Quickstart.md](docs/Quickstart.md).
 
-## API
+
+## APIs and Use Cases
+
+
+### LowLevelAPI
+* [docs/APILowLevel.md](docs/APILowLevel.md)
+
 
 ### VisualSearchAPI
 * [docs/APIVisualSearch.md](docs/APIVisualSearch.md)
 
-### LowLevelAPI
-* [docs/APILowLevel.md](docs/APILowLevel.md)
+
 
 ## License
 Licensed under the Apache License, Version 2.0. For detail see LICENSE and NOTICE.
