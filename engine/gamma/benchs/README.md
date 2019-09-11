@@ -35,7 +35,7 @@ We use recall at 1 to show the result.
 
 ### Result
 
-![nprobe](docs/img/gamma/benchs/nprobe.png)
+![nprobe](/docs/img/gamma/benchs/nprobe.png)
 
 As we can see, when nprobe exceeds 25, there is no obvious change of recalls. Also, when nprobe get larger,only QPS of vgg10M get smaller, QPS of vgg1M and QPS of sift1M  basically have no changes.
 
@@ -45,7 +45,7 @@ We do experiment on VGG10M. The number of centroid ∈{64,128,256,512,1024,2048,
 
 ### Result
 
-![ncentroids](docs/img/gamma/benchs/ncentroids.png)
+![ncentroids](/docs/img/gamma/benchs/ncentroids.png)
 
 As we can see, there is no obvious change of recalls when the number of centroid get larger. But the QPS become higher and higher as the number of centroid grows.
 
@@ -55,7 +55,7 @@ We do experiment on VGG10M. The number of byte ∈{4,8,16,32,64}. We set ncentro
 
 ### Result
 
-![nbytes](docs/img/gamma/benchs/nbytes.png)
+![nbytes](/docs/img/gamma/benchs/nbytes.png)
 
 As we can see, when the number of byte grows, the recall get higher and higher, but the QPS drops obviously.
 
@@ -125,6 +125,6 @@ First, we do experiments by searching on cluster only with vgg features. Then, w
 
 ### Result
 
-![cluster](docs/img/gamma/benchs/cluster.png)
+![cluster](/docs/img/gamma/benchs/cluster.png)
 
 The growth shape of QPS is more like inverted J-shaped curve which means the growth of QPS basically have no obvious change when average latency exceed one certain number. 
