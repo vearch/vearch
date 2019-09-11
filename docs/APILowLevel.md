@@ -50,10 +50,8 @@ curl -v --user "root:secret" -H "content-type: application/json" -XPUT -d'
 * nprobe : scan clustered buckets, default 10, it should be less than ncentroids
 * metric_type : inner product or L2 
 * ncentroids : coarse cluster center number, default 256
-* nsubvector : the number of sub vector, default 32, 
-*              only the value which is multiple of 4 is supported now
-* nbits_per_idx : bit number of sub cluster center, default 8, 
-*                 and 8 is the only value now
+* nsubvector : the number of sub vector, default 32, only the value which is multiple of 4 is supported now
+* nbits_per_idx : bit number of sub cluster center, default 8, and 8 is the only value now
 * keyword
 * array : whether the tags for each document is multi-valued, `true` or `false` default is false
 * index : supporting numeric field filter default `false`
