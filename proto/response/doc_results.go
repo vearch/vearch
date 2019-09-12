@@ -17,57 +17,56 @@ package response
 import "github.com/vearch/vearch/util/cbjson"
 
 func NewErrDocResults(ids []string, err error) []*DocResult {
-    result := make(DocResults, len(ids))
-    for i, id := range ids {
-        result[i] = NewErrDocResult(id, err)
-    }
-    return result
+	result := make(DocResults, len(ids))
+	for i, id := range ids {
+		result[i] = NewErrDocResult(id, err)
+	}
+	return result
 }
 
 type DocResults []*DocResult
 
 func (this *DocResults) ToContent(dbName, spaceName string) ([]byte, error) {
 
-    var builder = cbjson.ContentBuilderFactory()
+	var builder = cbjson.ContentBuilderFactory()
 
-    builder.BeginArray()
+	builder.BeginArray()
 
-    for i, u := range *this {
-        if i != 0 {
-            builder.More()
-        }
-        builder.BeginObject()
+	for i, u := range *this {
+		if i != 0 {
+			builder.More()
+		}
+		builder.BeginObject()
 
-        builder.Field("_index")
-        builder.ValueString(dbName)
+		builder.Field("_index")
+		builder.ValueString(dbName)
 
-        builder.More()
-        builder.Field("_type")
-        builder.ValueString(spaceName)
+		builder.More()
+		builder.Field("_type")
+		builder.ValueString(spaceName)
 
-        builder.More()
-        builder.Field("_id")
-        builder.ValueString(u.Id)
+		builder.More()
+		builder.Field("_id")
+		builder.ValueString(u.Id)
 
-        builder.More()
-        builder.Field("found")
-        builder.ValueBool(u.Found)
+		builder.More()
+		builder.Field("found")
+		builder.ValueBool(u.Found)
 
-        if u.Found {
-            builder.More()
-            builder.Field("_version")
-            builder.ValueNumeric(u.Version)
+		if u.Found {
+			builder.More()
+			builder.Field("_version")
+			builder.ValueNumeric(u.Version)
 
-            builder.More()
-            builder.Field("_source")
-            builder.ValueInterface(u.Source)
-        }
+			builder.More()
+			builder.Field("_source")
+			builder.ValueInterface(u.Source)
+		}
 
-        builder.EndObject()
-    }
+		builder.EndObject()
+	}
 
-    builder.EndArray()
+	builder.EndArray()
 
-    return builder.Output()
+	return builder.Output()
 }
-

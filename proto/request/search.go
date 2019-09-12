@@ -25,8 +25,8 @@ type SearchRequest struct {
 	DB          string             `json:"db,omitempty"`
 	Space       string             `json:"space,omitempty"`
 	PartitionID entity.PartitionID `json:"partition,omitempty"`
-	Start       *int64             `json:"start,omitempty"`  // use partition filter
-	End         *int64             `json:"end,omitempty"`    // use partition filter
+	Start       *int64             `json:"start,omitempty"` // use partition filter
+	End         *int64             `json:"end,omitempty"`   // use partition filter
 }
 
 func (req *SearchRequest) Context() *RequestContext {

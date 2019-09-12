@@ -18,41 +18,40 @@ import "context"
 
 // it use base struct must first field in structs
 type RequestContext struct {
-    MessageId    string `json:"message_id,omitempty"`
-    Timeout      int64  `json:"timeout,omitempty"`
-    PartitionNum int    `json:"partition_num,omitempty"`
-    RouterAddr   string `json:"router_addr,omitempty"`
-    Leader       bool   `json:"leader,omitempty"`
-    ctx          context.Context
-    store        interface{}
-    cannels      []func()
+	MessageId    string `json:"message_id,omitempty"`
+	Timeout      int64  `json:"timeout,omitempty"`
+	PartitionNum int    `json:"partition_num,omitempty"`
+	RouterAddr   string `json:"router_addr,omitempty"`
+	Leader       bool   `json:"leader,omitempty"`
+	ctx          context.Context
+	store        interface{}
+	cannels      []func()
 }
 
 func (request *RequestContext) AddCannelFunc(cannel func()) {
-    request.cannels = append(request.cannels, cannel)
+	request.cannels = append(request.cannels, cannel)
 }
 
 func (request *RequestContext) Cannel() {
-    if len(request.cannels) == 0 {
-        return
-    }
-    for _, cannel := range request.cannels {
-        cannel()
-    }
+	if len(request.cannels) == 0 {
+		return
+	}
+	for _, cannel := range request.cannels {
+		cannel()
+	}
 }
 
 func (request *RequestContext) SetContext(ctx context.Context) {
-    request.ctx = ctx
+	request.ctx = ctx
 }
 func (request *RequestContext) GetContext() context.Context {
-    return request.ctx
+	return request.ctx
 }
 
 func (request *RequestContext) GetStore() interface{} {
-    return request.store
+	return request.store
 }
 
 func (request *RequestContext) SetStore(store interface{}) {
-    request.store = store
+	request.store = store
 }
-

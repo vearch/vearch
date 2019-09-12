@@ -19,13 +19,13 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/vearch/vearch/util"
 	"github.com/vearch/vearch/util/ginutil"
-	"github.com/vearch/vearch/util/server/baudhttp"
+	"github.com/vearch/vearch/util/server/vearchhttp"
 	"net/http"
 )
 
 func ExportToUserHandler(router *gin.Engine, masterService *masterService) {
 
-	dh := baudhttp.NewBaudHandler(30)
+	dh := vearchhttp.NewBaseHandler(30)
 
 	u := &clusterApi{router: router, masterService: masterService, dh: dh}
 
@@ -41,7 +41,7 @@ func ExportToUserHandler(router *gin.Engine, masterService *masterService) {
 }
 
 func (api *clusterApi) createUser(c *gin.Context) {
-	ctx, _ := c.Get(baudhttp.Ctx)
+	ctx, _ := c.Get(vearchhttp.Ctx)
 
 	if err := c.Request.ParseForm(); err != nil {
 		ginutil.NewAutoMehtodName(c, api.monitor).SendJsonHttpReplyError(err)
@@ -66,7 +66,7 @@ func (api *clusterApi) createUser(c *gin.Context) {
 }
 
 func (api *clusterApi) grantUserPriv(c *gin.Context) {
-	ctx, _ := c.Get(baudhttp.Ctx)
+	ctx, _ := c.Get(vearchhttp.Ctx)
 
 	if err := c.Request.ParseForm(); err != nil {
 		ginutil.NewAutoMehtodName(c, api.monitor).SendJsonHttpReplyError(err)
@@ -76,7 +76,7 @@ func (api *clusterApi) grantUserPriv(c *gin.Context) {
 
 	privilist := c.Request.FormValue(privilege)
 
-	user, err := api.masterService.grantUserPriv(ctx.(context.Context),userName, privilist)
+	user, err := api.masterService.grantUserPriv(ctx.(context.Context), userName, privilist)
 	if err != nil {
 		ginutil.NewAutoMehtodName(c, api.monitor).SendJsonHttpReplyError(err)
 		return
@@ -86,7 +86,7 @@ func (api *clusterApi) grantUserPriv(c *gin.Context) {
 }
 
 func (api *clusterApi) grantUserDB(c *gin.Context) {
-	ctx, _ := c.Get(baudhttp.Ctx)
+	ctx, _ := c.Get(vearchhttp.Ctx)
 
 	if err := c.Request.ParseForm(); err != nil {
 		ginutil.NewAutoMehtodName(c, api.monitor).SendJsonHttpReplyError(err)
@@ -95,7 +95,7 @@ func (api *clusterApi) grantUserDB(c *gin.Context) {
 	userName := c.Request.FormValue(userName)
 	dblist := c.Request.FormValue(userDbList)
 
-	user, err := api.masterService.grantUserDB(ctx.(context.Context),userName, dblist)
+	user, err := api.masterService.grantUserDB(ctx.(context.Context), userName, dblist)
 	if err != nil {
 		ginutil.NewAutoMehtodName(c, api.monitor).SendJsonHttpReplyError(err)
 		return
@@ -105,7 +105,7 @@ func (api *clusterApi) grantUserDB(c *gin.Context) {
 }
 
 func (api *clusterApi) revokeUserPriv(c *gin.Context) {
-	ctx, _ := c.Get(baudhttp.Ctx)
+	ctx, _ := c.Get(vearchhttp.Ctx)
 
 	if err := c.Request.ParseForm(); err != nil {
 		ginutil.NewAutoMehtodName(c, api.monitor).SendJsonHttpReplyError(err)
@@ -113,7 +113,7 @@ func (api *clusterApi) revokeUserPriv(c *gin.Context) {
 	}
 	userName := c.Request.FormValue(userName)
 	privilist := c.Request.FormValue(privilege)
-	user, err := api.masterService.revokeUserPriv(ctx.(context.Context),userName, privilist)
+	user, err := api.masterService.revokeUserPriv(ctx.(context.Context), userName, privilist)
 	if err != nil {
 		ginutil.NewAutoMehtodName(c, api.monitor).SendJsonHttpReplyError(err)
 		return
@@ -123,7 +123,7 @@ func (api *clusterApi) revokeUserPriv(c *gin.Context) {
 }
 
 func (api *clusterApi) revokeUserDB(c *gin.Context) {
-	ctx, _ := c.Get(baudhttp.Ctx)
+	ctx, _ := c.Get(vearchhttp.Ctx)
 
 	if err := c.Request.ParseForm(); err != nil {
 		ginutil.NewAutoMehtodName(c, api.monitor).SendJsonHttpReplyError(err)
@@ -132,7 +132,7 @@ func (api *clusterApi) revokeUserDB(c *gin.Context) {
 	userName := c.Request.FormValue(userName)
 	dblist := c.Request.FormValue(userDbList)
 
-	user, err := api.masterService.revokeUserDB(ctx.(context.Context),userName, dblist)
+	user, err := api.masterService.revokeUserDB(ctx.(context.Context), userName, dblist)
 	if err != nil {
 		ginutil.NewAutoMehtodName(c, api.monitor).SendJsonHttpReplyError(err)
 		return
@@ -142,14 +142,14 @@ func (api *clusterApi) revokeUserDB(c *gin.Context) {
 }
 
 func (api *clusterApi) deleteUser(c *gin.Context) {
-	ctx, _ := c.Get(baudhttp.Ctx)
+	ctx, _ := c.Get(vearchhttp.Ctx)
 
 	if err := c.Request.ParseForm(); err != nil {
 		ginutil.NewAutoMehtodName(c, api.monitor).SendJsonHttpReplyError(err)
 		return
 	}
 	userName := c.Request.FormValue(userName)
-	user, err := api.masterService.deleteUser(ctx.(context.Context),userName)
+	user, err := api.masterService.deleteUser(ctx.(context.Context), userName)
 	if err != nil {
 		ginutil.NewAutoMehtodName(c, api.monitor).SendJsonHttpReplyError(err)
 		return
@@ -159,14 +159,14 @@ func (api *clusterApi) deleteUser(c *gin.Context) {
 }
 
 func (api *clusterApi) getUser(c *gin.Context) {
-	ctx, _ := c.Get(baudhttp.Ctx)
+	ctx, _ := c.Get(vearchhttp.Ctx)
 
 	if err := c.Request.ParseForm(); err != nil {
 		ginutil.NewAutoMehtodName(c, api.monitor).SendJsonHttpReplyError(err)
 		return
 	}
 
-	user, err := api.masterService.queryUser(ctx.(context.Context),c.Query(userName))
+	user, err := api.masterService.queryUser(ctx.(context.Context), c.Query(userName))
 	if err != nil {
 		ginutil.NewAutoMehtodName(c, api.monitor).SendJsonHttpReplyError(err)
 		return
@@ -188,7 +188,7 @@ func (api *clusterApi) listUser(c *gin.Context) {
 }
 
 func (api *clusterApi) userPasswdUpdate(c *gin.Context) {
-	ctx, _ := c.Get(baudhttp.Ctx)
+	ctx, _ := c.Get(vearchhttp.Ctx)
 
 	if err := c.Request.ParseForm(); err != nil {
 		ginutil.NewAutoMehtodName(c, api.monitor).SendJsonHttpReplyError(err)
@@ -197,7 +197,7 @@ func (api *clusterApi) userPasswdUpdate(c *gin.Context) {
 	userName := c.Request.FormValue(userName)
 	passwd := c.Request.FormValue(userPassword)
 
-	user, err := api.masterService.updateUserPass(ctx.(context.Context),userName, passwd)
+	user, err := api.masterService.updateUserPass(ctx.(context.Context), userName, passwd)
 	if err != nil {
 		ginutil.NewAutoMehtodName(c, api.monitor).SendJsonHttpReplyError(err)
 		return

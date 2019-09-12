@@ -41,6 +41,11 @@
 #### How to use it 
 > you can use `docker run -it -v config.toml:/vearch/config.toml vearch all` to start vearch by local model the last param has four type[`ps`, `router` ,`master`, `all`] all means tree type to start
        
+
+## Docker Example
+* go to $vearch/cloud dir
+* you can run `./run_docker.sh`        
+       
 ## Deploy
    Before run vearch, you shuld set `LD_LIBRARY_PATH`, Ensure that system can find faiss and gamma dynamic libraries (like $vearch/ps/engine/gammacb/lib/lib and $FAISS_HOME/lib directory files) .
    #### 1 Local Model

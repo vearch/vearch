@@ -59,7 +59,7 @@ const (
 )
 
 const (
-	PrefixUser     = "/user/"
+	PrefixUser         = "/user/"
 	PrefixLock         = "/lock/"
 	PrefixLockCluster  = "/lock/_cluster"
 	PrefixServer       = "/server/"
@@ -87,4 +87,3 @@ type (
 	//node id for ps
 	NodeID = uint64
 )
-
