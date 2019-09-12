@@ -66,7 +66,6 @@ func (store *EtcdStore) NewIDGenerate(ctx context.Context, key string, base int6
 	return nextID, nil
 }
 
-
 func (store *EtcdStore) NewLock(ctx context.Context, key string, timeout time.Duration) *DistLock {
 	return NewDistLock(ctx, store.cli, key, timeout)
 }
@@ -216,7 +215,7 @@ func (store *EtcdStore) WatchPrefix(ctx context.Context, key string) (clientv3.W
 	if err == nil {
 		startRevision = initial.Header.Revision
 	}
-	watcher :=  store.cli.Watch(ctx, key, clientv3.WithPrefix(), clientv3.WithRev(startRevision))
+	watcher := store.cli.Watch(ctx, key, clientv3.WithPrefix(), clientv3.WithRev(startRevision))
 	if watcher == nil {
 		return nil, fmt.Errorf("watch %v failed", key)
 	}

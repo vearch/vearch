@@ -3,7 +3,7 @@ package raftpb;
 
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 
-import "github.com/tiglabs/baudengine/proto/pspb/api.proto";
+import "github.com/vearch/vearch/proto/pspb/api.proto";
 
 option go_package = "raftpb";
 

@@ -19,13 +19,13 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"github.com/vearch/vearch/util/baudlog"
+	"github.com/vearch/vearch/util/vearchlog"
 	"time"
 
 	"github.com/jasonlvhit/gocron"
+	"github.com/tiglabs/log"
 	"github.com/vearch/vearch/proto"
 	"github.com/vearch/vearch/proto/entity"
-	"github.com/tiglabs/log"
 	"go.etcd.io/etcd/clientv3/concurrency"
 )
 
@@ -106,7 +106,7 @@ var skipJob = fmt.Errorf("skip job")
 
 func cleanTask(masterServer *Server) {
 
-	if masterServer.monitor !=  nil {
+	if masterServer.monitor != nil {
 		masterServer.monitor.Alive() //add alive monitor
 	}
 
@@ -237,7 +237,7 @@ func (s *Server) frozenJob(ctx context.Context) {
 					return
 				}
 
-				defer baudlog.FunIfNotNil(lock.Unlock)
+				defer vearchlog.FunIfNotNil(lock.Unlock)
 
 				nowSpace, err := s.client.Master().QuerySpaceById(ctx, space.DBId, space.Id)
 				if err != nil {

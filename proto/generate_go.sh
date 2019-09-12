@@ -74,7 +74,6 @@ ret=0
 for file in `ls ${proto_dir}/*.proto`
 do
     base_name=$(basename $file ".proto")"pb"
-    #protoc -I${proto_dir}:${first_gopath}/src:${GOGO_ROOT}:${GOGO_ROOT}/protobuf -I/Users/yangyang65/work/go_workspace/baud/src --gofast_out=plugins=grpc,$GO_OUT_M:$gen_out_dir $file || ret=$?
     protoc -I${proto_dir}:${first_gopath}/src:${GOGO_ROOT}:${GOGO_ROOT}/protobuf --gofast_out=plugins=grpc,$GO_OUT_M:$gen_out_dir $file || ret=$?
     pb_files=${gen_out_dir}/*.pb.go
 #    sed -i.bak -E 's/import _ \"gogoproto\"//g' ${pb_files}

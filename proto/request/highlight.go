@@ -15,10 +15,10 @@
 package request
 
 type HighlightRequest struct {
-    PreTags           []string               `json:"pre_tags,omitempty"`
-    PostTags          []string               `json:"post_tags,omitempty"`
-    Fields            map[string]interface{} `json:"fields,omitempty"`
-    RequireFieldMatch bool                   `json:"require_field_match,omitempty"`
-    FragmentSize      int                    `json:"fragment_size,omitempty"`
-    NumberOfFragments int                    `json:"number_of_fragments,omitempty"`
+	PreTags           []string               `json:"pre_tags,omitempty"`
+	PostTags          []string               `json:"post_tags,omitempty"`
+	Fields            map[string]interface{} `json:"fields,omitempty"`
+	RequireFieldMatch bool                   `json:"require_field_match,omitempty"`
+	FragmentSize      int                    `json:"fragment_size,omitempty"`
+	NumberOfFragments int                    `json:"number_of_fragments,omitempty"`
 }

@@ -15,23 +15,22 @@
 package response
 
 import (
-    "github.com/vearch/vearch/util/cbjson"
+	"github.com/vearch/vearch/util/cbjson"
 )
 
 func NewObjResponse(value interface{}) (*ObjResponse, error) {
-    bytes, err := cbjson.Marshal(value)
-    if err != nil {
-        return nil, err
-    }
-    return &ObjResponse{Value: bytes}, nil
+	bytes, err := cbjson.Marshal(value)
+	if err != nil {
+		return nil, err
+	}
+	return &ObjResponse{Value: bytes}, nil
 }
 
 type ObjResponse struct {
-    Value []byte `json:"value,omitempty"`
+	Value []byte `json:"value,omitempty"`
 }
 
 //this function will decoding or encoding value
 func (req *ObjResponse) Decode(i interface{}) error {
-    return cbjson.Unmarshal(req.Value, i)
+	return cbjson.Unmarshal(req.Value, i)
 }
-

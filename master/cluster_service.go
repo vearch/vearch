@@ -21,21 +21,21 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	"github.com/vearch/vearch/ps/engine/mapping"
-	"github.com/vearch/vearch/util/baudlog"
 	"github.com/vearch/vearch/util/cbjson"
 	"github.com/vearch/vearch/util/metrics/mserver"
 	"github.com/vearch/vearch/util/uuid"
+	"github.com/vearch/vearch/util/vearchlog"
 	"math"
 	"sort"
 	"strings"
 	"time"
 
 	"github.com/spf13/cast"
+	"github.com/tiglabs/log"
 	"github.com/vearch/vearch/client"
 	"github.com/vearch/vearch/proto"
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/util"
-	"github.com/tiglabs/log"
 	"go.etcd.io/etcd/clientv3/concurrency"
 )
 
@@ -156,7 +156,7 @@ func (this *masterService) deleteDBService(ctx context.Context, dbstr string) (e
 		return err
 	}
 	//it will local cluster ,to create space
-	mutex := this.Master().NewLock(ctx, entity.PrefixLockCluster, time.Second*300);
+	mutex := this.Master().NewLock(ctx, entity.PrefixLockCluster, time.Second*300)
 	defer func() {
 		if err := mutex.Unlock(); err != nil {
 			log.Error("unlock space err ")
@@ -459,7 +459,7 @@ func (ms *masterService) frozenPartition(ctx context.Context, partitionID entity
 	if err = lock.Lock(); err != nil {
 		return err
 	}
-	defer baudlog.FunIfNotNil(lock.Unlock)
+	defer vearchlog.FunIfNotNil(lock.Unlock)
 
 	space, err = ms.Master().QuerySpaceById(ctx, partition.DBId, partition.SpaceId)
 	if err != nil {
@@ -501,7 +501,7 @@ func (ms *masterService) appendPartition(ctx context.Context, dbName, spaceName 
 	if err = lock.Lock(); err != nil {
 		return err
 	}
-	defer baudlog.FunIfNotNil(lock.Unlock)
+	defer vearchlog.FunIfNotNil(lock.Unlock)
 
 	space, err = ms.Master().QuerySpaceById(ctx, dbID, space.Id)
 	if err != nil {
@@ -526,7 +526,7 @@ func (ms *masterService) deletePartition(ctx context.Context, dbName string, spa
 	if err = lock.Lock(); err != nil {
 		return err
 	}
-	defer baudlog.FunIfNotNil(lock.Unlock)
+	defer vearchlog.FunIfNotNil(lock.Unlock)
 
 	space, err := ms.Master().QuerySpaceByName(ctx, dbID, spaceName)
 	if err != nil {
@@ -613,7 +613,7 @@ func (ms *masterService) appendPartitionLocked(ctx context.Context, space *entit
 
 	for _, addr := range addrs {
 		if err := ms.PS().B().Admin(addr).CreatePartition(space, newPartition.Id); err != nil {
-			return baudlog.LogErrAndReturn(fmt.Errorf("create partition err: %s ", err.Error()))
+			return vearchlog.LogErrAndReturn(fmt.Errorf("create partition err: %s ", err.Error()))
 		}
 	}
 

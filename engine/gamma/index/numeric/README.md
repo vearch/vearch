@@ -16,12 +16,12 @@ The both are implemented based on a variant skiplist index.
 ## block-skiplist Index ##
 It's designed to support the full indexing and searching.
 
-![Block-Skiplist Index](docs/img/gamma/block-skiplist_index.png)
+![Block-Skiplist Index](/docs/img/gamma/block-skiplist_index.png)
 
 ## rt-skiplist Index ##
 It's designed to support the real-time indexing and searching.
 
-![rt-Skiplist Index](docs/img/gamma/rt-skiplist_index.png)
+![rt-Skiplist Index](/docs/img/gamma/rt-skiplist_index.png)
 
 ## about search ##
 The main search steps are:

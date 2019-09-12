@@ -56,7 +56,6 @@ func (this *WriteResponse) ToContentBluk(nameCache NameCache) ([]byte, error) {
 	return builder.Output()
 }
 
-
 func (this *WriteResponse) ToContent(dbName, spaceName string) ([]byte, error) {
 	var builder = cbjson.ContentBuilderFactory()
 

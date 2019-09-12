@@ -17,19 +17,18 @@ package response
 import "github.com/vearch/vearch/util/cbjson"
 
 type Shards struct {
-    Total      int `json:"total"`
-    Successful int `json:"successful"`
-    Failed     int `json:"failed"`
+	Total      int `json:"total"`
+	Successful int `json:"successful"`
+	Failed     int `json:"failed"`
 }
 
 func (sr *Shards) ToContent() ([]byte, error) {
-    var builder = cbjson.ContentBuilderFactory()
+	var builder = cbjson.ContentBuilderFactory()
 
-    builder.BeginObject()
-    builder.Field("_shards")
-    builder.ValueInterface(sr)
-    builder.EndObject()
+	builder.BeginObject()
+	builder.Field("_shards")
+	builder.ValueInterface(sr)
+	builder.EndObject()
 
-    return builder.Output()
+	return builder.Output()
 }
-

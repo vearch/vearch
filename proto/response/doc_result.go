@@ -38,21 +38,21 @@ func NewNotFoundDocResult(id string) *DocResult {
 }
 
 type DocResult struct {
-	Id         string              `json:"id,omitempty"`
-	DB         entity.DBID         `json:"db"`
-	Space      entity.SpaceID      `json:"space"`
-	Partition  entity.PartitionID  `json:"pid"`
-	Version    int64               `json:"version,omitempty"`
-	Found      bool                `json:"found,omitempty"`
-	Replace    bool                `json:"replace,omitempty"`
-	Score      float64             `json:"score,omitempty"`
-	SortValues sortorder.SortValues     `json:"sort_value,omitempty"`
-	SlotID     uint32              `json:"slot_id"`
-	Source     json.RawMessage     `json:"source,omitempty"`
-	Extra      json.RawMessage     `json:"extra,omitempty"`
-	Failure    *pspb.EngineFailure `json:"failure,omitempty"`
-	Type       pspb.OpType         `json:"type"`
-	Highlight  HighlightResult     `json:"highlight,omitempty"`
+	Id         string               `json:"id,omitempty"`
+	DB         entity.DBID          `json:"db"`
+	Space      entity.SpaceID       `json:"space"`
+	Partition  entity.PartitionID   `json:"pid"`
+	Version    int64                `json:"version,omitempty"`
+	Found      bool                 `json:"found,omitempty"`
+	Replace    bool                 `json:"replace,omitempty"`
+	Score      float64              `json:"score,omitempty"`
+	SortValues sortorder.SortValues `json:"sort_value,omitempty"`
+	SlotID     uint32               `json:"slot_id"`
+	Source     json.RawMessage      `json:"source,omitempty"`
+	Extra      json.RawMessage      `json:"extra,omitempty"`
+	Failure    *pspb.EngineFailure  `json:"failure,omitempty"`
+	Type       pspb.OpType          `json:"type"`
+	Highlight  HighlightResult      `json:"highlight,omitempty"`
 }
 
 func (this *DocResult) ToContent(dbName, spaceName string) ([]byte, error) {

@@ -18,15 +18,15 @@ import (
 	"context"
 	"fmt"
 	"github.com/spf13/cast"
-	"github.com/vearch/vearch/util/baudlog"
 	"github.com/vearch/vearch/util/monitoring"
+	"github.com/vearch/vearch/util/vearchlog"
 	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/tiglabs/log"
 	"github.com/vearch/vearch/client"
 	"github.com/vearch/vearch/config"
-	"github.com/tiglabs/log"
 	"go.etcd.io/etcd/embed"
 )
 
@@ -39,7 +39,7 @@ type Server struct {
 }
 
 func NewServer(ctx context.Context) (*Server, error) {
-	log.Regist(baudlog.NewBaudLog(config.Conf().GetLogDir(config.Master), "Master", config.Conf().GetLevel(config.Master), true))
+	log.Regist(vearchlog.NewVearchLog(config.Conf().GetLogDir(config.Master), "Master", config.Conf().GetLevel(config.Master), true))
 	//Logically, this code should not be executed, because if the local master is not found, it will panic
 	if config.Conf().Masters.Self() == nil {
 		return nil, fmt.Errorf("master not init please your address or master name ")

@@ -19,8 +19,8 @@ import (
 	"fmt"
 	"github.com/patrickmn/go-cache"
 	"github.com/vearch/vearch/proto"
-	"github.com/vearch/vearch/util/baudlog"
 	"github.com/vearch/vearch/util/cbjson"
+	"github.com/vearch/vearch/util/vearchlog"
 	"strconv"
 	"strings"
 	"sync"
@@ -137,7 +137,7 @@ func (cliCache *clientCache) reloadUserCache(ctx context.Context, sync bool, use
 
 		go func() {
 			defer userReloadWorkder.Delete(userName)
-			baudlog.FunIfNotNil(fun)
+			vearchlog.FunIfNotNil(fun)
 		}()
 	}
 
@@ -153,7 +153,7 @@ func (cliCache *clientCache) SpaceByCache(ctx context.Context, db, space string)
 		return get.(*Space), nil
 	}
 
-	baudlog.LogErrNotNil(cliCache.reloadSpaceCache(ctx, false, db, space))
+	vearchlog.LogErrNotNil(cliCache.reloadSpaceCache(ctx, false, db, space))
 
 	for i := 0; i < retryNum; i++ {
 		time.Sleep(retrySleepTime)
@@ -197,7 +197,7 @@ func (cliCache *clientCache) reloadSpaceCache(ctx context.Context, sync bool, db
 		}
 		go func() {
 			defer spaceReloadWorkder.Delete(key)
-			baudlog.FunIfNotNil(fun)
+			vearchlog.FunIfNotNil(fun)
 		}()
 	}
 
@@ -252,7 +252,7 @@ func (cliCache *clientCache) reloadPartitionCache(ctx context.Context, sync bool
 		}
 		go func() {
 			defer partitionReloadWorkder.Delete(key)
-			baudlog.FunIfNotNil(fun)
+			vearchlog.FunIfNotNil(fun)
 		}()
 	}
 
@@ -305,7 +305,7 @@ func (cliCache *clientCache) reloadServerCache(ctx context.Context, sync bool, i
 		}
 		go func() {
 			defer serverReloadWorkder.Delete(key)
-			baudlog.FunIfNotNil(fun)
+			vearchlog.FunIfNotNil(fun)
 		}()
 	}
 
