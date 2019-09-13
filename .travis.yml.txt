@@ -1,0 +1,13 @@
+language: python
+
+services:
+  - docker
+
+before_install:
+  - cd vearch/clould
+  - ./run_docker.sh
+  - sleep 30
+
+script:
+  - ulimit -a
+  - curl http://127.0.0.1:9002
