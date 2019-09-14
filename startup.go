@@ -18,8 +18,8 @@ import (
 	"flag"
 	"fmt"
 	"github.com/spf13/cast"
-	"github.com/vearch/vearch/util/baudlog"
 	"github.com/vearch/vearch/util/reflect"
+	"github.com/vearch/vearch/util/vearchlog"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -173,7 +173,7 @@ func main() {
 		models = append(models, "ps")
 		log.Debug("dataDir: %s", config.Conf().GetDataDir(config.PS))
 		sigsHook.AddSignalHook(func() {
-			baudlog.CloseIfNotNil(server)
+			vearchlog.CloseIfNotNil(server)
 		})
 		go func() {
 			if err := server.Start(); err != nil {
