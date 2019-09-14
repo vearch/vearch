@@ -10,4 +10,4 @@ before_install:
 
 script:
   - ulimit -a
-  - curl http://127.0.0.1:9002
+  - curl http://127.0.0.1:9001
