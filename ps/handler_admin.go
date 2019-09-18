@@ -300,6 +300,7 @@ func psErrorChange(server *Server) handler.ErrorChangeFun {
 				response.Status = pkg.ERRCODE_PARTITION_NOT_LEADER
 				bytes, err := json.Marshal(server.raftResolver.ToReplica(id))
 				if err != nil {
+					log.Error("find raft resolver err[%s]", err.Error())
 					return err
 				}
 				response.Error = string(bytes)
