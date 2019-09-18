@@ -4,9 +4,17 @@
 *.dll
 *.so
 *.dylib
+*.DS_Store
+vearch.iml
 
 # Test binary, build with `go test -c`
 *.test
+config/config.toml
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
+build/bin/
+build/lib/
+cloud/env/app/
+ps/engine/gammacb/lib/
+
