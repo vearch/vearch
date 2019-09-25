@@ -7,7 +7,7 @@
    1. CentOS, Ubuntu and Mac OS are all OK (recommend CentOS >= 7.2)，cmake required
    2. Go >= 1.11.2 required
    3. Gcc >= 5 required
-   4. [Faiss == v1.5.3](https://github.com/facebookresearch/faiss)
+   4. [Faiss](https://github.com/facebookresearch/faiss) == v1.5.3
 
 #### Compile 
    * Enter the `GOPATH` directory, `cd $GOPATH/src` `mkdir -p github/vearch` `cd github/vearch`
