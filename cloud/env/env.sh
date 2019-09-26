@@ -16,7 +16,7 @@ gmake install
 
 cd /env/app/
 if [ ! -d "faiss" ]; then
-    git clone https://github.com/facebookresearch/faiss.git
+    git fetch https://github.com/facebookresearch/faiss.git v1.5.3
 fi
 cd /env/app/faiss
 ./configure --without-cuda --prefix=/env/app/faiss_install
