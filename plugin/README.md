@@ -15,11 +15,11 @@ bash run.sh
 ```
 
 ## Search Result Demo
-![docs/img/plugin/COCO_val2014_000000123599.jpg](docs/img/plugin/COCO_val2014_000000123599.jpg)
+![docs/img/plugin/COCO_val2014_000000123599.jpg](/docs/img/plugin/COCO_val2014_000000123599.jpg)
 
 the result like this:
 
-![docs/img/plugin/result.jpg](docs/img/plugin/result.jpg)
+![docs/img/plugin/result.jpg](/docs/img/plugin/result.jpg)
 
 
 
