@@ -114,13 +114,8 @@ type sender struct {
 }
 
 func (this *sender) MultipleSpace(dbSpaces [][2]string) *multipleSpaceSender {
-	uniq := make(map[[2]string]bool)
 	senders := make([]*spaceSender, 0, len(dbSpaces))
 	for _, item := range dbSpaces {
-		if uniq[item] {
-			continue
-		}
-		uniq[item] = true
 		senders = append(senders, &spaceSender{sender: this, db: item[0], space: item[1]})
 	}
 	return &multipleSpaceSender{senders: senders}

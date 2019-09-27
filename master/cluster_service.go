@@ -104,7 +104,7 @@ func (this *masterService) createDBService(ctx context.Context, db *entity.DB) (
 			for _, server := range servers {
 				if server.Ip == ps {
 					flag = true
-					if this.PS().B().Admin(server.RpcAddr()).IsLive() {
+					if !this.PS().B().Admin(server.RpcAddr()).IsLive() {
 						return fmt.Errorf("server:[%s] can not connection", ps)
 					}
 					break
@@ -713,16 +713,32 @@ func (ms *masterService) filterAndSortServer(ctx context.Context, space *entity.
 
 	serverPartitions := make(map[int]int)
 
+	spaces, err := ms.Master().QuerySpacesByKey(ctx, entity.PrefixSpace)
+
+	serverIndex := make(map[entity.NodeID]int)
+
 	if psMap == nil { //means only use public
 		for i, s := range servers {
 			if !s.Private {
-				serverPartitions[i] = len(s.PartitionIds)
+				serverPartitions[i] = 0
+				serverIndex[s.ID] = i
 			}
 		}
 	} else { // only use define
 		for i, s := range servers {
 			if psMap[s.Ip] {
-				serverPartitions[i] = len(s.PartitionIds)
+				serverPartitions[i] = 0
+				serverIndex[s.ID] = i
+			}
+		}
+	}
+
+	for _, space := range spaces {
+		for _, partition := range space.Partitions {
+			for _, nodeID := range partition.Replicas {
+				if index, ok := serverIndex[nodeID]; ok {
+					serverPartitions[index] = serverPartitions[index] + 1
+				}
 			}
 		}
 	}

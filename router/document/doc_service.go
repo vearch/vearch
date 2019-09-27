@@ -167,19 +167,22 @@ func (this *docService) searchDoc(ctx context.Context, dbName string, spaceName 
 	dbNames := strings.Split(dbName, ",")
 	spaceNames := strings.Split(spaceName, ",")
 
+	if len(dbNames) != len(spaceNames) {
+		return nil , nil , fmt.Errorf("in uri dbNames:[%v] must length equals spaceNames:[%v] , example _search/db1,db1/table1,table2" ,dbNames, spaceNames)
+	}
+
 	nameCache := make(response.NameCache)
 
-	for _, dbName = range dbNames {
-		for _, spaceName = range spaceNames {
-			if space, err := this.client.Master().Cache().SpaceByCache(ctx, dbName, spaceName); err == nil {
-				key := [2]int64{int64(space.DBId), int64(space.Id)}
-				if nameCache[key] == nil {
-					nameCache[key] = []string{dbName, spaceName}
-					searchSpaces = append(searchSpaces, [2]string{dbName, spaceName})
-				}
-			} else {
-				log.Error("can not find db:[%s] space:[%s] for search err:[%s] ", dbName, spaceName, err.Error())
+	for i, dbName := range dbNames{
+		spaceName := spaceNames[i]
+		if space, err := this.client.Master().Cache().SpaceByCache(ctx, dbName, spaceName); err == nil {
+			key := [2]int64{int64(space.DBId), int64(space.Id)}
+			if nameCache[key] == nil {
+				nameCache[key] = []string{dbName, spaceName}
+				searchSpaces = append(searchSpaces, [2]string{dbName, spaceName})
 			}
+		} else {
+			log.Error("can not find db:[%s] space:[%s] for search err:[%s] ", dbName, spaceName, err.Error())
 		}
 	}
 

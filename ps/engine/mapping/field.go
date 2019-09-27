@@ -140,12 +140,13 @@ func (f *FieldMapping) UnmarshalJSON(data []byte) error {
 	//set index
 	if tmp.Index != nil {
 		switch *tmp.Index {
+		case "yes", "true":
+			fieldMapping.Base().Option |= pspb.FieldOption_Index
 		case "no", "false":
 			fieldMapping.Base().Option = fieldMapping.Base().Option & withOutIndex
 		default:
-			fieldMapping.Base().Option |= pspb.FieldOption_Index
+			return fmt.Errorf("tmp index param has err only support [yes , no true false] but got:[]%s", *tmp.Index)
 		}
-
 	}
 
 	//set docvalues
@@ -273,7 +274,7 @@ type TextFieldMapping struct {
 
 func NewTextFieldMapping(name string) *TextFieldMapping {
 	return &TextFieldMapping{
-		BaseFieldMapping: NewBaseFieldMapping(name, pspb.FieldType_TEXT, 1, pspb.FieldOption_Index|pspb.FieldOption_IncludeTermVectors),
+		BaseFieldMapping: NewBaseFieldMapping(name, pspb.FieldType_TEXT, 1, pspb.FieldOption_IncludeTermVectors),
 		IgnoreAbove:      327660,
 	}
 }
@@ -287,7 +288,7 @@ type KeywordFieldMapping struct {
 
 func NewKeywordFieldMapping(name string) *KeywordFieldMapping {
 	return &KeywordFieldMapping{
-		BaseFieldMapping: NewBaseFieldMapping(name, pspb.FieldType_KEYWORD, 1, pspb.FieldOption_Index|pspb.FieldOption_DocValues),
+		BaseFieldMapping: NewBaseFieldMapping(name, pspb.FieldType_KEYWORD, 1, pspb.FieldOption_DocValues),
 		IgnoreAbove:      1024,
 	}
 }
@@ -301,14 +302,14 @@ type NumericFieldMapping struct {
 
 func NewIntegerFieldMapping(name string) *NumericFieldMapping {
 	return &NumericFieldMapping{
-		BaseFieldMapping: NewBaseFieldMapping(name, pspb.FieldType_INT, 1, pspb.FieldOption_Index|pspb.FieldOption_DocValues),
+		BaseFieldMapping: NewBaseFieldMapping(name, pspb.FieldType_INT, 1, pspb.FieldOption_DocValues),
 		Coerce:           true,
 	}
 }
 
 func NewFloatFieldMapping(name string) *NumericFieldMapping {
 	return &NumericFieldMapping{
-		BaseFieldMapping: NewBaseFieldMapping(name, pspb.FieldType_FLOAT, 1, pspb.FieldOption_Index|pspb.FieldOption_DocValues),
+		BaseFieldMapping: NewBaseFieldMapping(name, pspb.FieldType_FLOAT, 1, pspb.FieldOption_DocValues),
 		Coerce:           true,
 	}
 }
@@ -323,7 +324,7 @@ type DateFieldMapping struct {
 
 func NewDateFieldMapping(name string) *DateFieldMapping {
 	return &DateFieldMapping{
-		BaseFieldMapping: NewBaseFieldMapping(name, pspb.FieldType_DATE, 1, pspb.FieldOption_Index|pspb.FieldOption_DocValues),
+		BaseFieldMapping: NewBaseFieldMapping(name, pspb.FieldType_DATE, 1, pspb.FieldOption_DocValues),
 	}
 }
 
@@ -334,7 +335,7 @@ type BooleanFieldMapping struct {
 
 func NewBooleanFieldMapping(name string) *BooleanFieldMapping {
 	return &BooleanFieldMapping{
-		BaseFieldMapping: NewBaseFieldMapping(name, pspb.FieldType_BOOL, 1, pspb.FieldOption_Index|pspb.FieldOption_DocValues),
+		BaseFieldMapping: NewBaseFieldMapping(name, pspb.FieldType_BOOL, 1, pspb.FieldOption_DocValues),
 	}
 }
 
@@ -346,7 +347,7 @@ type GeoPointFieldMapping struct {
 
 func NewGeoPointFieldMapping(name string) *GeoPointFieldMapping {
 	return &GeoPointFieldMapping{
-		BaseFieldMapping: NewBaseFieldMapping(name, pspb.FieldType_GEOPOINT, 1, pspb.FieldOption_Index|pspb.FieldOption_DocValues),
+		BaseFieldMapping: NewBaseFieldMapping(name, pspb.FieldType_GEOPOINT, 1, pspb.FieldOption_DocValues),
 		IgnoreZValue:     true,
 	}
 }
