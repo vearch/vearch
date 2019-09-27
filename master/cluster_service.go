@@ -104,7 +104,7 @@ func (this *masterService) createDBService(ctx context.Context, db *entity.DB) (
 			for _, server := range servers {
 				if server.Ip == ps {
 					flag = true
-					if this.PS().B().Admin(server.RpcAddr()).IsLive() {
+					if !this.PS().B().Admin(server.RpcAddr()).IsLive() {
 						return fmt.Errorf("server:[%s] can not connection", ps)
 					}
 					break

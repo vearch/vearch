@@ -22,6 +22,7 @@ package gammacb
 */
 import "C"
 import (
+	bytes2 "bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/spf13/cast"
@@ -94,7 +95,7 @@ func (query *VectorQuery) ToC() (*C.struct_VectorQuery, error) {
 }
 
 func (qb *queryBuilder) parseTerm(data []byte) (*C.struct_TermFilter, error) {
-	tmp := make(map[string]map[string]interface{})
+	tmp := make(map[string]interface{})
 	err := json.Unmarshal(data, &tmp)
 	if err != nil {
 		return nil, err
@@ -110,12 +111,30 @@ func (qb *queryBuilder) parseTerm(data []byte) (*C.struct_TermFilter, error) {
 		case "or":
 			isUnion = 1
 		default:
-			return nil, fmt.Errorf("err term filter by operator:[%s]", op)
+			return nil, fmt.Errorf("err term filter by operator:[%s]", operator)
 		}
+
+		delete(tmp, "operator")
 	}
 
 	for field, rv := range tmp {
-		return C.MakeTermFilter(byteArrayStr(field), byteArrayStr(cast.ToString(rv["value"])), C.char(isUnion)), nil
+
+		if qb.mapping.GetField(field).Options()&pspb.FieldOption_Index != pspb.FieldOption_Index {
+			return nil, fmt.Errorf("field:[%d] not open index", field)
+		}
+
+		buf := bytes2.Buffer{}
+		if ia, ok := rv.([]interface{}); ok {
+			for i, obj := range ia {
+				buf.WriteString(cast.ToString(obj))
+				if i != len(ia)-1 {
+					buf.WriteRune('\001')
+				}
+			}
+		} else {
+			buf.WriteString(cast.ToString(rv))
+		}
+		return C.MakeTermFilter(byteArrayStr(field), byteArrayStr(buf.String()), C.char(isUnion)), nil
 	}
 
 	return nil, nil
@@ -138,6 +157,10 @@ func (qb *queryBuilder) parseRange(data []byte) (*C.struct_RangeFilter, error) {
 	)
 
 	for field, rv = range tmp {
+
+		if qb.mapping.GetField(field).Options()&pspb.FieldOption_Index != pspb.FieldOption_Index {
+			return nil, fmt.Errorf("field:[%d] not open index", field)
+		}
 
 		var found bool
 
@@ -304,10 +327,6 @@ func (qb *queryBuilder) parseQuery(data []byte, req *C.struct_Request) error {
 		}
 	}
 
-	if len(vqs) == 0 {
-		return fmt.Errorf("query has err no vector conditions")
-	}
-
 	for _, filterBytes := range temp.Filter {
 		tmp := make(map[string]json.RawMessage)
 		err := cbjson.Unmarshal(filterBytes, &tmp)
@@ -336,6 +355,8 @@ func (qb *queryBuilder) parseQuery(data []byte, req *C.struct_Request) error {
 		}
 		req.vec_fields = cvqs
 		req.vec_fields_num = C.int(len(vqs))
+	} else {
+		req.vec_fields_num = C.int(0)
 	}
 
 	if len(tfs) > 0 {
@@ -345,6 +366,8 @@ func (qb *queryBuilder) parseQuery(data []byte, req *C.struct_Request) error {
 		}
 		req.term_filters = ctfs
 		req.term_filters_num = C.int(len(tfs))
+	} else {
+		req.term_filters_num = C.int(0)
 	}
 
 	if len(rfs) > 0 {
@@ -354,6 +377,12 @@ func (qb *queryBuilder) parseQuery(data []byte, req *C.struct_Request) error {
 		}
 		req.range_filters = crfs
 		req.range_filters_num = C.int(len(rfs))
+	} else {
+		req.range_filters_num = C.int(0)
+	}
+
+	if reqNum <= 0 {
+		reqNum = 1
 	}
 
 	req.req_num = C.int(reqNum)

@@ -17,10 +17,12 @@ package client
 import (
 	"fmt"
 	"github.com/spf13/cast"
+	"github.com/tiglabs/log"
 	"github.com/vearch/vearch/proto"
 	"github.com/vearch/vearch/proto/request"
 	"github.com/vearch/vearch/proto/response"
 	"sync"
+	"time"
 )
 
 type multipleSpaceSender struct {
@@ -130,22 +132,24 @@ func (this *multipleSpaceSender) DeleteByQuery(req *request.SearchRequest) *resp
 	return result
 }
 
-func (this *multipleSpaceSender) Search(req *request.SearchRequest) (result *response.SearchResponse) {
+func (this *multipleSpaceSender) Search(req *request.SearchRequest) *response.SearchResponse {
 	var wg sync.WaitGroup
 	respChain := make(chan *response.SearchResponse, len(this.senders))
 
-	for _, s := range this.senders {
+	for _, sender := range this.senders {
 		wg.Add(1)
 		go func(par *spaceSender) {
 			defer wg.Done()
 			defer func() {
 				if r := recover(); r != nil {
 					fmt.Println(r)
-					respChain <- newSearchResponseWithError(s.db, s.space, 0, fmt.Errorf(cast.ToString(r)))
+					respChain <- newSearchResponseWithError(par.db, par.space, 0, fmt.Errorf(cast.ToString(r)))
 				}
 			}()
-			respChain <- s.Search(req)
-		}(s)
+			now := time.Now()
+			respChain <- par.Search(req)
+			log.Debug("search :[%s/%s] use time:[%s]", par.db, par.space, time.Now().Sub(now))
+		}(sender)
 	}
 
 	wg.Wait()
@@ -156,17 +160,20 @@ func (this *multipleSpaceSender) Search(req *request.SearchRequest) (result *res
 		return newSearchResponseWithError(this.senders[0].db, this.senders[0].space, 0, err)
 	}
 
+	var first *response.SearchResponse
+
 	for r := range respChain {
-		if result == nil {
-			result = r
+		if first == nil {
+			first = r
 			continue
 		}
-		err := result.Merge(r, sortOrder, req.From, *req.Size)
+
+		err := first.Merge(r, sortOrder, req.From, *req.Size)
 		if err != nil {
 			return newSearchResponseWithError(this.senders[0].db, this.senders[0].space, 0, err)
 		}
 	}
-	return result
+	return first
 }
 
 func (this *multipleSpaceSender) StreamSearch(req *request.SearchRequest) (dsr *response.DocStreamResult) {
