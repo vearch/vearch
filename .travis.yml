@@ -4,8 +4,17 @@ services:
   - docker
 
 before_install:
+  - docker pull docker.io/ansj/vearch_env
+  - docker tag docker.io/ansj/vearch_env vearch_env
+  - docker images
   - cd cloud
-  - ./run_docker.sh
+  - echo "Compile Vearch"
+  - ./compile.sh
+  - echo "Make Vearch Image"
+  - ./build.sh
+  - echo "Start service by all in one model"
+  - cat ../config/config.toml.example > config.toml
+  - nohup docker run -p 8817:8817 -p 9001:9001 -v $PWD/config.toml:/vearch/config.toml  vearch all &
   - sleep 30
 
 script:
