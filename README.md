@@ -54,9 +54,14 @@ Vearch is a scalable distributed system for efficient similarity search of deep 
 * [docs/APIVisualSearch.md](docs/APIVisualSearch.md)
 
 
-## License
-Licensed under the Apache License, Version 2.0. For detail see LICENSE and NOTICE.
-
-
 ## Publication
 Jie Li, Haifeng Liu, Chuanghua Gui, Jianyu chen, Zhenyun Ni, Ning Wang, Yuan Chen. The Design and Implementation of a Real Time Visual Search System on JD E-commerce Platform. In the 19th International ACM Middleware Conference, December 10–14, 2018, Rennes, France.
+
+
+## Community
+You can report bugs or ask questions in the [issues page](https://github.com/vearch/vearch/issues) of the repository.
+For public discussion of Vearch or for questions, you can also send email to vearch-maintainers@groups.io
+
+
+## License
+Licensed under the Apache License, Version 2.0. For detail see LICENSE and NOTICE.
