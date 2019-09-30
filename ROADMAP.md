@@ -37,7 +37,7 @@ Support docker.
 
 ## Vearch 0.2
 
-Following Vearch release schedule Vearch 0.2 will be released in October 2019.
+Vearch 0.2 will be released in October 2019.
 
 ### Search
 
