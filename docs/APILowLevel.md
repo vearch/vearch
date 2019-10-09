@@ -90,7 +90,9 @@ curl -H "content-type: application/json" -XPOST -d'
           "field": "feature1",
           "feature": [0,0,0,0,0],
           "boost":0.8,
-        },
+        }
+      ],
+      "and":[
         {
           "field": "feature2",
           "feature": [0,0,0,0,0],
