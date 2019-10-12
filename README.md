@@ -56,7 +56,7 @@ Vearch is a scalable distributed system for efficient similarity search of deep 
 ## Document
 
 * https://vearch.readthedocs.io/en/latest
-* https://vdb-docs.readthedocs.io/zh_CN/latest/
+* https://vearch.readthedocs.io/zh_CN/latest
 
 ## Publication
 Jie Li, Haifeng Liu, Chuanghua Gui, Jianyu chen, Zhenyun Ni, Ning Wang, Yuan Chen. The Design and Implementation of a Real Time Visual Search System on JD E-commerce Platform. In the 19th International ACM Middleware Conference, December 10–14, 2018, Rennes, France. https://arxiv.org/abs/1908.07389
