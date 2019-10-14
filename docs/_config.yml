@@ -123,3 +123,5 @@ simple_jekyll_search:
 # ---------------- #
 google:
     analytics_id: UA-80669434-1
+
+theme: jekyll-theme-time-machine
