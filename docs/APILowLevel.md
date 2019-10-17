@@ -89,7 +89,7 @@ curl -H "content-type: application/json" -XPOST -d'
         {
           "field": "feature1",
           "feature": [0,0,0,0,0],
-          "boost":0.8,
+          "boost":0.8
         }
       ],
       "and":[
@@ -115,7 +115,7 @@ curl -H "content-type: application/json" -XPOST -d'
                 "operator":"and"
               }
           }
-       ]
+       ],
       "direct_search_type":0,
       "online_log_level":"debug" 
   },
