@@ -28,6 +28,14 @@
          margin-bottom: 10px;
          background-color: #ffff;
      }
+     .imgList li .imgWrapper{
+        height:232px;
+        width:232px;
+        display:flex;
+        justify-content:center;
+        align-items:center;
+
+     }
      .imgList li:nth-of-type(5n){
          margin-right: 0;
      }

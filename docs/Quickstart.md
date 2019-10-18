@@ -3,22 +3,22 @@
 Vearch is aimed to build a simple and fast image retrieval system. Through this system, you can easily build your own image retrieval system, including image object detection,  feature extraction and similarity search. This quickstart demonstrates how to use it.
 
 
+![docs/img/plugin/main_process.gif](img/plugin/main_process.gif)
 
 
 ## Before you begin
 
 1. Deploy Vearch system referred to [Deploy.md](Deploy.md).
-2. Download the [weight](https://pjreddie.com/media/files/yolov3.weights) of object detect model in model/image_detect folder.
 
- And you can download  [coco data](https://pjreddie.com/media/files/val2014.zip) for testing, or  use the images in images folder we choose from [coco data](https://pjreddie.com/media/files/val2014.zip).
+ For testing you can download  [coco data](https://pjreddie.com/media/files/val2014.zip), or  use the images in images folder we choose from [coco data](https://pjreddie.com/media/files/val2014.zip).
 
 
 ## Deploy your own plugin service
 
 This requires only two operations:
 
-1. Modify parameters `ip_address` in `config/config.py`;
-2. Execution script `run.sh`;
+1. Modify parameters in `config/config.py`;
+2. Execution script `bash run.sh image` or `bash run.sh video`;
 
 
 
