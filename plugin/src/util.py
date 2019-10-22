@@ -54,6 +54,8 @@ def read_image(imageurl):
     return image
 
 def crop(image, bbox):
+    if bbox is None:
+        return image
     x_min, y_min, x_max, y_max = map(int, bbox)
     img_crop = image[y_min:y_max, x_min:x_max]
     # print(bbox, img_crop)

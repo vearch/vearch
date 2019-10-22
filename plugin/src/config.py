@@ -16,8 +16,8 @@ root_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 port = 4101
 gpu = "-1"
-master_address = "http://*****:443"
-router_address = "http://*****:80"
+master_address = "http://127.0.0.1:8817"
+router_address = "http://127.0.0.1:9001"
 
 face_config = dict(is_detect=True,
                    image_size=160,
