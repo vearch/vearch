@@ -36,7 +36,6 @@ import (
 	"path/filepath"
 	"runtime/debug"
 	"strconv"
-	"sync"
 	"unsafe"
 )
 
@@ -163,7 +162,6 @@ func (wi *writerImpl) Flush(ctx context.Context, sn int64) error {
 	if gamma == nil {
 		return pkg.ErrPartitionClosed
 	}
-
 
 	wi.engine.lock.Lock()
 	defer wi.engine.lock.Unlock()

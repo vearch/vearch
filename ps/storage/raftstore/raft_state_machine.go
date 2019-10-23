@@ -19,7 +19,6 @@ import (
 	"github.com/tiglabs/log"
 	"github.com/tiglabs/raft"
 	"github.com/tiglabs/raft/proto"
-	"github.com/vearch/vearch/proto"
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/proto/pspb/raftpb"
 	"github.com/vearch/vearch/ps/psutil"
@@ -47,10 +46,6 @@ func (s *Store) innerApply(command []byte, index uint64, raftCmd *raftpb.RaftCom
 	resp := new(RaftApplyResponse)
 	switch raftCmd.Type {
 	case raftpb.CmdType_WRITE:
-		if s.Partition.Frozen {
-			resp.Err = pkg.ErrPartitionFrozen
-			return resp
-		}
 		resp.Result = s.Engine.Writer().Write(s.Ctx, raftCmd.WriteCommand)
 	case raftpb.CmdType_UPDATESPACE:
 		resp = s.updateSchemaBySpace(raftCmd.UpdateSpace.Space, raftCmd.UpdateSpace.Version)
@@ -95,16 +90,6 @@ func (s *Store) updateSchemaBySpace(spaceBytes []byte, version uint64) (rap *Raf
 	}
 
 	s.SetSpace(space)
-	if s.Space.CanFrozen() {
-		partition := space.GetPartition(s.Partition.Id)
-		if partition == nil {
-			log.Error("updateSchemaBySpace() space.GetPartition() return nil, partitionId:[%d]", s.Partition.Id)
-			return
-		}
-		if partition.Frozen {
-			s.Partition.Frozen = partition.Frozen
-		}
-	}
 
 	return
 }

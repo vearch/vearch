@@ -16,7 +16,6 @@ package client
 
 import (
 	"context"
-	"fmt"
 	"github.com/vearch/vearch/proto"
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/proto/request"
@@ -100,42 +99,6 @@ func (this *adminSender) IsLive() bool {
 	return true
 }
 
-//get partition min max value from engine.zone_field
-//if not frozen return err
-//it will sleep 5s when count not change
-func (this *adminSender) MaxMinValueByZoneFile(pid entity.PartitionID) (max, min int64, err error) {
-	objRequest := &request.ObjRequest{
-		RequestContext: this.Ctx,
-		PartitionID:    pid,
-	}
-
-	//default time out for live
-	timeout, cancelFunc := context.WithTimeout(context.Background(), 300*time.Second)
-	defer cancelFunc()
-	objRequest.SetContext(timeout)
-
-	result, _, err := Execute(this.addr, MaxMinZoneFieldHandler, objRequest)
-	if err != nil {
-		return
-	}
-
-	value := struct {
-		Max float64
-		Min float64
-	}{}
-
-	err = result.(*response.ObjResponse).Decode(&value)
-	if err != nil {
-		return
-	}
-
-	if value.Max == 0 {
-		err = fmt.Errorf("max can not set zero ")
-		return
-	}
-
-	return int64(value.Max), int64(value.Min), nil
-}
 
 //get partition info about
 func (this *adminSender) PartitionInfo(pid entity.PartitionID) (value *entity.PartitionInfo, err error) {

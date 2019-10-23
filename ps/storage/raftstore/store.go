@@ -17,7 +17,6 @@ package raftstore
 import (
 	"context"
 	"fmt"
-	"github.com/vearch/vearch/ps"
 	"github.com/vearch/vearch/ps/psutil"
 	"os"
 
@@ -37,7 +36,7 @@ import (
 // contiguous slot-space with writes managed via an instance of the Raft
 // consensus algorithm.
 
-var _  ps.PartitionStore = &Store{}
+//var _  ps.PartitionStore = &Store{}
 
 type Store struct {
 	*storage.StoreBase
@@ -48,7 +47,6 @@ type Store struct {
 	LastFlushSn   int64
 	Client        *client.Client
 }
-
 
 // CreateStore create an instance of Store.
 func CreateStore(ctx context.Context, pID entity.PartitionID, nodeID entity.NodeID, space *entity.Space, raftServer *raft.RaftServer, eventListener EventListener, client *client.Client) (*Store, error) {
@@ -132,11 +130,6 @@ func (s *Store) Start() (err error) {
 	// Start Raft Truncate Worker
 	s.startTruncateJob(apply)
 
-	// Start frozen check worker
-	if config.Conf().PS.MaxSize > 0 && s.Space.CanFrozen() {
-		s.startFrozenJob()
-	}
-
 	return nil
 }
 
@@ -194,11 +187,10 @@ func (s *Store) GetPartition() *entity.Partition {
 	return s.Partition
 }
 
-
 func (s *Store) ChangeMember(changeType proto.ConfChangeType, nodeID entity.NodeID) error {
 	id := uint64(s.Partition.Id)
 	peer := proto.Peer{
-		Type:     proto.PeerNormal,
+		Type: proto.PeerNormal,
 		ID:   nodeID,
 	}
 	future := s.RaftServer.ChangeMember(id, changeType, peer, nil)
@@ -214,4 +206,3 @@ func (s *Store) ChangeMember(changeType proto.ConfChangeType, nodeID entity.Node
 
 	return nil
 }
-

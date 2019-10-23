@@ -16,8 +16,6 @@ package raftstore
 
 import (
 	"fmt"
-	"github.com/vearch/vearch/config"
-	"math/rand"
 	"runtime/debug"
 	"time"
 
@@ -30,7 +28,6 @@ const (
 	TruncateCounts = 20000000
 
 	FlushTicket  = 1 * time.Second
-	FrozenTicket = 5 * time.Minute
 )
 
 // truncate is raft log truncate.
@@ -127,64 +124,3 @@ func (s *Store) startFlushJob() {
 	}()
 }
 
-// start frozen job
-func (s *Store) startFrozenJob() {
-	go func() {
-		defer func() {
-			if i := recover(); i != nil {
-				log.Error(string(debug.Stack()))
-				log.Error(cast.ToString(i))
-			}
-		}()
-
-		if config.Conf().PS.MaxSize <= 0 {
-			log.Warn("guixu engine not set max_size , so skip frozen job")
-			return
-		}
-
-		frozenFunc := func() {
-			leaderId, _ := s.GetLeader()
-			if leaderId == 0 {
-				return
-			}
-			if s.NodeID != leaderId {
-				return
-			}
-
-			if s.Engine == nil {
-				log.Error("store is empty so stop frozen job, dbID:[%d] space:[%d,%s] partitionID:[%d]", s.Space.DBId, s.Space.Id, s.Space.Name, s.Partition.Id)
-				return
-			}
-
-			size, err := s.Engine.Reader().Capacity(s.Ctx)
-			if err != nil {
-				log.Error(err.Error())
-				return
-			}
-
-			if size > config.Conf().PS.MaxSize {
-				err := s.Client.Master().FrozenPartition(s.Ctx, s.GetPartition().Id)
-				if err != nil {
-					log.Error(err.Error())
-					return
-				}
-			}
-
-		}
-
-		//random sleep so froze
-		time.Sleep(time.Duration(rand.Int63n(int64(FrozenTicket))))
-
-		for !s.Partition.Frozen {
-			log.Info("start frozen job begin")
-			select {
-			case <-s.Ctx.Done():
-				return
-			default:
-			}
-			frozenFunc()
-			time.Sleep(FrozenTicket)
-		}
-
-	}()
-}

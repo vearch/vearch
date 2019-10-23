@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"github.com/vearch/vearch/proto"
 	"github.com/vearch/vearch/util"
-	"math/rand"
 	"strings"
 	"unicode"
 )
@@ -34,22 +33,18 @@ func (dy *DynamicType) UnmarshalJSON(bs []byte) error {
 }
 
 const (
-	Caprice = "caprice"
-	GuiXu   = "guixu"
-	Gamma   = "gamma"
+	Gamma = "gamma"
 )
 
 type Engine struct {
-	Name         string `json:"name"`
-	IndexSize    int64  `json:"index_size"`
-	MaxSize      int64  `json:"max_size"`
-	ZoneField    string `json:"zone_field"`
-	ExpireMinute int64  `json:"expire_minute"`
-	Nprobe       *int   `json:"nprobe,omitempty"`
-	MetricType   *int   `json:"metric_type,omitempty"`
-	Ncentroids   *int   `json:"ncentroids,omitempty"`
-	Nsubvector   *int   `json:"nsubvector,omitempty"`
-	NbitsPerIdx  *int   `json:"nbits_per_idx,omitempty"`
+	Name        string `json:"name"`
+	IndexSize   int64  `json:"index_size"`
+	MaxSize     int64  `json:"max_size"`
+	Nprobe      *int   `json:"nprobe,omitempty"`
+	MetricType  *int   `json:"metric_type,omitempty"`
+	Ncentroids  *int   `json:"ncentroids,omitempty"`
+	Nsubvector  *int   `json:"nsubvector,omitempty"`
+	NbitsPerIdx *int   `json:"nbits_per_idx,omitempty"`
 }
 
 func NewDefaultEngine() *Engine {
@@ -97,9 +92,6 @@ func (this *Space) GetPartition(id PartitionID) *Partition {
 
 func (this *Space) PartitionId(slotID SlotID) PartitionID {
 	switch this.Engine.Name {
-	case GuiXu:
-		intN := rand.Intn(len(this.WorkedPartitions))
-		return this.WorkedPartitions[intN].Id
 	default:
 		if len(this.WorkedPartitions) == 1 {
 			return this.WorkedPartitions[0].Id
@@ -136,7 +128,7 @@ func (engine *Engine) UnmarshalJSON(bs []byte) error {
 
 	_ = json.Unmarshal(bs, &temp)
 
-	if temp == Caprice || temp == Gamma {
+	if temp == Gamma {
 		*engine = Engine{Name: temp}
 		return nil
 	}
@@ -159,7 +151,6 @@ func (engine *Engine) UnmarshalJSON(bs []byte) error {
 	}
 
 	switch tempEngine.Name {
-	case Caprice, GuiXu:
 	case Gamma:
 		if tempEngine.MaxSize <= 0 {
 			tempEngine.MaxSize = 10000000
@@ -191,33 +182,17 @@ func (engine *Engine) UnmarshalJSON(bs []byte) error {
 	}
 
 	*engine = Engine{
-		Name:         tempEngine.Name,
-		IndexSize:    tempEngine.IndexSize,
-		MaxSize:      tempEngine.MaxSize,
-		ZoneField:    tempEngine.ZoneField,
-		ExpireMinute: tempEngine.ExpireMinute,
-		Nprobe:       tempEngine.Nprobe,
-		MetricType:   tempEngine.MetricType,
-		Ncentroids:   tempEngine.Ncentroids,
-		Nsubvector:   tempEngine.Nsubvector,
-		NbitsPerIdx:  tempEngine.NbitsPerIdx,
-	}
-
-	if engine.ExpireMinute > 0 {
-		if engine.ZoneField == "" {
-			return fmt.Errorf("if you use expire minute you must set zone field")
-		}
+		Name:        tempEngine.Name,
+		IndexSize:   tempEngine.IndexSize,
+		MaxSize:     tempEngine.MaxSize,
+		Nprobe:      tempEngine.Nprobe,
+		MetricType:  tempEngine.MetricType,
+		Ncentroids:  tempEngine.Ncentroids,
+		Nsubvector:  tempEngine.Nsubvector,
+		NbitsPerIdx: tempEngine.NbitsPerIdx,
 	}
 
 	return nil
-}
-
-func (space *Space) CanFrozen() bool {
-	return space.Engine.Name == GuiXu
-}
-
-func (space *Space) CanExpire() bool {
-	return space.Engine.ZoneField != "" && space.Engine.ExpireMinute > 0
 }
 
 //check params is ok
@@ -227,7 +202,7 @@ func (space *Space) Validate() error {
 	}
 
 	switch space.Engine.Name {
-	case Caprice, GuiXu, Gamma:
+	case Gamma:
 	default:
 		return errors.New(pkg.ErrMasterInvalidEngine.Error() + " engine name : " + space.Engine.Name)
 	}

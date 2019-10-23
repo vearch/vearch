@@ -92,8 +92,6 @@ func ExportToClusterHandler(router *gin.Engine, masterService *masterService) {
 	router.Handle(http.MethodPost, "/space/:"+dbName+"/:"+sapceName, dh.PaincHandler, dh.TimeOutHandler, c.auth, c.updateSpace, dh.TimeOutEndHandler)
 
 	//partition handler
-	router.Handle(http.MethodPost, "/partition/frozen/:"+PartitionId, dh.PaincHandler, dh.TimeOutHandler, c.auth, c.frozenPartition, dh.TimeOutEndHandler)
-	router.Handle(http.MethodPost, "/partition/append", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.appendPartition, dh.TimeOutEndHandler)
 	router.Handle(http.MethodPost, "/partition/delete", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.deletePartition, dh.TimeOutEndHandler)
 
 }
@@ -249,42 +247,6 @@ func (this *clusterApi) getDB(c *gin.Context) {
 		ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplyError(err)
 	} else {
 		ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplySuccess(db)
-	}
-}
-
-//ps use this function to frozen partition return err is nil , means ok
-//errors not frozen
-func (this *clusterApi) frozenPartition(c *gin.Context) {
-	ctx, _ := c.Get(vearchhttp.Ctx)
-	pid, err := cast.ToInt64E(c.Param(PartitionId))
-	if err != nil {
-		ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplyError(fmt.Errorf("err partition id[%s] err[%s]", c.Param(PartitionId), err.Error()))
-		return
-	}
-
-	log.Info("Frozen partition, partitionID:[%d]", pid)
-
-	if err := this.masterService.frozenPartition(ctx.(context.Context), entity.PartitionID(pid)); err != nil {
-		ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplyError(err)
-	} else {
-		ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplySuccess(nil)
-	}
-}
-
-func (this *clusterApi) appendPartition(c *gin.Context) {
-	ctx, _ := c.Get(vearchhttp.Ctx)
-	if err := c.Request.ParseForm(); err != nil {
-		ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplyError(err)
-		return
-	}
-	dbName := c.Request.FormValue(dbName)
-	spaceName := c.Request.FormValue(sapceName)
-	log.Info("append partition,dbName:[%s],  spaceName:[%s]", dbName, spaceName)
-
-	if err := this.masterService.appendPartition(ctx.(context.Context), dbName, spaceName); err != nil {
-		ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplyError(err)
-	} else {
-		ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplySuccess(nil)
 	}
 }
 

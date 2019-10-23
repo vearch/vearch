@@ -44,14 +44,8 @@ type Partition struct {
 	Replicas   []NodeID `json:"replicas,omitempty"` //leader in replicas
 	UpdateTime int64    `json:"update_time,omitempty"`
 	Path       string   `json:"-"`
-
-	//for GuiXu log config
-	Frozen   bool  `json:"frozen,omitempty"`
-	MinValue int64 `json:"min_value,omitempty"`
-	MaxValue int64 `json:"max_value,omitempty"`
-
-	status PartitionStatus
-	lock   sync.RWMutex
+	status     PartitionStatus
+	lock       sync.RWMutex
 }
 
 //this is safe method for set status
@@ -76,9 +70,6 @@ type PartitionInfo struct {
 	ReplicaNum  int             `json:"replica_num,omitempty"`
 	Path        string          `json:"path,omitempty"`
 	Unreachable []uint64        `json:"unreachable,omitempty"`
-	Frozen      bool            `json:"frozen,omitempty"`
-	MinValue    int64           `json:"min_value,omitempty"`
-	MaxValue    int64           `json:"max_value,omitempty"`
 	Status      PartitionStatus `json:"status,omitempty"`
 	Color       string          `json:"color,omitempty"`
 	Ip          string          `json:"ip,omitempty"`

@@ -10,7 +10,7 @@
     # master <-> ps <-> router will use this key to send or receive data
     signkey = "secret"
     # skip auth for master and router
-    skip_auth = false
+    skip_auth = true
 
 # if you are master you'd better set all config for router and ps and router and ps use default config it so cool
 [[masters]]

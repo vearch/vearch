@@ -325,48 +325,6 @@ func (this *masterClient) RegisterPartition(ctx context.Context, partition *enti
 	return nil
 }
 
-func (this *masterClient) FrozenPartition(ctx context.Context, partitionID entity.PartitionID) error {
-	masterServer.reset()
-	var response []byte
-	for {
-		keyNumber, err := masterServer.getKey()
-		if err != nil {
-			return err
-		}
-
-		query := netutil.NewQuery().SetHeader(Authorization, util.AuthEncrypt(Root, this.cfg.Global.Signkey))
-		query.SetAddress(this.cfg.Masters[keyNumber].ApiUrl())
-		query.SetMethod(http.MethodPost)
-		query.SetUrlPath("/partition/frozen/" + cast.ToString(partitionID))
-		query.SetTimeout(60)
-		log.Debug("master api frozen partition url: %s, req body: %s", query.GetUrl(), "")
-		response, err = query.Do()
-		log.Debug("master api frozen partition response: %v", string(response))
-		if err == nil {
-			break
-		}
-		log.Debug("master api frozen partition err: %v", err)
-
-		masterServer.next()
-	}
-
-	jsonMap, err := cbjson.ByteToJsonMap(response)
-	if err != nil {
-		return err
-	}
-
-	code, err := jsonMap.GetJsonValIntE("code")
-	if err != nil {
-		return fmt.Errorf("client master api frozen partiton parse response code error: %s", err.Error())
-	}
-
-	if code != pkg.ERRCODE_SUCCESS {
-		return fmt.Errorf("client master api frozen partiton parse response error, code: %d, msg: %s", code, jsonMap.GetJsonValStringOrDefault("msg", ""))
-	}
-
-	return nil
-}
-
 var masterServer = &MasterServer{}
 
 type MasterServer struct {

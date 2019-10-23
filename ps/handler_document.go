@@ -39,7 +39,6 @@ import (
 func ExportToRpcHandler(server *Server) {
 
 	initHandler := &InitHandler{server: server}
-	frozenHandler := &FrozenHandler{server: server}
 	psErrorChange := psErrorChange(server)
 	streamSearchHandler := &StreamSearchHandler{server: server.rpcServer}
 
@@ -72,11 +71,11 @@ func ExportToRpcHandler(server *Server) {
 		panic(err)
 	}
 
-	if err := server.rpcServer.RegisterName(handler.NewChain(client.BatchHandler, server.monitor, handler.DefaultPanicHadler, psErrorChange, initHandler, frozenHandler, &BatchHandler{server: server}), ""); err != nil {
+	if err := server.rpcServer.RegisterName(handler.NewChain(client.BatchHandler, server.monitor, handler.DefaultPanicHadler, psErrorChange, initHandler, &BatchHandler{server: server}), ""); err != nil {
 		panic(err)
 	}
 
-	if err := server.rpcServer.RegisterName(handler.NewChain(client.WriteHandler, server.monitor, handler.DefaultPanicHadler, psErrorChange, initHandler, frozenHandler, &WriteHandler{server: server, limitPlugin: limitPlugin}), ""); err != nil {
+	if err := server.rpcServer.RegisterName(handler.NewChain(client.WriteHandler, server.monitor, handler.DefaultPanicHadler, psErrorChange, initHandler, &WriteHandler{server: server, limitPlugin: limitPlugin}), ""); err != nil {
 		panic(err)
 	}
 
@@ -117,20 +116,6 @@ func (i *InitHandler) Execute(req *handler.RpcRequest, resp *handler.RpcResponse
 		rCtx.SetStore(store)
 	}
 
-	return nil
-}
-
-type FrozenHandler struct {
-	server *Server
-}
-
-func (i *FrozenHandler) Execute(req *handler.RpcRequest, resp *handler.RpcResponse) error {
-	reqs := req.Arg.(request.Request)
-	rCtx := reqs.Context()
-	store := rCtx.GetStore().(PartitionStore)
-	if store.GetPartition().Frozen {
-		return pkg.ErrPartitionFrozen
-	}
 	return nil
 }
 

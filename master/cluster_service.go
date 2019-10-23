@@ -431,89 +431,6 @@ func (this *masterService) generatePartitionsInfo(servers []*entity.Server, serv
 	return addres, nil
 }
 
-//frozen partition it use , partition not word , it only run in GuiXu engine
-func (ms *masterService) frozenPartition(ctx context.Context, partitionID entity.PartitionID) error {
-
-	log.Info("to frozen partition:[%d] ", partitionID)
-
-	partition, err := ms.Master().QueryPartition(ctx, partitionID)
-	if err != nil {
-		return err
-	}
-
-	space, err := ms.Master().QuerySpaceById(ctx, partition.DBId, partition.SpaceId)
-	if err != nil {
-		return err
-	}
-
-	if !space.CanFrozen() {
-		return fmt.Errorf("this engine can not use frozen partition, your engine is %s", space.Engine)
-	}
-
-	dbName, err := ms.Master().QueryDBId2Name(ctx, partition.DBId)
-	if err != nil {
-		return err
-	}
-
-	lock := ms.Master().NewLock(ctx, entity.LockSpaceKey(dbName, space.Name), 300*time.Second)
-	if err = lock.Lock(); err != nil {
-		return err
-	}
-	defer vearchlog.FunIfNotNil(lock.Unlock)
-
-	space, err = ms.Master().QuerySpaceById(ctx, partition.DBId, partition.SpaceId)
-	if err != nil {
-		return err
-	}
-
-	if err := ms.appendPartitionLocked(ctx, space); err != nil {
-		log.Error("appendPartitionLocked error :%v", err)
-		return err
-	}
-
-	if err := ms.frozenPartitionLocked(ctx, space, partition.Id); err != nil {
-		log.Error("frozenPartitionLocked  error :%v", err)
-		return err
-	}
-
-	return nil
-}
-
-func (ms *masterService) appendPartition(ctx context.Context, dbName, spaceName string) error {
-	log.Info("to append dbname :%v, spaceName:[%d] ", dbName, spaceName)
-
-	dbID, err := ms.Master().QueryDBName2Id(ctx, dbName)
-	if err != nil {
-		log.Error("append partition query db error :%v", err)
-		return err
-	}
-
-	space, err := ms.Master().QuerySpaceByName(ctx, dbID, spaceName)
-	if err != nil {
-		return err
-	}
-
-	if !space.CanFrozen() {
-		return fmt.Errorf("this engine can not use append partition, your engine is %s", space.Engine)
-	}
-
-	lock := ms.Master().NewLock(ctx, entity.LockSpaceKey(dbName, space.Name), 300*time.Second)
-	if err = lock.Lock(); err != nil {
-		return err
-	}
-	defer vearchlog.FunIfNotNil(lock.Unlock)
-
-	space, err = ms.Master().QuerySpaceById(ctx, dbID, space.Id)
-	if err != nil {
-		return err
-	}
-
-	if err := ms.appendPartitionLocked(ctx, space); err != nil {
-		log.Error("appendPartitionLocked error :%v", err)
-		return err
-	}
-	return nil
-}
 
 func (ms *masterService) deletePartition(ctx context.Context, dbName string, spaceName string, pid entity.PartitionID) error {
 	dbID, err := ms.Master().QueryDBName2Id(ctx, dbName)
@@ -659,42 +576,6 @@ func (ms *masterService) appendPartitionLocked(ctx context.Context, space *entit
 	return nil
 }
 
-func (ms *masterService) frozenPartitionLocked(ctx context.Context, space *entity.Space, frozenPartitionID entity.PartitionID) error {
-	//save ok , remove it to worker list
-	for i, wp := range space.WorkedPartitions {
-		if wp.Id == frozenPartitionID {
-			space.WorkedPartitions = append(space.WorkedPartitions[:i], space.WorkedPartitions[i+1:]...)
-			break
-		}
-	}
-
-	for _, p := range space.Partitions {
-		if p.Id == frozenPartitionID {
-			p.Frozen = true
-			p.UpdateTime = time.Now().UnixNano()
-		}
-	}
-
-	if err := ms.updateSpace(ctx, space); err != nil {
-		return err
-	}
-
-	newFrozenPartition, err := ms.Master().QueryPartition(ctx, frozenPartitionID)
-	if err != nil {
-		return err
-	}
-	server, err := ms.Master().QueryServer(ctx, newFrozenPartition.LeaderID)
-	if err != nil {
-		return err
-	}
-
-	if err := ms.PS().B().Admin(server.RpcAddr()).UpdatePartition(space, frozenPartitionID); err != nil {
-		return err
-	}
-
-	return nil
-
-}
 
 func (ms *masterService) filterAndSortServer(ctx context.Context, space *entity.Space, servers []*entity.Server) (map[int]int, error) {
 
@@ -1030,9 +911,6 @@ func (this *masterService) partitionInfo(ctx context.Context, dbName, spaceName 
 
 				//this must from space.Partitions
 				partitionInfo.PartitionID = spacePartition.Id
-				partitionInfo.MaxValue = spacePartition.MaxValue
-				partitionInfo.MinValue = spacePartition.MinValue
-				partitionInfo.Frozen = spacePartition.Frozen
 				partitionInfo.Color = color[pStatus]
 				partitionInfo.ReplicaNum = len(p.Replicas)
 				partitionInfo.Ip = server.Ip
