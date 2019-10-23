@@ -83,11 +83,12 @@ func New(cfg register.EngineConfig) (engine.Engine, error) {
 		indexMapping: indexMapping,
 		space:        cfg.Space,
 		partitionID:  cfg.PartitionID,
+		path:         cfg.Path,
 		gamma:        C.Init(gammaConfig),
 		counter:      atomic.NewAtomicInt64(0),
 	}
-	ge.reader = &readerImpl{engine: ge, path: cfg.Path}
-	ge.writer = &writerImpl{engine: ge, path: cfg.Path}
+	ge.reader = &readerImpl{engine: ge}
+	ge.writer = &writerImpl{engine: ge}
 
 	infos, _ := ioutil.ReadDir(cfg.Path)
 	if len(infos) == 0 {
@@ -124,6 +125,7 @@ func New(cfg register.EngineConfig) (engine.Engine, error) {
 type gammaEngine struct {
 	ctx          context.Context
 	cancel       context.CancelFunc
+	path         string
 	indexMapping *mapping.IndexMapping
 	space        *entity.Space
 	partitionID  entity.PartitionID
@@ -134,6 +136,7 @@ type gammaEngine struct {
 
 	buildIndexOnce sync.Once
 	counter        *atomic.AtomicInt64
+	lock           sync.RWMutex
 }
 
 func (ge *gammaEngine) GetSpace() *entity.Space {
@@ -166,14 +169,6 @@ func (ge *gammaEngine) GetMapping() *mapping.IndexMapping {
 
 func (ge *gammaEngine) MapDocument(doc *pspb.DocCmd) ([]*pspb.Field, map[string]pspb.FieldType, error) {
 	return ge.indexMapping.MapDocument(doc.Source)
-}
-
-func (ge *gammaEngine) NewSnapshot() (engine.Snapshot, error) {
-	panic("implement me")
-}
-
-func (ge *gammaEngine) ApplySnapshot(iter engine.Iterator, sn int64) error {
-	panic("implement me")
 }
 
 func (ge *gammaEngine) Optimize() error {

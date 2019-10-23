@@ -35,7 +35,6 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"sync"
 	"time"
 )
 
@@ -47,8 +46,6 @@ var _ engine.RTReader = &readerImpl{}
 
 type readerImpl struct {
 	engine *gammaEngine
-	path   string
-	lock   sync.RWMutex
 }
 
 func (ri *readerImpl) RTReadDoc(ctx context.Context, docID string) *response.DocResult {
@@ -215,9 +212,9 @@ func (ri *readerImpl) StreamSearch(ctx context.Context, req *request.SearchReque
 }
 
 func (ri *readerImpl) ReadSN(ctx context.Context) (int64, error) {
-	ri.lock.RLock()
-	defer ri.lock.RUnlock()
-	fileName := filepath.Join(ri.path, indexSn)
+	ri.engine.lock.RLock()
+	defer ri.engine.lock.RUnlock()
+	fileName := filepath.Join(ri.engine.path, indexSn)
 	b, err := ioutil.ReadFile(fileName)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -247,5 +244,5 @@ func (ri *readerImpl) DocCount(ctx context.Context) (uint64, error) {
 }
 
 func (ri *readerImpl) Capacity(ctx context.Context) (int64, error) {
-	return ioutil2.DirSize(ri.path)
+	return ioutil2.DirSize(ri.engine.path)
 }

@@ -2,6 +2,9 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
+    <meta HTTP-EQUIV="pragma" CONTENT="no-cache"> 
+    <meta HTTP-EQUIV="Cache-Control" CONTENT="no-cache, must-revalidate"> 
+    <meta HTTP-EQUIV="expires" CONTENT="0"> 
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
@@ -38,7 +41,7 @@
 		var data = jsonData["sim_url"]
 		var str = "<ul class=\"imgList clearfix\">"
 		for (var i = 0, l = data.length; i < l; i++){
-                    str = str + "<li><img src=" + data[i]["url"] + "><p>score: "+data[i]["score"]+"</p></li>";
+                    str = str + "<li><div class='imgWrapper'><img src=" + data[i]["imageurl"] + "></div><p>score: "+data[i]["score"]+"</p></li>";
 		}
 		str = str + "</ul>"
 		$("#tabinfo2").html(str)
@@ -48,7 +51,7 @@
 
 	
 <body>
-	<h1 class="page-header">The Result Display Platform of VectorBase </h1>
+	<h1 class="page-header">The Result Display Platform of Vearch </h1>
 	<input type="file"  style="display:none"  name="pic"  id="file" accept="image/*" onchange="upFile()">
         <input type="text" value="please choose one picture..." disabled id="inputFileAgent" />
         <input type="button" onclick="document.getElementById('file').click()" value="Browse..." />

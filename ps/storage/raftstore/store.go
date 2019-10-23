@@ -17,6 +17,7 @@ package raftstore
 import (
 	"context"
 	"fmt"
+	"github.com/vearch/vearch/ps"
 	"github.com/vearch/vearch/ps/psutil"
 	"os"
 
@@ -36,6 +37,8 @@ import (
 // contiguous slot-space with writes managed via an instance of the Raft
 // consensus algorithm.
 
+var _  ps.PartitionStore = &Store{}
+
 type Store struct {
 	*storage.StoreBase
 	RaftPath      string
@@ -45,6 +48,7 @@ type Store struct {
 	LastFlushSn   int64
 	Client        *client.Client
 }
+
 
 // CreateStore create an instance of Store.
 func CreateStore(ctx context.Context, pID entity.PartitionID, nodeID entity.NodeID, space *entity.Space, raftServer *raft.RaftServer, eventListener EventListener, client *client.Client) (*Store, error) {
@@ -189,3 +193,25 @@ func (s *Store) GetUnreachable(id uint64) []uint64 {
 func (s *Store) GetPartition() *entity.Partition {
 	return s.Partition
 }
+
+
+func (s *Store) ChangeMember(changeType proto.ConfChangeType, nodeID entity.NodeID) error {
+	id := uint64(s.Partition.Id)
+	peer := proto.Peer{
+		Type:     proto.PeerNormal,
+		ID:   nodeID,
+	}
+	future := s.RaftServer.ChangeMember(id, changeType, peer, nil)
+
+	response, err := future.Response()
+	if err != nil {
+		return err
+	}
+
+	if response.(*RaftApplyResponse).Err != nil {
+		return response.(*RaftApplyResponse).Err
+	}
+
+	return nil
+}
+

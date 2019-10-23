@@ -73,35 +73,8 @@ def test():
         feat = model.forward(image)
         return feat[0]/np.linalg.norm(feat[0])
 
-    print(test_url("http://img30.360buyimg.com/da/jfs/t14458/111/1073427178/210435/20d7f66/5a436349Ncf9bea13.jpg"))
-    # from PIL import Image
-    # image1 = cv2.imread("../../images/test/COCO_val2014_000000123599.jpg")
-    # # image2 = cv2.imread("../../images/test/COCO_val2014_000000123599.jpg")
-    # print(model.forward(image1[:,:,::-1]))
-    # import time
-    # start = time.time()
-    # tensor1 = model.preprocess_input(image1)
-    # tensor2 = model.preprocess_input2(image1)
-    # print(time.time()-start)
-    # data = [tensor1,tensor2]
-    # data = [tensor1]
-    # data = torch.stack([tensor1,tensor2])
-    # print(data.shape)
-    # array1,array2 = model.forward(data)
-    # import keras_vgg16 as kv
-    # keras_model = kv.model
-    # image2 = image1[:,:,::-1]
-    # image2 = cv2.resize(image2, (224, 224))
-    # image2 = image2[np.newaxis,:]
-    # image2 = keras_model.preprocess_input(image2)
-    # array2 = keras_model.predict(image2)[0]
-    # image2 = image2.transpose(0,3,1,2)
-    # array1 = model.forward(model.preprocess_input(image2))[0]
-
-
-    # print(np.array(array1).shape, np.array(array2).shape)
-    # print(np.dot(array1, array2)/(np.linalg.norm(array1) * np.linalg.norm(array2)))
-
+    print(test_url(url))
 
 if __name__ == "__main__":
-    test()
+    import sys
+    test(sys.argv[1])

@@ -1,4 +1,3 @@
-
 # Copyright 2019 The Vearch Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,6 +15,7 @@
 This code is referred to "https://github.com/eriklindernoren/PyTorch-YOLOv3"'''
 import os
 import cv2
+import subprocess
 import numpy as np
 from PIL import Image
 
@@ -538,15 +538,22 @@ def getOrisize(bbox, w, h, size=416):
     new_y_min = max(0, y_min * h / size)
     new_x_max = min(w, (x_max - x_min) * w / size + new_x_min)
     new_y_max = min(h, (y_max - y_min) * h / size + new_y_min)
-    return [new_x_min, new_y_min, new_x_max, new_y_max]
+    return list(map(int, [new_x_min, new_y_min, new_x_max, new_y_max]))
 
 class YoloDetect(object):
 
-    def __init__(self):
+    def __init__(self, model_path=None):
         local_path = os.path.dirname(os.path.abspath(__file__))
+        if model_path is None:
+            root_path = os.path.dirname(os.path.dirname(os.path.dirname(local_path)))
+            model_path = os.path.join(root_path, "model", "yolov3.weights")
+        if not os.path.exists(model_path):
+            print("yolov3.weights is not existed in model_path, begin download it from https://pjreddie.com/media/files/yolov3.weights!")
+            path = os.path.dirname(model_path)
+            subprocess.run(f"wget -P {path} -c https://pjreddie.com/media/files/yolov3.weights", shell=True)
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model = Darknet(os.path.join(local_path, "yolov3.cfg")).to(device)
-        self.model.load_darknet_weights(os.path.join(local_path,"yolov3.weights"))
+        self.model.load_darknet_weights(model_path)
         self.model.eval()
 
         self.classes = load_classes(os.path.join(local_path, "coco.names"))
@@ -579,13 +586,13 @@ class YoloDetect(object):
         return result
 
 
-def load_model():
-    fashion_detect = YoloDetect()
+def load_model(model_path=None):
+    fashion_detect = YoloDetect(model_path)
     return fashion_detect
 
 if __name__ == "__main__":
     fashion_detect = load_model()
-    image = cv2.imread("/home/gaosen/project/vectorbase/plugin/images/test/COCO_val2014_000000095375.jpg")
+    image = cv2.imread("../../../images/image_retrieval/test/COCO_val2014_000000095375.jpg")
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     print(image.shape)
     result = fashion_detect.detect(image)

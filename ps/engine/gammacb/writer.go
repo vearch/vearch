@@ -44,8 +44,6 @@ var _ engine.Writer = &writerImpl{}
 
 type writerImpl struct {
 	engine  *gammaEngine
-	path    string
-	lock    sync.RWMutex
 	running bool
 }
 
@@ -166,13 +164,14 @@ func (wi *writerImpl) Flush(ctx context.Context, sn int64) error {
 		return pkg.ErrPartitionClosed
 	}
 
+
+	wi.engine.lock.Lock()
+	defer wi.engine.lock.Unlock()
 	if code := C.Dump(gamma); code != 0 {
 		return fmt.Errorf("dump index err response code :[%d]", code)
 	}
-	wi.lock.Lock()
-	defer wi.lock.Unlock()
 
-	fileName := filepath.Join(wi.path, indexSn)
+	fileName := filepath.Join(wi.engine.path, indexSn)
 	err := ioutil2.WriteFileAtomic(fileName, []byte(string(strconv.FormatInt(sn, 10))), os.ModePerm)
 	if err != nil {
 		return err
@@ -193,19 +192,19 @@ func (wi *writerImpl) Commit(ctx context.Context, snx int64) (chan error, error)
 
 	go func(fc chan error, sn int64) {
 
-		wi.lock.Lock()
+		wi.engine.lock.Lock()
 		if wi.running {
 			log.Info("commit is running , so skip this request")
 			fc <- nil
 			return
 		}
 		wi.running = true
-		wi.lock.Unlock()
+		wi.engine.lock.Unlock()
 
 		defer func() {
-			wi.lock.Lock()
+			wi.engine.lock.Lock()
 			wi.running = false
-			wi.lock.Unlock()
+			wi.engine.lock.Unlock()
 
 			if i := recover(); i != nil {
 				log.Error(string(debug.Stack()))
@@ -218,7 +217,7 @@ func (wi *writerImpl) Commit(ctx context.Context, snx int64) (chan error, error)
 		if code := C.Dump(gamma); code != 0 {
 			fc <- vearchlog.LogErrAndReturn(fmt.Errorf("dump index err response code :[%d]", code))
 		} else {
-			fileName := filepath.Join(wi.path, indexSn)
+			fileName := filepath.Join(wi.engine.path, indexSn)
 			err := ioutil2.WriteFileAtomic(fileName, []byte(string(strconv.FormatInt(sn, 10))), os.ModePerm)
 			if err != nil {
 				return

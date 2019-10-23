@@ -91,7 +91,7 @@ func mapping2Table(cfg register.EngineConfig, m *mapping.IndexMapping) (*C.struc
 			fs = append(fs, C.MakeFieldInfo(byteArrayStr(key), INT, C.char((value.Field.Options()&pspb.FieldOption_Index)/pspb.FieldOption_Index)))
 		case pspb.FieldType_VECTOR:
 			fieldMapping := value.Field.FieldMappingI.(*mapping.VectortFieldMapping)
-			vf := C.MakeVectorInfo(byteArrayStr(key), VECTOR, C.int(fieldMapping.Dimension), byteArrayStr(fieldMapping.ModelId), byteArrayStr(fieldMapping.RetrievalType), byteArrayStr(fieldMapping.StoreType))
+			vf := C.MakeVectorInfo(byteArrayStr(key), VECTOR, C.int(fieldMapping.Dimension), byteArrayStr(fieldMapping.ModelId), byteArrayStr(fieldMapping.RetrievalType), byteArrayStr(fieldMapping.StoreType), byteArray(fieldMapping.StoreParam))
 			vfs = append(vfs, vf)
 		}
 

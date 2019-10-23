@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/tiglabs/raft"
+	"github.com/tiglabs/raft/proto"
 	"github.com/vearch/vearch/client"
 	"github.com/vearch/vearch/proto/request"
 	"github.com/vearch/vearch/proto/response"
@@ -59,11 +60,11 @@ func ExportToRpcAdminHandler(server *Server) {
 		panic(err)
 	}
 
-	if err := server.rpcServer.RegisterName(handler.NewChain(client.MaxMinZoneFieldHandler, server.monitor, handler.DefaultPanicHadler, nil, initAdminHandler, storeHandler, new(MaxMinZoneFieldHandler)), ""); err != nil {
+	if err := server.rpcServer.RegisterName(handler.NewChain(client.PartitionInfoHandler, server.monitor, handler.DefaultPanicHadler, nil, initAdminHandler, storeHandler, new(PartitionSizeHandler)), ""); err != nil {
 		panic(err)
 	}
 
-	if err := server.rpcServer.RegisterName(handler.NewChain(client.PartitionInfoHandler, server.monitor, handler.DefaultPanicHadler, nil, initAdminHandler, storeHandler, new(PartitionSizeHandler)), ""); err != nil {
+	if err := server.rpcServer.RegisterName(handler.NewChain(client.ChangeMemberHandler, server.monitor, handler.DefaultPanicHadler, nil, initAdminHandler, storeHandler, new(ChangeMemberHandler)), ""); err != nil {
 		panic(err)
 	}
 
@@ -213,70 +214,6 @@ func (mm *PartitionSizeHandler) Execute(req *handler.RpcRequest, resp *handler.R
 	return nil
 }
 
-type MaxMinZoneFieldHandler int
-
-func (mm *MaxMinZoneFieldHandler) Execute(req *handler.RpcRequest, resp *handler.RpcResponse) error {
-
-	//panice guixu only support caprice TODO ANSJ
-
-	//store := req.Arg.(*request.ObjRequest).GetStore().(PartitionStore)
-	//
-	//aggs := fmt.Sprintf(`{
-	//    	"max": {
-	//        	"max": {"field":"%s"}
-	//    	},
-	//    	"min": {
-	//        	"min": {"field":"%s"}
-	//    	}
-	//	}`, store.GetSpace().Engine.ZoneField, store.GetSpace().Engine.ZoneField)
-	//
-	//searchReq := &request.SearchRequest{
-	//	SearchDocumentRequest: &request.SearchDocumentRequest{
-	//		Size: util.PInt(0),
-	//		Aggs: []byte(aggs),
-	//	},
-	//}
-	//
-	//result, err := store.Search(req.Ctx, true, searchReq)
-	//
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//log.Info("search maxMin Field:[%s] zone result :[%s]", store.GetSpace().Engine.ZoneField, cbjson.ToJsonString(result.Aggs))
-	//
-	//var Max, Min float64
-
-	//for _, agg := range result.Aggs {
-	//	if agg.Type() == "max" {
-	//		Max, err = cast.ToFloat64E(agg.GetResult().(*metrics.MaxResult).Max)
-	//	}
-	//	if agg.Type() == "min" {
-	//		Min, err = cast.ToFloat64E(agg.GetResult().(*metrics.MinResult).Value)
-	//	}
-	//}
-
-	//if err != nil {
-	//	log.Error(err.Error())
-	//}
-	//
-	//if Max <= 0 {
-	//	return fmt.Errorf("partitionID:[%d] max value can not to zero , please check data is right?", store.GetPartition().Id)
-	//}
-	//
-	//value := struct {
-	//	Max float64
-	//	Min float64
-	//}{
-	//	Max: Max,
-	//	Min: Min,
-	//}
-	//
-	//resp.Result, err = response.NewObjResponse(value)
-
-	return nil
-}
-
 type StatsHandler struct {
 	server *Server
 }
@@ -286,6 +223,30 @@ func (sh *StatsHandler) Execute(req *handler.RpcRequest, resp *handler.RpcRespon
 	stats.ActiveConn = len(sh.server.rpcServer.ActiveClientConn())
 	resp.Result = stats
 	return nil
+}
+
+type ChangeMemberHandler int
+
+func (ah *ChangeMemberHandler) Execute(req *handler.RpcRequest, resp *handler.RpcResponse) error {
+	reqs := req.GetArg().(*request.ObjRequest)
+
+	reqObj := &struct {
+		PartitionID entity.PartitionID
+		NodeID      entity.NodeID
+		Method      proto.ConfChangeType
+	}{}
+
+	if err := reqs.Decode(reqObj); err != nil {
+		return err
+	}
+
+	store := reqs.GetStore().(PartitionStore)
+
+	if store.IsLeader() {
+		return pkg.ErrPartitionNotLeader
+	}
+
+	return store.ChangeMember(reqObj.Method, reqObj.NodeID)
 }
 
 // it when has happen , redirect some other to response and send err to status

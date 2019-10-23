@@ -1,6 +1,6 @@
 # API for Visual Search
 
-Vearch Plugin is aimed to build a simple and fast image retrieval system. Through this system, you can easily build your own image retrieval system, including image object detection,  feature extraction and similarity search. This API demonstrates how to use it.
+Vearch Plugin is aimed to build a simple and fast vector retrieval system. Through this system, you can easily build your own vector retrieval system, including object detection,  feature extraction and similarity search. This API demonstrates how to use it.
 
 
 ## Create a database and space
@@ -9,7 +9,7 @@ The first step is to create a database and space, a database can have many space
 **HTTP request**
 
 ```shell
-POST http://{ip}:{port}/{database}/{space}/_create
+POST http://127.0.0.1:4101/test/test/_create
 ```
 
 path parameters:
@@ -28,6 +28,7 @@ path parameters:
 | Parameter | Type   | Required | Default | Explain                                          |
 | --------- | ------ | -------- | ------- | ------------------------------------------------ |
 | db        | bool   | no       | true    | whether to create DB                             |
+| method    | int    | no       | 0       | The method of calculate distance, 0 is innerproduct, 1 is Euclidean                |
 | columns   | dict   | yes      |         | the filed in the space                           |
 | feature   | dict   | yes      |         | define  a model to extract features from a field |
 
@@ -67,7 +68,7 @@ In this example, we create a database and space ,both name of them are "test".
 ```shell
 curl -XPOST -H "content-type:application/json" -d '{
     "db": true,
-    "method": "innerproduct",
+    "method": 0,
     "columns": {
         "imageurl": {
             "type": "keyword"
@@ -85,7 +86,7 @@ curl -XPOST -H "content-type:application/json" -d '{
         "model_id": "vgg16",
         "dimension": 512
     }
-}' http://{ip}:{port}/test/test/_create
+}' http://127.0.0.1:4101/test/test/_create
 ```
 
 A successful response like this:
@@ -103,7 +104,7 @@ If your database or space is created incorrectly, or you just don't want it, you
 **HTTP request**
 
 ```shell
-POST http://{ip}:{port}/{database}/{space}/_delete
+POST http://127.0.0.1:4101/test/test/_delete
 ```
 
 `path` parameters same like above.
@@ -130,7 +131,7 @@ In this example, we only delete space.
 curl -XPOST -H "content-type:application/json" -d '{
     "db": false,
     "space": true
-}' http://{ip}:{port}/test/test/_delete
+}' http://127.0.0.1:4101/test/test/_delete
 ```
 
 A successful response like this:
@@ -148,7 +149,7 @@ After creating space, you can import data into space. There are two ways to impo
 **HTTP request**
 
 ```shell
-POST http://{ip}:{port}/{database}/{space}/_insert
+POST http://127.0.0.1:4101/test/test/_insert
 ```
 
 `path` parameters same like above.
@@ -180,11 +181,11 @@ POST http://{ip}:{port}/{database}/{space}/_insert
 ```shell
 # single insert
 curl -XPOST -H "content-type:application/json" -d '{
-    "imageurl": "images/test/COCO_val2014_000000123599.jpg",
+    "imageurl": "../images/image_retrieval/test/COCO_val2014_000000123599.jpg",
     "detection": false,
     "boundingbox": "10,10,290,290",
     "label": "coat"
-}' http://{ip}:{port}/test/test/_insert
+}' http://127.0.0.1:4101/test/test/_insert
 
 ```
 
@@ -194,9 +195,9 @@ The method of batch import demo:
 # batch insert
 curl -XPOST -H "content-type:application/json" -d '{
     "method": "batch",
-    "imageurl": "./images/test.csv",
+    "imageurl": "../images/image_retrieval/test.csv",
     "detection": true
-}' http://{ip}:{port}/test/test/_insert
+}' http://127.0.0.1:4101/test/test/_insert
 
 ```
 
@@ -251,27 +252,27 @@ You can use the ids returned above to check the status of the bulk import operat
 **HTTP request**
 
 ```shell
-GET http://{ip}:{port}/{database}/{space}/${id}
+GET http://127.0.0.1:4101/test/test/${id}
 ```
 
 `path` parameters same like above, `id` is unique id of record  .
 
 **Response body**
 
-| Parameter | Type    | Explain                              |
-| --------- | ------- | ------------------------------------ |
-| _index    | string  | the name of db                       |
-| _type     | string  | the name of space                    |
-| _id       | string  | record unique ID                     |
-| found     | bool    | true or false                        |
-| _version  | integer | the version of this record           |
-| _source   | dict    | a dict mapping all fields in a space |
+> | Parameter | Type    | Explain                              |
+> | --------- | ------- | ------------------------------------ |
+> | _index    | string  | the name of db                       |
+> | _type     | string  | the name of space                    |
+> | _id       | string  | record unique ID                     |
+> | found     | bool    | true or false                        |
+> | _version  | integer | the version of this record           |
+> | _source   | dict    | a dict mapping all fields in a space |
 
 **Example**
 
 ```shell
 # request
-curl -XGET http://{ip}:{port}/test/test/AWz2IFBSJG6WicwQVTog
+curl -XGET http://127.0.0.1:4101/test/test/AWz2IFBSJG6WicwQVTog
 
 ```
 
@@ -286,7 +287,7 @@ A successful response like this:
     "_version": 1,
     "_source": {
         "boundingbox": '232,204,436,406',
-        "imageurl": "images/test/COCO_val2014_000000123599.jpg",
+        "imageurl": "../images/image_retrieval/test/COCO_val2014_000000123599.jpg",
         "label": "zebra"
     }
 }
@@ -299,7 +300,7 @@ If you want delete a record and you know the unique id of this record, you can d
 **HTTP request**
 
 ```shell
-DELETE http://{ip}:{port}/{database}/{space}/${id}
+DELETE http://127.0.0.1:4101/test/test/${id}
 ```
 
 `path` parameters same like above, `id` is unique id of record  .
@@ -317,7 +318,7 @@ In this example, we delete the record whose id is AWz2IFBSJG6WicwQVTog in test s
 
 ```shell
 # request
-curl -XDELETE http://{ip}:{port}/test/test/AWz2IFBSJG6WicwQVTog
+curl -XDELETE http://127.0.0.1:4101/test/test/AWz2IFBSJG6WicwQVTog
 
 ```
 
@@ -339,7 +340,7 @@ If you want update a record and you know the unique id of this record, you can u
 **HTTP request**
 
 ```shell
-POST http://{ip}:{port}/{database}/{space}/_update?id=${id}
+POST http://127.0.0.1:4101/test/test/_update?id=${id}
 ```
 
 `path` parameters same like above, `id` is unique id of record  .
@@ -356,9 +357,9 @@ same as Insert data into space
 
 ```shell
 curl -XPOST -H "content-type:application/json" -d '{
-    "imageurl": "images/test/COCO_val2014_000000123599.jpg",
+    "imageurl": "../images/image_retrieval/test/COCO_val2014_000000123599.jpg",
     "detection": true
-}' http://{ip}:{port}/test/test/_update?id=AWz2IFBSJG6WicwQVTog
+}' http://127.0.0.1:4101/test/test/_update?id=AWz2IFBSJG6WicwQVTog
 ```
 
 A successful response like this:
@@ -387,7 +388,7 @@ You can search using a base64 encoded local image, or use an image URI for an pu
 **HTTP request**
 
 ```shell
-POST http://{ip}:{port}/{database}/{space}/_search
+POST http://127.0.0.1:4101/test/test/_search
 ```
 
 `path` parameters same like above.
@@ -414,7 +415,7 @@ Search using an image stored in images folders or image URI on Internet
 ```shell
 # request
 curl -XPOST -H "content-type:application/json" -d '{
-    "imageurl": "images/test/COCO_val2014_000000123599.jpg",
+    "imageurl": "../images/image_retrieval/test/COCO_val2014_000000123599.jpg",
     "detection": true,
     "score": 0.5,
     "filter": [
@@ -427,7 +428,7 @@ curl -XPOST -H "content-type:application/json" -d '{
         }
     ],
     "size": 5
-}' http://{ip}:{port}/test/test/_search
+}' http://127.0.0.1:4101/test/test/_search
 
 
 ```
@@ -436,8 +437,8 @@ Search using an base64 encoded image
 
 ```shell
 curl -XPOST -H "content-type:application/json" -d '{
-    "imageurl": "$(base64 -w 0 images/test/COCO_val2014_000000123599.jpg)"
-}'http://{ip}:{port}/test/test/_search
+    "imageurl": "$(base64 -w 0 ../images/image_retrieval/test/COCO_val2014_000000123599.jpg)"
+}'http://127.0.0.1:4101/test/test/_search
 ```
 
 A successful response
@@ -464,7 +465,7 @@ A successful response
                     'vector_result': [
                         {
                             'field': 'feature',
-                            'source': 'images/test/COCO_val2014_000000123599.jpg',
+                            'source': '../images/image_retrieval/test/COCO_val2014_000000123599.jpg',
                             'score': 0.9999999403953552
                         }
                     ]
@@ -475,7 +476,7 @@ A successful response
                     67,
                     546,
                     556',
-                    'imageurl': 'images/test/COCO_val2014_000000123599.jpg',
+                    'imageurl': '../images/image_retrieval/test/COCO_val2014_000000123599.jpg',
                     'label': 'zebra'
                 }
             },
@@ -488,7 +489,7 @@ A successful response
                     'vector_result': [
                         {
                             'field': 'feature',
-                            'source': 'images/test/COCO_val2014_000000095375.jpg',
+                            'source': '../images/image_retrieval/test/COCO_val2014_000000095375.jpg',
                             'score': 0.9116669297218323
                         }
                     ]
@@ -499,7 +500,7 @@ A successful response
                     320,
                     208,
                     427',
-                    'imageurl': 'images/test/COCO_val2014_000000095375.jpg',
+                    'imageurl': '../images/image_retrieval/test/COCO_val2014_000000095375.jpg',
                     'label': 'zebra'
                 }
             },
@@ -512,7 +513,7 @@ A successful response
                     'vector_result': [
                         {
                             'field': 'feature',
-                            'source': 'images/test/COCO_val2014_000000045535.jpg',
+                            'source': '../images/image_retrieval/test/COCO_val2014_000000045535.jpg',
                             'score': 0.9110268354415894
                         }
                     ]
@@ -523,7 +524,7 @@ A successful response
                     171,
                     494,
                     346',
-                    'imageurl': 'images/test/COCO_val2014_000000045535.jpg',
+                    'imageurl': '../images/image_retrieval/test/COCO_val2014_000000045535.jpg',
                     'label': 'zebra'
                 }
             },
@@ -536,7 +537,7 @@ A successful response
                     'vector_result': [
                         {
                             'field': 'feature',
-                            'source': 'images/test/COCO_val2014_000000007522.jpg',
+                            'source': '../images/image_retrieval/test/COCO_val2014_000000007522.jpg',
                             'score': 0.9091571569442749
                         }
                     ]
@@ -547,7 +548,7 @@ A successful response
                     204,
                     436,
                     406',
-                    'imageurl': 'images/test/COCO_val2014_000000007522.jpg',
+                    'imageurl': '../images/image_retrieval/test/COCO_val2014_000000007522.jpg',
                     'label': 'zebra'
                 }
             },
@@ -560,7 +561,7 @@ A successful response
                     'vector_result': [
                         {
                             'field': 'feature',
-                            'source': 'images/test/COCO_val2014_000000136077.jpg',
+                            'source': '../images/image_retrieval/test/COCO_val2014_000000136077.jpg',
                             'score': 0.9059789180755615
                         }
                     ]
@@ -571,7 +572,7 @@ A successful response
                     75,
                     624,
                     285',
-                    'imageurl': 'images/test/COCO_val2014_000000136077.jpg',
+                    'imageurl': '../images/image_retrieval/test/COCO_val2014_000000136077.jpg',
                     'label': 'zebra'
                 }
             },
@@ -584,7 +585,7 @@ A successful response
                     'vector_result': [
                         {
                             'field': 'feature',
-                            'source': 'images/test/COCO_val2014_000000026174.jpg',
+                            'source': '../images/image_retrieval/test/COCO_val2014_000000026174.jpg',
                             'score': 0.9054344296455383
                         }
                     ]
@@ -595,7 +596,7 @@ A successful response
                     89,
                     506,
                     388',
-                    'imageurl': 'images/test/COCO_val2014_000000026174.jpg',
+                    'imageurl': '../images/image_retrieval/test/COCO_val2014_000000026174.jpg',
                     'label': 'zebra'
                 }
             },
@@ -608,7 +609,7 @@ A successful response
                     'vector_result': [
                         {
                             'field': 'feature',
-                            'source': 'images/test/COCO_val2014_000000077479.jpg',
+                            'source': '../images/image_retrieval/test/COCO_val2014_000000077479.jpg',
                             'score': 0.9029231071472168
                         }
                     ]
@@ -619,7 +620,7 @@ A successful response
                     82,
                     525,
                     391',
-                    'imageurl': 'images/test/COCO_val2014_000000077479.jpg',
+                    'imageurl': '../images/image_retrieval/test/COCO_val2014_000000077479.jpg',
                     'label': 'zebra'
                 }
             },
@@ -632,7 +633,7 @@ A successful response
                     'vector_result': [
                         {
                             'field': 'feature',
-                            'source': 'images/test/COCO_val2014_000000039390.jpg',
+                            'source': '../images/image_retrieval/test/COCO_val2014_000000039390.jpg',
                             'score': 0.9010977745056152
                         }
                     ]
@@ -643,7 +644,7 @@ A successful response
                     141,
                     187,
                     290',
-                    'imageurl': 'images/test/COCO_val2014_000000039390.jpg',
+                    'imageurl': '../images/image_retrieval/test/COCO_val2014_000000039390.jpg',
                     'label': 'zebra'
                 }
             },
@@ -656,7 +657,7 @@ A successful response
                     'vector_result': [
                         {
                             'field': 'feature',
-                            'source': 'images/test/COCO_val2014_000000023411.jpg',
+                            'source': '../images/image_retrieval/test/COCO_val2014_000000023411.jpg',
                             'score': 0.8993719816207886
                         }
                     ]
@@ -667,7 +668,7 @@ A successful response
                     89,
                     538,
                     390',
-                    'imageurl': 'images/test/COCO_val2014_000000023411.jpg',
+                    'imageurl': '../images/image_retrieval/test/COCO_val2014_000000023411.jpg',
                     'label': 'zebra'
                 }
             },
@@ -680,7 +681,7 @@ A successful response
                     'vector_result': [
                         {
                             'field': 'feature',
-                            'source': 'images/test/COCO_val2014_000000180363.jpg',
+                            'source': '../images/image_retrieval/test/COCO_val2014_000000180363.jpg',
                             'score': 0.8990296721458435
                         }
                     ]
@@ -691,7 +692,7 @@ A successful response
                     88,
                     335,
                     310',
-                    'imageurl': 'images/test/COCO_val2014_000000180363.jpg',
+                    'imageurl': '../images/image_retrieval/test/COCO_val2014_000000180363.jpg',
                     'label': 'zebra'
                 }
             }

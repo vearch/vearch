@@ -36,7 +36,7 @@ Vearch is a scalable distributed system for efficient similarity search of deep 
 
 
 ## Quick start
-
+![docs/img/plugin/main_process.gif](docs/img/plugin/main_process.gif)
 * Quickly build a distributed vector search system with RESTful API, please see [docs/Deploy.md](docs/Deploy.md).
 
 

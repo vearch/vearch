@@ -15,16 +15,10 @@ import os
 import json
 import base64
 import requests
+import argparse
 import tornado
 import tornado.web
 from tornado import escape
-from tornado.options import define,options
-
-from config import config
-
-define("port", type=int, default=4102)
-define("db", type=str, default="test")
-define("space", type=str, default="test")
 
 resource_path = os.path.join(
     os.path.dirname((os.path.abspath(__file__))),
@@ -42,13 +36,14 @@ class ImageShowHandler(tornado.web.RequestHandler):
         image_path = os.path.join(resource_path, "images", image_object["filename"])
         self.save_img(image_path, image_bytes)
         sim_results = self.search_similar(image_path)
-        # sim_results = self.search_similar(image_bytes)
         sim_url = self.parse_result(sim_results)
         result = dict(ori_url = image_object["filename"],
                       sim_url = sim_url)
         self.write(escape.json_encode(result))
 
     def save_img(self, image_path, image_bytes):
+        if not os.path.exists(os.path.dirname(image_path)):
+            os.makedirs(os.path.dirname(image_path))
         with open(image_path, "wb") as fw:
             fw.write(image_bytes)
 
@@ -57,15 +52,14 @@ class ImageShowHandler(tornado.web.RequestHandler):
         for hit in result['hits']['hits']:
             source = hit.pop("_source")
             source["score"] = hit["_extra"]["vector_result"][0]["score"]
-            source["imageurl"] =  source["imageurl"].replace("imgcps.360buyimg.local","img30.360buyimg.com")+"!q10"
             search_list.append(source)
         return search_list
 
     def search_similar(self, image_path):
         """"""
         headers = {"content-type": "application/json"}
-        data = {"imageurl": image_path}
-        ip = f"http://127.0.0.1:{config.port}/{options.db}/{options.space}/_search?size=100"
+        data = {"imageurl": image_path, "size": args.num}
+        ip = f"http://{args.ip}/{args.db}/{args.space}/_search"
         response = requests.post(ip, headers=headers, data = json.dumps(data))
         result = json.loads(response.text)
         return result
@@ -80,10 +74,21 @@ def main():
         (r'/static/vdb/search', ImageShowHandler),
         (r"/static/(.*)", tornado.web.StaticFileHandler, {"path": resource_path}),
         ])
-    sockets = tornado.netutil.bind_sockets(options.port)
+    sockets = tornado.netutil.bind_sockets(args.port)
     server = tornado.httpserver.HTTPServer(app)
     server.add_sockets(sockets)
     tornado.ioloop.IOLoop.instance().start()
 
+def parse_argument():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--ip", type=str, default="127.0.0.1:4101", help="Ip of your service")
+    parser.add_argument("--port", type=str, default=4102, help="Port the server run on")
+    parser.add_argument("--db", type=str, default="test", help="DB name")
+    parser.add_argument("--space", type=str, default="test", help="Space name")
+    parser.add_argument("--num", type=int, default=20, help="The num of result")
+    args = parser.parse_args()
+    return args
+
 if __name__ == "__main__":
+    args = parse_argument()
     main()

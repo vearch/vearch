@@ -5,8 +5,10 @@
 *.so
 *.dylib
 *.DS_Store
+*.swp
 vearch.iml
 .idea/
+__pycache__/
 
 # Test binary, build with `go test -c`
 *.test
@@ -19,3 +21,5 @@ build/lib/
 cloud/env/app/
 ps/engine/gammacb/lib/
 
+#skip some test file
+plugin/model/yolov3.weights

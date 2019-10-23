@@ -66,8 +66,8 @@ const (
 	UpdatePartitionHandler = "UpdatePartitionHandler"
 	StatsHandler           = "StatsHandler"
 	IsLiveHandler          = "IsLiveHandler"
-	MaxMinZoneFieldHandler = "MaxMinHandler"
 	PartitionInfoHandler   = "PartitionInfoHandler"
+	ChangeMemberHandler   = "ChangeMemberHandler"
 )
 
 type psClient struct {

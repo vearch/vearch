@@ -25,15 +25,15 @@ class BaseModel(object):
     def __init__(self):
         self.image_size = 224
         self.dimision = 512
+        self.load_model()
 
     def load_model(self):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.model = models.resnet50(pretrained=True).to(self.device)
+        self.model = models.vgg16(pretrained=True, init_weights=False).to(self.device)
         self.model = self.model.eval()
         self.PIXEL_MEANS = torch.tensor((0.485, 0.456, 0.406)).to(self.device)
         self.PIXEL_STDS = torch.tensor((0.229, 0.224, 0.225)).to(self.device)
         self.num = torch.tensor(255.0).to(self.device)
-        # self.model.cuda()
 
     def preprocess_input(self, image):
         image = cv2.resize(image, (self.image_size, self.image_size))
@@ -49,18 +49,12 @@ class BaseModel(object):
         # x = torch.stack(x)
         # x = x.to(self.device)
         x = self.preprocess_input(x).unsqueeze(0)
-        x = self.model.conv1(x)
-        x = self.model.bn1(x)
-        x = self.model.relu(x)
-        x = self.model.maxpool(x)
-
-        x = self.model.layer1(x)
-        x = self.model.layer2(x)
-        x = self.model.layer3(x)
-        x = self.model.layer4(x)
-        x = F.avg_pool2d(x, kernel_size=x.size()[2:])
-        x = torch.squeeze(x,-1)
-        x = torch.squeeze(x,-1)
+        x = self.model.features(x)
+        x = F.max_pool2d(x, kernel_size=(7, 7))
+        x = x.view(x.size(0),-1)
+        # print(x.shape)
+        # x = torch.squeeze(x,-1)
+        # x = torch.squeeze(x,-1)
         return self.torch2list(x)
 
     def torch2list(self, torch_data):
@@ -69,8 +63,7 @@ class BaseModel(object):
 def load_model():
     return BaseModel()
 
-
-def test():
+def test(url):
     model = load_model()
     model.load_model()
     import urllib.request
@@ -79,9 +72,10 @@ def test():
         image = np.asarray(bytearray(resp), dtype="uint8")
         image = cv2.imdecode(image, cv2.IMREAD_COLOR)
         feat = model.forward(image)
-        return (feat[0]/np.linalg.norm(feat[0])).tolist()
+        return feat[0]/np.linalg.norm(feat[0])
 
-    print(test_url("http://img30.360buyimg.com/da/jfs/t14458/111/1073427178/210435/20d7f66/5a436349Ncf9bea13.jpg"))
+    print(test_url(url))
 
 if __name__ == "__main__":
-    test()
+    import sys
+    test(sys.argv[1])

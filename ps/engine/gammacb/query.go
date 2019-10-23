@@ -151,7 +151,7 @@ func (qb *queryBuilder) parseRange(data []byte) (*C.struct_RangeFilter, error) {
 
 	var (
 		field                      string
-		min, max                   string
+		min, max                   interface{}
 		rv                         map[string]interface{}
 		minInclusive, maxInclusive bool
 	)
@@ -206,46 +206,54 @@ func (qb *queryBuilder) parseRange(data []byte) (*C.struct_RangeFilter, error) {
 
 		switch docField.FieldType() {
 		case pspb.FieldType_INT:
-			var minNum, maxNum *int64
+			var minNum, maxNum int64
 
 			if start != nil {
 				if f, e := cast.ToInt64E(start); e != nil {
 					return nil, e
 				} else {
-					minNum = &f
+					minNum = f
 				}
+			} else {
+				minNum = math.MinInt64
 			}
 
 			if end != nil {
 				if f, e := cast.ToInt64E(end); e != nil {
 					return nil, e
 				} else {
-					maxNum = &f
+					maxNum = f
 				}
+			} else {
+				maxNum = math.MinInt64
 			}
 
-			min, max = cast.ToString(minNum), cast.ToString(maxNum)
+			min, max = minNum, maxNum
 
 		case pspb.FieldType_FLOAT:
-			var minNum, maxNum *float64
+			var minNum, maxNum float64
 
 			if start != nil {
 				if f, e := cast.ToFloat64E(start); e != nil {
 					return nil, e
 				} else {
-					minNum = &f
+					minNum = f
 				}
+			} else {
+				minNum = -math.MaxFloat64
 			}
 
 			if end != nil {
 				if f, e := cast.ToFloat64E(end); e != nil {
 					return nil, e
 				} else {
-					maxNum = &f
+					maxNum = f
 				}
+			} else {
+				maxNum = math.MaxFloat64
 			}
 
-			min, max = cast.ToString(minNum), cast.ToString(maxNum)
+			min, max = minNum, maxNum
 
 		case pspb.FieldType_DATE:
 
@@ -270,9 +278,11 @@ func (qb *queryBuilder) parseRange(data []byte) (*C.struct_RangeFilter, error) {
 				} else {
 					maxDate = time.Unix(0, f*1e6)
 				}
+			} else {
+				maxDate = time.Unix(math.MaxInt64, 0)
 			}
 
-			min, max = cast.ToString(minDate.UnixNano()), cast.ToString(maxDate.UnixNano())
+			min, max = minDate.UnixNano(), maxDate.UnixNano()
 
 		}
 
@@ -285,7 +295,19 @@ func (qb *queryBuilder) parseRange(data []byte) (*C.struct_RangeFilter, error) {
 			maxC = 1
 		}
 
-		return C.MakeRangeFilter(byteArrayStr(field), byteArrayStr(min), byteArrayStr(max), C.char(minC), C.char(maxC)), nil
+		var minByte, maxByte []byte
+
+		minByte, err = bytes.ValueToByte(min)
+		if err != nil {
+			return nil, err
+		}
+
+		maxByte, err = bytes.ValueToByte(max)
+		if err != nil {
+			return nil, err
+		}
+
+		return C.MakeRangeFilter(byteArrayStr(field), byteArray(minByte), byteArray(maxByte), C.char(minC), C.char(maxC)), nil
 	}
 
 	return nil, nil

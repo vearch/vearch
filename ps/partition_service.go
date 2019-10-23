@@ -16,6 +16,7 @@ package ps
 
 import (
 	"context"
+	"github.com/tiglabs/raft/proto"
 	"github.com/vearch/vearch/proto/request"
 	"sync"
 
@@ -60,6 +61,8 @@ type Raft interface {
 	GetVersion() uint64
 
 	GetUnreachable(id uint64) []uint64
+
+	ChangeMember(changeType proto.ConfChangeType, id entity.NodeID) error
 }
 
 type PartitionStore interface {
@@ -126,6 +129,8 @@ func (s *Server) LoadPartition(ctx context.Context, pid entity.PartitionID) (Par
 }
 
 func (s *Server) CreatePartition(ctx context.Context, space *entity.Space, pid entity.PartitionID) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	store, err := raftstore.CreateStore(ctx, pid, s.nodeID, space, s.raftServer, s, s.client)
 

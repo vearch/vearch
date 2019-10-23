@@ -89,6 +89,7 @@ func (f *FieldMapping) UnmarshalJSON(data []byte) error {
 		ModelId       string          `json:"model_id,omitempty"`
 		RetrievalType *string         `json:"retrieval_type,omitempty"`
 		StoreType     *string         `json:"store_type,omitempty"`
+		StoreParam    json.RawMessage `json:"store_param,omitempty"`
 		Array         bool            `json:"array,omitempty"`
 	}{}
 	err := json.Unmarshal(data, &tmp)
@@ -127,6 +128,10 @@ func (f *FieldMapping) UnmarshalJSON(data []byte) error {
 		if tmp.StoreType != nil && *tmp.StoreType != "" {
 			fieldMapping.(*VectortFieldMapping).StoreType = *tmp.StoreType
 		}
+		if tmp.StoreParam != nil && len(tmp.StoreParam) > 0 {
+			fieldMapping.(*VectortFieldMapping).StoreParam = tmp.StoreParam
+		}
+
 	default:
 		return errors.New("invalid field type")
 	}
@@ -359,6 +364,7 @@ type VectortFieldMapping struct {
 	Format        *string `json:"format,omitempty"`         //"normalization", "normal"
 	RetrievalType string  `json:"retrieval_type,omitempty"` // "IVFPQ", "PACINS", ...
 	StoreType     string  `json:"store_type,omitempty"`     // "MemoryOnly", "MemoryWithDisk"
+	StoreParam    []byte  `json:"store_param,omitempty"`
 }
 
 func NewVectorFieldMapping(name string) *VectortFieldMapping {
