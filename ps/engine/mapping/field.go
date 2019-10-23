@@ -99,10 +99,10 @@ func (f *FieldMapping) UnmarshalJSON(data []byte) error {
 
 	var fieldMapping FieldMappingI
 	switch tmp.Type {
-	case "text", "string":
+	case "text":
 		fieldMapping = NewTextFieldMapping("")
 		fieldMapping.(*TextFieldMapping).Analyzer = DefaultAnalyzer
-	case "keyword":
+	case "keyword", "string":
 		fieldMapping = NewKeywordFieldMapping("")
 		if tmp.Array { //for gamma
 			fieldMapping.(*KeywordFieldMapping).Array = true
@@ -194,7 +194,7 @@ func (f *FieldMapping) UnmarshalJSON(data []byte) error {
 	}
 
 	//set term vector
-	if tmp.Type == "text" || tmp.Type == "string" { //if text has other type names please fixme
+	if tmp.Type == "text" { //if text has other type names please fixme
 		if tmp.TermVector == nil || *tmp.TermVector != "no" { //not all es types support TODO FIXME
 			fieldMapping.Base().Option |= pspb.FieldOption_IncludeTermVectors
 		}

@@ -162,7 +162,6 @@ func (s *Store) Write(ctx context.Context, request *pspb.DocCmd) (result *respon
 
 	//TODO: pspb.Replace not use check version
 	if (request.Type == pspb.OpType_MERGE || request.Type == pspb.OpType_DELETE) && request.Version == 0 {
-		log.Debug("use version check")
 		doc, err := s.GetRTDocument(ctx, true, request.DocId)
 		if err != nil {
 			return nil, fmt.Errorf("get document error 111:%v", err)
