@@ -275,10 +275,6 @@ func (this *clusterApi) deletePartition(c *gin.Context) {
 	}
 }
 
-func (this *clusterApi) meltPartitionn(c *gin.Context) {
-
-}
-
 func (this *clusterApi) createSpace(c *gin.Context) {
 	log.Debug("create space, db: %s", c.Param(dbName))
 

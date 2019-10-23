@@ -165,13 +165,3 @@ func (s *Store) HandleFatalEvent(err *raft.FatalError) {
 		Cause:       err.Err,
 	})
 }
-
-// Snapshot implements the raft interface.
-func (s *Store) Snapshot() (proto.Snapshot, error) {
-	return s.GetEngine().NewSnapshot()
-}
-
-// ApplySnapshot implements the raft interface.
-func (s *Store) ApplySnapshot(peers []proto.Peer, iter proto.SnapIterator) error {
-	return s.GetEngine().ApplySnapshot(peers, iter)
-}
