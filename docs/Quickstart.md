@@ -17,7 +17,7 @@ Vearch is aimed to build a simple and fast image retrieval system. Through this 
 
 This requires only two operations:
 
-1. Modify parameters in `config/config.py`;
+1. Modify parameters in `src/config.py`;
 2. Execution script `bash ./bin/run.sh image` or `bash ./bin/run.sh video`;
 
 

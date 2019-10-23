@@ -194,7 +194,7 @@ The method of batch import demo:
 ```shell
 # batch insert
 curl -XPOST -H "content-type:application/json" -d '{
-    "method": "batch",
+    "method": "bulk",
     "imageurl": "../images/image_retrieval/test.csv",
     "detection": true
 }' http://127.0.0.1:4101/test/test/_insert
