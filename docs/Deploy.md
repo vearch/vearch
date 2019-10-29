@@ -10,19 +10,20 @@
    4. [Faiss](https://github.com/facebookresearch/faiss) == v1.5.3
 
 #### Compile 
-   * Enter the `GOPATH` directory, `cd $GOPATH/src` `mkdir -p github/vearch` `cd github/vearch`
+   * `export GOROOT=the installed golang directory` `export GOPATH=the project work directory`
+   * Enter the `GOPATH` directory, `cd $GOPATH/src` `mkdir -p github.com/vearch` `cd github.com/vearch`
    * Download the source code: `git clone https://xxxxxx/vearch.git` ($vearch denotes the absolute path of vearch code)
    * Compile gamma
        1. `cd $vearch/engine/gamma`
        2. `mkdir build && cd build`
-       3. `export FAISS_HOME=the installed path of faiss`
+       3. `export FAISS_HOME=the installed path of faiss library`
        4. `cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$vearch/ps/engine/gammacb/lib  ..`
        5. `make && make install`
       
    * Compile vearch
       1. `cd $vearch`
-      2. `export FAISS_HOME=the installed path of faiss`
-      3. `export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$vearch/ps/engine/gammacb/lib/lib:$FAISS_HOME/lib`
+      2. `export FAISS_HOME=the installed path of faiss library`
+      3. `export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$vearch/ps/engine/gammacb/lib/lib:$FAISS_HOME`
       4. `go build -o vearch`
       when `vearch` file generated, it is ok.
       
