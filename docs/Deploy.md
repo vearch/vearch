@@ -48,7 +48,7 @@
 * you can run `./run_docker.sh`        
        
 ## Deploy
-   Before run vearch, you shuld set `LD_LIBRARY_PATH`, Ensure that system can find faiss and gamma dynamic libraries (like $vearch/ps/engine/gammacb/lib/lib and $FAISS_HOME/lib directory files) .
+   Before run vearch, you shuld set `LD_LIBRARY_PATH`, Ensure that system can find faiss and gamma dynamic libraries (like $vearch/ps/engine/gammacb/lib/lib and $FAISS_HOME directory files) .
    #### 1 Local Model
    * generate config file conf.toml
       
