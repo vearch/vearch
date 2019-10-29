@@ -11,7 +11,7 @@
 
 #### Compile 
    * `export GOROOT=the installed golang directory` `export GOPATH=the project work directory`
-   * Enter the `GOPATH` directory, `cd $GOPATH/src` `mkdir -p github.com/vearch` `cd github.com/vearch`
+   * Enter the `GOPATH` directory, `cd $GOPATH` `mkdir -p src/github.com/vearch` `cd src/github.com/vearch`
    * Download the source code: `git clone https://xxxxxx/vearch.git` ($vearch denotes the absolute path of vearch code)
    * Compile gamma
        1. `cd $vearch/engine/gamma`
