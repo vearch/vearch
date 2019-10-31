@@ -16,6 +16,7 @@ before_install:
   - cat ../config/config.toml.example > config.toml
   - nohup docker run -p 8817:8817 -p 9001:9001 -v $PWD/config.toml:/vearch/config.toml  vearch all &
   - sleep 30
+  - cat nohup.out
   - cd ../test
 
 install :
