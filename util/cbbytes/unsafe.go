@@ -1,4 +1,4 @@
-package bytes
+package cbbytes
 
 // ByteToString convert bytes to string
 // Note: string and slice share a block of memory, for scenarios where slice does not change

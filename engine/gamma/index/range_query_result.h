@@ -5,8 +5,8 @@
  * found in the LICENSE file in the root directory of this source tree.
  */
 
-#ifndef SRC_SEARCHER_INDEX_NUMERIC_RANGE_QUERY_RESULT_H_
-#define SRC_SEARCHER_INDEX_NUMERIC_RANGE_QUERY_RESULT_H_
+#ifndef SRC_SEARCHER_INDEX_RANGE_QUERY_RESULT_H_
+#define SRC_SEARCHER_INDEX_RANGE_QUERY_RESULT_H_
 
 #include <cassert>
 #include <iostream>
@@ -15,15 +15,14 @@
 #include <vector>
 
 namespace tig_gamma {
-namespace NI {
 
-typedef std::vector<bool> BitmapType;
+typedef std::vector<char> BitmapType;
 
 // do intersection immediately
-class RangeQueryResultV1 {
+class RangeQueryResult {
 public:
-  RangeQueryResultV1() : flags_(0x1 | 0x2) { Clear(); }
-  explicit RangeQueryResultV1(int flags) : flags_(flags) { Clear(); }
+  RangeQueryResult() : flags_(0x1 | 0x2) { Clear(); }
+  explicit RangeQueryResult(int flags) : flags_(flags) { Clear(); }
 
   bool Has(int doc) const {
     if (doc < min_ || doc > max_) {
@@ -118,9 +117,9 @@ private:
   BitmapType bitmap_;
 };
 // do intersection lazily
-class RangeQueryResult {
+class MultiRangeQueryResults {
 public:
-  RangeQueryResult() : flags_(0x1 | 0x2) { Clear(); }
+  MultiRangeQueryResults() : flags_(0x1 | 0x2) { Clear(); }
 
   // Take full advantage of multi-core while recalling
   bool Has(int doc) const {
@@ -139,7 +138,7 @@ public:
   }
 
 public:
-  void Add(const RangeQueryResultV1 &r) {
+  void Add(const RangeQueryResult &r) {
     all_results_.emplace_back(r);
 
     // the maximum of the minimum(s)
@@ -165,7 +164,7 @@ public:
    */
   std::vector<int> ToDocs() const;
 
-  const std::vector<RangeQueryResultV1> &GetAllResult() const {
+  const std::vector<RangeQueryResult> &GetAllResult() const {
     return all_results_;
   }
 
@@ -174,10 +173,9 @@ private:
   int min_;
   int max_;
 
-  std::vector<RangeQueryResultV1> all_results_;
+  std::vector<RangeQueryResult> all_results_;
 };
 
-} // namespace NI
 } // namespace tig_gamma
 
-#endif // SRC_SEARCHER_INDEX_NUMERIC_RANGE_QUERY_RESULT_H_
+#endif // SRC_SEARCHER_INDEX_RANGE_QUERY_RESULT_H_

@@ -12,14 +12,14 @@
 // implied. See the License for the specific language governing
 // permissions and limitations under the License.
 
-package bytes
+package cbbytes
 
 import "C"
 import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/tiglabs/log"
+	"github.com/vearch/vearch/util/log"
 	"math"
 	"unsafe"
 )
@@ -111,6 +111,33 @@ func FormatIByte(s uint64) string {
 	return humanFormat(s, 1024, iecSizes)
 }
 
+func VectorToByte(vector []float32, source string) ([]byte, error) {
+	code, err := FloatArrayByte(vector)
+	if err != nil {
+		return nil, err
+	}
+
+	buf := &bytes.Buffer{}
+
+	if _, err = buf.Write(UInt32ToByte(uint32(len(code)))); err != nil {
+		return nil, err
+	}
+	buf.Write(code)
+	buf.WriteString(source)
+	return buf.Bytes(), nil
+}
+
+func ByteToVector(bs []byte) ([]float32, string, error) {
+	length := int(ByteToUInt32(bs))
+
+	float32s, err := ByteToFloat32Array(bs[4 : length+4])
+	if err != nil {
+		return nil, "", err
+	}
+
+	return float32s, string(bs[length+4:]), nil
+}
+
 func FloatArrayByte(fa []float32) (code []byte, err error) {
 	buf := &bytes.Buffer{}
 	for i := 0; i < len(fa); i++ {
@@ -151,6 +178,33 @@ func UnsafeFloat32SliceAsByteSlice(floats []float32) []byte {
 	*capPtr = lf                              //
 
 	return buf
+}
+
+func BoolToByte(b bool) []byte {
+	if b {
+		return UInt32ToByte(1)
+	} else {
+		return UInt32ToByte(0)
+	}
+}
+
+func Float64ToByte(v float64) []byte {
+	bs, _ := ValueToByte(v)
+	return bs
+}
+
+func UInt32ToByte(v uint32) []byte {
+	bs, _ := ValueToByte(v)
+	return bs
+}
+
+func ByteToUInt32(bs []byte) uint32 {
+	return binary.LittleEndian.Uint32(bs)
+}
+
+func Int64ToByte(v int64) []byte {
+	bs, _ := ValueToByte(v)
+	return bs
 }
 
 func ValueToByte(fa interface{}) ([]byte, error) {
@@ -208,6 +262,20 @@ func BitLen(x int64) (n int64) {
 func ByteToFloat32(bytes []byte) float32 {
 	bits := binary.LittleEndian.Uint32(bytes)
 	return math.Float32frombits(bits)
+}
+
+func ByteToFloat32Array(bytes []byte) ([]float32, error) {
+	if len(bytes)%4 != 0 {
+		return nil, fmt.Errorf("input bytes not a multiple of 4")
+	}
+
+	num := len(bytes) / 4
+
+	result := make([]float32, num)
+	for i := 0; i < num; i++ {
+		result[i] = math.Float32frombits(binary.LittleEndian.Uint32(bytes[i*4:]))
+	}
+	return result, nil
 }
 
 func ByteToFloat64(bs []byte) float64 {

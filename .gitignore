@@ -24,3 +24,4 @@ ps/engine/gammacb/lib/
 #skip some test file
 plugin/model/yolov3.weights
 plugin/src/log/
+build/gamma_build/
