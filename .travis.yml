@@ -16,6 +16,8 @@ before_install:
   - cat ../config/config.toml.example > config.toml
   - nohup docker run -p 443:8817 -p 80:9001 -v $PWD/config.toml:/vearch/config.toml  vearch all &
   - sleep 30
+  - cd ../test
+  - pytest
 
 script:
   - ulimit -a
