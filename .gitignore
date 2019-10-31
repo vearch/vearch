@@ -25,3 +25,5 @@ ps/engine/gammacb/lib/
 plugin/model/yolov3.weights
 plugin/src/log/
 build/gamma_build/
+cloud/compile/bin/
+cloud/compile/lib/

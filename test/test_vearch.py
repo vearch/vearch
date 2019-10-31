@@ -76,56 +76,6 @@ def test_dbspace():
     print("space_search---\n" + response.text)
     assert response.status_code == 200
 
-def test_print():
-    data = {
-        "name": space_name,
-        "dynamic_schema": "strict",
-        "partition_num": 1,  # "partition_num": 2-6之间
-        "replica_num": 1,
-        "engine": {"name": "gamma", "index_size": 9999, "max_size": 100000},
-        "properties": {
-            "string": {
-                "type": "keyword",
-                "index": "true"
-            },
-            "int": {
-                "type": "integer",
-                "index": "true"
-            },
-            "float": {
-                "type": "float",
-                "index": "true"
-            },
-            "vector": {
-                "type": "vector",
-                "model_id": "img",
-                "dimension": 128,
-                "format": "normalization"
-            },
-            "string_tags": {
-                "type": "string",
-                "array": True,
-                "index": "true"
-            },
-            "int_tags": {
-                "type": "integer",
-                "array": True,
-                "index": "true"
-            },
-            "float_tags": {
-                "type": "float",
-                "array": True,
-                "index": "true"
-            }
-        },
-        "models": [{
-            "model_id": "vgg16",
-            "fields": ["string"],
-            "out": "feature"
-        }]
-    }
-    print(json.dumps(data))
-
 def test_createspace():
     url = "http://" + ip_db + "/space/" + db_name + "/_create"
     headers = {"content-type": "application/json"}

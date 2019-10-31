@@ -116,6 +116,9 @@ func (f *FieldMapping) UnmarshalJSON(data []byte) error {
 			fieldMapping.(*VectortFieldMapping).RetrievalType = *tmp.RetrievalType
 		}
 		if tmp.StoreType != nil && *tmp.StoreType != "" {
+			if *tmp.StoreType != "Mmap" && *tmp.StoreType != "RocksDB" {
+				return fmt.Errorf("vector field:[%s] not support this store type:[%s] it only Mmap or RocksDB", fieldMapping.FieldName(), tmp.StoreType)
+			}
 			fieldMapping.(*VectortFieldMapping).StoreType = *tmp.StoreType
 		}
 		if tmp.StoreParam != nil && len(tmp.StoreParam) > 0 {
@@ -295,7 +298,7 @@ type VectortFieldMapping struct {
 	ModelId       string  `json:"model_id"`
 	Format        *string `json:"format,omitempty"`         //"normalization", "normal"
 	RetrievalType string  `json:"retrieval_type,omitempty"` // "IVFPQ", "PACINS", ...
-	StoreType     string  `json:"store_type,omitempty"`     // "MemoryOnly", "MemoryWithDisk"
+	StoreType     string  `json:"store_type,omitempty"`     // "Mmap", "RocksDB"
 	StoreParam    []byte  `json:"store_param,omitempty"`
 }
 
@@ -303,7 +306,7 @@ func NewVectorFieldMapping(name string) *VectortFieldMapping {
 	return &VectortFieldMapping{
 		BaseFieldMapping: NewBaseFieldMapping(name, pspb.FieldType_VECTOR, 1, pspb.FieldOption_Index),
 		RetrievalType:    "IVFPQ",
-		StoreType:        "MemoryOnly",
+		StoreType:        "Mmap",
 	}
 }
 
