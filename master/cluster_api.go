@@ -26,12 +26,11 @@ import (
 	"unicode"
 
 	"github.com/vearch/vearch/proto"
-	"github.com/vearch/vearch/ps/engine/mapping"
 	"github.com/vearch/vearch/util/netutil"
 
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cast"
-	"github.com/tiglabs/log"
+	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/config"
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/util"
@@ -75,6 +74,7 @@ func ExportToClusterHandler(router *gin.Engine, masterService *masterService) {
 	router.Handle(http.MethodGet, "/list/server", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.serverList, dh.TimeOutEndHandler)
 	router.Handle(http.MethodGet, "/list/db", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.dbList, dh.TimeOutEndHandler)
 	router.Handle(http.MethodGet, "/list/space", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.spaceList, dh.TimeOutEndHandler)
+	router.Handle(http.MethodGet, "/list/partition", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.partitionList, dh.TimeOutEndHandler)
 
 	//partition register
 	router.Handle(http.MethodPost, "/register", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.register, dh.TimeOutEndHandler)
@@ -92,7 +92,7 @@ func ExportToClusterHandler(router *gin.Engine, masterService *masterService) {
 	router.Handle(http.MethodPost, "/space/:"+dbName+"/:"+sapceName, dh.PaincHandler, dh.TimeOutHandler, c.auth, c.updateSpace, dh.TimeOutEndHandler)
 
 	//partition handler
-	router.Handle(http.MethodPost, "/partition/delete", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.deletePartition, dh.TimeOutEndHandler)
+	router.Handle(http.MethodPost, "/partition/change_member", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.changeMember, dh.TimeOutEndHandler)
 
 }
 
@@ -250,31 +250,6 @@ func (this *clusterApi) getDB(c *gin.Context) {
 	}
 }
 
-func (this *clusterApi) deletePartition(c *gin.Context) {
-	ctx, _ := c.Get(vearchhttp.Ctx)
-	if err := c.Request.ParseForm(); err != nil {
-		ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplyError(err)
-		return
-	}
-
-	dbName := c.Request.FormValue(dbName)
-	spaceName := c.Request.FormValue(sapceName)
-	partitionID := c.Request.FormValue(PartitionId)
-	log.Info("delete partition,dbName :[%s],  spaceName:[%s] partitionID:[%s]", dbName, spaceName, partitionID)
-
-	pid, err := cast.ToUint32E(partitionID)
-	if err != nil {
-		ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplyError(err)
-		return
-	}
-
-	if err := this.masterService.deletePartition(ctx.(context.Context), dbName, spaceName, entity.PartitionID(pid)); err != nil {
-		ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplyError(err)
-	} else {
-		ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplySuccess(nil)
-	}
-}
-
 func (this *clusterApi) createSpace(c *gin.Context) {
 	log.Debug("create space, db: %s", c.Param(dbName))
 
@@ -299,26 +274,6 @@ func (this *clusterApi) createSpace(c *gin.Context) {
 	log.Debug("create space, db: %s", c.Param(dbName))
 	if space.ReplicaNum <= 0 {
 		space.ReplicaNum = 1
-	}
-
-	if space.DynamicSchema == "" {
-		space.DynamicSchema = "true"
-	}
-
-	if space.StoreSource == nil {
-		space.StoreSource = util.PBool(true)
-	}
-
-	if space.DynamicSchema == "" {
-		space.DynamicSchema = "true"
-	}
-
-	if space.DefaultField == "" {
-		space.DefaultField = mapping.DefaultField
-	}
-
-	if space.DocValuesDynamic == nil {
-		space.DocValuesDynamic = util.PBool(true)
 	}
 
 	log.Debug("create space, db: %s", c.Param(dbName))
@@ -478,12 +433,39 @@ func (this *clusterApi) spaceList(c *gin.Context) {
 	}
 }
 
+//list partition
+func (this *clusterApi) partitionList(c *gin.Context) {
+	ctx, _ := c.Get(vearchhttp.Ctx)
+	partitions, err := this.masterService.Master().QueryPartitions(ctx.(context.Context))
+	if err != nil {
+		ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplyError(err)
+	} else {
+		ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplySuccess(partitions)
+	}
+}
+
 func (this *clusterApi) auth(c *gin.Context) {
 	ctx, _ := c.Get(vearchhttp.Ctx)
 	if err := this._auth(ctx.(context.Context), c); err != nil {
 		defer this.dh.TimeOutEndHandler(c)
 		c.Abort()
 		ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplyError(err)
+	}
+}
+
+func (this *clusterApi) changeMember(c *gin.Context) {
+	ctx, _ := c.Get(vearchhttp.Ctx)
+
+	cm := &entity.ChangeMember{}
+
+	if err := c.ShouldBindJSON(cm); err != nil {
+		ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplyError(err)
+		return
+	}
+	if err := this.masterService.ChangeMember(ctx.(context.Context), cm); err != nil {
+		ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplyError(err)
+	} else {
+		ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplySuccess(nil)
 	}
 }
 

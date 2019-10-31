@@ -26,7 +26,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/tiglabs/log"
+	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/proto/entity"
 )
 

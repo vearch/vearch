@@ -8,23 +8,25 @@
    2. Go >= 1.11.2 required
    3. Gcc >= 5 required
    4. [Faiss](https://github.com/facebookresearch/faiss) == v1.5.3
+   5. [RocksDB](https://github.com/facebook/rocksdb) == 6.6.2 ***(optional)*** . Please use `make shared_lib` which is in `RocksDB's INSTALL.md` to compile rocksdb.
 
 #### Compile 
-   * `export GOROOT=the installed golang directory` `export GOPATH=the project work directory`
-   * Enter the `GOPATH` directory, `cd $GOPATH` `mkdir -p src/github.com/vearch` `cd src/github.com/vearch`
+   * Enter the `GOPATH` directory, `cd $GOPATH/src` `mkdir -p github/vearch` `cd github/vearch`
    * Download the source code: `git clone https://xxxxxx/vearch.git` ($vearch denotes the absolute path of vearch code)
    * Compile gamma
        1. `cd $vearch/engine/gamma`
        2. `mkdir build && cd build`
-       3. `export FAISS_HOME=the installed path of faiss library`
-       4. `cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$vearch/ps/engine/gammacb/lib  ..`
-       5. `make && make install`
+       3. `export FAISS_HOME=the installed path of faiss`
+       4. `export ROCKSDB_HOME=the installed path of RocksDB` ***(optional)***
+       5. `cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$vearch/ps/engine/gammacb/lib  ..`
+       6. `make && make install`
       
    * Compile vearch
       1. `cd $vearch`
-      2. `export FAISS_HOME=the installed path of faiss library`
-      3. `export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$vearch/ps/engine/gammacb/lib/lib:$FAISS_HOME`
-      4. `go build -o vearch`
+      2. `export FAISS_HOME=the installed path of faiss`
+      3. `export ROCKSDB_HOME=the installed path of RocksDB` ***(optional)***
+      4. `export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$vearch/ps/engine/gammacb/lib/lib:$FAISS_HOME/lib` or `export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$vearch/ps/engine/gammacb/lib/lib:$FAISS_HOME/lib:$ROCKSDB_HOME` if ROCKSDB_HOME is set
+      5. `go build -o vearch`
       when `vearch` file generated, it is ok.
       
       
@@ -48,7 +50,7 @@
 * you can run `./run_docker.sh`        
        
 ## Deploy
-   Before run vearch, you shuld set `LD_LIBRARY_PATH`, Ensure that system can find faiss and gamma dynamic libraries (like $vearch/ps/engine/gammacb/lib/lib and $FAISS_HOME directory files) .
+   Before run vearch, you shuld set `LD_LIBRARY_PATH`, Ensure that system can find faiss and gamma dynamic libraries (like $vearch/ps/engine/gammacb/lib/lib and $FAISS_HOME/lib directory files) .
    #### 1 Local Model
    * generate config file conf.toml
       

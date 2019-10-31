@@ -24,12 +24,11 @@ import "C"
 import (
 	"context"
 	"fmt"
-	"github.com/tiglabs/log"
+	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/proto"
 	"github.com/vearch/vearch/proto/request"
 	"github.com/vearch/vearch/proto/response"
 	"github.com/vearch/vearch/ps/engine"
-	"github.com/vearch/vearch/util/ioutil2"
 	"github.com/vearch/vearch/util/vearchlog"
 	"io/ioutil"
 	"os"
@@ -244,5 +243,8 @@ func (ri *readerImpl) DocCount(ctx context.Context) (uint64, error) {
 }
 
 func (ri *readerImpl) Capacity(ctx context.Context) (int64, error) {
-	return ioutil2.DirSize(ri.engine.path)
+	ri.engine.counter.Incr()
+	defer ri.engine.counter.Decr()
+	//ioutil2.DirSize(ri.engine.path) TODO remove it 
+	return int64(C.GetMemoryBytes(ri.engine.gamma)), nil
 }

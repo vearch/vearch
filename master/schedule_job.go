@@ -21,7 +21,7 @@ import (
 	"time"
 
 	"github.com/jasonlvhit/gocron"
-	"github.com/tiglabs/log"
+	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/proto"
 	"github.com/vearch/vearch/proto/entity"
 	"go.etcd.io/etcd/clientv3/concurrency"

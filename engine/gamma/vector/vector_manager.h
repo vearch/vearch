@@ -1,3 +1,4 @@
+
 /**
  * Copyright 2019 The Gamma Authors.
  *
@@ -21,8 +22,9 @@ namespace tig_gamma {
 
 class VectorManager {
 public:
-  VectorManager(const RetrievalModel &model, const RawVectorType &store_type,
-                const char *docids_bitmap, int max_doc_size);
+  VectorManager(const RetrievalModel &model,
+                const VectorStorageType &store_type, const char *docids_bitmap,
+                int max_doc_size, const std::string &root_path);
   ~VectorManager();
 
   int CreateVectorTable(VectorInfo **vectors_info, int vectors_num,
@@ -60,13 +62,14 @@ private:
 
 private:
   RetrievalModel default_model_;
-  RawVectorType default_store_type_;
+  VectorStorageType default_store_type_;
   const char *docids_bitmap_;
   int max_doc_size_;
   bool table_created_;
   IVFPQParameters *ivfpq_param_;
   VectorInfo **vectors_info_;
   int vectors_num_;
+  std::string root_path_;
 
   std::map<std::string, RawVector *> raw_vectors_;
   std::map<std::string, GammaIndex *> vector_indexes_;

@@ -120,7 +120,10 @@ int GammaIVFPQIndex::Indexing() {
                << "] less then 8192, failed!";
     return -1;
   }
-  train(vectors_count, raw_vec_->GetVectorHeader());
+  int num = vectors_count > 100000 ? 100000 : vectors_count;
+  const float *header = raw_vec_->GetVectorHeader(0, num);
+  train(num, header);
+  raw_vec_->Destroy(header, true);
   LOG(INFO) << "train successed!";
   return 0;
 }
@@ -148,11 +151,15 @@ int GammaIVFPQIndex::AddRTVecsToIndex() {
       int count_per_index =
           (i == (index_count - 1) ? total_stored_vecs - start_docid
                                   : MAX_NUM_PER_INDEX);
-      const float *index_ptr = raw_vec_->GetVector(start_docid);
+      // const float *index_ptr = raw_vec_->GetVector(start_docid);
+      const float *vector_head = raw_vec_->GetVectorHeader(indexed_vec_count_, indexed_vec_count_ + count_per_index);
+      // const float *index_ptr = vector_head + (uint64_t)start_docid * d_;
+      const float *index_ptr = vector_head;
       if (!Add(count_per_index, index_ptr)) {
         LOG(ERROR) << "add index from docid " << start_docid << " error!";
         ret = -2;
       }
+      raw_vec_->Destroy(vector_head, true);
     }
   }
   return ret;
@@ -231,7 +238,7 @@ bool GammaIVFPQIndex::Add(int n, const float *vec) {
 #ifdef PERFORMANCE_TESTING
   double t1 = faiss::getmillisecs();
   if (indexed_vec_count_ % 10000 == 0) {
-    LOG(INFO) << "Add time [" << (t1 - t0) / n << "]ms";
+    LOG(INFO) << "Add time [" << (t1 - t0) / n << "]ms, count " << indexed_vec_count_;
   }
 #endif
   return true;
@@ -297,15 +304,15 @@ void GammaIVFPQIndex::search_preassigned(
 #endif
 
   int ni_total = -1;
-  if (condition->numeric_results &&
-      condition->numeric_results->GetAllResult().size() >= 1) {
-    ni_total = condition->numeric_results->GetAllResult()[0].Size();
+  if (condition->range_query_result &&
+      condition->range_query_result->GetAllResult().size() >= 1) {
+    ni_total = condition->range_query_result->GetAllResult()[0].Size();
   }
 
-  if (condition->numeric_results &&
-      condition->numeric_results->GetAllResult().size() == 1 &&
-      condition->numeric_results->GetAllResult()[0].Size() < 50000) {
-    const std::vector<int> docid_list = condition->numeric_results->ToDocs();
+  if (condition->range_query_result &&
+      condition->range_query_result->GetAllResult().size() == 1 &&
+      condition->range_query_result->GetAllResult()[0].Size() < 50000) {
+    const std::vector<int> docid_list = condition->range_query_result->ToDocs();
 
 #ifdef DEBUG
     std::stringstream ss;
@@ -453,6 +460,8 @@ void GammaIVFPQIndex::search_preassigned(
             }
           }
         }
+        // release vectors
+        raw_vec_->Destroy(vecs);
 
 #ifdef PERFORMANCE_TESTING
         double refine_end = utils::getmillisecs();
@@ -626,6 +635,9 @@ void GammaIVFPQIndex::search_preassigned(
           }
         }
 
+        // release vectors
+        raw_vec_->Destroy(vecs);
+
 #ifdef PERFORMANCE_TESTING
         double refine_end = utils::getmillisecs();
 #endif
@@ -726,6 +738,7 @@ void GammaIVFPQIndex::search_preassigned(
           // calculate inner product for selected possible vectors
           std::vector<const float *> vecs(recall_num);
           raw_vec_->Gets(recall_num, recall_ids_pq, vecs);
+          double get_end = utils::getmillisecs();
           for (int j = 0; j < recall_num; j++) {
             if (recall_ids_pq[j] == -1)
               continue;
@@ -755,6 +768,9 @@ void GammaIVFPQIndex::search_preassigned(
             }
           }
 
+          // release vectors
+          raw_vec_->Destroy(vecs);
+
 #ifdef PERFORMANCE_TESTING
           double refine_end = utils::getmillisecs();
 // LOG(INFO) << "ivfpq perf refine_end=" << refine_end;
@@ -775,15 +791,17 @@ void GammaIVFPQIndex::search_preassigned(
           }
 #ifdef PERFORMANCE_TESTING
           double s_end = utils::getmillisecs();
-          if (++search_count_ % 10000 == 0) {
+          if (search_count_++ % 10000 == 0) {
             std::stringstream perf_ss;
             perf_ss << "ivfpq nprobe parallel: "
                     << "coarse cost=" << coarse_end - s_start << "ms, "
+                    << "get cost=" << get_end - coarse_end << "ms, "
                     << "refine cost=" << refine_end - coarse_end << "ms, "
                     << "reorder cost=" << s_end - refine_end << "ms, "
                     << "total cost=" << s_end - s_start << "ms, "
                     << "metric type=" << metric_type << ", "
-                    << "nprobe=" << this->nprobe;
+                    << "nprobe=" << this->nprobe
+                    << ", recall_num=" << recall_num;
             LOG(INFO) << perf_ss.str();
           }
 #endif
@@ -797,8 +815,8 @@ void GammaIVFPQIndex::SearchDirectly(int n, const float *x,
                                      const GammaSearchCondition *condition,
                                      float *distances, idx_t *labels,
                                      int *total) {
-  const float *vectors = raw_vec_->GetVector(0);
   int num_vectors = raw_vec_->GetVectorNum();
+  const float *vectors = raw_vec_->GetVectorHeader(0, 0 + num_vectors);
 
   long k = condition->topn; // topK
 
@@ -849,7 +867,7 @@ void GammaIVFPQIndex::SearchDirectly(int n, const float *x,
     auto search_impl = [&](const float *xi, const float *y, int ny, int offset,
                            float *simi, idx_t *idxi, int k) -> int {
       int total = 0;
-      auto *nr = condition->numeric_results;
+      auto *nr = condition->range_query_result;
       bool ck_dis = (condition->min_dist >= 0 && condition->max_dist >= 0);
       auto d = this->d;
 
@@ -985,6 +1003,7 @@ void GammaIVFPQIndex::SearchDirectly(int n, const float *x,
       }
     }
   } // parallel
+  raw_vec_->Destroy(vectors, true);
 }
 
 int GammaIVFPQIndex::Search(const VectorQuery *query,

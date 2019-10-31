@@ -4,9 +4,9 @@ import (
 	bytes2 "bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/tiglabs/log"
+	"github.com/vearch/vearch/util/log"
 	"github.com/tiglabs/raft/proto"
-	"github.com/vearch/vearch/util/bytes"
+	"github.com/vearch/vearch/util/cbbytes"
 	"io/ioutil"
 	"math"
 	"os"
@@ -32,14 +32,14 @@ type GammaSnapshot struct {
 
 func (g *GammaSnapshot) Next() ([]byte, error) {
 	if g.index >= len(g.infos) {
-		return bytes.ValueToByte(send_over)
+		return cbbytes.ValueToByte(send_over)
 	}
 	if g.reader == nil {
 		info := g.infos[g.index]
 		g.index = g.index + 1
 		if info.IsDir() {
 			log.Warn("dir:[%s] name:[%s] is dir , so skip sync", g.path, info.Name())
-			return bytes.ValueToByte(g.index - 1)
+			return cbbytes.ValueToByte(g.index - 1)
 		}
 		g.size = info.Size()
 		name := info.Name()
@@ -68,7 +68,7 @@ func (g *GammaSnapshot) Next() ([]byte, error) {
 
 	buffer := bytes2.Buffer{}
 
-	toByte, err := bytes.ValueToByte(g.index - 1)
+	toByte, err := cbbytes.ValueToByte(g.index - 1)
 	if err != nil {
 		return nil, err
 	}
@@ -132,7 +132,7 @@ func (ge *gammaEngine) ApplySnapshot(peers []proto.Peer, iter proto.SnapIterator
 		if err != nil {
 			return err
 		}
-		i := int(bytes.ByteArray2UInt64(bs[:4]))
+		i := int(cbbytes.ByteArray2UInt64(bs[:4]))
 
 		if i == int(send_over) {
 			return nil

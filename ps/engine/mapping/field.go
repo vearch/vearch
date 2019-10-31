@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/vearch/vearch/util"
+	"github.com/vearch/vearch/util/cbbytes"
 	"strings"
 
 	"github.com/mmcloughlin/geohash"
@@ -61,8 +62,8 @@ var FieldsIndex = map[string]int{
 
 // control the default behavior for dynamic fields (those not explicitly mapped)
 var (
-	withOutDocValue = pspb.FieldOption_Index | pspb.FieldOption_Store | pspb.FieldOption_IncludeTermVectors
-	withOutIndex    = pspb.FieldOption_Store | pspb.FieldOption_IncludeTermVectors | pspb.FieldOption_DocValues
+	withOutIndex = pspb.FieldOption_Null
+	withIndex    = pspb.FieldOption_Index
 )
 
 type FieldMapping struct {
@@ -78,13 +79,8 @@ func NewFieldMapping(name string, i FieldMappingI) *FieldMapping {
 func (f *FieldMapping) UnmarshalJSON(data []byte) error {
 	tmp := struct {
 		Type          string          `json:"type"`
-		DocValues     *bool           `json:"doc_values,omitempty"`
 		Index         *string         `json:"index,omitempty"`
-		Store         *bool           `json:"store,omitempty"`
-		TermVector    *string         `json:"term_vector,omitempty"`
 		Format        *string         `json:"format,omitempty"`
-		CopyTo        json.RawMessage `json:"copy_to,omitempty"`
-		IgnoreAbove   int             `json:"ignore_above,omitempty"`
 		Dimension     int             `json:"dimension,omitempty"`
 		ModelId       string          `json:"model_id,omitempty"`
 		RetrievalType *string         `json:"retrieval_type,omitempty"`
@@ -99,14 +95,8 @@ func (f *FieldMapping) UnmarshalJSON(data []byte) error {
 
 	var fieldMapping FieldMappingI
 	switch tmp.Type {
-	case "text":
-		fieldMapping = NewTextFieldMapping("")
-		fieldMapping.(*TextFieldMapping).Analyzer = DefaultAnalyzer
-	case "keyword", "string":
-		fieldMapping = NewKeywordFieldMapping("")
-		if tmp.Array { //for gamma
-			fieldMapping.(*KeywordFieldMapping).Array = true
-		}
+	case "text", "keyword", "string":
+		fieldMapping = NewStringFieldMapping("")
 	case "date":
 		fieldMapping = NewDateFieldMapping("")
 	case "long", "integer", "short", "byte":
@@ -136,11 +126,7 @@ func (f *FieldMapping) UnmarshalJSON(data []byte) error {
 		return errors.New("invalid field type")
 	}
 
-	if tmp.Store != nil {
-		if *tmp.Store {
-			fieldMapping.Base().Option |= pspb.FieldOption_Store
-		}
-	}
+	fieldMapping.Base().Array = tmp.Array
 
 	//set index
 	if tmp.Index != nil {
@@ -152,16 +138,6 @@ func (f *FieldMapping) UnmarshalJSON(data []byte) error {
 		default:
 			return fmt.Errorf("tmp index param has err only support [yes , no true false] but got:[]%s", *tmp.Index)
 		}
-	}
-
-	//set docvalues
-	if tmp.DocValues != nil {
-		if !*tmp.DocValues {
-			fieldMapping.Base().Option &= withOutDocValue
-		} else {
-			fieldMapping.Base().Option |= pspb.FieldOption_DocValues
-		}
-
 	}
 
 	//set dimension
@@ -193,38 +169,6 @@ func (f *FieldMapping) UnmarshalJSON(data []byte) error {
 		}
 	}
 
-	//set term vector
-	if tmp.Type == "text" { //if text has other type names please fixme
-		if tmp.TermVector == nil || *tmp.TermVector != "no" { //not all es types support TODO FIXME
-			fieldMapping.Base().Option |= pspb.FieldOption_IncludeTermVectors
-		}
-	}
-
-	//set ignore above
-	if tmp.IgnoreAbove != 0 {
-		if mapping, ok := fieldMapping.(*TextFieldMapping); !ok {
-			return fmt.Errorf("type:[%s] can not set ignore_above", fieldMapping.FieldType().String())
-		} else {
-			mapping.IgnoreAbove = tmp.IgnoreAbove
-		}
-	}
-
-	if tmp.CopyTo != nil {
-		var copyTo string
-		var copyTos []string
-		err = json.Unmarshal(tmp.CopyTo, &copyTo)
-		if err != nil {
-			copyTos = make([]string, 0)
-			err = json.Unmarshal(tmp.CopyTo, &copyTos)
-			if err != nil {
-				return err
-			}
-		} else {
-			copyTos = append(copyTos, copyTo)
-		}
-		fieldMapping.Base().CopyTo = copyTos
-	}
-
 	fieldMapping.Base().Name = f.Name
 	f.FieldMappingI = fieldMapping
 	return nil
@@ -235,6 +179,7 @@ type FieldMappingI interface {
 	FieldType() pspb.FieldType
 	Options() pspb.FieldOption
 	Base() *BaseFieldMapping
+	IsArray() bool
 }
 
 func NewBaseFieldMapping(name string, fieldType pspb.FieldType, boost float64, option pspb.FieldOption) *BaseFieldMapping {
@@ -250,8 +195,8 @@ type BaseFieldMapping struct {
 	Type   pspb.FieldType   `json:"type"`
 	Name   string           `json:"_"`
 	Boost  float64          `json:"boost,omitempty"`
-	CopyTo []string         `json:"copy_to,omitempty"`
 	Option pspb.FieldOption `json:"option,omitempty"`
+	Array  bool             `json:"array,omitempty"`
 }
 
 func (f *BaseFieldMapping) Base() *BaseFieldMapping {
@@ -270,31 +215,18 @@ func (f *BaseFieldMapping) Options() pspb.FieldOption {
 	return f.Option
 }
 
-type TextFieldMapping struct {
+func (f *BaseFieldMapping) IsArray() bool {
+	return f.Array
+}
+
+type StringFieldMapping struct {
 	*BaseFieldMapping
-	Analyzer       string `json:"analyzer,omitempty"`
-	SearchAnalyzer string `json:"search_analyzer,omitempty"`
-	IgnoreAbove    int    `json:"ignore_above,omitempty"`
+	NullValue string `json:"null_value,omitempty"`
 }
 
-func NewTextFieldMapping(name string) *TextFieldMapping {
-	return &TextFieldMapping{
-		BaseFieldMapping: NewBaseFieldMapping(name, pspb.FieldType_TEXT, 1, pspb.FieldOption_IncludeTermVectors),
-		IgnoreAbove:      327660,
-	}
-}
-
-type KeywordFieldMapping struct {
-	*BaseFieldMapping
-	IgnoreAbove int    `json:"ignore_above,omitempty"`
-	NullValue   string `json:"null_value,omitempty"`
-	Array       bool   `json:"array,omitempty"`
-}
-
-func NewKeywordFieldMapping(name string) *KeywordFieldMapping {
-	return &KeywordFieldMapping{
-		BaseFieldMapping: NewBaseFieldMapping(name, pspb.FieldType_KEYWORD, 1, pspb.FieldOption_DocValues),
-		IgnoreAbove:      1024,
+func NewStringFieldMapping(name string) *StringFieldMapping {
+	return &StringFieldMapping{
+		BaseFieldMapping: NewBaseFieldMapping(name, pspb.FieldType_STRING, 1, pspb.FieldOption_Null),
 	}
 }
 
@@ -307,14 +239,14 @@ type NumericFieldMapping struct {
 
 func NewIntegerFieldMapping(name string) *NumericFieldMapping {
 	return &NumericFieldMapping{
-		BaseFieldMapping: NewBaseFieldMapping(name, pspb.FieldType_INT, 1, pspb.FieldOption_DocValues),
+		BaseFieldMapping: NewBaseFieldMapping(name, pspb.FieldType_INT, 1, pspb.FieldOption_Null),
 		Coerce:           true,
 	}
 }
 
 func NewFloatFieldMapping(name string) *NumericFieldMapping {
 	return &NumericFieldMapping{
-		BaseFieldMapping: NewBaseFieldMapping(name, pspb.FieldType_FLOAT, 1, pspb.FieldOption_DocValues),
+		BaseFieldMapping: NewBaseFieldMapping(name, pspb.FieldType_FLOAT, 1, pspb.FieldOption_Null),
 		Coerce:           true,
 	}
 }
@@ -329,7 +261,7 @@ type DateFieldMapping struct {
 
 func NewDateFieldMapping(name string) *DateFieldMapping {
 	return &DateFieldMapping{
-		BaseFieldMapping: NewBaseFieldMapping(name, pspb.FieldType_DATE, 1, pspb.FieldOption_DocValues),
+		BaseFieldMapping: NewBaseFieldMapping(name, pspb.FieldType_DATE, 1, pspb.FieldOption_Null),
 	}
 }
 
@@ -340,7 +272,7 @@ type BooleanFieldMapping struct {
 
 func NewBooleanFieldMapping(name string) *BooleanFieldMapping {
 	return &BooleanFieldMapping{
-		BaseFieldMapping: NewBaseFieldMapping(name, pspb.FieldType_BOOL, 1, pspb.FieldOption_DocValues),
+		BaseFieldMapping: NewBaseFieldMapping(name, pspb.FieldType_BOOL, 1, pspb.FieldOption_Null),
 	}
 }
 
@@ -352,7 +284,7 @@ type GeoPointFieldMapping struct {
 
 func NewGeoPointFieldMapping(name string) *GeoPointFieldMapping {
 	return &GeoPointFieldMapping{
-		BaseFieldMapping: NewBaseFieldMapping(name, pspb.FieldType_GEOPOINT, 1, pspb.FieldOption_DocValues),
+		BaseFieldMapping: NewBaseFieldMapping(name, pspb.FieldType_GEOPOINT, 1, pspb.FieldOption_Null),
 		IgnoreZValue:     true,
 	}
 }
@@ -381,26 +313,12 @@ func processString(ctx *walkContext, fm *FieldMapping, fieldName, val string) (*
 	}
 
 	switch fm.FieldType() {
-	case pspb.FieldType_TEXT:
+	case pspb.FieldType_STRING:
 		field := &pspb.Field{
 			Name:   fieldName,
-			Type:   pspb.FieldType_TEXT,
-			Value:  &pspb.FieldValue{Text: val},
+			Type:   pspb.FieldType_STRING,
+			Value:  []byte(val),
 			Option: fm.Options(),
-		}
-		if len(val) > fm.FieldMappingI.(*TextFieldMapping).IgnoreAbove {
-			field.Option = field.Option & withOutDocValue
-		}
-		return field, nil
-	case pspb.FieldType_KEYWORD:
-		field := &pspb.Field{
-			Name:   fieldName,
-			Type:   pspb.FieldType_KEYWORD,
-			Value:  &pspb.FieldValue{Text: val},
-			Option: fm.Options(),
-		}
-		if len(val) > fm.FieldMappingI.(*KeywordFieldMapping).IgnoreAbove {
-			field.Option = field.Option & withOutDocValue
 		}
 		return field, nil
 	case pspb.FieldType_DATE:
@@ -412,7 +330,7 @@ func processString(ctx *walkContext, fm *FieldMapping, fieldName, val string) (*
 		return &pspb.Field{
 			Name:   fieldName,
 			Type:   pspb.FieldType_DATE,
-			Value:  &pspb.FieldValue{Time: &pspb.TimeStamp{Usec: parsedDateTime.UnixNano()}},
+			Value:  cbbytes.Int64ToByte(parsedDateTime.UnixNano()),
 			Option: fm.Options(),
 		}, nil
 
@@ -430,7 +348,7 @@ func processString(ctx *walkContext, fm *FieldMapping, fieldName, val string) (*
 			return &pspb.Field{
 				Name:   fieldName,
 				Type:   pspb.FieldType_INT,
-				Value:  &pspb.FieldValue{Int: i},
+				Value:  cbbytes.Int64ToByte(i),
 				Option: fm.Options(),
 			}, nil
 		} else {
@@ -450,7 +368,7 @@ func processString(ctx *walkContext, fm *FieldMapping, fieldName, val string) (*
 			return &pspb.Field{
 				Name:   fieldName,
 				Type:   pspb.FieldType_FLOAT,
-				Value:  &pspb.FieldValue{Float: f},
+				Value:  cbbytes.Float64ToByte(f),
 				Option: fm.Options(),
 			}, nil
 		} else {
@@ -461,10 +379,16 @@ func processString(ctx *walkContext, fm *FieldMapping, fieldName, val string) (*
 		if err != nil {
 			return nil, err
 		}
+
+		code, err := cbbytes.FloatArrayByte([]float32{float32(lon), float32(lat)})
+		if err != nil {
+			return nil, err
+		}
+
 		return &pspb.Field{
 			Name:   fieldName,
 			Type:   pspb.FieldType_GEOPOINT,
-			Value:  &pspb.FieldValue{Geo: &pspb.Geo{Lon: lon, Lat: lat}},
+			Value:  code,
 			Option: fm.Options(),
 		}, nil
 	}
@@ -486,21 +410,21 @@ func processNumber(ctx *walkContext, fm *FieldMapping, fieldName string, val flo
 		return &pspb.Field{
 			Name:   fieldName,
 			Type:   pspb.FieldType_INT,
-			Value:  &pspb.FieldValue{Int: i},
+			Value:  cbbytes.Int64ToByte(i),
 			Option: fm.Options(),
 		}, nil
 	case pspb.FieldType_FLOAT:
 		return &pspb.Field{
 			Name:   fieldName,
 			Type:   pspb.FieldType_FLOAT,
-			Value:  &pspb.FieldValue{Float: val},
+			Value:  cbbytes.Float64ToByte(val),
 			Option: fm.Options(),
 		}, nil
 	case pspb.FieldType_DATE:
 		return &pspb.Field{
 			Name:   fieldName,
 			Type:   pspb.FieldType_DATE,
-			Value:  &pspb.FieldValue{Time: &pspb.TimeStamp{Usec: int64(val) * 1e6}},
+			Value:  cbbytes.Int64ToByte(int64(val) * 1e6),
 			Option: fm.Options(),
 		}, nil
 	default:
@@ -515,10 +439,14 @@ func processGeoPoint(ctx *walkContext, fm *FieldMapping, fieldName string, lon, 
 
 	switch fm.FieldType() {
 	case pspb.FieldType_GEOPOINT:
+		code, err := cbbytes.FloatArrayByte([]float32{float32(lon), float32(lat)})
+		if err != nil {
+			return nil, err
+		}
 		return &pspb.Field{
 			Name:   fieldName,
 			Type:   pspb.FieldType_GEOPOINT,
-			Value:  &pspb.FieldValue{Geo: &pspb.Geo{Lon: lon, Lat: lat}},
+			Value:  code,
 			Option: fm.Options(),
 		}, nil
 	default:
@@ -535,7 +463,7 @@ func processBool(ctx *walkContext, fm *FieldMapping, fieldName string, val bool)
 		return &pspb.Field{
 			Name:   fieldName,
 			Type:   pspb.FieldType_BOOL,
-			Value:  &pspb.FieldValue{Bool: val},
+			Value:  cbbytes.BoolToByte(val),
 			Option: fm.Options(),
 		}, nil
 	default:
@@ -565,13 +493,15 @@ func processVector(ctx *walkContext, fm *FieldMapping, fieldName string, val []f
 			}
 		}
 
+		bs, err := cbbytes.VectorToByte(val, source)
+		if err != nil {
+			return nil, err
+		}
+
 		return &pspb.Field{
-			Name: fieldName,
-			Type: pspb.FieldType_VECTOR,
-			Value: &pspb.FieldValue{Vector: &pspb.Vector{
-				Feature: val,
-				Source:  source,
-			}},
+			Name:   fieldName,
+			Type:   pspb.FieldType_VECTOR,
+			Value:  bs,
 			Option: fm.Options(),
 		}, nil
 	default:

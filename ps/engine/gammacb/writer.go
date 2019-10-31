@@ -25,7 +25,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/spf13/cast"
-	"github.com/tiglabs/log"
+	"github.com/vearch/vearch/util/log"
 	pkg "github.com/vearch/vearch/proto"
 	"github.com/vearch/vearch/proto/pspb"
 	"github.com/vearch/vearch/proto/response"

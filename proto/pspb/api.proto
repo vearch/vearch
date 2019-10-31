@@ -50,22 +50,18 @@ message EngineFailure {
 
 enum FieldType {
     NULL = 0;
-    TEXT = 1;
-    KEYWORD = 2;
-    INT = 3;
-    FLOAT = 4;
-    BOOL = 5;
-    GEOPOINT = 6;
-    DATE = 7;
-    VECTOR = 8;
+    STRING = 1;
+    INT = 2;
+    FLOAT = 3;
+    BOOL = 4;
+    GEOPOINT = 5;
+    DATE = 6;
+    VECTOR = 7;
 }
 
 enum FieldOption {
     Null = 0;
     Index = 1;
-    Store = 2;
-    IncludeTermVectors = 4;
-    DocValues = 8;
 }
 
 message Vector {
@@ -83,21 +79,10 @@ message Geo {
     double lat = 2;
 }
 
-message FieldValue {
-    int64 int = 1;
-    double float = 2;
-    string text = 3;
-    // [lon, lat]
-    Geo geo = 4 [(gogoproto.nullable) = true];
-    bool bool = 5;
-    TimeStamp time = 6 [(gogoproto.nullable) = true];
-    Vector vector = 7;
-}
-
 message Field {
     string name = 1;
     FieldType type = 2;
-    FieldValue value = 3 [(gogoproto.nullable) = true];
+    bytes value = 3 [(gogoproto.nullable) = true];
     FieldOption option = 4;
 }
 

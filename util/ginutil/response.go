@@ -84,6 +84,7 @@ func (this *Response) SendJsonHttpReplySuccess(data interface{}) {
 		Msg:  pkg.ErrGeneralSuccess.Error(),
 		Data: data,
 	}
+	this.SetHttpStatus(httpReply.Code)
 	this.SendJson(httpReply)
 }
 
@@ -96,7 +97,7 @@ func (this *Response) SendJsonHttpReplyError(err error) {
 		Code: pkg.ErrCode(err),
 		Msg:  err.Error(),
 	}
-
+	this.SetHttpStatus(httpReply.Code)
 	this.SendJson(httpReply)
 
 	//write monitor info

@@ -5,13 +5,14 @@
  * found in the LICENSE file in the root directory of this source tree.
  */
 
-#include "test.h"
-#include <cmath>
 #include <fcntl.h>
+#include <sys/mman.h>
+#include <unistd.h>
+#include <cmath>
 #include <fstream>
 #include <functional>
 #include <future>
-#include <sys/mman.h>
+#include "test.h"
 
 /**
  * To run this demo, please download the ANN_SIFT10K dataset from
@@ -26,17 +27,17 @@ struct Options {
     nprobe = 10;
     doc_id = 0;
     d = 512;
-    max_doc_size = 10000 * 20;
-    add_doc_num = 10000 * 10;
+    max_doc_size = 10000 * 200;
+    add_doc_num = 10000 * 100;
     search_num = 10000 * 1;
     fields_vec = {"sku", "_id", "cid1", "cid2", "cid3"};
-    fields_type = {STRING, STRING, INT, INT, INT};
+    fields_type = {LONG, STRING, STRING, INT, INT};
     vector_name = "abc";
     path = "files";
     log_dir = "log";
     model_id = "model";
     retrieval_type = "IVFPQ";
-    store_type = "MemoryOnly";
+    store_type = "Mmap";
     profiles.resize(max_doc_size * fields_vec.size());
     engine = nullptr;
   }
@@ -125,7 +126,7 @@ int SearchThread(void *engine, size_t num) {
   size_t idx = 0;
   double time = 0;
   int failed_count = 0;
-  int req_num = 1000;
+  int req_num = 1;
   string error;
   while (idx < num) {
     double start = utils::getmillisecs();
@@ -138,18 +139,45 @@ int SearchThread(void *engine, size_t num) {
 
     // string c1_lower = opt.profiles[idx * (opt.fields_vec.size()) + 4];
     // string c1_upper = opt.profiles[idx * (opt.fields_vec.size()) + 4];
-    // LOG(INFO) << "idx=" << idx << ", cid3=" << c1_lower;
-    // string cid = "cid3";
-    // RangeFilter **range_filters = MakeRangeFilters(1);
-    // RangeFilter *range_filter =
-    //     MakeRangeFilter(StringToByteArray(cid), StringToByteArray(c1_lower),
-    //                     StringToByteArray(c1_upper), false, true);
-    // SetRangeFilter(range_filters, 0, range_filter);
-    // Request *request = MakeRequest(10, vector_querys, 1, nullptr, 0,
-    //                                range_filters, 1, nullptr, 0, req_num, 0,
-    //                                nullptr);
-    Request *request = MakeRequest(10, vector_querys, 1, nullptr, 0, nullptr, 0,
-                                   nullptr, 0, req_num, 0, nullptr);
+    int low = 0;
+    // long upper = 99999999999;
+    int upper = 999999;
+    string c1_lower = string((char *)&low, sizeof(low));
+    string c1_upper = string((char *)&upper, sizeof(upper));
+
+    LOG(INFO) << "idx=" << idx;
+    string name = "cid2";
+    RangeFilter **range_filters = MakeRangeFilters(2);
+    RangeFilter *range_filter =
+        MakeRangeFilter(StringToByteArray(name), StringToByteArray(c1_lower),
+                        StringToByteArray(c1_upper), false, true);
+    SetRangeFilter(range_filters, 0, range_filter);
+
+    low = 0;
+    upper = 999999;
+    c1_lower = string((char *)&low, sizeof(low));
+    c1_upper = string((char *)&upper, sizeof(upper));
+    name = "cid3";
+    range_filter =
+        MakeRangeFilter(StringToByteArray(name), StringToByteArray(c1_lower),
+                        StringToByteArray(c1_upper), false, true);
+    SetRangeFilter(range_filters, 1, range_filter);
+
+    TermFilter **term_filters = MakeTermFilters(1);
+    TermFilter *term_filter;
+
+    std::string term_low = string("1315\00115248");
+    name = "cid1";
+    term_filter =
+        MakeTermFilter(StringToByteArray(name), StringToByteArray(term_low), true);
+    SetTermFilter(term_filters, 0, term_filter);
+
+    Request *request =
+        MakeRequest(10, vector_querys, 1, nullptr, 0, range_filters, 2,
+                    term_filters, 1, req_num, 0, nullptr);
+    // Request *request = MakeRequest(10, vector_querys, 1, nullptr, 0, nullptr,
+    // 0,
+    //                                nullptr, 0, req_num, 0, nullptr);
 
     Response *response = Search(engine, request);
     for (int i = 0; i < response->req_num; ++i) {
@@ -243,7 +271,16 @@ void UpdateThread(void *engine) {
 }
 
 int Init() {
+#ifdef PERFORMANCE_TESTING
+  int fd = open(opt.feature_file.c_str(), O_RDONLY, 0);
+  size_t mmap_size = opt.add_doc_num * sizeof(float) * opt.d;
+  opt.feature =
+      static_cast<float *>(mmap(NULL, mmap_size, PROT_READ, MAP_SHARED, fd, 0));
+  close(fd);
+#else
   opt.feature = fvecs_read(opt.feature_file.c_str(), &opt.d, &opt.add_doc_num);
+#endif
+
   std::cout << "n [" << opt.add_doc_num << "]" << std::endl;
 
   opt.add_doc_num =
@@ -269,8 +306,12 @@ int CreateTable() {
   FieldInfo **field_infos = MakeFieldInfos(opt.fields_vec.size());
 
   for (size_t i = 0; i < opt.fields_vec.size(); ++i) {
+    char is_index = 0;
+    if (i == 0 || i == 2 || i == 3 || i == 4) {
+      is_index = 1;
+    }
     FieldInfo *field_info = MakeFieldInfo(StringToByteArray(opt.fields_vec[i]),
-                                          opt.fields_type[i], 1);
+                                          opt.fields_type[i], is_index);
     SetFieldInfo(field_infos, i, field_info);
   }
 
@@ -278,7 +319,7 @@ int CreateTable() {
   VectorInfo *vector_info = MakeVectorInfo(
       StringToByteArray(opt.vector_name), FLOAT, opt.d,
       StringToByteArray(opt.model_id), StringToByteArray(opt.retrieval_type),
-      StringToByteArray(opt.store_type));
+      StringToByteArray(opt.store_type), nullptr);
   SetVectorInfo(vectors_info, 0, vector_info);
 
   Table *table = MakeTable(table_name, field_infos, opt.fields_vec.size(),
@@ -296,8 +337,7 @@ int Add() {
   std::string str;
   while (idx < opt.add_doc_num) {
     std::getline(fin, str);
-    if (str == "")
-      break;
+    if (str == "") break;
     auto profile = std::move(utils::split(str, "\t"));
     size_t i = 0;
     for (const auto &p : profile) {
@@ -461,8 +501,11 @@ int CloseEngine() {
   Close(opt.engine);
   opt.engine = nullptr;
   delete opt.docids_bitmap_;
+#ifdef PERFORMANCE_TESTING
+  munmap(opt.feature, opt.add_doc_num * sizeof(float) * opt.d);
+#else
   delete opt.feature;
-  // munmap(opt.feature, opt.add_doc_num * sizeof(float) * opt.d);
+#endif
   return 0;
 }
 

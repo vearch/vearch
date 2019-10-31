@@ -42,7 +42,7 @@ func (s *Server) RpcAddr() string {
 	return s.Ip + ":" + cast.ToString(s.RpcPort)
 }
 
-func (s *Server) ReplicaAddr() *Replica {
+func (s *Server) Replica() *Replica {
 	return &Replica{
 		NodeID:        s.ID,
 		HeartbeatAddr: util.BuildAddr(s.Ip, s.RaftHeartbeatPort),

@@ -25,7 +25,7 @@ using std::string;
 using namespace std;
 
 IVFPQParameters *kIVFPQParam =
-    MakeIVFPQParameters(InnerProduct, 50, 256, 32, 8);
+    MakeIVFPQParameters(InnerProduct, 20, 256, 64, 8);
 
 inline ByteArray *StringToByteArray(const std::string &str) {
   ByteArray *ba = static_cast<ByteArray *>(malloc(sizeof(ByteArray)));

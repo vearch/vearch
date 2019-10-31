@@ -9,6 +9,7 @@
 #define UTILS_H_
 
 #include "gamma_api.h"
+#include "cJSON.h"
 #include <cassert>
 #include <functional>
 #include <sstream>
@@ -106,6 +107,16 @@ inline std::vector<std::string> Split(const std::string &s, char delim) {
   }
   return elems;
 }
+
+struct JsonParser {
+  cJSON *content_;
+
+  JsonParser();
+  ~JsonParser();
+  int Parse(const char *str);
+  int GetDouble(const std::string &name, double &value);
+  int GetString(const std::string &name, std::string &value);
+};
 
 } // namespace utils
 

@@ -33,7 +33,7 @@ import (
 	"github.com/vearch/vearch/util/uuid"
 
 	"github.com/spf13/cast"
-	"github.com/tiglabs/log"
+	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/client"
 	"github.com/vearch/vearch/config"
 	"github.com/vearch/vearch/util/netutil"
@@ -101,20 +101,10 @@ func (handler *DocumentHandler) ExportToServer() error {
 	// bulk: /_bulk
 	handler.httpServer.HandlesMethods([]string{http.MethodPost}, fmt.Sprintf("/_bulk"), []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleBulk}, nil)
 
-	// create space: /$dbName/_mapping/$spaceName
-	handler.httpServer.HandlesMethods([]string{http.MethodPut, http.MethodPost}, fmt.Sprintf("/{%s}/_mapping/{%s}", UrlParamDbName, UrlParamSpaceName), []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleUpdateSpaceMapping}, nil)
-	// create space: /$dbName/_mapping/$spaceName/
-	handler.httpServer.HandlesMethods([]string{http.MethodPut, http.MethodPost}, fmt.Sprintf("/{%s}/_mapping/{%s}/", UrlParamDbName, UrlParamSpaceName), []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleUpdateSpaceMapping}, nil)
-
 	// get space mapping: /$dbName/_mapping/$spaceName
 	handler.httpServer.HandlesMethods([]string{http.MethodGet}, fmt.Sprintf("/{%s}/_mapping/{%s}", UrlParamDbName, UrlParamSpaceName), []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleGetSpaceMapping}, nil)
 	// get space mapping: /$dbName/_mapping/$spaceName/
 	handler.httpServer.HandlesMethods([]string{http.MethodGet}, fmt.Sprintf("/{%s}/_mapping/{%s}/", UrlParamDbName, UrlParamSpaceName), []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleGetSpaceMapping}, nil)
-
-	// delete space: /$dbName/_mapping/$spaceName
-	handler.httpServer.HandlesMethods([]string{http.MethodDelete}, fmt.Sprintf("/{%s}/_mapping/{%s}", UrlParamDbName, UrlParamSpaceName), []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleDeleteSpace}, nil)
-	// delete space: /$dbName,$spaceName
-	handler.httpServer.HandlesMethods([]string{http.MethodDelete}, fmt.Sprintf("/{%s},{%s}", UrlParamDbName, UrlParamSpaceName), []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleDeleteSpace}, nil)
 
 	// flush space: /$dbName/$spaceName/_flush
 	handler.httpServer.HandlesMethods([]string{http.MethodPost}, fmt.Sprintf("/{%s}/{%s}/_flush", UrlParamDbName, UrlParamSpaceName), []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleFlush}, nil)
@@ -237,26 +227,6 @@ func (handler *DocumentHandler) handleTimeout(ctx context.Context, w http.Respon
 	return ctx, true
 }
 
-func (handler *DocumentHandler) handleUpdateSpaceMapping(ctx context.Context, w http.ResponseWriter, r *http.Request, params netutil.UriParams) (context.Context, bool) {
-	dbName := params.ByName(UrlParamDbName)
-	spaceName := params.ByName(UrlParamSpaceName)
-
-	mapping, err := netutil.GetReqBody(r)
-	if err != nil {
-		resp.SendError(ctx, w, http.StatusBadRequest, err.Error(), handler.monitor)
-		return ctx, true
-	}
-
-	err = handler.docService.updateSpaceMapping(ctx, dbName, spaceName, mapping)
-	if err != nil {
-		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error(), handler.monitor)
-		return ctx, true
-	}
-
-	resp.SendJsonBytes(ctx, w, doMappingSuccess, handler.monitor)
-	return ctx, true
-}
-
 func (handler *DocumentHandler) handleClusterInfo(ctx context.Context, w http.ResponseWriter, r *http.Request, params netutil.UriParams) (context.Context, bool) {
 
 	versionLayer := make(map[string]interface{})
@@ -312,19 +282,6 @@ func (handler *DocumentHandler) handleGetSpaceMapping(ctx context.Context, w htt
 	return ctx, true
 }
 
-func (handler *DocumentHandler) handleDeleteSpace(ctx context.Context, w http.ResponseWriter, r *http.Request, params netutil.UriParams) (context.Context, bool) {
-	dbName := params.ByName(UrlParamDbName)
-	spaceName := params.ByName(UrlParamSpaceName)
-
-	err := handler.docService.deleteSpace(ctx, dbName, spaceName)
-	if err != nil {
-		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error(), handler.monitor)
-		return ctx, true
-	}
-
-	resp.SendJsonBytes(ctx, w, doMappingSuccess, handler.monitor)
-	return ctx, true
-}
 
 func (handler *DocumentHandler) handleReplaceDoc(ctx context.Context, w http.ResponseWriter, r *http.Request, params netutil.UriParams) (context.Context, bool) {
 
@@ -432,11 +389,7 @@ func (handler *DocumentHandler) handleUpdateDoc(ctx context.Context, w http.Resp
 		resp.SendError(ctx, w, http.StatusBadRequest, err.Error(), handler.monitor)
 		return ctx, false
 	}
-	docAsUpsert := jsonMap.GetJsonVal("doc_as_upsert")
-	if docAsUpsert != nil {
-		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "`doc_as_upsert` field not support.", handler.monitor)
-		return ctx, false
-	}
+	
 	doc, err := jsonMap.GetJsonValBytes("doc")
 	if err != nil {
 		resp.SendError(ctx, w, http.StatusBadRequest, err.Error(), handler.monitor)

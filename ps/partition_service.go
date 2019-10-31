@@ -22,7 +22,7 @@ import (
 
 	"github.com/vearch/vearch/proto/response"
 
-	"github.com/tiglabs/log"
+	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/config"
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/proto/pspb"
@@ -62,7 +62,7 @@ type Raft interface {
 
 	GetUnreachable(id uint64) []uint64
 
-	ChangeMember(changeType proto.ConfChangeType, id entity.NodeID) error
+	ChangeMember(changeType proto.ConfChangeType, server *entity.Server) error
 }
 
 type PartitionStore interface {
@@ -116,7 +116,7 @@ func (s *Server) LoadPartition(ctx context.Context, pid entity.PartitionID) (Par
 		if server, err := s.client.Master().QueryServer(context.Background(), replica); err != nil {
 			log.Error("partition recovery get server info err: %s", err.Error())
 		} else {
-			s.raftResolver.AddNode(replica, server.ReplicaAddr())
+			s.raftResolver.AddNode(replica, server.Replica())
 		}
 	}
 
@@ -149,7 +149,7 @@ func (s *Server) CreatePartition(ctx context.Context, space *entity.Space, pid e
 				log.Error("get server info err %s", err.Error())
 				return err
 			} else {
-				s.raftResolver.AddNode(nodeId, server.ReplicaAddr())
+				s.raftResolver.AddNode(nodeId, server.Replica())
 			}
 		}
 		if err = store.Start(); err != nil {

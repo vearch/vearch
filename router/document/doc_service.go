@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"github.com/smallnest/rpcx/share"
 	"github.com/spf13/cast"
-	"github.com/tiglabs/log"
+	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/client"
 	"github.com/vearch/vearch/proto"
 	"github.com/vearch/vearch/proto/entity"
@@ -398,39 +398,6 @@ func (this *docService) createSpace(ctx context.Context, dbName string, spaceNam
 	entitySpace.Name = spaceName
 
 	err = this.client.Master().CreateSpace(ctx, dbName, entitySpace)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (this *docService) updateSpaceMapping(ctx context.Context, dbName string, spaceName string, mapping []byte) error {
-	dbID, err := this.client.Master().QueryDBName2Id(ctx, dbName)
-	if err != nil {
-		return err
-	}
-
-	entitySpace := &entity.Space{}
-	err = cbjson.Unmarshal(mapping, &entitySpace)
-	if err != nil {
-		return err
-	}
-	entitySpace.DBId = dbID
-	entitySpace.Name = spaceName
-
-	_, err = this.getSpace(ctx, dbName, spaceName)
-	if err == pkg.ErrMasterSpaceNotExists {
-		return this.client.Master().CreateSpace(ctx, dbName, entitySpace)
-	} else if err != nil {
-		return err
-	}
-
-	return this.client.Master().UpdateSpace(ctx, dbName, entitySpace)
-}
-
-func (this *docService) deleteSpace(ctx context.Context, dbName string, spaceName string) error {
-	err := this.client.Master().DeleteSpace(ctx, dbName, spaceName)
 	if err != nil {
 		return err
 	}

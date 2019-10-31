@@ -28,7 +28,7 @@ import (
 
 	"github.com/vearch/vearch/proto/entity"
 
-	"github.com/tiglabs/log"
+	"github.com/vearch/vearch/util/log"
 	"github.com/tiglabs/raft"
 	"github.com/vearch/vearch/client"
 	"github.com/vearch/vearch/config"
@@ -213,7 +213,7 @@ func (s *Server) HandleRaftReplicaEvent(event *raftstore.RaftReplicaEvent) {
 			if server, err := s.client.Master().QueryServer(context.Background(), event.Replica.NodeID); err != nil {
 				log.Error("get server info err: %s", err.Error())
 			} else {
-				s.raftResolver.AddNode(event.Replica.NodeID, server.ReplicaAddr())
+				s.raftResolver.AddNode(event.Replica.NodeID, server.Replica())
 			}
 		} else {
 			s.raftResolver.AddNode(event.Replica.NodeID, event.Replica)

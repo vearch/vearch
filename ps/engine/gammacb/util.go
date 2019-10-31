@@ -23,19 +23,17 @@ package gammacb
 import "C"
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/spf13/cast"
-	"github.com/tiglabs/log"
+	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/proto/pspb"
 	"github.com/vearch/vearch/proto/response"
 	"github.com/vearch/vearch/ps/engine/mapping"
 	"github.com/vearch/vearch/ps/engine/register"
 	"github.com/vearch/vearch/ps/engine/sortorder"
-	"github.com/vearch/vearch/util/bytes"
+	"github.com/vearch/vearch/util/cbbytes"
 	"reflect"
 	"strings"
-	"time"
 	"unsafe"
 )
 
@@ -80,7 +78,7 @@ func mapping2Table(cfg register.EngineConfig, m *mapping.IndexMapping) (*C.struc
 	err := m.RangeField(func(key string, value *mapping.DocumentMapping) error {
 
 		switch value.Field.FieldType() {
-		case pspb.FieldType_KEYWORD:
+		case pspb.FieldType_STRING:
 			value.Field.Options()
 			fs = append(fs, C.MakeFieldInfo(byteArrayStr(key), STRING, C.char((value.Field.Options()&pspb.FieldOption_Index)/pspb.FieldOption_Index)))
 		case pspb.FieldType_FLOAT:
@@ -91,7 +89,7 @@ func mapping2Table(cfg register.EngineConfig, m *mapping.IndexMapping) (*C.struc
 			fs = append(fs, C.MakeFieldInfo(byteArrayStr(key), INT, C.char((value.Field.Options()&pspb.FieldOption_Index)/pspb.FieldOption_Index)))
 		case pspb.FieldType_VECTOR:
 			fieldMapping := value.Field.FieldMappingI.(*mapping.VectortFieldMapping)
-			vf := C.MakeVectorInfo(byteArrayStr(key), VECTOR, C.int(fieldMapping.Dimension), byteArrayStr(fieldMapping.ModelId), byteArrayStr(fieldMapping.RetrievalType), byteArrayStr(fieldMapping.StoreType))
+			vf := C.MakeVectorInfo(byteArrayStr(key), VECTOR, C.int(fieldMapping.Dimension), byteArrayStr(fieldMapping.ModelId), byteArrayStr(fieldMapping.RetrievalType), byteArrayStr(fieldMapping.StoreType), byteArray(fieldMapping.StoreParam))
 			vfs = append(vfs, vf)
 		}
 
@@ -143,7 +141,7 @@ func DocCmd2Document(docCmd *pspb.DocCmd) (*C.struct_Doc, error) {
 	fields = append(fields, newField(mapping.IdField, []byte(docCmd.DocId), STRING))
 
 	//version
-	if toByte, e := bytes.ValueToByte(docCmd.Version); e != nil {
+	if toByte, e := cbbytes.ValueToByte(docCmd.Version); e != nil {
 		return nil, e
 	} else {
 		fields = append(fields, newField(mapping.VersionField, toByte, INT))
@@ -160,48 +158,21 @@ func DocCmd2Document(docCmd *pspb.DocCmd) (*C.struct_Doc, error) {
 		}
 
 		switch f.Type {
-		case pspb.FieldType_TEXT:
-			log.Error("gamma engine not support text field:[%s]", f.Name)
-		case pspb.FieldType_KEYWORD:
-			fields = append(fields, newField(f.Name, []byte(f.Value.Text), STRING))
+		case pspb.FieldType_STRING:
+			fields = append(fields, newField(f.Name, f.Value, STRING))
 		case pspb.FieldType_FLOAT:
-			if toByte, err := bytes.ValueToByte(f.Value.Float); err != nil {
-				return nil, err
-			} else {
-				fields = append(fields, newField(f.Name, toByte, DOUBLE))
-			}
-		case pspb.FieldType_INT:
-			if toByte, err := bytes.ValueToByte(f.Value.Int); err != nil {
-				return nil, err
-			} else {
-				fields = append(fields, newField(f.Name, toByte, LONG))
-			}
-		case pspb.FieldType_DATE:
-			if f.Value.Time == nil {
-				return nil, errors.New("miss date field value")
-			}
-			date := time.Unix(f.Value.Time.Sec, f.Value.Time.Usec)
-			if toByte, err := bytes.ValueToByte(date.Nanosecond()); err != nil {
-				return nil, err
-			} else {
-				fields = append(fields, newField(f.Name, toByte, LONG))
-			}
+			fields = append(fields, newField(f.Name, f.Value, FLOAT))
+		case pspb.FieldType_INT, pspb.FieldType_DATE:
+			fields = append(fields, newField(f.Name, f.Value, LONG))
 		case pspb.FieldType_BOOL:
-			var v int
-			if !f.Value.Bool {
-				v = 1
-			}
-			if toByte, err := bytes.ValueToByte(v); err != nil {
-				return nil, err
-			} else {
-				fields = append(fields, newField(f.Name, toByte, INT))
-			}
+			fields = append(fields, newField(f.Name, f.Value, INT))
 		case pspb.FieldType_VECTOR:
-			code := bytes.UnsafeFloat32SliceAsByteSlice(f.Value.Vector.Feature)
-			fields = append(fields, newFieldBySource(f.Name, code, f.Value.Vector.Source, VECTOR))
+			length := int(cbbytes.ByteToUInt32(f.Value))
+			fields = append(fields, newFieldBySource(f.Name, f.Value[4:length+4], string(f.Value[length+4:]), VECTOR))
 		default:
 			log.Debug("gamma invalid field type:[%v]", f.Type)
 		}
+
 	}
 
 	arr := C.MakeFields(C.int(len(fields)))
@@ -245,9 +216,9 @@ func (ge *gammaEngine) Doc2DocResult(doc *C.struct_Doc) *response.DocResult {
 
 		switch name {
 		case mapping.VersionField:
-			result.Version = int64(bytes.ByteArray2UInt64(CbArr2ByteArray(fv.value)))
+			result.Version = int64(cbbytes.ByteArray2UInt64(CbArr2ByteArray(fv.value)))
 		case mapping.SlotField:
-			result.SlotID = uint32(bytes.ByteArray2UInt64(CbArr2ByteArray(fv.value)))
+			result.SlotID = uint32(cbbytes.ByteArray2UInt64(CbArr2ByteArray(fv.value)))
 		case mapping.IdField:
 			result.Id = string(CbArr2ByteArray(fv.value))
 		case mapping.SourceField:
@@ -259,19 +230,17 @@ func (ge *gammaEngine) Doc2DocResult(doc *C.struct_Doc) *response.DocResult {
 				continue
 			}
 			switch field.FieldType() {
-			case pspb.FieldType_TEXT:
-				source[name] = string(CbArr2ByteArray(fv.value))
-			case pspb.FieldType_KEYWORD:
+			case pspb.FieldType_STRING:
 				tempValue := string(CbArr2ByteArray(fv.value))
-				if field.FieldMappingI.(*mapping.KeywordFieldMapping).Array {
+				if field.FieldMappingI.(*mapping.StringFieldMapping).Array {
 					source[name] = strings.Split(tempValue, string([]byte{'\001'}))
 				} else {
 					source[name] = tempValue
 				}
 			case pspb.FieldType_INT:
-				source[name] = bytes.Bytes2Int(CbArr2ByteArray(fv.value))
+				source[name] = cbbytes.Bytes2Int(CbArr2ByteArray(fv.value))
 			case pspb.FieldType_FLOAT:
-				source[name] = bytes.ByteToFloat64(CbArr2ByteArray(fv.value))
+				source[name] = cbbytes.ByteToFloat64(CbArr2ByteArray(fv.value))
 			case pspb.FieldType_VECTOR:
 			default:
 				log.Warn("can not set value by type:[%v] ", field.FieldType())
@@ -316,7 +285,7 @@ func CbArr2ByteArray(arr *C.struct_ByteArray) []byte {
 	sliceHeader.Cap = int(arr.len)
 	sliceHeader.Len = int(arr.len)
 	sliceHeader.Data = uintptr(unsafe.Pointer(arr.value))
-	return bytes.CloneBytes(oids)
+	return cbbytes.CloneBytes(oids)
 }
 
 func rowDateToFloatArray(data []byte, dimension int) ([]float32, error) {

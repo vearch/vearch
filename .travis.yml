@@ -4,8 +4,8 @@ services:
   - docker
 
 before_install:
-  - docker pull docker.io/ansj/vearch_env
-  - docker tag docker.io/ansj/vearch_env vearch_env
+  - docker pull docker.io/ansj/vearch_env:0.2
+  - docker tag docker.io/ansj/vearch_env:0.2 vearch_env
   - docker images
   - cd cloud
   - echo "Compile Vearch"

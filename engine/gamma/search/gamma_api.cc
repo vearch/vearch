@@ -87,7 +87,8 @@ VectorInfo **MakeVectorInfos(int num) {
 
 VectorInfo *MakeVectorInfo(ByteArray *name, enum DataType data_type,
                            int dimension, ByteArray *model_id,
-                           ByteArray *retrieval_type, ByteArray *store_type) {
+                           ByteArray *retrieval_type, ByteArray *store_type,
+                           ByteArray *store_param) {
   VectorInfo *vectorInfo =
       static_cast<VectorInfo *>(malloc(sizeof(VectorInfo)));
   memset(vectorInfo, 0, sizeof(VectorInfo));
@@ -97,6 +98,7 @@ VectorInfo *MakeVectorInfo(ByteArray *name, enum DataType data_type,
   vectorInfo->model_id = model_id;
   vectorInfo->retrieval_type = retrieval_type;
   vectorInfo->store_type = store_type;
+  vectorInfo->store_param = store_param;
   return vectorInfo;
 }
 

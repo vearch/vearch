@@ -20,12 +20,12 @@ import (
 	"time"
 
 	"github.com/spf13/cast"
-	"github.com/tiglabs/log"
+	"github.com/vearch/vearch/util/log"
 )
 
 const (
 	TruncateTicket = 5 * time.Minute
-	TruncateCounts = 20000000
+	TruncateCounts = 200000
 
 	FlushTicket  = 1 * time.Second
 )

@@ -17,6 +17,7 @@ package entity
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/tiglabs/raft/proto"
 )
 
 //it use for raft add or remove node
@@ -43,4 +44,10 @@ func (m *Replica) Unmarshal(dAtA []byte) error {
 type FlushEntity struct {
 	F      func() error
 	FlushC chan error
+}
+
+type ChangeMember struct {
+	PartitionID PartitionID          `json:"partition_id"`
+	NodeID      NodeID               `json:"node_id"`
+	Method      proto.ConfChangeType `json:"method"`
 }

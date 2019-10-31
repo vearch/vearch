@@ -99,7 +99,6 @@ func (this *adminSender) IsLive() bool {
 	return true
 }
 
-
 //get partition info about
 func (this *adminSender) PartitionInfo(pid entity.PartitionID) (value *entity.PartitionInfo, err error) {
 	objRequest := &request.ObjRequest{
@@ -124,4 +123,13 @@ func (this *adminSender) PartitionInfo(pid entity.PartitionID) (value *entity.Pa
 	}
 
 	return value, nil
+}
+
+func (this *adminSender) ChangeMember(changMember *entity.ChangeMember) error {
+	reqs, err := request.NewObjRequest(this.Ctx, changMember.PartitionID, changMember)
+	if err != nil {
+		return err
+	}
+	_, _, e := Execute(this.addr, ChangeMemberHandler, reqs)
+	return e
 }

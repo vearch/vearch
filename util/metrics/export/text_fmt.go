@@ -21,7 +21,7 @@ import (
 
 	"strconv"
 
-	"github.com/vearch/vearch/util/bytes"
+	"github.com/vearch/vearch/util/cbbytes"
 	"github.com/vearch/vearch/util/metrics"
 )
 
@@ -42,7 +42,7 @@ func WriteSample(name string, m *metrics.MetricData, labelName, labelValue strin
 	val := ""
 	switch m.Unit {
 	case metrics.Unit_BYTES:
-		val = bytes.FormatIByte(uint64(value))
+		val = cbbytes.FormatIByte(uint64(value))
 	case metrics.Unit_PERCENT:
 		val = strconv.FormatFloat(value*100, 'f', 2, 64) + "%"
 	case metrics.Unit_NANOSECONDS:

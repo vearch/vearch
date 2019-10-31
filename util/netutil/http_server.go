@@ -27,7 +27,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/julienschmidt/httprouter"
-	"github.com/tiglabs/log"
+	"github.com/vearch/vearch/util/log"
 	ratelimit2 "github.com/vearch/vearch/util/ratelimit"
 	"golang.org/x/net/netutil"
 )

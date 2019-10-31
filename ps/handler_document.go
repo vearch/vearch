@@ -18,7 +18,7 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/smallnest/rpcx/server"
-	"github.com/tiglabs/log"
+	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/client"
 	"github.com/vearch/vearch/config"
 	"github.com/vearch/vearch/proto"

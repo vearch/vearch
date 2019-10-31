@@ -692,12 +692,6 @@
 			"revisionTime": "2018-12-23T18:29:23Z"
 		},
 		{
-			"checksumSHA1": "W4ix9A4RKoxZV8jRZCQu36ztCRU=",
-			"path": "github.com/tiglabs/log",
-			"revision": "125a90b1ead454111bf31054c2d17eaa2e55a42c",
-			"revisionTime": "2019-08-15T03:35:33Z"
-		},
-		{
 			"checksumSHA1": "rsgojehTC1C51DwbH+/4JrCiaEQ=",
 			"path": "github.com/tiglabs/raft",
 			"revision": "3fe22e71559985b5e6a55d4224f56e098b4ef9c0",

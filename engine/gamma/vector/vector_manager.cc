@@ -12,6 +12,8 @@
 
 namespace tig_gamma {
 
+static const char *kPlaceHolder = "NULL";
+
 bool InnerProductCmp(const VectorDoc &a, const VectorDoc &b) {
   return a.score > b.score;
 }
@@ -25,11 +27,14 @@ ByteArray *CopyByteArray(ByteArray *ba) {
 VectorInfo **CopyVectorInfos(VectorInfo **vectors_info, int vector_info_num) {
   VectorInfo **ret_vector_infos = MakeVectorInfos(vector_info_num);
   for (int i = 0; i < vector_info_num; i++) {
+    ByteArray *store_param = nullptr;
+    if (vectors_info[i]->store_param)
+      store_param = vectors_info[i]->store_param;
     VectorInfo *vector_info = MakeVectorInfo(
         CopyByteArray(vectors_info[i]->name), vectors_info[i]->data_type,
         vectors_info[i]->dimension, CopyByteArray(vectors_info[i]->model_id),
         CopyByteArray(vectors_info[i]->retrieval_type),
-        CopyByteArray(vectors_info[i]->store_type));
+        CopyByteArray(vectors_info[i]->store_type), store_param);
     ret_vector_infos[i] = vector_info;
   }
   return ret_vector_infos;
@@ -51,10 +56,12 @@ void FWriteByteArray(FILE *fp, ByteArray *ba) {
 }
 
 VectorManager::VectorManager(const RetrievalModel &model,
-                             const RawVectorType &store_type,
-                             const char *docids_bitmap, int max_doc_size)
+                             const VectorStorageType &store_type,
+                             const char *docids_bitmap, int max_doc_size,
+                             const std::string &root_path)
     : default_model_(model), default_store_type_(store_type),
-      docids_bitmap_(docids_bitmap), max_doc_size_(max_doc_size) {
+      docids_bitmap_(docids_bitmap), max_doc_size_(max_doc_size),
+      root_path_(root_path) {
   table_created_ = false;
   ivfpq_param_ = nullptr;
   vectors_info_ = nullptr;
@@ -97,22 +104,41 @@ int VectorManager::CreateVectorTable(VectorInfo **vectors_info, int vectors_num,
     std::string store_type_str(vectors_info[i]->store_type->value,
                                vectors_info[i]->store_type->len);
 
-    RawVectorType store_type = default_store_type_;
-    if (!strcasecmp("MemoryOnly", store_type_str.c_str())) {
-      store_type = RawVectorType::MemoryOnly;
-    } else {
-      LOG(WARNING) << "NO support for store type " << store_type_str
-                   << ", default to " << default_store_type_;
+    VectorStorageType store_type = default_store_type_;
+    if (store_type_str != "") {
+      if (!strcasecmp("Mmap", store_type_str.c_str())) {
+        store_type = VectorStorageType::Mmap;
+#ifdef WITH_ROCKSDB
+      } else if (!strcasecmp("RocksDB", store_type_str.c_str())) {
+        store_type = VectorStorageType::RocksDB;
+#endif // WITH_ROCKSDB
+      } else {
+        LOG(WARNING) << "NO support for store type " << store_type_str;
+        return -1;
+      }
     }
 
-    RawVector *vec = RawVectorFactory::Create(store_type, vec_name, dimension,
-                                              max_doc_size_);
+    std::string store_param;
+    if (vectors_info[i]->store_param) {
+      store_param.assign(vectors_info[i]->store_param->value,
+                         vectors_info[i]->store_param->len);
+    }
+
+    RawVector *vec =
+        RawVectorFactory::Create(store_type, vec_name, dimension, max_doc_size_,
+                                 root_path_, store_param);
+    if (vec == nullptr) {
+      LOG(ERROR) << "create raw vector error";
+      return -1;
+    }
     int ret = vec->Init();
     if (ret != 0) {
       LOG(ERROR) << "Raw vector " << vec_name << " init error, code [" << ret
                  << "]!";
       return -1;
     }
+
+    StartFlushingIfNeed(vec);
 
     raw_vectors_[vec_name] = vec;
 
@@ -138,7 +164,7 @@ int VectorManager::CreateVectorTable(VectorInfo **vectors_info, int vectors_num,
   }
   table_created_ = true;
   return 0;
-}
+} // namespace tig_gamma
 
 int VectorManager::AddToStore(int docid, std::vector<Field *> &fields) {
   for (unsigned int i = 0; i < fields.size(); i++) {
@@ -328,6 +354,13 @@ int VectorManager::Dump(const string &path, int dump_docid, int max_docid) {
     FWriteByteArray(info_fp, vi->model_id);
     FWriteByteArray(info_fp, vi->retrieval_type);
     FWriteByteArray(info_fp, vi->store_type);
+    if (vi->store_param && vi->store_param->len > 0) {
+      FWriteByteArray(info_fp, vi->store_param);
+    } else {
+      ByteArray *ba = MakeByteArray(kPlaceHolder, strlen(kPlaceHolder));
+      FWriteByteArray(info_fp, ba);
+      DestroyByteArray(ba);
+    }
   }
   // dump ivfqp parameters
   fwrite((void *)ivfpq_param_, sizeof(*ivfpq_param_), 1, info_fp);
@@ -379,6 +412,12 @@ int VectorManager::Load(const std::vector<std::string> &index_dirs) {
     vi->model_id = FReadByteArray(info_fp);
     vi->retrieval_type = FReadByteArray(info_fp);
     vi->store_type = FReadByteArray(info_fp);
+    vi->store_param = FReadByteArray(info_fp);
+    if (!strncasecmp(vi->store_param->value, kPlaceHolder,
+                     strlen(kPlaceHolder))) {
+      DestroyByteArray(vi->store_param);
+      vi->store_param = nullptr;
+    }
     vectors_info[i] = vi;
   }
   // load ivfpq parameters
@@ -422,6 +461,7 @@ void VectorManager::Close() {
     std::map<std::string, RawVector *>::iterator iter = raw_vectors_.begin();
     for (; iter != raw_vectors_.end(); iter++) {
       if (iter->second != nullptr) {
+        StopFlushingIfNeed(iter->second);
         delete iter->second;
       }
     }

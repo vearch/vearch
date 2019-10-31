@@ -18,7 +18,7 @@ package mapping
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/tiglabs/log"
+	"github.com/vearch/vearch/util/log"
 )
 
 type DocumentMapping struct {

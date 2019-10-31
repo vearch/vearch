@@ -20,17 +20,8 @@ import (
 	"fmt"
 	"github.com/vearch/vearch/proto"
 	"github.com/vearch/vearch/util"
-	"strings"
 	"unicode"
 )
-
-type DynamicType string
-
-func (dy *DynamicType) UnmarshalJSON(bs []byte) error {
-	dynamicType := DynamicType(strings.Replace(string(bs), "\"", "", 2))
-	*dy = dynamicType
-	return nil
-}
 
 const (
 	Gamma = "gamma"
@@ -65,15 +56,8 @@ type Space struct {
 	ReplicaNum   uint8           `json:"replica_num"`
 	Properties   json.RawMessage `json:"properties"`
 	Engine       *Engine         `json:"engine"`
+	Models       json.RawMessage `json:"models,omitempty"` //json model config for python plugin
 
-	DynamicSchema    DynamicType     `json:"dynamic_schema,omitempty"`    // has three types true , false , strict
-	DefaultField     string          `json:"default_field"`               //default _all
-	StoreDynamic     bool            `json:"store_dynamic"`               //default false
-	StoreSource      *bool           `json:"store_source"`                //default true
-	DocValuesDynamic *bool           `json:"docvalues_dynamic,omitempty"` //default true
-	Models           json.RawMessage `json:"models,omitempty"`            //json model config for python plugin
-
-	WorkedPartitions []*Partition `json:"worked_partitions"` // partitionids not sorted
 }
 
 func (this *Space) String() string {
@@ -93,11 +77,11 @@ func (this *Space) GetPartition(id PartitionID) *Partition {
 func (this *Space) PartitionId(slotID SlotID) PartitionID {
 	switch this.Engine.Name {
 	default:
-		if len(this.WorkedPartitions) == 1 {
-			return this.WorkedPartitions[0].Id
+		if len(this.Partitions) == 1 {
+			return this.Partitions[0].Id
 		}
 
-		arr := this.WorkedPartitions
+		arr := this.Partitions
 
 		maxKey := len(arr) - 1
 
@@ -113,11 +97,11 @@ func (this *Space) PartitionId(slotID SlotID) PartitionID {
 			} else if midVal < slotID {
 				low = mid + 1
 			} else {
-				return this.WorkedPartitions[mid].Id
+				return arr[mid].Id
 			}
 		}
 
-		return this.WorkedPartitions[low-1].Id
+		return arr[low-1].Id
 	}
 
 }
@@ -197,9 +181,6 @@ func (engine *Engine) UnmarshalJSON(bs []byte) error {
 
 //check params is ok
 func (space *Space) Validate() error {
-	if space.DynamicSchema != "true" && space.DynamicSchema != "false" && space.DynamicSchema != "strict" {
-		return fmt.Errorf("dynamic only support true , false or strict , but got [%s]", space.DynamicSchema)
-	}
 
 	switch space.Engine.Name {
 	case Gamma:

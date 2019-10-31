@@ -15,7 +15,7 @@
 package signals
 
 import (
-	"github.com/tiglabs/log"
+	"github.com/vearch/vearch/util/log"
 	"os"
 	"os/signal"
 	"syscall"

@@ -16,7 +16,7 @@ package vearchlog
 
 import (
 	"fmt"
-	"github.com/tiglabs/log"
+	"github.com/vearch/vearch/util/log"
 	"io"
 	"runtime/debug"
 )

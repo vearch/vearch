@@ -17,7 +17,7 @@ package resp
 import (
 	"context"
 	"fmt"
-	"github.com/tiglabs/log"
+	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/util/monitoring"
 	"github.com/vearch/vearch/util/netutil"
 	"github.com/vearch/vearch/util/reflect"

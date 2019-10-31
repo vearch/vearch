@@ -18,6 +18,7 @@
 #include <sys/mman.h>
 #include <thread>
 #include <time.h>
+#include <unistd.h>
 #include <vector>
 
 #include "bitmap.h"
@@ -78,12 +79,12 @@ GammaEngine::GammaEngine(const string &index_root_path)
   docids_bitmap_ = nullptr;
   profile_ = nullptr;
   vec_manager_ = nullptr;
-  numeric_index_ = nullptr;
   index_status_ = IndexStatus::UNINDEXED;
   delete_num_ = 0;
   b_running_ = false;
   dump_docid_ = 0;
   bitmap_bytes_size_ = 0;
+  field_range_index_ = nullptr;
 #ifdef PERFORMANCE_TESTING
   search_num_ = 0;
 #endif
@@ -109,9 +110,9 @@ GammaEngine::~GammaEngine() {
     delete docids_bitmap_;
     docids_bitmap_ = nullptr;
   }
-  if (numeric_index_) {
-    delete numeric_index_;
-    numeric_index_ = nullptr;
+  if (field_range_index_) {
+    delete field_range_index_;
+    field_range_index_ = nullptr;
   }
 }
 
@@ -136,6 +137,8 @@ int GammaEngine::Setup(int max_doc_size) {
     mkdir(index_root_path_.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
   }
 
+  dump_path_ = index_root_path_ + "/dump";
+
   if (!docids_bitmap_) {
     if (bitmap::create(docids_bitmap_, bitmap_bytes_size_, max_doc_size) != 0) {
       LOG(ERROR) << "Cannot create bitmap!";
@@ -152,18 +155,18 @@ int GammaEngine::Setup(int max_doc_size) {
   }
 
   if (!vec_manager_) {
-    vec_manager_ =
-        new VectorManager(IVFPQ, MemoryOnly, docids_bitmap_, max_doc_size);
+    vec_manager_ = new VectorManager(IVFPQ, Mmap, docids_bitmap_, max_doc_size,
+                                     index_root_path_);
     if (!vec_manager_) {
       LOG(ERROR) << "Cannot create vec_manager!";
       return -3;
     }
-  } // namespace tig_gamma
+  }
 
   max_docid_ = 0;
   LOG(INFO) << "GammaEngine setup successed!";
   return 0;
-} // namespace tig_gamma
+}
 
 Response *GammaEngine::Search(const Request *request) {
 #ifdef PERFORMANCE_TESTING
@@ -246,9 +249,9 @@ Response *GammaEngine::Search(const Request *request) {
   condition.has_rank = request->has_rank == 1 ? true : false;
   condition.use_direct_search = use_direct_search;
 
-  NI::RangeQueryResult numeric_filter_result; // Note its scope
+  MultiRangeQueryResults range_query_result;
   if (request->range_filters_num > 0 || request->term_filters_num > 0) {
-    std::vector<NI::FilterInfo> filters;
+    std::vector<FilterInfo> filters;
     filters.resize(request->range_filters_num + request->term_filters_num);
     int idx = 0;
 
@@ -274,7 +277,12 @@ Response *GammaEngine::Search(const Request *request) {
       idx++;
     }
 
-    int retval = numeric_index_->Search(filters, numeric_filter_result);
+    double start_time = utils::getmillisecs();
+    int retval = field_range_index_->Search(filters, range_query_result);
+    double end_time = utils::getmillisecs();
+#ifdef PERFORMANCE_TESTING
+    LOG(INFO) << "num time " << end_time - start_time << " retval " << retval;
+#endif
     OLOG(&logger, DEBUG, "search numeric index, ret: " << retval);
 
     if (retval == 0) {
@@ -294,29 +302,15 @@ Response *GammaEngine::Search(const Request *request) {
     }
 
     if (retval < 0) {
-      condition.numeric_results = nullptr;
+      condition.range_query_result = nullptr;
     } else {
-      condition.numeric_results = &numeric_filter_result;
+      condition.range_query_result = &range_query_result;
     }
   }
 #ifdef PERFORMANCE_TESTING
   double numeric_filter_time = utils::getmillisecs();
   ss << "numeric filter cost [" << numeric_filter_time - start << "]ms, ";
 #endif
-
-  /*
-  NI::RangeQueryResult *numeric_filter_result = new NI::RangeQueryResult();
-  if (request->range_filters_num > 0) {
-    std::vector<RangeFilter *> range_filters;
-    for (int i = 0; i < request->range_filters_num; i++) {
-      range_filters.push_back(request->range_filters[i]);
-    }
-    int retval = numeric_index_->Search(range_filters, numeric_filter_result);
-    if (retval == 0) {
-      LOG(INFO) << "No result";
-      return response_results;
-    }
-  }*/
 
   // condition.min_dist = request->vec_fields[0]->min_score;
   // condition.max_dist = request->vec_fields[0]->max_score;
@@ -352,7 +346,7 @@ Response *GammaEngine::Search(const Request *request) {
     gamma_result.topn = request->topn;
     gamma_result.init(request->topn, nullptr, 0);
     for (int docid = 0; docid < max_docid_; docid++) {
-      if (numeric_filter_result.Has(docid) &&
+      if (range_query_result.Has(docid) &&
           !bitmap::test(docids_bitmap_, docid)) {
         ++gamma_result.total;
         if (gamma_result.results_count < request->topn) {
@@ -396,8 +390,8 @@ int GammaEngine::CreateTable(const Table *table) {
     return -2;
   }
 
-  numeric_index_ = new (std::nothrow) NI::Indexes();
-  if ((nullptr == numeric_index_) || (AddNumIndexFields() < 0)) {
+  field_range_index_ = new MultiFieldsRangeIndex();
+  if ((nullptr == field_range_index_) || (AddNumIndexFields() < 0)) {
     LOG(ERROR) << "add numeric index fields error!";
     return -3;
   }
@@ -429,8 +423,9 @@ int GammaEngine::Add(const Doc *doc) {
 
   for (int i = 0; i < doc->fields_num; ++i) {
     auto *f = doc->fields[i];
-    numeric_index_->Add(max_docid_, string(f->name->value, f->name->len),
-                        string(f->value->value, f->value->len));
+    field_range_index_->Add(string(f->name->value, f->name->len),
+                            reinterpret_cast<unsigned char *>(f->value->value),
+                            f->value->len, max_docid_);
   }
 
   // add vectors by VectorManager
@@ -478,8 +473,9 @@ int GammaEngine::AddOrUpdate(const Doc *doc) {
 
   for (int i = 0; i < doc->fields_num; ++i) {
     auto *f = doc->fields[i];
-    numeric_index_->Add(max_docid_, string(f->name->value, f->name->len),
-                        string(f->value->value, f->value->len));
+    field_range_index_->Add(string(f->name->value, f->name->len),
+                            reinterpret_cast<unsigned char *>(f->value->value),
+                            f->value->len, max_docid_);
   }
 
   // add vectors by VectorManager
@@ -521,8 +517,9 @@ int GammaEngine::Update(const Doc *doc) {
 
   for (int i = 0; i < doc->fields_num; ++i) {
     auto *f = doc->fields[i];
-    numeric_index_->Add(max_docid_, string(f->name->value, f->name->len),
-                        string(f->value->value, f->value->len));
+    field_range_index_->Add(string(f->name->value, f->name->len),
+                            reinterpret_cast<unsigned char *>(f->value->value),
+                            f->value->len, max_docid_);
   }
 
   // add vectors by VectorManager
@@ -557,9 +554,9 @@ int GammaEngine::DelDocByQuery(Request *request) {
     LOG(ERROR) << "no range filter";
     return 1;
   }
-  NI::RangeQueryResult numeric_filter_result; // Note its scope
+  MultiRangeQueryResults range_query_result; // Note its scope
 
-  std::vector<NI::FilterInfo> filters;
+  std::vector<FilterInfo> filters;
   filters.resize(request->range_filters_num);
   int idx = 0;
 
@@ -575,13 +572,13 @@ int GammaEngine::DelDocByQuery(Request *request) {
     idx++;
   }
 
-  int retval = numeric_index_->Search(filters, numeric_filter_result);
+  int retval = field_range_index_->Search(filters, range_query_result);
   if (retval == 0) {
     LOG(ERROR) << "numeric index search error, ret=" << retval;
     return 1;
   }
 
-  std::vector<int> doc_ids = numeric_filter_result.ToDocs();
+  std::vector<int> doc_ids = range_query_result.ToDocs();
   for (size_t i = 0; i < doc_ids.size(); ++i) {
     int docid = doc_ids[i];
     if (bitmap::test(docids_bitmap_, docid)) {
@@ -597,7 +594,7 @@ Doc *GammaEngine::GetDoc(const std::string &id) {
   int docid = -1, ret = 0;
   ret = profile_->GetDocIDByKey(id, docid);
   if (ret != 0 || docid < 0) {
-    LOG(INFO) << "GetDocIDbyKey error!";
+    LOG(INFO) << "GetDocIDbyKey [" << id << "] error!";
     return nullptr;
   }
 
@@ -614,12 +611,6 @@ int GammaEngine::BuildIndex() {
     return -1;
   }
   LOG(INFO) << "vector manager indexing success!";
-
-  // WARNING: use max_docid_ instead of GetDocsNum()
-  if (numeric_index_->Indexing(max_docid_) < 0) {
-    LOG(ERROR) << "Indexing Numeric Fields Error!";
-    return -2;
-  }
 
   b_running_ = true;
   int ret = 0;
@@ -640,14 +631,11 @@ int GammaEngine::GetDocsNum() { return max_docid_ - delete_num_; }
 
 long GammaEngine::GetMemoryBytes() {
   long profile_mem_bytes = profile_->GetMemoryBytes();
-  long num_mem_bytes = numeric_index_->MemoryUsage();
   long vec_mem_bytes = vec_manager_->GetTotalMemBytes();
 
-  long total_mem_bytes =
-      profile_mem_bytes + num_mem_bytes + vec_mem_bytes + bitmap_bytes_size_;
+  long total_mem_bytes = profile_mem_bytes + vec_mem_bytes + bitmap_bytes_size_;
   LOG(INFO) << "total_mem_bytes: " << total_mem_bytes
             << ", profile_mem_bytes: " << profile_mem_bytes
-            << ", num_mem_bytes: " << num_mem_bytes
             << ", vec_mem_bytes: " << vec_mem_bytes
             << ", bitmap_bytes_size: " << bitmap_bytes_size_;
   return total_mem_bytes;
@@ -661,12 +649,17 @@ int GammaEngine::Dump() {
     LOG(INFO) << "No fresh doc, cannot dump.";
     return 0;
   }
+
+  if (!utils::isFolderExist(dump_path_.c_str())) {
+    mkdir(dump_path_.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+  }
+
   std::time_t t = std::time(nullptr);
   char tm_str[100];
   std::strftime(tm_str, sizeof(tm_str), date_time_format_.c_str(),
                 std::localtime(&t));
 
-  string path = index_root_path_ + "/" + tm_str;
+  string path = dump_path_ + "/" + tm_str;
   if (!utils::isFolderExist(path.c_str())) {
     mkdir(path.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
   }
@@ -717,7 +710,7 @@ int GammaEngine::Dump() {
 int GammaEngine::Load() {
   std::map<std::time_t, string> folders_map;
   std::vector<std::time_t> folders_tm;
-  std::vector<string> folders = utils::ls_folder(index_root_path_);
+  std::vector<string> folders = utils::ls_folder(dump_path_);
   for (const string &folder_name : folders) {
     struct tm result;
     strptime(folder_name.c_str(), date_time_format_.c_str(), &result);
@@ -730,13 +723,13 @@ int GammaEngine::Load() {
   std::sort(folders_tm.begin(), folders_tm.end());
   folders.clear();
   for (const std::time_t t : folders_tm) {
-    const string folder_path = index_root_path_ + "/" + folders_map[t];
+    const string folder_path = dump_path_ + "/" + folders_map[t];
     const string done_file = folder_path + "/dump.done";
     if (utils::get_file_size(done_file.c_str()) < 0) {
       LOG(ERROR) << "dump.done cannot be found in [" << folder_path << "]";
       break;
     }
-    folders.push_back(index_root_path_ + "/" + folders_map[t]);
+    folders.push_back(dump_path_ + "/" + folders_map[t]);
   }
 
   int ret = profile_->Load(folders, max_docid_);
@@ -750,10 +743,21 @@ int GammaEngine::Load() {
     return -1;
   }
 
-  numeric_index_ = new (std::nothrow) NI::Indexes();
-  if ((nullptr == numeric_index_) || (AddNumIndexFields() < 0)) {
+  field_range_index_ = new MultiFieldsRangeIndex();
+  if ((nullptr == field_range_index_) || (AddNumIndexFields()) < 0) {
     LOG(ERROR) << "add numeric index fields error!";
     return -1;
+  }
+
+  for (int i = 0; i < max_docid_; ++i) {
+    Doc *doc = profile_->Get(i);
+    for (int j = 0; j < doc->fields_num; ++j) {
+      auto *f = doc->fields[j];
+      field_range_index_->Add(
+          string(f->name->value, f->name->len),
+          reinterpret_cast<unsigned char *>(f->value->value), f->value->len, i);
+    }
+    DestroyDoc(doc);
   }
 
   if (docids_bitmap_ == nullptr) {
@@ -803,68 +807,9 @@ int GammaEngine::AddNumIndexFields() {
     if (is_index == 0) {
       continue;
     }
-    int retval = 0;
-    switch (it.second) {
-    case DataType::INT:
-      retval = AddNumIndexField<int>(it.first);
-      break;
-    case DataType::LONG:
-      retval = AddNumIndexField<long>(it.first);
-      break;
-    case DataType::FLOAT:
-      retval = AddNumIndexField<float>(it.first);
-      break;
-    case DataType::DOUBLE:
-      retval = AddNumIndexField<double>(it.first);
-      break;
-    case DataType::STRING:
-      retval = AddNumIndexField<string>(it.first);
-      break;
-    default:
-      LOG(ERROR) << "Not support type " << it.second;
-      break;
-    }
-    retvals += retval;
+    field_range_index_->AddField(field_name, it.second);
   }
   return retvals;
-}
-
-template <typename T>
-int GammaEngine::AddNumIndexField(const std::string &field) {
-  assert(numeric_index_ != nullptr);
-
-  int field_id = profile_->GetAttrIdx(field);
-  if (field_id < 0) {
-    return -1;
-  }
-
-  std::function<T(const int)> get_field = [&, field_id](const int docid) -> T {
-    T value(0);
-    if (!profile_->GetField<T>(docid, field_id, value)) {
-      std::cout << "error: getField(" << docid << ", " << field_id << ").\n";
-    }
-    return value;
-  };
-
-  return numeric_index_->Add<T>(field, get_field);
-}
-
-template <>
-int GammaEngine::AddNumIndexField<std::string>(const std::string &field) {
-  assert(numeric_index_ != nullptr);
-
-  int field_id = profile_->GetAttrIdx(field);
-  if (field_id < 0) {
-    return -1;
-  }
-
-  std::function<string(const int)> get_field = [&, field_id](const int docid) {
-    char *value(nullptr);
-    int len = profile_->GetField(docid, field_id, value);
-    return (len > 0 ? string(value, len) : string());
-  };
-
-  return numeric_index_->Add<string>(field, get_field);
 }
 
 // TODO: handle malloc error and NULL pointer errors

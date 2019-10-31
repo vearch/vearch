@@ -28,7 +28,7 @@ import (
 	"github.com/BurntSushi/toml"
 	"github.com/pkg/errors"
 	"github.com/spf13/cast"
-	"github.com/tiglabs/log"
+	"github.com/vearch/vearch/util/log"
 	"go.etcd.io/etcd/embed"
 )
 

@@ -29,7 +29,7 @@ import (
 	"github.com/vearch/vearch/proto/pspb"
 	"github.com/vearch/vearch/ps/engine/mapping"
 	"github.com/vearch/vearch/util"
-	"github.com/vearch/vearch/util/bytes"
+	"github.com/vearch/vearch/util/cbbytes"
 	"github.com/vearch/vearch/util/cbjson"
 	"math"
 	"strings"
@@ -58,7 +58,7 @@ var minOffset float64 = 0.0000001
 
 func (query *VectorQuery) ToC() (*C.struct_VectorQuery, error) {
 
-	code, err := bytes.FloatArrayByte(query.Feature)
+	code, err := cbbytes.FloatArrayByte(query.Feature)
 	if err != nil {
 		return nil, err
 	}
@@ -297,12 +297,12 @@ func (qb *queryBuilder) parseRange(data []byte) (*C.struct_RangeFilter, error) {
 
 		var minByte, maxByte []byte
 
-		minByte, err = bytes.ValueToByte(min)
+		minByte, err = cbbytes.ValueToByte(min)
 		if err != nil {
 			return nil, err
 		}
 
-		maxByte, err = bytes.ValueToByte(max)
+		maxByte, err = cbbytes.ValueToByte(max)
 		if err != nil {
 			return nil, err
 		}

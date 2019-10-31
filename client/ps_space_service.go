@@ -23,11 +23,11 @@ import (
 
 	"github.com/vearch/vearch/proto"
 	"github.com/vearch/vearch/proto/pspb"
-	"github.com/vearch/vearch/util/bytes"
+	"github.com/vearch/vearch/util/cbbytes"
 
 	"github.com/spaolacci/murmur3"
 	"github.com/spf13/cast"
-	"github.com/tiglabs/log"
+	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/proto/entity"
 	"runtime/debug"
 )
@@ -658,5 +658,5 @@ func (this *spaceSender) Slot(docID string) uint32 {
 }
 
 func Slot(routingValue string) uint32 {
-	return murmur3.Sum32WithSeed(bytes.StringToByte(routingValue), 0)
+	return murmur3.Sum32WithSeed(cbbytes.StringToByte(routingValue), 0)
 }

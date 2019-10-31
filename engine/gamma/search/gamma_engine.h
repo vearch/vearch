@@ -8,8 +8,8 @@
 #ifndef GAMMA_ENGINE_H_
 #define GAMMA_ENGINE_H_
 
+#include "field_range_index.h"
 #include "gamma_api.h"
-#include "numeric_index.h"
 #include "profile.h"
 #include "vector_manager.h"
 
@@ -19,7 +19,7 @@
 namespace tig_gamma {
 
 class GammaEngine {
-public:
+ public:
   static GammaEngine *GetInstance(const std::string &index_root_path,
                                   int max_doc_size);
 
@@ -69,17 +69,20 @@ public:
 
   long GetMemoryBytes();
 
-private:
+ private:
   GammaEngine(const std::string &index_root_path);
   std::string index_root_path_;
+  std::string dump_path_;
+
+  MultiFieldsRangeIndex *field_range_index_;
 
   char *docids_bitmap_;
   Profile *profile_;
   VectorManager *vec_manager_;
-  NI::Indexes *numeric_index_;
 
   int AddNumIndexFields();
-  template <typename T> int AddNumIndexField(const std::string &field);
+  template <typename T>
+  int AddNumIndexField(const std::string &field);
 
   int max_docid_;
   int max_doc_size_;
@@ -94,7 +97,7 @@ private:
 
   enum IndexStatus index_status_;
 
-  int dump_docid_; // next dump docid
+  int dump_docid_;  // next dump docid
   int bitmap_bytes_size_;
   const std::string date_time_format_;
 
@@ -107,5 +110,5 @@ private:
 template <>
 int GammaEngine::AddNumIndexField<std::string>(const std::string &field);
 
-} // namespace tig_gamma
+}  // namespace tig_gamma
 #endif

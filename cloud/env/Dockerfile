@@ -1,4 +1,4 @@
-FROM centos
+FROM centos:7
 
 COPY env.sh /env/env.sh
 

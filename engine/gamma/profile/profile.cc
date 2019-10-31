@@ -521,6 +521,26 @@ int Profile::GetField(int docid, const std::string &field, char **value) const {
   return len;
 }
 
+template <>
+bool Profile::GetField<std::string>(const int docid, const int field_id,
+                                    std::string &value) const {
+  if ((docid < 0) or (field_id < 0 || field_id >= field_num_))
+    return false;
+
+  size_t offset = (uint64_t)docid * item_length_ + idx_attr_offset_[field_id];
+  size_t str_offset = 0;
+  memcpy(&str_offset, mem_ + offset, sizeof(size_t));
+  unsigned short len;
+  memcpy(&len, mem_ + offset + sizeof(size_t), sizeof(unsigned short));
+  offset += sizeof(unsigned short);
+  char *pos = str_mem_ + str_offset;
+
+  if (len > 0) {
+    value = std::string(pos, len);
+  }
+  return true;
+}
+
 int Profile::GetAttrType(std::map<std::string, enum DataType> &attr_type_map) {
   for (const auto attr_type : attr_type_map_) {
     attr_type_map.insert(attr_type);

@@ -85,13 +85,6 @@ curl -H "content-type: application/json" -XPOST -d'
 
 {
   "query": {
-      "sum": [
-        {
-          "field": "feature1",
-          "feature": [0,0,0,0,0],
-          "boost":0.8
-        }
-      ],
       "and":[
         {
           "field": "feature2",
@@ -126,11 +119,59 @@ curl -H "content-type: application/json" -XPOST -d'
 }
 ' http://11.3.149.73/tpy/tpy/_search?size=10
 ````
+
+````$xslt
+# search
+curl -H "content-type: application/json" -XPOST -d'
+
+{
+  "query": {
+      "sum": [
+        {
+          "field": "feature1",
+          "feature": [0,0,0,0,0],
+          "boost":0.8
+        }
+      ],
+      "filter":[
+          {
+              "range":{
+                  "product_code":{
+                      "gte":1,
+                      "lte":3
+                  }
+              }
+          },
+          {
+              "term":{
+                "tags":["t1","t2"],
+                "operator":"and"
+              }
+          }
+       ],
+      "direct_search_type":0,
+      "online_log_level":"debug" 
+  },
+  "size":10,
+   "sort" : [
+       { "_score" : {"order" : "asc"} }
+   ]
+}
+' http://11.3.149.73/tpy/tpy/_search?size=10
+````
+
 > url: [ip]:[port]/[dbName]/[tableName]/_search
 * filter->term-> operator [`and`, `or`] default `or` 
 * direct_search_type : default 0 ; -1: no direct search, 0: auto, 1: always direct
  
-                                                 
+
+
+### get Document
+ 
+````$xslt
+curl -XGET http://11.3.149.73/tpy/tpy/1
+````
+> url: [ip]:[port]/[dbName]/[tableName]/[documentID]                                                 
 
 ### delete Document
  

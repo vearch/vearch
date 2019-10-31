@@ -270,4 +270,32 @@ MEM_PACK *get_memoccupy() {
   return p;
 }
 
+JsonParser::JsonParser() { content_ = nullptr; }
+
+JsonParser::~JsonParser() { cJSON_Delete(content_); }
+
+int JsonParser::Parse(const char *str) {
+  content_ = cJSON_Parse(str);
+  if (content_ == nullptr) {
+    return -1;
+  }
+  return 0;
+}
+
+int JsonParser::GetDouble(const std::string &name, double &value) {
+  cJSON *jvalue = cJSON_GetObjectItemCaseSensitive(content_, name.c_str());
+  if (jvalue == nullptr || !cJSON_IsNumber(jvalue))
+    return -1;
+  value = jvalue->valuedouble;
+  return 0;
+}
+
+int JsonParser::GetString(const std::string &name, std::string &value) {
+  cJSON *jvalue = cJSON_GetObjectItemCaseSensitive(content_, name.c_str());
+  if (jvalue == nullptr || !cJSON_IsString(jvalue))
+    return -1;
+  value.assign(jvalue->valuestring);
+  return 0;
+}
+
 } // namespace utils

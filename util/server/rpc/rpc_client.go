@@ -21,7 +21,7 @@ import (
 	"strings"
 
 	"github.com/smallnest/rpcx/client"
-	"github.com/tiglabs/log"
+	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/util/atomic"
 	"github.com/vearch/vearch/util/server/rpc/handler"
 )

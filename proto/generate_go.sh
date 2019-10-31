@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-. ./common.sh
+cd pspb
 
 echo $0 "[out_dir [source_dir]]"
 
@@ -48,14 +48,6 @@ if [ ! -d $first_gopath/src/${goimports_url} ]; then
     ${GO_INSTALL} ${goimports_url}
 fi
 
-# add the bin path of gogoproto generator into PATH if it's missing
-if ! cmd_exists protoc-gen-gofast; then
-    gogo_proto_bin="${first_gopath}/bin/protoc-gen-gofast"
-    if [ -e "${gogo_proto_bin}" ]; then
-        export PATH=$(dirname "${gogo_proto_bin}"):$PATH
-        break
-    fi
-fi
 
 echo "generate go code..."
 

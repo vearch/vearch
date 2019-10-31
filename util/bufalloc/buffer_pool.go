@@ -17,19 +17,19 @@ package bufalloc
 import (
 	"sync"
 
-	"github.com/vearch/vearch/util/bytes"
+	"github.com/vearch/vearch/util/cbbytes"
 )
 
 const (
 	baseSize = 15
-	bigSize  = 64 * bytes.KB
+	bigSize  = 64 * cbbytes.KB
 )
 
 var buffPool *bufferPool
 
 func init() {
 	buffPool = &bufferPool{
-		baseline: [...]int{64, 128, 256, 512, bytes.KB, 2 * bytes.KB, 4 * bytes.KB, 8 * bytes.KB, 16 * bytes.KB, 32 * bytes.KB, 64 * bytes.KB, 128 * bytes.KB, 256 * bytes.KB, 512 * bytes.KB, bytes.MB},
+		baseline: [...]int{64, 128, 256, 512, cbbytes.KB, 2 * cbbytes.KB, 4 * cbbytes.KB, 8 * cbbytes.KB, 16 * cbbytes.KB, 32 * cbbytes.KB, 64 * cbbytes.KB, 128 * cbbytes.KB, 256 * cbbytes.KB, 512 * cbbytes.KB, cbbytes.MB},
 	}
 	for i, n := range buffPool.baseline {
 		buffPool.pool[i] = createPool(n)

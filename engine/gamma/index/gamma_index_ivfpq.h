@@ -20,10 +20,12 @@
 #ifndef GAMMA_INDEX_IVFPQ_H_
 #define GAMMA_INDEX_IVFPQ_H_
 
+#include <unistd.h>
+#include <atomic>
+#include "field_range_index.h"
 #include "gamma_common_data.h"
 #include "gamma_index.h"
 #include "log.h"
-#include "numeric_index.h"
 #include "raw_vector.h"
 #include "realtime_invert_index.h"
 
@@ -42,7 +44,7 @@ namespace tig_gamma {
 /// statistics are robust to internal threading, but not if
 /// IndexIVFPQ::search_preassigned is called by multiple threads
 struct IndexIVFPQStats {
-  size_t nrefine; // nb of refines (IVFPQR)
+  size_t nrefine;  // nb of refines (IVFPQR)
 
   size_t n_hamming_pass;
   // nb of passed Hamming distance tests (for polysemous)
@@ -50,7 +52,7 @@ struct IndexIVFPQStats {
   // timings measured with the CPU RTC
   // on all threads
   size_t search_cycles;
-  size_t refine_cycles; // only for IVFPQR
+  size_t refine_cycles;  // only for IVFPQR
 
   IndexIVFPQStats() { reset(); }
   void reset(){};
@@ -84,7 +86,6 @@ static uint64_t get_cycles() {
  * - polysemous_ht: are we filtering with polysemous codes?
  */
 struct QueryTables {
-
   /*****************************************************
    * General data from the IVFPQ
    *****************************************************/
@@ -112,7 +113,10 @@ struct QueryTables {
 
   explicit QueryTables(const faiss::IndexIVFPQ &ivfpq,
                        const faiss::IVFSearchParameters *params)
-      : ivfpq(ivfpq), d(ivfpq.d), pq(ivfpq.pq), metric_type(ivfpq.metric_type),
+      : ivfpq(ivfpq),
+        d(ivfpq.d),
+        pq(ivfpq.pq),
+        metric_type(ivfpq.metric_type),
         by_residual(ivfpq.by_residual),
         use_precomputed_table(ivfpq.use_precomputed_table) {
     mem.resize(pq.ksub * pq.M * 2 + d * 2);
@@ -148,8 +152,7 @@ struct QueryTables {
       init_query_IP();
     else
       init_query_L2();
-    if (!by_residual && polysemous_ht != 0)
-      pq.compute_code(qi, q_code.data());
+    if (!by_residual && polysemous_ht != 0) pq.compute_code(qi, q_code.data());
   }
 
   void init_query_IP() {
@@ -263,8 +266,8 @@ struct QueryTables {
       const faiss::ProductQuantizer &cpq = miq->pq;
       int Mf = pq.M / cpq.M;
 
-      const float *qtab = sim_table_2; // query-specific table
-      float *ltab = sim_table;         // (output) list-specific table
+      const float *qtab = sim_table_2;  // query-specific table
+      float *ltab = sim_table;          // (output) list-specific table
 
       long k = key;
       for (size_t cm = 0; cm < cpq.M; cm++) {
@@ -277,7 +280,6 @@ struct QueryTables {
             &ivfpq.precomputed_table[(ki * pq.M + cm * Mf) * pq.ksub];
 
         if (polysemous_ht == 0) {
-
           // sum up with query-specific table
           faiss::fvec_madd(Mf * pq.ksub, pc, -2.0, qtab, ltab);
           ltab += Mf * pq.ksub;
@@ -355,7 +357,6 @@ struct QueryTables {
 template <typename IDType, bool store_pairs, class C,
           faiss::MetricType METRIC_TYPE>
 struct IVFPQScannerT : QueryTables {
-
   const uint8_t *list_codes;
   const IDType *list_ids;
   size_t list_size;
@@ -387,7 +388,6 @@ struct IVFPQScannerT : QueryTables {
                                 idx_t *heap_ids) const {
     size_t nup = 0;
     for (size_t j = 0; j < ncode; j++) {
-
       float dis = dis0;
       const float *tab = sim_table_2;
 
@@ -428,7 +428,6 @@ struct IVFPQScannerT : QueryTables {
     }
 
     for (size_t j = 0; j < ncode; j++) {
-
       pq.decode(codes, decoded_vec);
       codes += pq.code_size;
 
@@ -496,10 +495,10 @@ struct IVFPQScannerT : QueryTables {
                               const idx_t *ids, size_t k, float *heap_sim,
                               idx_t *heap_ids) const {
     switch (pq.code_size) {
-#define HANDLE_CODE_SIZE(cs)                                                   \
-  case cs:                                                                     \
-    return scan_list_polysemous_hc<faiss::HammingComputer##cs>(                \
-        ncode, codes, ids, k, heap_sim, heap_ids);                             \
+#define HANDLE_CODE_SIZE(cs)                                    \
+  case cs:                                                      \
+    return scan_list_polysemous_hc<faiss::HammingComputer##cs>( \
+        ncode, codes, ids, k, heap_sim, heap_ids);              \
     break
       HANDLE_CODE_SIZE(4);
       HANDLE_CODE_SIZE(8);
@@ -508,14 +507,14 @@ struct IVFPQScannerT : QueryTables {
       HANDLE_CODE_SIZE(32);
       HANDLE_CODE_SIZE(64);
 #undef HANDLE_CODE_SIZE
-    default:
-      if (pq.code_size % 8 == 0)
-        return scan_list_polysemous_hc<faiss::HammingComputerM8>(
-            ncode, codes, ids, k, heap_sim, heap_ids);
-      else
-        return scan_list_polysemous_hc<faiss::HammingComputerM4>(
-            ncode, codes, ids, k, heap_sim, heap_ids);
-      break;
+      default:
+        if (pq.code_size % 8 == 0)
+          return scan_list_polysemous_hc<faiss::HammingComputerM8>(
+              ncode, codes, ids, k, heap_sim, heap_ids);
+        else
+          return scan_list_polysemous_hc<faiss::HammingComputerM4>(
+              ncode, codes, ids, k, heap_sim, heap_ids);
+        break;
     }
   }
 };
@@ -524,11 +523,10 @@ template <faiss::MetricType METRIC_TYPE, bool store_pairs, class C,
           int precompute_mode>
 struct GammaIndexScanner : IVFPQScannerT<idx_t, store_pairs, C, METRIC_TYPE>,
                            faiss::InvertedListScanner {
-
   GammaIndexScanner(const faiss::IndexIVFPQ &ivfpq)
       : IVFPQScannerT<idx_t, store_pairs, C, METRIC_TYPE>(ivfpq, nullptr) {
     docids_bitmap_ = nullptr;
-    numeric_index_ptr_ = nullptr;
+    range_index_ptr_ = nullptr;
     raw_vec_ = nullptr;
   }
 
@@ -540,10 +538,10 @@ struct GammaIndexScanner : IVFPQScannerT<idx_t, store_pairs, C, METRIC_TYPE>,
     // set filter func
     std::function<bool(int)> is_filterable;
 
-    if (numeric_index_ptr_ != nullptr) {
+    if (range_index_ptr_ != nullptr) {
       is_filterable = [this](int doc_id) -> bool {
         return (bitmap::test(docids_bitmap_, doc_id) ||
-                (not numeric_index_ptr_->Has(doc_id)));
+                (not range_index_ptr_->Has(doc_id)));
       };
     } else {
       is_filterable = [this](int doc_id) -> bool {
@@ -583,63 +581,63 @@ struct GammaIndexScanner : IVFPQScannerT<idx_t, store_pairs, C, METRIC_TYPE>,
 
     int nup = 0;
 
-#define HANDLE_ONE                                                             \
-  do {                                                                         \
-    int doc_id = raw_vec_->vid2docid_[ids[j]];                                 \
-    if ((numeric_index_ptr_ != nullptr &&                                      \
-         (not numeric_index_ptr_->Has(doc_id))) ||                             \
-        bitmap::test(docids_bitmap_, doc_id)) {                                \
-      codes += this->pq.M; /* increment pointer */                             \
-      j++;                 /* increment j*/                                    \
-      continue;                                                                \
-    }                                                                          \
-                                                                               \
-    float dis = this->dis0;                                                    \
-    const float *tab = this->sim_table;                                        \
-    for (size_t m = 0; m < this->pq.M; m += 4) {                               \
-      dis += tab[*codes++], tab += this->pq.ksub;                              \
-      dis += tab[*codes++], tab += this->pq.ksub;                              \
-      dis += tab[*codes++], tab += this->pq.ksub;                              \
-      dis += tab[*codes++], tab += this->pq.ksub;                              \
-    }                                                                          \
-                                                                               \
-    if (C::cmp(heap_sim[0], dis)) {                                            \
-      faiss::heap_pop<C>(k, heap_sim, heap_ids);                               \
-      long id = ids[j];                                                        \
-      faiss::heap_push<C>(k, heap_sim, heap_ids, dis, id);                     \
-      nup++;                                                                   \
-    }                                                                          \
-                                                                               \
-    j++; /* increment j */                                                     \
+#define HANDLE_ONE                                         \
+  do {                                                     \
+    int doc_id = raw_vec_->vid2docid_[ids[j]];             \
+    if ((range_index_ptr_ != nullptr &&                  \
+         (not range_index_ptr_->Has(doc_id))) ||         \
+        bitmap::test(docids_bitmap_, doc_id)) {            \
+      codes += this->pq.M; /* increment pointer */         \
+      j++;                 /* increment j*/                \
+      continue;                                            \
+    }                                                      \
+                                                           \
+    float dis = this->dis0;                                \
+    const float *tab = this->sim_table;                    \
+    for (size_t m = 0; m < this->pq.M; m += 4) {           \
+      dis += tab[*codes++], tab += this->pq.ksub;          \
+      dis += tab[*codes++], tab += this->pq.ksub;          \
+      dis += tab[*codes++], tab += this->pq.ksub;          \
+      dis += tab[*codes++], tab += this->pq.ksub;          \
+    }                                                      \
+                                                           \
+    if (C::cmp(heap_sim[0], dis)) {                        \
+      faiss::heap_pop<C>(k, heap_sim, heap_ids);           \
+      long id = ids[j];                                    \
+      faiss::heap_push<C>(k, heap_sim, heap_ids, dis, id); \
+      nup++;                                               \
+    }                                                      \
+                                                           \
+    j++; /* increment j */                                 \
   } while (0)
     size_t j = 0;
     size_t loops = ncode / 8;
     for (size_t i = 0; i < loops; i++) {
-      HANDLE_ONE; // 1
-      HANDLE_ONE; // 2
-      HANDLE_ONE; // 3
-      HANDLE_ONE; // 4
-      HANDLE_ONE; // 5
-      HANDLE_ONE; // 6
-      HANDLE_ONE; // 7
-      HANDLE_ONE; // 8
+      HANDLE_ONE;  // 1
+      HANDLE_ONE;  // 2
+      HANDLE_ONE;  // 3
+      HANDLE_ONE;  // 4
+      HANDLE_ONE;  // 5
+      HANDLE_ONE;  // 6
+      HANDLE_ONE;  // 7
+      HANDLE_ONE;  // 8
     }
 
     switch (ncode % 8) {
-    case 7:
-      HANDLE_ONE;
-    case 6:
-      HANDLE_ONE;
-    case 5:
-      HANDLE_ONE;
-    case 4:
-      HANDLE_ONE;
-    case 3:
-      HANDLE_ONE;
-    case 2:
-      HANDLE_ONE;
-    case 1:
-      HANDLE_ONE;
+      case 7:
+        HANDLE_ONE;
+      case 6:
+        HANDLE_ONE;
+      case 5:
+        HANDLE_ONE;
+      case 4:
+        HANDLE_ONE;
+      case 3:
+        HANDLE_ONE;
+      case 2:
+        HANDLE_ONE;
+      case 1:
+        HANDLE_ONE;
     }
 
     assert(j == ncode);
@@ -654,56 +652,56 @@ struct GammaIndexScanner : IVFPQScannerT<idx_t, store_pairs, C, METRIC_TYPE>,
     int nup = 0;
     assert(this->pq.M % 4 == 0);
 
-#define HANDLE_ONE                                                             \
-  do {                                                                         \
-    float dis = this->dis0;                                                    \
-    const float *tab = this->sim_table;                                        \
-    const uint8_t *code = codes[j];                                            \
-    for (size_t m = 0; m < this->pq.M; m += 4) {                               \
-      dis += tab[*code++], tab += this->pq.ksub;                               \
-      dis += tab[*code++], tab += this->pq.ksub;                               \
-      dis += tab[*code++], tab += this->pq.ksub;                               \
-      dis += tab[*code++], tab += this->pq.ksub;                               \
-    }                                                                          \
-                                                                               \
-    if (C::cmp(heap_sim[0], dis)) {                                            \
-      faiss::heap_pop<C>(k, heap_sim, heap_ids);                               \
-      long id = ids[j];                                                        \
-      faiss::heap_push<C>(k, heap_sim, heap_ids, dis, id);                     \
-      nup++;                                                                   \
-    }                                                                          \
-                                                                               \
-    j++; /* increment j */                                                     \
+#define HANDLE_ONE                                         \
+  do {                                                     \
+    float dis = this->dis0;                                \
+    const float *tab = this->sim_table;                    \
+    const uint8_t *code = codes[j];                        \
+    for (size_t m = 0; m < this->pq.M; m += 4) {           \
+      dis += tab[*code++], tab += this->pq.ksub;           \
+      dis += tab[*code++], tab += this->pq.ksub;           \
+      dis += tab[*code++], tab += this->pq.ksub;           \
+      dis += tab[*code++], tab += this->pq.ksub;           \
+    }                                                      \
+                                                           \
+    if (C::cmp(heap_sim[0], dis)) {                        \
+      faiss::heap_pop<C>(k, heap_sim, heap_ids);           \
+      long id = ids[j];                                    \
+      faiss::heap_push<C>(k, heap_sim, heap_ids, dis, id); \
+      nup++;                                               \
+    }                                                      \
+                                                           \
+    j++; /* increment j */                                 \
   } while (0)
 
     size_t j = 0;
     size_t loops = ncode / 8;
     for (size_t i = 0; i < loops; i++) {
-      HANDLE_ONE; // 1
-      HANDLE_ONE; // 2
-      HANDLE_ONE; // 3
-      HANDLE_ONE; // 4
-      HANDLE_ONE; // 5
-      HANDLE_ONE; // 6
-      HANDLE_ONE; // 7
-      HANDLE_ONE; // 8
+      HANDLE_ONE;  // 1
+      HANDLE_ONE;  // 2
+      HANDLE_ONE;  // 3
+      HANDLE_ONE;  // 4
+      HANDLE_ONE;  // 5
+      HANDLE_ONE;  // 6
+      HANDLE_ONE;  // 7
+      HANDLE_ONE;  // 8
     }
 
     switch (ncode % 8) {
-    case 7:
-      HANDLE_ONE;
-    case 6:
-      HANDLE_ONE;
-    case 5:
-      HANDLE_ONE;
-    case 4:
-      HANDLE_ONE;
-    case 3:
-      HANDLE_ONE;
-    case 2:
-      HANDLE_ONE;
-    case 1:
-      HANDLE_ONE;
+      case 7:
+        HANDLE_ONE;
+      case 6:
+        HANDLE_ONE;
+      case 5:
+        HANDLE_ONE;
+      case 4:
+        HANDLE_ONE;
+      case 3:
+        HANDLE_ONE;
+      case 2:
+        HANDLE_ONE;
+      case 1:
+        HANDLE_ONE;
     }
 
     assert(j == ncode);
@@ -717,7 +715,7 @@ struct GammaIndexScanner : IVFPQScannerT<idx_t, store_pairs, C, METRIC_TYPE>,
   }
 
   inline void set_search_condition(const GammaSearchCondition *condition) {
-    this->numeric_index_ptr_ = condition->numeric_results;
+    this->range_index_ptr_ = condition->range_query_result;
   }
 
   inline void set_list(idx_t list_no, float coarse_dis) override {
@@ -784,14 +782,13 @@ struct GammaIndexScanner : IVFPQScannerT<idx_t, store_pairs, C, METRIC_TYPE>,
   }
 
   const char *docids_bitmap_;
-  NI::RangeQueryResult *numeric_index_ptr_;
+  MultiRangeQueryResults *range_index_ptr_;
   const RawVector *raw_vec_;
 };
 
 //} // anonymous namespace
 
 struct RTInvertedLists : faiss::InvertedLists {
-
   RTInvertedLists(realtime::RTInvertIndex *rt_invert_index_ptr, size_t nlist,
                   size_t code_size);
 
@@ -837,38 +834,38 @@ struct RTInvertedLists : faiss::InvertedLists {
  * always called f and thus is not passed in as a macro parameter.
  **************************************************************/
 
-#define WRITEANDCHECK(ptr, n)                                                  \
-  {                                                                            \
-    size_t ret = (*f)(ptr, sizeof(*(ptr)), n);                                 \
-    FAISS_THROW_IF_NOT_FMT(ret == (n), "write error in %s: %ld != %ld (%s)",   \
-                           f->name.c_str(), ret, size_t(n), strerror(errno));  \
+#define WRITEANDCHECK(ptr, n)                                                 \
+  {                                                                           \
+    size_t ret = (*f)(ptr, sizeof(*(ptr)), n);                                \
+    FAISS_THROW_IF_NOT_FMT(ret == (n), "write error in %s: %ld != %ld (%s)",  \
+                           f->name.c_str(), ret, size_t(n), strerror(errno)); \
   }
 
-#define READANDCHECK(ptr, n)                                                   \
-  {                                                                            \
-    size_t ret = (*f)(ptr, sizeof(*(ptr)), n);                                 \
-    FAISS_THROW_IF_NOT_FMT(ret == (n), "read error in %s: %ld != %ld (%s)",    \
-                           f->name.c_str(), ret, size_t(n), strerror(errno));  \
+#define READANDCHECK(ptr, n)                                                  \
+  {                                                                           \
+    size_t ret = (*f)(ptr, sizeof(*(ptr)), n);                                \
+    FAISS_THROW_IF_NOT_FMT(ret == (n), "read error in %s: %ld != %ld (%s)",   \
+                           f->name.c_str(), ret, size_t(n), strerror(errno)); \
   }
 
 #define WRITE1(x) WRITEANDCHECK(&(x), 1)
 #define READ1(x) READANDCHECK(&(x), 1)
 
-#define WRITEVECTOR(vec)                                                       \
-  {                                                                            \
-    size_t size = (vec).size();                                                \
-    WRITEANDCHECK(&size, 1);                                                   \
-    WRITEANDCHECK((vec).data(), size);                                         \
+#define WRITEVECTOR(vec)               \
+  {                                    \
+    size_t size = (vec).size();        \
+    WRITEANDCHECK(&size, 1);           \
+    WRITEANDCHECK((vec).data(), size); \
   }
 
 // will fail if we write 256G of data at once...
-#define READVECTOR(vec)                                                        \
-  {                                                                            \
-    size_t size;                                                               \
-    READANDCHECK(&size, 1);                                                    \
-    FAISS_THROW_IF_NOT(size >= 0 && size < (1L << 40));                        \
-    (vec).resize(size);                                                        \
-    READANDCHECK((vec).data(), size);                                          \
+#define READVECTOR(vec)                                 \
+  {                                                     \
+    size_t size;                                        \
+    READANDCHECK(&size, 1);                             \
+    FAISS_THROW_IF_NOT(size >= 0 && size < (1L << 40)); \
+    (vec).resize(size);                                 \
+    READANDCHECK((vec).data(), size);                   \
   }
 
 /****************************************************************
@@ -904,18 +901,17 @@ static void read_index_header(faiss::Index *idx, faiss::IOReader *f) {
   idx->verbose = false;
 }
 
-static void
-read_ivf_header(faiss::IndexIVF *ivf, faiss::IOReader *f,
-                std::vector<std::vector<faiss::Index::idx_t>> *ids = nullptr) {
+static void read_ivf_header(
+    faiss::IndexIVF *ivf, faiss::IOReader *f,
+    std::vector<std::vector<faiss::Index::idx_t>> *ids = nullptr) {
   read_index_header(ivf, f);
   READ1(ivf->nlist);
   READ1(ivf->nprobe);
   ivf->quantizer = faiss::read_index(f);
   ivf->own_fields = true;
-  if (ids) { // used in legacy "Iv" formats
+  if (ids) {  // used in legacy "Iv" formats
     ids->resize(ivf->nlist);
-    for (size_t i = 0; i < ivf->nlist; i++)
-      READVECTOR((*ids)[i]);
+    for (size_t i = 0; i < ivf->nlist; i++) READVECTOR((*ids)[i]);
   }
   READ1(ivf->maintain_direct_map);
   READVECTOR(ivf->direct_map);
@@ -957,7 +953,7 @@ struct FileIOReader : faiss::IOReader {
   ~FileIOReader() override {
     if (need_close) {
       int ret = fclose(f);
-      if (ret != 0) { // we cannot raise and exception in the destructor
+      if (ret != 0) {  // we cannot raise and exception in the destructor
         fprintf(stderr, "file %s close error: %s", name.c_str(),
                 strerror(errno));
       }
@@ -1009,8 +1005,8 @@ struct GammaIVFPQIndex : GammaIndex, faiss::IndexIVFPQ {
                   size_t nbits_per_idx, const char *docids_bitmap,
                   RawVector *raw_vec, int nprobe);
 
-  faiss::InvertedListScanner *
-  get_InvertedListScanner(bool store_pairs) const override;
+  faiss::InvertedListScanner *get_InvertedListScanner(
+      bool store_pairs) const override;
 
   int Indexing() override;
 
@@ -1086,26 +1082,25 @@ struct GammaIVFPQIndex : GammaIndex, faiss::IndexIVFPQ {
     string info_file = index_dirs[index_dirs.size() - 1] + "/gamma_index.info";
     if (access(info_file.c_str(), F_OK) != 0) {
       LOG(INFO) << info_file << " isn't existed, skip loading";
-      return 0; // it should train again after load
+      return 0;  // it should train again after load
     }
 
     faiss::IOReader *f = new FileIOReader(info_file.c_str());
     IndexIVFPQ *ivpq = static_cast<IndexIVFPQ *>(this);
-    read_ivf_header(ivpq, f, nullptr); // not legacy
+    read_ivf_header(ivpq, f, nullptr);  // not legacy
     READ1(ivpq->by_residual);
     READ1(ivpq->code_size);
     read_ProductQuantizer(&ivpq->pq, f);
 
     // precomputed table not stored. It is cheaper to recompute it
     ivpq->use_precomputed_table = 0;
-    if (ivpq->by_residual)
-      ivpq->precompute_table();
+    if (ivpq->by_residual) ivpq->precompute_table();
     delete f;
 
     if (!this->is_trained) {
       LOG(ERROR) << "unexpected, gamma index information is loaded, but it "
                     "isn't trained";
-      return 0; // it should train again after load
+      return 0;  // it should train again after load
     }
 
     indexed_vec_count_ = rt_invert_index_ptr_->Load(index_dirs);
@@ -1131,6 +1126,6 @@ struct GammaIVFPQIndex : GammaIndex, faiss::IndexIVFPQ {
 #endif
 };
 
-} // namespace tig_gamma
+}  // namespace tig_gamma
 
 #endif

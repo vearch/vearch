@@ -8,7 +8,7 @@ mkdir -p $GAMMAOUT
 
 
 # version value
-BUILD_VERSION="0.1"
+BUILD_VERSION="0.2"
 
 
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ROOT/ps/engine/gammacb/lib/lib/

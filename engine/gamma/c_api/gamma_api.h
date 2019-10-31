@@ -98,8 +98,9 @@ typedef struct VectorInfo {
   enum DataType data_type;   // vector data type, float only supported now
   int dimension;             // dimension
   ByteArray *model_id;       // model_id, temporarily useless
-  ByteArray *retrieval_type; // "IVFPQ", "PACINS", ...
-  ByteArray *store_type;     // "MemoryOnly", "MemoryWithDisk"
+  ByteArray *retrieval_type; // "IVFPQ"
+  ByteArray *store_type;     // "Mmap", "RocksDB"
+  ByteArray *store_param;    // parameters of store, json format
 } VectorInfo;
 
 /** make vector infos array
@@ -119,7 +120,8 @@ VectorInfo **MakeVectorInfos(int num);
  */
 VectorInfo *MakeVectorInfo(ByteArray *name, enum DataType data_type,
                            int dimension, ByteArray *model_id,
-                           ByteArray *retrieval_type, ByteArray *store_type);
+                           ByteArray *retrieval_type, ByteArray *store_type,
+                           ByteArray *store_param);
 
 /** Setting VectorInfo content
  *
@@ -245,10 +247,10 @@ typedef struct IVFPQParameters {
  *
  * @param metric_type   metric type, 0 inner product, 1 L2, default(-1) inner
  * product
- * @param nprobe        scan nprobe, default(-1) 10, it should be less than
+ * @param nprobe        scan nprobe, default(-1) 20, it should be less than
  * ncentroids
  * @param ncentroids    coarse cluster center number, default(-1) 256
- * @param nsubvector    the number of sub vector, default(-1) 32, only the value
+ * @param nsubvector    the number of sub vector, default(-1) 64, only the value
  * which is multiple of 4 is supported now
  * @param nbits_per_idx bit number of sub cluster center, default(-1) 8, and 8
  * is the only value now

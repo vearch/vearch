@@ -8,8 +8,9 @@
 #ifndef GAMMA_COMMON_DATA_H_
 #define GAMMA_COMMON_DATA_H_
 
+#include "field_range_index.h"
 #include "gamma_api.h"
-#include "numeric_index.h"
+#include "log.h"
 #include "online_logger.h"
 
 namespace tig_gamma {
@@ -28,8 +29,8 @@ enum class ResultCode : std::uint16_t {
   Undefined
 };
 
-enum RawVectorType { MemoryOnly, MemoryWithDisk };
-enum RetrievalModel { IVFPQ, GPU_IVFPQ, SPTAG, PACINS };
+enum VectorStorageType { Mmap, RocksDB};
+enum RetrievalModel { IVFPQ};
 
 struct VectorDocField {
   std::string name;
@@ -76,7 +77,7 @@ struct VectorDoc {
 
 struct GammaSearchCondition {
   GammaSearchCondition() {
-    numeric_results = nullptr;
+    range_query_result = nullptr;
     topn = 0;
     has_rank = false;
     metric_type = InnerProduct;
@@ -84,12 +85,12 @@ struct GammaSearchCondition {
     min_dist = -1;
     max_dist = -1;
     recall_num = 0;
-    parallel_mode = 1; // default to parallelize over inverted list
+    parallel_mode = 1;  // default to parallelize over inverted list
     use_direct_search = false;
   }
 
   GammaSearchCondition(GammaSearchCondition *condition) {
-    numeric_results = condition->numeric_results;
+    range_query_result = condition->range_query_result;
     topn = condition->topn;
     has_rank = condition->has_rank;
     metric_type = condition->metric_type;
@@ -102,10 +103,10 @@ struct GammaSearchCondition {
   }
 
   ~GammaSearchCondition() {
-    numeric_results = nullptr; // should not delete
+    range_query_result = nullptr;  // should not delete
   }
 
-  NI::RangeQueryResult *numeric_results;
+  MultiRangeQueryResults *range_query_result;
 
   int topn;
   bool has_rank;
@@ -175,11 +176,11 @@ struct IVFPQParamHelper {
     if (ivfpq_param_->metric_type == -1)
       ivfpq_param_->metric_type = InnerProduct;
     if (ivfpq_param_->nprobe == -1)
-      ivfpq_param_->nprobe = 10;
+      ivfpq_param_->nprobe = 20;
     if (ivfpq_param_->ncentroids == -1)
       ivfpq_param_->ncentroids = 256;
     if (ivfpq_param_->nsubvector == -1)
-      ivfpq_param_->nsubvector = 32;
+      ivfpq_param_->nsubvector = 64;
     if (ivfpq_param_->nbits_per_idx == -1)
       ivfpq_param_->nbits_per_idx = 8;
   }
@@ -221,6 +222,6 @@ struct IVFPQParamHelper {
   IVFPQParameters *ivfpq_param_;
 };
 
-} // namespace tig_gamma
+}  // namespace tig_gamma
 
 #endif

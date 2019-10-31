@@ -18,8 +18,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/spf13/cast"
-	"github.com/tiglabs/log"
+	"github.com/vearch/vearch/util/log"
 	"github.com/valyala/fastjson"
 	"github.com/vearch/vearch/proto/pspb"
 	"github.com/vearch/vearch/util"
@@ -48,24 +47,8 @@ func ParseSchema(schema []byte) (*DocumentMapping, error) {
 }
 
 func (im *IndexMapping) MapDocument(source []byte) ([]*pspb.Field, map[string]pspb.FieldType, error) {
-	walkContext := im.newWalkContext(im.DynamicSchema)
+	walkContext := im.newWalkContext()
 	im.walkDocument(walkContext, source)
-	if len(walkContext.copyTo) != 0 {
-		for pathStr, fields := range walkContext.copyTo {
-			dm := im.documentMappingForPath(pathStr)
-			if dm == nil {
-				return nil, nil, fmt.Errorf("unrecognizable field path:%s because copy to must set field in mapping", pathStr)
-			}
-			if dm.Field == nil {
-				return nil, nil, fmt.Errorf("unrecognizable field path:%s because it is a properties", pathStr)
-			}
-			name, path := decodePathWithName(pathStr)
-			for _, val := range fields {
-				dm.processProperty(walkContext, name, path, val)
-			}
-		}
-	}
-
 	if walkContext.Err != nil {
 		return nil, nil, walkContext.Err
 	}
@@ -102,10 +85,7 @@ func (dm *DocumentMapping) parseJson(context *walkContext, path []string, v *fas
 			subDocM := dm.subDocumentMapping(fieldName)
 			if subDocM != nil {
 				subDocM.processProperty(context, fieldName, path, val)
-			} else if context.isDynamic() {
-				subDocM = NewDocumentMapping()
-				subDocM.parseJson(context, append(path, fieldName), val)
-			} else if context.isStrict() {
+			} else {
 				context.Err = fmt.Errorf("unrecognizable field:[%s] value %s %v", fieldName, v.String(), dm)
 			}
 		})
@@ -173,32 +153,7 @@ func (dm *DocumentMapping) processProperty(context *walkContext, fieldName strin
 				return
 			}
 			context.AddField(field)
-			for _, fieldName := range dm.Field.Base().CopyTo {
-				context.CopyTo(fieldName, v)
-			}
-		} else if context.isDynamic() {
-			var field *pspb.Field
-			// automatic indexing behavior
-			parsedDateTime, err := cast.ToTimeE(propertyValueString)
-			if err == nil {
-				field = &pspb.Field{
-					Name:   pathString,
-					Type:   pspb.FieldType_DATE,
-					Value:  &pspb.FieldValue{Time: &pspb.TimeStamp{Usec: parsedDateTime.UnixNano()}},
-					Option: NewDateFieldMapping("").Options(),
-				}
-			}
-			if field == nil {
-				field = &pspb.Field{
-					Name:   pathString,
-					Type:   pspb.FieldType_TEXT,
-					Value:  &pspb.FieldValue{Text: propertyValueString},
-					Option: NewTextFieldMapping("").Options(),
-				}
-			}
-			context.AddField(field)
-			context.AddDynamicField(field)
-		} else if context.isStrict() {
+		} else {
 			context.Err = fmt.Errorf("unrecognizable field %s %v", pathString, dm)
 			return
 		}
@@ -216,20 +171,7 @@ func (dm *DocumentMapping) processProperty(context *walkContext, fieldName strin
 				return
 			}
 			context.AddField(field)
-			for _, fieldName := range dm.Field.Base().CopyTo {
-				context.CopyTo(fieldName, v)
-			}
-		} else if context.isDynamic() {
-			// automatic indexing behavior
-			fm := NewFieldMapping(pathString, NewFloatFieldMapping(pathString))
-			field, err := processNumber(context, fm, pathString, propertyValFloat)
-			if err != nil {
-				context.Err = err
-				return
-			}
-			context.AddField(field)
-			context.AddDynamicField(field)
-		} else if context.isStrict() {
+		} else {
 			context.Err = fmt.Errorf("unrecognizable field %s %v", pathString, dm)
 			return
 		}
@@ -247,20 +189,7 @@ func (dm *DocumentMapping) processProperty(context *walkContext, fieldName strin
 				return
 			}
 			context.AddField(field)
-			for _, fieldName := range dm.Field.Base().CopyTo {
-				context.CopyTo(fieldName, v)
-			}
-		} else if context.isDynamic() {
-			// automatic indexing behavior
-			fm := NewFieldMapping(pathString, NewBooleanFieldMapping(pathString))
-			field, err := processBool(context, fm, pathString, propertyValBool)
-			if err != nil {
-				context.Err = err
-				return
-			}
-			context.AddField(field)
-			context.AddDynamicField(field)
-		} else if context.isStrict() {
+		} else {
 			context.Err = fmt.Errorf("unrecognizable field %s %v", pathString, dm)
 			return
 		}
@@ -284,9 +213,6 @@ func (dm *DocumentMapping) processProperty(context *walkContext, fieldName strin
 					}
 					field, err := processGeoPoint(context, fm, pathString, lon, lat)
 					context.AddField(field)
-					for _, fieldName := range dm.Field.Base().CopyTo {
-						context.CopyTo(fieldName, v)
-					}
 				} else {
 					context.Err = fmt.Errorf("field value %s mismatch geo point", v.String())
 				}
@@ -315,9 +241,6 @@ func (dm *DocumentMapping) processProperty(context *walkContext, fieldName strin
 					return
 				}
 				context.AddField(field)
-				for _, fieldName := range dm.Field.Base().CopyTo {
-					context.CopyTo(fieldName, v)
-				}
 				return
 			}
 		}
@@ -353,14 +276,11 @@ func (dm *DocumentMapping) processProperty(context *walkContext, fieldName strin
 						return
 					}
 					context.AddField(field)
-					for _, fieldName := range dm.Field.Base().CopyTo {
-						context.CopyTo(fieldName, v)
-					}
 				}
 				return
 			}
 
-			if fm.FieldType() == pspb.FieldType_KEYWORD && fm.FieldMappingI.(*KeywordFieldMapping).Array { //for gamma TODO :ANSJ
+			if fm.FieldType() == pspb.FieldType_STRING && fm.FieldMappingI.(*StringFieldMapping).Array {
 				buffer := bytes.Buffer{}
 				for i, vv := range vs {
 					if stringBytes, err := vv.StringBytes(); err != nil {

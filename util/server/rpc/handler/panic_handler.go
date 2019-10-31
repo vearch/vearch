@@ -17,7 +17,7 @@ package handler
 import (
 	"runtime/debug"
 
-	"github.com/tiglabs/log"
+	"github.com/vearch/vearch/util/log"
 )
 
 var DefaultPanicHadler = new(PanicHandler)

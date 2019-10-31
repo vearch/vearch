@@ -22,8 +22,9 @@ package gammacb
 import "C"
 import (
 	"context"
+	"encoding/json"
 	"fmt"
-	"github.com/tiglabs/log"
+	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/config"
 	pkg "github.com/vearch/vearch/proto"
 	"github.com/vearch/vearch/proto/entity"
@@ -33,6 +34,7 @@ import (
 	"github.com/vearch/vearch/ps/engine/register"
 	"github.com/vearch/vearch/util/atomic"
 	"io/ioutil"
+	"reflect"
 	"sync"
 	"time"
 	"unsafe"
@@ -160,7 +162,23 @@ func (ge *gammaEngine) Writer() engine.Writer {
 }
 
 func (ge *gammaEngine) UpdateMapping(space *entity.Space) error {
-	return fmt.Errorf("not support update mapping in gamma")
+	var oldProperties, newProperties interface{}
+
+	if err := json.Unmarshal([]byte(ge.space.Properties), &oldProperties); err != nil {
+		return fmt.Errorf("unmarshal old space properties:[%s] has err:[%s] ", ge.space.Properties, err.Error())
+	}
+
+	if err := json.Unmarshal([]byte(space.Properties), &newProperties); err != nil {
+		return fmt.Errorf("unmarshal new space properties:[%s] has err :[%s]", space.Properties, err.Error())
+	}
+
+	if !reflect.DeepEqual(oldProperties, newProperties) {
+		return fmt.Errorf("gamma engine not support ")
+	}
+
+	ge.space = space
+
+	return nil
 }
 
 func (ge *gammaEngine) GetMapping() *mapping.IndexMapping {

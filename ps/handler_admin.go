@@ -26,7 +26,7 @@ import (
 	"github.com/vearch/vearch/util/metrics/mserver"
 	"time"
 
-	"github.com/tiglabs/log"
+	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/proto"
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/util/server/rpc/handler"
@@ -64,7 +64,7 @@ func ExportToRpcAdminHandler(server *Server) {
 		panic(err)
 	}
 
-	if err := server.rpcServer.RegisterName(handler.NewChain(client.ChangeMemberHandler, server.monitor, handler.DefaultPanicHadler, nil, initAdminHandler, storeHandler, new(ChangeMemberHandler)), ""); err != nil {
+	if err := server.rpcServer.RegisterName(handler.NewChain(client.ChangeMemberHandler, server.monitor, handler.DefaultPanicHadler, nil, initAdminHandler, storeHandler, &ChangeMemberHandler{server: server}), ""); err != nil {
 		panic(err)
 	}
 
@@ -120,6 +120,11 @@ func (c *CreatePartitionHandler) Execute(req *handler.RpcRequest, resp *handler.
 	if err := reqs.Decode(reqObj); err != nil {
 		return err
 	}
+
+	c.server.partitions.Range(func(key, value interface{}) bool {
+		fmt.Print(key, value)
+		return true
+	})
 
 	if partitionStore := c.server.GetPartition(reqObj.PartitionId); partitionStore != nil {
 		return pkg.ErrPartitionDuplicate
@@ -225,16 +230,14 @@ func (sh *StatsHandler) Execute(req *handler.RpcRequest, resp *handler.RpcRespon
 	return nil
 }
 
-type ChangeMemberHandler int
+type ChangeMemberHandler struct {
+	server *Server
+}
 
-func (ah *ChangeMemberHandler) Execute(req *handler.RpcRequest, resp *handler.RpcResponse) error {
+func (ch *ChangeMemberHandler) Execute(req *handler.RpcRequest, resp *handler.RpcResponse) error {
 	reqs := req.GetArg().(*request.ObjRequest)
 
-	reqObj := &struct {
-		PartitionID entity.PartitionID
-		NodeID      entity.NodeID
-		Method      proto.ConfChangeType
-	}{}
+	reqObj := new(entity.ChangeMember)
 
 	if err := reqs.Decode(reqObj); err != nil {
 		return err
@@ -242,11 +245,23 @@ func (ah *ChangeMemberHandler) Execute(req *handler.RpcRequest, resp *handler.Rp
 
 	store := reqs.GetStore().(PartitionStore)
 
-	if store.IsLeader() {
+	if !store.IsLeader() {
 		return pkg.ErrPartitionNotLeader
 	}
 
-	return store.ChangeMember(reqObj.Method, reqObj.NodeID)
+	server, err := ch.server.client.Master().QueryServer(reqs.Context().GetContext(), reqObj.NodeID)
+	if err != nil {
+		log.Error("get server info err %s", err.Error())
+		return err
+	}
+
+	if reqObj.Method == proto.ConfAddNode {
+		ch.server.raftResolver.AddNode(reqObj.NodeID, server.Replica())
+	} else if reqObj.Method == proto.ConfRemoveNode {
+		ch.server.raftResolver.DeleteNode(reqObj.NodeID)
+	}
+
+	return store.ChangeMember(reqObj.Method, server)
 }
 
 // it when has happen , redirect some other to response and send err to status

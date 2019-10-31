@@ -16,11 +16,11 @@ package raftstore
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/ps/psutil"
 	"os"
-
-	"github.com/tiglabs/log"
 
 	"github.com/tiglabs/raft"
 	"github.com/tiglabs/raft/proto"
@@ -187,20 +187,27 @@ func (s *Store) GetPartition() *entity.Partition {
 	return s.Partition
 }
 
-func (s *Store) ChangeMember(changeType proto.ConfChangeType, nodeID entity.NodeID) error {
+func (s *Store) ChangeMember(changeType proto.ConfChangeType, server *entity.Server) error {
 	id := uint64(s.Partition.Id)
+
 	peer := proto.Peer{
 		Type: proto.PeerNormal,
-		ID:   nodeID,
+		ID:   server.ID,
 	}
-	future := s.RaftServer.ChangeMember(id, changeType, peer, nil)
+
+	bytes, err := json.Marshal(server.Replica())
+	if err != nil {
+		return err
+	}
+
+	future := s.RaftServer.ChangeMember(id, changeType, peer, bytes)
 
 	response, err := future.Response()
 	if err != nil {
 		return err
 	}
 
-	if response.(*RaftApplyResponse).Err != nil {
+	if response!= nil && response.(*RaftApplyResponse).Err != nil {
 		return response.(*RaftApplyResponse).Err
 	}
 

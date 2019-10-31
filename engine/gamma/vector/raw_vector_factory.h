@@ -8,21 +8,39 @@
 #ifndef RAW_VECTOR_FACTORY_H_
 #define RAW_VECTOR_FACTORY_H_
 
-#include "memory_raw_vector.h"
+#include "mmap_raw_vector.h"
 #include "raw_vector.h"
+
+#ifdef WITH_ROCKSDB
+#include "rocksdb_raw_vector.h"
+#endif // WITH_ROCKSDB
+
 #include <string>
 
 namespace tig_gamma {
 
 class RawVectorFactory {
 public:
-  static RawVector *Create(RawVectorType type, const std::string name,
-                           int dimension, int max_doc_size) {
+  static RawVector *Create(VectorStorageType type, const std::string &name,
+                           int dimension, int max_doc_size,
+                           const std::string &root_path,
+                           const std::string &store_param) {
+    StoreParams store_params;
+    if (store_param != "" && store_params.Parse(store_param.c_str()))
+      return nullptr;
+    LOG(INFO) << "store parameters=" << store_params.ToString();
     switch (type) {
-    case MemoryOnly:
-      return (RawVector *)new MemoryRawVector(name, dimension, max_doc_size);
+    case Mmap:
+      return (RawVector *)new MmapRawVector(name, dimension, max_doc_size,
+                                            root_path, store_params);
+#ifdef WITH_ROCKSDB
+    case RocksDB:
+      return (RawVector *)new RocksDBRawVector(name, dimension, max_doc_size,
+                                               root_path, store_params);
+#endif // WITH_ROCKSDB
     default:
-      throw std::invalid_argument("invalid raw feature type");
+      LOG(ERROR) << "invalid raw feature type:" << type;
+      return nullptr;
     }
   }
 };

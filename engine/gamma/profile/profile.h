@@ -120,6 +120,11 @@ private:
   bool table_created_;
 };
 
+// specialization for string
+template <>
+bool Profile::GetField<std::string>(const int docid, const int field_id,
+                                    std::string &value) const;
+
 inline struct ByteArray *StringToByteArray(const std::string &str) {
   struct ByteArray *ba =
       static_cast<struct ByteArray *>(malloc(sizeof(struct ByteArray)));
