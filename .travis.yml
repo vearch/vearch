@@ -14,12 +14,12 @@ before_install:
   - ./build.sh
   - echo "Start service by all in one model"
   - cat ../config/config.toml.example > config.toml
-  - nohup docker run -p 443:8817 -p 80:9001 -v $PWD/config.toml:/vearch/config.toml  vearch all &
+  - nohup docker run -p 8817:8817 -p 9001:9001 -v $PWD/config.toml:/vearch/config.toml  vearch all &
   - sleep 30
   - cd ../test
 
 install :
-  - requests
+  - pip install requests
 
 script:
   - pytest
