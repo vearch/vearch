@@ -175,7 +175,7 @@ void StopFlushingIfNeed(RawVector *vec);
 struct StoreParams {
   int cache_size_; // M bytes
 
-  StoreParams() { cache_size_ = 256; }
+  StoreParams() { cache_size_ = 1024 * 2; }
   StoreParams(const StoreParams &other) {
     this->cache_size_ = other.cache_size_;
   }

@@ -8,7 +8,7 @@
    2. Go >= 1.11.2 required
    3. Gcc >= 5 required
    4. [Faiss](https://github.com/facebookresearch/faiss) == v1.5.3
-   5. [RocksDB](https://github.com/facebook/rocksdb) == 6.6.2 ***(optional)*** . Please use `make shared_lib` which is in `RocksDB's INSTALL.md` to compile rocksdb.
+   5. [RocksDB](https://github.com/facebook/rocksdb) == 6.2.2 ***(optional)*** . Please use `make shared_lib` which is in `RocksDB's INSTALL.md` to compile rocksdb.
 
 #### Compile 
    * Enter the `GOPATH` directory, `cd $GOPATH/src` `mkdir -p github/vearch` `cd github/vearch`

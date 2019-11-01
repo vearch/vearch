@@ -24,7 +24,8 @@ class BaseModel(object):
 
     def __init__(self):
         self.image_size = 224
-        self.dimision = 512
+        self.dimision = 2048
+        self.load_model()
 
     def load_model(self):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -70,9 +71,9 @@ def load_model():
     return BaseModel()
 
 
-def test():
+def test(url):
     model = load_model()
-    model.load_model()
+    # model.load_model()
     import urllib.request
     def test_url(imageurl):
         resp = urllib.request.urlopen(imageurl).read()
@@ -81,7 +82,7 @@ def test():
         feat = model.forward(image)
         return (feat[0]/np.linalg.norm(feat[0])).tolist()
 
-    print(test_url(url))
+    print(len(test_url(url)))
 
 if __name__ == "__main__":
     import sys
