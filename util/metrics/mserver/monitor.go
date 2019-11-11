@@ -43,7 +43,7 @@ func newServerStats(ip string, lables []metrics.LabelPair, ss *metricServer) *Se
 }
 
 type ServerStats struct {
-	Status     int                 `json:"status"`
+	Status     int64               `json:"status"`
 	Ip         string              `json:"ip"`
 	Labels     []metrics.LabelPair `json:"labels"`
 	Mem        *MemStats           `json:"mem,omitempty"`

@@ -30,7 +30,6 @@ public:
       return nullptr;
     LOG(INFO) << "store parameters=" << store_params.ToString();
     switch (type) {
-    
     case Mmap:
       return (RawVector *)new MmapRawVector(name, dimension, max_doc_size,
                                             root_path, store_params);
