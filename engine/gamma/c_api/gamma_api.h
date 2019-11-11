@@ -94,13 +94,14 @@ enum DataType { INT = 0, LONG, FLOAT, DOUBLE, STRING, VECTOR };
 
 // VectorInfo
 typedef struct VectorInfo {
-  ByteArray *name;           // vector's name
-  enum DataType data_type;   // vector data type, float only supported now
-  int dimension;             // dimension
-  ByteArray *model_id;       // model_id, temporarily useless
-  ByteArray *retrieval_type; // "IVFPQ"
-  ByteArray *store_type;     // "Mmap", "RocksDB"
-  ByteArray *store_param;    // parameters of store, json format
+  ByteArray *name;            // vector's name
+  enum DataType data_type;    // vector data type, float only supported now
+  BOOL is_index;              // whether index to be trained
+  int dimension;              // dimension
+  ByteArray *model_id;        // model_id, temporarily useless
+  ByteArray *retrieval_type;  // "IVFPQ",...
+  ByteArray *store_type;      // "Mmap", "RocksDB"
+  ByteArray *store_param;     // parameters of store, json format
 } VectorInfo;
 
 /** make vector infos array
@@ -114,12 +115,13 @@ VectorInfo **MakeVectorInfos(int num);
  *
  * @param name       VectorInfo name
  * @param data_type  vector data type, float only supported now
+ * @param is_index   whether index to be trained
  * @param dimension  vector dimension
  * @param model_id   model_id, temporarily useless
  * @return VectorInfo pointer
  */
 VectorInfo *MakeVectorInfo(ByteArray *name, enum DataType data_type,
-                           int dimension, ByteArray *model_id,
+                           BOOL is_index, int dimension, ByteArray *model_id,
                            ByteArray *retrieval_type, ByteArray *store_type,
                            ByteArray *store_param);
 
@@ -145,7 +147,7 @@ enum ResponseCode DestroyVectorInfos(VectorInfo **vectorInfo, int num);
 typedef struct FieldInfo {
   ByteArray *name;
   enum DataType data_type;
-  BOOL is_index; // whether index numeric field
+  BOOL is_index;  // whether index numeric field
 } FieldInfo;
 
 /** make FieldInfo array
@@ -236,10 +238,10 @@ enum ResponseCode DestroyFields(Field **fields, int num);
 #pragma pack(1)
 typedef struct IVFPQParameters {
   int metric_type;
-  int nprobe;     // scan nprobe
-  int ncentroids; // coarse cluster center number
+  int nprobe;      // scan nprobe
+  int ncentroids;  // coarse cluster center number
   int nsubvector;
-  int nbits_per_idx; // bit number of sub cluster center
+  int nbits_per_idx;  // bit number of sub cluster center
 } IVFPQParameters;
 #pragma pack()
 
@@ -269,11 +271,11 @@ enum ResponseCode DestroyIVFPQParameters(IVFPQParameters *param);
 
 // table info
 typedef struct Table {
-  ByteArray *name;           // table name
-  FieldInfo **fields;        // FieldInfo array head pointer
-  int fields_num;            // field num
-  VectorInfo **vectors_info; // VectorInfo array head pointer
-  int vectors_num;           // vector num
+  ByteArray *name;            // table name
+  FieldInfo **fields;         // FieldInfo array head pointer
+  int fields_num;             // field num
+  VectorInfo **vectors_info;  // VectorInfo array head pointer
+  int vectors_num;            // vector num
   IVFPQParameters *ivfpq_param;
 } Table;
 
@@ -299,8 +301,8 @@ enum ResponseCode DestroyTable(Table *table);
 
 // document
 typedef struct Doc {
-  Field **fields; // Field array head pointer
-  int fields_num; // Field array length
+  Field **fields;  // Field array head pointer
+  int fields_num;  // Field array length
 } Doc;
 
 /** make a Doc pointer
@@ -438,11 +440,11 @@ enum ResponseCode Dump(void *engine);
 enum ResponseCode Load(void *engine);
 
 typedef struct RangeFilter {
-  ByteArray *field;       // field to filter
-  ByteArray *lower_value; // lower value
-  ByteArray *upper_value; // upper value
-  BOOL include_lower;     // whether to include lower value
-  BOOL include_upper;     // whether to include upper value
+  ByteArray *field;        // field to filter
+  ByteArray *lower_value;  // lower value
+  ByteArray *upper_value;  // upper value
+  BOOL include_lower;      // whether to include lower value
+  BOOL include_upper;      // whether to include upper value
 } RangeFilter;
 
 /** make RangeFilter array
@@ -491,9 +493,9 @@ enum ResponseCode DestroyRangeFilter(RangeFilter *range_filter);
 enum ResponseCode DestroyRangeFilters(RangeFilter **range_filters, int num);
 
 typedef struct TermFilter {
-  ByteArray *field; // field to filter
-  ByteArray *value; // filter value
-  BOOL is_union;    // 0: intersect, 1: union
+  ByteArray *field;  // field to filter
+  ByteArray *value;  // filter value
+  BOOL is_union;     // 0: intersect, 1: union
 } TermFilter;
 
 /** make TermFilter array
@@ -537,12 +539,12 @@ enum ResponseCode DestroyTermFilter(TermFilter *term_filter);
 enum ResponseCode DestroyTermFilters(TermFilter **term_filters, int num);
 
 typedef struct VectorQuery {
-  struct ByteArray *name;  // vector name
-  struct ByteArray *value; // vector value
-  double min_score;        // min score
-  double max_score;        // max score
-  double boost;            // min_score * boost = weighted result
-  int has_boost;           // default 0, not activate boost; 1 activate boost
+  struct ByteArray *name;   // vector name
+  struct ByteArray *value;  // vector value
+  double min_score;         // min score
+  double max_score;         // max score
+  double boost;             // min_score * boost = weighted result
+  int has_boost;            // default 0, not activate boost; 1 activate boost
 } VectorQuery;
 
 /** make a VectorQuery
@@ -595,10 +597,9 @@ enum ResponseCode DestroyVectorQuerys(VectorQuery **vector_querys, int num);
 typedef struct Request {
   int req_num;
   int topn;
-  int direct_search_type; // -1: no direct search, 0: auto, 1: always direct
-                          // search, default 0
+  int direct_search_type;  // -1: no direct search, 0: auto, 1: always direct
+                           // search, default 0
 
-  int has_rank; // default 0, has not rank; 1, has rank
   VectorQuery **vec_fields;
   int vec_fields_num;
 
@@ -614,6 +615,8 @@ typedef struct Request {
 
   // online log level: debug|info|warn|error|none
   ByteArray *online_log_level;
+
+  int has_rank;  // default 0, has not rank; 1, has rank
 } Request;
 
 /** make a Request
@@ -628,6 +631,9 @@ typedef struct Request {
  * @param term_filters        termFilters array
  * @param term_filters_num    termFilters array length
  * @param req_num             request number
+ * @param direct_search_type  1 : direct search; 0 : normal search
+ * @param online_log_level    DEBUG, INFO, WARN, ERROR
+ * @param has_rank            default 0, has not rank; 1, has rank
  * @return  a request pointer
  */
 Request *MakeRequest(int topn, VectorQuery **vec_fields, int vec_fields_num,
@@ -635,7 +641,7 @@ Request *MakeRequest(int topn, VectorQuery **vec_fields, int vec_fields_num,
                      RangeFilter **range_filters, int range_filters_num,
                      TermFilter **term_filters, int term_filters_num,
                      int req_num, int direct_search_type,
-                     ByteArray *online_log_level);
+                     ByteArray *online_log_level, int has_rank);
 
 /** destroy Request
  *
@@ -665,7 +671,7 @@ typedef struct Response {
   int req_num;
   SearchResult **results;
 
-  ByteArray *online_log_message; // may be null
+  ByteArray *online_log_message;  // may be null
 } Response;
 
 /** query vectors to index
@@ -675,8 +681,6 @@ typedef struct Response {
  * @return response, need to call @DestroyResponse to destroy
  */
 Response *Search(void *engine, Request *request);
-// enum ResponseCode Search(void *engine, int n, struct Request *request,
-//                        struct Response **response);
 
 /** delete docs from table by query
  *
@@ -710,7 +714,7 @@ ResultItem *GetResultItem(SearchResult *search_result, int idx);
  */
 Field *GetField(const Doc *doc, int idx);
 
-/**
+/** destroy response
  *
  * @param response  response to destroy
  * @return ResponseCode

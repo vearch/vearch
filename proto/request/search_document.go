@@ -31,7 +31,8 @@ type SearchDocumentRequest struct {
 	Aggs         json.RawMessage   `json:"aggs,omitempty"`
 	Aggregations json.RawMessage   `json:"aggregations,omitempty"` //it not use only for json un serizable
 	ScriptFields json.RawMessage   `json:"script_fields,omitempty"`
-	SearchAfter  []interface{}     `json:"search_after,omitempty"`
+	Quick        bool              `json:"quick,omitempty"`
+	VectorValue  bool              `json:"vector_value,omitempty"`
 	sortOrder    sortorder.SortOrder
 }
 

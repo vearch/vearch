@@ -24,6 +24,7 @@ const ERRCODE_SUCCESS = 200
 
 const (
 	ERRCODE_INTERNAL_ERROR = 550 + iota
+	ERRCODE_NAME_OR_PASSWORD
 	ERRCODE_SYSBUSY
 	ERRCODE_PARAM_ERROR
 	ERRCODE_INVALID_CFG
@@ -86,6 +87,7 @@ var (
 	ErrGeneralSysBusy            = errors.New("system busy")
 	ErrGeneralParamError         = errors.New("param error")
 	ErrGeneralInvalidCfg         = errors.New("config error")
+	ErrGeneralNameOrPassword     = errors.New("username or password err")
 )
 
 //Partition err
@@ -152,7 +154,7 @@ var (
 )
 
 //get err code by error if error is nil , return ERRCODE_SUCCESS
-func ErrCode(err error) int {
+func ErrCode(err error) int64 {
 	if err == nil {
 		return ERRCODE_SUCCESS
 	}
@@ -163,7 +165,7 @@ func ErrCode(err error) int {
 	return ERRCODE_INTERNAL_ERROR
 }
 
-func CodeErr(code int) error {
+func CodeErr(code int64) error {
 	for e, c := range err2CodeMap {
 		if c == code {
 			return fmt.Errorf(e)
@@ -179,7 +181,7 @@ func ErrError(err error) string {
 	return err.Error()
 }
 
-var err2CodeMap = map[string]int{
+var err2CodeMap = map[string]int64{
 	ErrGeneralSuccess.Error():                        ERRCODE_SUCCESS,
 	ErrGeneralInternalError.Error():                  ERRCODE_INTERNAL_ERROR,
 	ErrGeneralSysBusy.Error():                        ERRCODE_SYSBUSY,
@@ -231,6 +233,7 @@ var err2CodeMap = map[string]int{
 	ErrDocumentMustHasSource.Error():                 ERRCODE_DOCUMENT_MUST_HAS_SOURCE,
 	ErrDocPulloutVersionNotMatch.Error():             ERRCODE_PULL_OUT_VERSION_NOT_MATCH,
 	ErrFuncCanNotInvokeInFrozenEngine.Error():        ERRCODE_FUNC_CAN_NOT_INVOKE_IN_FROZEN_ENGINE,
+	ErrGeneralNameOrPassword.Error():                 ERRCODE_NAME_OR_PASSWORD,
 }
 
 func NewErrMsg(msg string) *Err {

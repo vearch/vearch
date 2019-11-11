@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/pkg/errors"
+	"github.com/tiglabs/raft/proto"
 	"github.com/vearch/vearch/ps/engine/mapping"
 	"github.com/vearch/vearch/util/cbjson"
 	"github.com/vearch/vearch/util/metrics/mserver"
@@ -915,8 +916,16 @@ func (this *masterService) ChangeMember(ctx context.Context, cm *entity.ChangeMe
 		return err
 	}
 
-	if err := this.PS().Be(ctx).Admin(targetNode.RpcAddr()).CreatePartition(space, cm.PartitionID); err != nil {
-		return fmt.Errorf("create partiiton has err:[%s] addr:[%s]", err.Error(), targetNode.RpcAddr())
+	if cm.Method == proto.ConfAddNode {
+		if err := this.PS().Be(ctx).Admin(targetNode.RpcAddr()).CreatePartition(space, cm.PartitionID); err != nil {
+			return fmt.Errorf("create partiiton has err:[%s] addr:[%s]", err.Error(), targetNode.RpcAddr())
+		}
+	} else if cm.Method == proto.ConfRemoveNode {
+		if err := this.PS().Be(ctx).Admin(targetNode.RpcAddr()).DeletePartition(cm.PartitionID); err != nil {
+			return fmt.Errorf("create partiiton has err:[%s] addr:[%s]", err.Error(), targetNode.RpcAddr())
+		}
+	} else {
+		return fmt.Errorf("change member only support addNode:[%d] removeNode:[%d] not support:[%d]", proto.ConfAddNode, proto.ConfRemoveNode, cm.Method)
 	}
 
 	return this.PS().Be(ctx).Admin(masterNode.RpcAddr()).ChangeMember(cm)

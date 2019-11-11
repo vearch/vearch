@@ -17,6 +17,7 @@ package router
 import (
 	"context"
 	"fmt"
+	"google.golang.org/grpc"
 	"net"
 	"regexp"
 	"strings"
@@ -40,8 +41,9 @@ const (
 )
 
 type Server struct {
-	httpServer *netutil.Server
 	ctx        context.Context
+	httpServer *netutil.Server
+	rpcServer  *grpc.Server
 	cancelFunc context.CancelFunc
 }
 
@@ -66,6 +68,21 @@ func NewServer(ctx context.Context) (*Server, error) {
 	httpServer := netutil.NewServer(httpServerConfig)
 	document.ExportDocumentHandler(httpServer, cli, config.Conf().NewMonitor(config.Router))
 
+	var rpcServer *grpc.Server
+	if config.Conf().Router.RpcPort > 0 {
+		lis, err := net.Listen("tcp", util.BuildAddr(addr, config.Conf().Router.RpcPort))
+		if err != nil {
+			panic(fmt.Errorf("start rpc server failed to listen: %v", err))
+		}
+		rpcServer = grpc.NewServer()
+		go func() {
+			if err := rpcServer.Serve(lis); err != nil {
+				panic(fmt.Errorf("start rpc server failed to start: %v", err))
+			}
+		}()
+		document.ExportRpcHandler(rpcServer, cli, config.Conf().NewMonitor(config.Router))
+	}
+
 	routerCtx, routerCancel := context.WithCancel(ctx)
 	// start router cache
 	if err := cli.Master().FlushCacheJob(routerCtx); err != nil {
@@ -77,6 +94,7 @@ func NewServer(ctx context.Context) (*Server, error) {
 		httpServer: httpServer,
 		ctx:        routerCtx,
 		cancelFunc: routerCancel,
+		rpcServer:  rpcServer,
 	}, nil
 }
 

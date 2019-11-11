@@ -8,6 +8,7 @@
 #ifndef RAW_VECTOR_FACTORY_H_
 #define RAW_VECTOR_FACTORY_H_
 
+#include "memory_raw_vector.h"
 #include "mmap_raw_vector.h"
 #include "raw_vector.h"
 
@@ -30,6 +31,9 @@ public:
       return nullptr;
     LOG(INFO) << "store parameters=" << store_params.ToString();
     switch (type) {
+    case Memory:
+      return (RawVector *)new MemoryRawVector(name, dimension, max_doc_size,
+                                              root_path);
     case Mmap:
       return (RawVector *)new MmapRawVector(name, dimension, max_doc_size,
                                             root_path, store_params);

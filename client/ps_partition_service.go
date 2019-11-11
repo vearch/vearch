@@ -286,7 +286,7 @@ func (this *partitionSender) getOrCreate(partition *entity.Partition, clientType
 	return this
 }
 
-func (this *partitionSender) Execute(servicePath string, request request.Request) (interface{}, int, error) {
+func (this *partitionSender) Execute(servicePath string, request request.Request) (interface{}, int64, error) {
 	var wg sync.WaitGroup
 	replicaNum := len(this.nodeIds)
 	senderResp := new(response.Response)
@@ -308,7 +308,7 @@ func (this *partitionSender) Execute(servicePath string, request request.Request
 			sleepTime := baseSleepTime
 			var (
 				resps  interface{}
-				status int
+				status int64
 				e      error
 			)
 			rpcClient := this.spaceSender.ps.getOrCreateRpcClient(request.Context().GetContext(), nodeId)
@@ -370,7 +370,7 @@ func (this *partitionSender) Execute(servicePath string, request request.Request
 	return senderResp.Resp, senderResp.Status, senderResp.Err
 }
 
-func (this *partitionSender) StreamExecute(servicePath string, request request.Request, sc server.StreamCallback) (interface{}, int, error) {
+func (this *partitionSender) StreamExecute(servicePath string, request request.Request, sc server.StreamCallback) (interface{}, int64, error) {
 	nodeId := this.nodeIds[0]
 	rpcClient := this.spaceSender.ps.getOrCreateRpcClient(request.Context().GetContext(), nodeId)
 	rpcClient.lock.RLock()
@@ -382,7 +382,7 @@ func (this *partitionSender) StreamExecute(servicePath string, request request.R
 
 	var (
 		resps  interface{}
-		status int
+		status int64
 		e      error
 	)
 

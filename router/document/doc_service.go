@@ -98,25 +98,9 @@ func (this *docService) mSearchDoc(ctx context.Context, dbName string, spaceName
 	}
 	searchRequest.Aggregations = nil
 
-	var searchSpaces [][2]string
-
-	dbNames := strings.Split(dbName, ",")
-	spaceNames := strings.Split(spaceName, ",")
-
-	nameCache := make(response.NameCache)
-
-	for _, dbName = range dbNames {
-		for _, spaceName = range spaceNames {
-			if space, err := this.client.Master().Cache().SpaceByCache(ctx, dbName, spaceName); err == nil {
-				key := [2]int64{int64(space.DBId), int64(space.Id)}
-				if nameCache[key] == nil {
-					nameCache[key] = []string{dbName, spaceName}
-					searchSpaces = append(searchSpaces, [2]string{dbName, spaceName})
-				}
-			} else {
-				log.Error("can not find db:[%s] space:[%s] for search err:[%s] ", dbName, spaceName, err.Error())
-			}
-		}
+	searchSpaces, nameCache, err := this.parseDBSpacePair(ctx, dbName, spaceName)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	if len(searchSpaces) == 0 {
@@ -128,25 +112,9 @@ func (this *docService) mSearchDoc(ctx context.Context, dbName string, spaceName
 
 func (this *docService) deleteByQuery(ctx context.Context, dbName string, spaceName string, searchRequest *request.SearchRequest) (*response.Response, response.NameCache, error) {
 
-	var searchSpaces [][2]string
-
-	dbNames := strings.Split(dbName, ",")
-	spaceNames := strings.Split(spaceName, ",")
-
-	nameCache := make(response.NameCache)
-
-	for _, dbName = range dbNames {
-		for _, spaceName = range spaceNames {
-			if space, err := this.client.Master().Cache().SpaceByCache(ctx, dbName, spaceName); err == nil {
-				key := [2]int64{int64(space.DBId), int64(space.Id)}
-				if nameCache[key] == nil {
-					nameCache[key] = []string{dbName, spaceName}
-					searchSpaces = append(searchSpaces, [2]string{dbName, spaceName})
-				}
-			} else {
-				log.Error("can not find db:[%s] space:[%s] for search err:[%s] ", dbName, spaceName, err.Error())
-			}
-		}
+	searchSpaces, nameCache, err := this.parseDBSpacePair(ctx, dbName, spaceName)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	if len(searchSpaces) == 0 {
@@ -162,18 +130,28 @@ func (this *docService) searchDoc(ctx context.Context, dbName string, spaceName 
 	}
 	searchRequest.Aggregations = nil
 
-	var searchSpaces [][2]string
-
-	dbNames := strings.Split(dbName, ",")
-	spaceNames := strings.Split(spaceName, ",")
-
-	if len(dbNames) != len(spaceNames) {
-		return nil , nil , fmt.Errorf("in uri dbNames:[%v] must length equals spaceNames:[%v] , example _search/db1,db1/table1,table2" ,dbNames, spaceNames)
+	searchSpaces, nameCache, err := this.parseDBSpacePair(ctx, dbName, spaceName)
+	if err != nil {
+		return nil, nil, err
 	}
 
-	nameCache := make(response.NameCache)
+	if len(searchSpaces) == 0 {
+		return nil, nil, pkg.ErrMasterSpaceNotExists
+	}
 
-	for i, dbName := range dbNames{
+	return this.client.PS().Be(ctx).MultipleSpace(searchSpaces).Search(searchRequest), nameCache, nil
+}
+
+//it make uri to db space pair like db1,db2/s1,s1  it will return db1/s1 , db2/s1
+func (this *docService) parseDBSpacePair(ctx context.Context, dbName string, spaceName string) ([][2]string, response.NameCache, error) {
+	var searchSpaces [][2]string
+	dbNames := strings.Split(dbName, ",")
+	spaceNames := strings.Split(spaceName, ",")
+	nameCache := make(response.NameCache)
+	if len(dbNames) != len(spaceNames) {
+		return nil, nil, fmt.Errorf("in uri dbNames:[%v] must length equals spaceNames:[%v] , example _search/db1,db1/table1,table2", dbNames, spaceNames)
+	}
+	for i, dbName := range dbNames {
 		spaceName := spaceNames[i]
 		if space, err := this.client.Master().Cache().SpaceByCache(ctx, dbName, spaceName); err == nil {
 			key := [2]int64{int64(space.DBId), int64(space.Id)}
@@ -185,12 +163,7 @@ func (this *docService) searchDoc(ctx context.Context, dbName string, spaceName 
 			log.Error("can not find db:[%s] space:[%s] for search err:[%s] ", dbName, spaceName, err.Error())
 		}
 	}
-
-	if len(searchSpaces) == 0 {
-		return nil, nil, pkg.ErrMasterSpaceNotExists
-	}
-
-	return this.client.PS().Be(ctx).MultipleSpace(searchSpaces).Search(searchRequest), nameCache, nil
+	return searchSpaces, nameCache, nil
 }
 
 func (this *docService) streamSearchDoc(ctx context.Context, dbName string, spaceName string, searchRequest *request.SearchRequest) (dsr *response.DocStreamResult, nameCache response.NameCache, err error) {

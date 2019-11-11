@@ -152,11 +152,11 @@ func (this *rpcClient) lastUse() *rpcClient {
 }
 
 // ExecuteErrorChangeRetry add retry to handle no leader and not leader situation
-func Execute(addr, servicePath string, request request.Request) (interface{}, int, error) {
+func Execute(addr, servicePath string, request request.Request) (interface{}, int64, error) {
 	sleepTime := baseSleepTime
 	var (
 		response interface{}
-		status   int
+		status   int64
 		e        error
 	)
 	for i := 0; i < adaptRetry; i++ {
@@ -182,7 +182,7 @@ func Execute(addr, servicePath string, request request.Request) (interface{}, in
 }
 
 //this execute not use cache or pool , it only conn once and close client
-func execute(addr, servicePath string, request request.Request) (interface{}, int, error) {
+func execute(addr, servicePath string, request request.Request) (interface{}, int64, error) {
 
 	client, err := server.NewRpcClient(addr)
 	if err != nil {
@@ -209,7 +209,7 @@ func execute(addr, servicePath string, request request.Request) (interface{}, in
 	return response.Result, pkg.ERRCODE_SUCCESS, nil
 }
 
-func (this *rpcClient) Execute(servicePath string, request request.Request) (interface{}, int, error) {
+func (this *rpcClient) Execute(servicePath string, request request.Request) (interface{}, int64, error) {
 	if this == nilClient {
 		return nil, pkg.ERRCODE_INTERNAL_ERROR, fmt.Errorf("create client err , it is nil")
 	}
@@ -227,7 +227,7 @@ func (this *rpcClient) Execute(servicePath string, request request.Request) (int
 	return rpcResponse.Result, pkg.ERRCODE_SUCCESS, nil
 }
 
-func (this *rpcClient) StreamExecute(servicePath string, request request.Request, sc server.StreamCallback) (interface{}, int, error) {
+func (this *rpcClient) StreamExecute(servicePath string, request request.Request, sc server.StreamCallback) (interface{}, int64, error) {
 	if this == nilClient {
 		return nil, pkg.ERRCODE_INTERNAL_ERROR, fmt.Errorf("create client err , it is nil")
 	}

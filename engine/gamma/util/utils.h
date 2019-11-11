@@ -8,13 +8,13 @@
 #ifndef UTILS_H_
 #define UTILS_H_
 
-#include "gamma_api.h"
-#include "cJSON.h"
 #include <cassert>
 #include <functional>
 #include <sstream>
 #include <string>
 #include <vector>
+#include "cJSON.h"
+#include "gamma_api.h"
 
 namespace utils {
 
@@ -22,6 +22,9 @@ long get_file_size(const char *path);
 
 std::vector<std::string> split(const std::string &p_str,
                                const std::string &p_separator);
+
+std::vector<std::string> split(const std::string &p_str,
+                               const char *p_separator);
 
 int count_lines(const char *filename);
 
@@ -33,13 +36,7 @@ int isFolderExist(const char *path);
 
 int remove_dir(const char *dir);
 
-#ifdef _WIN32
-
-inline char file_sepator() { return '\\'; }
-#else
-
 inline char file_sepator() { return '/'; }
-#endif
 
 using file_filter_type = std::function<bool(const char *, const char *)>;
 
@@ -58,7 +55,8 @@ std::vector<std::string> ls_folder(const std::string &dir_name,
 
 ssize_t write_n(int fd, const char *buf, ssize_t nbyte, int retry);
 
-template <class T> inline T *NewArray(int len, const char *msg) {
+template <class T>
+inline T *NewArray(int len, const char *msg) {
   assert(len > 0);
   T *data = new (std::nothrow) T[len];
   if (data == nullptr) {
@@ -68,7 +66,9 @@ template <class T> inline T *NewArray(int len, const char *msg) {
 }
 
 std::string join(const std::vector<std::string> &strs, char separator);
-template <class T> std::string join(const T *a, int n, char separator) {
+
+template <class T>
+std::string join(const T *a, int n, char separator) {
   std::stringstream ss;
   ss << "[";
   for (size_t i = 0; i < n; i++) {
@@ -93,21 +93,6 @@ typedef struct MEM_PACK {
 
 MEM_PACK *get_memoccupy();
 
-// Based on http://stackoverflow.com/questions/236129/split-a-string-in-c Split
-// a string by a delim
-inline std::vector<std::string> Split(const std::string &s, char delim) {
-  std::vector<std::string> elems;
-  if (not s.empty()) {
-    std::stringstream ss;
-    ss.str(s);
-    std::string item;
-    while (std::getline(ss, item, delim)) {
-      elems.push_back(item);
-    }
-  }
-  return elems;
-}
-
 struct JsonParser {
   cJSON *content_;
 
@@ -118,6 +103,6 @@ struct JsonParser {
   int GetString(const std::string &name, std::string &value);
 };
 
-} // namespace utils
+}  // namespace utils
 
 #endif /* UTILS_H_ */

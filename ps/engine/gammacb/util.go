@@ -34,6 +34,7 @@ import (
 	"github.com/vearch/vearch/util/cbbytes"
 	"reflect"
 	"strings"
+	"time"
 	"unsafe"
 )
 
@@ -89,7 +90,7 @@ func mapping2Table(cfg register.EngineConfig, m *mapping.IndexMapping) (*C.struc
 			fs = append(fs, C.MakeFieldInfo(byteArrayStr(key), INT, C.char((value.Field.Options()&pspb.FieldOption_Index)/pspb.FieldOption_Index)))
 		case pspb.FieldType_VECTOR:
 			fieldMapping := value.Field.FieldMappingI.(*mapping.VectortFieldMapping)
-			vf := C.MakeVectorInfo(byteArrayStr(key), VECTOR, C.int(fieldMapping.Dimension), byteArrayStr(fieldMapping.ModelId), byteArrayStr(fieldMapping.RetrievalType), byteArrayStr(fieldMapping.StoreType), byteArray(fieldMapping.StoreParam))
+			vf := C.MakeVectorInfo(byteArrayStr(key), VECTOR, C.char((value.Field.Options()&pspb.FieldOption_Index)/pspb.FieldOption_Index), C.int(fieldMapping.Dimension), byteArrayStr(fieldMapping.ModelId), byteArrayStr(fieldMapping.RetrievalType), byteArrayStr(fieldMapping.StoreType), byteArray(fieldMapping.StoreParam))
 			vfs = append(vfs, vf)
 		}
 
@@ -239,9 +240,28 @@ func (ge *gammaEngine) Doc2DocResult(doc *C.struct_Doc) *response.DocResult {
 				}
 			case pspb.FieldType_INT:
 				source[name] = cbbytes.Bytes2Int(CbArr2ByteArray(fv.value))
+			case pspb.FieldType_BOOL:
+				if cbbytes.Bytes2Int(CbArr2ByteArray(fv.value)) == 0 {
+					source[name] = false
+				} else {
+					source[name] = true
+				}
+			case pspb.FieldType_DATE:
+				u := cbbytes.Bytes2Int(CbArr2ByteArray(fv.value))
+				source[name] = time.Unix(u/1e6, u%1e6)
 			case pspb.FieldType_FLOAT:
 				source[name] = cbbytes.ByteToFloat64(CbArr2ByteArray(fv.value))
 			case pspb.FieldType_VECTOR:
+
+				float32s, uri, err := cbbytes.ByteToVector(CbArr2ByteArray(fv.value))
+				if err != nil {
+					return response.NewErrDocResult(result.Id, err)
+				}
+				source[name] = map[string]interface{}{
+					"source":  uri,
+					"feature": float32s,
+				}
+
 			default:
 				log.Warn("can not set value by type:[%v] ", field.FieldType())
 			}

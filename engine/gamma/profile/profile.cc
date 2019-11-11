@@ -162,7 +162,7 @@ int Profile::Load(const std::vector<string> &folders, int &doc_num) {
 
     FILE *fp_str = fopen(prf_str_name.c_str(), "rb");
     if (fp_str == nullptr) {
-      LOG(INFO) << "Cannot open file " << prf_str_name;
+      LOG(ERROR) << "Cannot open file " << prf_str_name;
       break;
     }
     long profile_str_size = utils::get_file_size(prf_str_name.c_str());
@@ -355,6 +355,28 @@ int Profile::Add(const std::vector<Field *> &fields, int doc_id,
   return 0;
 }
 
+int Profile::Update(const std::vector<Field *> &fields, int doc_id) {
+  for (size_t i = 0; i < fields.size(); ++i) {
+    const auto field_value = fields[i];
+    const string &name =
+        string(field_value->name->value, field_value->name->len);
+    auto it = attr_idx_map_.find(name);
+    if (it == attr_idx_map_.end()) {
+      LOG(ERROR) << "Cannot find field name [" << name << "]";
+      continue;
+    }
+    // TODO several operations should be atomic
+    // TODO update string
+    if (field_value->data_type == STRING) {
+      continue;
+    }
+    SetFieldValue(doc_id, name.c_str(), field_value->value->value,
+                  field_value->value->len);
+  }
+
+  return 0;
+}
+
 int Profile::Dump(const string &path, int max_docid, int dump_docid) {
   int head_length = 0;
   const string prf_name = path + "/" + name_ + ".prf";
@@ -441,13 +463,15 @@ long Profile::GetMemoryBytes() {
   return max_profile_size_ * item_length_ + max_str_size_;
 }
 
-Doc *Profile::Get(const int docid) {
-  Doc *doc = static_cast<Doc *>(malloc(sizeof(Doc)));
+int Profile::GetDocInfo(const int docid, Doc *&doc) {
+  if (doc == nullptr) {
+    doc = static_cast<Doc *>(malloc(sizeof(Doc)));
+    doc->fields_num = attr_type_map_.size();
+    doc->fields =
+        static_cast<Field **>(malloc(doc->fields_num * sizeof(Field *)));
+    memset(doc->fields, 0, doc->fields_num * sizeof(Field *));
+  }
 
-  doc->fields_num = attr_type_map_.size();
-  doc->fields =
-      static_cast<Field **>(malloc(doc->fields_num * sizeof(Field *)));
-  memset(doc->fields, 0, doc->fields_num * sizeof(Field *));
   int i = 0;
   for (const auto &it : attr_type_map_) {
     enum DataType type = it.second;
@@ -491,17 +515,16 @@ Doc *Profile::Get(const int docid) {
     ++i;
   }
 
-  return doc;
+  return 0;
 }
 
-Doc *Profile::Get(const std::string &key) {
+int Profile::GetDocInfo(const std::string &key, Doc *&doc) {
   int doc_id = 0;
   int ret = GetDocIDByKey(key, doc_id);
   if (ret < 0) {
-    return nullptr;
+    return ret;
   }
-  Doc *doc = Get(doc_id);
-  return doc;
+  return GetDocInfo(doc_id, doc);
 }
 
 int Profile::GetField(int docid, const std::string &field, char **value) const {
@@ -524,8 +547,7 @@ int Profile::GetField(int docid, const std::string &field, char **value) const {
 template <>
 bool Profile::GetField<std::string>(const int docid, const int field_id,
                                     std::string &value) const {
-  if ((docid < 0) or (field_id < 0 || field_id >= field_num_))
-    return false;
+  if ((docid < 0) or (field_id < 0 || field_id >= field_num_)) return false;
 
   size_t offset = (uint64_t)docid * item_length_ + idx_attr_offset_[field_id];
   size_t str_offset = 0;
@@ -560,4 +582,4 @@ int Profile::GetAttrIdx(const std::string &field) const {
   return (iter != attr_idx_map_.end()) ? iter->second : -1;
 }
 
-} // namespace tig_gamma
+}  // namespace tig_gamma

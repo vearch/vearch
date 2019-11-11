@@ -14,17 +14,20 @@ namespace tig_gamma {
 
 static const char *kPlaceHolder = "NULL";
 
-bool InnerProductCmp(const VectorDoc &a, const VectorDoc &b) {
+static bool InnerProductCmp(const VectorDoc &a, const VectorDoc &b) {
   return a.score > b.score;
 }
 
-bool L2Cmp(const VectorDoc &a, const VectorDoc &b) { return a.score < b.score; }
+static bool L2Cmp(const VectorDoc &a, const VectorDoc &b) {
+  return a.score < b.score;
+}
 
-ByteArray *CopyByteArray(ByteArray *ba) {
+static ByteArray *CopyByteArray(ByteArray *ba) {
   return MakeByteArray(ba->value, ba->len);
 }
 
-VectorInfo **CopyVectorInfos(VectorInfo **vectors_info, int vector_info_num) {
+static VectorInfo **CopyVectorInfos(VectorInfo **vectors_info,
+                                    int vector_info_num) {
   VectorInfo **ret_vector_infos = MakeVectorInfos(vector_info_num);
   for (int i = 0; i < vector_info_num; i++) {
     ByteArray *store_param = nullptr;
@@ -32,7 +35,8 @@ VectorInfo **CopyVectorInfos(VectorInfo **vectors_info, int vector_info_num) {
       store_param = vectors_info[i]->store_param;
     VectorInfo *vector_info = MakeVectorInfo(
         CopyByteArray(vectors_info[i]->name), vectors_info[i]->data_type,
-        vectors_info[i]->dimension, CopyByteArray(vectors_info[i]->model_id),
+        vectors_info[i]->is_index, vectors_info[i]->dimension,
+        CopyByteArray(vectors_info[i]->model_id),
         CopyByteArray(vectors_info[i]->retrieval_type),
         CopyByteArray(vectors_info[i]->store_type), store_param);
     ret_vector_infos[i] = vector_info;
@@ -40,7 +44,7 @@ VectorInfo **CopyVectorInfos(VectorInfo **vectors_info, int vector_info_num) {
   return ret_vector_infos;
 }
 
-ByteArray *FReadByteArray(FILE *fp) {
+static ByteArray *FReadByteArray(FILE *fp) {
   int len = 0;
   fread((void *)&len, sizeof(len), 1, fp);
   char *data = new char[len];
@@ -50,7 +54,7 @@ ByteArray *FReadByteArray(FILE *fp) {
   return ba;
 }
 
-void FWriteByteArray(FILE *fp, ByteArray *ba) {
+static void FWriteByteArray(FILE *fp, ByteArray *ba) {
   fwrite((void *)&ba->len, sizeof(ba->len), 1, fp);
   fwrite((void *)ba->value, ba->len, 1, fp);
 }
@@ -59,8 +63,10 @@ VectorManager::VectorManager(const RetrievalModel &model,
                              const VectorStorageType &store_type,
                              const char *docids_bitmap, int max_doc_size,
                              const std::string &root_path)
-    : default_model_(model), default_store_type_(store_type),
-      docids_bitmap_(docids_bitmap), max_doc_size_(max_doc_size),
+    : default_model_(model),
+      default_store_type_(store_type),
+      docids_bitmap_(docids_bitmap),
+      max_doc_size_(max_doc_size),
       root_path_(root_path) {
   table_created_ = false;
   ivfpq_param_ = nullptr;
@@ -72,8 +78,7 @@ VectorManager::~VectorManager() { Close(); }
 
 int VectorManager::CreateVectorTable(VectorInfo **vectors_info, int vectors_num,
                                      IVFPQParameters *ivfpq_param) {
-  if (table_created_)
-    return -1;
+  if (table_created_) return -1;
 
   if (ivfpq_param == nullptr) {
     LOG(ERROR) << "ivf pq parameters is null";
@@ -111,7 +116,7 @@ int VectorManager::CreateVectorTable(VectorInfo **vectors_info, int vectors_num,
 #ifdef WITH_ROCKSDB
       } else if (!strcasecmp("RocksDB", store_type_str.c_str())) {
         store_type = VectorStorageType::RocksDB;
-#endif // WITH_ROCKSDB
+#endif  // WITH_ROCKSDB
       } else {
         LOG(WARNING) << "NO support for store type " << store_type_str;
         return -1;
@@ -142,6 +147,11 @@ int VectorManager::CreateVectorTable(VectorInfo **vectors_info, int vectors_num,
 
     raw_vectors_[vec_name] = vec;
 
+    if (vectors_info[i]->is_index == FALSE) {
+      LOG(INFO) << vec_name << " need not to indexed!";
+      continue;
+    }
+
     std::string retrieval_type_str(vectors_info[i]->retrieval_type->value,
                                    vectors_info[i]->retrieval_type->len);
 
@@ -164,7 +174,7 @@ int VectorManager::CreateVectorTable(VectorInfo **vectors_info, int vectors_num,
   }
   table_created_ = true;
   return 0;
-} // namespace tig_gamma
+}
 
 int VectorManager::AddToStore(int docid, std::vector<Field *> &fields) {
   for (unsigned int i = 0; i < fields.size(); i++) {
@@ -181,11 +191,10 @@ int VectorManager::AddToStore(int docid, std::vector<Field *> &fields) {
 
 int VectorManager::Indexing() {
   int ret = 0;
-  std::map<std::string, GammaIndex *>::iterator iter = vector_indexes_.begin();
-  for (; iter != vector_indexes_.end(); iter++) {
-    if (0 != iter->second->Indexing()) {
+  for (const auto &iter : vector_indexes_) {
+    if (0 != iter.second->Indexing()) {
       ret = -1;
-      LOG(ERROR) << "vector table " << iter->first << " indexing failed!";
+      LOG(ERROR) << "vector table " << iter.first << " indexing failed!";
     }
   }
   return ret;
@@ -193,11 +202,10 @@ int VectorManager::Indexing() {
 
 int VectorManager::AddRTVecsToIndex() {
   int ret = 0;
-  std::map<std::string, GammaIndex *>::iterator iter = vector_indexes_.begin();
-  for (; iter != vector_indexes_.end(); iter++) {
-    if (0 != iter->second->AddRTVecsToIndex()) {
+  for (const auto &iter : vector_indexes_) {
+    if (0 != iter.second->AddRTVecsToIndex()) {
       ret = -1;
-      LOG(ERROR) << "vector table " << iter->first
+      LOG(ERROR) << "vector table " << iter.first
                  << " add real time vectors failed!";
     }
   }
@@ -288,8 +296,7 @@ int VectorManager::Search(const GammaQuery &query, GammaResult *results) {
             break;
           }
         }
-        if (!has_common_docid)
-          break;
+        if (!has_common_docid) break;
       }
       results[i].results_count = common_idx;
       if (query.condition->has_rank) {
@@ -311,8 +318,7 @@ int VectorManager::Search(const GammaQuery &query, GammaResult *results) {
       int pos = 0, topn = all_vector_results[0].topn;
       for (int j = 0; j < topn; j++) {
         int real_pos = i * topn + j;
-        if (all_vector_results[0].docids[real_pos] == -1)
-          continue;
+        if (all_vector_results[0].docids[real_pos] == -1) continue;
         results[i].docs[pos].docid = all_vector_results[0].docids[real_pos];
 
         results[i].docs[pos].fields[0].source =
@@ -337,6 +343,79 @@ int VectorManager::Search(const GammaQuery &query, GammaResult *results) {
   return ret;
 }
 
+int VectorManager::GetVector(
+    const std::vector<std::pair<string, int>> &fields_ids,
+    std::vector<string> &vec, bool is_bytearray) {
+  for (const auto &pair : fields_ids) {
+    const string &field = pair.first;
+    const int id = pair.second;
+    std::map<std::string, GammaIndex *>::iterator iter =
+        vector_indexes_.find(field);
+    if (iter == vector_indexes_.end()) {
+      continue;
+    }
+    GammaIndex *gamma_index = iter->second;
+    RawVector *raw_vec = gamma_index->raw_vec_;
+    if (raw_vec == nullptr) {
+      LOG(ERROR) << "raw_vec is null!";
+      return -1;
+    }
+    int *vids_list = raw_vec->docid2vid_[id];
+    if (vids_list == nullptr) {
+      LOG(ERROR) << "vids_list is null!";
+      return -1;
+    }
+    int vid_num = vids_list[0];
+    if (vid_num <= 0) {
+      LOG(ERROR) << "vid num [" << vid_num << "]";
+      return -1;
+    }
+    // if (vid_num != fields_ids.size()) {
+    //   LOG(ERROR) << "vid num [" << vid_num << "] fields_ids size [" <<
+    //   fields_ids.size() << "]";
+    //   return -1;
+    // }
+
+    int vid = vids_list[1];
+
+    char *source = nullptr;
+    int len = -1;
+    int ret = raw_vec->GetSource(vid, source, len);
+
+    if (ret != 0 || len < 0) {
+      LOG(ERROR) << "Get source failed!";
+      return -1;
+    }
+
+    const float *feature = raw_vec->GetVector(vid);
+    string str_vec;
+    if (is_bytearray) {
+      int d = raw_vec->GetDimension();
+      int d_byte = d * sizeof(float);
+
+      char feat_source[sizeof(d) + d_byte + len];
+
+      memcpy((void *)feat_source, &d_byte, sizeof(int));
+      int cur = sizeof(d_byte);
+
+      memcpy((void *)(feat_source + cur), feature, d_byte);
+      cur += d_byte;
+
+      memcpy((void *)(feat_source + cur), source, len);
+
+      str_vec =
+          string((char *)feat_source, sizeof(unsigned int) + d_byte + len);
+    } else {
+      for (int i = 0; i < raw_vec->GetDimension(); ++i) {
+        str_vec += std::to_string(feature[i]) + ",";
+      }
+      str_vec.pop_back();
+    }
+    vec.emplace_back(std::move(str_vec));
+  }
+  return 0;
+}
+
 int VectorManager::Dump(const string &path, int dump_docid, int max_docid) {
   string info_file = path + "/" + "vector.info";
   FILE *info_fp = fopen(info_file.c_str(), "wb");
@@ -350,6 +429,7 @@ int VectorManager::Dump(const string &path, int dump_docid, int max_docid) {
     VectorInfo *vi = vectors_info_[i];
     FWriteByteArray(info_fp, vi->name);
     fwrite((void *)&vi->data_type, sizeof(vi->data_type), 1, info_fp);
+    fwrite((void *)&vi->is_index, sizeof(vi->is_index), 1, info_fp);
     fwrite((void *)&vi->dimension, sizeof(vi->dimension), 1, info_fp);
     FWriteByteArray(info_fp, vi->model_id);
     FWriteByteArray(info_fp, vi->retrieval_type);
@@ -370,19 +450,23 @@ int VectorManager::Dump(const string &path, int dump_docid, int max_docid) {
     const string &vec_name = iter.first;
     GammaIndex *index = iter.second;
 
-    int ret = index->raw_vec_->Dump(path, dump_docid, max_docid);
-    if (ret != 0) {
-      LOG(ERROR) << "vector " << vec_name << " dump failed!";
-      return -1;
-    }
-    LOG(INFO) << "vector " << vec_name << " dump success!";
-
     int dump_num = index->Dump(path);
     if (dump_num < 0) {
       LOG(ERROR) << "vector " << vec_name << " dump gamma index failed!";
       return -1;
     }
     LOG(INFO) << "vector " << vec_name << " dump gamma index success!";
+  }
+
+  for (const auto &iter : raw_vectors_) {
+    const string &vec_name = iter.first;
+    RawVector *raw_vector = iter.second;
+    int ret = raw_vector->Dump(path, dump_docid, max_docid);
+    if (ret != 0) {
+      LOG(ERROR) << "vector " << vec_name << " dump failed!";
+      return -1;
+    }
+    LOG(INFO) << "vector " << vec_name << " dump success!";
   }
   return 0;
 }
@@ -408,6 +492,7 @@ int VectorManager::Load(const std::vector<std::string> &index_dirs) {
     VectorInfo *vi = static_cast<VectorInfo *>(malloc(sizeof(VectorInfo)));
     vi->name = FReadByteArray(info_fp);
     fread((void *)&vi->data_type, sizeof(vi->data_type), 1, info_fp);
+    fread((void *)&vi->is_index, sizeof(vi->is_index), 1, info_fp);
     fread((void *)&vi->dimension, sizeof(vi->dimension), 1, info_fp);
     vi->model_id = FReadByteArray(info_fp);
     vi->retrieval_type = FReadByteArray(info_fp);
@@ -440,42 +525,40 @@ int VectorManager::Load(const std::vector<std::string> &index_dirs) {
   DestroyIVFPQParameters(ivfpq_param);
   DestroyVectorInfos(vectors_info, vectors_num);
 
-  std::map<std::string, GammaIndex *>::iterator iter = vector_indexes_.begin();
-  for (; iter != vector_indexes_.end(); iter++) {
-    if (0 != iter->second->raw_vec_->Load(index_dirs)) {
-      LOG(ERROR) << "vector " << iter->first << " load failed!";
+  for (const auto &iter : raw_vectors_) {
+    if (0 != iter.second->Load(index_dirs)) {
+      LOG(ERROR) << "vector [" << iter.first << "] load failed!";
       return -1;
     }
-    LOG(INFO) << "vector " << iter->first << " load success!";
-
-    if (iter->second->Load(index_dirs) < 0) {
-      LOG(ERROR) << "vector " << iter->first << " load gamma index failed!";
-    }
-    LOG(INFO) << "vector " << iter->first << " load gamma index success!";
+    LOG(INFO) << "vector [" << iter.first << "] load success!";
   }
+
+  for (const auto &iter : vector_indexes_) {
+    if (iter.second->Load(index_dirs) < 0) {
+      LOG(ERROR) << "vector [" << iter.first << "] load gamma index failed!";
+    } else {
+      LOG(INFO) << "vector [" << iter.first << "] load gamma index success!";
+    }
+  }
+
   return 0;
 }
 
 void VectorManager::Close() {
-  if (raw_vectors_.size() > 0) {
-    std::map<std::string, RawVector *>::iterator iter = raw_vectors_.begin();
-    for (; iter != raw_vectors_.end(); iter++) {
-      if (iter->second != nullptr) {
-        StopFlushingIfNeed(iter->second);
-        delete iter->second;
-      }
+  for (const auto &iter : raw_vectors_) {
+    if (iter.second != nullptr) {
+      StopFlushingIfNeed(iter.second);
+      delete iter.second;
     }
   }
+  raw_vectors_.clear();
 
-  if (vector_indexes_.size() > 0) {
-    std::map<std::string, GammaIndex *>::iterator iter =
-        vector_indexes_.begin();
-    for (; iter != vector_indexes_.end(); iter++) {
-      if (iter->second != nullptr) {
-        delete iter->second;
-      }
+  for (const auto &iter : vector_indexes_) {
+    if (iter.second != nullptr) {
+      delete iter.second;
     }
   }
+  vector_indexes_.clear();
 
   if (ivfpq_param_ != nullptr) {
     DestroyIVFPQParameters(ivfpq_param_);
@@ -488,4 +571,4 @@ void VectorManager::Close() {
     vectors_num_ = 0;
   }
 }
-} // namespace tig_gamma
+}  // namespace tig_gamma

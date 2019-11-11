@@ -584,8 +584,8 @@ struct GammaIndexScanner : IVFPQScannerT<idx_t, store_pairs, C, METRIC_TYPE>,
 #define HANDLE_ONE                                         \
   do {                                                     \
     int doc_id = raw_vec_->vid2docid_[ids[j]];             \
-    if ((range_index_ptr_ != nullptr &&                  \
-         (not range_index_ptr_->Has(doc_id))) ||         \
+    if ((range_index_ptr_ != nullptr &&                    \
+         (not range_index_ptr_->Has(doc_id))) ||           \
         bitmap::test(docids_bitmap_, doc_id)) {            \
       codes += this->pq.M; /* increment pointer */         \
       j++;                 /* increment j*/                \

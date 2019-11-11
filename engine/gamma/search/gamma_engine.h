@@ -92,8 +92,15 @@ class GammaEngine {
   bool b_running_;
   std::condition_variable running_cv_;
 
-  void PackResults(const GammaResult *gamma_results,
-                   Response *response_results);
+  int PackResults(const GammaResult *gamma_results, Response *response_results,
+                  const Request *request);
+
+  ResultItem *PackResultItem(const VectorDoc *vec_doc, const Request *request);
+
+  int MultiRangeQuery(const Request *request, GammaSearchCondition &condition,
+                      Response *response_results,
+                      MultiRangeQueryResults *range_query_result,
+                      utils::OnlineLogger &logger);
 
   enum IndexStatus index_status_;
 

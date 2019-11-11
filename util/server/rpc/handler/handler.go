@@ -44,7 +44,7 @@ type RpcResponse struct {
 	MessageId string      `json:"message_id"`
 	Error     string      `json:"error"`
 	Result    interface{} `json:"result"`
-	Status    int         `json:"status"`
+	Status    int64       `json:"status"`
 }
 
 func NewRpcResponse(msgId string) *RpcResponse {

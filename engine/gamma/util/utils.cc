@@ -50,6 +50,12 @@ std::vector<std::string> split(const std::string &p_str,
   return ret;
 }
 
+std::vector<std::string> split(const std::string &p_str,
+                               const char *p_separator) {
+  const std::string p_separator_str = std::string(p_separator);
+  return split(p_str, p_separator_str);
+}
+
 int count_lines(const char *filename) {
   std::ifstream read_file;
   int n = 0;
@@ -171,8 +177,7 @@ std::vector<std::string> for_each_file(const std::string &dir_name,
         }
       }
       if (sub || !is_folder(p))
-        if (filter(dir_name.data(), ent->d_name))
-          v.emplace_back(p);
+        if (filter(dir_name.data(), ent->d_name)) v.emplace_back(p);
     }
     closedir(dir);
   }
@@ -284,18 +289,16 @@ int JsonParser::Parse(const char *str) {
 
 int JsonParser::GetDouble(const std::string &name, double &value) {
   cJSON *jvalue = cJSON_GetObjectItemCaseSensitive(content_, name.c_str());
-  if (jvalue == nullptr || !cJSON_IsNumber(jvalue))
-    return -1;
+  if (jvalue == nullptr || !cJSON_IsNumber(jvalue)) return -1;
   value = jvalue->valuedouble;
   return 0;
 }
 
 int JsonParser::GetString(const std::string &name, std::string &value) {
   cJSON *jvalue = cJSON_GetObjectItemCaseSensitive(content_, name.c_str());
-  if (jvalue == nullptr || !cJSON_IsString(jvalue))
-    return -1;
+  if (jvalue == nullptr || !cJSON_IsString(jvalue)) return -1;
   value.assign(jvalue->valuestring);
   return 0;
 }
 
-} // namespace utils
+}  // namespace utils

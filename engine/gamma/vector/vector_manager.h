@@ -9,9 +9,9 @@
 #ifndef VECTOR_MANAGER_H_
 #define VECTOR_MANAGER_H_
 
-#include "log.h"
 #include <map>
 #include <string>
+#include "log.h"
 
 #include "gamma_api.h"
 #include "gamma_common_data.h"
@@ -21,7 +21,7 @@
 namespace tig_gamma {
 
 class VectorManager {
-public:
+ public:
   VectorManager(const RetrievalModel &model,
                 const VectorStorageType &store_type, const char *docids_bitmap,
                 int max_doc_size, const std::string &root_path);
@@ -38,6 +38,9 @@ public:
 
   // int Add(int docid, const std::vector<Field *> &field_vecs);
   int Search(const GammaQuery &query, GammaResult *results);
+
+  int GetVector(const std::vector<std::pair<std::string, int>> &fields_ids,
+                std::vector<std::string> &vec, bool is_bytearray = false);
 
   long GetTotalMemBytes() {
     long index_total_mem_bytes = 0;
@@ -57,10 +60,16 @@ public:
   int Dump(const std::string &path, int dump_docid, int max_docid);
   int Load(const std::vector<std::string> &path);
 
-private:
-  void Close(); // release all resource
+  int GetVectorIndexes(
+      std::map<std::string, GammaIndex *> &vector_indexes) const {
+    vector_indexes = vector_indexes_;
+    return 0;
+  }
 
-private:
+ private:
+  void Close();  // release all resource
+
+ private:
   RetrievalModel default_model_;
   VectorStorageType default_store_type_;
   const char *docids_bitmap_;
@@ -75,6 +84,6 @@ private:
   std::map<std::string, GammaIndex *> vector_indexes_;
 };
 
-} // namespace tig_gamma
+}  // namespace tig_gamma
 
 #endif

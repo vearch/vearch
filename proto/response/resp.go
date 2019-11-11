@@ -24,6 +24,6 @@ type Responses []*Response
 
 type Response struct {
 	Resp   interface{}
-	Status int
+	Status int64
 	Err    error
 }

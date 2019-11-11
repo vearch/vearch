@@ -5,17 +5,17 @@
  * found in the LICENSE file in the root directory of this source tree.
  */
 
-#include "log.h"
-#include <chrono>
 #include <faiss/utils.h>
-#include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <chrono>
+#include <iostream>
 #include <string>
 #include <thread>
 #include <utility>
 #include <vector>
+#include "log.h"
 
 #include "bitmap.h"
 #include "c_api/gamma_api.h"
@@ -45,8 +45,7 @@ inline ByteArray *FloatToByteArray(const float *feature, int dimension) {
 
 string ByteArrayToString(const ByteArray *ba) {
   assert(ba != nullptr);
-  if (ba->value == nullptr || ba->len <= 0)
-    return string("");
+  if (ba->value == nullptr || ba->len <= 0) return string("");
   return string(ba->value, ba->len);
 }
 
@@ -57,7 +56,8 @@ int ByteArrayToInt(const ByteArray *ba) {
   return data;
 }
 
-template <typename T> inline ByteArray *ToByteArray(const T v) {
+template <typename T>
+inline ByteArray *ToByteArray(const T v) {
   ByteArray *ba = static_cast<ByteArray *>(malloc(sizeof(ByteArray)));
   ba->value = static_cast<char *>(malloc(sizeof(T)));
   ba->len = sizeof(T);
@@ -98,6 +98,34 @@ void printDoc(const Doc *doc, std::string &msg) {
              "], value [" +
              string(field_value->value->value, field_value->value->len) +
              "], type [" + std::to_string(field_value->data_type) + "], ";
+    } else if (field_value->data_type == VECTOR) {
+      string str_vec;
+      int d = -1;
+      memcpy((void *)&d, field_value->value->value, sizeof(int));
+
+      d /= sizeof(float);
+      int cur = sizeof(int);
+
+      float *feature =
+          reinterpret_cast<float *>(field_value->value->value + cur);
+
+      cur += d * sizeof(float);
+      int len = field_value->value->len;
+      char source[len - cur];
+
+      memcpy(source, field_value->value->value + cur, len - cur);
+
+      for (int i = 0; i < d; ++i) {
+        str_vec += std::to_string(feature[i]) + ",";
+      }
+      str_vec.pop_back();
+
+      std::string source_str = std::string(source, len - cur);
+      msg += "field name [" +
+             string(field_value->name->value, field_value->name->len) +
+             "], value [" + str_vec + "], type [" +
+             std::to_string(field_value->data_type) + "], source [" + source_str +
+             "]";
     }
   }
 }

@@ -189,12 +189,13 @@ int VectorBufferQueue::Pop(float *v, int dim, int num, int timeout) {
 int VectorBufferQueue::GetVector(int id, float *v, int dim) {
   if (v == nullptr || dim != dimension_)
     return 1;
-
+  if (id < stored_num_)
+    return 4;
   int id_in_queue = id - stored_num_;
   int chunk_id = id_in_queue / chunk_size_ % chunk_num_;
   ReadThreadLock read_lock(shared_mutexes_[chunk_id]);
   // the vector isn't in buffer
-  if (id_in_queue < 0 || (uint64_t)id_in_queue >= push_index_ ||
+  if ((uint64_t)id_in_queue >= push_index_ ||
       push_index_ - id_in_queue > (uint64_t)max_vector_size_) {
     return 4;
   }

@@ -19,6 +19,9 @@ bool test(const char *bitmap, int id);
 /* assume id not exceed the total size of bitmap */
 void set(char *bitmap, int id);
 
+/* assume id not exceed the total size of bitmap */
+void clear(char *bitmap, int id);
+
 } // namespace bitmap
 
 #endif

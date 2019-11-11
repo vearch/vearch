@@ -29,7 +29,7 @@ import (
 
 type Response struct {
 	ginContext *gin.Context
-	httpStatus int
+	httpStatus int64
 	monitor    monitoring.Monitor
 }
 
@@ -57,7 +57,7 @@ func NewAutoMehtodName(ginContext *gin.Context, monitor monitoring.Monitor) *Res
 /*
  default status is 200
 */
-func (this *Response) SetHttpStatus(httpStatus int) *Response {
+func (this *Response) SetHttpStatus(httpStatus int64) *Response {
 	this.httpStatus = httpStatus
 	return this
 }
@@ -68,7 +68,7 @@ func (this *Response) SendJson(data interface{}) {
 		this.SendJsonHttpReplyError(err)
 		return
 	}
-	this.ginContext.Data(this.httpStatus, "application/json", reply)
+	this.ginContext.Data(int(this.httpStatus), "application/json", reply)
 
 	//write monitor info
 	if this.monitor != nil {

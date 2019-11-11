@@ -22,6 +22,8 @@
  * and unzip it.
  **/
 
+namespace test {
+
 struct Options {
   Options() {
     nprobe = 10;
@@ -70,7 +72,6 @@ static struct Options opt;
 
 int AddDocToEngine(void *engine, int doc_num, int interval = 0) {
   for (int i = 0; i < doc_num; ++i) {
-    double start = utils::getmillisecs();
     Field **fields = MakeFields(opt.fields_vec.size() + 1);
 
     string url;
@@ -94,7 +95,7 @@ int AddDocToEngine(void *engine, int doc_num, int interval = 0) {
         long v = atol(data.c_str());
         memcpy(value->value, &v, value->len);
       } else {
-        value = StringToByteArray(data);
+        value = StringToByteArray(data + "\001all");
         url = data;
       }
       ByteArray *source = StringToByteArray(url);
@@ -113,10 +114,6 @@ int AddDocToEngine(void *engine, int doc_num, int interval = 0) {
     AddOrUpdateDoc(engine, doc);
     DestroyDoc(doc);
     ++opt.doc_id;
-    double elap = utils::getmillisecs() - start;
-    if (i % 10000 == 0) {
-      LOG(INFO) << "AddDoc use [" << elap << "]ms";
-    }
     std::this_thread::sleep_for(std::chrono::milliseconds(interval));
   }
   return 0;
@@ -145,7 +142,8 @@ int SearchThread(void *engine, size_t num) {
     string c1_lower = string((char *)&low, sizeof(low));
     string c1_upper = string((char *)&upper, sizeof(upper));
 
-    LOG(INFO) << "idx=" << idx;
+    if (idx % 1000 == 0) LOG(INFO) << "idx=" << idx;
+  
     string name = "cid2";
     RangeFilter **range_filters = MakeRangeFilters(2);
     RangeFilter *range_filter =
@@ -168,16 +166,18 @@ int SearchThread(void *engine, size_t num) {
 
     std::string term_low = string("1315\00115248");
     name = "cid1";
-    term_filter =
-        MakeTermFilter(StringToByteArray(name), StringToByteArray(term_low), true);
+    term_filter = MakeTermFilter(StringToByteArray(name),
+                                 StringToByteArray(term_low), true);
     SetTermFilter(term_filters, 0, term_filter);
 
+    ByteArray **vec_fields = MakeByteArrays(1);
+    ByteArray *vec_name = StringToByteArray(opt.vector_name);
+    vec_fields[0] = vec_name;
     Request *request =
-        MakeRequest(10, vector_querys, 1, nullptr, 0, range_filters, 2,
-                    term_filters, 1, req_num, 0, nullptr);
-    // Request *request = MakeRequest(10, vector_querys, 1, nullptr, 0, nullptr,
-    // 0,
-    //                                nullptr, 0, req_num, 0, nullptr);
+        MakeRequest(10, vector_querys, 1, vec_fields, 1, range_filters, 2,
+                    term_filters, 1, req_num, 0, nullptr, TRUE);
+    // Request *request = MakeRequest(10, vector_querys, 1, nullptr, 0, nullptr, 0,
+    //                                nullptr, 0, req_num, 0, nullptr, FALSE);
 
     Response *response = Search(engine, request);
     for (int i = 0; i < response->req_num; ++i) {
@@ -197,7 +197,7 @@ int SearchThread(void *engine, size_t num) {
         msg += "\n";
       }
       if (abs(GetResultItem(results, 0)->score - 1.0) < 0.001) {
-        if (ii % 100000 == 0) {
+        if (ii % 1000 == 0) {
           LOG(INFO) << msg;
         }
       } else {
@@ -228,8 +228,41 @@ int SearchThread(void *engine, size_t num) {
   return failed_count;
 }
 
+int GetVector(void *engine) {
+  int idx = 1;
+  int req_num = 1;
+
+  TermFilter **term_filters = MakeTermFilters(1);
+  TermFilter *term_filter = MakeTermFilter(StringToByteArray(opt.vector_name),
+                                           StringToByteArray("1.jpg"), false);
+  SetTermFilter(term_filters, 0, term_filter);
+
+  Request *request = MakeRequest(10, nullptr, 0, nullptr, 0, nullptr, 0,
+                                 term_filters, 1, req_num, 0, nullptr, TRUE);
+
+  Response *response = Search(engine, request);
+  for (int i = 0; i < response->req_num; ++i) {
+    int ii = idx + i;
+    string msg = std::to_string(ii) + ", ";
+    SearchResult *results = GetSearchResult(response, i);
+    if (results->result_num <= 0) {
+      continue;
+    }
+    msg += string("total [") + std::to_string(results->total) + "], ";
+    msg += string("result_num [") + std::to_string(results->result_num) + "], ";
+    for (int j = 0; j < results->result_num; ++j) {
+      ResultItem *result_item = GetResultItem(results, j);
+      msg += string("score [") + std::to_string(result_item->score) + "], ";
+      LOG(INFO) << string(result_item->extra->value, result_item->extra->len);
+      printDoc(result_item->doc, msg);
+      msg += "\n";
+    }
+  }
+  return 0;
+}
+
 void UpdateThread(void *engine) {
-  int doc_id = 1;
+  int doc_id = 0;
   Field **fields = MakeFields(opt.fields_vec.size() + 1);
 
   for (size_t j = 0; j < opt.fields_vec.size(); ++j) {
@@ -317,7 +350,7 @@ int CreateTable() {
 
   VectorInfo **vectors_info = MakeVectorInfos(1);
   VectorInfo *vector_info = MakeVectorInfo(
-      StringToByteArray(opt.vector_name), FLOAT, opt.d,
+      StringToByteArray(opt.vector_name), FLOAT, TRUE, opt.d,
       StringToByteArray(opt.model_id), StringToByteArray(opt.retrieval_type),
       StringToByteArray(opt.store_type), nullptr);
   SetVectorInfo(vectors_info, 0, vector_info);
@@ -352,13 +385,6 @@ int Add() {
   }
   fin.close();
 
-  // int fd = open(opt.feature_file.c_str(), O_RDONLY, 0);
-  // opt.feature =
-  //     static_cast<float *>(mmap(NULL, opt.max_doc_size * sizeof(float) *
-  //     opt.d,
-  //                               PROT_READ, MAP_SHARED, fd, 0));
-  // close(fd);
-
   int ret = AddDocToEngine(opt.engine, opt.add_doc_num);
   return ret;
 }
@@ -378,6 +404,8 @@ int BuildEngineIndex() {
   // doc = GetDocByID(opt.engine, value);
 
   LOG(INFO) << "Indexed!";
+  UpdateThread(opt.engine);
+  GetVector(opt.engine);
   return 0;
 }
 
@@ -509,27 +537,29 @@ int CloseEngine() {
   return 0;
 }
 
+}  // namespace test
+
 int main(int argc, char **argv) {
   setvbuf(stdout, (char *)NULL, _IONBF, 0);
   if (argc != 3) {
     std::cout << "Usage: [Program] [profile_file] [vectors_file]\n";
     return 1;
   }
-  opt.profile_file = argv[1];
-  opt.feature_file = argv[2];
-  std::cout << opt.profile_file.c_str() << " " << opt.feature_file.c_str()
-            << std::endl;
-  Init();
-  CreateTable();
-  Add();
-  BuildEngineIndex();
-  Search();
-  DumpEngine();
-  LoadEngine();
-  // BuildIndexAfterLoad();
-  // SearchThreadAfterLoad();
-  // DumpAfterLoad();
-  CloseEngine();
+  test::opt.profile_file = argv[1];
+  test::opt.feature_file = argv[2];
+  std::cout << test::opt.profile_file.c_str() << " "
+            << test::opt.feature_file.c_str() << std::endl;
+  test::Init();
+  test::CreateTable();
+  test::Add();
+  test::BuildEngineIndex();
+  test::Search();
+  test::DumpEngine();
+  test::LoadEngine();
+  // test::BuildIndexAfterLoad();
+  // test::SearchThreadAfterLoad();
+  // test::DumpAfterLoad();
+  test::CloseEngine();
 
   return 0;
 }

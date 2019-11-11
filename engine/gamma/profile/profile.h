@@ -8,19 +8,19 @@
 #ifndef PROFILE_H_
 #define PROFILE_H_
 
-#include "gamma_api.h"
-#include "log.h"
 #include <cuckoohash_map.hh>
 #include <map>
 #include <string>
 #include <vector>
+#include "gamma_api.h"
+#include "log.h"
 
 namespace tig_gamma {
 
 /** profile, support add, update, delete, dump and load.
  */
 class Profile {
-public:
+ public:
   explicit Profile(const int max_doc_size);
 
   ~Profile();
@@ -41,6 +41,14 @@ public:
   int Add(const std::vector<Field *> &fields, int doc_id,
           bool is_existed = false);
 
+  /** update a doc
+   *
+   * @param doc     doc to update
+   * @param doc_idx doc index number
+   * @return 0 if successed
+   */
+  int Update(const std::vector<Field *> &fields, int doc_id);
+
   /** get docid by key
    *
    * @param key key to get
@@ -58,13 +66,12 @@ public:
 
   long GetMemoryBytes();
 
-  Doc *Get(const std::string &id);
-  Doc *Get(const int docid);
+  int GetDocInfo(const std::string &id, Doc *&doc);
+  int GetDocInfo(const int docid, Doc *&doc);
 
   template <typename T>
   bool GetField(const int docid, const int field_id, T &value) const {
-    if ((docid < 0) or (field_id < 0 || field_id >= field_num_))
-      return false;
+    if ((docid < 0) or (field_id < 0 || field_id >= field_num_)) return false;
 
     size_t offset = (uint64_t)docid * item_length_ + idx_attr_offset_[field_id];
     memcpy(&value, mem_ + offset, sizeof(T));
@@ -90,7 +97,9 @@ public:
 
   int Load(const std::vector<std::string> &folders, int &doc_num);
 
-private:
+  int FieldsNum() { return attrs_.size(); };
+
+ private:
   int FTypeSize(enum DataType fType);
 
   void SetFieldValue(int docid, const std::string &field, const char *value,
@@ -98,10 +107,10 @@ private:
 
   int AddField(const std::string &name, enum DataType ftype, int is_index);
 
-  std::string name_;  // table name
-  int item_length_;   // every doc item length
-  uint8_t field_num_; // field number
-  int key_idx_;       // key postion
+  std::string name_;   // table name
+  int item_length_;    // every doc item length
+  uint8_t field_num_;  // field number
+  int key_idx_;        // key postion
 
   std::map<int, std::string> idx_attr_map_;
   std::map<std::string, int> attr_idx_map_;
@@ -134,6 +143,6 @@ inline struct ByteArray *StringToByteArray(const std::string &str) {
   memcpy(ba->value, str.data(), str.length());
   return ba;
 }
-} // namespace tig_gamma
+}  // namespace tig_gamma
 
 #endif

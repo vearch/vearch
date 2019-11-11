@@ -27,4 +27,6 @@ bool test(const char *bitmap, int id) {
 
 void set(char *bitmap, int id) { bitmap[id >> 3] |= (0x1 << (id & 0x7)); }
 
+void clear(char *bitmap, int id) { bitmap[id >> 3] ^= (0x1 << (id & 0x7)); }
+
 } // namespace bitmap

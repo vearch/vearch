@@ -18,4 +18,3 @@ name| usage
 ----|----|----
 .prf|storage of index table structure and fixed-length data
 .str.prf|storage of string and variable-length fields
-

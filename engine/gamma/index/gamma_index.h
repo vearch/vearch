@@ -8,19 +8,20 @@
 #ifndef GAMMA_INDEX_H_
 #define GAMMA_INDEX_H_
 
+#include <vector>
 #include "gamma_common_data.h"
 #include "raw_vector.h"
-#include <vector>
 
 namespace tig_gamma {
 
 struct VectorResult {
-
   VectorResult() {
     n = 0;
     topn = 0;
     dists = nullptr;
     docids = nullptr;
+    sources = nullptr;
+    source_lens = nullptr;
     total.resize(n);
     idx.resize(n);
     idx.assign(n, 0);
@@ -87,8 +88,7 @@ struct VectorResult {
     int ret = -1;
     int base_idx = req_no * topn;
     int &start_idx = idx[req_no];
-    if (start_idx == -1)
-      return -1;
+    if (start_idx == -1) return -1;
     for (int i = base_idx + start_idx; i < base_idx + topn; i++) {
       if (docids[i] >= docid) {
         ret = docids[i];
@@ -102,8 +102,7 @@ struct VectorResult {
         continue;
       }
     }
-    if (ret == -1)
-      start_idx = -1;
+    if (ret == -1) start_idx = -1;
     return ret;
   }
 
@@ -132,6 +131,7 @@ struct GammaIndex {
   virtual int Search(const VectorQuery *query,
                      const GammaSearchCondition *condition,
                      VectorResult &result) = 0;
+
   virtual long GetTotalMemBytes() = 0;
 
   virtual int Dump(const std::string &dir) = 0;
@@ -143,6 +143,6 @@ struct GammaIndex {
   RawVector *raw_vec_;
 };
 
-} // namespace tig_gamma
+}  // namespace tig_gamma
 
 #endif

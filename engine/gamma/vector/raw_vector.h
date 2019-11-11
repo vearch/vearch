@@ -110,13 +110,14 @@ public:
   int GetMaxVectorSize() const { return max_vector_size_; }
   std::string GetName() { return vector_name_; }
 
-protected:
+public:
   /** add vector to the specific implementation of RawVector(memory or disk)
    *it is called by next common function Add()
    */
   virtual int AddToStore(float *v, int len) = 0;
 
-public:
+  int GetDimension() { return dimension_; };
+
   std::vector<int> vid2docid_;   // vector id to doc id
   std::vector<int *> docid2vid_; // doc id to vector id list
 protected:
