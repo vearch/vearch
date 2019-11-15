@@ -77,7 +77,7 @@ MmapRawVector::~MmapRawVector() {
 }
 
 int MmapRawVector::Init() {
-  max_buffer_size_ = (int)((long)store_params_->cache_size_ * 1024 * 1024 / vector_byte_size_);
+  max_buffer_size_ = (int)(store_params_->cache_size_ / vector_byte_size_);
 
   fet_fd_ = open(fet_file_path_.c_str(), O_WRONLY | O_APPEND | O_CREAT, 00664);
   if (fet_fd_ == -1) {
@@ -91,6 +91,10 @@ int MmapRawVector::Init() {
     return -1;
   }
 
+  int remainder = max_buffer_size_ % buffer_chunk_num_;
+  if (remainder > 0) {
+    max_buffer_size_ += buffer_chunk_num_ - remainder;
+  }
   vector_buffer_queue_ =
       new VectorBufferQueue(max_buffer_size_, dimension_, buffer_chunk_num_);
   vector_file_mapper_ =

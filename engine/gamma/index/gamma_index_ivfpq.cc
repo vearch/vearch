@@ -32,6 +32,18 @@
 
 namespace tig_gamma {
 
+static inline void ConvertVectorDim(size_t num, int raw_d, int d,
+                                    const float *raw_vec, float *vec) {
+  memset(vec, 0, num * d * sizeof(float));
+
+#pragma omp parallel for
+  for (size_t i = 0; i < num; ++i) {
+    for (int j = 0; j < raw_d; ++j) {
+      vec[i * d + j] = raw_vec[i * raw_d + j];
+    }
+  }
+}
+
 IndexIVFPQStats indexIVFPQ_stats;
 
 GammaIVFPQIndex::GammaIVFPQIndex(faiss::Index *quantizer, size_t d,
@@ -119,10 +131,31 @@ int GammaIVFPQIndex::Indexing() {
                << "] less then 8192, failed!";
     return -1;
   }
-  int num = vectors_count > 100000 ? 100000 : vectors_count;
+  size_t num = vectors_count > 100000 ? 100000 : vectors_count;
   const float *header = raw_vec_->GetVectorHeader(0, num);
-  train(num, header);
+
+  int raw_d = raw_vec_->GetDimension();
+
+  float *train_vec = nullptr;
+
+  if (d_ > raw_d) {
+    float *vec = new float[num * d_];
+
+    ConvertVectorDim(num, raw_d, d, header, vec);
+
+    train_vec = vec;
+  } else {
+    train_vec = const_cast<float *>(header);
+  }
+
+  train(num, train_vec);
+
+  if (d_ > raw_d) {
+    delete train_vec;
+  }
+
   raw_vec_->Destroy(header, true);
+
   LOG(INFO) << "train successed!";
   return 0;
 }
@@ -147,17 +180,31 @@ int GammaIVFPQIndex::AddRTVecsToIndex() {
 
     for (int i = 0; i < index_count; i++) {
       int start_docid = indexed_vec_count_;
-      int count_per_index =
+      size_t count_per_index =
           (i == (index_count - 1) ? total_stored_vecs - start_docid
                                   : MAX_NUM_PER_INDEX);
-      // const float *index_ptr = raw_vec_->GetVector(start_docid);
       const float *vector_head = raw_vec_->GetVectorHeader(
           indexed_vec_count_, indexed_vec_count_ + count_per_index);
-      // const float *index_ptr = vector_head + (uint64_t)start_docid * d_;
-      const float *index_ptr = vector_head;
-      if (!Add(count_per_index, index_ptr)) {
+
+      int raw_d = raw_vec_->GetDimension();
+      float *add_vec = nullptr;
+
+      if (d_ > raw_d) {
+        float *vec = new float[count_per_index * d_];
+
+        ConvertVectorDim(count_per_index, raw_d, d, vector_head, vec);
+        add_vec = vec;
+      } else {
+        add_vec = const_cast<float *>(vector_head);
+      }
+
+      if (!Add(count_per_index, add_vec)) {
         LOG(ERROR) << "add index from docid " << start_docid << " error!";
         ret = -2;
+      }
+
+      if (d_ > raw_d) {
+        delete add_vec;
       }
       raw_vec_->Destroy(vector_head, true);
     }
@@ -310,13 +357,14 @@ void GammaIVFPQIndex::search_preassigned(
                       float *recall_simi, idx_t *recall_idxi) {
       std::vector<const float *> vecs(recall_num);
       raw_vec_->Gets(recall_num, recall_idxi, vecs);
+      int raw_d = raw_vec_->GetDimension();
       for (int j = 0; j < recall_num; j++) {
         if (recall_idxi[j] == -1) continue;
         float dis = 0;
         if (metric_type == faiss::METRIC_INNER_PRODUCT) {
-          dis = faiss::fvec_inner_product(xi, vecs[j], this->d);
+          dis = faiss::fvec_inner_product(xi, vecs[j], raw_d);
         } else {
-          dis = faiss::fvec_L2sqr(xi, vecs[j], this->d);
+          dis = faiss::fvec_L2sqr(xi, vecs[j], raw_d);
         }
 
         if (((condition->min_dist >= 0 && dis >= condition->min_dist) &&
@@ -405,7 +453,6 @@ void GammaIVFPQIndex::search_preassigned(
     int *vid_list_data = vid_list.data();
     int *curr_ptr = vid_list_data;
     for (size_t i = 0; i < docid_list.size(); i++) {
-      // vids_list[i] = this->raw_vec_->docid2vid_[docid_list[i]];
       if (bitmap::test(this->docids_bitmap_, docid_list[i])) {
         continue;
       }
@@ -900,7 +947,8 @@ int GammaIVFPQIndex::Search(const VectorQuery *query,
                             const GammaSearchCondition *condition,
                             VectorResult &result) {
   float *x = reinterpret_cast<float *>(query->value->value);
-  int n = query->value->len / (d * sizeof(float));
+  int raw_d = raw_vec_->GetDimension();
+  size_t n = query->value->len / (raw_d * sizeof(float));
 
   if (condition->metric_type == InnerProduct) {
     metric_type = faiss::METRIC_INNER_PRODUCT;
@@ -908,13 +956,30 @@ int GammaIVFPQIndex::Search(const VectorQuery *query,
     metric_type = faiss::METRIC_L2;
   }
   idx_t *idx = reinterpret_cast<idx_t *>(result.docids);
-  if (condition->use_direct_search) {
-    SearchDirectly(n, x, condition, result.dists, idx, result.total.data());
+
+  float *vec_q = nullptr;
+
+  if (d > raw_d) {
+    float *vec = new float[n * d];
+
+    ConvertVectorDim(n, raw_d, d, x, vec);
+
+    vec_q = vec;
   } else {
-    SearchIVFPQ(n, x, condition, result.dists, idx, result.total.data());
+    vec_q = x;
   }
 
-  for (int i = 0; i < n; i++) {
+  if (condition->use_direct_search) {
+    SearchDirectly(n, vec_q, condition, result.dists, idx, result.total.data());
+  } else {
+    SearchIVFPQ(n, vec_q, condition, result.dists, idx, result.total.data());
+  }
+
+  if (d > raw_d) {
+    delete vec_q;
+  }
+
+  for (size_t i = 0; i < n; i++) {
     int pos = 0;
 
     std::map<int, int> docid2count;

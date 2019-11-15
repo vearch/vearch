@@ -41,7 +41,7 @@ RocksDBRawVector::~RocksDBRawVector() {
 }
 
 int RocksDBRawVector::Init() {
-  block_cache_size_ = store_params_->cache_size_ * 1024 * 1024;
+  block_cache_size_ = store_params_->cache_size_;
 
   raw_vector_io_ = new RawVectorIO(this);
   if (raw_vector_io_->Init(true)) {

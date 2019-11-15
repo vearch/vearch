@@ -50,6 +50,13 @@ int VectorBufferQueue::Init(string &fet_file_path) {
   if (dimension_ <= 0) {
     return 1;
   }
+  if (max_vector_size_ % chunk_num_ != 0) {
+    LOG(ERROR) << "max_vector_size(" << max_vector_size_ << ") % chunk_num("
+               << chunk_num_ << ") != 0";
+    return 1;
+  }
+  chunk_size_ = max_vector_size_ / chunk_num_;
+
   vector_byte_size_ = sizeof(float) * dimension_;
   buffer_ = (float *)calloc(max_vector_size_, vector_byte_size_);
   if (buffer_ == NULL) {
@@ -90,12 +97,6 @@ int VectorBufferQueue::Init(string &fet_file_path) {
     pop_index_ = push_index_;
   }
 
-  if (max_vector_size_ % chunk_num_ != 0) {
-    LOG(ERROR) << "max_vector_size_ % chunk_num_ != 0";
-    return 1;
-  }
-  chunk_size_ = max_vector_size_ / chunk_num_;
-
   shared_mutexes_ = new pthread_rwlock_t[chunk_num_];
   for (int i = 0; i < chunk_num_; i++) {
     int ret = pthread_rwlock_init(&shared_mutexes_[i], NULL);
@@ -107,6 +108,7 @@ int VectorBufferQueue::Init(string &fet_file_path) {
   LOG(INFO) << "vector buffer queue init success! buffer byte size="
             << (long)max_vector_size_ * vector_byte_size_
             << ", buffer vector size=" << max_vector_size_
+            << ", chunk number=" << chunk_num_
             << ", stored number=" << stored_num_;
   return 0;
 }

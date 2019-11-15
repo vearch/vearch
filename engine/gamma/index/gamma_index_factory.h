@@ -17,7 +17,7 @@
 namespace tig_gamma {
 
 class GammaIndexFactory {
-public:
+ public:
   static GammaIndex *Create(RetrievalModel model, size_t dimension,
                             const char *docids_bitmap, RawVector *raw_vec,
                             IVFPQParameters *ivfpq_param) {
@@ -26,24 +26,35 @@ public:
       return nullptr;
     }
     switch (model) {
-    case IVFPQ: {
-      faiss::IndexFlatL2 *coarse_quantizer = new faiss::IndexFlatL2(dimension);
-      return (GammaIndex *)new GammaIVFPQIndex(
-          coarse_quantizer, dimension, ivfpq_param->ncentroids,
-          ivfpq_param->nsubvector, ivfpq_param->nbits_per_idx, docids_bitmap,
-          raw_vec, ivfpq_param->nprobe);
-      break;
-    }
+      case IVFPQ: {
+        if (dimension % ivfpq_param->nsubvector != 0) {
+          dimension = (dimension / ivfpq_param->nsubvector + 1) *
+                      ivfpq_param->nsubvector;
+          LOG(INFO) << "Dimension [" << raw_vec->GetDimension()
+                    << "] cannot divide by nsubvector ["
+                    << ivfpq_param->nsubvector << "], adjusted to ["
+                    << dimension << "]";
+        }
 
-    default: {
-      throw std::invalid_argument("invalid raw feature type");
-      break;
-    }
+        faiss::IndexFlatL2 *coarse_quantizer =
+            new faiss::IndexFlatL2(dimension);
+
+        return (GammaIndex *)new GammaIVFPQIndex(
+            coarse_quantizer, dimension, ivfpq_param->ncentroids,
+            ivfpq_param->nsubvector, ivfpq_param->nbits_per_idx, docids_bitmap,
+            raw_vec, ivfpq_param->nprobe);
+        break;
+      }
+
+      default: {
+        throw std::invalid_argument("invalid raw feature type");
+        break;
+      }
     }
 
     return nullptr;
   }
 };
-} // namespace tig_gamma
+}  // namespace tig_gamma
 
-#endif // GAMMA_INDEX_FACTORY_H_
+#endif  // GAMMA_INDEX_FACTORY_H_

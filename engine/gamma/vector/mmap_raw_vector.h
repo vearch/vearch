@@ -5,8 +5,8 @@
  * found in the LICENSE file in the root directory of this source tree.
  */
 
-#ifndef MEMORY_DISK_RAW_VECTOR_H_
-#define MEMORY_DISK_RAW_VECTOR_H_
+#ifndef MMAP_RAW_VECTOR_H_
+#define MMAP_RAW_VECTOR_H_
 
 #include "raw_vector.h"
 #include "vector_buffer_queue.h"
@@ -49,4 +49,4 @@ private:
 
 } // namespace tig_gamma
 
-#endif
+#endif // MMAP_RAW_VECTOR_H_

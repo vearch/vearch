@@ -175,14 +175,10 @@ struct IVFPQParamHelper {
   void SetDefaultValue() {
     if (ivfpq_param_->metric_type == -1)
       ivfpq_param_->metric_type = InnerProduct;
-    if (ivfpq_param_->nprobe == -1)
-      ivfpq_param_->nprobe = 20;
-    if (ivfpq_param_->ncentroids == -1)
-      ivfpq_param_->ncentroids = 256;
-    if (ivfpq_param_->nsubvector == -1)
-      ivfpq_param_->nsubvector = 64;
-    if (ivfpq_param_->nbits_per_idx == -1)
-      ivfpq_param_->nbits_per_idx = 8;
+    if (ivfpq_param_->nprobe == -1) ivfpq_param_->nprobe = 20;
+    if (ivfpq_param_->ncentroids == -1) ivfpq_param_->ncentroids = 256;
+    if (ivfpq_param_->nsubvector == -1) ivfpq_param_->nsubvector = 64;
+    if (ivfpq_param_->nbits_per_idx == -1) ivfpq_param_->nbits_per_idx = 8;
   }
 
   bool Validate() {

@@ -137,7 +137,7 @@ struct GammaIndex {
   virtual int Dump(const std::string &dir) = 0;
   virtual int Load(const std::vector<std::string> &index_dirs) = 0;
 
-  size_t d_;
+  int d_;
 
   const char *docids_bitmap_;
   RawVector *raw_vec_;

@@ -269,11 +269,11 @@ int StoreParams::Parse(const char *str) {
   double cache_size = 0;
   if (!jp.GetDouble("cache_size", cache_size)) {
     if (cache_size > MAX_CACHE_SIZE || cache_size < 0) {
-      LOG(ERROR) << "invalid cache size=" << cache_size
-                 << ", limit size=" << MAX_CACHE_SIZE;
+      LOG(ERROR) << "invalid cache size=" << cache_size << "M"
+                 << ", limit size=" << MAX_CACHE_SIZE << "M";
       return -1;
     }
-    cache_size_ = (int)cache_size;
+    cache_size_ = (long)cache_size * 1024 * 1024;
   }
 
   return 0;

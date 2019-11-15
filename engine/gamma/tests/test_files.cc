@@ -32,7 +32,7 @@ struct Options {
     max_doc_size = 10000 * 200;
     add_doc_num = 10000 * 100;
     search_num = 10000 * 1;
-    fields_vec = {"sku", "_id", "cid1", "cid2", "cid3"};
+    fields_vec = {"key", "_id", "field1", "field2", "field3"};
     fields_type = {LONG, STRING, STRING, INT, INT};
     vector_name = "abc";
     path = "files";
@@ -144,7 +144,7 @@ int SearchThread(void *engine, size_t num) {
 
     if (idx % 1000 == 0) LOG(INFO) << "idx=" << idx;
   
-    string name = "cid2";
+    string name = "field2";
     RangeFilter **range_filters = MakeRangeFilters(2);
     RangeFilter *range_filter =
         MakeRangeFilter(StringToByteArray(name), StringToByteArray(c1_lower),
@@ -155,7 +155,7 @@ int SearchThread(void *engine, size_t num) {
     upper = 999999;
     c1_lower = string((char *)&low, sizeof(low));
     c1_upper = string((char *)&upper, sizeof(upper));
-    name = "cid3";
+    name = "field3";
     range_filter =
         MakeRangeFilter(StringToByteArray(name), StringToByteArray(c1_lower),
                         StringToByteArray(c1_upper), false, true);
@@ -165,7 +165,7 @@ int SearchThread(void *engine, size_t num) {
     TermFilter *term_filter;
 
     std::string term_low = string("1315\00115248");
-    name = "cid1";
+    name = "field1";
     term_filter = MakeTermFilter(StringToByteArray(name),
                                  StringToByteArray(term_low), true);
     SetTermFilter(term_filters, 0, term_filter);

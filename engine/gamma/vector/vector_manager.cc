@@ -18,9 +18,9 @@ static bool InnerProductCmp(const VectorDoc &a, const VectorDoc &b) {
   return a.score > b.score;
 }
 
-static bool L2Cmp(const VectorDoc &a, const VectorDoc &b) {
-  return a.score < b.score;
-}
+// static bool L2Cmp(const VectorDoc &a, const VectorDoc &b) {
+//   return a.score < b.score;
+// }
 
 static ByteArray *CopyByteArray(ByteArray *ba) {
   return MakeByteArray(ba->value, ba->len);
@@ -233,7 +233,8 @@ int VectorManager::Search(const GammaQuery &query, GammaResult *results) {
       return -1;
     }
 
-    n = query.vec_query[i]->value->len / (sizeof(float) * iter->second->d_);
+    int d = iter->second->raw_vec_->GetDimension();
+    n = query.vec_query[i]->value->len / (sizeof(float) * d);
     if (!all_vector_results[i].init(n, query.condition->topn)) {
       LOG(ERROR) << "Query name " << name << "init vector result error";
       return -1;
