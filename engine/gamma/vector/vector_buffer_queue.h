@@ -8,12 +8,12 @@
 #ifndef VECTOR_BUFFER_QUEUER_H_
 #define VECTOR_BUFFER_QUEUER_H_
 
-#include <cstdint>
 #include <pthread.h>
+#include <cstdint>
 #include <string>
 
 class VectorBufferQueue {
-public:
+ public:
   /**
    * @param capacity the max memory buffer size, the smallest unit is million(M)
    * bytes, for example: capacity=100, it means 100M bytes
@@ -27,7 +27,7 @@ public:
    * malloc memory, init variables
    * @return 0 success; 1 parameter error; 2 malloc memory error;
    */
-  int Init(std::string &fet_file_path);
+  int Init();
 
   /**
    * push one vector to queue
@@ -52,12 +52,13 @@ public:
    * timeout=100, it means to waiting 100ms
    * @return 0 success; 1 parameter error; 3 timeout
    */
-  int Push(const float *v, int dim, int num, int timeout); // batch push
+  int Push(const float *v, int dim, int num, int timeout);  // batch push
 
   /**
    * pop one vector from queue
    * @param v the float array to store vector
-   * @param dim the dimension of vector, it must be equal to dimension of constructor
+   * @param dim the dimension of vector, it must be equal to dimension of
+   * constructor
    * @param timeout the timeout of waiting enough vector to poll from the queue,
    * -1 means waiting forever, the smallest unit is millisecond(ms), for
    * example: timeout=100, it means to waiting 100ms
@@ -76,17 +77,18 @@ public:
    * example: timeout=100, it means to waiting 100ms
    * @return 0 success; 1 parameter error; 3 timeout
    */
-  int Pop(float *v, int dim, int num, int timeout); // batch pop
+  int Pop(float *v, int dim, int num, int timeout);  // batch pop
 
   int GetVector(int id, float *v, int dim);
   int Size() const;
   int GetPopSize() const;
-  long GetTotalMemBytes() {return total_mem_bytes_;};
+  long GetTotalMemBytes() { return total_mem_bytes_; }
+  void Erase() { pop_index_ = push_index_; }
 
-private:
+ private:
   bool WaitFor(int timeout, int type, int num);
 
-private:
+ private:
   float *buffer_;
   int max_vector_size_;
   int chunk_num_;

@@ -63,7 +63,7 @@ func Build(name string, cfg EngineConfig) (e engine.Engine, err error) {
 	if builder := engines[name]; builder != nil {
 		e, err = builder(cfg)
 	} else {
-		err = pkg.ErrPartitionEngineNameInvalid
+		err = pkg.CodeErr(pkg.ERRCODE_PARTITON_ENGINENAME_INVALID)
 	}
 	return
 }

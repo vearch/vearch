@@ -6,12 +6,12 @@
  */
 
 #include "realtime_mem_data.h"
-#include "log.h"
-#include "utils.h"
 #include <limits.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include "log.h"
+#include "utils.h"
 
 namespace tig_gamma {
 namespace realtime {
@@ -20,8 +20,10 @@ RTInvertBucketData::RTInvertBucketData(long **idx_array, int *retrieve_idx_pos,
                                        int *cur_bucket_keys,
                                        uint8_t **codes_array,
                                        int *dump_latest_pos)
-    : _idx_array(idx_array), _retrieve_idx_pos(retrieve_idx_pos),
-      _cur_bucket_keys(cur_bucket_keys), _codes_array(codes_array),
+    : _idx_array(idx_array),
+      _retrieve_idx_pos(retrieve_idx_pos),
+      _cur_bucket_keys(cur_bucket_keys),
+      _codes_array(codes_array),
       _dump_latest_pos(dump_latest_pos) {}
 
 RTInvertBucketData::RTInvertBucketData() {
@@ -41,14 +43,12 @@ bool RTInvertBucketData::Init(const size_t &buckets_num,
   _idx_array = new (std::nothrow) long *[buckets_num];
   _codes_array = new (std::nothrow) uint8_t *[buckets_num];
   _cur_bucket_keys = new (std::nothrow) int[buckets_num];
-  if (_idx_array == nullptr || _codes_array == nullptr)
-    return false;
+  if (_idx_array == nullptr || _codes_array == nullptr) return false;
   for (size_t i = 0; i < buckets_num; i++) {
     _idx_array[i] = new (std::nothrow) long[bucket_keys];
     _codes_array[i] =
         new (std::nothrow) uint8_t[bucket_keys * code_bytes_per_vec];
-    if (_idx_array[i] == nullptr || _codes_array[i] == nullptr)
-      return false;
+    if (_idx_array[i] == nullptr || _codes_array[i] == nullptr) return false;
     _cur_bucket_keys[i] = bucket_keys;
   }
 
@@ -58,12 +58,10 @@ bool RTInvertBucketData::Init(const size_t &buckets_num,
   total_mem_bytes += buckets_num * sizeof(int);
 
   _retrieve_idx_pos = new (std::nothrow) int[buckets_num];
-  if (_retrieve_idx_pos == nullptr)
-    return false;
+  if (_retrieve_idx_pos == nullptr) return false;
   memset(_retrieve_idx_pos, 0, buckets_num * sizeof(int));
   _dump_latest_pos = new (std::nothrow) int[buckets_num];
-  if (_dump_latest_pos == nullptr)
-    return false;
+  if (_dump_latest_pos == nullptr) return false;
   memset(_dump_latest_pos, 0, buckets_num * sizeof(int));
 
   total_mem_bytes += buckets_num * sizeof(int) * 2;
@@ -118,26 +116,6 @@ bool RTInvertBucketData::ReleaseBucketMem(const size_t &bucket_no,
   return true;
 }
 
-bool RTInvertBucketData::DestroyMem() {
-  if (_idx_array) {
-    delete[] _idx_array;
-    _idx_array = nullptr;
-  }
-  if (_retrieve_idx_pos) {
-    delete _retrieve_idx_pos;
-    _retrieve_idx_pos = nullptr;
-  }
-  if (_cur_bucket_keys) {
-    delete _cur_bucket_keys;
-    _cur_bucket_keys = nullptr;
-  }
-  if (_codes_array) {
-    delete[] _codes_array;
-    _codes_array = nullptr;
-  }
-  return true;
-}
-
 bool RTInvertBucketData::GetBucketMemInfo(const size_t &bucket_no,
                                           std::string &mem_info) {
   return false;
@@ -168,8 +146,10 @@ int RTInvertBucketData::GetCurDumpPos(const size_t &bucket_no, int max_vid,
 
 RealTimeMemData::RealTimeMemData(size_t buckets_num, long max_vec_size,
                                  size_t bucket_keys, size_t code_bytes_per_vec)
-    : _buckets_num(buckets_num), _bucket_keys(bucket_keys),
-      _code_bytes_per_vec(code_bytes_per_vec), _max_vec_size(max_vec_size) {
+    : _buckets_num(buckets_num),
+      _bucket_keys(bucket_keys),
+      _code_bytes_per_vec(code_bytes_per_vec),
+      _max_vec_size(max_vec_size) {
   _cur_invert_ptr = new (std::nothrow) RTInvertBucketData();
   _extend_invert_ptr = nullptr;
   _total_mem_bytes = 0;
@@ -177,6 +157,17 @@ RealTimeMemData::RealTimeMemData(size_t buckets_num, long max_vec_size,
 
 RealTimeMemData::~RealTimeMemData() {
   if (_cur_invert_ptr) {
+    for (size_t i = 0; i < _buckets_num; i++) {
+      if (_cur_invert_ptr->_idx_array)
+        CHECK_DELETE_ARRAY(_cur_invert_ptr->_idx_array[i]);
+      if (_cur_invert_ptr->_codes_array)
+        CHECK_DELETE_ARRAY(_cur_invert_ptr->_codes_array[i]);
+    }
+    CHECK_DELETE_ARRAY(_cur_invert_ptr->_idx_array);
+    CHECK_DELETE_ARRAY(_cur_invert_ptr->_retrieve_idx_pos);
+    CHECK_DELETE_ARRAY(_cur_invert_ptr->_cur_bucket_keys);
+    CHECK_DELETE_ARRAY(_cur_invert_ptr->_codes_array);
+    CHECK_DELETE_ARRAY(_cur_invert_ptr->_dump_latest_pos);
     delete _cur_invert_ptr;
     _cur_invert_ptr = nullptr;
   }
@@ -338,7 +329,8 @@ int RealTimeMemData::RetrieveCodes(
   return 0;
 }
 
-int RealTimeMemData::Dump(const std::string &dir, int max_vid) {
+int RealTimeMemData::Dump(const std::string &dir, const std::string &vec_name,
+                          int max_vid) {
   int buckets[_buckets_num];
   long *ids[_buckets_num];
   uint8_t *codes[_buckets_num];
@@ -374,7 +366,7 @@ int RealTimeMemData::Dump(const std::string &dir, int max_vid) {
   }
 
   if (ids_count > 0) {
-    std::string dump_file = dir + "/vector.idx";
+    std::string dump_file = dir + "/" + vec_name + ".index";
     FILE *fp = fopen(dump_file.c_str(), "wb");
 
     fwrite((void *)&ids_count, sizeof(int), 1, fp);
@@ -397,7 +389,8 @@ int RealTimeMemData::Dump(const std::string &dir, int max_vid) {
   return ids_count;
 }
 
-int RealTimeMemData::Load(const std::vector<std::string> &index_dirs) {
+int RealTimeMemData::Load(const std::vector<std::string> &index_dirs,
+                          const std::string &vec_name) {
   size_t indexes_num = index_dirs.size();
   int ids_count[indexes_num], min_vids[indexes_num], max_vids[indexes_num];
   int bucket_ids[indexes_num][_buckets_num];
@@ -406,7 +399,7 @@ int RealTimeMemData::Load(const std::vector<std::string> &index_dirs) {
   int total_bucket_ids[_buckets_num], total_ids = 0;
   memset((void *)total_bucket_ids, 0, _buckets_num * sizeof(int));
   for (size_t i = 0; i < indexes_num; i++) {
-    std::string index_file = index_dirs[i] + "/vector.idx";
+    std::string index_file = index_dirs[i] + "/" + vec_name + ".index";
     if (access(index_file.c_str(), F_OK) != 0) {
       fp_array[i] = nullptr;
       continue;
@@ -514,6 +507,6 @@ int RealTimeMemData::Load(const std::vector<std::string> &index_dirs) {
   return total_ids;
 }
 
-} // namespace realtime
+}  // namespace realtime
 
-} // namespace tig_gamma
+}  // namespace tig_gamma

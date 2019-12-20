@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # ==============================================================================
 
-"""``main.py`` is the entry of programs, you can run ``python main.py``
+"""``main.py`` is the entry of programs, you can run ``python main.py``.
 Options:
     --port        Define the port your server run on
     --gpu         Define the GPU your server run on
@@ -31,40 +31,44 @@ import traceback
 import concurrent.futures
 from multiprocessing import Queue, Process
 from asyncio.futures import wrap_future
-from concurrent.futures import ThreadPoolExecutor
-
 import tornado
 import tornado.web
 import tornado.httpserver
-from tornado import gen
+from tornado.httputil import HTTPServerRequest
+from typing import Dict, List, Union
+from tornado.options import define, options
 
 import config
 import util
 import controller
 
-_INSERT = "insert"
-_SEARCH = "search"
-_HEADERS = {"content-type": "application/json"}
+_INSERT = '_insert'
+_SEARCH = '_search'
+_HEADERS = {'content-type': 'application/json'}
+# InvalidURL = requests.InvalidURL
 
 
 class PackageProcess(Process):
-    """The Process dealing request and return result"""
+    """The Process dealing request and return result."""
 
     def __init__(self, 
                  gpu_id: str,
                  model_name: str,
                  input_queue: Queue,
-                 output_queue: Queue
+                 output_queue: Queue,
+                 debug: bool = False
                  ) -> None:
         Process.__init__(self)
         self.gpu_id = gpu_id               # The GPU id of model run on
         self.model_name = model_name       # image_retrieval or face_retrieval
+        self.model = None
+        self.debug = debug
         self.input_queue = input_queue
         self.output_queue = output_queue
         self.watch_queue = queue.Queue()   # thread queue for performance
 
     def build(self):
-        """Initialization process environment
+        """Initialization process environment.
             1.set visible GPU;
             2.load defined model
         """
@@ -72,7 +76,9 @@ class PackageProcess(Process):
         self.daemon_thread()
         self.model = controller.load_model(self.model_name)
 
-    def daemon_thread(self):
+    @staticmethod
+    def daemon_thread():
+        """Define a daemon thread listen the status of parent process."""
         def kill():
             while True:
                 if os.getppid() == 1:
@@ -81,285 +87,187 @@ class PackageProcess(Process):
         t = threading.Thread(target=kill)
         t.start()
 
-    def package_body(self,
-                     method:str,
-                     data:dict
-                     ) -> None:
-        """Package and deal request ,return response"""
-        # get the name of DB and Space
-        db_name = data.pop("db")
-        space_name = data.pop("space")
+    @staticmethod
+    def judge(uri_list: List[str], request: 'Request') -> None:
+        """Raise a Exception when create a db that name in [_cluster, list, db, space]
+        :param uri_list: The list of uri.
+        :param request: The dict of request body.
+        :return None
+        :raise Exception
+        """
+        if uri_list[1] == 'db' and uri_list[2] == '_create':
+            if not request.body:
+                raise requests.RequestException('The request data can not be empty!')
+            data = json.loads(request.body, encoding='utf8')
+            if 'name' not in data:
+                raise requests.RequestException('The name of db is required in request data!')
+            if data['name'] in ['_cluster', 'list', 'db', 'space']:
+                raise requests.RequestException('The name of db can not in [_cluster, list, db, space]!')
 
-        ip = f"{config.router_address}/{db_name}/{space_name}"
-        if method == _INSERT:
-            # define id for request
-            if "_id" in data:
-                _id = data.pop("_id")
-                ip = f"{ip}/{_id}"
-            result = self.model.insert(ip, data)
-        else:
-            # define the num of return
-            size = data.pop("size", 10)
-            ip = f"{ip}/_search?size={size}"
-            result = self.model.search(ip, data)
-        return result
-
-    def deal(self, param):
-        # Repackage the request body and send it to VectorDB
-        # and put the response into `response_queue`
+    def deal(self, uuid: str, request: 'Request') -> None:
+        """Deal the request.
+        Repackage the request body and send it to VectorDB and put the response into `response_queue`
+        :param uuid: The uuid of request.
+        :param request: The request object.
+        :return None
+        """
         try:
-            uuid, method, data = param
-            result = self.package_body(method, data)
+            uri_list = request.uri.split('?')[0].split('/')
+            if len(uri_list) < 3:
+                raise requests.RequestException('Bad Request, Page not Found.')
+            elif uri_list[1] in ['_cluster', 'list', 'db', 'space']:
+                self.judge(uri_list, request)
+                ip = f'{config.master_address}{request.uri}'
+            elif request.method == 'POST':
+                self.post(uri_list, request)
+                ip = f'{config.router_address}{request.uri}'
+            else:
+                ip = f'{config.router_address}{request.uri}'
+            res = requests.request(request.method, ip, data=request.body, headers=request.headers)
+            result = Response(res)
             self.output_queue.put((uuid, True, result))
         except Exception as err:
+            if self.debug:
+                traceback.print_exc()
             self.output_queue.put((uuid, False, str(err)))
 
+    def post(self, uri_list: List[str], request: 'Request') -> None:
+        """Extract feature in request if necessary.
+        :param uri_list: The list of uri.
+        :param request: The dict of request body.
+        :return None
+        :raise NotImplementedError
+        """
+        flag = False
+        operate = uri_list[3] if len(uri_list) >= 4 else None
+        data = json.loads(request.body, encoding='utf8')
+        if operate == _SEARCH:
+            for d in data['query']['sum']:
+                if not isinstance(d['feature'], list):
+                    flag = True
+                    d['feature'] = util.normlize(self.model.encode(d['feature']))
+        elif operate == '_msearch':
+            raise NotImplementedError('This API do not support msearch operate')
+        else:
+            for key in data:
+                if isinstance(data[key], dict) and 'feature' in data[key]:
+                    field = data[key]['feature']
+                    if not isinstance(field, list):
+                        flag = True
+                        data[key]['feature'] = util.normlize(self.model.encode(field))
+        if flag:
+            # if not extract feature, send the request to server directly.
+            request.body = json.dumps(data, ensure_ascii=False).encode('utf8')
+
     def run(self):
-        # executor = ThreadPoolExecutor(20)
+        """The entry to program start."""
         self.build()
-        print("load model success")
-
+        print('load model success')
         while True:
-            param = self.input_queue.get()
-            self.deal(param)
-            # executor.submit(self.deal, param)
+            uuid, request = self.input_queue.get()
+            self.deal(uuid, request)
 
 
-def set_result_thread(result_queue, futures_dict):
+class TableHandler(tornado.web.RequestHandler):
+    """The server of receive and deal request."""
+
+    def initialize(self, input_queue: Queue,
+                   futures_dict: Dict[str, concurrent.futures.Future]
+                   ) -> None:
+        """Initialize the request, called for each request.
+        :param input_queue: The request queue.
+        :param futures_dict: The future dict store the uuid of request and future.
+        """
+        self.input_queue = input_queue
+        self.futures_dict = futures_dict
+
+    def write(self, result: Union[str, 'Response']):
+        if isinstance(result, Response):
+            code, chunk = result.status_code, result.text
+        else:
+            code, chunk = 551, result
+        self.set_status(code, reason=chunk)
+        # chunk = json.dumps(result, ensure_ascii=False)
+        # status = result.get('status', 0) or result.get('code', 0)
+        # if status:
+        #     self.set_status(status, reason=chunk)
+        super(TableHandler, self).write(chunk)
+
+    async def get(self):
+        response = await self.deal()
+        self.write(response)
+
+    async def delete(self):
+        response = await self.deal()
+        self.write(response)
+
+    async def put(self):
+        response = await self.deal()
+        self.write(response)
+
+    async def post(self):
+        response = await self.deal()
+        self.write(response)
+
+    async def deal(self):
+        uuid = shortuuid.uuid()
+        future = concurrent.futures.Future()
+        self.futures_dict[uuid] = future
+        self.input_queue.put((uuid, Request(self.request)))
+        result = await wrap_future(future)
+        return result
+
+
+class Request(dict):
+    def __init__(self, a: HTTPServerRequest):
+        super(Request, self).__init__()
+        self.method = a.method
+        self.uri = a.uri
+        self.headers = a.headers
+        self.body = a.body
+
+    def __str__(self):
+        return f'{self.__class__.__name__}({self.__dict__})'
+
+    def __repr__(self):
+        return self.__str__()
+
+
+class Response(dict):
+    def __init__(self, a: requests.Response):
+        super(Response, self).__init__()
+        self.url = a.url
+        self.text = a.text
+        self.elapsed = a.elapsed
+        self.status_code = a.status_code
+
+    def __str__(self):
+        return f'{self.__class__.__name__}({self.__dict__})'
+
+    def __repr__(self):
+        return self.__str__()
+
+
+def set_result_thread(result_queue: Queue,
+                      futures_dict: Dict[str, concurrent.futures.Future]
+                      ) -> None:
+    """Assign results asynchronously.
+    :param result_queue: The queue of result which put by ``PackageProcess``.
+    :param futures_dict: The dict which save future of each request.
+    :return None.
+    """
     while True:
+        # uuid is the id of request.
+        # flag is the status of request, True is success other is failed.
+        # result is the result of request, if flag is false, result is the error info of request.
         uuid, flag, result = result_queue.get()
         if uuid in futures_dict:
-            if not flag:
-                result = json.dumps(
-                    {
-                        "status": 550,
-                        "error": {
-                            "index": "",
-                            "index_uuid": "",
-                            "shard": "0",
-                            "type": "",
-                            "reason": result
-                        }
-                    }
-                )
             futures_dict[uuid].set_result(result)
             del futures_dict[uuid]
 
 
-class TableHandler(tornado.web.RequestHandler):
-
-    def initialize(self, input_queue, futures_dict):
-        self.input_queue = input_queue
-        self.futures_dict = futures_dict
-        logger.info(f"request -*- {self.request.uri} -*- {self.request.body.decode('utf8')}")
-
-    def parse_uri(self):
-        self.uri = self.request.uri.split("?")[0].split("/")
-        self.db_name, self.space_name, self.operate = self.uri[1:4]
-
-    def write(self, chunk):
-        super().write(chunk)
-        logger.debug(f"response -*- {self.request.uri} -*- {chunk}")
-
-    async def get(self):
-        response = requests.get(f"{config.router_address}/{self.request.uri}", headers=_HEADERS)
-        self.write(response.text)
-
-    async def delete(self):
-        response = requests.delete(f"{config.router_address}/{self.request.uri}", headers=_HEADERS)
-        data = response.json()
-        if data["status"] == 200:
-            result = {"code": 200, "msg": "success"}
-        else:
-            result = {"code": data["status"], "msg": data["error"]["reason"]}
-
-        self.write(json.dumps(result))
-
-    async def put(self):
-        method = "PUT"
-        await self.deal_operate(method)
-
-    async def post(self):
-        method = "POST"
-        await self.deal_operate(method)
-
-    async def deal_operate(self, method):
-        try:
-            self.parse_uri()
-            # print(self.request.body)
-            if self.request.body:
-                request_body = json.loads(self.request.body)
-            else:
-                request_body = None
-            if self.operate == "_create":
-                message = self._create(request_body)
-            elif self.operate == "_delete":
-                message = self._delete(request_body)
-            elif self.operate == "_search":
-                message = await self._search(request_body)
-            elif self.operate == "_detect":
-                message = await self._detect(request_body)
-            elif self.operate == "_update":
-                request_body["_id"] = self.get_argument("id")
-                message = await self._insert(request_body)
-            elif self.operate == "_insert":
-                message = await self._insert(request_body)
-            else:
-                message = "Request is invalid"
-
-        except Exception as err:
-            err_info = util.catch_exc()
-            logger.debug(err_info)
-            message = str(err)
-        finally:
-            self.write(message)
-
-    async def deal(self, method, data):
-        data["db"] = self.db_name
-        data["space"] = self.space_name
-        uuid = shortuuid.uuid()
-        future = concurrent.futures.Future()
-        self.futures_dict[uuid] = future
-        self.input_queue.put((uuid, method, data))
-        result = await wrap_future(future)
-        return result
-
-    def _create(self, data):
-        '''Create Database and Space
-        Args:
-            data: Dict
-        '''
-
-        db_flag = data.pop("db", True)
-        if db_flag:
-            res = requests.put(
-                        config.master_address + "/db/_create",
-                        headers=_HEADERS,
-                        data=json.dumps({"name": self.db_name})
-                    )
-            result_db = json.loads(res.text)
-            if result_db["code"] != 200:
-                return result_db
-        else:
-            result_db = {"msg": None}
-
-        # create space
-        feature_default = {"type": "vector",
-                           "model_id": "vgg16",
-                           "dimension": 512,
-                           "filed": "imageurl"
-                           }
-        columns_default = {"imageurl": {"type": "keyword"},
-                           "boundingbox": {"type": "keyword"},
-                           "label": {"type": "keyword"}
-                           }
-
-        method = data.pop("method", "innerproduct")
-        feature = data.pop("feature", feature_default)
-        columns = data.pop("columns", columns_default)
-
-        # columns
-        assert "label" in columns, "label not in columns"
-        assert "imageurl" in columns, "imageurl not in columns"
-        assert "boundingbox" in columns, "boundingbox not in columns"
-
-        # feature
-        assert "model_id" in feature, "model_id not in feature"
-        assert "dimension" in feature, "dimension not in feature"
-
-        data = {
-                "name": self.space_name,
-                "engine": {"name": "gamma", "metric_type": method},
-                "properties": {}
-                }
-
-        data["properties"].update(columns)
-        data["properties"]["feature"] = feature
-
-        res = requests.put(
-                    f"{config.master_address}/space/{self.db_name}/_create?timeout=600",
-                    headers=_HEADERS,
-                    data=json.dumps(data)
-                )
-        result_space = json.loads(res.text)
-        if result_space["code"] != 200:
-            return result_space
-
-        result = {"code": 200, "db_msg": result_db["msg"], "space_msg": result_space["msg"]}
-        return result
-
-    def _delete(self, data):
-        space_flag = data.pop("space", True)
-        if space_flag:
-            res = requests.delete(f"{config.master_address}/space/{self.db_name}/{self.space_name}")
-            result_space = json.loads(res.text)
-            if result_space["code"] != 200:
-                return result_space
-        else:
-            result_space = {"msg": None}
-
-        db_flag = data.pop("db", True)
-        if db_flag:
-            res = requests.delete(f"{config.master_address}/db/{self.db_name}")
-            result_db = json.loads(res.text)
-            if result_db["code"] != 200:
-                return result_db
-        else:
-            result_db = {"msg": None}
-
-        result = {"code": 200, "db_msg": result_db["msg"], "space_msg": result_space["msg"]}
-        return result
-
-    async def _search(self, data):
-        response_body = await self.deal("search", data)
-        return json.dumps(response_body)
-
-    async def _insert(self, data):
-        method = data.pop("method", "single")
-        assert "imageurl" in data, "imageurl not in requests body"
-        result = {"db": self.db_name, "space": self.space_name, "ids": [], "successful": 0}
-
-        def pkg_result(response_body_list):
-            assert isinstance(response_body_list, list), response_body_list
-            for response_body in response_body_list:
-                # assert "_id" in response_body, response_body
-                if "_id" not in response_body:
-                    continue
-                _id = response_body["_id"]
-                if response_body["status"] == 201:
-                    result["ids"].append({_id: "successful"})
-                    result["successful"] = result.get("successful") + 1
-                else:
-                    result["ids"].append({_id: response_body["error"]["reason"]})
-
-        if method == "single":
-            # url = data["imageurl"]
-            response_body_list = await self.deal("insert", data)
-            pkg_result(response_body_list)
-
-        elif method == "bulk":
-            imagefile = data.pop("imageurl")
-            if not os.path.exists(imagefile):
-                raise Exception(f"{imagefile} not exists!")
-            with open(imagefile, 'r') as fr:
-                col_names = fr.readline().strip().split(",")
-                body_list = [dict(zip(col_names, col_values.strip().split(","))) for col_values in fr.readlines()]
-            response_body_list = await gen.multi([self.deal("insert", data) for data in body_list])
-            pkg_result([res[0] for res in response_body_list])
-
-        return result
-
-
-def parse_argument():
-    parser = argparse.ArgumentParser()
-    # parser.add_argument("--port", type=int, default=4101, help="Port the server run on")
-    # parser.add_argument("--gpu", type=str, default="-1", help="Which GPU the server run on")
-    parser.add_argument("--model_name", type=str, default="face_retrieval", help="The model name you need")
-    args = parser.parse_args()
-    return args
-
-
 def run(port, url_queue, result_queue):
+    tornado.options.parse_command_line()
     futures_dict = dict()
     t1 = threading.Thread(target=set_result_thread, args=(result_queue, futures_dict))
     t1.start()
@@ -372,23 +280,38 @@ def run(port, url_queue, result_queue):
     tornado.ioloop.IOLoop.instance().start()
 
 
+def install(model_name):
+    if model_name == 'face_retrieval':
+        util.install_package('tensorflow-gpu==1.12.0 mtcnn keras==2.2.4')
+    elif model_name == 'image_retrieval':
+        util.install_package('torchvision torch')
+    elif model_name == 'text':
+        text_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'text', 'requirements.txt')
+        util.install_package(f'-r {text_path}')
+    elif model_name == 'audio':
+        raise NotImplementedError()
+    else:
+        raise Exception(f'{model_name} is not existed')
+
+
 def main():
-    args = parse_argument()
-    model_name = args.model_name
-    # port = args.port
-    # gpu = args.gpu
+    define('model_name', type=str, default='face_retrieval', help='The model name you need')
+    define('debug', type=bool, default=False, help='debug')
+    tornado.options.parse_command_line()
+    install(options.model_name)
     port = config.port
-    gpu = config.gpu
+    gpus = config.gpus
     url_queue = Queue()
     result_queue = Queue()
-    package_process = PackageProcess(gpu, model_name, url_queue, result_queue)
-    package_process.daemon = True
-    package_process.start()
+    for gpu in gpus.split(','):
+        package_process = PackageProcess(gpu, options.model_name, url_queue, result_queue, debug=options.debug)
+        package_process.daemon = True
+        package_process.start()
 
     run(port, url_queue, result_queue)
 
-if __name__ == "__main__":
-    logger = util.get_logger("main", "./log/request.log", level="DEBUG")
+
+if __name__ == '__main__':
     main()
 
 

@@ -81,6 +81,7 @@ type Engine interface {
 	NewSnapshot() (proto.Snapshot, error)
 	ApplySnapshot(peers []proto.Peer, iter proto.SnapIterator) error
 	Optimize() error
+	IndexStatus() int
 	Close()
 
 	UpdateMapping(space *entity.Space) error

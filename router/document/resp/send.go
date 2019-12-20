@@ -18,75 +18,39 @@ import (
 	"context"
 	"fmt"
 	"github.com/vearch/vearch/util/log"
-	"github.com/vearch/vearch/util/monitoring"
 	"github.com/vearch/vearch/util/netutil"
-	"github.com/vearch/vearch/util/reflect"
 	"net/http"
 	"runtime/debug"
-	"time"
 )
 
-func SendError(ctx context.Context, w http.ResponseWriter, httpStatus int, errorMsg string, monitor monitoring.Monitor) {
+func SendError(ctx context.Context, w http.ResponseWriter, httpStatus int, errorMsg string) {
 	if log.IsDebugEnabled() {
 		fmt.Println(string(debug.Stack()))
 	}
 
 	netutil.NewResponse(w).SetHttpStatus(httpStatus).SendJson(NewBody(errorMsg, httpStatus))
-
-	if monitor != nil {
-		if value := ctx.Value(netutil.StartTime); value != nil {
-			monitor.New(reflect.RuntimeMethodName(2)).FunctionTP(value.(time.Time), true)
-		}
-	}
 }
 
-func SendErrorMethodNotAllowed(ctx context.Context, w http.ResponseWriter, url string, method string, allowMethod string, monitor monitoring.Monitor) {
+func SendErrorMethodNotAllowed(ctx context.Context, w http.ResponseWriter, url string, method string, allowMethod string) {
 	err := fmt.Errorf(ErrReasonIncorrectHttpMethod, url, method, allowMethod)
 	netutil.NewResponse(w).SetHttpStatus(http.StatusMethodNotAllowed).SetAllowMethod(http.MethodPost).SendJson(NewBody(err.Error(), http.StatusMethodNotAllowed))
-
-	if monitor != nil {
-		if value := ctx.Value(netutil.StartTime); value != nil {
-			monitor.New(reflect.RuntimeMethodName(2)).FunctionTP(value.(time.Time), true)
-		}
-	}
 }
 
-func SendErrorRootCause(ctx context.Context, w http.ResponseWriter, httpStatus int, errorType string, errorReason string, monitor monitoring.Monitor) {
+func SendErrorRootCause(ctx context.Context, w http.ResponseWriter, httpStatus int, errorType string, errorReason string) {
 	if log.IsDebugEnabled() {
 		fmt.Println(string(debug.Stack()))
 	}
 	netutil.NewResponse(w).SetHttpStatus(httpStatus).SendJson(NewBodyRootCause(errorType, errorReason, httpStatus))
-
-	if monitor != nil {
-		if value := ctx.Value(netutil.StartTime); value != nil {
-			monitor.New(reflect.RuntimeMethodName(2)).FunctionTP(value.(time.Time), true)
-		}
-	}
 }
 
-func SendJsonBytes(ctx context.Context, w http.ResponseWriter, bytes []byte, monitor monitoring.Monitor) {
+func SendJsonBytes(ctx context.Context, w http.ResponseWriter, bytes []byte) {
 	netutil.NewResponse(w).SetHttpStatus(http.StatusOK).SendJsonBytes(bytes)
-	if monitor != nil {
-		if value := ctx.Value(netutil.StartTime); value != nil {
-			monitor.New(reflect.RuntimeMethodName(2)).FunctionTP(value.(time.Time), false)
-		}
-	}
 }
 
-func SendJson(ctx context.Context, w http.ResponseWriter, obj interface{}, monitor monitoring.Monitor) {
+func SendJson(ctx context.Context, w http.ResponseWriter, obj interface{}) {
 	netutil.NewResponse(w).SetHttpStatus(http.StatusOK).SendJson(obj)
-	if monitor != nil {
-		if value := ctx.Value(netutil.StartTime); value != nil {
-			monitor.New(reflect.RuntimeMethodName(2)).FunctionTP(value.(time.Time), false)
-		}
-	}
 }
 
-func SendJsonHttpReplySuccess(ctx context.Context, w http.ResponseWriter, obj interface{}, monitor monitoring.Monitor) {
+func SendJsonHttpReplySuccess(ctx context.Context, w http.ResponseWriter, obj interface{}) {
 	netutil.NewResponse(w).SendJsonHttpReplySuccess(obj)
-	if monitor != nil {
-		if value := ctx.Value(netutil.StartTime); value != nil {
-			monitor.New(reflect.RuntimeMethodName(2)).FunctionTP(value.(time.Time), false)
-		}
-	}
 }

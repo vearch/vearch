@@ -66,7 +66,7 @@ func NewServer(ctx context.Context) (*Server, error) {
 	}
 	netutil.SetMode(netutil.RouterModeGorilla)
 	httpServer := netutil.NewServer(httpServerConfig)
-	document.ExportDocumentHandler(httpServer, cli, config.Conf().NewMonitor(config.Router))
+	document.ExportDocumentHandler(httpServer, cli)
 
 	var rpcServer *grpc.Server
 	if config.Conf().Router.RpcPort > 0 {
@@ -80,7 +80,7 @@ func NewServer(ctx context.Context) (*Server, error) {
 				panic(fmt.Errorf("start rpc server failed to start: %v", err))
 			}
 		}()
-		document.ExportRpcHandler(rpcServer, cli, config.Conf().NewMonitor(config.Router))
+		document.ExportRpcHandler(rpcServer, cli)
 	}
 
 	routerCtx, routerCancel := context.WithCancel(ctx)

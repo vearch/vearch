@@ -80,6 +80,7 @@ struct GammaSearchCondition {
     range_query_result = nullptr;
     topn = 0;
     has_rank = false;
+    multi_vector_rank = false;
     metric_type = InnerProduct;
     sort_by_docid = false;
     min_dist = -1;
@@ -93,6 +94,7 @@ struct GammaSearchCondition {
     range_query_result = condition->range_query_result;
     topn = condition->topn;
     has_rank = condition->has_rank;
+    multi_vector_rank = condition->multi_vector_rank;
     metric_type = condition->metric_type;
     sort_by_docid = condition->sort_by_docid;
     min_dist = condition->min_dist;
@@ -110,6 +112,7 @@ struct GammaSearchCondition {
 
   int topn;
   bool has_rank;
+  bool multi_vector_rank;
   DistanceMetricType metric_type;
   bool sort_by_docid;
   float min_dist;
@@ -143,6 +146,12 @@ struct GammaResult {
   }
   ~GammaResult() {
     if (docs) {
+      for (int i = 0; i < topn; i++) {
+        if (docs[i]) {
+          delete docs[i];
+          docs[i] = nullptr;
+        }
+      }
       delete[] docs;
       docs = nullptr;
     }
@@ -150,13 +159,14 @@ struct GammaResult {
 
   bool init(int n, std::string *vec_names, int vec_num) {
     topn = n;
-    docs = new (std::nothrow) VectorDoc[topn];
+    docs = new (std::nothrow) VectorDoc*[topn];
     if (!docs) {
       // LOG(ERROR) << "docs in CommonDocs init error!";
       return false;
     }
     for (int i = 0; i < n; i++) {
-      if (!docs[i].init(vec_names, vec_num)) {
+      docs[i] = new VectorDoc();
+      if (!docs[i]->init(vec_names, vec_num)) {
         return false;
       }
     }
@@ -167,7 +177,7 @@ struct GammaResult {
   int total;
   int results_count;
 
-  VectorDoc *docs;
+  VectorDoc **docs;
 };
 
 struct IVFPQParamHelper {

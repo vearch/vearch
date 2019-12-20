@@ -35,7 +35,17 @@ class Node {
     size_ = size;
     value_ = (int *)malloc(size_ * sizeof(int));
   }
-  ~Node() { free(value_); }
+
+  ~Node() {
+    if (next_ != nullptr) {
+      delete next_;
+      next_ = nullptr;
+    }
+    if (value_ != nullptr) {
+      free(value_);
+      value_ = nullptr;
+    }
+  }
 
   Node *Add(int val) {
     if (num_ < size_) {
@@ -72,6 +82,13 @@ class NodeList {
     max_ = -1;
   }
 
+  ~NodeList() {
+    if (head_ != nullptr) {
+      delete head_;
+      head_ = nullptr;
+    }
+  }
+
   int Add(int val) {
     min_ = min_ < val ? min_ : val;
     max_ = max_ > val ? max_ : val;
@@ -102,7 +119,8 @@ class NodeList {
 
 class FieldRangeIndex {
  public:
-  FieldRangeIndex(const string &name, enum DataType field_type);
+  FieldRangeIndex(int idx, enum DataType field_type);
+  ~FieldRangeIndex();
 
   int Add(unsigned char *key, uint key_len, int value);
 
@@ -127,9 +145,9 @@ class FieldRangeIndex {
 
 const char *FieldRangeIndex::kDelim_ = "\001";
 
-FieldRangeIndex::FieldRangeIndex(const string &name, enum DataType field_type) {
-  string cache_file = string("cache_") + name + ".dis";
-  string main_file = string("main_") + name + ".dis";
+FieldRangeIndex::FieldRangeIndex(int idx, enum DataType field_type) {
+  string cache_file = string("cache_") + std::to_string(idx) + ".dis";
+  string main_file = string("main_") + std::to_string(idx) + ".dis";
 
   remove(cache_file.c_str());
   remove(main_file.c_str());
@@ -145,6 +163,35 @@ FieldRangeIndex::FieldRangeIndex(const string &name, enum DataType field_type) {
     is_numeric_ = false;
   } else {
     is_numeric_ = true;
+  }
+}
+
+FieldRangeIndex::~FieldRangeIndex() {
+  BtDb *bt = bt_open(cache_mgr_, main_mgr_);
+
+  if (bt_startkey(bt, nullptr, 0) == 0) {
+    while (bt_nextkey(bt)) {
+      if (bt->phase == 1) {
+        NodeList **list = (NodeList **)bt->mainval->value;
+        delete *list;
+      }
+    }
+  }
+
+  bt_unlockpage(BtLockRead, bt->cacheset->latch, __LINE__);
+  bt_unpinlatch(bt->cacheset->latch);
+
+  bt_unlockpage(BtLockRead, bt->mainset->latch, __LINE__);
+  bt_unpinlatch(bt->mainset->latch);
+  bt_close(bt);
+
+  if (cache_mgr_) {
+    bt_mgrclose(cache_mgr_);
+    cache_mgr_ = nullptr;
+  }
+  if (main_mgr_) {
+    bt_mgrclose(main_mgr_);
+    main_mgr_ = nullptr;
   }
 }
 
@@ -165,21 +212,24 @@ int FieldRangeIndex::Add(unsigned char *key, uint key_len, int value) {
 
   std::function<void(unsigned char *, uint)> InsertToBt =
       [&](unsigned char *key_to_add, uint key_len) {
-        NodeList list[1];
-        int ret = bt_findkey(bt, key_to_add, key_len, (unsigned char *)list,
-                             sizeof(NodeList));
+        NodeList *list;
+        int ret = bt_findkey(bt, key_to_add, key_len, (unsigned char *)&list,
+                             sizeof(NodeList **));
+        if (ret < 0) {
+          list = new NodeList;
+        }
         list->Add(value);
         if (ret < 0) {
-          BTERR bterr =
-              bt_insertkey(bt->main, key_to_add, key_len, 0,
-                           static_cast<void *>(list), sizeof(NodeList), Unique);
+          BTERR bterr = bt_insertkey(bt->main, key_to_add, key_len, 0,
+                                     static_cast<void *>(&list),
+                                     sizeof(NodeList **), Unique);
           if (bterr) {
             LOG(ERROR) << "Error " << bt->mgr->err;
           }
         } else {
-          BTERR bterr =
-              bt_insertkey(bt->main, key_to_add, key_len, 0,
-                           static_cast<void *>(list), sizeof(NodeList), Update);
+          BTERR bterr = bt_insertkey(bt->main, key_to_add, key_len, 0,
+                                     static_cast<void *>(&list),
+                                     sizeof(NodeList **), Update);
           if (bterr) {
             LOG(ERROR) << "Error " << bt->mgr->err;
           }
@@ -197,7 +247,7 @@ int FieldRangeIndex::Add(unsigned char *key, uint key_len, int value) {
     char *p, *k;
     k = strtok_r(key_s, kDelim_, &p);
     while (k != nullptr) {
-      InsertToBt(reinterpret_cast<unsigned char*>(k), strlen(k));
+      InsertToBt(reinterpret_cast<unsigned char *>(k), strlen(k));
       k = strtok_r(NULL, kDelim_, &p);
     }
   }
@@ -288,7 +338,7 @@ int FieldRangeIndex::Search(const string &tags, RangeQueryResult &result) {
     const unsigned char *key_tag =
         reinterpret_cast<const unsigned char *>(item.data());
 
-    NodeList list[1];
+    NodeList *list;
 
     int min_doc = std::numeric_limits<int>::max();
     int max_doc = 0;
@@ -296,7 +346,7 @@ int FieldRangeIndex::Search(const string &tags, RangeQueryResult &result) {
     BtDb *bt = bt_open(cache_mgr_, main_mgr_);
     int ret =
         bt_findkey(bt, const_cast<unsigned char *>(key_tag), item.length(),
-                   (unsigned char *)list, sizeof(NodeList));
+                   (unsigned char *)&list, sizeof(NodeList **));
     bt_close(bt);
 
     if (ret < 0) {
@@ -350,16 +400,31 @@ int FieldRangeIndex::Search(const string &tags, RangeQueryResult &result) {
   return retval;
 }
 
-MultiFieldsRangeIndex::MultiFieldsRangeIndex() {}
+MultiFieldsRangeIndex::MultiFieldsRangeIndex(Profile *profile) {
+  profile_ = profile;
+  fields_.resize(profile->FieldsNum());
+  std::fill(fields_.begin(), fields_.end(), nullptr);
+}
 
-int MultiFieldsRangeIndex::Add(const string &field, unsigned char *key,
-                               uint key_len, int value) {
-  const auto &iter = fields_.find(field);
-  if (iter == fields_.end()) {
+MultiFieldsRangeIndex::~MultiFieldsRangeIndex() {
+  for (size_t i = 0; i < fields_.size(); i++) {
+    if (fields_[i]) {
+      delete fields_[i];
+      fields_[i] = nullptr;
+    }
+  }
+}
+
+int MultiFieldsRangeIndex::Add(int docid, int field) {
+  FieldRangeIndex *index = fields_[field];
+  if (index == nullptr) {
     return 0;
   }
-  FieldRangeIndex *index = iter->second;
-  index->Add(key, key_len, value);
+
+  unsigned char *key;
+  int key_len = 0;
+  profile_->GetFieldRawValue(docid, field, &key, key_len);
+  index->Add(key, key_len, docid);
 
   return 0;
 }
@@ -375,12 +440,11 @@ int MultiFieldsRangeIndex::Search(const std::vector<FilterInfo> &filters,
       out.SetFlags(out.Flags() | 0x4);
     }
     RangeQueryResult tmp(out.Flags());
-    const auto &iter = fields_.find(_.field);
-    if (iter == fields_.end()) {
+    FieldRangeIndex *index = fields_[_.field];
+    if (index == nullptr || _.field < 0) {
       return -1;
     }
 
-    FieldRangeIndex *index = iter->second;
     int retval = index->Search(_.lower_value, _.upper_value, tmp);
     if (retval > 0) {
       out.Add(tmp);
@@ -396,8 +460,8 @@ int MultiFieldsRangeIndex::Search(const std::vector<FilterInfo> &filters,
   for (int i = 0; i < fsize; ++i) {
     auto &filter = filters[i];
 
-    const auto &iter = fields_.find(filter.field);
-    if (iter == fields_.end()) {
+    FieldRangeIndex *index = fields_[filter.field];
+    if (index == nullptr || filter.field < 0) {
       continue;
     }
 
@@ -408,7 +472,6 @@ int MultiFieldsRangeIndex::Search(const std::vector<FilterInfo> &filters,
 
     results[valuable_result + 1].SetFlags(flags);
 
-    FieldRangeIndex *index = iter->second;
     int retval = index->Search(filter.lower_value, filter.upper_value,
                                results[valuable_result + 1]);
     if (retval < 0) {
@@ -501,10 +564,9 @@ int MultiFieldsRangeIndex::Intersect(const RangeQueryResult *results, int j,
   return count;
 }
 
-int MultiFieldsRangeIndex::AddField(const string &field,
-                                    enum DataType field_type) {
+int MultiFieldsRangeIndex::AddField(int field, enum DataType field_type) {
   FieldRangeIndex *index = new FieldRangeIndex(field, field_type);
-  fields_.insert(std::make_pair(field, index));
+  fields_[field] = index;
   return 0;
 }
 }  // namespace tig_gamma

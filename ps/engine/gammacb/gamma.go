@@ -93,12 +93,12 @@ func New(cfg register.EngineConfig) (engine.Engine, error) {
 	ge.writer = &writerImpl{engine: ge}
 
 	infos, _ := ioutil.ReadDir(cfg.Path)
-	if len(infos) == 0 {
-		log.Info("to create table for gamma by path:[%s]", cfg.Path)
-		if resp := C.CreateTable(ge.gamma, table); resp != 0 {
-			return nil, fmt.Errorf("create gamma table has err:[%d]", int(resp))
-		}
-	} else {
+
+	log.Info("to create table for gamma by path:[%s]", cfg.Path)
+	if resp := C.CreateTable(ge.gamma, table); resp != 0 {
+		return nil, fmt.Errorf("create gamma table has err:[%d]", int(resp))
+	}
+	if len(infos) > 0 {
 		code := int(C.Load(ge.gamma))
 		if code != 0 {
 			return nil, fmt.Errorf("load gamma data err code:[%d]", code)
@@ -190,6 +190,11 @@ func (ge *gammaEngine) MapDocument(doc *pspb.DocCmd) ([]*pspb.Field, map[string]
 }
 
 func (ge *gammaEngine) Optimize() error {
+	if u, err := ge.reader.DocCount(ge.ctx); err != nil {
+		return err
+	} else if int64(u) < 8192 {
+		return fmt.Errorf("doc size:[%d] less than 8192 so can not to index", int64(u))
+	}
 	go func() {
 		ge.buildIndexOnce.Do(func() {
 			log.Info("build index:[%d] begin", ge.partitionID)
@@ -202,6 +207,12 @@ func (ge *gammaEngine) Optimize() error {
 	return nil
 }
 
+func (ge *gammaEngine) IndexStatus() int {
+	indexLocker.Lock()
+	defer indexLocker.Unlock()
+	return int(C.GetIndexStatus(ge.gamma))
+}
+
 func (ge *gammaEngine) BuildIndex() error {
 	indexLocker.Lock()
 	defer indexLocker.Unlock()
@@ -209,7 +220,7 @@ func (ge *gammaEngine) BuildIndex() error {
 	defer ge.counter.Decr()
 	gamma := ge.gamma
 	if gamma == nil {
-		return pkg.ErrPartitionClosed
+		return pkg.CodeErr(pkg.ERRCODE_PARTITION_IS_CLOSED)
 	}
 
 	//UNINDEXED = 0, INDEXING, INDEXED
@@ -223,7 +234,7 @@ func (ge *gammaEngine) BuildIndex() error {
 		select {
 		case <-ge.ctx.Done():
 			log.Error("partition:[%d] has closed so skip wait", ge.partitionID)
-			return pkg.ErrPartitionClosed
+			return pkg.CodeErr(pkg.ERRCODE_PARTITION_IS_CLOSED)
 		default:
 		}
 
@@ -254,6 +265,7 @@ func (ge *gammaEngine) Close() {
 				continue
 			}
 			C.Close(ge.gamma)
+			break
 		}
 	}()
 
@@ -266,6 +278,19 @@ func (ge *gammaEngine) autoCreateIndex() {
 	}
 
 	for {
+		select {
+		case <-ge.ctx.Done():
+			return
+		default:
+		}
+
+		s := C.GetIndexStatus(ge.gamma)
+
+		if int(s) == 2 {
+			log.Info("index:[%d] ok", ge.partitionID)
+			break
+		}
+
 		if u, err := ge.reader.DocCount(ge.ctx); err != nil {
 			log.Error("auto create index err :[%s]", err.Error())
 		} else if int64(u) >= ge.space.Engine.IndexSize {

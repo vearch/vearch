@@ -93,7 +93,7 @@ func (this *Response) SendJson(data interface{}) {
 func (this *Response) SendJsonHttpReplySuccess(data interface{}) {
 	httpReply := &HttpReply{
 		Code: pkg.ERRCODE_SUCCESS,
-		Msg:  pkg.ErrGeneralSuccess.Error(),
+		Msg:  pkg.SUCCESS,
 		Data: data,
 	}
 	this.SendJson(httpReply)

@@ -71,6 +71,9 @@ class GammaEngine {
 
  private:
   GammaEngine(const std::string &index_root_path);
+  int CreateTableFromLocal(std::string &table_name);
+
+ private:
   std::string index_root_path_;
   std::string dump_path_;
 
@@ -107,6 +110,9 @@ class GammaEngine {
   int dump_docid_;  // next dump docid
   int bitmap_bytes_size_;
   const std::string date_time_format_;
+
+  bool created_table_;
+  string dump_backup_path_;
 
 #ifdef PERFORMANCE_TESTING
   std::atomic<uint64_t> search_num_;

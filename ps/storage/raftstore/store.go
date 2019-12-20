@@ -125,6 +125,7 @@ func (s *Store) Start() (err error) {
 		return fmt.Errorf("start partition[%d] create raft error: %s", s.Partition.Id, err)
 	}
 
+
 	// Start Raft Sn Flush worker
 	s.startFlushJob()
 	// Start Raft Truncate Worker
@@ -174,8 +175,22 @@ func (s *Store) IsLeader() bool {
 	return s.NodeID == leaderID
 }
 
+
+func (s *Store) Status() *raft.Status {
+	return s.RaftServer.Status(uint64(s.Partition.Id))
+}
+
 func (s *Store) GetLeader() (entity.NodeID, uint64) {
 	return s.RaftServer.LeaderTerm(uint64(s.Partition.Id))
+}
+
+func (s *Store) TryToLeader() error {
+	future := s.RaftServer.TryToLeader(uint64(s.Partition.Id))
+	response , err := future.Response()
+	if response != nil && response.(*RaftApplyResponse).Err != nil {
+		return response.(*RaftApplyResponse).Err
+	}
+	return err
 }
 
 func (s *Store) GetUnreachable(id uint64) []uint64 {
@@ -207,7 +222,7 @@ func (s *Store) ChangeMember(changeType proto.ConfChangeType, server *entity.Ser
 		return err
 	}
 
-	if response!= nil && response.(*RaftApplyResponse).Err != nil {
+	if response != nil && response.(*RaftApplyResponse).Err != nil {
 		return response.(*RaftApplyResponse).Err
 	}
 

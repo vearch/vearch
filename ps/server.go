@@ -16,7 +16,6 @@ package ps
 
 import (
 	"context"
-	"github.com/vearch/vearch/util/monitoring"
 	"math"
 	"sync"
 	"time"
@@ -28,13 +27,13 @@ import (
 
 	"github.com/vearch/vearch/proto/entity"
 
-	"github.com/vearch/vearch/util/log"
 	"github.com/tiglabs/raft"
 	"github.com/vearch/vearch/client"
 	"github.com/vearch/vearch/config"
 	"github.com/vearch/vearch/ps/psutil"
 	"github.com/vearch/vearch/util/atomic"
 	_ "github.com/vearch/vearch/util/init"
+	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/util/routine"
 	rpc "github.com/vearch/vearch/util/server/rpc"
 	"runtime/debug"
@@ -55,7 +54,6 @@ type Server struct {
 	stopping      atomic.AtomicBool
 	wg            sync.WaitGroup
 	changeLeaderC chan *changeLeaderEntry
-	monitor       monitoring.Monitor
 }
 
 // NewServer create server instance
@@ -74,7 +72,6 @@ func NewServer(ctx context.Context) *Server {
 		client:        cli,
 		raftResolver:  raftstore.NewRaftResolver(),
 		changeLeaderC: changeLeaderC,
-		monitor:       config.Conf().NewMonitor(config.PS),
 	}
 
 	s.ctx, s.ctxCancel = context.WithCancel(ctx)

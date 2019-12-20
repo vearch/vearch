@@ -27,7 +27,7 @@ func NewSearchResponseErr(err error) *SearchResponse {
 		Status: &SearchStatus{
 			Total:  1,
 			Failed: 1,
-			Errors: map[string]error{pkg.ErrGeneralInternalError.Error(): err},
+			Errors: map[string]error{pkg.FormatErr(err): err},
 		},
 	}
 }
@@ -35,14 +35,15 @@ func NewSearchResponseErr(err error) *SearchResponse {
 type SearchResponses []*SearchResponse
 
 type SearchResponse struct {
-	PID      uint32            `json:"-"`
-	Timeout  bool              `json:"time_out"`
-	Status   *SearchStatus     `json:"status"`
-	Hits     Hits              `json:"hits"`
-	Total    uint64            `json:"total_hits"`
-	MaxScore float64           `json:"max_score"`
-	Took     int64             `json:"took"`
-	Explain  map[uint32]string `json:"explain,omitempty"`
+	PID       uint32            `json:"-"`
+	Timeout   bool              `json:"time_out"`
+	Status    *SearchStatus     `json:"status"`
+	Hits      Hits              `json:"hits"`
+	Total     uint64            `json:"total_hits"`
+	MaxScore  float64           `json:"max_score"`
+	MaxTook   int64             `json:"took"`
+	MaxTookID uint32            `json:"max_took_id"`
+	Explain   map[uint32]string `json:"explain,omitempty"`
 }
 
 // Merge will merge together multiple SearchResults during a MultiSearch, two args :[sortOrder, size]
@@ -53,6 +54,11 @@ func (sr *SearchResponse) Merge(other *SearchResponse, so sort.SortOrder, from, 
 	sr.Total += other.Total
 	if other.MaxScore > sr.MaxScore {
 		sr.MaxScore = other.MaxScore
+	}
+
+	if other.MaxTook > sr.MaxTook {
+		sr.MaxTook = other.MaxTook
+		sr.MaxTookID = other.MaxTookID
 	}
 
 	sr.Timeout = sr.Timeout && other.Timeout

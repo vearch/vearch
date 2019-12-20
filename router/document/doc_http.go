@@ -23,7 +23,6 @@ import (
 	"github.com/vearch/vearch/router/document/resp"
 	"github.com/vearch/vearch/util"
 	"github.com/vearch/vearch/util/cbjson"
-	"github.com/vearch/vearch/util/monitoring"
 	"html/template"
 	"net/http"
 	"strings"
@@ -33,9 +32,9 @@ import (
 	"github.com/vearch/vearch/util/uuid"
 
 	"github.com/spf13/cast"
-	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/client"
 	"github.com/vearch/vearch/config"
+	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/util/netutil"
 )
 
@@ -50,6 +49,7 @@ const (
 	UrlQueryRefresh         = "refresh"
 	UrlQueryURISort         = "sort"
 	UrlQueryTimeout         = "timeout"
+	ClientTypeValue         = "client_type"
 )
 
 const (
@@ -72,17 +72,15 @@ type DocumentHandler struct {
 	httpServer *netutil.Server
 	docService docService
 	client     *client.Client
-	monitor    monitoring.Monitor
 }
 
-func ExportDocumentHandler(httpServer *netutil.Server, client *client.Client, monitor monitoring.Monitor) {
+func ExportDocumentHandler(httpServer *netutil.Server, client *client.Client) {
 	docService := newDocService(client)
 
 	documentHandler := &DocumentHandler{
 		httpServer: httpServer,
 		docService: *docService,
 		client:     client,
-		monitor:    monitor,
 	}
 	if err := documentHandler.ExportToServer(); err != nil {
 		panic(err)
@@ -157,9 +155,9 @@ func (handler *DocumentHandler) cacheInfo(ctx context.Context, w http.ResponseWr
 	spaceName := reqArgs[UrlParamSpaceName]
 	space, err := handler.client.Master().Cache().SpaceByCache(context.Background(), dbName, spaceName)
 	if err != nil {
-		resp.SendErrorRootCause(ctx, w, 404, err.Error(), err.Error(), handler.monitor)
+		resp.SendErrorRootCause(ctx, w, 404, err.Error(), err.Error())
 	} else {
-		resp.SendJson(ctx, w, space, handler.monitor)
+		resp.SendJson(ctx, w, space)
 	}
 	return ctx, true
 }
@@ -173,26 +171,26 @@ func (handler *DocumentHandler) handleAuth(ctx context.Context, w http.ResponseW
 
 	if headerData == "" {
 		log.Warn("user visit %s has err not auth value ", r.URL)
-		resp.SendErrorRootCause(ctx, w, http.StatusNotFound, resp.ErrTypeAuthException, resp.ErrReasonAuthCodeNotFound, handler.monitor)
+		resp.SendErrorRootCause(ctx, w, http.StatusNotFound, resp.ErrTypeAuthException, resp.ErrReasonAuthCodeNotFound)
 		return ctx, false
 	}
 
 	username, password, err := util.AuthDecrypt(headerData)
 	if err != nil {
 		err := fmt.Errorf(resp.ErrReasonAuthDecryptFailed, err.Error())
-		resp.SendError(ctx, w, http.StatusBadRequest, err.Error(), handler.monitor)
+		resp.SendError(ctx, w, http.StatusBadRequest, err.Error())
 		return ctx, false
 	}
 
 	user, _ := handler.client.Master().Cache().UserByCache(ctx, username)
 	if user == nil {
 		log.Warn("user visit %s not found , name:[%s]  ", r.URL, username)
-		resp.SendError(ctx, w, http.StatusBadRequest, resp.ErrReasonUserNotFound, handler.monitor)
+		resp.SendError(ctx, w, http.StatusBadRequest, resp.ErrReasonUserNotFound)
 		return ctx, false
 	}
 	if user.Password != password {
 		log.Error("auth password not matched")
-		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, resp.ErrTypeAuthException, resp.ErrReasonAuthFailed, handler.monitor)
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, resp.ErrTypeAuthException, resp.ErrReasonAuthFailed)
 		return ctx, false
 	}
 
@@ -241,7 +239,7 @@ func (handler *DocumentHandler) handleClusterInfo(ctx context.Context, w http.Re
 	layer["version"] = versionLayer
 	layer["tagline"] = ""
 
-	resp.SendJson(ctx, w, layer, handler.monitor)
+	resp.SendJson(ctx, w, layer)
 	return ctx, true
 }
 
@@ -251,17 +249,17 @@ func (handler *DocumentHandler) handleGetSpaceMapping(ctx context.Context, w htt
 
 	space, err := handler.docService.getSpace(ctx, dbName, spaceName)
 	if err != nil {
-		if err == pkg.ErrMasterSpaceNotExists {
-			resp.SendErrorRootCause(ctx, w, http.StatusNotFound, "", err.Error(), handler.monitor)
+		if pkg.ErrCode(err) == pkg.ERRCODE_SPACE_NOTEXISTS {
+			resp.SendErrorRootCause(ctx, w, http.StatusNotFound, "", err.Error())
 		} else {
-			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error(), handler.monitor)
+			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 		}
 		return ctx, true
 	}
 
 	jsonMap, err := cbjson.ByteToJsonMap(space.Properties)
 	if err != nil {
-		resp.SendError(ctx, w, http.StatusBadRequest, err.Error(), handler.monitor)
+		resp.SendError(ctx, w, http.StatusBadRequest, err.Error())
 		return ctx, true
 	}
 
@@ -278,10 +276,9 @@ func (handler *DocumentHandler) handleGetSpaceMapping(ctx context.Context, w htt
 	dbLayer := make(map[string]interface{})
 	dbLayer[dbName] = mappingsLayer
 
-	resp.SendJson(ctx, w, dbLayer, handler.monitor)
+	resp.SendJson(ctx, w, dbLayer)
 	return ctx, true
 }
-
 
 func (handler *DocumentHandler) handleReplaceDoc(ctx context.Context, w http.ResponseWriter, r *http.Request, params netutil.UriParams) (context.Context, bool) {
 
@@ -292,14 +289,14 @@ func (handler *DocumentHandler) handleReplaceDoc(ctx context.Context, w http.Res
 
 	// check method and docID
 	if method == "PUT" && docID == "" {
-		resp.SendErrorMethodNotAllowed(ctx, w, r.URL.Path, method, http.MethodPost, handler.monitor)
+		resp.SendErrorMethodNotAllowed(ctx, w, r.URL.Path, method, http.MethodPost)
 		return ctx, true
 	}
 
 	reqArgs := netutil.GetUrlQuery(r)
 	reqBody, err := netutil.GetReqBody(r)
 	if err != nil {
-		resp.SendError(ctx, w, http.StatusBadRequest, err.Error(), handler.monitor)
+		resp.SendError(ctx, w, http.StatusBadRequest, err.Error())
 		return ctx, true
 	}
 
@@ -308,11 +305,11 @@ func (handler *DocumentHandler) handleReplaceDoc(ctx context.Context, w http.Res
 		writeResponse := response.WriteResponse{docResult}
 		bs, err := writeResponse.ToContent(dbName, spaceName)
 		if err != nil {
-			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error(), handler.monitor)
+			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 			return ctx, true
 		}
 
-		resp.SendJsonBytes(ctx, w, bs, handler.monitor)
+		resp.SendJsonBytes(ctx, w, bs)
 		return ctx, true
 	}
 
@@ -321,7 +318,7 @@ func (handler *DocumentHandler) handleReplaceDoc(ctx context.Context, w http.Res
 	}
 
 	if string(reqBody) == "" {
-		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, resp.ErrTypeParseException, resp.ErrReasonRequestBodyIsRequired, handler.monitor)
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, resp.ErrTypeParseException, resp.ErrReasonRequestBodyIsRequired)
 		return ctx, true
 	}
 
@@ -329,10 +326,10 @@ func (handler *DocumentHandler) handleReplaceDoc(ctx context.Context, w http.Res
 	writeResponse := response.WriteResponse{docResult}
 	bs, err := writeResponse.ToContent(dbName, spaceName)
 	if err != nil {
-		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error(), handler.monitor)
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 		return ctx, true
 	}
-	resp.SendJsonBytes(ctx, w, bs, handler.monitor)
+	resp.SendJsonBytes(ctx, w, bs)
 	return ctx, true
 }
 
@@ -344,7 +341,7 @@ func (handler *DocumentHandler) handleCreateDoc(ctx context.Context, w http.Resp
 	reqArgs := netutil.GetUrlQuery(r)
 	reqBody, err := netutil.GetReqBody(r)
 	if err != nil {
-		resp.SendError(ctx, w, http.StatusBadRequest, err.Error(), handler.monitor)
+		resp.SendError(ctx, w, http.StatusBadRequest, err.Error())
 		return ctx, true
 	}
 
@@ -352,11 +349,11 @@ func (handler *DocumentHandler) handleCreateDoc(ctx context.Context, w http.Resp
 	writeResponse := response.WriteResponse{docResult}
 	bs, err := writeResponse.ToContent(dbName, spaceName)
 	if err != nil {
-		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error(), handler.monitor)
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 		return ctx, true
 	}
 
-	resp.SendJsonBytes(ctx, w, bs, handler.monitor)
+	resp.SendJsonBytes(ctx, w, bs)
 	return ctx, true
 }
 
@@ -368,31 +365,31 @@ func (handler *DocumentHandler) handleUpdateDoc(ctx context.Context, w http.Resp
 
 	// check method
 	if method == "PUT" {
-		resp.SendErrorMethodNotAllowed(ctx, w, r.URL.Path, method, http.MethodPost, handler.monitor)
+		resp.SendErrorMethodNotAllowed(ctx, w, r.URL.Path, method, http.MethodPost)
 		return ctx, false
 	}
 
 	reqArgs := netutil.GetUrlQuery(r)
 	reqBody, err := netutil.GetReqBody(r)
 	if err != nil {
-		resp.SendError(ctx, w, http.StatusBadRequest, err.Error(), handler.monitor)
+		resp.SendError(ctx, w, http.StatusBadRequest, err.Error())
 		return ctx, false
 	}
 
 	if reqArgs[UrlQueryVersion] != "" && reqArgs[UrlQueryRetryOnConflict] != "" {
-		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "can't provide both retry_on_conflict and a specific version", handler.monitor)
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "can't provide both retry_on_conflict and a specific version")
 		return ctx, false
 	}
 
 	jsonMap, err := cbjson.ByteToJsonMap(reqBody)
 	if err != nil {
-		resp.SendError(ctx, w, http.StatusBadRequest, err.Error(), handler.monitor)
+		resp.SendError(ctx, w, http.StatusBadRequest, err.Error())
 		return ctx, false
 	}
-	
+
 	doc, err := jsonMap.GetJsonValBytes("doc")
 	if err != nil {
-		resp.SendError(ctx, w, http.StatusBadRequest, err.Error(), handler.monitor)
+		resp.SendError(ctx, w, http.StatusBadRequest, err.Error())
 		return ctx, false
 	}
 
@@ -401,11 +398,11 @@ func (handler *DocumentHandler) handleUpdateDoc(ctx context.Context, w http.Resp
 	writeResponse := response.WriteResponse{docResult}
 	bs, err := writeResponse.ToContent(dbName, spaceName)
 	if err != nil {
-		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error(), handler.monitor)
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 		return ctx, false
 	}
 
-	resp.SendJsonBytes(ctx, w, bs, handler.monitor)
+	resp.SendJsonBytes(ctx, w, bs)
 	return ctx, true
 }
 
@@ -421,11 +418,11 @@ func (handler *DocumentHandler) handleDeleteDoc(ctx context.Context, w http.Resp
 	writeResponse := response.WriteResponse{docResult}
 	bs, err := writeResponse.ToContent(dbName, spaceName)
 	if err != nil {
-		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error(), handler.monitor)
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 		return ctx, true
 	}
 
-	resp.SendJsonBytes(ctx, w, bs, handler.monitor)
+	resp.SendJsonBytes(ctx, w, bs)
 	return ctx, true
 }
 
@@ -439,11 +436,11 @@ func (handler *DocumentHandler) handleGetDoc(ctx context.Context, w http.Respons
 	docResult := handler.docService.getDoc(ctx, dbName, spaceName, docID, reqArgs)
 	bs, err := docResult.ToContent(dbName, spaceName)
 	if err != nil {
-		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error(), handler.monitor)
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 		return ctx, true
 	}
 
-	resp.SendJsonBytes(ctx, w, bs, handler.monitor)
+	resp.SendJsonBytes(ctx, w, bs)
 	return ctx, true
 }
 
@@ -454,24 +451,24 @@ func (handler *DocumentHandler) handleBulk(ctx context.Context, w http.ResponseW
 	reqArgs := netutil.GetUrlQuery(r)
 	reqBody, err := netutil.GetReqBody(r)
 	if err != nil {
-		resp.SendError(ctx, w, http.StatusBadRequest, err.Error(), handler.monitor)
+		resp.SendError(ctx, w, http.StatusBadRequest, err.Error())
 		return ctx, false
 	}
 
 	t1 := time.Now()
 	writeResponse, err := handler.docService.bulk(ctx, dbName, spaceName, reqArgs, reqBody)
 	if err != nil {
-		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error(), handler.monitor)
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 		return ctx, true
 	}
 	t2 := time.Now()
 	bulkResponse := &response.BulkResponse{Items: writeResponse}
 	bs, err := bulkResponse.ToContent(t2.Sub(t1).Nanoseconds())
 	if err != nil {
-		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error(), handler.monitor)
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 		return ctx, true
 	}
-	resp.SendJsonBytes(ctx, w, bs, handler.monitor)
+	resp.SendJsonBytes(ctx, w, bs)
 	return ctx, true
 }
 
@@ -482,7 +479,7 @@ func (handler *DocumentHandler) handleMSearchDoc(ctx context.Context, w http.Res
 	reqArgs := netutil.GetUrlQuery(r)
 	reqBody, err := netutil.GetReqBody(r)
 	if err != nil {
-		resp.SendError(ctx, w, http.StatusBadRequest, err.Error(), handler.monitor)
+		resp.SendError(ctx, w, http.StatusBadRequest, err.Error())
 		return ctx, true
 	}
 
@@ -490,7 +487,7 @@ func (handler *DocumentHandler) handleMSearchDoc(ctx context.Context, w http.Res
 	if len(reqBody) != 0 {
 		err := cbjson.Unmarshal(reqBody, searchRequest.SearchDocumentRequest)
 		if err != nil {
-			resp.SendError(ctx, w, http.StatusBadRequest, err.Error(), handler.monitor)
+			resp.SendError(ctx, w, http.StatusBadRequest, err.Error())
 			return ctx, true
 		}
 	}
@@ -522,7 +519,7 @@ func (handler *DocumentHandler) handleMSearchDoc(ctx context.Context, w http.Res
 		var b bytes.Buffer
 		err := t.Execute(&b, obj)
 		if err != nil {
-			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error(), handler.monitor)
+			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 			return ctx, true
 		}
 		searchRequest.Sort = b.Bytes()
@@ -537,18 +534,18 @@ func (handler *DocumentHandler) handleMSearchDoc(ctx context.Context, w http.Res
 	t1 := time.Now()
 	searchResponses, nameCache, err := handler.docService.mSearchDoc(ctx, dbName, spaceName, searchRequest)
 	if err != nil {
-		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error(), handler.monitor)
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 		return ctx, true
 	}
 	t2 := time.Now()
 
 	bs, err := searchResponses.ToContent(searchRequest.From, *searchRequest.Size, nameCache, typedKeys, t2.Sub(t1))
 	if err != nil {
-		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error(), handler.monitor)
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 		return ctx, true
 	}
 
-	resp.SendJsonBytes(ctx, w, bs, handler.monitor)
+	resp.SendJsonBytes(ctx, w, bs)
 	return ctx, true
 }
 
@@ -559,7 +556,7 @@ func (handler *DocumentHandler) handleDeleteByQuery(ctx context.Context, w http.
 	reqArgs := netutil.GetUrlQuery(r)
 	reqBody, err := netutil.GetReqBody(r)
 	if err != nil {
-		resp.SendError(ctx, w, http.StatusBadRequest, err.Error(), handler.monitor)
+		resp.SendError(ctx, w, http.StatusBadRequest, err.Error())
 		return ctx, true
 	}
 
@@ -567,7 +564,7 @@ func (handler *DocumentHandler) handleDeleteByQuery(ctx context.Context, w http.
 	if len(reqBody) != 0 {
 		err := cbjson.Unmarshal(reqBody, searchRequest.SearchDocumentRequest)
 		if err != nil {
-			resp.SendError(ctx, w, http.StatusBadRequest, err.Error(), handler.monitor)
+			resp.SendError(ctx, w, http.StatusBadRequest, err.Error())
 			return ctx, true
 		}
 	}
@@ -582,7 +579,7 @@ func (handler *DocumentHandler) handleDeleteByQuery(ctx context.Context, w http.
 
 	rep, _, err := handler.docService.deleteByQuery(ctx, dbName, spaceName, searchRequest)
 	if err != nil {
-		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error(), handler.monitor)
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 		return ctx, true
 	}
 
@@ -590,7 +587,7 @@ func (handler *DocumentHandler) handleDeleteByQuery(ctx context.Context, w http.
 		rep.Status = 200
 	}
 
-	resp.SendJson(ctx, w, rep, handler.monitor)
+	resp.SendJson(ctx, w, rep)
 	return ctx, true
 }
 
@@ -601,7 +598,7 @@ func (handler *DocumentHandler) handleSearchDoc(ctx context.Context, w http.Resp
 	reqArgs := netutil.GetUrlQuery(r)
 	reqBody, err := netutil.GetReqBody(r)
 	if err != nil {
-		resp.SendError(ctx, w, http.StatusBadRequest, err.Error(), handler.monitor)
+		resp.SendError(ctx, w, http.StatusBadRequest, err.Error())
 		return ctx, true
 	}
 
@@ -609,7 +606,7 @@ func (handler *DocumentHandler) handleSearchDoc(ctx context.Context, w http.Resp
 	if len(reqBody) != 0 {
 		err := cbjson.Unmarshal(reqBody, searchRequest.SearchDocumentRequest)
 		if err != nil {
-			resp.SendError(ctx, w, http.StatusBadRequest, err.Error(), handler.monitor)
+			resp.SendError(ctx, w, http.StatusBadRequest, err.Error())
 			return ctx, true
 		}
 	}
@@ -641,7 +638,7 @@ func (handler *DocumentHandler) handleSearchDoc(ctx context.Context, w http.Resp
 		var b bytes.Buffer
 		err := t.Execute(&b, obj)
 		if err != nil {
-			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error(), handler.monitor)
+			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 			return ctx, true
 		}
 		searchRequest.Sort = b.Bytes()
@@ -653,21 +650,35 @@ func (handler *DocumentHandler) handleSearchDoc(ctx context.Context, w http.Resp
 		searchRequest.Size = &size
 	}
 
+	var clientType client.ClientType
+
+	switch reqArgs[ClientTypeValue] {
+	case "leader", "":
+		clientType = client.LEADER
+	case "random":
+		clientType = client.RANDOM
+	default:
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", fmt.Sprintf("client_type err param:[%s] , it use `leader` or `random`", reqArgs[ClientTypeValue]))
+		return ctx, true
+	}
+
 	t1 := time.Now()
-	searchResponse, nameCache, err := handler.docService.searchDoc(ctx, dbName, spaceName, searchRequest)
+	searchResponse, nameCache, err := handler.docService.searchDoc(ctx, dbName, spaceName, searchRequest, clientType)
 	if err != nil {
-		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error(), handler.monitor)
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 		return ctx, true
 	}
 	t2 := time.Now()
 
 	bs, err := searchResponse.ToContent(searchRequest.From, *searchRequest.Size, nameCache, typedKeys, t2.Sub(t1))
 	if err != nil {
-		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error(), handler.monitor)
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 		return ctx, true
 	}
 
-	resp.SendJsonBytes(ctx, w, bs, handler.monitor)
+	log.Info("search use time :[%d] . max partition:[%d] use time:[%d]", (t2.Sub(t1) / time.Millisecond), searchResponse.MaxTookID, searchResponse.MaxTook)
+
+	resp.SendJsonBytes(ctx, w, bs)
 	return ctx, true
 }
 
@@ -678,7 +689,7 @@ func (handler *DocumentHandler) handleStreamSearchDoc(ctx context.Context, w htt
 	reqArgs := netutil.GetUrlQuery(r)
 	reqBody, err := netutil.GetReqBody(r)
 	if err != nil {
-		resp.SendError(ctx, w, http.StatusBadRequest, err.Error(), handler.monitor)
+		resp.SendError(ctx, w, http.StatusBadRequest, err.Error())
 		return ctx, true
 	}
 
@@ -686,7 +697,7 @@ func (handler *DocumentHandler) handleStreamSearchDoc(ctx context.Context, w htt
 	if len(reqBody) != 0 {
 		err := cbjson.Unmarshal(reqBody, searchRequest.SearchDocumentRequest)
 		if err != nil {
-			resp.SendError(ctx, w, http.StatusBadRequest, err.Error(), handler.monitor)
+			resp.SendError(ctx, w, http.StatusBadRequest, err.Error())
 			return ctx, true
 		}
 	}
@@ -702,7 +713,7 @@ func (handler *DocumentHandler) handleStreamSearchDoc(ctx context.Context, w htt
 	dsr, nameCache, err := handler.docService.streamSearchDoc(ctx, dbName, spaceName, searchRequest)
 	defer dsr.Close()
 	if err != nil {
-		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error(), handler.monitor)
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 		return ctx, true
 	}
 
@@ -718,7 +729,7 @@ func (handler *DocumentHandler) handleStreamSearchDoc(ctx context.Context, w htt
 	for {
 		result, err := dsr.Next()
 		if err != nil {
-			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error(), handler.monitor)
+			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 			return ctx, true
 		}
 
@@ -729,17 +740,17 @@ func (handler *DocumentHandler) handleStreamSearchDoc(ctx context.Context, w htt
 		names := nameCache[[2]int64{result.DB, result.Space}]
 		content, err := result.ToContent(names[0], names[1])
 		if err != nil {
-			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error(), handler.monitor)
+			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 			return ctx, true
 		}
 		_, err = w.Write(content)
 		if err != nil {
-			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error(), handler.monitor)
+			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 			return ctx, true
 		}
 		_, err = w.Write(line)
 		if err != nil {
-			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error(), handler.monitor)
+			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 			return ctx, true
 		}
 	}
@@ -752,16 +763,16 @@ func (handler *DocumentHandler) handleFlush(ctx context.Context, w http.Response
 
 	shards, err := handler.docService.flush(ctx, dbName, spaceName)
 	if err != nil {
-		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error(), handler.monitor)
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 		return ctx, true
 	}
 	shardsBytes, err := shards.ToContent()
 	if err != nil {
-		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error(), handler.monitor)
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 		return ctx, true
 	}
 
-	resp.SendJsonBytes(ctx, w, shardsBytes, handler.monitor)
+	resp.SendJsonBytes(ctx, w, shardsBytes)
 	return ctx, true
 }
 
@@ -771,16 +782,16 @@ func (handler *DocumentHandler) handleForceMerge(ctx context.Context, w http.Res
 
 	shards, err := handler.docService.forceMerge(ctx, dbName, spaceName)
 	if err != nil {
-		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error(), handler.monitor)
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 		return ctx, true
 	}
 	shardsBytes, err := shards.ToContent()
 	if err != nil {
-		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error(), handler.monitor)
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 		return ctx, true
 	}
 
-	resp.SendJsonBytes(ctx, w, shardsBytes, handler.monitor)
+	resp.SendJsonBytes(ctx, w, shardsBytes)
 	return ctx, true
 }
 
@@ -792,10 +803,10 @@ func (handler *DocumentHandler) namePasswordEncrypt(ctx context.Context, w http.
 	password := reqArgs["password"]
 
 	if userName == "" || password == "" {
-		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "url param must have ip:port?name=yourName&password=yourPassword", handler.monitor)
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "url param must have ip:port?name=yourName&password=yourPassword")
 		return ctx, true
 	}
 
-	resp.SendJsonHttpReplySuccess(ctx, w, util.AuthEncrypt(userName, password), handler.monitor)
+	resp.SendJsonHttpReplySuccess(ctx, w, util.AuthEncrypt(userName, password))
 	return ctx, true
 }

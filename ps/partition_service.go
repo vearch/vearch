@@ -16,6 +16,7 @@ package ps
 
 import (
 	"context"
+	"github.com/tiglabs/raft"
 	"github.com/tiglabs/raft/proto"
 	"github.com/vearch/vearch/proto/request"
 	"sync"
@@ -58,6 +59,10 @@ type Raft interface {
 
 	IsLeader() bool
 
+	TryToLeader() error
+
+	Status() *raft.Status
+
 	GetVersion() uint64
 
 	GetUnreachable(id uint64) []uint64
@@ -95,6 +100,14 @@ func (s *Server) GetPartition(id entity.PartitionID) (partition PartitionStore) 
 		partition = p.(PartitionStore)
 	}
 	return
+}
+
+func (s *Server) RangePartition(fun func(entity.PartitionID, PartitionStore)) {
+
+	s.partitions.Range(func(key, value interface{}) bool {
+		fun(key.(entity.PartitionID), value.(PartitionStore))
+		return true
+	})
 }
 
 //load partition for in disk
@@ -159,6 +172,25 @@ func (s *Server) CreatePartition(ctx context.Context, space *entity.Space, pid e
 
 	s.partitions.Store(pid, store)
 	return nil
+}
+
+func (s *Server) DeleteReplica(id entity.PartitionID) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if p, ok := s.partitions.Load(id); ok {
+		s.partitions.Delete(id)
+		if partition, is := p.(PartitionStore); is {
+			s.raftResolver.DeleteNode(s.nodeID)
+			if err := partition.Destroy(); err != nil {
+				log.Error("delete partition[%v] fail cause: %v", id, err)
+			}
+		}
+
+	}
+
+	psutil.ClearPartition(config.Conf().GetDataDirBySlot(config.PS, id), id)
+	log.Info("delete partition[%d] success", id)
 }
 
 func (s *Server) DeletePartition(id entity.PartitionID) {

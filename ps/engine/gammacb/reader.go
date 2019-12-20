@@ -84,7 +84,7 @@ func (ri *readerImpl) MSearch(ctx context.Context, request *request.SearchReques
 
 	gamma := ri.engine.gamma
 	if gamma == nil {
-		return response.SearchResponses{response.NewSearchResponseErr(vearchlog.LogErrAndReturn(pkg.ErrPartitionClosed))}
+		return response.SearchResponses{response.NewSearchResponseErr(vearchlog.LogErrAndReturn(pkg.CodeErr(pkg.ERRCODE_PARTITION_IS_CLOSED)))}
 	}
 
 	builder := &queryBuilder{mapping: ri.engine.GetMapping()}
@@ -100,7 +100,7 @@ func (ri *readerImpl) MSearch(ctx context.Context, request *request.SearchReques
 		nil, C.int(0),
 		nil, C.int(0),
 		C.int(1), C.int(0),
-		nil, hasRank,
+		nil, hasRank, C.int(0),
 	)
 
 	defer C.DestroyRequest(req)
@@ -125,12 +125,8 @@ func (ri *readerImpl) MSearch(ctx context.Context, request *request.SearchReques
 		req.fields_num = C.int(len(fs))
 	}
 
-	if log.IsDebugEnabled() {
-		log.Debug("send request:[%v]", req)
-	}
 	reps := C.Search(ri.engine.gamma, req)
 	defer C.DestroyResponse(reps)
-
 	result := make(response.SearchResponses, int(req.req_num))
 
 	for index := range result {
@@ -146,7 +142,7 @@ func (ri *readerImpl) Search(ctx context.Context, request *request.SearchRequest
 
 	gamma := ri.engine.gamma
 	if gamma == nil {
-		return response.NewSearchResponseErr(vearchlog.LogErrAndReturn(pkg.ErrPartitionClosed))
+		return response.NewSearchResponseErr(vearchlog.LogErrAndReturn(pkg.CodeErr(pkg.ERRCODE_PARTITION_IS_CLOSED)))
 	}
 
 	builder := &queryBuilder{mapping: ri.engine.GetMapping()}
@@ -162,7 +158,7 @@ func (ri *readerImpl) Search(ctx context.Context, request *request.SearchRequest
 		nil, C.int(0),
 		nil, C.int(0),
 		C.int(1), C.int(0),
-		nil, hasRank,
+		nil, hasRank, C.int(0),
 	)
 
 	defer C.DestroyRequest(req)
@@ -191,13 +187,13 @@ func (ri *readerImpl) Search(ctx context.Context, request *request.SearchRequest
 		log.Debug("send request:[%v]", req)
 	}
 	start := time.Now()
+
 	reps := C.Search(gamma, req)
-	end := time.Now().Sub(start)
 	defer C.DestroyResponse(reps)
 
 	result := ri.singleSearchResult(reps, 0)
-
-	result.Took = end.Nanoseconds()
+	result.MaxTook = int64(time.Now().Sub(start) / time.Millisecond)
+	result.MaxTookID = ri.engine.partitionID
 
 	return result
 
@@ -209,11 +205,11 @@ func (ri *readerImpl) singleSearchResult(reps *C.struct_Response, index int) *re
 		msg := string(CbArr2ByteArray(rep.msg)) + ", code:[%d]"
 		return response.NewSearchResponseErr(vearchlog.LogErrAndReturn(fmt.Errorf(msg, rep.result_code)))
 	}
-
 	hits := make(response.Hits, 0, int(rep.result_num))
 
 	var maxScore float64 = -1
 	size := int(rep.result_num)
+
 	for i := 0; i < size; i++ {
 		item := C.GetResultItem(rep, C.int(i))
 		result := ri.engine.ResultItem2DocResult(item)
@@ -267,7 +263,7 @@ func (ri *readerImpl) DocCount(ctx context.Context) (uint64, error) {
 
 	gamma := ri.engine.gamma
 	if gamma == nil {
-		return 0, vearchlog.LogErrAndReturn(pkg.ErrPartitionClosed)
+		return 0, vearchlog.LogErrAndReturn(pkg.CodeErr(pkg.ERRCODE_PARTITION_IS_CLOSED))
 	}
 
 	num := C.GetDocsNum(gamma)

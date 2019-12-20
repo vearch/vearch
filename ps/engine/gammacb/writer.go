@@ -71,7 +71,7 @@ func (wi *writerImpl) Create(ctx context.Context, docCmd *pspb.DocCmd) *response
 
 	gamma := wi.engine.gamma
 	if gamma == nil {
-		return response.NewErrDocResult(docCmd.DocId, pkg.ErrPartitionClosed)
+		return response.NewErrDocResult(docCmd.DocId, pkg.CodeErr(pkg.ERRCODE_PARTITION_IS_CLOSED))
 	}
 
 	cDoc, err := DocCmd2Document(docCmd)
@@ -93,7 +93,7 @@ func (wi *writerImpl) Update(ctx context.Context, docCmd *pspb.DocCmd) *response
 
 	gamma := wi.engine.gamma
 	if gamma == nil {
-		return response.NewErrDocResult(docCmd.DocId, pkg.ErrPartitionClosed)
+		return response.NewErrDocResult(docCmd.DocId, pkg.CodeErr(pkg.ERRCODE_PARTITION_IS_CLOSED))
 	}
 
 	cDoc, err := DocCmd2Document(docCmd)
@@ -117,11 +117,11 @@ func (wi *writerImpl) Delete(ctx context.Context, docCmd *pspb.DocCmd) *response
 
 	gamma := wi.engine.gamma
 	if gamma == nil {
-		return response.NewErrDocResult(docCmd.DocId, pkg.ErrPartitionClosed)
+		return response.NewErrDocResult(docCmd.DocId, pkg.CodeErr(pkg.ERRCODE_PARTITION_IS_CLOSED))
 	}
 
 	if docCmd.Version == 0 {
-		return response.NewErrDocResult(docCmd.DocId, pkg.ErrDocDelVersionNotSpecified)
+		return response.NewErrDocResult(docCmd.DocId, pkg.CodeErr(pkg.ERRCODE_PULL_OUT_VERSION_NOT_MATCH))
 	}
 
 	if docCmd.Version < 0 {
@@ -136,12 +136,12 @@ func (wi *writerImpl) Delete(ctx context.Context, docCmd *pspb.DocCmd) *response
 			return response.NewNotFoundDocResult(docCmd.DocId)
 		}
 		if !doc.Found {
-			return response.NewErrDocResult(docCmd.DocId, pkg.ErrDocumentNotExist)
+			return response.NewErrDocResult(docCmd.DocId, pkg.CodeErr(pkg.ERRCODE_DOCUMENT_NOT_EXIST))
 		}
 
 		if docCmd.Version != doc.Version {
 			if docCmd.PulloutVersion {
-				return response.NewErrDocResult(docCmd.DocId, pkg.ErrDocPulloutVersionNotMatch)
+				return response.NewErrDocResult(docCmd.DocId, pkg.CodeErr(pkg.ERRCODE_PULL_OUT_VERSION_NOT_MATCH))
 			} else {
 				return response.NewErrDocResult(docCmd.DocId, fmt.Errorf("document version not same new:[%d] old:[%d]", docCmd.Version, doc.Version))
 			}
@@ -160,7 +160,7 @@ func (wi *writerImpl) Flush(ctx context.Context, sn int64) error {
 
 	gamma := wi.engine.gamma
 	if gamma == nil {
-		return pkg.ErrPartitionClosed
+		return pkg.CodeErr(pkg.ERRCODE_PARTITION_IS_CLOSED)
 	}
 
 	wi.engine.lock.Lock()
@@ -183,7 +183,7 @@ func (wi *writerImpl) Commit(ctx context.Context, snx int64) (chan error, error)
 
 	gamma := wi.engine.gamma
 	if gamma == nil {
-		return nil, pkg.ErrPartitionClosed
+		return nil, pkg.CodeErr(pkg.ERRCODE_PARTITION_IS_CLOSED)
 	}
 
 	flushC := make(chan error, 1)

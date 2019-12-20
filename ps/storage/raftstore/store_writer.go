@@ -167,7 +167,7 @@ func (s *Store) Write(ctx context.Context, request *pspb.DocCmd) (result *respon
 		if doc.Found {
 			raftCmd.WriteCommand.Version = doc.Version
 		} else if request.Type == pspb.OpType_MERGE || request.Type == pspb.OpType_DELETE {
-			return nil, pkg.ErrDocumentNotExist
+			return nil, pkg.CodeErr(pkg.ERRCODE_DOCUMENT_NOT_EXIST)
 		}
 	}
 
@@ -233,14 +233,14 @@ func (s *Store) Flush(ctx context.Context) error {
 func (s *Store) checkWritable() error {
 	switch s.Partition.GetStatus() {
 	case entity.PA_INVALID:
-		return pkg.ErrPartitionInvalid
+		return pkg.CodeErr(pkg.ERRCODE_PARTITION_IS_INVALID)
 	case entity.PA_CLOSED:
-		return pkg.ErrPartitionClosed
+		return pkg.CodeErr(pkg.ERRCODE_PARTITION_IS_CLOSED)
 	case entity.PA_READONLY:
-		return pkg.ErrPartitionNotLeader
-	case entity.PA_READWRITE:
+		return pkg.CodeErr(pkg.ERRCODE_PARTITION_NOT_LEADER)
+	case entity.PA_READWRITE, entity.PA_CANNOT_SEARCH:
 		return nil
 	default:
-		return pkg.ErrGeneralInternalError
+		return pkg.CodeErr(pkg.ERRCODE_INTERNAL_ERROR)
 	}
 }

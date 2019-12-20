@@ -30,6 +30,10 @@ long get_file_size(const char *path) {
   return filesize;
 }
 
+long get_file_size(const std::string &path) {
+  return get_file_size(path.c_str());
+}
+
 std::vector<std::string> split(const std::string &p_str,
                                const std::string &p_separator) {
   std::vector<std::string> ret;
@@ -93,6 +97,13 @@ int isFolderExist(const char *path) {
   return -1;
 }
 
+int make_dir(const char *path) {
+  if (!utils::isFolderExist(path)) {
+    return mkdir(path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+  }
+  return 0;
+}
+
 int remove_dir(const char *path) {
   DIR *d = opendir(path);
   size_t path_len = strlen(path);
@@ -143,6 +154,15 @@ int remove_dir(const char *path) {
   }
 
   return r;
+}
+
+int move_dir(const char *src, const char *dst, bool backup) {
+  std::string option = "";
+  if (backup) {
+    option += "--backup=t";
+  }
+  std::string cmd = std::string("/bin/mv ") + option + " " + src + " " + dst;
+  return system(cmd.c_str());
 }
 
 inline bool is_folder(const char *dir_name) {
@@ -269,6 +289,7 @@ MEM_PACK *get_memoccupy() {
   mem_used_rate = (1 - m->total / mem_total) * 100;
   mem_total = mem_total / (1024 * 1024);
   p->total = mem_total;
+  p->available = (double)m->total / (1024 * 1024);
   p->used_rate = mem_used_rate;
   fclose(fd);
   free(m);
@@ -299,6 +320,36 @@ int JsonParser::GetString(const std::string &name, std::string &value) {
   if (jvalue == nullptr || !cJSON_IsString(jvalue)) return -1;
   value.assign(jvalue->valuestring);
   return 0;
+}
+
+bool JsonParser::Contains(const std::string &name) {
+  cJSON *jvalue = cJSON_GetObjectItemCaseSensitive(content_, name.c_str());
+  if (jvalue == nullptr) return false;
+  return true;
+}
+
+FileIO::FileIO(std::string &file_path) : path(file_path), fp(nullptr) {}
+FileIO::~FileIO() {
+  if (fp) {
+    fclose(fp);
+    fp = nullptr;
+  }
+}
+
+int FileIO::Open(const char *mode) {
+  fp = fopen(path.c_str(), mode);
+  if (fp == nullptr) {
+    return -1;
+  }
+  return 0;
+}
+
+size_t FileIO::Write(void *data, size_t size, size_t m) {
+  return fwrite(data, size, m, fp);
+}
+
+size_t FileIO::Read(void *data, size_t size, size_t m) {
+  return fread(data, size, m, fp);
 }
 
 }  // namespace utils

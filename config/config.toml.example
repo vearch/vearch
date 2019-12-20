@@ -30,10 +30,14 @@
     # advertise_client_urls AND listen_client_urls
     etcd_client_port = 2370
     pprof_port = 6062
+    # monitor
+    monitor_port = 8818
+
 
 [router]
     # port for server
     port = 9001
+    # rpc_port = 9002
     pprof_port = 6061
     plugin_path = "plugin"
 

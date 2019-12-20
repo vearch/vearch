@@ -14,7 +14,8 @@ namespace realtime {
 
 RTInvertIndex::RTInvertIndex(faiss::Index *index, long max_vec_size,
                              size_t bucket_keys, size_t bucket_keys_limit)
-    : _bucket_keys(bucket_keys), _bucket_keys_limit(bucket_keys_limit),
+    : _bucket_keys(bucket_keys),
+      _bucket_keys_limit(bucket_keys_limit),
       _max_vec_size(max_vec_size) {
   _cur_ptr = nullptr;
   if (index) {
@@ -25,34 +26,26 @@ RTInvertIndex::RTInvertIndex(faiss::Index *index, long max_vec_size,
 }
 
 RTInvertIndex::~RTInvertIndex() {
-  if (!_index_ivf) {
-    delete _index_ivf;
-    _index_ivf = nullptr;
-  }
-  if (!_cur_ptr) {
+  if (_cur_ptr) {
     delete _cur_ptr;
     _cur_ptr = nullptr;
   }
 }
 
 bool RTInvertIndex::Init() {
-  if (nullptr == _index_ivf)
-    return false;
+  if (nullptr == _index_ivf) return false;
   _cur_ptr = new (std::nothrow) RealTimeMemData(
       _index_ivf->nlist, _max_vec_size, _bucket_keys, _index_ivf->code_size);
-  if (nullptr == _cur_ptr)
-    return false;
+  if (nullptr == _cur_ptr) return false;
 
-  if (!_cur_ptr->Init())
-    return false;
+  if (!_cur_ptr->Init()) return false;
   return true;
 }
 
 bool RTInvertIndex::AddKeys(std::map<int, std::vector<long>> &new_keys,
                             std::map<int, std::vector<uint8_t>> &new_codes) {
   // error, not index_ivf
-  if (!_index_ivf)
-    return false;
+  if (!_index_ivf) return false;
 
   std::map<int, std::vector<long>>::iterator new_keys_iter = new_keys.begin();
 
@@ -76,7 +69,7 @@ bool RTInvertIndex::AddKeys(std::map<int, std::vector<long>> &new_keys,
       std::vector<uint8_t> &new_codes_vec = new_codes[bucket_no];
       _cur_ptr->AddKeys((size_t)bucket_no, (size_t)keys_size, new_keys_vec,
                         new_codes_vec);
-    } else { // can not add new keys any more
+    } else {  // can not add new keys any more
       if (_cur_ptr->_cur_invert_ptr->_cur_bucket_keys[bucket_no] * 2 >=
           (int)_bucket_keys_limit) {
         LOG(WARNING)
@@ -88,7 +81,7 @@ bool RTInvertIndex::AddKeys(std::map<int, std::vector<long>> &new_keys,
             << _cur_ptr->_cur_invert_ptr->_cur_bucket_keys[bucket_no] << "]";
         return false;
       } else {
-#if 0 // memory limit
+#if 0  // memory limit
         utils::MEM_PACK *p = utils::get_memoccupy();
         if (p->used_rate > 80) {
           LOG(WARNING)
@@ -138,13 +131,15 @@ int RTInvertIndex::RetrieveCodes(
                                  bucket_vids);
 }
 
-int RTInvertIndex::Dump(const std::string &dir, int max_vid) {
-  return _cur_ptr->Dump(dir, max_vid);
+int RTInvertIndex::Dump(const std::string &dir, const std::string &vec_name,
+                        int max_vid) {
+  return _cur_ptr->Dump(dir, vec_name, max_vid);
 }
 
-int RTInvertIndex::Load(const std::vector<std::string> &index_dirs) {
-  return _cur_ptr->Load(index_dirs);
+int RTInvertIndex::Load(const std::vector<std::string> &index_dirs,
+                        const std::string &vec_name) {
+  return _cur_ptr->Load(index_dirs, vec_name);
 }
 
-} // namespace realtime
-} // namespace tig_gamma
+}  // namespace realtime
+}  // namespace tig_gamma

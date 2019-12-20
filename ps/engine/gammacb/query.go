@@ -119,7 +119,13 @@ func (qb *queryBuilder) parseTerm(data []byte) (*C.struct_TermFilter, error) {
 
 	for field, rv := range tmp {
 
-		if qb.mapping.GetField(field).Options()&pspb.FieldOption_Index != pspb.FieldOption_Index {
+		fd := qb.mapping.GetField(field)
+
+		if fd == nil {
+			return nil, fmt.Errorf("field:[%d] not found in mapping", field)
+		}
+
+		if fd.Options()&pspb.FieldOption_Index != pspb.FieldOption_Index {
 			return nil, fmt.Errorf("field:[%d] not open index", field)
 		}
 
@@ -344,6 +350,7 @@ func (qb *queryBuilder) parseQuery(data []byte, req *C.struct_Request) error {
 			return err
 		}
 	} else if len(temp.Sum) > 0 {
+		req.multi_vector_rank = C.int(1)
 		if reqNum, vqs, err = qb.parseVectors(reqNum, vqs, temp.Sum); err != nil {
 			return err
 		}

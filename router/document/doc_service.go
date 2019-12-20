@@ -93,53 +93,42 @@ func (this *docService) getDocs(ctx context.Context, dbName string, spaceName st
 }
 
 func (this *docService) mSearchDoc(ctx context.Context, dbName string, spaceName string, searchRequest *request.SearchRequest) (response.SearchResponses, response.NameCache, error) {
-	if searchRequest.Aggs == nil {
-		searchRequest.Aggs = searchRequest.Aggregations
-	}
-	searchRequest.Aggregations = nil
-
 	searchSpaces, nameCache, err := this.parseDBSpacePair(ctx, dbName, spaceName)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	if len(searchSpaces) == 0 {
-		return nil, nil, pkg.ErrMasterSpaceNotExists
+		return nil, nil, pkg.CodeErr(pkg.ERRCODE_SPACE_NOTEXISTS)
 	}
 
 	return this.client.PS().Be(ctx).MultipleSpace(searchSpaces).MSearch(searchRequest), nameCache, nil
 }
 
 func (this *docService) deleteByQuery(ctx context.Context, dbName string, spaceName string, searchRequest *request.SearchRequest) (*response.Response, response.NameCache, error) {
-
 	searchSpaces, nameCache, err := this.parseDBSpacePair(ctx, dbName, spaceName)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	if len(searchSpaces) == 0 {
-		return nil, nil, pkg.ErrMasterSpaceNotExists
+		return nil, nil, pkg.CodeErr(pkg.ERRCODE_SPACE_NOTEXISTS)
 	}
 
 	return this.client.PS().Be(ctx).MultipleSpace(searchSpaces).DeleteByQuery(searchRequest), nameCache, nil
 }
 
-func (this *docService) searchDoc(ctx context.Context, dbName string, spaceName string, searchRequest *request.SearchRequest) (*response.SearchResponse, response.NameCache, error) {
-	if searchRequest.Aggs == nil {
-		searchRequest.Aggs = searchRequest.Aggregations
-	}
-	searchRequest.Aggregations = nil
-
+func (this *docService) searchDoc(ctx context.Context, dbName string, spaceName string, searchRequest *request.SearchRequest, clientType client.ClientType) (*response.SearchResponse, response.NameCache, error) {
 	searchSpaces, nameCache, err := this.parseDBSpacePair(ctx, dbName, spaceName)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	if len(searchSpaces) == 0 {
-		return nil, nil, pkg.ErrMasterSpaceNotExists
+		return nil, nil, pkg.CodeErr(pkg.ERRCODE_SPACE_NOTEXISTS)
 	}
 
-	return this.client.PS().Be(ctx).MultipleSpace(searchSpaces).Search(searchRequest), nameCache, nil
+	return this.client.PS().Be(ctx).MultipleSpaceByType(searchSpaces, clientType).Search(searchRequest), nameCache, nil
 }
 
 //it make uri to db space pair like db1,db2/s1,s1  it will return db1/s1 , db2/s1
@@ -190,7 +179,7 @@ func (this *docService) streamSearchDoc(ctx context.Context, dbName string, spac
 	}
 
 	if len(searchSpaces) == 0 {
-		return nil, nil, pkg.ErrMasterSpaceNotExists
+		return nil, nil, pkg.CodeErr(pkg.ERRCODE_SPACE_NOTEXISTS)
 	}
 
 	return this.client.PS().Be(ctx).MultipleSpace(searchSpaces).StreamSearch(searchRequest), nameCache, nil

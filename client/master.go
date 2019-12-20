@@ -77,7 +77,7 @@ func (client *masterClient) QueryDBId2Name(ctx context.Context, id int64) (strin
 		return "", err
 	}
 	if bytes == nil {
-		return "", pkg.ErrMasterDbNotExists
+		return "", pkg.CodeErr(pkg.ERRCODE_DB_NOTEXISTS)
 	}
 	return string(bytes), nil
 }
@@ -86,7 +86,7 @@ func (client *masterClient) QueryDBName2Id(ctx context.Context, name string) (in
 	if bytes, err := client.Get(ctx, DBKeyName(name)); err != nil {
 		return -1, err
 	} else if bytes == nil {
-		return -1, pkg.ErrMasterDbNotExists
+		return -1, pkg.CodeErr(pkg.ERRCODE_DB_NOTEXISTS)
 	} else {
 		return cast.ToInt64E(string(bytes))
 	}
@@ -98,7 +98,7 @@ func (this *masterClient) QueryPartition(ctx context.Context, partitionId Partit
 		return nil, err
 	}
 	if bytes == nil {
-		return nil, pkg.ErrPartitionNotExist
+		return nil, pkg.CodeErr(pkg.ERRCODE_PARTITION_NOT_EXIST)
 	}
 
 	p := new(Partition)
@@ -114,7 +114,7 @@ func (this *masterClient) QueryServer(ctx context.Context, id NodeID) (*Server, 
 	}
 	if bytes == nil {
 		log.Error("server can not find on master, maybe server is offline, nodeId:[%d]", id)
-		return nil, pkg.ErrMasterPSNotExists
+		return nil, pkg.CodeErr(pkg.ERRCODE_PARTITION_NOT_EXIST)
 	}
 
 	p := new(Server)
@@ -132,7 +132,7 @@ func (this *masterClient) QueryUser(ctx context.Context, username string) (*User
 		return nil, err
 	}
 	if bytes == nil {
-		return nil, pkg.ErrMasterUseerNotExists
+		return nil, pkg.CodeErr(pkg.ERRCODE_USER_NOT_EXISTS)
 	}
 
 	user := new(User)
@@ -149,7 +149,7 @@ func (this *masterClient) QueryUserByPassword(ctx context.Context, username, pas
 		return nil, err
 	}
 	if bytes == nil {
-		return nil, pkg.ErrMasterUseerNotExists
+		return nil, pkg.CodeErr(pkg.ERRCODE_USER_NOT_EXISTS)
 	}
 
 	user := new(User)
@@ -158,7 +158,7 @@ func (this *masterClient) QueryUserByPassword(ctx context.Context, username, pas
 	}
 
 	if user.Password != password {
-		return nil, pkg.ErrMasterAuthenticationFailed
+		return nil, pkg.CodeErr(pkg.ERRCODE_AUTHENTICATION_FAILED)
 	}
 
 	return user, nil
@@ -229,7 +229,7 @@ func (this *masterClient) QuerySpaceById(ctx context.Context, dbId DBID, spaceId
 		return nil, err
 	}
 	if bytes == nil {
-		return nil, pkg.ErrMasterSpaceNotExists
+		return nil, pkg.CodeErr(pkg.ERRCODE_SPACE_NOTEXISTS)
 	}
 	space := &Space{}
 	if err := json.Unmarshal(bytes, space); err != nil {
@@ -248,7 +248,7 @@ func (this *masterClient) QuerySpaceByName(ctx context.Context, dbId int64, spac
 			return s, nil
 		}
 	}
-	return nil, pkg.ErrMasterSpaceNotExists
+	return nil, pkg.CodeErr(pkg.ERRCODE_SPACE_NOTEXISTS)
 }
 
 func (this *masterClient) KeepAlive(ctx context.Context, server *Server) (<-chan *clientv3.LeaseKeepAliveResponse, error) {

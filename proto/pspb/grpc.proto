@@ -40,6 +40,7 @@ message RpcSearchRequest {
     string db_name = 2;
     string space_name = 3;
     string query = 4;
+    string client_type = 5;
 }
 
 message RpcSearchResponse {

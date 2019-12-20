@@ -1,16 +1,28 @@
 # Quickstart
 
+*This  Quickstart suit for those people who want to search something but  do not know how to extract image or text to features. Other people please refer to [APILowLevel.md](APILowLevel.md) .* 
+
 Vearch is aimed to build a simple and fast image retrieval system. Through this system, you can easily build your own image retrieval system, including image object detection,  feature extraction and similarity search. This quickstart demonstrates how to use it.
 
-
 ![docs/img/plugin/main_process.gif](img/plugin/main_process.gif)
+
 
 
 ## Before you begin
 
 1. Deploy Vearch system referred to [Deploy.md](Deploy.md).
 
- For testing you can download  [coco data](https://pjreddie.com/media/files/val2014.zip), or  use the images in images folder we choose from [coco data](https://pjreddie.com/media/files/val2014.zip).
+ For testing you can download  [coco data](https://pjreddie.com/media/files/val2014.zip), or  use the images in images folder we choose from [coco data](https://pjreddie.com/media/files/val2014.zip). For more details, you can refer test folder in `plugin.src`
+
+## Different from APILowLevel.md
+
+This API is similar to [APILowLevel.md](APILowLevel.md),  and plugin can perfectly adapt to it, you can use any method defined in APILowLevel.md by plugin. However, if you already have features, I suggest you use APILowLevel.md directly.
+
+The difference:
+
+- The name of db can not be one of  ['_cluster', 'list', 'db', 'space'].
+- Can not use `_msearch` method.
+- Replace the feature field with the object requiring the feature, refer to insert or search demo.
 
 
 ## Deploy your own plugin service
@@ -18,7 +30,10 @@ Vearch is aimed to build a simple and fast image retrieval system. Through this 
 This requires only two operations:
 
 1. Modify parameters in `src/config.py`;
-2. Execution script `bash ./bin/run.sh image` or `bash ./bin/run.sh video`;
+2. Execution script:
+    For image, `bash ./bin/run.sh image` ;
+    For video, `bash ./bin/run.sh video`;
+    For text, `bash ./bin/run.sh text` ;
 
 
 
@@ -27,33 +42,21 @@ This requires only two operations:
 Before inserting and searching, you should create a database and space. Use the following `curl` command to create a new database and space.
 
 ```shell
-curl -XPOST -H "content-type:application/json" -d '{
-    "db": true,
-    "method": 0,
-    "columns": {
-        "imageurl": {
-            "type": "keyword"
-        },
-        "boundingbox": {
-            "type": "keyword"
-        },
-        "label": {
-            "type": "keyword"
-        }
-    },
-    "feature": {
-        "type": "vector",
-        "filed": "imageurl",
-        "model_id": "vgg16",
-        "dimension": 512
-    }
-}' http://127.0.0.1:4101/test/test/_create
+# create a db which name test
+curl -XPUT -H "content-type:application/json" -d '{"name": "test"}' http://127.0.0.1:4101/db/_create
+
+# create a space in test db which name test too.
+curl -XPUT -H "content-type: application/json" -d' { "name": "test", "dynamic_schema": "strict", "partition_num": 2, "replica_num": 1, "engine": {"name":"gamma","metric_type": "InnerProduct"}, "properties": { "url": { "type": "keyword", "index":"true"}, "feature1": { "type": "vector", "dimension":512, "format": "normalization" }}} ' http://127.0.0.1:4101/space/test/_create
 ```
 
 A successful response looks like this:
 
 ```shell
-{"code": 200, "db_msg": "success", "space_msg": "success"}
+# create db
+{"code":200,"msg":"success","data":{"id":1,"name":"test"}}
+
+# create space
+{"code":200,"msg":"success","data":{"id":2,"name":"test","version":2,"db_id":1,"enabled":true,"partitions":[{"id":3,"space_id":2,"db_id":1,"partition_slot":0,"replicas":[1]},{"id":4,"space_id":2,"db_id":1,"partition_slot":2147483647,"replicas":[1]}],"partition_num":2,"replica_num":1,"properties":{ "url": { "type": "keyword", "index":"true"}, "feature1": { "type": "vector", "dimension":512, "format": "normalization" }},"engine":{"name":"gamma","index_size":100000,"max_size":100000,"nprobe":-1,"metric_type":"InnerProduct","ncentroids":-1,"nsubvector":-1,"nbits_per_idx":-1}}}
 ```
 
 
@@ -63,16 +66,15 @@ A successful response looks like this:
 If you want delete a database and space. Use the following `curl` command to delete a database and space
 
 ```shell
-curl -XPOST -H "content-type:application/json" -d '{
-    "db": false,
-    "space": true
-}' http://127.0.0.1:4101/test/test/_delete
+
+curl -XDELETE http://127.0.0.1:4101/space/test/test
+curl -XDELETE http://127.0.0.1:4101/db/test
 ```
 
 A successful response looks like this:
 
 ```shell
-{"code": 200, "db_msg": null, "space_msg": "success"}
+{"code":200,"msg":"success"}
 ```
 
 
@@ -85,68 +87,14 @@ The method of single import demo:
 
 ```shell
 # single insert
-curl -XPOST -H "content-type:application/json" -d '{
-    "imageurl": "../images/image_retrieval/test/COCO_val2014_000000123599.jpg",
-    "detection": false,
-    "boundingbox": "10,10,290,290",
-    "label": "coat"
-}' http://127.0.0.1:4101/test/test/_insert
-
-```
-
-The method of bulk import demo:
-
-```shell
-# bulk insert
-curl -XPOST -H "content-type:application/json" -d '{
-    "method": "bulk",
-    "imageurl": "../images/image_retrieval/test.csv",
-    "detection": true
-}' http://127.0.0.1:4101/test/test/_insert
+curl -XPOST -H "content-type: application/json"  -d' { "url": "../images/COCO_val2014_000000123599.jpg", "feature1":{"feature":"../images/COCO_val2014_000000123599.jpg"}} ' http://127.0.0.1:4101/test/test/AW63W9I4JG6WicwQX_RC
 
 ```
 
 A successful response like this:
 
 ```shell
-# response
-{
-    "db": "test",
-    "space": "test",
-    "ids": [
-        {
-            "AWz2IRAvJG6WicwQVToi": "successful"
-        },
-        {
-            "AWz2IRFVJG6WicwQVTom": "successful"
-        },
-        {
-            "AWz2IRJyJG6WicwQVToq": "successful"
-        },
-        {
-            "AWz2IRDEJG6WicwQVTok": "successful"
-        },
-        {
-            "AWz2IRHlJG6WicwQVToo": "successful"
-        },
-        {
-            "AWz2IRMGJG6WicwQVTos": "successful"
-        },
-        {
-            "AWz2IRQpJG6WicwQVTow": "successful"
-        },
-        {
-            "AWz2IROaJG6WicwQVTou": "successful"
-        },
-        {
-            "AWz2IRTQJG6WicwQVToy": "successful"
-        },
-        {
-            "AWz2IRVhJG6WicwQVTo0": "successful"
-        }
-    ],
-    "successful": 10
-}
+{"_index":"test","_type":"test","_id":"AW63W9I4JG6WicwQX_RC","status":201,"_version":1,"_shards":{"total":0,"successful":1,"failed":0},"result":"created","_seq_no":1,"_primary_term":1}
 ```
 
 ## Get record by ID
@@ -155,21 +103,10 @@ Use the following `curl` command to get a record by ID
 
 ```shell
 # request
-curl -XGET http://127.0.0.1:4101/test/test/AWz2IFBSJG6WicwQVTog
+curl -XGET http://127.0.0.1:4101/test/test/AW63W9I4JG6WicwQX_RC
 
 # response
-{
-    "_index": "test",
-    "_type": "test",
-    "_id": "AWz2IFBSJG6WicwQVTog",
-    "found": true,
-    "_version": 1,
-    "_source": {
-        "boundingbox": '232,204,436,406',
-        "imageurl": "../images/image_retrieval/test/COCO_val2014_000000123599.jpg",
-        "label": "zebra"
-    }
-}
+{"_index":"test","_type":"test","_id":"AW63W9I4JG6WicwQX_RC","found":true,"_version":1,"_source":{"url":"../images/COCO_val2014_000000123599.jpg"}}
 ```
 
 
@@ -183,10 +120,7 @@ Use the following `curl` command to delete a record by ID
 curl -XDELETE http://127.0.0.1:4101/test/test/AWz2IFBSJG6WicwQVTog
 
 # response
-{
-    "code": 200,
-    "msg": "success"
-}
+{"_index":"test","_type":"test","_id":"AW63W9I4JG6WicwQX_RC","status":200,"_version":0,"_shards":{"total":0,"successful":1,"failed":0},"result":"unknow","_seq_no":1,"_primary_term":1}
 ```
 
 
@@ -197,317 +131,29 @@ Use the following `curl` command to update a record by ID
 
 ```shell
 # request
-curl -XPOST -H "content-type:application/json" -d '{
-    "imageurl": "../images/image_retrieval/test/COCO_val2014_000000123599.jpg",
-    "detection": true
-}' http://127.0.0.1:4101/test/test/_update?id=AWz2IFBSJG6WicwQVTog
+curl -XPOST -H "content-type: application/json"  -d '{"doc": {"url":"1"}}' http://127.0.0.1:4101/test/test/AW63W9I4JG6WicwQX_RC/_update
 
 # response
-{
-    "db": "test",
-    "space": "test",
-    "ids": [
-        {
-            "AWz2IFBSJG6WicwQVTog": "successful"
-        }
-    ],
-    "successful": 1
-}
+{"_index":"test","_type":"test","_id":"AW63W9I4JG6WicwQX_RC","status":200,"_version":1,"_shards":{"total":0,"successful":1,"failed":0},"result":"updated","_seq_no":1,"_primary_term":1}
 ```
 
 
 
 ## Search similar result from space 
 
-You can search using a base64 encoded local image, or use an image URI for an publicly accessible online image or an image stored in images folders.
+You can search using  an image URI for an publicly accessible online image or an image stored in images folders.
 
 Search using an image stored in images folders or image URI on Internet. Use the following `curl` command to search  similar result from space
 
 ```shell
-curl -XPOST -H "content-type:application/json" -d '{
-    "imageurl": "../images/image_retrieval/test/COCO_val2014_000000123599.jpg",
-    "detection": true,
-    "score": 0.5,
-    "filter": [
-        {
-            "term": {
-                "label": {
-                    "value": "zebra"
-                }
-            }
-        }
-    ],
-    "size": 5
-}' http://127.0.0.1:4101/test/test/_search
-```
+curl -H "content-type: application/json" -XPOST -d '{ "query": { "sum": [{"feature":"../images/COCO_val2014_000000123599.jpg", "field":"feature1"}]}}' http://127.0.0.1:4101/test/test/_search
 
-or you can simply use the following `curl` command:
-
-```shell
-curl -XPOST -H "content-type:application/json" -d '{
-    "imageurl": "../images/image_retrieval/test/COCO_val2014_000000123599.jpg"
-}' http://127.0.0.1:4101/test/test/_search
 ```
 
 A successful response looks like this:
 
 ```shell
-{
-    'took': 9,
-    'timed_out': False,
-    '_shards': {
-        'total': 1,
-        'failed': 0,
-        'successful': 1
-    },
-    'hits': {
-        'total': 14068,
-        'max_score': 0.9999999403953552,
-        'hits': [
-            {
-                '_index': 'test',
-                '_type': 'test',
-                '_id': 'AWz_ciUvJG6WicwQQgXP',
-                '_score': 0.9999999403953552,
-                '_extra': {
-                    'vector_result': [
-                        {
-                            'field': 'feature',
-                            'source': '../images/image_retrieval/test/COCO_val2014_000000123599.jpg',
-                            'score': 0.9999999403953552
-                        }
-                    ]
-                },
-                '_version': 1,
-                '_source': {
-                    'boundingbox': '35,
-                    67,
-                    546,
-                    556',
-                    'imageurl': '../images/image_retrieval/test/COCO_val2014_000000123599.jpg',
-                    'label': 'zebra'
-                }
-            },
-            {
-                '_index': 'test',
-                '_type': 'test',
-                '_id': 'AWz_bVB0JG6WicwQQfbh',
-                '_score': 0.9116669297218323,
-                '_extra': {
-                    'vector_result': [
-                        {
-                            'field': 'feature',
-                            'source': '../images/image_retrieval/test/COCO_val2014_000000095375.jpg',
-                            'score': 0.9116669297218323
-                        }
-                    ]
-                },
-                '_version': 1,
-                '_source': {
-                    'boundingbox': '34,
-                    320,
-                    208,
-                    427',
-                    'imageurl': '../images/image_retrieval/test/COCO_val2014_000000095375.jpg',
-                    'label': 'zebra'
-                }
-            },
-            {
-                '_index': 'test',
-                '_type': 'test',
-                '_id': 'AWz_ZKBpJG6WicwQQdxL',
-                '_score': 0.9110268354415894,
-                '_extra': {
-                    'vector_result': [
-                        {
-                            'field': 'feature',
-                            'source': '../images/image_retrieval/test/COCO_val2014_000000045535.jpg',
-                            'score': 0.9110268354415894
-                        }
-                    ]
-                },
-                '_version': 1,
-                '_source': {
-                    'boundingbox': '218,
-                    171,
-                    494,
-                    346',
-                    'imageurl': '../images/image_retrieval/test/COCO_val2014_000000045535.jpg',
-                    'label': 'zebra'
-                }
-            },
-            {
-                '_index': 'test',
-                '_type': 'test',
-                '_id': 'AWz_XbS-JG6WicwQQccF',
-                '_score': 0.9091571569442749,
-                '_extra': {
-                    'vector_result': [
-                        {
-                            'field': 'feature',
-                            'source': '../images/image_retrieval/test/COCO_val2014_000000007522.jpg',
-                            'score': 0.9091571569442749
-                        }
-                    ]
-                },
-                '_version': 1,
-                '_source': {
-                    'boundingbox': '232,
-                    204,
-                    436,
-                    406',
-                    'imageurl': '../images/image_retrieval/test/COCO_val2014_000000007522.jpg',
-                    'label': 'zebra'
-                }
-            },
-            {
-                '_index': 'test',
-                '_type': 'test',
-                '_id': 'AWz_dFBwJG6WicwQQgyR',
-                '_score': 0.9059789180755615,
-                '_extra': {
-                    'vector_result': [
-                        {
-                            'field': 'feature',
-                            'source': '../images/image_retrieval/test/COCO_val2014_000000136077.jpg',
-                            'score': 0.9059789180755615
-                        }
-                    ]
-                },
-                '_version': 1,
-                '_source': {
-                    'boundingbox': '288,
-                    75,
-                    624,
-                    285',
-                    'imageurl': '../images/image_retrieval/test/COCO_val2014_000000136077.jpg',
-                    'label': 'zebra'
-                }
-            },
-            {
-                '_index': 'test',
-                '_type': 'test',
-                '_id': 'AWz_YQzVJG6WicwQQdFf',
-                '_score': 0.9054344296455383,
-                '_extra': {
-                    'vector_result': [
-                        {
-                            'field': 'feature',
-                            'source': '../images/image_retrieval/test/COCO_val2014_000000026174.jpg',
-                            'score': 0.9054344296455383
-                        }
-                    ]
-                },
-                '_version': 1,
-                '_source': {
-                    'boundingbox': '191,
-                    89,
-                    506,
-                    388',
-                    'imageurl': '../images/image_retrieval/test/COCO_val2014_000000026174.jpg',
-                    'label': 'zebra'
-                }
-            },
-            {
-                '_index': 'test',
-                '_type': 'test',
-                '_id': 'AWz_ajGhJG6WicwQQe0v',
-                '_score': 0.9029231071472168,
-                '_extra': {
-                    'vector_result': [
-                        {
-                            'field': 'feature',
-                            'source': '../images/image_retrieval/test/COCO_val2014_000000077479.jpg',
-                            'score': 0.9029231071472168
-                        }
-                    ]
-                },
-                '_version': 1,
-                '_source': {
-                    'boundingbox': '110,
-                    82,
-                    525,
-                    391',
-                    'imageurl': '../images/image_retrieval/test/COCO_val2014_000000077479.jpg',
-                    'label': 'zebra'
-                }
-            },
-            {
-                '_index': 'test',
-                '_type': 'test',
-                '_id': 'AWz_Y3-bJG6WicwQQdjf',
-                '_score': 0.9010977745056152,
-                '_extra': {
-                    'vector_result': [
-                        {
-                            'field': 'feature',
-                            'source': '../images/image_retrieval/test/COCO_val2014_000000039390.jpg',
-                            'score': 0.9010977745056152
-                        }
-                    ]
-                },
-                '_version': 1,
-                '_source': {
-                    'boundingbox': '0,
-                    141,
-                    187,
-                    290',
-                    'imageurl': '../images/image_retrieval/test/COCO_val2014_000000039390.jpg',
-                    'label': 'zebra'
-                }
-            },
-            {
-                '_index': 'test',
-                '_type': 'test',
-                '_id': 'AWz_YJpVJG6WicwQQc_t',
-                '_score': 0.8993719816207886,
-                '_extra': {
-                    'vector_result': [
-                        {
-                            'field': 'feature',
-                            'source': '../images/image_retrieval/test/COCO_val2014_000000023411.jpg',
-                            'score': 0.8993719816207886
-                        }
-                    ]
-                },
-                '_version': 1,
-                '_source': {
-                    'boundingbox': '238,
-                    89,
-                    538,
-                    390',
-                    'imageurl': '../images/image_retrieval/test/COCO_val2014_000000023411.jpg',
-                    'label': 'zebra'
-                }
-            },
-            {
-                '_index': 'test',
-                '_type': 'test',
-                '_id': 'AWz_fDU9JG6WicwQQiTB',
-                '_score': 0.8990296721458435,
-                '_extra': {
-                    'vector_result': [
-                        {
-                            'field': 'feature',
-                            'source': '../images/image_retrieval/test/COCO_val2014_000000180363.jpg',
-                            'score': 0.8990296721458435
-                        }
-                    ]
-                },
-                '_version': 1,
-                '_source': {
-                    'boundingbox': '36,
-                    88,
-                    335,
-                    310',
-                    'imageurl': '../images/image_retrieval/test/COCO_val2014_000000180363.jpg',
-                    'label': 'zebra'
-                }
-            }
-        ]
-    }
-}
-
+{"took":14,"timed_out":false,"_shards":{"total":2,"failed":0,"successful":2},"hits":{"total":1,"max_score":0.9999997615814209,"hits":[{"_index":"test","_type":"test","_id":"AW8OftTLJG6WicwQyAt2","_score":0.9999997615814209,"_extra":{"vector_result":[{"field":"feature1","source":"","score":0.9999997615814209}]},"_version":1,"_source":{"url":"../images/COCO_val2014_000000123599.jpg"}}]}}
 ```
 
 search result look like this

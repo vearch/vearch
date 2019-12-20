@@ -17,10 +17,10 @@ package client
 import (
 	"fmt"
 	"github.com/spf13/cast"
-	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/proto"
 	"github.com/vearch/vearch/proto/request"
 	"github.com/vearch/vearch/proto/response"
+	"github.com/vearch/vearch/util/log"
 	"sync"
 	"time"
 )
@@ -31,7 +31,10 @@ type multipleSpaceSender struct {
 
 func (this *multipleSpaceSender) MSearch(req *request.SearchRequest) (result response.SearchResponses) {
 	var wg sync.WaitGroup
-	respChain := make(chan response.SearchResponses, len(this.senders))
+	respChain := make(chan struct {
+		reponse response.SearchResponses
+		sender  *spaceSender
+	}, len(this.senders))
 
 	for _, s := range this.senders {
 		wg.Add(1)
@@ -40,10 +43,16 @@ func (this *multipleSpaceSender) MSearch(req *request.SearchRequest) (result res
 			defer func() {
 				if r := recover(); r != nil {
 					fmt.Println(r)
-					respChain <- response.SearchResponses{newSearchResponseWithError(s.db, s.space, 0, fmt.Errorf(cast.ToString(r)))}
+					respChain <- struct {
+						reponse response.SearchResponses
+						sender  *spaceSender
+					}{reponse: response.SearchResponses{newSearchResponseWithError(s.db, s.space, 0, fmt.Errorf(cast.ToString(r)))}, sender: s}
 				}
 			}()
-			respChain <- s.MSearch(req)
+			respChain <- struct {
+				reponse response.SearchResponses
+				sender  *spaceSender
+			}{reponse: s.MSearch(req), sender: s}
 		}(s)
 	}
 
@@ -52,51 +61,15 @@ func (this *multipleSpaceSender) MSearch(req *request.SearchRequest) (result res
 
 	for r := range respChain {
 		if result == nil {
-			result = r
+			result = r.reponse
 			continue
 		}
 
-		var err error
-
-		if len(result) < len(r) {
-			err = mergeResultArr(r, result, req)
-			result = r
-		} else {
-			err = mergeResultArr(result, r, req)
-		}
-
-		if err != nil {
-			return response.SearchResponses{newSearchResponseWithError(this.senders[0].db, this.senders[0].space, 0, err)}
+		if err := r.sender.mergeResultArr(result, r.reponse, req); err != nil {
+			return response.SearchResponses{newSearchResponseWithError(r.sender.db, r.sender.space, 0, err)}
 		}
 	}
 	return result
-}
-
-func mergeResultArr(dest response.SearchResponses, src response.SearchResponses, req *request.SearchRequest) error {
-
-	sortOrder, err := req.SortOrder()
-	if err != nil {
-		return fmt.Errorf("sort err [%s]", string(req.Sort))
-	}
-
-	if len(dest) == len(src) {
-		for index := range dest {
-			err := dest[index].Merge(src[index], sortOrder, req.From, *req.Size)
-			if err != nil {
-				return fmt.Errorf("merge err [%s]")
-			}
-		}
-	} else {
-		for index := range dest {
-			err := dest[index].Merge(src[0], sortOrder, req.From, *req.Size)
-			if err != nil {
-				return fmt.Errorf("merge err [%s]")
-			}
-		}
-	}
-
-	return nil
-
 }
 
 func (this *multipleSpaceSender) DeleteByQuery(req *request.SearchRequest) *response.Response {

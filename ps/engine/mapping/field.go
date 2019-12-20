@@ -153,7 +153,7 @@ func (f *FieldMapping) UnmarshalJSON(data []byte) error {
 	}
 
 	//set model id
-	if tmp.Dimension != 0 {
+	if tmp.ModelId != "" {
 		if mapping, ok := fieldMapping.(*VectortFieldMapping); ok {
 			mapping.ModelId = tmp.ModelId
 		} else {
@@ -296,8 +296,8 @@ type VectortFieldMapping struct {
 	*BaseFieldMapping
 	Dimension     int     `json:"dimension"`
 	ModelId       string  `json:"model_id"`
-	Format        *string `json:"format,omitempty"`         //"normalization", "normal"
-	RetrievalType string  `json:"retrieval_type,omitempty"` // "IVFPQ", "PACINS", ...
+	Format        *string `json:"format,omitempty"`         //default is "normalization", "normal" , if set "no" others it will not format
+	RetrievalType string  `json:"retrieval_type,omitempty"` // "IVFPQ", "PACINS","GPU" ...
 	StoreType     string  `json:"store_type,omitempty"`     // "Mmap", "RocksDB"
 	StoreParam    []byte  `json:"store_param,omitempty"`
 }
@@ -431,7 +431,7 @@ func processNumber(ctx *walkContext, fm *FieldMapping, fieldName string, val flo
 			Option: fm.Options(),
 		}, nil
 	default:
-		return nil, fmt.Errorf("string mismatch field:[%s] value:[%s] type:[%s] ", fieldName,val, fm.FieldType())
+		return nil, fmt.Errorf("string mismatch field:[%s] value:[%s] type:[%s] ", fieldName, val, fm.FieldType())
 	}
 }
 
@@ -453,7 +453,7 @@ func processGeoPoint(ctx *walkContext, fm *FieldMapping, fieldName string, lon, 
 			Option: fm.Options(),
 		}, nil
 	default:
-		return nil, fmt.Errorf("string mismatch field:[%s] value:[%f,%f] type:[%s] ", fieldName,lon, lat, fm.FieldType())
+		return nil, fmt.Errorf("string mismatch field:[%s] value:[%f,%f] type:[%s] ", fieldName, lon, lat, fm.FieldType())
 	}
 }
 
@@ -485,12 +485,13 @@ func processVector(ctx *walkContext, fm *FieldMapping, fieldName string, val []f
 			return nil, fmt.Errorf("field:[%s] vector_length err ,schema is:[%d] but input :[%d]", fieldName, fm.FieldMappingI.(*VectortFieldMapping).Dimension, len(val))
 		}
 
-		if fm.FieldMappingI.(*VectortFieldMapping).Format != nil && len(*fm.FieldMappingI.(*VectortFieldMapping).Format) > 0 {
+		if fm.FieldMappingI.(*VectortFieldMapping).Format != nil {
 			switch *fm.FieldMappingI.(*VectortFieldMapping).Format {
 			case "normalization", "normal":
 				if err := util.Normalization(val); err != nil {
 					return nil, err
 				}
+			case "no":
 			default:
 				return nil, fmt.Errorf("unknow vector process method:[%s]", *fm.FieldMappingI.(*VectortFieldMapping).Format)
 			}

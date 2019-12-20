@@ -110,7 +110,7 @@ func (cliCache *clientCache) UserByCache(ctx context.Context, userName string) (
 		}
 	}
 
-	return nil, fmt.Errorf("user:[%s] err:[%s]", userName, pkg.ErrPartitionNotExist)
+	return nil, fmt.Errorf("user:[%s] err:[%s]", userName, pkg.CodeErr(pkg.ERRCODE_PARTITION_NOT_EXIST))
 }
 
 func (cliCache *clientCache) reloadUserCache(ctx context.Context, sync bool, userName string) error {
@@ -163,7 +163,7 @@ func (cliCache *clientCache) SpaceByCache(ctx context.Context, db, space string)
 		}
 	}
 
-	return nil, fmt.Errorf("db:[%s] space:[%s] err:[%s]", db, space, pkg.ErrMasterSpaceNotExists)
+	return nil, fmt.Errorf("db:[%s] space:[%s] err:[%s]", db, space, pkg.CodeErr(pkg.ERRCODE_SPACE_NOTEXISTS))
 }
 
 func (cliCache *clientCache) reloadSpaceCache(ctx context.Context, sync bool, db string, space string) error {
@@ -196,6 +196,14 @@ func (cliCache *clientCache) reloadSpaceCache(ctx context.Context, sync bool, db
 			return nil
 		}
 		go func() {
+			defer func() {
+				if r := recover(); r != nil {
+					vearchlog.LogErrNotNil(fmt.Errorf(cast.ToString(r)))
+				}
+			}()
+			if key == "" {
+				return
+			}
 			defer spaceReloadWorkder.Delete(key)
 			vearchlog.FunIfNotNil(fun)
 		}()
@@ -222,7 +230,7 @@ func (cliCache *clientCache) PartitionByCache(ctx context.Context, spaceName str
 		}
 	}
 
-	return nil, fmt.Errorf("space:[%s] partition_id:[%d] err:[%s]", spaceName, pid, pkg.ErrPartitionNotExist)
+	return nil, fmt.Errorf("space:[%s] partition_id:[%d] err:[%s]", spaceName, pid, pkg.CodeErr(pkg.ERRCODE_PARTITION_NOT_EXIST))
 }
 
 func (cliCache *clientCache) reloadPartitionCache(ctx context.Context, sync bool, spaceName string, pid PartitionID) error {
@@ -276,7 +284,7 @@ func (cliCache *clientCache) ServerByCache(ctx context.Context, id NodeID) (*Ser
 		}
 	}
 
-	return nil, fmt.Errorf("node_id:[%d] err:[%s]", id, pkg.ErrPartitionNotExist)
+	return nil, fmt.Errorf("node_id:[%d] err:[%s]", id, pkg.CodeErr(pkg.ERRCODE_PARTITION_NOT_EXIST))
 }
 
 func (cliCache *clientCache) reloadServerCache(ctx context.Context, sync bool, id NodeID) error {

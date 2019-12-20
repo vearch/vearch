@@ -16,9 +16,26 @@
 #include "cJSON.h"
 #include "gamma_api.h"
 
+#define CHECK_DELETE(ptr) \
+  {                       \
+    if (ptr) {            \
+      delete ptr;         \
+      ptr = nullptr;      \
+    }                     \
+  }
+
+#define CHECK_DELETE_ARRAY(ptr) \
+  {                             \
+    if (ptr) {                  \
+      delete[] ptr;             \
+      ptr = nullptr;            \
+    }                           \
+  }
+
 namespace utils {
 
 long get_file_size(const char *path);
+long get_file_size(const std::string &path);
 
 std::vector<std::string> split(const std::string &p_str,
                                const std::string &p_separator);
@@ -34,7 +51,11 @@ double getmillisecs();
 
 int isFolderExist(const char *path);
 
+int make_dir(const char *path);
+
 int remove_dir(const char *dir);
+
+int move_dir(const char *src, const char *dst, bool backup = false);
 
 inline char file_sepator() { return '/'; }
 
@@ -88,7 +109,9 @@ typedef struct MEM_PACKED {
 } MEM_OCCUPY;
 
 typedef struct MEM_PACK {
-  double total, used_rate;
+  double total;
+  double available;
+  double used_rate;
 } MEM_PACK;
 
 MEM_PACK *get_memoccupy();
@@ -101,6 +124,20 @@ struct JsonParser {
   int Parse(const char *str);
   int GetDouble(const std::string &name, double &value);
   int GetString(const std::string &name, std::string &value);
+  bool Contains(const std::string &name);
+};
+
+struct FileIO {
+  std::string path;
+  FILE *fp;
+
+  FileIO(std::string &file_path);
+  ~FileIO();
+  int Open(const char *mode);
+  size_t Write(void *data, size_t size, size_t m);
+  size_t Read(void *data, size_t size, size_t m);
+  bool IsOpen() { return fp != nullptr; }
+  std::string Path() { return path; }
 };
 
 }  // namespace utils

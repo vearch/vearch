@@ -24,11 +24,8 @@
 #include <vector>
 
 #include "bitmap.h"
-#include "faiss/Heap.h"
-#include "faiss/utils.h"
-#include "utils.h"
-
 #include "omp.h"
+#include "utils.h"
 
 namespace tig_gamma {
 
@@ -77,45 +74,40 @@ GammaIVFPQIndex::GammaIVFPQIndex(faiss::Index *quantizer, size_t d,
 #endif
 }
 
+GammaIVFPQIndex::~GammaIVFPQIndex() {
+  if (rt_invert_index_ptr_) {
+    delete rt_invert_index_ptr_;
+    rt_invert_index_ptr_ = nullptr;
+  }
+  if (invlists) {
+    delete invlists;
+    invlists = nullptr;
+  }
+  if (quantizer) {
+    delete quantizer;  // it will not be delete in parent class
+    quantizer = nullptr;
+  }
+}
+
 faiss::InvertedListScanner *GammaIVFPQIndex::get_InvertedListScanner(
     bool store_pairs) const {
-  if (metric_type == faiss::METRIC_INNER_PRODUCT) {
-    if (store_pairs) {
-      faiss::InvertedListScanner *scanner =
-          new GammaIndexScanner<faiss::METRIC_INNER_PRODUCT, true,
-                                faiss::CMin<float, idx_t>, 2>(*this);
-      ((GammaIndexScanner<faiss::METRIC_INNER_PRODUCT, true,
-                          faiss::CMin<float, idx_t>, 2> *)scanner)
-          ->SetVecFilter(this->docids_bitmap_, this->raw_vec_);
-      return scanner;
-    } else {
-      faiss::InvertedListScanner *scanner =
-          new GammaIndexScanner<faiss::METRIC_INNER_PRODUCT, false,
-                                faiss::CMin<float, idx_t>, 2>(*this);
-      ((GammaIndexScanner<faiss::METRIC_INNER_PRODUCT, false,
-                          faiss::CMin<float, idx_t>, 2> *)scanner)
-          ->SetVecFilter(this->docids_bitmap_, this->raw_vec_);
-      return scanner;
-    }
-  } else if (metric_type == faiss::METRIC_L2) {
-    if (store_pairs) {
-      faiss::InvertedListScanner *scanner =
-          new GammaIndexScanner<faiss::METRIC_L2, true,
-                                faiss::CMax<float, idx_t>, 2>(*this);
+  return GetGammaInvertedListScanner(store_pairs);
+}
 
-      ((GammaIndexScanner<faiss::METRIC_L2, true, faiss::CMax<float, idx_t>, 2>
-            *)scanner)
-          ->SetVecFilter(this->docids_bitmap_, this->raw_vec_);
-      return scanner;
-    } else {
-      faiss::InvertedListScanner *scanner =
-          new GammaIndexScanner<faiss::METRIC_L2, false,
-                                faiss::CMax<float, idx_t>, 2>(*this);
-      ((GammaIndexScanner<faiss::METRIC_L2, false, faiss::CMax<float, idx_t>, 2>
-            *)scanner)
-          ->SetVecFilter(this->docids_bitmap_, this->raw_vec_);
-      return scanner;
-    }
+GammaInvertedListScanner *GammaIVFPQIndex::GetGammaInvertedListScanner(
+    bool store_pairs) const {
+  if (metric_type == faiss::METRIC_INNER_PRODUCT) {
+    auto scanner =
+        new GammaIVFPQScanner<faiss::METRIC_INNER_PRODUCT,
+                              faiss::CMin<float, idx_t>, 2>(*this, store_pairs);
+    scanner->SetVecFilter(this->docids_bitmap_, this->raw_vec_);
+    return scanner;
+  } else if (metric_type == faiss::METRIC_L2) {
+    auto scanner =
+        new GammaIVFPQScanner<faiss::METRIC_L2, faiss::CMax<float, idx_t>, 2>(
+            *this, store_pairs);
+    scanner->SetVecFilter(this->docids_bitmap_, this->raw_vec_);
+    return scanner;
   }
   return nullptr;
 }
@@ -132,7 +124,8 @@ int GammaIVFPQIndex::Indexing() {
     return -1;
   }
   size_t num = vectors_count > 100000 ? 100000 : vectors_count;
-  const float *header = raw_vec_->GetVectorHeader(0, num);
+  ScopeVector header;
+  raw_vec_->GetVectorHeader(0, num, header);
 
   int raw_d = raw_vec_->GetDimension();
 
@@ -141,11 +134,11 @@ int GammaIVFPQIndex::Indexing() {
   if (d_ > raw_d) {
     float *vec = new float[num * d_];
 
-    ConvertVectorDim(num, raw_d, d, header, vec);
+    ConvertVectorDim(num, raw_d, d, header.Get(), vec);
 
     train_vec = vec;
   } else {
-    train_vec = const_cast<float *>(header);
+    train_vec = const_cast<float *>(header.Get());
   }
 
   train(num, train_vec);
@@ -153,8 +146,6 @@ int GammaIVFPQIndex::Indexing() {
   if (d_ > raw_d) {
     delete train_vec;
   }
-
-  raw_vec_->Destroy(header, true);
 
   LOG(INFO) << "train successed!";
   return 0;
@@ -183,8 +174,10 @@ int GammaIVFPQIndex::AddRTVecsToIndex() {
       size_t count_per_index =
           (i == (index_count - 1) ? total_stored_vecs - start_docid
                                   : MAX_NUM_PER_INDEX);
-      const float *vector_head = raw_vec_->GetVectorHeader(
-          indexed_vec_count_, indexed_vec_count_ + count_per_index);
+      ScopeVector vector_head;
+      raw_vec_->GetVectorHeader(indexed_vec_count_,
+                                indexed_vec_count_ + count_per_index,
+                                vector_head);
 
       int raw_d = raw_vec_->GetDimension();
       float *add_vec = nullptr;
@@ -192,10 +185,10 @@ int GammaIVFPQIndex::AddRTVecsToIndex() {
       if (d_ > raw_d) {
         float *vec = new float[count_per_index * d_];
 
-        ConvertVectorDim(count_per_index, raw_d, d, vector_head, vec);
+        ConvertVectorDim(count_per_index, raw_d, d, vector_head.Get(), vec);
         add_vec = vec;
       } else {
-        add_vec = const_cast<float *>(vector_head);
+        add_vec = const_cast<float *>(vector_head.Get());
       }
 
       if (!Add(count_per_index, add_vec)) {
@@ -206,7 +199,6 @@ int GammaIVFPQIndex::AddRTVecsToIndex() {
       if (d_ > raw_d) {
         delete add_vec;
       }
-      raw_vec_->Destroy(vector_head, true);
     }
   }
   return ret;
@@ -295,17 +287,15 @@ bool GammaIVFPQIndex::Add(int n, const float *vec) {
 void GammaIVFPQIndex::SearchIVFPQ(int n, const float *x,
                                   const GammaSearchCondition *condition,
                                   float *distances, idx_t *labels, int *total) {
-  idx_t *idx = new idx_t[n * nprobe];
-  faiss::ScopeDeleter<idx_t> del(idx);
-  float *coarse_dis = new float[n * nprobe];
-  faiss::ScopeDeleter<float> del2(coarse_dis);
+  std::unique_ptr<idx_t[]> idx(new idx_t[n * nprobe]);
+  std::unique_ptr<float[]> coarse_dis(new float[n * nprobe]);
 
-  quantizer->search(n, x, nprobe, coarse_dis, idx);
+  quantizer->search(n, x, nprobe, coarse_dis.get(), idx.get());
 
-  this->invlists->prefetch_lists(idx, n * nprobe);
+  this->invlists->prefetch_lists(idx.get(), n * nprobe);
 
-  search_preassigned(n, x, condition, idx, coarse_dis, distances, labels, total,
-                     false);
+  search_preassigned(n, x, condition, idx.get(), coarse_dis.get(), distances,
+                     labels, total, false);
 }
 
 void GammaIVFPQIndex::search_preassigned(
@@ -323,11 +313,8 @@ void GammaIVFPQIndex::search_preassigned(
   using HeapForL2 = faiss::CMax<float, idx_t>;
 
   const int recall_num = condition->recall_num;
-
-  float *recall_distances =
-      utils::NewArray<float>(n * recall_num, "recall_distances");
-  idx_t *recall_labels =
-      utils::NewArray<idx_t>(n * recall_num, "recall_labels");
+  float *recall_distances = new float[n * recall_num];
+  idx_t *recall_labels = new idx_t[n * recall_num];
   faiss::ScopeDeleter<float> del1(recall_distances);
   faiss::ScopeDeleter<idx_t> del2(recall_labels);
 
@@ -355,8 +342,9 @@ void GammaIVFPQIndex::search_preassigned(
     // calculate inner product for selected possible vectors
     compute_dis = [&](const float *xi, float *simi, idx_t *idxi,
                       float *recall_simi, idx_t *recall_idxi) {
-      std::vector<const float *> vecs(recall_num);
-      raw_vec_->Gets(recall_num, recall_idxi, vecs);
+      ScopeVectors scope_vecs(recall_num);
+      raw_vec_->Gets(recall_num, recall_idxi, scope_vecs);
+      const float **vecs = scope_vecs.Get();
       int raw_d = raw_vec_->GetDimension();
       for (int j = 0; j < recall_num; j++) {
         if (recall_idxi[j] == -1) continue;
@@ -385,9 +373,6 @@ void GammaIVFPQIndex::search_preassigned(
           }
         }
       }
-      // release vectors
-      raw_vec_->Destroy(vecs);
-
       if (condition->sort_by_docid) {  // sort by doc id
         std::vector<std::pair<idx_t, float>> id_sim_pairs;
         for (int i = 0; i < k; i++) {
@@ -431,22 +416,18 @@ void GammaIVFPQIndex::search_preassigned(
     ni_total = condition->range_query_result->GetAllResult()[0].Size();
   }
 
+  // don't start parallel section if single query
+  bool do_parallel = condition->parallel_mode == 0 ? n > 1 : nprobe > 1;
+
   if (condition->range_query_result &&
       condition->range_query_result->GetAllResult().size() == 1 &&
       condition->range_query_result->GetAllResult()[0].Size() < 50000) {
     const std::vector<int> docid_list = condition->range_query_result->ToDocs();
 
 #ifdef DEBUG
-    std::stringstream ss;
-    ss << "doc id list=[";
-    for (int i = 0; i < docid_list.size(); i++) {
-      ss << docid_list[i] << ",";
-      if (i > 1000) {
-        break;
-      }
-    }
-    ss << "]";
-    LOG(INFO) << ss.str();
+    size_t docid_size = docid_list.size();
+    LOG(INFO) << utils::join(docid_list.data(),
+                             docid_size > 1000 ? 1000 : docid_size, ',');
 #endif
 
     std::vector<int> vid_list(docid_list.size() * MAX_VECTOR_NUM_PER_DOC);
@@ -480,22 +461,16 @@ void GammaIVFPQIndex::search_preassigned(
     double retrieve_code_end = utils::getmillisecs();
 #endif
 
-#pragma omp parallel reduction(+ : nlistv, ndis, nheap)
+#pragma omp parallel if (do_parallel) reduction(+ : nlistv, ndis, nheap)
     {
-      faiss::InvertedListScanner *scanner =
-          get_InvertedListScanner(store_pairs);
-      faiss::ScopeDeleter1<faiss::InvertedListScanner> del(scanner);
+      GammaInvertedListScanner *scanner =
+          GetGammaInvertedListScanner(store_pairs);
+      faiss::ScopeDeleter1<GammaInvertedListScanner> del(scanner);
+      scanner->set_search_condition(condition);
 
-      if (metric_type == faiss::METRIC_INNER_PRODUCT) {
-        ((GammaIndexScanner<faiss::METRIC_INNER_PRODUCT, false, HeapForIP, 2> *)
-             scanner)
-            ->set_search_condition(condition);
-      } else {
-        ((GammaIndexScanner<faiss::METRIC_L2, false, HeapForL2, 2> *)scanner)
-            ->set_search_condition(condition);
-      }
 #pragma omp for
       for (int i = 0; i < n; i++) {  // loop over queries
+
 #ifdef PERFORMANCE_TESTING
         double query_start = utils::getmillisecs();
 #endif
@@ -524,18 +499,8 @@ void GammaIVFPQIndex::search_preassigned(
               reinterpret_cast<idx_t *>(bucket_vids[key].data());
 
           scanner->set_list(key, coarse_dis_i);
-
-          if (metric_type == faiss::METRIC_INNER_PRODUCT) {
-            ((GammaIndexScanner<faiss::METRIC_INNER_PRODUCT, false, HeapForIP,
-                                2> *)scanner)
-                ->scan_codes(ncode, codes, vids, recall_simi, recall_idxi,
-                             recall_num);
-          } else {
-            ((GammaIndexScanner<faiss::METRIC_L2, false, HeapForL2, 2> *)
-                 scanner)
-                ->scan_codes(ncode, codes, vids, recall_simi, recall_idxi,
-                             recall_num);
-          }
+          scanner->scan_codes_pointer(ncode, codes, vids, recall_simi,
+                                      recall_idxi, recall_num);
         }
 
 #ifdef PERFORMANCE_TESTING
@@ -546,17 +511,16 @@ void GammaIVFPQIndex::search_preassigned(
 #ifdef PERFORMANCE_TESTING
         double end = utils::getmillisecs();
         if (++search_count_ % 1000 == 0) {
-          std::stringstream perf_ss;
-          perf_ss << "ivfqp range filter, doc id list size="
-                  << docid_list.size() << ", vid list len=" << vid_list_len
-                  << "to docid cost=" << to_vid_end - s_start
-                  << "ms, retrieve code cost=" << retrieve_code_end - to_vid_end
-                  << "ms, query[coarse cost=" << coarse_end - query_start
-                  << "ms, reorder cost=" << end - coarse_end
-                  << "ms, total cost=" << end - s_start
-                  << "ms] metric type=" << metric_type
-                  << ", nprobe=" << this->nprobe;
-          LOG(INFO) << perf_ss.str();
+          LOG(INFO) << "ivfqp range filter, doc id list size="
+                    << docid_list.size() << ", vid list len=" << vid_list_len
+                    << "to docid cost=" << to_vid_end - s_start
+                    << "ms, retrieve code cost="
+                    << retrieve_code_end - to_vid_end
+                    << "ms, query[coarse cost=" << coarse_end - query_start
+                    << "ms, reorder cost=" << end - coarse_end
+                    << "ms, total cost=" << end - s_start
+                    << "ms] metric type=" << metric_type
+                    << ", nprobe=" << this->nprobe;
         }
 #endif
       }
@@ -564,19 +528,12 @@ void GammaIVFPQIndex::search_preassigned(
     return;
   }
 
-#pragma omp parallel reduction(+ : nlistv, ndis, nheap)
+#pragma omp parallel if (do_parallel) reduction(+ : nlistv, ndis, nheap)
   {
-    faiss::InvertedListScanner *scanner = get_InvertedListScanner(store_pairs);
-    faiss::ScopeDeleter1<faiss::InvertedListScanner> del(scanner);
-
-    if (metric_type == faiss::METRIC_INNER_PRODUCT) {
-      ((GammaIndexScanner<faiss::METRIC_INNER_PRODUCT, false, HeapForIP, 2> *)
-           scanner)
-          ->set_search_condition(condition);
-    } else {
-      ((GammaIndexScanner<faiss::METRIC_L2, false, HeapForL2, 2> *)scanner)
-          ->set_search_condition(condition);
-    }
+    GammaInvertedListScanner *scanner =
+        GetGammaInvertedListScanner(store_pairs);
+    faiss::ScopeDeleter1<GammaInvertedListScanner> del(scanner);
+    scanner->set_search_condition(condition);
 
     // single list scan using the current scanner (with query
     // set porperly) and storing results in simi and idxi
@@ -599,14 +556,17 @@ void GammaIVFPQIndex::search_preassigned(
       nlistv++;
 
       faiss::InvertedLists::ScopedCodes scodes(invlists, key);
-      const idx_t *ids = store_pairs ? nullptr : invlists->get_ids(key);
+
+      std::unique_ptr<faiss::InvertedLists::ScopedIds> sids;
+      const Index::idx_t *ids = nullptr;
+
+      if (!store_pairs) {
+        sids.reset(new faiss::InvertedLists::ScopedIds(invlists, key));
+        ids = sids->get();
+      }
 
       nheap +=
           scanner->scan_codes(list_size, scodes.get(), ids, simi, idxi, topk);
-
-      if (ids) {
-        invlists->release_ids(key, ids);
-      }
 
       return list_size;
     };
@@ -639,11 +599,9 @@ void GammaIVFPQIndex::search_preassigned(
 
         // loop over probes
         for (int ik = 0; ik < nprobe; ik++) {
-          long list_size =
+          nscan +=
               scan_one_list(keys[i * nprobe + ik], coarse_dis[i * nprobe + ik],
                             recall_simi, recall_idxi, recall_num);
-
-          nscan += list_size;
 
           if (max_codes && nscan >= max_codes) break;
         }
@@ -659,15 +617,13 @@ void GammaIVFPQIndex::search_preassigned(
 #ifdef PERFORMANCE_TESTING
         double end = utils::getmillisecs();
         if (++search_count_ % 1000 == 0) {
-          std::stringstream perf_ss;
-          perf_ss << "ivfqp query parallel "
-                  << "coarse cost=" << coarse_end - query_start
-                  << "ms, set query cost=" << set_query_end - query_start
-                  << "ms, reorder cost=" << end - coarse_end
-                  << "ms, total cost=" << end - query_start
-                  << "ms, nscan=" << nscan << ", nheap=" << nheap
-                  << ", nprobe=" << this->nprobe;
-          LOG(INFO) << perf_ss.str();
+          LOG(INFO) << "ivfqp query parallel "
+                    << "coarse cost=" << coarse_end - query_start
+                    << "ms, set query cost=" << set_query_end - query_start
+                    << "ms, reorder cost=" << end - coarse_end
+                    << "ms, total cost=" << end - query_start
+                    << "ms, nscan=" << nscan << ", nheap=" << nheap
+                    << ", nprobe=" << this->nprobe;
         }
 #endif
 
@@ -731,15 +687,13 @@ void GammaIVFPQIndex::search_preassigned(
 #ifdef PERFORMANCE_TESTING
           double s_end = utils::getmillisecs();
           if (search_count_++ % 10000 == 0) {
-            std::stringstream perf_ss;
-            perf_ss << "ivfpq nprobe parallel: "
-                    << "coarse cost=" << coarse_end - s_start
-                    << "ms, reorder cost=" << s_end - coarse_end
-                    << "ms, total cost=" << s_end - s_start
-                    << "ms, metric type=" << metric_type
-                    << ", nprobe=" << this->nprobe
-                    << ", recall_num=" << recall_num;
-            LOG(INFO) << perf_ss.str();
+            LOG(INFO) << "ivfpq nprobe parallel: "
+                      << "coarse cost=" << coarse_end - s_start
+                      << "ms, reorder cost=" << s_end - coarse_end
+                      << "ms, total cost=" << s_end - s_start
+                      << "ms, metric type=" << metric_type
+                      << ", nprobe=" << this->nprobe
+                      << ", recall_num=" << recall_num;
           }
 #endif
         }
@@ -753,7 +707,9 @@ void GammaIVFPQIndex::SearchDirectly(int n, const float *x,
                                      float *distances, idx_t *labels,
                                      int *total) {
   int num_vectors = raw_vec_->GetVectorNum();
-  const float *vectors = raw_vec_->GetVectorHeader(0, 0 + num_vectors);
+  ScopeVector scope_vec;
+  raw_vec_->GetVectorHeader(0, 0 + num_vectors, scope_vec);
+  const float *vectors = scope_vec.Get();
 
   long k = condition->topn;  // topK
 
@@ -940,7 +896,6 @@ void GammaIVFPQIndex::SearchDirectly(int n, const float *x,
       }
     }
   }  // parallel
-  raw_vec_->Destroy(vectors, true);
 }
 
 int GammaIVFPQIndex::Search(const VectorQuery *query,

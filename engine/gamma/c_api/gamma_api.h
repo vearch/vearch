@@ -616,7 +616,11 @@ typedef struct Request {
   // online log level: debug|info|warn|error|none
   ByteArray *online_log_level;
 
-  int has_rank;  // default 0, has not rank; 1, has rank
+  int has_rank;  // whether it needs ranking after recalling from PQ index.
+                 // default 0, has not rank; 1, has rank
+  int multi_vector_rank;  // whether it needs ranking after merging the
+                          // searching result of multi-vectors. default 0, has
+                          // not rank; 1, has rank
 } Request;
 
 /** make a Request
@@ -641,7 +645,8 @@ Request *MakeRequest(int topn, VectorQuery **vec_fields, int vec_fields_num,
                      RangeFilter **range_filters, int range_filters_num,
                      TermFilter **term_filters, int term_filters_num,
                      int req_num, int direct_search_type,
-                     ByteArray *online_log_level, int has_rank);
+                     ByteArray *online_log_level, int has_rank,
+                     int multi_vector_rank);
 
 /** destroy Request
  *

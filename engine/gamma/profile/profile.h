@@ -61,13 +61,14 @@ class Profile {
    *
    * @return ResultCode
    */
-  // ResultCode Dump();
-  int Dump(const std::string &path, int max_docid, int dump_docid);
+  int Dump(const std::string &path, int start_docid, int end_docid);
 
   long GetMemoryBytes();
 
   int GetDocInfo(const std::string &id, Doc *&doc);
   int GetDocInfo(const int docid, Doc *&doc);
+
+  Field *GetFieldInfo(const int docid, const std::string &field_name);
 
   template <typename T>
   bool GetField(const int docid, const int field_id, T &value) const {
@@ -87,7 +88,12 @@ class Profile {
     GetField<T>(docid, iter->second, value);
   }
 
-  int GetField(int docid, const std::string &field, char **value) const;
+  int GetFieldString(int docid, const std::string &field, char **value) const;
+
+  int GetFieldString(int docid, int field_id, char **value) const;
+
+  int GetFieldRawValue(int docid, int field_id, unsigned char **value,
+                       int &data_len);
 
   int GetAttrType(std::map<std::string, enum DataType> &attr_type_map);
 

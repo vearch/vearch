@@ -71,9 +71,9 @@ def load_model():
     return BaseModel()
 
 
-def test(url):
+def test():
     model = load_model()
-    # model.load_model()
+    model.load_model()
     import urllib.request
     def test_url(imageurl):
         resp = urllib.request.urlopen(imageurl).read()
@@ -82,7 +82,7 @@ def test(url):
         feat = model.forward(image)
         return (feat[0]/np.linalg.norm(feat[0])).tolist()
 
-    print(len(test_url(url)))
+    print(test_url(url))
 
 if __name__ == "__main__":
     import sys

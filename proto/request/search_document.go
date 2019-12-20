@@ -24,13 +24,9 @@ type SearchDocumentRequest struct {
 	Size         *int              `json:"size,omitempty"`
 	Fields       []string          `json:"fields,omitempty"`
 	Query        json.RawMessage   `json:"query,omitempty"`
-	Highlight    *HighlightRequest `json:"highlight,omitempty"`
 	MinScore     float64           `json:"min_score,omitempty"`
 	Sort         json.RawMessage   `json:"sort,omitempty"`
 	Explain      bool              `json:"explain,omitempty"`
-	Aggs         json.RawMessage   `json:"aggs,omitempty"`
-	Aggregations json.RawMessage   `json:"aggregations,omitempty"` //it not use only for json un serizable
-	ScriptFields json.RawMessage   `json:"script_fields,omitempty"`
 	Quick        bool              `json:"quick,omitempty"`
 	VectorValue  bool              `json:"vector_value,omitempty"`
 	sortOrder    sortorder.SortOrder

@@ -24,6 +24,7 @@ resource_path = os.path.join(
     os.path.dirname((os.path.abspath(__file__))),
     "static")
 
+
 class ImageShowHandler(tornado.web.RequestHandler):
     """tornado service"""
     def post(self):
@@ -37,17 +38,18 @@ class ImageShowHandler(tornado.web.RequestHandler):
         self.save_img(image_path, image_bytes)
         sim_results = self.search_similar(image_path)
         sim_url = self.parse_result(sim_results)
-        result = dict(ori_url = image_object["filename"],
-                      sim_url = sim_url)
+        result = dict(ori_url=image_object["filename"], sim_url=sim_url)
         self.write(escape.json_encode(result))
 
-    def save_img(self, image_path, image_bytes):
+    @staticmethod
+    def save_img(image_path, image_bytes):
         if not os.path.exists(os.path.dirname(image_path)):
             os.makedirs(os.path.dirname(image_path))
         with open(image_path, "wb") as fw:
             fw.write(image_bytes)
 
-    def parse_result(self,result):
+    @staticmethod
+    def parse_result(result):
         search_list = []
         for hit in result['hits']['hits']:
             source = hit.pop("_source")
@@ -55,7 +57,8 @@ class ImageShowHandler(tornado.web.RequestHandler):
             search_list.append(source)
         return search_list
 
-    def search_similar(self, image_path):
+    @staticmethod
+    def search_similar(image_path):
         """"""
         headers = {"content-type": "application/json"}
         data = {"imageurl": image_path, "size": args.num}
@@ -64,9 +67,11 @@ class ImageShowHandler(tornado.web.RequestHandler):
         result = json.loads(response.text)
         return result
 
+
 class MainHandler(tornado.web.RequestHandler):
     def get(self):
         self.redirect("/static/index.html")
+
 
 def main():
     app = tornado.web.Application([
@@ -79,6 +84,7 @@ def main():
     server.add_sockets(sockets)
     tornado.ioloop.IOLoop.instance().start()
 
+
 def parse_argument():
     parser = argparse.ArgumentParser()
     parser.add_argument("--ip", type=str, default="127.0.0.1:4101", help="Ip of your service")
@@ -88,6 +94,7 @@ def parse_argument():
     parser.add_argument("--num", type=int, default=20, help="The num of result")
     args = parser.parse_args()
     return args
+
 
 if __name__ == "__main__":
     args = parse_argument()

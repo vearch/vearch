@@ -578,11 +578,12 @@ class YoloDetect(object):
             detections = self.model(image)
             detections = non_max_suppression(detections)[0]
         if detections is None:
-            return [[None, 1.00, None]]
+            return []
         # detections = rescale_boxes(detections, 416, img.shape[:2])
         detections = detections.cpu().detach().numpy().tolist()
         # print(detections)
         result = [[self.classes[int(detection[-1])],  detection[4], getOrisize(list(map(int, detection[:4])),w,h)] for detection in detections]
+        result = getOrisize(list(map(int, detections[0][:4])), w, h)
         return result
 
 
@@ -590,10 +591,6 @@ def load_model(model_path=None):
     fashion_detect = YoloDetect(model_path)
     return fashion_detect
 
+
 if __name__ == "__main__":
-    fashion_detect = load_model()
-    image = cv2.imread("../../../images/image_retrieval/test/COCO_val2014_000000095375.jpg")
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    print(image.shape)
-    result = fashion_detect.detect(image)
-    print(result)
+    pass

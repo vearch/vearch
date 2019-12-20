@@ -21,9 +21,9 @@ import (
 	"time"
 
 	"github.com/jasonlvhit/gocron"
-	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/proto"
 	"github.com/vearch/vearch/proto/entity"
+	"github.com/vearch/vearch/util/log"
 	"go.etcd.io/etcd/clientv3/concurrency"
 )
 
@@ -36,7 +36,7 @@ func walkPartitions(masterServer *Server, partitions []*entity.Partition) {
 	log.Info("Start Walking Partitions!")
 	for _, partition := range partitions {
 		if space, err := masterServer.client.Master().QuerySpaceById(ctx, partition.DBId, partition.SpaceId); err != nil {
-			if err == pkg.ErrMasterSpaceNotExists {
+			if pkg.ErrCode(err) == pkg.ERRCODE_SPACE_NOTEXISTS {
 				log.Info("Could not find Space contains partition,PartitionID:[%d] so remove it from etcd!", partition.Id)
 				partitionKey := entity.PartitionKey(partition.Id)
 				if err := masterServer.client.Master().Delete(ctx, partitionKey); err != nil {
@@ -87,7 +87,7 @@ func walkServers(masterServer *Server, servers []*entity.Server) {
 	for _, server := range servers {
 		for _, pid := range server.PartitionIds {
 			if _, err := masterServer.client.Master().QueryPartition(ctx, pid); err != nil {
-				if err == pkg.ErrPartitionNotExist {
+				if pkg.ErrCode(err) == pkg.ERRCODE_PARTITION_NOT_EXIST {
 					if err := removePartition(masterServer, server.RpcAddr(), pid); err != nil {
 						log.Warn("Failed to remove partition:%v allocated on server:%v,and err is:%v", pid, server.ID, err)
 					}
@@ -103,10 +103,6 @@ func walkServers(masterServer *Server, servers []*entity.Server) {
 var skipJob = fmt.Errorf("skip job")
 
 func cleanTask(masterServer *Server) {
-
-	if masterServer.monitor != nil {
-		masterServer.monitor.Alive() //add alive monitor
-	}
 
 	var err = masterServer.client.Master().STM(masterServer.ctx, func(stm concurrency.STM) error {
 		timeBytes := stm.Get(entity.ClusterCleanJobKey)

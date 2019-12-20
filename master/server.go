@@ -18,15 +18,14 @@ import (
 	"context"
 	"fmt"
 	"github.com/spf13/cast"
-	"github.com/vearch/vearch/util/monitoring"
 	"github.com/vearch/vearch/util/vearchlog"
 	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/client"
 	"github.com/vearch/vearch/config"
+	"github.com/vearch/vearch/util/log"
 	"go.etcd.io/etcd/embed"
 )
 
@@ -35,7 +34,6 @@ type Server struct {
 	client     *client.Client
 	etcdServer *embed.Etcd
 	ctx        context.Context
-	monitor    monitoring.Monitor
 }
 
 func NewServer(ctx context.Context) (*Server, error) {
@@ -55,7 +53,7 @@ func NewServer(ctx context.Context) (*Server, error) {
 		return nil, err
 	}
 
-	return &Server{etcCfg: cfg, ctx: ctx, monitor: config.Conf().NewMonitor(config.Master)}, nil
+	return &Server{etcCfg: cfg, ctx: ctx}, nil
 }
 
 func (s *Server) Start() (err error) {
@@ -89,6 +87,8 @@ func (s *Server) Start() (err error) {
 		return err
 	}
 
+	monitorService := newMonitorService(service)
+
 	if !log.IsDebugEnabled() {
 		gin.SetMode(gin.ReleaseMode)
 	}
@@ -98,6 +98,9 @@ func (s *Server) Start() (err error) {
 
 	ExportToClusterHandler(engine, service)
 	ExportToUserHandler(engine, service)
+	ExportToMonitorHandler(engine, monitorService)
+
+	//register monitor
 
 	go func() {
 		if err := engine.Run(":" + cast.ToString(config.Conf().Masters.Self().ApiPort)); err != nil {

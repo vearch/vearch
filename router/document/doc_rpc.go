@@ -26,7 +26,6 @@ import (
 	"github.com/vearch/vearch/util"
 	"github.com/vearch/vearch/util/cbjson"
 	"github.com/vearch/vearch/util/log"
-	"github.com/vearch/vearch/util/monitoring"
 	"github.com/vearch/vearch/util/uuid"
 	"google.golang.org/grpc"
 	"time"
@@ -36,17 +35,15 @@ type RpcHandler struct {
 	rpcServer  *grpc.Server
 	docService docService
 	client     *client.Client
-	monitor    monitoring.Monitor
 }
 
-func ExportRpcHandler(rpcServer *grpc.Server, client *client.Client, monitor monitoring.Monitor) {
+func ExportRpcHandler(rpcServer *grpc.Server, client *client.Client) {
 	docService := newDocService(client)
 
 	rpcHandler := &RpcHandler{
 		rpcServer:  rpcServer,
 		docService: *docService,
 		client:     client,
-		monitor:    monitor,
 	}
 
 	pspb.RegisterRpcApiServer(rpcServer, rpcHandler)
@@ -87,8 +84,19 @@ func (handler *RpcHandler) Search(ctx context.Context, req *pspb.RpcSearchReques
 		searchRequest.Size = util.PInt(20)
 	}
 
+	var clientType client.ClientType
+
+	switch req.ClientType {
+	case "leader", "":
+		clientType = client.LEADER
+	case "random":
+		clientType = client.RANDOM
+	default:
+		return &pspb.RpcSearchResponse{Head: handler.newErrHead(fmt.Errorf("client_type err param:[%s] , it use `leader` or `random`", req.ClientType))}, nil
+	}
+
 	t1 := time.Now()
-	searchResponse, nameCache, err := handler.docService.searchDoc(ctx, req.DbName, req.SpaceName, searchRequest)
+	searchResponse, nameCache, err := handler.docService.searchDoc(ctx, req.DbName, req.SpaceName, searchRequest, clientType)
 	if err != nil {
 		return &pspb.RpcSearchResponse{Head: handler.newErrHead(err)}, nil
 	}

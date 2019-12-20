@@ -276,11 +276,21 @@ func (this *partitionSender) initPartition() (*entity.Partition, error) {
 
 func (this *partitionSender) getOrCreate(partition *entity.Partition, clientType ClientType) *partitionSender {
 	this.nodeIds = make([]entity.NodeID, 0)
-	if clientType == LEADER {
+	switch clientType {
+	case LEADER:
 		this.nodeIds = append(this.nodeIds, partition.LeaderID)
-	} else if clientType == RANDOM {
+	case NOT_LEADER:
+		if len(this.nodeIds) == 1 {
+			log.Warn("partition:[%d] NO_LEADER model by client_type , but only has leader ", partition.Id)
+		}
+		noLeaderIDs := make([]entity.NodeID, 0, len(this.nodeIds)-1)
+		for _, id := range partition.Replicas {
+			noLeaderIDs = append(noLeaderIDs, id)
+		}
+		this.nodeIds = append(this.nodeIds, noLeaderIDs[rand.Intn(len(noLeaderIDs))])
+	case RANDOM:
 		this.nodeIds = append(this.nodeIds, partition.Replicas[rand.Intn(len(partition.Replicas))])
-	} else if clientType == ALL {
+	case ALL:
 		this.nodeIds = partition.Replicas
 	}
 	return this
@@ -312,10 +322,8 @@ func (this *partitionSender) Execute(servicePath string, request request.Request
 				e      error
 			)
 			rpcClient := this.spaceSender.ps.getOrCreateRpcClient(request.Context().GetContext(), nodeId)
-			rpcClient.lock.RLock()
-			defer rpcClient.lock.RUnlock()
 			if rpcClient.client == nil {
-				resp := response.Response{Resp: nil, Status: pkg.ERRCODE_MASTER_SERVER_IS_NOT_RUNNING, Err: pkg.ErrMasterServerIsNotRunning}
+				resp := response.Response{Resp: nil, Status: pkg.ERRCODE_MASTER_SERVER_IS_NOT_RUNNING, Err: pkg.VErr(pkg.ERRCODE_MASTER_SERVER_IS_NOT_RUNNING)}
 				respChain <- &resp
 				return
 			}
@@ -337,6 +345,43 @@ func (this *partitionSender) Execute(servicePath string, request request.Request
 					}
 					rpcClient = this.spaceSender.ps.getOrCreateRpcClient(request.Context().GetContext(), addrs.NodeID)
 					log.Debug("%s invoke not leader retry, PartitionID: %d, PartitionRpcAddr: %s", servicePath, request.GetPartitionID(), rpcClient.client.GetAddress(0))
+					continue
+				} else if status == pkg.ERRCODE_PARTITION_CANNOT_SEARCH {
+					var partition *entity.Partition
+
+					if partition, e = this.spaceSender.ps.Client().Master().Cache().PartitionByCache(this.spaceSender.Ctx.GetContext(), this.spaceSender.space, this.pid); e != nil {
+						break
+					}
+
+					var targetID entity.NodeID
+
+					hasSearched := func() bool {
+						for _, skip := range this.nodeIds {
+							if nodeId == skip {
+								return true
+							}
+						}
+						return false
+					}
+
+					for _, nodeId := range partition.Replicas {
+						if hasSearched() {
+							continue
+						}
+
+						this.nodeIds = append(this.nodeIds, nodeId)
+						targetID = nodeId
+						break
+					}
+
+					if nodeId == 0 {
+						e = fmt.Errorf("select all nodes:[%s] has err:[%s]", partition.Replicas, pkg.CodeErr(pkg.ERRCODE_PARTITION_CANNOT_SEARCH))
+						break
+					}
+
+					rpcClient = this.spaceSender.ps.getOrCreateRpcClient(request.Context().GetContext(), targetID)
+					log.Debug("%s invoke can not search retry, PartitionID: %d, PartitionRpcAddr: %s", servicePath, request.GetPartitionID(), rpcClient.client.GetAddress(0))
+
 					continue
 				}
 				if e != nil {
@@ -373,10 +418,8 @@ func (this *partitionSender) Execute(servicePath string, request request.Request
 func (this *partitionSender) StreamExecute(servicePath string, request request.Request, sc server.StreamCallback) (interface{}, int64, error) {
 	nodeId := this.nodeIds[0]
 	rpcClient := this.spaceSender.ps.getOrCreateRpcClient(request.Context().GetContext(), nodeId)
-	rpcClient.lock.RLock()
-	defer rpcClient.lock.RUnlock()
 	if rpcClient.client == nil {
-		return nil, pkg.ERRCODE_MASTER_SERVER_IS_NOT_RUNNING, pkg.ErrMasterServerIsNotRunning
+		return nil, pkg.ERRCODE_MASTER_SERVER_IS_NOT_RUNNING, pkg.CodeErr(pkg.ERRCODE_MASTER_SERVER_IS_NOT_RUNNING)
 	}
 	sleepTime := baseSleepTime
 

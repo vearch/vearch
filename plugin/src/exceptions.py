@@ -13,22 +13,20 @@
 
 
 class LoadModelError(Exception):
-    def __init__(self, message):
-        super.__init__(message)
-        self.message = message
+    pass
+
 
 class InstallError(Exception):
-    def __init__(self, message):
-        super.__init__(message)
-        self.message = message
+    pass
+
 
 class CreateDBAndSpaceError(Exception):
-    def __init__(self, message="Create DB or Space Failed"):
-        super.__init__(message)
-        self.message = message
+    pass
+
 
 class ImageError(Exception):
-    def __init__(self, message="Image path is invalid!"):
-        super.__init__(message)
-        self.message = message
-        self.code = 404
+    pass
+
+
+class HTTPError(Exception):
+    pass

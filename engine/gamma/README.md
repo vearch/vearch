@@ -3,7 +3,7 @@ Gamma is the core vector search engine of Vearch. It is a high-performance, conc
 As for the part of similarity search of vectors in Gamma, it is mainly implemented based on faiss which is an open source library developed by Facebook AI Research. Besides faiss, it can easily support other approximate nearest neighbor search(ANN) algorithms or libraries. 
 
 ## Requirements 
-* [Faiss](https://github.com/facebookresearch/faiss) == v1.5.3
+* [Faiss](https://github.com/facebookresearch/faiss) == v1.6.0
 
 ## Installation
 1. `mkdir build`

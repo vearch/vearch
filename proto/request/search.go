@@ -22,8 +22,6 @@ import (
 type SearchRequest struct {
 	*RequestContext
 	*SearchDocumentRequest
-	DB          string             `json:"db,omitempty"`
-	Space       string             `json:"space,omitempty"`
 	PartitionID entity.PartitionID `json:"partition,omitempty"`
 }
 
@@ -43,8 +41,6 @@ func (req *SearchRequest) Clone(pid entity.PartitionID, db, space string) *Searc
 	return &SearchRequest{
 		RequestContext:        req.RequestContext,
 		SearchDocumentRequest: req.SearchDocumentRequest,
-		DB:                    db,
-		Space:                 space,
 		PartitionID:           pid,
 	}
 }

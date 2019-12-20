@@ -5,10 +5,15 @@
  * found in the LICENSE file in the root directory of this source tree.
  */
 
-#include <faiss/utils.h>
+#include <faiss/utils/utils.h>
+#include <fcntl.h>
+#include <gtest/gtest.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 #include <chrono>
 #include <iostream>
 #include <string>
@@ -26,6 +31,10 @@ using namespace std;
 
 IVFPQParameters *kIVFPQParam =
     MakeIVFPQParameters(InnerProduct, 20, 256, 64, 8);
+
+IVFPQParameters *GetIVFPQParam() {
+  return MakeIVFPQParameters(InnerProduct, 20, 256, 64, 8);
+}
 
 inline ByteArray *StringToByteArray(const std::string &str) {
   ByteArray *ba = static_cast<ByteArray *>(malloc(sizeof(ByteArray)));
@@ -124,8 +133,8 @@ void printDoc(const Doc *doc, std::string &msg) {
       msg += "field name [" +
              string(field_value->name->value, field_value->name->len) +
              "], value [" + str_vec + "], type [" +
-             std::to_string(field_value->data_type) + "], source [" + source_str +
-             "]";
+             std::to_string(field_value->data_type) + "], source [" +
+             source_str + "]";
     }
   }
 }
@@ -159,4 +168,48 @@ float *fvecs_read(const char *fname, size_t *d_out, size_t *n_out) {
 
   fclose(f);
   return x;
+}
+
+int CreateFile(std::string &path, bool truncate = true) {
+  int flags = O_WRONLY | O_CREAT;
+  if (truncate) {
+    flags |= O_TRUNC;
+  }
+  int fd = open(path.c_str(), flags, 00777);
+  assert(fd != -1);
+  close(fd);
+  return 0;
+}
+
+struct FileHelper {
+  std::string file_path;
+  FILE *fp;
+
+  FileHelper(std::string path) {
+    file_path = path;
+  }
+
+  ~FileHelper() {
+    if (fp) fclose(fp);
+  }
+
+  int Open(const char *mode) {
+    fp = fopen(file_path.c_str(), mode);
+    if (fp == nullptr) return -1;
+    return 0;
+  }
+
+  size_t Read(void *data, size_t len) {
+    return fread(data, 1, len, fp);
+  }
+};
+
+string GetCurrentCaseName() {
+  const ::testing::TestInfo *const test_info =
+      ::testing::UnitTest::GetInstance()->current_test_info();
+  return string(test_info->test_case_name()) + "_" + test_info->name();
+}
+
+void Sleep(long milliseconds) {
+  std::this_thread::sleep_for(std::chrono::milliseconds(milliseconds));
 }

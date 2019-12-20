@@ -46,7 +46,7 @@ VectorBufferQueue::~VectorBufferQueue() {
   }
 }
 
-int VectorBufferQueue::Init(string &fet_file_path) {
+int VectorBufferQueue::Init() {
   if (dimension_ <= 0) {
     return 1;
   }
@@ -64,38 +64,6 @@ int VectorBufferQueue::Init(string &fet_file_path) {
     return 2;
   }
   total_mem_bytes_ += (long)max_vector_size_ * vector_byte_size_;
-
-  if (fet_file_path != "") {
-    long file_size = utils::get_file_size(fet_file_path.c_str());
-    if (file_size % vector_byte_size_ != 0) {
-      return 1;
-    }
-    long disk_vector_num = file_size / vector_byte_size_;
-    long offset = disk_vector_num > max_vector_size_
-                      ? (disk_vector_num - max_vector_size_) * vector_byte_size_
-                      : 0;
-    FILE *fet_fp = fopen(fet_file_path.c_str(), "rb");
-    if (fet_fp == NULL) {
-      LOG(ERROR) << "open feature file error, file path=" << fet_file_path;
-      return 1;
-    }
-    if (0 != fseek(fet_fp, offset, SEEK_SET)) {
-      LOG(ERROR) << "fseek feature file error, offset=" << offset;
-      fclose(fet_fp);
-      return 2;
-    }
-    int load_num =
-        disk_vector_num > max_vector_size_ ? max_vector_size_ : disk_vector_num;
-    stored_num_ = disk_vector_num > max_vector_size_
-                      ? disk_vector_num - max_vector_size_
-                      : 0;
-    fread(buffer_, vector_byte_size_, load_num, fet_fp);
-    fclose(fet_fp);
-
-    // init idx
-    push_index_ = load_num;
-    pop_index_ = push_index_;
-  }
 
   shared_mutexes_ = new pthread_rwlock_t[chunk_num_];
   for (int i = 0; i < chunk_num_; i++) {
@@ -147,7 +115,7 @@ int VectorBufferQueue::Push(const float *v, int dim, int num, int timeout) {
     push_index_ += batch_size;
     delete write_lock;
     num -= batch_size;
-    v += (long)vector_byte_size_ * batch_size;
+    v += (long)dimension_ * batch_size;
   } while (num > 0);
   return 0;
 }
@@ -191,9 +159,7 @@ int VectorBufferQueue::Pop(float *v, int dim, int num, int timeout) {
 int VectorBufferQueue::GetVector(int id, float *v, int dim) {
   if (v == nullptr || dim != dimension_)
     return 1;
-  if (id < stored_num_)
-    return 4;
-  int id_in_queue = id - stored_num_;
+  int id_in_queue = id;
   int chunk_id = id_in_queue / chunk_size_ % chunk_num_;
   ReadThreadLock read_lock(shared_mutexes_[chunk_id]);
   // the vector isn't in buffer

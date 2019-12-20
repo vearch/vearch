@@ -44,3 +44,4 @@ func (c *MsgpackCodec) Encode(i interface{}) ([]byte, error) {
 	return buf.Bytes(), err
 
 }
+

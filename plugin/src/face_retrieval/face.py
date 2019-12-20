@@ -10,20 +10,20 @@
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # ==============================================================================
-"""This code is refered https://github.com/davidsandberg/facenet"""
+
 import os
 import re
-import json
 import cv2
-import pickle
 import subprocess
 import numpy as np
 import tensorflow as tf
 from mtcnn.mtcnn import MTCNN
 
-os.environ["CUDA_VISIBLE_DEVICES"]= "1"
+
 root_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 default_model_path = os.path.join(root_path, "model", "20180402-114759")
+MODEL_URL = 'https://drive.google.com/uc?id=1EXPBSXwTaqrSC0OhUdXNmKSh9qJUQ55-&export=download'
+
 
 class FaceRecognition(object):
     def __init__(self, is_detect=True, image_size=160, model_path=default_model_path, **kwargs):
@@ -34,41 +34,38 @@ class FaceRecognition(object):
             self.mtcnn_detect = MTCNN()
 
     def detect(self, image):
-        result = []
-        if self.mtcnn_detect:
-            faces_bboxes = [bbox["box"] for bbox in self.mtcnn_detect.detect_faces(image)]
-            result = []
-            for box in faces_bboxes:
-                x_min, y_min, w, h = box
-                result.append({"boundingbox":
-                               [x_min, y_min, x_min+w, y_min+h],
-                               "image":
-                               image[y_min: y_min+h, x_min: x_min+w, :]
-                               }
-                              )
-            # print(result)
-        else:
-            result = [{"boundingbox":None, "image":image}]
-        return result
+        faces_bboxes = [bbox["box"] for bbox in self.mtcnn_detect.detect_faces(image)]
+        if len(faces_bboxes) == 0:
+            return image
+        image_h, image_w = image.shape[:2]
+        x_min, y_min, w, h = faces_bboxes[0]
+        x_min = int(max(x_min, 0))
+        x_max = int(min(x_min+w, image_w))
+        y_min = int(max(y_min, 0))
+        y_max = int(min(y_min + h, image_h))
+        image = image[y_min: y_max, x_min: x_max, :]
+        return image
 
     def encode(self, image):
-        result = self.detect(image)
+        if self.mtcnn_detect:
+            image = self.detect(image)
 
-        for res in result:
-            image_crop = res.pop("image")
-            image_resize = cv2.resize(image_crop, (self.image_size, self.image_size))
-            embedding = self.encoder.generate_embedding(image_resize)
-            res["feat"] =  embedding.tolist()
-        return result
+        image_resize = cv2.resize(image, (self.image_size, self.image_size))
+        embedding = self.encoder.generate_embedding(image_resize)
+        feat = embedding.tolist()
+        return feat
+
 
 class FaceEncoder(object):
     def __init__(self, model_path):
         if not os.path.exists(model_path):
-            path = os.path.dirname(model_path)
-            if not os.path.exists(path):
-                os.makedirs(path)
-            print(f"model not exists, begin download in {path}!")
-            subprocess.run(f"wget -P {path} https://drive.google.com/open?id=1EXPBSXwTaqrSC0OhUdXNmKSh9qJUQ55-", shell=True)
+            model_dir = os.path.dirname(model_path)
+            if not os.path.exists(model_dir):
+                os.makedirs(model_dir)
+            print(f"model not exists, begin download model save in {model_dir}!")
+            subprocess.run(
+                f"wget -P {model_dir} {MODEL_URL} && cd {model_dir} && unzip 20180402-114759.zip",
+                shell=True)
 
         config = tf.ConfigProto(log_device_placement=False)
         config.gpu_options.allow_growth = True
@@ -136,9 +133,11 @@ class FaceEncoder(object):
         feed_dict = {self.images_placeholder: [prewhiten_face], self.phase_train_placeholder: False}
         return self.sess.run(self.embeddings, feed_dict=feed_dict)[0]
 
+
 def load_model(config=None):
     model = FaceRecognition() if config is None else FaceRecognition(**config)
     return model
+
 
 if __name__ == "__main__":
     pass

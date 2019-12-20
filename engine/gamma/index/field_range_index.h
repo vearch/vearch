@@ -12,12 +12,13 @@
 #include <string>
 #include <vector>
 #include "gamma_api.h"
+#include "profile.h"
 #include "range_query_result.h"
 
 namespace tig_gamma {
 
 typedef struct {
-  std::string field;
+  int field;
   std::string lower_value;
   std::string upper_value;
   int is_union;
@@ -26,12 +27,12 @@ typedef struct {
 class FieldRangeIndex;
 class MultiFieldsRangeIndex {
  public:
-  MultiFieldsRangeIndex();
+  MultiFieldsRangeIndex(Profile *profile);
+  ~MultiFieldsRangeIndex();
 
-  int Add(const std::string &field, unsigned char *key, uint key_len,
-          int value);
+  int Add(int docid, int field);
 
-  int AddField(const std::string &field, enum DataType field_type);
+  int AddField(int field, enum DataType field_type);
 
   int Search(const std::vector<FilterInfo> &filters,
              MultiRangeQueryResults &out);
@@ -39,7 +40,8 @@ class MultiFieldsRangeIndex {
  private:
   int Intersect(const RangeQueryResult *results, int j, int k,
                 RangeQueryResult &out) const;
-  std::map<std::string, FieldRangeIndex *> fields_;
+  std::vector<FieldRangeIndex *> fields_;
+  Profile *profile_;
   static const int kLazyThreshold_ = 10000;
 };
 

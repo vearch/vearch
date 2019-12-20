@@ -37,6 +37,7 @@ type ClientType int
 
 const (
 	LEADER ClientType = iota
+	NOT_LEADER
 	RANDOM
 	ALL
 )
@@ -63,11 +64,12 @@ const (
 	//admin handler
 	CreatePartitionHandler = "CreatePartitionHandler"
 	DeletePartitionHandler = "DeletePartitionHandler"
+	DeleteReplicaHandler   = "DeleteReplicaHandler"
 	UpdatePartitionHandler = "UpdatePartitionHandler"
 	StatsHandler           = "StatsHandler"
 	IsLiveHandler          = "IsLiveHandler"
 	PartitionInfoHandler   = "PartitionInfoHandler"
-	ChangeMemberHandler   = "ChangeMemberHandler"
+	ChangeMemberHandler    = "ChangeMemberHandler"
 )
 
 type psClient struct {
@@ -121,6 +123,14 @@ func (this *sender) MultipleSpace(dbSpaces [][2]string) *multipleSpaceSender {
 	return &multipleSpaceSender{senders: senders}
 }
 
+func (this *sender) MultipleSpaceByType(dbSpaces [][2]string, clientType ClientType) *multipleSpaceSender {
+	senders := make([]*spaceSender, 0, len(dbSpaces))
+	for _, item := range dbSpaces {
+		senders = append(senders, &spaceSender{sender: this, db: item[0], space: item[1], clientType: clientType})
+	}
+	return &multipleSpaceSender{senders: senders}
+}
+
 func (this *sender) Space(db, space string) *spaceSender {
 	return &spaceSender{sender: this, db: db, space: space}
 }
@@ -134,12 +144,12 @@ var nilClient = &rpcClient{}
 type rpcClient struct {
 	client  *server.RpcClient
 	useTime int64
-	lock    sync.RWMutex
+	_lock    sync.RWMutex
 }
 
 func (this *rpcClient) close() {
-	this.lock.Lock()
-	defer this.lock.Unlock()
+	this._lock.Lock()
+	defer this._lock.Unlock()
 	if e := this.client.Close(); e != nil {
 		log.Error(e.Error())
 	}
@@ -248,6 +258,8 @@ func (ps *psClient) getOrCreateRpcClient(ctx context.Context, nodeId entity.Node
 	if ok {
 		return value.(*rpcClient).lastUse()
 	}
+
+
 	ps.Client().Master().cliCache.lock.Lock()
 	defer ps.Client().Master().cliCache.lock.Unlock()
 
@@ -255,6 +267,7 @@ func (ps *psClient) getOrCreateRpcClient(ctx context.Context, nodeId entity.Node
 	if ok {
 		return value.(*rpcClient).lastUse()
 	}
+
 
 	log.Info("psClient not in psClientCache, make new psClient, nodeId:[%d]", nodeId)
 	psServer, err := ps.Client().Master().cliCache.ServerByCache(ctx, nodeId)

@@ -19,6 +19,8 @@ import (
 	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/proto/pspb"
+	"sort"
+	"strings"
 )
 
 // An IndexMapping controls how objects are placed
@@ -112,6 +114,26 @@ func (im *IndexMapping) RangeField(f func(key string, value *DocumentMapping) er
 			return err
 		}
 	}
+	return nil
+}
+
+func (im *IndexMapping) SortRangeField(f func(key string, value *DocumentMapping) error) error {
+
+	var keys []string
+	for k := range im.fieldCacher {
+		keys = append(keys, k)
+	}
+
+	sort.Slice(keys, func(i, j int) bool {
+		return strings.Compare(keys[i], keys[j]) > 0
+	})
+
+	for _, k := range keys {
+		if err := f(k, im.fieldCacher[k]); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 

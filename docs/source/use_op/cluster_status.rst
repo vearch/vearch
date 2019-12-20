@@ -1,14 +1,12 @@
 Cluster Monitoring
 =================
 
-http://master_server is the master service.
-
 Cluster Status
 --------
 
 ::
 
-   curl -XGET http://master_server/_cluster/stats
+   curl -XGET http://xxxxxx/_cluster/stats
 
 
 Health Status
@@ -16,7 +14,7 @@ Health Status
 
 ::
 
-   curl -XGET http://master_server/_cluster/health
+   curl -XGET http://xxxxxx/_cluster/health
 
 
 Port Status
@@ -24,4 +22,4 @@ Port Status
 
 ::
 
-   curl -XGET http://master_server/list/server
+   curl -XGET http://xxxxxx/list/server

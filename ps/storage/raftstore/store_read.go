@@ -45,21 +45,21 @@ func (s *Store) GetDocuments(ctx context.Context, readLeader bool, docIds []stri
 }
 
 func (s *Store) Search(ctx context.Context, readLeader bool, query *request.SearchRequest) (result *response.SearchResponse, err error) {
-	if err := s.checkReadable(readLeader); err != nil {
+	if err := s.checkSearchable(readLeader); err != nil {
 		return nil, err
 	}
 	return s.Engine.Reader().Search(ctx, query), nil
 }
 
 func (s *Store) MSearch(ctx context.Context, readLeader bool, query *request.SearchRequest) (result response.SearchResponses, err error) {
-	if err := s.checkReadable(readLeader); err != nil {
+	if err := s.checkSearchable(readLeader); err != nil {
 		return nil, err
 	}
 	return s.Engine.Reader().MSearch(ctx, query), nil
 }
 
 func (s *Store) StreamSearch(ctx context.Context, readLeader bool, query *request.SearchRequest, resultChan chan *response.DocResult) error {
-	if err := s.checkReadable(readLeader); err != nil {
+	if err := s.checkSearchable(readLeader); err != nil {
 		return err
 	}
 	return s.Engine.Reader().StreamSearch(ctx, query, resultChan)
@@ -70,16 +70,38 @@ func (s *Store) checkReadable(readLeader bool) error {
 	status := s.Partition.GetStatus()
 
 	if status == entity.PA_CLOSED {
-		return pkg.ErrPartitionClosed
+		return pkg.CodeErr(pkg.ERRCODE_PARTITION_IS_CLOSED)
 	}
 
 	if status == entity.PA_INVALID {
-		return pkg.ErrPartitionInvalid
+		return pkg.CodeErr(pkg.ERRCODE_PARTITION_IS_INVALID)
 	}
 
 	if readLeader && status != entity.PA_READWRITE {
-		log.Error("checkReadable status: %d , err: %v", status, pkg.ErrPartitionNotLeader.Error())
-		return pkg.ErrPartitionNotLeader
+		log.Error("checkReadable status: %d , err: %v", status, pkg.CodeErr(pkg.ERRCODE_PARTITION_NOT_LEADER).Error())
+		return pkg.CodeErr(pkg.ERRCODE_PARTITION_NOT_LEADER)
+	}
+
+	return nil
+
+}
+
+//check this store can read
+func (s *Store) checkSearchable(readLeader bool) error {
+
+	status := s.Partition.GetStatus()
+	switch status {
+	case entity.PA_CLOSED:
+		return pkg.CodeErr(pkg.ERRCODE_PARTITION_IS_CLOSED)
+	case entity.PA_INVALID:
+		return pkg.CodeErr(pkg.ERRCODE_PARTITION_IS_INVALID)
+	case entity.PA_CANNOT_SEARCH:
+		return pkg.CodeErr(pkg.ERRCODE_PARTITION_CANNOT_SEARCH)
+	}
+
+	if readLeader && status != entity.PA_READWRITE {
+		log.Error("checkReadable status: %d , err: %v", status, pkg.CodeErr(pkg.ERRCODE_PARTITION_NOT_LEADER).Error())
+		return pkg.CodeErr(pkg.ERRCODE_PARTITION_NOT_LEADER)
 	}
 
 	return nil

@@ -17,18 +17,12 @@ package handler
 import (
 	"context"
 	"github.com/vearch/vearch/util/log"
-	"github.com/vearch/vearch/util/monitoring"
-	"time"
 )
 
 type ErrorChangeFun func(ctx context.Context, err error, request *RpcRequest, response *RpcResponse) error
 
-func NewChain(name string, monitor monitoring.Monitor, paincChain RpcHandler, errchange ErrorChangeFun, handlers ...RpcHandler) *Chain {
-	chain := &Chain{Name: name, panicChain: paincChain, errchange: errchange, chain: handlers}
-	if monitor != nil {
-		chain.monitor = monitor.New(name)
-	}
-	return chain
+func NewChain(name string, paincChain RpcHandler, errChange ErrorChangeFun, handlers ...RpcHandler) *Chain {
+	return &Chain{Name: name, panicChain: paincChain, errchange: errChange, chain: handlers}
 }
 
 type Chain struct {
@@ -36,7 +30,6 @@ type Chain struct {
 	panicChain RpcHandler
 	chain      []RpcHandler
 	errchange  ErrorChangeFun
-	monitor    monitoring.Monitor
 }
 
 func (this *Chain) Execute(ctx context.Context, request *RpcRequest, response *RpcResponse) error {
@@ -49,14 +42,9 @@ func (this *Chain) Execute(ctx context.Context, request *RpcRequest, response *R
 		}
 	}()
 
-	start := time.Now()
-
 	request.Ctx = ctx
 	for i := 0; i < len(this.chain); i++ {
 		if err := this.chain[i].Execute(request, response); err != nil {
-			if this.monitor != nil {
-				this.monitor.FunctionTP(start, true)
-			}
 			if this.errchange == nil {
 				return err
 			}
@@ -64,8 +52,5 @@ func (this *Chain) Execute(ctx context.Context, request *RpcRequest, response *R
 		}
 	}
 
-	if this.monitor != nil {
-		this.monitor.FunctionTP(start, false)
-	}
 	return nil
 }

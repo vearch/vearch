@@ -15,6 +15,7 @@
 package entity
 
 import (
+	"github.com/tiglabs/raft"
 	"sync"
 )
 
@@ -26,6 +27,7 @@ const (
 	PA_CLOSED
 	PA_READONLY
 	PA_READWRITE
+	PA_CANNOT_SEARCH
 )
 
 type PartitionForSearch struct {
@@ -74,4 +76,7 @@ type PartitionInfo struct {
 	Color       string          `json:"color,omitempty"`
 	Ip          string          `json:"ip,omitempty"`
 	NodeID      uint64          `json:"node_id,omitempty"`
+	RaftStatus  *raft.Status    `json:"raft_status,omitempty"`
+	IndexStatus int             `json:"index_status"`
+	Error       string          `json:"error,omitempty"`
 }

@@ -16,7 +16,6 @@ package entity
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/vearch/vearch/proto"
 	"github.com/vearch/vearch/util"
@@ -32,7 +31,7 @@ type Engine struct {
 	IndexSize   int64  `json:"index_size"`
 	MaxSize     int64  `json:"max_size"`
 	Nprobe      *int   `json:"nprobe,omitempty"`
-	MetricType  *int   `json:"metric_type,omitempty"`
+	MetricType  string `json:"metric_type,omitempty"`
 	Ncentroids  *int   `json:"ncentroids,omitempty"`
 	Nsubvector  *int   `json:"nsubvector,omitempty"`
 	NbitsPerIdx *int   `json:"nbits_per_idx,omitempty"`
@@ -118,55 +117,48 @@ func (engine *Engine) UnmarshalJSON(bs []byte) error {
 	}
 
 	tempEngine := &struct {
-		Name         string `json:"name"`
-		IndexSize    *int64 `json:"index_size"`
-		MaxSize      int64  `json:"max_size"`
-		ZoneField    string ` json:"zone_field"`
-		ExpireMinute int64  `json:"expire_minute"`
-		Nprobe       *int   `json:"nprobe"`
-		MetricType   *int   `json:"metric_type"`
-		Ncentroids   *int   `json:"ncentroids"`
-		Nsubvector   *int   `json:"nsubvector"`
-		NbitsPerIdx  *int   `json:"nbits_per_idx"`
+		Name        string  `json:"name"`
+		IndexSize   *int64  `json:"index_size"`
+		MaxSize     int64   `json:"max_size"`
+		Nprobe      *int    `json:"nprobe"`
+		MetricType  *string `json:"metric_type"`
+		Ncentroids  *int    `json:"ncentroids"`
+		Nsubvector  *int    `json:"nsubvector"`
+		NbitsPerIdx *int    `json:"nbits_per_idx"`
 	}{}
 
 	if err := json.Unmarshal(bs, tempEngine); err != nil {
 		return err
 	}
-
 	switch tempEngine.Name {
 	case Gamma:
 		if tempEngine.MaxSize <= 0 {
 			tempEngine.MaxSize = 100000
 		}
-
 		if tempEngine.IndexSize == nil {
 			tempEngine.IndexSize = util.PInt64(100000)
 		}
 
-		defVal := util.PInt(-1)
-
 		if tempEngine.Nprobe == nil {
-			tempEngine.Nprobe = defVal
+			tempEngine.Nprobe = util.PInt(-1)
 		}
-
-		if tempEngine.MetricType == nil {
-			tempEngine.MetricType = defVal
+		if tempEngine.MetricType == nil || *tempEngine.MetricType == ""{
+			tempEngine.MetricType = util.PStr("L2")
 		}
 
 		if tempEngine.Ncentroids == nil {
-			tempEngine.Ncentroids = defVal
+			tempEngine.Ncentroids = util.PInt(-1)
 		}
 
 		if tempEngine.Nsubvector == nil {
-			tempEngine.Nsubvector = defVal
+			tempEngine.Nsubvector = util.PInt(-1)
 		}
 
 		if tempEngine.NbitsPerIdx == nil {
-			tempEngine.NbitsPerIdx = defVal
+			tempEngine.NbitsPerIdx = util.PInt(-1)
 		}
 	default:
-		return pkg.ErrPartitionEngineNameInvalid
+		return pkg.CodeErr(pkg.ERRCODE_PARTITON_ENGINENAME_INVALID)
 	}
 
 	*engine = Engine{
@@ -174,7 +166,7 @@ func (engine *Engine) UnmarshalJSON(bs []byte) error {
 		IndexSize:   *tempEngine.IndexSize,
 		MaxSize:     tempEngine.MaxSize,
 		Nprobe:      tempEngine.Nprobe,
-		MetricType:  tempEngine.MetricType,
+		MetricType:  *tempEngine.MetricType,
 		Ncentroids:  tempEngine.Ncentroids,
 		Nsubvector:  tempEngine.Nsubvector,
 		NbitsPerIdx: tempEngine.NbitsPerIdx,
@@ -189,7 +181,7 @@ func (space *Space) Validate() error {
 	switch space.Engine.Name {
 	case Gamma:
 	default:
-		return errors.New(pkg.ErrMasterInvalidEngine.Error() + " engine name : " + space.Engine.Name)
+		return pkg.CodeErr(pkg.ERRCODE_INVALID_ENGINE)
 	}
 
 	rs := []rune(space.Name)

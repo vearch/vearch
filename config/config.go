@@ -17,7 +17,6 @@ package config
 import (
 	"bytes"
 	"fmt"
-	"github.com/vearch/vearch/util/monitoring"
 	"net"
 	"net/url"
 	"os"
@@ -199,6 +198,7 @@ type MasterCfg struct {
 	Self           bool   `json:"-"`
 	SkipAuth       bool   `toml:"skip_auth,omitempty" json:"skip_auth"`
 	PprofPort      uint16 `toml:"pprof_port,omitempty" json:"pprof_port"`
+	MonitorPort    uint16 `toml:"monitor_port" json:"monitor_port"`
 }
 
 func (m *MasterCfg) ApiUrl() string {
@@ -404,19 +404,4 @@ func (config *Config) validatePath(model Model) error {
 	}
 
 	return nil
-}
-
-func (config *Config) NewMonitor(model Model) monitoring.Monitor {
-	var key string
-	switch model {
-	case Router:
-		key = "router"
-	case PS:
-		key = "partition_server"
-	case Master:
-		key = "master"
-	default:
-		key = "unknow"
-	}
-	return newMonitor(config, key)
 }

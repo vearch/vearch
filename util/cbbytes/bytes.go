@@ -292,5 +292,7 @@ func Bytes2Int(bs []byte) int64 {
 }
 
 func CloneBytes(b []byte) []byte {
-	return append([]byte(nil), b...)
+	result := make([]byte, len(b))
+	copy(result, b)
+	return result
 }

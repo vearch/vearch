@@ -30,7 +30,7 @@ public:
     if (store_param != "" && store_params.Parse(store_param.c_str()))
       return nullptr;
     if (store_params.cache_size_ == -1)
-      store_params.cache_size_ = max_doc_size * dimension * sizeof(float);
+      store_params.cache_size_ = (long)max_doc_size * dimension * sizeof(float);
     LOG(INFO) << "store parameters=" << store_params.ToString();
     switch (type) {
     case Mmap:

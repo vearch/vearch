@@ -143,7 +143,7 @@ int SearchThread(void *engine, size_t num) {
     string c1_upper = string((char *)&upper, sizeof(upper));
 
     if (idx % 1000 == 0) LOG(INFO) << "idx=" << idx;
-  
+
     string name = "field2";
     RangeFilter **range_filters = MakeRangeFilters(2);
     RangeFilter *range_filter =
@@ -170,14 +170,18 @@ int SearchThread(void *engine, size_t num) {
                                  StringToByteArray(term_low), true);
     SetTermFilter(term_filters, 0, term_filter);
 
-    ByteArray **vec_fields = MakeByteArrays(1);
+    int field_num = 2;
+    ByteArray **vec_fields = MakeByteArrays(field_num);
     ByteArray *vec_name = StringToByteArray(opt.vector_name);
+    string id_field = "_id";
+    ByteArray *id_name = StringToByteArray(id_field);
     vec_fields[0] = vec_name;
+    vec_fields[1] = id_name;
     Request *request =
-        MakeRequest(10, vector_querys, 1, vec_fields, 1, range_filters, 2,
-                    term_filters, 1, req_num, 0, nullptr, TRUE);
+        MakeRequest(10, vector_querys, 1, vec_fields, field_num, range_filters,
+                    2, term_filters, 1, req_num, 0, nullptr, TRUE, 0);
     // Request *request = MakeRequest(10, vector_querys, 1, nullptr, 0, nullptr, 0,
-    //                                nullptr, 0, req_num, 0, nullptr, FALSE);
+    //                                nullptr, 0, req_num, 0, nullptr, FALSE, 0);
 
     Response *response = Search(engine, request);
     for (int i = 0; i < response->req_num; ++i) {
@@ -238,7 +242,7 @@ int GetVector(void *engine) {
   SetTermFilter(term_filters, 0, term_filter);
 
   Request *request = MakeRequest(10, nullptr, 0, nullptr, 0, nullptr, 0,
-                                 term_filters, 1, req_num, 0, nullptr, TRUE);
+                                 term_filters, 1, req_num, 0, nullptr, TRUE, 0);
 
   Response *response = Search(engine, request);
   for (int i = 0; i < response->req_num; ++i) {

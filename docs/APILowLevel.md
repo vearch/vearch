@@ -104,7 +104,7 @@ curl -v --user "root:secret" -H "content-type: application/json" -XPUT -d'
 * max_size : max documents for each partition 
 * index_size : default 100000, if index_size == 0  it will not auto indexed,  if insert document num >= index_size , it will auto indexed
 * nprobe : scan clustered buckets, default 10, it should be less than ncentroids
-* metric_type : inner product or L2 
+* metric_type : default `L2`, `InnerProduct` or `L2` 
 * ncentroids : coarse cluster center number, default 256
 * nsubvector : the number of sub vector, default 32, only the value which is multiple of 4 is supported now
 * nbits_per_idx : bit number of sub cluster center, default 8, and 8 is the only value now
@@ -112,6 +112,11 @@ curl -v --user "root:secret" -H "content-type: application/json" -XPUT -d'
 * array : whether the tags for each document is multi-valued, `true` or `false` default is false
 * index : supporting numeric field filter default `false`
 
+* Vector field params
+    * * format : default not normalized . if you set "normalization", "normal" it will normalized  
+    * * retrieval_type ： default "IVFPQ"
+    * * store_type : "RocksDB" or "Mmap" default "Mmap"  
+    * * store_param : example {"cache_size":2592} 
 
 ### get space
 
@@ -207,7 +212,11 @@ curl -H "content-type: application/json" -XPOST -d'
   },
   "size":10,
    "quick":false, 
-   "vector_value":false
+   "vector_value":false,
+    "sort" : [
+       { "_score" : {"order" : "asc"} }
+   ],
+   "fileds":["name","age"]
 }
 ' {{ROUTER}}/test_vector_db/vector_space/_search
 ````
