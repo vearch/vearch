@@ -7,7 +7,7 @@
    1. CentOS, Ubuntu and Mac OS are all OK (recommend CentOS >= 7.2)，cmake required
    2. Go >= 1.11.2 required
    3. Gcc >= 5 required
-   4. [Faiss](https://github.com/facebookresearch/faiss) == v1.5.3
+   4. [Faiss](https://github.com/facebookresearch/faiss) >= v1.6.0
    5. [RocksDB](https://github.com/facebook/rocksdb) == 6.2.2 ***(optional)*** . Please use `make shared_lib` which is in `RocksDB's INSTALL.md` to compile rocksdb.
 
 #### Compile 
