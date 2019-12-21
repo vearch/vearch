@@ -72,7 +72,6 @@ func mapping2Table(cfg register.EngineConfig, m *mapping.IndexMapping) (*C.struc
 	fs := make([]*C.struct_FieldInfo, 0)
 
 	fs = append(fs, C.MakeFieldInfo(byteArrayStr(mapping.IdField), STRING, C.char(0)))
-	fs = append(fs, C.MakeFieldInfo(byteArrayStr(mapping.SourceField), STRING, C.char(0)))
 	fs = append(fs, C.MakeFieldInfo(byteArrayStr(mapping.VersionField), LONG, C.char(0)))
 	fs = append(fs, C.MakeFieldInfo(byteArrayStr(mapping.SlotField), INT, C.char(0)))
 
@@ -156,7 +155,13 @@ func DocCmd2Document(docCmd *pspb.DocCmd) (*C.struct_Doc, error) {
 	if toByte, e := cbbytes.ValueToByte(docCmd.Version); e != nil {
 		return nil, e
 	} else {
-		fields = append(fields, newField(mapping.VersionField, toByte, INT))
+		fields = append(fields, newField(mapping.VersionField, toByte, LONG))
+	}
+
+	if toByte, e := cbbytes.ValueToByte(docCmd.Slot); e != nil {
+		return nil, e
+	} else {
+		fields = append(fields, newField(mapping.SlotField, toByte, INT))
 	}
 
 	for _, f := range docCmd.Fields {
@@ -233,8 +238,6 @@ func (ge *gammaEngine) Doc2DocResult(doc *C.struct_Doc) *response.DocResult {
 			result.SlotID = uint32(cbbytes.ByteArray2UInt64(CbArr2ByteArray(fv.value)))
 		case mapping.IdField:
 			result.Id = string(CbArr2ByteArray(fv.value))
-		case mapping.SourceField:
-			result.Source = CbArr2ByteArray(fv.value)
 		default:
 			field := ge.GetMapping().GetField(name)
 			if field == nil {
