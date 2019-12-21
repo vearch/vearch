@@ -282,7 +282,7 @@ def run(port, url_queue, result_queue):
 
 def install(model_name):
     if model_name == 'face_retrieval':
-        util.install_package('tensorflow-gpu==1.12.0 mtcnn keras==2.2.4')
+        util.install_package('tensorflow-gpu==1.15.0 mtcnn keras==2.2.4')
     elif model_name == 'image_retrieval':
         util.install_package('torchvision torch')
     elif model_name == 'text':
