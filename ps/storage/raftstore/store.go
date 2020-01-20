@@ -125,7 +125,6 @@ func (s *Store) Start() (err error) {
 		return fmt.Errorf("start partition[%d] create raft error: %s", s.Partition.Id, err)
 	}
 
-
 	// Start Raft Sn Flush worker
 	s.startFlushJob()
 	// Start Raft Truncate Worker
@@ -136,19 +135,18 @@ func (s *Store) Start() (err error) {
 
 // Destroy close partition store if it running currently.
 func (s *Store) Close() error {
-	s.CloseOnce.Do(func() {
 
-		s.Partition.SetStatus(entity.PA_CLOSED)
+	if err := s.RaftServer.RemoveRaft(uint64(s.Partition.Id)); err != nil {
+		log.Error("close raft server err : %s , Partition.Id: %d", err.Error(), s.Partition.Id)
+		return err
+	}
 
-		if err := s.RaftServer.RemoveRaft(uint64(s.Partition.Id)); err != nil {
-			log.Error("close raft server err : %s , Partition.Id: %d", err.Error(), s.Partition.Id)
-		}
-		if s.Engine != nil {
-			s.Engine.Close()
-		}
+	if s.Engine != nil {
+		s.Engine.Close()
+	}
+	s.CtxCancel() // to stop
+	s.Partition.SetStatus(entity.PA_CLOSED)
 
-		s.CtxCancel() // to stop
-	})
 	return nil
 }
 
@@ -175,7 +173,6 @@ func (s *Store) IsLeader() bool {
 	return s.NodeID == leaderID
 }
 
-
 func (s *Store) Status() *raft.Status {
 	return s.RaftServer.Status(uint64(s.Partition.Id))
 }
@@ -186,7 +183,7 @@ func (s *Store) GetLeader() (entity.NodeID, uint64) {
 
 func (s *Store) TryToLeader() error {
 	future := s.RaftServer.TryToLeader(uint64(s.Partition.Id))
-	response , err := future.Response()
+	response, err := future.Response()
 	if response != nil && response.(*RaftApplyResponse).Err != nil {
 		return response.(*RaftApplyResponse).Err
 	}

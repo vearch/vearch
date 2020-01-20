@@ -496,6 +496,18 @@ func (this *masterService) deleteSpaceService(ctx context.Context, dbName string
 		return err
 	}
 
+	for _, p := range space.Partitions {
+		for _, replica := range p.Replicas {
+			if server, err := this.Master().QueryServer(ctx, replica); err != nil {
+				log.Error("query partition:[%d] for replica:[%s] has err:[%s]", p.Id, replica, err.Error())
+			} else {
+				if err := this.PS().Be(ctx).Admin(server.RpcAddr()).DeletePartition(p.Id); err != nil {
+					log.Error("delete partition:[%d] for server:[%s] has err:[%s]", p.Id, server.RpcAddr(), err.Error())
+				}
+			}
+		}
+	}
+
 	return nil
 }
 

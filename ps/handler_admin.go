@@ -296,7 +296,6 @@ func (sh *StatsHandler) Execute(req *handler.RpcRequest, resp *handler.RpcRespon
 		pi.Path = store.GetPartition().Path
 		pi.Unreachable = store.GetUnreachable(uint64(pid))
 		pi.Status = store.GetPartition().GetStatus()
-		pi.RaftStatus = store.Status()
 		pi.IndexStatus = store.GetEngine().IndexStatus()
 	})
 

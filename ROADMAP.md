@@ -52,19 +52,17 @@ Video surveillance security scene algorithm plug-in.
 
 ## Vearch 0.3
 
-Vearch 0.3 will be released in November 2019.
+Vearch 0.3 released on 20th January 2020.
 
-### Models 
+### New features 
 
-More retrieval models would be integrated.
+Support vector search with GPU. Support single online request for GPU, not just batch requests
 
-### Management UI 
-
-Management frontend for vearch.
+Python SDK which can be friendly used in local computer or edge device.
 
 ### Plug-in
 
-More algorithm plugins.
+Plugin service can be installed in Docker.
 
 ### Testing
 

@@ -113,6 +113,8 @@ int VectorManager::CreateVectorTable(VectorInfo **vectors_info, int vectors_num,
     RetrievalModel model = default_model_;
     if (!strcasecmp("IVFPQ", retrieval_type_str.c_str())) {
       model = RetrievalModel::IVFPQ;
+    } else if (!strcasecmp("GPU", retrieval_type_str.c_str())) {
+      model = RetrievalModel::GPU_IVFPQ;
     } else {
       LOG(WARNING) << "NO support for retrieval type " << retrieval_type_str
                    << ", default to " << default_model_;

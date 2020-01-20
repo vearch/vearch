@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"github.com/vearch/vearch/proto"
 	"github.com/vearch/vearch/util"
+	"github.com/vearch/vearch/util/vearchlog"
 	"unicode"
 )
 
@@ -142,7 +143,7 @@ func (engine *Engine) UnmarshalJSON(bs []byte) error {
 		if tempEngine.Nprobe == nil {
 			tempEngine.Nprobe = util.PInt(-1)
 		}
-		if tempEngine.MetricType == nil || *tempEngine.MetricType == ""{
+		if tempEngine.MetricType == nil || *tempEngine.MetricType == "" {
 			tempEngine.MetricType = util.PStr("L2")
 		}
 
@@ -158,7 +159,7 @@ func (engine *Engine) UnmarshalJSON(bs []byte) error {
 			tempEngine.NbitsPerIdx = util.PInt(-1)
 		}
 	default:
-		return pkg.CodeErr(pkg.ERRCODE_PARTITON_ENGINENAME_INVALID)
+		return vearchlog.LogErrAndReturn(pkg.CodeErr(pkg.ERRCODE_PARTITON_ENGINENAME_INVALID))
 	}
 
 	*engine = Engine{

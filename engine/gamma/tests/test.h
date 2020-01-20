@@ -30,7 +30,7 @@ using std::string;
 using namespace std;
 
 IVFPQParameters *kIVFPQParam =
-    MakeIVFPQParameters(InnerProduct, 20, 256, 64, 8);
+    MakeIVFPQParameters(InnerProduct, 10, 256, 64, 8);
 
 IVFPQParameters *GetIVFPQParam() {
   return MakeIVFPQParameters(InnerProduct, 20, 256, 64, 8);

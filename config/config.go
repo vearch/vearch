@@ -275,6 +275,7 @@ type PSCfg struct {
 	RaftRetainLogs         uint64 `toml:"raft_retain_logs" json:"raft-retain-logs"`
 	RaftReplicaConcurrency int    `toml:"raft_replica_concurrency" json:"raft-replica-concurrency"`
 	RaftSnapConcurrency    int    `toml:"raft_snap_concurrency" json:"raft-snap-concurrency"`
+	RaftTruncateCount      int64  `toml:"raft_truncate_count" json:"raft-snap-concurrency"`
 	EngineDWPTNum          uint64 `toml:"engine_dwpt_num" json:"engine-dwpt-num"`
 	MaxSize                int64  `toml:"max_size" json:"max_size"`
 	PprofPort              uint16 `toml:"pprof_port" json:"pprof_port"`

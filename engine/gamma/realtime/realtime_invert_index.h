@@ -56,6 +56,7 @@ public:
   int Dump(const std::string &file_path, const std::string &vec_name, int max_vid);
   int Load(const std::vector<std::string> &index_dirs, const std::string &vec_name);
 
+  void PrintBucketSize();
 private:
   size_t _bucket_keys;
   size_t _bucket_keys_limit;

@@ -1,35 +1,36 @@
-FILE(GLOB srcs ${CMAKE_CURRENT_SOURCE_DIR}/*.cc)
+file(GLOB srcs ${CMAKE_CURRENT_SOURCE_DIR}/*.cc)
 
-ENABLE_TESTING()
+enable_testing()
 # Build each source file independently
-INCLUDE_DIRECTORIES(../)
+include_directories(../)
 
 # gtest
-IF(BUILD_GTEST)
-    EXECUTE_PROCESS(COMMAND rm -rf gtest WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-    EXECUTE_PROCESS(COMMAND wget https://github.com/google/googletest/archive/release-1.8.1.tar.gz WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-    EXECUTE_PROCESS(COMMAND tar xf release-1.8.1.tar.gz WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-    EXECUTE_PROCESS(COMMAND mv googletest-release-1.8.1/googletest gtest WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-    EXECUTE_PROCESS(COMMAND rm -rf googletest-release-1.8.1 WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-    EXECUTE_PROCESS(COMMAND rm -rf release-1.8.1.tar.gz WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-    EXECUTE_PROCESS(COMMAND cmake . WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/gtest)
-    EXECUTE_PROCESS(COMMAND make WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/gtest)
-ENDIF(BUILD_GTEST)
+if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/gtest")
+    execute_process(COMMAND rm -rf gtest WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+    execute_process(COMMAND wget https://github.com/google/googletest/archive/release-1.8.1.tar.gz WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+    execute_process(COMMAND tar xf release-1.8.1.tar.gz WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+    execute_process(COMMAND mv googletest-release-1.8.1/googletest gtest WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+    execute_process(COMMAND rm -rf googletest-release-1.8.1 WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+    execute_process(COMMAND rm -rf release-1.8.1.tar.gz WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+    execute_process(COMMAND cmake . WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/gtest)
+    execute_process(COMMAND make WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/gtest)
+endif()
 
-INCLUDE_DIRECTORIES(gtest/include)
+include_directories(gtest/include)
 
-LINK_DIRECTORIES(
+link_directories(
     ../
     gtest/
+    ../index/gpu
 )
 
-FOREACH(source ${srcs})
-    GET_FILENAME_COMPONENT(name ${source} NAME_WE)
+foreach(source ${srcs})
+    get_filename_component(name ${source} NAME_WE)
 
     # target
-    ADD_EXECUTABLE(${name} ${source})
-    TARGET_LINK_LIBRARIES(${name} gamma gtest_main gtest)
+    add_executable(${name} ${source})
+    target_link_libraries(${name} gamma gtest_main gtest)
 
     # Install
-    INSTALL(TARGETS ${name} DESTINATION test)
-ENDFOREACH(source)
+    install(TARGETS ${name} DESTINATION test)
+endforeach(source)

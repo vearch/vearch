@@ -249,6 +249,12 @@
 			"revisionTime": "2018-08-13T15:31:12Z"
 		},
 		{
+			"checksumSHA1": "XODK5ZvRBTnbrRp3tB1WSrrGGow=",
+			"path": "github.com/google/flatbuffers/go",
+			"revision": "ce3a1c43a2882b44b22785c21652a6e7aff60f8b",
+			"revisionTime": "2019-12-18T19:23:54Z"
+		},
+		{
 			"checksumSHA1": "TAXd73uN0hLjwdGGGNgnmF6iC0k=",
 			"path": "github.com/google/go-cmp/cmp",
 			"revision": "745b8ec8378318d64f3f04949d010ee8d2fc71e2",

@@ -15,11 +15,12 @@
 package response
 
 import (
-	"github.com/vearch/vearch/proto"
-	sort "github.com/vearch/vearch/ps/engine/sortorder"
-	"github.com/vearch/vearch/util/cbjson"
 	"math"
 	"time"
+
+	pkg "github.com/vearch/vearch/proto"
+	sort "github.com/vearch/vearch/ps/engine/sortorder"
+	"github.com/vearch/vearch/util/cbjson"
 )
 
 func NewSearchResponseErr(err error) *SearchResponse {

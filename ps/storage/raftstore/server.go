@@ -33,7 +33,7 @@ func StartRaftServer(nodeId entity.NodeID, ip string, resolver raft.SocketResolv
 	rc.HeartbeatAddr = fmt.Sprintf(ip + ":" + cast.ToString(config.Conf().PS.RaftHeartbeatPort))
 	rc.ReplicateAddr = fmt.Sprintf(ip + ":" + cast.ToString(config.Conf().PS.RaftReplicatePort))
 	rc.Resolver = resolver
-	rc.TickInterval = 100 * time.Millisecond
+	rc.TickInterval = 500 * time.Millisecond
 	if config.Conf().PS.RaftReplicaConcurrency > 0 {
 		rc.MaxReplConcurrency = config.Conf().PS.RaftReplicaConcurrency
 	}

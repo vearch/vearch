@@ -23,13 +23,13 @@ import (
 
 	"github.com/vearch/vearch/proto/response"
 
-	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/config"
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/proto/pspb"
 	"github.com/vearch/vearch/ps/engine"
 	"github.com/vearch/vearch/ps/psutil"
 	"github.com/vearch/vearch/ps/storage/raftstore"
+	"github.com/vearch/vearch/util/log"
 )
 
 type Base interface {
@@ -198,22 +198,23 @@ func (s *Server) DeletePartition(id entity.PartitionID) {
 	defer s.mu.Unlock()
 
 	if p, ok := s.partitions.Load(id); ok {
-		s.partitions.Delete(id)
 		if partition, is := p.(PartitionStore); is {
-			if partition.GetPartition().GetStatus() != entity.PA_INVALID {
-				for _, r := range partition.GetPartition().Replicas {
-					s.raftResolver.DeleteNode(r)
-				}
-				if err := partition.Destroy(); err != nil {
-					log.Error("delete partition[%v] fail cause: %v", id, err)
-				}
+			for _, r := range partition.GetPartition().Replicas {
+				s.raftResolver.DeleteNode(r)
+			}
+			if err := partition.Destroy(); err != nil {
+				log.Error("delete partition[%v] fail cause: %v", id, err)
+				return
+			}
+
+			if partition.GetPartition().GetStatus() == entity.PA_INVALID {
+				s.partitions.Delete(id)
 			}
 		}
-
 	}
 
 	psutil.ClearPartition(config.Conf().GetDataDirBySlot(config.PS, id), id)
-	log.Info("delete partition[%d] success", id)
+	log.Info("delete partition:[%d] success", id)
 }
 
 func (s *Server) PartitionNum() int {

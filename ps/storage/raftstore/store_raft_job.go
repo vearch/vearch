@@ -16,6 +16,7 @@ package raftstore
 
 import (
 	"fmt"
+	"github.com/vearch/vearch/config"
 	"runtime/debug"
 	"time"
 
@@ -25,9 +26,8 @@ import (
 
 const (
 	TruncateTicket = 5 * time.Minute
-	TruncateCounts = 200000
-
-	FlushTicket  = 1 * time.Second
+	TruncateCounts = 10000000
+	FlushTicket    = 1 * time.Second
 )
 
 // truncate is raft log truncate.
@@ -40,6 +40,10 @@ func (s *Store) startTruncateJob(initLastFlushIndex int64) {
 		}
 		s.RaftServer.Truncate(uint64(s.Partition.Id), uint64(truncIndex))
 		return nil
+	}
+
+	if config.Conf().PS.RaftTruncateCount <= 0 {
+		config.Conf().PS.RaftTruncateCount = 20000
 	}
 
 	appTruncateIndex := initLastFlushIndex
@@ -68,8 +72,8 @@ func (s *Store) startTruncateJob(initLastFlushIndex int64) {
 				log.Error("truncate getsn: %s", err.Error())
 				continue
 			}
-			if (flushSn - appTruncateIndex - TruncateCounts) >= 0 {
-				newTrucIndex := flushSn - TruncateCounts
+			if (flushSn - appTruncateIndex - config.Conf().PS.RaftTruncateCount) >= 0 {
+				newTrucIndex := flushSn - config.Conf().PS.RaftTruncateCount
 				if err = truncateFunc(newTrucIndex); err != nil {
 					log.Warn("truncate: %s", err.Error())
 					continue
@@ -123,4 +127,3 @@ func (s *Store) startFlushJob() {
 		}
 	}()
 }
-

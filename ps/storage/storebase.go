@@ -37,7 +37,6 @@ type StoreBase struct {
 	MetaPath  string
 	Space     *entity.Space
 	Partition *entity.Partition
-	CloseOnce sync.Once
 
 	Engine engine.Engine
 }

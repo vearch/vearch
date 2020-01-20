@@ -17,19 +17,21 @@ package client
 import (
 	"context"
 	"fmt"
-	"github.com/vearch/vearch/proto"
+	"sync"
+	"time"
+
+	pkg "github.com/vearch/vearch/proto"
 	"github.com/vearch/vearch/proto/request"
 	"github.com/vearch/vearch/proto/response"
 	"github.com/vearch/vearch/util/cbjson"
 	server "github.com/vearch/vearch/util/server/rpc"
 	"github.com/vearch/vearch/util/uuid"
-	"sync"
-	"time"
 
 	"bytes"
+
 	"github.com/spf13/cast"
-	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/proto/entity"
+	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/util/server/rpc/handler"
 )
 
@@ -144,7 +146,7 @@ var nilClient = &rpcClient{}
 type rpcClient struct {
 	client  *server.RpcClient
 	useTime int64
-	_lock    sync.RWMutex
+	_lock   sync.RWMutex
 }
 
 func (this *rpcClient) close() {
@@ -259,7 +261,6 @@ func (ps *psClient) getOrCreateRpcClient(ctx context.Context, nodeId entity.Node
 		return value.(*rpcClient).lastUse()
 	}
 
-
 	ps.Client().Master().cliCache.lock.Lock()
 	defer ps.Client().Master().cliCache.lock.Unlock()
 
@@ -267,7 +268,6 @@ func (ps *psClient) getOrCreateRpcClient(ctx context.Context, nodeId entity.Node
 	if ok {
 		return value.(*rpcClient).lastUse()
 	}
-
 
 	log.Info("psClient not in psClientCache, make new psClient, nodeId:[%d]", nodeId)
 	psServer, err := ps.Client().Master().cliCache.ServerByCache(ctx, nodeId)

@@ -141,5 +141,9 @@ int RTInvertIndex::Load(const std::vector<std::string> &index_dirs,
   return _cur_ptr->Load(index_dirs, vec_name);
 }
 
+void RTInvertIndex::PrintBucketSize() {
+  _cur_ptr->PrintBucketSize();
+}
+
 }  // namespace realtime
 }  // namespace tig_gamma

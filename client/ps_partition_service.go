@@ -17,11 +17,12 @@ package client
 import (
 	"context"
 	"encoding/json"
-	"github.com/smallnest/rpcx/protocol"
-	"github.com/vearch/vearch/proto/request"
-	"github.com/vearch/vearch/util/server/rpc"
 	"math/rand"
 	"time"
+
+	"github.com/smallnest/rpcx/protocol"
+	"github.com/vearch/vearch/proto/request"
+	server "github.com/vearch/vearch/util/server/rpc"
 
 	"github.com/vearch/vearch/proto/response"
 
@@ -31,10 +32,10 @@ import (
 
 	"github.com/smallnest/rpcx/share"
 	"github.com/spf13/cast"
-	"github.com/vearch/vearch/util/log"
-	"github.com/vearch/vearch/proto"
+	pkg "github.com/vearch/vearch/proto"
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/proto/pspb"
+	"github.com/vearch/vearch/util/log"
 )
 
 type partitionSender struct {
@@ -114,11 +115,22 @@ func (this *partitionSender) mSearch(req *request.SearchRequest) (response.Searc
 	if err != nil { // must use it to get paition
 		return nil, err
 	}
+	now := time.Now()
 	result, _, err := this.getOrCreate(partition, this.spaceSender.clientType).Execute(MSearchHandler, req.Clone(partition.Id, this.spaceSender.db, this.spaceSender.space))
 	if err != nil {
 		return nil, err
 	}
 	searchResponses := *(result.(*response.SearchResponses))
+
+	var maxTook int64 = 0
+	for _, r := range searchResponses {
+		if maxTook < r.MaxTook {
+			maxTook = r.MaxTook
+		}
+	}
+
+	log.Info("msearch use time:", time.Now().Sub(now), "partition maxTook use time:", maxTook)
+
 	for _, searchResponse := range searchResponses {
 		searchResponse.PID = req.PartitionID //set partition id to result
 	}
@@ -280,6 +292,9 @@ func (this *partitionSender) getOrCreate(partition *entity.Partition, clientType
 	case LEADER:
 		this.nodeIds = append(this.nodeIds, partition.LeaderID)
 	case NOT_LEADER:
+		if log.IsDebugEnabled() {
+			log.Info("search by partition by not leader model")
+		}
 		if len(this.nodeIds) == 1 {
 			log.Warn("partition:[%d] NO_LEADER model by client_type , but only has leader ", partition.Id)
 		}
@@ -289,7 +304,11 @@ func (this *partitionSender) getOrCreate(partition *entity.Partition, clientType
 		}
 		this.nodeIds = append(this.nodeIds, noLeaderIDs[rand.Intn(len(noLeaderIDs))])
 	case RANDOM:
-		this.nodeIds = append(this.nodeIds, partition.Replicas[rand.Intn(len(partition.Replicas))])
+		randomID := partition.Replicas[rand.Intn(len(partition.Replicas))]
+		if log.IsDebugEnabled() {
+			log.Info("search by partition:%v by random model ID:[%d]", partition.Replicas, randomID)
+		}
+		this.nodeIds = append(this.nodeIds, randomID)
 	case ALL:
 		this.nodeIds = partition.Replicas
 	}
@@ -321,6 +340,7 @@ func (this *partitionSender) Execute(servicePath string, request request.Request
 				status int64
 				e      error
 			)
+
 			rpcClient := this.spaceSender.ps.getOrCreateRpcClient(request.Context().GetContext(), nodeId)
 			if rpcClient.client == nil {
 				resp := response.Response{Resp: nil, Status: pkg.ERRCODE_MASTER_SERVER_IS_NOT_RUNNING, Err: pkg.VErr(pkg.ERRCODE_MASTER_SERVER_IS_NOT_RUNNING)}
@@ -345,43 +365,6 @@ func (this *partitionSender) Execute(servicePath string, request request.Request
 					}
 					rpcClient = this.spaceSender.ps.getOrCreateRpcClient(request.Context().GetContext(), addrs.NodeID)
 					log.Debug("%s invoke not leader retry, PartitionID: %d, PartitionRpcAddr: %s", servicePath, request.GetPartitionID(), rpcClient.client.GetAddress(0))
-					continue
-				} else if status == pkg.ERRCODE_PARTITION_CANNOT_SEARCH {
-					var partition *entity.Partition
-
-					if partition, e = this.spaceSender.ps.Client().Master().Cache().PartitionByCache(this.spaceSender.Ctx.GetContext(), this.spaceSender.space, this.pid); e != nil {
-						break
-					}
-
-					var targetID entity.NodeID
-
-					hasSearched := func() bool {
-						for _, skip := range this.nodeIds {
-							if nodeId == skip {
-								return true
-							}
-						}
-						return false
-					}
-
-					for _, nodeId := range partition.Replicas {
-						if hasSearched() {
-							continue
-						}
-
-						this.nodeIds = append(this.nodeIds, nodeId)
-						targetID = nodeId
-						break
-					}
-
-					if nodeId == 0 {
-						e = fmt.Errorf("select all nodes:[%s] has err:[%s]", partition.Replicas, pkg.CodeErr(pkg.ERRCODE_PARTITION_CANNOT_SEARCH))
-						break
-					}
-
-					rpcClient = this.spaceSender.ps.getOrCreateRpcClient(request.Context().GetContext(), targetID)
-					log.Debug("%s invoke can not search retry, PartitionID: %d, PartitionRpcAddr: %s", servicePath, request.GetPartitionID(), rpcClient.client.GetAddress(0))
-
 					continue
 				}
 				if e != nil {

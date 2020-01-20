@@ -10,6 +10,7 @@
 
 #include <stdint.h>
 #include <stdlib.h>
+#include <atomic>
 #include <string>
 #include <vector>
 
@@ -18,7 +19,6 @@ namespace tig_gamma {
 namespace realtime {
 
 struct RTInvertBucketData {
-
   RTInvertBucketData(long **idx_array, int *retrieve_idx_pos,
                      int *cur_bucket_keys, uint8_t **codes_array,
                      int *dump_latest_pos);
@@ -26,11 +26,13 @@ struct RTInvertBucketData {
   RTInvertBucketData();
 
   bool Init(const size_t &buckets_num, const size_t &bucket_keys,
-            const size_t &code_bytes_per_vec, long &total_mem_bytes);
+            const size_t &code_bytes_per_vec,
+            std::atomic<long> &total_mem_bytes);
   ~RTInvertBucketData();
 
   bool ExtendBucketMem(const size_t &bucket_no,
-                       const size_t &code_bytes_per_vec, long &total_mem_bytes);
+                       const size_t &code_bytes_per_vec,
+                       std::atomic<long> &total_mem_bytes);
 
   bool ReleaseBucketMem(const size_t &bucket_no,
                         const size_t &code_bytes_per_vec,
@@ -42,14 +44,14 @@ struct RTInvertBucketData {
                     int &size);
 
   long **_idx_array;
-  int *_retrieve_idx_pos; // total nb of realtime added indexed vectors
+  int *_retrieve_idx_pos;  // total nb of realtime added indexed vectors
   int *_cur_bucket_keys;
   uint8_t **_codes_array;
   int *_dump_latest_pos;
 };
 
 struct RealTimeMemData {
-public:
+ public:
   RealTimeMemData(size_t buckets_num, long max_vec_size,
                   size_t bucket_keys = 500,
                   size_t code_bytes_per_vec = 512 * sizeof(float));
@@ -60,6 +62,8 @@ public:
   bool AddKeys(size_t list_no, size_t n, std::vector<long> &keys,
                std::vector<uint8_t> &keys_codes);
 
+  void FreeOldData(long *idx, uint8_t *codes, RTInvertBucketData *invert,
+                   long size);
   bool ExtendBucketMem(const size_t &bucket_no);
   bool GetIvtList(const size_t &bucket_no, long *&ivt_list,
                   uint8_t *&ivt_codes_list);
@@ -75,24 +79,27 @@ public:
                     std::vector<std::vector<long>> &bucket_vids);
 
   int Dump(const std::string &dir, const std::string &vec_name, int max_vid);
-  int Load(const std::vector<std::string> &index_dirs, const std::string &vec_name);
+  int Load(const std::vector<std::string> &index_dirs,
+           const std::string &vec_name);
 
+  void PrintBucketSize();
+  
   RTInvertBucketData *_cur_invert_ptr;
   RTInvertBucketData *_extend_invert_ptr;
 
-  size_t _buckets_num; // count of buckets
-  size_t _bucket_keys; // max bucket keys
+  size_t _buckets_num;  // count of buckets
+  size_t _bucket_keys;  // max bucket keys
 
   size_t _code_bytes_per_vec;
-  long _total_mem_bytes;
+  std::atomic<long> _total_mem_bytes;
 
   long _max_vec_size;
 
   std::vector<long> _vid_bucket_no_pos;
 };
 
-} // namespace realtime
+}  // namespace realtime
 
-} // namespace tig_gamma
+}  // namespace tig_gamma
 
 #endif

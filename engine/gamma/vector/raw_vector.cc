@@ -322,7 +322,9 @@ int AsyncFlusher::Flush() {
     else
       nflushed_ += ret;
     if (nflushed_ - last_nflushed_ > 100) {
+#ifdef DEBUG
       LOG(INFO) << "flushed number=" << nflushed_;
+#endif
       last_nflushed_ = nflushed_;
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(interval_));

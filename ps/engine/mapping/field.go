@@ -79,7 +79,7 @@ func NewFieldMapping(name string, i FieldMappingI) *FieldMapping {
 func (f *FieldMapping) UnmarshalJSON(data []byte) error {
 	tmp := struct {
 		Type          string          `json:"type"`
-		Index         *string         `json:"index,omitempty"`
+		Index         *bool            `json:"index,omitempty"`
 		Format        *string         `json:"format,omitempty"`
 		Dimension     int             `json:"dimension,omitempty"`
 		ModelId       string          `json:"model_id,omitempty"`
@@ -133,13 +133,10 @@ func (f *FieldMapping) UnmarshalJSON(data []byte) error {
 
 	//set index
 	if tmp.Index != nil {
-		switch *tmp.Index {
-		case "yes", "true":
+		if *tmp.Index{
 			fieldMapping.Base().Option |= pspb.FieldOption_Index
-		case "no", "false":
+		}else{
 			fieldMapping.Base().Option = fieldMapping.Base().Option & withOutIndex
-		default:
-			return fmt.Errorf("tmp index param has err only support [yes , no true false] but got:[%s]", *tmp.Index)
 		}
 	}
 

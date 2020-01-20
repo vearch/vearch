@@ -1,7 +1,7 @@
 
 # Vearch Third Party Dependencies
 
-Vearch depends on third party libraries to implement some functionality. This document describes which libraries are depended upon, and how. It is maintained by and for humans, and so while it is a best effort attempt to describe the server’s dependencies, it is subject to change as libraries are added or removed.
+Vearch depends on third party libraries to implement some functionality. This document describes which libraries are depended upon, and how. It is maintained by and for humans, and so while it is a best effort attempt to describe the server's dependencies, it is subject to change as libraries are added or removed.
 
 ## Gamma Engine's Dependencies
 
@@ -9,8 +9,8 @@ The gamma engine of vearch is mainly implemented based on faiss. The following l
 
 | name         | License                                  | dependency type | modify  |
 |---------------|------------------------------------------|-----------------|------------------------|
-| faiss       | MIT                       | so              | modify the the source code of IVFPQ and HNSW index  |
-| RocksDB       | GPLv2、Apache 2\.0                        | so              | N                      |
+| faiss       | MIT                       | so              | modify the the source code of IVFPQ index  |
+| RocksDB       | GPLv2, Apache 2\.0                        | so              | N                      |
 | Btree-source-code       | public                        | source code        | N                      |
 | cJSON         | MIT                                      | source code     | N                      |
 | easyloggingpp | MIT                                      | source code     | N                      |
@@ -69,6 +69,7 @@ Plugin server is a python server. These following libraries are packages importe
 | torchvision    | BSD          | import          | N                                 |
 | keras-bert     | MIT          | import          | N                                 |
 | keras          | MIT          | import          | N                                 |
+
 
 
 

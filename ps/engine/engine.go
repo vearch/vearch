@@ -18,12 +18,11 @@ import (
 	"context"
 	"github.com/tiglabs/raft/proto"
 	"github.com/vearch/vearch/proto/entity"
+	"github.com/vearch/vearch/proto/pspb"
 	"github.com/vearch/vearch/proto/request"
 	"github.com/vearch/vearch/proto/response"
 	"github.com/vearch/vearch/ps/engine/mapping"
-	"github.com/vearch/vearch/proto/pspb"
 )
-
 
 // Reader is the read interface to an engine's data.
 type Reader interface {

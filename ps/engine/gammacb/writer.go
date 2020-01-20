@@ -25,12 +25,12 @@ import (
 	"context"
 	"fmt"
 	"github.com/spf13/cast"
-	"github.com/vearch/vearch/util/log"
 	pkg "github.com/vearch/vearch/proto"
 	"github.com/vearch/vearch/proto/pspb"
 	"github.com/vearch/vearch/proto/response"
 	"github.com/vearch/vearch/ps/engine"
 	"github.com/vearch/vearch/util/ioutil2"
+	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/util/vearchlog"
 	"os"
 	"path/filepath"
@@ -71,7 +71,7 @@ func (wi *writerImpl) Create(ctx context.Context, docCmd *pspb.DocCmd) *response
 
 	gamma := wi.engine.gamma
 	if gamma == nil {
-		return response.NewErrDocResult(docCmd.DocId, pkg.CodeErr(pkg.ERRCODE_PARTITION_IS_CLOSED))
+		return response.NewErrDocResult(docCmd.DocId, vearchlog.LogErrAndReturn(pkg.CodeErr(pkg.ERRCODE_PARTITION_IS_CLOSED)))
 	}
 
 	cDoc, err := DocCmd2Document(docCmd)
@@ -93,7 +93,7 @@ func (wi *writerImpl) Update(ctx context.Context, docCmd *pspb.DocCmd) *response
 
 	gamma := wi.engine.gamma
 	if gamma == nil {
-		return response.NewErrDocResult(docCmd.DocId, pkg.CodeErr(pkg.ERRCODE_PARTITION_IS_CLOSED))
+		return response.NewErrDocResult(docCmd.DocId, vearchlog.LogErrAndReturn(pkg.CodeErr(pkg.ERRCODE_PARTITION_IS_CLOSED)))
 	}
 
 	cDoc, err := DocCmd2Document(docCmd)
@@ -117,7 +117,7 @@ func (wi *writerImpl) Delete(ctx context.Context, docCmd *pspb.DocCmd) *response
 
 	gamma := wi.engine.gamma
 	if gamma == nil {
-		return response.NewErrDocResult(docCmd.DocId, pkg.CodeErr(pkg.ERRCODE_PARTITION_IS_CLOSED))
+		return response.NewErrDocResult(docCmd.DocId, vearchlog.LogErrAndReturn(pkg.CodeErr(pkg.ERRCODE_PARTITION_IS_CLOSED)))
 	}
 
 	if docCmd.Version == 0 {
@@ -160,7 +160,7 @@ func (wi *writerImpl) Flush(ctx context.Context, sn int64) error {
 
 	gamma := wi.engine.gamma
 	if gamma == nil {
-		return pkg.CodeErr(pkg.ERRCODE_PARTITION_IS_CLOSED)
+		return vearchlog.LogErrAndReturn(pkg.CodeErr(pkg.ERRCODE_PARTITION_IS_CLOSED))
 	}
 
 	wi.engine.lock.Lock()
@@ -183,7 +183,7 @@ func (wi *writerImpl) Commit(ctx context.Context, snx int64) (chan error, error)
 
 	gamma := wi.engine.gamma
 	if gamma == nil {
-		return nil, pkg.CodeErr(pkg.ERRCODE_PARTITION_IS_CLOSED)
+		return nil, vearchlog.LogErrAndReturn(pkg.CodeErr(pkg.ERRCODE_PARTITION_IS_CLOSED))
 	}
 
 	flushC := make(chan error, 1)

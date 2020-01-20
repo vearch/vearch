@@ -17,23 +17,24 @@ package ps
 import (
 	"context"
 	"encoding/json"
+	"net"
+	"strings"
+	"time"
+
 	"github.com/smallnest/rpcx/server"
-	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/client"
 	"github.com/vearch/vearch/config"
-	"github.com/vearch/vearch/proto"
+	pkg "github.com/vearch/vearch/proto"
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/proto/pspb"
 	"github.com/vearch/vearch/proto/request"
 	"github.com/vearch/vearch/proto/response"
 	"github.com/vearch/vearch/ps/engine"
 	"github.com/vearch/vearch/util/cbjson"
+	"github.com/vearch/vearch/util/log"
 	rpc "github.com/vearch/vearch/util/server/rpc"
 	"github.com/vearch/vearch/util/server/rpc/handler"
 	"go.uber.org/atomic"
-	"net"
-	"strings"
-	"time"
 )
 
 func ExportToRpcHandler(server *Server) {

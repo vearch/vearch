@@ -9,6 +9,7 @@
 #include <string.h>
 #include <algorithm>
 #include <cassert>
+#include <condition_variable>
 #include <cstddef>
 #include <cstdint>
 #include <ctime>
@@ -16,6 +17,7 @@
 #include <iostream>
 #include <iterator>
 #include <limits>
+#include <mutex>
 #include <numeric>
 #include <sstream>
 #include <typeinfo>
@@ -24,146 +26,121 @@
 #include "utils.h"
 
 using std::string;
+using std::vector;
 
 namespace tig_gamma {
 
+static void FreeNodeData(int *data) { free(data); }
+
 class Node {
  public:
-  Node(int size) {
-    num_ = 0;
-    next_ = nullptr;
-    size_ = size;
-    value_ = (int *)malloc(size_ * sizeof(int));
-  }
-
-  ~Node() {
-    if (next_ != nullptr) {
-      delete next_;
-      next_ = nullptr;
-    }
-    if (value_ != nullptr) {
-      free(value_);
-      value_ = nullptr;
-    }
-  }
-
-  Node *Add(int val) {
-    if (num_ < size_) {
-      value_[num_] = val;
-      ++num_;
-      return this;
-    } else {
-      next_ = new Node(size_ * 2);
-      next_->Add(val);
-      return next_;
-    }
-  }
-
-  int Num() { return num_; }
-
-  int *Value() { return value_; }
-
-  Node *Next() { return next_; }
-
- private:
-  int size_;
-  int num_;
-  int *value_;
-  Node *next_;
-};
-
-class NodeList {
- public:
-  NodeList() {
+  Node() {
     size_ = 0;
-    head_ = nullptr;
-    tail_ = nullptr;
+    capacity_ = 0;
+    data_ = nullptr;
     min_ = std::numeric_limits<int>::max();
     max_ = -1;
   }
 
-  ~NodeList() {
-    if (head_ != nullptr) {
-      delete head_;
-      head_ = nullptr;
-    }
-  }
+  ~Node() { free(data_); }
 
   int Add(int val) {
-    min_ = min_ < val ? min_ : val;
-    max_ = max_ > val ? max_ : val;
-    if (head_ == nullptr) {
-      head_ = new Node(512);
-      tail_ = head_;
+    min_ = std::min(min_, val);
+    max_ = std::max(max_, val);
+
+    if (capacity_ == 0) {
+      capacity_ = 1;
+      data_ = (int *)malloc(capacity_ * sizeof(int));
+    } else if (size_ >= capacity_) {
+      capacity_ *= 2;
+      int *data = (int *)malloc(capacity_ * sizeof(int));
+      memcpy(data, data_, size_ * sizeof(int));
+      int *old_data = data_;
+      data_ = data;
+      utils::AsyncWait(1000, FreeNodeData, old_data);
     }
-    tail_ = tail_->Add(val);
+
+    data_[size_] = val;
     ++size_;
     return 0;
   }
-
-  Node *Head() { return head_; }
 
   int Min() { return min_; }
   int Max() { return max_; }
 
   int Size() { return size_; }
 
+  int *Data() { return data_; }
+
  private:
   int min_;
   int max_;
 
   int size_;
-  Node *head_;
-  Node *tail_;
+  int capacity_;
+  int *data_;
 };
+
+typedef struct {
+  uint mainleafxtra;
+  uint maxleaves;
+  uint poolsize;
+  uint leafxtra;
+  uint mainpool;
+  uint mainbits;
+  uint bits;
+  const char *kDelim;
+} BTreeParameters;
 
 class FieldRangeIndex {
  public:
-  FieldRangeIndex(int idx, enum DataType field_type);
+  FieldRangeIndex(std::string &path, int field_idx, enum DataType field_type,
+                  BTreeParameters &bt_param);
   ~FieldRangeIndex();
 
   int Add(unsigned char *key, uint key_len, int value);
 
-  int Search(const string &low, const string &high, RangeQueryResult &result);
+  int Search(const string &low, const string &high, RangeQueryResult *result);
 
-  int Search(const string &tags, RangeQueryResult &result);
+  int Search(const string &tags, RangeQueryResult *result);
 
-  static const uint mainleafxtra_ = 0;
-  static const uint maxleaves_ = 1000000;
-  static const uint poolsize_ = 500;
-  static const uint leafxtra_ = 0;
-  static const uint mainpool_ = 500;
-  static const uint mainbits_ = 16;
-  static const uint bits_ = 16;
-  static const char *kDelim_;
+  bool IsNumeric() { return is_numeric_; }
+
+  char *Delim() { return kDelim_; }
 
  private:
   BtMgr *main_mgr_;
   BtMgr *cache_mgr_;
   bool is_numeric_;
+  char *kDelim_;
+  std::string path_;
 };
 
-const char *FieldRangeIndex::kDelim_ = "\001";
-
-FieldRangeIndex::FieldRangeIndex(int idx, enum DataType field_type) {
-  string cache_file = string("cache_") + std::to_string(idx) + ".dis";
-  string main_file = string("main_") + std::to_string(idx) + ".dis";
+FieldRangeIndex::FieldRangeIndex(std::string &path, int field_idx,
+                                 enum DataType field_type,
+                                 BTreeParameters &bt_param)
+    : path_(path) {
+  string cache_file =
+      path + string("/cache_") + std::to_string(field_idx) + ".dis";
+  string main_file =
+      path + string("/main_") + std::to_string(field_idx) + ".dis";
 
   remove(cache_file.c_str());
   remove(main_file.c_str());
 
-  cache_mgr_ = bt_mgr(const_cast<char *>(cache_file.c_str()), bits_, leafxtra_,
-                      poolsize_);
-  cache_mgr_->maxleaves = maxleaves_;
-  main_mgr_ = bt_mgr(const_cast<char *>(main_file.c_str()), mainbits_,
-                     mainleafxtra_, mainpool_);
-  main_mgr_->maxleaves = maxleaves_;
+  cache_mgr_ = bt_mgr(const_cast<char *>(cache_file.c_str()), bt_param.bits,
+                      bt_param.leafxtra, bt_param.poolsize);
+  cache_mgr_->maxleaves = bt_param.maxleaves;
+  main_mgr_ = bt_mgr(const_cast<char *>(main_file.c_str()), bt_param.mainbits,
+                     bt_param.mainleafxtra, bt_param.mainpool);
+  main_mgr_->maxleaves = bt_param.maxleaves;
 
   if (field_type == DataType::STRING) {
     is_numeric_ = false;
   } else {
     is_numeric_ = true;
   }
+  kDelim_ = const_cast<char *>(bt_param.kDelim);
 }
 
 FieldRangeIndex::~FieldRangeIndex() {
@@ -172,8 +149,9 @@ FieldRangeIndex::~FieldRangeIndex() {
   if (bt_startkey(bt, nullptr, 0) == 0) {
     while (bt_nextkey(bt)) {
       if (bt->phase == 1) {
-        NodeList **list = (NodeList **)bt->mainval->value;
-        delete *list;
+        Node *p_node = nullptr;
+        memcpy(&p_node, bt->mainval->value, sizeof(Node *));
+        delete p_node;
       }
     }
   }
@@ -212,21 +190,20 @@ int FieldRangeIndex::Add(unsigned char *key, uint key_len, int value) {
 
   std::function<void(unsigned char *, uint)> InsertToBt =
       [&](unsigned char *key_to_add, uint key_len) {
-        NodeList **p_list = new NodeList *;
-        int ret = bt_findkey(bt, key_to_add, key_len, (unsigned char *)p_list,
-                             sizeof(NodeList *));
+        Node *p_node = nullptr;
+        int ret = bt_findkey(bt, key_to_add, key_len, (unsigned char *)&p_node,
+                             sizeof(Node *));
 
         if (ret < 0) {
-          *p_list = new NodeList;
+          p_node = new Node;
           BTERR bterr = bt_insertkey(bt->main, key_to_add, key_len, 0,
-                                     static_cast<void *>(p_list),
-                                     sizeof(NodeList *), Unique);
+                                     static_cast<void *>(&p_node),
+                                     sizeof(Node *), Unique);
           if (bterr) {
             LOG(ERROR) << "Error " << bt->mgr->err;
           }
         }
-        (*p_list)->Add(value);
-        delete p_list;
+        p_node->Add(value);
       };
 
   if (is_numeric_) {
@@ -251,11 +228,14 @@ int FieldRangeIndex::Add(unsigned char *key, uint key_len, int value) {
 }
 
 int FieldRangeIndex::Search(const string &lower, const string &upper,
-                            RangeQueryResult &result) {
+                            RangeQueryResult *result) {
   if (!is_numeric_) {
     return Search(lower, result);
   }
 
+#ifdef PERFORMANCE_TESTING
+  double start = utils::getmillisecs();
+#endif
   BtDb *bt = bt_open(cache_mgr_, main_mgr_);
   unsigned char key_l[lower.length()];
   unsigned char key_u[upper.length()];
@@ -264,29 +244,28 @@ int FieldRangeIndex::Search(const string &lower, const string &upper,
   ReverseEndian(reinterpret_cast<const unsigned char *>(upper.data()), key_u,
                 upper.length());
 
-  std::vector<NodeList *> lists;
-  lists.reserve(1000000);
+  std::vector<Node *> lists;
+  std::vector<int> sizes;
 
   int min_doc = std::numeric_limits<int>::max();
   int max_doc = 0;
 
-  int idx = 0;
-  NodeList **p_list = new NodeList *;
   if (bt_startkey(bt, key_l, lower.length()) == 0) {
     while (bt_nextkey(bt)) {
       if (bt->phase == 1) {
         if (keycmp(bt->mainkey, key_u, upper.length()) > 0) {
           break;
         }
-        memcpy(p_list, bt->mainval->value, sizeof(NodeList *));
-        lists.push_back(*p_list);
+        Node *p_node = nullptr;
+        memcpy(&p_node, bt->mainval->value, sizeof(Node *));
+        sizes.push_back(p_node->Size());
+        lists.push_back(p_node);
 
-        min_doc = std::min(min_doc, (*p_list)->Min());
-        max_doc = std::max(max_doc, (*p_list)->Max());
+        min_doc = std::min(min_doc, p_node->Min());
+        max_doc = std::max(max_doc, p_node->Max());
       }
     }
   }
-  delete p_list;
 
   bt_unlockpage(BtLockRead, bt->cacheset->latch, __LINE__);
   bt_unpinlatch(bt->cacheset->latch);
@@ -295,40 +274,46 @@ int FieldRangeIndex::Search(const string &lower, const string &upper,
   bt_unpinlatch(bt->mainset->latch);
   bt_close(bt);
 
+#ifdef PERFORMANCE_TESTING
+  double search_bt = utils::getmillisecs();
+#endif
   if (max_doc - min_doc + 1 <= 0) {
     return 0;
   }
 
-  result.SetRange(min_doc, max_doc);
-  result.Resize();
+  result->SetRange(min_doc, max_doc);
+  result->Resize();
+#ifdef PERFORMANCE_TESTING
+  double end_resize = utils::getmillisecs();
+#endif
 
-  idx = lists.size();
-#pragma omp parallel for
-  for (int i = 0; i < idx; ++i) {
-    NodeList *list = lists[i];
-    Node *node = list->Head();
-    while (node != nullptr) {
-      int node_num = node->Num();
-      int *values = node->Value();
-      for (int j = 0; j < node_num; ++j) {
-        if (values[j] > max_doc) {
-          continue;
-        }
-        result.Set(values[j] - min_doc);
-      }
-      node = node->Next();
+  auto &bit_map = result->Ref();
+  int list_size = lists.size();
+
+  for (int i = 0; i < list_size; ++i) {
+    Node *list = lists[i];
+    int size = sizes[i];
+    int *data = list->Data();
+
+    for (int j = 0; j < size; ++j) {
+      bit_map[data[j] - min_doc] = true;
     }
   }
 
+#ifdef PERFORMANCE_TESTING
+  double end = utils::getmillisecs();
+  LOG(INFO) << "bt cost [" << search_bt - start << "], resize cost ["
+            << end_resize - search_bt << "], assemble result ["
+            << end - end_resize << "], total [" << end - start << "]";
+#endif
   return max_doc - min_doc + 1;
 }
 
-int FieldRangeIndex::Search(const string &tags, RangeQueryResult &result) {
+int FieldRangeIndex::Search(const string &tags, RangeQueryResult *result) {
   std::vector<string> items = utils::split(tags, kDelim_);
 
   RangeQueryResult results_union[items.size()];
 
-  NodeList **p_list = new NodeList *;
   for (size_t i = 0; i < items.size(); ++i) {
     string item = items[i];
     const unsigned char *key_tag =
@@ -337,17 +322,18 @@ int FieldRangeIndex::Search(const string &tags, RangeQueryResult &result) {
     int min_doc = std::numeric_limits<int>::max();
     int max_doc = 0;
 
+    Node *p_node = nullptr;
     BtDb *bt = bt_open(cache_mgr_, main_mgr_);
     int ret =
         bt_findkey(bt, const_cast<unsigned char *>(key_tag), item.length(),
-                   (unsigned char *)p_list, sizeof(NodeList *));
+                   (unsigned char *)&p_node, sizeof(Node *));
     bt_close(bt);
 
     if (ret < 0) {
-      return 0;
+      continue;
     }
-    min_doc = std::min(min_doc, (*p_list)->Min());
-    max_doc = std::max(max_doc, (*p_list)->Max());
+    min_doc = std::min(min_doc, p_node->Min());
+    max_doc = std::max(max_doc, p_node->Max());
 
     if (max_doc - min_doc + 1 <= 0) {
       return 0;
@@ -356,20 +342,15 @@ int FieldRangeIndex::Search(const string &tags, RangeQueryResult &result) {
     results_union[i].SetRange(min_doc, max_doc);
     results_union[i].Resize();
 
-    Node *node = (*p_list)->Head();
-    while (node != nullptr) {
-      int node_num = node->Num();
-      int *values = node->Value();
-      for (int j = 0; j < node_num; ++j) {
-        if (values[j] > max_doc) {
-          continue;
-        }
-        results_union[i].Set(values[j] - min_doc);
+    int size = p_node->Size();
+    int *data = p_node->Data();
+    for (int j = 0; j < size; ++j) {
+      if (data[j] > max_doc) {
+        continue;
       }
-      node = node->Next();
+      results_union[i].Set(data[j] - min_doc);
     }
   }
-  delete p_list;
 
   int min_doc = std::numeric_limits<int>::max();
   int max_doc = 0;
@@ -382,12 +363,12 @@ int FieldRangeIndex::Search(const string &tags, RangeQueryResult &result) {
   if (retval <= 0) {
     return 0;
   }
-  result.SetRange(min_doc, max_doc);
-  result.Resize();
+  result->SetRange(min_doc, max_doc);
+  result->Resize();
   for (size_t i = 0; i < items.size(); ++i) {
     int doc = results_union[i].Next();
     while (doc >= 0) {
-      result.Set(doc - min_doc);
+      result->Set(doc - min_doc);
       doc = results_union[i].Next();
     }
   }
@@ -395,7 +376,9 @@ int FieldRangeIndex::Search(const string &tags, RangeQueryResult &result) {
   return retval;
 }
 
-MultiFieldsRangeIndex::MultiFieldsRangeIndex(Profile *profile) {
+MultiFieldsRangeIndex::MultiFieldsRangeIndex(std::string &path,
+                                             Profile *profile)
+    : path_(path) {
   profile_ = profile;
   fields_.resize(profile->FieldsNum());
   std::fill(fields_.begin(), fields_.end(), nullptr);
@@ -424,30 +407,50 @@ int MultiFieldsRangeIndex::Add(int docid, int field) {
   return 0;
 }
 
-int MultiFieldsRangeIndex::Search(const std::vector<FilterInfo> &filters,
-                                  MultiRangeQueryResults &out) {
-  out.Clear();
-  int fsize = filters.size();
+int MultiFieldsRangeIndex::Search(const std::vector<FilterInfo> &origin_filters,
+                                  MultiRangeQueryResults *out) {
+  out->Clear();
 
-  if (1 == fsize) {
-    auto &_ = filters[0];
-    if (_.is_union) {
-      out.SetFlags(out.Flags() | 0x4);
-    }
-    RangeQueryResult tmp(out.Flags());
-    FieldRangeIndex *index = fields_[_.field];
-    if (index == nullptr || _.field < 0) {
+  std::vector<FilterInfo> filters;
+
+  for (const auto &filter : origin_filters) {
+    FieldRangeIndex *index = fields_[filter.field];
+    if (index == nullptr || filter.field < 0) {
       return -1;
     }
+    if (not index->IsNumeric() && (filter.is_union == 0)) {
+      // type is string and operator is "and", split this filter
+      std::vector<string> items =
+          utils::split(filter.lower_value, index->Delim());
+      for (string &item : items) {
+        FilterInfo f = filter;
+        f.lower_value = item;
+        filters.push_back(f);
+      }
+      continue;
+    }
+    filters.push_back(filter);
+  }
 
-    int retval = index->Search(_.lower_value, _.upper_value, tmp);
+  int fsize = filters.size();
+  vector<RangeQueryResult *> results(fsize);
+
+  if (1 == fsize) {
+    auto &filter = filters[0];
+    RangeQueryResult *result = new RangeQueryResult;
+    FieldRangeIndex *index = fields_[filter.field];
+
+    int retval = index->Search(filter.lower_value, filter.upper_value, result);
     if (retval > 0) {
-      out.Add(tmp);
+      out->Add(result);
     }
     return retval;
   }
 
-  RangeQueryResult results[fsize];
+  for (int i = 0; i < fsize; ++i) {
+    results[i] = new RangeQueryResult;
+  }
+
   int valuable_result = -1;
   // record the shortest docid list
   int shortest_idx = -1, shortest = std::numeric_limits<int>::max();
@@ -459,13 +462,6 @@ int MultiFieldsRangeIndex::Search(const std::vector<FilterInfo> &filters,
     if (index == nullptr || filter.field < 0) {
       continue;
     }
-
-    int flags = out.Flags();
-    if (filter.is_union) {
-      flags |= 0x4;
-    }
-
-    results[valuable_result + 1].SetFlags(flags);
 
     int retval = index->Search(filter.lower_value, filter.upper_value,
                                results[valuable_result + 1]);
@@ -487,80 +483,84 @@ int MultiFieldsRangeIndex::Search(const std::vector<FilterInfo> &filters,
     return -1;  // universal set
   }
 
-  // t.Stop();
-  // t.Output();
-
   // When the shortest doc chain is long,
   // instead of calculating the intersection immediately, a lazy
   // mechanism is made.
   if (shortest > kLazyThreshold_) {
     for (int i = 0; i <= valuable_result; ++i) {
-      out.Add(results[i]);
+      out->Add(results[i]);
     }
     return 1;  // it's hard to count the return docs
   }
 
-  RangeQueryResult tmp(out.Flags());
-  int count = Intersect(results, valuable_result, shortest_idx, tmp);
+  RangeQueryResult *tmp = new RangeQueryResult;
+  int count = Intersect(results.data(), valuable_result, shortest_idx, tmp);
   if (count > 0) {
-    out.Add(tmp);
+    out->Add(tmp);
   }
 
   return count;
 }
 
-int MultiFieldsRangeIndex::Intersect(const RangeQueryResult *results, int j,
-                                     int k, RangeQueryResult &out) const {
+int MultiFieldsRangeIndex::Intersect(RangeQueryResult **results, int j, int k,
+                                     RangeQueryResult *out) {
   assert(results != nullptr && j >= 0);
 
-  // t.Start("Intersect");
   // I want to build a smaller bitmap ...
-  int min_doc = results[0].Min();
-  int max_doc = results[0].Max();
+  int min_doc = results[0]->Min();
+  int max_doc = results[0]->Max();
 
   for (int i = 1; i <= j; i++) {
-    auto &r = results[i];
+    RangeQueryResult *r = results[i];
 
     // the maximum of the minimum(s)
-    if (r.Min() > min_doc) {
-      min_doc = r.Min();
+    if (r->Min() > min_doc) {
+      min_doc = r->Min();
     }
     // the minimum of the maximum(s)
-    if (r.Max() < max_doc) {
-      max_doc = r.Max();
+    if (r->Max() < max_doc) {
+      max_doc = r->Max();
     }
   }
 
   if (max_doc - min_doc + 1 <= 0) {
     return 0;
   }
-  out.SetRange(min_doc, max_doc);
-  out.Resize();
+  out->SetRange(min_doc, max_doc);
+  out->Resize();
 
   // calculate the intersection with the shortest doc chain.
   int count = 0;
-  int docID = results[k].Next();
+  int docID = results[k]->Next();
   while (docID >= 0) {
     int i = 0;
-    while (i <= j && results[i].Has(docID)) {
+    while (i <= j && results[i]->Has(docID)) {
       i++;
     }
     if (i > j) {
       int pos = docID - min_doc;
-      out.Set(pos);
+      out->Set(pos);
       count++;
     }
-    docID = results[k].Next();
+    docID = results[k]->Next();
   }
-
-  // t.Stop();
-  // t.Output();
 
   return count;
 }
 
 int MultiFieldsRangeIndex::AddField(int field, enum DataType field_type) {
-  FieldRangeIndex *index = new FieldRangeIndex(field, field_type);
+  BTreeParameters bt_param;
+  bt_param.mainleafxtra = 0;
+  bt_param.maxleaves = 1000000;
+  bt_param.poolsize = 500;
+  bt_param.leafxtra = 0;
+  bt_param.mainpool = 500;
+  bt_param.mainbits = 16;
+  bt_param.bits = 16;
+  bt_param.kDelim = "\001";
+
+  FieldRangeIndex *index =
+      new FieldRangeIndex(path_, field, field_type, bt_param);
   fields_[field] = index;
   return 0;
 }

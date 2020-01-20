@@ -54,7 +54,7 @@ GammaIVFPQIndex::GammaIVFPQIndex(faiss::Index *quantizer, size_t d,
   int max_vec_size = raw_vec->GetMaxVectorSize();
 
   rt_invert_index_ptr_ =
-      new realtime::RTInvertIndex(this, max_vec_size, 10000, 1000000);
+      new realtime::RTInvertIndex(this, max_vec_size, 10000, 1280000);
 
   if (this->invlists) {
     delete this->invlists;
@@ -71,6 +71,7 @@ GammaIVFPQIndex::GammaIVFPQIndex(faiss::Index *quantizer, size_t d,
 
 #ifdef PERFORMANCE_TESTING
   search_count_ = 0;
+  add_count_ = 0;
 #endif
 }
 
@@ -275,10 +276,13 @@ bool GammaIVFPQIndex::Add(int n, const float *vec) {
   }
   indexed_vec_count_ = vid;
 #ifdef PERFORMANCE_TESTING
-  double t1 = faiss::getmillisecs();
-  if (indexed_vec_count_ % 10000 == 0) {
+  add_count_ += n;
+  if (add_count_ >= 10000) {
+    double t1 = faiss::getmillisecs();
     LOG(INFO) << "Add time [" << (t1 - t0) / n << "]ms, count "
               << indexed_vec_count_;
+    rt_invert_index_ptr_->PrintBucketSize();
+    add_count_ = 0;
   }
 #endif
   return true;
@@ -413,7 +417,7 @@ void GammaIVFPQIndex::search_preassigned(
   int ni_total = -1;
   if (condition->range_query_result &&
       condition->range_query_result->GetAllResult().size() >= 1) {
-    ni_total = condition->range_query_result->GetAllResult()[0].Size();
+    ni_total = condition->range_query_result->GetAllResult()[0]->Size();
   }
 
   // don't start parallel section if single query
@@ -421,7 +425,7 @@ void GammaIVFPQIndex::search_preassigned(
 
   if (condition->range_query_result &&
       condition->range_query_result->GetAllResult().size() == 1 &&
-      condition->range_query_result->GetAllResult()[0].Size() < 50000) {
+      condition->range_query_result->GetAllResult()[0]->Size() < 50000) {
     const std::vector<int> docid_list = condition->range_query_result->ToDocs();
 
 #ifdef DEBUG
@@ -713,6 +717,8 @@ void GammaIVFPQIndex::SearchDirectly(int n, const float *x,
 
   long k = condition->topn;  // topK
 
+  int d = raw_vec_->GetDimension();
+
   using HeapForIP = faiss::CMin<float, idx_t>;
   using HeapForL2 = faiss::CMax<float, idx_t>;
 
@@ -762,7 +768,6 @@ void GammaIVFPQIndex::SearchDirectly(int n, const float *x,
       int total = 0;
       auto *nr = condition->range_query_result;
       bool ck_dis = (condition->min_dist >= 0 && condition->max_dist >= 0);
-      auto d = this->d;
 
       if (metric_type == faiss::METRIC_INNER_PRODUCT) {
         for (int i = 0; i < ny; i++) {

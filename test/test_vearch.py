@@ -88,15 +88,15 @@ def test_createspace():
         "properties": {
             "string": {
                 "type": "keyword",
-                "index": "true"
+                "index": True
             },
             "int": {
                 "type": "integer",
-                "index": "true"
+                "index": True
             },
             "float": {
                 "type": "float",
-                "index": "true"
+                "index": True
             },
             "vector": {
                 "type": "vector",
@@ -107,17 +107,17 @@ def test_createspace():
             "string_tags": {
                 "type": "string",
                 "array": True,
-                "index": "true"
+                "index": True
             },
             "int_tags": {
                 "type": "integer",
                 "array": True,
-                "index": "true"
+                "index": True
             },
             "float_tags": {
                 "type": "float",
                 "array": True,
-                "index": "true"
+                "index": True
             }
         },
         "models": [{
@@ -202,7 +202,8 @@ def test_searchByFeature():
                         "field": "vector",
                         "feature": feature,
                         "format": "normalization"
-                    }]
+                    }],
+                    "vector_value": True
                 }
             }
             print(json.dumps(data))

@@ -28,7 +28,7 @@ Compile
 
    1. ``cd $vearch``
    2. ``export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$vearch/ps/engine/gammacb/lib/lib``
-   3. ``export Faiss_HOME=faiss安装路径``
+   3. ``export Faiss_HOME=faiss installed path``
    4. ``go build -a --tags=vector -o  vearch``
    
    generate \ ``vearch``\ file compile success

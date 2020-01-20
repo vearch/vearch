@@ -12,6 +12,7 @@
 #include <chrono>
 #include <iostream>
 #include <sstream>
+#include "gamma_api_generated.h"
 #include "gamma_engine.h"
 #include "log.h"
 #include "utils.h"
@@ -270,17 +271,8 @@ enum ResponseCode SetLogDictionary(ByteArray *log_dir) {
   if (!utils::isFolderExist(dir.c_str())) {
     mkdir(dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
   }
-  // FLAGS_log_dir = dir.c_str();
-  // FLAGS_max_log_size = 100;
-  // FLAGS_logbuflevel = -1;
-  // FLAGS_logbufsecs = 0;
-  // FLAGS_stop_logging_if_full_disk = true;
-  // google::InitGoogleLogging("gamma");
-  // google::SetStderrLogging(google::INFO);
-  // google::InstallFailureSignalHandler();
 
   el::Configurations defaultConf;
-  // defaultConf.setToDefault();
   // To set GLOBAL configurations you may use
   el::Loggers::addFlag(el::LoggingFlag::StrictLogFileSizeCheck);
   defaultConf.setGlobally(el::ConfigurationType::Format,
@@ -304,6 +296,8 @@ enum ResponseCode SetLogDictionary(ByteArray *log_dir) {
         ss << "mv " << filename << " " << filename << "-" << mbstr;
         system(ss.str().c_str());
       });
+  
+  LOG(INFO) << "Version [" << GIT_SHA1 << "]";
   return ResponseCode::SUCCESSED;
 }
 
@@ -543,7 +537,8 @@ Request *MakeRequest(int topn, VectorQuery **vec_fields, int vec_fields_num,
                      RangeFilter **range_filters, int range_filters_num,
                      TermFilter **term_filters, int term_filters_num,
                      int req_num, int direct_search_type,
-                     ByteArray *online_log_level, int has_rank, int multi_vector_rank) {
+                     ByteArray *online_log_level, int has_rank,
+                     int multi_vector_rank) {
   Request *request = static_cast<Request *>(malloc(sizeof(Request)));
   memset(request, 0, sizeof(Request));
   request->topn = topn;
@@ -577,6 +572,73 @@ enum ResponseCode DestroyRequest(Request *request) {
 
 Response *Search(void *engine, Request *request) {
   return static_cast<tig_gamma::GammaEngine *>(engine)->Search(request);
+}
+
+ByteArray *SearchV2(void *engine, Request *request) {
+  Response *response =
+      static_cast<tig_gamma::GammaEngine *>(engine)->Search(request);
+  flatbuffers::FlatBufferBuilder builder;
+
+  std::vector<flatbuffers::Offset<gamma_api::SearchResult>> result_vector;
+  for (int result_idx = 0; result_idx < response->req_num; ++result_idx) {
+    SearchResult *result = response->results[result_idx];
+    std::vector<flatbuffers::Offset<gamma_api::ResultItem>> item_vector;
+    for (int item_idx = 0; item_idx < result->result_num; ++item_idx) {
+      ResultItem *result_item = result->result_items[item_idx];
+      Doc *doc = result_item->doc;
+      auto extra = builder.CreateString(result_item->extra->value,
+                                        result_item->extra->len);
+      std::vector<flatbuffers::Offset<flatbuffers::String>> name_vector;
+      std::vector<flatbuffers::Offset<flatbuffers::String>> value_vector;
+      for (int field_idx = 0; field_idx < doc->fields_num; ++field_idx) {
+        Field *field = doc->fields[field_idx];
+        auto name = builder.CreateString(field->name->value, field->name->len);
+        name_vector.push_back(name);
+        auto value =
+            builder.CreateString(field->value->value, field->value->len);
+        value_vector.push_back(value);
+      }
+
+      auto names = builder.CreateVector(name_vector);
+      auto values = builder.CreateVector(value_vector);
+
+      auto item = gamma_api::CreateResultItem(builder, result_item->score,
+                                              names, values, extra);
+      item_vector.push_back(item);
+    }
+
+    auto item_vec = builder.CreateVector(item_vector);
+
+    auto msg = builder.CreateString(result->msg->value, result->msg->len);
+    gamma_api::SearchResultCode result_code =
+        static_cast<gamma_api::SearchResultCode>(result->result_code);
+    auto results = gamma_api::CreateSearchResult(builder, result->total,
+                                                 result_code, msg, item_vec);
+    result_vector.push_back(results);
+  }
+  auto result_vec = builder.CreateVector(result_vector);
+
+  flatbuffers::Offset<flatbuffers::String> message;
+  if ((response->online_log_message != nullptr) and
+      (response->online_log_message->len != 0)) {
+    message = builder.CreateString(response->online_log_message->value,
+                                   response->online_log_message->len);
+  } else {
+    message = builder.CreateString("");
+  }
+  auto res = gamma_api::CreateResponse(builder, result_vec, message);
+  builder.Finish(res);
+
+  ByteArray *response_out = (ByteArray *)malloc(sizeof(ByteArray));
+  response_out->len = builder.GetSize();
+  response_out->value = (char *)malloc(builder.GetSize() * sizeof(char));
+  memcpy(response_out->value, (char *)builder.GetBufferPointer(),
+         builder.GetSize());
+  builder.Release();
+
+  DestroyResponse(response);
+
+  return response_out;
 }
 
 SearchResult *GetSearchResult(Response *response, int idx) {

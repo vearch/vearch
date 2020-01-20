@@ -37,6 +37,8 @@ import (
 	"github.com/vearch/vearch/util/routine"
 	rpc "github.com/vearch/vearch/util/server/rpc"
 	"runtime/debug"
+
+	_ "github.com/vearch/vearch/ps/engine/gammacb"
 )
 
 // Server partition server

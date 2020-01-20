@@ -24,18 +24,20 @@ import "C"
 import (
 	"context"
 	"fmt"
-	"github.com/vearch/vearch/ps/engine/mapping"
-	"github.com/vearch/vearch/util/log"
-	"github.com/vearch/vearch/proto"
-	"github.com/vearch/vearch/proto/request"
-	"github.com/vearch/vearch/proto/response"
-	"github.com/vearch/vearch/ps/engine"
-	"github.com/vearch/vearch/util/vearchlog"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
+	"sync"
 	"time"
+
+	"github.com/vearch/vearch/engine/gamma/idl/fbs-gen/go/gamma_api"
+	pkg "github.com/vearch/vearch/proto"
+	"github.com/vearch/vearch/proto/request"
+	"github.com/vearch/vearch/proto/response"
+	"github.com/vearch/vearch/ps/engine"
+	"github.com/vearch/vearch/ps/engine/mapping"
+	"github.com/vearch/vearch/util/vearchlog"
 )
 
 const indexSn = "sn"
@@ -63,7 +65,7 @@ func (ri *readerImpl) GetDoc(ctx context.Context, docID string) *response.DocRes
 		return response.NewNotFoundDocResult(docID)
 	}
 	defer C.DestroyDoc(doc)
-	result := ri.engine.Doc2DocResult(doc)
+	result := ri.engine.Doc2DocResultCGO(doc)
 	return result
 }
 
@@ -114,24 +116,33 @@ func (ri *readerImpl) MSearch(ctx context.Context, request *request.SearchReques
 			request.Fields = append(request.Fields, key)
 			return nil
 		})
+
+		request.Fields = append(request.Fields, mapping.IdField)
 	}
 
 	if len(request.Fields) > 0 {
-		req.fields = C.MakeByteArrays(C.int(len(request.Fields)))
-		fs := make([]*C.struct_ByteArray, len(request.Fields))
-		for i, f := range request.Fields {
-			C.SetByteArray(req.fields, C.int(i), byteArrayStr(f))
-		}
-		req.fields_num = C.int(len(fs))
+		ri.setFields(request, req)
 	}
 
-	reps := C.Search(ri.engine.gamma, req)
-	defer C.DestroyResponse(reps)
-	result := make(response.SearchResponses, int(req.req_num))
+	start := time.Now()
+	arr := C.SearchV2(ri.engine.gamma, req)
+	defer C.DestroyByteArray(arr)
 
-	for index := range result {
-		result[index] = ri.singleSearchResult(reps, index)
+	resp := gamma_api.GetRootAsResponse(CbArr2ByteArray(arr), 0)
+
+	wg := sync.WaitGroup{}
+	result := make(response.SearchResponses, resp.ResultsLength())
+	for i := 0; i < len(result); i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			result[i] = ri.singleSearchResult(resp, i)
+			result[i].MaxTook = int64(time.Now().Sub(start) / time.Millisecond)
+			result[i].MaxTookID = ri.engine.partitionID
+		}(i)
 	}
+
+	wg.Wait()
 
 	return result
 }
@@ -172,26 +183,21 @@ func (ri *readerImpl) Search(ctx context.Context, request *request.SearchRequest
 			request.Fields = append(request.Fields, key)
 			return nil
 		})
+		request.Fields = append(request.Fields, mapping.IdField)
 	}
 
 	if len(request.Fields) > 0 {
-		req.fields = C.MakeByteArrays(C.int(len(request.Fields)))
-		fs := make([]*C.struct_ByteArray, len(request.Fields))
-		for i, f := range request.Fields {
-			C.SetByteArray(req.fields, C.int(i), byteArrayStr(f))
-		}
-		req.fields_num = C.int(len(fs))
+		ri.setFields(request, req)
 	}
 
-	if log.IsDebugEnabled() {
-		log.Debug("send request:[%v]", req)
-	}
 	start := time.Now()
 
-	reps := C.Search(gamma, req)
-	defer C.DestroyResponse(reps)
+	arr := C.SearchV2(ri.engine.gamma, req)
+	defer C.DestroyByteArray(arr)
 
-	result := ri.singleSearchResult(reps, 0)
+	resp := gamma_api.GetRootAsResponse(CbArr2ByteArray(arr), 0)
+
+	result := ri.singleSearchResult(resp, 0)
 	result.MaxTook = int64(time.Now().Sub(start) / time.Millisecond)
 	result.MaxTookID = ri.engine.partitionID
 
@@ -199,19 +205,22 @@ func (ri *readerImpl) Search(ctx context.Context, request *request.SearchRequest
 
 }
 
-func (ri *readerImpl) singleSearchResult(reps *C.struct_Response, index int) *response.SearchResponse {
-	rep := C.GetSearchResult(reps, C.int(index))
-	if rep.result_code > 0 {
-		msg := string(CbArr2ByteArray(rep.msg)) + ", code:[%d]"
-		return response.NewSearchResponseErr(vearchlog.LogErrAndReturn(fmt.Errorf(msg, rep.result_code)))
+func (ri *readerImpl) singleSearchResult(reps *gamma_api.Response, index int) *response.SearchResponse {
+	searchResult := new(gamma_api.SearchResult)
+	reps.Results(searchResult, index)
+	if searchResult.ResultCode() > 0 {
+		msg := string(searchResult.Msg()) + ", code:[%d]"
+		return response.NewSearchResponseErr(vearchlog.LogErrAndReturn(fmt.Errorf(msg, searchResult.ResultCode())))
 	}
-	hits := make(response.Hits, 0, int(rep.result_num))
+
+	l := searchResult.ResultItemsLength()
+	hits := make(response.Hits, 0, l)
 
 	var maxScore float64 = -1
-	size := int(rep.result_num)
 
-	for i := 0; i < size; i++ {
-		item := C.GetResultItem(rep, C.int(i))
+	for i := 0; i < l; i++ {
+		item := new(gamma_api.ResultItem)
+		searchResult.ResultItems(item, i)
 		result := ri.engine.ResultItem2DocResult(item)
 		if maxScore < result.Score {
 			maxScore = result.Score
@@ -219,19 +228,41 @@ func (ri *readerImpl) singleSearchResult(reps *C.struct_Response, index int) *re
 		hits = append(hits, result)
 	}
 	result := response.SearchResponse{
-		Total:    uint64(rep.total),
+		Total:    uint64(searchResult.Total()),
 		MaxScore: maxScore,
 		Hits:     hits,
 		Status:   &response.SearchStatus{Total: 1, Successful: 1},
 	}
 
-	if reps.online_log_message != nil {
+	message := reps.OnlineLogMessage()
+	if len(message) > 0 {
 		result.Explain = map[uint32]string{
-			ri.engine.partitionID: string(CbArr2ByteArray(reps.online_log_message)),
+			ri.engine.partitionID: string(message),
 		}
 	}
 
 	return &result
+}
+
+func (ri *readerImpl) setFields(request *request.SearchRequest, req *C.struct_Request) {
+	req.fields = C.MakeByteArrays(C.int(len(request.Fields)))
+	fs := make([]*C.struct_ByteArray, len(request.Fields))
+
+	hasID := false
+	for i, f := range request.Fields {
+		if !hasID && f == mapping.IdField {
+			hasID = true
+		}
+		C.SetByteArray(req.fields, C.int(i), byteArrayStr(f))
+	}
+
+	fsLen := len(fs)
+	if !hasID {
+		C.SetByteArray(req.fields, C.int(fsLen), byteArrayStr(mapping.IdField))
+		fsLen++
+	}
+
+	req.fields_num = C.int(fsLen)
 }
 
 func (ri *readerImpl) StreamSearch(ctx context.Context, req *request.SearchRequest, resultChan chan *response.DocResult) error {
@@ -273,6 +304,6 @@ func (ri *readerImpl) DocCount(ctx context.Context) (uint64, error) {
 func (ri *readerImpl) Capacity(ctx context.Context) (int64, error) {
 	ri.engine.counter.Incr()
 	defer ri.engine.counter.Decr()
-	//ioutil2.DirSize(ri.engine.path) TODO remove it 
+	//ioutil2.DirSize(ri.engine.path) TODO remove it
 	return int64(C.GetMemoryBytes(ri.engine.gamma)), nil
 }

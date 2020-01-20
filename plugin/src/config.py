@@ -24,7 +24,7 @@ face_config = dict(modelname='face_retrieval.face',
                    model_path=os.path.join(root_path, 'model', '20180402-114759'))
 
 image_config = dict(modelname='image_retrieval.image_extract.vgg16',
-                    detectname='image_retrieval.image_detect.yolo3')
+                    detectname=None)
 
 video = dict(db='video',
              space='video',

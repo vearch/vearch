@@ -88,6 +88,7 @@ func walkServers(masterServer *Server, servers []*entity.Server) {
 		for _, pid := range server.PartitionIds {
 			if _, err := masterServer.client.Master().QueryPartition(ctx, pid); err != nil {
 				if pkg.ErrCode(err) == pkg.ERRCODE_PARTITION_NOT_EXIST {
+					log.Info("to remove partition:%d", pid)
 					if err := removePartition(masterServer, server.RpcAddr(), pid); err != nil {
 						log.Warn("Failed to remove partition:%v allocated on server:%v,and err is:%v", pid, server.ID, err)
 					}

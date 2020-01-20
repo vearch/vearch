@@ -24,7 +24,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/vearch/vearch/util/log"
+	"io/ioutil"
+	"reflect"
+	"sync"
+	"time"
+	"unsafe"
+
 	"github.com/vearch/vearch/config"
 	pkg "github.com/vearch/vearch/proto"
 	"github.com/vearch/vearch/proto/entity"
@@ -33,11 +38,9 @@ import (
 	"github.com/vearch/vearch/ps/engine/mapping"
 	"github.com/vearch/vearch/ps/engine/register"
 	"github.com/vearch/vearch/util/atomic"
-	"io/ioutil"
-	"reflect"
-	"sync"
-	"time"
-	"unsafe"
+	"github.com/vearch/vearch/util/log"
+	"github.com/vearch/vearch/util/uuid"
+	"github.com/vearch/vearch/util/vearchlog"
 )
 
 const Name = "gamma"
@@ -101,7 +104,8 @@ func New(cfg register.EngineConfig) (engine.Engine, error) {
 	if len(infos) > 0 {
 		code := int(C.Load(ge.gamma))
 		if code != 0 {
-			return nil, fmt.Errorf("load gamma data err code:[%d]", code)
+			vearchlog.LogErrNotNil(fmt.Errorf("load gamma data err code:[%d]", code))
+			ge.Close()
 		}
 	}
 
@@ -208,8 +212,6 @@ func (ge *gammaEngine) Optimize() error {
 }
 
 func (ge *gammaEngine) IndexStatus() int {
-	indexLocker.Lock()
-	defer indexLocker.Unlock()
 	return int(C.GetIndexStatus(ge.gamma))
 }
 
@@ -220,7 +222,7 @@ func (ge *gammaEngine) BuildIndex() error {
 	defer ge.counter.Decr()
 	gamma := ge.gamma
 	if gamma == nil {
-		return pkg.CodeErr(pkg.ERRCODE_PARTITION_IS_CLOSED)
+		return vearchlog.LogErrAndReturn(pkg.CodeErr(pkg.ERRCODE_PARTITION_IS_CLOSED))
 	}
 
 	//UNINDEXED = 0, INDEXING, INDEXED
@@ -234,7 +236,7 @@ func (ge *gammaEngine) BuildIndex() error {
 		select {
 		case <-ge.ctx.Done():
 			log.Error("partition:[%d] has closed so skip wait", ge.partitionID)
-			return pkg.CodeErr(pkg.ERRCODE_PARTITION_IS_CLOSED)
+			return vearchlog.LogErrAndReturn(pkg.CodeErr(pkg.ERRCODE_PARTITION_IS_CLOSED))
 		default:
 		}
 
@@ -253,9 +255,10 @@ func (ge *gammaEngine) BuildIndex() error {
 }
 
 func (ge *gammaEngine) Close() {
+	closeEngine := ge.gamma
 	ge.gamma = nil
 	ge.cancel()
-	go func() {
+	go func(closeEngine unsafe.Pointer) {
 		i := 0
 		for {
 			time.Sleep(3 * time.Second)
@@ -264,10 +267,13 @@ func (ge *gammaEngine) Close() {
 				log.Info("wait stop gamma engine times:[%d]", i)
 				continue
 			}
-			C.Close(ge.gamma)
+			start, flakeUUID := time.Now(), uuid.FlakeUUID()
+			log.Info("to close gamma engine begin token:[%s]", flakeUUID)
+			C.Close(closeEngine)
+			log.Info("to close gamma engine end token:[%s] use time:[%d]", flakeUUID, time.Now().Sub(start))
 			break
 		}
-	}()
+	}(closeEngine)
 
 }
 

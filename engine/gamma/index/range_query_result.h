@@ -16,13 +16,12 @@
 
 namespace tig_gamma {
 
-typedef std::vector<char> BitmapType;
+typedef std::vector<bool> BitmapType;
 
 // do intersection immediately
 class RangeQueryResult {
-public:
-  RangeQueryResult() : flags_(0x1 | 0x2) { Clear(); }
-  explicit RangeQueryResult(int flags) : flags_(flags) { Clear(); }
+ public:
+  RangeQueryResult() { Clear(); }
 
   bool Has(int doc) const {
     if (doc < min_ || doc > max_) {
@@ -59,16 +58,21 @@ public:
     }
 
     n_doc_ = 0;
-    for (auto i : bitmap_) {
-      if (i) {
-        n_doc_++;
+    size_t size = bitmap_.size();
+    int n = 0;
+
+#pragma omp parallel for reduction(+ : n)
+    for (size_t i = 0; i < size; ++i) {
+      if (bitmap_[i]) {
+        ++n;
       }
     }
+
+    n_doc_ = n;
     return n_doc_;
   }
 
   void Clear() {
-    // flags_ = DO NOT CLEAR
     min_ = std::numeric_limits<int>::max();
     max_ = 0;
     next_ = -1;
@@ -76,7 +80,7 @@ public:
     bitmap_.clear();
   }
 
-public:
+ public:
   void SetRange(int x, int y) {
     min_ = std::min(min_, x);
     max_ = std::max(max_, y);
@@ -93,21 +97,15 @@ public:
   int Min() const { return min_; }
   int Max() const { return max_; }
 
-  void SetFlags(int flags) {
-    flags_ = flags; // test use only
-  }
-  int Flags() { return flags_; }
-
   BitmapType &Ref() { return bitmap_; }
 
   /**
    * @return sorted docIDs
    */
-  std::vector<int> ToDocs() const; // WARNING: build dynamically
+  std::vector<int> ToDocs() const;  // WARNING: build dynamically
   void Output();
 
-private:
-  int flags_;
+ private:
   int min_;
   int max_;
 
@@ -118,43 +116,46 @@ private:
 };
 // do intersection lazily
 class MultiRangeQueryResults {
-public:
-  MultiRangeQueryResults() : flags_(0x1 | 0x2) { Clear(); }
+ public:
+  MultiRangeQueryResults() { Clear(); }
+
+  ~MultiRangeQueryResults() {
+    for (auto &result : all_results_) {
+      delete result;
+      result = nullptr;
+    }
+    all_results_.clear();
+  }
 
   // Take full advantage of multi-core while recalling
   bool Has(int doc) const {
     bool ret = true;
     for (auto &result : all_results_) {
-      ret &= result.Has(doc);
+      ret &= result->Has(doc);
+      if (ret == false) return ret;
     }
     return ret;
   }
 
   void Clear() {
-    // flags_ = DO NOT CLEAR
     min_ = 0;
     max_ = std::numeric_limits<int>::max();
     all_results_.clear();
   }
 
-public:
-  void Add(const RangeQueryResult &r) {
+ public:
+  void Add(RangeQueryResult *r) {
     all_results_.emplace_back(r);
 
     // the maximum of the minimum(s)
-    if (r.Min() > min_) {
-      min_ = r.Min();
+    if (r->Min() > min_) {
+      min_ = r->Min();
     }
     // the minimum of the maximum(s)
-    if (r.Max() < max_) {
-      max_ = r.Max();
+    if (r->Max() < max_) {
+      max_ = r->Max();
     }
   }
-
-  void SetFlags(int flags) {
-    flags_ = flags; // test use only
-  }
-  int Flags() { return flags_; }
 
   int Min() const { return min_; }
   int Max() const { return max_; }
@@ -164,18 +165,17 @@ public:
    */
   std::vector<int> ToDocs() const;
 
-  const std::vector<RangeQueryResult> &GetAllResult() const {
+  const std::vector<RangeQueryResult *> &GetAllResult() const {
     return all_results_;
   }
 
-private:
-  int flags_;
+ private:
   int min_;
   int max_;
 
-  std::vector<RangeQueryResult> all_results_;
+  std::vector<RangeQueryResult *> all_results_;
 };
 
-} // namespace tig_gamma
+}  // namespace tig_gamma
 
-#endif // SRC_SEARCHER_INDEX_RANGE_QUERY_RESULT_H_
+#endif  // SRC_SEARCHER_INDEX_RANGE_QUERY_RESULT_H_

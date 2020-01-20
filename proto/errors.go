@@ -66,7 +66,6 @@ const (
 	ERRCODE_PARTITION_NOT_LEADER
 	ERRCODE_PARTITION_NO_LEADER
 	ERRCODE_PARTITION_REQ_PARAM
-	ERRCODE_PARTITION_CANNOT_SEARCH
 	ERRCODE_PARTITON_ENGINENAME_INVALID
 	ERRCODE_UNKNOWN_PARTITION_RAFT_CMD_TYPE
 	ERRCODE_MASTER_SERVER_IS_NOT_RUNNING
@@ -102,7 +101,6 @@ var (
 	errPartitionInvalid               = errors.New("Partition is Invalid")
 	errPartitionNotLeader             = errors.New("Partition Not Leader")
 	errPartitionReqParam              = errors.New("Request Param Error")
-	errPartitionCannotSearch          = errors.New("Partition can not search")
 	errUnknownPartitionRaftCmdType    = errors.New("Unknown partition raft cmd type")
 	errPartitionEngineNameInvalid     = errors.New("Registration engine name is invalid")
 	errPartitionFieldNotFound         = errors.New("field not found")
@@ -237,7 +235,6 @@ var code2ErrMap = map[int64]error{
 	ERRCODE_PARTITION_NOT_EXIST:                  errPartitionNotExist,
 	ERRCODE_PARTITION_NOT_LEADER:                 errPartitionNotLeader,
 	ERRCODE_PARTITION_REQ_PARAM:                  errPartitionReqParam,
-	ERRCODE_PARTITION_CANNOT_SEARCH:              errPartitionCannotSearch,
 	ERRCODE_PARTITON_ENGINENAME_INVALID:          errPartitionEngineNameInvalid,
 	ERRCODE_UNKNOWN_PARTITION_RAFT_CMD_TYPE:      errUnknownPartitionRaftCmdType,
 	ERRCODE_MASTER_SERVER_IS_NOT_RUNNING:         errMasterServerIsNotRunning,

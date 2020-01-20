@@ -17,25 +17,27 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/spf13/cast"
-	"github.com/vearch/vearch/util/reflect"
-	"github.com/vearch/vearch/util/vearchlog"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
 	"runtime"
 	"strings"
 
+	"github.com/spf13/cast"
+	"github.com/vearch/vearch/util/reflect"
+	"github.com/vearch/vearch/util/vearchlog"
+
 	"github.com/vearch/vearch/util/metrics/mserver"
 
-	"github.com/vearch/vearch/util/log"
+	"time"
+
 	"github.com/vearch/vearch/config"
 	"github.com/vearch/vearch/master"
 	"github.com/vearch/vearch/ps"
 	"github.com/vearch/vearch/router"
+	"github.com/vearch/vearch/util/log"
 	tigos "github.com/vearch/vearch/util/runtime/os"
 	"github.com/vearch/vearch/util/signals"
-	"time"
 )
 
 var (
@@ -59,6 +61,7 @@ const (
 )
 
 func main() {
+	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	log.Info("start server by version:[%s] commitID:[%s]", BuildVersion, CommitID)
 	config.SetConfigVersion(BuildVersion, BuildTime, CommitID)

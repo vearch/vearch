@@ -10,6 +10,9 @@
 
 #include "gamma_common_data.h"
 #include "gamma_index_ivfpq.h"
+#ifdef BUILD_GPU
+#include "gamma_index_ivfpq_gpu.h"
+#endif
 #include "raw_vector.h"
 
 #include "faiss/IndexFlat.h"
@@ -45,6 +48,16 @@ class GammaIndexFactory {
             raw_vec, ivfpq_param->nprobe);
         break;
       }
+#ifdef BUILD_GPU
+      case GPU_IVFPQ: {
+        gamma_gpu::GammaIVFPQGPUIndex *gpu_index =
+            new gamma_gpu::GammaIVFPQGPUIndex(
+                dimension, ivfpq_param->ncentroids, 32, 8, docids_bitmap,
+                raw_vec, ivfpq_param->nprobe);
+        return (GammaIndex *)gpu_index;
+        break;
+      }
+#endif
 
       default: {
         throw std::invalid_argument("invalid raw feature type");

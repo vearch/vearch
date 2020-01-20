@@ -1138,6 +1138,7 @@ struct GammaIVFPQIndex : GammaIndex, faiss::IndexIVFPQ {
 
 #ifdef PERFORMANCE_TESTING
   std::atomic<uint64_t> search_count_;
+  int add_count_;
 #endif
 };
 

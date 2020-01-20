@@ -12,6 +12,7 @@
 #include <functional>
 #include <sstream>
 #include <string>
+#include <thread>
 #include <vector>
 #include "cJSON.h"
 #include "gamma_api.h"
@@ -139,6 +140,17 @@ struct FileIO {
   bool IsOpen() { return fp != nullptr; }
   std::string Path() { return path; }
 };
+
+template <typename callable, class... arguments>
+void AsyncWait(int after, callable &&f, arguments &&... args) {
+  std::function<typename std::result_of<callable(arguments...)>::type()> task(
+      std::bind(std::forward<callable>(f), std::forward<arguments>(args)...));
+
+  std::thread([after, task]() {
+    std::this_thread::sleep_for(std::chrono::milliseconds(after));
+    task();
+  }).detach();
+}
 
 }  // namespace utils
 

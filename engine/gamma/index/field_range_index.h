@@ -27,21 +27,22 @@ typedef struct {
 class FieldRangeIndex;
 class MultiFieldsRangeIndex {
  public:
-  MultiFieldsRangeIndex(Profile *profile);
+  MultiFieldsRangeIndex(std::string &path, Profile *profile);
   ~MultiFieldsRangeIndex();
 
   int Add(int docid, int field);
 
   int AddField(int field, enum DataType field_type);
 
-  int Search(const std::vector<FilterInfo> &filters,
-             MultiRangeQueryResults &out);
+  int Search(const std::vector<FilterInfo> &origin_filters,
+             MultiRangeQueryResults *out);
 
  private:
-  int Intersect(const RangeQueryResult *results, int j, int k,
-                RangeQueryResult &out) const;
+  int Intersect(RangeQueryResult **results, int j, int k,
+                RangeQueryResult *out);
   std::vector<FieldRangeIndex *> fields_;
   Profile *profile_;
+  std::string path_;
   static const int kLazyThreshold_ = 10000;
 };
 

@@ -18,18 +18,19 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"strings"
+
 	"github.com/smallnest/rpcx/share"
 	"github.com/spf13/cast"
-	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/client"
-	"github.com/vearch/vearch/proto"
+	pkg "github.com/vearch/vearch/proto"
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/proto/pspb"
 	"github.com/vearch/vearch/proto/request"
 	"github.com/vearch/vearch/proto/response"
 	"github.com/vearch/vearch/util/cbjson"
+	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/util/uuid"
-	"strings"
 )
 
 type docService struct {
@@ -92,7 +93,7 @@ func (this *docService) getDocs(ctx context.Context, dbName string, spaceName st
 	return this.client.PS().B().Space(dbName, spaceName).SetRoutingValue(reqArgs[UrlQueryRouting]).GetDocs(docIDs)
 }
 
-func (this *docService) mSearchDoc(ctx context.Context, dbName string, spaceName string, searchRequest *request.SearchRequest) (response.SearchResponses, response.NameCache, error) {
+func (this *docService) mSearchDoc(ctx context.Context, dbName string, spaceName string, searchRequest *request.SearchRequest, clientType client.ClientType) (response.SearchResponses, response.NameCache, error) {
 	searchSpaces, nameCache, err := this.parseDBSpacePair(ctx, dbName, spaceName)
 	if err != nil {
 		return nil, nil, err
@@ -102,7 +103,7 @@ func (this *docService) mSearchDoc(ctx context.Context, dbName string, spaceName
 		return nil, nil, pkg.CodeErr(pkg.ERRCODE_SPACE_NOTEXISTS)
 	}
 
-	return this.client.PS().Be(ctx).MultipleSpace(searchSpaces).MSearch(searchRequest), nameCache, nil
+	return this.client.PS().Be(ctx).MultipleSpaceByType(searchSpaces, clientType).MSearch(searchRequest), nameCache, nil
 }
 
 func (this *docService) deleteByQuery(ctx context.Context, dbName string, spaceName string, searchRequest *request.SearchRequest) (*response.Response, response.NameCache, error) {

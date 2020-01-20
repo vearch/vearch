@@ -25,6 +25,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/spf13/cast"
+	"github.com/vearch/vearch/engine/gamma/idl/fbs-gen/go/gamma_api"
 	"github.com/vearch/vearch/proto/pspb"
 	"github.com/vearch/vearch/proto/response"
 	"github.com/vearch/vearch/ps/engine/mapping"
@@ -200,19 +201,8 @@ func DocCmd2Document(docCmd *pspb.DocCmd) (*C.struct_Doc, error) {
 	return &C.struct_Doc{fields: arr, fields_num: C.int(len(fields))}, nil
 }
 
-func (ge *gammaEngine) ResultItem2DocResult(item *C.struct_ResultItem) *response.DocResult {
-	result := ge.Doc2DocResult(item.doc)
-	result.Score = float64(item.score)
-	result.Extra = CbArr2ByteArray(item.extra)
-	result.SortValues = []sortorder.SortValue{
-		&sortorder.FloatSortValue{
-			Val: result.Score,
-		},
-	}
-	return result
-}
 
-func (ge *gammaEngine) Doc2DocResult(doc *C.struct_Doc) *response.DocResult {
+func (ge *gammaEngine) Doc2DocResultCGO(doc *C.struct_Doc) *response.DocResult {
 
 	result := response.DocResult{
 		Found:     true,
@@ -296,6 +286,108 @@ func (ge *gammaEngine) Doc2DocResult(doc *C.struct_Doc) *response.DocResult {
 	return &result
 }
 
+
+func (ge *gammaEngine) ResultItem2DocResult(item *gamma_api.ResultItem) *response.DocResult {
+	result := ge.Doc2DocResult(item)
+	result.Score = float64(item.Score())
+	result.Extra = item.Extra()
+	result.SortValues = []sortorder.SortValue{
+		&sortorder.FloatSortValue{
+			Val: result.Score,
+		},
+	}
+	return result
+}
+
+func (ge *gammaEngine) Doc2DocResult(item *gamma_api.ResultItem) *response.DocResult {
+
+	result := response.DocResult{
+		Found:     true,
+		DB:        ge.GetSpace().DBId,
+		Space:     ge.GetSpace().Id,
+		Partition: ge.GetPartitionID(),
+	}
+
+	fieldNum := item.NameLength()
+
+	source := make(map[string]interface{})
+
+	var err error
+
+
+
+	for i := 0; i < fieldNum; i++ {
+
+		name := string(item.Name(i))
+		value := item.Value(i)
+
+		switch name {
+		case mapping.VersionField:
+			result.Version = int64(cbbytes.ByteArray2UInt64(value))
+		case mapping.SlotField:
+			result.SlotID = uint32(cbbytes.ByteArray2UInt64(value))
+		case mapping.IdField:
+			result.Id = string(value)
+		case mapping.SourceField:
+			result.Source = value
+		default:
+			field := ge.GetMapping().GetField(name)
+			if field == nil {
+				log.Error("can not found mappping by field:[%s]", name)
+				continue
+			}
+			switch field.FieldType() {
+			case pspb.FieldType_STRING:
+				tempValue := string(value)
+				if field.FieldMappingI.(*mapping.StringFieldMapping).Array {
+					source[name] = strings.Split(tempValue, string([]byte{'\001'}))
+				} else {
+					source[name] = tempValue
+				}
+			case pspb.FieldType_INT:
+				source[name] = cbbytes.Bytes2Int(value)
+			case pspb.FieldType_BOOL:
+				if cbbytes.Bytes2Int(value) == 0 {
+					source[name] = false
+				} else {
+					source[name] = true
+				}
+			case pspb.FieldType_DATE:
+				u := cbbytes.Bytes2Int(value)
+				source[name] = time.Unix(u/1e6, u%1e6)
+			case pspb.FieldType_FLOAT:
+				source[name] = cbbytes.ByteToFloat64(value)
+			case pspb.FieldType_VECTOR:
+
+				float32s, uri, err := cbbytes.ByteToVector(value)
+				if err != nil {
+					return response.NewErrDocResult(result.Id, err)
+				}
+				source[name] = map[string]interface{}{
+					"source":  uri,
+					"feature": float32s,
+				}
+
+			default:
+				log.Warn("can not set value by type:[%v] ", field.FieldType())
+			}
+		}
+	}
+	marshal, err := json.Marshal(source)
+	if err != nil {
+		return response.NewErrDocResult(result.Id, err)
+	}
+	result.Source = marshal
+
+	if marshal, err := json.Marshal(source); err != nil {
+		log.Warn("can not marshl source :[%v] ", err.Error())
+	} else {
+		result.Source = marshal
+	}
+
+	return &result
+}
+
 func (ge *gammaEngine) DocCmd2WriteResult(docCmd *pspb.DocCmd) *response.DocResult {
 	return &response.DocResult{
 		Id:        docCmd.DocId,
@@ -320,6 +412,18 @@ func CbArr2ByteArray(arr *C.struct_ByteArray) []byte {
 	sliceHeader.Len = int(arr.len)
 	sliceHeader.Data = uintptr(unsafe.Pointer(arr.value))
 	return cbbytes.CloneBytes(oids)
+}
+
+func CbArr2ByteArrayUnsafe(arr *C.struct_ByteArray) []byte {
+	if arr == nil {
+		return []byte{}
+	}
+	var oids []byte
+	sliceHeader := (*reflect.SliceHeader)((unsafe.Pointer(&oids)))
+	sliceHeader.Cap = int(arr.len)
+	sliceHeader.Len = int(arr.len)
+	sliceHeader.Data = uintptr(unsafe.Pointer(arr.value))
+	return oids
 }
 
 func rowDateToFloatArray(data []byte, dimension int) ([]float32, error) {

@@ -27,7 +27,6 @@ const (
 	PA_CLOSED
 	PA_READONLY
 	PA_READWRITE
-	PA_CANNOT_SEARCH
 )
 
 type PartitionForSearch struct {

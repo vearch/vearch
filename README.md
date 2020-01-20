@@ -48,10 +48,14 @@ Vearch is a scalable distributed system for efficient similarity search of deep 
 
 ### LowLevelAPI
 * [docs/APILowLevel.md](docs/APILowLevel.md)
+* For GPU [docs/APILowLevel.md](docs/APILowLevelOnGPU.md)
 
 
 ### VisualSearchAPI
 * [docs/APIVisualSearch.md](docs/APIVisualSearch.md)
+
+### PythonSDKAPI
+* [docs/APIPythonSDK.md](docs/APIPythonSDK.md)
 
 ## Document
 
@@ -70,6 +74,8 @@ Jie Li, Haifeng Liu, Chuanghua Gui, Jianyu chen, Zhenyun Ni, Ning Wang, Yuan Che
 You can report bugs or ask questions in the [issues page](https://github.com/vearch/vearch/issues) of the repository.
 
 For public discussion of Vearch or for questions, you can also send email to vearch-maintainers@groups.io.
+
+Our slack : https://vearchwrokspace.slack.com
 
 
 ## License

@@ -17,8 +17,8 @@ package raftstore
 import (
 	"context"
 	"fmt"
-	"github.com/vearch/vearch/util/log"
-	"github.com/vearch/vearch/proto"
+
+	pkg "github.com/vearch/vearch/proto"
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/proto/pspb"
 	"github.com/vearch/vearch/proto/pspb/raftpb"
@@ -26,6 +26,8 @@ import (
 	"github.com/vearch/vearch/proto/response"
 	"github.com/vearch/vearch/util"
 	"github.com/vearch/vearch/util/cbjson"
+	"github.com/vearch/vearch/util/log"
+	"github.com/vearch/vearch/util/vearchlog"
 )
 
 type RaftApplyResponse struct {
@@ -145,14 +147,12 @@ func (s *Store) DeleteByQuery(ctx context.Context, readLeader bool, query *reque
 }
 
 func (s *Store) Write(ctx context.Context, request *pspb.DocCmd) (result *response.DocResult, err error) {
-
 	if err = s.checkWritable(); err != nil {
 		return nil, err
 	}
 	raftCmd := raftpb.CreateRaftCommand()
 	raftCmd.Type = raftpb.CmdType_WRITE
 	raftCmd.WriteCommand = request
-
 	//TODO: pspb.Replace not use check version
 	if (request.Type == pspb.OpType_MERGE || request.Type == pspb.OpType_DELETE) && request.Version == 0 {
 		doc, err := s.GetRTDocument(ctx, true, request.DocId)
@@ -170,7 +170,6 @@ func (s *Store) Write(ctx context.Context, request *pspb.DocCmd) (result *respon
 			return nil, pkg.CodeErr(pkg.ERRCODE_DOCUMENT_NOT_EXIST)
 		}
 	}
-
 	data, err := raftCmd.Marshal()
 	if err != nil {
 		return nil, err
@@ -179,9 +178,7 @@ func (s *Store) Write(ctx context.Context, request *pspb.DocCmd) (result *respon
 	if e := raftCmd.Close(); e != nil {
 		log.Error("raft cmd close err : %s", e.Error())
 	}
-
 	future := s.RaftServer.Submit(uint64(s.Partition.Id), data)
-
 	resp, err := future.Response()
 	if err != nil {
 		return nil, err
@@ -190,7 +187,6 @@ func (s *Store) Write(ctx context.Context, request *pspb.DocCmd) (result *respon
 	if resp.(*RaftApplyResponse).Err != nil {
 		return nil, resp.(*RaftApplyResponse).Err
 	}
-
 	return resp.(*RaftApplyResponse).Result, nil
 }
 
@@ -233,14 +229,14 @@ func (s *Store) Flush(ctx context.Context) error {
 func (s *Store) checkWritable() error {
 	switch s.Partition.GetStatus() {
 	case entity.PA_INVALID:
-		return pkg.CodeErr(pkg.ERRCODE_PARTITION_IS_INVALID)
+		return vearchlog.LogErrAndReturn(pkg.CodeErr(pkg.ERRCODE_PARTITION_IS_INVALID))
 	case entity.PA_CLOSED:
-		return pkg.CodeErr(pkg.ERRCODE_PARTITION_IS_CLOSED)
+		return vearchlog.LogErrAndReturn(pkg.CodeErr(pkg.ERRCODE_PARTITION_IS_CLOSED))
 	case entity.PA_READONLY:
-		return pkg.CodeErr(pkg.ERRCODE_PARTITION_NOT_LEADER)
-	case entity.PA_READWRITE, entity.PA_CANNOT_SEARCH:
+		return vearchlog.LogErrAndReturn(pkg.CodeErr(pkg.ERRCODE_PARTITION_NOT_LEADER))
+	case entity.PA_READWRITE:
 		return nil
 	default:
-		return pkg.CodeErr(pkg.ERRCODE_INTERNAL_ERROR)
+		return vearchlog.LogErrAndReturn(pkg.CodeErr(pkg.ERRCODE_INTERNAL_ERROR))
 	}
 }

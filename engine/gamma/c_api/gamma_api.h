@@ -687,6 +687,14 @@ typedef struct Response {
  */
 Response *Search(void *engine, Request *request);
 
+/** query vectors to index with serialized result
+ *
+ * @param engine    search engine pointer
+ * @param request   search request pointer
+ * @return response, need to call @DestroyByteArray to destroy
+ */
+ByteArray *SearchV2(void *engine, Request *request);
+
 /** delete docs from table by query
  *
  * @param engine  search engine pointer

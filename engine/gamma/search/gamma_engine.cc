@@ -445,7 +445,8 @@ Response *GammaEngine::Search(const Request *request) {
     std::vector<std::pair<string, int>> fields_ids;
     std::vector<string> vec_names;
 
-    if (request->term_filters_num > 0) {
+    const auto &range_result = range_query_result.GetAllResult();
+    if (range_result.size() == 0 && request->term_filters_num > 0) {
       LOG(INFO) << "request->term_filters_num [" << request->term_filters_num
                 << "]";
       for (int i = 0; i < request->term_filters_num; ++i) {
@@ -505,11 +506,9 @@ Response *GammaEngine::Search(const Request *request) {
 
 #ifdef PERFORMANCE_TESTING
   double search_time = utils::getmillisecs();
-  if (++search_num_ % 1000 == 0) {
-    ss << "search cost [" << search_time - numeric_filter_time
-       << "]ms, total cost [" << search_time - start << "]ms";
-    LOG(INFO) << ss.str();
-  }
+  ss << "search cost [" << search_time - numeric_filter_time
+     << "]ms, total cost [" << search_time - start << "]ms";
+  LOG(INFO) << ss.str();
 #endif
 
   const char *log_message = logger.Data();
@@ -554,7 +553,7 @@ int GammaEngine::MultiRangeQuery(const Request *request,
     ++idx;
   }
 
-  int retval = field_range_index_->Search(filters, *range_query_result);
+  int retval = field_range_index_->Search(filters, range_query_result);
 
   OLOG(&logger, DEBUG, "search numeric index, ret: " << retval);
 
@@ -594,7 +593,7 @@ int GammaEngine::CreateTable(const Table *table) {
     return -2;
   }
 
-  field_range_index_ = new MultiFieldsRangeIndex(profile_);
+  field_range_index_ = new MultiFieldsRangeIndex(index_root_path_, profile_);
   if ((nullptr == field_range_index_) || (AddNumIndexFields() < 0)) {
     LOG(ERROR) << "add numeric index fields error!";
     return -3;
@@ -773,7 +772,7 @@ int GammaEngine::DelDocByQuery(Request *request) {
     ++idx;
   }
 
-  int retval = field_range_index_->Search(filters, range_query_result);
+  int retval = field_range_index_->Search(filters, &range_query_result);
   if (retval == 0) {
     LOG(ERROR) << "numeric index search error, ret=" << retval;
     return 1;
@@ -808,27 +807,50 @@ Doc *GammaEngine::GetDoc(const std::string &id) {
   return doc;
 }
 
+#ifdef PYTHON
 int GammaEngine::BuildIndex() {
+  if(index_status_ != IndexStatus::INDEXED) {
+    if (vec_manager_->Indexing() != 0) {
+      LOG(ERROR) << "Create index failed!";
+      return -1;
+    }
+    LOG(INFO) << "vector manager indexing success!";
+    index_status_ = IndexStatus::INDEXED;
+  }
+  int ret = vec_manager_->AddRTVecsToIndex();
+  return ret;
+}
+
+#else
+int GammaEngine::BuildIndex() {
+  b_running_ = true;
   if (vec_manager_->Indexing() != 0) {
     LOG(ERROR) << "Create index failed!";
     return -1;
   }
   LOG(INFO) << "vector manager indexing success!";
 
-  b_running_ = true;
   int ret = 0;
+  bool has_error = false;
   while (b_running_) {
-    if (vec_manager_->AddRTVecsToIndex() != 0) {
+    if (has_error) {
+      usleep(5000 * 1000);  // sleep 5000ms
+      continue;
+    }
+    int add_ret = vec_manager_->AddRTVecsToIndex();
+    if (add_ret != 0) {
+      has_error = true;
       LOG(ERROR) << "Add real time vectors to index error!";
-      ret = -3;
-      break;
+      continue;
     }
     index_status_ = IndexStatus::INDEXED;
     usleep(5000 * 1000);  // sleep 5000ms
   }
   running_cv_.notify_one();
+  LOG(INFO) << "build index exited!";
   return ret;
 }
+#endif
 
 int GammaEngine::GetDocsNum() { return max_docid_ - delete_num_; }
 
@@ -837,10 +859,6 @@ long GammaEngine::GetMemoryBytes() {
   long vec_mem_bytes = vec_manager_->GetTotalMemBytes();
 
   long total_mem_bytes = profile_mem_bytes + vec_mem_bytes + bitmap_bytes_size_;
-  LOG(INFO) << "total_mem_bytes: " << total_mem_bytes
-            << ", profile_mem_bytes: " << profile_mem_bytes
-            << ", vec_mem_bytes: " << vec_mem_bytes
-            << ", bitmap_bytes_size: " << bitmap_bytes_size_;
   return total_mem_bytes;
 }
 
@@ -1149,6 +1167,7 @@ ResultItem *GammaEngine::PackResultItem(const VectorDoc *vec_doc,
             MakeByteArray(field_name.c_str(), field_name.length());
         doc->fields[i]->value = MakeByteArray(vec[j].c_str(), vec[j].length());
         doc->fields[i]->data_type = DataType::VECTOR;
+        ++j;
       }
     } else {
       // get vector error
