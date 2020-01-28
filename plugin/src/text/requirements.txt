@@ -1,4 +1,4 @@
 Keras==2.2.4
 keras-bert==0.80.0
 tensorboard==1.15.0
-tensorflow-gpu==1.15.0
+tensorflow-gpu==1.15.2
