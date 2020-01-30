@@ -19,12 +19,12 @@ Create Space
           },
           "fku": {
               "type": "integer",
-              "index":"false"
+              "index": false
           },
           "tags": {
               "type": "keyword",
-              "array":true,
-              "index":"true"
+              "array": true,
+              "index": true
           },
           "image_vec": {
               "type": "vector",
