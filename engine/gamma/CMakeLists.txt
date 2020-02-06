@@ -95,7 +95,7 @@ endif(CMAKE_BUILD_TYPE STREQUAL "Debug")
 exec_program(
     "git"
     ${CMAKE_CURRENT_SOURCE_DIR}
-    ARGS "log --format='[sha1]:%h [author]:%cn [time]:%ci [commit]:%s [branch]:%d' -1"
+    ARGS "log --format='[sha1]:%h [author]:%cn [time]:%ci [branch]:%d' -1"
     OUTPUT_VARIABLE VERSION_SHA1)
 
 add_definitions(-DGIT_SHA1="${VERSION_SHA1}")
