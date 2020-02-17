@@ -80,6 +80,15 @@ class VectorBufferQueue {
   int Pop(float *v, int dim, int num, int timeout);  // batch pop
 
   int GetVector(int id, float *v, int dim);
+  /**
+   * get the head address of sequential vectors begin with id
+   * warning: this function is unsafe, it is only for memory only mode of MmapRawvector
+   * @param id the begin vector id
+   * @param vec_head store the head address
+   * @param dim dimension
+   * @return 0 success; 1 parameter error
+   */
+  int GetVectorHead(int id, float **vec_head, int dim);
   int Size() const;
   int GetPopSize() const;
   long GetTotalMemBytes() { return total_mem_bytes_; }

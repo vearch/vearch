@@ -46,6 +46,7 @@ class MmapRawVector : public RawVector, public AsyncFlusher {
   int fet_fd_;
   StoreParams *store_params_;
   int stored_num_;
+  bool memory_only_;
 };
 
 }  // namespace tig_gamma

@@ -919,9 +919,11 @@ int GammaEngine::Dump() {
   dump_docid_ = max_docid + 1;
 
   const string dump_done_file_name = path + "/dump.done";
-  std::stringstream ss;
-  ss << "mv " << dumping_file_name << " " << dump_done_file_name;
-  system(ss.str().c_str());
+  if (rename(dumping_file_name.c_str(), dump_done_file_name.c_str())) {
+    LOG(ERROR) << "rename " << dumping_file_name << " to "
+               << dump_done_file_name << " error: " << strerror(errno);
+    return -1;
+  }
 
   LOG(INFO) << "Dumped to [" << path << "], next dump docid [" << dump_docid_
             << "]";

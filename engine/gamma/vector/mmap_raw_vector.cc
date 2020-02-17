@@ -53,6 +53,7 @@ MmapRawVector::MmapRawVector(const string &name, int dimension,
   fet_fd_ = -1;
   store_params_ = new StoreParams(store_params);
   stored_num_ = 0;
+  memory_only_ = false;
 }
 
 MmapRawVector::~MmapRawVector() {
@@ -89,6 +90,8 @@ int MmapRawVector::Init() {
   vector_file_mapper_ =
       new VectorFileMapper(fet_file_path_, 0, max_vector_size_, dimension_);
 
+  if (max_buffer_size_ >= max_vector_size_) memory_only_ = true;  // memory mode
+
   int ret = vector_buffer_queue_->Init();
   if (0 != ret) {
     LOG(ERROR) << "init vector buffer queue error, ret=" << ret;
@@ -107,7 +110,8 @@ int MmapRawVector::Init() {
 
   LOG(INFO) << "init success! vector byte size=" << vector_byte_size_
             << ", flush batch size=" << flush_batch_size_
-            << ", dimension=" << dimension_ << ", ntotal=" << ntotal_;
+            << ", memory only=" << memory_only_ << ", dimension=" << dimension_
+            << ", ntotal=" << ntotal_;
   return 0;
 }
 
@@ -208,7 +212,18 @@ int MmapRawVector::AddToStore(float *v, int len) {
 }
 
 int MmapRawVector::GetVectorHeader(int start, int end, ScopeVector &vec) {
-  if (end > ntotal_) return 1;
+  if (end > ntotal_ || start > end) return 1;
+
+  // memory only mode
+  if (memory_only_) {
+    float *vec_head = nullptr;
+    if (vector_buffer_queue_->GetVectorHead(start, &vec_head, dimension_))
+      return 1;
+    vec.Set(vec_head, false);
+    return 0;
+  }
+
+  // disk mode
   Until(end);
   vec.Set(vector_file_mapper_->GetVectors() + (uint64_t)start * dimension_,
           false);

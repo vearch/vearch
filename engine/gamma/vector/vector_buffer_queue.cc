@@ -58,7 +58,7 @@ int VectorBufferQueue::Init() {
   chunk_size_ = max_vector_size_ / chunk_num_;
 
   vector_byte_size_ = sizeof(float) * dimension_;
-  buffer_ = (float *)calloc(max_vector_size_, vector_byte_size_);
+  buffer_ = (float *)malloc((size_t)max_vector_size_ * vector_byte_size_);
   if (buffer_ == NULL) {
     cerr << "malloc buffer failed" << endl;
     return 2;
@@ -169,6 +169,12 @@ int VectorBufferQueue::GetVector(int id, float *v, int dim) {
   }
   long offset = (long)id_in_queue % max_vector_size_ * dimension_;
   memcpy((void *)v, (void *)(buffer_ + offset), vector_byte_size_);
+  return 0;
+}
+
+int VectorBufferQueue::GetVectorHead(int id, float **vec_head, int dim) {
+  if (vec_head == nullptr || dim != dimension_ || (uint64_t)id >= push_index_) return 1;
+  *vec_head = buffer_ + (long)id % max_vector_size_ * dimension_;
   return 0;
 }
 
