@@ -16,20 +16,22 @@ package request
 
 import (
 	"encoding/json"
+
 	"github.com/vearch/vearch/ps/engine/sortorder"
 )
 
 type SearchDocumentRequest struct {
-	From         int               `json:"from,omitempty"`
-	Size         *int              `json:"size,omitempty"`
-	Fields       []string          `json:"fields,omitempty"`
-	Query        json.RawMessage   `json:"query,omitempty"`
-	MinScore     float64           `json:"min_score,omitempty"`
-	Sort         json.RawMessage   `json:"sort,omitempty"`
-	Explain      bool              `json:"explain,omitempty"`
-	Quick        bool              `json:"quick,omitempty"`
-	VectorValue  bool              `json:"vector_value,omitempty"`
-	sortOrder    sortorder.SortOrder
+	From        int             `json:"from,omitempty"`
+	Size        *int            `json:"size,omitempty"`
+	Fields      []string        `json:"fields,omitempty"`
+	Query       json.RawMessage `json:"query,omitempty"`
+	MinScore    float64         `json:"min_score,omitempty"`
+	Sort        json.RawMessage `json:"sort,omitempty"`
+	Explain     bool            `json:"explain,omitempty"`
+	Quick       bool            `json:"quick,omitempty"`
+	VectorValue bool            `json:"vector_value,omitempty"`
+	Parallel    bool            `json:"parallel,omitempty"`
+	sortOrder   sortorder.SortOrder
 }
 
 func (this *SearchDocumentRequest) SortOrder() (sortorder.SortOrder, error) {

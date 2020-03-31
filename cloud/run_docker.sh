@@ -10,7 +10,8 @@ echo "Make Vearch Image"
 ./build.sh
 
 echo "Start service by all in one model"
-cat ../config/config.toml.example > config.toml
-nohup docker run -p 8817:8817 -p 9001:9001 -v $PWD/config.toml:/vearch/config.toml  ansj/vearch:0.3 all &
+cat ../config/config.toml.example > ../build/bin/config.toml
+cat start.sh > ../build/bin/start.sh
+#nohup docker run -p 8817:8817 -p 9001:9001 -v $PWD/config.toml:/vearch/config.toml  ansj/vearch:0.3 all &
 
-echo "good luck service is ready you can visit http://127.0.0.1:9001 to use it"
+#echo "good luck service is ready you can visit http://127.0.0.1:9001 to use it"

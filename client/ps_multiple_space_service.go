@@ -15,18 +15,76 @@
 package client
 
 import (
+	"bytes"
 	"fmt"
+	"sync"
+
 	"github.com/spf13/cast"
-	"github.com/vearch/vearch/proto"
+	pkg "github.com/vearch/vearch/proto"
 	"github.com/vearch/vearch/proto/request"
 	"github.com/vearch/vearch/proto/response"
-	"github.com/vearch/vearch/util/log"
-	"sync"
-	"time"
 )
 
 type multipleSpaceSender struct {
 	senders []*spaceSender
+}
+
+func (this *multipleSpaceSender) MSearchIDs(req *request.SearchRequest) (result []byte, err error) {
+	var wg sync.WaitGroup
+	respChain := make(chan struct {
+		reponse []byte
+		sender  *spaceSender
+		err     error
+	}, len(this.senders))
+
+	for _, s := range this.senders {
+		wg.Add(1)
+		go func(par *spaceSender) {
+			defer wg.Done()
+			defer func() {
+				if r := recover(); r != nil {
+					respChain <- struct {
+						reponse []byte
+						sender  *spaceSender
+						err     error
+					}{reponse: nil, sender: s, err: fmt.Errorf(cast.ToString(r))}
+				}
+			}()
+
+			if bs, err := s.MSearchIDs(req); err != nil {
+				respChain <- struct {
+					reponse []byte
+					sender  *spaceSender
+					err     error
+				}{reponse: nil, sender: s, err: nil}
+			} else {
+				respChain <- struct {
+					reponse []byte
+					sender  *spaceSender
+					err     error
+				}{reponse: bs, sender: s, err: nil}
+			}
+
+		}(s)
+	}
+
+	wg.Wait()
+	close(respChain)
+
+	buf := bytes.Buffer{}
+
+	for r := range respChain {
+
+		if r.err != nil {
+			return nil, r.err
+		}
+
+		if buf.Len() != 0 {
+			buf.WriteString("\n")
+		}
+		buf.Write(r.reponse)
+	}
+	return buf.Bytes(), nil
 }
 
 func (this *multipleSpaceSender) MSearch(req *request.SearchRequest) (result response.SearchResponses) {
@@ -119,9 +177,7 @@ func (this *multipleSpaceSender) Search(req *request.SearchRequest) *response.Se
 					respChain <- newSearchResponseWithError(par.db, par.space, 0, fmt.Errorf(cast.ToString(r)))
 				}
 			}()
-			now := time.Now()
 			respChain <- par.Search(req)
-			log.Debug("search :[%s/%s] use time:[%s]", par.db, par.space, time.Now().Sub(now))
 		}(sender)
 	}
 
@@ -146,6 +202,7 @@ func (this *multipleSpaceSender) Search(req *request.SearchRequest) *response.Se
 			return newSearchResponseWithError(this.senders[0].db, this.senders[0].space, 0, err)
 		}
 	}
+
 	return first
 }
 

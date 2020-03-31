@@ -60,6 +60,10 @@ func ExportToRpcHandler(server *Server) {
 		panic(err)
 	}
 
+	if err := server.rpcServer.RegisterName(handler.NewChain(client.MSearchIDsHandler, handler.DefaultPanicHadler, psErrorChange, initHandler, new(MSearchIDsHandler)), ""); err != nil {
+		panic(err)
+	}
+
 	if err := server.rpcServer.RegisterName(handler.NewChain(client.StreamSearchHandler, handler.DefaultPanicHadler, psErrorChange, initHandler, streamSearchHandler), ""); err != nil {
 		panic(err)
 	}
@@ -361,6 +365,23 @@ func (*SearchHandler) Execute(req *handler.RpcRequest, resp *handler.RpcResponse
 	}
 
 	if reps, e := reqs.GetStore().(PartitionStore).Search(req.Ctx, reqs.Leader, reqs); e != nil {
+		return e
+	} else {
+		resp.Result = reps
+	}
+
+	return nil
+}
+
+type MSearchIDsHandler int
+
+func (*MSearchIDsHandler) Execute(req *handler.RpcRequest, resp *handler.RpcResponse) error {
+	reqs := req.GetArg().(*request.SearchRequest)
+	if reqs.SearchDocumentRequest == nil {
+		reqs.SearchDocumentRequest = &request.SearchDocumentRequest{}
+	}
+
+	if reps, e := reqs.GetStore().(PartitionStore).MSearchIDs(req.Ctx, reqs.Leader, reqs); e != nil {
 		return e
 	} else {
 		resp.Result = reps

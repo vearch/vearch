@@ -32,6 +32,8 @@ type Reader interface {
 
 	Search(ctx context.Context, req *request.SearchRequest) *response.SearchResponse
 
+	MSearchIDs(ctx context.Context, request *request.SearchRequest) ([]byte, error)
+
 	MSearch(ctx context.Context, request *request.SearchRequest) response.SearchResponses
 
 	//you can use ctx to cancel the stream , when this function returned will close resultChan

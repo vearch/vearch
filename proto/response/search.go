@@ -15,6 +15,7 @@
 package response
 
 import (
+	"bytes"
 	"math"
 	"time"
 
@@ -82,6 +83,23 @@ func (sr *SearchResponse) Merge(other *SearchResponse, so sort.SortOrder, from, 
 }
 
 type NameCache map[[2]int64][]string
+
+func (srs SearchResponses) ToIDContent() []byte {
+	sb := bytes.Buffer{}
+	for i, sr := range srs {
+		if i!=0{
+			sb.WriteString("\n") ;
+		}
+
+		for j, hit := range sr.Hits{
+			if j!=0{
+				sb.WriteString(",") ;
+			}
+			sb.WriteString(hit.Id)
+		}
+	}
+	return sb.Bytes()
+}
 
 func (srs SearchResponses) ToContent(from, size int, nameCache NameCache, typedKeys bool, took time.Duration) ([]byte, error) {
 	var builder = cbjson.ContentBuilderFactory()

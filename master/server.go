@@ -17,10 +17,11 @@ package master
 import (
 	"context"
 	"fmt"
-	"github.com/spf13/cast"
-	"github.com/vearch/vearch/util/vearchlog"
 	"os"
 	"time"
+
+	"github.com/spf13/cast"
+	"github.com/vearch/vearch/util/vearchlog"
 
 	"github.com/gin-gonic/gin"
 	"github.com/vearch/vearch/client"
@@ -37,7 +38,7 @@ type Server struct {
 }
 
 func NewServer(ctx context.Context) (*Server, error) {
-	log.Regist(vearchlog.NewVearchLog(config.Conf().GetLogDir(config.Master), "Master", config.Conf().GetLevel(config.Master), true))
+	log.Regist(vearchlog.NewVearchLog(config.Conf().GetLogDir(config.Master), "Master", config.Conf().GetLevel(config.Master), false))
 	//Logically, this code should not be executed, because if the local master is not found, it will panic
 	if config.Conf().Masters.Self() == nil {
 		return nil, fmt.Errorf("master not init please your address or master name ")

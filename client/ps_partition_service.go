@@ -15,8 +15,10 @@
 package client
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"github.com/vearch/vearch/engine/gamma/idl/fbs-gen/go/gamma_api"
 	"math/rand"
 	"time"
 
@@ -110,12 +112,81 @@ func (this *partitionSender) search(req *request.SearchRequest) (*response.Searc
 	return searchResponse, err
 }
 
+func (this *partitionSender) mSearchIDs(req *request.SearchRequest) ([]byte, error) {
+	partition, err := this.initPartition()
+	if err != nil { // must use it to get paition
+		return nil, err
+	}
+	result, _, err := this.getOrCreate(partition, this.spaceSender.clientType).Execute(MSearchIDsHandler, req.Clone(partition.Id, this.spaceSender.db, this.spaceSender.space))
+	if err != nil {
+		return nil, err
+	}
+	searchResponses := result.([]byte)
+
+	//c byte array change go byte array
+	//FlatBuffer analyze
+	resp := gamma_api.GetRootAsResponse(searchResponses, 0)
+
+	wg := sync.WaitGroup{}
+	result1 := make([][]string, resp.ResultsLength())
+	for i := 0; i < len(result1); i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			var err error
+			if result1[i], err = singleSearchResultIDs(resp, i); err != nil {
+				panic(err)
+			}
+
+		}(i)
+	}
+
+	wg.Wait()
+
+	bs := bytes.Buffer{}
+	bs.WriteString("[")
+
+	for _, ids := range result1 {
+		for j, id := range ids {
+			if j != 0 {
+				bs.WriteString(",")
+			}
+			bs.WriteString("\"")
+			bs.WriteString(id)
+			bs.WriteString("\"")
+		}
+	}
+	bs.WriteString("]")
+	return bs.Bytes(), nil
+}
+
+func singleSearchResultIDs(reps *gamma_api.Response, index int) ([]string, error) {
+	searchResult := new(gamma_api.SearchResult)
+	reps.Results(searchResult, index)
+	if searchResult.ResultCode() > 0 {
+		msg := string(searchResult.Msg()) + ", code:[%d]"
+		return nil, fmt.Errorf(msg, searchResult.ResultCode())
+	}
+
+	l := searchResult.ResultItemsLength()
+
+	ids := make([]string, 0, l)
+
+	for i := 0; i < l; i++ {
+		item := new(gamma_api.ResultItem)
+		searchResult.ResultItems(item, i)
+		value := string(item.Value(0))
+		ids = append(ids, value)
+	}
+
+	return ids, nil
+}
+
 func (this *partitionSender) mSearch(req *request.SearchRequest) (response.SearchResponses, error) {
 	partition, err := this.initPartition()
 	if err != nil { // must use it to get paition
 		return nil, err
 	}
-	now := time.Now()
 	result, _, err := this.getOrCreate(partition, this.spaceSender.clientType).Execute(MSearchHandler, req.Clone(partition.Id, this.spaceSender.db, this.spaceSender.space))
 	if err != nil {
 		return nil, err
@@ -128,8 +199,6 @@ func (this *partitionSender) mSearch(req *request.SearchRequest) (response.Searc
 			maxTook = r.MaxTook
 		}
 	}
-
-	log.Info("msearch use time:", time.Now().Sub(now), "partition maxTook use time:", maxTook)
 
 	for _, searchResponse := range searchResponses {
 		searchResponse.PID = req.PartitionID //set partition id to result
@@ -293,7 +362,7 @@ func (this *partitionSender) getOrCreate(partition *entity.Partition, clientType
 		this.nodeIds = append(this.nodeIds, partition.LeaderID)
 	case NOT_LEADER:
 		if log.IsDebugEnabled() {
-			log.Info("search by partition by not leader model")
+			log.Debug("search by partition:%v by not leader model by partition:[%d]", partition.Id)
 		}
 		if len(this.nodeIds) == 1 {
 			log.Warn("partition:[%d] NO_LEADER model by client_type , but only has leader ", partition.Id)
@@ -306,7 +375,7 @@ func (this *partitionSender) getOrCreate(partition *entity.Partition, clientType
 	case RANDOM:
 		randomID := partition.Replicas[rand.Intn(len(partition.Replicas))]
 		if log.IsDebugEnabled() {
-			log.Info("search by partition:%v by random model ID:[%d]", partition.Replicas, randomID)
+			log.Debug("search by partition:%v by random model ID:[%d]", partition.Replicas, randomID)
 		}
 		this.nodeIds = append(this.nodeIds, randomID)
 	case ALL:

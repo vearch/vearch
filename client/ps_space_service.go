@@ -15,6 +15,7 @@
 package client
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/vearch/vearch/proto/request"
 	"github.com/vearch/vearch/proto/response"
@@ -28,8 +29,8 @@ import (
 
 	"github.com/spaolacci/murmur3"
 	"github.com/spf13/cast"
-	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/proto/entity"
+	"github.com/vearch/vearch/util/log"
 	"runtime/debug"
 )
 
@@ -149,6 +150,17 @@ func (this *spaceSender) GetDocs(ids []string) response.DocResults {
 //search from space, by partitions
 //clientType LEADER or RANDOM
 // return entity.SearchResult
+func (this *spaceSender) MSearchIDs(req *request.SearchRequest) ([]byte, error) {
+	space, err := this.ps.Client().Master().cliCache.SpaceByCache(this.Ctx.GetContext(), this.db, this.space)
+	if err != nil {
+		return nil, err
+	}
+	return this.MSearchIDsByPartitions(space.Partitions, req)
+}
+
+//search from space, by partitions
+//clientType LEADER or RANDOM
+// return entity.SearchResult
 func (this *spaceSender) MSearch(req *request.SearchRequest) response.SearchResponses {
 	space, err := this.ps.Client().Master().cliCache.SpaceByCache(this.Ctx.GetContext(), this.db, this.space)
 	if err != nil {
@@ -160,6 +172,77 @@ func (this *spaceSender) MSearch(req *request.SearchRequest) response.SearchResp
 		return response.SearchResponses{response.NewSearchResponseErr(err)}
 	}
 	return resp
+}
+
+func (this *spaceSender) MSearchIDsByPartitions(partitions []*entity.Partition, req *request.SearchRequest) (resp []byte, err error) {
+	var wg sync.WaitGroup
+	respChain := make(chan struct{
+		reponse []byte
+		err error
+	}, len(partitions))
+
+	for _, p := range partitions {
+		wg.Add(1)
+		go func(par *entity.Partition) {
+			defer wg.Done()
+			defer func() {
+				if r := recover(); r != nil {
+					log.Error("search has panic :[%s]", r)
+					respChain <- struct{
+						reponse []byte
+						err error
+					}{
+						reponse : nil ,
+						err :fmt.Errorf(cast.ToString(r)),
+					}
+				}
+			}()
+			resp, err := this.partitionId(par.Id).mSearchIDs(req)
+			if err != nil {
+				log.Error("Fail to search ps. partition[%d], db[%s], space[%s]. err[%v]", par.Id, this.db, this.space, err)
+				if pkg.ErrCode(err) == pkg.ERRCODE_PARTITION_NOT_EXIST {
+					this.ps.client.master.cliCache.DeleteSpaceCache(this.Ctx.GetContext(), this.db, this.space)
+					resp, err = this.partitionId(par.Id).mSearchIDs(req)
+					if err != nil {
+						respChain <- struct{
+							reponse []byte
+							err error
+						}{
+							reponse : nil ,
+							err :err,
+						}
+						return ;
+					}
+				}
+
+			}
+			respChain <- struct{
+				reponse []byte
+				err error
+			}{
+				reponse : resp ,
+				err :err,
+			}
+		}(p)
+	}
+
+	wg.Wait()
+	close(respChain)
+
+	buf := bytes.Buffer{}
+
+	for r := range respChain {
+
+		if r.err != nil {
+			return nil , r.err
+		}
+
+		if buf.Len() !=0{
+			buf.WriteString("\n")
+		}
+		buf.Write(r.reponse)
+	}
+	return buf.Bytes(), nil
 }
 
 func (this *spaceSender) MSearchByPartitions(partitions []*entity.Partition, req *request.SearchRequest) (resp response.SearchResponses, err error) {

@@ -24,6 +24,11 @@ import "C"
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
+	"strings"
+	"time"
+	"unsafe"
+
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/engine/gamma/idl/fbs-gen/go/gamma_api"
 	"github.com/vearch/vearch/proto/pspb"
@@ -33,10 +38,6 @@ import (
 	"github.com/vearch/vearch/ps/engine/sortorder"
 	"github.com/vearch/vearch/util/cbbytes"
 	"github.com/vearch/vearch/util/log"
-	"reflect"
-	"strings"
-	"time"
-	"unsafe"
 )
 
 var INT, LONG, FLOAT, DOUBLE, STRING, VECTOR C.enum_DataType = C.INT, C.LONG, C.FLOAT, C.DOUBLE, C.STRING, C.VECTOR
@@ -148,7 +149,7 @@ func DocCmd2Document(docCmd *pspb.DocCmd) (*C.struct_Doc, error) {
 		docCmd.Version = 1
 	}
 
-	fields := make([]*C.struct_Field, 0, len(docCmd.Fields)+1)
+	fields := make([]*C.struct_Field, 0, len(docCmd.Fields)+2)
 
 	fields = append(fields, newField(mapping.IdField, []byte(docCmd.DocId), STRING))
 
@@ -200,7 +201,6 @@ func DocCmd2Document(docCmd *pspb.DocCmd) (*C.struct_Doc, error) {
 
 	return &C.struct_Doc{fields: arr, fields_num: C.int(len(fields))}, nil
 }
-
 
 func (ge *gammaEngine) Doc2DocResultCGO(doc *C.struct_Doc) *response.DocResult {
 
@@ -286,7 +286,6 @@ func (ge *gammaEngine) Doc2DocResultCGO(doc *C.struct_Doc) *response.DocResult {
 	return &result
 }
 
-
 func (ge *gammaEngine) ResultItem2DocResult(item *gamma_api.ResultItem) *response.DocResult {
 	result := ge.Doc2DocResult(item)
 	result.Score = float64(item.Score())
@@ -313,8 +312,6 @@ func (ge *gammaEngine) Doc2DocResult(item *gamma_api.ResultItem) *response.DocRe
 	source := make(map[string]interface{})
 
 	var err error
-
-
 
 	for i := 0; i < fieldNum; i++ {
 

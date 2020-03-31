@@ -87,6 +87,8 @@ type PartitionStore interface {
 
 	MSearch(ctx context.Context, readLeader bool, query *request.SearchRequest) (result response.SearchResponses, err error)
 
+	MSearchIDs(ctx context.Context, readLeader bool, query *request.SearchRequest) (result []byte, err error)
+
 	//you can use ctx to cancel the stream , when this function returned will close resultChan
 	StreamSearch(ctx context.Context, readLeader bool, query *request.SearchRequest, resultChan chan *response.DocResult) error
 

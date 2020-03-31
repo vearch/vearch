@@ -93,6 +93,19 @@ func (this *docService) getDocs(ctx context.Context, dbName string, spaceName st
 	return this.client.PS().B().Space(dbName, spaceName).SetRoutingValue(reqArgs[UrlQueryRouting]).GetDocs(docIDs)
 }
 
+func (this *docService) mSearchIDs(ctx context.Context, dbName string, spaceName string, searchRequest *request.SearchRequest, clientType client.ClientType) ([]byte, error) {
+	searchSpaces, _, err := this.parseDBSpacePair(ctx, dbName, spaceName)
+	if err != nil {
+		return  nil, err
+	}
+
+	if len(searchSpaces) == 0 {
+		return nil, pkg.CodeErr(pkg.ERRCODE_SPACE_NOTEXISTS)
+	}
+
+	return this.client.PS().Be(ctx).MultipleSpaceByType(searchSpaces, clientType).MSearchIDs(searchRequest)
+}
+
 func (this *docService) mSearchDoc(ctx context.Context, dbName string, spaceName string, searchRequest *request.SearchRequest, clientType client.ClientType) (response.SearchResponses, response.NameCache, error) {
 	searchSpaces, nameCache, err := this.parseDBSpacePair(ctx, dbName, spaceName)
 	if err != nil {

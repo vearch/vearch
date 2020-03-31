@@ -27,6 +27,8 @@ import (
 
 	"github.com/vearch/vearch/proto/entity"
 
+	"runtime/debug"
+
 	"github.com/tiglabs/raft"
 	"github.com/vearch/vearch/client"
 	"github.com/vearch/vearch/config"
@@ -36,7 +38,6 @@ import (
 	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/util/routine"
 	rpc "github.com/vearch/vearch/util/server/rpc"
-	"runtime/debug"
 
 	_ "github.com/vearch/vearch/ps/engine/gammacb"
 )
@@ -62,7 +63,7 @@ type Server struct {
 func NewServer(ctx context.Context) *Server {
 
 	// set up logging
-	var psLogger = vearchlog.NewVearchLog(config.Conf().GetLogDir(config.PS), "PS", config.Conf().GetLevel(config.PS), true)
+	var psLogger = vearchlog.NewVearchLog(config.Conf().GetLogDir(config.PS), "PS", config.Conf().GetLevel(config.PS), false)
 	log.Regist(psLogger)
 
 	cli, err := client.NewClient(config.Conf())

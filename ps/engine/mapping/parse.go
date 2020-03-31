@@ -18,12 +18,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/vearch/vearch/util/log"
+	"math"
+	"strings"
+
 	"github.com/valyala/fastjson"
 	"github.com/vearch/vearch/proto/pspb"
 	"github.com/vearch/vearch/util"
-	"math"
-	"strings"
+	"github.com/vearch/vearch/util/cbbytes"
+	"github.com/vearch/vearch/util/log"
 )
 
 func ParseSchema(schema []byte) (*DocumentMapping, error) {
@@ -51,6 +53,10 @@ func (im *IndexMapping) MapDocument(source []byte) ([]*pspb.Field, map[string]ps
 	im.walkDocument(walkContext, source)
 	if walkContext.Err != nil {
 		return nil, nil, walkContext.Err
+	}
+
+	if len(walkContext.Fields) != len(im.DocumentMapping.Properties) {
+		return nil, nil, fmt.Errorf("field num:[%d] not same by schema:[%d]", len(walkContext.Fields), len(im.DocumentMapping.Properties))
 	}
 
 	return walkContext.Fields, walkContext.DynamicFields, nil
@@ -292,7 +298,6 @@ func (dm *DocumentMapping) processProperty(context *walkContext, fieldName strin
 							buffer.WriteRune('\001')
 						}
 					}
-					dm.processProperty(context, fieldName, path, vv)
 				}
 				field, err := processString(context, fm, pathString, buffer.String())
 				if err != nil {
@@ -300,8 +305,45 @@ func (dm *DocumentMapping) processProperty(context *walkContext, fieldName strin
 					return
 				}
 				context.AddField(field)
+
 				return
 			}
+
+			if fm.FieldType() == pspb.FieldType_INT && fm.FieldMappingI.(*NumericFieldMapping).Array {
+				buffer := bytes.Buffer{}
+				for _, vv := range vs {
+					buffer.Write(cbbytes.Int64ToByte(vv.GetInt64()))
+				}
+				field := &pspb.Field{
+					Name:   fieldName,
+					Type:   pspb.FieldType_INT,
+					Value:  buffer.Bytes(),
+					Option: fm.Options(),
+				}
+				context.AddField(field)
+
+				return
+			}
+
+			if fm.FieldType() == pspb.FieldType_FLOAT && fm.FieldMappingI.(*NumericFieldMapping).Array {
+				buffer := bytes.Buffer{}
+				for _, vv := range vs {
+					buffer.Write(cbbytes.Float64ToByte(vv.GetFloat64()))
+				}
+
+				field := &pspb.Field{
+					Name:   fieldName,
+					Type:   pspb.FieldType_FLOAT,
+					Value:  buffer.Bytes(),
+					Option: fm.Options(),
+				}
+				context.AddField(field)
+
+				return
+			}
+
+			context.Err = fmt.Errorf("field:[%s]  this type:[%d] can use by array", fieldName, fm.FieldType())
+			return
 		}
 
 		for _, vv := range vs {

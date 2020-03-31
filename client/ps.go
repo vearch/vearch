@@ -55,13 +55,15 @@ const (
 	SearchHandler        = "SearchHandler"
 	DeleteByQueryHandler = "DeleteByQueryHandler"
 	MSearchHandler       = "MSearchHandler"
-	StreamSearchHandler  = "StreamSearchHandler"
-	GetDocHandler        = "GetDocHandler"
-	GetDocsHandler       = "GetDocsHandler"
-	WriteHandler         = "WriteHandler"
-	BatchHandler         = "BatchHandler"
-	FlushHandler         = "FlushHandler"
-	ForceMergeHandler    = "ForceMergeHandler"
+	MSearchIDsHandler    = "MSearchIDsHandler"
+
+	StreamSearchHandler = "StreamSearchHandler"
+	GetDocHandler       = "GetDocHandler"
+	GetDocsHandler      = "GetDocsHandler"
+	WriteHandler        = "WriteHandler"
+	BatchHandler        = "BatchHandler"
+	FlushHandler        = "FlushHandler"
+	ForceMergeHandler   = "ForceMergeHandler"
 
 	//admin handler
 	CreatePartitionHandler = "CreatePartitionHandler"

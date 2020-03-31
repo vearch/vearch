@@ -17,20 +17,21 @@ package router
 import (
 	"context"
 	"fmt"
-	"google.golang.org/grpc"
 	"net"
 	"regexp"
 	"strings"
 	"time"
 
+	"google.golang.org/grpc"
+
 	"github.com/vearch/vearch/util/metrics/mserver"
 
-	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/client"
 	"github.com/vearch/vearch/config"
 	"github.com/vearch/vearch/router/document"
 	"github.com/vearch/vearch/util"
 	_ "github.com/vearch/vearch/util/init"
+	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/util/netutil"
 	"github.com/vearch/vearch/util/vearchlog"
 )
@@ -49,7 +50,7 @@ type Server struct {
 
 func NewServer(ctx context.Context) (*Server, error) {
 	// master service load cfg and init
-	log.Regist(vearchlog.NewVearchLog(config.Conf().GetLogDir(config.Router), "Router", config.Conf().GetLevel(config.Router), true))
+	log.Regist(vearchlog.NewVearchLog(config.Conf().GetLogDir(config.Router), "Router", config.Conf().GetLevel(config.Router), false))
 	cli, err := client.NewClient(config.Conf())
 	if err != nil {
 		return nil, err

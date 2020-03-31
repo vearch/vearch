@@ -200,13 +200,11 @@ func (ge *gammaEngine) Optimize() error {
 		return fmt.Errorf("doc size:[%d] less than 8192 so can not to index", int64(u))
 	}
 	go func() {
-		ge.buildIndexOnce.Do(func() {
-			log.Info("build index:[%d] begin", ge.partitionID)
-			if e1 := ge.BuildIndex(); e1 != nil {
-				log.Error("build index:[%d] has err ", ge.partitionID, e1.Error())
-			}
-			log.Info("build index:[%d] end", ge.partitionID)
-		})
+		log.Info("build index:[%d] begin", ge.partitionID)
+		if e1 := ge.BuildIndex(); e1 != nil {
+			log.Error("build index:[%d] has err ", ge.partitionID, e1.Error())
+		}
+		log.Info("build index:[%d] end", ge.partitionID)
 	}()
 	return nil
 }

@@ -53,6 +53,14 @@ func (s *Store) Search(ctx context.Context, readLeader bool, query *request.Sear
 	return s.Engine.Reader().Search(ctx, query), nil
 }
 
+
+func (s *Store) MSearchIDs(ctx context.Context, readLeader bool, query *request.SearchRequest) (result []byte, err error) {
+	if err := s.checkSearchable(readLeader); err != nil {
+		return nil, err
+	}
+	return s.Engine.Reader().MSearchIDs(ctx, query)
+}
+
 func (s *Store) MSearch(ctx context.Context, readLeader bool, query *request.SearchRequest) (result response.SearchResponses, err error) {
 	if err := s.checkSearchable(readLeader); err != nil {
 		return nil, err

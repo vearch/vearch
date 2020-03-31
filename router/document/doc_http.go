@@ -120,6 +120,9 @@ func (handler *DocumentHandler) ExportToServer() error {
 	// search doc: /$dbName/$spaceName/_msearch
 	handler.httpServer.HandlesMethods([]string{http.MethodGet, http.MethodPost}, fmt.Sprintf("/{%s}/{%s}/_msearch", UrlParamDbName, UrlParamSpaceName), []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleMSearchDoc}, nil)
 
+	// search doc: /$dbName/$spaceName/_msearch_ids
+	handler.httpServer.HandlesMethods([]string{http.MethodGet, http.MethodPost}, fmt.Sprintf("/{%s}/{%s}/_msearch_ids", UrlParamDbName, UrlParamSpaceName), []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleMSearchIDsDoc}, nil)
+
 	// search doc: /$dbName/$spaceName/_search
 	handler.httpServer.HandlesMethods([]string{http.MethodGet, http.MethodPost}, fmt.Sprintf("/{%s}/{%s}/_search", UrlParamDbName, UrlParamSpaceName), []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleSearchDoc}, nil)
 
@@ -473,6 +476,50 @@ func (handler *DocumentHandler) handleBulk(ctx context.Context, w http.ResponseW
 	return ctx, true
 }
 
+func (handler *DocumentHandler) handleMSearchIDsDoc(ctx context.Context, w http.ResponseWriter, r *http.Request, params netutil.UriParams) (context.Context, bool) {
+	dbName := params.ByName(UrlParamDbName)
+	spaceName := params.ByName(UrlParamSpaceName)
+
+	reqArgs := netutil.GetUrlQuery(r)
+	reqBody, err := netutil.GetReqBody(r)
+	if err != nil {
+		resp.SendError(ctx, w, http.StatusBadRequest, err.Error())
+		return ctx, true
+	}
+
+	searchRequest := request.NewSearchRequest(ctx, uuid.FlakeUUID())
+	if len(reqBody) != 0 {
+		err := cbjson.Unmarshal(reqBody, searchRequest.SearchDocumentRequest)
+		if err != nil {
+			resp.SendError(ctx, w, http.StatusBadRequest, err.Error())
+			return ctx, true
+		}
+	}
+
+	var clientType client.ClientType
+
+	switch reqArgs[ClientTypeValue] {
+	case "leader", "":
+		clientType = client.LEADER
+	case "random":
+		clientType = client.RANDOM
+	case "not_leader":
+		clientType = client.NOT_LEADER
+	default:
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", fmt.Sprintf("client_type err param:[%s] , it use `leader` or `random`", reqArgs[ClientTypeValue]))
+		return ctx, true
+	}
+
+	bs, err := handler.docService.mSearchIDs(ctx, dbName, spaceName, searchRequest, clientType)
+	if err != nil {
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
+		return ctx, true
+	}
+
+	resp.SendJsonBytes(ctx, w, bs)
+	return ctx, true
+}
+
 func (handler *DocumentHandler) handleMSearchDoc(ctx context.Context, w http.ResponseWriter, r *http.Request, params netutil.UriParams) (context.Context, bool) {
 	dbName := params.ByName(UrlParamDbName)
 	spaceName := params.ByName(UrlParamSpaceName)
@@ -553,6 +600,7 @@ func (handler *DocumentHandler) handleMSearchDoc(ctx context.Context, w http.Res
 		return ctx, true
 	}
 	t2 := time.Now()
+
 
 	bs, err := searchResponses.ToContent(searchRequest.From, *searchRequest.Size, nameCache, typedKeys, t2.Sub(t1))
 	if err != nil {
