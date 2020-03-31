@@ -9,8 +9,7 @@
    3. Gcc >= 5 required
    4. [Faiss](https://github.com/facebookresearch/faiss) >= v1.6.0
    5. [RocksDB](https://github.com/facebook/rocksdb) == 6.2.2 ***(optional)*** . Please use `make shared_lib` which is in `RocksDB's INSTALL.md` to compile rocksdb.
-   6. swig >= 3, if you want to build vearch python sdk.
-   7. CUDA >= 9.0, if you want GPU support.
+   6. CUDA >= 9.0, if you want GPU support.
 #### Compile 
    * Enter the `GOPATH` directory, `cd $GOPATH/src` `mkdir -p github/vearch` `cd github/vearch`
    * Download the source code: `git clone https://xxxxxx/vearch.git` ($vearch denotes the absolute path of vearch code)
@@ -22,19 +21,6 @@
        4. `export ROCKSDB_HOME=the installed path of RocksDB` ***(optional)***
        5. `cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_PYTHON=OFF -DCMAKE_INSTALL_PREFIX=$vearch/ps/engine/gammacb/lib  ..`
        6. `make && make install`
-   
-    * Compile python interface, set BUILD_PYTHON=ON if you want to build python interface
-       1. `cd $vearch/engine/gamma`
-       2. `mkdir build && cd build`
-       3. `export FAISS_HOME=the installed path of faiss`
-       4. `export ROCKSDB_HOME=the installed path of RocksDB` ***(optional)***
-       5. `cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_PYTHON=ON -DCMAKE_INSTALL_PREFIX=$vearch/ps/engine/gammacb/lib  ..`
-       6. `make`
-       7. `mkdir python && cd python`
-       8. `cp ../*swigvearch* .`
-       9. `cp $vearch/python/setup.py $vearch/python/vearch.py .`
-       10. `python setup.py bdist_wheel`
-       11. `pip install ./dist/vearch*.whl`
    
    * Compile vearch
       1. `cd $vearch`
