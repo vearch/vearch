@@ -13,8 +13,8 @@ __date__ = '2019-07-22 09:25:00'
 __description__ = """ """
 
 ip = "127.0.0.1"
-ip_db = ip + ":443"
-ip_data = ip + ":80"
+ip_db = ip + ":8817"
+ip_data = ip + ":9001"
 db_name = "ts_db"
 space_name_mmap = "ts_space"
 space_name_rocksdb = "vector_space_rocksdb"
