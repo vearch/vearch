@@ -1,5 +1,0 @@
-requests
-tornado
-shortuuid
-opencv-python
-
