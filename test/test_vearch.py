@@ -18,7 +18,7 @@ ip_data = ip + ":9001"
 db_name = "ts_db"
 space_name_mmap = "ts_space"
 space_name_rocksdb = "vector_space_rocksdb"
-fileData = "/home/vearch/test/data/test_data.json"
+fileData = "data/test_data.json"
 # fileData = "D:\\tool\\VDB\\vectorbase\\test\\data\\test_data.json"
 
 # query_list = [
