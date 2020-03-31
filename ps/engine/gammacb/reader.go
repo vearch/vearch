@@ -102,7 +102,7 @@ func (ri *readerImpl) MSearch(ctx context.Context, request *request.SearchReques
 		nil, C.int(0),
 		nil, C.int(0),
 		C.int(1), C.int(0),
-		nil, hasRank, C.int(0),
+		nil, hasRank, C.int(0),C.char(1),
 	)
 
 	defer C.DestroyRequest(req)
@@ -169,7 +169,7 @@ func (ri *readerImpl) Search(ctx context.Context, request *request.SearchRequest
 		nil, C.int(0),
 		nil, C.int(0),
 		C.int(1), C.int(0),
-		nil, hasRank, C.int(0),
+		nil, hasRank, C.int(0),C.char(1),
 	)
 
 	defer C.DestroyRequest(req)
