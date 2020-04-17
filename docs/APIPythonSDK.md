@@ -242,14 +242,13 @@ Multi vector query:
 
 ```
 query = {
-        "vector": [
-            "field1": {
-                "type": "vector",
-                "dimension": 128
-            },
-            "field2": {
-                "type": "vector",
-                "dimension": 256
+    "vector": [{
+        "field": "field_name",
+        "feature": [0.1, 0.2, 0.3, 0.4, 0.5]
+    },
+    {
+        "field": "field_name",
+        "feature": [0.6, 0.7, 0.8, 0.9, 1.0]
     }],
 }
 result = engine.search(query)
