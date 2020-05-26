@@ -11,7 +11,7 @@
    5. [RocksDB](https://github.com/facebook/rocksdb) == 6.2.2 . Please use `make shared_lib` which is in `RocksDB's INSTALL.md` to compile rocksdb.
    6. CUDA >= 9.0, if you want GPU support.
 #### Compile 
-   * Enter the `GOPATH` directory, `cd $GOPATH/src` `mkdir -p github/vearch` `cd github/vearch`
+   * Enter the `GOPATH` directory, `cd $GOPATH/src` `mkdir -p github.com/vearch` `cd github.com/vearch`
    * Download the source code: `git clone https://xxxxxx/vearch.git` ($vearch denotes the absolute path of vearch code)
    * To add GPU Index support : change `BUILD_WITH_GPU` from `"off"` to `"on"` in `$vearch/engine/gamma/CMakeLists.txt` 
    * Compile gamma
