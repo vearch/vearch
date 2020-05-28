@@ -88,6 +88,7 @@ func newFieldBySource(name string, value []byte, source string, typed C.enum_Dat
 func mapping2Table(cfg register.EngineConfig, m *mapping.IndexMapping) (*C.struct_Table, error) {
 	vfs := make([]*C.struct_VectorInfo, 0)
 	fs := make([]*C.struct_FieldInfo, 0)
+	dim := make(map[string]int)
 
 	engine := cfg.Space.Engine
 	idTypeStr := engine.IdType
@@ -126,6 +127,7 @@ func mapping2Table(cfg register.EngineConfig, m *mapping.IndexMapping) (*C.struc
 			}
 			vf := C.MakeVectorInfo(byteArrayStr(key), VECTOR, C.char((value.Field.Options()&pspb.FieldOption_Index)/pspb.FieldOption_Index), C.int(fieldMapping.Dimension), byteArrayStr(fieldMapping.ModelId), byteArrayStr(fieldMapping.StoreType), byteArray(fieldMapping.StoreParam), hasSource)
 			vfs = append(vfs, vf)
+			dim[key] = fieldMapping.Dimension
 		}
 
 		return nil
@@ -134,6 +136,8 @@ func mapping2Table(cfg register.EngineConfig, m *mapping.IndexMapping) (*C.struc
 	if err != nil {
 		return nil, err
 	}
+
+	m.DimensionMap = dim
 
 	table := &C.struct_Table{name: byteArrayStr(cast.ToString(cfg.PartitionID))}
 
@@ -144,6 +148,8 @@ func mapping2Table(cfg register.EngineConfig, m *mapping.IndexMapping) (*C.struc
 		}
 		table.vectors_info = arr
 		table.vectors_num = C.int(len(vfs))
+	} else {
+		return nil, fmt.Errorf("create table has no vector field")
 	}
 
 	if len(fs) > 0 {
@@ -277,8 +283,6 @@ func (ge *gammaEngine) Doc2DocResultCGO(doc *C.struct_Doc, idIsLong bool) *respo
 
 	source := make(map[string]interface{})
 
-	dimension := ge.indexMapping.GetField("vector").FieldMappingI.(*mapping.VectortFieldMapping).Dimension
-
 	var err error
 
 	for i := 0; i < fieldNum; i++ {
@@ -329,14 +333,17 @@ func (ge *gammaEngine) Doc2DocResultCGO(doc *C.struct_Doc, idIsLong bool) *respo
 			case pspb.FieldType_VECTOR:
 				if ge.space.Engine.RetrievalType == "BINARYIVF" {
 					featureByteC := CbArr2ByteArray(fv.value)
-
-					unit8s, uri, err := cbbytes.ByteToVectorBinary(featureByteC, dimension)
-					if err != nil {
-						return response.NewErrDocResult(result.Id, err)
-					}
-					source[name] = map[string]interface{}{
-						"source":  uri,
-						"feature": unit8s,
+					if dimension, ok := ge.indexMapping.DimensionMap[name]; ok {
+						unit8s, uri, err := cbbytes.ByteToVectorBinary(featureByteC, dimension)
+						if err != nil {
+							return response.NewErrDocResult(result.Id, err)
+						}
+						source[name] = map[string]interface{}{
+							"source":  uri,
+							"feature": unit8s,
+						}
+					} else {
+						log.Error("Doc2DocResultCGO can not found DimensionMap by field:[%s]", name)
 					}
 				} else {
 					float32s, uri, err := cbbytes.ByteToVector(CbArr2ByteArray(fv.value))
@@ -393,8 +400,6 @@ func (ge *gammaEngine) Doc2DocResult(item *gamma_api.ResultItem, idType string) 
 	fieldNum := item.NameLength()
 	source := make(map[string]interface{})
 
-	dimension := ge.indexMapping.GetField("vector").FieldMappingI.(*mapping.VectortFieldMapping).Dimension
-
 	var err error
 
 	for i := 0; i < fieldNum; i++ {
@@ -447,13 +452,17 @@ func (ge *gammaEngine) Doc2DocResult(item *gamma_api.ResultItem, idType string) 
 				source[name] = cbbytes.ByteToFloat64(value)
 			case pspb.FieldType_VECTOR:
 				if ge.space.Engine.RetrievalType == "BINARYIVF" {
-					unit8s, uri, err := cbbytes.ByteToVectorBinary(value, dimension)
-					if err != nil {
-						return response.NewErrDocResult(result.Id, err)
-					}
-					source[name] = map[string]interface{}{
-						"source":  uri,
-						"feature": unit8s,
+					if dimension, ok := ge.indexMapping.DimensionMap[name]; ok {
+						unit8s, uri, err := cbbytes.ByteToVectorBinary(value, dimension)
+						if err != nil {
+							return response.NewErrDocResult(result.Id, err)
+						}
+						source[name] = map[string]interface{}{
+							"source":  uri,
+							"feature": unit8s,
+						}
+					} else {
+						log.Error("Doc2DocResult can not found DimensionMap by field:[%s]", name)
 					}
 				} else {
 					float32s, uri, err := cbbytes.ByteToVector(value)

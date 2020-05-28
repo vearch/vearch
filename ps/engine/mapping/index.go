@@ -35,6 +35,7 @@ type IndexMapping struct {
 	//it is not config in index
 	DefaultDateTimeParserName string                      `json:"-"`
 	fieldCacher               map[string]*DocumentMapping `json:"-"`
+	DimensionMap              map[string]int              `json:"-"`
 }
 
 // NewIndexMapping creates a new IndexMapping that will use all the default indexing rules
