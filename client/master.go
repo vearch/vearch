@@ -23,10 +23,10 @@ import (
 	"time"
 
 	"github.com/spf13/cast"
-	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/master/store"
 	"github.com/vearch/vearch/proto"
 	. "github.com/vearch/vearch/proto/entity"
+	"github.com/vearch/vearch/util/log"
 	"go.etcd.io/etcd/clientv3"
 )
 
@@ -203,6 +203,24 @@ func (this *masterClient) QuerySpacesByKey(ctx context.Context, prefix string) (
 	}
 
 	return spaces, err
+}
+
+func (client *masterClient) QueryDBs(ctx context.Context) ([]*DB, error) {
+
+	_, bytesArr, err := client.PrefixScan(ctx, PrefixDataBaseBody)
+	if err != nil {
+		return nil, err
+	}
+	dbs := make([]*DB, 0, len(bytesArr))
+	for _, bs := range bytesArr {
+		db := &DB{}
+		if err := json.Unmarshal(bs, db); err != nil {
+			log.Error("decode db err: %s,and the bs is:%s", err.Error(), string(bs))
+			continue
+		}
+		dbs = append(dbs, db)
+	}
+	return dbs, err
 }
 
 //QueryPartitions get all partitions from the etcd

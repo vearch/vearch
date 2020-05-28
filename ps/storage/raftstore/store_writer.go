@@ -17,6 +17,7 @@ package raftstore
 import (
 	"context"
 	"fmt"
+	"time"
 
 	pkg "github.com/vearch/vearch/proto"
 	"github.com/vearch/vearch/proto/entity"
@@ -154,7 +155,8 @@ func (s *Store) Write(ctx context.Context, request *pspb.DocCmd) (result *respon
 	raftCmd.Type = raftpb.CmdType_WRITE
 	raftCmd.WriteCommand = request
 	//TODO: pspb.Replace not use check version
-	if (request.Type == pspb.OpType_MERGE || request.Type == pspb.OpType_DELETE) && request.Version == 0 {
+	//if (request.Type == pspb.OpType_MERGE || request.Type == pspb.OpType_DELETE) && request.Version == 0 {
+	/*if request.Type == pspb.OpType_MERGE || request.Type == pspb.OpType_DELETE {
 		doc, err := s.GetRTDocument(ctx, true, request.DocId)
 		if err != nil {
 			return nil, fmt.Errorf("get document error:%v", err)
@@ -165,11 +167,11 @@ func (s *Store) Write(ctx context.Context, request *pspb.DocCmd) (result *respon
 		}
 
 		if doc.Found {
-			raftCmd.WriteCommand.Version = doc.Version
+			//raftCmd.WriteCommand.Version = doc.Version
 		} else if request.Type == pspb.OpType_MERGE || request.Type == pspb.OpType_DELETE {
 			return nil, pkg.CodeErr(pkg.ERRCODE_DOCUMENT_NOT_EXIST)
 		}
-	}
+	}*/
 	data, err := raftCmd.Marshal()
 	if err != nil {
 		return nil, err
@@ -178,6 +180,7 @@ func (s *Store) Write(ctx context.Context, request *pspb.DocCmd) (result *respon
 	if e := raftCmd.Close(); e != nil {
 		log.Error("raft cmd close err : %s", e.Error())
 	}
+	startTime := time.Now()
 	future := s.RaftServer.Submit(uint64(s.Partition.Id), data)
 	resp, err := future.Response()
 	if err != nil {
@@ -187,7 +190,15 @@ func (s *Store) Write(ctx context.Context, request *pspb.DocCmd) (result *respon
 	if resp.(*RaftApplyResponse).Err != nil {
 		return nil, resp.(*RaftApplyResponse).Err
 	}
-	return resp.(*RaftApplyResponse).Result, nil
+	endTime := time.Now()
+
+	resultResp := resp.(*RaftApplyResponse).Result
+	if request.Type != pspb.OpType_DELETE && resultResp.CostTime != nil {
+		resultResp.CostTime.PsSWStartTime = startTime
+		resultResp.CostTime.PsSWEndTime = endTime
+	}
+
+	return resultResp, nil
 }
 
 func (s *Store) Flush(ctx context.Context) error {

@@ -4,6 +4,6 @@
 [submodule "plugin"]
 	path = plugin
 	url = https://github.com/vearch/python-algorithm-plugin
-[submodule "engine/gamma"]
-	path = engine/gamma
+[submodule "engine"]
+	path = engine
 	url = https://github.com/vearch/gamma

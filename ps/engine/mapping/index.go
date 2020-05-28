@@ -16,9 +16,9 @@
 package mapping
 
 import (
-	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/proto/pspb"
+	"github.com/vearch/vearch/util/log"
 	"sort"
 	"strings"
 )

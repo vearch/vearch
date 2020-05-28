@@ -72,7 +72,7 @@ func TestParseSchema(t *testing.T) {
     }
 }`)
 
-	fields, newSchema, err := im.MapDocument(source)
+	fields, newSchema, err := im.MapDocument(source, "")
 
 	if err != nil {
 		t.Fatal(err)
@@ -95,7 +95,7 @@ func TestParseErr(t *testing.T) {
 	im := NewIndexMapping()
 	im.DocumentMapping = mapping
 
-	fields, types, err := im.MapDocument([]byte(`{"body2":"test no body","name":"new_name","title":"test title","val":100}`))
+	fields, types, err := im.MapDocument([]byte(`{"body2":"test no body","name":"new_name","title":"test title","val":100}`), "")
 
 	if err != nil {
 		t.Fatal(err)
@@ -206,7 +206,7 @@ func TestParseSchemaErr(t *testing.T) {
 
 	bytes, e := json.Marshal(doc)
 
-	fields, types, e := im.MapDocument(bytes)
+	fields, types, e := im.MapDocument(bytes, "")
 	if e != nil {
 		t.Fatal(e)
 	}

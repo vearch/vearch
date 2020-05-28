@@ -19,8 +19,6 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/vearch/vearch/util/log"
-
 	"github.com/vearch/vearch/proto/entity"
 
 	"github.com/vearch/vearch/ps/engine"
@@ -76,9 +74,9 @@ func (s *StoreBase) SetSpace(space *entity.Space) {
 	s.Lock()
 	defer s.Unlock()
 	s.Space = space
-	if s.Space.Version > space.Version {
+	/*if s.Space.Version > space.Version {
 		log.Error("new space[%s] version is less than old space, new:[%d]/old:[%d]", space.Name, space.Version, s.Space.Version)
-	}
+	}*/
 }
 
 func (s *StoreBase) GetVersion() entity.Version {

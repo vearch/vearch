@@ -18,8 +18,11 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/vearch/vearch/monitor"
 	"html/template"
+	"math/big"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -37,6 +40,7 @@ import (
 	"github.com/vearch/vearch/config"
 	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/util/netutil"
+	"github.com/vearch/vearch/util/regularutil"
 )
 
 const (
@@ -120,8 +124,14 @@ func (handler *DocumentHandler) ExportToServer() error {
 	// search doc: /$dbName/$spaceName/_msearch
 	handler.httpServer.HandlesMethods([]string{http.MethodGet, http.MethodPost}, fmt.Sprintf("/{%s}/{%s}/_msearch", UrlParamDbName, UrlParamSpaceName), []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleMSearchDoc}, nil)
 
+	// search doc: /$dbName/$spaceName/_msearch_new
+	handler.httpServer.HandlesMethods([]string{http.MethodGet, http.MethodPost}, fmt.Sprintf("/{%s}/{%s}/_msearch_new", UrlParamDbName, UrlParamSpaceName), []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleMSearchNewDoc}, nil)
+
 	// search doc: /$dbName/$spaceName/_msearch_ids
 	handler.httpServer.HandlesMethods([]string{http.MethodGet, http.MethodPost}, fmt.Sprintf("/{%s}/{%s}/_msearch_ids", UrlParamDbName, UrlParamSpaceName), []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleMSearchIDsDoc}, nil)
+
+	// search doc: /$dbName/$spaceName/_msearch_forids
+	handler.httpServer.HandlesMethods([]string{http.MethodGet, http.MethodPost}, fmt.Sprintf("/{%s}/{%s}/_msearch_forids", UrlParamDbName, UrlParamSpaceName), []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleMSearchForIDsDoc}, nil)
 
 	// search doc: /$dbName/$spaceName/_search
 	handler.httpServer.HandlesMethods([]string{http.MethodGet, http.MethodPost}, fmt.Sprintf("/{%s}/{%s}/_search", UrlParamDbName, UrlParamSpaceName), []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleSearchDoc}, nil)
@@ -285,7 +295,7 @@ func (handler *DocumentHandler) handleGetSpaceMapping(ctx context.Context, w htt
 }
 
 func (handler *DocumentHandler) handleReplaceDoc(ctx context.Context, w http.ResponseWriter, r *http.Request, params netutil.UriParams) (context.Context, bool) {
-
+	defer monitor.Profiler("handleReplaceDoc", time.Now().Nanosecond())
 	method := r.Method
 	dbName := params.ByName(UrlParamDbName)
 	spaceName := params.ByName(UrlParamSpaceName)
@@ -297,6 +307,51 @@ func (handler *DocumentHandler) handleReplaceDoc(ctx context.Context, w http.Res
 		return ctx, true
 	}
 
+	idIsLong := false
+	space, err := handler.docService.getSpace(ctx, dbName, spaceName)
+	if err != nil {
+		resp.SendError(ctx, w, http.StatusBadRequest, err.Error())
+		return ctx, true
+	} else {
+		idType := space.Engine.IdType
+		if idType != "" && ("long" == idType || "Long" == idType) {
+			idIsLong = true
+		}
+	}
+
+	var docIdString string
+	if docID == "" {
+		//docID = uuid.FlakeUUID()
+		/*n, err := snowflake.NewNode(1)
+		if err != nil {
+			fmt.Errorf("snowflake.NewNode error: (%s)", err.Error())
+		} else {
+			docId64 = n.Generate().Int64()
+		}*/
+		docIDUUID := uuid.FlakeUUID()
+		docIdMd5 := GetMD5Encode(docIDUUID)
+		bi := big.NewInt(0)
+		before := docIdMd5[0:16]
+		after := docIdMd5[16:32]
+
+		bi.SetString(before, 16)
+		beforeInt64 := bi.Int64()
+		bi.SetString(after, 16)
+		afterInt64 := bi.Int64()
+
+		docId64 := beforeInt64 ^ afterInt64
+		docIdString = strconv.FormatInt(docId64, 10)
+	} else {
+		if idIsLong {
+			result := regularutil.StringCheckNum(docID)
+			if !result {
+				resp.SendError(ctx, w, http.StatusBadRequest, "space idType is long but input docId is not number")
+				return ctx, true
+			}
+		}
+		docIdString = docID
+	}
+
 	reqArgs := netutil.GetUrlQuery(r)
 	reqBody, err := netutil.GetReqBody(r)
 	if err != nil {
@@ -305,9 +360,9 @@ func (handler *DocumentHandler) handleReplaceDoc(ctx context.Context, w http.Res
 	}
 
 	if reqArgs[UrlQueryOpType] == "create" {
-		docResult := handler.docService.createDoc(ctx, dbName, spaceName, docID, reqArgs, reqBody)
+		docResult := handler.docService.createDoc(ctx, dbName, spaceName, docIdString, reqArgs, reqBody)
 		writeResponse := response.WriteResponse{docResult}
-		bs, err := writeResponse.ToContent(dbName, spaceName)
+		bs, err := writeResponse.ToContent(dbName, spaceName, idIsLong)
 		if err != nil {
 			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 			return ctx, true
@@ -317,18 +372,14 @@ func (handler *DocumentHandler) handleReplaceDoc(ctx context.Context, w http.Res
 		return ctx, true
 	}
 
-	if docID == "" {
-		docID = uuid.FlakeUUID()
-	}
-
 	if string(reqBody) == "" {
 		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, resp.ErrTypeParseException, resp.ErrReasonRequestBodyIsRequired)
 		return ctx, true
 	}
 
-	docResult := handler.docService.replaceDoc(ctx, dbName, spaceName, docID, reqArgs, reqBody)
+	docResult := handler.docService.replaceDoc(ctx, dbName, spaceName, docIdString, reqArgs, reqBody)
 	writeResponse := response.WriteResponse{docResult}
-	bs, err := writeResponse.ToContent(dbName, spaceName)
+	bs, err := writeResponse.ToContent(dbName, spaceName, idIsLong)
 	if err != nil {
 		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 		return ctx, true
@@ -338,9 +389,16 @@ func (handler *DocumentHandler) handleReplaceDoc(ctx context.Context, w http.Res
 }
 
 func (handler *DocumentHandler) handleCreateDoc(ctx context.Context, w http.ResponseWriter, r *http.Request, params netutil.UriParams) (context.Context, bool) {
+	defer monitor.Profiler("handleCreateDoc", time.Now().Nanosecond())
+
 	dbName := params.ByName(UrlParamDbName)
 	spaceName := params.ByName(UrlParamSpaceName)
 	docID := params.ByName(UrlParamDocID)
+
+	if docID == "" {
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "docId is null")
+		return ctx, true
+	}
 
 	reqArgs := netutil.GetUrlQuery(r)
 	reqBody, err := netutil.GetReqBody(r)
@@ -349,9 +407,55 @@ func (handler *DocumentHandler) handleCreateDoc(ctx context.Context, w http.Resp
 		return ctx, true
 	}
 
-	docResult := handler.docService.createDoc(ctx, dbName, spaceName, docID, reqArgs, reqBody)
+	idIsLong := false
+	var idType string
+	space, err := handler.docService.getSpace(ctx, dbName, spaceName)
+	if err != nil {
+		resp.SendError(ctx, w, http.StatusBadRequest, err.Error())
+		return ctx, true
+	} else {
+		idType = space.Engine.IdType
+		if idType != "" && ("long" == idType || "Long" == idType) {
+			idIsLong = true
+		}
+	}
+
+	var docIdString string
+	if docID == "" {
+		//docID = uuid.FlakeUUID()
+		/*n, err := snowflake.NewNode(1)
+		if err != nil {
+			fmt.Errorf("snowflake.NewNode error: (%s)", err.Error())
+		} else {
+			docId64 = n.Generate().Int64()
+		}*/
+		docIDUUID := uuid.FlakeUUID()
+		docIdMd5 := GetMD5Encode(docIDUUID)
+		bi := big.NewInt(0)
+		before := docIdMd5[0:16]
+		after := docIdMd5[16:32]
+
+		bi.SetString(before, 16)
+		beforeInt64 := bi.Int64()
+		bi.SetString(after, 16)
+		afterInt64 := bi.Int64()
+
+		docId64 := beforeInt64 ^ afterInt64
+		docIdString = strconv.FormatInt(docId64, 10)
+	} else {
+		if idIsLong {
+			result := regularutil.StringCheckNum(docID)
+			if !result {
+				resp.SendError(ctx, w, http.StatusBadRequest, "space idType is long but input docId is not number")
+				return ctx, true
+			}
+		}
+		docIdString = docID
+	}
+
+	docResult := handler.docService.createDoc(ctx, dbName, spaceName, docIdString, reqArgs, reqBody)
 	writeResponse := response.WriteResponse{docResult}
-	bs, err := writeResponse.ToContent(dbName, spaceName)
+	bs, err := writeResponse.ToContent(dbName, spaceName, idIsLong)
 	if err != nil {
 		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 		return ctx, true
@@ -362,6 +466,7 @@ func (handler *DocumentHandler) handleCreateDoc(ctx context.Context, w http.Resp
 }
 
 func (handler *DocumentHandler) handleUpdateDoc(ctx context.Context, w http.ResponseWriter, r *http.Request, params netutil.UriParams) (context.Context, bool) {
+	defer monitor.Profiler("handleUpdateDoc", time.Now().Nanosecond())
 	method := r.Method
 	dbName := params.ByName(UrlParamDbName)
 	spaceName := params.ByName(UrlParamSpaceName)
@@ -397,10 +502,36 @@ func (handler *DocumentHandler) handleUpdateDoc(ctx context.Context, w http.Resp
 		return ctx, false
 	}
 
+	if docID == "" {
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "docId is null")
+		return ctx, true
+	}
+
+	idIsLong := false
+	var idType string
+	space, err := handler.docService.getSpace(ctx, dbName, spaceName)
+	if err != nil {
+		resp.SendError(ctx, w, http.StatusBadRequest, err.Error())
+		return ctx, true
+	} else {
+		idType = space.Engine.IdType
+		if idType != "" && ("long" == idType || "Long" == idType) {
+			idIsLong = true
+		}
+	}
+
+	if idIsLong {
+		result := regularutil.StringCheckNum(docID)
+		if !result {
+			resp.SendError(ctx, w, http.StatusBadRequest, "space idType is long but input docId is not number")
+			return ctx, true
+		}
+	}
+
 	docResult := handler.docService.mergeDoc(ctx, dbName, spaceName, docID, reqArgs, doc)
 
 	writeResponse := response.WriteResponse{docResult}
-	bs, err := writeResponse.ToContent(dbName, spaceName)
+	bs, err := writeResponse.ToContent(dbName, spaceName, idIsLong)
 	if err != nil {
 		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 		return ctx, false
@@ -411,16 +542,44 @@ func (handler *DocumentHandler) handleUpdateDoc(ctx context.Context, w http.Resp
 }
 
 func (handler *DocumentHandler) handleDeleteDoc(ctx context.Context, w http.ResponseWriter, r *http.Request, params netutil.UriParams) (context.Context, bool) {
+	defer monitor.Profiler("handleDeleteDoc", time.Now().Nanosecond())
+
 	dbName := params.ByName(UrlParamDbName)
 	spaceName := params.ByName(UrlParamSpaceName)
 	docID := params.ByName(UrlParamDocID)
 
 	reqArgs := netutil.GetUrlQuery(r)
 
+	if docID == "" {
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "docId is null")
+		return ctx, true
+	}
+
+	idIsLong := false
+	var idType string
+	space, err := handler.docService.getSpace(ctx, dbName, spaceName)
+	if err != nil {
+		resp.SendError(ctx, w, http.StatusBadRequest, err.Error())
+		return ctx, true
+	} else {
+		idType = space.Engine.IdType
+		if idType != "" && ("long" == idType || "Long" == idType) {
+			idIsLong = true
+		}
+	}
+
+	if idIsLong {
+		result := regularutil.StringCheckNum(docID)
+		if !result {
+			resp.SendError(ctx, w, http.StatusBadRequest, "space idType is long but input docId is not number")
+			return ctx, true
+		}
+	}
+
 	docResult := handler.docService.deleteDoc(ctx, dbName, spaceName, docID, reqArgs)
 
 	writeResponse := response.WriteResponse{docResult}
-	bs, err := writeResponse.ToContent(dbName, spaceName)
+	bs, err := writeResponse.ToContent(dbName, spaceName, idIsLong)
 	if err != nil {
 		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 		return ctx, true
@@ -431,14 +590,41 @@ func (handler *DocumentHandler) handleDeleteDoc(ctx context.Context, w http.Resp
 }
 
 func (handler *DocumentHandler) handleGetDoc(ctx context.Context, w http.ResponseWriter, r *http.Request, params netutil.UriParams) (context.Context, bool) {
+	defer monitor.Profiler("handleGetDoc", time.Now().Nanosecond())
 	dbName := params.ByName(UrlParamDbName)
 	spaceName := params.ByName(UrlParamSpaceName)
 	docID := params.ByName(UrlParamDocID)
 
 	reqArgs := netutil.GetUrlQuery(r)
 
+	if docID == "" {
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "docId is null")
+		return ctx, true
+	}
+
+	idIsLong := false
+	var idType string
+	space, err := handler.docService.getSpace(ctx, dbName, spaceName)
+	if err != nil {
+		resp.SendError(ctx, w, http.StatusBadRequest, err.Error())
+		return ctx, true
+	} else {
+		idType = space.Engine.IdType
+		if idType != "" && ("long" == idType || "Long" == idType) {
+			idIsLong = true
+		}
+	}
+
+	if idIsLong {
+		result := regularutil.StringCheckNum(docID)
+		if !result {
+			resp.SendError(ctx, w, http.StatusBadRequest, "space idType is long but input docId is not number")
+			return ctx, true
+		}
+	}
+
 	docResult := handler.docService.getDoc(ctx, dbName, spaceName, docID, reqArgs)
-	bs, err := docResult.ToContent(dbName, spaceName)
+	bs, err := docResult.ToContent(dbName, spaceName, idIsLong)
 	if err != nil {
 		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 		return ctx, true
@@ -449,6 +635,9 @@ func (handler *DocumentHandler) handleGetDoc(ctx context.Context, w http.Respons
 }
 
 func (handler *DocumentHandler) handleBulk(ctx context.Context, w http.ResponseWriter, r *http.Request, params netutil.UriParams) (context.Context, bool) {
+	paramTime := time.Now()
+	defer monitor.Profiler("handleBulk", time.Now().Nanosecond())
+
 	dbName := params.ByName(UrlParamDbName)
 	spaceName := params.ByName(UrlParamSpaceName)
 
@@ -459,24 +648,77 @@ func (handler *DocumentHandler) handleBulk(ctx context.Context, w http.ResponseW
 		return ctx, false
 	}
 
+	idIsLong := false
+	space, err := handler.docService.getSpace(ctx, dbName, spaceName)
+	if err != nil {
+		resp.SendError(ctx, w, http.StatusBadRequest, err.Error())
+		return ctx, false
+	} else {
+		idType := space.Engine.IdType
+		if idType != "" && ("long" == idType || "Long" == idType) {
+			idIsLong = true
+		}
+	}
+
 	t1 := time.Now()
-	writeResponse, err := handler.docService.bulk(ctx, dbName, spaceName, reqArgs, reqBody)
+	writeResponse, err := handler.docService.bulk(ctx, dbName, spaceName, reqArgs, reqBody, idIsLong)
 	if err != nil {
 		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 		return ctx, true
 	}
 	t2 := time.Now()
+
 	bulkResponse := &response.BulkResponse{Items: writeResponse}
-	bs, err := bulkResponse.ToContent(t2.Sub(t1).Nanoseconds())
+	bs, err := bulkResponse.ToContent(t2.Sub(t1).Nanoseconds(), idIsLong)
 	if err != nil {
 		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 		return ctx, true
 	}
 	resp.SendJsonBytes(ctx, w, bs)
+
+	engTime := time.Now()
+
+	gammaCost := int64(0)
+	psStoreWriteCost := int64(0)
+	psHandlerCost := int64(0)
+	clientPsPCost := int64(0)
+	docSCost := int64(0)
+	for _, item := range bulkResponse.Items {
+		if item.ItemValue.DocResult.CostTime != nil {
+			gammaEndTime := item.ItemValue.DocResult.CostTime.GammaEndTime
+			gammaStartTime := item.ItemValue.DocResult.CostTime.GammaStartTime
+			gammaCost += int64(gammaEndTime.Sub(gammaStartTime))
+			psSWStartTime := item.ItemValue.DocResult.CostTime.PsSWStartTime
+			psSWEndTime := item.ItemValue.DocResult.CostTime.PsSWEndTime
+			psStoreWriteCost += int64(psSWEndTime.Sub(psSWStartTime))
+			psHandlerStartTime := item.ItemValue.DocResult.CostTime.PsHandlerStartTime
+			psHandlerEndTime := item.ItemValue.DocResult.CostTime.PsHandlerEndTime
+			psHandlerCost += int64(psHandlerEndTime.Sub(psHandlerStartTime))
+			clientPsPStartTime := item.ItemValue.DocResult.CostTime.ClientPsPStartTime
+			clientPsPEndTime := item.ItemValue.DocResult.CostTime.ClientPsPEndTime
+			clientPsPCost += int64(clientPsPEndTime.Sub(clientPsPStartTime))
+			docSStartTime := item.ItemValue.DocResult.CostTime.DocSStartTime
+			docSEndTime := item.ItemValue.DocResult.CostTime.DocSEndTime
+			docSCost += int64(docSEndTime.Sub(docSStartTime))
+		}
+	}
+
+	log.Info("handleBulk gamma cost :[%d] pssw use cost:[%d] pshandler use cost :[%d] clientps cost :[%d] "+
+		"docserice cost :[%d] bulk cost:[%d] param cost:[%d] total cost:[%d]",
+		gammaCost/int64(time.Millisecond),
+		psStoreWriteCost/int64(time.Millisecond),
+		psHandlerCost/int64(time.Millisecond),
+		clientPsPCost/int64(time.Millisecond),
+		docSCost/int64(time.Millisecond),
+		int64((t2.Sub(t1))/time.Millisecond),
+		int64(t1.Sub(paramTime)/time.Millisecond),
+		int64((engTime.Sub(paramTime))/time.Millisecond))
 	return ctx, true
 }
 
 func (handler *DocumentHandler) handleMSearchIDsDoc(ctx context.Context, w http.ResponseWriter, r *http.Request, params netutil.UriParams) (context.Context, bool) {
+	defer monitor.Profiler("handleMSearchIDsDoc", time.Now().Nanosecond())
+
 	dbName := params.ByName(UrlParamDbName)
 	spaceName := params.ByName(UrlParamSpaceName)
 
@@ -510,7 +752,77 @@ func (handler *DocumentHandler) handleMSearchIDsDoc(ctx context.Context, w http.
 		return ctx, true
 	}
 
-	bs, err := handler.docService.mSearchIDs(ctx, dbName, spaceName, searchRequest, clientType)
+	t1 := time.Now()
+	searchResponses, nameCache, err := handler.docService.mSearchIDs(ctx, dbName, spaceName, searchRequest, clientType)
+	if err != nil {
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
+		return ctx, true
+	}
+	t2 := time.Now()
+
+	idIsLong := false
+	space, err := handler.docService.getSpace(ctx, dbName, spaceName)
+	if err != nil {
+		resp.SendError(ctx, w, http.StatusBadRequest, err.Error())
+		return ctx, true
+	} else {
+		idType := space.Engine.IdType
+		if idType != "" && ("long" == idType || "Long" == idType) {
+			idIsLong = true
+		}
+	}
+
+	bs, err := searchResponses.ToContentIds(searchRequest.From, *searchRequest.Size, nameCache, t2.Sub(t1), idIsLong)
+	if err != nil {
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
+		return ctx, true
+	}
+
+	/*bs, err := handler.docService.mSearchIDs(ctx, dbName, spaceName, searchRequest, clientType)
+	if err != nil {
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
+		return ctx, true
+	}*/
+
+	resp.SendJsonBytes(ctx, w, bs)
+	return ctx, true
+}
+
+func (handler *DocumentHandler) handleMSearchForIDsDoc(ctx context.Context, w http.ResponseWriter, r *http.Request, params netutil.UriParams) (context.Context, bool) {
+	dbName := params.ByName(UrlParamDbName)
+	spaceName := params.ByName(UrlParamSpaceName)
+
+	reqArgs := netutil.GetUrlQuery(r)
+	reqBody, err := netutil.GetReqBody(r)
+	if err != nil {
+		resp.SendError(ctx, w, http.StatusBadRequest, err.Error())
+		return ctx, true
+	}
+
+	searchRequest := request.NewSearchRequest(ctx, uuid.FlakeUUID())
+	if len(reqBody) != 0 {
+		err := cbjson.Unmarshal(reqBody, searchRequest.SearchDocumentRequest)
+		if err != nil {
+			resp.SendError(ctx, w, http.StatusBadRequest, err.Error())
+			return ctx, true
+		}
+	}
+
+	var clientType client.ClientType
+
+	switch reqArgs[ClientTypeValue] {
+	case "leader", "":
+		clientType = client.LEADER
+	case "random":
+		clientType = client.RANDOM
+	case "not_leader":
+		clientType = client.NOT_LEADER
+	default:
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", fmt.Sprintf("client_type err param:[%s] , it use `leader` or `random`", reqArgs[ClientTypeValue]))
+		return ctx, true
+	}
+
+	bs, err := handler.docService.mSearchForIDs(ctx, dbName, spaceName, searchRequest, clientType)
 	if err != nil {
 		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 		return ctx, true
@@ -521,6 +833,8 @@ func (handler *DocumentHandler) handleMSearchIDsDoc(ctx context.Context, w http.
 }
 
 func (handler *DocumentHandler) handleMSearchDoc(ctx context.Context, w http.ResponseWriter, r *http.Request, params netutil.UriParams) (context.Context, bool) {
+	defer monitor.Profiler("handleMSearchDoc", time.Now().Nanosecond())
+
 	dbName := params.ByName(UrlParamDbName)
 	spaceName := params.ByName(UrlParamSpaceName)
 
@@ -601,8 +915,19 @@ func (handler *DocumentHandler) handleMSearchDoc(ctx context.Context, w http.Res
 	}
 	t2 := time.Now()
 
+	idIsLong := false
+	space, err := handler.docService.getSpace(ctx, dbName, spaceName)
+	if err != nil {
+		resp.SendError(ctx, w, http.StatusBadRequest, err.Error())
+		return ctx, true
+	} else {
+		idType := space.Engine.IdType
+		if idType != "" && ("long" == idType || "Long" == idType) {
+			idIsLong = true
+		}
+	}
 
-	bs, err := searchResponses.ToContent(searchRequest.From, *searchRequest.Size, nameCache, typedKeys, t2.Sub(t1))
+	bs, err := searchResponses.ToContent(searchRequest.From, *searchRequest.Size, nameCache, typedKeys, t2.Sub(t1), idIsLong)
 	if err != nil {
 		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 		return ctx, true
@@ -617,6 +942,119 @@ func (handler *DocumentHandler) handleMSearchDoc(ctx context.Context, w http.Res
 		}
 	}
 	log.Info("msearch use time :[%d] . max partition:[%d] use time:[%d]", (t2.Sub(t1) / time.Millisecond), maxTookID, maxTook)
+
+	resp.SendJsonBytes(ctx, w, bs)
+	return ctx, true
+}
+
+func (handler *DocumentHandler) handleMSearchNewDoc(ctx context.Context, w http.ResponseWriter, r *http.Request, params netutil.UriParams) (context.Context, bool) {
+	dbName := params.ByName(UrlParamDbName)
+	spaceName := params.ByName(UrlParamSpaceName)
+
+	reqArgs := netutil.GetUrlQuery(r)
+	reqBody, err := netutil.GetReqBody(r)
+	if err != nil {
+		resp.SendError(ctx, w, http.StatusBadRequest, err.Error())
+		return ctx, true
+	}
+
+	searchRequest := request.NewSearchRequest(ctx, uuid.FlakeUUID())
+	if len(reqBody) != 0 {
+		err := cbjson.Unmarshal(reqBody, searchRequest.SearchDocumentRequest)
+		if err != nil {
+			resp.SendError(ctx, w, http.StatusBadRequest, err.Error())
+			return ctx, true
+		}
+	}
+
+	if reqArgs[UrlQueryFrom] != "" {
+		searchRequest.From = cast.ToInt(reqArgs[UrlQueryFrom])
+	}
+	if reqArgs[UrlQuerySize] != "" {
+		size := cast.ToInt(reqArgs[UrlQuerySize])
+		searchRequest.Size = &size
+	}
+
+	var typedKeys bool
+	if reqArgs[UrlQueryTypedKey] != "" {
+		typedKeys = cast.ToBool(reqArgs[UrlQueryTypedKey])
+	}
+
+	if reqArgs[UrlQueryURISort] != "" {
+		sortQ := strings.Split(reqArgs[UrlQueryURISort], ":")
+		const sortObj = `[{"{{.Condition}}": {"order": "{{.Order}}"}}]`
+
+		type SortObj struct {
+			Condition string
+			Order     string
+		}
+
+		obj := &SortObj{Condition: sortQ[0], Order: sortQ[1]}
+		t := template.Must(template.New("sortObj").Parse(sortObj))
+		var b bytes.Buffer
+		err := t.Execute(&b, obj)
+		if err != nil {
+			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
+			return ctx, true
+		}
+		searchRequest.Sort = b.Bytes()
+	}
+
+	// set a default value
+	if searchRequest.Size == nil {
+		size := 10
+		searchRequest.Size = &size
+	}
+
+	var clientType client.ClientType
+
+	switch reqArgs[ClientTypeValue] {
+	case "leader", "":
+		clientType = client.LEADER
+	case "random":
+		clientType = client.RANDOM
+	case "not_leader":
+		clientType = client.NOT_LEADER
+	default:
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", fmt.Sprintf("client_type err param:[%s] , it use `leader` or `random`", reqArgs[ClientTypeValue]))
+		return ctx, true
+	}
+
+	t1 := time.Now()
+	searchResponses, nameCache, err := handler.docService.mSearchNewDoc(ctx, dbName, spaceName, searchRequest, clientType)
+	if err != nil {
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
+		return ctx, true
+	}
+	t2 := time.Now()
+
+	idIsLong := false
+	space, err := handler.docService.getSpace(ctx, dbName, spaceName)
+	if err != nil {
+		resp.SendError(ctx, w, http.StatusBadRequest, err.Error())
+		return ctx, true
+	} else {
+		idType := space.Engine.IdType
+		if idType != "" && ("long" == idType || "Long" == idType) {
+			idIsLong = true
+		}
+	}
+
+	bs, err := searchResponses.ToContent(searchRequest.From, *searchRequest.Size, nameCache, typedKeys, t2.Sub(t1), idIsLong)
+	if err != nil {
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
+		return ctx, true
+	}
+
+	var maxTookID uint32
+	var maxTook int64
+	for _, sr := range searchResponses {
+		if sr.MaxTook > maxTook {
+			maxTook = sr.MaxTook
+			maxTookID = sr.MaxTookID
+		}
+	}
+	log.Info("msearchnew use time :[%d] . max partition:[%d] use time:[%d]", (t2.Sub(t1) / time.Millisecond), maxTookID, maxTook)
 
 	resp.SendJsonBytes(ctx, w, bs)
 	return ctx, true
@@ -665,6 +1103,8 @@ func (handler *DocumentHandler) handleDeleteByQuery(ctx context.Context, w http.
 }
 
 func (handler *DocumentHandler) handleSearchDoc(ctx context.Context, w http.ResponseWriter, r *http.Request, params netutil.UriParams) (context.Context, bool) {
+	defer monitor.Profiler("handleSearchDoc", time.Now().Nanosecond())
+
 	dbName := params.ByName(UrlParamDbName)
 	spaceName := params.ByName(UrlParamSpaceName)
 
@@ -745,7 +1185,19 @@ func (handler *DocumentHandler) handleSearchDoc(ctx context.Context, w http.Resp
 	}
 	t2 := time.Now()
 
-	bs, err := searchResponse.ToContent(searchRequest.From, *searchRequest.Size, nameCache, typedKeys, t2.Sub(t1))
+	idIsLong := false
+	space, err := handler.docService.getSpace(ctx, dbName, spaceName)
+	if err != nil {
+		resp.SendError(ctx, w, http.StatusBadRequest, err.Error())
+		return ctx, true
+	} else {
+		idType := space.Engine.IdType
+		if idType != "" && ("long" == idType || "Long" == idType) {
+			idIsLong = true
+		}
+	}
+
+	bs, err := searchResponse.ToContent(searchRequest.From, *searchRequest.Size, nameCache, typedKeys, t2.Sub(t1), idIsLong)
 	if err != nil {
 		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 		return ctx, true
@@ -758,6 +1210,8 @@ func (handler *DocumentHandler) handleSearchDoc(ctx context.Context, w http.Resp
 }
 
 func (handler *DocumentHandler) handleStreamSearchDoc(ctx context.Context, w http.ResponseWriter, r *http.Request, params netutil.UriParams) (context.Context, bool) {
+	defer monitor.Profiler("handleStreamSearchDoc", time.Now().Nanosecond())
+
 	dbName := params.ByName(UrlParamDbName)
 	spaceName := params.ByName(UrlParamSpaceName)
 
@@ -792,6 +1246,18 @@ func (handler *DocumentHandler) handleStreamSearchDoc(ctx context.Context, w htt
 		return ctx, true
 	}
 
+	idIsLong := false
+	space, err := handler.docService.getSpace(ctx, dbName, spaceName)
+	if err != nil {
+		resp.SendError(ctx, w, http.StatusBadRequest, err.Error())
+		return ctx, true
+	} else {
+		idType := space.Engine.IdType
+		if idType != "" && ("long" == idType || "Long" == idType) {
+			idIsLong = true
+		}
+	}
+
 	var line = []byte("\n")
 
 	defer func() {
@@ -813,7 +1279,7 @@ func (handler *DocumentHandler) handleStreamSearchDoc(ctx context.Context, w htt
 		}
 
 		names := nameCache[[2]int64{result.DB, result.Space}]
-		content, err := result.ToContent(names[0], names[1])
+		content, err := result.ToContent(names[0], names[1], idIsLong)
 		if err != nil {
 			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 			return ctx, true

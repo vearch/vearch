@@ -57,6 +57,7 @@ enum FieldType {
     GEOPOINT = 5;
     DATE = 6;
     VECTOR = 7;
+    LONG = 8;
 }
 
 enum FieldOption {

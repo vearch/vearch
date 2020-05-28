@@ -52,7 +52,14 @@ curl -v --user "root:secret" -H "content-type: application/json" -XPUT -d'
 	"engine": {
 		"name": "gamma",
 		"index_size": 9999,
-		"max_size": 100000
+		"max_size": 100000,
+        "id_type": "String",
+        "retrieval_type": "IVFPQ",
+		"retrieval_param": {
+			"metric_type": "InnerProduct",
+			"ncentroids": -1,
+			"nsubvector": -1
+		}
 	},
 	"properties": {
 		"string": {
@@ -99,24 +106,59 @@ curl -v --user "root:secret" -H "content-type: application/json" -XPUT -d'
 ````
 
 * partition_num : how many partition to slot,  default is `1`
+
 * replica_num: how many replica has , recommend `3`
+
 * engine
+
 * max_size : max documents for each partition 
-* index_size : default 100000, if index_size == 0  it will not auto indexed,  if insert document num >= index_size , it will auto indexed
-* nprobe : scan clustered buckets, default 10, it should be less than ncentroids
-* metric_type : default `L2`, `InnerProduct` or `L2` 
-* ncentroids : coarse cluster center number, default 256
-* nsubvector : the number of sub vector, default 32, only the value which is multiple of 4 is supported now
-* nbits_per_idx : bit number of sub cluster center, default 8, and 8 is the only value now
+
+* id_type : the type of Primary key, default String, you can set it as Long or String
+
+* index_size : default 2, if insert document num >= index_size, it will start to build index automatically. For different retrieval model, it have different index size.  For HNSW and FLAT, it doesn't need to train before building index, greater than 0 is enough. For IVFPQ, GPU and BINARYIVF, it need train before building index, so you should set index_size larger, such as 100000.
+
+* retrieval_type: the type of retrieval model, now support five kind retrieval model: IVFPQ GPU BINARYIVF HNSW FLAT. BINARYIVF is to index binary data. The Other type of retrieval model are for float32 data. And GPU is the implementation of IVFPQ on GPU, so IVFPQ and GPU have the same retrieval_param. FLAT is brute-force search. HNSW and FLAT can only work in full memory with store_type of Mmap. And HNSW now uses mark deletion, and does not make corresponding changes to the hnsw graph structure after deletion or update.
+
+* retrieval_param: parameter of retrieval model, this corresponds to the retrieval type.
+
+* IVFPQ
+
+    * * metric_type: `InnerProduct` or `L2` 
+    * * ncentroids : coarse cluster center number, default 256
+    * * nsubvector : the number of sub vector, default 64, only the value which is multiple of 4 is supported now 
+    * * nbits_per_idx : bit number of sub cluster center, default 8, and 8 is the only value now
+
+* GPU
+
+    * * metric_type:  `InnerProduct` or `L2` , InnerProduct only support for searching with has_rank
+    * * ncentroids : coarse cluster center number, default 256 
+    * * nsubvector : the number of sub vector, default 64, only the value which is multiple of 4 is supported now
+
+    * * nbits_per_idx : bit number of sub cluster center, default 8, and 8 is the only value now
+
+* BINARYIVF
+
+    * * nprobe : scan clustered buckets, default 20, it should be less than ncentroids 
+    * * ncentroids : coarse cluster center number, default 256
+
+* HNSW
+
+    * * metric_type: `InnerProduct` or `L2` 
+    * * nlinks： neighbors number of each node, default 32
+    * * efConstruction: expansion factor at construction time, default 40. The higher the value, the better the construction effect, and the longer it takes 
+    * * efSearch : expansion factor at search time, default 64. The higher the value, the more accurate the search results and the longer it takes
+
+* FLAT
+
+    * * metric_type: `InnerProduct` or `L2` 
+
 * keyword
 * array : whether the tags for each document is multi-valued, `true` or `false` default is false
 * index : supporting numeric field filter default `false`
-
 * Vector field params
     * * format : default not normalized . if you set "normalization", "normal" it will normalized  
-    * * retrieval_type ： default "IVFPQ"
-    * * store_type : "RocksDB" or "Mmap" default "Mmap"  
-    * * store_param : example {"cache_size":2592} 
+    * * store_type : "RocksDB" or "Mmap" default "Mmap".For HNSW and FLAT, it can only be run in Mmap mode with fully memory. So not setting store_param is a good way to use HSNW and FLAT.   
+    * * store_param : example {"cache_size":2592}. It means you will use so much memory, the excess will be kept to disk. When you don't set it, vearch will just use the memory. 
 
 ### get space
 
@@ -251,7 +293,8 @@ curl -H "content-type: application/json" -XPOST -d'
           }
        ]
   },
-  "size":10
+  "size":10,
+  "parallel":false
 }
 ' {{ROUTER}}/test_vector_db/vector_space/_search
 ````
@@ -263,10 +306,13 @@ curl -H "content-type: application/json" -XPOST -d'
 * `quick` :default is false, if quick=true it not use precision sorting
 * `vector_value` :default is false, is return vector value
 * `client_type` search partition type, default is leader , `random` or `no_leader`
- 
+* `parallel`  search is parallel default is `false`
+* `l2_sqrt`: default FALSE, don't do sqrt; TRUE, do sqrt
+* `nprobe`: default 20, just for IVFPQ and GPU, how many lists will be visited at search time
+* `ivf_flat`: default FALSE, just for IVFPQ, ivf flat means only use ivf_flat instead of ivfpq
 
 ### delete Document
- 
+
 ````$xslt
 curl -XDELETE {{ROUTER}}/test_vector_db/vector_space/1
 ````
@@ -397,9 +443,9 @@ curl -XGET {{ROUTER}}/_encrypt?name=cb&password=1234
 ### clean lock
 ````$xslt
 curl -XGET {{MASTER}}/clean_lock
-```` 
+````
 > if cluster table creating is crashed, it will has lock , now you need clean lock use this api
- 
+
 ### server list
 ````$xslt
 curl -XGET {{MASTER}}/list/server
@@ -414,9 +460,9 @@ curl -XGET {{MASTER}}/_cluster/stats
 ### server health
 ````$xslt
 curl -XGET {{MASTER}}/_cluster/health
-```` 
+````
 
 #### router cache info
 ````$xslt
 curl -XGET {{ROUTER}}/_cache_info?db_name=test_vector_db&space_name=vector_space
-```` 
+````

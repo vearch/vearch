@@ -17,6 +17,7 @@ package router
 import (
 	"context"
 	"fmt"
+	"github.com/vearch/vearch/monitor"
 	"net"
 	"regexp"
 	"strings"
@@ -116,6 +117,10 @@ func (server *Server) Start() error {
 			mserver.SetIp(slit[0], false)
 			break
 		}
+	}
+
+	if port := config.Conf().Router.MonitorPort; port > 0 {
+		monitor.Register(nil, nil, config.Conf().Router.MonitorPort)
 	}
 
 	if err := server.httpServer.Run(); err != nil {

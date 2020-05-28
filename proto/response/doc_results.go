@@ -14,7 +14,10 @@
 
 package response
 
-import "github.com/vearch/vearch/util/cbjson"
+import (
+	"github.com/vearch/vearch/util/cbjson"
+	"strconv"
+)
 
 func NewErrDocResults(ids []string, err error) []*DocResult {
 	result := make(DocResults, len(ids))
@@ -26,7 +29,7 @@ func NewErrDocResults(ids []string, err error) []*DocResult {
 
 type DocResults []*DocResult
 
-func (this *DocResults) ToContent(dbName, spaceName string) ([]byte, error) {
+func (this *DocResults) ToContent(dbName, spaceName string, idIsLong bool) ([]byte, error) {
 
 	var builder = cbjson.ContentBuilderFactory()
 
@@ -47,16 +50,23 @@ func (this *DocResults) ToContent(dbName, spaceName string) ([]byte, error) {
 
 		builder.More()
 		builder.Field("_id")
-		builder.ValueString(u.Id)
+		if idIsLong {
+			idInt64, err := strconv.ParseInt(u.Id, 10, 64)
+			if err == nil {
+				builder.ValueNumeric(idInt64)
+			}
+		} else {
+			builder.ValueString(u.Id)
+		}
 
 		builder.More()
 		builder.Field("found")
 		builder.ValueBool(u.Found)
 
 		if u.Found {
-			builder.More()
+			/*builder.More()
 			builder.Field("_version")
-			builder.ValueNumeric(u.Version)
+			builder.ValueNumeric(u.Version)*/
 
 			builder.More()
 			builder.Field("_source")
