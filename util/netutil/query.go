@@ -106,6 +106,7 @@ func (this *query) GetUrl() string {
 func (this *query) Do() ([]byte, error) {
 	url := this.GetUrl()
 	request, _ := http.NewRequest(this.method, url, strings.NewReader(this.reqBody))
+	//request.Close = true
 	// header
 	for key, value := range this.header {
 		request.Header.Add(key, value)
@@ -124,6 +125,7 @@ func (this *query) Do() ([]byte, error) {
 		return nil, err
 	}
 
+	//defer request.Body.Close()
 	respBody, err := ioutil.ReadAll(response.Body)
 	if err != nil {
 		return nil, err
@@ -140,6 +142,7 @@ func (this *query) Do() ([]byte, error) {
 func (this *query) DoResponse() (*http.Response, error) {
 	url := this.GetUrl()
 	request, _ := http.NewRequest(this.method, url, strings.NewReader(this.reqBody))
+	//request.Close = true
 	// header
 	for key, value := range this.header {
 		request.Header.Add(key, value)
@@ -152,6 +155,7 @@ func (this *query) DoResponse() (*http.Response, error) {
 		})
 		request = request.WithContext(ctx)
 	}
+	//defer request.Body.Close()
 	// do request
 	return http.DefaultClient.Do(request)
 }

@@ -32,9 +32,13 @@ type Reader interface {
 
 	Search(ctx context.Context, req *request.SearchRequest) *response.SearchResponse
 
-	MSearchIDs(ctx context.Context, request *request.SearchRequest) ([]byte, error)
+	MSearchIDs(ctx context.Context, request *request.SearchRequest) *response.SearchResponse
+
+	MSearchForIDs(ctx context.Context, request *request.SearchRequest) ([]byte, error)
 
 	MSearch(ctx context.Context, request *request.SearchRequest) response.SearchResponses
+
+	MSearchNew(ctx context.Context, request *request.SearchRequest) *response.SearchResponse
 
 	//you can use ctx to cancel the stream , when this function returned will close resultChan
 	StreamSearch(ctx context.Context, req *request.SearchRequest, resultChan chan *response.DocResult) error
@@ -78,7 +82,7 @@ type Engine interface {
 	RTReader() RTReader
 	Writer() Writer
 	//return three value, field to pspb.Field , new Schema info , error
-	MapDocument(doc *pspb.DocCmd) ([]*pspb.Field, map[string]pspb.FieldType, error)
+	MapDocument(doc *pspb.DocCmd, retrievalType string) ([]*pspb.Field, map[string]pspb.FieldType, error)
 	NewSnapshot() (proto.Snapshot, error)
 	ApplySnapshot(peers []proto.Peer, iter proto.SnapIterator) error
 	Optimize() error

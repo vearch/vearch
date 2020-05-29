@@ -40,8 +40,9 @@ const (
 	IgnoredField    = "_ignored"
 	RoutingField    = "_routing"
 	MetaField       = "_meta"
-	VersionField    = "_version"
-	SlotField       = "_slot"
+
+//	VersionField    = "_version"
+//	SlotField       = "_slot"
 )
 
 var FieldsIndex = map[string]int{
@@ -56,8 +57,8 @@ var FieldsIndex = map[string]int{
 	IgnoredField:    9,
 	RoutingField:    10,
 	MetaField:       11,
-	VersionField:    12,
-	SlotField:       13,
+	//	VersionField:    12,
+	//	SlotField:       13,
 }
 
 // control the default behavior for dynamic fields (those not explicitly mapped)
@@ -78,15 +79,16 @@ func NewFieldMapping(name string, i FieldMappingI) *FieldMapping {
 
 func (f *FieldMapping) UnmarshalJSON(data []byte) error {
 	tmp := struct {
-		Type          string          `json:"type"`
-		Index         *bool            `json:"index,omitempty"`
-		Format        *string         `json:"format,omitempty"`
-		Dimension     int             `json:"dimension,omitempty"`
-		ModelId       string          `json:"model_id,omitempty"`
-		RetrievalType *string         `json:"retrieval_type,omitempty"`
-		StoreType     *string         `json:"store_type,omitempty"`
-		StoreParam    json.RawMessage `json:"store_param,omitempty"`
-		Array         bool            `json:"array,omitempty"`
+		Type      string  `json:"type"`
+		Index     *bool   `json:"index,omitempty"`
+		Format    *string `json:"format,omitempty"`
+		Dimension int     `json:"dimension,omitempty"`
+		ModelId   string  `json:"model_id,omitempty"`
+		//		RetrievalType *string         `json:"retrieval_type,omitempty"`
+		StoreType  *string         `json:"store_type,omitempty"`
+		StoreParam json.RawMessage `json:"store_param,omitempty"`
+		Array      bool            `json:"array,omitempty"`
+		HasSource  bool            `json:"has_source,omitempty"`
 	}{}
 	err := json.Unmarshal(data, &tmp)
 	if err != nil {
@@ -99,8 +101,10 @@ func (f *FieldMapping) UnmarshalJSON(data []byte) error {
 		fieldMapping = NewStringFieldMapping("")
 	case "date":
 		fieldMapping = NewDateFieldMapping("")
-	case "long", "integer", "short", "byte":
+	case "integer", "short", "byte":
 		fieldMapping = NewIntegerFieldMapping("")
+	case "long":
+		fieldMapping = NewLongFieldMapping("")
 	case "double", "float":
 		fieldMapping = NewFloatFieldMapping("")
 	case "boolean", "bool":
@@ -112,9 +116,11 @@ func (f *FieldMapping) UnmarshalJSON(data []byte) error {
 		if tmp.Dimension == 0 {
 			return fmt.Errorf("dimension can not zero by field : [%s] ", string(data))
 		}
-		if tmp.RetrievalType != nil && *tmp.RetrievalType != "" {
+		/*if tmp.RetrievalType != nil && *tmp.RetrievalType != "" {
 			fieldMapping.(*VectortFieldMapping).RetrievalType = *tmp.RetrievalType
-		}
+		} else {
+			return fmt.Errorf("retrieval_type can not null by field : [%s] ", string(data))
+		}*/
 		if tmp.StoreType != nil && *tmp.StoreType != "" {
 			if *tmp.StoreType != "Mmap" && *tmp.StoreType != "RocksDB" {
 				return fmt.Errorf("vector field:[%s] not support this store type:[%s] it only Mmap or RocksDB", fieldMapping.FieldName(), tmp.StoreType)
@@ -123,6 +129,11 @@ func (f *FieldMapping) UnmarshalJSON(data []byte) error {
 		}
 		if tmp.StoreParam != nil && len(tmp.StoreParam) > 0 {
 			fieldMapping.(*VectortFieldMapping).StoreParam = tmp.StoreParam
+		}
+		if tmp.HasSource {
+			fieldMapping.(*VectortFieldMapping).HasSource = tmp.HasSource
+		} else {
+			fieldMapping.(*VectortFieldMapping).HasSource = false
 		}
 
 	default:
@@ -133,9 +144,9 @@ func (f *FieldMapping) UnmarshalJSON(data []byte) error {
 
 	//set index
 	if tmp.Index != nil {
-		if *tmp.Index{
+		if *tmp.Index {
 			fieldMapping.Base().Option |= pspb.FieldOption_Index
-		}else{
+		} else {
 			fieldMapping.Base().Option = fieldMapping.Base().Option & withOutIndex
 		}
 	}
@@ -244,6 +255,13 @@ func NewIntegerFieldMapping(name string) *NumericFieldMapping {
 	}
 }
 
+func NewLongFieldMapping(name string) *NumericFieldMapping {
+	return &NumericFieldMapping{
+		BaseFieldMapping: NewBaseFieldMapping(name, pspb.FieldType_LONG, 1, pspb.FieldOption_Null),
+		Coerce:           true,
+	}
+}
+
 func NewFloatFieldMapping(name string) *NumericFieldMapping {
 	return &NumericFieldMapping{
 		BaseFieldMapping: NewBaseFieldMapping(name, pspb.FieldType_FLOAT, 1, pspb.FieldOption_Null),
@@ -291,19 +309,20 @@ func NewGeoPointFieldMapping(name string) *GeoPointFieldMapping {
 
 type VectortFieldMapping struct {
 	*BaseFieldMapping
-	Dimension     int     `json:"dimension"`
-	ModelId       string  `json:"model_id"`
-	Format        *string `json:"format,omitempty"`         //default is "normalization", "normal" , if set "no" others it will not format
-	RetrievalType string  `json:"retrieval_type,omitempty"` // "IVFPQ", "PACINS","GPU" ...
-	StoreType     string  `json:"store_type,omitempty"`     // "Mmap", "RocksDB"
-	StoreParam    []byte  `json:"store_param,omitempty"`
+	Dimension int     `json:"dimension"`
+	ModelId   string  `json:"model_id"`
+	Format    *string `json:"format,omitempty"` //default is "normalization", "normal" , if set "no" others it will not format
+	//	RetrievalType string  `json:"retrieval_type,omitempty"` // "IVFPQ", "PACINS","GPU" ...
+	StoreType  string `json:"store_type,omitempty"` // "Mmap", "RocksDB"
+	StoreParam []byte `json:"store_param,omitempty"`
+	HasSource  bool   `json:"has_source,omitempty"`
 }
 
 func NewVectorFieldMapping(name string) *VectortFieldMapping {
 	return &VectortFieldMapping{
 		BaseFieldMapping: NewBaseFieldMapping(name, pspb.FieldType_VECTOR, 1, pspb.FieldOption_Index),
-		RetrievalType:    "IVFPQ",
-		StoreType:        "Mmap",
+		//		RetrievalType:    "IVFPQ",
+		StoreType: "Mmap",
 	}
 }
 
@@ -354,6 +373,26 @@ func processString(ctx *walkContext, fm *FieldMapping, fieldName, val string) (*
 		} else {
 			return nil, fmt.Errorf("string mismatch field:[%s] type:[%s] ", fieldName, fm.FieldType())
 		}
+	case pspb.FieldType_LONG:
+		numericFM := fm.FieldMappingI.(*NumericFieldMapping)
+		if numericFM.Coerce {
+			i, err := cast.ToInt64E(val)
+			if err != nil {
+				if numericFM.IgnoreMalformed {
+					return nil, nil
+				} else {
+					return nil, fmt.Errorf("parse string %s to long failed, err %v", val, err)
+				}
+			}
+			return &pspb.Field{
+				Name:   fieldName,
+				Type:   pspb.FieldType_LONG,
+				Value:  cbbytes.Int64ToByte(i),
+				Option: fm.Options(),
+			}, nil
+		} else {
+			return nil, fmt.Errorf("string mismatch field:[%s] type:[%s] ", fieldName, fm.FieldType())
+		}
 	case pspb.FieldType_FLOAT:
 		numericFM := fm.FieldMappingI.(*NumericFieldMapping)
 		if numericFM.Coerce {
@@ -362,7 +401,7 @@ func processString(ctx *walkContext, fm *FieldMapping, fieldName, val string) (*
 				if numericFM.IgnoreMalformed {
 					return nil, nil
 				} else {
-					return nil, fmt.Errorf("parse string %s to integer failed, err %v", val, err)
+					return nil, fmt.Errorf("parse string %s to float failed, err %v", val, err)
 				}
 			}
 			return &pspb.Field{
@@ -411,6 +450,13 @@ func processNumber(ctx *walkContext, fm *FieldMapping, fieldName string, val flo
 			Name:   fieldName,
 			Type:   pspb.FieldType_INT,
 			Value:  cbbytes.Int64ToByte(i),
+			Option: fm.Options(),
+		}, nil
+	case pspb.FieldType_LONG:
+		return &pspb.Field{
+			Name:   fieldName,
+			Type:   pspb.FieldType_LONG,
+			Value:  cbbytes.Float64ToByte(val),
 			Option: fm.Options(),
 		}, nil
 	case pspb.FieldType_FLOAT:
@@ -468,6 +514,33 @@ func processBool(ctx *walkContext, fm *FieldMapping, fieldName string, val bool)
 		}, nil
 	default:
 		return nil, fmt.Errorf("string mismatch field:[%s] type:[%s] ", fieldName, fm.FieldType())
+	}
+}
+
+func processVectorBinary(ctx *walkContext, fm *FieldMapping, fieldName string, val []uint8, source string) (*pspb.Field, error) {
+	if ctx.Err != nil {
+		return nil, ctx.Err
+	}
+
+	switch fm.FieldType() {
+	case pspb.FieldType_VECTOR:
+		if fm.FieldMappingI.(*VectortFieldMapping).Dimension > 0 && (fm.FieldMappingI.(*VectortFieldMapping).Dimension)/8 != len(val) {
+			return nil, fmt.Errorf("processVectorBinary field:[%s] vector_length err ,schema is:[%d] but input :[%d]", fieldName, fm.FieldMappingI.(*VectortFieldMapping).Dimension, len(val))
+		}
+
+		bs, err := cbbytes.VectorBinaryToByte(val, source)
+		if err != nil {
+			return nil, err
+		}
+
+		return &pspb.Field{
+			Name:   fieldName,
+			Type:   pspb.FieldType_VECTOR,
+			Value:  bs,
+			Option: fm.Options(),
+		}, nil
+	default:
+		return nil, fmt.Errorf("processVectorBinary field:[%s] value %v mismatch field type %s", fieldName, val, fm.FieldType())
 	}
 }
 

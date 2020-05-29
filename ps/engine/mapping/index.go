@@ -16,9 +16,9 @@
 package mapping
 
 import (
-	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/proto/pspb"
+	"github.com/vearch/vearch/util/log"
 	"sort"
 	"strings"
 )
@@ -35,6 +35,7 @@ type IndexMapping struct {
 	//it is not config in index
 	DefaultDateTimeParserName string                      `json:"-"`
 	fieldCacher               map[string]*DocumentMapping `json:"-"`
+	DimensionMap              map[string]int              `json:"-"`
 }
 
 // NewIndexMapping creates a new IndexMapping that will use all the default indexing rules

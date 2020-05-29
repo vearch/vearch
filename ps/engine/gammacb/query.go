@@ -25,15 +25,16 @@ import (
 	bytes2 "bytes"
 	"encoding/json"
 	"fmt"
+	"math"
+	"strings"
+	"time"
+
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/proto/pspb"
 	"github.com/vearch/vearch/ps/engine/mapping"
 	"github.com/vearch/vearch/util"
 	"github.com/vearch/vearch/util/cbbytes"
 	"github.com/vearch/vearch/util/cbjson"
-	"math"
-	"strings"
-	"time"
 )
 
 type queryBuilder struct {
@@ -41,26 +42,36 @@ type queryBuilder struct {
 }
 
 type VectorQuery struct {
-	Field       string          `json:"field"`
-	FeatureData json.RawMessage `json:"feature"`
-	Feature     []float32       `json:"-"`
-	Symbol      string          `json:"symbol"`
-	Value       *float64        `json:"value"`
-	Boost       *float64        `json:"boost"`
-	Format      *string         `json:"format,omitempty"`
-	MinScore    *float64        `json:"min_score,omitempty"`
-	MaxScore    *float64        `json:"max_score,omitempty"`
+	Field        string          `json:"field"`
+	FeatureData  json.RawMessage `json:"feature"`
+	Feature      []float32       `json:"-"`
+	FeatureUint8 []uint8         `json:"-"`
+	Symbol       string          `json:"symbol"`
+	Value        *float64        `json:"value"`
+	Boost        *float64        `json:"boost"`
+	Format       *string         `json:"format,omitempty"`
+	MinScore     *float64        `json:"min_score,omitempty"`
+	MaxScore     *float64        `json:"max_score,omitempty"`
 }
 
 var defaultBoost = util.PFloat64(1)
 
 var minOffset float64 = 0.0000001
 
-func (query *VectorQuery) ToC() (*C.struct_VectorQuery, error) {
-
-	code, err := cbbytes.FloatArrayByte(query.Feature)
-	if err != nil {
-		return nil, err
+func (query *VectorQuery) ToC(retrievalType string) (*C.struct_VectorQuery, error) {
+	var codeByte []byte
+	if retrievalType == "BINARYIVF" {
+		code, err := cbbytes.UInt8ArrayByte(query.FeatureUint8)
+		if err != nil {
+			return nil, err
+		}
+		codeByte = code
+	} else {
+		code, err := cbbytes.FloatArrayByte(query.Feature)
+		if err != nil {
+			return nil, err
+		}
+		codeByte = code
 	}
 
 	if query.MinScore == nil {
@@ -90,7 +101,7 @@ func (query *VectorQuery) ToC() (*C.struct_VectorQuery, error) {
 		query.Boost = defaultBoost
 	}
 
-	return C.MakeVectorQuery(byteArrayStr(query.Field), byteArray(code), C.double(*query.MinScore), C.double(*query.MaxScore), C.double(*query.Boost), C.int(1)), nil
+	return C.MakeVectorQuery(byteArrayStr(query.Field), byteArray(codeByte), C.double(*query.MinScore), C.double(*query.MaxScore), C.double(*query.Boost), C.int(1)), nil
 
 }
 
@@ -212,6 +223,31 @@ func (qb *queryBuilder) parseRange(data []byte) (*C.struct_RangeFilter, error) {
 
 		switch docField.FieldType() {
 		case pspb.FieldType_INT:
+			var minNum, maxNum int32
+
+			if start != nil {
+				if f, e := cast.ToInt32E(start); e != nil {
+					return nil, e
+				} else {
+					minNum = f
+				}
+			} else {
+				minNum = math.MinInt32
+			}
+
+			if end != nil {
+				if f, e := cast.ToInt32E(end); e != nil {
+					return nil, e
+				} else {
+					maxNum = f
+				}
+			} else {
+				maxNum = math.MinInt32
+			}
+
+			min, max = minNum, maxNum
+
+		case pspb.FieldType_LONG:
 			var minNum, maxNum int64
 
 			if start != nil {
@@ -320,7 +356,7 @@ func (qb *queryBuilder) parseRange(data []byte) (*C.struct_RangeFilter, error) {
 
 }
 
-func (qb *queryBuilder) parseQuery(data []byte, req *C.struct_Request) error {
+func (qb *queryBuilder) parseQuery(data []byte, req *C.struct_Request, retrievalType string) error {
 
 	if len(data) == 0 {
 		return nil
@@ -346,12 +382,12 @@ func (qb *queryBuilder) parseQuery(data []byte, req *C.struct_Request) error {
 	var reqNum int
 
 	if len(temp.And) > 0 {
-		if reqNum, vqs, err = qb.parseVectors(reqNum, vqs, temp.And); err != nil {
+		if reqNum, vqs, err = qb.parseVectors(reqNum, vqs, temp.And, retrievalType); err != nil {
 			return err
 		}
 	} else if len(temp.Sum) > 0 {
 		req.multi_vector_rank = C.int(1)
-		if reqNum, vqs, err = qb.parseVectors(reqNum, vqs, temp.Sum); err != nil {
+		if reqNum, vqs, err = qb.parseVectors(reqNum, vqs, temp.Sum, retrievalType); err != nil {
 			return err
 		}
 	}
@@ -386,6 +422,7 @@ func (qb *queryBuilder) parseQuery(data []byte, req *C.struct_Request) error {
 		req.vec_fields_num = C.int(len(vqs))
 	} else {
 		req.vec_fields_num = C.int(0)
+		return fmt.Errorf("query feature is null please check param")
 	}
 
 	if len(tfs) > 0 {
@@ -427,7 +464,7 @@ func (qb *queryBuilder) parseQuery(data []byte, req *C.struct_Request) error {
 	return nil
 }
 
-func (qb *queryBuilder) parseVectors(reqNum int, vqs []*C.struct_VectorQuery, tmpArr []json.RawMessage) (int, []*C.struct_VectorQuery, error) {
+func (qb *queryBuilder) parseVectors(reqNum int, vqs []*C.struct_VectorQuery, tmpArr []json.RawMessage, retrievalType string) (int, []*C.struct_VectorQuery, error) {
 	var err error
 
 	for i := 0; i < len(tmpArr); i++ {
@@ -442,35 +479,51 @@ func (qb *queryBuilder) parseVectors(reqNum int, vqs []*C.struct_VectorQuery, tm
 			return reqNum, vqs, fmt.Errorf("query has err for field:[%s] is not vector type", vqTemp.Field)
 		}
 
-		if vqTemp.Feature, err = rowDateToFloatArray(vqTemp.FeatureData, docField.FieldMappingI.(*mapping.VectortFieldMapping).Dimension); err != nil {
-			return reqNum, vqs, err
+		if vqTemp.FeatureData == nil || len(vqTemp.FeatureData) == 0 {
+			return reqNum, vqs, fmt.Errorf("query has err for feature is null")
 		}
 
-		queryNum := len(vqTemp.Feature) / docField.FieldMappingI.(*mapping.VectortFieldMapping).Dimension
-		validate := len(vqTemp.Feature) % docField.FieldMappingI.(*mapping.VectortFieldMapping).Dimension
+		d := docField.FieldMappingI.(*mapping.VectortFieldMapping).Dimension
+		queryNum := 0
+		validate := 0
+		if retrievalType == "BINARYIVF" {
+			if vqTemp.FeatureUint8, err = rowDateToUInt8Array(vqTemp.FeatureData, d/8); err != nil {
+				return reqNum, vqs, err
+			}
+			queryNum = len(vqTemp.FeatureUint8) / (d / 8)
+			validate = len(vqTemp.FeatureUint8) % (d / 8)
+		} else {
+			if vqTemp.Feature, err = rowDateToFloatArray(vqTemp.FeatureData, d); err != nil {
+				return reqNum, vqs, err
+			}
+			queryNum = len(vqTemp.Feature) / d
+			validate = len(vqTemp.Feature) % d
+		}
 
 		if queryNum == 0 || validate != 0 {
-			return reqNum, vqs, fmt.Errorf("query has err for field:[%s] dimension size mapping:[%d] query:[%d]", docField.Name, len(vqTemp.Feature), docField.FieldMappingI.(*mapping.VectortFieldMapping).Dimension)
+			return reqNum, vqs, fmt.Errorf("query has err for field:[%s] dimension size mapping:[%d] query:[%d]", docField.Name, len(vqTemp.Feature), d)
 		}
 
 		if reqNum == 0 {
 			reqNum = queryNum
 		} else if reqNum != queryNum {
-			return reqNum, vqs, fmt.Errorf("query has err for field:[%s] not same queryNum mapping:[%d] query:[%d] ", docField.Name, len(vqTemp.Feature), docField.FieldMappingI.(*mapping.VectortFieldMapping).Dimension)
+			return reqNum, vqs, fmt.Errorf("query has err for field:[%s] not same queryNum mapping:[%d] query:[%d] ", docField.Name, len(vqTemp.Feature), d)
 		}
 
-		if vqTemp.Format != nil && len(*vqTemp.Format) > 0 {
-			switch *vqTemp.Format {
-			case "normalization", "normal":
-				if err := util.Normalization(vqTemp.Feature); err != nil {
-					return reqNum, vqs, err
+		if retrievalType != "BINARYIVF" {
+			if vqTemp.Format != nil && len(*vqTemp.Format) > 0 {
+				switch *vqTemp.Format {
+				case "normalization", "normal":
+					if err := util.Normalization(vqTemp.Feature); err != nil {
+						return reqNum, vqs, err
+					}
+				default:
+					return reqNum, vqs, fmt.Errorf("unknow vector process format:[%s]", vqTemp.Format)
 				}
-			default:
-				return reqNum, vqs, fmt.Errorf("unknow vector process format:[%s]", vqTemp.Format)
 			}
 		}
 
-		vq, err := vqTemp.ToC()
+		vq, err := vqTemp.ToC(retrievalType)
 		if err != nil {
 			return reqNum, vqs, err
 		}

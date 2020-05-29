@@ -64,6 +64,14 @@ func ExportToRpcHandler(server *Server) {
 		panic(err)
 	}
 
+	if err := server.rpcServer.RegisterName(handler.NewChain(client.MSearchForIDsHandler, handler.DefaultPanicHadler, psErrorChange, initHandler, new(MSearchForIDsHandler)), ""); err != nil {
+		panic(err)
+	}
+
+	if err := server.rpcServer.RegisterName(handler.NewChain(client.MSearchNewHandler, handler.DefaultPanicHadler, psErrorChange, initHandler, new(MSearchNewHandler)), ""); err != nil {
+		panic(err)
+	}
+
 	if err := server.rpcServer.RegisterName(handler.NewChain(client.StreamSearchHandler, handler.DefaultPanicHadler, psErrorChange, initHandler, streamSearchHandler), ""); err != nil {
 		panic(err)
 	}
@@ -216,10 +224,34 @@ func (wh *WriteHandler) Execute(req *handler.RpcRequest, resp *handler.RpcRespon
 		}
 	}
 
+	/*raftCmd := raftpb.RaftCommand{
+		Type : raftpb.CmdType_WRITE,
+		WriteCommand : doc,
+	}
+
+	startTime := time.Now()
+	docResult := store.GetEngine().Writer().Write(req.Ctx,raftCmd.WriteCommand)
+	endTime := time.Now()
+
+	if doc.Type != pspb.OpType_DELETE {
+		if doc.Type != pspb.OpType_DELETE {
+			docResult.CostTime.PsHandlerStartTime = startTime
+			docResult.CostTime.PsHandlerEndTime = endTime
+		}
+	}
+
+	resp.Result = docResult*/
+
+	startTime := time.Now()
 	if reps, err := store.Write(req.Ctx, doc); err != nil {
-		log.Error("handler type: [%s] doc err :[%s] , content :[%s]", doc.Type, err.Error(), doc.Source)
+		log.Error("  type: [%s] doc err :[%s] , content :[%s]", doc.Type, err.Error(), doc.Source)
 		return err
 	} else {
+		endTime := time.Now()
+		if doc.Type != pspb.OpType_DELETE && reps.CostTime != nil {
+			reps.CostTime.PsHandlerStartTime = startTime
+			reps.CostTime.PsHandlerEndTime = endTime
+		}
 		resp.Result = reps
 	}
 
@@ -255,7 +287,7 @@ func (wh *ForceMergeHandler) Execute(req *handler.RpcRequest, resp *handler.RpcR
 
 func fullFieldAndUpdateSchema(server *Server, ctx context.Context, engine engine.Engine, space entity.Space, doc *pspb.DocCmd) error {
 
-	fields, dynamicFieldMap, err := engine.MapDocument(doc)
+	fields, dynamicFieldMap, err := engine.MapDocument(doc, space.Engine.RetrievalType)
 	if err != nil {
 		return err
 	}
@@ -373,6 +405,23 @@ func (*SearchHandler) Execute(req *handler.RpcRequest, resp *handler.RpcResponse
 	return nil
 }
 
+type MSearchNewHandler int
+
+func (*MSearchNewHandler) Execute(req *handler.RpcRequest, resp *handler.RpcResponse) error {
+	reqs := req.GetArg().(*request.SearchRequest)
+	if reqs.SearchDocumentRequest == nil {
+		reqs.SearchDocumentRequest = &request.SearchDocumentRequest{}
+	}
+
+	if reps, e := reqs.GetStore().(PartitionStore).MSearchNew(req.Ctx, reqs.Leader, reqs); e != nil {
+		return e
+	} else {
+		resp.Result = reps
+	}
+
+	return nil
+}
+
 type MSearchIDsHandler int
 
 func (*MSearchIDsHandler) Execute(req *handler.RpcRequest, resp *handler.RpcResponse) error {
@@ -382,6 +431,23 @@ func (*MSearchIDsHandler) Execute(req *handler.RpcRequest, resp *handler.RpcResp
 	}
 
 	if reps, e := reqs.GetStore().(PartitionStore).MSearchIDs(req.Ctx, reqs.Leader, reqs); e != nil {
+		return e
+	} else {
+		resp.Result = reps
+	}
+
+	return nil
+}
+
+type MSearchForIDsHandler int
+
+func (*MSearchForIDsHandler) Execute(req *handler.RpcRequest, resp *handler.RpcResponse) error {
+	reqs := req.GetArg().(*request.SearchRequest)
+	if reqs.SearchDocumentRequest == nil {
+		reqs.SearchDocumentRequest = &request.SearchDocumentRequest{}
+	}
+
+	if reps, e := reqs.GetStore().(PartitionStore).MSearchForIDs(req.Ctx, reqs.Leader, reqs); e != nil {
 		return e
 	} else {
 		resp.Result = reps

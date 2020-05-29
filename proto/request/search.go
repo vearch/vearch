@@ -51,6 +51,6 @@ func NewSearchRequest(ctx context.Context, msgId string) *SearchRequest {
 			MessageId: msgId,
 			ctx:       ctx,
 		},
-		SearchDocumentRequest: &SearchDocumentRequest{},
+		SearchDocumentRequest: &SearchDocumentRequest{Parallel:true},
 	}
 }

@@ -42,6 +42,7 @@ func NewGinServer(ginRouter *gin.Engine, ip string, port uint16) *GinServer {
 		WriteTimeout: 10 * time.Second,
 	}
 
+	//server.SetKeepAlivesEnabled(false)
 	return &GinServer{Server: server}
 }
 

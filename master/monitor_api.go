@@ -19,6 +19,7 @@ import (
 	"context"
 	"github.com/gin-gonic/gin"
 	"github.com/vearch/vearch/config"
+	"github.com/vearch/vearch/monitor"
 	"github.com/vearch/vearch/proto"
 	"github.com/vearch/vearch/util"
 	"github.com/vearch/vearch/util/ginutil"
@@ -42,7 +43,8 @@ func ExportToMonitorHandler(router *gin.Engine, monitorService *monitorService) 
 	router.Handle(http.MethodGet, "/_cluster/health", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.health, dh.TimeOutEndHandler)
 	router.Handle(http.MethodGet, "/_cluster/stats", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.stats, dh.TimeOutEndHandler)
 
-	monitorService.Register()
+	monitor.Register(monitorService.Client, monitorService.etcdServer, config.Conf().Masters.Self().MonitorPort)
+	//monitorService.Register()
 }
 
 //got every partition servers system info

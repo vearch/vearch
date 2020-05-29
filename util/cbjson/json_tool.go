@@ -89,6 +89,15 @@ func (this JsonMap) GetJsonValIntE(key string) (int, error) {
 	return cast.ToIntE(val)
 }
 
+func (this JsonMap) GetJsonValInt64(key string) int64 {
+	val := this.GetJsonVal(key)
+	if val == nil {
+		return 0
+	}
+
+	return cast.ToInt64(val)
+}
+
 func (this JsonMap) GetJsonValString(key string) string {
 	val, _ := this.GetJsonValStringE(key)
 	return val

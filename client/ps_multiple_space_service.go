@@ -29,7 +29,50 @@ type multipleSpaceSender struct {
 	senders []*spaceSender
 }
 
-func (this *multipleSpaceSender) MSearchIDs(req *request.SearchRequest) (result []byte, err error) {
+func (this *multipleSpaceSender) MSearchIDs(req *request.SearchRequest) (result response.SearchResponses) {
+	var wg sync.WaitGroup
+	respChain := make(chan struct {
+		reponse response.SearchResponses
+		sender  *spaceSender
+	}, len(this.senders))
+
+	for _, s := range this.senders {
+		wg.Add(1)
+		go func(par *spaceSender) {
+			defer wg.Done()
+			defer func() {
+				if r := recover(); r != nil {
+					//fmt.Println(r)
+					respChain <- struct {
+						reponse response.SearchResponses
+						sender  *spaceSender
+					}{reponse: response.SearchResponses{newSearchResponseWithError(s.db, s.space, 0, fmt.Errorf(cast.ToString(r)))}, sender: s}
+				}
+			}()
+			respChain <- struct {
+				reponse response.SearchResponses
+				sender  *spaceSender
+			}{reponse: s.MSearchIDs(req), sender: s}
+		}(s)
+	}
+
+	wg.Wait()
+	close(respChain)
+
+	for r := range respChain {
+		if result == nil {
+			result = r.reponse
+			continue
+		}
+
+		if err := r.sender.mergeResultArr(result, r.reponse, req); err != nil {
+			return response.SearchResponses{newSearchResponseWithError(r.sender.db, r.sender.space, 0, err)}
+		}
+	}
+	return result
+}
+
+func (this *multipleSpaceSender) MSearchForIDs(req *request.SearchRequest) (result []byte, err error) {
 	var wg sync.WaitGroup
 	respChain := make(chan struct {
 		reponse []byte
@@ -51,7 +94,7 @@ func (this *multipleSpaceSender) MSearchIDs(req *request.SearchRequest) (result 
 				}
 			}()
 
-			if bs, err := s.MSearchIDs(req); err != nil {
+			if bs, err := s.MSearchForIDs(req); err != nil {
 				respChain <- struct {
 					reponse []byte
 					sender  *spaceSender
@@ -158,6 +201,49 @@ func (this *multipleSpaceSender) DeleteByQuery(req *request.SearchRequest) *resp
 		}
 		if result == nil {
 			result = r
+		}
+	}
+	return result
+}
+
+func (this *multipleSpaceSender) MSearchNew(req *request.SearchRequest) (result response.SearchResponses) {
+	var wg sync.WaitGroup
+	respChain := make(chan struct {
+		reponse response.SearchResponses
+		sender  *spaceSender
+	}, len(this.senders))
+
+	for _, s := range this.senders {
+		wg.Add(1)
+		go func(par *spaceSender) {
+			defer wg.Done()
+			defer func() {
+				if r := recover(); r != nil {
+					fmt.Println(r)
+					respChain <- struct {
+						reponse response.SearchResponses
+						sender  *spaceSender
+					}{reponse: response.SearchResponses{newSearchResponseWithError(s.db, s.space, 0, fmt.Errorf(cast.ToString(r)))}, sender: s}
+				}
+			}()
+			respChain <- struct {
+				reponse response.SearchResponses
+				sender  *spaceSender
+			}{reponse: s.MSearchNew(req), sender: s}
+		}(s)
+	}
+
+	wg.Wait()
+	close(respChain)
+
+	for r := range respChain {
+		if result == nil {
+			result = r.reponse
+			continue
+		}
+
+		if err := r.sender.mergeResultArr(result, r.reponse, req); err != nil {
+			return response.SearchResponses{newSearchResponseWithError(r.sender.db, r.sender.space, 0, err)}
 		}
 	}
 	return result

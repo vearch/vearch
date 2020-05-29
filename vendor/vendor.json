@@ -39,6 +39,12 @@
 			"revisionTime": "2018-03-21T16:47:47Z"
 		},
 		{
+			"checksumSHA1": "9a+o3HX0fGYQKr5QFwcwMw4zhpM=",
+			"path": "github.com/caio/go-tdigest",
+			"revision": "6d14e0c285cb678a3f4213fe5da8b6e9af0bfea4",
+			"revisionTime": "2019-10-30T14:41:10Z"
+		},
+		{
 			"checksumSHA1": "/WlB45K2WnWXkwmX1M/1uJhBuzs=",
 			"path": "github.com/cenk/backoff",
 			"revision": "1e4cf3da559842a91afcb6ea6141451e6c30c618",
