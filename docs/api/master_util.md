@@ -6,7 +6,7 @@
 
 [{
 	"status": 200,
-	"ip": "11.3.240.138",
+	"ip": "127.0.0.1",
 	"labels": [{
 		"name": "models",
 		"value": "ps"

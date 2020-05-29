@@ -16,13 +16,13 @@ package raftstore
 
 import (
 	"fmt"
-	"github.com/vearch/vearch/util/log"
 	"github.com/tiglabs/raft"
 	"github.com/tiglabs/raft/proto"
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/proto/pspb/raftpb"
 	"github.com/vearch/vearch/ps/psutil"
 	"github.com/vearch/vearch/util/cbjson"
+	"github.com/vearch/vearch/util/log"
 )
 
 // Apply implements the raft interface.
@@ -67,10 +67,10 @@ func (s *Store) innerApply(command []byte, index uint64, raftCmd *raftpb.RaftCom
 // changeSchema for add schema field
 func (s *Store) updateSchemaBySpace(spaceBytes []byte, version uint64) (rap *RaftApplyResponse) {
 	rap = new(RaftApplyResponse)
-	if s.Space.Version > version {
+	/*if s.Space.Version > version {
 		log.Warn("update schema version not right, old:[%d] new:[%d] ", s.Space.Version, version)
 		return
-	}
+	}*/
 
 	space := &entity.Space{}
 	err := cbjson.Unmarshal(spaceBytes, space)

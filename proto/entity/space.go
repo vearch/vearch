@@ -28,20 +28,29 @@ const (
 )
 
 type Engine struct {
-	Name        string `json:"name"`
-	IndexSize   int64  `json:"index_size"`
-	MaxSize     int64  `json:"max_size"`
-	Nprobe      *int   `json:"nprobe,omitempty"`
-	MetricType  string `json:"metric_type,omitempty"`
-	Ncentroids  *int   `json:"ncentroids,omitempty"`
-	Nsubvector  *int   `json:"nsubvector,omitempty"`
-	NbitsPerIdx *int   `json:"nbits_per_idx,omitempty"`
+	Name           string          `json:"name"`
+	IndexSize      int64           `json:"index_size"`
+	MaxSize        int64           `json:"max_size"`
+	MetricType     string          `json:"metric_type,omitempty"`
+	RetrievalType  string          `json:"retrieval_type,omitempty"`
+	RetrievalParam json.RawMessage `json:"retrieval_param,omitempty"`
+	IdType         string          `json:"id_type,omitempty"`
 }
 
 func NewDefaultEngine() *Engine {
 	return &Engine{
 		Name: Gamma,
 	}
+}
+
+type RetrievalParam struct {
+	Nlinks         int    `json:"nlinks"`
+	EfSearch       int    `json:"efSearch"`
+	EfConstruction int    `json:"efConstruction"`
+	MetricType     string `json:"metric_type,omitempty"`
+	Ncentroids     int    `json:"ncentroids"`
+	Nprobe         int    `json:"nprobe"`
+	Nsubvector     int    `json:"nsubvector"`
 }
 
 //space/[dbId]/[spaceId]:[spaceBody]
@@ -118,14 +127,13 @@ func (engine *Engine) UnmarshalJSON(bs []byte) error {
 	}
 
 	tempEngine := &struct {
-		Name        string  `json:"name"`
-		IndexSize   *int64  `json:"index_size"`
-		MaxSize     int64   `json:"max_size"`
-		Nprobe      *int    `json:"nprobe"`
-		MetricType  *string `json:"metric_type"`
-		Ncentroids  *int    `json:"ncentroids"`
-		Nsubvector  *int    `json:"nsubvector"`
-		NbitsPerIdx *int    `json:"nbits_per_idx"`
+		Name           string          `json:"name"`
+		IndexSize      *int64          `json:"index_size"`
+		MaxSize        int64           `json:"max_size"`
+		RetrievalParam json.RawMessage `json:"retrieval_param,omitempty"`
+		MetricType     string          `json:"metric_type,omitempty"`
+		RetrievalType  string          `json:"retrieval_type,omitempty"`
+		IdType         string          `json:"id_type,omitempty"`
 	}{}
 
 	if err := json.Unmarshal(bs, tempEngine); err != nil {
@@ -136,41 +144,73 @@ func (engine *Engine) UnmarshalJSON(bs []byte) error {
 		if tempEngine.MaxSize <= 0 {
 			tempEngine.MaxSize = 100000
 		}
-		if tempEngine.IndexSize == nil {
-			tempEngine.IndexSize = util.PInt64(100000)
-		}
 
-		if tempEngine.Nprobe == nil {
-			tempEngine.Nprobe = util.PInt(-1)
-		}
-		if tempEngine.MetricType == nil || *tempEngine.MetricType == "" {
-			tempEngine.MetricType = util.PStr("L2")
-		}
+		if tempEngine.RetrievalParam != nil {
+			if tempEngine.RetrievalType == "" {
+				return fmt.Errorf("retrieval_type is not null")
+			}
 
-		if tempEngine.Ncentroids == nil {
-			tempEngine.Ncentroids = util.PInt(-1)
-		}
+			var v RetrievalParam
+			if err := json.Unmarshal(tempEngine.RetrievalParam, &v); err != nil {
+				fmt.Errorf("engine UnmarshalJSON RetrievalParam json.Unmarshal err :[%s]", err.Error())
+			}
 
-		if tempEngine.Nsubvector == nil {
-			tempEngine.Nsubvector = util.PInt(-1)
-		}
+			if tempEngine.RetrievalType == "HNSW" {
+				if v.Nlinks == 0 || v.EfSearch == 0 || v.EfConstruction == 0 {
+					return fmt.Errorf("HNSW model param is 0")
+				}
+				if tempEngine.IndexSize == nil || *tempEngine.IndexSize <= 0 {
+					tempEngine.IndexSize = util.PInt64(2)
+				}
+			} else if tempEngine.RetrievalType == "FLAT" {
 
-		if tempEngine.NbitsPerIdx == nil {
-			tempEngine.NbitsPerIdx = util.PInt(-1)
+			} else if tempEngine.RetrievalType == "BINARYIVF" {
+				if v.Nprobe == 0 || v.Ncentroids == 0 || v.Ncentroids == 0 {
+					return fmt.Errorf(tempEngine.RetrievalType + " model param is 0")
+				} else {
+					if tempEngine.IndexSize == nil || *tempEngine.IndexSize <= 0 {
+						tempEngine.IndexSize = util.PInt64(100000)
+					}
+				}
+				if *tempEngine.IndexSize < 8192 {
+					return fmt.Errorf(tempEngine.RetrievalType+" model doc size:[%d] less than 8192 so can not to index", int64(*tempEngine.IndexSize))
+				}
+			} else {
+				if v.Nsubvector == 0 || v.Ncentroids == 0 {
+					return fmt.Errorf(tempEngine.RetrievalType + " model param is 0")
+				} else {
+					if tempEngine.IndexSize == nil || *tempEngine.IndexSize <= 0 {
+						tempEngine.IndexSize = util.PInt64(100000)
+					}
+				}
+				if *tempEngine.IndexSize < 8192 {
+					return fmt.Errorf(tempEngine.RetrievalType+" model doc size:[%d] less than 8192 so can not to index", int64(*tempEngine.IndexSize))
+				}
+			}
+
+			if v.MetricType == "" {
+				return fmt.Errorf("metric_type is null")
+			}
+
+			tempEngine.MetricType = v.MetricType
+
+		} else {
+			if tempEngine.IndexSize == nil {
+				tempEngine.IndexSize = util.PInt64(100000)
+			}
 		}
 	default:
 		return vearchlog.LogErrAndReturn(pkg.CodeErr(pkg.ERRCODE_PARTITON_ENGINENAME_INVALID))
 	}
 
 	*engine = Engine{
-		Name:        tempEngine.Name,
-		IndexSize:   *tempEngine.IndexSize,
-		MaxSize:     tempEngine.MaxSize,
-		Nprobe:      tempEngine.Nprobe,
-		MetricType:  *tempEngine.MetricType,
-		Ncentroids:  tempEngine.Ncentroids,
-		Nsubvector:  tempEngine.Nsubvector,
-		NbitsPerIdx: tempEngine.NbitsPerIdx,
+		Name:           tempEngine.Name,
+		IndexSize:      *tempEngine.IndexSize,
+		MaxSize:        tempEngine.MaxSize,
+		RetrievalParam: tempEngine.RetrievalParam,
+		MetricType:     tempEngine.MetricType,
+		RetrievalType:  tempEngine.RetrievalType,
+		IdType:         tempEngine.IdType,
 	}
 
 	return nil

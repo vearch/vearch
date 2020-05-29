@@ -18,6 +18,7 @@ import "C"
 import (
 	"context"
 	"fmt"
+	"github.com/vearch/vearch/monitor"
 	"github.com/vearch/vearch/util/server/vearchhttp"
 	"github.com/vearch/vearch/util/uuid"
 	"net/http"
@@ -179,6 +180,7 @@ func (this *clusterApi) registerPartition(c *gin.Context) {
 }
 
 func (this *clusterApi) createDB(c *gin.Context) {
+	defer monitor.Profiler("createDB", time.Now().Nanosecond())
 	db := &entity.DB{}
 
 	if err := c.Bind(db); err != nil {
@@ -427,8 +429,6 @@ func (this *clusterApi) partitionList(c *gin.Context) {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(partitions)
 	}
 }
-
-
 
 func (this *clusterApi) changeMember(c *gin.Context) {
 	ctx, _ := c.Get(vearchhttp.Ctx)

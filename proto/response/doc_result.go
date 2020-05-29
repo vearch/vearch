@@ -21,6 +21,7 @@ import (
 	"github.com/vearch/vearch/proto/pspb"
 	"github.com/vearch/vearch/ps/engine/sortorder"
 	"github.com/vearch/vearch/util/cbjson"
+	"strconv"
 )
 
 func NewErrDocResult(id string, err error) *DocResult {
@@ -53,9 +54,10 @@ type DocResult struct {
 	Failure    *pspb.EngineFailure  `json:"failure,omitempty"`
 	Type       pspb.OpType          `json:"type"`
 	Highlight  HighlightResult      `json:"highlight,omitempty"`
+	CostTime   *CostTime            `json:"costtime,omitempty"`
 }
 
-func (this *DocResult) ToContent(dbName, spaceName string) ([]byte, error) {
+func (this *DocResult) ToContent(dbName, spaceName string, idIsLong bool) ([]byte, error) {
 	var builder = cbjson.ContentBuilderFactory()
 
 	builder.BeginObject()
@@ -69,16 +71,23 @@ func (this *DocResult) ToContent(dbName, spaceName string) ([]byte, error) {
 
 	builder.More()
 	builder.Field("_id")
-	builder.ValueString(this.Id)
+	if idIsLong {
+		idInt64, err := strconv.ParseInt(this.Id, 10, 64)
+		if err == nil {
+			builder.ValueNumeric(idInt64)
+		}
+	} else {
+		builder.ValueString(this.Id)
+	}
 
 	builder.More()
 	builder.Field("found")
 	builder.ValueBool(this.Found)
 
 	if this.Found {
-		builder.More()
+		/*builder.More()
 		builder.Field("_version")
-		builder.ValueNumeric(this.Version)
+		builder.ValueNumeric(this.Version)*/
 
 		builder.More()
 		builder.Field("_source")

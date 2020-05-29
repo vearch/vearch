@@ -53,12 +53,26 @@ func (s *Store) Search(ctx context.Context, readLeader bool, query *request.Sear
 	return s.Engine.Reader().Search(ctx, query), nil
 }
 
-
-func (s *Store) MSearchIDs(ctx context.Context, readLeader bool, query *request.SearchRequest) (result []byte, err error) {
+func (s *Store) MSearchIDs(ctx context.Context, readLeader bool, query *request.SearchRequest) (result *response.SearchResponse, err error) {
 	if err := s.checkSearchable(readLeader); err != nil {
 		return nil, err
 	}
-	return s.Engine.Reader().MSearchIDs(ctx, query)
+	return s.Engine.Reader().MSearchIDs(ctx, query), nil
+}
+
+func (s *Store) MSearchForIDs(ctx context.Context, readLeader bool, query *request.SearchRequest) (result []byte, err error) {
+	if err := s.checkSearchable(readLeader); err != nil {
+		return nil, err
+	}
+	return s.Engine.Reader().MSearchForIDs(ctx, query)
+}
+
+func (s *Store) MSearchNew(ctx context.Context, readLeader bool, query *request.SearchRequest) (result *response.SearchResponse, err error) {
+	if err := s.checkSearchable(readLeader); err != nil {
+		return nil, err
+
+	}
+	return s.Engine.Reader().MSearchNew(ctx, query), nil
 }
 
 func (s *Store) MSearch(ctx context.Context, readLeader bool, query *request.SearchRequest) (result response.SearchResponses, err error) {

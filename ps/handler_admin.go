@@ -26,9 +26,9 @@ import (
 	"github.com/vearch/vearch/util/metrics/mserver"
 	"time"
 
-	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/proto"
 	"github.com/vearch/vearch/proto/entity"
+	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/util/server/rpc/handler"
 )
 
@@ -164,9 +164,9 @@ type DeleteReplicaHandler struct {
 
 func (d *DeleteReplicaHandler) Execute(req *handler.RpcRequest, resp *handler.RpcResponse) error {
 
-	log.Debug("DeletePartitionHandler method start, req: %v", req)
+	log.Debug("DeleteReplicaHandler method start, req: %v", req)
 	defer func() {
-		log.Debug("DeletePartitionHandler method end, req: %v, resp: %v", req, resp)
+		log.Debug("DeleteReplicaHandler method end, req: %v, resp: %v", req, resp)
 	}()
 	reqs := req.GetArg().(*request.ObjRequest)
 	d.server.DeleteReplica(reqs.PartitionID)
@@ -189,9 +189,9 @@ func (*UpdatePartitionHandler) Execute(req *handler.RpcRequest, resp *handler.Rp
 
 	store := reqs.GetStore().(PartitionStore)
 
-	if store.GetVersion() > space.Version {
+	/*if store.GetVersion() > space.Version {
 		return fmt.Errorf("partition[%d] schema version more new %d %d", store.GetPartition().Id, store.GetVersion(), space.Version)
-	}
+	}*/
 
 	err := store.UpdateSpace(req.Ctx, space)
 	if err != nil {
@@ -297,6 +297,7 @@ func (sh *StatsHandler) Execute(req *handler.RpcRequest, resp *handler.RpcRespon
 		pi.Unreachable = store.GetUnreachable(uint64(pid))
 		pi.Status = store.GetPartition().GetStatus()
 		pi.IndexStatus = store.GetEngine().IndexStatus()
+		pi.RaftStatus = store.Status()
 	})
 
 	resp.Result = stats

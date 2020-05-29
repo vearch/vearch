@@ -127,6 +127,22 @@ func VectorToByte(vector []float32, source string) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+func VectorBinaryToByte(vector []uint8, source string) ([]byte, error) {
+	code, err := UInt8ArrayByte(vector)
+	if err != nil {
+		return nil, err
+	}
+
+	buf := &bytes.Buffer{}
+
+	if _, err = buf.Write(UInt32ToByte(uint32(len(code)))); err != nil {
+		return nil, err
+	}
+	buf.Write(code)
+	buf.WriteString(source)
+	return buf.Bytes(), nil
+}
+
 func ByteToVector(bs []byte) ([]float32, string, error) {
 	length := int(ByteToUInt32(bs))
 
@@ -138,10 +154,37 @@ func ByteToVector(bs []byte) ([]float32, string, error) {
 	return float32s, string(bs[length+4:]), nil
 }
 
+func ByteToVectorBinary(bs []byte, dimension int) ([]int32, string, error) {
+	length := int(len(bs))
+	featureLength := (dimension / 8) + 4
+	newbyte := bs[4:featureLength]
+	newbytelength := int(len(newbyte))
+	result := make([]int32, newbytelength)
+	for i := 0; i < newbytelength; i++ {
+		result[i] = BytesToInt32(newbyte[i:])
+	}
+
+	if length > featureLength {
+		return result, string(bs[featureLength:]), nil
+	} else {
+		return result, "", nil
+	}
+}
+
 func FloatArrayByte(fa []float32) (code []byte, err error) {
 	buf := &bytes.Buffer{}
 	for i := 0; i < len(fa); i++ {
 		if err = binary.Write(buf, binary.LittleEndian, fa[i]); err != nil {
+			return nil, err
+		}
+	}
+	return buf.Bytes(), nil
+}
+
+func UInt8ArrayByte(in []uint8) (code []byte, err error) {
+	buf := &bytes.Buffer{}
+	for i := 0; i < len(in); i++ {
+		if err = binary.Write(buf, binary.LittleEndian, in[i]); err != nil {
 			return nil, err
 		}
 	}
@@ -264,6 +307,10 @@ func ByteToFloat32(bytes []byte) float32 {
 	return math.Float32frombits(bits)
 }
 
+func ByteToUInt64(bs []byte) uint64 {
+	return binary.LittleEndian.Uint64(bs)
+}
+
 func ByteToFloat32Array(bytes []byte) ([]float32, error) {
 	if len(bytes)%4 != 0 {
 		return nil, fmt.Errorf("input bytes not a multiple of 4")
@@ -274,6 +321,20 @@ func ByteToFloat32Array(bytes []byte) ([]float32, error) {
 	result := make([]float32, num)
 	for i := 0; i < num; i++ {
 		result[i] = math.Float32frombits(binary.LittleEndian.Uint32(bytes[i*4:]))
+	}
+	return result, nil
+}
+
+func ByteToUInt8Array(bytes []byte) ([]uint8, error) {
+	if len(bytes)%4 != 0 {
+		return nil, fmt.Errorf("input bytes not a multiple of 4")
+	}
+
+	num := len(bytes) / 4
+
+	result := make([]uint8, num)
+	for i := 0; i < num; i++ {
+		result[i] = uint8(binary.LittleEndian.Uint32(bytes[i*4:]))
 	}
 	return result, nil
 }
@@ -291,8 +352,24 @@ func Bytes2Int(bs []byte) int64 {
 	return int64(binary.LittleEndian.Uint64(bs))
 }
 
+func Bytes2Int32(bs []byte) int32 {
+	return int32(binary.LittleEndian.Uint32(bs))
+}
+
+func Bytes2Long(bs []byte) int64 {
+	return int64(binary.LittleEndian.Uint64(bs))
+}
+
 func CloneBytes(b []byte) []byte {
 	result := make([]byte, len(b))
 	copy(result, b)
 	return result
+}
+
+func BytesToInt32(bys []byte) int32 {
+	bytebuff := bytes.NewBuffer(bys)
+	var data uint8
+	binary.Read(bytebuff, binary.BigEndian, &data)
+	unit8V := uint8(data)
+	return int32(unit8V)
 }

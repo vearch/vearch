@@ -146,7 +146,7 @@ engine.create_table(table)
 ```
 
 - name :  table' s name, when dump or load will use table's name.
-- model : now only support IVFPQ
+- model : now only support IVFPQ in python sdk.
 - nprobe : scan clustered buckets, default 10, it should be less than ncentroids
 - metric_type : default `L2`, `InnerProduct` or `L2`
 - ncentroids : coarse cluster center number, default 256
@@ -185,6 +185,15 @@ doc_ids = engine.add(item)
 ```
 
 field1 and field2 are scalar field and field3 is feature field. All field names, value types, and table structures are consistent. As you can see, one item can have multiple feature vectors. And vearch will return a unique id for every added item. The unique identification needs to be used for data modification and deletion, or just get added item's detail info.
+
+Get
+=======================
+get item info from vearch table:
+'''
+item_id = "item's id"
+item_info = engine.get_doc_by_id(item_id)
+'''
+use unique item id to get item's detail info.
 
 ### Query
 

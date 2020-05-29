@@ -88,7 +88,7 @@ func (s *Server) Start() (err error) {
 		return err
 	}
 
-	monitorService := newMonitorService(service)
+	monitorService := newMonitorService(service, s.etcdServer.Server)
 
 	if !log.IsDebugEnabled() {
 		gin.SetMode(gin.ReleaseMode)
