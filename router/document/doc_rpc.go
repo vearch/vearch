@@ -102,7 +102,18 @@ func (handler *RpcHandler) Search(ctx context.Context, req *pspb.RpcSearchReques
 	}
 	t2 := time.Now()
 
-	bs, err := searchResponse.ToContent(searchRequest.From, *searchRequest.Size, nameCache, false, t2.Sub(t1))
+	idIsLong := false
+	space, err := handler.docService.getSpace(ctx, req.DbName, req.SpaceName)
+	if err != nil {
+		return &pspb.RpcSearchResponse{Head: handler.newErrHead(err)}, nil
+	} else {
+		idType := space.Engine.IdType
+		if idType != "" && ("long" == idType || "Long" == idType) {
+			idIsLong = true
+		}
+	}
+
+	bs, err := searchResponse.ToContent(searchRequest.From, *searchRequest.Size, nameCache, false, t2.Sub(t1), idIsLong)
 	if err != nil {
 		return &pspb.RpcSearchResponse{Head: handler.newErrHead(err)}, nil
 	}

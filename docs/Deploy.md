@@ -8,24 +8,24 @@
    2. Go >= 1.11.2 required
    3. Gcc >= 5 required
    4. [Faiss](https://github.com/facebookresearch/faiss) >= v1.6.0
-   5. [RocksDB](https://github.com/facebook/rocksdb) == 6.2.2 ***(optional)*** . Please use `make shared_lib` which is in `RocksDB's INSTALL.md` to compile rocksdb.
+   5. [RocksDB](https://github.com/facebook/rocksdb) == 6.2.2 ***(optional)***. Please use `make shared_lib` which is in `RocksDB's INSTALL.md` to compile rocksdb. When you want to use rocksdb to store vectors or you want to make the data persistent, you need to install rocksdb. If rocksdb is not installed, then the data will be lost if you restart, you need to re-insert the data.
    6. CUDA >= 9.0, if you want GPU support.
 #### Compile 
-   * Enter the `GOPATH` directory, `cd $GOPATH/src` `mkdir -p github/vearch` `cd github/vearch`
+   * Enter the `GOPATH` directory, `cd $GOPATH/src` `mkdir -p github.com/vearch` `cd github.com/vearch`
    * Download the source code: `git clone https://xxxxxx/vearch.git` ($vearch denotes the absolute path of vearch code)
-   * To add GPU Index support : change `BUILD_WITH_GPU` from `"off"` to `"on"` in `$vearch/engine/gamma/CMakeLists.txt` 
+   * To add GPU Index support : change `BUILD_WITH_GPU` from `"off"` to `"on"` in `$vearch/engine/CMakeLists.txt` 
    * Compile gamma
-       1. `cd $vearch/engine/gamma`
+       1. `cd $vearch/engine`
        2. `mkdir build && cd build`
        3. `export FAISS_HOME=the installed path of faiss`
-       4. `export ROCKSDB_HOME=the installed path of RocksDB` ***(optional)***
-       5. `cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_PYTHON=OFF -DCMAKE_INSTALL_PREFIX=$vearch/ps/engine/gammacb/lib  ..`
+       4. `export ROCKSDB_HOME=the directory where you compiled(make shared_lib) rocksdb`
+       5. `cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$vearch/ps/engine/gammacb/lib  ..`
        6. `make && make install`
    
    * Compile vearch
       1. `cd $vearch`
       2. `export FAISS_HOME=the installed path of faiss`
-      3. `export ROCKSDB_HOME=the installed path of RocksDB` ***(optional)***
+      3. `export ROCKSDB_HOME=the directory where you compiled(make shared_lib) rocksdb`
       4. `export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$vearch/ps/engine/gammacb/lib/lib:$FAISS_HOME/lib` or `export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$vearch/ps/engine/gammacb/lib/lib:$FAISS_HOME/lib:$ROCKSDB_HOME` if ROCKSDB_HOME is set
       5. `go build -o vearch`
       when `vearch` file generated, it is ok.

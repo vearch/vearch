@@ -97,10 +97,16 @@ func New(cfg register.EngineConfig) (engine.Engine, error) {
 
 	infos, _ := ioutil.ReadDir(cfg.Path)
 
+	startTime := time.Now()
 	log.Info("to create table for gamma by path:[%s]", cfg.Path)
 	if resp := C.CreateTable(ge.gamma, table); resp != 0 {
 		return nil, fmt.Errorf("create gamma table has err:[%d]", int(resp))
+	} else {
+		log.Info("to create table for gamma finish by path:[%s]", cfg.Path)
 	}
+	endTime := time.Now()
+	costTime := endTime.Sub(startTime)
+	log.Info("creat table: %s cost time :%d", cfg.Space.Name, int64(costTime/time.Millisecond))
 	if len(infos) > 0 {
 		code := int(C.Load(ge.gamma))
 		if code != 0 {
@@ -110,6 +116,11 @@ func New(cfg register.EngineConfig) (engine.Engine, error) {
 	}
 
 	go ge.autoCreateIndex()
+
+	/*go func() {
+		rc := C.BuildFieldIndex(ge.gamma)
+		log.Warn("build field index over:[%d]", rc)
+	}()*/
 
 	if log.IsDebugEnabled() {
 		go func() {
@@ -189,16 +200,16 @@ func (ge *gammaEngine) GetMapping() *mapping.IndexMapping {
 	return ge.indexMapping
 }
 
-func (ge *gammaEngine) MapDocument(doc *pspb.DocCmd) ([]*pspb.Field, map[string]pspb.FieldType, error) {
-	return ge.indexMapping.MapDocument(doc.Source)
+func (ge *gammaEngine) MapDocument(doc *pspb.DocCmd, retrievalType string) ([]*pspb.Field, map[string]pspb.FieldType, error) {
+	return ge.indexMapping.MapDocument(doc.Source, retrievalType)
 }
 
 func (ge *gammaEngine) Optimize() error {
-	if u, err := ge.reader.DocCount(ge.ctx); err != nil {
+	/*if _, err := ge.reader.DocCount(ge.ctx); err != nil {
 		return err
 	} else if int64(u) < 8192 {
 		return fmt.Errorf("doc size:[%d] less than 8192 so can not to index", int64(u))
-	}
+	}*/
 	go func() {
 		log.Info("build index:[%d] begin", ge.partitionID)
 		if e1 := ge.BuildIndex(); e1 != nil {
@@ -230,7 +241,7 @@ func (ge *gammaEngine) BuildIndex() error {
 			log.Error("build index:[%d] err response code:[%d]", ge.partitionID, rc)
 		}
 	}()
-	for {
+	/*for {
 		select {
 		case <-ge.ctx.Done():
 			log.Error("partition:[%d] has closed so skip wait", ge.partitionID)
@@ -247,7 +258,7 @@ func (ge *gammaEngine) BuildIndex() error {
 		}
 
 		time.Sleep(3 * time.Second)
-	}
+	}*/
 
 	return nil
 }

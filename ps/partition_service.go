@@ -87,7 +87,11 @@ type PartitionStore interface {
 
 	MSearch(ctx context.Context, readLeader bool, query *request.SearchRequest) (result response.SearchResponses, err error)
 
-	MSearchIDs(ctx context.Context, readLeader bool, query *request.SearchRequest) (result []byte, err error)
+	MSearchNew(ctx context.Context, readLeader bool, query *request.SearchRequest) (result *response.SearchResponse, err error)
+
+	MSearchIDs(ctx context.Context, readLeader bool, query *request.SearchRequest) (result *response.SearchResponse, err error)
+
+	MSearchForIDs(ctx context.Context, readLeader bool, query *request.SearchRequest) (result []byte, err error)
 
 	//you can use ctx to cancel the stream , when this function returned will close resultChan
 	StreamSearch(ctx context.Context, readLeader bool, query *request.SearchRequest, resultChan chan *response.DocResult) error
@@ -217,6 +221,11 @@ func (s *Server) DeletePartition(id entity.PartitionID) {
 
 	psutil.ClearPartition(config.Conf().GetDataDirBySlot(config.PS, id), id)
 	log.Info("delete partition:[%d] success", id)
+
+	//delete partition cache
+	if _, ok := s.partitions.Load(id); ok {
+		s.partitions.Delete(id)
+	}
 }
 
 func (s *Server) PartitionNum() int {

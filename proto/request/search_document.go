@@ -29,8 +29,11 @@ type SearchDocumentRequest struct {
 	Sort        json.RawMessage `json:"sort,omitempty"`
 	Explain     bool            `json:"explain,omitempty"`
 	Quick       bool            `json:"quick,omitempty"`
+	L2Sqrt      bool            `json:"l2_sqrt,omitempty"`
 	VectorValue bool            `json:"vector_value,omitempty"`
 	Parallel    bool            `json:"parallel,omitempty"`
+    Nprobe      int             `json:"nprobe,omitempty"`
+    IVFFlat     bool            `json:"ivf_flat,omitempty"`
 	sortOrder   sortorder.SortOrder
 }
 

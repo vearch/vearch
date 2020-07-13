@@ -26,6 +26,7 @@ import (
 	"github.com/vearch/vearch/util/metrics/mserver"
 	"github.com/vearch/vearch/util/monitoring"
 	"github.com/vearch/vearch/util/uuid"
+	"go.etcd.io/etcd/etcdserver"
 	"strings"
 	"time"
 )
@@ -33,6 +34,7 @@ import (
 //masterService is used for master administrator purpose.It should not be used by router and partition server program
 type monitorService struct {
 	*masterService
+	etcdServer *etcdserver.EtcdServer
 }
 
 func (this *monitorService) statsService(ctx context.Context) ([]*mserver.ServerStats, error) {
@@ -76,8 +78,8 @@ out:
 	return result, nil
 }
 
-func newMonitorService(masterService *masterService) *monitorService {
-	return &monitorService{masterService}
+func newMonitorService(masterService *masterService, Server *etcdserver.EtcdServer) *monitorService {
+	return &monitorService{masterService: masterService, etcdServer: Server}
 }
 
 func (ms *monitorService) Register() {

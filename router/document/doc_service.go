@@ -17,9 +17,16 @@ package document
 import (
 	"bufio"
 	"context"
+	"encoding/hex"
 	"fmt"
+	"github.com/vearch/vearch/util/regularutil"
+	"github.com/vearch/vearch/util/uuid"
+	"math/big"
+	"strconv"
 	"strings"
+	"time"
 
+	"crypto/md5"
 	"github.com/smallnest/rpcx/share"
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/client"
@@ -30,7 +37,6 @@ import (
 	"github.com/vearch/vearch/proto/response"
 	"github.com/vearch/vearch/util/cbjson"
 	"github.com/vearch/vearch/util/log"
-	"github.com/vearch/vearch/util/uuid"
 )
 
 type docService struct {
@@ -93,17 +99,43 @@ func (this *docService) getDocs(ctx context.Context, dbName string, spaceName st
 	return this.client.PS().B().Space(dbName, spaceName).SetRoutingValue(reqArgs[UrlQueryRouting]).GetDocs(docIDs)
 }
 
-func (this *docService) mSearchIDs(ctx context.Context, dbName string, spaceName string, searchRequest *request.SearchRequest, clientType client.ClientType) ([]byte, error) {
+func (this *docService) mSearchIDs(ctx context.Context, dbName string, spaceName string, searchRequest *request.SearchRequest, clientType client.ClientType) (response.SearchResponses, response.NameCache, error) {
+	searchSpaces, nameCache, err := this.parseDBSpacePair(ctx, dbName, spaceName)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if len(searchSpaces) == 0 {
+		return nil, nil, pkg.CodeErr(pkg.ERRCODE_SPACE_NOTEXISTS)
+	}
+
+	return this.client.PS().Be(ctx).MultipleSpaceByType(searchSpaces, clientType).MSearchIDs(searchRequest), nameCache, nil
+}
+
+func (this *docService) mSearchForIDs(ctx context.Context, dbName string, spaceName string, searchRequest *request.SearchRequest, clientType client.ClientType) ([]byte, error) {
 	searchSpaces, _, err := this.parseDBSpacePair(ctx, dbName, spaceName)
 	if err != nil {
-		return  nil, err
+		return nil, err
 	}
 
 	if len(searchSpaces) == 0 {
 		return nil, pkg.CodeErr(pkg.ERRCODE_SPACE_NOTEXISTS)
 	}
 
-	return this.client.PS().Be(ctx).MultipleSpaceByType(searchSpaces, clientType).MSearchIDs(searchRequest)
+	return this.client.PS().Be(ctx).MultipleSpaceByType(searchSpaces, clientType).MSearchForIDs(searchRequest)
+}
+
+func (this *docService) mSearchNewDoc(ctx context.Context, dbName string, spaceName string, searchRequest *request.SearchRequest, clientType client.ClientType) (response.SearchResponses, response.NameCache, error) {
+	searchSpaces, nameCache, err := this.parseDBSpacePair(ctx, dbName, spaceName)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if len(searchSpaces) == 0 {
+		return nil, nil, pkg.CodeErr(pkg.ERRCODE_SPACE_NOTEXISTS)
+	}
+
+	return this.client.PS().Be(ctx).MultipleSpaceByType(searchSpaces, clientType).MSearchNew(searchRequest), nameCache, nil
 }
 
 func (this *docService) mSearchDoc(ctx context.Context, dbName string, spaceName string, searchRequest *request.SearchRequest, clientType client.ClientType) (response.SearchResponses, response.NameCache, error) {
@@ -207,11 +239,12 @@ func (this *docService) forceMerge(ctx context.Context, dbName string, spaceName
 	return this.client.PS().B().Space(dbName, spaceName).ForceMerge()
 }
 
-func (this *docService) bulk(ctx context.Context, dbName string, spaceName string, reqArgs RawReqArgs, reqBody []byte) ([]*response.BulkItemResponse, error) {
+func (this *docService) bulk(ctx context.Context, dbName string, spaceName string, reqArgs RawReqArgs, reqBody []byte, idIsLong bool) ([]*response.BulkItemResponse, error) {
 	var birs []*response.BulkItemResponse
 
 	sr := strings.NewReader(string(reqBody))
 	br := bufio.NewScanner(sr)
+
 	for br.Scan() {
 		line := string(br.Bytes())
 		if len(line) < 1 {
@@ -231,6 +264,7 @@ func (this *docService) bulk(ctx context.Context, dbName string, spaceName strin
 		var source []byte
 		var opType pspb.OpType
 		var version int64
+		var docId64 int64
 		if indexJsonMap != nil {
 			realDbName = indexJsonMap.GetJsonValString("_index")
 			if realDbName == "" {
@@ -311,18 +345,53 @@ func (this *docService) bulk(ctx context.Context, dbName string, spaceName strin
 			return nil, fmt.Errorf("space name not found (%s)", line)
 		}
 
+		//fmt.Println("bulk=======docID:[%s]", docID)
+
 		if docID == "" {
-			docID = uuid.FlakeUUID()
+			/*n, err := snowflake.NewNode(1)
+			if err != nil {
+				fmt.Errorf("snowflake.NewNode error: (%s)", err.Error())
+			} else {
+				docId64 = n.Generate().Int64()
+			}*/
+			docIDUUID := uuid.FlakeUUID()
+			docIdMd5 := GetMD5Encode(docIDUUID)
+			bi := big.NewInt(0)
+			before := docIdMd5[0:16]
+			after := docIdMd5[16:32]
+
+			bi.SetString(before, 16)
+			beforeInt64 := bi.Int64()
+			bi.SetString(after, 16)
+			afterInt64 := bi.Int64()
+
+			docId64 = beforeInt64 ^ afterInt64
+			docID = strconv.FormatInt(docId64, 10)
+		} else {
+			if idIsLong {
+				result := regularutil.StringCheckNum(docID)
+				if !result {
+					return nil, fmt.Errorf("_id not int64 (%s)", docID)
+				}
+			}
 		}
 
+		//fmt.Println("bulk=======docId64:[%s]", docID)
 		slot := this.client.PS().B().Space(realDbName, realSpaceName).SetRoutingValue(routing).Slot(docID)
 		docCmd := pspb.NewDocCmd(opType, docID, slot, source, version)
 		defer func(docCmd *pspb.DocCmd) {
 			go pspb.PutDocCmd(docCmd)
 		}(docCmd)
 
+		startTime := time.Now()
 		var docResult response.DocResultWrite
 		resp := this.client.PS().B().Space(realDbName, realSpaceName).Bulk(docCmd)
+		endTime := time.Now()
+		if resp.CostTime != nil {
+			resp.CostTime.DocSStartTime = startTime
+			resp.CostTime.DocSEndTime = endTime
+		}
+
 		docResult = response.DocResultWrite{
 			DbName:    realDbName,
 			SpaceName: realSpaceName,
@@ -379,4 +448,10 @@ func (this *docService) createSpace(ctx context.Context, dbName string, spaceNam
 	}
 
 	return nil
+}
+
+func GetMD5Encode(data string) string {
+	h := md5.New()
+	h.Write([]byte(data))
+	return hex.EncodeToString(h.Sum(nil))
 }

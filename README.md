@@ -42,6 +42,7 @@ Vearch is a scalable distributed system for efficient similarity search of deep 
 
 * Vearch can be leveraged to build a complete visual search system to index billions of images. The image retrieval plugin for object detection and feature extraction is also required. For more information, please refer to [docs/Quickstart.md](docs/Quickstart.md).
 
+* Vearch Python SDK enables vearch to use locally. Vearch python sdk can be installed easily by pip install vearch. For more information, please refer to [docs/APIPythonSDK.md](docs/APIPythonSDK.md).
 
 ## APIs and Use Cases
 
@@ -64,7 +65,7 @@ Vearch is a scalable distributed system for efficient similarity search of deep 
 
 ## Benchmarks
 
-* [benchmarks](/engine/gamma/benchs/README.md)
+* [benchmarks](/engine/benchs/README.md)
 
 ## Publication
 Jie Li, Haifeng Liu, Chuanghua Gui, Jianyu chen, Zhenyun Ni, Ning Wang, Yuan Chen. The Design and Implementation of a Real Time Visual Search System on JD E-commerce Platform. In the 19th International ACM Middleware Conference, December 10–14, 2018, Rennes, France. https://arxiv.org/abs/1908.07389

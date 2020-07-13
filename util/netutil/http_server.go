@@ -75,6 +75,7 @@ func NewServer(config *ServerConfig) *Server {
 		Handler: s,
 	}
 
+	//s.server.SetKeepAlivesEnabled(false)
 	return s
 }
 
@@ -366,7 +367,7 @@ func (w *ResponseWriter) Write(b []byte) (int, error) {
 
 // http protocal
 type HttpReply struct {
-	Code int64         `json:"code"`
+	Code int64       `json:"code"`
 	Msg  string      `json:"msg,omitempty"`
 	Data interface{} `json:"data,omitempty"`
 }

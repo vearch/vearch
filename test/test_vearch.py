@@ -82,9 +82,19 @@ def test_createspace():
     data = {
         "name": space_name,
         "dynamic_schema": "strict",
-        "partition_num": 1,  # "partition_num": 2-6之间
+        "partition_num": 1,
         "replica_num": 1,
-        "engine": {"name": "gamma", "index_size": 9999, "max_size": 100000},
+        "engine": {"name": "gamma",
+                   "index_size": 9999,
+                   "max_size": 100000,
+                   "retrieval_type": "IVFPQ",
+                   "retrieval_param": {
+                        "metric_type": "InnerProduct",
+                        "nprobe": -1,
+                        "ncentroids": -1,
+                        "nsubvector": -1
+                   }
+                  },
         "properties": {
             "string": {
                 "type": "keyword",
@@ -102,6 +112,8 @@ def test_createspace():
                 "type": "vector",
                 "model_id": "img",
                 "dimension": 128,
+                "store_type": "RocksDB",
+                "store_param": {"cache_size": 20},
                 "format": "normalization"
             },
             "string_tags": {

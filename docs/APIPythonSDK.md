@@ -10,7 +10,7 @@ A simple usage
     ```
     engine_path = "files"
     max_doc_size = 100000
-    engine = vearch.Engine(path, max_doc_size)
+    engine = vearch.Engine(engine_path, max_doc_size)
     log_path = "logs"
     engine.init_log_dir(log_path)
     ```
@@ -47,11 +47,12 @@ A simple usage
     
     ```
     add_num = 10000
-    features = np.random.rand(add_num, 128)
+    features = np.random.rand(add_num, 128).astype('float32')
     doc_items = []
     for i in range(add_num):
+        profiles = {}
         profiles["key"] = i
-       profiles["feature"] = features[i,:]
+        profiles["feature"] = features[i,:]
         doc_items.append(profiles)
     
     #pass list to it, even only add one doc item
@@ -110,7 +111,7 @@ table = {
     },
     "properties": {
         "field1": {
-            "type": "keyword"
+            "type": "string"
         },
         "field2": {
             "type": "integer"
@@ -120,7 +121,7 @@ table = {
             "index": "true"
         },
         "field4": {
-            "type": "keyword",
+            "type": "string",
             "index": "true"
         },
         "field5": {
@@ -145,20 +146,21 @@ engine.create_table(table)
 ```
 
 - name :  table' s name, when dump or load will use table's name.
-- model : now only support IVFPQ
+- model : now only support IVFPQ in python sdk.
 - nprobe : scan clustered buckets, default 10, it should be less than ncentroids
 - metric_type : default `L2`, `InnerProduct` or `L2`
 - ncentroids : coarse cluster center number, default 256
 - nsubvector : the number of sub vector, default 32, only the value which is multiple of 4 is supported now
 - nbits_per_idx : bit number of sub cluster center, default 8, and 8 is the only value now
 - properties : define what field are in the table.
-- type : There are four types (that is, the value of type) supported by the field defined by the table space structure: keyword, integer, float, vector (keyword is equivalent to string).
+- type : There are four types (that is, the value of type) supported by the
+  field defined by the table space structure: string, integer, float, vector.
 - index : supporting numeric field filter default `false`
 - Vector field params
     - - dimension: feature dimension, should be integer
     - - retrieval_type: default "IVFPQ"
     - - model_id: shows feature vector' s type, like vgg16
-    - - store_type : "RocksDB" or "Mmap" default "Mmap"
+    - - store_type : "Mmap" default "Mmap"
     - - store_param : example {"cache_size":2592}
 
 Add
@@ -183,6 +185,15 @@ doc_ids = engine.add(item)
 ```
 
 field1 and field2 are scalar field and field3 is feature field. All field names, value types, and table structures are consistent. As you can see, one item can have multiple feature vectors. And vearch will return a unique id for every added item. The unique identification needs to be used for data modification and deletion, or just get added item's detail info.
+
+Get
+=======================
+get item info from vearch table:
+'''
+item_id = "item's id"
+item_info = engine.get_doc_by_id(item_id)
+'''
+use unique item id to get item's detail info.
 
 ### Query
 
@@ -240,14 +251,13 @@ Multi vector query:
 
 ```
 query = {
-        "vector": [
-            "field1": {
-                "type": "vector",
-                "dimension": 128
-            },
-            "field2": {
-                "type": "vector",
-                "dimension": 256
+    "vector": [{
+        "field": "field_name",
+        "feature": [0.1, 0.2, 0.3, 0.4, 0.5]
+    },
+    {
+        "field": "field_name",
+        "feature": [0.6, 0.7, 0.8, 0.9, 1.0]
     }],
 }
 result = engine.search(query)
@@ -340,6 +350,25 @@ Delete
 
   All documents that meet the conditions will be deleted
 
+Table infomations
+================================
+1. total number of documents in table
+
+  ```
+  total_num = engine.get_doc_num()
+  ```
+
+2. total memory used by engine
+
+  ```
+  total_memory = engine.get_memory_bytes()
+  ```
+
+3. get building index status
+
+  ```
+  index_status = engine.get_index_status()
+  ```
 
 Data persistent
 ================================
