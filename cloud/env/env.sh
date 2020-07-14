@@ -24,7 +24,6 @@ cd /env/app/
 if [ ! -d "faiss" ]; then
     git clone https://github.com/facebookresearch/faiss.git
     cd faiss
-    git checkout v1.6.0
 fi
 cd /env/app/faiss
 ./configure --without-cuda --prefix=/env/app/faiss_install
