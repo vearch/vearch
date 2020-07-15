@@ -180,7 +180,8 @@ func (this *clusterApi) registerPartition(c *gin.Context) {
 }
 
 func (this *clusterApi) createDB(c *gin.Context) {
-	defer monitor.Profiler("createDB", time.Now().Nanosecond())
+	startTime := time.Now()
+	defer monitor.Profiler("createDB", startTime)
 	db := &entity.DB{}
 
 	if err := c.Bind(db); err != nil {

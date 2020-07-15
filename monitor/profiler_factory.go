@@ -6,16 +6,11 @@ import (
 	"time"
 )
 
-//type KeyHistogram string
-//const (
-//	Query   KeyHistogram = "query"
-//	Operate KeyHistogram = "operate"
-//)
 var mutex sync.Mutex
 
 var metricMap = map[string]*Digest{}
 
-func Profiler(key string, startNanosecond int) {
+func Profiler(key string, startTime time.Time) {
 	mutex.Lock()
 	digest, ok := metricMap[key]
 	if ok == false {
@@ -26,8 +21,7 @@ func Profiler(key string, startNanosecond int) {
 	mutex.Unlock()
 
 	digest.Lock()
-	costTime := (time.Now().Nanosecond() - startNanosecond) / 1000000
-	//fmt.Printf("start:%v end:%v cost = %v   \n", startNanosecond, time.Now().Nanosecond(), costTime/1000000)
+	costTime := (time.Now().Sub(startTime).Seconds()) * 1000
 	digest.Digest.Add(float64(costTime))
 	digest.Sum = digest.Sum + float64(costTime)
 
