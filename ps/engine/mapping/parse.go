@@ -330,7 +330,7 @@ func (dm *DocumentMapping) processProperty(context *walkContext, fieldName strin
 			if fm.FieldType() == pspb.FieldType_INT && fm.FieldMappingI.(*NumericFieldMapping).Array {
 				buffer := bytes.Buffer{}
 				for _, vv := range vs {
-					buffer.Write(cbbytes.Int64ToByte(vv.GetInt64()))
+					buffer.Write(cbbytes.Int32ToByte(int32(vv.GetInt64())))
 				}
 				field := &pspb.Field{
 					Name:   fieldName,

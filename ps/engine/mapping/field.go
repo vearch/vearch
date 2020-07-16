@@ -356,7 +356,7 @@ func processString(ctx *walkContext, fm *FieldMapping, fieldName, val string) (*
 	case pspb.FieldType_INT:
 		numericFM := fm.FieldMappingI.(*NumericFieldMapping)
 		if numericFM.Coerce {
-			i, err := cast.ToInt64E(val)
+			i, err := cast.ToInt32E(val)
 			if err != nil {
 				if numericFM.IgnoreMalformed {
 					return nil, nil
@@ -367,7 +367,7 @@ func processString(ctx *walkContext, fm *FieldMapping, fieldName, val string) (*
 			return &pspb.Field{
 				Name:   fieldName,
 				Type:   pspb.FieldType_INT,
-				Value:  cbbytes.Int64ToByte(i),
+				Value:  cbbytes.Int32ToByte(i),
 				Option: fm.Options(),
 			}, nil
 		} else {
@@ -441,6 +441,18 @@ func processNumber(ctx *walkContext, fm *FieldMapping, fieldName string, val flo
 
 	switch fm.FieldType() {
 	case pspb.FieldType_INT:
+		i := int32(val)
+		e := float32(val) - float32(i)
+		if e > 0 || e < 0 {
+			return nil, fmt.Errorf("string mismatch field:[%s] type:[%s] ", fieldName, fm.FieldType())
+		}
+		return &pspb.Field{
+			Name:   fieldName,
+			Type:   pspb.FieldType_INT,
+			Value:  cbbytes.Int32ToByte(i),
+			Option: fm.Options(),
+		}, nil
+	case pspb.FieldType_LONG:
 		i := int64(val)
 		e := val - float64(i)
 		if e > 0 || e < 0 {
@@ -448,15 +460,8 @@ func processNumber(ctx *walkContext, fm *FieldMapping, fieldName string, val flo
 		}
 		return &pspb.Field{
 			Name:   fieldName,
-			Type:   pspb.FieldType_INT,
-			Value:  cbbytes.Int64ToByte(i),
-			Option: fm.Options(),
-		}, nil
-	case pspb.FieldType_LONG:
-		return &pspb.Field{
-			Name:   fieldName,
 			Type:   pspb.FieldType_LONG,
-			Value:  cbbytes.Float64ToByte(val),
+			Value:  cbbytes.Int64ToByte(i),
 			Option: fm.Options(),
 		}, nil
 	case pspb.FieldType_FLOAT:

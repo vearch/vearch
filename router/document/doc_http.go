@@ -295,7 +295,8 @@ func (handler *DocumentHandler) handleGetSpaceMapping(ctx context.Context, w htt
 }
 
 func (handler *DocumentHandler) handleReplaceDoc(ctx context.Context, w http.ResponseWriter, r *http.Request, params netutil.UriParams) (context.Context, bool) {
-	defer monitor.Profiler("handleReplaceDoc", time.Now().Nanosecond())
+	startTime := time.Now()
+	defer monitor.Profiler("handleReplaceDoc", startTime)
 	method := r.Method
 	dbName := params.ByName(UrlParamDbName)
 	spaceName := params.ByName(UrlParamSpaceName)
@@ -389,7 +390,8 @@ func (handler *DocumentHandler) handleReplaceDoc(ctx context.Context, w http.Res
 }
 
 func (handler *DocumentHandler) handleCreateDoc(ctx context.Context, w http.ResponseWriter, r *http.Request, params netutil.UriParams) (context.Context, bool) {
-	defer monitor.Profiler("handleCreateDoc", time.Now().Nanosecond())
+	startTime := time.Now()
+	defer monitor.Profiler("handleCreateDoc", startTime)
 
 	dbName := params.ByName(UrlParamDbName)
 	spaceName := params.ByName(UrlParamSpaceName)
@@ -466,7 +468,8 @@ func (handler *DocumentHandler) handleCreateDoc(ctx context.Context, w http.Resp
 }
 
 func (handler *DocumentHandler) handleUpdateDoc(ctx context.Context, w http.ResponseWriter, r *http.Request, params netutil.UriParams) (context.Context, bool) {
-	defer monitor.Profiler("handleUpdateDoc", time.Now().Nanosecond())
+	startTime := time.Now()
+	defer monitor.Profiler("handleUpdateDoc", startTime)
 	method := r.Method
 	dbName := params.ByName(UrlParamDbName)
 	spaceName := params.ByName(UrlParamSpaceName)
@@ -542,7 +545,8 @@ func (handler *DocumentHandler) handleUpdateDoc(ctx context.Context, w http.Resp
 }
 
 func (handler *DocumentHandler) handleDeleteDoc(ctx context.Context, w http.ResponseWriter, r *http.Request, params netutil.UriParams) (context.Context, bool) {
-	defer monitor.Profiler("handleDeleteDoc", time.Now().Nanosecond())
+	startTime := time.Now()
+	defer monitor.Profiler("handleDeleteDoc", startTime)
 
 	dbName := params.ByName(UrlParamDbName)
 	spaceName := params.ByName(UrlParamSpaceName)
@@ -590,7 +594,8 @@ func (handler *DocumentHandler) handleDeleteDoc(ctx context.Context, w http.Resp
 }
 
 func (handler *DocumentHandler) handleGetDoc(ctx context.Context, w http.ResponseWriter, r *http.Request, params netutil.UriParams) (context.Context, bool) {
-	defer monitor.Profiler("handleGetDoc", time.Now().Nanosecond())
+	startTime := time.Now()
+	defer monitor.Profiler("handleGetDoc", startTime)
 	dbName := params.ByName(UrlParamDbName)
 	spaceName := params.ByName(UrlParamSpaceName)
 	docID := params.ByName(UrlParamDocID)
@@ -636,7 +641,7 @@ func (handler *DocumentHandler) handleGetDoc(ctx context.Context, w http.Respons
 
 func (handler *DocumentHandler) handleBulk(ctx context.Context, w http.ResponseWriter, r *http.Request, params netutil.UriParams) (context.Context, bool) {
 	paramTime := time.Now()
-	defer monitor.Profiler("handleBulk", time.Now().Nanosecond())
+	defer monitor.Profiler("handleBulk", paramTime)
 
 	dbName := params.ByName(UrlParamDbName)
 	spaceName := params.ByName(UrlParamSpaceName)
@@ -717,7 +722,8 @@ func (handler *DocumentHandler) handleBulk(ctx context.Context, w http.ResponseW
 }
 
 func (handler *DocumentHandler) handleMSearchIDsDoc(ctx context.Context, w http.ResponseWriter, r *http.Request, params netutil.UriParams) (context.Context, bool) {
-	defer monitor.Profiler("handleMSearchIDsDoc", time.Now().Nanosecond())
+	startTime := time.Now()
+	defer monitor.Profiler("handleMSearchIDsDoc", startTime)
 
 	dbName := params.ByName(UrlParamDbName)
 	spaceName := params.ByName(UrlParamSpaceName)
@@ -833,7 +839,8 @@ func (handler *DocumentHandler) handleMSearchForIDsDoc(ctx context.Context, w ht
 }
 
 func (handler *DocumentHandler) handleMSearchDoc(ctx context.Context, w http.ResponseWriter, r *http.Request, params netutil.UriParams) (context.Context, bool) {
-	defer monitor.Profiler("handleMSearchDoc", time.Now().Nanosecond())
+	startTime := time.Now()
+	defer monitor.Profiler("handleMSearchDoc", startTime)
 
 	dbName := params.ByName(UrlParamDbName)
 	spaceName := params.ByName(UrlParamSpaceName)
@@ -1103,7 +1110,8 @@ func (handler *DocumentHandler) handleDeleteByQuery(ctx context.Context, w http.
 }
 
 func (handler *DocumentHandler) handleSearchDoc(ctx context.Context, w http.ResponseWriter, r *http.Request, params netutil.UriParams) (context.Context, bool) {
-	defer monitor.Profiler("handleSearchDoc", time.Now().Nanosecond())
+	startTime := time.Now()
+	defer monitor.Profiler("handleSearchDoc", startTime)
 
 	dbName := params.ByName(UrlParamDbName)
 	spaceName := params.ByName(UrlParamSpaceName)
@@ -1122,6 +1130,10 @@ func (handler *DocumentHandler) handleSearchDoc(ctx context.Context, w http.Resp
 			resp.SendError(ctx, w, http.StatusBadRequest, err.Error())
 			return ctx, true
 		}
+	} else {
+		log.Error("len of reqBody: %d", len(reqBody))
+		resp.SendError(ctx, w, http.StatusBadRequest, "param empty")
+		return ctx, true
 	}
 
 	if reqArgs[UrlQueryFrom] != "" {
@@ -1210,7 +1222,8 @@ func (handler *DocumentHandler) handleSearchDoc(ctx context.Context, w http.Resp
 }
 
 func (handler *DocumentHandler) handleStreamSearchDoc(ctx context.Context, w http.ResponseWriter, r *http.Request, params netutil.UriParams) (context.Context, bool) {
-	defer monitor.Profiler("handleStreamSearchDoc", time.Now().Nanosecond())
+	startTime := time.Now()
+	defer monitor.Profiler("handleStreamSearchDoc", startTime)
 
 	dbName := params.ByName(UrlParamDbName)
 	spaceName := params.ByName(UrlParamSpaceName)

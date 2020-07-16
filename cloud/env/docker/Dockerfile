@@ -13,8 +13,6 @@ RUN yum install -y wget gcc gcc-c++ make automake git blas-devel lapack-devel wh
     ln -s cmake3 cmake &&\
     cd /env/app/ &&\
     git clone https://github.com/facebookresearch/faiss.git &&\
-    cd faiss &&\
-    git checkout v1.6.0 &&\
     cd /env/app/faiss &&\
     ./configure --without-cuda --prefix=/env/app/faiss_install &&\
     make &&\

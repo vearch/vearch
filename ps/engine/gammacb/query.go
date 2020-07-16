@@ -422,7 +422,7 @@ func (qb *queryBuilder) parseQuery(data []byte, req *C.struct_Request, retrieval
 		req.vec_fields_num = C.int(len(vqs))
 	} else {
 		req.vec_fields_num = C.int(0)
-		return fmt.Errorf("query feature is null please check param")
+		//return fmt.Errorf("query feature is null please check param")
 	}
 
 	if len(tfs) > 0 {
