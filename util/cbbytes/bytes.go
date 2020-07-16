@@ -250,6 +250,11 @@ func Int64ToByte(v int64) []byte {
 	return bs
 }
 
+func Int32ToByte(v int32) []byte {
+	bs, _ := ValueToByte(v)
+	return bs
+}
+
 func ValueToByte(fa interface{}) ([]byte, error) {
 	buf := &bytes.Buffer{}
 	if err := binary.Write(buf, binary.LittleEndian, fa); err != nil {

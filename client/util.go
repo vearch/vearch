@@ -120,6 +120,8 @@ func Doc2DocResult(item *gamma_api.ResultItem, partitionID uint32,
 				}
 			case pspb.FieldType_INT:
 				source[name] = cbbytes.Bytes2Int32(value)
+			case pspb.FieldType_LONG:
+				source[name] = cbbytes.Bytes2Int(value)
 			case pspb.FieldType_BOOL:
 				if cbbytes.Bytes2Int(value) == 0 {
 					source[name] = false
