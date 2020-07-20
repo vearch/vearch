@@ -23,6 +23,7 @@ fi
 cd /env/app/
 if [ ! -d "faiss" ]; then
     git clone https://github.com/facebookresearch/faiss.git
+    cd faiss
 fi
 cd /env/app/faiss
 ./configure --without-cuda --prefix=/env/app/faiss_install
