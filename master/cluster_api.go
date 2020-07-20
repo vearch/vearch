@@ -41,7 +41,7 @@ import (
 const (
 	DB            = "db"
 	dbName        = "db_name"
-	sapceName     = "space_name"
+	spaceNmme     = "space_name"
 	userName      = "user_name"
 	userPassword  = "user_password"
 	userDbList    = "user_db_list"
@@ -85,9 +85,9 @@ func ExportToClusterHandler(router *gin.Engine, masterService *masterService) {
 
 	//space handler
 	router.Handle(http.MethodPut, "/space/:"+dbName+"/_create", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.createSpace, dh.TimeOutEndHandler)
-	router.Handle(http.MethodGet, "/space/:"+dbName+"/:"+sapceName, dh.PaincHandler, dh.TimeOutHandler, c.auth, c.getSpace, dh.TimeOutEndHandler)
-	router.Handle(http.MethodDelete, "/space/:"+dbName+"/:"+sapceName, dh.PaincHandler, dh.TimeOutHandler, c.auth, c.deleteSpace, dh.TimeOutEndHandler)
-	router.Handle(http.MethodPost, "/space/:"+dbName+"/:"+sapceName, dh.PaincHandler, dh.TimeOutHandler, c.auth, c.updateSpace, dh.TimeOutEndHandler)
+	router.Handle(http.MethodGet, "/space/:"+dbName+"/:"+spaceName, dh.PaincHandler, dh.TimeOutHandler, c.auth, c.getSpace, dh.TimeOutEndHandler)
+	router.Handle(http.MethodDelete, "/space/:"+dbName+"/:"+spaceName, dh.PaincHandler, dh.TimeOutHandler, c.auth, c.deleteSpace, dh.TimeOutEndHandler)
+	router.Handle(http.MethodPost, "/space/:"+dbName+"/:"+spaceName, dh.PaincHandler, dh.TimeOutHandler, c.auth, c.updateSpace, dh.TimeOutEndHandler)
 
 	//partition handler
 	router.Handle(http.MethodPost, "/partition/change_member", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.changeMember, dh.TimeOutEndHandler)
@@ -271,13 +271,13 @@ func (this *clusterApi) createSpace(c *gin.Context) {
 }
 
 func (this *clusterApi) deleteSpace(c *gin.Context) {
-	log.Debug("delete space, db: %s, space: %s", c.Param(dbName), c.Param(sapceName))
+	log.Debug("delete space, db: %s, space: %s", c.Param(dbName), c.Param(spaceName))
 	dbName := c.Param(dbName)
-	sapceName := c.Param(sapceName)
+	spaceName := c.Param(spaceName)
 
 	ctx, _ := c.Get(vearchhttp.Ctx)
 
-	if err := this.masterService.deleteSpaceService(ctx.(context.Context), dbName, sapceName); err != nil {
+	if err := this.masterService.deleteSpaceService(ctx.(context.Context), dbName, spaceName); err != nil {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 	} else {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(nil)
@@ -286,7 +286,7 @@ func (this *clusterApi) deleteSpace(c *gin.Context) {
 
 func (this *clusterApi) getSpace(c *gin.Context) {
 	dbName := c.Param(dbName)
-	sapceName := c.Param(sapceName)
+	spaceName := c.Param(spaceName)
 
 	ctx, _ := c.Get(vearchhttp.Ctx)
 
@@ -296,7 +296,7 @@ func (this *clusterApi) getSpace(c *gin.Context) {
 		return
 	}
 
-	if space, err := this.masterService.Master().QuerySpaceByName(ctx.(context.Context), dbID, sapceName); err != nil {
+	if space, err := this.masterService.Master().QuerySpaceByName(ctx.(context.Context), dbID, spaceName); err != nil {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 	} else {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(space)
@@ -305,18 +305,18 @@ func (this *clusterApi) getSpace(c *gin.Context) {
 
 func (this *clusterApi) updateSpace(c *gin.Context) {
 	dbName := c.Param(dbName)
-	sapceName := c.Param(sapceName)
+	spaceName := c.Param(spaceName)
 
 	ctx, _ := c.Get(vearchhttp.Ctx)
 
-	space := &entity.Space{Name: sapceName}
+	space := &entity.Space{Name: spaceName}
 
 	if err := c.ShouldBindJSON(space); err != nil {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 		return
 	}
 
-	if spaceResult, err := this.masterService.updateSpaceService(ctx.(context.Context), dbName, sapceName, space); err != nil {
+	if spaceResult, err := this.masterService.updateSpaceService(ctx.(context.Context), dbName, spaceName, space); err != nil {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 
 	} else {
