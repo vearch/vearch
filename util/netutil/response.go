@@ -18,7 +18,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/tiglabs/log"
+	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/proto"
 	"github.com/vearch/vearch/util/cbjson"
 )
@@ -93,7 +93,7 @@ func (this *Response) SendJson(data interface{}) {
 func (this *Response) SendJsonHttpReplySuccess(data interface{}) {
 	httpReply := &HttpReply{
 		Code: pkg.ERRCODE_SUCCESS,
-		Msg:  pkg.ErrGeneralSuccess.Error(),
+		Msg:  pkg.SUCCESS,
 		Data: data,
 	}
 	this.SendJson(httpReply)

@@ -17,29 +17,29 @@ package ps
 import (
 	"context"
 	"encoding/json"
+	"net"
+	"strings"
+	"time"
+
 	"github.com/smallnest/rpcx/server"
-	"github.com/tiglabs/log"
 	"github.com/vearch/vearch/client"
 	"github.com/vearch/vearch/config"
-	"github.com/vearch/vearch/proto"
+	pkg "github.com/vearch/vearch/proto"
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/proto/pspb"
 	"github.com/vearch/vearch/proto/request"
 	"github.com/vearch/vearch/proto/response"
 	"github.com/vearch/vearch/ps/engine"
 	"github.com/vearch/vearch/util/cbjson"
+	"github.com/vearch/vearch/util/log"
 	rpc "github.com/vearch/vearch/util/server/rpc"
 	"github.com/vearch/vearch/util/server/rpc/handler"
 	"go.uber.org/atomic"
-	"net"
-	"strings"
-	"time"
 )
 
 func ExportToRpcHandler(server *Server) {
 
 	initHandler := &InitHandler{server: server}
-	frozenHandler := &FrozenHandler{server: server}
 	psErrorChange := psErrorChange(server)
 	streamSearchHandler := &StreamSearchHandler{server: server.rpcServer}
 
@@ -48,43 +48,55 @@ func ExportToRpcHandler(server *Server) {
 	server.rpcServer.AddPlugin(limitPlugin)
 
 	//register search handler
-	if err := server.rpcServer.RegisterName(handler.NewChain(client.SearchHandler, server.monitor, handler.DefaultPanicHadler, psErrorChange, initHandler, new(SearchHandler)), ""); err != nil {
+	if err := server.rpcServer.RegisterName(handler.NewChain(client.SearchHandler, handler.DefaultPanicHadler, psErrorChange, initHandler, new(SearchHandler)), ""); err != nil {
 		panic(err)
 	}
 
-	if err := server.rpcServer.RegisterName(handler.NewChain(client.DeleteByQueryHandler, server.monitor, handler.DefaultPanicHadler, psErrorChange, initHandler, new(DeleteByQueryHandler)), ""); err != nil {
+	if err := server.rpcServer.RegisterName(handler.NewChain(client.DeleteByQueryHandler, handler.DefaultPanicHadler, psErrorChange, initHandler, new(DeleteByQueryHandler)), ""); err != nil {
 		panic(err)
 	}
 
-	if err := server.rpcServer.RegisterName(handler.NewChain(client.MSearchHandler, server.monitor, handler.DefaultPanicHadler, psErrorChange, initHandler, new(MSearchHandler)), ""); err != nil {
+	if err := server.rpcServer.RegisterName(handler.NewChain(client.MSearchHandler, handler.DefaultPanicHadler, psErrorChange, initHandler, new(MSearchHandler)), ""); err != nil {
 		panic(err)
 	}
 
-	if err := server.rpcServer.RegisterName(handler.NewChain(client.StreamSearchHandler, server.monitor, handler.DefaultPanicHadler, psErrorChange, initHandler, streamSearchHandler), ""); err != nil {
+	if err := server.rpcServer.RegisterName(handler.NewChain(client.MSearchIDsHandler, handler.DefaultPanicHadler, psErrorChange, initHandler, new(MSearchIDsHandler)), ""); err != nil {
 		panic(err)
 	}
 
-	if err := server.rpcServer.RegisterName(handler.NewChain(client.GetDocHandler, server.monitor, handler.DefaultPanicHadler, psErrorChange, initHandler, new(GetDocHandler)), ""); err != nil {
+	if err := server.rpcServer.RegisterName(handler.NewChain(client.MSearchForIDsHandler, handler.DefaultPanicHadler, psErrorChange, initHandler, new(MSearchForIDsHandler)), ""); err != nil {
 		panic(err)
 	}
 
-	if err := server.rpcServer.RegisterName(handler.NewChain(client.GetDocsHandler, server.monitor, handler.DefaultPanicHadler, psErrorChange, initHandler, new(GetDocsHandler)), ""); err != nil {
+	if err := server.rpcServer.RegisterName(handler.NewChain(client.MSearchNewHandler, handler.DefaultPanicHadler, psErrorChange, initHandler, new(MSearchNewHandler)), ""); err != nil {
 		panic(err)
 	}
 
-	if err := server.rpcServer.RegisterName(handler.NewChain(client.BatchHandler, server.monitor, handler.DefaultPanicHadler, psErrorChange, initHandler, frozenHandler, &BatchHandler{server: server}), ""); err != nil {
+	if err := server.rpcServer.RegisterName(handler.NewChain(client.StreamSearchHandler, handler.DefaultPanicHadler, psErrorChange, initHandler, streamSearchHandler), ""); err != nil {
 		panic(err)
 	}
 
-	if err := server.rpcServer.RegisterName(handler.NewChain(client.WriteHandler, server.monitor, handler.DefaultPanicHadler, psErrorChange, initHandler, frozenHandler, &WriteHandler{server: server, limitPlugin: limitPlugin}), ""); err != nil {
+	if err := server.rpcServer.RegisterName(handler.NewChain(client.GetDocHandler, handler.DefaultPanicHadler, psErrorChange, initHandler, new(GetDocHandler)), ""); err != nil {
 		panic(err)
 	}
 
-	if err := server.rpcServer.RegisterName(handler.NewChain(client.FlushHandler, server.monitor, handler.DefaultPanicHadler, psErrorChange, initHandler, &FlushHandler{server: server}), ""); err != nil {
+	if err := server.rpcServer.RegisterName(handler.NewChain(client.GetDocsHandler, handler.DefaultPanicHadler, psErrorChange, initHandler, new(GetDocsHandler)), ""); err != nil {
 		panic(err)
 	}
 
-	if err := server.rpcServer.RegisterName(handler.NewChain(client.ForceMergeHandler, server.monitor, handler.DefaultPanicHadler, psErrorChange, initHandler, &ForceMergeHandler{server: server}), ""); err != nil {
+	if err := server.rpcServer.RegisterName(handler.NewChain(client.BatchHandler, handler.DefaultPanicHadler, psErrorChange, initHandler, &BatchHandler{server: server}), ""); err != nil {
+		panic(err)
+	}
+
+	if err := server.rpcServer.RegisterName(handler.NewChain(client.WriteHandler, handler.DefaultPanicHadler, psErrorChange, initHandler, &WriteHandler{server: server, limitPlugin: limitPlugin}), ""); err != nil {
+		panic(err)
+	}
+
+	if err := server.rpcServer.RegisterName(handler.NewChain(client.FlushHandler, handler.DefaultPanicHadler, psErrorChange, initHandler, &FlushHandler{server: server}), ""); err != nil {
+		panic(err)
+	}
+
+	if err := server.rpcServer.RegisterName(handler.NewChain(client.ForceMergeHandler, handler.DefaultPanicHadler, psErrorChange, initHandler, &ForceMergeHandler{server: server}), ""); err != nil {
 		panic(err)
 	}
 
@@ -97,7 +109,7 @@ type InitHandler struct {
 
 func (i *InitHandler) Execute(req *handler.RpcRequest, resp *handler.RpcResponse) error {
 	if i.server.stopping.Get() {
-		return pkg.ErrGeneralServiceUnavailable
+		return pkg.CodeErr(pkg.ERRCODE_SERVICE_UNAVAILABLE)
 	}
 
 	arg := req.Arg.(request.Request)
@@ -112,25 +124,11 @@ func (i *InitHandler) Execute(req *handler.RpcRequest, resp *handler.RpcResponse
 
 	if store := i.server.GetPartition(arg.GetPartitionID()); store == nil {
 		log.Error("partition not found, partitionId:[%d]", arg.GetPartitionID())
-		return pkg.ErrPartitionNotExist
+		return pkg.CodeErr(pkg.ERRCODE_PARTITION_NOT_EXIST)
 	} else {
 		rCtx.SetStore(store)
 	}
 
-	return nil
-}
-
-type FrozenHandler struct {
-	server *Server
-}
-
-func (i *FrozenHandler) Execute(req *handler.RpcRequest, resp *handler.RpcResponse) error {
-	reqs := req.Arg.(request.Request)
-	rCtx := reqs.Context()
-	store := rCtx.GetStore().(PartitionStore)
-	if store.GetPartition().Frozen {
-		return pkg.ErrPartitionFrozen
-	}
 	return nil
 }
 
@@ -206,7 +204,7 @@ func (wh *WriteHandler) Execute(req *handler.RpcRequest, resp *handler.RpcRespon
 
 	if wh.limitPlugin.limit.Load() > wh.limitPlugin.size {
 		log.Warn("too many routine:[%d] for limt so skip pre read request", wh.limitPlugin.limit.Load())
-		return pkg.ErrGeneralSysBusy
+		return pkg.CodeErr(pkg.ERRCODE_SYSBUSY)
 	}
 
 	reqs := req.GetArg().(*request.ObjRequest)
@@ -226,10 +224,34 @@ func (wh *WriteHandler) Execute(req *handler.RpcRequest, resp *handler.RpcRespon
 		}
 	}
 
+	/*raftCmd := raftpb.RaftCommand{
+		Type : raftpb.CmdType_WRITE,
+		WriteCommand : doc,
+	}
+
+	startTime := time.Now()
+	docResult := store.GetEngine().Writer().Write(req.Ctx,raftCmd.WriteCommand)
+	endTime := time.Now()
+
+	if doc.Type != pspb.OpType_DELETE {
+		if doc.Type != pspb.OpType_DELETE {
+			docResult.CostTime.PsHandlerStartTime = startTime
+			docResult.CostTime.PsHandlerEndTime = endTime
+		}
+	}
+
+	resp.Result = docResult*/
+
+	startTime := time.Now()
 	if reps, err := store.Write(req.Ctx, doc); err != nil {
-		log.Error("handler type: [%s] doc err :[%s] , content :[%s]", doc.Type, err.Error(), doc.Source)
+		log.Error("  type: [%s] doc err :[%s] , content :[%s]", doc.Type, err.Error(), doc.Source)
 		return err
 	} else {
+		endTime := time.Now()
+		if doc.Type != pspb.OpType_DELETE && reps.CostTime != nil {
+			reps.CostTime.PsHandlerStartTime = startTime
+			reps.CostTime.PsHandlerEndTime = endTime
+		}
 		resp.Result = reps
 	}
 
@@ -260,17 +282,12 @@ type ForceMergeHandler struct {
 func (wh *ForceMergeHandler) Execute(req *handler.RpcRequest, resp *handler.RpcResponse) error {
 	reqs := req.Arg.(request.Request)
 	store := reqs.Context().GetStore().(PartitionStore)
-	err := store.GetEngine().Optimize()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return store.GetEngine().Optimize()
 }
 
 func fullFieldAndUpdateSchema(server *Server, ctx context.Context, engine engine.Engine, space entity.Space, doc *pspb.DocCmd) error {
 
-	fields, dynamicFieldMap, err := engine.MapDocument(doc)
+	fields, dynamicFieldMap, err := engine.MapDocument(doc, space.Engine.RetrievalType)
 	if err != nil {
 		return err
 	}
@@ -388,6 +405,57 @@ func (*SearchHandler) Execute(req *handler.RpcRequest, resp *handler.RpcResponse
 	return nil
 }
 
+type MSearchNewHandler int
+
+func (*MSearchNewHandler) Execute(req *handler.RpcRequest, resp *handler.RpcResponse) error {
+	reqs := req.GetArg().(*request.SearchRequest)
+	if reqs.SearchDocumentRequest == nil {
+		reqs.SearchDocumentRequest = &request.SearchDocumentRequest{}
+	}
+
+	if reps, e := reqs.GetStore().(PartitionStore).MSearchNew(req.Ctx, reqs.Leader, reqs); e != nil {
+		return e
+	} else {
+		resp.Result = reps
+	}
+
+	return nil
+}
+
+type MSearchIDsHandler int
+
+func (*MSearchIDsHandler) Execute(req *handler.RpcRequest, resp *handler.RpcResponse) error {
+	reqs := req.GetArg().(*request.SearchRequest)
+	if reqs.SearchDocumentRequest == nil {
+		reqs.SearchDocumentRequest = &request.SearchDocumentRequest{}
+	}
+
+	if reps, e := reqs.GetStore().(PartitionStore).MSearchIDs(req.Ctx, reqs.Leader, reqs); e != nil {
+		return e
+	} else {
+		resp.Result = reps
+	}
+
+	return nil
+}
+
+type MSearchForIDsHandler int
+
+func (*MSearchForIDsHandler) Execute(req *handler.RpcRequest, resp *handler.RpcResponse) error {
+	reqs := req.GetArg().(*request.SearchRequest)
+	if reqs.SearchDocumentRequest == nil {
+		reqs.SearchDocumentRequest = &request.SearchDocumentRequest{}
+	}
+
+	if reps, e := reqs.GetStore().(PartitionStore).MSearchForIDs(req.Ctx, reqs.Leader, reqs); e != nil {
+		return e
+	} else {
+		resp.Result = reps
+	}
+
+	return nil
+}
+
 //Msearch handler
 type MSearchHandler int
 
@@ -425,7 +493,7 @@ func (ssh *StreamSearchHandler) Execute(req *handler.RpcRequest, resp *handler.R
 
 	conn := req.Ctx.Value(server.RemoteConnContextKey).(net.Conn)
 	if conn == nil {
-		return pkg.ErrGeneralServiceUnavailable
+		return pkg.CodeErr(pkg.ERRCODE_SERVICE_UNAVAILABLE)
 	}
 
 	defer func() {

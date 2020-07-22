@@ -126,6 +126,25 @@ func Normalization(feature []float32) error {
 	return nil
 }
 
+func NormalizationUint8(feature []uint8) error {
+	var sum uint8
+
+	for _, v := range feature {
+		sum += v * v
+	}
+	if math.IsNaN(float64(sum)) || math.IsInf(float64(sum), 0) || sum == 0 {
+		return fmt.Errorf("normalization err , sum value is:[%v]", sum)
+	}
+
+	sum = uint8(math.Sqrt(float64(sum)))
+
+	for i, v := range feature {
+		feature[i] = v / sum
+	}
+
+	return nil
+}
+
 func IsNum(s string) bool {
 	if len(s) == 0 {
 		return false

@@ -15,7 +15,7 @@
 package signals
 
 import (
-	"github.com/tiglabs/log"
+	"github.com/vearch/vearch/util/log"
 	"os"
 	"os/signal"
 	"syscall"
@@ -34,7 +34,8 @@ func NewSignalHook() *SignalHook {
 		hooks: make([]func(), 0),
 		stopC: make(chan interface{}, 1),
 	}
-	signal.Notify(s.sigsC, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGKILL)
+	// signal.Notify(s.sigsC, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGKILL)
+	signal.Notify(s.sigsC, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGKILL)
 
 	return s
 }

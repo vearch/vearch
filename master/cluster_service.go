@@ -19,23 +19,19 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/pkg/errors"
+	"github.com/tiglabs/raft/proto"
 	"github.com/vearch/vearch/ps/engine/mapping"
 	"github.com/vearch/vearch/util/cbjson"
-	"github.com/vearch/vearch/util/metrics/mserver"
-	"github.com/vearch/vearch/util/uuid"
-	"github.com/vearch/vearch/util/vearchlog"
 	"math"
 	"sort"
-	"strings"
 	"time"
 
 	"github.com/spf13/cast"
-	"github.com/tiglabs/log"
 	"github.com/vearch/vearch/client"
 	"github.com/vearch/vearch/proto"
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/util"
+	"github.com/vearch/vearch/util/log"
 	"go.etcd.io/etcd/clientv3/concurrency"
 )
 
@@ -169,7 +165,7 @@ func (this *masterService) deleteDBService(ctx context.Context, dbstr string) (e
 	}
 
 	if len(spaces) > 0 {
-		return pkg.ErrMasterDbNotEmpty
+		return pkg.CodeErr(pkg.ERRCODE_DB_Not_Empty)
 	}
 
 	err = this.Master().STM(context.Background(),
@@ -204,7 +200,7 @@ func (this *masterService) queryDBService(ctx context.Context, dbstr string) (db
 	}
 
 	if bs == nil {
-		return nil, pkg.ErrMasterDbNotExists
+		return nil, pkg.CodeErr(pkg.ERRCODE_DB_NOTEXISTS)
 	}
 
 	if err := json.Unmarshal(bs, db); err != nil {
@@ -243,11 +239,11 @@ func (this *masterService) createSpaceService(ctx context.Context, dbName string
 
 	//spaces is existed
 	if _, err := this.Master().QuerySpaceByName(ctx, space.DBId, space.Name); err != nil {
-		if err != pkg.ErrMasterSpaceNotExists {
+		if pkg.ErrCode(err) != pkg.ERRCODE_SPACE_NOTEXISTS {
 			return err
 		}
 	} else {
-		return pkg.ErrMasterDupSpace
+		return pkg.CodeErr(pkg.ERRCODE_DUP_SPACE)
 	}
 
 	log.Info("create space, db: %s, spaceName: %s ,space :[%s]", dbName, space.Name, cbjson.ToJsonString(space))
@@ -358,7 +354,7 @@ func (this *masterService) createSpaceService(ctx context.Context, dbName string
 			if v%5 == 0 {
 				log.Debug("check the partition:%d status ", space.Partitions[i].Id)
 			}
-			if err != nil && err != pkg.ErrPartitionNotExist {
+			if err != nil && pkg.ErrCode(err) != pkg.ERRCODE_PARTITION_NOT_EXIST {
 				return err
 			}
 			if partition == nil {
@@ -370,10 +366,8 @@ func (this *masterService) createSpaceService(ctx context.Context, dbName string
 	}
 
 	space.Enabled = util.PBool(true)
-	//set worked partitions
-	space.WorkedPartitions = space.Partitions
-	//update version
 
+	//update version
 	err = this.updateSpace(ctx, space)
 	if err != nil {
 		space.Enabled = util.PBool(false)
@@ -425,275 +419,10 @@ func (this *masterService) generatePartitionsInfo(servers []*entity.Server, serv
 	}
 
 	if replicaNum > 0 {
-		return nil, pkg.ErrMasterPSNotEnoughSelect
+		return nil, pkg.VErrStr(pkg.ERRCODE_MASTER_PS_NOT_ENOUGH_SELECT, "need %d but got %d", partition.Replicas, len(addres))
 	}
 
 	return addres, nil
-}
-
-//frozen partition it use , partition not word , it only run in GuiXu engine
-func (ms *masterService) frozenPartition(ctx context.Context, partitionID entity.PartitionID) error {
-
-	log.Info("to frozen partition:[%d] ", partitionID)
-
-	partition, err := ms.Master().QueryPartition(ctx, partitionID)
-	if err != nil {
-		return err
-	}
-
-	space, err := ms.Master().QuerySpaceById(ctx, partition.DBId, partition.SpaceId)
-	if err != nil {
-		return err
-	}
-
-	if !space.CanFrozen() {
-		return fmt.Errorf("this engine can not use frozen partition, your engine is %s", space.Engine)
-	}
-
-	dbName, err := ms.Master().QueryDBId2Name(ctx, partition.DBId)
-	if err != nil {
-		return err
-	}
-
-	lock := ms.Master().NewLock(ctx, entity.LockSpaceKey(dbName, space.Name), 300*time.Second)
-	if err = lock.Lock(); err != nil {
-		return err
-	}
-	defer vearchlog.FunIfNotNil(lock.Unlock)
-
-	space, err = ms.Master().QuerySpaceById(ctx, partition.DBId, partition.SpaceId)
-	if err != nil {
-		return err
-	}
-
-	if err := ms.appendPartitionLocked(ctx, space); err != nil {
-		log.Error("appendPartitionLocked error :%v", err)
-		return err
-	}
-
-	if err := ms.frozenPartitionLocked(ctx, space, partition.Id); err != nil {
-		log.Error("frozenPartitionLocked  error :%v", err)
-		return err
-	}
-
-	return nil
-}
-
-func (ms *masterService) appendPartition(ctx context.Context, dbName, spaceName string) error {
-	log.Info("to append dbname :%v, spaceName:[%d] ", dbName, spaceName)
-
-	dbID, err := ms.Master().QueryDBName2Id(ctx, dbName)
-	if err != nil {
-		log.Error("append partition query db error :%v", err)
-		return err
-	}
-
-	space, err := ms.Master().QuerySpaceByName(ctx, dbID, spaceName)
-	if err != nil {
-		return err
-	}
-
-	if !space.CanFrozen() {
-		return fmt.Errorf("this engine can not use append partition, your engine is %s", space.Engine)
-	}
-
-	lock := ms.Master().NewLock(ctx, entity.LockSpaceKey(dbName, space.Name), 300*time.Second)
-	if err = lock.Lock(); err != nil {
-		return err
-	}
-	defer vearchlog.FunIfNotNil(lock.Unlock)
-
-	space, err = ms.Master().QuerySpaceById(ctx, dbID, space.Id)
-	if err != nil {
-		return err
-	}
-
-	if err := ms.appendPartitionLocked(ctx, space); err != nil {
-		log.Error("appendPartitionLocked error :%v", err)
-		return err
-	}
-	return nil
-}
-
-func (ms *masterService) deletePartition(ctx context.Context, dbName string, spaceName string, pid entity.PartitionID) error {
-	dbID, err := ms.Master().QueryDBName2Id(ctx, dbName)
-	if err != nil {
-		log.Error("append partition query db error :%v", err)
-		return err
-	}
-
-	lock := ms.Master().NewLock(ctx, entity.LockSpaceKey(dbName, spaceName), 300*time.Second)
-	if err = lock.Lock(); err != nil {
-		return err
-	}
-	defer vearchlog.FunIfNotNil(lock.Unlock)
-
-	space, err := ms.Master().QuerySpaceByName(ctx, dbID, spaceName)
-	if err != nil {
-		return err
-	}
-
-	for i, wp := range space.Partitions {
-		if wp.Id == pid {
-			space.Partitions = append(space.Partitions[:i], space.Partitions[i+1:]...)
-			break
-		}
-	}
-
-	for i, wp := range space.WorkedPartitions {
-		if wp.Id == pid {
-			space.WorkedPartitions = append(space.WorkedPartitions[:i], space.WorkedPartitions[i+1:]...)
-			break
-		}
-	}
-
-	return ms.updateSpace(ctx, space)
-}
-
-func (ms *masterService) appendPartitionLocked(ctx context.Context, space *entity.Space) error {
-	//find all servers for create space
-	servers, err := ms.Master().QueryServers(ctx)
-	if err != nil {
-		return err
-	}
-
-	//add new servers
-	serverPartitions, err := ms.filterAndSortServer(ctx, space, servers)
-	if err != nil {
-		return err
-	}
-
-	if int(space.ReplicaNum) > len(serverPartitions) {
-		return pkg.ErrMasterPSNotEnoughSelect
-	}
-
-	newPartitionID, err := ms.Master().NewIDGenerate(ctx, entity.PartitionIdSequence, 1, 5*time.Second)
-	if err != nil {
-		log.Error("create partition id err:[%s]", err.Error())
-		return err
-	}
-
-	newPartition := &entity.Partition{
-		Id:      entity.PartitionID(newPartitionID),
-		SpaceId: space.Id,
-		DBId:    space.DBId,
-	}
-
-	defer func() { //some times add partition err , need rollback
-		lastWPs := space.WorkedPartitions[len(space.WorkedPartitions)-1]
-		if lastWPs.Id == entity.PartitionID(newPartitionID) {
-			return
-		}
-
-		lastPs := space.Partitions[len(space.Partitions)-1]
-		if lastPs.Id != entity.PartitionID(newPartitionID) {
-			return
-		}
-
-		space.Partitions = space.Partitions[:len(space.WorkedPartitions)-1]
-
-		log.Warn("create partition has err so roolbak partitionID:[%d]", newPartitionID)
-
-		if err := ms.updateSpace(ctx, space); err != nil {
-			log.Error(err.Error())
-		}
-	}()
-
-	//only add partitions for add partition
-	space.Partitions = append(space.Partitions, newPartition)
-
-	if err := ms.updateSpace(ctx, space); err != nil {
-		return err
-	}
-
-	addrs, err := ms.generatePartitionsInfo(servers, serverPartitions, space.ReplicaNum, newPartition)
-	if err != nil {
-		return err
-	}
-
-	for _, addr := range addrs {
-		if err := ms.PS().B().Admin(addr).CreatePartition(space, newPartition.Id); err != nil {
-			return vearchlog.LogErrAndReturn(fmt.Errorf("create partition err: %s ", err.Error()))
-		}
-	}
-
-	var (
-		maxCheckTimes = 100
-		checkTimes    = 0
-	)
-
-	for {
-		checkTimes++
-
-		if checkTimes%5 == 0 {
-			log.Debug("check the partition:%d check times :%v, max check times :%v", newPartitionID, checkTimes, maxCheckTimes)
-		}
-
-		if checkTimes >= maxCheckTimes {
-			return fmt.Errorf("create partition reaced max check times :%", maxCheckTimes)
-		}
-
-		select {
-		case <-ctx.Done():
-			return fmt.Errorf("appendPartitionocked ctx canceld")
-		default:
-		}
-
-		partition, err := ms.Master().QueryPartition(ctx, entity.PartitionID(newPartitionID))
-		if err != nil && err != pkg.ErrPartitionNotExist {
-			return err
-		}
-		if partition != nil {
-			break
-		}
-
-		time.Sleep(50 * time.Millisecond)
-	}
-
-	space.WorkedPartitions = append(space.WorkedPartitions, newPartition)
-
-	if err := ms.updateSpace(ctx, space); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (ms *masterService) frozenPartitionLocked(ctx context.Context, space *entity.Space, frozenPartitionID entity.PartitionID) error {
-	//save ok , remove it to worker list
-	for i, wp := range space.WorkedPartitions {
-		if wp.Id == frozenPartitionID {
-			space.WorkedPartitions = append(space.WorkedPartitions[:i], space.WorkedPartitions[i+1:]...)
-			break
-		}
-	}
-
-	for _, p := range space.Partitions {
-		if p.Id == frozenPartitionID {
-			p.Frozen = true
-			p.UpdateTime = time.Now().UnixNano()
-		}
-	}
-
-	if err := ms.updateSpace(ctx, space); err != nil {
-		return err
-	}
-
-	newFrozenPartition, err := ms.Master().QueryPartition(ctx, frozenPartitionID)
-	if err != nil {
-		return err
-	}
-	server, err := ms.Master().QueryServer(ctx, newFrozenPartition.LeaderID)
-	if err != nil {
-		return err
-	}
-
-	if err := ms.PS().B().Admin(server.RpcAddr()).UpdatePartition(space, frozenPartitionID); err != nil {
-		return err
-	}
-
-	return nil
-
 }
 
 func (ms *masterService) filterAndSortServer(ctx context.Context, space *entity.Space, servers []*entity.Server) (map[int]int, error) {
@@ -767,6 +496,18 @@ func (this *masterService) deleteSpaceService(ctx context.Context, dbName string
 		return err
 	}
 
+	for _, p := range space.Partitions {
+		for _, replica := range p.Replicas {
+			if server, err := this.Master().QueryServer(ctx, replica); err != nil {
+				log.Error("query partition:[%d] for replica:[%s] has err:[%s]", p.Id, replica, err.Error())
+			} else {
+				if err := this.PS().Be(ctx).Admin(server.RpcAddr()).DeletePartition(p.Id); err != nil {
+					log.Error("delete partition:[%d] for server:[%s] has err:[%s]", p.Id, server.RpcAddr(), err.Error())
+				}
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -824,9 +565,6 @@ func (this *masterService) updateSpaceService(ctx context.Context, dbName, space
 	if temp.Name != "" {
 		space.Name = temp.Name
 	}
-	if temp.DynamicSchema != "" {
-		space.DynamicSchema = temp.DynamicSchema
-	}
 
 	if temp.Enabled != nil {
 		space.Enabled = temp.Enabled
@@ -835,6 +573,9 @@ func (this *masterService) updateSpaceService(ctx context.Context, dbName, space
 	if err := space.Validate(); err != nil {
 		return nil, err
 	}
+
+	space.Version++
+	space.Partitions = temp.Partitions
 
 	if temp.Properties != nil && len(temp.Properties) > 0 {
 
@@ -905,6 +646,7 @@ func (this *masterService) updateSpaceService(ctx context.Context, dbName, space
 		}
 	}
 
+	space.Version--
 	if err := this.updateSpace(ctx, space); err != nil {
 		return nil, err
 	} else {
@@ -931,202 +673,6 @@ func (this *masterService) queryDBs(ctx context.Context) ([]*entity.DB, error) {
 	return dbs, err
 }
 
-func (this *masterService) partitionInfo(ctx context.Context, dbName, spaceName string) ([]map[string]interface{}, error) {
-	dbNames := make([]string, 0)
-	if dbName != "" {
-		dbNames = strings.Split(dbName, ",")
-	}
-
-	if len(dbNames) == 0 {
-		dbs, err := this.queryDBs(ctx)
-		if err != nil {
-			return nil, err
-		}
-		dbNames = make([]string, len(dbs))
-		for i, db := range dbs {
-			dbNames[i] = db.Name
-		}
-	}
-
-	color := []string{"green", "yellow", "red"}
-
-	var errors []string
-
-	spaceNames := strings.Split(spaceName, ",")
-
-	resultInsideDbs := make([]map[string]interface{}, 0)
-	for i := range dbNames {
-		dbName := dbNames[i]
-
-		dbId, err := this.Master().QueryDBName2Id(ctx, dbName)
-		if err != nil {
-			errors = append(errors, dbName+" find dbID err: "+err.Error())
-			continue
-		}
-
-		spaces, err := this.Master().QuerySpaces(ctx, dbId)
-		if err != nil {
-			errors = append(errors, dbName+" find space err: "+err.Error())
-			continue
-		}
-
-		dbStatus := 0
-
-		resultInsideSpaces := make([]map[string]interface{}, 0, len(spaces))
-		for _, space := range spaces {
-
-			spaceName := space.Name
-
-			if len(spaceNames) > 1 || spaceNames[0] != "" { //filter spaceName by user define
-				var index = -1
-
-				for i, name := range spaceNames {
-					if name == spaceName {
-						index = i
-						break
-					}
-				}
-
-				if index < 0 {
-					continue
-				}
-			}
-
-			spaceStatus := 0
-			resultInsidePartition := make([]*entity.PartitionInfo, 0)
-			for _, spacePartition := range space.Partitions {
-				p, err := this.Master().QueryPartition(ctx, spacePartition.Id)
-				if err != nil {
-					errors = append(errors, fmt.Sprintf("partition:[%d] not found in space: [%s]", spacePartition.Id, spaceName))
-					continue
-				}
-
-				pStatus := 0
-
-				nodeID := p.LeaderID
-				if nodeID == 0 {
-					errors = append(errors, fmt.Sprintf("partition:[%d] no leader in space: [%s]", spacePartition.Id, spaceName))
-					pStatus = 2
-					nodeID = p.Replicas[0]
-				}
-
-				server, err := this.Master().QueryServer(ctx, nodeID)
-				if err != nil {
-					errors = append(errors, fmt.Sprintf("server:[%d] not found in space: [%s] , partition:[%d]", nodeID, spaceName, spacePartition.Id))
-					pStatus = 2
-					continue
-				}
-
-				partitionInfo, err := this.Client.PS().Beg(ctx, uuid.FlakeUUID()).Admin(server.RpcAddr()).PartitionInfo(p.Id)
-				if err != nil {
-					errors = append(errors, fmt.Sprintf("query space:[%s] server:[%d] partition:[%d] info err :[%s]", spaceName, nodeID, spacePartition.Id, err.Error()))
-					partitionInfo = &entity.PartitionInfo{}
-					pStatus = 2
-				} else {
-					if len(partitionInfo.Unreachable) > 0 {
-						pStatus = 1
-					}
-				}
-
-				//this must from space.Partitions
-				partitionInfo.PartitionID = spacePartition.Id
-				partitionInfo.MaxValue = spacePartition.MaxValue
-				partitionInfo.MinValue = spacePartition.MinValue
-				partitionInfo.Frozen = spacePartition.Frozen
-				partitionInfo.Color = color[pStatus]
-				partitionInfo.ReplicaNum = len(p.Replicas)
-				partitionInfo.Ip = server.Ip
-				partitionInfo.NodeID = server.ID
-
-				resultInsidePartition = append(resultInsidePartition, partitionInfo)
-
-				if pStatus > spaceStatus {
-					spaceStatus = pStatus
-				}
-			}
-
-			docNum := uint64(0)
-			size := int64(0)
-			for _, p := range resultInsidePartition {
-				docNum += cast.ToUint64(p.DocNum)
-				size += cast.ToInt64(p.Size)
-			}
-			resultSpace := make(map[string]interface{})
-			resultSpace["name"] = spaceName
-			resultSpace["partition_num"] = len(resultInsidePartition)
-			resultSpace["replica_num"] = len(resultInsidePartition) * int(space.ReplicaNum)
-			resultSpace["doc_num"] = docNum
-			resultSpace["size"] = size
-			resultSpace["partitions"] = resultInsidePartition
-			resultSpace["status"] = color[spaceStatus]
-			resultInsideSpaces = append(resultInsideSpaces, resultSpace)
-
-			if spaceStatus > dbStatus {
-				dbStatus = spaceStatus
-			}
-		}
-
-		docNum := uint64(0)
-		size := int64(0)
-		for _, s := range resultInsideSpaces {
-			docNum += cast.ToUint64(s["doc_num"])
-			size += cast.ToInt64(s["size"])
-		}
-		resultDb := make(map[string]interface{})
-		resultDb["db_name"] = dbName
-		resultDb["space_num"] = len(spaces)
-		resultDb["doc_num"] = docNum
-		resultDb["size"] = size
-		resultDb["spaces"] = resultInsideSpaces
-		resultDb["status"] = color[dbStatus]
-		resultDb["errors"] = errors
-		resultInsideDbs = append(resultInsideDbs, resultDb)
-	}
-
-	return resultInsideDbs, nil
-}
-
-func (this *masterService) statsService(ctx context.Context) ([]*mserver.ServerStats, error) {
-	servers, err := this.Master().QueryServers(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	statsChan := make(chan *mserver.ServerStats, len(servers))
-
-	for _, s := range servers {
-		go func(s *entity.Server) {
-			defer func() {
-				if r := recover(); r != nil {
-					statsChan <- mserver.NewErrServerStatus(s.RpcAddr(), errors.New(cast.ToString(r)))
-				}
-			}()
-			statsChan <- this.Client.PS().Beg(ctx, uuid.FlakeUUID()).Admin(s.RpcAddr()).ServerStats()
-		}(s)
-	}
-
-	result := make([]*mserver.ServerStats, 0, len(servers))
-
-	for {
-		select {
-		case s := <-statsChan:
-			result = append(result, s)
-		case <-ctx.Done():
-			return nil, pkg.ErrGeneralTimeoutError
-		default:
-			time.Sleep(time.Millisecond * 10)
-			if len(result) >= len(servers) {
-				close(statsChan)
-				goto out
-			}
-		}
-	}
-
-out:
-
-	return result, nil
-}
-
 func (ms *masterService) updateSpace(ctx context.Context, space *entity.Space) error {
 	space.Version++
 	space.PartitionNum = len(space.Partitions)
@@ -1138,5 +684,80 @@ func (ms *masterService) updateSpace(ctx context.Context, space *entity.Space) e
 		return err
 	}
 
+	return nil
+}
+
+func (this *masterService) ChangeMember(ctx context.Context, cm *entity.ChangeMember) error {
+	partition, err := this.Master().QueryPartition(ctx, cm.PartitionID)
+	if err != nil {
+		return err
+	}
+
+	space, err := this.Master().QuerySpaceById(ctx, partition.DBId, partition.SpaceId)
+	if err != nil {
+		return err
+	}
+
+	dbName, err := this.Master().QueryDBId2Name(ctx, space.DBId)
+	if err != nil {
+		return err
+	}
+
+	spacePartition := space.GetPartition(cm.PartitionID)
+
+	if cm.Method != 1 {
+		for _, nodeID := range spacePartition.Replicas {
+			if nodeID == cm.NodeID {
+				return fmt.Errorf("partition:[%d] already has this server:[%d] in replicas:[%v]", cm.PartitionID, cm.NodeID, spacePartition.Replicas)
+			}
+		}
+		spacePartition.Replicas = append(spacePartition.Replicas, cm.NodeID)
+	} else {
+		tempIDs := make([]entity.NodeID, 0, len(spacePartition.Replicas)-1)
+
+		for _, id := range spacePartition.Replicas {
+			if id != cm.NodeID {
+				tempIDs = append(tempIDs, id)
+			}
+		}
+		spacePartition.Replicas = tempIDs
+	}
+
+	masterNode, err := this.Master().QueryServer(ctx, partition.LeaderID)
+	if err != nil {
+		return err
+	}
+
+	targetNode, err := this.Master().QueryServer(ctx, cm.NodeID)
+	if err != nil {
+		return err
+	}
+
+	if !this.PS().Be(ctx).Admin(masterNode.RpcAddr()).IsLive() {
+		return fmt.Errorf("server:[%d] addr:[%s] can not connect ", cm.NodeID, masterNode.RpcAddr())
+	}
+
+	if _, err := this.updateSpaceService(ctx, dbName, space.Name, space); err != nil {
+		return err
+	}
+
+	if cm.Method == proto.ConfAddNode {
+		if err := this.PS().Be(ctx).Admin(targetNode.RpcAddr()).CreatePartition(space, cm.PartitionID); err != nil {
+			return fmt.Errorf("create partiiton has err:[%s] addr:[%s]", err.Error(), targetNode.RpcAddr())
+		}
+	} else if cm.Method == proto.ConfRemoveNode {
+
+	} else {
+		return fmt.Errorf("change member only support addNode:[%d] removeNode:[%d] not support:[%d]", proto.ConfAddNode, proto.ConfRemoveNode, cm.Method)
+	}
+
+	if err := this.PS().Be(ctx).Admin(masterNode.RpcAddr()).ChangeMember(cm); err != nil {
+		return err
+	}
+	if cm.Method == proto.ConfRemoveNode {
+		if err := this.PS().Be(ctx).Admin(targetNode.RpcAddr()).DeleteReplica(cm.PartitionID); err != nil {
+			return fmt.Errorf("create partiiton has err:[%s] addr:[%s]", err.Error(), targetNode.RpcAddr())
+		}
+	}
 	return nil
 }

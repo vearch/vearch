@@ -17,20 +17,17 @@ package raftstore
 import (
 	"fmt"
 	"github.com/vearch/vearch/config"
-	"math/rand"
 	"runtime/debug"
 	"time"
 
 	"github.com/spf13/cast"
-	"github.com/tiglabs/log"
+	"github.com/vearch/vearch/util/log"
 )
 
 const (
 	TruncateTicket = 5 * time.Minute
-	TruncateCounts = 20000000
-
-	FlushTicket  = 1 * time.Second
-	FrozenTicket = 5 * time.Minute
+	TruncateCounts = 10000000
+	FlushTicket    = 1 * time.Second
 )
 
 // truncate is raft log truncate.
@@ -43,6 +40,10 @@ func (s *Store) startTruncateJob(initLastFlushIndex int64) {
 		}
 		s.RaftServer.Truncate(uint64(s.Partition.Id), uint64(truncIndex))
 		return nil
+	}
+
+	if config.Conf().PS.RaftTruncateCount <= 0 {
+		config.Conf().PS.RaftTruncateCount = 20000
 	}
 
 	appTruncateIndex := initLastFlushIndex
@@ -71,8 +72,8 @@ func (s *Store) startTruncateJob(initLastFlushIndex int64) {
 				log.Error("truncate getsn: %s", err.Error())
 				continue
 			}
-			if (flushSn - appTruncateIndex - TruncateCounts) >= 0 {
-				newTrucIndex := flushSn - TruncateCounts
+			if (flushSn - appTruncateIndex - config.Conf().PS.RaftTruncateCount) >= 0 {
+				newTrucIndex := flushSn - config.Conf().PS.RaftTruncateCount
 				if err = truncateFunc(newTrucIndex); err != nil {
 					log.Warn("truncate: %s", err.Error())
 					continue
@@ -124,67 +125,5 @@ func (s *Store) startFlushJob() {
 				flushFunc()
 			}
 		}
-	}()
-}
-
-// start frozen job
-func (s *Store) startFrozenJob() {
-	go func() {
-		defer func() {
-			if i := recover(); i != nil {
-				log.Error(string(debug.Stack()))
-				log.Error(cast.ToString(i))
-			}
-		}()
-
-		if config.Conf().PS.MaxSize <= 0 {
-			log.Warn("guixu engine not set max_size , so skip frozen job")
-			return
-		}
-
-		frozenFunc := func() {
-			leaderId, _ := s.GetLeader()
-			if leaderId == 0 {
-				return
-			}
-			if s.NodeID != leaderId {
-				return
-			}
-
-			if s.Engine == nil {
-				log.Error("store is empty so stop frozen job, dbID:[%d] space:[%d,%s] partitionID:[%d]", s.Space.DBId, s.Space.Id, s.Space.Name, s.Partition.Id)
-				return
-			}
-
-			size, err := s.Engine.Reader().Capacity(s.Ctx)
-			if err != nil {
-				log.Error(err.Error())
-				return
-			}
-
-			if size > config.Conf().PS.MaxSize {
-				err := s.Client.Master().FrozenPartition(s.Ctx, s.GetPartition().Id)
-				if err != nil {
-					log.Error(err.Error())
-					return
-				}
-			}
-
-		}
-
-		//random sleep so froze
-		time.Sleep(time.Duration(rand.Int63n(int64(FrozenTicket))))
-
-		for !s.Partition.Frozen {
-			log.Info("start frozen job begin")
-			select {
-			case <-s.Ctx.Done():
-				return
-			default:
-			}
-			frozenFunc()
-			time.Sleep(FrozenTicket)
-		}
-
 	}()
 }

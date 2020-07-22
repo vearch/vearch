@@ -16,7 +16,6 @@ package client
 
 import (
 	"context"
-	"fmt"
 	"github.com/vearch/vearch/proto"
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/proto/request"
@@ -56,6 +55,15 @@ func (this *adminSender) UpdatePartition(space *entity.Space, pid entity.Partiti
 	}
 	_, _, err = Execute(this.addr, UpdatePartitionHandler, reqs)
 	return err
+}
+
+func (this *adminSender) DeleteReplica(partitionId uint32) error {
+	reqs, err := request.NewObjRequest(this.Ctx, partitionId, partitionId)
+	if err != nil {
+		return err
+	}
+	_, _, e := Execute(this.addr, DeleteReplicaHandler, reqs)
+	return e
 }
 
 func (this *adminSender) DeletePartition(partitionId uint32) error {
@@ -100,45 +108,22 @@ func (this *adminSender) IsLive() bool {
 	return true
 }
 
-//get partition min max value from engine.zone_field
-//if not frozen return err
-//it will sleep 5s when count not change
-func (this *adminSender) MaxMinValueByZoneFile(pid entity.PartitionID) (max, min int64, err error) {
-	objRequest := &request.ObjRequest{
-		RequestContext: this.Ctx,
-		PartitionID:    pid,
-	}
-
-	//default time out for live
-	timeout, cancelFunc := context.WithTimeout(context.Background(), 300*time.Second)
-	defer cancelFunc()
-	objRequest.SetContext(timeout)
-
-	result, _, err := Execute(this.addr, MaxMinZoneFieldHandler, objRequest)
+//get partition info about partitionID
+func (this *adminSender) PartitionInfo(pid entity.PartitionID) (value *entity.PartitionInfo, err error) {
+	infos, err := this._partitionsInfo(pid)
 	if err != nil {
-		return
+		return nil, err
 	}
-
-	value := struct {
-		Max float64
-		Min float64
-	}{}
-
-	err = result.(*response.ObjResponse).Decode(&value)
-	if err != nil {
-		return
-	}
-
-	if value.Max == 0 {
-		err = fmt.Errorf("max can not set zero ")
-		return
-	}
-
-	return int64(value.Max), int64(value.Min), nil
+	return infos[0], nil
 }
 
-//get partition info about
-func (this *adminSender) PartitionInfo(pid entity.PartitionID) (value *entity.PartitionInfo, err error) {
+//get all partition info from server
+func (this *adminSender) PartitionInfos() (value []*entity.PartitionInfo, err error) {
+	return this._partitionsInfo(0)
+}
+
+//internal method for partitionInfo and partitionInfos
+func (this *adminSender) _partitionsInfo(pid entity.PartitionID) (value []*entity.PartitionInfo, err error) {
 	objRequest := &request.ObjRequest{
 		RequestContext: this.Ctx,
 		PartitionID:    pid,
@@ -154,11 +139,20 @@ func (this *adminSender) PartitionInfo(pid entity.PartitionID) (value *entity.Pa
 		return
 	}
 
-	value = &entity.PartitionInfo{}
+	value = make([]*entity.PartitionInfo, 0)
 	err = result.(*response.ObjResponse).Decode(&value)
 	if err != nil {
 		return
 	}
 
 	return value, nil
+}
+
+func (this *adminSender) ChangeMember(changMember *entity.ChangeMember) error {
+	reqs, err := request.NewObjRequest(this.Ctx, changMember.PartitionID, changMember)
+	if err != nil {
+		return err
+	}
+	_, _, e := Execute(this.addr, ChangeMemberHandler, reqs)
+	return e
 }

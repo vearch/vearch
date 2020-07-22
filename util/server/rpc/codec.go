@@ -17,7 +17,7 @@ package server
 import (
 	"bytes"
 	"github.com/spf13/cast"
-	"github.com/tiglabs/log"
+	"github.com/vearch/vearch/util/log"
 	"github.com/vmihailenco/msgpack"
 )
 
@@ -44,3 +44,4 @@ func (c *MsgpackCodec) Encode(i interface{}) ([]byte, error) {
 	return buf.Bytes(), err
 
 }
+

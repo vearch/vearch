@@ -18,7 +18,7 @@ import (
 	"github.com/vearch/vearch/util/cbjson"
 	"net/http"
 
-	"github.com/tiglabs/log"
+	"github.com/vearch/vearch/util/log"
 )
 
 var (

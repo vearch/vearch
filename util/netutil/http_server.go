@@ -27,7 +27,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/julienschmidt/httprouter"
-	"github.com/tiglabs/log"
+	"github.com/vearch/vearch/util/log"
 	ratelimit2 "github.com/vearch/vearch/util/ratelimit"
 	"golang.org/x/net/netutil"
 )
@@ -75,6 +75,7 @@ func NewServer(config *ServerConfig) *Server {
 		Handler: s,
 	}
 
+	//s.server.SetKeepAlivesEnabled(false)
 	return s
 }
 
@@ -269,7 +270,7 @@ func (s *Server) doHandles(method, path string, handles []HandleContinued, end H
 	var flag bool
 	if routerMode == RouterModeGorilla {
 		var h = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ctx, cancel := context.WithCancel(context.WithValue(context.Background(), StartTime, time.Now()))
+			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
 			defer s.CatchPanicAndSendErrReply(w)
@@ -366,7 +367,7 @@ func (w *ResponseWriter) Write(b []byte) (int, error) {
 
 // http protocal
 type HttpReply struct {
-	Code int         `json:"code"`
+	Code int64       `json:"code"`
 	Msg  string      `json:"msg,omitempty"`
 	Data interface{} `json:"data,omitempty"`
 }

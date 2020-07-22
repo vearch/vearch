@@ -17,8 +17,9 @@ package raftstore
 import (
 	"context"
 	"fmt"
-	"github.com/tiglabs/log"
-	"github.com/vearch/vearch/proto"
+	"time"
+
+	pkg "github.com/vearch/vearch/proto"
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/proto/pspb"
 	"github.com/vearch/vearch/proto/pspb/raftpb"
@@ -26,6 +27,8 @@ import (
 	"github.com/vearch/vearch/proto/response"
 	"github.com/vearch/vearch/util"
 	"github.com/vearch/vearch/util/cbjson"
+	"github.com/vearch/vearch/util/log"
+	"github.com/vearch/vearch/util/vearchlog"
 )
 
 type RaftApplyResponse struct {
@@ -145,40 +148,30 @@ func (s *Store) DeleteByQuery(ctx context.Context, readLeader bool, query *reque
 }
 
 func (s *Store) Write(ctx context.Context, request *pspb.DocCmd) (result *response.DocResult, err error) {
-
 	if err = s.checkWritable(); err != nil {
 		return nil, err
 	}
 	raftCmd := raftpb.CreateRaftCommand()
 	raftCmd.Type = raftpb.CmdType_WRITE
 	raftCmd.WriteCommand = request
-
-	if !*s.Space.StoreSource { //need del source when not open source
-		if request.Type == pspb.OpType_MERGE {
-			return nil, fmt.Errorf("can not merge when space disable the source")
-		}
-		request.Source = nil
-	}
-
 	//TODO: pspb.Replace not use check version
-	if (request.Type == pspb.OpType_MERGE || request.Type == pspb.OpType_DELETE) && request.Version == 0 {
-		log.Debug("use version check")
+	//if (request.Type == pspb.OpType_MERGE || request.Type == pspb.OpType_DELETE) && request.Version == 0 {
+	/*if request.Type == pspb.OpType_MERGE || request.Type == pspb.OpType_DELETE {
 		doc, err := s.GetRTDocument(ctx, true, request.DocId)
 		if err != nil {
-			return nil, fmt.Errorf("get document error 111:%v", err)
+			return nil, fmt.Errorf("get document error:%v", err)
 		}
 
 		if doc != nil && doc.Failure != nil {
-			return nil, fmt.Errorf("get document failed 222:%v", doc.Failure)
+			return nil, fmt.Errorf("get document failed:%v", doc.Failure)
 		}
 
 		if doc.Found {
-			raftCmd.WriteCommand.Version = doc.Version
+			//raftCmd.WriteCommand.Version = doc.Version
 		} else if request.Type == pspb.OpType_MERGE || request.Type == pspb.OpType_DELETE {
-			return nil, pkg.ErrDocumentNotExist
+			return nil, pkg.CodeErr(pkg.ERRCODE_DOCUMENT_NOT_EXIST)
 		}
-	}
-
+	}*/
 	data, err := raftCmd.Marshal()
 	if err != nil {
 		return nil, err
@@ -187,9 +180,8 @@ func (s *Store) Write(ctx context.Context, request *pspb.DocCmd) (result *respon
 	if e := raftCmd.Close(); e != nil {
 		log.Error("raft cmd close err : %s", e.Error())
 	}
-
+	startTime := time.Now()
 	future := s.RaftServer.Submit(uint64(s.Partition.Id), data)
-
 	resp, err := future.Response()
 	if err != nil {
 		return nil, err
@@ -198,8 +190,15 @@ func (s *Store) Write(ctx context.Context, request *pspb.DocCmd) (result *respon
 	if resp.(*RaftApplyResponse).Err != nil {
 		return nil, resp.(*RaftApplyResponse).Err
 	}
+	endTime := time.Now()
 
-	return resp.(*RaftApplyResponse).Result, nil
+	resultResp := resp.(*RaftApplyResponse).Result
+	if request.Type != pspb.OpType_DELETE && resultResp.CostTime != nil {
+		resultResp.CostTime.PsSWStartTime = startTime
+		resultResp.CostTime.PsSWEndTime = endTime
+	}
+
+	return resultResp, nil
 }
 
 func (s *Store) Flush(ctx context.Context) error {
@@ -241,14 +240,14 @@ func (s *Store) Flush(ctx context.Context) error {
 func (s *Store) checkWritable() error {
 	switch s.Partition.GetStatus() {
 	case entity.PA_INVALID:
-		return pkg.ErrPartitionInvalid
+		return vearchlog.LogErrAndReturn(pkg.CodeErr(pkg.ERRCODE_PARTITION_IS_INVALID))
 	case entity.PA_CLOSED:
-		return pkg.ErrPartitionClosed
+		return vearchlog.LogErrAndReturn(pkg.CodeErr(pkg.ERRCODE_PARTITION_IS_CLOSED))
 	case entity.PA_READONLY:
-		return pkg.ErrPartitionNotLeader
+		return vearchlog.LogErrAndReturn(pkg.CodeErr(pkg.ERRCODE_PARTITION_NOT_LEADER))
 	case entity.PA_READWRITE:
 		return nil
 	default:
-		return pkg.ErrGeneralInternalError
+		return vearchlog.LogErrAndReturn(pkg.CodeErr(pkg.ERRCODE_INTERNAL_ERROR))
 	}
 }

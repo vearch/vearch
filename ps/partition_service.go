@@ -16,18 +16,20 @@ package ps
 
 import (
 	"context"
+	"github.com/tiglabs/raft"
+	"github.com/tiglabs/raft/proto"
 	"github.com/vearch/vearch/proto/request"
 	"sync"
 
 	"github.com/vearch/vearch/proto/response"
 
-	"github.com/tiglabs/log"
 	"github.com/vearch/vearch/config"
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/proto/pspb"
 	"github.com/vearch/vearch/ps/engine"
 	"github.com/vearch/vearch/ps/psutil"
 	"github.com/vearch/vearch/ps/storage/raftstore"
+	"github.com/vearch/vearch/util/log"
 )
 
 type Base interface {
@@ -57,9 +59,15 @@ type Raft interface {
 
 	IsLeader() bool
 
+	TryToLeader() error
+
+	Status() *raft.Status
+
 	GetVersion() uint64
 
 	GetUnreachable(id uint64) []uint64
+
+	ChangeMember(changeType proto.ConfChangeType, server *entity.Server) error
 }
 
 type PartitionStore interface {
@@ -79,6 +87,12 @@ type PartitionStore interface {
 
 	MSearch(ctx context.Context, readLeader bool, query *request.SearchRequest) (result response.SearchResponses, err error)
 
+	MSearchNew(ctx context.Context, readLeader bool, query *request.SearchRequest) (result *response.SearchResponse, err error)
+
+	MSearchIDs(ctx context.Context, readLeader bool, query *request.SearchRequest) (result *response.SearchResponse, err error)
+
+	MSearchForIDs(ctx context.Context, readLeader bool, query *request.SearchRequest) (result []byte, err error)
+
 	//you can use ctx to cancel the stream , when this function returned will close resultChan
 	StreamSearch(ctx context.Context, readLeader bool, query *request.SearchRequest, resultChan chan *response.DocResult) error
 
@@ -92,6 +106,14 @@ func (s *Server) GetPartition(id entity.PartitionID) (partition PartitionStore) 
 		partition = p.(PartitionStore)
 	}
 	return
+}
+
+func (s *Server) RangePartition(fun func(entity.PartitionID, PartitionStore)) {
+
+	s.partitions.Range(func(key, value interface{}) bool {
+		fun(key.(entity.PartitionID), value.(PartitionStore))
+		return true
+	})
 }
 
 //load partition for in disk
@@ -113,7 +135,7 @@ func (s *Server) LoadPartition(ctx context.Context, pid entity.PartitionID) (Par
 		if server, err := s.client.Master().QueryServer(context.Background(), replica); err != nil {
 			log.Error("partition recovery get server info err: %s", err.Error())
 		} else {
-			s.raftResolver.AddNode(replica, server.ReplicaAddr())
+			s.raftResolver.AddNode(replica, server.Replica())
 		}
 	}
 
@@ -126,6 +148,8 @@ func (s *Server) LoadPartition(ctx context.Context, pid entity.PartitionID) (Par
 }
 
 func (s *Server) CreatePartition(ctx context.Context, space *entity.Space, pid entity.PartitionID) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	store, err := raftstore.CreateStore(ctx, pid, s.nodeID, space, s.raftServer, s, s.client)
 
@@ -144,7 +168,7 @@ func (s *Server) CreatePartition(ctx context.Context, space *entity.Space, pid e
 				log.Error("get server info err %s", err.Error())
 				return err
 			} else {
-				s.raftResolver.AddNode(nodeId, server.ReplicaAddr())
+				s.raftResolver.AddNode(nodeId, server.Replica())
 			}
 		}
 		if err = store.Start(); err != nil {
@@ -156,20 +180,16 @@ func (s *Server) CreatePartition(ctx context.Context, space *entity.Space, pid e
 	return nil
 }
 
-func (s *Server) DeletePartition(id entity.PartitionID) {
+func (s *Server) DeleteReplica(id entity.PartitionID) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	if p, ok := s.partitions.Load(id); ok {
 		s.partitions.Delete(id)
 		if partition, is := p.(PartitionStore); is {
-			if partition.GetPartition().GetStatus() != entity.PA_INVALID {
-				for _, r := range partition.GetPartition().Replicas {
-					s.raftResolver.DeleteNode(r)
-				}
-				if err := partition.Destroy(); err != nil {
-					log.Error("delete partition[%v] fail cause: %v", id, err)
-				}
+			s.raftResolver.DeleteNode(s.nodeID)
+			if err := partition.Destroy(); err != nil {
+				log.Error("delete partition[%v] fail cause: %v", id, err)
 			}
 		}
 
@@ -177,6 +197,35 @@ func (s *Server) DeletePartition(id entity.PartitionID) {
 
 	psutil.ClearPartition(config.Conf().GetDataDirBySlot(config.PS, id), id)
 	log.Info("delete partition[%d] success", id)
+}
+
+func (s *Server) DeletePartition(id entity.PartitionID) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if p, ok := s.partitions.Load(id); ok {
+		if partition, is := p.(PartitionStore); is {
+			for _, r := range partition.GetPartition().Replicas {
+				s.raftResolver.DeleteNode(r)
+			}
+			if err := partition.Destroy(); err != nil {
+				log.Error("delete partition[%v] fail cause: %v", id, err)
+				return
+			}
+
+			if partition.GetPartition().GetStatus() == entity.PA_INVALID {
+				s.partitions.Delete(id)
+			}
+		}
+	}
+
+	psutil.ClearPartition(config.Conf().GetDataDirBySlot(config.PS, id), id)
+	log.Info("delete partition:[%d] success", id)
+
+	//delete partition cache
+	if _, ok := s.partitions.Load(id); ok {
+		s.partitions.Delete(id)
+	}
 }
 
 func (s *Server) PartitionNum() int {

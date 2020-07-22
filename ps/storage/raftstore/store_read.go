@@ -16,11 +16,13 @@ package raftstore
 
 import (
 	"context"
-	"github.com/tiglabs/log"
-	"github.com/vearch/vearch/proto"
+
+	pkg "github.com/vearch/vearch/proto"
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/proto/request"
 	"github.com/vearch/vearch/proto/response"
+	"github.com/vearch/vearch/util/log"
+	"github.com/vearch/vearch/util/vearchlog"
 )
 
 func (s *Store) GetDocument(ctx context.Context, readLeader bool, docID string) (*response.DocResult, error) {
@@ -45,21 +47,43 @@ func (s *Store) GetDocuments(ctx context.Context, readLeader bool, docIds []stri
 }
 
 func (s *Store) Search(ctx context.Context, readLeader bool, query *request.SearchRequest) (result *response.SearchResponse, err error) {
-	if err := s.checkReadable(readLeader); err != nil {
+	if err := s.checkSearchable(readLeader); err != nil {
 		return nil, err
 	}
 	return s.Engine.Reader().Search(ctx, query), nil
 }
 
+func (s *Store) MSearchIDs(ctx context.Context, readLeader bool, query *request.SearchRequest) (result *response.SearchResponse, err error) {
+	if err := s.checkSearchable(readLeader); err != nil {
+		return nil, err
+	}
+	return s.Engine.Reader().MSearchIDs(ctx, query), nil
+}
+
+func (s *Store) MSearchForIDs(ctx context.Context, readLeader bool, query *request.SearchRequest) (result []byte, err error) {
+	if err := s.checkSearchable(readLeader); err != nil {
+		return nil, err
+	}
+	return s.Engine.Reader().MSearchForIDs(ctx, query)
+}
+
+func (s *Store) MSearchNew(ctx context.Context, readLeader bool, query *request.SearchRequest) (result *response.SearchResponse, err error) {
+	if err := s.checkSearchable(readLeader); err != nil {
+		return nil, err
+
+	}
+	return s.Engine.Reader().MSearchNew(ctx, query), nil
+}
+
 func (s *Store) MSearch(ctx context.Context, readLeader bool, query *request.SearchRequest) (result response.SearchResponses, err error) {
-	if err := s.checkReadable(readLeader); err != nil {
+	if err := s.checkSearchable(readLeader); err != nil {
 		return nil, err
 	}
 	return s.Engine.Reader().MSearch(ctx, query), nil
 }
 
 func (s *Store) StreamSearch(ctx context.Context, readLeader bool, query *request.SearchRequest, resultChan chan *response.DocResult) error {
-	if err := s.checkReadable(readLeader); err != nil {
+	if err := s.checkSearchable(readLeader); err != nil {
 		return err
 	}
 	return s.Engine.Reader().StreamSearch(ctx, query, resultChan)
@@ -70,16 +94,36 @@ func (s *Store) checkReadable(readLeader bool) error {
 	status := s.Partition.GetStatus()
 
 	if status == entity.PA_CLOSED {
-		return pkg.ErrPartitionClosed
+		return vearchlog.LogErrAndReturn(pkg.CodeErr(pkg.ERRCODE_PARTITION_IS_CLOSED))
 	}
 
 	if status == entity.PA_INVALID {
-		return pkg.ErrPartitionInvalid
+		return pkg.CodeErr(pkg.ERRCODE_PARTITION_IS_INVALID)
 	}
 
 	if readLeader && status != entity.PA_READWRITE {
-		log.Error("checkReadable status: %d , err: %v", status, pkg.ErrPartitionNotLeader.Error())
-		return pkg.ErrPartitionNotLeader
+		log.Error("checkReadable status: %d , err: %v", status, pkg.CodeErr(pkg.ERRCODE_PARTITION_NOT_LEADER).Error())
+		return pkg.CodeErr(pkg.ERRCODE_PARTITION_NOT_LEADER)
+	}
+
+	return nil
+
+}
+
+//check this store can read
+func (s *Store) checkSearchable(readLeader bool) error {
+
+	status := s.Partition.GetStatus()
+	switch status {
+	case entity.PA_CLOSED:
+		return vearchlog.LogErrAndReturn(pkg.CodeErr(pkg.ERRCODE_PARTITION_IS_CLOSED))
+	case entity.PA_INVALID:
+		return pkg.CodeErr(pkg.ERRCODE_PARTITION_IS_INVALID)
+	}
+
+	if readLeader && status != entity.PA_READWRITE {
+		log.Error("checkReadable status: %d , err: %v", status, pkg.CodeErr(pkg.ERRCODE_PARTITION_NOT_LEADER).Error())
+		return pkg.CodeErr(pkg.ERRCODE_PARTITION_NOT_LEADER)
 	}
 
 	return nil

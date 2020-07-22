@@ -17,19 +17,21 @@ package client
 import (
 	"context"
 	"fmt"
-	"github.com/vearch/vearch/proto"
+	"sync"
+	"time"
+
+	pkg "github.com/vearch/vearch/proto"
 	"github.com/vearch/vearch/proto/request"
 	"github.com/vearch/vearch/proto/response"
 	"github.com/vearch/vearch/util/cbjson"
 	server "github.com/vearch/vearch/util/server/rpc"
 	"github.com/vearch/vearch/util/uuid"
-	"sync"
-	"time"
 
 	"bytes"
+
 	"github.com/spf13/cast"
-	"github.com/tiglabs/log"
 	"github.com/vearch/vearch/proto/entity"
+	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/util/server/rpc/handler"
 )
 
@@ -37,6 +39,7 @@ type ClientType int
 
 const (
 	LEADER ClientType = iota
+	NOT_LEADER
 	RANDOM
 	ALL
 )
@@ -52,22 +55,27 @@ const (
 	SearchHandler        = "SearchHandler"
 	DeleteByQueryHandler = "DeleteByQueryHandler"
 	MSearchHandler       = "MSearchHandler"
-	StreamSearchHandler  = "StreamSearchHandler"
-	GetDocHandler        = "GetDocHandler"
-	GetDocsHandler       = "GetDocsHandler"
-	WriteHandler         = "WriteHandler"
-	BatchHandler         = "BatchHandler"
-	FlushHandler         = "FlushHandler"
-	ForceMergeHandler    = "ForceMergeHandler"
+	MSearchIDsHandler    = "MSearchIDsHandler"
+	MSearchForIDsHandler = "MSearchForIDsHandler"
+	MSearchNewHandler    = "MSearchNewHandler"
+
+	StreamSearchHandler = "StreamSearchHandler"
+	GetDocHandler       = "GetDocHandler"
+	GetDocsHandler      = "GetDocsHandler"
+	WriteHandler        = "WriteHandler"
+	BatchHandler        = "BatchHandler"
+	FlushHandler        = "FlushHandler"
+	ForceMergeHandler   = "ForceMergeHandler"
 
 	//admin handler
 	CreatePartitionHandler = "CreatePartitionHandler"
 	DeletePartitionHandler = "DeletePartitionHandler"
+	DeleteReplicaHandler   = "DeleteReplicaHandler"
 	UpdatePartitionHandler = "UpdatePartitionHandler"
 	StatsHandler           = "StatsHandler"
 	IsLiveHandler          = "IsLiveHandler"
-	MaxMinZoneFieldHandler = "MaxMinHandler"
 	PartitionInfoHandler   = "PartitionInfoHandler"
+	ChangeMemberHandler    = "ChangeMemberHandler"
 )
 
 type psClient struct {
@@ -121,6 +129,14 @@ func (this *sender) MultipleSpace(dbSpaces [][2]string) *multipleSpaceSender {
 	return &multipleSpaceSender{senders: senders}
 }
 
+func (this *sender) MultipleSpaceByType(dbSpaces [][2]string, clientType ClientType) *multipleSpaceSender {
+	senders := make([]*spaceSender, 0, len(dbSpaces))
+	for _, item := range dbSpaces {
+		senders = append(senders, &spaceSender{sender: this, db: item[0], space: item[1], clientType: clientType})
+	}
+	return &multipleSpaceSender{senders: senders}
+}
+
 func (this *sender) Space(db, space string) *spaceSender {
 	return &spaceSender{sender: this, db: db, space: space}
 }
@@ -134,12 +150,12 @@ var nilClient = &rpcClient{}
 type rpcClient struct {
 	client  *server.RpcClient
 	useTime int64
-	lock    sync.RWMutex
+	_lock   sync.RWMutex
 }
 
 func (this *rpcClient) close() {
-	this.lock.Lock()
-	defer this.lock.Unlock()
+	this._lock.Lock()
+	defer this._lock.Unlock()
 	if e := this.client.Close(); e != nil {
 		log.Error(e.Error())
 	}
@@ -152,11 +168,11 @@ func (this *rpcClient) lastUse() *rpcClient {
 }
 
 // ExecuteErrorChangeRetry add retry to handle no leader and not leader situation
-func Execute(addr, servicePath string, request request.Request) (interface{}, int, error) {
+func Execute(addr, servicePath string, request request.Request) (interface{}, int64, error) {
 	sleepTime := baseSleepTime
 	var (
 		response interface{}
-		status   int
+		status   int64
 		e        error
 	)
 	for i := 0; i < adaptRetry; i++ {
@@ -182,7 +198,7 @@ func Execute(addr, servicePath string, request request.Request) (interface{}, in
 }
 
 //this execute not use cache or pool , it only conn once and close client
-func execute(addr, servicePath string, request request.Request) (interface{}, int, error) {
+func execute(addr, servicePath string, request request.Request) (interface{}, int64, error) {
 
 	client, err := server.NewRpcClient(addr)
 	if err != nil {
@@ -209,7 +225,7 @@ func execute(addr, servicePath string, request request.Request) (interface{}, in
 	return response.Result, pkg.ERRCODE_SUCCESS, nil
 }
 
-func (this *rpcClient) Execute(servicePath string, request request.Request) (interface{}, int, error) {
+func (this *rpcClient) Execute(servicePath string, request request.Request) (interface{}, int64, error) {
 	if this == nilClient {
 		return nil, pkg.ERRCODE_INTERNAL_ERROR, fmt.Errorf("create client err , it is nil")
 	}
@@ -227,7 +243,7 @@ func (this *rpcClient) Execute(servicePath string, request request.Request) (int
 	return rpcResponse.Result, pkg.ERRCODE_SUCCESS, nil
 }
 
-func (this *rpcClient) StreamExecute(servicePath string, request request.Request, sc server.StreamCallback) (interface{}, int, error) {
+func (this *rpcClient) StreamExecute(servicePath string, request request.Request, sc server.StreamCallback) (interface{}, int64, error) {
 	if this == nilClient {
 		return nil, pkg.ERRCODE_INTERNAL_ERROR, fmt.Errorf("create client err , it is nil")
 	}
@@ -248,6 +264,7 @@ func (ps *psClient) getOrCreateRpcClient(ctx context.Context, nodeId entity.Node
 	if ok {
 		return value.(*rpcClient).lastUse()
 	}
+
 	ps.Client().Master().cliCache.lock.Lock()
 	defer ps.Client().Master().cliCache.lock.Unlock()
 

@@ -16,29 +16,13 @@ package engine
 
 import (
 	"context"
+	"github.com/tiglabs/raft/proto"
 	"github.com/vearch/vearch/proto/entity"
+	"github.com/vearch/vearch/proto/pspb"
 	"github.com/vearch/vearch/proto/request"
 	"github.com/vearch/vearch/proto/response"
 	"github.com/vearch/vearch/ps/engine/mapping"
-	"io"
-
-	"github.com/vearch/vearch/proto/pspb"
 )
-
-// Snapshot is an interface for read-only snapshot in an engine.
-type Snapshot interface {
-	io.Closer
-	NewIterator() Iterator
-}
-
-// Iterator is an interface for iterating over key/value pairs in an engine.
-type Iterator interface {
-	io.Closer
-	Next()
-	Valid() bool
-	Key() []byte
-	Value() []byte
-}
 
 // Reader is the read interface to an engine's data.
 type Reader interface {
@@ -48,7 +32,13 @@ type Reader interface {
 
 	Search(ctx context.Context, req *request.SearchRequest) *response.SearchResponse
 
+	MSearchIDs(ctx context.Context, request *request.SearchRequest) *response.SearchResponse
+
+	MSearchForIDs(ctx context.Context, request *request.SearchRequest) ([]byte, error)
+
 	MSearch(ctx context.Context, request *request.SearchRequest) response.SearchResponses
+
+	MSearchNew(ctx context.Context, request *request.SearchRequest) *response.SearchResponse
 
 	//you can use ctx to cancel the stream , when this function returned will close resultChan
 	StreamSearch(ctx context.Context, req *request.SearchRequest, resultChan chan *response.DocResult) error
@@ -92,10 +82,11 @@ type Engine interface {
 	RTReader() RTReader
 	Writer() Writer
 	//return three value, field to pspb.Field , new Schema info , error
-	MapDocument(doc *pspb.DocCmd) ([]*pspb.Field, map[string]pspb.FieldType, error)
-	NewSnapshot() (Snapshot, error)
-	ApplySnapshot(iter Iterator, sn int64) error
+	MapDocument(doc *pspb.DocCmd, retrievalType string) ([]*pspb.Field, map[string]pspb.FieldType, error)
+	NewSnapshot() (proto.Snapshot, error)
+	ApplySnapshot(peers []proto.Peer, iter proto.SnapIterator) error
 	Optimize() error
+	IndexStatus() int
 	Close()
 
 	UpdateMapping(space *entity.Space) error

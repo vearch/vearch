@@ -18,30 +18,30 @@ import "C"
 import (
 	"context"
 	"fmt"
-	"github.com/vearch/vearch/util/monitoring"
+	"github.com/vearch/vearch/monitor"
 	"github.com/vearch/vearch/util/server/vearchhttp"
+	"github.com/vearch/vearch/util/uuid"
 	"net/http"
 	"strings"
 	"time"
 	"unicode"
 
 	"github.com/vearch/vearch/proto"
-	"github.com/vearch/vearch/ps/engine/mapping"
 	"github.com/vearch/vearch/util/netutil"
 
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cast"
-	"github.com/tiglabs/log"
 	"github.com/vearch/vearch/config"
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/util"
 	"github.com/vearch/vearch/util/ginutil"
+	"github.com/vearch/vearch/util/log"
 )
 
 const (
 	DB            = "db"
 	dbName        = "db_name"
-	sapceName     = "space_name"
+	spaceNmme     = "space_name"
 	userName      = "user_name"
 	userPassword  = "user_password"
 	userDbList    = "user_db_list"
@@ -55,7 +55,6 @@ type clusterApi struct {
 	router        *gin.Engine
 	masterService *masterService
 	dh            *vearchhttp.BaseHandler
-	monitor       monitoring.Monitor
 }
 
 func ExportToClusterHandler(router *gin.Engine, masterService *masterService) {
@@ -67,14 +66,13 @@ func ExportToClusterHandler(router *gin.Engine, masterService *masterService) {
 	router.Handle(http.MethodGet, "/", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.handleClusterInfo, dh.TimeOutEndHandler)
 
 	//cluster handler
-	router.Handle(http.MethodGet, "/_cluster/health", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.health, dh.TimeOutEndHandler)
-	router.Handle(http.MethodGet, "/_cluster/stats", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.stats, dh.TimeOutEndHandler)
 	router.Handle(http.MethodGet, "/clean_lock", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.cleanLock, dh.TimeOutEndHandler)
 
 	//db,servers handler
 	router.Handle(http.MethodGet, "/list/server", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.serverList, dh.TimeOutEndHandler)
 	router.Handle(http.MethodGet, "/list/db", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.dbList, dh.TimeOutEndHandler)
 	router.Handle(http.MethodGet, "/list/space", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.spaceList, dh.TimeOutEndHandler)
+	router.Handle(http.MethodGet, "/list/partition", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.partitionList, dh.TimeOutEndHandler)
 
 	//partition register
 	router.Handle(http.MethodPost, "/register", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.register, dh.TimeOutEndHandler)
@@ -87,14 +85,12 @@ func ExportToClusterHandler(router *gin.Engine, masterService *masterService) {
 
 	//space handler
 	router.Handle(http.MethodPut, "/space/:"+dbName+"/_create", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.createSpace, dh.TimeOutEndHandler)
-	router.Handle(http.MethodGet, "/space/:"+dbName+"/:"+sapceName, dh.PaincHandler, dh.TimeOutHandler, c.auth, c.getSpace, dh.TimeOutEndHandler)
-	router.Handle(http.MethodDelete, "/space/:"+dbName+"/:"+sapceName, dh.PaincHandler, dh.TimeOutHandler, c.auth, c.deleteSpace, dh.TimeOutEndHandler)
-	router.Handle(http.MethodPost, "/space/:"+dbName+"/:"+sapceName, dh.PaincHandler, dh.TimeOutHandler, c.auth, c.updateSpace, dh.TimeOutEndHandler)
+	router.Handle(http.MethodGet, "/space/:"+dbName+"/:"+spaceName, dh.PaincHandler, dh.TimeOutHandler, c.auth, c.getSpace, dh.TimeOutEndHandler)
+	router.Handle(http.MethodDelete, "/space/:"+dbName+"/:"+spaceName, dh.PaincHandler, dh.TimeOutHandler, c.auth, c.deleteSpace, dh.TimeOutEndHandler)
+	router.Handle(http.MethodPost, "/space/:"+dbName+"/:"+spaceName, dh.PaincHandler, dh.TimeOutHandler, c.auth, c.updateSpace, dh.TimeOutEndHandler)
 
 	//partition handler
-	router.Handle(http.MethodPost, "/partition/frozen/:"+PartitionId, dh.PaincHandler, dh.TimeOutHandler, c.auth, c.frozenPartition, dh.TimeOutEndHandler)
-	router.Handle(http.MethodPost, "/partition/append", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.appendPartition, dh.TimeOutEndHandler)
-	router.Handle(http.MethodPost, "/partition/delete", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.deletePartition, dh.TimeOutEndHandler)
+	router.Handle(http.MethodPost, "/partition/change_member", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.changeMember, dh.TimeOutEndHandler)
 
 }
 
@@ -112,35 +108,7 @@ func (this *clusterApi) handleClusterInfo(c *gin.Context) {
 	layer["version"] = versionLayer
 	layer["tagline"] = ""
 
-	ginutil.NewAutoMehtodName(c, this.monitor).SendJson(layer)
-}
-
-//got every partition servers system info
-func (this *clusterApi) stats(c *gin.Context) {
-	ctx, _ := c.Get(vearchhttp.Ctx)
-	list, err := this.masterService.statsService(ctx.(context.Context))
-	if err != nil {
-		ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplyError(err)
-		return
-	}
-	ginutil.NewAutoMehtodName(c, this.monitor).SendJson(list)
-}
-
-//cluster health in partition level
-func (this *clusterApi) health(c *gin.Context) {
-
-	ctx, _ := c.Get(vearchhttp.Ctx)
-
-	dbName := c.Query("db")
-	spaceName := c.Query("space")
-
-	result, err := this.masterService.partitionInfo(ctx.(context.Context), dbName, spaceName)
-	if err != nil {
-		ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplyError(err)
-		return
-	}
-
-	ginutil.NewAutoMehtodName(c, this.monitor).SendJson(result)
+	ginutil.NewAutoMehtodName(c).SendJson(layer)
 }
 
 //clean lock for admin , when space locked , waring make sure not create space ing
@@ -150,18 +118,18 @@ func (this *clusterApi) cleanLock(c *gin.Context) {
 	removed := make([]string, 0, 1)
 
 	if keys, _, err := this.masterService.Master().Store.PrefixScan(ctx.(context.Context), entity.PrefixLock); err != nil {
-		ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplyError(err)
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 		return
 	} else {
 		for _, key := range keys {
 			if err := this.masterService.Master().Store.Delete(ctx.(context.Context), string(key)); err != nil {
-				ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplyError(err)
+				ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 				return
 			}
 			removed = append(removed, string(key))
 		}
 	}
-	ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplySuccess(removed)
+	ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(removed)
 }
 
 //for ps startup to register self and get ip response
@@ -174,22 +142,22 @@ func (this *clusterApi) register(c *gin.Context) {
 	nodeId := entity.NodeID(cast.ToInt64(c.Query("nodeId")))
 
 	if clusterName == "" || nodeId == 0 {
-		ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplyError(fmt.Errorf("param err must has clusterName AND nodeId"))
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(fmt.Errorf("param err must has clusterName AND nodeId"))
 		return
 	}
 
 	if clusterName != config.Conf().Global.Name {
-		ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplyError(fmt.Errorf("cluster name not same ,please check"))
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(fmt.Errorf("cluster name not same ,please check"))
 		return
 	}
 
 	server, err := this.masterService.registerServerService(ctx.(context.Context), ip, nodeId)
 	if err != nil {
-		ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplyError(err)
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 		return
 	}
 
-	ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplySuccess(server)
+	ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(server)
 }
 
 //wen partition leader got it will register self to this api
@@ -198,24 +166,26 @@ func (this *clusterApi) registerPartition(c *gin.Context) {
 	partition := &entity.Partition{}
 
 	if err := c.ShouldBindJSON(partition); err != nil {
-		ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplyError(err)
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 		return
 	}
 
 	partition.UpdateTime = time.Now().UnixNano()
 
 	if err := this.masterService.registerPartitionService(ctx.(context.Context), partition); err != nil {
-		ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplyError(err)
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 	} else {
-		ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplySuccess(nil)
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(nil)
 	}
 }
 
 func (this *clusterApi) createDB(c *gin.Context) {
+	startTime := time.Now()
+	defer monitor.Profiler("createDB", startTime)
 	db := &entity.DB{}
 
 	if err := c.Bind(db); err != nil {
-		ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplyError(err)
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 		return
 	}
 	log.Debug("create db: %s", db.Name)
@@ -223,9 +193,9 @@ func (this *clusterApi) createDB(c *gin.Context) {
 	ctx, _ := c.Get(vearchhttp.Ctx)
 
 	if err := this.masterService.createDBService(ctx.(context.Context), db); err != nil {
-		ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplyError(err)
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 	} else {
-		ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplySuccess(db)
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(db)
 	}
 }
 
@@ -235,9 +205,9 @@ func (this *clusterApi) deleteDB(c *gin.Context) {
 	ctx, _ := c.Get(vearchhttp.Ctx)
 
 	if err := this.masterService.deleteDBService(ctx.(context.Context), db); err != nil {
-		ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplyError(err)
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 	} else {
-		ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplySuccess(nil)
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(nil)
 	}
 }
 
@@ -246,75 +216,10 @@ func (this *clusterApi) getDB(c *gin.Context) {
 	ctx, _ := c.Get(vearchhttp.Ctx)
 
 	if db, err := this.masterService.queryDBService(ctx.(context.Context), db); err != nil {
-		ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplyError(err)
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 	} else {
-		ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplySuccess(db)
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(db)
 	}
-}
-
-//ps use this function to frozen partition return err is nil , means ok
-//errors not frozen
-func (this *clusterApi) frozenPartition(c *gin.Context) {
-	ctx, _ := c.Get(vearchhttp.Ctx)
-	pid, err := cast.ToInt64E(c.Param(PartitionId))
-	if err != nil {
-		ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplyError(fmt.Errorf("err partition id[%s] err[%s]", c.Param(PartitionId), err.Error()))
-		return
-	}
-
-	log.Info("Frozen partition, partitionID:[%d]", pid)
-
-	if err := this.masterService.frozenPartition(ctx.(context.Context), entity.PartitionID(pid)); err != nil {
-		ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplyError(err)
-	} else {
-		ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplySuccess(nil)
-	}
-}
-
-func (this *clusterApi) appendPartition(c *gin.Context) {
-	ctx, _ := c.Get(vearchhttp.Ctx)
-	if err := c.Request.ParseForm(); err != nil {
-		ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplyError(err)
-		return
-	}
-	dbName := c.Request.FormValue(dbName)
-	spaceName := c.Request.FormValue(sapceName)
-	log.Info("append partition,dbName:[%s],  spaceName:[%s]", dbName, spaceName)
-
-	if err := this.masterService.appendPartition(ctx.(context.Context), dbName, spaceName); err != nil {
-		ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplyError(err)
-	} else {
-		ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplySuccess(nil)
-	}
-}
-
-func (this *clusterApi) deletePartition(c *gin.Context) {
-	ctx, _ := c.Get(vearchhttp.Ctx)
-	if err := c.Request.ParseForm(); err != nil {
-		ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplyError(err)
-		return
-	}
-
-	dbName := c.Request.FormValue(dbName)
-	spaceName := c.Request.FormValue(sapceName)
-	partitionID := c.Request.FormValue(PartitionId)
-	log.Info("delete partition,dbName :[%s],  spaceName:[%s] partitionID:[%s]", dbName, spaceName, partitionID)
-
-	pid, err := cast.ToUint32E(partitionID)
-	if err != nil {
-		ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplyError(err)
-		return
-	}
-
-	if err := this.masterService.deletePartition(ctx.(context.Context), dbName, spaceName, entity.PartitionID(pid)); err != nil {
-		ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplyError(err)
-	} else {
-		ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplySuccess(nil)
-	}
-}
-
-func (this *clusterApi) meltPartitionn(c *gin.Context) {
-
 }
 
 func (this *clusterApi) createSpace(c *gin.Context) {
@@ -330,7 +235,7 @@ func (this *clusterApi) createSpace(c *gin.Context) {
 		body, _ := netutil.GetReqBody(c.Request)
 		log.Debug("create space, space: %s, err: %s", body, err.Error())
 		log.Error("parse space settings err: %v", err)
-		ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplyError(err)
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 		return
 	}
 
@@ -343,26 +248,6 @@ func (this *clusterApi) createSpace(c *gin.Context) {
 		space.ReplicaNum = 1
 	}
 
-	if space.DynamicSchema == "" {
-		space.DynamicSchema = "true"
-	}
-
-	if space.StoreSource == nil {
-		space.StoreSource = util.PBool(true)
-	}
-
-	if space.DynamicSchema == "" {
-		space.DynamicSchema = "true"
-	}
-
-	if space.DefaultField == "" {
-		space.DefaultField = mapping.DefaultField
-	}
-
-	if space.DocValuesDynamic == nil {
-		space.DocValuesDynamic = util.PBool(true)
-	}
-
 	log.Debug("create space, db: %s", c.Param(dbName))
 	if space.Engine == nil {
 		space.Engine = entity.NewDefaultEngine()
@@ -370,7 +255,7 @@ func (this *clusterApi) createSpace(c *gin.Context) {
 
 	//check engine name and DynamicSchema is ok
 	if err := space.Validate(); err != nil {
-		ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplyError(err)
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 		return
 	}
 
@@ -380,63 +265,63 @@ func (this *clusterApi) createSpace(c *gin.Context) {
 	if err := this.masterService.createSpaceService(ctx.(context.Context), dbName, space); err != nil {
 		log.Debug("create space, db: %s", c.Param(dbName))
 		log.Error("createSpaceService err: %v", err)
-		ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplyError(err)
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 	} else {
-		ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplySuccess(space)
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(space)
 	}
 }
 
 func (this *clusterApi) deleteSpace(c *gin.Context) {
-	log.Debug("delete space, db: %s, space: %s", c.Param(dbName), c.Param(sapceName))
+	log.Debug("delete space, db: %s, space: %s", c.Param(dbName), c.Param(spaceName))
 	dbName := c.Param(dbName)
-	sapceName := c.Param(sapceName)
+	spaceName := c.Param(spaceName)
 
 	ctx, _ := c.Get(vearchhttp.Ctx)
 
-	if err := this.masterService.deleteSpaceService(ctx.(context.Context), dbName, sapceName); err != nil {
-		ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplyError(err)
+	if err := this.masterService.deleteSpaceService(ctx.(context.Context), dbName, spaceName); err != nil {
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 	} else {
-		ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplySuccess(nil)
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(nil)
 	}
 }
 
 func (this *clusterApi) getSpace(c *gin.Context) {
 	dbName := c.Param(dbName)
-	sapceName := c.Param(sapceName)
+	spaceName := c.Param(spaceName)
 
 	ctx, _ := c.Get(vearchhttp.Ctx)
 
 	dbID, err := this.masterService.Master().QueryDBName2Id(ctx.(context.Context), dbName)
 	if err != nil {
-		ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplyError(err)
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 		return
 	}
 
-	if space, err := this.masterService.Master().QuerySpaceByName(ctx.(context.Context), dbID, sapceName); err != nil {
-		ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplyError(err)
+	if space, err := this.masterService.Master().QuerySpaceByName(ctx.(context.Context), dbID, spaceName); err != nil {
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 	} else {
-		ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplySuccess(space)
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(space)
 	}
 }
 
 func (this *clusterApi) updateSpace(c *gin.Context) {
 	dbName := c.Param(dbName)
-	sapceName := c.Param(sapceName)
+	spaceName := c.Param(spaceName)
 
 	ctx, _ := c.Get(vearchhttp.Ctx)
 
-	space := &entity.Space{Name: sapceName}
+	space := &entity.Space{Name: spaceName}
 
 	if err := c.ShouldBindJSON(space); err != nil {
-		ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplyError(err)
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 		return
 	}
 
-	if spaceResult, err := this.masterService.updateSpaceService(ctx.(context.Context), dbName, sapceName, space); err != nil {
-		ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplyError(err)
+	if spaceResult, err := this.masterService.updateSpaceService(ctx.(context.Context), dbName, spaceName, space); err != nil {
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 
 	} else {
-		ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplySuccess(spaceResult)
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(spaceResult)
 	}
 }
 
@@ -448,7 +333,7 @@ func (this *clusterApi) serverList(c *gin.Context) {
 	servers, err := this.masterService.Master().QueryServers(ctx.(context.Context))
 
 	if err != nil {
-		ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplyError(err)
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 		return
 	}
 
@@ -471,7 +356,22 @@ func (this *clusterApi) serverList(c *gin.Context) {
 		servers = temps
 	}
 
-	ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplySuccess(map[string]interface{}{"servers": servers, "count": len(servers)})
+	serverInfos := make([]map[string]interface{}, 0, len(servers))
+
+	for _, server := range servers {
+		serverInfo := make(map[string]interface{})
+		serverInfo["server"] = server
+
+		partitionInfos, err := this.masterService.Client.PS().Beg(ctx.(context.Context), uuid.FlakeUUID()).Admin(server.RpcAddr()).PartitionInfos()
+		if err != nil {
+			serverInfo["error"] = err.Error()
+		} else {
+			serverInfo["partitions"] = partitionInfos
+		}
+		serverInfos = append(serverInfos, serverInfo)
+	}
+
+	ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(map[string]interface{}{"servers": serverInfos, "count": len(servers)})
 }
 
 //list db
@@ -479,9 +379,9 @@ func (this *clusterApi) dbList(c *gin.Context) {
 	ctx, _ := c.Get(vearchhttp.Ctx)
 
 	if dbs, err := this.masterService.queryDBs(ctx.(context.Context)); err != nil {
-		ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplyError(err)
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 	} else {
-		ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplySuccess(dbs)
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(dbs)
 	}
 }
 
@@ -492,21 +392,21 @@ func (this *clusterApi) spaceList(c *gin.Context) {
 	db := c.Query(DB)
 
 	if db == "" {
-		ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplyError(fmt.Errorf("can find param in url ?db=[dbName or dbId]"))
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(fmt.Errorf("can find param in url ?db=[dbName or dbId]"))
 		return
 	}
 
 	var dbId entity.DBID
 	if unicode.IsNumber([]rune(db)[0]) {
 		if id, err := cast.ToInt64E(db); err != nil {
-			ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplyError(err)
+			ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 			return
 		} else {
 			dbId = entity.DBID(id)
 		}
 	} else {
 		if id, err := this.masterService.Master().QueryDBName2Id(ctx.(context.Context), db); err != nil {
-			ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplyError(err)
+			ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 			return
 		} else {
 			dbId = id
@@ -514,9 +414,36 @@ func (this *clusterApi) spaceList(c *gin.Context) {
 	}
 
 	if dbs, err := this.masterService.Master().QuerySpaces(ctx.(context.Context), dbId); err != nil {
-		ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplyError(err)
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 	} else {
-		ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplySuccess(dbs)
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(dbs)
+	}
+}
+
+//list partition
+func (this *clusterApi) partitionList(c *gin.Context) {
+	ctx, _ := c.Get(vearchhttp.Ctx)
+	partitions, err := this.masterService.Master().QueryPartitions(ctx.(context.Context))
+	if err != nil {
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
+	} else {
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(partitions)
+	}
+}
+
+func (this *clusterApi) changeMember(c *gin.Context) {
+	ctx, _ := c.Get(vearchhttp.Ctx)
+
+	cm := &entity.ChangeMember{}
+
+	if err := c.ShouldBindJSON(cm); err != nil {
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
+		return
+	}
+	if err := this.masterService.ChangeMember(ctx.(context.Context), cm); err != nil {
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
+	} else {
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(nil)
 	}
 }
 
@@ -525,7 +452,7 @@ func (this *clusterApi) auth(c *gin.Context) {
 	if err := this._auth(ctx.(context.Context), c); err != nil {
 		defer this.dh.TimeOutEndHandler(c)
 		c.Abort()
-		ginutil.NewAutoMehtodName(c, this.monitor).SendJsonHttpReplyError(err)
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 	}
 }
 
@@ -538,7 +465,7 @@ func (this *clusterApi) _auth(ctx context.Context, c *gin.Context) error {
 	headerData := c.GetHeader(headerAuthKey)
 
 	if headerData == "" {
-		return pkg.ErrMasterAuthenticationFailed
+		return pkg.CodeErr(pkg.ERRCODE_AUTHENTICATION_FAILED)
 	}
 
 	username, password, err := util.AuthDecrypt(headerData)
@@ -547,9 +474,8 @@ func (this *clusterApi) _auth(ctx context.Context, c *gin.Context) error {
 	}
 
 	if username != "root" || password != config.Conf().Global.Signkey {
-		return pkg.ErrMasterAuthenticationFailed
+		return pkg.CodeErr(pkg.ERRCODE_AUTHENTICATION_FAILED)
 	}
 
 	return nil
-
 }

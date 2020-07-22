@@ -22,11 +22,7 @@ import (
 type SearchRequest struct {
 	*RequestContext
 	*SearchDocumentRequest
-	DB          string             `json:"db,omitempty"`
-	Space       string             `json:"space,omitempty"`
 	PartitionID entity.PartitionID `json:"partition,omitempty"`
-	Start       *int64             `json:"start,omitempty"` // use partition filter
-	End         *int64             `json:"end,omitempty"`   // use partition filter
 }
 
 func (req *SearchRequest) Context() *RequestContext {
@@ -45,8 +41,6 @@ func (req *SearchRequest) Clone(pid entity.PartitionID, db, space string) *Searc
 	return &SearchRequest{
 		RequestContext:        req.RequestContext,
 		SearchDocumentRequest: req.SearchDocumentRequest,
-		DB:                    db,
-		Space:                 space,
 		PartitionID:           pid,
 	}
 }
@@ -57,6 +51,6 @@ func NewSearchRequest(ctx context.Context, msgId string) *SearchRequest {
 			MessageId: msgId,
 			ctx:       ctx,
 		},
-		SearchDocumentRequest: &SearchDocumentRequest{},
+		SearchDocumentRequest: &SearchDocumentRequest{Parallel:true},
 	}
 }

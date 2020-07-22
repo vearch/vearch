@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/vearch/vearch/util/bytes"
+	"github.com/vearch/vearch/util/cbbytes"
 
 	"strconv"
 
@@ -118,7 +118,7 @@ func (store *EtcdStore) CreateWithTTL(ctx context.Context, key string, value []b
 		return err
 	}
 
-	_, err = store.cli.Put(ctx, key, bytes.ByteToString(value), clientv3.WithLease(grant.ID))
+	_, err = store.cli.Put(ctx, key, cbbytes.ByteToString(value), clientv3.WithLease(grant.ID))
 	return err
 }
 
@@ -131,7 +131,7 @@ func (store *EtcdStore) KeepAlive(ctx context.Context, key string, value []byte,
 	if err != nil {
 		return nil, err
 	}
-	_, err = store.cli.Put(ctx, key, bytes.ByteToString(value), clientv3.WithLease(grant.ID))
+	_, err = store.cli.Put(ctx, key, cbbytes.ByteToString(value), clientv3.WithLease(grant.ID))
 
 	keepaliveC, err := store.cli.KeepAlive(ctx, grant.ID)
 	if err != nil {
@@ -146,7 +146,7 @@ func (store *EtcdStore) PutWithLeaseId(ctx context.Context, key string, value []
 		return fmt.Errorf("ttl time must gather 1 sencod")
 	}
 
-	_, err := store.cli.Put(ctx, key, bytes.ByteToString(value), clientv3.WithLease(leaseId))
+	_, err := store.cli.Put(ctx, key, cbbytes.ByteToString(value), clientv3.WithLease(leaseId))
 	if err != nil {
 		return err
 	}

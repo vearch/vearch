@@ -1,101 +1,236 @@
 # Low-level API for vector search
 
+> define MASTER = http://127.0.0.1:8817
+> define ROUTER = http://127.0.0.1:9001
+> `MASTER` is cluster manager , `ROUTER` is data manage
+
+## database 
+
+----
+
 ### create database
 
 ````$xslt
 curl -v --user "root:secret" -H "content-type: application/json" -XPUT -d'
 {
-    "name":"tpy"
+	"name":"test_vector_db"
 }
-' http://$IP:8817/db/_create
+' {{MASTER}}/db/_create
 ````
-## create schema
+
+### get database
+
+````$xslt
+curl -XGET {{MASTER}}/db/test_vector_db
+````
+
+### list database
+
+````$xslt
+curl -XGET {{MASTER}}/list/db
+````
+
+### delete database
+
+````$xslt
+curl -XDELETE {{MASTER}}/db/test_vector_db
+````
+
+## space
+
+----
+
+### create space
 
 ````$xslt
 curl -v --user "root:secret" -H "content-type: application/json" -XPUT -d'
-  {
-      "name": "tpy",
-      "dynamic_schema": "strict",
-      "partition_num": 2,
-      "replica_num": 1,
-      "engine": {"name":"gamma", "max_size":1000000,"nprobe":10,"metric_type":-1,"ncentroids":-1,"nsubvector":-1,"nbits_per_idx":-1},
-      "properties": {
-          "image_type": {
-              "type": "keyword"
-          },
-          "fku": {
-              "type": "integer",
-              "index":"false"
-          },
-          "tags": {
-              "type": "keyword",
-              "array":true,
-              "index":"true"
-          },
-          "image_vec": {
-              "type": "vector",
-              "model_id": "img",
-              "dimension": 5000
-          }
-      }
-  }
-' http://$IP:8817/space/tpy/_create  
+{
+	"name": "vector_space",
+	"dynamic_schema": "strict",
+	"partition_num": 1,
+	"replica_num": 1,
+	"engine": {
+		"name": "gamma",
+		"index_size": 9999,
+		"max_size": 100000,
+        "id_type": "String",
+        "retrieval_type": "IVFPQ",
+		"retrieval_param": {
+			"metric_type": "InnerProduct",
+			"ncentroids": -1,
+			"nsubvector": -1
+		}
+	},
+	"properties": {
+		"string": {
+			"type": "keyword",
+			"index": true
+		},
+		"int": {
+			"type": "integer",
+			"index": true
+		},
+		"float": {
+			"type": "float",
+			"index": true
+		},
+		"vector": {
+			"type": "vector",
+			"model_id": "img",
+			"dimension": 128,
+			"format": "normalization"
+		},
+		"string_tags": {
+			"type": "string",
+			"array": true,
+			"index": true
+		},
+		"int_tags": {
+			"type": "integer",
+			"array": true,
+			"index": true
+		},
+		"float_tags": {
+			"type": "float",
+			"array": true,
+			"index": true
+		}
+	},
+	"models": [{
+		"model_id": "vgg16",
+		"fields": ["string"],
+		"out": "feature"
+	}]
+}
+' {{MASTER}}/space/test_vector_db/_create
 ````
 
-* dynamic_schema :[`true`, `false`, `strict`]
 * partition_num : how many partition to slot,  default is `1`
+
 * replica_num: how many replica has , recommend `3`
+
 * engine
+
 * max_size : max documents for each partition 
-* nprobe : scan clustered buckets, default 10, it should be less than ncentroids
-* metric_type : inner product or L2 
-* ncentroids : coarse cluster center number, default 256
-* nsubvector : the number of sub vector, default 32, only the value which is multiple of 4 is supported now
-* nbits_per_idx : bit number of sub cluster center, default 8, and 8 is the only value now
+
+* id_type : the type of Primary key, default String, you can set it as Long or String
+
+* index_size : default 2, if insert document num >= index_size, it will start to build index automatically. For different retrieval model, it have different index size.  For HNSW and FLAT, it doesn't need to train before building index, greater than 0 is enough. For IVFPQ, GPU and BINARYIVF, it need train before building index, so you should set index_size larger, such as 100000.
+
+* retrieval_type: the type of retrieval model, now support five kind retrieval model: IVFPQ GPU BINARYIVF HNSW FLAT. BINARYIVF is to index binary data. The Other type of retrieval model are for float32 data. And GPU is the implementation of IVFPQ on GPU, so IVFPQ and GPU have the same retrieval_param. FLAT is brute-force search. HNSW and FLAT can only work in full memory with store_type of Mmap. And HNSW now uses mark deletion, and does not make corresponding changes to the hnsw graph structure after deletion or update.
+
+* retrieval_param: parameter of retrieval model, this corresponds to the retrieval type.
+
+* IVFPQ
+
+    * * metric_type: `InnerProduct` or `L2` 
+    * * ncentroids : coarse cluster center number, default 256
+    * * nsubvector : the number of sub vector, default 64, only the value which is multiple of 4 is supported now 
+    * * nbits_per_idx : bit number of sub cluster center, default 8, and 8 is the only value now
+
+* GPU
+
+    * * metric_type:  `InnerProduct` or `L2` , InnerProduct only support for searching with has_rank
+    * * ncentroids : coarse cluster center number, default 256 
+    * * nsubvector : the number of sub vector, default 64, only the value which is multiple of 4 is supported now
+
+    * * nbits_per_idx : bit number of sub cluster center, default 8, and 8 is the only value now
+
+* BINARYIVF
+
+    * * nprobe : scan clustered buckets, default 20, it should be less than ncentroids 
+    * * ncentroids : coarse cluster center number, default 256
+
+* HNSW
+
+    * * metric_type: `InnerProduct` or `L2` 
+    * * nlinks： neighbors number of each node, default 32
+    * * efConstruction: expansion factor at construction time, default 40. The higher the value, the better the construction effect, and the longer it takes 
+    * * efSearch : expansion factor at search time, default 64. The higher the value, the more accurate the search results and the longer it takes
+
+* FLAT
+
+    * * metric_type: `InnerProduct` or `L2` 
+
 * keyword
 * array : whether the tags for each document is multi-valued, `true` or `false` default is false
 * index : supporting numeric field filter default `false`
+* Vector field params
+    * * format : default not normalized . if you set "normalization", "normal" it will normalized  
+    * * store_type : "RocksDB" or "Mmap" default "Mmap".For HNSW and FLAT, it can only be run in Mmap mode with fully memory. So not setting store_param is a good way to use HSNW and FLAT.   
+    * * store_param : example {"cache_size":2592}. It means you will use so much memory, the excess will be kept to disk. When you don't set it, vearch will just use the memory. 
+
+### get space
+
+````$xslt
+curl -XGET {{MASTER}}/space/test_vector_db/vector_space
+````
+
+### list space
+
+````$xslt
+curl -XGET {{MASTER}}/list/space?db=test_vector_db
+````
+
+### delete space
+
+````$xslt
+curl -XDELETE {{MASTER}}/space/test_vector_db/vector_space
+````
+
+### change member
+
+````$xslt
+curl -v --user "root:secret" -H "content-type: application/json" -XPOST -d'
+{
+	"partition_id":1,
+	"node_id":1,
+	"method":0
+}
+' {{MASTER}}/partition/change_member
+````
+
+> this api is add or del partition in ds ,
+> method : method=0 add partition:1 to node:1, method=1 delete partition:1 from node:1
 
 
-### insert data
+## document 
+
+----
+
+### insert document
 
 ````$xslt
 curl -H "content-type: application/json" -XPOST -d'
-{
-    "area_code":"tpy",
-    "product_code":"tpy",
-    "image_type":"tpy",
-    "image_name":"tpy",
-    "image_vec": {
-        "source":"test",
-        "feature":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
-    }
-}
-' http://11.3.149.73/tpy/tpy/1
+{"string":"14AW1mK_j19FyJvn5NR4Ep","int":14,"float":3.7416573867739413,"vector":{"feature":[0.88658684,0.9873159,0.68632215,-0.114685304,-0.45059848,0.5360963,0.9243208,0.14288005,0.9383601,0.17486687,0.3889527,0.91680753,0.6597193,0.52906346,0.5491872,-0.24706548,0.28541148,0.87731135,-0.18872026,0.28016,0.14826365,0.7217548,0.66360927,0.839685,0.29014188,-0.7303055,0.31786093,0.7611028,0.38408384,0.004707908,0.27696127,0.6069607,0.52147454,0.34435293,0.5665409,0.9676775,0.9415799,-0.95000356,-0.7441306,0.32473814,0.24417956,0.4114195,-0.15658693,0.9567978,0.91448873,0.8040493,0.7370252,0.41042542,-0.12714817,0.7344759,0.95486677,0.6752892,0.79088193,0.27843192,0.7594493,0.96637094,0.21354128,0.14667709,0.52713686,0.39803344,0.13063455,-0.26041254,0.21177465,0.0889158,0.7040157,0.9184541,0.33231667,0.109015055,0.7252709,0.85923946,0.6874303,0.9188243,0.44670975,0.6534332,0.67833525,0.40294313,0.76628596,0.722926,0.2507119,0.86939317,0.1049489,0.5707651,0.89342695,0.89022624,0.06606513,0.46363428,0.8836891,0.8416466,0.43164334,-0.059498303,0.25076458,0.91614866,0.21405962,0.07442343,0.8398273,-0.518248,0.4477598,0.54731685,0.39200985,0.2999862,0.22204888,0.9051194,0.7241311,0.9049213,0.48899868,0.11941989,0.45151904,0.9315986,0.17897557,0.759705,0.2549287,0.96008617,0.25688004,0.5925487,0.3069243,0.9171891,0.46981755,0.14557107,0.8900092,0.84537476,0.5608369,0.6909559,0.777092,0.66562796,0.6040272,0.77930593,0.59144366,0.12506102],"source":"14AW1mK_j19FyJvn5NR4Ep"},"string_tags":["14","10","15"],"int_tags":[14,10,15],"float_tags":[0.88658684,0.9873159,0.68632215,-0.114685304,-0.45059848]}
+' {{ROUTER}}/test_vector_db/vector_space/1
 
 ````
-
 > url: [ip]:[port]/[dbName]/[tableName]/[documentID]
 
-### Search
 
+### insert document with out id
 ````$xslt
-# search
+curl -H "content-type: application/json" -XPOST -d'
+{"string":"14AW1mK_j19FyJvn5NR4Ep","int":14,"float":3.7416573867739413,"vector":{"feature":[0.88658684,0.9873159,0.68632215,-0.114685304,-0.45059848,0.5360963,0.9243208,0.14288005,0.9383601,0.17486687,0.3889527,0.91680753,0.6597193,0.52906346,0.5491872,-0.24706548,0.28541148,0.87731135,-0.18872026,0.28016,0.14826365,0.7217548,0.66360927,0.839685,0.29014188,-0.7303055,0.31786093,0.7611028,0.38408384,0.004707908,0.27696127,0.6069607,0.52147454,0.34435293,0.5665409,0.9676775,0.9415799,-0.95000356,-0.7441306,0.32473814,0.24417956,0.4114195,-0.15658693,0.9567978,0.91448873,0.8040493,0.7370252,0.41042542,-0.12714817,0.7344759,0.95486677,0.6752892,0.79088193,0.27843192,0.7594493,0.96637094,0.21354128,0.14667709,0.52713686,0.39803344,0.13063455,-0.26041254,0.21177465,0.0889158,0.7040157,0.9184541,0.33231667,0.109015055,0.7252709,0.85923946,0.6874303,0.9188243,0.44670975,0.6534332,0.67833525,0.40294313,0.76628596,0.722926,0.2507119,0.86939317,0.1049489,0.5707651,0.89342695,0.89022624,0.06606513,0.46363428,0.8836891,0.8416466,0.43164334,-0.059498303,0.25076458,0.91614866,0.21405962,0.07442343,0.8398273,-0.518248,0.4477598,0.54731685,0.39200985,0.2999862,0.22204888,0.9051194,0.7241311,0.9049213,0.48899868,0.11941989,0.45151904,0.9315986,0.17897557,0.759705,0.2549287,0.96008617,0.25688004,0.5925487,0.3069243,0.9171891,0.46981755,0.14557107,0.8900092,0.84537476,0.5608369,0.6909559,0.777092,0.66562796,0.6040272,0.77930593,0.59144366,0.12506102],"source":"14AW1mK_j19FyJvn5NR4Ep"},"string_tags":["14","10","15"],"int_tags":[14,10,15],"float_tags":[0.88658684,0.9873159,0.68632215,-0.114685304,-0.45059848]}
+' {{ROUTER}}/test_vector_db/vector_space/
+````
+
+### search document by get 
+````$xslt
+curl -XGET {{ROUTER}}/test_vector_db/vector_space/_search
+````
+
+### search document by query and vector score limit
+````$xslt
 curl -H "content-type: application/json" -XPOST -d'
 
 {
   "query": {
-      "sum": [
-        {
-          "field": "feature1",
-          "feature": [0,0,0,0,0],
-          "boost":0.8,
-        }
-      ],
       "and":[
         {
-          "field": "feature2",
-          "feature": [0,0,0,0,0],
+          "field": "vector",
+          "feature": [0.88658684,0.9873159,0.68632215,-0.114685304,-0.45059848,0.5360963,0.9243208,0.14288005,0.9383601,0.17486687,0.3889527,0.91680753,0.6597193,0.52906346,0.5491872,-0.24706548,0.28541148,0.87731135,-0.18872026,0.28016,0.14826365,0.7217548,0.66360927,0.839685,0.29014188,-0.7303055,0.31786093,0.7611028,0.38408384,0.004707908,0.27696127,0.6069607,0.52147454,0.34435293,0.5665409,0.9676775,0.9415799,-0.95000356,-0.7441306,0.32473814,0.24417956,0.4114195,-0.15658693,0.9567978,0.91448873,0.8040493,0.7370252,0.41042542,-0.12714817,0.7344759,0.95486677,0.6752892,0.79088193,0.27843192,0.7594493,0.96637094,0.21354128,0.14667709,0.52713686,0.39803344,0.13063455,-0.26041254,0.21177465,0.0889158,0.7040157,0.9184541,0.33231667,0.109015055,0.7252709,0.85923946,0.6874303,0.9188243,0.44670975,0.6534332,0.67833525,0.40294313,0.76628596,0.722926,0.2507119,0.86939317,0.1049489,0.5707651,0.89342695,0.89022624,0.06606513,0.46363428,0.8836891,0.8416466,0.43164334,-0.059498303,0.25076458,0.91614866,0.21405962,0.07442343,0.8398273,-0.518248,0.4477598,0.54731685,0.39200985,0.2999862,0.22204888,0.9051194,0.7241311,0.9049213,0.48899868,0.11941989,0.45151904,0.9315986,0.17897557,0.759705,0.2549287,0.96008617,0.25688004,0.5925487,0.3069243,0.9171891,0.46981755,0.14557107,0.8900092,0.84537476,0.5608369,0.6909559,0.777092,0.66562796,0.6040272,0.77930593,0.59144366,0.12506102],
           "symbol":">=",
           "value":0.9
         }
@@ -103,38 +238,231 @@ curl -H "content-type: application/json" -XPOST -d'
       "filter":[
           {
               "range":{
-                  "product_code":{
+                  "int":{
                       "gte":1,
-                      "lte":3
+                      "lte":1000
                   }
               }
           },
           {
               "term":{
-                "tags":["t1","t2"],
-                "operator":"and"
+                "string_tags":["28","2","29"],
+                "operator":"or"
               }
           }
        ]
-      "direct_search_type":0,
-      "online_log_level":"debug" 
   },
   "size":10,
-   "sort" : [
+   "quick":false, 
+   "vector_value":false,
+    "sort" : [
        { "_score" : {"order" : "asc"} }
-   ]
+   ],
+   "fileds":["name","age"]
 }
-' http://11.3.149.73/tpy/tpy/_search?size=10
+' {{ROUTER}}/test_vector_db/vector_space/_search
 ````
+
+
+### search document by query and vector score boost
+````$xslt
+curl -H "content-type: application/json" -XPOST -d'
+{
+  "query": {
+      "sum":[
+        {
+          "field": "vector",
+          "feature": [0.88658684,0.9873159,0.68632215,-0.114685304,-0.45059848,0.5360963,0.9243208,0.14288005,0.9383601,0.17486687,0.3889527,0.91680753,0.6597193,0.52906346,0.5491872,-0.24706548,0.28541148,0.87731135,-0.18872026,0.28016,0.14826365,0.7217548,0.66360927,0.839685,0.29014188,-0.7303055,0.31786093,0.7611028,0.38408384,0.004707908,0.27696127,0.6069607,0.52147454,0.34435293,0.5665409,0.9676775,0.9415799,-0.95000356,-0.7441306,0.32473814,0.24417956,0.4114195,-0.15658693,0.9567978,0.91448873,0.8040493,0.7370252,0.41042542,-0.12714817,0.7344759,0.95486677,0.6752892,0.79088193,0.27843192,0.7594493,0.96637094,0.21354128,0.14667709,0.52713686,0.39803344,0.13063455,-0.26041254,0.21177465,0.0889158,0.7040157,0.9184541,0.33231667,0.109015055,0.7252709,0.85923946,0.6874303,0.9188243,0.44670975,0.6534332,0.67833525,0.40294313,0.76628596,0.722926,0.2507119,0.86939317,0.1049489,0.5707651,0.89342695,0.89022624,0.06606513,0.46363428,0.8836891,0.8416466,0.43164334,-0.059498303,0.25076458,0.91614866,0.21405962,0.07442343,0.8398273,-0.518248,0.4477598,0.54731685,0.39200985,0.2999862,0.22204888,0.9051194,0.7241311,0.9049213,0.48899868,0.11941989,0.45151904,0.9315986,0.17897557,0.759705,0.2549287,0.96008617,0.25688004,0.5925487,0.3069243,0.9171891,0.46981755,0.14557107,0.8900092,0.84537476,0.5608369,0.6909559,0.777092,0.66562796,0.6040272,0.77930593,0.59144366,0.12506102],
+          "boost":0.8
+        }
+      ],
+      "filter":[
+          {
+              "range":{
+                  "int":{
+                      "gte":1,
+                      "lte":1000
+                  }
+              }
+          },
+          {
+              "term":{
+                "string_tags":["28","2","29"],
+                "operator":"or"
+              }
+          }
+       ]
+  },
+  "size":10,
+  "parallel":false
+}
+' {{ROUTER}}/test_vector_db/vector_space/_search
+````
+
 > url: [ip]:[port]/[dbName]/[tableName]/_search
 * filter->term-> operator [`and`, `or`] default `or` 
-* direct_search_type : default 0 ; -1: no direct search, 0: auto, 1: always direct
- 
-                                                 
+* `direct_search_type` : default 0 ; -1: no direct search, 0: auto, 1: always direct
+* `online_log_level`:"debug" , is print debug info 
+* `quick` :default is false, if quick=true it not use precision sorting
+* `vector_value` :default is false, is return vector value
+* `client_type` search partition type, default is leader , `random` or `no_leader`
+* `parallel`  search is parallel default is `false`
+* `l2_sqrt`: default FALSE, don't do sqrt; TRUE, do sqrt
+* `nprobe`: default 20, just for IVFPQ and GPU, how many lists will be visited at search time
+* `ivf_flat`: default FALSE, just for IVFPQ, ivf flat means only use ivf_flat instead of ivfpq
 
 ### delete Document
- 
+
 ````$xslt
-curl -XDELETE http://11.3.149.73/tpy/tpy/1
+curl -XDELETE {{ROUTER}}/test_vector_db/vector_space/1
 ````
 > url: [ip]:[port]/[dbName]/[tableName]/[documentID]
+
+
+### document update by merge 
+````$xslt
+curl -H "content-type: application/json" -XPOST -d'
+{
+	"_id":"1",
+	"doc":{
+	    "int": 32
+	}
+}
+' {{ROUTER}}/test_vector_db/vector_space/2/_update
+````
+
+### document bulk insert
+````$xslt
+curl -XPOST -d'
+{ "index" : {"_id" : "abc" } }
+{"string":"14AW1mK_j19FyJvn5NR4Ep","int":14,"float":3.7416573867739413,"vector":{"feature":[0.88658684,0.9873159,0.68632215,-0.114685304,-0.45059848,0.5360963,0.9243208,0.14288005,0.9383601,0.17486687,0.3889527,0.91680753,0.6597193,0.52906346,0.5491872,-0.24706548,0.28541148,0.87731135,-0.18872026,0.28016,0.14826365,0.7217548,0.66360927,0.839685,0.29014188,-0.7303055,0.31786093,0.7611028,0.38408384,0.004707908,0.27696127,0.6069607,0.52147454,0.34435293,0.5665409,0.9676775,0.9415799,-0.95000356,-0.7441306,0.32473814,0.24417956,0.4114195,-0.15658693,0.9567978,0.91448873,0.8040493,0.7370252,0.41042542,-0.12714817,0.7344759,0.95486677,0.6752892,0.79088193,0.27843192,0.7594493,0.96637094,0.21354128,0.14667709,0.52713686,0.39803344,0.13063455,-0.26041254,0.21177465,0.0889158,0.7040157,0.9184541,0.33231667,0.109015055,0.7252709,0.85923946,0.6874303,0.9188243,0.44670975,0.6534332,0.67833525,0.40294313,0.76628596,0.722926,0.2507119,0.86939317,0.1049489,0.5707651,0.89342695,0.89022624,0.06606513,0.46363428,0.8836891,0.8416466,0.43164334,-0.059498303,0.25076458,0.91614866,0.21405962,0.07442343,0.8398273,-0.518248,0.4477598,0.54731685,0.39200985,0.2999862,0.22204888,0.9051194,0.7241311,0.9049213,0.48899868,0.11941989,0.45151904,0.9315986,0.17897557,0.759705,0.2549287,0.96008617,0.25688004,0.5925487,0.3069243,0.9171891,0.46981755,0.14557107,0.8900092,0.84537476,0.5608369,0.6909559,0.777092,0.66562796,0.6040272,0.77930593,0.59144366,0.12506102],"source":"14AW1mK_j19FyJvn5NR4Ep"},"string_tags":["14","10","15"],"int_tags":[14,10,15],"float_tags":[0.88658684,0.9873159,0.68632215,-0.114685304,-0.45059848]}
+' {{ROUTER}}/test_vector_db/vector_space/_bulk
+
+````
+
+### document bulk search
+````$xslt
+curl -H "content-type: application/json" -XPOST -d'
+
+{
+  "query": {
+      "and":[
+        {
+          "field": "vector",
+          "feature": [0.88658684,0.9873159,0.68632215,-0.114685304,-0.45059848,0.5360963,0.9243208,0.14288005,0.9383601,0.17486687,0.3889527,0.91680753,0.6597193,0.52906346,0.5491872,-0.24706548,0.28541148,0.87731135,-0.18872026,0.28016,0.14826365,0.7217548,0.66360927,0.839685,0.29014188,-0.7303055,0.31786093,0.7611028,0.38408384,0.004707908,0.27696127,0.6069607,0.52147454,0.34435293,0.5665409,0.9676775,0.9415799,-0.95000356,-0.7441306,0.32473814,0.24417956,0.4114195,-0.15658693,0.9567978,0.91448873,0.8040493,0.7370252,0.41042542,-0.12714817,0.7344759,0.95486677,0.6752892,0.79088193,0.27843192,0.7594493,0.96637094,0.21354128,0.14667709,0.52713686,0.39803344,0.13063455,-0.26041254,0.21177465,0.0889158,0.7040157,0.9184541,0.33231667,0.109015055,0.7252709,0.85923946,0.6874303,0.9188243,0.44670975,0.6534332,0.67833525,0.40294313,0.76628596,0.722926,0.2507119,0.86939317,0.1049489,0.5707651,0.89342695,0.89022624,0.06606513,0.46363428,0.8836891,0.8416466,0.43164334,-0.059498303,0.25076458,0.91614866,0.21405962,0.07442343,0.8398273,-0.518248,0.4477598,0.54731685,0.39200985,0.2999862,0.22204888,0.9051194,0.7241311,0.9049213,0.48899868,0.11941989,0.45151904,0.9315986,0.17897557,0.759705,0.2549287,0.96008617,0.25688004,0.5925487,0.3069243,0.9171891,0.46981755,0.14557107,0.8900092,0.84537476,0.5608369,0.6909559,0.777092,0.66562796,0.6040272,0.77930593,0.59144366,0.12506102,0.88658684,0.9873159,0.68632215,-0.114685304,-0.45059848,0.5360963,0.9243208,0.14288005,0.9383601,0.17486687,0.3889527,0.91680753,0.6597193,0.52906346,0.5491872,-0.24706548,0.28541148,0.87731135,-0.18872026,0.28016,0.14826365,0.7217548,0.66360927,0.839685,0.29014188,-0.7303055,0.31786093,0.7611028,0.38408384,0.004707908,0.27696127,0.6069607,0.52147454,0.34435293,0.5665409,0.9676775,0.9415799,-0.95000356,-0.7441306,0.32473814,0.24417956,0.4114195,-0.15658693,0.9567978,0.91448873,0.8040493,0.7370252,0.41042542,-0.12714817,0.7344759,0.95486677,0.6752892,0.79088193,0.27843192,0.7594493,0.96637094,0.21354128,0.14667709,0.52713686,0.39803344,0.13063455,-0.26041254,0.21177465,0.0889158,0.7040157,0.9184541,0.33231667,0.109015055,0.7252709,0.85923946,0.6874303,0.9188243,0.44670975,0.6534332,0.67833525,0.40294313,0.76628596,0.722926,0.2507119,0.86939317,0.1049489,0.5707651,0.89342695,0.89022624,0.06606513,0.46363428,0.8836891,0.8416466,0.43164334,-0.059498303,0.25076458,0.91614866,0.21405962,0.07442343,0.8398273,-0.518248,0.4477598,0.54731685,0.39200985,0.2999862,0.22204888,0.9051194,0.7241311,0.9049213,0.48899868,0.11941989,0.45151904,0.9315986,0.17897557,0.759705,0.2549287,0.96008617,0.25688004,0.5925487,0.3069243,0.9171891,0.46981755,0.14557107,0.8900092,0.84537476,0.5608369,0.6909559,0.777092,0.66562796,0.6040272,0.77930593,0.59144366,0.12506102],
+          "symbol":">=",
+          "value":0.9
+        }
+      ],
+      "filter":[
+          {
+              "range":{
+                  "int":{
+                      "gte":1,
+                      "lte":1000
+                  }
+              }
+          },
+          {
+              "term":{
+                "string_tags":["28","2","29"],
+                "operator":"or"
+              }
+          }
+       ]
+  },
+  "size":10
+}
+' {{ROUTER}}/test_vector_db/vector_space/_msearch
+````
+
+### delete by query
+````$xslt
+# search
+curl -H "content-type: application/json" -XPOST -d'
+{
+  "query": {
+      "sum":[
+        {
+          "field": "vector",
+          "feature": [0.88658684,0.9873159,0.68632215,-0.114685304,-0.45059848,0.5360963,0.9243208,0.14288005,0.9383601,0.17486687,0.3889527,0.91680753,0.6597193,0.52906346,0.5491872,-0.24706548,0.28541148,0.87731135,-0.18872026,0.28016,0.14826365,0.7217548,0.66360927,0.839685,0.29014188,-0.7303055,0.31786093,0.7611028,0.38408384,0.004707908,0.27696127,0.6069607,0.52147454,0.34435293,0.5665409,0.9676775,0.9415799,-0.95000356,-0.7441306,0.32473814,0.24417956,0.4114195,-0.15658693,0.9567978,0.91448873,0.8040493,0.7370252,0.41042542,-0.12714817,0.7344759,0.95486677,0.6752892,0.79088193,0.27843192,0.7594493,0.96637094,0.21354128,0.14667709,0.52713686,0.39803344,0.13063455,-0.26041254,0.21177465,0.0889158,0.7040157,0.9184541,0.33231667,0.109015055,0.7252709,0.85923946,0.6874303,0.9188243,0.44670975,0.6534332,0.67833525,0.40294313,0.76628596,0.722926,0.2507119,0.86939317,0.1049489,0.5707651,0.89342695,0.89022624,0.06606513,0.46363428,0.8836891,0.8416466,0.43164334,-0.059498303,0.25076458,0.91614866,0.21405962,0.07442343,0.8398273,-0.518248,0.4477598,0.54731685,0.39200985,0.2999862,0.22204888,0.9051194,0.7241311,0.9049213,0.48899868,0.11941989,0.45151904,0.9315986,0.17897557,0.759705,0.2549287,0.96008617,0.25688004,0.5925487,0.3069243,0.9171891,0.46981755,0.14557107,0.8900092,0.84537476,0.5608369,0.6909559,0.777092,0.66562796,0.6040272,0.77930593,0.59144366,0.12506102],
+          "boost":0.8
+        }
+      ],
+      "filter":[
+          {
+              "range":{
+                  "int":{
+                      "gte":1,
+                      "lte":1000
+                  }
+              }
+          },
+          {
+              "term":{
+                "string_tags":["28","2","29"],
+                "operator":"or"
+              }
+          }
+       ]
+  },
+  "size":10
+}
+' {{ROUTER}}/test_vector_db/vector_space/_delete_by_query
+````
+
+
+## space in router
+
+----
+
+### get space mapping
+````$xslt
+curl -XGET {{ROUTER}}/test_vector_db/_mapping/vector_space
+````
+
+### flush space
+````$xslt
+curl -XPOST {{ROUTER}}/test_vector_db/vector_space/_flush
+````
+
+### create index to space
+````$xslt
+curl -XPOST {{ROUTER}}/test_vector_db/vector_space/_forcemerge
+````
+
+## cluster API
+
+----
+
+### password_encrypt
+````$xslt
+curl -XGET {{ROUTER}}/_encrypt?name=cb&password=1234
+````
+
+### clean lock
+````$xslt
+curl -XGET {{MASTER}}/clean_lock
+````
+> if cluster table creating is crashed, it will has lock , now you need clean lock use this api
+
+### server list
+````$xslt
+curl -XGET {{MASTER}}/list/server
+````
+
+### server stats
+````$xslt
+curl -XGET {{MASTER}}/_cluster/stats
+````
+
+
+### server health
+````$xslt
+curl -XGET {{MASTER}}/_cluster/health
+````
+
+#### router cache info
+````$xslt
+curl -XGET {{ROUTER}}/_cache_info?db_name=test_vector_db&space_name=vector_space
+````

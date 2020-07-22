@@ -17,7 +17,6 @@ package config
 import (
 	"bytes"
 	"fmt"
-	"github.com/vearch/vearch/util/monitoring"
 	"net"
 	"net/url"
 	"os"
@@ -28,7 +27,7 @@ import (
 	"github.com/BurntSushi/toml"
 	"github.com/pkg/errors"
 	"github.com/spf13/cast"
-	"github.com/tiglabs/log"
+	"github.com/vearch/vearch/util/log"
 	"go.etcd.io/etcd/embed"
 )
 
@@ -199,6 +198,7 @@ type MasterCfg struct {
 	Self           bool   `json:"-"`
 	SkipAuth       bool   `toml:"skip_auth,omitempty" json:"skip_auth"`
 	PprofPort      uint16 `toml:"pprof_port,omitempty" json:"pprof_port"`
+	MonitorPort    uint16 `toml:"monitor_port" json:"monitor_port"`
 }
 
 func (m *MasterCfg) ApiUrl() string {
@@ -262,8 +262,10 @@ func (config *Config) GetEmbed() (*embed.Config, error) {
 
 type RouterCfg struct {
 	Base
-	Port      uint16 `toml:"port,omitempty" json:"port"`
-	PprofPort uint16 `toml:"pprof_port,omitempty" json:"pprof_port"`
+	Port        uint16 `toml:"port,omitempty" json:"port"`
+	PprofPort   uint16 `toml:"pprof_port,omitempty" json:"pprof_port"`
+	RpcPort     uint16 `toml:"rpc_port,omitempty" json:"rpc_port"`
+	MonitorPort uint16 `toml:"monitor_port" json:"monitor_port"`
 }
 type PSCfg struct {
 	Base
@@ -274,6 +276,7 @@ type PSCfg struct {
 	RaftRetainLogs         uint64 `toml:"raft_retain_logs" json:"raft-retain-logs"`
 	RaftReplicaConcurrency int    `toml:"raft_replica_concurrency" json:"raft-replica-concurrency"`
 	RaftSnapConcurrency    int    `toml:"raft_snap_concurrency" json:"raft-snap-concurrency"`
+	RaftTruncateCount      int64  `toml:"raft_truncate_count" json:"raft-snap-concurrency"`
 	EngineDWPTNum          uint64 `toml:"engine_dwpt_num" json:"engine-dwpt-num"`
 	MaxSize                int64  `toml:"max_size" json:"max_size"`
 	PprofPort              uint16 `toml:"pprof_port" json:"pprof_port"`
@@ -403,19 +406,4 @@ func (config *Config) validatePath(model Model) error {
 	}
 
 	return nil
-}
-
-func (config *Config) NewMonitor(model Model) monitoring.Monitor {
-	var key string
-	switch model {
-	case Router:
-		key = "router"
-	case PS:
-		key = "partition_server"
-	case Master:
-		key = "master"
-	default:
-		key = "unknow"
-	}
-	return newMonitor(config, key)
 }

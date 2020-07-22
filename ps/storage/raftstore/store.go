@@ -16,11 +16,11 @@ package raftstore
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/ps/psutil"
 	"os"
-
-	"github.com/tiglabs/log"
 
 	"github.com/tiglabs/raft"
 	"github.com/tiglabs/raft/proto"
@@ -36,6 +36,8 @@ import (
 // contiguous slot-space with writes managed via an instance of the Raft
 // consensus algorithm.
 
+//var _  ps.PartitionStore = &Store{}
+
 type Store struct {
 	*storage.StoreBase
 	RaftPath      string
@@ -45,6 +47,7 @@ type Store struct {
 	LastFlushSn   int64
 	Client        *client.Client
 }
+
 
 // CreateStore create an instance of Store.
 func CreateStore(ctx context.Context, pID entity.PartitionID, nodeID entity.NodeID, space *entity.Space, raftServer *raft.RaftServer, eventListener EventListener, client *client.Client) (*Store, error) {
@@ -128,29 +131,23 @@ func (s *Store) Start() (err error) {
 	// Start Raft Truncate Worker
 	s.startTruncateJob(apply)
 
-	// Start frozen check worker
-	if config.Conf().PS.MaxSize > 0 && s.Space.CanFrozen() {
-		s.startFrozenJob()
-	}
-
 	return nil
 }
 
 // Destroy close partition store if it running currently.
 func (s *Store) Close() error {
-	s.CloseOnce.Do(func() {
 
-		s.Partition.SetStatus(entity.PA_CLOSED)
+	if err := s.RaftServer.RemoveRaft(uint64(s.Partition.Id)); err != nil {
+		log.Error("close raft server err : %s , Partition.Id: %d", err.Error(), s.Partition.Id)
+		return err
+	}
 
-		if err := s.RaftServer.RemoveRaft(uint64(s.Partition.Id)); err != nil {
-			log.Error("close raft server err : %s , Partition.Id: %d", err.Error(), s.Partition.Id)
-		}
-		if s.Engine != nil {
-			s.Engine.Close()
-		}
+	if s.Engine != nil {
+		s.Engine.Close()
+	}
+	s.CtxCancel() // to stop
+	s.Partition.SetStatus(entity.PA_CLOSED)
 
-		s.CtxCancel() // to stop
-	})
 	return nil
 }
 
@@ -177,8 +174,21 @@ func (s *Store) IsLeader() bool {
 	return s.NodeID == leaderID
 }
 
+func (s *Store) Status() *raft.Status {
+	return s.RaftServer.Status(uint64(s.Partition.Id))
+}
+
 func (s *Store) GetLeader() (entity.NodeID, uint64) {
 	return s.RaftServer.LeaderTerm(uint64(s.Partition.Id))
+}
+
+func (s *Store) TryToLeader() error {
+	future := s.RaftServer.TryToLeader(uint64(s.Partition.Id))
+	response, err := future.Response()
+	if response != nil && response.(*RaftApplyResponse).Err != nil {
+		return response.(*RaftApplyResponse).Err
+	}
+	return err
 }
 
 func (s *Store) GetUnreachable(id uint64) []uint64 {
@@ -188,4 +198,31 @@ func (s *Store) GetUnreachable(id uint64) []uint64 {
 
 func (s *Store) GetPartition() *entity.Partition {
 	return s.Partition
+}
+
+func (s *Store) ChangeMember(changeType proto.ConfChangeType, server *entity.Server) error {
+	id := uint64(s.Partition.Id)
+
+	peer := proto.Peer{
+		Type: proto.PeerNormal,
+		ID:   server.ID,
+	}
+
+	bytes, err := json.Marshal(server.Replica())
+	if err != nil {
+		return err
+	}
+
+	future := s.RaftServer.ChangeMember(id, changeType, peer, bytes)
+
+	response, err := future.Response()
+	if err != nil {
+		return err
+	}
+
+	if response != nil && response.(*RaftApplyResponse).Err != nil {
+		return response.(*RaftApplyResponse).Err
+	}
+
+	return nil
 }

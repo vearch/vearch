@@ -16,14 +16,13 @@ package raftstore
 
 import (
 	"fmt"
-	"github.com/tiglabs/log"
 	"github.com/tiglabs/raft"
 	"github.com/tiglabs/raft/proto"
-	"github.com/vearch/vearch/proto"
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/proto/pspb/raftpb"
 	"github.com/vearch/vearch/ps/psutil"
 	"github.com/vearch/vearch/util/cbjson"
+	"github.com/vearch/vearch/util/log"
 )
 
 // Apply implements the raft interface.
@@ -47,10 +46,6 @@ func (s *Store) innerApply(command []byte, index uint64, raftCmd *raftpb.RaftCom
 	resp := new(RaftApplyResponse)
 	switch raftCmd.Type {
 	case raftpb.CmdType_WRITE:
-		if s.Partition.Frozen {
-			resp.Err = pkg.ErrPartitionFrozen
-			return resp
-		}
 		resp.Result = s.Engine.Writer().Write(s.Ctx, raftCmd.WriteCommand)
 	case raftpb.CmdType_UPDATESPACE:
 		resp = s.updateSchemaBySpace(raftCmd.UpdateSpace.Space, raftCmd.UpdateSpace.Version)
@@ -72,10 +67,10 @@ func (s *Store) innerApply(command []byte, index uint64, raftCmd *raftpb.RaftCom
 // changeSchema for add schema field
 func (s *Store) updateSchemaBySpace(spaceBytes []byte, version uint64) (rap *RaftApplyResponse) {
 	rap = new(RaftApplyResponse)
-	if s.Space.Version > version {
+	/*if s.Space.Version > version {
 		log.Warn("update schema version not right, old:[%d] new:[%d] ", s.Space.Version, version)
 		return
-	}
+	}*/
 
 	space := &entity.Space{}
 	err := cbjson.Unmarshal(spaceBytes, space)
@@ -95,16 +90,6 @@ func (s *Store) updateSchemaBySpace(spaceBytes []byte, version uint64) (rap *Raf
 	}
 
 	s.SetSpace(space)
-	if s.Space.CanFrozen() {
-		partition := space.GetPartition(s.Partition.Id)
-		if partition == nil {
-			log.Error("updateSchemaBySpace() space.GetPartition() return nil, partitionId:[%d]", s.Partition.Id)
-			return
-		}
-		if partition.Frozen {
-			s.Partition.Frozen = partition.Frozen
-		}
-	}
 
 	return
 }
@@ -179,14 +164,4 @@ func (s *Store) HandleFatalEvent(err *raft.FatalError) {
 		PartitionId: s.Partition.Id,
 		Cause:       err.Err,
 	})
-}
-
-// Snapshot implements the raft interface.
-func (s *Store) Snapshot() (proto.Snapshot, error) {
-	panic("TODO ANSJ")
-}
-
-// ApplySnapshot implements the raft interface.
-func (s *Store) ApplySnapshot(peers []proto.Peer, iter proto.SnapIterator) error {
-	panic("TODO ANSJ")
 }

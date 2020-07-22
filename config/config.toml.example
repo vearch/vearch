@@ -10,7 +10,7 @@
     # master <-> ps <-> router will use this key to send or receive data
     signkey = "secret"
     # skip auth for master and router
-    skip_auth = false
+    skip_auth = true
 
 # if you are master you'd better set all config for router and ps and router and ps use default config it so cool
 [[masters]]
@@ -30,10 +30,14 @@
     # advertise_client_urls AND listen_client_urls
     etcd_client_port = 2370
     pprof_port = 6062
+    # monitor
+    monitor_port = 8818
+
 
 [router]
     # port for server
     port = 9001
+    # rpc_port = 9002
     pprof_port = 6061
     plugin_path = "plugin"
 
@@ -44,9 +48,10 @@
     raft_heartbeat_port = 8898
     raft_replicate_port = 8899
     heartbeat-interval = 200 #ms
-    raft_retain_logs = 10000
+    raft_retain_logs = 20000000
     raft_replica_concurrency = 1
     raft_snap_concurrency = 1
+    raft_truncate_count = 20000
     # engine config
     engine_dwpt_num = 8
     # max size byte

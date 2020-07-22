@@ -17,19 +17,26 @@ package document
 import (
 	"bufio"
 	"context"
+	"encoding/hex"
 	"fmt"
+	"github.com/vearch/vearch/util/regularutil"
+	"github.com/vearch/vearch/util/uuid"
+	"math/big"
+	"strconv"
+	"strings"
+	"time"
+
+	"crypto/md5"
 	"github.com/smallnest/rpcx/share"
 	"github.com/spf13/cast"
-	"github.com/tiglabs/log"
 	"github.com/vearch/vearch/client"
-	"github.com/vearch/vearch/proto"
+	pkg "github.com/vearch/vearch/proto"
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/proto/pspb"
 	"github.com/vearch/vearch/proto/request"
 	"github.com/vearch/vearch/proto/response"
 	"github.com/vearch/vearch/util/cbjson"
-	"github.com/vearch/vearch/util/uuid"
-	"strings"
+	"github.com/vearch/vearch/util/log"
 )
 
 type docService struct {
@@ -92,88 +99,94 @@ func (this *docService) getDocs(ctx context.Context, dbName string, spaceName st
 	return this.client.PS().B().Space(dbName, spaceName).SetRoutingValue(reqArgs[UrlQueryRouting]).GetDocs(docIDs)
 }
 
-func (this *docService) mSearchDoc(ctx context.Context, dbName string, spaceName string, searchRequest *request.SearchRequest) (response.SearchResponses, response.NameCache, error) {
-	if searchRequest.Aggs == nil {
-		searchRequest.Aggs = searchRequest.Aggregations
-	}
-	searchRequest.Aggregations = nil
-
-	var searchSpaces [][2]string
-
-	dbNames := strings.Split(dbName, ",")
-	spaceNames := strings.Split(spaceName, ",")
-
-	nameCache := make(response.NameCache)
-
-	for _, dbName = range dbNames {
-		for _, spaceName = range spaceNames {
-			if space, err := this.client.Master().Cache().SpaceByCache(ctx, dbName, spaceName); err == nil {
-				key := [2]int64{int64(space.DBId), int64(space.Id)}
-				if nameCache[key] == nil {
-					nameCache[key] = []string{dbName, spaceName}
-					searchSpaces = append(searchSpaces, [2]string{dbName, spaceName})
-				}
-			} else {
-				log.Error("can not find db:[%s] space:[%s] for search err:[%s] ", dbName, spaceName, err.Error())
-			}
-		}
+func (this *docService) mSearchIDs(ctx context.Context, dbName string, spaceName string, searchRequest *request.SearchRequest, clientType client.ClientType) (response.SearchResponses, response.NameCache, error) {
+	searchSpaces, nameCache, err := this.parseDBSpacePair(ctx, dbName, spaceName)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	if len(searchSpaces) == 0 {
-		return nil, nil, pkg.ErrMasterSpaceNotExists
+		return nil, nil, pkg.CodeErr(pkg.ERRCODE_SPACE_NOTEXISTS)
 	}
 
-	return this.client.PS().Be(ctx).MultipleSpace(searchSpaces).MSearch(searchRequest), nameCache, nil
+	return this.client.PS().Be(ctx).MultipleSpaceByType(searchSpaces, clientType).MSearchIDs(searchRequest), nameCache, nil
+}
+
+func (this *docService) mSearchForIDs(ctx context.Context, dbName string, spaceName string, searchRequest *request.SearchRequest, clientType client.ClientType) ([]byte, error) {
+	searchSpaces, _, err := this.parseDBSpacePair(ctx, dbName, spaceName)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(searchSpaces) == 0 {
+		return nil, pkg.CodeErr(pkg.ERRCODE_SPACE_NOTEXISTS)
+	}
+
+	return this.client.PS().Be(ctx).MultipleSpaceByType(searchSpaces, clientType).MSearchForIDs(searchRequest)
+}
+
+func (this *docService) mSearchNewDoc(ctx context.Context, dbName string, spaceName string, searchRequest *request.SearchRequest, clientType client.ClientType) (response.SearchResponses, response.NameCache, error) {
+	searchSpaces, nameCache, err := this.parseDBSpacePair(ctx, dbName, spaceName)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if len(searchSpaces) == 0 {
+		return nil, nil, pkg.CodeErr(pkg.ERRCODE_SPACE_NOTEXISTS)
+	}
+
+	return this.client.PS().Be(ctx).MultipleSpaceByType(searchSpaces, clientType).MSearchNew(searchRequest), nameCache, nil
+}
+
+func (this *docService) mSearchDoc(ctx context.Context, dbName string, spaceName string, searchRequest *request.SearchRequest, clientType client.ClientType) (response.SearchResponses, response.NameCache, error) {
+	searchSpaces, nameCache, err := this.parseDBSpacePair(ctx, dbName, spaceName)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if len(searchSpaces) == 0 {
+		return nil, nil, pkg.CodeErr(pkg.ERRCODE_SPACE_NOTEXISTS)
+	}
+
+	return this.client.PS().Be(ctx).MultipleSpaceByType(searchSpaces, clientType).MSearch(searchRequest), nameCache, nil
 }
 
 func (this *docService) deleteByQuery(ctx context.Context, dbName string, spaceName string, searchRequest *request.SearchRequest) (*response.Response, response.NameCache, error) {
-
-	var searchSpaces [][2]string
-
-	dbNames := strings.Split(dbName, ",")
-	spaceNames := strings.Split(spaceName, ",")
-
-	nameCache := make(response.NameCache)
-
-	for _, dbName = range dbNames {
-		for _, spaceName = range spaceNames {
-			if space, err := this.client.Master().Cache().SpaceByCache(ctx, dbName, spaceName); err == nil {
-				key := [2]int64{int64(space.DBId), int64(space.Id)}
-				if nameCache[key] == nil {
-					nameCache[key] = []string{dbName, spaceName}
-					searchSpaces = append(searchSpaces, [2]string{dbName, spaceName})
-				}
-			} else {
-				log.Error("can not find db:[%s] space:[%s] for search err:[%s] ", dbName, spaceName, err.Error())
-			}
-		}
+	searchSpaces, nameCache, err := this.parseDBSpacePair(ctx, dbName, spaceName)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	if len(searchSpaces) == 0 {
-		return nil, nil, pkg.ErrMasterSpaceNotExists
+		return nil, nil, pkg.CodeErr(pkg.ERRCODE_SPACE_NOTEXISTS)
 	}
 
 	return this.client.PS().Be(ctx).MultipleSpace(searchSpaces).DeleteByQuery(searchRequest), nameCache, nil
 }
 
-func (this *docService) searchDoc(ctx context.Context, dbName string, spaceName string, searchRequest *request.SearchRequest) (*response.SearchResponse, response.NameCache, error) {
-	if searchRequest.Aggs == nil {
-		searchRequest.Aggs = searchRequest.Aggregations
+func (this *docService) searchDoc(ctx context.Context, dbName string, spaceName string, searchRequest *request.SearchRequest, clientType client.ClientType) (*response.SearchResponse, response.NameCache, error) {
+	searchSpaces, nameCache, err := this.parseDBSpacePair(ctx, dbName, spaceName)
+	if err != nil {
+		return nil, nil, err
 	}
-	searchRequest.Aggregations = nil
 
+	if len(searchSpaces) == 0 {
+		return nil, nil, pkg.CodeErr(pkg.ERRCODE_SPACE_NOTEXISTS)
+	}
+
+	return this.client.PS().Be(ctx).MultipleSpaceByType(searchSpaces, clientType).Search(searchRequest), nameCache, nil
+}
+
+//it make uri to db space pair like db1,db2/s1,s1  it will return db1/s1 , db2/s1
+func (this *docService) parseDBSpacePair(ctx context.Context, dbName string, spaceName string) ([][2]string, response.NameCache, error) {
 	var searchSpaces [][2]string
-
 	dbNames := strings.Split(dbName, ",")
 	spaceNames := strings.Split(spaceName, ",")
-
-	if len(dbNames) != len(spaceNames) {
-		return nil , nil , fmt.Errorf("in uri dbNames:[%v] must length equals spaceNames:[%v] , example _search/db1,db1/table1,table2" ,dbNames, spaceNames)
-	}
-
 	nameCache := make(response.NameCache)
-
-	for i, dbName := range dbNames{
+	if len(dbNames) != len(spaceNames) {
+		return nil, nil, fmt.Errorf("in uri dbNames:[%v] must length equals spaceNames:[%v] , example _search/db1,db1/table1,table2", dbNames, spaceNames)
+	}
+	for i, dbName := range dbNames {
 		spaceName := spaceNames[i]
 		if space, err := this.client.Master().Cache().SpaceByCache(ctx, dbName, spaceName); err == nil {
 			key := [2]int64{int64(space.DBId), int64(space.Id)}
@@ -185,12 +198,7 @@ func (this *docService) searchDoc(ctx context.Context, dbName string, spaceName 
 			log.Error("can not find db:[%s] space:[%s] for search err:[%s] ", dbName, spaceName, err.Error())
 		}
 	}
-
-	if len(searchSpaces) == 0 {
-		return nil, nil, pkg.ErrMasterSpaceNotExists
-	}
-
-	return this.client.PS().Be(ctx).MultipleSpace(searchSpaces).Search(searchRequest), nameCache, nil
+	return searchSpaces, nameCache, nil
 }
 
 func (this *docService) streamSearchDoc(ctx context.Context, dbName string, spaceName string, searchRequest *request.SearchRequest) (dsr *response.DocStreamResult, nameCache response.NameCache, err error) {
@@ -217,7 +225,7 @@ func (this *docService) streamSearchDoc(ctx context.Context, dbName string, spac
 	}
 
 	if len(searchSpaces) == 0 {
-		return nil, nil, pkg.ErrMasterSpaceNotExists
+		return nil, nil, pkg.CodeErr(pkg.ERRCODE_SPACE_NOTEXISTS)
 	}
 
 	return this.client.PS().Be(ctx).MultipleSpace(searchSpaces).StreamSearch(searchRequest), nameCache, nil
@@ -231,11 +239,12 @@ func (this *docService) forceMerge(ctx context.Context, dbName string, spaceName
 	return this.client.PS().B().Space(dbName, spaceName).ForceMerge()
 }
 
-func (this *docService) bulk(ctx context.Context, dbName string, spaceName string, reqArgs RawReqArgs, reqBody []byte) ([]*response.BulkItemResponse, error) {
+func (this *docService) bulk(ctx context.Context, dbName string, spaceName string, reqArgs RawReqArgs, reqBody []byte, idIsLong bool) ([]*response.BulkItemResponse, error) {
 	var birs []*response.BulkItemResponse
 
 	sr := strings.NewReader(string(reqBody))
 	br := bufio.NewScanner(sr)
+
 	for br.Scan() {
 		line := string(br.Bytes())
 		if len(line) < 1 {
@@ -255,6 +264,7 @@ func (this *docService) bulk(ctx context.Context, dbName string, spaceName strin
 		var source []byte
 		var opType pspb.OpType
 		var version int64
+		var docId64 int64
 		if indexJsonMap != nil {
 			realDbName = indexJsonMap.GetJsonValString("_index")
 			if realDbName == "" {
@@ -335,18 +345,53 @@ func (this *docService) bulk(ctx context.Context, dbName string, spaceName strin
 			return nil, fmt.Errorf("space name not found (%s)", line)
 		}
 
+		//fmt.Println("bulk=======docID:[%s]", docID)
+
 		if docID == "" {
-			docID = uuid.FlakeUUID()
+			/*n, err := snowflake.NewNode(1)
+			if err != nil {
+				fmt.Errorf("snowflake.NewNode error: (%s)", err.Error())
+			} else {
+				docId64 = n.Generate().Int64()
+			}*/
+			docIDUUID := uuid.FlakeUUID()
+			docIdMd5 := GetMD5Encode(docIDUUID)
+			bi := big.NewInt(0)
+			before := docIdMd5[0:16]
+			after := docIdMd5[16:32]
+
+			bi.SetString(before, 16)
+			beforeInt64 := bi.Int64()
+			bi.SetString(after, 16)
+			afterInt64 := bi.Int64()
+
+			docId64 = beforeInt64 ^ afterInt64
+			docID = strconv.FormatInt(docId64, 10)
+		} else {
+			if idIsLong {
+				result := regularutil.StringCheckNum(docID)
+				if !result {
+					return nil, fmt.Errorf("_id not int64 (%s)", docID)
+				}
+			}
 		}
 
+		//fmt.Println("bulk=======docId64:[%s]", docID)
 		slot := this.client.PS().B().Space(realDbName, realSpaceName).SetRoutingValue(routing).Slot(docID)
 		docCmd := pspb.NewDocCmd(opType, docID, slot, source, version)
 		defer func(docCmd *pspb.DocCmd) {
 			go pspb.PutDocCmd(docCmd)
 		}(docCmd)
 
+		startTime := time.Now()
 		var docResult response.DocResultWrite
 		resp := this.client.PS().B().Space(realDbName, realSpaceName).Bulk(docCmd)
+		endTime := time.Now()
+		if resp.CostTime != nil {
+			resp.CostTime.DocSStartTime = startTime
+			resp.CostTime.DocSEndTime = endTime
+		}
+
 		docResult = response.DocResultWrite{
 			DbName:    realDbName,
 			SpaceName: realSpaceName,
@@ -405,35 +450,8 @@ func (this *docService) createSpace(ctx context.Context, dbName string, spaceNam
 	return nil
 }
 
-func (this *docService) updateSpaceMapping(ctx context.Context, dbName string, spaceName string, mapping []byte) error {
-	dbID, err := this.client.Master().QueryDBName2Id(ctx, dbName)
-	if err != nil {
-		return err
-	}
-
-	entitySpace := &entity.Space{}
-	err = cbjson.Unmarshal(mapping, &entitySpace)
-	if err != nil {
-		return err
-	}
-	entitySpace.DBId = dbID
-	entitySpace.Name = spaceName
-
-	_, err = this.getSpace(ctx, dbName, spaceName)
-	if err == pkg.ErrMasterSpaceNotExists {
-		return this.client.Master().CreateSpace(ctx, dbName, entitySpace)
-	} else if err != nil {
-		return err
-	}
-
-	return this.client.Master().UpdateSpace(ctx, dbName, entitySpace)
-}
-
-func (this *docService) deleteSpace(ctx context.Context, dbName string, spaceName string) error {
-	err := this.client.Master().DeleteSpace(ctx, dbName, spaceName)
-	if err != nil {
-		return err
-	}
-
-	return nil
+func GetMD5Encode(data string) string {
+	h := md5.New()
+	h.Write([]byte(data))
+	return hex.EncodeToString(h.Sum(nil))
 }

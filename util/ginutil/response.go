@@ -19,45 +19,34 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/vearch/vearch/proto"
 	"github.com/vearch/vearch/util/cbjson"
-	"github.com/vearch/vearch/util/monitoring"
 	"github.com/vearch/vearch/util/netutil"
-	"github.com/vearch/vearch/util/reflect"
-	"github.com/vearch/vearch/util/server/vearchhttp"
 	"net/http"
-	"time"
 )
 
 type Response struct {
 	ginContext *gin.Context
-	httpStatus int
-	monitor    monitoring.Monitor
+	httpStatus int64
 }
 
-func New(ginContext *gin.Context, monitor monitoring.Monitor) *Response {
+func New(ginContext *gin.Context) *Response {
 	return &Response{
 		ginContext: ginContext,
 		httpStatus: http.StatusOK,
-		monitor:    monitor,
 	}
 }
 
-func NewAutoMehtodName(ginContext *gin.Context, monitor monitoring.Monitor) *Response {
+func NewAutoMehtodName(ginContext *gin.Context) *Response {
 	response := &Response{
 		ginContext: ginContext,
 		httpStatus: http.StatusOK,
 	}
-
-	if monitor != nil {
-		response.monitor = monitor.New(reflect.RuntimeMethodName(2))
-	}
-
 	return response
 }
 
 /*
  default status is 200
 */
-func (this *Response) SetHttpStatus(httpStatus int) *Response {
+func (this *Response) SetHttpStatus(httpStatus int64) *Response {
 	this.httpStatus = httpStatus
 	return this
 }
@@ -68,22 +57,16 @@ func (this *Response) SendJson(data interface{}) {
 		this.SendJsonHttpReplyError(err)
 		return
 	}
-	this.ginContext.Data(this.httpStatus, "application/json", reply)
-
-	//write monitor info
-	if this.monitor != nil {
-		if value, exists := this.ginContext.Get(vearchhttp.Start); exists {
-			this.monitor.FunctionTP(value.(time.Time), false)
-		}
-	}
+	this.ginContext.Data(int(this.httpStatus), "application/json", reply)
 }
 
 func (this *Response) SendJsonHttpReplySuccess(data interface{}) {
 	httpReply := &netutil.HttpReply{
 		Code: pkg.ERRCODE_SUCCESS,
-		Msg:  pkg.ErrGeneralSuccess.Error(),
+		Msg:  pkg.SUCCESS,
 		Data: data,
 	}
+	this.SetHttpStatus(httpReply.Code)
 	this.SendJson(httpReply)
 }
 
@@ -96,13 +79,6 @@ func (this *Response) SendJsonHttpReplyError(err error) {
 		Code: pkg.ErrCode(err),
 		Msg:  err.Error(),
 	}
-
+	this.SetHttpStatus(httpReply.Code)
 	this.SendJson(httpReply)
-
-	//write monitor info
-	if this.monitor != nil {
-		if value, exists := this.ginContext.Get(vearchhttp.Start); exists {
-			this.monitor.FunctionTP(value.(time.Time), true)
-		}
-	}
 }

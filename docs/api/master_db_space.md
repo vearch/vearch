@@ -4,7 +4,7 @@
 
 #### list db 
 
-Get http://11.3.170.164:443/list/db
+Get http://127.0.0.1:443/list/db
 
 * ok
 
@@ -21,7 +21,7 @@ Get http://11.3.170.164:443/list/db
 
 #### list space
 
-Get http://11.3.170.164:443/list/space?db=vector_db
+Get http://127.0.0.1:443/list/space?db=vector_db
 
 * ok
 

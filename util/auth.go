@@ -18,7 +18,7 @@ import (
 	"encoding/base64"
 	"strings"
 
-	"github.com/tiglabs/log"
+	"github.com/vearch/vearch/util/log"
 )
 
 const (
