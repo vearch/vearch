@@ -41,7 +41,7 @@ import (
 const (
 	DB            = "db"
 	dbName        = "db_name"
-	spaceNmme     = "space_name"
+	spaceName     = "space_name"
 	userName      = "user_name"
 	userPassword  = "user_password"
 	userDbList    = "user_db_list"
