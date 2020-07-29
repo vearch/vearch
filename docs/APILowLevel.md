@@ -156,7 +156,7 @@ curl -v --user "root:secret" -H "content-type: application/json" -XPUT -d'
 * array : whether the tags for each document is multi-valued, `true` or `false` default is false
 * index : supporting numeric field filter default `false`
 * Vector field params
-    * * format : default not normalized . if you set "normalization", "normal" it will normalized  
+    * * format : default not normalized . If you set "normalization", "normal" it will be normalized  
     * * store_type : "RocksDB" or "Mmap" default "Mmap".For HNSW and FLAT, it can only be run in Mmap mode with fully memory. So not setting store_param is a good way to use HSNW and FLAT.   
     * * store_param : example {"cache_size":2592}. It means you will use so much memory, the excess will be kept to disk. When you don't set it, vearch will just use the memory. 
 
@@ -291,7 +291,8 @@ curl -H "content-type: application/json" -XPOST -d'
                 "operator":"or"
               }
           }
-       ]
+       ],
+       "is_brute_search":0
   },
   "size":10,
   "parallel":false
@@ -301,7 +302,7 @@ curl -H "content-type: application/json" -XPOST -d'
 
 > url: [ip]:[port]/[dbName]/[tableName]/_search
 * filter->term-> operator [`and`, `or`] default `or` 
-* `direct_search_type` : default 0 ; -1: no direct search, 0: auto, 1: always direct
+* `is_brute_search` : default 0 ; -1: no direct search, 0: auto, 1: always direct
 * `online_log_level`:"debug" , is print debug info 
 * `quick` :default is false, if quick=true it not use precision sorting
 * `vector_value` :default is false, is return vector value
