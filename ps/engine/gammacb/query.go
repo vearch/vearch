@@ -363,11 +363,11 @@ func (qb *queryBuilder) parseQuery(data []byte, req *C.struct_Request, retrieval
 	}
 
 	temp := struct {
-		And              []json.RawMessage `json:"and"`
-		Sum              []json.RawMessage `json:"sum"`
-		Filter           []json.RawMessage `json:"filter"`
-		DirectSearchType int               `json:"direct_search_type"`
-		OnlineLogLevel   string            `json:"online_log_level"`
+		And            []json.RawMessage `json:"and"`
+		Sum            []json.RawMessage `json:"sum"`
+		Filter         []json.RawMessage `json:"filter"`
+		IsBruteSearch  int               `json:"is_brute_search"`
+		OnlineLogLevel string            `json:"online_log_level"`
 	}{}
 
 	err := cbjson.Unmarshal(data, &temp)
@@ -453,8 +453,8 @@ func (qb *queryBuilder) parseQuery(data []byte, req *C.struct_Request, retrieval
 
 	req.req_num = C.int(reqNum)
 
-	if temp.DirectSearchType != 0 {
-		req.direct_search_type = C.int(temp.DirectSearchType)
+	if temp.IsBruteSearch != 0 {
+		req.direct_search_type = C.int(temp.IsBruteSearch)
 	}
 
 	if temp.OnlineLogLevel != "" {
