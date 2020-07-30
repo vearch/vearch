@@ -302,7 +302,7 @@ curl -H "content-type: application/json" -XPOST -d'
 
 > url: [ip]:[port]/[dbName]/[tableName]/_search
 * filter->term-> operator [`and`, `or`] default `or` 
-* `is_brute_search` : default 0 ; -1: no direct search, 0: auto, 1: always direct
+* `is_brute_search` : default 0 ; -1: no brute search , 0: auto, 1: always brute search
 * `online_log_level`:"debug" , is print debug info 
 * `quick` :default is false, if quick=true it not use precision sorting
 * `vector_value` :default is false, is return vector value
