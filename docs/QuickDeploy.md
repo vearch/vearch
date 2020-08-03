@@ -1,6 +1,6 @@
 # Vearch installation package usage
 
-## Using the step
+## Single deployment
 
 **1. Download address**
 
@@ -12,7 +12,7 @@ Google cloud disk: https://drive.google.com/drive/folders/1w8KzXdj612rWOxIbZduo5
 
 **2. Installation**
 
-​		`sudo sh vearch-3.1.0.sh`
+​        `sudo sh vearch-3.1.0.sh`
 
 **3. Configuration**
 
@@ -41,7 +41,7 @@ Google cloud disk: https://drive.google.com/drive/folders/1w8KzXdj612rWOxIbZduo5
 
 *start.sh* configuration instructions before running:
 
-`SERVER_TYPE=`  `all`. `master`. `router` or `ps`. `all` means start three at the same time.
+`SERVER_TYPE=all` .   `all` represents running *master*, *router*, and *ps* on the same machine at the same time.
 
 Perform：`systemctl start vearch`
 
@@ -59,7 +59,7 @@ Vearch installed using this approach does not currently support the GPU model. V
 
 
 
-## Example
+## Distributed deployment
 
 **1. Target**
 
@@ -103,4 +103,4 @@ Then execute `systemctl start vearch` in 172.0.0.3~172.0.0.6 machines, respectiv
 
 **5. View status and Termination**
 
-`systemctl status vearch`      and     `systemctl kill vearch`
+`systemctl status vearch`     and     `systemctl kill vearch`
