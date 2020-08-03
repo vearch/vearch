@@ -25,17 +25,17 @@
 
 （1）数据磁盘存储路径:
 
-​          `data = [ "/export/vearch/datas/",]`  
+​        `data = [ "/export/vearch/datas/",]`  
 
 （2）masters ip 和port:
 
-​		 `address = "127.0.0.1"`   
+​        `address = "127.0.0.1"`   
 
-​         `api_port = 443`   
+​        `api_port = 443`   
 
 （3）router port:
 
-​		`port = 80`
+​        `port = 80`
 
 **4. 运行**
 
@@ -103,4 +103,4 @@
 
 **5. 查看运行状态与终止**
 
-`systemctl kill vearch`      和     `systemctl kill vearch`
+`systemctl status vearch`      和     `systemctl kill vearch`

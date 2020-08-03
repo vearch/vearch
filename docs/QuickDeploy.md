@@ -25,17 +25,17 @@ Google cloud disk: https://drive.google.com/drive/folders/1w8KzXdj612rWOxIbZduo5
 
 （1）Data disk storage path:
 
-​          `data = [ "/export/vearch/datas/",]`  
+​        `data = [ "/export/vearch/datas/",]`  
 
 （2）masters ip 和port:
 
-​		 `address = "127.0.0.1"`   
+​        `address = "127.0.0.1"`   
 
-​         `api_port = 443`   
+​        `api_port = 443`   
 
 （3）router port:
 
-​		`port = 80`
+​        `port = 80`
 
 **4. Run**
 
@@ -83,7 +83,7 @@ The *config.toml* file is the same for 6 computers.
 
 Because there are two masters. Therefore, there are two `[[masters]]` in *config.toml* file.  The following modifications are required under `[[Masters]]`:
 
- `name = "master1"`    and     `name = "master2"`
+`name = "master1"`    and     `name = "master2"`
 
 `address = "127.0.0.1"`     and     `address = "127.0.0.2"`
 
@@ -103,4 +103,4 @@ Then execute `systemctl start vearch` in 172.0.0.3~172.0.0.6 machines, respectiv
 
 **5. View status and Termination**
 
-`systemctl kill vearch`      and     `systemctl kill vearch`
+`systemctl status vearch`      and     `systemctl kill vearch`
