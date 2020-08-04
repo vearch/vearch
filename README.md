@@ -37,8 +37,10 @@ Vearch is a scalable distributed system for efficient similarity search of deep 
 
 ## Quick start
 ![docs/img/plugin/main_process.gif](docs/img/plugin/main_process.gif)
-* Quickly build a distributed vector search system with RESTful API, please see [docs/Deploy.md](docs/Deploy.md).
 
+* One-click binary installation, please see [docs/BinaryInstallation.md](docs/BinaryInstallation.md), [中文版](docs/BinaryInstallationZH_CN.md).
+
+* Quickly compile the source codes to build a distributed vector search system with RESTful API, please see [docs/Deploy.md](docs/Deploy.md).
 
 * Vearch can be leveraged to build a complete visual search system to index billions of images. The image retrieval plugin for object detection and feature extraction is also required. For more information, please refer to [docs/Quickstart.md](docs/Quickstart.md).
 
