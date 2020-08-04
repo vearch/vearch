@@ -26,6 +26,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"strconv"
 	"strings"
 	"time"
 
@@ -161,7 +162,9 @@ func (qb *queryBuilder) parseTerm(data []byte) (*C.struct_TermFilter, error) {
 func (qb *queryBuilder) parseRange(data []byte) (*C.struct_RangeFilter, error) {
 
 	tmp := make(map[string]map[string]interface{})
-	err := json.Unmarshal(data, &tmp)
+	d := json.NewDecoder(bytes2.NewBuffer(data))
+	d.UseNumber()
+	err := d.Decode(&tmp)
 	if err != nil {
 		return nil, err
 	}
@@ -175,7 +178,7 @@ func (qb *queryBuilder) parseRange(data []byte) (*C.struct_RangeFilter, error) {
 
 	for field, rv = range tmp {
 
-		if qb.mapping.GetField(field).Options()&pspb.FieldOption_Index != pspb.FieldOption_Index {
+		if qb.mapping.GetField(field) != nil && qb.mapping.GetField(field).Options()&pspb.FieldOption_Index != pspb.FieldOption_Index {
 			return nil, fmt.Errorf("field:[%d] not open index", field)
 		}
 
@@ -226,23 +229,35 @@ func (qb *queryBuilder) parseRange(data []byte) (*C.struct_RangeFilter, error) {
 			var minNum, maxNum int32
 
 			if start != nil {
-				if f, e := cast.ToInt32E(start); e != nil {
-					return nil, e
+				v := start.(json.Number).String()
+				if v != "" {
+					vInt32, err := strconv.ParseInt(v, 10, 32)
+					if err == nil {
+						minNum = int32(vInt32)
+					} else {
+						return nil, err
+					}
 				} else {
-					minNum = f
+					minNum = math.MinInt32
 				}
 			} else {
 				minNum = math.MinInt32
 			}
 
 			if end != nil {
-				if f, e := cast.ToInt32E(end); e != nil {
-					return nil, e
+				v := end.(json.Number).String()
+				if v != "" {
+					vInt32, err := strconv.ParseInt(v, 10, 32)
+					if err == nil {
+						maxNum = int32(vInt32)
+					} else {
+						return nil, err
+					}
 				} else {
-					maxNum = f
+					maxNum = math.MaxInt32
 				}
 			} else {
-				maxNum = math.MinInt32
+				maxNum = math.MaxInt32
 			}
 
 			min, max = minNum, maxNum
@@ -251,7 +266,7 @@ func (qb *queryBuilder) parseRange(data []byte) (*C.struct_RangeFilter, error) {
 			var minNum, maxNum int64
 
 			if start != nil {
-				if f, e := cast.ToInt64E(start); e != nil {
+				if f, e := start.(json.Number).Int64(); e != nil {
 					return nil, e
 				} else {
 					minNum = f
@@ -261,13 +276,13 @@ func (qb *queryBuilder) parseRange(data []byte) (*C.struct_RangeFilter, error) {
 			}
 
 			if end != nil {
-				if f, e := cast.ToInt64E(end); e != nil {
+				if f, e := end.(json.Number).Int64(); e != nil {
 					return nil, e
 				} else {
 					maxNum = f
 				}
 			} else {
-				maxNum = math.MinInt64
+				maxNum = math.MaxInt64
 			}
 
 			min, max = minNum, maxNum
@@ -276,7 +291,7 @@ func (qb *queryBuilder) parseRange(data []byte) (*C.struct_RangeFilter, error) {
 			var minNum, maxNum float64
 
 			if start != nil {
-				if f, e := cast.ToFloat64E(start); e != nil {
+				if f, e := start.(json.Number).Float64(); e != nil {
 					return nil, e
 				} else {
 					minNum = f
@@ -286,7 +301,7 @@ func (qb *queryBuilder) parseRange(data []byte) (*C.struct_RangeFilter, error) {
 			}
 
 			if end != nil {
-				if f, e := cast.ToFloat64E(end); e != nil {
+				if f, e := end.(json.Number).Float64(); e != nil {
 					return nil, e
 				} else {
 					maxNum = f
@@ -303,7 +318,7 @@ func (qb *queryBuilder) parseRange(data []byte) (*C.struct_RangeFilter, error) {
 			var minDate, maxDate time.Time
 
 			if start != nil {
-				if f, e := cast.ToInt64E(start); e != nil {
+				if f, e := start.(json.Number).Int64(); e != nil {
 					if minDate, e = cast.ToTimeE(start); e != nil {
 						return nil, e
 					}
@@ -313,7 +328,7 @@ func (qb *queryBuilder) parseRange(data []byte) (*C.struct_RangeFilter, error) {
 			}
 
 			if end != nil {
-				if f, e := cast.ToInt64E(end); e != nil {
+				if f, e := end.(json.Number).Int64(); e != nil {
 					if maxDate, e = cast.ToTimeE(end); e != nil {
 						return nil, e
 					}
@@ -349,7 +364,11 @@ func (qb *queryBuilder) parseRange(data []byte) (*C.struct_RangeFilter, error) {
 			return nil, err
 		}
 
-		return C.MakeRangeFilter(byteArrayStr(field), byteArray(minByte), byteArray(maxByte), C.char(minC), C.char(maxC)), nil
+		if minByte != nil && maxByte != nil {
+			return C.MakeRangeFilter(byteArrayStr(field), byteArray(minByte), byteArray(maxByte), C.char(minC), C.char(maxC)), nil
+		} else {
+			return nil, fmt.Errorf("range param is null or have not gte lte")
+		}
 	}
 
 	return nil, nil
@@ -399,17 +418,25 @@ func (qb *queryBuilder) parseQuery(data []byte, req *C.struct_Request, retrieval
 			return err
 		}
 		if filterBytes, ok := tmp["range"]; ok {
-			filter, err := qb.parseRange(filterBytes)
-			if err != nil {
-				return err
+			if filterBytes != nil {
+				filter, err := qb.parseRange(filterBytes)
+				if err != nil {
+					return err
+				}
+				if filter != nil {
+					rfs = append(rfs, filter)
+				}
 			}
-			rfs = append(rfs, filter)
 		} else if termBytes, ok := tmp["term"]; ok {
-			filter, err := qb.parseTerm(termBytes)
-			if err != nil {
-				return err
+			if termBytes != nil {
+				filter, err := qb.parseTerm(termBytes)
+				if err != nil {
+					return err
+				}
+				if filter != nil {
+					tfs = append(tfs, filter)
+				}
 			}
-			tfs = append(tfs, filter)
 		}
 	}
 
