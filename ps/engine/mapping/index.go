@@ -16,15 +16,12 @@
 package mapping
 
 import (
-	"github.com/tiglabs/log"
-	"github.com/valyala/fastjson"
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/proto/pspb"
+	"github.com/vearch/vearch/util/log"
+	"sort"
+	"strings"
 )
-
-const DefaultField = "_all"
-const DefaultAnalyzer = "keyword"
-const DefaultTokenizer = "keyword"
 
 // An IndexMapping controls how objects are placed
 // into an index.
@@ -36,23 +33,15 @@ const DefaultTokenizer = "keyword"
 type IndexMapping struct {
 	DocumentMapping *DocumentMapping `json:"doc_mapping"`
 	//it is not config in index
-	DefaultAnalyzerName       string                      `json:"-"`
 	DefaultDateTimeParserName string                      `json:"-"`
-	DefaultField              string                      `json:"-"`
-	StoreDynamic              bool                        `json:"-"`
-	DocValuesDynamic          bool                        `json:"-"`
-	DynamicSchema             entity.DynamicType          `json:"-"`
 	fieldCacher               map[string]*DocumentMapping `json:"-"`
+	DimensionMap              map[string]int              `json:"-"`
 }
 
 // NewIndexMapping creates a new IndexMapping that will use all the default indexing rules
 func NewIndexMapping() *IndexMapping {
 	mapping := &IndexMapping{
-		DocumentMapping:  NewDocumentMapping(),
-		DefaultField:     DefaultField,
-		DynamicSchema:    "true",
-		StoreDynamic:     false,
-		DocValuesDynamic: true,
+		DocumentMapping: NewDocumentMapping(),
 	}
 	return mapping
 }
@@ -95,55 +84,20 @@ func _initFieldCache(temp map[string]*DocumentMapping, mappings map[string]*Docu
 	}
 }
 
-// wrapper to satisfy new interface
-func (im *IndexMapping) DefaultSearchField() string {
-	return im.DefaultField
-}
-
 type walkContext struct {
 	im            *IndexMapping
-	dynamic       entity.DynamicType
-	copyTo        map[string][]*fastjson.Value
 	Fields        []*pspb.Field
 	DynamicFields map[string]pspb.FieldType
 	Err           error
-}
-
-const (
-	t entity.DynamicType = "true"
-	s entity.DynamicType = "strict"
-)
-
-func (ctx *walkContext) isDynamic() bool {
-	return ctx.dynamic == t
-}
-
-func (ctx *walkContext) isStrict() bool {
-	return ctx.dynamic == s
 }
 
 func (ctx *walkContext) AddField(f *pspb.Field) {
 	ctx.Fields = append(ctx.Fields, f)
 }
 
-func (ctx *walkContext) AddDynamicField(f *pspb.Field) {
-	if ctx.isDynamic() {
-		if ctx.DynamicFields == nil {
-			ctx.DynamicFields = make(map[string]pspb.FieldType)
-		}
-		ctx.DynamicFields[f.Name] = f.Type
-	}
-}
-
-func (ctx *walkContext) CopyTo(fieldName string, v *fastjson.Value) {
-	ctx.copyTo[fieldName] = append(ctx.copyTo[fieldName], v)
-}
-
-func (im *IndexMapping) newWalkContext(dynamic entity.DynamicType) *walkContext {
+func (im *IndexMapping) newWalkContext() *walkContext {
 	return &walkContext{
-		im:      im,
-		dynamic: dynamic,
-		copyTo:  make(map[string][]*fastjson.Value),
+		im: im,
 	}
 }
 
@@ -164,6 +118,26 @@ func (im *IndexMapping) RangeField(f func(key string, value *DocumentMapping) er
 	return nil
 }
 
+func (im *IndexMapping) SortRangeField(f func(key string, value *DocumentMapping) error) error {
+
+	var keys []string
+	for k := range im.fieldCacher {
+		keys = append(keys, k)
+	}
+
+	sort.Slice(keys, func(i, j int) bool {
+		return strings.Compare(keys[i], keys[j]) > 0
+	})
+
+	for _, k := range keys {
+		if err := f(k, im.fieldCacher[k]); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func Space2Mapping(space *entity.Space) (indexMapping *IndexMapping, err error) {
 	var docMapping *DocumentMapping
 
@@ -174,11 +148,6 @@ func Space2Mapping(space *entity.Space) (indexMapping *IndexMapping, err error) 
 
 	indexMapping = NewIndexMapping()
 	indexMapping.DocumentMapping = docMapping
-	indexMapping.DynamicSchema = space.DynamicSchema
-	indexMapping.DefaultField = space.DefaultField
-	indexMapping.StoreDynamic = space.StoreDynamic
-	indexMapping.DocValuesDynamic = *space.DocValuesDynamic
-	indexMapping.DynamicSchema = space.DynamicSchema
 
 	indexMapping.InitFieldCache()
 

@@ -16,7 +16,6 @@ package ps
 
 import (
 	"context"
-	"github.com/vearch/vearch/util/monitoring"
 	"math"
 	"sync"
 	"time"
@@ -28,16 +27,19 @@ import (
 
 	"github.com/vearch/vearch/proto/entity"
 
-	"github.com/tiglabs/log"
+	"runtime/debug"
+
 	"github.com/tiglabs/raft"
 	"github.com/vearch/vearch/client"
 	"github.com/vearch/vearch/config"
 	"github.com/vearch/vearch/ps/psutil"
 	"github.com/vearch/vearch/util/atomic"
 	_ "github.com/vearch/vearch/util/init"
+	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/util/routine"
 	rpc "github.com/vearch/vearch/util/server/rpc"
-	"runtime/debug"
+
+	_ "github.com/vearch/vearch/ps/engine/gammacb"
 )
 
 // Server partition server
@@ -55,14 +57,13 @@ type Server struct {
 	stopping      atomic.AtomicBool
 	wg            sync.WaitGroup
 	changeLeaderC chan *changeLeaderEntry
-	monitor       monitoring.Monitor
 }
 
 // NewServer create server instance
 func NewServer(ctx context.Context) *Server {
 
 	// set up logging
-	var psLogger = vearchlog.NewVearchLog(config.Conf().GetLogDir(config.PS), "PS", config.Conf().GetLevel(config.PS), true)
+	var psLogger = vearchlog.NewVearchLog(config.Conf().GetLogDir(config.PS), "PS", config.Conf().GetLevel(config.PS), false)
 	log.Regist(psLogger)
 
 	cli, err := client.NewClient(config.Conf())
@@ -74,7 +75,6 @@ func NewServer(ctx context.Context) *Server {
 		client:        cli,
 		raftResolver:  raftstore.NewRaftResolver(),
 		changeLeaderC: changeLeaderC,
-		monitor:       config.Conf().NewMonitor(config.PS),
 	}
 
 	s.ctx, s.ctxCancel = context.WithCancel(ctx)
@@ -213,7 +213,7 @@ func (s *Server) HandleRaftReplicaEvent(event *raftstore.RaftReplicaEvent) {
 			if server, err := s.client.Master().QueryServer(context.Background(), event.Replica.NodeID); err != nil {
 				log.Error("get server info err: %s", err.Error())
 			} else {
-				s.raftResolver.AddNode(event.Replica.NodeID, server.ReplicaAddr())
+				s.raftResolver.AddNode(event.Replica.NodeID, server.Replica())
 			}
 		} else {
 			s.raftResolver.AddNode(event.Replica.NodeID, event.Replica)

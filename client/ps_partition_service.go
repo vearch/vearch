@@ -14,14 +14,21 @@
 
 package client
 
+import "C"
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"github.com/vearch/vearch/engine/idl/fbs-gen/go/gamma_api"
+	"github.com/vearch/vearch/util/cbbytes"
+	"github.com/vearch/vearch/util/vearchlog"
+	"math/rand"
+	"strconv"
+	"time"
+
 	"github.com/smallnest/rpcx/protocol"
 	"github.com/vearch/vearch/proto/request"
-	"github.com/vearch/vearch/util/server/rpc"
-	"math/rand"
-	"time"
+	server "github.com/vearch/vearch/util/server/rpc"
 
 	"github.com/vearch/vearch/proto/response"
 
@@ -31,10 +38,10 @@ import (
 
 	"github.com/smallnest/rpcx/share"
 	"github.com/spf13/cast"
-	"github.com/tiglabs/log"
-	"github.com/vearch/vearch/proto"
+	pkg "github.com/vearch/vearch/proto"
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/proto/pspb"
+	"github.com/vearch/vearch/util/log"
 )
 
 type partitionSender struct {
@@ -109,6 +116,303 @@ func (this *partitionSender) search(req *request.SearchRequest) (*response.Searc
 	return searchResponse, err
 }
 
+func (this *partitionSender) mSearchIDs(req *request.SearchRequest) (response.SearchResponses, error) {
+	partition, err := this.initPartition()
+	if err != nil { // must use it to get paition
+		return nil, err
+	}
+
+	masterClient := this.spaceSender.ps.Client().Master()
+	space, err := masterClient.cliCache.SpaceByCache(this.spaceSender.Ctx.GetContext(), this.spaceSender.db, this.spaceSender.space)
+	if err != nil {
+		return nil, err
+	}
+
+	result, _, err := this.getOrCreate(partition, this.spaceSender.clientType).Execute(MSearchIDsHandler, req.Clone(partition.Id, this.spaceSender.db, this.spaceSender.space))
+	if err != nil {
+		return nil, err
+	}
+	searchRes := result.(*response.SearchResponse)
+
+	//c byte array change go byte array
+	//FlatBuffer analyze
+
+	start := searchRes.Start
+	partitionID := searchRes.PartitionID
+	spaceId := searchRes.SpaceID
+	dbId := searchRes.DBID
+	idType := space.Engine.IdType
+
+	resp := gamma_api.GetRootAsResponse(searchRes.ByteArr, 0)
+
+	wg := sync.WaitGroup{}
+	resultNew := make(response.SearchResponses, resp.ResultsLength())
+	for i := 0; i < len(resultNew); i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			resultNew[i] = singleSearchResultIDs(resp, i, partitionID, spaceId, dbId, idType)
+			resultNew[i].MaxTook = int64(time.Now().Sub(start) / time.Millisecond)
+			resultNew[i].MaxTookID = partitionID
+		}(i)
+	}
+
+	wg.Wait()
+	searchResponses := resultNew
+
+	var maxTook int64 = 0
+	for _, r := range searchResponses {
+		if maxTook < r.MaxTook {
+			maxTook = r.MaxTook
+		}
+	}
+
+	for _, searchResponse := range searchResponses {
+		searchResponse.PID = req.PartitionID //set partition id to result
+	}
+	return searchResponses, nil
+
+	/*wg := sync.WaitGroup{}
+	result1 := make([][]string, resp.ResultsLength())
+	for i := 0; i < len(result1); i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			var err error
+			if result1[i], err = singleSearchResultIDs(resp, i); err != nil {
+				panic(err)
+			}
+
+		}(i)
+	}
+
+	wg.Wait()
+
+	bs := bytes.Buffer{}
+
+	bs.WriteString("[")
+	for _, ids := range result1 {
+		for j, id := range ids {
+			if j != 0 {
+				bs.WriteString(",")
+			}
+			bs.WriteString("\"")
+			bs.WriteString(id)
+			bs.WriteString("\"")
+		}
+	}
+	bs.WriteString("]")
+	return bs.Bytes(), nil*/
+}
+
+func (this *partitionSender) mSearchForIDs(req *request.SearchRequest) ([]byte, error) {
+	partition, err := this.initPartition()
+	if err != nil { // must use it to get paition
+		return nil, err
+	}
+
+	masterClient := this.spaceSender.ps.Client().Master()
+	space, err := masterClient.cliCache.SpaceByCache(this.spaceSender.Ctx.GetContext(), this.spaceSender.db, this.spaceSender.space)
+	if err != nil {
+		return nil, err
+	}
+
+	result, _, err := this.getOrCreate(partition, this.spaceSender.clientType).Execute(MSearchForIDsHandler, req.Clone(partition.Id, this.spaceSender.db, this.spaceSender.space))
+	if err != nil {
+		return nil, err
+	}
+	searchResponses := result.([]byte)
+
+	//c byte array change go byte array
+	//FlatBuffer analyze
+	resp := gamma_api.GetRootAsResponse(searchResponses, 0)
+
+	wg := sync.WaitGroup{}
+
+	idType := space.Engine.IdType
+	bs := bytes.Buffer{}
+	if idType != "" && ("long" == idType || "Long" == idType) {
+		result1 := make([][]int64, resp.ResultsLength())
+		for i := 0; i < len(result1); i++ {
+			wg.Add(1)
+			go func(i int) {
+				defer wg.Done()
+				var err error
+				if result1[i], err = singleSearchResultForIDs(resp, i); err != nil {
+					panic(err)
+				}
+
+			}(i)
+		}
+
+		wg.Wait()
+
+		bs.WriteString("[")
+		for _, ids := range result1 {
+			for j, id := range ids {
+				if j != 0 {
+					bs.WriteString(",")
+				}
+				idStr := strconv.FormatInt(id, 10)
+				bs.WriteString(idStr)
+			}
+		}
+		bs.WriteString("]")
+	} else {
+		result1 := make([][]string, resp.ResultsLength())
+		for i := 0; i < len(result1); i++ {
+			wg.Add(1)
+			go func(i int) {
+				defer wg.Done()
+				var err error
+				if result1[i], err = singleSearchResultForStringIDs(resp, i); err != nil {
+					panic(err)
+				}
+
+			}(i)
+		}
+
+		wg.Wait()
+
+		bs.WriteString("[")
+		for _, ids := range result1 {
+			for j, id := range ids {
+				if j != 0 {
+					bs.WriteString(",")
+				}
+				bs.WriteString("\"")
+				bs.WriteString(id)
+				bs.WriteString("\"")
+			}
+		}
+		bs.WriteString("]")
+	}
+
+	return bs.Bytes(), nil
+}
+
+func singleSearchResultIDs(reps *gamma_api.Response, index int, partitionID uint32,
+	spaceId int64, dbId int64, idType string) *response.SearchResponse {
+	searchResult := new(gamma_api.SearchResult)
+	reps.Results(searchResult, index)
+	if searchResult.ResultCode() > 0 {
+		msg := string(searchResult.Msg()) + ", code:[%d]"
+		return response.NewSearchResponseErr(vearchlog.LogErrAndReturn(fmt.Errorf(msg, searchResult.ResultCode())))
+	}
+
+	l := searchResult.ResultItemsLength()
+	hits := make(response.Hits, 0, l)
+
+	var maxScore float64 = -1
+
+	for i := 0; i < l; i++ {
+		item := new(gamma_api.ResultItem)
+		searchResult.ResultItems(item, i)
+		result := ResultItem2DocIDResult(item, partitionID, spaceId, dbId, idType)
+		if maxScore < result.Score {
+			maxScore = result.Score
+		}
+		hits = append(hits, result)
+	}
+	result := response.SearchResponse{
+		Total:    uint64(searchResult.Total()),
+		MaxScore: maxScore,
+		Hits:     hits,
+		Status:   &response.SearchStatus{Total: 1, Successful: 1},
+	}
+
+	message := reps.OnlineLogMessage()
+	if len(message) > 0 {
+		result.Explain = map[uint32]string{
+			partitionID: string(message),
+		}
+	}
+
+	return &result
+}
+
+func singleSearchResultForIDs(reps *gamma_api.Response, index int) ([]int64, error) {
+	searchResult := new(gamma_api.SearchResult)
+	reps.Results(searchResult, index)
+	if searchResult.ResultCode() > 0 {
+		msg := string(searchResult.Msg()) + ", code:[%d]"
+		return nil, fmt.Errorf(msg, searchResult.ResultCode())
+	}
+
+	l := searchResult.ResultItemsLength()
+	ids := make([]int64, 0, l)
+
+	for i := 0; i < l; i++ {
+		item := new(gamma_api.ResultItem)
+		searchResult.ResultItems(item, i)
+		id := int64(cbbytes.ByteArray2UInt64(item.Value(0)))
+		ids = append(ids, id)
+	}
+
+	return ids, nil
+}
+
+func singleSearchResultForStringIDs(reps *gamma_api.Response, index int) ([]string, error) {
+	searchResult := new(gamma_api.SearchResult)
+	reps.Results(searchResult, index)
+	if searchResult.ResultCode() > 0 {
+		msg := string(searchResult.Msg()) + ", code:[%d]"
+		return nil, fmt.Errorf(msg, searchResult.ResultCode())
+	}
+
+	l := searchResult.ResultItemsLength()
+	ids := make([]string, 0, l)
+
+	for i := 0; i < l; i++ {
+		item := new(gamma_api.ResultItem)
+		searchResult.ResultItems(item, i)
+		id := string(item.Value(0))
+		ids = append(ids, id)
+	}
+
+	return ids, nil
+}
+
+func (this *partitionSender) singleSearchResultNew(reps *gamma_api.Response, index int, partitionID uint32,
+	arrayBool bool, spaceId int64, dbId int64, fieldType map[string]pspb.FieldType) *response.SearchResponse {
+	searchResult := new(gamma_api.SearchResult)
+	reps.Results(searchResult, index)
+	if searchResult.ResultCode() > 0 {
+		msg := string(searchResult.Msg()) + ", code:[%d]"
+		return response.NewSearchResponseErr(vearchlog.LogErrAndReturn(fmt.Errorf(msg, searchResult.ResultCode())))
+	}
+
+	l := searchResult.ResultItemsLength()
+	hits := make(response.Hits, 0, l)
+
+	var maxScore float64 = -1
+
+	for i := 0; i < l; i++ {
+		item := new(gamma_api.ResultItem)
+		searchResult.ResultItems(item, i)
+		result := ResultItem2DocResult(item, partitionID, arrayBool, spaceId, dbId, fieldType)
+		if maxScore < result.Score {
+			maxScore = result.Score
+		}
+		hits = append(hits, result)
+	}
+	result := response.SearchResponse{
+		Total:    uint64(searchResult.Total()),
+		MaxScore: maxScore,
+		Hits:     hits,
+		Status:   &response.SearchStatus{Total: 1, Successful: 1},
+	}
+
+	message := reps.OnlineLogMessage()
+	if len(message) > 0 {
+		result.Explain = map[uint32]string{
+			partitionID: string(message),
+		}
+	}
+
+	return &result
+}
+
 func (this *partitionSender) mSearch(req *request.SearchRequest) (response.SearchResponses, error) {
 	partition, err := this.initPartition()
 	if err != nil { // must use it to get paition
@@ -119,6 +423,62 @@ func (this *partitionSender) mSearch(req *request.SearchRequest) (response.Searc
 		return nil, err
 	}
 	searchResponses := *(result.(*response.SearchResponses))
+
+	var maxTook int64 = 0
+	for _, r := range searchResponses {
+		if maxTook < r.MaxTook {
+			maxTook = r.MaxTook
+		}
+	}
+
+	for _, searchResponse := range searchResponses {
+		searchResponse.PID = req.PartitionID //set partition id to result
+	}
+	return searchResponses, nil
+}
+
+func (this *partitionSender) mSearchNew(req *request.SearchRequest) (response.SearchResponses, error) {
+	partition, err := this.initPartition()
+	if err != nil { // must use it to get paition
+		return nil, err
+	}
+	result, _, err := this.getOrCreate(partition, this.spaceSender.clientType).Execute(MSearchNewHandler, req.Clone(partition.Id, this.spaceSender.db, this.spaceSender.space))
+	if err != nil {
+		return nil, err
+	}
+	searchRes := result.(*response.SearchResponse)
+
+	start := searchRes.Start
+	partitionID := searchRes.PartitionID
+	spaceId := searchRes.SpaceID
+	dbId := searchRes.DBID
+	arrayBool := searchRes.ArrayBool
+	fieldType := searchRes.FieldType
+
+	resp := gamma_api.GetRootAsResponse(searchRes.ByteArr, 0)
+
+	wg := sync.WaitGroup{}
+	resultNew := make(response.SearchResponses, resp.ResultsLength())
+	for i := 0; i < len(resultNew); i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			resultNew[i] = this.singleSearchResultNew(resp, i, partitionID, arrayBool, spaceId, dbId, fieldType)
+			resultNew[i].MaxTook = int64(time.Now().Sub(start) / time.Millisecond)
+			resultNew[i].MaxTookID = partitionID
+		}(i)
+	}
+
+	wg.Wait()
+	searchResponses := resultNew
+
+	var maxTook int64 = 0
+	for _, r := range searchResponses {
+		if maxTook < r.MaxTook {
+			maxTook = r.MaxTook
+		}
+	}
+
 	for _, searchResponse := range searchResponses {
 		searchResponse.PID = req.PartitionID //set partition id to result
 	}
@@ -213,7 +573,9 @@ func (this *partitionSender) write(cmd *pspb.DocCmd) (*response.DocResult, error
 	if err != nil { // must use it to get paition
 		return nil, err
 	}
+	startTime := time.Now()
 	result, _, err := this.getOrCreate(partition, this.spaceSender.clientType).Execute(WriteHandler, reqs)
+	endTime := time.Now()
 	if err != nil {
 		return nil, err
 	}
@@ -222,7 +584,13 @@ func (this *partitionSender) write(cmd *pspb.DocCmd) (*response.DocResult, error
 		log.Error(err.Error())
 	}
 
-	return result.(*response.DocResult), err
+	resultRep := result.(*response.DocResult)
+
+	if cmd.Type != pspb.OpType_DELETE && resultRep.CostTime != nil {
+		resultRep.CostTime.ClientPsPStartTime = startTime
+		resultRep.CostTime.ClientPsPEndTime = endTime
+	}
+	return resultRep, err
 }
 
 func (this *partitionSender) needRefresh() error {
@@ -276,17 +644,34 @@ func (this *partitionSender) initPartition() (*entity.Partition, error) {
 
 func (this *partitionSender) getOrCreate(partition *entity.Partition, clientType ClientType) *partitionSender {
 	this.nodeIds = make([]entity.NodeID, 0)
-	if clientType == LEADER {
+	switch clientType {
+	case LEADER:
 		this.nodeIds = append(this.nodeIds, partition.LeaderID)
-	} else if clientType == RANDOM {
-		this.nodeIds = append(this.nodeIds, partition.Replicas[rand.Intn(len(partition.Replicas))])
-	} else if clientType == ALL {
+	case NOT_LEADER:
+		if log.IsDebugEnabled() {
+			log.Debug("search by partition:%v by not leader model by partition:[%d]", partition.Id)
+		}
+		if len(this.nodeIds) == 1 {
+			log.Warn("partition:[%d] NO_LEADER model by client_type , but only has leader ", partition.Id)
+		}
+		noLeaderIDs := make([]entity.NodeID, 0, len(this.nodeIds)-1)
+		for _, id := range partition.Replicas {
+			noLeaderIDs = append(noLeaderIDs, id)
+		}
+		this.nodeIds = append(this.nodeIds, noLeaderIDs[rand.Intn(len(noLeaderIDs))])
+	case RANDOM:
+		randomID := partition.Replicas[rand.Intn(len(partition.Replicas))]
+		if log.IsDebugEnabled() {
+			log.Debug("search by partition:%v by random model ID:[%d]", partition.Replicas, randomID)
+		}
+		this.nodeIds = append(this.nodeIds, randomID)
+	case ALL:
 		this.nodeIds = partition.Replicas
 	}
 	return this
 }
 
-func (this *partitionSender) Execute(servicePath string, request request.Request) (interface{}, int, error) {
+func (this *partitionSender) Execute(servicePath string, request request.Request) (interface{}, int64, error) {
 	var wg sync.WaitGroup
 	replicaNum := len(this.nodeIds)
 	senderResp := new(response.Response)
@@ -308,14 +693,13 @@ func (this *partitionSender) Execute(servicePath string, request request.Request
 			sleepTime := baseSleepTime
 			var (
 				resps  interface{}
-				status int
+				status int64
 				e      error
 			)
+
 			rpcClient := this.spaceSender.ps.getOrCreateRpcClient(request.Context().GetContext(), nodeId)
-			rpcClient.lock.RLock()
-			defer rpcClient.lock.RUnlock()
 			if rpcClient.client == nil {
-				resp := response.Response{Resp: nil, Status: pkg.ERRCODE_MASTER_SERVER_IS_NOT_RUNNING, Err: pkg.ErrMasterServerIsNotRunning}
+				resp := response.Response{Resp: nil, Status: pkg.ERRCODE_MASTER_SERVER_IS_NOT_RUNNING, Err: pkg.VErr(pkg.ERRCODE_MASTER_SERVER_IS_NOT_RUNNING)}
 				respChain <- &resp
 				return
 			}
@@ -370,19 +754,17 @@ func (this *partitionSender) Execute(servicePath string, request request.Request
 	return senderResp.Resp, senderResp.Status, senderResp.Err
 }
 
-func (this *partitionSender) StreamExecute(servicePath string, request request.Request, sc server.StreamCallback) (interface{}, int, error) {
+func (this *partitionSender) StreamExecute(servicePath string, request request.Request, sc server.StreamCallback) (interface{}, int64, error) {
 	nodeId := this.nodeIds[0]
 	rpcClient := this.spaceSender.ps.getOrCreateRpcClient(request.Context().GetContext(), nodeId)
-	rpcClient.lock.RLock()
-	defer rpcClient.lock.RUnlock()
 	if rpcClient.client == nil {
-		return nil, pkg.ERRCODE_MASTER_SERVER_IS_NOT_RUNNING, pkg.ErrMasterServerIsNotRunning
+		return nil, pkg.ERRCODE_MASTER_SERVER_IS_NOT_RUNNING, pkg.CodeErr(pkg.ERRCODE_MASTER_SERVER_IS_NOT_RUNNING)
 	}
 	sleepTime := baseSleepTime
 
 	var (
 		resps  interface{}
-		status int
+		status int64
 		e      error
 	)
 

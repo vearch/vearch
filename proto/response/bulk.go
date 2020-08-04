@@ -24,7 +24,7 @@ type BulkResponse struct {
 	Items []*BulkItemResponse `json:"items"`
 }
 
-func (sr *BulkResponse) ToContent(took int64) ([]byte, error) {
+func (sr *BulkResponse) ToContent(took int64, idIsLong bool) ([]byte, error) {
 	var builder = cbjson.ContentBuilderFactory()
 
 	builder.BeginObject()
@@ -45,7 +45,7 @@ func (sr *BulkResponse) ToContent(took int64) ([]byte, error) {
 		if i != 0 {
 			builder.More()
 		}
-		content, err := item.ToContent()
+		content, err := item.ToContent(idIsLong)
 		if err != nil {
 			return nil, err
 		}
@@ -67,12 +67,12 @@ type BulkItemResponse struct {
 	ItemValue *DocResultWrite `json:"-"`
 }
 
-func (this *BulkItemResponse) ToContent() ([]byte, error) {
+func (this *BulkItemResponse) ToContent(idIsLong bool) ([]byte, error) {
 	var builder = cbjson.ContentBuilderFactory()
 
 	builder.BeginObject()
 	builder.Field(this.KeyName())
-	content, err := this.ItemValue.ToContent()
+	content, err := this.ItemValue.ToContent(idIsLong)
 	if err != nil {
 		return nil, err
 	}

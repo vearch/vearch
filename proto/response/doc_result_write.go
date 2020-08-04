@@ -20,6 +20,7 @@ import (
 	"github.com/vearch/vearch/proto/pspb"
 	"github.com/vearch/vearch/util/cbjson"
 	"net/http"
+	"strconv"
 )
 
 type DocResultWrite struct {
@@ -29,7 +30,7 @@ type DocResultWrite struct {
 	ReplicaNum int
 }
 
-func (this *DocResultWrite) ToContent() ([]byte, error) {
+func (this *DocResultWrite) ToContent(idIsLong bool) ([]byte, error) {
 	if this.DocResult == nil {
 		return nil, fmt.Errorf("DocResultWrite ToContent error: doc result not found.")
 	}
@@ -47,7 +48,14 @@ func (this *DocResultWrite) ToContent() ([]byte, error) {
 
 	builder.More()
 	builder.Field("_id")
-	builder.ValueString(this.DocResult.Id)
+	if idIsLong {
+		idInt64, err := strconv.ParseInt(this.DocResult.Id, 10, 64)
+		if err == nil {
+			builder.ValueNumeric(idInt64)
+		}
+	} else {
+		builder.ValueString(this.DocResult.Id)
+	}
 
 	if this.DocResult.Failure != nil {
 		builder.More()
@@ -62,9 +70,9 @@ func (this *DocResultWrite) ToContent() ([]byte, error) {
 		builder.Field("status")
 		builder.ValueNumeric(cast.ToInt64(this.SuccessStatus()))
 
-		builder.More()
+		/*builder.More()
 		builder.Field("_version")
-		builder.ValueNumeric(this.DocResult.Version)
+		builder.ValueNumeric(this.DocResult.Version)*/
 
 		builder.More()
 		builder.Field("_shards")

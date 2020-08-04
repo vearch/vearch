@@ -9,6 +9,24 @@
 			"revisionTime": "2018-08-15T10:47:33Z"
 		},
 		{
+			"checksumSHA1": "MXqUZAuWyiMWV7HC0X2krRinZoI=",
+			"path": "github.com/alecthomas/template",
+			"revision": "fb15b899a75114aa79cc930e33c46b577cc664b1",
+			"revisionTime": "2019-07-18T01:26:54Z"
+		},
+		{
+			"checksumSHA1": "3wt0pTXXeS+S93unwhGoLIyGX/Q=",
+			"path": "github.com/alecthomas/template/parse",
+			"revision": "fb15b899a75114aa79cc930e33c46b577cc664b1",
+			"revisionTime": "2019-07-18T01:26:54Z"
+		},
+		{
+			"checksumSHA1": "VT42paM42J+M52CXStvRwsc1v6g=",
+			"path": "github.com/alecthomas/units",
+			"revision": "f65c72e2690dc4b403c8bd637baf4611cd4c069b",
+			"revisionTime": "2019-09-24T02:57:48Z"
+		},
+		{
 			"checksumSHA1": "6OpO/lUACFtS7MYIheV7clvNe1g=",
 			"path": "github.com/apache/thrift/lib/go/thrift",
 			"revision": "1a2dee60b4384de2f6190caa85cf3e2a497c31b9",
@@ -19,6 +37,12 @@
 			"path": "github.com/beorn7/perks/quantile",
 			"revision": "3a771d992973f24aa725d07868b467d1ddfceafb",
 			"revisionTime": "2018-03-21T16:47:47Z"
+		},
+		{
+			"checksumSHA1": "9a+o3HX0fGYQKr5QFwcwMw4zhpM=",
+			"path": "github.com/caio/go-tdigest",
+			"revision": "6d14e0c285cb678a3f4213fe5da8b6e9af0bfea4",
+			"revisionTime": "2019-10-30T14:41:10Z"
 		},
 		{
 			"checksumSHA1": "/WlB45K2WnWXkwmX1M/1uJhBuzs=",
@@ -229,6 +253,12 @@
 			"path": "github.com/google/btree",
 			"revision": "4030bb1f1f0c35b30ca7009e9ebd06849dd45306",
 			"revisionTime": "2018-08-13T15:31:12Z"
+		},
+		{
+			"checksumSHA1": "XODK5ZvRBTnbrRp3tB1WSrrGGow=",
+			"path": "github.com/google/flatbuffers/go",
+			"revision": "ce3a1c43a2882b44b22785c21652a6e7aff60f8b",
+			"revisionTime": "2019-12-18T19:23:54Z"
 		},
 		{
 			"checksumSHA1": "TAXd73uN0hLjwdGGGNgnmF6iC0k=",
@@ -512,6 +542,12 @@
 			"revisionTime": "2018-11-20T12:01:27Z"
 		},
 		{
+			"checksumSHA1": "MGnqHnmEqc1fjnYiWReSiW8C27A=",
+			"path": "github.com/prometheus/common/log",
+			"revision": "7680068d4af7bd5cb3043381494f956c22c034b2",
+			"revisionTime": "2019-12-09T16:49:34Z"
+		},
+		{
 			"checksumSHA1": "ewHRWF7p/HQeh7RowZg5BUeDkdY=",
 			"path": "github.com/prometheus/common/model",
 			"revision": "aeab699e26f4d4089dba5e522e5d9babd2adbaf7",
@@ -614,6 +650,12 @@
 			"revisionTime": "2018-12-10T08:02:29Z"
 		},
 		{
+			"checksumSHA1": "huQ4ux6A74EPRkLKR1/1yjjG4q4=",
+			"path": "github.com/smallnest/pool",
+			"revision": "4f76a6d6402e093b1a6e15e8ac3fd41612fca9f6",
+			"revisionTime": "2017-09-26T02:53:34Z"
+		},
+		{
 			"checksumSHA1": "dgJTQ00JX4VMt8qJKnELRszrHEE=",
 			"path": "github.com/smallnest/rpcx/client",
 			"revision": "28d08d166104f645f1e6af9283d1ed81513ac654",
@@ -690,12 +732,6 @@
 			"path": "github.com/spf13/pflag",
 			"revision": "24fa6976df40757dce6aea913e7b81ade90530e1",
 			"revisionTime": "2018-12-23T18:29:23Z"
-		},
-		{
-			"checksumSHA1": "W4ix9A4RKoxZV8jRZCQu36ztCRU=",
-			"path": "github.com/tiglabs/log",
-			"revision": "125a90b1ead454111bf31054c2d17eaa2e55a42c",
-			"revisionTime": "2019-08-15T03:35:33Z"
 		},
 		{
 			"checksumSHA1": "rsgojehTC1C51DwbH+/4JrCiaEQ=",
@@ -1388,6 +1424,18 @@
 			"revisionTime": "2018-09-28T10:55:38Z"
 		},
 		{
+			"checksumSHA1": "QkGcmV/rr56ZUKi6E7mdevKUE0g=",
+			"path": "golang.org/x/sys/windows/registry",
+			"revision": "c1f44814a5cd81a6d1cb589ef1e528bc5d305e07",
+			"revisionTime": "2019-11-05T10:44:00Z"
+		},
+		{
+			"checksumSHA1": "uVlUSSKplihZG7N+QJ6fzDZ4Kh8=",
+			"path": "golang.org/x/sys/windows/svc/eventlog",
+			"revision": "c1f44814a5cd81a6d1cb589ef1e528bc5d305e07",
+			"revisionTime": "2019-11-05T10:44:00Z"
+		},
+		{
 			"checksumSHA1": "CbpjEkkOeh0fdM/V8xKDdI0AA88=",
 			"path": "golang.org/x/text/secure/bidirule",
 			"revision": "4d1c5fb19474adfe9562c9847ba425e7da817e81",
@@ -1601,6 +1649,12 @@
 			"path": "google.golang.org/grpc/tap",
 			"revision": "b48e364c83c8b7a222f4b43cf5348b3583950ac6",
 			"revisionTime": "2018-09-28T17:38:48Z"
+		},
+		{
+			"checksumSHA1": "sToCp8GThnMnsBzsHv+L/tBYQrQ=",
+			"path": "gopkg.in/alecthomas/kingpin.v2",
+			"revision": "947dcec5ba9c011838740e680966fd7087a71d0d",
+			"revisionTime": "2017-12-17T18:08:21Z"
 		},
 		{
 			"checksumSHA1": "P/k5ZGf0lEBgpKgkwy++F7K1PSg=",

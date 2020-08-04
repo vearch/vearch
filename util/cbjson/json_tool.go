@@ -18,7 +18,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/spf13/cast"
-	"github.com/tiglabs/log"
+	"github.com/vearch/vearch/util/log"
 )
 
 type JsonMap map[string]interface{}
@@ -87,6 +87,15 @@ func (this JsonMap) GetJsonValIntE(key string) (int, error) {
 	}
 
 	return cast.ToIntE(val)
+}
+
+func (this JsonMap) GetJsonValInt64(key string) int64 {
+	val := this.GetJsonVal(key)
+	if val == nil {
+		return 0
+	}
+
+	return cast.ToInt64(val)
 }
 
 func (this JsonMap) GetJsonValString(key string) string {

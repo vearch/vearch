@@ -8,7 +8,7 @@ The roadmap provides a high level overview of key areas that will likely span mu
 
 ### Usage
 
-End-to-End one-click deployment
+End-to-End one-click deployment.
 
 RESTful API 
 
@@ -16,11 +16,11 @@ RESTful API
 
 Support L2 and inner-product searching metric.
 
-Replace the static batch indexing with real time indexing
+Replace the static batch indexing with real time indexing.
 
-Add the fine-grained sort after PQ coarse sort
+Add the fine-grained sort after PQ coarse sort.
 
-Add the numeric field and bitmap filters in the process of searching
+Add the numeric field and bitmap filters in the process of searching.
 
 ### Models
 
@@ -34,18 +34,13 @@ Only memory supported now.
 
 Support docker.
 
-
 ## Vearch 0.2
 
-Vearch 0.2 will be released in October 2019.
+Vearch 0.2 has been released on October 31th 2019.
 
 ### Search
 
 Numeric index filtering optimization.
-
-### Models
-
-HNSW implementation.
 
 ### Storage
 
@@ -55,10 +50,69 @@ Memory and disk supported now.
 
 Video surveillance security scene algorithm plug-in.
 
+## Vearch 0.3
+
+Vearch 0.3 released on 20th January 2020.
+
+### New features 
+
+Support vector search with GPU. Support single online request for GPU, not just batch requests
+
+Python SDK which can be friendly used in local computer or edge device.
+
+### Plug-in
+
+Plugin service can be installed in Docker.
+
 ### Testing
 
 Stability testing.
 
-### Container
+## Vearch 3.1.0
 
-Support Kubernetes.
+Vearch 3.1.0 released in May 2020.
+
+### New features
+
+Support real time HNSW index
+
+Support binary index
+
+Support IVFFLAT index
+
+## Vearch 3.2.0
+
+Vearch 3.2.0 will be released in August 2020.
+
+### New features
+
+Clear gamma engine api
+
+Gamma engine supports customerized retrieval models
+
+Support the Grpc service for router
+
+Refactor for the router and partition server
+
+
+## The future enhancement for Vearch
+
+### New features or enhancement
+
+Router grpc client(java, c++, go and python)
+
+More fast and robust retrieval models(q-adc, IVFx+HNSWy+OPQz, NSG, …)
+
+More complex powerful query gramma like SQL or ES(enhance VQL)
+
+Ivf index: change the docid from long to int, try to compress the docids with the algorithm of newpfordelta
+
+Develop a plugin which can be used to index vectors in Spark or Flink clusters with Gamma engine
+
+Vector storage based on the clusters
+
+Support the multiple retrieval models and versions
+
+Support the auto-expired documents 
+
+Explore and integrate the best and practical vector compression technology

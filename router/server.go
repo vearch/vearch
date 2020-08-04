@@ -17,19 +17,22 @@ package router
 import (
 	"context"
 	"fmt"
+	"github.com/vearch/vearch/monitor"
 	"net"
 	"regexp"
 	"strings"
 	"time"
 
+	"google.golang.org/grpc"
+
 	"github.com/vearch/vearch/util/metrics/mserver"
 
-	"github.com/tiglabs/log"
 	"github.com/vearch/vearch/client"
 	"github.com/vearch/vearch/config"
 	"github.com/vearch/vearch/router/document"
 	"github.com/vearch/vearch/util"
 	_ "github.com/vearch/vearch/util/init"
+	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/util/netutil"
 	"github.com/vearch/vearch/util/vearchlog"
 )
@@ -40,14 +43,15 @@ const (
 )
 
 type Server struct {
-	httpServer *netutil.Server
 	ctx        context.Context
+	httpServer *netutil.Server
+	rpcServer  *grpc.Server
 	cancelFunc context.CancelFunc
 }
 
 func NewServer(ctx context.Context) (*Server, error) {
 	// master service load cfg and init
-	log.Regist(vearchlog.NewVearchLog(config.Conf().GetLogDir(config.Router), "Router", config.Conf().GetLevel(config.Router), true))
+	log.Regist(vearchlog.NewVearchLog(config.Conf().GetLogDir(config.Router), "Router", config.Conf().GetLevel(config.Router), false))
 	cli, err := client.NewClient(config.Conf())
 	if err != nil {
 		return nil, err
@@ -64,7 +68,22 @@ func NewServer(ctx context.Context) (*Server, error) {
 	}
 	netutil.SetMode(netutil.RouterModeGorilla)
 	httpServer := netutil.NewServer(httpServerConfig)
-	document.ExportDocumentHandler(httpServer, cli, config.Conf().NewMonitor(config.Router))
+	document.ExportDocumentHandler(httpServer, cli)
+
+	var rpcServer *grpc.Server
+	if config.Conf().Router.RpcPort > 0 {
+		lis, err := net.Listen("tcp", util.BuildAddr(addr, config.Conf().Router.RpcPort))
+		if err != nil {
+			panic(fmt.Errorf("start rpc server failed to listen: %v", err))
+		}
+		rpcServer = grpc.NewServer()
+		go func() {
+			if err := rpcServer.Serve(lis); err != nil {
+				panic(fmt.Errorf("start rpc server failed to start: %v", err))
+			}
+		}()
+		document.ExportRpcHandler(rpcServer, cli)
+	}
 
 	routerCtx, routerCancel := context.WithCancel(ctx)
 	// start router cache
@@ -77,6 +96,7 @@ func NewServer(ctx context.Context) (*Server, error) {
 		httpServer: httpServer,
 		ctx:        routerCtx,
 		cancelFunc: routerCancel,
+		rpcServer:  rpcServer,
 	}, nil
 }
 
@@ -97,6 +117,10 @@ func (server *Server) Start() error {
 			mserver.SetIp(slit[0], false)
 			break
 		}
+	}
+
+	if port := config.Conf().Router.MonitorPort; port > 0 {
+		monitor.Register(nil, nil, config.Conf().Router.MonitorPort)
 	}
 
 	if err := server.httpServer.Run(); err != nil {

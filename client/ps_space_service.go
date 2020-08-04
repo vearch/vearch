@@ -15,22 +15,22 @@
 package client
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/vearch/vearch/proto/request"
 	"github.com/vearch/vearch/proto/response"
-	"github.com/vearch/vearch/util"
-	"math"
+	"github.com/vearch/vearch/ps/engine/sortorder"
 	"sync"
 	"time"
 
 	"github.com/vearch/vearch/proto"
 	"github.com/vearch/vearch/proto/pspb"
-	"github.com/vearch/vearch/util/bytes"
+	"github.com/vearch/vearch/util/cbbytes"
 
 	"github.com/spaolacci/murmur3"
 	"github.com/spf13/cast"
-	"github.com/tiglabs/log"
 	"github.com/vearch/vearch/proto/entity"
+	"github.com/vearch/vearch/util/log"
 	"runtime/debug"
 )
 
@@ -69,11 +69,6 @@ func (this *spaceSender) SetWriteTryTimes(times int) *spaceSender {
 }
 
 func (this *spaceSender) GetDoc(id string) *response.DocResult {
-	err := this.interceptFrozenFunc()
-	if err != nil {
-		return response.NewErrDocResult(id, err)
-	}
-
 	resp, err := this.partitionSlot(this.Slot(id)).getDoc(id)
 	if err != nil {
 		log.Error("Fail to search ps.  db[%s], space[%s]. err[%v]", this.db, this.space, err)
@@ -94,11 +89,6 @@ func (this *spaceSender) GetDoc(id string) *response.DocResult {
 // if you want define your slot method ,please use SetRoutingValue to define it
 // return entity.DocumentResponse
 func (this *spaceSender) GetDocs(ids []string) response.DocResults {
-	err := this.interceptFrozenFunc()
-	if err != nil {
-		return response.NewErrDocResults(ids, err)
-	}
-
 	idMap, err := this.groupPartition(ids)
 	if err != nil {
 		return response.NewErrDocResults(ids, err)
@@ -160,6 +150,42 @@ func (this *spaceSender) GetDocs(ids []string) response.DocResults {
 //search from space, by partitions
 //clientType LEADER or RANDOM
 // return entity.SearchResult
+func (this *spaceSender) MSearchIDs(req *request.SearchRequest) response.SearchResponses {
+	space, err := this.ps.Client().Master().cliCache.SpaceByCache(this.Ctx.GetContext(), this.db, this.space)
+	if err != nil {
+		return response.SearchResponses{response.NewSearchResponseErr(err)}
+	}
+	resp, err := this.MSearchIDsByPartitions(space.Partitions, req)
+	if err != nil {
+		return response.SearchResponses{response.NewSearchResponseErr(err)}
+	}
+	return resp
+}
+
+func (this *spaceSender) MSearchForIDs(req *request.SearchRequest) ([]byte, error) {
+	space, err := this.ps.Client().Master().cliCache.SpaceByCache(this.Ctx.GetContext(), this.db, this.space)
+	if err != nil {
+		return nil, err
+	}
+	return this.MSearchForIDsByPartitions(space.Partitions, req)
+}
+
+func (this *spaceSender) MSearchNew(req *request.SearchRequest) response.SearchResponses {
+	space, err := this.ps.Client().Master().cliCache.SpaceByCache(this.Ctx.GetContext(), this.db, this.space)
+	if err != nil {
+		return response.SearchResponses{response.NewSearchResponseErr(err)}
+	}
+
+	resp, err := this.MSearchByPartitionsNew(space.Partitions, req)
+	if err != nil {
+		return response.SearchResponses{response.NewSearchResponseErr(err)}
+	}
+	return resp
+}
+
+//search from space, by partitions
+//clientType LEADER or RANDOM
+// return entity.SearchResult
 func (this *spaceSender) MSearch(req *request.SearchRequest) response.SearchResponses {
 	space, err := this.ps.Client().Master().cliCache.SpaceByCache(this.Ctx.GetContext(), this.db, this.space)
 	if err != nil {
@@ -173,28 +199,133 @@ func (this *spaceSender) MSearch(req *request.SearchRequest) response.SearchResp
 	return resp
 }
 
+func (this *spaceSender) MSearchIDsByPartitions(partitions []*entity.Partition, req *request.SearchRequest) (resp response.SearchResponses, err error) {
+	var wg sync.WaitGroup
+	respChain := make(chan response.SearchResponses, len(partitions))
+
+	for _, p := range partitions {
+		wg.Add(1)
+		go func(par *entity.Partition) {
+			defer wg.Done()
+			defer func() {
+				if r := recover(); r != nil {
+					log.Error("search has panic :[%s]", r)
+					respChain <- response.SearchResponses{newSearchResponseWithError(this.db, this.space, par.Id, fmt.Errorf(cast.ToString(r)))}
+				}
+			}()
+			resp, err := this.partitionId(par.Id).mSearchIDs(req)
+			if err != nil {
+				log.Error("Fail to search ps. partition[%d], db[%s], space[%s]. err[%v]", par.Id, this.db, this.space, err)
+				resp = response.SearchResponses{newSearchResponseWithError(this.db, this.space, p.Id, err)}
+				if pkg.ErrCode(err) == pkg.ERRCODE_PARTITION_NOT_EXIST {
+					this.ps.client.master.cliCache.DeleteSpaceCache(this.Ctx.GetContext(), this.db, this.space)
+					resp, err = this.partitionId(par.Id).mSearchIDs(req)
+					if err != nil {
+						resp = response.SearchResponses{newSearchResponseWithError(this.db, this.space, p.Id, err)}
+					}
+				}
+
+			}
+			respChain <- resp
+		}(p)
+	}
+
+	wg.Wait()
+	close(respChain)
+
+	var result response.SearchResponses
+	for r := range respChain {
+		if result == nil {
+			result = r
+			continue
+		}
+		var err error
+
+		if err = this.mergeResultArr(result, r, req); err != nil {
+			return nil, err
+		}
+	}
+
+	return result, nil
+}
+
+func (this *spaceSender) MSearchForIDsByPartitions(partitions []*entity.Partition, req *request.SearchRequest) (resp []byte, err error) {
+	var wg sync.WaitGroup
+	respChain := make(chan struct {
+		reponse []byte
+		err     error
+	}, len(partitions))
+
+	for _, p := range partitions {
+		wg.Add(1)
+		go func(par *entity.Partition) {
+			defer wg.Done()
+			defer func() {
+				if r := recover(); r != nil {
+					log.Error("search has panic :[%s]", r)
+					respChain <- struct {
+						reponse []byte
+						err     error
+					}{
+						reponse: nil,
+						err:     fmt.Errorf(cast.ToString(r)),
+					}
+				}
+			}()
+			resp, err := this.partitionId(par.Id).mSearchForIDs(req)
+			if err != nil {
+				log.Error("Fail to search ps. partition[%d], db[%s], space[%s]. err[%v]", par.Id, this.db, this.space, err)
+				if pkg.ErrCode(err) == pkg.ERRCODE_PARTITION_NOT_EXIST {
+					this.ps.client.master.cliCache.DeleteSpaceCache(this.Ctx.GetContext(), this.db, this.space)
+					resp, err = this.partitionId(par.Id).mSearchForIDs(req)
+					if err != nil {
+						respChain <- struct {
+							reponse []byte
+							err     error
+						}{
+							reponse: nil,
+							err:     err,
+						}
+						return
+					}
+				}
+
+			}
+			respChain <- struct {
+				reponse []byte
+				err     error
+			}{
+				reponse: resp,
+				err:     err,
+			}
+		}(p)
+	}
+
+	wg.Wait()
+	close(respChain)
+
+	buf := bytes.Buffer{}
+
+	for r := range respChain {
+
+		if r.err != nil {
+			return nil, r.err
+		}
+
+		if buf.Len() != 0 {
+			buf.WriteString("\n")
+		}
+		buf.Write(r.reponse)
+	}
+	return buf.Bytes(), nil
+}
+
 func (this *spaceSender) MSearchByPartitions(partitions []*entity.Partition, req *request.SearchRequest) (resp response.SearchResponses, err error) {
 
 	var wg sync.WaitGroup
 	respChain := make(chan response.SearchResponses, len(partitions))
 
-	if req.Start == nil { //filter query range
-		req.Start = util.PInt64(0)
-	}
-	if req.End == nil {
-		req.End = util.PInt64(math.MaxUint32)
-	}
-
 	for _, p := range partitions {
-
-		if *req.Start > p.MaxValue {
-			continue
-		}
-
-		if *req.End < p.MinValue {
-			continue
-		}
-
 		wg.Add(1)
 		go func(par *entity.Partition) {
 			defer wg.Done()
@@ -232,14 +363,58 @@ func (this *spaceSender) MSearchByPartitions(partitions []*entity.Partition, req
 		}
 		var err error
 
-		if len(result) < len(r) {
-			err = mergeResultArr(r, result, req)
-			result = r
-		} else {
-			err = mergeResultArr(result, r, req)
+		if err = this.mergeResultArr(result, r, req); err != nil {
+			return nil, err
 		}
+	}
 
-		if err != nil {
+	return result, nil
+}
+
+func (this *spaceSender) MSearchByPartitionsNew(partitions []*entity.Partition, req *request.SearchRequest) (resp response.SearchResponses, err error) {
+
+	var wg sync.WaitGroup
+	respChain := make(chan response.SearchResponses, len(partitions))
+
+	for _, p := range partitions {
+		wg.Add(1)
+		go func(par *entity.Partition) {
+			defer wg.Done()
+			defer func() {
+				if r := recover(); r != nil {
+					log.Error("search has panic :[%s]", r)
+					respChain <- response.SearchResponses{newSearchResponseWithError(this.db, this.space, par.Id, fmt.Errorf(cast.ToString(r)))}
+				}
+			}()
+			resp, err := this.partitionId(par.Id).mSearchNew(req)
+			if err != nil {
+				log.Error("Fail to search ps. partition[%d], db[%s], space[%s]. err[%v]", par.Id, this.db, this.space, err)
+				resp = response.SearchResponses{newSearchResponseWithError(this.db, this.space, p.Id, err)}
+				if pkg.ErrCode(err) == pkg.ERRCODE_PARTITION_NOT_EXIST {
+					this.ps.client.master.cliCache.DeleteSpaceCache(this.Ctx.GetContext(), this.db, this.space)
+					resp, err = this.partitionId(par.Id).mSearchNew(req)
+					if err != nil {
+						resp = response.SearchResponses{newSearchResponseWithError(this.db, this.space, p.Id, err)}
+					}
+				}
+
+			}
+			respChain <- resp
+		}(p)
+	}
+
+	wg.Wait()
+	close(respChain)
+
+	var result response.SearchResponses
+	for r := range respChain {
+		if result == nil {
+			result = r
+			continue
+		}
+		var err error
+
+		if err = this.mergeResultArr(result, r, req); err != nil {
 			return nil, err
 		}
 	}
@@ -277,23 +452,7 @@ func (this *spaceSender) DeleteByPartitions(partitions []*entity.Partition, req 
 	var wg sync.WaitGroup
 	respChain := make(chan *response.Response, len(partitions))
 
-	if req.Start == nil { //filter query range
-		req.Start = util.PInt64(0)
-	}
-	if req.End == nil {
-		req.End = util.PInt64(math.MaxUint32)
-	}
-
 	for _, p := range partitions {
-
-		if *req.Start > p.MaxValue {
-			continue
-		}
-
-		if *req.End < p.MinValue {
-			continue
-		}
-
 		wg.Add(1)
 		go func(par *entity.Partition) {
 			defer wg.Done()
@@ -337,23 +496,7 @@ func (this *spaceSender) SearchByPartitions(partitions []*entity.Partition, req 
 	var wg sync.WaitGroup
 	respChain := make(chan *response.SearchResponse, len(partitions))
 
-	if req.Start == nil { //filter query range
-		req.Start = util.PInt64(0)
-	}
-	if req.End == nil {
-		req.End = util.PInt64(math.MaxUint32)
-	}
-
 	for _, p := range partitions {
-
-		if *req.Start > p.MaxValue {
-			continue
-		}
-
-		if *req.End < p.MinValue {
-			continue
-		}
-
 		wg.Add(1)
 		go func(par *entity.Partition) {
 			defer wg.Done()
@@ -383,20 +526,22 @@ func (this *spaceSender) SearchByPartitions(partitions []*entity.Partition, req 
 	wg.Wait()
 	close(respChain)
 
-	sortOrder, err := req.SortOrder()
-
+	space, err := this.ps.Client().Master().Cache().SpaceByCache(this.Ctx.GetContext(), this.db, this.space)
 	if err != nil {
 		return nil, err
 	}
 
-	var maxTook int64
-	var maxPID uint32
+	sortOrder, err := req.SortOrder()
+	if err != nil {
+		return nil, err
+	}
+
+	if space.Engine.MetricType == "L2" {
+		sortOrder = sortorder.SortOrder{&sortorder.SortScore{Desc: false}}
+	}
+
 	var first *response.SearchResponse
 	for r := range respChain {
-		if r.Took > maxTook {
-			maxTook = r.Took
-			maxPID = r.PID
-		}
 		if first == nil {
 			first = r
 			continue
@@ -406,8 +551,6 @@ func (this *spaceSender) SearchByPartitions(partitions []*entity.Partition, req 
 			return nil, err
 		}
 	}
-
-	log.Debug("Max search partitionID:[%d] use time:[%d]", maxPID, maxTook/1000000)
 
 	return first, nil
 }
@@ -421,27 +564,12 @@ func (this *spaceSender) StreamSearch(req *request.SearchRequest) *response.DocS
 		return dsr
 	}
 
-	if req.Start == nil { //filter query range
-		req.Start = util.PInt64(0)
-	}
-	if req.End == nil {
-		req.End = util.PInt64(math.MaxUint32)
-	}
-
 	go func() {
 		defer func() {
 			dsr.AddDoc(nil)
 		}()
 
 		for _, p := range space.Partitions {
-
-			if *req.Start > p.MaxValue {
-				continue
-			}
-
-			if *req.End < p.MinValue {
-				continue
-			}
 			this.partitionId(p.Id).streamSearch(req, dsr)
 		}
 	}()
@@ -575,14 +703,6 @@ func (this *spaceSender) ForceMergeByPartitions(partitions []*entity.Partition) 
 
 //batch handler , if you use it you must make sure it is docs type is right by slot
 func (this *spaceSender) Batch(docs []*pspb.DocCmd) (response.WriteResponse, error) {
-	for _, doc := range docs {
-		if doc.Type == pspb.OpType_MERGE || (doc.Type == pspb.OpType_REPLACE && doc.Version != -1) || doc.Type == pspb.OpType_DELETE {
-			err := this.interceptFrozenFunc()
-			if err != nil {
-				return nil, err
-			}
-		}
-	}
 	docMap, err := this.groupPartitionByDocs(docs)
 	if err != nil {
 		return nil, err
@@ -604,12 +724,6 @@ func (this *spaceSender) Batch(docs []*pspb.DocCmd) (response.WriteResponse, err
 }
 
 func (this *spaceSender) Write(doc *pspb.DocCmd) (*response.DocResult, error) {
-	if doc.Type == pspb.OpType_MERGE || (doc.Type == pspb.OpType_REPLACE && doc.Version != -1) || doc.Type == pspb.OpType_DELETE {
-		err := this.interceptFrozenFunc()
-		if err != nil {
-			return nil, err
-		}
-	}
 	sender := this.partitionSlot(doc.Slot)
 	resp, err := sender.write(doc)
 	if err != nil {
@@ -625,10 +739,6 @@ func (this *spaceSender) CreateDoc(id string, source []byte) *response.DocResult
 
 // if version is zero  update version++
 func (this *spaceSender) MergeDoc(id string, source []byte, version int64) *response.DocResult {
-	err := this.interceptFrozenFunc()
-	if err != nil {
-		return response.NewErrDocResult(id, err)
-	}
 	return this.writeAndRetry(pspb.NewDocMergeWithSlot(id, this.Slot(id), source, version))
 }
 
@@ -639,30 +749,16 @@ func (this *spaceSender) ReplaceDoc(id string, source []byte) *response.DocResul
 
 // if version == -1 same as replace, over write and not check version ,new version is 1 , if version == 0 , update version++
 func (this *spaceSender) UpdateDoc(id string, source []byte, version int64) *response.DocResult {
-	if version != -1 {
-		err := this.interceptFrozenFunc()
-		if err != nil {
-			return response.NewErrDocResult(id, err)
-		}
-	}
 	return this.writeAndRetry(pspb.NewDocReplaceWithSlot(id, this.Slot(id), source, version))
 }
 
 //delete doc without version check
 func (this *spaceSender) DeleteDoc(id string) *response.DocResult {
-	err := this.interceptFrozenFunc()
-	if err != nil {
-		return response.NewErrDocResult(id, err)
-	}
 	return this.writeAndRetry(pspb.NewDocDeleteWithSlot(id, this.Slot(id), 0))
 }
 
 // if version == 0 , delete not check version
 func (this *spaceSender) DeleteDocWithVersion(id string, version int64) *response.DocResult {
-	err := this.interceptFrozenFunc()
-	if err != nil {
-		return response.NewErrDocResult(id, err)
-	}
 	return this.writeAndRetry(pspb.NewDocDeleteWithSlot(id, this.Slot(id), version))
 }
 
@@ -688,13 +784,6 @@ func (this *spaceSender) writeAndRetry(doc *pspb.DocCmd) *response.DocResult {
 
 		log.Error("client ps write doc error: %s", err.Error())
 		if pkg.ErrCode(err) == pkg.ERRCODE_PARTITION_NOT_EXIST {
-			if tryTimes > 5 {
-				return response.NewErrDocResult(doc.DocId, err)
-			}
-			this.ps.client.master.cliCache.DeleteSpaceCache(this.Ctx.GetContext(), this.db, this.space)
-			time.Sleep(1 * time.Second)
-		} else if pkg.ErrCode(err) == pkg.ERRCODE_PARTITION_FROZEN {
-			sender.pid = 0
 			if tryTimes > 5 {
 				return response.NewErrDocResult(doc.DocId, err)
 			}
@@ -765,16 +854,49 @@ func (this *spaceSender) Slot(docID string) uint32 {
 }
 
 func Slot(routingValue string) uint32 {
-	return murmur3.Sum32WithSeed(bytes.StringToByte(routingValue), 0)
+	return murmur3.Sum32WithSeed(cbbytes.StringToByte(routingValue), 0)
 }
 
-func (this *spaceSender) interceptFrozenFunc() error {
-	space, err := this.ps.client.master.cliCache.SpaceByCache(this.Ctx.GetContext(), this.db, this.space)
+func (this *spaceSender) mergeResultArr(dest response.SearchResponses, src response.SearchResponses, req *request.SearchRequest) error {
+
+	sortOrder, err := req.SortOrder()
+	if err != nil {
+		return fmt.Errorf("sort err [%s]", string(req.Sort))
+	}
+
+	space, err := this.ps.Client().Master().Cache().SpaceByCache(this.Ctx.GetContext(), this.db, this.space)
 	if err != nil {
 		return err
 	}
-	if space.CanFrozen() {
-		return pkg.ErrFuncCanNotInvokeInFrozenEngine
+
+	if space.Engine.MetricType == "L2" { //if has sort it will err
+		sortOrder = sortorder.SortOrder{&sortorder.SortScore{Desc: false}}
 	}
+
+	if len(dest) != len(src) {
+		log.Error("dest length:[%d] not equal src length:[%d]", len(dest), len(src))
+	}
+
+	if log.IsDebugEnabled() {
+		log.Debug("dest length:[%d] , src length:[%d]", len(dest), len(src))
+	}
+
+	if len(dest) <= len(src) {
+		for index := range dest {
+			err := dest[index].Merge(src[index], sortOrder, req.From, *req.Size)
+			if err != nil {
+				return fmt.Errorf("merge err [%s]")
+			}
+		}
+	} else {
+		for index := range src {
+			err := dest[index].Merge(src[0], sortOrder, req.From, *req.Size)
+			if err != nil {
+				return fmt.Errorf("merge err [%s]")
+			}
+		}
+	}
+
 	return nil
+
 }

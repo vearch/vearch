@@ -22,8 +22,14 @@ package gammacb
 import "C"
 import (
 	"context"
+	"encoding/json"
 	"fmt"
-	"github.com/tiglabs/log"
+	"io/ioutil"
+	"reflect"
+	"sync"
+	"time"
+	"unsafe"
+
 	"github.com/vearch/vearch/config"
 	pkg "github.com/vearch/vearch/proto"
 	"github.com/vearch/vearch/proto/entity"
@@ -32,10 +38,9 @@ import (
 	"github.com/vearch/vearch/ps/engine/mapping"
 	"github.com/vearch/vearch/ps/engine/register"
 	"github.com/vearch/vearch/util/atomic"
-	"io/ioutil"
-	"sync"
-	"time"
-	"unsafe"
+	"github.com/vearch/vearch/util/log"
+	"github.com/vearch/vearch/util/uuid"
+	"github.com/vearch/vearch/util/vearchlog"
 )
 
 const Name = "gamma"
@@ -83,26 +88,39 @@ func New(cfg register.EngineConfig) (engine.Engine, error) {
 		indexMapping: indexMapping,
 		space:        cfg.Space,
 		partitionID:  cfg.PartitionID,
+		path:         cfg.Path,
 		gamma:        C.Init(gammaConfig),
 		counter:      atomic.NewAtomicInt64(0),
 	}
-	ge.reader = &readerImpl{engine: ge, path: cfg.Path}
-	ge.writer = &writerImpl{engine: ge, path: cfg.Path}
+	ge.reader = &readerImpl{engine: ge}
+	ge.writer = &writerImpl{engine: ge}
 
 	infos, _ := ioutil.ReadDir(cfg.Path)
-	if len(infos) == 0 {
-		log.Info("to create table for gamma by path:[%s]", cfg.Path)
-		if resp := C.CreateTable(ge.gamma, table); resp != 0 {
-			return nil, fmt.Errorf("create gamma table has err:[%d]", int(resp))
-		}
+
+	startTime := time.Now()
+	log.Info("to create table for gamma by path:[%s]", cfg.Path)
+	if resp := C.CreateTable(ge.gamma, table); resp != 0 {
+		return nil, fmt.Errorf("create gamma table has err:[%d]", int(resp))
 	} else {
+		log.Info("to create table for gamma finish by path:[%s]", cfg.Path)
+	}
+	endTime := time.Now()
+	costTime := endTime.Sub(startTime)
+	log.Info("creat table: %s cost time :%d", cfg.Space.Name, int64(costTime/time.Millisecond))
+	if len(infos) > 0 {
 		code := int(C.Load(ge.gamma))
 		if code != 0 {
-			return nil, fmt.Errorf("load gamma data err code:[%d]", code)
+			vearchlog.LogErrNotNil(fmt.Errorf("load gamma data err code:[%d]", code))
+			ge.Close()
 		}
 	}
 
 	go ge.autoCreateIndex()
+
+	/*go func() {
+		rc := C.BuildFieldIndex(ge.gamma)
+		log.Warn("build field index over:[%d]", rc)
+	}()*/
 
 	if log.IsDebugEnabled() {
 		go func() {
@@ -124,6 +142,7 @@ func New(cfg register.EngineConfig) (engine.Engine, error) {
 type gammaEngine struct {
 	ctx          context.Context
 	cancel       context.CancelFunc
+	path         string
 	indexMapping *mapping.IndexMapping
 	space        *entity.Space
 	partitionID  entity.PartitionID
@@ -134,6 +153,7 @@ type gammaEngine struct {
 
 	buildIndexOnce sync.Once
 	counter        *atomic.AtomicInt64
+	lock           sync.RWMutex
 }
 
 func (ge *gammaEngine) GetSpace() *entity.Space {
@@ -157,36 +177,51 @@ func (ge *gammaEngine) Writer() engine.Writer {
 }
 
 func (ge *gammaEngine) UpdateMapping(space *entity.Space) error {
-	return fmt.Errorf("not support update mapping in gamma")
+	var oldProperties, newProperties interface{}
+
+	if err := json.Unmarshal([]byte(ge.space.Properties), &oldProperties); err != nil {
+		return fmt.Errorf("unmarshal old space properties:[%s] has err:[%s] ", ge.space.Properties, err.Error())
+	}
+
+	if err := json.Unmarshal([]byte(space.Properties), &newProperties); err != nil {
+		return fmt.Errorf("unmarshal new space properties:[%s] has err :[%s]", space.Properties, err.Error())
+	}
+
+	if !reflect.DeepEqual(oldProperties, newProperties) {
+		return fmt.Errorf("gamma engine not support ")
+	}
+
+	ge.space = space
+
+	return nil
 }
 
 func (ge *gammaEngine) GetMapping() *mapping.IndexMapping {
 	return ge.indexMapping
 }
 
-func (ge *gammaEngine) MapDocument(doc *pspb.DocCmd) ([]*pspb.Field, map[string]pspb.FieldType, error) {
-	return ge.indexMapping.MapDocument(doc.Source)
-}
-
-func (ge *gammaEngine) NewSnapshot() (engine.Snapshot, error) {
-	panic("implement me")
-}
-
-func (ge *gammaEngine) ApplySnapshot(iter engine.Iterator, sn int64) error {
-	panic("implement me")
+func (ge *gammaEngine) MapDocument(doc *pspb.DocCmd, retrievalType string) ([]*pspb.Field, map[string]pspb.FieldType, error) {
+	return ge.indexMapping.MapDocument(doc.Source, retrievalType)
 }
 
 func (ge *gammaEngine) Optimize() error {
+	/*if _, err := ge.reader.DocCount(ge.ctx); err != nil {
+		return err
+	} else if int64(u) < 8192 {
+		return fmt.Errorf("doc size:[%d] less than 8192 so can not to index", int64(u))
+	}*/
 	go func() {
-		ge.buildIndexOnce.Do(func() {
-			log.Info("build index:[%d] begin", ge.partitionID)
-			if e1 := ge.BuildIndex(); e1 != nil {
-				log.Error("build index:[%d] has err ", ge.partitionID, e1.Error())
-			}
-			log.Info("build index:[%d] end", ge.partitionID)
-		})
+		log.Info("build index:[%d] begin", ge.partitionID)
+		if e1 := ge.BuildIndex(); e1 != nil {
+			log.Error("build index:[%d] has err ", ge.partitionID, e1.Error())
+		}
+		log.Info("build index:[%d] end", ge.partitionID)
 	}()
 	return nil
+}
+
+func (ge *gammaEngine) IndexStatus() int {
+	return int(C.GetIndexStatus(ge.gamma))
 }
 
 func (ge *gammaEngine) BuildIndex() error {
@@ -196,7 +231,7 @@ func (ge *gammaEngine) BuildIndex() error {
 	defer ge.counter.Decr()
 	gamma := ge.gamma
 	if gamma == nil {
-		return pkg.ErrPartitionClosed
+		return vearchlog.LogErrAndReturn(pkg.CodeErr(pkg.ERRCODE_PARTITION_IS_CLOSED))
 	}
 
 	//UNINDEXED = 0, INDEXING, INDEXED
@@ -206,11 +241,11 @@ func (ge *gammaEngine) BuildIndex() error {
 			log.Error("build index:[%d] err response code:[%d]", ge.partitionID, rc)
 		}
 	}()
-	for {
+	/*for {
 		select {
 		case <-ge.ctx.Done():
 			log.Error("partition:[%d] has closed so skip wait", ge.partitionID)
-			return pkg.ErrPartitionClosed
+			return vearchlog.LogErrAndReturn(pkg.CodeErr(pkg.ERRCODE_PARTITION_IS_CLOSED))
 		default:
 		}
 
@@ -223,15 +258,16 @@ func (ge *gammaEngine) BuildIndex() error {
 		}
 
 		time.Sleep(3 * time.Second)
-	}
+	}*/
 
 	return nil
 }
 
 func (ge *gammaEngine) Close() {
+	closeEngine := ge.gamma
 	ge.gamma = nil
 	ge.cancel()
-	go func() {
+	go func(closeEngine unsafe.Pointer) {
 		i := 0
 		for {
 			time.Sleep(3 * time.Second)
@@ -240,9 +276,13 @@ func (ge *gammaEngine) Close() {
 				log.Info("wait stop gamma engine times:[%d]", i)
 				continue
 			}
-			C.Close(ge.gamma)
+			start, flakeUUID := time.Now(), uuid.FlakeUUID()
+			log.Info("to close gamma engine begin token:[%s]", flakeUUID)
+			C.Close(closeEngine)
+			log.Info("to close gamma engine end token:[%s] use time:[%d]", flakeUUID, time.Now().Sub(start))
+			break
 		}
-	}()
+	}(closeEngine)
 
 }
 
@@ -253,6 +293,19 @@ func (ge *gammaEngine) autoCreateIndex() {
 	}
 
 	for {
+		select {
+		case <-ge.ctx.Done():
+			return
+		default:
+		}
+
+		s := C.GetIndexStatus(ge.gamma)
+
+		if int(s) == 2 {
+			log.Info("index:[%d] ok", ge.partitionID)
+			break
+		}
+
 		if u, err := ge.reader.DocCount(ge.ctx); err != nil {
 			log.Error("auto create index err :[%s]", err.Error())
 		} else if int64(u) >= ge.space.Engine.IndexSize {

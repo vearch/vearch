@@ -1,12 +1,12 @@
 ### Get Cluster stats
 
-> http://11.3.170.164:443/_cluster/stats
+> http://127.0.0.1:443/_cluster/stats
 
 ````$json
 
 [{
 	"status": 200,
-	"ip": "11.3.240.138",
+	"ip": "127.0.0.1",
 	"labels": [{
 		"name": "models",
 		"value": "ps"
@@ -57,7 +57,7 @@
 
 ### Get Cluster health
 
-> http://11.3.170.164:443/_cluster/health
+> http://127.0.0.1:443/_cluster/health
 
 ```$json
 [{
@@ -124,7 +124,7 @@
 
 ### list server
 
-> http://11.3.170.164:443/list/server
+> http://127.0.0.1:443/list/server
 
 ```$json
 {

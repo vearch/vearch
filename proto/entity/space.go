@@ -16,46 +16,41 @@ package entity
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/vearch/vearch/proto"
 	"github.com/vearch/vearch/util"
-	"math/rand"
-	"strings"
+	"github.com/vearch/vearch/util/vearchlog"
 	"unicode"
 )
 
-type DynamicType string
-
-func (dy *DynamicType) UnmarshalJSON(bs []byte) error {
-	dynamicType := DynamicType(strings.Replace(string(bs), "\"", "", 2))
-	*dy = dynamicType
-	return nil
-}
-
 const (
-	Caprice = "caprice"
-	GuiXu   = "guixu"
-	Gamma   = "gamma"
+	Gamma = "gamma"
 )
 
 type Engine struct {
-	Name         string `json:"name"`
-	IndexSize    int64  `json:"index_size"`
-	MaxSize      int64  `json:"max_size"`
-	ZoneField    string `json:"zone_field"`
-	ExpireMinute int64  `json:"expire_minute"`
-	Nprobe       *int   `json:"nprobe,omitempty"`
-	MetricType   *int   `json:"metric_type,omitempty"`
-	Ncentroids   *int   `json:"ncentroids,omitempty"`
-	Nsubvector   *int   `json:"nsubvector,omitempty"`
-	NbitsPerIdx  *int   `json:"nbits_per_idx,omitempty"`
+	Name           string          `json:"name"`
+	IndexSize      int64           `json:"index_size"`
+	MaxSize        int64           `json:"max_size"`
+	MetricType     string          `json:"metric_type,omitempty"`
+	RetrievalType  string          `json:"retrieval_type,omitempty"`
+	RetrievalParam json.RawMessage `json:"retrieval_param,omitempty"`
+	IdType         string          `json:"id_type,omitempty"`
 }
 
 func NewDefaultEngine() *Engine {
 	return &Engine{
 		Name: Gamma,
 	}
+}
+
+type RetrievalParam struct {
+	Nlinks         int    `json:"nlinks"`
+	EfSearch       int    `json:"efSearch"`
+	EfConstruction int    `json:"efConstruction"`
+	MetricType     string `json:"metric_type,omitempty"`
+	Ncentroids     int    `json:"ncentroids"`
+	Nprobe         int    `json:"nprobe"`
+	Nsubvector     int    `json:"nsubvector"`
 }
 
 //space/[dbId]/[spaceId]:[spaceBody]
@@ -70,15 +65,8 @@ type Space struct {
 	ReplicaNum   uint8           `json:"replica_num"`
 	Properties   json.RawMessage `json:"properties"`
 	Engine       *Engine         `json:"engine"`
+	Models       json.RawMessage `json:"models,omitempty"` //json model config for python plugin
 
-	DynamicSchema    DynamicType     `json:"dynamic_schema,omitempty"`    // has three types true , false , strict
-	DefaultField     string          `json:"default_field"`               //default _all
-	StoreDynamic     bool            `json:"store_dynamic"`               //default false
-	StoreSource      *bool           `json:"store_source"`                //default true
-	DocValuesDynamic *bool           `json:"docvalues_dynamic,omitempty"` //default true
-	Models           json.RawMessage `json:"models,omitempty"`            //json model config for python plugin
-
-	WorkedPartitions []*Partition `json:"worked_partitions"` // partitionids not sorted
 }
 
 func (this *Space) String() string {
@@ -97,15 +85,12 @@ func (this *Space) GetPartition(id PartitionID) *Partition {
 
 func (this *Space) PartitionId(slotID SlotID) PartitionID {
 	switch this.Engine.Name {
-	case GuiXu:
-		intN := rand.Intn(len(this.WorkedPartitions))
-		return this.WorkedPartitions[intN].Id
 	default:
-		if len(this.WorkedPartitions) == 1 {
-			return this.WorkedPartitions[0].Id
+		if len(this.Partitions) == 1 {
+			return this.Partitions[0].Id
 		}
 
-		arr := this.WorkedPartitions
+		arr := this.Partitions
 
 		maxKey := len(arr) - 1
 
@@ -121,11 +106,11 @@ func (this *Space) PartitionId(slotID SlotID) PartitionID {
 			} else if midVal < slotID {
 				low = mid + 1
 			} else {
-				return this.WorkedPartitions[mid].Id
+				return arr[mid].Id
 			}
 		}
 
-		return this.WorkedPartitions[low-1].Id
+		return arr[low-1].Id
 	}
 
 }
@@ -136,100 +121,108 @@ func (engine *Engine) UnmarshalJSON(bs []byte) error {
 
 	_ = json.Unmarshal(bs, &temp)
 
-	if temp == Caprice || temp == Gamma {
+	if temp == Gamma {
 		*engine = Engine{Name: temp}
 		return nil
 	}
 
 	tempEngine := &struct {
-		Name         string `json:"name"`
-		IndexSize    int64  `json:"index_size"`
-		MaxSize      int64  `json:"max_size"`
-		ZoneField    string ` json:"zone_field"`
-		ExpireMinute int64  `json:"expire_minute"`
-		Nprobe       *int   `json:"nprobe"`
-		MetricType   *int   `json:"metric_type"`
-		Ncentroids   *int   `json:"ncentroids"`
-		Nsubvector   *int   `json:"nsubvector"`
-		NbitsPerIdx  *int   `json:"nbits_per_idx"`
+		Name           string          `json:"name"`
+		IndexSize      *int64          `json:"index_size"`
+		MaxSize        int64           `json:"max_size"`
+		RetrievalParam json.RawMessage `json:"retrieval_param,omitempty"`
+		MetricType     string          `json:"metric_type,omitempty"`
+		RetrievalType  string          `json:"retrieval_type,omitempty"`
+		IdType         string          `json:"id_type,omitempty"`
 	}{}
 
 	if err := json.Unmarshal(bs, tempEngine); err != nil {
 		return err
 	}
-
 	switch tempEngine.Name {
-	case Caprice, GuiXu:
 	case Gamma:
 		if tempEngine.MaxSize <= 0 {
-			tempEngine.MaxSize = 10000000
+			tempEngine.MaxSize = 100000
 		}
 
-		defVal := util.PInt(-1)
+		if tempEngine.RetrievalParam != nil {
+			if tempEngine.RetrievalType == "" {
+				return fmt.Errorf("retrieval_type is not null")
+			}
 
-		if tempEngine.Nprobe == nil {
-			tempEngine.Nprobe = defVal
-		}
+			var v RetrievalParam
+			if err := json.Unmarshal(tempEngine.RetrievalParam, &v); err != nil {
+				fmt.Errorf("engine UnmarshalJSON RetrievalParam json.Unmarshal err :[%s]", err.Error())
+			}
 
-		if tempEngine.MetricType == nil {
-			tempEngine.MetricType = defVal
-		}
+			if tempEngine.RetrievalType == "HNSW" {
+				if v.Nlinks == 0 || v.EfSearch == 0 || v.EfConstruction == 0 {
+					return fmt.Errorf("HNSW model param is 0")
+				}
+				if tempEngine.IndexSize == nil || *tempEngine.IndexSize <= 0 {
+					tempEngine.IndexSize = util.PInt64(2)
+				}
+			} else if tempEngine.RetrievalType == "FLAT" {
 
-		if tempEngine.Ncentroids == nil {
-			tempEngine.Ncentroids = defVal
-		}
+			} else if tempEngine.RetrievalType == "BINARYIVF" {
+				if v.Nprobe == 0 || v.Ncentroids == 0 || v.Ncentroids == 0 {
+					return fmt.Errorf(tempEngine.RetrievalType + " model param is 0")
+				} else {
+					if tempEngine.IndexSize == nil || *tempEngine.IndexSize <= 0 {
+						tempEngine.IndexSize = util.PInt64(100000)
+					}
+				}
+				if *tempEngine.IndexSize < 8192 {
+					return fmt.Errorf(tempEngine.RetrievalType+" model doc size:[%d] less than 8192 so can not to index", int64(*tempEngine.IndexSize))
+				}
+			} else {
+				if v.Nsubvector == 0 || v.Ncentroids == 0 {
+					return fmt.Errorf(tempEngine.RetrievalType + " model param is 0")
+				} else {
+					if tempEngine.IndexSize == nil || *tempEngine.IndexSize <= 0 {
+						tempEngine.IndexSize = util.PInt64(100000)
+					}
+				}
+				if *tempEngine.IndexSize < 8192 {
+					return fmt.Errorf(tempEngine.RetrievalType+" model doc size:[%d] less than 8192 so can not to index", int64(*tempEngine.IndexSize))
+				}
+			}
 
-		if tempEngine.Nsubvector == nil {
-			tempEngine.Nsubvector = defVal
-		}
+			if v.MetricType == "" {
+				return fmt.Errorf("metric_type is null")
+			}
 
-		if tempEngine.NbitsPerIdx == nil {
-			tempEngine.NbitsPerIdx = defVal
+			tempEngine.MetricType = v.MetricType
+
+		} else {
+			if tempEngine.IndexSize == nil {
+				tempEngine.IndexSize = util.PInt64(100000)
+			}
 		}
 	default:
-		return pkg.ErrPartitionEngineNameInvalid
+		return vearchlog.LogErrAndReturn(pkg.CodeErr(pkg.ERRCODE_PARTITON_ENGINENAME_INVALID))
 	}
 
 	*engine = Engine{
-		Name:         tempEngine.Name,
-		IndexSize:    tempEngine.IndexSize,
-		MaxSize:      tempEngine.MaxSize,
-		ZoneField:    tempEngine.ZoneField,
-		ExpireMinute: tempEngine.ExpireMinute,
-		Nprobe:       tempEngine.Nprobe,
-		MetricType:   tempEngine.MetricType,
-		Ncentroids:   tempEngine.Ncentroids,
-		Nsubvector:   tempEngine.Nsubvector,
-		NbitsPerIdx:  tempEngine.NbitsPerIdx,
-	}
-
-	if engine.ExpireMinute > 0 {
-		if engine.ZoneField == "" {
-			return fmt.Errorf("if you use expire minute you must set zone field")
-		}
+		Name:           tempEngine.Name,
+		IndexSize:      *tempEngine.IndexSize,
+		MaxSize:        tempEngine.MaxSize,
+		RetrievalParam: tempEngine.RetrievalParam,
+		MetricType:     tempEngine.MetricType,
+		RetrievalType:  tempEngine.RetrievalType,
+		IdType:         tempEngine.IdType,
 	}
 
 	return nil
 }
 
-func (space *Space) CanFrozen() bool {
-	return space.Engine.Name == GuiXu
-}
-
-func (space *Space) CanExpire() bool {
-	return space.Engine.ZoneField != "" && space.Engine.ExpireMinute > 0
-}
-
 //check params is ok
 func (space *Space) Validate() error {
-	if space.DynamicSchema != "true" && space.DynamicSchema != "false" && space.DynamicSchema != "strict" {
-		return fmt.Errorf("dynamic only support true , false or strict , but got [%s]", space.DynamicSchema)
-	}
 
 	switch space.Engine.Name {
-	case Caprice, GuiXu, Gamma:
+	case Gamma:
 	default:
-		return errors.New(pkg.ErrMasterInvalidEngine.Error() + " engine name : " + space.Engine.Name)
+		return pkg.CodeErr(pkg.ERRCODE_INVALID_ENGINE)
 	}
 
 	rs := []rune(space.Name)

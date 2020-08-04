@@ -15,10 +15,13 @@
 package response
 
 import (
-	"github.com/vearch/vearch/proto"
+	"bytes"
+	pkg "github.com/vearch/vearch/proto"
+	"github.com/vearch/vearch/proto/pspb"
 	sort "github.com/vearch/vearch/ps/engine/sortorder"
 	"github.com/vearch/vearch/util/cbjson"
 	"math"
+	"strconv"
 	"time"
 )
 
@@ -27,7 +30,7 @@ func NewSearchResponseErr(err error) *SearchResponse {
 		Status: &SearchStatus{
 			Total:  1,
 			Failed: 1,
-			Errors: map[string]error{pkg.ErrGeneralInternalError.Error(): err},
+			Errors: map[string]error{pkg.FormatErr(err): err},
 		},
 	}
 }
@@ -35,14 +38,22 @@ func NewSearchResponseErr(err error) *SearchResponse {
 type SearchResponses []*SearchResponse
 
 type SearchResponse struct {
-	PID      uint32            `json:"-"`
-	Timeout  bool              `json:"time_out"`
-	Status   *SearchStatus     `json:"status"`
-	Hits     Hits              `json:"hits"`
-	Total    uint64            `json:"total_hits"`
-	MaxScore float64           `json:"max_score"`
-	Took     int64             `json:"took"`
-	Explain  map[uint32]string `json:"explain,omitempty"`
+	PID         uint32                    `json:"-"`
+	Timeout     bool                      `json:"time_out"`
+	Status      *SearchStatus             `json:"status"`
+	Hits        Hits                      `json:"hits"`
+	Total       uint64                    `json:"total_hits"`
+	MaxScore    float64                   `json:"max_score"`
+	MaxTook     int64                     `json:"took"`
+	MaxTookID   uint32                    `json:"max_took_id"`
+	Explain     map[uint32]string         `json:"explain,omitempty"`
+	ByteArr     []byte                    `json:"byte_arr"`
+	Start       time.Time                 `json:"start_time"`
+	FieldType   map[string]pspb.FieldType `json:"index_mapping"`
+	DBID        int64                     `json:"db_id"`
+	SpaceID     int64                     `json:"space_id"`
+	PartitionID uint32                    `json:"partition_id"`
+	ArrayBool   bool                      `json:"array_bool"`
 }
 
 // Merge will merge together multiple SearchResults during a MultiSearch, two args :[sortOrder, size]
@@ -53,6 +64,11 @@ func (sr *SearchResponse) Merge(other *SearchResponse, so sort.SortOrder, from, 
 	sr.Total += other.Total
 	if other.MaxScore > sr.MaxScore {
 		sr.MaxScore = other.MaxScore
+	}
+
+	if other.MaxTook > sr.MaxTook {
+		sr.MaxTook = other.MaxTook
+		sr.MaxTookID = other.MaxTookID
 	}
 
 	sr.Timeout = sr.Timeout && other.Timeout
@@ -76,7 +92,49 @@ func (sr *SearchResponse) Merge(other *SearchResponse, so sort.SortOrder, from, 
 
 type NameCache map[[2]int64][]string
 
-func (srs SearchResponses) ToContent(from, size int, nameCache NameCache, typedKeys bool, took time.Duration) ([]byte, error) {
+func (srs SearchResponses) ToIDContent() []byte {
+	sb := bytes.Buffer{}
+	for i, sr := range srs {
+		if i != 0 {
+			sb.WriteString("\n")
+		}
+
+		for j, hit := range sr.Hits {
+			if j != 0 {
+				sb.WriteString(",")
+			}
+			sb.WriteString(hit.Id)
+		}
+	}
+	return sb.Bytes()
+}
+
+func (srs SearchResponses) ToContentIds(from, size int, nameCache NameCache, took time.Duration, idIsLong bool) ([]byte, error) {
+	bs := bytes.Buffer{}
+	bs.WriteString("[")
+	for _, sr := range srs {
+		if sr.Hits != nil {
+			for j, u := range sr.Hits {
+				if j != 0 {
+					bs.WriteString(",")
+				}
+				if u.Id != "" {
+					if idIsLong {
+						bs.WriteString(u.Id)
+					} else {
+						bs.WriteString("\"")
+						bs.WriteString(u.Id)
+						bs.WriteString("\"")
+					}
+				}
+			}
+		}
+	}
+	bs.WriteString("]")
+	return bs.Bytes(), nil
+}
+
+func (srs SearchResponses) ToContent(from, size int, nameCache NameCache, typedKeys bool, took time.Duration, idIsLong bool) ([]byte, error) {
 	var builder = cbjson.ContentBuilderFactory()
 
 	builder.BeginObject()
@@ -90,7 +148,7 @@ func (srs SearchResponses) ToContent(from, size int, nameCache NameCache, typedK
 
 	builder.BeginArray()
 	for i, sr := range srs {
-		if bytes, err := sr.ToContent(from, size, nameCache, typedKeys, took); err != nil {
+		if bytes, err := sr.ToContent(from, size, nameCache, typedKeys, took, idIsLong); err != nil {
 			return nil, err
 		} else {
 			builder.ValueRaw(string(bytes))
@@ -107,7 +165,7 @@ func (srs SearchResponses) ToContent(from, size int, nameCache NameCache, typedK
 	return builder.Output()
 }
 
-func (sr *SearchResponse) ToContent(from, size int, nameCache NameCache, typedKeys bool, took time.Duration) ([]byte, error) {
+func (sr *SearchResponse) ToContent(from, size int, nameCache NameCache, typedKeys bool, took time.Duration, idIsLong bool) ([]byte, error) {
 	var builder = cbjson.ContentBuilderFactory()
 
 	builder.BeginObject()
@@ -136,7 +194,7 @@ func (sr *SearchResponse) ToContent(from, size int, nameCache NameCache, typedKe
 	if sr.Hits != nil {
 		builder.More()
 		builder.BeginArrayWithField("hits")
-		content, err := sr.Hits.ToContent(nameCache, from, size)
+		content, err := sr.Hits.ToContent(nameCache, from, size, idIsLong)
 		if err != nil {
 			return nil, err
 		}
@@ -215,7 +273,7 @@ func (dh Hits) next(i int) *DocResult {
 
 }
 
-func (dh Hits) ToContent(nameCache NameCache, from, size int) ([]byte, error) {
+func (dh Hits) ToContent(nameCache NameCache, from, size int, idIsLong bool) ([]byte, error) {
 	var builder = cbjson.ContentBuilderFactory()
 	for i, u := range dh {
 
@@ -235,7 +293,14 @@ func (dh Hits) ToContent(nameCache NameCache, from, size int) ([]byte, error) {
 
 		builder.More()
 		builder.Field("_id")
-		builder.ValueString(u.Id)
+		if idIsLong {
+			idInt64, err := strconv.ParseInt(u.Id, 10, 64)
+			if err == nil {
+				builder.ValueNumeric(idInt64)
+			}
+		} else {
+			builder.ValueString(u.Id)
+		}
 
 		if u.Found {
 			builder.More()
@@ -248,9 +313,9 @@ func (dh Hits) ToContent(nameCache NameCache, from, size int) ([]byte, error) {
 				builder.ValueInterface(u.Extra)
 			}
 
-			builder.More()
+			/*builder.More()
 			builder.Field("_version")
-			builder.ValueNumeric(u.Version)
+			builder.ValueNumeric(u.Version)*/
 
 			builder.More()
 			builder.Field("_source")

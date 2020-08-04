@@ -26,7 +26,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/tiglabs/log"
+	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/proto/entity"
 )
 
@@ -88,9 +88,18 @@ func readMeta(cluster, metaPath string) entity.NodeID {
 }
 
 func createMeta(client *client.Client, cluster, metaPath string) entity.NodeID {
-	id, err := client.Master().NewIDGenerate(context.Background(), entity.NodeIdSequence, 1, 3*time.Second)
+	var id int64
+	var err error
+	for i := 0; i < 180; i++ {
+		id, err = client.Master().NewIDGenerate(context.Background(), entity.NodeIdSequence, 1, 3*time.Second)
+		if err != nil {
+			log.Error("master generate id has err:[%s]", err.Error())
+			time.Sleep(1 * time.Second)
+			continue
+		}
+	}
 	if err != nil {
-		panic(err)
+		panic(fmt.Errorf("master generate id has err:[%s]", err.Error()))
 	}
 
 	temp := meta{ClusterName: cluster, Id: entity.NodeID(id)}

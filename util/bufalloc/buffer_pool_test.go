@@ -17,7 +17,7 @@ package bufalloc
 import (
 	"testing"
 
-	"github.com/vearch/vearch/util/bytes"
+	"github.com/vearch/vearch/util/cbbytes"
 )
 
 func TestGetPoolNum(t *testing.T) {
@@ -31,7 +31,7 @@ func TestGetPoolNum(t *testing.T) {
 			t.Errorf("Got %v expected %v", num, i)
 		}
 	}
-	num := buffPool.getPoolNum(2 * bytes.MB)
+	num := buffPool.getPoolNum(2 * cbbytes.MB)
 	if num != baseSize {
 		t.Errorf("Got %v expected %v", num, baseSize)
 	}
@@ -45,9 +45,9 @@ func TestGetBuffer(t *testing.T) {
 		}
 		buffPool.putBuffer(buf)
 	}
-	buf := buffPool.getBuffer(2 * bytes.MB)
-	if buf.Len() != 0 || buf.Cap() != 2*bytes.MB {
-		t.Errorf("Got %v expected %v", buf.Cap(), 2*bytes.MB)
+	buf := buffPool.getBuffer(2 * cbbytes.MB)
+	if buf.Len() != 0 || buf.Cap() != 2*cbbytes.MB {
+		t.Errorf("Got %v expected %v", buf.Cap(), 2*cbbytes.MB)
 	}
 	buffPool.putBuffer(buf)
 }

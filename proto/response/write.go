@@ -24,7 +24,7 @@ func (this WriteResponse) Merge(src WriteResponse) {
 	this = append(this, src...)
 }
 
-func (this *WriteResponse) ToContentBluk(nameCache NameCache) ([]byte, error) {
+func (this *WriteResponse) ToContentBluk(nameCache NameCache, idIsLong bool) ([]byte, error) {
 	var builder = cbjson.ContentBuilderFactory()
 
 	if len(*this) > 1 {
@@ -42,7 +42,7 @@ func (this *WriteResponse) ToContentBluk(nameCache NameCache) ([]byte, error) {
 			SpaceName: names[1],
 			DocResult: u,
 		}
-		content, err := docResult.ToContent()
+		content, err := docResult.ToContent(idIsLong)
 		if err != nil {
 			return nil, err
 		}
@@ -56,7 +56,7 @@ func (this *WriteResponse) ToContentBluk(nameCache NameCache) ([]byte, error) {
 	return builder.Output()
 }
 
-func (this *WriteResponse) ToContent(dbName, spaceName string) ([]byte, error) {
+func (this *WriteResponse) ToContent(dbName, spaceName string, idIsLong bool) ([]byte, error) {
 	var builder = cbjson.ContentBuilderFactory()
 
 	if len(*this) > 1 {
@@ -72,7 +72,7 @@ func (this *WriteResponse) ToContent(dbName, spaceName string) ([]byte, error) {
 			SpaceName: spaceName,
 			DocResult: u,
 		}
-		content, err := docResult.ToContent()
+		content, err := docResult.ToContent(idIsLong)
 		if err != nil {
 			return nil, err
 		}

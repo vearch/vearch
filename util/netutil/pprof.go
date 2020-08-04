@@ -23,7 +23,7 @@ import (
 	"runtime"
 	rpprof "runtime/pprof"
 
-	"github.com/tiglabs/log"
+	"github.com/vearch/vearch/util/log"
 )
 
 func StartPprofService(addr string) (*http.ServeMux, error) {

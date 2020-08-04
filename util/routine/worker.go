@@ -22,7 +22,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/tiglabs/log"
+	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/util/atomic"
 	"github.com/vearch/vearch/util/multierror"
 )
