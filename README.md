@@ -40,7 +40,7 @@ Vearch is a scalable distributed system for efficient similarity search of deep 
 
 * One-click binary installation, please see [docs/BinaryInstallation.md](docs/BinaryInstallation.md)([中文版](docs/BinaryInstallationZH_CN.md)).
 
-* Quickly compile the source codes to build a distributed vector search system with RESTful API, please see [docs/Deploy.md](docs/Deploy.md).
+* Quickly compile the source codes to build a distributed vector search system with RESTful API, please see [docs/SourceCompileDeployment.md](docs/SourceCompileDeployment.md).
 
 * Vearch can be leveraged to build a complete visual search system to index billions of images. The image retrieval plugin for object detection and feature extraction is also required. For more information, please refer to [docs/Quickstart.md](docs/Quickstart.md).
 
@@ -64,6 +64,7 @@ Vearch is a scalable distributed system for efficient similarity search of deep 
 
 * https://vearch.readthedocs.io/en/latest
 * https://vearch.readthedocs.io/zh_CN/latest
+* [Common QA](https://github.com/vearch/vearch/wiki/Vearch-QA)
 
 ## Benchmarks
 
@@ -71,7 +72,6 @@ Vearch is a scalable distributed system for efficient similarity search of deep 
 
 ## Publication
 Jie Li, Haifeng Liu, Chuanghua Gui, Jianyu chen, Zhenyun Ni, Ning Wang, Yuan Chen. The Design and Implementation of a Real Time Visual Search System on JD E-commerce Platform. In the 19th International ACM Middleware Conference, December 10–14, 2018, Rennes, France. https://arxiv.org/abs/1908.07389
-
 
 ## Community
 You can report bugs or ask questions in the [issues page](https://github.com/vearch/vearch/issues) of the repository.
