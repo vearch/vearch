@@ -2,27 +2,44 @@
 
 ## Docker Deploy
 
-#### Docker hub image center 
- 1. vearch basis compile environment image address: https://hub.docker.com/r/vearch/vearch/tags
+#### Docker Hub Image Center 
+ 1. vearch base compile environment image address: https://hub.docker.com/r/vearch/vearch/tags
  2. vearch deploy image address: https://hub.docker.com/r/vearch/vearch/tags
 
-#### User vearch image deploy
+#### Use Vearch Image Deploy
  1. take vearch:3.1.0 as an example
  2. docker pull vearch/vearch:0.3.1
- 3. one docker deploy or Distributed deployment
+ 3. one docker deploy or distributed deployment
     1. ```If deploy a docker start vearch,master,ps,router start together: cat vearch/config/config.toml.example > config.toml nohup docker run -p 8817:8817 -p 9001:9001 -v $PWD/config.toml:/vearch/config.toml  vearch/vearch:0.3.1 all &```
   
     2. ```If distributed deploy ,modify vearch/config/config.toml and start separately```
+    3. ```Modify vearch/config/config.toml ,refer the step 'Local Model'```
+    4. ```Start separately image, modify step i 'all' to 'master' and 'ps' and 'router' ,master image must first start```
 
-#### User basis environment image complile and deploy
+#### Use Base Image Compile And Deploy
  1. take vearch_env:3.1.0 as an example
  2. docker pull vearch/vearch_env:0.3.1
  3. sh vearch/cloud/complile.sh
  4. sh build.sh
  5. reference "User vearch image deploy" step 3
 
+#### Use Script Create Base Image And Vearch Image
+ 1. build compile base environment image 
+    1. go to $vearch/cloud dir
+    2. run ./compile_env.sh you will got a image named vearch_env
+ 2. compile vearch
+    1. go to $vearch/cloud dir
+    2. run ./compile.sh you will compile Vearch in $vearch/build/bin , $vearch/build/lib
+ 3. make vearch image
+    1. go to $vearch/cloud dir
+    2. run ./build.sh you will got a image named vearch good luck
+ 4. how to use it 
+    1. you can use docker run -it -v config.toml:/vearch/config.toml vearch all to start vearch by local model the last param has four type[ps, router ,master, all] all means tree type to start
+ 5. One-click build vearch image
+    1. go to $vearch/cloud dir
+    2. you can run ./run_docker.sh
 
-## Compile
+## No Image Compile And Deploy
 
 #### Dependent Environment 
 
@@ -51,30 +68,11 @@
       4. `export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$vearch/ps/engine/gammacb/lib/lib:$FAISS_HOME/lib` or `export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$vearch/ps/engine/gammacb/lib/lib:$FAISS_HOME/lib:$ROCKSDB_HOME` if ROCKSDB_HOME is set
       5. `go build -o vearch`
       when `vearch` file generated, it is ok.
-      
-      
-## Docker
-
-#### Build compile Environment 
-* go to $vearch/cloud dir
-* run `./compile_env.sh` you will got a image named `vearch_env`
-#### Compile Vearch
-* go to $vearch/cloud dir
-* run `./compile.sh` you will compile Vearch in `$vearch/build/bin` , `$vearch/build/lib`
-#### Make Vearch Image
-* go to $vearch/cloud dir
-* run `./build.sh` you will got a image named `vearch` good luck
-#### How to use it 
-> you can use `docker run -it -v config.toml:/vearch/config.toml vearch all` to start vearch by local model the last param has four type[`ps`, `router` ,`master`, `all`] all means tree type to start
+           
        
-
-## Docker Example
-* go to $vearch/cloud dir
-* you can run `./run_docker.sh`        
-       
-## Deploy
+#### Deploy
    Before run vearch, you shuld set `LD_LIBRARY_PATH`, Ensure that system can find faiss and gamma dynamic libraries (like $vearch/ps/engine/gammacb/lib/lib and $FAISS_HOME/lib directory files) .
-   #### 1 Local Model
+   ##### 1 Local Model
    * generate config file conf.toml
       
 ```
@@ -133,7 +131,7 @@
 ./vearch -conf conf.toml
 ````
    
-   #### 2 Cluster Model
+   ##### 2 Cluster Model
    > vearch has three module: `ps`(PartitionServer) , `master`, `router`, run `./vearch -f conf.toml ps/router/master` start ps/router/master module
 
    > Now we have five machine, two master, two ps and one router
