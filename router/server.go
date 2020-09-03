@@ -1,45 +1,26 @@
-// Copyright 2019 The Vearch Authors.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
-// implied. See the License for the specific language governing
-// permissions and limitations under the License.
-
 package router
 
 import (
 	"context"
 	"fmt"
-	"github.com/vearch/vearch/monitor"
 	"net"
 	"regexp"
 	"strings"
 	"time"
 
-	"google.golang.org/grpc"
-
-	"github.com/vearch/vearch/util/metrics/mserver"
-
+	limit "github.com/juju/ratelimit"
 	"github.com/vearch/vearch/client"
 	"github.com/vearch/vearch/config"
+	"github.com/vearch/vearch/monitor"
 	"github.com/vearch/vearch/router/document"
 	"github.com/vearch/vearch/util"
-	_ "github.com/vearch/vearch/util/init"
 	"github.com/vearch/vearch/util/log"
+	"github.com/vearch/vearch/util/metrics/mserver"
 	"github.com/vearch/vearch/util/netutil"
-	"github.com/vearch/vearch/util/vearchlog"
-)
-
-const (
-	DefaultConnMaxLimit = 10000
-	DefaultCloseTimeout = 5 * time.Second
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 )
 
 type Server struct {
@@ -50,8 +31,7 @@ type Server struct {
 }
 
 func NewServer(ctx context.Context) (*Server, error) {
-	// master service load cfg and init
-	log.Regist(vearchlog.NewVearchLog(config.Conf().GetLogDir(config.Router), "Router", config.Conf().GetLevel(config.Router), false))
+
 	cli, err := client.NewClient(config.Conf())
 	if err != nil {
 		return nil, err
@@ -62,11 +42,10 @@ func NewServer(ctx context.Context) (*Server, error) {
 	httpServerConfig := &netutil.ServerConfig{
 		Name:         "HttpServer",
 		Addr:         util.BuildAddr(addr, config.Conf().Router.Port),
-		Version:      "v1",
-		ConnLimit:    DefaultConnMaxLimit,
-		CloseTimeout: DefaultCloseTimeout,
+		ConnLimit:    config.Conf().Router.ConnLimit,
+		CloseTimeout: time.Duration(config.Conf().Router.CloseTimeout),
 	}
-	netutil.SetMode(netutil.RouterModeGorilla)
+	netutil.SetMode(netutil.RouterModeGorilla) //no need
 	httpServer := netutil.NewServer(httpServerConfig)
 	document.ExportDocumentHandler(httpServer, cli)
 
@@ -77,6 +56,10 @@ func NewServer(ctx context.Context) (*Server, error) {
 			panic(fmt.Errorf("start rpc server failed to listen: %v", err))
 		}
 		rpcServer = grpc.NewServer()
+		// rpcServer = grpc.NewServer(grpc.UnaryInterceptor(unaryInterceptor))
+		// limiter := &Limiter{limit.NewBucket(time.Millisecond, 100000)}
+		// rpcServer = grpc.NewServer(grpc_middleware.WithUnaryServerChain(ratelimit.UnaryServerInterceptor(limiter)),
+		// grpc_middleware.WithStreamServerChain(ratelimit.StreamServerInterceptor(limiter)))
 		go func() {
 			if err := rpcServer.Serve(lis); err != nil {
 				panic(fmt.Errorf("start rpc server failed to start: %v", err))
@@ -139,4 +122,43 @@ func (server *Server) Shutdown() {
 		server.httpServer = nil
 	}
 	log.Info("router shutdown... end")
+}
+
+/* For GRPC */
+var (
+	errMissingMetadata = status.Errorf(codes.InvalidArgument, "missing metadata")
+	errInvalidToken    = status.Errorf(codes.Unauthenticated, "invalid token")
+)
+
+func unaryInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+	// authentication (token verification)
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return nil, errMissingMetadata
+	}
+	if !valid(md["authorization"]) {
+		return nil, errInvalidToken
+	}
+	m, err := handler(ctx, req)
+	if err != nil {
+		log.Error("RPC failed with error %v", err)
+	}
+	return m, err
+}
+
+// valid validates the authorization.
+func valid(authorization []string) bool {
+	if len(authorization) < 1 {
+		return false
+	}
+	// username, password, err := util.AuthDecrypt(headerData)
+	return true
+}
+
+type Limiter struct {
+	bucker *limit.Bucket
+}
+
+func (l *Limiter) Limit() bool {
+	return !l.bucker.WaitMaxDuration(1, time.Second)
 }

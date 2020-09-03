@@ -28,3 +28,7 @@ func (s *SortScore) Compare(i, j SortValue) int {
 func (s *SortScore) SortField() string {
 	return "_score"
 }
+
+func (s *SortScore) GetSortOrder() bool {
+	return s.Desc
+}

@@ -23,7 +23,7 @@ echo "version info: $flags"
 echo "build gamma"
 
 cd $GAMMAOUT
-cmake -DPERFORMANCE_TESTING=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$ROOT/ps/engine/gammacb/lib $ROOT/engine/
+cmake -DPERFORMANCE_TESTING=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$ROOT/ps/engine/gammacb/lib -DRELAYOUT=OFF $ROOT/engine/
 make gamma -j  && make install
 
 cd ../

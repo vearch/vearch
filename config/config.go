@@ -31,10 +31,12 @@ import (
 	"go.etcd.io/etcd/embed"
 )
 
+// Model start up model, include all, master, ps, router
 type Model int
 
 var single *Config
 
+// Conf return the single instance of config
 func Conf() *Config {
 	return single
 }
@@ -46,6 +48,7 @@ var (
 	commitID     = "xxxxx"
 )
 
+// SetConfigVersion set the version, time and commit id of build
 func SetConfigVersion(bv, bt, ci string) {
 	versionOnce.Do(func() {
 		buildVersion = bv
@@ -76,94 +79,95 @@ const (
 )
 
 type Config struct {
-	Global  *GlobalCfg `toml:"global,omitempty" json:"global"`
-	Masters Masters    `toml:"masters,omitempty" json:"masters"`
-	Router  *RouterCfg `toml:"router,omitempty" json:"router"`
-	PS      *PSCfg     `toml:"ps,omitempty" json:"ps"`
+	Global     *GlobalCfg `toml:"global,omitempty" json:"global"`
+	EtcdConfig *EtcdCfg   `toml:"etcd,omitempty" json:"etcd"`
+	Masters    Masters    `toml:"masters,omitempty" json:"masters"`
+	Router     *RouterCfg `toml:"router,omitempty" json:"router"`
+	PS         *PSCfg     `toml:"ps,omitempty" json:"ps"`
 }
 
-func (this *Config) GetLogDir(model Model) string {
-	temp := this.Global.Log
-	switch model {
-	case Master:
-		if this.Masters.Self().Log != "" {
-			return this.Masters.Self().Log
+//get etcd address config
+func (this *Config) GetEtcdAddress() []string {
+	// depend manageEtcd config
+	if this.Global.SelfManageEtcd {
+		// provide etcd config ,address and port
+		if len(this.EtcdConfig.AddressList) > 0 && this.EtcdConfig.EtcdClientPort > 0 {
+			addrs := make([]string, len(this.EtcdConfig.AddressList))
+			for i, s := range this.EtcdConfig.AddressList {
+				addrs[i] = s + ":" + cast.ToString(this.EtcdConfig.EtcdClientPort)
+				log.Info("outside etcd address is %s", addrs[i])
+			}
+			return addrs
+		} else {
+			log.Error("the etcd config is error!")
+			return nil
 		}
-	case PS:
-		if this.PS.Log != "" {
-			return this.PS.Log
+	} else {
+		// manage etcd by vearch
+		ms := this.Masters
+		addrs := make([]string, len(ms))
+		for i, m := range ms {
+			addrs[i] = m.Address + ":" + cast.ToString(ms[i].EtcdClientPort)
+			log.Info("vearch etcd address is %s", addrs[i])
 		}
-	case Router:
-		if this.Router.Log != "" {
-			return this.Router.Log
-		}
+		return addrs
 	}
-	return temp
+}
+
+func (c *Config) GetLogDir() string {
+	return c.Global.Log
 }
 
 //make sure it not use in loop
-func (this *Config) GetLevel(model Model) string {
-	temp := this.Global.Level
-	switch model {
-	case Master:
-		if this.Masters.Self().Level != "" {
-			return this.Masters.Self().Level
-		}
-	case PS:
-		if this.PS.Level != "" {
-			return this.PS.Level
-		}
-	case Router:
-		if this.Router.Level != "" {
-			return this.Router.Level
-		}
-	}
-	return temp
+func (c *Config) GetLevel() string {
+	return c.Global.Level
 }
 
-func (this *Config) GetDataDir(model Model) string {
-	return this.GetDatas(model)[0]
+func (c *Config) GetDataDir() string {
+	return c.Global.Data[0]
 }
 
-func (this *Config) GetDataDirBySlot(model Model, pid uint32) string {
-	s := this.GetDatas(model)
+func (c *Config) GetDataDirBySlot(model Model, pid uint32) string {
+	s := c.Global.Data
 	index := int(pid) % len(s)
 	return s[index]
 }
 
-//GetDataDir get the data directory configured in the config file
-func (this *Config) GetDatas(model Model) []string {
-	temp := this.Global.Data
-	switch model {
-	case Master:
-		if this.Masters.Self().Data != nil {
-			return this.Masters.Self().Data
-		}
-	case PS:
-		if this.PS.Data != nil {
-			return this.PS.Data
-		}
-	case Router:
-		if this.Router.Data != nil {
-			return this.Router.Data
-		}
-	default:
-		panic("not support shi model " + cast.ToString(model))
-	}
-	return temp
+func (c *Config) GetDatas() []string {
+	return c.Global.Data
+}
+
+func (c *Config) GetLogFileNum() int {
+	return c.Global.LogFileNum
+}
+
+func (c *Config) GetLogFileSize() int {
+	return c.Global.LogFileSize
 }
 
 type Base struct {
-	Log   string   `toml:"log,omitempty" json:"log"`
-	Level string   `toml:"level,omitempty" json:"level"`
-	Data  []string `toml:"data,omitempty" json:"data"`
+	Log         string   `toml:"log,omitempty" json:"log"`
+	Level       string   `toml:"level,omitempty" json:"level"`
+	LogFileNum  int      `toml:"log_file_num,omitempty" json:"log_file_num"`
+	LogFileSize int      `toml:"log_file_size,omitempty" json:"log_file_size"`
+	Data        []string `toml:"data,omitempty" json:"data"`
 }
 
 type GlobalCfg struct {
 	Base
-	Name     string `toml:"name,omitempty" json:"name"`
-	Signkey  string `toml:"signkey,omitempty" json:"signkey"`
-	SkipAuth bool   `toml:"skip_auth,omitempty" json:"skip_auth"`
+	Name            string `toml:"name,omitempty" json:"name"`
+	Signkey         string `toml:"signkey,omitempty" json:"signkey"`
+	SkipAuth        bool   `toml:"skip_auth,omitempty" json:"skip_auth"`
+	SelfManageEtcd  bool   `toml:"self_manage_etcd,omitempty" json:"self_manage_etcd"`
+	AutoRecoverPs   bool   `toml:"auto_recover_ps,omitempty" json:"auto_recover_ps"`
+	SupportEtcdAuth bool   `toml:"support_etcd_auth,omitempty" json:"support_etcd_auth"`
+}
+
+type EtcdCfg struct {
+	AddressList    []string `toml:"address,omitempty" json:"address"`
+	EtcdClientPort uint16   `toml:"etcd_client_port,omitempty" json:"etcd_client_port"`
+	Username       string   `toml:"user_name,omitempty" json:"user_name"`
+	Password       string   `toml:"password,omitempty" json:"password"`
 }
 
 type Masters []*MasterCfg
@@ -188,7 +192,6 @@ func (ms Masters) Self() *MasterCfg {
 }
 
 type MasterCfg struct {
-	Base
 	Name           string `toml:"name,omitempty" json:"name"`
 	Address        string `toml:"address,omitempty" json:"address"`
 	ApiPort        uint16 `toml:"api_port,omitempty" json:"api_port"`
@@ -202,6 +205,9 @@ type MasterCfg struct {
 }
 
 func (m *MasterCfg) ApiUrl() string {
+	if m.ApiPort == 80 {
+		return "http://" + m.Address
+	}
 	return "http://" + m.Address + ":" + cast.ToString(m.ApiPort)
 }
 
@@ -215,7 +221,7 @@ func (config *Config) GetEmbed() (*embed.Config, error) {
 
 	cfg := embed.NewConfig()
 	cfg.Name = masterCfg.Name
-	cfg.Dir = config.GetDataDir(Master)
+	cfg.Dir = config.GetDataDir()
 	cfg.WalDir = ""
 	cfg.ClusterState = embed.ClusterStateFlagNew
 	cfg.EnablePprof = false
@@ -261,14 +267,14 @@ func (config *Config) GetEmbed() (*embed.Config, error) {
 }
 
 type RouterCfg struct {
-	Base
-	Port        uint16 `toml:"port,omitempty" json:"port"`
-	PprofPort   uint16 `toml:"pprof_port,omitempty" json:"pprof_port"`
-	RpcPort     uint16 `toml:"rpc_port,omitempty" json:"rpc_port"`
-	MonitorPort uint16 `toml:"monitor_port" json:"monitor_port"`
+	Port         uint16 `toml:"port,omitempty" json:"port"`
+	PprofPort    uint16 `toml:"pprof_port,omitempty" json:"pprof_port"`
+	RpcPort      uint16 `toml:"rpc_port,omitempty" json:"rpc_port"`
+	MonitorPort  uint16 `toml:"monitor_port" json:"monitor_port"`
+	ConnLimit    int    `toml:"conn_limit" json:"conn_limit"`
+	CloseTimeout int64  `toml:"close_timeout" json:"close_timeout"`
 }
 type PSCfg struct {
-	Base
 	RpcPort                uint16 `toml:"rpc_port,omitempty" json:"rpc_port"`
 	RaftHeartbeatPort      uint16 `toml:"raft_heartbeat_port,omitempty" json:"raft_heartbeat_port"`
 	RaftReplicatePort      uint16 `toml:"raft_replicate_port,omitempty" json:"raft_replicate_port"`
@@ -280,7 +286,9 @@ type PSCfg struct {
 	EngineDWPTNum          uint64 `toml:"engine_dwpt_num" json:"engine-dwpt-num"`
 	MaxSize                int64  `toml:"max_size" json:"max_size"`
 	PprofPort              uint16 `toml:"pprof_port" json:"pprof_port"`
-	Private                bool   `toml:"private" json:"private"` //this ps is private if true you must set machine by dbConfig
+	Private                bool   `toml:"private" json:"private"`                         //this ps is private if true you must set machine by dbConfig
+	FlushTimeInterval      uint32 `toml:"flush_time_interval" json:"flush_time_interval"` // seconds
+	FlushCountThreshold    uint32 `toml:"flush_count_threshold" json:"flush_count_threshold"`
 }
 
 func InitConfig(path string) {
@@ -309,10 +317,24 @@ func (config *Config) CurrentByMasterNameDomainIp(masterName string) error {
 	var found bool
 
 	for _, m := range config.Masters {
+		var domainIP *net.IPAddr
+		// check if m.Address is a ip
+		match, _ := regexp.MatchString(`^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/[0-9]+$`, m.Address)
+		if !match {
+			// if not match, search DNS IP by domainName
+			tempIP, err := net.ResolveIPAddr("ip", m.Address)
+			if err != nil {
+				log.Errorf("address [%s] is err", m.Address)
+				return err
+			}
+			domainIP = tempIP
+			log.Info("master's name:[%s] master's domain:[%s] and local master's ip:[%s]",
+				m.Name, m.Address, domainIP)
+		}
 		if m.Name == masterName {
 			m.Self = true
 			found = true
-		} else if addrMap[m.Address] {
+		} else if addrMap[m.Address] || (domainIP != nil && addrMap[domainIP.String()]) {
 			log.Info("found local master successfully :master's name:[%s] master's ip:[%s] and local master's name:[%s]", m.Name, m.Address, masterName)
 			m.Self = true
 			found = true
@@ -371,38 +393,15 @@ func (config *Config) Validate(model Model) error {
 		}
 	}
 
-	return config.validatePath(model)
+	return config.validatePath()
 }
 
-func (config *Config) validatePath(model Model) error {
-	if err := os.MkdirAll(config.GetLogDir(model), os.ModePerm); err != nil {
+func (config *Config) validatePath() error {
+	if err := os.MkdirAll(config.GetLogDir(), os.ModePerm); err != nil {
 		return err
 	}
-
-	switch model {
-	case Master:
-		if err := os.MkdirAll(config.GetDataDir(model), os.ModePerm); err != nil {
-			return err
-		}
-	case PS:
-		var dates []string
-		oldDates := config.GetDatas(model)
-		for _, date := range oldDates {
-			if err := os.MkdirAll(date, os.ModePerm); err != nil {
-				fmt.Println(fmt.Sprintf("WARING :the path:[%s] can not use , please check !!!!!!!!!!!!!!", date))
-			} else {
-				dates = append(dates, date)
-			}
-		}
-
-		if len(dates) != len(oldDates) {
-			config.PS.Data = dates
-		}
-
-		if len(dates) == 0 {
-			return fmt.Errorf("can found the available path in %v", oldDates)
-		}
-
+	if err := os.MkdirAll(config.GetDataDir(), os.ModePerm); err != nil {
+		return err
 	}
 
 	return nil

@@ -13,11 +13,13 @@ __pycache__/
 # Test binary, build with `go test -c`
 *.test
 config/config.toml
+test/grpc_client.go
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
 build/bin/
 build/lib/
+build/run.sh
 cloud/env/app/
 ps/engine/gammacb/lib/
 

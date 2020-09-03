@@ -79,13 +79,13 @@ The *config.toml* file is the same for 6 computers.
 
 `data = ["/home/export/vearch/datas/",]`
 
-[[masters]]
+[masters]
 
-Because there are two masters. Therefore, there are two `[[masters]]` in *config.toml* file.  The following modifications are required under `[[Masters]]`:
+Because there are two masters. Therefore, there are two `[masters]` in *config.toml* file.  The following modifications are required under `[masters]`:
 
 `name = "master1"`    and     `name = "master2"`
 
-`address = "127.0.0.1"`     and     `address = "127.0.0.2"`
+`address = "172.0.0.1"`     and     `address = "172.0.0.2"`
 
 [router]
 

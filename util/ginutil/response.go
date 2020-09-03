@@ -16,11 +16,12 @@ package ginutil
 
 import (
 	"fmt"
+	"net/http"
+
 	"github.com/gin-gonic/gin"
-	"github.com/vearch/vearch/proto"
+	"github.com/vearch/vearch/proto/vearchpb"
 	"github.com/vearch/vearch/util/cbjson"
 	"github.com/vearch/vearch/util/netutil"
-	"net/http"
 )
 
 type Response struct {
@@ -62,8 +63,8 @@ func (this *Response) SendJson(data interface{}) {
 
 func (this *Response) SendJsonHttpReplySuccess(data interface{}) {
 	httpReply := &netutil.HttpReply{
-		Code: pkg.ERRCODE_SUCCESS,
-		Msg:  pkg.SUCCESS,
+		Code: int64(vearchpb.ErrCode(vearchpb.ErrorEnum_SUCCESS)),
+		Msg:  vearchpb.ErrMsg(vearchpb.ErrorEnum_SUCCESS),
 		Data: data,
 	}
 	this.SetHttpStatus(httpReply.Code)
@@ -76,7 +77,7 @@ func (this *Response) SendJsonHttpReplyError(err error) {
 	}
 
 	httpReply := &netutil.HttpReply{
-		Code: pkg.ErrCode(err),
+		Code: int64(vearchpb.ErrCode(vearchpb.NewError(0, err).GetError().Code)),
 		Msg:  err.Error(),
 	}
 	this.SetHttpStatus(httpReply.Code)

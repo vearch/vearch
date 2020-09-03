@@ -19,6 +19,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/vearch/vearch/util"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -31,7 +32,7 @@ func NewGinServer(ginRouter *gin.Engine, ip string, port uint16) *GinServer {
 		panic(errors.New("can not found module.http-port in config"))
 	}
 
-	if ip == "127.0.0.1" || ip == "localhost" {
+	if strings.Compare(ip, "127.0.0.1") == 0 || strings.Compare(ip, "localhost") == 0 {
 		ip = ""
 	}
 

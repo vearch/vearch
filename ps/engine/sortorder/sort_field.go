@@ -51,3 +51,7 @@ func (s *SortField) Compare(i, j SortValue) int {
 func (s *SortField) SortField() string {
 	return s.Field
 }
+
+func (s *SortField) GetSortOrder() bool {
+	return s.Desc
+}

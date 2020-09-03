@@ -79,13 +79,13 @@
 
 `data = ["/home/export/vearch/datas/",]`
 
-[[masters]]
+[masters]
 
-因为两个 master，故 *config.toml* 文件中两份 `[[masters]]`，`[[masters]]` 下修改内容如下：
+因为两个 master，故 *config.toml* 文件中两份 `[masters]`，`[masters]` 下修改内容如下：
 
 `name = "master1"`    和     `name = "master2"`
 
-`address = "127.0.0.1"`     和     `address = "127.0.0.2"`
+`address = "172.0.0.1"`     和     `address = "172.0.0.2"`
 
 [router]
 

@@ -19,16 +19,18 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/tiglabs/raft/proto"
-	"github.com/vearch/vearch/ps/engine/mapping"
-	"github.com/vearch/vearch/util/cbjson"
+	"github.com/vearch/vearch/util/errutil"
 	"math"
 	"sort"
 	"time"
 
+	"github.com/tiglabs/raft/proto"
+	"github.com/vearch/vearch/proto/vearchpb"
+	"github.com/vearch/vearch/ps/engine/mapping"
+	"github.com/vearch/vearch/util/cbjson"
+
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/client"
-	"github.com/vearch/vearch/proto"
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/util"
 	"github.com/vearch/vearch/util/log"
@@ -44,11 +46,11 @@ func newMasterService(client *client.Client) (*masterService, error) {
 	return &masterService{client}, nil
 }
 
-// find nodeId partitions
-func (this *masterService) registerServerService(ctx context.Context, ip string, nodeId entity.NodeID) (*entity.Server, error) {
+// registerServerService find nodeId partitions
+func (ms *masterService) registerServerService(ctx context.Context, ip string, nodeID entity.NodeID) (*entity.Server, error) {
 	server := &entity.Server{Ip: ip}
 
-	spaces, err := this.Master().QuerySpacesByKey(ctx, entity.PrefixSpace)
+	spaces, err := ms.Master().QuerySpacesByKey(ctx, entity.PrefixSpace)
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +58,7 @@ func (this *masterService) registerServerService(ctx context.Context, ip string,
 	for _, s := range spaces {
 		for _, p := range s.Partitions {
 			for _, id := range p.Replicas {
-				if nodeId == id {
+				if nodeID == id {
 					server.PartitionIds = append(server.PartitionIds, p.Id)
 					break
 				}
@@ -68,58 +70,35 @@ func (this *masterService) registerServerService(ctx context.Context, ip string,
 
 }
 
-//partition/[id]:[body]
-func (this *masterService) registerPartitionService(ctx context.Context, partition *entity.Partition) error {
+// registerPartitionService partition/[id]:[body]
+func (ms *masterService) registerPartitionService(ctx context.Context, partition *entity.Partition) error {
 	log.Info("rigister parttion:[%d] ", partition.Id)
 	marshal, err := json.Marshal(partition)
 	if err != nil {
 		return err
 	}
-	return this.Master().Put(ctx, entity.PartitionKey(partition.Id), marshal)
+	return ms.Master().Put(ctx, entity.PartitionKey(partition.Id), marshal)
 }
 
-// three keys "db/id/[dbId]:[dbName]" ,"db/name/[dbName]:[dbId]" ,"db/body/[dbId]:[dbBody]"
-func (this *masterService) createDBService(ctx context.Context, db *entity.DB) (err error) {
-
+// createDBService three keys "db/id/[dbId]:[dbName]" ,"db/name/[dbName]:[dbId]" ,"db/body/[dbId]:[dbBody]"
+func (ms *masterService) createDBService(ctx context.Context, db *entity.DB) (err error) {
 	//validate name has in db is in return err
 	if err = db.Validate(); err != nil {
 		return err
 	}
 
-	if db.Id > 0 {
-		return fmt.Errorf("create db can not set")
+	if err = ms.validatePS(ctx, db.Ps); err != nil {
+		return err
 	}
 
-	if len(db.Ps) > 0 { //make sure all ps is working
-		servers, err := this.Master().QueryServers(ctx)
-		if err != nil {
-			return err
-		}
-		for _, ps := range db.Ps {
-			flag := false
-			for _, server := range servers {
-				if server.Ip == ps {
-					flag = true
-					if !this.PS().B().Admin(server.RpcAddr()).IsLive() {
-						return fmt.Errorf("server:[%s] can not connection", ps)
-					}
-					break
-				}
-			}
-			if !flag {
-				return fmt.Errorf("server:[%s] not found in cluster", ps)
-			}
-		}
-	}
-
-	//find space id
-	db.Id, err = this.Master().NewIDGenerate(ctx, entity.DBIdSequence, 1, 5*time.Second)
+	//generate a new db id
+	db.Id, err = ms.Master().NewIDGenerate(ctx, entity.DBIdSequence, 1, 5*time.Second)
 	if err != nil {
 		return err
 	}
 
-	err = this.Master().STM(context.Background(), func(stm concurrency.STM) error {
-		idKey, nameKey, bodyKey := this.Master().DBKeys(db.Id, db.Name)
+	err = ms.Master().STM(context.Background(), func(stm concurrency.STM) error {
+		idKey, nameKey, bodyKey := ms.Master().DBKeys(db.Id, db.Name)
 
 		if stm.Get(nameKey) != "" {
 			return fmt.Errorf("dbname %s is exists", db.Name)
@@ -137,40 +116,60 @@ func (this *masterService) createDBService(ctx context.Context, db *entity.DB) (
 		stm.Put(bodyKey, string(value))
 		return nil
 	})
+	return err
+}
 
+func (ms *masterService) validatePS(ctx context.Context, psList []string) error {
+	if len(psList) < 1 {
+		return nil
+	}
+	servers, err := ms.Master().QueryServers(ctx)
 	if err != nil {
 		return err
 	}
-
+	for _, ps := range psList {
+		flag := false
+		for _, server := range servers {
+			if server.Ip == ps {
+				flag = true
+				if !client.IsLive(server.RpcAddr()) {
+					return fmt.Errorf("server:[%s] can not connection", ps)
+				}
+				break
+			}
+		}
+		if !flag {
+			return fmt.Errorf("server:[%s] not found in cluster", ps)
+		}
+	}
 	return nil
 }
 
-func (this *masterService) deleteDBService(ctx context.Context, dbstr string) (err error) {
-
-	db, err := this.queryDBService(ctx, dbstr)
+func (ms *masterService) deleteDBService(ctx context.Context, dbstr string) (err error) {
+	db, err := ms.queryDBService(ctx, dbstr)
 	if err != nil {
 		return err
 	}
 	//it will local cluster ,to create space
-	mutex := this.Master().NewLock(ctx, entity.PrefixLockCluster, time.Second*300)
+	mutex := ms.Master().NewLock(ctx, entity.PrefixLockCluster, time.Second*300)
 	defer func() {
 		if err := mutex.Unlock(); err != nil {
 			log.Error("unlock space err ")
 		}
 	}()
 
-	spaces, err := this.Master().QuerySpaces(ctx, db.Id)
+	spaces, err := ms.Master().QuerySpaces(ctx, db.Id)
 	if err != nil {
 		return err
 	}
 
 	if len(spaces) > 0 {
-		return pkg.CodeErr(pkg.ERRCODE_DB_Not_Empty)
+		return vearchpb.NewError(vearchpb.ErrorEnum_DB_Not_Empty, nil)
 	}
 
-	err = this.Master().STM(context.Background(),
+	err = ms.Master().STM(context.Background(),
 		func(stm concurrency.STM) error {
-			idKey, nameKey, bodyKey := this.Master().DBKeys(db.Id, db.Name)
+			idKey, nameKey, bodyKey := ms.Master().DBKeys(db.Id, db.Name)
 			stm.Del(idKey)
 			stm.Del(nameKey)
 			stm.Del(bodyKey)
@@ -184,23 +183,72 @@ func (this *masterService) deleteDBService(ctx context.Context, dbstr string) (e
 	return nil
 }
 
-func (this *masterService) queryDBService(ctx context.Context, dbstr string) (db *entity.DB, err error) {
+func (this *masterService) updateDBIpList(ctx context.Context, dbModify *entity.DBModify) (db *entity.DB, err error) {
+	// process painc
+	defer errutil.CatchError(err)
+	var id int64
+	db = &entity.DB{}
+	if util.IsNum(dbModify.DbName) {
+		id = cast.ToInt64(dbModify.DbName)
+	} else if id, err = this.Master().QueryDBName2Id(ctx, dbModify.DbName); err != nil {
+		return nil, err
+	}
+	bs, err := this.Master().Get(ctx, entity.DBKeyBody(id))
+	errutil.ThrowError(err)
+	if bs == nil {
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_DB_NOTEXISTS, nil)
+	}
+	err = json.Unmarshal(bs, db)
+	errutil.ThrowError(err)
+	if dbModify.Method == proto.ConfRemoveNode {
+		ps := make([]string, 0, len(db.Ps))
+		for _, ip := range db.Ps {
+			if ip != dbModify.IpAddr {
+				ps = append(ps, ip)
+			}
+		}
+		db.Ps = ps
+	} else if dbModify.Method == proto.ConfAddNode {
+		exist := false
+		for _, ip := range db.Ps {
+			if ip == dbModify.IpAddr {
+				exist = true
+				break
+			}
+		}
+		if !exist {
+			db.Ps = append(db.Ps, dbModify.IpAddr)
+		}
+	} else {
+		err = fmt.Errorf("method support addIP:[%d] removeIP:[%d] not support:[%d]",
+			proto.ConfAddNode, proto.ConfRemoveNode, dbModify.Method)
+		errutil.ThrowError(err)
+	}
+	log.Debug("db info is %v", db)
+	_, _, bodyKey := this.Master().DBKeys(db.Id, db.Name)
+	value, err := json.Marshal(db)
+	errutil.ThrowError(err)
+	err = this.Client.Master().Put(ctx, bodyKey, value)
+	return db, err
+}
+
+func (ms *masterService) queryDBService(ctx context.Context, dbstr string) (db *entity.DB, err error) {
 	var id int64
 	db = &entity.DB{}
 	if util.IsNum(dbstr) {
 		id = cast.ToInt64(dbstr)
-	} else if id, err = this.Master().QueryDBName2Id(ctx, dbstr); err != nil {
+	} else if id, err = ms.Master().QueryDBName2Id(ctx, dbstr); err != nil {
 		return nil, err
 	}
 
-	bs, err := this.Master().Get(ctx, entity.DBKeyBody(id))
+	bs, err := ms.Master().Get(ctx, entity.DBKeyBody(id))
 
 	if err != nil {
 		return nil, err
 	}
 
 	if bs == nil {
-		return nil, pkg.CodeErr(pkg.ERRCODE_DB_NOTEXISTS)
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_DB_NOTEXISTS, nil)
 	}
 
 	if err := json.Unmarshal(bs, db); err != nil {
@@ -212,9 +260,8 @@ func (this *masterService) queryDBService(ctx context.Context, dbstr string) (db
 
 // server/[serverAddr]:[serverBody]
 // spaceKeys "space/[dbId]/[spaceId]:[spaceBody]"
-func (this *masterService) createSpaceService(ctx context.Context, dbName string, space *entity.Space) (err error) {
-
-	if space.DBId, err = this.Master().QueryDBName2Id(ctx, dbName); err != nil {
+func (ms *masterService) createSpaceService(ctx context.Context, dbName string, space *entity.Space) (err error) {
+	if space.DBId, err = ms.Master().QueryDBName2Id(ctx, dbName); err != nil {
 		log.Error("Failed When finding DbId according DbName:%v,And the Error is:%v", dbName, err)
 		return err
 	}
@@ -227,7 +274,7 @@ func (this *masterService) createSpaceService(ctx context.Context, dbName string
 	}
 
 	//it will lock cluster ,to create space
-	mutex := this.Master().NewLock(ctx, "space", time.Second*300)
+	mutex := ms.Master().NewLock(ctx, "space", time.Second*300)
 	if err = mutex.Lock(); err != nil {
 		return err
 	}
@@ -238,24 +285,25 @@ func (this *masterService) createSpaceService(ctx context.Context, dbName string
 	}()
 
 	//spaces is existed
-	if _, err := this.Master().QuerySpaceByName(ctx, space.DBId, space.Name); err != nil {
-		if pkg.ErrCode(err) != pkg.ERRCODE_SPACE_NOTEXISTS {
-			return err
+	if _, err := ms.Master().QuerySpaceByName(ctx, space.DBId, space.Name); err != nil {
+		vErr := vearchpb.NewError(0, err)
+		if vErr.GetError().Code != vearchpb.ErrorEnum_SPACE_NOTEXISTS {
+			return vErr
 		}
 	} else {
-		return pkg.CodeErr(pkg.ERRCODE_DUP_SPACE)
+		return vearchpb.NewError(vearchpb.ErrorEnum_DUP_SPACE, nil)
 	}
 
 	log.Info("create space, db: %s, spaceName: %s ,space :[%s]", dbName, space.Name, cbjson.ToJsonString(space))
 
 	//find all servers for create space
-	servers, err := this.Master().QueryServers(ctx)
+	servers, err := ms.Master().QueryServers(ctx)
 	if err != nil {
 		return err
 	}
 
 	//generate space id
-	spaceID, err := this.Master().NewIDGenerate(ctx, entity.SpaceIdSequence, 1, 5*time.Second)
+	spaceID, err := ms.Master().NewIDGenerate(ctx, entity.SpaceIdSequence, 1, 5*time.Second)
 	if err != nil {
 		return err
 	}
@@ -263,7 +311,7 @@ func (this *masterService) createSpaceService(ctx context.Context, dbName string
 
 	width := math.MaxUint32 / space.PartitionNum
 	for i := 0; i < space.PartitionNum; i++ {
-		partitionID, err := this.Master().NewIDGenerate(ctx, entity.PartitionIdSequence, 1, 5*time.Second)
+		partitionID, err := ms.Master().NewIDGenerate(ctx, entity.PartitionIdSequence, 1, 5*time.Second)
 
 		if err != nil {
 			return err
@@ -277,7 +325,7 @@ func (this *masterService) createSpaceService(ctx context.Context, dbName string
 		})
 	}
 
-	serverPartitions, err := this.filterAndSortServer(ctx, space, servers)
+	serverPartitions, err := ms.filterAndSortServer(ctx, space, servers)
 	if err != nil {
 		return err
 	}
@@ -289,17 +337,24 @@ func (this *masterService) createSpaceService(ctx context.Context, dbName string
 	space.Enabled = util.PBool(false)
 	defer func() {
 		if !(*space.Enabled) { // if space is still not enabled , so to remove it
-			if e := this.Master().Delete(context.Background(), entity.SpaceKey(space.DBId, space.Id)); e != nil {
+			if e := ms.Master().Delete(context.Background(), entity.SpaceKey(space.DBId, space.Id)); e != nil {
 				log.Error("to delete space err :%s", e.Error())
 			}
 		}
 	}()
 
+	spaceProperties, err := entity.UnmarshalPropertyJSON(space.Properties)
+	if err != nil {
+		return err
+	}
+
+	space.SpaceProperties = spaceProperties
+
 	marshal, err := json.Marshal(space)
 	if err != nil {
 		return err
 	}
-	err = this.Master().Create(ctx, entity.SpaceKey(space.DBId, space.Id), marshal)
+	err = ms.Master().Create(ctx, entity.SpaceKey(space.DBId, space.Id), marshal)
 	if err != nil {
 		return err
 	}
@@ -307,7 +362,7 @@ func (this *masterService) createSpaceService(ctx context.Context, dbName string
 	//peak servers for space
 	var paddrs [][]string
 	for i := 0; i < len(space.Partitions); i++ {
-		if addrs, err := this.generatePartitionsInfo(servers, serverPartitions, space.ReplicaNum, space.Partitions[i]); err != nil {
+		if addrs, err := ms.generatePartitionsInfo(servers, serverPartitions, space.ReplicaNum, space.Partitions[i]); err != nil {
 			return err
 		} else {
 			paddrs = append(paddrs, addrs)
@@ -327,7 +382,7 @@ func (this *masterService) createSpaceService(ctx context.Context, dbName string
 				}
 			}()
 			for _, addr := range addrs {
-				if err := this.PS().B().Admin(addr).CreatePartition(space, partition.Id); err != nil {
+				if err := client.CreatePartition(addr, space, partition.Id); err != nil {
 					err := fmt.Errorf("create partition err: %s ", err.Error())
 					errChain <- err
 					log.Error(err.Error())
@@ -350,11 +405,11 @@ func (this *masterService) createSpaceService(ctx context.Context, dbName string
 
 			}
 
-			partition, err := this.Master().QueryPartition(ctx, space.Partitions[i].Id)
+			partition, err := ms.Master().QueryPartition(ctx, space.Partitions[i].Id)
 			if v%5 == 0 {
 				log.Debug("check the partition:%d status ", space.Partitions[i].Id)
 			}
-			if err != nil && pkg.ErrCode(err) != pkg.ERRCODE_PARTITION_NOT_EXIST {
+			if err != nil && vearchpb.NewError(0, err).GetError().Code != vearchpb.ErrorEnum_PARTITION_NOT_EXIST {
 				return err
 			}
 			if partition == nil {
@@ -368,7 +423,7 @@ func (this *masterService) createSpaceService(ctx context.Context, dbName string
 	space.Enabled = util.PBool(true)
 
 	//update version
-	err = this.updateSpace(ctx, space)
+	err = ms.updateSpace(ctx, space)
 	if err != nil {
 		space.Enabled = util.PBool(false)
 		return err
@@ -378,8 +433,7 @@ func (this *masterService) createSpaceService(ctx context.Context, dbName string
 }
 
 //create partitions for space create
-func (this *masterService) generatePartitionsInfo(servers []*entity.Server, serverPartitions map[int]int, replicaNum uint8, partition *entity.Partition) ([]string, error) {
-
+func (ms *masterService) generatePartitionsInfo(servers []*entity.Server, serverPartitions map[int]int, replicaNum uint8, partition *entity.Partition) ([]string, error) {
 	addres := make([]string, 0, replicaNum)
 	partition.Replicas = make([]entity.NodeID, 0, replicaNum)
 
@@ -404,7 +458,7 @@ func (this *masterService) generatePartitionsInfo(servers []*entity.Server, serv
 		addr := servers[kv.index].RpcAddr()
 		ID := servers[kv.index].ID
 
-		if !this.PS().B().Admin(addr).IsLive() {
+		if !client.IsLive(addr) {
 			serverPartitions[kv.index] = kv.length
 			continue
 		}
@@ -419,7 +473,7 @@ func (this *masterService) generatePartitionsInfo(servers []*entity.Server, serv
 	}
 
 	if replicaNum > 0 {
-		return nil, pkg.VErrStr(pkg.ERRCODE_MASTER_PS_NOT_ENOUGH_SELECT, "need %d but got %d", partition.Replicas, len(addres))
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_MASTER_PS_NOT_ENOUGH_SELECT, fmt.Errorf("need %d but got %d", partition.Replicas, len(addres)))
 	}
 
 	return addres, nil
@@ -475,14 +529,14 @@ func (ms *masterService) filterAndSortServer(ctx context.Context, space *entity.
 	return serverPartitions, nil
 }
 
-func (this *masterService) deleteSpaceService(ctx context.Context, dbName string, spaceName string) error {
+func (ms *masterService) deleteSpaceService(ctx context.Context, dbName string, spaceName string) error {
 	//send delete to partition
-	dbId, err := this.Master().QueryDBName2Id(ctx, dbName)
+	dbId, err := ms.Master().QueryDBName2Id(ctx, dbName)
 	if err != nil {
 		return err
 	}
 
-	space, err := this.Master().QuerySpaceByName(ctx, dbId, spaceName)
+	space, err := ms.Master().QuerySpaceByName(ctx, dbId, spaceName)
 	if err != nil {
 		return err
 	}
@@ -491,17 +545,17 @@ func (this *masterService) deleteSpaceService(ctx context.Context, dbName string
 	}
 
 	//delete key
-	err = this.Master().Delete(ctx, entity.SpaceKey(dbId, space.Id))
+	err = ms.Master().Delete(ctx, entity.SpaceKey(dbId, space.Id))
 	if err != nil {
 		return err
 	}
 
 	for _, p := range space.Partitions {
 		for _, replica := range p.Replicas {
-			if server, err := this.Master().QueryServer(ctx, replica); err != nil {
+			if server, err := ms.Master().QueryServer(ctx, replica); err != nil {
 				log.Error("query partition:[%d] for replica:[%s] has err:[%s]", p.Id, replica, err.Error())
 			} else {
-				if err := this.PS().Be(ctx).Admin(server.RpcAddr()).DeletePartition(p.Id); err != nil {
+				if err := client.DeletePartition(server.RpcAddr(), p.Id); err != nil {
 					log.Error("delete partition:[%d] for server:[%s] has err:[%s]", p.Id, server.RpcAddr(), err.Error())
 				}
 			}
@@ -511,13 +565,32 @@ func (this *masterService) deleteSpaceService(ctx context.Context, dbName string
 	return nil
 }
 
-func (this *masterService) querySpacesService(ctx context.Context, dbName string, spaceName string) ([]*entity.Space, error) {
+func (ms *masterService) querySpacesService(ctx context.Context, dbName string, spaceName string) ([]*entity.Space, error) {
 	//send delete to partition
-	dbId, err := this.Master().QueryDBName2Id(ctx, dbName)
+	dbId, err := ms.Master().QueryDBName2Id(ctx, dbName)
 	if err != nil {
 		return nil, err
 	}
-	return this.Master().QuerySpaces(ctx, dbId)
+	return ms.Master().QuerySpaces(ctx, dbId)
+}
+
+func (ms *masterService) queryDBs(ctx context.Context) ([]*entity.DB, error) {
+
+	_, bytesArr, err := ms.Master().PrefixScan(ctx, entity.PrefixDataBaseBody)
+	if err != nil {
+		return nil, err
+	}
+	dbs := make([]*entity.DB, 0, len(bytesArr))
+	for _, bs := range bytesArr {
+		db := &entity.DB{}
+		if err := json.Unmarshal(bs, db); err != nil {
+			log.Error("decode db err: %s,and the bs is:%s", err.Error(), string(bs))
+			continue
+		}
+		dbs = append(dbs, db)
+	}
+
+	return dbs, err
 }
 
 func (this *masterService) updateSpaceService(ctx context.Context, dbName, spaceName string, temp *entity.Space) (*entity.Space, error) {
@@ -625,7 +698,7 @@ func (this *masterService) updateSpaceService(ctx context.Context, dbName, space
 			return nil, err
 		}
 
-		if !this.PS().B().Admin(server.RpcAddr()).IsLive() {
+		if !client.IsLive(server.RpcAddr()) {
 			return nil, fmt.Errorf("partition %s is shutdown", server.RpcAddr())
 		}
 	}
@@ -641,7 +714,7 @@ func (this *masterService) updateSpaceService(ctx context.Context, dbName, space
 			return nil, err
 		}
 
-		if err := this.PS().B().Admin(server.RpcAddr()).UpdatePartition(space, p.Id); err != nil {
+		if err := client.UpdatePartition(server.RpcAddr(), space, p.Id); err != nil {
 			return nil, err
 		}
 	}
@@ -652,25 +725,6 @@ func (this *masterService) updateSpaceService(ctx context.Context, dbName, space
 	} else {
 		return space, nil
 	}
-}
-
-func (this *masterService) queryDBs(ctx context.Context) ([]*entity.DB, error) {
-
-	_, bytesArr, err := this.Master().PrefixScan(ctx, entity.PrefixDataBaseBody)
-	if err != nil {
-		return nil, err
-	}
-	dbs := make([]*entity.DB, 0, len(bytesArr))
-	for _, bs := range bytesArr {
-		db := &entity.DB{}
-		if err := json.Unmarshal(bs, db); err != nil {
-			log.Error("decode db err: %s,and the bs is:%s", err.Error(), string(bs))
-			continue
-		}
-		dbs = append(dbs, db)
-	}
-
-	return dbs, err
 }
 
 func (ms *masterService) updateSpace(ctx context.Context, space *entity.Space) error {
@@ -687,18 +741,18 @@ func (ms *masterService) updateSpace(ctx context.Context, space *entity.Space) e
 	return nil
 }
 
-func (this *masterService) ChangeMember(ctx context.Context, cm *entity.ChangeMember) error {
-	partition, err := this.Master().QueryPartition(ctx, cm.PartitionID)
+func (ms *masterService) ChangeMember(ctx context.Context, cm *entity.ChangeMember) error {
+	partition, err := ms.Master().QueryPartition(ctx, cm.PartitionID)
 	if err != nil {
 		return err
 	}
 
-	space, err := this.Master().QuerySpaceById(ctx, partition.DBId, partition.SpaceId)
+	space, err := ms.Master().QuerySpaceByID(ctx, partition.DBId, partition.SpaceId)
 	if err != nil {
 		return err
 	}
 
-	dbName, err := this.Master().QueryDBId2Name(ctx, space.DBId)
+	dbName, err := ms.Master().QueryDBId2Name(ctx, space.DBId)
 	if err != nil {
 		return err
 	}
@@ -708,7 +762,7 @@ func (this *masterService) ChangeMember(ctx context.Context, cm *entity.ChangeMe
 	if cm.Method != 1 {
 		for _, nodeID := range spacePartition.Replicas {
 			if nodeID == cm.NodeID {
-				return fmt.Errorf("partition:[%d] already has this server:[%d] in replicas:[%v]", cm.PartitionID, cm.NodeID, spacePartition.Replicas)
+				return fmt.Errorf("partition:[%d] already has ms server:[%d] in replicas:[%v]", cm.PartitionID, cm.NodeID, spacePartition.Replicas)
 			}
 		}
 		spacePartition.Replicas = append(spacePartition.Replicas, cm.NodeID)
@@ -723,26 +777,32 @@ func (this *masterService) ChangeMember(ctx context.Context, cm *entity.ChangeMe
 		spacePartition.Replicas = tempIDs
 	}
 
-	masterNode, err := this.Master().QueryServer(ctx, partition.LeaderID)
+	masterNode, err := ms.Master().QueryServer(ctx, partition.LeaderID)
 	if err != nil {
 		return err
 	}
 
-	targetNode, err := this.Master().QueryServer(ctx, cm.NodeID)
+	var targetNode *entity.Server
+	targetNode, err = ms.Master().QueryServer(ctx, cm.NodeID)
 	if err != nil {
-		return err
+		if cm.Method == proto.ConfRemoveNode {
+			// maybe node is crush
+			targetNode = nil
+		} else {
+			return err
+		}
 	}
 
-	if !this.PS().Be(ctx).Admin(masterNode.RpcAddr()).IsLive() {
+	if !client.IsLive(masterNode.RpcAddr()) {
 		return fmt.Errorf("server:[%d] addr:[%s] can not connect ", cm.NodeID, masterNode.RpcAddr())
 	}
 
-	if _, err := this.updateSpaceService(ctx, dbName, space.Name, space); err != nil {
+	if _, err := ms.updateSpaceService(ctx, dbName, space.Name, space); err != nil {
 		return err
 	}
 
-	if cm.Method == proto.ConfAddNode {
-		if err := this.PS().Be(ctx).Admin(targetNode.RpcAddr()).CreatePartition(space, cm.PartitionID); err != nil {
+	if cm.Method == proto.ConfAddNode && targetNode != nil {
+		if err := client.CreatePartition(targetNode.RpcAddr(), space, cm.PartitionID); err != nil {
 			return fmt.Errorf("create partiiton has err:[%s] addr:[%s]", err.Error(), targetNode.RpcAddr())
 		}
 	} else if cm.Method == proto.ConfRemoveNode {
@@ -751,13 +811,69 @@ func (this *masterService) ChangeMember(ctx context.Context, cm *entity.ChangeMe
 		return fmt.Errorf("change member only support addNode:[%d] removeNode:[%d] not support:[%d]", proto.ConfAddNode, proto.ConfRemoveNode, cm.Method)
 	}
 
-	if err := this.PS().Be(ctx).Admin(masterNode.RpcAddr()).ChangeMember(cm); err != nil {
+	if err := client.ChangeMember(masterNode.RpcAddr(), cm); err != nil {
 		return err
 	}
-	if cm.Method == proto.ConfRemoveNode {
-		if err := this.PS().Be(ctx).Admin(targetNode.RpcAddr()).DeleteReplica(cm.PartitionID); err != nil {
+	if cm.Method == proto.ConfRemoveNode && targetNode != nil && client.IsLive(targetNode.RpcAddr()) {
+		if err := client.DeleteReplica(targetNode.RpcAddr(), cm.PartitionID); err != nil {
 			return fmt.Errorf("create partiiton has err:[%s] addr:[%s]", err.Error(), targetNode.RpcAddr())
 		}
 	}
 	return nil
+}
+
+// recover fail node
+func (ms *masterService) RecoverFailServer(ctx context.Context, rs *entity.RecoverFailServer) (e error) {
+	// painc process
+	defer func() {
+		if r := recover(); r != nil {
+			e = fmt.Errorf("panic is %v", r)
+		}
+	}()
+	// get all fail server info
+	failServer, err := ms.Master().QueryAllFailServer(ctx)
+	if err != nil {
+		panic(err)
+	}
+	targetFailServer := &entity.FailServer{}
+	// get target fail server
+	for _, fs := range failServer {
+		if fs.Node.Ip == rs.FailNodeAddr {
+			targetFailServer = fs
+			break
+		}
+	}
+	log.Debug("targetFailServer is %s ", targetFailServer)
+	//get target new server
+	servers, err := ms.Master().QueryServers(ctx)
+	newServer := &entity.Server{}
+	for _, s := range servers {
+		if s.Ip == rs.NewNodeAddr {
+			newServer = s
+		}
+	}
+	log.Debug("newServer is %s ", newServer)
+	if newServer.ID > 0 && targetFailServer.ID > 0 {
+		for _, pid := range targetFailServer.Node.PartitionIds {
+			cm := &entity.ChangeMember{}
+			cm.Method = proto.ConfAddNode
+			cm.NodeID = newServer.ID
+			cm.PartitionID = pid
+			if err = ms.ChangeMember(ctx, cm); err != nil {
+				info := fmt.Sprintf("ChangePartitionMember failed,partitionId is %d ,nodeId is %d,err is %s ",
+					cm.PartitionID, cm.NodeID, err.Error())
+				log.Error(info)
+				panic(fmt.Errorf(info))
+			}
+			log.Info("ChangePartitionMember success,partitionId is %d ,nodeId is %d,", cm.PartitionID, cm.NodeID)
+		}
+		//if success,remove from failServer
+		key := entity.FailServerKey(targetFailServer.ID)
+		//delete failserver record
+		e = ms.Master().Delete(ctx.(context.Context), key)
+		log.Debug("Delete failserver key %s .", key)
+	} else {
+		return fmt.Errorf("newServer or targetFailServer is nil ")
+	}
+	return e
 }

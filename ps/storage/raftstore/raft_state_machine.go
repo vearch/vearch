@@ -16,10 +16,11 @@ package raftstore
 
 import (
 	"fmt"
+
 	"github.com/tiglabs/raft"
 	"github.com/tiglabs/raft/proto"
 	"github.com/vearch/vearch/proto/entity"
-	"github.com/vearch/vearch/proto/pspb/raftpb"
+	"github.com/vearch/vearch/proto/vearchpb"
 	"github.com/vearch/vearch/ps/psutil"
 	"github.com/vearch/vearch/util/cbjson"
 	"github.com/vearch/vearch/util/log"
@@ -27,7 +28,7 @@ import (
 
 // Apply implements the raft interface.
 func (s *Store) Apply(command []byte, index uint64) (resp interface{}, err error) {
-	raftCmd := raftpb.CreateRaftCommand()
+	raftCmd := vearchpb.CreateRaftCommand()
 
 	if err = raftCmd.Unmarshal(command); err != nil {
 		panic(err)
@@ -42,14 +43,14 @@ func (s *Store) Apply(command []byte, index uint64) (resp interface{}, err error
 }
 
 // Apply implements the raft interface.
-func (s *Store) innerApply(command []byte, index uint64, raftCmd *raftpb.RaftCommand) interface{} {
+func (s *Store) innerApply(command []byte, index uint64, raftCmd *vearchpb.RaftCommand) interface{} {
 	resp := new(RaftApplyResponse)
 	switch raftCmd.Type {
-	case raftpb.CmdType_WRITE:
-		resp.Result = s.Engine.Writer().Write(s.Ctx, raftCmd.WriteCommand)
-	case raftpb.CmdType_UPDATESPACE:
+	case vearchpb.CmdType_WRITE:
+		resp.Err = s.Engine.Writer().Write(s.Ctx, raftCmd.WriteCommand)
+	case vearchpb.CmdType_UPDATESPACE:
 		resp = s.updateSchemaBySpace(raftCmd.UpdateSpace.Space, raftCmd.UpdateSpace.Version)
-	case raftpb.CmdType_FLUSH:
+	case vearchpb.CmdType_FLUSH:
 		flushC, err := s.Engine.Writer().Commit(s.Ctx, int64(index))
 		resp.FlushC = flushC
 		resp.Err = err

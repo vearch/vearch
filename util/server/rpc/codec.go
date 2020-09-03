@@ -16,6 +16,8 @@ package server
 
 import (
 	"bytes"
+	"github.com/gogo/protobuf/proto"
+	pb "github.com/golang/protobuf/proto"
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/util/log"
 	"github.com/vmihailenco/msgpack"
@@ -45,3 +47,45 @@ func (c *MsgpackCodec) Encode(i interface{}) ([]byte, error) {
 
 }
 
+// PBCodec uses protobuf marshaler and unmarshaler.
+type PBCodec struct{}
+
+// Encode encodes an object into slice of bytes.
+func (c PBCodec) Encode(i interface{}) ([]byte, error) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Error(cast.ToString(r))
+		}
+	}()
+
+	if m, ok := i.(proto.Marshaler); ok {
+		return m.Marshal()
+	}
+
+	if m, ok := i.(pb.Message); ok {
+		return pb.Marshal(m)
+	}
+
+	var buf bytes.Buffer
+	err := msgpack.NewEncoder(&buf).UseCompactEncoding(true).UseJSONTag(true).Encode(i)
+	return buf.Bytes(), err
+}
+
+// Decode decodes an object from slice of bytes.
+func (c PBCodec) Decode(data []byte, i interface{}) error {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Error(cast.ToString(r))
+		}
+	}()
+
+	if m, ok := i.(proto.Unmarshaler); ok {
+		return m.Unmarshal(data)
+	}
+
+	if m, ok := i.(pb.Message); ok {
+		return pb.Unmarshal(data, m)
+	}
+
+	return msgpack.NewDecoder(bytes.NewBuffer(data)).UseJSONTag(true).Decode(i)
+}

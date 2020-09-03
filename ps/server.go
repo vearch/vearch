@@ -21,7 +21,6 @@ import (
 	"time"
 
 	"github.com/vearch/vearch/util/metrics/mserver"
-	"github.com/vearch/vearch/util/vearchlog"
 
 	"github.com/vearch/vearch/ps/storage/raftstore"
 
@@ -34,7 +33,6 @@ import (
 	"github.com/vearch/vearch/config"
 	"github.com/vearch/vearch/ps/psutil"
 	"github.com/vearch/vearch/util/atomic"
-	_ "github.com/vearch/vearch/util/init"
 	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/util/routine"
 	rpc "github.com/vearch/vearch/util/server/rpc"
@@ -61,10 +59,6 @@ type Server struct {
 
 // NewServer create server instance
 func NewServer(ctx context.Context) *Server {
-
-	// set up logging
-	var psLogger = vearchlog.NewVearchLog(config.Conf().GetLogDir(config.PS), "PS", config.Conf().GetLevel(config.PS), false)
-	log.Regist(psLogger)
 
 	cli, err := client.NewClient(config.Conf())
 	if err != nil {
@@ -101,7 +95,7 @@ func (s *Server) Start() error {
 	s.stopping.Set(false) //set start flag for all job if false all job will to end
 
 	// load meta data
-	nodeId := psutil.InitMeta(s.client, config.Conf().Global.Name, config.Conf().GetDataDir(config.PS))
+	nodeId := psutil.InitMeta(s.client, config.Conf().Global.Name, config.Conf().GetDataDir())
 	s.nodeID = nodeId
 
 	//load local partitions

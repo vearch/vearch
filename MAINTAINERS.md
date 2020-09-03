@@ -10,3 +10,4 @@ The Vearch maintainers are:
 - Jianyu Chen [colama_man@qq.com](mailto:colama_man@qq.com) @[chenjianyu](https://github.com/chenjianyu): Numeric index
 - Zhenyun Ni [nizyun@163.com](mailto:nizyun@163.com) @[nizyun](https://github.com/nizyun): Docs
 - Chao Zhan [zhanchao0506@outlook.com](mailto:zhanchao0506@outlook.com) @[zcdb](https://github.com/zcdb): Model Assessment and HNSW Implementation
+- Qiang Liu [liuqiang.java@gmail.com](mailto:liuqiang.java@gmail.com) @[kevintony001](https://github.com/kevintony001): Client(Master, Ps, Router) and SDK

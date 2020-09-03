@@ -14,7 +14,7 @@
 package mapping
 
 import (
-	"github.com/vearch/vearch/proto/pspb"
+	"github.com/vearch/vearch/proto/vearchpb"
 	"reflect"
 	"testing"
 	"time"
@@ -63,69 +63,69 @@ func TestProcessString(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expectFs := []*pspb.Field{
-		&pspb.Field{
+	expectFs := []*vearchpb.Field{
+		&vearchpb.Field{
 			Name:   fns[0],
-			Type:   pspb.FieldType_TEXT,
-			Value:  &pspb.FieldValue{Text: "hello"},
+			Type:   vearchpb.FieldType_TEXT,
+			Value:  &vearchpb.FieldValue{Text: "hello"},
 			Option: fms[0].Options(),
 		},
-		&pspb.Field{
+		&vearchpb.Field{
 			Name:   fns[1],
-			Type:   pspb.FieldType_KEYWORD,
-			Value:  &pspb.FieldValue{Text: "hello"},
+			Type:   vearchpb.FieldType_KEYWORD,
+			Value:  &vearchpb.FieldValue{Text: "hello"},
 			Option: fms[1].Options(),
 		},
-		&pspb.Field{
+		&vearchpb.Field{
 			Name:   fns[2],
-			Type:   pspb.FieldType_FLOAT,
-			Value:  &pspb.FieldValue{Float: 12.4},
+			Type:   vearchpb.FieldType_FLOAT,
+			Value:  &vearchpb.FieldValue{Float: 12.4},
 			Option: fms[2].Options(),
 		},
-		&pspb.Field{
+		&vearchpb.Field{
 			Name:   fns[3],
-			Type:   pspb.FieldType_INT,
-			Value:  &pspb.FieldValue{Int: 12},
+			Type:   vearchpb.FieldType_INT,
+			Value:  &vearchpb.FieldValue{Int: 12},
 			Option: fms[3].Options(),
 		},
-		&pspb.Field{
+		&vearchpb.Field{
 			Name: fns[4],
-			Type: pspb.FieldType_DATE,
+			Type: vearchpb.FieldType_DATE,
 			// Value:  []byte(numeric.MustNewPrefixCodedInt64(tt.UTC().UnixNano(), 0)),
-			Value:  &pspb.FieldValue{Time: &pspb.TimeStamp{Usec: tt.UTC().UnixNano()}},
+			Value:  &vearchpb.FieldValue{Time: &vearchpb.TimeStamp{Usec: tt.UTC().UnixNano()}},
 			Option: fms[4].Options(),
 		},
-		&pspb.Field{
+		&vearchpb.Field{
 			Name: fns[5],
-			Type: pspb.FieldType_GEOPOINT,
+			Type: vearchpb.FieldType_GEOPOINT,
 			// Value:  []byte(numeric.MustNewPrefixCodedInt64(int64(geo.MortonHash(-71.34, 41.12)), 0)),
-			Value:  &pspb.FieldValue{Geo: &pspb.Geo{Lon: -71.34, Lat: 41.12}},
+			Value:  &vearchpb.FieldValue{Geo: &vearchpb.Geo{Lon: -71.34, Lat: 41.12}},
 			Option: fms[5].Options(),
 		},
-		&pspb.Field{
+		&vearchpb.Field{
 			Name: fns[6],
-			Type: pspb.FieldType_GEOPOINT,
+			Type: vearchpb.FieldType_GEOPOINT,
 			// Value:  []byte(numeric.MustNewPrefixCodedInt64(int64(geo.MortonHash(lon, lat)), 0)),
-			Value:  &pspb.FieldValue{Geo: &pspb.Geo{Lon: lon, Lat: lat}},
+			Value:  &vearchpb.FieldValue{Geo: &vearchpb.Geo{Lon: lon, Lat: lat}},
 			Option: fms[6].Options(),
 		},
 		// "1900-01-01", "1900-01-01 12:12:12", "1900-01-01 12:12:12.123",
-		&pspb.Field{
+		&vearchpb.Field{
 			Name:   fns[7],
-			Type:   pspb.FieldType_DATE,
-			Value:  &pspb.FieldValue{Time: &pspb.TimeStamp{Usec: time_1.UnixNano()}},
+			Type:   vearchpb.FieldType_DATE,
+			Value:  &vearchpb.FieldValue{Time: &vearchpb.TimeStamp{Usec: time_1.UnixNano()}},
 			Option: fms[7].Options(),
 		},
-		&pspb.Field{
+		&vearchpb.Field{
 			Name:   fns[8],
-			Type:   pspb.FieldType_DATE,
-			Value:  &pspb.FieldValue{Time: &pspb.TimeStamp{Usec: time_2.UnixNano()}},
+			Type:   vearchpb.FieldType_DATE,
+			Value:  &vearchpb.FieldValue{Time: &vearchpb.TimeStamp{Usec: time_2.UnixNano()}},
 			Option: fms[8].Options(),
 		},
-		&pspb.Field{
+		&vearchpb.Field{
 			Name:   fns[9],
-			Type:   pspb.FieldType_DATE,
-			Value:  &pspb.FieldValue{Time: &pspb.TimeStamp{Usec: time_3.UnixNano()}},
+			Type:   vearchpb.FieldType_DATE,
+			Value:  &vearchpb.FieldValue{Time: &vearchpb.TimeStamp{Usec: time_3.UnixNano()}},
 			Option: fms[9].Options(),
 		},
 	}
@@ -159,11 +159,11 @@ func TestProcessNumber(t *testing.T) {
 		123,
 	}
 
-	expectFs := []*pspb.Field{
-		&pspb.Field{
+	expectFs := []*vearchpb.Field{
+		&vearchpb.Field{
 			Name:   fns[0],
-			Type:   pspb.FieldType_DATE,
-			Value:  &pspb.FieldValue{Time: &pspb.TimeStamp{Usec: t5}},
+			Type:   vearchpb.FieldType_DATE,
+			Value:  &vearchpb.FieldValue{Time: &vearchpb.TimeStamp{Usec: t5}},
 			Option: fms[0].Options(),
 		},
 	}

@@ -18,17 +18,15 @@ cd /usr/bin
 if [ ! -f "cmake" ]; then
     ln -s cmake3 cmake
 fi
-
-
 cd /env/app/
 if [ ! -d "faiss" ]; then
-    git clone https://github.com/facebookresearch/faiss.git
+    git clone --depth 1 https://github.com/facebookresearch/faiss.git
     cd faiss
+    rm -rf gpu
 fi
 cd /env/app/faiss
 ./configure --without-cuda --prefix=/env/app/faiss_install
-make
-make install
+make -j && make install
 
 cd /env/app
 if [ ! -f "rocksdb-v6.2.2.tar.gz" ]; then

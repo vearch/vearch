@@ -24,7 +24,6 @@ import (
 	"strings"
 
 	"github.com/spf13/cast"
-	"github.com/vearch/vearch/util/reflect"
 	"github.com/vearch/vearch/util/vearchlog"
 
 	"github.com/vearch/vearch/util/metrics/mserver"
@@ -34,7 +33,7 @@ import (
 	"github.com/vearch/vearch/config"
 	"github.com/vearch/vearch/master"
 	"github.com/vearch/vearch/ps"
-	"github.com/vearch/vearch/router"
+	router "github.com/vearch/vearch/router"
 	"github.com/vearch/vearch/util/log"
 	tigos "github.com/vearch/vearch/util/runtime/os"
 	"github.com/vearch/vearch/util/signals"
@@ -76,8 +75,6 @@ func main() {
 
 	config.InitConfig(confPath)
 
-	log.Info("The configuration content is:\n%s", reflect.ToString("conf", config.Conf()))
-
 	args := flag.Args()
 
 	if len(args) == 0 {
@@ -93,6 +90,10 @@ func main() {
 			tags[a] = true
 		}
 	}
+
+	logName := strings.ToUpper(strings.Join(args, "-"))
+	vearchlog.SetConfig(config.Conf().GetLogFileNum(), 1024*1024*config.Conf().GetLogFileSize())
+	log.Regist(vearchlog.NewVearchLog(config.Conf().GetLogDir(), logName, config.Conf().GetLevel(), false))
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -111,13 +112,14 @@ func main() {
 				log.Debug(fmt.Sprint("mem.Alloc:", mem.Alloc, " mem.TotalAlloc:", mem.TotalAlloc, " mem.HeapAlloc:", mem.HeapAlloc, " mem.HeapSys:", mem.HeapSys, " routing :", runtime.NumGoroutine()))
 				time.Sleep(10 * time.Second)
 			}
-
 		}()
 	}
 
 	sigsHook := signals.NewSignalHook()
 
 	var paths = make(map[string]bool)
+	paths[config.Conf().GetDataDir()] = true
+	paths[config.Conf().GetLogDir()] = true
 	var models []string
 	//start master
 	if tags[masterTag] || tags[allTag] {
@@ -132,8 +134,6 @@ func main() {
 
 		self := config.Conf().Masters.Self()
 		mserver.SetIp(self.Address, true)
-		paths[config.Conf().GetDataDir(config.Master)] = true
-		paths[config.Conf().GetLogDir(config.Master)] = true
 		models = append(models, "master")
 
 		s, err := master.NewServer(ctx)
@@ -168,13 +168,7 @@ func main() {
 
 		server := ps.NewServer(ctx)
 
-		datas := config.Conf().GetDatas(config.PS)
-		for _, dp := range datas {
-			paths[dp] = true
-		}
-		paths[config.Conf().GetLogDir(config.PS)] = true
 		models = append(models, "ps")
-		log.Debug("dataDir: %s", config.Conf().GetDataDir(config.PS))
 		sigsHook.AddSignalHook(func() {
 			vearchlog.CloseIfNotNil(server)
 		})
@@ -203,12 +197,8 @@ func main() {
 		if err != nil {
 			panic(fmt.Sprintf("new router error :%v", err))
 		}
-		log.Info("Starting Router ...")
-		paths[config.Conf().GetDataDir(config.Router)] = true
-		paths[config.Conf().GetLogDir(config.Router)] = true
 		models = append(models, "router")
 		sigsHook.AddSignalHook(func() {
-			fmt.Println("stop router begin")
 			cancel()
 			server.Shutdown()
 		})

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cast"
@@ -12,13 +13,13 @@ import (
 	"go.etcd.io/etcd/etcdserver"
 
 	//"github.com/vearch/vearch/client"
-	"github.com/vearch/vearch/config"
-	"github.com/vearch/vearch/proto/entity"
-	"github.com/vearch/vearch/util/log"
-	"github.com/vearch/vearch/util/uuid"
 	"net/http"
 	"sync"
 	"time"
+
+	"github.com/vearch/vearch/config"
+	"github.com/vearch/vearch/proto/entity"
+	"github.com/vearch/vearch/util/log"
 )
 
 const (
@@ -162,7 +163,7 @@ func (ms *MonitorService) Collect(ch chan<- prometheus.Metric) {
 					statsChan <- mserver.NewErrServerStatus(s.RpcAddr(), errors.New(cast.ToString(r)))
 				}
 			}()
-			statsChan <- ms.masterClient.PS().Beg(ctx, uuid.FlakeUUID()).Admin(s.RpcAddr()).ServerStats()
+			statsChan <- client.ServerStats(s.RpcAddr())
 		}(s)
 	}
 

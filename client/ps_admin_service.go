@@ -15,144 +15,136 @@
 package client
 
 import (
-	"context"
-	"github.com/vearch/vearch/proto"
-	"github.com/vearch/vearch/proto/entity"
-	"github.com/vearch/vearch/proto/request"
-	"github.com/vearch/vearch/proto/response"
-	"github.com/vearch/vearch/util/metrics/mserver"
 	"strings"
-	"time"
+
+	"github.com/vearch/vearch/proto/entity"
+	"github.com/vearch/vearch/proto/vearchpb"
+	"github.com/vearch/vearch/util/cbjson"
+	"github.com/vearch/vearch/util/log"
+	"github.com/vearch/vearch/util/metrics/mserver"
 )
 
-type adminSender struct {
-	*sender
-	addr string
-}
-
-func (this *adminSender) CreatePartition(space *entity.Space, partitionId uint32) error {
-	request, err := request.NewObjRequest(this.Ctx, partitionId, struct {
-		Space       *entity.Space
-		PartitionId uint32
-	}{Space: space, PartitionId: partitionId})
+func operatePartition(method, addr string, space *entity.Space, pid uint32) error {
+	bytes, e := cbjson.Marshal(space)
+	if e != nil {
+		return e
+	}
+	args := &vearchpb.PartitionData{PartitionID: pid, Data: bytes}
+	reply := new(vearchpb.PartitionData)
+	err := Execute(addr, method, args, reply)
 	if err != nil {
 		return err
 	}
-
-	if _, status, err := Execute(this.addr, CreatePartitionHandler, request); err != nil {
-		return err
-	} else if status != pkg.ERRCODE_SUCCESS {
-		return pkg.CodeErr(status)
+	if reply != nil && reply.Err.Code != vearchpb.ErrorEnum_SUCCESS {
+		return vearchpb.NewError(reply.Err.Code, nil)
 	}
-
 	return nil
 }
 
-func (this *adminSender) UpdatePartition(space *entity.Space, pid entity.PartitionID) error {
-	reqs, err := request.NewObjRequest(this.Ctx, pid, space)
-	if err != nil {
-		return err
-	}
-	_, _, err = Execute(this.addr, UpdatePartitionHandler, reqs)
-	return err
+func CreatePartition(addr string, space *entity.Space, pid uint32) error {
+	return operatePartition(CreatePartitionHandler, addr, space, pid)
 }
 
-func (this *adminSender) DeleteReplica(partitionId uint32) error {
-	reqs, err := request.NewObjRequest(this.Ctx, partitionId, partitionId)
-	if err != nil {
-		return err
-	}
-	_, _, e := Execute(this.addr, DeleteReplicaHandler, reqs)
-	return e
+func UpdatePartition(addr string, space *entity.Space, pid entity.PartitionID) error {
+	return operatePartition(UpdatePartitionHandler, addr, space, pid)
 }
 
-func (this *adminSender) DeletePartition(partitionId uint32) error {
-	reqs, err := request.NewObjRequest(this.Ctx, partitionId, partitionId)
+func DeleteReplica(addr string, partitionId uint32) error {
+	args := &vearchpb.PartitionData{PartitionID: partitionId}
+	reply := new(vearchpb.PartitionData)
+	err := Execute(addr, DeleteReplicaHandler, args, reply)
 	if err != nil {
 		return err
+	} else if reply != nil && reply.Err.Code != vearchpb.ErrorEnum_SUCCESS {
+		return vearchpb.NewError(reply.Err.Code, nil)
 	}
-	_, _, e := Execute(this.addr, DeletePartitionHandler, reqs)
-	return e
+	return nil
 }
 
-func (this *adminSender) ServerStats() *mserver.ServerStats {
-	request := &request.ObjRequest{
-		RequestContext: this.Ctx,
-	}
-	resp, status, err := Execute(this.addr, StatsHandler, request)
-
+func DeletePartition(addr string, pid uint32) error {
+	args := &vearchpb.PartitionData{PartitionID: pid}
+	reply := new(vearchpb.PartitionData)
+	err := Execute(addr, DeletePartitionHandler, args, reply)
 	if err != nil {
-		return mserver.NewErrServerStatus(strings.Split(this.addr, ":")[0], err)
+		return err
+	} else if reply != nil && reply.Err.Code != vearchpb.ErrorEnum_SUCCESS {
+		return vearchpb.NewError(reply.Err.Code, nil)
 	}
+	return nil
+}
 
-	serverStats := resp.(*mserver.ServerStats)
-	serverStats.Status = status
+func ServerStats(addr string) *mserver.ServerStats {
+	args := new(vearchpb.PartitionData)
+	reply := new(vearchpb.PartitionData)
+	err := Execute(addr, StatsHandler, args, reply)
+	if err != nil {
+		return mserver.NewErrServerStatus(strings.Split(addr, ":")[0], err)
+	} else if reply != nil && reply.Err.Code != vearchpb.ErrorEnum_SUCCESS {
+		err = vearchpb.NewError(reply.Err.Code, nil)
+		return mserver.NewErrServerStatus(strings.Split(addr, ":")[0], err)
+	}
+	serverStats := new(mserver.ServerStats)
+	err = cbjson.Unmarshal(reply.Data, serverStats)
+	if err != nil {
+		return mserver.NewErrServerStatus(strings.Split(addr, ":")[0], err)
+	}
+	if serverStats.Status == 0 {
+		serverStats.Status = 200
+	}
 	return serverStats
+
 }
 
-func (this *adminSender) IsLive() bool {
-	objRequest := &request.ObjRequest{
-		RequestContext: this.Ctx,
-	}
-
-	//default time out for live
-	timeout, cancelFunc := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancelFunc()
-	objRequest.SetContext(timeout)
-
-	_, _, err := Execute(this.addr, IsLiveHandler, objRequest)
+func IsLive(addr string) bool {
+	err := Execute(addr, IsLiveHandler, new(vearchpb.PartitionData), new(vearchpb.PartitionData))
 	if err != nil {
 		return false
 	}
-
 	return true
 }
 
-//get partition info about partitionID
-func (this *adminSender) PartitionInfo(pid entity.PartitionID) (value *entity.PartitionInfo, err error) {
-	infos, err := this._partitionsInfo(pid)
+//PartitionInfo get partition info about partitionID
+func PartitionInfo(addr string, pid entity.PartitionID) (value *entity.PartitionInfo, err error) {
+	infos, err := _partitionsInfo(addr, pid)
 	if err != nil {
 		return nil, err
 	}
 	return infos[0], nil
 }
 
-//get all partition info from server
-func (this *adminSender) PartitionInfos() (value []*entity.PartitionInfo, err error) {
-	return this._partitionsInfo(0)
+//PartitionInfos get all partition info from server
+func PartitionInfos(addr string) (value []*entity.PartitionInfo, err error) {
+	return _partitionsInfo(addr, 0)
 }
 
 //internal method for partitionInfo and partitionInfos
-func (this *adminSender) _partitionsInfo(pid entity.PartitionID) (value []*entity.PartitionInfo, err error) {
-	objRequest := &request.ObjRequest{
-		RequestContext: this.Ctx,
-		PartitionID:    pid,
-	}
-
-	//default time out for live
-	timeout, cancelFunc := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancelFunc()
-	objRequest.SetContext(timeout)
-
-	result, _, err := Execute(this.addr, PartitionInfoHandler, objRequest)
+func _partitionsInfo(addr string, pid entity.PartitionID) (value []*entity.PartitionInfo, err error) {
+	args := &vearchpb.PartitionData{PartitionID: pid}
+	reply := new(vearchpb.PartitionData)
+	err = Execute(addr, PartitionInfoHandler, args, reply)
 	if err != nil {
+		return nil, err
+	} else if reply != nil && reply.Err.Code != vearchpb.ErrorEnum_SUCCESS {
+		return nil, vearchpb.NewError(reply.Err.Code, nil)
+	}
+	value = make([]*entity.PartitionInfo, 0, 1)
+	err = cbjson.Unmarshal(reply.Data, &value)
+	if err != nil {
+		log.Error("Unmarshal partition info failed, err: [%v]", err)
 		return
 	}
-
-	value = make([]*entity.PartitionInfo, 0)
-	err = result.(*response.ObjResponse).Decode(&value)
-	if err != nil {
-		return
-	}
-
 	return value, nil
 }
 
-func (this *adminSender) ChangeMember(changMember *entity.ChangeMember) error {
-	reqs, err := request.NewObjRequest(this.Ctx, changMember.PartitionID, changMember)
+func ChangeMember(addr string, changeMember *entity.ChangeMember) error {
+	value, err := cbjson.Marshal(changeMember)
+	args := &vearchpb.PartitionData{PartitionID: changeMember.PartitionID, Data: value}
+	reply := new(vearchpb.PartitionData)
+	err = Execute(addr, ChangeMemberHandler, args, reply)
 	if err != nil {
 		return err
+	} else if reply != nil && reply.Err.Code != vearchpb.ErrorEnum_SUCCESS {
+		return vearchpb.NewError(reply.Err.Code, nil)
 	}
-	_, _, e := Execute(this.addr, ChangeMemberHandler, reqs)
-	return e
+	return nil
 }

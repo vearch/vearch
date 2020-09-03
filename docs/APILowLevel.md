@@ -41,6 +41,9 @@ curl -XDELETE {{MASTER}}/db/test_vector_db
 ----
 
 ### create space
+Create Table for IVFPQ, and here are the matters needing attention:
+
+index_size: For IVFPQ, it need train before building index, so you should set index_size a suitable value, such as 10000 or set larger for larger amounts of data.
 
 ````$xslt
 curl -v --user "root:secret" -H "content-type: application/json" -XPUT -d'
@@ -53,10 +56,9 @@ curl -v --user "root:secret" -H "content-type: application/json" -XPUT -d'
 		"name": "gamma",
 		"index_size": 9999,
 		"max_size": 100000,
-        "id_type": "String",
-        "retrieval_type": "IVFPQ",
+		"id_type": "string",
+		"retrieval_type": "IVFPQ",
 		"retrieval_param": {
-			"metric_type": "InnerProduct",
 			"ncentroids": -1,
 			"nsubvector": -1
 		}
@@ -105,6 +107,139 @@ curl -v --user "root:secret" -H "content-type: application/json" -XPUT -d'
 ' {{MASTER}}/space/test_vector_db/_create
 ````
 
+Create table for HNSW, and here are the matters needing attention:
+
+index_size: For HNSW, it doesn't need to train before building index, so greater than 0 is enough.
+store_type: should set it as `MemoryOnly`. For HNSW, it can only be run in MemoryOnly mode.
+
+````$xslt
+curl -v --user "root:secret" -H "content-type: application/json" -XPUT -d'
+{
+    "name": "vector_space",
+    "dynamic_schema": "strict",
+    "partition_num": 1,
+    "replica_num": 1,
+    "engine": {
+        "name": "gamma",
+        "index_size": 1,
+        "max_size": 1000000,
+        "retrieval_type": "HNSW",
+        "retrieval_param": {
+            "nlinks": -1,
+            "efConstruction": -1
+        }
+    },
+    "properties": {
+        "string": {
+            "type": "keyword",
+            "index": true
+        },
+        "int": {
+            "type": "integer",
+            "index": true
+        },
+        "float": {
+            "type": "float",
+            "index": true
+        },
+        "vector": {
+            "type": "vector",
+            "model_id": "img",
+            "dimension": 128,
+            "store_type": "Mmap",
+            "format": "normalization"
+        },
+        "string_tags": {
+            "type": "string",
+            "array": true,
+            "index": true
+        },
+        "int_tags": {
+            "type": "integer",
+            "array": true,
+            "index": true
+        },
+        "float_tags": {
+            "type": "float",
+            "array": true,
+            "index": true
+        }
+    },
+    "models": [{
+        "model_id": "vgg16",
+        "fields": ["string"],
+        "out": "feature"
+    }]
+}
+' {{MASTER}}/space/test_vector_db/_create
+````
+
+Create table for IVFFLAT, and here are the matters needing attention:
+
+index_size: For IVFFLAT, it need train before building index, so you should set index_size a suitable value, such as 10000 or set larger for larger amounts of data.
+store_type: should set it as `RocksDB`. For IVFFLAT, it can only be run in RocksDB mode.
+
+````$xslt
+curl -v --user "root:secret" -H "content-type: application/json" -XPUT -d'
+{
+    "name": "vector_space",
+    "dynamic_schema": "strict",
+    "partition_num": 1,
+    "replica_num": 1,
+    "engine": {
+        "name": "gamma",
+        "index_size": 1,
+        "max_size": 1000000,
+        "retrieval_type": "IVFFLAT",
+        "retrieval_param": {
+			"ncentroids": -1
+        }
+    },
+    "properties": {
+        "string": {
+            "type": "keyword",
+            "index": true
+        },
+        "int": {
+            "type": "integer",
+            "index": true
+        },
+        "float": {
+            "type": "float",
+            "index": true
+        },
+        "vector": {
+            "type": "vector",
+            "model_id": "img",
+            "dimension": 128,
+            "store_type": "Mmap",
+            "format": "normalization"
+        },
+        "string_tags": {
+            "type": "string",
+            "array": true,
+            "index": true
+        },
+        "int_tags": {
+            "type": "integer",
+            "array": true,
+            "index": true
+        },
+        "float_tags": {
+            "type": "float",
+            "array": true,
+            "index": true
+        }
+    },
+    "models": [{
+        "model_id": "vgg16",
+        "fields": ["string"],
+        "out": "feature"
+    }]
+}
+' {{MASTER}}/space/test_vector_db/_create
+````
+
 * partition_num : how many partition to slot,  default is `1`
 
 * replica_num: how many replica has , recommend `3`
@@ -113,51 +248,58 @@ curl -v --user "root:secret" -H "content-type: application/json" -XPUT -d'
 
 * max_size : max documents for each partition 
 
-* id_type : the type of Primary key, default String, you can set it as Long or String
+* id_type : the type of Primary key, default String, you can set it as `long` or `string`
 
 * index_size : default 2, if insert document num >= index_size, it will start to build index automatically. For different retrieval model, it have different index size.  For HNSW and FLAT, it doesn't need to train before building index, greater than 0 is enough. For IVFPQ, GPU and BINARYIVF, it need train before building index, so you should set index_size larger, such as 100000.
 
-* retrieval_type: the type of retrieval model, now support five kind retrieval model: IVFPQ GPU BINARYIVF HNSW FLAT. BINARYIVF is to index binary data. The Other type of retrieval model are for float32 data. And GPU is the implementation of IVFPQ on GPU, so IVFPQ and GPU have the same retrieval_param. FLAT is brute-force search. HNSW and FLAT can only work in full memory with store_type of Mmap. And HNSW now uses mark deletion, and does not make corresponding changes to the hnsw graph structure after deletion or update.
+* retrieval_type: the type of retrieval model, now support five kind retrieval model: IVFPQ GPU BINARYIVF HNSW FLAT. BINARYIVF is to index binary data. The Other type of retrieval models are for float32 data. And GPU is the implementation of IVFPQ on GPU, so IVFPQ and GPU have the same retrieval_param. FLAT is brute-force search. HNSW and FLAT can only work in `MemoryOnly` mode. And HNSW now uses mark deletion, and does not make corresponding changes to the hnsw graph structure after deletion or update.
 
 * retrieval_param: parameter of retrieval model, this corresponds to the retrieval type.
 
 * IVFPQ
 
-    * * metric_type: `InnerProduct` or `L2` 
-    * * ncentroids : coarse cluster center number, default 256
+    * * metric_type : `InnerProduct` or `L2`. Now it should set at search time.
+    * * nprobe : scan clustered buckets, default 80, it should be less than ncentroids. Now it should set at search time. 
+    * * ncentroids : coarse cluster center number, default 2048
     * * nsubvector : the number of sub vector, default 64, only the value which is multiple of 4 is supported now 
     * * nbits_per_idx : bit number of sub cluster center, default 8, and 8 is the only value now
 
 * GPU
 
-    * * metric_type:  `InnerProduct` or `L2` , InnerProduct only support for searching with has_rank
-    * * ncentroids : coarse cluster center number, default 256 
-    * * nsubvector : the number of sub vector, default 64, only the value which is multiple of 4 is supported now
-
+    * * metric_type :  `InnerProduct` or `L2` , InnerProduct only support for searching with has_rank. Now it should set at search time.
+    * * nprobe : scan clustered buckets, default 80, it should be less than ncentroids. Now it should set at search time.   
+    * * ncentroids : coarse cluster center number, default 2048 
+    * * nsubvector : the number of sub vector, default 64
     * * nbits_per_idx : bit number of sub cluster center, default 8, and 8 is the only value now
 
+* IVFFLAT
+
+    * * metric_type :  `InnerProduct` or `L2` , InnerProduct only support for searching with has_rank. Now it should set at search time.
+    * * nprobe : scan clustered buckets, default 80, it should be less than ncentroids. Now it should set at search time. 
+    * * ncentroids : coarse cluster center number, default 2048
+    
 * BINARYIVF
 
-    * * nprobe : scan clustered buckets, default 20, it should be less than ncentroids 
+    * * nprobe : scan clustered buckets, default 20, it should be less than ncentroids. Now it should set at search time. 
     * * ncentroids : coarse cluster center number, default 256
 
 * HNSW
 
-    * * metric_type: `InnerProduct` or `L2` 
-    * * nlinks： neighbors number of each node, default 32
-    * * efConstruction: expansion factor at construction time, default 40. The higher the value, the better the construction effect, and the longer it takes 
-    * * efSearch : expansion factor at search time, default 64. The higher the value, the more accurate the search results and the longer it takes
+    * * metric_type : `InnerProduct` or `L2` 
+    * * nlinks ： neighbors number of each node, default 32
+    * * efConstruction : expansion factor at construction time, default 40. The higher the value, the better the construction effect, and the longer it takes 
+    * * efSearch : expansion factor at search time, default 64. The higher the value, the more accurate the search results and the longer it takes. Now it should set at search time.
 
 * FLAT
 
-    * * metric_type: `InnerProduct` or `L2` 
+    * * metric_type : `InnerProduct` or `L2`. Now it should set at search time. 
 
 * keyword
 * array : whether the tags for each document is multi-valued, `true` or `false` default is false
 * index : supporting numeric field filter default `false`
 * Vector field params
-    * * format : default not normalized . If you set "normalization", "normal" it will be normalized  
-    * * store_type : "RocksDB" or "Mmap" default "Mmap".For HNSW and FLAT, it can only be run in Mmap mode with fully memory. So not setting store_param is a good way to use HSNW and FLAT.   
+    * * format : default not normalized . if you set "normalization", "normal" it will normalized  
+    * * store_type : "RocksDB" or "Mmap" or "MemoryOnly" default "Mmap".For HNSW and IVFFLAT and FLAT, it can only be run in MemoryOnly mode.   
     * * store_param : example {"cache_size":2592}. It means you will use so much memory, the excess will be kept to disk. When you don't set it, vearch will just use the memory. 
 
 ### get space
@@ -291,26 +433,218 @@ curl -H "content-type: application/json" -XPOST -d'
                 "operator":"or"
               }
           }
-       ],
-       "is_brute_search":0
+       ]
   },
+  "is_brute_search":0
   "size":10,
-  "parallel":false
 }
 ' {{ROUTER}}/test_vector_db/vector_space/_search
 ````
 
+### search document by query and vector for ivfpq
+````$xslt
+curl -H "content-type: application/json" -XPOST -d'
+{
+  "query": {
+      "sum":[
+        {
+          "field": "vector",
+          "feature": [0.88658684,0.9873159,0.68632215,-0.114685304,-0.45059848,0.5360963,0.9243208,0.14288005,0.9383601,0.17486687,0.3889527,0.91680753,0.6597193,0.52906346,0.5491872,-0.24706548,0.28541148,0.87731135,-0.18872026,0.28016,0.14826365,0.7217548,0.66360927,0.839685,0.29014188,-0.7303055,0.31786093,0.7611028,0.38408384,0.004707908,0.27696127,0.6069607,0.52147454,0.34435293,0.5665409,0.9676775,0.9415799,-0.95000356,-0.7441306,0.32473814,0.24417956,0.4114195,-0.15658693,0.9567978,0.91448873,0.8040493,0.7370252,0.41042542,-0.12714817,0.7344759,0.95486677,0.6752892,0.79088193,0.27843192,0.7594493,0.96637094,0.21354128,0.14667709,0.52713686,0.39803344,0.13063455,-0.26041254,0.21177465,0.0889158,0.7040157,0.9184541,0.33231667,0.109015055,0.7252709,0.85923946,0.6874303,0.9188243,0.44670975,0.6534332,0.67833525,0.40294313,0.76628596,0.722926,0.2507119,0.86939317,0.1049489,0.5707651,0.89342695,0.89022624,0.06606513,0.46363428,0.8836891,0.8416466,0.43164334,-0.059498303,0.25076458,0.91614866,0.21405962,0.07442343,0.8398273,-0.518248,0.4477598,0.54731685,0.39200985,0.2999862,0.22204888,0.9051194,0.7241311,0.9049213,0.48899868,0.11941989,0.45151904,0.9315986,0.17897557,0.759705,0.2549287,0.96008617,0.25688004,0.5925487,0.3069243,0.9171891,0.46981755,0.14557107,0.8900092,0.84537476,0.5608369,0.6909559,0.777092,0.66562796,0.6040272,0.77930593,0.59144366,0.12506102],          "boost":0.8
+        }
+      ],
+      "filter":[
+          {
+              "range":{
+                  "int":{
+                      "gte":1,
+                      "lte":1000
+                  }
+              }
+          },
+          {
+              "term":{
+                "string_tags":["28","2","29"],
+                "operator":"or"
+              }
+          }
+       ]
+  },
+  "retrieval_params": {
+      "parallel_on_queries": 1,
+      "recall_num" : 100,
+      "nprobe": 80,
+      "metric_type": "L2" 
+  }
+}
+' {{ROUTER}}/test_vector_db/vector_space/_search
+````
+* `parallel_on_queries` : defalut 1, it will parallel on queries. 0: parallel on invert lists
+* `recall_num` : default value is equal to size. It determines how many vectors to return when searching the index and finally returns the n most similar results.
+* `nprobe` : how many invert list will be visited when search.
+* `metric_type` : L2 or InnerProduct.
+
+### search document by query and vector for GPU
+````$xslt
+curl -H "content-type: application/json" -XPOST -d'
+{
+  "query": {
+      "sum":[
+        {
+          "field": "vector",
+          "feature": [0.88658684,0.9873159,0.68632215,-0.114685304,-0.45059848,0.5360963,0.9243208,0.14288005,0.9383601,0.17486687,0.3889527,0.91680753,0.6597193,0.52906346,0.5491872,-0.24706548,0.28541148,0.87731135,-0.18872026,0.28016,0.14826365,0.7217548,0.66360927,0.839685,0.29014188,-0.7303055,0.31786093,0.7611028,0.38408384,0.004707908,0.27696127,0.6069607,0.52147454,0.34435293,0.5665409,0.9676775,0.9415799,-0.95000356,-0.7441306,0.32473814,0.24417956,0.4114195,-0.15658693,0.9567978,0.91448873,0.8040493,0.7370252,0.41042542,-0.12714817,0.7344759,0.95486677,0.6752892,0.79088193,0.27843192,0.7594493,0.96637094,0.21354128,0.14667709,0.52713686,0.39803344,0.13063455,-0.26041254,0.21177465,0.0889158,0.7040157,0.9184541,0.33231667,0.109015055,0.7252709,0.85923946,0.6874303,0.9188243,0.44670975,0.6534332,0.67833525,0.40294313,0.76628596,0.722926,0.2507119,0.86939317,0.1049489,0.5707651,0.89342695,0.89022624,0.06606513,0.46363428,0.8836891,0.8416466,0.43164334,-0.059498303,0.25076458,0.91614866,0.21405962,0.07442343,0.8398273,-0.518248,0.4477598,0.54731685,0.39200985,0.2999862,0.22204888,0.9051194,0.7241311,0.9049213,0.48899868,0.11941989,0.45151904,0.9315986,0.17897557,0.759705,0.2549287,0.96008617,0.25688004,0.5925487,0.3069243,0.9171891,0.46981755,0.14557107,0.8900092,0.84537476,0.5608369,0.6909559,0.777092,0.66562796,0.6040272,0.77930593,0.59144366,0.12506102],          "boost":0.8
+        }
+      ],
+      "filter":[
+          {
+              "range":{
+                  "int":{
+                      "gte":1,
+                      "lte":1000
+                  }
+              }
+          },
+          {
+              "term":{
+                "string_tags":["28","2","29"],
+                "operator":"or"
+              }
+          }
+       ]
+  },
+  "retrieval_params": {
+      "recall_num" : 100,
+      "nprobe": 80,
+      "metric_type": "L2"
+  }
+}
+' {{ROUTER}}/test_vector_db/vector_space/_search
+````
+* `recall_num` : default value is equal to size. It determines how many results to return when searching the index and finally returns the topn most similar results. And you should set it larger if you have filter in your query.Because for gpu, it will filter after searching the index.
+* `nprobe` : how many invert list will be visited when search.
+* `metric_type` : L2 or InnerProduct.
+
+### search document by query and vector for hnsw
+````$xslt
+curl -H "content-type: application/json" -XPOST -d'
+{
+  "query": {
+      "sum":[
+        {
+          "field": "vector",
+          "feature": [0.88658684,0.9873159,0.68632215,-0.114685304,-0.45059848,0.5360963,0.9243208,0.14288005,0.9383601,0.17486687,0.3889527,0.91680753,0.6597193,0.52906346,0.5491872,-0.24706548,0.28541148,0.87731135,-0.18872026,0.28016,0.14826365,0.7217548,0.66360927,0.839685,0.29014188,-0.7303055,0.31786093,0.7611028,0.38408384,0.004707908,0.27696127,0.6069607,0.52147454,0.34435293,0.5665409,0.9676775,0.9415799,-0.95000356,-0.7441306,0.32473814,0.24417956,0.4114195,-0.15658693,0.9567978,0.91448873,0.8040493,0.7370252,0.41042542,-0.12714817,0.7344759,0.95486677,0.6752892,0.79088193,0.27843192,0.7594493,0.96637094,0.21354128,0.14667709,0.52713686,0.39803344,0.13063455,-0.26041254,0.21177465,0.0889158,0.7040157,0.9184541,0.33231667,0.109015055,0.7252709,0.85923946,0.6874303,0.9188243,0.44670975,0.6534332,0.67833525,0.40294313,0.76628596,0.722926,0.2507119,0.86939317,0.1049489,0.5707651,0.89342695,0.89022624,0.06606513,0.46363428,0.8836891,0.8416466,0.43164334,-0.059498303,0.25076458,0.91614866,0.21405962,0.07442343,0.8398273,-0.518248,0.4477598,0.54731685,0.39200985,0.2999862,0.22204888,0.9051194,0.7241311,0.9049213,0.48899868,0.11941989,0.45151904,0.9315986,0.17897557,0.759705,0.2549287,0.96008617,0.25688004,0.5925487,0.3069243,0.9171891,0.46981755,0.14557107,0.8900092,0.84537476,0.5608369,0.6909559,0.777092,0.66562796,0.6040272,0.77930593,0.59144366,0.12506102],          "boost":0.8
+        }
+      ],
+      "filter":[
+          {
+              "range":{
+                  "int":{
+                      "gte":1,
+                      "lte":1000
+                  }
+              }
+          },
+          {
+              "term":{
+                "string_tags":["28","2","29"],
+                "operator":"or"
+              }
+          }
+       ]
+  },
+  "retrieval_params": {
+      "efSearch": 64,
+      "metric_type": "L2"
+  }
+}
+' {{ROUTER}}/test_vector_db/vector_space/_search
+````
+* `efSearch` : It determines how far to traverse in the graph.
+* `metric_type` : L2 or InnerProduct.
+
+### search document by query and vector for ivfflat
+````$xslt
+curl -H "content-type: application/json" -XPOST -d'
+{
+  "query": {
+      "sum":[
+        {
+          "field": "vector",
+          "feature": [0.88658684,0.9873159,0.68632215,-0.114685304,-0.45059848,0.5360963,0.9243208,0.14288005,0.9383601,0.17486687,0.3889527,0.91680753,0.6597193,0.52906346,0.5491872,-0.24706548,0.28541148,0.87731135,-0.18872026,0.28016,0.14826365,0.7217548,0.66360927,0.839685,0.29014188,-0.7303055,0.31786093,0.7611028,0.38408384,0.004707908,0.27696127,0.6069607,0.52147454,0.34435293,0.5665409,0.9676775,0.9415799,-0.95000356,-0.7441306,0.32473814,0.24417956,0.4114195,-0.15658693,0.9567978,0.91448873,0.8040493,0.7370252,0.41042542,-0.12714817,0.7344759,0.95486677,0.6752892,0.79088193,0.27843192,0.7594493,0.96637094,0.21354128,0.14667709,0.52713686,0.39803344,0.13063455,-0.26041254,0.21177465,0.0889158,0.7040157,0.9184541,0.33231667,0.109015055,0.7252709,0.85923946,0.6874303,0.9188243,0.44670975,0.6534332,0.67833525,0.40294313,0.76628596,0.722926,0.2507119,0.86939317,0.1049489,0.5707651,0.89342695,0.89022624,0.06606513,0.46363428,0.8836891,0.8416466,0.43164334,-0.059498303,0.25076458,0.91614866,0.21405962,0.07442343,0.8398273,-0.518248,0.4477598,0.54731685,0.39200985,0.2999862,0.22204888,0.9051194,0.7241311,0.9049213,0.48899868,0.11941989,0.45151904,0.9315986,0.17897557,0.759705,0.2549287,0.96008617,0.25688004,0.5925487,0.3069243,0.9171891,0.46981755,0.14557107,0.8900092,0.84537476,0.5608369,0.6909559,0.777092,0.66562796,0.6040272,0.77930593,0.59144366,0.12506102],          "boost":0.8
+        }
+      ],
+      "filter":[
+          {
+              "range":{
+                  "int":{
+                      "gte":1,
+                      "lte":1000
+                  }
+              }
+          },
+          {
+              "term":{
+                "string_tags":["28","2","29"],
+                "operator":"or"
+              }
+          }
+       ]
+  },
+  "retrieval_params": {
+      "parallel_on_queries": 1,
+      "nprobe": 80,
+      "metric_type": "L2"
+  }
+}
+' {{ROUTER}}/test_vector_db/vector_space/_search
+````
+* `parallel_on_queries` : defalut 1, it will parallel on queries. 0: parallel on invert lists
+* `nprobe` : how many invert list will be visited when search.
+* `metric_type` : L2 or InnerProduct.
+
+### search document by query and vector for flat
+````$xslt
+curl -H "content-type: application/json" -XPOST -d'
+{
+  "query": {
+      "sum":[
+        {
+          "field": "vector",
+          "feature": [0.88658684,0.9873159,0.68632215,-0.114685304,-0.45059848,0.5360963,0.9243208,0.14288005,0.9383601,0.17486687,0.3889527,0.91680753,0.6597193,0.52906346,0.5491872,-0.24706548,0.28541148,0.87731135,-0.18872026,0.28016,0.14826365,0.7217548,0.66360927,0.839685,0.29014188,-0.7303055,0.31786093,0.7611028,0.38408384,0.004707908,0.27696127,0.6069607,0.52147454,0.34435293,0.5665409,0.9676775,0.9415799,-0.95000356,-0.7441306,0.32473814,0.24417956,0.4114195,-0.15658693,0.9567978,0.91448873,0.8040493,0.7370252,0.41042542,-0.12714817,0.7344759,0.95486677,0.6752892,0.79088193,0.27843192,0.7594493,0.96637094,0.21354128,0.14667709,0.52713686,0.39803344,0.13063455,-0.26041254,0.21177465,0.0889158,0.7040157,0.9184541,0.33231667,0.109015055,0.7252709,0.85923946,0.6874303,0.9188243,0.44670975,0.6534332,0.67833525,0.40294313,0.76628596,0.722926,0.2507119,0.86939317,0.1049489,0.5707651,0.89342695,0.89022624,0.06606513,0.46363428,0.8836891,0.8416466,0.43164334,-0.059498303,0.25076458,0.91614866,0.21405962,0.07442343,0.8398273,-0.518248,0.4477598,0.54731685,0.39200985,0.2999862,0.22204888,0.9051194,0.7241311,0.9049213,0.48899868,0.11941989,0.45151904,0.9315986,0.17897557,0.759705,0.2549287,0.96008617,0.25688004,0.5925487,0.3069243,0.9171891,0.46981755,0.14557107,0.8900092,0.84537476,0.5608369,0.6909559,0.777092,0.66562796,0.6040272,0.77930593,0.59144366,0.12506102],          "boost":0.8
+        }
+      ],
+      "filter":[
+          {
+              "range":{
+                  "int":{
+                      "gte":1,
+                      "lte":1000
+                  }
+              }
+          },
+          {
+              "term":{
+                "string_tags":["28","2","29"],
+                "operator":"or"
+              }
+          }
+       ]
+  },
+  "retrieval_params": {
+      "metric_type": "L2"
+  }
+}
+' {{ROUTER}}/test_vector_db/vector_space/_search
+````
+* `metric_type` : L2 or InnerProduct.
+
 > url: [ip]:[port]/[dbName]/[tableName]/_search
 * filter->term-> operator [`and`, `or`] default `or` 
-* `is_brute_search` : default 0 ; -1: no brute search , 0: auto, 1: always brute search
-* `online_log_level`:"debug" , is print debug info 
-* `quick` :default is false, if quick=true it not use precision sorting
-* `vector_value` :default is false, is return vector value
-* `client_type` search partition type, default is leader , `random` or `no_leader`
-* `parallel`  search is parallel default is `false`
-* `l2_sqrt`: default FALSE, don't do sqrt; TRUE, do sqrt
-* `nprobe`: default 20, just for IVFPQ and GPU, how many lists will be visited at search time
-* `ivf_flat`: default FALSE, just for IVFPQ, ivf flat means only use ivf_flat instead of ivfpq
+* `is_brute_search` : default 0 ; -1: no brute force search, 0: auto, 1: always brute force search
+* `online_log_level` : "debug" , is print debug info 
+* `quick` : default is false, if quick=true it not use precision sorting
+* `vector_value` : default is false, is return vector value
+* `client_type` : search partition type, default is leader , `random` or `no_leader`
+* `l2_sqrt` : default FALSE, don't do sqrt; TRUE, do sqrt
 
 ### delete Document
 
