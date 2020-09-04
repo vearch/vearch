@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 yum update
-yum install -y wget gcc gcc-c++ make automake git blas-devel lapack-devel which
+yum install -y wget gcc gcc-c++ make automake git blas-devel lapack-devel which openssl-devel libzstd-devel
 if [ ! -d "/env/app" ]; then
   mkdir -p /env/app
 fi
