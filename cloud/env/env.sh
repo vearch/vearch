@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 yum update
+yum install -y epel-release
 yum install -y wget gcc gcc-c++ make automake git blas-devel lapack-devel which openssl-devel libzstd-devel
 if [ ! -d "/env/app" ]; then
   mkdir -p /env/app
@@ -20,8 +21,9 @@ if [ ! -f "cmake" ]; then
 fi
 cd /env/app/
 if [ ! -d "faiss" ]; then
-    git clone --depth 1 https://github.com/facebookresearch/faiss.git
+    git clone https://github.com/facebookresearch/faiss.git
     cd faiss
+    git reset --hard 2a36d4d8c7c92fccb7d93f2da21ed0196483dee0
     rm -rf gpu
 fi
 cd /env/app/faiss
