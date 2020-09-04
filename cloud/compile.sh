@@ -4,4 +4,4 @@
 git submodule init
 git submodule update
 
-docker run -v $(dirname "$PWD"):/vearch vearch/vearch_env:0.3.1 /vearch/cloud/compile/compile.sh
+docker run -v $(dirname "$PWD"):/vearch vearch/vearch_env:0.3.2 /vearch/cloud/compile/compile.sh
