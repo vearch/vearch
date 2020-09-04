@@ -8,9 +8,9 @@
 
 #### Use Vearch Image Deploy
  1. take vearch:3.1.0 as an example
- 2. docker pull vearch/vearch:0.3.1
+ 2. docker pull vearch/vearch:0.3.2
  3. one docker deploy or distributed deployment
-    1. ```If deploy a docker start vearch,master,ps,router start together: cat vearch/config/config.toml.example > config.toml nohup docker run -p 8817:8817 -p 9001:9001 -v $PWD/config.toml:/vearch/config.toml  vearch/vearch:0.3.1 all &```
+    1. ```If deploy a docker start vearch,master,ps,router start together: cat vearch/config/config.toml.example > config.toml nohup docker run -p 8817:8817 -p 9001:9001 -v $PWD/config.toml:/vearch/config.toml  vearch/vearch:0.3.2 all &```
   
     2. ```If distributed deploy ,modify vearch/config/config.toml and start separately```
     3. ```Modify vearch/config/config.toml ,refer the step 'Local Model'```
@@ -18,7 +18,7 @@
 
 #### Use Base Image Compile And Deploy
  1. take vearch_env:3.1.0 as an example
- 2. docker pull vearch/vearch_env:0.3.1
+ 2. docker pull vearch/vearch_env:0.3.2
  3. sh vearch/cloud/complile.sh
  4. sh build.sh
  5. reference "User vearch image deploy" step 3
