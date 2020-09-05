@@ -45,9 +45,9 @@ var (
 )
 
 type ServerConfig struct {
-	Name         string
-	Addr         string // ip:port
-	Version      string
+	Name string
+	Addr string // ip:port
+	//Version      string
 	ConnLimit    int
 	CloseTimeout time.Duration
 	ReadTimeout  time.Duration
@@ -298,6 +298,7 @@ func (s *Server) doHandles(method, path string, handles []HandleContinued, end H
 			ctx, cancel := context.WithCancel(context.WithValue(context.Background(), StartTime, time.Now()))
 			defer cancel()
 
+			defer s.CatchPanicAndSendErrReply(w)
 			uriParams := make(map[string]string)
 
 			for _, param := range params {

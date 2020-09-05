@@ -9,8 +9,6 @@ mkdir -p $GAMMAOUT
 # version value
 BUILD_VERSION="0.3"
 
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ROOT/ps/engine/gammacb/lib/lib/
-
 if [ ! -n "$FAISS_HOME" ]; then
   export FAISS_HOME=$ROOT/ps/engine/gammacb/lib/faiss
 fi
@@ -25,6 +23,9 @@ echo "build gamma"
 cd $GAMMAOUT
 cmake -DPERFORMANCE_TESTING=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$ROOT/ps/engine/gammacb/lib $ROOT/engine/
 make gamma -j  && make install
+
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ROOT/ps/engine/gammacb/lib/lib/
+export LIBRARY_PATH=$LIBRARY_PATH:$ROOT/ps/engine/gammacb/lib/lib/
 
 cd ../
 

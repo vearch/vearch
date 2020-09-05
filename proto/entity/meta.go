@@ -50,6 +50,11 @@ func UserKey(username string) string {
 	return fmt.Sprintf("%s%s", PrefixUser, username)
 }
 
+//FailServerKey generate fail server key
+func FailServerKey(nodeID uint64) string {
+	return fmt.Sprintf("%s%d", PrefixFailServer, nodeID)
+}
+
 //ids sequence key for etcd
 const (
 	NodeIdSequence      = "/id/node"
@@ -67,11 +72,15 @@ const (
 	PrefixPartition    = "/partition/"
 	PrefixDataBase     = "/db/"
 	PrefixDataBaseBody = "/db/body/"
+	PrefixFailServer   = "/fail/server/"
 )
 
 //when master runing clean job , it will set value to this key,
 //when other got key , now time less than this they will skip this job
 const ClusterCleanJobKey = "/cluster/cleanjob"
+
+//ClusterWatchServerKey for server job lock
+const ClusterWatchServerKey = "watch/server"
 
 type (
 	// DBID is a custom type for database ID

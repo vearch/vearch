@@ -16,14 +16,14 @@ package server
 
 import (
 	"context"
-	"github.com/smallnest/pool"
-	"github.com/smallnest/rpcx/protocol"
-	"github.com/vearch/vearch/util/vearchlog"
 	"strings"
+
+	"github.com/vearch/vearch/proto/vearchpb"
+
+	"github.com/smallnest/pool"
 
 	"github.com/smallnest/rpcx/client"
 	"github.com/vearch/vearch/util/log"
-	"github.com/vearch/vearch/util/server/rpc/handler"
 )
 
 type RpcClient struct {
@@ -47,7 +47,7 @@ func NewRpcClient(serverAddress ...string) (*RpcClient, error) {
 
 	clientPool := &pool.Pool{New: func() interface{} {
 		log.Info("to instance client for server:[%s]", serverAddress)
-		return client.NewOneClient(client.Failtry, client.RandomSelect, d, client.DefaultOption)
+		return client.NewOneClient(client.Failtry, client.RandomSelect, d, ClientOption)
 	}}
 
 	return &RpcClient{serverAddress: serverAddress, clientPool: clientPool}, nil
@@ -65,54 +65,13 @@ func (this *RpcClient) Close() error {
 	return e
 }
 
-func (this *RpcClient) Execute(servicePath string, req *handler.RpcRequest) (*handler.RpcResponse, error) {
-	resp := handler.NewRpcResponse(req.MessageId)
+func (this *RpcClient) Execute(ctx context.Context, servicePath string, args interface{}, reply *vearchpb.PartitionData) (err error) {
 	cli := this.clientPool.Get().(*client.OneClient)
 	defer this.clientPool.Put(cli)
-	if err := cli.Call(req.Ctx, servicePath, serviceMethod, req, resp); err != nil {
-		return nil, err
+	if err := cli.Call(ctx, servicePath, serviceMethod, args, reply); err != nil {
+		return vearchpb.NewError(vearchpb.ErrorEnum_Call_RpcClient_Failed, err)
 	}
-	return resp, nil
-}
-
-//execute rpc method , with whie callback
-func (this *RpcClient) GoExecute(servicePath string, req *handler.RpcRequest) (*client.Call, error) {
-	resp := handler.NewRpcResponse(req.MessageId)
-	oneClient := this.clientPool.Get().(*client.OneClient)
-	defer this.clientPool.Put(oneClient)
-	return oneClient.Go(req.Ctx, servicePath, serviceMethod, req, resp, nil)
-}
-
-type StreamCallback func(msg *protocol.Message) error
-
-func (this *RpcClient) StreamExecute(ctx context.Context, servicePath string, req *handler.RpcRequest, sc StreamCallback) (*handler.RpcResponse, error) {
-	log.Info("to instance bidirect xclient by addr:[%s]", this.GetAddress(0))
-	d := client.NewPeer2PeerDiscovery("tcp@"+this.GetAddress(0), "")
-	defer d.Close()
-	ch := make(chan *protocol.Message, 100)
-	defer close(ch)
-	xclient := client.NewBidirectionalXClient(servicePath, client.Failtry, client.RandomSelect, d, client.DefaultOption, ch)
-	defer vearchlog.CloseIfNotNil(xclient)
-	resp := handler.NewRpcResponse(req.MessageId)
-	go func() {
-		if err := xclient.Call(ctx, serviceMethod, req, resp); err != nil {
-			return
-		}
-	}()
-
-	for {
-		select {
-		case msg, ok := <-ch:
-			if !ok || len(msg.Payload) == 0 {
-				return resp, nil
-			}
-			if err := sc(msg); err != nil {
-				return nil, err
-			}
-		case <-ctx.Done():
-			return resp, ctx.Err()
-		}
-	}
+	return nil
 }
 
 func (this *RpcClient) GetAddress(i int) string {

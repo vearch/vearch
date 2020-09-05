@@ -1,0 +1,109 @@
+
+syntax = "proto3";
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+option optimize_for = SPEED;
+option (gogoproto.marshaler_all) = true;
+option (gogoproto.sizer_all) = true;
+option (gogoproto.unmarshaler_all) = true;
+option (gogoproto.gostring_all) = false;
+option (gogoproto.equal_all) = true;
+option (gogoproto.verbose_equal_all) = false;
+option (gogoproto.goproto_stringer_all) = false;
+option (gogoproto.stringer_all) = true;
+option (gogoproto.populate_all) = true;
+option (gogoproto.testgen_all) = false;
+option (gogoproto.benchgen_all) = false;
+option (gogoproto.goproto_getters_all) = false;
+option go_package = "vearchpb";
+
+
+enum ErrorEnum {
+    SUCCESS = 0;
+    INTERNAL_ERROR = 1;
+    NAME_OR_PASSWORD = 2;
+    SYSBUSY = 3;
+    PARAM_ERROR = 4;
+    INVALID_CFG = 5;
+    TIMEOUT = 6;
+    SERVICE_UNAVAILABLE = 7;
+    ZONE_NOT_EXISTS = 8;
+    LOCAL_ZONE_OPS_FAILED = 9;
+    DUP_ZONE = 10;
+    DUP_DB = 11;
+    INVALID_ENGINE = 12;
+    DB_NOTEXISTS = 13;
+    DB_Not_Empty = 14;
+    DUP_SPACE = 15;
+    SPACE_NOTEXISTS = 16;
+    PARTITION_HAS_TASK_NOW = 17;
+    REPLICA_NOT_EXISTS = 18;
+    DUP_REPLICA = 19;
+    PARTITION_REPLICA_LEADER_NOT_DELETE = 20;
+    PS_NOTEXISTS = 21;
+    PS_Already_Exists = 22;
+    LOCAL_SPACE_OPS_FAILED = 23;
+    Local_PS_Ops_Failed = 24;
+    GENID_FAILED = 25;
+    LOCALDB_OPTFAILED = 26;
+    SPACE_SCHEMA_INVALID = 27;
+    RPC_GET_CLIENT_FAILED = 28;
+    RPC_INVALID_RESP = 29;
+    RPC_INVOKE_FAILED = 30;
+    RPC_PARAM_ERROR = 31;
+    METHOD_NOT_IMPLEMENT = 32;
+    USER_NOT_EXISTS = 33;
+    DUP_USER = 34;
+    USER_OPS_FAILED = 35;
+    AUTHENTICATION_FAILED = 36;
+    REGION_NOT_EXISTS = 37;
+    MASTER_PS_CAN_NOT_SELECT = 38;
+    MASTER_PS_NOT_ENOUGH_SELECT = 39;
+    PARTITION_DUPLICATE = 40;
+    PARTITION_NOT_EXIST = 41;
+    PARTITION_NOT_LEADER = 42;
+    PARTITION_NO_LEADER = 43;
+    PARTITION_REQ_PARAM = 44;
+    PARTITON_ENGINENAME_INVALID = 45;
+    UNKNOWN_PARTITION_RAFT_CMD_TYPE = 46;
+    MASTER_SERVER_IS_NOT_RUNNING = 47;
+    PARTITION_IS_INVALID = 48;
+    PARTITION_IS_CLOSED = 49;
+    DOCUMENT_NOT_EXIST = 50;
+    DOCUMENT_EXIST = 51;
+    DOCUMENT_MUST_HAS_SOURCE = 52;
+    PULL_OUT_VERSION_NOT_MATCH = 53;
+    FUNC_CAN_NOT_INVOKE_IN_FROZEN_ENGINE = 54;
+    ROUTER_NO_PS_CLIENT = 55;
+    ROUTER_CALL_PS_RPC_ERR = 56;
+    GAMMA_SEARCH_QUERY_NUM_LESS_0=57;
+    GAMMA_SEARCH_NO_CREATE_INDEX=58;
+    GAMMA_SEARCH_INDEX_QUERY_ERR=59;
+    GAMMA_SEARCH_OTHER_ERR = 60;
+    Primary_IS_INVALID = 61;
+    PARSING_RESULT_ERROR = 62;
+    FORCE_MERGE_BUILD_INDEX_ERR = 63;
+    DELETE_BY_QUERY_SERACH_ERR = 64;
+    DELETE_BY_QUERY_SEARCH_ID_IS_0 = 65;
+    Create_RpcClient_Failed = 70;
+    Call_RpcClient_Failed = 71;
+    RECOVER = 100;
+
+    //101-115 create db code
+
+    //116-130 create space code
+    //131-145 insert data
+
+
+}
+
+enum SearchResultCode {
+    SEARCH_SUCCESS = 0;
+    INDEX_NOT_BUILDED = 1;
+    SEARCH_ERROR = 2;       // show all kinds of errors in detail
+}
+
+message Error{
+    ErrorEnum code = 1;
+    string msg = 2;
+}

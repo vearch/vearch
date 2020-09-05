@@ -16,8 +16,9 @@ package register
 
 import (
 	"fmt"
-	"github.com/vearch/vearch/proto"
+
 	"github.com/vearch/vearch/proto/entity"
+	"github.com/vearch/vearch/proto/vearchpb"
 	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/util/vearchlog"
 
@@ -66,7 +67,7 @@ func Build(name string, cfg EngineConfig) (e engine.Engine, err error) {
 		e, err = builder(cfg)
 	} else {
 		log.Error("to build engine:[%s] not found", name)
-		err = vearchlog.LogErrAndReturn(pkg.CodeErr(pkg.ERRCODE_PARTITON_ENGINENAME_INVALID))
+		err = vearchlog.LogErrAndReturn(vearchpb.NewError(vearchpb.ErrorEnum_PARTITON_ENGINENAME_INVALID, nil))
 	}
 	return
 }

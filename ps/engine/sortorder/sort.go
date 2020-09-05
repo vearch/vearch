@@ -85,7 +85,8 @@ func (sv *InfinitySortValue) Compare(other SortValue) int {
 }
 
 type StringSortValue struct {
-	Val string
+	Val      string
+	SortName string
 }
 
 func (sv *StringSortValue) Type() ValueType {
@@ -107,7 +108,8 @@ func (sv *StringSortValue) Compare(other SortValue) int {
 }
 
 type IntSortValue struct {
-	Val int64
+	Val      int64
+	SortName string
 }
 
 func (sv *IntSortValue) Value() interface{} {
@@ -143,7 +145,8 @@ func (sv *IntSortValue) Compare(other SortValue) int {
 }
 
 type FloatSortValue struct {
-	Val float64
+	Val      float64
+	SortName string
 }
 
 func (sv *FloatSortValue) Value() interface{} {
@@ -265,6 +268,7 @@ func (vs SortValues) Reset() SortValues {
 type Sort interface {
 	Compare(i, j SortValue) int
 	SortField() string
+	GetSortOrder() bool
 }
 
 type SortOrder []Sort
