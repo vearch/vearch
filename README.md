@@ -80,6 +80,10 @@ For public discussion of Vearch or for questions, you can also send email to vea
 
 Our slack : https://vearchwrokspace.slack.com
 
+## Known Users
+Welcome to register the company name in this issue: https://github.com/vearch/vearch/issues/221 (in order of registration)
+
+欢迎在此 issue https://github.com/vearch/vearch/issues/221 中登记公司名称
 
 ## License
 Licensed under the Apache License, Version 2.0. For detail see [LICENSE and NOTICE](https://github.com/vearch/vearch/blob/master/LICENSE).
