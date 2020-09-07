@@ -7,7 +7,7 @@ GAMMAOUT=$ROOT/build/gamma_build
 mkdir -p $GAMMAOUT
 
 # version value
-BUILD_VERSION="0.3"
+BUILD_VERSION="3.2.0"
 
 if [ ! -n "$FAISS_HOME" ]; then
   export FAISS_HOME=$ROOT/ps/engine/gammacb/lib/faiss
