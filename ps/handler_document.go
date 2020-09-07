@@ -254,9 +254,9 @@ func bulkSearch(ctx context.Context, store PartitionStore, request []*vearchpb.S
 				}
 			}()
 
-			if err := store.Search(ctx, req, response[i]); err != nil {
-				log.Error("search doc failed, err: [%s]", err.Error())
-				response[i].Head.Err = vearchpb.NewError(0, err).GetError()
+			if err := store.Search(ctx, req, resp); err != nil {
+				log.Error("bulkSearch doc failed, err: [%s]", err.Error())
+				resp.Head.Err = vearchpb.NewError(0, err).GetError()
 			}
 		}(req, response[i])
 	}
