@@ -52,10 +52,8 @@ const (
 )
 
 type Engine struct {
-	Name      string `json:"name"`
-	IndexSize int64  `json:"index_size"`
-	//	MaxSize        int64           `json:"max_size"`
-	MetricType     string          `json:"metric_type,omitempty"`
+	Name           string          `json:"name"`
+	IndexSize      int64           `json:"index_size"`
 	RetrievalType  string          `json:"retrieval_type,omitempty"`
 	RetrievalParam json.RawMessage `json:"retrieval_param,omitempty"`
 	IdType         string          `json:"id_type,omitempty"`
@@ -169,7 +167,6 @@ func (engine *Engine) UnmarshalJSON(bs []byte) error {
 		IndexSize *int64 `json:"index_size"`
 		//		MaxSize        int64           `json:"max_size"`
 		RetrievalParam json.RawMessage `json:"retrieval_param,omitempty"`
-		MetricType     string          `json:"metric_type,omitempty"`
 		RetrievalType  string          `json:"retrieval_type,omitempty"`
 		IdType         string          `json:"id_type,omitempty"`
 	}{}
@@ -189,7 +186,7 @@ func (engine *Engine) UnmarshalJSON(bs []byte) error {
 			}
 
 			if strings.Compare(tempEngine.RetrievalType, "HNSW") == 0 {
-				if v.Nlinks == 0 || v.EfSearch == 0 || v.EfConstruction == 0 {
+				if v.Nlinks == 0 || v.EfConstruction == 0 {
 					return fmt.Errorf("HNSW model param is 0")
 				}
 				if tempEngine.IndexSize == nil || *tempEngine.IndexSize <= 0 {
@@ -197,8 +194,9 @@ func (engine *Engine) UnmarshalJSON(bs []byte) error {
 				}
 			} else if strings.Compare(tempEngine.RetrievalType, "FLAT") == 0 {
 
-			} else if strings.Compare("BINARYIVF", tempEngine.RetrievalType) == 0 {
-				if v.Nprobe == 0 || v.Ncentroids == 0 || v.Ncentroids == 0 {
+			} else if strings.Compare("BINARYIVF", tempEngine.RetrievalType) == 0 ||
+				strings.Compare("IVFFLAT", tempEngine.RetrievalType) == 0 {
+				if v.Ncentroids == 0 {
 					return fmt.Errorf(tempEngine.RetrievalType + " model param is 0")
 				} else {
 					if tempEngine.IndexSize == nil || *tempEngine.IndexSize <= 0 {
@@ -221,12 +219,6 @@ func (engine *Engine) UnmarshalJSON(bs []byte) error {
 				}
 			}
 
-			if v.MetricType == "" {
-				return fmt.Errorf("metric_type is null")
-			}
-
-			tempEngine.MetricType = v.MetricType
-
 		} else {
 			if tempEngine.IndexSize == nil {
 				tempEngine.IndexSize = util.PInt64(100000)
@@ -240,7 +232,6 @@ func (engine *Engine) UnmarshalJSON(bs []byte) error {
 		Name:           tempEngine.Name,
 		IndexSize:      *tempEngine.IndexSize,
 		RetrievalParam: tempEngine.RetrievalParam,
-		MetricType:     tempEngine.MetricType,
 		RetrievalType:  tempEngine.RetrievalType,
 		IdType:         tempEngine.IdType,
 	}
