@@ -144,7 +144,7 @@ curl -v --user "root:secret" -H "content-type: application/json" -XPUT -d'
             "type": "vector",
             "model_id": "img",
             "dimension": 128,
-            "store_type": "Mmap",
+            "store_type": "MemoryOnly",
             "format": "normalization"
         },
         "string_tags": {
@@ -209,7 +209,7 @@ curl -v --user "root:secret" -H "content-type: application/json" -XPUT -d'
             "type": "vector",
             "model_id": "img",
             "dimension": 128,
-            "store_type": "Mmap",
+            "store_type": "RocksDB",
             "format": "normalization"
         },
         "string_tags": {
