@@ -16,30 +16,25 @@ package client
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"time"
 
-	pkg "github.com/vearch/vearch/proto"
-	"github.com/vearch/vearch/proto/request"
-	"github.com/vearch/vearch/proto/response"
-	"github.com/vearch/vearch/util/cbjson"
-	server "github.com/vearch/vearch/util/server/rpc"
-	"github.com/vearch/vearch/util/uuid"
-
-	"bytes"
-
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/proto/entity"
+	"github.com/vearch/vearch/proto/vearchpb"
+
+	"github.com/vearch/vearch/util/cbjson"
+	server "github.com/vearch/vearch/util/server/rpc"
+
 	"github.com/vearch/vearch/util/log"
-	"github.com/vearch/vearch/util/server/rpc/handler"
 )
 
+// ClientType decide the method to choose raft
 type ClientType int
 
 const (
 	LEADER ClientType = iota
-	NOT_LEADER
+	NOTLEADER
 	RANDOM
 	ALL
 )
@@ -51,23 +46,26 @@ const (
 )
 
 const (
-	//doc handler
+	HandlerType  = "type"
+	UnaryHandler = "UnaryHandler"
+
 	SearchHandler        = "SearchHandler"
+	BulkSearchHandler    = "BulkSearchHandler"
 	DeleteByQueryHandler = "DeleteByQueryHandler"
 	MSearchHandler       = "MSearchHandler"
 	MSearchIDsHandler    = "MSearchIDsHandler"
 	MSearchForIDsHandler = "MSearchForIDsHandler"
 	MSearchNewHandler    = "MSearchNewHandler"
+	StreamSearchHandler  = "StreamSearchHandler"
 
-	StreamSearchHandler = "StreamSearchHandler"
-	GetDocHandler       = "GetDocHandler"
-	GetDocsHandler      = "GetDocsHandler"
-	WriteHandler        = "WriteHandler"
-	BatchHandler        = "BatchHandler"
-	FlushHandler        = "FlushHandler"
-	ForceMergeHandler   = "ForceMergeHandler"
+	GetDocHandler     = "GetDocHandler"
+	GetDocsHandler    = "GetDocsHandler"
+	CreateDocHandler  = "CreateDocHandler"
+	DeleteDocsHandler = "DeleteDocsHandler"
+	ReplaceDocHandler = "ReplaceDocHandler"
+	BatchHandler      = "BatchHandler"
+	ForceMergeHandler = "ForceMergeHandler"
 
-	//admin handler
 	CreatePartitionHandler = "CreatePartitionHandler"
 	DeletePartitionHandler = "DeletePartitionHandler"
 	DeleteReplicaHandler   = "DeleteReplicaHandler"
@@ -82,185 +80,21 @@ type psClient struct {
 	client *Client
 }
 
-func (this *psClient) Client() *Client {
-	return this.client
-}
-
-func (this *psClient) B() *sender {
-	return this.Be(context.Background())
-}
-
-func (this *psClient) Be(ctx context.Context) *sender {
-	return this.Beg(ctx, uuid.FlakeUUID())
-}
-
-func (this *psClient) Beg(ctx context.Context, msgId string) *sender {
-	return this.Begin(ctx, 0, msgId, "")
-}
-
-func (this *psClient) Begin(ctx context.Context, partitionNum int, msgId, routerAddr string) *sender {
-	sender := sender{ps: this}
-	sender.Ctx = &request.RequestContext{
-		MessageId: msgId,
-	}
-	sender.Ctx.SetContext(ctx)
-	return &sender
+func (ps *psClient) Client() *Client {
+	return ps.client
 }
 
 //when psclient stop , it will remove all client
-func (this *psClient) Stop() {
-	this.Client().Master().cliCache.Range(func(key, value interface{}) bool {
+func (ps *psClient) Stop() {
+	ps.Client().Master().cliCache.Range(func(key, value interface{}) bool {
 		value.(*rpcClient).close()
-		this.Client().Master().cliCache.Delete(key)
+		ps.Client().Master().cliCache.Delete(key)
 		return true
 	})
 }
 
-type sender struct {
-	ps  *psClient
-	Ctx *request.RequestContext
-}
-
-func (this *sender) MultipleSpace(dbSpaces [][2]string) *multipleSpaceSender {
-	senders := make([]*spaceSender, 0, len(dbSpaces))
-	for _, item := range dbSpaces {
-		senders = append(senders, &spaceSender{sender: this, db: item[0], space: item[1]})
-	}
-	return &multipleSpaceSender{senders: senders}
-}
-
-func (this *sender) MultipleSpaceByType(dbSpaces [][2]string, clientType ClientType) *multipleSpaceSender {
-	senders := make([]*spaceSender, 0, len(dbSpaces))
-	for _, item := range dbSpaces {
-		senders = append(senders, &spaceSender{sender: this, db: item[0], space: item[1], clientType: clientType})
-	}
-	return &multipleSpaceSender{senders: senders}
-}
-
-func (this *sender) Space(db, space string) *spaceSender {
-	return &spaceSender{sender: this, db: db, space: space}
-}
-
-func (this *sender) Admin(partitionServerRpcAddr string) *adminSender {
-	return &adminSender{sender: this, addr: partitionServerRpcAddr}
-}
-
-var nilClient = &rpcClient{}
-
-type rpcClient struct {
-	client  *server.RpcClient
-	useTime int64
-	_lock   sync.RWMutex
-}
-
-func (this *rpcClient) close() {
-	this._lock.Lock()
-	defer this._lock.Unlock()
-	if e := this.client.Close(); e != nil {
-		log.Error(e.Error())
-	}
-	this.client = nil
-}
-
-func (this *rpcClient) lastUse() *rpcClient {
-	this.useTime = time.Now().UnixNano()
-	return this
-}
-
-// ExecuteErrorChangeRetry add retry to handle no leader and not leader situation
-func Execute(addr, servicePath string, request request.Request) (interface{}, int64, error) {
-	sleepTime := baseSleepTime
-	var (
-		response interface{}
-		status   int64
-		e        error
-	)
-	for i := 0; i < adaptRetry; i++ {
-		response, status, e = execute(addr, servicePath, request)
-		if status == pkg.ERRCODE_PARTITION_NO_LEADER {
-			sleepTime = 2 * sleepTime
-			time.Sleep(sleepTime)
-			log.Debug("%s invoke no leader retry, PartitionID: %d, PartitionRpcAddr: %s", servicePath, request.GetPartitionID(), addr)
-			continue
-		} else if status == pkg.ERRCODE_PARTITION_NOT_LEADER {
-			addrs := new(entity.Replica)
-			err := cbjson.Unmarshal([]byte(e.Error()), addrs)
-			if err != nil {
-				return response, status, e
-			}
-			addr = addrs.RpcAddr
-			log.Debug("%s invoke not leader retry, PartitionID: %d, PartitionRpcAddr: %s", servicePath, request.GetPartitionID(), addr)
-			continue
-		}
-		return response, status, e
-	}
-	return response, status, e
-}
-
-//this execute not use cache or pool , it only conn once and close client
-func execute(addr, servicePath string, request request.Request) (interface{}, int64, error) {
-
-	client, err := server.NewRpcClient(addr)
-	if err != nil {
-		log.Error("NewRpcClient() err, err:[%s]", err.Error())
-		return nil, pkg.ERRCODE_INTERNAL_ERROR, err
-	}
-
-	defer func() {
-		if err := client.Close(); err != nil {
-			log.Error("close client err : %s", err.Error())
-		}
-	}()
-
-	response, err := client.Execute(servicePath, &handler.RpcRequest{MessageId: request.Context().MessageId, Arg: request, Ctx: request.Context().GetContext()})
-
-	if err != nil {
-		return nil, pkg.ErrCode(err), err
-	}
-
-	if response.Error != "" {
-		return nil, response.Status, fmt.Errorf(response.Error)
-	}
-
-	return response.Result, pkg.ERRCODE_SUCCESS, nil
-}
-
-func (this *rpcClient) Execute(servicePath string, request request.Request) (interface{}, int64, error) {
-	if this == nilClient {
-		return nil, pkg.ERRCODE_INTERNAL_ERROR, fmt.Errorf("create client err , it is nil")
-	}
-
-	rpcResponse, err := this.client.Execute(servicePath, &handler.RpcRequest{MessageId: request.Context().MessageId, Arg: request, Ctx: request.Context().GetContext()})
-
-	if err != nil {
-		return nil, pkg.ErrCode(err), err
-	}
-
-	if rpcResponse.Error != "" {
-		return rpcResponse.Result, rpcResponse.Status, fmt.Errorf(rpcResponse.Error)
-	}
-
-	return rpcResponse.Result, pkg.ERRCODE_SUCCESS, nil
-}
-
-func (this *rpcClient) StreamExecute(servicePath string, request request.Request, sc server.StreamCallback) (interface{}, int64, error) {
-	if this == nilClient {
-		return nil, pkg.ERRCODE_INTERNAL_ERROR, fmt.Errorf("create client err , it is nil")
-	}
-	rpcResponse, err := this.client.StreamExecute(request.Context().GetContext(), servicePath, &handler.RpcRequest{MessageId: request.Context().MessageId, Arg: request, Ctx: request.Context().GetContext()}, sc)
-	if err != nil {
-		return nil, pkg.ErrCode(err), err
-	}
-
-	if rpcResponse.Error != "" {
-		return rpcResponse.Result, rpcResponse.Status, fmt.Errorf(rpcResponse.Error)
-	}
-
-	return rpcResponse.Result, pkg.ERRCODE_SUCCESS, nil
-}
-
-func (ps *psClient) getOrCreateRpcClient(ctx context.Context, nodeId entity.NodeID) *rpcClient {
-	value, ok := ps.Client().Master().cliCache.Load(nodeId)
+func (ps *psClient) GetOrCreateRPCClient(ctx context.Context, nodeID entity.NodeID) *rpcClient {
+	value, ok := ps.Client().Master().cliCache.Load(nodeID)
 	if ok {
 		return value.(*rpcClient).lastUse()
 	}
@@ -268,13 +102,13 @@ func (ps *psClient) getOrCreateRpcClient(ctx context.Context, nodeId entity.Node
 	ps.Client().Master().cliCache.lock.Lock()
 	defer ps.Client().Master().cliCache.lock.Unlock()
 
-	value, ok = ps.Client().Master().cliCache.Load(nodeId)
+	value, ok = ps.Client().Master().cliCache.Load(nodeID)
 	if ok {
 		return value.(*rpcClient).lastUse()
 	}
 
-	log.Info("psClient not in psClientCache, make new psClient, nodeId:[%d]", nodeId)
-	psServer, err := ps.Client().Master().cliCache.ServerByCache(ctx, nodeId)
+	log.Info("psClient not in psClientCache, make new psClient, nodeID:[%d]", nodeID)
+	psServer, err := ps.Client().Master().cliCache.ServerByCache(ctx, nodeID)
 	if err != nil {
 		log.Error("Master().ServerByCache() err, can not get ps server from master, err: %s", err.Error())
 		return nilClient
@@ -288,30 +122,81 @@ func (ps *psClient) getOrCreateRpcClient(ctx context.Context, nodeId entity.Node
 
 	if client != nil {
 		c := &rpcClient{client: client, useTime: time.Now().UnixNano()}
-		ps.Client().Master().cliCache.Store(nodeId, c)
+		ps.Client().Master().cliCache.Store(nodeID, c)
 		return c.lastUse()
 	}
 
 	return nilClient
 }
 
-func newSearchResponseWithError(dbName, spaceName string, pid uint32, err error) *response.SearchResponse {
-	bb := bytes.Buffer{}
-	bb.WriteString("db:[")
-	bb.WriteString(dbName)
-	bb.WriteString("], ")
-	bb.WriteString("space:[")
-	bb.WriteString(spaceName)
-	bb.WriteString("], ")
-	bb.WriteString("partitionID:[")
-	bb.WriteString(cast.ToString(pid))
-	bb.WriteString("], err:")
-	bb.WriteString(err.Error())
+var nilClient = &rpcClient{}
 
-	return &response.SearchResponse{
-		Status: &response.SearchStatus{
-			Failed: 1,
-			Errors: response.IndexErrMap{err.Error(): fmt.Errorf(bb.String())},
-		},
+type rpcClient struct {
+	client  *server.RpcClient
+	useTime int64
+	_lock   sync.RWMutex
+}
+
+func (r *rpcClient) close() {
+	r._lock.Lock()
+	defer r._lock.Unlock()
+	if e := r.client.Close(); e != nil {
+		log.Error(e.Error())
 	}
+	r.client = nil
+}
+
+func (r *rpcClient) lastUse() *rpcClient {
+	r.useTime = time.Now().UnixNano()
+	return r
+}
+
+func (r *rpcClient) Execute(ctx context.Context, servicePath string, args interface{}, reply *vearchpb.PartitionData) error {
+	if r == nilClient {
+		return vearchpb.NewError(vearchpb.ErrorEnum_Create_RpcClient_Failed, nil)
+	}
+	return r.client.Execute(ctx, servicePath, args, reply)
+}
+
+// Execute add retry to handle no leader and not leader situation
+func Execute(addr, servicePath string, args *vearchpb.PartitionData, reply *vearchpb.PartitionData) (err error) {
+	ctx := context.Background()
+	sleepTime := baseSleepTime
+	for i := 0; i < adaptRetry; i++ {
+		err = execute(ctx, addr, servicePath, args, reply)
+		if err == nil {
+			return nil
+		}
+		if reply.Err != nil && reply.Err.Code == vearchpb.ErrorEnum_PARTITION_NO_LEADER {
+			sleepTime = 2 * sleepTime
+			time.Sleep(sleepTime)
+			log.Warn("%s invoke no leader retry, PartitionID: %d, PartitionRpcAddr: %s", servicePath, args.PartitionID, addr)
+			continue
+		} else if reply.Err != nil && reply.Err.Code == vearchpb.ErrorEnum_PARTITION_NOT_LEADER {
+			addrs := new(entity.Replica)
+			err = cbjson.Unmarshal([]byte(reply.Err.Msg), addrs)
+			if err != nil {
+				return err
+			}
+			addr = addrs.RpcAddr
+			log.Debug("%s invoke not leader retry, PartitionID: %d, PartitionRpcAddr: %s", servicePath, args.PartitionID, addr)
+			continue
+		}
+	}
+	return err
+}
+
+//execute not use cache or pool , it only conn once and close client
+func execute(ctx context.Context, addr, servicePath string, args *vearchpb.PartitionData, reply *vearchpb.PartitionData) error {
+	client, err := server.NewRpcClient(addr)
+	if err != nil {
+		log.Error("NewRpcClient() err, err:[%s]", err.Error())
+		return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err)
+	}
+	defer func() {
+		if err := client.Close(); err != nil {
+			log.Error("close client err : %s", err.Error())
+		}
+	}()
+	return client.Execute(ctx, servicePath, args, reply)
 }

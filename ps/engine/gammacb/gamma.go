@@ -13,13 +13,6 @@
 // permissions and limitations under the License.
 package gammacb
 
-/*
-#cgo CFLAGS : -Ilib/include
-#cgo LDFLAGS: -Llib/lib -lgamma
-
-#include "gamma_api.h"
-*/
-import "C"
 import (
 	"context"
 	"encoding/json"
@@ -30,10 +23,11 @@ import (
 	"time"
 	"unsafe"
 
+	"github.com/vearch/vearch/ps/engine/gamma"
+
 	"github.com/vearch/vearch/config"
-	pkg "github.com/vearch/vearch/proto"
 	"github.com/vearch/vearch/proto/entity"
-	"github.com/vearch/vearch/proto/pspb"
+	"github.com/vearch/vearch/proto/vearchpb"
 	"github.com/vearch/vearch/ps/engine"
 	"github.com/vearch/vearch/ps/engine/mapping"
 	"github.com/vearch/vearch/ps/engine/register"
@@ -58,11 +52,11 @@ var logInitOnce sync.Once
 func New(cfg register.EngineConfig) (engine.Engine, error) {
 
 	//set log dir
-	logInitOnce.Do(func() {
+	/*logInitOnce.Do(func() {
 		if rep := C.SetLogDictionary(byteArrayStr(config.Conf().GetLogDir(config.PS))); rep != 0 {
 			log.Error("init gamma log has err")
 		}
-	})
+	})*/
 
 	// init schema make mapping begin
 	indexMapping, err := mapping.Space2Mapping(cfg.Space)
@@ -77,11 +71,7 @@ func New(cfg register.EngineConfig) (engine.Engine, error) {
 		return nil, e
 	}
 
-	defer C.DestroyFieldInfos(table.fields, table.fields_num)
-	defer C.DestroyVectorInfos(table.vectors_info, table.vectors_num)
-
-	gammaConfig := C.MakeConfig(byteArrayStr(cfg.Path), C.int(cfg.Space.Engine.MaxSize))
-	defer C.DestroyConfig(gammaConfig)
+	config := &gamma.Config{Path: cfg.Path, LogDir: config.Conf().GetLogDir()}
 	ge := &gammaEngine{
 		ctx:          ctx,
 		cancel:       cancel,
@@ -89,7 +79,7 @@ func New(cfg register.EngineConfig) (engine.Engine, error) {
 		space:        cfg.Space,
 		partitionID:  cfg.PartitionID,
 		path:         cfg.Path,
-		gamma:        C.Init(gammaConfig),
+		gamma:        gamma.Init(config),
 		counter:      atomic.NewAtomicInt64(0),
 	}
 	ge.reader = &readerImpl{engine: ge}
@@ -99,28 +89,23 @@ func New(cfg register.EngineConfig) (engine.Engine, error) {
 
 	startTime := time.Now()
 	log.Info("to create table for gamma by path:[%s]", cfg.Path)
-	if resp := C.CreateTable(ge.gamma, table); resp != 0 {
-		return nil, fmt.Errorf("create gamma table has err:[%d]", int(resp))
+	if resp := gamma.CreateTable(ge.gamma, table); resp != 0 {
+		endTime := time.Now()
+		log.Error("creat table for gamma error table: %s cost time :%v", cfg.Space.Name, (endTime.Sub(startTime).Seconds())*1000)
+		return nil, fmt.Errorf("create gamma table has err:[%d]", resp)
 	} else {
 		log.Info("to create table for gamma finish by path:[%s]", cfg.Path)
 	}
+
 	endTime := time.Now()
-	costTime := endTime.Sub(startTime)
-	log.Info("creat table: %s cost time :%d", cfg.Space.Name, int64(costTime/time.Millisecond))
+	log.Info("creat table: %s cost time :%v", cfg.Space.Name, (endTime.Sub(startTime).Seconds())*1000)
 	if len(infos) > 0 {
-		code := int(C.Load(ge.gamma))
+		code := gamma.Load(ge.gamma)
 		if code != 0 {
 			vearchlog.LogErrNotNil(fmt.Errorf("load gamma data err code:[%d]", code))
 			ge.Close()
 		}
 	}
-
-	go ge.autoCreateIndex()
-
-	/*go func() {
-		rc := C.BuildFieldIndex(ge.gamma)
-		log.Warn("build field index over:[%d]", rc)
-	}()*/
 
 	if log.IsDebugEnabled() {
 		go func() {
@@ -130,7 +115,10 @@ func New(cfg register.EngineConfig) (engine.Engine, error) {
 					return
 				default:
 				}
-				log.Debug("gamma use memory is:[%d]", C.GetMemoryBytes(ge.gamma))
+				//log.Debug("gamma use memory is:[%d]", C.GetMemoryBytes(ge.gamma))
+				var status gamma.EngineStatus
+				gamma.GetEngineStatus(ge.gamma, &status)
+				log.Debug("gamma use memory is:[%d]", (status.BitmapMem + status.FieldRangeMem + status.TableMem + status.VectorMem))
 				time.Sleep(10 * time.Second)
 			}
 		}()
@@ -168,10 +156,6 @@ func (ge *gammaEngine) Reader() engine.Reader {
 	return ge.reader
 }
 
-func (ge *gammaEngine) RTReader() engine.RTReader {
-	return ge.reader
-}
-
 func (ge *gammaEngine) Writer() engine.Writer {
 	return ge.writer
 }
@@ -200,10 +184,6 @@ func (ge *gammaEngine) GetMapping() *mapping.IndexMapping {
 	return ge.indexMapping
 }
 
-func (ge *gammaEngine) MapDocument(doc *pspb.DocCmd, retrievalType string) ([]*pspb.Field, map[string]pspb.FieldType, error) {
-	return ge.indexMapping.MapDocument(doc.Source, retrievalType)
-}
-
 func (ge *gammaEngine) Optimize() error {
 	/*if _, err := ge.reader.DocCount(ge.ctx); err != nil {
 		return err
@@ -221,7 +201,9 @@ func (ge *gammaEngine) Optimize() error {
 }
 
 func (ge *gammaEngine) IndexStatus() int {
-	return int(C.GetIndexStatus(ge.gamma))
+	var status gamma.EngineStatus
+	gamma.GetEngineStatus(ge.gamma, &status)
+	return int(status.IndexStatus)
 }
 
 func (ge *gammaEngine) BuildIndex() error {
@@ -229,36 +211,21 @@ func (ge *gammaEngine) BuildIndex() error {
 	defer indexLocker.Unlock()
 	ge.counter.Incr()
 	defer ge.counter.Decr()
-	gamma := ge.gamma
-	if gamma == nil {
-		return vearchlog.LogErrAndReturn(pkg.CodeErr(pkg.ERRCODE_PARTITION_IS_CLOSED))
+	gammaEngine := ge.gamma
+	if gammaEngine == nil {
+		return vearchlog.LogErrAndReturn(vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_IS_CLOSED, nil))
 	}
 
 	//UNINDEXED = 0, INDEXING, INDEXED
 	go func() {
-		rc := C.BuildIndex(gamma)
-		if rc != 0 {
+		startTime := time.Now()
+		if rc := gamma.BuildIndex(gammaEngine); rc != 0 {
 			log.Error("build index:[%d] err response code:[%d]", ge.partitionID, rc)
+		} else {
+			endTime := time.Now()
+			log.Info("BuildIndex cost:[%f],rc :[%d]", (endTime.Sub(startTime).Seconds())*1000, rc)
 		}
 	}()
-	/*for {
-		select {
-		case <-ge.ctx.Done():
-			log.Error("partition:[%d] has closed so skip wait", ge.partitionID)
-			return vearchlog.LogErrAndReturn(pkg.CodeErr(pkg.ERRCODE_PARTITION_IS_CLOSED))
-		default:
-		}
-
-		s := C.GetIndexStatus(gamma)
-		log.Info("index:[%d] status is %d", ge.partitionID, int(s))
-
-		if int(s) == 2 {
-			log.Info("index:[%d] ok", ge.partitionID)
-			break
-		}
-
-		time.Sleep(3 * time.Second)
-	}*/
 
 	return nil
 }
@@ -278,7 +245,12 @@ func (ge *gammaEngine) Close() {
 			}
 			start, flakeUUID := time.Now(), uuid.FlakeUUID()
 			log.Info("to close gamma engine begin token:[%s]", flakeUUID)
-			C.Close(closeEngine)
+			if resp := gamma.Close(closeEngine); resp != 0 {
+				log.Error("to close gamma engine fail:[%d]", resp)
+			} else {
+				log.Info("to close gamma engine success:[%d]", resp)
+			}
+
 			log.Info("to close gamma engine end token:[%s] use time:[%d]", flakeUUID, time.Now().Sub(start))
 			break
 		}
@@ -299,8 +271,10 @@ func (ge *gammaEngine) autoCreateIndex() {
 		default:
 		}
 
-		s := C.GetIndexStatus(ge.gamma)
-
+		//s := C.GetIndexStatus(ge.gamma)
+		var status gamma.EngineStatus
+		gamma.GetEngineStatus(ge.gamma, &status)
+		s := status.IndexStatus
 		if int(s) == 2 {
 			log.Info("index:[%d] ok", ge.partitionID)
 			break

@@ -14,31 +14,24 @@
 
 package gammacb
 
-/*
-#cgo CFLAGS : -Ilib/include
-#cgo LDFLAGS: -Llib/lib -lgamma
-
-#include "gamma_api.h"
-*/
 import "C"
 import (
 	"context"
+	"errors"
 	"fmt"
-	"github.com/spf13/cast"
-	pkg "github.com/vearch/vearch/proto"
-	"github.com/vearch/vearch/proto/pspb"
-	"github.com/vearch/vearch/proto/response"
-	"github.com/vearch/vearch/ps/engine"
-	"github.com/vearch/vearch/util/cbbytes"
-	"github.com/vearch/vearch/util/ioutil2"
-	"github.com/vearch/vearch/util/log"
-	"github.com/vearch/vearch/util/vearchlog"
 	"os"
 	"path/filepath"
 	"runtime/debug"
 	"strconv"
-	"time"
-	"unsafe"
+
+	"github.com/spf13/cast"
+	"github.com/vearch/vearch/ps/engine/gamma"
+	"github.com/vearch/vearch/util/ioutil2"
+	"github.com/vearch/vearch/util/log"
+	"github.com/vearch/vearch/util/vearchlog"
+
+	"github.com/vearch/vearch/proto/vearchpb"
+	"github.com/vearch/vearch/ps/engine"
 )
 
 var _ engine.Writer = &writerImpl{}
@@ -48,178 +41,80 @@ type writerImpl struct {
 	running bool
 }
 
-func (wi *writerImpl) Write(ctx context.Context, doc *pspb.DocCmd) *response.DocResult {
-	if doc == nil || doc.Type == pspb.OpType_NOOP {
-		log.Error("you put a nil doc cmd or noop is zero , make sure it a bug")
-		return response.NewErrDocResult(doc.DocId, fmt.Errorf("you put a nil doc cmd , make sure it a bug"))
-	}
-
-	var result *response.DocResult
-	switch doc.Type {
-	case pspb.OpType_MERGE, pspb.OpType_REPLACE:
-		result = wi.Update(ctx, doc)
-	case pspb.OpType_CREATE:
-		result = wi.Create(ctx, doc)
-	case pspb.OpType_DELETE:
-		result = wi.Delete(ctx, doc)
-	default:
-		result = response.NewErrDocResult(doc.DocId, fmt.Errorf("not found op type:[%d]", doc.Type))
-	}
-	return result
-}
-
-func (wi *writerImpl) Create(ctx context.Context, docCmd *pspb.DocCmd) *response.DocResult {
-	wi.engine.counter.Incr()
-	defer wi.engine.counter.Decr()
-
-	gamma := wi.engine.gamma
-	if gamma == nil {
-		return response.NewErrDocResult(docCmd.DocId, vearchlog.LogErrAndReturn(pkg.CodeErr(pkg.ERRCODE_PARTITION_IS_CLOSED)))
-	}
-
-	gammaStartTime := time.Now()
-	cDoc, err := DocCmd2Document(docCmd, wi.engine.space.Engine.IdType)
-	if err != nil {
-		return response.NewErrDocResult(docCmd.DocId, err)
-	}
-	defer C.DestroyFields(cDoc.fields, cDoc.fields_num)
-
-	/*go func() {
-		if resp := C.AddDoc(gamma, (*C.struct_Doc)(unsafe.Pointer(cDoc))); resp != 0 {
-			log.Warn("gamma create doc err code:[%d]", int(resp))
-		}
-	}()*/
-	/*a++
-	if a%10000 ==0 {
-		log.Info("Create=a:%d", a)
-	}*/
-	defer func() {
-		if err := recover(); err != nil {
-			log.Error("gamma create error：", err)
-		}
-	}()
-	if resp := C.AddDoc(gamma, (*C.struct_Doc)(unsafe.Pointer(cDoc))); resp != 0 {
-		return response.NewErrDocResult(docCmd.DocId, fmt.Errorf("gamma create doc err code:[%d]", int(resp)))
-	}
-
-	result := wi.engine.DocCmd2WriteResult(docCmd, gammaStartTime)
-	return result
-}
-
-//var a = 0
-
-func (wi *writerImpl) Update(ctx context.Context, docCmd *pspb.DocCmd) *response.DocResult {
-	wi.engine.counter.Incr()
-	defer wi.engine.counter.Decr()
-
-	gamma := wi.engine.gamma
-	if gamma == nil {
-		return response.NewErrDocResult(docCmd.DocId, vearchlog.LogErrAndReturn(pkg.CodeErr(pkg.ERRCODE_PARTITION_IS_CLOSED)))
-	}
-
-	gammaStartTime := time.Now()
-	cDoc, err := DocCmd2Document(docCmd, wi.engine.space.Engine.IdType)
-	if err != nil {
-		return response.NewErrDocResult(docCmd.DocId, err)
-	}
-	defer func() {
-		C.DestroyFields(cDoc.fields, cDoc.fields_num)
-	}()
-	/*a++
-	if a%10000 ==0 {
-		log.Info("Update=a:%d", a)
-	}*/
-	//log.Info("#################docId:%s", docCmd.DocId)
-	defer func() {
-		if err := recover(); err != nil {
-			log.Error("gamma update error：", err)
-		}
-	}()
-	if resp := C.AddOrUpdateDoc(gamma, (*C.struct_Doc)(unsafe.Pointer(cDoc))); resp != 0 {
-		return response.NewErrDocResult(docCmd.DocId, fmt.Errorf("gamma create doc err code:[%d]", int(resp)))
-	}
-
-	return wi.engine.DocCmd2WriteResult(docCmd, gammaStartTime)
-}
-
-func (wi *writerImpl) Delete(ctx context.Context, docCmd *pspb.DocCmd) *response.DocResult {
-	wi.engine.counter.Incr()
-	defer wi.engine.counter.Decr()
-
-	gamma := wi.engine.gamma
-	if gamma == nil {
-		return response.NewErrDocResult(docCmd.DocId, vearchlog.LogErrAndReturn(pkg.CodeErr(pkg.ERRCODE_PARTITION_IS_CLOSED)))
-	}
-
-	/*if docCmd.Version == 0 {
-		return response.NewErrDocResult(docCmd.DocId, pkg.CodeErr(pkg.ERRCODE_PULL_OUT_VERSION_NOT_MATCH))
-	}
-
-	if docCmd.Version < 0 {
-		if code := C.DelDoc(gamma, byteArrayStr(docCmd.DocId)); code != 0 {
-			return response.NewErrDocResult(docCmd.DocId, fmt.Errorf("delete document err"))
-		}
-	}*/
-
-	//if docCmd.Version > 0 {
-	/*doc := wi.engine.reader.GetDoc(ctx, docCmd.DocId)
+func (wi *writerImpl) Write(ctx context.Context, doc *vearchpb.DocCmd) (err error) {
 	if doc == nil {
-		return response.NewNotFoundDocResult(docCmd.DocId)
+		return errors.New("doc is nil")
 	}
-	if !doc.Found {
-		return response.NewErrDocResult(docCmd.DocId, pkg.CodeErr(pkg.ERRCODE_DOCUMENT_NOT_EXIST))
-	}*/
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("[Rocover] [%s]", cast.ToString(r))
+		}
+	}()
+	wi.engine.counter.Incr()
+	defer wi.engine.counter.Decr()
 
-	/*if docCmd.Version != doc.Version {
-		if docCmd.PulloutVersion {
-			return response.NewErrDocResult(docCmd.DocId, pkg.CodeErr(pkg.ERRCODE_PULL_OUT_VERSION_NOT_MATCH))
-		} else {
-			return response.NewErrDocResult(docCmd.DocId, fmt.Errorf("document version not same new:[%d] old:[%d]", docCmd.Version, doc.Version))
-		}
-	}*/
-
-	idType := wi.engine.space.Engine.IdType
-	if idType != "" && ("long" == idType || "Long" == idType) {
-		int64Id, err := strconv.ParseInt(docCmd.DocId, 10, 64)
-		if err != nil {
-			return response.NewErrDocResult(docCmd.DocId, fmt.Errorf("table id is long but docId is string , docId Convert long error"))
-		}
-
-		toByteId, _ := cbbytes.ValueToByte(int64Id)
-		cID := byteArray(toByteId)
-		if code := C.DelDoc(wi.engine.gamma, cID); code != 0 {
-			return response.NewErrDocResult(docCmd.DocId, fmt.Errorf("delete document err response code :[%d]", code))
-		}
-	} else {
-		cID := byteArrayStr(docCmd.DocId)
-		if code := C.DelDoc(wi.engine.gamma, cID); code != 0 {
-			return response.NewErrDocResult(docCmd.DocId, fmt.Errorf("delete document err response code :[%d]", code))
-		}
+	gammaEngine := wi.engine.gamma
+	if gammaEngine == nil {
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_IS_CLOSED, nil)
 	}
 
-	delResult := response.DocResult{
-		Found:     true,
-		DB:        wi.engine.GetSpace().DBId,
-		Space:     wi.engine.GetSpace().Id,
-		Partition: wi.engine.GetPartitionID(),
-		Id:        docCmd.DocId,
+	switch doc.Type {
+	case vearchpb.OpType_REPLACE:
+		if resp := gamma.AddOrUpdateDoc(gammaEngine, doc.Doc); resp != 0 {
+			err = fmt.Errorf("gamma create doc err code:[%d]", int(resp))
+			return vearchpb.NewError(0, err)
+		}
+	case vearchpb.OpType_DELETE:
+		if resp := gamma.DeleteDoc(gammaEngine, doc.Doc); resp != 0 {
+			if resp == -1 {
+				return vearchpb.NewError(vearchpb.ErrorEnum_DOCUMENT_NOT_EXIST, nil)
+			}
+			err = fmt.Errorf("gamma delete doc err code:[%d]", int(resp))
+			return vearchpb.NewError(0, err)
+		}
+	default:
+		msg := fmt.Sprintf("type: [%v] not found", doc.Type)
+		err = vearchpb.NewError(0, errors.New(msg))
 	}
-	return &delResult
-	//return wi.engine.reader.GetDoc(ctx, docCmd.DocId)
+	return
 }
 
+/*
+func (wi *writerImpl) Update(ctx context.Context, docCmd *vearchpb.DocCmd) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Errorf("[Rocover] Create error [%s]", cast.ToString(r))
+		}
+	}()
+	wi.engine.counter.Incr()
+	defer wi.engine.counter.Decr()
+
+	gammaEngine := wi.engine.gamma
+	if gammaEngine == nil {
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_IS_CLOSED, nil)
+	}
+
+	if resp := gamma.AddOrUpdateDoc(gammaEngine, docCmd.Doc); resp != 0 {
+		err = fmt.Errorf("gamma create doc err code:[%d]", int(resp))
+		return vearchpb.NewError(0, err)
+	}
+	return
+}
+
+*/
 func (wi *writerImpl) Flush(ctx context.Context, sn int64) error {
 	wi.engine.counter.Incr()
 	defer wi.engine.counter.Decr()
 
-	gamma := wi.engine.gamma
-	if gamma == nil {
-		return vearchlog.LogErrAndReturn(pkg.CodeErr(pkg.ERRCODE_PARTITION_IS_CLOSED))
+	gammaEngine := wi.engine.gamma
+	if gammaEngine == nil {
+		return vearchlog.LogErrAndReturn(vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_IS_CLOSED, nil))
 	}
 
 	wi.engine.lock.Lock()
 	defer wi.engine.lock.Unlock()
-	if code := C.Dump(gamma); code != 0 {
+	//if code := C.Dump(gamma); code != 0 {
+	if code := gamma.Dump(gammaEngine); code != 0 {
 		return fmt.Errorf("dump index err response code :[%d]", code)
 	}
 
@@ -235,9 +130,9 @@ func (wi *writerImpl) Commit(ctx context.Context, snx int64) (chan error, error)
 	wi.engine.counter.Incr()
 	defer wi.engine.counter.Decr()
 
-	gamma := wi.engine.gamma
-	if gamma == nil {
-		return nil, vearchlog.LogErrAndReturn(pkg.CodeErr(pkg.ERRCODE_PARTITION_IS_CLOSED))
+	gammaEngine := wi.engine.gamma
+	if gammaEngine == nil {
+		return nil, vearchlog.LogErrAndReturn(vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_IS_CLOSED, nil))
 	}
 
 	flushC := make(chan error, 1)
@@ -266,7 +161,8 @@ func (wi *writerImpl) Commit(ctx context.Context, snx int64) (chan error, error)
 
 		log.Info("begin dump data for gamma")
 
-		if code := C.Dump(gamma); code != 0 {
+		//if code := C.Dump(gamma); code != 0 {
+		if code := gamma.Dump(gammaEngine); code != 0 {
 			fc <- vearchlog.LogErrAndReturn(fmt.Errorf("dump index err response code :[%d]", code))
 		} else {
 			fileName := filepath.Join(wi.engine.path, indexSn)

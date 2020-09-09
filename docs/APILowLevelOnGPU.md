@@ -28,7 +28,6 @@ curl -v --user "root:secret" -H "content-type: application/json" -XPUT -d'
 		"max_size": 100000,
         "retrieval_type": "GPU",
 		"retrieval_param": {
-			"metric_type": "L2",
 			"ncentroids": 1024,
 			"nsubvector": -1
 		}

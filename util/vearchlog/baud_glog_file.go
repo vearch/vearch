@@ -19,6 +19,7 @@
 package vearchlog
 
 import (
+	"container/list"
 	"errors"
 	"fmt"
 	"os"
@@ -29,7 +30,28 @@ import (
 	"time"
 )
 
-const defaultRotateSize = 1024 * 1024 * 100
+const defaultRotateSize = 1024 * 1024 * 1024
+const defaultRotateNum = 5
+
+var queueDict map[string]*list.List
+
+var (
+	RotateNum  = defaultRotateNum
+	RotateSize = defaultRotateSize
+)
+
+func SetConfig(num, size int) {
+	if num == 0 {
+		RotateNum = defaultRotateNum
+	} else {
+		RotateNum = num
+	}
+	if size == 0 {
+		RotateSize = defaultRotateSize
+	} else {
+		RotateSize = size
+	}
+}
 
 func createLogDirs(dir string) {
 	if dir == "" {
@@ -68,6 +90,7 @@ func init() {
 
 	// Sanitize userName since it may contain filepath separators on Windows.
 	userName = strings.Replace(userName, `\`, "_", -1)
+	queueDict = make(map[string]*list.List)
 }
 
 // shortHostname returns its argument, truncating at the first period.
@@ -82,7 +105,7 @@ func shortHostname(hostname string) string {
 // logName returns a new log file name containing tag, with start time t, and
 // the name for the symlink for tag.
 func lastLogName(prefix, tag string, t time.Time) (name string) {
-	name = fmt.Sprintf("%s.%s.log.%04d%02d%02d-%02d%02d%02d",
+	name = fmt.Sprintf("%s.%s.log.%04d%02d%02d-%02d%02d%02d.%d",
 		prefix,
 		tag,
 		t.Year(),
@@ -90,7 +113,8 @@ func lastLogName(prefix, tag string, t time.Time) (name string) {
 		t.Day(),
 		t.Hour(),
 		t.Minute(),
-		t.Second())
+		t.Second(),
+		t.Nanosecond())
 	return name
 }
 
@@ -138,5 +162,18 @@ func renameAndCreate(dir, prefix, tag string, t time.Time) (*os.File, error) {
 	}
 
 	f, _, err := create(dir, prefix, tag)
+	queue, ok := queueDict[fOldName]
+	if !ok {
+		queue = list.New()
+		queueDict[fOldName] = queue
+	}
+	queue.PushBack(fNewPath)
+	if queue.Len() > RotateNum {
+		removeFile := queue.Remove(queue.Front()).(string)
+		if err = os.Remove(removeFile); err != nil {
+			fmt.Println(fmt.Sprintf("Remove log file %s failed, err %s", removeFile, err.Error()))
+		}
+	}
+
 	return f, err
 }

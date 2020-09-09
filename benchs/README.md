@@ -1,4 +1,4 @@
 # Benchmarks
 
-Please see the [benchmarks](https://github.com/vearch/gamma/blob/master/benchs/README.md) in Gamma Engine.
+Please see the [benchmarks](/engine/benchs/README.md) in Gamma Engine.
 

@@ -16,165 +16,26 @@ package ps
 
 import (
 	"context"
-	"encoding/json"
+	"errors"
+	"fmt"
+	"github.com/vearch/vearch/util/cbbytes"
 	"net"
+	"strconv"
 	"strings"
-	"time"
+	"sync"
 
-	"github.com/smallnest/rpcx/server"
+	"github.com/smallnest/rpcx/share"
+	"github.com/spf13/cast"
 	"github.com/vearch/vearch/client"
 	"github.com/vearch/vearch/config"
-	pkg "github.com/vearch/vearch/proto"
-	"github.com/vearch/vearch/proto/entity"
-	"github.com/vearch/vearch/proto/pspb"
-	"github.com/vearch/vearch/proto/request"
-	"github.com/vearch/vearch/proto/response"
-	"github.com/vearch/vearch/ps/engine"
-	"github.com/vearch/vearch/util/cbjson"
+	"github.com/vearch/vearch/ps/engine/gamma"
+	"github.com/vearch/vearch/ps/engine/mapping"
+
+	"github.com/vearch/vearch/proto/vearchpb"
 	"github.com/vearch/vearch/util/log"
-	rpc "github.com/vearch/vearch/util/server/rpc"
 	"github.com/vearch/vearch/util/server/rpc/handler"
 	"go.uber.org/atomic"
 )
-
-func ExportToRpcHandler(server *Server) {
-
-	initHandler := &InitHandler{server: server}
-	psErrorChange := psErrorChange(server)
-	streamSearchHandler := &StreamSearchHandler{server: server.rpcServer}
-
-	limitPlugin := &limitPlugin{limit: atomic.NewInt64(0), size: 50000}
-
-	server.rpcServer.AddPlugin(limitPlugin)
-
-	//register search handler
-	if err := server.rpcServer.RegisterName(handler.NewChain(client.SearchHandler, handler.DefaultPanicHadler, psErrorChange, initHandler, new(SearchHandler)), ""); err != nil {
-		panic(err)
-	}
-
-	if err := server.rpcServer.RegisterName(handler.NewChain(client.DeleteByQueryHandler, handler.DefaultPanicHadler, psErrorChange, initHandler, new(DeleteByQueryHandler)), ""); err != nil {
-		panic(err)
-	}
-
-	if err := server.rpcServer.RegisterName(handler.NewChain(client.MSearchHandler, handler.DefaultPanicHadler, psErrorChange, initHandler, new(MSearchHandler)), ""); err != nil {
-		panic(err)
-	}
-
-	if err := server.rpcServer.RegisterName(handler.NewChain(client.MSearchIDsHandler, handler.DefaultPanicHadler, psErrorChange, initHandler, new(MSearchIDsHandler)), ""); err != nil {
-		panic(err)
-	}
-
-	if err := server.rpcServer.RegisterName(handler.NewChain(client.MSearchForIDsHandler, handler.DefaultPanicHadler, psErrorChange, initHandler, new(MSearchForIDsHandler)), ""); err != nil {
-		panic(err)
-	}
-
-	if err := server.rpcServer.RegisterName(handler.NewChain(client.MSearchNewHandler, handler.DefaultPanicHadler, psErrorChange, initHandler, new(MSearchNewHandler)), ""); err != nil {
-		panic(err)
-	}
-
-	if err := server.rpcServer.RegisterName(handler.NewChain(client.StreamSearchHandler, handler.DefaultPanicHadler, psErrorChange, initHandler, streamSearchHandler), ""); err != nil {
-		panic(err)
-	}
-
-	if err := server.rpcServer.RegisterName(handler.NewChain(client.GetDocHandler, handler.DefaultPanicHadler, psErrorChange, initHandler, new(GetDocHandler)), ""); err != nil {
-		panic(err)
-	}
-
-	if err := server.rpcServer.RegisterName(handler.NewChain(client.GetDocsHandler, handler.DefaultPanicHadler, psErrorChange, initHandler, new(GetDocsHandler)), ""); err != nil {
-		panic(err)
-	}
-
-	if err := server.rpcServer.RegisterName(handler.NewChain(client.BatchHandler, handler.DefaultPanicHadler, psErrorChange, initHandler, &BatchHandler{server: server}), ""); err != nil {
-		panic(err)
-	}
-
-	if err := server.rpcServer.RegisterName(handler.NewChain(client.WriteHandler, handler.DefaultPanicHadler, psErrorChange, initHandler, &WriteHandler{server: server, limitPlugin: limitPlugin}), ""); err != nil {
-		panic(err)
-	}
-
-	if err := server.rpcServer.RegisterName(handler.NewChain(client.FlushHandler, handler.DefaultPanicHadler, psErrorChange, initHandler, &FlushHandler{server: server}), ""); err != nil {
-		panic(err)
-	}
-
-	if err := server.rpcServer.RegisterName(handler.NewChain(client.ForceMergeHandler, handler.DefaultPanicHadler, psErrorChange, initHandler, &ForceMergeHandler{server: server}), ""); err != nil {
-		panic(err)
-	}
-
-}
-
-//add context and set timeout if timeout > 0, add store engine , limit request doc num
-type InitHandler struct {
-	server *Server
-}
-
-func (i *InitHandler) Execute(req *handler.RpcRequest, resp *handler.RpcResponse) error {
-	if i.server.stopping.Get() {
-		return pkg.CodeErr(pkg.ERRCODE_SERVICE_UNAVAILABLE)
-	}
-
-	arg := req.Arg.(request.Request)
-	rCtx := arg.Context()
-	if rCtx.Timeout > 0 {
-		ctx, cancel := context.WithTimeout(req.Ctx, time.Duration(rCtx.Timeout)*time.Second)
-		arg.SetContext(ctx)
-		req.Cancel = cancel
-	} else {
-		arg.SetContext(req.Ctx)
-	}
-
-	if store := i.server.GetPartition(arg.GetPartitionID()); store == nil {
-		log.Error("partition not found, partitionId:[%d]", arg.GetPartitionID())
-		return pkg.CodeErr(pkg.ERRCODE_PARTITION_NOT_EXIST)
-	} else {
-		rCtx.SetStore(store)
-	}
-
-	return nil
-}
-
-//create update index handler
-type BatchHandler struct {
-	server *Server
-}
-
-func (wh *BatchHandler) Execute(req *handler.RpcRequest, resp *handler.RpcResponse) error {
-
-	reqs := req.GetArg().(*request.ObjRequest)
-	docs := make([]*pspb.DocCmd, 0, 10)
-	if err := reqs.Decode(&docs); err != nil {
-		return err
-	}
-
-	store := reqs.GetStore().(PartitionStore)
-
-	for _, doc := range docs {
-		if doc.Type != pspb.OpType_DELETE && doc.Type != pspb.OpType_NOOP {
-			if err := fullFieldAndUpdateSchema(wh.server, req.Ctx, store.GetEngine(), store.GetSpace(), doc); err != nil {
-				return err
-			}
-		}
-	}
-
-	result := make(response.WriteResponse, len(docs))
-	for i := 0; i < len(docs); i++ {
-		if reps, err := store.Write(req.Ctx, docs[i]); err != nil {
-			log.Error("insert doc err :[%s] , content :[%s]", err.Error(), docs[i].Source)
-			result[i] = response.NewErrDocResult(docs[i].DocId, err)
-		} else {
-			result[i] = reps
-		}
-	}
-
-	resp.Result = result
-
-	return nil
-}
-
-//create update index handler
-type WriteHandler struct {
-	server      *Server
-	limitPlugin *limitPlugin
-}
 
 type limitPlugin struct {
 	size  int64
@@ -197,329 +58,287 @@ func (lp *limitPlugin) HandleConnAccept(conn net.Conn) (net.Conn, bool) {
 	return conn, true
 }
 
-func (wh *WriteHandler) Execute(req *handler.RpcRequest, resp *handler.RpcResponse) error {
+func ExportToRpcHandler(server *Server) {
 
-	wh.limitPlugin.limit.Inc()
-	defer wh.limitPlugin.limit.Dec()
+	initHandler := &InitHandler{server: server}
+	psErrorChange := psErrorChange(server)
 
-	if wh.limitPlugin.limit.Load() > wh.limitPlugin.size {
-		log.Warn("too many routine:[%d] for limt so skip pre read request", wh.limitPlugin.limit.Load())
-		return pkg.CodeErr(pkg.ERRCODE_SYSBUSY)
+	limitPlugin := &limitPlugin{limit: atomic.NewInt64(0), size: 50000}
+	server.rpcServer.AddPlugin(limitPlugin)
+
+	if err := server.rpcServer.RegisterName(handler.NewChain(client.UnaryHandler, handler.DefaultPanicHandler, psErrorChange, initHandler, &UnaryHandler{server: server}), ""); err != nil {
+		panic(err)
 	}
 
-	reqs := req.GetArg().(*request.ObjRequest)
-	doc := pspb.GetDocCmd()
-	defer func() {
-		pspb.PutDocCmd(doc)
-	}()
-	if err := reqs.Decode(doc); err != nil {
-		return err
-	}
-
-	store := reqs.GetStore().(PartitionStore)
-
-	if doc.Type != pspb.OpType_DELETE && doc.Type != pspb.OpType_NOOP {
-		if err := fullFieldAndUpdateSchema(wh.server, req.Ctx, store.GetEngine(), store.GetSpace(), doc); err != nil {
-			return err
-		}
-	}
-
-	/*raftCmd := raftpb.RaftCommand{
-		Type : raftpb.CmdType_WRITE,
-		WriteCommand : doc,
-	}
-
-	startTime := time.Now()
-	docResult := store.GetEngine().Writer().Write(req.Ctx,raftCmd.WriteCommand)
-	endTime := time.Now()
-
-	if doc.Type != pspb.OpType_DELETE {
-		if doc.Type != pspb.OpType_DELETE {
-			docResult.CostTime.PsHandlerStartTime = startTime
-			docResult.CostTime.PsHandlerEndTime = endTime
-		}
-	}
-
-	resp.Result = docResult*/
-
-	startTime := time.Now()
-	if reps, err := store.Write(req.Ctx, doc); err != nil {
-		log.Error("  type: [%s] doc err :[%s] , content :[%s]", doc.Type, err.Error(), doc.Source)
-		return err
-	} else {
-		endTime := time.Now()
-		if doc.Type != pspb.OpType_DELETE && reps.CostTime != nil {
-			reps.CostTime.PsHandlerStartTime = startTime
-			reps.CostTime.PsHandlerEndTime = endTime
-		}
-		resp.Result = reps
-	}
-
-	return nil
 }
 
-//flush index handler
-type FlushHandler struct {
+type InitHandler struct {
 	server *Server
 }
 
-func (wh *FlushHandler) Execute(req *handler.RpcRequest, resp *handler.RpcResponse) error {
-	reqs := req.Arg.(request.Request)
-	store := reqs.Context().GetStore().(PartitionStore)
-	err := store.Flush(req.Ctx)
-	if err != nil {
-		return err
+func (i *InitHandler) Execute(ctx context.Context, req *vearchpb.PartitionData, reply *vearchpb.PartitionData) error {
+	if i.server.stopping.Get() {
+		return vearchpb.NewError(vearchpb.ErrorEnum_SERVICE_UNAVAILABLE, nil)
 	}
 
 	return nil
 }
 
-//forceMerge index handler
-type ForceMergeHandler struct {
+type UnaryHandler struct {
 	server *Server
 }
 
-func (wh *ForceMergeHandler) Execute(req *handler.RpcRequest, resp *handler.RpcResponse) error {
-	reqs := req.Arg.(request.Request)
-	store := reqs.Context().GetStore().(PartitionStore)
-	return store.GetEngine().Optimize()
-}
-
-func fullFieldAndUpdateSchema(server *Server, ctx context.Context, engine engine.Engine, space entity.Space, doc *pspb.DocCmd) error {
-
-	fields, dynamicFieldMap, err := engine.MapDocument(doc, space.Engine.RetrievalType)
-	if err != nil {
-		return err
-	}
-	doc.Fields = fields
-	if len(dynamicFieldMap) > 0 {
-
-		newMapping := make(map[string]interface{})
-
-		for path, fieldType := range dynamicFieldMap {
-			split := strings.Split(path, ".")
-			var temp interface{}
-			pre := newMapping
-			for i := 0; i < len(split)-1; i++ {
-				temp = pre[split[i]]
-				if temp == nil {
-					pre[split[i]] = map[string]interface{}{"properties": make(map[string]interface{})}
-					temp = pre[split[i]]
-				} else {
-					temp = temp.(map[string]interface{})
-				}
-				pre = temp.(map[string]interface{})["properties"].(map[string]interface{})
-			}
-			pre[split[len(split)-1]] = map[string]interface{}{"type": strings.ToLower(fieldType.String())}
-		}
-
-		bytes, err := json.Marshal(newMapping)
-		if err != nil {
-			return err
-		}
-
-		dbName, err := server.client.Master().QueryDBId2Name(ctx, space.DBId)
-		if err != nil {
-			return err
-		}
-
-		newSpace := &entity.Space{Id: space.Id, Name: space.Name, Properties: bytes}
-
-		if err := server.client.Master().UpdateSpace(ctx, dbName, newSpace); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-//retrieve handler
-type GetDocHandler int
-
-func (*GetDocHandler) Execute(req *handler.RpcRequest, resp *handler.RpcResponse) error {
-	reqs := req.GetArg().(*request.ObjRequest)
-	docID := ""
-	if err := reqs.Decode(&docID); err != nil {
-		return err
-	}
-	if reps, err := reqs.GetStore().(PartitionStore).GetDocument(req.Ctx, reqs.Leader, docID); err != nil {
-		return err
-	} else {
-		resp.Result = reps
-	}
-	return nil
-}
-
-//retrieve handler
-type GetDocsHandler int
-
-func (*GetDocsHandler) Execute(req *handler.RpcRequest, resp *handler.RpcResponse) error {
-	reqs := req.GetArg().(*request.ObjRequest)
-	ids := make([]string, 0, 10)
-	if err := reqs.Decode(&ids); err != nil {
-		return err
-	}
-
-	if responses, err := reqs.GetStore().(PartitionStore).GetDocuments(req.Ctx, reqs.Leader, ids); err != nil {
-		return err
-	} else {
-		resp.Result = responses
-	}
-	return nil
-
-}
-
-//deleteByQuery handler
-type DeleteByQueryHandler int
-
-func (*DeleteByQueryHandler) Execute(req *handler.RpcRequest, resp *handler.RpcResponse) error {
-	reqs := req.GetArg().(*request.SearchRequest)
-	if reqs.SearchDocumentRequest == nil {
-		reqs.SearchDocumentRequest = &request.SearchDocumentRequest{}
-	}
-
-	delCount, err := reqs.GetStore().(PartitionStore).DeleteByQuery(req.Ctx, reqs.Leader, reqs)
-	if err != nil {
-		return err
-	}
-
-	resp.Result = delCount
-
-	return nil
-}
-
-//search handler
-type SearchHandler int
-
-func (*SearchHandler) Execute(req *handler.RpcRequest, resp *handler.RpcResponse) error {
-	reqs := req.GetArg().(*request.SearchRequest)
-	if reqs.SearchDocumentRequest == nil {
-		reqs.SearchDocumentRequest = &request.SearchDocumentRequest{}
-	}
-
-	if reps, e := reqs.GetStore().(PartitionStore).Search(req.Ctx, reqs.Leader, reqs); e != nil {
-		return e
-	} else {
-		resp.Result = reps
-	}
-
-	return nil
-}
-
-type MSearchNewHandler int
-
-func (*MSearchNewHandler) Execute(req *handler.RpcRequest, resp *handler.RpcResponse) error {
-	reqs := req.GetArg().(*request.SearchRequest)
-	if reqs.SearchDocumentRequest == nil {
-		reqs.SearchDocumentRequest = &request.SearchDocumentRequest{}
-	}
-
-	if reps, e := reqs.GetStore().(PartitionStore).MSearchNew(req.Ctx, reqs.Leader, reqs); e != nil {
-		return e
-	} else {
-		resp.Result = reps
-	}
-
-	return nil
-}
-
-type MSearchIDsHandler int
-
-func (*MSearchIDsHandler) Execute(req *handler.RpcRequest, resp *handler.RpcResponse) error {
-	reqs := req.GetArg().(*request.SearchRequest)
-	if reqs.SearchDocumentRequest == nil {
-		reqs.SearchDocumentRequest = &request.SearchDocumentRequest{}
-	}
-
-	if reps, e := reqs.GetStore().(PartitionStore).MSearchIDs(req.Ctx, reqs.Leader, reqs); e != nil {
-		return e
-	} else {
-		resp.Result = reps
-	}
-
-	return nil
-}
-
-type MSearchForIDsHandler int
-
-func (*MSearchForIDsHandler) Execute(req *handler.RpcRequest, resp *handler.RpcResponse) error {
-	reqs := req.GetArg().(*request.SearchRequest)
-	if reqs.SearchDocumentRequest == nil {
-		reqs.SearchDocumentRequest = &request.SearchDocumentRequest{}
-	}
-
-	if reps, e := reqs.GetStore().(PartitionStore).MSearchForIDs(req.Ctx, reqs.Leader, reqs); e != nil {
-		return e
-	} else {
-		resp.Result = reps
-	}
-
-	return nil
-}
-
-//Msearch handler
-type MSearchHandler int
-
-func (*MSearchHandler) Execute(req *handler.RpcRequest, resp *handler.RpcResponse) error {
-	reqs := req.GetArg().(*request.SearchRequest)
-	if reqs.SearchDocumentRequest == nil {
-		reqs.SearchDocumentRequest = &request.SearchDocumentRequest{}
-	}
-
-	if reps, e := reqs.GetStore().(PartitionStore).MSearch(req.Ctx, reqs.Leader, reqs); e != nil {
-		return e
-	} else {
-		resp.Result = reps
-	}
-
-	return nil
-}
-
-//search handler
-type StreamSearchHandler struct {
-	server *rpc.RpcServer
-}
-
-func (ssh *StreamSearchHandler) Execute(req *handler.RpcRequest, resp *handler.RpcResponse) error {
-	reqs := req.GetArg().(*request.SearchRequest)
-	if reqs.SearchDocumentRequest == nil {
-		reqs.SearchDocumentRequest = &request.SearchDocumentRequest{}
-	}
-
-	resultChan := make(chan *response.DocResult, 100)
-
-	go func() {
-		_ = reqs.GetStore().(PartitionStore).StreamSearch(req.Ctx, reqs.Leader, reqs, resultChan)
-	}()
-
-	conn := req.Ctx.Value(server.RemoteConnContextKey).(net.Conn)
-	if conn == nil {
-		return pkg.CodeErr(pkg.ERRCODE_SERVICE_UNAVAILABLE)
-	}
-
+func (handler *UnaryHandler) Execute(ctx context.Context, req *vearchpb.PartitionData, reply *vearchpb.PartitionData) (err error) {
 	defer func() {
-		if err := ssh.server.SendMessage(conn, client.StreamSearchHandler, nil); err != nil {
+		if r := recover(); r != nil {
+			err = vearchpb.NewError(vearchpb.ErrorEnum_RECOVER, errors.New(cast.ToString(r)))
 			log.Error(err.Error())
 		}
 	}()
-	for {
-		select {
-		case result, ok := <-resultChan:
-			if !ok {
-				return nil
-			}
+	if handler.server == nil {
+		log.Info("%s", "ps server is nil")
+	}
+	reply.PartitionID = req.PartitionID
+	reply.MessageID = req.MessageID
+	reply.Items = req.Items
+	reply.SearchRequest = req.SearchRequest
+	reply.SearchResponse = req.SearchResponse
+	reply.SearchRequests = req.SearchRequests
+	reply.SearchResponses = req.SearchResponses
+	reply.DelByQueryResponse = req.DelByQueryResponse
 
-			bytes, err := cbjson.Marshal(result)
-			if err != nil {
-				return err
+	store := handler.server.GetPartition(reply.PartitionID)
+	if store == nil {
+		msg := fmt.Sprintf("partition not found, partitionId:[%d]", reply.PartitionID)
+		log.Error("%s", msg)
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_NOT_EXIST, errors.New(msg))
+	}
+	var method string
+	reqMap := ctx.Value(share.ReqMetaDataKey).(map[string]string)
+	method, ok := reqMap[client.HandlerType]
+	if !ok {
+		err = fmt.Errorf("client type not found in matadata, key [%s]", client.HandlerType)
+		return vearchpb.NewError(0, err)
+	}
+	switch method {
+	case client.GetDocsHandler:
+		getDocuments(ctx, store, reply.Items)
+	case client.DeleteDocsHandler:
+		deleteDocs(ctx, store, reply.Items)
+	case client.BatchHandler:
+		bulk(ctx, store, reply.Items)
+	case client.SearchHandler:
+		if reply.SearchResponse == nil {
+			reply.SearchResponse = &vearchpb.SearchResponse{}
+		}
+		search(ctx, store, reply.SearchRequest, reply.SearchResponse)
+	case client.BulkSearchHandler:
+		if reply.SearchResponses == nil || len(reply.SearchResponses) == 0 {
+			searchResps := make([]*vearchpb.SearchResponse, 0)
+			for i := 0; i < len(reply.SearchRequests); i++ {
+				searchReq := reply.SearchRequests[i]
+				sortFieldMap := searchReq.SortFieldMap
+				topSize := searchReq.TopN
+				resp := &vearchpb.SearchResponse{SortFieldMap: sortFieldMap, TopSize: topSize}
+				searchResps = append(searchResps, resp)
 			}
+			reply.SearchResponses = searchResps
+		}
+		bulkSearch(ctx, store, reply.SearchRequests, reply.SearchResponses)
+	case client.ForceMergeHandler:
+		farceMerge(ctx, store, reply.Err)
+	case client.DeleteByQueryHandler:
+		if reply.DelByQueryResponse == nil {
+			reply.DelByQueryResponse = &vearchpb.DelByQueryeResponse{DelNum: 0}
+		}
+		deleteByQuery(ctx, store, reply.SearchRequest, reply.DelByQueryResponse)
+	default:
+		log.Error("method not found, method: [%s]", method)
+		return vearchpb.NewError(vearchpb.ErrorEnum_METHOD_NOT_IMPLEMENT, nil)
 
-			err = ssh.server.SendMessage(conn, client.StreamSearchHandler, bytes)
-			if err != nil {
-				return err
+	}
+	return nil
+}
+
+func getDocuments(ctx context.Context, store PartitionStore, items []*vearchpb.Item) {
+	for _, item := range items {
+		if e := store.GetDocument(ctx, true, item.Doc); e != nil {
+			msg := fmt.Sprintf("GetDocument failed, key: [%s], err: [%s]", item.Doc.PKey, e.Error())
+			log.Error("%s", msg)
+			if vearchErr, ok := e.(*vearchpb.VearchErr); ok {
+				item.Err = vearchErr.GetError()
+			} else {
+				item.Err = &vearchpb.Error{Code: vearchpb.ErrorEnum_INTERNAL_ERROR, Msg: msg}
 			}
-		case <-req.Ctx.Done():
-			return req.Ctx.Err()
 		}
 	}
+}
 
+func deleteDocs(ctx context.Context, store PartitionStore, items []*vearchpb.Item) {
+	wg := sync.WaitGroup{}
+	for _, item := range items {
+		wg.Add(1)
+		go func(item *vearchpb.Item) {
+			defer wg.Done()
+			defer func() {
+				if r := recover(); r != nil {
+					item.Err = &vearchpb.Error{Code: vearchpb.ErrorEnum_INTERNAL_ERROR, Msg: cast.ToString(r)}
+				}
+			}()
+			if len(item.Doc.Fields) != 1 {
+				msg := fmt.Sprintf("fileds of doc can only have one field--[%s] when delete", mapping.IdField)
+				item.Err = &vearchpb.Error{Code: vearchpb.ErrorEnum_INTERNAL_ERROR, Msg: msg}
+				return
+			}
+			dataBytes := item.Doc.Fields[0].Value
+			docCmd := &vearchpb.DocCmd{Type: vearchpb.OpType_DELETE, Doc: dataBytes}
+			if err := store.Write(ctx, docCmd); err != nil {
+				log.Error("delete doc failed, err: [%s]", err.Error())
+				item.Err = vearchpb.NewError(0, err).GetError()
+			}
+		}(item)
+	}
+	wg.Wait()
+
+}
+
+func bulk(ctx context.Context, store PartitionStore, items []*vearchpb.Item) {
+	wg := sync.WaitGroup{}
+	for _, item := range items {
+		wg.Add(1)
+		go func(item *vearchpb.Item) {
+			defer wg.Done()
+			defer func() {
+				if r := recover(); r != nil {
+					item.Err = &vearchpb.Error{Code: vearchpb.ErrorEnum_INTERNAL_ERROR, Msg: cast.ToString(r)}
+				}
+			}()
+			docGamma := &gamma.Doc{Fields: item.Doc.Fields}
+			docBytes := docGamma.Serialize()
+			docCmd := &vearchpb.DocCmd{Type: vearchpb.OpType_REPLACE, Doc: docBytes}
+			if err := store.Write(ctx, docCmd); err != nil {
+				log.Error("Add doc failed, err: [%s]", err.Error())
+				item.Err = vearchpb.NewError(0, err).GetError()
+			} else {
+				item.Doc.Fields = nil
+			}
+		}(item)
+	}
+	wg.Wait()
+}
+
+func search(ctx context.Context, store PartitionStore, request *vearchpb.SearchRequest, response *vearchpb.SearchResponse) {
+	if err := store.Search(ctx, request, response); err != nil {
+		log.Error("search doc failed, err: [%s]", err.Error())
+		response.Head.Err = vearchpb.NewError(0, err).GetError()
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			response.Head.Err = &vearchpb.Error{Code: vearchpb.ErrorEnum_INTERNAL_ERROR, Msg: cast.ToString(r)}
+		}
+	}()
+}
+
+func bulkSearch(ctx context.Context, store PartitionStore, request []*vearchpb.SearchRequest, response []*vearchpb.SearchResponse) {
+	wg := sync.WaitGroup{}
+	for i, req := range request {
+		wg.Add(1)
+		go func(req *vearchpb.SearchRequest, resp *vearchpb.SearchResponse) {
+			defer wg.Done()
+			defer func() {
+				if r := recover(); r != nil {
+					if resp.Head == nil {
+						responseHead := &vearchpb.ResponseHead{Err: &vearchpb.Error{Code: vearchpb.ErrorEnum_INTERNAL_ERROR, Msg: cast.ToString(r)}}
+						resp.Head = responseHead
+					}
+				}
+			}()
+
+			if err := store.Search(ctx, req, resp); err != nil {
+				log.Error("bulkSearch doc failed, err: [%s]", err.Error())
+				resp.Head.Err = vearchpb.NewError(0, err).GetError()
+			}
+		}(req, response[i])
+	}
+	wg.Wait()
+}
+
+func farceMerge(ctx context.Context, store PartitionStore, error *vearchpb.Error) {
+	err := store.GetEngine().Optimize()
+	if err != nil {
+		partitionID := store.GetPartition().Id
+		pIdStr := strconv.Itoa(int(partitionID))
+		error = &vearchpb.Error{Code: vearchpb.ErrorEnum_FORCE_MERGE_BUILD_INDEX_ERR,
+			Msg: "build index err, PartitionID :" + pIdStr}
+	} else {
+		error = nil
+	}
+}
+
+func deleteByQuery(ctx context.Context, store PartitionStore, req *vearchpb.SearchRequest, resp *vearchpb.DelByQueryeResponse) {
+	searchResponse := &vearchpb.SearchResponse{}
+	if err := store.Search(ctx, req, searchResponse); err != nil {
+		log.Error("deleteByQuery search doc failed, err: [%s]", err.Error())
+		head := &vearchpb.ResponseHead{Err: &vearchpb.Error{Code: vearchpb.ErrorEnum_DELETE_BY_QUERY_SERACH_ERR, Msg: "deleteByQuery search doc failed"}}
+		resp.Head = head
+	} else {
+		flatBytes := searchResponse.FlatBytes
+		if flatBytes != nil {
+			gamma.DeSerialize(flatBytes, searchResponse)
+		}
+
+		results := searchResponse.Results
+		if results == nil || len(results) == 0 {
+			head := &vearchpb.ResponseHead{Err: &vearchpb.Error{Code: vearchpb.ErrorEnum_DELETE_BY_QUERY_SEARCH_ID_IS_0, Msg: "deleteByQuery search id is 0"}}
+			resp.Head = head
+		} else {
+			idIsLongStr := req.Head.Params["idIsLong"]
+
+			idIsLong := false
+			if idIsLongStr == "true" {
+				idIsLong = true
+			}
+			docs := make([]*vearchpb.Item, 0)
+			for _, result := range results {
+				if result == nil || result.ResultItems == nil || len(result.ResultItems) == 0 {
+					log.Error("query id is 0")
+				} else {
+					for _, doc := range result.ResultItems {
+						var pKey string
+						for _, fv := range doc.Fields {
+							name := fv.Name
+							switch name {
+							case mapping.IdField:
+								if idIsLong {
+									id := int64(cbbytes.ByteArray2UInt64(fv.Value))
+									pKey = strconv.FormatInt(id, 10)
+								} else {
+									pKey = string(fv.Value)
+								}
+							}
+						}
+						if pKey != "" {
+							field := &vearchpb.Field{Name: "_id", Value: []byte(pKey)}
+							fields := make([]*vearchpb.Field, 0)
+							fields = append(fields, field)
+							doc := &vearchpb.Document{PKey: pKey, Fields: fields}
+							item := &vearchpb.Item{Doc: doc}
+							docs = append(docs, item)
+						}
+					}
+				}
+			}
+			if len(docs) == 0 {
+				head := &vearchpb.ResponseHead{Err: &vearchpb.Error{Code: vearchpb.ErrorEnum_DELETE_BY_QUERY_SEARCH_ID_IS_0, Msg: "deleteByQuery search id is 0"}}
+				resp.Head = head
+			} else {
+				deleteDocs(ctx, store, docs)
+				for _, item := range docs {
+					if item.Err == nil {
+						resp.DelNum++
+					}
+				}
+			}
+		}
+	}
 }

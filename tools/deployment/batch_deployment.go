@@ -19,10 +19,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/BurntSushi/toml"
-	"github.com/pkg/sftp"
-	"github.com/vearch/vearch/config"
-	"golang.org/x/crypto/ssh"
 	"io/ioutil"
 	"log"
 	"net"
@@ -32,6 +28,11 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/BurntSushi/toml"
+	"github.com/pkg/sftp"
+	"github.com/vearch/vearch/config"
+	"golang.org/x/crypto/ssh"
 )
 
 type DepConf struct {
@@ -198,28 +199,26 @@ func destroy(ipMap map[string]bool, cf *ssh.ClientConfig, binPath string) {
 
 		client := createClient(ip, conf, cf)
 
-		for _, master := range cbf.Masters {
-			removeDir(client, master.Log)
-			if len(master.Data) > 0 {
-				removeDir(client, master.Data[0])
-			}
+		removeDir(client, cbf.Global.Log)
+		if len(cbf.Global.Data) > 0 {
+			removeDir(client, cbf.Global.Data[0])
 		}
 		client.Close()
 	}
 
 	for _, ip := range conf.Router {
 		client := createClient(ip, conf, cf)
-		removeDir(client, cbf.GetDataDir(config.Router))
-		removeDir(client, cbf.GetLogDir(config.Router))
+		removeDir(client, cbf.GetDataDir())
+		removeDir(client, cbf.GetLogDir())
 		client.Close()
 	}
 
 	for _, ip := range conf.Ps {
 		client := createClient(ip, conf, cf)
-		for _, pd := range cbf.GetDatas(config.PS) {
+		for _, pd := range cbf.GetDatas() {
 			removeDir(client, pd)
 		}
-		removeDir(client, cbf.GetLogDir(config.PS))
+		removeDir(client, cbf.GetLogDir())
 		client.Close()
 	}
 }

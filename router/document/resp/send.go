@@ -43,6 +43,10 @@ func SendErrorRootCause(ctx context.Context, w http.ResponseWriter, httpStatus i
 	netutil.NewResponse(w).SetHttpStatus(httpStatus).SendJson(NewBodyRootCause(errorType, errorReason, httpStatus))
 }
 
+func SendText(ctx context.Context, w http.ResponseWriter, resp string) {
+	netutil.NewResponse(w).SetHttpStatus(http.StatusOK).SendText(resp)
+}
+
 func SendJsonBytes(ctx context.Context, w http.ResponseWriter, bytes []byte) {
 	netutil.NewResponse(w).SetHttpStatus(http.StatusOK).SendJsonBytes(bytes)
 }

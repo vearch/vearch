@@ -15,68 +15,17 @@
 package response
 
 import (
-	"github.com/vearch/vearch/util/cbjson"
-	"strconv"
+	"github.com/vearch/vearch/proto/vearchpb"
+	"github.com/vearch/vearch/ps/engine/sortorder"
 )
 
-func NewErrDocResults(ids []string, err error) []*DocResult {
-	result := make(DocResults, len(ids))
-	for i, id := range ids {
-		result[i] = NewErrDocResult(id, err)
-	}
-	return result
+type SearchDocResult struct {
+	PartitionData *vearchpb.PartitionData
+	SortValueMap  map[string][]sortorder.SortValue
+	TopSizes      []int32
 }
 
-type DocResults []*DocResult
-
-func (this *DocResults) ToContent(dbName, spaceName string, idIsLong bool) ([]byte, error) {
-
-	var builder = cbjson.ContentBuilderFactory()
-
-	builder.BeginArray()
-
-	for i, u := range *this {
-		if i != 0 {
-			builder.More()
-		}
-		builder.BeginObject()
-
-		builder.Field("_index")
-		builder.ValueString(dbName)
-
-		builder.More()
-		builder.Field("_type")
-		builder.ValueString(spaceName)
-
-		builder.More()
-		builder.Field("_id")
-		if idIsLong {
-			idInt64, err := strconv.ParseInt(u.Id, 10, 64)
-			if err == nil {
-				builder.ValueNumeric(idInt64)
-			}
-		} else {
-			builder.ValueString(u.Id)
-		}
-
-		builder.More()
-		builder.Field("found")
-		builder.ValueBool(u.Found)
-
-		if u.Found {
-			/*builder.More()
-			builder.Field("_version")
-			builder.ValueNumeric(u.Version)*/
-
-			builder.More()
-			builder.Field("_source")
-			builder.ValueInterface(u.Source)
-		}
-
-		builder.EndObject()
-	}
-
-	builder.EndArray()
-
-	return builder.Output()
+type SearchItemsSort struct {
+	ResultItem *vearchpb.ResultItem
+	SortValues sortorder.SortValues
 }

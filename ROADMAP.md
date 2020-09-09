@@ -68,3 +68,51 @@ Plugin service can be installed in Docker.
 
 Stability testing.
 
+## Vearch 3.1.0
+
+Vearch 3.1.0 released in May 2020.
+
+### New features
+
+Support real time HNSW index
+
+Support binary index
+
+Support IVFFLAT index
+
+## Vearch 3.2.0
+
+Vearch 3.2.0 will be released in August 2020.
+
+### New features
+
+Clear gamma engine api
+
+Gamma engine supports customerized retrieval models
+
+Support the Grpc service for router
+
+Refactor for the router and partition server
+
+
+## The future enhancement for Vearch
+
+### New features or enhancement
+
+Router grpc client(java, c++, go and python)
+
+More fast and robust retrieval models(q-adc, IVFx+HNSWy+OPQz, NSG, …)
+
+More complex powerful query gramma like SQL or ES(enhance VQL)
+
+Ivf index: change the docid from long to int, try to compress the docids with the algorithm of newpfordelta
+
+Develop a plugin which can be used to index vectors in Spark or Flink clusters with Gamma engine
+
+Vector storage based on the clusters
+
+Support the multiple retrieval models and versions
+
+Support the auto-expired documents 
+
+Explore and integrate the best and practical vector compression technology

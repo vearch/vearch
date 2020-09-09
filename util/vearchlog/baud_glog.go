@@ -122,6 +122,8 @@ var severityName = []string{
 	fatalLog:   "FATAL",
 }
 
+var severityLevelByte = [5][]byte{[]byte("DEBUG"), []byte("INFO"), []byte("WARN"), []byte("ERROR"), []byte("FATAL")}
+
 // get returns the value of the severity.
 func (s *severity) get() severity {
 	return severity(atomic.LoadInt32((*int32)(s)))
@@ -407,11 +409,12 @@ type flushSyncWriter interface {
 func ToInit(logging *loggingT) {
 	//logging.toStderr = false
 	//logging.alsoToStderr = true
-	logging.rotateSize = defaultRotateSize
+	logging.rotateSize = uint64(RotateSize)
 	//logging.dir = os.TempDir()
 
 	// Default stderrThreshold is ERROR.
-	logging.stderrThreshold = errorLog
+	// logging.stderrThreshold = errorLog
+	logging.stderrThreshold = numSeverity
 
 	logging.setVState(0, nil, false)
 	go logging.flushDaemon()
@@ -566,30 +569,36 @@ func (l *loggingT) formatHeader(s severity, file string, line int) *buffer {
 
 	// Avoid Fprintf, for speed. The format is so simple that we can do it quickly by hand.
 	// It's worth about 3X. Fprintf is hard.
-	_, month, day := now.Date()
+	year, month, day := now.Date()
 	hour, minute, second := now.Clock()
 	// Lmmdd hh:mm:ss.uuuuuu threadid file:line]
-	buf.tmp[0] = severityChar[s]
-	buf.twoDigits(1, int(month))
-	buf.twoDigits(3, day)
-	buf.tmp[5] = ' '
-	buf.twoDigits(6, hour)
-	buf.tmp[8] = ':'
-	buf.twoDigits(9, minute)
-	buf.tmp[11] = ':'
-	buf.twoDigits(12, second)
-	buf.tmp[14] = '.'
-	buf.nDigits(6, 15, now.Nanosecond()/1000, '0')
-	buf.tmp[21] = ' '
-	buf.nDigits(7, 22, pid, ' ') // TODO: should be TID
-	buf.tmp[29] = ' '
-	buf.Write(buf.tmp[:30])
+	//buf.tmp[0] = severityChar[s]
+	buf.Write(severityLevelByte[s])
+	buf.tmp[0] = ' '
+	buf.nDigits(4, 1, year, ' ')
+	buf.tmp[5] = '-'
+	buf.twoDigits(6, int(month))
+	buf.tmp[8] = '-'
+	buf.twoDigits(9, day)
+	buf.tmp[11] = ' '
+	buf.twoDigits(12, hour)
+	buf.tmp[14] = ':'
+	buf.twoDigits(15, minute)
+	buf.tmp[17] = ':'
+	buf.twoDigits(18, second)
+	buf.tmp[20] = ','
+	buf.nDigits(3, 21, now.Nanosecond()/1000000, '0')
+	buf.tmp[24] = ' '
+	//buf.nDigits(7, 32, pid, ' ') // TODO: should be TID
+	//buf.tmp[39] = ' '
+	buf.Write(buf.tmp[:25])
 	buf.WriteString(file)
 	buf.tmp[0] = ':'
 	n := buf.someDigits(1, line)
-	buf.tmp[n+1] = ']'
-	buf.tmp[n+2] = ' '
-	buf.Write(buf.tmp[:n+3])
+	buf.tmp[n+1] = ' '
+	//buf.tmp[n+2] = ' '
+	buf.Write(buf.tmp[:n+2])
+
 	return buf
 }
 
@@ -646,7 +655,7 @@ func (l *loggingT) printDepth(s severity, depth int, format string, args ...inte
 		}
 	}
 
-	buf.Write(log_type[s])
+	//buf.Write(log_type[s])
 	if len(args) == 0 {
 		buf.WriteString(format)
 	} else {
@@ -867,6 +876,7 @@ func (sb *syncBuffer) rotateFile(logging *loggingT, now time.Time) error {
 	fmt.Fprintf(&buf, "Log line format: [IWEF]mmdd hh:mm:ss.uuuuuu threadid file:line] msg\n")
 	n, err := sb.file.Write(buf.Bytes())
 	sb.nbytes += uint64(n)
+
 	return err
 }
 

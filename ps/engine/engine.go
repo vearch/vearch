@@ -16,58 +16,33 @@ package engine
 
 import (
 	"context"
+
 	"github.com/tiglabs/raft/proto"
 	"github.com/vearch/vearch/proto/entity"
-	"github.com/vearch/vearch/proto/pspb"
-	"github.com/vearch/vearch/proto/request"
-	"github.com/vearch/vearch/proto/response"
+	"github.com/vearch/vearch/proto/vearchpb"
 	"github.com/vearch/vearch/ps/engine/mapping"
 )
 
 // Reader is the read interface to an engine's data.
 type Reader interface {
-	GetDoc(ctx context.Context, docID string) *response.DocResult
-
-	GetDocs(ctx context.Context, docIDs []string) []*response.DocResult
-
-	Search(ctx context.Context, req *request.SearchRequest) *response.SearchResponse
-
-	MSearchIDs(ctx context.Context, request *request.SearchRequest) *response.SearchResponse
-
-	MSearchForIDs(ctx context.Context, request *request.SearchRequest) ([]byte, error)
-
-	MSearch(ctx context.Context, request *request.SearchRequest) response.SearchResponses
-
-	MSearchNew(ctx context.Context, request *request.SearchRequest) *response.SearchResponse
-
-	//you can use ctx to cancel the stream , when this function returned will close resultChan
-	StreamSearch(ctx context.Context, req *request.SearchRequest, resultChan chan *response.DocResult) error
+	GetDoc(ctx context.Context, doc *vearchpb.Document) error
 
 	ReadSN(ctx context.Context) (int64, error)
 
 	DocCount(ctx context.Context) (uint64, error)
 
 	Capacity(ctx context.Context) (int64, error)
-}
 
-// RTReader is a real time reader, only used by ps or engine for update document
-type RTReader interface {
-	RTReadDoc(ctx context.Context, docID string) *response.DocResult
+	Search(ctx context.Context, request *vearchpb.SearchRequest, resp *vearchpb.SearchResponse) error
 }
 
 // Writer is the write interface to an engine's data.
 type Writer interface {
 	// use do by single cmd , support create update replace or delete
-	Write(ctx context.Context, docCmd *pspb.DocCmd) *response.DocResult
-
-	// if you not set id , suggest use it to create
-	Create(ctx context.Context, docCmd *pspb.DocCmd) *response.DocResult
+	Write(ctx context.Context, docCmd *vearchpb.DocCmd) error
 
 	//this update will merge documents
-	Update(ctx context.Context, docCmd *pspb.DocCmd) *response.DocResult
-
-	//delete documents
-	Delete(ctx context.Context, docCmd *pspb.DocCmd) *response.DocResult
+	// Update(ctx context.Context, docCmd *vearchpb.DocCmd) error
 
 	// flush memory to segment, new reader will read the newest data
 	Flush(ctx context.Context, sn int64) error
@@ -79,10 +54,8 @@ type Writer interface {
 // Engine is the interface that wraps the core operations of a document store.
 type Engine interface {
 	Reader() Reader
-	RTReader() RTReader
 	Writer() Writer
-	//return three value, field to pspb.Field , new Schema info , error
-	MapDocument(doc *pspb.DocCmd, retrievalType string) ([]*pspb.Field, map[string]pspb.FieldType, error)
+	//return three value, field to vearchpb.Field , new Schema info , error
 	NewSnapshot() (proto.Snapshot, error)
 	ApplySnapshot(peers []proto.Peer, iter proto.SnapIterator) error
 	Optimize() error
