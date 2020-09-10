@@ -82,8 +82,9 @@ message VectorMetaInfo {
     }
     ValueType value_type = 2;
     enum StoreType {
-        MMAP = 0;
+        MEMORYONLY = 0;
         ROCKSDB = 1;
+        MMAP = 2;
     }
     StoreType store_type = 3;
     int32 store_cache_size = 4;
