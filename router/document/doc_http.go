@@ -69,6 +69,9 @@ func (handler *DocumentHandler) ExportToServer() error {
 	// bulk: /$dbName/$spaceName/_bulk
 	handler.httpServer.HandlesMethods([]string{http.MethodPost}, fmt.Sprintf("/{%s}/{%s}/_bulk", URLParamDbName, URLParamSpaceName), []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleBulk}, nil)
 
+	// flush space: /$dbName/$spaceName/_flush
+	handler.httpServer.HandlesMethods([]string{http.MethodPost}, fmt.Sprintf("/{%s}/{%s}/_flush", URLParamDbName, URLParamSpaceName), []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleFlush}, nil)
+
 	// search doc: /$dbName/$spaceName/_search
 	handler.httpServer.HandlesMethods([]string{http.MethodGet, http.MethodPost}, fmt.Sprintf("/{%s}/{%s}/_search", URLParamDbName, URLParamSpaceName), []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleSearchDoc}, nil)
 
@@ -250,6 +253,33 @@ func (handler *DocumentHandler) handleBulk(ctx context.Context, w http.ResponseW
 		return ctx, true
 	}
 	resp.SendText(ctx, w, reply.String())
+	return ctx, true
+}
+
+// handleFlush for flush
+func (handler *DocumentHandler) handleFlush(ctx context.Context, w http.ResponseWriter, r *http.Request, params netutil.UriParams) (context.Context, bool) {
+	startTime := time.Now()
+	defer monitor.Profiler("handleFlush", startTime)
+	args := &vearchpb.FlushRequest{}
+	args.Head = setRequestHead(params, r)
+
+	space, err := handler.docService.getSpace(ctx, args.Head.DbName, args.Head.SpaceName)
+	if space == nil {
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "dbName or spaceName param not build db or space")
+		return ctx, true
+	}
+	if err != nil {
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "query Cache space null")
+		return ctx, false
+	}
+	flushResponse := handler.docService.flush(ctx, args)
+	shardsBytes, err := FlushToContent(flushResponse.Shards)
+	if err != nil {
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
+		return ctx, true
+	}
+
+	resp.SendJsonBytes(ctx, w, shardsBytes)
 	return ctx, true
 }
 

@@ -82,6 +82,11 @@ message ForceMergeRequest{
     RequestHead head = 1;
 }
 
+message FlushRequest{
+    option (gogoproto.goproto_getters) = true;
+    RequestHead head = 1;
+}
+
 //*********************** doc result *********************** //
 
 message GetResponse{
@@ -123,6 +128,12 @@ message DelByQueryeResponse{
     option (gogoproto.goproto_getters) = true;
     ResponseHead head = 1;
     int32 DelNum = 2;
+}
+
+message FlushResponse{
+    option (gogoproto.goproto_getters) = true;
+    ResponseHead head = 1;
+    SearchStatus shards = 2;
 }
 
 //*********************** Search query *********************** //

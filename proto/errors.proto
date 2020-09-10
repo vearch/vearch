@@ -85,6 +85,7 @@ enum ErrorEnum {
     FORCE_MERGE_BUILD_INDEX_ERR = 63;
     DELETE_BY_QUERY_SERACH_ERR = 64;
     DELETE_BY_QUERY_SEARCH_ID_IS_0 = 65;
+    FLUSH_ERR = 66;
     Create_RpcClient_Failed = 70;
     Call_RpcClient_Failed = 71;
     RECOVER = 100;

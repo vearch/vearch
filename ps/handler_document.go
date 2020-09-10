@@ -146,12 +146,14 @@ func (handler *UnaryHandler) Execute(ctx context.Context, req *vearchpb.Partitio
 		}
 		bulkSearch(ctx, store, reply.SearchRequests, reply.SearchResponses)
 	case client.ForceMergeHandler:
-		farceMerge(ctx, store, reply.Err)
+		forceMerge(ctx, store, reply.Err)
 	case client.DeleteByQueryHandler:
 		if reply.DelByQueryResponse == nil {
 			reply.DelByQueryResponse = &vearchpb.DelByQueryeResponse{DelNum: 0}
 		}
 		deleteByQuery(ctx, store, reply.SearchRequest, reply.DelByQueryResponse)
+	case client.FlushHandler:
+		flush(ctx, store, reply.Err)
 	default:
 		log.Error("method not found, method: [%s]", method)
 		return vearchpb.NewError(vearchpb.ErrorEnum_METHOD_NOT_IMPLEMENT, nil)
@@ -263,13 +265,25 @@ func bulkSearch(ctx context.Context, store PartitionStore, request []*vearchpb.S
 	wg.Wait()
 }
 
-func farceMerge(ctx context.Context, store PartitionStore, error *vearchpb.Error) {
+func forceMerge(ctx context.Context, store PartitionStore, error *vearchpb.Error) {
 	err := store.GetEngine().Optimize()
 	if err != nil {
 		partitionID := store.GetPartition().Id
 		pIdStr := strconv.Itoa(int(partitionID))
 		error = &vearchpb.Error{Code: vearchpb.ErrorEnum_FORCE_MERGE_BUILD_INDEX_ERR,
 			Msg: "build index err, PartitionID :" + pIdStr}
+	} else {
+		error = nil
+	}
+}
+
+func flush(ctx context.Context, store PartitionStore, error *vearchpb.Error) {
+	err := store.Flush(ctx)
+	if err != nil {
+		partitionID := store.GetPartition().Id
+		pIdStr := strconv.Itoa(int(partitionID))
+		error = &vearchpb.Error{Code: vearchpb.ErrorEnum_FLUSH_ERR,
+			Msg: "flush err, PartitionID :" + pIdStr}
 	} else {
 		error = nil
 	}
