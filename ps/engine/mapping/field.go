@@ -314,7 +314,7 @@ type VectortFieldMapping struct {
 	ModelId   string  `json:"model_id"`
 	Format    *string `json:"format,omitempty"` //default is "normalization", "normal" , if set "no" others it will not format
 	//	RetrievalType string  `json:"retrieval_type,omitempty"` // "IVFPQ", "PACINS","GPU" ...
-	StoreType  string `json:"store_type,omitempty"` // "Mmap", "RocksDB"
+	StoreType  string `json:"store_type,omitempty"` // "Mmap", "RocksDB", "MemoryOnly"
 	StoreParam []byte `json:"store_param,omitempty"`
 	HasSource  bool   `json:"has_source,omitempty"`
 }
@@ -323,7 +323,7 @@ func NewVectorFieldMapping(name string) *VectortFieldMapping {
 	return &VectortFieldMapping{
 		BaseFieldMapping: NewBaseFieldMapping(name, vearchpb.FieldType_VECTOR, 1, vearchpb.FieldOption_Index),
 		//		RetrievalType:    "IVFPQ",
-		StoreType: "Mmap",
+		StoreType: "MemoryOnly",
 	}
 }
 

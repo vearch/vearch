@@ -321,7 +321,7 @@ func UnmarshalPropertyJSON(propertity []byte) (map[string]*SpaceProperties, erro
 			format := sp.Format
 			if format != nil && *format != "" && !(strings.Compare(*format, "normalization") == 0 ||
 				strings.Compare(*format, "normal") == 0 || strings.Compare(*format, "no") == 0) {
-				return nil, fmt.Errorf("unknow vector process method:[%s]", format)
+				return nil, fmt.Errorf("unknow vector process method:[%s]", *format)
 			}
 
 		default:
