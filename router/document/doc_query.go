@@ -671,6 +671,18 @@ func searchParamToSearchPb(searchDoc *request.SearchDocumentRequest, searchReq *
 	searchReq.Fields = searchDoc.Fields
 	searchReq.IsBruteSearch = searchDoc.IsBruteSearch
 
+	metricType := ""
+	if searchDoc.RetrievalParam != nil {
+		temp := struct {
+			MetricType string `json:"metric_type,omitempty"`
+		}{}
+
+		err := cbjson.Unmarshal(searchDoc.RetrievalParam, &temp)
+		if err != nil {
+			return fmt.Errorf("unmarshal err:[%s] , query:[%s]", err.Error(), string(searchDoc.RetrievalParam))
+		}
+		metricType = temp.MetricType
+	}
 	if searchDoc.Size != nil {
 		searchReq.TopN = int32(*searchDoc.Size)
 	}
@@ -720,7 +732,7 @@ func searchParamToSearchPb(searchDoc *request.SearchDocumentRequest, searchReq *
 		return err
 	}
 
-	if space.Engine.MetricType == "L2" {
+	if metricType != "" && metricType == "L2" {
 		sortOrder = sortorder.SortOrder{&sortorder.SortScore{Desc: false}}
 	}
 	spaceProMap := space.SpaceProperties

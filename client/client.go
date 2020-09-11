@@ -1227,6 +1227,51 @@ func (r *routerRequest) ForceMergeExecute() *vearchpb.ForceMergeResponse {
 	return forceMergeResponse
 }
 
+// FlushExecute Execute request
+func (r *routerRequest) FlushExecute() *vearchpb.FlushResponse {
+	ctx := context.WithValue(r.ctx, share.ReqMetaDataKey, r.md)
+	var wg sync.WaitGroup
+	partitionLen := len(r.sendMap)
+	respChain := make(chan *vearchpb.PartitionData, partitionLen)
+	for partitionID, pData := range r.sendMap {
+		wg.Add(1)
+		go func(pid entity.PartitionID, d *vearchpb.PartitionData) {
+			defer wg.Done()
+			replyPartition := new(vearchpb.PartitionData)
+			defer func() {
+				if r := recover(); r != nil {
+					d.Err = &vearchpb.Error{Code: vearchpb.ErrorEnum_RECOVER, Msg: fmt.Sprintf("[Recover] partitionID: [%v], err: [%s]", pid, cast.ToString(r))}
+					respChain <- d
+				}
+			}()
+			partition, e := r.client.Master().Cache().PartitionByCache(ctx, r.space.Name, pid)
+			if e != nil {
+				panic(e.Error())
+			}
+			responsePartition := r.LeaderFlushExecute(partition, ctx, d, replyPartition)
+			respChain <- responsePartition
+		}(partitionID, pData)
+	}
+	wg.Wait()
+	close(respChain)
+	respShards := new(vearchpb.SearchStatus)
+	respShards.Total = int32(partitionLen)
+	respShards.Failed = 0
+	flushResponse := &vearchpb.FlushResponse{}
+	var errMsg strings.Builder
+	for resp := range respChain {
+		if resp.Err == nil {
+			respShards.Successful++
+		} else {
+			respShards.Failed++
+			errMsg.WriteString(resp.Err.Msg)
+		}
+	}
+	respShards.Msg = errMsg.String()
+	flushResponse.Shards = respShards
+	return flushResponse
+}
+
 // replicaForceMergeExecute Execute request
 func (r *routerRequest) ReplicaForceMergeExecute(partition *entity.Partition, ctx context.Context, d *vearchpb.PartitionData, replyPartition *vearchpb.PartitionData) *vearchpb.PartitionData {
 	var wgOther sync.WaitGroup
@@ -1258,6 +1303,16 @@ func (r *routerRequest) ReplicaForceMergeExecute(partition *entity.Partition, ct
 	}
 
 	return senderResp
+}
+
+// leaderFlushExecute Execute request
+func (r *routerRequest) LeaderFlushExecute(partition *entity.Partition, ctx context.Context, d *vearchpb.PartitionData, replyPartition *vearchpb.PartitionData) *vearchpb.PartitionData {
+	leaderId := partition.LeaderID
+	err := r.client.PS().GetOrCreateRPCClient(ctx, leaderId).Execute(ctx, UnaryHandler, d, replyPartition)
+	if err != nil {
+		replyPartition.Err = vearchpb.NewError(0, err).GetError()
+	}
+	return replyPartition
 }
 
 // DelByQueryeExecute Execute request

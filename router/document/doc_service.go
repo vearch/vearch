@@ -203,6 +203,29 @@ func (docService *docService) bulkSearch(ctx context.Context, args []*vearchpb.S
 	return searchResponse
 }
 
+func (docService *docService) flush(ctx context.Context, args *vearchpb.FlushRequest) *vearchpb.FlushResponse {
+
+	request := client.NewRouterRequest(ctx, docService.client)
+	request.SetMsgID().SetMethod(client.FlushHandler).SetHead(args.Head).SetSpace().CommonByPartitions()
+	if request.Err != nil {
+		return &vearchpb.FlushResponse{Head: setErrHead(request.Err)}
+	}
+
+	flushResponse := request.FlushExecute()
+
+	if flushResponse == nil {
+		return &vearchpb.FlushResponse{Head: setErrHead(request.Err)}
+	}
+	if flushResponse.Head == nil {
+		flushResponse.Head = newOkHead()
+	}
+	if flushResponse.Head.Err == nil {
+		flushResponse.Head.Err = newOkHead().Err
+	}
+
+	return flushResponse
+}
+
 func (docService *docService) forceMerge(ctx context.Context, args *vearchpb.ForceMergeRequest) *vearchpb.ForceMergeResponse {
 
 	request := client.NewRouterRequest(ctx, docService.client)
