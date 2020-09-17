@@ -662,7 +662,11 @@ func searchUrlParamParse(searchReq *vearchpb.SearchRequest) {
 }
 
 func searchParamToSearchPb(searchDoc *request.SearchDocumentRequest, searchReq *vearchpb.SearchRequest, space *entity.Space, idFeature bool) error {
-	searchReq.HasRank = searchDoc.Quick
+	hasRank := true
+	if searchDoc.Quick {
+		hasRank = false
+	}
+	searchReq.HasRank = hasRank
 	searchReq.IsVectorValue = searchDoc.VectorValue
 	searchReq.ParallelBasedOnQuery = searchDoc.Parallel
 	searchReq.L2Sqrt = searchDoc.L2Sqrt
@@ -675,6 +679,7 @@ func searchParamToSearchPb(searchDoc *request.SearchDocumentRequest, searchReq *
 	if searchDoc.RetrievalParam != nil {
 		temp := struct {
 			MetricType string `json:"metric_type,omitempty"`
+			Nprobe     int64  `json:"nprobe,omitempty"`
 		}{}
 
 		err := cbjson.Unmarshal(searchDoc.RetrievalParam, &temp)
@@ -682,6 +687,33 @@ func searchParamToSearchPb(searchDoc *request.SearchDocumentRequest, searchReq *
 			return fmt.Errorf("unmarshal err:[%s] , query:[%s]", err.Error(), string(searchDoc.RetrievalParam))
 		}
 		metricType = temp.MetricType
+		if temp.Nprobe == 0 && searchDoc.Nprobe != 0 {
+			jsonMap := make(map[string]interface{})
+			err := json.Unmarshal(searchDoc.RetrievalParam, &jsonMap)
+			if err != nil {
+				return fmt.Errorf("query param RetrievalParam parse err")
+			}
+			jsonMap["nprobe"] = searchDoc.Nprobe
+			retrievalByte, err := json.Marshal(jsonMap)
+			if err != nil {
+				return fmt.Errorf("query param RetrievalParam parse err")
+			}
+			searchReq.RetrievalParams = string(retrievalByte)
+		}
+	} else {
+		if searchDoc.Nprobe != 0 {
+			var builder = cbjson.ContentBuilderFactory()
+			builder.BeginObject()
+			builder.Field("nprobe")
+			builder.ValueInterface(searchDoc.Nprobe)
+			builder.EndObject()
+			jsonByte, err := builder.Output()
+			if err == nil {
+				searchReq.RetrievalParams = string(jsonByte)
+			} else {
+				return fmt.Errorf("query param RetrievalParam parse err")
+			}
+		}
 	}
 	if searchDoc.Size != nil {
 		searchReq.TopN = int32(*searchDoc.Size)
@@ -690,17 +722,29 @@ func searchParamToSearchPb(searchDoc *request.SearchDocumentRequest, searchReq *
 	if searchReq.Head.Params != nil && searchReq.Head.Params["queryOnlyId"] != "" {
 		searchReq.Fields = []string{mapping.IdField}
 	} else {
-		if len(searchReq.Fields) == 0 && searchDoc.VectorValue {
+		vectorFieldArr := make([]string, 0)
+		if searchReq.Fields == nil || len(searchReq.Fields) == 0 {
 			searchReq.Fields = make([]string, 0)
 			spaceProKeyMap := space.SpaceProperties
 			if spaceProKeyMap == nil {
 				spacePro, _ := entity.UnmarshalPropertyJSON(space.Properties)
 				spaceProKeyMap = spacePro
 			}
-			for k, _ := range spaceProKeyMap {
-				searchReq.Fields = append(searchDoc.Fields, k)
+			for fieldName, property := range spaceProKeyMap {
+				if property.Type != "" && strings.Compare(property.Type, "vector") != 0 {
+					searchReq.Fields = append(searchReq.Fields, fieldName)
+				}
+				if property.Type != "" && strings.Compare(property.Type, "vector") == 0 {
+					vectorFieldArr = append(vectorFieldArr, fieldName)
+				}
 			}
 			searchReq.Fields = append(searchReq.Fields, mapping.IdField)
+		}
+
+		if searchDoc.VectorValue {
+			for _, fieldName := range vectorFieldArr {
+				searchReq.Fields = append(searchReq.Fields, fieldName)
+			}
 		}
 	}
 

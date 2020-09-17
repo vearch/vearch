@@ -33,6 +33,7 @@ type SearchDocumentRequest struct {
 	L2Sqrt         bool            `json:"l2_sqrt,omitempty"`
 	VectorValue    bool            `json:"vector_value,omitempty"`
 	Parallel       bool            `json:"parallel,omitempty"`
+	Nprobe         int64           `json:"nprobe,omitempty"`
 	IVFFlat        bool            `json:"ivf_flat,omitempty"`
 	OnlineLogLevel string          `json:"online_log_level"`
 	IsBruteSearch  int32           `json:"is_brute_search"`
