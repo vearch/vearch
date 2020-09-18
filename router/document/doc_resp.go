@@ -40,7 +40,10 @@ func docGetResponse(client *client.Client, args *vearchpb.GetRequest, reply *vea
 		builder.BeginArray()
 		isArray = true
 	}
-	for _, item := range reply.Items {
+	for i, item := range reply.Items {
+		if i != 0 {
+			builder.More()
+		}
 		doc := item.Doc
 		builder.BeginObject()
 		if args == nil || reply == nil || reply.Items == nil || len(reply.Items) < 1 {
