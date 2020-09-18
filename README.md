@@ -89,6 +89,7 @@ Welcome to register the company name in this issue: https://github.com/vearch/ve
 ![飞搜科技](static/faceall.png)
 ![君库科技](static/bigbigwork.png)
 ![爱奇艺](static/iqiyi.png)
+![人民科技](static/peopletech.png)
 
 ## License
 Licensed under the Apache License, Version 2.0. For detail see [LICENSE and NOTICE](https://github.com/vearch/vearch/blob/master/LICENSE).
