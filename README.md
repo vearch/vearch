@@ -93,6 +93,7 @@ Welcome to register the company name in this issue: https://github.com/vearch/ve
 ![趣头条](static/qutoutiao.png)
 ![网易严选](static/wangyiyanxuan.png)
 ![咸唐科技](static/sunthang.png)
+![华为技术](static/huawei.png)
 
 ## License
 Licensed under the Apache License, Version 2.0. For detail see [LICENSE and NOTICE](https://github.com/vearch/vearch/blob/master/LICENSE).
