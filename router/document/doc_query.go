@@ -609,10 +609,12 @@ func (query *VectorQuery) ToC(retrievalType string) (*vearchpb.VectorQuery, erro
 	}
 
 	if query.MinScore == nil {
-		query.MinScore = util.PFloat64(-1)
+		minFloat64 := -math.MaxFloat64
+		query.MinScore = &minFloat64
 	}
 	if query.MaxScore == nil {
-		query.MaxScore = util.PFloat64(-1)
+		maxFLoat64 := math.MaxFloat64
+		query.MaxScore = &maxFLoat64
 	}
 
 	if query.Value != nil {
@@ -722,6 +724,11 @@ func searchParamToSearchPb(searchDoc *request.SearchDocumentRequest, searchReq *
 	if searchReq.Head.Params != nil && searchReq.Head.Params["queryOnlyId"] != "" {
 		searchReq.Fields = []string{mapping.IdField}
 	} else {
+		spaceProKeyMap := space.SpaceProperties
+		if spaceProKeyMap == nil {
+			spacePro, _ := entity.UnmarshalPropertyJSON(space.Properties)
+			spaceProKeyMap = spacePro
+		}
 		vectorFieldArr := make([]string, 0)
 		if searchReq.Fields == nil || len(searchReq.Fields) == 0 {
 			searchReq.Fields = make([]string, 0)
@@ -739,6 +746,14 @@ func searchParamToSearchPb(searchDoc *request.SearchDocumentRequest, searchReq *
 				}
 			}
 			searchReq.Fields = append(searchReq.Fields, mapping.IdField)
+		} else {
+			for _, field := range searchReq.Fields {
+				if field != mapping.IdField {
+					if spaceProKeyMap[field] == nil {
+						return fmt.Errorf("query param fields are not exist in the table")
+					}
+				}
+			}
 		}
 
 		if searchDoc.VectorValue {
@@ -746,10 +761,6 @@ func searchParamToSearchPb(searchDoc *request.SearchDocumentRequest, searchReq *
 				searchReq.Fields = append(searchReq.Fields, fieldName)
 			}
 		}
-	}
-
-	if searchReq.Fields == nil || len(searchReq.Fields) == 0 {
-		searchReq.Fields = append(searchReq.Fields, mapping.IdField)
 	}
 
 	hasID := false
