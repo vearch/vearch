@@ -94,8 +94,10 @@ Welcome to register the company name in this issue: https://github.com/vearch/ve
 ![网易严选](static/wangyiyanxuan.png)
 ![咸唐科技](static/sunthang.png)
 ![华为技术](static/huawei.png)
-![oppo](static/oppo.png)
+![OPPO](static/oppo.png)
 ![汽车之家](static/autohome.png)
+![芯翌智能](static/xforwardai.png)
+![图灵机器人](static/turingapi.png)
 
 ## License
 Licensed under the Apache License, Version 2.0. For detail see [LICENSE and NOTICE](https://github.com/vearch/vearch/blob/master/LICENSE).
