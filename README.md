@@ -37,8 +37,10 @@ Vearch is a scalable distributed system for efficient similarity search of deep 
 
 ## Quick start
 ![docs/img/plugin/main_process.gif](docs/img/plugin/main_process.gif)
-* Quickly build a distributed vector search system with RESTful API, please see [docs/Deploy.md](docs/Deploy.md).
 
+* One-click binary installation, please see [docs/BinaryInstallation.md](docs/BinaryInstallation.md)([中文版](docs/BinaryInstallationZH_CN.md)).
+
+* Quickly compile the source codes to build a distributed vector search system with RESTful API, please see [docs/SourceCompileDeployment.md](docs/SourceCompileDeployment.md).
 
 * Vearch can be leveraged to build a complete visual search system to index billions of images. The image retrieval plugin for object detection and feature extraction is also required. For more information, please refer to [docs/Quickstart.md](docs/Quickstart.md).
 
@@ -62,14 +64,14 @@ Vearch is a scalable distributed system for efficient similarity search of deep 
 
 * https://vearch.readthedocs.io/en/latest
 * https://vearch.readthedocs.io/zh_CN/latest
+* [Common QA](https://github.com/vearch/vearch/wiki/Vearch-QA)
 
 ## Benchmarks
 
 * [benchmarks](/engine/benchs/README.md)
 
 ## Publication
-Jie Li, Haifeng Liu, Chuanghua Gui, Jianyu chen, Zhenyun Ni, Ning Wang, Yuan Chen. The Design and Implementation of a Real Time Visual Search System on JD E-commerce Platform. In the 19th International ACM Middleware Conference, December 10–14, 2018, Rennes, France. https://arxiv.org/abs/1908.07389
-
+Jie Li, Haifeng Liu, Chuanghua Gui, Jianyu chen, Zhenyun Ni, Ning Wang, Yuan Chen, Qiang Liu. The Design and Implementation of a Real Time Visual Search System on JD E-commerce Platform. In the 19th International ACM Middleware Conference, December 10–14, 2018, Rennes, France. https://arxiv.org/abs/1908.07389
 
 ## Community
 You can report bugs or ask questions in the [issues page](https://github.com/vearch/vearch/issues) of the repository.
@@ -78,6 +80,24 @@ For public discussion of Vearch or for questions, you can also send email to vea
 
 Our slack : https://vearchwrokspace.slack.com
 
+## Known Users
+Welcome to register the company name in this issue: https://github.com/vearch/vearch/issues/230 (in order of registration)
+
+欢迎在此 issue https://github.com/vearch/vearch/issues/230 中登记公司名称
+
+![科大讯飞](static/kedaxunfei.png)
+![飞搜科技](static/faceall.png)
+![君库科技](static/bigbigwork.png)
+![爱奇艺](static/iqiyi.png)
+![人民科技](static/peopletech.png)
+![趣头条](static/qutoutiao.png)
+![网易严选](static/wangyiyanxuan.png)
+![咸唐科技](static/sunthang.png)
+![华为技术](static/huawei.png)
+![OPPO](static/oppo.png)
+![汽车之家](static/autohome.png)
+![芯翌智能](static/xforwardai.png)
+![图灵机器人](static/turingapi.png)
 
 ## License
 Licensed under the Apache License, Version 2.0. For detail see [LICENSE and NOTICE](https://github.com/vearch/vearch/blob/master/LICENSE).

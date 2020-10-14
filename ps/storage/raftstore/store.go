@@ -18,9 +18,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/vearch/vearch/util/log"
-	"github.com/vearch/vearch/ps/psutil"
 	"os"
+	"time"
+
+	"github.com/vearch/vearch/ps/psutil"
+	"github.com/vearch/vearch/util/log"
 
 	"github.com/tiglabs/raft"
 	"github.com/tiglabs/raft/proto"
@@ -45,9 +47,9 @@ type Store struct {
 	EventListener EventListener
 	Sn            int64
 	LastFlushSn   int64
+	LastFlushTime time.Time
 	Client        *client.Client
 }
-
 
 // CreateStore create an instance of Store.
 func CreateStore(ctx context.Context, pID entity.PartitionID, nodeID entity.NodeID, space *entity.Space, raftServer *raft.RaftServer, eventListener EventListener, client *client.Client) (*Store, error) {
@@ -91,6 +93,7 @@ func (s *Store) Start() (err error) {
 		return err
 	}
 	s.LastFlushSn = apply
+	s.LastFlushTime = time.Now()
 
 	s.Partition.SetStatus(entity.PA_READONLY)
 

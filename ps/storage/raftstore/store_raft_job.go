@@ -25,10 +25,14 @@ import (
 )
 
 const (
-	TruncateTicket = 5 * time.Minute
-	TruncateCounts = 10000000
-	FlushTicket    = 1 * time.Second
+	TruncateTicket             = 5 * time.Minute
+	FlushTicket                = 1 * time.Second
+	DefaultFlushTimeInterval   = 120 // 2 minutes
+	DefaultFlushCountThreshold = 200000
 )
+
+var fti uint32 // flush time interval
+var fct uint32 // flush count threshold
 
 // truncate is raft log truncate.
 func (s *Store) startTruncateJob(initLastFlushIndex int64) {
@@ -43,9 +47,10 @@ func (s *Store) startTruncateJob(initLastFlushIndex int64) {
 	}
 
 	if config.Conf().PS.RaftTruncateCount <= 0 {
-		config.Conf().PS.RaftTruncateCount = 20000
+		config.Conf().PS.RaftTruncateCount = 100000
 	}
 
+	log.Info("start truncate job! truncate count: %d", config.Conf().PS.RaftTruncateCount)
 	appTruncateIndex := initLastFlushIndex
 	go func() {
 		defer func() {
@@ -72,12 +77,13 @@ func (s *Store) startTruncateJob(initLastFlushIndex int64) {
 				log.Error("truncate getsn: %s", err.Error())
 				continue
 			}
-			if (flushSn - appTruncateIndex - config.Conf().PS.RaftTruncateCount) >= 0 {
+			if (flushSn - appTruncateIndex - config.Conf().PS.RaftTruncateCount) > 0 {
 				newTrucIndex := flushSn - config.Conf().PS.RaftTruncateCount
 				if err = truncateFunc(newTrucIndex); err != nil {
 					log.Warn("truncate: %s", err.Error())
 					continue
 				}
+				log.Info("truncate raft success! current sn: %d, last sn:%d", newTrucIndex, appTruncateIndex)
 				appTruncateIndex = newTrucIndex
 				continue
 			}
@@ -95,25 +101,39 @@ func (s *Store) startFlushJob() {
 			}
 		}()
 
+		fti = config.Conf().PS.FlushTimeInterval
+		if fti <= 0 {
+			fti = DefaultFlushTimeInterval
+		}
+		fct = config.Conf().PS.FlushCountThreshold
+		if fct <= 0 {
+			fct = DefaultFlushCountThreshold
+		}
+		log.Info("start flush job, flush time interval=%d, count threshold=%d", fti, fct)
 		flushFunc := func() {
 			if s.Sn == 0 {
 				return
 			}
-			tempSn := s.Sn
 			// counts condition
 			if s.Engine == nil {
 				log.Error("store is empty so stop flush job, dbID:[%d] space:[%d,%s] partitionID:[%d]", s.Space.DBId, s.Space.Id, s.Space.Name, s.Partition.Id)
 				return
 			}
-			if tempSn-s.LastFlushSn < 20000 {
+
+			t := time.Now()
+			tempSn := s.Sn
+			if t.Sub(s.LastFlushTime).Seconds() < float64(fti) || tempSn-s.LastFlushSn < int64(fct) {
 				return
 			}
+
+			log.Info("begin to flush, current time: %s, last time: %s, current sn: %d, last sn:%d,", t.Format(time.RFC3339), s.LastFlushTime.Format(time.RFC3339), tempSn, s.LastFlushSn)
 
 			if err := s.Engine.Writer().Flush(s.Ctx, tempSn); err != nil {
 				log.Error(err.Error())
 				return
 			}
 			s.LastFlushSn = tempSn
+			s.LastFlushTime = t
 		}
 
 		ticker := time.NewTicker(FlushTicket)

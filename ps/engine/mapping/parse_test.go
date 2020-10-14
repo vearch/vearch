@@ -17,7 +17,7 @@ package mapping
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/vearch/vearch/proto/pspb"
+	"github.com/vearch/vearch/proto/vearchpb"
 	"github.com/vearch/vearch/util/assert"
 	"testing"
 	"time"
@@ -213,8 +213,8 @@ func TestParseSchemaErr(t *testing.T) {
 
 	assert.True(t, len(types) == 0)
 
-	var name *pspb.Field
-	var youyouName *pspb.Field
+	var name *vearchpb.Field
+	var youyouName *vearchpb.Field
 
 	for _, f := range fields {
 		if f.Name == "name" {

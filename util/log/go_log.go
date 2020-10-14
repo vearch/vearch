@@ -47,28 +47,28 @@ func (this *GoLog) IsWarnEnabled() bool {
 	return this.L <= 2
 }
 
-func (this *GoLog) Debug(format string, args ...interface{}) {
+func (this *GoLog) Debugf(format string, args ...interface{}) {
 	if this.IsDebugEnabled() {
 		this.LevelCode = debug
 		this.write(format, args...)
 	}
 }
 
-func (this *GoLog) Info(format string, args ...interface{}) {
+func (this *GoLog) Infof(format string, args ...interface{}) {
 	if this.IsInfoEnabled() {
 		this.LevelCode = info
 		this.write(format, args...)
 	}
 }
 
-func (this *GoLog) Warn(format string, args ...interface{}) {
+func (this *GoLog) Warnf(format string, args ...interface{}) {
 	if this.IsWarnEnabled() {
 		this.LevelCode = warn
 		this.write(format, args...)
 	}
 }
 
-func (this *GoLog) Error(format string, args ...interface{}) {
+func (this *GoLog) Errorf(format string, args ...interface{}) {
 	this.LevelCode = err
 	this.write(format, args...)
 }
@@ -80,4 +80,69 @@ func (this *GoLog) write(format string, args ...interface{}) {
 		_ = this.Output(4, fmt.Sprintf(this.LevelCode+format, args...))
 	}
 
+}
+
+func (this *GoLog) Fatalf(format string, args ...interface{}) {
+	this.LevelCode = err
+	this.write(format, args...)
+}
+func (this *GoLog) Panicf(format string, args ...interface{}) {
+	this.LevelCode = err
+	this.write(format, args...)
+}
+func (this *GoLog) Error(args ...interface{}) {
+	this.LevelCode = err
+	if len(args) <= 1 {
+		this.write(fmt.Sprint(args...))
+	} else {
+		format := args[0].(string)
+		this.write(format, args[1:]...)
+	}
+}
+func (this *GoLog) Warn(args ...interface{}) {
+	this.LevelCode = err
+	if len(args) <= 1 {
+		this.write(fmt.Sprint(args...))
+	} else {
+		format := args[0].(string)
+		this.write(format, args[1:]...)
+	}
+}
+func (this *GoLog) Info(args ...interface{}) {
+	this.LevelCode = err
+	if len(args) <= 1 {
+		this.write(fmt.Sprint(args...))
+	} else {
+		format := args[0].(string)
+		this.write(format, args[1:]...)
+	}
+}
+func (this *GoLog) Debug(args ...interface{}) {
+	this.LevelCode = err
+	if len(args) <= 1 {
+		this.write(fmt.Sprint(args...))
+	} else {
+		format := args[0].(string)
+		this.write(format, args[1:]...)
+	}
+}
+
+func (this *GoLog) Fatal(args ...interface{}) {
+	this.LevelCode = err
+	if len(args) <= 1 {
+		this.write(fmt.Sprint(args...))
+	} else {
+		format := args[0].(string)
+		this.write(format, args[1:]...)
+	}
+}
+
+func (this *GoLog) Panic(args ...interface{}) {
+	this.LevelCode = err
+	if len(args) <= 1 {
+		this.write(fmt.Sprint(args...))
+	} else {
+		format := args[0].(string)
+		this.write(format, args[1:]...)
+	}
 }

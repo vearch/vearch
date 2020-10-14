@@ -1,0 +1,246 @@
+syntax = "proto3";
+
+import "data_model.proto";
+import "errors.proto";
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+option optimize_for = SPEED;
+option (gogoproto.marshaler_all) = true;
+option (gogoproto.sizer_all) = true;
+option (gogoproto.unmarshaler_all) = true;
+option (gogoproto.gostring_all) = false;
+option (gogoproto.equal_all) = true;
+option (gogoproto.verbose_equal_all) = false;
+option (gogoproto.goproto_stringer_all) = false;
+option (gogoproto.stringer_all) = true;
+option (gogoproto.populate_all) = true;
+option (gogoproto.testgen_all) = false;
+option (gogoproto.benchgen_all) = false;
+option (gogoproto.goproto_getters_all) = false;
+option go_package = "vearchpb";
+
+service RouterGRPCService {
+    rpc Get (GetRequest) returns (GetResponse) { }
+    rpc Add (AddRequest) returns (AddResponse) { }
+    rpc Delete (DeleteRequest) returns (DeleteResponse) { }
+    rpc Update (UpdateRequest) returns (UpdateResponse) { }
+    rpc Search (SearchRequest) returns (SearchResponse) { }
+    rpc Bulk (BulkRequest) returns (BulkResponse) { }
+    rpc MSearch (MSearchRequest) returns (SearchResponse) { }
+}
+
+message RequestHead {
+    int64 time_out_ms = 1;
+    string user_name = 2;
+    string password = 3;
+    string db_name = 4;
+    string space_name = 5;
+    string client_type = 6;
+    // from, sort, request_id, partition_id
+    map<string, string> params = 7;
+}
+
+message ResponseHead {
+    Error err = 1;
+    map<string, string> params = 3;
+}
+
+//*********************** doc query *********************** //
+
+message GetRequest{
+    option (gogoproto.goproto_getters) = true;
+    RequestHead head = 1 ;
+    repeated string primary_keys = 4;
+}
+
+message DeleteRequest{
+    option (gogoproto.goproto_getters) = true;
+    RequestHead head = 1;
+    repeated string primary_keys = 4;
+}
+
+message AddRequest{
+    option (gogoproto.goproto_getters) = true;
+    RequestHead head = 1;
+    Document doc = 4;
+}
+
+message UpdateRequest{
+    option (gogoproto.goproto_getters) = true;
+    RequestHead head = 1;
+    Document doc = 4;
+}
+
+message BulkRequest{
+    option (gogoproto.goproto_getters) = true;
+    RequestHead head = 1;
+    repeated Document docs = 4;
+}
+
+message ForceMergeRequest{
+    option (gogoproto.goproto_getters) = true;
+    RequestHead head = 1;
+}
+
+message FlushRequest{
+    option (gogoproto.goproto_getters) = true;
+    RequestHead head = 1;
+}
+
+//*********************** doc result *********************** //
+
+message GetResponse{
+    option (gogoproto.goproto_getters) = true;
+    ResponseHead head = 1;
+    repeated Item items = 2;
+}
+
+message AddResponse{
+    option (gogoproto.goproto_getters) = true;
+    ResponseHead head = 1;
+    string primary_key = 4;
+}
+
+message UpdateResponse{
+    option (gogoproto.goproto_getters) = true;
+    ResponseHead head = 1;
+}
+
+message DeleteResponse{
+    option (gogoproto.goproto_getters) = true;
+    ResponseHead head = 1;
+    repeated Item items = 2;
+}
+
+message BulkResponse{
+    option (gogoproto.goproto_getters) = true;
+    ResponseHead head = 1;
+    repeated Item items = 2;
+}
+
+message ForceMergeResponse{
+    option (gogoproto.goproto_getters) = true;
+    ResponseHead head = 1;
+    SearchStatus shards = 2;
+}
+
+message DelByQueryeResponse{
+    option (gogoproto.goproto_getters) = true;
+    ResponseHead head = 1;
+    int32 DelNum = 2;
+}
+
+message FlushResponse{
+    option (gogoproto.goproto_getters) = true;
+    ResponseHead head = 1;
+    SearchStatus shards = 2;
+}
+
+//*********************** Search query *********************** //
+
+message TermFilter {
+    string field = 1;
+    bytes value = 2;
+    int32 is_union = 3;
+}
+
+message RangeFilter {
+    string field = 1;
+    bytes lower_value = 2;
+    bytes upper_value = 3;
+    bool include_lower = 4;
+    bool include_upper = 5;
+}
+
+message SortField {
+    string field = 1;
+    bool type = 2;
+}
+
+message VectorQuery {
+    string name = 1;
+    bytes value = 2;
+    double min_score = 3;
+    double max_score = 4;
+    double boost = 5;
+    int32 has_boost = 6;
+    string format = 7;
+}
+
+message RetrievalParameters {
+    enum DistanceMetricType {
+        InnerProduct = 0;
+        L2 = 1;
+    }
+    DistanceMetricType metric_type = 1;
+    int32 nprobe = 2;
+}
+
+message SearchRequest {
+    option (gogoproto.goproto_getters) = true;
+    RequestHead head = 1;
+    int32 req_num = 2;
+    int32 topN = 3;
+    int32 is_brute_search = 4;
+    repeated VectorQuery vec_fields = 5;
+    repeated string fields = 6;
+    repeated RangeFilter range_filters = 7;
+    repeated TermFilter term_filters = 8;
+    string online_log_level = 9;
+    string retrieval_params = 10;
+    bool has_rank = 11;
+    int32 multi_vector_rank = 12;
+    bool parallel_based_on_query = 13;
+    bool l2_sqrt = 14;
+    bool ivf_flat = 15;
+    bool is_vector_value = 16;
+    map<string,string> sort_field_map = 17;
+    repeated SortField sort_fields = 18;
+}
+
+//*********************** Search response *********************** //
+
+message ResultItem {
+    double score = 1;
+    repeated Field fields = 2;
+    string extra = 3;
+    string p_key = 4;
+    bytes source = 5;
+}
+
+message SearchResult {
+    int32 total_hits = 1;
+    double max_score = 2;
+    int64 max_took = 3;
+    uint32 max_took_id = 4;
+    SearchStatus status = 5;
+    string msg = 6;
+    repeated ResultItem result_items = 7;
+    uint32 pID = 8;
+    map<uint32,string> explain = 9;
+    bool timeout = 10;
+}
+
+message SearchResponse {
+    option (gogoproto.goproto_getters) = true;
+    ResponseHead head = 1;
+    repeated SearchResult results = 2;
+    string online_log_message = 3;
+    bool timeout = 4;
+    bytes FlatBytes = 5;
+    map<string,string> sort_field_map = 6;
+    int32 top_size = 7;
+}
+
+message SearchStatus {
+    int32 total  = 1;
+    int32 failed = 2;
+    int32 successful =3;
+    string msg = 4;
+}
+
+message MSearchRequest {
+    option (gogoproto.goproto_getters) = true;
+    RequestHead head = 1;
+    repeated SearchRequest search_requests = 2;
+}

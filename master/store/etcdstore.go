@@ -17,6 +17,7 @@ package store
 import (
 	"context"
 	"fmt"
+	"github.com/vearch/vearch/config"
 	"time"
 
 	"github.com/vearch/vearch/util/cbbytes"
@@ -37,6 +38,7 @@ type EtcdStore struct {
 	cli *clientv3.Client
 }
 
+// NewIDGenerate create a global uniqueness id
 func (store *EtcdStore) NewIDGenerate(ctx context.Context, key string, base int64, timeout time.Duration) (int64, error) {
 	var (
 		nextID = int64(0)
@@ -72,10 +74,21 @@ func (store *EtcdStore) NewLock(ctx context.Context, key string, timeout time.Du
 
 //NewEtcdStore is used to register etcd store init function
 func NewEtcdStore(serverAddrs []string) (Store, error) {
-	cli, err := clientv3.New(clientv3.Config{
-		Endpoints:   serverAddrs,
-		DialTimeout: 5 * time.Second,
-	})
+	var cli *clientv3.Client
+	var err error
+	if config.Conf().Global.SupportEtcdAuth {
+		cli, err = clientv3.New(clientv3.Config{
+			Endpoints:   serverAddrs,
+			DialTimeout: 5 * time.Second,
+			Username:    config.Conf().EtcdConfig.Username,
+			Password:    config.Conf().EtcdConfig.Password,
+		})
+	} else {
+		cli, err = clientv3.New(clientv3.Config{
+			Endpoints:   serverAddrs,
+			DialTimeout: 5 * time.Second,
+		})
+	}
 	if err != nil {
 		return nil, err
 	}

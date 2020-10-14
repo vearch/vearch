@@ -16,77 +16,19 @@ package raftstore
 
 import (
 	"context"
+	"strings"
 
-	pkg "github.com/vearch/vearch/proto"
 	"github.com/vearch/vearch/proto/entity"
-	"github.com/vearch/vearch/proto/request"
-	"github.com/vearch/vearch/proto/response"
+	"github.com/vearch/vearch/proto/vearchpb"
 	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/util/vearchlog"
 )
 
-func (s *Store) GetDocument(ctx context.Context, readLeader bool, docID string) (*response.DocResult, error) {
-	if err := s.checkReadable(readLeader); err != nil {
-		return nil, err
-	}
-	return s.Engine.Reader().GetDoc(ctx, docID), nil
-}
-
-func (s *Store) GetRTDocument(ctx context.Context, readLeader bool, docID string) (*response.DocResult, error) {
-	if err := s.checkReadable(readLeader); err != nil {
-		return nil, err
-	}
-	return s.Engine.RTReader().RTReadDoc(ctx, docID), nil
-}
-
-func (s *Store) GetDocuments(ctx context.Context, readLeader bool, docIds []string) (response.DocResults, error) {
-	if err := s.checkReadable(readLeader); err != nil {
-		return nil, err
-	}
-	return s.Engine.Reader().GetDocs(ctx, docIds), nil
-}
-
-func (s *Store) Search(ctx context.Context, readLeader bool, query *request.SearchRequest) (result *response.SearchResponse, err error) {
-	if err := s.checkSearchable(readLeader); err != nil {
-		return nil, err
-	}
-	return s.Engine.Reader().Search(ctx, query), nil
-}
-
-func (s *Store) MSearchIDs(ctx context.Context, readLeader bool, query *request.SearchRequest) (result *response.SearchResponse, err error) {
-	if err := s.checkSearchable(readLeader); err != nil {
-		return nil, err
-	}
-	return s.Engine.Reader().MSearchIDs(ctx, query), nil
-}
-
-func (s *Store) MSearchForIDs(ctx context.Context, readLeader bool, query *request.SearchRequest) (result []byte, err error) {
-	if err := s.checkSearchable(readLeader); err != nil {
-		return nil, err
-	}
-	return s.Engine.Reader().MSearchForIDs(ctx, query)
-}
-
-func (s *Store) MSearchNew(ctx context.Context, readLeader bool, query *request.SearchRequest) (result *response.SearchResponse, err error) {
-	if err := s.checkSearchable(readLeader); err != nil {
-		return nil, err
-
-	}
-	return s.Engine.Reader().MSearchNew(ctx, query), nil
-}
-
-func (s *Store) MSearch(ctx context.Context, readLeader bool, query *request.SearchRequest) (result response.SearchResponses, err error) {
-	if err := s.checkSearchable(readLeader); err != nil {
-		return nil, err
-	}
-	return s.Engine.Reader().MSearch(ctx, query), nil
-}
-
-func (s *Store) StreamSearch(ctx context.Context, readLeader bool, query *request.SearchRequest, resultChan chan *response.DocResult) error {
-	if err := s.checkSearchable(readLeader); err != nil {
+func (s *Store) GetDocument(ctx context.Context, readLeader bool, doc *vearchpb.Document) (err error) {
+	if err = s.checkReadable(readLeader); err != nil {
 		return err
 	}
-	return s.Engine.Reader().StreamSearch(ctx, query, resultChan)
+	return s.Engine.Reader().GetDoc(ctx, doc)
 }
 
 //check this store can read
@@ -94,16 +36,16 @@ func (s *Store) checkReadable(readLeader bool) error {
 	status := s.Partition.GetStatus()
 
 	if status == entity.PA_CLOSED {
-		return vearchlog.LogErrAndReturn(pkg.CodeErr(pkg.ERRCODE_PARTITION_IS_CLOSED))
+		return vearchlog.LogErrAndReturn(vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_IS_CLOSED, nil))
 	}
 
 	if status == entity.PA_INVALID {
-		return pkg.CodeErr(pkg.ERRCODE_PARTITION_IS_INVALID)
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_IS_INVALID, nil)
 	}
 
 	if readLeader && status != entity.PA_READWRITE {
-		log.Error("checkReadable status: %d , err: %v", status, pkg.CodeErr(pkg.ERRCODE_PARTITION_NOT_LEADER).Error())
-		return pkg.CodeErr(pkg.ERRCODE_PARTITION_NOT_LEADER)
+		log.Error("checkReadable status: %d , err: %v", status, vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_NOT_LEADER, nil).Error())
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_NOT_LEADER, nil)
 	}
 
 	return nil
@@ -116,16 +58,30 @@ func (s *Store) checkSearchable(readLeader bool) error {
 	status := s.Partition.GetStatus()
 	switch status {
 	case entity.PA_CLOSED:
-		return vearchlog.LogErrAndReturn(pkg.CodeErr(pkg.ERRCODE_PARTITION_IS_CLOSED))
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_IS_CLOSED, nil)
 	case entity.PA_INVALID:
-		return pkg.CodeErr(pkg.ERRCODE_PARTITION_IS_INVALID)
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_IS_INVALID, nil)
 	}
-
 	if readLeader && status != entity.PA_READWRITE {
-		log.Error("checkReadable status: %d , err: %v", status, pkg.CodeErr(pkg.ERRCODE_PARTITION_NOT_LEADER).Error())
-		return pkg.CodeErr(pkg.ERRCODE_PARTITION_NOT_LEADER)
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_NOT_LEADER, nil)
 	}
 
 	return nil
 
+}
+
+func (s *Store) Search(ctx context.Context, request *vearchpb.SearchRequest, response *vearchpb.SearchResponse) (err error) {
+	leader := false
+	clientType := request.Head.ClientType
+	if clientType != "" && strings.Compare(clientType, "leader") == 0 {
+		leader = true
+	}
+	if err = s.checkReadable(leader); err != nil {
+		return err
+	}
+	err = s.Engine.Reader().Search(ctx, request, response)
+	if err != nil {
+		return err
+	}
+	return nil
 }

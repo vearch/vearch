@@ -15,28 +15,12 @@
 package document
 
 import (
-	"bufio"
 	"context"
-	"encoding/hex"
-	"fmt"
-	"github.com/vearch/vearch/util/regularutil"
-	"github.com/vearch/vearch/util/uuid"
-	"math/big"
-	"strconv"
-	"strings"
-	"time"
 
-	"crypto/md5"
-	"github.com/smallnest/rpcx/share"
-	"github.com/spf13/cast"
 	"github.com/vearch/vearch/client"
-	pkg "github.com/vearch/vearch/proto"
 	"github.com/vearch/vearch/proto/entity"
-	"github.com/vearch/vearch/proto/pspb"
-	"github.com/vearch/vearch/proto/request"
-	"github.com/vearch/vearch/proto/response"
-	"github.com/vearch/vearch/util/cbjson"
-	"github.com/vearch/vearch/util/log"
+	"github.com/vearch/vearch/proto/vearchpb"
+	"github.com/vearch/vearch/ps/engine/sortorder"
 )
 
 type docService struct {
@@ -49,359 +33,99 @@ func newDocService(client *client.Client) *docService {
 	}
 }
 
-func (this *docService) createDoc(ctx context.Context, dbName string, spaceName string, docID string, reqArgs RawReqArgs, reqBody RawReqBody) *response.DocResult {
-	if _, ok := reqArgs[UrlQueryRefresh]; !ok {
-		reqArgs[UrlQueryRefresh] = "false"
+func (docService *docService) getDocs(ctx context.Context, args *vearchpb.GetRequest) *vearchpb.GetResponse {
+	reply := &vearchpb.GetResponse{Head: newOkHead()}
+	request := client.NewRouterRequest(ctx, docService.client)
+	request.SetMsgID().SetMethod(client.GetDocsHandler).SetHead(args.Head).SetSpace().SetDocsByKey(args.PrimaryKeys).PartitionDocs()
+	if request.Err != nil {
+		return &vearchpb.GetResponse{Head: setErrHead(request.Err)}
 	}
-
-	ctx = context.WithValue(ctx, share.ReqMetaDataKey, map[string]string{UrlQueryRefresh: reqArgs[UrlQueryRefresh]})
-	return this.client.PS().Be(ctx).Space(dbName, spaceName).SetRoutingValue(reqArgs[UrlQueryRouting]).CreateDoc(docID, reqBody)
+	items := request.Execute()
+	reply.Head.Params = request.GetMD()
+	reply.Items = items
+	return reply
 }
 
-func (this *docService) mergeDoc(ctx context.Context, dbName string, spaceName string, docID string, reqArgs RawReqArgs, reqBody []byte) *response.DocResult {
-	version := int64(0)
-	if reqArgs[UrlQueryVersion] != "" {
-		version = cast.ToInt64(reqArgs[UrlQueryVersion])
+func (docService *docService) addDoc(ctx context.Context, args *vearchpb.AddRequest) *vearchpb.AddResponse {
+	reply := &vearchpb.AddResponse{Head: newOkHead()}
+	request := client.NewRouterRequest(ctx, docService.client)
+	docs := make([]*vearchpb.Document, 0)
+	docs = append(docs, args.Doc)
+	request.SetMsgID().SetMethod(client.BatchHandler).SetHead(args.Head).SetSpace().SetDocs(docs).SetDocsField().PartitionDocs()
+	if request.Err != nil {
+		return &vearchpb.AddResponse{Head: setErrHead(request.Err)}
 	}
-
-	tryTimes := 0
-	if reqArgs[UrlQueryRetryOnConflict] != "" {
-		tryTimes = cast.ToInt(reqArgs[UrlQueryRetryOnConflict])
+	items := request.Execute()
+	reply.Head.Params = request.GetMD()
+	if len(items) < 1 {
+		return &vearchpb.AddResponse{Head: setErrHead(request.Err)}
 	}
-	if _, ok := reqArgs[UrlQueryRefresh]; !ok {
-		reqArgs[UrlQueryRefresh] = "false"
+	if items[0].Err != nil {
+		reply.Head.Err = items[0].Err
 	}
-	ctx = context.WithValue(ctx, share.ReqMetaDataKey, map[string]string{UrlQueryRefresh: reqArgs[UrlQueryRefresh]})
-	return this.client.PS().Be(ctx).Space(dbName, spaceName).SetRoutingValue(reqArgs[UrlQueryRouting]).SetWriteTryTimes(tryTimes).MergeDoc(docID, reqBody, version) //TODO make sure version how to use
+	reply.PrimaryKey = items[0].GetDoc().GetPKey()
+	return reply
 }
 
-func (this *docService) replaceDoc(ctx context.Context, dbName string, spaceName string, docID string, reqArgs RawReqArgs, reqBody []byte) *response.DocResult {
-	if _, ok := reqArgs[UrlQueryRefresh]; !ok {
-		reqArgs[UrlQueryRefresh] = "false"
+func (docService *docService) updateDoc(ctx context.Context, args *vearchpb.UpdateRequest) *vearchpb.UpdateResponse {
+	reply := &vearchpb.UpdateResponse{Head: newOkHead()}
+	docs := make([]*vearchpb.Document, 0)
+	docs = append(docs, args.Doc)
+	request := client.NewRouterRequest(ctx, docService.client)
+	// request.SetMsgID().SetMethod(client.ReplaceDocHandler).SetHead(args.Head).SetSpace().SetDocs(docs).PartitionDocs()
+	request.SetMsgID().SetMethod(client.BatchHandler).SetHead(args.Head).SetSpace().SetDocs(docs).SetDocsField().PartitionDocs()
+	if request.Err != nil {
+		return &vearchpb.UpdateResponse{Head: setErrHead(request.Err)}
 	}
-	ctx = context.WithValue(ctx, share.ReqMetaDataKey, map[string]string{UrlQueryRefresh: reqArgs[UrlQueryRefresh]})
-	return this.client.PS().Be(ctx).Space(dbName, spaceName).SetRoutingValue(reqArgs[UrlQueryRouting]).ReplaceDoc(docID, reqBody)
+	items := request.Execute()
+	reply.Head.Params = request.GetMD()
+	if len(items) < 1 {
+		return &vearchpb.UpdateResponse{Head: setErrHead(request.Err)}
+	}
+	if items[0].Err != nil {
+		reply.Head.Err = items[0].Err
+	}
+	return reply
 }
 
-func (this *docService) deleteDoc(ctx context.Context, dbName string, spaceName string, docID string, reqArgs RawReqArgs) *response.DocResult {
-	if _, ok := reqArgs[UrlQueryRefresh]; !ok {
-		reqArgs[UrlQueryRefresh] = "false"
+func (docService *docService) deleteDocs(ctx context.Context, args *vearchpb.DeleteRequest) *vearchpb.DeleteResponse {
+	reply := &vearchpb.DeleteResponse{Head: newOkHead()}
+	request := client.NewRouterRequest(ctx, docService.client)
+	request.SetMsgID().SetMethod(client.DeleteDocsHandler).SetHead(args.Head).SetSpace().SetDocsByKey(args.PrimaryKeys).SetDocsField().PartitionDocs()
+	if request.Err != nil {
+		return &vearchpb.DeleteResponse{Head: setErrHead(request.Err)}
 	}
-	ctx = context.WithValue(ctx, share.ReqMetaDataKey, map[string]string{UrlQueryRefresh: reqArgs[UrlQueryRefresh]})
-	return this.client.PS().Be(ctx).Space(dbName, spaceName).SetRoutingValue(reqArgs[UrlQueryRouting]).DeleteDoc(docID)
+	items := request.Execute()
+	reply.Head.Params = request.GetMD()
+	reply.Items = items
+	return reply
 }
 
-func (this *docService) getDoc(ctx context.Context, dbName string, spaceName string, docID string, reqArgs RawReqArgs) *response.DocResult {
-	return this.client.PS().B().Space(dbName, spaceName).SetRoutingValue(reqArgs[UrlQueryRouting]).GetDoc(docID)
+func (docService *docService) bulk(ctx context.Context, args *vearchpb.BulkRequest) *vearchpb.BulkResponse {
+	reply := &vearchpb.BulkResponse{Head: newOkHead()}
+	request := client.NewRouterRequest(ctx, docService.client)
+	request.SetMsgID().SetMethod(client.BatchHandler).SetHead(args.Head).SetSpace().SetDocs(args.Docs).SetDocsField().PartitionDocs()
+	if request.Err != nil {
+		return &vearchpb.BulkResponse{Head: setErrHead(request.Err)}
+	}
+	items := request.Execute()
+	reply.Head.Params = request.GetMD()
+	reply.Items = items
+	return reply
 }
 
-func (this *docService) getDocs(ctx context.Context, dbName string, spaceName string, docIDs []string, reqArgs RawReqArgs) response.DocResults {
-	return this.client.PS().B().Space(dbName, spaceName).SetRoutingValue(reqArgs[UrlQueryRouting]).GetDocs(docIDs)
+// utils
+func setErrHead(err error) *vearchpb.ResponseHead {
+	vErr, ok := err.(*vearchpb.VearchErr)
+	if !ok {
+		vErr = vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err)
+	}
+	return &vearchpb.ResponseHead{Err: vErr.GetError()}
 }
 
-func (this *docService) mSearchIDs(ctx context.Context, dbName string, spaceName string, searchRequest *request.SearchRequest, clientType client.ClientType) (response.SearchResponses, response.NameCache, error) {
-	searchSpaces, nameCache, err := this.parseDBSpacePair(ctx, dbName, spaceName)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if len(searchSpaces) == 0 {
-		return nil, nil, pkg.CodeErr(pkg.ERRCODE_SPACE_NOTEXISTS)
-	}
-
-	return this.client.PS().Be(ctx).MultipleSpaceByType(searchSpaces, clientType).MSearchIDs(searchRequest), nameCache, nil
-}
-
-func (this *docService) mSearchForIDs(ctx context.Context, dbName string, spaceName string, searchRequest *request.SearchRequest, clientType client.ClientType) ([]byte, error) {
-	searchSpaces, _, err := this.parseDBSpacePair(ctx, dbName, spaceName)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(searchSpaces) == 0 {
-		return nil, pkg.CodeErr(pkg.ERRCODE_SPACE_NOTEXISTS)
-	}
-
-	return this.client.PS().Be(ctx).MultipleSpaceByType(searchSpaces, clientType).MSearchForIDs(searchRequest)
-}
-
-func (this *docService) mSearchNewDoc(ctx context.Context, dbName string, spaceName string, searchRequest *request.SearchRequest, clientType client.ClientType) (response.SearchResponses, response.NameCache, error) {
-	searchSpaces, nameCache, err := this.parseDBSpacePair(ctx, dbName, spaceName)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if len(searchSpaces) == 0 {
-		return nil, nil, pkg.CodeErr(pkg.ERRCODE_SPACE_NOTEXISTS)
-	}
-
-	return this.client.PS().Be(ctx).MultipleSpaceByType(searchSpaces, clientType).MSearchNew(searchRequest), nameCache, nil
-}
-
-func (this *docService) mSearchDoc(ctx context.Context, dbName string, spaceName string, searchRequest *request.SearchRequest, clientType client.ClientType) (response.SearchResponses, response.NameCache, error) {
-	searchSpaces, nameCache, err := this.parseDBSpacePair(ctx, dbName, spaceName)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if len(searchSpaces) == 0 {
-		return nil, nil, pkg.CodeErr(pkg.ERRCODE_SPACE_NOTEXISTS)
-	}
-
-	return this.client.PS().Be(ctx).MultipleSpaceByType(searchSpaces, clientType).MSearch(searchRequest), nameCache, nil
-}
-
-func (this *docService) deleteByQuery(ctx context.Context, dbName string, spaceName string, searchRequest *request.SearchRequest) (*response.Response, response.NameCache, error) {
-	searchSpaces, nameCache, err := this.parseDBSpacePair(ctx, dbName, spaceName)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if len(searchSpaces) == 0 {
-		return nil, nil, pkg.CodeErr(pkg.ERRCODE_SPACE_NOTEXISTS)
-	}
-
-	return this.client.PS().Be(ctx).MultipleSpace(searchSpaces).DeleteByQuery(searchRequest), nameCache, nil
-}
-
-func (this *docService) searchDoc(ctx context.Context, dbName string, spaceName string, searchRequest *request.SearchRequest, clientType client.ClientType) (*response.SearchResponse, response.NameCache, error) {
-	searchSpaces, nameCache, err := this.parseDBSpacePair(ctx, dbName, spaceName)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if len(searchSpaces) == 0 {
-		return nil, nil, pkg.CodeErr(pkg.ERRCODE_SPACE_NOTEXISTS)
-	}
-
-	return this.client.PS().Be(ctx).MultipleSpaceByType(searchSpaces, clientType).Search(searchRequest), nameCache, nil
-}
-
-//it make uri to db space pair like db1,db2/s1,s1  it will return db1/s1 , db2/s1
-func (this *docService) parseDBSpacePair(ctx context.Context, dbName string, spaceName string) ([][2]string, response.NameCache, error) {
-	var searchSpaces [][2]string
-	dbNames := strings.Split(dbName, ",")
-	spaceNames := strings.Split(spaceName, ",")
-	nameCache := make(response.NameCache)
-	if len(dbNames) != len(spaceNames) {
-		return nil, nil, fmt.Errorf("in uri dbNames:[%v] must length equals spaceNames:[%v] , example _search/db1,db1/table1,table2", dbNames, spaceNames)
-	}
-	for i, dbName := range dbNames {
-		spaceName := spaceNames[i]
-		if space, err := this.client.Master().Cache().SpaceByCache(ctx, dbName, spaceName); err == nil {
-			key := [2]int64{int64(space.DBId), int64(space.Id)}
-			if nameCache[key] == nil {
-				nameCache[key] = []string{dbName, spaceName}
-				searchSpaces = append(searchSpaces, [2]string{dbName, spaceName})
-			}
-		} else {
-			log.Error("can not find db:[%s] space:[%s] for search err:[%s] ", dbName, spaceName, err.Error())
-		}
-	}
-	return searchSpaces, nameCache, nil
-}
-
-func (this *docService) streamSearchDoc(ctx context.Context, dbName string, spaceName string, searchRequest *request.SearchRequest) (dsr *response.DocStreamResult, nameCache response.NameCache, err error) {
-
-	var searchSpaces [][2]string
-
-	dbNames := strings.Split(dbName, ",")
-	spaceNames := strings.Split(spaceName, ",")
-
-	nameCache = make(response.NameCache)
-
-	for _, dbName = range dbNames {
-		for _, spaceName = range spaceNames {
-			if space, err := this.client.Master().Cache().SpaceByCache(ctx, dbName, spaceName); err == nil {
-				key := [2]int64{int64(space.DBId), int64(space.Id)}
-				if nameCache[key] == nil {
-					nameCache[key] = []string{dbName, spaceName}
-					searchSpaces = append(searchSpaces, [2]string{dbName, spaceName})
-				}
-			} else {
-				log.Error("can not find db:[%s] space:[%s] for search err:[%s] ", dbName, spaceName, err.Error())
-			}
-		}
-	}
-
-	if len(searchSpaces) == 0 {
-		return nil, nil, pkg.CodeErr(pkg.ERRCODE_SPACE_NOTEXISTS)
-	}
-
-	return this.client.PS().Be(ctx).MultipleSpace(searchSpaces).StreamSearch(searchRequest), nameCache, nil
-}
-
-func (this *docService) flush(ctx context.Context, dbName string, spaceName string) (*response.Shards, error) {
-	return this.client.PS().B().Space(dbName, spaceName).Flush()
-}
-
-func (this *docService) forceMerge(ctx context.Context, dbName string, spaceName string) (*response.Shards, error) {
-	return this.client.PS().B().Space(dbName, spaceName).ForceMerge()
-}
-
-func (this *docService) bulk(ctx context.Context, dbName string, spaceName string, reqArgs RawReqArgs, reqBody []byte, idIsLong bool) ([]*response.BulkItemResponse, error) {
-	var birs []*response.BulkItemResponse
-
-	sr := strings.NewReader(string(reqBody))
-	br := bufio.NewScanner(sr)
-
-	for br.Scan() {
-		line := string(br.Bytes())
-		if len(line) < 1 {
-			continue
-		}
-		jsonMap, err := cbjson.ByteToJsonMap(br.Bytes())
-		if err != nil {
-			return nil, err
-		}
-
-		indexJsonMap := jsonMap.GetJsonMap("index")
-		createJsonMap := jsonMap.GetJsonMap("create")
-		updateJsonMap := jsonMap.GetJsonMap("update")
-		deleteJsonMap := jsonMap.GetJsonMap("delete")
-
-		var realDbName, realSpaceName, routing, docID string
-		var source []byte
-		var opType pspb.OpType
-		var version int64
-		var docId64 int64
-		if indexJsonMap != nil {
-			realDbName = indexJsonMap.GetJsonValString("_index")
-			if realDbName == "" {
-				realDbName = dbName
-			}
-			realSpaceName = indexJsonMap.GetJsonValString("_type")
-			if realSpaceName == "" {
-				realSpaceName = spaceName
-			}
-			docID = indexJsonMap.GetJsonValString("_id")
-			routing = indexJsonMap.GetJsonValString("_routing")
-			opType = pspb.OpType_REPLACE
-			version = -1
-
-			br.Scan()
-			source = br.Bytes()
-		} else if createJsonMap != nil {
-			realDbName = createJsonMap.GetJsonValString("_index")
-			if realDbName == "" {
-				realDbName = dbName
-			}
-			realSpaceName = createJsonMap.GetJsonValString("_type")
-			if realSpaceName == "" {
-				realSpaceName = spaceName
-			}
-			docID = createJsonMap.GetJsonValString("_id")
-			routing = createJsonMap.GetJsonValString("_routing")
-			opType = pspb.OpType_CREATE
-			version = 0
-
-			br.Scan()
-			source = br.Bytes()
-		} else if updateJsonMap != nil {
-			realDbName = updateJsonMap.GetJsonValString("_index")
-			if realDbName == "" {
-				realDbName = dbName
-			}
-			realSpaceName = updateJsonMap.GetJsonValString("_type")
-			if realSpaceName == "" {
-				realSpaceName = spaceName
-			}
-
-			docID = updateJsonMap.GetJsonValString("_id")
-			routing = updateJsonMap.GetJsonValString("_routing")
-			opType = pspb.OpType_MERGE
-			version = 0
-
-			br.Scan()
-			docJsonMap, err := cbjson.ByteToJsonMap(br.Bytes())
-			if err != nil {
-				return nil, err
-			}
-			source, err = docJsonMap.GetJsonValBytes("doc")
-			if err != nil {
-				return nil, err
-			}
-		} else if deleteJsonMap != nil {
-			realDbName = deleteJsonMap.GetJsonValString("_index")
-			if realDbName == "" {
-				realDbName = dbName
-			}
-			realSpaceName = deleteJsonMap.GetJsonValString("_type")
-			if realSpaceName == "" {
-				realSpaceName = spaceName
-			}
-			docID = deleteJsonMap.GetJsonValString("_id")
-			routing = deleteJsonMap.GetJsonValString("_routing")
-			opType = pspb.OpType_DELETE
-			version = 0
-		} else {
-			continue
-		}
-
-		if realDbName == "" {
-			return nil, fmt.Errorf("db name not found (%s)", line)
-		}
-		if realSpaceName == "" {
-			return nil, fmt.Errorf("space name not found (%s)", line)
-		}
-
-		//fmt.Println("bulk=======docID:[%s]", docID)
-
-		if docID == "" {
-			/*n, err := snowflake.NewNode(1)
-			if err != nil {
-				fmt.Errorf("snowflake.NewNode error: (%s)", err.Error())
-			} else {
-				docId64 = n.Generate().Int64()
-			}*/
-			docIDUUID := uuid.FlakeUUID()
-			docIdMd5 := GetMD5Encode(docIDUUID)
-			bi := big.NewInt(0)
-			before := docIdMd5[0:16]
-			after := docIdMd5[16:32]
-
-			bi.SetString(before, 16)
-			beforeInt64 := bi.Int64()
-			bi.SetString(after, 16)
-			afterInt64 := bi.Int64()
-
-			docId64 = beforeInt64 ^ afterInt64
-			docID = strconv.FormatInt(docId64, 10)
-		} else {
-			if idIsLong {
-				result := regularutil.StringCheckNum(docID)
-				if !result {
-					return nil, fmt.Errorf("_id not int64 (%s)", docID)
-				}
-			}
-		}
-
-		//fmt.Println("bulk=======docId64:[%s]", docID)
-		slot := this.client.PS().B().Space(realDbName, realSpaceName).SetRoutingValue(routing).Slot(docID)
-		docCmd := pspb.NewDocCmd(opType, docID, slot, source, version)
-		defer func(docCmd *pspb.DocCmd) {
-			go pspb.PutDocCmd(docCmd)
-		}(docCmd)
-
-		startTime := time.Now()
-		var docResult response.DocResultWrite
-		resp := this.client.PS().B().Space(realDbName, realSpaceName).Bulk(docCmd)
-		endTime := time.Now()
-		if resp.CostTime != nil {
-			resp.CostTime.DocSStartTime = startTime
-			resp.CostTime.DocSEndTime = endTime
-		}
-
-		docResult = response.DocResultWrite{
-			DbName:    realDbName,
-			SpaceName: realSpaceName,
-			DocResult: resp,
-		}
-		bir := &response.BulkItemResponse{OpType: opType, ItemValue: &docResult}
-		birs = append(birs, bir)
-	}
-
-	return birs, nil
+func newOkHead() *vearchpb.ResponseHead {
+	code := vearchpb.ErrorEnum_SUCCESS
+	return &vearchpb.ResponseHead{Err: vearchpb.NewError(code, nil).GetError()}
 }
 
 func (this *docService) getSpace(ctx context.Context, dbName string, spaceName string) (*entity.Space, error) {
@@ -419,39 +143,131 @@ func (this *docService) getSpace(ctx context.Context, dbName string, spaceName s
 	return space, nil
 }
 
-func (this *docService) createDb(ctx context.Context, dbName string) error {
-	err := this.client.Master().CreateDb(ctx, dbName)
-	if err != nil {
-		return err
+func (docService *docService) search(ctx context.Context, args *vearchpb.SearchRequest) *vearchpb.SearchResponse {
+	request := client.NewRouterRequest(ctx, docService.client)
+	request.SetMsgID().SetMethod(client.SearchHandler).SetHead(args.Head).SetSpace().SearchByPartitions(args)
+	if request.Err != nil {
+		return &vearchpb.SearchResponse{Head: setErrHead(request.Err)}
 	}
 
-	return nil
+	sortOrder := make([]sortorder.Sort, 0)
+	if args.SortFields != nil && len(args.SortFields) > 0 {
+		for _, sortF := range args.SortFields {
+			sortOrder = append(sortOrder, &sortorder.SortField{Field: sortF.Field, Desc: sortF.Type})
+		}
+	}
+	searchResponse := request.SearchFieldSortExecute(sortOrder)
+
+	if searchResponse == nil {
+		return &vearchpb.SearchResponse{Head: setErrHead(request.Err)}
+	}
+	if searchResponse.Head == nil {
+		searchResponse.Head = newOkHead()
+	}
+	if searchResponse.Head.Err == nil {
+		searchResponse.Head.Err = newOkHead().Err
+	}
+
+	return searchResponse
 }
 
-func (this *docService) createSpace(ctx context.Context, dbName string, spaceName string, mapping []byte) error {
-	dbID, err := this.client.Master().QueryDBName2Id(ctx, dbName)
-	if err != nil {
-		return err
+func (docService *docService) bulkSearch(ctx context.Context, args []*vearchpb.SearchRequest) *vearchpb.SearchResponse {
+
+	request := client.NewRouterRequest(ctx, docService.client)
+	request.SetMsgID().SetMethod(client.BulkSearchHandler).SetHead(args[0].Head).SetSpace().BulkSearchByPartitions(args)
+	if request.Err != nil {
+		return &vearchpb.SearchResponse{Head: setErrHead(request.Err)}
 	}
 
-	entitySpace := &entity.Space{}
-	err = cbjson.Unmarshal(mapping, &entitySpace)
-	if err != nil {
-		return err
-	}
-	entitySpace.DBId = dbID
-	entitySpace.Name = spaceName
-
-	err = this.client.Master().CreateSpace(ctx, dbName, entitySpace)
-	if err != nil {
-		return err
+	sortOrders := make([]sortorder.SortOrder, 0, len(args))
+	for _, req := range args {
+		sortOrder := make([]sortorder.Sort, 0, len(req.SortFields))
+		for _, sortF := range req.SortFields {
+			sortOrder = append(sortOrder, &sortorder.SortField{Field: sortF.Field, Desc: sortF.Type})
+		}
+		sortOrders = append(sortOrders, sortOrder)
 	}
 
-	return nil
+	searchResponse := request.BulkSearchSortExecute(sortOrders)
+
+	if searchResponse == nil {
+		return &vearchpb.SearchResponse{Head: setErrHead(request.Err)}
+	}
+	if searchResponse.Head == nil {
+		searchResponse.Head = newOkHead()
+	}
+	if searchResponse.Head.Err == nil {
+		searchResponse.Head.Err = newOkHead().Err
+	}
+
+	return searchResponse
 }
 
-func GetMD5Encode(data string) string {
-	h := md5.New()
-	h.Write([]byte(data))
-	return hex.EncodeToString(h.Sum(nil))
+func (docService *docService) flush(ctx context.Context, args *vearchpb.FlushRequest) *vearchpb.FlushResponse {
+
+	request := client.NewRouterRequest(ctx, docService.client)
+	request.SetMsgID().SetMethod(client.FlushHandler).SetHead(args.Head).SetSpace().CommonByPartitions()
+	if request.Err != nil {
+		return &vearchpb.FlushResponse{Head: setErrHead(request.Err)}
+	}
+
+	flushResponse := request.FlushExecute()
+
+	if flushResponse == nil {
+		return &vearchpb.FlushResponse{Head: setErrHead(request.Err)}
+	}
+	if flushResponse.Head == nil {
+		flushResponse.Head = newOkHead()
+	}
+	if flushResponse.Head.Err == nil {
+		flushResponse.Head.Err = newOkHead().Err
+	}
+
+	return flushResponse
+}
+
+func (docService *docService) forceMerge(ctx context.Context, args *vearchpb.ForceMergeRequest) *vearchpb.ForceMergeResponse {
+
+	request := client.NewRouterRequest(ctx, docService.client)
+	request.SetMsgID().SetMethod(client.ForceMergeHandler).SetHead(args.Head).SetSpace().CommonByPartitions()
+	if request.Err != nil {
+		return &vearchpb.ForceMergeResponse{Head: setErrHead(request.Err)}
+	}
+
+	forceMergeResponse := request.ForceMergeExecute()
+
+	if forceMergeResponse == nil {
+		return &vearchpb.ForceMergeResponse{Head: setErrHead(request.Err)}
+	}
+	if forceMergeResponse.Head == nil {
+		forceMergeResponse.Head = newOkHead()
+	}
+	if forceMergeResponse.Head.Err == nil {
+		forceMergeResponse.Head.Err = newOkHead().Err
+	}
+
+	return forceMergeResponse
+}
+
+func (docService *docService) deleteByQuery(ctx context.Context, args *vearchpb.SearchRequest) *vearchpb.DelByQueryeResponse {
+
+	request := client.NewRouterRequest(ctx, docService.client)
+	request.SetMsgID().SetMethod(client.DeleteByQueryHandler).SetHead(args.Head).SetSpace().SearchByPartitions(args)
+	if request.Err != nil {
+		return &vearchpb.DelByQueryeResponse{Head: setErrHead(request.Err)}
+	}
+
+	delByQueryResponse := request.DelByQueryeExecute()
+
+	if delByQueryResponse == nil {
+		return &vearchpb.DelByQueryeResponse{Head: setErrHead(request.Err)}
+	}
+	if delByQueryResponse.Head == nil {
+		delByQueryResponse.Head = newOkHead()
+	}
+	if delByQueryResponse.Head.Err == nil {
+		delByQueryResponse.Head.Err = newOkHead().Err
+	}
+
+	return delByQueryResponse
 }
