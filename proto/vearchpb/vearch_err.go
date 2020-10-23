@@ -33,11 +33,7 @@ func NewError(code ErrorEnum, err error) (vErr *VearchErr) {
 	if vErr, ok := err.(*VearchErr); ok {
 		return vErr
 	}
-	if code == 0 {
-		vErr = &VearchErr{error: &Error{Code: ErrorEnum_INTERNAL_ERROR, Msg: err.Error()}}
-	} else {
-		vErr = &VearchErr{error: &Error{Code: code, Msg: err.Error()}}
-	}
+	vErr = &VearchErr{error: &Error{Code: code, Msg: err.Error()}}
 	return
 }
 

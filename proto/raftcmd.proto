@@ -56,7 +56,7 @@ message DocCmd {
     int64 version = 3;
     uint32 slot = 5;
     bytes doc = 7;
-    // Document doc = 7;
+	repeated bytes docs = 8;
 }
 
 enum CmdType {

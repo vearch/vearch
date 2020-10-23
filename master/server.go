@@ -66,7 +66,7 @@ func NewServer(ctx context.Context) (*Server, error) {
 
 func (s *Server) Start() (err error) {
 	//process panic
-	defer errutil.CatchError(err)
+	defer errutil.CatchError(&err)
 	//start api server
 	log.Debug("master start ...")
 

@@ -14,7 +14,10 @@
 
 package slice
 
-import "sort"
+import (
+	"reflect"
+	"sort"
+)
 
 type FilterFunc func(element string) bool
 
@@ -55,4 +58,21 @@ func EqualUint32(a, b []uint32) bool {
 	sort.Ints(aa)
 	sort.Ints(bb)
 	return EqualInt(aa, bb)
+}
+
+
+// IsExistSlice tells whether item exist this slice
+func IsExistSlice(item interface{},arr interface{}) (bool,int) {
+	if arr != nil {
+		switch reflect.TypeOf(arr).Kind() {
+		case reflect.Slice:
+			s := reflect.ValueOf(arr)
+			for i :=0 ;i < s.Len(); i++ {
+				if reflect.DeepEqual(item,s.Index(i).Interface()) {
+					return true,i
+				}
+			}
+		}
+	}
+	return false, -1
 }

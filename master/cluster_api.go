@@ -17,8 +17,10 @@ package master
 import "C"
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/tiglabs/raft/proto"
+	"github.com/vearch/vearch/util/cbjson"
 	"net/http"
 	"strconv"
 	"strings"
@@ -98,8 +100,10 @@ func ExportToClusterHandler(router *gin.Engine, masterService *masterService) {
 
 	//schedule
 	router.Handle(http.MethodPost, "/schedule/recover_server", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.RecoverFailServer, dh.TimeOutEndHandler)
+	router.Handle(http.MethodPost, "/schedule/change_replicas", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.ChangeReplicas, dh.TimeOutEndHandler)
 	router.Handle(http.MethodGet, "/schedule/fail_server/list", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.FailServerList, dh.TimeOutEndHandler)
 	router.Handle(http.MethodDelete, "/schedule/fail_server/:"+NodeID, dh.PaincHandler, dh.TimeOutHandler, c.auth, c.FailServerClear, dh.TimeOutEndHandler)
+
 	//remove server metadata
 	router.Handle(http.MethodPost, "/meta/remove_server", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.RemoveServerMeta, dh.TimeOutEndHandler)
 }
@@ -474,13 +478,23 @@ func (cluster *clusterAPI) RemoveServerMeta(c *gin.Context) {
 	}
 	// get nodeID
 	nodeID := rfs.FailNodeID
-	if nodeID == 0 {
-		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(fmt.Errorf("param err must has nodeId"))
+	// ipAddr
+	ipAdd := rfs.FailNodeAddr
+	if nodeID == 0 && ipAdd == "" {
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(fmt.Errorf("param err must" +
+			" has fail_node_id or fail_node_addr"))
 		return
 	}
-	log.Debug("RemoveServerMeta nodeId is %s", nodeID)
+	log.Debug("RemoveServerMeta info is %+v", rfs)
 	//get failServer
-	failServer := cluster.masterService.Master().QueryFailServerByNodeID(ctx.(context.Context), nodeID)
+	var failServer *entity.FailServer
+	if nodeID > 0 {
+		failServer = cluster.masterService.Master().QueryFailServerByNodeID(ctx.(context.Context), nodeID)
+	}
+	//if nodeId can't get server info
+	if failServer == nil && ipAdd != "" {
+		failServer = cluster.masterService.Master().QueryServerByIPAddr(ctx.(context.Context),ipAdd)
+	}
 	//get all partition
 	if failServer != nil && failServer.Node != nil {
 		for _, pid := range failServer.Node.PartitionIds {
@@ -489,19 +503,20 @@ func (cluster *clusterAPI) RemoveServerMeta(c *gin.Context) {
 			cm.NodeID = failServer.ID
 			cm.PartitionID = pid
 			cm.Method = proto.ConfRemoveNode
-			log.Debug("begin  ChangeMember %v", cm)
+			log.Debug("begin  ChangeMember %+v", cm)
 			err := cluster.masterService.ChangeMember(ctx.(context.Context), cm)
 			if err != nil {
-				log.Error("ChangePartitionMember err is %s", err.Error())
+				log.Error("ChangePartitionMember [%+v] err is %s", cm, err.Error())
 				ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 				return
 			}
 		}
 	} else {
-		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(fmt.Errorf("nodeid %d is not a fail server", nodeID))
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(fmt.Errorf("server [%v] can't find", failServer))
 		return
 	}
-	ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(fmt.Sprintf("nodeid %d remove node success!", nodeID))
+	ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(fmt.Sprintf("nodeid [%d], " +
+		"server [%v] remove node success!", nodeID, failServer))
 }
 
 //recover the failserver by a newserver
@@ -512,11 +527,39 @@ func (cluster *clusterAPI) RecoverFailServer(c *gin.Context) {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 		return
 	}
-	log.Info("RecoverFailServer is %s,", rs)
+	rsStr := cbjson.ToJsonString(rs)
+	log.Info("RecoverFailServer is %s,", rsStr)
 	if err := cluster.masterService.RecoverFailServer(ctx.(context.Context), rs); err != nil {
-		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(fmt.Errorf("%v failed recover,err is %v", rs, err))
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(fmt.Errorf("%s failed recover,err is %v", rsStr, err))
 	} else {
-		ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(fmt.Sprintf("%v success recover!", rs))
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(fmt.Sprintf("%s success recover!", rsStr))
+	}
+}
+
+//change replicas by dbname and spaceName
+func (cluster *clusterAPI) ChangeReplicas(c *gin.Context) {
+	ctx, _ := c.Get(vearchhttp.Ctx)
+	dbModify := &entity.DBModify{}
+	if err := c.ShouldBindJSON(dbModify); err != nil {
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
+		return
+	}
+	dbByte,err := json.Marshal(dbModify)
+	if err != nil {
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
+		return
+	}
+	dbStr := string(dbByte)
+	log.Info("dbModify is %s", dbStr)
+	if dbModify.DbName == "" || dbModify.SpaceName == "" {
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(fmt.Errorf("dbModify info incorrect [%s]",dbStr))
+	}
+	if err := cluster.masterService.ChangeReplica(ctx.(context.Context), dbModify); err != nil {
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(fmt.Errorf("[%s] failed ChangeReplicas,err is %v",
+			dbStr, err))
+	} else {
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(fmt.Sprintf("[%s] success ChangeReplicas!",
+			dbStr))
 	}
 }
 

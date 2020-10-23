@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/vearch/vearch/ps/psutil"
@@ -40,6 +41,13 @@ import (
 
 //var _  ps.PartitionStore = &Store{}
 
+
+type ReplicasStatusEntry struct {
+	NodeID      entity.NodeID
+	PartitionID entity.PartitionID
+	ReStatusMap sync.Map
+}
+
 type Store struct {
 	*storage.StoreBase
 	RaftPath      string
@@ -49,6 +57,9 @@ type Store struct {
 	LastFlushSn   int64
 	LastFlushTime time.Time
 	Client        *client.Client
+	raftDiffCount uint64
+	RsStatusC     chan *ReplicasStatusEntry
+	RsStatusMap   sync.Map
 }
 
 // CreateStore create an instance of Store.
@@ -71,6 +82,12 @@ func CreateStore(ctx context.Context, pID entity.PartitionID, nodeID entity.Node
 		RaftServer:    raftServer,
 		EventListener: eventListener,
 		Client:        client,
+		RsStatusMap:   sync.Map{},
+	}
+	if config.Conf().PS.RaftDiffCount > 0 {
+		s.raftDiffCount = config.Conf().PS.RaftDiffCount
+	} else {
+		s.raftDiffCount = 10000
 	}
 	return s, nil
 }

@@ -21,6 +21,7 @@ import (
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/proto/vearchpb"
 	"github.com/vearch/vearch/ps/engine/sortorder"
+	"github.com/vearch/vearch/util/log"
 )
 
 type docService struct {
@@ -38,6 +39,7 @@ func (docService *docService) getDocs(ctx context.Context, args *vearchpb.GetReq
 	request := client.NewRouterRequest(ctx, docService.client)
 	request.SetMsgID().SetMethod(client.GetDocsHandler).SetHead(args.Head).SetSpace().SetDocsByKey(args.PrimaryKeys).PartitionDocs()
 	if request.Err != nil {
+		log.Errorf("getDoc args:[%v] error: [%s]", args, request.Err)
 		return &vearchpb.GetResponse{Head: setErrHead(request.Err)}
 	}
 	items := request.Execute()
@@ -51,8 +53,9 @@ func (docService *docService) addDoc(ctx context.Context, args *vearchpb.AddRequ
 	request := client.NewRouterRequest(ctx, docService.client)
 	docs := make([]*vearchpb.Document, 0)
 	docs = append(docs, args.Doc)
-	request.SetMsgID().SetMethod(client.BatchHandler).SetHead(args.Head).SetSpace().SetDocs(docs).SetDocsField().PartitionDocs()
+	request.SetMsgID().SetMethod(client.ReplaceDocHandler).SetHead(args.Head).SetSpace().SetDocs(docs).SetDocsField().PartitionDocs()
 	if request.Err != nil {
+		log.Errorf("addDoc args:[%v] error: [%s]", args, request.Err)
 		return &vearchpb.AddResponse{Head: setErrHead(request.Err)}
 	}
 	items := request.Execute()
@@ -73,8 +76,9 @@ func (docService *docService) updateDoc(ctx context.Context, args *vearchpb.Upda
 	docs = append(docs, args.Doc)
 	request := client.NewRouterRequest(ctx, docService.client)
 	// request.SetMsgID().SetMethod(client.ReplaceDocHandler).SetHead(args.Head).SetSpace().SetDocs(docs).PartitionDocs()
-	request.SetMsgID().SetMethod(client.BatchHandler).SetHead(args.Head).SetSpace().SetDocs(docs).SetDocsField().PartitionDocs()
+	request.SetMsgID().SetMethod(client.ReplaceDocHandler).SetHead(args.Head).SetSpace().SetDocs(docs).SetDocsField().PartitionDocs()
 	if request.Err != nil {
+		log.Errorf("updateDoc args:[%v] error: [%s]", args, request.Err)
 		return &vearchpb.UpdateResponse{Head: setErrHead(request.Err)}
 	}
 	items := request.Execute()
@@ -93,6 +97,7 @@ func (docService *docService) deleteDocs(ctx context.Context, args *vearchpb.Del
 	request := client.NewRouterRequest(ctx, docService.client)
 	request.SetMsgID().SetMethod(client.DeleteDocsHandler).SetHead(args.Head).SetSpace().SetDocsByKey(args.PrimaryKeys).SetDocsField().PartitionDocs()
 	if request.Err != nil {
+		log.Errorf("delete args:[%v] error: [%s]", args, request.Err)
 		return &vearchpb.DeleteResponse{Head: setErrHead(request.Err)}
 	}
 	items := request.Execute()
@@ -106,6 +111,7 @@ func (docService *docService) bulk(ctx context.Context, args *vearchpb.BulkReque
 	request := client.NewRouterRequest(ctx, docService.client)
 	request.SetMsgID().SetMethod(client.BatchHandler).SetHead(args.Head).SetSpace().SetDocs(args.Docs).SetDocsField().PartitionDocs()
 	if request.Err != nil {
+		log.Errorf("bulk args:[%v] error: [%s]", args, request.Err)
 		return &vearchpb.BulkResponse{Head: setErrHead(request.Err)}
 	}
 	items := request.Execute()
@@ -129,18 +135,7 @@ func newOkHead() *vearchpb.ResponseHead {
 }
 
 func (this *docService) getSpace(ctx context.Context, dbName string, spaceName string) (*entity.Space, error) {
-	var err error
-
-	dbID, err := this.client.Master().QueryDBName2Id(ctx, dbName)
-	if err != nil {
-		return nil, err
-	}
-	space, err := this.client.Master().QuerySpaceByName(ctx, dbID, spaceName)
-	if err != nil {
-		return nil, err
-	}
-
-	return space, nil
+	return this.client.Master().Cache().SpaceByCache(ctx, dbName, spaceName)
 }
 
 func (docService *docService) search(ctx context.Context, args *vearchpb.SearchRequest) *vearchpb.SearchResponse {

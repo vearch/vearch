@@ -98,6 +98,9 @@ func parseJSON(path []string, v *fastjson.Value, retrievalType string, proMap ma
 		return nil, err
 	}
 
+	haveNoField := false
+	errorField := ""
+	haveVector := false
 	obj.Visit(func(key []byte, val *fastjson.Value) {
 		fieldName := string(key)
 		pro, ok := proMap[fieldName]
@@ -122,12 +125,25 @@ func parseJSON(path []string, v *fastjson.Value, retrievalType string, proMap ma
 					log.Error("processProperty unrecognizable field:[%s] value %v", fieldName, err)
 					return
 				}
+				if field != nil && field.Type == vearchpb.FieldType_VECTOR && field.Value != nil {
+					haveVector = true
+				}
 				fields = append(fields, field)
 			}
 		} else {
+			haveNoField = true
+			errorField = fieldName
 			log.Error("unrecognizable field:[%s] value %s", fieldName, v.String())
 		}
 	})
+
+	if haveNoField {
+		return nil, fmt.Errorf("param have error field [%s]", errorField)
+	}
+
+	if !haveVector {
+		return nil, fmt.Errorf("param have not vector value")
+	}
 
 	return fields, nil
 }
@@ -658,6 +674,9 @@ func docParse(ctx context.Context, r *http.Request, space *entity.Space, args *v
 		spaceProperties = spacePro
 	}
 	fields, err := MapDocument(body, space.Engine.RetrievalType, spaceProperties)
+	if err != nil {
+		return err
+	}
 	args.Doc = &vearchpb.Document{Fields: fields}
 	return nil
 }
@@ -690,6 +709,9 @@ func docBulkParse(ctx context.Context, r *http.Request, space *entity.Space, arg
 			spaceProperties = spacePro
 		}
 		fields, err := MapDocument(source, space.Engine.RetrievalType, spaceProperties)
+		if err != nil {
+			return err
+		}
 		doc := &vearchpb.Document{PKey: primaryKey, Fields: fields}
 
 		docs = append(docs, doc)
@@ -870,7 +892,6 @@ func docBulkSearchParse(r *http.Request, space *entity.Space, head *vearchpb.Req
 			if err != nil {
 				log.Error("param Unmarshal error :%v", err)
 				error = fmt.Errorf("query param Unmarshal error")
-				return nil, error
 			} else {
 				//searchRequestArr := make([]*vearchpb.SearchRequest,0)
 				for i := 0; i < len(searchRequest.SearchDocumentRequestArr); i++ {
@@ -880,6 +901,7 @@ func docBulkSearchParse(r *http.Request, space *entity.Space, head *vearchpb.Req
 					sortOrder, err := serchDocReq.SortOrder()
 					if err != nil {
 						error = fmt.Errorf("sortorder param error")
+						break
 					} else {
 						sortFieldArr := make([]*vearchpb.SortField, 0)
 						for _, sort := range sortOrder {
@@ -889,14 +911,17 @@ func docBulkSearchParse(r *http.Request, space *entity.Space, head *vearchpb.Req
 						err = searchParamToSearchPb(serchDocReq, searchRequest, space, false)
 						if err == nil {
 							searchReqs = append(searchReqs, searchRequest)
+						} else {
+							error = err
+							break
 						}
 					}
 				}
 			}
 		} else {
 			log.Error("len of reqBody: %d", len(reqBody))
-			err = fmt.Errorf("len of reqBody: %d", len(reqBody))
+			error = fmt.Errorf("len of reqBody: %d", len(reqBody))
 		}
 	}
-	return
+	return searchReqs, error
 }

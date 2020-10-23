@@ -87,20 +87,12 @@ message VectorMetaInfo {
         MMAP = 2;
     }
     StoreType store_type = 3;
-    int32 store_cache_size = 4;
+	string store_param = 4;
 }
 
 message FieldMetaInfo {
     string name = 1;
-    enum DataType {
-        INT = 0;
-        LONG = 1;
-        FLOAT = 2;
-        DOUBLE = 3;
-        STRING = 4;
-        VECTOR = 5;
-    }
-    DataType data_type = 2;
+	FieldType data_type = 2;
     bool is_index = 3;
     bool is_store = 4;
     VectorMetaInfo vector_meta_info = 5;      // nil if data_type is not vector
@@ -108,11 +100,7 @@ message FieldMetaInfo {
 
 message TableMetaInfo {
     string primary_key_name = 1;
-    enum KeyType {
-        LONG = 0;
-        STRING = 1;
-    }
-    KeyType primary_key_type = 2;
+	FieldType primary_key_type = 2;
     int32 partitions_num = 3;
     int32 replicas_num = 4;
     repeated FieldMetaInfo field_meta_info = 5;

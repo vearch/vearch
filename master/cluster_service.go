@@ -19,7 +19,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/vearch/vearch/config"
 	"github.com/vearch/vearch/util/errutil"
+	"github.com/vearch/vearch/util/slice"
 	"math"
 	"sort"
 	"time"
@@ -185,7 +187,7 @@ func (ms *masterService) deleteDBService(ctx context.Context, dbstr string) (err
 
 func (this *masterService) updateDBIpList(ctx context.Context, dbModify *entity.DBModify) (db *entity.DB, err error) {
 	// process painc
-	defer errutil.CatchError(err)
+	defer errutil.CatchError(&err)
 	var id int64
 	db = &entity.DB{}
 	if util.IsNum(dbModify.DbName) {
@@ -203,7 +205,7 @@ func (this *masterService) updateDBIpList(ctx context.Context, dbModify *entity.
 	if dbModify.Method == proto.ConfRemoveNode {
 		ps := make([]string, 0, len(db.Ps))
 		for _, ip := range db.Ps {
-			if ip != dbModify.IpAddr {
+			if ip != dbModify.IPAddr {
 				ps = append(ps, ip)
 			}
 		}
@@ -211,13 +213,13 @@ func (this *masterService) updateDBIpList(ctx context.Context, dbModify *entity.
 	} else if dbModify.Method == proto.ConfAddNode {
 		exist := false
 		for _, ip := range db.Ps {
-			if ip == dbModify.IpAddr {
+			if ip == dbModify.IPAddr {
 				exist = true
 				break
 			}
 		}
 		if !exist {
-			db.Ps = append(db.Ps, dbModify.IpAddr)
+			db.Ps = append(db.Ps, dbModify.IPAddr)
 		}
 	} else {
 		err = fmt.Errorf("method support addIP:[%d] removeIP:[%d] not support:[%d]",
@@ -258,6 +260,8 @@ func (ms *masterService) queryDBService(ctx context.Context, dbstr string) (db *
 	}
 }
 
+
+
 // server/[serverAddr]:[serverBody]
 // spaceKeys "space/[dbId]/[spaceId]:[spaceBody]"
 func (ms *masterService) createSpaceService(ctx context.Context, dbName string, space *entity.Space) (err error) {
@@ -286,7 +290,7 @@ func (ms *masterService) createSpaceService(ctx context.Context, dbName string, 
 
 	//spaces is existed
 	if _, err := ms.Master().QuerySpaceByName(ctx, space.DBId, space.Name); err != nil {
-		vErr := vearchpb.NewError(0, err)
+		vErr := vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err)
 		if vErr.GetError().Code != vearchpb.ErrorEnum_SPACE_NOTEXISTS {
 			return vErr
 		}
@@ -409,7 +413,7 @@ func (ms *masterService) createSpaceService(ctx context.Context, dbName string, 
 			if v%5 == 0 {
 				log.Debug("check the partition:%d status ", space.Partitions[i].Id)
 			}
-			if err != nil && vearchpb.NewError(0, err).GetError().Code != vearchpb.ErrorEnum_PARTITION_NOT_EXIST {
+			if err != nil && vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err).GetError().Code != vearchpb.ErrorEnum_PARTITION_NOT_EXIST {
 				return err
 			}
 			if partition == nil {
@@ -714,11 +718,16 @@ func (this *masterService) updateSpaceService(ctx context.Context, dbName, space
 			return nil, err
 		}
 
+		log.Debug("update partition server is [%+v],space is [%+v], pid is [%+v]",
+			server, space ,p.Id)
+
 		if err := client.UpdatePartition(server.RpcAddr(), space, p.Id); err != nil {
+			log.Debug("UpdatePartition err is [%v]", err)
 			return nil, err
 		}
 	}
 
+	log.Debug("update space  is [%+v]", space)
 	space.Version--
 	if err := this.updateSpace(ctx, space); err != nil {
 		return nil, err
@@ -781,6 +790,7 @@ func (ms *masterService) ChangeMember(ctx context.Context, cm *entity.ChangeMemb
 	if err != nil {
 		return err
 	}
+	log.Debug("masterNode is [%+v], cm is [%+v] ",masterNode, cm)
 
 	var targetNode *entity.Server
 	targetNode, err = ms.Master().QueryServer(ctx, cm.NodeID)
@@ -792,6 +802,7 @@ func (ms *masterService) ChangeMember(ctx context.Context, cm *entity.ChangeMemb
 			return err
 		}
 	}
+	log.Debug("targetNode is [%+v], cm is [%+v] ",masterNode, cm)
 
 	if !client.IsLive(masterNode.RpcAddr()) {
 		return fmt.Errorf("server:[%d] addr:[%s] can not connect ", cm.NodeID, masterNode.RpcAddr())
@@ -800,6 +811,7 @@ func (ms *masterService) ChangeMember(ctx context.Context, cm *entity.ChangeMemb
 	if _, err := ms.updateSpaceService(ctx, dbName, space.Name, space); err != nil {
 		return err
 	}
+	log.Debug("cm is [%v] has update space ",cm)
 
 	if cm.Method == proto.ConfAddNode && targetNode != nil {
 		if err := client.CreatePartition(targetNode.RpcAddr(), space, cm.PartitionID); err != nil {
@@ -811,6 +823,8 @@ func (ms *masterService) ChangeMember(ctx context.Context, cm *entity.ChangeMemb
 		return fmt.Errorf("change member only support addNode:[%d] removeNode:[%d] not support:[%d]", proto.ConfAddNode, proto.ConfRemoveNode, cm.Method)
 	}
 
+	log.Debug("execute change, master node info is [%+v]",masterNode)
+	log.Debug("change member info is [%+v]",cm)
 	if err := client.ChangeMember(masterNode.RpcAddr(), cm); err != nil {
 		return err
 	}
@@ -825,55 +839,145 @@ func (ms *masterService) ChangeMember(ctx context.Context, cm *entity.ChangeMemb
 // recover fail node
 func (ms *masterService) RecoverFailServer(ctx context.Context, rs *entity.RecoverFailServer) (e error) {
 	// painc process
-	defer func() {
-		if r := recover(); r != nil {
-			e = fmt.Errorf("panic is %v", r)
-		}
-	}()
-	// get all fail server info
-	failServer, err := ms.Master().QueryAllFailServer(ctx)
-	if err != nil {
-		panic(err)
-	}
-	targetFailServer := &entity.FailServer{}
-	// get target fail server
-	for _, fs := range failServer {
-		if fs.Node.Ip == rs.FailNodeAddr {
-			targetFailServer = fs
-			break
-		}
-	}
+	defer errutil.CatchError(&e)
+	// get failserver info
+	targetFailServer := ms.Master().QueryServerByIPAddr(ctx, rs.FailNodeAddr)
 	log.Debug("targetFailServer is %s ", targetFailServer)
-	//get target new server
-	servers, err := ms.Master().QueryServers(ctx)
-	newServer := &entity.Server{}
-	for _, s := range servers {
-		if s.Ip == rs.NewNodeAddr {
-			newServer = s
-		}
-	}
-	log.Debug("newServer is %s ", newServer)
+	// get newserver info
+	newServer := ms.Master().QueryServerByIPAddr(ctx, rs.NewNodeAddr)
+	log.Debug("newServer is %s ",newServer)
 	if newServer.ID > 0 && targetFailServer.ID > 0 {
 		for _, pid := range targetFailServer.Node.PartitionIds {
 			cm := &entity.ChangeMember{}
 			cm.Method = proto.ConfAddNode
 			cm.NodeID = newServer.ID
 			cm.PartitionID = pid
-			if err = ms.ChangeMember(ctx, cm); err != nil {
-				info := fmt.Sprintf("ChangePartitionMember failed,partitionId is %d ,nodeId is %d,err is %s ",
-					cm.PartitionID, cm.NodeID, err.Error())
+			if e = ms.ChangeMember(ctx,cm); e != nil {
+				info := fmt.Sprintf("ChangePartitionMember failed [%+v],err is %s ", cm, e.Error())
 				log.Error(info)
 				panic(fmt.Errorf(info))
 			}
-			log.Info("ChangePartitionMember success,partitionId is %d ,nodeId is %d,", cm.PartitionID, cm.NodeID)
+			log.Info("ChangePartitionMember [%+v] success," ,cm)
 		}
 		//if success,remove from failServer
-		key := entity.FailServerKey(targetFailServer.ID)
-		//delete failserver record
-		e = ms.Master().Delete(ctx.(context.Context), key)
-		log.Debug("Delete failserver key %s .", key)
+		ms.Master().TryRemoveFailServer(ctx,targetFailServer.Node)
 	} else {
 		return fmt.Errorf("newServer or targetFailServer is nil ")
 	}
+
+	return e
+}
+
+// get servers belong this db
+func (ms *masterService) DBServers(ctx context.Context,dbName string)(servers []*entity.Server,err error) {
+	defer errutil.CatchError(&err)
+	//get all servers
+	servers,err = ms.Master().QueryServers(ctx)
+	errutil.ThrowError(err)
+
+	db, err := ms.queryDBService(ctx, dbName)
+	if err != nil {
+		return nil, err
+	}
+	//get private server
+	if len(db.Ps) > 0 {
+		privateServer :=make([]*entity.Server,0)
+		for _, ps := range db.Ps {
+			for _,s := range servers {
+				if ps == s.Ip {
+					privateServer = append(privateServer,s)
+				}
+			}
+		}
+		return privateServer,nil
+	}
+	return servers,nil
+}
+
+// change replicas ,add or delete
+func (ms *masterService) ChangeReplica(ctx context.Context, dbModify *entity.DBModify) (e error) {
+	// painc process
+	defer errutil.CatchError(&e)
+	// query server
+	servers,err := ms.DBServers(ctx,dbModify.DbName)
+	errutil.ThrowError(err)
+	// generate change servers
+	dbID, err := ms.Master().QueryDBName2Id(ctx, dbModify.DbName)
+	errutil.ThrowError(err)
+	space,err := ms.Master().QuerySpaceByName(ctx, dbID, dbModify.SpaceName)
+	errutil.ThrowError(err)
+	if dbModify.Method == proto.ConfAddNode && (int(space.ReplicaNum) + 1) > len(servers) {
+		err := fmt.Errorf("ReplicaNum [%d] is exceed server size [%d]",
+			int(space.ReplicaNum) + 1, len(servers))
+		return err
+	}
+	// change space replicas of partition ,add or delete one
+	changeServer := make([]*entity.ChangeMember,0)
+	for _,partition := range space.Partitions {
+		// sort servers，low to height
+		sort.Slice(servers, func(i, j int) bool {
+			return len(servers[i].PartitionIds) < len(servers[j].PartitionIds)
+		})
+		// choice server
+		for _,s := range servers {
+			if dbModify.Method == proto.ConfAddNode {
+				exist,_ := slice.IsExistSlice(s.ID,partition.Replicas)
+				if !exist {
+					// server don't contain this partition,then create it
+					cm := &entity.ChangeMember{PartitionID: partition.Id, NodeID: s.ID, Method: dbModify.Method}
+					changeServer = append(changeServer, cm)
+					s.PartitionIds = append(s.PartitionIds, partition.Id)
+					break
+				}
+			} else if dbModify.Method == proto.ConfRemoveNode {
+				exist,index := slice.IsExistSlice(partition.Id,s.PartitionIds)
+				if exist {
+					// server contain this partition,then remove it
+					cm := &entity.ChangeMember{PartitionID: partition.Id, NodeID: s.ID, Method: dbModify.Method}
+					changeServer = append(changeServer, cm)
+					s.PartitionIds = append(s.PartitionIds[:index], s.PartitionIds[index+1:]...)
+					break
+				}
+			}
+		}
+	}
+	log.Debug("need change partition is [%+v] ",cbjson.ToJsonString(changeServer))
+	// sleep time
+	sleepTime := config.Conf().PS.RaftHeartbeatInterval
+	// change partition
+	for _,cm := range changeServer {
+		if e = ms.ChangeMember(ctx,cm); e != nil {
+			info := fmt.Sprintf("change partition member [%+v] failed,err is %s ", cm, e)
+			log.Error(info)
+			panic(fmt.Errorf(info))
+		}
+		log.Info("change partition member [%+v] success ",cm)
+		if dbModify.Method == proto.ConfRemoveNode {
+			time.Sleep(time.Duration(sleepTime * 10) * time.Millisecond)
+			log.Info("remove partition sleep [%+d] Millisecond time", sleepTime)
+		}
+	}
+	log.Info("all change partition member success")
+	//update space ReplicaNum
+	//it will lock cluster ,to create space
+	mutex := ms.Master().NewLock(ctx, entity.LockSpaceKey(dbModify.DbName, dbModify.SpaceName), time.Second*300)
+	if _,err := mutex.TryLock(); err != nil {
+		errutil.ThrowError(err)
+	}
+	defer func() {
+		if err := mutex.Unlock(); err != nil {
+			log.Error("failed to unlock space,the Error is:%v ", err)
+		}
+	}()
+	space,err = ms.Master().QuerySpaceByName(ctx, dbID, dbModify.SpaceName)
+	errutil.ThrowError(err)
+	if dbModify.Method == proto.ConfAddNode {
+		space.ReplicaNum = space.ReplicaNum + 1
+	} else if dbModify.Method == proto.ConfRemoveNode {
+		space.ReplicaNum = space.ReplicaNum - 1
+	}
+	err = ms.updateSpace(ctx,space)
+	log.Info("updateSpace space [%+v] success", space)
+	errutil.ThrowError(err)
 	return e
 }

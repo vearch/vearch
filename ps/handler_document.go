@@ -18,11 +18,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/vearch/vearch/util/cbbytes"
 	"net"
 	"strconv"
 	"strings"
 	"sync"
+
+	"github.com/vearch/vearch/util/cbbytes"
 
 	"github.com/smallnest/rpcx/share"
 	"github.com/spf13/cast"
@@ -118,13 +119,15 @@ func (handler *UnaryHandler) Execute(ctx context.Context, req *vearchpb.Partitio
 	method, ok := reqMap[client.HandlerType]
 	if !ok {
 		err = fmt.Errorf("client type not found in matadata, key [%s]", client.HandlerType)
-		return vearchpb.NewError(0, err)
+		return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err)
 	}
 	switch method {
 	case client.GetDocsHandler:
 		getDocuments(ctx, store, reply.Items)
 	case client.DeleteDocsHandler:
 		deleteDocs(ctx, store, reply.Items)
+	case client.ReplaceDocHandler:
+		update(ctx, store, reply.Items)
 	case client.BatchHandler:
 		bulk(ctx, store, reply.Items)
 	case client.SearchHandler:
@@ -196,7 +199,7 @@ func deleteDocs(ctx context.Context, store PartitionStore, items []*vearchpb.Ite
 			docCmd := &vearchpb.DocCmd{Type: vearchpb.OpType_DELETE, Doc: dataBytes}
 			if err := store.Write(ctx, docCmd); err != nil {
 				log.Error("delete doc failed, err: [%s]", err.Error())
-				item.Err = vearchpb.NewError(0, err).GetError()
+				item.Err = vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err).GetError()
 			}
 		}(item)
 	}
@@ -206,9 +209,10 @@ func deleteDocs(ctx context.Context, store PartitionStore, items []*vearchpb.Ite
 
 func bulk(ctx context.Context, store PartitionStore, items []*vearchpb.Item) {
 	wg := sync.WaitGroup{}
-	for _, item := range items {
+	gammaArray := make([][]byte, len(items))
+	for i, item := range items {
 		wg.Add(1)
-		go func(item *vearchpb.Item) {
+		go func(item *vearchpb.Item, n int) {
 			defer wg.Done()
 			defer func() {
 				if r := recover(); r != nil {
@@ -217,22 +221,50 @@ func bulk(ctx context.Context, store PartitionStore, items []*vearchpb.Item) {
 			}()
 			docGamma := &gamma.Doc{Fields: item.Doc.Fields}
 			docBytes := docGamma.Serialize()
-			docCmd := &vearchpb.DocCmd{Type: vearchpb.OpType_REPLACE, Doc: docBytes}
-			if err := store.Write(ctx, docCmd); err != nil {
-				log.Error("Add doc failed, err: [%s]", err.Error())
-				item.Err = vearchpb.NewError(0, err).GetError()
-			} else {
-				item.Doc.Fields = nil
-			}
-		}(item)
+			gammaArray[n] = docBytes
+			item.Doc.Fields = nil
+			item.Err = vearchpb.NewError(vearchpb.ErrorEnum_SUCCESS, nil).GetError()
+		}(item, i)
 	}
 	wg.Wait()
+	docCmd := &vearchpb.DocCmd{Type: vearchpb.OpType_BULK, Docs: gammaArray}
+
+	err := store.Write(ctx, docCmd)
+	vErr := vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err)
+	if vErr.GetError().Code != vearchpb.ErrorEnum_SUCCESS {
+		log.Error("Add doc failed, err: [%s]", err.Error())
+		for _, item := range items {
+			item.Err = vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err).GetError()
+		}
+	} else {
+		msgs := strings.Split(vErr.GetError().Msg, ",")
+		for i, msg := range msgs {
+			if code, _ := strconv.Atoi(msg); code == 0 {
+				log.Debug("add doc success, %s", msg)
+			} else {
+				items[i].Err = vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, errors.New(msg)).GetError()
+			}
+		}
+	}
+}
+
+func update(ctx context.Context, store PartitionStore, items []*vearchpb.Item) {
+	item := items[0]
+	docGamma := &gamma.Doc{Fields: item.Doc.Fields}
+	docBytes := docGamma.Serialize()
+	docCmd := &vearchpb.DocCmd{Type: vearchpb.OpType_REPLACE, Doc: docBytes}
+	if err := store.Write(ctx, docCmd); err != nil {
+		log.Error("Add doc failed, err: [%s]", err.Error())
+		item.Err = vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err).GetError()
+	} else {
+		item.Doc.Fields = nil
+	}
 }
 
 func search(ctx context.Context, store PartitionStore, request *vearchpb.SearchRequest, response *vearchpb.SearchResponse) {
 	if err := store.Search(ctx, request, response); err != nil {
 		log.Error("search doc failed, err: [%s]", err.Error())
-		response.Head.Err = vearchpb.NewError(0, err).GetError()
+		response.Head.Err = vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err).GetError()
 	}
 	defer func() {
 		if r := recover(); r != nil {
@@ -257,8 +289,8 @@ func bulkSearch(ctx context.Context, store PartitionStore, request []*vearchpb.S
 			}()
 
 			if err := store.Search(ctx, req, resp); err != nil {
-				log.Error("bulkSearch doc failed, err: [%s]", err.Error())
-				resp.Head.Err = vearchpb.NewError(0, err).GetError()
+				log.Error("search doc failed, err: [%s]", err.Error())
+				resp.Head.Err = vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err).GetError()
 			}
 		}(req, response[i])
 	}

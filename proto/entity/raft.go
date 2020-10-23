@@ -62,7 +62,8 @@ type RecoverFailServer struct {
 
 //RecoverFailServer use for recover fail server
 type DBModify struct {
-	DbName string               `json:"db_name"`
-	IpAddr string               `json:"ip_addr"`
-	Method proto.ConfChangeType `json:"method"`
+	DbName    string               `json:"db_name"`
+	SpaceName string               `json:"space_name"`
+	IPAddr    string               `json:"ip_addr"`
+	Method    proto.ConfChangeType `json:"method"`
 }

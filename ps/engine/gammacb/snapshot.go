@@ -37,6 +37,7 @@ func (g *GammaSnapshot) Next() ([]byte, error) {
 	if g.reader == nil {
 		info := g.infos[g.index]
 		g.index = g.index + 1
+		log.Debug("gamma snapshot dir info is [%+v] ", info)
 		if info.IsDir() {
 			log.Warn("dir:[%s] name:[%s] is dir , so skip sync", g.path, info.Name())
 			return cbbytes.ValueToByte(g.index - 1)
@@ -45,6 +46,8 @@ func (g *GammaSnapshot) Next() ([]byte, error) {
 		name := info.Name()
 
 		reader, err := os.Open(filepath.Join(g.path, name))
+		log.Debug("next reader info [%+v],path [%s],name [%s]", info, g.path, name)
+
 		if err != nil {
 			return nil, err
 		}
@@ -95,6 +98,8 @@ func (ge *gammaEngine) NewSnapshot() (proto.Snapshot, error) {
 	infos, _ := ioutil.ReadDir(ge.path)
 	fileName := filepath.Join(ge.path, indexSn)
 
+	log.Debug("new snapshot ge path is [%+v]",fileName)
+
 	b, err := ioutil.ReadFile(fileName)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -118,11 +123,12 @@ func (ge *gammaEngine) ApplySnapshot(peers []proto.Peer, iter proto.SnapIterator
 	if err != nil {
 		return err
 	}
+
 	var names []string
 	if err := json.Unmarshal(schema, &names); err != nil {
 		return err
 	}
-
+	log.Debug("apply snap shot names is [%s]", names)
 	index := -1
 
 	var out *os.File
@@ -147,6 +153,8 @@ func (ge *gammaEngine) ApplySnapshot(peers []proto.Peer, iter proto.SnapIterator
 			if out, err = os.Create(filepath.Join(ge.path, names[i])); err != nil {
 				return err
 			}
+			log.Debug("create file path is [%s] ,name is [%s]",ge.path, names[i])
+
 			index = i
 		}
 		if _, err = out.Write(bs[4:]); err != nil {

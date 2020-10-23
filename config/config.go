@@ -161,6 +161,7 @@ type GlobalCfg struct {
 	SelfManageEtcd  bool   `toml:"self_manage_etcd,omitempty" json:"self_manage_etcd"`
 	AutoRecoverPs   bool   `toml:"auto_recover_ps,omitempty" json:"auto_recover_ps"`
 	SupportEtcdAuth bool   `toml:"support_etcd_auth,omitempty" json:"support_etcd_auth"`
+	RaftConsistent  bool   `toml:"raft_consistent,omitempty" json:"raft_consistent"`
 }
 
 type EtcdCfg struct {
@@ -274,15 +275,18 @@ type RouterCfg struct {
 	ConnLimit    int    `toml:"conn_limit" json:"conn_limit"`
 	CloseTimeout int64  `toml:"close_timeout" json:"close_timeout"`
 }
+
 type PSCfg struct {
 	RpcPort                uint16 `toml:"rpc_port,omitempty" json:"rpc_port"`
+	PsHeartbeatTimeout     int    `toml:"ps_heartbeat_timeout" json:"ps_heartbeat_timeout"`
 	RaftHeartbeatPort      uint16 `toml:"raft_heartbeat_port,omitempty" json:"raft_heartbeat_port"`
 	RaftReplicatePort      uint16 `toml:"raft_replicate_port,omitempty" json:"raft_replicate_port"`
 	RaftHeartbeatInterval  int    `toml:"heartbeat_interval" json:"heartbeat-interval"`
 	RaftRetainLogs         uint64 `toml:"raft_retain_logs" json:"raft-retain-logs"`
 	RaftReplicaConcurrency int    `toml:"raft_replica_concurrency" json:"raft-replica-concurrency"`
 	RaftSnapConcurrency    int    `toml:"raft_snap_concurrency" json:"raft-snap-concurrency"`
-	RaftTruncateCount      int64  `toml:"raft_truncate_count" json:"raft-snap-concurrency"`
+	RaftTruncateCount      int64  `toml:"raft_truncate_count" json:"raft_truncate_count"`
+	RaftDiffCount          uint64 `toml:"raft_diff_count" json:"raft_diff_count"`
 	EngineDWPTNum          uint64 `toml:"engine_dwpt_num" json:"engine-dwpt-num"`
 	MaxSize                int64  `toml:"max_size" json:"max_size"`
 	PprofPort              uint16 `toml:"pprof_port" json:"pprof_port"`
