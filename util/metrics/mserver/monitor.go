@@ -22,7 +22,7 @@ import (
 )
 
 func NewErrServerStatus(ip string, err error) *ServerStats {
-	vErr := vearchpb.NewError(0, err)
+	vErr := vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err)
 	return &ServerStats{
 		Ip:     ip,
 		Status: int64(vearchpb.ErrCode(vErr.GetError().Code)),

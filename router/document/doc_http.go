@@ -22,13 +22,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/vearch/vearch/util/log"
-
 	"github.com/vearch/vearch/client"
 	"github.com/vearch/vearch/config"
 	"github.com/vearch/vearch/monitor"
 	"github.com/vearch/vearch/proto/vearchpb"
 	"github.com/vearch/vearch/router/document/resp"
+	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/util/netutil"
 )
 

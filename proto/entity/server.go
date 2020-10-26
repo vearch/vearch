@@ -40,9 +40,9 @@ type Server struct {
 
 //FailServer /fail/server/id:[body] ttl 3m 3s
 type FailServer struct {
-	ID        NodeID  `json:"name,omitempty"` //unique name for raft
-	TimeStamp int64   `json:"time_stamp,omitempty"`
-	Node      *Server `json:"server,omitempty"`
+	ID				  NodeID        `json:"nodeID,omitempty"` //unique name for raft
+	TimeStamp		  int64  		`json:"time_stamp,omitempty"`
+	Node			  *Server		`json:"server,omitempty"`
 }
 
 func (s *Server) RpcAddr() string {

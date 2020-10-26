@@ -27,6 +27,7 @@ service RouterGRPCService {
     rpc Search (SearchRequest) returns (SearchResponse) { }
     rpc Bulk (BulkRequest) returns (BulkResponse) { }
     rpc MSearch (MSearchRequest) returns (SearchResponse) { }
+	rpc Space (RequestHead) returns (Table) { }
 }
 
 message RequestHead {

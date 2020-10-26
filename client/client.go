@@ -21,7 +21,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/vearch/vearch/util"
+	"github.com/patrickmn/go-cache"
 	"math"
 	"math/big"
 	"math/rand"
@@ -29,6 +29,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/vearch/vearch/util"
 
 	"github.com/vearch/vearch/proto/response"
 	"github.com/vearch/vearch/ps/engine/sortorder"
@@ -103,15 +105,7 @@ func (client *Client) Stop() {
 
 // Space return space by dbname and space name
 func (client *Client) Space(ctx context.Context, dbName, spaceName string) (*entity.Space, error) {
-	dbID, err := client.Master().QueryDBName2Id(ctx, dbName)
-	if err != nil {
-		return nil, err
-	}
-	space, err := client.Master().QuerySpaceByName(ctx, dbID, spaceName)
-	if err != nil {
-		return nil, err
-	}
-	return space, nil
+	return client.Master().Cache().SpaceByCache(ctx, dbName, spaceName)
 }
 
 const (
@@ -186,6 +180,22 @@ func (r *routerRequest) SetDocs(docs []*vearchpb.Document) *routerRequest {
 		return r
 	}
 	log.Debug("RouterReques trace %v", r)
+	for _, doc := range r.docs {
+		if doc == nil {
+			r.Err = vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, errors.New("The doc is nil."))
+			return r
+		}
+		if len(doc.Fields) != len(r.space.SpaceProperties) {
+			r.Err = vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("The length[%d] of doc.fields is not equal to space[%d].", len(doc.Fields), len(r.space.SpaceProperties)))
+			return r
+		}
+		for _, field := range doc.Fields {
+			if _, ok := r.space.SpaceProperties[field.Name]; !ok {
+				r.Err = vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("The field[%s] in doc not needed in space.", field.Name))
+				return r
+			}
+		}
+	}
 	r.docs = docs
 	return r
 }
@@ -208,8 +218,10 @@ func (r *routerRequest) SetDocsField() *routerRequest {
 		if IDIsLong {
 			keyInt, _ := strconv.ParseInt(doc.PKey, 10, 64)
 			field.Value, _ = cbbytes.ValueToByte(keyInt)
+			field.Type = vearchpb.FieldType_LONG
 		} else {
 			field.Value = []byte(doc.PKey)
+			field.Type = vearchpb.FieldType_STRING
 		}
 		doc.Fields = append(doc.Fields, field)
 	}
@@ -319,7 +331,7 @@ func (r *routerRequest) Execute() []*vearchpb.Item {
 			}
 			err := r.client.PS().GetOrCreateRPCClient(ctx, nodeID).Execute(ctx, UnaryHandler, d, replyPartition)
 			if err != nil {
-				replyPartition.Err = vearchpb.NewError(0, err).GetError()
+				replyPartition.Err = vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err).GetError()
 			} else {
 				respChain <- replyPartition
 			}
@@ -396,7 +408,9 @@ func (r *routerRequest) SearchFieldSortExecute(sortOrder sortorder.SortOrder) *v
 				return
 			}
 			clientType := pd.SearchRequest.Head.ClientType
-			nodeID := GetNodeIdsByClientType(clientType, partition)
+			//ensure node is alive
+			servers := r.client.Master().Cache().serverCache
+			nodeID := GetNodeIdsByClientType(clientType, partition, servers)
 			rpcClient := r.client.PS().GetOrCreateRPCClient(ctx, nodeID)
 			if rpcClient == nil {
 				err := &vearchpb.Error{Code: vearchpb.ErrorEnum_ROUTER_NO_PS_CLIENT, Msg: "no ps clinet by nodeID:" + string(nodeID)}
@@ -563,7 +577,8 @@ func (r *routerRequest) BulkSearchSortExecute(sortOrders []sortorder.SortOrder) 
 				log.Error("BulkSearchSortExecute PartitionByCache error:%v", r)
 			}
 			clientType := pd.SearchRequests[0].Head.ClientType
-			nodeID := GetNodeIdsByClientType(clientType, partition)
+			servers := r.client.Master().Cache().serverCache
+			nodeID := GetNodeIdsByClientType(clientType, partition, servers)
 			if normalIsOrNot && len(normalField) > 0 {
 				for i := 0; i < len(pd.SearchRequests); i++ {
 					vectorQueryArr := pd.SearchRequests[i].VecFields
@@ -832,7 +847,7 @@ func (r *routerRequest) BulkSearchByPartitions(searchReq []*vearchpb.SearchReque
 	return r
 }
 
-func GetNodeIdsByClientType(clientType string, partition *entity.Partition) entity.NodeID {
+func GetNodeIdsByClientType(clientType string, partition *entity.Partition, servers *cache.Cache) entity.NodeID {
 	nodeId := uint64(0)
 	switch clientType {
 	case "leader":
@@ -842,19 +857,55 @@ func GetNodeIdsByClientType(clientType string, partition *entity.Partition) enti
 			log.Debug("search by partition:%v by not leader model by partition:[%d]", partition.Id)
 		}
 		noLeaderIDs := make([]entity.NodeID, 0)
-		for _, id := range partition.Replicas {
-			noLeaderIDs = append(noLeaderIDs, id)
+		for _, nodeID := range partition.Replicas {
+			_, serverExist := servers.Get(cast.ToString(nodeID))
+			if config.Conf().Global.RaftConsistent {
+				if serverExist && partition.ReStatusMap[nodeID] == entity.ReplicasOK && nodeID != partition.LeaderID {
+					noLeaderIDs = append(noLeaderIDs, nodeID)
+				}
+			} else {
+				if serverExist {
+					noLeaderIDs = append(noLeaderIDs, nodeID)
+				}
+			}
 		}
 		nodeId = noLeaderIDs[rand.Intn(len(noLeaderIDs))]
 	case "random", "":
-		randomID := partition.Replicas[rand.Intn(len(partition.Replicas))]
-		if log.IsDebugEnabled() {
-			log.Debug("search by partition:%v by random model ID:[%d]", partition.Replicas, randomID)
+		randIDs := make([]entity.NodeID, 0)
+		for _, nodeID := range partition.Replicas {
+			_, serverExist := servers.Get(cast.ToString(nodeID))
+			if config.Conf().Global.RaftConsistent {
+				if serverExist && partition.ReStatusMap[nodeID] == entity.ReplicasOK {
+					randIDs = append(randIDs, nodeID)
+				}
+			} else {
+				if serverExist {
+					randIDs = append(randIDs, nodeID)
+				}
+			}
 		}
-		nodeId = randomID
+		nodeId = randIDs[rand.Intn(len(randIDs))]
+		if log.IsDebugEnabled() {
+			log.Debug("search by partition:%v by random model ID:[%d]", randIDs, nodeId)
+		}
 	default:
-		randomID := partition.Replicas[rand.Intn(len(partition.Replicas))]
-		nodeId = randomID
+		randIDs := make([]entity.NodeID, 0)
+		for _, nodeID := range partition.Replicas {
+			_, serverExist := servers.Get(cast.ToString(nodeID))
+			if config.Conf().Global.RaftConsistent {
+				if serverExist && partition.ReStatusMap[nodeID] == entity.ReplicasOK {
+					randIDs = append(randIDs, nodeID)
+				}
+			} else {
+				if serverExist {
+					randIDs = append(randIDs, nodeID)
+				}
+			}
+		}
+		nodeId = randIDs[rand.Intn(len(randIDs))]
+		if log.IsDebugEnabled() {
+			log.Debug("search by partition:%v by default model ID:[%d]", randIDs, nodeId)
+		}
 	}
 	return nodeId
 }
@@ -1285,7 +1336,7 @@ func (r *routerRequest) ReplicaForceMergeExecute(partition *entity.Partition, ct
 			defer wgOther.Done()
 			err := r.client.PS().GetOrCreateRPCClient(ctx, nodeId).Execute(ctx, UnaryHandler, d, replyPartition)
 			if err != nil {
-				replyPartition.Err = vearchpb.NewError(0, err).GetError()
+				replyPartition.Err = vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err).GetError()
 			} else {
 				respChain <- replyPartition
 			}
@@ -1339,7 +1390,7 @@ func (r *routerRequest) DelByQueryeExecute() *vearchpb.DelByQueryeResponse {
 			nodeID := partition.LeaderID
 			err := r.client.PS().GetOrCreateRPCClient(ctx, nodeID).Execute(ctx, UnaryHandler, d, replyPartition)
 			if err != nil {
-				replyPartition.Err = vearchpb.NewError(0, err).GetError()
+				replyPartition.Err = vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err).GetError()
 			} else {
 				respChain <- replyPartition
 			}

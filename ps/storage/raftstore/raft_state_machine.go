@@ -16,15 +16,66 @@ package raftstore
 
 import (
 	"fmt"
-
 	"github.com/tiglabs/raft"
 	"github.com/tiglabs/raft/proto"
+	"github.com/vearch/vearch/config"
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/proto/vearchpb"
 	"github.com/vearch/vearch/ps/psutil"
 	"github.com/vearch/vearch/util/cbjson"
 	"github.com/vearch/vearch/util/log"
 )
+
+// replicas status,behind leader or equal leader
+func (s *Store) ReplicasStatusChange() bool {
+	statusChange := false
+	// get leader
+	leaderCommit := s.Status().Commit
+	var currentStatus uint32
+	for nodeID,rs := range s.Status().Replicas {
+		if nodeID == s.Partition.LeaderID || leaderCommit - rs.Commit < s.raftDiffCount {
+			currentStatus =  entity.ReplicasOK
+		} else {
+			currentStatus = entity.ReplicasNotReady
+		}
+		pStatus,found := s.RsStatusMap.Load(nodeID)
+		if found {
+			// status unequal
+			if pStatus.(uint32) != currentStatus {
+				if !statusChange {
+					statusChange = true
+				}
+				log.Debug("current nodeID is [%d],partitionID is [%d],commit is [%d],leader nodeID is [%d]," +
+					"leader commit is [%d]", nodeID, s.Partition.Id, rs.Commit, s.Partition.LeaderID, leaderCommit)
+				log.Debug("status change ,because nodeID [%d] statusChange .", nodeID)
+				s.RsStatusMap.Store(nodeID, currentStatus)
+			}
+		} else {
+			// add replicas
+			if !statusChange {
+				statusChange = true
+			}
+			log.Debug("current nodeID is [%d],partitionID is [%d],commit is [%d],leader nodeID is [%d]," +
+				"leader commit is [%d]", nodeID, s.Partition.Id, rs.Commit, s.Partition.LeaderID, leaderCommit)
+			log.Debug("status change ,because nodeID [%d] not found .", nodeID)
+			s.RsStatusMap.Store(nodeID, currentStatus)
+		}
+	}
+	// delete unExist replicas
+	s.RsStatusMap.Range(func(key, value interface{}) bool {
+		nodeID := key.(uint64)
+		if _, find := s.Status().Replicas[nodeID]; !find {
+			log.Debug("delete unExist replicas nodeID [%d]", key)
+			s.RsStatusMap.Delete(key)
+			// rm replicas
+			if !statusChange {
+				statusChange = true
+			}
+		}
+		return true
+	})
+	return statusChange
+}
 
 // Apply implements the raft interface.
 func (s *Store) Apply(command []byte, index uint64) (resp interface{}, err error) {
@@ -38,6 +89,25 @@ func (s *Store) Apply(command []byte, index uint64) (resp interface{}, err error
 
 	if err := raftCmd.Close(); err != nil {
 		log.Error(err.Error())
+	}
+	// if follow after leader this value,means can't offer server
+	// just leader check
+	if config.Conf().Global.RaftConsistent {
+		if s.IsLeader() {
+			if s.ReplicasStatusChange() {
+				partitionStatus := &ReplicasStatusEntry{
+					NodeID:      s.NodeID,
+					PartitionID: s.Partition.Id,
+					ReStatusMap: s.RsStatusMap,
+				}
+				log.Debug("reStatus change, leader nodeId [%d]", s.Partition.LeaderID)
+				for key, value := range s.Status().Replicas {
+					log.Debug("reStatus change, nodeId [%d], commit [%d]", key, value.Commit)
+				}
+				// send message,stop search server
+				s.RsStatusC <- partitionStatus
+			}
+		}
 	}
 	return resp, nil
 }

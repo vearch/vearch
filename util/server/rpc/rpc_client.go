@@ -67,7 +67,7 @@ func (this *RpcClient) Close() error {
 
 func (this *RpcClient) Execute(ctx context.Context, servicePath string, args interface{}, reply *vearchpb.PartitionData) (err error) {
 	cli := this.clientPool.Get().(*client.OneClient)
-	defer this.clientPool.Put(cli)
+	this.clientPool.Put(cli)
 	if err := cli.Call(ctx, servicePath, serviceMethod, args, reply); err != nil {
 		return vearchpb.NewError(vearchpb.ErrorEnum_Call_RpcClient_Failed, err)
 	}

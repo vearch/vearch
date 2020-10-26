@@ -614,7 +614,7 @@ type watcherJob struct {
 //watch /server/ put
 func (w *watcherJob) serverPut(value []byte) (e error) {
 	//process panic
-	defer errutil.CatchError(e)
+	defer errutil.CatchError(&e)
 	// parse server info
 	server := &entity.Server{}
 	err := cbjson.Unmarshal(value, server)
@@ -629,7 +629,8 @@ func (w *watcherJob) serverPut(value []byte) (e error) {
 				log.Error("failed to unlock space,the Error is:%v ", err)
 			}
 		}()
-		log.Debug("get LOCK success,recover fail server %v ", server)
+		log.Debug("get LOCK success,process fail server %+v ", server)
+
 		//get failServer info
 		if len(server.PartitionIds) == 0 {
 			// recover failServer
@@ -637,9 +638,9 @@ func (w *watcherJob) serverPut(value []byte) (e error) {
 			if config.Conf().Global.AutoRecoverPs {
 				err = w.masterClient.RecoverByNewServer(w.ctx, server)
 				if err != nil {
-					log.Debug("auto recover is err %v,server is %v", err, server)
+					log.Debug("auto recover is err %v,server is %+v", err, server)
 				} else {
-					log.Info("recover is success,server is %v", server)
+					log.Info("recover is success,server is %+v", server)
 				}
 			}
 		} else {
@@ -647,7 +648,7 @@ func (w *watcherJob) serverPut(value []byte) (e error) {
 			w.masterClient.TryRemoveFailServer(w.ctx, server)
 		}
 	} else {
-		log.Debug("get LOCK error,just update cache %v ", server)
+		log.Debug("get LOCK error,just update cache %+v ", server)
 	}
 	//update the cache
 	w.cache.Set(cacheServerKey(server.ID), server, cache.NoExpiration)
@@ -657,7 +658,7 @@ func (w *watcherJob) serverPut(value []byte) (e error) {
 //watch /server/ delete
 func (w *watcherJob) serverDelete(cacheKey string) (err error) {
 	//process panic
-	defer errutil.CatchError(err)
+	defer errutil.CatchError(&err)
 	nodeID := cast.ToUint64(strings.Split(cacheKey, "/")[2])
 	//mutex ensure only one master update the meta,the other just undate local cache
 	mutex := w.masterClient.Client().Master().NewLock(w.ctx, entity.ClusterWatchServerKey, time.Second*188)
@@ -675,7 +676,7 @@ func (w *watcherJob) serverDelete(cacheKey string) (err error) {
 		server := get.(*entity.Server)
 		//attach alive, timeout is 5s
 		if IsLive(server.RpcAddr()) || len(server.PartitionIds) == 0 {
-			log.Info("%v is alive or server partition is zero.", server)
+			log.Info("%+v is alive or server partition is zero.", server)
 			return nil
 		}
 		failServer := &entity.FailServer{ID: server.ID, TimeStamp: time.Now().Unix()}
@@ -686,7 +687,7 @@ func (w *watcherJob) serverDelete(cacheKey string) (err error) {
 		//put fail node info into etcd
 		err = w.masterClient.Put(w.ctx, key, value)
 		errutil.ThrowError(err)
-		log.Debug("put failServer %s is success, value is %s", key, string(value))
+		log.Info("put failServer %s is success, value is %s", key, string(value))
 	} else {
 		log.Debug("get LOCK error,just update cache %d", nodeID)
 	}

@@ -190,12 +190,22 @@ func (ms *monitorService) partitionInfo(ctx context.Context, dbName, spaceName s
 					}
 				}
 
+				replicasStatus := make(map[entity.NodeID]string)
+				for nodeID, status := range p.ReStatusMap {
+					if status == entity.ReplicasOK {
+						replicasStatus[nodeID] = "ReplicasOK"
+					} else {
+						replicasStatus[nodeID] = "ReplicasNotReady"
+					}
+				}
+
 				//this must from space.Partitions
 				partitionInfo.PartitionID = spacePartition.Id
 				partitionInfo.Color = color[pStatus]
 				partitionInfo.ReplicaNum = len(p.Replicas)
 				partitionInfo.Ip = server.Ip
 				partitionInfo.NodeID = server.ID
+				partitionInfo.RepStatus = replicasStatus
 
 				resultInsidePartition = append(resultInsidePartition, partitionInfo)
 

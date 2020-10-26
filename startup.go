@@ -33,7 +33,7 @@ import (
 	"github.com/vearch/vearch/config"
 	"github.com/vearch/vearch/master"
 	"github.com/vearch/vearch/ps"
-	router "github.com/vearch/vearch/router"
+	"github.com/vearch/vearch/router"
 	"github.com/vearch/vearch/util/log"
 	tigos "github.com/vearch/vearch/util/runtime/os"
 	"github.com/vearch/vearch/util/signals"

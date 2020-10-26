@@ -115,6 +115,10 @@ func docUpdateResponses(client *client.Client, args *vearchpb.UpdateRequest, rep
 
 func docBulkResponses(client *client.Client, args *vearchpb.BulkRequest, reply *vearchpb.BulkResponse) ([]byte, error) {
 	if args == nil || reply == nil || reply.Items == nil || len(reply.Items) < 1 {
+		if reply.GetHead() != nil && reply.GetHead().Err != nil {
+			err := reply.GetHead().Err
+			return nil, vearchpb.NewError(err.Code, errors.New(err.Msg))
+		}
 		return nil, vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, nil)
 	}
 	return docResponse(client, args.Head, reply.Items)

@@ -787,6 +787,10 @@ func searchParamToSearchPb(searchDoc *request.SearchDocumentRequest, searchReq *
 		return err
 	}
 
+	if metricType == "" && space != nil && space.Engine != nil {
+		metricType = space.Engine.MetricType
+	}
+
 	if metricType != "" && metricType == "L2" {
 		sortOrder = sortorder.SortOrder{&sortorder.SortScore{Desc: false}}
 	}

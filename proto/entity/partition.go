@@ -29,6 +29,11 @@ const (
 	PA_READWRITE
 )
 
+const (
+	ReplicasOK       = 1
+	ReplicasNotReady = 2
+)
+
 type PartitionForSearch struct {
 	*Partition
 	DBName, SpaceName string
@@ -40,13 +45,14 @@ type Partition struct {
 	SpaceId SpaceID     `json:"space_id,omitempty"`
 	DBId    DBID        `json:"db_id,omitempty"`
 	//Slot stores the lower limit of the slot range
-	Slot       SlotID   `json:"partition_slot"`
-	LeaderID   NodeID   `json:"leader_name,omitempty"`
-	Replicas   []NodeID `json:"replicas,omitempty"` //leader in replicas
-	UpdateTime int64    `json:"update_time,omitempty"`
-	Path       string   `json:"-"`
-	status     PartitionStatus
-	lock       sync.RWMutex
+	Slot        SlotID   `json:"partition_slot"`
+	LeaderID    NodeID   `json:"leader_name,omitempty"`
+	Replicas    []NodeID `json:"replicas,omitempty"` //leader in replicas
+	UpdateTime  int64    `json:"update_time,omitempty"`
+	Path        string   `json:"-"`
+	status      PartitionStatus
+	lock        sync.RWMutex
+	ReStatusMap map[uint64]uint32 `json:"status,omitempty"` //leader in replicas
 }
 
 //this is safe method for set status
@@ -69,6 +75,7 @@ type PartitionInfo struct {
 	DocNum      uint64          `json:"doc_num,omitempty"`
 	Size        int64           `json:"size,omitempty"`
 	ReplicaNum  int             `json:"replica_num,omitempty"`
+	RepStatus   map[NodeID]string `json:"replica_status,omitempty"`
 	Path        string          `json:"path,omitempty"`
 	Unreachable []uint64        `json:"unreachable,omitempty"`
 	Status      PartitionStatus `json:"status,omitempty"`

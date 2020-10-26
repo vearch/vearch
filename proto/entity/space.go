@@ -32,15 +32,15 @@ const (
 type FieldType int32
 
 const (
-	FieldType_NULL     FieldType = 0
-	FieldType_STRING   FieldType = 1
-	FieldType_INT      FieldType = 2
-	FieldType_FLOAT    FieldType = 3
-	FieldType_BOOL     FieldType = 4
-	FieldType_GEOPOINT FieldType = 5
-	FieldType_DATE     FieldType = 6
-	FieldType_VECTOR   FieldType = 7
-	FieldType_LONG     FieldType = 8
+	FieldType_INT FieldType = iota
+	FieldType_LONG
+	FieldType_FLOAT
+	FieldType_DOUBLE
+	FieldType_STRING
+	FieldType_VECTOR
+	FieldType_BOOL
+	FieldType_GEOPOINT
+	FieldType_DATE
 )
 
 type FieldOption int32
@@ -54,6 +54,7 @@ const (
 type Engine struct {
 	Name           string          `json:"name"`
 	IndexSize      int64           `json:"index_size"`
+	MetricType     string          `json:"metric_type,omitempty"`
 	RetrievalType  string          `json:"retrieval_type,omitempty"`
 	RetrievalParam json.RawMessage `json:"retrieval_param,omitempty"`
 	IdType         string          `json:"id_type,omitempty"`
@@ -163,9 +164,9 @@ func (engine *Engine) UnmarshalJSON(bs []byte) error {
 	}
 
 	tempEngine := &struct {
-		Name      string `json:"name"`
-		IndexSize *int64 `json:"index_size"`
-		//		MaxSize        int64           `json:"max_size"`
+		Name           string          `json:"name"`
+		IndexSize      *int64          `json:"index_size"`
+		MetricType     string          `json:"metric_type,omitempty"`
 		RetrievalParam json.RawMessage `json:"retrieval_param,omitempty"`
 		RetrievalType  string          `json:"retrieval_type,omitempty"`
 		IdType         string          `json:"id_type,omitempty"`
@@ -218,6 +219,11 @@ func (engine *Engine) UnmarshalJSON(bs []byte) error {
 					return fmt.Errorf(tempEngine.RetrievalType+" model doc size:[%d] less than 8192 so can not to index", int64(*tempEngine.IndexSize))
 				}
 			}
+			if v.MetricType == "" {
+				return fmt.Errorf("metric_type is null")
+			}
+
+			tempEngine.MetricType = v.MetricType
 
 		} else {
 			if tempEngine.IndexSize == nil {
@@ -232,6 +238,7 @@ func (engine *Engine) UnmarshalJSON(bs []byte) error {
 		Name:           tempEngine.Name,
 		IndexSize:      *tempEngine.IndexSize,
 		RetrievalParam: tempEngine.RetrievalParam,
+		MetricType:     tempEngine.MetricType,
 		RetrievalType:  tempEngine.RetrievalType,
 		IdType:         tempEngine.IdType,
 	}

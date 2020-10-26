@@ -16,6 +16,7 @@ package ps
 
 import (
 	"context"
+	"github.com/vearch/vearch/util/errutil"
 	"math"
 	"sync"
 	"time"
@@ -42,19 +43,20 @@ import (
 
 // Server partition server
 type Server struct {
-	mu            sync.RWMutex
-	nodeID        entity.NodeID //server id
-	ip            string
-	partitions    sync.Map
-	raftResolver  *raftstore.RaftResolver
-	raftServer    *raft.RaftServer
-	rpcServer     *rpc.RpcServer
-	client        *client.Client
-	ctx           context.Context
-	ctxCancel     context.CancelFunc
-	stopping      atomic.AtomicBool
-	wg            sync.WaitGroup
-	changeLeaderC chan *changeLeaderEntry
+	mu              sync.RWMutex
+	nodeID          entity.NodeID //server id
+	ip              string
+	partitions      sync.Map
+	raftResolver    *raftstore.RaftResolver
+	raftServer      *raft.RaftServer
+	rpcServer       *rpc.RpcServer
+	client          *client.Client
+	ctx             context.Context
+	ctxCancel       context.CancelFunc
+	stopping        atomic.AtomicBool
+	wg              sync.WaitGroup
+	changeLeaderC   chan *changeLeaderEntry
+	replicasStatusC chan *raftstore.ReplicasStatusEntry
 }
 
 // NewServer create server instance
@@ -65,10 +67,12 @@ func NewServer(ctx context.Context) *Server {
 		panic(err)
 	}
 	changeLeaderC := make(chan *changeLeaderEntry, 1000)
+	replicasStatusC := make(chan *raftstore.ReplicasStatusEntry, 1000)
 	s := &Server{
-		client:        cli,
-		raftResolver:  raftstore.NewRaftResolver(),
-		changeLeaderC: changeLeaderC,
+		client:          cli,
+		raftResolver:    raftstore.NewRaftResolver(),
+		changeLeaderC:   changeLeaderC,
+		replicasStatusC: replicasStatusC,
 	}
 
 	s.ctx, s.ctxCancel = context.WithCancel(ctx)
@@ -82,6 +86,8 @@ type changeLeaderEntry struct {
 	leader entity.NodeID
 	pid    entity.PartitionID
 }
+
+
 
 // Start start server
 func (s *Server) Start() error {
@@ -103,9 +109,6 @@ func (s *Server) Start() error {
 	s.ip = server.Ip
 	mserver.SetIp(server.Ip, true)
 
-	//heartbeat job start
-	s.StartHeartbeatJob()
-
 	// create raft server
 	s.raftServer, err = raftstore.StartRaftServer(nodeId, s.ip, s.raftResolver)
 	if err != nil {
@@ -117,6 +120,9 @@ func (s *Server) Start() error {
 
 	//change leader job start
 	s.startChangeLeaderC()
+
+	//heartbeat job start
+	s.StartHeartbeatJob()
 
 	//start rpc server
 	if err = s.rpcServer.Run(); err != nil {
@@ -172,6 +178,9 @@ func (s *Server) startChangeLeaderC() {
 			case entry := <-s.changeLeaderC:
 				log.Info("startChangeLeaderC() receive an change leader event, nodeId: %d, partitionId: %d", entry.leader, entry.pid)
 				s.registerMaster(entry.leader, entry.pid)
+			case pStatus := <-s.replicasStatusC:
+				log.Info("receive an change leader status, nodeId: %d, partitionId: %d",pStatus.NodeID, pStatus.PartitionID)
+				s.changeReplicas(pStatus)
 			}
 		}
 	}()
@@ -244,6 +253,38 @@ func (s *Server) registerMaster(leader entity.NodeID, pid entity.PartitionID) {
 
 	partition := store.(PartitionStore).GetPartition()
 	partition.LeaderID = s.nodeID
+
+	if err := s.client.Master().RegisterPartition(context.Background(), partition); err != nil {
+		log.Error("register partition err :[%s]", err.Error())
+	}
+}
+
+//change replicas status
+func (s *Server) changeReplicas(pStatus *raftstore.ReplicasStatusEntry) {
+
+	var err error
+	errutil.CatchError(&err)
+
+	log.Debug("receive changeReplicas message, pStatus:[%+v] ", pStatus)
+
+	store, ok := s.partitions.Load(pStatus.PartitionID)
+
+	if !ok {
+		log.Error("not found partition by id:[%d] ", pStatus.PartitionID)
+		return
+	}
+
+	partition := store.(PartitionStore).GetPartition()
+
+	// init ReStatusMap
+	if partition.ReStatusMap == nil {
+		partition.ReStatusMap = make(map[uint64]uint32)
+	}
+
+	pStatus.ReStatusMap.Range(func(key, value interface{}) bool {
+		partition.ReStatusMap[key.(uint64)] = value.(uint32)
+		return true
+	})
 
 	if err := s.client.Master().RegisterPartition(context.Background(), partition); err != nil {
 		log.Error("register partition err :[%s]", err.Error())

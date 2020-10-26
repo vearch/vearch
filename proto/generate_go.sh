@@ -65,7 +65,7 @@ fi
 ret=0
 for file in `ls ${proto_dir}/*.proto`
 do
-    protoc -I${proto_dir}:${GOGO_GOPATH}/src:${GOGO_GOPATH}/src/github.com/gogo/protobuf --gofast_out=plugins=grpc,$GO_OUT_M:$gen_out_dir $file || ret=$?
+	protoc -I${proto_dir}:${GOGO_GOPATH}/src:${GOGO_GOPATH}/src/github.com/gogo/protobuf --gofast_out=plugins=grpc,$GO_OUT_M:$gen_out_dir $file || ret=$?
     pb_files=${gen_out_dir}/*.pb.go
     rm -f ${gen_out_dir}/*.bak
     goimports -w $pb_files

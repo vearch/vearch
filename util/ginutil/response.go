@@ -77,7 +77,7 @@ func (this *Response) SendJsonHttpReplyError(err error) {
 	}
 
 	httpReply := &netutil.HttpReply{
-		Code: int64(vearchpb.ErrCode(vearchpb.NewError(0, err).GetError().Code)),
+		Code: int64(vearchpb.ErrCode(vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err).GetError().Code)),
 		Msg:  err.Error(),
 	}
 	this.SetHttpStatus(httpReply.Code)

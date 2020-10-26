@@ -16,7 +16,6 @@ package gammacb
 
 import (
 	"encoding/binary"
-	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -118,8 +117,6 @@ func mapping2Table(cfg register.EngineConfig, m *mapping.IndexMapping) (*gamma.T
 		case vearchpb.FieldType_VECTOR:
 			fieldMapping := value.Field.FieldMappingI.(*mapping.VectortFieldMapping)
 			dim[key] = fieldMapping.Dimension
-			var storeParam string
-			_ = json.Unmarshal(fieldMapping.StoreParam, &storeParam)
 			//index := (value.Field.Options() & vearchpb.FieldOption_Index) / vearchpb.FieldOption_Index
 			vectorInfo := gamma.VectorInfo{
 				Name:       key,
@@ -127,7 +124,7 @@ func mapping2Table(cfg register.EngineConfig, m *mapping.IndexMapping) (*gamma.T
 				Dimension:  int32(fieldMapping.Dimension),
 				ModelId:    fieldMapping.ModelId,
 				StoreType:  fieldMapping.StoreType,
-				StoreParam: storeParam,
+				StoreParam: string(fieldMapping.StoreParam),
 				HasSource:  fieldMapping.HasSource,
 			}
 			vectorInfo.IsIndex = true

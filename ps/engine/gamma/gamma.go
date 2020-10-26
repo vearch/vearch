@@ -15,7 +15,10 @@ package gamma
 #include <stdlib.h>
 */
 import "C"
-import "unsafe"
+import (
+	"fmt"
+	"unsafe"
+)
 
 func Init(config *Config) unsafe.Pointer {
 	var buffer []byte
@@ -37,19 +40,25 @@ func AddOrUpdateDoc(engine unsafe.Pointer, buffer []byte) int {
 	return int(C.AddOrUpdateDoc(engine, (*C.char)(unsafe.Pointer(&buffer[0])), C.int(len(buffer))))
 }
 
-/*
-func AddOrUpdateDoc(engine unsafe.Pointer, doc *Doc) int {
-	var buffer []byte
-	doc.Serialize(&buffer)
-	return int(C.AddOrUpdateDoc(engine, (*C.char)(unsafe.Pointer(&buffer[0])), C.int(len(buffer))))
-}
-func UpdateDoc(engine unsafe.Pointer, doc *Doc) int {
-	var buffer []byte
-	doc.Serialize(&buffer)
-	return int(C.UpdateDoc(engine, (*C.char)(unsafe.Pointer(&buffer[0])), C.int(len(buffer))))
+func AddOrUpdateDocs(engine unsafe.Pointer, buffer [][]byte) BatchResult {
+	num := len(buffer)
+	C.AddOrUpdateDocsNum(engine, C.int(num))
+	for i, b := range buffer {
+		C.PrepareDocs(engine, (*C.char)(unsafe.Pointer(&(b[0]))), C.int(i))
+	}
+	var CBuffer *C.char
+	zero := 0
+	length := &zero
+	C.AddOrUpdateDocsFinish(engine, C.int(num), (**C.char)(unsafe.Pointer(&CBuffer)), (*C.int)(unsafe.Pointer(length)))
+	defer C.free(unsafe.Pointer(CBuffer))
+
+	var result BatchResult
+	buffer2 := C.GoBytes(unsafe.Pointer(CBuffer), C.int(*length))
+	result.DeSerialize(buffer2)
+	fmt.Println(result)
+	return result
 }
 
-*/
 func DeleteDoc(engine unsafe.Pointer, docID []byte) int {
 	return int(C.DeleteDoc(engine, (*C.char)(unsafe.Pointer(&docID[0])), C.int(len(docID))))
 }

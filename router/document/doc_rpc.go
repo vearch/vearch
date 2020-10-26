@@ -18,6 +18,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/spf13/cast"
@@ -48,6 +49,51 @@ func ExportRpcHandler(rpcServer *grpc.Server, client *client.Client) {
 	}
 
 	vearchpb.RegisterRouterGRPCServiceServer(rpcServer, rpcHandler)
+}
+
+func (handler *RpcHandler) Space(ctx context.Context, req *vearchpb.RequestHead) (reply *vearchpb.Table, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = vearchpb.NewError(vearchpb.ErrorEnum_RECOVER, errors.New(cast.ToString(r)))
+		}
+	}()
+	space, err := handler.client.Space(ctx, req.DbName, req.SpaceName)
+
+	reply = &vearchpb.Table{}
+	pkt := vearchpb.FieldType_value[strings.ToUpper(space.Engine.IdType)]
+	tmi := &vearchpb.TableMetaInfo{PrimaryKeyType: vearchpb.FieldType(pkt),
+		PartitionsNum: int32(space.PartitionNum),
+		ReplicasNum:   int32(space.ReplicaNum),
+	}
+	tmi.FieldMetaInfo = make([]*vearchpb.FieldMetaInfo, 0)
+	for name, field := range space.SpaceProperties {
+		isIndex := false
+		if field.Index != nil && *field.Index {
+			isIndex = true
+		}
+		fmi := &vearchpb.FieldMetaInfo{Name: name,
+			DataType: vearchpb.FieldType(field.FieldType),
+			IsIndex:  isIndex,
+		}
+		if fmi.DataType == vearchpb.FieldType_VECTOR {
+			storeType := ""
+			if field.StoreType != nil {
+				storeType = *field.StoreType
+			}
+			st := vearchpb.VectorMetaInfo_StoreType_value[strings.ToUpper(storeType)]
+			sp, _ := field.StoreParam.MarshalJSON()
+			fmi.VectorMetaInfo = &vearchpb.VectorMetaInfo{
+				Dimension:  int32(field.Dimension),
+				StoreType:  vearchpb.VectorMetaInfo_StoreType(st),
+				StoreParam: string(sp),
+			}
+		}
+		tmi.FieldMetaInfo = append(tmi.FieldMetaInfo, fmi)
+	}
+	reply.Name = space.Name
+	reply.TableMetaInfo = tmi
+
+	return reply, nil
 }
 
 func (handler *RpcHandler) Get(ctx context.Context, req *vearchpb.GetRequest) (reply *vearchpb.GetResponse, err error) {

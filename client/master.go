@@ -37,6 +37,10 @@ import (
 	"go.etcd.io/etcd/clientv3"
 )
 
+const (
+	DefaultPsTimeOut           = 5
+)
+
 // masterClient is  used for router and partition server,not for master administrator. This client is mainly used to communicate with etcd directly,with out business logic
 // if method has query , it not use cache
 type masterClient struct {
@@ -226,6 +230,32 @@ func (m *masterClient) QueryFailServerByNodeID(ctx context.Context, nodeID uint6
 	return fs
 }
 
+//query server by IPAddr
+func (m *masterClient) QueryServerByIPAddr(ctx context.Context, IPAddr string) *entity.FailServer {
+	var err error
+	defer errutil.CatchError(&err)
+	//get all failServer
+	failServers,err := m.QueryAllFailServer(ctx)
+	for _,fs := range failServers {
+		if fs.Node.Ip == IPAddr {
+			log.Debug("get fail server info [%+v]",fs)
+			return fs
+		}
+	}
+
+	//get all server
+	servers,err := m.QueryServers(ctx)
+	for _,server := range servers {
+		if server.Ip == IPAddr {
+			fs := &entity.FailServer{TimeStamp: time.Now().Unix(),Node: server,ID: server.ID}
+			log.Debug("get alive server info [%+v]",fs)
+			return fs
+		}
+	}
+
+	return nil
+}
+
 // query all fail server
 func (m *masterClient) QueryAllFailServer(ctx context.Context) ([]*entity.FailServer, error) {
 	return m.QueryFailServerByKey(ctx, entity.PrefixFailServer)
@@ -234,7 +264,7 @@ func (m *masterClient) QueryAllFailServer(ctx context.Context) ([]*entity.FailSe
 //query fail server by prefix
 func (m *masterClient) QueryFailServerByKey(ctx context.Context, prefix string) (fs []*entity.FailServer, e error) {
 	// painc process
-	defer errutil.CatchError(e)
+	defer errutil.CatchError(&e)
 	_, bytesArr, err := m.PrefixScan(ctx, prefix)
 	errutil.ThrowError(err)
 	failServers := make([]*entity.FailServer, 0, len(bytesArr))
@@ -329,7 +359,11 @@ func (m *masterClient) KeepAlive(ctx context.Context, server *entity.Server) (<-
 	if err != nil {
 		return nil, err
 	}
-	return m.Store.KeepAlive(ctx, entity.ServerKey(server.ID), bytes, time.Second*188)
+	timeout := m.cfg.PS.PsHeartbeatTimeout
+	if timeout <= 0 {
+		timeout = DefaultPsTimeOut
+	}
+	return m.Store.KeepAlive(ctx, entity.ServerKey(server.ID), bytes, time.Second * time.Duration(timeout))
 }
 
 // PutServerWithLeaseID PutServerWithLeaseID
@@ -338,7 +372,11 @@ func (m *masterClient) PutServerWithLeaseID(ctx context.Context, server *entity.
 	if err != nil {
 		return err
 	}
-	return m.Store.PutWithLeaseId(ctx, entity.ServerKey(server.ID), bytes, time.Second*188, leaseID)
+	timeout := m.cfg.PS.PsHeartbeatTimeout
+	if timeout <= 0 {
+		timeout = DefaultPsTimeOut
+	}
+	return m.Store.PutWithLeaseId(ctx, entity.ServerKey(server.ID), bytes, time.Second * time.Duration(timeout), leaseID)
 }
 
 // DBKeys get db url in etcd
@@ -526,7 +564,7 @@ func (m *masterClient) TryRemoveFailServer(ctx context.Context, server *entity.S
 // @param server *entity.Server "new server info"
 func (client *masterClient) RecoverByNewServer(ctx context.Context, server *entity.Server) (e error) {
 	//process panic
-	defer errutil.CatchError(e)
+	defer errutil.CatchError(&e)
 	failServers, err := client.QueryAllFailServer(ctx)
 	errutil.ThrowError(err)
 	if len(failServers) > 0 {
@@ -550,7 +588,7 @@ func (client *masterClient) RecoverByNewServer(ctx context.Context, server *enti
 //@param rfs *entity.RecoverFailServer "failserver IPAddr,newserver IPAddr"
 func (client *masterClient) RecoverFailServer(ctx context.Context, rfs *entity.RecoverFailServer) (e error) {
 	//process panic
-	defer errutil.CatchError(e)
+	defer errutil.CatchError(&e)
 	reqBody, err := cbjson.Marshal(rfs)
 	errutil.ThrowError(err)
 	masterServer.reset()
