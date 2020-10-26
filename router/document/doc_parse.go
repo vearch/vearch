@@ -98,6 +98,8 @@ func parseJSON(path []string, v *fastjson.Value, retrievalType string, proMap ma
 		return nil, err
 	}
 
+	haveNoField := false
+	errorField := ""
 	haveVector := false
 	obj.Visit(func(key []byte, val *fastjson.Value) {
 		fieldName := string(key)
@@ -129,9 +131,15 @@ func parseJSON(path []string, v *fastjson.Value, retrievalType string, proMap ma
 				fields = append(fields, field)
 			}
 		} else {
+			haveNoField = true
+			errorField = fieldName
 			log.Error("unrecognizable field:[%s] value %s", fieldName, v.String())
 		}
 	})
+
+	if haveNoField {
+		return nil, fmt.Errorf("param have error field [%s]", errorField)
+	}
 
 	if !haveVector {
 		return nil, fmt.Errorf("param have not vector value")
