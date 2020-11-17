@@ -1037,8 +1037,11 @@ func GetSource(doc *vearchpb.ResultItem, space *entity.Space, idIsLong bool, sor
 			SortName: "_score",
 		})
 	}
-
-	marshal, err := json.Marshal(source)
+        var marshal []byte
+	var err error
+	if len(source) > 0 {
+	    marshal, err = json.Marshal(source)
+	}
 	if err != nil {
 		return nil, sortValues, pKey, err
 	}
