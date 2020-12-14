@@ -633,8 +633,11 @@ func (query *VectorQuery) ToC(retrievalType string) (*vearchpb.VectorQuery, erro
 		}
 	}
 
+	var has_boost int32 = 1
+
 	if query.Boost == nil {
 		query.Boost = defaultBoost
+		has_boost = 0
 	}
 
 	vectorQuery := &vearchpb.VectorQuery{
@@ -643,7 +646,7 @@ func (query *VectorQuery) ToC(retrievalType string) (*vearchpb.VectorQuery, erro
 		MinScore: *query.MinScore,
 		MaxScore: *query.MaxScore,
 		Boost:    *query.Boost,
-		HasBoost: 0,
+		HasBoost: has_boost,
 	}
 	return vectorQuery, nil
 }
