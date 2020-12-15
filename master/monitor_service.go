@@ -17,19 +17,24 @@ package master
 import (
 	context "context"
 	"fmt"
+	"strings"
+	"time"
+
 	"github.com/pkg/errors"
 	"github.com/spf13/cast"
+	"github.com/vearch/vearch/client"
 	"github.com/vearch/vearch/config"
-	pkg "github.com/vearch/vearch/proto"
 	"github.com/vearch/vearch/proto/entity"
+	"github.com/vearch/vearch/proto/vearchpb"
 	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/util/metrics/mserver"
 	"github.com/vearch/vearch/util/monitoring"
-	"github.com/vearch/vearch/util/uuid"
 	"go.etcd.io/etcd/etcdserver"
-	"strings"
-	"time"
 )
+
+func newMonitorService(masterService *masterService, Server *etcdserver.EtcdServer) *monitorService {
+	return &monitorService{masterService: masterService, etcdServer: Server}
+}
 
 //masterService is used for master administrator purpose.It should not be used by router and partition server program
 type monitorService struct {
@@ -37,8 +42,8 @@ type monitorService struct {
 	etcdServer *etcdserver.EtcdServer
 }
 
-func (this *monitorService) statsService(ctx context.Context) ([]*mserver.ServerStats, error) {
-	servers, err := this.Master().QueryServers(ctx)
+func (ms *monitorService) statsService(ctx context.Context) ([]*mserver.ServerStats, error) {
+	servers, err := ms.Master().QueryServers(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +57,7 @@ func (this *monitorService) statsService(ctx context.Context) ([]*mserver.Server
 					statsChan <- mserver.NewErrServerStatus(s.RpcAddr(), errors.New(cast.ToString(r)))
 				}
 			}()
-			statsChan <- this.Client.PS().Beg(ctx, uuid.FlakeUUID()).Admin(s.RpcAddr()).ServerStats()
+			statsChan <- client.ServerStats(s.RpcAddr())
 		}(s)
 	}
 
@@ -63,7 +68,7 @@ func (this *monitorService) statsService(ctx context.Context) ([]*mserver.Server
 		case s := <-statsChan:
 			result = append(result, s)
 		case <-ctx.Done():
-			return nil, pkg.CodeErr(pkg.ERRCODE_TIMEOUT)
+			return nil, vearchpb.NewError(vearchpb.ErrorEnum_TIMEOUT, nil)
 		default:
 			time.Sleep(time.Millisecond * 10)
 			if len(result) >= len(servers) {
@@ -78,10 +83,6 @@ out:
 	return result, nil
 }
 
-func newMonitorService(masterService *masterService, Server *etcdserver.EtcdServer) *monitorService {
-	return &monitorService{masterService: masterService, etcdServer: Server}
-}
-
 func (ms *monitorService) Register() {
 	msConf := config.Conf().Masters.Self()
 	if msConf != nil && msConf.MonitorPort > 0 {
@@ -92,14 +93,14 @@ func (ms *monitorService) Register() {
 	}
 }
 
-func (this *monitorService) partitionInfo(ctx context.Context, dbName, spaceName string) ([]map[string]interface{}, error) {
+func (ms *monitorService) partitionInfo(ctx context.Context, dbName, spaceName string) ([]map[string]interface{}, error) {
 	dbNames := make([]string, 0)
 	if dbName != "" {
 		dbNames = strings.Split(dbName, ",")
 	}
 
 	if len(dbNames) == 0 {
-		dbs, err := this.queryDBs(ctx)
+		dbs, err := ms.queryDBs(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -119,13 +120,13 @@ func (this *monitorService) partitionInfo(ctx context.Context, dbName, spaceName
 	for i := range dbNames {
 		dbName := dbNames[i]
 
-		dbId, err := this.Master().QueryDBName2Id(ctx, dbName)
+		dbId, err := ms.Master().QueryDBName2Id(ctx, dbName)
 		if err != nil {
 			errors = append(errors, dbName+" find dbID err: "+err.Error())
 			continue
 		}
 
-		spaces, err := this.Master().QuerySpaces(ctx, dbId)
+		spaces, err := ms.Master().QuerySpaces(ctx, dbId)
 		if err != nil {
 			errors = append(errors, dbName+" find space err: "+err.Error())
 			continue
@@ -156,7 +157,7 @@ func (this *monitorService) partitionInfo(ctx context.Context, dbName, spaceName
 			spaceStatus := 0
 			resultInsidePartition := make([]*entity.PartitionInfo, 0)
 			for _, spacePartition := range space.Partitions {
-				p, err := this.Master().QueryPartition(ctx, spacePartition.Id)
+				p, err := ms.Master().QueryPartition(ctx, spacePartition.Id)
 				if err != nil {
 					errors = append(errors, fmt.Sprintf("partition:[%d] not found in space: [%s]", spacePartition.Id, spaceName))
 					continue
@@ -171,14 +172,14 @@ func (this *monitorService) partitionInfo(ctx context.Context, dbName, spaceName
 					nodeID = p.Replicas[0]
 				}
 
-				server, err := this.Master().QueryServer(ctx, nodeID)
+				server, err := ms.Master().QueryServer(ctx, nodeID)
 				if err != nil {
 					errors = append(errors, fmt.Sprintf("server:[%d] not found in space: [%s] , partition:[%d]", nodeID, spaceName, spacePartition.Id))
 					pStatus = 2
 					continue
 				}
 
-				partitionInfo, err := this.Client.PS().Beg(ctx, uuid.FlakeUUID()).Admin(server.RpcAddr()).PartitionInfo(p.Id)
+				partitionInfo, err := client.PartitionInfo(server.RpcAddr(), p.Id)
 				if err != nil {
 					errors = append(errors, fmt.Sprintf("query space:[%s] server:[%d] partition:[%d] info err :[%s]", spaceName, nodeID, spacePartition.Id, err.Error()))
 					partitionInfo = &entity.PartitionInfo{}
@@ -189,12 +190,22 @@ func (this *monitorService) partitionInfo(ctx context.Context, dbName, spaceName
 					}
 				}
 
+				replicasStatus := make(map[entity.NodeID]string)
+				for nodeID, status := range p.ReStatusMap {
+					if status == entity.ReplicasOK {
+						replicasStatus[nodeID] = "ReplicasOK"
+					} else {
+						replicasStatus[nodeID] = "ReplicasNotReady"
+					}
+				}
+
 				//this must from space.Partitions
 				partitionInfo.PartitionID = spacePartition.Id
 				partitionInfo.Color = color[pStatus]
 				partitionInfo.ReplicaNum = len(p.Replicas)
 				partitionInfo.Ip = server.Ip
 				partitionInfo.NodeID = server.ID
+				partitionInfo.RepStatus = replicasStatus
 
 				resultInsidePartition = append(resultInsidePartition, partitionInfo)
 
@@ -281,7 +292,7 @@ func (ms *monitorService) monitorCallBack(masterMonitor *monitoring.MasterMonito
 					statsChan <- mserver.NewErrServerStatus(s.RpcAddr(), errors.New(cast.ToString(r)))
 				}
 			}()
-			statsChan <- ms.Client.PS().Beg(ctx, uuid.FlakeUUID()).Admin(s.RpcAddr()).ServerStats()
+			statsChan <- client.ServerStats(s.RpcAddr())
 		}(s)
 	}
 

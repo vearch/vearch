@@ -21,8 +21,9 @@ import (
 	"time"
 
 	"github.com/jasonlvhit/gocron"
-	"github.com/vearch/vearch/proto"
+	"github.com/vearch/vearch/client"
 	"github.com/vearch/vearch/proto/entity"
+	"github.com/vearch/vearch/proto/vearchpb"
 	"github.com/vearch/vearch/util/log"
 	"go.etcd.io/etcd/clientv3/concurrency"
 )
@@ -35,8 +36,8 @@ func walkPartitions(masterServer *Server, partitions []*entity.Partition) {
 	ctx := masterServer.ctx
 	log.Info("Start Walking Partitions!")
 	for _, partition := range partitions {
-		if space, err := masterServer.client.Master().QuerySpaceById(ctx, partition.DBId, partition.SpaceId); err != nil {
-			if pkg.ErrCode(err) == pkg.ERRCODE_SPACE_NOTEXISTS {
+		if space, err := masterServer.client.Master().QuerySpaceByID(ctx, partition.DBId, partition.SpaceId); err != nil {
+			if vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err).GetError().Code == vearchpb.ErrorEnum_SPACE_NOTEXISTS {
 				log.Info("Could not find Space contains partition,PartitionID:[%d] so remove it from etcd!", partition.Id)
 				partitionKey := entity.PartitionKey(partition.Id)
 				if err := masterServer.client.Master().Delete(ctx, partitionKey); err != nil {
@@ -62,7 +63,6 @@ func walkSpaces(masterServer *Server, spaces []*entity.Space) {
 	ctx := masterServer.ctx
 	log.Info("Start Walking Spaces!")
 	for _, space := range spaces {
-		spaceChannel <- space
 		if db, err := masterServer.client.Master().Get(ctx, entity.DBKeyBody(space.DBId)); err != nil {
 			log.Error("Failed to find database contains space,SpaceName:", space.Name, " SpaceID:", space.Id, " err:", err)
 		} else if db == nil {
@@ -78,7 +78,7 @@ func walkSpaces(masterServer *Server, spaces []*entity.Space) {
 
 func removePartition(masterServer *Server, partitionServerRpcAddr string, pid entity.PartitionID) error {
 	log.Debug("Removing partition:[%s] from ps:[%s]", pid, partitionServerRpcAddr)
-	return masterServer.client.PS().B().Admin(partitionServerRpcAddr).DeletePartition(pid)
+	return client.DeletePartition(partitionServerRpcAddr, pid)
 }
 
 func walkServers(masterServer *Server, servers []*entity.Server) {
@@ -87,7 +87,7 @@ func walkServers(masterServer *Server, servers []*entity.Server) {
 	for _, server := range servers {
 		for _, pid := range server.PartitionIds {
 			if _, err := masterServer.client.Master().QueryPartition(ctx, pid); err != nil {
-				if pkg.ErrCode(err) == pkg.ERRCODE_PARTITION_NOT_EXIST {
+				if vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err).GetError().Code == vearchpb.ErrorEnum_PARTITION_NOT_EXIST {
 					log.Info("to remove partition:%d", pid)
 					if err := removePartition(masterServer, server.RpcAddr(), pid); err != nil {
 						log.Warn("Failed to remove partition:%v allocated on server:%v,and err is:%v", pid, server.ID, err)
@@ -160,4 +160,13 @@ func (s *Server) StartCleanJon(ctx context.Context) {
 	scheduler := gocron.NewScheduler()
 	scheduler.Every(CronInterval).Seconds().Do(cleanTask, s)
 	<-scheduler.Start()
+}
+
+//WatchServerJob watch ps server put and delete
+func (s *Server) WatchServerJob(ctx context.Context, cli *client.Client) error {
+	err := client.NewWatchServerCache(ctx, cli)
+	if err != nil {
+		return err
+	}
+	return nil
 }

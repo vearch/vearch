@@ -29,25 +29,28 @@ type DB struct {
 }
 
 func (db *DB) Validate() error {
+	// validate db name
 	rs := []rune(db.Name)
-
 	if len(rs) == 0 {
 		return fmt.Errorf("name can not set empty string")
 	}
-
 	if unicode.IsNumber(rs[0]) {
 		return fmt.Errorf("name : %s can not start with num", db.Name)
 	}
-
 	if rs[0] == '_' {
 		return fmt.Errorf("name : %s can not start with _", db.Name)
 	}
-
 	for _, r := range rs {
 		switch r {
 		case '\t', '\n', '\v', '\f', '\r', ' ', 0x85, 0xA0, '\\', '+', '-', '!', '*', '/', '(', ')', ':', '^', '[', ']', '"', '{', '}', '~', '%', '&', '\'', '<', '>', '?':
 			return fmt.Errorf("name : %s can not has char in name ", `'\t', '\n', '\v', '\f', '\r', ' ', 0x85, 0xA0 , '\\','+', '-', '!', '*', '/', '(', ')', ':' , '^','[',']','"','{','}','~','%','&','\'','<','>','?'`)
 		}
 	}
+
+	// validate db id
+	if db.Id > 0 {
+		return fmt.Errorf("can not set db id when creating db")
+	}
+
 	return nil
 }

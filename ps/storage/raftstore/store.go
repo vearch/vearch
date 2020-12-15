@@ -18,9 +18,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/vearch/vearch/util/log"
-	"github.com/vearch/vearch/ps/psutil"
 	"os"
+	"sync"
+	"time"
+
+	"github.com/vearch/vearch/ps/psutil"
+	"github.com/vearch/vearch/util/log"
 
 	"github.com/tiglabs/raft"
 	"github.com/tiglabs/raft/proto"
@@ -38,6 +41,13 @@ import (
 
 //var _  ps.PartitionStore = &Store{}
 
+
+type ReplicasStatusEntry struct {
+	NodeID      entity.NodeID
+	PartitionID entity.PartitionID
+	ReStatusMap sync.Map
+}
+
 type Store struct {
 	*storage.StoreBase
 	RaftPath      string
@@ -45,9 +55,12 @@ type Store struct {
 	EventListener EventListener
 	Sn            int64
 	LastFlushSn   int64
+	LastFlushTime time.Time
 	Client        *client.Client
+	raftDiffCount uint64
+	RsStatusC     chan *ReplicasStatusEntry
+	RsStatusMap   sync.Map
 }
-
 
 // CreateStore create an instance of Store.
 func CreateStore(ctx context.Context, pID entity.PartitionID, nodeID entity.NodeID, space *entity.Space, raftServer *raft.RaftServer, eventListener EventListener, client *client.Client) (*Store, error) {
@@ -69,6 +82,12 @@ func CreateStore(ctx context.Context, pID entity.PartitionID, nodeID entity.Node
 		RaftServer:    raftServer,
 		EventListener: eventListener,
 		Client:        client,
+		RsStatusMap:   sync.Map{},
+	}
+	if config.Conf().PS.RaftDiffCount > 0 {
+		s.raftDiffCount = config.Conf().PS.RaftDiffCount
+	} else {
+		s.raftDiffCount = 10000
 	}
 	return s, nil
 }
@@ -91,6 +110,7 @@ func (s *Store) Start() (err error) {
 		return err
 	}
 	s.LastFlushSn = apply
+	s.LastFlushTime = time.Now()
 
 	s.Partition.SetStatus(entity.PA_READONLY)
 

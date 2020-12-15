@@ -17,21 +17,25 @@ package client
 import (
 	"context"
 	"fmt"
-	"github.com/patrickmn/go-cache"
-	"github.com/vearch/vearch/proto"
-	"github.com/vearch/vearch/util/cbjson"
-	"github.com/vearch/vearch/util/vearchlog"
+	"github.com/vearch/vearch/config"
+	"github.com/vearch/vearch/proto/vearchpb"
+	"github.com/vearch/vearch/util/errutil"
 	"strconv"
 	"strings"
 	"sync"
 
-	"github.com/spf13/cast"
-	"github.com/vearch/vearch/util/log"
-	. "github.com/vearch/vearch/proto/entity"
-	"github.com/vearch/vearch/util/atomic"
-	"go.etcd.io/etcd/mvcc/mvccpb"
+	"github.com/patrickmn/go-cache"
+	"github.com/vearch/vearch/util/cbjson"
+	"github.com/vearch/vearch/util/vearchlog"
+
 	"runtime/debug"
 	"time"
+
+	"github.com/spf13/cast"
+	"github.com/vearch/vearch/proto/entity"
+	"github.com/vearch/vearch/util/atomic"
+	"github.com/vearch/vearch/util/log"
+	"go.etcd.io/etcd/mvcc/mvccpb"
 )
 
 const retryNum = 3
@@ -74,13 +78,29 @@ func newClientCache(serverCtx context.Context, masterClient *masterClient) (*cli
 	return cc, nil
 }
 
+// NewWatchServerCache watch ps server put and delete status
+func NewWatchServerCache(serverCtx context.Context, cli *Client) error {
+
+	ctx, cancel := context.WithCancel(serverCtx)
+
+	cc := &clientCache{
+		mc:          cli.Master(),
+		cancel:      cancel,
+		serverCache: cache.New(cache.NoExpiration, cache.NoExpiration),
+	}
+
+	err := cc.startWSJob(ctx)
+
+	return err
+}
+
 type spaceEntry struct {
 	lastUpdateTime time.Time
 	mutex          sync.Mutex
 	refCount       *atomic.AtomicInt64
 }
 
-func cachePartitionKey(space string, pid PartitionID) string {
+func cachePartitionKey(space string, pid entity.PartitionID) string {
 	return space + "/" + strconv.FormatInt(int64(pid), 10)
 }
 
@@ -88,16 +108,16 @@ func cacheSpaceKey(db, space string) string {
 	return db + "/" + space
 }
 
-func cacheServerKey(nodeId NodeID) string {
-	return cast.ToString(nodeId)
+func cacheServerKey(nodeID entity.NodeID) string {
+	return cast.ToString(nodeID)
 }
 
 //find a user by cache
-func (cliCache *clientCache) UserByCache(ctx context.Context, userName string) (*User, error) {
+func (cliCache *clientCache) UserByCache(ctx context.Context, userName string) (*entity.User, error) {
 
 	get, found := cliCache.userCache.Get(userName)
 	if found {
-		return get.(*User), nil
+		return get.(*entity.User), nil
 	}
 
 	_ = cliCache.reloadUserCache(ctx, false, userName)
@@ -106,19 +126,16 @@ func (cliCache *clientCache) UserByCache(ctx context.Context, userName string) (
 		time.Sleep(retrySleepTime)
 		log.Debug("to find user by key:[%s] ", userName)
 		if get, found = cliCache.spaceCache.Get(userName); found {
-			return get.(*User), nil
+			return get.(*entity.User), nil
 		}
 	}
 
-	return nil, fmt.Errorf("user:[%s] err:[%s]", userName, pkg.CodeErr(pkg.ERRCODE_PARTITION_NOT_EXIST))
+	return nil, fmt.Errorf("user:[%s] err:[%s]", userName, vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_NOT_EXIST, nil))
 }
 
 func (cliCache *clientCache) reloadUserCache(ctx context.Context, sync bool, userName string) error {
-
 	fun := func() error {
-
 		log.Info("to reload user:[%s]", userName)
-
 		user, err := cliCache.mc.QueryUser(ctx, userName)
 		if err != nil {
 			return fmt.Errorf("can not found user by name:[%s] err:[%s]", userName, err.Error())
@@ -129,28 +146,23 @@ func (cliCache *clientCache) reloadUserCache(ctx context.Context, sync bool, use
 
 	if sync {
 		return fun()
-	} else {
-		_, ok := userReloadWorkder.LoadOrStore(userName, struct{}{})
-		if ok {
-			return nil
-		}
-
+	}
+	if _, ok := userReloadWorkder.LoadOrStore(userName, struct{}{}); !ok {
 		go func() {
 			defer userReloadWorkder.Delete(userName)
 			vearchlog.FunIfNotNil(fun)
 		}()
 	}
-
 	return nil
 }
 
 //find a space by db and space name , if not exist so query it from db
-func (cliCache *clientCache) SpaceByCache(ctx context.Context, db, space string) (*Space, error) {
+func (cliCache *clientCache) SpaceByCache(ctx context.Context, db, space string) (*entity.Space, error) {
 	key := cacheSpaceKey(db, space)
 
 	get, found := cliCache.spaceCache.Get(key)
 	if found {
-		return get.(*Space), nil
+		return get.(*entity.Space), nil
 	}
 
 	vearchlog.LogErrNotNil(cliCache.reloadSpaceCache(ctx, false, db, space))
@@ -159,26 +171,25 @@ func (cliCache *clientCache) SpaceByCache(ctx context.Context, db, space string)
 		time.Sleep(retrySleepTime)
 		log.Debug("to find space by key:[%s] ", key)
 		if get, found = cliCache.spaceCache.Get(key); found {
-			return get.(*Space), nil
+			return get.(*entity.Space), nil
 		}
 	}
 
-	return nil, fmt.Errorf("db:[%s] space:[%s] err:[%s]", db, space, pkg.CodeErr(pkg.ERRCODE_SPACE_NOTEXISTS))
+	return nil, fmt.Errorf("db:[%s] space:[%s] err:[%s]", db, space, vearchpb.NewError(vearchpb.ErrorEnum_SPACE_NOTEXISTS, nil))
 }
 
-func (cliCache *clientCache) reloadSpaceCache(ctx context.Context, sync bool, db string, space string) error {
-	key := cacheSpaceKey(db, space)
+func (cliCache *clientCache) reloadSpaceCache(ctx context.Context, sync bool, db string, spaceName string) error {
+	key := cacheSpaceKey(db, spaceName)
 
 	fun := func() error {
-
-		log.Info("to reload db:[%s] space:[%s]", db, space)
+		log.Info("to reload db:[%s] space:[%s]", db, spaceName)
 
 		dbID, err := cliCache.mc.QueryDBName2Id(ctx, db)
 		if err != nil {
 			return fmt.Errorf("can not found db by name:[%s] err:[%s]", db, err.Error())
 		}
 
-		space, err := cliCache.mc.QuerySpaceByName(ctx, dbID, space)
+		space, err := cliCache.mc.QuerySpaceByName(ctx, dbID, spaceName)
 		if err != nil {
 			return fmt.Errorf("can not found db by name:[%s] err:[%s]", db, err.Error())
 		}
@@ -191,10 +202,8 @@ func (cliCache *clientCache) reloadSpaceCache(ctx context.Context, sync bool, db
 
 	if sync {
 		return fun()
-	} else {
-		if _, ok := spaceReloadWorkder.LoadOrStore(key, struct{}{}); ok {
-			return nil
-		}
+	}
+	if _, ok := spaceReloadWorkder.LoadOrStore(key, struct{}{}); !ok {
 		go func() {
 			defer func() {
 				if r := recover(); r != nil {
@@ -208,16 +217,15 @@ func (cliCache *clientCache) reloadSpaceCache(ctx context.Context, sync bool, db
 			vearchlog.FunIfNotNil(fun)
 		}()
 	}
-
 	return nil
 }
 
 //partition/[spaceId]/[id]:[body]
-func (cliCache *clientCache) PartitionByCache(ctx context.Context, spaceName string, pid PartitionID) (*Partition, error) {
+func (cliCache *clientCache) PartitionByCache(ctx context.Context, spaceName string, pid entity.PartitionID) (*entity.Partition, error) {
 	key := cachePartitionKey(spaceName, pid)
 	get, found := cliCache.partitionCache.Get(key)
 	if found {
-		return get.(*Partition), nil
+		return get.(*entity.Partition), nil
 	}
 
 	_ = cliCache.reloadPartitionCache(ctx, false, spaceName, pid)
@@ -226,14 +234,14 @@ func (cliCache *clientCache) PartitionByCache(ctx context.Context, spaceName str
 		time.Sleep(retrySleepTime)
 		log.Debug("to find partition by key:[%s] ", key)
 		if get, found = cliCache.partitionCache.Get(key); found {
-			return get.(*Partition), nil
+			return get.(*entity.Partition), nil
 		}
 	}
 
-	return nil, fmt.Errorf("space:[%s] partition_id:[%d] err:[%s]", spaceName, pid, pkg.CodeErr(pkg.ERRCODE_PARTITION_NOT_EXIST))
+	return nil, fmt.Errorf("space:[%s] partition_id:[%d] err:[%s]", spaceName, pid, vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_NOT_EXIST, nil))
 }
 
-func (cliCache *clientCache) reloadPartitionCache(ctx context.Context, sync bool, spaceName string, pid PartitionID) error {
+func (cliCache *clientCache) reloadPartitionCache(ctx context.Context, sync bool, spaceName string, pid entity.PartitionID) error {
 	key := cachePartitionKey(spaceName, pid)
 
 	fun := func() error {
@@ -267,11 +275,11 @@ func (cliCache *clientCache) reloadPartitionCache(ctx context.Context, sync bool
 	return nil
 }
 
-func (cliCache *clientCache) ServerByCache(ctx context.Context, id NodeID) (*Server, error) {
+func (cliCache *clientCache) ServerByCache(ctx context.Context, id entity.NodeID) (*entity.Server, error) {
 	key := cast.ToString(id)
 	get, found := cliCache.serverCache.Get(key)
 	if found {
-		return get.(*Server), nil
+		return get.(*entity.Server), nil
 	}
 
 	_ = cliCache.reloadServerCache(ctx, false, id)
@@ -280,14 +288,14 @@ func (cliCache *clientCache) ServerByCache(ctx context.Context, id NodeID) (*Ser
 		time.Sleep(retrySleepTime)
 		log.Debug("to find server by key:[%s] ", key)
 		if get, found = cliCache.serverCache.Get(key); found {
-			return get.(*Server), nil
+			return get.(*entity.Server), nil
 		}
 	}
 
-	return nil, fmt.Errorf("node_id:[%d] err:[%s]", id, pkg.CodeErr(pkg.ERRCODE_PARTITION_NOT_EXIST))
+	return nil, fmt.Errorf("node_id:[%d] err:[%s]", id, vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_NOT_EXIST, nil))
 }
 
-func (cliCache *clientCache) reloadServerCache(ctx context.Context, sync bool, id NodeID) error {
+func (cliCache *clientCache) reloadServerCache(ctx context.Context, sync bool, id entity.NodeID) error {
 	key := cast.ToString(id)
 
 	fun := func() error {
@@ -307,16 +315,34 @@ func (cliCache *clientCache) reloadServerCache(ctx context.Context, sync bool, i
 
 	if sync {
 		return fun()
-	} else {
-		if _, ok := serverReloadWorkder.LoadOrStore(key, struct{}{}); ok {
-			return nil
-		}
-		go func() {
-			defer serverReloadWorkder.Delete(key)
-			vearchlog.FunIfNotNil(fun)
-		}()
 	}
+	if _, ok := serverReloadWorkder.LoadOrStore(key, struct{}{}); ok {
+		return nil
+	}
+	go func() {
+		defer serverReloadWorkder.Delete(key)
+		vearchlog.FunIfNotNil(fun)
+	}()
 
+	return nil
+}
+
+//the job will start watch server job
+//if new server lose heart beat then will remove it from space meta
+//if empty new node join into,will try to recover the last fail server
+func (cliCache *clientCache) startWSJob(ctx context.Context) error {
+	log.Debug("to start job to watch server")
+	start := time.Now()
+	// init server
+	if err := cliCache.initServer(ctx); err != nil {
+		return err
+	}
+	log.Debug("server info is %s", cliCache.serverCache)
+	serverJob := watcherJob{ctx: ctx, prefix: entity.PrefixServer, masterClient: cliCache.mc, cache: cliCache.serverCache}
+	serverJob.put = serverJob.serverPut
+	serverJob.delete = serverJob.serverDelete
+	serverJob.start()
+	log.Debug("watcher server job inited ok use time %v", time.Now().Sub(start))
 	return nil
 }
 
@@ -329,13 +355,13 @@ func (cliCache *clientCache) startCacheJob(ctx context.Context) error {
 	if err := cliCache.initUser(ctx); err != nil {
 		return err
 	}
-	userJob := watcherJob{ctx: ctx, prefix: PrefixUser, masterClient: cliCache.mc, cache: cliCache.userCache,
+	userJob := watcherJob{ctx: ctx, prefix: entity.PrefixUser, masterClient: cliCache.mc, cache: cliCache.userCache,
 		put: func(value []byte) (err error) {
-			user := &User{}
+			user := &entity.User{}
 			if err := cbjson.Unmarshal(value, user); err != nil {
 				return fmt.Errorf("put event user cache err, can't unmarshal event value: %s , error: %s", string(value), err.Error())
 			}
-			cliCache.userCache.Set(UserKey(user.Name), user, cache.NoExpiration)
+			cliCache.userCache.Set(entity.UserKey(user.Name), user, cache.NoExpiration)
 			return nil
 		},
 		delete: func(key string) (err error) {
@@ -355,9 +381,9 @@ func (cliCache *clientCache) startCacheJob(ctx context.Context) error {
 	if err := cliCache.initSpace(ctx); err != nil {
 		return err
 	}
-	spaceJob := watcherJob{ctx: ctx, prefix: PrefixSpace, masterClient: cliCache.mc, cache: cliCache.spaceCache,
+	spaceJob := watcherJob{ctx: ctx, prefix: entity.PrefixSpace, masterClient: cliCache.mc, cache: cliCache.spaceCache,
 		put: func(value []byte) (err error) {
-			space := &Space{}
+			space := &entity.Space{}
 			if err := cbjson.Unmarshal(value, space); err != nil {
 				return err
 			}
@@ -366,7 +392,7 @@ func (cliCache *clientCache) startCacheJob(ctx context.Context) error {
 				return fmt.Errorf("change cache space err: %s , not found db content: %s", err.Error(), string(value))
 			}
 			key := cacheSpaceKey(dbName, space.Name)
-			if oldValue, b := cliCache.spaceCache.Get(key); !b || space.Version > oldValue.(*Space).Version {
+			if oldValue, b := cliCache.spaceCache.Get(key); !b || space.Version > oldValue.(*entity.Space).Version {
 				spaceCacheLock.Lock()
 				cliCache.spaceCache.Set(key, space, cache.NoExpiration)
 				cliCache.spaceIDCache.Set(cast.ToString(space.Id), space, cache.NoExpiration)
@@ -375,16 +401,16 @@ func (cliCache *clientCache) startCacheJob(ctx context.Context) error {
 			return nil
 		},
 		delete: func(key string) (err error) {
-			dbIdStr := strings.Split(key, "/")[2]
-			dbId := cast.ToInt64(dbIdStr)
-			spaceIdStr := strings.Split(key, "/")[3]
-			spaceId := cast.ToInt64(spaceIdStr)
+			dbIDStr := strings.Split(key, "/")[2]
+			dbID := cast.ToInt64(dbIDStr)
+			spaceIDStr := strings.Split(key, "/")[3]
+			spaceID := cast.ToInt64(spaceIDStr)
 			for k, v := range cliCache.spaceCache.Items() {
-				if v.Object.(*Space).DBId == dbId && v.Object.(*Space).Id == spaceId {
-					log.Info("remove space cache dbID:[%d] space:[%d] ", dbId, spaceId)
+				if v.Object.(*entity.Space).DBId == dbID && v.Object.(*entity.Space).Id == spaceID {
+					log.Info("remove space cache dbID:[%d] space:[%d] ", dbID, spaceID)
 					spaceCacheLock.Lock()
 					cliCache.spaceCache.Delete(k)
-					cliCache.spaceIDCache.Delete(cast.ToString(spaceId))
+					cliCache.spaceIDCache.Delete(cast.ToString(spaceID))
 					spaceCacheLock.Unlock()
 					break
 				}
@@ -398,18 +424,18 @@ func (cliCache *clientCache) startCacheJob(ctx context.Context) error {
 	if err := cliCache.initPartition(ctx); err != nil {
 		return err
 	}
-	partitionJob := watcherJob{ctx: ctx, prefix: PrefixPartition, masterClient: cliCache.mc, cache: cliCache.partitionCache,
+	partitionJob := watcherJob{ctx: ctx, prefix: entity.PrefixPartition, masterClient: cliCache.mc, cache: cliCache.partitionCache,
 		put: func(value []byte) (err error) {
-			partition := &Partition{}
+			partition := &entity.Partition{}
 			if err = cbjson.Unmarshal(value, partition); err != nil {
 				return
 			}
-			space, err := cliCache.mc.QuerySpaceById(ctx, partition.DBId, partition.SpaceId)
+			space, err := cliCache.mc.QuerySpaceByID(ctx, partition.DBId, partition.SpaceId)
 			if err != nil {
 				return
 			}
 			cacheKey := cachePartitionKey(space.Name, partition.Id)
-			if old, b := cliCache.partitionCache.Get(cacheKey); !b || partition.UpdateTime > old.(*Partition).UpdateTime {
+			if old, b := cliCache.partitionCache.Get(cacheKey); !b || partition.UpdateTime > old.(*entity.Partition).UpdateTime {
 				cliCache.partitionCache.Set(cacheKey, partition, cache.NoExpiration)
 			}
 			return nil
@@ -431,9 +457,9 @@ func (cliCache *clientCache) startCacheJob(ctx context.Context) error {
 	if err := cliCache.initServer(ctx); err != nil {
 		return err
 	}
-	serverJob := watcherJob{ctx: ctx, prefix: PrefixServer, masterClient: cliCache.mc, cache: cliCache.serverCache,
+	serverJob := watcherJob{ctx: ctx, prefix: entity.PrefixServer, masterClient: cliCache.mc, cache: cliCache.serverCache,
 		put: func(value []byte) (err error) {
-			server := &Server{}
+			server := &entity.Server{}
 			if err := cbjson.Unmarshal(value, server); err != nil {
 				return err
 			}
@@ -472,13 +498,13 @@ func (cliCache *clientCache) stopCacheJob() {
 }
 
 func (cliCache *clientCache) initUser(ctx context.Context) error {
-	_, users, err := cliCache.mc.PrefixScan(ctx, PrefixUser)
+	_, users, err := cliCache.mc.PrefixScan(ctx, entity.PrefixUser)
 	if err != nil {
 		log.Error("init user cache err: %s", err.Error())
 		return err
 	}
 	for _, v := range users {
-		user := &User{}
+		user := &entity.User{}
 		err := cbjson.Unmarshal(v, user)
 		if err != nil {
 			log.Error("init user cache err: %s", err.Error())
@@ -494,7 +520,7 @@ func (cliCache *clientCache) initUser(ctx context.Context) error {
 }
 
 func (cliCache *clientCache) initSpace(ctx context.Context) error {
-	spaces, err := cliCache.mc.QuerySpacesByKey(ctx, PrefixSpace)
+	spaces, err := cliCache.mc.QuerySpacesByKey(ctx, entity.PrefixSpace)
 	if err != nil {
 		return err
 	}
@@ -517,15 +543,15 @@ func (cliCache *clientCache) initSpace(ctx context.Context) error {
 }
 
 func (cliCache *clientCache) initPartition(ctx context.Context) error {
-	_, values, err := cliCache.mc.PrefixScan(ctx, PrefixPartition)
+	_, values, err := cliCache.mc.PrefixScan(ctx, entity.PrefixPartition)
 	if err != nil {
 		log.Error("init partition cache err , err:[%s]", err.Error())
 		return err
 	}
-	spaceNameMap := make(map[SpaceID]string)
+	spaceNameMap := make(map[entity.SpaceID]string)
 
 	for _, bs := range values {
-		pt := &Partition{}
+		pt := &entity.Partition{}
 		err := cbjson.Unmarshal(bs, pt)
 		if err != nil {
 			log.Error("init partition cache err , err:[%s]", err.Error())
@@ -533,7 +559,7 @@ func (cliCache *clientCache) initPartition(ctx context.Context) error {
 		}
 		spaceName := spaceNameMap[pt.SpaceId]
 		if spaceName == "" {
-			space, err := cliCache.mc.QuerySpaceById(ctx, pt.DBId, pt.SpaceId)
+			space, err := cliCache.mc.QuerySpaceByID(ctx, pt.DBId, pt.SpaceId)
 			if err != nil {
 				log.Error("partition can not find space by DBID:[%d] spaceID:[%pt.SpaceId] partitionID:[%d] err:[%s]", pt.DBId, pt.SpaceId, pt.Id, err.Error())
 				continue
@@ -550,13 +576,13 @@ func (cliCache *clientCache) initPartition(ctx context.Context) error {
 }
 
 func (cliCache *clientCache) initServer(ctx context.Context) error {
-	_, values, err := cliCache.mc.PrefixScan(ctx, PrefixServer)
+	_, values, err := cliCache.mc.PrefixScan(ctx, entity.PrefixServer)
 	if err != nil {
 		log.Error("init server cache err , err:[%s]", err.Error())
 		return err
 	}
 	for _, bs := range values {
-		server := &Server{}
+		server := &entity.Server{}
 		err := cbjson.Unmarshal(bs, server)
 		if err != nil {
 			log.Error("unmarshal server cache err , err:[%s]", err.Error())
@@ -583,6 +609,92 @@ type watcherJob struct {
 	cache        *cache.Cache
 	put          func(value []byte) (err error)
 	delete       func(key string) (err error)
+}
+
+//watch /server/ put
+func (w *watcherJob) serverPut(value []byte) (e error) {
+	//process panic
+	defer errutil.CatchError(&e)
+	// parse server info
+	server := &entity.Server{}
+	err := cbjson.Unmarshal(value, server)
+	if err != nil {
+		panic(err)
+	}
+	//mutex ensure only one master update the meta,the other just undate local cache
+	mutex := w.masterClient.Client().Master().NewLock(w.ctx, entity.ClusterWatchServerKey, time.Second*188)
+	if getLock, err := mutex.TryLock(); getLock && err == nil {
+		defer func() {
+			if err := mutex.Unlock(); err != nil {
+				log.Error("failed to unlock space,the Error is:%v ", err)
+			}
+		}()
+		log.Debug("get LOCK success,process fail server %+v ", server)
+
+		//get failServer info
+		if len(server.PartitionIds) == 0 {
+			// recover failServer
+			// if the partition num of the newNode is empty, then recover data by it.
+			if config.Conf().Global.AutoRecoverPs {
+				err = w.masterClient.RecoverByNewServer(w.ctx, server)
+				if err != nil {
+					log.Debug("auto recover is err %v,server is %+v", err, server)
+				} else {
+					log.Info("recover is success,server is %+v", server)
+				}
+			}
+		} else {
+			// if failserver recover,then remove record
+			w.masterClient.TryRemoveFailServer(w.ctx, server)
+		}
+	} else {
+		log.Debug("get LOCK error,just update cache %+v ", server)
+	}
+	//update the cache
+	w.cache.Set(cacheServerKey(server.ID), server, cache.NoExpiration)
+	return err
+}
+
+//watch /server/ delete
+func (w *watcherJob) serverDelete(cacheKey string) (err error) {
+	//process panic
+	defer errutil.CatchError(&err)
+	nodeID := cast.ToUint64(strings.Split(cacheKey, "/")[2])
+	//mutex ensure only one master update the meta,the other just undate local cache
+	mutex := w.masterClient.Client().Master().NewLock(w.ctx, entity.ClusterWatchServerKey, time.Second*188)
+	if getLock, err := mutex.TryLock(); getLock && err == nil {
+		defer func() {
+			if err := mutex.Unlock(); err != nil {
+				log.Error("failed to unlock space,the Error is:%v ", err)
+			}
+		}()
+		log.Debug("get LOCK success,record fail server %d ", nodeID)
+		get, found := w.cache.Get(cacheServerKey(nodeID))
+		if !found || get == nil {
+			return nil
+		}
+		server := get.(*entity.Server)
+		//attach alive, timeout is 5s
+		if IsLive(server.RpcAddr()) || len(server.PartitionIds) == 0 {
+			log.Info("%+v is alive or server partition is zero.", server)
+			return nil
+		}
+		failServer := &entity.FailServer{ID: server.ID, TimeStamp: time.Now().Unix()}
+		failServer.Node = server
+		value, err := cbjson.Marshal(failServer)
+		errutil.ThrowError(err)
+		key := entity.FailServerKey(server.ID)
+		//put fail node info into etcd
+		err = w.masterClient.Put(w.ctx, key, value)
+		errutil.ThrowError(err)
+		log.Info("put failServer %s is success, value is %s", key, string(value))
+	} else {
+		log.Debug("get LOCK error,just update cache %d", nodeID)
+	}
+	log.Info("remove node meta is success, nodeId is %d", nodeID)
+	//update the cache
+	w.cache.Delete(cacheServerKey(nodeID))
+	return err
 }
 
 func (wj *watcherJob) start() {

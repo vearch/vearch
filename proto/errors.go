@@ -16,6 +16,8 @@ package pkg
 
 import (
 	"errors"
+
+	"github.com/vearch/vearch/proto/vearchpb"
 )
 
 // http response error code and error message definitions
@@ -158,17 +160,14 @@ var (
 //get err code by error if error is nil , return ERRCODE_SUCCESS
 func ErrCode(err error) int64 {
 	if err == nil {
-		return ERRCODE_SUCCESS
+		return int64(vearchpb.ErrorEnum_SUCCESS)
 	}
 
-	if ve, ok := err.(*VearchErr); ok {
-		return ve.Code
+	if ve, ok := err.(*vearchpb.VearchErr); ok {
+		return int64(ve.GetError().Code)
 	}
 
-	if code, ok := err2CodeMap[err.Error()]; ok {
-		return code
-	}
-	return ERRCODE_INTERNAL_ERROR
+	return int64(vearchpb.ErrorEnum_INTERNAL_ERROR)
 }
 
 // it will return format err, is not registe it will return general err string
@@ -184,11 +183,12 @@ func FormatErr(err error) string {
 	return err.Error()
 }
 
-func CodeErr(code int64) *VearchErr {
-	if err, ok := code2ErrMap[code]; ok {
-		return vErrErr(code, err)
-	}
-	return vErrErr(ERRCODE_INTERNAL_ERROR, errGeneralInternalError)
+func CodeErr(code int64) *vearchpb.VearchErr {
+	return vearchpb.NewError(vearchpb.ErrorEnum(code), nil)
+}
+
+func NewCodeErr(code int64, msg string) *vearchpb.VearchErr {
+	return vearchpb.NewErrorInfo(vearchpb.ErrorEnum(code), msg)
 }
 
 var code2ErrMap = map[int64]error{

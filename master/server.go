@@ -17,11 +17,12 @@ package master
 import (
 	"context"
 	"fmt"
+	"github.com/vearch/vearch/util/errutil"
+	"go.etcd.io/etcd/etcdserver"
 	"os"
 	"time"
 
 	"github.com/spf13/cast"
-	"github.com/vearch/vearch/util/vearchlog"
 
 	"github.com/gin-gonic/gin"
 	"github.com/vearch/vearch/client"
@@ -38,45 +39,54 @@ type Server struct {
 }
 
 func NewServer(ctx context.Context) (*Server, error) {
-	log.Regist(vearchlog.NewVearchLog(config.Conf().GetLogDir(config.Master), "Master", config.Conf().GetLevel(config.Master), false))
+	// log.Regist(vearchlog.NewVearchLog(config.Conf().GetLogDir(config.Master), "Master", config.Conf().GetLevel(config.Master), false))
 	//Logically, this code should not be executed, because if the local master is not found, it will panic
 	if config.Conf().Masters.Self() == nil {
 		return nil, fmt.Errorf("master not init please your address or master name ")
 	}
 
-	cfg, err := config.Conf().GetEmbed()
-
-	if err != nil {
-		return nil, err
+	var server *Server
+	// manage etcd by yourself
+	if config.Conf().Global.SelfManageEtcd {
+		// no vearch etcd cfg
+		server = &Server{ctx: ctx}
+	} else {
+		// manage etcd by vearch
+		cfg, err := config.Conf().GetEmbed()
+		if err != nil {
+			return nil, err
+		}
+		if err := os.MkdirAll(cfg.Dir, os.ModePerm); err != nil {
+			return nil, err
+		}
+		server = &Server{etcCfg: cfg, ctx: ctx}
 	}
-
-	if err := os.MkdirAll(cfg.Dir, os.ModePerm); err != nil {
-		return nil, err
-	}
-
-	return &Server{etcCfg: cfg, ctx: ctx}, nil
+	return server, nil
 }
 
 func (s *Server) Start() (err error) {
+	//process panic
+	defer errutil.CatchError(&err)
 	//start api server
 	log.Debug("master start ...")
 
-	//start etc server
-	s.etcdServer, err = embed.StartEtcd(s.etcCfg)
-	if err != nil {
-		log.Error(err.Error())
-		return err
-	}
-
-	defer s.etcdServer.Close()
-
-	select {
-	case <-s.etcdServer.Server.ReadyNotify():
-		log.Info("Server is ready!")
-	case <-time.After(60 * time.Second):
-		s.etcdServer.Server.Stop() // trigger a shutdown
-		log.Error("Server took too long to start!")
-		return fmt.Errorf("etcd start timeout")
+	// if vearch manage etcd then start it
+	if !config.Conf().Global.SelfManageEtcd {
+		//start etc server
+		s.etcdServer, err = embed.StartEtcd(s.etcCfg)
+		if err != nil {
+			log.Error(err.Error())
+			return err
+		}
+		defer s.etcdServer.Close()
+		select {
+		case <-s.etcdServer.Server.ReadyNotify():
+			log.Info("Server is ready!")
+		case <-time.After(60 * time.Second):
+			s.etcdServer.Server.Stop() // trigger a shutdown
+			log.Error("Server took too long to start!")
+			return fmt.Errorf("etcd start timeout")
+		}
 	}
 
 	s.client, err = client.NewClient(config.Conf())
@@ -88,7 +98,12 @@ func (s *Server) Start() (err error) {
 		return err
 	}
 
-	monitorService := newMonitorService(service, s.etcdServer.Server)
+	monitorService := &monitorService{}
+	if config.Conf().Global.SelfManageEtcd {
+		monitorService = newMonitorService(service, &etcdserver.EtcdServer{})
+	} else {
+		monitorService = newMonitorService(service, s.etcdServer.Server)
+	}
 
 	if !log.IsDebugEnabled() {
 		gin.SetMode(gin.ReleaseMode)
@@ -98,7 +113,6 @@ func (s *Server) Start() (err error) {
 	engine := gin.Default()
 
 	ExportToClusterHandler(engine, service)
-	ExportToUserHandler(engine, service)
 	ExportToMonitorHandler(engine, monitorService)
 
 	//register monitor
@@ -109,9 +123,17 @@ func (s *Server) Start() (err error) {
 		}
 	}()
 
+	// start watch server
+	err = s.WatchServerJob(s.ctx, s.client)
+	errutil.ThrowError(err)
+	log.Debug("start WatchServerJob success!")
+
 	s.StartCleanJon(s.ctx)
 
-	return <-s.etcdServer.Err()
+	if !config.Conf().Global.SelfManageEtcd {
+		return <-s.etcdServer.Err()
+	}
+	return nil
 }
 
 func (s *Server) Stop() {

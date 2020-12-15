@@ -17,8 +17,6 @@ package psutil
 import (
 	"context"
 	"fmt"
-	"github.com/vearch/vearch/client"
-	"github.com/vearch/vearch/util/cbjson"
 	"io/ioutil"
 	"os"
 	"path"
@@ -26,8 +24,11 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/vearch/vearch/util/log"
+	"github.com/vearch/vearch/client"
+	"github.com/vearch/vearch/util/cbjson"
+
 	"github.com/vearch/vearch/proto/entity"
+	"github.com/vearch/vearch/util/log"
 )
 
 const MetaFile = "server_meta.txt"
@@ -92,11 +93,11 @@ func createMeta(client *client.Client, cluster, metaPath string) entity.NodeID {
 	var err error
 	for i := 0; i < 180; i++ {
 		id, err = client.Master().NewIDGenerate(context.Background(), entity.NodeIdSequence, 1, 3*time.Second)
-		if err != nil {
-			log.Error("master generate id has err:[%s]", err.Error())
-			time.Sleep(1 * time.Second)
-			continue
+		if err == nil {
+			break
 		}
+		log.Error("master generate id has err:[%s]", err.Error())
+		time.Sleep(1 * time.Second)
 	}
 	if err != nil {
 		panic(fmt.Errorf("master generate id has err:[%s]", err.Error()))

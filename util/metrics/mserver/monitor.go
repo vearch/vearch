@@ -15,17 +15,18 @@
 package mserver
 
 import (
-	"github.com/vearch/vearch/proto"
 	"github.com/vearch/vearch/proto/entity"
+	"github.com/vearch/vearch/proto/vearchpb"
 	"github.com/vearch/vearch/util/metrics"
 	"github.com/vearch/vearch/util/metrics/sysstat"
 )
 
 func NewErrServerStatus(ip string, err error) *ServerStats {
+	vErr := vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err)
 	return &ServerStats{
 		Ip:     ip,
-		Status: pkg.ErrCode(err),
-		Err:    pkg.FormatErr(err),
+		Status: int64(vearchpb.ErrCode(vErr.GetError().Code)),
+		Err:    vErr.Error(),
 	}
 }
 

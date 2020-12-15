@@ -51,3 +51,19 @@ type ChangeMember struct {
 	NodeID      NodeID               `json:"node_id"`
 	Method      proto.ConfChangeType `json:"method"`
 }
+
+//RecoverFailServer use for recover fail server
+type RecoverFailServer struct {
+	FailNodeID   NodeID `json:"fail_node_id"`
+	NewNodeID    NodeID `json:"new_node_id"`
+	FailNodeAddr string `json:"fail_node_addr"`
+	NewNodeAddr  string `json:"new_node_addr"`
+}
+
+//RecoverFailServer use for recover fail server
+type DBModify struct {
+	DbName    string               `json:"db_name"`
+	SpaceName string               `json:"space_name"`
+	IPAddr    string               `json:"ip_addr"`
+	Method    proto.ConfChangeType `json:"method"`
+}

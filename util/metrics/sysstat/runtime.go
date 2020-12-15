@@ -341,7 +341,7 @@ func (s *RuntimeStatSampler) CpuSample() {
 		} else {
 			cpuStat := cpuStats[0]
 			allTime := cpuStat.User + cpuStat.System + cpuStat.Idle + cpuStat.Nice + cpuStat.Iowait + cpuStat.Irq + cpuStat.Softirq +
-				cpuStat.Steal + cpuStat.Guest + cpuStat.GuestNice + cpuStat.Stolen
+				cpuStat.Steal + cpuStat.Guest + cpuStat.GuestNice
 
 			if !s.lastNow.IsZero() {
 				total := allTime - s.lastAtime

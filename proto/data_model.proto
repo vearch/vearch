@@ -1,0 +1,126 @@
+syntax = "proto3";
+
+import "errors.proto";
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+option optimize_for = SPEED;
+option (gogoproto.marshaler_all) = true;
+option (gogoproto.sizer_all) = true;
+option (gogoproto.unmarshaler_all) = true;
+option (gogoproto.gostring_all) = false;
+option (gogoproto.equal_all) = true;
+option (gogoproto.verbose_equal_all) = false;
+option (gogoproto.goproto_stringer_all) = false;
+option (gogoproto.stringer_all) = true;
+option (gogoproto.populate_all) = true;
+option (gogoproto.testgen_all) = false;
+option (gogoproto.benchgen_all) = false;
+option (gogoproto.goproto_getters_all) = false;
+option go_package = "vearchpb";
+
+enum FieldType {
+    INT = 0;
+    LONG = 1;
+    FLOAT = 2;
+    DOUBLE = 3;
+    STRING = 4;
+    VECTOR = 5;
+    BOOL = 6;
+    GEOPOINT = 7;
+    DATE = 8;
+}
+
+message Vector {
+    repeated float feature = 1 [packed = true];
+    string source = 2;
+}
+
+// Whether index this field
+enum FieldOption {
+    Null = 0;
+    Index = 1;
+}
+
+message Field {
+    string name = 1;
+    FieldType type = 2;
+    bytes value = 3;
+    FieldOption option = 4;
+    string source =5;
+}
+
+message Document {
+    option (gogoproto.goproto_getters) = true;
+    string p_key = 1;
+    repeated Field fields = 2;
+}
+
+message Item{
+    option (gogoproto.goproto_getters) = true;
+    Error err = 1;
+    Document doc = 2;
+    string msg = 3;
+}
+
+//*********************** Tabel *********************** //
+
+message ModelParameters {
+    string json_parameters_str = 1;
+    map<string, string> parameters = 2;
+}
+
+message Model {
+    string name = 1; // IVFPQ, HNSW, BINARY, GPUIVFPQ
+    ModelParameters model_parameters = 2;
+}
+
+message VectorMetaInfo {
+    int32 dimension = 1;
+    enum ValueType {
+        FLOAT = 0;
+        UINT8 = 1; // binary
+    }
+    ValueType value_type = 2;
+    enum StoreType {
+        MEMORYONLY = 0;
+        ROCKSDB = 1;
+        MMAP = 2;
+    }
+    StoreType store_type = 3;
+	string store_param = 4;
+}
+
+message FieldMetaInfo {
+    string name = 1;
+	FieldType data_type = 2;
+    bool is_index = 3;
+    bool is_store = 4;
+    VectorMetaInfo vector_meta_info = 5;      // nil if data_type is not vector
+}
+
+message TableMetaInfo {
+    string primary_key_name = 1;
+	FieldType primary_key_type = 2;
+    int32 partitions_num = 3;
+    int32 replicas_num = 4;
+    repeated FieldMetaInfo field_meta_info = 5;
+}
+
+message Table {
+    string name = 1;
+    TableMetaInfo table_meta_info = 2;
+    int32 start_indexing_size = 3;
+    Model model = 4;
+
+    int64 total_docs_size = 5;
+}
+
+//*********************** DB *********************** //
+
+message DB {
+    string name = 1;
+    repeated Table tables = 2;
+
+    map<string, string> user_password_pair = 3;
+}
+

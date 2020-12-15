@@ -16,16 +16,13 @@ package ps
 
 import (
 	"context"
-	"github.com/tiglabs/raft"
-	"github.com/tiglabs/raft/proto"
-	"github.com/vearch/vearch/proto/request"
 	"sync"
 
-	"github.com/vearch/vearch/proto/response"
-
+	"github.com/tiglabs/raft"
+	"github.com/tiglabs/raft/proto"
 	"github.com/vearch/vearch/config"
 	"github.com/vearch/vearch/proto/entity"
-	"github.com/vearch/vearch/proto/pspb"
+	"github.com/vearch/vearch/proto/vearchpb"
 	"github.com/vearch/vearch/ps/engine"
 	"github.com/vearch/vearch/ps/psutil"
 	"github.com/vearch/vearch/ps/storage/raftstore"
@@ -77,28 +74,13 @@ type PartitionStore interface {
 
 	UpdateSpace(ctx context.Context, space *entity.Space) error
 
-	GetDocument(ctx context.Context, readLeader bool, docID string) (doc *response.DocResult, err error)
+	GetDocument(ctx context.Context, readLeader bool, doc *vearchpb.Document) (err error)
 
-	GetDocuments(ctx context.Context, readLeader bool, docIds []string) (results response.DocResults, err error)
-
-	DeleteByQuery(ctx context.Context, readLeader bool, query *request.SearchRequest) (delCount int, err error)
-
-	Search(ctx context.Context, readLeader bool, query *request.SearchRequest) (result *response.SearchResponse, err error)
-
-	MSearch(ctx context.Context, readLeader bool, query *request.SearchRequest) (result response.SearchResponses, err error)
-
-	MSearchNew(ctx context.Context, readLeader bool, query *request.SearchRequest) (result *response.SearchResponse, err error)
-
-	MSearchIDs(ctx context.Context, readLeader bool, query *request.SearchRequest) (result *response.SearchResponse, err error)
-
-	MSearchForIDs(ctx context.Context, readLeader bool, query *request.SearchRequest) (result []byte, err error)
-
-	//you can use ctx to cancel the stream , when this function returned will close resultChan
-	StreamSearch(ctx context.Context, readLeader bool, query *request.SearchRequest, resultChan chan *response.DocResult) error
-
-	Write(ctx context.Context, request *pspb.DocCmd) (result *response.DocResult, err error)
+	Write(ctx context.Context, request *vearchpb.DocCmd) (err error)
 
 	Flush(ctx context.Context) error
+
+	Search(ctx context.Context, query *vearchpb.SearchRequest, response *vearchpb.SearchResponse) error
 }
 
 func (s *Server) GetPartition(id entity.PartitionID) (partition PartitionStore) {
@@ -129,7 +111,8 @@ func (s *Server) LoadPartition(ctx context.Context, pid entity.PartitionID) (Par
 	if err != nil {
 		return nil, err
 	}
-
+	//partition status chan
+	store.RsStatusC = s.replicasStatusC
 	replicas := store.GetPartition().Replicas
 	for _, replica := range replicas {
 		if server, err := s.client.Master().QueryServer(context.Background(), replica); err != nil {
@@ -152,11 +135,10 @@ func (s *Server) CreatePartition(ctx context.Context, space *entity.Space, pid e
 	defer s.mu.Unlock()
 
 	store, err := raftstore.CreateStore(ctx, pid, s.nodeID, space, s.raftServer, s, s.client)
-
 	if err != nil {
 		return err
 	}
-
+	store.RsStatusC = s.replicasStatusC
 	if _, ok := s.partitions.LoadOrStore(pid, store); ok {
 		log.Warn("partition is already exist partition id:[%d]", pid)
 		if err := store.Close(); err != nil {

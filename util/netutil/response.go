@@ -18,9 +18,9 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/vearch/vearch/util/log"
-	"github.com/vearch/vearch/proto"
+	"github.com/vearch/vearch/proto/vearchpb"
 	"github.com/vearch/vearch/util/cbjson"
+	"github.com/vearch/vearch/util/log"
 )
 
 type Response struct {
@@ -92,8 +92,8 @@ func (this *Response) SendJson(data interface{}) {
 
 func (this *Response) SendJsonHttpReplySuccess(data interface{}) {
 	httpReply := &HttpReply{
-		Code: pkg.ERRCODE_SUCCESS,
-		Msg:  pkg.SUCCESS,
+		Code: int64(vearchpb.ErrCode(vearchpb.ErrorEnum_SUCCESS)),
+		Msg:  vearchpb.ErrMsg(vearchpb.ErrorEnum_SUCCESS),
 		Data: data,
 	}
 	this.SendJson(httpReply)
@@ -106,7 +106,7 @@ func (this *Response) SendJsonHttpReplyError(err error) {
 	}
 
 	httpReply := &HttpReply{
-		Code: pkg.ErrCode(err),
+		Code: int64(vearchpb.ErrCode(vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err).GetError().Code)),
 		Msg:  err.Error(),
 	}
 

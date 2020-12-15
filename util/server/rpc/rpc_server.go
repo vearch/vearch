@@ -17,19 +17,22 @@ package server
 import (
 	"errors"
 	"fmt"
+	"net"
+	"strings"
+
 	"github.com/smallnest/rpcx/client"
 	"github.com/smallnest/rpcx/protocol"
 	"github.com/smallnest/rpcx/server"
 	"github.com/smallnest/rpcx/share"
 	"github.com/vearch/vearch/util/server/rpc/handler"
-	"net"
 )
 
-var serializeType = protocol.MsgPack
+//var serializeType = protocol.MsgPack
+var serializeType = protocol.ProtoBuffer
 
 const serviceMethod = "Execute"
 
-var defaultCodec = &MsgpackCodec{}
+var defaultCodec = &PBCodec{}
 
 func init() {
 	share.RegisterCodec(serializeType, defaultCodec)
@@ -50,7 +53,7 @@ func NewRpcServer(ip string, port uint16) *RpcServer {
 }
 
 func (this *RpcServer) Run() error {
-	if this.serverAddress == "127.0.0.1" || this.serverAddress == "localhost" {
+	if strings.Compare(this.serverAddress, "127.0.0.1") == 0 || strings.Compare(this.serverAddress, "localhost") == 0 {
 		this.serverAddress = ""
 	}
 
@@ -73,6 +76,10 @@ func (this RpcServer) ActiveClientConn() []net.Conn {
 
 func (this *RpcServer) RegisterName(chain *handler.Chain, meta string) error {
 	return this.server.RegisterName(chain.Name, chain, meta)
+}
+
+func (this *RpcServer) RegisterHandler(name string, rcvr interface{}, meta string) error {
+	return this.server.RegisterName(name, rcvr, meta)
 }
 
 //send mesage by bidirectional
