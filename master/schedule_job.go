@@ -63,6 +63,7 @@ func walkSpaces(masterServer *Server, spaces []*entity.Space) {
 	ctx := masterServer.ctx
 	log.Info("Start Walking Spaces!")
 	for _, space := range spaces {
+		spaceChannel <- space
 		if db, err := masterServer.client.Master().Get(ctx, entity.DBKeyBody(space.DBId)); err != nil {
 			log.Error("Failed to find database contains space,SpaceName:", space.Name, " SpaceID:", space.Id, " err:", err)
 		} else if db == nil {

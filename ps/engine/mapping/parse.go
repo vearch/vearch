@@ -376,6 +376,23 @@ func (dm *DocumentMapping) processProperty(context *walkContext, fieldName strin
 				return
 			}
 
+			if fm.FieldType() == vearchpb.FieldType_DOUBLE && fm.FieldMappingI.(*NumericFieldMapping).Array {
+				buffer := bytes.Buffer{}
+				for _, vv := range vs {
+					buffer.Write(cbbytes.Float64ToByte(vv.GetFloat64()))
+				}
+
+				field := &vearchpb.Field{
+					Name:   fieldName,
+					Type:   vearchpb.FieldType_DOUBLE,
+					Value:  buffer.Bytes(),
+					Option: fm.Options(),
+				}
+				context.AddField(field)
+
+				return
+			}
+
 			context.Err = fmt.Errorf("field:[%s]  this type:[%d] can use by array", fieldName, fm.FieldType())
 			return
 		}

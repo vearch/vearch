@@ -16,8 +16,10 @@ package ps
 
 import (
 	"context"
+	"fmt"
 	"github.com/vearch/vearch/util/errutil"
 	"math"
+	"strings"
 	"sync"
 	"time"
 
@@ -40,6 +42,8 @@ import (
 
 	_ "github.com/vearch/vearch/ps/engine/gammacb"
 )
+
+const maxTryTime = 5
 
 // Server partition server
 type Server struct {
@@ -103,6 +107,11 @@ func (s *Server) Start() error {
 	// load meta data
 	nodeId := psutil.InitMeta(s.client, config.Conf().Global.Name, config.Conf().GetDataDir())
 	s.nodeID = nodeId
+
+	if config.Conf().Global.MergeRouter {
+		// get router ips
+		s.getRouterIPS(s.ctx)
+	}
 
 	//load local partitions
 	server := s.register()
@@ -204,6 +213,34 @@ func (s *Server) register() (server *entity.Server) {
 
 	log.Info("register master ok, nodeId:[%d]", s.nodeID)
 	return server
+}
+
+// get routerIPS from etcd
+func (s *Server) getRouterIPS(ctx context.Context) (routerIPS []string) {
+	var err error
+	num := 0
+	for {
+		if num >= maxTryTime {
+			panic(fmt.Errorf("query router ip exceed max retry time error"))
+		}
+		if routerIPS, err = s.client.Master().QueryRouter(ctx, config.Conf().Global.Name); err != nil {
+			log.Info("query router ip error error:[%v]", err)
+			panic(fmt.Errorf("query router ip error"))
+		}
+		if routerIPS != nil && len(routerIPS) > 0 {
+			for  _, IP := range routerIPS {
+				IP = strings.Split(IP, ":")[0]
+				config.Conf().Router.RouterIPS = append(config.Conf().Router.RouterIPS, IP)
+			}
+			log.Info("get router info [%v]", routerIPS)
+			break
+		} else {
+			log.Info("routerIPS is null")
+		}
+		num = num + 1
+		time.Sleep(1 * time.Second)
+	}
+	return routerIPS
 }
 
 func (s *Server) HandleRaftReplicaEvent(event *raftstore.RaftReplicaEvent) {

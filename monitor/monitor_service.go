@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/vearch/vearch/util/errutil"
+	"github.com/vearch/vearch/util/netutil"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -43,6 +45,8 @@ type MonitorService struct {
 }
 
 func Register(masterClient *client.Client, etcdServer *etcdserver.EtcdServer, monitorPort uint16) {
+	var err error
+	defer errutil.CatchError(&err)
 	once.Do(func() {
 		prometheus.MustRegister(NewMetricCollector(masterClient, etcdServer))
 		http.Handle("/metrics", promhttp.Handler())
@@ -98,6 +102,8 @@ func (ms *MonitorService) isMaster() bool {
 
 // Collect returns the current state of all metrics of the collector.
 func (ms *MonitorService) Collect(ch chan<- prometheus.Metric) {
+	var collectErr *error
+	defer errutil.CatchError(collectErr)
 	ms.mutex.Lock()
 	defer ms.mutex.Unlock()
 
@@ -124,16 +130,31 @@ func (ms *MonitorService) Collect(ch chan<- prometheus.Metric) {
 		}
 	}
 
-	if !ms.isMaster() {
-		ch <- prometheus.MustNewConstMetric(ms.dbDesc, prometheus.CounterValue, 0, "nil", "nil", "nil")
-		return
+
+
+	if config.Conf().Global.MergeRouter {
+		if ms.masterClient == nil {
+			ch <- prometheus.MustNewConstMetric(ms.dbDesc, prometheus.CounterValue, 0, "nil", "nil", "nil")
+			return
+		}
+	} else {
+		if !ms.isMaster() {
+			ch <- prometheus.MustNewConstMetric(ms.dbDesc, prometheus.CounterValue, 0, "nil", "nil", "nil")
+			return
+		}
 	}
 
 	//start collect business info
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*60)
 	defer cancel()
 
-	ip := config.Conf().Masters.Self().Address
+	var ip string
+	if config.Conf().Global.MergeRouter {
+		ip,_ = netutil.GetLocalIP()
+	} else {
+		ip = config.Conf().Masters.Self().Address
+	}
+
 	stats := mserver.NewServerStats()
 	servers, err := ms.masterClient.Master().QueryServers(ctx)
 	if err != nil {
