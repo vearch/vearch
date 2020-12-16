@@ -1,4 +1,4 @@
-// Copyright 2018 The TigLabs raft Authors.
+// Copyright 2018 The tiglabs raft Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -47,14 +47,6 @@ func NewCorruptError(filename string, offset int64, reason string) *ErrCorrupt {
 	}
 }
 
-func IsErrCorrupt(err error) (is bool) {
-	if err == nil {
-		return
-	}
-	_, is = err.(*ErrCorrupt)
-	return
-}
-
 type recordType uint8
 
 const (
@@ -62,16 +54,6 @@ const (
 	recTypeIndex    recordType = 2
 	recTypeFooter   recordType = 3
 )
-
-func (rt recordType) Valid() bool {
-	switch rt {
-	case recTypeLogEntry, recTypeIndex, recTypeFooter:
-		return true
-	default:
-	}
-	return false
-}
-
 
 func (rt recordType) String() string {
 	switch rt {
