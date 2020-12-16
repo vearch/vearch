@@ -12,28 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package util
+package log
 
 import (
-	"hash/crc32"
+	"os"
+	"syscall"
 )
 
-var table = crc32.MakeTable(crc32.Castagnoli)
-
-// CRC is a CRC-32 checksum computed using Castagnoli's polynomial.
-type CRC uint32
-
-// NewCRC creates a new crc based on the given bytes.
-func NewCRC(b []byte) CRC {
-	return CRC(0).Update(b)
-}
-
-// Update updates the crc with the given bytes.
-func (c CRC) Update(b []byte) CRC {
-	return CRC(crc32.Update(uint32(c), table, b))
-}
-
-// Value returns a masked crc.
-func (c CRC) Value() uint32 {
-	return uint32(c>>15|c<<17) + 0xa282ead8
+func logCrash(f *os.File) error {
+	return syscall.Dup3(int(f.Fd()), 2, 0)
 }
