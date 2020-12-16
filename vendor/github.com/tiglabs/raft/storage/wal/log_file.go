@@ -148,7 +148,7 @@ func (lf *logEntryFile) ReBuildIndex() (truncateOffset int64, err error) {
 	}
 	filesize := info.Size()
 
-    var (
+	var (
 		rec              record
 		offset           int64
 		nextRecordOffset int64
@@ -182,33 +182,11 @@ func (lf *logEntryFile) ReBuildIndex() (truncateOffset int64, err error) {
 	if err == io.EOF {
 		err = nil
 	}
-
-	var fixentry = func() (err error) {
-		if err = lf.openwrite(); err != nil {
-			return
-		}
-		if lf.index.len() == 0 {
-			err = lf.w.truncate(0)
-			return
-		}
-		var lastindexitem indexitem
-		if lastindexitem, err = lf.index.get(lf.index.last()); err == nil {
-			err = lf.w.truncate(int64(lastindexitem.offset))
-		}
-		return
-	}
-
-	if iserrcorrupt(err) || err == io.errunexpectedeof {
-		err = fixentry()
-	}
-	
 	if filesize != nextRecordOffset {
 		log.Warn("logName[%v],fileSize[%v],corrupt data after offset[%v]", lf.name, filesize, nextRecordOffset)
 	}
 	return offset, err
 }
-
-
 
 func (lf *logEntryFile) Name() logFileName {
 	return lf.name
