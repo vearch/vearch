@@ -206,6 +206,16 @@ func (ge *gammaEngine) IndexStatus() int {
 	return int(status.IndexStatus)
 }
 
+func (ge *gammaEngine) EngineStatus(status *engine.EngineStatus) error {
+        var ges gamma.EngineStatus
+	gamma.GetEngineStatus(ge.gamma, &ges)
+	status.IndexStatus = ges.IndexStatus
+	status.DocNum = ges.DocNum
+	status.MaxDocid = ges.MaxDocid
+	status.MinIndexedNum = ges.MinIndexedNum
+	return nil
+}
+
 func (ge *gammaEngine) BuildIndex() error {
 	indexLocker.Lock()
 	defer indexLocker.Unlock()

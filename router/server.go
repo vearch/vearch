@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"regexp"
-	"strings"
 	"time"
 
 	limit "github.com/juju/ratelimit"
@@ -25,6 +23,7 @@ import (
 
 type Server struct {
 	ctx        context.Context
+	cli        *client.Client
 	httpServer *netutil.Server
 	rpcServer  *grpc.Server
 	cancelFunc context.CancelFunc
@@ -46,7 +45,9 @@ func NewServer(ctx context.Context) (*Server, error) {
 		CloseTimeout: time.Duration(config.Conf().Router.CloseTimeout),
 	}
 	netutil.SetMode(netutil.RouterModeGorilla) //no need
+
 	httpServer := netutil.NewServer(httpServerConfig)
+
 	document.ExportDocumentHandler(httpServer, cli)
 
 	var rpcServer *grpc.Server
@@ -75,9 +76,20 @@ func NewServer(ctx context.Context) (*Server, error) {
 		panic(err)
 	}
 
+	// start master job
+	if config.Conf().Global.MergeRouter {
+
+		if err := client.NewWatchServerCache(ctx, cli); err != nil {
+			log.Error("watcher server cache error,Err:%v", err)
+			panic(err)
+		}
+
+	}
+
 	return &Server{
 		httpServer: httpServer,
 		ctx:        routerCtx,
+		cli:        cli,
 		cancelFunc: routerCancel,
 		rpcServer:  rpcServer,
 	}, nil
@@ -85,25 +97,38 @@ func NewServer(ctx context.Context) (*Server, error) {
 
 func (server *Server) Start() error {
 	//find ip for server
-	ifaces, err := net.Interfaces()
-	if err != nil {
-		panic(err)
-	}
-	for _, i := range ifaces {
-		addrs, _ := i.Addrs()
-		for _, addr := range addrs {
-			match, _ := regexp.MatchString(`^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/[0-9]+$`, addr.String())
-			if !match {
-				continue
-			}
-			slit := strings.Split(addr.String(), "/")
-			mserver.SetIp(slit[0], false)
-			break
+	/*
+		var routerIP string
+		conn, err := net.Dial("udp", "google.com:80")
+		if err != nil {
+			panic(fmt.Sprintf("conn master failed, err: [%s]", err.Error()))
 		}
+		routerIP = strings.Split(conn.LocalAddr().String(), ":")[0]
+		conn.Close()
+	*/
+	var routerIP string
+	var err error
+	// get local IP addr
+	if  config.Conf().Global.MergeRouter {
+		routerIP ,err = netutil.GetLocalIP()
+	} else {
+		routerIP, err = server.cli.Master().RegisterRouter(server.ctx, config.Conf().Global.Name, 100*time.Millisecond)
+		if err != nil {
+			panic(fmt.Sprintf("conn master failed, err: [%s]", err.Error()))
+		}
+	}
+	log.Debugf("Get router ip: [%s]", routerIP)
+	mserver.SetIp(routerIP, false)
+	if config.Conf().Router.RpcPort > 0 || config.Conf().Global.MergeRouter {
+		server.StartHeartbeatJob(fmt.Sprintf("%s:%d", routerIP, config.Conf().Router.RpcPort))
 	}
 
 	if port := config.Conf().Router.MonitorPort; port > 0 {
-		monitor.Register(nil, nil, config.Conf().Router.MonitorPort)
+		if config.Conf().Global.MergeRouter {
+			monitor.Register(server.cli, nil, config.Conf().Router.MonitorPort)
+		} else {
+			monitor.Register(nil, nil, config.Conf().Router.MonitorPort)
+		}
 	}
 
 	if err := server.httpServer.Run(); err != nil {
@@ -121,6 +146,8 @@ func (server *Server) Shutdown() {
 		server.httpServer.Shutdown()
 		server.httpServer = nil
 	}
+
+
 	log.Info("router shutdown... end")
 }
 

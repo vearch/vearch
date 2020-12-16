@@ -89,20 +89,20 @@ func (s *Server) StartHeartbeatJob() {
 		for {
 			select {
 			case <-ctx.Done():
-				log.Error("keep alive ctx done!")
+				log.Error("keep alive ctx done, this ps will can not be found by master!")
 				return
 			case ka, ok := <-keepaliveC:
 				if !ok {
-					log.Error("keep alive channel closed!")
+					log.Warn("keep alive channel closed! this ps will connect to master two seconds later.")
 					time.Sleep(2 * time.Second)
 					keepaliveC, err = s.client.Master().KeepAlive(ctx, server)
 					if err != nil {
-						log.Error("KeepAlive err: ", err.Error())
+						log.Warnf("KeepAlive err: %s", err.Error())
 					}
 					continue
 				}
 				leaseId = ka.ID
-				log.Info("Receive keepalive, leaseId: %d, ttl:%d", ka.ID, ka.TTL)
+				// log.Debugf("Receive keepalive, leaseId: %d, ttl:%d", ka.ID, ka.TTL)
 			}
 		}
 	}()

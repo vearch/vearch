@@ -19,6 +19,8 @@
     support_etcd_auth = false
     # ensure leader-follow raft data synchronization is consistent
     raft_consistent = false
+    # unified master and router api
+    master_merge_into_router = false
 
 # self_manage_etcd = true,means manage etcd by yourself,need provide additional configuration
 [etcd]
@@ -80,8 +82,8 @@
     pprof_port = 6060
     # if set true , this ps only use in db meta config
     private = false
-    # 120 seconds
-    flush_time_interval = 120
+    # seconds
+    flush_time_interval = 600
     flush_count_threshold = 200000
 
 

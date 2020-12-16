@@ -21,7 +21,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/patrickmn/go-cache"
 	"math"
 	"math/big"
 	"math/rand"
@@ -29,6 +28,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/patrickmn/go-cache"
 
 	"github.com/vearch/vearch/util"
 
@@ -169,7 +170,6 @@ func (r *routerRequest) SetSpace() *routerRequest {
 	if r.Err != nil {
 		return r
 	}
-	log.Debug("RouterReques trace %v", r)
 	r.space, r.Err = r.client.Space(r.ctx, r.head.DbName, r.head.SpaceName)
 	return r
 }
@@ -179,7 +179,7 @@ func (r *routerRequest) SetDocs(docs []*vearchpb.Document) *routerRequest {
 	if r.Err != nil {
 		return r
 	}
-	log.Debug("RouterReques trace %v", r)
+	r.docs = docs
 	for _, doc := range r.docs {
 		if doc == nil {
 			r.Err = vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, errors.New("The doc is nil."))
@@ -196,7 +196,6 @@ func (r *routerRequest) SetDocs(docs []*vearchpb.Document) *routerRequest {
 			}
 		}
 	}
-	r.docs = docs
 	return r
 }
 
@@ -205,7 +204,6 @@ func (r *routerRequest) SetDocsField() *routerRequest {
 	if r.Err != nil {
 		return r
 	}
-	log.Debug("RouterReques trace %v", r)
 	IDIsLong := idIsLong(r.space)
 	for _, doc := range r.docs {
 		key, err := generateUUID(doc.PKey, IDIsLong)
@@ -233,7 +231,6 @@ func (r *routerRequest) SetDocsByKey(keys []string) *routerRequest {
 	if r.Err != nil {
 		return r
 	}
-	log.Debug("RouterReques trace %v", r)
 	r.docs, r.Err = setDocs(keys)
 	return r
 }
@@ -243,7 +240,6 @@ func (r *routerRequest) PartitionDocs() *routerRequest {
 	if r.Err != nil {
 		return r
 	}
-	log.Debug("RouterReques trace %v", r)
 	dataMap := make(map[entity.PartitionID]*vearchpb.PartitionData)
 	for _, doc := range r.docs {
 		partitionID := r.space.PartitionId(murmur3.Sum32WithSeed(cbbytes.StringToByte(doc.PKey), 0))
@@ -394,7 +390,7 @@ func (r *routerRequest) SearchFieldSortExecute(sortOrder sortorder.SortOrder) *v
 					searchResponse := &vearchpb.SearchResponse{Head: head}
 					pd.SearchResponse = searchResponse
 					responseDoc.PartitionData = pd
-					respChain <- responseDoc
+					safeSend(respChain, responseDoc)
 				}
 			}()
 			partition, e := r.client.Master().Cache().PartitionByCache(ctx, r.space.Name, partitionID)
@@ -404,7 +400,7 @@ func (r *routerRequest) SearchFieldSortExecute(sortOrder sortorder.SortOrder) *v
 				searchResponse := &vearchpb.SearchResponse{Head: head}
 				pd.SearchResponse = searchResponse
 				responseDoc.PartitionData = pd
-				respChain <- responseDoc
+				safeSend(respChain, responseDoc)
 				return
 			}
 			clientType := pd.SearchRequest.Head.ClientType
@@ -418,7 +414,7 @@ func (r *routerRequest) SearchFieldSortExecute(sortOrder sortorder.SortOrder) *v
 				searchResponse := &vearchpb.SearchResponse{Head: head}
 				pd.SearchResponse = searchResponse
 				responseDoc.PartitionData = pd
-				respChain <- responseDoc
+				safeSend(respChain, responseDoc)
 				return
 			}
 
@@ -451,7 +447,7 @@ func (r *routerRequest) SearchFieldSortExecute(sortOrder sortorder.SortOrder) *v
 				searchResponse := &vearchpb.SearchResponse{Head: head}
 				pd.SearchResponse = searchResponse
 				responseDoc.PartitionData = pd
-				respChain <- responseDoc
+				safeSend(respChain, responseDoc)
 				return
 			}
 
@@ -489,11 +485,22 @@ func (r *routerRequest) SearchFieldSortExecute(sortOrder sortorder.SortOrder) *v
 			}
 			responseDoc.PartitionData = replyPartition
 			responseDoc.SortValueMap = sortValueMap
-			respChain <- responseDoc
+			safeSend(respChain, responseDoc)
 		}(partitionID, pData, r.space, sortOrder)
 	}
-	wg.Wait()
-	close(respChain)
+	//wg.Wait()
+	//close(respChain)
+	if waitTimeout(&wg, time.Millisecond*time.Duration(config.PSRpcTimeOut)) {
+		close(respChain)
+		err := &vearchpb.Error{Code: vearchpb.ErrorEnum_RECOVER, Msg: "more than 800 Millisecond"}
+		params := make(map[string]string)
+		head := &vearchpb.ResponseHead{Err: err, Params: params}
+		response := vearchpb.SearchResponse{Head: head}
+		log.Error("rpc cost time error:%v", err)
+		return &response
+	} else {
+		close(respChain)
+	}
 
 	var firstResult []*vearchpb.SearchResult
 	var sortValueMap map[string][]sortorder.SortValue
@@ -529,6 +536,42 @@ func (r *routerRequest) SearchFieldSortExecute(sortOrder sortorder.SortOrder) *v
 
 	searchResponse.Results = firstResult
 	return searchResponse
+}
+
+func safeSend(ch chan *response.SearchDocResult, value *response.SearchDocResult) (closed bool) {
+	defer func() {
+		if recover() != nil {
+			closed = true
+		}
+	}()
+
+	ch <- value  // panic if ch is closed
+	return false // <=> closed = false; return
+}
+
+func isClosed(ch <-chan *response.SearchDocResult) bool {
+	select {
+	case <-ch:
+		return true
+	default:
+	}
+
+	return false
+}
+
+func waitTimeout(wg *sync.WaitGroup, timeout time.Duration) bool {
+	ch := make(chan bool)
+
+	go time.AfterFunc(timeout, func() {
+		ch <- true
+	})
+
+	go func() {
+		wg.Wait()
+		ch <- false
+	}()
+
+	return <-ch
 }
 
 func (r *routerRequest) BulkSearchSortExecute(sortOrders []sortorder.SortOrder) *vearchpb.SearchResponse {
@@ -811,7 +854,6 @@ func (r *routerRequest) SearchByPartitions(searchReq *vearchpb.SearchRequest) *r
 	if r.Err != nil {
 		return r
 	}
-	log.Debug("RouterReques Search trace %v", r)
 	sendMap := make(map[entity.PartitionID]*vearchpb.PartitionData)
 	for _, partitionInfo := range r.space.Partitions {
 		partitionID := partitionInfo.Id
@@ -831,7 +873,6 @@ func (r *routerRequest) BulkSearchByPartitions(searchReq []*vearchpb.SearchReque
 	if r.Err != nil {
 		return r
 	}
-	log.Debug("RouterReques bulkSearch trace %v", r)
 	sendMap := make(map[entity.PartitionID]*vearchpb.PartitionData)
 	for _, partitionInfo := range r.space.Partitions {
 		partitionID := partitionInfo.Id
@@ -998,6 +1039,15 @@ func GetSource(doc *vearchpb.ResultItem, space *entity.Space, idIsLong bool, sor
 						SortName: name,
 					})
 				}
+			case entity.FieldType_DOUBLE:
+				floatVal := cbbytes.ByteToFloat64(fv.Value)
+				source[name] = floatVal
+				if sortFieldMap != nil && sortFieldMap[name] != "" {
+					sortValues = append(sortValues, &sortorder.FloatSortValue{
+						Val:      floatVal,
+						SortName: name,
+					})
+				}
 			case entity.FieldType_VECTOR:
 				if strings.Compare(space.Engine.RetrievalType, "BINARYIVF") == 0 {
 					featureByteC := fv.Value
@@ -1037,10 +1087,11 @@ func GetSource(doc *vearchpb.ResultItem, space *entity.Space, idIsLong bool, sor
 			SortName: "_score",
 		})
 	}
-        var marshal []byte
+
+	var marshal []byte
 	var err error
 	if len(source) > 0 {
-	    marshal, err = json.Marshal(source)
+		marshal, err = json.Marshal(source)
 	}
 	if err != nil {
 		return nil, sortValues, pKey, err
@@ -1221,7 +1272,6 @@ func (r *routerRequest) CommonByPartitions() *routerRequest {
 	if r.Err != nil {
 		return r
 	}
-	log.Debug("RouterReques common trace %v", r)
 	sendMap := make(map[entity.PartitionID]*vearchpb.PartitionData)
 	for _, partitionInfo := range r.space.Partitions {
 		partitionID := partitionInfo.Id

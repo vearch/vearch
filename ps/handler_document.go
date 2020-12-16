@@ -240,7 +240,7 @@ func bulk(ctx context.Context, store PartitionStore, items []*vearchpb.Item) {
 		msgs := strings.Split(vErr.GetError().Msg, ",")
 		for i, msg := range msgs {
 			if code, _ := strconv.Atoi(msg); code == 0 {
-				log.Debug("add doc success, %s", msg)
+				// log.Debugf("add doc success, %s", msg)
 			} else {
 				items[i].Err = vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, errors.New(msg)).GetError()
 			}

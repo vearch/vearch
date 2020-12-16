@@ -55,6 +55,11 @@ func FailServerKey(nodeID uint64) string {
 	return fmt.Sprintf("%s%d", PrefixFailServer, nodeID)
 }
 
+//RouterKey Router key
+func RouterKey(key, value string) string {
+	return fmt.Sprintf("%s%s/%s", PrefixRouter, key, value)
+}
+
 //ids sequence key for etcd
 const (
 	NodeIdSequence      = "/id/node"
@@ -73,6 +78,7 @@ const (
 	PrefixDataBase     = "/db/"
 	PrefixDataBaseBody = "/db/body/"
 	PrefixFailServer   = "/fail/server/"
+	PrefixRouter       = "/router/"
 )
 
 //when master runing clean job , it will set value to this key,

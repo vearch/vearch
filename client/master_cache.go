@@ -185,7 +185,7 @@ func (cliCache *clientCache) reloadSpaceCache(ctx context.Context, sync bool, db
 		log.Info("to reload db:[%s] space:[%s]", db, spaceName)
 
 		dbID, err := cliCache.mc.QueryDBName2Id(ctx, db)
-		if err != nil {
+		if err != nil  {
 			return fmt.Errorf("can not found db by name:[%s] err:[%s]", db, err.Error())
 		}
 
@@ -346,6 +346,74 @@ func (cliCache *clientCache) startWSJob(ctx context.Context) error {
 	return nil
 }
 
+//delete record
+func (cliCache *clientCache) serverDelete(ctx context.Context, server *entity.Server) error {
+	//mutex ensure only one master update the meta,the other just undate local cache
+	mutex := cliCache.mc.Client().Master().NewLock(ctx, entity.ClusterWatchServerKey, time.Second*188)
+	if getLock, err := mutex.TryLock(); getLock && err == nil {
+		defer func() {
+			if err := mutex.Unlock(); err != nil {
+				log.Error("failed to unlock space,the Error is:%v ", err)
+			}
+		}()
+		log.Debug("get LOCK success,process fail server %+v ", server)
+
+		//get failServer info
+		if len(server.PartitionIds) == 0 {
+			// recover failServer
+			// if the partition num of the newNode is empty, then recover data by it.
+			if config.Conf().Global.AutoRecoverPs {
+				err =  cliCache.mc.RecoverByNewServer(ctx, server)
+				if err != nil {
+					log.Debug("auto recover is err %v,server is %+v", err, server)
+				} else {
+					log.Info("recover is success,server is %+v", server)
+				}
+			}
+		} else {
+			// if failserver recover,then remove record
+			cliCache.mc.TryRemoveFailServer(ctx, server)
+		}
+	} else {
+		log.Debug("get LOCK error,just update cache %+v ", server)
+	}
+	return nil
+}
+
+// record fail server
+func (cliCache *clientCache) serverPut(ctx context.Context, server *entity.Server) error {
+	//mutex ensure only one master update the meta,the other just undate local cache
+	mutex := cliCache.mc.Client().Master().NewLock(ctx, entity.ClusterWatchServerKey, time.Second*188)
+	if getLock, err := mutex.TryLock(); getLock && err == nil {
+		defer func() {
+			if err := mutex.Unlock(); err != nil {
+				log.Error("failed to unlock space,the Error is:%v ", err)
+			}
+		}()
+		log.Debug("get LOCK success,process fail server %+v ", server)
+
+		//get failServer info
+		if len(server.PartitionIds) == 0 {
+			// recover failServer
+			// if the partition num of the newNode is empty, then recover data by it.
+			if config.Conf().Global.AutoRecoverPs {
+				err = cliCache.mc.RecoverByNewServer(ctx, server)
+				if err != nil {
+					log.Debug("auto recover is err %v,server is %+v", err, server)
+				} else {
+					log.Info("recover is success,server is %+v", server)
+				}
+			}
+		} else {
+			// if failserver recover,then remove record
+			cliCache.mc.TryRemoveFailServer(ctx, server)
+		}
+	} else {
+		log.Debug("get LOCK error,just update cache %+v ", server)
+	}
+	return nil
+}
+
 //it will start cache
 func (cliCache *clientCache) startCacheJob(ctx context.Context) error {
 	log.Info("to start cache job begin")
@@ -459,6 +527,7 @@ func (cliCache *clientCache) startCacheJob(ctx context.Context) error {
 	}
 	serverJob := watcherJob{ctx: ctx, prefix: entity.PrefixServer, masterClient: cliCache.mc, cache: cliCache.serverCache,
 		put: func(value []byte) (err error) {
+			defer errutil.CatchError(&err)
 			server := &entity.Server{}
 			if err := cbjson.Unmarshal(value, server); err != nil {
 				return err
@@ -470,16 +539,28 @@ func (cliCache *clientCache) startCacheJob(ctx context.Context) error {
 				}
 			}
 			cliCache.serverCache.Set(cacheServerKey(server.ID), server, cache.NoExpiration)
+			if config.Conf().Global.MergeRouter {
+				if err := cliCache.serverPut(ctx, server);err != nil {
+					return err
+				}
+			}
 			return nil
 		},
 		delete: func(cacheKey string) (err error) {
+			defer errutil.CatchError(&err)
 			nodeIdStr := strings.Split(cacheKey, "/")[2]
 			nodeId := cast.ToUint64(nodeIdStr)
+			server,_ :=cliCache.Load(nodeId)
 			if value, _ := cliCache.Load(nodeId); value != nil {
 				value.(*rpcClient).close()
 				cliCache.Delete(nodeId)
 			}
 			cliCache.serverCache.Delete(nodeIdStr)
+			if config.Conf().Global.MergeRouter {
+				if err := cliCache.serverDelete(ctx, (server).(*entity.Server));err != nil {
+					return err
+				}
+			}
 			return nil
 		},
 	}
@@ -648,7 +729,7 @@ func (w *watcherJob) serverPut(value []byte) (e error) {
 			w.masterClient.TryRemoveFailServer(w.ctx, server)
 		}
 	} else {
-		log.Debug("get LOCK error,just update cache %+v ", server)
+		log.Debug(" get LOCK error,just update cache %+v ", server)
 	}
 	//update the cache
 	w.cache.Set(cacheServerKey(server.ID), server, cache.NoExpiration)

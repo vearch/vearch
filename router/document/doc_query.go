@@ -51,16 +51,17 @@ const (
 )
 
 type VectorQuery struct {
-	Field        string          `json:"field"`
-	FeatureData  json.RawMessage `json:"feature"`
-	Feature      []float32       `json:"-"`
-	FeatureUint8 []uint8         `json:"-"`
-	Symbol       string          `json:"symbol"`
-	Value        *float64        `json:"value"`
-	Boost        *float64        `json:"boost"`
-	Format       *string         `json:"format,omitempty"`
-	MinScore     *float64        `json:"min_score,omitempty"`
-	MaxScore     *float64        `json:"max_score,omitempty"`
+	Field         string          `json:"field"`
+	FeatureData   json.RawMessage `json:"feature"`
+	Feature       []float32       `json:"-"`
+	FeatureUint8  []uint8         `json:"-"`
+	Symbol        string          `json:"symbol"`
+	Value         *float64        `json:"value"`
+	Boost         *float64        `json:"boost"`
+	Format        *string         `json:"format,omitempty"`
+	MinScore      *float64        `json:"min_score,omitempty"`
+	MaxScore      *float64        `json:"max_score,omitempty"`
+	RetrievalType string          `json:"retrieval_type"`
 }
 
 var defaultBoost = util.PFloat64(1)
@@ -260,6 +261,9 @@ func parseVectors(reqNum int, vqs []*vearchpb.VectorQuery, tmpArr []json.RawMess
 			return reqNum, vqs, err
 		}
 
+		if vqTemp.RetrievalType != "" {
+			retrievalType = vqTemp.RetrievalType
+		}
 		docField := proMap[vqTemp.Field]
 
 		if docField == nil || docField.FieldType != entity.FieldType_VECTOR {
@@ -469,6 +473,30 @@ func parseRange(data []byte, proMap map[string]*entity.SpaceProperties) (*vearch
 			}
 
 			min, max = minNum, maxNum
+		case entity.FieldType_DOUBLE:
+			var minNum, maxNum float64
+
+			if start != nil {
+				if f, e := start.(json.Number).Float64(); e != nil {
+					return nil, e
+				} else {
+					minNum = f
+				}
+			} else {
+				minNum = -math.MaxFloat64
+			}
+
+			if end != nil {
+				if f, e := end.(json.Number).Float64(); e != nil {
+					return nil, e
+				} else {
+					maxNum = f
+				}
+			} else {
+				maxNum = math.MaxFloat64
+			}
+
+			min, max = minNum, maxNum
 
 		case entity.FieldType_DATE:
 
@@ -633,20 +661,18 @@ func (query *VectorQuery) ToC(retrievalType string) (*vearchpb.VectorQuery, erro
 		}
 	}
 
-	var has_boost int32 = 1
-
 	if query.Boost == nil {
 		query.Boost = defaultBoost
-		has_boost = 0
 	}
 
 	vectorQuery := &vearchpb.VectorQuery{
-		Name:     query.Field,
-		Value:    codeByte,
-		MinScore: *query.MinScore,
-		MaxScore: *query.MaxScore,
-		Boost:    *query.Boost,
-		HasBoost: has_boost,
+		Name:          query.Field,
+		Value:         codeByte,
+		MinScore:      *query.MinScore,
+		MaxScore:      *query.MaxScore,
+		Boost:         *query.Boost,
+		HasBoost:      0,
+		RetrievalType: retrievalType,
 	}
 	return vectorQuery, nil
 }
