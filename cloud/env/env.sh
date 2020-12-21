@@ -2,7 +2,7 @@
 
 yum update
 yum install -y epel-release
-yum install -y wget gcc gcc-c++ make automake git blas-devel lapack-devel which openssl-devel libzstd-devel
+yum install -y wget gcc gcc-c++ make automake git blas-devel lapack-devel which openssl-devel libzstd-devel openblas-devel
 if [ ! -d "/env/app" ]; then
   mkdir -p /env/app
 fi
