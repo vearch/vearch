@@ -16,7 +16,6 @@ package gamma
 */
 import "C"
 import (
-	"fmt"
 	"unsafe"
 )
 
@@ -55,7 +54,6 @@ func AddOrUpdateDocs(engine unsafe.Pointer, buffer [][]byte) BatchResult {
 	var result BatchResult
 	buffer2 := C.GoBytes(unsafe.Pointer(CBuffer), C.int(*length))
 	result.DeSerialize(buffer2)
-	fmt.Println(result)
 	return result
 }
 

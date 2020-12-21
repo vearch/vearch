@@ -261,6 +261,215 @@ curl -v --user "root:secret" -H "content-type: application/json" -XPUT -d'
 ' {{MASTER}}/space/test_vector_db/_create
 ````
 
+Create table for Multiple models, and here are the matters needing attention:
+
+The parameters of each model may be different, please refer to the precautions on model parameters above.
+Multi-model table creation and query statements are different.Multi-model use store_type must be supported by all models.
+
+Old usage for create table:
+````$xslt
+{
+    "name": "vector_space",
+    "dynamic_schema": "strict",
+    "partition_num": 1,
+    "replica_num": 1,
+    "engine": {
+        "name": "gamma",
+        "index_size": 100000, 
+        "retrieval_type": "IVFPQ", 
+        "retrieval_param": {
+            "metric_type": "InnerProduct",
+            "ncentroids": 256, 
+            "nsubvector": 32
+        }
+    }, 
+    "properties": {
+            "string": {
+                "type": "keyword",
+                "index": true
+            },
+            "int": {
+                "type": "integer",
+                "index": true
+            },
+            "float": {
+                "type": "float",
+                "index": true
+            },
+            "vector": {
+                "type": "vector",
+                "model_id": "img",
+                "dimension": 128,
+                "store_type": "RocksDB",
+                "format": "normalization"
+            },
+            "string_tags": {
+                "type": "string",
+                "array": true,
+                "index": true
+            },
+            "int_tags": {
+                "type": "integer",
+                "array": true,
+                "index": true
+            },
+            "float_tags": {
+                "type": "float",
+                "array": true,
+                "index": true
+            }
+        },
+        "models": [{
+            "model_id": "vgg16",
+            "fields": ["string"],
+            "out": "feature"
+        }]
+}
+````
+New usage for create table about Multiple models:
+````$xslt
+{
+    "name": "vector_space",
+    "dynamic_schema": "strict",
+    "partition_num": 1,
+    "replica_num": 1,
+    "engine": {
+        "name": "gamma", 
+        "retrieval_types": [
+            "IVFPQ", 
+            "HNSW"
+        ], 
+        "retrieval_params": [
+            {
+                "metric_type": "InnerProduct",
+                "ncentroids": 256, 
+                "nsubvector": 32
+            }, 
+            {
+                "nlinks": 32, 
+                "efconstructor": 40, 
+                "efsearch": 50
+            }
+        ]
+    }, 
+    "properties": {
+            "string": {
+                "type": "keyword",
+                "index": true
+            },
+            "int": {
+                "type": "integer",
+                "index": true
+            },
+            "float": {
+                "type": "float",
+                "index": true
+            },
+            "vector": {
+                "type": "vector",
+                "model_id": "img",
+                "dimension": 128,
+                "store_type": "MemoryOnly",
+                "format": "normalization"
+            },
+            "string_tags": {
+                "type": "string",
+                "array": true,
+                "index": true
+            },
+            "int_tags": {
+                "type": "integer",
+                "array": true,
+                "index": true
+            },
+            "float_tags": {
+                "type": "float",
+                "array": true,
+                "index": true
+            }
+        },
+        "models": [{
+            "model_id": "vgg16",
+            "fields": ["string"],
+            "out": "feature"
+        }]
+}
+````
+
+Old usage for _search query about Multiple models :
+
+````$xslt
+curl -H "content-type: application/json" -XPOST -d'
+{
+  "query": {
+      "sum":[
+        {
+          "field": "vector",
+          "feature": [0.88658684,0.9873159,0.68632215,-0.114685304,-0.45059848,0.5360963,0.9243208,0.14288005,0.9383601,0.17486687,0.3889527,0.91680753,0.6597193,0.52906346,0.5491872,-0.24706548,0.28541148,0.87731135,-0.18872026,0.28016,0.14826365,0.7217548,0.66360927,0.839685,0.29014188,-0.7303055,0.31786093,0.7611028,0.38408384,0.004707908,0.27696127,0.6069607,0.52147454,0.34435293,0.5665409,0.9676775,0.9415799,-0.95000356,-0.7441306,0.32473814,0.24417956,0.4114195,-0.15658693,0.9567978,0.91448873,0.8040493,0.7370252,0.41042542,-0.12714817,0.7344759,0.95486677,0.6752892,0.79088193,0.27843192,0.7594493,0.96637094,0.21354128,0.14667709,0.52713686,0.39803344,0.13063455,-0.26041254,0.21177465,0.0889158,0.7040157,0.9184541,0.33231667,0.109015055,0.7252709,0.85923946,0.6874303,0.9188243,0.44670975,0.6534332,0.67833525,0.40294313,0.76628596,0.722926,0.2507119,0.86939317,0.1049489,0.5707651,0.89342695,0.89022624,0.06606513,0.46363428,0.8836891,0.8416466,0.43164334,-0.059498303,0.25076458,0.91614866,0.21405962,0.07442343,0.8398273,-0.518248,0.4477598,0.54731685,0.39200985,0.2999862,0.22204888,0.9051194,0.7241311,0.9049213,0.48899868,0.11941989,0.45151904,0.9315986,0.17897557,0.759705,0.2549287,0.96008617,0.25688004,0.5925487,0.3069243,0.9171891,0.46981755,0.14557107,0.8900092,0.84537476,0.5608369,0.6909559,0.777092,0.66562796,0.6040272,0.77930593,0.59144366,0.12506102],
+          "boost":0.8
+        }
+      ],
+      "filter":[
+          {
+              "range":{
+                  "int":{
+                      "gte":1,
+                      "lte":1000
+                  }
+              }
+          },
+          {
+              "term":{
+                "string_tags":["28","2","29"],
+                "operator":"or"
+              }
+          }
+       ]
+  },
+  "is_brute_search":0
+  "size":10,
+}
+' {{ROUTER}}/test_vector_db/vector_space/_search
+````
+New usage for _search query about Multiple models:
+add retrieval_type paramter,retrieval_type specifies the model to be queried, and the retrieval_param parameter is set according to the specified model. If retrieval_type is not set, the data will be queried according to the first model when the table is created.
+
+```$xslt
+curl -H "content-type: application/json" -XPOST -d'
+{
+  "query": {
+      "sum":[
+        {
+          "field": "vector",
+          "retrieval_type": "IVFPQ", 
+          "feature": [0.88658684,0.9873159,0.68632215,-0.114685304,-0.45059848,0.5360963,0.9243208,0.14288005,0.9383601,0.17486687,0.3889527,0.91680753,0.6597193,0.52906346,0.5491872,-0.24706548,0.28541148,0.87731135,-0.18872026,0.28016,0.14826365,0.7217548,0.66360927,0.839685,0.29014188,-0.7303055,0.31786093,0.7611028,0.38408384,0.004707908,0.27696127,0.6069607,0.52147454,0.34435293,0.5665409,0.9676775,0.9415799,-0.95000356,-0.7441306,0.32473814,0.24417956,0.4114195,-0.15658693,0.9567978,0.91448873,0.8040493,0.7370252,0.41042542,-0.12714817,0.7344759,0.95486677,0.6752892,0.79088193,0.27843192,0.7594493,0.96637094,0.21354128,0.14667709,0.52713686,0.39803344,0.13063455,-0.26041254,0.21177465,0.0889158,0.7040157,0.9184541,0.33231667,0.109015055,0.7252709,0.85923946,0.6874303,0.9188243,0.44670975,0.6534332,0.67833525,0.40294313,0.76628596,0.722926,0.2507119,0.86939317,0.1049489,0.5707651,0.89342695,0.89022624,0.06606513,0.46363428,0.8836891,0.8416466,0.43164334,-0.059498303,0.25076458,0.91614866,0.21405962,0.07442343,0.8398273,-0.518248,0.4477598,0.54731685,0.39200985,0.2999862,0.22204888,0.9051194,0.7241311,0.9049213,0.48899868,0.11941989,0.45151904,0.9315986,0.17897557,0.759705,0.2549287,0.96008617,0.25688004,0.5925487,0.3069243,0.9171891,0.46981755,0.14557107,0.8900092,0.84537476,0.5608369,0.6909559,0.777092,0.66562796,0.6040272,0.77930593,0.59144366,0.12506102],
+          "boost":0.8
+        }
+      ],
+      "filter":[
+          {
+              "range":{
+                  "int":{
+                      "gte":1,
+                      "lte":1000
+                  }
+              }
+          },
+          {
+              "term":{
+                "string_tags":["28","2","29"],
+                "operator":"or"
+              }
+          }
+       ]
+  },
+  "is_brute_search":0
+  "size":10,
+}
+' {{ROUTER}}/test_vector_db/vector_space/_search
+````
+
+
 * partition_num : how many partition to slot,  default is `1`
 
 * replica_num: how many replica has , recommend `3`

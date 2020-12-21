@@ -19,6 +19,8 @@ type EngineStatus struct {
 	FieldRangeMem int64
 	BitmapMem     int64
 	DocNum        int32
+	MaxDocid      int32
+	MinIndexedNum int32
 
 	engineStatus *gamma_api.EngineStatus
 }
@@ -33,6 +35,8 @@ func (status *EngineStatus) Serialize(buffer *[]byte) int {
 	gamma_api.EngineStatusAddFieldRangeMem(builder, status.FieldRangeMem)
 	gamma_api.EngineStatusAddBitmapMem(builder, status.BitmapMem)
 	gamma_api.EngineStatusAddDocNum(builder, status.DocNum)
+	gamma_api.EngineStatusAddMaxDocid(builder, status.MaxDocid)
+	gamma_api.EngineStatusAddMinIndexedNum(builder, status.MinIndexedNum)
 	builder.Finish(builder.EndObject())
 	bufferLen := len(builder.FinishedBytes())
 	*buffer = make([]byte, bufferLen)
@@ -48,4 +52,6 @@ func (status *EngineStatus) DeSerialize(buffer []byte) {
 	status.FieldRangeMem = status.engineStatus.FieldRangeMem()
 	status.BitmapMem = status.engineStatus.BitmapMem()
 	status.DocNum = status.engineStatus.DocNum()
+	status.MaxDocid = status.engineStatus.MaxDocid()
+	status.MinIndexedNum = status.engineStatus.MinIndexedNum()
 }

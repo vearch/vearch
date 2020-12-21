@@ -17,10 +17,11 @@ package document
 import (
 	"context"
 	"fmt"
-	"github.com/vearch/vearch/proto/entity"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/vearch/vearch/proto/entity"
 
 	"github.com/vearch/vearch/client"
 	"github.com/vearch/vearch/config"
@@ -51,6 +52,7 @@ type DocumentHandler struct {
 }
 
 func ExportDocumentHandler(httpServer *netutil.Server, client *client.Client) {
+
 	docService := newDocService(client)
 
 	documentHandler := &DocumentHandler{
@@ -58,13 +60,41 @@ func ExportDocumentHandler(httpServer *netutil.Server, client *client.Client) {
 		docService: *docService,
 		client:     client,
 	}
+	// open master api
+	if config.Conf().Global.MergeRouter {
+		// new master server
+		service, err := NewMasterService(client)
+
+		monitorService := newMonitorService(service, nil)
+
+		if err != nil {
+			panic(err)
+		}
+		// open master etcd api
+		if err := documentHandler.GorillaExport(service); err != nil {
+			panic(err)
+		}
+
+		// open master monitor apo
+		if err := documentHandler.GorillaExportMonitor(monitorService); err != nil {
+			panic(err)
+		}
+	}
+
+	// open router api
 	if err := documentHandler.ExportToServer(); err != nil {
 		panic(err)
 	}
-
 }
 
 func (handler *DocumentHandler) ExportToServer() error {
+	// routerInfo
+	handler.httpServer.HandlesMethods([]string{http.MethodGet}, "/", []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleRouterInfo}, nil)
+	// list router
+	handler.httpServer.HandlesMethods([]string{http.MethodGet}, "/list/router", []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleRouterIPs}, nil)
+	// cacheInfo /$dbName/$spaceName
+	handler.httpServer.HandlesMethods([]string{http.MethodGet}, fmt.Sprintf("/{%s}/{%s}", URLParamDbName, URLParamSpaceName), []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.cacheInfo}, nil)
+
 	// bulk: /$dbName/$spaceName/_bulk
 	handler.httpServer.HandlesMethods([]string{http.MethodPost}, fmt.Sprintf("/{%s}/{%s}/_bulk", URLParamDbName, URLParamSpaceName), []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleBulk}, nil)
 
@@ -94,6 +124,9 @@ func (handler *DocumentHandler) ExportToServer() error {
 
 	// forcemerge space: /$dbName/$spaceName/_forcemerge
 	handler.httpServer.HandlesMethods([]string{http.MethodPost}, fmt.Sprintf("/{%s}/{%s}/_forcemerge", URLParamDbName, URLParamSpaceName), []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleForceMerge}, nil)
+
+	// update doc: /$dbName/$spaceName/_ps_rpc_timeout_set
+	handler.httpServer.HandlesMethods([]string{http.MethodPost, http.MethodPut}, fmt.Sprintf("/{%s}/{%s}/_ps_rpc_timeout_set", URLParamDbName, URLParamSpaceName), []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handlePsRpcTimeoutSet}, nil)
 
 	// get doc: /$dbName/$spaceName/$docId
 	handler.httpServer.HandlesMethods([]string{http.MethodGet}, fmt.Sprintf("/{%s}/{%s}/{%s}", URLParamDbName, URLParamSpaceName, URLParamID), []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleGetDoc}, nil)
@@ -134,10 +167,21 @@ func (handler *DocumentHandler) handleRouterInfo(ctx context.Context, w http.Res
 	return ctx, true
 }
 
+func (handler *DocumentHandler) handleRouterIPs(ctx context.Context, w http.ResponseWriter, r *http.Request, params netutil.UriParams) (context.Context, bool) {
+	ips, err := handler.client.Master().QueryRouter(ctx, config.Conf().Global.Name)
+	if err != nil {
+		log.Errorf("get router ips failed, err: [%s]", err.Error())
+		resp.SendError(ctx, w, 500, err.Error())
+		return ctx, false
+	}
+
+	resp.SendText(ctx, w, strings.Join(ips, ","))
+	return ctx, true
+}
+
 func (handler *DocumentHandler) cacheInfo(ctx context.Context, w http.ResponseWriter, r *http.Request, params netutil.UriParams) (context.Context, bool) {
-	reqArgs := netutil.GetUrlQuery(r)
-	dbName := reqArgs[URLParamDbName]
-	spaceName := reqArgs[URLParamSpaceName]
+	dbName := params.ByName(URLParamDbName)
+	spaceName := params.ByName(URLParamSpaceName)
 	if space, err := handler.client.Master().Cache().SpaceByCache(context.Background(), dbName, spaceName); err != nil {
 		resp.SendErrorRootCause(ctx, w, 404, err.Error(), err.Error())
 	} else {
@@ -152,15 +196,6 @@ func (handler *DocumentHandler) handleGetDoc(ctx context.Context, w http.Respons
 	args := &vearchpb.GetRequest{}
 	args.Head = setRequestHead(params, r)
 	args.PrimaryKeys = strings.Split(params.ByName(URLParamID), ",")
-	space, err := handler.client.Space(ctx, args.Head.DbName, args.Head.SpaceName)
-	if space == nil {
-		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "dbName or spaceName param not build db or space")
-		return ctx, true
-	}
-	if err != nil {
-		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
-		return ctx, false
-	}
 	reply := handler.docService.getDocs(ctx, args)
 	if resultBytes, err := docGetResponse(handler.client, args, reply, nil); err != nil {
 		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
@@ -177,15 +212,6 @@ func (handler *DocumentHandler) handleDeleteDoc(ctx context.Context, w http.Resp
 	args := &vearchpb.DeleteRequest{}
 	args.Head = setRequestHead(params, r)
 	args.PrimaryKeys = strings.Split(params.ByName(URLParamID), ",")
-	space, err := handler.client.Space(ctx, args.Head.DbName, args.Head.SpaceName)
-	if space == nil {
-		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "dbName or spaceName param not build db or space")
-		return ctx, true
-	}
-	if err != nil {
-		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
-		return ctx, false
-	}
 	reply := handler.docService.deleteDocs(ctx, args)
 	if resultBytes, err := docDeleteResponses(handler.client, args, reply); err != nil {
 		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
@@ -202,10 +228,6 @@ func (handler *DocumentHandler) handleUpdateDoc(ctx context.Context, w http.Resp
 	args := &vearchpb.UpdateRequest{}
 	args.Head = setRequestHead(params, r)
 	space, err := handler.client.Space(ctx, args.Head.DbName, args.Head.SpaceName)
-	if space == nil {
-		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "dbName or spaceName param not build db or space")
-		return ctx, true
-	}
 	err = docParse(ctx, r, space, args)
 	if err != nil {
 		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
@@ -244,14 +266,12 @@ func (handler *DocumentHandler) handleBulk(ctx context.Context, w http.ResponseW
 		return ctx, false
 	}
 	reply := handler.docService.bulk(ctx, args)
-	if resultBytes, err := docBulkResponses(handler.client, args, reply); err != nil {
+	resultBytes, err := docBulkResponses(handler.client, args, reply)
+	if err != nil {
 		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 		return ctx, true
-	} else {
-		resp.SendJsonBytes(ctx, w, resultBytes)
-		return ctx, true
 	}
-	resp.SendText(ctx, w, reply.String())
+	resp.SendJsonBytes(ctx, w, resultBytes)
 	return ctx, true
 }
 
@@ -639,4 +659,26 @@ func (handler *DocumentHandler) handleDeleteByQuery(ctx context.Context, w http.
 
 	resp.SendJson(ctx, w, delByQueryResp)
 	return ctx, true
+}
+
+// handlePsRpcTimeoutSet rpctimeout set
+func (handler *DocumentHandler) handlePsRpcTimeoutSet(ctx context.Context, w http.ResponseWriter, r *http.Request, params netutil.UriParams) (context.Context, bool) {
+	startTime := time.Now()
+	defer monitor.Profiler("handlePsRpcTimeoutSet", startTime)
+	args := &vearchpb.GetRequest{}
+	args.Head = setRequestHead(params, r)
+	rpcTimeout, err := doPsRpcTimeoutSetParse(r)
+	if err != nil {
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
+		return ctx, false
+	}
+
+	config.PSRpcTimeOut = rpcTimeout
+	if resultBytes, err := docPsRpcTimeoutResponse(config.PSRpcTimeOut); err != nil {
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
+		return ctx, true
+	} else {
+		resp.SendJsonBytes(ctx, w, resultBytes)
+		return ctx, true
+	}
 }

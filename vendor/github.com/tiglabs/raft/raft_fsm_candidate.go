@@ -1,4 +1,5 @@
 // Copyright 2015 The etcd Authors
+// Modified work copyright 2018 The tiglabs Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -113,7 +114,8 @@ func (r *raftFsm) campaign(force bool) {
 		}
 		li, lt := r.raftLog.lastIndexAndTerm()
 		if logger.IsEnableDebug() {
-			logger.Debug("[raft->campaign][%v logterm: %d, index: %d] sent vote request to %v at term %d.", r.id, lt, li, id, r.term)
+			logger.Debug("[raft->campaign][%v logterm: %d, index: %d] sent " +
+				"vote request to %v at term %d.   raftFSM[%p]", r.id, lt, li, id, r.term,r)
 		}
 
 		m := proto.GetMessage()

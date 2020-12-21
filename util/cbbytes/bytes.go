@@ -252,6 +252,14 @@ func Float64ToByte(v float64) []byte {
 	return bs
 }
 
+func Float64ToByteNew(float float64) []byte {
+	bits := math.Float64bits(float)
+	bytes := make([]byte, 8)
+	binary.LittleEndian.PutUint64(bytes, bits)
+
+	return bytes
+}
+
 func Float32ToByte(v float32) []byte {
 	bs, _ := ValueToByte(v)
 	return bs
@@ -370,6 +378,12 @@ func ByteToFloat64(bs []byte) float64 {
 		return float64(ByteToFloat32(bs))
 	}
 	bits := binary.LittleEndian.Uint64(bs)
+
+	return math.Float64frombits(bits)
+}
+
+func ByteToFloat64New(bytes []byte) float64 {
+	bits := binary.LittleEndian.Uint64(bytes)
 
 	return math.Float64frombits(bits)
 }

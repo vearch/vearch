@@ -1,4 +1,4 @@
-// Copyright 2018 The TigLabs raft Authors.
+// Copyright 2018 The tiglabs raft Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -249,6 +249,17 @@ func (rs *RaftServer) CommittedIndex(id uint64) uint64 {
 
 	if ok {
 		return raft.committed()
+	}
+	return 0
+}
+
+func (rs *RaftServer) FirstCommittedIndex(id uint64) uint64 {
+	rs.mu.RLock()
+	raft, ok := rs.rafts[id]
+	rs.mu.RUnlock()
+
+	if ok {
+		return raft.raftFsm.raftLog.firstIndex()
 	}
 	return 0
 }
