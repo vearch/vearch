@@ -24,9 +24,9 @@
  5. 参考“使用Vearch镜像部署”步骤3
 
 #### 使用脚本创建基础镜像和vearch镜像
- 1. 构建编译基础环境映像
+ 1. 构建编译基础环境镜像
     1. 进入$vearch/cloud目录
-    2. 执行./compile_env.sh，你将得到一个名为vearch_env的映像
+    2. 执行./compile_env.sh，你将得到一个名为vearch_env的镜像
  2. 编译vearch
     1. 进入$vearch/cloud目录
     2. 执行./compile.sh，编译结果在$vearch/build/bin , $vearch/build/lib中
