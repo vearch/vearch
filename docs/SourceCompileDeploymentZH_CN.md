@@ -1,71 +1,71 @@
-# Vearch Compile and Deploy
+# Vearch编译和部署
 
-## Docker Deploy
+## Docker部署
 
 #### Docker Hub Image Center 
- 1. vearch base compile environment image address: https://hub.docker.com/r/vearch/vearch/tags
- 2. vearch deploy image address: https://hub.docker.com/r/vearch/vearch/tags
+ 1. vearch基础编译环境镜像地址： https://hub.docker.com/r/vearch/vearch/tags
+ 2. vearch部署镜像地址: https://hub.docker.com/r/vearch/vearch/tags
 
-#### Use Vearch Image Deploy
- 1. take vearch:3.2.0 as an example
+#### 使用Vearch镜像部署
+ 1. 以vearch:3.2.0为例
  2. docker pull vearch/vearch:3.2.0
- 3. one docker deploy or distributed deployment
+ 3. 一个docker部署或分布式部署
     1. ```If deploy a docker start vearch,master,ps,router start together: cat vearch/config/config.toml.example > config.toml nohup docker run -p 8817:8817 -p 9001:9001 -v $PWD/config.toml:/vearch/config.toml  vearch/vearch:3.2.0 all &```
     
     2. ```If distributed deploy ,modify vearch/config/config.toml and start separately```
     3. ```Modify vearch/config/config.toml ,refer the step 'Local Model'```
     4. ```Start separately image, modify step i 'all' to 'master' and 'ps' and 'router' ,master image must first start```
 
-#### Use Base Image Compile And Deploy
- 1. take vearch_env:3.2.0 as an example
+#### 使用基础镜像编译和部署
+ 1. 以vearch_env:3.2.0为例
  2. docker pull vearch/vearch_env:3.2.0
  3. sh vearch/cloud/complile.sh
  4. sh build.sh
- 5. reference "User vearch image deploy" step 3
+ 5. 参考“使用Vearch镜像部署”步骤3
 
-#### Use Script Create Base Image And Vearch Image
- 1. build compile base environment image 
-    1. go to $vearch/cloud dir
-    2. run ./compile_env.sh you will got a image named vearch_env
- 2. compile vearch
-    1. go to $vearch/cloud dir
-    2. run ./compile.sh you will compile Vearch in $vearch/build/bin , $vearch/build/lib
- 3. make vearch image
-    1. go to $vearch/cloud dir
-    2. run ./build.sh you will got a image named vearch good luck
- 4. how to use it 
-    1. you can use docker run -it -v config.toml:/vearch/config.toml vearch all to start vearch by local model the last param has four type[ps, router ,master, all] all means tree type to start
- 5. One-click build vearch image
-    1. go to $vearch/cloud dir
-    2. you can run ./run_docker.sh
+#### 使用脚本创建基础镜像和vearch镜像
+ 1. 构建编译基础环境镜像
+    1. 进入$vearch/cloud目录
+    2. 执行./compile_env.sh，你将得到一个名为vearch_env的镜像
+ 2. 编译vearch
+    1. 进入$vearch/cloud目录
+    2. 执行./compile.sh，编译结果在$vearch/build/bin , $vearch/build/lib中
+ 3. 制作vearch镜像
+    1. 进入$vearch/cloud目录
+    2. 执行./build.sh， 你将得到一个vearch的镜像
+ 4. 使用方法 
+    1. 执行 `docker run -it -v config.toml:/vearch/config.toml vearch all`  all表示master、router、ps同时启动，也可以使用master\router\ps分开启动
+ 5. 一键构建vearch镜像
+    1. 进入$vearch/cloud目录
+    2. 执行./run_docker.sh
 
-## No Image Compile And Deploy
+## 源码编译和部署
 
-#### Dependent Environment 
+#### 依赖环境
 
-   1. CentOS, Ubuntu and Mac OS are all OK (recommend CentOS >= 7.2).
-   2. Go >= 1.11.2 required.
-   3. Gcc >= 5 required.
-   4. Cmake >= 3.17 required.
-   5. OpenBLAS.
-   6. [Faiss](https://github.com/facebookresearch/faiss) >= v1.6.4, You don't need to install it manually, the script installs it automatically. 
-   7. [RocksDB](https://github.com/facebook/rocksdb) == 6.2.2 ***(optional)***. You don't need to install it manually, the script installs it automatically. But you need to manually install the dependencies of rocksdb. Please refer to the installation method: https://github.com/facebook/rocksdb/blob/master/INSTALL.md
-   8. [Zfp](https://github.com/LLNL/zfp) == v0.5.5 ***(optional)***, You don't need to install it manually, the script installs it automatically.
-   9. CUDA >= 9.0, if you want GPU support.
-#### Compile 
-   * Enter the `GOPATH` directory, `cd $GOPATH/src` `mkdir -p github.com/vearch` `cd github.com/vearch`
-   * Download the source code: `git clone https://xxxxxx/vearch.git` ($vearch denotes the absolute path of vearch code)
-   * Download the source code of subprojects gamma: ``cd vearch``  `git submodule update`
-   * To add GPU Index support: change `BUILD_WITH_GPU` from `"off"` to `"on"` in `$vearch/engine/CMakeLists.txt` 
-   * Compile vearch and gamma
+   1. CentOS、ubuntu和Mac OS都支持（推荐CentOS >= 7.2）
+   2. Go >= 1.11.2
+   3. Gcc >= 5
+   4. Cmake >= 3.17
+   5. OpenBLAS
+   6. [Faiss](https://github.com/facebookresearch/faiss) >= v1.6.4，你不需要手动安装，脚本自动安装。
+   7. [RocksDB](https://github.com/facebook/rocksdb) == 6.2.2 ***（可选）***，你不需要手动安装，脚本自动安装。但是你需要手动安装rocksdb的依赖。请参考如下安装方法：https://github.com/facebook/rocksdb/blob/master/INSTALL.md
+   8. [Zfp](https://github.com/LLNL/zfp) == v0.5.5 ***(可选)***，你不需要手动安装，脚本自动安装。
+   9. CUDA >= 9.0，如果你不使用GPU模型，可忽略。
+#### 编译
+   * 进入 `GOPATH` 目录, `cd $GOPATH/src` `mkdir -p github.com/vearch` `cd github.com/vearch`
+   * 下载源码: `git clone https://xxxxxx/vearch.git` ($vearch表示vearch代码的绝对路径)
+   * 下载子项目: `cd vearch`  `git submodule update`
+   * 添加GPU索引支持: 将`$vearch/engine/CMakeLists.txt`中的 `BUILD_WITH_GPU` 从`"off"` 变为`"on"` 
+   * 编译vearch和gamma
       1. `cd build`
       5. `sh build.sh`
-      when `vearch` file generated, it is ok.
+      当' vearch '文件生成时，表示编译成功。
       
-#### Deploy
-   Before run vearch, you shuld set `LD_LIBRARY_PATH`, Ensure that system can find gamma dynamic libraries. The gamma dynamic library that has been compiled is in the $vearch/build/gamma_build folder.
-   ##### 1 Local Model
-   * generate config file conf.toml
+#### 部署
+运行vearch前，你需要设置环境变量 `LD_LIBRARY_PATH`，确保系统能找到gamma的动态库。编译好的gamma动态库在$vearch/build/gamma_build文件夹下。
+   ##### 1 单机模式
+   * 配置文件conf.toml
      
 ```
 [global]
@@ -117,16 +117,16 @@
     raft_replica_concurrency = 1
     raft_snap_concurrency = 1 
 ```
-   * start
+   * 执行
 
 ````
 ./vearch -conf conf.toml all
 ````
 
-   ##### 2 Cluster Model
-   > vearch has three module: `ps`(PartitionServer) , `master`, `router`, run `./vearch -f conf.toml ps/router/master` start ps/router/master module
+   ##### 2 集群模式
+   > vearch有3种模式: `ps`(PartitionServer) 、`master`、`router`， 执行`./vearch -f conf.toml ps/router/master` 开始 ps/router/master模式
 
-   > Now we have five machine, two master, two ps and one router
+   > 现在我们有5台机器, 2 master、2 ps 和 1 router
 
 * master
     * 192.168.1.1
@@ -136,7 +136,7 @@
     * 192.168.1.4
 * router
     * 192.168.1.5
-* generate config file conf.toml
+* 配置文件conf.toml
 
 ````
 [global]
@@ -174,19 +174,19 @@
     raft_replica_concurrency = 1
     raft_snap_concurrency = 1
 ````
-* on 192.168.1.1 , 192.168.1.2  run master
+* 在192.168.1.1 , 192.168.1.2 运行 master
 
 ````
 ./vearch -conf conf.toml master
 ````
 
-* on 192.168.1.3 , 192.168.1.4 run ps
+* 在192.168.1.3 , 192.168.1.4 运行 ps
 
 ````
 ./vearch -conf conf.toml ps
 ````
 
-* on 192.168.1.5 run router
+* 在192.168.1.5 运行 router
 
 ````
 ./vearch -conf conf.toml router
