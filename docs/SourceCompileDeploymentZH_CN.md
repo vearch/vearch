@@ -59,7 +59,7 @@
    * 添加GPU索引支持: 将`$vearch/engine/CMakeLists.txt`中的 `BUILD_WITH_GPU` 从`"off"` 变为`"on"` 
    * 编译vearch和gamma
       1. `cd build`
-      5. `sh build.sh`
+      2. `sh build.sh`
       当' vearch '文件生成时，表示编译成功。
       
 #### 部署

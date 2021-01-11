@@ -59,7 +59,7 @@
    * To add GPU Index support: change `BUILD_WITH_GPU` from `"off"` to `"on"` in `$vearch/engine/CMakeLists.txt` 
    * Compile vearch and gamma
       1. `cd build`
-      5. `sh build.sh`
+      2. `sh build.sh`
       when `vearch` file generated, it is ok.
       
 #### Deploy
