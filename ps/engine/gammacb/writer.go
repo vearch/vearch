@@ -16,6 +16,7 @@ package gammacb
 
 import "C"
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -59,10 +60,18 @@ func (wi *writerImpl) Write(ctx context.Context, doc *vearchpb.DocCmd) (err erro
 	}
 
 	switch doc.Type {
+	case vearchpb.OpType_BULK:
+		resp := gamma.AddOrUpdateDocs(gammaEngine, doc.Docs)
+		var buffer bytes.Buffer
+		for _, code := range resp.Codes {
+			buffer.WriteString(strconv.Itoa(int(code)) + ",")
+		}
+		err := errors.New(buffer.String())
+		return vearchpb.NewError(vearchpb.ErrorEnum_SUCCESS, err)
 	case vearchpb.OpType_REPLACE:
 		if resp := gamma.AddOrUpdateDoc(gammaEngine, doc.Doc); resp != 0 {
 			err = fmt.Errorf("gamma create doc err code:[%d]", int(resp))
-			return vearchpb.NewError(0, err)
+			return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err)
 		}
 	case vearchpb.OpType_DELETE:
 		if resp := gamma.DeleteDoc(gammaEngine, doc.Doc); resp != 0 {
@@ -70,38 +79,15 @@ func (wi *writerImpl) Write(ctx context.Context, doc *vearchpb.DocCmd) (err erro
 				return vearchpb.NewError(vearchpb.ErrorEnum_DOCUMENT_NOT_EXIST, nil)
 			}
 			err = fmt.Errorf("gamma delete doc err code:[%d]", int(resp))
-			return vearchpb.NewError(0, err)
+			return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err)
 		}
 	default:
 		msg := fmt.Sprintf("type: [%v] not found", doc.Type)
-		err = vearchpb.NewError(0, errors.New(msg))
+		err = vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, errors.New(msg))
 	}
 	return
 }
 
-/*
-func (wi *writerImpl) Update(ctx context.Context, docCmd *vearchpb.DocCmd) (err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			log.Errorf("[Rocover] Create error [%s]", cast.ToString(r))
-		}
-	}()
-	wi.engine.counter.Incr()
-	defer wi.engine.counter.Decr()
-
-	gammaEngine := wi.engine.gamma
-	if gammaEngine == nil {
-		return vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_IS_CLOSED, nil)
-	}
-
-	if resp := gamma.AddOrUpdateDoc(gammaEngine, docCmd.Doc); resp != 0 {
-		err = fmt.Errorf("gamma create doc err code:[%d]", int(resp))
-		return vearchpb.NewError(0, err)
-	}
-	return
-}
-
-*/
 func (wi *writerImpl) Flush(ctx context.Context, sn int64) error {
 	wi.engine.counter.Incr()
 	defer wi.engine.counter.Decr()

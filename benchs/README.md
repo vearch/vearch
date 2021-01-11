@@ -1,4 +1,4 @@
 # Benchmarks
 
-Please see the [benchmarks](/engine/benchs/README.md) in Gamma Engine.
+Please see https://github.com/vearch/vearch/wiki/Vearch-Recall-Evaluation
 

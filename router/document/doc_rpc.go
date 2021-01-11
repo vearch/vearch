@@ -15,20 +15,23 @@
 package document
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/client"
 	"github.com/vearch/vearch/config"
+	"github.com/vearch/vearch/monitor"
 	"github.com/vearch/vearch/proto/vearchpb"
 	"github.com/vearch/vearch/util/log"
 	"google.golang.org/grpc"
 )
 
-const defaultTimeOutMs = 10 * 1000
+const defaultTimeOutMs = 1 * 1000
 
 type Request interface {
 	GetHead() *vearchpb.RequestHead
@@ -50,6 +53,51 @@ func ExportRpcHandler(rpcServer *grpc.Server, client *client.Client) {
 	vearchpb.RegisterRouterGRPCServiceServer(rpcServer, rpcHandler)
 }
 
+func (handler *RpcHandler) Space(ctx context.Context, req *vearchpb.RequestHead) (reply *vearchpb.Table, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = vearchpb.NewError(vearchpb.ErrorEnum_RECOVER, errors.New(cast.ToString(r)))
+		}
+	}()
+	space, err := handler.client.Space(ctx, req.DbName, req.SpaceName)
+
+	reply = &vearchpb.Table{}
+	pkt := vearchpb.FieldType_value[strings.ToUpper(space.Engine.IdType)]
+	tmi := &vearchpb.TableMetaInfo{PrimaryKeyType: vearchpb.FieldType(pkt),
+		PartitionsNum: int32(space.PartitionNum),
+		ReplicasNum:   int32(space.ReplicaNum),
+	}
+	tmi.FieldMetaInfo = make([]*vearchpb.FieldMetaInfo, 0)
+	for name, field := range space.SpaceProperties {
+		isIndex := false
+		if field.Index != nil && *field.Index {
+			isIndex = true
+		}
+		fmi := &vearchpb.FieldMetaInfo{Name: name,
+			DataType: vearchpb.FieldType(field.FieldType),
+			IsIndex:  isIndex,
+		}
+		if fmi.DataType == vearchpb.FieldType_VECTOR {
+			storeType := ""
+			if field.StoreType != nil {
+				storeType = *field.StoreType
+			}
+			st := vearchpb.VectorMetaInfo_StoreType_value[strings.ToUpper(storeType)]
+			sp, _ := field.StoreParam.MarshalJSON()
+			fmi.VectorMetaInfo = &vearchpb.VectorMetaInfo{
+				Dimension:  int32(field.Dimension),
+				StoreType:  vearchpb.VectorMetaInfo_StoreType(st),
+				StoreParam: string(sp),
+			}
+		}
+		tmi.FieldMetaInfo = append(tmi.FieldMetaInfo, fmi)
+	}
+	reply.Name = space.Name
+	reply.TableMetaInfo = tmi
+
+	return reply, nil
+}
+
 func (handler *RpcHandler) Get(ctx context.Context, req *vearchpb.GetRequest) (reply *vearchpb.GetResponse, err error) {
 	defer Cost("get", time.Now())
 	res, err := handler.deal(ctx, req)
@@ -65,6 +113,7 @@ func (handler *RpcHandler) Get(ctx context.Context, req *vearchpb.GetRequest) (r
 
 func (handler *RpcHandler) Add(ctx context.Context, req *vearchpb.AddRequest) (reply *vearchpb.AddResponse, err error) {
 	defer Cost("Add", time.Now())
+	defer monitor.Profiler("handleReplaceDoc", time.Now())
 	res, err := handler.deal(ctx, req)
 	if err != nil {
 		return nil, err
@@ -131,6 +180,87 @@ func (handler *RpcHandler) MSearch(ctx context.Context, req *vearchpb.MSearchReq
 	return reply, nil
 }
 
+func (handler *RpcHandler) SearchByID(ctx context.Context, req *vearchpb.SearchRequest) (reply *vearchpb.SearchResponse, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = vearchpb.NewError(vearchpb.ErrorEnum_RECOVER, errors.New(cast.ToString(r)))
+		}
+	}()
+	defer Cost("SearchByID", time.Now())
+	reply = &vearchpb.SearchResponse{}
+	vfs := req.GetVecFields()
+	if len(vfs) < 1 {
+		msg := fmt.Sprintf("param have error, the length of field[vec_fields] is [%d]", len(vfs))
+		log.Error(msg)
+		reply.Head = setErrHead(vearchpb.NewErrorInfo(vearchpb.ErrorEnum_PARAM_ERROR, msg))
+		return
+	}
+	// pKeys := make([]string, len(vfs))
+	var keyValue string = string(vfs[0].Value)
+	for _, vf := range vfs {
+		if keyValue != string(vf.Value) {
+			msg := fmt.Sprintf("param have error, the value between SearchRequest.VecFields must be same, receive [%s -- %s] ", keyValue, string(vf.Value))
+			log.Error(msg)
+			reply.Head = setErrHead(vearchpb.NewErrorInfo(vearchpb.ErrorEnum_PARAM_ERROR, msg))
+			return
+		}
+	}
+	pKeys := strings.Split(keyValue, ",")
+	getReq := &vearchpb.GetRequest{Head: req.Head, PrimaryKeys: pKeys}
+	getRes, err := handler.Get(ctx, getReq)
+	if err != nil {
+		msg := fmt.Sprintf("SearchByID: get key[%s] failed, err:[%s]", strings.Join(pKeys, ","), err.Error())
+		log.Error(msg)
+		reply.Head = setErrHead(vearchpb.NewErrorInfo(vearchpb.ErrorEnum_INTERNAL_ERROR, msg))
+		return
+	}
+	vErr := getRes.GetHead().Err
+	if vErr.Code != vearchpb.ErrorEnum_SUCCESS {
+		msg := fmt.Sprintf("SearchByID: get key[%s] failed, err:[%s]", strings.Join(pKeys, ","), vErr.Msg)
+		log.Error(msg)
+		reply.Head = setErrHead(vearchpb.NewErrorInfo(vErr.Code, msg))
+		return
+	}
+
+	if len(getRes.GetItems()) != int(req.GetReqNum()) {
+		msg := fmt.Sprintf("SearchByID: get keys[%s] failed, err:[%v]", strings.Join(pKeys, ","), getRes.GetItems())
+		log.Error(msg)
+		reply.Head = setErrHead(vearchpb.NewErrorInfo(vearchpb.ErrorEnum_INTERNAL_ERROR, msg))
+		return
+	}
+	// rank items
+	items := make([]*vearchpb.Item, len(pKeys))
+	for _, item := range getRes.GetItems() {
+		for idx, key := range pKeys {
+			if item.Doc.PKey == key {
+				items[idx] = item
+				break
+			}
+		}
+	}
+
+	for _, vf := range vfs {
+		var buf bytes.Buffer
+		for _, item := range getRes.GetItems() {
+			if item.GetErr() != nil && item.GetErr().Code != vearchpb.ErrorEnum_SUCCESS {
+				msg := fmt.Sprintf("SearchByID: get key[%s] failed, err:[%s]", item.Doc.PKey, item.GetErr().Msg)
+				log.Error(msg)
+				reply.Head = setErrHead(vearchpb.NewErrorInfo(item.GetErr().Code, msg))
+				return
+			}
+			for _, field := range item.Doc.Fields {
+				if field.Name == vf.Name {
+					buf.Write(field.Value[4:])
+					break
+				}
+			}
+		}
+		vf.Value = buf.Bytes()
+	}
+
+	return handler.Search(ctx, req)
+}
+
 func (handler *RpcHandler) Bulk(ctx context.Context, req *vearchpb.BulkRequest) (reply *vearchpb.BulkResponse, err error) {
 	defer Cost("bulk", time.Now())
 	res, err := handler.deal(ctx, req)
@@ -180,7 +310,7 @@ func (handler *RpcHandler) deal(ctx context.Context, req Request) (reply interfa
 // Cost record how long the function use
 func Cost(name string, t time.Time) {
 	engTime := time.Now()
-	log.Info("%s cost: [%v]", name, engTime.Sub(t))
+	log.Debugf("%s cost: [%v]", name, engTime.Sub(t))
 }
 
 func (handler *RpcHandler) setTimeout(ctx context.Context, head *vearchpb.RequestHead) (context.Context, context.CancelFunc) {

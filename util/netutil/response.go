@@ -106,7 +106,7 @@ func (this *Response) SendJsonHttpReplyError(err error) {
 	}
 
 	httpReply := &HttpReply{
-		Code: int64(vearchpb.ErrCode(vearchpb.NewError(0, err).GetError().Code)),
+		Code: int64(vearchpb.ErrCode(vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err).GetError().Code)),
 		Msg:  err.Error(),
 	}
 

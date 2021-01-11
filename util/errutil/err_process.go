@@ -16,12 +16,12 @@ func ThrowError(err error) {
 }
 
 // catch error
-func CatchError(err error) {
+func CatchError(err *error) {
 	if info := recover(); info != nil {
 		if log.IsDebugEnabled() {
 			debug.PrintStack()
 		}
-		err = fmt.Errorf("CatchError is %v", info)
-		logger.Debug("err is %v", err)
+		*err = fmt.Errorf("CatchError is %v",info)
+		logger.Debug("CatchError is %v",*err)
 	}
 }

@@ -27,6 +27,8 @@ service RouterGRPCService {
     rpc Search (SearchRequest) returns (SearchResponse) { }
     rpc Bulk (BulkRequest) returns (BulkResponse) { }
     rpc MSearch (MSearchRequest) returns (SearchResponse) { }
+	rpc Space (RequestHead) returns (Table) { }
+	rpc SearchByID (SearchRequest) returns (SearchResponse) { }
 }
 
 message RequestHead {
@@ -165,6 +167,7 @@ message VectorQuery {
     double boost = 5;
     int32 has_boost = 6;
     string format = 7;
+    string retrieval_type = 8;
 }
 
 message RetrievalParameters {

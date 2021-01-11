@@ -111,7 +111,8 @@ func (s *Server) LoadPartition(ctx context.Context, pid entity.PartitionID) (Par
 	if err != nil {
 		return nil, err
 	}
-
+	//partition status chan
+	store.RsStatusC = s.replicasStatusC
 	replicas := store.GetPartition().Replicas
 	for _, replica := range replicas {
 		if server, err := s.client.Master().QueryServer(context.Background(), replica); err != nil {
@@ -134,11 +135,10 @@ func (s *Server) CreatePartition(ctx context.Context, space *entity.Space, pid e
 	defer s.mu.Unlock()
 
 	store, err := raftstore.CreateStore(ctx, pid, s.nodeID, space, s.raftServer, s, s.client)
-
 	if err != nil {
 		return err
 	}
-
+	store.RsStatusC = s.replicasStatusC
 	if _, ok := s.partitions.LoadOrStore(pid, store); ok {
 		log.Warn("partition is already exist partition id:[%d]", pid)
 		if err := store.Close(); err != nil {

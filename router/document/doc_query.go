@@ -51,16 +51,17 @@ const (
 )
 
 type VectorQuery struct {
-	Field        string          `json:"field"`
-	FeatureData  json.RawMessage `json:"feature"`
-	Feature      []float32       `json:"-"`
-	FeatureUint8 []uint8         `json:"-"`
-	Symbol       string          `json:"symbol"`
-	Value        *float64        `json:"value"`
-	Boost        *float64        `json:"boost"`
-	Format       *string         `json:"format,omitempty"`
-	MinScore     *float64        `json:"min_score,omitempty"`
-	MaxScore     *float64        `json:"max_score,omitempty"`
+	Field         string          `json:"field"`
+	FeatureData   json.RawMessage `json:"feature"`
+	Feature       []float32       `json:"-"`
+	FeatureUint8  []uint8         `json:"-"`
+	Symbol        string          `json:"symbol"`
+	Value         *float64        `json:"value"`
+	Boost         *float64        `json:"boost"`
+	Format        *string         `json:"format,omitempty"`
+	MinScore      *float64        `json:"min_score,omitempty"`
+	MaxScore      *float64        `json:"max_score,omitempty"`
+	RetrievalType string          `json:"retrieval_type"`
 }
 
 var defaultBoost = util.PFloat64(1)
@@ -260,6 +261,9 @@ func parseVectors(reqNum int, vqs []*vearchpb.VectorQuery, tmpArr []json.RawMess
 			return reqNum, vqs, err
 		}
 
+		if vqTemp.RetrievalType != "" {
+			retrievalType = vqTemp.RetrievalType
+		}
 		docField := proMap[vqTemp.Field]
 
 		if docField == nil || docField.FieldType != entity.FieldType_VECTOR {
@@ -469,6 +473,30 @@ func parseRange(data []byte, proMap map[string]*entity.SpaceProperties) (*vearch
 			}
 
 			min, max = minNum, maxNum
+		case entity.FieldType_DOUBLE:
+			var minNum, maxNum float64
+
+			if start != nil {
+				if f, e := start.(json.Number).Float64(); e != nil {
+					return nil, e
+				} else {
+					minNum = f
+				}
+			} else {
+				minNum = -math.MaxFloat64
+			}
+
+			if end != nil {
+				if f, e := end.(json.Number).Float64(); e != nil {
+					return nil, e
+				} else {
+					maxNum = f
+				}
+			} else {
+				maxNum = math.MaxFloat64
+			}
+
+			min, max = minNum, maxNum
 
 		case entity.FieldType_DATE:
 
@@ -609,10 +637,12 @@ func (query *VectorQuery) ToC(retrievalType string) (*vearchpb.VectorQuery, erro
 	}
 
 	if query.MinScore == nil {
-		query.MinScore = util.PFloat64(-1)
+		minFloat64 := -math.MaxFloat64
+		query.MinScore = &minFloat64
 	}
 	if query.MaxScore == nil {
-		query.MaxScore = util.PFloat64(-1)
+		maxFLoat64 := math.MaxFloat64
+		query.MaxScore = &maxFLoat64
 	}
 
 	if query.Value != nil {
@@ -636,12 +666,13 @@ func (query *VectorQuery) ToC(retrievalType string) (*vearchpb.VectorQuery, erro
 	}
 
 	vectorQuery := &vearchpb.VectorQuery{
-		Name:     query.Field,
-		Value:    codeByte,
-		MinScore: *query.MinScore,
-		MaxScore: *query.MaxScore,
-		Boost:    *query.Boost,
-		HasBoost: 0,
+		Name:          query.Field,
+		Value:         codeByte,
+		MinScore:      *query.MinScore,
+		MaxScore:      *query.MaxScore,
+		Boost:         *query.Boost,
+		HasBoost:      0,
+		RetrievalType: retrievalType,
 	}
 	return vectorQuery, nil
 }
@@ -722,6 +753,11 @@ func searchParamToSearchPb(searchDoc *request.SearchDocumentRequest, searchReq *
 	if searchReq.Head.Params != nil && searchReq.Head.Params["queryOnlyId"] != "" {
 		searchReq.Fields = []string{mapping.IdField}
 	} else {
+		spaceProKeyMap := space.SpaceProperties
+		if spaceProKeyMap == nil {
+			spacePro, _ := entity.UnmarshalPropertyJSON(space.Properties)
+			spaceProKeyMap = spacePro
+		}
 		vectorFieldArr := make([]string, 0)
 		if searchReq.Fields == nil || len(searchReq.Fields) == 0 {
 			searchReq.Fields = make([]string, 0)
@@ -739,6 +775,14 @@ func searchParamToSearchPb(searchDoc *request.SearchDocumentRequest, searchReq *
 				}
 			}
 			searchReq.Fields = append(searchReq.Fields, mapping.IdField)
+		} else {
+			for _, field := range searchReq.Fields {
+				if field != mapping.IdField {
+					if spaceProKeyMap[field] == nil {
+						return fmt.Errorf("query param fields are not exist in the table")
+					}
+				}
+			}
 		}
 
 		if searchDoc.VectorValue {
@@ -746,10 +790,6 @@ func searchParamToSearchPb(searchDoc *request.SearchDocumentRequest, searchReq *
 				searchReq.Fields = append(searchReq.Fields, fieldName)
 			}
 		}
-	}
-
-	if searchReq.Fields == nil || len(searchReq.Fields) == 0 {
-		searchReq.Fields = append(searchReq.Fields, mapping.IdField)
 	}
 
 	hasID := false
@@ -774,6 +814,10 @@ func searchParamToSearchPb(searchDoc *request.SearchDocumentRequest, searchReq *
 	sortOrder, err := searchDoc.SortOrder()
 	if err != nil {
 		return err
+	}
+
+	if metricType == "" && space != nil && space.Engine != nil {
+		metricType = space.Engine.MetricType
 	}
 
 	if metricType != "" && metricType == "L2" {

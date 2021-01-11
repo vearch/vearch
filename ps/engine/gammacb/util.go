@@ -18,6 +18,8 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"github.com/vearch/vearch/proto/entity"
+	"github.com/vearch/vearch/util/cbjson"
 	"strings"
 
 	"github.com/spf13/cast"
@@ -61,11 +63,32 @@ func mapping2Table(cfg register.EngineConfig, m *mapping.IndexMapping) (*gamma.T
 		retrievalParam = string(engine.RetrievalParam)
 	}
 
+	var retrievalParamsArr []string
+	retrievalParams := &entity.RetrievalParams{}
+	if engine.RetrievalParams != nil {
+		err := cbjson.Unmarshal(engine.RetrievalParams, &retrievalParams.RetrievalParamArr)
+		if err != nil {
+			return nil, fmt.Errorf("retrieval_params Unmarshal error")
+		}
+		retrievalParamsArr = make([]string, len(retrievalParams.RetrievalParamArr))
+		for i := 0; i < len(retrievalParams.RetrievalParamArr); i++ {
+			v := retrievalParams.RetrievalParamArr[i]
+			retrievalParamsByte, err := json.Marshal(v)
+			if err != nil {
+				return nil, fmt.Errorf("retrieval_params Unmarshal error")
+			}
+			retrievalParamsArr[i] = string(retrievalParamsByte)
+		}
+	}
+
 	table := &gamma.Table{
-		Name:           cast.ToString(cfg.PartitionID),
-		IndexingSize:   int32(engine.IndexSize),
-		RetrievalType:  engine.RetrievalType,
-		RetrievalParam: retrievalParam}
+		Name:            cast.ToString(cfg.PartitionID),
+		IndexingSize:    int32(engine.IndexSize),
+		RetrievalType:   engine.RetrievalType,
+		RetrievalTypes:  engine.RetrievalTypes,
+		RetrievalParam:  retrievalParam,
+		RetrievalParams: retrievalParamsArr,
+	}
 
 	idTypeStr := engine.IdType
 	if strings.EqualFold("long", idTypeStr) {
@@ -97,6 +120,15 @@ func mapping2Table(cfg register.EngineConfig, m *mapping.IndexMapping) (*gamma.T
 				fieldInfo.IsIndex = false
 			}
 			table.Fields = append(table.Fields, fieldInfo)
+		case vearchpb.FieldType_DOUBLE:
+			index := (value.Field.Options() & vearchpb.FieldOption_Index) / vearchpb.FieldOption_Index
+			fieldInfo := gamma.FieldInfo{Name: key, DataType: gamma.DOUBLE}
+			if index == 1 {
+				fieldInfo.IsIndex = true
+			} else {
+				fieldInfo.IsIndex = false
+			}
+			table.Fields = append(table.Fields, fieldInfo)
 		case vearchpb.FieldType_DATE, vearchpb.FieldType_LONG:
 			index := (value.Field.Options() & vearchpb.FieldOption_Index) / vearchpb.FieldOption_Index
 			fieldInfo := gamma.FieldInfo{Name: key, DataType: gamma.LONG}
@@ -118,8 +150,6 @@ func mapping2Table(cfg register.EngineConfig, m *mapping.IndexMapping) (*gamma.T
 		case vearchpb.FieldType_VECTOR:
 			fieldMapping := value.Field.FieldMappingI.(*mapping.VectortFieldMapping)
 			dim[key] = fieldMapping.Dimension
-			var storeParam string
-			_ = json.Unmarshal(fieldMapping.StoreParam, &storeParam)
 			//index := (value.Field.Options() & vearchpb.FieldOption_Index) / vearchpb.FieldOption_Index
 			vectorInfo := gamma.VectorInfo{
 				Name:       key,
@@ -127,7 +157,7 @@ func mapping2Table(cfg register.EngineConfig, m *mapping.IndexMapping) (*gamma.T
 				Dimension:  int32(fieldMapping.Dimension),
 				ModelId:    fieldMapping.ModelId,
 				StoreType:  fieldMapping.StoreType,
-				StoreParam: storeParam,
+				StoreParam: string(fieldMapping.StoreParam),
 				HasSource:  fieldMapping.HasSource,
 			}
 			vectorInfo.IsIndex = true

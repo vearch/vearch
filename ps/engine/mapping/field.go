@@ -106,8 +106,10 @@ func (f *FieldMapping) UnmarshalJSON(data []byte) error {
 		fieldMapping = NewIntegerFieldMapping("")
 	case "long":
 		fieldMapping = NewLongFieldMapping("")
-	case "double", "float":
+	case "float":
 		fieldMapping = NewFloatFieldMapping("")
+	case "double":
+		fieldMapping = NewDoubleFieldMapping("")
 	case "boolean", "bool":
 		fieldMapping = NewBooleanFieldMapping("")
 	case "geo_point":
@@ -270,6 +272,13 @@ func NewFloatFieldMapping(name string) *NumericFieldMapping {
 	}
 }
 
+func NewDoubleFieldMapping(name string) *NumericFieldMapping {
+	return &NumericFieldMapping{
+		BaseFieldMapping: NewBaseFieldMapping(name, vearchpb.FieldType_DOUBLE, 1, vearchpb.FieldOption_Null),
+		Coerce:           true,
+	}
+}
+
 type DateFieldMapping struct {
 	*BaseFieldMapping
 	Format          string `json:"format,omitempty"`
@@ -397,7 +406,7 @@ func processString(ctx *walkContext, fm *FieldMapping, fieldName, val string) (*
 	case vearchpb.FieldType_FLOAT:
 		numericFM := fm.FieldMappingI.(*NumericFieldMapping)
 		if numericFM.Coerce {
-			f, err := cast.ToFloat64E(val)
+			f, err := cast.ToFloat32E(val)
 			if err != nil {
 				if numericFM.IgnoreMalformed {
 					return nil, nil
@@ -408,6 +417,26 @@ func processString(ctx *walkContext, fm *FieldMapping, fieldName, val string) (*
 			return &vearchpb.Field{
 				Name:   fieldName,
 				Type:   vearchpb.FieldType_FLOAT,
+				Value:  cbbytes.Float32ToByte(f),
+				Option: fm.Options(),
+			}, nil
+		} else {
+			return nil, fmt.Errorf("string mismatch field type %s", fm.FieldType())
+		}
+	case vearchpb.FieldType_DOUBLE:
+		numericFM := fm.FieldMappingI.(*NumericFieldMapping)
+		if numericFM.Coerce {
+			f, err := cast.ToFloat64E(val)
+			if err != nil {
+				if numericFM.IgnoreMalformed {
+					return nil, nil
+				} else {
+					return nil, fmt.Errorf("parse string %s to float64 failed, err %v", val, err)
+				}
+			}
+			return &vearchpb.Field{
+				Name:   fieldName,
+				Type:   vearchpb.FieldType_DOUBLE,
 				Value:  cbbytes.Float64ToByte(f),
 				Option: fm.Options(),
 			}, nil
@@ -469,6 +498,13 @@ func processNumber(ctx *walkContext, fm *FieldMapping, fieldName string, val flo
 		return &vearchpb.Field{
 			Name:   fieldName,
 			Type:   vearchpb.FieldType_FLOAT,
+			Value:  cbbytes.Float64ToByte(val),
+			Option: fm.Options(),
+		}, nil
+	case vearchpb.FieldType_DOUBLE:
+		return &vearchpb.Field{
+			Name:   fieldName,
+			Type:   vearchpb.FieldType_DOUBLE,
 			Value:  cbbytes.Float64ToByte(val),
 			Option: fm.Options(),
 		}, nil

@@ -43,8 +43,29 @@ curl -XDELETE {{MASTER}}/db/test_vector_db
 ### create space
 Create Table for IVFPQ, and here are the matters needing attention:
 
-index_size: For IVFPQ, it need train before building index, so you should set index_size a suitable value, such as 10000 or set larger for larger amounts of data.
+Now ivfpq can be used in combination with hnsw and opq. If you want to use hnsw, it is recommended to set ncentroids to a larger value. At the same time, for the combination of hnsw, the limitation on the amount of training data is now released. Now you can use data not exceeding ncentroids * 256 for training. Need to pay attention to the memory used during training. Especially when opq is used in combination, the memory occupied by training is 2 * indexing_size * dimension * sizeof(float), so pay more attention to the setting of indexing_size. For the combined use of hnsw and opq, training will take up more memory and take a long time, which requires caution and attention.
 
+index_size: For IVFPQ, it need train before building index, so you should set index_size a suitable value, such as 10000 or set larger for larger amounts of data. If used in combination with hnsw, index_size can be ncentroids * 39 - ncentroids * 256
+
+How to use hnsw and opq in combination is controlled by retrieval_param. If you both set hnsw and opq, then you will use opq+ivf+hnsw+pq, an it is recommended to set the nsubvector of opq to be the same as the nsubvector of pq. If you just want to use ivf+hnsw+pq, then you just need to set hnsw. If you just want to use ivfpq, you don’t need to set hnsw or opq in retrieval_param. You can set hnsw or opq like this:
+```
+"index_size": 2600000,
+"id_type": "string",
+"retrieval_type": "IVFPQ",
+"retrieval_param": {
+    "metric_type": "InnerProduct",
+    "ncentroids": 65536,
+    "nsubvector": 64,
+    "hnsw" : {
+        "nlinks": 32,
+        "efConstruction": 200,
+        "efSearch": 64
+    },
+    "opq": {
+        "nsubvector": 64
+    }
+}
+````
 ````$xslt
 curl -v --user "root:secret" -H "content-type: application/json" -XPUT -d'
 {
@@ -54,10 +75,11 @@ curl -v --user "root:secret" -H "content-type: application/json" -XPUT -d'
 	"replica_num": 1,
 	"engine": {
 		"name": "gamma",
-		"index_size": 9999,
+		"index_size": 100000,
 		"id_type": "string",
 		"retrieval_type": "IVFPQ",
 		"retrieval_param": {
+			"metric_type": "InnerProduct",
 			"ncentroids": -1,
 			"nsubvector": -1
 		}
@@ -123,6 +145,7 @@ curl -v --user "root:secret" -H "content-type: application/json" -XPUT -d'
         "index_size": 1,
         "retrieval_type": "HNSW",
         "retrieval_param": {
+            "metric_type": "L2",
             "nlinks": -1,
             "efConstruction": -1
         }
@@ -186,10 +209,11 @@ curl -v --user "root:secret" -H "content-type: application/json" -XPUT -d'
     "replica_num": 1,
     "engine": {
         "name": "gamma",
-        "index_size": 1,
+        "index_size": 100000,
         "retrieval_type": "IVFFLAT",
         "retrieval_param": {
-			"ncentroids": -1
+            "metric_type": "InnerProduct",
+            "ncentroids": -1
         }
     },
     "properties": {
@@ -237,6 +261,215 @@ curl -v --user "root:secret" -H "content-type: application/json" -XPUT -d'
 ' {{MASTER}}/space/test_vector_db/_create
 ````
 
+Create table for Multiple models, and here are the matters needing attention:
+
+The parameters of each model may be different, please refer to the precautions on model parameters above.
+Multi-model table creation and query statements are different.Multi-model use store_type must be supported by all models.
+
+Old usage for create table:
+````$xslt
+{
+    "name": "vector_space",
+    "dynamic_schema": "strict",
+    "partition_num": 1,
+    "replica_num": 1,
+    "engine": {
+        "name": "gamma",
+        "index_size": 100000, 
+        "retrieval_type": "IVFPQ", 
+        "retrieval_param": {
+            "metric_type": "InnerProduct",
+            "ncentroids": 256, 
+            "nsubvector": 32
+        }
+    }, 
+    "properties": {
+            "string": {
+                "type": "keyword",
+                "index": true
+            },
+            "int": {
+                "type": "integer",
+                "index": true
+            },
+            "float": {
+                "type": "float",
+                "index": true
+            },
+            "vector": {
+                "type": "vector",
+                "model_id": "img",
+                "dimension": 128,
+                "store_type": "RocksDB",
+                "format": "normalization"
+            },
+            "string_tags": {
+                "type": "string",
+                "array": true,
+                "index": true
+            },
+            "int_tags": {
+                "type": "integer",
+                "array": true,
+                "index": true
+            },
+            "float_tags": {
+                "type": "float",
+                "array": true,
+                "index": true
+            }
+        },
+        "models": [{
+            "model_id": "vgg16",
+            "fields": ["string"],
+            "out": "feature"
+        }]
+}
+````
+New usage for create table about Multiple models:
+````$xslt
+{
+    "name": "vector_space",
+    "dynamic_schema": "strict",
+    "partition_num": 1,
+    "replica_num": 1,
+    "engine": {
+        "name": "gamma", 
+        "retrieval_types": [
+            "IVFPQ", 
+            "HNSW"
+        ], 
+        "retrieval_params": [
+            {
+                "metric_type": "InnerProduct",
+                "ncentroids": 256, 
+                "nsubvector": 32
+            }, 
+            {
+                "nlinks": 32, 
+                "efconstructor": 40, 
+                "efsearch": 50
+            }
+        ]
+    }, 
+    "properties": {
+            "string": {
+                "type": "keyword",
+                "index": true
+            },
+            "int": {
+                "type": "integer",
+                "index": true
+            },
+            "float": {
+                "type": "float",
+                "index": true
+            },
+            "vector": {
+                "type": "vector",
+                "model_id": "img",
+                "dimension": 128,
+                "store_type": "MemoryOnly",
+                "format": "normalization"
+            },
+            "string_tags": {
+                "type": "string",
+                "array": true,
+                "index": true
+            },
+            "int_tags": {
+                "type": "integer",
+                "array": true,
+                "index": true
+            },
+            "float_tags": {
+                "type": "float",
+                "array": true,
+                "index": true
+            }
+        },
+        "models": [{
+            "model_id": "vgg16",
+            "fields": ["string"],
+            "out": "feature"
+        }]
+}
+````
+
+Old usage for _search query about Multiple models :
+
+````$xslt
+curl -H "content-type: application/json" -XPOST -d'
+{
+  "query": {
+      "sum":[
+        {
+          "field": "vector",
+          "feature": [0.88658684,0.9873159,0.68632215,-0.114685304,-0.45059848,0.5360963,0.9243208,0.14288005,0.9383601,0.17486687,0.3889527,0.91680753,0.6597193,0.52906346,0.5491872,-0.24706548,0.28541148,0.87731135,-0.18872026,0.28016,0.14826365,0.7217548,0.66360927,0.839685,0.29014188,-0.7303055,0.31786093,0.7611028,0.38408384,0.004707908,0.27696127,0.6069607,0.52147454,0.34435293,0.5665409,0.9676775,0.9415799,-0.95000356,-0.7441306,0.32473814,0.24417956,0.4114195,-0.15658693,0.9567978,0.91448873,0.8040493,0.7370252,0.41042542,-0.12714817,0.7344759,0.95486677,0.6752892,0.79088193,0.27843192,0.7594493,0.96637094,0.21354128,0.14667709,0.52713686,0.39803344,0.13063455,-0.26041254,0.21177465,0.0889158,0.7040157,0.9184541,0.33231667,0.109015055,0.7252709,0.85923946,0.6874303,0.9188243,0.44670975,0.6534332,0.67833525,0.40294313,0.76628596,0.722926,0.2507119,0.86939317,0.1049489,0.5707651,0.89342695,0.89022624,0.06606513,0.46363428,0.8836891,0.8416466,0.43164334,-0.059498303,0.25076458,0.91614866,0.21405962,0.07442343,0.8398273,-0.518248,0.4477598,0.54731685,0.39200985,0.2999862,0.22204888,0.9051194,0.7241311,0.9049213,0.48899868,0.11941989,0.45151904,0.9315986,0.17897557,0.759705,0.2549287,0.96008617,0.25688004,0.5925487,0.3069243,0.9171891,0.46981755,0.14557107,0.8900092,0.84537476,0.5608369,0.6909559,0.777092,0.66562796,0.6040272,0.77930593,0.59144366,0.12506102],
+          "boost":0.8
+        }
+      ],
+      "filter":[
+          {
+              "range":{
+                  "int":{
+                      "gte":1,
+                      "lte":1000
+                  }
+              }
+          },
+          {
+              "term":{
+                "string_tags":["28","2","29"],
+                "operator":"or"
+              }
+          }
+       ]
+  },
+  "is_brute_search":0
+  "size":10,
+}
+' {{ROUTER}}/test_vector_db/vector_space/_search
+````
+New usage for _search query about Multiple models:
+add retrieval_type paramter,retrieval_type specifies the model to be queried, and the retrieval_param parameter is set according to the specified model. If retrieval_type is not set, the data will be queried according to the first model when the table is created.
+
+```$xslt
+curl -H "content-type: application/json" -XPOST -d'
+{
+  "query": {
+      "sum":[
+        {
+          "field": "vector",
+          "retrieval_type": "IVFPQ", 
+          "feature": [0.88658684,0.9873159,0.68632215,-0.114685304,-0.45059848,0.5360963,0.9243208,0.14288005,0.9383601,0.17486687,0.3889527,0.91680753,0.6597193,0.52906346,0.5491872,-0.24706548,0.28541148,0.87731135,-0.18872026,0.28016,0.14826365,0.7217548,0.66360927,0.839685,0.29014188,-0.7303055,0.31786093,0.7611028,0.38408384,0.004707908,0.27696127,0.6069607,0.52147454,0.34435293,0.5665409,0.9676775,0.9415799,-0.95000356,-0.7441306,0.32473814,0.24417956,0.4114195,-0.15658693,0.9567978,0.91448873,0.8040493,0.7370252,0.41042542,-0.12714817,0.7344759,0.95486677,0.6752892,0.79088193,0.27843192,0.7594493,0.96637094,0.21354128,0.14667709,0.52713686,0.39803344,0.13063455,-0.26041254,0.21177465,0.0889158,0.7040157,0.9184541,0.33231667,0.109015055,0.7252709,0.85923946,0.6874303,0.9188243,0.44670975,0.6534332,0.67833525,0.40294313,0.76628596,0.722926,0.2507119,0.86939317,0.1049489,0.5707651,0.89342695,0.89022624,0.06606513,0.46363428,0.8836891,0.8416466,0.43164334,-0.059498303,0.25076458,0.91614866,0.21405962,0.07442343,0.8398273,-0.518248,0.4477598,0.54731685,0.39200985,0.2999862,0.22204888,0.9051194,0.7241311,0.9049213,0.48899868,0.11941989,0.45151904,0.9315986,0.17897557,0.759705,0.2549287,0.96008617,0.25688004,0.5925487,0.3069243,0.9171891,0.46981755,0.14557107,0.8900092,0.84537476,0.5608369,0.6909559,0.777092,0.66562796,0.6040272,0.77930593,0.59144366,0.12506102],
+          "boost":0.8
+        }
+      ],
+      "filter":[
+          {
+              "range":{
+                  "int":{
+                      "gte":1,
+                      "lte":1000
+                  }
+              }
+          },
+          {
+              "term":{
+                "string_tags":["28","2","29"],
+                "operator":"or"
+              }
+          }
+       ]
+  },
+  "is_brute_search":0
+  "size":10,
+}
+' {{ROUTER}}/test_vector_db/vector_space/_search
+````
+
+
 * partition_num : how many partition to slot,  default is `1`
 
 * replica_num: how many replica has , recommend `3`
@@ -250,18 +483,20 @@ curl -v --user "root:secret" -H "content-type: application/json" -XPUT -d'
 * retrieval_type: the type of retrieval model, now support five kind retrieval model: IVFPQ GPU BINARYIVF HNSW FLAT. BINARYIVF is to index binary data. The Other type of retrieval models are for float32 data. And GPU is the implementation of IVFPQ on GPU, so IVFPQ and GPU have the same retrieval_param. FLAT is brute-force search. HNSW and FLAT can only work in `MemoryOnly` mode. And HNSW now uses mark deletion, and does not make corresponding changes to the hnsw graph structure after deletion or update.
 
 * retrieval_param: parameter of retrieval model, this corresponds to the retrieval type.
-
+For metric_type, It can be specified when building the table, if it is not set when searching, then use the parameters specified when building the table.
 * IVFPQ
 
-    * * metric_type : `InnerProduct` or `L2`. Now it should set at search time.
+    * * metric_type : `InnerProduct` or `L2`.
     * * nprobe : scan clustered buckets, default 80, it should be less than ncentroids. Now it should set at search time. 
     * * ncentroids : coarse cluster center number, default 2048
     * * nsubvector : the number of sub vector, default 64, only the value which is multiple of 4 is supported now 
     * * nbits_per_idx : bit number of sub cluster center, default 8, and 8 is the only value now
+    * * bucket_init_size : the original size of RTInvertIndex bucket, default 1000. You can set its value to the amount of data you just want to insert divided by ncentroids.
+    * * bucket_max_size : the max size of RTInvertIndex bucket. default 1280000, if your dataset is very large, you can set it larger.
 
 * GPU
 
-    * * metric_type :  `InnerProduct` or `L2` , InnerProduct only support for searching with has_rank. Now it should set at search time.
+    * * metric_type :  `InnerProduct` or `L2`.
     * * nprobe : scan clustered buckets, default 80, it should be less than ncentroids. Now it should set at search time.   
     * * ncentroids : coarse cluster center number, default 2048 
     * * nsubvector : the number of sub vector, default 64
@@ -269,7 +504,7 @@ curl -v --user "root:secret" -H "content-type: application/json" -XPUT -d'
 
 * IVFFLAT
 
-    * * metric_type :  `InnerProduct` or `L2` , InnerProduct only support for searching with has_rank. Now it should set at search time.
+    * * metric_type :  `InnerProduct` or `L2`.
     * * nprobe : scan clustered buckets, default 80, it should be less than ncentroids. Now it should set at search time. 
     * * ncentroids : coarse cluster center number, default 2048
     
@@ -287,7 +522,7 @@ curl -v --user "root:secret" -H "content-type: application/json" -XPUT -d'
 
 * FLAT
 
-    * * metric_type : `InnerProduct` or `L2`. Now it should set at search time. 
+    * * metric_type : `InnerProduct` or `L2`.
 
 * keyword
 * array : whether the tags for each document is multi-valued, `true` or `false` default is false
@@ -295,7 +530,7 @@ curl -v --user "root:secret" -H "content-type: application/json" -XPUT -d'
 * Vector field params
     * * format : default not normalized . if you set "normalization", "normal" it will normalized  
     * * store_type : "RocksDB" or "Mmap" or "MemoryOnly" default "Mmap".For HNSW and IVFFLAT and FLAT, it can only be run in MemoryOnly mode.   
-    * * store_param : example {"cache_size":2592}. It means you will use so much memory, the excess will be kept to disk. When you don't set it, vearch will just use the memory. 
+    * * store_param : example {"cache_size":2592}. default value is 1024. It means you will use so much memory, the excess will be kept to disk. For MemoryOnly, this parameter is invalid.
 
 ### get space
 

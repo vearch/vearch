@@ -1,6 +1,6 @@
 FROM centos:7
 RUN yum -y update
-RUN yum install -y epel-release wget gcc gcc-c++ make automake git blas-devel lapack-devel which openssl-devel libzstd-devel &&\
+RUN yum install -y epel-release wget gcc gcc-c++ make automake git blas-devel lapack-devel which openssl-devel libzstd-devel openblas-devel &&\
     mkdir -p /env/app &&\
     cd /env/app/ &&\
     wget https://cmake.org/files/v3.12/cmake-3.12.4.tar.gz &&\

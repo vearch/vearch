@@ -17,6 +17,10 @@
     auto_recover_ps = false
     # support access etcd basic auth,depend on self_manage_etcd = true
     support_etcd_auth = false
+    # ensure leader-follow raft data synchronization is consistent
+    raft_consistent = false
+    # unified master and router api
+    master_merge_into_router = false
 
 # self_manage_etcd = true,means manage etcd by yourself,need provide additional configuration
 [etcd]
@@ -60,6 +64,7 @@
 [ps]
     # port for server
     rpc_port = 8081
+    ps_heartbeat_timeout = 5 #seconds
     #raft config begin
     raft_heartbeat_port = 8898
     raft_replicate_port = 8899
@@ -68,6 +73,8 @@
     raft_replica_concurrency = 1
     raft_snap_concurrency = 1
     raft_truncate_count = 500000
+    #when behind leader this value,will stop the server for search
+    raft_diff_count = 10000
     # engine config
     engine_dwpt_num = 8
     # max size byte
@@ -75,8 +82,8 @@
     pprof_port = 6060
     # if set true , this ps only use in db meta config
     private = false
-    # 120 seconds
-    flush_time_interval = 120
+    # seconds
+    flush_time_interval = 600
     flush_count_threshold = 200000
 
 

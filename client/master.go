@@ -18,11 +18,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/vearch/vearch/util/errutil"
 	"net/http"
 	"net/url"
 	"sync"
 	"time"
+
+	"github.com/vearch/vearch/util/errutil"
 
 	"github.com/vearch/vearch/config"
 	"github.com/vearch/vearch/util"
@@ -35,6 +36,10 @@ import (
 	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/util/netutil"
 	"go.etcd.io/etcd/clientv3"
+)
+
+const (
+	DefaultPsTimeOut           = 5
 )
 
 // masterClient is  used for router and partition server,not for master administrator. This client is mainly used to communicate with etcd directly,with out business logic
@@ -189,6 +194,20 @@ func (m *masterClient) QuerySpaces(ctx context.Context, dbID int64) ([]*entity.S
 	return m.QuerySpacesByKey(ctx, fmt.Sprintf("%s%d/", entity.PrefixSpace, dbID))
 }
 
+// QueryRouter query router ip list by key
+func (m *masterClient) QueryRouter(ctx context.Context, key string) ([]string, error) {
+	_, bytesRouterIP, err := m.PrefixScan(ctx, fmt.Sprintf("%s%s/", entity.PrefixRouter, key))
+	if err != nil {
+		return nil, err
+	}
+	routerIPs := make([]string, 0, len(bytesRouterIP))
+	for _, bs := range bytesRouterIP {
+		routerIPs = append(routerIPs, string(bs))
+		log.Debugf("find key: [%s], routerIP: [%s]", key, string(bs))
+	}
+	return routerIPs, nil
+}
+
 // QuerySpacesByKey scan space by space prefix
 func (m *masterClient) QuerySpacesByKey(ctx context.Context, prefix string) ([]*entity.Space, error) {
 	_, bytesSpaces, err := m.PrefixScan(ctx, prefix)
@@ -226,6 +245,32 @@ func (m *masterClient) QueryFailServerByNodeID(ctx context.Context, nodeID uint6
 	return fs
 }
 
+//query server by IPAddr
+func (m *masterClient) QueryServerByIPAddr(ctx context.Context, IPAddr string) *entity.FailServer {
+	var err error
+	defer errutil.CatchError(&err)
+	//get all failServer
+	failServers,err := m.QueryAllFailServer(ctx)
+	for _,fs := range failServers {
+		if fs.Node.Ip == IPAddr {
+			log.Debug("get fail server info [%+v]",fs)
+			return fs
+		}
+	}
+
+	//get all server
+	servers,err := m.QueryServers(ctx)
+	for _,server := range servers {
+		if server.Ip == IPAddr {
+			fs := &entity.FailServer{TimeStamp: time.Now().Unix(),Node: server,ID: server.ID}
+			log.Debug("get alive server info [%+v]",fs)
+			return fs
+		}
+	}
+
+	return nil
+}
+
 // query all fail server
 func (m *masterClient) QueryAllFailServer(ctx context.Context) ([]*entity.FailServer, error) {
 	return m.QueryFailServerByKey(ctx, entity.PrefixFailServer)
@@ -234,7 +279,7 @@ func (m *masterClient) QueryAllFailServer(ctx context.Context) ([]*entity.FailSe
 //query fail server by prefix
 func (m *masterClient) QueryFailServerByKey(ctx context.Context, prefix string) (fs []*entity.FailServer, e error) {
 	// painc process
-	defer errutil.CatchError(e)
+	defer errutil.CatchError(&e)
 	_, bytesArr, err := m.PrefixScan(ctx, prefix)
 	errutil.ThrowError(err)
 	failServers := make([]*entity.FailServer, 0, len(bytesArr))
@@ -329,7 +374,11 @@ func (m *masterClient) KeepAlive(ctx context.Context, server *entity.Server) (<-
 	if err != nil {
 		return nil, err
 	}
-	return m.Store.KeepAlive(ctx, entity.ServerKey(server.ID), bytes, time.Second*188)
+	timeout := m.cfg.PS.PsHeartbeatTimeout
+	if timeout <= 0 {
+		timeout = DefaultPsTimeOut
+	}
+	return m.Store.KeepAlive(ctx, entity.ServerKey(server.ID), bytes, time.Second * time.Duration(timeout))
 }
 
 // PutServerWithLeaseID PutServerWithLeaseID
@@ -338,7 +387,11 @@ func (m *masterClient) PutServerWithLeaseID(ctx context.Context, server *entity.
 	if err != nil {
 		return err
 	}
-	return m.Store.PutWithLeaseId(ctx, entity.ServerKey(server.ID), bytes, time.Second*188, leaseID)
+	timeout := m.cfg.PS.PsHeartbeatTimeout
+	if timeout <= 0 {
+		timeout = DefaultPsTimeOut
+	}
+	return m.Store.PutWithLeaseId(ctx, entity.ServerKey(server.ID), bytes, time.Second * time.Duration(timeout), leaseID)
 }
 
 // DBKeys get db url in etcd
@@ -362,15 +415,25 @@ func (m *masterClient) Register(ctx context.Context, clusterName string, nodeID 
 	form.Add("nodeID", cast.ToString(nodeID))
 
 	masterServer.reset()
+	num := 0
 	var response []byte
 	for {
-		keyNumber, err := masterServer.getKey()
-		if err != nil {
-			return nil, err
-		}
 
 		query := netutil.NewQuery().SetHeader(Authorization, util.AuthEncrypt(Root, m.cfg.Global.Signkey))
-		query.SetAddress(m.cfg.Masters[keyNumber].ApiUrl())
+		if config.Conf().Global.MergeRouter {
+			if num >= len(config.Conf().Router.RouterIPS) {
+				return nil , fmt.Errorf("master server all down , register ps error")
+			}
+			query.SetAddress(m.cfg.Router.ApiUrl(num))
+			num = num + 1
+		} else {
+			keyNumber, err := masterServer.getKey()
+			if err != nil {
+				return nil, err
+			}
+			query.SetAddress(m.cfg.Masters[keyNumber].ApiUrl())
+		}
+
 		query.SetMethod(http.MethodPost)
 		query.SetQuery(form.Encode())
 		query.SetUrlPath("/register")
@@ -379,11 +442,14 @@ func (m *masterClient) Register(ctx context.Context, clusterName string, nodeID 
 		response, err = query.Do()
 		log.Debug("master api Register response: %v", string(response))
 		if err == nil {
+			log.Debug("master api Register success ")
 			break
 		}
 		log.Debug("master api Register err: %v", err)
 
 		masterServer.next()
+
+		time.Sleep(2 * time.Second)
 	}
 
 	data, err := parseRegisterData(response)
@@ -398,6 +464,53 @@ func (m *masterClient) Register(ctx context.Context, clusterName string, nodeID 
 	return server, nil
 }
 
+// RegisterRouter register router nodeid to master, return ip
+func (m *masterClient) RegisterRouter(ctx context.Context, clusterName string, timeout time.Duration) (res string, err error) {
+	form := url.Values{}
+	form.Add("clusterName", clusterName)
+
+	masterServer.reset()
+	var response []byte
+	num := 0
+	for {
+
+		query := netutil.NewQuery().SetHeader(Authorization, util.AuthEncrypt(Root, m.cfg.Global.Signkey))
+		if config.Conf().Global.MergeRouter {
+			if num >= len(config.Conf().Router.RouterIPS) {
+				return "" , fmt.Errorf("master server all down , register ps error")
+			}
+			query.SetAddress(m.cfg.Router.ApiUrl(num))
+			num = num + 1
+		} else {
+			keyNumber, err := masterServer.getKey()
+			if err != nil {
+				return "", err
+			}
+			query.SetAddress(m.cfg.Masters[keyNumber].ApiUrl())
+		}
+		query.SetMethod(http.MethodPost)
+		query.SetQuery(form.Encode())
+		query.SetUrlPath("/register_router")
+		query.SetTimeout(60)
+		log.Debug("master api Register url: %s", query.GetUrl())
+		response, err = query.Do()
+		log.Debug("master api Register response: %v", string(response))
+		if err == nil {
+			break
+		}
+		log.Debug("master api Register err: %v", err)
+
+		masterServer.next()
+	}
+
+	data, err := parseRegisterData(response)
+	if err != nil {
+		return "", err
+	}
+
+	return string(data[1 : len(data)-1]), nil
+}
+
 // RegisterPartition register partition
 func (m *masterClient) RegisterPartition(ctx context.Context, partition *entity.Partition) error {
 	reqBody, err := cbjson.Marshal(partition)
@@ -407,14 +520,23 @@ func (m *masterClient) RegisterPartition(ctx context.Context, partition *entity.
 
 	masterServer.reset()
 	var response []byte
+	num := 0
 	for {
-		keyNumber, err := masterServer.getKey()
-		if err != nil {
-			return err
-		}
 
 		query := netutil.NewQuery().SetHeader(Authorization, util.AuthEncrypt(Root, m.cfg.Global.Signkey))
-		query.SetAddress(m.cfg.Masters[keyNumber].ApiUrl())
+		if config.Conf().Global.MergeRouter {
+			if num >= len(config.Conf().Router.RouterIPS) {
+				return fmt.Errorf("master server all down , register ps error")
+			}
+			query.SetAddress(m.cfg.Router.ApiUrl(num))
+			num = num + 1
+		} else {
+			keyNumber, err := masterServer.getKey()
+			if err != nil {
+				return err
+			}
+			query.SetAddress(m.cfg.Masters[keyNumber].ApiUrl())
+		}
 		query.SetMethod(http.MethodPost)
 		query.SetUrlPath("/register_partition")
 		query.SetReqBody(string(reqBody))
@@ -457,12 +579,22 @@ func (m *masterClient) HTTPPost(url string, reqBody string) (response []byte, e 
 		}
 	}()
 	for {
-		keyNumber, err := masterServer.getKey()
-		if err != nil {
-			panic(err)
-		}
+		var err error
+		num := 0
 		query := netutil.NewQuery().SetHeader(Authorization, util.AuthEncrypt(Root, m.cfg.Global.Signkey))
-		query.SetAddress(m.cfg.Masters[keyNumber].ApiUrl())
+		if config.Conf().Global.MergeRouter {
+			if num >= len(config.Conf().Router.RouterIPS) {
+				return nil , fmt.Errorf("master server all down , register ps error")
+			}
+			query.SetAddress(m.cfg.Router.ApiUrl(num))
+			num = num + 1
+		} else {
+			keyNumber, err := masterServer.getKey()
+			if err != nil {
+				panic(err)
+			}
+			query.SetAddress(m.cfg.Masters[keyNumber].ApiUrl())
+		}
 		query.SetMethod(http.MethodPost)
 		query.SetUrlPath(url)
 		query.SetReqBody(string(reqBody))
@@ -526,7 +658,7 @@ func (m *masterClient) TryRemoveFailServer(ctx context.Context, server *entity.S
 // @param server *entity.Server "new server info"
 func (client *masterClient) RecoverByNewServer(ctx context.Context, server *entity.Server) (e error) {
 	//process panic
-	defer errutil.CatchError(e)
+	defer errutil.CatchError(&e)
 	failServers, err := client.QueryAllFailServer(ctx)
 	errutil.ThrowError(err)
 	if len(failServers) > 0 {
@@ -550,7 +682,7 @@ func (client *masterClient) RecoverByNewServer(ctx context.Context, server *enti
 //@param rfs *entity.RecoverFailServer "failserver IPAddr,newserver IPAddr"
 func (client *masterClient) RecoverFailServer(ctx context.Context, rfs *entity.RecoverFailServer) (e error) {
 	//process panic
-	defer errutil.CatchError(e)
+	defer errutil.CatchError(&e)
 	reqBody, err := cbjson.Marshal(rfs)
 	errutil.ThrowError(err)
 	masterServer.reset()

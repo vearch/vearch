@@ -30,12 +30,13 @@ type RangeFilter struct {
 }
 
 type VectorQuery struct {
-	Name     string
-	Value    []byte
-	MinScore float64
-	MaxScore float64
-	Boost    float64
-	HasBoost int32
+	Name          string
+	Value         []byte
+	MinScore      float64
+	MaxScore      float64
+	Boost         float64
+	HasBoost      int32
+	RetrievalType string
 }
 
 type Request struct {
@@ -86,6 +87,7 @@ func (request *Request) Serialize(buffer *[]byte) int {
 		gamma_api.VectorQueryAddMaxScore(builder, request.VecFields[i].MaxScore)
 		gamma_api.VectorQueryAddBoost(builder, request.VecFields[i].Boost)
 		gamma_api.VectorQueryAddHasBoost(builder, request.VecFields[i].HasBoost)
+		gamma_api.VectorQueryAddRetrievalType(builder, builder.CreateString(request.VecFields[i].RetrievalType))
 		vectorQuerys[i] = gamma_api.VectorQueryEnd(builder)
 	}
 
@@ -189,6 +191,7 @@ func SearchRequestSerialize(request *vearchpb.SearchRequest) []byte {
 
 	for i := 0; i < len(request.VecFields); i++ {
 		name := builder.CreateString(request.VecFields[i].Name)
+		retrieval_type := builder.CreateString(request.VecFields[i].RetrievalType)
 		gamma_api.VectorQueryStartValueVector(builder, len(request.VecFields[i].Value))
 		for j := len(request.VecFields[i].Value) - 1; j >= 0; j-- {
 			builder.PrependByte(request.VecFields[i].Value[j])
@@ -201,6 +204,7 @@ func SearchRequestSerialize(request *vearchpb.SearchRequest) []byte {
 		gamma_api.VectorQueryAddMaxScore(builder, request.VecFields[i].MaxScore)
 		gamma_api.VectorQueryAddBoost(builder, request.VecFields[i].Boost)
 		gamma_api.VectorQueryAddHasBoost(builder, request.VecFields[i].HasBoost)
+		gamma_api.VectorQueryAddRetrievalType(builder, retrieval_type)
 		vectorQuerys[i] = gamma_api.VectorQueryEnd(builder)
 	}
 
