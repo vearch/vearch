@@ -12,7 +12,7 @@ FAISS_URL=https://github.com/facebookresearch/faiss/archive/v1.6.4.tar.gz
 ROCKSDB_URL=https://github.com/facebook/rocksdb/archive/v6.2.2.tar.gz
 
 # version value
-BUILD_VERSION="3.2.6"
+BUILD_VERSION="3.2.5"
 
 use_zfp="other"
 use_rocksdb="other"

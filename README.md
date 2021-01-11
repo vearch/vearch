@@ -99,5 +99,8 @@ Welcome to register the company name in this issue: https://github.com/vearch/ve
 ![芯翌智能](static/xforwardai.png)
 ![图灵机器人](static/turingapi.png)
 
+![金山云](static/ksyun.png)
+
 ## License
+
 Licensed under the Apache License, Version 2.0. For detail see [LICENSE and NOTICE](https://github.com/vearch/vearch/blob/master/LICENSE).
