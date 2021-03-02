@@ -167,34 +167,15 @@ func (docService *docService) search(ctx context.Context, args *vearchpb.SearchR
 }
 
 func (docService *docService) bulkSearch(ctx context.Context, args []*vearchpb.SearchRequest) *vearchpb.SearchResponse {
-
-	request := client.NewRouterRequest(ctx, docService.client)
-	request.SetMsgID().SetMethod(client.BulkSearchHandler).SetHead(args[0].Head).SetSpace().BulkSearchByPartitions(args)
-	if request.Err != nil {
-		return &vearchpb.SearchResponse{Head: setErrHead(request.Err)}
-	}
-
-	sortOrders := make([]sortorder.SortOrder, 0, len(args))
-	for _, req := range args {
-		sortOrder := make([]sortorder.Sort, 0, len(req.SortFields))
-		for _, sortF := range req.SortFields {
-			sortOrder = append(sortOrder, &sortorder.SortField{Field: sortF.Field, Desc: sortF.Type})
+	searchResponse := &vearchpb.SearchResponse{}
+	for _, arg := range args {
+		res := docService.search(ctx, arg)
+		if searchResponse == nil {
+			searchResponse = res
+		} else {
+			searchResponse.Results = append(searchResponse.Results, res.Results[0])
 		}
-		sortOrders = append(sortOrders, sortOrder)
 	}
-
-	searchResponse := request.BulkSearchSortExecute(sortOrders)
-
-	if searchResponse == nil {
-		return &vearchpb.SearchResponse{Head: setErrHead(request.Err)}
-	}
-	if searchResponse.Head == nil {
-		searchResponse.Head = newOkHead()
-	}
-	if searchResponse.Head.Err == nil {
-		searchResponse.Head.Err = newOkHead().Err
-	}
-
 	return searchResponse
 }
 
