@@ -14,8 +14,8 @@ ROCKSDB_URL=https://github.com/facebook/rocksdb/archive/v6.2.2.tar.gz
 # version value
 BUILD_VERSION="3.2.5"
 
-use_zfp="other"
-use_rocksdb="other"
+use_zfp="y"
+use_rocksdb="y"
 while [ -z $use_zfp ] || ([ $use_zfp != "y" ] && [ $use_zfp != "n" ])
 do
   echo "Do you use zfp?[y/n]."
