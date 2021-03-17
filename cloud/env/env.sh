@@ -7,11 +7,11 @@ if [ ! -d "/env/app" ]; then
   mkdir -p /env/app
 fi
 cd /env/app/
-if [ ! -f "cmake-3.12.4.tar.gz" ]; then
-    wget https://cmake.org/files/v3.12/cmake-3.12.4.tar.gz
+if [ ! -f "cmake-3.20.0-rc3.tar.gz" ]; then
+    wget https://cmake.org/files/v3.20/cmake-3.20.0-rc3.tar.gz
 fi
-tar -xzf cmake-3.12.4.tar.gz
-cd /env/app/cmake-3.12.4
+tar xf cmake-3.20.0-rc3.tar.gz
+cd /env/app/cmake-3.20.0-rc3
 ./bootstrap
 gmake
 gmake install
@@ -19,16 +19,6 @@ cd /usr/bin
 if [ ! -f "cmake" ]; then
     ln -s cmake3 cmake
 fi
-cd /env/app/
-if [ ! -d "faiss" ]; then
-    git clone https://github.com/facebookresearch/faiss.git
-    cd faiss
-    git reset --hard 2a36d4d8c7c92fccb7d93f2da21ed0196483dee0
-    rm -rf gpu
-fi
-cd /env/app/faiss
-./configure --without-cuda --prefix=/env/app/faiss_install
-make -j && make install
 
 cd /env/app/
 if [ ! -d "zfp" ]; then
