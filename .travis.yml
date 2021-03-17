@@ -4,8 +4,8 @@ services:
   - docker
 
 before_install:
-  - docker pull docker.io/vearch/vearch_env:3.2.5
-  - docker tag docker.io/vearch/vearch_env:3.2.5 vearch_env
+  - docker pull docker.io/vearch/vearch_env:3.2.6
+  - docker tag docker.io/vearch/vearch_env:3.2.6 vearch_env
   - docker images
   - cd cloud
   - echo "Compile Vearch"
