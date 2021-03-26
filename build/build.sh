@@ -11,7 +11,7 @@ ZFP_URL=https://github.com/LLNL/zfp/archive/0.5.5.tar.gz
 ROCKSDB_URL=https://github.com/facebook/rocksdb/archive/v6.2.2.tar.gz
 
 # version value
-BUILD_VERSION="3.2.5"
+BUILD_VERSION="3.2.6"
 
 use_zfp="y"
 use_rocksdb="y"
