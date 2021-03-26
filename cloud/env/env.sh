@@ -7,11 +7,11 @@ if [ ! -d "/env/app" ]; then
   mkdir -p /env/app
 fi
 cd /env/app/
-if [ ! -f "cmake-3.12.4.tar.gz" ]; then
-    wget https://cmake.org/files/v3.12/cmake-3.12.4.tar.gz
+if [ ! -f "cmake-3.20.0-rc3.tar.gz" ]; then
+    wget https://cmake.org/files/v3.20/cmake-3.20.0-rc3.tar.gz
 fi
-tar -xzf cmake-3.12.4.tar.gz
-cd /env/app/cmake-3.12.4
+tar xf cmake-3.20.0-rc3.tar.gz
+cd /env/app/cmake-3.20.0-rc3
 ./bootstrap
 gmake
 gmake install
@@ -19,16 +19,24 @@ cd /usr/bin
 if [ ! -f "cmake" ]; then
     ln -s cmake3 cmake
 fi
+
 cd /env/app/
-if [ ! -d "faiss" ]; then
-    git clone https://github.com/facebookresearch/faiss.git
-    cd faiss
-    git reset --hard 2a36d4d8c7c92fccb7d93f2da21ed0196483dee0
-    rm -rf gpu
+if [ ! -d "zfp" ]; then
+    wget https://github.com/LLNL/zfp/archive/0.5.5.tar.gz -O zfp.tar.gz
+    tar -xzvf zfp.tar.gz
+    cd /env/app/zfp-0.5.5
+    mkdir build && cd build
+    cmake ..
+    cmake --build . --config Release
+    make install
+    mkdir -p /env/app/zfp_install/lib
+    cd /usr/local/lib64
+    cp libzfp.so.0.5.5 /env/app/zfp_install/lib
+    cd /env/app/zfp_install/lib
+    ln -s libzfp.so.0.5.5 libzfp.so.0
+    ln -s libzfp.so.0 libzfp.so
+    cp -r /usr/local/include /env/app/zfp_install/
 fi
-cd /env/app/faiss
-./configure --without-cuda --prefix=/env/app/faiss_install
-make -j && make install
 
 cd /env/app
 if [ ! -f "rocksdb-v6.2.2.tar.gz" ]; then

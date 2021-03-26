@@ -44,17 +44,16 @@
 #### 依赖环境
 
    1. CentOS、ubuntu和Mac OS都支持（推荐CentOS >= 7.2）
-   2. Go >= 1.11.2
-   3. Gcc >= 5
-   4. Cmake >= 3.17
+   2. go >= 1.11.2
+   3. gcc >= 5
+   4. cmake >= 3.17
    5. OpenBLAS
-   6. [Faiss](https://github.com/facebookresearch/faiss) >= v1.6.4，你不需要手动安装，脚本自动安装。
-   7. [RocksDB](https://github.com/facebook/rocksdb) == 6.2.2 ***（可选）***，你不需要手动安装，脚本自动安装。但是你需要手动安装rocksdb的依赖。请参考如下安装方法：https://github.com/facebook/rocksdb/blob/master/INSTALL.md
-   8. [Zfp](https://github.com/LLNL/zfp) == v0.5.5 ***(可选)***，你不需要手动安装，脚本自动安装。
-   9. CUDA >= 9.0，如果你不使用GPU模型，可忽略。
+   6. [RocksDB](https://github.com/facebook/rocksdb) == 6.2.2 ***（可选）***，你不需要手动安装，脚本自动安装。但是你需要手动安装rocksdb的依赖。请参考如下安装方法：https://github.com/facebook/rocksdb/blob/master/INSTALL.md
+   7. [zfp](https://github.com/LLNL/zfp) == v0.5.5 ***(可选)***，你不需要手动安装，脚本自动安装。
+   8. CUDA >= 9.0，如果你不使用GPU模型，可忽略。
 #### 编译
    * 进入 `GOPATH` 目录, `cd $GOPATH/src` `mkdir -p github.com/vearch` `cd github.com/vearch`
-   * 下载源码: `git clone https://xxxxxx/vearch.git` ($vearch表示vearch代码的绝对路径)
+   * 下载源码: `git clone https://github.com/vearch/vearch.git` ($vearch表示vearch代码的绝对路径)
    * 下载子项目: `cd vearch`  `git submodule update`
    * 添加GPU索引支持: 将`$vearch/engine/CMakeLists.txt`中的 `BUILD_WITH_GPU` 从`"off"` 变为`"on"` 
    * 编译vearch和gamma

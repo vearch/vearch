@@ -2,6 +2,6 @@
 
 # will download gamma in /engine with correct version
 git submodule init
-git submodule update
+git submodule update --remote
 
-docker run -v $(dirname "$PWD"):/vearch vearch/vearch_env:3.2.5 /vearch/cloud/compile/compile.sh
+docker run -it -v $(dirname "$PWD"):/vearch vearch/vearch_env:3.2.6 /vearch/cloud/compile/compile.sh
