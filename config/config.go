@@ -78,8 +78,6 @@ const (
 	LocalCastAddr   = "0.0.0.0"
 )
 
-var PSRpcTimeOut int64 = 500
-
 type Config struct {
 	Global     *GlobalCfg `toml:"global,omitempty" json:"global"`
 	EtcdConfig *EtcdCfg   `toml:"etcd,omitempty" json:"etcd"`
@@ -278,7 +276,6 @@ type RouterCfg struct {
 	ConnLimit    int      `toml:"conn_limit" json:"conn_limit"`
 	CloseTimeout int64    `toml:"close_timeout" json:"close_timeout"`
 	RouterIPS    []string ``
-	RpcTimeout   int64    `toml:"rpc_timeout" json:"rpc_timeout"`
 }
 
 func (routerCfg *RouterCfg) ApiUrl(keyNumber int) string {

@@ -662,14 +662,3 @@ func SearchNullToContent(searchStatus vearchpb.SearchStatus, took time.Duration)
 	return builder.Output()
 
 }
-
-func docPsRpcTimeoutResponse(rpcTimeOut int64) ([]byte, error) {
-	var builder = cbjson.ContentBuilderFactory()
-	builder.BeginObject()
-	builder.Field("rpc_timeout")
-	builder.ValueNumeric(rpcTimeOut)
-	builder.EndObject()
-
-	return builder.Output()
-
-}

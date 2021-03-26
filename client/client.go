@@ -390,7 +390,7 @@ func (r *routerRequest) SearchFieldSortExecute(sortOrder sortorder.SortOrder) *v
 					searchResponse := &vearchpb.SearchResponse{Head: head}
 					pd.SearchResponse = searchResponse
 					responseDoc.PartitionData = pd
-					safeSend(respChain, responseDoc)
+					respChain <- responseDoc
 				}
 			}()
 			partition, e := r.client.Master().Cache().PartitionByCache(ctx, r.space.Name, partitionID)
@@ -400,7 +400,7 @@ func (r *routerRequest) SearchFieldSortExecute(sortOrder sortorder.SortOrder) *v
 				searchResponse := &vearchpb.SearchResponse{Head: head}
 				pd.SearchResponse = searchResponse
 				responseDoc.PartitionData = pd
-				safeSend(respChain, responseDoc)
+				respChain <- responseDoc
 				return
 			}
 			clientType := pd.SearchRequest.Head.ClientType
@@ -414,7 +414,7 @@ func (r *routerRequest) SearchFieldSortExecute(sortOrder sortorder.SortOrder) *v
 				searchResponse := &vearchpb.SearchResponse{Head: head}
 				pd.SearchResponse = searchResponse
 				responseDoc.PartitionData = pd
-				safeSend(respChain, responseDoc)
+				respChain <- responseDoc
 				return
 			}
 
@@ -447,7 +447,7 @@ func (r *routerRequest) SearchFieldSortExecute(sortOrder sortorder.SortOrder) *v
 				searchResponse := &vearchpb.SearchResponse{Head: head}
 				pd.SearchResponse = searchResponse
 				responseDoc.PartitionData = pd
-				safeSend(respChain, responseDoc)
+				respChain <- responseDoc
 				return
 			}
 
@@ -464,7 +464,7 @@ func (r *routerRequest) SearchFieldSortExecute(sortOrder sortorder.SortOrder) *v
 					gamma.DeSerialize(flatBytes, searchResponse)
 					searchResults := searchResponse.Results
 					if searchResults != nil && len(searchResults) > 0 {
-						for _, searchResult := range searchResults {
+						for i, searchResult := range searchResults {
 							searchItems := searchResult.ResultItems
 							for _, item := range searchItems {
 								source, sortValues, pkey, err := GetSource(item, space, isIsLong, sortFieldMap, pd.SearchRequest.SortFields)
@@ -474,123 +474,89 @@ func (r *routerRequest) SearchFieldSortExecute(sortOrder sortorder.SortOrder) *v
 								}
 								item.PKey = pkey
 								item.Source = source
-								sortValueMap[item.PKey] = sortValues
+								index := strconv.Itoa(i)
+								sortValueMap[item.PKey+"_"+index] = sortValues
 							}
-							if sortFieldMap != nil && len(sortFieldMap) > 0 {
-								quickSort(searchItems, sortValueMap, 0, len(searchItems)-1, sortOrder)
-							}
+
 						}
 					}
 				}
 			}
 			responseDoc.PartitionData = replyPartition
 			responseDoc.SortValueMap = sortValueMap
-			safeSend(respChain, responseDoc)
+			respChain <- responseDoc
 		}(partitionID, pData, r.space, sortOrder)
 	}
-	//wg.Wait()
-	//close(respChain)
-	if waitTimeout(&wg, time.Millisecond*time.Duration(config.PSRpcTimeOut)) {
-		close(respChain)
-		err := &vearchpb.Error{Code: vearchpb.ErrorEnum_RECOVER, Msg: "more than 800 Millisecond"}
-		params := make(map[string]string)
-		head := &vearchpb.ResponseHead{Err: err, Params: params}
-		response := vearchpb.SearchResponse{Head: head}
-		log.Error("rpc cost time error:%v", err)
-		return &response
-	} else {
-		close(respChain)
-	}
+	wg.Wait()
+	close(respChain)
 
-	var firstResult []*vearchpb.SearchResult
+	var result []*vearchpb.SearchResult
 	var sortValueMap map[string][]sortorder.SortValue
 	var searchResponse *vearchpb.SearchResponse
-
-	for resp := range respChain {
-		if firstResult == nil {
-			if resp != nil {
-				searchResponse = resp.PartitionData.SearchResponse
+	for r := range respChain {
+		if result == nil {
+			if r != nil {
+				searchResponse = r.PartitionData.SearchResponse
 				if searchResponse != nil && searchResponse.Results != nil && len(searchResponse.Results) > 0 {
-					firstResult = searchResponse.Results
-					sortValueMap = resp.SortValueMap
+					result = searchResponse.Results
+					sortValueMap = r.SortValueMap
 					continue
 				}
 			}
-		} else {
-			if resp != nil {
-				searchResponse = resp.PartitionData.SearchResponse
-				sortValue := resp.SortValueMap
-				for PKey, sortValue := range sortValue {
-					sortValueMap[PKey] = sortValue
-				}
-				if searchResponse.Results != nil && len(searchResponse.Results) > 0 {
-					result := searchResponse.Results
-					err := MergeArrForField(firstResult, result, sortValueMap, sortOrder, searchReq.TopN)
-					if err != nil {
-						log.Error("msearch merge error:", err)
-					}
-				}
+		}
+
+		sortValue := r.SortValueMap
+		for PKey, sortValue := range sortValue {
+			sortValueMap[PKey] = sortValue
+		}
+		var err error
+
+		if err = AddMergeResultArr(result, r.PartitionData.SearchResponse.Results); err != nil {
+			log.Error("msearch AddMergeResultArr error:", err)
+		}
+	}
+
+	for i, resp := range result {
+		index := strconv.Itoa(i)
+		quickSort(resp.ResultItems, sortValueMap, 0, len(resp.ResultItems)-1, sortOrder, index)
+	}
+
+	for _, resp := range result {
+		if resp.ResultItems != nil && len(resp.ResultItems) > 0 && searchReq.TopN > 0 {
+			len := len(resp.ResultItems)
+			if int32(len) > searchReq.TopN {
+				resp.ResultItems = resp.ResultItems[0:searchReq.TopN]
 			}
 		}
 	}
 
-	searchResponse.Results = firstResult
+	if searchResponse == nil {
+		err := &vearchpb.Error{Code: vearchpb.ErrorEnum_ROUTER_CALL_PS_RPC_ERR, Msg: "query result is null"}
+		searchResponse = &vearchpb.SearchResponse{}
+		responseHead := &vearchpb.ResponseHead{Err: err}
+		searchResponse.Head = responseHead
+	}
+	searchResponse.Results = result
 	return searchResponse
 }
 
-func safeSend(ch chan *response.SearchDocResult, value *response.SearchDocResult) (closed bool) {
-	defer func() {
-		if recover() != nil {
-			closed = true
-		}
-	}()
-
-	ch <- value  // panic if ch is closed
-	return false // <=> closed = false; return
-}
-
-func isClosed(ch <-chan *response.SearchDocResult) bool {
-	select {
-	case <-ch:
-		return true
-	default:
-	}
-
-	return false
-}
-
-func waitTimeout(wg *sync.WaitGroup, timeout time.Duration) bool {
-	ch := make(chan bool)
-
-	go time.AfterFunc(timeout, func() {
-		ch <- true
-	})
-
-	go func() {
-		wg.Wait()
-		ch <- false
-	}()
-
-	return <-ch
-}
-
-func quickSort(items []*vearchpb.ResultItem, sortValueMap map[string][]sortorder.SortValue, low, high int, so sortorder.SortOrder) {
+func quickSort(items []*vearchpb.ResultItem, sortValueMap map[string][]sortorder.SortValue, low, high int, so sortorder.SortOrder, index string) {
 	if low < high {
-		var pivot = partition(items, sortValueMap, low, high, so)
-		quickSort(items, sortValueMap, low, pivot, so)
-		quickSort(items, sortValueMap, pivot+1, high, so)
+		var pivot = partition(items, sortValueMap, low, high, so, index)
+		quickSort(items, sortValueMap, low, pivot, so, index)
+		quickSort(items, sortValueMap, pivot+1, high, so, index)
 	}
 }
-func partition(arr []*vearchpb.ResultItem, sortValueMap map[string][]sortorder.SortValue, low, high int, so sortorder.SortOrder) int {
+func partition(arr []*vearchpb.ResultItem, sortValueMap map[string][]sortorder.SortValue, low, high int, so sortorder.SortOrder, index string) int {
 	var pivot = arr[low]
-	var pivotSort = sortValueMap[pivot.PKey]
+	var pivotSort = sortValueMap[pivot.PKey+"_"+index]
 	var i = low
 	var j = high
 	for i < j {
-		for so.Compare(sortValueMap[arr[j].PKey], pivotSort) >= 0 && j > low {
+		for so.Compare(sortValueMap[arr[j].PKey+"_"+index], pivotSort) >= 0 && j > low {
 			j--
 		}
-		for so.Compare(sortValueMap[arr[i].PKey], pivotSort) <= 0 && i < high {
+		for so.Compare(sortValueMap[arr[i].PKey+"_"+index], pivotSort) <= 0 && i < high {
 			i++
 		}
 		if i < j {
@@ -1092,6 +1058,74 @@ func HitsMergeForField(dh []*vearchpb.ResultItem, firstSortValue map[string][]so
 	}
 
 	return result
+}
+
+func AddMergeResultArr(dest []*vearchpb.SearchResult, src []*vearchpb.SearchResult) error {
+
+	if len(dest) != len(src) {
+		log.Error("dest length:[%d] not equal src length:[%d]", len(dest), len(src))
+	}
+
+	if log.IsDebugEnabled() {
+		log.Debug("dest length:[%d] , src length:[%d]", len(dest), len(src))
+	}
+
+	if len(dest) <= len(src) {
+		for index := range dest {
+			err := AddMerge(dest[index], src[index])
+			if err != nil {
+				return fmt.Errorf("merge err [%s]")
+			}
+		}
+	} else {
+		for index := range src {
+			err := AddMerge(dest[index], src[0])
+			if err != nil {
+				return fmt.Errorf("merge err [%s]")
+			}
+		}
+	}
+
+	return nil
+
+}
+
+func AddMerge(sr *vearchpb.SearchResult, other *vearchpb.SearchResult) (err error) {
+	Merge(sr.Status, other.Status)
+
+	sr.TotalHits += other.TotalHits
+	if other.MaxScore > sr.MaxScore {
+		sr.MaxScore = other.MaxScore
+	}
+
+	if other.MaxTook > sr.MaxTook {
+		sr.MaxTook = other.MaxTook
+		sr.MaxTookId = other.MaxTookId
+	}
+
+	sr.Timeout = sr.Timeout && other.Timeout
+
+	if len(sr.ResultItems) > 0 || len(other.ResultItems) > 0 {
+		sr.ResultItems = append(sr.ResultItems, other.ResultItems...)
+	}
+
+	if other.Explain != nil {
+		if sr.Explain == nil {
+			sr.Explain = other.Explain //impossibility
+		}
+
+		for k, v := range other.Explain {
+			sr.Explain[k] = v
+		}
+	}
+
+	return
+}
+
+func Merge(ss *vearchpb.SearchStatus, other *vearchpb.SearchStatus) {
+	ss.Total += other.Total
+	ss.Failed += other.Failed
+	ss.Successful += other.Successful
 }
 
 func Compare(old float64, new float64) int {

@@ -215,10 +215,6 @@ func main() {
 				}
 			}()
 		}
-
-		if config.Conf().Router.RpcTimeout > 0 {
-			config.PSRpcTimeOut = config.Conf().Router.RpcTimeout
-		}
 	}
 
 	var psPath []string
