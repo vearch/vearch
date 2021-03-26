@@ -101,6 +101,8 @@ Welcome to register the company name in this issue: https://github.com/vearch/ve
 
 ![金山云](static/ksyun.png)
 
+![汇智通信](static/teligen.png)
+
 ## License
 
 Licensed under the Apache License, Version 2.0. For detail see [LICENSE and NOTICE](https://github.com/vearch/vearch/blob/master/LICENSE).
