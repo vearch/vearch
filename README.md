@@ -98,8 +98,8 @@ Welcome to register the company name in this issue: https://github.com/vearch/ve
 ![汽车之家](static/autohome.png)
 ![芯翌智能](static/xforwardai.png)
 ![图灵机器人](static/turingapi.png)
-
 ![金山云](static/ksyun.png)
+![汇智通信](static/teligen.png)
 
 ## License
 
