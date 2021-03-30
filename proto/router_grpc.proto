@@ -222,6 +222,7 @@ message SearchResult {
     uint32 pID = 8;
     map<uint32,string> explain = 9;
     bool timeout = 10;
+    int32 topN = 11;
 }
 
 message SearchResponse {

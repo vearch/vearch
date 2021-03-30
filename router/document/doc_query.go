@@ -843,6 +843,7 @@ func searchParamToSearchPb(searchDoc *request.SearchDocumentRequest, searchReq *
 		if sortField != "_score" && sortField != "_id" && queryFieldMap[sortField] == "" {
 			searchReq.Fields = append(searchReq.Fields, sortField)
 		}
+
 		sortDesc := sort.GetSortOrder()
 		if sortDesc {
 			sortFieldMap[sortField] = "true"

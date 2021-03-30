@@ -57,4 +57,3 @@ if [ ! -f "go1.12.7.linux-amd64.tar.gz" ]; then
     wget https://dl.google.com/go/go1.12.7.linux-amd64.tar.gz
 fi
 tar -xzf go1.12.7.linux-amd64.tar.gz
-

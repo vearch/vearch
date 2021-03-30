@@ -186,7 +186,7 @@ func (engine *Engine) UnmarshalJSON(bs []byte) error {
 
 	}
 
-	retrievalTypeMap := map[string]string{"IVFPQ": "IVFPQ", "IVFFLAT": "IVFFLAT", "BINARYIVF": "BINARYIVF", "FLAT": "FLAT", "HNSW": "HNSW", "GPU": "GPU"}
+	retrievalTypeMap := map[string]string{"IVFPQ": "IVFPQ", "IVFFLAT": "IVFFLAT", "BINARYIVF": "BINARYIVF", "FLAT": "FLAT", "HNSW": "HNSW", "GPU": "GPU", "SSG": "SSG"}
 	var retrievalParamsArr []string
 	switch tempEngine.Name {
 	case Gamma:
@@ -256,7 +256,9 @@ func (engine *Engine) UnmarshalJSON(bs []byte) error {
 					if *tempEngine.IndexSize < 8192 {
 						return fmt.Errorf(retrievalType+" model doc size:[%d] less than 8192 so can not to index", int64(*tempEngine.IndexSize))
 					}
-				} else {
+				} else if strings.Compare("IVFPQ", retrievalType) == 0 ||
+					strings.Compare("GPU", retrievalType) == 0 {
+
 					if v.Nsubvector == 0 || v.Ncentroids == 0 {
 						return fmt.Errorf(retrievalType + " model param is 0")
 					} else {
@@ -312,7 +314,8 @@ func (engine *Engine) UnmarshalJSON(bs []byte) error {
 				if *tempEngine.IndexSize < 8192 {
 					return fmt.Errorf(tempEngine.RetrievalType+" model doc size:[%d] less than 8192 so can not to index", int64(*tempEngine.IndexSize))
 				}
-			} else {
+			} else if strings.Compare("IVFPQ", tempEngine.RetrievalType) == 0 ||
+				strings.Compare("GPU", tempEngine.RetrievalType) == 0 {
 				if v.Nsubvector == 0 || v.Ncentroids == 0 {
 					return fmt.Errorf(tempEngine.RetrievalType + " model param is 0")
 				} else {

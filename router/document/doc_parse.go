@@ -949,25 +949,3 @@ func docBulkSearchParse(r *http.Request, space *entity.Space, head *vearchpb.Req
 	}
 	return searchReqs, error
 }
-
-func doPsRpcTimeoutSetParse(r *http.Request) (rpcTimeout int64, err error) {
-	reqBody, err := netutil.GetReqBody(r)
-	if err == nil {
-		if len(reqBody) != 0 {
-			temp := struct {
-				RpcTimeOut int64 `json:"rpc_timeout,omitempty"`
-			}{}
-			err := json.Unmarshal(reqBody, &temp)
-			if err != nil {
-				err = fmt.Errorf("doPsRpcTimeoutSetParse param convert json err: [%s]", string(reqBody))
-				return 0, err
-			} else {
-				return temp.RpcTimeOut, nil
-			}
-		} else {
-			err = fmt.Errorf("query param is null")
-			return 0, err
-		}
-	}
-	return 0, err
-}
