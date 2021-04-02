@@ -14,7 +14,10 @@
 
 package raftstore
 
-import "github.com/tiglabs/raft/proto"
+import (
+	"github.com/tiglabs/raft/proto"
+	"github.com/vearch/vearch/util/log"
+)
 
 // Snapshot implements the raft interface.
 func (s *Store) Snapshot() (proto.Snapshot, error) {
@@ -23,5 +26,10 @@ func (s *Store) Snapshot() (proto.Snapshot, error) {
 
 // ApplySnapshot implements the raft interface.
 func (s *Store) ApplySnapshot(peers []proto.Peer, iter proto.SnapIterator) error {
-	return s.GetEngine().ApplySnapshot(peers, iter)
+	err := s.GetEngine().ApplySnapshot(peers, iter)
+	if err == nil {
+		log.Debug("store info is [%+v]", s)
+		log.Debug("store status is [%+v]", s.Status())
+	}
+	return err
 }

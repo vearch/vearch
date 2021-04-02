@@ -18,6 +18,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/vearch/vearch/ps/engine/register"
 	"os"
 	"sync"
 	"time"
@@ -31,7 +32,6 @@ import (
 	"github.com/vearch/vearch/client"
 	"github.com/vearch/vearch/config"
 	"github.com/vearch/vearch/proto/entity"
-	"github.com/vearch/vearch/ps/engine/register"
 	"github.com/vearch/vearch/ps/storage"
 )
 
@@ -94,6 +94,7 @@ func CreateStore(ctx context.Context, pID entity.PartitionID, nodeID entity.Node
 
 // Start start the store.
 func (s *Store) Start() (err error) {
+	// todo: gamma engine load need run after snapshot finish
 	s.Engine, err = register.Build(s.Space.Engine.Name, register.EngineConfig{
 		Path:        s.DataPath,
 		Space:       s.Space,
@@ -103,7 +104,6 @@ func (s *Store) Start() (err error) {
 	if err != nil {
 		return err
 	}
-
 	apply, err := s.Engine.Reader().ReadSN(s.Ctx)
 	if err != nil {
 		s.Engine.Close()
