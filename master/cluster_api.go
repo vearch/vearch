@@ -19,6 +19,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/vearch/vearch/util/errutil"
+	"io/ioutil"
 	"net/http"
 	"strconv"
 	"strings"
@@ -92,6 +94,10 @@ func ExportToClusterHandler(router *gin.Engine, masterService *masterService) {
 	router.Handle(http.MethodGet, "/space/:"+dbName+"/:"+spaceName, dh.PaincHandler, dh.TimeOutHandler, c.auth, c.getSpace, dh.TimeOutEndHandler)
 	router.Handle(http.MethodDelete, "/space/:"+dbName+"/:"+spaceName, dh.PaincHandler, dh.TimeOutHandler, c.auth, c.deleteSpace, dh.TimeOutEndHandler)
 	router.Handle(http.MethodPost, "/space/:"+dbName+"/:"+spaceName, dh.PaincHandler, dh.TimeOutHandler, c.auth, c.updateSpace, dh.TimeOutEndHandler)
+
+	// modify engine config handler
+	router.Handle(http.MethodPost, "/config/:"+dbName+"/:"+spaceName, dh.PaincHandler, dh.TimeOutHandler, c.auth, c.modifyEngineCfg, dh.TimeOutEndHandler)
+	router.Handle(http.MethodGet, "/config/:"+dbName+"/:"+spaceName, dh.PaincHandler, dh.TimeOutHandler, c.auth, c.getEngineCfg, dh.TimeOutEndHandler)
 
 	//partition handler
 	router.Handle(http.MethodPost, "/partition/change_member", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.changeMember, dh.TimeOutEndHandler)
@@ -346,6 +352,47 @@ func (ca *clusterAPI) updateSpace(c *gin.Context) {
 
 	} else {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(spaceResult)
+	}
+}
+
+// get engine config
+func (ca *clusterAPI) getEngineCfg(c *gin.Context) {
+	var err error
+	defer errutil.CatchError(&err)
+	dbName := c.Param(dbName)
+	sapceName := c.Param(spaceName)
+	errutil.ThrowError(err)
+	if cfg, err := ca.masterService.GetEngineCfg(c, dbName, sapceName); err != nil {
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
+	} else {
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(cfg)
+	}
+}
+
+// modify engine config
+func (ca *clusterAPI) modifyEngineCfg(c *gin.Context) {
+	var err error
+	defer errutil.CatchError(&err)
+	dbName := c.Param(dbName)
+	sapceName := c.Param(spaceName)
+	data, err := ioutil.ReadAll(c.Request.Body)
+	errutil.ThrowError(err)
+	log.Debug("engine config json data is [%+v]", string(data))
+	cacheCfg := &entity.EngineCfg{}
+	err = json.Unmarshal(data, &cacheCfg)
+	if  err != nil {
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
+		return
+	}
+
+	if cacheCfg.CacheModels == nil {
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(fmt.Errorf("engine config [%+v] is error", string(data)))
+		return
+	}
+	if err := ca.masterService.ModifyEngineCfg(c, dbName, sapceName, cacheCfg); err != nil {
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
+	} else {
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(cacheCfg)
 	}
 }
 

@@ -16,8 +16,6 @@ package ps
 
 import (
 	"context"
-	"sync"
-
 	"github.com/tiglabs/raft"
 	"github.com/tiglabs/raft/proto"
 	"github.com/vearch/vearch/config"
@@ -27,6 +25,7 @@ import (
 	"github.com/vearch/vearch/ps/psutil"
 	"github.com/vearch/vearch/ps/storage/raftstore"
 	"github.com/vearch/vearch/util/log"
+	"sync"
 )
 
 type Base interface {
@@ -127,6 +126,7 @@ func (s *Server) LoadPartition(ctx context.Context, pid entity.PartitionID) (Par
 	}
 
 	s.partitions.Store(pid, store)
+
 	return store, nil
 }
 

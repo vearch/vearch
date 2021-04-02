@@ -13,6 +13,7 @@
 // permissions and limitations under the License.
 package gammacb
 
+import "C"
 import (
 	"context"
 	"encoding/json"
@@ -207,7 +208,7 @@ func (ge *gammaEngine) IndexStatus() int {
 }
 
 func (ge *gammaEngine) EngineStatus(status *engine.EngineStatus) error {
-        var ges gamma.EngineStatus
+	var ges gamma.EngineStatus
 	gamma.GetEngineStatus(ge.gamma, &ges)
 	status.IndexStatus = ges.IndexStatus
 	status.DocNum = ges.DocNum
@@ -300,4 +301,15 @@ func (ge *gammaEngine) autoCreateIndex() {
 		}
 		time.Sleep(1 * time.Second)
 	}
+
+}
+
+func (ge *gammaEngine) SetEngineCfg(config *gamma.Config) error {
+	gamma.SetEngineCfg(ge.gamma, config)
+	return nil
+}
+
+func (ge *gammaEngine) GetEngineCfg(config *gamma.Config) error {
+	gamma.GetEngineCfg(ge.gamma, config)
+	return nil
 }

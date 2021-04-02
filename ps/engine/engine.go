@@ -16,6 +16,7 @@ package engine
 
 import (
 	"context"
+	"github.com/vearch/vearch/ps/engine/gamma"
 
 	"github.com/tiglabs/raft/proto"
 	"github.com/vearch/vearch/proto/entity"
@@ -75,4 +76,7 @@ type Engine interface {
 
 	GetSpace() *entity.Space
 	GetPartitionID() entity.PartitionID
+
+	SetEngineCfg(config *gamma.Config) error
+	GetEngineCfg(config *gamma.Config) error
 }

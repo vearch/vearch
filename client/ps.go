@@ -75,6 +75,7 @@ const (
 	IsLiveHandler          = "IsLiveHandler"
 	PartitionInfoHandler   = "PartitionInfoHandler"
 	ChangeMemberHandler    = "ChangeMemberHandler"
+	EngineCfgHandler       = "EngineCfgHandler"
 )
 
 type psClient struct {
