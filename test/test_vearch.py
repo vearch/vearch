@@ -239,6 +239,11 @@ def test_insertWithId():
             flag1 = idStr.split(':')[1].replace('\"','')
             id = str(int(flag1)+flag)
             data = "{"+dataLine.split(',', 1)[1]
+            dict_data = json.loads(data)
+            dict_data["string_tags"] = dict_data["string_tags"][0]
+            dict_data["int_tags"] = dict_data["int_tags"][0]
+            dict_data["float_tags"] = dict_data["float_tags"][0]
+            data = json.dumps(dict_data)
             url = "http://" + ip_data + "/" + db_name + "/" + space_name_mmap + "/" + id
             response = requests.post(url, headers=headers, data=data)
             print("insertWithID:" + response.text)
