@@ -48,13 +48,14 @@
    3. gcc >= 5 required.
    4. cmake >= 3.17 required.
    5. OpenBLAS.
-   6. [RocksDB](https://github.com/facebook/rocksdb) == 6.2.2 ***(optional)***. You don't need to install it manually, the script installs it automatically. But you need to manually install the dependencies of rocksdb. Please refer to the installation method: https://github.com/facebook/rocksdb/blob/master/INSTALL.md
-   7. [zfp](https://github.com/LLNL/zfp) == v0.5.5 ***(optional)***, You don't need to install it manually, the script installs it automatically.
-   8. CUDA >= 9.0, if you want GPU support.
+   6. tbb，In CentOS it can be installed by yum. Such as: yum install tbb-devel.x86_64.
+   7. [RocksDB](https://github.com/facebook/rocksdb) == 6.2.2 ***(optional)***. You don't need to install it manually, the script installs it automatically. But you need to manually install the dependencies of rocksdb. Please refer to the installation method: https://github.com/facebook/rocksdb/blob/master/INSTALL.md
+   8. [zfp](https://github.com/LLNL/zfp) == v0.5.5 ***(optional)***, You don't need to install it manually, the script installs it automatically.
+   9. CUDA >= 9.0, if you want GPU support.
 #### Compile 
    * Enter the `GOPATH` directory, `cd $GOPATH/src` `mkdir -p github.com/vearch` `cd github.com/vearch`
    * Download the source code: `git clone https://github.com/vearch/vearch.git` ($vearch denotes the absolute path of vearch code)
-   * Download the source code of subprojects gamma: ``cd vearch``  `git submodule update`
+   * Download the source code of subprojects gamma: ``cd vearch``  `git submodule update --recursive`
    * To add GPU Index support: change `BUILD_WITH_GPU` from `"off"` to `"on"` in `$vearch/engine/CMakeLists.txt` 
    * Compile vearch and gamma
       1. `cd build`
