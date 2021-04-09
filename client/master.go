@@ -132,7 +132,7 @@ func (m *masterClient) QueryServer(ctx context.Context, id entity.NodeID) (*enti
 	}
 	if bytes == nil {
 		log.Error("server can not find on master, maybe server is offline, nodeId:[%d]", id)
-		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_NOT_EXIST, nil)
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PS_NOTEXISTS, nil)
 	}
 
 	p := new(entity.Server)
