@@ -358,13 +358,12 @@ func (config *Config) CurrentByMasterNameDomainIp(masterName string) error {
 		} else {
 			log.Info("find local master failed:master's name:[%s] master's ip:[%s] and local master's name:[%s]", m.Name, m.Address, masterName)
 		}
+		if found {
+			return nil
+		}
 	}
 
-	if !found {
-		return errors.New("None of the masters has the same ip address as current local master server's ip")
-	}
-
-	return nil
+	return errors.New("None of the masters has the same ip address as current local master server's ip")
 }
 
 func (config *Config) addrMap() map[string]bool {
