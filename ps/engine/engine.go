@@ -70,6 +70,7 @@ type Engine interface {
 	IndexStatus() int
 	EngineStatus(status *EngineStatus) error 
 	Close()
+	HasClosed() bool
 
 	UpdateMapping(space *entity.Space) error
 	GetMapping() *mapping.IndexMapping

@@ -82,6 +82,7 @@ func New(cfg register.EngineConfig) (engine.Engine, error) {
 		path:         cfg.Path,
 		gamma:        gamma.Init(config),
 		counter:      atomic.NewAtomicInt64(0),
+		hasClosed:    false,
 	}
 	ge.reader = &readerImpl{engine: ge}
 	ge.writer = &writerImpl{engine: ge}
@@ -143,6 +144,7 @@ type gammaEngine struct {
 	buildIndexOnce sync.Once
 	counter        *atomic.AtomicInt64
 	lock           sync.RWMutex
+	hasClosed      bool
 }
 
 func (ge *gammaEngine) GetSpace() *entity.Space {
@@ -241,6 +243,10 @@ func (ge *gammaEngine) BuildIndex() error {
 	return nil
 }
 
+func (ge *gammaEngine) HasClosed() bool {
+	return ge.hasClosed
+}
+
 func (ge *gammaEngine) Close() {
 	closeEngine := ge.gamma
 	ge.gamma = nil
@@ -261,7 +267,7 @@ func (ge *gammaEngine) Close() {
 			} else {
 				log.Info("to close gamma engine success:[%d]", resp)
 			}
-
+			ge.hasClosed = true
 			log.Info("to close gamma engine end token:[%s] use time:[%d]", flakeUUID, time.Now().Sub(start))
 			break
 		}

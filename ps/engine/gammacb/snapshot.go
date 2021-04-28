@@ -141,7 +141,6 @@ func (ge *gammaEngine) ApplySnapshot(peers []proto.Peer, iter proto.SnapIterator
 			msg := &vearchpb.SnapshotMsg{}
 			err := protobuf.Unmarshal(bs, msg)
 			errutil.ThrowError(err)
-			log.Debug("receive path is [%s] ,status is [%s]", msg.FileName, msg.Status)
 			if msg.Status == vearchpb.SnapshotStatus_Finish {
 				log.Debug("follower receive finish.")
 				return nil
@@ -169,7 +168,8 @@ func (ge *gammaEngine) ApplySnapshot(peers []proto.Peer, iter proto.SnapIterator
 				errutil.ThrowError(err)
 				return err
 			}
-			log.Debug("create file path is [%s] ,name is [%s]", ge.path, msg.FileName)
+			log.Debug("write file path is [%s] ,name is [%s], size is [%d]",
+				ge.path, msg.FileName, len(msg.Data))
 			if _, err = out.Write(msg.Data); err != nil {
 				errutil.ThrowError(err)
 				return err
