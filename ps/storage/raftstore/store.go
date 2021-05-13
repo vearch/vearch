@@ -94,16 +94,7 @@ func CreateStore(ctx context.Context, pID entity.PartitionID, nodeID entity.Node
 
 // snapshot after load engine
 func (s *Store) ReBuildEngine() (err error) {
-	i := 0
-	for {
-		if s.Engine.HasClosed() {
-			break
-		}
-		time.Sleep(1 * time.Second)
-		i++
-		log.Debug("wait stop engine times:[%d]", i)
-	}
-	log.Debug("engine has stop, begin re build engine")
+	log.Debug("begin re build engine")
 	// re create engine
 	s.Engine, err = register.Build(s.Space.Engine.Name, register.EngineConfig{
 		Path:        s.DataPath,
