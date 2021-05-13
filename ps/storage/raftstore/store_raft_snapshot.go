@@ -30,6 +30,17 @@ func (s *Store) ApplySnapshot(peers []proto.Peer, iter proto.SnapIterator) (err 
 	defer errutil.CatchError(&err)
 	s.Engine.Close()
 	log.Debug("close engine")
+	i := 0
+	// wait engine close
+	for {
+		if s.Engine.HasClosed() {
+			break
+		}
+		time.Sleep(1 * time.Second)
+		i++
+		log.Debug("wait stop engine times:[%d]", i)
+	}
+	log.Debug("engine has stop, begin remove engine data.")
 	// remove engine data dir
 	err = s.RemoveDataPath()
 	errutil.ThrowError(err)
