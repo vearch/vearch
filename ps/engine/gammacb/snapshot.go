@@ -1,12 +1,13 @@
 package gammacb
 
 import (
-	bytes2 "bytes"
-	"encoding/json"
 	"fmt"
-	"github.com/vearch/vearch/util/log"
+	protobuf "github.com/golang/protobuf/proto"
 	"github.com/tiglabs/raft/proto"
-	"github.com/vearch/vearch/util/cbbytes"
+	"github.com/vearch/vearch/proto/vearchpb"
+	"github.com/vearch/vearch/util/errutil"
+	"github.com/vearch/vearch/util/fileutil"
+	"github.com/vearch/vearch/util/log"
 	"io/ioutil"
 	"math"
 	"os"
@@ -15,71 +16,78 @@ import (
 )
 
 const (
-	buf_size        = 1024000
-	send_over int32 = -1
+	// 每次传输10M
+	buf_size        = 1024000 * 10
 )
 
 var _ proto.Snapshot = &GammaSnapshot{}
 
 type GammaSnapshot struct {
-	sn     int64
-	index  int
-	path   string
-	infos  []os.FileInfo
-	reader *os.File
-	size   int64
+	sn           int64
+	index        int64
+	path         string
+	infos        []os.FileInfo
+	absFileNames []string
+	reader       *os.File
+	size         int64
 }
 
 func (g *GammaSnapshot) Next() ([]byte, error) {
-	if g.index >= len(g.infos) {
-		return cbbytes.ValueToByte(send_over)
+	var err error
+	defer errutil.CatchError(&err)
+	if int(g.index) >= len(g.absFileNames) {
+		log.Debug("leader send over, leader finish snapshot.")
+		snapShotMsg := &vearchpb.SnapshotMsg{
+			Status: vearchpb.SnapshotStatus_Finish,
+		}
+		return protobuf.Marshal(snapShotMsg)
 	}
 	if g.reader == nil {
-		info := g.infos[g.index]
+		filePath := g.absFileNames[g.index]
 		g.index = g.index + 1
-		log.Debug("gamma snapshot dir info is [%+v] ", info)
+		log.Debug("g.index is [%+v] ", g.index)
+		log.Debug("g.absFileNames length is [%+v] ", len(g.absFileNames))
+		info, _ := os.Stat(filePath)
 		if info.IsDir() {
-			log.Warn("dir:[%s] name:[%s] is dir , so skip sync", g.path, info.Name())
-			return cbbytes.ValueToByte(g.index - 1)
+			log.Debug("dir:[%s] name:[%s] is dir , so skip sync", g.path, info.Name())
+			snapShotMsg := &vearchpb.SnapshotMsg{
+				Status: vearchpb.SnapshotStatus_Running,
+			}
+			return protobuf.Marshal(snapShotMsg)
 		}
 		g.size = info.Size()
-		name := info.Name()
-
-		reader, err := os.Open(filepath.Join(g.path, name))
-		log.Debug("next reader info [%+v],path [%s],name [%s]", info, g.path, name)
-
+		reader, err := os.Open(filePath)
+		log.Debug("next reader info [%+v],path [%s],name [%s]", info, g.path, filePath)
 		if err != nil {
+			errutil.ThrowError(err)
 			return nil, err
 		}
 		g.reader = reader
 	}
 
-	b := make([]byte, int64(math.Min(buf_size, float64(g.size))))
-
-	size, err := g.reader.Read(b)
+	byteData := make([]byte, int64(math.Min(buf_size, float64(g.size))))
+	size, err := g.reader.Read(byteData)
 	if err != nil {
+		errutil.ThrowError(err)
 		return nil, err
 	}
-
 	g.size = g.size - int64(size)
+	log.Debug("current g.size [%+v], info size [%+v]", g.size, size)
 	if g.size == 0 {
 		if err := g.reader.Close(); err != nil {
+			errutil.ThrowError(err)
+
 			return nil, err
 		}
 		g.reader = nil
 	}
-
-	buffer := bytes2.Buffer{}
-
-	toByte, err := cbbytes.ValueToByte(g.index - 1)
-	if err != nil {
-		return nil, err
+	// snapshot proto msg
+	snapShotMsg := &vearchpb.SnapshotMsg{
+		FileName: g.absFileNames[g.index-1],
+		Data:     byteData,
+		Status:   vearchpb.SnapshotStatus_Running,
 	}
-	buffer.Write(toByte)
-	buffer.Write(b)
-
-	return buffer.Bytes(), nil
-
+	return protobuf.Marshal(snapShotMsg)
 }
 
 func (g *GammaSnapshot) ApplyIndex() uint64 {
@@ -97,9 +105,7 @@ func (ge *gammaEngine) NewSnapshot() (proto.Snapshot, error) {
 	defer ge.lock.RUnlock()
 	infos, _ := ioutil.ReadDir(ge.path)
 	fileName := filepath.Join(ge.path, indexSn)
-
-	log.Debug("new snapshot ge path is [%+v]",fileName)
-
+	log.Debug("new snapshot ge path is [%+v]", fileName)
 	b, err := ioutil.ReadFile(fileName)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -108,6 +114,9 @@ func (ge *gammaEngine) NewSnapshot() (proto.Snapshot, error) {
 			b = []byte("0")
 		}
 	}
+
+	// get all file names
+	absFileNames, _ := fileutil.GetAllFileNames(ge.path)
 	sn, err := strconv.ParseInt(string(b), 10, 64)
 	if err != nil {
 		return nil, err
@@ -115,50 +124,56 @@ func (ge *gammaEngine) NewSnapshot() (proto.Snapshot, error) {
 	if sn < 0 {
 		return nil, fmt.Errorf("read sn:[%d] less than zero", sn)
 	}
-	return &GammaSnapshot{path: ge.path, sn: sn, infos: infos}, nil
+	return &GammaSnapshot{path: ge.path, sn: sn, infos: infos, absFileNames: absFileNames}, nil
 }
 
 func (ge *gammaEngine) ApplySnapshot(peers []proto.Peer, iter proto.SnapIterator) error {
-	schema, err := iter.Next()
-	if err != nil {
-		return err
-	}
-
-	var names []string
-	if err := json.Unmarshal(schema, &names); err != nil {
-		return err
-	}
-	log.Debug("apply snap shot names is [%s]", names)
-	index := -1
-
+	var err error
+	defer errutil.CatchError(&err)
 	var out *os.File
-
 	for {
 		bs, err := iter.Next()
 		if err != nil {
+			errutil.ThrowError(err)
 			return err
 		}
-		i := int(cbbytes.ByteArray2UInt64(bs[:4]))
-
-		if i == int(send_over) {
-			return nil
-		}
-
-		if i != index {
+		if bs != nil {
+			msg := &vearchpb.SnapshotMsg{}
+			err := protobuf.Unmarshal(bs, msg)
+			errutil.ThrowError(err)
+			if msg.Status == vearchpb.SnapshotStatus_Finish {
+				log.Debug("follower receive finish.")
+				return nil
+			}
+			if msg.Data == nil || len(msg.Data) == 0 {
+				log.Debug("msg data is nil.")
+				continue
+			}
 			if out != nil {
 				if err := out.Close(); err != nil {
+					errutil.ThrowError(err)
 					return err
 				}
 			}
-			if out, err = os.Create(filepath.Join(ge.path, names[i])); err != nil {
+			// create dir
+			fileDir := filepath.Dir(msg.FileName)
+			_,exist := os.Stat(fileDir)
+			if os.IsNotExist(exist) {
+				log.Debug("create dir [%+v]", fileDir)
+				err := os.MkdirAll(fileDir, os.ModePerm)
+				errutil.ThrowError(err)
+			}
+			// create file, append write mode
+			if out, err = os.OpenFile(msg.FileName, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0660); err != nil {
+				errutil.ThrowError(err)
 				return err
 			}
-			log.Debug("create file path is [%s] ,name is [%s]",ge.path, names[i])
-
-			index = i
-		}
-		if _, err = out.Write(bs[4:]); err != nil {
-			return err
+			log.Debug("write file path is [%s] ,name is [%s], size is [%d]",
+				ge.path, msg.FileName, len(msg.Data))
+			if _, err = out.Write(msg.Data); err != nil {
+				errutil.ThrowError(err)
+				return err
+			}
 		}
 	}
 }

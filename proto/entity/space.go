@@ -99,6 +99,16 @@ type Space struct {
 	SpaceProperties map[string]*SpaceProperties `json:"space_properties"`
 }
 
+//cache/[dbId]/[spaceId]:[cacheCfg]
+type EngineCfg struct {
+	CacheModels []*CacheModel `json:"cache_models,omitempty"`
+}
+
+type CacheModel struct {
+	Name      string `json:"name,omitempty"` //user setting
+	CacheSize int32  `json:"cache_size,omitempty"`
+}
+
 type SpaceProperties struct {
 	FieldType  FieldType       `json:"field_type"`
 	Type       string          `json:"type"`

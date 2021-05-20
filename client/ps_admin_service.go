@@ -15,6 +15,7 @@
 package client
 
 import (
+	"encoding/json"
 	"strings"
 
 	"github.com/vearch/vearch/proto/entity"
@@ -47,6 +48,42 @@ func CreatePartition(addr string, space *entity.Space, pid uint32) error {
 
 func UpdatePartition(addr string, space *entity.Space, pid entity.PartitionID) error {
 	return operatePartition(UpdatePartitionHandler, addr, space, pid)
+}
+
+func GetEngineCfg(addr string, pid entity.PartitionID) (cfg *entity.EngineCfg, err error) {
+	args := &vearchpb.PartitionData{PartitionID: pid, Type: vearchpb.OpType_GET}
+	reply := new(vearchpb.PartitionData)
+	err = Execute(addr, EngineCfgHandler, args, reply)
+	if err != nil {
+		return nil, err
+	} else if reply != nil && reply.Err.Code != vearchpb.ErrorEnum_SUCCESS {
+		return nil, vearchpb.NewError(reply.Err.Code, nil)
+	}
+	if reply.Data != nil {
+		cfg := &entity.EngineCfg{}
+		err = cbjson.Unmarshal(reply.Data, cfg)
+		if err != nil {
+			return nil, err
+		}
+		data, _ := json.Marshal(cfg)
+		log.Debug("get engine cfg [%+v]",string(data))
+		return cfg, nil
+	}
+
+	return nil,nil
+}
+
+func UpdateEngineCfg(addr string, cacheCfg *entity.EngineCfg, pid entity.PartitionID) error {
+	value, err := cbjson.Marshal(cacheCfg)
+	args := &vearchpb.PartitionData{PartitionID: pid, Data: value, Type: vearchpb.OpType_CREATE}
+	reply := new(vearchpb.PartitionData)
+	err = Execute(addr, EngineCfgHandler, args, reply)
+	if err != nil {
+		return err
+	} else if reply != nil && reply.Err.Code != vearchpb.ErrorEnum_SUCCESS {
+		return vearchpb.NewError(reply.Err.Code, nil)
+	}
+	return nil
 }
 
 func DeleteReplica(addr string, partitionId uint32) error {
