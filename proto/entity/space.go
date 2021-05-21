@@ -61,6 +61,7 @@ type Engine struct {
 	RetrievalParam  json.RawMessage `json:"retrieval_param,omitempty"`
 	RetrievalParams json.RawMessage `json:"retrieval_params,omitempty"`
 	IdType          string          `json:"id_type,omitempty"`
+	DataType        string          `json:"data_type,omitempty"`
 }
 
 func NewDefaultEngine() *Engine {
@@ -189,6 +190,7 @@ func (engine *Engine) UnmarshalJSON(bs []byte) error {
 		RetrievalType   string          `json:"retrieval_type,omitempty"`
 		RetrievalTypes  []string        `json:"retrieval_types,omitempty"`
 		IdType          string          `json:"id_type,omitempty"`
+		DataType        string          `json:"data_type,omitempty"`
 	}{}
 
 	if err := json.Unmarshal(bs, tempEngine); err != nil {
@@ -361,6 +363,7 @@ func (engine *Engine) UnmarshalJSON(bs []byte) error {
 		RetrievalType:   tempEngine.RetrievalType,
 		RetrievalTypes:  tempEngine.RetrievalTypes,
 		IdType:          tempEngine.IdType,
+		DataType:        tempEngine.DataType,
 	}
 
 	return nil
