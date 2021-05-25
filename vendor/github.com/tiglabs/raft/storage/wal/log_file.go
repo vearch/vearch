@@ -182,11 +182,14 @@ func (lf *logEntryFile) ReBuildIndex() (truncateOffset int64, err error) {
 	if err == io.EOF {
 		err = nil
 	}
+
 	if filesize != nextRecordOffset {
 		log.Warn("logName[%v],fileSize[%v],corrupt data after offset[%v]", lf.name, filesize, nextRecordOffset)
 	}
 	return offset, err
 }
+
+
 
 func (lf *logEntryFile) Name() logFileName {
 	return lf.name
