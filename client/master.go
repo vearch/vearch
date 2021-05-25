@@ -18,11 +18,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/vearch/vearch/util/errutil"
 	"net/http"
 	"net/url"
+	"strings"
 	"sync"
 	"time"
+
+	"github.com/vearch/vearch/util/errutil"
 
 	"github.com/vearch/vearch/config"
 	"github.com/vearch/vearch/util"
@@ -131,7 +133,7 @@ func (m *masterClient) QueryServer(ctx context.Context, id entity.NodeID) (*enti
 	}
 	if bytes == nil {
 		log.Error("server can not find on master, maybe server is offline, nodeId:[%d]", id)
-		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_NOT_EXIST, nil)
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PS_NOTEXISTS, nil)
 	}
 
 	p := new(entity.Server)
@@ -191,6 +193,21 @@ func (m *masterClient) QueryServers(ctx context.Context) ([]*entity.Server, erro
 // QuerySpaces query spaces by dbID
 func (m *masterClient) QuerySpaces(ctx context.Context, dbID int64) ([]*entity.Space, error) {
 	return m.QuerySpacesByKey(ctx, fmt.Sprintf("%s%d/", entity.PrefixSpace, dbID))
+}
+
+// QueryRouter query router ip list by key
+func (m *masterClient) QueryRouter(ctx context.Context, key string) ([]string, error) {
+	_, bytesRouterIP, err := m.PrefixScan(ctx, fmt.Sprintf("%s%s/", entity.PrefixRouter, key))
+	if err != nil {
+		return nil, err
+	}
+	routerIPs := make([]string, 0, len(bytesRouterIP))
+	for _, bs := range bytesRouterIP {
+		ip := strings.Split(string(bs), ":")[0]
+		routerIPs = append(routerIPs, ip)
+		log.Debugf("find key: [%s], routerIP: [%s]", key, ip)
+	}
+	return routerIPs, nil
 }
 
 // QuerySpacesByKey scan space by space prefix
@@ -400,15 +417,25 @@ func (m *masterClient) Register(ctx context.Context, clusterName string, nodeID 
 	form.Add("nodeID", cast.ToString(nodeID))
 
 	masterServer.reset()
+	num := 0
 	var response []byte
 	for {
-		keyNumber, err := masterServer.getKey()
-		if err != nil {
-			return nil, err
-		}
 
 		query := netutil.NewQuery().SetHeader(Authorization, util.AuthEncrypt(Root, m.cfg.Global.Signkey))
-		query.SetAddress(m.cfg.Masters[keyNumber].ApiUrl())
+		if config.Conf().Global.MergeRouter {
+			if num >= len(config.Conf().Router.RouterIPS) {
+				return nil , fmt.Errorf("master server all down , register ps error")
+			}
+			query.SetAddress(m.cfg.Router.ApiUrl(num))
+			num = num + 1
+		} else {
+			keyNumber, err := masterServer.getKey()
+			if err != nil {
+				return nil, err
+			}
+			query.SetAddress(m.cfg.Masters[keyNumber].ApiUrl())
+		}
+
 		query.SetMethod(http.MethodPost)
 		query.SetQuery(form.Encode())
 		query.SetUrlPath("/register")
@@ -417,11 +444,14 @@ func (m *masterClient) Register(ctx context.Context, clusterName string, nodeID 
 		response, err = query.Do()
 		log.Debug("master api Register response: %v", string(response))
 		if err == nil {
+			log.Debug("master api Register success ")
 			break
 		}
 		log.Debug("master api Register err: %v", err)
 
 		masterServer.next()
+
+		time.Sleep(2 * time.Second)
 	}
 
 	data, err := parseRegisterData(response)
@@ -436,6 +466,53 @@ func (m *masterClient) Register(ctx context.Context, clusterName string, nodeID 
 	return server, nil
 }
 
+// RegisterRouter register router nodeid to master, return ip
+func (m *masterClient) RegisterRouter(ctx context.Context, clusterName string, timeout time.Duration) (res string, err error) {
+	form := url.Values{}
+	form.Add("clusterName", clusterName)
+
+	masterServer.reset()
+	var response []byte
+	num := 0
+	for {
+
+		query := netutil.NewQuery().SetHeader(Authorization, util.AuthEncrypt(Root, m.cfg.Global.Signkey))
+		if config.Conf().Global.MergeRouter {
+			if num >= len(config.Conf().Router.RouterIPS) {
+				return "" , fmt.Errorf("master server all down , register ps error")
+			}
+			query.SetAddress(m.cfg.Router.ApiUrl(num))
+			num = num + 1
+		} else {
+			keyNumber, err := masterServer.getKey()
+			if err != nil {
+				return "", err
+			}
+			query.SetAddress(m.cfg.Masters[keyNumber].ApiUrl())
+		}
+		query.SetMethod(http.MethodPost)
+		query.SetQuery(form.Encode())
+		query.SetUrlPath("/register_router")
+		query.SetTimeout(60)
+		log.Debug("master api Register url: %s", query.GetUrl())
+		response, err = query.Do()
+		log.Debug("master api Register response: %v", string(response))
+		if err == nil {
+			break
+		}
+		log.Debug("master api Register err: %v", err)
+
+		masterServer.next()
+	}
+
+	data, err := parseRegisterData(response)
+	if err != nil {
+		return "", err
+	}
+
+	return string(data[1 : len(data)-1]), nil
+}
+
 // RegisterPartition register partition
 func (m *masterClient) RegisterPartition(ctx context.Context, partition *entity.Partition) error {
 	reqBody, err := cbjson.Marshal(partition)
@@ -445,14 +522,23 @@ func (m *masterClient) RegisterPartition(ctx context.Context, partition *entity.
 
 	masterServer.reset()
 	var response []byte
+	num := 0
 	for {
-		keyNumber, err := masterServer.getKey()
-		if err != nil {
-			return err
-		}
 
 		query := netutil.NewQuery().SetHeader(Authorization, util.AuthEncrypt(Root, m.cfg.Global.Signkey))
-		query.SetAddress(m.cfg.Masters[keyNumber].ApiUrl())
+		if config.Conf().Global.MergeRouter {
+			if num >= len(config.Conf().Router.RouterIPS) {
+				return fmt.Errorf("master server all down , register ps error")
+			}
+			query.SetAddress(m.cfg.Router.ApiUrl(num))
+			num = num + 1
+		} else {
+			keyNumber, err := masterServer.getKey()
+			if err != nil {
+				return err
+			}
+			query.SetAddress(m.cfg.Masters[keyNumber].ApiUrl())
+		}
 		query.SetMethod(http.MethodPost)
 		query.SetUrlPath("/register_partition")
 		query.SetReqBody(string(reqBody))
@@ -487,25 +573,42 @@ func (m *masterClient) RegisterPartition(ctx context.Context, partition *entity.
 }
 
 //send HTTPPost request
-func (m *masterClient) HTTPPost(url string, reqBody string) (response []byte, e error) {
+func (m *masterClient) HTTPPost(ctx context.Context, url string, reqBody string) (response []byte, e error) {
 	//process panic
 	defer func() {
 		if info := recover(); info != nil {
 			e = fmt.Errorf("panic is %v", info)
 		}
 	}()
-	for {
-		keyNumber, err := masterServer.getKey()
+	var err error
+	if config.Conf().Global.MergeRouter {
+		config.Conf().Router.RouterIPS, err = m.QueryRouter(ctx, config.Conf().Global.Name)
 		if err != nil {
-			panic(err)
+			return nil, fmt.Errorf("query router err: %v", err)
 		}
-		query := netutil.NewQuery().SetHeader(Authorization, util.AuthEncrypt(Root, m.cfg.Global.Signkey))
-		query.SetAddress(m.cfg.Masters[keyNumber].ApiUrl())
-		query.SetMethod(http.MethodPost)
-		query.SetUrlPath(url)
-		query.SetReqBody(string(reqBody))
-		query.SetContentTypeJson()
-		query.SetTimeout(60)
+	}
+	query := netutil.NewQuery().SetHeader(Authorization, util.AuthEncrypt(Root, m.cfg.Global.Signkey))
+	query.SetMethod(http.MethodPost)
+	query.SetUrlPath(url)
+	query.SetReqBody(reqBody)
+	query.SetContentTypeJson()
+	query.SetTimeout(60)
+	num := 0
+	for {
+		if config.Conf().Global.MergeRouter {
+			if num >= len(config.Conf().Router.RouterIPS) {
+				return nil , fmt.Errorf("master server all down , register ps error")
+			}
+			query.SetAddress(m.cfg.Router.ApiUrl(num))
+			num = num + 1
+		} else {
+			keyNumber, err := masterServer.getKey()
+			if err != nil {
+				panic(err)
+			}
+			query.SetAddress(m.cfg.Masters[keyNumber].ApiUrl())
+		}
+
 		log.Debug("remote server url: %s, req body: %s", query.GetUrl(), string(reqBody))
 		response, err = query.Do()
 		log.Debug("remote server response: %v", string(response))
@@ -533,7 +636,7 @@ func (m *masterClient) RemoveNodeMeta(ctx context.Context, nodeID entity.NodeID)
 		return err
 	}
 	masterServer.reset()
-	response, err := m.HTTPPost("/meta/remove_server", string(reqBody))
+	response, err := m.HTTPPost(ctx, "/meta/remove_server", string(reqBody))
 	log.Debug("remove server response: %v", string(response))
 	if err != nil {
 		return err
@@ -592,7 +695,7 @@ func (client *masterClient) RecoverFailServer(ctx context.Context, rfs *entity.R
 	reqBody, err := cbjson.Marshal(rfs)
 	errutil.ThrowError(err)
 	masterServer.reset()
-	response, err := client.HTTPPost("/schedule/recover_server", string(reqBody))
+	response, err := client.HTTPPost(ctx, "/schedule/recover_server", string(reqBody))
 	errutil.ThrowError(err)
 	jsonMap, err := cbjson.ByteToJsonMap(response)
 	errutil.ThrowError(err)

@@ -13,6 +13,7 @@
 // permissions and limitations under the License.
 package gammacb
 
+import "C"
 import (
 	"context"
 	"encoding/json"
@@ -81,6 +82,7 @@ func New(cfg register.EngineConfig) (engine.Engine, error) {
 		path:         cfg.Path,
 		gamma:        gamma.Init(config),
 		counter:      atomic.NewAtomicInt64(0),
+		hasClosed:    false,
 	}
 	ge.reader = &readerImpl{engine: ge}
 	ge.writer = &writerImpl{engine: ge}
@@ -142,6 +144,7 @@ type gammaEngine struct {
 	buildIndexOnce sync.Once
 	counter        *atomic.AtomicInt64
 	lock           sync.RWMutex
+	hasClosed      bool
 }
 
 func (ge *gammaEngine) GetSpace() *entity.Space {
@@ -206,6 +209,16 @@ func (ge *gammaEngine) IndexStatus() int {
 	return int(status.IndexStatus)
 }
 
+func (ge *gammaEngine) EngineStatus(status *engine.EngineStatus) error {
+	var ges gamma.EngineStatus
+	gamma.GetEngineStatus(ge.gamma, &ges)
+	status.IndexStatus = ges.IndexStatus
+	status.DocNum = ges.DocNum
+	status.MaxDocid = ges.MaxDocid
+	status.MinIndexedNum = ges.MinIndexedNum
+	return nil
+}
+
 func (ge *gammaEngine) BuildIndex() error {
 	indexLocker.Lock()
 	defer indexLocker.Unlock()
@@ -230,6 +243,10 @@ func (ge *gammaEngine) BuildIndex() error {
 	return nil
 }
 
+func (ge *gammaEngine) HasClosed() bool {
+	return ge.hasClosed
+}
+
 func (ge *gammaEngine) Close() {
 	closeEngine := ge.gamma
 	ge.gamma = nil
@@ -250,7 +267,7 @@ func (ge *gammaEngine) Close() {
 			} else {
 				log.Info("to close gamma engine success:[%d]", resp)
 			}
-
+			ge.hasClosed = true
 			log.Info("to close gamma engine end token:[%s] use time:[%d]", flakeUUID, time.Now().Sub(start))
 			break
 		}
@@ -290,4 +307,15 @@ func (ge *gammaEngine) autoCreateIndex() {
 		}
 		time.Sleep(1 * time.Second)
 	}
+
+}
+
+func (ge *gammaEngine) SetEngineCfg(config *gamma.Config) error {
+	gamma.SetEngineCfg(ge.gamma, config)
+	return nil
+}
+
+func (ge *gammaEngine) GetEngineCfg(config *gamma.Config) error {
+	gamma.GetEngineCfg(ge.gamma, config)
+	return nil
 }

@@ -1,4 +1,4 @@
-// Copyright 2018 The TigLabs raft Authors.
+// Copyright 2018 The tiglabs raft Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -113,12 +113,6 @@ func (r *recordReader) Read() (recStartOffset int64, rec record, err error) {
 		err = NewCorruptError(r.filename, recStartOffset, "illegal data length")
 		return
 	}
-
-	defer func() {
-		if err == io.EOF {
-			err = NewCorruptError(r.filename, recStartOffset, "unexpected eof")
-		}
-	}()
 
 	// read data and crc
 	// WARN：不可以用buffer pool，因为log entry等decode时没有进行拷贝

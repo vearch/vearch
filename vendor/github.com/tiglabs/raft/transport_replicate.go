@@ -1,4 +1,4 @@
-// Copyright 2018 The TigLabs raft Authors.
+// Copyright 2018 The tiglabs raft Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -118,7 +118,7 @@ func (t *replicateTransport) sendSnapshot(m *proto.Message, rs *snapshotStatus) 
 		err = fmt.Errorf("snapshot concurrency exceed the limit %v.", t.config.MaxSnapConcurrency)
 		return
 	}
-	if conn = getConn(m.To, Replicate, t.config.Resolver, 10*time.Minute, 15*time.Second); conn == nil {
+	if conn = getConn(m.To, Replicate, t.config.Resolver, 10*time.Minute, 1*time.Minute); conn == nil {
 		err = fmt.Errorf("can't get connection to %v.", m.To)
 		return
 	}
@@ -219,6 +219,7 @@ func (t *replicateTransport) handleConn(conn *util.ConnTimeout) {
 				if msg, err := reciveMessage(bufRd); err != nil {
 					return
 				} else {
+					//logger.Debug(fmt.Sprintf("Recive %v from (%v)", msg.ToString(), conn.RemoteAddr()))
 					if msg.Type == proto.ReqMsgSnapShot {
 						if err := t.handleSnapshot(msg, conn, bufRd); err != nil {
 							return

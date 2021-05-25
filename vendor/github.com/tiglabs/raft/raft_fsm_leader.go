@@ -1,4 +1,5 @@
 // Copyright 2015 The etcd Authors
+// Modified work copyright 2018 The tiglabs Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -28,7 +29,7 @@ func (r *raftFsm) becomeLeader() {
 	if r.state == stateFollower {
 		panic(AppPanicError(fmt.Sprintf("[raft->becomeLeader][%v] invalid transition [follower -> leader].", r.id)))
 	}
-
+	r.recoverCommit()
 	lasti := r.raftLog.lastIndex()
 	r.step = stepLeader
 	r.reset(r.term, lasti, true)

@@ -19,6 +19,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/vearch/vearch/ps/engine/gamma"
+	"github.com/vearch/vearch/util/errutil"
 
 	"github.com/tiglabs/raft"
 	"github.com/tiglabs/raft/proto"
@@ -66,6 +68,9 @@ func ExportToRpcAdminHandler(server *Server) {
 		panic(err)
 	}
 	if err := server.rpcServer.RegisterName(handler.NewChain(client.ChangeMemberHandler, handler.DefaultPanicHandler, nil, initAdminHandler, &ChangeMemberHandler{server: server}), ""); err != nil {
+		panic(err)
+	}
+	if err := server.rpcServer.RegisterName(handler.NewChain(client.EngineCfgHandler, handler.DefaultPanicHandler, nil, initAdminHandler, &EngineCfgHandler{server: server}), ""); err != nil {
 		panic(err)
 	}
 
@@ -277,7 +282,6 @@ func (ch *ChangeMemberHandler) Execute(ctx context.Context, req *vearchpb.Partit
 		return err
 	}
 
-
 	store := ch.server.GetPartition(req.PartitionID)
 	if store == nil {
 		msg := fmt.Sprintf("partition not found, partitionId:[%d]", req.PartitionID)
@@ -343,4 +347,66 @@ func psErrorChange(server *Server) handler.ErrorChangeFun {
 		}
 		return err
 	}
+}
+
+type EngineCfgHandler struct {
+	server *Server
+}
+
+func (ch *EngineCfgHandler) Execute(ctx context.Context, req *vearchpb.PartitionData, reply *vearchpb.PartitionData) (err error) {
+	defer errutil.CatchError(&err)
+	reply.Err = &vearchpb.Error{Code: vearchpb.ErrorEnum_SUCCESS}
+	// get store engine
+	log.Debug("request pid [%+v]", req.PartitionID)
+	partitonStore := ch.server.GetPartition(req.PartitionID)
+	if partitonStore == nil {
+		log.Debug("partitonStore is nil.")
+		return fmt.Errorf("partition (%v), partitonStore is nil ", req.PartitionID)
+	}
+	engine := partitonStore.GetEngine()
+	if engine == nil {
+		return fmt.Errorf("partition (%v), engine is nil ", req.PartitionID)
+	}
+	if req.Type == vearchpb.OpType_CREATE {
+		cacheCfg := new(entity.EngineCfg)
+		if err := cbjson.Unmarshal(req.Data, cacheCfg); err != nil {
+			errutil.ThrowError(err)
+			return err
+		}
+		// invoke c interface
+		log.Debug("cache cfg info is [%+v]", cacheCfg)
+		cfg := &gamma.Config{}
+		var CacheInfos []*gamma.CacheInfo
+		if cacheCfg.CacheModels != nil {
+			for _, model := range cacheCfg.CacheModels {
+				cf := &gamma.CacheInfo{Name: model.Name, CacheSize: model.CacheSize}
+				CacheInfos = append(CacheInfos, cf)
+			}
+		}
+		cfg.CacheInfos = CacheInfos
+		err := engine.SetEngineCfg(cfg)
+		if err != nil {
+			log.Debug("cache info set error [%+v]", err)
+		}
+	} else if req.Type == vearchpb.OpType_GET {
+		// invoke c interface
+		log.Debug("invoke cfg info is get")
+		cfg := &gamma.Config{}
+		err := engine.GetEngineCfg(cfg)
+		if err != nil {
+			log.Debug("cache info set error [%+v]", err)
+		}
+		var cacheModels []*entity.CacheModel
+		if cfg.CacheInfos != nil {
+			for _, cf := range cfg.CacheInfos {
+				model := &entity.CacheModel{Name: cf.Name, CacheSize: cf.CacheSize}
+				cacheModels = append(cacheModels, model)
+			}
+		}
+		cacheCfg := new(entity.EngineCfg)
+		cacheCfg.CacheModels = cacheModels
+		data, _ := cbjson.Marshal(cacheCfg)
+		reply.Data = data
+	}
+	return nil
 }

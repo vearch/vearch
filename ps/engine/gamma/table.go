@@ -41,13 +41,15 @@ type FieldInfo struct {
 }
 
 type Table struct {
-	Name           string
-	Fields         []FieldInfo
-	VectorsInfos   []VectorInfo
-	IndexingSize   int32
-	RetrievalType  string
-	RetrievalParam string
-	table          *gamma_api.Table
+	Name            string
+	Fields          []FieldInfo
+	VectorsInfos    []VectorInfo
+	IndexingSize    int32
+	RetrievalType   string
+	RetrievalParam  string
+	RetrievalTypes  []string
+	RetrievalParams []string
+	table           *gamma_api.Table
 }
 
 func (table *Table) Serialize(out *[]byte) int {
@@ -73,7 +75,7 @@ func (table *Table) Serialize(out *[]byte) int {
 	}
 
 	gamma_api.TableStartFieldsVector(builder, len(table.Fields))
-	for i := 0; i < len(table.Fields); i++ {
+	for i := len(table.Fields) - 1; i >= 0; i-- {
 		builder.PrependUOffsetT(fieldInfos[i])
 	}
 	fields := builder.EndVector(len(table.Fields))
@@ -108,13 +110,40 @@ func (table *Table) Serialize(out *[]byte) int {
 	}
 
 	gamma_api.TableStartVectorsInfoVector(builder, len(table.VectorsInfos))
-	for i := 0; i < len(table.VectorsInfos); i++ {
+	for i := len(table.VectorsInfos) - 1; i >= 0; i-- {
 		builder.PrependUOffsetT(vectorInfos[i])
 	}
 	vecInfos := builder.EndVector(len(table.VectorsInfos))
 
 	retrievalType := builder.CreateString(table.RetrievalType)
 	retrievalParam := builder.CreateString(table.RetrievalParam)
+
+	var retrievalTypes []flatbuffers.UOffsetT
+	retrievalTypes = make([]flatbuffers.UOffsetT, len(table.RetrievalTypes))
+	for i := 0; i < len(table.RetrievalTypes); i++ {
+		types := table.RetrievalTypes[i]
+		retrievalTypes[i] = builder.CreateString(types)
+	}
+
+	gamma_api.TableStartRetrievalTypesVector(builder, len(table.RetrievalTypes))
+	for i := len(table.RetrievalTypes) - 1; i >= 0; i-- {
+		builder.PrependUOffsetT(retrievalTypes[i])
+	}
+	retriTypes := builder.EndVector(len(table.RetrievalTypes))
+
+	var retrievalParams []flatbuffers.UOffsetT
+	retrievalParams = make([]flatbuffers.UOffsetT, len(table.RetrievalParams))
+	for i := 0; i < len(table.RetrievalParams); i++ {
+		params := table.RetrievalParams[i]
+		retrievalParams[i] = builder.CreateString(params)
+	}
+
+	gamma_api.TableStartRetrievalParamsVector(builder, len(table.RetrievalParams))
+	for i := len(retrievalParams) - 1; i >= 0; i-- {
+		builder.PrependUOffsetT(retrievalParams[i])
+	}
+	retriParams := builder.EndVector(len(table.RetrievalParams))
+
 	gamma_api.TableStart(builder)
 	gamma_api.TableAddName(builder, name)
 	gamma_api.TableAddFields(builder, fields)
@@ -122,6 +151,8 @@ func (table *Table) Serialize(out *[]byte) int {
 	gamma_api.TableAddIndexingSize(builder, table.IndexingSize)
 	gamma_api.TableAddRetrievalType(builder, retrievalType)
 	gamma_api.TableAddRetrievalParam(builder, retrievalParam)
+	gamma_api.TableAddRetrievalTypes(builder, retriTypes)
+	gamma_api.TableAddRetrievalParams(builder, retriParams)
 	builder.Finish(builder.EndObject())
 	outLen := len(builder.FinishedBytes())
 	*out = make([]byte, outLen)
@@ -158,4 +189,13 @@ func (table *Table) DeSerialize(buffer []byte) {
 	table.IndexingSize = table.table.IndexingSize()
 	table.RetrievalType = string(table.table.RetrievalType())
 	table.RetrievalParam = string(table.table.RetrievalParam())
+
+	table.RetrievalTypes = make([]string, table.table.RetrievalTypesLength())
+	for i := 0; i < len(table.RetrievalTypes); i++ {
+		table.RetrievalTypes[i] = string(table.table.RetrievalTypes(i))
+	}
+	table.RetrievalParams = make([]string, table.table.RetrievalParamsLength())
+	for i := 0; i < len(table.RetrievalParams); i++ {
+		table.RetrievalParams[i] = string(table.table.RetrievalParams(i))
+	}
 }

@@ -16,7 +16,6 @@ package gamma
 */
 import "C"
 import (
-	"fmt"
 	"unsafe"
 )
 
@@ -55,7 +54,6 @@ func AddOrUpdateDocs(engine unsafe.Pointer, buffer [][]byte) BatchResult {
 	var result BatchResult
 	buffer2 := C.GoBytes(unsafe.Pointer(CBuffer), C.int(*length))
 	result.DeSerialize(buffer2)
-	fmt.Println(result)
 	return result
 }
 
@@ -138,3 +136,21 @@ func DelDocByQuery(engine unsafe.Pointer, request *Request) int {
 	ret := int(C.DelDocByQuery(engine, (*C.char)(unsafe.Pointer(&buffer[0])), C.int(len(buffer))))
 	return ret
 }
+
+func SetEngineCfg(engine unsafe.Pointer, config *Config) int {
+	var buffer []byte
+	config.Serialize(&buffer)
+	ret := int(C.SetConfig(engine, (*C.char)(unsafe.Pointer(&buffer[0])), C.int(len(buffer))))
+	return ret
+}
+
+func GetEngineCfg(engine unsafe.Pointer, config *Config) {
+	var CBuffer *C.char
+	zero := 0
+	length := &zero
+	C.GetConfig(engine, (**C.char)(unsafe.Pointer(&CBuffer)), (*C.int)(unsafe.Pointer(length)))
+	defer C.free(unsafe.Pointer(CBuffer))
+	buffer := C.GoBytes(unsafe.Pointer(CBuffer), C.int(*length))
+	config.DeSerialize(buffer)
+}
+

@@ -162,6 +162,7 @@ type GlobalCfg struct {
 	AutoRecoverPs   bool   `toml:"auto_recover_ps,omitempty" json:"auto_recover_ps"`
 	SupportEtcdAuth bool   `toml:"support_etcd_auth,omitempty" json:"support_etcd_auth"`
 	RaftConsistent  bool   `toml:"raft_consistent,omitempty" json:"raft_consistent"`
+	MergeRouter     bool   `toml:"master_merge_into_router,omitempty" json:"master_merge_into_router"`
 }
 
 type EtcdCfg struct {
@@ -268,12 +269,24 @@ func (config *Config) GetEmbed() (*embed.Config, error) {
 }
 
 type RouterCfg struct {
-	Port         uint16 `toml:"port,omitempty" json:"port"`
-	PprofPort    uint16 `toml:"pprof_port,omitempty" json:"pprof_port"`
-	RpcPort      uint16 `toml:"rpc_port,omitempty" json:"rpc_port"`
-	MonitorPort  uint16 `toml:"monitor_port" json:"monitor_port"`
-	ConnLimit    int    `toml:"conn_limit" json:"conn_limit"`
-	CloseTimeout int64  `toml:"close_timeout" json:"close_timeout"`
+	Port         uint16   `toml:"port,omitempty" json:"port"`
+	PprofPort    uint16   `toml:"pprof_port,omitempty" json:"pprof_port"`
+	RpcPort      uint16   `toml:"rpc_port,omitempty" json:"rpc_port"`
+	MonitorPort  uint16   `toml:"monitor_port" json:"monitor_port"`
+	ConnLimit    int      `toml:"conn_limit" json:"conn_limit"`
+	CloseTimeout int64    `toml:"close_timeout" json:"close_timeout"`
+	RouterIPS    []string ``
+}
+
+func (routerCfg *RouterCfg) ApiUrl(keyNumber int) string {
+	var Addr string
+	if routerCfg.RouterIPS != nil && len(routerCfg.RouterIPS) > 0 && keyNumber < len(routerCfg.RouterIPS) {
+		Addr = routerCfg.RouterIPS[keyNumber]
+	}
+	if routerCfg.Port == 80 {
+		return "http://" + Addr
+	}
+	return "http://" + Addr + ":" + cast.ToString(routerCfg.Port)
 }
 
 type PSCfg struct {
@@ -345,13 +358,12 @@ func (config *Config) CurrentByMasterNameDomainIp(masterName string) error {
 		} else {
 			log.Info("find local master failed:master's name:[%s] master's ip:[%s] and local master's name:[%s]", m.Name, m.Address, masterName)
 		}
+		if found {
+			return nil
+		}
 	}
 
-	if !found {
-		return errors.New("None of the masters has the same ip address as current local master server's ip")
-	}
-
-	return nil
+	return errors.New("None of the masters has the same ip address as current local master server's ip")
 }
 
 func (config *Config) addrMap() map[string]bool {

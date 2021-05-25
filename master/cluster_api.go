@@ -19,13 +19,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/tiglabs/raft/proto"
-	"github.com/vearch/vearch/util/cbjson"
+	"github.com/vearch/vearch/util/errutil"
+	"io/ioutil"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 	"unicode"
+
+	"github.com/tiglabs/raft/proto"
+	"github.com/vearch/vearch/util/cbjson"
 
 	"github.com/vearch/vearch/client"
 	"github.com/vearch/vearch/monitor"
@@ -47,11 +50,6 @@ const (
 	DB            = "db"
 	dbName        = "db_name"
 	spaceName     = "space_name"
-	userName      = "user_name"
-	userPassword  = "user_password"
-	userDbList    = "user_db_list"
-	allowdHost    = "allowed_host"
-	privilege     = "privilege"
 	headerAuthKey = "Authorization"
 	NodeID        = "node_id"
 )
@@ -78,10 +76,12 @@ func ExportToClusterHandler(router *gin.Engine, masterService *masterService) {
 	router.Handle(http.MethodGet, "/list/db", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.dbList, dh.TimeOutEndHandler)
 	router.Handle(http.MethodGet, "/list/space", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.spaceList, dh.TimeOutEndHandler)
 	router.Handle(http.MethodGet, "/list/partition", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.partitionList, dh.TimeOutEndHandler)
+	router.Handle(http.MethodGet, "/list/router", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.routerList, dh.TimeOutEndHandler)
 
 	//partition register
 	router.Handle(http.MethodPost, "/register", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.register, dh.TimeOutEndHandler)
 	router.Handle(http.MethodPost, "/register_partition", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.registerPartition, dh.TimeOutEndHandler)
+	router.Handle(http.MethodPost, "/register_router", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.registerRouter, dh.TimeOutEndHandler)
 
 	//db handler
 	router.Handle(http.MethodPut, "/db/_create", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.createDB, dh.TimeOutEndHandler)
@@ -94,6 +94,10 @@ func ExportToClusterHandler(router *gin.Engine, masterService *masterService) {
 	router.Handle(http.MethodGet, "/space/:"+dbName+"/:"+spaceName, dh.PaincHandler, dh.TimeOutHandler, c.auth, c.getSpace, dh.TimeOutEndHandler)
 	router.Handle(http.MethodDelete, "/space/:"+dbName+"/:"+spaceName, dh.PaincHandler, dh.TimeOutHandler, c.auth, c.deleteSpace, dh.TimeOutEndHandler)
 	router.Handle(http.MethodPost, "/space/:"+dbName+"/:"+spaceName, dh.PaincHandler, dh.TimeOutHandler, c.auth, c.updateSpace, dh.TimeOutEndHandler)
+
+	// modify engine config handler
+	router.Handle(http.MethodPost, "/config/:"+dbName+"/:"+spaceName, dh.PaincHandler, dh.TimeOutHandler, c.auth, c.modifyEngineCfg, dh.TimeOutEndHandler)
+	router.Handle(http.MethodGet, "/config/:"+dbName+"/:"+spaceName, dh.PaincHandler, dh.TimeOutHandler, c.auth, c.getEngineCfg, dh.TimeOutEndHandler)
 
 	//partition handler
 	router.Handle(http.MethodPost, "/partition/change_member", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.changeMember, dh.TimeOutEndHandler)
@@ -168,6 +172,21 @@ func (ca *clusterAPI) register(c *gin.Context) {
 	}
 
 	ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(server)
+}
+
+//for router startup to register self and get ip response
+func (ca *clusterAPI) registerRouter(c *gin.Context) {
+
+	ip := c.ClientIP()
+	log.Debug("register from: %s", ip)
+	clusterName := c.Query("clusterName")
+
+	if clusterName != config.Conf().Global.Name {
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(fmt.Errorf("cluster name not same ,please check"))
+		return
+	}
+
+	ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(ip)
 }
 
 //when partition leader got it will register self to this api
@@ -336,6 +355,47 @@ func (ca *clusterAPI) updateSpace(c *gin.Context) {
 	}
 }
 
+// get engine config
+func (ca *clusterAPI) getEngineCfg(c *gin.Context) {
+	var err error
+	defer errutil.CatchError(&err)
+	dbName := c.Param(dbName)
+	sapceName := c.Param(spaceName)
+	errutil.ThrowError(err)
+	if cfg, err := ca.masterService.GetEngineCfg(c, dbName, sapceName); err != nil {
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
+	} else {
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(cfg)
+	}
+}
+
+// modify engine config
+func (ca *clusterAPI) modifyEngineCfg(c *gin.Context) {
+	var err error
+	defer errutil.CatchError(&err)
+	dbName := c.Param(dbName)
+	sapceName := c.Param(spaceName)
+	data, err := ioutil.ReadAll(c.Request.Body)
+	errutil.ThrowError(err)
+	log.Debug("engine config json data is [%+v]", string(data))
+	cacheCfg := &entity.EngineCfg{}
+	err = json.Unmarshal(data, &cacheCfg)
+	if  err != nil {
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
+		return
+	}
+
+	if cacheCfg.CacheModels == nil {
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(fmt.Errorf("engine config [%+v] is error", string(data)))
+		return
+	}
+	if err := ca.masterService.ModifyEngineCfg(c, dbName, sapceName, cacheCfg); err != nil {
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
+	} else {
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(cacheCfg)
+	}
+}
+
 //serverList list servers
 func (ca *clusterAPI) serverList(c *gin.Context) {
 	servers, err := ca.masterService.Master().QueryServers(c)
@@ -388,6 +448,15 @@ func (ca *clusterAPI) dbList(c *gin.Context) {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 	} else {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(dbs)
+	}
+}
+
+//routerList list router
+func (ca *clusterAPI) routerList(c *gin.Context) {
+	if routerIPs, err := ca.masterService.Master().QueryRouter(c, config.Conf().Global.Name); err != nil {
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
+	} else {
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(routerIPs)
 	}
 }
 
@@ -493,7 +562,7 @@ func (cluster *clusterAPI) RemoveServerMeta(c *gin.Context) {
 	}
 	//if nodeId can't get server info
 	if failServer == nil && ipAdd != "" {
-		failServer = cluster.masterService.Master().QueryServerByIPAddr(ctx.(context.Context),ipAdd)
+		failServer = cluster.masterService.Master().QueryServerByIPAddr(ctx.(context.Context), ipAdd)
 	}
 	//get all partition
 	if failServer != nil && failServer.Node != nil {
@@ -515,7 +584,7 @@ func (cluster *clusterAPI) RemoveServerMeta(c *gin.Context) {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(fmt.Errorf("server [%v] can't find", failServer))
 		return
 	}
-	ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(fmt.Sprintf("nodeid [%d], " +
+	ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(fmt.Sprintf("nodeid [%d], "+
 		"server [%v] remove node success!", nodeID, failServer))
 }
 
@@ -544,7 +613,7 @@ func (cluster *clusterAPI) ChangeReplicas(c *gin.Context) {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 		return
 	}
-	dbByte,err := json.Marshal(dbModify)
+	dbByte, err := json.Marshal(dbModify)
 	if err != nil {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 		return
@@ -552,7 +621,7 @@ func (cluster *clusterAPI) ChangeReplicas(c *gin.Context) {
 	dbStr := string(dbByte)
 	log.Info("dbModify is %s", dbStr)
 	if dbModify.DbName == "" || dbModify.SpaceName == "" {
-		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(fmt.Errorf("dbModify info incorrect [%s]",dbStr))
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(fmt.Errorf("dbModify info incorrect [%s]", dbStr))
 	}
 	if err := cluster.masterService.ChangeReplica(ctx.(context.Context), dbModify); err != nil {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(fmt.Errorf("[%s] failed ChangeReplicas,err is %v",

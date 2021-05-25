@@ -11,7 +11,7 @@
  2. docker pull vearch/vearch:3.2.0
  3. one docker deploy or distributed deployment
     1. ```If deploy a docker start vearch,master,ps,router start together: cat vearch/config/config.toml.example > config.toml nohup docker run -p 8817:8817 -p 9001:9001 -v $PWD/config.toml:/vearch/config.toml  vearch/vearch:3.2.0 all &```
-  
+    
     2. ```If distributed deploy ,modify vearch/config/config.toml and start separately```
     3. ```Modify vearch/config/config.toml ,refer the step 'Local Model'```
     4. ```Start separately image, modify step i 'all' to 'master' and 'ps' and 'router' ,master image must first start```
@@ -43,38 +43,30 @@
 
 #### Dependent Environment 
 
-   1. CentOS, Ubuntu and Mac OS are all OK (recommend CentOS >= 7.2)，cmake required
-   2. Go >= 1.11.2 required
-   3. Gcc >= 5 required
-   4. [Faiss](https://github.com/facebookresearch/faiss) >= v1.6.0
-   5. [RocksDB](https://github.com/facebook/rocksdb) == 6.2.2 ***(optional)***. Please use `make shared_lib` which is in `RocksDB's INSTALL.md` to compile rocksdb. When you want to use rocksdb to store vectors or you want to make the data persistent, you need to install rocksdb. If rocksdb is not installed, then the data will be lost if you restart, you need to re-insert the data.
-   6. CUDA >= 9.0, if you want GPU support.
+   1. CentOS, Ubuntu and Mac OS are all OK (recommend CentOS >= 7.2).
+   2. go >= 1.11.2 required.
+   3. gcc >= 5 required.
+   4. cmake >= 3.17 required.
+   5. OpenBLAS.
+   6. tbb，In CentOS it can be installed by yum. Such as: yum install tbb-devel.x86_64.
+   7. [RocksDB](https://github.com/facebook/rocksdb) == 6.2.2 ***(optional)***. You don't need to install it manually, the script installs it automatically. But you need to manually install the dependencies of rocksdb. Please refer to the installation method: https://github.com/facebook/rocksdb/blob/master/INSTALL.md
+   8. [zfp](https://github.com/LLNL/zfp) == v0.5.5 ***(optional)***, You don't need to install it manually, the script installs it automatically.
+   9. CUDA >= 9.0, if you want GPU support.
 #### Compile 
    * Enter the `GOPATH` directory, `cd $GOPATH/src` `mkdir -p github.com/vearch` `cd github.com/vearch`
-   * Download the source code: `git clone https://xxxxxx/vearch.git` ($vearch denotes the absolute path of vearch code)
-   * To add GPU Index support : change `BUILD_WITH_GPU` from `"off"` to `"on"` in `$vearch/engine/CMakeLists.txt` 
-   * Compile gamma
-       1. `cd $vearch/engine`
-       2. `mkdir build && cd build`
-       3. `export FAISS_HOME=the installed path of faiss`
-       4. `export ROCKSDB_HOME=the directory where you compiled(make shared_lib) rocksdb`
-       5. `cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$vearch/ps/engine/gammacb/lib  ..`
-       6. `make && make install`
-   
-   * Compile vearch
-      1. `cd $vearch`
-      2. `export FAISS_HOME=the installed path of faiss`
-      3. `export ROCKSDB_HOME=the directory where you compiled(make shared_lib) rocksdb`
-      4. `export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$vearch/ps/engine/gammacb/lib/lib:$FAISS_HOME/lib` or `export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$vearch/ps/engine/gammacb/lib/lib:$FAISS_HOME/lib:$ROCKSDB_HOME` if ROCKSDB_HOME is set
-      5. `go build -o vearch`
+   * Download the source code: `git clone https://github.com/vearch/vearch.git` ($vearch denotes the absolute path of vearch code)
+   * Download the source code of subprojects gamma: ``cd vearch``  `git submodule update --recursive`
+   * To add GPU Index support: change `BUILD_WITH_GPU` from `"off"` to `"on"` in `$vearch/engine/CMakeLists.txt` 
+   * Compile vearch and gamma
+      1. `cd build`
+      2. `sh build.sh`
       when `vearch` file generated, it is ok.
-           
-       
+      
 #### Deploy
-   Before run vearch, you shuld set `LD_LIBRARY_PATH`, Ensure that system can find faiss and gamma dynamic libraries (like $vearch/ps/engine/gammacb/lib/lib and $FAISS_HOME/lib directory files) .
+   Before run vearch, you shuld set `LD_LIBRARY_PATH`, Ensure that system can find gamma dynamic libraries. The gamma dynamic library that has been compiled is in the $vearch/build/gamma_build folder.
    ##### 1 Local Model
    * generate config file conf.toml
-      
+     
 ```
 [global]
     # the name will validate join cluster by same name
@@ -128,9 +120,9 @@
    * start
 
 ````
-./vearch -conf conf.toml
+./vearch -conf conf.toml all
 ````
-   
+
    ##### 2 Cluster Model
    > vearch has three module: `ps`(PartitionServer) , `master`, `router`, run `./vearch -f conf.toml ps/router/master` start ps/router/master module
 

@@ -16,7 +16,10 @@ package gammacb
 
 import (
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
+	"github.com/vearch/vearch/proto/entity"
+	"github.com/vearch/vearch/util/cbjson"
 	"strings"
 
 	"github.com/spf13/cast"
@@ -60,11 +63,32 @@ func mapping2Table(cfg register.EngineConfig, m *mapping.IndexMapping) (*gamma.T
 		retrievalParam = string(engine.RetrievalParam)
 	}
 
+	var retrievalParamsArr []string
+	retrievalParams := &entity.RetrievalParams{}
+	if engine.RetrievalParams != nil {
+		err := cbjson.Unmarshal(engine.RetrievalParams, &retrievalParams.RetrievalParamArr)
+		if err != nil {
+			return nil, fmt.Errorf("retrieval_params Unmarshal error")
+		}
+		retrievalParamsArr = make([]string, len(retrievalParams.RetrievalParamArr))
+		for i := 0; i < len(retrievalParams.RetrievalParamArr); i++ {
+			v := retrievalParams.RetrievalParamArr[i]
+			retrievalParamsByte, err := json.Marshal(v)
+			if err != nil {
+				return nil, fmt.Errorf("retrieval_params Unmarshal error")
+			}
+			retrievalParamsArr[i] = string(retrievalParamsByte)
+		}
+	}
+
 	table := &gamma.Table{
-		Name:           cast.ToString(cfg.PartitionID),
-		IndexingSize:   int32(engine.IndexSize),
-		RetrievalType:  engine.RetrievalType,
-		RetrievalParam: retrievalParam}
+		Name:            cast.ToString(cfg.PartitionID),
+		IndexingSize:    int32(engine.IndexSize),
+		RetrievalType:   engine.RetrievalType,
+		RetrievalTypes:  engine.RetrievalTypes,
+		RetrievalParam:  retrievalParam,
+		RetrievalParams: retrievalParamsArr,
+	}
 
 	idTypeStr := engine.IdType
 	if strings.EqualFold("long", idTypeStr) {
@@ -90,6 +114,15 @@ func mapping2Table(cfg register.EngineConfig, m *mapping.IndexMapping) (*gamma.T
 		case vearchpb.FieldType_FLOAT:
 			index := (value.Field.Options() & vearchpb.FieldOption_Index) / vearchpb.FieldOption_Index
 			fieldInfo := gamma.FieldInfo{Name: key, DataType: gamma.FLOAT}
+			if index == 1 {
+				fieldInfo.IsIndex = true
+			} else {
+				fieldInfo.IsIndex = false
+			}
+			table.Fields = append(table.Fields, fieldInfo)
+		case vearchpb.FieldType_DOUBLE:
+			index := (value.Field.Options() & vearchpb.FieldOption_Index) / vearchpb.FieldOption_Index
+			fieldInfo := gamma.FieldInfo{Name: key, DataType: gamma.DOUBLE}
 			if index == 1 {
 				fieldInfo.IsIndex = true
 			} else {
@@ -145,8 +178,10 @@ func mapping2Table(cfg register.EngineConfig, m *mapping.IndexMapping) (*gamma.T
 
 	m.DimensionMap = dim
 
-	if len(table.VectorsInfos) == 0 {
-		return nil, fmt.Errorf("create table has no vector field")
+	if !(engine.DataType != "" && (strings.EqualFold("scalar", engine.DataType))) {
+		if len(table.VectorsInfos) == 0 {
+			return nil, fmt.Errorf("create table has no vector field")
+		}
 	}
 
 	return table, nil
