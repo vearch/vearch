@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"github.com/vearch/vearch/util/errutil"
 	"math"
-	"strings"
 	"sync"
 	"time"
 
@@ -229,7 +228,6 @@ func (s *Server) getRouterIPS(ctx context.Context) (routerIPS []string) {
 		}
 		if routerIPS != nil && len(routerIPS) > 0 {
 			for  _, IP := range routerIPS {
-				IP = strings.Split(IP, ":")[0]
 				config.Conf().Router.RouterIPS = append(config.Conf().Router.RouterIPS, IP)
 			}
 			log.Info("get router info [%v]", routerIPS)
