@@ -35,7 +35,7 @@ type GammaSnapshot struct {
 func (g *GammaSnapshot) Next() ([]byte, error) {
 	var err error
 	defer errutil.CatchError(&err)
-	if int(g.index) >= len(g.absFileNames) {
+	if int(g.index) >= len(g.absFileNames) && g.size == 0 {
 		log.Debug("leader send over, leader finish snapshot.")
 		snapShotMsg := &vearchpb.SnapshotMsg{
 			Status: vearchpb.SnapshotStatus_Finish,
