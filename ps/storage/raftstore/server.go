@@ -16,14 +16,16 @@ package raftstore
 
 import (
 	"fmt"
-	"github.com/spf13/cast"
-	"github.com/vearch/vearch/util/log"
-	"github.com/tiglabs/raft"
-	"github.com/vearch/vearch/config"
-	"github.com/vearch/vearch/proto/entity"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/vearch/vearch/config"
+	"github.com/vearch/vearch/proto/entity"
+	"github.com/vearch/vearch/util/log"
+
+	"github.com/spf13/cast"
+	"github.com/tiglabs/raft"
 )
 
 func StartRaftServer(nodeId entity.NodeID, ip string, resolver raft.SocketResolver) (*raft.RaftServer, error) {
@@ -106,6 +108,24 @@ func (r *RaftResolver) AddNode(id entity.NodeID, replica *entity.Replica) {
 	atomic.AddInt32(&(obj.(*nodeRef).refCount), 1)
 }
 
+func (r *RaftResolver) UpdateNode(id entity.NodeID, replica *entity.Replica) {
+	ref := new(nodeRef)
+	ref.heartbeatAddr = replica.HeartbeatAddr
+	ref.replicateAddr = replica.ReplicateAddr
+	ref.rpcAddr = replica.RpcAddr
+	obj, loaded := r.nodes.LoadOrStore(id, ref)
+	if loaded {
+		atomic.StoreInt32(&ref.refCount, obj.(*nodeRef).refCount)
+	} else {
+		atomic.AddInt32(&ref.refCount, 1)
+	}
+	r.nodes.Store(id, ref)
+	r.nodes.Range(func(key, value interface{}) bool {
+		log.Debug("r.nodes, key: [%v], value: [%v]", key, value)
+		return true
+	})
+}
+
 func (r *RaftResolver) ToReplica(id entity.NodeID) (replica *entity.Replica) {
 	replica = &entity.Replica{
 		NodeID: id,
@@ -136,6 +156,10 @@ func (r *RaftResolver) GetNode(id entity.NodeID) *nodeRef {
 		return obj.(*nodeRef)
 	}
 	return nil
+}
+
+func (r *RaftResolver) RangeNodes(f func(key, value interface{}) bool) {
+	r.nodes.Range(f)
 }
 
 // NodeAddress resolve NodeID to net.Addr addresses.
