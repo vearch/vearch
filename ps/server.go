@@ -209,7 +209,9 @@ func (s *Server) register() (server *entity.Server) {
 		}
 		time.Sleep(2 * time.Second)
 	}
-
+	if server == nil {
+		s.Close()
+	}
 	log.Info("register master ok, nodeId:[%d]", s.nodeID)
 	return server
 }

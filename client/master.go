@@ -447,7 +447,7 @@ func (m *masterClient) Register(ctx context.Context, clusterName string, nodeID 
 			log.Debug("master api Register success ")
 			break
 		}
-		log.Debug("master api Register err: %v", err)
+		log.Warnf("master[%s] api Register err: %v", query.GetUrl(), err)
 
 		masterServer.next()
 
@@ -524,7 +524,6 @@ func (m *masterClient) RegisterPartition(ctx context.Context, partition *entity.
 	var response []byte
 	num := 0
 	for {
-
 		query := netutil.NewQuery().SetHeader(Authorization, util.AuthEncrypt(Root, m.cfg.Global.Signkey))
 		if config.Conf().Global.MergeRouter {
 			if num >= len(config.Conf().Router.RouterIPS) {
@@ -544,13 +543,12 @@ func (m *masterClient) RegisterPartition(ctx context.Context, partition *entity.
 		query.SetReqBody(string(reqBody))
 		query.SetContentTypeJson()
 		query.SetTimeout(60)
-		log.Debug("master api register partition url: %s, req body: %s", query.GetUrl(), string(reqBody))
 		response, err = query.Do()
 		log.Debug("master api register partition response: %v", string(response))
 		if err == nil {
 			break
 		}
-		log.Debug("master api register partition err: %v", err)
+		log.Warnf("master api register partition err: %v", err)
 
 		masterServer.next()
 	}
@@ -715,8 +713,7 @@ func parseRegisterData(response []byte) ([]byte, error) {
 		return nil, fmt.Errorf("client master api register parse response code error: %s", err.Error())
 	}
 
-	if err != nil || code != vearchpb.ErrCode(vearchpb.ErrorEnum_SUCCESS) {
-
+	if code != vearchpb.ErrCode(vearchpb.ErrorEnum_SUCCESS) {
 		return nil, fmt.Errorf("client master api register parse response error, code: %d, msg: %s", code, jsonMap.GetJsonValStringOrDefault("msg", ""))
 	}
 	data, err := jsonMap.GetJsonValBytes("data")
