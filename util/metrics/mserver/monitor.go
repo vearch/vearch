@@ -115,7 +115,7 @@ func NewFsStats(rss *sysstat.RuntimeStatSampler) *FsStats {
 			Total:       rss.DiskUsage.DiskTotal.Value(),
 			Free:        rss.DiskUsage.DiskFree.Value(),
 			Used:        rss.DiskUsage.DiskUsed.Value(),
-			UsedPercent: float64(rss.DiskUsage.DiskTotal.Value() / (rss.DiskUsage.DiskUsed.Value() + 1)),
+			UsedPercent: float64(rss.DiskUsage.DiskUsed.Value() * 100 / (rss.DiskUsage.DiskTotal.Value() + 1)),
 		},
 	}
 }
