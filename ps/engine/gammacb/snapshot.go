@@ -142,6 +142,13 @@ func (ge *gammaEngine) ApplySnapshot(peers []proto.Peer, iter proto.SnapIterator
 			err := protobuf.Unmarshal(bs, msg)
 			errutil.ThrowError(err)
 			if msg.Status == vearchpb.SnapshotStatus_Finish {
+				if out != nil {
+					if err := out.Close(); err != nil {
+						errutil.ThrowError(err)
+						return err
+					}
+					out = nil
+				}
 				log.Debug("follower receive finish.")
 				return nil
 			}
@@ -154,6 +161,7 @@ func (ge *gammaEngine) ApplySnapshot(peers []proto.Peer, iter proto.SnapIterator
 					errutil.ThrowError(err)
 					return err
 				}
+				out = nil
 			}
 			// create dir
 			fileDir := filepath.Dir(msg.FileName)
