@@ -708,7 +708,7 @@ func GetNodeIdsByClientType(clientType string, partition *entity.Partition, serv
 					noLeaderIDs = append(noLeaderIDs, nodeID)
 				}
 			} else {
-				if serverExist {
+				if serverExist && nodeID != partition.LeaderID {
 					noLeaderIDs = append(noLeaderIDs, nodeID)
 				}
 			}
