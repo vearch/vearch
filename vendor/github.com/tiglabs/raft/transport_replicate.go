@@ -151,22 +151,25 @@ func (t *replicateTransport) sendSnapshot(m *proto.Message, rs *snapshotStatus) 
 
 		default:
 			data, err = m.Snapshot.Next()
+
+			// to prevent err from being overided
+			var innerError error
 			if len(data) > 0 {
 				// write block size
 				binary.BigEndian.PutUint32(sizeBuf, uint32(len(data)))
-				if _, err = bufWr.Write(sizeBuf); err == nil {
-					_, err = bufWr.Write(data)
+				if _, innerError = bufWr.Write(sizeBuf); innerError == nil {
+					_, innerError = bufWr.Write(data)
 				}
+			}
+
+			if err == nil {
+				err = innerError
 			}
 		}
 	}
 
 	// write end flag and flush
 	if err != nil && err != io.EOF {
-		return
-	}
-	binary.BigEndian.PutUint32(sizeBuf, 0)
-	if _, err = bufWr.Write(sizeBuf); err != nil {
 		return
 	}
 	if err = bufWr.Flush(); err != nil {
