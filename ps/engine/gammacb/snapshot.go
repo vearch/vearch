@@ -8,6 +8,7 @@ import (
 	"github.com/vearch/vearch/util/errutil"
 	"github.com/vearch/vearch/util/fileutil"
 	"github.com/vearch/vearch/util/log"
+	"io"
 	"io/ioutil"
 	"math"
 	"os"
@@ -40,7 +41,12 @@ func (g *GammaSnapshot) Next() ([]byte, error) {
 		snapShotMsg := &vearchpb.SnapshotMsg{
 			Status: vearchpb.SnapshotStatus_Finish,
 		}
-		return protobuf.Marshal(snapShotMsg)
+		data, err := protobuf.Marshal(snapShotMsg)
+		if err != nil {
+			return data, err
+		} else {
+			return data, io.EOF
+		}
 	}
 	if g.reader == nil {
 		filePath := g.absFileNames[g.index]
@@ -133,7 +139,7 @@ func (ge *gammaEngine) ApplySnapshot(peers []proto.Peer, iter proto.SnapIterator
 	var out *os.File
 	for {
 		bs, err := iter.Next()
-		if err != nil {
+		if err != nil && err != io.EOF {
 			errutil.ThrowError(err)
 			return err
 		}
