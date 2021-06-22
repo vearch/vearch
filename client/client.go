@@ -351,10 +351,19 @@ func (r *routerRequest) Execute() []*vearchpb.Item {
 	}
 	wg.Wait()
 	close(respChain)
-	items := make([]*vearchpb.Item, 0)
+	tmpItems := make([]*vearchpb.Item, 0)
 	for resp := range respChain {
 		setPartitionErr(resp)
-		items = append(items, resp.Items...)
+		tmpItems = append(tmpItems, resp.Items...)
+	}
+	docIndexMap := make(map[string]int, len(r.docs))
+	for i, doc := range r.docs {
+		docIndexMap[doc.PKey] = i
+	}
+	items := make([]*vearchpb.Item, len(tmpItems))
+	for _, item := range tmpItems {
+		realIndex := docIndexMap[item.Doc.PKey]
+		items[realIndex] = item
 	}
 	return items
 }
