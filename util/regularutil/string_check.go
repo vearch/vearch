@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	number_pattern = "^[0-9]*$"
+	number_pattern = "^[-+]?\\d+$"
 )
 
 func StringCheckNum(input string) bool {
