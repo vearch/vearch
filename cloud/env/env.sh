@@ -2,7 +2,7 @@
 
 yum update
 yum install -y epel-release
-yum install -y wget gcc gcc-c++ make automake git blas-devel lapack-devel which openssl-devel libzstd-devel openblas-devel tbb-devel
+yum install -y wget gcc gcc-c++ make automake git blas-devel lapack-devel which openssl-devel libzstd-devel openblas-devel tbb-devel boost-devel
 if [ ! -d "/env/app" ]; then
   mkdir -p /env/app
 fi
@@ -57,3 +57,4 @@ if [ ! -f "go1.12.7.linux-amd64.tar.gz" ]; then
     wget https://dl.google.com/go/go1.12.7.linux-amd64.tar.gz
 fi
 tar -xzf go1.12.7.linux-amd64.tar.gz
+

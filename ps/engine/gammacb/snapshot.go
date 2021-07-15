@@ -18,7 +18,7 @@ import (
 
 const (
 	// 每次传输10M
-	buf_size        = 1024000 * 10
+	buf_size = 1024000 * 10
 )
 
 var _ proto.Snapshot = &GammaSnapshot{}
@@ -171,7 +171,7 @@ func (ge *gammaEngine) ApplySnapshot(peers []proto.Peer, iter proto.SnapIterator
 			}
 			// create dir
 			fileDir := filepath.Dir(msg.FileName)
-			_,exist := os.Stat(fileDir)
+			_, exist := os.Stat(fileDir)
 			if os.IsNotExist(exist) {
 				log.Debug("create dir [%+v]", fileDir)
 				err := os.MkdirAll(fileDir, os.ModePerm)
