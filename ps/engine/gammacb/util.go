@@ -178,8 +178,10 @@ func mapping2Table(cfg register.EngineConfig, m *mapping.IndexMapping) (*gamma.T
 
 	m.DimensionMap = dim
 
-	if len(table.VectorsInfos) == 0 {
-		return nil, fmt.Errorf("create table has no vector field")
+	if !(engine.DataType != "" && (strings.EqualFold("scalar", engine.DataType))) {
+		if len(table.VectorsInfos) == 0 {
+			return nil, fmt.Errorf("create table has no vector field")
+		}
 	}
 
 	return table, nil

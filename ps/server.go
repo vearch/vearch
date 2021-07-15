@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"github.com/vearch/vearch/util/errutil"
 	"math"
-	"strings"
 	"sync"
 	"time"
 
@@ -210,7 +209,9 @@ func (s *Server) register() (server *entity.Server) {
 		}
 		time.Sleep(2 * time.Second)
 	}
-
+	if server == nil {
+		s.Close()
+	}
 	log.Info("register master ok, nodeId:[%d]", s.nodeID)
 	return server
 }
@@ -229,7 +230,6 @@ func (s *Server) getRouterIPS(ctx context.Context) (routerIPS []string) {
 		}
 		if routerIPS != nil && len(routerIPS) > 0 {
 			for  _, IP := range routerIPS {
-				IP = strings.Split(IP, ":")[0]
 				config.Conf().Router.RouterIPS = append(config.Conf().Router.RouterIPS, IP)
 			}
 			log.Info("get router info [%v]", routerIPS)

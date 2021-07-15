@@ -8,6 +8,7 @@ import (
 	"github.com/vearch/vearch/util/errutil"
 	"github.com/vearch/vearch/util/fileutil"
 	"github.com/vearch/vearch/util/log"
+	"io"
 	"io/ioutil"
 	"math"
 	"os"
@@ -35,12 +36,17 @@ type GammaSnapshot struct {
 func (g *GammaSnapshot) Next() ([]byte, error) {
 	var err error
 	defer errutil.CatchError(&err)
-	if int(g.index) >= len(g.absFileNames) {
+	if int(g.index) >= len(g.absFileNames) && g.size == 0 {
 		log.Debug("leader send over, leader finish snapshot.")
 		snapShotMsg := &vearchpb.SnapshotMsg{
 			Status: vearchpb.SnapshotStatus_Finish,
 		}
-		return protobuf.Marshal(snapShotMsg)
+		data, err := protobuf.Marshal(snapShotMsg)
+		if err != nil {
+			return data, err
+		} else {
+			return data, io.EOF
+		}
 	}
 	if g.reader == nil {
 		filePath := g.absFileNames[g.index]
@@ -133,7 +139,7 @@ func (ge *gammaEngine) ApplySnapshot(peers []proto.Peer, iter proto.SnapIterator
 	var out *os.File
 	for {
 		bs, err := iter.Next()
-		if err != nil {
+		if err != nil && err != io.EOF {
 			errutil.ThrowError(err)
 			return err
 		}
@@ -142,6 +148,13 @@ func (ge *gammaEngine) ApplySnapshot(peers []proto.Peer, iter proto.SnapIterator
 			err := protobuf.Unmarshal(bs, msg)
 			errutil.ThrowError(err)
 			if msg.Status == vearchpb.SnapshotStatus_Finish {
+				if out != nil {
+					if err := out.Close(); err != nil {
+						errutil.ThrowError(err)
+						return err
+					}
+					out = nil
+				}
 				log.Debug("follower receive finish.")
 				return nil
 			}
@@ -154,6 +167,7 @@ func (ge *gammaEngine) ApplySnapshot(peers []proto.Peer, iter proto.SnapIterator
 					errutil.ThrowError(err)
 					return err
 				}
+				out = nil
 			}
 			// create dir
 			fileDir := filepath.Dir(msg.FileName)

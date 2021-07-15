@@ -74,7 +74,7 @@ var FieldsIndex = map[string]int{
 }
 
 // parse doc
-func MapDocument(source []byte, retrievalType string, proMap map[string]*entity.SpaceProperties) ([]*vearchpb.Field, error) {
+func MapDocument(source []byte, space *entity.Space, proMap map[string]*entity.SpaceProperties) ([]*vearchpb.Field, error) {
 	var fast fastjson.Parser
 	v, err := fast.ParseBytes(source)
 	if err != nil {
@@ -87,10 +87,10 @@ func MapDocument(source []byte, retrievalType string, proMap map[string]*entity.
 	}
 
 	var path []string
-	return parseJSON(path, v, retrievalType, proMap)
+	return parseJSON(path, v, space, proMap)
 }
 
-func parseJSON(path []string, v *fastjson.Value, retrievalType string, proMap map[string]*entity.SpaceProperties) ([]*vearchpb.Field, error) {
+func parseJSON(path []string, v *fastjson.Value, space *entity.Space, proMap map[string]*entity.SpaceProperties) ([]*vearchpb.Field, error) {
 	fields := make([]*vearchpb.Field, 0)
 
 	obj, err := v.Object()
@@ -120,7 +120,7 @@ func parseJSON(path []string, v *fastjson.Value, retrievalType string, proMap ma
 				defer func() {
 					rutil.PutDocVal(docV)
 				}()
-				field, err := processProperty(docV, val, retrievalType, pro)
+				field, err := processProperty(docV, val, space.Engine.RetrievalType, pro)
 				if err != nil {
 					log.Error("processProperty unrecognizable field:[%s] value %v", fieldName, err)
 					return
@@ -141,8 +141,10 @@ func parseJSON(path []string, v *fastjson.Value, retrievalType string, proMap ma
 		return nil, fmt.Errorf("param have error field [%s]", errorField)
 	}
 
-	if !haveVector {
-		return nil, fmt.Errorf("param have not vector value")
+	if !(space.Engine.DataType != "" && (strings.EqualFold("scalar", space.Engine.DataType))) {
+		if !haveVector {
+			return nil, fmt.Errorf("param have not vector value")
+		}
 	}
 
 	return fields, nil
@@ -697,7 +699,7 @@ func docParse(ctx context.Context, r *http.Request, space *entity.Space, args *v
 		spacePro, _ := entity.UnmarshalPropertyJSON(space.Properties)
 		spaceProperties = spacePro
 	}
-	fields, err := MapDocument(body, space.Engine.RetrievalType, spaceProperties)
+	fields, err := MapDocument(body, space, spaceProperties)
 	if err != nil {
 		return err
 	}
@@ -732,7 +734,7 @@ func docBulkParse(ctx context.Context, r *http.Request, space *entity.Space, arg
 			spacePro, _ := entity.UnmarshalPropertyJSON(space.Properties)
 			spaceProperties = spacePro
 		}
-		fields, err := MapDocument(source, space.Engine.RetrievalType, spaceProperties)
+		fields, err := MapDocument(source, space, spaceProperties)
 		if err != nil {
 			return err
 		}

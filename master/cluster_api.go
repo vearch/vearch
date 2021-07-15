@@ -19,7 +19,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/vearch/vearch/util/errutil"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -27,23 +26,22 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/tiglabs/raft/proto"
-	"github.com/vearch/vearch/util/cbjson"
-
 	"github.com/vearch/vearch/client"
-	"github.com/vearch/vearch/monitor"
-	"github.com/vearch/vearch/util/server/vearchhttp"
-
-	"github.com/vearch/vearch/util/netutil"
-
-	"github.com/gin-gonic/gin"
-	"github.com/spf13/cast"
 	"github.com/vearch/vearch/config"
+	"github.com/vearch/vearch/monitor"
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/proto/vearchpb"
 	"github.com/vearch/vearch/util"
+	"github.com/vearch/vearch/util/cbjson"
+	"github.com/vearch/vearch/util/errutil"
 	"github.com/vearch/vearch/util/ginutil"
 	"github.com/vearch/vearch/util/log"
+	"github.com/vearch/vearch/util/netutil"
+	"github.com/vearch/vearch/util/server/vearchhttp"
+
+	"github.com/gin-gonic/gin"
+	"github.com/spf13/cast"
+	"github.com/tiglabs/raft/proto"
 )
 
 const (
@@ -162,6 +160,12 @@ func (ca *clusterAPI) register(c *gin.Context) {
 
 	if clusterName != config.Conf().Global.Name {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(fmt.Errorf("cluster name not same ,please check"))
+		return
+	}
+
+	// if node id is already existed, return failed
+	if err := ca.masterService.IsExistNode(c, nodeID); err != nil {
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 		return
 	}
 
@@ -380,7 +384,7 @@ func (ca *clusterAPI) modifyEngineCfg(c *gin.Context) {
 	log.Debug("engine config json data is [%+v]", string(data))
 	cacheCfg := &entity.EngineCfg{}
 	err = json.Unmarshal(data, &cacheCfg)
-	if  err != nil {
+	if err != nil {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 		return
 	}

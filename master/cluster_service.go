@@ -19,6 +19,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/pkg/errors"
 	"github.com/vearch/vearch/config"
 	"github.com/vearch/vearch/util/errutil"
 	"github.com/vearch/vearch/util/slice"
@@ -1044,4 +1045,23 @@ func (ms *masterService) ChangeReplica(ctx context.Context, dbModify *entity.DBM
 	log.Info("updateSpace space [%+v] success", space)
 	errutil.ThrowError(err)
 	return e
+}
+
+func (ms *masterService) IsExistNode(ctx context.Context, id entity.NodeID) error {
+	values, err := ms.Master().Get(ctx, entity.ServerKey(id))
+	if err != nil {
+		return errors.Wrap(err, fmt.Sprintf("look up key[%s] in etcd failed", entity.ServerKey(id)))
+	}
+	if values == nil {
+		return nil
+	}
+	server := &entity.Server{}
+	err = json.Unmarshal(values, server)
+	if err != nil {
+		return errors.Wrap(err, fmt.Sprintf("parse key[%s] in etcd failed", entity.ServerKey(id)))
+	}
+	if server != nil {
+		return errors.Errorf("node id[%d] has register on ip[%s]", server.ID, server.Ip)
+	}
+	return nil
 }
