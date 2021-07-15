@@ -18,7 +18,7 @@ import (
 	"github.com/tiglabs/raft/proto"
 	"github.com/vearch/vearch/util/errutil"
 	"github.com/vearch/vearch/util/log"
-        "time"
+	"time"
 )
 
 // Snapshot implements the raft interface.

@@ -16,6 +16,7 @@ package document
 
 import (
 	"context"
+	"sync"
 
 	"github.com/vearch/vearch/client"
 	"github.com/vearch/vearch/proto/entity"
@@ -168,14 +169,28 @@ func (docService *docService) search(ctx context.Context, args *vearchpb.SearchR
 
 func (docService *docService) bulkSearch(ctx context.Context, args []*vearchpb.SearchRequest) *vearchpb.SearchResponse {
 	searchResponse := &vearchpb.SearchResponse{}
+	var wg sync.WaitGroup
+	respChain := make(chan *vearchpb.SearchResponse, len(args))
 	for _, arg := range args {
-		res := docService.search(ctx, arg)
+		wg.Add(1)
+		go func(arg *vearchpb.SearchRequest, ctx context.Context) {
+			res := docService.search(ctx, arg)
+			respChain <- res
+			wg.Done()
+		}(arg, ctx)
+	}
+	wg.Wait()
+	close(respChain)
+	for resp := range respChain {
 		if searchResponse == nil {
-			searchResponse = res
+			searchResponse = resp
 		} else {
-			searchResponse.Results = append(searchResponse.Results, res.Results[0])
+			if resp.Results != nil && len(resp.Results) > 0 {
+				searchResponse.Results = append(searchResponse.Results, resp.Results[0])
+			}
 		}
 	}
+
 	return searchResponse
 }
 
