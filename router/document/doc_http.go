@@ -113,6 +113,9 @@ func (handler *DocumentHandler) ExportToServer() error {
 	// bulk: /$dbName/$spaceName/_query_byids
 	handler.httpServer.HandlesMethods([]string{http.MethodPost}, fmt.Sprintf("/{%s}/{%s}/_query_byids", URLParamDbName, URLParamSpaceName), []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handlerQueryDocByIds}, nil)
 
+	// bulk: /$dbName/$spaceName/_query_by_ids
+	handler.httpServer.HandlesMethods([]string{http.MethodPost}, fmt.Sprintf("/{%s}/{%s}/_query_by_ids", URLParamDbName, URLParamSpaceName), []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handlerQueryDocByIds}, nil)
+
 	// bulk: /$dbName/$spaceName/_query_byids_feture
 	handler.httpServer.HandlesMethods([]string{http.MethodPost}, fmt.Sprintf("/{%s}/{%s}/_query_byids_feature", URLParamDbName, URLParamSpaceName), []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handlerQueryDocByIdsFeature}, nil)
 
@@ -194,7 +197,7 @@ func (handler *DocumentHandler) handleGetDoc(ctx context.Context, w http.Respons
 	args.Head = setRequestHead(params, r)
 	args.PrimaryKeys = strings.Split(params.ByName(URLParamID), ",")
 	reply := handler.docService.getDocs(ctx, args)
-	if resultBytes, err := docGetResponse(handler.client, args, reply, nil); err != nil {
+	if resultBytes, err := docGetResponse(handler.client, args, reply, nil, false); err != nil {
 		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 		return ctx, true
 	} else {
@@ -469,7 +472,7 @@ func (handler *DocumentHandler) handlerQueryDocByIds(ctx context.Context, w http
 	if fieldsParam != nil {
 		queryFieldsParam = arrayToMap(fieldsParam)
 	}
-	if resultBytes, err := docGetResponse(handler.client, args, reply, queryFieldsParam); err != nil {
+	if resultBytes, err := docGetResponse(handler.client, args, reply, queryFieldsParam, true); err != nil {
 		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 		return ctx, true
 	} else {

@@ -40,7 +40,7 @@ import (
 )
 
 const (
-	DefaultPsTimeOut           = 5
+	DefaultPsTimeOut = 5
 )
 
 // masterClient is  used for router and partition server,not for master administrator. This client is mainly used to communicate with etcd directly,with out business logic
@@ -252,20 +252,20 @@ func (m *masterClient) QueryServerByIPAddr(ctx context.Context, IPAddr string) *
 	var err error
 	defer errutil.CatchError(&err)
 	//get all failServer
-	failServers,err := m.QueryAllFailServer(ctx)
-	for _,fs := range failServers {
+	failServers, err := m.QueryAllFailServer(ctx)
+	for _, fs := range failServers {
 		if fs.Node.Ip == IPAddr {
-			log.Debug("get fail server info [%+v]",fs)
+			log.Debug("get fail server info [%+v]", fs)
 			return fs
 		}
 	}
 
 	//get all server
-	servers,err := m.QueryServers(ctx)
-	for _,server := range servers {
+	servers, err := m.QueryServers(ctx)
+	for _, server := range servers {
 		if server.Ip == IPAddr {
-			fs := &entity.FailServer{TimeStamp: time.Now().Unix(),Node: server,ID: server.ID}
-			log.Debug("get alive server info [%+v]",fs)
+			fs := &entity.FailServer{TimeStamp: time.Now().Unix(), Node: server, ID: server.ID}
+			log.Debug("get alive server info [%+v]", fs)
 			return fs
 		}
 	}
@@ -380,7 +380,7 @@ func (m *masterClient) KeepAlive(ctx context.Context, server *entity.Server) (<-
 	if timeout <= 0 {
 		timeout = DefaultPsTimeOut
 	}
-	return m.Store.KeepAlive(ctx, entity.ServerKey(server.ID), bytes, time.Second * time.Duration(timeout))
+	return m.Store.KeepAlive(ctx, entity.ServerKey(server.ID), bytes, time.Second*time.Duration(timeout))
 }
 
 // PutServerWithLeaseID PutServerWithLeaseID
@@ -393,7 +393,7 @@ func (m *masterClient) PutServerWithLeaseID(ctx context.Context, server *entity.
 	if timeout <= 0 {
 		timeout = DefaultPsTimeOut
 	}
-	return m.Store.PutWithLeaseId(ctx, entity.ServerKey(server.ID), bytes, time.Second * time.Duration(timeout), leaseID)
+	return m.Store.PutWithLeaseId(ctx, entity.ServerKey(server.ID), bytes, time.Second*time.Duration(timeout), leaseID)
 }
 
 // DBKeys get db url in etcd
@@ -424,7 +424,7 @@ func (m *masterClient) Register(ctx context.Context, clusterName string, nodeID 
 		query := netutil.NewQuery().SetHeader(Authorization, util.AuthEncrypt(Root, m.cfg.Global.Signkey))
 		if config.Conf().Global.MergeRouter {
 			if num >= len(config.Conf().Router.RouterIPS) {
-				return nil , fmt.Errorf("master server all down , register ps error")
+				return nil, fmt.Errorf("master server all down , register ps error")
 			}
 			query.SetAddress(m.cfg.Router.ApiUrl(num))
 			num = num + 1
@@ -479,7 +479,7 @@ func (m *masterClient) RegisterRouter(ctx context.Context, clusterName string, t
 		query := netutil.NewQuery().SetHeader(Authorization, util.AuthEncrypt(Root, m.cfg.Global.Signkey))
 		if config.Conf().Global.MergeRouter {
 			if num >= len(config.Conf().Router.RouterIPS) {
-				return "" , fmt.Errorf("master server all down , register ps error")
+				return "", fmt.Errorf("master server all down , register ps error")
 			}
 			query.SetAddress(m.cfg.Router.ApiUrl(num))
 			num = num + 1
@@ -595,7 +595,7 @@ func (m *masterClient) HTTPPost(ctx context.Context, url string, reqBody string)
 	for {
 		if config.Conf().Global.MergeRouter {
 			if num >= len(config.Conf().Router.RouterIPS) {
-				return nil , fmt.Errorf("master server all down , register ps error")
+				return nil, fmt.Errorf("master server all down , register ps error")
 			}
 			query.SetAddress(m.cfg.Router.ApiUrl(num))
 			num = num + 1

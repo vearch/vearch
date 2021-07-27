@@ -33,10 +33,10 @@ import (
 	"github.com/vearch/vearch/util/log"
 )
 
-func docGetResponse(client *client.Client, args *vearchpb.GetRequest, reply *vearchpb.GetResponse, returnFieldsMap map[string]string) ([]byte, error) {
+func docGetResponse(client *client.Client, args *vearchpb.GetRequest, reply *vearchpb.GetResponse, returnFieldsMap map[string]string, isBatch bool) ([]byte, error) {
 	var builder = cbjson.ContentBuilderFactory()
 	isArray := false
-	if reply != nil && reply.Items != nil && len(reply.Items) > 1 {
+	if isBatch || (reply != nil && reply.Items != nil && len(reply.Items) > 1) {
 		builder.BeginArray()
 		isArray = true
 	}
@@ -656,6 +656,8 @@ func SearchNullToContent(searchStatus vearchpb.SearchStatus, took time.Duration)
 	builder.More()
 	builder.Field("max_score")
 	builder.ValueFloat(-1)
+
+	builder.EndObject()
 
 	builder.EndObject()
 
