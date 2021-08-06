@@ -20,11 +20,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/vearch/vearch/config"
 	"github.com/vearch/vearch/proto/request"
 	"math"
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/spf13/cast"
 	"github.com/valyala/fastjson"
@@ -747,7 +749,13 @@ func docBulkParse(ctx context.Context, r *http.Request, space *entity.Space, arg
 }
 
 func docSearchParse(r *http.Request, space *entity.Space, searchReq *vearchpb.SearchRequest) (err error) {
+	reqBodyStart := time.Now()
 	reqBody, err := netutil.GetReqBody(r)
+	if config.LogInfoPrintSwitch {
+		reqBodyCostTime := time.Now().Sub(reqBodyStart).Seconds() * 1000
+		reqBodyCostTimeStr := strconv.FormatFloat(reqBodyCostTime, 'f', -1, 64)
+		searchReq.Head.Params["reqBodyCostTime"] = reqBodyCostTimeStr
+	}
 	if err == nil {
 		if len(reqBody) != 0 {
 			searchDoc := &request.SearchDocumentRequest{}
@@ -950,4 +958,26 @@ func docBulkSearchParse(r *http.Request, space *entity.Space, head *vearchpb.Req
 		}
 	}
 	return searchReqs, error
+}
+
+func doLogPrintSwitchParse(r *http.Request) (printSwitch bool, err error) {
+	reqBody, err := netutil.GetReqBody(r)
+	if err == nil {
+		if len(reqBody) != 0 {
+			temp := struct {
+				PrintSwitch bool `json:"print_switch,omitempty"`
+			}{}
+			err := json.Unmarshal(reqBody, &temp)
+			if err != nil {
+				err = fmt.Errorf("doLogPrintSwitchParse param convert json err: [%s]", string(reqBody))
+				return false, err
+			} else {
+				return temp.PrintSwitch, nil
+			}
+		} else {
+			err = fmt.Errorf("query param is null")
+			return false, err
+		}
+	}
+	return false, err
 }

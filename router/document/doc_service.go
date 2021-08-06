@@ -16,6 +16,7 @@ package document
 
 import (
 	"context"
+	"strings"
 	"sync"
 
 	"github.com/vearch/vearch/client"
@@ -243,21 +244,26 @@ func (docService *docService) forceMerge(ctx context.Context, args *vearchpb.For
 func (docService *docService) deleteByQuery(ctx context.Context, args *vearchpb.SearchRequest) *vearchpb.DelByQueryeResponse {
 
 	request := client.NewRouterRequest(ctx, docService.client)
-	request.SetMsgID().SetMethod(client.DeleteByQueryHandler).SetHead(args.Head).SetSpace().SearchByPartitions(args)
+	deleteByScalar := false
+	idIsLong := false
+	if args.VecFields != nil {
+		request.SetMsgID().SetMethod(client.DeleteByQueryHandler).SetHead(args.Head).SetSpace().SearchByPartitions(args)
+	} else {
+		request.SetMsgID().SetMethod(client.DeleteByQueryFilterHandler).SetHead(args.Head).SetSpace().SearchByPartitions(args)
+		deleteByScalar = true
+	}
 	if request.Err != nil {
 		return &vearchpb.DelByQueryeResponse{Head: setErrHead(request.Err)}
 	}
 
-	delByQueryResponse := request.DelByQueryeExecute()
+	if strings.Compare(args.Head.Params["idIsLong"], "true") == 0 {
+		idIsLong = true
+	}
+
+	delByQueryResponse := request.DelByQueryeExecute(deleteByScalar, idIsLong)
 
 	if delByQueryResponse == nil {
 		return &vearchpb.DelByQueryeResponse{Head: setErrHead(request.Err)}
-	}
-	if delByQueryResponse.Head == nil {
-		delByQueryResponse.Head = newOkHead()
-	}
-	if delByQueryResponse.Head.Err == nil {
-		delByQueryResponse.Head.Err = newOkHead().Err
 	}
 
 	return delByQueryResponse

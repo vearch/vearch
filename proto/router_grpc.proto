@@ -130,6 +130,8 @@ message DelByQueryeResponse{
     option (gogoproto.goproto_getters) = true;
     ResponseHead head = 1;
     int32 DelNum = 2;
+    repeated string ids_str = 3;
+    repeated int64  ids_long = 4;
 }
 
 message FlushResponse{

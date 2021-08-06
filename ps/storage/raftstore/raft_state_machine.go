@@ -32,20 +32,20 @@ func (s *Store) ReplicasStatusChange() bool {
 	// get leader
 	leaderCommit := s.Status().Commit
 	var currentStatus uint32
-	for nodeID,rs := range s.Status().Replicas {
-		if nodeID == s.Partition.LeaderID || leaderCommit - rs.Commit < s.raftDiffCount {
-			currentStatus =  entity.ReplicasOK
+	for nodeID, rs := range s.Status().Replicas {
+		if nodeID == s.Partition.LeaderID || leaderCommit-rs.Commit < s.raftDiffCount {
+			currentStatus = entity.ReplicasOK
 		} else {
 			currentStatus = entity.ReplicasNotReady
 		}
-		pStatus,found := s.RsStatusMap.Load(nodeID)
+		pStatus, found := s.RsStatusMap.Load(nodeID)
 		if found {
 			// status unequal
 			if pStatus.(uint32) != currentStatus {
 				if !statusChange {
 					statusChange = true
 				}
-				log.Debug("current nodeID is [%d],partitionID is [%d],commit is [%d],leader nodeID is [%d]," +
+				log.Debug("current nodeID is [%d],partitionID is [%d],commit is [%d],leader nodeID is [%d],"+
 					"leader commit is [%d]", nodeID, s.Partition.Id, rs.Commit, s.Partition.LeaderID, leaderCommit)
 				log.Debug("status change ,because nodeID [%d] statusChange .", nodeID)
 				s.RsStatusMap.Store(nodeID, currentStatus)
@@ -55,7 +55,7 @@ func (s *Store) ReplicasStatusChange() bool {
 			if !statusChange {
 				statusChange = true
 			}
-			log.Debug("current nodeID is [%d],partitionID is [%d],commit is [%d],leader nodeID is [%d]," +
+			log.Debug("current nodeID is [%d],partitionID is [%d],commit is [%d],leader nodeID is [%d],"+
 				"leader commit is [%d]", nodeID, s.Partition.Id, rs.Commit, s.Partition.LeaderID, leaderCommit)
 			log.Debug("status change ,because nodeID [%d] not found .", nodeID)
 			s.RsStatusMap.Store(nodeID, currentStatus)
@@ -117,13 +117,15 @@ func (s *Store) innerApply(command []byte, index uint64, raftCmd *vearchpb.RaftC
 	resp := new(RaftApplyResponse)
 	switch raftCmd.Type {
 	case vearchpb.CmdType_WRITE:
-		resp.Err = s.Engine.Writer().Write(s.Ctx, raftCmd.WriteCommand)
+		resp.Err = s.Engine.Writer().Write(s.Ctx, raftCmd.WriteCommand, nil, nil)
 	case vearchpb.CmdType_UPDATESPACE:
 		resp = s.updateSchemaBySpace(raftCmd.UpdateSpace.Space, raftCmd.UpdateSpace.Version)
 	case vearchpb.CmdType_FLUSH:
 		flushC, err := s.Engine.Writer().Commit(s.Ctx, int64(index))
 		resp.FlushC = flushC
 		resp.Err = err
+	case vearchpb.CmdType_SEARCHDEL:
+		resp.Err = s.Engine.Writer().Write(s.Ctx, raftCmd.WriteCommand, raftCmd.SearchDelReq, raftCmd.SearchDelResp)
 	default:
 		log.Error("unsupported command[%s]", raftCmd.Type)
 		resp.SetErr(fmt.Errorf("unsupported command[%s]", raftCmd.Type))

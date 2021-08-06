@@ -128,6 +128,9 @@ func (handler *DocumentHandler) ExportToServer() error {
 	// forcemerge space: /$dbName/$spaceName/_forcemerge
 	handler.httpServer.HandlesMethods([]string{http.MethodPost}, fmt.Sprintf("/{%s}/{%s}/_forcemerge", URLParamDbName, URLParamSpaceName), []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleForceMerge}, nil)
 
+	// update doc: /$dbName/$spaceName/_log_collect
+	handler.httpServer.HandlesMethods([]string{http.MethodPost, http.MethodPut}, fmt.Sprintf("/{%s}/{%s}/_log_print_switch", URLParamDbName, URLParamSpaceName), []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleLogPrintSwitch}, nil)
+
 	// get doc: /$dbName/$spaceName/$docId
 	handler.httpServer.HandlesMethods([]string{http.MethodGet}, fmt.Sprintf("/{%s}/{%s}/{%s}", URLParamDbName, URLParamSpaceName, URLParamID), []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleGetDoc}, nil)
 
@@ -308,6 +311,10 @@ func (handler *DocumentHandler) handleSearchDoc(ctx context.Context, w http.Resp
 	defer monitor.Profiler("handleSearchDoc", startTime)
 	args := &vearchpb.SearchRequest{}
 	args.Head = setRequestHead(params, r)
+	if args.Head.Params == nil {
+		params := make(map[string]string)
+		args.Head.Params = params
+	}
 	space, err := handler.docService.getSpace(ctx, args.Head.DbName, args.Head.SpaceName)
 	if space == nil {
 		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "dbName or spaceName param not build db or space")
@@ -351,6 +358,10 @@ func (handler *DocumentHandler) handleMSearchDoc(ctx context.Context, w http.Res
 	defer monitor.Profiler("handleMSearchDoc", startTime)
 	args := &vearchpb.SearchRequest{}
 	args.Head = setRequestHead(params, r)
+	if args.Head.Params == nil {
+		params := make(map[string]string)
+		args.Head.Params = params
+	}
 	space, err := handler.docService.getSpace(ctx, args.Head.DbName, args.Head.SpaceName)
 	if space == nil {
 		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "dbName or spaceName param not build db or space")
@@ -360,26 +371,91 @@ func (handler *DocumentHandler) handleMSearchDoc(ctx context.Context, w http.Res
 		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "query Cache space null")
 		return ctx, false
 	}
+	paramStart := time.Now()
 	err = docSearchParse(r, space, args)
 	if err != nil {
 		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 		return ctx, false
 	}
-
 	serviceStart := time.Now()
 	searchRes := handler.docService.search(ctx, args)
-	serviceEnd := time.Now()
-	serviceCost := serviceEnd.Sub(serviceStart)
-
+	serviceCost := time.Now().Sub(serviceStart)
+	contentStartTime := time.Now()
+	log.Info("handleMSearchDoc service cost:[%f]", serviceCost.Seconds()*1000)
 	bs, err := ToContents(searchRes.Results, args.Head, serviceCost, space)
 	if err != nil {
 		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 		return ctx, true
 	}
-	resp.SendJsonBytes(ctx, w, bs)
 	endTime := time.Now()
+	resp.SendJsonBytes(ctx, w, bs)
 	log.Debug("msearch total use :[%f] service use :[%f]",
 		(endTime.Sub(startTime).Seconds())*1000, serviceCost.Seconds()*1000)
+
+	if config.LogInfoPrintSwitch {
+		serializeCostTime := searchRes.Head.Params["serializeCostTime"]
+		reqBodyCostTime := args.Head.Params["reqBodyCostTime"]
+		gammaCostTime := searchRes.Head.Params["gammaCostTime"]
+		mergeCostTime := searchRes.Head.Params["mergeCostTime"]
+		pidCacheTime := searchRes.Head.Params["pidCacheTime"]
+		nodeIdTime := searchRes.Head.Params["nodeIdTime"]
+		rpcClientTime := searchRes.Head.Params["rpcClientTime"]
+		rpcCostTime := searchRes.Head.Params["rpcCostTime"]
+		deSerializeCostTime := searchRes.Head.Params["deSerializeCostTime"]
+		fieldParsingTime := searchRes.Head.Params["fieldParsingTime"]
+		sortCostTime := searchRes.Head.Params["sortCostTime"]
+		normalCostTime := searchRes.Head.Params["normalCostTime"]
+		partitionCostTime := searchRes.Head.Params["partitionCostTime"]
+		executeCostTime := searchRes.Head.Params["executeCostTime"]
+		normalTime := searchRes.Head.Params["normalTime"]
+		rpcBeforeTime := searchRes.Head.Params["rpcBeforeTime"]
+		rpcTotalTime := searchRes.Head.Params["rpcTotalTime"]
+
+		msg := fmt.Sprintf("getspace [%f]ms "+
+			"search param [%f]ms "+
+			"reqbody [%s]ms "+
+			"pidCache [%s]ms "+
+			"nodeId [%s]ms "+
+			"rpcClient [%s]ms "+
+			"normal [%s]ms "+
+			"rpcBefore [%s]ms "+
+			"serialize [%s]ms "+
+			"gamma [%s]ms "+
+			"rpc [%s]ms "+
+			"deSerialize [%s]ms "+
+			"sort [%s]ms "+
+			"fieldparsing [%s]ms "+
+			"merge [%s]ms, "+
+			"normal [%s]ms "+
+			"rpcTotal [%s]ms "+
+			"partition [%s]ms "+
+			"execute [%s]ms "+
+			"service [%f]ms "+
+			"respv [%f]ms "+
+			"total [%f]ms ",
+			(paramStart.Sub(startTime).Seconds())*1000,
+			(serviceStart.Sub(paramStart).Seconds())*1000,
+			reqBodyCostTime,
+			pidCacheTime,
+			nodeIdTime,
+			rpcClientTime,
+			normalTime,
+			rpcBeforeTime,
+			serializeCostTime,
+			gammaCostTime,
+			rpcCostTime,
+			deSerializeCostTime,
+			sortCostTime,
+			fieldParsingTime,
+			mergeCostTime,
+			normalCostTime,
+			rpcTotalTime,
+			partitionCostTime,
+			executeCostTime, serviceCost.Seconds()*1000,
+			(endTime.Sub(contentStartTime).Seconds())*1000,
+			(endTime.Sub(startTime).Seconds())*1000)
+		log.Info(msg)
+	}
 	return ctx, true
 }
 
@@ -393,6 +469,9 @@ func (handler *DocumentHandler) handleMSearchIdsDoc(ctx context.Context, w http.
 		paramMap := args.Head.Params
 		paramMap["queryOnlyId"] = "true"
 		args.Head.Params = paramMap
+	} else {
+		params := make(map[string]string)
+		args.Head.Params = params
 	}
 	space, err := handler.docService.getSpace(ctx, args.Head.DbName, args.Head.SpaceName)
 	if space == nil {
@@ -450,7 +529,10 @@ func (handler *DocumentHandler) handlerQueryDocByIds(ctx context.Context, w http
 	defer monitor.Profiler("handlerQueryDocByIds", startTime)
 	args := &vearchpb.GetRequest{}
 	args.Head = setRequestHead(params, r)
-
+	if args.Head.Params == nil {
+		params := make(map[string]string)
+		args.Head.Params = params
+	}
 	space, err := handler.docService.getSpace(ctx, args.Head.DbName, args.Head.SpaceName)
 	if space == nil {
 		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "dbName or spaceName param not build db or space")
@@ -487,7 +569,10 @@ func (handler *DocumentHandler) handlerQueryDocByIdsFeature(ctx context.Context,
 	defer monitor.Profiler("handlerQueryDocByIdsFeature", startTime)
 	args := &vearchpb.GetRequest{}
 	args.Head = setRequestHead(params, r)
-
+	if args.Head.Params == nil {
+		params := make(map[string]string)
+		args.Head.Params = params
+	}
 	space, err := handler.docService.getSpace(ctx, args.Head.DbName, args.Head.SpaceName)
 	if space == nil {
 		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "dbName or spaceName param not build db or space")
@@ -506,7 +591,7 @@ func (handler *DocumentHandler) handlerQueryDocByIdsFeature(ctx context.Context,
 	getDocStart := time.Now()
 	reply := handler.docService.getDocs(ctx, args)
 	getDocEnd := time.Now()
-	if reply.Items == nil || len(reply.Items) == 0 {
+	if reply == nil || reply.Items == nil || len(reply.Items) == 0 {
 		result, err := queryDocByIdsNoResult(getDocEnd.Sub(getDocStart))
 		if err != nil {
 			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
@@ -518,7 +603,10 @@ func (handler *DocumentHandler) handlerQueryDocByIdsFeature(ctx context.Context,
 
 	searchArgs := &vearchpb.SearchRequest{}
 	searchArgs.Head = setRequestHead(params, r)
-
+	if searchArgs.Head.Params == nil {
+		params := make(map[string]string)
+		searchArgs.Head.Params = params
+	}
 	err = docSearchByFeaturesParse(space, reqBody, searchArgs, reply.Items)
 	if err != nil {
 		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
@@ -548,7 +636,10 @@ func (handler *DocumentHandler) handleBulkSearchDoc(ctx context.Context, w http.
 	defer monitor.Profiler("handleBulkSearchDoc", startTime)
 	args := &vearchpb.SearchRequest{}
 	args.Head = setRequestHead(params, r)
-
+	if args.Head.Params == nil {
+		params := make(map[string]string)
+		args.Head.Params = params
+	}
 	space, err := handler.docService.getSpace(ctx, args.Head.DbName, args.Head.SpaceName)
 	if space == nil {
 		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "dbName or spaceName param not build db or space")
@@ -650,13 +741,44 @@ func (handler *DocumentHandler) handleDeleteByQuery(ctx context.Context, w http.
 		return ctx, false
 	}
 
+	if args.VecFields == nil && args.TermFilters == nil && args.RangeFilters == nil {
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "vector is null or other query is null")
+		return ctx, false
+	}
 	serviceStart := time.Now()
 	delByQueryResp := handler.docService.deleteByQuery(ctx, args)
 	serviceEnd := time.Now()
 	serviceCost := serviceEnd.Sub(serviceStart)
 
 	log.Debug("handleDeleteByQuery cost :%f", serviceCost)
+	shardsBytes, err := deleteByQueryResult(delByQueryResp)
+	if err != nil {
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
+		return ctx, true
+	}
 
-	resp.SendJson(ctx, w, delByQueryResp)
+	resp.SendJsonBytes(ctx, w, shardsBytes)
 	return ctx, true
+}
+
+// handleLogPrintSwitch log print switch
+func (handler *DocumentHandler) handleLogPrintSwitch(ctx context.Context, w http.ResponseWriter, r *http.Request, params netutil.UriParams) (context.Context, bool) {
+	startTime := time.Now()
+	defer monitor.Profiler("handleLogPrintSwitch", startTime)
+	args := &vearchpb.GetRequest{}
+	args.Head = setRequestHead(params, r)
+	printSwitch, err := doLogPrintSwitchParse(r)
+	if err != nil {
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
+		return ctx, false
+	}
+
+	config.LogInfoPrintSwitch = printSwitch
+	if resultBytes, err := docPrintLogSwitchResponse(config.LogInfoPrintSwitch); err != nil {
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
+		return ctx, true
+	} else {
+		resp.SendJsonBytes(ctx, w, resultBytes)
+		return ctx, true
+	}
 }
