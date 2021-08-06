@@ -42,10 +42,11 @@ type writerImpl struct {
 	running bool
 }
 
-func (wi *writerImpl) Write(ctx context.Context, doc *vearchpb.DocCmd) (err error) {
+func (wi *writerImpl) Write(ctx context.Context, doc *vearchpb.DocCmd, request *vearchpb.SearchRequest, resp *vearchpb.SearchResponse) (err error) {
 	if doc == nil {
 		return errors.New("doc is nil")
 	}
+
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("[Rocover] [%s]", cast.ToString(r))
@@ -80,6 +81,18 @@ func (wi *writerImpl) Write(ctx context.Context, doc *vearchpb.DocCmd) (err erro
 			}
 			err = fmt.Errorf("gamma delete doc err code:[%d]", int(resp))
 			return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err)
+		}
+	case vearchpb.OpType_SEARCHDELETE:
+		reqByte := gamma.SearchRequestSerialize(request)
+		if resp == nil {
+			resp = &vearchpb.SearchResponse{}
+		}
+		if code, respV := gamma.DelDocByFilter(gammaEngine, reqByte); code != 0 {
+			err = fmt.Errorf("gamma query delete doc err code:[%d]", int(code))
+			return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err)
+		} else {
+			log.Info("DelDocByFilter code %v", code)
+			resp.FlatBytes = respV
 		}
 	default:
 		msg := fmt.Sprintf("type: [%v] not found", doc.Type)

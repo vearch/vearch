@@ -21,6 +21,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/patrickmn/go-cache"
+	"github.com/shopspring/decimal"
 	"math"
 	"math/big"
 	"math/rand"
@@ -28,8 +30,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/patrickmn/go-cache"
 
 	"github.com/vearch/vearch/util"
 
@@ -377,6 +377,7 @@ func setPartitionErr(d *vearchpb.PartitionData) {
 }
 
 func (r *routerRequest) SearchFieldSortExecute(sortOrder sortorder.SortOrder) *vearchpb.SearchResponse {
+	startTime := time.Now()
 	ctx := context.WithValue(r.ctx, share.ReqMetaDataKey, r.md)
 	var wg sync.WaitGroup
 	sendPartitionMap := r.sendMap
@@ -413,6 +414,13 @@ func (r *routerRequest) SearchFieldSortExecute(sortOrder sortorder.SortOrder) *v
 		}
 	}
 
+	normalEndTime := time.Now()
+	normalCostTimeStr := ""
+	if config.LogInfoPrintSwitch {
+		normalCostTime := normalEndTime.Sub(startTime).Seconds() * 1000
+		normalCostTimeStr = strconv.FormatFloat(normalCostTime, 'f', -1, 64)
+	}
+
 	var searchReq *vearchpb.SearchRequest
 	respChain := make(chan *response.SearchDocResult, len(sendPartitionMap))
 	for partitionID, pData := range sendPartitionMap {
@@ -420,6 +428,7 @@ func (r *routerRequest) SearchFieldSortExecute(sortOrder sortorder.SortOrder) *v
 		wg.Add(1)
 		go func(partitionID entity.PartitionID, pd *vearchpb.PartitionData, space *entity.Space, sortOrder sortorder.SortOrder) {
 			defer wg.Done()
+			pidCacheStart := time.Now()
 			responseDoc := &response.SearchDocResult{}
 			replyPartition := new(vearchpb.PartitionData)
 			defer func() {
@@ -443,11 +452,47 @@ func (r *routerRequest) SearchFieldSortExecute(sortOrder sortorder.SortOrder) *v
 				respChain <- responseDoc
 				return
 			}
+
+			if replyPartition.SearchResponse == nil {
+				params := make(map[string]string)
+				head := &vearchpb.ResponseHead{Params: params}
+				replyPartition.SearchResponse = &vearchpb.SearchResponse{Head: head}
+			}
+
+			if replyPartition.SearchResponse.Head == nil {
+				params := make(map[string]string)
+				replyPartition.SearchResponse.Head = &vearchpb.ResponseHead{Params: params}
+			}
+
+			if replyPartition.SearchResponse.Head.Params == nil {
+				params := make(map[string]string)
+				replyPartition.SearchResponse.Head.Params = params
+			}
+
+			pidCacheEnd := time.Now()
+			if config.LogInfoPrintSwitch {
+				pidCacheTime := pidCacheEnd.Sub(pidCacheStart).Seconds() * 1000
+				pidCacheTimeStr := strconv.FormatFloat(pidCacheTime, 'f', -1, 64)
+				replyPartition.SearchResponse.Head.Params["pidCacheTime"] = pidCacheTimeStr
+			}
+
 			clientType := pd.SearchRequest.Head.ClientType
 			//ensure node is alive
 			servers := r.client.Master().Cache().serverCache
 			nodeID := GetNodeIdsByClientType(clientType, partition, servers)
+			nodeIdEnd := time.Now()
+			if config.LogInfoPrintSwitch {
+				nodeIdTime := nodeIdEnd.Sub(pidCacheEnd).Seconds() * 1000
+				nodeIdTimeStr := strconv.FormatFloat(nodeIdTime, 'f', -1, 64)
+				replyPartition.SearchResponse.Head.Params["nodeIdTime"] = nodeIdTimeStr
+			}
 			rpcClient := r.client.PS().GetOrCreateRPCClient(ctx, nodeID)
+			rpcClientEnd := time.Now()
+			if config.LogInfoPrintSwitch {
+				rpcClientTime := rpcClientEnd.Sub(nodeIdEnd).Seconds() * 1000
+				rpcClientTimeStr := strconv.FormatFloat(rpcClientTime, 'f', -1, 64)
+				replyPartition.SearchResponse.Head.Params["rpcClientTime"] = rpcClientTimeStr
+			}
 			if rpcClient == nil {
 				err := &vearchpb.Error{Code: vearchpb.ErrorEnum_ROUTER_NO_PS_CLIENT, Msg: "no ps clinet by nodeID:" + string(nodeID)}
 				head := &vearchpb.ResponseHead{Err: err}
@@ -460,27 +505,80 @@ func (r *routerRequest) SearchFieldSortExecute(sortOrder sortorder.SortOrder) *v
 
 			if normalIsOrNot && len(normalField) > 0 {
 				vectorQueryArr := pd.SearchRequest.VecFields
+				proMap := space.SpaceProperties
 				for _, query := range vectorQueryArr {
-					float32s, _, err := cbbytes.ByteToVectorForFloat32(query.Value)
-					if err == nil {
-						if err := util.Normalization(float32s); err != nil {
-							panic(err.Error())
-						} else {
-							bs, err := cbbytes.VectorToByte(float32s, "")
-							if err != nil {
-								log.Error("processVector VectorToByte error: %v", err)
-								panic(err.Error())
-							} else {
-								query.Value = bs
+					docField := proMap[query.Name]
+					if docField != nil {
+						dimension := docField.Dimension
+						float32s, _, err := cbbytes.ByteToVectorForFloat32(query.Value)
+						if err == nil {
+							max := len(float32s)
+							dPage := max / dimension
+							if max >= dPage {
+								end := int(0)
+								normalVector := make([]float32, 0, max)
+								for i := 1; i <= dPage; i++ {
+									qu := i * dimension
+									if i != dPage {
+										norma := float32s[i-1+end : qu]
+										if err := util.Normalization(norma); err != nil {
+											panic(err.Error())
+										} else {
+											normalVector = append(normalVector, norma...)
+										}
+									} else {
+										norma := float32s[i-1+end:]
+										if err := util.Normalization(norma); err != nil {
+											panic(err.Error())
+										} else {
+											normalVector = append(normalVector, norma...)
+										}
+									}
+									end = qu - i
+								}
+								bs, err := cbbytes.VectorToByte(normalVector, "")
+								if err != nil {
+									log.Error("processVector VectorToByte error: %v", err)
+									panic(err.Error())
+								} else {
+									query.Value = bs
+								}
 							}
+						} else {
+							panic(err.Error())
 						}
 					} else {
-						panic(err.Error())
+						float32s, _, err := cbbytes.ByteToVectorForFloat32(query.Value)
+						if err == nil {
+							if err := util.Normalization(float32s); err != nil {
+								panic(err.Error())
+							} else {
+								bs, err := cbbytes.VectorToByte(float32s, "")
+								if err != nil {
+									log.Error("processVector VectorToByte error: %v", err)
+									panic(err.Error())
+								} else {
+									query.Value = bs
+								}
+							}
+						} else {
+							panic(err.Error())
+						}
 					}
 				}
 			}
+			rpcStart := time.Now()
+			if config.LogInfoPrintSwitch {
+				normalTime := rpcStart.Sub(rpcClientEnd).Seconds() * 1000
+				normalTimeStr := strconv.FormatFloat(normalTime, 'f', -1, 64)
+				rpcBeforeTime := rpcStart.Sub(pidCacheStart).Seconds() * 1000
+				rpcBeforeTimeStr := strconv.FormatFloat(rpcBeforeTime, 'f', -1, 64)
+				replyPartition.SearchResponse.Head.Params["normalTime"] = normalTimeStr
+				replyPartition.SearchResponse.Head.Params["rpcBeforeTime"] = rpcBeforeTimeStr
+			}
 
 			err := rpcClient.Execute(ctx, UnaryHandler, pd, replyPartition)
+			rpcEnd := time.Now()
 			if err != nil {
 				err := &vearchpb.Error{Code: vearchpb.ErrorEnum_ROUTER_CALL_PS_RPC_ERR, Msg: "router call ps rpc service err nodeID:" + string(nodeID)}
 				head := &vearchpb.ResponseHead{Err: err}
@@ -499,9 +597,30 @@ func (r *routerRequest) SearchFieldSortExecute(sortOrder sortorder.SortOrder) *v
 			searchResponse := replyPartition.SearchResponse
 			sortValueMap := make(map[string][]sortorder.SortValue)
 			if searchResponse != nil {
+				if config.LogInfoPrintSwitch {
+					rpcCostTime := rpcEnd.Sub(rpcStart).Seconds() * 1000
+					rpcCostTimeStr := strconv.FormatFloat(rpcCostTime, 'f', -1, 64)
+
+					if searchResponse.Head.Params != nil {
+						searchResponse.Head.Params["rpcCostTime"] = rpcCostTimeStr
+					} else {
+						costTimeMap := make(map[string]string)
+						costTimeMap["rpcCostTime"] = rpcCostTimeStr
+						responseHead := &vearchpb.ResponseHead{Params: costTimeMap}
+						searchResponse.Head = responseHead
+					}
+				}
+
 				flatBytes := searchResponse.FlatBytes
 				if flatBytes != nil {
+					deSerializeStartTime := time.Now()
 					gamma.DeSerialize(flatBytes, searchResponse)
+					deSerializeEndTime := time.Now()
+					if config.LogInfoPrintSwitch {
+						deSerializeCostTime := deSerializeEndTime.Sub(deSerializeStartTime).Seconds() * 1000
+						deSerializeCostTimeStr := strconv.FormatFloat(deSerializeCostTime, 'f', -1, 64)
+						searchResponse.Head.Params["deSerializeCostTime"] = deSerializeCostTimeStr
+					}
 					searchResults := searchResponse.Results
 					if searchResults != nil && len(searchResults) > 0 {
 						for i, searchResult := range searchResults {
@@ -520,7 +639,17 @@ func (r *routerRequest) SearchFieldSortExecute(sortOrder sortorder.SortOrder) *v
 
 						}
 					}
+					if config.LogInfoPrintSwitch {
+						fieldParsingTime := time.Now().Sub(deSerializeEndTime).Seconds() * 1000
+						fieldParsingTimeStr := strconv.FormatFloat(fieldParsingTime, 'f', -1, 64)
+						searchResponse.Head.Params["fieldParsingTime"] = fieldParsingTimeStr
+					}
 				}
+			}
+			if config.LogInfoPrintSwitch {
+				rpcTotalTime := time.Now().Sub(pidCacheStart).Seconds() * 1000
+				rpcTotalTimeStr := strconv.FormatFloat(rpcTotalTime, 'f', -1, 64)
+				searchResponse.Head.Params["rpcTotalTime"] = rpcTotalTimeStr
 			}
 			responseDoc.PartitionData = replyPartition
 			responseDoc.SortValueMap = sortValueMap
@@ -530,13 +659,89 @@ func (r *routerRequest) SearchFieldSortExecute(sortOrder sortorder.SortOrder) *v
 	wg.Wait()
 	close(respChain)
 
+	partitionCostTimeStr := ""
+	if config.LogInfoPrintSwitch {
+		partitionCostTime := time.Now().Sub(normalEndTime).Seconds() * 1000
+		partitionCostTimeStr = strconv.FormatFloat(partitionCostTime, 'f', -1, 64)
+	}
+
 	var result []*vearchpb.SearchResult
 	var sortValueMap map[string][]sortorder.SortValue
 	var searchResponse *vearchpb.SearchResponse
+
+	rpcCostTime := decimal.NewFromFloat(0.0)
+	deSerializeCostTime := decimal.NewFromFloat(0.0)
+	fieldParsingTime := decimal.NewFromFloat(0.0)
+	gammaCostTime := decimal.NewFromFloat(0.0)
+	serializeCostTime := decimal.NewFromFloat(0.0)
+	pidCacheTime := decimal.NewFromFloat(0.0)
+	nodeIdTime := decimal.NewFromFloat(0.0)
+	rpcClientTime := decimal.NewFromFloat(0.0)
+	normalTime := decimal.NewFromFloat(0.0)
+	rpcBeforeTime := decimal.NewFromFloat(0.0)
+	rpcTotalTime := decimal.NewFromFloat(0.0)
+	mergeStartTime := time.Now()
 	for r := range respChain {
 		if result == nil {
 			if r != nil {
 				searchResponse = r.PartitionData.SearchResponse
+				if config.LogInfoPrintSwitch && searchResponse != nil && searchResponse.Head != nil && searchResponse.Head.Params != nil {
+					rpcCostTimeStr := searchResponse.Head.Params["rpcCostTime"]
+					deSerializeCostTimeStr := searchResponse.Head.Params["deSerializeCostTime"]
+					fieldParsingTimeStr := searchResponse.Head.Params["fieldParsingTime"]
+					gammaCostTimeStr := searchResponse.Head.Params["gammaCostTime"]
+					serializeCostTimeStr := searchResponse.Head.Params["serializeCostTime"]
+					pidCacheTimeStr := searchResponse.Head.Params["pidCacheTime"]
+					nodeIdTimeStr := searchResponse.Head.Params["nodeIdTime"]
+					rpcClientTimeStr := searchResponse.Head.Params["rpcClientTime"]
+					normalTimeStr := searchResponse.Head.Params["normalTime"]
+					rpcBeforeTimeStr := searchResponse.Head.Params["rpcBeforeTime"]
+					rpcTotalTimeStr := searchResponse.Head.Params["rpcTotalTime"]
+					if rpcCostTimeStr != "" {
+						rpcCostTimeF, _ := strconv.ParseFloat(rpcCostTimeStr, 64)
+						rpcCostTime = decimal.NewFromFloat(rpcCostTimeF)
+					}
+					if deSerializeCostTimeStr != "" {
+						deSerializeCostTimeF, _ := strconv.ParseFloat(deSerializeCostTimeStr, 64)
+						deSerializeCostTime = decimal.NewFromFloat(deSerializeCostTimeF)
+					}
+					if fieldParsingTimeStr != "" {
+						fieldParsingTimeF, _ := strconv.ParseFloat(fieldParsingTimeStr, 64)
+						fieldParsingTime = decimal.NewFromFloat(fieldParsingTimeF)
+					}
+					if gammaCostTimeStr != "" {
+						gammaCostTimeF, _ := strconv.ParseFloat(gammaCostTimeStr, 64)
+						gammaCostTime = decimal.NewFromFloat(gammaCostTimeF)
+					}
+					if serializeCostTimeStr != "" {
+						serializeCostTimeF, _ := strconv.ParseFloat(serializeCostTimeStr, 64)
+						serializeCostTime = decimal.NewFromFloat(serializeCostTimeF)
+					}
+					if pidCacheTimeStr != "" {
+						pidCacheTimeF, _ := strconv.ParseFloat(pidCacheTimeStr, 64)
+						pidCacheTime = decimal.NewFromFloat(pidCacheTimeF)
+					}
+					if nodeIdTimeStr != "" {
+						nodeIdTimeF, _ := strconv.ParseFloat(nodeIdTimeStr, 64)
+						nodeIdTime = decimal.NewFromFloat(nodeIdTimeF)
+					}
+					if rpcClientTimeStr != "" {
+						rpcClientTimeF, _ := strconv.ParseFloat(rpcClientTimeStr, 64)
+						rpcClientTime = decimal.NewFromFloat(rpcClientTimeF)
+					}
+					if normalTimeStr != "" {
+						normalTimeF, _ := strconv.ParseFloat(normalTimeStr, 64)
+						normalTime = decimal.NewFromFloat(normalTimeF)
+					}
+					if rpcBeforeTimeStr != "" {
+						rpcBeforeTimeF, _ := strconv.ParseFloat(rpcBeforeTimeStr, 64)
+						rpcBeforeTime = decimal.NewFromFloat(rpcBeforeTimeF)
+					}
+					if rpcTotalTimeStr != "" {
+						rpcTotalTimeF, _ := strconv.ParseFloat(rpcTotalTimeStr, 64)
+						rpcTotalTime = decimal.NewFromFloat(rpcTotalTimeF)
+					}
+				}
 				if searchResponse != nil && searchResponse.Results != nil && len(searchResponse.Results) > 0 {
 					result = searchResponse.Results
 					sortValueMap = r.SortValueMap
@@ -550,15 +755,111 @@ func (r *routerRequest) SearchFieldSortExecute(sortOrder sortorder.SortOrder) *v
 			sortValueMap[PKey] = sortValue
 		}
 		var err error
+		if config.LogInfoPrintSwitch && searchResponse.Head != nil && searchResponse.Head.Params != nil {
+			rpcCostTimeStr := searchResponse.Head.Params["rpcCostTime"]
+			deSerializeCostTimeStr := searchResponse.Head.Params["deSerializeCostTime"]
+			fieldParsingTimeStr := searchResponse.Head.Params["fieldParsingTime"]
+			gammaCostTimeStr := searchResponse.Head.Params["gammaCostTime"]
+			serializeCostTimeStr := searchResponse.Head.Params["serializeCostTime"]
+			pidCacheTimeStr := searchResponse.Head.Params["pidCacheTime"]
+			nodeIdTimeStr := searchResponse.Head.Params["nodeIdTime"]
+			rpcClientTimeStr := searchResponse.Head.Params["rpcClientTime"]
+			normalTimeStr := searchResponse.Head.Params["normalTime"]
+			rpcBeforeTimeStr := searchResponse.Head.Params["rpcBeforeTime"]
+			rpcTotalTimeStr := searchResponse.Head.Params["rpcTotalTime"]
+			if rpcCostTimeStr != "" {
+				rpcCostTime1, _ := strconv.ParseFloat(rpcCostTimeStr, 64)
+				rpcCostTime2 := rpcCostTime.Add(decimal.NewFromFloat(rpcCostTime1))
+				rpcCostTime = rpcCostTime2.Div(decimal.NewFromFloat(float64(2)))
 
+			}
+			if deSerializeCostTimeStr != "" {
+				deSerializeCostTime1, _ := strconv.ParseFloat(deSerializeCostTimeStr, 64)
+				deSerializeCostTime2 := deSerializeCostTime.Add(decimal.NewFromFloat(deSerializeCostTime1))
+				deSerializeCostTime = deSerializeCostTime2.Div(decimal.NewFromFloat(float64(2)))
+			}
+			if fieldParsingTimeStr != "" {
+				fieldParsingTime1, _ := strconv.ParseFloat(fieldParsingTimeStr, 64)
+				fieldParsingTime2 := fieldParsingTime.Add(decimal.NewFromFloat(fieldParsingTime1))
+				fieldParsingTime = fieldParsingTime2.Div(decimal.NewFromFloat(float64(2)))
+			}
+			if gammaCostTimeStr != "" {
+				gammaCostTime1, _ := strconv.ParseFloat(gammaCostTimeStr, 64)
+				gammaCostTime2 := gammaCostTime.Add(decimal.NewFromFloat(gammaCostTime1))
+				gammaCostTime = gammaCostTime2.Div(decimal.NewFromFloat(float64(2)))
+			}
+			if serializeCostTimeStr != "" {
+				serializeCostTime1, _ := strconv.ParseFloat(serializeCostTimeStr, 64)
+				serializeCostTime2 := serializeCostTime.Add(decimal.NewFromFloat(serializeCostTime1))
+				serializeCostTime = serializeCostTime2.Div(decimal.NewFromFloat(float64(2)))
+			}
+			if pidCacheTimeStr != "" {
+				pidCacheTime1, _ := strconv.ParseFloat(pidCacheTimeStr, 64)
+				pidCacheTime2 := pidCacheTime.Add(decimal.NewFromFloat(pidCacheTime1))
+				pidCacheTime = pidCacheTime2.Div(decimal.NewFromFloat(float64(2)))
+			}
+			if nodeIdTimeStr != "" {
+				nodeIdTime1, _ := strconv.ParseFloat(nodeIdTimeStr, 64)
+				nodeIdTime2 := nodeIdTime.Add(decimal.NewFromFloat(nodeIdTime1))
+				nodeIdTime = nodeIdTime2.Div(decimal.NewFromFloat(float64(2)))
+			}
+			if rpcClientTimeStr != "" {
+				rpcClientTime1, _ := strconv.ParseFloat(rpcClientTimeStr, 64)
+				rpcClientTime2 := rpcClientTime.Add(decimal.NewFromFloat(rpcClientTime1))
+				rpcClientTime = rpcClientTime2.Div(decimal.NewFromFloat(float64(2)))
+			}
+			if normalTimeStr != "" {
+				normalTimeF, _ := strconv.ParseFloat(normalTimeStr, 64)
+				normalTime = decimal.NewFromFloat(normalTimeF)
+			}
+			if rpcBeforeTimeStr != "" {
+				rpcBeforeTimeF, _ := strconv.ParseFloat(rpcBeforeTimeStr, 64)
+				rpcBeforeTime = decimal.NewFromFloat(rpcBeforeTimeF)
+			}
+			if rpcTotalTimeStr != "" {
+				rpcTotalTimeF, _ := strconv.ParseFloat(rpcTotalTimeStr, 64)
+				rpcTotalTime = decimal.NewFromFloat(rpcTotalTimeF)
+			}
+		}
 		if err = AddMergeResultArr(result, r.PartitionData.SearchResponse.Results); err != nil {
 			log.Error("msearch AddMergeResultArr error:", err)
 		}
 	}
 
-	for i, resp := range result {
-		index := strconv.Itoa(i)
-		quickSort(resp.ResultItems, sortValueMap, 0, len(resp.ResultItems)-1, sortOrder, index)
+	mergeCostTimeStr := ""
+	if config.LogInfoPrintSwitch {
+		mergeCostTime := time.Now().Sub(mergeStartTime).Seconds() * 1000
+		mergeCostTimeStr = strconv.FormatFloat(mergeCostTime, 'f', -1, 64)
+	}
+
+	if len(result) > 1 {
+		var wg sync.WaitGroup
+		respChain := make(chan map[string]*vearchpb.SearchResult, len(result))
+		for i, resp := range result {
+			wg.Add(1)
+			index := strconv.Itoa(i)
+			high := len(resp.ResultItems) - 1
+			go func(result *vearchpb.SearchResult, sortValueMap map[string][]sortorder.SortValue, low, high int, so sortorder.SortOrder, index string) {
+				quickSort(result.ResultItems, sortValueMap, low, high, so, index)
+				sortMap := make(map[string]*vearchpb.SearchResult)
+				sortMap[index] = result
+				respChain <- sortMap
+				wg.Done()
+			}(resp, sortValueMap, 0, high, sortOrder, index)
+		}
+		wg.Wait()
+		close(respChain)
+		for resp := range respChain {
+			for indexStr, resu := range resp {
+				index, _ := strconv.Atoi(indexStr)
+				result[index] = resu
+			}
+		}
+	} else {
+		for i, resp := range result {
+			index := strconv.Itoa(i)
+			quickSort(resp.ResultItems, sortValueMap, 0, len(resp.ResultItems)-1, sortOrder, index)
+		}
 	}
 
 	for _, resp := range result {
@@ -575,6 +876,28 @@ func (r *routerRequest) SearchFieldSortExecute(sortOrder sortorder.SortOrder) *v
 		searchResponse = &vearchpb.SearchResponse{}
 		responseHead := &vearchpb.ResponseHead{Err: err}
 		searchResponse.Head = responseHead
+	}
+	sortCostTime := time.Now().Sub(mergeStartTime).Seconds() * 1000
+	sortCostTimeStr := strconv.FormatFloat(sortCostTime, 'f', -1, 64)
+	if config.LogInfoPrintSwitch && searchResponse.Head != nil && searchResponse.Head.Params != nil {
+		searchResponse.Head.Params["mergeCostTime"] = mergeCostTimeStr
+		searchResponse.Head.Params["rpcCostTime"] = rpcCostTime.String()
+		searchResponse.Head.Params["deSerializeCostTime"] = deSerializeCostTime.String()
+		searchResponse.Head.Params["fieldParsingTime"] = fieldParsingTime.String()
+		searchResponse.Head.Params["normalCostTime"] = normalCostTimeStr
+		searchResponse.Head.Params["sortCostTime"] = sortCostTimeStr
+		searchResponse.Head.Params["partitionCostTime"] = partitionCostTimeStr
+		executeCostTime := time.Now().Sub(startTime).Seconds() * 1000
+		executeCostTimeStr := strconv.FormatFloat(executeCostTime, 'f', -1, 64)
+		searchResponse.Head.Params["executeCostTime"] = executeCostTimeStr
+		searchResponse.Head.Params["serializeCostTime"] = serializeCostTime.String()
+		searchResponse.Head.Params["gammaCostTime"] = gammaCostTime.String()
+		searchResponse.Head.Params["pidCacheTime"] = pidCacheTime.String()
+		searchResponse.Head.Params["nodeIdTime"] = nodeIdTime.String()
+		searchResponse.Head.Params["rpcClientTime"] = rpcClientTime.String()
+		searchResponse.Head.Params["normalTime"] = normalTime.String()
+		searchResponse.Head.Params["rpcBeforeTime"] = rpcBeforeTime.String()
+		searchResponse.Head.Params["rpcTotalTime"] = rpcTotalTime.String()
 	}
 	searchResponse.Results = result
 	return searchResponse
@@ -1340,7 +1663,7 @@ func (r *routerRequest) LeaderFlushExecute(partition *entity.Partition, ctx cont
 }
 
 // DelByQueryeExecute Execute request
-func (r *routerRequest) DelByQueryeExecute() *vearchpb.DelByQueryeResponse {
+func (r *routerRequest) DelByQueryeExecute(deleteByScalar bool, idIsLong bool) *vearchpb.DelByQueryeResponse {
 	ctx := context.WithValue(r.ctx, share.ReqMetaDataKey, r.md)
 	var wg sync.WaitGroup
 	partitionLen := len(r.sendMap)
@@ -1372,10 +1695,40 @@ func (r *routerRequest) DelByQueryeExecute() *vearchpb.DelByQueryeResponse {
 	wg.Wait()
 	close(respChain)
 
-	var delNum int32
-	for resp := range respChain {
-		delNum = delNum + resp.DelByQueryResponse.DelNum
+	if deleteByScalar {
+		delByQueryResponse := &vearchpb.DelByQueryeResponse{}
+		if idIsLong {
+			for resp := range respChain {
+				respStr := string(resp.SearchResponse.FlatBytes)
+				jsonType := struct {
+					Array []int64
+				}{}
+				json.Unmarshal([]byte(respStr), &jsonType.Array)
+				if jsonType.Array != nil && len(jsonType.Array) > 0 {
+					delByQueryResponse.IdsLong = append(delByQueryResponse.IdsLong, jsonType.Array...)
+				}
+			}
+			delByQueryResponse.DelNum = int32(len(delByQueryResponse.IdsLong))
+		} else {
+			for resp := range respChain {
+				respStr := string(resp.SearchResponse.FlatBytes)
+				jsonType := struct {
+					Array []string
+				}{}
+				json.Unmarshal([]byte(respStr), &jsonType.Array)
+				if jsonType.Array != nil && len(jsonType.Array) > 0 {
+					delByQueryResponse.IdsStr = append(delByQueryResponse.IdsStr, jsonType.Array...)
+				}
+			}
+			delByQueryResponse.DelNum = int32(len(delByQueryResponse.IdsStr))
+		}
+		return delByQueryResponse
+	} else {
+		var delNum int32
+		for resp := range respChain {
+			delNum = delNum + resp.DelByQueryResponse.DelNum
+		}
+		delByQueryResponse := &vearchpb.DelByQueryeResponse{DelNum: delNum}
+		return delByQueryResponse
 	}
-	delByQueryResponse := &vearchpb.DelByQueryeResponse{DelNum: delNum}
-	return delByQueryResponse
 }

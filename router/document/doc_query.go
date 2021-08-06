@@ -885,10 +885,12 @@ func searchParamToSearchPb(searchDoc *request.SearchDocumentRequest, searchReq *
 func ToContentMapFloatFeature(space *entity.Space, items []*vearchpb.Item) map[string][]float32 {
 	nameFeatureMap := make(map[string][]float32)
 	for _, u := range items {
-		floatFeatureMap, _, err := GetVectorFieldValue(u.Doc, space)
-		if floatFeatureMap != nil && err == nil {
-			for key, value := range floatFeatureMap {
-				nameFeatureMap[key] = append(nameFeatureMap[key], value...)
+		if u != nil {
+			floatFeatureMap, _, err := GetVectorFieldValue(u.Doc, space)
+			if floatFeatureMap != nil && err == nil {
+				for key, value := range floatFeatureMap {
+					nameFeatureMap[key] = append(nameFeatureMap[key], value...)
+				}
 			}
 		}
 	}

@@ -42,10 +42,11 @@ func Conf() *Config {
 }
 
 var (
-	versionOnce  sync.Once
-	buildVersion = "0.0"
-	buildTime    = "0"
-	commitID     = "xxxxx"
+	versionOnce        sync.Once
+	buildVersion       = "0.0"
+	buildTime          = "0"
+	commitID           = "xxxxx"
+	LogInfoPrintSwitch = false
 )
 
 // SetConfigVersion set the version, time and commit id of build

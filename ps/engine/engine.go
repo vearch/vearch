@@ -40,7 +40,7 @@ type Reader interface {
 // Writer is the write interface to an engine's data.
 type Writer interface {
 	// use do by single cmd , support create update replace or delete
-	Write(ctx context.Context, docCmd *vearchpb.DocCmd) error
+	Write(ctx context.Context, docCmd *vearchpb.DocCmd, request *vearchpb.SearchRequest, resp *vearchpb.SearchResponse) error
 
 	//this update will merge documents
 	// Update(ctx context.Context, docCmd *vearchpb.DocCmd) error
@@ -53,10 +53,10 @@ type Writer interface {
 }
 
 type EngineStatus struct {
-        IndexStatus int32
-        DocNum int32
-        MaxDocid int32
-        MinIndexedNum int32
+	IndexStatus   int32
+	DocNum        int32
+	MaxDocid      int32
+	MinIndexedNum int32
 }
 
 // Engine is the interface that wraps the core operations of a document store.
@@ -68,7 +68,7 @@ type Engine interface {
 	ApplySnapshot(peers []proto.Peer, iter proto.SnapIterator) error
 	Optimize() error
 	IndexStatus() int
-	EngineStatus(status *EngineStatus) error 
+	EngineStatus(status *EngineStatus) error
 	Close()
 	HasClosed() bool
 

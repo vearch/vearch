@@ -22,6 +22,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/vearch/vearch/util/cbbytes"
 
@@ -157,6 +158,11 @@ func (handler *UnaryHandler) Execute(ctx context.Context, req *vearchpb.Partitio
 		deleteByQuery(ctx, store, reply.SearchRequest, reply.DelByQueryResponse)
 	case client.FlushHandler:
 		flush(ctx, store, reply.Err)
+	case client.DeleteByQueryFilterHandler:
+		if reply.SearchResponse == nil {
+			reply.SearchResponse = &vearchpb.SearchResponse{}
+		}
+		deleteByQueryFilter(ctx, store, reply.SearchRequest, reply.SearchResponse)
 	default:
 		log.Error("method not found, method: [%s]", method)
 		return vearchpb.NewError(vearchpb.ErrorEnum_METHOD_NOT_IMPLEMENT, nil)
@@ -197,7 +203,7 @@ func deleteDocs(ctx context.Context, store PartitionStore, items []*vearchpb.Ite
 			}
 			dataBytes := item.Doc.Fields[0].Value
 			docCmd := &vearchpb.DocCmd{Type: vearchpb.OpType_DELETE, Doc: dataBytes}
-			if err := store.Write(ctx, docCmd); err != nil {
+			if err := store.Write(ctx, docCmd, nil, nil); err != nil {
 				log.Error("delete doc failed, err: [%s]", err.Error())
 				item.Err = vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err).GetError()
 			}
@@ -229,7 +235,7 @@ func bulk(ctx context.Context, store PartitionStore, items []*vearchpb.Item) {
 	wg.Wait()
 	docCmd := &vearchpb.DocCmd{Type: vearchpb.OpType_BULK, Docs: gammaArray}
 
-	err := store.Write(ctx, docCmd)
+	err := store.Write(ctx, docCmd, nil, nil)
 	vErr := vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err)
 	if vErr.GetError().Code != vearchpb.ErrorEnum_SUCCESS {
 		log.Error("Add doc failed, err: [%s]", err.Error())
@@ -253,7 +259,7 @@ func update(ctx context.Context, store PartitionStore, items []*vearchpb.Item) {
 	docGamma := &gamma.Doc{Fields: item.Doc.Fields}
 	docBytes := docGamma.Serialize()
 	docCmd := &vearchpb.DocCmd{Type: vearchpb.OpType_REPLACE, Doc: docBytes}
-	if err := store.Write(ctx, docCmd); err != nil {
+	if err := store.Write(ctx, docCmd, nil, nil); err != nil {
 		log.Error("Add doc failed, err: [%s]", err.Error())
 		item.Err = vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err).GetError()
 	} else {
@@ -262,9 +268,19 @@ func update(ctx context.Context, store PartitionStore, items []*vearchpb.Item) {
 }
 
 func search(ctx context.Context, store PartitionStore, request *vearchpb.SearchRequest, response *vearchpb.SearchResponse) {
+	startTime := time.Now()
 	if err := store.Search(ctx, request, response); err != nil {
 		log.Error("search doc failed, err: [%s]", err.Error())
 		response.Head.Err = vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err).GetError()
+	}
+	handlerCostTime := (time.Now().Sub(startTime).Seconds()) * 1000
+	handlerCostTimeStr := strconv.FormatFloat(handlerCostTime, 'f', -1, 64)
+
+	if response.Head != nil && response.Head.Params != nil {
+		response.Head.Params["handlerCostTime"] = handlerCostTimeStr
+	} else {
+		costTimeMap := make(map[string]string)
+		costTimeMap["handlerCostTime"] = handlerCostTimeStr
 	}
 	defer func() {
 		if r := recover(); r != nil {
@@ -387,4 +403,16 @@ func deleteByQuery(ctx context.Context, store PartitionStore, req *vearchpb.Sear
 			}
 		}
 	}
+}
+
+func deleteByQueryFilter(ctx context.Context, store PartitionStore, request *vearchpb.SearchRequest, response *vearchpb.SearchResponse) {
+	if err := store.Write(ctx, nil, request, response); err != nil {
+		log.Error("deleteByQueryFilter doc failed, err: [%s]", err.Error())
+		response.Head.Err = vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err).GetError()
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			response.Head.Err = &vearchpb.Error{Code: vearchpb.ErrorEnum_INTERNAL_ERROR, Msg: cast.ToString(r)}
+		}
+	}()
 }

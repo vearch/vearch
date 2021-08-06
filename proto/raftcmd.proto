@@ -27,6 +27,7 @@ enum OpType {
     BULK = 3;
     GET = 4;
     SEARCH = 5;
+    SEARCHDELETE = 6;
 }
 //*********************** Partition *********************** //
 
@@ -63,12 +64,15 @@ enum CmdType {
     WRITE = 0;
     UPDATESPACE = 1;
     FLUSH = 2;
+    SEARCHDEL = 3;
 }
 
 message RaftCommand {
     CmdType type = 1;
     DocCmd write_command = 2;
     UpdateSpace update_space = 3;
+    SearchRequest search_del_req = 4;
+    SearchResponse search_del_resp = 5;
 }
 
 message SnapData {
