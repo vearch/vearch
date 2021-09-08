@@ -71,6 +71,11 @@ cmake -DPERFORMANCE_TESTING=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX
 make && make install
 popd
 
+flatbuffers=$ROOT/ps/engine/third_party/flatbuffers-1.11.0
+if [ -d ${flatbuffers} ]; then
+  rm -rf ${flatbuffers}
+fi
+
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ROOT/ps/engine/gammacb/lib/lib/
 export LIBRARY_PATH=$LIBRARY_PATH:$ROOT/ps/engine/gammacb/lib/lib/
 
