@@ -20,17 +20,18 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/vearch/vearch/config"
-	"github.com/vearch/vearch/proto/request"
 	"math"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/spf13/cast"
 	"github.com/valyala/fastjson"
+	"github.com/vearch/vearch/config"
 	"github.com/vearch/vearch/proto/entity"
+	"github.com/vearch/vearch/proto/request"
 	"github.com/vearch/vearch/proto/vearchpb"
 	"github.com/vearch/vearch/router/document/rutil"
 	"github.com/vearch/vearch/util/cbbytes"
@@ -52,9 +53,6 @@ const (
 	IgnoredField    = "_ignored"
 	RoutingField    = "_routing"
 	MetaField       = "_meta"
-
-	//	VersionField    = "_version"
-	//	SlotField       = "_slot"
 )
 
 // fields index map
@@ -71,8 +69,6 @@ var FieldsIndex = map[string]int{
 	IgnoredField:    9,
 	RoutingField:    10,
 	MetaField:       11,
-	//	VersionField:    12,
-	//	SlotField:       13,
 }
 
 // parse doc
@@ -80,70 +76,70 @@ func MapDocument(source []byte, space *entity.Space, proMap map[string]*entity.S
 	var fast fastjson.Parser
 	v, err := fast.ParseBytes(source)
 	if err != nil {
-		log.Error("parse document err:[%s] ,date:[%s]", err.Error(), string(source))
-		return nil, err
+		log.Warnf("bytes transform to json failed when inserting, err: %s ,data:%s", err.Error(), string(source))
+		return nil, errors.Wrap(err, "data format error, please check your input!")
 	}
-	if v.Type() != fastjson.TypeObject {
-		log.Error("content type err:[type:object] type is [%s] ", v.Type())
-		return nil, fmt.Errorf("content type err:[type:object] type is [%s] ", v.Type())
-	}
-
 	var path []string
 	return parseJSON(path, v, space, proMap)
 }
 
 func parseJSON(path []string, v *fastjson.Value, space *entity.Space, proMap map[string]*entity.SpaceProperties) ([]*vearchpb.Field, error) {
 	fields := make([]*vearchpb.Field, 0)
-
 	obj, err := v.Object()
 	if err != nil {
-		return nil, err
+		log.Warnf("data format error, object is required but received %s", v.Type().String())
+		return nil, fmt.Errorf("data format error, object is required but received %s", v.Type().String())
 	}
 
 	haveNoField := false
 	errorField := ""
 	haveVector := false
+	parseErr := fmt.Errorf("")
 	obj.Visit(func(key []byte, val *fastjson.Value) {
 		fieldName := string(key)
 		pro, ok := proMap[fieldName]
-		if ok {
-			if len(path) == 0 && FieldsIndex[fieldName] > 0 {
-				log.Error("filed name [%s]  is an internal field that cannot be used", fieldName)
-				return
-			} else {
-				docV := rutil.GetDocVal()
-				if docV == nil {
-					docV = &rutil.DocVal{FieldName: fieldName, Path: path}
-				} else {
-					docV.FieldName = fieldName
-					docV.Path = path
-				}
-
-				defer func() {
-					rutil.PutDocVal(docV)
-				}()
-				field, err := processProperty(docV, val, space.Engine.RetrievalType, pro)
-				if err != nil {
-					log.Error("processProperty unrecognizable field:[%s] value %v", fieldName, err)
-					return
-				}
-				if field != nil && field.Type == vearchpb.FieldType_VECTOR && field.Value != nil {
-					haveVector = true
-				}
-				fields = append(fields, field)
-			}
-		} else {
+		if !ok {
 			haveNoField = true
 			errorField = fieldName
-			log.Error("unrecognizable field:[%s] value %s", fieldName, v.String())
+			log.Warnf("unrecognizable field, %s is not found in space fields", fieldName)
+			return
 		}
+		if _, ok := FieldsIndex[fieldName]; ok {
+			log.Warnf("filed name [%s]  is an internal field that cannot be used", fieldName)
+			return
+		}
+		docV := rutil.GetDocVal()
+		if docV == nil {
+			docV = &rutil.DocVal{FieldName: fieldName, Path: path}
+		} else {
+			docV.FieldName = fieldName
+			docV.Path = path
+		}
+
+		defer func() {
+			rutil.PutDocVal(docV)
+		}()
+		field, err := processProperty(docV, val, space.Engine.RetrievalType, pro)
+		if err != nil {
+			log.Error("processProperty unrecognizable field:[%s] value %v", fieldName, err)
+			parseErr = err
+			return
+		}
+		if field != nil && field.Type == vearchpb.FieldType_VECTOR && field.Value != nil {
+			haveVector = true
+		}
+		fields = append(fields, field)
 	})
+
+	if parseErr.Error() != "" {
+		return nil, fmt.Errorf("param parse error msg:[%s]", parseErr.Error())
+	}
 
 	if haveNoField {
 		return nil, fmt.Errorf("param have error field [%s]", errorField)
 	}
 
-	if !(space.Engine.DataType != "" && (strings.EqualFold("scalar", space.Engine.DataType))) {
+	if !strings.EqualFold("scalar", space.Engine.DataType) {
 		if !haveVector {
 			return nil, fmt.Errorf("param have not vector value")
 		}
@@ -166,25 +162,18 @@ func processPropertyString(v *fastjson.Value, pathString string, pro *entity.Spa
 		}
 		return field, nil
 	} else {
-		fmt.Errorf("unrecognizable field %s %v", pathString, pro)
 		return nil, fmt.Errorf("unrecognizable field %s %v", pathString, pro)
 	}
 }
 
 func processPropertyNumber(v *fastjson.Value, pathString string, pro *entity.SpaceProperties) (*vearchpb.Field, error) {
-	propertyValFloat, err := v.Float64()
-	if err != nil {
-		log.Error("processPropertyNumber Float64 error: %v", err)
-		return nil, err
-	}
 	if pro != nil {
-		field, err := processNumber(pro, pathString, propertyValFloat)
+		field, err := processNumber(pro, pathString, v)
 		if err != nil {
 			return nil, err
 		}
 		return field, nil
 	} else {
-		fmt.Errorf("unrecognizable field %s %v", pathString, pro)
 		return nil, fmt.Errorf("unrecognizable field %s %v", pathString, pro)
 	}
 }
@@ -201,7 +190,6 @@ func processPropertyBool(v *fastjson.Value, pathString string, pro *entity.Space
 		}
 		return field, nil
 	} else {
-		fmt.Errorf("unrecognizable field %s %v", pathString, pro)
 		return nil, fmt.Errorf("unrecognizable field %s %v", pathString, pro)
 	}
 }
@@ -366,7 +354,7 @@ func processPropertyArray(v *fastjson.Value, pathString string, pro *entity.Spac
 	err := fmt.Errorf("parse param processPropertyArray err :%s", fieldName)
 	vs, err := v.Array()
 	if err != nil {
-		field, err = nil, err
+		field = nil
 	}
 	if pro.FieldType == entity.FieldType_GEOPOINT {
 		field, err = processPropertyArrayVectorGeoPoint(vs, v, pathString, pro)
@@ -381,7 +369,7 @@ func processPropertyArray(v *fastjson.Value, pathString string, pro *entity.Spac
 	} else if pro.FieldType == entity.FieldType_DOUBLE && pro.Array {
 		field, err = processPropertyArrayVectorDouble(vs, fieldName, pro)
 	} else {
-		field, err = nil, fmt.Errorf("field:[%s]  this type:[%d] can use by array", fieldName, pro.FieldType)
+		field, err = nil, fmt.Errorf("field:[%s]  this type:[%v] can use by array", fieldName, pro.FieldType)
 	}
 	return field, err
 }
@@ -477,13 +465,8 @@ func processProperty(docVal *rutil.DocVal, v *fastjson.Value, retrievalType stri
 		//parseJson(append(path, fieldName), v, retrievalType,pro)
 	case fastjson.TypeArray:
 		field, err = processPropertyArray(v, pathString, pro, fieldName)
-		//return nil
-		/*for _, vv := range vs {
-			processProperty(fieldName, path, vv, retrievalType,pro)
-		}*/
 	}
 	return field, err
-	//return nil, fmt.Errorf("field:[%s]  this type:[%d] can find type", fieldName, pro.FieldType)
 }
 
 const pathSeparator = "."
@@ -507,11 +490,11 @@ func processStringFieldGeoPoint(fieldName string, val string, opt vearchpb.Field
 	err := fmt.Errorf("parse param StringGeoPoint err :%s", fieldName)
 	lat, lon, err := rutil.ParseStringToGeoPoint(val)
 	if err != nil {
-		field, err = nil, err
+		field = nil
 	} else {
 		code, err := cbbytes.FloatArrayByte([]float32{float32(lon), float32(lat)})
 		if err != nil {
-			field, err = nil, err
+			field = nil
 		} else {
 			field, err = processField(fieldName, vearchpb.FieldType_GEOPOINT, code, opt)
 			return field, err
@@ -526,86 +509,109 @@ func processString(pro *entity.SpaceProperties, fieldName, val string) (*vearchp
 		opt = vearchpb.FieldOption_Index
 	}
 
-	field := &vearchpb.Field{Name: fieldName}
-	err := fmt.Errorf("parse param processString err :%s", fieldName)
+	var (
+		field *vearchpb.Field
+		err   error
+	)
 
 	switch pro.FieldType {
 	case entity.FieldType_STRING:
 		field, err = processField(fieldName, vearchpb.FieldType_STRING, []byte(val), opt)
 	case entity.FieldType_DATE:
 		// UTC time
-		parsedDateTime, err := cast.ToTimeE(val)
+		var f time.Time
+		f, err = cast.ToTimeE(val)
 		if err != nil {
 			field, err = nil, fmt.Errorf("parse date %s faield, err %v", val, err)
 		} else {
-			field, err = processField(fieldName, vearchpb.FieldType_DATE, cbbytes.Int64ToByte(parsedDateTime.UnixNano()), opt)
+			field, err = processField(fieldName, vearchpb.FieldType_DATE, cbbytes.Int64ToByte(f.UnixNano()), opt)
 		}
 	case entity.FieldType_INT:
-		i, err := cast.ToInt32E(val)
+		var i int32
+		i, err = cast.ToInt32E(val)
 		if err != nil {
 			field, err = nil, fmt.Errorf("parse string %s to integer failed, err %v", val, err)
 		} else {
 			field, err = processField(fieldName, vearchpb.FieldType_INT, cbbytes.Int32ToByte(i), opt)
 		}
 	case entity.FieldType_LONG:
-		i, err := cast.ToInt64E(val)
+		var i int64
+		i, err = cast.ToInt64E(val)
 		if err != nil {
 			field, err = nil, fmt.Errorf("parse string %s to long failed, err %v", val, err)
 		} else {
 			field, err = processField(fieldName, vearchpb.FieldType_LONG, cbbytes.Int64ToByte(i), opt)
 		}
 	case entity.FieldType_FLOAT:
-		f, err := cast.ToFloat32E(val)
+		var f float32
+		f, err = cast.ToFloat32E(val)
 		if err != nil {
 			field, err = nil, fmt.Errorf("parse string %s to float32 failed, err %v", val, err)
 		} else {
 			field, err = processField(fieldName, vearchpb.FieldType_FLOAT, cbbytes.Float32ToByte(f), opt)
 		}
 	case entity.FieldType_DOUBLE:
-		f, err := cast.ToFloat64E(val)
+		var f float64
+		f, err = cast.ToFloat64E(val)
 		if err != nil {
 			field, err = nil, fmt.Errorf("parse string %s to float64 failed, err %v", val, err)
 		} else {
 			field, err = processField(fieldName, vearchpb.FieldType_DOUBLE, cbbytes.Float64ToByte(f), opt)
 		}
-	case entity.FieldType_GEOPOINT:
-		field, err = processStringFieldGeoPoint(fieldName, val, opt)
+	default:
+		field, err = nil, fmt.Errorf("parse param processString err :%s", fieldName)
 	}
 	return field, err
 }
 
-func processNumber(pro *entity.SpaceProperties, fieldName string, val float64) (*vearchpb.Field, error) {
-	field := &vearchpb.Field{Name: fieldName}
-	err := fmt.Errorf("parse param processNumber err,fieldName:%s", fieldName)
-
+func processNumber(pro *entity.SpaceProperties, fieldName string, val *fastjson.Value) (*vearchpb.Field, error) {
 	opt := vearchpb.FieldOption_Null
 	if pro.Option == 1 {
 		opt = vearchpb.FieldOption_Index
 	}
 
+	var (
+		field *vearchpb.Field
+		err   error
+	)
 	switch pro.FieldType {
 	case entity.FieldType_INT:
-		i := int32(val)
-		e := float32(val) - float32(i)
-		if e > 0 || e < 0 {
-			return nil, fmt.Errorf("string mismatch field:[%s] type:[%s] ", fieldName, pro.FieldType)
+		var i int
+		i, err = val.Int()
+		if err != nil {
+			return nil, err
 		}
-		field, err = processField(fieldName, vearchpb.FieldType_INT, cbbytes.Int32ToByte(i), opt)
+		field, err = processField(fieldName, vearchpb.FieldType_INT, cbbytes.Int32ToByte(int32(i)), opt)
 	case entity.FieldType_LONG:
-		i := int64(val)
-		e := val - float64(i)
-		if e > 0 || e < 0 {
-			return nil, fmt.Errorf("string mismatch field:[%s] type:[%s] ", fieldName, pro.FieldType)
+		var i int64
+		i, err = val.Int64()
+		if err != nil {
+			return nil, err
 		}
 		field, err = processField(fieldName, vearchpb.FieldType_LONG, cbbytes.Int64ToByte(i), opt)
 	case entity.FieldType_FLOAT:
-		field, err = processField(fieldName, vearchpb.FieldType_FLOAT, cbbytes.Float32ToByte(float32(val)), opt)
+		var i float64
+		i, err = val.Float64()
+		if err != nil {
+			return nil, err
+		}
+		field, err = processField(fieldName, vearchpb.FieldType_FLOAT, cbbytes.Float32ToByte(float32(i)), opt)
 	case entity.FieldType_DOUBLE:
-		field, err = processField(fieldName, vearchpb.FieldType_DOUBLE, cbbytes.Float64ToByteNew(val), opt)
+		var i float64
+		i, err = val.Float64()
+		if err != nil {
+			return nil, err
+		}
+		field, err = processField(fieldName, vearchpb.FieldType_DOUBLE, cbbytes.Float64ToByteNew(i), opt)
 	case entity.FieldType_DATE:
-		field, err = processField(fieldName, vearchpb.FieldType_DATE, cbbytes.Int64ToByte(int64(val)*1e6), opt)
+		var i int64
+		i, err = val.Int64()
+		if err != nil {
+			return nil, err
+		}
+		field, err = processField(fieldName, vearchpb.FieldType_DATE, cbbytes.Int64ToByte(i*1e6), opt)
 	default:
-		field, err = nil, fmt.Errorf("string mismatch field:[%s] value:[%f] type:[%s] ", fieldName, val, pro.FieldType)
+		field, err = nil, fmt.Errorf("string mismatch field:[%s] value:[%v] type:[%v] ", fieldName, val, pro.FieldType)
 	}
 	return field, err
 }
@@ -623,7 +629,7 @@ func processGeoPoint(pro *entity.SpaceProperties, fieldName string, lon, lat flo
 		}
 		return processField(fieldName, vearchpb.FieldType_GEOPOINT, code, opt)
 	default:
-		return nil, fmt.Errorf("string mismatch field:[%s] value:[%f,%f] type:[%s] ", fieldName, lon, lat, pro.FieldType)
+		return nil, fmt.Errorf("string mismatch field:[%s] value:[%f,%f] type:[%v] ", fieldName, lon, lat, pro.FieldType)
 	}
 }
 
@@ -636,7 +642,7 @@ func processBool(pro *entity.SpaceProperties, fieldName string, val bool) (*vear
 		}
 		return processField(fieldName, vearchpb.FieldType_BOOL, cbbytes.BoolToByte(val), opt)
 	default:
-		return nil, fmt.Errorf("string mismatch field:[%s] type:[%s] ", fieldName, pro.FieldType)
+		return nil, fmt.Errorf("string mismatch field:[%s] type:[%v] ", fieldName, pro.FieldType)
 	}
 }
 
@@ -658,7 +664,7 @@ func processVectorBinary(pro *entity.SpaceProperties, fieldName string, val []ui
 
 		return processField(fieldName, vearchpb.FieldType_VECTOR, bs, opt)
 	default:
-		return nil, fmt.Errorf("processVectorBinary field:[%s] value %v mismatch field type %s", fieldName, val, pro.FieldType)
+		return nil, fmt.Errorf("processVectorBinary field:[%s] value %v mismatch field type %v", fieldName, val, pro.FieldType)
 	}
 }
 
@@ -670,11 +676,12 @@ func processVector(pro *entity.SpaceProperties, fieldName string, val []float32,
 	case entity.FieldType_VECTOR:
 		if pro.Dimension > 0 && pro.Dimension != len(val) {
 			field, err = nil, fmt.Errorf("field:[%s] vector_length err ,schema is:[%d] but input :[%d]", fieldName, pro.Dimension, len(val))
+			return field, err
 		}
 
 		bs, err := cbbytes.VectorToByte(val, source)
 		if err != nil {
-			field, err = nil, err
+			field = nil
 			log.Error("processVector VectorToByte error: %v", err)
 		} else {
 			opt := vearchpb.FieldOption_Null
@@ -686,7 +693,7 @@ func processVector(pro *entity.SpaceProperties, fieldName string, val []float32,
 			return field, err
 		}
 	default:
-		field, err = nil, fmt.Errorf("field:[%s] value %v mismatch field type %s", fieldName, val, pro.FieldType)
+		field, err = nil, fmt.Errorf("field:[%s] value %v mismatch field type %v", fieldName, val, pro.FieldType)
 	}
 	return field, err
 }
@@ -845,7 +852,7 @@ func docSearchByIdsParse(r *http.Request, space *entity.Space) (fieldsParam []st
 	}
 
 	if len(ids) > 100 {
-		error = fmt.Errorf("id max 100 now id is:" + string(len(ids)))
+		error = fmt.Errorf("id max 100 now id is: %d", len(ids))
 		return nil, nil, reqBodyByte, error
 	}
 	return fieldsParam, ids, reqBodyByte, error
@@ -962,22 +969,17 @@ func docBulkSearchParse(r *http.Request, space *entity.Space, head *vearchpb.Req
 
 func doLogPrintSwitchParse(r *http.Request) (printSwitch bool, err error) {
 	reqBody, err := netutil.GetReqBody(r)
-	if err == nil {
-		if len(reqBody) != 0 {
-			temp := struct {
-				PrintSwitch bool `json:"print_switch,omitempty"`
-			}{}
-			err := json.Unmarshal(reqBody, &temp)
-			if err != nil {
-				err = fmt.Errorf("doLogPrintSwitchParse param convert json err: [%s]", string(reqBody))
-				return false, err
-			} else {
-				return temp.PrintSwitch, nil
-			}
-		} else {
-			err = fmt.Errorf("query param is null")
-			return false, err
-		}
+	if err != nil {
+		return false, err
 	}
-	return false, err
+	temp := struct {
+		PrintSwitch bool `json:"print_switch,omitempty"`
+	}{}
+	err = json.Unmarshal(reqBody, &temp)
+	if err != nil {
+		err = fmt.Errorf("doLogPrintSwitchParse param convert json err: [%s]", string(reqBody))
+		return false, err
+	}
+	return temp.PrintSwitch, nil
 }
+
