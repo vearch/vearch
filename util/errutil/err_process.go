@@ -3,7 +3,6 @@ package errutil
 import (
 	"fmt"
 	"github.com/pkg/errors"
-	"github.com/tiglabs/raft/logger"
 	"github.com/vearch/vearch/util/log"
 	"runtime/debug"
 )
@@ -19,9 +18,10 @@ func ThrowError(err error) {
 func CatchError(err *error) {
 	if info := recover(); info != nil {
 		if log.IsDebugEnabled() {
+
 			debug.PrintStack()
 		}
-		*err = fmt.Errorf("CatchError is %v",info)
-		logger.Debug("CatchError is %v",*err)
+		tempErr := fmt.Errorf("CatchError is %v",info)
+		err = &tempErr
 	}
 }
