@@ -335,6 +335,12 @@ func (config *Config) CurrentByMasterNameDomainIp(masterName string) error {
 	var found bool
 
 	for _, m := range config.Masters {
+		// master deploy by domain, don't need check ip
+		if config.Global.SelfManageEtcd {
+			m.Self = true
+			found = true
+			return nil
+		}
 		var domainIP *net.IPAddr
 		// check if m.Address is a ip
 		match, _ := regexp.MatchString(`^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/[0-9]+$`, m.Address)

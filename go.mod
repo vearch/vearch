@@ -14,6 +14,8 @@ replace github.com/soheilhy/cmux => github.com/soheilhy/cmux v0.1.5
 
 replace go.etcd.io/etcd => go.etcd.io/etcd v0.0.0-20200520232829-54ba9589114f
 
+exclude github.com/vearch/vearch/engine/third_party/flatbuffers-1.11.0 v1.11.0
+
 require (
 	github.com/BurntSushi/toml v0.4.1
 	github.com/StackExchange/wmi v1.2.1 // indirect

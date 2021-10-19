@@ -251,6 +251,9 @@ out:
 	ch <- prometheus.MustNewConstMetric(ms.dbDesc, prometheus.CounterValue, float64(partitionNum), "partitionNum", "master", "*")
 
 	for space, value := range docNumMap {
+		if space == nil {
+			continue
+		}
 		ch <- prometheus.MustNewConstMetric(ms.dbDesc, prometheus.CounterValue, float64(value), "docNum", dbMap[space.DBId], space.Name)
 	}
 
