@@ -62,6 +62,9 @@ func DeleteDoc(engine unsafe.Pointer, docID []byte) int {
 }
 
 func GetEngineStatus(engine unsafe.Pointer, status *EngineStatus) {
+	if engine == nil || status == nil {
+		return
+	}
 	var CBuffer *C.char
 	zero := 0
 	length := &zero
