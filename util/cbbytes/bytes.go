@@ -113,19 +113,7 @@ func FormatIByte(s uint64) string {
 }
 
 func VectorToByte(vector []float32, source string) ([]byte, error) {
-	code, err := FloatArrayByte(vector)
-	if err != nil {
-		return nil, err
-	}
-
-	buf := &bytes.Buffer{}
-
-	// if _, err = buf.Write(UInt32ToByte(uint32(len(code)))); err != nil {
-	// return nil, err
-	// }
-	buf.Write(code)
-	// buf.WriteString(source)
-	return buf.Bytes(), nil
+	return FloatArrayByte(vector)
 }
 
 func VectorBinaryToByte(vector []uint8, source string) ([]byte, error) {
@@ -176,10 +164,8 @@ func ByteToVectorBinary(bs []byte, dimension int) ([]int32, string, error) {
 
 func FloatArrayByte(fa []float32) (code []byte, err error) {
 	buf := &bytes.Buffer{}
-	for i := 0; i < len(fa); i++ {
-		if err = binary.Write(buf, binary.LittleEndian, fa[i]); err != nil {
-			return nil, err
-		}
+	if err = binary.Write(buf, binary.LittleEndian, fa); err != nil {
+		return nil, err
 	}
 	return buf.Bytes(), nil
 }
