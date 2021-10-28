@@ -103,6 +103,13 @@ Welcome to register the company name in this issue: https://github.com/vearch/ve
 ![小红书](static/xiaohongshu.png)
 ![VIVO](static/vivo.png)
 
+
+## Official Accounts
+Add a Official Accounts to get the latest news from Vearch, and reply `vearch` to invite you to pull you into the technical exchange group.
+
+![Official Accounts](docs/img/VearchOfficialAccounts.jpeg)
+
+
 ## License
 
 Licensed under the Apache License, Version 2.0. For detail see [LICENSE and NOTICE](https://github.com/vearch/vearch/blob/master/LICENSE).
