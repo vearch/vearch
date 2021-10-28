@@ -395,37 +395,67 @@ func DocToContent(dh []*vearchpb.ResultItem, head *vearchpb.RequestHead, space *
 
 func ToContents(srs []*vearchpb.SearchResult, head *vearchpb.RequestHead, took time.Duration, space *entity.Space) ([]byte, error) {
 	var builder = cbjson.ContentBuilderFactory()
+
 	builder.BeginObject()
+
 	builder.Field("took")
 	builder.ValueNumeric(int64(took) / 1e6)
+
 	builder.More()
+
 	builder.Field("results")
+
 	builder.BeginArray()
 
-	wg := &sync.WaitGroup{}
-	resChain := make([]chan string, len(srs))
-	for i, sr := range srs {
-		resChain[i] = make(chan string, 1)
-		defer close(resChain[i])
-		wg.Add(1)
-		go func(index int, s *vearchpb.SearchResult) {
-			defer wg.Done()
-			if bytes, err := ToContent(s, head, took, space); err != nil {
-				resChain[index] <- err.Error()
-			} else {
-				resChain[index] <- string(bytes)
+	if srs != nil && len(srs) > 1 {
+		var wg sync.WaitGroup
+		respChain := make(chan map[int][]byte, len(srs))
+		for i, sr := range srs {
+			wg.Add(1)
+			go func(sr *vearchpb.SearchResult, head *vearchpb.RequestHead, took time.Duration, space *entity.Space, index int) {
+				bytes, err := ToContent(sr, head, took, space)
+				if err == nil {
+					respMap := make(map[int][]byte)
+					respMap[index] = bytes
+					respChain <- respMap
+				}
+				wg.Done()
+			}(sr, head, took, space, i)
+		}
+		wg.Wait()
+		close(respChain)
+
+		byteArr := make([][]byte, len(srs))
+		for resp := range respChain {
+			for index, value := range resp {
+				byteArr[index] = value
 			}
-		}(i, sr)
-	}
-	wg.Wait()
-	for i := range resChain {
-		builder.ValueRaw(<-resChain[i])
-		if i+1 < len(srs) {
-			builder.More()
+		}
+
+		for i := 0; i < len(srs); i++ {
+			builder.ValueRaw(string(byteArr[i]))
+			if i+1 < len(srs) {
+				builder.More()
+			}
+		}
+	} else {
+		for i, sr := range srs {
+			if bytes, err := ToContent(sr, head, took, space); err != nil {
+				return nil, err
+			} else {
+				builder.ValueRaw(string(bytes))
+			}
+
+			if i+1 < len(srs) {
+				builder.More()
+			}
 		}
 	}
+
 	builder.EndArray()
+
 	builder.EndObject()
+
 	return builder.Output()
 }
 
