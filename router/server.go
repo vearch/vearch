@@ -3,6 +3,7 @@ package router
 import (
 	"context"
 	"fmt"
+	"io"
 	"net"
 	"time"
 
@@ -22,11 +23,12 @@ import (
 )
 
 type Server struct {
-	ctx        context.Context
-	cli        *client.Client
-	httpServer *netutil.Server
-	rpcServer  *grpc.Server
-	cancelFunc context.CancelFunc
+	ctx         context.Context
+	cli         *client.Client
+	httpServer  *netutil.Server
+	rpcServer   *grpc.Server
+	cancelFunc  context.CancelFunc
+	traceCloser io.Closer
 }
 
 func NewServer(ctx context.Context) (*Server, error) {
@@ -57,10 +59,6 @@ func NewServer(ctx context.Context) (*Server, error) {
 			panic(fmt.Errorf("start rpc server failed to listen: %v", err))
 		}
 		rpcServer = grpc.NewServer()
-		// rpcServer = grpc.NewServer(grpc.UnaryInterceptor(unaryInterceptor))
-		// limiter := &Limiter{limit.NewBucket(time.Millisecond, 100000)}
-		// rpcServer = grpc.NewServer(grpc_middleware.WithUnaryServerChain(ratelimit.UnaryServerInterceptor(limiter)),
-		// grpc_middleware.WithStreamServerChain(ratelimit.StreamServerInterceptor(limiter)))
 		go func() {
 			if err := rpcServer.Serve(lis); err != nil {
 				panic(fmt.Errorf("start rpc server failed to start: %v", err))
@@ -85,7 +83,6 @@ func NewServer(ctx context.Context) (*Server, error) {
 		}
 
 	}
-
 	return &Server{
 		httpServer: httpServer,
 		ctx:        routerCtx,
@@ -96,26 +93,12 @@ func NewServer(ctx context.Context) (*Server, error) {
 }
 
 func (server *Server) Start() error {
-	//find ip for server
-	/*
-		var routerIP string
-		conn, err := net.Dial("udp", "google.com:80")
-		if err != nil {
-			panic(fmt.Sprintf("conn master failed, err: [%s]", err.Error()))
-		}
-		routerIP = strings.Split(conn.LocalAddr().String(), ":")[0]
-		conn.Close()
-	*/
 	var routerIP string
 	var err error
 	// get local IP addr
-	if  config.Conf().Global.MergeRouter {
-		routerIP ,err = netutil.GetLocalIP()
-	} else {
-		routerIP, err = server.cli.Master().RegisterRouter(server.ctx, config.Conf().Global.Name, 100*time.Millisecond)
-		if err != nil {
-			panic(fmt.Sprintf("conn master failed, err: [%s]", err.Error()))
-		}
+	routerIP, err = netutil.GetLocalIP()
+	if err != nil {
+		panic(fmt.Sprintf("conn master failed, err: [%s]", err.Error()))
 	}
 	log.Debugf("Get router ip: [%s]", routerIP)
 	mserver.SetIp(routerIP, false)
@@ -146,8 +129,6 @@ func (server *Server) Shutdown() {
 		server.httpServer.Shutdown()
 		server.httpServer = nil
 	}
-
-
 	log.Info("router shutdown... end")
 }
 

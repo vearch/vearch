@@ -21,8 +21,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/patrickmn/go-cache"
-	"github.com/shopspring/decimal"
 	"math"
 	"math/big"
 	"math/rand"
@@ -30,6 +28,9 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/patrickmn/go-cache"
+	"github.com/shopspring/decimal"
 
 	"github.com/vearch/vearch/util"
 
@@ -297,6 +298,7 @@ func (r *routerRequest) Execute() []*vearchpb.Item {
 		}
 	}
 	var wg sync.WaitGroup
+
 	respChain := make(chan *vearchpb.PartitionData, len(r.sendMap))
 	for partitionID, pData := range r.sendMap {
 		wg.Add(1)
@@ -343,8 +345,9 @@ func (r *routerRequest) Execute() []*vearchpb.Item {
 			}
 			err := r.client.PS().GetOrCreateRPCClient(ctx, nodeID).Execute(ctx, UnaryHandler, d, replyPartition)
 			if err != nil {
-				replyPartition.Err = vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err).GetError()
-			} else {
+				d.Err = vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err).GetError()
+				respChain <- d
+			}else {
 				respChain <- replyPartition
 			}
 		}(partitionID, pData)

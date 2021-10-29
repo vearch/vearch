@@ -8,6 +8,7 @@
 *.swp
 vearch.iml
 .idea/
+.vscode/
 __pycache__/
 
 # Test binary, build with `go test -c`

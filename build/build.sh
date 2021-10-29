@@ -68,7 +68,7 @@ echo "version info: $flags"
 echo "build gamma"
 pushd $GAMMAOUT
 cmake -DPERFORMANCE_TESTING=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$ROOT/ps/engine/gammacb/lib $ROOT/engine/
-make && make install
+make -j && make install
 popd
 flatbuffers=$ROOT/ps/engine/third_party/flatbuffers-1.11.0
 if [ -d ${flatbuffers} ]; then
@@ -82,13 +82,13 @@ function build_vearch(){
   echo "build vearch"
   if [ $1 == 'mod' ];then
     echo "build vearch by mod"
-    go env -w GO111MODULE="on"
+    export GO111MODULE="on"
     go build -mod=mod -a -tags="vector" -ldflags "$flags" -o $BUILDOUT/vearch $ROOT/startup.go
     echo "build deploy tool by mod"
     go build -mod=mod -a -ldflags "$flags" -o $BUILDOUT/batch_deployment $ROOT/tools/deployment/batch_deployment.go
   else 
     echo "build vearch by vendor"
-    go env -w GO111MODULE="off"
+    export GO111MODULE="off"
     go build -a -tags="vector" -ldflags "$flags" -o $BUILDOUT/vearch $ROOT/startup.go
     echo "build deploy tool by vendor"
     go build -a -ldflags "$flags" -o $BUILDOUT/batch_deployment $ROOT/tools/deployment/batch_deployment.go

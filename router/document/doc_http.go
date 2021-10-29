@@ -18,18 +18,20 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
-	"github.com/vearch/vearch/proto/entity"
-
+	"github.com/opentracing/opentracing-go"
 	"github.com/vearch/vearch/client"
 	"github.com/vearch/vearch/config"
 	"github.com/vearch/vearch/monitor"
+	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/proto/vearchpb"
 	"github.com/vearch/vearch/router/document/resp"
 	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/util/netutil"
+	"github.com/vearch/vearch/util/uuid"
 )
 
 const (
@@ -149,6 +151,8 @@ func (handler *DocumentHandler) ExportToServer() error {
 }
 
 func (handler *DocumentHandler) handleTimeout(ctx context.Context, w http.ResponseWriter, r *http.Request, params netutil.UriParams) (context.Context, bool) {
+	messageID := uuid.FlakeUUID()
+	ctx = context.WithValue(ctx, entity.MessageID, messageID)
 	return ctx, true
 }
 
@@ -195,7 +199,10 @@ func (handler *DocumentHandler) cacheInfo(ctx context.Context, w http.ResponseWr
 
 func (handler *DocumentHandler) handleGetDoc(ctx context.Context, w http.ResponseWriter, r *http.Request, params netutil.UriParams) (context.Context, bool) {
 	startTime := time.Now()
-	defer monitor.Profiler("handleGetDoc", startTime)
+	operateName := "handleGetDoc"
+	defer monitor.Profiler(operateName, startTime)
+	span, ctx := opentracing.StartSpanFromContext(ctx, operateName)
+	defer span.Finish()
 	args := &vearchpb.GetRequest{}
 	args.Head = setRequestHead(params, r)
 	args.PrimaryKeys = strings.Split(params.ByName(URLParamID), ",")
@@ -249,8 +256,11 @@ func (handler *DocumentHandler) handleUpdateDoc(ctx context.Context, w http.Resp
 
 // handleBulk For add documents by batch
 func (handler *DocumentHandler) handleBulk(ctx context.Context, w http.ResponseWriter, r *http.Request, params netutil.UriParams) (context.Context, bool) {
-	t1 := time.Now()
-	defer monitor.Profiler("handleBulk", t1)
+	startTime := time.Now()
+	operateName := "handleBulk"
+	defer monitor.Profiler(operateName, startTime)
+	span, ctx := opentracing.StartSpanFromContext(ctx, operateName)
+	defer span.Finish()
 	args := &vearchpb.BulkRequest{}
 	args.Head = setRequestHead(params, r)
 	space, err := handler.client.Space(ctx, args.Head.DbName, args.Head.SpaceName)
@@ -308,7 +318,10 @@ func (handler *DocumentHandler) handleFlush(ctx context.Context, w http.Response
 // handleSearchDoc for search by param
 func (handler *DocumentHandler) handleSearchDoc(ctx context.Context, w http.ResponseWriter, r *http.Request, params netutil.UriParams) (context.Context, bool) {
 	startTime := time.Now()
-	defer monitor.Profiler("handleSearchDoc", startTime)
+	operateName := "handleSearchDoc"
+	defer monitor.Profiler(operateName, startTime)
+	span, ctx := opentracing.StartSpanFromContext(ctx, operateName)
+	defer span.Finish()
 	args := &vearchpb.SearchRequest{}
 	args.Head = setRequestHead(params, r)
 	if args.Head.Params == nil {
@@ -355,7 +368,10 @@ func (handler *DocumentHandler) handleSearchDoc(ctx context.Context, w http.Resp
 // handleMSearchDoc for search by param
 func (handler *DocumentHandler) handleMSearchDoc(ctx context.Context, w http.ResponseWriter, r *http.Request, params netutil.UriParams) (context.Context, bool) {
 	startTime := time.Now()
-	defer monitor.Profiler("handleMSearchDoc", startTime)
+	operateName := "handleMSearchDoc"
+	defer monitor.Profiler(operateName, startTime)
+	span, ctx := opentracing.StartSpanFromContext(ctx, operateName)
+	defer span.Finish()
 	args := &vearchpb.SearchRequest{}
 	args.Head = setRequestHead(params, r)
 	if args.Head.Params == nil {
@@ -462,7 +478,10 @@ func (handler *DocumentHandler) handleMSearchDoc(ctx context.Context, w http.Res
 // handleMSearchIdsDoc for search by param
 func (handler *DocumentHandler) handleMSearchIdsDoc(ctx context.Context, w http.ResponseWriter, r *http.Request, params netutil.UriParams) (context.Context, bool) {
 	startTime := time.Now()
-	defer monitor.Profiler("handleMSearchIdsDoc", startTime)
+	operateName := "handleMSearchIdsDoc"
+	defer monitor.Profiler(operateName, startTime)
+	span, ctx := opentracing.StartSpanFromContext(ctx, operateName)
+	defer span.Finish()
 	args := &vearchpb.SearchRequest{}
 	args.Head = setRequestHead(params, r)
 	if args.Head.Params != nil {
@@ -505,28 +524,28 @@ func (handler *DocumentHandler) handleMSearchIdsDoc(ctx context.Context, w http.
 	return ctx, true
 }
 
-// getUrlQuery get param in uri by name
-func getUrlQuery(r *http.Request, name string) (value string) {
-	reqArgs := netutil.GetUrlQuery(r)
-	if value, ok := reqArgs[name]; ok {
-		return value
-	}
-	return
-}
-
 // setRequestHead set head of request
 func setRequestHead(params netutil.UriParams, r *http.Request) (head *vearchpb.RequestHead) {
 	head = &vearchpb.RequestHead{}
 	head.DbName = params.ByName(URLParamDbName)
 	head.SpaceName = params.ByName(URLParamSpaceName)
 	head.Params = netutil.GetUrlQuery(r)
+	if timeout, ok := head.Params["timeout"]; ok {
+		var err error
+		if head.TimeOutMs, err = strconv.ParseInt(timeout, 10, 64); err != nil {
+			log.Warnf("timeout[%s] param parse to int failed, err: %s", timeout, err.Error())
+		}
+	}
 	return
 }
 
 // handlerQueryDocByIds query byids
 func (handler *DocumentHandler) handlerQueryDocByIds(ctx context.Context, w http.ResponseWriter, r *http.Request, params netutil.UriParams) (context.Context, bool) {
 	startTime := time.Now()
-	defer monitor.Profiler("handlerQueryDocByIds", startTime)
+	operateName := "handlerQueryDocByIds"
+	defer monitor.Profiler(operateName, startTime)
+	span, ctx := opentracing.StartSpanFromContext(ctx, operateName)
+	defer span.Finish()
 	args := &vearchpb.GetRequest{}
 	args.Head = setRequestHead(params, r)
 	if args.Head.Params == nil {
@@ -566,7 +585,10 @@ func (handler *DocumentHandler) handlerQueryDocByIds(ctx context.Context, w http
 // handlerQueryDocByIdsFeature query by ids and feature
 func (handler *DocumentHandler) handlerQueryDocByIdsFeature(ctx context.Context, w http.ResponseWriter, r *http.Request, params netutil.UriParams) (context.Context, bool) {
 	startTime := time.Now()
-	defer monitor.Profiler("handlerQueryDocByIdsFeature", startTime)
+	operateName := "handlerQueryDocByIdsFeature"
+	defer monitor.Profiler(operateName, startTime)
+	span, ctx := opentracing.StartSpanFromContext(ctx, operateName)
+	defer span.Finish()
 	args := &vearchpb.GetRequest{}
 	args.Head = setRequestHead(params, r)
 	if args.Head.Params == nil {
@@ -633,7 +655,10 @@ func (handler *DocumentHandler) handlerQueryDocByIdsFeature(ctx context.Context,
 // handleBulkSearchDoc query byids
 func (handler *DocumentHandler) handleBulkSearchDoc(ctx context.Context, w http.ResponseWriter, r *http.Request, params netutil.UriParams) (context.Context, bool) {
 	startTime := time.Now()
-	defer monitor.Profiler("handleBulkSearchDoc", startTime)
+	operateName := "handleBulkSearchDoc"
+	defer monitor.Profiler(operateName, startTime)
+	span, ctx := opentracing.StartSpanFromContext(ctx, operateName)
+	defer span.Finish()
 	args := &vearchpb.SearchRequest{}
 	args.Head = setRequestHead(params, r)
 	if args.Head.Params == nil {

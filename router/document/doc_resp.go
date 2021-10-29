@@ -83,6 +83,11 @@ func docGetResponse(client *client.Client, args *vearchpb.GetRequest, reply *vea
 		} else {
 			builder.ValueBool(false)
 		}
+		if item.Err != nil{
+			builder.More()
+			builder.Field("msg")
+			builder.ValueString(item.Err.Msg)
+		}
 		builder.EndObject()
 	}
 
