@@ -104,8 +104,8 @@ Welcome to register the company name in this issue: https://github.com/vearch/ve
 ![VIVO](static/vivo.png)
 
 
-## Official Accounts
-Add a Official Accounts to get the latest news from Vearch, and reply `vearch` to invite you to pull you into the technical exchange group.
+## Wechat official Accounts
+Add a Official Accounts to get the latest news from Vearch, and reply `vearch` to invite you to pull you into the wechat technical exchange group.
 
 ![Official Accounts](docs/img/VearchOfficialAccounts.jpeg)
 
