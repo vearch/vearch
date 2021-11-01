@@ -26,8 +26,6 @@ replace (
 	google.golang.org/grpc => google.golang.org/grpc v1.2.1-0.20180928173848-b48e364c83c8
 )
 
-exclude github.com/vearch/vearch/engine/third_party/flatbuffers-1.11.0 v1.11.0
-
 require (
 	github.com/BurntSushi/toml v0.3.1
 	github.com/StackExchange/wmi v1.2.1 // indirect
