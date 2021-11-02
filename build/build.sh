@@ -78,8 +78,25 @@ fi
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ROOT/ps/engine/gammacb/lib/lib/
 export LIBRARY_PATH=$LIBRARY_PATH:$ROOT/ps/engine/gammacb/lib/lib/
 
-echo "build vearch"
-go build -a -tags="vector" -ldflags "$flags" -o $BUILDOUT/vearch $ROOT/startup.go
+function build_vearch(){
+  echo "build vearch"
+  if [ $1 == 'mod' ];then
+    echo "build vearch by mod"
+    go env -w GO111MODULE="on"
+    go build -mod=mod -a -tags="vector" -ldflags "$flags" -o $BUILDOUT/vearch $ROOT/startup.go
+    echo "build deploy tool by mod"
+    go build -mod=mod -a -ldflags "$flags" -o $BUILDOUT/batch_deployment $ROOT/tools/deployment/batch_deployment.go
+  else 
+    echo "build vearch by vendor"
+    go env -w GO111MODULE="off"
+    go build -a -tags="vector" -ldflags "$flags" -o $BUILDOUT/vearch $ROOT/startup.go
+    echo "build deploy tool by vendor"
+    go build -a -ldflags "$flags" -o $BUILDOUT/batch_deployment $ROOT/tools/deployment/batch_deployment.go
+  fi
+}
 
-echo "build deploy tool"
-go build -a -ldflags "$flags" -o $BUILDOUT/batch_deployment $ROOT/tools/deployment/batch_deployment.go
+if [ $# == 1 ];then
+  build_vearch 'mod'
+else
+  build_vearch 'vendor'
+fi
