@@ -24,6 +24,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cast"
+	"github.com/vearch/vearch/util/tracer"
 	"github.com/vearch/vearch/util/vearchlog"
 
 	"github.com/vearch/vearch/util/metrics/mserver"
@@ -74,9 +75,11 @@ func main() {
 	log.Info("The Config File Is: %v", confPath)
 
 	config.InitConfig(confPath)
-
+	if config.Conf().TracerCfg != nil {
+		closer := tracer.InitJaeger(config.Conf().Global.Name, config.Conf().TracerCfg)
+		defer closer.Close()
+	}
 	args := flag.Args()
-
 	if len(args) == 0 {
 		args = []string{allTag}
 	}

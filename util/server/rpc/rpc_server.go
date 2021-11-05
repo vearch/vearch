@@ -56,9 +56,8 @@ func (this *RpcServer) Run() error {
 	if strings.Compare(this.serverAddress, "127.0.0.1") == 0 || strings.Compare(this.serverAddress, "localhost") == 0 {
 		this.serverAddress = ""
 	}
-
 	this.server = server.NewServer()
-
+	this.server.Plugins.Add(client.OpenTracingPlugin{})
 	go this.server.Serve("tcp", fmt.Sprintf("%s:%d", this.serverAddress, this.port))
 
 	return nil

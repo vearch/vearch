@@ -885,7 +885,8 @@ def test_searchByFeatureRocksdb():
                         "feature": feature,
                         "format":"normalization"
                     }]
-                }
+                },
+                "is_brute_search":1
             }
             response = requests.post(url, headers=headers, data=json.dumps(data))
             print("searchByFeature---\n" + response.text)
@@ -913,7 +914,8 @@ def test_searchByFeatureandFilterRocksdb():
                         "feature": feature,
                         "format":"normalization"
                     }]
-                }
+                },
+                "is_brute_search":1
             }
             response = requests.post(url, headers=headers, data=json.dumps(data))
             print("searchByFeature---\n" + response.text)
@@ -958,7 +960,7 @@ def test_searchByTermRocksdb():
     url = "http://" + ip_data + "/"+db_name+"/"+space_name_rocksdb+"/_search"
     headers = {"content-type": "application/json"}
     with open(fileData, "r") as dataLine1:
-        for i, dataLine in zip(range(1),dataLine1):
+        for i, dataLine in zip(range(10),dataLine1):
             idStr = dataLine.split(',', 1)[0].replace('{', '')
             id = eval(idStr.split(':')[1])
             feature = "{"+dataLine.split(',', 1)[1]
@@ -978,78 +980,14 @@ def test_searchByTermRocksdb():
                         "feature": feature,
                         "format":"normalization"
                     }]
-                }
+                },
+                "is_brute_search":1
             }
-            # data = {
-            #     "query": {
-            #         "filter": [{
-            #             "term": {
-            #                 "string": "0AW1mK_j19FyJvn5NR4Eb"
-            #             }
-            #         }]
-            #     }
-            # }
-            # print("data:" + json.dumps(data))
+            
             response = requests.post(url, headers=headers, data=json.dumps(data))
             print("searchByFeature---\n" + response.text)
             assert response.status_code == 200
-            #  assert response.text.find("\"failed\":0") >= 0
 
-# def test_searchAll():
-#     url = "http://" + ip_data + "/"+db_name+"/"+space_name_mmap+"/_search"
-#     headers = {"content-type": "application/json"}
-#     with open(fileData, "r") as dataLine1:
-#         for querydata in query_list:
-#             print("querydata:" + querydata)
-#             for i, dataLine in zip(range(1),dataLine1):
-#                 idStr = dataLine.split(',', 1)[0].replace('{', '')
-#                 id = eval(idStr.split(':')[1])
-#                 feature = "{"+dataLine.split(',', 1)[1]
-#                 feature = json.loads(feature)
-#                 string_tags = feature["string_tags"]
-#                 feature = feature["vector"]["feature"]
-#                 # print("feature:" + json.dumps(feature))
-#                 data = querydata.replace("[0.9405091]", json.dumps(feature))
-#                 # data = {
-#                 #     "query": {
-#                 #         "filter": [{
-#                 #             "range": {
-#                 #                 "int" : {
-#                 #                     "gte" : 0,
-#                 #                     "lte" : 9999
-#                 #                 }
-#                 #             }
-#                 #         }],
-#                 #         "sum" :[{
-#                 #             "field": "vector",
-#                 #             "feature": feature,
-#                 #             "format":"normalization"
-#                 #         }]
-#                 #     }
-#                 # }
-#                 print("data:" + data)
-#                 # response = requests.post(url, headers=headers, data=json.dumps(data))
-#                 response = requests.post(url, headers=headers, data=data)
-#                 print("searchByFeature---\n" + response.text)
-#                 assert response.status_code == 200
-#                 assert response.text.find("\"successful\":1")>=0
-
-# def test_updateDocRocksdb():
-#     logger.info("updateDoc")
-#     headers = {"content-type": "application/json"}
-#     with open(fileData, "r") as dataLine1:
-#         for i, dataLine in zip(range(10),dataLine1):
-#             idStr = dataLine.split(',', 1)[0].replace('{', '')
-#             id = eval(idStr.split(':')[1])
-#             data = {
-#                 "doc":{
-#                     "int": 32
-#                 }
-#             }
-#             url = "http://" + ip_data + "/" + db_name + "/" + space_name_rocksdb + "/" + id + "/_update"
-#             response = requests.post(url, headers=headers, data=data)
-#             print("updateDoc:" + response.text)
-#             assert response.status_code == 200
 
 def test_deleteDocByIdRocksdb():
     logger.info("test_deleteDoc")
@@ -1062,7 +1000,7 @@ def test_deleteDocByIdRocksdb():
             response = requests.delete(url)
             print("deleteDocById:" + response.text)
             assert response.status_code == 200
-            #  assert response.text.find("\"failed\":0") >= 0
+
 
 def test_insertBulkRocksdb():
     logger.info("insertBulk")
@@ -1080,22 +1018,6 @@ def test_insertBulkRocksdb():
         print("insertBulk:" + response.text)
         assert response.status_code == 200
 
-'''
-def test_deleteDocByIdBulkRocksdb():
-    logger.info("test_deleteDoc")
-    headers = {"content-type": "application/json"}
-    url = "http://" + ip_data + "/" + db_name + "/" + space_name_rocksdb + "/_bulk"
-    with open(fileData, "r") as dataLine1:
-        data = ''
-        for i, dataLine in zip(range(100),dataLine1):
-            idStr = dataLine.split(',', 1)[0]+"}"
-            deleteid = "{\"delete\":"+idStr+"}\n"
-            data = data + deleteid
-        print("data:"+data)
-        response = requests.post(url, headers=headers, data=data)
-        print("deleteDocById:" + response.text)
-        assert response.status_code == 200
-'''
 
 def test_insterNoId1Rocksdb():
     logger.info("insertDataNoId")
@@ -1109,34 +1031,7 @@ def test_insterNoId1Rocksdb():
             response = requests.post(url, headers=headers, data=data)
             print("insertNoID:" + response.text)
             assert response.status_code == 200
-            #  assert response.text.find("\"successful\":1")>=0
 
-'''
-def test_deleteDocByFeatureRocksdb():
-    logger.info("test_deleteDoc")
-    headers = {"content-type": "application/json"}
-    url = "http://" + ip_data + "/"+db_name+"/"+space_name_rocksdb+"/_delete_by_query"
-    with open(fileData, "r") as dataLine1:
-        for i, dataLine in zip(range(1),dataLine1):
-            idStr = dataLine.split(',', 1)[0].replace('{', '')
-            id = eval(idStr.split(':')[1])
-            feature = "{"+dataLine.split(',', 1)[1]
-            feature = json.loads(feature)
-            feature = feature["vector"]["feature"]
-            data = {
-                "query": {
-                    "sum" :[{
-                        "field": "vector",
-                        "feature": feature,
-                        "format":"normalization"
-                    }]
-                }
-            }
-            response = requests.post(url, headers=headers, data=json.dumps(data))
-            print("searchByFeature---\n" + response.text)
-            assert response.status_code == 200
-            # assert response.text.find("\"successful\":1")>=0
-'''
 
 def test_deleteSpaceRocksdb():
     url = "http://" + ip_db + "/space/"+db_name+"/"+space_name_rocksdb
@@ -1144,132 +1039,6 @@ def test_deleteSpaceRocksdb():
     print("deleteSpace:" + response.text)
     assert response.status_code == 200
 
-# def test_deletetableRocksdb():
-#     url_table = "http://" + ip_db + "/space/" + db_name +"/_create"
-#     url_delete = "http://" + ip_db + "/space/"+db_name+"/"+space_name_rocksdb
-#     headers = {"content-type": "application/json"}
-#     # data_table = {
-#     #     "name": "ts_space",
-#     #     "dynamic_schema": "strict",
-#     #     "partition_num": 3,
-#     #     "replica_num": 3,
-#     #     "engine": {"name": "gamma", "index_size": 10000, "max_size": 20000000},
-#     #     "properties": {
-#     #         "sku": {
-#     #             "type": "integer",
-#     #             "index": "false"
-#     #         },
-#     #         "img_url": {
-#     #             "type": "keyword",
-#     #             "index": "false"
-#     #         },
-#     #         "cid1": {
-#     #             "type": "integer",
-#     #             "index": "true"
-#     #         },
-#     #         "cid2": {
-#     #             "type": "integer",
-#     #             "index": "true"
-#     #         },
-#     #         "cid3": {
-#     #             "type": "integer",
-#     #             "index": "true"
-#     #         },
-#     #         "spu": {
-#     #             "type": "integer",
-#     #             "index": "false"
-#     #         },
-#     #         "brand_id": {
-#     #             "type": "integer",
-#     #             "index": "false"
-#     #         },
-#     #         "feature": {
-#     #             "type": "vector",
-#     #             "model_id": "img",
-#     #             "dimension": 512,
-#     #             # "retrieval_type": "GPU",
-#     #             "store_param": {"cache_size": 40960}
-#     #         }
-#     #     },
-#     #     "models": [{
-#     #         "model_id": "vgg16",
-#     #         "fields": ["url"],
-#     #         "out": "feature"
-#     #     }]
-#     # }
-#     data_table = {
-#         "name": space_name_rocksdb,
-#         "dynamic_schema": "strict",
-#         "partition_num": 3, #"partition_num": 2-6之间
-#         "replica_num": 1,
-#         "engine": {"name":"gamma", "index_size":8192, "max_size":100000},
-#         "properties": {
-#             "string": {
-#                 "type" : "keyword",
-#                 "index" : True
-#             },
-#             "int": {
-#                 "type": "integer",
-#                 "index" : True
-#             },
-#             "float": {
-#                 "type": "float",
-#                 "index" : True
-#             },
-#             "vector": {
-#                 "type": "vector",
-#                 "model_id": "img",
-#                 "dimension": 128,
-#                 "format":"normalization"
-#             },
-#             "string_tags": {
-#                 "type": "string",
-#                 "array": True,
-#                 "index" : True
-#             },
-#             "int_tags": {
-#                 "type": "integer",
-#                 "array": True,
-#                 "index" : True
-#             },
-#             "float_tags" : {
-#                 "type": "float",
-#                 "array": True,
-#                 "index" : True
-#             }
-#         },
-#         "models": [{
-#             "model_id": "vgg16",
-#             "fields": ["string"],
-#             "out": "feature"
-#         }]
-#     }
-#     f = open('result.txt', 'a+')
-#     for i in range(200):
-#         #create table
-#         response = requests.put(url_table, headers=headers, data=json.dumps(data_table))
-#         print("i---",i,":space_create", response.text)
-#         #instert docs 1000
-#         with open(fileData, "r") as dataLine1:
-#             num = 0
-#             for dataLine in dataLine1:
-#                 idStr = dataLine.split(',', 1)[0].replace('{', '')
-#                 id = eval(idStr.split(':')[1])
-#                 data = "{"+dataLine.split(',', 1)[1]
-#                 url = "http://" + ip_data + "/" + db_name + "/" + space_name_mmap + "/" + id
-#                 # response = requests.post(url, headers=headers, data=data)
-#
-#                 # print("i---",i,"insertWithID:", response.text,file=f)
-#                 # assert response.status_code == 200
-#                 # num += 1
-#                 # if(num == 1000):
-#                 #     break;
-#         #delete table
-#         response = requests.delete(url_delete)
-#         print("i---",i, ":delete space", response.text)
-#         # time.sleep(5)
-#     f.close()
-#
 
 def test_deleteDB():
     url = "http://" + ip_db + "/db/"+db_name
