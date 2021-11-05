@@ -8,4 +8,4 @@ ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/vearch/lib/"
 RUN yum install -y epel-release
 RUN yum install -y libgomp blas-devel lapack-devel openssl-devel libzstd-devel openblas-devel tbb-devel
 
-ENTRYPOINT ["/vearch/bin/vearch","-conf" ,"/vearch/config.toml","-master","$MASTER_NAME"]
+ENTRYPOINT ["/vearch/bin/vearch", "-conf", "/vearch/config.toml", "-master", "$MASTER_NAME"]

@@ -1,0 +1,12 @@
+version: '3.5'
+
+services: 
+  standalone: 
+    container_name: vearch-standalone
+    image: vearch/vearch:3.2.7
+    ports: 
+      - "8817:8817"
+      - "9001:9001"
+    volumes:
+      - ${DOCKER_VOLUME_DIRECTORY:-.}/config.toml:/vearch/config.toml
+    command: all

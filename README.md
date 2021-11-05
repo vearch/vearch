@@ -71,7 +71,7 @@ Vearch is a scalable distributed system for efficient similarity search of deep 
 * [benchmarks](/engine/benchs/README.md)
 
 ## Publication
-Jie Li, Haifeng Liu, Chuanghua Gui, Jianyu Chen, Zhenyun Ni, Ning Wang, Yuan Chen, Qiang Liu. The Design and Implementation of a Real Time Visual Search System on JD E-commerce Platform. In the 19th International ACM Middleware Conference, December 10–14, 2018, Rennes, France. https://arxiv.org/abs/1908.07389
+Jie Li, Haifeng Liu, Chuanghua Gui, Jianyu Chen, Zhenyun Ni, Ning Wang, Yuan Chen. The Design and Implementation of a Real Time Visual Search System on JD E-commerce Platform. In the 19th International ACM Middleware Conference, December 10–14, 2018, Rennes, France. https://arxiv.org/abs/1908.07389
 
 ## Community
 You can report bugs or ask questions in the [issues page](https://github.com/vearch/vearch/issues) of the repository.
@@ -102,6 +102,14 @@ Welcome to register the company name in this issue: https://github.com/vearch/ve
 ![汇智通信](static/teligen.png)
 ![小红书](static/xiaohongshu.png)
 ![VIVO](static/vivo.png)
+![JD](static/jd.png)
+
+
+## Wechat official Accounts
+Add a Official Accounts to get the latest news from Vearch, and reply `vearch` to invite you to pull you into the wechat technical exchange group.
+
+![Official Accounts](docs/img/VearchOfficialAccounts.jpeg)
+
 
 ## License
 
