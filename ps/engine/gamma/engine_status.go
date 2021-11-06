@@ -15,6 +15,7 @@ import (
 type EngineStatus struct {
 	IndexStatus   int32
 	TableMem      int64
+	IndexMem      int64
 	VectorMem     int64
 	FieldRangeMem int64
 	BitmapMem     int64
@@ -31,6 +32,7 @@ func (status *EngineStatus) Serialize(buffer *[]byte) int {
 	gamma_api.EngineStatusStart(builder)
 	gamma_api.EngineStatusAddIndexStatus(builder, status.IndexStatus)
 	gamma_api.EngineStatusAddTableMem(builder, status.TableMem)
+	gamma_api.EngineStatusAddIndexMem(builder, status.IndexMem)
 	gamma_api.EngineStatusAddVectorMem(builder, status.VectorMem)
 	gamma_api.EngineStatusAddFieldRangeMem(builder, status.FieldRangeMem)
 	gamma_api.EngineStatusAddBitmapMem(builder, status.BitmapMem)
@@ -48,6 +50,7 @@ func (status *EngineStatus) DeSerialize(buffer []byte) {
 	status.engineStatus = gamma_api.GetRootAsEngineStatus(buffer, 0)
 	status.IndexStatus = status.engineStatus.IndexStatus()
 	status.TableMem = status.engineStatus.TableMem()
+	status.IndexMem = status.engineStatus.IndexMem()
 	status.VectorMem = status.engineStatus.VectorMem()
 	status.FieldRangeMem = status.engineStatus.FieldRangeMem()
 	status.BitmapMem = status.engineStatus.BitmapMem()
