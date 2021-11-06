@@ -238,6 +238,11 @@ func (handler *DocumentHandler) handleUpdateDoc(ctx context.Context, w http.Resp
 	args := &vearchpb.UpdateRequest{}
 	args.Head = setRequestHead(params, r)
 	space, err := handler.client.Space(ctx, args.Head.DbName, args.Head.SpaceName)
+	if space == nil {
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "dbName or spaceName param not build db or space")
+		return ctx, true
+	}
+
 	err = docParse(ctx, r, space, args)
 	if err != nil {
 		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
