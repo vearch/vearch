@@ -23,7 +23,6 @@ import (
 	"fmt"
 	"math"
 	"math/big"
-	"math/rand"
 	"strconv"
 	"strings"
 	"sync"
@@ -1026,6 +1025,8 @@ func (r *routerRequest) BulkSearchByPartitions(searchReq []*vearchpb.SearchReque
 	return r
 }
 
+var replicaRoundRobin = NewReplicaRoundRobin()
+
 func GetNodeIdsByClientType(clientType string, partition *entity.Partition, servers *cache.Cache) entity.NodeID {
 	nodeId := uint64(0)
 	switch clientType {
@@ -1048,7 +1049,7 @@ func GetNodeIdsByClientType(clientType string, partition *entity.Partition, serv
 				}
 			}
 		}
-		nodeId = noLeaderIDs[rand.Intn(len(noLeaderIDs))]
+		nodeId = replicaRoundRobin.Next(partition.Id, noLeaderIDs)
 	case "random", "":
 		randIDs := make([]entity.NodeID, 0)
 		for _, nodeID := range partition.Replicas {
@@ -1063,7 +1064,7 @@ func GetNodeIdsByClientType(clientType string, partition *entity.Partition, serv
 				}
 			}
 		}
-		nodeId = randIDs[rand.Intn(len(randIDs))]
+		nodeId = replicaRoundRobin.Next(partition.Id, randIDs)
 		if log.IsDebugEnabled() {
 			log.Debug("search by partition:%v by random model ID:[%d]", randIDs, nodeId)
 		}
@@ -1081,7 +1082,7 @@ func GetNodeIdsByClientType(clientType string, partition *entity.Partition, serv
 				}
 			}
 		}
-		nodeId = randIDs[rand.Intn(len(randIDs))]
+		nodeId = replicaRoundRobin.Next(partition.Id, randIDs)
 		if log.IsDebugEnabled() {
 			log.Debug("search by partition:%v by default model ID:[%d]", randIDs, nodeId)
 		}
