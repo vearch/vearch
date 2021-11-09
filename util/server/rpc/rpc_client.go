@@ -112,7 +112,7 @@ func (r *RpcClient) Execute(ctx context.Context, servicePath string, args interf
 			md = make(map[string]string)
 		}
 		if endTime, ok := ctx.Value(entity.RPC_TIME_OUT).(time.Time); ok {
-			timeout := time.Until(endTime).Milliseconds()
+			timeout := int64(time.Until(endTime) / time.Millisecond)
 			if timeout < 1 {
 				messageID := ctx.Value(entity.MessageID).(string)
 				msg := fmt.Sprintf("messageID[%s]: timeout when execute rpc, the max num of concurrency is [%d]", messageID, r.concurrentNum)
