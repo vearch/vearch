@@ -10,7 +10,12 @@ Vearch is aimed to build a simple and fast image retrieval system. Through this 
 
 ## Before you begin
 
-1. Deploy Vearch system referred to [Deploy.md](Deploy.md).
+1. Start Vearch system by docker-compose.
+```shell
+cd cloud
+cp ../config/config.toml.example config.toml
+docker-compose up
+```
 
  For testing you can download  [coco data](https://pjreddie.com/media/files/val2014.zip), or  use the images in images folder we choose from [coco data](https://pjreddie.com/media/files/val2014.zip). For more details, you can refer test folder in `plugin.src`
 
