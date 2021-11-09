@@ -16,24 +16,36 @@ package server
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"strconv"
 	"strings"
+	"time"
 
+	"github.com/opentracing/opentracing-go"
+	"github.com/spf13/cast"
+	"github.com/vearch/vearch/config"
+	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/proto/vearchpb"
 
 	"github.com/smallnest/pool"
 
 	"github.com/smallnest/rpcx/client"
+	"github.com/smallnest/rpcx/share"
 	"github.com/vearch/vearch/util/log"
 )
+
+var defaultConcurrentNum int = 2000
 
 type RpcClient struct {
 	serverAddress []string
 	clientPool    *pool.Pool
+	concurrent    chan bool
+	concurrentNum int
 }
 
 func NewRpcClient(serverAddress ...string) (*RpcClient, error) {
-	log.Info("instance client by rpc %s", serverAddress[0])
-
+	log.Debug("instance client by rpc %s", serverAddress[0])
 	var d client.ServiceDiscovery
 	if len(serverAddress) == 1 {
 		d = client.NewPeer2PeerDiscovery("tcp@"+serverAddress[0], "")
@@ -46,16 +58,23 @@ func NewRpcClient(serverAddress ...string) (*RpcClient, error) {
 	}
 
 	clientPool := &pool.Pool{New: func() interface{} {
-		log.Info("to instance client for server:[%s]", serverAddress)
-		return client.NewOneClient(client.Failtry, client.RandomSelect, d, ClientOption)
+		log.Debug("to instance client for server:[%s]", serverAddress)
+		oneclient := client.NewOneClient(client.Failtry, client.RandomSelect, d, ClientOption)
+		return oneclient
 	}}
 
-	return &RpcClient{serverAddress: serverAddress, clientPool: clientPool}, nil
+	r := &RpcClient{serverAddress: serverAddress, clientPool: clientPool}
+	r.concurrentNum = defaultConcurrentNum
+	if config.Conf().Router.ConcurrentNum > 0 {
+		r.concurrentNum = config.Conf().Router.ConcurrentNum
+	}
+	r.concurrent = make(chan bool, r.concurrentNum)
+	return r, nil
 }
 
-func (this *RpcClient) Close() error {
+func (r *RpcClient) Close() error {
 	var e error
-	this.clientPool.Range(func(v interface{}) bool {
+	r.clientPool.Range(func(v interface{}) bool {
 		if err := v.(*client.OneClient).Close(); err != nil {
 			log.Error("close client has err:[%s]", err.Error())
 			e = err
@@ -65,13 +84,55 @@ func (this *RpcClient) Close() error {
 	return e
 }
 
-func (this *RpcClient) Execute(ctx context.Context, servicePath string, args interface{}, reply *vearchpb.PartitionData) (err error) {
-	cli := this.clientPool.Get().(*client.OneClient)
-	this.clientPool.Put(cli)
-	if err := cli.Call(ctx, servicePath, serviceMethod, args, reply); err != nil {
-		return vearchpb.NewError(vearchpb.ErrorEnum_Call_RpcClient_Failed, err)
+func (r *RpcClient) Execute(ctx context.Context, servicePath string, args interface{}, reply *vearchpb.PartitionData) (err error) {
+	r.concurrent <- true
+	defer func() {
+		<-r.concurrent
+		if r := recover(); r != nil {
+			err = errors.New(cast.ToString(r))
+			log.Error(err.Error())
+		}
+	}()
+	select {
+	case <-ctx.Done():
+		msg := fmt.Sprintf("Too much concurrency causes time out, the max num of concurrency is [%d]", r.concurrentNum)
+		err = vearchpb.NewError(vearchpb.ErrorEnum_TIMEOUT, errors.New(msg))
+		return
+	default:
+		var (
+			md map[string]string
+			ok bool
+		)
+		if m := ctx.Value(share.ReqMetaDataKey); m != nil {
+			md, ok = m.(map[string]string)
+			if !ok {
+				md = make(map[string]string)
+			}
+		} else {
+			md = make(map[string]string)
+		}
+		if endTime, ok := ctx.Value(entity.RPC_TIME_OUT).(time.Time); ok {
+			timeout := time.Until(endTime).Milliseconds()
+			if timeout < 1 {
+				messageID := ctx.Value(entity.MessageID).(string)
+				msg := fmt.Sprintf("messageID[%s]: timeout when execute rpc, the max num of concurrency is [%d]", messageID, r.concurrentNum)
+				err = vearchpb.NewError(vearchpb.ErrorEnum_TIMEOUT, errors.New("timeout"))
+				log.Errorf(msg)
+				return
+			}
+			md[string(entity.RPC_TIME_OUT)] = strconv.FormatInt(int64(timeout), 10)
+		}
+		if span := opentracing.SpanFromContext(ctx); span != nil {
+			span.Tracer().Inject(span.Context(), opentracing.TextMap, opentracing.TextMapCarrier(md))
+		}
+		ctx = context.WithValue(ctx, share.ReqMetaDataKey, md)
+		cli := r.clientPool.Get().(*client.OneClient)
+		defer r.clientPool.Put(cli)
+		if err := cli.Call(ctx, servicePath, serviceMethod, args, reply); err != nil {
+			err = vearchpb.NewError(vearchpb.ErrorEnum_Call_RpcClient_Failed, err)
+		}
+		return
 	}
-	return nil
 }
 
 func (this *RpcClient) GetAddress(i int) string {

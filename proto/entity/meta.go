@@ -88,6 +88,13 @@ const ClusterCleanJobKey = "/cluster/cleanjob"
 //ClusterWatchServerKey for server job lock
 const ClusterWatchServerKey = "watch/server"
 
+// rpc time out, default 10 * 1000 ms
+type CTX_KEY string
+var (
+	 RPC_TIME_OUT CTX_KEY = "rpc_timeout"
+	 MessageID = "messageID"
+)
+
 type (
 	// DBID is a custom type for database ID
 	DBID = int64

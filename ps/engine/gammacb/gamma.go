@@ -121,7 +121,10 @@ func New(cfg register.EngineConfig) (engine.Engine, error) {
 				//log.Debug("gamma use memory is:[%d]", C.GetMemoryBytes(ge.gamma))
 				var status gamma.EngineStatus
 				gamma.GetEngineStatus(ge.gamma, &status)
-				log.Debug("gamma use memory is:[%d]", (status.BitmapMem + status.FieldRangeMem + status.TableMem + status.VectorMem))
+				log.Debug("gamma use memory is:[%d]",
+					status.BitmapMem + status.FieldRangeMem + status.TableMem + status.VectorMem + status.IndexMem)
+				log.Debug("gamma memory usage: bitmap %d, range %d, table %d, vector %d, vector index %d",
+					status.BitmapMem, status.FieldRangeMem, status.TableMem, status.VectorMem, status.IndexMem)
 				time.Sleep(10 * time.Second)
 			}
 		}()

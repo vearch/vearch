@@ -82,6 +82,7 @@ const (
 type Config struct {
 	Global     *GlobalCfg `toml:"global,omitempty" json:"global"`
 	EtcdConfig *EtcdCfg   `toml:"etcd,omitempty" json:"etcd"`
+	TracerCfg  *TracerCfg `toml:"tracer,omitempty" json:"tracer"`
 	Masters    Masters    `toml:"masters,omitempty" json:"masters"`
 	Router     *RouterCfg `toml:"router,omitempty" json:"router"`
 	PS         *PSCfg     `toml:"ps,omitempty" json:"ps"`
@@ -171,6 +172,12 @@ type EtcdCfg struct {
 	EtcdClientPort uint16   `toml:"etcd_client_port,omitempty" json:"etcd_client_port"`
 	Username       string   `toml:"user_name,omitempty" json:"user_name"`
 	Password       string   `toml:"password,omitempty" json:"password"`
+}
+
+type TracerCfg struct {
+	Host        string  `toml:"host,omitempty" json:"host"`
+	SampleType  string  `toml:"sample_type,omitempty" json:"sample_type"`
+	SampleParam float64 `toml:"sample_param,omitempty" json:"sample_param"`
 }
 
 type Masters []*MasterCfg
@@ -270,13 +277,15 @@ func (config *Config) GetEmbed() (*embed.Config, error) {
 }
 
 type RouterCfg struct {
-	Port         uint16   `toml:"port,omitempty" json:"port"`
-	PprofPort    uint16   `toml:"pprof_port,omitempty" json:"pprof_port"`
-	RpcPort      uint16   `toml:"rpc_port,omitempty" json:"rpc_port"`
-	MonitorPort  uint16   `toml:"monitor_port" json:"monitor_port"`
-	ConnLimit    int      `toml:"conn_limit" json:"conn_limit"`
-	CloseTimeout int64    `toml:"close_timeout" json:"close_timeout"`
-	RouterIPS    []string ``
+	Port          uint16   `toml:"port,omitempty" json:"port"`
+	PprofPort     uint16   `toml:"pprof_port,omitempty" json:"pprof_port"`
+	RpcPort       uint16   `toml:"rpc_port,omitempty" json:"rpc_port"`
+	MonitorPort   uint16   `toml:"monitor_port" json:"monitor_port"`
+	ConnLimit     int      `toml:"conn_limit" json:"conn_limit"`
+	CloseTimeout  int64    `toml:"close_timeout" json:"close_timeout"`
+	RouterIPS     []string `toml:"router_ips" json:"router_ips"`
+	ConcurrentNum int      `toml:"concurrent_num" json:"concurrent_num"`
+	RpcTimeOut    int      `toml:"rpc_timeout" json:"rpc_timeout"`  //ms
 }
 
 func (routerCfg *RouterCfg) ApiUrl(keyNumber int) string {
@@ -307,6 +316,8 @@ type PSCfg struct {
 	Private                bool   `toml:"private" json:"private"`                         //this ps is private if true you must set machine by dbConfig
 	FlushTimeInterval      uint32 `toml:"flush_time_interval" json:"flush_time_interval"` // seconds
 	FlushCountThreshold    uint32 `toml:"flush_count_threshold" json:"flush_count_threshold"`
+	ConcurrentNum          int    `toml:"concurrent_num" json:"concurrent_num"`
+	RpcTimeOut             int    `toml:"rpc_timeout" json:"rpc_timeout"`
 }
 
 func InitConfig(path string) {
