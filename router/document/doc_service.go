@@ -41,7 +41,7 @@ func newDocService(client *client.Client) *docService {
 }
 
 func setTimeOut(ctx context.Context, head *vearchpb.RequestHead) (context.Context, context.CancelFunc) {
-	timeout := defaultRpcTimeOut 
+	timeout := defaultRpcTimeOut
 	if config.Conf().Router.RpcTimeOut > 0 {
 		timeout = int64(config.Conf().Router.RpcTimeOut)
 	}
@@ -201,18 +201,20 @@ func (docService *docService) search(ctx context.Context, args *vearchpb.SearchR
 func (docService *docService) bulkSearch(ctx context.Context, args []*vearchpb.SearchRequest) *vearchpb.SearchResponse {
 	searchResponse := &vearchpb.SearchResponse{}
 	var wg sync.WaitGroup
-	respChain := make(chan *vearchpb.SearchResponse, len(args))
-	for _, arg := range args {
+	respChain := make([]chan *vearchpb.SearchResponse, len(args))
+	for i, arg := range args {
 		wg.Add(1)
-		go func(arg *vearchpb.SearchRequest, ctx context.Context) {
-			res := docService.search(ctx, arg)
-			respChain <- res
-			wg.Done()
-		}(arg, ctx)
+		go func(ii int, arg *vearchpb.SearchRequest, ctx context.Context) {
+			defer wg.Done()
+			respChain[ii] = make(chan *vearchpb.SearchResponse, 1)
+			defer close(respChain[ii])
+			respChain[ii] <- docService.search(ctx, arg)
+		}(i, arg, ctx)
 	}
 	wg.Wait()
-	close(respChain)
-	for resp := range respChain {
+
+	for _, respC := range respChain {
+		resp := <-respC
 		if searchResponse == nil {
 			searchResponse = resp
 		} else {
@@ -220,8 +222,8 @@ func (docService *docService) bulkSearch(ctx context.Context, args []*vearchpb.S
 				searchResponse.Results = append(searchResponse.Results, resp.Results[0])
 			}
 		}
-	}
 
+	}
 	return searchResponse
 }
 
