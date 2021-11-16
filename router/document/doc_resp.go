@@ -83,7 +83,7 @@ func docGetResponse(client *client.Client, args *vearchpb.GetRequest, reply *vea
 		} else {
 			builder.ValueBool(false)
 		}
-		if item.Err != nil{
+		if item.Err != nil {
 			builder.More()
 			builder.Field("msg")
 			builder.ValueString(item.Err.Msg)
@@ -121,7 +121,7 @@ func docUpdateResponses(client *client.Client, args *vearchpb.UpdateRequest, rep
 
 func docBulkResponses(client *client.Client, args *vearchpb.BulkRequest, reply *vearchpb.BulkResponse) ([]byte, error) {
 	if args == nil || reply == nil || reply.Items == nil || len(reply.Items) < 1 {
-		if reply.GetHead() != nil && reply.GetHead().Err != nil {
+		if reply.GetHead() != nil && reply.GetHead().Err != nil && reply.GetHead().Err.Code != vearchpb.ErrorEnum_SUCCESS {
 			err := reply.GetHead().Err
 			return nil, vearchpb.NewError(err.Code, errors.New(err.Msg))
 		}
@@ -160,7 +160,13 @@ func docResultSerialize(space *entity.Space, head *vearchpb.RequestHead, item *v
 	builder.More()
 	builder.Field("_type")
 	builder.ValueString(head.SpaceName)
-
+	if item == nil {
+		builder.More()
+		builder.Field("error")
+		builder.ValueString("duplicate id")
+		builder.EndObject()
+		return builder.Output()
+	}
 	doc := item.Doc
 	builder.More()
 	builder.Field("_id")

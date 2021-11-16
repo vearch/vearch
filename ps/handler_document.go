@@ -135,6 +135,9 @@ func (handler *UnaryHandler) Execute(ctx context.Context, req *vearchpb.Partitio
 		reply.Err = req.Err
 		return
 	case <-time.After(delayTime):
+		reply.PartitionID = req.PartitionID
+		reply.MessageID = req.MessageID
+		reply.Items = req.Items
 		msg := fmt.Sprintf("This request processing timed out[%dms]", timeout)
 		reply.Err = vearchpb.NewError(vearchpb.ErrorEnum_TIMEOUT, errors.New(msg)).GetError()
 		log.Error(msg)

@@ -982,4 +982,3 @@ func doLogPrintSwitchParse(r *http.Request) (printSwitch bool, err error) {
 	}
 	return temp.PrintSwitch, nil
 }
-
