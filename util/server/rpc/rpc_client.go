@@ -59,7 +59,7 @@ func NewRpcClient(serverAddress ...string) (*RpcClient, error) {
 
 	clientPool := &pool.Pool{New: func() interface{} {
 		log.Debug("to instance client for server:[%s]", serverAddress)
-		oneclient := client.NewOneClient(client.Failtry, client.RandomSelect, d, ClientOption)
+		oneclient := client.NewOneClient(client.Failfast, client.RandomSelect, d, ClientOption)
 		return oneclient
 	}}
 
