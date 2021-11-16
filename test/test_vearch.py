@@ -95,7 +95,7 @@ def test_createSpaceMmap():
     data = {
         "name": "ts_space",
         "dynamic_schema": "strict",
-        "partition_num": 1,
+        "partition_num": 10,
         "replica_num": 1,
         "engine": {
             "name": "gamma",
@@ -125,8 +125,6 @@ def test_createSpaceMmap():
                 "type": "vector",
                 "model_id": "img",
                 "dimension": 128,
-                # "store_type": store_type,                  #默认 "Mmap"
-                # "store_param": {"cache_size": cache_size}, #默认 max_size*dimension*typeof(float)
                 "store_type": "MemoryOnly",
                 "format": "normalization"
             },
@@ -152,55 +150,6 @@ def test_createSpaceMmap():
             "out": "feature"
         }]
     }
-    # data = {
-    #     "name": "ts_space",
-    #     "dynamic_schema": "strict",
-    #     "partition_num": 3,
-    #     "replica_num": 3,
-    #     "engine": {"name": "gamma", "index_size": 10000, "max_size": 20000000},
-    #     "properties": {
-    #         "sku": {
-    #             "type": "integer",
-    #             "index": "false"
-    #         },
-    #         "img_url": {
-    #             "type": "keyword",
-    #             "index": "false"
-    #         },
-    #         "cid1": {
-    #             "type": "integer",
-    #             "index": "true"
-    #         },
-    #         "cid2": {
-    #             "type": "integer",
-    #             "index": "true"
-    #         },
-    #         "cid3": {
-    #             "type": "integer",
-    #             "index": "true"
-    #         },
-    #         "spu": {
-    #             "type": "integer",
-    #             "index": "false"
-    #         },
-    #         "brand_id": {
-    #             "type": "integer",
-    #             "index": "false"
-    #         },
-    #         "feature": {
-    #             "type": "vector",
-    #             "model_id": "img",
-    #             "dimension": 512,
-    #             # "retrieval_type": "GPU",
-    #             "store_param": {"cache_size":40960}
-    #         }
-    #     },
-    #     "models": [{
-    #         "model_id": "vgg16",
-    #         "fields": ["url"],
-    #         "out": "feature"
-    #     }]
-    # }
     print(url+"---"+json.dumps(data))
     response = requests.put(url, headers=headers, data=json.dumps(data))
     print("space_create---\n" + response.text)
@@ -213,20 +162,6 @@ def test_getspace():
     print("get_space---\n" + response.text)
     assert response.status_code == 200
     assert response.text.find("\"msg\":\"success\"")>=0
-
-
-# def test_changemember():
-#     url = "http://" + ip_db + "/partition/change_member"
-#     headers = {"content-type": "application/json"}
-#     data = {
-#         "partition_id":7,
-#         "node_id":1,
-#         "method":0
-#     }
-#     response = requests.post(url, headers=headers, data=json.dumps(data))
-#     print("change_member:" + response.text)
-#     assert response.status_code == 200
-#     assert response.text.find("\"msg\":\"success\"")>=0
 
 logger.info("router(PS)")
 def test_insertWithId():
@@ -249,6 +184,26 @@ def test_insertWithId():
             print("insertWithID:" + response.text)
             assert response.status_code == 200
             assert response.text.find("\"status\":200")>=0
+
+logger.info("router(PS)")
+def test_bulk():
+    logger.info("insert")
+    headers = {"content-type": "application/json"}
+    for ii in range(10):
+        body = ""
+        for iii in range(10):
+            with open(fileData, "r") as f:
+                for i, dataLine in zip(range(100),f):
+                    data = json.loads(dataLine)
+                    idStr = data.pop('_id') + "-b" + str(ii) + "-" + str(iii)
+                    body = body + json.dumps({"index": {"_id": idStr}}) + '\n'
+                    body = body + json.dumps(data) + '\n'
+        url = "http://" + ip_data + "/" + db_name + "/" + space_name_mmap + "/_bulk"
+        response = requests.post(url, headers=headers, data=body)
+        print("bulk:" + response.text)
+        assert response.status_code == 200
+        assert response.text.find("\"status\":200")>=0
+
 
 def test_searchById():
     logger.info("test_searchById")
@@ -301,7 +256,31 @@ def test_searchByFeature():
             response = requests.post(url, headers=headers, data=json.dumps(data))
             print("searchByFeature---\n" + response.text)
             assert response.status_code == 200
-            #  assert response.text.find("\"failed\":0")>=0
+
+def test_bulk_searchByFeature():
+    headers = {"content-type": "application/json"}
+    url = "http://" + ip_data + "/"+db_name+"/"+space_name_mmap+"/_bulk_search"
+    for ii in range(10):
+        request_body = []
+        with open(fileData, "r") as f:
+            for i, dataLine in zip(range(100),f):
+                data = json.loads(dataLine)
+                feature = data["vector"]["feature"]
+                data = {
+                    "query": {
+                        "sum" :[{
+                            "field": "vector",
+                            "feature": feature,
+                            "format":"normalization"
+                        }],
+                    "is_brute_search": 1,
+                    "size": 10
+                    }
+                }
+                request_body.append(data)
+        response = requests.post(url, headers=headers, data=json.dumps(request_body))
+        print("searchByFeature---\n" + response.text)
+        assert response.status_code == 200
 
 def test_searchByFeatureandFilter():
     url = "http://" + ip_data + "/"+db_name+"/"+space_name_mmap+"/_search"
@@ -406,62 +385,6 @@ def test_searchByTerm():
             assert response.status_code == 200
             #  assert response.text.find("\"failed\":0") >= 0
 
-# def test_searchAll():
-#     url = "http://" + ip_data + "/"+db_name+"/"+space_name_mmap+"/_search"
-#     headers = {"content-type": "application/json"}
-#     with open(fileData, "r") as dataLine1:
-#         for querydata in query_list:
-#             print("querydata:" + querydata)
-#             for i, dataLine in zip(range(1),dataLine1):
-#                 idStr = dataLine.split(',', 1)[0].replace('{', '')
-#                 id = eval(idStr.split(':')[1])
-#                 feature = "{"+dataLine.split(',', 1)[1]
-#                 feature = json.loads(feature)
-#                 string_tags = feature["string_tags"]
-#                 feature = feature["vector"]["feature"]
-#                 # print("feature:" + json.dumps(feature))
-#                 data = querydata.replace("[0.9405091]", json.dumps(feature))
-#                 # data = {
-#                 #     "query": {
-#                 #         "filter": [{
-#                 #             "range": {
-#                 #                 "int" : {
-#                 #                     "gte" : 0,
-#                 #                     "lte" : 9999
-#                 #                 }
-#                 #             }
-#                 #         }],
-#                 #         "sum" :[{
-#                 #             "field": "vector",
-#                 #             "feature": feature,
-#                 #             "format":"normalization"
-#                 #         }]
-#                 #     }
-#                 # }
-#                 print("data:" + data)
-#                 # response = requests.post(url, headers=headers, data=json.dumps(data))
-#                 response = requests.post(url, headers=headers, data=data)
-#                 print("searchByFeature---\n" + response.text)
-#                 assert response.status_code == 200
-#                 assert response.text.find("\"successful\":1")>=0
-
-# def test_updateDoc():
-#     logger.info("updateDoc")
-#     headers = {"content-type": "application/json"}
-#     with open(fileData, "r") as dataLine1:
-#         for i, dataLine in zip(range(10),dataLine1):
-#             idStr = dataLine.split(',', 1)[0].replace('{', '')
-#             id = eval(idStr.split(':')[1])
-#             data = {
-#                 "doc":{
-#                     "int": 32
-#                 }
-#             }
-#             url = "http://" + ip_data + "/" + db_name + "/" + space_name_mmap + "/" + id + "/_update"
-#             response = requests.post(url, headers=headers, data=data)
-#             print("updateDoc:" + response.text)
-#             assert response.status_code == 200
-
 def test_deleteDocById():
     logger.info("test_deleteDoc")
     with open(fileData, "r") as dataLine1:
@@ -475,38 +398,6 @@ def test_deleteDocById():
             assert response.status_code == 200
             #  assert response.text.find("\"failed\":0") >= 0
 
-def test_insertBulk():
-    logger.info("insertBulk")
-    url = "http://" + ip_data + "/"+db_name+"/"+space_name_mmap+"/_bulk"
-    headers = {"content-type": "application/json"}
-    data = ''
-    with open(fileData, "r") as dataLine1:
-        for i, dataLine in zip(range(100),dataLine1):
-            idStr = dataLine.split(',', 1)[0]+"}"
-            index = "{\"index\":"+idStr+"}"
-            index = index + "\n"
-            dataStr = "{"+dataLine.split(',', 1)[1]
-            data = data + index + dataStr
-        response = requests.post(url, headers=headers, data=data)
-        print("insertBulk:" + response.text)
-        assert response.status_code == 200
-
-'''
-def test_deleteDocByIdBulk():
-    logger.info("test_deleteDoc")
-    headers = {"content-type": "application/json"}
-    url = "http://" + ip_data + "/" + db_name + "/" + space_name_mmap + "/_bulk"
-    with open(fileData, "r") as dataLine1:
-        data = ''
-        for i, dataLine in zip(range(100),dataLine1):
-            idStr = dataLine.split(',', 1)[0]+"}"
-            deleteid = "{\"delete\":"+idStr+"}\n"
-            data = data + deleteid
-        print("data:"+data)
-        response = requests.post(url, headers=headers, data=data)
-        print("deleteDocById:" + response.text)
-        assert response.status_code == 200
-'''
 def test_insterNoId1():
     logger.info("insertDataNoId")
     headers = {"content-type": "application/json"}
@@ -520,163 +411,12 @@ def test_insterNoId1():
             print("insertNoID:" + response.text)
             assert response.status_code == 200
             #  assert response.text.find("\"successful\":1")>=0
-'''
-def test_deleteDocByFeature():
-    logger.info("test_deleteDoc")
-    headers = {"content-type": "application/json"}
-    url = "http://" + ip_data + "/"+db_name+"/"+space_name_mmap+"/_delete_by_query"
-    with open(fileData, "r") as dataLine1:
-        for i, dataLine in zip(range(1),dataLine1):
-            idStr = dataLine.split(',', 1)[0].replace('{', '')
-            id = eval(idStr.split(':')[1])
-            feature = "{"+dataLine.split(',', 1)[1]
-            feature = json.loads(feature)
-            feature = feature["vector"]["feature"]
-            data = {
-                "query": {
-                    "sum" :[{
-                        "field": "vector",
-                        "feature": feature,
-                        "format":"normalization"
-                    }]
-                }
-            }
-            response = requests.post(url, headers=headers, data=json.dumps(data))
-            print("searchByFeature---\n" + response.text)
-            assert response.status_code == 200
-            # assert response.text.find("\"successful\":1")>=0
-'''
+
 def test_deleteSpace():
     url = "http://" + ip_db + "/space/"+db_name+"/"+space_name_mmap
     response = requests.delete(url)
     print("deleteSpace:" + response.text)
     assert response.status_code == 200
-
-# def test_deletetable():
-#     url_table = "http://" + ip_db + "/space/" + db_name +"/_create"
-#     url_delete = "http://" + ip_db + "/space/"+db_name+"/"+space_name_mmap
-#     headers = {"content-type": "application/json"}
-#     data_table = {
-#         "name": "ts_space",
-#         "dynamic_schema": "strict",
-#         "partition_num": 3,
-#         "replica_num": 1,
-#         "engine": {"name": "gamma", "index_size": 10000, "max_size": 20000000},
-#         "properties": {
-#             "sku": {
-#                 "type": "integer",
-#                 "index": "false"
-#             },
-#             "img_url": {
-#                 "type": "keyword",
-#                 "index": "false"
-#             },
-#             "cid1": {
-#                 "type": "integer",
-#                 "index": "true"
-#             },
-#             "cid2": {
-#                 "type": "integer",
-#                 "index": "true"
-#             },
-#             "cid3": {
-#                 "type": "integer",
-#                 "index": "true"
-#             },
-#             "spu": {
-#                 "type": "integer",
-#                 "index": "false"
-#             },
-#             "brand_id": {
-#                 "type": "integer",
-#                 "index": "false"
-#             },
-#             "feature": {
-#                 "type": "vector",
-#                 "model_id": "img",
-#                 "dimension": 512,
-#                 # "retrieval_type": "GPU",
-#                 "store_param": {"cache_size": 40960}
-#             }
-#         },
-#         "models": [{
-#             "model_id": "vgg16",
-#             "fields": ["url"],
-#             "out": "feature"
-#         }]
-#     }
-#     # data_table = {
-#     #     "name": space_name_mmap,
-#     #     "dynamic_schema": "strict",
-#     #     "partition_num": 2, #"partition_num": 2-6之间
-#     #     "replica_num": 1,
-#     #     "engine": {"name":"gamma", "index_size":8192, "max_size":10000},
-#     #     "properties": {
-#     #         "string": {
-#     #             "type" : "keyword",
-#     #             "index" : "true"
-#     #         },
-#     #         "int": {
-#     #             "type": "integer",
-#     #             "index" : "true"
-#     #         },
-#     #         "float": {
-#     #             "type": "float",
-#     #             "index" : "true"
-#     #         },
-#     #         "vector": {
-#     #             "type": "vector",
-#     #             "model_id": "img",
-#     #             "dimension": 128,
-#     #             "format":"normalization"
-#     #         },
-#     #         "string_tags": {
-#     #             "type": "string",
-#     #             "array": True,
-#     #             "index" : "true"
-#     #         },
-#     #         "int_tags": {
-#     #             "type": "integer",
-#     #             "array": True,
-#     #             "index" : "true"
-#     #         },
-#     #         "float_tags" : {
-#     #             "type": "float",
-#     #             "array": True,
-#     #             "index" : "true"
-#     #         }
-#     #     },
-#     #     "models": [{
-#     #         "model_id": "vgg16",
-#     #         "fields": ["string"],
-#     #         "out": "feature"
-#     #     }]
-#     # }
-#     f = open('result.txt', 'a+')
-#     for i in range(200):
-#         #create table
-#         response = requests.put(url_table, headers=headers, data=json.dumps(data_table))
-#         print("i---",i,":space_create", response.text)
-#         #instert docs 1000
-#         with open(fileData, "r") as dataLine1:
-#             num = 0
-#             for dataLine in dataLine1:
-#                 idStr = dataLine.split(',', 1)[0].replace('{', '')
-#                 id = eval(idStr.split(':')[1])
-#                 data = "{"+dataLine.split(',', 1)[1]
-#                 url = "http://" + ip_data + "/" + db_name + "/" + space_name_mmap + "/" + id
-#                 # response = requests.post(url, headers=headers, data=data)
-#
-#                 # print("i---",i,"insertWithID:", response.text,file=f)
-#                 # assert response.status_code == 200
-#                 # num += 1
-#                 # if(num == 1000):
-#                 #     break;
-#         #delete table
-#         response = requests.delete(url_delete)
-#         print("i---",i, ":delete space", response.text)
-#         # time.sleep(5)
-#     f.close()
 
 
 logger.info("rocksdb")
