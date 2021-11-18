@@ -100,3 +100,11 @@ func MapContains(m map[string]interface{}, key string) bool {
 	_, ok := m[key]
 	return ok
 }
+
+func CopyMap(src map[string]string) map[string]string {
+	dst := make(map[string]string, len(src))
+	for k, v := range src {
+		dst[k] = v
+	}
+	return dst
+}

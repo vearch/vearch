@@ -260,7 +260,7 @@ func (r *routerRequest) PartitionDocs() *routerRequest {
 
 // Execute Execute request
 func (r *routerRequest) Execute() []*vearchpb.Item {
-	ctx := context.WithValue(r.ctx, share.ReqMetaDataKey, r.md)
+	// ctx := context.WithValue(r.ctx, share.ReqMetaDataKey, r.md)
 	normalIsOrNot := false
 	normalField := make(map[string]string)
 	if r.md[HandlerType] == BatchHandler || r.md[HandlerType] == ReplaceDocHandler {
@@ -301,7 +301,8 @@ func (r *routerRequest) Execute() []*vearchpb.Item {
 	respChain := make(chan *vearchpb.PartitionData, len(r.sendMap))
 	for partitionID, pData := range r.sendMap {
 		wg.Add(1)
-		go func(pid entity.PartitionID, d *vearchpb.PartitionData) {
+		c := context.WithValue(r.ctx, share.ReqMetaDataKey, util.CopyMap(r.md))
+		go func(ctx context.Context, pid entity.PartitionID, d *vearchpb.PartitionData) {
 			defer wg.Done()
 			replyPartition := new(vearchpb.PartitionData)
 			defer func() {
@@ -346,10 +347,10 @@ func (r *routerRequest) Execute() []*vearchpb.Item {
 			if err != nil {
 				d.Err = vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err).GetError()
 				respChain <- d
-			}else {
+			} else {
 				respChain <- replyPartition
 			}
-		}(partitionID, pData)
+		}(c, partitionID, pData)
 	}
 	wg.Wait()
 	close(respChain)
@@ -380,7 +381,7 @@ func setPartitionErr(d *vearchpb.PartitionData) {
 
 func (r *routerRequest) SearchFieldSortExecute(sortOrder sortorder.SortOrder) *vearchpb.SearchResponse {
 	startTime := time.Now()
-	ctx := context.WithValue(r.ctx, share.ReqMetaDataKey, r.md)
+	// ctx := context.WithValue(r.ctx, share.ReqMetaDataKey, r.md)
 	var wg sync.WaitGroup
 	sendPartitionMap := r.sendMap
 	normalIsOrNot := false
@@ -428,8 +429,10 @@ func (r *routerRequest) SearchFieldSortExecute(sortOrder sortorder.SortOrder) *v
 	for partitionID, pData := range sendPartitionMap {
 		searchReq = pData.SearchRequest
 		wg.Add(1)
-		go func(partitionID entity.PartitionID, pd *vearchpb.PartitionData, space *entity.Space, sortOrder sortorder.SortOrder) {
+		c := context.WithValue(r.ctx, share.ReqMetaDataKey, util.CopyMap(r.md))
+		go func(ctx context.Context, partitionID entity.PartitionID, pd *vearchpb.PartitionData, space *entity.Space, sortOrder sortorder.SortOrder) {
 			defer wg.Done()
+
 			pidCacheStart := time.Now()
 			responseDoc := &response.SearchDocResult{}
 			replyPartition := new(vearchpb.PartitionData)
@@ -656,7 +659,7 @@ func (r *routerRequest) SearchFieldSortExecute(sortOrder sortorder.SortOrder) *v
 			responseDoc.PartitionData = replyPartition
 			responseDoc.SortValueMap = sortValueMap
 			respChain <- responseDoc
-		}(partitionID, pData, r.space, sortOrder)
+		}(c, partitionID, pData, r.space, sortOrder)
 	}
 	wg.Wait()
 	close(respChain)
@@ -1535,13 +1538,14 @@ func (r *routerRequest) CommonByPartitions() *routerRequest {
 
 // ForceMergeExecute Execute request
 func (r *routerRequest) ForceMergeExecute() *vearchpb.ForceMergeResponse {
-	ctx := context.WithValue(r.ctx, share.ReqMetaDataKey, r.md)
+	// ctx := context.WithValue(r.ctx, share.ReqMetaDataKey, r.md)
 	var wg sync.WaitGroup
 	partitionLen := len(r.sendMap)
 	respChain := make(chan *vearchpb.PartitionData, partitionLen)
 	for partitionID, pData := range r.sendMap {
 		wg.Add(1)
-		go func(pid entity.PartitionID, d *vearchpb.PartitionData) {
+		c := context.WithValue(r.ctx, share.ReqMetaDataKey, util.CopyMap(r.md))
+		go func(ctx context.Context, pid entity.PartitionID, d *vearchpb.PartitionData) {
 			defer wg.Done()
 			replyPartition := new(vearchpb.PartitionData)
 			defer func() {
@@ -1556,7 +1560,7 @@ func (r *routerRequest) ForceMergeExecute() *vearchpb.ForceMergeResponse {
 			}
 			responsePartition := r.ReplicaForceMergeExecute(partition, ctx, d, replyPartition)
 			respChain <- responsePartition
-		}(partitionID, pData)
+		}(c, partitionID, pData)
 	}
 	wg.Wait()
 	close(respChain)
@@ -1580,13 +1584,14 @@ func (r *routerRequest) ForceMergeExecute() *vearchpb.ForceMergeResponse {
 
 // FlushExecute Execute request
 func (r *routerRequest) FlushExecute() *vearchpb.FlushResponse {
-	ctx := context.WithValue(r.ctx, share.ReqMetaDataKey, r.md)
+	// ctx := context.WithValue(r.ctx, share.ReqMetaDataKey, r.md)
 	var wg sync.WaitGroup
 	partitionLen := len(r.sendMap)
 	respChain := make(chan *vearchpb.PartitionData, partitionLen)
 	for partitionID, pData := range r.sendMap {
 		wg.Add(1)
-		go func(pid entity.PartitionID, d *vearchpb.PartitionData) {
+		c := context.WithValue(r.ctx, share.ReqMetaDataKey, util.CopyMap(r.md))
+		go func(ctx context.Context, pid entity.PartitionID, d *vearchpb.PartitionData) {
 			defer wg.Done()
 			replyPartition := new(vearchpb.PartitionData)
 			defer func() {
@@ -1601,7 +1606,7 @@ func (r *routerRequest) FlushExecute() *vearchpb.FlushResponse {
 			}
 			responsePartition := r.LeaderFlushExecute(partition, ctx, d, replyPartition)
 			respChain <- responsePartition
-		}(partitionID, pData)
+		}(c, partitionID, pData)
 	}
 	wg.Wait()
 	close(respChain)
@@ -1668,13 +1673,14 @@ func (r *routerRequest) LeaderFlushExecute(partition *entity.Partition, ctx cont
 
 // DelByQueryeExecute Execute request
 func (r *routerRequest) DelByQueryeExecute(deleteByScalar bool, idIsLong bool) *vearchpb.DelByQueryeResponse {
-	ctx := context.WithValue(r.ctx, share.ReqMetaDataKey, r.md)
+	// ctx := context.WithValue(r.ctx, share.ReqMetaDataKey, r.md)
 	var wg sync.WaitGroup
 	partitionLen := len(r.sendMap)
 	respChain := make(chan *vearchpb.PartitionData, partitionLen)
 	for partitionID, pData := range r.sendMap {
 		wg.Add(1)
-		go func(pid entity.PartitionID, d *vearchpb.PartitionData) {
+		c := context.WithValue(r.ctx, share.ReqMetaDataKey, util.CopyMap(r.md))
+		go func(ctx context.Context, pid entity.PartitionID, d *vearchpb.PartitionData) {
 			defer wg.Done()
 			replyPartition := new(vearchpb.PartitionData)
 			defer func() {
@@ -1694,7 +1700,7 @@ func (r *routerRequest) DelByQueryeExecute(deleteByScalar bool, idIsLong bool) *
 			} else {
 				respChain <- replyPartition
 			}
-		}(partitionID, pData)
+		}(c, partitionID, pData)
 	}
 	wg.Wait()
 	close(respChain)
