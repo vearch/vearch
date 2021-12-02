@@ -54,10 +54,11 @@ func init() {
 }
 
 const (
-	psTag     = "ps"
-	masterTag = "master"
-	routerTag = "router"
-	allTag    = "all"
+	psTag               = "ps"
+	masterTag           = "master"
+	routerTag           = "router"
+	allTag              = "all"
+	DefaultResourceName = "default"
 )
 
 func main() {
@@ -75,6 +76,11 @@ func main() {
 	log.Info("The Config File Is: %v", confPath)
 
 	config.InitConfig(confPath)
+
+	if config.Conf().Global.ResourceName == "" {
+		config.Conf().Global.ResourceName = DefaultResourceName
+	}
+
 	if config.Conf().TracerCfg != nil {
 		closer := tracer.InitJaeger(config.Conf().Global.Name, config.Conf().TracerCfg)
 		defer closer.Close()

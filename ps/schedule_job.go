@@ -35,6 +35,7 @@ func (s *Server) StartHeartbeatJob() {
 		server := &entity.Server{
 			ID:                s.nodeID,
 			Ip:                s.ip,
+			ResourceName:      config.Conf().Global.ResourceName,
 			RpcPort:           config.Conf().PS.RpcPort,
 			RaftHeartbeatPort: config.Conf().PS.RaftHeartbeatPort,
 			RaftReplicatePort: config.Conf().PS.RaftReplicatePort,

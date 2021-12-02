@@ -1,6 +1,8 @@
 [global]
     # the name will validate join cluster by same name
     name = "cbdb"
+    # specify which resources to use to create space
+    resource_name = "vector_db1"
     # you data save to disk path ,If you are in a production environment, You'd better set absolute paths
     data = ["datas/","datas1/"]
     # log path , If you are in a production environment, You'd better set absolute paths

@@ -45,11 +45,12 @@ import (
 )
 
 const (
-	DB            = "db"
-	dbName        = "db_name"
-	spaceName     = "space_name"
-	headerAuthKey = "Authorization"
-	NodeID        = "node_id"
+	DB                  = "db"
+	dbName              = "db_name"
+	spaceName           = "space_name"
+	headerAuthKey       = "Authorization"
+	NodeID              = "node_id"
+	DefaultResourceName = "default"
 )
 
 type clusterAPI struct {
@@ -277,6 +278,11 @@ func (ca *clusterAPI) createSpace(c *gin.Context) {
 		log.Error("parse space settings err: %v", err)
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 		return
+	}
+
+	// set default resource name
+	if space.ResourceName == "" {
+		space.ResourceName = DefaultResourceName
 	}
 
 	if space.PartitionNum <= 0 {
