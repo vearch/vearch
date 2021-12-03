@@ -165,7 +165,13 @@ func (cliCache *clientCache) SpaceByCache(ctx context.Context, db, space string)
 		return get.(*entity.Space), nil
 	}
 
-	vearchlog.LogErrNotNil(cliCache.reloadSpaceCache(ctx, false, db, space))
+	err := cliCache.reloadSpaceCache(ctx, false, db, space)
+	vearchlog.LogErrNotNil(err)
+
+	if err != nil {
+		return nil, fmt.Errorf("db:[%s] space:[%s] err:[%s]", db, space,
+			vearchpb.NewError(vearchpb.ErrorEnum_SPACE_NOTEXISTS, nil))
+	}
 
 	for i := 0; i < retryNum; i++ {
 		time.Sleep(retrySleepTime)
@@ -185,13 +191,18 @@ func (cliCache *clientCache) reloadSpaceCache(ctx context.Context, sync bool, db
 		log.Info("to reload db:[%s] space:[%s]", db, spaceName)
 
 		dbID, err := cliCache.mc.QueryDBName2Id(ctx, db)
-		if err != nil  {
+		if err != nil {
 			return fmt.Errorf("can not found db by name:[%s] err:[%s]", db, err.Error())
 		}
 
 		space, err := cliCache.mc.QuerySpaceByName(ctx, dbID, spaceName)
 		if err != nil {
 			return fmt.Errorf("can not found db by name:[%s] err:[%s]", db, err.Error())
+		}
+		if space.ResourceName != config.Conf().Global.ResourceName {
+			log.Info("space name [%s] resource name don't match [%s], [%s], reloadSpaceCache failed. ",
+				space.Name, space.ResourceName, config.Conf().Global.ResourceName)
+			return nil
 		}
 		spaceCacheLock.Lock()
 		defer spaceCacheLock.Unlock()
@@ -363,7 +374,7 @@ func (cliCache *clientCache) serverDelete(ctx context.Context, server *entity.Se
 			// recover failServer
 			// if the partition num of the newNode is empty, then recover data by it.
 			if config.Conf().Global.AutoRecoverPs {
-				err =  cliCache.mc.RecoverByNewServer(ctx, server)
+				err = cliCache.mc.RecoverByNewServer(ctx, server)
 				if err != nil {
 					log.Debug("auto recover is err %v,server is %+v", err, server)
 				} else {
@@ -455,6 +466,11 @@ func (cliCache *clientCache) startCacheJob(ctx context.Context) error {
 			if err := cbjson.Unmarshal(value, space); err != nil {
 				return err
 			}
+			if space.ResourceName != config.Conf().Global.ResourceName {
+				log.Debug("space name [%s] resource name don't match [%s], [%s] add cache ignore.",
+					space.Name, space.ResourceName, config.Conf().Global.ResourceName)
+				return nil
+			}
 			dbName, err := cliCache.mc.QueryDBId2Name(ctx, space.DBId)
 			if err != nil {
 				return fmt.Errorf("change cache space err: %s , not found db content: %s", err.Error(), string(value))
@@ -464,6 +480,8 @@ func (cliCache *clientCache) startCacheJob(ctx context.Context) error {
 				spaceCacheLock.Lock()
 				cliCache.spaceCache.Set(key, space, cache.NoExpiration)
 				cliCache.spaceIDCache.Set(cast.ToString(space.Id), space, cache.NoExpiration)
+				log.Debug("space name [%s] , [%s], [%s] add to cache.",
+					space.Name, space.ResourceName, config.Conf().Global.ResourceName)
 				spaceCacheLock.Unlock()
 			}
 			return nil
@@ -532,6 +550,11 @@ func (cliCache *clientCache) startCacheJob(ctx context.Context) error {
 			if err := cbjson.Unmarshal(value, server); err != nil {
 				return err
 			}
+			if server.ResourceName != config.Conf().Global.ResourceName {
+				log.Info("server ip [%v] resource name don't match [%s], [%s] ",
+					server.Ip, server.ResourceName, config.Conf().Global.ResourceName)
+				return nil
+			}
 			if value, ok := cliCache.Load(server.ID); ok {
 				if value != nil && value.(*rpcClient).client.GetAddress(0) != server.RpcAddr() {
 					value.(*rpcClient).close()
@@ -540,7 +563,7 @@ func (cliCache *clientCache) startCacheJob(ctx context.Context) error {
 			}
 			cliCache.serverCache.Set(cacheServerKey(server.ID), server, cache.NoExpiration)
 			if config.Conf().Global.MergeRouter {
-				if err := cliCache.serverPut(ctx, server);err != nil {
+				if err := cliCache.serverPut(ctx, server); err != nil {
 					return err
 				}
 			}
@@ -550,14 +573,14 @@ func (cliCache *clientCache) startCacheJob(ctx context.Context) error {
 			defer errutil.CatchError(&err)
 			nodeIdStr := strings.Split(cacheKey, "/")[2]
 			nodeId := cast.ToUint64(nodeIdStr)
-			server,_ :=cliCache.Load(nodeId)
+			server, _ := cliCache.Load(nodeId)
 			if value, _ := cliCache.Load(nodeId); value != nil {
 				value.(*rpcClient).close()
 				cliCache.Delete(nodeId)
 			}
 			cliCache.serverCache.Delete(nodeIdStr)
 			if config.Conf().Global.MergeRouter {
-				if err := cliCache.serverDelete(ctx, (server).(*entity.Server));err != nil {
+				if err := cliCache.serverDelete(ctx, (server).(*entity.Server)); err != nil {
 					return err
 				}
 			}
@@ -609,6 +632,12 @@ func (cliCache *clientCache) initSpace(ctx context.Context) error {
 		db, err := cliCache.mc.QueryDBId2Name(ctx, s.DBId)
 		if err != nil {
 			log.Error("init spaces cache dbid to id err , err:[%s]", err.Error())
+			continue
+		}
+
+		if s.ResourceName != config.Conf().Global.ResourceName {
+			log.Debug("space name [%s] resource name don't match [%s], [%s], space init ignore. ",
+				s.Name, s.ResourceName, config.Conf().Global.ResourceName)
 			continue
 		}
 

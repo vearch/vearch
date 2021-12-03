@@ -88,6 +88,7 @@ type RetrievalParam struct {
 type Space struct {
 	Id              SpaceID                     `json:"id,omitempty"`
 	Name            string                      `json:"name,omitempty"` //user setting
+	ResourceName    string                      `toml:"resource_name,omitempty" json:"resource_name"`
 	Version         Version                     `json:"version,omitempty"`
 	DBId            DBID                        `json:"db_id,omitempty"`
 	Enabled         *bool                       `json:"enabled"`    //Enabled flag whether the space can work

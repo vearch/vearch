@@ -28,6 +28,7 @@ type BuildVersion struct {
 //server/id:[body] ttl 3m 3s
 type Server struct {
 	ID                NodeID        `json:"name,omitempty"` //unique name for raft
+	ResourceName      string        `toml:"resource_name,omitempty" json:"resource_name"`
 	RpcPort           uint16        `json:"rpc_port"`
 	RaftHeartbeatPort uint16        `json:"raft_heartbeat_port"`
 	RaftReplicatePort uint16        `json:"raft_replicate_port"`
@@ -40,9 +41,9 @@ type Server struct {
 
 //FailServer /fail/server/id:[body] ttl 3m 3s
 type FailServer struct {
-	ID				  NodeID        `json:"nodeID,omitempty"` //unique name for raft
-	TimeStamp		  int64  		`json:"time_stamp,omitempty"`
-	Node			  *Server		`json:"server,omitempty"`
+	ID        NodeID  `json:"nodeID,omitempty"` //unique name for raft
+	TimeStamp int64   `json:"time_stamp,omitempty"`
+	Node      *Server `json:"server,omitempty"`
 }
 
 func (s *Server) RpcAddr() string {
