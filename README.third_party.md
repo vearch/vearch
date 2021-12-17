@@ -10,7 +10,6 @@ The gamma engine of vearch is mainly implemented based on faiss. The following l
 | name         | License                                  | dependency type | modify  |
 |---------------|------------------------------------------|-----------------|------------------------|
 | faiss       | MIT                       | so              | modify the the source code of IVFPQ index  |
-| RocksDB       | GPLv2, Apache 2\.0                        | so              | N                      |
 | Btree-source-code       | public                        | source code        | N                      |
 | cJSON         | MIT                                      | source code     | N                      |
 | easyloggingpp | MIT                                      | source code     | N                      |
@@ -30,7 +29,6 @@ Servers include master, router and ps are implemented by golang. These following
 | hdrhistogram  | MIT              | import          | N                      |
 | gojson        | BSD\-3\-Clause   | import          | N                      |
 | go            | MIT              | import          | N                      |
-| ratelimit     | LGPL\-3\.0\-only | so              | N                      |
 | msgpack       | BSD\-2\-Clause   | import          | N                      |
 | crypto        | BSD\-3\-Clause   | import          | N                      |
 | sftp          | BSD\-2\-Clause   | import          | N                      |
