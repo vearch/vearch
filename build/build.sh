@@ -96,7 +96,7 @@ function build_vearch(){
 }
 
 if [ $# == 1 ];then
-  build_vearch 'mod'
-else
   build_vearch 'vendor'
+else
+  build_vearch 'mod'
 fi
