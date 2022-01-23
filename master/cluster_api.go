@@ -26,6 +26,9 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/gin-gonic/gin"
+	"github.com/spf13/cast"
+	"github.com/tiglabs/raft/proto"
 	"github.com/vearch/vearch/client"
 	"github.com/vearch/vearch/config"
 	"github.com/vearch/vearch/monitor"
@@ -38,10 +41,6 @@ import (
 	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/util/netutil"
 	"github.com/vearch/vearch/util/server/vearchhttp"
-
-	"github.com/gin-gonic/gin"
-	"github.com/spf13/cast"
-	"github.com/tiglabs/raft/proto"
 )
 
 const (

@@ -19,9 +19,8 @@ import (
 	"sync"
 
 	"github.com/vearch/vearch/util/log"
-	"github.com/vearch/vearch/util/metrics/export"
-
 	"github.com/vearch/vearch/util/metrics"
+	"github.com/vearch/vearch/util/metrics/export"
 	"github.com/vearch/vearch/util/metrics/sysstat"
 )
 

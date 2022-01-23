@@ -24,12 +24,11 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/vearch/vearch/ps/engine/gamma"
-
 	"github.com/vearch/vearch/config"
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/proto/vearchpb"
 	"github.com/vearch/vearch/ps/engine"
+	"github.com/vearch/vearch/ps/engine/gamma"
 	"github.com/vearch/vearch/ps/engine/mapping"
 	"github.com/vearch/vearch/ps/engine/register"
 	"github.com/vearch/vearch/util/atomic"
@@ -122,7 +121,7 @@ func New(cfg register.EngineConfig) (engine.Engine, error) {
 				var status gamma.EngineStatus
 				gamma.GetEngineStatus(ge.gamma, &status)
 				log.Debug("gamma use memory is:[%d]",
-					status.BitmapMem + status.FieldRangeMem + status.TableMem + status.VectorMem + status.IndexMem)
+					status.BitmapMem+status.FieldRangeMem+status.TableMem+status.VectorMem+status.IndexMem)
 				log.Debug("gamma memory usage: bitmap %d, range %d, table %d, vector %d, vector index %d",
 					status.BitmapMem, status.FieldRangeMem, status.TableMem, status.VectorMem, status.IndexMem)
 				time.Sleep(10 * time.Second)

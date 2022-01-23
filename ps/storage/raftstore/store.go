@@ -18,13 +18,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/vearch/vearch/ps/engine/register"
 	"os"
 	"sync"
 	"time"
-
-	"github.com/vearch/vearch/ps/psutil"
-	"github.com/vearch/vearch/util/log"
 
 	"github.com/tiglabs/raft"
 	"github.com/tiglabs/raft/proto"
@@ -32,7 +28,10 @@ import (
 	"github.com/vearch/vearch/client"
 	"github.com/vearch/vearch/config"
 	"github.com/vearch/vearch/proto/entity"
+	"github.com/vearch/vearch/ps/engine/register"
+	"github.com/vearch/vearch/ps/psutil"
 	"github.com/vearch/vearch/ps/storage"
+	"github.com/vearch/vearch/util/log"
 )
 
 // Store is the default implementation of PartitionStore interface which
@@ -40,7 +39,6 @@ import (
 // consensus algorithm.
 
 //var _  ps.PartitionStore = &Store{}
-
 
 type ReplicasStatusEntry struct {
 	NodeID      entity.NodeID

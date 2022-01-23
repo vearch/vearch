@@ -15,9 +15,10 @@
 package util
 
 import (
+	"net"
+
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/peer"
-	"net"
 )
 
 func GetLocalIps() []string {

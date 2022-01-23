@@ -1,13 +1,14 @@
 package monitoring
 
 import (
+	"net/http"
+	"time"
+
 	prometheus "github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/config"
 	"github.com/vearch/vearch/util/log"
-	"net/http"
-	"time"
 )
 
 var masterCallBack func(masterMonitor *MasterMonitor)
@@ -88,7 +89,7 @@ func RegisterMaster(call func(masterMonitor *MasterMonitor)) {
 	}()
 }
 
-func newCount(name, help string, ) *prometheus.CounterVec {
+func newCount(name, help string) *prometheus.CounterVec {
 	return prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: name,

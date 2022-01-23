@@ -2,10 +2,11 @@ package monitor
 
 import (
 	"fmt"
-	"github.com/caio/go-tdigest"
 	"math/rand"
 	"testing"
 	"time"
+
+	"github.com/caio/go-tdigest"
 )
 
 func TestTdigest(t *testing.T) {

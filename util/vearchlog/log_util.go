@@ -16,9 +16,10 @@ package vearchlog
 
 import (
 	"fmt"
-	"github.com/vearch/vearch/util/log"
 	"io"
 	"runtime/debug"
+
+	"github.com/vearch/vearch/util/log"
 )
 
 //log err if not nil

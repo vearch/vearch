@@ -9,6 +9,7 @@ replace (
 
 require (
 	github.com/BurntSushi/toml v0.3.1
+	github.com/HdrHistogram/hdrhistogram-go v1.1.2 // indirect
 	github.com/StackExchange/wmi v1.2.1 // indirect
 	github.com/apache/thrift v0.12.1-0.20190702001503-1a2dee60b438 // indirect
 	github.com/caio/go-tdigest v3.1.0+incompatible
@@ -44,6 +45,7 @@ require (
 	github.com/miekg/dns v1.1.25 // indirect
 	github.com/mitchellh/mapstructure v1.4.1 // indirect
 	github.com/mmcloughlin/geohash v0.0.0-20181009053802-f7f2bcae3294
+	github.com/opentracing/opentracing-go v1.1.0
 	github.com/patrickmn/go-cache v2.1.1-0.20180815053127-5633e0862627+incompatible
 	github.com/pkg/errors v0.9.1
 	github.com/pkg/sftp v1.10.1
@@ -63,6 +65,8 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/tiglabs/raft v0.0.0-20200304095606-b25a44ad8b33
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20201229170055-e5319fda7802 // indirect
+	github.com/uber/jaeger-client-go v2.30.0+incompatible
+	github.com/uber/jaeger-lib v2.4.1+incompatible // indirect
 	github.com/valyala/fastjson v1.1.1
 	github.com/vmihailenco/msgpack v4.0.4+incompatible
 	go.etcd.io/bbolt v1.3.6 // indirect

@@ -19,29 +19,26 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/vearch/vearch/proto/vearchpb"
-	"github.com/vearch/vearch/router/document/resp"
-	"github.com/vearch/vearch/util"
-	"github.com/vearch/vearch/util/gorillautil"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 	"unicode"
 
-	"github.com/tiglabs/raft/proto"
-	"github.com/vearch/vearch/util/cbjson"
-
-	"github.com/vearch/vearch/client"
-	"github.com/vearch/vearch/monitor"
-	"github.com/vearch/vearch/util/server/vearchhttp"
-
-	"github.com/vearch/vearch/util/netutil"
-
 	"github.com/spf13/cast"
+	"github.com/tiglabs/raft/proto"
+	"github.com/vearch/vearch/client"
 	"github.com/vearch/vearch/config"
+	"github.com/vearch/vearch/monitor"
 	"github.com/vearch/vearch/proto/entity"
+	"github.com/vearch/vearch/proto/vearchpb"
+	"github.com/vearch/vearch/router/document/resp"
+	"github.com/vearch/vearch/util"
+	"github.com/vearch/vearch/util/cbjson"
+	"github.com/vearch/vearch/util/gorillautil"
 	"github.com/vearch/vearch/util/log"
+	"github.com/vearch/vearch/util/netutil"
+	"github.com/vearch/vearch/util/server/vearchhttp"
 )
 
 const (
@@ -58,13 +55,12 @@ type MasterClusterAPI struct {
 }
 
 func (handler *DocumentHandler) GorillaExport(masterService *masterService) error {
-	masterApi := &MasterClusterAPI{masterService : masterService}
+	masterApi := &MasterClusterAPI{masterService: masterService}
 	// cluster handler
 	handler.httpServer.HandlesMethods([]string{http.MethodGet}, "/", []netutil.HandleContinued{handler.handleTimeout, masterApi.Auth, handler.handleRouterInfo}, nil)
 
 	//cluster handler
-	handler.httpServer.HandlesMethods([]string{http.MethodGet},  "/clean_lock", []netutil.HandleContinued{handler.handleTimeout, masterApi.Auth, masterApi.cleanLock},nil )
-
+	handler.httpServer.HandlesMethods([]string{http.MethodGet}, "/clean_lock", []netutil.HandleContinued{handler.handleTimeout, masterApi.Auth, masterApi.cleanLock}, nil)
 
 	//db,servers handler
 	handler.httpServer.HandlesMethods([]string{http.MethodGet}, "/list/server", []netutil.HandleContinued{handler.handleTimeout, masterApi.Auth, masterApi.serverList}, nil)
@@ -283,7 +279,7 @@ func (mApi *MasterClusterAPI) modifyDB(ctx context.Context, w http.ResponseWrite
 func (mApi *MasterClusterAPI) createSpace(ctx context.Context, w http.ResponseWriter,
 	r *http.Request, params netutil.UriParams) (context.Context, bool) {
 
-	log.Debug("create space, db: %s",  params.ByName(dbName))
+	log.Debug("create space, db: %s", params.ByName(dbName))
 	dbName := params.ByName(dbName)
 
 	space := &entity.Space{}
@@ -296,7 +292,6 @@ func (mApi *MasterClusterAPI) createSpace(ctx context.Context, w http.ResponseWr
 		gorillautil.NewAutoMehtodName(ctx, w).SendJsonHttpReplyError(err)
 		return ctx, true
 	}
-
 
 	if space.PartitionNum <= 0 {
 		space.PartitionNum = 1
@@ -543,7 +538,7 @@ func (mApi *MasterClusterAPI) FailServerClear(ctx context.Context, w http.Respon
 
 // RemoveServerMeta : remove etcd meta about the nodeID
 func (mApi *MasterClusterAPI) RemoveServerMeta(ctx context.Context, w http.ResponseWriter,
-	r *http.Request, params netutil.UriParams) (context.Context, bool)  {
+	r *http.Request, params netutil.UriParams) (context.Context, bool) {
 
 	rfs := &entity.RecoverFailServer{}
 
@@ -596,7 +591,7 @@ func (mApi *MasterClusterAPI) RemoveServerMeta(ctx context.Context, w http.Respo
 
 //recover the failserver by a newserver
 func (mApi *MasterClusterAPI) RecoverFailServer(ctx context.Context, w http.ResponseWriter,
-r *http.Request, params netutil.UriParams) (context.Context, bool) {
+	r *http.Request, params netutil.UriParams) (context.Context, bool) {
 	rs := &entity.RecoverFailServer{}
 
 	reqBody, err := netutil.GetReqBody(r)

@@ -14,7 +14,7 @@
 package sortorder
 
 import (
-	"github.com/dustin/gojson"
+	"encoding/json"
 	"strings"
 	"testing"
 )

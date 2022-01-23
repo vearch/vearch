@@ -268,7 +268,7 @@ func start(config *ssh.ClientConfig, binPath string) {
 func deploy(ipMap map[string]bool, config *ssh.ClientConfig, binPath string) {
 	now := time.Now()
 	wg := sync.WaitGroup{}
-	for ip, _ := range ipMap {
+	for ip := range ipMap {
 		wg.Add(1)
 		go func(ip string) {
 			client := createClient(ip, conf, config)

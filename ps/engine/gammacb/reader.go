@@ -19,7 +19,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	pkg "github.com/vearch/vearch/proto"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -27,10 +26,10 @@ import (
 	"strings"
 	"time"
 
+	pkg "github.com/vearch/vearch/proto"
 	"github.com/vearch/vearch/proto/vearchpb"
-	"github.com/vearch/vearch/ps/engine/gamma"
-
 	"github.com/vearch/vearch/ps/engine"
+	"github.com/vearch/vearch/ps/engine/gamma"
 	"github.com/vearch/vearch/util/cbbytes"
 	"github.com/vearch/vearch/util/vearchlog"
 )

@@ -66,11 +66,11 @@ func GetEngineCfg(addr string, pid entity.PartitionID) (cfg *entity.EngineCfg, e
 			return nil, err
 		}
 		data, _ := json.Marshal(cfg)
-		log.Debug("get engine cfg [%+v]",string(data))
+		log.Debug("get engine cfg [%+v]", string(data))
 		return cfg, nil
 	}
 
-	return nil,nil
+	return nil, nil
 }
 
 func UpdateEngineCfg(addr string, cacheCfg *entity.EngineCfg, pid entity.PartitionID) error {

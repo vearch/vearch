@@ -26,17 +26,15 @@ import (
 
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/ext"
-	"github.com/vearch/vearch/util/cbbytes"
-
 	"github.com/smallnest/rpcx/share"
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/client"
 	"github.com/vearch/vearch/config"
-	"github.com/vearch/vearch/ps/engine/gamma"
-	"github.com/vearch/vearch/ps/engine/mapping"
-
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/proto/vearchpb"
+	"github.com/vearch/vearch/ps/engine/gamma"
+	"github.com/vearch/vearch/ps/engine/mapping"
+	"github.com/vearch/vearch/util/cbbytes"
 	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/util/server/rpc/handler"
 	"go.uber.org/atomic"

@@ -21,14 +21,15 @@
 */
 package metrics
 
-import proto "github.com/gogo/protobuf/proto"
-import fmt "fmt"
-import math "math"
-import _ "github.com/gogo/protobuf/gogoproto"
+import (
+	binary "encoding/binary"
+	fmt "fmt"
+	io "io"
+	math "math"
 
-import binary "encoding/binary"
-
-import io "io"
+	_ "github.com/gogo/protobuf/gogoproto"
+	proto "github.com/gogo/protobuf/proto"
+)
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal

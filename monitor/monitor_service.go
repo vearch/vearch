@@ -4,14 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/vearch/vearch/util/errutil"
-	"github.com/vearch/vearch/util/netutil"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/client"
+	"github.com/vearch/vearch/util/errutil"
 	"github.com/vearch/vearch/util/metrics/mserver"
+	"github.com/vearch/vearch/util/netutil"
 	"go.etcd.io/etcd/etcdserver"
 
 	//"github.com/vearch/vearch/client"
@@ -130,8 +130,6 @@ func (ms *MonitorService) Collect(ch chan<- prometheus.Metric) {
 		}
 	}
 
-
-
 	if config.Conf().Global.MergeRouter {
 		if ms.masterClient == nil {
 			ch <- prometheus.MustNewConstMetric(ms.dbDesc, prometheus.CounterValue, 0, "nil", "nil", "nil")
@@ -150,7 +148,7 @@ func (ms *MonitorService) Collect(ch chan<- prometheus.Metric) {
 
 	var ip string
 	if config.Conf().Global.MergeRouter {
-		ip,_ = netutil.GetLocalIP()
+		ip, _ = netutil.GetLocalIP()
 	} else {
 		ip = config.Conf().Masters.Self().Address
 	}
