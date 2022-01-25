@@ -18,6 +18,7 @@ package mapping
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/vearch/vearch/util/log"
 )
 

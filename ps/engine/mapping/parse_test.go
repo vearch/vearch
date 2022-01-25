@@ -17,10 +17,11 @@ package mapping
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/vearch/vearch/proto/vearchpb"
-	"github.com/vearch/vearch/util/assert"
 	"testing"
 	"time"
+
+	"github.com/vearch/vearch/proto/vearchpb"
+	"github.com/vearch/vearch/util/assert"
 )
 
 func TestParseSchema(t *testing.T) {

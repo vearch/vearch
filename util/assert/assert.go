@@ -16,12 +16,13 @@ package assert
 
 import (
 	"fmt"
-	"gotest.tools/assert"
-	"gotest.tools/assert/cmp"
 	"path/filepath"
 	"reflect"
 	"runtime"
 	"runtime/debug"
+
+	"gotest.tools/assert"
+	"gotest.tools/assert/cmp"
 )
 
 type TestingT interface {

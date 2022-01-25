@@ -17,10 +17,11 @@ package resp
 import (
 	"context"
 	"fmt"
-	"github.com/vearch/vearch/util/log"
-	"github.com/vearch/vearch/util/netutil"
 	"net/http"
 	"runtime/debug"
+
+	"github.com/vearch/vearch/util/log"
+	"github.com/vearch/vearch/util/netutil"
 )
 
 func SendError(ctx context.Context, w http.ResponseWriter, httpStatus int, errorMsg string) {

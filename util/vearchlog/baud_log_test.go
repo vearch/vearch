@@ -15,10 +15,11 @@
 package vearchlog
 
 import (
-	"github.com/vearch/vearch/util/log"
-	"github.com/vearch/vearch/util/assert"
 	"testing"
 	"time"
+
+	"github.com/vearch/vearch/util/assert"
+	"github.com/vearch/vearch/util/log"
 )
 
 func TestVearchLog(t *testing.T) {

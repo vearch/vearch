@@ -18,6 +18,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"math"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/proto/request"
@@ -28,10 +33,6 @@ import (
 	"github.com/vearch/vearch/util"
 	"github.com/vearch/vearch/util/cbbytes"
 	"github.com/vearch/vearch/util/cbjson"
-	"math"
-	"strconv"
-	"strings"
-	"time"
 )
 
 const (

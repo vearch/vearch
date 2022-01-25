@@ -14,8 +14,11 @@
 
 package util
 
-import "testing"
-import "github.com/mmcloughlin/geohash"
+import (
+	"testing"
+
+	"github.com/mmcloughlin/geohash"
+)
 
 func TestGeohash(t *testing.T) {
 	lat := float64(52.374081)

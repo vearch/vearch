@@ -20,7 +20,6 @@ import (
 	"time"
 
 	"github.com/vearch/vearch/proto/entity"
-
 	"go.etcd.io/etcd/clientv3"
 	"go.etcd.io/etcd/mvcc/mvccpb"
 )

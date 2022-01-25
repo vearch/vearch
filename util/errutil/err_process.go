@@ -2,9 +2,10 @@ package errutil
 
 import (
 	"fmt"
+	"runtime/debug"
+
 	"github.com/pkg/errors"
 	"github.com/vearch/vearch/util/log"
-	"runtime/debug"
 )
 
 // throw error panic
@@ -21,7 +22,7 @@ func CatchError(err *error) {
 
 			debug.PrintStack()
 		}
-		tempErr := fmt.Errorf("CatchError is %v",info)
+		tempErr := fmt.Errorf("CatchError is %v", info)
 		err = &tempErr
 	}
 }

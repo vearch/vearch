@@ -16,11 +16,12 @@ package util
 
 import (
 	"fmt"
-	"github.com/vearch/vearch/util/assert"
 	"math"
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/vearch/vearch/util/assert"
 )
 
 func TestGeo(t *testing.T) {

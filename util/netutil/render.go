@@ -15,9 +15,9 @@
 package netutil
 
 import (
-	"github.com/vearch/vearch/util/cbjson"
 	"net/http"
 
+	"github.com/vearch/vearch/util/cbjson"
 	"github.com/vearch/vearch/util/log"
 )
 

@@ -21,12 +21,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/vearch/vearch/util"
-	"github.com/vearch/vearch/util/cbbytes"
-
 	"github.com/mmcloughlin/geohash"
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/proto/vearchpb"
+	"github.com/vearch/vearch/util"
+	"github.com/vearch/vearch/util/cbbytes"
 )
 
 const (

@@ -2,18 +2,19 @@ package gammacb
 
 import (
 	"fmt"
-	protobuf "github.com/golang/protobuf/proto"
-	"github.com/tiglabs/raft/proto"
-	"github.com/vearch/vearch/proto/vearchpb"
-	"github.com/vearch/vearch/util/errutil"
-	"github.com/vearch/vearch/util/fileutil"
-	"github.com/vearch/vearch/util/log"
 	"io"
 	"io/ioutil"
 	"math"
 	"os"
 	"path/filepath"
 	"strconv"
+
+	protobuf "github.com/golang/protobuf/proto"
+	"github.com/tiglabs/raft/proto"
+	"github.com/vearch/vearch/proto/vearchpb"
+	"github.com/vearch/vearch/util/errutil"
+	"github.com/vearch/vearch/util/fileutil"
+	"github.com/vearch/vearch/util/log"
 )
 
 const (

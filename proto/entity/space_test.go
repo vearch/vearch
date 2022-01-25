@@ -16,9 +16,10 @@ package entity_test
 
 import (
 	"encoding/json"
+	"testing"
+
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/util/assert"
-	"testing"
 )
 
 func TestSpace(t *testing.T) {

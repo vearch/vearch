@@ -17,10 +17,10 @@ package document
 import "C"
 import (
 	"context"
-	"github.com/vearch/vearch/util/gorillautil"
-	"github.com/vearch/vearch/util/netutil"
 	"net/http"
 
+	"github.com/vearch/vearch/util/gorillautil"
+	"github.com/vearch/vearch/util/netutil"
 	"github.com/vearch/vearch/util/server/vearchhttp"
 )
 
@@ -77,4 +77,3 @@ func (monitor *MasterMonitorAPI) health(ctx context.Context, w http.ResponseWrit
 	gorillautil.NewAutoMehtodName(ctx, w).SendJsonHttpReplySuccess(result)
 	return ctx, true
 }
-

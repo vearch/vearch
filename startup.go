@@ -22,22 +22,19 @@ import (
 	"os"
 	"runtime"
 	"strings"
-
-	"github.com/spf13/cast"
-	"github.com/vearch/vearch/util/tracer"
-	"github.com/vearch/vearch/util/vearchlog"
-
-	"github.com/vearch/vearch/util/metrics/mserver"
-
 	"time"
 
+	"github.com/spf13/cast"
 	"github.com/vearch/vearch/config"
 	"github.com/vearch/vearch/master"
 	"github.com/vearch/vearch/ps"
 	"github.com/vearch/vearch/router"
 	"github.com/vearch/vearch/util/log"
+	"github.com/vearch/vearch/util/metrics/mserver"
 	tigos "github.com/vearch/vearch/util/runtime/os"
 	"github.com/vearch/vearch/util/signals"
+	"github.com/vearch/vearch/util/tracer"
+	"github.com/vearch/vearch/util/vearchlog"
 )
 
 var (

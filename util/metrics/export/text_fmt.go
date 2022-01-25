@@ -17,9 +17,8 @@ package export
 import (
 	"fmt"
 	"io"
-	"strings"
-
 	"strconv"
+	"strings"
 
 	"github.com/vearch/vearch/util/cbbytes"
 	"github.com/vearch/vearch/util/metrics"

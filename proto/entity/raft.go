@@ -17,6 +17,7 @@ package entity
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/tiglabs/raft/proto"
 )
 

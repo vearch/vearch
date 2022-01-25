@@ -19,10 +19,9 @@ import (
 
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/proto/vearchpb"
+	"github.com/vearch/vearch/ps/engine"
 	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/util/vearchlog"
-
-	"github.com/vearch/vearch/ps/engine"
 )
 
 var (

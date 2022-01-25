@@ -18,6 +18,8 @@ import (
 	"context"
 	"sync"
 
+	"github.com/tiglabs/raft"
+	"github.com/tiglabs/raft/proto"
 	"github.com/vearch/vearch/config"
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/proto/vearchpb"
@@ -25,9 +27,6 @@ import (
 	"github.com/vearch/vearch/ps/psutil"
 	"github.com/vearch/vearch/ps/storage/raftstore"
 	"github.com/vearch/vearch/util/log"
-
-	"github.com/tiglabs/raft"
-	"github.com/tiglabs/raft/proto"
 )
 
 type Base interface {

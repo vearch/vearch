@@ -17,11 +17,12 @@ package os
 import (
 	"errors"
 	"fmt"
-	"github.com/vearch/vearch/util/runtime/stack"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/vearch/vearch/util/runtime/stack"
 )
 
 func GetCurrentPath() (string, error) {

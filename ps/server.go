@@ -18,29 +18,23 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"runtime/debug"
 	"sync"
 	"time"
-
-	"github.com/vearch/vearch/util/errutil"
-
-	"github.com/vearch/vearch/util/metrics/mserver"
-
-	"github.com/vearch/vearch/ps/storage/raftstore"
-
-	"github.com/vearch/vearch/proto/entity"
-
-	"runtime/debug"
 
 	"github.com/tiglabs/raft"
 	"github.com/vearch/vearch/client"
 	"github.com/vearch/vearch/config"
+	"github.com/vearch/vearch/proto/entity"
+	_ "github.com/vearch/vearch/ps/engine/gammacb"
 	"github.com/vearch/vearch/ps/psutil"
+	"github.com/vearch/vearch/ps/storage/raftstore"
 	"github.com/vearch/vearch/util/atomic"
+	"github.com/vearch/vearch/util/errutil"
 	"github.com/vearch/vearch/util/log"
+	"github.com/vearch/vearch/util/metrics/mserver"
 	"github.com/vearch/vearch/util/routine"
 	rpc "github.com/vearch/vearch/util/server/rpc"
-
-	_ "github.com/vearch/vearch/ps/engine/gammacb"
 )
 
 const maxTryTime = 5

@@ -16,6 +16,7 @@ package raftstore
 
 import (
 	"fmt"
+
 	"github.com/tiglabs/raft"
 	"github.com/tiglabs/raft/proto"
 	"github.com/vearch/vearch/config"

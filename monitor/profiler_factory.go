@@ -1,9 +1,10 @@
 package monitor
 
 import (
-	"github.com/caio/go-tdigest"
 	"sync"
 	"time"
+
+	"github.com/caio/go-tdigest"
 )
 
 //type KeyHistogram string

@@ -16,11 +16,12 @@ package ginutil
 
 import (
 	"errors"
-	"github.com/gin-gonic/gin"
-	"github.com/vearch/vearch/util"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/vearch/vearch/util"
 )
 
 type GinServer struct {

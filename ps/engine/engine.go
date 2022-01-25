@@ -16,11 +16,11 @@ package engine
 
 import (
 	"context"
-	"github.com/vearch/vearch/ps/engine/gamma"
 
 	"github.com/tiglabs/raft/proto"
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/proto/vearchpb"
+	"github.com/vearch/vearch/ps/engine/gamma"
 	"github.com/vearch/vearch/ps/engine/mapping"
 )
 

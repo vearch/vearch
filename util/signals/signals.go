@@ -15,11 +15,12 @@
 package signals
 
 import (
-	"github.com/vearch/vearch/util/log"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/vearch/vearch/util/log"
 )
 
 type SignalHook struct {
