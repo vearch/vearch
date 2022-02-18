@@ -117,11 +117,6 @@ func (s *Server) Start() error {
 	nodeId := psutil.InitMeta(s.client, config.Conf().Global.Name, config.Conf().GetDataDir())
 	s.nodeID = nodeId
 
-	if config.Conf().Global.MergeRouter {
-		// get router ips
-		s.getRouterIPS(s.ctx)
-	}
-
 	//load local partitions
 	server := s.register()
 	s.ip = server.Ip

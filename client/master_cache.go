@@ -351,7 +351,7 @@ func (cliCache *clientCache) startWSJob(ctx context.Context) error {
 	serverJob.put = serverJob.serverPut
 	serverJob.delete = serverJob.serverDelete
 	serverJob.start()
-	log.Debug("watcher server job inited ok use time %v", time.Now().Sub(start))
+	log.Debug("watcher server job init ok use time %v", time.Now().Sub(start))
 	return nil
 }
 
@@ -560,28 +560,17 @@ func (cliCache *clientCache) startCacheJob(ctx context.Context) error {
 				}
 			}
 			cliCache.serverCache.Set(cacheServerKey(server.ID), server, cache.NoExpiration)
-			if config.Conf().Global.MergeRouter {
-				if err := cliCache.serverPut(ctx, server); err != nil {
-					return err
-				}
-			}
 			return nil
 		},
 		delete: func(cacheKey string) (err error) {
 			defer errutil.CatchError(&err)
 			nodeIdStr := strings.Split(cacheKey, "/")[2]
 			nodeId := cast.ToUint64(nodeIdStr)
-			server, _ := cliCache.Load(nodeId)
 			if value, _ := cliCache.Load(nodeId); value != nil {
 				value.(*rpcClient).close()
 				cliCache.Delete(nodeId)
 			}
 			cliCache.serverCache.Delete(nodeIdStr)
-			if config.Conf().Global.MergeRouter {
-				if err := cliCache.serverDelete(ctx, (server).(*entity.Server)); err != nil {
-					return err
-				}
-			}
 			return nil
 		},
 	}

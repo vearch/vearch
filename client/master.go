@@ -415,24 +415,16 @@ func (m *masterClient) Register(ctx context.Context, clusterName string, nodeID 
 	form.Add("nodeID", cast.ToString(nodeID))
 
 	masterServer.reset()
-	num := 0
 	var response []byte
 	for {
 
 		query := netutil.NewQuery().SetHeader(Authorization, util.AuthEncrypt(Root, m.cfg.Global.Signkey))
-		if config.Conf().Global.MergeRouter {
-			if num >= len(config.Conf().Router.RouterIPS) {
-				return nil, fmt.Errorf("master server all down , register ps error")
-			}
-			query.SetAddress(m.cfg.Router.ApiUrl(num))
-			num = num + 1
-		} else {
-			keyNumber, err := masterServer.getKey()
-			if err != nil {
-				return nil, err
-			}
-			query.SetAddress(m.cfg.Masters[keyNumber].ApiUrl())
+
+		keyNumber, err := masterServer.getKey()
+		if err != nil {
+			return nil, err
 		}
+		query.SetAddress(m.cfg.Masters[keyNumber].ApiUrl())
 
 		query.SetMethod(http.MethodPost)
 		query.SetQuery(form.Encode())
@@ -471,23 +463,15 @@ func (m *masterClient) RegisterRouter(ctx context.Context, clusterName string, t
 
 	masterServer.reset()
 	var response []byte
-	num := 0
 	for {
 
 		query := netutil.NewQuery().SetHeader(Authorization, util.AuthEncrypt(Root, m.cfg.Global.Signkey))
-		if config.Conf().Global.MergeRouter {
-			if num >= len(config.Conf().Router.RouterIPS) {
-				return "", fmt.Errorf("master server all down , register ps error")
-			}
-			query.SetAddress(m.cfg.Router.ApiUrl(num))
-			num = num + 1
-		} else {
-			keyNumber, err := masterServer.getKey()
-			if err != nil {
-				return "", err
-			}
-			query.SetAddress(m.cfg.Masters[keyNumber].ApiUrl())
+
+		keyNumber, err := masterServer.getKey()
+		if err != nil {
+			return "", err
 		}
+		query.SetAddress(m.cfg.Masters[keyNumber].ApiUrl())
 		query.SetMethod(http.MethodPost)
 		query.SetQuery(form.Encode())
 		query.SetUrlPath("/register_router")
@@ -520,22 +504,13 @@ func (m *masterClient) RegisterPartition(ctx context.Context, partition *entity.
 
 	masterServer.reset()
 	var response []byte
-	num := 0
 	for {
 		query := netutil.NewQuery().SetHeader(Authorization, util.AuthEncrypt(Root, m.cfg.Global.Signkey))
-		if config.Conf().Global.MergeRouter {
-			if num >= len(config.Conf().Router.RouterIPS) {
-				return fmt.Errorf("master server all down , register ps error")
-			}
-			query.SetAddress(m.cfg.Router.ApiUrl(num))
-			num = num + 1
-		} else {
-			keyNumber, err := masterServer.getKey()
-			if err != nil {
-				return err
-			}
-			query.SetAddress(m.cfg.Masters[keyNumber].ApiUrl())
+		keyNumber, err := masterServer.getKey()
+		if err != nil {
+			return err
 		}
+		query.SetAddress(m.cfg.Masters[keyNumber].ApiUrl())
 		query.SetMethod(http.MethodPost)
 		query.SetUrlPath("/register_partition")
 		query.SetReqBody(string(reqBody))
@@ -576,35 +551,18 @@ func (m *masterClient) HTTPPost(ctx context.Context, url string, reqBody string)
 			e = fmt.Errorf("panic is %v", info)
 		}
 	}()
-	var err error
-	if config.Conf().Global.MergeRouter {
-		config.Conf().Router.RouterIPS, err = m.QueryRouter(ctx, config.Conf().Global.Name)
-		if err != nil {
-			return nil, fmt.Errorf("query router err: %v", err)
-		}
-	}
 	query := netutil.NewQuery().SetHeader(Authorization, util.AuthEncrypt(Root, m.cfg.Global.Signkey))
 	query.SetMethod(http.MethodPost)
 	query.SetUrlPath(url)
 	query.SetReqBody(reqBody)
 	query.SetContentTypeJson()
 	query.SetTimeout(60)
-	num := 0
 	for {
-		if config.Conf().Global.MergeRouter {
-			if num >= len(config.Conf().Router.RouterIPS) {
-				return nil, fmt.Errorf("master server all down , register ps error")
-			}
-			query.SetAddress(m.cfg.Router.ApiUrl(num))
-			num = num + 1
-		} else {
-			keyNumber, err := masterServer.getKey()
-			if err != nil {
-				panic(err)
-			}
-			query.SetAddress(m.cfg.Masters[keyNumber].ApiUrl())
+		keyNumber, err := masterServer.getKey()
+		if err != nil {
+			panic(err)
 		}
-
+		query.SetAddress(m.cfg.Masters[keyNumber].ApiUrl())
 		log.Debug("remote server url: %s, req body: %s", query.GetUrl(), string(reqBody))
 		response, err = query.Do()
 		log.Debug("remote server response: %v", string(response))

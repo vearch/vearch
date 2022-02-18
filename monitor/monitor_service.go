@@ -11,7 +11,6 @@ import (
 	"github.com/vearch/vearch/client"
 	"github.com/vearch/vearch/util/errutil"
 	"github.com/vearch/vearch/util/metrics/mserver"
-	"github.com/vearch/vearch/util/netutil"
 	"go.etcd.io/etcd/etcdserver"
 
 	//"github.com/vearch/vearch/client"
@@ -130,16 +129,9 @@ func (ms *MonitorService) Collect(ch chan<- prometheus.Metric) {
 		}
 	}
 
-	if config.Conf().Global.MergeRouter {
-		if ms.masterClient == nil {
-			ch <- prometheus.MustNewConstMetric(ms.dbDesc, prometheus.CounterValue, 0, "nil", "nil", "nil")
-			return
-		}
-	} else {
-		if !ms.isMaster() {
-			ch <- prometheus.MustNewConstMetric(ms.dbDesc, prometheus.CounterValue, 0, "nil", "nil", "nil")
-			return
-		}
+	if !ms.isMaster() {
+		ch <- prometheus.MustNewConstMetric(ms.dbDesc, prometheus.CounterValue, 0, "nil", "nil", "nil")
+		return
 	}
 
 	//start collect business info
@@ -147,12 +139,7 @@ func (ms *MonitorService) Collect(ch chan<- prometheus.Metric) {
 	defer cancel()
 
 	var ip string
-	if config.Conf().Global.MergeRouter {
-		ip, _ = netutil.GetLocalIP()
-	} else {
-		ip = config.Conf().Masters.Self().Address
-	}
-
+	ip = config.Conf().Masters.Self().Address
 	stats := mserver.NewServerStats()
 	servers, err := ms.masterClient.Master().QueryServers(ctx)
 	if err != nil {

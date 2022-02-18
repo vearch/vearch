@@ -20,7 +20,6 @@ import (
 	"errors"
 	"time"
 
-	"github.com/jasonlvhit/gocron"
 	"github.com/vearch/vearch/client"
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/proto/vearchpb"
@@ -101,7 +100,7 @@ func walkServers(masterServer *Server, servers []*entity.Server) {
 
 var errSkipJob = errors.New("skip job")
 
-func cleanTask(masterServer *Server) {
+func CleanTask(masterServer *Server) {
 
 	var err = masterServer.client.Master().STM(masterServer.ctx, func(stm concurrency.STM) error {
 		timeBytes := stm.Get(entity.ClusterCleanJobKey)
@@ -149,15 +148,6 @@ func cleanTask(masterServer *Server) {
 	} else {
 		walkServers(masterServer, servers)
 	}
-}
-
-//the job check partition infos and fix it
-func (s *Server) StartCleanJon(ctx context.Context) {
-	//diff partition and space remove outside partition , it need lock space by distlock
-	//diff space and server partition , to del partition in ps
-	scheduler := gocron.NewScheduler()
-	scheduler.Every(CronInterval).Seconds().Do(cleanTask, s)
-	<-scheduler.Start()
 }
 
 //WatchServerJob watch ps server put and delete

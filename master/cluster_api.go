@@ -56,13 +56,14 @@ type clusterAPI struct {
 	router        *gin.Engine
 	masterService *masterService
 	dh            *vearchhttp.BaseHandler
+	server        *Server
 }
 
-func ExportToClusterHandler(router *gin.Engine, masterService *masterService) {
+func ExportToClusterHandler(router *gin.Engine, masterService *masterService, server *Server) {
 
 	dh := vearchhttp.NewBaseHandler(30)
 
-	c := &clusterAPI{router: router, masterService: masterService, dh: dh}
+	c := &clusterAPI{router: router, masterService: masterService, dh: dh, server: server}
 
 	router.Handle(http.MethodGet, "/", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.handleClusterInfo, dh.TimeOutEndHandler)
 
@@ -105,6 +106,7 @@ func ExportToClusterHandler(router *gin.Engine, masterService *masterService) {
 	router.Handle(http.MethodPost, "/schedule/change_replicas", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.ChangeReplicas, dh.TimeOutEndHandler)
 	router.Handle(http.MethodGet, "/schedule/fail_server/list", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.FailServerList, dh.TimeOutEndHandler)
 	router.Handle(http.MethodDelete, "/schedule/fail_server/:"+NodeID, dh.PaincHandler, dh.TimeOutHandler, c.auth, c.FailServerClear, dh.TimeOutEndHandler)
+	router.Handle(http.MethodGet, "/schedule/clean_task", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.CleanTask, dh.TimeOutEndHandler)
 
 	//remove server metadata
 	router.Handle(http.MethodPost, "/meta/remove_server", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.RemoveServerMeta, dh.TimeOutEndHandler)
@@ -544,6 +546,12 @@ func (cluster *clusterAPI) FailServerClear(c *gin.Context) {
 		return
 	}
 	ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(map[string]interface{}{"nodeID": nodeID})
+}
+
+//clear task
+func (cluster *clusterAPI) CleanTask(c *gin.Context) {
+	CleanTask(cluster.server)
+	ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess("clean task success!")
 }
 
 // remove etcd meta about the nodeID
