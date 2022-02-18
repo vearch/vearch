@@ -17,29 +17,29 @@ package gorillautil
 import (
 	"context"
 	"fmt"
-	"github.com/vearch/vearch/router/document/resp"
 	"net/http"
 
 	"github.com/vearch/vearch/proto/vearchpb"
+	"github.com/vearch/vearch/router/document/resp"
 	"github.com/vearch/vearch/util/cbjson"
 	"github.com/vearch/vearch/util/netutil"
 )
 
 type Response struct {
-	w http.ResponseWriter
+	w          http.ResponseWriter
 	httpStatus int64
-	ctx context.Context
+	ctx        context.Context
 }
+
 // create response
 func NewAutoMehtodName(ctx context.Context, w http.ResponseWriter) *Response {
 	response := &Response{
-		w: w,
+		w:          w,
 		httpStatus: http.StatusOK,
-		ctx: ctx,
+		ctx:        ctx,
 	}
 	return response
 }
-
 
 // default status is 200
 func (gr *Response) SetHttpStatus(httpStatus int64) *Response {

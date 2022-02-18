@@ -17,18 +17,17 @@ package master
 import (
 	"context"
 	"fmt"
-	"github.com/vearch/vearch/util/errutil"
-	"go.etcd.io/etcd/etcdserver"
 	"os"
 	"time"
 
-	"github.com/spf13/cast"
-
 	"github.com/gin-gonic/gin"
+	"github.com/spf13/cast"
 	"github.com/vearch/vearch/client"
 	"github.com/vearch/vearch/config"
+	"github.com/vearch/vearch/util/errutil"
 	"github.com/vearch/vearch/util/log"
 	"go.etcd.io/etcd/embed"
+	"go.etcd.io/etcd/etcdserver"
 )
 
 type Server struct {

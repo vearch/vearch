@@ -27,7 +27,6 @@ func GetAllFiles(dirPth string) (files []os.FileInfo, err error) {
 	return files, nil
 }
 
-
 // get all fileNames
 func GetAllFileNames(dirPth string) (files []string, err error) {
 	fis, err := ioutil.ReadDir(filepath.Clean(filepath.ToSlash(dirPth)))

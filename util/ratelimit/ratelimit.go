@@ -14,9 +14,10 @@
 package ratelimit
 
 import (
-	"github.com/juju/ratelimit"
 	"sync"
 	"time"
+
+	"github.com/juju/ratelimit"
 )
 
 type RateLimit interface {

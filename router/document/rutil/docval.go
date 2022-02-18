@@ -2,10 +2,11 @@ package rutil
 
 import (
 	"fmt"
-	"github.com/mmcloughlin/geohash"
-	"github.com/spf13/cast"
 	"strings"
 	"sync"
+
+	"github.com/mmcloughlin/geohash"
+	"github.com/spf13/cast"
 )
 
 type DocVal struct {

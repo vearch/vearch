@@ -15,8 +15,9 @@
 package util
 
 import (
-	"gotest.tools/assert"
 	"testing"
+
+	"gotest.tools/assert"
 )
 
 func TestMergeMap(t *testing.T) {

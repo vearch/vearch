@@ -75,6 +75,8 @@ if [ -d ${flatbuffers} ]; then
   rm -rf ${flatbuffers}
 fi
 
+cp $ROOT/engine/third_party/faiss/lib*/* $ROOT/ps/engine/gammacb/lib/lib/
+
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ROOT/ps/engine/gammacb/lib/lib/
 export LIBRARY_PATH=$LIBRARY_PATH:$ROOT/ps/engine/gammacb/lib/lib/
 

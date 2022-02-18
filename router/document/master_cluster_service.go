@@ -12,7 +12,7 @@
 // implied. See the License for the specific language governing
 // permissions and limitations under the License.
 
-package master
+package document
 
 import (
 	"bytes"
@@ -23,7 +23,6 @@ import (
 	"sort"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/cast"
 	"github.com/tiglabs/raft/proto"
 	"github.com/vearch/vearch/client"
@@ -44,7 +43,7 @@ type masterService struct {
 	*client.Client
 }
 
-func newMasterService(client *client.Client) (*masterService, error) {
+func NewMasterService(client *client.Client) (*masterService, error) {
 	return &masterService{client}, nil
 }
 
@@ -332,9 +331,11 @@ func (ms *masterService) createSpaceService(ctx context.Context, dbName string, 
 		return err
 	}
 
+	log.Debug("servers is [%+v]", servers)
+	log.Debug("serverPartitions is [%+v]", serverPartitions)
+
 	if int(space.ReplicaNum) > len(serverPartitions) {
-		return fmt.Errorf("not enough PS , need replica %d but only has %d",
-			int(space.ReplicaNum), len(serverPartitions))
+		return fmt.Errorf("not enough PS , need replica %d but only has %d", int(space.ReplicaNum), len(serverPartitions))
 	}
 
 	space.Enabled = util.PBool(false)
@@ -505,10 +506,6 @@ func (ms *masterService) filterAndSortServer(ctx context.Context, space *entity.
 
 	if psMap == nil { //means only use public
 		for i, s := range servers {
-			// only resourceName equal can use
-			if s.ResourceName != space.ResourceName {
-				continue
-			}
 			if !s.Private {
 				serverPartitions[i] = 0
 				serverIndex[s.ID] = i
@@ -516,11 +513,6 @@ func (ms *masterService) filterAndSortServer(ctx context.Context, space *entity.
 		}
 	} else { // only use define
 		for i, s := range servers {
-			// only resourceName equal can use
-			if s.ResourceName != space.ResourceName {
-				psMap[s.Ip] = false
-				continue
-			}
 			if psMap[s.Ip] {
 				serverPartitions[i] = 0
 				serverIndex[s.ID] = i
@@ -603,72 +595,6 @@ func (ms *masterService) queryDBs(ctx context.Context) ([]*entity.DB, error) {
 	}
 
 	return dbs, err
-}
-
-func (ms *masterService) GetEngineCfg(ctx context.Context, dbName, spaceName string) (cfg *entity.EngineCfg, err error) {
-	defer errutil.CatchError(&err)
-	// get space info
-	dbId, err := ms.Master().QueryDBName2Id(ctx, dbName)
-	if err != nil {
-		errutil.ThrowError(err)
-	}
-
-	space, err := ms.Master().QuerySpaceByName(ctx, dbId, spaceName)
-	if err != nil {
-		errutil.ThrowError(err)
-	}
-	// invoke all space nodeID
-	if space != nil && space.Partitions != nil {
-		for _, partition := range space.Partitions {
-			// get all replicas nodeID
-			if partition.Replicas != nil {
-				for _, nodeID := range partition.Replicas {
-					server, err := ms.Master().QueryServer(ctx, nodeID)
-					errutil.ThrowError(err)
-					// send rpc query
-					log.Debug("invoke nodeID [%+v],address [%+v]", partition.Id, server.RpcAddr())
-					cfg, err = client.GetEngineCfg(server.RpcAddr(), partition.Id)
-					errutil.ThrowError(err)
-					if err == nil {
-						return cfg, nil
-					}
-				}
-			}
-		}
-	}
-	return nil, nil
-}
-
-func (ms *masterService) ModifyEngineCfg(ctx context.Context, dbName,
-	spaceName string, cacheCfg *entity.EngineCfg) (err error) {
-	defer errutil.CatchError(&err)
-	// get space info
-	dbId, err := ms.Master().QueryDBName2Id(ctx, dbName)
-	if err != nil {
-		errutil.ThrowError(err)
-	}
-
-	space, err := ms.Master().QuerySpaceByName(ctx, dbId, spaceName)
-	if err != nil {
-		errutil.ThrowError(err)
-	}
-	// invoke all space nodeID
-	if space != nil && space.Partitions != nil {
-		for _, partition := range space.Partitions {
-			// get all replicas nodeID
-			if partition.Replicas != nil {
-				for _, nodeID := range partition.Replicas {
-					server, err := ms.Master().QueryServer(ctx, nodeID)
-					errutil.ThrowError(err)
-					// send rpc query
-					log.Debug("invoke nodeID [%+v],address [%+v]", partition.Id, server.RpcAddr())
-					err = client.UpdateEngineCfg(server.RpcAddr(), cacheCfg, partition.Id)
-					errutil.ThrowError(err)
-				}
-			}
-		}
-	}
-	return nil
 }
 
 func (this *masterService) updateSpaceService(ctx context.Context, dbName, spaceName string, temp *entity.Space) (*entity.Space, error) {
@@ -1054,23 +980,4 @@ func (ms *masterService) ChangeReplica(ctx context.Context, dbModify *entity.DBM
 	log.Info("updateSpace space [%+v] success", space)
 	errutil.ThrowError(err)
 	return e
-}
-
-func (ms *masterService) IsExistNode(ctx context.Context, id entity.NodeID) error {
-	values, err := ms.Master().Get(ctx, entity.ServerKey(id))
-	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("look up key[%s] in etcd failed", entity.ServerKey(id)))
-	}
-	if values == nil {
-		return nil
-	}
-	server := &entity.Server{}
-	err = json.Unmarshal(values, server)
-	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("parse key[%s] in etcd failed", entity.ServerKey(id)))
-	}
-	if server != nil {
-		return errors.Errorf("node id[%d] has register on ip[%s]", server.ID, server.Ip)
-	}
-	return nil
 }

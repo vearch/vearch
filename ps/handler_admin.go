@@ -19,18 +19,17 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/vearch/vearch/ps/engine/gamma"
-	"github.com/vearch/vearch/util/errutil"
 
 	"github.com/tiglabs/raft"
 	"github.com/tiglabs/raft/proto"
 	"github.com/vearch/vearch/client"
-	"github.com/vearch/vearch/proto/vearchpb"
-	"github.com/vearch/vearch/util/cbjson"
-	"github.com/vearch/vearch/util/metrics/mserver"
-
 	"github.com/vearch/vearch/proto/entity"
+	"github.com/vearch/vearch/proto/vearchpb"
+	"github.com/vearch/vearch/ps/engine/gamma"
+	"github.com/vearch/vearch/util/cbjson"
+	"github.com/vearch/vearch/util/errutil"
 	"github.com/vearch/vearch/util/log"
+	"github.com/vearch/vearch/util/metrics/mserver"
 	"github.com/vearch/vearch/util/server/rpc/handler"
 )
 

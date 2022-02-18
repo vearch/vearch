@@ -20,12 +20,11 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/spf13/cast"
+	"github.com/tiglabs/raft"
 	"github.com/vearch/vearch/config"
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/util/log"
-
-	"github.com/spf13/cast"
-	"github.com/tiglabs/raft"
 )
 
 func StartRaftServer(nodeId entity.NodeID, ip string, resolver raft.SocketResolver) (*raft.RaftServer, error) {

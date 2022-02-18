@@ -23,15 +23,13 @@ import (
 	"time"
 
 	"github.com/opentracing/opentracing-go"
+	"github.com/smallnest/pool"
+	"github.com/smallnest/rpcx/client"
+	"github.com/smallnest/rpcx/share"
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/config"
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/proto/vearchpb"
-
-	"github.com/smallnest/pool"
-
-	"github.com/smallnest/rpcx/client"
-	"github.com/smallnest/rpcx/share"
 	"github.com/vearch/vearch/util/log"
 )
 

@@ -16,7 +16,6 @@ package sysstat
 
 import (
 	"context"
-	"github.com/vearch/vearch/config"
 	"os"
 	"runtime"
 	"time"
@@ -26,7 +25,7 @@ import (
 	"github.com/shirou/gopsutil/mem"
 	"github.com/shirou/gopsutil/net"
 	"github.com/shirou/gopsutil/process"
-
+	"github.com/vearch/vearch/config"
 	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/util/metrics"
 	"github.com/vearch/vearch/util/metrics/metric"

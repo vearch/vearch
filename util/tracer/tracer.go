@@ -32,10 +32,10 @@ func InitJaeger(service string, c *vconfig.TracerCfg) io.Closer {
 			Param: c.SampleParam,
 		},
 		Reporter: &config.ReporterConfig{
-			LocalAgentHostPort: c.Host,
-			LogSpans:           false,
+			LocalAgentHostPort:         c.Host,
+			LogSpans:                   false,
 			DisableAttemptReconnecting: false,
-			AttemptReconnectInterval: 1 * time.Minute,
+			AttemptReconnectInterval:   1 * time.Minute,
 		},
 	}
 	closer, err := cfg.InitGlobalTracer(service, config.Logger(jaeger.StdLogger))

@@ -26,13 +26,12 @@ import (
 	"strconv"
 
 	"github.com/spf13/cast"
+	"github.com/vearch/vearch/proto/vearchpb"
+	"github.com/vearch/vearch/ps/engine"
 	"github.com/vearch/vearch/ps/engine/gamma"
 	"github.com/vearch/vearch/util/ioutil2"
 	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/util/vearchlog"
-
-	"github.com/vearch/vearch/proto/vearchpb"
-	"github.com/vearch/vearch/ps/engine"
 )
 
 var _ engine.Writer = &writerImpl{}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cast"
@@ -139,7 +140,6 @@ func (ms *MonitorService) Collect(ch chan<- prometheus.Metric) {
 
 	var ip string
 	ip = config.Conf().Masters.Self().Address
-
 	stats := mserver.NewServerStats()
 	servers, err := ms.masterClient.Master().QueryServers(ctx)
 	if err != nil {

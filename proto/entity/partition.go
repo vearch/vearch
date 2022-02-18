@@ -15,8 +15,9 @@
 package entity
 
 import (
-	"github.com/tiglabs/raft"
 	"sync"
+
+	"github.com/tiglabs/raft"
 )
 
 type PartitionStatus uint8
@@ -71,18 +72,18 @@ func (p *Partition) GetStatus() PartitionStatus {
 
 //get partition from every partitions
 type PartitionInfo struct {
-	PartitionID PartitionID     `json:"pid,omitempty"`
-	DocNum      uint64          `json:"doc_num,omitempty"`
-	Size        int64           `json:"size,omitempty"`
-	ReplicaNum  int             `json:"replica_num,omitempty"`
+	PartitionID PartitionID       `json:"pid,omitempty"`
+	DocNum      uint64            `json:"doc_num,omitempty"`
+	Size        int64             `json:"size,omitempty"`
+	ReplicaNum  int               `json:"replica_num,omitempty"`
 	RepStatus   map[NodeID]string `json:"replica_status,omitempty"`
-	Path        string          `json:"path,omitempty"`
-	Unreachable []uint64        `json:"unreachable,omitempty"`
-	Status      PartitionStatus `json:"status,omitempty"`
-	Color       string          `json:"color,omitempty"`
-	Ip          string          `json:"ip,omitempty"`
-	NodeID      uint64          `json:"node_id,omitempty"`
-	RaftStatus  *raft.Status    `json:"raft_status,omitempty"`
-	IndexStatus int             `json:"index_status"`
-	Error       string          `json:"error,omitempty"`
+	Path        string            `json:"path,omitempty"`
+	Unreachable []uint64          `json:"unreachable,omitempty"`
+	Status      PartitionStatus   `json:"status,omitempty"`
+	Color       string            `json:"color,omitempty"`
+	Ip          string            `json:"ip,omitempty"`
+	NodeID      uint64            `json:"node_id,omitempty"`
+	RaftStatus  *raft.Status      `json:"raft_status,omitempty"`
+	IndexStatus int               `json:"index_status"`
+	Error       string            `json:"error,omitempty"`
 }

@@ -17,24 +17,22 @@ package client
 import (
 	"context"
 	"fmt"
-	"github.com/vearch/vearch/config"
-	"github.com/vearch/vearch/proto/vearchpb"
-	"github.com/vearch/vearch/util/errutil"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"sync"
-
-	"github.com/patrickmn/go-cache"
-	"github.com/vearch/vearch/util/cbjson"
-	"github.com/vearch/vearch/util/vearchlog"
-
-	"runtime/debug"
 	"time"
 
+	"github.com/patrickmn/go-cache"
 	"github.com/spf13/cast"
+	"github.com/vearch/vearch/config"
 	"github.com/vearch/vearch/proto/entity"
+	"github.com/vearch/vearch/proto/vearchpb"
 	"github.com/vearch/vearch/util/atomic"
+	"github.com/vearch/vearch/util/cbjson"
+	"github.com/vearch/vearch/util/errutil"
 	"github.com/vearch/vearch/util/log"
+	"github.com/vearch/vearch/util/vearchlog"
 	"go.etcd.io/etcd/mvcc/mvccpb"
 )
 

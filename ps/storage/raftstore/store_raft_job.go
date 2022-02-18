@@ -19,10 +19,9 @@ import (
 	"runtime/debug"
 	"time"
 
-	"github.com/vearch/vearch/ps/engine"
-	"github.com/vearch/vearch/config"
-
 	"github.com/spf13/cast"
+	"github.com/vearch/vearch/config"
+	"github.com/vearch/vearch/ps/engine"
 	"github.com/vearch/vearch/util/log"
 )
 

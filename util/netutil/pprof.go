@@ -15,7 +15,6 @@
 package netutil
 
 import (
-	"github.com/vearch/vearch/util/gogc"
 	"io"
 	"net/http"
 	"net/http/pprof"
@@ -23,6 +22,7 @@ import (
 	"runtime"
 	rpprof "runtime/pprof"
 
+	"github.com/vearch/vearch/util/gogc"
 	"github.com/vearch/vearch/util/log"
 )
 

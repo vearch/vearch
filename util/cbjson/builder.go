@@ -15,10 +15,11 @@
 package cbjson
 
 import (
-	"github.com/json-iterator/go"
-	"github.com/json-iterator/go/extra"
 	"reflect"
 	"time"
+
+	jsoniter "github.com/json-iterator/go"
+	"github.com/json-iterator/go/extra"
 )
 
 type ContentBuilder interface {

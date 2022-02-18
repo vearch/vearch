@@ -17,13 +17,11 @@ package store
 import (
 	"context"
 	"fmt"
-	"github.com/vearch/vearch/config"
+	"strconv"
 	"time"
 
+	"github.com/vearch/vearch/config"
 	"github.com/vearch/vearch/util/cbbytes"
-
-	"strconv"
-
 	"go.etcd.io/etcd/clientv3"
 	"go.etcd.io/etcd/clientv3/concurrency"
 )
