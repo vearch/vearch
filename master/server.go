@@ -109,33 +109,25 @@ func (s *Server) Start() (err error) {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
-	// master need close func
-	if !config.Conf().Global.MergeRouter {
-		// start http server
+	// start http server
 
-		engine := gin.Default()
+	engine := gin.Default()
 
-		ExportToClusterHandler(engine, service)
-		ExportToMonitorHandler(engine, monitorService)
+	ExportToClusterHandler(engine, service, s)
+	ExportToMonitorHandler(engine, monitorService)
 
-		//register monitor
+	//register monitor
 
-		go func() {
-			if err := engine.Run(":" + cast.ToString(config.Conf().Masters.Self().ApiPort)); err != nil {
-				panic(err)
-			}
-		}()
-	}
+	go func() {
+		if err := engine.Run(":" + cast.ToString(config.Conf().Masters.Self().ApiPort)); err != nil {
+			panic(err)
+		}
+	}()
 
 	// start watch server
-	if !config.Conf().Global.MergeRouter {
-		err = s.WatchServerJob(s.ctx, s.client)
-		errutil.ThrowError(err)
-	}
+	err = s.WatchServerJob(s.ctx, s.client)
+	errutil.ThrowError(err)
 	log.Debug("start WatchServerJob success!")
-
-	s.StartCleanJon(s.ctx)
-
 	if !config.Conf().Global.SelfManageEtcd {
 		return <-s.etcdServer.Err()
 	}

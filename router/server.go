@@ -74,15 +74,6 @@ func NewServer(ctx context.Context) (*Server, error) {
 		panic(err)
 	}
 
-	// start master job
-	if config.Conf().Global.MergeRouter {
-
-		if err := client.NewWatchServerCache(ctx, cli); err != nil {
-			log.Error("watcher server cache error,Err:%v", err)
-			panic(err)
-		}
-
-	}
 	return &Server{
 		httpServer: httpServer,
 		ctx:        routerCtx,
@@ -102,16 +93,12 @@ func (server *Server) Start() error {
 	}
 	log.Debugf("Get router ip: [%s]", routerIP)
 	mserver.SetIp(routerIP, false)
-	if config.Conf().Router.RpcPort > 0 || config.Conf().Global.MergeRouter {
+	if config.Conf().Router.RpcPort > 0 {
 		server.StartHeartbeatJob(fmt.Sprintf("%s:%d", routerIP, config.Conf().Router.RpcPort))
 	}
 
 	if port := config.Conf().Router.MonitorPort; port > 0 {
-		if config.Conf().Global.MergeRouter {
-			monitor.Register(server.cli, nil, config.Conf().Router.MonitorPort)
-		} else {
-			monitor.Register(nil, nil, config.Conf().Router.MonitorPort)
-		}
+		monitor.Register(nil, nil, config.Conf().Router.MonitorPort)
 	}
 
 	if err := server.httpServer.Run(); err != nil {

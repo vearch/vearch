@@ -2,7 +2,7 @@
     # the name will validate join cluster by same name
     name = "cbdb"
     # specify which resources to use to create space
-    resource_name = "vector_db1"
+    resource_name = "default"
     # you data save to disk path ,If you are in a production environment, You'd better set absolute paths
     data = ["datas/","datas1/"]
     # log path , If you are in a production environment, You'd better set absolute paths
@@ -21,8 +21,6 @@
     support_etcd_auth = false
     # ensure leader-follow raft data synchronization is consistent
     raft_consistent = false
-    # unified master and router api
-    master_merge_into_router = false
 
 # self_manage_etcd = true,means manage etcd by yourself,need provide additional configuration
 [etcd]
