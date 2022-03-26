@@ -107,7 +107,7 @@ Welcome to register the company name in this issue: https://github.com/vearch/ve
 
 ## Wechat official communication group
 
-![Official Accounts](docs/img/VearchCommunicationGroup.jpg)
+![Official Accounts](vearch/docs/img/251120CB-8A61-4124-9336-B549D8D10607.png)
 
 
 ## License
