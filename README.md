@@ -105,10 +105,9 @@ Welcome to register the company name in this issue: https://github.com/vearch/ve
 ![JD](static/jd.png)
 
 
-## Wechat official Accounts
-Add a Official Accounts to get the latest news from Vearch, and reply `vearch` to invite you to pull you into the wechat technical exchange group.
+## Wechat official communication group
 
-![Official Accounts](docs/img/VearchOfficialAccounts.jpeg)
+![Official Accounts](docs/img/VearchCommunicationGroup.jpg)
 
 
 ## License
