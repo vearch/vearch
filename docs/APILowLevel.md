@@ -677,8 +677,8 @@ curl -H "content-type: application/json" -XPOST -d'
           }
        ]
   },
-  "is_brute_search":0
-  "size":10,
+  "is_brute_search":0,
+  "size":10
 }
 ' {{ROUTER}}/test_vector_db/vector_space/_search
 ````
