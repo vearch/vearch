@@ -5,12 +5,9 @@
 [![Build Status](https://travis-ci.com/wxingda/vearch.svg?branch=master)](https://travis-ci.com/wxingda/vearch)  &nbsp;&nbsp;&nbsp; [![Gitter](https://badges.gitter.im/vector_search/community.svg)](https://gitter.im/vector_search/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 ## Overview
 
-Vearch is a scalable distributed system for efficient similarity search of deep learning vectors. 
-
+Here we build a cloud native vector database on top of CubeFS. 
 
 ## Architecture
-
-![arc](docs/img/VearchArch.jpg)
 
 * Data Model
 
@@ -30,19 +27,16 @@ Vearch is a scalable distributed system for efficient similarity search of deep 
 
 * PartitionServer (PS)
 
-  Hosts document partitions with raft-based replication.
+  Hosts space partitions; each partition has document store, inverted index and vector index. 
 
   Gamma is the core vector search engine implemented based on [faiss](https://github.com/facebookresearch/faiss). It provides the ability of storing, indexing and retrieving the vectors and scalars.
 
 
 ## Quick start
-![docs/img/plugin/main_process.gif](docs/img/plugin/main_process.gif)
 
 * One-click binary installation, please see [docs/BinaryInstallation.md](docs/BinaryInstallation.md)([中文版](docs/BinaryInstallationZH_CN.md)).
 
 * Quickly compile the source codes to build a distributed vector search system with RESTful API, please see [docs/SourceCompileDeployment.md](docs/SourceCompileDeployment.md).
-
-* Vearch can be leveraged to build a complete visual search system to index billions of images. The image retrieval plugin for object detection and feature extraction is also required. For more information, please refer to [docs/Quickstart.md](docs/Quickstart.md).
 
 * Vearch Python SDK enables vearch to use locally. Vearch python sdk can be installed easily by pip install vearch. For more information, please refer to [docs/APIPythonSDK.md](docs/APIPythonSDK.md).
 
@@ -52,10 +46,6 @@ Vearch is a scalable distributed system for efficient similarity search of deep 
 ### LowLevelAPI
 * [docs/APILowLevel.md](docs/APILowLevel.md)
 * For GPU [docs/APILowLevel.md](docs/APILowLevelOnGPU.md)
-
-
-### VisualSearchAPI
-* [docs/APIVisualSearch.md](docs/APIVisualSearch.md)
 
 ### PythonSDKAPI
 * [docs/APIPythonSDK.md](docs/APIPythonSDK.md)
