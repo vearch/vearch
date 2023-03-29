@@ -27,15 +27,18 @@ do
   read  use_rocksdb
 done
 
+ZFP_PATH=$HOME/local
+
 if [ $use_zfp == "y" ] && [ ! -n "${ZFP_HOME}" ]; then
-  export ZFP_HOME=/usr/local/include/
-  if [ ! -d $ZFP_HOME ]; then
+  export ZFP_HOME=$ZFP_PATH
+  export ZFP_INATALL=$ZFP_PATH/include/zfp
+  if [ ! -d $ZFP_INSTALL ]; then
     rm -rf zfp*
     wget ${ZFP_URL} -O zfp.tar.gz
     tar -xzf zfp.tar.gz
     pushd zfp-0.5.5
     mkdir build && cd build
-    cmake ..
+    cmake -DCMAKE_INSTALL_PREFIX=$ZFP_PATH ..
     cmake --build . --config Release
     make install
     popd
@@ -43,17 +46,22 @@ if [ $use_zfp == "y" ] && [ ! -n "${ZFP_HOME}" ]; then
 fi
 
 OS_NAME=$(uname)
+ROCKSDB_PATH=$HOME/local
 if [ $use_rocksdb == "y" ] && [ ${OS_NAME} == "Darwin" ]; then
-  export ROCKSDB_HOME=/usr/local/include/rocksdb
+  export ROCKSDB_HOME=$HOME/local/include/rocksdb
   brew install rocksdb
 else
   if [ $use_rocksdb == "y" ] && [ ! -n "${ROCKSDB_HOME}" ]; then
-    export ROCKSDB_HOME=/usr/local/include/rocksdb
-    if [ ! -d "${ROCKSDB_HOME}" ]; then
+    export ROCKSDB_HOME=$ROCKSDB_PATH
+    export ROCKSDB_INSTALL=$ROCKSDB_PATH/include/rocksdb
+    if [ ! -d "${ROCKSDB_INSTALL}" ]; then
       rm -rf rocksdb*
       wget  ${ROCKSDB_URL} -O rocksdb.tar.gz
       tar -xzf rocksdb.tar.gz
       pushd rocksdb-6.2.2
+      mkdir build && cd build
+      cmake -DCMAKE_INSTALL_PREFIX=$ROCKSDB_PATH ..
+      cmake --build . --config Release
       CFLAGS="-O3 -fPIC" make shared_lib -j
       make install
       popd
@@ -77,8 +85,8 @@ fi
 
 cp $ROOT/engine/third_party/faiss/lib*/* $ROOT/ps/engine/gammacb/lib/lib/
 
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ROOT/ps/engine/gammacb/lib/lib/
-export LIBRARY_PATH=$LIBRARY_PATH:$ROOT/ps/engine/gammacb/lib/lib/
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ROOT/ps/engine/gammacb/lib/lib/:$HOME/local/lib64
+export LIBRARY_PATH=$LIBRARY_PATH:$ROOT/ps/engine/gammacb/lib/lib/:$HOME/local/lib64
 
 function build_vearch(){
   echo "build vearch"

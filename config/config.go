@@ -35,6 +35,26 @@ import (
 type Model int
 
 var single *Config
+var localIp string
+
+func GetLocalIP() string {
+  if localIp != "" {
+    return localIp
+  }
+  addrs, err := net.InterfaceAddrs()
+  if err != nil {
+    return "0.0.0.0"
+  }
+  for _, address := range addrs {
+    if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
+      if ipnet.IP.To4() != nil {
+        localIp = ipnet.IP.String()
+        return localIp
+      }
+    }
+  }
+  return "0.0.0.0"
+}
 
 // Conf return the single instance of config
 func Conf() *Config {
@@ -117,7 +137,7 @@ func (this *Config) GetEtcdAddress() []string {
 }
 
 func (c *Config) GetLogDir() string {
-	return c.Global.Log
+	return c.Global.Log + "/" + GetLocalIP()
 }
 
 //make sure it not use in loop
@@ -126,17 +146,22 @@ func (c *Config) GetLevel() string {
 }
 
 func (c *Config) GetDataDir() string {
-	return c.Global.Data[0]
+	return c.Global.Data[0] + "/" + GetLocalIP()
 }
 
 func (c *Config) GetDataDirBySlot(model Model, pid uint32) string {
 	s := c.Global.Data
 	index := int(pid) % len(s)
-	return s[index]
+	return s[index] + "/" + GetLocalIP()
 }
 
 func (c *Config) GetDatas() []string {
-	return c.Global.Data
+	s := c.Global.Data
+	var ts []string
+	for _, v := range s {
+	  ts = append(ts, v + "/" + GetLocalIP())
+	}
+	return ts 
 }
 
 func (c *Config) GetLogFileNum() int {
