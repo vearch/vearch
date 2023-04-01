@@ -50,6 +50,7 @@ type Server struct {
 	nodeID          entity.NodeID //server id
 	ip              string
 	partitions      sync.Map
+// delete raftResolver,raftServer
 	raftResolver    *raftstore.RaftResolver
 	raftServer      *raft.RaftServer
 	rpcServer       *rpc.RpcServer
@@ -58,6 +59,7 @@ type Server struct {
 	ctxCancel       context.CancelFunc
 	stopping        atomic.AtomicBool
 	wg              sync.WaitGroup
+// delete 副本、选主
 	changeLeaderC   chan *changeLeaderEntry
 	replicasStatusC chan *raftstore.ReplicasStatusEntry
 	concurrent      chan bool
@@ -72,6 +74,7 @@ func NewServer(ctx context.Context) *Server {
 	if err != nil {
 		panic(err)
 	}
+//  delete
 	changeLeaderC := make(chan *changeLeaderEntry, 1000)
 	replicasStatusC := make(chan *raftstore.ReplicasStatusEntry, 1000)
 	s := &Server{
@@ -122,6 +125,7 @@ func (s *Server) Start() error {
 	s.ip = server.Ip
 	mserver.SetIp(server.Ip, true)
 
+// delete
 	// create raft server
 	s.raftServer, err = raftstore.StartRaftServer(nodeId, s.ip, s.raftResolver)
 	if err != nil {
@@ -131,9 +135,10 @@ func (s *Server) Start() error {
 	// create and recover partitions
 	s.recoverPartitions(server.PartitionIds)
 
+// delete
 	//change leader job start
 	s.startChangeLeaderC()
-
+// keep
 	//heartbeat job start
 	s.StartHeartbeatJob()
 

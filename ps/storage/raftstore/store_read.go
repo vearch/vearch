@@ -76,6 +76,7 @@ func (s *Store) Search(ctx context.Context, request *vearchpb.SearchRequest, res
 	if clientType != "" && strings.Compare(clientType, "leader") == 0 {
 		leader = true
 	}
+// delete leader
 	if err = s.checkReadable(leader); err != nil {
 		return err
 	}
