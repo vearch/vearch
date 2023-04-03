@@ -18,6 +18,7 @@ import (
 	"context"
 
 	"github.com/vearch/vearch/proto/entity"
+	"github.com/vearch/vearch/ps/psutil"
 	"github.com/vearch/vearch/proto/vearchpb"
 	"github.com/vearch/vearch/util/cbjson"
 	"github.com/vearch/vearch/util/log"
@@ -55,6 +56,29 @@ func (s *Store) UpdateSpace(ctx context.Context, space *entity.Space) error {
 	}
 	raftCmd.UpdateSpace.Version = space.Version
 	raftCmd.UpdateSpace.Space = bytes
+
+	// rap = new(RaftApplyResponse)
+
+	tmp_space := &entity.Space{}
+	cerr := cbjson.Unmarshal(raftCmd.UpdateSpace.Space, tmp_space)
+	if cerr != nil {
+        return cerr
+	}
+
+	cerr = s.Engine.UpdateMapping(tmp_space)
+	if cerr != nil {
+        return cerr
+	}
+
+	// save partition meta file
+	cerr = psutil.SavePartitionMeta(s.GetPartition().Path, s.GetPartition().Id, tmp_space)
+	if cerr != nil {
+		return cerr
+	}
+
+	s.SetSpace(tmp_space)
+
+    /*
 	defer func() {
 		if e := raftCmd.Close(); e != nil {
 			log.Error("raft cmd close err : %s", e.Error())
@@ -82,6 +106,7 @@ func (s *Store) UpdateSpace(ctx context.Context, space *entity.Space) error {
 		return response.(*RaftApplyResponse).Err
 
 	}
+    */
 
 	return nil
 
@@ -103,21 +128,16 @@ func (s *Store) Write(ctx context.Context, request *vearchpb.DocCmd, query *vear
 		raftCmd.WriteCommand = request
 	}
 
-	data, err := raftCmd.Marshal()
-	if err != nil {
-		return err
-	}
 
-	if e := raftCmd.Close(); e != nil {
-		log.Error("raft cmd close err : %s", e.Error())
+	switch raftCmd.Type {
+	case vearchpb.CmdType_WRITE:
+		err = s.Engine.Writer().Write(s.Ctx, raftCmd.WriteCommand, nil, nil)
+	case vearchpb.CmdType_SEARCHDEL:
+		err = s.Engine.Writer().Write(s.Ctx, raftCmd.WriteCommand, raftCmd.SearchDelReq, raftCmd.SearchDelResp)
+	default:
+		log.Error("unsupported command[%s]", raftCmd.Type)
+		// resp.SetErr(fmt.Errorf("unsupported command[%s]", raftCmd.Type))
 	}
-
-	//sumbit raft
-	err = s.RaftSubmit(data)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -143,6 +163,19 @@ func (s *Store) Flush(ctx context.Context) error {
 	raftCmd := vearchpb.CreateRaftCommand()
 	raftCmd.Type = vearchpb.CmdType_FLUSH
 
+    // NEED_FIX
+    _, err := s.Engine.Writer().Commit(s.Ctx, 0)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+
+    // resp.FlushC = flushC
+    // resp.Err = err
+
+    /*
 	data, err := raftCmd.Marshal()
 	if err != nil {
 		return err
@@ -167,8 +200,8 @@ func (s *Store) Flush(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+    */
 
-	return nil
 }
 
 func (s *Store) checkWritable() error {

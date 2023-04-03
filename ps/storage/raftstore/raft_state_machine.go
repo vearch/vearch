@@ -116,6 +116,7 @@ func (s *Store) Apply(command []byte, index uint64) (resp interface{}, err error
 // Apply implements the raft interface.
 func (s *Store) innerApply(command []byte, index uint64, raftCmd *vearchpb.RaftCommand) interface{} {
 	resp := new(RaftApplyResponse)
+
 	switch raftCmd.Type {
 	case vearchpb.CmdType_WRITE:
 		resp.Err = s.Engine.Writer().Write(s.Ctx, raftCmd.WriteCommand, nil, nil)

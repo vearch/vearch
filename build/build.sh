@@ -1,4 +1,5 @@
 #!/bin/bash
+set -x
 
 ROOT=$(dirname "$PWD")
 BUILDOUT=$ROOT/build/bin/
@@ -31,11 +32,11 @@ ZFP_PATH=$HOME/local
 
 if [ $use_zfp == "y" ] && [ ! -n "${ZFP_HOME}" ]; then
   export ZFP_HOME=$ZFP_PATH
-  export ZFP_INATALL=$ZFP_PATH/include/zfp
+  export ZFP_INSTALL=$ZFP_PATH/include/zfp
   if [ ! -d $ZFP_INSTALL ]; then
-    rm -rf zfp*
-    wget ${ZFP_URL} -O zfp.tar.gz
-    tar -xzf zfp.tar.gz
+    #rm -rf zfp*
+    #wget ${ZFP_URL} -O zfp.tar.gz
+    #tar -xzf zfp.tar.gz
     pushd zfp-0.5.5
     mkdir build && cd build
     cmake -DCMAKE_INSTALL_PREFIX=$ZFP_PATH ..
@@ -106,7 +107,9 @@ function build_vearch(){
 }
 
 if [ $# == 1 ];then
-  build_vearch 'vendor'
+  #build_vearch 'vendor'
+  build_vearch 'mod'
 else
+  #build_vearch 'vendor'
   build_vearch 'mod'
 fi

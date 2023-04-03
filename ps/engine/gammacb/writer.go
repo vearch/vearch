@@ -159,7 +159,6 @@ func (wi *writerImpl) Commit(ctx context.Context, snx int64) (chan error, error)
 
 		log.Info("begin dump data for gamma")
 
-		//if code := C.Dump(gamma); code != 0 {
 		if code := gamma.Dump(gammaEngine); code != 0 {
 			fc <- vearchlog.LogErrAndReturn(fmt.Errorf("dump index err response code :[%d]", code))
 		} else {
