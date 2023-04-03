@@ -106,11 +106,13 @@ func (s *Server) LoadPartition(ctx context.Context, pid entity.PartitionID) (Par
 	if err != nil {
 		return nil, err
 	}
-
+// delete 
 	store, err := raftstore.CreateStore(ctx, pid, s.nodeID, space, s.raftServer, s, s.client)
 	if err != nil {
 		return nil, err
 	}
+
+// delete
 	//partition status chan
 	store.RsStatusC = s.replicasStatusC
 	replicas := store.GetPartition().Replicas

@@ -48,6 +48,7 @@ type ReplicasStatusEntry struct {
 
 type Store struct {
 	*storage.StoreBase
+// delete RaftPath.RaftServer
 	RaftPath      string
 	RaftServer    *raft.RaftServer
 	EventListener EventListener
@@ -74,6 +75,7 @@ func CreateStore(ctx context.Context, pID entity.PartitionID, nodeID entity.Node
 	if err != nil {
 		return nil, err
 	}
+// delete
 	s := &Store{
 		StoreBase:     base,
 		RaftPath:      raftPath,
@@ -137,7 +139,7 @@ func (s *Store) Start() (err error) {
 	s.LastFlushTime = time.Now()
 
 	s.Partition.SetStatus(entity.PA_READONLY)
-
+// delete
 	raftStore, err := wal.NewStorage(s.RaftPath, nil)
 	if err != nil {
 		s.Engine.Close()
