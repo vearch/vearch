@@ -114,15 +114,15 @@ func (s *Server) LoadPartition(ctx context.Context, pid entity.PartitionID) (Par
 
 // delete
 	//partition status chan
-	store.RsStatusC = s.replicasStatusC
-	replicas := store.GetPartition().Replicas
-	for _, replica := range replicas {
-		if server, err := s.client.Master().QueryServer(context.Background(), replica); err != nil {
-			log.Error("partition recovery get server info err: %s", err.Error())
-		} else {
-			s.raftResolver.AddNode(replica, server.Replica())
-		}
-	}
+//      store.RsStatusC = s.replicasStatusC
+//      replicas := store.GetPartition().Replicas
+//      for _, replica := range replicas {
+//      	if server, err := s.client.Master().QueryServer(context.Background(), replica); err != nil {
+//      		log.Error("partition recovery get server info err: %s", err.Error())
+//      	} else {
+//      		s.raftResolver.AddNode(replica, server.Replica())
+//      	}
+//      }
 
 	if err := store.Start(); err != nil {
 		return nil, err
@@ -138,7 +138,9 @@ func (s *Server) CreatePartition(ctx context.Context, space *entity.Space, pid e
 	defer s.mu.Unlock()
 
 	store, err := raftstore.CreateStore(ctx, pid, s.nodeID, space, s.raftServer, s, s.client)
+	log.Debug("server k 1")
 	if err != nil {
+	log.Debug("server k 2")
 		return err
 	}
 	store.RsStatusC = s.replicasStatusC
@@ -148,20 +150,23 @@ func (s *Server) CreatePartition(ctx context.Context, space *entity.Space, pid e
 			log.Error("partitions close err : %s", err.Error())
 		}
 	} else {
-		for _, nodeId := range store.Partition.Replicas {
-			if server, err := s.client.Master().QueryServer(ctx, nodeId); err != nil {
-				log.Error("get server info err %s", err.Error())
-				return err
-			} else {
-				s.raftResolver.AddNode(nodeId, server.Replica())
-			}
-		}
+        	for _, nodeId := range store.Partition.Replicas {
+        		if server, err := s.client.Master().QueryServer(ctx, nodeId); err != nil {
+        			log.Error("get server info err %s", err.Error())
+        			return err
+        			s.raftResolver.AddNode(nodeId, server.Replica())
+        		}
+        	}
 		if err = store.Start(); err != nil {
 			return err
 		}
 	}
 
 	s.partitions.Store(pid, store)
+	store.Partition.SetStatus(entity.PA_READWRITE)
+        for _, nodeId := range store.Partition.Replicas {
+		s.registerMaster(nodeId, pid)
+        }
 	return nil
 }
 

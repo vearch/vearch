@@ -24,7 +24,7 @@ import (
 
 	"github.com/tiglabs/raft"
 	"github.com/tiglabs/raft/proto"
-	"github.com/tiglabs/raft/storage/wal"
+//	"github.com/tiglabs/raft/storage/wal"
 	"github.com/vearch/vearch/client"
 	"github.com/vearch/vearch/config"
 	"github.com/vearch/vearch/proto/entity"
@@ -65,7 +65,7 @@ type Store struct {
 func CreateStore(ctx context.Context, pID entity.PartitionID, nodeID entity.NodeID, space *entity.Space, raftServer *raft.RaftServer, eventListener EventListener, client *client.Client) (*Store, error) {
 
 	path := config.Conf().GetDataDirBySlot(config.PS, pID)
-	dataPath, raftPath, metaPath, err := psutil.CreatePartitionPaths(path, space, pID) //FIXME: it will double writer space when load space
+	dataPath, _, metaPath, err := psutil.CreatePartitionPaths(path, space, pID) //FIXME: it will double writer space when load space
 
 	if err != nil {
 		return nil, err
@@ -78,17 +78,17 @@ func CreateStore(ctx context.Context, pID entity.PartitionID, nodeID entity.Node
 // delete
 	s := &Store{
 		StoreBase:     base,
-		RaftPath:      raftPath,
-		RaftServer:    raftServer,
-		EventListener: eventListener,
+//		RaftPath:      raftPath,
+//		RaftServer:    raftServer,
+    		EventListener: eventListener,
 		Client:        client,
-		RsStatusMap:   sync.Map{},
+//		RsStatusMap:   sync.Map{},
 	}
-	if config.Conf().PS.RaftDiffCount > 0 {
-		s.raftDiffCount = config.Conf().PS.RaftDiffCount
-	} else {
-		s.raftDiffCount = 10000
-	}
+////////if config.Conf().PS.RaftDiffCount > 0 {
+////////	s.raftDiffCount = config.Conf().PS.RaftDiffCount
+////////} else {
+////////	s.raftDiffCount = 10000
+////////}
 	return s, nil
 }
 
@@ -140,42 +140,42 @@ func (s *Store) Start() (err error) {
 
 	s.Partition.SetStatus(entity.PA_READONLY)
 // delete
-	raftStore, err := wal.NewStorage(s.RaftPath, nil)
-	if err != nil {
-		s.Engine.Close()
-		return fmt.Errorf("start partition[%d] open raft store engine error: %s", s.Partition.Id, err.Error())
-	}
+//	raftStore, err := wal.NewStorage(s.RaftPath, nil)
+//	if err != nil {
+//		s.Engine.Close()
+//		return fmt.Errorf("start partition[%d] open raft store engine error: %s", s.Partition.Id, err.Error())
+//	}
 
 	partition := s.Space.GetPartition(s.Partition.Id)
 	if partition == nil {
 		return fmt.Errorf("can not found partition by id:[%d]", s.Partition.Id)
 	}
 
-	raftConf := &raft.RaftConfig{
-		ID:           uint64(s.Partition.Id),
-		Applied:      uint64(apply),
-		Peers:        make([]proto.Peer, 0, len(partition.Replicas)),
-		Storage:      raftStore,
-		StateMachine: s,
-	}
+////////raftConf := &raft.RaftConfig{
+////////	ID:           uint64(s.Partition.Id),
+////////	Applied:      uint64(apply),
+////////	Peers:        make([]proto.Peer, 0, len(partition.Replicas)),
+////////	Storage:      raftStore,
+////////	StateMachine: s,
+////////}
 
-	if s.Partition.Replicas[0] == s.NodeID {
-		raftConf.Leader = s.NodeID
-	}
+////////if s.Partition.Replicas[0] == s.NodeID {
+////////	raftConf.Leader = s.NodeID
+////////}
 
-	for _, repl := range partition.Replicas {
-		peer := proto.Peer{Type: proto.PeerNormal, ID: uint64(repl)}
-		raftConf.Peers = append(raftConf.Peers, peer)
-	}
-	if err = s.RaftServer.CreateRaft(raftConf); err != nil {
-		s.Engine.Close()
-		return fmt.Errorf("start partition[%d] create raft error: %s", s.Partition.Id, err)
-	}
+////////for _, repl := range partition.Replicas {
+////////	peer := proto.Peer{Type: proto.PeerNormal, ID: uint64(repl)}
+////////	raftConf.Peers = append(raftConf.Peers, peer)
+////////}
+////////if err = s.RaftServer.CreateRaft(raftConf); err != nil {
+////////	s.Engine.Close()
+////////	return fmt.Errorf("start partition[%d] create raft error: %s", s.Partition.Id, err)
+////////}
 
 	// Start Raft Sn Flush worker
-	s.startFlushJob()
+//	s.startFlushJob()
 	// Start Raft Truncate Worker
-	s.startTruncateJob(apply)
+//      s.startTruncateJob(apply)
 
 	return nil
 }

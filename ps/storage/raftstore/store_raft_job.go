@@ -15,7 +15,7 @@
 package raftstore
 
 import (
-	"fmt"
+//	"fmt"
 	"runtime/debug"
 	"time"
 
@@ -36,6 +36,7 @@ var fti int32 // flush time interval
 var fct int32 // flush count threshold
 
 // truncate is raft log truncate.
+/*
 func (s *Store) startTruncateJob(initLastFlushIndex int64) {
 	truncateFunc := func(truncIndex int64) error {
 		// get raft peers status
@@ -91,6 +92,7 @@ func (s *Store) startTruncateJob(initLastFlushIndex int64) {
 		}
 	}()
 }
+*/
 
 // start flush job
 func (s *Store) startFlushJob() {
@@ -119,6 +121,7 @@ func (s *Store) startFlushJob() {
 
 		log.Info("start flush job, flush time interval=%d, count threshold=%d, min index num=%d, max docid=%d", fti, fct, lastIndexNum, lastMaxDocid)
 		flushFunc := func() {
+			log.Info("currrent sn=%d", s.Sn)
 			if s.Sn == 0 {
 				return
 			}
