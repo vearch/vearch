@@ -312,6 +312,7 @@ func (ms *masterService) createSpaceService(ctx context.Context, dbName string, 
 	space.Id = spaceID
 
 	width := math.MaxUint32 / space.PartitionNum
+	log.Debug("Check space.PartitionNum: %d", space.PartitionNum)
 	for i := 0; i < space.PartitionNum; i++ {
 		partitionID, err := ms.Master().NewIDGenerate(ctx, entity.PartitionIdSequence, 1, 5*time.Second)
 
@@ -325,13 +326,14 @@ func (ms *masterService) createSpaceService(ctx context.Context, dbName string, 
 			DBId:    space.DBId,
 			Slot:    entity.SlotID(i * width),
 		})
+	        log.Debug("Check Partitions- Id:%+v", space.Partitions[i])
 	}
 
 	serverPartitions, err := ms.filterAndSortServer(ctx, space, servers)
 	if err != nil {
 		return err
 	}
-
+	log.Debug("Check space.ReplicatNum: %d vs serverPartitions: %d", space.ReplicaNum, len(serverPartitions))
 	if int(space.ReplicaNum) > len(serverPartitions) {
 		return fmt.Errorf("not enough PS , need replica %d but only has %d",
 			int(space.ReplicaNum), len(serverPartitions))
@@ -382,6 +384,8 @@ func (ms *masterService) createSpaceService(ctx context.Context, dbName string, 
 					err := fmt.Errorf("create partition err: %v ", r)
 					errChain <- err
 					log.Error(err.Error())
+				} else {
+					log.Debug("Check create partition1 ok")
 				}
 			}()
 			for _, addr := range addrs {
@@ -389,6 +393,8 @@ func (ms *masterService) createSpaceService(ctx context.Context, dbName string, 
 					err := fmt.Errorf("create partition err: %s ", err.Error())
 					errChain <- err
 					log.Error(err.Error())
+				} else {
+					log.Debug("Check create partition2 ok")
 				}
 			}
 		}(paddrs[i], space.Partitions[i])
@@ -417,6 +423,7 @@ func (ms *masterService) createSpaceService(ctx context.Context, dbName string, 
 			}
 			if partition == nil {
 				time.Sleep(50 * time.Millisecond)
+				log.Debug("partition nil, sleep and wait continue")
 				continue
 			}
 			break
@@ -426,8 +433,11 @@ func (ms *masterService) createSpaceService(ctx context.Context, dbName string, 
 	space.Enabled = util.PBool(true)
 
 	//update version
+	log.Debug("schema map 44")
 	err = ms.updateSpace(ctx, space)
+	log.Debug("schema map 45")
 	if err != nil {
+	log.Debug("schema map 46")
 		space.Enabled = util.PBool(false)
 		return err
 	}
@@ -450,6 +460,7 @@ func (ms *masterService) generatePartitionsInfo(servers []*entity.Server, server
 			index  int
 			length int
 		}{index: k, length: v})
+		log.Debug("Check serverPartition: index:%d, length:%d", k, v)
 	}
 
 	sort.Slice(kvList, func(i, j int) bool {
@@ -462,11 +473,13 @@ func (ms *masterService) generatePartitionsInfo(servers []*entity.Server, server
 		ID := servers[kv.index].ID
 
 		if !client.IsLive(addr) {
+			log.Debug("Check Error - the addr: %s is not alive", addr)
 			serverPartitions[kv.index] = kv.length
 			continue
 		}
 		serverPartitions[kv.index] = serverPartitions[kv.index] + 1
 		addres = append(addres, addr)
+	        log.Debug("Check append - the addr: %s", addr)
 		partition.Replicas = append(partition.Replicas, ID)
 
 		replicaNum--
@@ -479,6 +492,7 @@ func (ms *masterService) generatePartitionsInfo(servers []*entity.Server, server
 		return nil, vearchpb.NewError(vearchpb.ErrorEnum_MASTER_PS_NOT_ENOUGH_SELECT, fmt.Errorf("need %d but got %d", partition.Replicas, len(addres)))
 	}
 
+	log.Debug("Check addrs: %v", addres)
 	return addres, nil
 }
 

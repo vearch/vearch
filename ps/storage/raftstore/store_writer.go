@@ -18,11 +18,15 @@ import (
 	"context"
 
 	"github.com/vearch/vearch/proto/entity"
+	"github.com/vearch/vearch/ps/psutil"
 	"github.com/vearch/vearch/proto/vearchpb"
 	"github.com/vearch/vearch/util/cbjson"
 	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/util/vearchlog"
+        "sync/atomic"
 )
+
+var commitId int64
 
 type RaftApplyResponse struct {
 	FlushC chan error
@@ -55,42 +59,34 @@ func (s *Store) UpdateSpace(ctx context.Context, space *entity.Space) error {
 	}
 	raftCmd.UpdateSpace.Version = space.Version
 	raftCmd.UpdateSpace.Space = bytes
-	defer func() {
-		if e := raftCmd.Close(); e != nil {
-			log.Error("raft cmd close err : %s", e.Error())
 
-		}
-
-	}()
-
-	data, err := raftCmd.Marshal()
-
-	if err != nil {
-		return err
-
+	tmp_space := &entity.Space{}
+	cerr := cbjson.Unmarshal(raftCmd.UpdateSpace.Space, tmp_space)
+	if cerr != nil {
+        return cerr
 	}
 
-	future := s.RaftServer.Submit(uint64(s.Partition.Id), data)
-
-	response, err := future.Response()
-	if err != nil {
-		return err
-
+	cerr = s.Engine.UpdateMapping(tmp_space)
+	if cerr != nil {
+        return cerr
 	}
 
-	if response.(*RaftApplyResponse).Err != nil {
-		return response.(*RaftApplyResponse).Err
-
+	// save partition meta file
+	cerr = psutil.SavePartitionMeta(s.GetPartition().Path, s.GetPartition().Id, tmp_space)
+	if cerr != nil {
+		return cerr
 	}
+
+	s.SetSpace(tmp_space)
 
 	return nil
 
 }
 
 func (s *Store) Write(ctx context.Context, request *vearchpb.DocCmd, query *vearchpb.SearchRequest, response *vearchpb.SearchResponse) (err error) {
-	if err = s.checkWritable(); err != nil {
-		return err
-	}
+        if err = s.checkWritable(); err != nil {
+        	return err
+        }
 	raftCmd := vearchpb.CreateRaftCommand()
 	if query != nil {
 		raftCmd.Type = vearchpb.CmdType_SEARCHDEL
@@ -103,21 +99,17 @@ func (s *Store) Write(ctx context.Context, request *vearchpb.DocCmd, query *vear
 		raftCmd.WriteCommand = request
 	}
 
-	data, err := raftCmd.Marshal()
-	if err != nil {
-		return err
-	}
 
-	if e := raftCmd.Close(); e != nil {
-		log.Error("raft cmd close err : %s", e.Error())
+	switch raftCmd.Type {
+	case vearchpb.CmdType_WRITE:
+		err = s.Engine.Writer().Write(s.Ctx, raftCmd.WriteCommand, nil, nil)
+	case vearchpb.CmdType_SEARCHDEL:
+		err = s.Engine.Writer().Write(s.Ctx, raftCmd.WriteCommand, raftCmd.SearchDelReq, raftCmd.SearchDelResp)
+	default:
+		log.Error("unsupported command[%s]", raftCmd.Type)
+		// resp.SetErr(fmt.Errorf("unsupported command[%s]", raftCmd.Type))
 	}
-
-	//sumbit raft
-	err = s.RaftSubmit(data)
-	if err != nil {
-		return err
-	}
-
+	atomic.AddInt64(&s.CurrentSn, 1)
 	return nil
 }
 
@@ -143,27 +135,11 @@ func (s *Store) Flush(ctx context.Context) error {
 	raftCmd := vearchpb.CreateRaftCommand()
 	raftCmd.Type = vearchpb.CmdType_FLUSH
 
-	data, err := raftCmd.Marshal()
-	if err != nil {
-		return err
-	}
+    // NEED_FIX
+       
+       var current = atomic.LoadInt64(&s.CurrentSn)
+    _, err := s.Engine.Writer().Commit(s.Ctx, current)
 
-	if e := raftCmd.Close(); e != nil {
-		log.Error("raft cmd close err : %s", e.Error())
-	}
-
-	future := s.RaftServer.Submit(uint64(s.Partition.Id), data)
-
-	response, err := future.Response()
-	if err != nil {
-		return err
-	}
-
-	if response.(*RaftApplyResponse).Err != nil {
-		return response.(*RaftApplyResponse).Err
-	}
-
-	err = <-response.(*RaftApplyResponse).FlushC
 	if err != nil {
 		return err
 	}
@@ -177,11 +153,9 @@ func (s *Store) checkWritable() error {
 		return vearchlog.LogErrAndReturn(vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_IS_INVALID, nil))
 	case entity.PA_CLOSED:
 		return vearchlog.LogErrAndReturn(vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_IS_CLOSED, nil))
-	case entity.PA_READONLY:
-		return vearchlog.LogErrAndReturn(vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_NOT_LEADER, nil))
 	case entity.PA_READWRITE:
 		return nil
 	default:
-		return vearchlog.LogErrAndReturn(vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, nil))
+		return nil
 	}
 }

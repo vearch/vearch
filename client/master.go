@@ -109,14 +109,19 @@ func (m *masterClient) QueryDBName2Id(ctx context.Context, name string) (int64, 
 
 // QueryPartition query partition from etcd by key /partition/{partitionID}
 func (m *masterClient) QueryPartition(ctx context.Context, partitionID entity.PartitionID) (*entity.Partition, error) {
+	log.Debug("server t 1")
 	bytes, err := m.Get(ctx, entity.PartitionKey(partitionID))
 	if err != nil {
+      	        log.Debug("server t 2")
+	        log.Error("query partition error is: %s", err.Error())
 		return nil, err
 	}
 	if bytes == nil {
+	        log.Debug("server t 3")
 		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_NOT_EXIST, nil)
 	}
 
+	log.Debug("server t 4, %s", bytes)
 	p := new(entity.Partition)
 	err = json.Unmarshal(bytes, p)
 	return p, err
