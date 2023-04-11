@@ -23,7 +23,10 @@ import (
 	"github.com/vearch/vearch/util/cbjson"
 	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/util/vearchlog"
+        "sync/atomic"
 )
+
+var commitId int64
 
 type RaftApplyResponse struct {
 	FlushC chan error
@@ -57,8 +60,6 @@ func (s *Store) UpdateSpace(ctx context.Context, space *entity.Space) error {
 	raftCmd.UpdateSpace.Version = space.Version
 	raftCmd.UpdateSpace.Space = bytes
 
-	// rap = new(RaftApplyResponse)
-
 	tmp_space := &entity.Space{}
 	cerr := cbjson.Unmarshal(raftCmd.UpdateSpace.Space, tmp_space)
 	if cerr != nil {
@@ -78,44 +79,14 @@ func (s *Store) UpdateSpace(ctx context.Context, space *entity.Space) error {
 
 	s.SetSpace(tmp_space)
 
-    /*
-	defer func() {
-		if e := raftCmd.Close(); e != nil {
-			log.Error("raft cmd close err : %s", e.Error())
-
-		}
-
-	}()
-
-	data, err := raftCmd.Marshal()
-
-	if err != nil {
-		return err
-
-	}
-
-	future := s.RaftServer.Submit(uint64(s.Partition.Id), data)
-
-	response, err := future.Response()
-	if err != nil {
-		return err
-
-	}
-
-	if response.(*RaftApplyResponse).Err != nil {
-		return response.(*RaftApplyResponse).Err
-
-	}
-    */
-
 	return nil
 
 }
 
 func (s *Store) Write(ctx context.Context, request *vearchpb.DocCmd, query *vearchpb.SearchRequest, response *vearchpb.SearchResponse) (err error) {
-	if err = s.checkWritable(); err != nil {
-		return err
-	}
+        if err = s.checkWritable(); err != nil {
+        	return err
+        }
 	raftCmd := vearchpb.CreateRaftCommand()
 	if query != nil {
 		raftCmd.Type = vearchpb.CmdType_SEARCHDEL
@@ -138,6 +109,7 @@ func (s *Store) Write(ctx context.Context, request *vearchpb.DocCmd, query *vear
 		log.Error("unsupported command[%s]", raftCmd.Type)
 		// resp.SetErr(fmt.Errorf("unsupported command[%s]", raftCmd.Type))
 	}
+	atomic.AddInt64(&s.CurrentSn, 1)
 	return nil
 }
 
@@ -164,44 +136,15 @@ func (s *Store) Flush(ctx context.Context) error {
 	raftCmd.Type = vearchpb.CmdType_FLUSH
 
     // NEED_FIX
-    _, err := s.Engine.Writer().Commit(s.Ctx, 0)
+       
+       var current = atomic.LoadInt64(&s.CurrentSn)
+    _, err := s.Engine.Writer().Commit(s.Ctx, current)
 
 	if err != nil {
 		return err
 	}
 
 	return nil
-
-    // resp.FlushC = flushC
-    // resp.Err = err
-
-    /*
-	data, err := raftCmd.Marshal()
-	if err != nil {
-		return err
-	}
-
-	if e := raftCmd.Close(); e != nil {
-		log.Error("raft cmd close err : %s", e.Error())
-	}
-
-	future := s.RaftServer.Submit(uint64(s.Partition.Id), data)
-
-	response, err := future.Response()
-	if err != nil {
-		return err
-	}
-
-	if response.(*RaftApplyResponse).Err != nil {
-		return response.(*RaftApplyResponse).Err
-	}
-
-	err = <-response.(*RaftApplyResponse).FlushC
-	if err != nil {
-		return err
-	}
-    */
-
 }
 
 func (s *Store) checkWritable() error {
@@ -210,11 +153,9 @@ func (s *Store) checkWritable() error {
 		return vearchlog.LogErrAndReturn(vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_IS_INVALID, nil))
 	case entity.PA_CLOSED:
 		return vearchlog.LogErrAndReturn(vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_IS_CLOSED, nil))
-	case entity.PA_READONLY:
-		return vearchlog.LogErrAndReturn(vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_NOT_LEADER, nil))
 	case entity.PA_READWRITE:
 		return nil
 	default:
-		return vearchlog.LogErrAndReturn(vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, nil))
+		return nil
 	}
 }

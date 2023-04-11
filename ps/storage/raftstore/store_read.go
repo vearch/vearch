@@ -20,7 +20,6 @@ import (
 
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/proto/vearchpb"
-	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/util/vearchlog"
 )
 
@@ -43,10 +42,6 @@ func (s *Store) checkReadable(readLeader bool) error {
 		return vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_IS_INVALID, nil)
 	}
 
-	if readLeader && status != entity.PA_READWRITE {
-		log.Error("checkReadable status: %d , err: %v", status, vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_NOT_LEADER, nil).Error())
-		return vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_NOT_LEADER, nil)
-	}
 
 	return nil
 
@@ -76,7 +71,6 @@ func (s *Store) Search(ctx context.Context, request *vearchpb.SearchRequest, res
 	if clientType != "" && strings.Compare(clientType, "leader") == 0 {
 		leader = true
 	}
-// delete leader
 	if err = s.checkReadable(leader); err != nil {
 		return err
 	}

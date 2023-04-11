@@ -112,18 +112,6 @@ func (s *Server) LoadPartition(ctx context.Context, pid entity.PartitionID) (Par
 		return nil, err
 	}
 
-// delete
-	//partition status chan
-//      store.RsStatusC = s.replicasStatusC
-//      replicas := store.GetPartition().Replicas
-//      for _, replica := range replicas {
-//      	if server, err := s.client.Master().QueryServer(context.Background(), replica); err != nil {
-//      		log.Error("partition recovery get server info err: %s", err.Error())
-//      	} else {
-//      		s.raftResolver.AddNode(replica, server.Replica())
-//      	}
-//      }
-
 	if err := store.Start(); err != nil {
 		return nil, err
 	}
@@ -138,9 +126,7 @@ func (s *Server) CreatePartition(ctx context.Context, space *entity.Space, pid e
 	defer s.mu.Unlock()
 
 	store, err := raftstore.CreateStore(ctx, pid, s.nodeID, space, s.raftServer, s, s.client)
-	log.Debug("server k 1")
 	if err != nil {
-	log.Debug("server k 2")
 		return err
 	}
 	store.RsStatusC = s.replicasStatusC

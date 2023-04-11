@@ -50,7 +50,6 @@ type Server struct {
 	nodeID          entity.NodeID //server id
 	ip              string
 	partitions      sync.Map
-// delete raftResolver,raftServer
 	raftResolver    *raftstore.RaftResolver
 	raftServer      *raft.RaftServer
 	rpcServer       *rpc.RpcServer
