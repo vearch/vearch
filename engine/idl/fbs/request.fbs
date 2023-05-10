@@ -1,0 +1,42 @@
+namespace gamma_api;
+
+table TermFilter {
+  field:string;
+  value:[ubyte];
+  is_union:int;        // 0: intersect, 1: union, 2: not in
+}
+
+table RangeFilter {
+  field:string;
+  lower_value:[ubyte];
+  upper_value:[ubyte];
+  include_lower:bool;
+  include_upper:bool;
+}
+
+table VectorQuery {
+  name:string;
+  value:[ubyte];
+  min_score:double;
+  max_score:double;
+  boost:double;
+  has_boost:int;
+  retrieval_type:string;
+}
+
+table Request {
+  req_num:int;                    // request number
+  topn:int;                       // top n similar results
+  brute_force_search:int;         // 1 : brute force search; 0 : normal search
+  vec_fields:[VectorQuery];       // vec_field array
+  fields:[string];
+  range_filters:[RangeFilter];
+  term_filters:[TermFilter];
+  retrieval_params:string;
+  has_rank:bool;                  // default false, not rank
+  online_log_level:string;        // DEBUG, INFO, WARN, ERROR
+  multi_vector_rank:int;
+  l2_sqrt:bool;                   // default FALSE, don't do sqrt; TRUE, do sqrt
+}
+
+root_type Request;

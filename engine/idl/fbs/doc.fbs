@@ -1,0 +1,16 @@
+include "types.fbs";
+
+namespace gamma_api;
+
+table Field {
+  name:string;
+  value:[ubyte];
+  source:string;
+  data_type:DataType;
+}
+
+table Doc {
+  fields:[Field];
+}
+
+root_type Doc;

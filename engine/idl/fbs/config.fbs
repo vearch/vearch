@@ -1,0 +1,14 @@
+namespace gamma_api;
+
+table CacheInfo {
+  field_name:string;
+  cache_size:int;
+} 
+
+table Config {
+  path:string;
+  log_dir:string;
+  cache_infos:[CacheInfo];
+}
+
+root_type Config;

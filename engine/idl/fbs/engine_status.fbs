@@ -1,0 +1,17 @@
+namespace gamma_api;
+
+table EngineStatus {
+  index_status:int;  // UNINDEXED = 0, INDEXING = 1, INDEXED = 2
+
+  table_mem:long;
+  index_mem:long;
+  vector_mem:long;
+  field_range_mem:long;
+  bitmap_mem:long;
+
+  doc_num:int;
+  max_docid:int;
+  min_indexed_num:int;
+}
+
+root_type EngineStatus;

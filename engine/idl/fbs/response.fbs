@@ -1,0 +1,28 @@
+namespace gamma_api;
+
+enum SearchResultCode : byte { SUCCESS = 0, INDEX_NOT_TRAINED, SEARCH_ERROR }
+
+table Attribute  {
+  name:string;
+  value:[ubyte];
+}
+
+table ResultItem {
+  score:double;
+  attributes:[Attribute];
+  extra:string;
+}
+
+table SearchResult {
+  total:int;
+  result_code:SearchResultCode;
+  msg:string;
+  result_items:[ResultItem];
+}
+
+table Response {
+  results:[SearchResult];
+  online_log_message:string;
+}
+
+root_type Response;

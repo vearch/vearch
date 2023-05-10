@@ -1,0 +1,10 @@
+include "types.fbs";
+
+namespace gamma_api;
+
+table BatchResult {
+  codes:[int];
+  msgs:[string];
+}
+
+root_type BatchResult;

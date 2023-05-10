@@ -1,0 +1,54 @@
+
+num_neighbors: 100
+distance_measure {
+    distance_measure: "DotProductDistance"
+}
+
+partitioning {
+    num_children: 256
+    min_cluster_size: 50
+    max_clustering_iterations: 12
+    single_machine_center_initialization: RANDOM_INITIALIZATION
+    partitioning_distance {
+        distance_measure: "SquaredL2Distance"
+    }
+    query_spilling {
+        spilling_type: FIXED_NUMBER_OF_CENTERS
+        max_spill_centers: 80
+    }
+    expected_sample_size: 10000
+    query_tokenization_distance_override {
+        distance_measure: "DotProductDistance"
+    }
+    partitioning_type: GENERIC
+    query_tokenization_type: FLOAT
+}
+
+hash {
+    asymmetric_hash {
+        lookup_type: INT8_LUT16
+        use_residual_quantization: True
+        use_global_topn: True
+        quantization_distance {
+            distance_measure: "SquaredL2Distance"
+        }
+        num_clusters_per_block: 16
+        projection {
+            input_dim: 512
+            projection_type: CHUNK
+            num_blocks: 256
+            num_dims_per_block: 2
+        }
+        noise_shaping_threshold: 0.2
+        expected_sample_size: 10000
+        min_cluster_size: 100
+        max_clustering_iterations: 10
+    }
+}
+
+exact_reordering {
+    approx_num_neighbors: 100
+    fixed_point {
+        enabled: False
+    }
+}

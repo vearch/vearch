@@ -1,0 +1,1 @@
+enum DataType : byte { INT = 0, LONG, FLOAT, DOUBLE, STRING, VECTOR }
