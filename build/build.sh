@@ -28,7 +28,7 @@ do
 done
 
 if [ $use_zfp == "y" ] && [ ! -n "${ZFP_HOME}" ]; then
-  export ZFP_HOME=/usr/local/include/
+  export ZFP_HOME=/usr/local/include/zfp
   if [ ! -d $ZFP_HOME ]; then
     rm -rf zfp*
     wget ${ZFP_URL} -O zfp.tar.gz
@@ -54,7 +54,7 @@ else
       wget  ${ROCKSDB_URL} -O rocksdb.tar.gz
       tar -xzf rocksdb.tar.gz
       pushd rocksdb-6.2.2
-      CFLAGS="-O3 -fPIC" make shared_lib -j
+      CFLAGS="-O3 -fPIC" make shared_lib -j2
       make install
       popd
     fi
@@ -68,7 +68,7 @@ echo "version info: $flags"
 echo "build gamma"
 pushd $GAMMAOUT
 cmake -DPERFORMANCE_TESTING=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$ROOT/ps/engine/gammacb/lib $ROOT/engine/
-make -j && make install
+make -j2 && make install
 popd
 flatbuffers=$ROOT/ps/engine/third_party/flatbuffers-1.11.0
 if [ -d ${flatbuffers} ]; then

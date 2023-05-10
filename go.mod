@@ -18,7 +18,6 @@ require (
 	github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf // indirect
 	github.com/dgrijalva/jwt-go v3.2.1-0.20190620180102-5e25c22bd5d6+incompatible // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect
-	github.com/dustin/gojson v0.0.0-20160307161227-2e71ec9dd5ad
 	github.com/fatih/color v1.7.1-0.20181010231311-3f9d52f7176a // indirect
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32 // indirect
@@ -35,7 +34,6 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway v1.16.0 // indirect
 	github.com/hashicorp/consul/api v1.1.0 // indirect
-	github.com/jasonlvhit/gocron v0.0.0-20190121134850-6771d4b492ba
 	github.com/jonboulle/clockwork v0.2.2 // indirect
 	github.com/json-iterator/go v1.1.12
 	github.com/juju/ratelimit v1.0.1

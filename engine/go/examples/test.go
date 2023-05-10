@@ -8,7 +8,7 @@
 package main
 
 import (
-	gamma "../gamma"
+	gamma "engine/go/gamma"
 	"bufio"
 	"bytes"
 	"encoding/binary"

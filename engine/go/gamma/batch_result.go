@@ -8,7 +8,7 @@
 package gamma
 
 import (
-	"../../idl/fbs-gen/go/gamma_api"
+	"engine/idl/fbs-gen/go/gamma_api"
 )
 
 type BatchResult struct {

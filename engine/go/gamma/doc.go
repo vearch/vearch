@@ -8,7 +8,7 @@
 package gamma
 
 import (
-	"../../idl/fbs-gen/go/gamma_api"
+	"engine/idl/fbs-gen/go/gamma_api"
 	flatbuffers "github.com/google/flatbuffers/go"
 )
 
