@@ -1,6 +1,0 @@
-[submodule "python"]
-	path = python
-	url = https://github.com/vearch/vearch-python
-[submodule "plugin"]
-	path = plugin
-	url = https://github.com/vearch/python-algorithm-plugin

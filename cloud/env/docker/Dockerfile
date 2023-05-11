@@ -23,5 +23,5 @@ RUN yum install -y epel-release wget gcc gcc-c++ make automake git blas-devel la
     ln -s librocksdb.so.6.2 librocksdb.so &&\
     cp -r /env/app/rocksdb-6.2.2/include /env/app/rocksdb_install/ &&\
     cd /env/app/ &&\
-    wget https://dl.google.com/go/go1.12.7.linux-amd64.tar.gz &&\
-    tar -xzf go1.12.7.linux-amd64.tar.gz
+    wget https://dl.google.com/go/go1.19.9.linux-amd64.tar.gz &&\
+    tar -xzf go1.19.9.linux-amd64.tar.gz

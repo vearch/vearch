@@ -70,10 +70,6 @@ pushd $GAMMAOUT
 cmake -DPERFORMANCE_TESTING=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$ROOT/ps/engine/gammacb/lib $ROOT/engine/
 make -j2 && make install
 popd
-flatbuffers=$ROOT/ps/engine/third_party/flatbuffers-1.11.0
-if [ -d ${flatbuffers} ]; then
-  rm -rf ${flatbuffers}
-fi
 
 cp $ROOT/engine/third_party/faiss/lib*/* $ROOT/ps/engine/gammacb/lib/lib/
 

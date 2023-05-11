@@ -104,12 +104,6 @@ Welcome to register the company name in this issue: https://github.com/vearch/ve
 ![VIVO](static/vivo.png)
 ![JD](static/jd.png)
 
-
-## Wechat official communication group
-
-![Official Accounts](docs/img/251120CB-8A61-4124-9336-B549D8D10607.png)
-
-
 ## License
 
 Licensed under the Apache License, Version 2.0. For detail see [LICENSE and NOTICE](https://github.com/vearch/vearch/blob/master/LICENSE).
