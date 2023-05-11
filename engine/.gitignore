@@ -1,0 +1,12 @@
+release
+debug
+build
+gtest
+flatbuffers*
+.vscode
+.idea
+.DS_Store
+GPATH
+GRTAGS
+GTAGS
+third_party/faiss

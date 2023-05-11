@@ -157,11 +157,6 @@ exec_program(
 
 add_definitions(-DGIT_SHA1="${VERSION_SHA1}")
 
-exec_program(
-    "sh"
-    ${CMAKE_CURRENT_SOURCE_DIR}/idl
-    ARGS "build.sh")
-
 if(PERFORMANCE_TESTING STREQUAL "ON")
     message(STATUS "With preformance testing")
     add_definitions(-DPERFORMANCE_TESTING) 

@@ -85,9 +85,9 @@ function build_vearch(){
   if [ $1 == 'mod' ];then
     echo "build vearch by mod"
     export GO111MODULE="on"
-    go build -mod=mod -a -tags="vector" -ldflags "$flags" -o $BUILDOUT/vearch $ROOT/startup.go
+    go build -a -tags="vector" -ldflags "$flags" -o $BUILDOUT/vearch $ROOT/startup.go
     echo "build deploy tool by mod"
-    go build -mod=mod -a -ldflags "$flags" -o $BUILDOUT/batch_deployment $ROOT/tools/deployment/batch_deployment.go
+    go build -a -ldflags "$flags" -o $BUILDOUT/batch_deployment $ROOT/tools/deployment/batch_deployment.go
   else 
     echo "build vearch by vendor"
     export GO111MODULE="off"
