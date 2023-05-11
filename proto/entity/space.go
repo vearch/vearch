@@ -84,7 +84,7 @@ type RetrievalParam struct {
 	Nsubvector     int    `json:"nsubvector"`
 }
 
-//space/[dbId]/[spaceId]:[spaceBody]
+// space/[dbId]/[spaceId]:[spaceBody]
 type Space struct {
 	Id              SpaceID                     `json:"id,omitempty"`
 	Name            string                      `json:"name,omitempty"` //user setting
@@ -101,7 +101,7 @@ type Space struct {
 	SpaceProperties map[string]*SpaceProperties `json:"space_properties"`
 }
 
-//cache/[dbId]/[spaceId]:[cacheCfg]
+// cache/[dbId]/[spaceId]:[cacheCfg]
 type EngineCfg struct {
 	CacheModels []*CacheModel `json:"cache_models,omitempty"`
 }
@@ -199,7 +199,8 @@ func (engine *Engine) UnmarshalJSON(bs []byte) error {
 
 	}
 
-	retrievalTypeMap := map[string]string{"IVFPQ": "IVFPQ", "IVFFLAT": "IVFFLAT", "BINARYIVF": "BINARYIVF", "FLAT": "FLAT", "HNSW": "HNSW", "GPU": "GPU", "SSG": "SSG"}
+	retrievalTypeMap := map[string]string{"IVFPQ": "IVFPQ", "IVFFLAT": "IVFFLAT", "BINARYIVF": "BINARYIVF", "FLAT": "FLAT",
+		"HNSW": "HNSW", "GPU": "GPU", "SSG": "SSG", "IVFPQ_RELAYOUT": "IVFPQ_RELAYOUT", "SCANN": "SCANN"}
 	var retrievalParamsArr []string
 	switch tempEngine.Name {
 	case Gamma:
@@ -270,6 +271,7 @@ func (engine *Engine) UnmarshalJSON(bs []byte) error {
 						return fmt.Errorf(retrievalType+" model doc size:[%d] less than 8192 so can not to index", int64(*tempEngine.IndexSize))
 					}
 				} else if strings.Compare("IVFPQ", retrievalType) == 0 ||
+					strings.Compare("SCANN", retrievalType) == 0 ||
 					strings.Compare("GPU", retrievalType) == 0 {
 
 					if v.Nsubvector == 0 || v.Ncentroids == 0 {
@@ -370,7 +372,7 @@ func (engine *Engine) UnmarshalJSON(bs []byte) error {
 	return nil
 }
 
-//check params is ok
+// check params is ok
 func (space *Space) Validate() error {
 
 	switch space.Engine.Name {
