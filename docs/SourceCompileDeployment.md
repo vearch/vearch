@@ -17,8 +17,8 @@
     4. ```Start separately image, modify step i 'all' to 'master' and 'ps' and 'router' ,master image must first start```
 
 #### Use Base Image Compile And Deploy
- 1. take vearch_env:3.2.0 as an example
- 2. docker pull vearch/vearch_env:3.2.0
+ 1. take vearch_env:3.2.8 as an example
+ 2. docker pull vearch/vearch_env:3.2.8
  3. sh vearch/cloud/complile.sh
  4. sh build.sh
  5. reference "User vearch image deploy" step 3
@@ -55,7 +55,6 @@
 #### Compile 
    * Enter the `GOPATH` directory, `cd $GOPATH/src` `mkdir -p github.com/vearch` `cd github.com/vearch`
    * Download the source code: `git clone https://github.com/vearch/vearch.git` ($vearch denotes the absolute path of vearch code)
-   * Download the source code of subprojects gamma: ``cd vearch``  `git submodule update --recursive`
    * To add GPU Index support: change `BUILD_WITH_GPU` from `"off"` to `"on"` in `$vearch/engine/CMakeLists.txt` 
    * Compile vearch and gamma
       1. `cd build`

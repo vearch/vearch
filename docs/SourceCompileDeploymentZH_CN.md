@@ -17,8 +17,8 @@
     4. ```Start separately image, modify step i 'all' to 'master' and 'ps' and 'router' ,master image must first start```
 
 #### 使用基础镜像编译和部署
- 1. 以vearch_env:3.2.0为例
- 2. docker pull vearch/vearch_env:3.2.0
+ 1. 以vearch_env:3.2.8为例
+ 2. docker pull vearch/vearch_env:3.2.8
  3. sh vearch/cloud/complile.sh
  4. sh build.sh
  5. 参考“使用Vearch镜像部署”步骤3
@@ -55,7 +55,6 @@
 #### 编译
    * 进入 `GOPATH` 目录, `cd $GOPATH/src` `mkdir -p github.com/vearch` `cd github.com/vearch`
    * 下载源码: `git clone https://github.com/vearch/vearch.git` ($vearch表示vearch代码的绝对路径)
-   * 下载子项目: `cd vearch`  `git submodule update --recursive`
    * 添加GPU索引支持: 将`$vearch/engine/CMakeLists.txt`中的 `BUILD_WITH_GPU` 从`"off"` 变为`"on"` 
    * 编译vearch和gamma
       1. `cd build`

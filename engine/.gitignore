@@ -2,7 +2,6 @@ release
 debug
 build
 gtest
-flatbuffers*
 .vscode
 .idea
 .DS_Store
