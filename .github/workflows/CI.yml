@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+#     container: vearch/vearch_env:3.2.8
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: compile
+      run: pwd;ls -l;cd cloud;./compile.sh
+    - name: build
+      run: ls -l build/lib;cd cloud;./build.sh
+    - name: gen config
+      run: cd cloud;cat ../config/config.toml.example > config.toml
+    - name: run docker
+      run: cd cloud;nohup docker run -p 8817:8817 -p 9001:9001 -v $PWD/config.toml:/vearch/config.toml vearch/vearch:3.2.7 all &
+    - name: sleep
+      run: sleep 30s;ls -l cloud/
+    - name: pip install requests
+      run: pip install requests pytest
+    - name: test
+      run: cd test;pytest --log-cli-level=INFO;ls -l
