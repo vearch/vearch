@@ -2,7 +2,7 @@
   <img src="docs/img/vearch_logo.png">
 </div>
 
-[![Build Status](https://travis-ci.com/wxingda/vearch.svg?branch=master)](https://travis-ci.com/wxingda/vearch)  &nbsp;&nbsp;&nbsp; [![Gitter](https://badges.gitter.im/vector_search/community.svg)](https://gitter.im/vector_search/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+[![Build Status](https://github.com/vearch/vearch/actions/workflows/CI.yml/badge.svg)](https://github.com/vearch/vearch/actions/workflows/CI.yml)  &nbsp;&nbsp;&nbsp; [![Gitter](https://badges.gitter.im/vector_search/community.svg)](https://gitter.im/vector_search/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 ## Overview
 
 Vearch is a scalable distributed system for efficient similarity search of deep learning vectors. 
