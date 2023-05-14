@@ -27,29 +27,29 @@ fileData = "./data/test_data.json"
 # ]
 query_resultList = []
 
-@pytest.mark.author('')
-@pytest.mark.level(2)
-@pytest.mark.cover(["VDB"])
+# @pytest.mark.author('')
+# @pytest.mark.level(2)
+# @pytest.mark.cover(["VDB"])
 
 def test_stats():
     logging.info("_cluster_information")
     url = "http://" + ip_db + "/_cluster/stats"
     response = requests.get(url)
-    print("cluster_stats:" + response.text)
+    logger.debug("cluster_stats:" + response.text)
     assert response.status_code == 200
     assert response.text.find("\"status\":200")>=0
 
 def test_health():
     url = "http://" + ip_db + "/_cluster/health"
     response = requests.get(url)
-    print("cluster_health---\n" + response.text)
+    logger.debug("cluster_health---\n" + response.text)
     assert response.status_code == 200
     #  assert response.text.find("\"status\":\"green\"")>=0
 
 def test_server():
     url = "http://" + ip_db + "/list/server"
     response = requests.get(url)
-    print("list_server---\n" + response.text)
+    logger.debug("list_server---\n" + response.text)
     assert response.status_code == 200
     assert response.text.find("\"msg\":\"success\"")>=0
 
@@ -57,7 +57,7 @@ logger.info("database")
 def test_dblist():
     url = "http://" + ip_db + "/list/db"
     response = requests.get(url)
-    print("list_db---\n" + response.text)
+    logger.debug("list_db---\n" + response.text)
     assert response.status_code == 200
     assert response.text.find("\"msg\":\"success\"")>=0
 
@@ -69,7 +69,7 @@ def test_createDB():
         'name':db_name
     }
     response = requests.put(url, headers=headers, data=json.dumps(data))
-    print("db_create---\n" + response.text)
+    logger.debug("db_create---\n" + response.text)
     assert response.status_code == 200
     assert response.text.find("\"msg\":\"success\"")>=0
 
@@ -77,14 +77,14 @@ def test_dbsearch():
     # url = "http://" + ip_db + "/db/" + db_name
     url = "http://" + ip_db + "/db/ts_db"
     response = requests.get(url)
-    print("db_search---\n" + response.text)
+    logger.debug("db_search---\n" + response.text)
     assert response.status_code == 200
     assert response.text.find("\"msg\":\"success\"")>=0
 
 def test_listspace():
     url = "http://" + ip_db + "/list/space?db=" + db_name
     response = requests.get(url)
-    print("list_space---\n" + response.text)
+    logger.debug("list_space---\n" + response.text)
     assert response.status_code == 200
     assert response.text.find("\"msg\":\"success\"")>=0
 
@@ -150,16 +150,16 @@ def test_createSpaceMmap():
             "out": "feature"
         }]
     }
-    print(url+"---"+json.dumps(data))
+    logger.debug(url+"---"+json.dumps(data))
     response = requests.put(url, headers=headers, data=json.dumps(data))
-    print("space_create---\n" + response.text)
+    logger.debug("space_create---\n" + response.text)
     assert response.status_code == 200
     assert response.text.find("\"msg\":\"success\"")>=0
 
 def test_getspace():
     url = "http://" + ip_db + "/space/"+db_name+"/" + space_name_mmap
     response = requests.get(url)
-    print("get_space---\n" + response.text)
+    logger.debug("get_space---\n" + response.text)
     assert response.status_code == 200
     assert response.text.find("\"msg\":\"success\"")>=0
 
@@ -181,7 +181,7 @@ def test_insertWithId():
             data = json.dumps(dict_data)
             url = "http://" + ip_data + "/" + db_name + "/" + space_name_mmap + "/" + id
             response = requests.post(url, headers=headers, data=data)
-            print("insertWithID:" + response.text)
+            logger.debug("insertWithID:" + response.text)
             assert response.status_code == 200
             assert response.text.find("\"status\":200")>=0
 
@@ -200,7 +200,7 @@ def test_bulk():
                     body = body + json.dumps(data) + '\n'
         url = "http://" + ip_data + "/" + db_name + "/" + space_name_mmap + "/_bulk"
         response = requests.post(url, headers=headers, data=body)
-        print("bulk:" + response.text)
+        logger.debug("bulk:" + response.text)
         assert response.status_code == 200
         assert response.text.find("\"status\":200")>=0
 
@@ -216,7 +216,7 @@ def test_searchById():
             id = str(int(flag1)+flag)
             url = "http://" + ip_data + "/" + db_name + "/" + space_name_mmap + "/" + id
             response = requests.get(url)
-            print("searchById:" + response.text)
+            logger.debug("searchById:" + response.text)
             assert response.status_code == 200
             assert response.text.find("\"found\":true")>=0
 
@@ -230,7 +230,7 @@ def test_insterNoId():
             data = "{"+dataLine.split(',', 1)[1]
             url = "http://" + ip_data + "/" + db_name + "/" + space_name_mmap
             response = requests.post(url, headers=headers, data=data)
-            print("insertNoID:" + response.text)
+            logger.debug("insertNoID:" + response.text)
             assert response.status_code == 200
             #  assert response.text.find("\"successful\":1")>=0
 
@@ -254,7 +254,7 @@ def test_searchByFeature():
                 }
             }
             response = requests.post(url, headers=headers, data=json.dumps(data))
-            print("searchByFeature---\n" + response.text)
+            logger.debug("searchByFeature---\n" + response.text)
             assert response.status_code == 200
 
 def test_bulk_searchByFeature():
@@ -279,7 +279,7 @@ def test_bulk_searchByFeature():
                 }
                 request_body.append(data)
         response = requests.post(url, headers=headers, data=json.dumps(request_body))
-        print("searchByFeature---\n" + response.text)
+        logger.debug("searchByFeature---\n" + response.text)
         assert response.status_code == 200
 
 def test_searchByFeatureandFilter():
@@ -306,7 +306,7 @@ def test_searchByFeatureandFilter():
                 }
             }
             response = requests.post(url, headers=headers, data=json.dumps(data))
-            print("searchByFeature---\n" + response.text)
+            logger.debug("searchByFeature---\n" + response.text)
             assert response.status_code == 200
             #  assert response.text.find("\"failed\":0") >= 0
 
@@ -338,9 +338,9 @@ def test_searchByFeatureandRange():
                     }]
                 }
             }
-            # print("data:" + json.dumps(data))
+            # logger.debug("data:" + json.dumps(data))
             response = requests.post(url, headers=headers, data=json.dumps(data))
-            print("searchByFeature---\n" + response.text)
+            logger.debug("searchByFeature---\n" + response.text)
             assert response.status_code == 200
             #  assert response.text.find("\"failed\":0") >= 0
 
@@ -379,9 +379,9 @@ def test_searchByTerm():
             #         }]
             #     }
             # }
-            # print("data:" + json.dumps(data))
+            # logger.debug("data:" + json.dumps(data))
             response = requests.post(url, headers=headers, data=json.dumps(data))
-            print("searchByFeature---\n" + response.text)
+            logger.debug("searchByFeature---\n" + response.text)
             assert response.status_code == 200
             #  assert response.text.find("\"failed\":0") >= 0
 
@@ -394,7 +394,7 @@ def test_deleteDocById():
             data = "{"+dataLine.split(',', 1)[1]
             url = "http://" + ip_data + "/" + db_name + "/" + space_name_mmap + "/" + id
             response = requests.delete(url)
-            print("deleteDocById:" + response.text)
+            logger.debug("deleteDocById:" + response.text)
             assert response.status_code == 200
             #  assert response.text.find("\"failed\":0") >= 0
 
@@ -408,14 +408,14 @@ def test_insterNoId1():
             data = "{"+dataLine.split(',', 1)[1]
             url = "http://" + ip_data + "/" + db_name + "/" + space_name_mmap
             response = requests.post(url, headers=headers, data=data)
-            print("insertNoID:" + response.text)
+            logger.debug("insertNoID:" + response.text)
             assert response.status_code == 200
             #  assert response.text.find("\"successful\":1")>=0
 
 def test_deleteSpace():
     url = "http://" + ip_db + "/space/"+db_name+"/"+space_name_mmap
     response = requests.delete(url)
-    print("deleteSpace:" + response.text)
+    logger.debug("deleteSpace:" + response.text)
     assert response.status_code == 200
 
 
@@ -535,16 +535,16 @@ def test_createspacerocksdb():
     #         "out": "feature"
     #     }]
     # }
-    print(url+"---"+json.dumps(data))
+    logger.debug(url+"---"+json.dumps(data))
     response = requests.put(url, headers=headers, data=json.dumps(data))
-    print("space_create---\n" + response.text)
+    logger.debug("space_create---\n" + response.text)
     assert response.status_code == 200
     assert response.text.find("\"msg\":\"success\"")>=0
 
 def test_getspace_name_rocksdb():
     url = "http://" + ip_db + "/space/"+db_name+"/" + space_name_rocksdb
     response = requests.get(url)
-    print("get_space---\n" + response.text)
+    logger.debug("get_space---\n" + response.text)
     assert response.status_code == 200
     assert response.text.find("\"msg\":\"success\"")>=0
 
@@ -558,7 +558,7 @@ def test_getspace_name_rocksdb():
 #         "method":0
 #     }
 #     response = requests.post(url, headers=headers, data=json.dumps(data))
-#     print("change_member:" + response.text)
+#     logger.debug("change_member:" + response.text)
 #     assert response.status_code == 200
 #     assert response.text.find("\"msg\":\"success\"")>=0
 
@@ -575,7 +575,7 @@ def test_insertWithIdRocksdb():
             data = "{"+dataLine.split(',', 1)[1]
             url = "http://" + ip_data + "/" + db_name + "/" + space_name_rocksdb + "/" + id
             response = requests.post(url, headers=headers, data=data)
-            print("insertWithID:" + response.text)
+            logger.debug("insertWithID:" + response.text)
             assert response.status_code == 200
             #  assert response.text.find("\"status\":201")>=0
 
@@ -590,7 +590,7 @@ def test_searchByIdRocksdb():
             id = str(int(flag1)+flag)
             url = "http://" + ip_data + "/" + db_name + "/" + space_name_rocksdb + "/" + id
             response = requests.get(url)
-            print("searchById:" + response.text)
+            logger.debug("searchById:" + response.text)
             assert response.status_code == 200
             assert response.text.find("\"found\":true")>=0
 
@@ -604,7 +604,7 @@ def test_insterNoIdRocksdb():
             data = "{"+dataLine.split(',', 1)[1]
             url = "http://" + ip_data + "/" + db_name + "/" + space_name_rocksdb
             response = requests.post(url, headers=headers, data=data)
-            print("insertNoID:" + response.text)
+            logger.debug("insertNoID:" + response.text)
             assert response.status_code == 200
             #  assert response.text.find("\"successful\":1")>=0
 
@@ -629,7 +629,7 @@ def test_searchByFeatureRocksdb():
                 "is_brute_search":1
             }
             response = requests.post(url, headers=headers, data=json.dumps(data))
-            print("searchByFeature---\n" + response.text)
+            logger.debug("searchByFeature---\n" + response.text)
             assert response.status_code == 200
             #  assert response.text.find("\"failed\":0")>=0
 
@@ -658,7 +658,7 @@ def test_searchByFeatureandFilterRocksdb():
                 "is_brute_search":1
             }
             response = requests.post(url, headers=headers, data=json.dumps(data))
-            print("searchByFeature---\n" + response.text)
+            logger.debug("searchByFeature---\n" + response.text)
             assert response.status_code == 200
             #  assert response.text.find("\"failed\":0") >= 0
 
@@ -690,9 +690,9 @@ def test_searchByFeatureandRangeRocksdb():
                     }]
                 }
             }
-            # print("data:" + json.dumps(data))
+            # logger.debug("data:" + json.dumps(data))
             response = requests.post(url, headers=headers, data=json.dumps(data))
-            print("searchByFeature---\n" + response.text)
+            logger.debug("searchByFeature---\n" + response.text)
             assert response.status_code == 200
             #  assert response.text.find("\"failed\":0") >= 0
 
@@ -725,7 +725,7 @@ def test_searchByTermRocksdb():
             }
             
             response = requests.post(url, headers=headers, data=json.dumps(data))
-            print("searchByFeature---\n" + response.text)
+            logger.debug("searchByFeature---\n" + response.text)
             assert response.status_code == 200
 
 
@@ -738,7 +738,7 @@ def test_deleteDocByIdRocksdb():
             data = "{"+dataLine.split(',', 1)[1]
             url = "http://" + ip_data + "/" + db_name + "/" + space_name_rocksdb + "/" + id
             response = requests.delete(url)
-            print("deleteDocById:" + response.text)
+            logger.debug("deleteDocById:" + response.text)
             assert response.status_code == 200
 
 
@@ -755,7 +755,7 @@ def test_insertBulkRocksdb():
             dataStr = "{"+dataLine.split(',', 1)[1]
             data = data + index + dataStr
         response = requests.post(url, headers=headers, data=data)
-        print("insertBulk:" + response.text)
+        logger.debug("insertBulk:" + response.text)
         assert response.status_code == 200
 
 
@@ -769,19 +769,19 @@ def test_insterNoId1Rocksdb():
             data = "{"+dataLine.split(',', 1)[1]
             url = "http://" + ip_data + "/" + db_name + "/" + space_name_rocksdb
             response = requests.post(url, headers=headers, data=data)
-            print("insertNoID:" + response.text)
+            logger.debug("insertNoID:" + response.text)
             assert response.status_code == 200
 
 
 def test_deleteSpaceRocksdb():
     url = "http://" + ip_db + "/space/"+db_name+"/"+space_name_rocksdb
     response = requests.delete(url)
-    print("deleteSpace:" + response.text)
+    logger.debug("deleteSpace:" + response.text)
     assert response.status_code == 200
 
 
 def test_deleteDB():
     url = "http://" + ip_db + "/db/"+db_name
     response = requests.delete(url)
-    print("deleteDB:" + response.text)
+    logger.debug("deleteDB:" + response.text)
     assert response.status_code == 200
