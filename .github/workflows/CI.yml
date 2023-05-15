@@ -7,7 +7,7 @@ on:
     branches: [ "master" ]
 
 jobs:
-  ci:
+  build:
     runs-on: ubuntu-latest
 #     container: vearch/vearch_env:3.2.8
 
