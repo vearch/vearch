@@ -17,8 +17,8 @@
     4. ```Start separately image, modify step i 'all' to 'master' and 'ps' and 'router' ,master image must first start```
 
 #### 使用基础镜像编译和部署
- 1. 以vearch_env:3.2.8为例
- 2. docker pull vearch/vearch_env:3.2.8
+ 1. 以vearch_env:latest为例
+ 2. docker pull vearch/vearch_env:latest
  3. sh vearch/cloud/complile.sh
  4. sh build.sh
  5. 参考“使用Vearch镜像部署”步骤3

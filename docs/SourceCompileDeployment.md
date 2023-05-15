@@ -17,8 +17,8 @@
     4. ```Start separately image, modify step i 'all' to 'master' and 'ps' and 'router' ,master image must first start```
 
 #### Use Base Image Compile And Deploy
- 1. take vearch_env:3.2.8 as an example
- 2. docker pull vearch/vearch_env:3.2.8
+ 1. take vearch_env:latest as an example
+ 2. docker pull vearch/vearch_env:latest
  3. sh vearch/cloud/complile.sh
  4. sh build.sh
  5. reference "User vearch image deploy" step 3
