@@ -47,7 +47,7 @@ require (
 	github.com/patrickmn/go-cache v2.1.1-0.20180815053127-5633e0862627+incompatible
 	github.com/pkg/errors v0.9.1
 	github.com/pkg/sftp v1.10.1
-	github.com/prometheus/client_golang v1.11.0
+	github.com/prometheus/client_golang v1.11.1
 	github.com/prometheus/common v0.32.1 // indirect
 	github.com/prometheus/procfs v0.7.3 // indirect
 	github.com/rs/cors v1.6.1-0.20190613161432-33ffc0734c60 // indirect
