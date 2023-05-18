@@ -772,6 +772,14 @@ func (w *watcherJob) serverDelete(cacheKey string) (err error) {
 		}
 		server := get.(*entity.Server)
 		//attach alive, timeout is 5s
+		failOverServer := &entity.FailServer{ID: server.ID, TimeStamp: time.Now().Unix()}
+		failOverServer.Node = server
+		fail_value, err := cbjson.Marshal(failOverServer)
+		errutil.ThrowError(err)
+		fail_key := entity.FailOverServerKey(server.ID)
+		err = w.masterClient.Put(w.ctx, fail_key, fail_value)
+		errutil.ThrowError(err)
+		log.Info("put failOverServer %s is success, value is %s", fail_key, string(fail_value))
 		if IsLive(server.RpcAddr()) || len(server.PartitionIds) == 0 {
 			log.Info("%+v is alive or server partition is zero.", server)
 			return nil

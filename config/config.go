@@ -149,6 +149,10 @@ func (c *Config) GetDataDir() string {
 	return c.Global.Data[0] + "/" + GetLocalIP()
 }
 
+func (c *Config) GetSourceDataDir() string {
+	return c.Global.Data[0]
+}
+
 func (c *Config) GetDataDirBySlot(model Model, pid uint32) string {
 	s := c.Global.Data
 	index := int(pid) % len(s)
@@ -343,6 +347,9 @@ type PSCfg struct {
 	FlushCountThreshold    uint32 `toml:"flush_count_threshold" json:"flush_count_threshold"`
 	ConcurrentNum          int    `toml:"concurrent_num" json:"concurrent_num"`
 	RpcTimeOut             int    `toml:"rpc_timeout" json:"rpc_timeout"`
+	FailOverInterval       uint32 `toml:"fail_over_interval" json:"flush_time_interval"` // seconds
+	EnableFailOver         bool   `toml:"enable_fail_over" json:"enable_fail_over"`
+	EnableFailOverBack         bool   `toml:"enable_fail_over_back" json:"enable_fail_over_back"`
 }
 
 func InitConfig(path string) {

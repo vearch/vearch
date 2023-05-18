@@ -16,6 +16,7 @@ package ps
 
 import (
 	"context"
+    "strconv"
 	"sync"
 
 	"github.com/tiglabs/raft"
@@ -25,6 +26,7 @@ import (
 	"github.com/vearch/vearch/proto/vearchpb"
 	"github.com/vearch/vearch/ps/engine"
 	"github.com/vearch/vearch/ps/psutil"
+    "github.com/vearch/vearch/util/fileutil"
 	"github.com/vearch/vearch/ps/storage/raftstore"
 	"github.com/vearch/vearch/util/log"
 )
@@ -101,13 +103,40 @@ func (s *Server) RangePartition(fun func(entity.PartitionID, PartitionStore)) {
 //load partition for in disk
 func (s *Server) LoadPartition(ctx context.Context, pid entity.PartitionID) (PartitionStore, error) {
 
-	space, err := psutil.LoadPartitionMeta(config.Conf().GetDataDirBySlot(config.PS, pid), pid)
+    meta_dir := config.Conf().GetDataDirBySlot(config.PS, pid);
+	space, err := psutil.LoadPartitionMeta(meta_dir, pid)
 
 	if err != nil {
 		return nil, err
 	}
 // delete 
 	store, err := raftstore.CreateStore(ctx, pid, s.nodeID, space, s.raftServer, s, s.client)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := store.Start(); err != nil {
+		return nil, err
+	}
+
+	s.partitions.Store(pid, store)
+
+	return store, nil
+}
+
+func (s *Server) LoadFailPartition(ctx context.Context, pid entity.PartitionID, ip string) (PartitionStore, error) {
+
+    source_dir := config.Conf().GetSourceDataDir()
+
+    meta_dir := source_dir + "/" + ip
+
+	space, err := psutil.LoadPartitionMeta(meta_dir, pid)
+
+	if err != nil {
+		return nil, err
+	}
+
+	store, err := raftstore.CreateFailStore(ctx, pid, s.nodeID, space, s.raftServer, s, s.client, ip)
 	if err != nil {
 		return nil, err
 	}
@@ -248,3 +277,43 @@ func (s *Server) recoverPartitions(pids []entity.PartitionID) {
 
 	wg.Wait()
 }
+
+func (s *Server) recoverFailPartitions(ip string) ([]entity.PartitionID) {
+// func (s *Server) recoverFailPartitions(ip string) {
+	wg := new(sync.WaitGroup)
+
+	ctx := context.Background()
+
+    source_dir := config.Conf().GetSourceDataDir()
+
+    fail_server_dir := source_dir + "/" + ip + "/meta"
+
+    pids, _ := fileutil.GetAllDirsNames(fail_server_dir)
+
+    PartitionIds :=  make([]entity.PartitionID, 0, len(pids))
+
+	wg.Add(len(pids))
+
+	log.Debug("load fail over pids size=%d fail_server_dir=%s source_dir=%s", len(pids), fail_server_dir, source_dir)
+
+	// parallel execution recovery
+	for i := 0; i < len(pids); i++ {
+		idx := i
+        partition, _ := strconv.ParseUint(pids[idx], 10, 64)
+        // PartitionIds[idx] = uint32(partition)
+        PartitionIds = append(PartitionIds, uint32(partition))
+		go func(pid entity.PartitionID) {
+			defer wg.Done()
+
+			log.Debug("starting recover partition[%d]...", pid)
+			_, err := s.LoadFailPartition(ctx, pid, ip)
+			if err != nil {
+				log.Error("WFQ init fail partition err :[%s]", err.Error())
+			}
+			log.Debug("partition[%d] recovered complete", pid)
+		}(uint32(partition))
+	}
+	wg.Wait()
+    return PartitionIds
+}
+

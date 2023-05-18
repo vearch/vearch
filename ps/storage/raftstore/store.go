@@ -84,6 +84,30 @@ func CreateStore(ctx context.Context, pID entity.PartitionID, nodeID entity.Node
 	return s, nil
 }
 
+func CreateFailStore(ctx context.Context, pID entity.PartitionID, nodeID entity.NodeID, space *entity.Space, raftServer *raft.RaftServer, eventListener EventListener, client *client.Client, ip string) (*Store, error) {
+
+    source_dir := config.Conf().GetSourceDataDir()
+    path := source_dir + "/" + ip
+
+	dataPath, _, metaPath, err := psutil.CreatePartitionPaths(path, space, pID) //FIXME: it will double writer space when load space
+
+	if err != nil {
+		return nil, err
+	}
+
+	base, err := storage.NewStoreBase(ctx, pID, nodeID, path, dataPath, metaPath, space)
+	if err != nil {
+		return nil, err
+	}
+
+	s := &Store{
+		StoreBase:     base,
+    		EventListener: eventListener,
+		Client:        client,
+	}
+	return s, nil
+}
+
 // snapshot after load engine
 func (s *Store) ReBuildEngine() (err error) {
 	log.Debug("begin re build engine")

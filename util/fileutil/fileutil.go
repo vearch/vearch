@@ -47,3 +47,17 @@ func GetAllFileNames(dirPth string) (files []string, err error) {
 
 	return files, nil
 }
+
+func GetAllDirsNames(dirPth string) (files []string, err error) {
+	fis, err := ioutil.ReadDir(filepath.Clean(filepath.ToSlash(dirPth)))
+	if err != nil {
+		return nil, err
+	}
+	for _, f := range fis {
+		// _path := filepath.Join(dirPth, f.Name())
+		if f.IsDir() {
+		    files = append(files, f.Name())
+		}
+	}
+	return files, nil
+}

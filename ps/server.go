@@ -119,6 +119,7 @@ func (s *Server) Start() error {
 	nodeId := psutil.InitMeta(s.client, config.Conf().Global.Name, config.Conf().GetDataDir())
 	s.nodeID = nodeId
 
+
 	//load local partitions
 	server := s.register()
 	s.ip = server.Ip

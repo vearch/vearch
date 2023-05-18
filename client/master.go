@@ -236,6 +236,10 @@ func (m *masterClient) DeleteFailServerByNodeID(ctx context.Context, nodeID uint
 	return m.Delete(ctx, entity.FailServerKey(nodeID))
 }
 
+func (m *masterClient) DeleteFailOverByNodeID(ctx context.Context, nodeID uint64) error {
+	return m.Delete(ctx, entity.FailOverServerKey(nodeID))
+}
+
 //query fail server by nodeID
 func (m *masterClient) QueryFailServerByNodeID(ctx context.Context, nodeID uint64) *entity.FailServer {
 	bytesArr, err := m.Get(ctx, entity.FailServerKey(nodeID))
@@ -279,6 +283,10 @@ func (m *masterClient) QueryServerByIPAddr(ctx context.Context, IPAddr string) *
 // query all fail server
 func (m *masterClient) QueryAllFailServer(ctx context.Context) ([]*entity.FailServer, error) {
 	return m.QueryFailServerByKey(ctx, entity.PrefixFailServer)
+}
+
+func (m *masterClient) QueryAllFailOverServer(ctx context.Context) ([]*entity.FailServer, error) {
+	return m.QueryFailServerByKey(ctx, entity.PrefixFailOverServer)
 }
 
 //query fail server by prefix

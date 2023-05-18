@@ -17,6 +17,7 @@ package ps
 import (
 	"context"
 	"time"
+    "sync"
 
 	"github.com/vearch/vearch/config"
 	"github.com/vearch/vearch/proto/entity"
@@ -25,6 +26,9 @@ import (
 	"github.com/vearch/vearch/util/slice"
 	"go.etcd.io/etcd/clientv3"
 )
+var failIpMap sync.Map
+var defaultFailBackInverval int = 600
+var getAllServersWaitTime int = 30  // sec
 
 // this job for heartbeat master 1m once
 func (s *Server) StartHeartbeatJob() {
@@ -62,9 +66,102 @@ func (s *Server) StartHeartbeatJob() {
 			return
 		}
 		lastPartitionIds = server.PartitionIds
+        go func() {
+            defer func() {
+                if r := recover(); r != nil {
+                    log.Error("fail over task error, will exits...")
+                }
+            }()
+            if config.Conf().PS.EnableFailOver == false {
+                log.Info("fail over function is closed...")
+                return
+            }
+
+            interval := int(config.Conf().PS.FailOverInterval)
+            if (interval == 0) {
+                interval = defaultFailBackInverval 
+            }
+            seq := 0
+            serverStas := make(map[uint64]int)
+            // need to opt the function to get all ps servers
+            psCnt := 0
+            for i := 0; i <= getAllServersWaitTime; i++ {
+                time.Sleep(1 * time.Second)
+                servers, _:= s.client.Master().QueryServers(ctx)
+                if len(servers) > psCnt {
+                    psCnt = len(servers)
+                }
+            }
+            for {
+                time.Sleep(1 * time.Second)
+                seq++
+                failServers, err := s.client.Master().QueryAllFailOverServer(ctx)
+                if err != nil {
+                    continue
+                }
+                servers, err := s.client.Master().QueryServers(ctx)
+                if err != nil {
+                    continue
+                }
+
+                partitions, _ := s.client.Master().QueryPartitions(ctx)
+                for _, p := range  partitions {
+                    if seq % 10 == 0 {
+                        log.Debug("check fail partition pid=%d, nodeid=%d. path=%s", p.Id, p.LeaderID, p.Path)
+                    }
+                }
+                for _, fs := range failServers {
+                    rec := false
+                    for _, as := range servers {
+                        if fs.ID == as.ID {
+                            rec = true
+                            break
+                        }
+                    }
+                    if rec == false {
+                        serverStas[fs.ID]++
+                    } else {
+                        serverStas[fs.ID] = 0
+                    }
+                    log.Debug("fail over status check %d, fail_pid=%d, cnt=%d, index=%d, cur=%d, pscnt=%d", rec, fs.ID, serverStas[fs.ID], (int(fs.ID)) % psCnt + 1, s.nodeID, psCnt)
+                    if serverStas[fs.ID] > interval && (int(fs.ID)) % psCnt + 1 == int(s.nodeID)  {
+                        if _, stat := failIpMap.Load(fs.Node.Ip); stat == true {
+                            continue
+                        }
+                        pids := s.recoverFailPartitions(fs.Node.Ip)
+                        for _, pid := range pids {
+                              s.registerMaster(s.nodeID, pid) 
+                        }
+                        log.Info("server nodeid=%d ip=%s fail last more than 30 sec", fs.ID, fs.Node.Ip)
+                        serverStas[fs.ID] = 0
+                        failIpMap.Store(fs.Node.Ip, fs.ID)
+                    }
+                }
+            }
+        }()
 
 		go func() {
+            failServers, err := s.client.Master().QueryAllFailOverServer(ctx)
+            if err != nil {
+                log.Info("fail over function is closed...")
+            }
+            for _, fs := range failServers {
+                if (fs.ID == s.nodeID) {
+                    s.client.Master().DeleteFailOverByNodeID(ctx, fs.ID)
+                }
+            }
 			for {
+                if config.Conf().PS.EnableFailOver == true && config.Conf().PS.EnableFailOverBack == true {
+                    partitions, _ := s.client.Master().QueryPartitions(ctx)
+                    for _, localPid := range server.PartitionIds  {
+                        for _, p := range partitions {
+                            if localPid == p.Id && s.nodeID != p.LeaderID {
+                               s.registerMaster(s.nodeID, p.Id) 
+                            }
+                        }
+                    }
+                }
+
 				time.Sleep(1 * time.Second)
 				s.raftResolver.RangeNodes(s.UpdateResolver)
 
@@ -73,11 +170,20 @@ func (s *Server) StartHeartbeatJob() {
 					continue
 				}
 
-				server.PartitionIds = psutil.GetAllPartitions(config.Conf().GetDatas())
+                dirs := config.Conf().GetDatas()
+                failIpMap.Range(func(key, value interface{}) bool {
+                    ip := key.(string)
+                    dirs = append(dirs, config.Conf().GetSourceDataDir()  + "/" + ip)
+                    return true
+                })
+
+				server.PartitionIds = psutil.GetAllPartitions(dirs)
+
 				if slice.EqualUint32(lastPartitionIds, server.PartitionIds) {
 					log.Debug("PartitionIds not change, do nothing!")
 					continue
 				}
+
 				log.Info("server.PartitionIds has changed, need to put server to topo again!, leaseId: [%d]", leaseId)
 
 				if err := s.client.Master().PutServerWithLeaseID(ctx, server, leaseId); err != nil {
