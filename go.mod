@@ -11,7 +11,7 @@ require (
 	github.com/BurntSushi/toml v0.3.1
 	github.com/HdrHistogram/hdrhistogram-go v1.1.2 // indirect
 	github.com/StackExchange/wmi v1.2.1 // indirect
-	github.com/apache/thrift v0.12.1-0.20190702001503-1a2dee60b438 // indirect
+	github.com/apache/thrift v0.13.0 // indirect
 	github.com/caio/go-tdigest v3.1.0+incompatible
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/codahale/hdrhistogram v0.9.0
