@@ -313,9 +313,13 @@ func (ca *clusterAPI) createSpace(c *gin.Context) {
 		log.Debug("create space, db: %s", c.Param(dbName))
 		log.Error("createSpaceService err: %v", err)
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
+		log.Debug("create failed and send error finish")
 	} else {
+		log.Debug("start send reply sucess")
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(space)
+		log.Debug("finish send reply sucess")
 	}
+	log.Debug("finish create space")
 }
 
 func (ca *clusterAPI) deleteSpace(c *gin.Context) {
@@ -483,6 +487,7 @@ func (ca *clusterAPI) spaceList(c *gin.Context) {
 	if unicode.IsNumber([]rune(db)[0]) {
 		id, err := cast.ToInt64E(db)
 		if err != nil {
+	                log.Error("spaceList  error is: %s", err.Error())
 			ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 			return
 		}
@@ -490,6 +495,7 @@ func (ca *clusterAPI) spaceList(c *gin.Context) {
 	} else {
 		id, err := ca.masterService.Master().QueryDBName2Id(c, db)
 		if err != nil {
+	                log.Error("spaceList  error 2 is: %s", err.Error())
 			ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 			return
 		}
@@ -497,6 +503,7 @@ func (ca *clusterAPI) spaceList(c *gin.Context) {
 	}
 
 	if dbs, err := ca.masterService.Master().QuerySpaces(c, dbId); err != nil {
+	                log.Error("spaceList  error 3 is: %s", err.Error())
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 	} else {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(dbs)
