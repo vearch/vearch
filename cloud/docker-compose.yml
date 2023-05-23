@@ -3,7 +3,7 @@ version: '3.5'
 services: 
   standalone: 
     container_name: vearch-standalone
-    image: vearch/vearch:3.2.7
+    image: vearch/vearch:latest
     ports: 
       - "8817:8817"
       - "9001:9001"

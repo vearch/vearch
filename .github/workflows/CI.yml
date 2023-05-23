@@ -33,7 +33,7 @@ jobs:
     - name: run docker
       run: |
         cd cloud
-        nohup docker run -p 8817:8817 -p 9001:9001 -v $PWD/config.toml:/vearch/config.toml vearch/vearch:3.2.7 all &
+        nohup docker run -p 8817:8817 -p 9001:9001 -v $PWD/config.toml:/vearch/config.toml vearch/vearch:latest all &
     - name: sleep
       run: sleep 30s
     - name: pip install requests
