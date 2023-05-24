@@ -5,7 +5,7 @@
 [![Build Status](https://travis-ci.com/wxingda/vearch.svg?branch=master)](https://travis-ci.com/wxingda/vearch)  &nbsp;&nbsp;&nbsp; [![Gitter](https://badges.gitter.im/vector_search/community.svg)](https://gitter.im/vector_search/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 ## Overview
 
-Here we build a cloud native vector database on top of CubeFS. 
+Here we build a cloud native vector database on top of CubeFS, It supports failover function and separates storage and computation by design.
 
 ## Architecture
 
