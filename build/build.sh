@@ -61,10 +61,6 @@ else
   fi
 fi
 
-flags="-X 'main.BuildVersion=$BUILD_VERSION' -X 'main.CommitID=$(git rev-parse HEAD)' -X 'main.BuildTime=$(date +"%Y-%m-%d %H:%M.%S")'"
-
-echo "version info: $flags"
-
 echo "build gamma"
 pushd $GAMMAOUT
 cmake -DPERFORMANCE_TESTING=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$ROOT/ps/engine/gammacb/lib $ROOT/engine/
@@ -73,28 +69,12 @@ popd
 
 cp $ROOT/engine/third_party/faiss/lib*/* $ROOT/ps/engine/gammacb/lib/lib/
 
+flags="-X 'main.BuildVersion=$BUILD_VERSION' -X 'main.CommitID=$(git rev-parse HEAD)' -X 'main.BuildTime=$(date +"%Y-%m-%d %H:%M.%S")'"
+echo "version info: $flags"
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ROOT/ps/engine/gammacb/lib/lib/
 export LIBRARY_PATH=$LIBRARY_PATH:$ROOT/ps/engine/gammacb/lib/lib/
 
-function build_vearch(){
-  echo "build vearch"
-  if [ $1 == 'mod' ];then
-    echo "build vearch by mod"
-    export GO111MODULE="on"
-    go build -a -tags="vector" -ldflags "$flags" -o $BUILDOUT/vearch $ROOT/startup.go
-    echo "build deploy tool by mod"
-    go build -a -ldflags "$flags" -o $BUILDOUT/batch_deployment $ROOT/tools/deployment/batch_deployment.go
-  else 
-    echo "build vearch by vendor"
-    export GO111MODULE="off"
-    go build -a -tags="vector" -ldflags "$flags" -o $BUILDOUT/vearch $ROOT/startup.go
-    echo "build deploy tool by vendor"
-    go build -a -ldflags "$flags" -o $BUILDOUT/batch_deployment $ROOT/tools/deployment/batch_deployment.go
-  fi
-}
-
-if [ $# == 1 ];then
-  build_vearch 'vendor'
-else
-  build_vearch 'mod'
-fi
+echo "build vearch"
+go build -a -tags="vector" -ldflags "$flags" -o $BUILDOUT/vearch $ROOT/startup.go
+echo "build deploy tool"
+go build -a -ldflags "$flags" -o $BUILDOUT/batch_deployment $ROOT/tools/deployment/batch_deployment.go
