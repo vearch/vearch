@@ -7,44 +7,16 @@
 
 Vearch is a scalable distributed system for efficient similarity search of deep learning vectors. 
 
-
-## Architecture
-
-![arc](docs/img/VearchArch.jpg)
-
-* Data Model
-
-  space, documents, vectors, scalars
-
-* Components
-
-  `Master`, `Router` and `PartitionServer` 
-
-* Master 
-
-  Responsible for schema mananagement, cluster-level metadata, and resource coordination. 
-  
-* Router
-
-  Provides RESTful API: `create`  , `delete`  `search` and `update` ; request routing, and result merging. 
-
-* PartitionServer (PS)
-
-  Hosts document partitions with raft-based replication.
-
-  Gamma is the core vector search engine implemented based on [faiss](https://github.com/facebookresearch/faiss). It provides the ability of storing, indexing and retrieving the vectors and scalars.
-
-
 ## Quick start
 ![docs/img/plugin/main_process.gif](docs/img/plugin/main_process.gif)
-
-* One-click binary installation, please see [docs/BinaryInstallation.md](docs/BinaryInstallation.md)([中文版](docs/BinaryInstallationZH_CN.md)).
 
 * Quickly compile the source codes to build a distributed vector search system with RESTful API, please see [docs/SourceCompileDeployment.md](docs/SourceCompileDeployment.md).
 
 * Vearch can be leveraged to build a complete visual search system to index billions of images. The image retrieval plugin for object detection and feature extraction is also required. For more information, please refer to [docs/Quickstart.md](docs/Quickstart.md).
 
 * Vearch Python SDK enables vearch to use locally. Vearch python sdk can be installed easily by pip install vearch. For more information, please refer to [docs/APIPythonSDK.md](docs/APIPythonSDK.md).
+
+* One-click binary installation, please see [docs/BinaryInstallation.md](docs/BinaryInstallation.md)([中文版](docs/BinaryInstallationZH_CN.md)).
 
 ## APIs and Use Cases
 
@@ -66,12 +38,49 @@ Vearch is a scalable distributed system for efficient similarity search of deep 
 * https://vearch.readthedocs.io/zh_CN/latest
 * [Common QA](https://github.com/vearch/vearch/wiki/Vearch-QA)
 
+<details>
+  <summary><b>Vearch Architecture</b></summary>
+
+![arc](docs/img/VearchArch.jpg)
+
+</details>
+
+## Components
+
+<details>
+  <summary><b>Master</b></summary>
+  Responsible for schema mananagement, cluster-level metadata, and resource coordination. 
+</details>
+
+<details>
+  <summary><b>Router</b></summary>
+  Provides RESTful API: `create`  , `delete`  `search` and `update` ; request routing, and result merging. 
+</details>
+
+<details>
+  <summary><b>PartitionServer (PS)</b></summary>
+  Hosts document partitions with raft-based replication.
+
+  Gamma is the core vector search engine implemented based on [faiss](https://github.com/facebookresearch/faiss). It provides the ability of storing, indexing and retrieving the vectors and scalars.
+</details>
+</br>
+
 ## Benchmarks
 
 * [benchmarks](/engine/benchs/README.md)
 
-## Publication
-Jie Li, Haifeng Liu, Chuanghua Gui, Jianyu Chen, Zhenyun Ni, Ning Wang, Yuan Chen. The Design and Implementation of a Real Time Visual Search System on JD E-commerce Platform. In the 19th International ACM Middleware Conference, December 10–14, 2018, Rennes, France. https://arxiv.org/abs/1908.07389
+## Reference
+Reference to cite when you use Vearch in a research paper:
+```
+@misc{li2019design,
+      title={The Design and Implementation of a Real Time Visual Search System on JD E-commerce Platform}, 
+      author={Jie Li and Haifeng Liu and Chuanghua Gui and Jianyu Chen and Zhenyun Ni and Ning Wang},
+      year={2019},
+      eprint={1908.07389},
+      archivePrefix={arXiv},
+      primaryClass={cs.IR}
+}
+```
 
 ## Community
 You can report bugs or ask questions in the [issues page](https://github.com/vearch/vearch/issues) of the repository.
