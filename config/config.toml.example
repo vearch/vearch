@@ -53,7 +53,6 @@
     # monitor
     monitor_port = 8818
 
-
 [router]
     # port for server
     port = 9001
@@ -85,5 +84,3 @@
     # seconds
     flush_time_interval = 600
     flush_count_threshold = 200000
-
-
