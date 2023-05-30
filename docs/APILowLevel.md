@@ -70,7 +70,6 @@ How to use hnsw and opq in combination is controlled by retrieval_param. If you 
 curl -v --user "root:secret" -H "content-type: application/json" -XPUT -d'
 {
 	"name": "vector_space",
-	"dynamic_schema": "strict",
 	"partition_num": 1,
 	"replica_num": 1,
 	"engine": {
@@ -137,7 +136,6 @@ store_type: should set it as `MemoryOnly`. For HNSW, it can only be run in Memor
 curl -v --user "root:secret" -H "content-type: application/json" -XPUT -d'
 {
     "name": "vector_space",
-    "dynamic_schema": "strict",
     "partition_num": 1,
     "replica_num": 1,
     "engine": {
@@ -204,7 +202,6 @@ store_type: should set it as `RocksDB`. For IVFFLAT, it can only be run in Rocks
 curl -v --user "root:secret" -H "content-type: application/json" -XPUT -d'
 {
     "name": "vector_space",
-    "dynamic_schema": "strict",
     "partition_num": 1,
     "replica_num": 1,
     "engine": {
@@ -270,7 +267,6 @@ Old usage for create table:
 ````$xslt
 {
     "name": "vector_space",
-    "dynamic_schema": "strict",
     "partition_num": 1,
     "replica_num": 1,
     "engine": {
@@ -330,7 +326,6 @@ New usage for create table about Multiple models:
 ````$xslt
 {
     "name": "vector_space",
-    "dynamic_schema": "strict",
     "partition_num": 1,
     "replica_num": 1,
     "engine": {

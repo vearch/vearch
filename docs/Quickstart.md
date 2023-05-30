@@ -52,7 +52,7 @@ curl -XPUT -H "content-type:application/json" -d '{"name": "test"}' http://127.0
 
 # create a space in test db which name test too.
 curl -XPUT -H "content-type: application/json" -d' { "name": "test",
-"dynamic_schema": "strict", "partition_num": 2, "replica_num": 1, "engine":
+"partition_num": 2, "replica_num": 1, "engine":
 {"name":"gamma","index_size":10000,	"retrieval_type": "IVFPQ", "retrieval_param": {"metric_type": "InnerProduct","ncentroids": -1,"nsubvector": -1}}, "properties": { "url": { "type": "keyword", "index":true}, "feature1": { "type": "vector", "dimension":512, "format": "normalization"}}} ' http://127.0.0.1:4101/space/test/_create
 ```
 
