@@ -300,7 +300,7 @@ func (ca *clusterAPI) createSpace(c *gin.Context) {
 		space.Engine = entity.NewDefaultEngine()
 	}
 
-	//check engine name and DynamicSchema is ok
+	//check engine name is ok
 	if err := space.Validate(); err != nil {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 		return

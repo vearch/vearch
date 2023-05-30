@@ -19,7 +19,6 @@ You should set `retrieval_type : "GPU"`.
 curl -v --user "root:secret" -H "content-type: application/json" -XPUT -d'
 {
 	"name": "vector_space",
-	"dynamic_schema": "strict",
 	"partition_num": 1,
 	"replica_num": 1,
 	"engine": {

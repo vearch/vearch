@@ -94,7 +94,6 @@ def test_createSpaceMmap():
     headers = {"content-type": "application/json"}
     data = {
         "name": "ts_space",
-        "dynamic_schema": "strict",
         "partition_num": 10,
         "replica_num": 1,
         "engine": {
@@ -425,7 +424,6 @@ def test_createspacerocksdb():
     headers = {"content-type": "application/json"}
     data = {
         "name": space_name_rocksdb,
-        "dynamic_schema": "strict",
         "partition_num": 1,  # "partition_num": 2-6之间
         "replica_num": 1,
         "engine": {
@@ -488,7 +486,6 @@ def test_createspacerocksdb():
     }
     # data = {
     #     "name": "ts_space",
-    #     "dynamic_schema": "strict",
     #     "partition_num": 3,
     #     "replica_num": 3,
     #     "engine": {"name": "gamma", "index_size": 10000, "max_size": 20000000},
