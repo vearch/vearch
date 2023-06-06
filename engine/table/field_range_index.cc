@@ -589,6 +589,10 @@ int FieldRangeIndex::Delete(std::string &key, int value) {
         }
         pthread_rwlock_wrlock(&rw_lock_);
         p_node->Delete(value);
+        if (p_node->Size() == 0) {
+          bt_deletekey(main_mgr_, key_to_add, key_len, 0);
+          delete p_node;
+        }
         pthread_rwlock_unlock(&rw_lock_);
       };
 
@@ -784,7 +788,7 @@ int FieldRangeIndex::Search(const string &tags, RangeQueryResult *result) {
     bt_close(bt);
 
     if (ret < 0) {
-      LOG(ERROR) << "find node failed, key=" << item;
+      LOG(INFO) << "find node failed, key=" << item;
       continue;
     }
     if (p_node == nullptr) {
@@ -898,8 +902,7 @@ long FieldRangeIndex::ScanMemory(long &dense, long &sparse) {
   return total;
 }
 
-MultiFieldsRangeIndex::MultiFieldsRangeIndex(std::string &path,
-                                             Table *table)
+MultiFieldsRangeIndex::MultiFieldsRangeIndex(std::string &path, Table *table)
     : path_(path) {
   table_ = table;
   fields_.resize(table->FieldsNum());
@@ -979,9 +982,9 @@ int MultiFieldsRangeIndex::Delete(int docid, int field) {
   FieldOperate *field_op = new FieldOperate(FieldOperate::DELETE, docid, field);
   table_->GetFieldRawValue(docid, field, field_op->value);
 
-  while (field_operate_q_->size()) {
-    std::this_thread::sleep_for(std::chrono::milliseconds(10));
-  }
+  // while (field_operate_q_->size()) {
+  //   std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  // }
 
   field_operate_q_->push(field_op);
 
