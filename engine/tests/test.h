@@ -174,6 +174,13 @@ struct Options {
     engine = nullptr;
     add_type = 0;
     b_load = false;
+    testing_with_rawdata = false;
+  }
+
+  void set_file(char *argv[], int argc) {
+    profile_file = argv[1];
+    feature_file = argv[2];
+    if (argc == 4) testing_with_rawdata = true;
   }
 
   int nprobe;
@@ -207,6 +214,7 @@ struct Options {
   char *docids_bitmap_;
   void *engine;
   bool b_load;
+  bool testing_with_rawdata;
 };
 
 void printDoc(struct tig_gamma::ResultItem &result_item, std::string &msg,
@@ -897,15 +905,16 @@ void UpdateThread(struct Options &opt) {
 }
 
 void InitEngine(struct Options &opt) {
-#ifdef PERFORMANCE_TESTING
-  int fd = open(opt.feature_file.c_str(), O_RDONLY, 0);
-  size_t mmap_size = opt.add_doc_num * sizeof(float) * opt.d;
-  opt.feature =
+  if (opt.testing_with_rawdata) {
+    opt.feature = fvecs_read(opt.feature_file.c_str(), &opt.d, &opt.add_doc_num);
+    int fd = open(opt.feature_file.c_str(), O_RDONLY, 0);
+    size_t mmap_size = opt.add_doc_num * sizeof(float) * opt.d;
+    opt.feature =
       static_cast<float *>(mmap(NULL, mmap_size, PROT_READ, MAP_SHARED, fd, 0));
-  close(fd);
-#else
-  opt.feature = fvecs_read(opt.feature_file.c_str(), &opt.d, &opt.add_doc_num);
-#endif
+    close(fd);
+  } else {
+    opt.feature = fvecs_read(opt.feature_file.c_str(), &opt.d, &opt.add_doc_num);
+  }
 
   std::cout << "n [" << opt.add_doc_num << "]" << std::endl;
 
@@ -1120,11 +1129,10 @@ int CloseEngine(struct Options &opt) {
   Close(opt.engine);
   opt.engine = nullptr;
   delete opt.docids_bitmap_;
-#ifdef PERFORMANCE_TESTING
-  munmap(opt.feature, opt.add_doc_num * sizeof(float) * opt.d);
-#else
-  delete opt.feature;
-#endif
+  if (opt.testing_with_rawdata)
+    munmap(opt.feature, opt.add_doc_num * sizeof(float) * opt.d);
+  else
+    delete opt.feature;
   return 0;
 }
 
