@@ -130,7 +130,7 @@
 ## Make Docker Image
 * go to $vearch/cloud dir
 * you can run `./run_docker.sh`  
-* docker push image center,such as  docker push xx.xx.local/ai/vearch:3.2.0
+* docker push image center,such as  docker push xx.xx.local/ai/vearch:latest
        
 ## Deploy
 * new master.yaml start two pod
@@ -173,7 +173,7 @@ spec:
       containers:
       - name: vearchmaster
         command: ["./bin/start.sh master"]
-        image: xx.xx.local/ai/vearch:3.2.0
+        image: xx.xx.local/ai/vearch:latest
         resources:
           limits:
             cpu: 16
@@ -225,7 +225,7 @@ spec:
       containers:
       - name: vearchps
         command: ["./bin/start.sh ps"]
-        image: xx.xx.local/ai/vearch:3.2.0
+        image: xx.xx.local/ai/vearch:latest
         resources:
           limits:
             cpu: 16
@@ -277,7 +277,7 @@ spec:
       containers:
       - name: vearchrouter
         command: ["./bin/start.sh router"]
-        image: xx.xx.local/ai/vearch:3.2.0
+        image: xx.xx.local/ai/vearch:latest
         resources:
           limits:
             cpu: 16

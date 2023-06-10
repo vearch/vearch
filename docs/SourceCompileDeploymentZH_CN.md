@@ -7,10 +7,9 @@
  2. vearch部署镜像地址: https://hub.docker.com/r/vearch/vearch/tags
 
 #### 使用Vearch镜像部署
- 1. 以vearch:3.2.0为例
- 2. docker pull vearch/vearch:3.2.0
- 3. 一个docker部署或分布式部署
-    1. ```If deploy a docker start vearch,master,ps,router start together: cat vearch/config/config.toml.example > config.toml nohup docker run -p 8817:8817 -p 9001:9001 -v $PWD/config.toml:/vearch/config.toml  vearch/vearch:3.2.0 all &```
+ 1. docker pull vearch/vearch:latest
+ 2. 一个docker部署或分布式部署
+    1. ```If deploy a docker start vearch,master,ps,router start together: cat vearch/config/config.toml.example > config.toml nohup docker run -p 8817:8817 -p 9001:9001 -v $PWD/config.toml:/vearch/config.toml  vearch/vearch:latest all &```
     
     2. ```If distributed deploy ,modify vearch/config/config.toml and start separately```
     3. ```Modify vearch/config/config.toml ,refer the step 'Local Model'```

@@ -571,7 +571,7 @@ int GammaEngine::CreateTable(TableInfo &table) {
 
   if (!meta_jp) {
     utils::JsonParser dump_meta_;
-    dump_meta_.PutInt("version", 327);  // version=3.2.0
+    dump_meta_.PutInt("version", 327);
 
     utils::JsonParser table_jp;
     table_->GetDumpConfig()->ToJson(table_jp);

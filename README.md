@@ -38,14 +38,14 @@ Vearch is a scalable distributed system for efficient similarity search of deep 
 * https://vearch.readthedocs.io/zh_CN/latest
 * [Common QA](https://github.com/vearch/vearch/wiki/Vearch-QA)
 
+## Components
+
 <details>
   <summary><b>Vearch Architecture</b></summary>
 
 ![arc](docs/img/VearchArch.jpg)
 
 </details>
-
-## Components
 
 <details>
   <summary><b>Master</b></summary>
@@ -63,7 +63,6 @@ Vearch is a scalable distributed system for efficient similarity search of deep 
 
   Gamma is the core vector search engine implemented based on [faiss](https://github.com/facebookresearch/faiss). It provides the ability of storing, indexing and retrieving the vectors and scalars.
 </details>
-</br>
 
 ## Benchmarks
 
