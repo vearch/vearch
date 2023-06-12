@@ -7,6 +7,31 @@ GAMMAOUT=$ROOT/build/gamma_build
 rm -rf ${GAMMAOUT}
 mkdir -p $GAMMAOUT
 
+# BUILD OPTS
+COMPILE_THREAD_TAG=-j2
+BUILD_GAMMA_TEST=OFF
+
+while getopts ":n:th" opt
+do
+  case $opt in
+    n)
+      COMPILE_THREAD_NUM="-j"$OPTARG
+      echo "COMPILE_THREAD_NUM="$COMPILE_THREAD_NUM;;
+    t)
+      BUILD_GAMMA_TEST=ON
+      echo "BUILD_GAMMA_TEST=ON";;
+    h)
+      echo "[build options]"
+      echo -e "\t-h\t\thelp"
+      echo -e "\t-n\t\tcompile thread num"
+      echo -e "\t-t\t\tbuild gamma test"
+      exit 0;;
+    ?)
+      echo "unsupport param, -h for help"
+      exit 1;;
+  esac
+done
+
 ZFP_URL=https://github.com/LLNL/zfp/archive/0.5.5.tar.gz
 ROCKSDB_URL=https://github.com/facebook/rocksdb/archive/v6.2.2.tar.gz
 
@@ -54,7 +79,7 @@ else
       wget  ${ROCKSDB_URL} -O rocksdb.tar.gz
       tar -xzf rocksdb.tar.gz
       pushd rocksdb-6.2.2
-      CFLAGS="-O3 -fPIC" make shared_lib -j2
+      CFLAGS="-O3 -fPIC" make shared_lib $COMPILE_THREAD_TAG
       make install
       popd
     fi
@@ -63,8 +88,8 @@ fi
 
 echo "build gamma"
 pushd $GAMMAOUT
-cmake -DPERFORMANCE_TESTING=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$ROOT/ps/engine/gammacb/lib $ROOT/engine/
-make -j2 && make install
+cmake -DPERFORMANCE_TESTING=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_TEST=$BUILD_GAMMA_TEST -DCMAKE_INSTALL_PREFIX=$ROOT/ps/engine/gammacb/lib $ROOT/engine/
+make $COMPILE_THREAD_TAG && make install
 popd
 
 cp $ROOT/engine/third_party/faiss/lib*/* $ROOT/ps/engine/gammacb/lib/lib/
