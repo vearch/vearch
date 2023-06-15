@@ -144,7 +144,7 @@ int Response::Serialize(std::vector<std::string> &fields_name, char **out,
 #ifdef PERFORMANCE_TESTING
   PerfTool *perf_tool = static_cast<PerfTool *>(perf_tool_);
   perf_tool->Perf("serialize total");
-  LOG(INFO) << perf_tool->OutputPerf().str();
+  LOG(TRACE) << perf_tool->OutputPerf().str();
 #endif
   return 0;
 }
@@ -313,7 +313,7 @@ int Response::PackResults(std::vector<std::string> &fields_name) {
 #ifdef PERFORMANCE_TESTING
   PerfTool *perf_tool = static_cast<PerfTool *>(perf_tool_);
   perf_tool->Perf("pack result total");
-  LOG(INFO) << perf_tool->OutputPerf().str();
+  LOG(TRACE) << perf_tool->OutputPerf().str();
 #endif
   return 0;
 }

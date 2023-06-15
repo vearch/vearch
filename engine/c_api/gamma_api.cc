@@ -13,6 +13,7 @@
 #include <chrono>
 #include <iostream>
 #include <sstream>
+#include <string>
 
 #include "api_data/gamma_batch_result.h"
 #include "api_data/gamma_config.h"
@@ -68,7 +69,23 @@ int SetLogDictionary(const std::string &log_dir) {
   defaultConf.setGlobally(el::ConfigurationType::ToStandardOutput, "false");
   defaultConf.setGlobally(el::ConfigurationType::MaxLogFileSize,
                           "209715200");  // 200MB
-  defaultConf.setGlobally(el::ConfigurationType::Filename, dir + "/gamma.log");
+  std::string filename;
+  std::string prefix = "gamma.";
+  filename = prefix + el::LevelHelper::convertToString(el::Level::Debug) + ".log";
+  defaultConf.set(el::Level::Debug, el::ConfigurationType::Filename, dir + "/" + filename);
+
+  filename = prefix + el::LevelHelper::convertToString(el::Level::Error) + ".log";
+  defaultConf.set(el::Level::Error, el::ConfigurationType::Filename, dir + "/" + filename);
+
+  filename = prefix + el::LevelHelper::convertToString(el::Level::Info) + ".log";
+  defaultConf.set(el::Level::Info, el::ConfigurationType::Filename, dir + "/" + filename);
+
+  filename = prefix + el::LevelHelper::convertToString(el::Level::Trace) + ".log";
+  defaultConf.set(el::Level::Trace, el::ConfigurationType::Filename, dir + "/" + filename);
+
+  filename = prefix + el::LevelHelper::convertToString(el::Level::Warning) + ".log";
+  defaultConf.set(el::Level::Warning, el::ConfigurationType::Filename, dir + "/" + filename);
+
   el::Loggers::reconfigureLogger("default", defaultConf);
   el::Helpers::installPreRollOutCallback(
       [](const char *filename, std::size_t size) {
