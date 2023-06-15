@@ -336,6 +336,18 @@ int GammaIndexHNSWLIB::Search(RetrievalContext *retrieval_context, int n,
     retrieval_context->retrieval_params_ = retrieval_params;
   }
 
+  GammaSearchCondition *condition =
+      dynamic_cast<GammaSearchCondition *>(retrieval_context);
+  if (condition->brute_force_search == true) {
+    // reset retrieval_params
+    delete retrieval_context->RetrievalParams();
+    retrieval_context->retrieval_params_ = new FlatRetrievalParameters(
+        true, retrieval_params->GetDistanceComputeType());
+    int ret =
+        GammaFLATIndex::Search(retrieval_context, n, x, k, distances, labels);
+    return ret;
+  }
+
   DISTFUNC<float> fstdistfunc;
   if (retrieval_params->GetDistanceComputeType() ==
       DistanceComputeType::INNER_PRODUCT) {
