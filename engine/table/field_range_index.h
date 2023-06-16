@@ -53,7 +53,7 @@ class MultiFieldsRangeIndex {
 
   int Delete(int docid, int field);
 
-  int AddField(int field, enum DataType field_type);
+  int AddField(int field, enum DataType field_type, std::string &name);
 
   int Search(const std::vector<FilterInfo> &origin_filters,
              MultiRangeQueryResults *out);

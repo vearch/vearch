@@ -827,7 +827,6 @@ int GammaEngine::DelDocByQuery(Request &request) {
 #ifdef DEBUG
 // LOG(INFO) << "delete by query request:" << RequestToString(request);
 #endif
-
   std::vector<struct RangeFilter> &range_filters = request.RangeFilters();
 
   if (range_filters.size() <= 0) {
@@ -952,7 +951,7 @@ int GammaEngine::GetDoc(const std::string &key, Doc &doc) {
   int docid = -1, ret = 0;
   ret = table_->GetDocIDByKey(key, docid);
   if (ret != 0 || docid < 0) {
-    LOG(INFO) << "GetDocIDbyKey [" << key << "] error!";
+    LOG(INFO) << "GetDocIDbyKey [" << key << "] not found!";
     return -1;
   }
 
@@ -1348,7 +1347,7 @@ int GammaEngine::AddNumIndexFields() {
     }
     int field_idx = table_->GetAttrIdx(field_name);
     LOG(INFO) << "Add range field [" << field_name << "]";
-    field_range_index_->AddField(field_idx, it.second);
+    field_range_index_->AddField(field_idx, it.second, field_name);
   }
   return retvals;
 }

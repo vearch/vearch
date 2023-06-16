@@ -358,7 +358,7 @@ typedef struct BTreeParameters {
 class FieldRangeIndex {
  public:
   FieldRangeIndex(std::string &path, int field_idx, enum DataType field_type,
-                  BTreeParameters &bt_param);
+                  BTreeParameters &bt_param, std::string &name);
   ~FieldRangeIndex();
 
   int Add(std::string &key, int value);
@@ -384,13 +384,16 @@ class FieldRangeIndex {
   bool is_numeric_;
   char *kDelim_;
   std::string path_;
+  std::string name_;
   pthread_rwlock_t rw_lock_;
+  long add_num_ = 0;
+  long delete_num_ = 0;
 };
 
 FieldRangeIndex::FieldRangeIndex(std::string &path, int field_idx,
                                  enum DataType field_type,
-                                 BTreeParameters &bt_param)
-    : path_(path) {
+                                 BTreeParameters &bt_param, std::string &name)
+    : path_(path), name_(name) {
   string cache_file =
       path + string("/cache_") + std::to_string(field_idx) + ".dis";
   string main_file =
@@ -564,7 +567,12 @@ int FieldRangeIndex::Add(std::string &key, int value) {
   }
 
   bt_close(bt);
-
+#ifdef PERFORMANCE_TESTING
+  add_num_ += 1;
+  if (add_num_ % 10000 == 0) {
+    LOG(INFO) << "field index [" << name_ << "] add count: " << add_num_;
+  }
+#endif  // PERFORMANCE_TESTING
   return 0;
 }
 
@@ -613,6 +621,12 @@ int FieldRangeIndex::Delete(std::string &key, int value) {
   }
 
   bt_close(bt);
+#ifdef PERFORMANCE_TESTING
+  delete_num_ += 1;
+  if (delete_num_ % 10000 == 0) {
+    LOG(INFO) << "field index [" << name_ << "] delete count: " << delete_num_;
+  }
+#endif  // PERFORMANCE_TESTING
 
   return 0;
 }
@@ -955,7 +969,7 @@ void MultiFieldsRangeIndex::FieldOperateWorker() {
     } else {
       DeleteDoc(doc_id, field_id, field_op->value);
     }
-
+    
     delete field_op;
   }
   LOG(INFO) << "FieldOperateWorker exited!";
@@ -1202,7 +1216,7 @@ int MultiFieldsRangeIndex::Intersect(std::vector<RangeQueryResult> &results,
   return total;
 }
 
-int MultiFieldsRangeIndex::AddField(int field, enum DataType field_type) {
+int MultiFieldsRangeIndex::AddField(int field, enum DataType field_type, std::string &field_name) {
   BTreeParameters bt_param;
   bt_param.mainleafxtra = 0;
   bt_param.maxleaves = 1000000;
@@ -1214,7 +1228,7 @@ int MultiFieldsRangeIndex::AddField(int field, enum DataType field_type) {
   bt_param.kDelim = "\001";
 
   FieldRangeIndex *index =
-      new FieldRangeIndex(path_, field, field_type, bt_param);
+      new FieldRangeIndex(path_, field, field_type, bt_param, field_name);
   fields_[field] = index;
   return 0;
 }
