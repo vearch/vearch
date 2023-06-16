@@ -199,6 +199,7 @@ func (pih *PartitionInfoHandler) Execute(ctx context.Context, req *vearchpb.Part
 		if err != nil {
 			return err
 		}
+		index_status, index_num := store.GetEngine().IndexInfo()
 		value := &entity.PartitionInfo{
 			PartitionID: pid,
 			DocNum:      docNum,
@@ -207,7 +208,8 @@ func (pih *PartitionInfoHandler) Execute(ctx context.Context, req *vearchpb.Part
 			Unreachable: store.GetUnreachable(uint64(pid)),
 			Status:      store.GetPartition().GetStatus(),
 			RaftStatus:  store.Status(),
-			IndexStatus: store.GetEngine().IndexStatus(),
+			IndexStatus: index_status,
+			IndexNum:    index_num,
 		}
 		pis = append(pis, value)
 	}
@@ -256,7 +258,9 @@ func (sh *StatsHandler) Execute(ctx context.Context, req *vearchpb.PartitionData
 		pi.Path = store.GetPartition().Path
 		pi.Unreachable = store.GetUnreachable(uint64(pid))
 		pi.Status = store.GetPartition().GetStatus()
-		pi.IndexStatus = store.GetEngine().IndexStatus()
+		index_status, index_num := store.GetEngine().IndexInfo()
+		pi.IndexStatus = index_status
+		pi.IndexNum = index_num
 		pi.RaftStatus = store.Status()
 	})
 

@@ -223,7 +223,7 @@ func (ms *monitorService) partitionInfo(ctx context.Context, dbName, spaceName s
 			resultSpace := make(map[string]interface{})
 			resultSpace["name"] = spaceName
 			resultSpace["partition_num"] = len(resultInsidePartition)
-			resultSpace["replica_num"] = len(resultInsidePartition) * int(space.ReplicaNum)
+			resultSpace["replica_num"] = int(space.ReplicaNum)
 			resultSpace["doc_num"] = docNum
 			resultSpace["size"] = size
 			resultSpace["partitions"] = resultInsidePartition
