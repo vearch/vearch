@@ -449,6 +449,8 @@ int GammaEngine::Search(Request &request, Response &response_results) {
           ++(gamma_result->total);
           if (gamma_result->results_count < topn) {
             gamma_result->docs[(gamma_result->results_count)++]->docid = docid;
+          } else {
+            break;
           }
         }
       }
@@ -935,6 +937,7 @@ int GammaEngine::DelDocByFilter(Request &request, char **del_ids,
         }
         ++delete_num_;
         ++del_num;
+        if (del_num >= request.TopN()) break;
       }
     }
   }
