@@ -169,7 +169,7 @@ class RawVector : public VectorReader {
 
   VIDMgr *VidMgr() const { return vid_mgr_; }
   bitmap::BitmapManager *Bitmap() { return docids_bitmap_; }
-  int VectorByteSize() { return vector_byte_size_; }
+  long VectorByteSize() { return vector_byte_size_; }
 
   std::string RootPath() { return root_path_; }
   DumpConfig *GetDumpConfig();
@@ -199,7 +199,7 @@ class RawVector : public VectorReader {
 
  protected:
   std::string root_path_;
-  int vector_byte_size_;
+  long vector_byte_size_;
   int data_size_;
 
   long total_mem_bytes_;              // total used memory bytes
