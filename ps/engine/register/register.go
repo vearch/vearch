@@ -61,7 +61,8 @@ func Register(name string, builder EngineBuilder) {
 }
 
 // Build create an engine based on the specified name.
-func Build(name string, cfg EngineConfig) (e engine.Engine, err error) {
+func Build(cfg EngineConfig) (e engine.Engine, err error) {
+	name := "gamma"
 	if builder := engines[name]; builder != nil {
 		e, err = builder(cfg)
 	} else {

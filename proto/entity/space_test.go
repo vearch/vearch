@@ -28,7 +28,6 @@ func TestSpaceString(t *testing.T) {
 	if err := json.Unmarshal([]byte(str), &space); err != nil {
 		t.Errorf(err.Error())
 	}
-	assert.Equal(t, space.Engine.Name, "caprice", "unmarshal string to engine err")
 }
 
 func TestEngineSpaceString(t *testing.T) {
@@ -37,8 +36,5 @@ func TestEngineSpaceString(t *testing.T) {
 	if err := json.Unmarshal([]byte(str), &space); err != nil {
 		t.Errorf(err.Error())
 	}
-	assert.Equal(t, space.Engine.Name, "gamma", "unmarshal string to engine err")
-	assert.Equal(t, space.Engine.Nprobe, int64(10), "unmarshal string to engine err")
-	assert.Equal(t, space.Engine.MaxSize, int64(10000), "unmarshal string to engine err")
 	assert.Equal(t, space.Engine.IndexSize, int64(1000), "unmarshal string to engine err")
 }

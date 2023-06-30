@@ -22,7 +22,6 @@ curl -v --user "root:secret" -H "content-type: application/json" -XPUT -d'
 	"partition_num": 1,
 	"replica_num": 1,
 	"engine": {
-		"name": "gamma",
 		"index_size": 0,
 		"max_size": 100000,
         "retrieval_type": "GPU",

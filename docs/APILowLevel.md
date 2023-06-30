@@ -73,7 +73,6 @@ curl -v --user "root:secret" -H "content-type: application/json" -XPUT -d'
 	"partition_num": 1,
 	"replica_num": 1,
 	"engine": {
-		"name": "gamma",
 		"index_size": 100000,
 		"id_type": "string",
 		"retrieval_type": "IVFPQ",
@@ -139,7 +138,6 @@ curl -v --user "root:secret" -H "content-type: application/json" -XPUT -d'
     "partition_num": 1,
     "replica_num": 1,
     "engine": {
-        "name": "gamma",
         "index_size": 1,
         "retrieval_type": "HNSW",
         "retrieval_param": {
@@ -205,7 +203,6 @@ curl -v --user "root:secret" -H "content-type: application/json" -XPUT -d'
     "partition_num": 1,
     "replica_num": 1,
     "engine": {
-        "name": "gamma",
         "index_size": 100000,
         "retrieval_type": "IVFFLAT",
         "retrieval_param": {
@@ -270,7 +267,6 @@ Old usage for create table:
     "partition_num": 1,
     "replica_num": 1,
     "engine": {
-        "name": "gamma",
         "index_size": 100000, 
         "retrieval_type": "IVFPQ", 
         "retrieval_param": {
@@ -329,7 +325,6 @@ New usage for create table about Multiple models:
     "partition_num": 1,
     "replica_num": 1,
     "engine": {
-        "name": "gamma", 
         "retrieval_types": [
             "IVFPQ", 
             "HNSW"

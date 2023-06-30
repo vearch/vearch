@@ -62,7 +62,6 @@ type Store struct {
 
 // CreateStore create an instance of Store.
 func CreateStore(ctx context.Context, pID entity.PartitionID, nodeID entity.NodeID, space *entity.Space, raftServer *raft.RaftServer, eventListener EventListener, client *client.Client) (*Store, error) {
-
 	path := config.Conf().GetDataDirBySlot(config.PS, pID)
 	dataPath, raftPath, metaPath, err := psutil.CreatePartitionPaths(path, space, pID) //FIXME: it will double writer space when load space
 
@@ -94,7 +93,7 @@ func CreateStore(ctx context.Context, pID entity.PartitionID, nodeID entity.Node
 func (s *Store) ReBuildEngine() (err error) {
 	log.Debug("begin re build engine")
 	// re create engine
-	s.Engine, err = register.Build(s.Space.Engine.Name, register.EngineConfig{
+	s.Engine, err = register.Build(register.EngineConfig{
 		Path:        s.DataPath,
 		Space:       s.Space,
 		PartitionID: s.Partition.Id,
@@ -119,7 +118,7 @@ func (s *Store) ReBuildEngine() (err error) {
 // Start start the store.
 func (s *Store) Start() (err error) {
 	// todo: gamma engine load need run after snapshot finish
-	s.Engine, err = register.Build(s.Space.Engine.Name, register.EngineConfig{
+	s.Engine, err = register.Build(register.EngineConfig{
 		Path:        s.DataPath,
 		Space:       s.Space,
 		PartitionID: s.Partition.Id,
@@ -180,7 +179,6 @@ func (s *Store) Start() (err error) {
 
 // Destroy close partition store if it running currently.
 func (s *Store) Close() error {
-
 	if err := s.RaftServer.RemoveRaft(uint64(s.Partition.Id)); err != nil {
 		log.Error("close raft server err : %s , Partition.Id: %d", err.Error(), s.Partition.Id)
 		return err
@@ -237,7 +235,6 @@ func (s *Store) TryToLeader() error {
 
 func (s *Store) GetUnreachable(id uint64) []uint64 {
 	return s.RaftServer.GetUnreachable(id)
-
 }
 
 func (s *Store) GetPartition() *entity.Partition {

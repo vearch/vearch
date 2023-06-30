@@ -37,14 +37,12 @@ import (
 	"github.com/vearch/vearch/util/vearchlog"
 )
 
-const Name = "gamma"
-
 var _ engine.Engine = &gammaEngine{}
 
 var indexLocker sync.Mutex
 
 func init() {
-	register.Register(Name, New)
+	register.Register("gamma", New)
 }
 
 var logInitOnce sync.Once
