@@ -16,6 +16,7 @@ package document
 
 import (
 	"context"
+    "fmt"
 	"strings"
 	"sync"
 	"time"
@@ -278,13 +279,13 @@ func (docService *docService) deleteByQuery(ctx context.Context, args *vearchpb.
 	request := client.NewRouterRequest(ctx, docService.client)
 	deleteByScalar := false
 	idIsLong := false
-	if args.VecFields != nil {
-		request.SetMsgID().SetMethod(client.DeleteByQueryHandler).SetHead(args.Head).SetSpace().SearchByPartitions(args)
-	} else {
-		request.SetMsgID().SetMethod(client.DeleteByQueryFilterHandler).SetHead(args.Head).SetSpace().SearchByPartitions(args)
-		deleteByScalar = true
-	}
-	if request.Err != nil {
+    if args.VecFields != nil {
+        err := fmt.Errorf("delete_by_query vector param should be null")
+        return &vearchpb.DelByQueryeResponse{Head: setErrHead(err)}
+    } else {
+        request.SetMsgID().SetMethod(client.DeleteByQueryHandler).SetHead(args.Head).SetSpace().SearchByPartitions(args)
+    }	
+    if request.Err != nil {
 		return &vearchpb.DelByQueryeResponse{Head: setErrHead(request.Err)}
 	}
 

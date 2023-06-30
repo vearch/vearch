@@ -1731,11 +1731,22 @@ func (r *routerRequest) DelByQueryeExecute(deleteByScalar bool, idIsLong bool) *
 		}
 		return delByQueryResponse
 	} else {
-		var delNum int32
-		for resp := range respChain {
-			delNum = delNum + resp.DelByQueryResponse.DelNum
-		}
-		delByQueryResponse := &vearchpb.DelByQueryeResponse{DelNum: delNum}
-		return delByQueryResponse
+        delByQueryResponse := &vearchpb.DelByQueryeResponse{}
+        if idIsLong {
+            for resp := range respChain {
+                if len(resp.DelByQueryResponse.IdsLong) > 0 {
+                    delByQueryResponse.IdsLong = append(delByQueryResponse.IdsLong, resp.DelByQueryResponse.IdsLong...)
+                }
+            }
+            delByQueryResponse.DelNum = int32(len(delByQueryResponse.IdsLong))
+        } else {
+            for resp := range respChain {
+                if len(resp.DelByQueryResponse.IdsStr) > 0 {
+                    delByQueryResponse.IdsStr = append(delByQueryResponse.IdsStr, resp.DelByQueryResponse.IdsStr...)
+                }
+            }
+            delByQueryResponse.DelNum = int32(len(delByQueryResponse.IdsStr))
+        }
+        return delByQueryResponse
 	}
 }

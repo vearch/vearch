@@ -427,10 +427,12 @@ func deleteByQuery(ctx context.Context, store PartitionStore, req *vearchpb.Sear
 				} else {
 					for _, doc := range result.ResultItems {
 						var pKey string
+                        var value []byte
 						for _, fv := range doc.Fields {
 							name := fv.Name
 							switch name {
 							case mapping.IdField:
+								value = fv.Value
 								if idIsLong {
 									id := int64(cbbytes.ByteArray2UInt64(fv.Value))
 									pKey = strconv.FormatInt(id, 10)
@@ -440,7 +442,7 @@ func deleteByQuery(ctx context.Context, store PartitionStore, req *vearchpb.Sear
 							}
 						}
 						if pKey != "" {
-							field := &vearchpb.Field{Name: "_id", Value: []byte(pKey)}
+							field := &vearchpb.Field{Name: "_id", Value: value}
 							fields := make([]*vearchpb.Field, 0)
 							fields = append(fields, field)
 							doc := &vearchpb.Document{PKey: pKey, Fields: fields}
@@ -456,9 +458,17 @@ func deleteByQuery(ctx context.Context, store PartitionStore, req *vearchpb.Sear
 			} else {
 				deleteDocs(ctx, store, docs)
 				for _, item := range docs {
-					if item.Err == nil {
-						resp.DelNum++
-					}
+                    if item.Err == nil {
+                        if idIsLong {
+                            i, err := strconv.ParseInt(item.Doc.PKey, 10, 64)
+                            if err == nil {
+                                resp.IdsLong = append(resp.IdsLong, i)
+                            }
+                        } else {
+                            resp.IdsStr = append(resp.IdsStr, item.Doc.PKey)
+                        }
+                        resp.DelNum++
+                    }
 				}
 			}
 		}
