@@ -36,7 +36,6 @@ Vearch is a scalable distributed system for efficient similarity search of deep 
 
 * https://vearch.readthedocs.io/en/latest
 * https://vearch.readthedocs.io/zh_CN/latest
-* [Common QA](https://github.com/vearch/vearch/wiki/Vearch-QA)
 
 ## Components
 
