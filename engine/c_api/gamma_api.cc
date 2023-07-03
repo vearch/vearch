@@ -219,23 +219,6 @@ int Load(void *engine) {
   return ret;
 }
 
-int DelDocByQuery(void *engine, const char *request_str, int len) {
-  tig_gamma::Request request;
-  request.Deserialize(request_str, len);
-  int ret =
-      static_cast<tig_gamma::GammaEngine *>(engine)->DelDocByQuery(request);
-  return ret;
-}
-
-int DelDocByFilter(void *engine, const char *request_str, int len,
-                   char **deleted_ids, int *str_len) {
-  tig_gamma::Request request;
-  request.Deserialize(request_str, len);
-  int ret = static_cast<tig_gamma::GammaEngine *>(engine)->DelDocByFilter(
-                                           request, deleted_ids, str_len);
-  return ret;
-}
-
 int SetConfig(void *engine, const char *config_str, int len) {
   tig_gamma::Config config;
   config.Deserialize(config_str, len);

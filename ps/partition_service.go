@@ -76,7 +76,7 @@ type PartitionStore interface {
 
 	GetDocument(ctx context.Context, readLeader bool, doc *vearchpb.Document) (err error)
 
-	Write(ctx context.Context, request *vearchpb.DocCmd, query *vearchpb.SearchRequest, response *vearchpb.SearchResponse) (err error)
+	Write(ctx context.Context, request *vearchpb.DocCmd) (err error)
 
 	Flush(ctx context.Context) error
 

@@ -118,15 +118,13 @@ func (s *Store) innerApply(command []byte, index uint64, raftCmd *vearchpb.RaftC
 	resp := new(RaftApplyResponse)
 	switch raftCmd.Type {
 	case vearchpb.CmdType_WRITE:
-		resp.Err = s.Engine.Writer().Write(s.Ctx, raftCmd.WriteCommand, nil, nil)
+		resp.Err = s.Engine.Writer().Write(s.Ctx, raftCmd.WriteCommand)
 	case vearchpb.CmdType_UPDATESPACE:
 		resp = s.updateSchemaBySpace(raftCmd.UpdateSpace.Space, raftCmd.UpdateSpace.Version)
 	case vearchpb.CmdType_FLUSH:
 		flushC, err := s.Engine.Writer().Commit(s.Ctx, int64(index))
 		resp.FlushC = flushC
 		resp.Err = err
-	case vearchpb.CmdType_SEARCHDEL:
-		resp.Err = s.Engine.Writer().Write(s.Ctx, raftCmd.WriteCommand, raftCmd.SearchDelReq, raftCmd.SearchDelResp)
 	default:
 		log.Error("unsupported command[%s]", raftCmd.Type)
 		resp.SetErr(fmt.Errorf("unsupported command[%s]", raftCmd.Type))

@@ -40,7 +40,7 @@ type Reader interface {
 // Writer is the write interface to an engine's data.
 type Writer interface {
 	// use do by single cmd , support create update replace or delete
-	Write(ctx context.Context, docCmd *vearchpb.DocCmd, request *vearchpb.SearchRequest, resp *vearchpb.SearchResponse) error
+	Write(ctx context.Context, docCmd *vearchpb.DocCmd) error
 
 	//this update will merge documents
 	// Update(ctx context.Context, docCmd *vearchpb.DocCmd) error

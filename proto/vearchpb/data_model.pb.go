@@ -2651,10 +2651,7 @@ func (m *Vector) Unmarshal(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			if skippy < 0 {
-				return ErrInvalidLengthDataModel
-			}
-			if (iNdEx + skippy) < 0 {
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
 				return ErrInvalidLengthDataModel
 			}
 			if (iNdEx + skippy) > l {
@@ -2841,10 +2838,7 @@ func (m *Field) Unmarshal(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			if skippy < 0 {
-				return ErrInvalidLengthDataModel
-			}
-			if (iNdEx + skippy) < 0 {
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
 				return ErrInvalidLengthDataModel
 			}
 			if (iNdEx + skippy) > l {
@@ -2961,10 +2955,7 @@ func (m *Document) Unmarshal(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			if skippy < 0 {
-				return ErrInvalidLengthDataModel
-			}
-			if (iNdEx + skippy) < 0 {
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
 				return ErrInvalidLengthDataModel
 			}
 			if (iNdEx + skippy) > l {
@@ -3119,10 +3110,7 @@ func (m *Item) Unmarshal(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			if skippy < 0 {
-				return ErrInvalidLengthDataModel
-			}
-			if (iNdEx + skippy) < 0 {
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
 				return ErrInvalidLengthDataModel
 			}
 			if (iNdEx + skippy) > l {
@@ -3315,7 +3303,7 @@ func (m *ModelParameters) Unmarshal(dAtA []byte) error {
 					if err != nil {
 						return err
 					}
-					if skippy < 0 {
+					if (skippy < 0) || (iNdEx+skippy) < 0 {
 						return ErrInvalidLengthDataModel
 					}
 					if (iNdEx + skippy) > postIndex {
@@ -3332,10 +3320,7 @@ func (m *ModelParameters) Unmarshal(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			if skippy < 0 {
-				return ErrInvalidLengthDataModel
-			}
-			if (iNdEx + skippy) < 0 {
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
 				return ErrInvalidLengthDataModel
 			}
 			if (iNdEx + skippy) > l {
@@ -3454,10 +3439,7 @@ func (m *Model) Unmarshal(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			if skippy < 0 {
-				return ErrInvalidLengthDataModel
-			}
-			if (iNdEx + skippy) < 0 {
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
 				return ErrInvalidLengthDataModel
 			}
 			if (iNdEx + skippy) > l {
@@ -3597,10 +3579,7 @@ func (m *VectorMetaInfo) Unmarshal(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			if skippy < 0 {
-				return ErrInvalidLengthDataModel
-			}
-			if (iNdEx + skippy) < 0 {
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
 				return ErrInvalidLengthDataModel
 			}
 			if (iNdEx + skippy) > l {
@@ -3778,10 +3757,7 @@ func (m *FieldMetaInfo) Unmarshal(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			if skippy < 0 {
-				return ErrInvalidLengthDataModel
-			}
-			if (iNdEx + skippy) < 0 {
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
 				return ErrInvalidLengthDataModel
 			}
 			if (iNdEx + skippy) > l {
@@ -3955,10 +3931,7 @@ func (m *TableMetaInfo) Unmarshal(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			if skippy < 0 {
-				return ErrInvalidLengthDataModel
-			}
-			if (iNdEx + skippy) < 0 {
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
 				return ErrInvalidLengthDataModel
 			}
 			if (iNdEx + skippy) > l {
@@ -4151,10 +4124,7 @@ func (m *Table) Unmarshal(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			if skippy < 0 {
-				return ErrInvalidLengthDataModel
-			}
-			if (iNdEx + skippy) < 0 {
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
 				return ErrInvalidLengthDataModel
 			}
 			if (iNdEx + skippy) > l {
@@ -4381,7 +4351,7 @@ func (m *DB) Unmarshal(dAtA []byte) error {
 					if err != nil {
 						return err
 					}
-					if skippy < 0 {
+					if (skippy < 0) || (iNdEx+skippy) < 0 {
 						return ErrInvalidLengthDataModel
 					}
 					if (iNdEx + skippy) > postIndex {
@@ -4398,10 +4368,7 @@ func (m *DB) Unmarshal(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			if skippy < 0 {
-				return ErrInvalidLengthDataModel
-			}
-			if (iNdEx + skippy) < 0 {
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
 				return ErrInvalidLengthDataModel
 			}
 			if (iNdEx + skippy) > l {

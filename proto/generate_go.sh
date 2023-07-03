@@ -47,10 +47,6 @@ if [[ -z ${GOGO_GOPATH} ]]; then
     exit 1;
 fi
 
-
-
-
-
 gen_out_dir=./vearchpb
 if [ "$1" ]; then
     gen_out_dir=$1

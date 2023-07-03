@@ -53,15 +53,6 @@ class GammaEngine {
    */
   int Delete(std::string &key);
 
-  /**
-   * Delete doc by query
-   * @param request delete request
-   * @return 0 if successed
-   */
-  int DelDocByQuery(Request &request);
-
-  int DelDocByFilter(Request &request, char **del_ids, int *str_len);
-
   int GetDoc(const std::string &key, Doc &doc);
 
   int GetDoc(int docid, Doc &doc);

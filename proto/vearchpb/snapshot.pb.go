@@ -27,7 +27,7 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
-//snapshot status
+// snapshot status
 type SnapshotStatus int32
 
 const (
@@ -480,10 +480,7 @@ func (m *SnapshotMsg) Unmarshal(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			if skippy < 0 {
-				return ErrInvalidLengthSnapshot
-			}
-			if (iNdEx + skippy) < 0 {
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
 				return ErrInvalidLengthSnapshot
 			}
 			if (iNdEx + skippy) > l {

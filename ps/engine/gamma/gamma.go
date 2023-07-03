@@ -133,27 +133,6 @@ func Search(engine unsafe.Pointer, reqByte []byte) (int, []byte) {
 	return ret, respByte
 }
 
-func DelDocByQuery(engine unsafe.Pointer, request *Request) int {
-	var buffer []byte
-	request.Serialize(&buffer)
-	ret := int(C.DelDocByQuery(engine, (*C.char)(unsafe.Pointer(&buffer[0])), C.int(len(buffer))))
-	return ret
-}
-
-func DelDocByFilter(engine unsafe.Pointer, reqByte []byte) (int, []byte) {
-	var CBuffer *C.char
-	zero := 0
-	length := &zero
-
-	ret := int(C.DelDocByFilter(engine,
-		(*C.char)(unsafe.Pointer(&reqByte[0])), C.int(len(reqByte)),
-		(**C.char)(unsafe.Pointer(&CBuffer)),
-		(*C.int)(unsafe.Pointer(length))))
-	defer C.free(unsafe.Pointer(CBuffer))
-	respByte := C.GoBytes(unsafe.Pointer(CBuffer), C.int(*length))
-	return ret, respByte
-}
-
 func SetEngineCfg(engine unsafe.Pointer, config *Config) int {
 	var buffer []byte
 	config.Serialize(&buffer)

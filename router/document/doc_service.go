@@ -16,7 +16,7 @@ package document
 
 import (
 	"context"
-    "fmt"
+	"fmt"
 	"strings"
 	"sync"
 	"time"
@@ -229,7 +229,6 @@ func (docService *docService) bulkSearch(ctx context.Context, args []*vearchpb.S
 }
 
 func (docService *docService) flush(ctx context.Context, args *vearchpb.FlushRequest) *vearchpb.FlushResponse {
-
 	request := client.NewRouterRequest(ctx, docService.client)
 	request.SetMsgID().SetMethod(client.FlushHandler).SetHead(args.Head).SetSpace().CommonByPartitions()
 	if request.Err != nil {
@@ -275,17 +274,16 @@ func (docService *docService) forceMerge(ctx context.Context, args *vearchpb.For
 }
 
 func (docService *docService) deleteByQuery(ctx context.Context, args *vearchpb.SearchRequest) *vearchpb.DelByQueryeResponse {
-
 	request := client.NewRouterRequest(ctx, docService.client)
 	deleteByScalar := false
 	idIsLong := false
-    if args.VecFields != nil {
-        err := fmt.Errorf("delete_by_query vector param should be null")
-        return &vearchpb.DelByQueryeResponse{Head: setErrHead(err)}
-    } else {
-        request.SetMsgID().SetMethod(client.DeleteByQueryHandler).SetHead(args.Head).SetSpace().SearchByPartitions(args)
-    }	
-    if request.Err != nil {
+	if args.VecFields != nil {
+		err := fmt.Errorf("delete_by_query vector param should be null")
+		return &vearchpb.DelByQueryeResponse{Head: setErrHead(err)}
+	}
+
+	request.SetMsgID().SetMethod(client.DeleteByQueryHandler).SetHead(args.Head).SetSpace().SearchByPartitions(args)
+	if request.Err != nil {
 		return &vearchpb.DelByQueryeResponse{Head: setErrHead(request.Err)}
 	}
 

@@ -27,7 +27,6 @@ enum OpType {
     BULK = 3;
     GET = 4;
     SEARCH = 5;
-    SEARCHDELETE = 6;
 }
 //*********************** Partition *********************** //
 

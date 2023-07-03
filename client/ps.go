@@ -55,7 +55,6 @@ const (
 	MSearchForIDsHandler       = "MSearchForIDsHandler"
 	MSearchNewHandler          = "MSearchNewHandler"
 	StreamSearchHandler        = "StreamSearchHandler"
-	DeleteByQueryFilterHandler = "DeleteByQueryFilterHandler"
 
 	GetDocHandler     = "GetDocHandler"
 	GetDocsHandler    = "GetDocsHandler"

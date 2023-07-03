@@ -123,10 +123,3 @@ func Search(engine unsafe.Pointer, request *Request, response *Response) int {
 	response.DeSerialize(res)
 	return ret
 }
-
-func DelDocByQuery(engine unsafe.Pointer, request *Request) int {
-	var buffer []byte
-	request.Serialize(&buffer)
-	ret := int(C.DelDocByQuery(engine, (*C.char)(unsafe.Pointer(&buffer[0])), C.int(len(buffer))))
-	return ret
-}

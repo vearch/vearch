@@ -84,24 +84,16 @@ func (s *Store) UpdateSpace(ctx context.Context, space *entity.Space) error {
 	}
 
 	return nil
-
 }
 
-func (s *Store) Write(ctx context.Context, request *vearchpb.DocCmd, query *vearchpb.SearchRequest, response *vearchpb.SearchResponse) (err error) {
+func (s *Store) Write(ctx context.Context, request *vearchpb.DocCmd) (err error) {
 	if err = s.checkWritable(); err != nil {
 		return err
 	}
+
 	raftCmd := vearchpb.CreateRaftCommand()
-	if query != nil {
-		raftCmd.Type = vearchpb.CmdType_SEARCHDEL
-		raftCmd.SearchDelReq = query
-		raftCmd.SearchDelResp = response
-		docCmd := &vearchpb.DocCmd{Type: vearchpb.OpType_SEARCHDELETE}
-		raftCmd.WriteCommand = docCmd
-	} else {
-		raftCmd.Type = vearchpb.CmdType_WRITE
-		raftCmd.WriteCommand = request
-	}
+	raftCmd.Type = vearchpb.CmdType_WRITE
+	raftCmd.WriteCommand = request
 
 	data, err := raftCmd.Marshal()
 	if err != nil {
@@ -121,7 +113,7 @@ func (s *Store) Write(ctx context.Context, request *vearchpb.DocCmd, query *vear
 	return nil
 }
 
-//raft submit do
+// raft submit do
 func (s *Store) RaftSubmit(data []byte) (err error) {
 
 	future := s.RaftServer.Submit(uint64(s.Partition.Id), data)
