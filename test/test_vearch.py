@@ -488,7 +488,7 @@ def test_createspacerocksdb():
     #     "name": "ts_space",
     #     "partition_num": 3,
     #     "replica_num": 3,
-    #     "engine": {"name": "gamma", "index_size": 10000, "max_size": 20000000},
+    #     "engine": {"name": "gamma", "index_size": 10000},
     #     "properties": {
     #         "sku": {
     #             "type": "integer",

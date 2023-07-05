@@ -23,9 +23,9 @@ curl -v --user "root:secret" -H "content-type: application/json" -XPUT -d'
 	"replica_num": 1,
 	"engine": {
 		"index_size": 0,
-		"max_size": 100000,
         "retrieval_type": "GPU",
-		"retrieval_param": {
+        "retrieval_param": {
+            "metric_type": "L2",
 			"ncentroids": 1024,
 			"nsubvector": -1
 		}
@@ -75,7 +75,6 @@ curl -v --user "root:secret" -H "content-type: application/json" -XPUT -d'
 ````
 
 * engine
-* max_size : max documents for each partition
 * index_size : **index_size should set 0**
 * nprobe : should not larger than 1024(CUDA >= 9.0) or 2048(CUDA >= 9.2), you can set it when at search time
 * keyword

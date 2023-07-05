@@ -203,7 +203,7 @@ if(BUILD_WITH_GPU)
 
     target_link_libraries(gamma 
     ${LIBRARIES}
-    -lcublas 
+    /usr/local/cuda/lib64/libcublas.so
     /usr/local/cuda/lib64/libcudart.so
     )
 

@@ -11,7 +11,7 @@ Create Space
       "name": "tpy",
       "partition_num": 2,
       "replica_num": 1,
-      "engine": {"name":"gamma", "max_size":1000000,"nprobe":10,"metric_type":"L2","ncentroids":-1,"nsubvector":-1,"nbits_per_idx":-1},
+      "engine": {"name":"gamma","nprobe":10,"metric_type":"L2","ncentroids":-1,"nsubvector":-1,"nbits_per_idx":-1},
       "properties": {
           "image_type": {
               "type": "keyword"
