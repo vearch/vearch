@@ -43,14 +43,14 @@
 #### 依赖环境
 
    1. CentOS、ubuntu和Mac OS都支持（推荐CentOS >= 7.2）
-   2. go >= 1.11.2
-   3. gcc >= 5
+   2. go >= 1.19
+   3. gcc >= 7
    4. cmake >= 3.17
    5. OpenBLAS
    6. tbb，CentOS可使用yum安装，如：yum install tbb-devel.x86_64
    7. [RocksDB](https://github.com/facebook/rocksdb) == 6.2.2 ***（可选）***，你不需要手动安装，脚本自动安装。但是你需要手动安装rocksdb的依赖。请参考如下安装方法：https://github.com/facebook/rocksdb/blob/master/INSTALL.md
    8. [zfp](https://github.com/LLNL/zfp) == v0.5.5 ***(可选)***，你不需要手动安装，脚本自动安装。
-   9. CUDA >= 9.0，如果你不使用GPU模型，可忽略。
+   9. CUDA >= 9.2，如果你不使用GPU模型，可忽略。
 #### 编译
    * 进入 `GOPATH` 目录, `cd $GOPATH/src` `mkdir -p github.com/vearch` `cd github.com/vearch`
    * 下载源码: `git clone https://github.com/vearch/vearch.git` ($vearch表示vearch代码的绝对路径)
@@ -66,54 +66,7 @@
    * 配置文件conf.toml
      
 ```
-[global]
-    # the name will validate join cluster by same name
-    name = "vearch"
-    # you data save to disk path ,If you are in a production environment, You'd better set absolute paths
-    data = ["datas/"]
-    # log path , If you are in a production environment, You'd better set absolute paths
-    log = "logs/"
-    # default log type for any model
-    level = "debug"
-    # master <-> ps <-> router will use this key to send or receive data
-    signkey = "vearch"
-    skip_auth = true
-
-# if you are master you'd better set all config for router and ps and router and ps use default config it so cool
-[[masters]]
-    # name machine name for cluster
-    name = "m1"
-    # ip or domain
-    address = "127.0.0.1"
-    # api port for http server
-    api_port = 8817
-    # port for etcd server
-    etcd_port = 2378
-    # listen_peer_urls List of comma separated URLs to listen on for peer traffic.
-    # advertise_peer_urls List of this member's peer URLs to advertise to the rest of the cluster. The URLs needed to be a comma-separated list.
-    etcd_peer_port = 2390
-    # List of this member's client URLs to advertise to the public.
-    # The URLs needed to be a comma-separated list.
-    # advertise_client_urls AND listen_client_urls
-    etcd_client_port = 2370
-    skip_auth = true
-
-[router]
-    # port for server
-    port = 9001
-    # skip auth for client visit data
-    skip_auth = true
-
-[ps]
-    # port for server
-    rpc_port = 8081
-    # raft config begin
-    raft_heartbeat_port = 8898
-    raft_replicate_port = 8899
-    heartbeat-interval = 200 #ms
-    raft_retain_logs = 10000
-    raft_replica_concurrency = 1
-    raft_snap_concurrency = 1 
+cp config/config.toml.example conf.toml
 ```
    * 执行
 
