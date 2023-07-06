@@ -404,54 +404,15 @@ int GammaEngine::Search(Request &request, Response &response_results) {
     response_results.SetEngineInfo(table_, vec_manager_, gamma_results, req_num);
   } else {
     GammaResult *gamma_result = new GammaResult[1];
+    gamma_result->init(topn, nullptr, 0);
 
-    std::vector<std::pair<string, int>> fields_ids;
-    std::vector<string> vec_names;
-
-    const auto range_result = range_query_result.GetAllResult();
-    if (range_result == nullptr && term_filters_num > 0) {
-      for (size_t i = 0; i < term_filters_num; ++i) {
-        struct TermFilter &term_filter = term_filters[i];
-
-        string value = term_filter.field;
-
-        int doc_id = -1;
-        if (table_->GetDocIDByKey(term_filter.value, doc_id) != 0) {
-          continue;
-        }
-
-        fields_ids.emplace_back(std::make_pair(value, doc_id));
-        vec_names.emplace_back(std::move(value));
-      }
-      if (fields_ids.size() > 0) {
-        gamma_result->init(topn, vec_names.data(), fields_ids.size());
-        std::vector<string> vec;
-        int ret = vec_manager_->GetVector(fields_ids, vec);
-        if (ret == 0) {
-          int idx = 0;
-          VectorDoc *doc = gamma_result->docs[gamma_result->results_count];
-          for (const auto &field_id : fields_ids) {
-            int id = field_id.second;
-            doc->docid = id;
-            doc->fields[idx].name = vec[idx];
-            doc->fields[idx].source = nullptr;
-            doc->fields[idx].source_len = 0;
-            ++idx;
-          }
-          ++(gamma_result->results_count);
-          gamma_result->total = 1;
-        }
-      }
-    } else {
-      gamma_result->init(topn, nullptr, 0);
-      for (int docid = 0; docid < max_docid_; ++docid) {
-        if (range_query_result.Has(docid) && !docids_bitmap_->Test(docid)) {
-          ++(gamma_result->total);
-          if (gamma_result->results_count < topn) {
-            gamma_result->docs[(gamma_result->results_count)++]->docid = docid;
-          } else {
-            break;
-          }
+    for (int docid = 0; docid < max_docid_; ++docid) {
+      if (range_query_result.Has(docid) && !docids_bitmap_->Test(docid)) {
+        ++(gamma_result->total);
+        if (gamma_result->results_count < topn) {
+          gamma_result->docs[(gamma_result->results_count)++]->docid = docid;
+        } else {
+          break;
         }
       }
     }
