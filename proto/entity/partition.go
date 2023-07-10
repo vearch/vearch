@@ -17,7 +17,7 @@ package entity
 import (
 	"sync"
 
-	"github.com/tiglabs/raft"
+	"github.com/cubefs/cubefs/depends/tiglabs/raft"
 )
 
 type PartitionStatus uint8

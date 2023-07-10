@@ -22,7 +22,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/tiglabs/raft"
+	"github.com/cubefs/cubefs/depends/tiglabs/raft"
 	"github.com/vearch/vearch/client"
 	"github.com/vearch/vearch/config"
 	"github.com/vearch/vearch/proto/entity"

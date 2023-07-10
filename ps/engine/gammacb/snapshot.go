@@ -10,7 +10,7 @@ import (
 	"strconv"
 
 	protobuf "github.com/golang/protobuf/proto"
-	"github.com/tiglabs/raft/proto"
+	"github.com/cubefs/cubefs/depends/tiglabs/raft/proto"
 	"github.com/vearch/vearch/proto/vearchpb"
 	"github.com/vearch/vearch/util/errutil"
 	"github.com/vearch/vearch/util/fileutil"
