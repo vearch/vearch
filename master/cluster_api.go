@@ -28,7 +28,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cast"
-	"github.com/tiglabs/raft/proto"
+	"github.com/cubefs/cubefs/depends/tiglabs/raft/proto"
 	"github.com/vearch/vearch/client"
 	"github.com/vearch/vearch/config"
 	"github.com/vearch/vearch/monitor"

@@ -18,7 +18,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/tiglabs/raft/proto"
+	"github.com/cubefs/cubefs/depends/tiglabs/raft/proto"
 )
 
 //it use for raft add or remove node
