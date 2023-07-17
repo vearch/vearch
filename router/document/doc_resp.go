@@ -41,15 +41,19 @@ func docGetResponse(client *client.Client, args *vearchpb.GetRequest, reply *vea
 		builder.BeginArray()
 		isArray = true
 	}
+	if args == nil || reply == nil || reply.Items == nil || len(reply.Items) < 1 {
+		if reply.GetHead() != nil && reply.GetHead().Err != nil && reply.GetHead().Err.Code != vearchpb.ErrorEnum_SUCCESS {
+			err := reply.GetHead().Err
+			return nil, vearchpb.NewError(err.Code, errors.New(err.Msg))
+		}
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, nil)
+	}
 	for i, item := range reply.Items {
 		if i != 0 {
 			builder.More()
 		}
 		doc := item.Doc
 		builder.BeginObject()
-		if args == nil || reply == nil || reply.Items == nil || len(reply.Items) < 1 {
-			return nil, vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, nil)
-		}
 		space, err := client.Space(context.Background(), args.Head.DbName, args.Head.SpaceName)
 		if err != nil {
 			return nil, err
@@ -68,6 +72,8 @@ func docGetResponse(client *client.Client, args *vearchpb.GetRequest, reply *vea
 			idInt64, err := strconv.ParseInt(doc.PKey, 10, 64)
 			if err == nil {
 				builder.ValueNumeric(idInt64)
+			} else {
+				builder.ValueString(doc.PKey)
 			}
 		} else {
 			builder.ValueString(doc.PKey)
@@ -99,6 +105,10 @@ func docGetResponse(client *client.Client, args *vearchpb.GetRequest, reply *vea
 
 func docDeleteResponses(client *client.Client, args *vearchpb.DeleteRequest, reply *vearchpb.DeleteResponse) ([]byte, error) {
 	if args == nil || reply == nil || reply.Items == nil || len(reply.Items) < 1 {
+		if reply.GetHead() != nil && reply.GetHead().Err != nil && reply.GetHead().Err.Code != vearchpb.ErrorEnum_SUCCESS {
+			err := reply.GetHead().Err
+			return nil, vearchpb.NewError(err.Code, errors.New(err.Msg))
+		}
 		return nil, vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, nil)
 	}
 	return docResponse(client, args.Head, reply.Items)
@@ -106,6 +116,10 @@ func docDeleteResponses(client *client.Client, args *vearchpb.DeleteRequest, rep
 
 func docUpdateResponses(client *client.Client, args *vearchpb.UpdateRequest, reply *vearchpb.UpdateResponse) ([]byte, error) {
 	if args == nil || reply == nil || reply.Head == nil || reply.Head.Err == nil {
+		if reply.GetHead() != nil && reply.GetHead().Err != nil && reply.GetHead().Err.Code != vearchpb.ErrorEnum_SUCCESS {
+			err := reply.GetHead().Err
+			return nil, vearchpb.NewError(err.Code, errors.New(err.Msg))
+		}
 		return nil, vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, nil)
 	}
 	headErr := reply.Head.Err
@@ -174,6 +188,8 @@ func docResultSerialize(space *entity.Space, head *vearchpb.RequestHead, item *v
 		idInt64, err := strconv.ParseInt(doc.PKey, 10, 64)
 		if err == nil {
 			builder.ValueNumeric(idInt64)
+		} else {
+			builder.ValueString(doc.PKey)
 		}
 	} else {
 		builder.ValueString(doc.PKey)

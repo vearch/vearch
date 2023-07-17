@@ -211,7 +211,11 @@ func (r *routerRequest) SetDocsField() *routerRequest {
 		doc.PKey = key
 		field := &vearchpb.Field{Name: mapping.IdField}
 		if IDIsLong {
-			keyInt, _ := strconv.ParseInt(doc.PKey, 10, 64)
+			keyInt, err := strconv.ParseInt(doc.PKey, 10, 64)
+			if err != nil {
+				r.Err = vearchpb.NewError(vearchpb.ErrorEnum_Primary_IS_INVALID, err)
+				return r
+			}
 			field.Value, _ = cbbytes.ValueToByte(keyInt)
 			field.Type = vearchpb.FieldType_LONG
 		} else {
@@ -228,7 +232,11 @@ func (r *routerRequest) SetDocsByKey(keys []string) *routerRequest {
 	if r.Err != nil {
 		return r
 	}
-	r.docs, r.Err = setDocs(keys)
+	isIdLong := false
+	if idIsLong(r.space) {
+		isIdLong = true
+	}
+	r.docs, r.Err = setDocs(keys, isIdLong)
 	return r
 }
 
@@ -885,11 +893,17 @@ func partition(arr []*vearchpb.ResultItem, sortValueMap map[string][]sortorder.S
 	return j
 }
 
-func setDocs(keys []string) (docs []*vearchpb.Document, err error) {
+func setDocs(keys []string, idIsLong bool) (docs []*vearchpb.Document, err error) {
 	docs = make([]*vearchpb.Document, 0)
 	for _, key := range keys {
 		if key == "" {
 			return nil, errors.New("key can not be null")
+		}
+		if idIsLong {
+			_, err := strconv.ParseInt(key, 10, 64)
+			if err != nil {
+				return nil, err
+			}
 		}
 		docs = append(docs, &vearchpb.Document{PKey: key})
 	}

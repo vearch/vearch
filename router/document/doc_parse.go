@@ -794,7 +794,7 @@ func docSearchByIdsParse(r *http.Request, space *entity.Space) (fieldsParam []st
 			err1 := cbjson.Unmarshal(reqBody, &queryParam)
 			if err1 != nil {
 				log.Error("docSearchByIdsParse cbjson.Unmarshal error :%v", err1)
-				error = fmt.Errorf("query param Unmarshal error")
+				error = fmt.Errorf("docSearchByIdsParse cbjson.Unmarshal error :%v", err1)
 				return nil, nil, reqBodyByte, error
 			}
 
@@ -806,7 +806,7 @@ func docSearchByIdsParse(r *http.Request, space *entity.Space) (fieldsParam []st
 
 				err1 := json.Unmarshal(queryParam.Query, &idsArr)
 				if err1 != nil {
-					error = fmt.Errorf("query param Unmarshal error")
+					error = fmt.Errorf("query param Unmarshal error :%v", err1)
 					return nil, nil, reqBodyByte, error
 				}
 				fieldsParam = idsArr.Fields
@@ -827,7 +827,7 @@ func docSearchByIdsParse(r *http.Request, space *entity.Space) (fieldsParam []st
 
 				err1 := json.Unmarshal(queryParam.Query, &idsArr)
 				if err1 != nil {
-					error = fmt.Errorf("query param Unmarshal error")
+					error = fmt.Errorf("query param Unmarshal error :%v", err1)
 					return nil, nil, reqBodyByte, error
 				}
 
