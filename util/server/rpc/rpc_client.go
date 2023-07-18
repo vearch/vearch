@@ -126,19 +126,19 @@ func (r *RpcClient) Execute(ctx context.Context, servicePath string, args interf
 		ctx = context.WithValue(ctx, share.ReqMetaDataKey, md)
 		cli := r.clientPool.Get().(*client.OneClient)
 		defer r.clientPool.Put(cli)
-		if err := cli.Call(ctx, servicePath, serviceMethod, args, reply); err != nil {
+		if err = cli.Call(ctx, servicePath, serviceMethod, args, reply); err != nil {
 			err = vearchpb.NewError(vearchpb.ErrorEnum_Call_RpcClient_Failed, err)
 		}
 		return
 	}
 }
 
-func (this *RpcClient) GetAddress(i int) string {
-	if this == nil || len(this.serverAddress) <= i {
+func (r *RpcClient) GetAddress(i int) string {
+	if r == nil || len(r.serverAddress) <= i {
 		return ""
 	}
 	if i < 0 {
-		return strings.Join(this.serverAddress, ",")
+		return strings.Join(r.serverAddress, ",")
 	}
-	return this.serverAddress[i]
+	return r.serverAddress[i]
 }
