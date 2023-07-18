@@ -16,9 +16,11 @@ package client
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
+	"github.com/patrickmn/go-cache"
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/proto/vearchpb"
@@ -47,14 +49,14 @@ const (
 	HandlerType  = "type"
 	UnaryHandler = "UnaryHandler"
 
-	SearchHandler              = "SearchHandler"
-	BulkSearchHandler          = "BulkSearchHandler"
-	DeleteByQueryHandler       = "DeleteByQueryHandler"
-	MSearchHandler             = "MSearchHandler"
-	MSearchIDsHandler          = "MSearchIDsHandler"
-	MSearchForIDsHandler       = "MSearchForIDsHandler"
-	MSearchNewHandler          = "MSearchNewHandler"
-	StreamSearchHandler        = "StreamSearchHandler"
+	SearchHandler        = "SearchHandler"
+	BulkSearchHandler    = "BulkSearchHandler"
+	DeleteByQueryHandler = "DeleteByQueryHandler"
+	MSearchHandler       = "MSearchHandler"
+	MSearchIDsHandler    = "MSearchIDsHandler"
+	MSearchForIDsHandler = "MSearchForIDsHandler"
+	MSearchNewHandler    = "MSearchNewHandler"
+	StreamSearchHandler  = "StreamSearchHandler"
 
 	GetDocHandler     = "GetDocHandler"
 	GetDocsHandler    = "GetDocsHandler"
@@ -77,14 +79,15 @@ const (
 )
 
 type psClient struct {
-	client *Client
+	client     *Client
+	faultyList *cache.Cache
 }
 
 func (ps *psClient) Client() *Client {
 	return ps.client
 }
 
-//when psclient stop , it will remove all client
+// when psclient stop, it will remove all client
 func (ps *psClient) Stop() {
 	ps.Client().Master().cliCache.Range(func(key, value interface{}) bool {
 		value.(*rpcClient).close()
@@ -127,6 +130,19 @@ func (ps *psClient) GetOrCreateRPCClient(ctx context.Context, nodeID entity.Node
 	}
 
 	return nilClient
+}
+
+func (ps *psClient) initFaultylist() {
+	ps.faultyList = cache.New(time.Second*30, time.Second*30)
+}
+
+func (ps *psClient) AddFaulty(nodeID uint64) {
+	ps.faultyList.Set(fmt.Sprint(nodeID), nodeID, 0)
+}
+
+func (ps *psClient) TestFaulty(nodeID uint64) bool {
+	_, b := ps.faultyList.Get(fmt.Sprint(nodeID))
+	return b
 }
 
 var nilClient = &rpcClient{}
@@ -186,7 +202,7 @@ func Execute(addr, servicePath string, args *vearchpb.PartitionData, reply *vear
 	return err
 }
 
-//execute not use cache or pool , it only conn once and close client
+// execute not use cache or pool, it only conn once and close client
 func execute(ctx context.Context, addr, servicePath string, args *vearchpb.PartitionData, reply *vearchpb.PartitionData) error {
 	client, err := server.NewRpcClient(addr)
 	if err != nil {
