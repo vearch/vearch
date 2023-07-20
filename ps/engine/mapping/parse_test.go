@@ -25,7 +25,6 @@ import (
 )
 
 func TestParseSchema(t *testing.T) {
-
 	schema := `{
         "city": {
             "type": "string"
@@ -35,9 +34,6 @@ func TestParseSchema(t *testing.T) {
         },
         "insert_time": {
             "type": "date"
-        },
-        "geo_location": {
-            "type": "geo_point"
         },
         "content": {
             "type": "string",
@@ -131,9 +127,6 @@ func TestParseSchemaErr(t *testing.T) {
 				"point": {
 					"type": "string",
 					"analyzer": "standard"
-				},
-				"location": {
-					"type": "geo_point"
 				},
 				"time_stamp": {
 					"type": "date"
