@@ -70,11 +70,11 @@ func NewClient(conf *config.Config) (client *Client, err error) {
 
 func (client *Client) initPsClient(conf *config.Config) error {
 	client.ps = &psClient{client: client}
+	client.ps.initFaultylist()
 	return nil
 }
 
 func (client *Client) initMasterClient(conf *config.Config) error {
-
 	openStore, err := store.OpenStore("etcd", conf.GetEtcdAddress())
 	if err != nil {
 		return err
@@ -393,9 +393,241 @@ func str2decimalFloat(str string) decimal.Decimal {
 	return decimalFloat
 }
 
+func (r *routerRequest) searchFromPartition(ctx context.Context, partitionID entity.PartitionID, pd *vearchpb.PartitionData, space *entity.Space, sortOrder sortorder.SortOrder, respChain chan *response.SearchDocResult, normalIsOrNot bool, normalField map[string]string) {
+	pidCacheStart := time.Now()
+	responseDoc := &response.SearchDocResult{}
+	defer func() {
+		if r := recover(); r != nil {
+			msg := fmt.Sprintf("[Recover] partitionID: [%v], err: [%s]", partitionID, cast.ToString(r))
+			err := &vearchpb.Error{Code: vearchpb.ErrorEnum_RECOVER, Msg: msg}
+			head := &vearchpb.ResponseHead{Err: err}
+			searchResponse := &vearchpb.SearchResponse{Head: head}
+			pd.SearchResponse = searchResponse
+			responseDoc.PartitionData = pd
+			respChain <- responseDoc
+		}
+	}()
+
+	partition, e := r.client.Master().Cache().PartitionByCache(ctx, r.space.Name, partitionID)
+	if e != nil {
+		err := &vearchpb.Error{Code: vearchpb.ErrorEnum_ROUTER_NO_PS_CLIENT, Msg: "query partition cache err partitionID:" + fmt.Sprint(partitionID)}
+		head := &vearchpb.ResponseHead{Err: err}
+		searchResponse := &vearchpb.SearchResponse{Head: head}
+		pd.SearchResponse = searchResponse
+		responseDoc.PartitionData = pd
+		respChain <- responseDoc
+		return
+	}
+
+	replyPartition := new(vearchpb.PartitionData)
+	if replyPartition.SearchResponse == nil {
+		params := make(map[string]string)
+		head := &vearchpb.ResponseHead{Params: params}
+		replyPartition.SearchResponse = &vearchpb.SearchResponse{Head: head}
+	}
+
+	if replyPartition.SearchResponse.Head == nil {
+		params := make(map[string]string)
+		replyPartition.SearchResponse.Head = &vearchpb.ResponseHead{Params: params}
+	}
+
+	if replyPartition.SearchResponse.Head.Params == nil {
+		params := make(map[string]string)
+		replyPartition.SearchResponse.Head.Params = params
+	}
+
+	pidCacheEnd := time.Now()
+	if config.LogInfoPrintSwitch {
+		pidCacheTime := pidCacheEnd.Sub(pidCacheStart).Seconds() * 1000
+		pidCacheTimeStr := strconv.FormatFloat(pidCacheTime, 'f', -1, 64)
+		replyPartition.SearchResponse.Head.Params["pidCacheTime"] = pidCacheTimeStr
+	}
+
+	clientType := pd.SearchRequest.Head.ClientType
+	//ensure node is alive
+	servers := r.client.Master().Cache().serverCache
+
+	rpcEnd, rpcStart := time.Now(), time.Now()
+	nodeID := GetNodeIdsByClientType(clientType, partition, servers)
+
+	for len(partition.Replicas) > r.client.PS().faultyList.ItemCount() {
+		if r.client.PS().TestFaulty(nodeID) {
+			nodeID = GetNodeIdsByClientType(clientType, partition, servers)
+			continue
+		}
+		nodeIdEnd := time.Now()
+		if config.LogInfoPrintSwitch {
+			nodeIdTime := nodeIdEnd.Sub(pidCacheEnd).Seconds() * 1000
+			nodeIdTimeStr := strconv.FormatFloat(nodeIdTime, 'f', -1, 64)
+			replyPartition.SearchResponse.Head.Params["nodeIdTime"] = nodeIdTimeStr
+		}
+		rpcClient := r.client.PS().GetOrCreateRPCClient(ctx, nodeID)
+		rpcClientEnd := time.Now()
+		if config.LogInfoPrintSwitch {
+			rpcClientTime := rpcClientEnd.Sub(nodeIdEnd).Seconds() * 1000
+			rpcClientTimeStr := strconv.FormatFloat(rpcClientTime, 'f', -1, 64)
+			replyPartition.SearchResponse.Head.Params["rpcClientTime"] = rpcClientTimeStr
+		}
+		if rpcClient == nil {
+			err := &vearchpb.Error{Code: vearchpb.ErrorEnum_ROUTER_NO_PS_CLIENT, Msg: "no ps client by nodeID:" + fmt.Sprint(nodeID)}
+			head := &vearchpb.ResponseHead{Err: err}
+			searchResponse := &vearchpb.SearchResponse{Head: head}
+			pd.SearchResponse = searchResponse
+			responseDoc.PartitionData = pd
+			respChain <- responseDoc
+			return
+		}
+
+		if normalIsOrNot && len(normalField) > 0 {
+			vectorQueryArr := pd.SearchRequest.VecFields
+			proMap := space.SpaceProperties
+			for _, query := range vectorQueryArr {
+				docField := proMap[query.Name]
+				if docField != nil {
+					dimension := docField.Dimension
+					float32s, _, err := cbbytes.ByteToVectorForFloat32(query.Value)
+					if err != nil {
+						panic(err.Error())
+					}
+					max := len(float32s)
+					dPage := max / dimension
+					if max >= dPage {
+						end := int(0)
+						normalVector := make([]float32, 0, max)
+						for i := 1; i <= dPage; i++ {
+							qu := i * dimension
+							if i != dPage {
+								norma := float32s[i-1+end : qu]
+								if err := util.Normalization(norma); err != nil {
+									panic(err.Error())
+								}
+								normalVector = append(normalVector, norma...)
+							} else {
+								norma := float32s[i-1+end:]
+								if err := util.Normalization(norma); err != nil {
+									panic(err.Error())
+								}
+								normalVector = append(normalVector, norma...)
+							}
+							end = qu - i
+						}
+						bs, err := cbbytes.VectorToByte(normalVector, "")
+						if err != nil {
+							log.Error("processVector VectorToByte error: %v", err)
+							panic(err.Error())
+						}
+						query.Value = bs
+					}
+				} else {
+					float32s, _, err := cbbytes.ByteToVectorForFloat32(query.Value)
+					if err != nil {
+						panic(err.Error())
+					}
+					if err := util.Normalization(float32s); err != nil {
+						panic(err.Error())
+					}
+					bs, err := cbbytes.VectorToByte(float32s, "")
+					if err != nil {
+						log.Error("processVector VectorToByte error: %v", err)
+						panic(err.Error())
+					}
+					query.Value = bs
+				}
+			}
+		}
+		rpcStart = time.Now()
+		if config.LogInfoPrintSwitch {
+			normalTime := rpcStart.Sub(rpcClientEnd).Seconds() * 1000
+			normalTimeStr := strconv.FormatFloat(normalTime, 'f', -1, 64)
+			rpcBeforeTime := rpcStart.Sub(pidCacheStart).Seconds() * 1000
+			rpcBeforeTimeStr := strconv.FormatFloat(rpcBeforeTime, 'f', -1, 64)
+			replyPartition.SearchResponse.Head.Params["normalTime"] = normalTimeStr
+			replyPartition.SearchResponse.Head.Params["rpcBeforeTime"] = rpcBeforeTimeStr
+		}
+
+		err := rpcClient.Execute(ctx, UnaryHandler, pd, replyPartition)
+		rpcEnd = time.Now()
+		if err == nil {
+			break
+		}
+
+		if strings.Contains(err.Error(), "connect: connection refused") {
+			r.client.PS().AddFaulty(nodeID)
+			nodeID = GetNodeIdsByClientType(clientType, partition, servers)
+		} else {
+			log.Error("rpc err [%v], nodeID %v", err, nodeID)
+			break
+		}
+	}
+
+	sortFieldMap := pd.SearchRequest.SortFieldMap
+	isIsLong := false
+	if idIsLong(space) {
+		isIsLong = true
+	}
+	searchResponse := replyPartition.SearchResponse
+	sortValueMap := make(map[string][]sortorder.SortValue)
+	if searchResponse != nil {
+		if config.LogInfoPrintSwitch {
+			rpcCostTime := rpcEnd.Sub(rpcStart).Seconds() * 1000
+			rpcCostTimeStr := strconv.FormatFloat(rpcCostTime, 'f', -1, 64)
+
+			if searchResponse.Head.Params != nil {
+				searchResponse.Head.Params["rpcCostTime"] = rpcCostTimeStr
+			} else {
+				costTimeMap := make(map[string]string)
+				costTimeMap["rpcCostTime"] = rpcCostTimeStr
+				responseHead := &vearchpb.ResponseHead{Params: costTimeMap}
+				searchResponse.Head = responseHead
+			}
+		}
+
+		flatBytes := searchResponse.FlatBytes
+		if flatBytes != nil {
+			deSerializeStartTime := time.Now()
+			gamma.DeSerialize(flatBytes, searchResponse)
+			deSerializeEndTime := time.Now()
+			if config.LogInfoPrintSwitch {
+				deSerializeCostTime := deSerializeEndTime.Sub(deSerializeStartTime).Seconds() * 1000
+				deSerializeCostTimeStr := strconv.FormatFloat(deSerializeCostTime, 'f', -1, 64)
+				searchResponse.Head.Params["deSerializeCostTime"] = deSerializeCostTimeStr
+			}
+			searchResults := searchResponse.Results
+			if searchResults != nil && len(searchResults) > 0 {
+				for i, searchResult := range searchResults {
+					searchItems := searchResult.ResultItems
+					for _, item := range searchItems {
+						source, sortValues, pkey, err := GetSource(item, space, isIsLong, sortFieldMap, pd.SearchRequest.SortFields)
+						if err != nil {
+							err := &vearchpb.Error{Code: vearchpb.ErrorEnum_PARSING_RESULT_ERROR, Msg: "router call ps rpc service err nodeID:" + string(nodeID)}
+							replyPartition.SearchResponse.Head.Err = err
+						}
+						item.PKey = pkey
+						item.Source = source
+						index := strconv.Itoa(i)
+						sortValueMap[item.PKey+"_"+index] = sortValues
+					}
+				}
+			}
+			if config.LogInfoPrintSwitch {
+				fieldParsingTime := time.Now().Sub(deSerializeEndTime).Seconds() * 1000
+				fieldParsingTimeStr := strconv.FormatFloat(fieldParsingTime, 'f', -1, 64)
+				searchResponse.Head.Params["fieldParsingTime"] = fieldParsingTimeStr
+			}
+		}
+	}
+	if config.LogInfoPrintSwitch {
+		rpcTotalTime := time.Now().Sub(pidCacheStart).Seconds() * 1000
+		rpcTotalTimeStr := strconv.FormatFloat(rpcTotalTime, 'f', -1, 64)
+		searchResponse.Head.Params["rpcTotalTime"] = rpcTotalTimeStr
+	}
+	responseDoc.PartitionData = replyPartition
+	responseDoc.SortValueMap = sortValueMap
+	respChain <- responseDoc
+}
+
 func (r *routerRequest) SearchFieldSortExecute(sortOrder sortorder.SortOrder) *vearchpb.SearchResponse {
 	startTime := time.Now()
-	// ctx := context.WithValue(r.ctx, share.ReqMetaDataKey, r.md)
 	var wg sync.WaitGroup
 	sendPartitionMap := r.sendMap
 	normalIsOrNot := false
@@ -424,8 +656,7 @@ func (r *routerRequest) SearchFieldSortExecute(sortOrder sortorder.SortOrder) *v
 		for field, pro := range spacePro {
 			format := pro.Format
 			if pro.FieldType == entity.FieldType_VECTOR && format != nil &&
-				(strings.Compare(*format, "normalization") == 0 ||
-					strings.Compare(*format, "normal") == 0) {
+				(strings.Compare(*format, "normalization") == 0 || strings.Compare(*format, "normal") == 0) {
 				normalField[field] = field
 			}
 		}
@@ -444,236 +675,10 @@ func (r *routerRequest) SearchFieldSortExecute(sortOrder sortorder.SortOrder) *v
 		searchReq = pData.SearchRequest
 		wg.Add(1)
 		c := context.WithValue(r.ctx, share.ReqMetaDataKey, util.CopyMap(r.md))
-		go func(ctx context.Context, partitionID entity.PartitionID, pd *vearchpb.PartitionData, space *entity.Space, sortOrder sortorder.SortOrder) {
+		go func(ctx context.Context, partitionID entity.PartitionID, pd *vearchpb.PartitionData, space *entity.Space, sortOrder sortorder.SortOrder, respChain chan *response.SearchDocResult, normalIsOrNot bool, normalField map[string]string) {
 			defer wg.Done()
-
-			pidCacheStart := time.Now()
-			responseDoc := &response.SearchDocResult{}
-			replyPartition := new(vearchpb.PartitionData)
-			defer func() {
-				if r := recover(); r != nil {
-					msg := fmt.Sprintf("[Recover] partitionID: [%v], err: [%s]", partitionID, cast.ToString(r))
-					err := &vearchpb.Error{Code: vearchpb.ErrorEnum_RECOVER, Msg: msg}
-					head := &vearchpb.ResponseHead{Err: err}
-					searchResponse := &vearchpb.SearchResponse{Head: head}
-					pd.SearchResponse = searchResponse
-					responseDoc.PartitionData = pd
-					respChain <- responseDoc
-				}
-			}()
-			partition, e := r.client.Master().Cache().PartitionByCache(ctx, r.space.Name, partitionID)
-			if e != nil {
-				err := &vearchpb.Error{Code: vearchpb.ErrorEnum_ROUTER_NO_PS_CLIENT, Msg: "query partition cache err partitionID:" + string(partitionID)}
-				head := &vearchpb.ResponseHead{Err: err}
-				searchResponse := &vearchpb.SearchResponse{Head: head}
-				pd.SearchResponse = searchResponse
-				responseDoc.PartitionData = pd
-				respChain <- responseDoc
-				return
-			}
-
-			if replyPartition.SearchResponse == nil {
-				params := make(map[string]string)
-				head := &vearchpb.ResponseHead{Params: params}
-				replyPartition.SearchResponse = &vearchpb.SearchResponse{Head: head}
-			}
-
-			if replyPartition.SearchResponse.Head == nil {
-				params := make(map[string]string)
-				replyPartition.SearchResponse.Head = &vearchpb.ResponseHead{Params: params}
-			}
-
-			if replyPartition.SearchResponse.Head.Params == nil {
-				params := make(map[string]string)
-				replyPartition.SearchResponse.Head.Params = params
-			}
-
-			pidCacheEnd := time.Now()
-			if config.LogInfoPrintSwitch {
-				pidCacheTime := pidCacheEnd.Sub(pidCacheStart).Seconds() * 1000
-				pidCacheTimeStr := strconv.FormatFloat(pidCacheTime, 'f', -1, 64)
-				replyPartition.SearchResponse.Head.Params["pidCacheTime"] = pidCacheTimeStr
-			}
-
-			clientType := pd.SearchRequest.Head.ClientType
-			//ensure node is alive
-			servers := r.client.Master().Cache().serverCache
-			nodeID := GetNodeIdsByClientType(clientType, partition, servers)
-			nodeIdEnd := time.Now()
-			if config.LogInfoPrintSwitch {
-				nodeIdTime := nodeIdEnd.Sub(pidCacheEnd).Seconds() * 1000
-				nodeIdTimeStr := strconv.FormatFloat(nodeIdTime, 'f', -1, 64)
-				replyPartition.SearchResponse.Head.Params["nodeIdTime"] = nodeIdTimeStr
-			}
-			rpcClient := r.client.PS().GetOrCreateRPCClient(ctx, nodeID)
-			rpcClientEnd := time.Now()
-			if config.LogInfoPrintSwitch {
-				rpcClientTime := rpcClientEnd.Sub(nodeIdEnd).Seconds() * 1000
-				rpcClientTimeStr := strconv.FormatFloat(rpcClientTime, 'f', -1, 64)
-				replyPartition.SearchResponse.Head.Params["rpcClientTime"] = rpcClientTimeStr
-			}
-			if rpcClient == nil {
-				err := &vearchpb.Error{Code: vearchpb.ErrorEnum_ROUTER_NO_PS_CLIENT, Msg: "no ps client by nodeID:" + string(nodeID)}
-				head := &vearchpb.ResponseHead{Err: err}
-				searchResponse := &vearchpb.SearchResponse{Head: head}
-				pd.SearchResponse = searchResponse
-				responseDoc.PartitionData = pd
-				respChain <- responseDoc
-				return
-			}
-
-			if normalIsOrNot && len(normalField) > 0 {
-				vectorQueryArr := pd.SearchRequest.VecFields
-				proMap := space.SpaceProperties
-				for _, query := range vectorQueryArr {
-					docField := proMap[query.Name]
-					if docField != nil {
-						dimension := docField.Dimension
-						float32s, _, err := cbbytes.ByteToVectorForFloat32(query.Value)
-						if err == nil {
-							max := len(float32s)
-							dPage := max / dimension
-							if max >= dPage {
-								end := int(0)
-								normalVector := make([]float32, 0, max)
-								for i := 1; i <= dPage; i++ {
-									qu := i * dimension
-									if i != dPage {
-										norma := float32s[i-1+end : qu]
-										if err := util.Normalization(norma); err != nil {
-											panic(err.Error())
-										} else {
-											normalVector = append(normalVector, norma...)
-										}
-									} else {
-										norma := float32s[i-1+end:]
-										if err := util.Normalization(norma); err != nil {
-											panic(err.Error())
-										} else {
-											normalVector = append(normalVector, norma...)
-										}
-									}
-									end = qu - i
-								}
-								bs, err := cbbytes.VectorToByte(normalVector, "")
-								if err != nil {
-									log.Error("processVector VectorToByte error: %v", err)
-									panic(err.Error())
-								} else {
-									query.Value = bs
-								}
-							}
-						} else {
-							panic(err.Error())
-						}
-					} else {
-						float32s, _, err := cbbytes.ByteToVectorForFloat32(query.Value)
-						if err == nil {
-							if err := util.Normalization(float32s); err != nil {
-								panic(err.Error())
-							} else {
-								bs, err := cbbytes.VectorToByte(float32s, "")
-								if err != nil {
-									log.Error("processVector VectorToByte error: %v", err)
-									panic(err.Error())
-								} else {
-									query.Value = bs
-								}
-							}
-						} else {
-							panic(err.Error())
-						}
-					}
-				}
-			}
-			rpcStart := time.Now()
-			if config.LogInfoPrintSwitch {
-				normalTime := rpcStart.Sub(rpcClientEnd).Seconds() * 1000
-				normalTimeStr := strconv.FormatFloat(normalTime, 'f', -1, 64)
-				rpcBeforeTime := rpcStart.Sub(pidCacheStart).Seconds() * 1000
-				rpcBeforeTimeStr := strconv.FormatFloat(rpcBeforeTime, 'f', -1, 64)
-				replyPartition.SearchResponse.Head.Params["normalTime"] = normalTimeStr
-				replyPartition.SearchResponse.Head.Params["rpcBeforeTime"] = rpcBeforeTimeStr
-			}
-
-			err := rpcClient.Execute(ctx, UnaryHandler, pd, replyPartition)
-			rpcEnd := time.Now()
-			if err != nil {
-				err := &vearchpb.Error{Code: vearchpb.ErrorEnum_ROUTER_CALL_PS_RPC_ERR, Msg: "router call ps rpc service err nodeID:" + string(nodeID)}
-				head := &vearchpb.ResponseHead{Err: err}
-				searchResponse := &vearchpb.SearchResponse{Head: head}
-				pd.SearchResponse = searchResponse
-				responseDoc.PartitionData = pd
-				respChain <- responseDoc
-				return
-			}
-
-			sortFieldMap := pd.SearchRequest.SortFieldMap
-			isIsLong := false
-			if idIsLong(space) {
-				isIsLong = true
-			}
-			searchResponse := replyPartition.SearchResponse
-			sortValueMap := make(map[string][]sortorder.SortValue)
-			if searchResponse != nil {
-				if config.LogInfoPrintSwitch {
-					rpcCostTime := rpcEnd.Sub(rpcStart).Seconds() * 1000
-					rpcCostTimeStr := strconv.FormatFloat(rpcCostTime, 'f', -1, 64)
-
-					if searchResponse.Head.Params != nil {
-						searchResponse.Head.Params["rpcCostTime"] = rpcCostTimeStr
-					} else {
-						costTimeMap := make(map[string]string)
-						costTimeMap["rpcCostTime"] = rpcCostTimeStr
-						responseHead := &vearchpb.ResponseHead{Params: costTimeMap}
-						searchResponse.Head = responseHead
-					}
-				}
-
-				flatBytes := searchResponse.FlatBytes
-				if flatBytes != nil {
-					deSerializeStartTime := time.Now()
-					gamma.DeSerialize(flatBytes, searchResponse)
-					deSerializeEndTime := time.Now()
-					if config.LogInfoPrintSwitch {
-						deSerializeCostTime := deSerializeEndTime.Sub(deSerializeStartTime).Seconds() * 1000
-						deSerializeCostTimeStr := strconv.FormatFloat(deSerializeCostTime, 'f', -1, 64)
-						searchResponse.Head.Params["deSerializeCostTime"] = deSerializeCostTimeStr
-					}
-					searchResults := searchResponse.Results
-					if searchResults != nil && len(searchResults) > 0 {
-						for i, searchResult := range searchResults {
-							searchItems := searchResult.ResultItems
-							for _, item := range searchItems {
-								source, sortValues, pkey, err := GetSource(item, space, isIsLong, sortFieldMap, pd.SearchRequest.SortFields)
-								if err != nil {
-									err := &vearchpb.Error{Code: vearchpb.ErrorEnum_PARSING_RESULT_ERROR, Msg: "router call ps rpc service err nodeID:" + string(nodeID)}
-									replyPartition.SearchResponse.Head.Err = err
-								}
-								item.PKey = pkey
-								item.Source = source
-								index := strconv.Itoa(i)
-								sortValueMap[item.PKey+"_"+index] = sortValues
-							}
-
-						}
-					}
-					if config.LogInfoPrintSwitch {
-						fieldParsingTime := time.Now().Sub(deSerializeEndTime).Seconds() * 1000
-						fieldParsingTimeStr := strconv.FormatFloat(fieldParsingTime, 'f', -1, 64)
-						searchResponse.Head.Params["fieldParsingTime"] = fieldParsingTimeStr
-					}
-				}
-			}
-			if config.LogInfoPrintSwitch {
-				rpcTotalTime := time.Now().Sub(pidCacheStart).Seconds() * 1000
-				rpcTotalTimeStr := strconv.FormatFloat(rpcTotalTime, 'f', -1, 64)
-				searchResponse.Head.Params["rpcTotalTime"] = rpcTotalTimeStr
-			}
-			responseDoc.PartitionData = replyPartition
-			responseDoc.SortValueMap = sortValueMap
-			respChain <- responseDoc
-		}(c, partitionID, pData, r.space, sortOrder)
+			r.searchFromPartition(ctx, partitionID, pd, space, sortOrder, respChain, normalIsOrNot, normalField)
+		}(c, partitionID, pData, r.space, sortOrder, respChain, normalIsOrNot, normalField)
 	}
 	wg.Wait()
 	close(respChain)
@@ -1259,14 +1264,14 @@ func MergeArrForField(dest []*vearchpb.SearchResult, src []*vearchpb.SearchResul
 		for index := range dest {
 			err := MergeForField(dest[index], src[index], firstSortValue, so, 0, size)
 			if err != nil {
-				return fmt.Errorf("merge err [%s]")
+				return fmt.Errorf("merge err [%v]", err)
 			}
 		}
 	} else {
 		for index := range src {
 			err := MergeForField(dest[index], src[0], firstSortValue, so, 0, size)
 			if err != nil {
-				return fmt.Errorf("merge err [%s]")
+				return fmt.Errorf("merge err [%v]", err)
 			}
 		}
 	}
@@ -1289,14 +1294,14 @@ func BulkMergeArrForField(dest []*vearchpb.SearchResult, src []*vearchpb.SearchR
 		for index := range dest {
 			err := MergeForField(dest[index], src[index], firstSortValue, soArr[index], 0, sizes[index])
 			if err != nil {
-				return fmt.Errorf("merge err [%s]")
+				return fmt.Errorf("merge err [%v]", err)
 			}
 		}
 	} else {
 		for index := range src {
 			err := MergeForField(dest[index], src[0], firstSortValue, soArr[0], 0, sizes[index])
 			if err != nil {
-				return fmt.Errorf("merge err [%s]")
+				return fmt.Errorf("merge err [%v]", err)
 			}
 		}
 	}
@@ -1408,14 +1413,14 @@ func AddMergeResultArr(dest []*vearchpb.SearchResult, src []*vearchpb.SearchResu
 		for index := range dest {
 			err := AddMerge(dest[index], src[index])
 			if err != nil {
-				return fmt.Errorf("merge err [%s]")
+				return fmt.Errorf("merge err [%v]", err)
 			}
 		}
 	} else {
 		for index := range src {
 			err := AddMerge(dest[index], src[0])
 			if err != nil {
-				return fmt.Errorf("merge err [%s]")
+				return fmt.Errorf("merge err [%v]", err)
 			}
 		}
 	}
