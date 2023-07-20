@@ -9,7 +9,7 @@
 
 #include "faiss/IndexBinaryFlat.h"
 #include "faiss/utils/hamming.h"
-#include "search/error_code.h"
+#include "common/error_code.h"
 
 namespace tig_gamma {
 

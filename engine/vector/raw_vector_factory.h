@@ -19,6 +19,7 @@
 #include <string>
 
 #include "common/gamma_common_data.h"
+#include "io/memory_raw_vector_io.h"
 #include "io/mmap_raw_vector_io.h"
 
 namespace tig_gamma {
@@ -41,7 +42,11 @@ class RawVectorFactory {
       case VectorStorageType::MemoryOnly:
         raw_vector = new MemoryRawVector(meta_info, root_path, store_params,
                                          docids_bitmap);
+#ifdef WITH_ROCKSDB
+        vio = new MemoryRawVectorIO((MemoryRawVector *)raw_vector);
+#else
         vio = new MmapRawVectorIO(raw_vector);
+#endif
         break;
       case VectorStorageType::Mmap:
         raw_vector = new MmapRawVector(meta_info, root_path, store_params,

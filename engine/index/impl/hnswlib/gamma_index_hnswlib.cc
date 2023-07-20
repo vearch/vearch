@@ -15,7 +15,7 @@
 #include <string>
 #include <omp.h>
 
-#include "search/error_code.h"
+#include "common/error_code.h"
 #include "vector/memory_raw_vector.h"
 #include "util/utils.h"
 

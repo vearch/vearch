@@ -8,7 +8,7 @@
 #include "mmap_raw_vector_io.h"
 
 #include "io/io_common.h"
-#include "search/error_code.h"
+#include "common/error_code.h"
 #include "vector/memory_raw_vector.h"
 
 namespace tig_gamma {

@@ -31,7 +31,7 @@
 
 #include "common/gamma_common_data.h"
 #include "index/gamma_index_io.h"
-#include "search/error_code.h"
+#include "common/error_code.h"
 #include "vector/rocksdb_raw_vector.h"
 
 namespace tig_gamma {

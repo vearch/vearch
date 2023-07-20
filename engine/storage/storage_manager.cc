@@ -7,7 +7,7 @@
 
 #include "storage_manager.h"
 
-#include "search/error_code.h"
+#include "common/error_code.h"
 #include "table_block.h"
 #include "util/log.h"
 #include "util/utils.h"

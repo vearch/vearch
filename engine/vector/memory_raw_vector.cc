@@ -5,12 +5,11 @@
  * found in the LICENSE file in the root directory of this source tree.
  */
 
-#include "memory_raw_vector.h"
-
 #include <unistd.h>
+#include "memory_raw_vector.h"
+#include "common/error_code.h"
 
-#include "search/error_code.h"
-
+using std::string;
 namespace tig_gamma {
 
 MemoryRawVector::MemoryRawVector(VectorMetaInfo *meta_info,
@@ -24,7 +23,6 @@ MemoryRawVector::MemoryRawVector(VectorMetaInfo *meta_info,
   vector_byte_size_ = meta_info->DataSize() * meta_info->Dimension();
   current_segment_ = nullptr;
   curr_idx_in_seg_ = 0;
-  storage_mgr_ = nullptr;
   allow_use_zfp = false;
 }
 
@@ -33,52 +31,37 @@ MemoryRawVector::~MemoryRawVector() {
     CHECK_DELETE_ARRAY(segments_[i]);
   }
   CHECK_DELETE_ARRAY(segments_);
-  CHECK_DELETE(storage_mgr_);
 }
 
 int MemoryRawVector::InitStore(std::string &vec_name) {
+  // const std::string &name = meta_info_->Name();
+  // string db_path = this->root_path_ + "/" + name;
+  // if (rdb_.Open(db_path)) {
+  //   LOG(ERROR) << "open rocks db error, path=" << db_path;
+  //   return IO_ERR;
+  // }
   segments_ = new uint8_t *[kMaxSegments];
   std::fill_n(segments_, kMaxSegments, nullptr);
   if (ExtendSegments()) return -2;
-  LOG(INFO) << "init success, segment_size=" << segment_size_;
-
-  std::string vec_dir = root_path_ + "/" + meta_info_->Name();
-  uint32_t var = std::numeric_limits<uint32_t>::max();
-  uint32_t max_seg_size = var / vector_byte_size_;
-  uint32_t seg_block_capacity = 2000000;
-  if ((int)max_seg_size < store_params_.segment_size) {
-    store_params_.segment_size = max_seg_size;
-    seg_block_capacity = 4000000000 / (1000000000 / max_seg_size + 1) - 1;
-    LOG(INFO) << "Because the vector length is too long, segment_size becomes "
-              << max_seg_size << " and seg_block_capacity becomes "
-              << seg_block_capacity;
-  }
-  StorageManagerOptions options;
-  options.segment_size = store_params_.segment_size;
-  options.fixed_value_bytes = vector_byte_size_;
-  options.seg_block_capacity = seg_block_capacity;
-  storage_mgr_ =
-      new StorageManager(vec_dir, BlockType::VectorBlockType, options);
-
-  int ret = storage_mgr_->Init(vec_name, 0);
-  if (ret) {
-    LOG(ERROR) << "init gamma db error, ret=" << ret;
-    return ret;
-  }
-
+  
   LOG(INFO) << "init memory raw vector success! vector byte size="
-            << vector_byte_size_ << ", path=" << vec_dir;
+            << vector_byte_size_ << ", path=" << root_path_ + "/" + meta_info_->Name();
   return SUCC;
 }
 
 int MemoryRawVector::AddToStore(uint8_t *v, int len) {
-  int ret = storage_mgr_->Add(v, len);
+  ScopeVector svec;
+  if (Compress(v, svec)) {
+    return INTERNAL_ERR;
+  }
 
-  ret = AddToMem(v, vector_byte_size_);
-  return ret;
+  AddToMem((uint8_t *)svec.Get(), vector_byte_size_);
+  // int total = meta_info_->Size();
+  // rdb_.Put(total, (const char *)v, vector_byte_size_);
+  return SUCC;
 }
 
-int MemoryRawVector::AddToMem(const uint8_t *v, int len) {
+int MemoryRawVector::AddToMem(uint8_t *v, int len) {
   assert(len == vector_byte_size_);
   if (curr_idx_in_seg_ == segment_size_ && ExtendSegments()) return -2;
   memcpy((void *)(current_segment_ + curr_idx_in_seg_ * vector_byte_size_),
@@ -117,8 +100,13 @@ int MemoryRawVector::GetVectorHeader(int start, int n, ScopeVectors &vecs,
     int len = segment_size_ - start % segment_size_;
     if (len > n) len = n;
 
+    uint8_t *vec = nullptr;
     bool deletable = false;
-    vecs.Add(cmprs_v, deletable);
+    if (Decompress(cmprs_v, len, vec, deletable)) {
+      return INTERNAL_ERR;
+    }
+
+    vecs.Add(vec, deletable);
     lens.push_back(len);
     start += len;
     n -= len;
@@ -127,17 +115,27 @@ int MemoryRawVector::GetVectorHeader(int start, int n, ScopeVectors &vecs,
 }
 
 int MemoryRawVector::UpdateToStore(int vid, uint8_t *v, int len) {
+  ScopeVector svec;
+  if (this->Compress(v, svec)) {
+    return INTERNAL_ERR;
+  }
+
   memcpy((void *)(segments_[vid / segment_size_] +
                   (size_t)vid % segment_size_ * vector_byte_size_),
-         (void *)v, vector_byte_size_);
-  return storage_mgr_->Update(vid, v, len);
+         (void *)svec.Get(), vector_byte_size_);
+  // rdb_.Put(vid, (const char *)svec.Get(), vector_byte_size_);
+  return SUCC;
 }
 
 int MemoryRawVector::GetVector(long vid, const uint8_t *&vec,
                                bool &deletable) const {
-  deletable = false;
-  vec = segments_[vid / segment_size_] +
-        (size_t)vid % segment_size_ * vector_byte_size_;
+  uint8_t *cmprs_v = segments_[vid / segment_size_] +
+                     (size_t)vid % segment_size_ * vector_byte_size_;
+  uint8_t *v = nullptr;
+  if (Decompress(cmprs_v, 1, v, deletable)) {
+    return INTERNAL_ERR;
+  }
+  vec = v;
   return SUCC;
 }
 

@@ -13,7 +13,7 @@
 
 namespace tig_gamma {
 
-class MmapRawVectorIO;
+class MemoryRawVectorIO;
 
 class MemoryRawVector : public RawVector {
  public:
@@ -34,19 +34,22 @@ class MemoryRawVector : public RawVector {
 
   uint8_t *GetFromMem(long vid) const;
 
+  int AddToMem(uint8_t *v, int len);
+
  protected:
   int GetVector(long vid, const uint8_t *&vec, bool &deleteable) const override;
 
  private:
-  friend MmapRawVectorIO;
+  friend MemoryRawVectorIO;
   int ExtendSegments();
-  int AddToMem(const uint8_t *v, int len);
 
   uint8_t **segments_;
   int nsegments_;
   int segment_size_;
   uint8_t *current_segment_;
   int curr_idx_in_seg_;
+
+  // RocksDBWrapper rdb_;
 };
 
 }  // namespace tig_gamma

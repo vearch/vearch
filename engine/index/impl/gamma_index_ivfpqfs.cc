@@ -24,7 +24,7 @@
 #include <vector>
 
 #include "util/bitmap.h"
-#include "search/error_code.h"
+#include "common/error_code.h"
 #include "faiss/invlists/BlockInvertedLists.h"
 #include "index/gamma_index_io.h"
 #include "vector/mmap_raw_vector.h"
