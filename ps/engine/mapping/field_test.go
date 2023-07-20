@@ -4,7 +4,7 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//	http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -31,24 +31,18 @@ func TestProcessString(t *testing.T) {
 		NewFloatFieldMapping("float"),
 		NewIntegerFieldMapping("int"),
 		NewDateFieldMapping("time"),
-		NewGeoPointFieldMapping("geo"),
-		NewGeoPointFieldMapping("geo_hash"),
 		NewDateFieldMapping("time_1"),
 		NewDateFieldMapping("time_2"),
 		NewDateFieldMapping("time_3"),
 	}
 	fns := []string{
-		"text", "keyword", "float", "int", "time", "geo", "geo_hash", "time_1", "time_2", "time_3",
+		"text", "keyword", "float", "int", "time", "time_1", "time_2", "time_3",
 	}
 	tt := time.Now()
 	ttS := tt.UTC().Format(time.RFC3339Nano)
 
 	fvs := []string{
 		"hello", "hello", "12.4", "12", ttS, "41.12,-71.34", "drm3btev3e86", "1900-01-01", "1900-01-01 12:12:12", "1900-01-01 12:12:12.123",
-	}
-	lat, lon, err := parseStringToGeoPoint("drm3btev3e86")
-	if err != nil {
-		t.Fatal(err)
 	}
 
 	time_1, err := time.Parse("2006-01-02", "1900-01-01")
@@ -96,38 +90,24 @@ func TestProcessString(t *testing.T) {
 			Value:  &vearchpb.FieldValue{Time: &vearchpb.TimeStamp{Usec: tt.UTC().UnixNano()}},
 			Option: fms[4].Options(),
 		},
+		// "1900-01-01", "1900-01-01 12:12:12", "1900-01-01 12:12:12.123",
 		{
-			Name: fns[5],
-			Type: vearchpb.FieldType_GEOPOINT,
-			// Value:  []byte(numeric.MustNewPrefixCodedInt64(int64(geo.MortonHash(-71.34, 41.12)), 0)),
-			Value:  &vearchpb.FieldValue{Geo: &vearchpb.Geo{Lon: -71.34, Lat: 41.12}},
+			Name:   fns[5],
+			Type:   vearchpb.FieldType_DATE,
+			Value:  &vearchpb.FieldValue{Time: &vearchpb.TimeStamp{Usec: time_1.UnixNano()}},
 			Option: fms[5].Options(),
 		},
 		{
-			Name: fns[6],
-			Type: vearchpb.FieldType_GEOPOINT,
-			// Value:  []byte(numeric.MustNewPrefixCodedInt64(int64(geo.MortonHash(lon, lat)), 0)),
-			Value:  &vearchpb.FieldValue{Geo: &vearchpb.Geo{Lon: lon, Lat: lat}},
+			Name:   fns[6],
+			Type:   vearchpb.FieldType_DATE,
+			Value:  &vearchpb.FieldValue{Time: &vearchpb.TimeStamp{Usec: time_2.UnixNano()}},
 			Option: fms[6].Options(),
 		},
-		// "1900-01-01", "1900-01-01 12:12:12", "1900-01-01 12:12:12.123",
 		{
 			Name:   fns[7],
 			Type:   vearchpb.FieldType_DATE,
-			Value:  &vearchpb.FieldValue{Time: &vearchpb.TimeStamp{Usec: time_1.UnixNano()}},
-			Option: fms[7].Options(),
-		},
-		{
-			Name:   fns[8],
-			Type:   vearchpb.FieldType_DATE,
-			Value:  &vearchpb.FieldValue{Time: &vearchpb.TimeStamp{Usec: time_2.UnixNano()}},
-			Option: fms[8].Options(),
-		},
-		{
-			Name:   fns[9],
-			Type:   vearchpb.FieldType_DATE,
 			Value:  &vearchpb.FieldValue{Time: &vearchpb.TimeStamp{Usec: time_3.UnixNano()}},
-			Option: fms[9].Options(),
+			Option: fms[7].Options(),
 		},
 	}
 	for i, fm := range fms {

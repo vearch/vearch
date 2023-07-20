@@ -20,7 +20,6 @@ require (
 	github.com/json-iterator/go v1.1.12
 	github.com/juju/ratelimit v1.0.1
 	github.com/julienschmidt/httprouter v1.3.0
-	github.com/mmcloughlin/geohash v0.0.0-20181009053802-f7f2bcae3294
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/patrickmn/go-cache v2.1.1-0.20180815053127-5633e0862627+incompatible
 	github.com/pkg/errors v0.9.1

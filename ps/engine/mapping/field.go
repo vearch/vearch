@@ -19,9 +19,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strings"
 
-	"github.com/mmcloughlin/geohash"
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/proto/vearchpb"
 	"github.com/vearch/vearch/util"
@@ -111,8 +109,6 @@ func (f *FieldMapping) UnmarshalJSON(data []byte) error {
 		fieldMapping = NewDoubleFieldMapping("")
 	case "boolean", "bool":
 		fieldMapping = NewBooleanFieldMapping("")
-	case "geo_point":
-		fieldMapping = NewGeoPointFieldMapping("")
 	case "vector":
 		fieldMapping = NewVectorFieldMapping("")
 		if tmp.Dimension == 0 {
@@ -125,7 +121,7 @@ func (f *FieldMapping) UnmarshalJSON(data []byte) error {
 		}*/
 		if tmp.StoreType != nil && *tmp.StoreType != "" {
 			if *tmp.StoreType != "Mmap" && *tmp.StoreType != "RocksDB" && *tmp.StoreType != "MemoryOnly" {
-				return fmt.Errorf("vector field:[%s] not support this store type:[%s] it only Mmap or RocksDB or MemoryOnly", fieldMapping.FieldName(), tmp.StoreType)
+				return fmt.Errorf("vector field:[%s] not support this store type:[%s] it only Mmap or RocksDB or MemoryOnly", fieldMapping.FieldName(), *tmp.StoreType)
 			}
 			fieldMapping.(*VectortFieldMapping).StoreType = *tmp.StoreType
 		}
@@ -303,19 +299,6 @@ func NewBooleanFieldMapping(name string) *BooleanFieldMapping {
 	}
 }
 
-type GeoPointFieldMapping struct {
-	*BaseFieldMapping
-	IgnoreZValue bool   `json:"ignore_z_value,omitempty"`
-	NullValue    string `json:"null_value,omitempty"`
-}
-
-func NewGeoPointFieldMapping(name string) *GeoPointFieldMapping {
-	return &GeoPointFieldMapping{
-		BaseFieldMapping: NewBaseFieldMapping(name, vearchpb.FieldType_GEOPOINT, 1, vearchpb.FieldOption_Null),
-		IgnoreZValue:     true,
-	}
-}
-
 type VectortFieldMapping struct {
 	*BaseFieldMapping
 	Dimension int     `json:"dimension"`
@@ -442,23 +425,6 @@ func processString(ctx *walkContext, fm *FieldMapping, fieldName, val string) (*
 		} else {
 			return nil, fmt.Errorf("string mismatch field type %s", fm.FieldType())
 		}
-	case vearchpb.FieldType_GEOPOINT:
-		lat, lon, err := parseStringToGeoPoint(val)
-		if err != nil {
-			return nil, err
-		}
-
-		code, err := cbbytes.FloatArrayByte([]float32{float32(lon), float32(lat)})
-		if err != nil {
-			return nil, err
-		}
-
-		return &vearchpb.Field{
-			Name:   fieldName,
-			Type:   vearchpb.FieldType_GEOPOINT,
-			Value:  code,
-			Option: fm.Options(),
-		}, nil
 	}
 	return nil, nil
 }
@@ -516,28 +482,6 @@ func processNumber(ctx *walkContext, fm *FieldMapping, fieldName string, val flo
 		}, nil
 	default:
 		return nil, fmt.Errorf("string mismatch field:[%s] value:[%s] type:[%s] ", fieldName, val, fm.FieldType())
-	}
-}
-
-func processGeoPoint(ctx *walkContext, fm *FieldMapping, fieldName string, lon, lat float64) (*vearchpb.Field, error) {
-	if ctx.Err != nil {
-		return nil, ctx.Err
-	}
-
-	switch fm.FieldType() {
-	case vearchpb.FieldType_GEOPOINT:
-		code, err := cbbytes.FloatArrayByte([]float32{float32(lon), float32(lat)})
-		if err != nil {
-			return nil, err
-		}
-		return &vearchpb.Field{
-			Name:   fieldName,
-			Type:   vearchpb.FieldType_GEOPOINT,
-			Value:  code,
-			Option: fm.Options(),
-		}, nil
-	default:
-		return nil, fmt.Errorf("string mismatch field:[%s] value:[%f,%f] type:[%s] ", fieldName, lon, lat, fm.FieldType())
 	}
 }
 
@@ -622,28 +566,4 @@ func processVector(ctx *walkContext, fm *FieldMapping, fieldName string, val []f
 	default:
 		return nil, fmt.Errorf("field:[%s] value %v mismatch field type %s", fieldName, val, fm.FieldType())
 	}
-}
-
-func parseStringToGeoPoint(val string) (lat float64, lon float64, err error) {
-	// Geo-point expressed as a string with the format: "lat,lon".
-	ls := strings.Split(val, ",")
-	if len(ls) == 2 {
-		lat, err = cast.ToFloat64E(ls[0])
-		if err != nil {
-			return
-		}
-		lon, err = cast.ToFloat64E(ls[1])
-		if err != nil {
-			return
-		}
-		return
-	}
-
-	// Geo-point expressed as a geohash.
-	if len(val) != 12 {
-		err = fmt.Errorf("invalid geohash %s", val)
-		return
-	}
-	lat, lon = geohash.Decode(val)
-	return
 }

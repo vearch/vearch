@@ -102,12 +102,8 @@ func (dm *DocumentMapping) parseJson(context *walkContext, path []string, v *fas
 			return
 		}
 		if dm.Field != nil {
-			if dm.Field.FieldType() == vearchpb.FieldType_GEOPOINT {
-				dm.processProperty(context, dm.Field.FieldName(), path, v, retrievalType)
-			} else {
-				for _, item := range items {
-					dm.processProperty(context, dm.Field.FieldName(), path, item, retrievalType)
-				}
+			for _, item := range items {
+				dm.processProperty(context, dm.Field.FieldName(), path, item, retrievalType)
 			}
 		} else {
 			for _, item := range items {
@@ -202,29 +198,7 @@ func (dm *DocumentMapping) processProperty(context *walkContext, fieldName strin
 	case fastjson.TypeObject:
 		if dm.Field != nil {
 			fm := dm.Field
-			if fm.FieldType() == vearchpb.FieldType_GEOPOINT {
-				// Geo-point expressed as an object, with lat and lon keys.
-				latV := v.Get("lat")
-				lonV := v.Get("lon")
-				if latV != nil && latV.Type() == fastjson.TypeNumber && lonV != nil && lonV.Type() == fastjson.TypeNumber {
-					lon, err := lonV.Float64()
-					if err != nil {
-						context.Err = fmt.Errorf("field value %s mismatch geo point, err %v", v.String(), err)
-						return
-					}
-					lat, err := latV.Float64()
-					if err != nil {
-						context.Err = fmt.Errorf("field value %s mismatch geo point, err %v", v.String(), err)
-						return
-					}
-					field, err := processGeoPoint(context, fm, pathString, lon, lat)
-					context.AddField(field)
-				} else {
-					context.Err = fmt.Errorf("field value %s mismatch geo point", v.String())
-				}
-				return
-			} else if fm.FieldType() == vearchpb.FieldType_VECTOR {
-
+			if fm.FieldType() == vearchpb.FieldType_VECTOR {
 				source := v.GetStringBytes("source")
 				feature := v.GetArray("feature")
 				if strings.Compare("BINARYIVF", retrievalType) == 0 {
@@ -277,32 +251,6 @@ func (dm *DocumentMapping) processProperty(context *walkContext, fieldName strin
 		}
 		if dm.Field != nil {
 			fm := dm.Field
-			if fm.FieldType() == vearchpb.FieldType_GEOPOINT {
-				if len(vs) != 2 {
-					context.Err = fmt.Errorf("field value %s mismatch geo point, %v", v.String(), vs)
-					return
-				}
-				// Geo-point expressed as an array with the format: [ lon, lat]
-				if vs[0].Type() == fastjson.TypeNumber && vs[1].Type() == fastjson.TypeNumber {
-					lon, err := vs[0].Float64()
-					if err != nil {
-						context.Err = fmt.Errorf("field value %s mismatch geo point, err %v", v.String(), err)
-						return
-					}
-					lat, err := vs[1].Float64()
-					if err != nil {
-						context.Err = fmt.Errorf("field value %s mismatch geo point, err %v", v.String(), err)
-						return
-					}
-					field, err := processGeoPoint(context, fm, pathString, lon, lat)
-					if err != nil {
-						context.Err = err
-						return
-					}
-					context.AddField(field)
-				}
-				return
-			}
 
 			if fm.FieldType() == vearchpb.FieldType_STRING && fm.FieldMappingI.(*StringFieldMapping).Array {
 				buffer := bytes.Buffer{}
@@ -410,7 +358,7 @@ func (dm *DocumentMapping) subDocumentMapping(field string) *DocumentMapping {
 	return nil
 }
 
-//make schema to map[path]FieldMapping level is 1
+// make schema to map[path]FieldMapping level is 1
 func SchemaMap(schema []byte) (map[string]FieldMappingI, error) {
 	dm, err := ParseSchema(schema)
 	if err != nil {
@@ -465,7 +413,7 @@ func parseMappingProperties(prefix string, result map[string]FieldMappingI, dms 
 	return nil
 }
 
-//merge two schema to a new one
+// merge two schema to a new one
 func MergeSchema(old, new []byte) ([]byte, error) {
 	newSchemaMap := make(map[string]interface{})
 	err := json.Unmarshal([]byte(new), &newSchemaMap)
