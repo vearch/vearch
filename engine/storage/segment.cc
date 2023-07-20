@@ -14,7 +14,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "search/error_code.h"
+#include "common/error_code.h"
 #include "table_block.h"
 #include "util/log.h"
 #include "util/thread_util.h"

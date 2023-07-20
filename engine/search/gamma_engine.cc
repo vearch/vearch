@@ -30,7 +30,7 @@
 #include "gamma_table_io.h"
 #include "io/raw_vector_io.h"
 #include "omp.h"
-#include "search/error_code.h"
+#include "common/error_code.h"
 #include "util/bitmap.h"
 #include "util/log.h"
 #include "util/utils.h"
@@ -187,6 +187,7 @@ GammaEngine::GammaEngine(const string &index_root_path)
 #ifdef PERFORMANCE_TESTING
   search_num_ = 0;
 #endif
+  af_exector_ = nullptr;
 }
 
 GammaEngine::~GammaEngine() {
@@ -202,6 +203,11 @@ GammaEngine::~GammaEngine() {
     std::mutex running_mutex;
     std::unique_lock<std::mutex> lk(running_mutex);
     running_field_cv_.wait(lk);
+  }
+
+  if (af_exector_) {
+    af_exector_->Stop();
+    CHECK_DELETE(af_exector_);
   }
 
   if (vec_manager_) {
@@ -532,6 +538,8 @@ int GammaEngine::CreateTable(TableInfo &table) {
     return -2;
   }
 
+  af_exector_ = new AsyncFlushExecutor();
+
   if (!meta_jp) {
     utils::JsonParser dump_meta_;
     dump_meta_.PutInt("version", 327);
@@ -556,6 +564,14 @@ int GammaEngine::CreateTable(TableInfo &table) {
     string meta_str = dump_meta_.ToStr(true);
     fio.Write(meta_str.c_str(), 1, meta_str.size());
   }
+  for (auto &it : vec_manager_->RawVectors()) {
+    RawVectorIO *rio = it.second->GetIO();
+    if (rio == nullptr) continue;
+    AsyncFlusher *flusher = dynamic_cast<AsyncFlusher *>(rio);
+    if (flusher) {
+      af_exector_->Add(flusher);
+    }
+  }
 
   field_range_index_ = new MultiFieldsRangeIndex(index_root_path_, table_);
   if ((nullptr == field_range_index_) || (AddNumIndexFields() < 0)) {
@@ -573,6 +589,8 @@ int GammaEngine::CreateTable(TableInfo &table) {
   if (tio.Write(table)) {
     LOG(ERROR) << "write table schema error, path=" << path;
   }
+
+  af_exector_->Start();
 
   LOG(INFO) << "create table [" << table_name << "] success!";
   created_table_ = true;
@@ -958,6 +976,8 @@ int GammaEngine::Dump() {
     ret = vec_manager_->Dump(path, 0, max_docid);
     if (ret != 0) {
       LOG(ERROR) << "dump vector error, ret=" << ret;
+      utils::remove_dir(path.c_str());
+      LOG(ERROR) << "Dumped to [" << path << "] failed, now removed";
       return -1;
     }
 
@@ -1020,6 +1040,7 @@ int GammaEngine::Load() {
     }
     LOG(INFO) << "create table from local success, table name=" << table_name;
   }
+  af_exector_->Stop();
 
   std::vector<std::pair<std::time_t, string>> folders_tm;
   std::vector<string> folders = utils::ls_folder(dump_path_);
@@ -1112,7 +1133,7 @@ int GammaEngine::Load() {
       LOG(ERROR) << "clean error, not done directory=" << folder;
     }
   }
-
+  af_exector_->Start();
   last_dump_dir_ = last_dir;
   LOG(INFO) << "load engine success! max docid=" << max_docid_
             << ", load directory=" << last_dir

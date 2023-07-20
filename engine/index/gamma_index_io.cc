@@ -9,7 +9,7 @@
 
 #include <numeric>
 
-#include "search/error_code.h"
+#include "common/error_code.h"
 #include "util/log.h"
 
 namespace tig_gamma {

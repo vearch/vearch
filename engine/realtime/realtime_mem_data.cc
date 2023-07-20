@@ -13,7 +13,7 @@
 #include <unistd.h>
 
 #include "faiss/impl/io.h"
-#include "search/error_code.h"
+#include "common/error_code.h"
 #include "util/bitmap.h"
 #include "util/log.h"
 #include "util/utils.h"

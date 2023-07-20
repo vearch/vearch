@@ -10,7 +10,7 @@
 #include <string.h>
 
 #include "gamma_zfp.h"
-#include "search/error_code.h"
+#include "common/error_code.h"
 #include "util/log.h"
 #include "util/utils.h"
 

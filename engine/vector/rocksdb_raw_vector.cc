@@ -12,7 +12,7 @@
 #include <stdio.h>
 
 #include "rocksdb/table.h"
-#include "search/error_code.h"
+#include "common/error_code.h"
 #include "util/log.h"
 #include "util/utils.h"
 
