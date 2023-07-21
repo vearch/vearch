@@ -409,8 +409,6 @@ func UnmarshalPropertyJSON(propertity []byte) (map[string]*SpaceProperties, erro
 			sp.FieldType = FieldType_DOUBLE
 		case "boolean", "bool":
 			sp.FieldType = FieldType_BOOL
-		case "geo_point":
-			sp.FieldType = FieldType_GEOPOINT
 		case "vector":
 			sp.FieldType = FieldType_VECTOR
 

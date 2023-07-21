@@ -194,27 +194,6 @@ func processPropertyBool(v *fastjson.Value, pathString string, pro *entity.Space
 	}
 }
 
-func processPropertyObjectGEOPOINT(v *fastjson.Value, pathString string, pro *entity.SpaceProperties, latlonV map[string]*fastjson.Value) (*vearchpb.Field, error) {
-	lonV := latlonV["lonV"]
-	latV := latlonV["latV"]
-	lon, err := lonV.Float64()
-	if err != nil {
-		log.Error("field value %s mismatch geo point, err %v", v.String(), err)
-		return nil, fmt.Errorf("field value %s mismatch geo point, err %v", v.String(), err)
-	}
-	lat, err := latV.Float64()
-	if err != nil {
-		log.Error("field value %s mismatch geo point, err %v", v.String(), err)
-		return nil, fmt.Errorf("field value %s mismatch geo point, err %v", v.String(), err)
-	}
-	field, err := processGeoPoint(pro, pathString, lon, lat)
-	if err != nil {
-		return nil, err
-	} else {
-		return field, err
-	}
-}
-
 func processPropertyObjectVectorBinary(feature []*fastjson.Value, source []byte, pathString string, pro *entity.SpaceProperties) (*vearchpb.Field, error) {
 	vector := make([]uint8, len(feature))
 	for i := 0; i < len(feature); i++ {
@@ -258,34 +237,6 @@ func processPropertyObjectVectorOther(feature []*fastjson.Value, source []byte, 
 	return field, nil
 }
 
-func processPropertyArrayVectorGeoPoint(vs []*fastjson.Value, v *fastjson.Value, pathString string, pro *entity.SpaceProperties) (*vearchpb.Field, error) {
-	field := &vearchpb.Field{Name: ""}
-	err := fmt.Errorf("parse param ArrayVectorGeoPoint err field:%s", v.String())
-	if len(vs) != 2 {
-		log.Error("field value %s mismatch geo point, %v", v.String(), vs)
-		field, err = nil, fmt.Errorf("field value %s mismatch geo point, %v", v.String(), vs)
-	}
-	// Geo-point expressed as an array with the format: [ lon, lat]
-	if vs[0].Type() == fastjson.TypeNumber && vs[1].Type() == fastjson.TypeNumber {
-		lon, err := vs[0].Float64()
-		if err != nil {
-			log.Error("field value %s mismatch geo point, lon err %v", v.String(), err)
-			field, err = nil, fmt.Errorf("field value %s mismatch geo point, lon err %v", v.String(), err)
-		}
-		lat, err := vs[1].Float64()
-		if err != nil {
-			log.Error("field value %s mismatch geo point, lat err %v", v.String(), err)
-			field, err = nil, fmt.Errorf("field value %s mismatch geo point, lat err %v", v.String(), err)
-		}
-		field, err = processGeoPoint(pro, pathString, lon, lat)
-	} else {
-		log.Error("field value %s mismatch geo point, type is not number err %v", v.String)
-		field, err = nil, fmt.Errorf("field value %s mismatch geo point, type is not number err %v", v.String(), err)
-	}
-
-	return field, err
-}
-
 func processPropertyArrayVectorString(vs []*fastjson.Value, pathString string, pro *entity.SpaceProperties) (*vearchpb.Field, error) {
 	buffer := bytes.Buffer{}
 	for i, vv := range vs {
@@ -319,25 +270,7 @@ func processPropertyArrayVectorInt(vs []*fastjson.Value, fieldName string, pro *
 func processPropertyObject(v *fastjson.Value, pathString string, pro *entity.SpaceProperties, retrievalType string) (*vearchpb.Field, error) {
 	field := &vearchpb.Field{Name: ""}
 	err := fmt.Errorf("parse param processPropertyObject err retrievalType:%s", retrievalType)
-	if pro.FieldType == entity.FieldType_GEOPOINT {
-		// Geo-point expressed as an object, with lat and lon keys.
-		latV := v.Get("lat")
-		lonV := v.Get("lon")
-		if latV != nil && lonV != nil {
-			if latV.Type() == fastjson.TypeNumber && lonV.Type() == fastjson.TypeNumber {
-				latlonV := make(map[string]*fastjson.Value)
-				latlonV["latV"] = latV
-				latlonV["lonV"] = lonV
-				field, err = processPropertyObjectGEOPOINT(v, pathString, pro, latlonV)
-			} else {
-				log.Error("field value %s mismatch geo point,type is not number", v.String())
-				field, err = nil, fmt.Errorf("field value %s mismatch geo point,type is not number", v.String())
-			}
-		} else {
-			log.Error("field value %s mismatch geo point,lat or lon is nil", v.String())
-			field, err = nil, fmt.Errorf("field value %s mismatch geo point,lat or lon is nil", v.String())
-		}
-	} else if pro.FieldType == entity.FieldType_VECTOR {
+	if pro.FieldType == entity.FieldType_VECTOR {
 		source := v.GetStringBytes("source")
 		feature := v.GetArray("feature")
 		if strings.Compare(retrievalType, "BINARYIVF") == 0 {
@@ -356,9 +289,7 @@ func processPropertyArray(v *fastjson.Value, pathString string, pro *entity.Spac
 	if err != nil {
 		field = nil
 	}
-	if pro.FieldType == entity.FieldType_GEOPOINT {
-		field, err = processPropertyArrayVectorGeoPoint(vs, v, pathString, pro)
-	} else if pro.FieldType == entity.FieldType_STRING && pro.Array {
+	if pro.FieldType == entity.FieldType_STRING && pro.Array {
 		field, err = processPropertyArrayVectorString(vs, pathString, pro)
 	} else if pro.FieldType == entity.FieldType_INT && pro.Array {
 		field, err = processPropertyArrayVectorInt(vs, fieldName, pro)
@@ -485,24 +416,6 @@ func processField(fieldName string, fieldType vearchpb.FieldType, value []byte, 
 	return field, nil
 }
 
-func processStringFieldGeoPoint(fieldName string, val string, opt vearchpb.FieldOption) (*vearchpb.Field, error) {
-	field := &vearchpb.Field{Name: fieldName}
-	err := fmt.Errorf("parse param StringGeoPoint err :%s", fieldName)
-	lat, lon, err := rutil.ParseStringToGeoPoint(val)
-	if err != nil {
-		field = nil
-	} else {
-		code, err := cbbytes.FloatArrayByte([]float32{float32(lon), float32(lat)})
-		if err != nil {
-			field = nil
-		} else {
-			field, err = processField(fieldName, vearchpb.FieldType_GEOPOINT, code, opt)
-			return field, err
-		}
-	}
-	return field, err
-}
-
 func processString(pro *entity.SpaceProperties, fieldName, val string) (*vearchpb.Field, error) {
 	opt := vearchpb.FieldOption_Null
 	if pro.Option == 1 {
@@ -614,23 +527,6 @@ func processNumber(pro *entity.SpaceProperties, fieldName string, val *fastjson.
 		field, err = nil, fmt.Errorf("string mismatch field:[%s] value:[%v] type:[%v] ", fieldName, val, pro.FieldType)
 	}
 	return field, err
-}
-
-func processGeoPoint(pro *entity.SpaceProperties, fieldName string, lon, lat float64) (*vearchpb.Field, error) {
-	switch pro.FieldType {
-	case entity.FieldType_GEOPOINT:
-		code, err := cbbytes.FloatArrayByte([]float32{float32(lon), float32(lat)})
-		if err != nil {
-			return nil, err
-		}
-		opt := vearchpb.FieldOption_Null
-		if pro.Option == 1 {
-			opt = vearchpb.FieldOption_Index
-		}
-		return processField(fieldName, vearchpb.FieldType_GEOPOINT, code, opt)
-	default:
-		return nil, fmt.Errorf("string mismatch field:[%s] value:[%f,%f] type:[%v] ", fieldName, lon, lat, pro.FieldType)
-	}
 }
 
 func processBool(pro *entity.SpaceProperties, fieldName string, val bool) (*vearchpb.Field, error) {
