@@ -36,6 +36,16 @@ typedef int64_t size_t;
 #include "common/common_query_data.h"
 %}
 
+%include "c_api/api_data/gamma_raw_data.h"
+%include "common/common_query_data.h"
+%include "c_api/api_data/gamma_request.h"
+%include "c_api/api_data/gamma_response.h"
+%include "c_api/api_data/gamma_table.h"
+%include "c_api/api_data/gamma_doc.h"
+%include "c_api/api_data/gamma_docs.h"
+%include "c_api/api_data/gamma_batch_result.h"
+%include "c_api/api_data/gamma_cpp_api.h"
+
 %inline%{
     void *swigInitEngine(unsigned char *pConfig, int len){
         char* config_str = (char*)pConfig;

@@ -22,7 +22,7 @@ elif [ `expr substr ${OS} 1 5` == "Linux" ];then
     export GAMMA_LDFLAGS=$BASE_PATH/build/libgamma.so
     export GAMMA_INCLUDE=$BASE_PATH
     export LD_LIBRARY_PATH=$BASE_PATH/build/:$LD_LIBRARY_PATH
-    for PYBIN in /opt/python/cp38-cp38/bin; do
+    for PYBIN in /opt/python/*/bin; do
         "${PYBIN}/pip" install -r dev-requirements.txt -i https://mirrors.aliyun.com/pypi/simple/
         "${PYBIN}/python" setup.py bdist_wheel
         auditwheel repair dist/vearch* 
