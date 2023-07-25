@@ -142,10 +142,10 @@ func (s *Server) Start() error {
 		log.Error("Fail to start rpc Server, %v", err)
 		log.Flush()
 		panic(err)
-	} else {
-		ExportToRpcHandler(s)
-		ExportToRpcAdminHandler(s)
 	}
+
+	ExportToRpcHandler(s)
+	ExportToRpcAdminHandler(s)
 
 	log.Info("vearch server successful startup...")
 
@@ -280,7 +280,7 @@ func (s *Server) HandleRaftLeaderEvent(event *raftstore.RaftLeaderEvent) {
 	}
 }
 
-//register master partition
+// register master partition
 func (s *Server) registerMaster(leader entity.NodeID, pid entity.PartitionID) {
 	if leader != s.nodeID { //only leader to register partition
 		return
@@ -301,7 +301,7 @@ func (s *Server) registerMaster(leader entity.NodeID, pid entity.PartitionID) {
 	}
 }
 
-//change replicas status
+// change replicas status
 func (s *Server) changeReplicas(pStatus *raftstore.ReplicasStatusEntry) {
 
 	var err error

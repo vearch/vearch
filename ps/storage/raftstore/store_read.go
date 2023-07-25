@@ -52,24 +52,6 @@ func (s *Store) checkReadable(readLeader bool) error {
 
 }
 
-//check this store can read
-func (s *Store) checkSearchable(readLeader bool) error {
-
-	status := s.Partition.GetStatus()
-	switch status {
-	case entity.PA_CLOSED:
-		return vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_IS_CLOSED, nil)
-	case entity.PA_INVALID:
-		return vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_IS_INVALID, nil)
-	}
-	if readLeader && status != entity.PA_READWRITE {
-		return vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_NOT_LEADER, nil)
-	}
-
-	return nil
-
-}
-
 func (s *Store) Search(ctx context.Context, request *vearchpb.SearchRequest, response *vearchpb.SearchResponse) (err error) {
 	leader := false
 	clientType := request.Head.ClientType
