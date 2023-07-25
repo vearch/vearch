@@ -33,7 +33,7 @@ do
 done
 
 ZFP_URL=https://github.com/LLNL/zfp/archive/0.5.5.tar.gz
-ROCKSDB_URL=https://github.com/facebook/rocksdb/archive/v6.2.2.tar.gz
+ROCKSDB_URL=https://github.com/facebook/rocksdb/archive/refs/tags/v6.6.4.tar.gz
 
 # version value
 BUILD_VERSION="latest"
@@ -49,7 +49,7 @@ done
 while [ -z $use_rocksdb ] || ([ $use_rocksdb != "y" ] && [ $use_rocksdb != "n" ])
 do
   echo "Do you use rocksdb?[y/n]."
-  read  use_rocksdb
+  read use_rocksdb
 done
 
 if [ $use_zfp == "y" ] && [ ! -n "${ZFP_HOME}" ]; then
@@ -78,7 +78,7 @@ else
       rm -rf rocksdb*
       wget  ${ROCKSDB_URL} -O rocksdb.tar.gz
       tar -xzf rocksdb.tar.gz
-      pushd rocksdb-6.2.2
+      pushd rocksdb-6.6.4
       CFLAGS="-O3 -fPIC" make shared_lib $COMPILE_THREAD_TAG
       make install
       popd
