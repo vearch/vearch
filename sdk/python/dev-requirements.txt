@@ -1,0 +1,3 @@
+numpy
+flatbuffers==1.12.0
+delocate
