@@ -1,4 +1,10 @@
 #!/usr/bin/env bash
+version=latest
+
+if [ $# -ge 1 ]; then
+    version=$1
+fi
+
 #add env
 export GOROOT=/env/app/go
 export PATH=$PATH:$GOROOT/bin
@@ -11,7 +17,7 @@ mkdir -p /env/app/go/src/github.com/vearch
 ln -s /vearch/ /env/app/go/src/github.com/vearch
 
 cd /env/app/go/src/github.com/vearch/vearch/build
-./build.sh
+./build.sh -v $version
 
 mkdir -p /vearch/build/lib/
 

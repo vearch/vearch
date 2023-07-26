@@ -11,12 +11,18 @@ mkdir -p $GAMMAOUT
 COMPILE_THREAD_TAG=-j2
 BUILD_GAMMA_TEST=OFF
 
-while getopts ":n:th" opt
+# version value
+BUILD_VERSION="latest"
+
+while getopts ":n:v:th" opt
 do
   case $opt in
     n)
       COMPILE_THREAD_NUM="-j"$OPTARG
       echo "COMPILE_THREAD_NUM="$COMPILE_THREAD_NUM;;
+    v)
+      BUILD_VERSION=$OPTARG
+      echo "BUILD_VERSION="$BUILD_VERSION;;
     t)
       BUILD_GAMMA_TEST=ON
       echo "BUILD_GAMMA_TEST=ON";;
@@ -25,6 +31,7 @@ do
       echo -e "\t-h\t\thelp"
       echo -e "\t-n\t\tcompile thread num"
       echo -e "\t-t\t\tbuild gamma test"
+      echo -e "\t-v\t\tbuild version, default latest, format should be vX.X.X"
       exit 0;;
     ?)
       echo "unsupport param, -h for help"
@@ -34,9 +41,6 @@ done
 
 ZFP_URL=https://github.com/LLNL/zfp/archive/0.5.5.tar.gz
 ROCKSDB_URL=https://github.com/facebook/rocksdb/archive/refs/tags/v6.6.4.tar.gz
-
-# version value
-BUILD_VERSION="latest"
 
 use_zfp="y"
 use_rocksdb="y"
