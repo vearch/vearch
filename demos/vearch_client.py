@@ -312,13 +312,6 @@ def destroy(master_url, db_name, space_name):
     drop_db(master_url, db_name)
 
 def more_usage(master_url, router_url, db_name, space_name, space_config, embedding_dimension):
-    desc = '''This shows the four types of operations of vearch:
-        1. operate cluster
-        2. operate db
-        3. operate space
-        4. operate document
-    '''
-    print(desc)
     operate_cluster(master_url)
 
     operate_db(master_url, db_name)
@@ -330,14 +323,9 @@ def more_usage(master_url, router_url, db_name, space_name, space_config, embedd
     destroy(master_url, db_name, space_name)
 
 def simple_usage(master_url, router_url, db_name, space_name, space_config, embedding_dimension):
-    desc = '''This show how to use vearch in four simple steps:
-        1. create db
-        2. create space
-        3. add document
-        4. search
-    '''
-    print(desc)
+    print("step 1: create db")
     print(create_db(master_url, db_name))
+    print("\nstep 2: create space")
     print(create_space(master_url, db_name, space_config))
     data = {
         "field1": "1",
@@ -349,6 +337,7 @@ def simple_usage(master_url, router_url, db_name, space_name, space_config, embe
         }
     }
     doc_id1 = "1"
+    print("\nstep 3: add document and get")
     print(insert_one(router_url, db_name, space_name, data, doc_id1))
     print(get_by_id(router_url, db_name, space_name, doc_id1))
     
@@ -374,6 +363,7 @@ def simple_usage(master_url, router_url, db_name, space_name, space_config, embe
         },
         "size": 3
     }
+    print("\nstep 4: search document")
     print(search(router_url, db_name, space_name, search_query))
     
     # Delete to the previous db and space after the demonstration
@@ -430,8 +420,20 @@ def usage(usage_type, master_url, router_url):
 if __name__ == '__main__':
     if len(sys.argv) != 4:
         print("Usage: python %s [simple|more] [master_url] [router_url]" % (sys.argv[0]))
-        print("\tOption of simple just show how to use add and search in four steps")
-        print("\tOption of more will show more usage for vearch")
+        desc_simple = '''Option of simple will show how to use vearch in four simple steps:
+            1. create db
+            2. create space
+            3. add document
+            4. search
+            '''
+        print("\t%s" %(desc_simple))
+        desc_more = '''Option of more will show the four types of operations of vearch:
+            1. operate cluster
+            2. operate db
+            3. operate space
+            4. operate document
+        '''
+        print("\t%s" %(desc_more))
         exit(0)
     if sys.argv[1] != "simple" and sys.argv[1] != "more":
         print("Usage: python %s [simple|more] [master_url] [router_url]" % (sys.argv[0]))
