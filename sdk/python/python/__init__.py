@@ -160,7 +160,7 @@ class GammaConfig:
         self.log_dir = engine.LogDir()
 
 class GammaFieldInfo:
-    def __init__(self, name, data_type, is_index):
+    def __init__(self, name: str, data_type: int, is_index: bool = False):
         self.name = name
         self.type = data_type
         self.is_index = is_index
@@ -172,7 +172,7 @@ class GammaFieldInfo:
 
 
 class GammaVectorInfo:
-    def __init__(self, name, type, is_index, dimension, model_id, store_type, store_param, has_source):
+    def __init__(self, name: str, type: int, is_index: bool, dimension: int, model_id: str, store_type: str, store_param: dict, has_source: bool):
         self.name = name
         self.type = type
         self.is_index = is_index
@@ -191,123 +191,51 @@ class GammaVectorInfo:
         print('store_type:', self.store_type)
         print('store_param:', self.store_param)
         print('has_source:', self.has_source)
-    
-    
 
 class ParseTable:
-    def __init__(self, table):    
-        self.table = table
+    def __init__(self, engine_info: dict):    
+        self.engine_info = engine_info
 
-    def parse_field(self):
-        table = self.table
-        if table.get("properties") == None:
-            ex = Exception("The \"properties\" is undefined!!!")
-            raise ex
-        if len(table["properties"]) < 1:
-            ex = Exception("not have field_infos or vec_infos")
-            raise ex
+    def parse_field(self, fields: list[GammaFieldInfo]):
         field_infos = {}
         is_long_type_id = False
-        for name in table["properties"].keys():            
-            dict_tmp = table["properties"][name]
-            #is fields
-            if dict_tmp.get('type') != None and field_type_map.get(dict_tmp['type'].lower()) != None\
-                    and  dict_tmp['type'].lower() != 'vector': 
-                field_type = field_type_map[dict_tmp["type"].lower()]
-                is_index = False
-                if dict_tmp.get("index") and dict_tmp["index"] == True:
-                    is_index = True
-                if name == '_id':
-                    if field_type == dataType.LONG:
-                        is_long_type_id = True
-                    if field_type != dataType.LONG and field_type != dataType.STRING:
-                        ex = Exception('The "type" of "_id" fields must is "string" or "integer"')
-                        raise ex
-                field_infos[name] = GammaFieldInfo(name, field_type, is_index)
+        for field in fields:
+            name = field.name
+            if name == '_id':
+                if field.type == dataType.LONG:
+                    is_long_type_id = True
+                if field.type != dataType.LONG and field.type != dataType.STRING:
+                    ex = Exception('The "type" of "_id" fields must is "string" or "integer"')
+                    raise ex
+            field_infos[name] = field
         return field_infos, is_long_type_id
 
     def parse_other_info(self):
-        table = self.table
-        #name parse
-        if table.get("name") == None or table["name"] == "" or type(table["name"]) != str:
-            ex = Exception("The \'name\' is error,check \'name\'.")
-            raise ex
-        name = table["name"]
-        #engine parse
-        if table.get("engine") == None:
-            ex = Exception('The "engine" is undefined!!!')
-            raise ex
-        engine = {}
-        engine["index_size"] = 100000
-        if table["engine"].get("index_size") != None and table["engine"]["index_size"] > 0:
-            engine["index_size"] = table["engine"]["index_size"]            
-        
-        engine["retrieval_type"] = 'IVFPQ'
-        if table["engine"].get('retrieval_type') != None:
-            engine["retrieval_type"] = table['engine']['retrieval_type']
+        engine = self.engine_info
+        if engine.get("index_size") == None:
+            engine["index_size"] = 100000
+
+        if engine.get("retrieval_type") == None:
+            engine["retrieval_type"] = 'IVFPQ'
+
         is_binaryivf = False
         if engine["retrieval_type"] == 'BINARYIVF':
             is_binaryivf = True
             ex = Exception("Now don't support binary ivf, will support in later version")
             raise ex
         #retrieval_param of engine parse
-        engine['retrieval_param'] = ''
-        if "retrieval_param" in table['engine']:
-            engine['retrieval_param'] = table['engine']['retrieval_param']
         
+        if engine.get("retrieval_param") == None:
+            engine["retrieval_param"] = ''
         engine["compress_mode"] = 0
         engine["retrieval_types"] = []
         engine["retrieval_params"] = []
 
-        return name, engine, is_binaryivf
+        return engine, is_binaryivf
     
-    def parse_vector(self, is_binaryivf):
-        table = self.table
-        if table.get("properties") == None:
-            ex = Exception("The \"properties\" is undefined!!!")
-            raise ex
-        if len(table["properties"]) < 1:
-            ex = Exception("not have field_infos or vec_infos")
-            raise ex
+    def parse_vector(self, vector_field: GammaVectorInfo):
         vec_infos = {}
-        for name in table["properties"].keys():            
-            dict_tmp = table["properties"][name] 
-            if dict_tmp.get('type') == None or field_type_map.get(dict_tmp['type'].lower()) == None:
-                ex = Exception('The "' + name + '" has no type or the type is not in the right format')
-                raise ex
-            #is vector field
-            if dict_tmp['type'].lower() == 'vector':               
-                field_type = dataType.VECTOR
-                if dict_tmp.get('dimension') == None or not isinstance(dict_tmp['dimension'], int)\
-                        or dict_tmp.get('dimension') < 0:
-                    ex = Exception("dimension is undefined or Invalid format.")
-                    raise ex
-                if is_binaryivf and dict_tmp.get('dimension')%8 > 0:
-                    ex = Exception("For banaryivf model, the dimension must be an integer multiple of 8.")
-                dimension = dict_tmp['dimension']
-
-                is_index = True
-                if dict_tmp.get("index") != None and dict_tmp["index"] == False:
-                    is_index = False
-                    
-                model_id = '1'
-                if dict_tmp.get('model_id') != None and isinstance(dict_tmp['model_id'],str):
-                    model_id = dict_tmp['model_id']
-
-                store_type = "Mmap"
-                if dict_tmp.get('store_type') != None and isinstance(dict_tmp['store_type'], str) and \
-                        (dict_tmp["store_type"].lower() == 'rocksdb' or dict_tmp["store_type"].lower() == 'memoryonly'): 
-                    store_type = dict_tmp['store_type']
-
-                store_param = ''
-                if dict_tmp.get("store_param") != None and isinstance(dict_tmp["store_param"], str):
-                    store_param["cache_size"] = dict_tmp["store_param"]["cache_size"] 
-                    
-                has_source = False
-                if 'has_source' in dict_tmp and dict_tmp['has_source'] == True:
-                    has_source = True
-                vec_infos[name] = GammaVectorInfo(name, field_type, is_index, dimension\
-                    , model_id, store_type, store_param, has_source)
+        vec_infos[vector_field.name] = vector_field
         return vec_infos
 
 class GammaTable:
@@ -320,11 +248,11 @@ class GammaTable:
         self.is_binaryivf = False
         self.is_long_type_id = False
 
-    def init(self, table):
-        parseTable = ParseTable(table)
-        self.name, self.engine, self.is_binaryivf = parseTable.parse_other_info()
-        self.field_infos, self.is_long_type_id = parseTable.parse_field()
-        self.vec_infos = parseTable.parse_vector(self.is_binaryivf)
+    def init(self, engine_info: dict, fields: list[GammaFieldInfo], vector_field: GammaVectorInfo):
+        parseTable = ParseTable(engine_info)
+        self.engine, self.is_binaryivf = parseTable.parse_other_info()
+        self.field_infos, self.is_long_type_id = parseTable.parse_field(fields)
+        self.vec_infos = parseTable.parse_vector(vector_field)
         for key in self.vec_infos:
             self.norms[key] = {}
         if '_id' not in self.field_infos:
@@ -337,7 +265,7 @@ class GammaTable:
         if field_name not in self.vec_infos:
             ex = Exception('The {} field is not a field that was set when the table was built.'.format(field_name))
             raise ex
-        if self.is_binaryivf_type():
+        if self.is_binaryivf:
             if int(self.vec_infos[field_name].dimension/8) != input_dimension:
                 ex = Exception("dimension of add data is not correct. Since the model is BINARYIVF, a vector is {}*uint8."\
                     .format(int(self.vec_infos[field_name].dimension/8)))
@@ -469,9 +397,6 @@ class GammaTable:
             print('---------doc field information----------')
             self.field_infos[field_name].print_self()
 
-
-        
-
 class GammaField:
     def __init__(self, name, value, source, data_type):
         self.name = name
@@ -525,19 +450,17 @@ class GammaDoc:
         return vector
             
     def check_scalar_field_type(self, variate, field_name, data_type):
-        if isinstance(variate, int) and\
-                (data_type == dataType.INT or data_type == dataType.LONG):
+        if isinstance(variate, int) and (data_type == dataType.INT or data_type == dataType.LONG):
             return True
         elif isinstance(variate, str) and data_type == dataType.STRING:
             return True
-        elif isinstance(variate, float) and\
-                (data_type == dataType.DOUBLE or data_type == dataType.FLOAT):
+        elif isinstance(variate, float) and (data_type == dataType.DOUBLE or data_type == dataType.FLOAT):
             return True
-        ex = Exception('The "{}" field type have error, field type is string, float, int.'.format(field_name))
+        ex = Exception('The "{}" field type have error, field type is string, float, int. type {}'.format(field_name, type(variate)))
         raise ex
         return False
 
-    def parse_doc(self, table, doc_info, doc_id):                       
+    def parse_doc(self, table: GammaTable, doc_info, doc_id):                       
         for key in doc_info.keys():
             if key in table.vec_infos:                                    #is vector fields
                 vector = self.get_vecfield_vector(table, key, doc_info[key])
@@ -1078,7 +1001,7 @@ class GammaResponse:
             else:
                 value = np_value[4:].copy()
         return value
-        
+
     def norm_to_origin(self, table, doc_id, _source, is_binary_ivf):
         for key in _source:
             if key in table.vec_infos:
@@ -1127,7 +1050,7 @@ class Engine:
         build indexes for stored vectors,
         and find the nearest neighbor of vectors. 
     '''
-    def __init__(self, path, log_dir):
+    def __init__(self, path: str = "files", log_dir: str = "logs"):
         ''' init vearch engine
             path: engine config path to save dump file or 
             something else engine will create.
@@ -1141,19 +1064,20 @@ class Engine:
         self.verbose = False
 
     def init(self):
-        config =  GammaConfig(self.path, self.log_dir)
+        config = GammaConfig(self.path, self.log_dir)
         buf = config.serialize()
         buf = np.array(buf)
         ptr_buf = swig_ptr(buf)
         self.c_engine = swigInitEngine(ptr_buf, buf.shape[0])
 
-    def create_table(self, table_info):
+    def create_table(self, table_info, name: str, fields: list[GammaFieldInfo], vector_field: GammaVectorInfo):
         ''' create table for engine
             table_info: table detail info
             return: 0 successed, 1 failed
         '''
         self.gamma_table = GammaTable()
-        self.gamma_table.init(table_info)
+        self.gamma_table.init(table_info, fields=fields, vector_field=vector_field)
+        self.gamma_table.name = name
         table_buf = self.gamma_table.serialize()
         self.table_buf = table_buf
         #self.gamma_table.deserialize(table_buf)
@@ -1202,7 +1126,7 @@ class Engine:
         if self.verbose:
             print("finish add cost %.4f s" % (time.time() - start))
         return doc_ids 
-    
+
     def update_doc(self, doc_info, doc_id):
         ''' update doc's info. The docs_info must contain "_id" information.
             doc_info: doc's new info.
@@ -1217,8 +1141,8 @@ class Engine:
         doc = swig_ptr(np_buf)
         response_code = swigAddOrUpdateDoc(self.c_engine, doc, np_buf.shape[0])
         return response_code
-    
-        
+
+
     def del_doc(self, doc_id):
         ''' delete doc
             doc_id: delete doc' id
@@ -1376,3 +1300,4 @@ class Engine:
                 result["result_items"].append(result_item_info)    
             results.append(result)
         return results
+

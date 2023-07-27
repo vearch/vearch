@@ -56,54 +56,64 @@ do
   read use_rocksdb
 done
 
-if [ $use_zfp == "y" ] && [ ! -n "${ZFP_HOME}" ]; then
-  export ZFP_HOME=/usr/local/include/zfp
-  if [ ! -d $ZFP_HOME ]; then
-    rm -rf zfp*
-    wget ${ZFP_URL} -O zfp.tar.gz
-    tar -xzf zfp.tar.gz
-    pushd zfp-0.5.5
-    mkdir build && cd build
-    cmake ..
-    cmake --build . --config Release
-    make install
-    popd
-  fi
-fi
-
-OS_NAME=$(uname)
-if [ $use_rocksdb == "y" ] && [ ${OS_NAME} == "Darwin" ]; then
-  export ROCKSDB_HOME=/usr/local/include/rocksdb
-  brew install rocksdb
-else
-  if [ $use_rocksdb == "y" ] && [ ! -n "${ROCKSDB_HOME}" ]; then
-    export ROCKSDB_HOME=/usr/local/include/rocksdb
-    if [ ! -d "${ROCKSDB_HOME}" ]; then
-      rm -rf rocksdb*
-      wget  ${ROCKSDB_URL} -O rocksdb.tar.gz
-      tar -xzf rocksdb.tar.gz
-      pushd rocksdb-6.6.4
-      CFLAGS="-O3 -fPIC" make shared_lib $COMPILE_THREAD_TAG
+function build_thirdparty() {
+  if [ $use_zfp == "y" ] && [ ! -n "${ZFP_HOME}" ]; then
+    export ZFP_HOME=/usr/local/include/zfp
+    if [ ! -d $ZFP_HOME ]; then
+      rm -rf zfp*
+      wget ${ZFP_URL} -O zfp.tar.gz
+      tar -xzf zfp.tar.gz
+      pushd zfp-0.5.5
+      mkdir build && cd build
+      cmake ..
+      cmake --build . --config Release
       make install
       popd
     fi
   fi
-fi
 
-echo "build gamma"
-pushd $GAMMAOUT
-cmake -DPERFORMANCE_TESTING=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_TEST=$BUILD_GAMMA_TEST -DCMAKE_INSTALL_PREFIX=$ROOT/ps/engine/gammacb/lib $ROOT/engine/
-make $COMPILE_THREAD_TAG && make install
-popd
+  OS_NAME=$(uname)
+  if [ $use_rocksdb == "y" ] && [ ${OS_NAME} == "Darwin" ]; then
+    export ROCKSDB_HOME=/usr/local/include/rocksdb
+    brew install rocksdb
+  else
+    if [ $use_rocksdb == "y" ] && [ ! -n "${ROCKSDB_HOME}" ]; then
+      export ROCKSDB_HOME=/usr/local/include/rocksdb
+      if [ ! -d "${ROCKSDB_HOME}" ]; then
+        rm -rf rocksdb*
+        wget  ${ROCKSDB_URL} -O rocksdb.tar.gz
+        tar -xzf rocksdb.tar.gz
+        pushd rocksdb-6.6.4
+        CFLAGS="-O3 -fPIC" make shared_lib $COMPILE_THREAD_TAG
+        make install
+        popd
+      fi
+    fi
+  fi
+}
 
-cp $ROOT/engine/third_party/faiss/lib*/* $ROOT/ps/engine/gammacb/lib/lib/
+function build_engine() {
+  echo "build gamma"
+  pushd $GAMMAOUT
+  cmake -DPERFORMANCE_TESTING=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_TEST=$BUILD_GAMMA_TEST -DCMAKE_INSTALL_PREFIX=$ROOT/ps/engine/gammacb/lib $ROOT/engine/
+  make $COMPILE_THREAD_TAG && make install
+  popd
 
-flags="-X 'main.BuildVersion=$BUILD_VERSION' -X 'main.CommitID=$(git rev-parse HEAD)' -X 'main.BuildTime=$(date +"%Y-%m-%d %H:%M.%S")'"
-echo "version info: $flags"
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ROOT/ps/engine/gammacb/lib/lib/
-export LIBRARY_PATH=$LIBRARY_PATH:$ROOT/ps/engine/gammacb/lib/lib/
+  cp $ROOT/engine/third_party/faiss/lib*/* $ROOT/ps/engine/gammacb/lib/lib/
+}
 
-echo "build vearch"
-go build -a -tags="vector" -ldflags "$flags" -o $BUILDOUT/vearch $ROOT/startup.go
-echo "build deploy tool"
-go build -a -ldflags "$flags" -o $BUILDOUT/batch_deployment $ROOT/tools/deployment/batch_deployment.go
+function build_vearch() {
+  flags="-X 'main.BuildVersion=$BUILD_VERSION' -X 'main.CommitID=$(git rev-parse HEAD)' -X 'main.BuildTime=$(date +"%Y-%m-%d %H:%M.%S")'"
+  echo "version info: $flags"
+  export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ROOT/ps/engine/gammacb/lib/lib/
+  export LIBRARY_PATH=$LIBRARY_PATH:$ROOT/ps/engine/gammacb/lib/lib/
+
+  echo "build vearch"
+  go build -a -tags="vector" -ldflags "$flags" -o $BUILDOUT/vearch $ROOT/startup.go
+  echo "build deploy tool"
+  go build -a -ldflags "$flags" -o $BUILDOUT/batch_deployment $ROOT/tools/deployment/batch_deployment.go
+}
+
+build_thirdparty
+build_engine
+build_vearch

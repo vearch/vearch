@@ -93,7 +93,6 @@ def evaluate_vearch(xb, xq, xt, gt):
     nlist = 2048
     m = 32
     table = {
-        "name" : "test_table",
         "engine" : {
             "index_size": 100000,
             "retrieval_type": "IVFPQ",       
@@ -131,7 +130,7 @@ def evaluate_vearch(xb, xq, xt, gt):
             }
         }
     }
-    response_code = engine.create_table(table)
+    response_code = engine.create_table(table, name="test_table")
     if response_code == 0:                    #response_code: 0, success; 1 failed.
         print("create table success")
     else:

@@ -1,7 +1,6 @@
 vearch.egg-info
 dist
 build
-gamma
 python/DataType.py
 python/gamma_api
 python/swigvearch.py

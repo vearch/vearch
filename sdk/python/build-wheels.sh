@@ -28,6 +28,6 @@ elif [ `expr substr ${OS} 1 5` == "Linux" ];then
         auditwheel repair dist/vearch* 
         rm -rf dist build vearch.egg-info 
     done 
-elif [ `expr substr ${OS} 1 10` == "MINGW" ];then  
+elif [ `expr substr ${OS} 1 10` == "MINGW" ];then
     echo "windows not support"
 fi

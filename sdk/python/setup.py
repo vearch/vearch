@@ -93,7 +93,6 @@ setup(
     author_email='vearch-maintainers@groups.io',
     license='Apache License, Version 2.0',
     keywords='real time index, vector nearest neighbors',
- 
     cmdclass={
         'build': CustomBuild,
         'build_ext': CustomBuildExt,
