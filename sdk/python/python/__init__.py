@@ -398,7 +398,7 @@ class GammaTable:
             self.field_infos[field_name].print_self()
 
 class GammaField:
-    def __init__(self, name, value, source, data_type):
+    def __init__(self, name, value, source: str, data_type):
         self.name = name
         self.origin_value = value
         if data_type == dataType.VECTOR:
@@ -460,7 +460,7 @@ class GammaDoc:
         raise ex
         return False
 
-    def parse_doc(self, table: GammaTable, doc_info, doc_id):                       
+    def parse_doc(self, table: GammaTable, doc_info: dict, doc_id):                       
         for key in doc_info.keys():
             if key in table.vec_infos:                                    #is vector fields
                 vector = self.get_vecfield_vector(table, key, doc_info[key])
@@ -478,9 +478,9 @@ class GammaDoc:
         if len(self.fields) != (len(table.field_infos)+len(table.vec_infos)):
             ex = Exception("There are fields with no values.")
             raise ex 
-            
 
-    def create_item(self, table, doc_id, doc_info):
+
+    def create_item(self, table: GammaTable, doc_id: str, doc_info: dict):
         if '_id' not in doc_info:
             doc_info['_id'] = doc_id
         self.parse_doc(table, doc_info, doc_info['_id'])
@@ -1093,7 +1093,7 @@ class Engine:
         response_code = swigClose(self.c_engine)
         return response_code
      
-    def add(self, docs_info):
+    def add(self, docs_info: list):
         ''' add docs into table
             docs_info: docs' detail info
             return: unique docs' id for docs
@@ -1115,7 +1115,7 @@ class Engine:
         if self.verbose:
             print("prepare add cost %.4f s" % (time.time() - start))
             start = time.time()
-        if 0 == swigAddOrUpdateDocsCPP(self.c_engine, docs, results):
+        if swigAddOrUpdateDocsCPP(self.c_engine, docs, results) == 0:
             if self.verbose:
                 print("gamma add cost %.4f s" % (time.time() - start))
                 start = time.time()

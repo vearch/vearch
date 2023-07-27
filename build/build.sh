@@ -95,18 +95,16 @@ function build_thirdparty() {
 function build_engine() {
   echo "build gamma"
   pushd $GAMMAOUT
-  cmake -DPERFORMANCE_TESTING=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_TEST=$BUILD_GAMMA_TEST -DCMAKE_INSTALL_PREFIX=$ROOT/ps/engine/gammacb/lib $ROOT/engine/
-  make $COMPILE_THREAD_TAG && make install
+  cmake -DPERFORMANCE_TESTING=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_TEST=$BUILD_GAMMA_TEST $ROOT/engine/
+  make $COMPILE_THREAD_TAG
   popd
-
-  cp $ROOT/engine/third_party/faiss/lib*/* $ROOT/ps/engine/gammacb/lib/lib/
 }
 
 function build_vearch() {
   flags="-X 'main.BuildVersion=$BUILD_VERSION' -X 'main.CommitID=$(git rev-parse HEAD)' -X 'main.BuildTime=$(date +"%Y-%m-%d %H:%M.%S")'"
   echo "version info: $flags"
-  export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ROOT/ps/engine/gammacb/lib/lib/
-  export LIBRARY_PATH=$LIBRARY_PATH:$ROOT/ps/engine/gammacb/lib/lib/
+  export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GAMMAOUT
+  export LIBRARY_PATH=$LIBRARY_PATH:$GAMMAOUT
 
   echo "build vearch"
   go build -a -tags="vector" -ldflags "$flags" -o $BUILDOUT/vearch $ROOT/startup.go

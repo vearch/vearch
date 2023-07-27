@@ -341,25 +341,15 @@ def main():
         doc_items, docs_id = test_add(engine)
 
     result = test_search(engine)
-    
     test_violent_search(engine)
-
     test_search_return_fields(engine)
-
     test_search_with_range(engine)
-
     test_search_with_term(engine)
-
     test_search_with_filter(engine)
-
     test_batch_search(engine)
-    
     test_update(engine, doc_items, docs_id[0])
-
     test_del_doc_by_id(engine, docs_id[0])
-
     test_search(engine)
-
     test_dump(engine)
 
     engine.close()
