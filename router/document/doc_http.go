@@ -218,7 +218,7 @@ func (handler *DocumentHandler) handleUpdateDoc(ctx context.Context, w http.Resp
 	args := &vearchpb.UpdateRequest{}
 	args.Head = setRequestHead(params, r)
 	space, err := handler.client.Space(ctx, args.Head.DbName, args.Head.SpaceName)
-	if space == nil {
+	if space == nil || err != nil {
 		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "dbName or spaceName param not build db or space")
 		return ctx, true
 	}
@@ -249,7 +249,7 @@ func (handler *DocumentHandler) handleBulk(ctx context.Context, w http.ResponseW
 	args := &vearchpb.BulkRequest{}
 	args.Head = setRequestHead(params, r)
 	space, err := handler.client.Space(ctx, args.Head.DbName, args.Head.SpaceName)
-	if space == nil {
+	if space == nil || err != nil {
 		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "dbName or spaceName param not build db or space")
 		return ctx, true
 	}
@@ -665,7 +665,7 @@ func (handler *DocumentHandler) handleBulkSearchDoc(ctx context.Context, w http.
 		return ctx, false
 	}
 
-	if searchReqs == nil || len(searchReqs) == 0 {
+	if len(searchReqs) == 0 {
 		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "param is null")
 		return ctx, false
 	}

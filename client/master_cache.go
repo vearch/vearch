@@ -28,7 +28,6 @@ import (
 	"github.com/vearch/vearch/config"
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/proto/vearchpb"
-	"github.com/vearch/vearch/util/atomic"
 	"github.com/vearch/vearch/util/cbjson"
 	"github.com/vearch/vearch/util/errutil"
 	"github.com/vearch/vearch/util/log"
@@ -92,12 +91,6 @@ func NewWatchServerCache(serverCtx context.Context, cli *Client) error {
 	return err
 }
 
-type spaceEntry struct {
-	lastUpdateTime time.Time
-	mutex          sync.Mutex
-	refCount       *atomic.AtomicInt64
-}
-
 func cachePartitionKey(space string, pid entity.PartitionID) string {
 	return space + "/" + strconv.FormatInt(int64(pid), 10)
 }
@@ -110,7 +103,7 @@ func cacheServerKey(nodeID entity.NodeID) string {
 	return cast.ToString(nodeID)
 }
 
-//find a user by cache
+// find a user by cache
 func (cliCache *clientCache) UserByCache(ctx context.Context, userName string) (*entity.User, error) {
 
 	get, found := cliCache.userCache.Get(userName)
@@ -154,7 +147,7 @@ func (cliCache *clientCache) reloadUserCache(ctx context.Context, sync bool, use
 	return nil
 }
 
-//find a space by db and space name , if not exist so query it from db
+// find a space by db and space name , if not exist so query it from db
 func (cliCache *clientCache) SpaceByCache(ctx context.Context, db, space string) (*entity.Space, error) {
 	key := cacheSpaceKey(db, space)
 
@@ -229,7 +222,7 @@ func (cliCache *clientCache) reloadSpaceCache(ctx context.Context, sync bool, db
 	return nil
 }
 
-//partition/[spaceId]/[id]:[body]
+// partition/[spaceId]/[id]:[body]
 func (cliCache *clientCache) PartitionByCache(ctx context.Context, spaceName string, pid entity.PartitionID) (*entity.Partition, error) {
 	key := cachePartitionKey(spaceName, pid)
 	get, found := cliCache.partitionCache.Get(key)
@@ -336,9 +329,9 @@ func (cliCache *clientCache) reloadServerCache(ctx context.Context, sync bool, i
 	return nil
 }
 
-//the job will start watch server job
-//if new server lose heart beat then will remove it from space meta
-//if empty new node join into,will try to recover the last fail server
+// the job will start watch server job
+// if new server lose heart beat then will remove it from space meta
+// if empty new node join into,will try to recover the last fail server
 func (cliCache *clientCache) startWSJob(ctx context.Context) error {
 	log.Debug("to start job to watch server")
 	start := time.Now()
@@ -355,7 +348,7 @@ func (cliCache *clientCache) startWSJob(ctx context.Context) error {
 	return nil
 }
 
-//delete record
+// delete record
 func (cliCache *clientCache) serverDelete(ctx context.Context, server *entity.Server) error {
 	//mutex ensure only one master update the meta,the other just undate local cache
 	mutex := cliCache.mc.Client().Master().NewLock(ctx, entity.ClusterWatchServerKey, time.Second*188)
@@ -423,7 +416,7 @@ func (cliCache *clientCache) serverPut(ctx context.Context, server *entity.Serve
 	return nil
 }
 
-//it will start cache
+// it will start cache
 func (cliCache *clientCache) startCacheJob(ctx context.Context) error {
 	log.Info("to start cache job begin")
 	start := time.Now()
@@ -708,7 +701,7 @@ type watcherJob struct {
 	delete       func(key string) (err error)
 }
 
-//watch /server/ put
+// watch /server/ put
 func (w *watcherJob) serverPut(value []byte) (e error) {
 	//process panic
 	defer errutil.CatchError(&e)
@@ -752,7 +745,7 @@ func (w *watcherJob) serverPut(value []byte) (e error) {
 	return err
 }
 
-//watch /server/ delete
+// watch /server/ delete
 func (w *watcherJob) serverDelete(cacheKey string) (err error) {
 	//process panic
 	defer errutil.CatchError(&err)

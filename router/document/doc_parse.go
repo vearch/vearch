@@ -149,33 +149,32 @@ func parseJSON(path []string, v *fastjson.Value, space *entity.Space, proMap map
 }
 
 func processPropertyString(v *fastjson.Value, pathString string, pro *entity.SpaceProperties) (*vearchpb.Field, error) {
+	if pro == nil {
+		return nil, fmt.Errorf("unrecognizable field %s %v", pathString, pro)
+	}
+
 	propertyValueByte, err := v.StringBytes()
 	if err != nil {
 		return nil, err
 	}
 
 	propertyValueString := string(propertyValueByte)
-	if pro != nil {
-		field, err := processString(pro, pathString, propertyValueString)
-		if err != nil {
-			return nil, err
-		}
-		return field, nil
-	} else {
-		return nil, fmt.Errorf("unrecognizable field %s %v", pathString, pro)
+	field, err := processString(pro, pathString, propertyValueString)
+	if err != nil {
+		return nil, err
 	}
+	return field, nil
 }
 
 func processPropertyNumber(v *fastjson.Value, pathString string, pro *entity.SpaceProperties) (*vearchpb.Field, error) {
-	if pro != nil {
-		field, err := processNumber(pro, pathString, v)
-		if err != nil {
-			return nil, err
-		}
-		return field, nil
-	} else {
+	if pro == nil {
 		return nil, fmt.Errorf("unrecognizable field %s %v", pathString, pro)
 	}
+	field, err := processNumber(pro, pathString, v)
+	if err != nil {
+		return nil, err
+	}
+	return field, nil
 }
 
 func processPropertyBool(v *fastjson.Value, pathString string, pro *entity.SpaceProperties) (*vearchpb.Field, error) {
@@ -183,29 +182,28 @@ func processPropertyBool(v *fastjson.Value, pathString string, pro *entity.Space
 	if err != nil {
 		return nil, err
 	}
-	if pro != nil {
-		field, err := processBool(pro, pathString, propertyValBool)
-		if err != nil {
-			return nil, err
-		}
-		return field, nil
-	} else {
+	if pro == nil {
 		return nil, fmt.Errorf("unrecognizable field %s %v", pathString, pro)
 	}
+	field, err := processBool(pro, pathString, propertyValBool)
+	if err != nil {
+		return nil, err
+	}
+	return field, nil
 }
 
 func processPropertyObjectVectorBinary(feature []*fastjson.Value, source []byte, pathString string, pro *entity.SpaceProperties) (*vearchpb.Field, error) {
 	vector := make([]uint8, len(feature))
 	for i := 0; i < len(feature); i++ {
-		if uint8Value, err := feature[i].Int(); err != nil {
+		uint8Value, err := feature[i].Int()
+		if err != nil {
 			log.Error("vector can not to uint8 %v", feature[i])
 			return nil, fmt.Errorf("vector can not to uint8 %v", feature[i])
-		} else {
-			if uint8Value < 0 || uint8Value > 255 {
-				return nil, fmt.Errorf("vector value overflows constant: %v", uint8Value)
-			}
-			vector[i] = uint8(uint8Value)
 		}
+		if uint8Value < 0 || uint8Value > 255 {
+			return nil, fmt.Errorf("vector value overflows constant: %v", uint8Value)
+		}
+		vector[i] = uint8(uint8Value)
 	}
 	field, err := processVectorBinary(pro, pathString, vector, string(source))
 	field.Source = string(source)
@@ -284,7 +282,6 @@ func processPropertyObject(v *fastjson.Value, pathString string, pro *entity.Spa
 
 func processPropertyArray(v *fastjson.Value, pathString string, pro *entity.SpaceProperties, fieldName string) (*vearchpb.Field, error) {
 	field := &vearchpb.Field{Name: fieldName}
-	err := fmt.Errorf("parse param processPropertyArray err :%s", fieldName)
 	vs, err := v.Array()
 	if err != nil {
 		field = nil
@@ -654,105 +651,103 @@ func docBulkParse(ctx context.Context, r *http.Request, space *entity.Space, arg
 func docSearchParse(r *http.Request, space *entity.Space, searchReq *vearchpb.SearchRequest) (err error) {
 	reqBodyStart := time.Now()
 	reqBody, err := netutil.GetReqBody(r)
+	if err != nil {
+		return
+	}
 	if config.LogInfoPrintSwitch {
 		reqBodyCostTime := time.Now().Sub(reqBodyStart).Seconds() * 1000
 		reqBodyCostTimeStr := strconv.FormatFloat(reqBodyCostTime, 'f', -1, 64)
 		searchReq.Head.Params["reqBodyCostTime"] = reqBodyCostTimeStr
 	}
-	if err == nil {
-		if len(reqBody) != 0 {
-			searchDoc := &request.SearchDocumentRequest{}
-			err := cbjson.Unmarshal(reqBody, searchDoc)
-			if err != nil {
-				err = fmt.Errorf("query param convert json err: [%s]", string(reqBody))
-			} else {
-				err = searchParamToSearchPb(searchDoc, searchReq, space, false)
-			}
-		} else {
-			err = fmt.Errorf("query param is null")
-		}
+	if len(reqBody) == 0 {
+		err = fmt.Errorf("query param is null")
+		return
 	}
+
+	searchDoc := &request.SearchDocumentRequest{}
+	err = cbjson.Unmarshal(reqBody, searchDoc)
+	if err != nil {
+		err = fmt.Errorf("query param convert json err: [%s]", string(reqBody))
+		return
+	}
+	err = searchParamToSearchPb(searchDoc, searchReq, space, false)
 	return
 }
 
 func docSearchByIdsParse(r *http.Request, space *entity.Space) (fieldsParam []string, ids []string, reqBodyByte []byte, err error) {
-	var error error
 	reqBody, err := netutil.GetReqBody(r)
 	if err != nil {
-		error = err
-	} else {
-		if len(reqBody) != 0 {
-			reqBodyByte = reqBody
-			queryParam := struct {
-				Query json.RawMessage `json:"query"`
-			}{}
-
-			err1 := cbjson.Unmarshal(reqBody, &queryParam)
-			if err1 != nil {
-				log.Error("docSearchByIdsParse cbjson.Unmarshal error :%v", err1)
-				error = fmt.Errorf("docSearchByIdsParse cbjson.Unmarshal error :%v", err1)
-				return nil, nil, reqBodyByte, error
-			}
-
-			if idIsLong(space) {
-				idsArr := struct {
-					Ids    []int64  `json:"ids"`
-					Fields []string `json:"fields"`
-				}{}
-
-				err1 := json.Unmarshal(queryParam.Query, &idsArr)
-				if err1 != nil {
-					error = fmt.Errorf("query param Unmarshal error :%v", err1)
-					return nil, nil, reqBodyByte, error
-				}
-				fieldsParam = idsArr.Fields
-				if len(idsArr.Ids) > 0 {
-					ids = make([]string, 0)
-					for _, int64id := range idsArr.Ids {
-						ids = append(ids, strconv.FormatInt(int64id, 10))
-					}
-				} else {
-					error = fmt.Errorf("query param id is null")
-					return nil, nil, reqBodyByte, error
-				}
-			} else {
-				idsArr := struct {
-					Ids    []string `json:"ids"`
-					Fields []string `json:"fields"`
-				}{}
-
-				err1 := json.Unmarshal(queryParam.Query, &idsArr)
-				if err1 != nil {
-					error = fmt.Errorf("query param Unmarshal error :%v", err1)
-					return nil, nil, reqBodyByte, error
-				}
-
-				fieldsParam = idsArr.Fields
-				if len(idsArr.Ids) > 0 {
-					ids = idsArr.Ids
-				} else {
-					error = fmt.Errorf("query param id is null")
-					return nil, nil, reqBodyByte, error
-				}
-			}
-		} else {
-			log.Error("len of reqBody: %d", len(reqBody))
-			error = fmt.Errorf("len of reqBody: %d", len(reqBody))
-			return nil, nil, reqBodyByte, error
-		}
+		return nil, nil, nil, err
 	}
 
-	if ids == nil || len(ids) == 0 {
-		error = fmt.Errorf("id is empty")
-		return nil, nil, reqBodyByte, error
+	if len(reqBody) == 0 {
+		log.Error("len of reqBody: %d", len(reqBody))
+		err = fmt.Errorf("len of reqBody: %d", len(reqBody))
+		return nil, nil, nil, err
+	}
+
+	reqBodyByte = reqBody
+	queryParam := struct {
+		Query json.RawMessage `json:"query"`
+	}{}
+
+	err = cbjson.Unmarshal(reqBody, &queryParam)
+	if err != nil {
+		log.Error("docSearchByIdsParse cbjson.Unmarshal error :%v", err)
+		err = fmt.Errorf("docSearchByIdsParse cbjson.Unmarshal error :%v", err)
+		return nil, nil, reqBodyByte, err
+	}
+
+	if idIsLong(space) {
+		idsArr := struct {
+			Ids    []int64  `json:"ids"`
+			Fields []string `json:"fields"`
+		}{}
+
+		err = json.Unmarshal(queryParam.Query, &idsArr)
+		if err != nil {
+			err = fmt.Errorf("query param Unmarshal error :%v", err)
+			return nil, nil, reqBodyByte, err
+		}
+		fieldsParam = idsArr.Fields
+		if len(idsArr.Ids) == 0 {
+			err = fmt.Errorf("query param id is null")
+			return nil, nil, reqBodyByte, err
+		}
+		ids = make([]string, 0)
+		for _, int64id := range idsArr.Ids {
+			ids = append(ids, strconv.FormatInt(int64id, 10))
+		}
+	} else {
+		idsArr := struct {
+			Ids    []string `json:"ids"`
+			Fields []string `json:"fields"`
+		}{}
+
+		err = json.Unmarshal(queryParam.Query, &idsArr)
+		if err != nil {
+			err = fmt.Errorf("query param Unmarshal error :%v", err)
+			return nil, nil, reqBodyByte, err
+		}
+
+		fieldsParam = idsArr.Fields
+		if len(idsArr.Ids) == 0 {
+			err = fmt.Errorf("query param id is null")
+			return nil, nil, reqBodyByte, err
+		}
+		ids = idsArr.Ids
+	}
+
+	if len(ids) == 0 {
+		err = fmt.Errorf("id is empty")
+		return nil, nil, reqBodyByte, err
 	}
 
 	if len(ids) > 100 {
-		error = fmt.Errorf("id max 100 now id is: %d", len(ids))
-		return nil, nil, reqBodyByte, error
+		err = fmt.Errorf("id max 100 now id is: %d", len(ids))
+		return nil, nil, reqBodyByte, err
 	}
-	return fieldsParam, ids, reqBodyByte, error
-
+	return fieldsParam, ids, reqBodyByte, err
 }
 
 func arrayToMap(feilds []string) map[string]string {
@@ -764,103 +759,101 @@ func arrayToMap(feilds []string) map[string]string {
 }
 
 func docSearchByFeaturesParse(space *entity.Space, reqBody []byte, searchReq *vearchpb.SearchRequest, items []*vearchpb.Item) (err error) {
-
 	searchDoc := &request.SearchDocumentRequest{}
 	err = cbjson.Unmarshal(reqBody, searchDoc)
 	if err != nil {
 		err = fmt.Errorf("query param convert json err: [%s]", string(reqBody))
-	} else {
-		sortOrder, error := searchDoc.SortOrder()
-		err = error
-		if err == nil {
-			sortFieldArr := make([]*vearchpb.SortField, 0)
-			for _, sort := range sortOrder {
-				sortFieldArr = append(sortFieldArr, &vearchpb.SortField{Field: sort.SortField(), Type: sort.GetSortOrder()})
-			}
-			searchReq.SortFields = sortFieldArr
-			err := searchParamToSearchPb(searchDoc, searchReq, space, true)
-			if err == nil {
-				queryByte, err := parseQueryForIdFeature(searchDoc.Query, space, items)
-				if err == nil {
-					err = parseQuery(queryByte, searchReq, space)
-				}
-			}
-		}
+		return
 	}
+	sortOrder, err := searchDoc.SortOrder()
+	if err != nil {
+		return
+	}
+
+	sortFieldArr := make([]*vearchpb.SortField, 0)
+	for _, sort := range sortOrder {
+		sortFieldArr = append(sortFieldArr, &vearchpb.SortField{Field: sort.SortField(), Type: sort.GetSortOrder()})
+	}
+	searchReq.SortFields = sortFieldArr
+	err = searchParamToSearchPb(searchDoc, searchReq, space, true)
+	if err != nil {
+		return
+	}
+
+	queryByte, err := parseQueryForIdFeature(searchDoc.Query, space, items)
+	if err != nil {
+		return
+	}
+	err = parseQuery(queryByte, searchReq, space)
 	return
 }
 
 func docBulkSearchParse(r *http.Request, space *entity.Space, head *vearchpb.RequestHead) (searchReqs []*vearchpb.SearchRequest, err error) {
-	var error error
 	reqBody, err := netutil.GetReqBody(r)
 	if err != nil {
-		error = err
-	} else {
-		if len(reqBody) != 0 {
-
-			var paramMap []map[string]interface{}
-			if err := json.Unmarshal([]byte(reqBody), &paramMap); err != nil {
-				log.Error("docBulkSearchParse cbjson.Unmarshal error :%v", err)
-				error = fmt.Errorf("query param Unmarshal error")
-				return nil, error
-			}
-			paramMapSize := len(paramMap)
-			if paramMapSize > 100 {
-				log.Error("docBulkSearchParse param more than 100, param size:%d", paramMapSize)
-				error = fmt.Errorf("query param more than 100, param size:%d", paramMapSize)
-				return nil, error
-			}
-
-			if paramMapSize == 0 {
-				log.Error("docBulkSearchParse param less than 1, param size:%d", paramMapSize)
-				error = fmt.Errorf("query param less than 1, param size:%d", paramMapSize)
-				return nil, error
-			}
-
-			var searchRequest request.SearchRequestPo
-			if paramMap != nil && paramMapSize > 0 {
-				searchDocReqArr := make([]*request.SearchDocumentRequest, paramMapSize)
-				for i := 0; i < paramMapSize; i++ {
-					searchDocReqArr[i] = &request.SearchDocumentRequest{Parallel: true}
-				}
-				searchRequest.SearchDocumentRequestArr = searchDocReqArr
-			}
-			err := cbjson.Unmarshal(reqBody, &searchRequest.SearchDocumentRequestArr)
-			if err != nil {
-				log.Error("param Unmarshal error :%v", err)
-				error = fmt.Errorf("query param Unmarshal error")
-			} else {
-				//searchRequestArr := make([]*vearchpb.SearchRequest,0)
-				for i := 0; i < len(searchRequest.SearchDocumentRequestArr); i++ {
-					serchDocReq := searchRequest.SearchDocumentRequestArr[i]
-					searchRequest := &vearchpb.SearchRequest{}
-					searchRequest.Head = head
-					sortOrder, err := serchDocReq.SortOrder()
-					if err != nil {
-						error = fmt.Errorf("sortorder param error")
-						break
-					} else {
-						sortFieldArr := make([]*vearchpb.SortField, 0)
-						for _, sort := range sortOrder {
-							sortFieldArr = append(sortFieldArr, &vearchpb.SortField{Field: sort.SortField(), Type: sort.GetSortOrder()})
-						}
-						searchRequest.SortFields = sortFieldArr
-						err = searchParamToSearchPb(serchDocReq, searchRequest, space, false)
-						if err == nil {
-							searchReqs = append(searchReqs, searchRequest)
-						} else {
-							error = err
-							break
-						}
-					}
-				}
-			}
-		} else {
-			log.Error("len of reqBody: %d", len(reqBody))
-			error = fmt.Errorf("len of reqBody: %d", len(reqBody))
-		}
+		return
 	}
-	return searchReqs, error
+
+	if len(reqBody) == 0 {
+		log.Error("len of reqBody: %d", len(reqBody))
+		err = fmt.Errorf("len of reqBody: %d", len(reqBody))
+		return
+	}
+
+	var paramMap []map[string]interface{}
+	if err := json.Unmarshal([]byte(reqBody), &paramMap); err != nil {
+		log.Error("docBulkSearchParse cbjson.Unmarshal error :%v", err)
+		err = fmt.Errorf("query param Unmarshal error")
+		return nil, err
+	}
+	paramMapSize := len(paramMap)
+	if paramMapSize > 100 {
+		log.Error("docBulkSearchParse param more than 100, param size:%d", paramMapSize)
+		err = fmt.Errorf("query param more than 100, param size:%d", paramMapSize)
+		return nil, err
+	}
+
+	if paramMapSize == 0 {
+		log.Error("docBulkSearchParse param less than 1, param size:%d", paramMapSize)
+		err = fmt.Errorf("query param less than 1, param size:%d", paramMapSize)
+		return nil, err
+	}
+
+	var searchRequest request.SearchRequestPo
+	if paramMap != nil && paramMapSize > 0 {
+		searchDocReqArr := make([]*request.SearchDocumentRequest, paramMapSize)
+		for i := 0; i < paramMapSize; i++ {
+			searchDocReqArr[i] = &request.SearchDocumentRequest{Parallel: true}
+		}
+		searchRequest.SearchDocumentRequestArr = searchDocReqArr
+	}
+	err = cbjson.Unmarshal(reqBody, &searchRequest.SearchDocumentRequestArr)
+	if err != nil {
+		log.Error("param Unmarshal error :%v", err)
+		err = fmt.Errorf("query param Unmarshal error")
+		return nil, err
+	}
+
+	for i := 0; i < len(searchRequest.SearchDocumentRequestArr); i++ {
+		serchDocReq := searchRequest.SearchDocumentRequestArr[i]
+		searchRequest := &vearchpb.SearchRequest{}
+		searchRequest.Head = head
+		sortOrder, err := serchDocReq.SortOrder()
+		if err != nil {
+			break
+		}
+		sortFieldArr := make([]*vearchpb.SortField, 0)
+		for _, sort := range sortOrder {
+			sortFieldArr = append(sortFieldArr, &vearchpb.SortField{Field: sort.SortField(), Type: sort.GetSortOrder()})
+		}
+		searchRequest.SortFields = sortFieldArr
+		err = searchParamToSearchPb(serchDocReq, searchRequest, space, false)
+		if err != nil {
+			break
+		}
+		searchReqs = append(searchReqs, searchRequest)
+	}
+	return searchReqs, err
 }
 
 func doLogPrintSwitchParse(r *http.Request) (printSwitch bool, err error) {

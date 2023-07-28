@@ -179,16 +179,16 @@ func (r *routerRequest) SetDocs(docs []*vearchpb.Document) *routerRequest {
 	r.docs = docs
 	for _, doc := range r.docs {
 		if doc == nil {
-			r.Err = vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, errors.New("The doc is nil."))
+			r.Err = vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, errors.New("the doc is nil"))
 			return r
 		}
 		if len(doc.Fields) != len(r.space.SpaceProperties) {
-			r.Err = vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("The length[%d] of doc.fields is not equal to space[%d].", len(doc.Fields), len(r.space.SpaceProperties)))
+			r.Err = vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("the length[%d] of doc.fields is not equal to space[%d]", len(doc.Fields), len(r.space.SpaceProperties)))
 			return r
 		}
 		for _, field := range doc.Fields {
 			if _, ok := r.space.SpaceProperties[field.Name]; !ok {
-				r.Err = vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("The field[%s] in doc not needed in space.", field.Name))
+				r.Err = vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("the field[%s] in doc not needed in space", field.Name))
 				return r
 			}
 		}
@@ -599,7 +599,7 @@ func (r *routerRequest) searchFromPartition(ctx context.Context, partitionID ent
 					for _, item := range searchItems {
 						source, sortValues, pkey, err := GetSource(item, space, isIsLong, sortFieldMap, pd.SearchRequest.SortFields)
 						if err != nil {
-							err := &vearchpb.Error{Code: vearchpb.ErrorEnum_PARSING_RESULT_ERROR, Msg: "router call ps rpc service err nodeID:" + string(nodeID)}
+							err := &vearchpb.Error{Code: vearchpb.ErrorEnum_PARSING_RESULT_ERROR, Msg: "router call ps rpc service err nodeID:" + fmt.Sprint(nodeID)}
 							replyPartition.SearchResponse.Head.Err = err
 						}
 						item.PKey = pkey
@@ -985,11 +985,10 @@ func (r *routerRequest) BulkSearchByPartitions(searchReq []*vearchpb.SearchReque
 	sendMap := make(map[entity.PartitionID]*vearchpb.PartitionData)
 	for _, partitionInfo := range r.space.Partitions {
 		partitionID := partitionInfo.Id
-		if d, ok := sendMap[partitionID]; ok {
+		if _, ok := sendMap[partitionID]; ok {
 			log.Error("db Id:%d , space Id:%d, have multiple partitionID:%d", partitionInfo.DBId, partitionInfo.SpaceId, partitionID)
 		} else {
-			d = &vearchpb.PartitionData{PartitionID: partitionID, MessageID: r.GetMsgID(), SearchRequests: searchReq}
-			sendMap[partitionID] = d
+			sendMap[partitionID] = &vearchpb.PartitionData{PartitionID: partitionID, MessageID: r.GetMsgID(), SearchRequests: searchReq}
 		}
 
 	}
@@ -1494,11 +1493,10 @@ func (r *routerRequest) CommonByPartitions() *routerRequest {
 	sendMap := make(map[entity.PartitionID]*vearchpb.PartitionData)
 	for _, partitionInfo := range r.space.Partitions {
 		partitionID := partitionInfo.Id
-		if d, ok := sendMap[partitionID]; ok {
+		if _, ok := sendMap[partitionID]; ok {
 			log.Error("db Id:%d , space Id:%d, have multiple partitionID:%d", partitionInfo.DBId, partitionInfo.SpaceId, partitionID)
 		} else {
-			d = &vearchpb.PartitionData{PartitionID: partitionID, MessageID: r.GetMsgID()}
-			sendMap[partitionID] = d
+			sendMap[partitionID] = &vearchpb.PartitionData{PartitionID: partitionID, MessageID: r.GetMsgID()}
 		}
 	}
 	r.sendMap = sendMap

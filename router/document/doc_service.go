@@ -165,8 +165,8 @@ func newOkHead() *vearchpb.ResponseHead {
 	return &vearchpb.ResponseHead{Err: vearchpb.NewError(code, nil).GetError()}
 }
 
-func (this *docService) getSpace(ctx context.Context, dbName string, spaceName string) (*entity.Space, error) {
-	return this.client.Master().Cache().SpaceByCache(ctx, dbName, spaceName)
+func (docService *docService) getSpace(ctx context.Context, dbName string, spaceName string) (*entity.Space, error) {
+	return docService.client.Master().Cache().SpaceByCache(ctx, dbName, spaceName)
 }
 
 func (docService *docService) search(ctx context.Context, args *vearchpb.SearchRequest) *vearchpb.SearchResponse {
@@ -251,7 +251,6 @@ func (docService *docService) flush(ctx context.Context, args *vearchpb.FlushReq
 }
 
 func (docService *docService) forceMerge(ctx context.Context, args *vearchpb.ForceMergeRequest) *vearchpb.ForceMergeResponse {
-
 	request := client.NewRouterRequest(ctx, docService.client)
 	request.SetMsgID().SetMethod(client.ForceMergeHandler).SetHead(args.Head).SetSpace().CommonByPartitions()
 	if request.Err != nil {

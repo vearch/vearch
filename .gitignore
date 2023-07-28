@@ -15,14 +15,15 @@ __pycache__/
 *.test
 config/config.toml
 test/grpc_client.go
+test/.pytest_cache/
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
+engine/build/
 build/bin/
 build/lib/
 build/run.sh
 cloud/env/app/
-ps/engine/gammacb/lib/
 
 #skip some test file
 plugin/model/yolov3.weights

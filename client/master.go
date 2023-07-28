@@ -21,7 +21,6 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/spf13/cast"
@@ -47,7 +46,6 @@ type masterClient struct {
 	client *Client
 	store.Store
 	cfg      *config.Config
-	once     sync.Once
 	cliCache *clientCache
 }
 
@@ -77,7 +75,7 @@ func (m *masterClient) FlushCacheJob(ctx context.Context) error {
 	return nil
 }
 
-//Stop stop the cache job
+// Stop stop the cache job
 func (m *masterClient) Stop() {
 	if m.cliCache != nil {
 		m.cliCache.stopCacheJob()
@@ -226,12 +224,12 @@ func (m *masterClient) QuerySpacesByKey(ctx context.Context, prefix string) ([]*
 	return spaces, err
 }
 
-//delete fail server by nodeID
+// delete fail server by nodeID
 func (m *masterClient) DeleteFailServerByNodeID(ctx context.Context, nodeID uint64) error {
 	return m.Delete(ctx, entity.FailServerKey(nodeID))
 }
 
-//query fail server by nodeID
+// query fail server by nodeID
 func (m *masterClient) QueryFailServerByNodeID(ctx context.Context, nodeID uint64) *entity.FailServer {
 	bytesArr, err := m.Get(ctx, entity.FailServerKey(nodeID))
 	if err != nil {
@@ -245,7 +243,7 @@ func (m *masterClient) QueryFailServerByNodeID(ctx context.Context, nodeID uint6
 	return fs
 }
 
-//query server by IPAddr
+// query server by IPAddr
 func (m *masterClient) QueryServerByIPAddr(ctx context.Context, IPAddr string) *entity.FailServer {
 	var err error
 	defer errutil.CatchError(&err)
@@ -276,7 +274,7 @@ func (m *masterClient) QueryAllFailServer(ctx context.Context) ([]*entity.FailSe
 	return m.QueryFailServerByKey(ctx, entity.PrefixFailServer)
 }
 
-//query fail server by prefix
+// query fail server by prefix
 func (m *masterClient) QueryFailServerByKey(ctx context.Context, prefix string) (fs []*entity.FailServer, e error) {
 	// painc process
 	defer errutil.CatchError(&e)
@@ -319,7 +317,7 @@ func (m *masterClient) QueryDBs(ctx context.Context) ([]*entity.DB, error) {
 	return dbs, err
 }
 
-//QueryPartitions get all partitions from the etcd
+// QueryPartitions get all partitions from the etcd
 func (m *masterClient) QueryPartitions(ctx context.Context) ([]*entity.Partition, error) {
 	_, bytesPartitions, err := m.PrefixScan(ctx, entity.PrefixPartition)
 	if err != nil {
@@ -543,7 +541,7 @@ func (m *masterClient) RegisterPartition(ctx context.Context, partition *entity.
 	return nil
 }
 
-//send HTTPPost request
+// send HTTPPost request
 func (m *masterClient) HTTPPost(ctx context.Context, url string, reqBody string) (response []byte, e error) {
 	//process panic
 	defer func() {
@@ -641,8 +639,8 @@ func (client *masterClient) RecoverByNewServer(ctx context.Context, server *enti
 	return nil
 }
 
-//@description recover the failserver by newserver
-//@param rfs *entity.RecoverFailServer "failserver IPAddr,newserver IPAddr"
+// @description recover the failserver by newserver
+// @param rfs *entity.RecoverFailServer "failserver IPAddr,newserver IPAddr"
 func (client *masterClient) RecoverFailServer(ctx context.Context, rfs *entity.RecoverFailServer) (e error) {
 	//process panic
 	defer errutil.CatchError(&e)

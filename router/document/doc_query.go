@@ -70,7 +70,6 @@ var defaultBoost = util.PFloat64(1)
 var minOffset float64 = 0.0000001
 
 func parseQuery(data []byte, req *vearchpb.SearchRequest, space *entity.Space) error {
-
 	if len(data) == 0 {
 		return nil
 	}
@@ -175,7 +174,7 @@ func parseQueryForIdFeature(searchQuery []byte, space *entity.Space, items []*ve
 		err := json.Unmarshal(searchQuery, &queryMap)
 
 		if err != nil {
-			return nil, fmt.Errorf("unmarshal err:[%s] , query:[%s]", err.Error())
+			return nil, fmt.Errorf("unmarshal err:[%s] , query:[%s]", err.Error(), searchQuery)
 		}
 
 		if queryMap["sum"] == nil && queryMap["and"] == nil {
@@ -308,7 +307,7 @@ func parseVectors(reqNum int, vqs []*vearchpb.VectorQuery, tmpArr []json.RawMess
 				case "normalization", "normal":
 				case "no":
 				default:
-					return reqNum, vqs, fmt.Errorf("unknow vector process format:[%s]", vqTemp.Format)
+					return reqNum, vqs, fmt.Errorf("unknow vector process format:[%s]", *vqTemp.Format)
 				}
 			}
 		}
@@ -340,7 +339,6 @@ func parseRange(data []byte, proMap map[string]*entity.SpaceProperties) (*vearch
 	)
 
 	for field, rv = range tmp {
-
 		docField := proMap[field]
 
 		if docField == nil {
@@ -348,7 +346,7 @@ func parseRange(data []byte, proMap map[string]*entity.SpaceProperties) (*vearch
 		}
 
 		if docField.Option&entity.FieldOption_Index != entity.FieldOption_Index {
-			return nil, fmt.Errorf("field:[%d] not open index", field)
+			return nil, fmt.Errorf("field:[%s] not open index", field)
 		}
 
 		var found bool
@@ -590,11 +588,11 @@ func parseTerm(data []byte, proMap map[string]*entity.SpaceProperties) (*vearchp
 		fd := proMap[field]
 
 		if fd == nil {
-			return nil, fmt.Errorf("field:[%d] not found in mapping", field)
+			return nil, fmt.Errorf("field:[%s] not found in mapping", field)
 		}
 
 		if fd.Option&entity.FieldOption_Index != entity.FieldOption_Index {
-			return nil, fmt.Errorf("field:[%d] not open index", field)
+			return nil, fmt.Errorf("field:[%s] not open index", field)
 		}
 
 		buf := bytes.Buffer{}
@@ -787,9 +785,7 @@ func searchParamToSearchPb(searchDoc *request.SearchDocumentRequest, searchReq *
 		}
 
 		if searchDoc.VectorValue {
-			for _, fieldName := range vectorFieldArr {
-				searchReq.Fields = append(searchReq.Fields, fieldName)
-			}
+			searchReq.Fields = append(searchReq.Fields, vectorFieldArr...)
 		}
 	}
 
@@ -805,11 +801,8 @@ func searchParamToSearchPb(searchDoc *request.SearchDocumentRequest, searchReq *
 	}
 
 	queryFieldMap := make(map[string]string)
-	queryFields := searchReq.Fields
-	if queryFields != nil {
-		for _, feild := range queryFields {
-			queryFieldMap[feild] = feild
-		}
+	for _, feild := range searchReq.Fields {
+		queryFieldMap[feild] = feild
 	}
 
 	sortOrder, err := searchDoc.SortOrder()
@@ -857,7 +850,7 @@ func searchParamToSearchPb(searchDoc *request.SearchDocumentRequest, searchReq *
 	searchReq.SortFieldMap = sortFieldMap
 
 	order := "desc"
-	if sortOrder != nil && len(sortOrder) > 0 {
+	if len(sortOrder) > 0 {
 		sortBool := sortOrder[0].GetSortOrder()
 		if !sortBool {
 			order = "asc"

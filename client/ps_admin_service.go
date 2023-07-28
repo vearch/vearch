@@ -75,6 +75,10 @@ func GetEngineCfg(addr string, pid entity.PartitionID) (cfg *entity.EngineCfg, e
 
 func UpdateEngineCfg(addr string, cacheCfg *entity.EngineCfg, pid entity.PartitionID) error {
 	value, err := cbjson.Marshal(cacheCfg)
+	if err != nil {
+		return err
+	}
+
 	args := &vearchpb.PartitionData{PartitionID: pid, Data: value, Type: vearchpb.OpType_CREATE}
 	reply := new(vearchpb.PartitionData)
 	err = Execute(addr, EngineCfgHandler, args, reply)
@@ -134,13 +138,10 @@ func ServerStats(addr string) *mserver.ServerStats {
 
 func IsLive(addr string) bool {
 	err := Execute(addr, IsLiveHandler, new(vearchpb.PartitionData), new(vearchpb.PartitionData))
-	if err != nil {
-		return false
-	}
-	return true
+	return err == nil
 }
 
-//PartitionInfo get partition info about partitionID
+// PartitionInfo get partition info about partitionID
 func PartitionInfo(addr string, pid entity.PartitionID) (value *entity.PartitionInfo, err error) {
 	infos, err := _partitionsInfo(addr, pid)
 	if err != nil {
@@ -149,12 +150,12 @@ func PartitionInfo(addr string, pid entity.PartitionID) (value *entity.Partition
 	return infos[0], nil
 }
 
-//PartitionInfos get all partition info from server
+// PartitionInfos get all partition info from server
 func PartitionInfos(addr string) (value []*entity.PartitionInfo, err error) {
 	return _partitionsInfo(addr, 0)
 }
 
-//internal method for partitionInfo and partitionInfos
+// internal method for partitionInfo and partitionInfos
 func _partitionsInfo(addr string, pid entity.PartitionID) (value []*entity.PartitionInfo, err error) {
 	args := &vearchpb.PartitionData{PartitionID: pid}
 	reply := new(vearchpb.PartitionData)
@@ -175,6 +176,10 @@ func _partitionsInfo(addr string, pid entity.PartitionID) (value []*entity.Parti
 
 func ChangeMember(addr string, changeMember *entity.ChangeMember) error {
 	value, err := cbjson.Marshal(changeMember)
+	if err != nil {
+		return err
+	}
+
 	args := &vearchpb.PartitionData{PartitionID: changeMember.PartitionID, Data: value}
 	reply := new(vearchpb.PartitionData)
 	err = Execute(addr, ChangeMemberHandler, args, reply)

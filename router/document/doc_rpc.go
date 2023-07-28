@@ -24,7 +24,6 @@ import (
 
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/client"
-	"github.com/vearch/vearch/config"
 	"github.com/vearch/vearch/monitor"
 	"github.com/vearch/vearch/proto/vearchpb"
 	"github.com/vearch/vearch/util/log"
@@ -318,11 +317,4 @@ func (handler *RpcHandler) setTimeout(ctx context.Context, head *vearchpb.Reques
 		head.TimeOutMs = defaultTimeOutMs
 	}
 	return context.WithTimeout(ctx, time.Duration(head.TimeOutMs)*time.Millisecond)
-}
-
-func (handler *RpcHandler) validateAuth(ctx context.Context, head *vearchpb.RequestHead) error {
-	if config.Conf().Global.SkipAuth {
-		return nil
-	}
-	return nil
 }
