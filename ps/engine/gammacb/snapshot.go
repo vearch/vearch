@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"strconv"
 
-	protobuf "github.com/golang/protobuf/proto"
 	"github.com/cubefs/cubefs/depends/tiglabs/raft/proto"
+	protobuf "github.com/golang/protobuf/proto"
 	"github.com/vearch/vearch/proto/vearchpb"
 	"github.com/vearch/vearch/util/errutil"
 	"github.com/vearch/vearch/util/fileutil"
@@ -144,25 +144,14 @@ func (ge *gammaEngine) ApplySnapshot(peers []proto.Peer, iter proto.SnapIterator
 			errutil.ThrowError(err)
 			return err
 		}
-		if bs != nil {
-			msg := &vearchpb.SnapshotMsg{}
-			err := protobuf.Unmarshal(bs, msg)
-			errutil.ThrowError(err)
-			if msg.Status == vearchpb.SnapshotStatus_Finish {
-				if out != nil {
-					if err := out.Close(); err != nil {
-						errutil.ThrowError(err)
-						return err
-					}
-					out = nil
-				}
-				log.Debug("follower receive finish.")
-				return nil
-			}
-			if msg.Data == nil || len(msg.Data) == 0 {
-				log.Debug("msg data is nil.")
-				continue
-			}
+		if bs == nil {
+			continue
+		}
+
+		msg := &vearchpb.SnapshotMsg{}
+		err = protobuf.Unmarshal(bs, msg)
+		errutil.ThrowError(err)
+		if msg.Status == vearchpb.SnapshotStatus_Finish {
 			if out != nil {
 				if err := out.Close(); err != nil {
 					errutil.ThrowError(err)
@@ -170,25 +159,37 @@ func (ge *gammaEngine) ApplySnapshot(peers []proto.Peer, iter proto.SnapIterator
 				}
 				out = nil
 			}
-			// create dir
-			fileDir := filepath.Dir(msg.FileName)
-			_, exist := os.Stat(fileDir)
-			if os.IsNotExist(exist) {
-				log.Debug("create dir [%+v]", fileDir)
-				err := os.MkdirAll(fileDir, os.ModePerm)
-				errutil.ThrowError(err)
-			}
-			// create file, append write mode
-			if out, err = os.OpenFile(msg.FileName, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0660); err != nil {
-				errutil.ThrowError(err)
-				return err
-			}
-			log.Debug("write file path is [%s] ,name is [%s], size is [%d]",
-				ge.path, msg.FileName, len(msg.Data))
-			if _, err = out.Write(msg.Data); err != nil {
+			log.Debug("follower receive finish.")
+			return nil
+		}
+		if msg.Data == nil || len(msg.Data) == 0 {
+			log.Debug("msg data is nil.")
+			continue
+		}
+		if out != nil {
+			if err := out.Close(); err != nil {
 				errutil.ThrowError(err)
 				return err
 			}
+			out = nil
+		}
+		// create dir
+		fileDir := filepath.Dir(msg.FileName)
+		_, exist := os.Stat(fileDir)
+		if os.IsNotExist(exist) {
+			log.Debug("create dir [%+v]", fileDir)
+			err := os.MkdirAll(fileDir, os.ModePerm)
+			errutil.ThrowError(err)
+		}
+		// create file, append write mode
+		if out, err = os.OpenFile(msg.FileName, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0660); err != nil {
+			errutil.ThrowError(err)
+			return err
+		}
+		log.Debug("write file path is [%s] ,name is [%s], size is [%d]", ge.path, msg.FileName, len(msg.Data))
+		if _, err = out.Write(msg.Data); err != nil {
+			errutil.ThrowError(err)
+			return err
 		}
 	}
 }

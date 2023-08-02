@@ -147,9 +147,8 @@ func (ca *clusterAPI) cleanLock(c *gin.Context) {
 	}
 }
 
-//for ps startup to register self and get ip response
+// for ps startup to register self and get ip response
 func (ca *clusterAPI) register(c *gin.Context) {
-
 	ip := c.ClientIP()
 	log.Debug("register from: %v", ip)
 	clusterName := c.Query("clusterName")
@@ -161,12 +160,13 @@ func (ca *clusterAPI) register(c *gin.Context) {
 	}
 
 	if clusterName != config.Conf().Global.Name {
-		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(fmt.Errorf("cluster name not same ,please check"))
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(fmt.Errorf("cluster name not same, please check"))
 		return
 	}
 
 	// if node id is already existed, return failed
-	if err := ca.masterService.IsExistNode(c, nodeID); err != nil {
+	if err := ca.masterService.IsExistNode(c, nodeID, ip); err != nil {
+		log.Debug("nodeID[%d] exist %v", nodeID, err)
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 		return
 	}

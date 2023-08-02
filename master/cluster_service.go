@@ -23,9 +23,9 @@ import (
 	"sort"
 	"time"
 
+	"github.com/cubefs/cubefs/depends/tiglabs/raft/proto"
 	"github.com/pkg/errors"
 	"github.com/spf13/cast"
-	"github.com/cubefs/cubefs/depends/tiglabs/raft/proto"
 	"github.com/vearch/vearch/client"
 	"github.com/vearch/vearch/config"
 	"github.com/vearch/vearch/proto/entity"
@@ -39,7 +39,7 @@ import (
 	"go.etcd.io/etcd/clientv3/concurrency"
 )
 
-//masterService is used for master administrator purpose.It should not be used by router and partition server program
+// masterService is used for master administrator purpose.It should not be used by router and partition server program
 type masterService struct {
 	*client.Client
 }
@@ -435,7 +435,7 @@ func (ms *masterService) createSpaceService(ctx context.Context, dbName string, 
 	return nil
 }
 
-//create partitions for space create
+// create partitions for space create
 func (ms *masterService) generatePartitionsInfo(servers []*entity.Server, serverPartitions map[int]int, replicaNum uint8, partition *entity.Partition) ([]string, error) {
 	addres := make([]string, 0, replicaNum)
 	partition.Replicas = make([]entity.NodeID, 0, replicaNum)
@@ -864,7 +864,7 @@ func (ms *masterService) ChangeMember(ctx context.Context, cm *entity.ChangeMemb
 	if err != nil {
 		return err
 	}
-	log.Debug("masterNode is [%+v], cm is [%+v] ", masterNode, cm)
+	log.Info("masterNode is [%+v], cm is [%+v] ", masterNode, cm)
 
 	var targetNode *entity.Server
 	targetNode, err = ms.Master().QueryServer(ctx, cm.NodeID)
@@ -876,7 +876,7 @@ func (ms *masterService) ChangeMember(ctx context.Context, cm *entity.ChangeMemb
 			return err
 		}
 	}
-	log.Debug("targetNode is [%+v], cm is [%+v] ", masterNode, cm)
+	log.Info("targetNode is [%+v], cm is [%+v] ", masterNode, cm)
 
 	if !client.IsLive(masterNode.RpcAddr()) {
 		return fmt.Errorf("server:[%d] addr:[%s] can not connect ", cm.NodeID, masterNode.RpcAddr())
@@ -885,7 +885,7 @@ func (ms *masterService) ChangeMember(ctx context.Context, cm *entity.ChangeMemb
 	if _, err := ms.updateSpaceService(ctx, dbName, space.Name, space); err != nil {
 		return err
 	}
-	log.Debug("cm is [%v] has update space ", cm)
+	log.Info("cm is [%v] has update space ", cm)
 
 	if cm.Method == proto.ConfAddNode && targetNode != nil {
 		if err := client.CreatePartition(targetNode.RpcAddr(), space, cm.PartitionID); err != nil {
@@ -897,8 +897,8 @@ func (ms *masterService) ChangeMember(ctx context.Context, cm *entity.ChangeMemb
 		return fmt.Errorf("change member only support addNode:[%d] removeNode:[%d] not support:[%d]", proto.ConfAddNode, proto.ConfRemoveNode, cm.Method)
 	}
 
-	log.Debug("execute change, master node info is [%+v]", masterNode)
-	log.Debug("change member info is [%+v]", cm)
+	log.Info("execute change, master node info is [%+v]", masterNode)
+	log.Info("change member info is [%+v]", cm)
 	if err := client.ChangeMember(masterNode.RpcAddr(), cm); err != nil {
 		return err
 	}
@@ -968,7 +968,7 @@ func (ms *masterService) DBServers(ctx context.Context, dbName string) (servers 
 	return servers, nil
 }
 
-// change replicas ,add or delete
+// change replicas, add or delete
 func (ms *masterService) ChangeReplica(ctx context.Context, dbModify *entity.DBModify) (e error) {
 	// painc process
 	defer errutil.CatchError(&e)
@@ -1015,7 +1015,7 @@ func (ms *masterService) ChangeReplica(ctx context.Context, dbModify *entity.DBM
 			}
 		}
 	}
-	log.Debug("need change partition is [%+v] ", cbjson.ToJsonString(changeServer))
+	log.Info("need change partition is [%+v] ", cbjson.ToJsonString(changeServer))
 	// sleep time
 	sleepTime := config.Conf().PS.RaftHeartbeatInterval
 	// change partition
@@ -1032,8 +1032,8 @@ func (ms *masterService) ChangeReplica(ctx context.Context, dbModify *entity.DBM
 		}
 	}
 	log.Info("all change partition member success")
-	//update space ReplicaNum
-	//it will lock cluster ,to create space
+
+	// update space ReplicaNum, it will lock cluster, to create space
 	mutex := ms.Master().NewLock(ctx, entity.LockSpaceKey(dbModify.DbName, dbModify.SpaceName), time.Second*300)
 	if _, err := mutex.TryLock(); err != nil {
 		errutil.ThrowError(err)
@@ -1056,7 +1056,7 @@ func (ms *masterService) ChangeReplica(ctx context.Context, dbModify *entity.DBM
 	return e
 }
 
-func (ms *masterService) IsExistNode(ctx context.Context, id entity.NodeID) error {
+func (ms *masterService) IsExistNode(ctx context.Context, id entity.NodeID, ip string) error {
 	values, err := ms.Master().Get(ctx, entity.ServerKey(id))
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("look up key[%s] in etcd failed", entity.ServerKey(id)))
@@ -1069,7 +1069,7 @@ func (ms *masterService) IsExistNode(ctx context.Context, id entity.NodeID) erro
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("parse key[%s] in etcd failed", entity.ServerKey(id)))
 	}
-	if server != nil {
+	if server.Ip != ip {
 		return errors.Errorf("node id[%d] has register on ip[%s]", server.ID, server.Ip)
 	}
 	return nil

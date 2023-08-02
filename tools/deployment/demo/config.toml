@@ -81,7 +81,6 @@
     raft_replica_concurrency = 1
     raft_snap_concurrency = 1
     journal_enabled = true
-    max_size = 50000000000
     pprof_port = 6060
     engine_dwpt_num = 1
 

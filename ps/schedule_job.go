@@ -75,7 +75,7 @@ func (s *Server) StartHeartbeatJob() {
 
 				server.PartitionIds = psutil.GetAllPartitions(config.Conf().GetDatas())
 				if slice.EqualUint32(lastPartitionIds, server.PartitionIds) {
-					log.Debug("PartitionIds not change, do nothing!")
+					// log.Debug("PartitionIds not change, do nothing!")
 					continue
 				}
 				log.Info("server.PartitionIds has changed, need to put server to topo again!, leaseId: [%d]", leaseId)
@@ -111,8 +111,8 @@ func (s *Server) StartHeartbeatJob() {
 }
 
 func (s *Server) UpdateResolver(key, value interface{}) bool {
-	id, err := key.(entity.NodeID)
-	log.Debugf("update resolver: id: [%v], err: [%v]", id, err)
+	id, _ := key.(entity.NodeID)
+	// log.Debugf("update resolver: id: [%v], err: [%v]", id, err)
 	if server, err := s.client.Master().QueryServer(context.Background(), id); err != nil {
 		log.Error("partition recovery get server info err: %s", err.Error())
 	} else {

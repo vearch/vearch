@@ -311,7 +311,6 @@ type PSCfg struct {
 	RaftTruncateCount      int64  `toml:"raft_truncate_count" json:"raft_truncate_count"`
 	RaftDiffCount          uint64 `toml:"raft_diff_count" json:"raft_diff_count"`
 	EngineDWPTNum          uint64 `toml:"engine_dwpt_num" json:"engine-dwpt-num"`
-	MaxSize                int64  `toml:"max_size" json:"max_size"`
 	PprofPort              uint16 `toml:"pprof_port" json:"pprof_port"`
 	Private                bool   `toml:"private" json:"private"`                         //this ps is private if true you must set machine by dbConfig
 	FlushTimeInterval      uint32 `toml:"flush_time_interval" json:"flush_time_interval"` // seconds

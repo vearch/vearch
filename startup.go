@@ -127,9 +127,8 @@ func main() {
 	paths[config.Conf().GetDataDir()] = true
 	paths[config.Conf().GetLogDir()] = true
 	var models []string
-	//start master
+	// start master
 	if tags[masterTag] || tags[allTag] {
-
 		if err := config.Conf().CurrentByMasterNameDomainIp(masterName); err != nil {
 			panic(err)
 		}
@@ -166,7 +165,7 @@ func main() {
 
 	}
 
-	//start ps
+	// start ps
 	if tags[psTag] || tags[allTag] {
 		if err := config.Conf().Validate(config.PS); err != nil {
 			panic(err)
@@ -194,7 +193,7 @@ func main() {
 		}
 	}
 
-	//start router
+	// start router
 	if tags[routerTag] || tags[allTag] {
 		if err := config.Conf().Validate(config.Router); err != nil {
 			panic(err)

@@ -37,13 +37,11 @@ func (r *RaftApplyResponse) SetErr(err error) *RaftApplyResponse {
 func (s *Store) UpdateSpace(ctx context.Context, space *entity.Space) error {
 	if err := s.checkWritable(); err != nil {
 		return err
-
 	}
 
 	bytes, err := cbjson.Marshal(space)
 	if err != nil {
 		return err
-
 	}
 
 	// Raft Commit
@@ -51,23 +49,19 @@ func (s *Store) UpdateSpace(ctx context.Context, space *entity.Space) error {
 	raftCmd.Type = vearchpb.CmdType_UPDATESPACE
 	if raftCmd.UpdateSpace == nil {
 		raftCmd.UpdateSpace = new(vearchpb.UpdateSpace)
-
 	}
 	raftCmd.UpdateSpace.Version = space.Version
 	raftCmd.UpdateSpace.Space = bytes
 	defer func() {
 		if e := raftCmd.Close(); e != nil {
 			log.Error("raft cmd close err : %s", e.Error())
-
 		}
-
 	}()
 
 	data, err := raftCmd.Marshal()
 
 	if err != nil {
 		return err
-
 	}
 
 	future := s.RaftServer.Submit(uint64(s.Partition.Id), data)
@@ -75,12 +69,10 @@ func (s *Store) UpdateSpace(ctx context.Context, space *entity.Space) error {
 	response, err := future.Response()
 	if err != nil {
 		return err
-
 	}
 
 	if response.(*RaftApplyResponse).Err != nil {
 		return response.(*RaftApplyResponse).Err
-
 	}
 
 	return nil
@@ -115,7 +107,6 @@ func (s *Store) Write(ctx context.Context, request *vearchpb.DocCmd) (err error)
 
 // raft submit do
 func (s *Store) RaftSubmit(data []byte) (err error) {
-
 	future := s.RaftServer.Submit(uint64(s.Partition.Id), data)
 	resp, err := future.Response()
 	if err != nil {
@@ -128,7 +119,6 @@ func (s *Store) RaftSubmit(data []byte) (err error) {
 }
 
 func (s *Store) Flush(ctx context.Context) error {
-
 	if err := s.checkWritable(); err != nil {
 		return err
 	}

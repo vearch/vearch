@@ -120,7 +120,6 @@ func (im *IndexMapping) RangeField(f func(key string, value *DocumentMapping) er
 }
 
 func (im *IndexMapping) SortRangeField(f func(key string, value *DocumentMapping) error) error {
-
 	var keys []string
 	for k := range im.fieldCacher {
 		keys = append(keys, k)

@@ -91,16 +91,14 @@ func (s *Server) GetPartition(id entity.PartitionID) (partition PartitionStore) 
 }
 
 func (s *Server) RangePartition(fun func(entity.PartitionID, PartitionStore)) {
-
 	s.partitions.Range(func(key, value interface{}) bool {
 		fun(key.(entity.PartitionID), value.(PartitionStore))
 		return true
 	})
 }
 
-//load partition for in disk
+// load partition for in disk
 func (s *Server) LoadPartition(ctx context.Context, pid entity.PartitionID) (PartitionStore, error) {
-
 	space, err := psutil.LoadPartitionMeta(config.Conf().GetDataDirBySlot(config.PS, pid), pid)
 
 	if err != nil {
@@ -175,7 +173,6 @@ func (s *Server) DeleteReplica(id entity.PartitionID) {
 				log.Error("delete partition[%v] fail cause: %v", id, err)
 			}
 		}
-
 	}
 
 	psutil.ClearPartition(config.Conf().GetDataDirBySlot(config.PS, id), id)

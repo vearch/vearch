@@ -119,10 +119,10 @@ func (r *RaftResolver) UpdateNode(id entity.NodeID, replica *entity.Replica) {
 		atomic.AddInt32(&ref.refCount, 1)
 	}
 	r.nodes.Store(id, ref)
-	r.nodes.Range(func(key, value interface{}) bool {
-		log.Debug("r.nodes, key: [%v], value: [%v]", key, value)
-		return true
-	})
+	// r.nodes.Range(func(key, value interface{}) bool {
+	// 	log.Debug("r.nodes, key: [%v], value: [%v]", key, value)
+	// 	return true
+	// })
 }
 
 func (r *RaftResolver) ToReplica(id entity.NodeID) (replica *entity.Replica) {
@@ -174,6 +174,6 @@ func (r *RaftResolver) NodeAddress(nodeID uint64, stype raft.SocketType) (string
 	case raft.Replicate:
 		return node.replicateAddr, nil
 	default:
-		return "", fmt.Errorf("Unknown socket type[%v]", stype)
+		return "", fmt.Errorf("unknown socket type[%v]", stype)
 	}
 }

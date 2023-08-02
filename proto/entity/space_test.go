@@ -32,7 +32,7 @@ func TestSpaceString(t *testing.T) {
 
 func TestEngineSpaceString(t *testing.T) {
 	space := &entity.Space{}
-	str := `{"engine": {"nprobe":10, "name":"gamma", "max_size":10000,"index_size":1000}}`
+	str := `{"engine": {"nprobe":10, "name":"gamma", "index_size":1000}}`
 	if err := json.Unmarshal([]byte(str), &space); err != nil {
 		t.Errorf(err.Error())
 	}

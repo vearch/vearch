@@ -89,8 +89,6 @@
     raft_truncate_count = 20000
     # engine config
     engine_dwpt_num = 8
-    # max size byte
-    # max_size = 50000000
     pprof_port = 6060
     # if set true , this ps only use in db meta config
     private = false

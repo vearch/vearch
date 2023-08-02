@@ -39,7 +39,6 @@ type StoreBase struct {
 }
 
 func NewStoreBase(ctx context.Context, PID entity.PartitionID, NodeID entity.NodeID, path, DataPath, MetaPath string, space *entity.Space) (*StoreBase, error) {
-
 	ctx, cancel := context.WithCancel(ctx)
 
 	base := &StoreBase{

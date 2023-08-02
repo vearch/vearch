@@ -110,8 +110,8 @@ def test_search(engine: vearch.Engine):
     print(result)
     return result
 
-def test_violent_search(engine: vearch.Engine):
-    print("######    test violent search     ######")
+def test_brute_force_search(engine: vearch.Engine):
+    print("######    test brute_force search     ######")
     query_features = np.random.rand(10, 64).astype('float32')
     # range filter should be integer
     # term filter should be string
@@ -341,7 +341,7 @@ def main():
         doc_items, docs_id = test_add(engine)
 
     result = test_search(engine)
-    test_violent_search(engine)
+    test_brute_force_search(engine)
     test_search_return_fields(engine)
     test_search_with_range(engine)
     test_search_with_term(engine)

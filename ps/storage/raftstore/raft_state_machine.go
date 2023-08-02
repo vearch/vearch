@@ -216,7 +216,7 @@ func (s *Store) HandleLeaderChange(leader uint64) {
 	s.Lock()
 	defer s.Unlock()
 
-	log.Info("partition[%d] change leader to %d", s.Partition.Id, leader)
+	log.Info("partition[%d] node[%d] change leader to [%d]", s.Partition.Id, s.NodeID, leader)
 	if leader == uint64(s.NodeID) {
 		s.Partition.SetStatus(entity.PA_READWRITE)
 		s.EventListener.HandleRaftLeaderEvent(&RaftLeaderEvent{PartitionId: s.Partition.Id, Leader: leader})
@@ -227,7 +227,7 @@ func (s *Store) HandleLeaderChange(leader uint64) {
 
 // HandleFatalEvent implements the raft interface.
 func (s *Store) HandleFatalEvent(err *raft.FatalError) {
-	log.Error("partition[%d] occur fatal error: %s", s.Partition.Id, err.Err)
+	log.Error("partition[%d] fatal error: %s", s.Partition.Id, err.Err)
 	if e := s.Close(); e != nil {
 		log.Error(e.Error())
 	}
