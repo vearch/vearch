@@ -170,8 +170,10 @@ int VectorManager::CreateVectorTable(TableInfo &table,
         if (rio) {
           delete rio;
           rio = nullptr;
+          vec->SetIO(rio);
         }
         delete vec;
+        raw_vectors_[vec_name] = nullptr;
         return -1;
       }
       retrieval_model->vector_ = vec;
@@ -183,9 +185,13 @@ int VectorManager::CreateVectorTable(TableInfo &table,
         if (rio) {
           delete rio;
           rio = nullptr;
+          vec->SetIO(rio);
         }
         delete vec;
+        raw_vectors_[vec_name] = nullptr;
+        retrieval_model->vector_ = nullptr;
         delete retrieval_model;
+        retrieval_model = nullptr;
         return -1;
       }
       // init indexed count

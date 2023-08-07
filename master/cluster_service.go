@@ -156,7 +156,7 @@ func (ms *masterService) deleteDBService(ctx context.Context, dbstr string) (err
 	mutex := ms.Master().NewLock(ctx, entity.PrefixLockCluster, time.Second*300)
 	defer func() {
 		if err := mutex.Unlock(); err != nil {
-			log.Error("unlock space err ")
+			log.Error("unlock space err %s", err)
 		}
 	}()
 

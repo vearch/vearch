@@ -10,11 +10,12 @@ mkdir -p $GAMMAOUT
 # BUILD OPTS
 COMPILE_THREAD_TAG=-j2
 BUILD_GAMMA_TEST=OFF
+BUILD_GAMMA_TYPE=Release
 
 # version value
 BUILD_VERSION="latest"
 
-while getopts ":n:v:th" opt
+while getopts ":n:v:tdh" opt
 do
   case $opt in
     n)
@@ -26,11 +27,15 @@ do
     t)
       BUILD_GAMMA_TEST=ON
       echo "BUILD_GAMMA_TEST=ON";;
+    d)
+      BUILD_GAMMA_TYPE=Debug
+      echo "BUILD_GAMMA_TYPE="$BUILD_GAMMA_TYPE;;
     h)
       echo "[build options]"
       echo -e "\t-h\t\thelp"
       echo -e "\t-n\t\tcompile thread num"
       echo -e "\t-t\t\tbuild gamma test"
+      echo -e "\t-d\t\tbuild gamma type=Debug"
       echo -e "\t-v\t\tbuild version, default latest, format should be vX.X.X"
       exit 0;;
     ?)
@@ -95,7 +100,7 @@ function build_thirdparty() {
 function build_engine() {
   echo "build gamma"
   pushd $GAMMAOUT
-  cmake -DPERFORMANCE_TESTING=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_TEST=$BUILD_GAMMA_TEST $ROOT/engine/
+  cmake -DPERFORMANCE_TESTING=ON -DCMAKE_BUILD_TYPE=$BUILD_GAMMA_TYPE -DBUILD_TEST=$BUILD_GAMMA_TEST $ROOT/engine/
   make $COMPILE_THREAD_TAG
   popd
 }

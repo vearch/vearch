@@ -90,7 +90,7 @@ func New(cfg register.EngineConfig) (engine.Engine, error) {
 	log.Info("to create table for gamma by path:[%s]", cfg.Path)
 	if resp := gamma.CreateTable(ge.gamma, table); resp != 0 {
 		endTime := time.Now()
-		log.Error("creat table for gamma error table: %s cost time :%v", cfg.Space.Name, (endTime.Sub(startTime).Seconds())*1000)
+		log.Error("create table[%s] for gamma has err [%d] cost time :%v", cfg.Space.Name, resp, (endTime.Sub(startTime).Seconds())*1000)
 		ge.Close()
 		return nil, fmt.Errorf("create gamma table has err:[%d]", resp)
 	} else {
