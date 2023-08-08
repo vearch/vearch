@@ -1202,10 +1202,9 @@ class Engine:
         ''' dump all info to disk
         '''
         save_table_path = self.path + "/table.pickle"
-        table_buf = self.gamma_table.table_buf
+        table_buf = self.table_buf
         with open(save_table_path, 'wb') as handle:
             pickle.dump(table_buf, handle, protocol=pickle.HIGHEST_PROTOCOL)
-        
         save_norm_path = self.path + "/norm.pickle"
         with open(save_norm_path, 'wb') as handle:
             pickle.dump(self.gamma_table.norms, handle, protocol=pickle.HIGHEST_PROTOCOL)
@@ -1220,13 +1219,16 @@ class Engine:
         '''
         load_table_path = self.path + "/table.pickle"
         with open(load_table_path, 'rb') as handle:
-            table_buf = pickle.load(handle)
+            self.table_buf = pickle.load(handle)
+       
         self.gamma_table = GammaTable()
-        self.gamma_table.deserialize(table_buf)
-        np_table_buf = np.array(table_buf)
+        self.gamma_table.deserialize(self.table_buf)
+        np_table_buf = np.array(self.table_buf)
         ptableBuf = swig_ptr(np_table_buf)
         swigCreateTable(self.c_engine, ptableBuf, np_table_buf.shape[0])
         
+
+       
         load_norm_path = self.path + "/norm.pickle"
         with open(load_norm_path, 'rb') as handle:
             self.gamma_table.norms = pickle.load(handle)
@@ -1300,4 +1302,3 @@ class Engine:
                 result["result_items"].append(result_item_info)    
             results.append(result)
         return results
-
