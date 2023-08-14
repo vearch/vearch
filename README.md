@@ -109,7 +109,8 @@ Welcome to register the company name in this issue: https://github.com/vearch/ve
 ![汇智通信](static/teligen.png)
 ![小红书](static/xiaohongshu.png)
 ![VIVO](static/vivo.png)
-![JD](static/jd.png)
+![京东](static/jd.png)
+![中原消费金融](static/zhongyuan_consumer_finance.jpg)
 
 ## License
 
