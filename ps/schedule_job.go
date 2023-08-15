@@ -40,6 +40,7 @@ func (s *Server) StartHeartbeatJob() {
 			RaftHeartbeatPort: config.Conf().PS.RaftHeartbeatPort,
 			RaftReplicatePort: config.Conf().PS.RaftReplicatePort,
 			PartitionIds:      make([]entity.PartitionID, 0, 10),
+			Spaces:            make([]*entity.Space, 0, 10),
 			Private:           config.Conf().PS.Private,
 			Version: &entity.BuildVersion{
 				BuildVersion: config.GetBuildVersion(),

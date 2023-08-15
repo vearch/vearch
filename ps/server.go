@@ -67,7 +67,6 @@ type Server struct {
 
 // NewServer create server instance
 func NewServer(ctx context.Context) *Server {
-
 	cli, err := client.NewClient(config.Conf())
 	if err != nil {
 		panic(err)
@@ -111,13 +110,13 @@ func (s *Server) Start() error {
 
 	var err error
 
-	s.stopping.Set(false) //set start flag for all job if false all job will to end
+	s.stopping.Set(false) // set start flag for all job if false all job will to end
 
 	// load meta data
 	nodeId := psutil.InitMeta(s.client, config.Conf().Global.Name, config.Conf().GetDataDir())
 	s.nodeID = nodeId
 
-	//load local partitions
+	// load local partitions
 	server := s.register()
 	s.ip = server.Ip
 	mserver.SetIp(server.Ip, true)
@@ -129,15 +128,15 @@ func (s *Server) Start() error {
 	}
 
 	// create and recover partitions
-	s.recoverPartitions(server.PartitionIds)
+	s.recoverPartitions(server.PartitionIds, server.Spaces)
 
-	//change leader job start
+	// change leader job start
 	s.startChangeLeaderC()
 
-	//heartbeat job start
+	// heartbeat job start
 	s.StartHeartbeatJob()
 
-	//start rpc server
+	// start rpc server
 	if err = s.rpcServer.Run(); err != nil {
 		log.Error("Fail to start rpc Server, %v", err)
 		log.Flush()

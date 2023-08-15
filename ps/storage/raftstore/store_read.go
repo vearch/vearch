@@ -31,7 +31,7 @@ func (s *Store) GetDocument(ctx context.Context, readLeader bool, doc *vearchpb.
 	return s.Engine.Reader().GetDoc(ctx, doc)
 }
 
-//check this store can read
+// check this store can read
 func (s *Store) checkReadable(readLeader bool) error {
 	status := s.Partition.GetStatus()
 

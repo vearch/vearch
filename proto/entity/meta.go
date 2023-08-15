@@ -50,17 +50,17 @@ func UserKey(username string) string {
 	return fmt.Sprintf("%s%s", PrefixUser, username)
 }
 
-//FailServerKey generate fail server key
+// FailServerKey generate fail server key
 func FailServerKey(nodeID uint64) string {
 	return fmt.Sprintf("%s%d", PrefixFailServer, nodeID)
 }
 
-//RouterKey Router key
+// RouterKey Router key
 func RouterKey(key, value string) string {
 	return fmt.Sprintf("%s%s/%s", PrefixRouter, key, value)
 }
 
-//ids sequence key for etcd
+// sids sequence key for etcd
 const (
 	NodeIdSequence      = "/id/node"
 	SpaceIdSequence     = "/id/space"
@@ -81,11 +81,11 @@ const (
 	PrefixRouter       = "/router/"
 )
 
-//when master runing clean job , it will set value to this key,
-//when other got key , now time less than this they will skip this job
+// when master runing clean job , it will set value to this key,
+// when other got key , now time less than this they will skip this job
 const ClusterCleanJobKey = "/cluster/cleanjob"
 
-//ClusterWatchServerKey for server job lock
+// ClusterWatchServerKey for server job lock
 const ClusterWatchServerKey = "watch/server"
 
 // rpc time out, default 10 * 1000 ms
@@ -107,6 +107,6 @@ type (
 	SlotID = uint32
 	// Version is a custom type for Partition
 	Version = uint64
-	//node id for ps
+	// node id for ps
 	NodeID = uint64
 )

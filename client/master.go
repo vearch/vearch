@@ -595,7 +595,7 @@ func (m *masterClient) RemoveNodeMeta(ctx context.Context, nodeID entity.NodeID)
 	return nil
 }
 
-// failserver recover,remove from etcd record
+// failserver recover, remove from etcd record
 func (m *masterClient) TryRemoveFailServer(ctx context.Context, server *entity.Server) {
 	failServers, err := m.QueryAllFailServer(ctx)
 	if err != nil {
@@ -626,7 +626,7 @@ func (client *masterClient) RecoverByNewServer(ctx context.Context, server *enti
 		if fs != nil {
 			rfs := &entity.RecoverFailServer{FailNodeAddr: fs.Node.Ip, NewNodeAddr: server.Ip}
 			log.Debug("begin recover %s", rfs)
-			// if auto recover,need remove node meta data
+			// if auto recover, need remove node meta data
 			err := client.RemoveNodeMeta(ctx, fs.Node.ID)
 			errutil.ThrowError(err)
 			// recover fail server

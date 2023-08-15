@@ -42,7 +42,7 @@ type EngineConfig struct {
 	ExtraOptions map[string]interface{}
 	// Schema
 	Space *entity.Space
-	//partitionID
+	// partitionID
 	PartitionID entity.PartitionID
 
 	DWPTNum uint64

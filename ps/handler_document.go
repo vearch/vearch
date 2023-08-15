@@ -93,7 +93,7 @@ type UnaryHandler struct {
 
 func cost(s string, t time.Time) {
 	engTime := time.Now()
-	log.Info("%s cost: [%v]", s, engTime.Sub(t))
+	log.Debug("%s cost: [%v]", s, engTime.Sub(t))
 }
 
 func (handler *UnaryHandler) Execute(ctx context.Context, req *vearchpb.PartitionData, reply *vearchpb.PartitionData) (err error) {
@@ -422,7 +422,7 @@ func deleteByQuery(ctx context.Context, store PartitionStore, req *vearchpb.Sear
 				} else {
 					for _, doc := range result.ResultItems {
 						var pKey string
-                        var value []byte
+						var value []byte
 						for _, fv := range doc.Fields {
 							name := fv.Name
 							switch name {
@@ -453,17 +453,17 @@ func deleteByQuery(ctx context.Context, store PartitionStore, req *vearchpb.Sear
 			} else {
 				deleteDocs(ctx, store, docs)
 				for _, item := range docs {
-                    if item.Err == nil {
-                        if idIsLong {
-                            i, err := strconv.ParseInt(item.Doc.PKey, 10, 64)
-                            if err == nil {
-                                resp.IdsLong = append(resp.IdsLong, i)
-                            }
-                        } else {
-                            resp.IdsStr = append(resp.IdsStr, item.Doc.PKey)
-                        }
-                        resp.DelNum++
-                    }
+					if item.Err == nil {
+						if idIsLong {
+							i, err := strconv.ParseInt(item.Doc.PKey, 10, 64)
+							if err == nil {
+								resp.IdsLong = append(resp.IdsLong, i)
+							}
+						} else {
+							resp.IdsStr = append(resp.IdsStr, item.Doc.PKey)
+						}
+						resp.DelNum++
+					}
 				}
 			}
 		}

@@ -4,7 +4,7 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//	http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,12 +13,11 @@
 // permissions and limitations under the License.
 package gammacb
 
-import "C"
 import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"reflect"
 	"sync"
 	"time"
@@ -45,10 +44,9 @@ func init() {
 	register.Register("gamma", New)
 }
 
-var logInitOnce sync.Once
+// var logInitOnce sync.Once
 
 func New(cfg register.EngineConfig) (engine.Engine, error) {
-
 	//set log dir
 	/*logInitOnce.Do(func() {
 		if rep := C.SetLogDictionary(byteArrayStr(config.Conf().GetLogDir(config.PS))); rep != 0 {
@@ -84,21 +82,22 @@ func New(cfg register.EngineConfig) (engine.Engine, error) {
 	ge.reader = &readerImpl{engine: ge}
 	ge.writer = &writerImpl{engine: ge}
 
-	infos, _ := ioutil.ReadDir(cfg.Path)
+	infos, _ := os.ReadDir(cfg.Path)
 
 	startTime := time.Now()
-	log.Info("to create table for gamma by path:[%s]", cfg.Path)
 	if resp := gamma.CreateTable(ge.gamma, table); resp != 0 {
-		endTime := time.Now()
-		log.Error("create table[%s] for gamma has err [%d] cost time :%v", cfg.Space.Name, resp, (endTime.Sub(startTime).Seconds())*1000)
+		log.Error("create table[%s] for gamma has err [%d] cost time: [%v]", cfg.Space.Name, resp, time.Since(startTime).Seconds())
 		ge.Close()
 		return nil, fmt.Errorf("create gamma table has err:[%d]", resp)
-	} else {
-		log.Info("to create table for gamma finish by path:[%s]", cfg.Path)
 	}
 
-	endTime := time.Now()
-	log.Info("creat table: %s cost time :%v", cfg.Space.Name, (endTime.Sub(startTime).Seconds())*1000)
+	gammaDirs := make([]string, 0)
+	for _, info := range(infos) {
+		gammaDirs = append(gammaDirs, info.Name())
+	}
+
+	log.Info("create table for gamma finish by path:[%s], table: %s cost: [%v]s, files [%v]", cfg.Path, cfg.Space.Name, time.Since(startTime).Seconds(), gammaDirs)
+
 	if len(infos) > 0 {
 		code := gamma.Load(ge.gamma)
 		if code != 0 {
@@ -115,13 +114,15 @@ func New(cfg register.EngineConfig) (engine.Engine, error) {
 					return
 				default:
 				}
-				//log.Debug("gamma use memory is:[%d]", C.GetMemoryBytes(ge.gamma))
 				var status gamma.EngineStatus
 				gamma.GetEngineStatus(ge.gamma, &status)
-				log.Debug("gamma use memory is:[%d]",
-					status.BitmapMem+status.FieldRangeMem+status.TableMem+status.VectorMem+status.IndexMem)
-				log.Debug("gamma memory usage: bitmap %d, range %d, table %d, vector %d, vector index %d",
-					status.BitmapMem, status.FieldRangeMem, status.TableMem, status.VectorMem, status.IndexMem)
+				log.Debug("gamma use memory total:[%d], bitmap %d, range %d, table %d, vector %d, vector index %d",
+					status.BitmapMem+status.FieldRangeMem+status.TableMem+status.VectorMem+status.IndexMem,
+					status.BitmapMem,
+					status.FieldRangeMem,
+					status.TableMem,
+					status.VectorMem,
+					status.IndexMem)
 				time.Sleep(10 * time.Second)
 			}
 		}()
@@ -230,7 +231,7 @@ func (ge *gammaEngine) BuildIndex() error {
 		return vearchlog.LogErrAndReturn(vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_IS_CLOSED, nil))
 	}
 
-	//UNINDEXED = 0, INDEXING, INDEXED
+	// UNINDEXED = 0, INDEXING, INDEXED
 	go func() {
 		startTime := time.Now()
 		if rc := gamma.BuildIndex(gammaEngine); rc != 0 {
@@ -277,7 +278,6 @@ func (ge *gammaEngine) Close() {
 }
 
 func (ge *gammaEngine) autoCreateIndex() {
-
 	if ge.space.Engine.IndexSize <= 0 {
 		return
 	}
@@ -289,7 +289,6 @@ func (ge *gammaEngine) autoCreateIndex() {
 		default:
 		}
 
-		//s := C.GetIndexStatus(ge.gamma)
 		var status gamma.EngineStatus
 		gamma.GetEngineStatus(ge.gamma, &status)
 		s := status.IndexStatus

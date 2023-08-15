@@ -16,6 +16,7 @@ package ps
 
 import (
 	"context"
+	"fmt"
 	"sync"
 
 	"github.com/cubefs/cubefs/depends/tiglabs/raft"
@@ -98,18 +99,34 @@ func (s *Server) RangePartition(fun func(entity.PartitionID, PartitionStore)) {
 }
 
 // load partition for in disk
-func (s *Server) LoadPartition(ctx context.Context, pid entity.PartitionID) (PartitionStore, error) {
-	space, err := psutil.LoadPartitionMeta(config.Conf().GetDataDirBySlot(config.PS, pid), pid)
+func (s *Server) LoadPartition(ctx context.Context, pid entity.PartitionID, spaces []*entity.Space) (PartitionStore, error) {
+	// space, err := psutil.LoadPartitionMeta(config.Conf().GetDataDirBySlot(config.PS, pid), pid)
 
-	if err != nil {
-		return nil, err
+	// if err != nil {
+	// 	return nil, err
+	// }
+	i := -1
+	for k, s := range spaces {
+		for _, p := range s.Partitions {
+			if p.Id == pid {
+				i = k
+				break
+			}
+		}
+		if i > 0 {
+			break
+		}
 	}
+	if i < 0 {
+		return nil, fmt.Errorf("cannot found pid [%d]", pid)
+	}
+	space := spaces[i]
 
 	store, err := raftstore.CreateStore(ctx, pid, s.nodeID, space, s.raftServer, s, s.client)
 	if err != nil {
 		return nil, err
 	}
-	//partition status chan
+	// partition status chan
 	store.RsStatusC = s.replicasStatusC
 	replicas := store.GetPartition().Replicas
 	for _, replica := range replicas {
@@ -202,7 +219,7 @@ func (s *Server) DeletePartition(id entity.PartitionID) {
 	psutil.ClearPartition(config.Conf().GetDataDirBySlot(config.PS, id), id)
 	log.Info("delete partition:[%d] success", id)
 
-	//delete partition cache
+	// delete partition cache
 	if _, ok := s.partitions.Load(id); ok {
 		s.partitions.Delete(id)
 	}
@@ -229,7 +246,7 @@ func (s *Server) ClosePartitions() {
 	})
 }
 
-func (s *Server) recoverPartitions(pids []entity.PartitionID) {
+func (s *Server) recoverPartitions(pids []entity.PartitionID, spaces []*entity.Space) {
 	wg := new(sync.WaitGroup)
 	wg.Add(len(pids))
 
@@ -242,11 +259,12 @@ func (s *Server) recoverPartitions(pids []entity.PartitionID) {
 			defer wg.Done()
 
 			log.Debug("starting recover partition[%d]...", pid)
-			_, err := s.LoadPartition(ctx, pid)
+			_, err := s.LoadPartition(ctx, pid, spaces)
 			if err != nil {
 				log.Error("init partition err :[%s]", err.Error())
+			} else {
+				log.Debug("partition[%d] recovered complete", pid)
 			}
-			log.Debug("partition[%d] recovered complete", pid)
 		}(pids[idx])
 	}
 

@@ -62,6 +62,7 @@ func (ms *masterService) registerServerService(ctx context.Context, ip string, n
 			for _, id := range p.Replicas {
 				if nodeID == id {
 					server.PartitionIds = append(server.PartitionIds, p.Id)
+					server.Spaces = append(server.Spaces, s)
 					break
 				}
 			}
@@ -69,12 +70,11 @@ func (ms *masterService) registerServerService(ctx context.Context, ip string, n
 	}
 
 	return server, nil
-
 }
 
 // registerPartitionService partition/[id]:[body]
 func (ms *masterService) registerPartitionService(ctx context.Context, partition *entity.Partition) error {
-	log.Info("rigister parttion:[%d] ", partition.Id)
+	log.Info("register parttion:[%d] ", partition.Id)
 	marshal, err := json.Marshal(partition)
 	if err != nil {
 		return err
@@ -933,7 +933,7 @@ func (ms *masterService) RecoverFailServer(ctx context.Context, rs *entity.Recov
 			}
 			log.Info("ChangePartitionMember [%+v] success,", cm)
 		}
-		//if success,remove from failServer
+		// if success, remove from failServer
 		ms.Master().TryRemoveFailServer(ctx, targetFailServer.Node)
 	} else {
 		return fmt.Errorf("newServer or targetFailServer is nil ")
@@ -945,7 +945,7 @@ func (ms *masterService) RecoverFailServer(ctx context.Context, rs *entity.Recov
 // get servers belong this db
 func (ms *masterService) DBServers(ctx context.Context, dbName string) (servers []*entity.Server, err error) {
 	defer errutil.CatchError(&err)
-	//get all servers
+	// get all servers
 	servers, err = ms.Master().QueryServers(ctx)
 	errutil.ThrowError(err)
 
@@ -953,7 +953,7 @@ func (ms *masterService) DBServers(ctx context.Context, dbName string) (servers 
 	if err != nil {
 		return nil, err
 	}
-	//get private server
+	// get private server
 	if len(db.Ps) > 0 {
 		privateServer := make([]*entity.Server, 0)
 		for _, ps := range db.Ps {
@@ -985,19 +985,19 @@ func (ms *masterService) ChangeReplica(ctx context.Context, dbModify *entity.DBM
 			int(space.ReplicaNum)+1, len(servers))
 		return err
 	}
-	// change space replicas of partition ,add or delete one
+	// change space replicas of partition, add or delete one
 	changeServer := make([]*entity.ChangeMember, 0)
 	for _, partition := range space.Partitions {
-		// sort servers，low to height
+		// sort servers，low to high
 		sort.Slice(servers, func(i, j int) bool {
 			return len(servers[i].PartitionIds) < len(servers[j].PartitionIds)
 		})
-		// choice server
+		// change server
 		for _, s := range servers {
 			if dbModify.Method == proto.ConfAddNode {
 				exist, _ := slice.IsExistSlice(s.ID, partition.Replicas)
 				if !exist {
-					// server don't contain this partition,then create it
+					// server don't contain this partition, then create it
 					cm := &entity.ChangeMember{PartitionID: partition.Id, NodeID: s.ID, Method: dbModify.Method}
 					changeServer = append(changeServer, cm)
 					s.PartitionIds = append(s.PartitionIds, partition.Id)
@@ -1006,7 +1006,7 @@ func (ms *masterService) ChangeReplica(ctx context.Context, dbModify *entity.DBM
 			} else if dbModify.Method == proto.ConfRemoveNode {
 				exist, index := slice.IsExistSlice(partition.Id, s.PartitionIds)
 				if exist {
-					// server contain this partition,then remove it
+					// server contain this partition, then remove it
 					cm := &entity.ChangeMember{PartitionID: partition.Id, NodeID: s.ID, Method: dbModify.Method}
 					changeServer = append(changeServer, cm)
 					s.PartitionIds = append(s.PartitionIds[:index], s.PartitionIds[index+1:]...)
@@ -1021,7 +1021,7 @@ func (ms *masterService) ChangeReplica(ctx context.Context, dbModify *entity.DBM
 	// change partition
 	for _, cm := range changeServer {
 		if e = ms.ChangeMember(ctx, cm); e != nil {
-			info := fmt.Sprintf("change partition member [%+v] failed,err is %s ", cm, e)
+			info := fmt.Sprintf("change partition member [%+v] failed, err is %s ", cm, e)
 			log.Error(info)
 			panic(fmt.Errorf(info))
 		}

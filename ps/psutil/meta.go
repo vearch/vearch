@@ -17,7 +17,6 @@ package psutil
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -39,8 +38,7 @@ type meta struct {
 }
 
 func InitMeta(client *client.Client, cluster, dataPath string) entity.NodeID {
-
-	//first you need create dir
+	// first you need create dir
 	if err := os.MkdirAll(dataPath, os.ModePerm); err != nil {
 		panic(err)
 	}
@@ -70,9 +68,9 @@ func InitMeta(client *client.Client, cluster, dataPath string) entity.NodeID {
 	return nodeID
 }
 
-//getInfo is used to load the persistence MetaInfo stored is the disk,and return the MetaInfo
+// getInfo is used to load the persistence MetaInfo stored is the disk,and return the MetaInfo
 func readMeta(cluster, metaPath string) entity.NodeID {
-	if b, err := ioutil.ReadFile(metaPath); err == nil {
+	if b, err := os.ReadFile(metaPath); err == nil {
 		temp := &meta{}
 		if err := cbjson.Unmarshal(b, temp); err != nil {
 			panic(err)
@@ -113,14 +111,13 @@ func createMeta(client *client.Client, cluster, metaPath string) entity.NodeID {
 		panic(err)
 	}
 	return entity.NodeID(id)
-
 }
 
 func GetAllPartitions(datas []string) []entity.PartitionID {
 	ids := make(map[string]struct{}, 64)
 
 	for _, data := range datas {
-		if dir, err := ioutil.ReadDir(filepath.Join(data, "meta")); err == nil {
+		if dir, err := os.ReadDir(filepath.Join(data, "meta")); err == nil {
 			for _, fi := range dir {
 				if fi.IsDir() {
 					ids[fi.Name()] = struct{}{}
@@ -145,7 +142,6 @@ func partitionPath(data string, id entity.PartitionID, pathType string) string {
 }
 
 func CreatePartitionPaths(dataPath string, space *entity.Space, id entity.PartitionID) (data, raft, meta string, err error) {
-
 	data, raft, meta = GetPartitionPaths(dataPath, id)
 
 	if err = os.MkdirAll(data, os.ModePerm); err != nil {
@@ -174,7 +170,7 @@ func CreatePartitionPaths(dataPath string, space *entity.Space, id entity.Partit
 
 func LoadPartitionMeta(dataPath string, id entity.PartitionID) (*entity.Space, error) {
 	_, _, meta := GetPartitionPaths(dataPath, id)
-	bytes, err := ioutil.ReadFile(path.Join(meta, "meta.txt"))
+	bytes, err := os.ReadFile(path.Join(meta, "meta.txt"))
 	if err != nil {
 		return nil, err
 	}
@@ -205,7 +201,6 @@ func GetPartitionPaths(path string, id entity.PartitionID) (data, raft, meta str
 }
 
 func ClearPartition(path string, id entity.PartitionID) {
-
 	data, raft, meta := GetPartitionPaths(path, id)
 
 	if err := os.RemoveAll(data); err != nil {

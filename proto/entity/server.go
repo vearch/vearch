@@ -25,7 +25,7 @@ type BuildVersion struct {
 	CommitID     string `json:"commit_id"`
 }
 
-//server/id:[body] ttl 3m 3s
+// server/id:[body] ttl 3m 3s
 type Server struct {
 	ID                NodeID        `json:"name,omitempty"` //unique name for raft
 	ResourceName      string        `toml:"resource_name,omitempty" json:"resource_name"`
@@ -34,12 +34,13 @@ type Server struct {
 	RaftReplicatePort uint16        `json:"raft_replicate_port"`
 	Ip                string        `json:"ip,omitempty"`
 	PartitionIds      []PartitionID `json:"p_ids,omitempty"`
+	Spaces            []*Space
 	Size              uint64        `json:"size,omitempty"`
 	Private           bool          `json:"private"`
 	Version           *BuildVersion `json:"version"`
 }
 
-//FailServer /fail/server/id:[body] ttl 3m 3s
+// FailServer /fail/server/id:[body] ttl 3m 3s
 type FailServer struct {
 	ID        NodeID  `json:"nodeID,omitempty"` //unique name for raft
 	TimeStamp int64   `json:"time_stamp,omitempty"`
