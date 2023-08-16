@@ -53,6 +53,9 @@ const (
 	IgnoredField    = "_ignored"
 	RoutingField    = "_routing"
 	MetaField       = "_meta"
+
+	maxStrLen        = 65535
+	maxIndexedStrLen = 255
 )
 
 // fields index map
@@ -426,7 +429,13 @@ func processString(pro *entity.SpaceProperties, fieldName, val string) (*vearchp
 
 	switch pro.FieldType {
 	case entity.FieldType_STRING:
-		field, err = processField(fieldName, vearchpb.FieldType_STRING, []byte(val), opt)
+		if *pro.Index && len(val) > maxIndexedStrLen {
+			err = fmt.Errorf("indexed string len should less than %d", maxIndexedStrLen)
+		} else if len(val) > maxStrLen {
+			err = fmt.Errorf("string len should less than %d", maxStrLen)
+		} else {
+			field, err = processField(fieldName, vearchpb.FieldType_STRING, []byte(val), opt)
+		}
 	case entity.FieldType_DATE:
 		// UTC time
 		var f time.Time
@@ -655,7 +664,7 @@ func docSearchParse(r *http.Request, space *entity.Space, searchReq *vearchpb.Se
 		return
 	}
 	if config.LogInfoPrintSwitch {
-		reqBodyCostTime := time.Now().Sub(reqBodyStart).Seconds() * 1000
+		reqBodyCostTime := time.Since(reqBodyStart).Seconds() * 1000
 		reqBodyCostTimeStr := strconv.FormatFloat(reqBodyCostTime, 'f', -1, 64)
 		searchReq.Head.Params["reqBodyCostTime"] = reqBodyCostTimeStr
 	}

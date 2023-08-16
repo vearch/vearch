@@ -86,7 +86,7 @@ func (handler *DocumentHandler) ExportToServer() error {
 	// search doc: /$dbName/$spaceName/_search
 	handler.httpServer.HandlesMethods([]string{http.MethodGet, http.MethodPost}, fmt.Sprintf("/{%s}/{%s}/_search", URLParamDbName, URLParamSpaceName), []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleSearchDoc}, nil)
 
-	// msearch doc: /$dbName/$spaceName/_search
+	// msearch doc: /$dbName/$spaceName/_msearch
 	handler.httpServer.HandlesMethods([]string{http.MethodGet, http.MethodPost}, fmt.Sprintf("/{%s}/{%s}/_msearch", URLParamDbName, URLParamSpaceName), []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleMSearchDoc}, nil)
 
 	// search doc: /$dbName/$spaceName/_msearch_ids
@@ -329,7 +329,7 @@ func (handler *DocumentHandler) handleSearchDoc(ctx context.Context, w http.Resp
 	}
 	serviceStart := time.Now()
 	searchResp := handler.docService.search(ctx, args)
-	serviceCost := time.Now().Sub(serviceStart)
+	serviceCost := time.Since(serviceStart)
 
 	var bs []byte
 	if searchResp.Results == nil || len(searchResp.Results) == 0 {
@@ -380,7 +380,7 @@ func (handler *DocumentHandler) handleMSearchDoc(ctx context.Context, w http.Res
 	}
 	serviceStart := time.Now()
 	searchRes := handler.docService.search(ctx, args)
-	serviceCost := time.Now().Sub(serviceStart)
+	serviceCost := time.Since(serviceStart)
 	contentStartTime := time.Now()
 	log.Info("handleMSearchDoc service cost:[%f]", serviceCost.Seconds()*1000)
 	bs, err := ToContents(searchRes.Results, args.Head, serviceCost, space)
@@ -672,7 +672,7 @@ func (handler *DocumentHandler) handleBulkSearchDoc(ctx context.Context, w http.
 
 	serviceStart := time.Now()
 	searchRes := handler.docService.bulkSearch(ctx, searchReqs)
-	serviceCost := time.Now().Sub(serviceStart)
+	serviceCost := time.Since(serviceStart)
 
 	bs, err := ToContents(searchRes.Results, args.Head, serviceCost, space)
 	if err != nil {
