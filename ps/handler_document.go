@@ -183,7 +183,9 @@ func (handler *UnaryHandler) execute(ctx context.Context, req *vearchpb.Partitio
 		}
 		switch method {
 		case client.GetDocsHandler:
-			getDocuments(ctx, store, req.Items)
+			getDocuments(ctx, store, req.Items, false)
+		case client.GetDocsByPartitionHandler:
+			getDocuments(ctx, store, req.Items, true)
 		case client.DeleteDocsHandler:
 			deleteDocs(ctx, store, req.Items)
 		case client.ReplaceDocHandler:
@@ -226,9 +228,9 @@ func (handler *UnaryHandler) execute(ctx context.Context, req *vearchpb.Partitio
 	return
 }
 
-func getDocuments(ctx context.Context, store PartitionStore, items []*vearchpb.Item) {
+func getDocuments(ctx context.Context, store PartitionStore, items []*vearchpb.Item, getByDocId bool) {
 	for _, item := range items {
-		if e := store.GetDocument(ctx, true, item.Doc); e != nil {
+		if e := store.GetDocument(ctx, true, item.Doc, getByDocId); e != nil {
 			msg := fmt.Sprintf("GetDocument failed, key: [%s], err: [%s]", item.Doc.PKey, e.Error())
 			log.Error("%s", msg)
 			if vearchErr, ok := e.(*vearchpb.VearchErr); ok {

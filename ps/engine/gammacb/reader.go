@@ -42,33 +42,47 @@ type readerImpl struct {
 	engine *gammaEngine
 }
 
-func (ri *readerImpl) GetDoc(ctx context.Context, doc *vearchpb.Document) error {
+func (ri *readerImpl) GetDoc(ctx context.Context, doc *vearchpb.Document, getByDocId bool) error {
 	ri.engine.counter.Incr()
 	defer ri.engine.counter.Decr()
 
 	var primaryKey []byte
+	var docID int
 	idType := ri.engine.space.Engine.IdType
-	if strings.EqualFold("long", idType) {
-		int64Id, err := strconv.ParseInt(doc.PKey, 10, 64)
+	if getByDocId {
+		docId, err := strconv.ParseUint(doc.PKey, 10, 32)
 		if err != nil {
-			msg := fmt.Sprintf("key: [%s] convert to long failed, err: [%s]", doc.PKey, err.Error())
+			msg := fmt.Sprintf("key: [%s] convert to uint32 failed, err: [%s]", doc.PKey, err.Error())
 			return vearchpb.NewError(vearchpb.ErrorEnum_Primary_IS_INVALID, errors.New(msg))
 		}
-		toByteId, _ := cbbytes.ValueToByte(int64Id)
-		primaryKey = toByteId
+		docID = int(docId)
 	} else {
-		primaryKey = []byte(doc.PKey)
+		if strings.EqualFold("long", idType) {
+		    int64Id, err := strconv.ParseInt(doc.PKey, 10, 64)
+		    if err != nil {
+			    msg := fmt.Sprintf("key: [%s] convert to long failed, err: [%s]", doc.PKey, err.Error())
+			    return vearchpb.NewError(vearchpb.ErrorEnum_Primary_IS_INVALID, errors.New(msg))
+		    }
+		    toByteId, _ := cbbytes.ValueToByte(int64Id)
+		    primaryKey = toByteId
+		} else {
+		    primaryKey = []byte(doc.PKey)
+		}
 	}
 
 	docGamma := new(gamma.Doc)
-	if code := gamma.GetDocByID(ri.engine.gamma, primaryKey, docGamma); code != 0 {
+	var code int
+	if getByDocId {
+		code = gamma.GetDocByDocID(ri.engine.gamma, docID, docGamma)
+	} else {
+		code = gamma.GetDocByID(ri.engine.gamma, primaryKey, docGamma)
+	}
+	if code != 0 {
 		msg := "doc not found"
 		return vearchpb.NewError(vearchpb.ErrorEnum_DOCUMENT_NOT_EXIST, errors.New(msg))
-	} else {
-		doc.Fields = docGamma.Fields
-		// ri.engine.GammaDocConvertGODoc(docGamma, doc)
-		return nil
 	}
+	doc.Fields = docGamma.Fields
+	return nil
 }
 
 func (ri *readerImpl) ReadSN(ctx context.Context) (int64, error) {

@@ -35,16 +35,17 @@ import (
 )
 
 const (
-	URLParamDbName    = "db_name"
-	URLParamSpaceName = "space_name"
-	URLParamID        = "_id"
-	URLParams         = "url_params"
-	ReqsBody          = "req_body"
-	SpaceEntity       = "space_entity"
-	IDType            = "id_type"
-	IDIsLong          = "IDIsLong"
-	QueryIsOnlyID     = "QueryIsOnlyID"
-	URLQueryTimeout   = "timeout"
+	URLParamDbName      = "db_name"
+	URLParamSpaceName   = "space_name"
+	URLParamPartitionID  = "partition_id"
+	URLParamID          = "_id"
+	URLParams           = "url_params"
+	ReqsBody            = "req_body"
+	SpaceEntity         = "space_entity"
+	IDType              = "id_type"
+	IDIsLong            = "IDIsLong"
+	QueryIsOnlyID       = "QueryIsOnlyID"
+	URLQueryTimeout     = "timeout"
 )
 
 type DocumentHandler struct {
@@ -115,6 +116,9 @@ func (handler *DocumentHandler) ExportToServer() error {
 
 	// get doc: /$dbName/$spaceName/$docId
 	handler.httpServer.HandlesMethods([]string{http.MethodGet}, fmt.Sprintf("/{%s}/{%s}/{%s}", URLParamDbName, URLParamSpaceName, URLParamID), []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleGetDoc}, nil)
+
+	// get doc: /$dbName/$spaceName/$partitionId/$docId
+	handler.httpServer.HandlesMethods([]string{http.MethodGet}, fmt.Sprintf("/{%s}/{%s}/{%s}/{%s}", URLParamDbName, URLParamSpaceName, URLParamPartitionID, URLParamID), []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleGetDocByPartition}, nil)
 
 	// delete doc: /$dbName/$spaceName/$docId
 	handler.httpServer.HandlesMethods([]string{http.MethodDelete}, fmt.Sprintf("/{%s}/{%s}/{%s}", URLParamDbName, URLParamSpaceName, URLParamID), []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleDeleteDoc}, nil)
@@ -187,6 +191,26 @@ func (handler *DocumentHandler) handleGetDoc(ctx context.Context, w http.Respons
 	args.Head = setRequestHead(params, r)
 	args.PrimaryKeys = strings.Split(params.ByName(URLParamID), ",")
 	reply := handler.docService.getDocs(ctx, args)
+	if resultBytes, err := docGetResponse(handler.client, args, reply, nil, false); err != nil {
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
+		return ctx, true
+	} else {
+		resp.SendJsonBytes(ctx, w, resultBytes)
+		return ctx, true
+	}
+}
+
+func (handler *DocumentHandler) handleGetDocByPartition(ctx context.Context, w http.ResponseWriter, r *http.Request, params netutil.UriParams) (context.Context, bool) {
+	startTime := time.Now()
+	operateName := "handleGetDocByPartition"
+	defer monitor.Profiler(operateName, startTime)
+	span, ctx := opentracing.StartSpanFromContext(ctx, operateName)
+	defer span.Finish()
+	args := &vearchpb.GetRequest{}
+	args.Head = setRequestHead(params, r)
+	args.PrimaryKeys = strings.Split(params.ByName(URLParamID), ",")
+	partitionId := params.ByName(URLParamPartitionID)
+	reply := handler.docService.getDocsByPartition(ctx, args, partitionId)
 	if resultBytes, err := docGetResponse(handler.client, args, reply, nil, false); err != nil {
 		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 		return ctx, true

@@ -26,7 +26,7 @@ import (
 
 // Reader is the read interface to an engine's data.
 type Reader interface {
-	GetDoc(ctx context.Context, doc *vearchpb.Document) error
+	GetDoc(ctx context.Context, doc *vearchpb.Document, getByDocId bool) error
 
 	ReadSN(ctx context.Context) (int64, error)
 
@@ -67,7 +67,7 @@ type Engine interface {
 	NewSnapshot() (proto.Snapshot, error)
 	ApplySnapshot(peers []proto.Peer, iter proto.SnapIterator) error
 	Optimize() error
-	IndexInfo() (int, int)
+	IndexInfo() (int, int, int)
 	EngineStatus(status *EngineStatus) error
 	Close()
 	HasClosed() bool

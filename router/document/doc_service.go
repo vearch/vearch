@@ -71,6 +71,22 @@ func (docService *docService) getDocs(ctx context.Context, args *vearchpb.GetReq
 	return reply
 }
 
+func (docService *docService) getDocsByPartition(ctx context.Context, args *vearchpb.GetRequest, partitionId string) *vearchpb.GetResponse {
+	ctx, cancel := setTimeOut(ctx, args.Head)
+	defer cancel()
+	reply := &vearchpb.GetResponse{Head: newOkHead()}
+	request := client.NewRouterRequest(ctx, docService.client)
+	request.SetMsgID().SetMethod(client.GetDocsByPartitionHandler).SetHead(args.Head).SetSpace().SetDocsBySpecifyKey(args.PrimaryKeys).SetSendMap(partitionId)
+	if request.Err != nil {
+		log.Errorf("getDoc args:[%v] error: [%s]", args, request.Err)
+		return &vearchpb.GetResponse{Head: setErrHead(request.Err)}
+	}
+	items := request.Execute()
+	reply.Head.Params = request.GetMD()
+	reply.Items = items
+	return reply
+}
+
 func (docService *docService) addDoc(ctx context.Context, args *vearchpb.AddRequest) *vearchpb.AddResponse {
 	ctx, cancel := setTimeOut(ctx, args.Head)
 	defer cancel()

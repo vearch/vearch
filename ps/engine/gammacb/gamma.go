@@ -205,10 +205,10 @@ func (ge *gammaEngine) Optimize() error {
 	return nil
 }
 
-func (ge *gammaEngine) IndexInfo() (int, int) {
+func (ge *gammaEngine) IndexInfo() (int, int, int) {
 	var status gamma.EngineStatus
 	gamma.GetEngineStatus(ge.gamma, &status)
-	return int(status.IndexStatus), int(status.MinIndexedNum)
+	return int(status.IndexStatus), int(status.MinIndexedNum), int(status.MaxDocid)
 }
 
 func (ge *gammaEngine) EngineStatus(status *engine.EngineStatus) error {

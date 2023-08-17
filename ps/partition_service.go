@@ -75,7 +75,7 @@ type PartitionStore interface {
 
 	UpdateSpace(ctx context.Context, space *entity.Space) error
 
-	GetDocument(ctx context.Context, readLeader bool, doc *vearchpb.Document) (err error)
+	GetDocument(ctx context.Context, readLeader bool, doc *vearchpb.Document, getByDocId bool) (err error)
 
 	Write(ctx context.Context, request *vearchpb.DocCmd) (err error)
 

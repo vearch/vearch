@@ -86,5 +86,6 @@ type PartitionInfo struct {
 	RaftStatus  *raft.Status      `json:"raft_status,omitempty"`
 	IndexStatus int               `json:"index_status"`
 	IndexNum    int               `json:"index_num"`
+	MaxDocid    int               `json:"max_docid"`
 	Error       string            `json:"error,omitempty"`
 }

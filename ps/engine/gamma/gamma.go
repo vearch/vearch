@@ -89,6 +89,20 @@ func GetDocByID(engine unsafe.Pointer, docID []byte, doc *Doc) int {
 	return ret
 }
 
+func GetDocByDocID(engine unsafe.Pointer, docID int, doc *Doc) int {
+	var CBuffer *C.char
+	zero := 0
+	length := &zero
+	ret := int(C.GetDocByDocID(engine,
+		C.int(docID),
+		(**C.char)(unsafe.Pointer(&CBuffer)),
+		(*C.int)(unsafe.Pointer(length))))
+	defer C.free(unsafe.Pointer(CBuffer))
+	buffer := C.GoBytes(unsafe.Pointer(CBuffer), C.int(*length))
+	doc.DeSerialize(buffer)
+	return ret
+}
+
 func BuildIndex(engine unsafe.Pointer) int {
 	return int(C.BuildIndex(engine))
 }
