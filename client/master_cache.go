@@ -650,7 +650,7 @@ func (cliCache *clientCache) initPartition(ctx context.Context) error {
 		if spaceName == "" {
 			space, err := cliCache.mc.QuerySpaceByID(ctx, pt.DBId, pt.SpaceId)
 			if err != nil {
-				log.Error("partition can not find space by DBID:[%d] spaceID:[%pt.SpaceId] partitionID:[%d] err:[%s]", pt.DBId, pt.SpaceId, pt.Id, err.Error())
+				log.Error("partition can not find space by DBID:[%d] spaceID:[%d] partitionID:[%d] err:[%s]", pt.DBId, pt.SpaceId, pt.Id, err.Error())
 				continue
 			}
 			spaceName, spaceNameMap[pt.SpaceId] = space.Name, space.Name

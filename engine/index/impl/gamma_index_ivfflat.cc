@@ -403,7 +403,13 @@ int GammaIndexIVFFlat::Search(RetrievalContext *retrieval_context, int n,
     del_params.set(retrieval_params);
   }
 
-  int nprobe = retrieval_params->Nprobe();
+  int nprobe = this->nprobe;
+  if (retrieval_params->Nprobe() > 0 &&
+      (size_t)retrieval_params->Nprobe() <= this->nlist) {
+    nprobe = retrieval_params->Nprobe();
+  } else {
+    retrieval_params->SetNprobe(this->nprobe);
+  }
 #else
   int nprobe = this->nprobe;
 #endif
