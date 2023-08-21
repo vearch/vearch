@@ -4,8 +4,6 @@ ROOT=$(dirname "$PWD")
 BUILDOUT=$ROOT/build/bin/
 mkdir -p $BUILDOUT
 GAMMAOUT=$ROOT/build/gamma_build
-rm -rf ${GAMMAOUT}
-mkdir -p $GAMMAOUT
 
 # BUILD OPTS
 COMPILE_THREAD_TAG=-j2
@@ -99,6 +97,7 @@ function build_thirdparty() {
 
 function build_engine() {
   echo "build gamma"
+  rm -rf ${GAMMAOUT} && mkdir -p $GAMMAOUT
   pushd $GAMMAOUT
   cmake -DPERFORMANCE_TESTING=ON -DCMAKE_BUILD_TYPE=$BUILD_GAMMA_TYPE -DBUILD_TEST=$BUILD_GAMMA_TEST $ROOT/engine/
   make $COMPILE_THREAD_TAG

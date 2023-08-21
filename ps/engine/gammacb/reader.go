@@ -26,10 +26,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/vearch/vearch/engine/sdk/go/gamma"
 	pkg "github.com/vearch/vearch/proto"
 	"github.com/vearch/vearch/proto/vearchpb"
 	"github.com/vearch/vearch/ps/engine"
-	"github.com/vearch/vearch/ps/engine/gamma"
 	"github.com/vearch/vearch/util/cbbytes"
 	"github.com/vearch/vearch/util/vearchlog"
 )
@@ -58,15 +58,15 @@ func (ri *readerImpl) GetDoc(ctx context.Context, doc *vearchpb.Document, getByD
 		docID = int(docId)
 	} else {
 		if strings.EqualFold("long", idType) {
-		    int64Id, err := strconv.ParseInt(doc.PKey, 10, 64)
-		    if err != nil {
-			    msg := fmt.Sprintf("key: [%s] convert to long failed, err: [%s]", doc.PKey, err.Error())
-			    return vearchpb.NewError(vearchpb.ErrorEnum_Primary_IS_INVALID, errors.New(msg))
-		    }
-		    toByteId, _ := cbbytes.ValueToByte(int64Id)
-		    primaryKey = toByteId
+			int64Id, err := strconv.ParseInt(doc.PKey, 10, 64)
+			if err != nil {
+				msg := fmt.Sprintf("key: [%s] convert to long failed, err: [%s]", doc.PKey, err.Error())
+				return vearchpb.NewError(vearchpb.ErrorEnum_Primary_IS_INVALID, errors.New(msg))
+			}
+			toByteId, _ := cbbytes.ValueToByte(int64Id)
+			primaryKey = toByteId
 		} else {
-		    primaryKey = []byte(doc.PKey)
+			primaryKey = []byte(doc.PKey)
 		}
 	}
 

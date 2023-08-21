@@ -34,11 +34,11 @@ import (
 	"github.com/spaolacci/murmur3"
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/config"
+	"github.com/vearch/vearch/engine/sdk/go/gamma"
 	"github.com/vearch/vearch/master/store"
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/proto/response"
 	"github.com/vearch/vearch/proto/vearchpb"
-	"github.com/vearch/vearch/ps/engine/gamma"
 	"github.com/vearch/vearch/ps/engine/mapping"
 	"github.com/vearch/vearch/ps/engine/sortorder"
 	"github.com/vearch/vearch/util"
@@ -229,15 +229,15 @@ func (r *routerRequest) SetDocsField() *routerRequest {
 
 // SetDocsByKey  return docs by a series of primary key
 func (r *routerRequest) SetDocsByKey(keys []string) *routerRequest {
-    if r.Err != nil {
-        return r
-    }
-    isIdLong := false
-    if idIsLong(r.space) {
-        isIdLong = true
-    }
-    r.docs, r.Err = setDocs(keys, isIdLong)
-    return r
+	if r.Err != nil {
+		return r
+	}
+	isIdLong := false
+	if idIsLong(r.space) {
+		isIdLong = true
+	}
+	r.docs, r.Err = setDocs(keys, isIdLong)
+	return r
 }
 
 // SetDocsBySpecifyKey  return docs by a series of primary key with long type
@@ -274,31 +274,31 @@ func (r *routerRequest) PartitionDocs() *routerRequest {
 
 // Docs in specify partition
 func (r *routerRequest) SetSendMap(partitionId string) *routerRequest {
-    if r.Err != nil {
-        return r
-    }
-    pID, err := strconv.ParseUint(partitionId, 10, 32)
-    partitionID := uint32(pID)
-    if err != nil {
-        msg := fmt.Sprintf("partitionId: [%s] convert to uint32 failed, err: [%s]", partitionId, err.Error())
-        r.Err = vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, errors.New(msg))
-        return r
-    }
-    dataMap := make(map[entity.PartitionID]*vearchpb.PartitionData)
-    for _, doc := range r.docs {
-        item := &vearchpb.Item{Doc: doc}
-        if d, ok := dataMap[partitionID]; ok {
-            d.Items = append(d.Items, item)
-        } else {
-            items := make([]*vearchpb.Item, 0)
-            d = &vearchpb.PartitionData{PartitionID: partitionID, MessageID: r.GetMsgID(), Items: items}
-            dataMap[partitionID] = d
-            d.Items = append(d.Items, item)
-        }
+	if r.Err != nil {
+		return r
+	}
+	pID, err := strconv.ParseUint(partitionId, 10, 32)
+	partitionID := uint32(pID)
+	if err != nil {
+		msg := fmt.Sprintf("partitionId: [%s] convert to uint32 failed, err: [%s]", partitionId, err.Error())
+		r.Err = vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, errors.New(msg))
+		return r
+	}
+	dataMap := make(map[entity.PartitionID]*vearchpb.PartitionData)
+	for _, doc := range r.docs {
+		item := &vearchpb.Item{Doc: doc}
+		if d, ok := dataMap[partitionID]; ok {
+			d.Items = append(d.Items, item)
+		} else {
+			items := make([]*vearchpb.Item, 0)
+			d = &vearchpb.PartitionData{PartitionID: partitionID, MessageID: r.GetMsgID(), Items: items}
+			dataMap[partitionID] = d
+			d.Items = append(d.Items, item)
+		}
 
-    }
-    r.sendMap = dataMap
-    return r
+	}
+	r.sendMap = dataMap
+	return r
 }
 
 // Execute Execute request

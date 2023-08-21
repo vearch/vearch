@@ -17,8 +17,8 @@ package gammacb
 import (
 	"encoding/json"
 
+	"github.com/vearch/vearch/engine/sdk/go/gamma"
 	"github.com/vearch/vearch/proto/vearchpb"
-	"github.com/vearch/vearch/ps/engine/gamma"
 	"github.com/vearch/vearch/ps/engine/mapping"
 )
 

@@ -24,10 +24,10 @@ import (
 	"unsafe"
 
 	"github.com/vearch/vearch/config"
+	"github.com/vearch/vearch/engine/sdk/go/gamma"
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/proto/vearchpb"
 	"github.com/vearch/vearch/ps/engine"
-	"github.com/vearch/vearch/ps/engine/gamma"
 	"github.com/vearch/vearch/ps/engine/mapping"
 	"github.com/vearch/vearch/ps/engine/register"
 	"github.com/vearch/vearch/util/atomic"
@@ -92,7 +92,7 @@ func New(cfg register.EngineConfig) (engine.Engine, error) {
 	}
 
 	gammaDirs := make([]string, 0)
-	for _, info := range(infos) {
+	for _, info := range infos {
 		gammaDirs = append(gammaDirs, info.Name())
 	}
 

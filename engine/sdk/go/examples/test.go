@@ -8,12 +8,10 @@
 package main
 
 import (
-	gamma "engine/go/gamma"
 	"bufio"
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"golang.org/x/exp/mmap"
 	"io"
 	"math"
 	"os"
@@ -21,6 +19,10 @@ import (
 	"strings"
 	"time"
 	"unsafe"
+
+	"github.com/vearch/vearch/engine/sdk/go/gamma"
+	"github.com/vearch/vearch/proto/vearchpb"
+	"golang.org/x/exp/mmap"
 )
 
 type Options struct {
@@ -36,7 +38,8 @@ type Options struct {
 	PrintDoc        bool
 	SearchThreadNum int
 	FieldsVec       []string
-	FieldsType      []gamma.DataType
+	FieldsType      []vearchpb.FieldType
+	TableFieldsType []gamma.DataType
 	Path            string
 	LogDir          string
 	VectorName      string
@@ -69,7 +72,8 @@ func Init() {
 		PrintDoc:        false,
 		SearchThreadNum: 1,
 		FieldsVec:       FieldsVec,
-		FieldsType:      []gamma.DataType{gamma.STRING, gamma.STRING, gamma.STRING, gamma.INT, gamma.INT},
+		FieldsType:      []vearchpb.FieldType{vearchpb.FieldType_STRING, vearchpb.FieldType_STRING, vearchpb.FieldType_STRING, vearchpb.FieldType_INT, vearchpb.FieldType_INT},
+		TableFieldsType: []gamma.DataType{gamma.STRING, gamma.STRING, gamma.STRING, gamma.INT, gamma.INT},
 		Path:            "./files",
 		LogDir:          "./log",
 		VectorName:      "abc",
@@ -115,7 +119,7 @@ func CreteTable() {
 		}
 		fieldInfo := gamma.FieldInfo{
 			Name:     opt.FieldsVec[i],
-			DataType: opt.FieldsType[i],
+			DataType: opt.TableFieldsType[i],
 			IsIndex:  isIndex,
 		}
 		table.Fields = append(table.Fields, fieldInfo)
@@ -140,17 +144,17 @@ func AddDocToEngine(docNum int) {
 		var doc gamma.Doc
 		var url string
 		for j := 0; j < len(opt.FieldsVec); j++ {
-			field := gamma.Field{
-				Name:     opt.FieldsVec[j],
-				Datatype: opt.FieldsType[j],
+			field := &vearchpb.Field{
+				Name: opt.FieldsVec[j],
+				Type: opt.FieldsType[j],
 			}
 			profileStr := opt.Profiles[i*len(opt.FieldsVec)+j]
-			if field.Datatype == gamma.INT {
+			if field.Type == vearchpb.FieldType_INT {
 				tmp, _ := strconv.Atoi(profileStr)
 				bytesBuffer := bytes.NewBuffer([]byte{})
 				binary.Write(bytesBuffer, binary.LittleEndian, &tmp)
 				field.Value = bytesBuffer.Bytes()
-			} else if field.Datatype == gamma.LONG {
+			} else if field.Type == vearchpb.FieldType_LONG {
 				tmp, _ := strconv.ParseInt(profileStr, 10, 64)
 				bytesBuffer := bytes.NewBuffer([]byte{})
 				binary.Write(bytesBuffer, binary.LittleEndian, &tmp)
@@ -163,10 +167,10 @@ func AddDocToEngine(docNum int) {
 			doc.Fields = append(doc.Fields, field)
 		}
 
-		field := gamma.Field{
-			Name:     opt.VectorName,
-			Datatype: gamma.VECTOR,
-			Source:   "",
+		field := &vearchpb.Field{
+			Name:   opt.VectorName,
+			Type:   vearchpb.FieldType_VECTOR,
+			Source: "",
 		}
 		field.Value = make([]byte, opt.D*4)
 		_, _ = opt.FeatureMmap.ReadAt(field.Value, int64(i*opt.D)*4)
@@ -177,63 +181,63 @@ func AddDocToEngine(docNum int) {
 		//	fmt.Println(a)
 		//}
 
-		gamma.AddOrUpdateDoc(opt.Engine, &doc)
+		gamma.AddOrUpdateDoc(opt.Engine, doc.Serialize())
 	}
 }
 
-func BatchAddDocToEngine(docNum int) {
-	batchSize := 100
+// func BatchAddDocToEngine(docNum int) {
+// 	batchSize := 100
 
-	for i := 0; i < docNum; i += batchSize {
-		var docs gamma.Docs
-		for k := 0; k < batchSize; k++ {
-			var doc gamma.Doc
-			var url string
-			for j := 0; j < len(opt.FieldsVec); j++ {
-				field := gamma.Field{
-					Name:     opt.FieldsVec[j],
-					Datatype: opt.FieldsType[j],
-				}
-				profileStr := opt.Profiles[i*len(opt.FieldsVec)+j]
-				if field.Datatype == gamma.INT {
-					tmp, _ := strconv.Atoi(profileStr)
-					bytesBuffer := bytes.NewBuffer([]byte{})
-					binary.Write(bytesBuffer, binary.LittleEndian, &tmp)
-					field.Value = bytesBuffer.Bytes()
-				} else if field.Datatype == gamma.LONG {
-					tmp, _ := strconv.ParseInt(profileStr, 10, 64)
-					bytesBuffer := bytes.NewBuffer([]byte{})
-					binary.Write(bytesBuffer, binary.LittleEndian, &tmp)
-					field.Value = bytesBuffer.Bytes()
-				} else {
-					field.Value = []byte(profileStr)
-					url = profileStr
-				}
-				field.Source = url
-				doc.Fields = append(doc.Fields, field)
-			}
+// 	for i := 0; i < docNum; i += batchSize {
+// 		var docs gamma.Docs
+// 		for k := 0; k < batchSize; k++ {
+// 			var doc gamma.Doc
+// 			var url string
+// 			for j := 0; j < len(opt.FieldsVec); j++ {
+// 				field := gamma.Field{
+// 					Name: opt.FieldsVec[j],
+// 					Type: opt.FieldsType[j],
+// 				}
+// 				profileStr := opt.Profiles[i*len(opt.FieldsVec)+j]
+// 				if field.Datatype == gamma.INT {
+// 					tmp, _ := strconv.Atoi(profileStr)
+// 					bytesBuffer := bytes.NewBuffer([]byte{})
+// 					binary.Write(bytesBuffer, binary.LittleEndian, &tmp)
+// 					field.Value = bytesBuffer.Bytes()
+// 				} else if field.Datatype == gamma.LONG {
+// 					tmp, _ := strconv.ParseInt(profileStr, 10, 64)
+// 					bytesBuffer := bytes.NewBuffer([]byte{})
+// 					binary.Write(bytesBuffer, binary.LittleEndian, &tmp)
+// 					field.Value = bytesBuffer.Bytes()
+// 				} else {
+// 					field.Value = []byte(profileStr)
+// 					url = profileStr
+// 				}
+// 				field.Source = url
+// 				doc.Fields = append(doc.Fields, field)
+// 			}
 
-			field := gamma.Field{
-				Name:     opt.VectorName,
-				Datatype: gamma.VECTOR,
-				Source:   "",
-			}
-			field.Value = make([]byte, opt.D*4)
-			_, _ = opt.FeatureMmap.ReadAt(field.Value, int64(i*opt.D)*4)
-			doc.Fields = append(doc.Fields, field)
+// 			field := gamma.Field{
+// 				Name:     opt.VectorName,
+// 				Datatype: gamma.VECTOR,
+// 				Source:   "",
+// 			}
+// 			field.Value = make([]byte, opt.D*4)
+// 			_, _ = opt.FeatureMmap.ReadAt(field.Value, int64(i*opt.D)*4)
+// 			doc.Fields = append(doc.Fields, field)
 
-			docs.AddDoc(doc)
-		}
-		//for i := 0; i < opt.D; i++ {
-		//	a := Float64frombytes(field.Value[i*4:])
-		//	fmt.Println(a)
-		//}
+// 			docs.AddDoc(doc)
+// 		}
+// 		//for i := 0; i < opt.D; i++ {
+// 		//	a := Float64frombytes(field.Value[i*4:])
+// 		//	fmt.Println(a)
+// 		//}
 
-		//result := gamma.AddOrUpdateDocs(opt.Engine, &docs)
-		//fmt.Println(len(result.Codes))
-		gamma.AddOrUpdateDocs(opt.Engine, &docs)
-	}
-}
+// 		//result := gamma.AddOrUpdateDocs(opt.Engine, &docs)
+// 		//fmt.Println(len(result.Codes))
+// 		gamma.AddOrUpdateDocs(opt.Engine, &docs)
+// 	}
+// }
 
 func Add() {
 	file, err := os.OpenFile(opt.ProfileFile, os.O_RDWR, 0666)
@@ -275,8 +279,8 @@ func Add() {
 			}
 		}
 	}
-	//AddDocToEngine(opt.AddDocNum)
-	BatchAddDocToEngine(opt.AddDocNum)
+	AddDocToEngine(opt.AddDocNum)
+	// BatchAddDocToEngine(opt.AddDocNum)
 }
 
 func Load() {
@@ -305,10 +309,10 @@ func Float64frombytes(bytes []byte) float32 {
 }
 
 func Search() {
-	request := gamma.Request{
+	request := &vearchpb.SearchRequest{
 		ReqNum:               1,
 		TopN:                 100,
-		BruteForceSearch:     0,
+		IsBruteSearch:        0,
 		OnlineLogLevel:       "",
 		MultiVectorRank:      0,
 		ParallelBasedOnQuery: true,
@@ -316,8 +320,8 @@ func Search() {
 		L2Sqrt:               false,
 		IvfFlat:              false,
 	}
-	request.VecFields = make([]gamma.VectorQuery, 1)
-	request.VecFields[0] = gamma.VectorQuery{
+	request.VecFields = make([]*vearchpb.VectorQuery, 1)
+	request.VecFields[0] = &vearchpb.VectorQuery{
 		Name:     opt.VectorName,
 		MinScore: 0,
 		MaxScore: 1000,
@@ -333,8 +337,20 @@ func Search() {
 	//	fmt.Println(a)
 	//}
 
-	var response gamma.Response
-	gamma.Search(opt.Engine, &request, &response)
+	response := &vearchpb.SearchResponse{}
+	reqByte := gamma.SearchRequestSerialize(request)
+	code, respByte := gamma.Search(opt.Engine, reqByte)
+
+	if respByte != nil {
+		gamma.DeSerialize(respByte, response)
+	}
+
+	if code != 0 {
+		fmt.Printf("code %v\n", code)
+		return
+	}
+
+	fmt.Printf("%v\n", *(response.Results[0]))
 }
 
 func main() {

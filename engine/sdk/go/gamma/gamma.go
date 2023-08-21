@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 The Gamma Authors.
+ * Copyright 2019 The Vearch Authors.
  *
  * This source code is licensed under the Apache License, Version 2.0 license
  * found in the LICENSE file in the root directory of this source tree.
@@ -8,14 +8,16 @@
 package gamma
 
 /*
-#cgo CFLAGS : -I../../c_api
-#cgo LDFLAGS: -L../../build -lgamma
+#cgo CFLAGS : -I../../../c_api
+#cgo LDFLAGS: -L../../../engine/build -lgamma
 
 #include "gamma_api.h"
 #include <stdlib.h>
 */
 import "C"
-import "unsafe"
+import (
+	"unsafe"
+)
 
 func Init(config *Config) unsafe.Pointer {
 	var buffer []byte
@@ -33,20 +35,16 @@ func CreateTable(engine unsafe.Pointer, table *Table) int {
 	return int(C.CreateTable(engine, (*C.char)(unsafe.Pointer(&buffer[0])), C.int(len(buffer))))
 }
 
-func AddOrUpdateDoc(engine unsafe.Pointer, doc *Doc) int {
-	var buffer []byte
-	doc.Serialize(&buffer)
+func AddOrUpdateDoc(engine unsafe.Pointer, buffer []byte) int {
 	return int(C.AddOrUpdateDoc(engine, (*C.char)(unsafe.Pointer(&buffer[0])), C.int(len(buffer))))
 }
 
-func AddOrUpdateDocs(engine unsafe.Pointer, docs *Docs) BatchResult {
-	var buffer [][]byte
-	num := docs.Serialize(&buffer)
+func AddOrUpdateDocs(engine unsafe.Pointer, buffer [][]byte) BatchResult {
+	num := len(buffer)
 	C.AddOrUpdateDocsNum(engine, C.int(num))
 	for i, b := range buffer {
 		C.PrepareDocs(engine, (*C.char)(unsafe.Pointer(&(b[0]))), C.int(i))
 	}
-
 	var CBuffer *C.char
 	zero := 0
 	length := &zero
@@ -59,17 +57,14 @@ func AddOrUpdateDocs(engine unsafe.Pointer, docs *Docs) BatchResult {
 	return result
 }
 
-func UpdateDoc(engine unsafe.Pointer, doc *Doc) int {
-	var buffer []byte
-	doc.Serialize(&buffer)
-	return int(C.UpdateDoc(engine, (*C.char)(unsafe.Pointer(&buffer[0])), C.int(len(buffer))))
-}
-
 func DeleteDoc(engine unsafe.Pointer, docID []byte) int {
 	return int(C.DeleteDoc(engine, (*C.char)(unsafe.Pointer(&docID[0])), C.int(len(docID))))
 }
 
 func GetEngineStatus(engine unsafe.Pointer, status *EngineStatus) {
+	if engine == nil || status == nil {
+		return
+	}
 	var CBuffer *C.char
 	zero := 0
 	length := &zero
@@ -94,6 +89,20 @@ func GetDocByID(engine unsafe.Pointer, docID []byte, doc *Doc) int {
 	return ret
 }
 
+func GetDocByDocID(engine unsafe.Pointer, docID int, doc *Doc) int {
+	var CBuffer *C.char
+	zero := 0
+	length := &zero
+	ret := int(C.GetDocByDocID(engine,
+		C.int(docID),
+		(**C.char)(unsafe.Pointer(&CBuffer)),
+		(*C.int)(unsafe.Pointer(length))))
+	defer C.free(unsafe.Pointer(CBuffer))
+	buffer := C.GoBytes(unsafe.Pointer(CBuffer), C.int(*length))
+	doc.DeSerialize(buffer)
+	return ret
+}
+
 func BuildIndex(engine unsafe.Pointer) int {
 	return int(C.BuildIndex(engine))
 }
@@ -106,7 +115,7 @@ func Load(engine unsafe.Pointer) int {
 	return int(C.Load(engine))
 }
 
-func Search(engine unsafe.Pointer, request *Request, response *Response) int {
+/*func Search(engine unsafe.Pointer, request *Request, response *Response) int {
 	var buffer []byte
 	request.Serialize(&buffer)
 
@@ -122,4 +131,35 @@ func Search(engine unsafe.Pointer, request *Request, response *Response) int {
 	res := C.GoBytes(unsafe.Pointer(CBuffer), C.int(*length))
 	response.DeSerialize(res)
 	return ret
+}*/
+
+func Search(engine unsafe.Pointer, reqByte []byte) (int, []byte) {
+	var CBuffer *C.char
+	zero := 0
+	length := &zero
+
+	ret := int(C.Search(engine,
+		(*C.char)(unsafe.Pointer(&reqByte[0])), C.int(len(reqByte)),
+		(**C.char)(unsafe.Pointer(&CBuffer)),
+		(*C.int)(unsafe.Pointer(length))))
+	defer C.free(unsafe.Pointer(CBuffer))
+	respByte := C.GoBytes(unsafe.Pointer(CBuffer), C.int(*length))
+	return ret, respByte
+}
+
+func SetEngineCfg(engine unsafe.Pointer, config *Config) int {
+	var buffer []byte
+	config.Serialize(&buffer)
+	ret := int(C.SetConfig(engine, (*C.char)(unsafe.Pointer(&buffer[0])), C.int(len(buffer))))
+	return ret
+}
+
+func GetEngineCfg(engine unsafe.Pointer, config *Config) {
+	var CBuffer *C.char
+	zero := 0
+	length := &zero
+	C.GetConfig(engine, (**C.char)(unsafe.Pointer(&CBuffer)), (*C.int)(unsafe.Pointer(length)))
+	defer C.free(unsafe.Pointer(CBuffer))
+	buffer := C.GoBytes(unsafe.Pointer(CBuffer), C.int(*length))
+	config.DeSerialize(buffer)
 }

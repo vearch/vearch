@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 The Gamma Authors.
+ * Copyright 2019 The Vearch Authors.
  *
  * This source code is licensed under the Apache License, Version 2.0 license
  * found in the LICENSE file in the root directory of this source tree.
@@ -8,8 +8,9 @@
 package gamma
 
 import (
-	"engine/idl/fbs-gen/go/gamma_api"
 	flatbuffers "github.com/google/flatbuffers/go"
+	"github.com/vearch/vearch/engine/idl/fbs-gen/go/gamma_api"
+	"github.com/vearch/vearch/proto/vearchpb"
 )
 
 type Field struct {
@@ -20,11 +21,11 @@ type Field struct {
 }
 
 type Doc struct {
-	Fields []Field
+	Fields []*vearchpb.Field
 	doc    *gamma_api.Doc
 }
 
-func (doc *Doc) Serialize(buffer *[]byte) int {
+func (doc *Doc) Serialize() []byte {
 	builder := flatbuffers.NewBuilder(0)
 	var names, values, sources []flatbuffers.UOffsetT
 	names = make([]flatbuffers.UOffsetT, len(doc.Fields))
@@ -45,7 +46,7 @@ func (doc *Doc) Serialize(buffer *[]byte) int {
 		gamma_api.FieldAddName(builder, names[i])
 		gamma_api.FieldAddValue(builder, values[i])
 		gamma_api.FieldAddSource(builder, sources[i])
-		gamma_api.FieldAddDataType(builder, int8(doc.Fields[i].Datatype))
+		gamma_api.FieldAddDataType(builder, int8(doc.Fields[i].Type))
 		fields[i] = gamma_api.FieldEnd(builder)
 	}
 
@@ -59,21 +60,21 @@ func (doc *Doc) Serialize(buffer *[]byte) int {
 	gamma_api.DocAddFields(builder, f)
 	builder.Finish(builder.EndObject())
 
-	bufferLen := len(builder.FinishedBytes())
-	*buffer = make([]byte, bufferLen)
-	copy(*buffer, builder.FinishedBytes())
-	return bufferLen
+	return builder.FinishedBytes()
+	// bufferLen := len(builder.FinishedBytes())
+	// return bufferLen
 }
 
 func (doc *Doc) DeSerialize(buffer []byte) {
 	doc.doc = gamma_api.GetRootAsDoc(buffer, 0)
-	doc.Fields = make([]Field, doc.doc.FieldsLength())
-	for i:= 0; i < len(doc.Fields); i++ {
+	doc.Fields = make([]*vearchpb.Field, doc.doc.FieldsLength())
+	for i := 0; i < len(doc.Fields); i++ {
 		var field gamma_api.Field
 		doc.doc.Fields(&field, i)
+		doc.Fields[i] = &vearchpb.Field{}
 		doc.Fields[i].Name = string(field.Name())
 		doc.Fields[i].Value = field.ValueBytes()
 		doc.Fields[i].Source = string(field.Source())
-		doc.Fields[i].Datatype = DataType(field.DataType())
+		doc.Fields[i].Type = vearchpb.FieldType(field.DataType())
 	}
 }

@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 The Gamma Authors.
+ * Copyright 2019 The Vearch Authors.
  *
  * This source code is licensed under the Apache License, Version 2.0 license
  * found in the LICENSE file in the root directory of this source tree.
@@ -8,7 +8,7 @@
 package gamma
 
 import (
-	"engine/idl/fbs-gen/go/gamma_api"
+	"github.com/vearch/vearch/engine/idl/fbs-gen/go/gamma_api"
 )
 
 type BatchResult struct {
