@@ -403,6 +403,10 @@ int GammaIndexHNSWLIB::Update(const std::vector<int64_t> &ids,
                               const std::vector<const uint8_t *> &vecs) {
   std::unique_lock<std::mutex> templock(dump_mutex_);
   for (size_t i = 0; i < ids.size(); i++) {
+    if (indexed_vec_count_ <= ids[i]) {
+      LOG(WARNING) << "index not build so can't update, id[" << ids[i] << "] >= indexed_vec_count[" << indexed_vec_count_ << "]";
+      continue;
+    }
     updatePoint((const void *)vecs[i], ids[i], 1.0);
   }
   updated_num_ += ids.size();
@@ -414,6 +418,10 @@ int GammaIndexHNSWLIB::Update(const std::vector<int64_t> &ids,
 int GammaIndexHNSWLIB::Delete(const std::vector<int64_t> &ids) {
   std::unique_lock<std::mutex> templock(dump_mutex_);
   for (size_t i = 0; i < ids.size(); i++) {
+    if (indexed_vec_count_ <= ids[i]) {
+      LOG(WARNING) << "index not build so can't delete, id[" << ids[i] << "] >= indexed_vec_count[" << indexed_vec_count_ << "]";
+      continue;
+    }
     markDelete(ids[i]);
   }
   deleted_num_ += ids.size();
