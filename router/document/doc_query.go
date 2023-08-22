@@ -63,6 +63,7 @@ type VectorQuery struct {
 	MinScore      *float64        `json:"min_score,omitempty"`
 	MaxScore      *float64        `json:"max_score,omitempty"`
 	RetrievalType string          `json:"retrieval_type"`
+	HasBoost      *int32          `json:"has_boost"`
 }
 
 var defaultBoost = util.PFloat64(1)
@@ -670,7 +671,7 @@ func (query *VectorQuery) ToC(retrievalType string) (*vearchpb.VectorQuery, erro
 		MinScore:      *query.MinScore,
 		MaxScore:      *query.MaxScore,
 		Boost:         *query.Boost,
-		HasBoost:      0,
+		HasBoost:      *query.HasBoost,
 		RetrievalType: retrievalType,
 	}
 	return vectorQuery, nil
