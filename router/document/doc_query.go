@@ -67,7 +67,7 @@ type VectorQuery struct {
 }
 
 var defaultBoost = util.PFloat64(1)
-var defaultHasBoost = util.PInt32(1)
+var defaultHasBoost = util.PInt32(0)
 
 var minOffset float64 = 0.0000001
 
