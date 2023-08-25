@@ -188,9 +188,9 @@ typedef int64_t size_t;
         if (is_binary) {
             real_value.resize(value[index].size());
         } else {
-            real_value.resize(value[index].size() / sizeof(float));
+            real_value.resize((value[index].size() - sizeof(int)) / sizeof(float));
         }
-        memcpy(real_value.data(), value[index].c_str(), value[index].size());
+        memcpy(real_value.data(), value[index].c_str() + sizeof(int), value[index].size() - sizeof(int));
         return real_value; 
     }
 

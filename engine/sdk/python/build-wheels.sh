@@ -5,6 +5,20 @@ BASE_PATH=$ROOT_PATH"/engine"
 OS=`uname -s`
 cp -r $BASE_PATH/idl/fbs-gen/python/* ./python
 
+VERSION="lastest"
+
+function get_version() {
+  VEARCH_VERSION_MAJOR=`cat ${ROOT_PATH}/VERSION | grep VEARCH_VERSION_MAJOR | awk -F' ' '{print $2}'`
+  VEARCH_VERSION_MINOR=`cat ${ROOT_PATH}/VERSION | grep VEARCH_VERSION_MINOR | awk -F' ' '{print $2}'`
+  VEARCH_VERSION_PATCH=`cat ${ROOT_PATH}/VERSION | grep VEARCH_VERSION_PATCH | awk -F' ' '{print $2}'`
+
+  VEARCH_VERSION="${VEARCH_VERSION_MAJOR}.${VEARCH_VERSION_MINOR}.${VEARCH_VERSION_PATCH}"
+  export VERSION=${VEARCH_VERSION}
+  echo "VERSION="${VERSION}
+}
+
+get_version
+
 if [ ${OS} == "Darwin" ];then
     export GAMMA_LDFLAGS=$BASE_PATH/build/libgamma.dylib
     PY_TAGS=(3.6 3.7 3.8 3.9)

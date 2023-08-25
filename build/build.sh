@@ -13,15 +13,12 @@ BUILD_GAMMA_TYPE=Release
 # version value
 BUILD_VERSION="latest"
 
-while getopts ":n:v:tdh" opt
+while getopts ":n:tdh" opt
 do
   case $opt in
     n)
       COMPILE_THREAD_NUM="-j"$OPTARG
       echo "COMPILE_THREAD_NUM="$COMPILE_THREAD_NUM;;
-    v)
-      BUILD_VERSION=$OPTARG
-      echo "BUILD_VERSION="$BUILD_VERSION;;
     t)
       BUILD_GAMMA_TEST=ON
       echo "BUILD_GAMMA_TEST=ON";;
@@ -58,6 +55,15 @@ do
   echo "Do you use rocksdb?[y/n]."
   read use_rocksdb
 done
+
+function get_version() {
+  VEARCH_VERSION_MAJOR=`cat ${ROOT}/VERSION | grep VEARCH_VERSION_MAJOR | awk -F' ' '{print $2}'`
+  VEARCH_VERSION_MINOR=`cat ${ROOT}/VERSION | grep VEARCH_VERSION_MINOR | awk -F' ' '{print $2}'`
+  VEARCH_VERSION_PATCH=`cat ${ROOT}/VERSION | grep VEARCH_VERSION_PATCH | awk -F' ' '{print $2}'`
+
+  BUILD_VERSION="v${VEARCH_VERSION_MAJOR}.${VEARCH_VERSION_MINOR}.${VEARCH_VERSION_PATCH}"
+  echo "BUILD_VERSION="${BUILD_VERSION}
+}
 
 function build_thirdparty() {
   if [ $use_zfp == "y" ] && [ ! -n "${ZFP_HOME}" ]; then
@@ -116,6 +122,7 @@ function build_vearch() {
   go build -a -ldflags "$flags" -o $BUILDOUT/batch_deployment $ROOT/tools/deployment/batch_deployment.go
 }
 
+get_version
 build_thirdparty
 build_engine
 build_vearch

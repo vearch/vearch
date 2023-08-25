@@ -83,9 +83,13 @@ _swigvearch = Extension(
     ] + ([] if 'macos' in get_platform() else ['-DSWIGWORDSIZE64'])
 )
 
+env_dist = os.environ
+vearch_version=env_dist['VERSION']
+print(vearch_version)
+
 setup(
     name='vearch',
-    version='3.3.0',
+    version=vearch_version,
     description='A library for efficient similarity search and storage of deep learning vectors.',
     long_description=long_description,
     url='https://github.com/vearch/vearch',
