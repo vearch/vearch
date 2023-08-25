@@ -11,6 +11,8 @@ function get_version() {
   echo "VERSION="${VERSION}
 }
 
+get_version
+
 echo "Build compile Environment"
 ./compile_env.sh
 

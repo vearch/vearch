@@ -11,6 +11,7 @@ function get_version() {
   echo "VERSION="${VERSION}
 }
 
+get_version
 cp -r ../build/bin compile/
 cp -r ../build/lib compile/
 docker build -t vearch/vearch:$VERSION .

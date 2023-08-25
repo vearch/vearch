@@ -31,7 +31,6 @@ do
       echo -e "\t-n\t\tcompile thread num"
       echo -e "\t-t\t\tbuild gamma test"
       echo -e "\t-d\t\tbuild gamma type=Debug"
-      echo -e "\t-v\t\tbuild version, default latest, format should be vX.X.X"
       exit 0;;
     ?)
       echo "unsupport param, -h for help"

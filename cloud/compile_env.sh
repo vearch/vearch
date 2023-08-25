@@ -11,5 +11,6 @@ function get_version() {
   echo "VERSION="${VERSION}
 }
 
+get_version
 cd env
 docker build -t vearch/vearch_env:$VERSION .

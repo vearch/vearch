@@ -11,4 +11,5 @@ function get_version() {
   echo "VERSION="${VERSION}
 }
 
+get_version
 docker run --privileged -i -v $(dirname "$PWD"):/vearch vearch/vearch_env:latest /vearch/cloud/compile/compile.sh $VERSION
