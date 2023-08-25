@@ -1,6 +1,6 @@
 #!/bin/bash
 
-ROOT_PATH=`pwd`/../..
+ROOT_PATH=`pwd`/../../..
 BASE_PATH=$ROOT_PATH"/engine"
 OS=`uname -s`
 cp -r $BASE_PATH/idl/fbs-gen/python/* ./python

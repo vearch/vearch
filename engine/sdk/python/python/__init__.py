@@ -25,6 +25,7 @@ import pickle
 import uuid
 import json
 import flatbuffers
+from typing import List
 from .swigvearch import *
 from . import DataType as PDataType
 from . import gamma_api
@@ -196,7 +197,7 @@ class ParseTable:
     def __init__(self, engine_info: dict):    
         self.engine_info = engine_info
 
-    def parse_field(self, fields: list[GammaFieldInfo]):
+    def parse_field(self, fields: List[GammaFieldInfo]):
         field_infos = {}
         is_long_type_id = False
         for field in fields:
@@ -248,7 +249,7 @@ class GammaTable:
         self.is_binaryivf = False
         self.is_long_type_id = False
 
-    def init(self, engine_info: dict, fields: list[GammaFieldInfo], vector_field: GammaVectorInfo):
+    def init(self, engine_info: dict, fields: List[GammaFieldInfo], vector_field: GammaVectorInfo):
         parseTable = ParseTable(engine_info)
         self.engine, self.is_binaryivf = parseTable.parse_other_info()
         self.field_infos, self.is_long_type_id = parseTable.parse_field(fields)
@@ -1070,7 +1071,7 @@ class Engine:
         ptr_buf = swig_ptr(buf)
         self.c_engine = swigInitEngine(ptr_buf, buf.shape[0])
 
-    def create_table(self, table_info, name: str, fields: list[GammaFieldInfo], vector_field: GammaVectorInfo):
+    def create_table(self, table_info, name: str, fields: List[GammaFieldInfo], vector_field: GammaVectorInfo):
         ''' create table for engine
             table_info: table detail info
             return: 0 successed, 1 failed
@@ -1093,7 +1094,7 @@ class Engine:
         response_code = swigClose(self.c_engine)
         return response_code
      
-    def add(self, docs_info: list):
+    def add(self, docs_info: List):
         ''' add docs into table
             docs_info: docs' detail info
             return: unique docs' id for docs
