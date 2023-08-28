@@ -324,7 +324,6 @@ func parseVectors(reqNum int, vqs []*vearchpb.VectorQuery, tmpArr []json.RawMess
 }
 
 func parseRange(data []byte, proMap map[string]*entity.SpaceProperties) (*vearchpb.RangeFilter, error) {
-
 	tmp := make(map[string]map[string]interface{})
 	d := json.NewDecoder(bytes.NewBuffer(data))
 	d.UseNumber()
@@ -352,7 +351,6 @@ func parseRange(data []byte, proMap map[string]*entity.SpaceProperties) (*vearch
 		}
 
 		var found bool
-
 		var start, end interface{}
 
 		if start, found = rv["from"]; !found {
@@ -395,11 +393,10 @@ func parseRange(data []byte, proMap map[string]*entity.SpaceProperties) (*vearch
 				v := start.(json.Number).String()
 				if v != "" {
 					vInt32, err := strconv.ParseInt(v, 10, 32)
-					if err == nil {
-						minNum = int32(vInt32)
-					} else {
+					if err != nil {
 						return nil, err
 					}
+					minNum = int32(vInt32)
 				} else {
 					minNum = math.MinInt32
 				}
@@ -411,11 +408,10 @@ func parseRange(data []byte, proMap map[string]*entity.SpaceProperties) (*vearch
 				v := end.(json.Number).String()
 				if v != "" {
 					vInt32, err := strconv.ParseInt(v, 10, 32)
-					if err == nil {
-						maxNum = int32(vInt32)
-					} else {
+					if err != nil {
 						return nil, err
 					}
+					maxNum = int32(vInt32)
 				} else {
 					maxNum = math.MaxInt32
 				}
@@ -451,26 +447,26 @@ func parseRange(data []byte, proMap map[string]*entity.SpaceProperties) (*vearch
 			min, max = minNum, maxNum
 
 		case entity.FieldType_FLOAT:
-			var minNum, maxNum float64
+			var minNum, maxNum float32
 
 			if start != nil {
 				if f, e := start.(json.Number).Float64(); e != nil {
 					return nil, e
 				} else {
-					minNum = f
+					minNum = float32(f)
 				}
 			} else {
-				minNum = -math.MaxFloat64
+				minNum = -math.MaxFloat32
 			}
 
 			if end != nil {
 				if f, e := end.(json.Number).Float64(); e != nil {
 					return nil, e
 				} else {
-					maxNum = f
+					maxNum = float32(f)
 				}
 			} else {
-				maxNum = math.MaxFloat64
+				maxNum = math.MaxFloat32
 			}
 
 			min, max = minNum, maxNum
@@ -499,8 +495,7 @@ func parseRange(data []byte, proMap map[string]*entity.SpaceProperties) (*vearch
 
 			min, max = minNum, maxNum
 
-		case entity.FieldType_DATE:
-
+		case entity.FieldType_DATE: // deprecated
 			var minDate, maxDate time.Time
 
 			if start != nil {
@@ -526,7 +521,6 @@ func parseRange(data []byte, proMap map[string]*entity.SpaceProperties) (*vearch
 			}
 
 			min, max = minDate.UnixNano(), maxDate.UnixNano()
-
 		}
 
 		var minByte, maxByte []byte
@@ -647,7 +641,6 @@ func (query *VectorQuery) ToC(retrievalType string) (*vearchpb.VectorQuery, erro
 	}
 
 	if query.Value != nil {
-
 		switch strings.TrimSpace(query.Symbol) {
 		case ">":
 			query.MinScore = util.PFloat64(*query.Value + minOffset)

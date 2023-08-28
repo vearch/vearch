@@ -1,4 +1,4 @@
-// Copyright 2018 The Couchbase Authors.
+// Copyright 2019 The Vearch Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -219,6 +219,7 @@ func idIsLong(space *entity.Space) bool {
 	}
 	return idIsLong
 }
+
 func docFieldSerialize(doc *vearchpb.Document, space *entity.Space, returnFieldsMap map[string]string) (json.RawMessage, error) {
 	source := make(map[string]interface{})
 	spaceProperties := space.SpaceProperties
@@ -306,7 +307,6 @@ func docFieldSerialize(doc *vearchpb.Document, space *entity.Space, returnFields
 		return nil, err
 	}
 	return marshal, nil
-
 }
 
 func ToContent(sr *vearchpb.SearchResult, head *vearchpb.RequestHead, took time.Duration, space *entity.Space) ([]byte, error) {
@@ -725,7 +725,6 @@ func SearchNullToContent(searchStatus vearchpb.SearchStatus, took time.Duration)
 	builder.EndObject()
 
 	return builder.Output()
-
 }
 
 func deleteByQueryResult(resp *vearchpb.DelByQueryeResponse) ([]byte, error) {
@@ -773,5 +772,4 @@ func docPrintLogSwitchResponse(printLogSwitch bool) ([]byte, error) {
 	builder.EndObject()
 
 	return builder.Output()
-
 }
