@@ -9,6 +9,7 @@ import struct
 import random
 import numpy as np
 import vearch
+from vearch import GammaFieldInfo, GammaVectorInfo
 
 #read sift
 def fvecs_read(fname):
@@ -92,45 +93,19 @@ def evaluate_vearch(xb, xq, xt, gt):
     engine = vearch.Engine("files", 'logs')
     nlist = 2048
     m = 32
-    table = {
-        "engine" : {
-            "index_size": 100000,
-            "retrieval_type": "IVFPQ",       
-            "retrieval_param": {
-                "metric_type": "L2",
-                "ncentroids": nlist,
-                "nsubvector": m,
-                #"hnsw" : {
-                #    "nlinks": 32,
-                #    "efConstruction": 200,
-                #    "efSearch": 64
-                #},
-                #"opq": {
-                #    "nsubvector": 64
-                #}
-            }
-        },
-        "properties" : {
-            #"_id":{                        #You usually don't need to specify. Vearch is automatically specified.
-            #    "type": "integer",         
-            #    "is_index": True
-            #},
-            "key": {
-                "type": "int",
-                "is_index": False
-            },
-            "feature":{
-                "type": "vector",
-                "index": True,
-                "dimension": 128,
-                "store_type": "MemoryOnly", 
-                #"store_param": {
-                #    "cache_size": 10000
-                #}
-            }
+    engine_info = {
+        "index_size": 10000,
+        "retrieval_type": "IVFPQ",       
+        "retrieval_param": {               
+            "ncentroids": nlist,          
+            "nsubvector": m
         }
     }
-    response_code = engine.create_table(table, name="test_table")
+
+    fields = [GammaFieldInfo("key", vearch.dataType.LONG, True)]
+
+    vector_field = GammaVectorInfo(name="feature", dimension=128)
+    response_code = engine.create_table(engine_info, name="test_table", fields=fields, vector_field=vector_field) 
     if response_code == 0:                    #response_code: 0, success; 1 failed.
         print("create table success")
     else:
@@ -172,7 +147,7 @@ def evaluate_vearch(xb, xq, xt, gt):
 if __name__ == '__main__':
     if len(sys.argv) != 3:
         print("Usage: python xxx.py data_dir batch[0 or 1]")
-        print("And get sift1m data first")
+        print("data_dir is: wget ftp://ftp.irisa.fr/local/texmex/corpus/sift.tar.gz && tar -zxvf sift.tar.gz")
         sys.exit(0)
     xb = fvecs_read(sys.argv[1] + "/sift_base.fvecs")
     xq = fvecs_read(sys.argv[1] + "/sift_query.fvecs")

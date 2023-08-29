@@ -8,39 +8,35 @@ A simple usage
 1. Create a vearch engine.
    
     ```python
-    engine_path = "files"
-    logs_path = "logs"
-    engine = vearch.Engine(engine_path, logs_path)
+    import vearch
+    from vearch import GammaFieldInfo, GammaVectorInfo
+    import numpy as np
+    
+    engine = vearch.Engine()
     ```
     
 2. Create a table for engine.
    
     ```python
-    table = {
-        "name" : "test_table",
-        "engine" : { 
-            "index_size": 10000,
-            "retrieval_type": "IVFPQ",  
-            "retrieval_param": { 
-                "ncentroids": 256,    
-                "nsubvector": 16
-            }
-        },  
-        "properties" : {
-            "key": {
-                "type": "integer"
-                "index": True
-            },
-            "feature": {
-                "type": "vector",
-                "dimension": 128,
-                "store_param": {
-                    "cache_size": 2000
-                }
-            }
+    engine_info = {
+        "index_size": 10000,
+        "retrieval_type": "IVFPQ",       
+        "retrieval_param": {               
+            "ncentroids": 256,          
+            "nsubvector": 16
         }
     }
-    engine.create_table(table)
+    
+    fields = [GammaFieldInfo("field1", vearch.dataType.STRING, True),
+              GammaFieldInfo("field2", vearch.dataType.INT, True),
+              GammaFieldInfo("field3", vearch.dataType.FLOAT, True)]
+    
+    vector_field = GammaVectorInfo(name="feature", dimension=128)
+    response_code = engine.create_table(engine_info, name="test_table", fields=fields, vector_field=vector_field)
+    if response_code == 0:
+        print("create table success")
+    else:
+        print("create table failed")
     ```
     
 3. Add vector into table.
@@ -51,7 +47,9 @@ A simple usage
     doc_items = []
     for i in range(add_num):
         profiles = {}
-        profiles["key"] = i
+        profiles["field1"] = str(i)
+        profiles["field2"] = i
+        profiles["field3"] = float(i)
         #The feature type supports numpy only.
         profiles["feature"] = features[i,:]
         doc_items.append(profiles)
@@ -96,54 +94,27 @@ Create table
 ceate vearch table:
 
 ```python
-table = {
-    "name" : "test_table",
-    "engine" : {
-        "index_size": 10000,
-        "retrieval_type": "IVFPQ",  #HNSW
-        "retrieval_param": {        #HNSW  {"nlinks": 32, "efConstruction": 40}
-            "ncentroids": 256,
-            "nsubvector": 16
-        }
-    },
-    "properties" : {
-        # "_id" is usually not specified, it is automatically specified.
-        #"_id":{                     
-        #    "type": "keyword",         
-        #    "is_index": True
-        #},
-        "feature":{
-            "type": "VECTOR",
-            "index": True,
-            "dimension": 128,
-            "store_type": "RocksDB",
-            "store_param": {
-                "cache_size": 10000
-            },
-            "has_source": False
-        },
-        "field1": {
-            "type": "string",
-            "index": True
-        },
-        "field2": {
-            "type": "integer",
-        },
-        "feature1": {
-            "type": "VECTOR",
-            "index": True,
-            "dimension": 128,
-            "store_type": "Mmap",
-            "store_param": {
-                "cache_size": 10000
-            }
-        }
+engine_info = {
+    "index_size": 10000,
+    "retrieval_type": "IVFPQ",       
+    "retrieval_param": {               
+        "ncentroids": 256,          
+        "nsubvector": 16
     }
 }
-engine.create_table(table)
+
+fields = [GammaFieldInfo("field1", vearch.dataType.STRING, True),
+          GammaFieldInfo("field2", vearch.dataType.INT, True),
+          GammaFieldInfo("field3", vearch.dataType.FLOAT, True)]
+
+vector_field = GammaVectorInfo(name="feature", dimension=5, store_type="MemoryOnly", store_param={"cache_size": 10000})
+response_code = engine.create_table(engine_info, name="test_table", fields=fields, vector_field=vector_field)
+if response_code == 0:
+    print("create table success")
+else:
+    print("create table failed")
 ```
 
-- name :  table' s name, when dump or load will use table's name.
 - index_size :  training data size in IVFPQ model. You don't need to specify it in the HNSW model.
 - retrieval_type : now support IVFPQ , HNSW , BINARYIVF , IVFFLAT and FLAT in python sdk.
 - retrieval_param : 
@@ -173,11 +144,14 @@ engine.create_table(table)
           }
       }
       ```
-- properties : define what field are in the table.
-- type : There are five types (that is, the value of type) supported by the
-  field defined by the table space structure: string, int, integer, float, double .
-- index : When it is True, numerical field filtering is supported , default `False`.
-- Vector field params
+- GammaFieldInfo: Scalar field params
+
+    - name: field name.
+    - type : There are five types (that is, the value of type) supported by the
+      field defined by the table space structure: string, int, long, float, double.
+    - is_index : When it is True, numerical field filtering is supported , default `False`.
+
+- GammaVectorInfo: Vector field params
     - dimension: feature dimension, should be integer
     - type: "VECTOR" represents vector field
     - store_type : "Mmap", "MemoryOnly" and "RocksDB", default "Mmap". HNSW only supports MemoryOnly. FLAT only supports MemoryOnly.  IVFFLAT only supports RocksDB. 
@@ -192,9 +166,8 @@ add item into vearch table:
 item = {
     "field1": "value1",
     "field2": 1,
-    "field3": 100,
-    "feature": np.array([0.1, 0.2]),
-    "feature1": np.array([0.2, 0.3])
+    "field3": 100.0,
+    "feature": np.array([0.1, 0.2, 0.3, 0.4, 0.5])
 }
 doc_items = []
 doc_items.append(item)
@@ -223,7 +196,7 @@ query = {
         "field": "field_name",
         "feature": np.array([0.1, 0.2, 0.3, 0.4, 0.5]),
         "min_score": 0.9,
-        "boost": 0.5
+        "boost": 1
     }],
     "filter": [{
         "range": {
@@ -239,7 +212,7 @@ query = {
              "operator": "or"
          }
     }],
-	"retrieval_param":{"metric_type": "InnerProduct", "nprobe":20},
+    "retrieval_param":{"metric_type": "InnerProduct", "nprobe":20},
     "direct_search_type": 0,
     "online_log_level": "debug",
     "topn": 10,
@@ -262,25 +235,6 @@ query = {
 result = engine.search(query)
 print(result)
 ```
-
-Multi vector query:
-
-```python
-query = {
-    "vector": [{
-        "field": "field_name",
-        "feature": np.array([0.1, 0.2, 0.3, 0.4, 0.5])
-    },
-    {
-        "field": "field_name",
-        "feature": np.array([0.6, 0.7, 0.8, 0.9, 1.0])
-    }],
-}
-result = engine.search(query)
-print(result)
-```
-
-result will be their intersection.
 
 Query by ID:
 
@@ -388,7 +342,7 @@ engine.get_status()
 Data persistent
 ================================
 
-It is supported in IVFPQ and FLAT models.
+It is supported in IVFPQ, FLAT, IVFFLAT and HNSW models.
 
 dump data:
 
@@ -404,5 +358,4 @@ load data:
 engine.load()
 ```
 
-Engine will auto to load file in the path you set for engine, so the path should be the same. When load, need't to create table and auto load data from dump files, so you just create engine and init log for it.  
-
+Engine will auto to load file in the path you set for engine, so the path should be the same. When load, need't to create table and auto load data from dump files, so you just create engine and init log for it.

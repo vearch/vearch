@@ -40,14 +40,13 @@ def test_create_table(engine: vearch.Engine):
         #}
     }
 
-    fields = [GammaFieldInfo("_id", vearch.dataType.STRING, True), # You usually don't need to specify. Vearch is automatically specified.
-              GammaFieldInfo("key", vearch.dataType.LONG),
+    fields = [GammaFieldInfo("key", vearch.dataType.LONG),
               GammaFieldInfo("url", vearch.dataType.STRING),
               GammaFieldInfo("field1", vearch.dataType.STRING, True),
               GammaFieldInfo("field2", vearch.dataType.INT, True),
               GammaFieldInfo("field3", vearch.dataType.INT, True)]
 
-    vector_field = GammaVectorInfo(name="feature", type=vearch.dataType.VECTOR, is_index=True, dimension=64, model_id="", store_type="MemoryOnly", store_param={"cache_size": 10000}, has_source=False)
+    vector_field = GammaVectorInfo(name="feature", dimension=64)
     response_code = engine.create_table(engine_info, name="test_table", fields=fields, vector_field=vector_field)
     if response_code == 0:
         print("create table success")
@@ -354,7 +353,7 @@ def main():
 
     engine.close()
 
-    test_load(docs_id[0])
+    test_load(docs_id[1])
 
 if __name__ == '__main__':
     main()

@@ -191,13 +191,13 @@ class GammaVectorInfo:
     def __init__(
         self,
         name: str,
-        type: int,
-        is_index: bool,
         dimension: int,
-        model_id: str,
-        store_type: str,
-        store_param: dict,
-        has_source: bool,
+        is_index: bool = True,
+        type: int = dataType.VECTOR,
+        model_id: str = "",
+        store_type: str = "MemoryOnly",
+        store_param: dict = {},
+        has_source: bool = False,
     ):
         self.name = name
         self.type = type
@@ -334,9 +334,9 @@ class GammaTable:
             fb_str_model_id = builder.CreateString(vec_infos[key].model_id)
             VectorInfo.VectorInfoStart(builder)
             VectorInfo.VectorInfoAddName(builder, fb_str_name)
-            VectorInfo.VectorInfoAddDataType(builder, vec_infos[key].type)
-            VectorInfo.VectorInfoAddIsIndex(builder, vec_infos[key].is_index)
             VectorInfo.VectorInfoAddDimension(builder, vec_infos[key].dimension)
+            VectorInfo.VectorInfoAddIsIndex(builder, vec_infos[key].is_index)
+            VectorInfo.VectorInfoAddDataType(builder, vec_infos[key].type)
             VectorInfo.VectorInfoAddModelId(builder, fb_str_model_id)
             VectorInfo.VectorInfoAddStoreType(builder, fb_str_store_type)
             VectorInfo.VectorInfoAddStoreParam(builder, fb_str_store_param)
@@ -419,9 +419,9 @@ class GammaTable:
         for i in range(vec_infos_length):
             vec_info = GammaVectorInfo(
                 table.VectorsInfo(i).Name().decode("utf-8"),
-                table.VectorsInfo(i).DataType(),
-                table.VectorsInfo(i).IsIndex(),
                 table.VectorsInfo(i).Dimension(),
+                table.VectorsInfo(i).IsIndex(),
+                table.VectorsInfo(i).DataType(),
                 table.VectorsInfo(i).ModelId().decode("utf-8"),
                 table.VectorsInfo(i).StoreType().decode("utf-8"),
                 json.loads(table.VectorsInfo(i).StoreParam()),
@@ -516,7 +516,7 @@ class GammaDoc:
         ):
             return True
         ex = Exception(
-            'The "{}" field type have error, field type is string, float, int. type {}'.format(
+            'The "{}" field type have error, field type should be (string, float, int) but is type {}'.format(
                 field_name, type(variate)
             )
         )
