@@ -429,7 +429,11 @@ func processString(pro *entity.SpaceProperties, fieldName, val string) (*vearchp
 
 	switch pro.FieldType {
 	case entity.FieldType_STRING:
-		if *pro.Index && len(val) > maxIndexedStrLen {
+		isIndex := false
+		if pro.Index != nil && *pro.Index {
+			isIndex = true
+		}
+		if isIndex && len(val) > maxIndexedStrLen {
 			err = fmt.Errorf("indexed string len should less than %d", maxIndexedStrLen)
 		} else if len(val) > maxStrLen {
 			err = fmt.Errorf("string len should less than %d", maxStrLen)

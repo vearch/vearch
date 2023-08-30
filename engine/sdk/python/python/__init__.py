@@ -418,14 +418,14 @@ class GammaTable:
         vec_infos_length = table.VectorsInfoLength()
         for i in range(vec_infos_length):
             vec_info = GammaVectorInfo(
-                table.VectorsInfo(i).Name().decode("utf-8"),
-                table.VectorsInfo(i).Dimension(),
-                table.VectorsInfo(i).IsIndex(),
-                table.VectorsInfo(i).DataType(),
-                table.VectorsInfo(i).ModelId().decode("utf-8"),
-                table.VectorsInfo(i).StoreType().decode("utf-8"),
-                json.loads(table.VectorsInfo(i).StoreParam()),
-                table.VectorsInfo(i).HasSource(),
+                name = table.VectorsInfo(i).Name().decode("utf-8"),
+                dimension = table.VectorsInfo(i).Dimension(),
+                is_index = table.VectorsInfo(i).IsIndex(),
+                type = table.VectorsInfo(i).DataType(),
+                model_id = table.VectorsInfo(i).ModelId().decode("utf-8"),
+                store_type = table.VectorsInfo(i).StoreType().decode("utf-8"),
+                store_param = json.loads(table.VectorsInfo(i).StoreParam()),
+                has_source = table.VectorsInfo(i).HasSource(),
             )
             self.vec_infos[vec_info.name] = vec_info
 
