@@ -1,9 +1,5 @@
 %module swigvearch
 
-#define VEARCH_VERSION_MAJOR 3
-#define VEARCH_VERSION_MINOR 3
-#define VEARCH_VERSION_PATCH 0
-
 %{
 #define SWIG_FILE_WITH_INIT
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
