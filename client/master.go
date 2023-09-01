@@ -540,20 +540,22 @@ func (m *masterClient) RegisterPartition(ctx context.Context, partition *entity.
 	return nil
 }
 
-// send HTTPPost request
-func (m *masterClient) HTTPPost(ctx context.Context, url string, reqBody string) (response []byte, e error) {
-	//process panic
+// send HTTP request
+func (m *masterClient) HTTPRequest(ctx context.Context, method string, url string, reqBody string) (response []byte, e error) {
+	// process panic
 	defer func() {
 		if info := recover(); info != nil {
 			e = fmt.Errorf("panic is %v", info)
 		}
 	}()
 	query := netutil.NewQuery().SetHeader(Authorization, util.AuthEncrypt(Root, m.cfg.Global.Signkey))
-	query.SetMethod(http.MethodPost)
+	query.SetMethod(method)
 	query.SetUrlPath(url)
 	query.SetReqBody(reqBody)
 	query.SetContentTypeJson()
 	query.SetTimeout(60)
+
+	masterServer.reset()
 	for {
 		keyNumber, err := masterServer.getKey()
 		if err != nil {
@@ -586,8 +588,8 @@ func (m *masterClient) RemoveNodeMeta(ctx context.Context, nodeID entity.NodeID)
 	if err != nil {
 		return err
 	}
-	masterServer.reset()
-	response, err := m.HTTPPost(ctx, "/meta/remove_server", string(reqBody))
+
+	response, err := m.HTTPRequest(ctx, http.MethodPost, "/meta/remove_server", string(reqBody))
 	log.Debug("remove server response: %v", string(response))
 	if err != nil {
 		return err
@@ -645,8 +647,7 @@ func (client *masterClient) RecoverFailServer(ctx context.Context, rfs *entity.R
 	defer errutil.CatchError(&e)
 	reqBody, err := cbjson.Marshal(rfs)
 	errutil.ThrowError(err)
-	masterServer.reset()
-	response, err := client.HTTPPost(ctx, "/schedule/recover_server", string(reqBody))
+	response, err := client.HTTPRequest(ctx, http.MethodPost, "/schedule/recover_server", string(reqBody))
 	errutil.ThrowError(err)
 	jsonMap, err := cbjson.ByteToJsonMap(response)
 	errutil.ThrowError(err)

@@ -37,7 +37,7 @@ import (
 const (
 	URLParamDbName      = "db_name"
 	URLParamSpaceName   = "space_name"
-	URLParamPartitionID  = "partition_id"
+	URLParamPartitionID = "partition_id"
 	URLParamID          = "_id"
 	URLParams           = "url_params"
 	ReqsBody            = "req_body"
@@ -55,7 +55,6 @@ type DocumentHandler struct {
 }
 
 func ExportDocumentHandler(httpServer *netutil.Server, client *client.Client) {
-
 	docService := newDocService(client)
 
 	documentHandler := &DocumentHandler{
@@ -64,10 +63,51 @@ func ExportDocumentHandler(httpServer *netutil.Server, client *client.Client) {
 		client:     client,
 	}
 
+	documentHandler.proxyMaster()
 	// open router api
 	if err := documentHandler.ExportToServer(); err != nil {
 		panic(err)
 	}
+}
+
+func (handler *DocumentHandler) proxyMaster() error {
+	// list/server
+	handler.httpServer.HandlesMethods([]string{http.MethodGet}, "/list/server", []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest}, nil)
+	handler.httpServer.HandlesMethods([]string{http.MethodGet}, "/list/db", []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest}, nil)
+	handler.httpServer.HandlesMethods([]string{http.MethodGet}, "/list/space", []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest}, nil)
+	handler.httpServer.HandlesMethods([]string{http.MethodGet}, "/list/partition", []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest}, nil)
+	handler.httpServer.HandlesMethods([]string{http.MethodGet}, "/list/router", []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest}, nil)
+
+	// db handler
+	handler.httpServer.HandlesMethods([]string{http.MethodPut}, "/db/_create", []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest}, nil)
+	handler.httpServer.HandlesMethods([]string{http.MethodGet, http.MethodDelete}, fmt.Sprintf("/db/{%s}", URLParamDbName), []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest}, nil)
+	handler.httpServer.HandlesMethods([]string{http.MethodPost}, "/db/modify", []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest}, nil)
+	// space handler
+	handler.httpServer.HandlesMethods([]string{http.MethodPut}, fmt.Sprintf("/space/{%s}/_create", URLParamDbName), []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest}, nil)
+	handler.httpServer.HandlesMethods([]string{http.MethodGet, http.MethodPost, http.MethodDelete}, fmt.Sprintf("/space/{%s}/{%s}", URLParamDbName, URLParamSpaceName), []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest}, nil)
+
+	// cluster handler
+	handler.httpServer.HandlesMethods([]string{http.MethodGet}, "/_cluster/health", []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest}, nil)
+	handler.httpServer.HandlesMethods([]string{http.MethodGet}, "/_cluster/stats", []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest}, nil)
+
+	return nil
+}
+
+func (handler *DocumentHandler) handleMasterRequest(ctx context.Context, w http.ResponseWriter, r *http.Request, params netutil.UriParams) (context.Context, bool) {
+	reqBody, err := netutil.GetReqBody(r)
+
+	if err != nil {
+		log.Error("handleMasterRequest %v, req %+v", err, *r)
+		return ctx, false
+	}
+
+	response, err := handler.client.Master().HTTPRequest(ctx, r.Method, r.RequestURI, string(reqBody))
+	if err != nil {
+		log.Error("handleMasterRequest %v, req %+v", err, *r)
+		return ctx, false
+	}
+	resp.SendJsonBytes(ctx, w, response)
+	return ctx, true
 }
 
 func (handler *DocumentHandler) ExportToServer() error {
