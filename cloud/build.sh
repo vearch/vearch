@@ -7,13 +7,13 @@ function get_version() {
   VEARCH_VERSION_MINOR=`cat ${ROOT}/VERSION | grep VEARCH_VERSION_MINOR | awk -F' ' '{print $2}'`
   VEARCH_VERSION_PATCH=`cat ${ROOT}/VERSION | grep VEARCH_VERSION_PATCH | awk -F' ' '{print $2}'`
 
-  VERSION="v${VEARCH_VERSION_MAJOR}.${VEARCH_VERSION_MINOR}.${VEARCH_VERSION_PATCH}"
+  VERSION="${VEARCH_VERSION_MAJOR}.${VEARCH_VERSION_MINOR}.${VEARCH_VERSION_PATCH}"
   echo "VERSION="${VERSION}
 }
 
 get_version
 cp -r ../build/bin compile/
 cp -r ../build/lib compile/
-docker build -t vearch/vearch:$VERSION .
+docker build -t vearch/vearch:$VERSION . && docker tag vearch/vearch:$VERSION vearch/vearch:latest
 rm -rf compile/bin
 rm -rf compile/lib

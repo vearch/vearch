@@ -31,66 +31,78 @@ query_resultList = []
 # @pytest.mark.level(2)
 # @pytest.mark.cover(["VDB"])
 
+
 def test_stats():
     logging.info("_cluster_information")
-    url = "http://" + ip_db + "/_cluster/stats"
+    url = "http://" + ip_data + "/_cluster/stats"
     response = requests.get(url)
     logger.debug("cluster_stats:" + response.text)
     assert response.status_code == 200
-    assert response.text.find("\"status\":200")>=0
+    assert response.text.find("\"status\":200") >= 0
+
 
 def test_health():
-    url = "http://" + ip_db + "/_cluster/health"
+    url = "http://" + ip_data + "/_cluster/health"
     response = requests.get(url)
     logger.debug("cluster_health---\n" + response.text)
     assert response.status_code == 200
     #  assert response.text.find("\"status\":\"green\"")>=0
 
+
 def test_server():
-    url = "http://" + ip_db + "/list/server"
+    url = "http://" + ip_data + "/list/server"
     response = requests.get(url)
     logger.debug("list_server---\n" + response.text)
     assert response.status_code == 200
-    assert response.text.find("\"msg\":\"success\"")>=0
+    assert response.text.find("\"msg\":\"success\"") >= 0
+
 
 logger.info("database")
+
+
 def test_dblist():
-    url = "http://" + ip_db + "/list/db"
+    url = "http://" + ip_data + "/list/db"
     response = requests.get(url)
     logger.debug("list_db---\n" + response.text)
     assert response.status_code == 200
-    assert response.text.find("\"msg\":\"success\"")>=0
+    assert response.text.find("\"msg\":\"success\"") >= 0
+
 
 def test_createDB():
     logger.info("------------")
-    url = "http://" + ip_db + "/db/_create"
+    url = "http://" + ip_data + "/db/_create"
     headers = {"content-type": "application/json"}
     data = {
-        'name':db_name
+        'name': db_name
     }
     response = requests.put(url, headers=headers, data=json.dumps(data))
     logger.debug("db_create---\n" + response.text)
     assert response.status_code == 200
-    assert response.text.find("\"msg\":\"success\"")>=0
+    assert response.text.find("\"msg\":\"success\"") >= 0
+
 
 def test_dbsearch():
     # url = "http://" + ip_db + "/db/" + db_name
-    url = "http://" + ip_db + "/db/ts_db"
+    url = "http://" + ip_data + "/db/ts_db"
     response = requests.get(url)
     logger.debug("db_search---\n" + response.text)
     assert response.status_code == 200
-    assert response.text.find("\"msg\":\"success\"")>=0
+    assert response.text.find("\"msg\":\"success\"") >= 0
+
 
 def test_listspace():
-    url = "http://" + ip_db + "/list/space?db=" + db_name
+    url = "http://" + ip_data + "/list/space?db=" + db_name
     response = requests.get(url)
     logger.debug("list_space---\n" + response.text)
     assert response.status_code == 200
-    assert response.text.find("\"msg\":\"success\"")>=0
+    assert response.text.find("\"msg\":\"success\"") >= 0
+
 
 logger.info("space")
+
+
 def test_createSpaceMmap():
-    url = "http://" + ip_db + "/space/" + db_name +"/_create"
+    url = "http://" + ip_data + "/space/" + db_name + "/_create"
     headers = {"content-type": "application/json"}
     data = {
         "name": "ts_space",
@@ -153,24 +165,28 @@ def test_createSpaceMmap():
     response = requests.put(url, headers=headers, data=json.dumps(data))
     logger.debug("space_create---\n" + response.text)
     assert response.status_code == 200
-    assert response.text.find("\"msg\":\"success\"")>=0
+    assert response.text.find("\"msg\":\"success\"") >= 0
+
 
 def test_getspace():
-    url = "http://" + ip_db + "/space/"+db_name+"/" + space_name_mmap
+    url = "http://" + ip_data + "/space/"+db_name+"/" + space_name_mmap
     response = requests.get(url)
     logger.debug("get_space---\n" + response.text)
     assert response.status_code == 200
-    assert response.text.find("\"msg\":\"success\"")>=0
+    assert response.text.find("\"msg\":\"success\"") >= 0
+
 
 logger.info("router(PS)")
+
+
 def test_insertWithId():
     logger.info("insert")
     headers = {"content-type": "application/json"}
     with open(fileData, "r") as dataLine1:
-        for i, dataLine in zip(range(100),dataLine1):
+        for i, dataLine in zip(range(100), dataLine1):
             idStr = dataLine.split(',', 1)[0].replace('{', '')
             flag = 0
-            flag1 = idStr.split(':')[1].replace('\"','')
+            flag1 = idStr.split(':')[1].replace('\"', '')
             id = str(int(flag1)+flag)
             data = "{"+dataLine.split(',', 1)[1]
             dict_data = json.loads(data)
@@ -182,9 +198,12 @@ def test_insertWithId():
             response = requests.post(url, headers=headers, data=data)
             logger.debug("insertWithID:" + response.text)
             assert response.status_code == 200
-            assert response.text.find("\"status\":200")>=0
+            assert response.text.find("\"status\":200") >= 0
+
 
 logger.info("router(PS)")
+
+
 def test_bulk():
     logger.info("insert")
     headers = {"content-type": "application/json"}
@@ -192,7 +211,7 @@ def test_bulk():
         body = ""
         for iii in range(10):
             with open(fileData, "r") as f:
-                for i, dataLine in zip(range(100),f):
+                for i, dataLine in zip(range(100), f):
                     data = json.loads(dataLine)
                     idStr = data.pop('_id') + "-b" + str(ii) + "-" + str(iii)
                     body = body + json.dumps({"index": {"_id": idStr}}) + '\n'
@@ -201,29 +220,30 @@ def test_bulk():
         response = requests.post(url, headers=headers, data=body)
         logger.debug("bulk:" + response.text)
         assert response.status_code == 200
-        assert response.text.find("\"status\":200")>=0
+        assert response.text.find("\"status\":200") >= 0
 
 
 def test_searchById():
     logger.info("test_searchById")
     with open(fileData, "r") as dataLine1:
-        for i, dataLine in zip(range(100),dataLine1):
+        for i, dataLine in zip(range(100), dataLine1):
             idStr = dataLine.split(',', 1)[0].replace('{', '')
             # id = eval(idStr.split(':')[1])
             flag = 0
-            flag1 = idStr.split(':')[1].replace('\"','')
+            flag1 = idStr.split(':')[1].replace('\"', '')
             id = str(int(flag1)+flag)
             url = "http://" + ip_data + "/" + db_name + "/" + space_name_mmap + "/" + id
             response = requests.get(url)
             logger.debug("searchById:" + response.text)
             assert response.status_code == 200
-            assert response.text.find("\"found\":true")>=0
+            assert response.text.find("\"found\":true") >= 0
+
 
 def test_insterNoId():
     logger.info("insertDataNoId")
     headers = {"content-type": "application/json"}
     with open(fileData, "r") as dataLine1:
-        for i, dataLine in zip(range(100),dataLine1):
+        for i, dataLine in zip(range(100), dataLine1):
             idStr = dataLine.split(',', 1)[0].replace('{', '')
             id = eval(idStr.split(':')[1])
             data = "{"+dataLine.split(',', 1)[1]
@@ -233,11 +253,12 @@ def test_insterNoId():
             assert response.status_code == 200
             #  assert response.text.find("\"successful\":1")>=0
 
+
 def test_searchByFeature():
     headers = {"content-type": "application/json"}
     url = "http://" + ip_data + "/"+db_name+"/"+space_name_mmap+"/_search?size=100"
     with open(fileData, "r") as dataLine1:
-        for i, dataLine in zip(range(100),dataLine1):
+        for i, dataLine in zip(range(100), dataLine1):
             idStr = dataLine.split(',', 1)[0].replace('{', '')
             id = eval(idStr.split(':')[1])
             feature = "{"+dataLine.split(',', 1)[1]
@@ -245,16 +266,18 @@ def test_searchByFeature():
             feature = feature["vector"]["feature"]
             data = {
                 "query": {
-                    "sum" :[{
+                    "sum": [{
                         "field": "vector",
                         "feature": feature,
-                        "format":"normalization"
+                        "format": "normalization"
                     }]
                 }
             }
-            response = requests.post(url, headers=headers, data=json.dumps(data))
+            response = requests.post(
+                url, headers=headers, data=json.dumps(data))
             logger.debug("searchByFeature---\n" + response.text)
             assert response.status_code == 200
+
 
 def test_bulk_searchByFeature():
     headers = {"content-type": "application/json"}
@@ -262,30 +285,32 @@ def test_bulk_searchByFeature():
     for ii in range(10):
         request_body = []
         with open(fileData, "r") as f:
-            for i, dataLine in zip(range(100),f):
+            for i, dataLine in zip(range(100), f):
                 data = json.loads(dataLine)
                 feature = data["vector"]["feature"]
                 data = {
                     "query": {
-                        "sum" :[{
+                        "sum": [{
                             "field": "vector",
                             "feature": feature,
-                            "format":"normalization"
+                            "format": "normalization"
                         }],
-                    "is_brute_search": 1,
-                    "size": 10
+                        "is_brute_search": 1,
+                        "size": 10
                     }
                 }
                 request_body.append(data)
-        response = requests.post(url, headers=headers, data=json.dumps(request_body))
+        response = requests.post(url, headers=headers,
+                                 data=json.dumps(request_body))
         logger.debug("searchByFeature---\n" + response.text)
         assert response.status_code == 200
+
 
 def test_searchByFeatureandFilter():
     url = "http://" + ip_data + "/"+db_name+"/"+space_name_mmap+"/_search"
     headers = {"content-type": "application/json"}
     with open(fileData, "r") as dataLine1:
-        for i, dataLine in zip(range(100),dataLine1):
+        for i, dataLine in zip(range(100), dataLine1):
             idStr = dataLine.split(',', 1)[0].replace('{', '')
             id = eval(idStr.split(':')[1])
             feature = "{"+dataLine.split(',', 1)[1]
@@ -297,23 +322,25 @@ def test_searchByFeatureandFilter():
                     "filter": [{
                         "string_tags": string_tags
                     }],
-                    "sum" :[{
+                    "sum": [{
                         "field": "vector",
                         "feature": feature,
-                        "format":"normalization"
+                        "format": "normalization"
                     }]
                 }
             }
-            response = requests.post(url, headers=headers, data=json.dumps(data))
+            response = requests.post(
+                url, headers=headers, data=json.dumps(data))
             logger.debug("searchByFeature---\n" + response.text)
             assert response.status_code == 200
             #  assert response.text.find("\"failed\":0") >= 0
+
 
 def test_searchByFeatureandRange():
     url = "http://" + ip_data + "/"+db_name+"/"+space_name_mmap+"/_search"
     headers = {"content-type": "application/json"}
     with open(fileData, "r") as dataLine1:
-        for i, dataLine in zip(range(1),dataLine1):
+        for i, dataLine in zip(range(1), dataLine1):
             idStr = dataLine.split(',', 1)[0].replace('{', '')
             id = eval(idStr.split(':')[1])
             feature = "{"+dataLine.split(',', 1)[1]
@@ -324,30 +351,32 @@ def test_searchByFeatureandRange():
                 "query": {
                     "filter": [{
                         "range": {
-                            "int" : {
-                                "gte" : 0,
-                                "lte" : 0
+                            "int": {
+                                "gte": 0,
+                                "lte": 0
                             }
                         }
                     }],
-                    "sum" :[{
+                    "sum": [{
                         "field": "vector",
                         "feature": feature,
-                        "format":"normalization"
+                        "format": "normalization"
                     }]
                 }
             }
             # logger.debug("data:" + json.dumps(data))
-            response = requests.post(url, headers=headers, data=json.dumps(data))
+            response = requests.post(
+                url, headers=headers, data=json.dumps(data))
             logger.debug("searchByFeature---\n" + response.text)
             assert response.status_code == 200
             #  assert response.text.find("\"failed\":0") >= 0
+
 
 def test_searchByTerm():
     url = "http://" + ip_data + "/"+db_name+"/"+space_name_mmap+"/_search"
     headers = {"content-type": "application/json"}
     with open(fileData, "r") as dataLine1:
-        for i, dataLine in zip(range(1),dataLine1):
+        for i, dataLine in zip(range(1), dataLine1):
             idStr = dataLine.split(',', 1)[0].replace('{', '')
             id = eval(idStr.split(':')[1])
             feature = "{"+dataLine.split(',', 1)[1]
@@ -362,10 +391,10 @@ def test_searchByTerm():
                             "operator": "or"
                         }
                     }],
-                    "sum" :[{
+                    "sum": [{
                         "field": "vector",
                         "feature": feature,
-                        "format":"normalization"
+                        "format": "normalization"
                     }]
                 }
             }
@@ -379,15 +408,17 @@ def test_searchByTerm():
             #     }
             # }
             # logger.debug("data:" + json.dumps(data))
-            response = requests.post(url, headers=headers, data=json.dumps(data))
+            response = requests.post(
+                url, headers=headers, data=json.dumps(data))
             logger.debug("searchByFeature---\n" + response.text)
             assert response.status_code == 200
             #  assert response.text.find("\"failed\":0") >= 0
 
+
 def test_deleteDocById():
     logger.info("test_deleteDoc")
     with open(fileData, "r") as dataLine1:
-        for i, dataLine in zip(range(100),dataLine1):
+        for i, dataLine in zip(range(100), dataLine1):
             idStr = dataLine.split(',', 1)[0].replace('{', '')
             id = eval(idStr.split(':')[1])
             data = "{"+dataLine.split(',', 1)[1]
@@ -397,11 +428,12 @@ def test_deleteDocById():
             assert response.status_code == 200
             #  assert response.text.find("\"failed\":0") >= 0
 
+
 def test_insterNoId1():
     logger.info("insertDataNoId")
     headers = {"content-type": "application/json"}
     with open(fileData, "r") as dataLine1:
-        for i, dataLine in zip(range(100),dataLine1):
+        for i, dataLine in zip(range(100), dataLine1):
             idStr = dataLine.split(',', 1)[0].replace('{', '')
             id = eval(idStr.split(':')[1])
             data = "{"+dataLine.split(',', 1)[1]
@@ -411,23 +443,26 @@ def test_insterNoId1():
             assert response.status_code == 200
             #  assert response.text.find("\"successful\":1")>=0
 
+
 def test_deleteSpace():
-    url = "http://" + ip_db + "/space/"+db_name+"/"+space_name_mmap
+    url = "http://" + ip_data + "/space/"+db_name+"/"+space_name_mmap
     response = requests.delete(url)
     logger.debug("deleteSpace:" + response.text)
     assert response.status_code == 200
 
 
 logger.info("rocksdb")
+
+
 def test_createspacerocksdb():
-    url = "http://" + ip_db + "/space/" + db_name +"/_create"
+    url = "http://" + ip_data + "/space/" + db_name + "/_create"
     headers = {"content-type": "application/json"}
     data = {
         "name": space_name_rocksdb,
         "partition_num": 1,  # "partition_num": 2-6之间
         "replica_num": 1,
         "engine": {
-            "name":"gamma",
+            "name": "gamma",
             "index_size": 400000,
             "retrieval_type": "IVFPQ",
             "retrieval_param": {
@@ -439,22 +474,22 @@ def test_createspacerocksdb():
         },
         "properties": {
             "string": {
-                "type" : "keyword",
-                "index" : True
+                "type": "keyword",
+                "index": True
             },
             "int": {
                 "type": "integer",
-                "index" : True
+                "index": True
             },
             "float": {
                 "type": "float",
-                "index" : True
+                "index": True
             },
             "vector": {
                 "type": "vector",
                 "model_id": "img",
                 "dimension": 128,
-                "format":"normalization",
+                "format": "normalization",
                 # "retrieval_type": "GPU",
                 "store_type": "RocksDB",
                 "store_param":
@@ -465,17 +500,17 @@ def test_createspacerocksdb():
             "string_tags": {
                 "type": "string",
                 "array": True,
-                "index" : True
+                "index": True
             },
             "int_tags": {
                 "type": "integer",
                 "array": True,
-                "index" : True
+                "index": True
             },
-            "float_tags" : {
+            "float_tags": {
                 "type": "float",
                 "array": True,
-                "index" : True
+                "index": True
             }
         },
         "models": [{
@@ -536,18 +571,19 @@ def test_createspacerocksdb():
     response = requests.put(url, headers=headers, data=json.dumps(data))
     logger.debug("space_create---\n" + response.text)
     assert response.status_code == 200
-    assert response.text.find("\"msg\":\"success\"")>=0
+    assert response.text.find("\"msg\":\"success\"") >= 0
+
 
 def test_getspace_name_rocksdb():
-    url = "http://" + ip_db + "/space/"+db_name+"/" + space_name_rocksdb
+    url = "http://" + ip_data + "/space/"+db_name+"/" + space_name_rocksdb
     response = requests.get(url)
     logger.debug("get_space---\n" + response.text)
     assert response.status_code == 200
-    assert response.text.find("\"msg\":\"success\"")>=0
+    assert response.text.find("\"msg\":\"success\"") >= 0
 
 
 # def test_changemember():
-#     url = "http://" + ip_db + "/partition/change_member"
+#     url = "http://" + ip_data + "/partition/change_member"
 #     headers = {"content-type": "application/json"}
 #     data = {
 #         "partition_id":7,
@@ -560,14 +596,16 @@ def test_getspace_name_rocksdb():
 #     assert response.text.find("\"msg\":\"success\"")>=0
 
 logger.info("router(PS)")
+
+
 def test_insertWithIdRocksdb():
     logger.info("insert")
     headers = {"content-type": "application/json"}
     with open(fileData, "r") as dataLine1:
-        for i, dataLine in zip(range(100),dataLine1):
+        for i, dataLine in zip(range(100), dataLine1):
             idStr = dataLine.split(',', 1)[0].replace('{', '')
             flag = 0
-            flag1 = idStr.split(':')[1].replace('\"','')
+            flag1 = idStr.split(':')[1].replace('\"', '')
             id = str(int(flag1)+flag)
             data = "{"+dataLine.split(',', 1)[1]
             url = "http://" + ip_data + "/" + db_name + "/" + space_name_rocksdb + "/" + id
@@ -576,26 +614,28 @@ def test_insertWithIdRocksdb():
             assert response.status_code == 200
             #  assert response.text.find("\"status\":201")>=0
 
+
 def test_searchByIdRocksdb():
     logger.info("test_searchById")
     with open(fileData, "r") as dataLine1:
-        for i, dataLine in zip(range(100),dataLine1):
+        for i, dataLine in zip(range(100), dataLine1):
             idStr = dataLine.split(',', 1)[0].replace('{', '')
             # id = eval(idStr.split(':')[1])
             flag = 0
-            flag1 = idStr.split(':')[1].replace('\"','')
+            flag1 = idStr.split(':')[1].replace('\"', '')
             id = str(int(flag1)+flag)
             url = "http://" + ip_data + "/" + db_name + "/" + space_name_rocksdb + "/" + id
             response = requests.get(url)
             logger.debug("searchById:" + response.text)
             assert response.status_code == 200
-            assert response.text.find("\"found\":true")>=0
+            assert response.text.find("\"found\":true") >= 0
+
 
 def test_insterNoIdRocksdb():
     logger.info("insertDataNoId")
     headers = {"content-type": "application/json"}
     with open(fileData, "r") as dataLine1:
-        for i, dataLine in zip(range(100),dataLine1):
+        for i, dataLine in zip(range(100), dataLine1):
             idStr = dataLine.split(',', 1)[0].replace('{', '')
             id = eval(idStr.split(':')[1])
             data = "{"+dataLine.split(',', 1)[1]
@@ -605,11 +645,13 @@ def test_insterNoIdRocksdb():
             assert response.status_code == 200
             #  assert response.text.find("\"successful\":1")>=0
 
+
 def test_searchByFeatureRocksdb():
     headers = {"content-type": "application/json"}
-    url = "http://" + ip_data + "/"+db_name+"/"+space_name_rocksdb+"/_search?size=100"
+    url = "http://" + ip_data + "/"+db_name + \
+        "/"+space_name_rocksdb+"/_search?size=100"
     with open(fileData, "r") as dataLine1:
-        for i, dataLine in zip(range(100),dataLine1):
+        for i, dataLine in zip(range(100), dataLine1):
             idStr = dataLine.split(',', 1)[0].replace('{', '')
             id = eval(idStr.split(':')[1])
             feature = "{"+dataLine.split(',', 1)[1]
@@ -617,24 +659,26 @@ def test_searchByFeatureRocksdb():
             feature = feature["vector"]["feature"]
             data = {
                 "query": {
-                    "sum" :[{
+                    "sum": [{
                         "field": "vector",
                         "feature": feature,
-                        "format":"normalization"
+                        "format": "normalization"
                     }]
                 },
-                "is_brute_search":1
+                "is_brute_search": 1
             }
-            response = requests.post(url, headers=headers, data=json.dumps(data))
+            response = requests.post(
+                url, headers=headers, data=json.dumps(data))
             logger.debug("searchByFeature---\n" + response.text)
             assert response.status_code == 200
             #  assert response.text.find("\"failed\":0")>=0
+
 
 def test_searchByFeatureandFilterRocksdb():
     url = "http://" + ip_data + "/"+db_name+"/"+space_name_rocksdb+"/_search"
     headers = {"content-type": "application/json"}
     with open(fileData, "r") as dataLine1:
-        for i, dataLine in zip(range(100),dataLine1):
+        for i, dataLine in zip(range(100), dataLine1):
             idStr = dataLine.split(',', 1)[0].replace('{', '')
             id = eval(idStr.split(':')[1])
             feature = "{"+dataLine.split(',', 1)[1]
@@ -646,24 +690,26 @@ def test_searchByFeatureandFilterRocksdb():
                     "filter": [{
                         "string_tags": string_tags
                     }],
-                    "sum" :[{
+                    "sum": [{
                         "field": "vector",
                         "feature": feature,
-                        "format":"normalization"
+                        "format": "normalization"
                     }]
                 },
-                "is_brute_search":1
+                "is_brute_search": 1
             }
-            response = requests.post(url, headers=headers, data=json.dumps(data))
+            response = requests.post(
+                url, headers=headers, data=json.dumps(data))
             logger.debug("searchByFeature---\n" + response.text)
             assert response.status_code == 200
             #  assert response.text.find("\"failed\":0") >= 0
+
 
 def test_searchByFeatureandRangeRocksdb():
     url = "http://" + ip_data + "/"+db_name+"/"+space_name_rocksdb+"/_search"
     headers = {"content-type": "application/json"}
     with open(fileData, "r") as dataLine1:
-        for i, dataLine in zip(range(1),dataLine1):
+        for i, dataLine in zip(range(1), dataLine1):
             idStr = dataLine.split(',', 1)[0].replace('{', '')
             id = eval(idStr.split(':')[1])
             feature = "{"+dataLine.split(',', 1)[1]
@@ -674,30 +720,32 @@ def test_searchByFeatureandRangeRocksdb():
                 "query": {
                     "filter": [{
                         "range": {
-                            "int" : {
-                                "gte" : 0,
-                                "lte" : 0
+                            "int": {
+                                "gte": 0,
+                                "lte": 0
                             }
                         }
                     }],
-                    "sum" :[{
+                    "sum": [{
                         "field": "vector",
                         "feature": feature,
-                        "format":"normalization"
+                        "format": "normalization"
                     }]
                 }
             }
             # logger.debug("data:" + json.dumps(data))
-            response = requests.post(url, headers=headers, data=json.dumps(data))
+            response = requests.post(
+                url, headers=headers, data=json.dumps(data))
             logger.debug("searchByFeature---\n" + response.text)
             assert response.status_code == 200
             #  assert response.text.find("\"failed\":0") >= 0
+
 
 def test_searchByTermRocksdb():
     url = "http://" + ip_data + "/"+db_name+"/"+space_name_rocksdb+"/_search"
     headers = {"content-type": "application/json"}
     with open(fileData, "r") as dataLine1:
-        for i, dataLine in zip(range(10),dataLine1):
+        for i, dataLine in zip(range(10), dataLine1):
             idStr = dataLine.split(',', 1)[0].replace('{', '')
             id = eval(idStr.split(':')[1])
             feature = "{"+dataLine.split(',', 1)[1]
@@ -712,16 +760,17 @@ def test_searchByTermRocksdb():
                             "operator": "or"
                         }
                     }],
-                    "sum" :[{
+                    "sum": [{
                         "field": "vector",
                         "feature": feature,
-                        "format":"normalization"
+                        "format": "normalization"
                     }]
                 },
-                "is_brute_search":1
+                "is_brute_search": 1
             }
-            
-            response = requests.post(url, headers=headers, data=json.dumps(data))
+
+            response = requests.post(
+                url, headers=headers, data=json.dumps(data))
             logger.debug("searchByFeature---\n" + response.text)
             assert response.status_code == 200
 
@@ -729,7 +778,7 @@ def test_searchByTermRocksdb():
 def test_deleteDocByIdRocksdb():
     logger.info("test_deleteDoc")
     with open(fileData, "r") as dataLine1:
-        for i, dataLine in zip(range(100),dataLine1):
+        for i, dataLine in zip(range(100), dataLine1):
             idStr = dataLine.split(',', 1)[0].replace('{', '')
             id = eval(idStr.split(':')[1])
             data = "{"+dataLine.split(',', 1)[1]
@@ -745,7 +794,7 @@ def test_insertBulkRocksdb():
     headers = {"content-type": "application/json"}
     data = ''
     with open(fileData, "r") as dataLine1:
-        for i, dataLine in zip(range(100),dataLine1):
+        for i, dataLine in zip(range(100), dataLine1):
             idStr = dataLine.split(',', 1)[0]+"}"
             index = "{\"index\":"+idStr+"}"
             index = index + "\n"
@@ -760,7 +809,7 @@ def test_insterNoId1Rocksdb():
     logger.info("insertDataNoId")
     headers = {"content-type": "application/json"}
     with open(fileData, "r") as dataLine1:
-        for i, dataLine in zip(range(100),dataLine1):
+        for i, dataLine in zip(range(100), dataLine1):
             idStr = dataLine.split(',', 1)[0].replace('{', '')
             id = eval(idStr.split(':')[1])
             data = "{"+dataLine.split(',', 1)[1]
@@ -771,14 +820,14 @@ def test_insterNoId1Rocksdb():
 
 
 def test_deleteSpaceRocksdb():
-    url = "http://" + ip_db + "/space/"+db_name+"/"+space_name_rocksdb
+    url = "http://" + ip_data + "/space/"+db_name+"/"+space_name_rocksdb
     response = requests.delete(url)
     logger.debug("deleteSpace:" + response.text)
     assert response.status_code == 200
 
 
 def test_deleteDB():
-    url = "http://" + ip_db + "/db/"+db_name
+    url = "http://" + ip_data + "/db/"+db_name
     response = requests.delete(url)
     logger.debug("deleteDB:" + response.text)
     assert response.status_code == 200
