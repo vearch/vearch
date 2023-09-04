@@ -219,7 +219,7 @@ int Request::MultiVectorRank() {
 }
 
 void Request::SetMultiVectorRank(int multi_vector_rank) {
-  multi_vector_rank_ = multi_vector_rank_;
+  multi_vector_rank_ = multi_vector_rank;
 }
 
 void Request::SetOnlineLogLevel(const std::string &online_log_level) {

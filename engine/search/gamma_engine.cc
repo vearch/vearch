@@ -511,13 +511,19 @@ int GammaEngine::CreateTable(TableInfo &table) {
       buf[len] = '\0';
       if ((size_t)len != fio.Read(buf, 1, (size_t)len)) {
         LOG(ERROR) << "read file error, path=" << dump_meta_path;
+        delete[] buf;
+        buf = nullptr;
         return IO_ERR;
       }
       meta_jp = new utils::JsonParser();
       del1.set(meta_jp);
       if (meta_jp->Parse(buf)) {
+        delete[] buf;
+        buf = nullptr;
         return FORMAT_ERR;
       }
+      delete[] buf;
+      buf = nullptr;
     }
   }
 
@@ -1084,6 +1090,7 @@ int GammaEngine::Load() {
     LOG(INFO) << "read index_dump_num=" << index_dump_num << " from "
               << dump_done_file;
     delete[] buf;
+    buf = nullptr;
   }
 
   max_docid_ = table_->GetStorageManagerSize();

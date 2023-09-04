@@ -26,7 +26,7 @@ static void FReadByteArray(utils::FileIO *fio, std::string &ba) {
   fio->Read((void *)data, sizeof(char), len);
 
   ba = std::string(data, len);
-  delete data;
+  delete []data;
 }
 
 TableSchemaIO::TableSchemaIO(std::string &file_path) { fio = new utils::FileIO(file_path); }
