@@ -93,7 +93,7 @@ Because there are two masters. Therefore, there are two `[masters]` in *config.t
 
 （2）*start.sh*  configuration
 
-`SERVER_TYPE`：Role of the server。172.0.0.1~172.0.0.6 is modified to: `SERVER_TYPE=master`, `SERVER_TYPE=master`,  `SERVER_TYPE=router`, `SERVER_TYPE=router`, `SERVER_TYPE=ps`,  `SERVER_TYPE=ps`.
+`SERVER_TYPE`：Role of the server. 172.0.0.1~172.0.0.6 is modified to: `SERVER_TYPE=master`, `SERVER_TYPE=master`,  `SERVER_TYPE=router`, `SERVER_TYPE=router`, `SERVER_TYPE=ps`,  `SERVER_TYPE=ps`.
 
 **4. Run**
 

@@ -16,8 +16,6 @@ Vearch is a scalable distributed system for efficient similarity search of deep 
 
 * Vearch Python SDK enables vearch to use locally. Vearch python sdk can be installed easily by pip install vearch. For more information, please refer to [docs/APIPythonSDK.md](docs/APIPythonSDK.md).
 
-* One-click binary installation, please see [docs/BinaryInstallation.md](docs/BinaryInstallation.md)([中文版](docs/BinaryInstallationZH_CN.md)).
-
 ## APIs and Use Cases
 
 

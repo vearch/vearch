@@ -53,16 +53,6 @@ curl -v --user "root:secret" -H "content-type: application/json" -XPUT -d'
       "type": "string",
       "array": true,
       "index": true
-    },
-    "int_tags": {
-      "type": "integer",
-      "array": true,
-      "index": true
-    },
-    "float_tags": {
-      "type": "float",
-      "array": true,
-      "index": true
     }
   },
   "models": [
@@ -75,7 +65,7 @@ curl -v --user "root:secret" -H "content-type: application/json" -XPUT -d'
     }
   ]
 }
-' {{MASTER}}/space/test_vector_db/_create
+' {{ROUTER}}/space/test_vector_db/_create
 ````
 
 * engine
