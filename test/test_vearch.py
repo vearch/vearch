@@ -21,21 +21,25 @@ fileData = "./data/test_data.json"
 # @pytest.mark.author('')
 # @pytest.mark.level(2)
 # @pytest.mark.cover(["VEARCH"])
+
+
 class VearchCase():
     logger.info("test class")
+
     def setup(self, id_type, retrieval_type, store_type):
         self.id_type = id_type
         self.retrieval_type = retrieval_type
         self.store_type = store_type
 
     logging.info("cluster_information")
+
     def test_stats(self):
         url = "http://" + proxy + "/_cluster/stats"
         response = requests.get(url)
         logger.debug("cluster_stats:" + response.text)
         assert response.status_code == 200
-        assert response.text.find("\"status\":200")>=0
-    
+        assert response.text.find("\"status\":200") >= 0
+
     def test_health(self):
         url = "http://" + proxy + "/_cluster/health"
         response = requests.get(url)
@@ -48,51 +52,52 @@ class VearchCase():
         response = requests.get(url)
         logger.debug("list_server---\n" + response.text)
         assert response.status_code == 200
-        assert response.text.find("\"msg\":\"success\"")>=0
+        assert response.text.find("\"msg\":\"success\"") >= 0
 
     logger.info("database")
+
     def test_dblist(self):
         url = "http://" + proxy + "/list/db"
         response = requests.get(url)
         logger.debug("list_db---\n" + response.text)
         assert response.status_code == 200
-        assert response.text.find("\"msg\":\"success\"")>=0
+        assert response.text.find("\"msg\":\"success\"") >= 0
 
     def test_createDB(self):
         logger.info("------------")
         url = "http://" + proxy + "/db/_create"
         headers = {"content-type": "application/json"}
         data = {
-            'name':db_name
+            'name': db_name
         }
         response = requests.put(url, headers=headers, data=json.dumps(data))
         logger.debug("db_create---\n" + response.text)
         assert response.status_code == 200
-        assert response.text.find("\"msg\":\"success\"")>=0
+        assert response.text.find("\"msg\":\"success\"") >= 0
 
     def test_getDB(self):
         url = "http://" + proxy + "/db/" + db_name
         response = requests.get(url)
         logger.debug("db_search---\n" + response.text)
         assert response.status_code == 200
-        assert response.text.find("\"msg\":\"success\"")>=0
+        assert response.text.find("\"msg\":\"success\"") >= 0
 
     def test_listspace(self):
         url = "http://" + proxy + "/list/space?db=" + db_name
         response = requests.get(url)
         logger.debug("list_space---\n" + response.text)
         assert response.status_code == 200
-        assert response.text.find("\"msg\":\"success\"")>=0
+        assert response.text.find("\"msg\":\"success\"") >= 0
 
     def test_createspace(self):
-        url = "http://" + proxy + "/space/" + db_name +"/_create"
+        url = "http://" + proxy + "/space/" + db_name + "/_create"
         headers = {"content-type": "application/json"}
         data = {
             "name": space_name,
-            "partition_num": 1,  # "partition_num": 2-6Ö®¼ä
+            "partition_num": 1,  # "partition_num": 2-6Ö®ï¿½ï¿½
             "replica_num": 1,
             "engine": {
-                "name":"gamma",
+                "name": "gamma",
                 "index_size": 9990,
                 "id_type": self.id_type,
                 "retrieval_type": self.retrieval_type,
@@ -108,22 +113,22 @@ class VearchCase():
             },
             "properties": {
                 "string": {
-                    "type" : "keyword",
-                    "index" : True
+                    "type": "keyword",
+                    "index": True
                 },
                 "int": {
                     "type": "integer",
-                    "index" : True
+                    "index": True
                 },
                 "float": {
                     "type": "float",
-                    "index" : True
+                    "index": True
                 },
                 "vector": {
                     "type": "vector",
                     "model_id": "img",
                     "dimension": 128,
-                    "format":"normalization",
+                    "format": "normalization",
                     # "retrieval_type": "GPU",
                     "store_type": self.store_type,
                     "store_param":
@@ -134,17 +139,17 @@ class VearchCase():
                 "string_tags": {
                     "type": "string",
                     "array": True,
-                    "index" : True
+                    "index": True
                 },
                 "int_tags": {
                     "type": "integer",
                     "array": True,
-                    "index" : True
+                    "index": True
                 },
-                "float_tags" : {
+                "float_tags": {
                     "type": "float",
                     "array": True,
-                    "index" : True
+                    "index": True
                 }
             },
             "models": [{
@@ -157,15 +162,14 @@ class VearchCase():
         response = requests.put(url, headers=headers, data=json.dumps(data))
         logger.debug("space_create---\n" + response.text)
         assert response.status_code == 200
-        assert response.text.find("\"msg\":\"success\"")>=0
+        assert response.text.find("\"msg\":\"success\"") >= 0
 
     def test_getspace(self):
         url = "http://" + proxy + "/space/"+db_name+"/" + space_name
         response = requests.get(url)
         logger.debug("get_space---\n" + response.text)
         assert response.status_code == 200
-        assert response.text.find("\"msg\":\"success\"")>=0
-
+        assert response.text.find("\"msg\":\"success\"") >= 0
 
     # def test_changemember():
     #     url = "http://" + ip_master + "/partition/change_member"
@@ -181,14 +185,15 @@ class VearchCase():
     #     assert response.text.find("\"msg\":\"success\"")>=0
 
     logger.info("router(PS)")
+
     def test_insertWithId(self):
         logger.info("insert")
         headers = {"content-type": "application/json"}
         with open(fileData, "r") as dataLine1:
-            for i, dataLine in zip(range(100),dataLine1):
+            for i, dataLine in zip(range(100), dataLine1):
                 idStr = dataLine.split(',', 1)[0].replace('{', '')
                 flag = 0
-                flag1 = idStr.split(':')[1].replace('\"','')
+                flag1 = idStr.split(':')[1].replace('\"', '')
                 id = str(int(flag1)+flag)
                 data = "{"+dataLine.split(',', 1)[1]
                 url = "http://" + proxy + "/" + db_name + "/" + space_name + "/" + id
@@ -200,23 +205,23 @@ class VearchCase():
     def test_searchById(self):
         logger.info("test_searchById")
         with open(fileData, "r") as dataLine1:
-            for i, dataLine in zip(range(100),dataLine1):
+            for i, dataLine in zip(range(100), dataLine1):
                 idStr = dataLine.split(',', 1)[0].replace('{', '')
                 # id = eval(idStr.split(':')[1])
                 flag = 0
-                flag1 = idStr.split(':')[1].replace('\"','')
+                flag1 = idStr.split(':')[1].replace('\"', '')
                 id = str(int(flag1)+flag)
                 url = "http://" + proxy + "/" + db_name + "/" + space_name + "/" + id
                 response = requests.get(url)
                 logger.debug("searchById:" + response.text)
                 assert response.status_code == 200
-                assert response.text.find("\"found\":true")>=0
+                assert response.text.find("\"found\":true") >= 0
 
     def test_insterNoId(self):
         logger.info("insertDataNoId")
         headers = {"content-type": "application/json"}
         with open(fileData, "r") as dataLine1:
-            for i, dataLine in zip(range(100),dataLine1):
+            for i, dataLine in zip(range(100), dataLine1):
                 idStr = dataLine.split(',', 1)[0].replace('{', '')
                 id = eval(idStr.split(':')[1])
                 data = "{"+dataLine.split(',', 1)[1]
@@ -230,7 +235,7 @@ class VearchCase():
         headers = {"content-type": "application/json"}
         url = "http://" + proxy + "/"+db_name+"/"+space_name+"/_search?size=100"
         with open(fileData, "r") as dataLine1:
-            for i, dataLine in zip(range(100),dataLine1):
+            for i, dataLine in zip(range(100), dataLine1):
                 idStr = dataLine.split(',', 1)[0].replace('{', '')
                 id = eval(idStr.split(':')[1])
                 feature = "{"+dataLine.split(',', 1)[1]
@@ -238,15 +243,16 @@ class VearchCase():
                 feature = feature["vector"]["feature"]
                 data = {
                     "query": {
-                        "sum" :[{
+                        "sum": [{
                             "field": "vector",
                             "feature": feature,
-                            "format":"normalization"
+                            "format": "normalization"
                         }]
                     },
-                    "is_brute_search":1
+                    "is_brute_search": 1
                 }
-                response = requests.post(url, headers=headers, data=json.dumps(data))
+                response = requests.post(
+                    url, headers=headers, data=json.dumps(data))
                 logger.debug("searchByFeature---\n" + response.text)
                 assert response.status_code == 200
                 #  assert response.text.find("\"failed\":0")>=0
@@ -257,22 +263,23 @@ class VearchCase():
         for ii in range(10):
             request_body = []
             with open(fileData, "r") as f:
-                for i, dataLine in zip(range(100),f):
+                for i, dataLine in zip(range(100), f):
                     data = json.loads(dataLine)
                     feature = data["vector"]["feature"]
                     data = {
                         "query": {
-                            "sum" :[{
+                            "sum": [{
                                 "field": "vector",
                                 "feature": feature,
-                                "format":"normalization"
+                                "format": "normalization"
                             }],
-                        "is_brute_search": 1,
-                        "size": 10
+                            "is_brute_search": 1,
+                            "size": 10
                         }
                     }
                     request_body.append(data)
-            response = requests.post(url, headers=headers, data=json.dumps(request_body))
+            response = requests.post(
+                url, headers=headers, data=json.dumps(request_body))
             logger.debug("searchByFeature---\n" + response.text)
             assert response.status_code == 200
 
@@ -280,7 +287,7 @@ class VearchCase():
         url = "http://" + proxy + "/"+db_name+"/"+space_name+"/_search"
         headers = {"content-type": "application/json"}
         with open(fileData, "r") as dataLine1:
-            for i, dataLine in zip(range(100),dataLine1):
+            for i, dataLine in zip(range(100), dataLine1):
                 idStr = dataLine.split(',', 1)[0].replace('{', '')
                 id = eval(idStr.split(':')[1])
                 feature = "{"+dataLine.split(',', 1)[1]
@@ -292,15 +299,16 @@ class VearchCase():
                         "filter": [{
                             "string_tags": string_tags
                         }],
-                        "sum" :[{
+                        "sum": [{
                             "field": "vector",
                             "feature": feature,
-                            "format":"normalization"
+                            "format": "normalization"
                         }]
                     },
-                    "is_brute_search":1
+                    "is_brute_search": 1
                 }
-                response = requests.post(url, headers=headers, data=json.dumps(data))
+                response = requests.post(
+                    url, headers=headers, data=json.dumps(data))
                 logger.debug("searchByFeature---\n" + response.text)
                 assert response.status_code == 200
                 #  assert response.text.find("\"failed\":0") >= 0
@@ -309,7 +317,7 @@ class VearchCase():
         url = "http://" + proxy + "/"+db_name+"/"+space_name+"/_search"
         headers = {"content-type": "application/json"}
         with open(fileData, "r") as dataLine1:
-            for i, dataLine in zip(range(100),dataLine1):
+            for i, dataLine in zip(range(100), dataLine1):
                 idStr = dataLine.split(',', 1)[0].replace('{', '')
                 id = eval(idStr.split(':')[1])
                 feature = "{"+dataLine.split(',', 1)[1]
@@ -321,15 +329,16 @@ class VearchCase():
                         "filter": [{
                             "string_tags": string_tags
                         }],
-                        "sum" :[{
+                        "sum": [{
                             "field": "vector",
                             "feature": feature,
-                            "format":"normalization"
+                            "format": "normalization"
                         }]
                     },
-                    "is_brute_search":1
+                    "is_brute_search": 1
                 }
-                response = requests.post(url, headers=headers, data=json.dumps(data))
+                response = requests.post(
+                    url, headers=headers, data=json.dumps(data))
                 logger.debug("searchByFeature---\n" + response.text)
                 assert response.status_code == 200
                 #  assert response.text.find("\"failed\":0") >= 0
@@ -338,7 +347,7 @@ class VearchCase():
         url = "http://" + proxy + "/"+db_name+"/"+space_name+"/_search"
         headers = {"content-type": "application/json"}
         with open(fileData, "r") as dataLine1:
-            for i, dataLine in zip(range(1),dataLine1):
+            for i, dataLine in zip(range(1), dataLine1):
                 idStr = dataLine.split(',', 1)[0].replace('{', '')
                 id = eval(idStr.split(':')[1])
                 feature = "{"+dataLine.split(',', 1)[1]
@@ -349,21 +358,22 @@ class VearchCase():
                     "query": {
                         "filter": [{
                             "range": {
-                                "int" : {
-                                    "gte" : 0,
-                                    "lte" : 0
+                                "int": {
+                                    "gte": 0,
+                                    "lte": 0
                                 }
                             }
                         }],
-                        "sum" :[{
+                        "sum": [{
                             "field": "vector",
                             "feature": feature,
-                            "format":"normalization"
+                            "format": "normalization"
                         }]
                     }
                 }
                 # logger.debug("data:" + json.dumps(data))
-                response = requests.post(url, headers=headers, data=json.dumps(data))
+                response = requests.post(
+                    url, headers=headers, data=json.dumps(data))
                 logger.debug("searchByFeature---\n" + response.text)
                 assert response.status_code == 200
                 #  assert response.text.find("\"failed\":0") >= 0
@@ -372,7 +382,7 @@ class VearchCase():
         url = "http://" + proxy + "/"+db_name+"/"+space_name+"/_search"
         headers = {"content-type": "application/json"}
         with open(fileData, "r") as dataLine1:
-            for i, dataLine in zip(range(10),dataLine1):
+            for i, dataLine in zip(range(10), dataLine1):
                 idStr = dataLine.split(',', 1)[0].replace('{', '')
                 id = eval(idStr.split(':')[1])
                 feature = "{"+dataLine.split(',', 1)[1]
@@ -387,23 +397,24 @@ class VearchCase():
                                 "operator": "or"
                             }
                         }],
-                        "sum" :[{
+                        "sum": [{
                             "field": "vector",
                             "feature": feature,
-                            "format":"normalization"
+                            "format": "normalization"
                         }]
                     },
-                    "is_brute_search":1
+                    "is_brute_search": 1
                 }
-                
-                response = requests.post(url, headers=headers, data=json.dumps(data))
+
+                response = requests.post(
+                    url, headers=headers, data=json.dumps(data))
                 logger.debug("searchByFeature---\n" + response.text)
                 assert response.status_code == 200
-                
+
     def test_deleteDocById(self):
         logger.info("test_deleteDoc")
         with open(fileData, "r") as dataLine1:
-            for i, dataLine in zip(range(100),dataLine1):
+            for i, dataLine in zip(range(100), dataLine1):
                 idStr = dataLine.split(',', 1)[0].replace('{', '')
                 id = eval(idStr.split(':')[1])
                 data = "{"+dataLine.split(',', 1)[1]
@@ -418,7 +429,7 @@ class VearchCase():
         headers = {"content-type": "application/json"}
         data = ''
         with open(fileData, "r") as dataLine1:
-            for i, dataLine in zip(range(100),dataLine1):
+            for i, dataLine in zip(range(100), dataLine1):
                 idStr = dataLine.split(',', 1)[0]+"}"
                 index = "{\"index\":"+idStr+"}"
                 index = index + "\n"
@@ -432,14 +443,14 @@ class VearchCase():
         logger.info("insertDataNoId")
         headers = {"content-type": "application/json"}
         with open(fileData, "r") as dataLine1:
-            for i, dataLine in zip(range(100),dataLine1):
+            for i, dataLine in zip(range(100), dataLine1):
                 idStr = dataLine.split(',', 1)[0].replace('{', '')
                 id = eval(idStr.split(':')[1])
                 data = "{"+dataLine.split(',', 1)[1]
                 url = "http://" + proxy + "/" + db_name + "/" + space_name
                 response = requests.post(url, headers=headers, data=data)
                 logger.debug("insertNoID:" + response.text)
-                assert response.status_code == 200  
+                assert response.status_code == 200
 
     def test_deleteSpace(self):
         url = "http://" + proxy + "/space/"+db_name+"/"+space_name
@@ -470,12 +481,13 @@ class VearchCase():
         self.test_bulk_searchByFeature()
         self.test_searchByFeatureandFilter()
         self.test_searchByFeatureandRange()
-        self.test_searchByTerm()                
+        self.test_searchByTerm()
         self.test_deleteDocById()
         self.test_insertBulk()
         self.test_insterNoId1()
         self.test_deleteSpace()
         self.test_deleteDB()
+
 
 @pytest.mark.parametrize(["id_type", "retrieval_type", "store_type"], [
     ["Long", "FLAT", "MemoryOnly"],
@@ -491,7 +503,7 @@ class VearchCase():
     ["Long", "IVFFLAT", "RocksDB"],
     ["String", "IVFFLAT", "RocksDB"]
 ])
-def test_vearch(id_type:str, retrieval_type:str, store_type:str):
+def test_vearch(id_type: str, retrieval_type: str, store_type: str):
     case = VearchCase()
     case.setup(id_type, retrieval_type, store_type)
     case.run_basic_usage_test()
