@@ -63,7 +63,6 @@ class GammaEngine {
    * @return 0 if exited
    */
   int BuildIndex();
-  int BuildFieldIndex();
 
   void GetIndexStatus(EngineStatus &engine_status);
   IndexStatus GetIndexStatus() { return index_status_; }
@@ -146,10 +145,8 @@ class GammaEngine {
   std::atomic<int> delete_num_;
 
   int b_running_; // 0 not run, not 0 running
-  bool b_field_running_;
 
   std::condition_variable running_cv_;
-  std::condition_variable running_field_cv_;
 
   enum IndexStatus index_status_;
 

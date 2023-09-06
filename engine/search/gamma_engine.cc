@@ -177,7 +177,6 @@ GammaEngine::GammaEngine(const string &index_root_path)
   index_status_ = IndexStatus::UNINDEXED;
   delete_num_ = 0;
   b_running_ = 0;
-  b_field_running_ = false;
   is_dirty_ = false;
   field_range_index_ = nullptr;
   created_table_ = false;
@@ -196,13 +195,6 @@ GammaEngine::~GammaEngine() {
     std::mutex running_mutex;
     std::unique_lock<std::mutex> lk(running_mutex);
     running_cv_.wait(lk);
-  }
-
-  if (b_field_running_) {
-    b_field_running_ = false;
-    std::mutex running_mutex;
-    std::unique_lock<std::mutex> lk(running_mutex);
-    running_field_cv_.wait(lk);
   }
 
   if (af_exector_) {
@@ -584,10 +576,6 @@ int GammaEngine::CreateTable(TableInfo &table) {
     LOG(ERROR) << "add numeric index fields error!";
     return -3;
   }
-
-  auto func_build_field_index = std::bind(&GammaEngine::BuildFieldIndex, this);
-  std::thread t(func_build_field_index);
-  t.detach();
   
   std::string table_name = table.Name();
   std::string path = index_root_path_ + "/" + table_name + ".schema";
@@ -902,30 +890,6 @@ int GammaEngine::Indexing() {
   running_cv_.notify_one();
   LOG(INFO) << "Build index exited!";
   return ret;
-}
-
-int GammaEngine::BuildFieldIndex() {
-  b_field_running_ = true;
-
-  std::map<std::string, enum DataType> attr_type_map;
-  table_->GetAttrType(attr_type_map);
-  int field_num = attr_type_map.size();
-
-  while (b_field_running_) {
-    if (b_loading_) {
-      usleep(5000 * 1000);  // sleep 5000ms
-      continue;
-    }
-
-#pragma omp parallel for
-    for (int i = 0; i < field_num; ++i) {
-    }
-
-    usleep(5000 * 1000);  // sleep 5000ms
-  }
-  running_field_cv_.notify_one();
-  LOG(INFO) << "Build field index exited!";
-  return 0;
 }
 
 int GammaEngine::GetDocsNum() { return max_docid_ - delete_num_; }
