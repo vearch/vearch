@@ -662,6 +662,20 @@ func (handler *DocumentHandler) handlerQueryDocByIdsFeature(ctx context.Context,
 	getDocStart := time.Now()
 	reply := handler.docService.getDocs(ctx, args)
 	getDocEnd := time.Now()
+
+	// TODO: If ids are not found, the result should be 0 instead of empty.
+	// filter error items
+	if reply != nil && reply.Items != nil && len(reply.Items) != 0 {
+		tmpItems := make([]*vearchpb.Item, 0)
+		for _, i := range reply.Items {
+			if i == nil || (i.Err != nil && i.Err.Code != vearchpb.ErrorEnum_SUCCESS) {
+				continue
+			}
+			tmpItems = append(tmpItems, i)
+		}
+		reply.Items = tmpItems
+	}
+
 	if reply == nil || reply.Items == nil || len(reply.Items) == 0 {
 		result, err := queryDocByIdsNoResult(getDocEnd.Sub(getDocStart))
 		if err != nil {
