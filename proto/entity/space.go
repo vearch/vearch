@@ -250,8 +250,8 @@ func (engine *Engine) UnmarshalJSON(bs []byte) error {
 						tempEngine.IndexSize = util.PInt64(100000)
 					}
 				}
-				if *tempEngine.IndexSize < 8192 {
-					return fmt.Errorf(retrievalType+" model doc size:[%d] less than 8192 so can not to index", int64(*tempEngine.IndexSize))
+				if *tempEngine.IndexSize < int64(v.Ncentroids) {
+					return fmt.Errorf(retrievalType+" model doc size:[%d] less than %d so can not to index", int64(*tempEngine.IndexSize), v.Ncentroids)
 				}
 			} else if strings.Compare("IVFPQ", retrievalType) == 0 ||
 				strings.Compare("SCANN", retrievalType) == 0 ||
@@ -264,8 +264,8 @@ func (engine *Engine) UnmarshalJSON(bs []byte) error {
 						tempEngine.IndexSize = util.PInt64(100000)
 					}
 				}
-				if *tempEngine.IndexSize < 8192 {
-					return fmt.Errorf(retrievalType+" model doc size:[%d] less than 8192 so can not to index", int64(*tempEngine.IndexSize))
+				if *tempEngine.IndexSize < int64(v.Ncentroids) {
+					return fmt.Errorf(retrievalType+" model doc size:[%d] less than v.Ncentroids so can not to index", int64(*tempEngine.IndexSize), v.Ncentroids)
 				}
 			}
 			if v.MetricType == "" {
@@ -309,8 +309,8 @@ func (engine *Engine) UnmarshalJSON(bs []byte) error {
 					tempEngine.IndexSize = util.PInt64(100000)
 				}
 			}
-			if *tempEngine.IndexSize < 8192 {
-				return fmt.Errorf(tempEngine.RetrievalType+" model doc size:[%d] less than 8192 so can not to index", int64(*tempEngine.IndexSize))
+			if *tempEngine.IndexSize < int64(v.Ncentroids) {
+				return fmt.Errorf(tempEngine.RetrievalType+" model doc size:[%d] less than %d so can not to index", int64(*tempEngine.IndexSize), v.Ncentroids)
 			}
 		} else if strings.Compare("IVFPQ", tempEngine.RetrievalType) == 0 ||
 			strings.Compare("GPU", tempEngine.RetrievalType) == 0 {
@@ -321,8 +321,8 @@ func (engine *Engine) UnmarshalJSON(bs []byte) error {
 					tempEngine.IndexSize = util.PInt64(100000)
 				}
 			}
-			if *tempEngine.IndexSize < 8192 {
-				return fmt.Errorf(tempEngine.RetrievalType+" model doc size:[%d] less than 8192 so can not to index", int64(*tempEngine.IndexSize))
+			if *tempEngine.IndexSize < int64(v.Ncentroids) {
+				return fmt.Errorf(tempEngine.RetrievalType+" model doc size:[%d] less than %d so can not to index", int64(*tempEngine.IndexSize), v.Ncentroids)
 			}
 		}
 		if v.MetricType == "" {

@@ -323,8 +323,10 @@ int GammaEngine::Search(Request &request, Response &response_results) {
 
   int topn = request.TopN();
   bool brute_force_search = request.BruteForceSearch();
+  std::vector<struct VectorQuery> &vec_fields = request.VecFields();
+  size_t vec_fields_num = vec_fields.size();
 
-  if ((not brute_force_search) && (index_status_ != IndexStatus::INDEXED)) {
+  if (vec_fields_num > 0 && (not brute_force_search) && (index_status_ != IndexStatus::INDEXED)) {
     string msg = "index not trained!";
     LOG(WARNING) << msg;
     for (int i = 0; i < req_num; ++i) {
@@ -337,7 +339,6 @@ int GammaEngine::Search(Request &request, Response &response_results) {
     return -2;
   }
 
-  std::vector<struct VectorQuery> &vec_fields = request.VecFields();
   GammaQuery gamma_query;
   gamma_query.vec_query = vec_fields;
 
@@ -372,7 +373,6 @@ int GammaEngine::Search(Request &request, Response &response_results) {
   gamma_query.condition->GetPerfTool().Perf("filter");
 #endif
 
-  size_t vec_fields_num = vec_fields.size();
   if (vec_fields_num > 0) {
     GammaResult *gamma_results = new GammaResult[req_num];
 

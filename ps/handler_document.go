@@ -97,8 +97,15 @@ func cost(s string, t time.Time) {
 }
 
 func (handler *UnaryHandler) Execute(ctx context.Context, req *vearchpb.PartitionData, reply *vearchpb.PartitionData) (err error) {
-	defer cost("UnaryHandler", time.Now())
+	var method string
 	reqMap := ctx.Value(share.ReqMetaDataKey).(map[string]string)
+	method, ok := reqMap[client.HandlerType]
+	if !ok {
+        msg := fmt.Sprintf("client type not found in matadata, key [%s]", client.HandlerType)
+        reply.Err = vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, errors.New(msg)).GetError()
+        return
+	}
+	defer cost("UnaryHandler: " + method, time.Now())
 	if spanCtx, err := opentracing.GlobalTracer().Extract(opentracing.TextMap, opentracing.TextMapCarrier(reqMap)); err == nil {
 		span := opentracing.StartSpan("server-execute", ext.RPCServerOption(spanCtx))
 		defer span.Finish()
