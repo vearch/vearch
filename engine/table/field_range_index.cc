@@ -956,7 +956,7 @@ void MultiFieldsRangeIndex::FieldOperateWorker() {
     ret = field_operate_q_->try_pop(field_op);
 
     if (not ret) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+      std::this_thread::sleep_for(std::chrono::milliseconds(1000));
       continue;
     }
 

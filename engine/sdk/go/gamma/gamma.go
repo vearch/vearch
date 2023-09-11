@@ -74,6 +74,19 @@ func GetEngineStatus(engine unsafe.Pointer, status *EngineStatus) {
 	status.DeSerialize(buffer)
 }
 
+func GetEngineMemoryInfo(engine unsafe.Pointer, status *MemoryInfo) {
+	if engine == nil || status == nil {
+		return
+	}
+	var CBuffer *C.char
+	zero := 0
+	length := &zero
+	C.GetMemoryInfo(engine, (**C.char)(unsafe.Pointer(&CBuffer)), (*C.int)(unsafe.Pointer(length)))
+	defer C.free(unsafe.Pointer(CBuffer))
+	buffer := C.GoBytes(unsafe.Pointer(CBuffer), C.int(*length))
+	status.DeSerialize(buffer)
+}
+
 func GetDocByID(engine unsafe.Pointer, docID []byte, doc *Doc) int {
 	var CBuffer *C.char
 	zero := 0

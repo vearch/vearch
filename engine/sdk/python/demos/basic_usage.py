@@ -5,27 +5,29 @@ import sys
 import time
 import json
 import os
-#The following error occurred on the MAC platform:
-#Initializing libiomp.dylib, but found libiomp.dylib already initialized OMP.
-#The following code can be opened to solve the following problem.
-#os.environ['KMP_DUPLICATE_LIB_OK']='True'
+# The following error occurred on the MAC platform:
+# Initializing libiomp.dylib, but found libiomp.dylib already initialized OMP.
+# The following code can be opened to solve the following problem.
+# os.environ['KMP_DUPLICATE_LIB_OK']='True'
+
 
 def test_create_engine() -> vearch.Engine:
     print("######    test create engine    ######")
     engine = vearch.Engine()
     return engine
 
+
 def test_create_table(engine: vearch.Engine):
     print("######    test create table     ######")
     engine_info = {
         "index_size": 10000,
-        "retrieval_type": "IVFPQ",       
-        "retrieval_param": {               
-            "ncentroids": 256,          
+        "retrieval_type": "IVFPQ",
+        "retrieval_param": {
+            "ncentroids": 256,
             "nsubvector": 16
         }
         # this is for very large dataset and not suitable for random data
-        #"retrieval_param": {
+        # "retrieval_param": {
         #    "metric_type": "InnerProduct",
         #    "ncentroids": 1024,
         #    "nsubvector": 64,
@@ -37,7 +39,7 @@ def test_create_table(engine: vearch.Engine):
         #    "opq": {
         #        "nsubvector": 64
         #    }
-        #}
+        # }
     }
 
     fields = [GammaFieldInfo("key", vearch.dataType.LONG),
@@ -47,7 +49,8 @@ def test_create_table(engine: vearch.Engine):
               GammaFieldInfo("field3", vearch.dataType.INT, True)]
 
     vector_field = GammaVectorInfo(name="feature", dimension=64)
-    response_code = engine.create_table(engine_info, name="test_table", fields=fields, vector_field=vector_field)
+    response_code = engine.create_table(
+        engine_info, name="test_table", fields=fields, vector_field=vector_field)
     if response_code == 0:
         print("create table success")
     else:
@@ -55,7 +58,7 @@ def test_create_table(engine: vearch.Engine):
 
 
 def test_add(engine: vearch.Engine, add_num=100000):
-    print("######        test add          ######")    
+    print("######        test add          ######")
     doc_items = []
     features = np.random.rand(add_num, 64).astype('float32')
 
@@ -63,25 +66,25 @@ def test_add(engine: vearch.Engine, add_num=100000):
         profiles = {}
         profiles["key"] = i
         profiles["url"] = str(i) + ".jpg"
-        profiles["field1"] = str(i%5)
+        profiles["field1"] = str(i % 5)
         profiles["field2"] = i
         profiles["field3"] = i * 2
 
-        #The feature type supports numpy only.
-        profiles["feature"] = features[i,:]
+        # The feature type supports numpy only.
+        profiles["feature"] = features[i, :]
 
         doc_items.append(profiles)
-    
+
     docs_id = engine.add(doc_items)
     print("add complete, success num:", len(docs_id))
     time.sleep(5)
 
-    #'min_indexed_num' = features.shape[0]. Indexing complete.
+    # 'min_indexed_num' = features.shape[0]. Indexing complete.
     indexed_num = 0
     while indexed_num != features.shape[0]:
         indexed_num = engine.get_status()['min_indexed_num']
         time.sleep(0.5)
-    print("engine status:",engine.get_status())
+    print("engine status:", engine.get_status())
     for i in range(2):
         print(doc_items[i])
         print("   ")
@@ -96,18 +99,21 @@ def test_search(engine: vearch.Engine):
     # term filter should be string
     # if filter type is wrong, maybe you cannot
     # get any result
-    query =  {
+    query = {
         "vector": [{
             "field": "feature",
-            "feature": query_features                                    # data type is numpy
+            # data type is numpy
+            "feature": query_features
         }],
-        "fields":["feature",'key'],
-        "retrieval_param":{"metric_type": "InnerProduct", "nprobe":20},  # HNSW: {"efSearch": 64, "metric_type": "L2" }
-        "topn":1
+        "fields": ["feature", 'key'],
+        # HNSW: {"efSearch": 64, "metric_type": "L2" }
+        "retrieval_param": {"metric_type": "InnerProduct", "nprobe": 20},
+        "topn": 1
     }
     result = engine.search(query)
     print(result)
     return result
+
 
 def test_brute_force_search(engine: vearch.Engine):
     print("######    test brute_force search     ######")
@@ -116,14 +122,14 @@ def test_brute_force_search(engine: vearch.Engine):
     # term filter should be string
     # if filter type is wrong, maybe you cannot
     # get any result
-    query =  {
+    query = {
         "vector": [{
             "field": "feature",
             "feature": query_features,
         }],
         "direct_search_type": 1,
-        "fields":["url", "key", "feature"],
-        "topn":2
+        "fields": ["url", "key", "feature"],
+        "topn": 2
     }
     result = engine.search(query)
     print(result)
@@ -136,18 +142,19 @@ def test_search_return_fields(engine: vearch.Engine):
     # term filter should be string
     # if filter type is wrong, maybe you cannot
     # get any result
-    query =  {
+    query = {
         "vector": [{
             "field": "feature",
             "feature": query_features,
         }],
-        "retrieval_param":{"metric_type": "InnerProduct", "nprobe":20},
+        "retrieval_param": {"metric_type": "InnerProduct", "nprobe": 20},
         "topn": 2,
-        "fields": ["key","url"]
+        "fields": ["key", "url"]
     }
 
     result = engine.search(query)
     print(result)
+
 
 def test_search_with_range(engine: vearch.Engine):
     print("######  test search with range ######")
@@ -157,21 +164,22 @@ def test_search_with_range(engine: vearch.Engine):
     # term filter should be string
     # if filter type is wrong, maybe you cannot
     # get any result
-    query =  {
+    query = {
         "filter": [{
             "range": {
-                "field2": {     #When the table is built, the field "is index": True
+                "field2": {  # When the table is built, the field "is index": True
                     "gte": 10,
                     "lte": 80
                 }
             }
         }],
-        "fields":["key","url"],  
+        "fields": ["key", "url"],
         "topn": 5
     }
 
     result = engine.search(query)
     print(result)
+
 
 def test_search_with_term(engine: vearch.Engine):
     print("######  test search with term  ######")
@@ -181,18 +189,20 @@ def test_search_with_term(engine: vearch.Engine):
     # term filter should be string
     # if filter type is wrong, maybe you cannot
     # get any result
-    query =  {
-        "filter": [{        
+    query = {
+        "filter": [{
             "term": {
-                "field1": ["1", "2", "3"], #When the table is built, the field "is index": True
+                # When the table is built, the field "is index": True
+                "field1": ["1", "2", "3"],
                 "operator": "or"
             },
         }],
-        "fields":["field1","url"],
+        "fields": ["field1", "url"],
         "topn": 5
     }
     result = engine.search(query)
     print(result)
+
 
 def test_search_with_filter(engine: vearch.Engine):
     print("###### test search with filter ######")
@@ -202,64 +212,67 @@ def test_search_with_filter(engine: vearch.Engine):
     # term filter should be string
     # if filter type is wrong, maybe you cannot
     # get any result
-    query =  {
+    query = {
         "filter": [{
             "range": {
                 "field2": {
                     "gte": 10,
                     "lte": 17
                 }
-            }},        
+            }},
             {"term": {
                 "field1": ["1", "2"],
                 "operator": "or"
             },
         }],
-        "fields":["field1","field2"],
+        "fields": ["field1", "field2"],
     }
 
     result = engine.search(query)
     print(result)
+
 
 def test_batch_search(engine: vearch.Engine):
     print("######     test batch search    ######")
     query_features = np.random.rand(3, 64).astype('float32')
 
     # now feature is two feature vector
-    query =  {
+    query = {
         "vector": [{
             "field": "feature",
-            "feature": query_features[0:2,:],
+            "feature": query_features[0:2, :],
         }],
-        "filter": [{        
+        "filter": [{
             "term": {
                 "field1": ["1", "2", "3"],
                 "operator": "not in"
             },
         }],
-        "retrieval_param":{"nprobe":20, "metric_type": "L2"},
-        "fields":["key", "url", 'field1'],
+        "retrieval_param": {"nprobe": 20, "metric_type": "L2"},
+        "fields": ["key", "url", 'field1'],
         'topn': 2
     }
     result = engine.search(query)
     print(result)
+
 
 def test_update(engine: vearch.Engine, doc_items, id):
     print("######        test update       ######")
     print(engine.get_doc_by_id(id))
     update_item = doc_items[0]
     update_item["key"] = 2021
-    #print(update_item)
+    # print(update_item)
     response_code = engine.update_doc(update_item, id)
     print(engine.get_doc_by_id(id))
-    if response_code == 0:              #response_code: 0, success; 1 failed.
+    if response_code == 0:  # response_code: 0, success; 1 failed.
         print("update_doc success")
     else:
         print("update_doc failed")
 
+
 def test_del_doc_by_id(engine, id):
     print("######  test delete doc by id   ######")
-    print("engine status",engine.get_status())
+    print("engine status", engine.get_status())
     print(engine.get_doc_by_id(id))
     engine.del_doc(id)
     print(engine.get_doc_by_id(id))
@@ -297,30 +310,32 @@ def test_del_doc_by_id(engine, id):
 #     }
 
 #     print("engine status", engine.get_status())
-#     #response_code: 0, success.  
+#     #response_code: 0, success.
 #     #response_code: 1, failed.
 #     print('response_code:', engine.del_doc_by_query(del_query))
 #     print("engine status", engine.get_status())
 
-def test_dump(engine):                              
-    #HNSW does not support dump and load. 
-    print("######         test dump        ######")    
+
+def test_dump(engine):
+    # HNSW does not support dump and load.
+    print("######         test dump        ######")
     response_code = engine.dump()
     return response_code
+
 
 def test_load(doc_id):
     print("######         test load        ######")
     engine = test_create_engine()
     # when load, need't to create table
-    # and auto load data from dump files   
+    # and auto load data from dump files
     response_code = engine.load()
-   
+
     print("engine status:", engine.get_status())
 
     test_search(engine)
 
     test_batch_search(engine)
-    
+
     print("get_doc_by_id", engine.get_doc_by_id(doc_id))
 
     time.sleep(5)
@@ -329,10 +344,16 @@ def test_load(doc_id):
 
     return response_code
 
+
+def test_memory_info(engine: vearch.Engine):
+    print("######         test memory info        ######")
+    print("engine memory info", engine.get_mempory_info())
+
+
 def main():
     engine = test_create_engine()
     test_create_table(engine)
-    
+
     if len(sys.argv) == 2:
         add_num = int(sys.argv[1])
         doc_items, docs_id = test_add(engine, add_num)
@@ -350,10 +371,12 @@ def main():
     test_del_doc_by_id(engine, docs_id[0])
     test_search(engine)
     test_dump(engine)
+    test_memory_info(engine)
 
     engine.close()
 
     test_load(docs_id[1])
+
 
 if __name__ == '__main__':
     main()

@@ -19,6 +19,7 @@
 #include "api_data/gamma_config.h"
 #include "api_data/gamma_doc.h"
 #include "api_data/gamma_engine_status.h"
+#include "api_data/gamma_memory_info.h"
 #include "api_data/gamma_response.h"
 #include "api_data/gamma_table.h"
 #include "search/gamma_engine.h"
@@ -209,6 +210,12 @@ void GetEngineStatus(void *engine, char **status_str, int *len) {
   engine_status.Serialize(status_str, len);
 }
 
+void GetMemoryInfo(void *engine, char **memory_info_str, int *len) {
+  tig_gamma::MemoryInfo memory_info;
+  static_cast<tig_gamma::GammaEngine *>(engine)->GetMemoryInfo(memory_info);
+  memory_info.Serialize(memory_info_str, len);
+}
+
 int Dump(void *engine) {
   int ret = static_cast<tig_gamma::GammaEngine *>(engine)->Dump();
   return ret;
@@ -222,34 +229,35 @@ int Load(void *engine) {
 int SetConfig(void *engine, const char *config_str, int len) {
   tig_gamma::Config config;
   config.Deserialize(config_str, len);
-  int ret =
-      static_cast<tig_gamma::GammaEngine *>(engine)->SetConfig(config);
+  int ret = static_cast<tig_gamma::GammaEngine *>(engine)->SetConfig(config);
   return ret;
 }
 
 int GetConfig(void *engine, char **config_str, int *len) {
   tig_gamma::Config config;
-  int res = 
-      static_cast<tig_gamma::GammaEngine *>(engine)->GetConfig(config);
-  if (res == 0) { res = config.Serialize(config_str, len); }
+  int res = static_cast<tig_gamma::GammaEngine *>(engine)->GetConfig(config);
+  if (res == 0) {
+    res = config.Serialize(config_str, len);
+  }
   return res;
 }
 
 int BeginMigrate(void *engine) {
-  int res = 
-      static_cast<tig_gamma::GammaEngine *>(engine)->BeginMigrate();
+  int res = static_cast<tig_gamma::GammaEngine *>(engine)->BeginMigrate();
   return res;
 }
 
 int GetMigrageDoc(void *engine, char **doc_str, int *len, int *is_del) {
   tig_gamma::Doc doc;
-  int ret = static_cast<tig_gamma::GammaEngine *>(engine)->GetMigrageDoc(doc, is_del);
-  if (ret == 0) { doc.Serialize(doc_str, len); }
+  int ret =
+      static_cast<tig_gamma::GammaEngine *>(engine)->GetMigrageDoc(doc, is_del);
+  if (ret == 0) {
+    doc.Serialize(doc_str, len);
+  }
   return ret;
 }
 
 int TerminateMigrate(void *engine) {
-  int res = 
-      static_cast<tig_gamma::GammaEngine *>(engine)->TerminateMigrate();
+  int res = static_cast<tig_gamma::GammaEngine *>(engine)->TerminateMigrate();
   return res;
 }

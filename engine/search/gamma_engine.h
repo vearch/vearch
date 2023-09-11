@@ -14,6 +14,7 @@
 #include "c_api/api_data/gamma_doc.h"
 #include "c_api/api_data/gamma_docs.h"
 #include "c_api/api_data/gamma_engine_status.h"
+#include "c_api/api_data/gamma_memory_info.h"
 #include "c_api/api_data/gamma_request.h"
 #include "c_api/api_data/gamma_response.h"
 #include "c_api/api_data/gamma_table.h"
@@ -65,6 +66,8 @@ class GammaEngine {
   int BuildIndex();
 
   void GetIndexStatus(EngineStatus &engine_status);
+  void GetMemoryInfo(MemoryInfo &memory_info);
+
   IndexStatus GetIndexStatus() { return index_status_; }
 
   int Dump();

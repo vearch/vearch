@@ -902,6 +902,27 @@ void GammaEngine::GetIndexStatus(EngineStatus &engine_status) {
   vec_manager_->GetTotalMemBytes(index_mem_bytes, vec_mem_bytes);
 
   long total_mem_b = 0;
+  // long dense_b = 0, sparse_b = 0;
+  // if (field_range_index_) {
+  //   total_mem_b += field_range_index_->MemorySize(dense_b, sparse_b);
+  // }
+
+  engine_status.SetTableMem(table_mem_bytes);
+  engine_status.SetIndexMem(index_mem_bytes);
+  engine_status.SetVectorMem(vec_mem_bytes);
+  engine_status.SetFieldRangeMem(total_mem_b);
+  engine_status.SetBitmapMem(docids_bitmap_->BytesSize());
+  engine_status.SetDocNum(GetDocsNum());
+  engine_status.SetMaxDocID(max_docid_ - 1);
+  engine_status.SetMinIndexedNum(vec_manager_->MinIndexedNum());
+}
+
+void GammaEngine::GetMemoryInfo(MemoryInfo &memory_info) {
+  long table_mem_bytes = table_->GetMemoryBytes();
+  long vec_mem_bytes = 0, index_mem_bytes = 0;
+  vec_manager_->GetTotalMemBytes(index_mem_bytes, vec_mem_bytes);
+
+  long total_mem_b = 0;
   long dense_b = 0, sparse_b = 0;
   if (field_range_index_) {
     total_mem_b += field_range_index_->MemorySize(dense_b, sparse_b);
@@ -914,14 +935,11 @@ void GammaEngine::GetIndexStatus(EngineStatus &engine_status) {
   //           << "]MB sparse [" << sparse_b / 1024 / 1024
   //           << "]MB";
 
-  engine_status.SetTableMem(table_mem_bytes);
-  engine_status.SetIndexMem(index_mem_bytes);
-  engine_status.SetVectorMem(vec_mem_bytes);
-  engine_status.SetFieldRangeMem(total_mem_b);
-  engine_status.SetBitmapMem(docids_bitmap_->BytesSize());
-  engine_status.SetDocNum(GetDocsNum());
-  engine_status.SetMaxDocID(max_docid_ - 1);
-  engine_status.SetMinIndexedNum(vec_manager_->MinIndexedNum());
+  memory_info.SetTableMem(table_mem_bytes);
+  memory_info.SetIndexMem(index_mem_bytes);
+  memory_info.SetVectorMem(vec_mem_bytes);
+  memory_info.SetFieldRangeMem(total_mem_b);
+  memory_info.SetBitmapMem(docids_bitmap_->BytesSize());
 }
 
 int GammaEngine::Dump() {

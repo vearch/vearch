@@ -85,6 +85,17 @@ typedef int64_t size_t;
         return vec_status;
     }
 
+    std::vector<unsigned char> swigGetMemoryInfo(void *engine){
+        char *memory_info_str = NULL;
+        int len = 0;
+        GetMemoryInfo(engine, &memory_info_str, &len);
+        std::vector<unsigned char> vec_memory_info(len);
+        memcpy(vec_memory_info.data(), memory_info_str, len);
+        free(memory_info_str);
+        memory_info_str = NULL;
+        return vec_memory_info;
+    }
+
     std::vector<unsigned char> swigGetDocByID(void *engine, char *docid, int docid_len){
         char *doc_id = (char*)docid;
         char *doc_str = NULL;

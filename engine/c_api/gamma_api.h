@@ -108,6 +108,8 @@ int DeleteDoc(void *engine, const char *docid, int docid_len);
  */
 void GetEngineStatus(void *engine, char **status, int *len);
 
+void GetMemoryInfo(void *engine, char **memory_info, int *len);
+
 /** get a doc by id
  *
  * @param engine

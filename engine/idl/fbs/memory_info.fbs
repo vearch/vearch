@@ -1,0 +1,11 @@
+namespace gamma_api;
+
+table MemoryInfo {
+  table_mem:long;
+  index_mem:long;
+  vector_mem:long;
+  field_range_mem:long;
+  bitmap_mem:long;
+}
+
+root_type MemoryInfo;

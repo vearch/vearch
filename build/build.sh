@@ -6,7 +6,7 @@ mkdir -p $BUILDOUT
 GAMMAOUT=$ROOT/build/gamma_build
 
 # BUILD OPTS
-COMPILE_THREAD_TAG=-j2
+COMPILE_THREAD_NUM=-j2
 BUILD_GAMMA_TEST=OFF
 BUILD_GAMMA_TYPE=Release
 
@@ -92,7 +92,7 @@ function build_thirdparty() {
         wget  ${ROCKSDB_URL} -O rocksdb.tar.gz
         tar -xzf rocksdb.tar.gz
         pushd rocksdb-6.6.4
-        CFLAGS="-O3 -fPIC" make shared_lib $COMPILE_THREAD_TAG
+        CFLAGS="-O3 -fPIC" make shared_lib $COMPILE_THREAD_NUM
         make install
         popd
       fi
@@ -105,7 +105,7 @@ function build_engine() {
   rm -rf ${GAMMAOUT} && mkdir -p $GAMMAOUT
   pushd $GAMMAOUT
   cmake -DPERFORMANCE_TESTING=ON -DCMAKE_BUILD_TYPE=$BUILD_GAMMA_TYPE -DBUILD_TEST=$BUILD_GAMMA_TEST $ROOT/engine/
-  make $COMPILE_THREAD_TAG
+  make $COMPILE_THREAD_NUM
   popd
 }
 

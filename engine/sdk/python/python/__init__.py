@@ -40,6 +40,7 @@ from .gamma_api import VectorInfo
 from .gamma_api import Config
 from .gamma_api import CacheInfo
 from .gamma_api import EngineStatus
+from .gamma_api import MemoryInfo
 from .gamma_api import Field as PField
 from .gamma_api import Request as PRequest
 from .gamma_api import SearchResult as PSearchResult
@@ -1135,6 +1136,41 @@ class GammaEngineStatus:
         status["min_indexed_num"] = self.min_indexed_num
         return status
 
+class GammaMemoryInfo:
+    def __init__(self):
+        self.table_mem = None
+        self.index_mem = None
+        self.vector_mem = None
+        self.field_range_mem = None
+        self.bitmap_mem = None
+
+    def serialize(self):
+        builder = flatbuffers.Builder(1024)
+        MemoryInfo.MemoryInfoAddTableMem(builder, self.table_mem)
+        MemoryInfo.MemoryInfoAddIndexMem(builder, self.index_mem)
+        MemoryInfo.MemoryInfoAddVectorMem(builder, self.vector_mem)
+        MemoryInfo.MemoryInfoAddFieldRangeMem(builder, self.field_range_mem)
+        MemoryInfo.MemoryInfoAddBitmapMem(builder, self.bitmap_mem)
+        builder.Finish(MemoryInfo.MemoryInfoEnd(builder))
+        return builder.Output()
+
+    def deserialize(self, buf):
+        memory_info = MemoryInfo.MemoryInfo.GetRootAsMemoryInfo(buf, 0)
+        self.table_mem = memory_info.TableMem()
+        self.index_mem = memory_info.IndexMem()
+        self.vector_mem = memory_info.VectorMem()
+        self.field_range_mem = memory_info.FieldRangeMem()
+        self.bitmap_mem = memory_info.BitmapMem()
+
+    def get_status_dict(self):
+        status = {}
+        status["table_mem"] = self.table_mem
+        status["vector_mem"] = self.vector_mem
+        status["vector_mem"] = self.vector_mem
+        status["field_range_mem"] = self.field_range_mem
+        status["bitmap_mem"] = self.bitmap_mem
+        return status
+
 
 class GammaResponse:
     def __init__(self, results=None, online_log_message=None):
@@ -1344,6 +1380,19 @@ class Engine:
         status.deserialize(buf)
         status_dict = status.get_status_dict()
         return status_dict
+    
+    def get_mempory_info(self):
+        """get engine memory information
+        return: a dict containing memory information
+        """
+        status_buf = swigGetMemoryInfo(self.c_engine)
+        np_status_buf = np.asarray(status_buf, dtype=np.uint8)
+        buf = np_status_buf.tobytes()
+        status = GammaMemoryInfo()
+        status.deserialize(buf)
+        status_dict = status.get_status_dict()
+        return status_dict
+    
 
     def get_doc_by_id(self, doc_id):
         """get doc's detail info by its' id

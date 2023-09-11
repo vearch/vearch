@@ -9,3 +9,4 @@ GPATH
 GRTAGS
 GTAGS
 third_party/faiss
+third_party/flatbuffers-*

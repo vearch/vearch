@@ -106,28 +106,6 @@ func New(cfg register.EngineConfig) (engine.Engine, error) {
 		}
 	}
 
-	if log.IsDebugEnabled() {
-		go func() {
-			for {
-				select {
-				case <-ctx.Done():
-					return
-				default:
-				}
-				var status gamma.EngineStatus
-				gamma.GetEngineStatus(ge.gamma, &status)
-				log.Debug("gamma use memory total:[%d], bitmap %d, range %d, table %d, vector %d, vector index %d",
-					status.BitmapMem+status.FieldRangeMem+status.TableMem+status.VectorMem+status.IndexMem,
-					status.BitmapMem,
-					status.FieldRangeMem,
-					status.TableMem,
-					status.VectorMem,
-					status.IndexMem)
-				time.Sleep(10 * time.Second)
-			}
-		}()
-	}
-
 	return ge, nil
 }
 
@@ -143,10 +121,9 @@ type gammaEngine struct {
 	reader *readerImpl
 	writer *writerImpl
 
-	buildIndexOnce sync.Once
-	counter        *atomic.AtomicInt64
-	lock           sync.RWMutex
-	hasClosed      bool
+	counter   *atomic.AtomicInt64
+	lock      sync.RWMutex
+	hasClosed bool
 }
 
 func (ge *gammaEngine) GetSpace() *entity.Space {
