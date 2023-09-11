@@ -935,7 +935,7 @@ MultiFieldsRangeIndex::MultiFieldsRangeIndex(std::string &path, Table *table)
 
 MultiFieldsRangeIndex::~MultiFieldsRangeIndex() {
   b_running_ = false;
-  while (field_operate_q_->size() > 0) {
+  while (field_operate_q_->size() > 0 || b_operate_running_) {
     std::this_thread::sleep_for(std::chrono::seconds(1));
   }
   for (size_t i = 0; i < fields_.size(); i++) {
