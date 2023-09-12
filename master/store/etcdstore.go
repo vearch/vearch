@@ -20,10 +20,10 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/coreos/etcd/clientv3"
+	"github.com/coreos/etcd/clientv3/concurrency"
 	"github.com/vearch/vearch/config"
 	"github.com/vearch/vearch/util/cbbytes"
-	"go.etcd.io/etcd/clientv3"
-	"go.etcd.io/etcd/clientv3/concurrency"
 )
 
 func init() {
@@ -70,7 +70,7 @@ func (store *EtcdStore) NewLock(ctx context.Context, key string, timeout time.Du
 	return NewDistLock(ctx, store.cli, key, timeout)
 }
 
-//NewEtcdStore is used to register etcd store init function
+// NewEtcdStore is used to register etcd store init function
 func NewEtcdStore(serverAddrs []string) (Store, error) {
 	var cli *clientv3.Client
 	var err error
@@ -93,7 +93,7 @@ func NewEtcdStore(serverAddrs []string) (Store, error) {
 	return &EtcdStore{serverAddr: serverAddrs, cli: cli}, nil
 }
 
-//put kv if already exits it will overwrite
+// put kv if already exits it will overwrite
 func (store *EtcdStore) Put(ctx context.Context, key string, value []byte) error {
 	_, err := store.cli.Put(ctx, key, string(value))
 	return err

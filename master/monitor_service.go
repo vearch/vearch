@@ -20,6 +20,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/coreos/etcd/etcdserver"
 	"github.com/pkg/errors"
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/client"
@@ -29,14 +30,13 @@ import (
 	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/util/metrics/mserver"
 	"github.com/vearch/vearch/util/monitoring"
-	"go.etcd.io/etcd/etcdserver"
 )
 
 func newMonitorService(masterService *masterService, Server *etcdserver.EtcdServer) *monitorService {
 	return &monitorService{masterService: masterService, etcdServer: Server}
 }
 
-//masterService is used for master administrator purpose.It should not be used by router and partition server program
+// masterService is used for master administrator purpose.It should not be used by router and partition server program
 type monitorService struct {
 	*masterService
 	etcdServer *etcdserver.EtcdServer

@@ -2,15 +2,13 @@ module github.com/vearch/vearch
 
 go 1.19
 
-replace (
-	golang.org/x/time => golang.org/x/time v0.0.0-20190308202827-9d24e82272b4
-	google.golang.org/grpc => google.golang.org/grpc v1.2.1-0.20180928173848-b48e364c83c8
-)
+replace google.golang.org/grpc => google.golang.org/grpc v1.26.0
 
 require (
 	github.com/BurntSushi/toml v1.1.0
 	github.com/caio/go-tdigest v3.1.0+incompatible
 	github.com/codahale/hdrhistogram v0.9.0
+	github.com/coreos/etcd v3.3.27+incompatible
 	github.com/cubefs/cubefs v1.5.2-0.20230627111954-f55e96950618
 	github.com/gin-gonic/gin v1.9.1
 	github.com/gogo/protobuf v1.3.2
@@ -34,12 +32,11 @@ require (
 	github.com/uber/jaeger-client-go v2.30.0+incompatible
 	github.com/valyala/fastjson v1.1.1
 	github.com/vmihailenco/msgpack v4.0.4+incompatible
-	go.etcd.io/etcd v0.5.0-alpha.5.0.20190801225801-f1c7fd3d53b0
 	go.uber.org/atomic v1.9.0
 	golang.org/x/crypto v0.9.0
 	golang.org/x/exp v0.0.0-20200224162631-6cc2880d07d6
 	golang.org/x/net v0.10.0
-	google.golang.org/grpc v1.41.0
+	google.golang.org/grpc v1.58.0
 	gotest.tools v2.1.1-0.20181001141646-317cc193f525+incompatible
 )
 
@@ -58,7 +55,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/cheekybits/genny v1.0.0 // indirect
 	github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311 // indirect
-	github.com/coreos/etcd v3.3.13+incompatible // indirect
+	github.com/coreos/bbolt v1.3.3 // indirect
 	github.com/coreos/go-semver v0.3.0 // indirect
 	github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf // indirect
 	github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f // indirect
@@ -70,7 +67,6 @@ require (
 	github.com/facebookgo/clock v0.0.0-20150410010913-600d898af40a // indirect
 	github.com/fatih/color v1.15.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
-	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/go-ole/go-ole v1.2.5 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
@@ -127,7 +123,6 @@ require (
 	github.com/shirou/w32 v0.0.0-20160930032740-bb4de0191aa4 // indirect
 	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/soheilhy/cmux v0.1.5 // indirect
-	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/tatsushid/go-fastping v0.0.0-20160109021039-d7bb493dee3e // indirect
 	github.com/templexxx/cpufeat v0.0.0-20180724012125-cef66df7f161 // indirect
 	github.com/templexxx/xor v0.0.0-20181023030647-4e92f724b73b // indirect

@@ -18,12 +18,12 @@ import (
 	"context"
 	"time"
 
+	"github.com/coreos/etcd/clientv3"
 	"github.com/vearch/vearch/config"
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/ps/psutil"
 	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/util/slice"
-	"go.etcd.io/etcd/clientv3"
 )
 
 // this job for heartbeat master 1m once

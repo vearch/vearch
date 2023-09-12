@@ -25,10 +25,10 @@ import (
 	"sync"
 
 	"github.com/BurntSushi/toml"
+	"github.com/coreos/etcd/embed"
 	"github.com/pkg/errors"
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/util/log"
-	"go.etcd.io/etcd/embed"
 )
 
 // Model start up model, include all, master, ps, router
@@ -88,7 +88,7 @@ type Config struct {
 	PS         *PSCfg     `toml:"ps,omitempty" json:"ps"`
 }
 
-//get etcd address config
+// get etcd address config
 func (this *Config) GetEtcdAddress() []string {
 	// depend manageEtcd config
 	if this.Global.SelfManageEtcd {
@@ -120,7 +120,7 @@ func (c *Config) GetLogDir() string {
 	return c.Global.Log
 }
 
-//make sure it not use in loop
+// make sure it not use in loop
 func (c *Config) GetLevel() string {
 	return c.Global.Level
 }
@@ -182,7 +182,7 @@ type TracerCfg struct {
 
 type Masters []*MasterCfg
 
-//new client use this function to get client urls
+// new client use this function to get client urls
 func (ms Masters) ClientAddress() []string {
 	addrs := make([]string, len(ms))
 	for i, m := range ms {
@@ -221,7 +221,7 @@ func (m *MasterCfg) ApiUrl() string {
 	return "http://" + m.Address + ":" + cast.ToString(m.ApiPort)
 }
 
-//GetEmbed will get or generate the etcd configuration
+// GetEmbed will get or generate the etcd configuration
 func (config *Config) GetEmbed() (*embed.Config, error) {
 	masterCfg := config.Masters.Self()
 
@@ -235,7 +235,6 @@ func (config *Config) GetEmbed() (*embed.Config, error) {
 	cfg.WalDir = ""
 	cfg.ClusterState = embed.ClusterStateFlagNew
 	cfg.EnablePprof = false
-	cfg.PreVote = true
 	cfg.StrictReconfigCheck = true
 	cfg.TickMs = uint(100)
 	cfg.ElectionMs = uint(3000)
@@ -335,8 +334,8 @@ func LoadConfig(conf *Config, path string) {
 	}
 }
 
-//CurrentByMasterNameDomainIp find this machine domain.The main purpose of this function is to find the master from from multiple masters and set it‘s Field:self to true.
-//The only criterion for judging is: Is the IP address the same with one of the masters?
+// CurrentByMasterNameDomainIp find this machine domain.The main purpose of this function is to find the master from from multiple masters and set it‘s Field:self to true.
+// The only criterion for judging is: Is the IP address the same with one of the masters?
 func (config *Config) CurrentByMasterNameDomainIp(masterName string) error {
 
 	//find local all ip

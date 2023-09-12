@@ -20,11 +20,11 @@ import (
 	"errors"
 	"time"
 
+	"github.com/coreos/etcd/clientv3/concurrency"
 	"github.com/vearch/vearch/client"
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/proto/vearchpb"
 	"github.com/vearch/vearch/util/log"
-	"go.etcd.io/etcd/clientv3/concurrency"
 )
 
 const CronInterval = 60
@@ -150,7 +150,7 @@ func CleanTask(masterServer *Server) {
 	}
 }
 
-//WatchServerJob watch ps server put and delete
+// WatchServerJob watch ps server put and delete
 func (s *Server) WatchServerJob(ctx context.Context, cli *client.Client) error {
 	err := client.NewWatchServerCache(ctx, cli)
 	if err != nil {

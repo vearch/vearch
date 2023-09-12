@@ -23,6 +23,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/coreos/etcd/clientv3/concurrency"
 	"github.com/cubefs/cubefs/depends/tiglabs/raft/proto"
 	"github.com/pkg/errors"
 	"github.com/spf13/cast"
@@ -36,7 +37,6 @@ import (
 	"github.com/vearch/vearch/util/errutil"
 	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/util/slice"
-	"go.etcd.io/etcd/clientv3/concurrency"
 )
 
 // masterService is used for master administrator purpose.It should not be used by router and partition server program

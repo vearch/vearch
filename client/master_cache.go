@@ -23,6 +23,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/coreos/etcd/mvcc/mvccpb"
 	"github.com/patrickmn/go-cache"
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/config"
@@ -32,7 +33,6 @@ import (
 	"github.com/vearch/vearch/util/errutil"
 	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/util/vearchlog"
-	"go.etcd.io/etcd/mvcc/mvccpb"
 )
 
 const retryNum = 3
