@@ -27,6 +27,7 @@ import (
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/config"
 	"github.com/vearch/vearch/master"
+	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/ps"
 	"github.com/vearch/vearch/router"
 	"github.com/vearch/vearch/util/log"
@@ -77,7 +78,8 @@ func main() {
 	if config.Conf().Global.ResourceName == "" {
 		config.Conf().Global.ResourceName = DefaultResourceName
 	}
-
+	entity.SetPrefixAndSequence(config.Conf().Global.Name)
+	log.Info("The cluster prefix is: %v", entity.PrefixEtcdClusterID)
 	if config.Conf().TracerCfg != nil {
 		closer := tracer.InitJaeger(config.Conf().Global.Name, config.Conf().TracerCfg)
 		defer closer.Close()

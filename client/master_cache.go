@@ -435,10 +435,7 @@ func (cliCache *clientCache) startCacheJob(ctx context.Context) error {
 		},
 		delete: func(key string) (err error) {
 			userSplit := strings.Split(key, "/")
-			if len(userSplit) != 3 {
-				log.Error("user delete event got err key")
-			}
-			username := userSplit[2]
+			username := userSplit[len(userSplit) - 1]
 			cliCache.userCache.Delete(username)
 			return nil
 		},
@@ -477,9 +474,10 @@ func (cliCache *clientCache) startCacheJob(ctx context.Context) error {
 			return nil
 		},
 		delete: func(key string) (err error) {
-			dbIDStr := strings.Split(key, "/")[2]
+			spaceSplit := strings.Split(key, "/")
+			dbIDStr := spaceSplit[len(spaceSplit) - 2]
 			dbID := cast.ToInt64(dbIDStr)
-			spaceIDStr := strings.Split(key, "/")[3]
+			spaceIDStr := spaceSplit[len(spaceSplit) - 1]
 			spaceID := cast.ToInt64(spaceIDStr)
 			for k, v := range cliCache.spaceCache.Items() {
 				if v.Object.(*entity.Space).DBId == dbID && v.Object.(*entity.Space).Id == spaceID {
@@ -517,7 +515,8 @@ func (cliCache *clientCache) startCacheJob(ctx context.Context) error {
 			return nil
 		},
 		delete: func(key string) (err error) {
-			partitionIdStr := strings.Split(key, "/")[2]
+			partitionIdSplit := strings.Split(key, "/")
+			partitionIdStr := partitionIdSplit[len(partitionIdSplit) - 1]
 			for k := range cliCache.partitionCache.Items() {
 				if strings.HasSuffix(k, "/"+partitionIdStr) {
 					cliCache.partitionCache.Delete(k)
@@ -554,9 +553,10 @@ func (cliCache *clientCache) startCacheJob(ctx context.Context) error {
 			cliCache.serverCache.Set(cacheServerKey(server.ID), server, cache.NoExpiration)
 			return nil
 		},
-		delete: func(cacheKey string) (err error) {
+		delete: func(key string) (err error) {
 			defer errutil.CatchError(&err)
-			nodeIdStr := strings.Split(cacheKey, "/")[2]
+			serverSplit := strings.Split(key, "/")
+			nodeIdStr := serverSplit[len(serverSplit) - 1]
 			nodeId := cast.ToUint64(nodeIdStr)
 			if value, _ := cliCache.Load(nodeId); value != nil {
 				value.(*rpcClient).close()

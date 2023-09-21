@@ -572,6 +572,10 @@ func (ms *masterService) deleteSpaceService(ctx context.Context, dbName string, 
 				}
 			}
 		}
+		err = ms.Master().Delete(ctx, entity.PartitionKey(p.Id))
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

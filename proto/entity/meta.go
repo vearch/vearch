@@ -60,15 +60,34 @@ func RouterKey(key, value string) string {
 	return fmt.Sprintf("%s%s/%s", PrefixRouter, key, value)
 }
 
+func SetPrefixAndSequence(cluster_id string) {
+    PrefixEtcdClusterID = cluster_id
+    NodeIdSequence = PrefixEtcdClusterID + PrefixNodeId
+    SpaceIdSequence = PrefixEtcdClusterID + PrefixSpaceId
+    DBIdSequence = PrefixEtcdClusterID + PrefixDBId
+    PartitionIdSequence = PrefixEtcdClusterID + PrefixPartitionId
+
+    PrefixUser         = PrefixEtcdClusterID + PrefixUser
+    PrefixLock         = PrefixEtcdClusterID + PrefixLock
+    PrefixLockCluster  = PrefixEtcdClusterID + PrefixLockCluster
+    PrefixServer       = PrefixEtcdClusterID + PrefixServer
+    PrefixSpace        = PrefixEtcdClusterID + PrefixSpace
+    PrefixPartition    = PrefixEtcdClusterID + PrefixPartition
+    PrefixDataBase     = PrefixEtcdClusterID + PrefixDataBase
+    PrefixDataBaseBody = PrefixEtcdClusterID + PrefixDataBaseBody
+    PrefixFailServer   = PrefixEtcdClusterID + PrefixFailServer
+    PrefixRouter       = PrefixEtcdClusterID + PrefixRouter
+}
+
 // sids sequence key for etcd
-const (
+var (
 	NodeIdSequence      = "/id/node"
 	SpaceIdSequence     = "/id/space"
 	DBIdSequence        = "/id/db"
 	PartitionIdSequence = "/id/partition"
 )
 
-const (
+var (
 	PrefixUser         = "/user/"
 	PrefixLock         = "/lock/"
 	PrefixLockCluster  = "/lock/_cluster"
@@ -79,7 +98,13 @@ const (
 	PrefixDataBaseBody = "/db/body/"
 	PrefixFailServer   = "/fail/server/"
 	PrefixRouter       = "/router/"
+	PrefixNodeId       = "/id/node"
+	PrefixSpaceId      = "/id/space"
+	PrefixDBId         = "/id/db"
+	PrefixPartitionId  = "/id/partition"
 )
+
+var PrefixEtcdClusterID = "/vearch/default/"
 
 // when master runing clean job , it will set value to this key,
 // when other got key , now time less than this they will skip this job
