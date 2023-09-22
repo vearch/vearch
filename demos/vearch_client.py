@@ -229,6 +229,8 @@ def operate_document_add(router_url: str, db_name: str, space_name: str, embeddi
         }
     }
     print(mget_by_ids(router_url, db_name, space_name, get_query))
+    # wait a moment
+    time.sleep(3)
 
 
 def operate_document_update(router_url: str, db_name: str, space_name: str, embedding_dimension: int, doc_id: str):

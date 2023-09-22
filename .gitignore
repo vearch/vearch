@@ -31,3 +31,8 @@ plugin/src/log/
 build/gamma_build/
 cloud/compile/bin/
 cloud/compile/lib/
+
+#skip python sdk
+sdk/python/build
+sdk/python/dist
+sdk/python/vearch_cluster.egg-info

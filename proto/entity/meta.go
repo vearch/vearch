@@ -16,6 +16,7 @@ package entity
 
 import (
 	"fmt"
+	"strings"
 )
 
 func LockSpaceKey(db, space string) string {
@@ -61,7 +62,11 @@ func RouterKey(key, value string) string {
 }
 
 func SetPrefixAndSequence(cluster_id string) {
-    PrefixEtcdClusterID = cluster_id
+    if strings.HasPrefix(cluster_id, Prefix) {
+		PrefixEtcdClusterID = cluster_id
+    } else {
+		PrefixEtcdClusterID = Prefix + cluster_id
+    }
     NodeIdSequence = PrefixEtcdClusterID + PrefixNodeId
     SpaceIdSequence = PrefixEtcdClusterID + PrefixSpaceId
     DBIdSequence = PrefixEtcdClusterID + PrefixDBId
@@ -88,6 +93,7 @@ var (
 )
 
 var (
+	Prefix             = "/"
 	PrefixUser         = "/user/"
 	PrefixLock         = "/lock/"
 	PrefixLockCluster  = "/lock/_cluster"
