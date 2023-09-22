@@ -101,9 +101,10 @@ func (handler *DocumentHandler) handleMasterRequest(ctx context.Context, w http.
 		return ctx, false
 	}
 
-	response, err := handler.client.Master().HTTPRequest(ctx, r.Method, r.RequestURI, string(reqBody))
+	response, err := handler.client.Master().ProxyHTTPRequest(ctx, r.Method, r.RequestURI, string(reqBody))
 	if err != nil {
 		log.Error("handleMasterRequest %v, req %+v", err, *r)
+		resp.SendJsonBytes(ctx, w, response)
 		return ctx, false
 	}
 	resp.SendJsonBytes(ctx, w, response)

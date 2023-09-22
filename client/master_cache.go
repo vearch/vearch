@@ -568,7 +568,7 @@ func (cliCache *clientCache) startCacheJob(ctx context.Context) error {
 	}
 	serverJob.start()
 
-	log.Info("cache inited ok use time %v", time.Now().Sub(start))
+	log.Info("cache inited ok use time %v", time.Since(start))
 
 	return nil
 }

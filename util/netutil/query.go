@@ -17,7 +17,7 @@ package netutil
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -41,80 +41,80 @@ type query struct {
 	timeout int64
 }
 
-func (this *query) SetMethod(method string) *query {
-	this.method = method
-	return this
+func (q *query) SetMethod(method string) *query {
+	q.method = method
+	return q
 }
 
-func (this *query) SetUrl(url string) *query {
-	this.url = url
-	return this
+func (q *query) SetUrl(url string) *query {
+	q.url = url
+	return q
 }
 
-func (this *query) SetAddress(address string) *query {
-	this.address = address
-	return this
+func (q *query) SetAddress(address string) *query {
+	q.address = address
+	return q
 }
 
-func (this *query) SetUrlPath(urlPath string) *query {
-	this.urlPath = urlPath
-	return this
+func (q *query) SetUrlPath(urlPath string) *query {
+	q.urlPath = urlPath
+	return q
 }
 
-func (this *query) SetReqBody(reqBody string) *query {
-	this.reqBody = reqBody
-	return this
+func (q *query) SetReqBody(reqBody string) *query {
+	q.reqBody = reqBody
+	return q
 }
 
-func (this *query) SetQuery(query string) *query {
-	this.query = query
-	return this
+func (q *query) SetQuery(query string) *query {
+	q.query = query
+	return q
 }
 
-func (this *query) SetTimeout(timeout int64) *query {
-	this.timeout = timeout
-	return this
+func (q *query) SetTimeout(timeout int64) *query {
+	q.timeout = timeout
+	return q
 }
 
-func (this *query) SetHeader(key string, value string) *query {
-	this.header[key] = value
-	return this
+func (q *query) SetHeader(key string, value string) *query {
+	q.header[key] = value
+	return q
 }
 
-func (this *query) SetContentTypeJson() *query {
-	this.SetHeader("Content-Type", "application/json")
-	return this
+func (q *query) SetContentTypeJson() *query {
+	q.SetHeader("Content-Type", "application/json")
+	return q
 }
 
-func (this *query) SetContentTypeForm() *query {
-	this.SetHeader("Content-Type", "application/x-www-form-urlencoded")
-	return this
+func (q *query) SetContentTypeForm() *query {
+	q.SetHeader("Content-Type", "application/x-www-form-urlencoded")
+	return q
 }
 
-func (this *query) GetUrl() string {
-	if this.url != "" {
-		return this.url
+func (q *query) GetUrl() string {
+	if q.url != "" {
+		return q.url
 	}
 
-	url := this.address + this.urlPath
-	if this.query != "" {
-		url = url + "?" + this.query
+	url := q.address + q.urlPath
+	if q.query != "" {
+		url = url + "?" + q.query
 	}
 	return url
 }
 
-func (this *query) Do() ([]byte, error) {
-	url := this.GetUrl()
-	request, _ := http.NewRequest(this.method, url, strings.NewReader(this.reqBody))
+func (q *query) Do() ([]byte, error) {
+	url := q.GetUrl()
+	request, _ := http.NewRequest(q.method, url, strings.NewReader(q.reqBody))
 	//request.Close = true
 	// header
-	for key, value := range this.header {
+	for key, value := range q.header {
 		request.Header.Add(key, value)
 	}
 	// timeout
-	if this.timeout > 0 {
+	if q.timeout > 0 {
 		ctx, cancel := context.WithCancel(context.Background())
-		time.AfterFunc(time.Duration(this.timeout)*time.Second, func() {
+		time.AfterFunc(time.Duration(q.timeout)*time.Second, func() {
 			cancel()
 		})
 		request = request.WithContext(ctx)
@@ -125,32 +125,63 @@ func (this *query) Do() ([]byte, error) {
 		return nil, err
 	}
 
-	//defer request.Body.Close()
-	respBody, err := ioutil.ReadAll(response.Body)
+	defer request.Body.Close()
+	respBody, err := io.ReadAll(response.Body)
 	if err != nil {
 		return nil, err
 	}
 
 	// not 200 ok
 	if response.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Query error, url: %s, method: %s, resp body: %s, req body: %s", url, this.method, respBody, this.reqBody)
+		return nil, fmt.Errorf("query error, url: %s, method: %s, resp body: %s, req body: %s", url, q.method, respBody, q.reqBody)
 	}
 
 	return respBody, nil
 }
 
-func (this *query) DoResponse() (*http.Response, error) {
-	url := this.GetUrl()
-	request, _ := http.NewRequest(this.method, url, strings.NewReader(this.reqBody))
+func (q *query) ProxyDo() (respBody []byte, statusCode int, err error) {
+	url := q.GetUrl()
+	request, _ := http.NewRequest(q.method, url, strings.NewReader(q.reqBody))
 	//request.Close = true
 	// header
-	for key, value := range this.header {
+	for key, value := range q.header {
 		request.Header.Add(key, value)
 	}
 	// timeout
-	if this.timeout > 0 {
+	if q.timeout > 0 {
 		ctx, cancel := context.WithCancel(context.Background())
-		time.AfterFunc(time.Duration(this.timeout)*time.Second, func() {
+		time.AfterFunc(time.Duration(q.timeout)*time.Second, func() {
+			cancel()
+		})
+		request = request.WithContext(ctx)
+	}
+	// do request
+	response, err := http.DefaultClient.Do(request)
+	if err != nil {
+		return nil, -1, err
+	}
+
+	defer request.Body.Close()
+	respBody, err = io.ReadAll(response.Body)
+	if err != nil {
+		return nil, -1, err
+	}
+
+	return respBody, response.StatusCode, nil
+}
+
+func (q *query) DoResponse() (*http.Response, error) {
+	url := q.GetUrl()
+	request, _ := http.NewRequest(q.method, url, strings.NewReader(q.reqBody))
+	//request.Close = true
+	// header
+	for key, value := range q.header {
+		request.Header.Add(key, value)
+	}
+	// timeout
+	if q.timeout > 0 {
+		ctx, cancel := context.WithCancel(context.Background())
+		time.AfterFunc(time.Duration(q.timeout)*time.Second, func() {
 			cancel()
 		})
 		request = request.WithContext(ctx)

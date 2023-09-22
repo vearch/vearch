@@ -648,14 +648,14 @@ func (r *routerRequest) searchFromPartition(ctx context.Context, partitionID ent
 				}
 			}
 			if config.LogInfoPrintSwitch {
-				fieldParsingTime := time.Now().Sub(deSerializeEndTime).Seconds() * 1000
+				fieldParsingTime := time.Since(deSerializeEndTime).Seconds() * 1000
 				fieldParsingTimeStr := strconv.FormatFloat(fieldParsingTime, 'f', -1, 64)
 				searchResponse.Head.Params["fieldParsingTime"] = fieldParsingTimeStr
 			}
 		}
 	}
 	if config.LogInfoPrintSwitch {
-		rpcTotalTime := time.Now().Sub(pidCacheStart).Seconds() * 1000
+		rpcTotalTime := time.Since(pidCacheStart).Seconds() * 1000
 		rpcTotalTimeStr := strconv.FormatFloat(rpcTotalTime, 'f', -1, 64)
 		searchResponse.Head.Params["rpcTotalTime"] = rpcTotalTimeStr
 	}
@@ -723,7 +723,7 @@ func (r *routerRequest) SearchFieldSortExecute(sortOrder sortorder.SortOrder) *v
 
 	partitionCostTimeStr := ""
 	if config.LogInfoPrintSwitch {
-		partitionCostTime := time.Now().Sub(normalEndTime).Seconds() * 1000
+		partitionCostTime := time.Since(normalEndTime).Seconds() * 1000
 		partitionCostTimeStr = strconv.FormatFloat(partitionCostTime, 'f', -1, 64)
 	}
 
@@ -834,7 +834,7 @@ func (r *routerRequest) SearchFieldSortExecute(sortOrder sortorder.SortOrder) *v
 
 	mergeCostTimeStr := ""
 	if config.LogInfoPrintSwitch {
-		mergeCostTime := time.Now().Sub(mergeStartTime).Seconds() * 1000
+		mergeCostTime := time.Since(mergeStartTime).Seconds() * 1000
 		mergeCostTimeStr = strconv.FormatFloat(mergeCostTime, 'f', -1, 64)
 	}
 
@@ -883,7 +883,7 @@ func (r *routerRequest) SearchFieldSortExecute(sortOrder sortorder.SortOrder) *v
 		responseHead := &vearchpb.ResponseHead{Err: err}
 		searchResponse.Head = responseHead
 	}
-	sortCostTime := time.Now().Sub(mergeStartTime).Seconds() * 1000
+	sortCostTime := time.Since(mergeStartTime).Seconds() * 1000
 	sortCostTimeStr := strconv.FormatFloat(sortCostTime, 'f', -1, 64)
 	if config.LogInfoPrintSwitch && searchResponse.Head != nil && searchResponse.Head.Params != nil {
 		searchResponse.Head.Params["mergeCostTime"] = mergeCostTimeStr
@@ -893,7 +893,7 @@ func (r *routerRequest) SearchFieldSortExecute(sortOrder sortorder.SortOrder) *v
 		searchResponse.Head.Params["normalCostTime"] = normalCostTimeStr
 		searchResponse.Head.Params["sortCostTime"] = sortCostTimeStr
 		searchResponse.Head.Params["partitionCostTime"] = partitionCostTimeStr
-		executeCostTime := time.Now().Sub(startTime).Seconds() * 1000
+		executeCostTime := time.Since(startTime).Seconds() * 1000
 		executeCostTimeStr := strconv.FormatFloat(executeCostTime, 'f', -1, 64)
 		searchResponse.Head.Params["executeCostTime"] = executeCostTimeStr
 		searchResponse.Head.Params["serializeCostTime"] = serializeCostTime.String()

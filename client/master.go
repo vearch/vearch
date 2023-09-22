@@ -567,10 +567,47 @@ func (m *masterClient) HTTPRequest(ctx context.Context, method string, url strin
 		log.Debug("remote server response: %v", string(response))
 		if err == nil {
 			break
-		} else {
-			e = err
 		}
+		e = err
+
 		log.Debug("remove server err: %v", err)
+		masterServer.next()
+	}
+	return response, e
+}
+
+// proxy HTTP request
+func (m *masterClient) ProxyHTTPRequest(ctx context.Context, method string, url string, reqBody string) (response []byte, e error) {
+	// process panic
+	defer func() {
+		if info := recover(); info != nil {
+			e = fmt.Errorf("panic is %v", info)
+		}
+	}()
+	query := netutil.NewQuery().SetHeader(Authorization, util.AuthEncrypt(Root, m.cfg.Global.Signkey))
+	query.SetMethod(method)
+	query.SetUrlPath(url)
+	query.SetReqBody(reqBody)
+	query.SetContentTypeJson()
+	query.SetTimeout(60)
+
+	masterServer.reset()
+	for {
+		keyNumber, err := masterServer.getKey()
+		if err != nil {
+			panic(err)
+		}
+		query.SetAddress(m.cfg.Masters[keyNumber].ApiUrl())
+		log.Debug("remote server url: %s, req body: %s", query.GetUrl(), string(reqBody))
+		statusCode := 0
+		response, statusCode, err = query.ProxyDo()
+		log.Debug("remote server response: %v", string(response))
+
+		if statusCode < http.StatusBadRequest || statusCode > http.StatusNetworkAuthenticationRequired {
+			e = err
+			break
+		}
+
 		masterServer.next()
 	}
 	return response, e
