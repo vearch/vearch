@@ -165,6 +165,7 @@ type GlobalCfg struct {
 	AutoRecoverPs   bool   `toml:"auto_recover_ps,omitempty" json:"auto_recover_ps"`
 	SupportEtcdAuth bool   `toml:"support_etcd_auth,omitempty" json:"support_etcd_auth"`
 	RaftConsistent  bool   `toml:"raft_consistent,omitempty" json:"raft_consistent"`
+	LimitedDBNum    bool   `toml:"limited_db_num,omitempty" json:"limited_db_num"`
 }
 
 type EtcdCfg struct {

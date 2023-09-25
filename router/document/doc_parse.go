@@ -756,8 +756,8 @@ func docSearchByIdsParse(r *http.Request, space *entity.Space) (fieldsParam []st
 		return nil, nil, reqBodyByte, err
 	}
 
-	if len(ids) > 100 {
-		err = fmt.Errorf("id max 100 now id is: %d", len(ids))
+	if len(ids) > 500 {
+		err = fmt.Errorf("id max 500 now id is: %d", len(ids))
 		return nil, nil, reqBodyByte, err
 	}
 	return fieldsParam, ids, reqBodyByte, err

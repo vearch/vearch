@@ -59,6 +59,11 @@ func (m *masterClient) Cache() *clientCache {
 	return m.cliCache
 }
 
+// Config return the config of client
+func (m *masterClient) Config() *config.Config {
+	return m.cfg
+}
+
 // FlushCacheJob reset the client.cliCache
 func (m *masterClient) FlushCacheJob(ctx context.Context) error {
 	cliCache, err := newClientCache(ctx, m)

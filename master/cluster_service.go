@@ -84,6 +84,16 @@ func (ms *masterService) registerPartitionService(ctx context.Context, partition
 
 // createDBService three keys "db/id/[dbId]:[dbName]" ,"db/name/[dbName]:[dbId]" ,"db/body/[dbId]:[dbBody]"
 func (ms *masterService) createDBService(ctx context.Context, db *entity.DB) (err error) {
+	if ms.Master().Client().Master().Config().Global.LimitedDBNum {
+		_, bytesArr, err := ms.Master().PrefixScan(ctx, entity.PrefixDataBaseBody)
+		if err != nil {
+			return err
+		}
+		if len(bytesArr) >= 1 {
+			return fmt.Errorf("db num is limited to one and already have one db exists")
+		}
+	}
+
 	//validate name has in db is in return err
 	if err = db.Validate(); err != nil {
 		return err
