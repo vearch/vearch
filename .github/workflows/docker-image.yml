@@ -13,6 +13,31 @@ jobs:
       - name: Set outputs
         id: vars
         run: |
-          # 去掉前面的 refs/tags/
-          echo ::set-output name=RELEASE_VERSION::$(echo ${GITHUB_REF:10})
+          # delete refs/tags/v
+          echo ::set-output name=RELEASE_VERSION::$(echo ${GITHUB_REF:11})
           echo ::set-output name=IMAGE_NAME::vearch
+          
+      - name: compile
+        run: |
+          pwd
+          ls -l
+          cd cloud
+          ./compile.sh
+
+          
+      - name: Build Image
+        run: |
+          cd cloud
+          cp -r ../build/bin compile/
+          cp -r ../build/lib compile/          
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/${{ steps.vars.outputs.IMAGE_NAME }}:${{ steps.vars.outputs.RELEASE_VERSION }} .
+      
+      - name: Login to Registry - Docker Hub
+        run: docker login --username=${{ secrets.DOCKER_USERNAME }} --password ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Push Image - Docker Hub
+        # push: RELEASE_VERSION, latest
+        run: |
+          docker push ${{ secrets.DOCKER_USERNAME }}/${{ steps.vars.outputs.IMAGE_NAME }}:${{ steps.vars.outputs.RELEASE_VERSION }}
+          docker tag ${{ secrets.DOCKER_USERNAME }}/${{ steps.vars.outputs.IMAGE_NAME }}:${{ steps.vars.outputs.RELEASE_VERSION }} ${{ secrets.DOCKER_USERNAME }}/${{ steps.vars.outputs.IMAGE_NAME }}:latest
+          docker push ${{ secrets.DOCKER_USERNAME }}/${{ steps.vars.outputs.IMAGE_NAME }}:latest
