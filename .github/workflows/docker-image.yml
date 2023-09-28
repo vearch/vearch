@@ -1,0 +1,18 @@
+name: Docker Image CI/CD - Release
+
+on:
+  workflow_dispatch
+
+jobs:
+  # build and push
+  build: 
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set outputs
+        id: vars
+        run: |
+          # 去掉前面的 refs/tags/
+          echo ::set-output name=RELEASE_VERSION::$(echo ${GITHUB_REF:10})
+          echo ::set-output name=IMAGE_NAME::vearch
