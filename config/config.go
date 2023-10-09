@@ -258,19 +258,35 @@ func (config *Config) GetEmbed() (*embed.Config, error) {
 		buf.WriteString(cast.ToString(masterCfg.EtcdPeerPort))
 	}
 	cfg.InitialCluster = buf.String()
+ 
+	domain_mode := true
+	address := net.ParseIP(masterCfg.Address)
+	if address != nil {
+		domain_mode = false
+	}
 
 	if urlAddr, err := url.Parse("http://" + masterCfg.Address + ":" + cast.ToString(masterCfg.EtcdPeerPort)); err != nil {
 		return nil, err
 	} else {
-		cfg.LPUrls = []url.URL{*urlAddr}
+		if domain_mode {
+			lpurl, _ := url.Parse("http://0.0.0.0:" + cast.ToString(masterCfg.EtcdPeerPort))
+			cfg.LPUrls = []url.URL{*lpurl}
+		} else {
+			cfg.LPUrls = []url.URL{*urlAddr}
+		}
 		cfg.APUrls = []url.URL{*urlAddr}
 	}
 
 	if urlAddr, err := url.Parse("http://" + masterCfg.Address + ":" + cast.ToString(masterCfg.EtcdClientPort)); err != nil {
 		return nil, err
 	} else {
+		if domain_mode {
+			lcurl, _ := url.Parse("http://0.0.0.0:" + cast.ToString(masterCfg.EtcdClientPort))
+			cfg.LCUrls = []url.URL{*lcurl}
+		} else {
+			cfg.LCUrls = []url.URL{*urlAddr}
+		}
 		cfg.ACUrls = []url.URL{*urlAddr}
-		cfg.LCUrls = []url.URL{*urlAddr}
 	}
 
 	return cfg, nil
@@ -358,7 +374,7 @@ func (config *Config) CurrentByMasterNameDomainIp(masterName string) error {
 			// if not match, search DNS IP by domainName
 			tempIP, err := net.ResolveIPAddr("ip", m.Address)
 			if err != nil {
-				log.Errorf("address [%s] is err", m.Address)
+				log.Errorf("address [%s] has err: %v", m.Address, err)
 				return err
 			}
 			domainIP = tempIP
