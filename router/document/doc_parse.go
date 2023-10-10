@@ -300,7 +300,7 @@ func processPropertyArray(v *fastjson.Value, pathString string, pro *entity.Spac
 	} else if pro.FieldType == entity.FieldType_DOUBLE && pro.Array {
 		field, err = processPropertyArrayVectorDouble(vs, fieldName, pro)
 	} else {
-		field, err = nil, fmt.Errorf("field:[%s]  this type:[%v] can use by array", fieldName, pro.FieldType)
+		field, err = nil, fmt.Errorf("field:[%s]  this type:[%v] can't use as array", fieldName, pro.FieldType)
 	}
 	return field, err
 }
