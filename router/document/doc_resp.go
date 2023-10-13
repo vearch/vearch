@@ -229,8 +229,12 @@ func docFieldSerialize(doc *vearchpb.Document, space *entity.Space, returnFields
 	}
 	for _, fv := range doc.Fields {
 		name := fv.Name
-		if name == mapping.IdField {
-			continue
+		if name == mapping.IdField && returnFieldsMap == nil {
+			if strings.EqualFold("long", space.Engine.IdType) {
+				source[name] = cbbytes.Bytes2Int(fv.Value)
+			} else {
+				source[name] = string(fv.Value)
+			}
 		}
 		if (returnFieldsMap != nil && returnFieldsMap[name] != "") || returnFieldsMap == nil {
 			field := spaceProperties[name]

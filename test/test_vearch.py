@@ -219,6 +219,24 @@ class VearchCase():
                 logger.debug("searchById:" + response.text)
                 assert response.status_code == 200
                 assert response.text.find("\"found\":true") >= 0
+    
+    def test_getByDocId(self):
+        logger.info("test_getByDocId")
+        url = "http://" + proxy + "/space/" + db_name + "/" + space_name
+        response = requests.get(url)
+        assert response.status_code == 200
+        assert response.text.find("\"msg\":\"success\"") >= 0
+       
+        partitions = response.json()['data']['partitions']
+        assert len(partitions) > 0
+        partition = str(partitions[0]['id'])
+
+        for i in range(0, add_num):
+            url = "http://" + proxy + "/" + db_name + "/" + space_name + "/" + partition + "/" + str(i)
+            response = requests.get(url)
+            logger.debug("searchByDocId:" + response.text)
+            assert response.status_code == 200
+            assert response.text.find("\"found\":true") >= 0
 
     def test_insertNoId(self):
         logger.info("insertDataNoId")
@@ -467,7 +485,7 @@ class VearchCase():
         logger.debug("deleteDB:" + response.text)
         assert response.status_code == 200
 
-    def test_db_space_create_delete(self):
+    def run_db_space_create_test(self):
         for i in range(10):
             self.test_stats()
             self.test_health()
@@ -493,6 +511,7 @@ class VearchCase():
         self.test_getspace()
         self.test_insertWithId()
         self.test_getById()
+        self.test_getByDocId()
         self.test_insertNoId()
         self.test_searchByFeature()
         self.test_bulk_searchByFeature()
@@ -504,7 +523,6 @@ class VearchCase():
         self.test_insertBulkNoId()
         self.test_deleteSpace()
         self.test_deleteDB()
-        self.test_db_space_create_delete()
 
 
 @pytest.mark.parametrize(["index_size", "id_type", "retrieval_type", "store_type"], [
@@ -523,3 +541,4 @@ def test_vearch(index_size:int, id_type: str, retrieval_type: str, store_type: s
     case = VearchCase()
     case.setup(index_size, id_type, retrieval_type, store_type)
     case.run_basic_usage_test()
+    case.run_db_space_create_test()

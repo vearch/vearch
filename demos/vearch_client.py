@@ -128,6 +128,12 @@ def get_by_id(router_url: str, db_name: str, space_name: str, doc_id: str):
     return resp.json()
 
 
+def get_by_doc_id(router_url: str, db_name: str, space_name: str, partition:str, doc_id: int):
+    url = f'{router_url}/{db_name}/{space_name}/{partition}/{doc_id}'
+    resp = requests.get(url)
+    return resp.json()
+
+
 def mget_by_ids(router_url: str, db_name: str, space_name: str, query: dict):
     url = f'{router_url}/{db_name}/{space_name}/_query_byids'
     resp = requests.post(url, json=query)
@@ -231,6 +237,26 @@ def operate_document_add(router_url: str, db_name: str, space_name: str, embeddi
     print(mget_by_ids(router_url, db_name, space_name, get_query))
     # wait a moment
     time.sleep(3)
+
+
+def operate_document_get(router_url: str, db_name: str, space_name: str):
+    # get
+    print("\n****** this show how to get ******")
+    doc_id1 = "1"
+    print(get_by_id(router_url, db_name, space_name, doc_id1))
+
+    get_query = {
+        "query": {
+            "ids": ["2", "3"]
+        }
+    }
+    print(mget_by_ids(router_url, db_name, space_name, get_query))
+   
+    response = get_space(router_url, db_name, space_name)
+    partitions = response['data']['partitions']
+    partition = str(partitions[0]['id'])
+    doc_index_id = 0
+    print(get_by_doc_id(router_url, db_name, space_name, partition, doc_index_id))
 
 
 def operate_document_update(router_url: str, db_name: str, space_name: str, embedding_dimension: int, doc_id: str):
@@ -351,6 +377,8 @@ def operate_document_delete(router_url: str, db_name: str, space_name: str, doc_
 
 def operate_document(router_url: str, db_name: str, space_name: str, embedding_dimension: int):
     operate_document_add(router_url, db_name, space_name, embedding_dimension)
+    
+    operate_document_get(router_url, db_name, space_name)
 
     doc_id = "1"
     operate_document_update(router_url, db_name,
