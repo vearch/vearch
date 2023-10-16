@@ -4,7 +4,7 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//	   http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -29,6 +29,7 @@ import (
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/proto/vearchpb"
 	"github.com/vearch/vearch/router/document/resp"
+	"github.com/vearch/vearch/util"
 	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/util/netutil"
 	"github.com/vearch/vearch/util/uuid"
@@ -182,6 +183,19 @@ func (handler *DocumentHandler) handleTimeout(ctx context.Context, w http.Respon
 }
 
 func (handler *DocumentHandler) handleAuth(ctx context.Context, w http.ResponseWriter, r *http.Request, params netutil.UriParams) (context.Context, bool) {
+	if config.Conf().Global.SkipAuth {
+		return ctx, false
+	}
+	headerData := r.Header.Get("Authorization")
+	username, password, err := util.AuthDecrypt(headerData)
+	if err != nil {
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
+		return ctx, false
+	}
+	if username != "root" || password != config.Conf().Global.Signkey {
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "Authorization failed, wrong user or password")
+		return ctx, false
+	}
 	return ctx, true
 }
 
