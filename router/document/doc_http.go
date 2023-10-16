@@ -184,7 +184,7 @@ func (handler *DocumentHandler) handleTimeout(ctx context.Context, w http.Respon
 
 func (handler *DocumentHandler) handleAuth(ctx context.Context, w http.ResponseWriter, r *http.Request, params netutil.UriParams) (context.Context, bool) {
 	if config.Conf().Global.SkipAuth {
-		return ctx, false
+		return ctx, true
 	}
 	headerData := r.Header.Get("Authorization")
 	username, password, err := util.AuthDecrypt(headerData)
