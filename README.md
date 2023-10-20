@@ -8,32 +8,48 @@
 Vearch is a scalable distributed system for efficient similarity search of deep learning vectors. 
 
 ## Quick start
-![docs/img/plugin/main_process.gif](docs/img/plugin/main_process.gif)
 
-* Quickly compile the source codes to build a distributed vector search system with RESTful API, please see [docs/SourceCompileDeployment.md](docs/SourceCompileDeployment.md).
+### Install Vearch
 
-* Vearch can be leveraged to build a complete visual search system to index billions of images. The image retrieval plugin for object detection and feature extraction is also required. For more information, please refer to [docs/Quickstart.md](docs/Quickstart.md).
+#### [Deploy vearch cluster on k8s](https://vearch.github.io/vearch-helm/)
+```
+$ helm repo add vearch https://vearch.github.io/vearch-helm
+$ helm repo update && helm install my-release vearch/vearch
+```
 
-* Vearch Python SDK enables vearch to use locally. Vearch python sdk can be installed easily by pip install vearch. For more information, please refer to [docs/APIPythonSDK.md](docs/APIPythonSDK.md).
+#### Start by docker-compose
+```
+$ cd cloud
+$ cp ../config/config.toml.example config.toml
+$ docker-compose up
+```
+
+#### Compile by source code
+Quickly compile the source codes to build a distributed vector search system with RESTful API, please see [SourceCompileDeployment.md](docs/SourceCompileDeployment.md).
+
+#### Deploy a visual search system
+Vearch can be leveraged to build a complete visual search system to index billions of images. The image retrieval plugin for object detection and feature extraction is also required. For more information, please refer to [Quickstart.md](docs/Quickstart.md).
+
+#### Use python sdk
+Vearch Python SDK enables vearch to use locally. Vearch python sdk can be installed easily by pip install vearch. For more information, please refer to [APIPythonSDK.md](docs/APIPythonSDK.md).
 
 ## APIs and Use Cases
 
 
 ### LowLevelAPI
-* [docs/APILowLevel.md](docs/APILowLevel.md)
-* For GPU [docs/APILowLevel.md](docs/APILowLevelOnGPU.md)
+* [APILowLevel.md](docs/APILowLevel.md)
+* For GPU [APILowLevel.md](docs/APILowLevelOnGPU.md)
 
 
 ### VisualSearchAPI
-* [docs/APIVisualSearch.md](docs/APIVisualSearch.md)
+* [APIVisualSearch.md](docs/APIVisualSearch.md)
 
 ### PythonSDKAPI
-* [docs/APIPythonSDK.md](docs/APIPythonSDK.md)
+* [APIPythonSDK.md](docs/APIPythonSDK.md)
 
 ## Document
 
-* https://vearch.readthedocs.io/en/latest
-* https://vearch.readthedocs.io/zh_CN/latest
+* [English](https://vearch.readthedocs.io/en/latest) | [中文](https://vearch.readthedocs.io/zh_CN/latest)
 
 ## Components
 
@@ -65,6 +81,8 @@ Vearch is a scalable distributed system for efficient similarity search of deep 
 
 * [benchmarks](/engine/benchs/README.md)
 
+## Demo
+![docs/img/plugin/main_process.gif](docs/img/plugin/main_process.gif)
 ## Reference
 Reference to cite when you use Vearch in a research paper:
 ```
