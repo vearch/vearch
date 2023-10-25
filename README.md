@@ -56,7 +56,7 @@ Vearch Python SDK enables vearch to use locally. Vearch python sdk can be instal
 <details>
   <summary><b>Vearch Architecture</b></summary>
 
-![arc](docs/img/VearchArch.jpg)
+![arc](docs/img/simple_architecture.png)
 
 </details>
 
