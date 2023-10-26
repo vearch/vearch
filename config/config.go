@@ -213,6 +213,7 @@ type MasterCfg struct {
 	SkipAuth       bool   `toml:"skip_auth,omitempty" json:"skip_auth"`
 	PprofPort      uint16 `toml:"pprof_port,omitempty" json:"pprof_port"`
 	MonitorPort    uint16 `toml:"monitor_port" json:"monitor_port"`
+	ClusterState   string `toml:"cluster_state,omitempty" json:"cluster_state"`
 }
 
 func (m *MasterCfg) ApiUrl() string {
@@ -234,7 +235,20 @@ func (config *Config) GetEmbed() (*embed.Config, error) {
 	cfg.Name = masterCfg.Name
 	cfg.Dir = config.GetDataDir()
 	cfg.WalDir = ""
-	cfg.ClusterState = embed.ClusterStateFlagNew
+	if masterCfg.ClusterState == "" {
+		cfg.ClusterState = embed.ClusterStateFlagNew
+		log.Info("etcd init cluster state: [%v]", cfg.ClusterState)
+	} else {
+		if !strings.EqualFold(masterCfg.ClusterState, embed.ClusterStateFlagNew) && !strings.EqualFold(masterCfg.ClusterState, embed.ClusterStateFlagExisting) {
+			cfg.ClusterState = embed.ClusterStateFlagNew
+			log.Warn("wrong etcd init cluster state: [%v], should be [%v] or [%v], now use default value[%v]", masterCfg.ClusterState,
+				embed.ClusterStateFlagNew, embed.ClusterStateFlagExisting, embed.ClusterStateFlagNew)
+		} else {
+			cfg.ClusterState = masterCfg.ClusterState
+			log.Info("etcd init cluster state: [%v]", cfg.ClusterState)
+		}
+	}
+
 	cfg.EnablePprof = false
 	cfg.StrictReconfigCheck = true
 	cfg.TickMs = uint(100)
@@ -258,7 +272,7 @@ func (config *Config) GetEmbed() (*embed.Config, error) {
 		buf.WriteString(cast.ToString(masterCfg.EtcdPeerPort))
 	}
 	cfg.InitialCluster = buf.String()
- 
+
 	domain_mode := true
 	address := net.ParseIP(masterCfg.Address)
 	if address != nil {

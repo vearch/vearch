@@ -49,6 +49,8 @@
     # The URLs needed to be a comma-separated list.
     # advertise_client_urls AND listen_client_urls
     etcd_client_port = 2370
+    # init cluster state
+    cluster_state = "new"
     pprof_port = 6062
     # monitor
     monitor_port = 8818
