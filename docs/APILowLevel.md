@@ -1045,6 +1045,32 @@ curl -H "content-type: application/json" -XPOST -d'
 curl -H "content-type: application/json" -XPOST -d'
 {
   "query": {
+      "filter":[
+          {
+              "range":{
+                  "int":{
+                      "gte":1,
+                      "lte":1000
+                  }
+              }
+          },
+          {
+              "term":{
+                "string_tags":["28","2","29"],
+                "operator":"or"
+              }
+          }
+       ]
+  },
+  "size":10
+}
+' {{ROUTER}}/test_vector_db/vector_space/_delete_by_query
+
+Versions prior to v3.3.0 support passing in vector
+
+curl -H "content-type: application/json" -XPOST -d'
+{
+  "query": {
       "sum":[
         {
           "field": "vector",

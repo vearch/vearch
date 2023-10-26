@@ -49,7 +49,7 @@ Vearch Python SDK enables vearch to use locally. Vearch python sdk can be instal
 * [APIVisualSearch.md](docs/APIVisualSearch.md)
 
 ### PythonSDKAPI
-* [APIPythonSDK.md](docs/APIPythonSDK.md)
+* [APIPythonSDK.md](engine/sdk/python/docs/APIPythonSDK.md)
 
 ## Components
 
