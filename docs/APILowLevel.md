@@ -825,7 +825,7 @@ curl -H "content-type: application/json" -XPOST -d'
 * `online_log_level` : "debug", is print debug info 
 * `quick` : default is false, if quick=true it not use precision sorting
 * `vector_value` : default is false, is return vector value
-* `client_type` : search partition type, default is leader, `random` or `no_leader`
+* `client_type` : search partition type, include `random`, `no_leader`, `leader`, default is `random`
 * `l2_sqrt` : default FALSE, don't do sqrt; TRUE, do sqrt
 
 ### delete Document

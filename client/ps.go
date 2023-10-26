@@ -58,15 +58,15 @@ const (
 	MSearchNewHandler    = "MSearchNewHandler"
 	StreamSearchHandler  = "StreamSearchHandler"
 
-	GetDocHandler               = "GetDocHandler"
-	GetDocsHandler              = "GetDocsHandler"
-	GetDocsByPartitionHandler   = "GetDocsByPartitionHandler"
-	CreateDocHandler            = "CreateDocHandler"
-	DeleteDocsHandler           = "DeleteDocsHandler"
-	ReplaceDocHandler           = "ReplaceDocHandler"
-	BatchHandler                = "BatchHandler"
-	ForceMergeHandler           = "ForceMergeHandler"
-	FlushHandler                = "FlushHandler"
+	GetDocHandler             = "GetDocHandler"
+	GetDocsHandler            = "GetDocsHandler"
+	GetDocsByPartitionHandler = "GetDocsByPartitionHandler"
+	CreateDocHandler          = "CreateDocHandler"
+	DeleteDocsHandler         = "DeleteDocsHandler"
+	ReplaceDocHandler         = "ReplaceDocHandler"
+	BatchHandler              = "BatchHandler"
+	ForceMergeHandler         = "ForceMergeHandler"
+	FlushHandler              = "FlushHandler"
 
 	CreatePartitionHandler = "CreatePartitionHandler"
 	DeletePartitionHandler = "DeletePartitionHandler"
@@ -134,11 +134,11 @@ func (ps *psClient) GetOrCreateRPCClient(ctx context.Context, nodeID entity.Node
 }
 
 func (ps *psClient) initFaultylist() {
-	ps.faultyList = cache.New(time.Second*30, time.Second*30)
+	ps.faultyList = cache.New(time.Second*30, time.Second*5)
 }
 
-func (ps *psClient) AddFaulty(nodeID uint64) {
-	ps.faultyList.Set(fmt.Sprint(nodeID), nodeID, 0)
+func (ps *psClient) AddFaulty(nodeID uint64, d time.Duration) {
+	ps.faultyList.Set(fmt.Sprint(nodeID), nodeID, d)
 }
 
 func (ps *psClient) TestFaulty(nodeID uint64) bool {

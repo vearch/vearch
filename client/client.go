@@ -482,7 +482,7 @@ func (r *routerRequest) searchFromPartition(ctx context.Context, partitionID ent
 	}
 
 	clientType := pd.SearchRequest.Head.ClientType
-	//ensure node is alive
+	// ensure node is alive
 	servers := r.client.Master().Cache().serverCache
 
 	rpcEnd, rpcStart := time.Now(), time.Now()
@@ -590,10 +590,11 @@ func (r *routerRequest) searchFromPartition(ctx context.Context, partitionID ent
 		}
 
 		if strings.Contains(err.Error(), "connect: connection refused") {
-			r.client.PS().AddFaulty(nodeID)
+			r.client.PS().AddFaulty(nodeID, time.Second*30)
 			nodeID = GetNodeIdsByClientType(clientType, partition, servers)
 		} else {
 			log.Error("rpc err [%v], nodeID %v", err, nodeID)
+			r.client.PS().AddFaulty(nodeID, time.Second*5)
 			break
 		}
 	}

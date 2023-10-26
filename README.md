@@ -7,6 +7,10 @@
 
 Vearch is a scalable distributed system for efficient similarity search of deep learning vectors. 
 
+## Document
+
+* [English](https://vearch.readthedocs.io/en/latest) | [中文](https://vearch.readthedocs.io/zh_CN/latest)
+
 ## Quick start
 
 ### Install Vearch
@@ -46,10 +50,6 @@ Vearch Python SDK enables vearch to use locally. Vearch python sdk can be instal
 
 ### PythonSDKAPI
 * [APIPythonSDK.md](docs/APIPythonSDK.md)
-
-## Document
-
-* [English](https://vearch.readthedocs.io/en/latest) | [中文](https://vearch.readthedocs.io/zh_CN/latest)
 
 ## Components
 
