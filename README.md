@@ -43,7 +43,7 @@ Quickly compile the source codes to build a distributed vector search system wit
 Vearch can be leveraged to build a complete visual search system to index billions of images. The image retrieval plugin for object detection and feature extraction is also required. For more information, please refer to [Quickstart.md](docs/Quickstart.md).
 
 #### Use python sdk
-Vearch Python SDK enables vearch to use locally. Vearch python sdk can be installed easily by pip install vearch. For more information, please refer to [APIPythonSDK.md](docs/APIPythonSDK.md).
+Vearch Python SDK enables vearch to use locally. Vearch python sdk can be installed easily by pip install vearch. For more information, please refer to [APIPythonSDK.md](engine/sdk/python/docs/APIPythonSDK.md).
 
 ## APIs and Use Cases
 
@@ -87,7 +87,7 @@ Vearch Python SDK enables vearch to use locally. Vearch python sdk can be instal
 
 ## Benchmarks
 
-* [benchmarks](/engine/benchs/README.md)
+* [benchmarks](benchs/README.md)
 
 ## Demo
 ![docs/img/plugin/main_process.gif](docs/img/plugin/main_process.gif)
