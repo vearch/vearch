@@ -16,9 +16,17 @@ Vearch is a scalable distributed system for efficient similarity search of deep 
 ### Install Vearch
 
 #### [Deploy vearch cluster on k8s](https://vearch.github.io/vearch-helm/)
+Add charts through the repo
 ```
 $ helm repo add vearch https://vearch.github.io/vearch-helm
 $ helm repo update && helm install my-release vearch/vearch
+```
+Add charts from local
+```
+$ git clone https://github.com/vearch/vearch-helm.git
+$ cd vearch-helm
+$ make
+$ helm install my-release ./charts -f ./charts/values.yaml
 ```
 
 #### Start by docker-compose
