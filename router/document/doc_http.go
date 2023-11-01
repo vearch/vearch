@@ -120,7 +120,7 @@ func (handler *DocumentHandler) ExportInterfacesToServer() error {
 	// The data operation will be redefined as the following 2 type interfaces: document and index
 	// document
 	// handler.httpServer.HandlesMethods([]string{http.MethodPost}, "/document/upsert", []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleDocumentUpsert}, nil)
-	// handler.httpServer.HandlesMethods([]string{http.MethodPost}, "/document/query", []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleDocumentQuery}, nil)
+	handler.httpServer.HandlesMethods([]string{http.MethodPost}, "/document/query", []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleDocumentQuery}, nil)
 	// handler.httpServer.HandlesMethods([]string{http.MethodPost}, "/document/search", []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleDocumentSearch}, nil)
 	handler.httpServer.HandlesMethods([]string{http.MethodPost}, "/document/delete", []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleDocumentDelete}, nil)
 
@@ -924,6 +924,107 @@ func (handler *DocumentHandler) handleLogPrintSwitch(ctx context.Context, w http
 	}
 }
 
+func (handler *DocumentHandler) handleDocumentQuery(ctx context.Context, w http.ResponseWriter, r *http.Request, params netutil.UriParams) (context.Context, bool) {
+	startTime := time.Now()
+	operateName := "handleDocumentQuery"
+	defer monitor.Profiler(operateName, startTime)
+	span, ctx := opentracing.StartSpanFromContext(ctx, operateName)
+	defer span.Finish()
+	args := &vearchpb.SearchRequest{}
+	args.Head = setRequestHeadParams(params, r)
+	if args.Head.Params == nil {
+		params := make(map[string]string)
+		args.Head.Params = params
+	}
+
+	searchDoc, fileds, documentIds, err := documentRequestParse(r, args)
+	if err != nil {
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
+		return ctx, false
+	}
+	args.Head.DbName = searchDoc.DbName
+	args.Head.SpaceName = searchDoc.SpaceName
+
+	space, err := handler.docService.getSpace(ctx, args.Head.DbName, args.Head.SpaceName)
+	if space == nil {
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "dbName or spaceName param not build db or space")
+		return ctx, true
+	}
+	if err != nil {
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "query Cache space null")
+		return ctx, false
+	}
+
+	IDIsLong := idIsLong(space)
+	if IDIsLong {
+		args.Head.Params["idIsLong"] = "true"
+	} else {
+		args.Head.Params["idIsLong"] = "false"
+	}
+
+	err = requestToPb(searchDoc, space, args)
+	if err != nil {
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
+		return ctx, false
+	}
+
+	if args.VecFields != nil {
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "query shouldn't set query vector")
+		return ctx, false
+	}
+
+	if len(documentIds) != 0 {
+		if args.TermFilters != nil || args.RangeFilters != nil {
+			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "query shouldn't set document_ids and query filter at the same time")
+			return ctx, false
+		}
+		args := &vearchpb.GetRequest{}
+		args.Head = setRequestHeadParams(params, r)
+		args.Head.DbName = searchDoc.DbName
+		args.Head.SpaceName = searchDoc.SpaceName
+		args.PrimaryKeys = documentIds
+
+		reply := handler.docService.getDocs(ctx, args)
+		var queryFieldsParam map[string]string
+		if fileds != nil {
+			queryFieldsParam = arrayToMap(fileds)
+		}
+		if resultBytes, err := docGetResponse(handler.client, args, reply, queryFieldsParam, true); err != nil {
+			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
+			return ctx, true
+		} else {
+			resp.SendJsonBytes(ctx, w, resultBytes)
+			return ctx, true
+		}
+	} else {
+		if args.TermFilters == nil && args.RangeFilters == nil {
+			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "query should set document_ids or query filter")
+			return ctx, false
+		}
+	}
+	serviceStart := time.Now()
+	searchResp := handler.docService.search(ctx, args)
+	serviceCost := time.Since(serviceStart)
+
+	var bs []byte
+	if searchResp.Results == nil || len(searchResp.Results) == 0 {
+		searchStatus := vearchpb.SearchStatus{Failed: 0, Successful: 0, Total: 0}
+		bs, err = SearchNullToContent(searchStatus, serviceCost)
+	} else {
+		bs, err = ToContent(searchResp.Results[0], args.Head, serviceCost, space)
+	}
+
+	if err != nil {
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
+		return ctx, true
+	}
+	resp.SendJsonBytes(ctx, w, bs)
+	endTime := time.Now()
+	log.Debug("search total use :[%f] service use :[%f]",
+		(endTime.Sub(startTime).Seconds())*1000, serviceCost.Seconds()*1000)
+	return ctx, true
+}
+
 func (handler *DocumentHandler) handleDocumentDelete(ctx context.Context, w http.ResponseWriter, r *http.Request, params netutil.UriParams) (context.Context, bool) {
 	startTime := time.Now()
 	defer monitor.Profiler("handleDocumentDelete", startTime)
@@ -939,7 +1040,7 @@ func (handler *DocumentHandler) handleDocumentDelete(ctx context.Context, w http
 		args.Head.Params = paramMap
 	}
 
-	searchDoc, documentIds, err := documentRequestParse(r, args)
+	searchDoc, _, documentIds, err := documentRequestParse(r, args)
 	if err != nil {
 		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 		return ctx, false
@@ -970,6 +1071,11 @@ func (handler *DocumentHandler) handleDocumentDelete(ctx context.Context, w http
 		return ctx, false
 	}
 
+	if args.VecFields != nil {
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "delete shouldn't set query vector")
+		return ctx, false
+	}
+
 	if len(documentIds) != 0 {
 		if args.TermFilters != nil || args.RangeFilters != nil {
 			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "delete shouldn't set document_ids and query filter at the same time")
@@ -991,10 +1097,6 @@ func (handler *DocumentHandler) handleDocumentDelete(ctx context.Context, w http
 	} else {
 		if args.TermFilters == nil && args.RangeFilters == nil {
 			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "delete should set document_ids or query filter")
-			return ctx, false
-		}
-		if args.VecFields != nil {
-			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "delete shouldn't set query vector")
 			return ctx, false
 		}
 	}
