@@ -119,7 +119,7 @@ func (handler *DocumentHandler) handleMasterRequest(ctx context.Context, w http.
 func (handler *DocumentHandler) ExportInterfacesToServer() error {
 	// The data operation will be redefined as the following 2 type interfaces: document and index
 	// document
-	// handler.httpServer.HandlesMethods([]string{http.MethodPost}, "/document/upsert", []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleDocumentUpsert}, nil)
+	handler.httpServer.HandlesMethods([]string{http.MethodPost}, "/document/upsert", []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleDocumentUpsert}, nil)
 	handler.httpServer.HandlesMethods([]string{http.MethodPost}, "/document/query", []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleDocumentQuery}, nil)
 	// handler.httpServer.HandlesMethods([]string{http.MethodPost}, "/document/search", []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleDocumentSearch}, nil)
 	handler.httpServer.HandlesMethods([]string{http.MethodPost}, "/document/delete", []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleDocumentDelete}, nil)
@@ -924,6 +924,43 @@ func (handler *DocumentHandler) handleLogPrintSwitch(ctx context.Context, w http
 	}
 }
 
+func (handler *DocumentHandler) handleDocumentUpsert(ctx context.Context, w http.ResponseWriter, r *http.Request, params netutil.UriParams) (context.Context, bool) {
+	startTime := time.Now()
+	operateName := "handleDocumentUpsert"
+	defer monitor.Profiler(operateName, startTime)
+	span, ctx := opentracing.StartSpanFromContext(ctx, operateName)
+	defer span.Finish()
+	args := &vearchpb.BulkRequest{}
+	args.Head = setRequestHeadParams(params, r)
+	docRequest, dbName, spaceName, err := documentHeadParse(r)
+	if err != nil {
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", fmt.Sprintf("documentHeadParse error: %v", err))
+		return ctx, true
+	}
+
+	args.Head.DbName = dbName
+	args.Head.SpaceName = spaceName
+	space, err := handler.client.Space(ctx, args.Head.DbName, args.Head.SpaceName)
+	if space == nil || err != nil {
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", fmt.Sprintf("dbName:%s or spaceName:%s param not build db or space", args.Head.DbName, args.Head.SpaceName))
+		return ctx, true
+	}
+
+	err = documentParse(r, docRequest, space, args)
+	if err != nil {
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
+		return ctx, false
+	}
+	reply := handler.docService.bulk(ctx, args)
+	resultBytes, err := docBulkResponses(handler.client, args, reply)
+	if err != nil {
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
+		return ctx, true
+	}
+	resp.SendJsonBytes(ctx, w, resultBytes)
+	return ctx, true
+}
+
 func (handler *DocumentHandler) handleDocumentQuery(ctx context.Context, w http.ResponseWriter, r *http.Request, params netutil.UriParams) (context.Context, bool) {
 	startTime := time.Now()
 	operateName := "handleDocumentQuery"
@@ -947,7 +984,7 @@ func (handler *DocumentHandler) handleDocumentQuery(ctx context.Context, w http.
 
 	space, err := handler.docService.getSpace(ctx, args.Head.DbName, args.Head.SpaceName)
 	if space == nil {
-		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "dbName or spaceName param not build db or space")
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", fmt.Sprintf("dbName:%s or spaceName:%s param not build db or space", args.Head.DbName, args.Head.SpaceName))
 		return ctx, true
 	}
 	if err != nil {
@@ -1020,7 +1057,7 @@ func (handler *DocumentHandler) handleDocumentQuery(ctx context.Context, w http.
 	}
 	resp.SendJsonBytes(ctx, w, bs)
 	endTime := time.Now()
-	log.Debug("search total use :[%f] service use :[%f]",
+	log.Debug("query total use :[%f] service use :[%f]",
 		(endTime.Sub(startTime).Seconds())*1000, serviceCost.Seconds()*1000)
 	return ctx, true
 }
@@ -1105,7 +1142,7 @@ func (handler *DocumentHandler) handleDocumentDelete(ctx context.Context, w http
 	serviceEnd := time.Now()
 	serviceCost := serviceEnd.Sub(serviceStart)
 
-	log.Debug("handleDeleteByQuery cost :%f", serviceCost)
+	log.Debug("handleDocumentDelete cost :%f", serviceCost)
 	shardsBytes, err := deleteByQueryResult(delByQueryResp)
 	if err != nil {
 		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())

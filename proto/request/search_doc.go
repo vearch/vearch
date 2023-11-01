@@ -20,6 +20,12 @@ import (
 	"github.com/vearch/vearch/ps/engine/sortorder"
 )
 
+type DocumentRequest struct {
+	Documents []json.RawMessage `json:"documents,omitempty"`
+	DbName    string            `json:"db_name,omitempty"`
+	SpaceName string            `json:"space_name,omitempty"`
+}
+
 type SearchDocumentRequest struct {
 	From           int             `json:"from,omitempty"`
 	Size           *int            `json:"size,omitempty"`

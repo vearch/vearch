@@ -885,6 +885,54 @@ func doLogPrintSwitchParse(r *http.Request) (printSwitch bool, err error) {
 	return temp.PrintSwitch, nil
 }
 
+func documentHeadParse(r *http.Request) (docRequest *request.DocumentRequest, dbName string, spaceName string, err error) {
+	reqBody, err := netutil.GetReqBody(r)
+	if err != nil {
+		return nil, "", "", err
+	}
+
+	if len(reqBody) == 0 {
+		err = fmt.Errorf("document param is null")
+		return nil, "", "", err
+	}
+
+	docRequest = &request.DocumentRequest{}
+	err = cbjson.Unmarshal(reqBody, docRequest)
+	if err != nil {
+		err = fmt.Errorf("document param convert json err: [%s]", string(reqBody))
+		return nil, "", "", err
+	}
+
+	return docRequest, docRequest.DbName, docRequest.SpaceName, nil
+}
+
+func documentParse(r *http.Request, docRequest *request.DocumentRequest, space *entity.Space, args *vearchpb.BulkRequest) (err error) {
+	spaceProperties := space.SpaceProperties
+	if spaceProperties == nil {
+		spacePro, _ := entity.UnmarshalPropertyJSON(space.Properties)
+		spaceProperties = spacePro
+	}
+
+	docs := make([]*vearchpb.Document, 0)
+	for _, docJson := range docRequest.Documents {
+		jsonMap, err := cbjson.ByteToJsonMap(docJson)
+		if err != nil {
+			return err
+		}
+		primaryKey := jsonMap.GetJsonValString("id")
+
+		fields, err := MapDocument(docJson, space, spaceProperties)
+		if err != nil {
+			return err
+		}
+		doc := &vearchpb.Document{PKey: primaryKey, Fields: fields}
+
+		docs = append(docs, doc)
+	}
+	args.Docs = docs
+	return nil
+}
+
 func documentRequestParse(r *http.Request, searchReq *vearchpb.SearchRequest) (searchDoc *request.SearchDocumentRequest, fileds []string, document_ids []string, err error) {
 	reqBodyStart := time.Now()
 	reqBody, err := netutil.GetReqBody(r)
@@ -915,8 +963,8 @@ func documentRequestParse(r *http.Request, searchReq *vearchpb.SearchRequest) (s
 	query := &Query{}
 	err = cbjson.Unmarshal(searchDoc.Query, query)
 	if err != nil {
-		log.Error("docSearchByIdsParse cbjson.Unmarshal error :%v", err)
-		err = fmt.Errorf("docSearchByIdsParse cbjson.Unmarshal error :%v", err)
+		log.Error("documentRequestParse cbjson.Unmarshal error :%v", err)
+		err = fmt.Errorf("documentRequestParse cbjson.Unmarshal error :%v", err)
 		return nil, nil, nil, err
 	}
 	return searchDoc, query.Fields, query.DocumentIds, nil
@@ -924,5 +972,5 @@ func documentRequestParse(r *http.Request, searchReq *vearchpb.SearchRequest) (s
 
 func requestToPb(searchDoc *request.SearchDocumentRequest, space *entity.Space, searchReq *vearchpb.SearchRequest) (err error) {
 	err = searchParamToSearchPb(searchDoc, searchReq, space, false)
-	return
+	return err
 }
