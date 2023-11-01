@@ -15,7 +15,7 @@
 package netutil
 
 import (
-	"io/ioutil"
+	"io"
 	"net/http"
 )
 
@@ -33,7 +33,7 @@ func GetUrlQuery(r *http.Request) map[string]string {
 }
 
 func GetReqBody(r *http.Request) ([]byte, error) {
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		return nil, nil
 	}

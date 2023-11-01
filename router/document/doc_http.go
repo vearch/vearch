@@ -66,6 +66,10 @@ func ExportDocumentHandler(httpServer *netutil.Server, client *client.Client) {
 
 	documentHandler.proxyMaster()
 	// open router api
+	if err := documentHandler.ExportInterfacesToServer(); err != nil {
+		panic(err)
+	}
+
 	if err := documentHandler.ExportToServer(); err != nil {
 		panic(err)
 	}
@@ -110,6 +114,22 @@ func (handler *DocumentHandler) handleMasterRequest(ctx context.Context, w http.
 	}
 	resp.SendJsonBytes(ctx, w, response)
 	return ctx, true
+}
+
+func (handler *DocumentHandler) ExportInterfacesToServer() error {
+	// The data operation will be redefined as the following 2 type interfaces: document and index
+	// document
+	// handler.httpServer.HandlesMethods([]string{http.MethodPost}, "/document/upsert", []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleDocumentUpsert}, nil)
+	// handler.httpServer.HandlesMethods([]string{http.MethodPost}, "/document/query", []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleDocumentQuery}, nil)
+	// handler.httpServer.HandlesMethods([]string{http.MethodPost}, "/document/search", []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleDocumentSearch}, nil)
+	handler.httpServer.HandlesMethods([]string{http.MethodPost}, "/document/delete", []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleDocumentDelete}, nil)
+
+	// index TODO
+	// handler.httpServer.HandlesMethods([]string{http.MethodPost}, "/index/rebuild", []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleDocumentUpsert}, nil)
+	// handler.httpServer.HandlesMethods([]string{http.MethodPost}, "/index/flush", []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleDocumentQuery}, nil)
+	// handler.httpServer.HandlesMethods([]string{http.MethodPost}, "/index/forcemerge", []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleDocumentQuery}, nil)
+
+	return nil
 }
 
 func (handler *DocumentHandler) ExportToServer() error {
@@ -603,6 +623,24 @@ func setRequestHead(params netutil.UriParams, r *http.Request) (head *vearchpb.R
 	return
 }
 
+// setRequestHeadParams set head params of request
+func setRequestHeadParams(params netutil.UriParams, r *http.Request) (head *vearchpb.RequestHead) {
+	head = &vearchpb.RequestHead{}
+	head.Params = netutil.GetUrlQuery(r)
+	if len(head.Params) == 0 {
+		return
+	}
+
+	if timeout, ok := head.Params["timeout"]; ok {
+		var err error
+		if head.TimeOutMs, err = strconv.ParseInt(timeout, 10, 64); err != nil {
+			log.Warnf("timeout[%s] param parse to int failed, err: %s", timeout, err.Error())
+		}
+	}
+
+	return head
+}
+
 // handlerQueryDocByIds query byids
 func (handler *DocumentHandler) handlerQueryDocByIds(ctx context.Context, w http.ResponseWriter, r *http.Request, params netutil.UriParams) (context.Context, bool) {
 	startTime := time.Now()
@@ -844,8 +882,8 @@ func (handler *DocumentHandler) handleDeleteByQuery(ctx context.Context, w http.
 		return ctx, false
 	}
 
-	if args.VecFields == nil && args.TermFilters == nil && args.RangeFilters == nil {
-		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "vector is null or other query is null")
+	if args.TermFilters == nil && args.RangeFilters == nil {
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "query filter is null")
 		return ctx, false
 	}
 	serviceStart := time.Now()
@@ -884,4 +922,94 @@ func (handler *DocumentHandler) handleLogPrintSwitch(ctx context.Context, w http
 		resp.SendJsonBytes(ctx, w, resultBytes)
 		return ctx, true
 	}
+}
+
+func (handler *DocumentHandler) handleDocumentDelete(ctx context.Context, w http.ResponseWriter, r *http.Request, params netutil.UriParams) (context.Context, bool) {
+	startTime := time.Now()
+	defer monitor.Profiler("handleDocumentDelete", startTime)
+	args := &vearchpb.SearchRequest{}
+	args.Head = setRequestHeadParams(params, r)
+	if args.Head.Params != nil {
+		paramMap := args.Head.Params
+		paramMap["queryOnlyId"] = "true"
+		args.Head.Params = paramMap
+	} else {
+		paramMap := make(map[string]string)
+		paramMap["queryOnlyId"] = "true"
+		args.Head.Params = paramMap
+	}
+
+	searchDoc, documentIds, err := documentRequestParse(r, args)
+	if err != nil {
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
+		return ctx, false
+	}
+	args.Head.DbName = searchDoc.DbName
+	args.Head.SpaceName = searchDoc.SpaceName
+
+	space, err := handler.docService.getSpace(ctx, args.Head.DbName, args.Head.SpaceName)
+	if space == nil {
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", fmt.Sprintf("dbName:%s or spaceName:%s param not build db or space", args.Head.DbName, args.Head.SpaceName))
+		return ctx, true
+	}
+	if err != nil {
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "query Cache space null")
+		return ctx, false
+	}
+
+	IDIsLong := idIsLong(space)
+	if IDIsLong {
+		args.Head.Params["idIsLong"] = "true"
+	} else {
+		args.Head.Params["idIsLong"] = "false"
+	}
+
+	err = requestToPb(searchDoc, space, args)
+	if err != nil {
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
+		return ctx, false
+	}
+
+	if len(documentIds) != 0 {
+		if args.TermFilters != nil || args.RangeFilters != nil {
+			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "delete shouldn't set document_ids and query filter at the same time")
+			return ctx, false
+		}
+		args := &vearchpb.DeleteRequest{}
+		args.Head = setRequestHeadParams(params, r)
+		args.Head.DbName = searchDoc.DbName
+		args.Head.SpaceName = searchDoc.SpaceName
+		args.PrimaryKeys = documentIds
+		reply := handler.docService.deleteDocs(ctx, args)
+		if resultBytes, err := docDeleteResponses(handler.client, args, reply); err != nil {
+			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
+			return ctx, true
+		} else {
+			resp.SendJsonBytes(ctx, w, resultBytes)
+			return ctx, true
+		}
+	} else {
+		if args.TermFilters == nil && args.RangeFilters == nil {
+			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "delete should set document_ids or query filter")
+			return ctx, false
+		}
+		if args.VecFields != nil {
+			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "delete shouldn't set query vector")
+			return ctx, false
+		}
+	}
+	serviceStart := time.Now()
+	delByQueryResp := handler.docService.deleteByQuery(ctx, args)
+	serviceEnd := time.Now()
+	serviceCost := serviceEnd.Sub(serviceStart)
+
+	log.Debug("handleDeleteByQuery cost :%f", serviceCost)
+	shardsBytes, err := deleteByQueryResult(delByQueryResp)
+	if err != nil {
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
+		return ctx, true
+	}
+
+	resp.SendJsonBytes(ctx, w, shardsBytes)
+	return ctx, true
 }

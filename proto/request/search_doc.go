@@ -37,6 +37,8 @@ type SearchDocumentRequest struct {
 	IVFFlat        bool            `json:"ivf_flat,omitempty"`
 	OnlineLogLevel string          `json:"online_log_level"`
 	IsBruteSearch  int32           `json:"is_brute_search"`
+	DbName         string          `json:"db_name,omitempty"`
+	SpaceName      string          `json:"space_name,omitempty"`
 	sortOrder      sortorder.SortOrder
 }
 

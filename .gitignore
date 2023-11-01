@@ -24,6 +24,7 @@ build/bin/
 build/lib/
 build/run.sh
 cloud/env/app/
+cloud/config.toml
 
 #skip some test file
 plugin/model/yolov3.weights
@@ -36,3 +37,6 @@ cloud/compile/lib/
 sdk/python/build
 sdk/python/dist
 sdk/python/vearch_cluster.egg-info
+
+#skip engine third_party
+engine/third_party/faiss-1.7.1

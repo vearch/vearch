@@ -7,13 +7,14 @@ GAMMAOUT=$ROOT/build/gamma_build
 
 # BUILD OPTS
 COMPILE_THREAD_NUM=-j2
+BUILD_GAMMA=ON
 BUILD_GAMMA_TEST=OFF
 BUILD_GAMMA_TYPE=Release
 
 # version value
 BUILD_VERSION="latest"
 
-while getopts ":n:tdh" opt
+while getopts ":n:g:tdh" opt
 do
   case $opt in
     n)
@@ -25,10 +26,14 @@ do
     d)
       BUILD_GAMMA_TYPE=Debug
       echo "BUILD_GAMMA_TYPE="$BUILD_GAMMA_TYPE;;
+    g)
+      BUILD_GAMMA=$OPTARG
+      echo "BUILD_GAMMA="$BUILD_GAMMA;;
     h)
       echo "[build options]"
       echo -e "\t-h\t\thelp"
       echo -e "\t-n\t\tcompile thread num"
+      echo -e "\t-g\t\tbuild gamma or not: [ON|OFF]"
       echo -e "\t-t\t\tbuild gamma test"
       echo -e "\t-d\t\tbuild gamma type=Debug"
       exit 0;;
@@ -122,6 +127,8 @@ function build_vearch() {
 }
 
 get_version
-build_thirdparty
-build_engine
+if [ $BUILD_GAMMA == "ON" ]; then
+  build_thirdparty
+  build_engine
+fi
 build_vearch

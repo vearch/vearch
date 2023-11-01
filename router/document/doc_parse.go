@@ -884,3 +884,44 @@ func doLogPrintSwitchParse(r *http.Request) (printSwitch bool, err error) {
 	}
 	return temp.PrintSwitch, nil
 }
+
+func documentRequestParse(r *http.Request, searchReq *vearchpb.SearchRequest) (searchDoc *request.SearchDocumentRequest, document_ids []string, err error) {
+	reqBodyStart := time.Now()
+	reqBody, err := netutil.GetReqBody(r)
+	if err != nil {
+		return
+	}
+	if config.LogInfoPrintSwitch {
+		reqBodyCostTime := time.Since(reqBodyStart).Seconds() * 1000
+		reqBodyCostTimeStr := strconv.FormatFloat(reqBodyCostTime, 'f', -1, 64)
+		searchReq.Head.Params["reqBodyCostTime"] = reqBodyCostTimeStr
+	}
+	if len(reqBody) == 0 {
+		err = fmt.Errorf("query param is null")
+		return
+	}
+
+	searchDoc = &request.SearchDocumentRequest{}
+	err = cbjson.Unmarshal(reqBody, searchDoc)
+	if err != nil {
+		err = fmt.Errorf("query param convert json err: [%s]", string(reqBody))
+		return
+	}
+
+	type Query struct {
+		DocumentIds []string `json:"document_ids,omitempty"`
+	}
+	ids := &Query{}
+	err = cbjson.Unmarshal(searchDoc.Query, ids)
+	if err != nil {
+		log.Error("docSearchByIdsParse cbjson.Unmarshal error :%v", err)
+		err = fmt.Errorf("docSearchByIdsParse cbjson.Unmarshal error :%v", err)
+		return nil, nil, err
+	}
+	return searchDoc, ids.DocumentIds, nil
+}
+
+func requestToPb(searchDoc *request.SearchDocumentRequest, space *entity.Space, searchReq *vearchpb.SearchRequest) (err error) {
+	err = searchParamToSearchPb(searchDoc, searchReq, space, false)
+	return
+}
