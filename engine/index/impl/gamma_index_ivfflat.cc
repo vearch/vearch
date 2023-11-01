@@ -136,13 +136,7 @@ int GammaIndexIVFFlat::Init(const std::string &model_parameters,
   LOG(INFO) << params.ToString();
 
   RawVector *raw_vec = nullptr;
-  if (check_vector_) {
-#ifdef WITH_ROCKSDB
-    raw_vec = dynamic_cast<RocksDBRawVector *>(vector_);
-#endif
-  } else {
-    raw_vec = dynamic_cast<RawVector *>(vector_);
-  }
+  raw_vec = dynamic_cast<RawVector *>(vector_);
   if (raw_vec == nullptr) {
     LOG(ERROR) << "IVFFlat needs store type=RocksDB";
     return PARAM_ERR;
@@ -678,9 +672,7 @@ int GammaIndexIVFFlat::Load(const std::string &dir) {
     LOG(INFO) << "unsupported inverted list format, it need rebuilding!";
   } else if (ret == 0) {
     READ1(indexed_vec_count_);
-    if (indexed_vec_count_ < 0 ||
-        (check_vector_ &&
-         indexed_vec_count_ > (int)vector_->MetaInfo()->size_)) {
+    if (indexed_vec_count_ < 0) {
       LOG(ERROR) << "invalid indexed count [" << indexed_vec_count_
                  << "] vector size [" << vector_->MetaInfo()->size_ << "]";
       return INTERNAL_ERR;

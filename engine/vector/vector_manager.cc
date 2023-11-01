@@ -82,10 +82,8 @@ int VectorManager::CreateVectorTable(TableInfo &table,
         store_type = VectorStorageType::MemoryOnly;
       } else if (!strcasecmp("Mmap", store_type_str.c_str())) {
         store_type = VectorStorageType::Mmap;
-#ifdef WITH_ROCKSDB
       } else if (!strcasecmp("RocksDB", store_type_str.c_str())) {
         store_type = VectorStorageType::RocksDB;
-#endif  // WITH_ROCKSDB
       } else {
         LOG(WARNING) << "NO support for store type " << store_type_str;
         return -1;

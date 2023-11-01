@@ -11,10 +11,8 @@
 #include "mmap_raw_vector.h"
 #include "raw_vector.h"
 
-#ifdef WITH_ROCKSDB
 #include "io/rocksdb_raw_vector_io.h"
 #include "vector/rocksdb_raw_vector.h"
-#endif  // WITH_ROCKSDB
 
 #include <string>
 
@@ -42,25 +40,19 @@ class RawVectorFactory {
       case VectorStorageType::MemoryOnly:
         raw_vector = new MemoryRawVector(meta_info, root_path, store_params,
                                          docids_bitmap);
-#ifdef WITH_ROCKSDB
         vio = new MemoryRawVectorIO((MemoryRawVector *)raw_vector);
-#else
-        vio = new MmapRawVectorIO(raw_vector);
-#endif
         break;
       case VectorStorageType::Mmap:
         raw_vector = new MmapRawVector(meta_info, root_path, store_params,
                                        docids_bitmap);
         vio = new MmapRawVectorIO(raw_vector);
         break;
-#ifdef WITH_ROCKSDB
       case VectorStorageType::RocksDB:
         raw_vector = new RocksDBRawVector(meta_info, root_path, store_params,
                                           docids_bitmap);
         if (meta_info->with_io_)
             vio = new RocksDBRawVectorIO((RocksDBRawVector *)raw_vector);
         break;
-#endif  // WITH_ROCKSDB
       default:
         LOG(ERROR) << "invalid raw feature type:" << static_cast<int>(type);
         return nullptr;

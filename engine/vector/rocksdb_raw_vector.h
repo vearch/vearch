@@ -5,8 +5,6 @@
  * found in the LICENSE file in the root directory of this source tree.
  */
 
-#ifdef WITH_ROCKSDB
-
 #pragma once
 
 #include <string>
@@ -53,5 +51,3 @@ class RocksDBRawVector : public RawVector {
   RawVectorIO *raw_vector_io_;
 };
 }  // namespace tig_gamma
-
-#endif  // WITH_ROCKSDB

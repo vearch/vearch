@@ -47,17 +47,10 @@ ZFP_URL=https://github.com/LLNL/zfp/archive/0.5.5.tar.gz
 ROCKSDB_URL=https://github.com/facebook/rocksdb/archive/refs/tags/v6.6.4.tar.gz
 
 use_zfp="y"
-use_rocksdb="y"
 while [ -z $use_zfp ] || ([ $use_zfp != "y" ] && [ $use_zfp != "n" ])
 do
   echo "Do you use zfp?[y/n]."
   read use_zfp
-done
-
-while [ -z $use_rocksdb ] || ([ $use_rocksdb != "y" ] && [ $use_rocksdb != "n" ])
-do
-  echo "Do you use rocksdb?[y/n]."
-  read use_rocksdb
 done
 
 function get_version() {
@@ -86,11 +79,11 @@ function build_thirdparty() {
   fi
 
   OS_NAME=$(uname)
-  if [ $use_rocksdb == "y" ] && [ ${OS_NAME} == "Darwin" ]; then
+  if [ ${OS_NAME} == "Darwin" ]; then
     export ROCKSDB_HOME=/usr/local/include/rocksdb
     brew install rocksdb
   else
-    if [ $use_rocksdb == "y" ] && [ ! -n "${ROCKSDB_HOME}" ]; then
+    if [ ! -n "${ROCKSDB_HOME}" ]; then
       export ROCKSDB_HOME=/usr/local/include/rocksdb
       if [ ! -d "${ROCKSDB_HOME}" ]; then
         rm -rf rocksdb*

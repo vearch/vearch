@@ -1,3 +1,9 @@
+/**
+ * Copyright 2019 The Gamma Authors.
+ *
+ * This source code is licensed under the Apache License, Version 2.0 license
+ * found in the LICENSE file in the root directory of this source tree.
+ */
 
 #include "gamma_index.h"
 
@@ -72,7 +78,6 @@ int IndexIVFFlat::init(const std::string &index_param) {
   }
   VectorMetaInfo *meta_info = new VectorMetaInfo(vec_name, d, value_type);
   meta_info->with_io_ = false;
-  check_vector_ = false;
 
   StoreParams store_params(meta_info->AbsoluteName());
   // std::string store_param = "{\"cache_size\": 16, \"compress\":
@@ -158,7 +163,6 @@ int IndexIVFFlat::load(const std::string &dir) {
   index_param_io.Read(index_param_str, file_size, 1);
   index_param = std::string(index_param_str, file_size);
   init(index_param);
-  check_vector_ = false;
   return Load(dir);
 }
 

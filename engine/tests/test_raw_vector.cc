@@ -7,10 +7,7 @@
 
 #include "vector/memory_raw_vector.h"
 #include "vector/mmap_raw_vector.h"
-
-#ifdef WITH_ROCKSDB
 #include "vector/rocksdb_raw_vector.h"
-#endif  // WITH_ROCKSDB
 
 #include <fcntl.h>
 #include <gtest/gtest.h>
@@ -333,7 +330,6 @@ TEST(MmapRawVector, DumpLoad) {
   TestRawVectorDumpLoad(VectorStorageType::Mmap);
 }
 
-#ifdef WITH_ROCKSDB
 TEST(RocksDBRawVector, Normal) {
   TestRawVectorNormal(VectorStorageType::RocksDB);
 }
@@ -351,8 +347,6 @@ TEST(RocksDBRawVector, Compress_DumpLoad) {
   TestRawVectorDumpLoad(VectorStorageType::RocksDB, true);
 }
 #endif  // WITH_ZFP
-
-#endif
 
 #ifdef WITH_ZFP
 TEST(MemoryRawVector, Compress_Normal) {

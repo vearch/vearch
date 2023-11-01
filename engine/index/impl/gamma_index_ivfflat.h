@@ -153,7 +153,6 @@ struct GammaIndexIVFFlat : faiss::IndexIVFFlat, public RetrievalModel {
 
  protected:
   int indexed_vec_count_;
-  bool check_vector_ = true;
 
  private:
   realtime::RTInvertIndex *rt_invert_index_ptr_;

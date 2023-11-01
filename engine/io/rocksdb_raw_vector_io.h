@@ -5,8 +5,6 @@
  * found in the LICENSE file in the root directory of this source tree.
  */
 
-#ifdef WITH_ROCKSDB
-
 #pragma once
 
 #include <string>
@@ -28,5 +26,3 @@ struct RocksDBRawVectorIO : public RawVectorIO {
 };
 
 }  // namespace tig_gamma
-
-#endif // WITH_ROCKSDB
