@@ -974,7 +974,7 @@ func (handler *DocumentHandler) handleDocumentQuery(ctx context.Context, w http.
 		args.Head.Params = params
 	}
 
-	searchDoc, fileds, documentIds, err := documentRequestParse(r, args)
+	searchDoc, fields, documentIds, partitionId, err := documentRequestParse(r, args)
 	if err != nil {
 		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 		return ctx, false
@@ -1015,17 +1015,25 @@ func (handler *DocumentHandler) handleDocumentQuery(ctx context.Context, w http.
 			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "query shouldn't set document_ids and query filter at the same time")
 			return ctx, false
 		}
+
 		args := &vearchpb.GetRequest{}
 		args.Head = setRequestHeadParams(params, r)
 		args.Head.DbName = searchDoc.DbName
 		args.Head.SpaceName = searchDoc.SpaceName
 		args.PrimaryKeys = documentIds
 
-		reply := handler.docService.getDocs(ctx, args)
 		var queryFieldsParam map[string]string
-		if fileds != nil {
-			queryFieldsParam = arrayToMap(fileds)
+		if fields != nil {
+			queryFieldsParam = arrayToMap(fields)
 		}
+
+		reply := &vearchpb.GetResponse{}
+		if partitionId != "" {
+			reply = handler.docService.getDocsByPartition(ctx, args, partitionId)
+		} else {
+			reply = handler.docService.getDocs(ctx, args)
+		}
+
 		if resultBytes, err := docGetResponse(handler.client, args, reply, queryFieldsParam, true); err != nil {
 			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 			return ctx, true
@@ -1075,7 +1083,7 @@ func (handler *DocumentHandler) handleDocumentSearch(ctx context.Context, w http
 		args.Head.Params = params
 	}
 
-	searchDoc, _, documentIds, err := documentRequestParse(r, args)
+	searchDoc, _, documentIds, _, err := documentRequestParse(r, args)
 	if err != nil {
 		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 		return ctx, false
@@ -1193,7 +1201,7 @@ func (handler *DocumentHandler) handleDocumentDelete(ctx context.Context, w http
 		args.Head.Params = paramMap
 	}
 
-	searchDoc, _, documentIds, err := documentRequestParse(r, args)
+	searchDoc, _, documentIds, _, err := documentRequestParse(r, args)
 	if err != nil {
 		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 		return ctx, false

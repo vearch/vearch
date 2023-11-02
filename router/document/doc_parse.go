@@ -933,11 +933,11 @@ func documentParse(r *http.Request, docRequest *request.DocumentRequest, space *
 	return nil
 }
 
-func documentRequestParse(r *http.Request, searchReq *vearchpb.SearchRequest) (searchDoc *request.SearchDocumentRequest, fileds []string, document_ids []string, err error) {
+func documentRequestParse(r *http.Request, searchReq *vearchpb.SearchRequest) (searchDoc *request.SearchDocumentRequest, fileds []string, document_ids []string, partition_id string, err error) {
 	reqBodyStart := time.Now()
 	reqBody, err := netutil.GetReqBody(r)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, "", err
 	}
 	if config.LogInfoPrintSwitch {
 		reqBodyCostTime := time.Since(reqBodyStart).Seconds() * 1000
@@ -946,28 +946,29 @@ func documentRequestParse(r *http.Request, searchReq *vearchpb.SearchRequest) (s
 	}
 	if len(reqBody) == 0 {
 		err = fmt.Errorf("query param is null")
-		return nil, nil, nil, err
+		return nil, nil, nil, "", err
 	}
 
 	searchDoc = &request.SearchDocumentRequest{}
 	err = cbjson.Unmarshal(reqBody, searchDoc)
 	if err != nil {
 		err = fmt.Errorf("query param convert json err: [%s]", string(reqBody))
-		return nil, nil, nil, err
+		return nil, nil, nil, "", err
 	}
 
 	type Query struct {
 		DocumentIds []string `json:"document_ids,omitempty"`
-		Fields      []string `json:"fields"`
+		Fields      []string `json:"fields,omitempty"`
+		PartitionId string   `json:"partition_id,omitempty"`
 	}
 	query := &Query{}
 	err = cbjson.Unmarshal(searchDoc.Query, query)
 	if err != nil {
 		log.Error("documentRequestParse cbjson.Unmarshal error :%v", err)
 		err = fmt.Errorf("documentRequestParse cbjson.Unmarshal error :%v", err)
-		return nil, nil, nil, err
+		return nil, nil, nil, "", err
 	}
-	return searchDoc, query.Fields, query.DocumentIds, nil
+	return searchDoc, query.Fields, query.DocumentIds, query.PartitionId, nil
 }
 
 func requestToPb(searchDoc *request.SearchDocumentRequest, space *entity.Space, searchReq *vearchpb.SearchRequest) (err error) {
