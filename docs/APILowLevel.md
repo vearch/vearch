@@ -508,6 +508,13 @@ curl -v --user "root:secret" -H "content-type: application/json" -XPOST -d'
 
 ## document 
 
+Document operations will be redefined as the following 4 interfaces: 
+  /document/upsert
+  /document/query
+  /document/search
+  /document/delete
+The relevant implementation is still under development.
+
 ----
 
 ### insert document
@@ -531,6 +538,12 @@ curl -H "content-type: application/json" -XPOST -d'
 ### search document by id 
 ````$xslt
 curl -XGET {{ROUTER}}/test_vector_db/vector_space/id
+````
+
+### search document by id on specify partition
+use this to get all data of the cluster, id can be [0, max_doc_id of the specify partition]
+````$xslt
+curl -XGET {{ROUTER}}/test_vector_db/vector_space/$partition_id/id
 ````
 
 ### bulk search document by ids
