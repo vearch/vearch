@@ -121,13 +121,13 @@ func (handler *DocumentHandler) ExportInterfacesToServer() error {
 	// document
 	handler.httpServer.HandlesMethods([]string{http.MethodPost}, "/document/upsert", []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleDocumentUpsert}, nil)
 	handler.httpServer.HandlesMethods([]string{http.MethodPost}, "/document/query", []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleDocumentQuery}, nil)
-	// handler.httpServer.HandlesMethods([]string{http.MethodPost}, "/document/search", []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleDocumentSearch}, nil)
+	handler.httpServer.HandlesMethods([]string{http.MethodPost}, "/document/search", []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleDocumentSearch}, nil)
 	handler.httpServer.HandlesMethods([]string{http.MethodPost}, "/document/delete", []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleDocumentDelete}, nil)
 
 	// index TODO
-	// handler.httpServer.HandlesMethods([]string{http.MethodPost}, "/index/rebuild", []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleDocumentUpsert}, nil)
-	// handler.httpServer.HandlesMethods([]string{http.MethodPost}, "/index/flush", []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleDocumentQuery}, nil)
-	// handler.httpServer.HandlesMethods([]string{http.MethodPost}, "/index/forcemerge", []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleDocumentQuery}, nil)
+	// handler.httpServer.HandlesMethods([]string{http.MethodPost}, "/index/flush", []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleIndexFlush}, nil)
+	// handler.httpServer.HandlesMethods([]string{http.MethodPost}, "/index/forcemerge", []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleIndexForcemerge}, nil)
+	// handler.httpServer.HandlesMethods([]string{http.MethodPost}, "/index/rebuild", []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleIndexRebuild}, nil)
 
 	return nil
 }
@@ -985,7 +985,7 @@ func (handler *DocumentHandler) handleDocumentQuery(ctx context.Context, w http.
 	space, err := handler.docService.getSpace(ctx, args.Head.DbName, args.Head.SpaceName)
 	if space == nil {
 		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", fmt.Sprintf("dbName:%s or spaceName:%s param not build db or space", args.Head.DbName, args.Head.SpaceName))
-		return ctx, true
+		return ctx, false
 	}
 	if err != nil {
 		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "query Cache space null")
@@ -1036,6 +1036,122 @@ func (handler *DocumentHandler) handleDocumentQuery(ctx context.Context, w http.
 	} else {
 		if args.TermFilters == nil && args.RangeFilters == nil {
 			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "query should set document_ids or query filter")
+			return ctx, false
+		}
+	}
+	serviceStart := time.Now()
+	searchResp := handler.docService.search(ctx, args)
+	serviceCost := time.Since(serviceStart)
+
+	var bs []byte
+	if searchResp.Results == nil || len(searchResp.Results) == 0 {
+		searchStatus := vearchpb.SearchStatus{Failed: 0, Successful: 0, Total: 0}
+		bs, err = SearchNullToContent(searchStatus, serviceCost)
+	} else {
+		bs, err = ToContent(searchResp.Results[0], args.Head, serviceCost, space)
+	}
+
+	if err != nil {
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
+		return ctx, true
+	}
+	resp.SendJsonBytes(ctx, w, bs)
+	endTime := time.Now()
+	log.Debug("query total use :[%f] service use :[%f]",
+		(endTime.Sub(startTime).Seconds())*1000, serviceCost.Seconds()*1000)
+	return ctx, true
+}
+
+func (handler *DocumentHandler) handleDocumentSearch(ctx context.Context, w http.ResponseWriter, r *http.Request, params netutil.UriParams) (context.Context, bool) {
+	startTime := time.Now()
+	operateName := "handleDocumentSearch"
+	defer monitor.Profiler(operateName, startTime)
+	span, ctx := opentracing.StartSpanFromContext(ctx, operateName)
+	defer span.Finish()
+	args := &vearchpb.SearchRequest{}
+	args.Head = setRequestHeadParams(params, r)
+	if args.Head.Params == nil {
+		params := make(map[string]string)
+		args.Head.Params = params
+	}
+
+	searchDoc, _, documentIds, err := documentRequestParse(r, args)
+	if err != nil {
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
+		return ctx, false
+	}
+	args.Head.DbName = searchDoc.DbName
+	args.Head.SpaceName = searchDoc.SpaceName
+
+	space, err := handler.docService.getSpace(ctx, args.Head.DbName, args.Head.SpaceName)
+	if space == nil {
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", fmt.Sprintf("dbName:%s or spaceName:%s param not build db or space", args.Head.DbName, args.Head.SpaceName))
+		return ctx, false
+	}
+	if err != nil {
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "query Cache space null")
+		return ctx, false
+	}
+
+	IDIsLong := idIsLong(space)
+	if IDIsLong {
+		args.Head.Params["idIsLong"] = "true"
+	} else {
+		args.Head.Params["idIsLong"] = "false"
+	}
+
+	err = requestToPb(searchDoc, space, args)
+	if err != nil {
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
+		return ctx, false
+	}
+
+	if len(documentIds) != 0 {
+		if args.VecFields != nil {
+			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "search shouldn't set document_ids and query vector at the same time")
+			return ctx, false
+		}
+		getArgs := &vearchpb.GetRequest{}
+		getArgs.Head = setRequestHeadParams(params, r)
+		getArgs.Head.DbName = searchDoc.DbName
+		getArgs.Head.SpaceName = searchDoc.SpaceName
+		getArgs.PrimaryKeys = documentIds
+
+		getDocStart := time.Now()
+		reply := handler.docService.getDocs(ctx, getArgs)
+		getDocEnd := time.Now()
+
+		if reply == nil || reply.Items == nil || len(reply.Items) == 0 {
+			result, err := queryDocByIdsNoResult(getDocEnd.Sub(getDocStart))
+			if err != nil {
+				resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
+				return ctx, true
+			}
+			resp.SendJsonBytes(ctx, w, result)
+			return ctx, true
+		}
+
+		// TODO: If ids are not found, the result should be 0 instead of empty.
+		// filter error items
+		if reply != nil && reply.Items != nil && len(reply.Items) != 0 {
+			tmpItems := make([]*vearchpb.Item, 0)
+			for _, i := range reply.Items {
+				if i == nil || (i.Err != nil && i.Err.Code != vearchpb.ErrorEnum_SUCCESS) {
+					continue
+				}
+				tmpItems = append(tmpItems, i)
+			}
+			reply.Items = tmpItems
+		}
+
+		err = documentRequestVectorParse(space, searchDoc, args, reply.Items)
+		if err != nil {
+			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
+			return ctx, false
+		}
+	} else {
+		if args.VecFields == nil {
+			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "search should set document_ids or query vector")
 			return ctx, false
 		}
 	}

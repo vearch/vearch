@@ -974,3 +974,27 @@ func requestToPb(searchDoc *request.SearchDocumentRequest, space *entity.Space, 
 	err = searchParamToSearchPb(searchDoc, searchReq, space, false)
 	return err
 }
+
+func documentRequestVectorParse(space *entity.Space, searchDoc *request.SearchDocumentRequest, searchReq *vearchpb.SearchRequest, items []*vearchpb.Item) (err error) {
+	sortOrder, err := searchDoc.SortOrder()
+	if err != nil {
+		return
+	}
+
+	sortFieldArr := make([]*vearchpb.SortField, 0)
+	for _, sort := range sortOrder {
+		sortFieldArr = append(sortFieldArr, &vearchpb.SortField{Field: sort.SortField(), Type: sort.GetSortOrder()})
+	}
+	searchReq.SortFields = sortFieldArr
+	err = searchParamToSearchPb(searchDoc, searchReq, space, true)
+	if err != nil {
+		return
+	}
+
+	queryByte, err := parseQueryForIdFeature(searchDoc.Query, space, items)
+	if err != nil {
+		return
+	}
+	err = parseQuery(queryByte, searchReq, space)
+	return
+}
