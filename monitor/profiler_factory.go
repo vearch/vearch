@@ -1,3 +1,17 @@
+// Copyright 2019 The Vearch Authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+// implied. See the License for the specific language governing
+// permissions and limitations under the License.
+
 package monitor
 
 import (
@@ -7,11 +21,13 @@ import (
 	"github.com/caio/go-tdigest"
 )
 
-//type KeyHistogram string
-//const (
+// type KeyHistogram string
+// const (
+//
 //	Query   KeyHistogram = "query"
 //	Operate KeyHistogram = "operate"
-//)
+//
+// )
 var mutex sync.Mutex
 
 var metricMap = map[string]*Digest{}
@@ -19,7 +35,7 @@ var metricMap = map[string]*Digest{}
 func Profiler(key string, startTime time.Time) {
 	mutex.Lock()
 	digest, ok := metricMap[key]
-	if ok == false {
+	if !ok {
 		digest = NewDigest(key, 0.0)
 		metricMap[key] = digest
 	}
@@ -27,7 +43,7 @@ func Profiler(key string, startTime time.Time) {
 	mutex.Unlock()
 
 	digest.Lock()
-	costTime := (time.Now().Sub(startTime).Seconds()) * 1000
+	costTime := (time.Since(startTime).Seconds()) * 1000
 	//fmt.Printf("start:%v end:%v cost = %v   \n", startNanosecond, time.Now().Nanosecond(), costTime/1000000)
 	digest.Digest.Add(float64(costTime))
 	digest.Sum = digest.Sum + float64(costTime)

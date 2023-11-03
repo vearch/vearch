@@ -14,32 +14,37 @@ BUILD_GAMMA_TYPE=Release
 # version value
 BUILD_VERSION="latest"
 
-while getopts ":n:g:tdh" opt
-do
+while getopts ":n:g:tdh" opt; do
   case $opt in
-    n)
-      COMPILE_THREAD_NUM="-j"$OPTARG
-      echo "COMPILE_THREAD_NUM="$COMPILE_THREAD_NUM;;
-    t)
-      BUILD_GAMMA_TEST=ON
-      echo "BUILD_GAMMA_TEST=ON";;
-    d)
-      BUILD_GAMMA_TYPE=Debug
-      echo "BUILD_GAMMA_TYPE="$BUILD_GAMMA_TYPE;;
-    g)
-      BUILD_GAMMA=$OPTARG
-      echo "BUILD_GAMMA="$BUILD_GAMMA;;
-    h)
-      echo "[build options]"
-      echo -e "\t-h\t\thelp"
-      echo -e "\t-n\t\tcompile thread num"
-      echo -e "\t-g\t\tbuild gamma or not: [ON|OFF]"
-      echo -e "\t-t\t\tbuild gamma test"
-      echo -e "\t-d\t\tbuild gamma type=Debug"
-      exit 0;;
-    ?)
-      echo "unsupport param, -h for help"
-      exit 1;;
+  n)
+    COMPILE_THREAD_NUM="-j"$OPTARG
+    echo "COMPILE_THREAD_NUM="$COMPILE_THREAD_NUM
+    ;;
+  t)
+    BUILD_GAMMA_TEST=ON
+    echo "BUILD_GAMMA_TEST=ON"
+    ;;
+  d)
+    BUILD_GAMMA_TYPE=Debug
+    echo "BUILD_GAMMA_TYPE="$BUILD_GAMMA_TYPE
+    ;;
+  g)
+    BUILD_GAMMA=$OPTARG
+    echo "BUILD_GAMMA="$BUILD_GAMMA
+    ;;
+  h)
+    echo "[build options]"
+    echo -e "\t-h\t\thelp"
+    echo -e "\t-n\t\tcompile thread num"
+    echo -e "\t-g\t\tbuild gamma or not: [ON|OFF]"
+    echo -e "\t-t\t\tbuild gamma test"
+    echo -e "\t-d\t\tbuild gamma type=Debug"
+    exit 0
+    ;;
+  ?)
+    echo "unsupport param, -h for help"
+    exit 1
+    ;;
   esac
 done
 
@@ -47,16 +52,15 @@ ZFP_URL=https://github.com/LLNL/zfp/archive/0.5.5.tar.gz
 ROCKSDB_URL=https://github.com/facebook/rocksdb/archive/refs/tags/v6.6.4.tar.gz
 
 use_zfp="y"
-while [ -z $use_zfp ] || ([ $use_zfp != "y" ] && [ $use_zfp != "n" ])
-do
+while [ -z $use_zfp ] || ([ $use_zfp != "y" ] && [ $use_zfp != "n" ]); do
   echo "Do you use zfp?[y/n]."
   read use_zfp
 done
 
 function get_version() {
-  VEARCH_VERSION_MAJOR=`cat ${ROOT}/VERSION | grep VEARCH_VERSION_MAJOR | awk -F' ' '{print $2}'`
-  VEARCH_VERSION_MINOR=`cat ${ROOT}/VERSION | grep VEARCH_VERSION_MINOR | awk -F' ' '{print $2}'`
-  VEARCH_VERSION_PATCH=`cat ${ROOT}/VERSION | grep VEARCH_VERSION_PATCH | awk -F' ' '{print $2}'`
+  VEARCH_VERSION_MAJOR=$(cat ${ROOT}/VERSION | grep VEARCH_VERSION_MAJOR | awk -F' ' '{print $2}')
+  VEARCH_VERSION_MINOR=$(cat ${ROOT}/VERSION | grep VEARCH_VERSION_MINOR | awk -F' ' '{print $2}')
+  VEARCH_VERSION_PATCH=$(cat ${ROOT}/VERSION | grep VEARCH_VERSION_PATCH | awk -F' ' '{print $2}')
 
   BUILD_VERSION="v${VEARCH_VERSION_MAJOR}.${VEARCH_VERSION_MINOR}.${VEARCH_VERSION_PATCH}"
   echo "BUILD_VERSION="${BUILD_VERSION}
@@ -87,7 +91,7 @@ function build_thirdparty() {
       export ROCKSDB_HOME=/usr/local/include/rocksdb
       if [ ! -d "${ROCKSDB_HOME}" ]; then
         rm -rf rocksdb*
-        wget  ${ROCKSDB_URL} -O rocksdb.tar.gz
+        wget ${ROCKSDB_URL} -O rocksdb.tar.gz
         tar -xzf rocksdb.tar.gz
         pushd rocksdb-6.6.4
         CFLAGS="-O3 -fPIC" make shared_lib $COMPILE_THREAD_NUM

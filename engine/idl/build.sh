@@ -1,6 +1,6 @@
 #!/bin/bash
 
-BASE_PATH=`pwd`
+BASE_PATH=$(pwd)
 FBS_GEN_PATH=fbs-gen
 
 THIRD_PARTY=$BASE_PATH/../third_party
@@ -8,7 +8,7 @@ declare FLATBUFFERS_VERSION
 
 if [ "$(uname)" == "Darwin" ]; then
   FLATBUFFERS_VERSION=2.0.0
-elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then   
+elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
   FLATBUFFERS_VERSION=1.11.0
 fi
 
