@@ -107,23 +107,22 @@ class VearchCluster:
                 for i in res["data"]:
                     space_list.append(i["name"])
         except Exception as e:
-            raise ValueError("query sapce list failed!!!")
+            raise ValueError("query space list failed!!!")
         return list(set(space_list))
-
     def get_space(self, db_name, space_name):
         url = f'{self.router_url}/space/{db_name}/{space_name}'
-        space_list=[]
+        field_list=[]
         try:
             resp = requests.get(url)
             res=resp.json()
             if res["code"]==200:
-                for i in res["data"]:
-                    space_list.append(i["name"])
+                for k,v in res["data"]["properties"].items():
+                    field_list.append(k)
         except Exception as e:
-            raise ValueError("query sapce list failed!!!")
+            raise ValueError("query field list failed!!!")
 
-        return list(set(space_list))
-
+        return list(set(field_list))
+    
     """
     add,delete,search,update
     """
@@ -198,3 +197,5 @@ class VearchCluster:
         url = f'{self.router_url}/{db_name}/{space_name}/_query_byids'
         resp = requests.post(url, json=query)
         return resp.json()
+
+    

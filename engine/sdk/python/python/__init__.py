@@ -17,37 +17,35 @@ Vearch have four builtins.object
     Query
 use help(vearch.Object) to get more detail infomations.
 """
-import time
-import sys
-import numpy as np
 import copy
-import pickle
-import uuid
 import json
-import flatbuffers
+import pickle
+import sys
+import time
+import uuid
 from typing import List
-from .swigvearch import *
+
+import flatbuffers
+import numpy as np
+
 from . import DataType as PDataType
 from . import gamma_api
-
 # from . gamma_api import *
-from .gamma_api import Attribute
+from .gamma_api import Attribute, CacheInfo, Config
 from .gamma_api import Doc as PDoc
-from .gamma_api import Response as PResponse
-from .gamma_api import SearchResultCode
-from .gamma_api import Table
-from .gamma_api import VectorInfo
-from .gamma_api import Config
-from .gamma_api import CacheInfo
 from .gamma_api import EngineStatus
 from .gamma_api import MemoryInfo
 from .gamma_api import Field as PField
-from .gamma_api import Request as PRequest
-from .gamma_api import SearchResult as PSearchResult
-from .gamma_api import TermFilter as PTermFilter
-from .gamma_api import VectorQuery as PVectorQuery
 from .gamma_api import FieldInfo
 from .gamma_api import RangeFilter as PRangeFilter
+from .gamma_api import Request as PRequest
+from .gamma_api import Response as PResponse
+from .gamma_api import SearchResult as PSearchResult
+from .gamma_api import SearchResultCode, Table
+from .gamma_api import TermFilter as PTermFilter
+from .gamma_api import VectorInfo
+from .gamma_api import VectorQuery as PVectorQuery
+from .swigvearch import *
 
 ###########################################
 # vearch core
