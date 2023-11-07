@@ -363,7 +363,7 @@ func (handler *DocumentHandler) handleBulk(ctx context.Context, w http.ResponseW
 		return ctx, false
 	}
 	reply := handler.docService.bulk(ctx, args)
-	resultBytes, err := docBulkResponses(handler.client, args, reply)
+	resultBytes, err := docBulkResponses(handler.client, args, reply, false)
 	if err != nil {
 		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 		return ctx, true
@@ -952,7 +952,7 @@ func (handler *DocumentHandler) handleDocumentUpsert(ctx context.Context, w http
 		return ctx, false
 	}
 	reply := handler.docService.bulk(ctx, args)
-	resultBytes, err := docBulkResponses(handler.client, args, reply)
+	resultBytes, err := docBulkResponses(handler.client, args, reply, true)
 	if err != nil {
 		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 		return ctx, true

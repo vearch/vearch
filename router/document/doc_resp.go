@@ -111,7 +111,7 @@ func docDeleteResponses(client *client.Client, args *vearchpb.DeleteRequest, rep
 		}
 		return nil, vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, nil)
 	}
-	return docResponse(client, args.Head, reply.Items)
+	return docResponse(client, args.Head, reply.Items, false)
 }
 
 func docUpdateResponses(client *client.Client, args *vearchpb.UpdateRequest, reply *vearchpb.UpdateResponse) ([]byte, error) {
@@ -130,10 +130,10 @@ func docUpdateResponses(client *client.Client, args *vearchpb.UpdateRequest, rep
 	if err != nil {
 		return nil, err
 	}
-	return docResultSerialize(space, args.Head, &vearchpb.Item{Doc: &vearchpb.Document{PKey: args.Doc.PKey}})
+	return docResultSerialize(space, args.Head, &vearchpb.Item{Doc: &vearchpb.Document{PKey: args.Doc.PKey}}, false)
 }
 
-func docBulkResponses(client *client.Client, args *vearchpb.BulkRequest, reply *vearchpb.BulkResponse) ([]byte, error) {
+func docBulkResponses(client *client.Client, args *vearchpb.BulkRequest, reply *vearchpb.BulkResponse, simple bool) ([]byte, error) {
 	if args == nil || reply == nil || reply.Items == nil || len(reply.Items) < 1 {
 		if reply.GetHead() != nil && reply.GetHead().Err != nil && reply.GetHead().Err.Code != vearchpb.ErrorEnum_SUCCESS {
 			err := reply.GetHead().Err
@@ -141,10 +141,10 @@ func docBulkResponses(client *client.Client, args *vearchpb.BulkRequest, reply *
 		}
 		return nil, vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, nil)
 	}
-	return docResponse(client, args.Head, reply.Items)
+	return docResponse(client, args.Head, reply.Items, simple)
 }
 
-func docResponse(client *client.Client, head *vearchpb.RequestHead, items []*vearchpb.Item) ([]byte, error) {
+func docResponse(client *client.Client, head *vearchpb.RequestHead, items []*vearchpb.Item, simple bool) ([]byte, error) {
 	space, err := client.Space(context.Background(), head.DbName, head.SpaceName)
 	if err != nil {
 		return nil, err
@@ -155,7 +155,7 @@ func docResponse(client *client.Client, head *vearchpb.RequestHead, items []*vea
 		if idx != 0 {
 			builder.More()
 		}
-		if result, err := docResultSerialize(space, head, item); err != nil {
+		if result, err := docResultSerialize(space, head, item, simple); err != nil {
 			return nil, err
 		} else {
 			builder.ValueRaw(string(result))
@@ -206,24 +206,27 @@ func documentDeleteResponse(items []*vearchpb.Item, head *vearchpb.ResponseHead,
 	return builder.Output()
 }
 
-func docResultSerialize(space *entity.Space, head *vearchpb.RequestHead, item *vearchpb.Item) ([]byte, error) {
+func docResultSerialize(space *entity.Space, head *vearchpb.RequestHead, item *vearchpb.Item, simple bool) ([]byte, error) {
 	var builder = cbjson.ContentBuilderFactory()
 	builder.BeginObject()
-	builder.Field("_index")
-	builder.ValueString(head.DbName)
+	if !simple {
+		builder.Field("_index")
+		builder.ValueString(head.DbName)
 
-	builder.More()
-	builder.Field("_type")
-	builder.ValueString(head.SpaceName)
-	if item == nil {
 		builder.More()
+		builder.Field("_type")
+		builder.ValueString(head.SpaceName)
+
+		builder.More()
+	}
+
+	if item == nil {
 		builder.Field("error")
 		builder.ValueString("duplicate id")
 		builder.EndObject()
 		return builder.Output()
 	}
 	doc := item.Doc
-	builder.More()
 	builder.Field("_id")
 	if idIsLong(space) {
 		idInt64, err := strconv.ParseInt(doc.PKey, 10, 64)
