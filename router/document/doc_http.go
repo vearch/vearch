@@ -1247,8 +1247,9 @@ func (handler *DocumentHandler) handleDocumentDelete(ctx context.Context, w http
 		args.Head.DbName = searchDoc.DbName
 		args.Head.SpaceName = searchDoc.SpaceName
 		args.PrimaryKeys = documentIds
+		var resultIds []string
 		reply := handler.docService.deleteDocs(ctx, args)
-		if resultBytes, err := docDeleteResponses(handler.client, args, reply); err != nil {
+		if resultBytes, err := documentDeleteResponse(reply.Items, reply.Head, resultIds); err != nil {
 			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 			return ctx, true
 		} else {

@@ -165,6 +165,47 @@ func docResponse(client *client.Client, head *vearchpb.RequestHead, items []*vea
 	return builder.Output()
 }
 
+func documentDeleteResponse(items []*vearchpb.Item, head *vearchpb.ResponseHead, resultIds []string) ([]byte, error) {
+	var builder = cbjson.ContentBuilderFactory()
+	for _, item := range items {
+		if item.Err == nil {
+			resultIds = append(resultIds, item.Doc.PKey)
+		}
+	}
+
+	builder.BeginObject()
+	builder.Field("code")
+	if head == nil || head.Err == nil {
+		builder.ValueNumeric(0)
+	} else {
+		if head != nil && head.Err != nil {
+			builder.ValueNumeric(int64(head.Err.Code))
+			builder.More()
+			builder.Field("msg")
+			builder.ValueString(head.Err.Msg)
+		} else {
+			builder.ValueNumeric(1)
+		}
+	}
+
+	builder.More()
+
+	builder.Field("del_num")
+	builder.ValueNumeric(int64(len(resultIds)))
+
+	builder.More()
+	builder.Field("_id")
+	if len(resultIds) != 0 {
+		builder.ValueInterface(resultIds)
+	} else {
+		builder.ValueString("[]")
+	}
+
+	builder.EndObject()
+
+	return builder.Output()
+}
+
 func docResultSerialize(space *entity.Space, head *vearchpb.RequestHead, item *vearchpb.Item) ([]byte, error) {
 	var builder = cbjson.ContentBuilderFactory()
 	builder.BeginObject()
@@ -740,11 +781,13 @@ func deleteByQueryResult(resp *vearchpb.DelByQueryeResponse) ([]byte, error) {
 	if resp.Head == nil || resp.Head.Err == nil {
 		builder.ValueNumeric(0)
 	} else {
-		builder.ValueNumeric(1)
 		if resp.Head != nil && resp.Head.Err != nil {
+			builder.ValueNumeric(int64(resp.Head.Err.Code))
 			builder.More()
 			builder.Field("msg")
 			builder.ValueString(resp.Head.Err.Msg)
+		} else {
+			builder.ValueNumeric(1)
 		}
 	}
 
