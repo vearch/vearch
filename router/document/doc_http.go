@@ -1169,10 +1169,9 @@ func (handler *DocumentHandler) handleDocumentSearch(ctx context.Context, w http
 
 	var bs []byte
 	if searchResp.Results == nil || len(searchResp.Results) == 0 {
-		searchStatus := vearchpb.SearchStatus{Failed: 0, Successful: 0, Total: 0}
-		bs, err = SearchNullToContent(searchStatus, serviceCost)
+		bs, err = documentSearchResponse(nil, searchResp.Head, serviceCost, space)
 	} else {
-		bs, err = ToContent(searchResp.Results[0], args.Head, serviceCost, space)
+		bs, err = documentSearchResponse(searchResp.Results[0], searchResp.Head, serviceCost, space)
 	}
 
 	if err != nil {
