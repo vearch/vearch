@@ -17,7 +17,6 @@ package monitor
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"github.com/coreos/etcd/etcdserver"
 	"github.com/prometheus/client_golang/prometheus"
@@ -27,7 +26,6 @@ import (
 	"github.com/vearch/vearch/util/errutil"
 	"github.com/vearch/vearch/util/metrics/mserver"
 
-	//"github.com/vearch/vearch/client"
 	"net/http"
 	"sync"
 	"time"
@@ -49,8 +47,8 @@ const (
 var once sync.Once
 
 type MonitorService struct {
-	summaryDesc  *prometheus.Desc //summary
-	dbDesc       *prometheus.Desc //Gauge
+	summaryDesc  *prometheus.Desc // summary
+	dbDesc       *prometheus.Desc // gauge
 	mutex        sync.Mutex
 	masterClient *client.Client
 	etcdServer   *etcdserver.EtcdServer
@@ -64,12 +62,12 @@ func Register(masterClient *client.Client, etcdServer *etcdserver.EtcdServer, mo
 		http.Handle("/metrics", promhttp.Handler())
 		go func() {
 			if monitorPort > 0 {
-				fmt.Println("***************** monitoring start in Port:", monitorPort)
+				log.Info("monitoring start in Port:", monitorPort)
 				if err := http.ListenAndServe(":"+cast.ToString(monitorPort), nil); err != nil {
-					fmt.Printf("Error occur when start server %v", err)
+					log.Error("Error occur when start server %v", err)
 				}
 			} else {
-				log.Info("***************** skip register monitoring")
+				log.Info("skip register monitoring")
 			}
 		}()
 	})
@@ -80,13 +78,13 @@ func NewMetricCollector(masterClient *client.Client, etcdServer *etcdserver.Etcd
 		masterClient: masterClient,
 		etcdServer:   etcdServer,
 		summaryDesc: prometheus.NewDesc(
-			"Vearch_request_duration_seconds",
+			"vearch_request_duration_milliseconds",
 			"metric for request api",
 			[]string{"key", "method"},
 			nil,
 		),
 		dbDesc: prometheus.NewDesc(
-			"dbInfo",
+			"vearch_db_info",
 			"vearch database info",
 			[]string{"metric", "tag1", "tag2"}, nil),
 	}
@@ -130,12 +128,12 @@ func (ms *MonitorService) Collect(ch chan<- prometheus.Metric) {
 				ms.summaryDesc,
 				uint64(element.Digest.Count()), element.Sum,
 				map[float64]float64{
-					tp50:  element.Digest.Quantile(tp50) * float64(element.Digest.Count()),
-					tp90:  element.Digest.Quantile(tp90) * float64(element.Digest.Count()),
-					tp95:  element.Digest.Quantile(tp95) * float64(element.Digest.Count()),
-					tp99:  element.Digest.Quantile(tp99) * float64(element.Digest.Count()),
-					tp999: element.Digest.Quantile(tp999) * float64(element.Digest.Count()),
-					max:   element.Digest.Quantile(max) * float64(element.Digest.Count()),
+					tp50:  element.Digest.Quantile(tp50),
+					tp90:  element.Digest.Quantile(tp90),
+					tp95:  element.Digest.Quantile(tp95),
+					tp99:  element.Digest.Quantile(tp99),
+					tp999: element.Digest.Quantile(tp999),
+					max:   element.Digest.Quantile(max),
 				},
 				element.Name, config.Conf().Global.Name,
 			)
@@ -147,7 +145,7 @@ func (ms *MonitorService) Collect(ch chan<- prometheus.Metric) {
 		return
 	}
 
-	//start collect business info
+	// start collect business info
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*60)
 	defer cancel()
 
@@ -209,11 +207,13 @@ func (ms *MonitorService) Collect(ch chan<- prometheus.Metric) {
 			time.Sleep(time.Millisecond * 10)
 			if len(result) >= len(servers) {
 				close(statsChan)
-				goto out
 			}
 		}
+		if len(result) >= len(servers) {
+			break
+		}
 	}
-out:
+
 	spacePartitionIDMap := make(map[entity.PartitionID]*entity.Space)
 
 	for _, s := range spaces {
@@ -242,7 +242,6 @@ out:
 				ch <- prometheus.MustNewConstMetric(ms.dbDesc, prometheus.CounterValue, float64(p.Size), "PartitionSize", p.Ip, cast.ToString(p.PartitionID))
 			}
 			sizeMap[spacePartitionIDMap[p.PartitionID]] += p.Size
-
 		}
 	}
 	ch <- prometheus.MustNewConstMetric(ms.dbDesc, prometheus.CounterValue, float64(partitionNum), "partitionNum", "master", "*")
@@ -258,5 +257,4 @@ out:
 		ch <- prometheus.MustNewConstMetric(ms.dbDesc, prometheus.CounterValue, float64(value), "sizeMap", dbMap[space.DBId], space.Name)
 	}
 	ch <- prometheus.MustNewConstMetric(ms.dbDesc, prometheus.CounterValue, float64(1-stats.Cpu.IdlePercent), "Cpu", "master", ip)
-
 }

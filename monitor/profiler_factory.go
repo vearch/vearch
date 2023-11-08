@@ -21,13 +21,6 @@ import (
 	"github.com/caio/go-tdigest"
 )
 
-// type KeyHistogram string
-// const (
-//
-//	Query   KeyHistogram = "query"
-//	Operate KeyHistogram = "operate"
-//
-// )
 var mutex sync.Mutex
 
 var metricMap = map[string]*Digest{}
@@ -39,15 +32,12 @@ func Profiler(key string, startTime time.Time) {
 		digest = NewDigest(key, 0.0)
 		metricMap[key] = digest
 	}
-
 	mutex.Unlock()
 
 	digest.Lock()
-	costTime := (time.Since(startTime).Seconds()) * 1000
-	//fmt.Printf("start:%v end:%v cost = %v   \n", startNanosecond, time.Now().Nanosecond(), costTime/1000000)
+	costTime := time.Since(startTime).Milliseconds()
 	digest.Digest.Add(float64(costTime))
-	digest.Sum = digest.Sum + float64(costTime)
-
+	digest.Sum += float64(costTime)
 	digest.Unlock()
 }
 

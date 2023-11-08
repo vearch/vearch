@@ -14,7 +14,6 @@
 
 package master
 
-import "C"
 import (
 	"net/http"
 
@@ -32,7 +31,6 @@ type monitorApi struct {
 }
 
 func ExportToMonitorHandler(router *gin.Engine, monitorService *monitorService) {
-
 	dh := vearchhttp.NewBaseHandler(30)
 
 	c := &monitorApi{router: router, monitorService: monitorService, dh: dh}
@@ -45,9 +43,9 @@ func ExportToMonitorHandler(router *gin.Engine, monitorService *monitorService) 
 	//monitorService.Register()
 }
 
-//got every partition servers system info
-func (this *monitorApi) stats(c *gin.Context) {
-	list, err := this.monitorService.statsService(c)
+// got every partition servers system info
+func (m *monitorApi) stats(c *gin.Context) {
+	list, err := m.monitorService.statsService(c)
 	if err != nil {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 		return
@@ -55,12 +53,12 @@ func (this *monitorApi) stats(c *gin.Context) {
 	ginutil.NewAutoMehtodName(c).SendJson(list)
 }
 
-//cluster health in partition level
-func (this *monitorApi) health(c *gin.Context) {
+// cluster health in partition level
+func (m *monitorApi) health(c *gin.Context) {
 	dbName := c.Query("db")
 	spaceName := c.Query("space")
 
-	result, err := this.monitorService.partitionInfo(c, dbName, spaceName)
+	result, err := m.monitorService.partitionInfo(c, dbName, spaceName)
 	if err != nil {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 		return
@@ -69,9 +67,9 @@ func (this *monitorApi) health(c *gin.Context) {
 	ginutil.NewAutoMehtodName(c).SendJson(result)
 }
 
-func (this *monitorApi) auth(c *gin.Context) {
+func (m *monitorApi) auth(c *gin.Context) {
 	if err := Auth(c); err != nil {
-		defer this.dh.TimeOutEndHandler(c)
+		defer m.dh.TimeOutEndHandler(c)
 		c.Abort()
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 	}
