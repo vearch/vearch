@@ -20,6 +20,11 @@ import (
 	"github.com/vearch/vearch/ps/engine/sortorder"
 )
 
+var (
+	SearchResponse string = "SearchResponse"
+	QueryResponse  string = "QueryResponse"
+)
+
 type DocumentRequest struct {
 	Documents []json.RawMessage `json:"documents,omitempty"`
 	DbName    string            `json:"db_name,omitempty"`

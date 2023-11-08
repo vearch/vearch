@@ -27,6 +27,7 @@ import (
 	"github.com/vearch/vearch/config"
 	"github.com/vearch/vearch/monitor"
 	"github.com/vearch/vearch/proto/entity"
+	"github.com/vearch/vearch/proto/request"
 	"github.com/vearch/vearch/proto/vearchpb"
 	"github.com/vearch/vearch/router/document/resp"
 	"github.com/vearch/vearch/util"
@@ -1053,9 +1054,9 @@ func (handler *DocumentHandler) handleDocumentQuery(ctx context.Context, w http.
 
 	var bs []byte
 	if searchResp.Results == nil || len(searchResp.Results) == 0 {
-		bs, err = documentSearchResponse(nil, searchResp.Head, serviceCost, space)
+		bs, err = documentSearchResponse(nil, searchResp.Head, serviceCost, space, request.QueryResponse)
 	} else {
-		bs, err = documentSearchResponse(searchResp.Results[0], searchResp.Head, serviceCost, space)
+		bs, err = documentSearchResponse(searchResp.Results, searchResp.Head, serviceCost, space, request.QueryResponse)
 	}
 
 	if err != nil {
@@ -1064,7 +1065,7 @@ func (handler *DocumentHandler) handleDocumentQuery(ctx context.Context, w http.
 	}
 	resp.SendJsonBytes(ctx, w, bs)
 	endTime := time.Now()
-	log.Debug("query total use :[%f] service use :[%f]",
+	log.Debug("handleDocumentQuery total use :[%f] service use :[%f]",
 		(endTime.Sub(startTime).Seconds())*1000, serviceCost.Seconds()*1000)
 	return ctx, true
 }
@@ -1129,7 +1130,7 @@ func (handler *DocumentHandler) handleDocumentSearch(ctx context.Context, w http
 		getDocEnd := time.Now()
 
 		if reply == nil || reply.Items == nil || len(reply.Items) == 0 {
-			result, err := queryDocByIdsNoResult(getDocEnd.Sub(getDocStart))
+			result, err := documentSearchResponse(nil, reply.Head, getDocEnd.Sub(getDocStart), space, request.SearchResponse)
 			if err != nil {
 				resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 				return ctx, true
@@ -1168,9 +1169,9 @@ func (handler *DocumentHandler) handleDocumentSearch(ctx context.Context, w http
 
 	var bs []byte
 	if searchResp.Results == nil || len(searchResp.Results) == 0 {
-		bs, err = documentSearchResponse(nil, searchResp.Head, serviceCost, space)
+		bs, err = documentSearchResponse(nil, searchResp.Head, serviceCost, space, request.SearchResponse)
 	} else {
-		bs, err = documentSearchResponse(searchResp.Results[0], searchResp.Head, serviceCost, space)
+		bs, err = documentSearchResponse(searchResp.Results, searchResp.Head, serviceCost, space, request.SearchResponse)
 	}
 
 	if err != nil {
@@ -1179,7 +1180,7 @@ func (handler *DocumentHandler) handleDocumentSearch(ctx context.Context, w http
 	}
 	resp.SendJsonBytes(ctx, w, bs)
 	endTime := time.Now()
-	log.Debug("query total use :[%f] service use :[%f]",
+	log.Debug("handleDocumentSearch total use :[%f] service use :[%f]",
 		(endTime.Sub(startTime).Seconds())*1000, serviceCost.Seconds()*1000)
 	return ctx, true
 }
