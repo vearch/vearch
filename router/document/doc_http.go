@@ -363,7 +363,7 @@ func (handler *DocumentHandler) handleBulk(ctx context.Context, w http.ResponseW
 		return ctx, false
 	}
 	reply := handler.docService.bulk(ctx, args)
-	resultBytes, err := docBulkResponses(handler.client, args, reply, false)
+	resultBytes, err := docBulkResponses(handler.client, args, reply)
 	if err != nil {
 		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 		return ctx, true
@@ -952,7 +952,7 @@ func (handler *DocumentHandler) handleDocumentUpsert(ctx context.Context, w http
 		return ctx, false
 	}
 	reply := handler.docService.bulk(ctx, args)
-	resultBytes, err := docBulkResponses(handler.client, args, reply, true)
+	resultBytes, err := documentUpsertResponse(handler.client, args, reply)
 	if err != nil {
 		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 		return ctx, true
@@ -1034,7 +1034,7 @@ func (handler *DocumentHandler) handleDocumentQuery(ctx context.Context, w http.
 			reply = handler.docService.getDocs(ctx, args)
 		}
 
-		if resultBytes, err := docGetResponse(handler.client, args, reply, queryFieldsParam, true); err != nil {
+		if resultBytes, err := documentGetResponse(handler.client, args, reply, queryFieldsParam); err != nil {
 			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 			return ctx, true
 		} else {
@@ -1053,10 +1053,9 @@ func (handler *DocumentHandler) handleDocumentQuery(ctx context.Context, w http.
 
 	var bs []byte
 	if searchResp.Results == nil || len(searchResp.Results) == 0 {
-		searchStatus := vearchpb.SearchStatus{Failed: 0, Successful: 0, Total: 0}
-		bs, err = SearchNullToContent(searchStatus, serviceCost)
+		bs, err = documentSearchResponse(nil, searchResp.Head, serviceCost, space)
 	} else {
-		bs, err = ToContent(searchResp.Results[0], args.Head, serviceCost, space)
+		bs, err = documentSearchResponse(searchResp.Results[0], searchResp.Head, serviceCost, space)
 	}
 
 	if err != nil {
