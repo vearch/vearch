@@ -83,7 +83,7 @@ func docGetResponse(client *client.Client, args *vearchpb.GetRequest, reply *vea
 		builder.Field("found")
 		if doc.Fields != nil {
 			builder.ValueBool(true)
-			source, _ := docFieldSerialize(doc, space, returnFieldsMap)
+			source, _ := docFieldSerialize(doc, space, returnFieldsMap, true)
 			builder.More()
 			builder.Field("_source")
 			builder.ValueInterface(source)
@@ -268,7 +268,7 @@ func documentResultSerialize(space *entity.Space, item *vearchpb.Item) ([]byte, 
 	return builder.Output()
 }
 
-func documentGetResponse(client *client.Client, args *vearchpb.GetRequest, reply *vearchpb.GetResponse, returnFieldsMap map[string]string) ([]byte, error) {
+func documentGetResponse(client *client.Client, args *vearchpb.GetRequest, reply *vearchpb.GetResponse, returnFieldsMap map[string]string, vectorValue bool) ([]byte, error) {
 	if args == nil || reply == nil || reply.Items == nil || len(reply.Items) < 1 {
 		if reply.GetHead() != nil && reply.GetHead().Err != nil && reply.GetHead().Err.Code != vearchpb.ErrorEnum_SUCCESS {
 			err := reply.GetHead().Err
@@ -347,7 +347,7 @@ func documentGetResponse(client *client.Client, args *vearchpb.GetRequest, reply
 		}
 
 		if doc.Fields != nil {
-			source, _ := docFieldSerialize(doc, space, returnFieldsMap)
+			source, _ := docFieldSerialize(doc, space, returnFieldsMap, vectorValue)
 			builder.More()
 			builder.Field("_source")
 			builder.ValueInterface(source)
@@ -633,7 +633,7 @@ func idIsLong(space *entity.Space) bool {
 	return idIsLong
 }
 
-func docFieldSerialize(doc *vearchpb.Document, space *entity.Space, returnFieldsMap map[string]string) (json.RawMessage, error) {
+func docFieldSerialize(doc *vearchpb.Document, space *entity.Space, returnFieldsMap map[string]string, vectorValue bool) (json.RawMessage, error) {
 	source := make(map[string]interface{})
 	spaceProperties := space.SpaceProperties
 	if spaceProperties == nil {
@@ -682,30 +682,32 @@ func docFieldSerialize(doc *vearchpb.Document, space *entity.Space, returnFields
 			case entity.FieldType_DOUBLE:
 				source[name] = cbbytes.ByteToFloat64New(fv.Value)
 			case entity.FieldType_VECTOR:
-				if strings.Compare(space.Engine.RetrievalType, "BINARYIVF") == 0 {
-					featureByteC := fv.Value
-					dimension := field.Dimension
-					if dimension != 0 {
-						unit8s, _, err := cbbytes.ByteToVectorBinary(featureByteC, dimension)
+				if vectorValue {
+					if strings.Compare(space.Engine.RetrievalType, "BINARYIVF") == 0 {
+						featureByteC := fv.Value
+						dimension := field.Dimension
+						if dimension != 0 {
+							unit8s, _, err := cbbytes.ByteToVectorBinary(featureByteC, dimension)
+							if err != nil {
+								return nil, err
+							}
+							source[name] = map[string]interface{}{
+								"source":  fv.Source,
+								"feature": unit8s,
+							}
+						} else {
+							log.Error("GetSource can not found dimension by field:[%s]", name)
+						}
+
+					} else {
+						float32s, s, err := cbbytes.ByteToVector(fv.Value)
 						if err != nil {
 							return nil, err
 						}
 						source[name] = map[string]interface{}{
-							"source":  fv.Source,
-							"feature": unit8s,
+							"source":  s,
+							"feature": float32s,
 						}
-					} else {
-						log.Error("GetSource can not found dimension by field:[%s]", name)
-					}
-
-				} else {
-					float32s, s, err := cbbytes.ByteToVector(fv.Value)
-					if err != nil {
-						return nil, err
-					}
-					source[name] = map[string]interface{}{
-						"source":  s,
-						"feature": float32s,
 					}
 				}
 
@@ -1044,12 +1046,12 @@ func GetVectorFieldValue(doc *vearchpb.Document, space *entity.Space) (floatFeat
 	return floatFeatureMap, binaryFeatureMap, nil
 }
 
-func MakeQueryFeature(floatFeatureMap map[string][]float32, binaryFeatureMap map[string][]int32) ([]byte, error) {
+func MakeQueryFeature(floatFeatureMap map[string][]float32, binaryFeatureMap map[string][]int32, query_type string) ([]byte, error) {
 	var builder = cbjson.ContentBuilderFactory()
 
 	builder.BeginObject()
 
-	builder.Field("sum")
+	builder.Field(query_type)
 
 	builder.BeginArray()
 	i := 0

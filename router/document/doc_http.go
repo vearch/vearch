@@ -746,7 +746,7 @@ func (handler *DocumentHandler) handlerQueryDocByIdsFeature(ctx context.Context,
 		params := make(map[string]string)
 		searchArgs.Head.Params = params
 	}
-	err = docSearchByFeaturesParse(space, reqBody, searchArgs, reply.Items)
+	err = docSearchByFeaturesParse(space, reqBody, searchArgs, reply.Items, request.QuerySum)
 	if err != nil {
 		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 		return ctx, false
@@ -1007,16 +1007,19 @@ func (handler *DocumentHandler) handleDocumentQuery(ctx context.Context, w http.
 	}
 
 	if args.VecFields != nil {
-		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "query shouldn't set query vector")
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "document/query query condition must be one of the [document_ids, filter]")
 		return ctx, false
 	}
 
 	if len(documentIds) != 0 {
 		if args.TermFilters != nil || args.RangeFilters != nil {
-			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "query shouldn't set document_ids and query filter at the same time")
+			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "document/query query condition must be one of the [document_ids, filter]")
 			return ctx, false
 		}
-
+		if len(documentIds) >= 500 {
+			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "document/query length of document_ids in query condition above 500")
+			return ctx, false
+		}
 		args := &vearchpb.GetRequest{}
 		args.Head = setRequestHeadParams(params, r)
 		args.Head.DbName = searchDoc.DbName
@@ -1035,7 +1038,7 @@ func (handler *DocumentHandler) handleDocumentQuery(ctx context.Context, w http.
 			reply = handler.docService.getDocs(ctx, args)
 		}
 
-		if resultBytes, err := documentGetResponse(handler.client, args, reply, queryFieldsParam); err != nil {
+		if resultBytes, err := documentGetResponse(handler.client, args, reply, queryFieldsParam, searchDoc.VectorValue); err != nil {
 			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 			return ctx, true
 		} else {
@@ -1044,7 +1047,7 @@ func (handler *DocumentHandler) handleDocumentQuery(ctx context.Context, w http.
 		}
 	} else {
 		if args.TermFilters == nil && args.RangeFilters == nil {
-			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "query should set document_ids or query filter")
+			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "document/query query condition must be one of the [document_ids, filter]")
 			return ctx, false
 		}
 	}
@@ -1116,7 +1119,11 @@ func (handler *DocumentHandler) handleDocumentSearch(ctx context.Context, w http
 
 	if len(documentIds) != 0 {
 		if args.VecFields != nil {
-			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "search shouldn't set document_ids and query vector at the same time")
+			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "document/search search condition must be one of the [document_ids, vector]")
+			return ctx, false
+		}
+		if len(documentIds) >= 100 {
+			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "document/search length of document_ids in search condition above 100")
 			return ctx, false
 		}
 		getArgs := &vearchpb.GetRequest{}
@@ -1139,7 +1146,6 @@ func (handler *DocumentHandler) handleDocumentSearch(ctx context.Context, w http
 			return ctx, true
 		}
 
-		// TODO: If ids are not found, the result should be 0 instead of empty.
 		// filter error items
 		if reply != nil && reply.Items != nil && len(reply.Items) != 0 {
 			tmpItems := make([]*vearchpb.Item, 0)
@@ -1152,14 +1158,15 @@ func (handler *DocumentHandler) handleDocumentSearch(ctx context.Context, w http
 			reply.Items = tmpItems
 		}
 
-		err = documentRequestVectorParse(space, searchDoc, args, reply.Items)
+		// TODO: If ids are not found, the result should be [].
+		err = documentRequestVectorParse(space, searchDoc, args, reply.Items, request.QueryVector)
 		if err != nil {
 			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 			return ctx, false
 		}
 	} else {
 		if args.VecFields == nil {
-			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "search should set document_ids or query vector")
+			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "document/search search condition must be one of the [document_ids, vector]")
 			return ctx, false
 		}
 	}
@@ -1232,13 +1239,17 @@ func (handler *DocumentHandler) handleDocumentDelete(ctx context.Context, w http
 	}
 
 	if args.VecFields != nil {
-		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "delete shouldn't set query vector")
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "document/delete query condition must be one of the [document_ids, filter]")
 		return ctx, false
 	}
 
 	if len(documentIds) != 0 {
 		if args.TermFilters != nil || args.RangeFilters != nil {
-			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "delete shouldn't set document_ids and query filter at the same time")
+			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "document/delete query condition must be one of the [document_ids, filter]")
+			return ctx, false
+		}
+		if len(documentIds) >= 500 {
+			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "document/delete length of document_ids in query condition above 500")
 			return ctx, false
 		}
 		args := &vearchpb.DeleteRequest{}
@@ -1257,7 +1268,7 @@ func (handler *DocumentHandler) handleDocumentDelete(ctx context.Context, w http
 		}
 	} else {
 		if args.TermFilters == nil && args.RangeFilters == nil {
-			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "delete should set document_ids or query filter")
+			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "document/delete query condition must be one of the [document_ids, filter]")
 			return ctx, false
 		}
 	}

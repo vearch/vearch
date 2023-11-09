@@ -79,6 +79,7 @@ func parseQuery(data []byte, req *vearchpb.SearchRequest, space *entity.Space) e
 	temp := struct {
 		And            []json.RawMessage `json:"and"`
 		Sum            []json.RawMessage `json:"sum"`
+		Vector         []json.RawMessage `json:"vector"`
 		Filter         []json.RawMessage `json:"filter"`
 		OnlineLogLevel string            `json:"online_log_level"`
 	}{}
@@ -87,7 +88,6 @@ func parseQuery(data []byte, req *vearchpb.SearchRequest, space *entity.Space) e
 	if err != nil {
 		return fmt.Errorf("unmarshal err:[%s] , query:[%s]", err.Error(), string(data))
 	}
-
 	vqs := make([]*vearchpb.VectorQuery, 0)
 	rfs := make([]*vearchpb.RangeFilter, 0)
 	tfs := make([]*vearchpb.TermFilter, 0)
@@ -101,6 +101,11 @@ func parseQuery(data []byte, req *vearchpb.SearchRequest, space *entity.Space) e
 	} else if len(temp.Sum) > 0 {
 		req.MultiVectorRank = 1
 		if reqNum, vqs, err = parseVectors(reqNum, vqs, temp.Sum, space); err != nil {
+			return err
+		}
+	} else if len(temp.Vector) > 0 {
+		req.MultiVectorRank = 1
+		if reqNum, vqs, err = parseVectors(reqNum, vqs, temp.Vector, space); err != nil {
 			return err
 		}
 	}
@@ -160,7 +165,7 @@ func parseQuery(data []byte, req *vearchpb.SearchRequest, space *entity.Space) e
 	return nil
 }
 
-func parseQueryForIdFeature(searchQuery []byte, space *entity.Space, items []*vearchpb.Item) ([]byte, error) {
+func parseQueryForIdFeature(searchQuery []byte, space *entity.Space, items []*vearchpb.Item, query_type string) ([]byte, error) {
 	var binary bool
 	var featureBinaryMap map[string][]int32
 	var featureFloat32Map map[string][]float32
@@ -178,16 +183,16 @@ func parseQueryForIdFeature(searchQuery []byte, space *entity.Space, items []*ve
 		if err != nil {
 			return nil, fmt.Errorf("unmarshal err:[%s] , query:[%s]", err.Error(), searchQuery)
 		}
-
-		if queryMap["sum"] == nil && queryMap["and"] == nil {
+		vector_value, vector_exists := queryMap["vector"].([]interface{})
+		if queryMap["sum"] == nil && queryMap["and"] == nil && (!vector_exists || len(vector_value) == 0) {
 			if binary {
-				feature, err := MakeQueryFeature(nil, featureBinaryMap)
+				feature, err := MakeQueryFeature(nil, featureBinaryMap, query_type)
 				if err != nil {
 					return nil, fmt.Errorf("assembly feature err:[%s] ", err.Error())
 				}
 				return feature, nil
 			} else {
-				feature, err := MakeQueryFeature(featureFloat32Map, nil)
+				feature, err := MakeQueryFeature(featureFloat32Map, nil, query_type)
 				if err != nil {
 					return nil, fmt.Errorf("assembly feature err:[%s] ", err.Error())
 				}
@@ -229,18 +234,36 @@ func parseQueryForIdFeature(searchQuery []byte, space *entity.Space, items []*ve
 					}
 				}
 			}
+
+			if queryMap["vector"] != nil {
+				value := queryMap["vector"]
+				vectorArray := value.([]interface{})
+				for _, val := range vectorArray {
+					fMap := val.(map[string]interface{})
+					if fMap["field"] != nil {
+						field := fMap["field"].(string)
+						if binary {
+							fMap["feature"] = featureBinaryMap[field]
+						} else {
+							fMap["feature"] = featureFloat32Map[field]
+						}
+					} else {
+						return nil, fmt.Errorf("query param no feature field")
+					}
+				}
+			}
 			queryJson, _ := json.MarshalIndent(queryMap, "", "  ")
 			return queryJson, nil
 		}
 	} else {
 		if binary {
-			feature, err := MakeQueryFeature(nil, featureBinaryMap)
+			feature, err := MakeQueryFeature(nil, featureBinaryMap, query_type)
 			if err != nil {
 				return nil, fmt.Errorf("assembly feature err:[%s] ", err.Error())
 			}
 			return feature, nil
 		} else {
-			feature, err := MakeQueryFeature(featureFloat32Map, nil)
+			feature, err := MakeQueryFeature(featureFloat32Map, nil, query_type)
 			if err != nil {
 				return nil, fmt.Errorf("assembly feature err:[%s] ", err.Error())
 			}

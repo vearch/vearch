@@ -771,7 +771,7 @@ func arrayToMap(feilds []string) map[string]string {
 	return mapObj
 }
 
-func docSearchByFeaturesParse(space *entity.Space, reqBody []byte, searchReq *vearchpb.SearchRequest, items []*vearchpb.Item) (err error) {
+func docSearchByFeaturesParse(space *entity.Space, reqBody []byte, searchReq *vearchpb.SearchRequest, items []*vearchpb.Item, query_type string) (err error) {
 	searchDoc := &request.SearchDocumentRequest{}
 	err = cbjson.Unmarshal(reqBody, searchDoc)
 	if err != nil {
@@ -793,7 +793,7 @@ func docSearchByFeaturesParse(space *entity.Space, reqBody []byte, searchReq *ve
 		return
 	}
 
-	queryByte, err := parseQueryForIdFeature(searchDoc.Query, space, items)
+	queryByte, err := parseQueryForIdFeature(searchDoc.Query, space, items, query_type)
 	if err != nil {
 		return
 	}
@@ -976,23 +976,8 @@ func requestToPb(searchDoc *request.SearchDocumentRequest, space *entity.Space, 
 	return err
 }
 
-func documentRequestVectorParse(space *entity.Space, searchDoc *request.SearchDocumentRequest, searchReq *vearchpb.SearchRequest, items []*vearchpb.Item) (err error) {
-	sortOrder, err := searchDoc.SortOrder()
-	if err != nil {
-		return
-	}
-
-	sortFieldArr := make([]*vearchpb.SortField, 0)
-	for _, sort := range sortOrder {
-		sortFieldArr = append(sortFieldArr, &vearchpb.SortField{Field: sort.SortField(), Type: sort.GetSortOrder()})
-	}
-	searchReq.SortFields = sortFieldArr
-	err = searchParamToSearchPb(searchDoc, searchReq, space, true)
-	if err != nil {
-		return
-	}
-
-	queryByte, err := parseQueryForIdFeature(searchDoc.Query, space, items)
+func documentRequestVectorParse(space *entity.Space, searchDoc *request.SearchDocumentRequest, searchReq *vearchpb.SearchRequest, items []*vearchpb.Item, query_type string) (err error) {
+	queryByte, err := parseQueryForIdFeature(searchDoc.Query, space, items, query_type)
 	if err != nil {
 		return
 	}

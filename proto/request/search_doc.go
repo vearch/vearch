@@ -23,6 +23,9 @@ import (
 var (
 	SearchResponse string = "SearchResponse"
 	QueryResponse  string = "QueryResponse"
+	QueryAnd       string = "and"
+	QuerySum       string = "sum"
+	QueryVector    string = "vector"
 )
 
 type DocumentRequest struct {
