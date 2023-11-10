@@ -545,6 +545,7 @@ If the specified _id already exists when inserting, the existing data will be up
 
 request format:
 ````$xslt
+Without id
 curl -H "content-type: application/json" -XPOST -d'
 {
 	"db_name": "ts_db",
@@ -566,6 +567,42 @@ curl -H "content-type: application/json" -XPOST -d'
 			"feature": [...]
 		}
 	}, {
+		"field_int": 52968,
+		"field_float": 52968,
+		"field_double": 52968,
+		"field_string": "113968",
+		"field_vector": {
+			"feature": [...]
+		}
+	}]
+}
+' http://router_server/document/upsert
+
+With id
+curl -H "content-type: application/json" -XPOST -d'
+{
+	"db_name": "ts_db",
+	"space_name": "ts_space",
+	"documents": [{
+		"_id": 1000000,
+		"field_int": 90399,
+		"field_float": 90399,
+		"field_double": 90399,
+		"field_string": "111399",
+		"field_vector": {
+			"feature": [...]
+		}
+	}, {
+		"_id": 1000001,
+		"field_int": 45085,
+		"field_float": 45085,
+		"field_double": 45085,
+		"field_string": "106085",
+		"field_vector": {
+			"feature": [...]
+		}
+	}, {
+		"_id": 1000002,
 		"field_int": 52968,
 		"field_float": 52968,
 		"field_double": 52968,
@@ -605,6 +642,9 @@ The interface is used to accurately find documents that exactly match the query 
 Usually the query statement does not contain the vector part.
 Two methods are supported: one is to obtain documents directly through primary keys,
 and the other is to obtain corresponding documents based on filter conditions.
+If partition_id is set, obtain the corresponding document on the specified partition.
+At this time, the meaning of document_id is the document number on this partition.
+Usually this is used to obtain the full data of the cluster.
 
 request format:
 ````$xslt
@@ -614,7 +654,19 @@ curl -H "content-type: application/json" -XPOST -d'
 	"db_name": "ts_db",
 	"space_name": "ts_space",
 	"query": {
-		"document_ids": ["10000", "10001"]
+		"document_ids": ["6560995651113580768", "-5621139761924822824", "-104688682735192253"]
+	}
+}
+' http://router_server/document/query
+
+By document_ids on specify parition
+curl -H "content-type: application/json" -XPOST -d'
+{
+	"db_name": "ts_db",
+	"space_name": "ts_space",
+	"query": {
+		"document_ids": ["10000", "10001", "10002"],
+		"partition_id": "1"
 	}
 }
 ' http://router_server/document/query
@@ -689,8 +741,7 @@ By document_ids
 curl -H "content-type: application/json" -XPOST -d'
 {
 	"query": {
-		"vector": [],
-		"document_ids": ["3646866681750952826", "-82737052712633754", "6353695019358301421"],
+		"document_ids": ["3646866681750952826"],
 		"filter": [{
 			"range": {
 				"field_int": {
@@ -784,7 +835,7 @@ curl -H "content-type: application/json" -XPOST -d'
 	"db_name": "ts_db",
 	"space_name": "ts_space",
 	"query": {
-		"document_ids": ["10000", "10001"]
+		'document_ids': ['4501743250723073467', '616335952940335471', '-2422965400649882823']
 	}
 }
 ' http://router_server/document/delete

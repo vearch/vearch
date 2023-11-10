@@ -101,7 +101,7 @@ func parseJSON(path []string, v *fastjson.Value, space *entity.Space, proMap map
 	obj.Visit(func(key []byte, val *fastjson.Value) {
 		fieldName := string(key)
 		pro, ok := proMap[fieldName]
-		if !ok {
+		if !ok && fieldName != IDField {
 			haveNoField = true
 			errorField = fieldName
 			log.Warnf("unrecognizable field, %s is not found in space fields", fieldName)
@@ -919,7 +919,7 @@ func documentParse(r *http.Request, docRequest *request.DocumentRequest, space *
 		if err != nil {
 			return err
 		}
-		primaryKey := jsonMap.GetJsonValString("id")
+		primaryKey := jsonMap.GetJsonValString(IDField)
 
 		fields, err := MapDocument(docJson, space, spaceProperties)
 		if err != nil {
