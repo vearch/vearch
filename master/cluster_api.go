@@ -287,6 +287,12 @@ func (ca *clusterAPI) createSpace(c *gin.Context) {
 	}
 
 	log.Debug("create space, db: %s", c.Param(dbName))
+	if config.Conf().Global.LimitedReplicaNum && space.ReplicaNum < 3 {
+		log.Error("LimitedReplicaNum is set and in order to ensure high availability replica should not be less than 3")
+		err := fmt.Errorf("LimitedReplicaNum is set and in order to ensure high availability replica should not be less than 3")
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
+		return
+	}
 	if space.ReplicaNum <= 0 {
 		space.ReplicaNum = 1
 	}
