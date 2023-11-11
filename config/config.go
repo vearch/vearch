@@ -25,10 +25,10 @@ import (
 	"sync"
 
 	"github.com/BurntSushi/toml"
+	"github.com/coreos/etcd/embed"
 	"github.com/pkg/errors"
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/util/log"
-	"go.etcd.io/etcd/etcd/embed"
 )
 
 // Model start up model, include all, master, ps, router
