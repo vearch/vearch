@@ -89,14 +89,14 @@ type Config struct {
 }
 
 // get etcd address config
-func (this *Config) GetEtcdAddress() []string {
+func (con *Config) GetEtcdAddress() []string {
 	// depend manageEtcd config
-	if this.Global.SelfManageEtcd {
+	if con.Global.SelfManageEtcd {
 		// provide etcd config ,address and port
-		if len(this.EtcdConfig.AddressList) > 0 && this.EtcdConfig.EtcdClientPort > 0 {
-			addrs := make([]string, len(this.EtcdConfig.AddressList))
-			for i, s := range this.EtcdConfig.AddressList {
-				addrs[i] = s + ":" + cast.ToString(this.EtcdConfig.EtcdClientPort)
+		if len(con.EtcdConfig.AddressList) > 0 && con.EtcdConfig.EtcdClientPort > 0 {
+			addrs := make([]string, len(con.EtcdConfig.AddressList))
+			for i, s := range con.EtcdConfig.AddressList {
+				addrs[i] = s + ":" + cast.ToString(con.EtcdConfig.EtcdClientPort)
 				log.Info("outside etcd address is %s", addrs[i])
 			}
 			return addrs
@@ -106,7 +106,7 @@ func (this *Config) GetEtcdAddress() []string {
 		}
 	} else {
 		// manage etcd by vearch
-		ms := this.Masters
+		ms := con.Masters
 		addrs := make([]string, len(ms))
 		for i, m := range ms {
 			addrs[i] = m.Address + ":" + cast.ToString(ms[i].EtcdClientPort)
@@ -258,7 +258,7 @@ func (config *Config) GetEmbed() (*embed.Config, error) {
 	cfg.AutoCompactionRetention = "1"
 	cfg.MaxRequestBytes = 33554432
 	cfg.QuotaBackendBytes = 8589934592
-	cfg.InitialClusterToken = config.Global.Signkey
+	cfg.InitialClusterToken = config.Global.Name
 
 	//set init url
 	buf := bytes.Buffer{}
