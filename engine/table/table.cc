@@ -23,6 +23,70 @@ using std::vector;
 
 namespace tig_gamma {
 
+ItemToDocID::ItemToDocID(const std::string &root_path)
+    : root_path_(root_path + std::string("/itemToDocID/")), db_(nullptr) {}
+
+ItemToDocID::~ItemToDocID() { Close(); }
+
+int ItemToDocID::Open() {
+  if (!utils::isFolderExist(root_path_.c_str())) {
+    mkdir(root_path_.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+  }
+  rocksdb::Options options;
+
+  options.IncreaseParallelism();
+  options.create_if_missing = true;
+
+  rocksdb::Status s = rocksdb::DB::Open(options, root_path_, &db_);
+  if (!s.ok()) {
+    LOG(ERROR) << "open ItemToDocID error: " << s.ToString();
+    return -1;
+  }
+
+  return 0;
+}
+
+int ItemToDocID::Close() {
+  if (db_) {
+    db_->Close();
+    delete db_;
+    db_ = nullptr;
+  }
+  return 0;
+}
+
+int ItemToDocID::Get(const std::string &key, std::string &value) {
+  rocksdb::PinnableSlice pinnableVal;
+  rocksdb::Status s = db_->Get(rocksdb::ReadOptions(),
+                               db_->DefaultColumnFamily(), key, &pinnableVal);
+
+  if (!s.ok()) {
+    return -1;
+  }
+
+  value = std::string(pinnableVal.data(), pinnableVal.size());
+  return 0;
+}
+
+int ItemToDocID::Put(const std::string &key, const std::string &value) {
+  rocksdb::Status s = db_->Put(rocksdb::WriteOptions(), key, value);
+  if (!s.ok()) {
+    LOG(ERROR) << "put rocksdb failed: " << key << " " << s.ToString();
+    return 1;
+  }
+  return 0;
+}
+
+int ItemToDocID::Delete(const std::string &key) {
+  rocksdb::WriteOptions write_options;
+  rocksdb::Status s = db_->Delete(write_options, key);
+  if (!s.ok()) {
+    LOG(ERROR) << "delelte rocksdb failed: " << key << " " << s.ToString();
+    return 1;
+  }
+  return 0;
+}
+
 Table::Table(const string &root_path, bool b_compress) {
   item_length_ = 0;
   field_num_ = 0;
@@ -37,6 +101,7 @@ Table::Table(const string &root_path, bool b_compress) {
   bitmap_mgr_ = nullptr;
   table_params_ = nullptr;
   storage_mgr_ = nullptr;
+  item_to_docid_ = nullptr;
   key_field_name_ = "_id";
   LOG(INFO) << "Table created success!";
 }
@@ -48,6 +113,9 @@ Table::~Table() {
     delete storage_mgr_;
     storage_mgr_ = nullptr;
   }
+
+  delete item_to_docid_;
+  item_to_docid_ = nullptr;
   LOG(INFO) << "Table deleted.";
 }
 
@@ -63,26 +131,14 @@ int Table::Load(int &num) {
     return -1;
   }
 
-  int idx = iter->second;
-  if (id_type_ == 0) {
-    for (int i = 0; i < doc_num; ++i) {
-      if (bitmap_mgr_->Test(i)) { continue; }
-      std::string key;
-      GetFieldRawValue(i, idx, key);
-      int64_t k = utils::StringToInt64(key);
-      item_to_docid_.insert(k, i);
-    }
-  } else {
-    for (int i = 0; i < doc_num; ++i) {
-      if (bitmap_mgr_->Test(i)) { continue; }
-      long key = -1;
-      std::string key_str;
-      GetFieldRawValue(i, idx, key_str);
-      memcpy(&key, key_str.c_str(), sizeof(key));
-      item_to_docid_.insert(key, i);
+  if (!item_to_docid_) {
+    item_to_docid_ = new ItemToDocID(root_path_);
+    int ret = item_to_docid_->Open();
+    if (ret) {
+      LOG(ERROR) << "init item to docid error, ret=" << ret;
+      return ret;
     }
   }
-
   LOG(INFO) << "Table load successed! doc num [" << doc_num << "]";
   last_docid_ = doc_num - 1;
   return 0;
@@ -129,6 +185,13 @@ int Table::CreateTable(TableInfo &table, TableParams &table_params,
     mkdir(root_path_.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
   }
 
+  item_to_docid_ = new ItemToDocID(root_path_);
+  int ret = item_to_docid_->Open();
+  if (ret) {
+    LOG(ERROR) << "init item to docid error, ret=" << ret;
+    return ret;
+  }
+
   table_params_ = new TableParams("table");
   table_created_ = true;
   LOG(INFO) << "Create table " << name_
@@ -143,7 +206,7 @@ int Table::CreateTable(TableInfo &table, TableParams &table_params,
       new StorageManager(root_path_, BlockType::TableBlockType, options);
   int cache_size = 512;  // unit : M
   int str_cache_size = 512;
-  int ret = storage_mgr_->Init(name_ + "_table", cache_size, str_cache_size);
+  ret = storage_mgr_->Init(name_ + "_table", cache_size, str_cache_size);
   if (ret) {
     LOG(ERROR) << "init gamma db error, ret=" << ret;
     return ret;
@@ -225,22 +288,15 @@ void Table::CheckStrLen(const std::string &field_name, str_len_t &len) {
   }
 }
 
-
 int Table::GetDocIDByKey(const std::string &key, int &docid) {
-  if (id_type_ == 0) {
-    int64_t k = utils::StringToInt64(key);
-    if (item_to_docid_.find(k, docid)) {
-      return 0;
-    }
-  } else {
-    long key_long = -1;
-    memcpy(&key_long, key.data(), sizeof(key_long));
-
-    if (item_to_docid_.find(key_long, docid)) {
-      return 0;
-    }
+  std::string v;
+  int ret = item_to_docid_->Get(key, v);
+  if (ret) {
+    return ret;
   }
-  return -1;
+
+  memcpy(&docid, v.data(), sizeof(docid));
+  return 0;
 }
 
 int Table::GetKeyByDocid(int docid, std::string &key) {
@@ -277,15 +333,10 @@ int Table::Add(const std::string &key, const std::vector<struct Field> &fields,
     return -3;
   }
 
-  if (id_type_ == 0) {
-    int64_t k = utils::StringToInt64(key);
-    item_to_docid_.insert(k, docid);
-  } else {
-    long key_long = -1;
-    memcpy(&key_long, key.data(), sizeof(key_long));
-
-    item_to_docid_.insert(key_long, docid);
-  }
+  char vChar[sizeof(docid)];
+  memcpy(vChar, &docid, sizeof(docid));
+  std::string v = std::string(vChar, sizeof(docid));
+  item_to_docid_->Put(key, v);
 
   uint8_t doc_value[item_length_];
 
@@ -345,15 +396,10 @@ int Table::BatchAdd(int start_id, int batch_size, int docid,
       continue;
     }
 
-    if (id_type_ == 0) {
-      int64_t k = utils::StringToInt64(key);
-      item_to_docid_.insert(k, id);
-    } else {
-      long key_long = -1;
-      memcpy(&key_long, key.data(), sizeof(key_long));
-
-      item_to_docid_.insert(key_long, id);
-    }
+    char vChar[sizeof(id)];
+    memcpy(vChar, &id, sizeof(id));
+    std::string v = std::string(vChar, sizeof(id));
+    item_to_docid_->Put(key, v);
   }
 
   for (int i = 0; i < batch_size; ++i) {
@@ -362,18 +408,18 @@ int Table::BatchAdd(int start_id, int batch_size, int docid,
     std::vector<Field> &fields = doc.TableFields();
     uint8_t doc_value[item_length_];
 
-    if(fields.size() == 0) {
-        Field field;
-        field.name = "_id";
-        field.value = doc.Key();
-        field.datatype = DataType::STRING;
-        fields.push_back(field);
+    if (fields.size() == 0) {
+      Field field;
+      field.name = "_id";
+      field.value = doc.Key();
+      field.datatype = DataType::STRING;
+      fields.push_back(field);
     }
 
     for (size_t j = 0; j < fields.size(); ++j) {
       const auto &field_value = fields[j];
       const string &name = field_value.name;
-      
+
       size_t offset = attr_offset_map_[name];
 
       DataType attr = attr_type_map_[name];
@@ -479,8 +525,8 @@ std::vector<bool> Table::CheckFieldIsEqual(const std::vector<Field> &fields,
         continue;
       }
       size_t idx = attr_idx_map_[name];
-      if (idx < table_fields.size() && name == table_fields[idx].name
-          && val == table_fields[idx].value) {
+      if (idx < table_fields.size() && name == table_fields[idx].name &&
+          val == table_fields[idx].value) {
         is_equal[i] = true;
         // LOG(INFO) << "doc [" << docid << "] field[" << name << "], value["
         //           << val << "] is equal.";
@@ -490,18 +536,7 @@ std::vector<bool> Table::CheckFieldIsEqual(const std::vector<Field> &fields,
   return is_equal;
 }
 
-int Table::Delete(std::string &key) {
-  if (id_type_ == 0) {
-    int64_t k = utils::StringToInt64(key);
-    item_to_docid_.erase(k);
-  } else {
-    long key_long = -1;
-    memcpy(&key_long, key.data(), sizeof(key_long));
-
-    item_to_docid_.erase(key_long);
-  }
-  return 0;
-}
+int Table::Delete(std::string &key) { return item_to_docid_->Delete(key); }
 
 long Table::GetMemoryBytes() {
   long total_mem_bytes = 0;
@@ -554,7 +589,8 @@ int Table::GetDocInfo(const int docid, Doc &doc,
 
     for (const auto &it : attr_idx_map_) {
       assign_field(table_fields[it.second], it.first);
-      GetFieldRawValue(docid, it.second, table_fields[it.second].value, doc_value);
+      GetFieldRawValue(docid, it.second, table_fields[it.second].value,
+                       doc_value);
     }
   } else {
     table_fields.resize(fields.size());
@@ -617,8 +653,8 @@ int Table::GetFieldRawValue(int docid, int field_id, std::string &value,
   return 0;
 }
 
-int Table::GetFieldRawValue(int docid, int field_id, std::vector<uint8_t> &value,
-                            const uint8_t *doc_v) {
+int Table::GetFieldRawValue(int docid, int field_id,
+                            std::vector<uint8_t> &value, const uint8_t *doc_v) {
   if ((docid < 0) or (field_id < 0 || field_id >= field_num_)) return -1;
 
   const uint8_t *doc_value = doc_v;

@@ -7,7 +7,6 @@
 
 #pragma once
 
-#include <libcuckoo/cuckoohash_map.hh>
 #include <map>
 #include <string>
 #include <vector>
@@ -15,16 +14,16 @@
 #include "c_api/api_data/gamma_batch_result.h"
 #include "c_api/api_data/gamma_doc.h"
 #include "c_api/api_data/gamma_table.h"
-#include "util/bitmap_manager.h"
 #include "io/io_common.h"
+#include "rocksdb/db.h"
+#include "rocksdb/options.h"
+#include "rocksdb/table.h"
 #include "storage/storage_manager.h"
 #include "table_define.h"
+#include "util/bitmap_manager.h"
 #include "util/log.h"
 
-
-
 namespace tig_gamma {
-
 
 class TableIO;
 
@@ -32,6 +31,23 @@ struct TableParams : DumpConfig {
   // currently no configure need to dump
   TableParams(const std::string &name_ = "") : DumpConfig(name_) {}
   int Parse(utils::JsonParser &jp) { return 0; }
+};
+
+class ItemToDocID {
+ public:
+  explicit ItemToDocID(const std::string &root_path);
+  ~ItemToDocID();
+  int Open();
+  int Close();
+
+  int Get(const std::string &key, std::string &value);
+  int Put(const std::string &key, const std::string &value);
+  int Delete(const std::string &key);
+
+ private:
+  std::string root_path_;
+  rocksdb::DB *db_;
+  rocksdb::BlockBasedTableOptions table_options_;
 };
 
 /** table, support add, update, delete, dump and load.
@@ -107,7 +123,7 @@ class Table {
 
   int GetFieldRawValue(int docid, int field_id, std::string &value,
                        const uint8_t *doc_v = nullptr);
-  
+
   int GetFieldRawValue(int docid, int field_id, std::vector<uint8_t> &value,
                        const uint8_t *doc_v = nullptr);
 
@@ -170,8 +186,8 @@ class Table {
   int key_idx_;  // key postion
   std::string key_field_name_;
 
-  std::map<std::string, int> attr_offset_map_;     // <field_id, field_name>
-  
+  std::map<std::string, int> attr_offset_map_;  // <field_id, field_name>
+
   std::map<int, std::string> idx_attr_map_;        // <field_id, field_name>
   std::map<std::string, int> attr_idx_map_;        // <field_name, field_id>
   std::map<std::string, DataType> attr_type_map_;  // <field_name, field_type>
@@ -182,7 +198,7 @@ class Table {
 
   uint8_t id_type_;  // 0 string, 1 long, default 1
   bool b_compress_;
-  cuckoohash_map<long, int> item_to_docid_;
+  ItemToDocID *item_to_docid_;
 
   int seg_num_;  // cur segment num
 

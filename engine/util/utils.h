@@ -7,7 +7,6 @@
 
 #pragma once
 
-#include <openssl/md5.h>
 #include <string.h>
 
 #include <cassert>

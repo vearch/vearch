@@ -505,20 +505,4 @@ size_t FileIO::Read(void *data, size_t size, size_t m) {
   return fread(data, size, m, fp);
 }
 
-int64_t StringToInt64(const std::string &src) {
-  MD5_CTX ctx;
-
-  std::string md5_string;
-  unsigned char md[16] = {0};
-
-  MD5_Init(&ctx);
-  MD5_Update(&ctx, src.c_str(), src.size());
-  MD5_Final(md, &ctx);
-
-  int64_t a, b;
-  memcpy(&a, md, 8);
-  memcpy(&b, md + 8, 8);
-  return a ^ b;
-}
-
 }  // namespace utils

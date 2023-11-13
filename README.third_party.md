@@ -13,7 +13,6 @@ The gamma engine of vearch is mainly implemented based on faiss. The following l
 | Btree-source-code       | public                        | source code        | N                      |
 | cJSON         | MIT                                      | source code     | N                      |
 | easyloggingpp | MIT                                      | source code     | N                      |
-| libcuckoo     | Apache 2\.0                              | source code     | N                      |
 | googletest    | BSD 3\-Clause "New" or "Revised" License | so              | N                      |
 
 

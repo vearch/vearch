@@ -30,6 +30,7 @@ RocksDBRawVector::RocksDBRawVector(VectorMetaInfo *meta_info,
 RocksDBRawVector::~RocksDBRawVector() {
   if (db_) {
     delete db_;
+    db_ = nullptr;
   }
 }
 
