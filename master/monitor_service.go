@@ -20,7 +20,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/coreos/etcd/etcdserver"
 	"github.com/pkg/errors"
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/client"
@@ -30,6 +29,7 @@ import (
 	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/util/metrics/mserver"
 	"github.com/vearch/vearch/util/monitoring"
+	"go.etcd.io/etcd/server/v3/etcdserver"
 )
 
 func newMonitorService(masterService *masterService, Server *etcdserver.EtcdServer) *monitorService {

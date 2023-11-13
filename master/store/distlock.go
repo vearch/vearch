@@ -19,9 +19,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/coreos/etcd/clientv3"
-	mvccpb "github.com/coreos/etcd/mvcc/mvccpb"
 	"github.com/vearch/vearch/proto/entity"
+	mvccpb "go.etcd.io/etcd/api/v3/mvccpb"
+	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
 /*

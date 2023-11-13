@@ -18,13 +18,13 @@ import (
 	"context"
 	"errors"
 
-	"github.com/coreos/etcd/etcdserver"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/client"
 	"github.com/vearch/vearch/util/errutil"
 	"github.com/vearch/vearch/util/metrics/mserver"
+	"go.etcd.io/etcd/server/v3/etcdserver"
 
 	"net/http"
 	"sync"

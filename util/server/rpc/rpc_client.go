@@ -46,13 +46,13 @@ func NewRpcClient(serverAddress ...string) (*RpcClient, error) {
 	log.Debug("instance client by rpc %s", serverAddress[0])
 	var d client.ServiceDiscovery
 	if len(serverAddress) == 1 {
-		d = client.NewPeer2PeerDiscovery("tcp@"+serverAddress[0], "")
+		d, _ = client.NewPeer2PeerDiscovery("tcp@"+serverAddress[0], "")
 	} else {
 		arr := make([]*client.KVPair, len(serverAddress))
 		for i, addr := range serverAddress {
 			arr[i] = &client.KVPair{Key: addr}
 		}
-		d = client.NewMultipleServersDiscovery(arr)
+		d, _ = client.NewMultipleServersDiscovery(arr)
 	}
 
 	clientPool := &pool.Pool{New: func() interface{} {

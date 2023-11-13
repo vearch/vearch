@@ -20,11 +20,11 @@ import (
 	"errors"
 	"time"
 
-	"github.com/coreos/etcd/clientv3/concurrency"
 	"github.com/vearch/vearch/client"
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/proto/vearchpb"
 	"github.com/vearch/vearch/util/log"
+	"go.etcd.io/etcd/client/v3/concurrency"
 )
 
 const CronInterval = 60

@@ -23,7 +23,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/coreos/etcd/mvcc/mvccpb"
 	"github.com/patrickmn/go-cache"
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/config"
@@ -33,6 +32,7 @@ import (
 	"github.com/vearch/vearch/util/errutil"
 	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/util/vearchlog"
+	"go.etcd.io/etcd/api/v3/mvccpb"
 )
 
 const retryNum = 3
@@ -435,7 +435,7 @@ func (cliCache *clientCache) startCacheJob(ctx context.Context) error {
 		},
 		delete: func(key string) (err error) {
 			userSplit := strings.Split(key, "/")
-			username := userSplit[len(userSplit) - 1]
+			username := userSplit[len(userSplit)-1]
 			cliCache.userCache.Delete(username)
 			return nil
 		},
@@ -475,9 +475,9 @@ func (cliCache *clientCache) startCacheJob(ctx context.Context) error {
 		},
 		delete: func(key string) (err error) {
 			spaceSplit := strings.Split(key, "/")
-			dbIDStr := spaceSplit[len(spaceSplit) - 2]
+			dbIDStr := spaceSplit[len(spaceSplit)-2]
 			dbID := cast.ToInt64(dbIDStr)
-			spaceIDStr := spaceSplit[len(spaceSplit) - 1]
+			spaceIDStr := spaceSplit[len(spaceSplit)-1]
 			spaceID := cast.ToInt64(spaceIDStr)
 			for k, v := range cliCache.spaceCache.Items() {
 				if v.Object.(*entity.Space).DBId == dbID && v.Object.(*entity.Space).Id == spaceID {
@@ -516,7 +516,7 @@ func (cliCache *clientCache) startCacheJob(ctx context.Context) error {
 		},
 		delete: func(key string) (err error) {
 			partitionIdSplit := strings.Split(key, "/")
-			partitionIdStr := partitionIdSplit[len(partitionIdSplit) - 1]
+			partitionIdStr := partitionIdSplit[len(partitionIdSplit)-1]
 			for k := range cliCache.partitionCache.Items() {
 				if strings.HasSuffix(k, "/"+partitionIdStr) {
 					cliCache.partitionCache.Delete(k)
@@ -556,7 +556,7 @@ func (cliCache *clientCache) startCacheJob(ctx context.Context) error {
 		delete: func(key string) (err error) {
 			defer errutil.CatchError(&err)
 			serverSplit := strings.Split(key, "/")
-			nodeIdStr := serverSplit[len(serverSplit) - 1]
+			nodeIdStr := serverSplit[len(serverSplit)-1]
 			nodeId := cast.ToUint64(nodeIdStr)
 			if value, _ := cliCache.Load(nodeId); value != nil {
 				value.(*rpcClient).close()

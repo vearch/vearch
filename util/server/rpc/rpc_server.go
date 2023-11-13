@@ -27,7 +27,7 @@ import (
 	"github.com/vearch/vearch/util/server/rpc/handler"
 )
 
-//var serializeType = protocol.MsgPack
+// var serializeType = protocol.MsgPack
 var serializeType = protocol.ProtoBuffer
 
 const serviceMethod = "Execute"
@@ -52,40 +52,40 @@ func NewRpcServer(ip string, port uint16) *RpcServer {
 	return &RpcServer{serverAddress: ip, port: port}
 }
 
-func (this *RpcServer) Run() error {
-	if strings.Compare(this.serverAddress, "127.0.0.1") == 0 || strings.Compare(this.serverAddress, "localhost") == 0 {
-		this.serverAddress = ""
+func (r *RpcServer) Run() error {
+	if strings.Compare(r.serverAddress, "127.0.0.1") == 0 || strings.Compare(r.serverAddress, "localhost") == 0 {
+		r.serverAddress = ""
 	}
-	this.server = server.NewServer()
-	this.server.Plugins.Add(client.OpenTracingPlugin{})
-	go this.server.Serve("tcp", fmt.Sprintf("%s:%d", this.serverAddress, this.port))
+	r.server = server.NewServer()
+	r.server.Plugins.Add(client.OpenTracingPlugin{})
+	go r.server.Serve("tcp", fmt.Sprintf("%s:%d", r.serverAddress, r.port))
 
 	return nil
 }
 
-func (this RpcServer) Stop() {
-	if this.server != nil {
-		this.server.Close()
+func (r RpcServer) Stop() {
+	if r.server != nil {
+		r.server.Close()
 	}
 }
 
-func (this RpcServer) ActiveClientConn() []net.Conn {
-	return this.server.ActiveClientConn()
+func (r RpcServer) ActiveClientConn() []net.Conn {
+	return r.server.ActiveClientConn()
 }
 
-func (this *RpcServer) RegisterName(chain *handler.Chain, meta string) error {
-	return this.server.RegisterName(chain.Name, chain, meta)
+func (r *RpcServer) RegisterName(chain *handler.Chain, meta string) error {
+	return r.server.RegisterName(chain.Name, chain, meta)
 }
 
-func (this *RpcServer) RegisterHandler(name string, rcvr interface{}, meta string) error {
-	return this.server.RegisterName(name, rcvr, meta)
+func (r *RpcServer) RegisterHandler(name string, rcvr interface{}, meta string) error {
+	return r.server.RegisterName(name, rcvr, meta)
 }
 
-//send mesage by bidirectional
-func (this *RpcServer) SendMessage(conn net.Conn, servicePath string, data []byte) error {
-	return this.server.SendMessage(conn, servicePath, serviceMethod, nil, data)
+// send mesage by bidirectional
+func (r *RpcServer) SendMessage(conn net.Conn, servicePath string, data []byte) error {
+	return r.server.SendMessage(conn, servicePath, serviceMethod, nil, data)
 }
 
-func (this *RpcServer) AddPlugin(plugin server.Plugin) {
-	this.server.Plugins.Add(plugin)
+func (r *RpcServer) AddPlugin(plugin server.Plugin) {
+	r.server.Plugins.Add(plugin)
 }

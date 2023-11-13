@@ -20,14 +20,14 @@ import (
 	"os"
 	"time"
 
-	"github.com/coreos/etcd/embed"
-	"github.com/coreos/etcd/etcdserver"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/client"
 	"github.com/vearch/vearch/config"
 	"github.com/vearch/vearch/util/errutil"
 	"github.com/vearch/vearch/util/log"
+	"go.etcd.io/etcd/server/v3/embed"
+	"go.etcd.io/etcd/server/v3/etcdserver"
 )
 
 type Server struct {
