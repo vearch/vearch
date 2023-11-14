@@ -4,7 +4,7 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//	http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -132,11 +132,11 @@ func main() {
 	// start master
 	if tags[masterTag] || tags[allTag] {
 		if err := config.Conf().CurrentByMasterNameDomainIp(masterName); err != nil {
-			panic(err)
+			log.Panic(fmt.Sprintf("CurrentByMasterNameDomainIp master error :%v", err))
 		}
 
 		if err := config.Conf().Validate(config.Master); err != nil {
-			panic(err)
+			log.Panic(fmt.Sprintf("validate master error :%v", err))
 		}
 
 		self := config.Conf().Masters.Self()
@@ -145,15 +145,14 @@ func main() {
 
 		s, err := master.NewServer(ctx)
 		if err != nil {
-			panic(fmt.Sprintf("new master error : %s", err.Error()))
+			log.Panic(fmt.Sprintf("new master error :%v", err))
 		}
 		sigsHook.AddSignalHook(func() {
 			s.Stop()
 		})
 		go func() {
 			if err := s.Start(); err != nil {
-				log.Error(fmt.Sprintf("start master error :%v", err))
-				os.Exit(-1)
+				log.Panic(fmt.Sprintf("start master error :%v", err))
 			}
 		}()
 
@@ -170,7 +169,7 @@ func main() {
 	// start ps
 	if tags[psTag] || tags[allTag] {
 		if err := config.Conf().Validate(config.PS); err != nil {
-			panic(err)
+			log.Panic(fmt.Sprintf("validate ps error :%v", err))
 		}
 
 		server := ps.NewServer(ctx)
@@ -181,8 +180,7 @@ func main() {
 		})
 		go func() {
 			if err := server.Start(); err != nil {
-				log.Error(fmt.Sprintf("start ps error :%v", err))
-				os.Exit(-1)
+				log.Panic(fmt.Sprintf("start ps error :%v", err))
 			}
 		}()
 
@@ -198,11 +196,11 @@ func main() {
 	// start router
 	if tags[routerTag] || tags[allTag] {
 		if err := config.Conf().Validate(config.Router); err != nil {
-			panic(err)
+			log.Panic(fmt.Sprintf("validate router error :%v", err))
 		}
 		server, err := router.NewServer(ctx)
 		if err != nil {
-			panic(fmt.Sprintf("new router error :%v", err))
+			log.Panic(fmt.Sprintf("new router error :%v", err))
 		}
 		models = append(models, "router")
 		sigsHook.AddSignalHook(func() {
@@ -211,7 +209,7 @@ func main() {
 		})
 		go func() {
 			if err := server.Start(); err != nil {
-				panic(fmt.Sprintf("start router error :%v", err))
+				log.Panic(fmt.Sprintf("start router error :%v", err))
 			}
 		}()
 

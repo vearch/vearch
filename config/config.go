@@ -259,6 +259,9 @@ func (config *Config) GetEmbed() (*embed.Config, error) {
 	cfg.MaxRequestBytes = 33554432
 	cfg.QuotaBackendBytes = 8589934592
 	cfg.InitialClusterToken = config.Global.Name
+	cfg.LogOutputs = []string{config.GetLogDir() + "/MASTER.ETCD.log"}
+	cfg.LogLevel = "warn"
+	cfg.EnableLogRotation = true
 
 	//set init url
 	buf := bytes.Buffer{}

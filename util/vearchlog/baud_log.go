@@ -66,6 +66,12 @@ func (l *vearchLog) Debugf(format string, v ...interface{}) {
 	}
 }
 
+func (l *vearchLog) Tracef(format string, v ...interface{}) {
+	if traceLog >= l.l.outputLevel {
+		l.l.printDepth(traceLog, 1, format, v...)
+	}
+}
+
 func (l *vearchLog) Warnf(format string, v ...interface{}) {
 	if warningLog >= l.l.outputLevel {
 		l.l.printDepth(warningLog, 1, format, v...)
@@ -73,15 +79,16 @@ func (l *vearchLog) Warnf(format string, v ...interface{}) {
 }
 
 func (l *vearchLog) Panicf(format string, v ...interface{}) {
-	if errorLog >= l.l.outputLevel {
-		l.l.printDepth(errorLog, 1, format, v...)
+	if panicLog >= l.l.outputLevel {
+		l.l.printDepth(panicLog, 1, format, v...)
 	}
+	l.l.lockAndFlushAll()
 	panic(fmt.Sprintf(format, v...))
 }
 
 func (l *vearchLog) Fatalf(format string, v ...interface{}) {
-	if errorLog >= l.l.outputLevel {
-		l.l.printDepth(errorLog, 1, format, v...)
+	if fatalLog >= l.l.outputLevel {
+		l.l.printDepth(fatalLog, 1, format, v...)
 	}
 	os.Exit(-1)
 }
@@ -116,6 +123,19 @@ func (l *vearchLog) Info(v ...interface{}) {
 	}
 }
 
+func (l *vearchLog) Trace(v ...interface{}) {
+	format := ""
+	if traceLog >= l.l.outputLevel {
+		if len(v) <= 1 {
+			format = fmt.Sprint(v...)
+		} else {
+			format = v[0].(string)
+			format = fmt.Sprintf(format, v[1:]...)
+		}
+		l.l.printDepth(traceLog, 1, format)
+	}
+}
+
 func (l *vearchLog) Debug(v ...interface{}) {
 	format := ""
 	if debugLog >= l.l.outputLevel {
@@ -144,15 +164,16 @@ func (l *vearchLog) Warn(v ...interface{}) {
 
 func (l *vearchLog) Panic(v ...interface{}) {
 	format := ""
-	if errorLog >= l.l.outputLevel {
+	if panicLog >= l.l.outputLevel {
 		if len(v) <= 1 {
 			format = fmt.Sprint(v...)
 		} else {
 			format = v[0].(string)
 			format = fmt.Sprintf(format, v[1:]...)
 		}
-		l.l.printDepth(errorLog, 1, format)
+		l.l.printDepth(panicLog, 1, format)
 	}
+	l.l.lockAndFlushAll()
 	panic(fmt.Sprintf(format))
 }
 

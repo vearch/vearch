@@ -67,7 +67,6 @@
 //		"glob" pattern and N is a V level. For instance,
 //			-vmodule=gopher*=3
 //		sets the V level to 3 in all Go files whose names begin "gopher".
-//
 package vearchlog
 
 import (
@@ -97,32 +96,36 @@ type severity int32 // sync/atomic int32
 // lower-severity log file.
 const (
 	debugLog severity = iota
+	traceLog
 	infoLog
 	warningLog
 	errorLog
+	panicLog
 	fatalLog
 	numSeverity
 )
 
 const (
 	DEBUG = int(debugLog)
+	TRACE = int(traceLog)
 	INFO  = int(infoLog)
 	WARN  = int(warningLog)
 	ERROR = int(errorLog)
+	PANIC = int(panicLog)
 	FATAL = int(fatalLog)
 )
 
-const severityChar = "DIWEF"
-
 var severityName = []string{
 	debugLog:   "DEBUG",
+	traceLog:   "TRACE",
 	infoLog:    "INFO",
 	warningLog: "WARN",
 	errorLog:   "ERROR",
+	panicLog:   "PANIC",
 	fatalLog:   "FATAL",
 }
 
-var severityLevelByte = [5][]byte{[]byte("DEBUG"), []byte("INFO"), []byte("WARN"), []byte("ERROR"), []byte("FATAL")}
+var severityLevelByte = [7][]byte{[]byte("DEBUG"), []byte("TRACE"), []byte("INFO"), []byte("WARN"), []byte("ERROR"), []byte("PANIC"), []byte("FATAL")}
 
 // get returns the value of the severity.
 func (s *severity) get() severity {
@@ -190,14 +193,17 @@ func (s *OutputStats) Bytes() int64 {
 // Stats tracks the number of lines of output and number of bytes
 // per severity level. Values must be read with atomic.LoadInt64.
 var Stats struct {
-	Debug, Info, Warning, Error OutputStats
+	Debug, Trace, Info, Warning, Error, Panic, Fatal OutputStats
 }
 
 var severityStats = [numSeverity]*OutputStats{
 	debugLog:   &Stats.Debug,
+	traceLog:   &Stats.Trace,
 	infoLog:    &Stats.Info,
 	warningLog: &Stats.Warning,
 	errorLog:   &Stats.Error,
+	panicLog:   &Stats.Panic,
+	fatalLog:   &Stats.Fatal,
 }
 
 // Level is exported because it appears in the arguments to V and is
@@ -531,8 +537,11 @@ It returns a buffer containing the formatted header and the user's file and line
 The depth specifies how many stack frames above lives the source line to be identified in the log message.
 
 Log lines have this form:
+
 	Lmmdd hh:mm:ss.uuuuuu threadid file:line] msg...
+
 where the fields are defined as follows:
+
 	L                A single character, representing the log level (eg 'I' for INFO)
 	mm               The month (zero padded; ie May is '05')
 	dd               The day (zero padded)
@@ -643,8 +652,6 @@ func (buf *buffer) someDigits(i, d int) int {
 	return copy(buf.tmp[i:], buf.tmp[j:])
 }
 
-var log_type = [4][]byte{[]byte("[" + severityName[0] + "] "), []byte("[" + severityName[1] + "] "), []byte("[" + severityName[2] + "] "), []byte("[" + severityName[3] + "] ")}
-
 func (l *loggingT) printDepth(s severity, depth int, format string, args ...interface{}) {
 	buf, file, line := l.header(s, depth)
 	if s < errorLog && args != nil && len(args) != 0 {
@@ -707,6 +714,11 @@ func (l *loggingT) output(s severity, buf *buffer, file string, line int) {
 			}
 			l.file[fatalLog].Write(data)
 			//fallthrough
+		case panicLog:
+			if l.outputLevel > panicLog {
+				break
+			}
+			l.file[panicLog].Write(data)
 		case errorLog:
 			if l.outputLevel > errorLog {
 				break
@@ -724,6 +736,11 @@ func (l *loggingT) output(s severity, buf *buffer, file string, line int) {
 				break
 			}
 			l.file[infoLog].Write(data)
+		case traceLog:
+			if l.outputLevel > traceLog {
+				break
+			}
+			l.file[traceLog].Write(data)
 			//fallthrough
 		case debugLog:
 			if l.outputLevel > debugLog {
@@ -1002,9 +1019,13 @@ type Verbose bool
 // The returned value is a boolean of type Verbose, which implements Info, Infoln
 // and Infof. These methods will write to the Info log if called.
 // Thus, one may write either
+//
 //	if glog.V(2) { glog.Info("log this") }
+//
 // or
+//
 //	glog.V(2).Info("log this")
+//
 // The second form is shorter but the first is cheaper if logging is off because it does
 // not evaluate its arguments.
 //
@@ -1046,12 +1067,16 @@ func Output(logging *loggingT, level int, depth int, format string, args ...inte
 	switch level {
 	case DEBUG:
 		l = debugLog
+	case TRACE:
+		l = traceLog
 	case INFO:
 		l = infoLog
 	case WARN:
 		l = warningLog
 	case ERROR:
 		l = errorLog
+	case PANIC:
+		l = panicLog
 	case FATAL:
 		l = fatalLog
 	}

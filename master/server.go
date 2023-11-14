@@ -71,7 +71,7 @@ func (s *Server) Start() (err error) {
 
 	// if vearch manage etcd then start it
 	if !config.Conf().Global.SelfManageEtcd {
-		//start etc server
+		//start etcd server
 		s.etcdServer, err = embed.StartEtcd(s.etcCfg)
 		if err != nil {
 			log.Error(err.Error())
