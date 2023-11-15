@@ -486,11 +486,11 @@ func (r *routerRequest) searchFromPartition(ctx context.Context, partitionID ent
 	servers := r.client.Master().Cache().serverCache
 
 	rpcEnd, rpcStart := time.Now(), time.Now()
-	nodeID := GetNodeIdsByClientType(clientType, partition, servers)
+	nodeID := GetNodeIdsByClientType(clientType, partition, servers, r.client)
 
 	for len(partition.Replicas) > r.client.PS().faultyList.ItemCount() {
 		if r.client.PS().TestFaulty(nodeID) {
-			nodeID = GetNodeIdsByClientType(clientType, partition, servers)
+			nodeID = GetNodeIdsByClientType(clientType, partition, servers, r.client)
 			continue
 		}
 		nodeIdEnd := time.Now()
@@ -591,7 +591,7 @@ func (r *routerRequest) searchFromPartition(ctx context.Context, partitionID ent
 
 		if strings.Contains(err.Error(), "connect: connection refused") {
 			r.client.PS().AddFaulty(nodeID, time.Second*30)
-			nodeID = GetNodeIdsByClientType(clientType, partition, servers)
+			nodeID = GetNodeIdsByClientType(clientType, partition, servers, r.client)
 		} else {
 			log.Error("rpc err [%v], nodeID %v", err, nodeID)
 			r.client.PS().AddFaulty(nodeID, time.Second*5)
@@ -1037,7 +1037,7 @@ func (r *routerRequest) BulkSearchByPartitions(searchReq []*vearchpb.SearchReque
 
 var replicaRoundRobin = NewReplicaRoundRobin()
 
-func GetNodeIdsByClientType(clientType string, partition *entity.Partition, servers *cache.Cache) entity.NodeID {
+func GetNodeIdsByClientType(clientType string, partition *entity.Partition, servers *cache.Cache, client *Client) entity.NodeID {
 	nodeId := uint64(0)
 	switch clientType {
 	case "leader":
@@ -1064,19 +1064,64 @@ func GetNodeIdsByClientType(clientType string, partition *entity.Partition, serv
 		randIDs := make([]entity.NodeID, 0)
 		for _, nodeID := range partition.Replicas {
 			_, serverExist := servers.Get(cast.ToString(nodeID))
+			if !serverExist {
+				continue
+			}
 			if config.Conf().Global.RaftConsistent {
-				if serverExist && partition.ReStatusMap[nodeID] == entity.ReplicasOK {
+				if partition.ReStatusMap[nodeID] == entity.ReplicasOK {
 					randIDs = append(randIDs, nodeID)
 				}
 			} else {
-				if serverExist {
-					randIDs = append(randIDs, nodeID)
-				}
+				randIDs = append(randIDs, nodeID)
 			}
 		}
 		nodeId = replicaRoundRobin.Next(partition.Id, randIDs)
 		if log.IsDebugEnabled() {
 			log.Debug("search by partition:%v by random model ID:[%d]", randIDs, nodeId)
+		}
+	case "least_connection":
+		leastId := uint64(0)
+		most := 1<<32 - 1
+		least := -1
+		randIDs := make([]entity.NodeID, 0)
+		for _, nodeID := range partition.Replicas {
+			_, serverExist := servers.Get(cast.ToString(nodeID))
+			if !serverExist {
+				continue
+			}
+			if config.Conf().Global.RaftConsistent {
+				if partition.ReStatusMap[nodeID] == entity.ReplicasOK {
+					randIDs = append(randIDs, nodeID)
+					var ctx context.Context
+					concurrent := client.PS().GetOrCreateRPCClient(ctx, nodeID).GetConcurrent()
+					if concurrent > least {
+						least = concurrent
+					}
+					if concurrent < most {
+						most = concurrent
+						leastId = nodeID
+					}
+				}
+			} else {
+				randIDs = append(randIDs, nodeID)
+				var ctx context.Context
+				concurrent := client.PS().GetOrCreateRPCClient(ctx, nodeID).GetConcurrent()
+				if concurrent > least {
+					least = concurrent
+				}
+				if concurrent < most {
+					most = concurrent
+					leastId = nodeID
+				}
+			}
+		}
+		if least > 10 {
+			nodeId = leastId
+		} else {
+			nodeId = replicaRoundRobin.Next(partition.Id, randIDs)
+		}
+		if log.IsDebugEnabled() {
+			log.Debug("search by partition:%v by least connection model ID:[%d]", randIDs, nodeId)
 		}
 	default:
 		randIDs := make([]entity.NodeID, 0)

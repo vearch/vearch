@@ -175,6 +175,13 @@ func (r *rpcClient) Execute(ctx context.Context, servicePath string, args interf
 	return r.client.Execute(ctx, servicePath, args, reply)
 }
 
+func (r *rpcClient) GetConcurrent() int {
+	if r == nilClient {
+		return -1
+	}
+	return r.client.GetConcurrent()
+}
+
 // Execute add retry to handle no leader and not leader situation
 func Execute(addr, servicePath string, args *vearchpb.PartitionData, reply *vearchpb.PartitionData) (err error) {
 	ctx := context.Background()

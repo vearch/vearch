@@ -52,19 +52,19 @@ type Chain struct {
 	errchange  ErrorChangeFun
 }
 
-func (this *Chain) Execute(ctx context.Context, req *vearchpb.PartitionData, reply *vearchpb.PartitionData) error {
+func (c *Chain) Execute(ctx context.Context, req *vearchpb.PartitionData, reply *vearchpb.PartitionData) error {
 	defer func() {
-		if err := this.panicChain.Execute(ctx, req, reply); err != nil {
+		if err := c.panicChain.Execute(ctx, req, reply); err != nil {
 			log.Error("rpc panic err:[%s]", err.Error())
 		}
 	}()
 
-	for i := 0; i < len(this.chain); i++ {
-		if err := this.chain[i].Execute(ctx, req, reply); err != nil {
-			if this.errchange == nil {
+	for i := 0; i < len(c.chain); i++ {
+		if err := c.chain[i].Execute(ctx, req, reply); err != nil {
+			if c.errchange == nil {
 				return err
 			}
-			return this.errchange(ctx, err, req, reply)
+			return c.errchange(ctx, err, req, reply)
 		}
 	}
 

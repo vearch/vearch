@@ -25,8 +25,7 @@ Add charts from local
 ```
 $ git clone https://github.com/vearch/vearch-helm.git
 $ cd vearch-helm
-$ make
-$ helm install my-release ./charts -f ./charts/values.yaml
+$ make && helm install my-release ./charts -f ./charts/values.yaml
 ```
 
 #### Start by docker-compose

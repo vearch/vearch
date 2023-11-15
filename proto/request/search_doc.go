@@ -53,6 +53,7 @@ type SearchDocumentRequest struct {
 	IsBruteSearch  int32           `json:"is_brute_search"`
 	DbName         string          `json:"db_name,omitempty"`
 	SpaceName      string          `json:"space_name,omitempty"`
+	LoadBalance    string          `json:"load_balance"`
 	sortOrder      sortorder.SortOrder
 }
 
@@ -60,13 +61,13 @@ type SearchRequestPo struct {
 	SearchDocumentRequestArr []*SearchDocumentRequest `json:"search_doc_arr,omitempty"`
 }
 
-func (this *SearchDocumentRequest) SortOrder() (sortorder.SortOrder, error) {
-	if this.sortOrder != nil {
-		return this.sortOrder, nil
+func (s *SearchDocumentRequest) SortOrder() (sortorder.SortOrder, error) {
+	if s.sortOrder != nil {
+		return s.sortOrder, nil
 	}
 	var err error
-	this.sortOrder, err = sortorder.ParseSort(this.Sort)
-	return this.sortOrder, err
+	s.sortOrder, err = sortorder.ParseSort(s.Sort)
+	return s.sortOrder, err
 }
 
 type SearchDocument struct {

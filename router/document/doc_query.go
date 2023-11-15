@@ -46,7 +46,7 @@ const (
 	UrlQueryRefresh         = "refresh"
 	UrlQueryURISort         = "sort"
 	UrlQueryTimeout         = "timeout"
-	ClientTypeValue         = "client_type"
+	LoadBalance             = "load_balance"
 	DefaultSzie             = 50
 	URLQueryRefresh         = "refresh"
 )
@@ -708,9 +708,7 @@ func searchUrlParamParse(searchReq *vearchpb.SearchRequest) {
 			searchReq.TopN = DefaultSzie
 		}
 	}
-	clientType := urlParamMap[ClientTypeValue]
-	searchReq.Head.ClientType = clientType
-
+	searchReq.Head.ClientType = urlParamMap[LoadBalance]
 }
 
 func searchParamToSearchPb(searchDoc *request.SearchDocumentRequest, searchReq *vearchpb.SearchRequest, space *entity.Space, idFeature bool) error {
@@ -887,6 +885,7 @@ func searchParamToSearchPb(searchDoc *request.SearchDocumentRequest, searchReq *
 		searchReq.Head.Params["sort"] = order
 	}
 
+	searchReq.Head.Params["load_balance"] = searchDoc.LoadBalance
 	if !idFeature {
 		parseErr := parseQuery(searchDoc.Query, searchReq, space)
 		if parseErr != nil {

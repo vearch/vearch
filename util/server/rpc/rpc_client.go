@@ -142,3 +142,7 @@ func (r *RpcClient) GetAddress(i int) string {
 	}
 	return r.serverAddress[i]
 }
+
+func (r *RpcClient) GetConcurrent() int {
+	return len(r.concurrent)
+}
