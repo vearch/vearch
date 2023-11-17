@@ -272,7 +272,7 @@ class Node {
   int DeleteDense(int val) {
     int pos = val - min_aligned_;
     if (pos < 0 || val > max_aligned_) {
-      LOG(ERROR) << "Cannot delete [" << val << "]";
+      LOG(DEBUG) << "Cannot find [" << val << "]";
       return -1;
     }
     --size_;
@@ -289,7 +289,7 @@ class Node {
     }
 
     if (i == size_) {
-      LOG(ERROR) << "Cannot delete [" << val << "]";
+      LOG(DEBUG) << "Cannot find [" << val << "]";
       return -1;
     }
     for (int j = i; j < size_ - 1; ++j) {
