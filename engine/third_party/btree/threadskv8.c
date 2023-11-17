@@ -221,7 +221,7 @@ typedef struct {
 	unsigned char value[0];
 } BtVal;
 
-#define BT_maxkey	255		// maximum number of bytes in a key
+#define BT_maxkey	1024		// maximum number of bytes in a key
 #define BT_keyarray (BT_maxkey + sizeof(BtKey))
 
 //	The first part of an index page.

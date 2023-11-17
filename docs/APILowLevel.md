@@ -69,49 +69,53 @@ How to use hnsw and opq in combination is controlled by retrieval_param. If you 
 ````$xslt
 curl -v --user "root:secret" -H "content-type: application/json" -XPUT -d'
 {
-	"name": "vector_space",
-	"partition_num": 1,
-	"replica_num": 1,
-	"engine": {
-		"index_size": 100000,
-		"id_type": "string",
-		"retrieval_type": "IVFPQ",
-		"retrieval_param": {
-			"metric_type": "InnerProduct",
-			"ncentroids": -1,
-			"nsubvector": -1
-		}
-	},
-	"properties": {
-		"string": {
-			"type": "keyword",
-			"index": true
-		},
-		"int": {
-			"type": "integer",
-			"index": true
-		},
-		"float": {
-			"type": "float",
-			"index": true
-		},
-		"vector": {
-			"type": "vector",
-			"model_id": "img",
-			"dimension": 128,
-			"format": "normalization"
-		},
-		"string_tags": {
-			"type": "string",
-			"array": true,
-			"index": true
-		}
-	},
-	"models": [{
-		"model_id": "vgg16",
-		"fields": ["string"],
-		"out": "feature"
-	}]
+  "name": "vector_space",
+  "partition_num": 1,
+  "replica_num": 1,
+  "engine": {
+    "index_size": 100000,
+    "id_type": "string",
+    "retrieval_type": "IVFPQ",
+    "retrieval_param": {
+      "metric_type": "InnerProduct",
+      "ncentroids": -1,
+      "nsubvector": -1
+    }
+  },
+  "properties": {
+    "string": {
+      "type": "keyword",
+      "index": true
+    },
+    "int": {
+      "type": "integer",
+      "index": true
+    },
+    "float": {
+      "type": "float",
+      "index": true
+    },
+    "vector": {
+      "type": "vector",
+      "model_id": "img",
+      "dimension": 128,
+      "format": "normalization"
+    },
+    "string_tags": {
+      "type": "string",
+      "array": true,
+      "index": true
+    }
+  },
+  "models": [
+    {
+      "model_id": "vgg16",
+      "fields": [
+        "string"
+      ],
+      "out": "feature"
+    }
+  ]
 }
 ' {{ROUTER}}/space/test_vector_db/_create
 ````
@@ -662,36 +666,43 @@ curl -H "content-type: application/json" -XPOST -d'
 By document_ids on specify parition
 curl -H "content-type: application/json" -XPOST -d'
 {
-	"db_name": "ts_db",
-	"space_name": "ts_space",
-	"query": {
-		"document_ids": ["10000", "10001", "10002"],
-		"partition_id": "1"
-	}
+  "db_name": "ts_db",
+  "space_name": "ts_space",
+  "query": {
+    "document_ids": [
+      "10000",
+      "10001",
+      "10002"
+    ],
+    "partition_id": "1"
+  }
 }
 ' http://router_server/document/query
 
 By filter:
 curl -H "content-type: application/json" -XPOST -d'
 {
-	"db_name": "ts_db",
-	"space_name": "ts_space",
-	"query": {
-		"filter": [{
-				"range": {
-					"field_int": {
-						"gte": 1000,
-						"lte": 100000
-					}
-				}
-			},
-			{
-				"term": {
-					"field_string": ["322"]
-				}
-			}
-		]
-	}
+  "db_name": "ts_db",
+  "space_name": "ts_space",
+  "query": {
+    "filter": [
+      {
+        "range": {
+          "field_int": {
+            "gte": 1000,
+            "lte": 100000
+          }
+        }
+      },
+      {
+        "term": {
+          "field_string": [
+            "322"
+          ]
+        }
+      }
+    ]
+  }
 }
 ' http://router_server/document/query
 ````
@@ -740,49 +751,59 @@ request format:
 By document_ids
 curl -H "content-type: application/json" -XPOST -d'
 {
-	"query": {
-		"document_ids": ["3646866681750952826"],
-		"filter": [{
-			"range": {
-				"field_int": {
-					"gte": 1000,
-					"lte": 100000
-				}
-			}
-		}]
-	},
-	"retrieval_param": {
-		"metric_type": "L2",
-	},
-	"size": 3,
-	"db_name": "ts_db",
-	"space_name": "ts_space"
+  "query": {
+    "document_ids": [
+      "3646866681750952826"
+    ],
+    "filter": [
+      {
+        "range": {
+          "field_int": {
+            "gte": 1000,
+            "lte": 100000
+          }
+        }
+      }
+    ]
+  },
+  "retrieval_param": {
+    "metric_type": "L2"
+  },
+  "size": 3,
+  "db_name": "ts_db",
+  "space_name": "ts_space"
 }
 ' http://router_server/document/search
 
 By vector
 curl -H "content-type: application/json" -XPOST -d'
 {
-	"query": {
-		"vector": [{
-			"field": "field_vector",
-			"feature": [...],
-		}],
-		"filter": [{
-			"range": {
-				"field_int": {
-					"gte": 1000,
-					"lte": 100000
-				}
-			}
-		}]
-	},
-	"retrieval_param": {
-		"metric_type": "L2",
-	},
-	"size": 3,
-	"db_name": "ts_db",
-	"space_name": "ts_space"
+  "query": {
+    "vector": [
+      {
+        "field": "field_vector",
+        "feature": [
+          "..."
+        ]
+      }
+    ],
+    "filter": [
+      {
+        "range": {
+          "field_int": {
+            "gte": 1000,
+            "lte": 100000
+          }
+        }
+      }
+    ]
+  },
+  "retrieval_param": {
+    "metric_type": "L2"
+  },
+  "size": 3,
+  "db_name": "ts_db",
+  "space_name": "ts_space"
 }
 ' http://router_server/document/search
 ````
@@ -843,24 +864,27 @@ curl -H "content-type: application/json" -XPOST -d'
 By filter:
 curl -H "content-type: application/json" -XPOST -d'
 {
-	"db_name": "ts_db",
-	"space_name": "ts_space",
-	"query": {
-		"filter": [{
-				"range": {
-					"field_int": {
-						"gte": 1000,
-						"lte": 100000
-					}
-				}
-			},
-			{
-				"term": {
-					"field_string": ["322"]
-				}
-			}
-		]
-	},
+  "db_name": "ts_db",
+  "space_name": "ts_space",
+  "query": {
+    "filter": [
+      {
+        "range": {
+          "field_int": {
+            "gte": 1000,
+            "lte": 100000
+          }
+        }
+      },
+      {
+        "term": {
+          "field_string": [
+            "322"
+          ]
+        }
+      }
+    ]
+  },
   "size": 3
 }
 ' http://router_server/document/delete
