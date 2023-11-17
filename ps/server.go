@@ -124,7 +124,7 @@ func (s *Server) Start() error {
 	// create raft server
 	s.raftServer, err = raftstore.StartRaftServer(nodeId, s.ip, s.raftResolver)
 	if err != nil {
-		panic(err)
+		log.Panic(fmt.Sprintf("ps StartRaftServer error :%v", err))
 	}
 
 	// create and recover partitions
@@ -138,9 +138,7 @@ func (s *Server) Start() error {
 
 	// start rpc server
 	if err = s.rpcServer.Run(); err != nil {
-		log.Error("Fail to start rpc Server, %v", err)
-		log.Flush()
-		panic(err)
+		log.Panic(fmt.Sprintf("ps rpcServer run error :%v", err))
 	}
 
 	ExportToRpcHandler(s)

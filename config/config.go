@@ -215,6 +215,7 @@ type MasterCfg struct {
 	PprofPort      uint16 `toml:"pprof_port,omitempty" json:"pprof_port"`
 	MonitorPort    uint16 `toml:"monitor_port" json:"monitor_port"`
 	ClusterState   string `toml:"cluster_state,omitempty" json:"cluster_state"`
+	CheckRestart   bool   `toml:"check_restart,omitempty" json:"check_restart"`
 }
 
 func (m *MasterCfg) ApiUrl() string {
@@ -236,17 +237,37 @@ func (config *Config) GetEmbed() (*embed.Config, error) {
 	cfg.Name = masterCfg.Name
 	cfg.Dir = config.GetDataDir()
 	cfg.WalDir = ""
-	if masterCfg.ClusterState == "" {
-		cfg.ClusterState = embed.ClusterStateFlagNew
+	if masterCfg.CheckRestart {
+		filePath := cfg.Dir + "/restart.txt"
+		_, err := os.Stat(filePath)
+		if err == nil {
+			cfg.ClusterState = embed.ClusterStateFlagExisting
+		} else if os.IsNotExist(err) {
+			cfg.ClusterState = embed.ClusterStateFlagNew
+			file, err := os.Create(filePath)
+			if err != nil {
+				log.Error("create restart file err: %v", err)
+				return nil, err
+			}
+			defer file.Close()
+		} else {
+			log.Error("check restart err: %v", err)
+			return nil, err
+		}
 		log.Info("etcd init cluster state: [%v]", cfg.ClusterState)
 	} else {
-		if !strings.EqualFold(masterCfg.ClusterState, embed.ClusterStateFlagNew) && !strings.EqualFold(masterCfg.ClusterState, embed.ClusterStateFlagExisting) {
+		if masterCfg.ClusterState == "" {
 			cfg.ClusterState = embed.ClusterStateFlagNew
-			log.Warn("wrong etcd init cluster state: [%v], should be [%v] or [%v], now use default value[%v]", masterCfg.ClusterState,
-				embed.ClusterStateFlagNew, embed.ClusterStateFlagExisting, embed.ClusterStateFlagNew)
-		} else {
-			cfg.ClusterState = masterCfg.ClusterState
 			log.Info("etcd init cluster state: [%v]", cfg.ClusterState)
+		} else {
+			if !strings.EqualFold(masterCfg.ClusterState, embed.ClusterStateFlagNew) && !strings.EqualFold(masterCfg.ClusterState, embed.ClusterStateFlagExisting) {
+				cfg.ClusterState = embed.ClusterStateFlagNew
+				log.Warn("wrong etcd init cluster state: [%v], should be [%v] or [%v], now use default value[%v]", masterCfg.ClusterState,
+					embed.ClusterStateFlagNew, embed.ClusterStateFlagExisting, embed.ClusterStateFlagNew)
+			} else {
+				cfg.ClusterState = masterCfg.ClusterState
+				log.Info("etcd init cluster state: [%v]", cfg.ClusterState)
+			}
 		}
 	}
 

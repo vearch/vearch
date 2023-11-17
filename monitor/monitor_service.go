@@ -62,7 +62,7 @@ func Register(masterClient *client.Client, etcdServer *etcdserver.EtcdServer, mo
 		http.Handle("/metrics", promhttp.Handler())
 		go func() {
 			if monitorPort > 0 {
-				log.Info("monitoring start in Port:", monitorPort)
+				log.Info("monitoring start in Port: %v", monitorPort)
 				if err := http.ListenAndServe(":"+cast.ToString(monitorPort), nil); err != nil {
 					log.Error("Error occur when start server %v", err)
 				}
