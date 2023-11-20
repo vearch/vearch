@@ -159,10 +159,10 @@ func (ri *readerImpl) Search(ctx context.Context, request *vearchpb.SearchReques
 
 	startTime := time.Now()
 	reqByte := gamma.SearchRequestSerialize(request)
-	serializeCostTime := (time.Now().Sub(startTime).Seconds()) * 1000
+	serializeCostTime := (time.Since(startTime).Seconds()) * 1000
 	gammaStartTime := time.Now()
 	code, respByte := gamma.Search(ri.engine.gamma, reqByte)
-	gammaCostTime := (time.Now().Sub(gammaStartTime).Seconds()) * 1000
+	gammaCostTime := (time.Since(gammaStartTime).Seconds()) * 1000
 	response.FlatBytes = respByte
 	serializeCostTimeStr := strconv.FormatFloat(serializeCostTime, 'f', -1, 64)
 	gammaCostTimeStr := strconv.FormatFloat(gammaCostTime, 'f', -1, 64)

@@ -45,16 +45,7 @@ func init() {
 	register.Register("gamma", New)
 }
 
-// var logInitOnce sync.Once
-
 func New(cfg register.EngineConfig) (engine.Engine, error) {
-	//set log dir
-	/*logInitOnce.Do(func() {
-		if rep := C.SetLogDictionary(byteArrayStr(config.Conf().GetLogDir(config.PS))); rep != 0 {
-			log.Error("init gamma log has err")
-		}
-	})*/
-
 	// init schema make mapping begin
 	indexMapping, err := mapping.Space2Mapping(cfg.Space)
 	if err != nil {
@@ -65,6 +56,7 @@ func New(cfg register.EngineConfig) (engine.Engine, error) {
 
 	table, e := mapping2Table(cfg, indexMapping)
 	if e != nil {
+		cancel()
 		return nil, e
 	}
 
@@ -168,11 +160,6 @@ func (ge *gammaEngine) GetMapping() *mapping.IndexMapping {
 }
 
 func (ge *gammaEngine) Optimize() error {
-	/*if _, err := ge.reader.DocCount(ge.ctx); err != nil {
-		return err
-	} else if int64(u) < 8192 {
-		return fmt.Errorf("doc size:[%d] less than 8192 so can not to index", int64(u))
-	}*/
 	go func() {
 		log.Info("build index:[%d] begin", ge.partitionID)
 		if e1 := ge.BuildIndex(); e1 != nil {
@@ -248,44 +235,10 @@ func (ge *gammaEngine) Close() {
 				log.Info("to close gamma engine success:[%d]", resp)
 			}
 			ge.hasClosed = true
-			log.Info("to close gamma engine end token:[%s] use time:[%d]", flakeUUID, time.Now().Sub(start))
+			log.Info("to close gamma engine end token:[%s] use time:[%d]", flakeUUID, time.Since(start))
 			break
 		}
 	}(closeEngine)
-
-}
-
-func (ge *gammaEngine) autoCreateIndex() {
-	if ge.space.Engine.IndexSize <= 0 {
-		return
-	}
-
-	for {
-		select {
-		case <-ge.ctx.Done():
-			return
-		default:
-		}
-
-		var status gamma.EngineStatus
-		gamma.GetEngineStatus(ge.gamma, &status)
-		s := status.IndexStatus
-		if int(s) == 2 {
-			log.Info("index:[%d] ok", ge.partitionID)
-			break
-		}
-
-		if u, err := ge.reader.DocCount(ge.ctx); err != nil {
-			log.Error("auto create index err :[%s]", err.Error())
-		} else if int64(u) >= ge.space.Engine.IndexSize {
-			if err := ge.Optimize(); err != nil {
-				log.Error("auto create index err :[%s]", err.Error())
-			}
-			break
-		}
-		time.Sleep(1 * time.Second)
-	}
-
 }
 
 func (ge *gammaEngine) SetEngineCfg(config *gamma.Config) error {
