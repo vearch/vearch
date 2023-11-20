@@ -42,11 +42,15 @@ struct IVFFlatModelParams {
   int ncentroids;  // coarse cluster center number
   int nprobe;      // search how many bucket
   DistanceComputeType metric_type;
+  int bucket_init_size; // original size of RTInvertIndex bucket
+  int bucket_max_size; // max size of RTInvertIndex bucket
 
   IVFFlatModelParams() {
     ncentroids = 2048;
     nprobe = 80;
     metric_type = DistanceComputeType::INNER_PRODUCT;
+    bucket_init_size = 1000;
+    bucket_max_size = 1280000;
   }
 
   int Parse(const char *str) {
@@ -83,6 +87,26 @@ struct IVFFlatModelParams {
       }
     }
 
+    int bucket_init_size;
+    int bucket_max_size;
+
+    // -1 as default
+    if (!jp.GetInt("bucket_init_size", bucket_init_size)) {
+      if (bucket_init_size < -1) {
+        LOG(ERROR) << "invalid bucket_init_size =" << bucket_init_size;
+        return -1;
+      }
+      if (bucket_init_size > 0) this->bucket_init_size = bucket_init_size;
+    }
+
+    if (!jp.GetInt("bucket_max_size", bucket_max_size)) {
+      if (bucket_max_size < -1) {
+        LOG(ERROR) << "invalid bucket_max_size =" << bucket_max_size;
+        return -1;
+      }
+      if (bucket_max_size > 0) this->bucket_max_size = bucket_max_size;
+    }
+
     std::string metric_type;
 
     if (!jp.GetString("metric_type", metric_type)) {
@@ -103,7 +127,11 @@ struct IVFFlatModelParams {
   std::string ToString() {
     std::stringstream ss;
     ss << "ncentroids =" << ncentroids << ", ";
-    ss << "nprobe =" << nprobe;
+    ss << "nprobe =" << nprobe << ", ";
+    ss << "metric_type =" << (int)metric_type << ", ";
+    ss << "bucket_init_size =" << bucket_init_size << ", ";
+    ss << "bucket_max_size =" << bucket_max_size;
+
     return ss.str();
   }
 };
@@ -151,7 +179,7 @@ int GammaIndexIVFFlat::Init(const std::string &model_parameters,
 
   rt_invert_index_ptr_ = new realtime::RTInvertIndex(
       this->nlist, this->code_size, raw_vec->VidMgr(), raw_vec->Bitmap(),
-      100000, 12800000);
+      params.bucket_init_size, params.bucket_max_size);
 
   if (this->invlists) {
     delete this->invlists;
@@ -174,8 +202,6 @@ int GammaIndexIVFFlat::Init(const std::string &model_parameters,
   }
   this->nprobe = params.nprobe;
 
-  LOG(INFO) << "d=" << d << ", nlist=" << nlist
-            << ", metric_type=" << metric_type;
   return 0;
 }
 

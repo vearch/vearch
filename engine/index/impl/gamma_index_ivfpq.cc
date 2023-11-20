@@ -784,9 +784,10 @@ void GammaIVFPQIndex::search_preassigned(
         GetInvertedListScanner(store_pairs, metric_type);
     utils::ScopeDeleter1<GammaInvertedListScanner> del(scanner);
     scanner->set_search_context(retrieval_context);
+    int threads_num = n < omp_get_max_threads() ? n : omp_get_max_threads();
 
     if (parallel_mode == 0) {  // parallelize over queries
-#pragma omp for
+#pragma omp parallel for schedule(dynamic) num_threads(threads_num)
       for (int i = 0; i < n; i++) {
         // loop over queries
         const float *xi = vec_applied_q + i * d;
@@ -827,7 +828,9 @@ void GammaIVFPQIndex::search_preassigned(
         init_result(metric_type, recall_num, local_dis.data(),
                     local_idx.data());
 
-#pragma omp for schedule(dynamic)
+        threads_num = nprobe < omp_get_max_threads() ? nprobe : omp_get_max_threads();
+
+#pragma omp parallel for schedule(dynamic) num_threads(threads_num)
         for (int ik = 0; ik < nprobe; ik++) {
           ndis += scan_one_list(
               scanner, keys[i * nprobe + ik], coarse_dis[i * nprobe + ik],

@@ -286,6 +286,23 @@ bool GammaIndexHNSWLIB::Add(int n, const uint8_t *vec) {
   return true;
 }
 
+static double ExtendCoefficient(size_t max_elements, size_t dimension) {
+  double result = 2;
+  if (dimension >= 512) {
+    if (max_elements >= 400 * 10000)
+      result =  1.25;
+    else if (max_elements >= 200 * 10000)
+      result = 1.5;
+  } else {
+    if (max_elements >= 800 * 10000)
+      result =  1.25;
+    else if (max_elements >= 400 * 10000)
+      result = 1.5;
+  }
+
+  return result;
+}
+
 int GammaIndexHNSWLIB::AddVertices(size_t n0, size_t n, const float *x) {
 #ifdef PERFORMANCE_TESTING
   double t0 = utils::getmillisecs();
@@ -295,10 +312,13 @@ int GammaIndexHNSWLIB::AddVertices(size_t n0, size_t n, const float *x) {
   }
 
   while(n0 + n >= max_elements_) {
-    resizeIndex(max_elements_ * 2);
+    resizeIndex(max_elements_ * ExtendCoefficient(max_elements_, vector_->MetaInfo()->Dimension()));
   }
 
-#pragma omp parallel for
+
+  int threads_num = n < (size_t)(omp_get_max_threads() - 1) ? n : (size_t)(omp_get_max_threads() - 1);
+
+#pragma omp parallel for schedule(dynamic) num_threads(threads_num)
   for (size_t i = 0; i < n; ++i) {
     addPoint((const void *)(x + i * d), n0 + i);
   }
