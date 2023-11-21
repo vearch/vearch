@@ -142,8 +142,8 @@ func IsLive(addr string) bool {
 }
 
 // PartitionInfo get partition info about partitionID
-func PartitionInfo(addr string, pid entity.PartitionID) (value *entity.PartitionInfo, err error) {
-	infos, err := _partitionsInfo(addr, pid)
+func PartitionInfo(addr string, pid entity.PartitionID, detail_info bool) (value *entity.PartitionInfo, err error) {
+	infos, err := _partitionsInfo(addr, pid, detail_info)
 	if err != nil {
 		return nil, err
 	}
@@ -152,12 +152,16 @@ func PartitionInfo(addr string, pid entity.PartitionID) (value *entity.Partition
 
 // PartitionInfos get all partition info from server
 func PartitionInfos(addr string) (value []*entity.PartitionInfo, err error) {
-	return _partitionsInfo(addr, 0)
+	return _partitionsInfo(addr, 0, false)
 }
 
 // internal method for partitionInfo and partitionInfos
-func _partitionsInfo(addr string, pid entity.PartitionID) (value []*entity.PartitionInfo, err error) {
+func _partitionsInfo(addr string, pid entity.PartitionID, detail_info bool) (value []*entity.PartitionInfo, err error) {
 	args := &vearchpb.PartitionData{PartitionID: pid}
+	if detail_info {
+		// TODO now use this to judge
+		args.Type = vearchpb.OpType_GET
+	}
 	reply := new(vearchpb.PartitionData)
 	err = Execute(addr, PartitionInfoHandler, args, reply)
 	if err != nil {

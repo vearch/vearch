@@ -897,21 +897,21 @@ int GammaEngine::GetDocsNum() { return max_docid_ - delete_num_; }
 void GammaEngine::GetIndexStatus(EngineStatus &engine_status) {
   engine_status.SetIndexStatus(index_status_);
 
-  long table_mem_bytes = table_->GetMemoryBytes();
-  long vec_mem_bytes = 0, index_mem_bytes = 0;
-  vec_manager_->GetTotalMemBytes(index_mem_bytes, vec_mem_bytes);
+  // long table_mem_bytes = table_->GetMemoryBytes();
+  // long vec_mem_bytes = 0, index_mem_bytes = 0;
+  // vec_manager_->GetTotalMemBytes(index_mem_bytes, vec_mem_bytes);
 
-  long total_mem_b = 0;
+  // long total_mem_b = 0;
   // long dense_b = 0, sparse_b = 0;
   // if (field_range_index_) {
   //   total_mem_b += field_range_index_->MemorySize(dense_b, sparse_b);
   // }
 
-  engine_status.SetTableMem(table_mem_bytes);
-  engine_status.SetIndexMem(index_mem_bytes);
-  engine_status.SetVectorMem(vec_mem_bytes);
-  engine_status.SetFieldRangeMem(total_mem_b);
-  engine_status.SetBitmapMem(docids_bitmap_->BytesSize());
+  // engine_status.SetTableMem(table_mem_bytes);
+  // engine_status.SetIndexMem(index_mem_bytes);
+  // engine_status.SetVectorMem(vec_mem_bytes);
+  // engine_status.SetFieldRangeMem(total_mem_b);
+  // engine_status.SetBitmapMem(docids_bitmap_->BytesSize());
   engine_status.SetDocNum(GetDocsNum());
   engine_status.SetMaxDocID(max_docid_ - 1);
   engine_status.SetMinIndexedNum(vec_manager_->MinIndexedNum());

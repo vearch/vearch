@@ -93,7 +93,7 @@ func (ms *monitorService) Register() {
 	}
 }
 
-func (ms *monitorService) partitionInfo(ctx context.Context, dbName, spaceName string) ([]map[string]interface{}, error) {
+func (ms *monitorService) partitionInfo(ctx context.Context, dbName string, spaceName string, detail string) ([]map[string]interface{}, error) {
 	dbNames := make([]string, 0)
 	if dbName != "" {
 		dbNames = strings.Split(dbName, ",")
@@ -115,6 +115,11 @@ func (ms *monitorService) partitionInfo(ctx context.Context, dbName, spaceName s
 	var errors []string
 
 	spaceNames := strings.Split(spaceName, ",")
+
+	detail_info := false
+	if detail == "true" {
+		detail_info = true
+	}
 
 	resultInsideDbs := make([]map[string]interface{}, 0)
 	for i := range dbNames {
@@ -179,7 +184,7 @@ func (ms *monitorService) partitionInfo(ctx context.Context, dbName, spaceName s
 					continue
 				}
 
-				partitionInfo, err := client.PartitionInfo(server.RpcAddr(), p.Id)
+				partitionInfo, err := client.PartitionInfo(server.RpcAddr(), p.Id, detail_info)
 				if err != nil {
 					errors = append(errors, fmt.Sprintf("query space:[%s] server:[%d] partition:[%d] info err :[%s]", spaceName, nodeID, spacePartition.Id, err.Error()))
 					partitionInfo = &entity.PartitionInfo{}

@@ -26,6 +26,7 @@ import (
 	"github.com/vearch/vearch/engine/sdk/go/gamma"
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/proto/vearchpb"
+	"github.com/vearch/vearch/ps/engine"
 	"github.com/vearch/vearch/util/cbjson"
 	"github.com/vearch/vearch/util/errutil"
 	"github.com/vearch/vearch/util/log"
@@ -190,28 +191,31 @@ func (pih *PartitionInfoHandler) Execute(ctx context.Context, req *vearchpb.Part
 
 	pis := make([]*entity.PartitionInfo, 0, 1)
 	for _, store := range stores {
-		docNum, err := store.GetEngine().Reader().DocCount(ctx)
+		status := &engine.EngineStatus{}
+		err := store.GetEngine().EngineStatus(status)
 		if err != nil {
 			return err
 		}
 
-		size, err := store.GetEngine().Reader().Capacity(ctx)
-		if err != nil {
-			return err
+		value := &entity.PartitionInfo{}
+		value.PartitionID = pid
+		value.DocNum = uint64(status.DocNum)
+		value.Unreachable = store.GetUnreachable(uint64(pid))
+		value.Status = store.GetPartition().GetStatus()
+		value.IndexStatus = int(status.IndexStatus)
+		value.IndexNum = int(status.MinIndexedNum)
+		value.MaxDocid = int(status.MaxDocid)
+		if req.Type == vearchpb.OpType_GET {
+			value.Path = store.GetPartition().Path
+			value.RaftStatus = store.Status()
+
+			size, err := store.GetEngine().Reader().Capacity(ctx)
+			if err != nil {
+				return err
+			}
+			value.Size = size
 		}
-		index_status, index_num, max_docid := store.GetEngine().IndexInfo()
-		value := &entity.PartitionInfo{
-			PartitionID: pid,
-			DocNum:      docNum,
-			Size:        size,
-			Path:        store.GetPartition().Path,
-			Unreachable: store.GetUnreachable(uint64(pid)),
-			Status:      store.GetPartition().GetStatus(),
-			RaftStatus:  store.Status(),
-			IndexStatus: index_status,
-			IndexNum:    index_num,
-			MaxDocid:    max_docid,
-		}
+
 		pis = append(pis, value)
 	}
 	if reply.Data, err = cbjson.Marshal(pis); err != nil {

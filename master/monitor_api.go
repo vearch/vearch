@@ -57,8 +57,9 @@ func (m *monitorApi) stats(c *gin.Context) {
 func (m *monitorApi) health(c *gin.Context) {
 	dbName := c.Query("db")
 	spaceName := c.Query("space")
+	detail := c.Query("detail")
 
-	result, err := m.monitorService.partitionInfo(c, dbName, spaceName)
+	result, err := m.monitorService.partitionInfo(c, dbName, spaceName, detail)
 	if err != nil {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 		return
