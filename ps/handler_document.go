@@ -62,7 +62,6 @@ func (lp *limitPlugin) HandleConnAccept(conn net.Conn) (net.Conn, bool) {
 }
 
 func ExportToRpcHandler(server *Server) {
-
 	initHandler := &InitHandler{server: server}
 	psErrorChange := psErrorChange(server)
 
@@ -232,7 +231,6 @@ func (handler *UnaryHandler) execute(ctx context.Context, req *vearchpb.Partitio
 			return
 		}
 	}
-	return
 }
 
 func getDocuments(ctx context.Context, store PartitionStore, items []*vearchpb.Item, getByDocId bool) {

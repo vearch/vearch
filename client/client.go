@@ -362,27 +362,26 @@ func (r *routerRequest) Execute() []*vearchpb.Item {
 
 			if normalIsOrNot && len(normalField) > 0 {
 				for _, item := range d.Items {
-					if item.Doc != nil {
-						for _, field := range item.Doc.Fields {
-							if field != nil && field.Name != "" && normalField[field.Name] != "" {
-								float32s, _, err := cbbytes.ByteToVectorForFloat32(field.Value)
-								if err == nil {
-									if err := util.Normalization(float32s); err != nil {
-										panic(err.Error())
-									} else {
-										bs, err := cbbytes.VectorToByte(float32s, "")
-										if err != nil {
-											log.Error("processVector VectorToByte error: %v", err)
-											panic(err.Error())
-										} else {
-											field.Value = bs
-										}
-									}
-								} else {
-									panic(err.Error())
-								}
-							}
+					if item.Doc == nil {
+						continue
+					}
+					for _, field := range item.Doc.Fields {
+						if field == nil || field.Name == "" || normalField[field.Name] == "" {
+							continue
 						}
+						float32s, _, err := cbbytes.ByteToVectorForFloat32(field.Value)
+						if err != nil {
+							log.Panic(err.Error())
+						}
+						if err := util.Normalization(float32s); err != nil {
+							log.Panic(err.Error())
+						}
+						bs, err := cbbytes.VectorToByte(float32s, "")
+						if err != nil {
+							log.Error("processVector VectorToByte error: %v", err)
+							log.Panic(err.Error())
+						}
+						field.Value = bs
 					}
 				}
 			}
@@ -917,6 +916,7 @@ func quickSort(items []*vearchpb.ResultItem, sortValueMap map[string][]sortorder
 		quickSort(items, sortValueMap, pivot+1, high, so, index)
 	}
 }
+
 func partition(arr []*vearchpb.ResultItem, sortValueMap map[string][]sortorder.SortValue, low, high int, so sortorder.SortOrder, index string) int {
 	var pivot = arr[low]
 	var pivotSort = sortValueMap[pivot.PKey+"_"+index]
@@ -1011,7 +1011,6 @@ func (r *routerRequest) SearchByPartitions(searchReq *vearchpb.SearchRequest) *r
 			d = &vearchpb.PartitionData{PartitionID: partitionID, MessageID: r.GetMsgID(), SearchRequest: searchReq}
 			sendMap[partitionID] = d
 		}
-
 	}
 	r.sendMap = sendMap
 	return r

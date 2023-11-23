@@ -40,37 +40,38 @@ type PartitionForSearch struct {
 	DBName, SpaceName string
 }
 
-//partition/[id]:[body]
+// partition/[id]:[body]
 type Partition struct {
-	Id      PartitionID `json:"id,omitempty"`
-	SpaceId SpaceID     `json:"space_id,omitempty"`
-	DBId    DBID        `json:"db_id,omitempty"`
-	//Slot stores the lower limit of the slot range
-	Slot        SlotID   `json:"partition_slot"`
-	LeaderID    NodeID   `json:"leader_name,omitempty"`
-	Replicas    []NodeID `json:"replicas,omitempty"` //leader in replicas
-	UpdateTime  int64    `json:"update_time,omitempty"`
-	Path        string   `json:"-"`
-	status      PartitionStatus
-	lock        sync.RWMutex
-	ReStatusMap map[uint64]uint32 `json:"status,omitempty"` //leader in replicas
+	Id                PartitionID `json:"id,omitempty"`
+	SpaceId           SpaceID     `json:"space_id,omitempty"`
+	DBId              DBID        `json:"db_id,omitempty"`
+	Slot              SlotID      `json:"partition_slot"` // Slot stores the lower limit of the slot range
+	LeaderID          NodeID      `json:"leader_name,omitempty"`
+	Replicas          []NodeID    `json:"replicas,omitempty"` // leader in replicas
+	UpdateTime        int64       `json:"update_time,omitempty"`
+	AddNum            int64       `json:"add_num,omitempty"`
+	ResourceExhausted bool        `json:"resourceExhausted"`
+	Path              string      `json:"-"`
+	status            PartitionStatus
+	lock              sync.RWMutex
+	ReStatusMap       map[uint64]uint32 `json:"status,omitempty"` // leader in replicas
 }
 
-//this is safe method for set status
+// this is safe method for set status
 func (p *Partition) SetStatus(s PartitionStatus) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 	p.status = s
 }
 
-//this is safe method for get status
+// this is safe method for get status
 func (p *Partition) GetStatus() PartitionStatus {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
 	return p.status
 }
 
-//get partition from every partitions
+// get partition from every partitions
 type PartitionInfo struct {
 	PartitionID PartitionID       `json:"pid,omitempty"`
 	DocNum      uint64            `json:"doc_num,omitempty"`

@@ -300,7 +300,6 @@ func (s *Server) registerMaster(leader entity.NodeID, pid entity.PartitionID) {
 
 // change replicas status
 func (s *Server) changeReplicas(pStatus *raftstore.ReplicasStatusEntry) {
-
 	var err error
 	errutil.CatchError(&err)
 

@@ -35,7 +35,6 @@ import (
 )
 
 func ExportToRpcAdminHandler(server *Server) {
-
 	initAdminHandler := &InitAdminHandler{server: server}
 
 	psErrorChange := psErrorChange(server)
@@ -73,7 +72,6 @@ func ExportToRpcAdminHandler(server *Server) {
 	if err := server.rpcServer.RegisterName(handler.NewChain(client.EngineCfgHandler, handler.DefaultPanicHandler, nil, initAdminHandler, &EngineCfgHandler{server: server}), ""); err != nil {
 		panic(err)
 	}
-
 }
 
 type InitAdminHandler struct {

@@ -16,11 +16,13 @@ package raftstore
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/proto/vearchpb"
 	"github.com/vearch/vearch/util/cbjson"
 	"github.com/vearch/vearch/util/log"
+	"github.com/vearch/vearch/util/runtime/os"
 	"github.com/vearch/vearch/util/vearchlog"
 )
 
@@ -83,6 +85,20 @@ func (s *Store) Write(ctx context.Context, request *vearchpb.DocCmd) (err error)
 		return err
 	}
 
+	if request.Type == vearchpb.OpType_BULK || request.Type == vearchpb.OpType_REPLACE {
+		if s.Partition.ResourceExhausted {
+			err = fmt.Errorf("ResourceExhausted")
+			return err
+		}
+		s.Partition.AddNum += 1
+		if s.Partition.AddNum%10000 == 0 {
+			s.Partition.ResourceExhausted, err = os.CheckResource(s.RaftPath)
+			if s.Partition.ResourceExhausted {
+				return err
+			}
+		}
+	}
+
 	raftCmd := vearchpb.CreateRaftCommand()
 	raftCmd.Type = vearchpb.CmdType_WRITE
 	raftCmd.WriteCommand = request
@@ -96,7 +112,7 @@ func (s *Store) Write(ctx context.Context, request *vearchpb.DocCmd) (err error)
 		log.Error("raft cmd close err : %s", e.Error())
 	}
 
-	//sumbit raft
+	// sumbit raft
 	err = s.RaftSubmit(data)
 	if err != nil {
 		return err
@@ -119,8 +135,14 @@ func (s *Store) RaftSubmit(data []byte) (err error) {
 }
 
 func (s *Store) Flush(ctx context.Context) error {
+	var err error
 	if err := s.checkWritable(); err != nil {
 		return err
+	}
+
+	s.Partition.ResourceExhausted, err = os.CheckResource(s.RaftPath)
+	if err != nil {
+		log.Warn(err.Error())
 	}
 	raftCmd := vearchpb.CreateRaftCommand()
 	raftCmd.Type = vearchpb.CmdType_FLUSH

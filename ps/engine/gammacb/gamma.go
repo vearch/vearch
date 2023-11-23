@@ -162,8 +162,9 @@ func (ge *gammaEngine) GetMapping() *mapping.IndexMapping {
 func (ge *gammaEngine) Optimize() error {
 	go func() {
 		log.Info("build index:[%d] begin", ge.partitionID)
-		if e1 := ge.BuildIndex(); e1 != nil {
-			log.Error("build index:[%d] has err ", ge.partitionID, e1.Error())
+		if e := ge.BuildIndex(); e != nil {
+			log.Error("build index:[%d] has err %v", ge.partitionID, e.Error())
+			return
 		}
 		log.Info("build index:[%d] end", ge.partitionID)
 	}()
