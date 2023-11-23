@@ -1099,6 +1099,9 @@ int GammaEngine::Load() {
   int field_num = table_->FieldsNum();
   for (int i = 0; i < max_docid_; ++i) {
     for (int j = 0; j < field_num; ++j) {
+      while (field_range_index_->PendingTasks() > 100000) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      }
       field_range_index_->Add(i, j);
     }
   }

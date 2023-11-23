@@ -7,16 +7,16 @@
 
 #pragma once
 
+#include <tbb/concurrent_queue.h>
 #include <map>
 #include <string>
 #include <vector>
-#include <tbb/concurrent_queue.h>
 
 #include "concurrentqueue/blockingconcurrentqueue.h"
 #include "range_query_result.h"
 #include "table.h"
 
-#define    STR_MAX_INDEX_LEN    1024
+#define STR_MAX_INDEX_LEN 1024
 
 namespace tig_gamma {
 
@@ -60,6 +60,8 @@ class MultiFieldsRangeIndex {
 
   // for debug
   long MemorySize(long &dense, long &sparse);
+
+  int PendingTasks() { return field_operate_q_->size(); }
 
  private:
   int Intersect(std::vector<RangeQueryResult> &results, int shortest_idx,
