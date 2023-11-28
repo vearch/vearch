@@ -648,7 +648,9 @@ Two methods are supported: one is to obtain documents directly through primary k
 and the other is to obtain corresponding documents based on filter conditions.
 If partition_id is set, obtain the corresponding document on the specified partition.
 At this time, the meaning of document_id is the document number on this partition.
-Usually this is used to obtain the full data of the cluster.
+Document_id can be [0, max_docid] of the specify partition and max_docid and partition
+info can get by interface of cluter/health. Usually this is used to obtain the full data
+of the cluster.
 
 request format:
 ````$xslt
@@ -958,7 +960,8 @@ curl -XGET {{ROUTER}}/test_vector_db/vector_space/id
 ````
 
 ### search document by id on specify partition
-use this to get all data of the cluster, id can be [0, max_doc_id of the specify partition]
+use this to get all data of the cluster, id can be [0, max_docid] of the specify partition
+and max_docid and partition info can get by interface of cluter/health
 ````$xslt
 curl -XGET {{ROUTER}}/test_vector_db/vector_space/$partition_id/id
 ````

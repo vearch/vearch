@@ -798,7 +798,7 @@ int VectorManager::Load(const std::vector<std::string> &index_dirs,
           return -1;
         }
         iter.second->indexed_count_ = load_num;
-        LOG(INFO) << "vector [" << iter.first << "] load gamma index success!";
+        LOG(INFO) << "vector [" << iter.first << "] load gamma index success and load_num=" << load_num;
       }
     }
   }

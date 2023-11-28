@@ -746,8 +746,7 @@ int GammaEngine::Update(int doc_id, std::vector<struct Field> &fields_table,
     if (is_equal[i] == true) {
       continue;
     }
-    LOG(INFO) << "value of field.name[" << field.name
-              << "] is changed, if has index it is updated";
+
     int idx = table_->GetAttrIdx(field.name);
     field_range_index_->Delete(doc_id, idx);
   }
