@@ -186,9 +186,8 @@ int ReadInvertedLists(faiss::IOReader *f,
         rt_data->cur_invert_ptr_->ExtendIDs();
       }
       rt_data->cur_invert_ptr_->vid_bucket_no_pos_[ids[pos]] = bno << 32 | pos;
-      indexed_vec_count -= rt_data->cur_invert_ptr_->deleted_nums_[bno];
     }
-
+    indexed_vec_count -= rt_data->cur_invert_ptr_->deleted_nums_[bno];
     rt_data->cur_invert_ptr_->retrieve_idx_pos_[bno] = sizes[bno];
   }
   return 0;

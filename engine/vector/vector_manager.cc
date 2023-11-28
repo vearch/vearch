@@ -789,7 +789,7 @@ int VectorManager::Load(const std::vector<std::string> &index_dirs,
     for (const auto &iter : vector_indexes_) {
       int load_num = iter.second->Load(index_dirs[0]);
       if (load_num < 0) {
-        LOG(ERROR) << "vector [" << iter.first << "] load gamma index failed!";
+        LOG(ERROR) << "vector [" << iter.first << "] load gamma index " << index_dirs[0] << " failed, load_num: " << load_num;
         return -1;
       } else {
         if (load_num > min_vec_num) {
