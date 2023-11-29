@@ -879,7 +879,7 @@ func doLogPrintSwitchParse(r *http.Request) (printSwitch bool, err error) {
 	}{}
 	err = json.Unmarshal(reqBody, &temp)
 	if err != nil {
-		err = fmt.Errorf("doLogPrintSwitchParse param convert json err: [%s]", string(reqBody))
+		err = fmt.Errorf("doLogPrintSwitchParse param convert json %s err: %v", string(reqBody), err)
 		return false, err
 	}
 	return temp.PrintSwitch, nil
@@ -899,7 +899,7 @@ func documentHeadParse(r *http.Request) (docRequest *request.DocumentRequest, db
 	docRequest = &request.DocumentRequest{}
 	err = cbjson.Unmarshal(reqBody, docRequest)
 	if err != nil {
-		err = fmt.Errorf("document param convert json err: [%s]", string(reqBody))
+		err = fmt.Errorf("documentRequest param convert json %s err: %v", string(reqBody), err)
 		return nil, "", "", err
 	}
 
@@ -952,7 +952,7 @@ func documentRequestParse(r *http.Request, searchReq *vearchpb.SearchRequest) (s
 	searchDoc = &request.SearchDocumentRequest{}
 	err = cbjson.Unmarshal(reqBody, searchDoc)
 	if err != nil {
-		err = fmt.Errorf("query param convert json err: [%s]", string(reqBody))
+		err = fmt.Errorf("SearchDocumentRequest param convert json %s err: %v", string(reqBody), err)
 		return nil, nil, nil, "", err
 	}
 
@@ -983,4 +983,23 @@ func documentRequestVectorParse(space *entity.Space, searchDoc *request.SearchDo
 	}
 	err = parseQuery(queryByte, searchReq, space)
 	return
+}
+
+func IndexRequestParse(r *http.Request) (index *request.IndexRequest, err error) {
+	reqBody, err := netutil.GetReqBody(r)
+	if err != nil {
+		return nil, err
+	}
+	if len(reqBody) == 0 {
+		err = fmt.Errorf("index param is null")
+		return nil, err
+	}
+
+	index = &request.IndexRequest{}
+	err = cbjson.Unmarshal(reqBody, index)
+	if err != nil {
+		err = fmt.Errorf("index param convert json %s err: %v", string(reqBody), err)
+		return nil, err
+	}
+	return index, nil
 }

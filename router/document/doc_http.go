@@ -125,9 +125,9 @@ func (handler *DocumentHandler) ExportInterfacesToServer() error {
 	handler.httpServer.HandlesMethods([]string{http.MethodPost}, "/document/search", []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleDocumentSearch}, nil)
 	handler.httpServer.HandlesMethods([]string{http.MethodPost}, "/document/delete", []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleDocumentDelete}, nil)
 
-	// index TODO
-	// handler.httpServer.HandlesMethods([]string{http.MethodPost}, "/index/flush", []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleIndexFlush}, nil)
-	// handler.httpServer.HandlesMethods([]string{http.MethodPost}, "/index/forcemerge", []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleIndexForcemerge}, nil)
+	// index
+	handler.httpServer.HandlesMethods([]string{http.MethodPost}, "/index/flush", []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleIndexFlush}, nil)
+	handler.httpServer.HandlesMethods([]string{http.MethodPost}, "/index/forcemerge", []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleIndexForceMerge}, nil)
 	// handler.httpServer.HandlesMethods([]string{http.MethodPost}, "/index/rebuild", []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleIndexRebuild}, nil)
 
 	return nil
@@ -942,9 +942,13 @@ func (handler *DocumentHandler) handleDocumentUpsert(ctx context.Context, w http
 	args.Head.DbName = dbName
 	args.Head.SpaceName = spaceName
 	space, err := handler.client.Space(ctx, args.Head.DbName, args.Head.SpaceName)
-	if space == nil || err != nil {
+	if space == nil {
 		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", fmt.Sprintf("dbName:%s or spaceName:%s param not build db or space", args.Head.DbName, args.Head.SpaceName))
-		return ctx, true
+		return ctx, false
+	}
+	if err != nil {
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
+		return ctx, false
 	}
 
 	err = documentParse(r, docRequest, space, args)
@@ -989,7 +993,7 @@ func (handler *DocumentHandler) handleDocumentQuery(ctx context.Context, w http.
 		return ctx, false
 	}
 	if err != nil {
-		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "query Cache space null")
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 		return ctx, false
 	}
 
@@ -1100,7 +1104,7 @@ func (handler *DocumentHandler) handleDocumentSearch(ctx context.Context, w http
 		return ctx, false
 	}
 	if err != nil {
-		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "query Cache space null")
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 		return ctx, false
 	}
 
@@ -1221,7 +1225,7 @@ func (handler *DocumentHandler) handleDocumentDelete(ctx context.Context, w http
 		return ctx, true
 	}
 	if err != nil {
-		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "query Cache space null")
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 		return ctx, false
 	}
 
@@ -1279,6 +1283,79 @@ func (handler *DocumentHandler) handleDocumentDelete(ctx context.Context, w http
 
 	log.Debug("handleDocumentDelete cost :%f", serviceCost)
 	shardsBytes, err := deleteByQueryResult(delByQueryResp)
+	if err != nil {
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
+		return ctx, true
+	}
+
+	resp.SendJsonBytes(ctx, w, shardsBytes)
+	return ctx, true
+}
+
+// handleIndexFlush
+func (handler *DocumentHandler) handleIndexFlush(ctx context.Context, w http.ResponseWriter, r *http.Request, params netutil.UriParams) (context.Context, bool) {
+	startTime := time.Now()
+	defer monitor.Profiler("handleIndexFlush", startTime)
+
+	args := &vearchpb.FlushRequest{}
+	args.Head = setRequestHeadParams(params, r)
+
+	indexRequest, err := IndexRequestParse(r)
+	if err != nil {
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
+		return ctx, false
+	}
+
+	args.Head.DbName = indexRequest.DbName
+	args.Head.SpaceName = indexRequest.SpaceName
+
+	space, err := handler.docService.getSpace(ctx, args.Head.DbName, args.Head.SpaceName)
+	if space == nil {
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", fmt.Sprintf("dbName:%s or spaceName:%s param not build db or space", args.Head.DbName, args.Head.SpaceName))
+		return ctx, true
+	}
+	if err != nil {
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
+		return ctx, false
+	}
+	flushResponse := handler.docService.flush(ctx, args)
+	shardsBytes, err := FlushToContent(flushResponse.Shards)
+	if err != nil {
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
+		return ctx, true
+	}
+
+	resp.SendJsonBytes(ctx, w, shardsBytes)
+	return ctx, true
+}
+
+// handleIndexForceMerge build index for gpu
+func (handler *DocumentHandler) handleIndexForceMerge(ctx context.Context, w http.ResponseWriter, r *http.Request, params netutil.UriParams) (context.Context, bool) {
+	startTime := time.Now()
+	defer monitor.Profiler("handleIndexForceMerge", startTime)
+	args := &vearchpb.ForceMergeRequest{}
+	args.Head = setRequestHeadParams(params, r)
+
+	indexRequest, err := IndexRequestParse(r)
+	if err != nil {
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
+		return ctx, false
+	}
+
+	args.Head.DbName = indexRequest.DbName
+	args.Head.SpaceName = indexRequest.SpaceName
+
+	space, err := handler.docService.getSpace(ctx, args.Head.DbName, args.Head.SpaceName)
+	if space == nil {
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", fmt.Sprintf("dbName:%s or spaceName:%s param not build db or space", args.Head.DbName, args.Head.SpaceName))
+		return ctx, true
+	}
+	if err != nil {
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
+	}
+
+	forceMergeResponse := handler.docService.forceMerge(ctx, args)
+	shardsBytes, err := ForceMergeToContent(forceMergeResponse.Shards)
 	if err != nil {
 		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 		return ctx, true
