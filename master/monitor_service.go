@@ -268,10 +268,10 @@ func (ms *monitorService) monitorCallBack(masterMonitor *monitoring.MasterMonito
 	stats := mserver.NewServerStats()
 
 	masterMonitor.Mem.WithLabelValues("master", ip).Set(stats.Mem.UsedPercent)
-	masterMonitor.Fs.WithLabelValues("master", ip).Set(float64(stats.Fs.Free))
+	masterMonitor.FS.WithLabelValues("master", ip).Set(float64(stats.Fs.Free))
 	masterMonitor.NetIn.WithLabelValues("master", ip).Set(float64(stats.Net.InPerSec))
 	masterMonitor.NetOut.WithLabelValues("master", ip).Set(float64(stats.Net.OutPerSec))
-	masterMonitor.Gc.WithLabelValues("master", ip).Set(float64(stats.GC.GcCount))
+	masterMonitor.GC.WithLabelValues("master", ip).Set(float64(stats.GC.GcCount))
 	masterMonitor.Routines.WithLabelValues("master", ip).Set(float64(stats.GC.Goroutines))
 	servers, err := ms.masterService.Master().QueryServers(ctx)
 	if err != nil {
@@ -306,12 +306,12 @@ func (ms *monitorService) monitorCallBack(masterMonitor *monitoring.MasterMonito
 	for {
 		select {
 		case s := <-statsChan:
-			masterMonitor.Cpu.WithLabelValues("ps", s.Ip).Set(1 - s.Cpu.IdlePercent)
+			masterMonitor.CPU.WithLabelValues("ps", s.Ip).Set(1 - s.Cpu.IdlePercent)
 			masterMonitor.Mem.WithLabelValues("ps", s.Ip).Set(s.Mem.UsedPercent)
-			masterMonitor.Fs.WithLabelValues("ps", s.Ip).Set(float64(s.Fs.Free))
+			masterMonitor.FS.WithLabelValues("ps", s.Ip).Set(float64(s.Fs.Free))
 			masterMonitor.NetIn.WithLabelValues("ps", s.Ip).Set(float64(s.Net.InPerSec))
 			masterMonitor.NetOut.WithLabelValues("ps", s.Ip).Set(float64(s.Net.OutPerSec))
-			masterMonitor.Gc.WithLabelValues("ps", s.Ip).Set(float64(s.GC.GcCount))
+			masterMonitor.GC.WithLabelValues("ps", s.Ip).Set(float64(s.GC.GcCount))
 			masterMonitor.Routines.WithLabelValues("ps", s.Ip).Set(float64(s.GC.Goroutines))
 
 			masterMonitor.PartitionNum.WithLabelValues("ps", s.Ip).Set(float64(len(s.PartitionInfos)))
@@ -376,5 +376,5 @@ out:
 		masterMonitor.SpaceSize.WithLabelValues(dbMap[space.DBId], space.Name, cast.ToString(space.Id)).Set(float64(value))
 	}
 
-	masterMonitor.Cpu.WithLabelValues("master", ip).Set(1 - stats.Cpu.IdlePercent) //set it end  so changed
+	masterMonitor.CPU.WithLabelValues("master", ip).Set(1 - stats.Cpu.IdlePercent) //set it end  so changed
 }

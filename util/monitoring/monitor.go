@@ -1,3 +1,17 @@
+// Copyright 2019 The Vearch Authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+// implied. See the License for the specific language governing
+// permissions and limitations under the License.
+
 package monitoring
 
 import (
@@ -14,43 +28,42 @@ import (
 var masterCallBack func(masterMonitor *MasterMonitor)
 
 type MasterMonitor struct {
-	Cpu      *prometheus.GaugeVec
-	Mem      *prometheus.GaugeVec
-	Fs       *prometheus.GaugeVec
-	NetIn    *prometheus.GaugeVec
-	NetOut   *prometheus.GaugeVec
-	Gc       *prometheus.GaugeVec
-	Routines *prometheus.GaugeVec
+	CPU       *prometheus.GaugeVec
+	Mem       *prometheus.GaugeVec
+	FS        *prometheus.GaugeVec
+	NetIn     *prometheus.GaugeVec
+	NetOut    *prometheus.GaugeVec
+	GC        *prometheus.GaugeVec
+	Routines  *prometheus.GaugeVec
 
-	//all has
+	// all has
 	PartitionNum *prometheus.GaugeVec
 
-	//schema num
+	// schema num
 	ServerNum prometheus.Gauge
 	DBNum     prometheus.Gauge
 	SpaceNum  prometheus.Gauge
 	SpaceDoc  *prometheus.GaugeVec
 	SpaceSize *prometheus.GaugeVec
 
-	//ps value
+	// ps value
 	PSLeaderNum     *prometheus.GaugeVec
 	PSPartitionSize *prometheus.GaugeVec
 	PSPartitionDoc  *prometheus.GaugeVec
 }
 
 func RegisterMaster(call func(masterMonitor *MasterMonitor)) {
-
 	masterCallBack = call
 
 	mm := &MasterMonitor{
-		Cpu:          newGaugeVec("cpu", "cpu", "type", "ip"),
+		CPU:          newGaugeVec("cpu", "cpu", "type", "ip"),
 		Mem:          newGaugeVec("mem", "memory", "type", "ip"),
-		Fs:           newGaugeVec("fs", "file disk", "type", "ip"),
+		FS:           newGaugeVec("fs", "file disk", "type", "ip"),
 		NetIn:        newGaugeVec("net_in", "net in per second", "type", "ip"),
 		NetOut:       newGaugeVec("net_out", "net out per second", "type", "ip"),
-		Gc:           newGaugeVec("gc", "go gc", "type", "ip"),
+		GC:           newGaugeVec("gc", "go gc", "type", "ip"),
 		Routines:     newGaugeVec("routines", "go routines", "type", "ip"),
-		ServerNum:    newGauge("serverNum", "server number"),
+		ServerNum:    newGauge("server_num", "server number"),
 		DBNum:        newGauge("db_num", "database number"),
 		SpaceNum:     newGauge("space_num", "space number"),
 		SpaceDoc:     newGaugeVec("space_doc", "space document number", "db_name", "space_name", "space_id"),
@@ -63,7 +76,7 @@ func RegisterMaster(call func(masterMonitor *MasterMonitor)) {
 	}
 
 	registry := prometheus.NewPedanticRegistry()
-	registry.MustRegister(mm.Cpu, mm.Mem, mm.Fs, mm.NetIn, mm.NetOut, mm.Gc, mm.Routines, mm.ServerNum, mm.DBNum, mm.SpaceNum, mm.SpaceDoc, mm.SpaceSize, mm.PartitionNum)
+	registry.MustRegister(mm.CPU, mm.Mem, mm.FS, mm.NetIn, mm.NetOut, mm.GC, mm.Routines, mm.ServerNum, mm.DBNum, mm.SpaceNum, mm.SpaceDoc, mm.SpaceSize, mm.PartitionNum)
 	registry.MustRegister(mm.PSLeaderNum, mm.PSPartitionSize, mm.PSPartitionDoc)
 
 	go func() {
@@ -104,7 +117,6 @@ func newGaugeVec(Name, help string, labels ...string) *prometheus.GaugeVec {
 		Name: Name,
 		Help: help,
 	}, labels)
-
 }
 
 func newGauge(Name, help string) prometheus.Gauge {
@@ -112,7 +124,6 @@ func newGauge(Name, help string) prometheus.Gauge {
 		Name: Name,
 		Help: help,
 	})
-
 }
 
 func ToContent() {

@@ -49,6 +49,7 @@ var once sync.Once
 type MonitorService struct {
 	summaryDesc  *prometheus.Desc // summary
 	dbDesc       *prometheus.Desc // gauge
+	diskDesc     *prometheus.Desc // gauge
 	mutex        sync.Mutex
 	masterClient *client.Client
 	etcdServer   *etcdserver.EtcdServer
@@ -87,6 +88,10 @@ func NewMetricCollector(masterClient *client.Client, etcdServer *etcdserver.Etcd
 			"vearch_db_info",
 			"vearch database info",
 			[]string{"metric", "tag1", "tag2"}, nil),
+		diskDesc: prometheus.NewDesc(
+			"vearch_disk_stat",
+			"vearch disk stat",
+			[]string{"metric", "ip"}, nil),
 	}
 }
 
@@ -94,6 +99,7 @@ func NewMetricCollector(masterClient *client.Client, etcdServer *etcdserver.Etcd
 func (collector *MonitorService) Describe(ch chan<- *prometheus.Desc) {
 	ch <- collector.summaryDesc
 	ch <- collector.dbDesc
+	ch <- collector.diskDesc
 }
 
 // current node is master
@@ -156,20 +162,20 @@ func (ms *MonitorService) Collect(ch chan<- prometheus.Metric) {
 		log.Error("got server by prefix err:[%s]", err.Error())
 	}
 
-	ch <- prometheus.MustNewConstMetric(ms.dbDesc, prometheus.CounterValue, float64(len(servers)), "ServerNum", "*", "*")
+	ch <- prometheus.MustNewConstMetric(ms.dbDesc, prometheus.CounterValue, float64(len(servers)), "server_num", "*", "*")
 
 	dbs, err := ms.masterClient.Master().QueryDBs(ctx)
 	if err != nil {
 		log.Error("got db by prefix err:[%s]", err.Error())
 	}
 
-	ch <- prometheus.MustNewConstMetric(ms.dbDesc, prometheus.CounterValue, float64(len(dbs)), "DBNum", "*", "*")
+	ch <- prometheus.MustNewConstMetric(ms.dbDesc, prometheus.CounterValue, float64(len(dbs)), "db_num", "*", "*")
 	spaces, err := ms.masterClient.Master().QuerySpacesByKey(ctx, entity.PrefixSpace)
 	if err != nil {
 		log.Error("got space by prefix err:[%s]", err.Error())
 	}
 
-	ch <- prometheus.MustNewConstMetric(ms.dbDesc, prometheus.CounterValue, float64(len(spaces)), "SpaceNum", "*", "*")
+	ch <- prometheus.MustNewConstMetric(ms.dbDesc, prometheus.CounterValue, float64(len(spaces)), "space_num", "*", "*")
 
 	statsChan := make(chan *mserver.ServerStats, len(servers))
 	for _, s := range servers {
@@ -188,7 +194,11 @@ func (ms *MonitorService) Collect(ch chan<- prometheus.Metric) {
 	for {
 		select {
 		case s := <-statsChan:
-			ch <- prometheus.MustNewConstMetric(ms.dbDesc, prometheus.CounterValue, float64(len(spaces)), "SpaceNum", s.Ip, "*")
+			ch <- prometheus.MustNewConstMetric(ms.dbDesc, prometheus.CounterValue, float64(len(spaces)), "space_num", s.Ip, "*")
+			ch <- prometheus.MustNewConstMetric(ms.diskDesc, prometheus.CounterValue, float64(s.Fs.Total), "disk_total", s.Ip)
+			ch <- prometheus.MustNewConstMetric(ms.diskDesc, prometheus.CounterValue, float64(s.Fs.Free), "disk_free", s.Ip)
+			ch <- prometheus.MustNewConstMetric(ms.diskDesc, prometheus.CounterValue, float64(s.Fs.Used), "disk_used", s.Ip)
+			ch <- prometheus.MustNewConstMetric(ms.diskDesc, prometheus.CounterValue, float64(s.Fs.UsedPercent), "disk_used_percent", s.Ip)
 			leaderNum := float64(0)
 			for _, p := range s.PartitionInfos {
 				if p.RaftStatus == nil {
@@ -198,7 +208,7 @@ func (ms *MonitorService) Collect(ch chan<- prometheus.Metric) {
 					leaderNum++
 				}
 			}
-			ch <- prometheus.MustNewConstMetric(ms.dbDesc, prometheus.CounterValue, float64(leaderNum), "leaderNum", s.Ip, "*")
+			ch <- prometheus.MustNewConstMetric(ms.dbDesc, prometheus.CounterValue, float64(leaderNum), "leader_num", s.Ip, "*")
 			result = append(result, s)
 		case <-ctx.Done():
 			log.Error("monitor timeout")
@@ -238,23 +248,23 @@ func (ms *MonitorService) Collect(ch chan<- prometheus.Metric) {
 			if p.RaftStatus.Leader == p.RaftStatus.NodeID {
 				partitionNum++
 				docNumMap[spacePartitionIDMap[p.PartitionID]] += p.DocNum
-				ch <- prometheus.MustNewConstMetric(ms.dbDesc, prometheus.CounterValue, float64(p.DocNum), "PartitionDoc", p.Ip, cast.ToString(p.PartitionID))
-				ch <- prometheus.MustNewConstMetric(ms.dbDesc, prometheus.CounterValue, float64(p.Size), "PartitionSize", p.Ip, cast.ToString(p.PartitionID))
+				ch <- prometheus.MustNewConstMetric(ms.dbDesc, prometheus.CounterValue, float64(p.DocNum), "partition_doc", p.Ip, cast.ToString(p.PartitionID))
+				ch <- prometheus.MustNewConstMetric(ms.dbDesc, prometheus.CounterValue, float64(p.Size), "partition_size", p.Ip, cast.ToString(p.PartitionID))
 			}
 			sizeMap[spacePartitionIDMap[p.PartitionID]] += p.Size
 		}
 	}
-	ch <- prometheus.MustNewConstMetric(ms.dbDesc, prometheus.CounterValue, float64(partitionNum), "partitionNum", "master", "*")
+	ch <- prometheus.MustNewConstMetric(ms.dbDesc, prometheus.CounterValue, float64(partitionNum), "partition_num", "master", "*")
 
 	for space, value := range docNumMap {
 		if space == nil {
 			continue
 		}
-		ch <- prometheus.MustNewConstMetric(ms.dbDesc, prometheus.CounterValue, float64(value), "docNum", dbMap[space.DBId], space.Name)
+		ch <- prometheus.MustNewConstMetric(ms.dbDesc, prometheus.CounterValue, float64(value), "doc_num", dbMap[space.DBId], space.Name)
 	}
 
 	for space, value := range sizeMap {
-		ch <- prometheus.MustNewConstMetric(ms.dbDesc, prometheus.CounterValue, float64(value), "sizeMap", dbMap[space.DBId], space.Name)
+		ch <- prometheus.MustNewConstMetric(ms.dbDesc, prometheus.CounterValue, float64(value), "size_map", dbMap[space.DBId], space.Name)
 	}
-	ch <- prometheus.MustNewConstMetric(ms.dbDesc, prometheus.CounterValue, float64(1-stats.Cpu.IdlePercent), "Cpu", "master", ip)
+	ch <- prometheus.MustNewConstMetric(ms.dbDesc, prometheus.CounterValue, float64(1-stats.Cpu.IdlePercent), "CPU", "master", ip)
 }
