@@ -237,7 +237,7 @@ int GammaIndexHNSWLIB::Init(const std::string &model_parameters, int indexing_si
 
 RetrievalParameters *GammaIndexHNSWLIB::Parse(const std::string &parameters) {
   if (parameters == "") {
-    return new HNSWLIBRetrievalParameters(metric_type_, ef_, do_efSearch_check_);
+    return new HNSWLIBRetrievalParameters(metric_type_, ef_, do_efSearch_check_, collect_metrics_);
   }
 
   utils::JsonParser jp;
@@ -266,9 +266,12 @@ RetrievalParameters *GammaIndexHNSWLIB::Parse(const std::string &parameters) {
   int do_efSearch_check = 1;
   jp.GetInt("do_efSearch_check", do_efSearch_check);
 
+  int collect_metrics = 0;
+  jp.GetInt("collect_metrics", collect_metrics);
+
   RetrievalParameters *retrieval_params =
       new HNSWLIBRetrievalParameters(type, efSearch > 0 ? efSearch : ef_, 
-                                     do_efSearch_check > -1 ? do_efSearch_check : do_efSearch_check_);
+                                     do_efSearch_check > -1 ? do_efSearch_check : do_efSearch_check_, collect_metrics);
   return retrieval_params;
 }
 
@@ -352,7 +355,7 @@ int GammaIndexHNSWLIB::Search(RetrievalContext *retrieval_context, int n,
       dynamic_cast<HNSWLIBRetrievalParameters *>(
           retrieval_context->RetrievalParams());
   if (retrieval_params == nullptr) {
-    retrieval_params = new HNSWLIBRetrievalParameters(metric_type_, ef_, do_efSearch_check_);
+    retrieval_params = new HNSWLIBRetrievalParameters(metric_type_, ef_, do_efSearch_check_, collect_metrics_);
     retrieval_context->retrieval_params_ = retrieval_params;
   }
 
@@ -383,7 +386,7 @@ int GammaIndexHNSWLIB::Search(RetrievalContext *retrieval_context, int n,
 
     auto result = searchKnn((const void *)(xq + i * d), k, fstdistfunc,
                             retrieval_params->EfSearch(), 
-                            retrieval_params->DoEfSearchCheck(), retrieval_context);
+                            retrieval_params->DoEfSearchCheck(), retrieval_params->CollectMetrics(), retrieval_context);
 
     if (retrieval_params->GetDistanceComputeType() ==
         DistanceComputeType::INNER_PRODUCT) {

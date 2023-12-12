@@ -99,11 +99,11 @@ class AlgorithmInterface {
  public:
   virtual void addPoint(const void *datapoint, labeltype label) = 0;
   virtual std::priority_queue<std::pair<dist_t, labeltype>> searchKnn(
-      const void *, size_t, DISTFUNC<dist_t>, size_t, int,
+      const void *, size_t, DISTFUNC<dist_t>, size_t, int, bool,
       const RetrievalContext *) = 0;
   // Return k nearest neighbor in the order of closer first
   virtual std::vector<std::pair<dist_t, labeltype>>
-    searchKnnCloserFirst(const void *, size_t, DISTFUNC<dist_t>, size_t, int, const RetrievalContext *);
+    searchKnnCloserFirst(const void *, size_t, DISTFUNC<dist_t>, size_t, int, bool, const RetrievalContext *);
   virtual void saveIndex(const std::string &location) = 0;
   virtual ~AlgorithmInterface() {}
 };
@@ -111,12 +111,12 @@ class AlgorithmInterface {
 template<typename dist_t>
 std::vector<std::pair<dist_t, labeltype>>
 AlgorithmInterface<dist_t>::searchKnnCloserFirst(const void* query_data, size_t k, DISTFUNC<dist_t> comp, 
-                                                 size_t efSearch, int do_efSearch_check, 
+                                                 size_t efSearch, int do_efSearch_check, bool collect_metrics,
                                                  const RetrievalContext * retrieval_context) {
   std::vector<std::pair<dist_t, labeltype>> result;
 
   // here searchKnn returns the result in the order of further first
-  auto ret = searchKnn(query_data, k, comp, efSearch, do_efSearch_check, retrieval_context);
+  auto ret = searchKnn(query_data, k, comp, efSearch, do_efSearch_check, collect_metrics, retrieval_context);
   {
     size_t sz = ret.size();
     result.resize(sz);

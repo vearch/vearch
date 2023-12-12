@@ -32,12 +32,14 @@ class HNSWLIBRetrievalParameters : public RetrievalParameters {
   HNSWLIBRetrievalParameters() : RetrievalParameters() { 
     efSearch_ = 64; 
     do_efSearch_check_ = 1;
+    collect_metrics_ = 0;
   }
 
-  HNSWLIBRetrievalParameters(enum DistanceComputeType type, int efSearch, int do_efSearch_check) {
+  HNSWLIBRetrievalParameters(enum DistanceComputeType type, int efSearch, int do_efSearch_check, int collect_metrics) {
     distance_compute_type_ = type;
     efSearch_ = efSearch;
     do_efSearch_check_ = do_efSearch_check;
+    collect_metrics_ = collect_metrics;
   }
 
   ~HNSWLIBRetrievalParameters() {}
@@ -49,9 +51,13 @@ class HNSWLIBRetrievalParameters : public RetrievalParameters {
   int DoEfSearchCheck() { return do_efSearch_check_; }
   void SetDoEfSearchCheck(int do_efSearch_check) { do_efSearch_check_ = do_efSearch_check; }
 
+  int CollectMetrics() { return collect_metrics_; }
+  void SetCollectMetrics(int collect_metrics) { collect_metrics_ = collect_metrics; }
+
  private:
   int efSearch_;
   int do_efSearch_check_;
+  int collect_metrics_;
 };
 
 struct GammaIndexHNSWLIB : public GammaFLATIndex,
@@ -108,6 +114,7 @@ struct GammaIndexHNSWLIB : public GammaFLATIndex,
   SpaceInterface<float> *space_interface_ip_ = nullptr;
   DistanceComputeType metric_type_;
   int do_efSearch_check_;
+  int collect_metrics_ = 0;
   MemoryRawVector *raw_vec_ = nullptr;
 
   // for dump
