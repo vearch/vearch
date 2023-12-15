@@ -9,8 +9,8 @@
 
 #include <stdio.h>
 
-#include "rocksdb/table.h"
 #include "common/error_code.h"
+#include "rocksdb/table.h"
 #include "util/log.h"
 #include "util/utils.h"
 
@@ -76,11 +76,10 @@ int RocksDBRawVector::GetVector(long vid, const uint8_t *&vec,
     LOG(ERROR) << "rocksdb get error:" << s.ToString() << ", key=" << key;
     return IO_ERR;
   }
-  uint8_t *v = nullptr;
-  if (Decompress(value, v)) {
-    return INTERNAL_ERR;
-  }
-  vec = v;
+  vec = new uint8_t[vector_byte_size_];
+  assert((size_t)vector_byte_size_ == value.size());
+  memcpy((void *)vec, value.c_str(), vector_byte_size_);
+
   deletable = true;
   return 0;
 }
@@ -118,10 +117,10 @@ int RocksDBRawVector::Gets(const std::vector<int64_t> &vids,
                  << ", key=" << keys[j].ToString();
       return 2;
     }
-    uint8_t *vector = nullptr;
-    if (Decompress(values[j], vector)) {
-      return INTERNAL_ERR;
-    }
+    uint8_t *vector = new uint8_t[vector_byte_size_];
+    assert((size_t)vector_byte_size_ == values[j].size());
+    memcpy(vector, values[j].c_str(), vector_byte_size_);
+
     vecs.Add(vector, true);
     ++j;
   }
@@ -152,15 +151,10 @@ int RocksDBRawVector::UpdateToStore(int vid, uint8_t *v, int len) {
   if (v == nullptr || len != meta_info_->Dimension() * meta_info_->DataSize())
     return -1;
 
-  ScopeVector svec;
-  if (this->Compress(v, svec)) {
-    return INTERNAL_ERR;
-  }
-
   std::string key;
   ToRowKey(vid, key);
   Status s = db_->Put(WriteOptions(), Slice(key),
-                      Slice((const char *)svec.Get(), this->vector_byte_size_));
+                      Slice((const char *)v, this->vector_byte_size_));
   if (!s.ok()) {
     LOG(ERROR) << "rocksdb update error:" << s.ToString() << ", key=" << key;
     return IO_ERR;
@@ -192,12 +186,8 @@ int RocksDBRawVector::GetVectorHeader(int start, int n, ScopeVectors &vecs,
 
     Slice value = it->value();
     std::string vstr = value.ToString();
-    if (Decompress(vstr, dst)) {
-      LOG(ERROR) << "rocksdb get, decompress error, vid=" << start + c;
-      delete it;
-      delete[] vectors;
-      return 2;
-    }
+    assert((size_t)vector_byte_size_ == vstr.size());
+    memcpy(dst, vstr.c_str(), vector_byte_size_);
 
 #ifdef DEBUG
     string expect_key;
@@ -220,25 +210,6 @@ void RocksDBRawVector::ToRowKey(int vid, std::string &key) const {
   char data[11];
   snprintf(data, 11, "%010d", vid);
   key.assign(data, 10);
-}
-
-int RocksDBRawVector::Decompress(std::string &cmprs_data, uint8_t *&vec) const {
-#ifdef WITH_ZFP
-  if (zfp_compressor_) {
-    if (zfp_compressor_->Decompress((const uint8_t *)cmprs_data.c_str(), 1,
-                                    (float *&)vec)) {
-      return INTERNAL_ERR;
-    }
-  } else
-#endif
-  {
-    assert((size_t)vector_byte_size_ == cmprs_data.size());
-    if (vec == nullptr) {
-      vec = new uint8_t[vector_byte_size_];
-    }
-    memcpy(vec, cmprs_data.c_str(), vector_byte_size_);
-  }
-  return 0;
 }
 
 }  // namespace tig_gamma

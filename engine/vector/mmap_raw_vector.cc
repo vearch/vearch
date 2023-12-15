@@ -27,7 +27,6 @@ MmapRawVector::MmapRawVector(VectorMetaInfo *meta_info,
                              const StoreParams &store_params,
                              bitmap::BitmapManager *docids_bitmap)
     : RawVector(meta_info, root_path, docids_bitmap, store_params) {
-  allow_use_zfp = false;    // Storage_mgr is compressed internally using ZFP.
   vector_byte_size_ = meta_info_->DataSize() * meta_info->Dimension();
   storage_mgr_ = nullptr;
 }
@@ -52,20 +51,6 @@ int MmapRawVector::InitStore(std::string &vec_name) {
   options.seg_block_capacity = seg_block_capacity;
   storage_mgr_ =
       new StorageManager(vec_dir, BlockType::VectorBlockType, options);
-#ifdef WITH_ZFP
-  if (!store_params_.compress.IsEmpty()) {
-    if (meta_info_->DataType() != VectorValueType::FLOAT) {
-      LOG(ERROR) << "data type is not float, compress is unsupported";
-      return PARAM_ERR;
-    }
-    if (storage_mgr_->UseCompress(CompressType::Zfp,
-          meta_info_->Dimension()) == 0) {
-      LOG(INFO) << "Storage_manager use zfp compress vector";
-    } else {
-      LOG(INFO) << "ZFP initialization failed, not use zfp";
-    }
-  }
-#endif
   int ret = storage_mgr_->Init(vec_name, store_params_.cache_size);
   if (ret) {
     LOG(ERROR) << "init gamma db error, ret=" << ret;

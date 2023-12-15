@@ -44,8 +44,6 @@ class VectorBlock : public Block {
   int GetReadFunParameter(ReadFunParameter &parameter, uint32_t len,
                           uint32_t off) override;
 
-  int Compress(const uint8_t *data, uint32_t len, std::vector<char> &output);
-
   uint32_t vec_item_len_;
 };
 

@@ -8,7 +8,6 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include "storage/compress/compressor.h"
-#include "storage/compress/compressor_zfp.h"
 #include "storage/compress/compressor_zstd.h"
 #include "test.h"
 
@@ -80,89 +79,9 @@ void test_compress_zstd(int data_len) {
   delete zstd;
 }
 
-void test_compress_zfp(int d) {
-  Compressor *zfp = new CompressorZFP(CompressType::Zfp);
-  zfp->Init(d);
-  std::vector<int> vec(d);
-  for(size_t i = 0; i < vec.size(); ++i) {
-    vec[i] = rand() % 1000;
-  }
-  size_t cmprs_len = zfp->GetCompressLen();
-  LOG(ERROR) << "ZFP comprs_len:" << cmprs_len; 
-  char *cmprs_buf = new char[cmprs_len];
-  
-  auto start_time = std::chrono::steady_clock::now();
-  cmprs_len = zfp->Compress((char*)vec.data(), cmprs_buf, sizeof(int) * vec.size());
-  auto end_time = std::chrono::steady_clock::now();
-  auto time_span = std::chrono::duration_cast<std::chrono::duration<double>>(
-                                                    end_time - start_time);
-  LOG(INFO) << "zfp compress spend time: " << time_span.count() * 1000 << "ms";
-
-  std::vector<int> de_vec(d);
-  start_time = std::chrono::steady_clock::now();
-  zfp->Decompress(cmprs_buf, (char*)de_vec.data(), cmprs_len);
-  end_time = std::chrono::steady_clock::now();
-  time_span = std::chrono::duration_cast<std::chrono::duration<double>>(
-                                                    end_time - start_time);
-  LOG(INFO) << "zfp decompress spend time: " << time_span.count() * 1000 
-            << "ms, compress rate:" << (float)vec.size() / (cmprs_len/sizeof(int));
-
-  int error_num = 0;
-  for(size_t i = 0; i < vec.size(); ++i) {
-    if(vec[i] != de_vec[i]) {
-      ++error_num;
-    }
-  }
-  LOG(INFO) << "zfp decompress error_num:" << error_num;
-
-  delete[] cmprs_buf;
-  delete zfp;
-}
-
-void test_compress_zfp_batch(int d, int n) {
-  Compressor *zfp = new CompressorZFP(CompressType::Zfp);
-  zfp->Init(d);
-  std::vector<int> vec(d * n);
-  for(size_t i = 0; i < vec.size(); ++i) {
-    vec[i] = rand() % 1000;
-  }
-  size_t cmprs_len = zfp->GetCompressLen();
-  LOG(ERROR) << "ZFP comprs_len:" << cmprs_len; 
-  char *cmprs_buf = new char[cmprs_len * n];
-  
-  auto start_time = std::chrono::steady_clock::now();
-  cmprs_len = zfp->CompressBatch((char*)vec.data(), cmprs_buf, n, -1);
-  auto end_time = std::chrono::steady_clock::now();
-  auto time_span = std::chrono::duration_cast<std::chrono::duration<double>>(
-                                                    end_time - start_time);
-  LOG(INFO) << "zfp compress spend time: " << time_span.count() * 1000 << "ms";
-
-  std::vector<int> de_vec(vec.size());
-  start_time = std::chrono::steady_clock::now();
-  zfp->DecompressBatch(cmprs_buf, (char*)de_vec.data(), n, -1);
-  end_time = std::chrono::steady_clock::now();
-  time_span = std::chrono::duration_cast<std::chrono::duration<double>>(
-                                                    end_time - start_time);
-  LOG(INFO) << "zfp decompress spend time: " << time_span.count() * 1000 
-            << "ms, compress rate:" << (float)vec.size() / (cmprs_len/sizeof(int));
-
-  int error_num = 0;
-  for(size_t i = 0; i < vec.size(); ++i) {
-    if(vec[i] != de_vec[i]) {
-      ++error_num;
-    }
-  }
-  LOG(INFO) << "zfp decompress error_num:" << error_num;
-
-  delete[] cmprs_buf;
-  delete zfp;
-}
-
 int TestStorageCompress() {
   int data_len = 2048;
   test_compress_zstd(data_len);
-  test_compress_zfp(data_len / sizeof(int));
-  test_compress_zfp_batch(data_len / sizeof(int), 100);
   return 0;
 }
 

@@ -47,14 +47,6 @@ endif(NOT DEFINED ENV{ROCKSDB_HOME})
 message(STATUS "RocksDB home is set=$ENV{ROCKSDB_HOME}")
 find_package(RocksDB REQUIRED)
 
-if(DEFINED ENV{ZFP_HOME})
-    MESSAGE(STATUS "ZFP home is set=$ENV{ZFP_HOME}")
-    ADD_DEFINITIONS(-DWITH_ZFP)
-    FIND_PACKAGE(ZFP REQUIRED)
-else(DEFINED ENV{ZFP_HOME})
-    MESSAGE(STATUS "ZFP home isn't set, so COMPRESS is not supported! ")
-endif(DEFINED ENV{ZFP_HOME})
-
 #INCLUDE DIR
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}
@@ -62,7 +54,6 @@ include_directories(
     ${BTREE}
     ${THIRDPARTY}/faiss/include
     ${RocksDB_INCLUDE_DIR}
-    ${ZFP_INCLUDE_DIR}
 )
 
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/third_party/faiss/lib64")
@@ -83,7 +74,6 @@ if(MKL_FOUND)
     set(LIBRARIES
         -lfaiss_avx2
         ${RocksDB_LIB}
-        ${ZFP_LIB}
         -lzstd
         ${MKL_LIBRARIES}
         -ltbb
@@ -92,7 +82,6 @@ else()
     set(LIBRARIES
         -lfaiss_avx2
         ${RocksDB_LIB}
-        ${ZFP_LIB}
         -lzstd
         -lopenblas
         -ltbb

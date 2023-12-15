@@ -48,14 +48,7 @@ while getopts ":n:g:tdh" opt; do
   esac
 done
 
-ZFP_URL=https://github.com/LLNL/zfp/archive/0.5.5.tar.gz
 ROCKSDB_URL=https://github.com/facebook/rocksdb/archive/refs/tags/v6.6.4.tar.gz
-
-use_zfp="y"
-while [ -z $use_zfp ] || ([ $use_zfp != "y" ] && [ $use_zfp != "n" ]); do
-  echo "Do you use zfp?[y/n]."
-  read use_zfp
-done
 
 function get_version() {
   VEARCH_VERSION_MAJOR=$(cat ${ROOT}/VERSION | grep VEARCH_VERSION_MAJOR | awk -F' ' '{print $2}')
@@ -67,21 +60,6 @@ function get_version() {
 }
 
 function build_thirdparty() {
-  if [ $use_zfp == "y" ] && [ ! -n "${ZFP_HOME}" ]; then
-    export ZFP_HOME=/usr/local/include/zfp
-    if [ ! -d $ZFP_HOME ]; then
-      rm -rf zfp*
-      wget ${ZFP_URL} -O zfp.tar.gz
-      tar -xzf zfp.tar.gz
-      pushd zfp-0.5.5
-      mkdir build && cd build
-      cmake ..
-      cmake --build . --config Release
-      make install
-      popd
-    fi
-  fi
-
   OS_NAME=$(uname)
   if [ ${OS_NAME} == "Darwin" ]; then
     export ROCKSDB_HOME=/usr/local/include/rocksdb

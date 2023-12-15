@@ -9,7 +9,6 @@
 
 #include <string.h>
 
-#include "gamma_zfp.h"
 #include "common/error_code.h"
 #include "util/log.h"
 #include "util/utils.h"
@@ -145,71 +144,3 @@ class VIDMgr {
   std::vector<int *> docid2vid_;  // doc id to vector id list
   bool multi_vids_;
 };
-
-namespace tig_gamma {
-
-#ifdef WITH_ZFP
-struct ZFPCompressor {
-  GammaZFP *zfp_;
-  int dimension_;
-
-  ZFPCompressor() : zfp_(nullptr), dimension_(0) {}
-
-  ~ZFPCompressor() {
-    if (zfp_) {
-      delete zfp_;
-      zfp_ = nullptr;
-    }
-  }
-
-  int Init(int dimension, utils::JsonParser &cmprs_jp) {
-    dimension_ = dimension;
-    double rate = 16;
-    if (cmprs_jp.GetDouble("rate", rate)) {
-      LOG(ERROR) << "rate is not set!";
-      return PARAM_ERR;
-    }
-    zfp_ = new GammaZFP(this->dimension_, 16);
-    LOG(INFO) << "zfp compress rate=" << rate << ", zfpsize=" << zfp_->zfpsize;
-    return 0;
-  }
-
-  int Compress(float *v, uint8_t *&cmprs_v) {
-    if (cmprs_v == nullptr) {
-      cmprs_v = new uint8_t[zfp_->zfpsize];
-    }
-    size_t ret = zfp_->Compress(v, (char *&)cmprs_v);
-    if (ret != zfp_->zfpsize) {
-      LOG(ERROR) << "compress error, ret=" << ret
-                 << ", zfpsize=" << zfp_->zfpsize;
-      delete[] cmprs_v;
-      return INTERNAL_ERR;
-    }
-    return 0;
-  }
-
-  int Decompress(const uint8_t *cmprs_v, int n, float *&v) const {
-    if (v == nullptr) {
-      v = new float[n * this->dimension_];
-    }
-    size_t ret = 0;
-    if (n > 1) {
-      ret = zfp_->DecompressBatch((char *)cmprs_v, v, n);
-    } else {
-      ret = zfp_->Decompress((char *)cmprs_v, v);
-    }
-    if (ret != zfp_->zfpsize * n) {
-      LOG(ERROR) << "batch decompress error, ret=" << ret << ", n=" << n
-                 << ", zfpsize=" << zfp_->zfpsize;
-      delete[] v;
-      return INTERNAL_ERR;
-    }
-    return 0;
-  }
-
-  int ZfpSize() { return zfp_->zfpsize; }
-};
-
-#endif  // WITH_ZFP
-
-}  // namespace tig_gamma

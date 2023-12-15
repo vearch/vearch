@@ -5,8 +5,8 @@
  * found in the LICENSE file in the root directory of this source tree.
  */
 
-#include <unistd.h>
 #include "memory_raw_vector.h"
+#include <unistd.h>
 #include "common/error_code.h"
 
 using std::string;
@@ -23,7 +23,6 @@ MemoryRawVector::MemoryRawVector(VectorMetaInfo *meta_info,
   vector_byte_size_ = meta_info->DataSize() * meta_info->Dimension();
   current_segment_ = nullptr;
   curr_idx_in_seg_ = 0;
-  allow_use_zfp = false;
 }
 
 MemoryRawVector::~MemoryRawVector() {
@@ -34,30 +33,18 @@ MemoryRawVector::~MemoryRawVector() {
 }
 
 int MemoryRawVector::InitStore(std::string &vec_name) {
-  // const std::string &name = meta_info_->Name();
-  // string db_path = this->root_path_ + "/" + name;
-  // if (rdb_.Open(db_path)) {
-  //   LOG(ERROR) << "open rocks db error, path=" << db_path;
-  //   return IO_ERR;
-  // }
   segments_ = new uint8_t *[kMaxSegments];
   std::fill_n(segments_, kMaxSegments, nullptr);
   if (ExtendSegments()) return -2;
-  
+
   LOG(INFO) << "init memory raw vector success! vector byte size="
-            << vector_byte_size_ << ", path=" << root_path_ + "/" + meta_info_->Name();
+            << vector_byte_size_
+            << ", path=" << root_path_ + "/" + meta_info_->Name();
   return SUCC;
 }
 
 int MemoryRawVector::AddToStore(uint8_t *v, int len) {
-  ScopeVector svec;
-  if (Compress(v, svec)) {
-    return INTERNAL_ERR;
-  }
-
-  AddToMem((uint8_t *)svec.Get(), vector_byte_size_);
-  // int total = meta_info_->Size();
-  // rdb_.Put(total, (const char *)v, vector_byte_size_);
+  AddToMem(v, vector_byte_size_);
   return SUCC;
 }
 
@@ -95,17 +82,12 @@ int MemoryRawVector::GetVectorHeader(int start, int n, ScopeVectors &vecs,
   if (start + n > (int)meta_info_->Size()) return -1;
 
   while (n) {
-    uint8_t *cmprs_v = segments_[start / segment_size_] +
-                       (size_t)start % segment_size_ * vector_byte_size_;
+    uint8_t *vec = segments_[start / segment_size_] +
+                   (size_t)start % segment_size_ * vector_byte_size_;
     int len = segment_size_ - start % segment_size_;
     if (len > n) len = n;
 
-    uint8_t *vec = nullptr;
     bool deletable = false;
-    if (Decompress(cmprs_v, len, vec, deletable)) {
-      return INTERNAL_ERR;
-    }
-
     vecs.Add(vec, deletable);
     lens.push_back(len);
     start += len;
@@ -115,27 +97,18 @@ int MemoryRawVector::GetVectorHeader(int start, int n, ScopeVectors &vecs,
 }
 
 int MemoryRawVector::UpdateToStore(int vid, uint8_t *v, int len) {
-  ScopeVector svec;
-  if (this->Compress(v, svec)) {
-    return INTERNAL_ERR;
-  }
-
   memcpy((void *)(segments_[vid / segment_size_] +
                   (size_t)vid % segment_size_ * vector_byte_size_),
-         (void *)svec.Get(), vector_byte_size_);
-  // rdb_.Put(vid, (const char *)svec.Get(), vector_byte_size_);
+         (void *)v, vector_byte_size_);
   return SUCC;
 }
 
 int MemoryRawVector::GetVector(long vid, const uint8_t *&vec,
                                bool &deletable) const {
-  uint8_t *cmprs_v = segments_[vid / segment_size_] +
-                     (size_t)vid % segment_size_ * vector_byte_size_;
-  uint8_t *v = nullptr;
-  if (Decompress(cmprs_v, 1, v, deletable)) {
-    return INTERNAL_ERR;
-  }
-  vec = v;
+  vec = segments_[vid / segment_size_] +
+        (size_t)vid % segment_size_ * vector_byte_size_;
+
+  deletable = false;
   return SUCC;
 }
 

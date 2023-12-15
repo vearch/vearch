@@ -40,7 +40,6 @@ class RocksDBRawVector : public RawVector {
 
  private:
   void ToRowKey(int vid, std::string &key) const;
-  int Decompress(std::string &cmprs_data, uint8_t *&vec) const;
 
  private:
   friend class RocksDBRawVectorIO;

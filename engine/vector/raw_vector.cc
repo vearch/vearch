@@ -32,18 +32,11 @@ RawVector::RawVector(VectorMetaInfo *meta_info, const string &root_path,
   vio_ = nullptr;
   str_mem_ptr_ = nullptr;
   vid_mgr_ = nullptr;
-#ifdef WITH_ZFP
-  zfp_compressor_ = nullptr;
-#endif
-  allow_use_zfp = true;
 }
 
 RawVector::~RawVector() {
   CHECK_DELETE_ARRAY(str_mem_ptr_);
   CHECK_DELETE(vid_mgr_);
-#ifdef WITH_ZFP
-  CHECK_DELETE(zfp_compressor_);
-#endif
 }
 
 int RawVector::Init(std::string vec_name, bool has_source, bool multi_vids) {
@@ -67,20 +60,6 @@ int RawVector::Init(std::string vec_name, bool has_source, bool multi_vids) {
   vid_mgr_->Init(kInitSize, total_mem_bytes_);
 
   vector_byte_size_ = meta_info_->Dimension() * data_size_;
-
-#ifdef WITH_ZFP
-  if (!store_params_.compress.IsEmpty() && allow_use_zfp) {
-    if (meta_info_->DataType() != VectorValueType::FLOAT) {
-      LOG(ERROR) << "data type is not float, compress is unsupported";
-      return PARAM_ERR;
-    }
-    zfp_compressor_ = new ZFPCompressor;
-    int ret =
-        zfp_compressor_->Init(meta_info_->Dimension(), store_params_.compress);
-    if (ret) return ret;
-    vector_byte_size_ = zfp_compressor_->ZfpSize();
-  }
-#endif
 
   if (InitStore(vec_name)) return -2;
 
@@ -173,41 +152,6 @@ int RawVector::Update(int docid, struct Field &field) {
   }
 
   // TODO: update source
-  return 0;
-}
-
-int RawVector::Compress(uint8_t *v, ScopeVector &svec) {
-#ifdef WITH_ZFP
-  if (zfp_compressor_) {
-    uint8_t *cmprs_v = nullptr;
-    if (zfp_compressor_->Compress((float *)v, cmprs_v)) {
-      return INTERNAL_ERR;
-    }
-    svec.Set(cmprs_v, true);
-  } else
-#endif
-  {
-    svec.Set(v, false);
-  }
-  return 0;
-}
-
-int RawVector::Decompress(uint8_t *cmprs_v, int n, uint8_t *&vec,
-                          bool &deletable) const {
-#ifdef WITH_ZFP
-  if (zfp_compressor_) {
-    float *v = nullptr;
-    if (zfp_compressor_->Decompress(cmprs_v, n, v)) {
-      return INTERNAL_ERR;
-    }
-    vec = (uint8_t *)v;
-    deletable = true;
-  } else
-#endif
-  {
-    vec = cmprs_v;
-    deletable = false;
-  }
   return 0;
 }
 

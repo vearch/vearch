@@ -14,7 +14,6 @@
 #include <vector>
 
 #include "async_writer.h"
-#include "compress/compressor_zfp.h"
 #include "compress/compressor_zstd.h"
 #include "lru_cache.h"
 

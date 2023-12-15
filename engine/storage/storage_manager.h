@@ -11,7 +11,6 @@
 #include <vector>
 
 #include "async_writer.h"
-#include "compress/compressor_zfp.h"
 #include "compress/compressor_zstd.h"
 #include "lru_cache.h"
 #include "segment.h"
@@ -85,8 +84,6 @@ class StorageManager {
   int Truncate(size_t size);
 
   int Size() { return size_; }
-
-  int UseCompress(CompressType type, int d = -1, double rate = -1);
 
   bool AlterCacheSize(int cache_size, int str_cache_size);
 

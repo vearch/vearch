@@ -141,7 +141,7 @@ class RawVector : public VectorReader {
    * @return 0 if successed
    */
   int Add(int docid, struct Field &field);
-  
+
   int Add(int docid, float *data);
 
   int Update(int docid, struct Field &field);
@@ -175,13 +175,6 @@ class RawVector : public VectorReader {
   DumpConfig *GetDumpConfig();
 
   StorageManager *storage_mgr_;
-  
-  int HaveZFPCompressor() {
-#ifdef WITH_ZFP
-    if(zfp_compressor_) return 1;
-#endif
-    return 0;
-  }
 
  protected:
   /** get vector by id
@@ -194,9 +187,6 @@ class RawVector : public VectorReader {
 
   virtual int InitStore(std::string &vec_name) = 0;
 
-  int Compress(uint8_t *v, ScopeVector &svec);
-  int Decompress(uint8_t *cmpr_v, int n, uint8_t *&vec, bool &deletable) const;
-
  protected:
   std::string root_path_;
   long vector_byte_size_;
@@ -208,10 +198,6 @@ class RawVector : public VectorReader {
   bool has_source_;
   std::string desc_;  // description of this raw vector
   StoreParams store_params_;
-  bool allow_use_zfp;
-#ifdef WITH_ZFP
-  ZFPCompressor *zfp_compressor_;
-#endif
   bitmap::BitmapManager *docids_bitmap_;
   VIDMgr *vid_mgr_;
   RawVectorIO *vio_;

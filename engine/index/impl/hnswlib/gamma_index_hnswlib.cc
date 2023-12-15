@@ -157,10 +157,6 @@ int GammaIndexHNSWLIB::Init(const std::string &model_parameters, int indexing_si
     LOG(ERROR) << "HNSW can only work in memory only mode";
     return -1;
   }
-  if (raw_vec_->HaveZFPCompressor()) {
-    LOG(ERROR) << "HNSW can't work with zfp compressor, shouldn't set compress when create table";
-    return -1;
-  }
 
   HNSWLIBModelParams hnsw_param;
   if (model_parameters != "" && hnsw_param.Parse(model_parameters.c_str())) {

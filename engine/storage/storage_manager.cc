@@ -45,18 +45,6 @@ std::string StorageManager::NextSegmentFilePath() {
   return file_path;
 }
 
-int StorageManager::UseCompress(CompressType type, int d, double rate) {
-  if (type == CompressType::Zfp) {
-#ifdef WITH_ZFP
-    if (d > 0) {
-      compressor_ = new CompressorZFP(type);
-      compressor_->Init(d);
-    }
-#endif
-  }
-  return (compressor_ ? 0 : -1);
-}
-
 bool StorageManager::AlterCacheSize(int cache_size, int str_cache_size) {
   CacheBase<uint32_t, ReadFunParameter *>  *del_cache = nullptr;
   CacheBase<uint32_t, ReadFunParameter *>  *del_str_cache = nullptr;

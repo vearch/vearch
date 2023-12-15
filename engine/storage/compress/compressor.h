@@ -10,7 +10,7 @@
 namespace tig_gamma {
 
 #define DEFAULT_RATE 16
-enum class CompressType : uint8_t { NotCompress, Zfp, Zstd };
+enum class CompressType : uint8_t { NotCompress, Zstd };
 
 class Compressor {
  public:

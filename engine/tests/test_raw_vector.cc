@@ -181,10 +181,6 @@ void TestRawVectorNormal(VectorStorageType store_type, bool compress = false) {
   StoreParams store_params;
   store_params.cache_size = 1;
   store_params.segment_size = 100;
-  if (compress) {
-    ASSERT_EQ(0,
-              store_params.compress.Parse("{\"type\":\"zfp\", \"rate\": 16}"));
-  }
   int nadd = 350;
   cerr << "store params=" << store_params.ToJsonStr() << endl;
 
@@ -234,10 +230,6 @@ void TestRawVectorDumpLoad(VectorStorageType store_type,
   StoreParams store_params;
   store_params.cache_size = 1;
   store_params.segment_size = 100;
-  if (compress) {
-    ASSERT_EQ(0,
-              store_params.compress.Parse("{\"type\":\"zfp\", \"rate\": 16}"));
-  }
   cerr << "store params=" << store_params.ToJsonStr() << endl;
 
   VectorMetaInfo *meta_info =
@@ -337,27 +329,6 @@ TEST(RocksDBRawVector, Normal) {
 TEST(RocksDBRawVector, DumpLoad) {
   TestRawVectorDumpLoad(VectorStorageType::RocksDB);
 }
-
-#ifdef WITH_ZFP
-TEST(RocksDBRawVector, Compress_Normal) {
-  TestRawVectorNormal(VectorStorageType::RocksDB, true);
-}
-
-TEST(RocksDBRawVector, Compress_DumpLoad) {
-  TestRawVectorDumpLoad(VectorStorageType::RocksDB, true);
-}
-#endif  // WITH_ZFP
-
-#ifdef WITH_ZFP
-TEST(MemoryRawVector, Compress_Normal) {
-  TestRawVectorNormal(VectorStorageType::MemoryOnly, true);
-}
-
-TEST(MemoryRawVector, Compress_DumpLoad) {
-  TestRawVectorDumpLoad(VectorStorageType::MemoryOnly, true);
-}
-
-#endif
 
 int main(int argc, char *argv[]) {
   string log_dir = "./test_raw_vector_log";

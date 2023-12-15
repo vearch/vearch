@@ -48,8 +48,6 @@ class MemoryRawVector : public RawVector {
   int segment_size_;
   uint8_t *current_segment_;
   int curr_idx_in_seg_;
-
-  // RocksDBWrapper rdb_;
 };
 
 }  // namespace tig_gamma
