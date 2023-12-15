@@ -55,8 +55,6 @@ class StringBlock : public Block {
   void SetCache(void *cache) override;
 
  private:
-  void InitSubclass(){};
-
   int AddBlockPos(uint32_t block_pos);
 
   CacheBase<uint32_t, ReadFunParameter *> *str_lru_cache_;

@@ -23,7 +23,6 @@ Block::Block(int fd, int per_block_size, int length, uint32_t header_size,
       name_(name),
       cur_size_(cur_size),
       max_size_(max_size) {
-  compressor_ = nullptr;
   // size_ = 0;
   last_bid_in_disk_ = 0;
   lru_cache_ = nullptr;
@@ -35,13 +34,10 @@ Block::Block(int fd, int per_block_size, int length, uint32_t header_size,
 
 Block::~Block() {
   lru_cache_ = nullptr;
-  compressor_ = nullptr;
 }
 
-void Block::Init(void *lru, Compressor *compressor) {
+void Block::Init(void *lru) {
   lru_cache_ = (CacheBase<uint32_t, ReadFunParameter *> *)lru;
-  compressor_ = compressor;
-  InitSubclass();
 }
 
 int Block::Write(const uint8_t *value, int n_bytes, uint32_t start,

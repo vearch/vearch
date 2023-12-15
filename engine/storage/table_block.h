@@ -26,8 +26,6 @@ class TableBlock : public Block {
   int ReadContent(uint8_t *value, uint32_t n_bytes, uint32_t start) override;
 
  private:
-  void InitSubclass(){};
-
   int GetReadFunParameter(ReadFunParameter &parameter, uint32_t len,
                           uint32_t off) override;
 };

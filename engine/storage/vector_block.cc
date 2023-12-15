@@ -20,15 +20,6 @@ VectorBlock::VectorBlock(int fd, int per_block_size, int length,
   vec_item_len_ = item_length_;
 }
 
-void VectorBlock::InitSubclass() {
-  if (compressor_) {
-    vec_item_len_ = compressor_->GetCompressLen();
-    item_length_ = vec_item_len_;
-    LOG(INFO) << "VectorBlock[" << name_ + "_" << seg_id_
-              << "] use compress. vec_item_len_[" << vec_item_len_ << "]";
-  }
-}
-
 int VectorBlock::GetReadFunParameter(ReadFunParameter &parameter, uint32_t len,
                                      uint32_t off) {
   parameter.fd = fd_;

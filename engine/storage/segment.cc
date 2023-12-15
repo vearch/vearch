@@ -208,13 +208,9 @@ void Segment::SetStrCompressedSize(str_offset_t str_compressed_size) {
          StrCompressedOff());
 }
 
-int Segment::Init(std::string name, BlockType block_type,
-                  Compressor *compressor) {
+int Segment::Init(std::string name, BlockType block_type) {
   OpenFile(block_type);
   uint32_t item_len = item_length_;
-  if (block_type == BlockType::VectorBlockType && compressor) {
-    item_len = compressor->GetCompressLen();
-  }
   if (ftruncate(base_fd_, seg_header_size_ + item_len * max_size_)) {
     close(base_fd_);
     LOG(ERROR) << "truncate file error:" << strerror(errno);
@@ -232,7 +228,7 @@ int Segment::Init(std::string name, BlockType block_type,
   SetStrCapacity(str_capacity_);
   SetStrOffset(str_offset_);
 
-  InitBlock(name, block_type, compressor);
+  InitBlock(name, block_type);
   return 0;
 }
 
@@ -253,8 +249,7 @@ int Segment::OpenFile(BlockType block_type) {
   return 0;
 }
 
-int Segment::InitBlock(std::string name, BlockType block_type,
-                       Compressor *compressor) {
+int Segment::InitBlock(std::string name, BlockType block_type) {
   switch (block_type) {
     case BlockType::TableBlockType:
       blocks_ = new TableBlock(base_fd_, per_block_size_, item_length_,
@@ -274,7 +269,7 @@ int Segment::InitBlock(std::string name, BlockType block_type,
       break;
   }
 
-  blocks_->Init(cache_, compressor);
+  blocks_->Init(cache_);
 
   if (str_blocks_) {
     str_blocks_->InitStrBlock(str_cache_);
@@ -286,11 +281,9 @@ int Segment::InitBlock(std::string name, BlockType block_type,
   return 0;
 }
 
-// TODO: Load compressor
-int Segment::Load(std::string name, BlockType block_type,
-                  Compressor *compressor) {
+int Segment::Load(std::string name, BlockType block_type) {
   OpenFile(block_type);
-  InitBlock(name, block_type, compressor);
+  InitBlock(name, block_type);
   str_capacity_ = StrCapacity();
   str_offset_ = StrOffset();
   PersistentedSize();
@@ -337,7 +330,8 @@ str_offset_t Segment::AddString(const char *str, str_len_t len,
   return str_offset_;
 }
 
-str_offset_t Segment::UpdateString(const char *str, str_len_t len, uint32_t block_id,
+str_offset_t Segment::UpdateString(const char *str, str_len_t len,
+                                   uint32_t block_id,
                                    in_block_pos_t in_block_pos) {
   return str_blocks_->UpdateString(str, len, block_id, in_block_pos);
 }

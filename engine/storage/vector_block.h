@@ -39,8 +39,6 @@ class VectorBlock : public Block {
   int Update(const uint8_t *value, uint32_t n_bytes, uint32_t start) override;
 
  private:
-  void InitSubclass() override;
-
   int GetReadFunParameter(ReadFunParameter &parameter, uint32_t len,
                           uint32_t off) override;
 

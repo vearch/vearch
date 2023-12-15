@@ -1,6 +1,6 @@
 FROM centos:7
 RUN yum -y update
-RUN yum install -y epel-release wget gcc gcc-c++ make automake git blas-devel lapack-devel which libzstd-devel openblas-devel tbb-devel &&
+RUN yum install -y epel-release wget gcc gcc-c++ make automake git blas-devel lapack-devel which openblas-devel tbb-devel &&
     mkdir -p /env/app &&
     cd /env/app/ &&
     wget https://cmake.org/files/v3.20/cmake-3.20.0-rc3.tar.gz &&

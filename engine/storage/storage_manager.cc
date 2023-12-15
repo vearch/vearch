@@ -22,7 +22,6 @@ StorageManager::StorageManager(const std::string &root_path,
   size_ = 0;
   cache_ = nullptr;
   str_cache_ = nullptr;
-  compressor_ = nullptr;
   disk_io_ = nullptr;
 }
 
@@ -35,7 +34,6 @@ StorageManager::~StorageManager() {
   CHECK_DELETE(disk_io_);
   CHECK_DELETE(str_cache_);
   CHECK_DELETE(cache_);
-  CHECK_DELETE(compressor_);
 }
 
 std::string StorageManager::NextSegmentFilePath() {
@@ -46,8 +44,8 @@ std::string StorageManager::NextSegmentFilePath() {
 }
 
 bool StorageManager::AlterCacheSize(int cache_size, int str_cache_size) {
-  CacheBase<uint32_t, ReadFunParameter *>  *del_cache = nullptr;
-  CacheBase<uint32_t, ReadFunParameter *>  *del_str_cache = nullptr;
+  CacheBase<uint32_t, ReadFunParameter *> *del_cache = nullptr;
+  CacheBase<uint32_t, ReadFunParameter *> *del_str_cache = nullptr;
   uint32_t per_block_size = ((64 * 1024) / options_.fixed_value_bytes) *
                             options_.fixed_value_bytes;  // block~=64k
   auto cache_fun = &TableBlock::ReadBlock;
@@ -58,17 +56,18 @@ bool StorageManager::AlterCacheSize(int cache_size, int str_cache_size) {
   if (cache_size > 0) {  // cache_size unit: M
     if (cache_ == nullptr || cache_->GetCacheType() == CacheType::SimpleCache) {
       del_cache = cache_;
-      cache_ = new LRUCache<uint32_t, ReadFunParameter *>
-                        (name_, (size_t)cache_size, per_block_size, cache_fun);
+      cache_ = new LRUCache<uint32_t, ReadFunParameter *>(
+          name_, (size_t)cache_size, per_block_size, cache_fun);
       cache_->Init();
     } else {
       cache_->AlterCacheSize((size_t)cache_size);
     }
-  } else if (cache_size < 0) {     // use all memory
-    if (cache_ == nullptr || cache_->GetCacheType() == CacheType::LRUCacheType) {
+  } else if (cache_size < 0) {  // use all memory
+    if (cache_ == nullptr ||
+        cache_->GetCacheType() == CacheType::LRUCacheType) {
       del_cache = cache_;
       cache_ = new SimpleCache<uint32_t, ReadFunParameter *>(
-                  name_, per_block_size, cache_fun, options_.seg_block_capacity);
+          name_, per_block_size, cache_fun, options_.seg_block_capacity);
       cache_->Init();
     }
   } else {
@@ -78,20 +77,23 @@ bool StorageManager::AlterCacheSize(int cache_size, int str_cache_size) {
 
   if (block_type_ == BlockType::TableBlockType) {
     if (str_cache_size > 0) {
-      if (str_cache_ == nullptr || str_cache_->GetCacheType() == CacheType::SimpleCache) {
+      if (str_cache_ == nullptr ||
+          str_cache_->GetCacheType() == CacheType::SimpleCache) {
         del_str_cache = str_cache_;
-        str_cache_ = new LRUCache<uint32_t, ReadFunParameter *>(name_, 
-                        (size_t)str_cache_size, MAX_BLOCK_SIZE, &StringBlock::ReadString);
+        str_cache_ = new LRUCache<uint32_t, ReadFunParameter *>(
+            name_, (size_t)str_cache_size, MAX_BLOCK_SIZE,
+            &StringBlock::ReadString);
         str_cache_->Init();
       } else {
         str_cache_->AlterCacheSize((size_t)str_cache_size);
       }
-    } else if (str_cache_size < 0) {    // use all memory
-      if (str_cache_ == nullptr || str_cache_->GetCacheType() == CacheType::LRUCacheType) {
+    } else if (str_cache_size < 0) {  // use all memory
+      if (str_cache_ == nullptr ||
+          str_cache_->GetCacheType() == CacheType::LRUCacheType) {
         del_str_cache = str_cache_;
         str_cache_ = new SimpleCache<uint32_t, ReadFunParameter *>(
-                            name_, MAX_BLOCK_SIZE, &StringBlock::ReadString,
-                            options_.seg_block_capacity);
+            name_, MAX_BLOCK_SIZE, &StringBlock::ReadString,
+            options_.seg_block_capacity);
         str_cache_->Init();
       }
     } else {
@@ -100,23 +102,24 @@ bool StorageManager::AlterCacheSize(int cache_size, int str_cache_size) {
     }
   }
 
-  for(size_t i = 0; i < segments_.Size(); ++i) {
+  for (size_t i = 0; i < segments_.Size(); ++i) {
     Segment *segment = segments_.GetData(i);
     segment->SetCache((void *)cache_, (void *)str_cache_);
   }
 
   // delay free
   utils::AsyncWait(1000 * 100,
-      [](CacheBase<uint32_t, ReadFunParameter *>  *cache,
-         CacheBase<uint32_t, ReadFunParameter *>  *str_cache) { 
-            CHECK_DELETE(cache); CHECK_DELETE(str_cache); },
-      del_cache,del_str_cache);  // after 100s
+                   [](CacheBase<uint32_t, ReadFunParameter *> *cache,
+                      CacheBase<uint32_t, ReadFunParameter *> *str_cache) {
+                     CHECK_DELETE(cache);
+                     CHECK_DELETE(str_cache);
+                   },
+                   del_cache, del_str_cache);  // after 100s
 
   return true;
 }
 
-void StorageManager::GetCacheSize(int &cache_size,
-                                  int &str_cache_size) {
+void StorageManager::GetCacheSize(int &cache_size, int &str_cache_size) {
   cache_size = 0;
   str_cache_size = 0;
   if (cache_ != nullptr) {
@@ -151,8 +154,8 @@ int StorageManager::Init(std::string name, int cache_size, int str_cache_size) {
                                                         per_block_size, fun);
     cache_->Init();
   } else if (cache_size < 0) {
-    cache_ = new SimpleCache<uint32_t, ReadFunParameter *>(name,
-                    per_block_size, fun, options_.seg_block_capacity);
+    cache_ = new SimpleCache<uint32_t, ReadFunParameter *>(
+        name, per_block_size, fun, options_.seg_block_capacity);
     cache_->Init();
   }
   if (str_cache_size > 0) {
@@ -200,7 +203,7 @@ int StorageManager::Load() {
         NextSegmentFilePath(), segments_.Size(), options_.segment_size,
         options_.fixed_value_bytes, options_.seg_block_capacity, disk_io_,
         (void *)cache_, (void *)str_cache_);
-    int ret = segment->Load(name_, block_type_, compressor_);
+    int ret = segment->Load(name_, block_type_);
     if (ret < 0) {
       LOG(ERROR) << "Storage[" << name_
                  << "] extend file segment error, ret=" << ret;
@@ -222,7 +225,7 @@ int StorageManager::Extend() {
       new Segment(NextSegmentFilePath(), seg_id, options_.segment_size,
                   options_.fixed_value_bytes, options_.seg_block_capacity,
                   disk_io_, (void *)cache_, (void *)str_cache_);
-  int ret = segment->Init(name_, block_type_, compressor_);
+  int ret = segment->Init(name_, block_type_);
   if (ret) {
     LOG(ERROR) << "Storage[" << name_
                << "] extend file segment error, ret=" << ret;

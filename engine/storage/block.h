@@ -14,7 +14,6 @@
 #include <vector>
 
 #include "async_writer.h"
-#include "compress/compressor_zstd.h"
 #include "lru_cache.h"
 
 #define MAX_BLOCK_SIZE 65536
@@ -40,7 +39,7 @@ class Block {
 
   virtual ~Block();
 
-  void Init(void *lru, Compressor *compressor = nullptr);
+  void Init(void *lru);
 
   int Write(const uint8_t *value, int n_bytes, uint32_t start,
             disk_io::AsyncWriter *disk_io, std::atomic<uint32_t> *cur_size);
@@ -58,12 +57,6 @@ class Block {
   virtual void SetCache(void *cache);
 
  protected:
-  // virtual int Compress() = 0;
-
-  // virtual int Uncompress() = 0;
-
-  virtual void InitSubclass() = 0;
-
   virtual int WriteContent(const uint8_t *value, uint32_t n_bytes,
                            uint32_t start, disk_io::AsyncWriter *disk_io,
                            std::atomic<uint32_t> *cur_size) = 0;
@@ -77,8 +70,6 @@ class Block {
   CacheBase<uint32_t, ReadFunParameter *> *lru_cache_;
 
   int fd_;
-
-  Compressor *compressor_;
 
   uint32_t per_block_size_;
 

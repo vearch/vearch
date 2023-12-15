@@ -26,11 +26,9 @@ class Segment {
 
   ~Segment();
 
-  int Init(std::string name, BlockType block_type,
-           Compressor *compressor = nullptr);
+  int Init(std::string name, BlockType block_type);
 
-  int Load(std::string name, BlockType block_type,
-           Compressor *compressor = nullptr);
+  int Load(std::string name, BlockType block_type);
 
   int Add(const uint8_t *vec, int len);
 
@@ -88,7 +86,7 @@ class Segment {
 
   int OpenFile(BlockType block_type);
 
-  int InitBlock(std::string name, BlockType block_type, Compressor *compressor);
+  int InitBlock(std::string name, BlockType block_type);
 
  private:
   std::string file_path_;

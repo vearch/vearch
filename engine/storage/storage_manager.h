@@ -11,7 +11,6 @@
 #include <vector>
 
 #include "async_writer.h"
-#include "compress/compressor_zstd.h"
 #include "lru_cache.h"
 #include "segment.h"
 
@@ -91,8 +90,6 @@ class StorageManager {
 
   int Sync();
 
-  Compressor *GetCompressor() { return compressor_; }
-
   const StorageManagerOptions &GetStorageManagerOptions() { return options_; }
 
  private:
@@ -113,7 +110,6 @@ class StorageManager {
   StorageManagerOptions options_;
   CacheBase<uint32_t, ReadFunParameter *> *cache_;
   CacheBase<uint32_t, ReadFunParameter *> *str_cache_;
-  Compressor *compressor_;
 };
 
 }  // namespace tig_gamma

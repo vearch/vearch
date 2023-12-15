@@ -74,7 +74,6 @@ if(MKL_FOUND)
     set(LIBRARIES
         -lfaiss_avx2
         ${RocksDB_LIB}
-        -lzstd
         ${MKL_LIBRARIES}
         -ltbb
     )
@@ -82,7 +81,6 @@ else()
     set(LIBRARIES
         -lfaiss_avx2
         ${RocksDB_LIB}
-        -lzstd
         -lopenblas
         -ltbb
    ) 

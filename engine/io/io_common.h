@@ -16,13 +16,6 @@ struct IOMeta {
     static constexpr const char *RocksDB = "rocksdb";
     static constexpr const char *File = "file";
   };
-
-  struct Compress {
-    static constexpr const char *Name = "compress";
-    static constexpr const char *Type = "type";
-    static constexpr const char *Rate = "rate";
-    static constexpr const char *ZSTD = "zstd";
-  };
 };
 
 struct DumpConfig {
