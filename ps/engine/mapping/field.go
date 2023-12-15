@@ -314,7 +314,7 @@ func NewVectorFieldMapping(name string) *VectortFieldMapping {
 	return &VectortFieldMapping{
 		BaseFieldMapping: NewBaseFieldMapping(name, vearchpb.FieldType_VECTOR, 1, vearchpb.FieldOption_Index),
 		//		RetrievalType:    "IVFPQ",
-		StoreType: "MemoryOnly",
+		StoreType: "",
 	}
 }
 

@@ -31,6 +31,178 @@ VectorManager::VectorManager(const VectorStorageType &store_type,
 
 VectorManager::~VectorManager() { Close(); }
 
+int VectorManager::SetVectorStoreType(std::string &retrieval_type, std::string &store_type_str,
+                                      VectorStorageType &store_type) {
+  if (store_type_str != "") {
+    if (!strcasecmp("MemoryOnly", store_type_str.c_str())) {
+      store_type = VectorStorageType::MemoryOnly;
+    } else if (!strcasecmp("Mmap", store_type_str.c_str())) {
+      store_type = VectorStorageType::Mmap;
+    } else if (!strcasecmp("RocksDB", store_type_str.c_str())) {
+      store_type = VectorStorageType::RocksDB;
+    } else {
+      LOG(WARNING) << "NO support for store type " << store_type_str;
+      return -1;
+    }
+    // ivfflat has raw vector data in index, so just use rocksdb to reduce memory footprint
+    if (retrieval_type == "IVFFLAT" && strcasecmp("RocksDB", store_type_str.c_str())) {
+      LOG(ERROR) << "IVFFLAT should use RocksDB, now store_type = " << store_type_str;
+      return -1;
+    }
+  } else {
+    if (retrieval_type == "HNSW" || retrieval_type == "FLAT") {
+      store_type = VectorStorageType::MemoryOnly;
+      store_type_str = "MemoryOnly";
+    } else {
+      store_type = VectorStorageType::RocksDB;
+      store_type_str = "RocksDB";
+    }
+  }
+  return 0;
+}
+
+int VectorManager::CreateRawVector(struct VectorInfo &vector_info, std::string &retrieval_type,
+                                std::map<std::string, int> &vec_dups, TableInfo &table,
+                                utils::JsonParser &vectors_jp, RawVector **vec) {
+  std::string &vec_name = vector_info.name;
+  int dimension = vector_info.dimension;
+
+  std::string &store_type_str = vector_info.store_type;
+
+  VectorStorageType store_type = default_store_type_;
+  if (SetVectorStoreType(retrieval_type, store_type_str, store_type)) {
+    LOG(ERROR) << "set vector store type failed, store_type=" << store_type_str
+               << ", retrieval_type=" << retrieval_type;
+    return -1;
+  }
+
+  std::string &store_param = vector_info.store_param;
+
+  VectorValueType value_type = VectorValueType::FLOAT;
+  if (retrieval_type == "BINARYIVF") {
+    value_type = VectorValueType::BINARY;
+    dimension /= 8;
+  }
+
+  string vec_root_path = root_path_ + "/vectors";
+  if (utils::make_dir(vec_root_path.c_str())) {
+    LOG(ERROR) << "make directory error, path=" << vec_root_path;
+    return -2;
+  }
+  VectorMetaInfo *meta_info =
+      new VectorMetaInfo(vec_name, dimension, value_type);
+
+  StoreParams store_params(meta_info->AbsoluteName());
+  if (store_param != "" && store_params.Parse(store_param.c_str())) {
+    delete meta_info;
+    return PARAM_ERR;
+  }
+
+  LOG(INFO) << "store params=" << store_params.ToJsonStr();
+  if (vectors_jp.Contains(meta_info->AbsoluteName())) {
+    utils::JsonParser vec_jp;
+    vectors_jp.GetObject(meta_info->AbsoluteName(), vec_jp);
+    StoreParams disk_store_params(meta_info->AbsoluteName());
+    disk_store_params.Parse(vec_jp);
+    store_params.MergeRight(disk_store_params);
+    LOG(INFO) << "after merge, store parameters [" << store_params.ToJsonStr()
+              << "]";
+  }
+
+  *vec = RawVectorFactory::Create(
+      meta_info, store_type, vec_root_path, store_params, docids_bitmap_);
+
+  if ((*vec) == nullptr) {
+    LOG(ERROR) << "create raw vector error";
+    return -1;
+  }
+  LOG(INFO) << "create raw vector success, vec_name[" << vec_name
+            << "] store_type[" << store_type_str << "]";
+  bool has_source = vector_info.has_source;
+  bool multi_vids = vec_dups[vec_name] > 1 ? true : false;
+  int ret = (*vec)->Init(vec_name, has_source, multi_vids);
+  if (ret != 0) {
+    LOG(ERROR) << "Raw vector " << vec_name << " init error, code [" << ret
+                << "]!";
+    RawVectorIO *rio = (*vec)->GetIO();
+    if (rio) {
+      delete rio;
+      rio = nullptr;
+    }
+    delete (*vec);
+    return -1;
+  }
+  return 0;
+}
+
+void VectorManager::DestroyRawVectors() {
+  for (const auto &iter : raw_vectors_) {
+    if (iter.second != nullptr) {
+      RawVectorIO *rio = iter.second->GetIO();
+      if (rio) {
+        delete rio;
+      }
+      delete iter.second;
+    }
+  }
+  raw_vectors_.clear();
+  LOG(INFO) << "Raw vector cleared.";
+}
+
+int VectorManager::CreateVectorIndex(std::string &retrieval_type, std::string &retrieval_parma,
+                                      std::string vec_name, RawVector *vec, TableInfo &table) {
+  LOG(INFO) << "Create index model [" << retrieval_type << "]";
+  RetrievalModel *retrieval_model = dynamic_cast<RetrievalModel *>(
+      reflector().GetNewModel(retrieval_type));
+  if (retrieval_model == nullptr) {
+    LOG(ERROR) << "Cannot get model=" << retrieval_type
+                << ", vec_name=" << vec_name;
+    RawVectorIO *rio = vec->GetIO();
+    if (rio) {
+      delete rio;
+      rio = nullptr;
+      vec->SetIO(rio);
+    }
+    delete vec;
+    raw_vectors_[vec_name] = nullptr;
+    return -1;
+  }
+  retrieval_model->vector_ = vec;
+
+  if (retrieval_model->Init(retrieval_parma, table.IndexingSize()) !=
+      0) {
+    LOG(ERROR) << "gamma index init " << vec_name << " error!";
+    RawVectorIO *rio = vec->GetIO();
+    if (rio) {
+      delete rio;
+      rio = nullptr;
+      vec->SetIO(rio);
+    }
+    delete vec;
+    raw_vectors_[vec_name] = nullptr;
+    retrieval_model->vector_ = nullptr;
+    delete retrieval_model;
+    retrieval_model = nullptr;
+    return -1;
+  }
+  // init indexed count
+  retrieval_model->indexed_count_ = 0;
+  vector_indexes_[IndexName(vec_name, retrieval_type)] =
+      retrieval_model;
+
+  return 0;
+}
+
+void VectorManager::DestroyVectorIndexs() {
+  for (const auto &iter : vector_indexes_) {
+    if (iter.second != nullptr) {
+      delete iter.second;
+    }
+  }
+  vector_indexes_.clear();
+  LOG(INFO) << "Vector indexes cleared.";
+}
+
 int VectorManager::CreateVectorTable(TableInfo &table,
                                      utils::JsonParser *meta_jp) {
   if (table_created_) return -1;
@@ -70,83 +242,15 @@ int VectorManager::CreateVectorTable(TableInfo &table,
   }
 
   for (size_t i = 0; i < vectors_infos.size(); i++) {
+    int ret = 0;
+    RawVector *vec = nullptr;
     struct VectorInfo &vector_info = vectors_infos[i];
     std::string &vec_name = vector_info.name;
-    int dimension = vector_info.dimension;
-
-    std::string &store_type_str = vector_info.store_type;
-
-    VectorStorageType store_type = default_store_type_;
-    if (store_type_str != "") {
-      if (!strcasecmp("MemoryOnly", store_type_str.c_str())) {
-        store_type = VectorStorageType::MemoryOnly;
-      } else if (!strcasecmp("Mmap", store_type_str.c_str())) {
-        store_type = VectorStorageType::Mmap;
-      } else if (!strcasecmp("RocksDB", store_type_str.c_str())) {
-        store_type = VectorStorageType::RocksDB;
-      } else {
-        LOG(WARNING) << "NO support for store type " << store_type_str;
-        return -1;
-      }
-    } else {
-      store_type_str = "Mmap";
-    }
-
-    std::string &store_param = vector_info.store_param;
-
-    VectorValueType value_type = VectorValueType::FLOAT;
-    if (retrieval_types_[0] == "BINARYIVF") {
-      value_type = VectorValueType::BINARY;
-      dimension /= 8;
-    }
-
-    string vec_root_path = root_path_ + "/vectors";
-    if (utils::make_dir(vec_root_path.c_str())) {
-      LOG(ERROR) << "make directory error, path=" << vec_root_path;
-      return -2;
-    }
-    VectorMetaInfo *meta_info =
-        new VectorMetaInfo(vec_name, dimension, value_type);
-
-    StoreParams store_params(meta_info->AbsoluteName());
-    if (store_param != "" && store_params.Parse(store_param.c_str())) {
-      delete meta_info;
-      return PARAM_ERR;
-    }
-
-    LOG(INFO) << "store params=" << store_params.ToJsonStr();
-    if (vectors_jp.Contains(meta_info->AbsoluteName())) {
-      utils::JsonParser vec_jp;
-      vectors_jp.GetObject(meta_info->AbsoluteName(), vec_jp);
-      StoreParams disk_store_params(meta_info->AbsoluteName());
-      disk_store_params.Parse(vec_jp);
-      store_params.MergeRight(disk_store_params);
-      LOG(INFO) << "after merge, store parameters [" << store_params.ToJsonStr()
-                << "]";
-    }
-
-    RawVector *vec = RawVectorFactory::Create(
-        meta_info, store_type, vec_root_path, store_params, docids_bitmap_);
-
-    if (vec == nullptr) {
-      LOG(ERROR) << "create raw vector error";
-      return -1;
-    }
-    LOG(INFO) << "create raw vector success, vec_name[" << vec_name
-              << "] store_type[" << store_type_str << "]";
-    bool has_source = vector_info.has_source;
-    bool multi_vids = vec_dups[vec_name] > 1 ? true : false;
-    int ret = vec->Init(vec_name, has_source, multi_vids);
-    if (ret != 0) {
-      LOG(ERROR) << "Raw vector " << vec_name << " init error, code [" << ret
-                 << "]!";
-      RawVectorIO *rio = vec->GetIO();
-      if (rio) {
-        delete rio;
-        rio = nullptr;
-      }
-      delete vec;
-      return -1;
+    ret = CreateRawVector(vector_info, retrieval_types_[0], vec_dups,
+                  table, vectors_jp, &vec);
+    if (ret) {
+      LOG(ERROR) << vec_name << " create vector failed ret:" << ret;
+      return ret;
     }
 
     raw_vectors_[vec_name] = vec;
@@ -157,45 +261,12 @@ int VectorManager::CreateVectorTable(TableInfo &table,
     }
 
     for (size_t i = 0; i < retrieval_types_.size(); ++i) {
-      string &retrieval_type_str = retrieval_types_[i];
-      LOG(INFO) << "Create index model [" << retrieval_type_str << "]";
-      RetrievalModel *retrieval_model = dynamic_cast<RetrievalModel *>(
-          reflector().GetNewModel(retrieval_type_str));
-      if (retrieval_model == nullptr) {
-        LOG(ERROR) << "Cannot get model=" << retrieval_type_str
-                   << ", vec_name=" << vec_name;
-        RawVectorIO *rio = vec->GetIO();
-        if (rio) {
-          delete rio;
-          rio = nullptr;
-          vec->SetIO(rio);
-        }
-        delete vec;
-        raw_vectors_[vec_name] = nullptr;
-        return -1;
+      ret = CreateVectorIndex(retrieval_types_[i], retrieval_params[i],
+                        vec_name, vec, table);
+      if (ret) {
+        LOG(ERROR) << vec_name << " create index failed ret: " << ret;
+        return ret;
       }
-      retrieval_model->vector_ = vec;
-
-      if (retrieval_model->Init(retrieval_params[i], table.IndexingSize()) !=
-          0) {
-        LOG(ERROR) << "gamma index init " << vec_name << " error!";
-        RawVectorIO *rio = vec->GetIO();
-        if (rio) {
-          delete rio;
-          rio = nullptr;
-          vec->SetIO(rio);
-        }
-        delete vec;
-        raw_vectors_[vec_name] = nullptr;
-        retrieval_model->vector_ = nullptr;
-        delete retrieval_model;
-        retrieval_model = nullptr;
-        return -1;
-      }
-      // init indexed count
-      retrieval_model->indexed_count_ = 0;
-      vector_indexes_[IndexName(vec_name, retrieval_type_str)] =
-          retrieval_model;
     }
   }
   table_created_ = true;
@@ -812,25 +883,9 @@ bool VectorManager::Contains(std::string &field_name) {
 }
 
 void VectorManager::Close() {
-  for (const auto &iter : raw_vectors_) {
-    if (iter.second != nullptr) {
-      RawVectorIO *rio = iter.second->GetIO();
-      if (rio) {
-        delete rio;
-      }
-      delete iter.second;
-    }
-  }
-  raw_vectors_.clear();
-  LOG(INFO) << "Raw vector cleared.";
+  DestroyRawVectors();
 
-  for (const auto &iter : vector_indexes_) {
-    if (iter.second != nullptr) {
-      delete iter.second;
-    }
-  }
-  vector_indexes_.clear();
-  LOG(INFO) << "Vector indexes cleared.";
+  DestroyVectorIndexs();
 
   LOG(INFO) << "VectorManager closed.";
 }

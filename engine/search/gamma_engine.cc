@@ -521,6 +521,7 @@ int GammaEngine::CreateTable(TableInfo &table) {
 
   if (vec_manager_->CreateVectorTable(table, meta_jp) != 0) {
     LOG(ERROR) << "Cannot create VectorTable!";
+    vec_manager_->Close();
     return -2;
   }
   TableParams disk_table_params;

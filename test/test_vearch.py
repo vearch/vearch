@@ -94,7 +94,7 @@ class VearchCase():
         assert response.status_code == 200
         assert response.text.find("\"msg\":\"success\"") >= 0
 
-    def test_createspace(self):
+    def test_createspace(self, supported = True):
         url = "http://" + proxy + "/space/" + db_name + "/_create"
         headers = {"content-type": "application/json"}
         data = {
@@ -166,7 +166,11 @@ class VearchCase():
         response = requests.put(url, headers=headers, data=json.dumps(data))
         logger.debug("space_create---\n" + response.text)
         assert response.status_code == 200
-        assert response.text.find("\"msg\":\"success\"") >= 0
+        if supported:
+            assert response.text.find("\"msg\":\"success\"") >= 0
+        else:
+            assert response.text.find("\"code\":550") >= 0
+
 
     def test_getspace(self):
         url = "http://" + proxy + "/space/"+db_name+"/" + space_name
@@ -704,7 +708,17 @@ class VearchCase():
         logger.debug("deleteDB:" + response.text)
         assert response.status_code == 200
 
-    def run_db_space_create_test(self):
+    def run_db_space_create_test(self, supported = True):
+        self.test_createDB()
+        self.test_createspace(supported)
+        self.test_stats()
+        self.test_health()
+        self.test_server()
+        if supported:
+            self.test_deleteSpace()
+        self.test_deleteDB()
+
+    def run_db_space_create_multi_test(self):
         for i in range(10):
             self.test_stats()
             self.test_health()
@@ -757,21 +771,36 @@ class VearchCase():
         self.test_deleteSpace()
         self.test_deleteDB()
 
-
+# for FLAT HNSW IVFFLAT, now only support one store_type, no need to set
 @ pytest.mark.parametrize(["index_size", "id_type", "retrieval_type", "store_type"], [
-    [1, "Long", "FLAT", "MemoryOnly"],
-    [1, "String", "FLAT", "MemoryOnly"],
+    [1, "Long", "FLAT", ""],
+    [1, "String", "FLAT", ""],
     [990, "Long", "IVFPQ", "MemoryOnly"],
     [990, "Long", "IVFPQ", "RocksDB"],
     [990, "String", "IVFPQ", "MemoryOnly"],
     [990, "String", "IVFPQ", "RocksDB"],
-    [1, "Long", "HNSW", "MemoryOnly"],
-    [1, "String", "HNSW", "MemoryOnly"],
-    [990, "Long", "IVFFLAT", "RocksDB"],
-    [990, "String", "IVFFLAT", "RocksDB"]
+    [1, "Long", "HNSW", ""],
+    [1, "String", "HNSW", ""],
+    [990, "Long", "IVFFLAT", ""],
+    [990, "String", "IVFFLAT", ""]
 ])
-def test_vearch(index_size: int, id_type: str, retrieval_type: str, store_type: str):
+def test_vearch_usage(index_size: int, id_type: str, retrieval_type: str, store_type: str):
     case = VearchCase()
     case.setup(index_size, id_type, retrieval_type, store_type)
     case.run_basic_usage_test()
-    case.run_db_space_create_test()
+    case.run_db_space_create_multi_test()
+
+# Not support now so should be failed
+@ pytest.mark.parametrize(["index_size", "id_type", "retrieval_type", "store_type"], [
+    [1, "Long", "FLAT", "RocksDB"],
+    [1, "Long", "FLAT", "NOTSUPPORTTYPE"],
+    [1, "String", "FLAT", "RocksDB"],
+    [1, "Long", "HNSW", "RocksDB"],
+    [1, "String", "HNSW", "RocksDB"],
+    [990, "Long", "IVFFLAT", "MemoryOnly"],
+    [990, "String", "IVFFLAT", "MemoryOnly"],
+])
+def test_vearch_create_space(index_size: int, id_type: str, retrieval_type: str, store_type: str):
+    case = VearchCase()
+    case.setup(index_size, id_type, retrieval_type, store_type)
+    case.run_db_space_create_test(False)

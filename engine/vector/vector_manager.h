@@ -27,6 +27,20 @@ class VectorManager {
                 const std::string &root_path);
   ~VectorManager();
 
+  int SetVectorStoreType(std::string &retrieval_type, std::string &store_type_str,
+                        VectorStorageType &store_type);
+
+  int CreateRawVector(struct VectorInfo &vector_info, std::string &retrieval_type,
+                      std::map<std::string, int> &vec_dups, TableInfo &table,
+                      utils::JsonParser &vectors_jp, RawVector **vec);
+
+  void DestroyRawVectors();
+
+  int CreateVectorIndex(std::string &retrieval_type, std::string &retrieval_parma,
+                        std::string vec_name, RawVector *vec, TableInfo &table);
+
+  void DestroyVectorIndexs();
+
   int CreateVectorTable(TableInfo &table, utils::JsonParser *jp);
 
   int AddToStore(int docid, std::vector<struct Field> &fields);
@@ -79,8 +93,9 @@ class VectorManager {
 
   bitmap::BitmapManager *Bitmap() { return docids_bitmap_; };
 
- private:
   void Close();  // release all resource
+
+ private:
   inline std::string IndexName(const std::string &field_name,
                                const std::string &retrieval_type) {
     return field_name + "_" + retrieval_type;
