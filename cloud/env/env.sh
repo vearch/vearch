@@ -2,7 +2,7 @@
 
 yum update
 yum install -y epel-release
-yum install -y wget gcc gcc-c++ make automake git blas-devel lapack-devel which openblas-devel tbb-devel boost-devel
+yum install -y wget gcc gcc-c++ make automake git blas-devel lapack-devel which libzstd-devel openssl-devel openblas-devel tbb-devel boost-devel
 
 if [ ! -d "/env/app" ]; then
     mkdir -p /env/app
@@ -23,19 +23,19 @@ if [ ! -f "cmake" ]; then
 fi
 
 cd /env/app
-if [ ! -f "rocksdb-v6.2.2.tar.gz" ]; then
-    wget https://github.com/facebook/rocksdb/archive/v6.2.2.tar.gz -O rocksdb-v6.2.2.tar.gz
+if [ ! -f "rocksdb-v6.6.4.tar.gz" ]; then
+    wget https://github.com/facebook/rocksdb/archive/refs/tags/v6.6.4.tar.gz -O rocksdb.tar.gz
 fi
-tar -xzf rocksdb-v6.2.2.tar.gz
-cd /env/app/rocksdb-6.2.2
+tar xf rocksdb.tar.gz
+cd /env/app/rocksdb-6.6.4
 make shared_lib -j2
 mkdir -p /env/app/rocksdb_install/lib
-cp librocksdb.so.6.2.2 /env/app/rocksdb_install/lib
+cp librocksdb.so.6.6.4 /env/app/rocksdb_install/lib
 cd /env/app/rocksdb_install/lib
-ln -s librocksdb.so.6.2.2 librocksdb.so.6.2
-ln -s librocksdb.so.6.2 librocksdb.so
-cp -r /env/app/rocksdb-6.2.2/include /env/app/rocksdb_install/
-rm -rf /env/app/rocksdb-6.2.2
+ln -s librocksdb.so.6.6.4 librocksdb.so.6.6
+ln -s librocksdb.so.6.6 librocksdb.so
+cp -r /env/app/rocksdb-6.6.4/include /env/app/rocksdb_install/
+rm -rf /env/app/rocksdb-6.6.4
 
 cd /env/app/
 if [ ! -f "go1.19.9.linux-amd64.tar.gz" ]; then

@@ -48,7 +48,7 @@
    4. cmake >= 3.17 required.
    5. OpenBLAS.
    6. tbb，In CentOS it can be installed by yum. Such as: yum install tbb-devel.x86_64.
-   7. [RocksDB](https://github.com/facebook/rocksdb) == 6.2.2 ***(optional)***. You don't need to install it manually, the script installs it automatically. But you need to manually install the dependencies of rocksdb. Please refer to the installation method: https://github.com/facebook/rocksdb/blob/master/INSTALL.md
+   7. [RocksDB](https://github.com/facebook/rocksdb) == 6.6.4 ***(optional)***. You don't need to install it manually, the script installs it automatically. But you need to manually install the dependencies of rocksdb. Please refer to the installation method: https://github.com/facebook/rocksdb/blob/master/INSTALL.md
    8. CUDA >= 9.2, if you want GPU support.
 #### Compile 
    * Enter the `GOPATH` directory, `cd $GOPATH/src` `mkdir -p github.com/vearch` `cd github.com/vearch`
@@ -141,4 +141,3 @@ cp config/config.toml.example conf.toml
 ````
 ./vearch -conf conf.toml router
 ````
-
