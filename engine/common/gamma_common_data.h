@@ -34,7 +34,7 @@ enum class ResultCode : std::uint16_t {
   Undefined
 };
 
-enum class VectorStorageType : std::uint8_t { MemoryOnly, Mmap, RocksDB };
+enum class VectorStorageType : std::uint8_t { MemoryOnly, RocksDB };
 
 class GammaSearchCondition : public RetrievalContext {
  public:

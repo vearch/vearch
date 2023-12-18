@@ -23,12 +23,11 @@
 #include <stdexcept>
 #include <vector>
 
-#include "util/bitmap.h"
 #include "common/error_code.h"
 #include "faiss/IndexFlat.h"
 #include "index/gamma_index_io.h"
-#include "vector/mmap_raw_vector.h"
 #include "omp.h"
+#include "util/bitmap.h"
 #include "util/utils.h"
 
 namespace tig_gamma {
@@ -90,11 +89,14 @@ GammaIVFPQIndex::~GammaIVFPQIndex() {
 GammaInvertedListScanner *GammaIVFPQIndex::GetInvertedListScanner(
     bool store_pairs, faiss::MetricType metric_type) {
   if (pq.nbits == 8) {
-    return GetGammaInvertedListScanner<faiss::PQDecoder8>(store_pairs, metric_type);
+    return GetGammaInvertedListScanner<faiss::PQDecoder8>(store_pairs,
+                                                          metric_type);
   } else if (pq.nbits == 16) {
-    return GetGammaInvertedListScanner<faiss::PQDecoder16>(store_pairs, metric_type);
+    return GetGammaInvertedListScanner<faiss::PQDecoder16>(store_pairs,
+                                                           metric_type);
   } else {
-    return GetGammaInvertedListScanner<faiss::PQDecoderGeneric>(store_pairs, metric_type);
+    return GetGammaInvertedListScanner<faiss::PQDecoderGeneric>(store_pairs,
+                                                                metric_type);
   }
   return nullptr;
 }
@@ -103,20 +105,21 @@ template <class PQDecoder>
 GammaInvertedListScanner *GammaIVFPQIndex::GetGammaInvertedListScanner(
     bool store_pairs, faiss::MetricType metric_type) {
   if (metric_type == faiss::METRIC_INNER_PRODUCT) {
-    auto scanner =
-        new GammaIVFPQScanner<faiss::METRIC_INNER_PRODUCT,
-                              faiss::CMin<float, idx_t>, PQDecoder>(*this, store_pairs, 2);
+    auto scanner = new GammaIVFPQScanner<faiss::METRIC_INNER_PRODUCT,
+                                         faiss::CMin<float, idx_t>, PQDecoder>(
+        *this, store_pairs, 2);
     return scanner;
   } else if (metric_type == faiss::METRIC_L2) {
     auto scanner =
-        new GammaIVFPQScanner<faiss::METRIC_L2, faiss::CMax<float, idx_t>, PQDecoder>(
-            *this, store_pairs, 2);
+        new GammaIVFPQScanner<faiss::METRIC_L2, faiss::CMax<float, idx_t>,
+                              PQDecoder>(*this, store_pairs, 2);
     return scanner;
   }
   return nullptr;
 }
 
-int GammaIVFPQIndex::Init(const std::string &model_parameters, int indexing_size) {
+int GammaIVFPQIndex::Init(const std::string &model_parameters,
+                          int indexing_size) {
   indexing_size_ = indexing_size;
   model_param_ = new IVFPQModelParams();
   IVFPQModelParams &ivfpq_param = *model_param_;
@@ -130,8 +133,9 @@ int GammaIVFPQIndex::Init(const std::string &model_parameters, int indexing_size
   if (d % ivfpq_param.nsubvector != 0) {
     if (!ivfpq_param.support_indivisible_nsubvector) {
       LOG(ERROR) << "Dimension [" << vector_->MetaInfo()->Dimension()
-                << "] cannot divide by nsubvector [" << ivfpq_param.nsubvector
-                << "]. If you really want to use this nsubvector, please set support_indivisible_nsubvector to a non-zero value";
+                 << "] cannot divide by nsubvector [" << ivfpq_param.nsubvector
+                 << "]. If you really want to use this nsubvector, please set "
+                    "support_indivisible_nsubvector to a non-zero value";
       return -2;
     }
     d = (d / ivfpq_param.nsubvector + 1) * ivfpq_param.nsubvector;
@@ -147,7 +151,8 @@ int GammaIVFPQIndex::Init(const std::string &model_parameters, int indexing_size
     quantizer = new faiss::IndexFlatL2(d);
     quantizer_type_ = 0;
   } else {
-    faiss::IndexHNSWFlat *hnsw_flat = new faiss::IndexHNSWFlat(d, ivfpq_param.nlinks);
+    faiss::IndexHNSWFlat *hnsw_flat =
+        new faiss::IndexHNSWFlat(d, ivfpq_param.nlinks);
     hnsw_flat->hnsw.efSearch = ivfpq_param.efSearch;
     hnsw_flat->hnsw.efConstruction = ivfpq_param.efConstruction;
     hnsw_flat->hnsw.search_bounded_queue = false;
@@ -157,9 +162,9 @@ int GammaIVFPQIndex::Init(const std::string &model_parameters, int indexing_size
 
   if (ivfpq_param.has_opq) {
     if (d % ivfpq_param.opq_nsubvector != 0) {
-      LOG(ERROR) << d << " % " << ivfpq_param.opq_nsubvector 
+      LOG(ERROR) << d << " % " << ivfpq_param.opq_nsubvector
                  << " != 0, opq nsubvector should be divisible by dimension.";
-      return -2; 
+      return -2;
     }
     opq_ = new faiss::OPQMatrix(d, ivfpq_param.opq_nsubvector, d);
   }
@@ -184,11 +189,11 @@ int GammaIVFPQIndex::Init(const std::string &model_parameters, int indexing_size
   do_polysemous_training = false;
   polysemous_ht = 0;
 
-  // if nlist is very large, 
+  // if nlist is very large,
   // the size of RTInvertIndex bucket should be smaller
   rt_invert_index_ptr_ = new realtime::RTInvertIndex(
-    this->nlist, this->code_size, raw_vec->VidMgr(), raw_vec->Bitmap(), 
-    ivfpq_param.bucket_init_size, ivfpq_param.bucket_max_size);
+      this->nlist, this->code_size, raw_vec->VidMgr(), raw_vec->Bitmap(),
+      ivfpq_param.bucket_init_size, ivfpq_param.bucket_max_size);
 
   if (this->invlists) {
     delete this->invlists;
@@ -280,26 +285,29 @@ int GammaIVFPQIndex::Indexing() {
   size_t num;
   if ((size_t)indexing_size_ < nlist) {
     num = nlist * 39;
-    LOG(WARNING) << "Because index_size[" << indexing_size_ << "] < ncentroids[" << nlist 
-                 << "], index_size becomes ncentroids * 39[" << num << "].";
+    LOG(WARNING) << "Because index_size[" << indexing_size_ << "] < ncentroids["
+                 << nlist << "], index_size becomes ncentroids * 39[" << num
+                 << "].";
   } else if ((size_t)indexing_size_ <= nlist * 256) {
     if ((size_t)indexing_size_ < nlist * 39) {
-      LOG(WARNING) << "Index_size[" << indexing_size_ << "] is too small. "
-                   << "The appropriate range is [ncentroids * 39, ncentroids * 256]"; 
+      LOG(WARNING)
+          << "Index_size[" << indexing_size_ << "] is too small. "
+          << "The appropriate range is [ncentroids * 39, ncentroids * 256]";
     }
     num = (size_t)indexing_size_;
   } else {
     num = nlist * 256;
-    LOG(WARNING) << "Index_size[" << indexing_size_ << "] is too big. "
-                 << "The appropriate range is [ncentroids * 39, ncentroids * 256]."
-                 << "index_size becomes ncentroids * 256[" << num << "].";
+    LOG(WARNING)
+        << "Index_size[" << indexing_size_ << "] is too big. "
+        << "The appropriate range is [ncentroids * 39, ncentroids * 256]."
+        << "index_size becomes ncentroids * 256[" << num << "].";
   }
   if (num > vectors_count) {
     LOG(ERROR) << "vector total count [" << vectors_count
-                << "] less then index_size[" << num << "], failed!";
+               << "] less then index_size[" << num << "], failed!";
     return -1;
   }
-  
+
   ScopeVectors headers;
   std::vector<int> lens;
   raw_vec->GetVectorHeader(0, num, headers, lens);
@@ -332,7 +340,7 @@ int GammaIVFPQIndex::Indexing() {
   } else {
     train_vec = (const float *)train_raw_vec;
   }
-  
+
   const float *xt = nullptr;
   utils::ScopeDeleter<float> del_xt;
   if (opq_ != nullptr) {
@@ -462,7 +470,7 @@ bool GammaIVFPQIndex::Add(int n, const uint8_t *vec) {
 
   const float *to_encode = nullptr;
   utils::ScopeDeleter<float> del_to_encode;
-  
+
   if (by_residual) {
     to_encode = compute_residuals(quantizer, n, applied_vec, idx);
     del_to_encode.set(to_encode);
@@ -478,8 +486,7 @@ bool GammaIVFPQIndex::Add(int n, const uint8_t *vec) {
     assert(key < (long)nlist);
     if (key < 0) {
       n_ignore++;
-      LOG(WARNING) << "ivfpq add invalid key=" << key
-                   << ", vid=" << vid;
+      LOG(WARNING) << "ivfpq add invalid key=" << key << ", vid=" << vid;
       key = vid % nlist;
     }
 
@@ -529,8 +536,9 @@ int GammaIVFPQIndex::Search(RetrievalContext *retrieval_context, int n,
   if (condition->brute_force_search == true || is_trained == false) {
     // reset retrieval_params
     delete retrieval_context->RetrievalParams();
-    retrieval_context->retrieval_params_ = new FlatRetrievalParameters(
-        retrieval_params->ParallelOnQueries(), retrieval_params->GetDistanceComputeType());
+    retrieval_context->retrieval_params_ =
+        new FlatRetrievalParameters(retrieval_params->ParallelOnQueries(),
+                                    retrieval_params->GetDistanceComputeType());
     int ret =
         GammaFLATIndex::Search(retrieval_context, n, x, k, distances, labels);
     return ret;
@@ -560,8 +568,8 @@ int GammaIVFPQIndex::Search(RetrievalContext *retrieval_context, int n,
   quantizer->search(n, applied_xq, nprobe, coarse_dis.get(), idx.get());
   this->invlists->prefetch_lists(idx.get(), n * nprobe);
 
-  search_preassigned(retrieval_context, n, xq, applied_xq, k, idx.get(), coarse_dis.get(),
-                     distances, labels, nprobe, false);
+  search_preassigned(retrieval_context, n, xq, applied_xq, k, idx.get(),
+                     coarse_dis.get(), distances, labels, nprobe, false);
   return 0;
 }
 
@@ -699,9 +707,10 @@ void compute_dis(int k, const float *xi, float *simi, idx_t *idxi,
 }  // namespace
 
 void GammaIVFPQIndex::search_preassigned(
-    RetrievalContext *retrieval_context, int n, const float *x, const float *applied_x, int k,
-    const idx_t *keys, const float *coarse_dis, float *distances, idx_t *labels,
-    int nprobe, bool store_pairs, const faiss::IVFSearchParameters *params) {
+    RetrievalContext *retrieval_context, int n, const float *x,
+    const float *applied_x, int k, const idx_t *keys, const float *coarse_dis,
+    float *distances, idx_t *labels, int nprobe, bool store_pairs,
+    const faiss::IVFSearchParameters *params) {
   int raw_d = vector_->MetaInfo()->Dimension();
   // for opq, rerank need raw vector
   float *vec_q = nullptr;
@@ -716,7 +725,7 @@ void GammaIVFPQIndex::search_preassigned(
   } else {
     vec_q = const_cast<float *>(x);
   }
-  
+
   float *vec_applied_q = nullptr;
   utils::ScopeDeleter<float> del_applied_q;
   if (d > raw_d) {
@@ -776,7 +785,8 @@ void GammaIVFPQIndex::search_preassigned(
   bool parallel_mode = retrieval_params->ParallelOnQueries() ? 0 : 1;
 
   // don't start parallel section if single query
-  bool do_parallel = omp_get_max_threads() >= 2 && (parallel_mode == 0 ? n > 1 : nprobe > 1);
+  bool do_parallel =
+      omp_get_max_threads() >= 2 && (parallel_mode == 0 ? n > 1 : nprobe > 1);
 
 #pragma omp parallel if (do_parallel) reduction(+ : ndis)
   {
@@ -805,17 +815,18 @@ void GammaIVFPQIndex::search_preassigned(
 
         // loop over probes
         for (int ik = 0; ik < nprobe; ik++) {
-          nscan += scan_one_list(
-              scanner, keys[i * nprobe + ik], coarse_dis[i * nprobe + ik],
-              recall_simi, recall_idxi, recall_num, this->nlist, this->invlists,
-              store_pairs, false);
+          nscan += scan_one_list(scanner, keys[i * nprobe + ik],
+                                 coarse_dis[i * nprobe + ik], recall_simi,
+                                 recall_idxi, recall_num, this->nlist,
+                                 this->invlists, store_pairs, false);
 
           if (max_codes && nscan >= max_codes) break;
         }
 
         ndis += nscan;
-        compute_dis(k, vec_q + i * d, simi, idxi, recall_simi, recall_idxi, recall_num,
-                    context->has_rank, metric_type, vector_, retrieval_context);
+        compute_dis(k, vec_q + i * d, simi, idxi, recall_simi, recall_idxi,
+                    recall_num, context->has_rank, metric_type, vector_,
+                    retrieval_context);
       }       // parallel for
     } else {  // parallelize over inverted lists
       std::vector<idx_t> local_idx(recall_num);
@@ -828,14 +839,15 @@ void GammaIVFPQIndex::search_preassigned(
         init_result(metric_type, recall_num, local_dis.data(),
                     local_idx.data());
 
-        threads_num = nprobe < omp_get_max_threads() ? nprobe : omp_get_max_threads();
+        threads_num =
+            nprobe < omp_get_max_threads() ? nprobe : omp_get_max_threads();
 
 #pragma omp parallel for schedule(dynamic) num_threads(threads_num)
         for (int ik = 0; ik < nprobe; ik++) {
-          ndis += scan_one_list(
-              scanner, keys[i * nprobe + ik], coarse_dis[i * nprobe + ik],
-              local_dis.data(), local_idx.data(), recall_num, this->nlist,
-              this->invlists, store_pairs, false);
+          ndis += scan_one_list(scanner, keys[i * nprobe + ik],
+                                coarse_dis[i * nprobe + ik], local_dis.data(),
+                                local_idx.data(), recall_num, this->nlist,
+                                this->invlists, store_pairs, false);
 
           // can't do the test on max_codes
         }
@@ -873,8 +885,8 @@ void GammaIVFPQIndex::search_preassigned(
 #ifdef PERFORMANCE_TESTING
           retrieval_context->GetPerfTool().Perf("coarse");
 #endif
-          compute_dis(k, vec_q + i * d, simi, idxi, recall_simi, recall_idxi, recall_num,
-                      context->has_rank, metric_type, vector_,
+          compute_dis(k, vec_q + i * d, simi, idxi, recall_simi, recall_idxi,
+                      recall_num, context->has_rank, metric_type, vector_,
                       retrieval_context);
 
 #ifdef PERFORMANCE_TESTING
@@ -935,7 +947,8 @@ void GammaIVFPQIndex::copy_subset_to(faiss::IndexIVF &other, int subset_type,
   // FAISS_ASSERT(accu_n == indexed_vec_count_);
 }
 
-string IVFPQToString(const faiss::IndexIVFPQ *ivpq, const faiss::VectorTransform *vt) {
+string IVFPQToString(const faiss::IndexIVFPQ *ivpq,
+                     const faiss::VectorTransform *vt) {
   std::stringstream ss;
   ss << "d=" << ivpq->d << ", ntotal=" << ivpq->ntotal
      << ", is_trained=" << ivpq->is_trained
@@ -944,7 +957,8 @@ string IVFPQToString(const faiss::IndexIVFPQ *ivpq, const faiss::VectorTransform
      << ", code_size=" << ivpq->code_size << ", pq: d=" << ivpq->pq.d
      << ", M=" << ivpq->pq.M << ", nbits=" << ivpq->pq.nbits;
 
-  faiss::IndexHNSWFlat *hnsw_flat = dynamic_cast<faiss::IndexHNSWFlat *>(ivpq->quantizer);
+  faiss::IndexHNSWFlat *hnsw_flat =
+      dynamic_cast<faiss::IndexHNSWFlat *>(ivpq->quantizer);
   if (hnsw_flat) {
     ss << ", hnsw: efSearch=" << hnsw_flat->hnsw.efSearch
        << ", efConstruction=" << hnsw_flat->hnsw.efConstruction
@@ -953,7 +967,8 @@ string IVFPQToString(const faiss::IndexIVFPQ *ivpq, const faiss::VectorTransform
 
   const faiss::OPQMatrix *opq = dynamic_cast<const faiss::OPQMatrix *>(vt);
   if (opq) {
-    ss << ", opq: d_in=" << opq->d_in << ", d_out=" << opq->d_out << ", M=" << opq->M;
+    ss << ", opq: d_in=" << opq->d_in << ", d_out=" << opq->d_out
+       << ", M=" << opq->M;
   }
   return ss.str();
 }
@@ -981,15 +996,15 @@ int GammaIVFPQIndex::Dump(const std::string &dir) {
   WRITE1(ivpq->code_size);
   tig_gamma::write_product_quantizer(&ivpq->pq, f);
 
-  if (opq_ != nullptr)
-    write_opq(opq_, f);
+  if (opq_ != nullptr) write_opq(opq_, f);
 
   if (WriteInvertedLists(f, rt_invert_index_ptr_)) {
     LOG(ERROR) << "write invert list error, index name=" << index_name;
     return INTERNAL_ERR;
   }
 
-  LOG(INFO) << "dump:" << IVFPQToString(ivpq, opq_) << ", indexed count=" << indexed_vec_count_;
+  LOG(INFO) << "dump:" << IVFPQToString(ivpq, opq_)
+            << ", indexed count=" << indexed_vec_count_;
   return 0;
 }
 
@@ -1012,12 +1027,13 @@ int GammaIVFPQIndex::Load(const std::string &index_dir) {
   READ1(ivpq->code_size);
   tig_gamma::read_product_quantizer(&ivpq->pq, f);
 
-  faiss::IndexHNSWFlat *hnsw_flat = dynamic_cast<faiss::IndexHNSWFlat *>(ivpq->quantizer);
-  if(hnsw_flat) {
+  faiss::IndexHNSWFlat *hnsw_flat =
+      dynamic_cast<faiss::IndexHNSWFlat *>(ivpq->quantizer);
+  if (hnsw_flat) {
     hnsw_flat->hnsw.search_bounded_queue = false;
     quantizer_type_ = 1;
   }
-  if(opq_) {
+  if (opq_) {
     read_opq(opq_, f);
   }
 
@@ -1028,7 +1044,7 @@ int GammaIVFPQIndex::Load(const std::string &index_dir) {
   } else if (ret == 0) {
     // if (indexed_vec_count_ < 0 ||
     //     indexed_vec_count_ > (int)vector_->MetaInfo()->size_) {
-    //   LOG(ERROR) << "invalid indexed count [" << indexed_vec_count_ 
+    //   LOG(ERROR) << "invalid indexed count [" << indexed_vec_count_
     //              << "] vector size [" << vector_->MetaInfo()->size_ << "]";
     //   return INTERNAL_ERR;
     // }

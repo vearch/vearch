@@ -168,8 +168,7 @@ struct Options {
     path = "files";
     log_dir = "log";
     model_id = "model";
-    store_type = "MMap";
-    // store_type = "RocksDB";
+    store_type = "RocksDB";
     profiles.resize(max_doc_size * fields_vec.size());
     engine = nullptr;
     add_type = 0;

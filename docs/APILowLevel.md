@@ -495,8 +495,8 @@ For metric_type, It can be specified when building the table, if it is not set w
 * array : whether the tags for each document is multi-valued, `true` or `false` default is false
 * index : supporting numeric field filter default `false`
 * Vector field params
-    * format : default not normalized . if you set "normalization", "normal" it will normalized  
-    * store_type : "RocksDB" or "Mmap" or "MemoryOnly" default "Mmap".For HNSW and IVFFLAT and FLAT, it can only be run in MemoryOnly mode.   
+    * format : default not normalized. if you set "normalization", "normal" it will normalized  
+    * store_type : "RocksDB" or "MemoryOnly". For HNSW and IVFFLAT and FLAT, it can only be run in MemoryOnly mode.   
     * store_param : example {"cache_size":2592}. default value is 1024. It means you will use so much memory, the excess will be kept to disk. For MemoryOnly, this parameter is invalid.
 
 ### get space

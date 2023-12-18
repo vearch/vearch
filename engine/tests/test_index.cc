@@ -72,17 +72,6 @@ TEST_F(GammaTest, SSG) {
   ASSERT_EQ(TestIndexes(opt), 0);
 }
 
-TEST_F(GammaTest, IVFPQFastScan) {
-  struct Options opt;
-  opt.set_file(my_argv, my_argc);
-  opt.retrieval_type = "IVFPQFastScan";
-  opt.store_type = "Mmap";
-  opt.retrieval_param = kIVFPQParam;
-  ASSERT_EQ(TestIndexes(opt), 0);
-  //   opt.b_load = true;
-  //   ASSERT_EQ(TestIndexes(opt), 0);
-}
-
 TEST_F(GammaTest, IVFPQFastScan_MemoryOnly) {
   struct Options opt;
   opt.set_file(my_argv, my_argc);
@@ -106,16 +95,6 @@ TEST_F(GammaTest, IVFPQFastScan_ROCKSDB) {
 }
 
 #ifdef OPT_IVFPQ_RELAYOUT
-TEST_F(GammaTest, RELAYOUT) {
-  struct Options opt;
-  opt.set_file(my_argv, my_argc);
-  opt.retrieval_type = "IVFPQ_RELAYOUT";
-  opt.retrieval_param = kIVFPQParam;
-  opt.store_type = "Mmap";
-  ASSERT_EQ(TestIndexes(opt), 0);
-  opt.b_load = true;
-  ASSERT_EQ(TestIndexes(opt), 0);
-}
 
 TEST_F(GammaTest, RELAYOUT_MEMORYONLY) {
   struct Options opt;

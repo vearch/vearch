@@ -418,8 +418,8 @@ func UnmarshalPropertyJSON(propertity []byte) (map[string]*SpaceProperties, erro
 			}
 
 			if sp.StoreType != nil && *sp.StoreType != "" {
-				if *sp.StoreType != "Mmap" && *sp.StoreType != "RocksDB" && *sp.StoreType != "MemoryOnly" {
-					return nil, fmt.Errorf("vector field:[%s] not support this store type:[%s] it only Mmap or RocksDB or MemoryOnly", name, *sp.StoreType)
+				if *sp.StoreType != "RocksDB" && *sp.StoreType != "MemoryOnly" {
+					return nil, fmt.Errorf("vector field:[%s] not support this store type:[%s] it only RocksDB or MemoryOnly", name, *sp.StoreType)
 				}
 			}
 

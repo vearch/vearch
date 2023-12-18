@@ -120,8 +120,8 @@ func (f *FieldMapping) UnmarshalJSON(data []byte) error {
 			return fmt.Errorf("retrieval_type can not null by field : [%s] ", string(data))
 		}*/
 		if tmp.StoreType != nil && *tmp.StoreType != "" {
-			if *tmp.StoreType != "Mmap" && *tmp.StoreType != "RocksDB" && *tmp.StoreType != "MemoryOnly" {
-				return fmt.Errorf("vector field:[%s] not support this store type:[%s] it only Mmap or RocksDB or MemoryOnly", fieldMapping.FieldName(), *tmp.StoreType)
+			if *tmp.StoreType != "RocksDB" && *tmp.StoreType != "MemoryOnly" {
+				return fmt.Errorf("vector field:[%s] not support this store type:[%s] it only RocksDB or MemoryOnly", fieldMapping.FieldName(), *tmp.StoreType)
 			}
 			fieldMapping.(*VectortFieldMapping).StoreType = *tmp.StoreType
 		}

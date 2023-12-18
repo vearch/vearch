@@ -6,7 +6,6 @@
  */
 
 #include "vector/memory_raw_vector.h"
-#include "vector/mmap_raw_vector.h"
 #include "vector/rocksdb_raw_vector.h"
 
 #include <fcntl.h>
@@ -308,18 +307,12 @@ void TestRawVectorDumpLoad(VectorStorageType store_type,
   Delete(raw_vector);
 }
 
-TEST(MmapRawVector, Normal) { TestRawVectorNormal(VectorStorageType::Mmap); }
-
 TEST(MemoryRawVector, Normal) {
   TestRawVectorNormal(VectorStorageType::MemoryOnly);
 }
 
 TEST(MemoryRawVector, DumpLoad) {
   TestRawVectorDumpLoad(VectorStorageType::MemoryOnly);
-}
-
-TEST(MmapRawVector, DumpLoad) {
-  TestRawVectorDumpLoad(VectorStorageType::Mmap);
 }
 
 TEST(RocksDBRawVector, Normal) {

@@ -36,8 +36,6 @@ int VectorManager::SetVectorStoreType(std::string &retrieval_type, std::string &
   if (store_type_str != "") {
     if (!strcasecmp("MemoryOnly", store_type_str.c_str())) {
       store_type = VectorStorageType::MemoryOnly;
-    } else if (!strcasecmp("Mmap", store_type_str.c_str())) {
-      store_type = VectorStorageType::Mmap;
     } else if (!strcasecmp("RocksDB", store_type_str.c_str())) {
       store_type = VectorStorageType::RocksDB;
     } else {

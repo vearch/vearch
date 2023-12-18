@@ -1,5 +1,11 @@
-#ifndef ASYNC_FLUSH_H_
-#define ASYNC_FLUSH_H_
+/**
+ * Copyright 2019 The Gamma Authors.
+ *
+ * This source code is licensed under the Apache License, Version 2.0 license
+ * found in the LICENSE file in the root directory of this source tree.
+ */
+
+#pragma once
 
 #include <atomic>
 #include <string>
@@ -94,5 +100,3 @@ struct AsyncFlushExecutor {
 
   void Add(AsyncFlusher *af) { async_flushers_.push_back(af); }
 };
-
-#endif

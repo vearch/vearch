@@ -16,4 +16,4 @@ Gamma is the core vector search engine of Vearch. It is a high-performance, conc
 5. `cd tests && cp ../../tests/profile_10k.txt .`
 6. `wget ftp://ftp.irisa.fr/local/texmex/corpus/siftsmall.tar.gz && tar -zxvf siftsmall.tar.gz`
 7. `./test_files profile_10k.txt siftsmall/siftsmall_base.fvecs`
-Currently we support gamma both on Linux and OSX of x86_64 machines. We have tested on Centos, Ubuntu and Mac os. And we all just tested with gcc on both Linux and OSX.
+Currently we support gamma both on Linux and macOS of x86_64 machines. We have tested on Centos, Ubuntu and macOS. And we all just tested with gcc on both Linux and macOS.

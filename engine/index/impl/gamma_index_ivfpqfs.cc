@@ -23,19 +23,16 @@
 #include <stdexcept>
 #include <vector>
 
-#include "util/bitmap.h"
 #include "common/error_code.h"
 #include "faiss/invlists/BlockInvertedLists.h"
 #include "index/gamma_index_io.h"
-#include "vector/mmap_raw_vector.h"
 #include "omp.h"
+#include "util/bitmap.h"
 #include "util/utils.h"
 
 namespace tig_gamma {
 
-inline size_t roundup(size_t a, size_t b) {
-  return (a + b - 1) / b * b;
-}
+inline size_t roundup(size_t a, size_t b) { return (a + b - 1) / b * b; }
 
 REGISTER_MODEL(IVFPQFastScan, GammaIVFPQFastScanIndex)
 
@@ -77,7 +74,8 @@ GammaIVFPQFastScanIndex::~GammaIVFPQFastScanIndex() {
   }
 }
 
-int GammaIVFPQFastScanIndex::Init(const std::string &model_parameters, int indexing_size) {
+int GammaIVFPQFastScanIndex::Init(const std::string &model_parameters,
+                                  int indexing_size) {
   indexing_size_ = indexing_size;
   model_param_ = new IVFPQFastScanModelParams();
   IVFPQFastScanModelParams &ivfpqfs_param = *model_param_;
@@ -90,7 +88,7 @@ int GammaIVFPQFastScanIndex::Init(const std::string &model_parameters, int index
 
   if (d % ivfpqfs_param.nsubvector != 0) {
     LOG(ERROR) << "Dimension [" << vector_->MetaInfo()->Dimension()
-              << "] cannot divide by nsubvector [" << ivfpqfs_param.nsubvector;
+               << "] cannot divide by nsubvector [" << ivfpqfs_param.nsubvector;
     return -2;
   }
 
@@ -99,7 +97,8 @@ int GammaIVFPQFastScanIndex::Init(const std::string &model_parameters, int index
     quantizer = new faiss::IndexFlatL2(d);
     quantizer_type_ = 0;
   } else {
-    faiss::IndexHNSWFlat *hnsw_flat = new faiss::IndexHNSWFlat(d, ivfpqfs_param.nlinks);
+    faiss::IndexHNSWFlat *hnsw_flat =
+        new faiss::IndexHNSWFlat(d, ivfpqfs_param.nlinks);
     hnsw_flat->hnsw.efSearch = ivfpqfs_param.efSearch;
     hnsw_flat->hnsw.efConstruction = ivfpqfs_param.efConstruction;
     hnsw_flat->hnsw.search_bounded_queue = false;
@@ -109,9 +108,9 @@ int GammaIVFPQFastScanIndex::Init(const std::string &model_parameters, int index
 
   if (ivfpqfs_param.has_opq) {
     if (d % ivfpqfs_param.opq_nsubvector != 0) {
-      LOG(ERROR) << d << " % " << ivfpqfs_param.opq_nsubvector 
+      LOG(ERROR) << d << " % " << ivfpqfs_param.opq_nsubvector
                  << " != 0, opq nsubvector should be divisible by dimension.";
-      return -2; 
+      return -2;
     }
     opq_ = new faiss::OPQMatrix(d, ivfpqfs_param.opq_nsubvector, d);
   }
@@ -146,7 +145,8 @@ int GammaIVFPQFastScanIndex::Init(const std::string &model_parameters, int index
   bbs = ivfpqfs_param.bbs;
   M2 = roundup(pq.M, 2);
 
-  replace_invlists(new faiss::BlockInvertedLists(nlist, bbs, bbs * M2 / 2), true);
+  replace_invlists(new faiss::BlockInvertedLists(nlist, bbs, bbs * M2 / 2),
+                   true);
 
   d_ = d;
 
@@ -159,7 +159,8 @@ int GammaIVFPQFastScanIndex::Init(const std::string &model_parameters, int index
   return ret;
 }
 
-RetrievalParameters *GammaIVFPQFastScanIndex::Parse(const std::string &parameters) {
+RetrievalParameters *GammaIVFPQFastScanIndex::Parse(
+    const std::string &parameters) {
   if (parameters == "") {
     return new IVFPQRetrievalParameters(metric_type_);
   }
@@ -215,26 +216,29 @@ int GammaIVFPQFastScanIndex::Indexing() {
   size_t num;
   if ((size_t)indexing_size_ < nlist) {
     num = nlist * 39;
-    LOG(WARNING) << "Because index_size[" << indexing_size_ << "] < ncentroids[" << nlist 
-                 << "], index_size becomes ncentroids * 39[" << num << "].";
+    LOG(WARNING) << "Because index_size[" << indexing_size_ << "] < ncentroids["
+                 << nlist << "], index_size becomes ncentroids * 39[" << num
+                 << "].";
   } else if ((size_t)indexing_size_ <= nlist * 256) {
     if ((size_t)indexing_size_ < nlist * 39) {
-      LOG(WARNING) << "Index_size[" << indexing_size_ << "] is too small. "
-                   << "The appropriate range is [ncentroids * 39, ncentroids * 256]"; 
+      LOG(WARNING)
+          << "Index_size[" << indexing_size_ << "] is too small. "
+          << "The appropriate range is [ncentroids * 39, ncentroids * 256]";
     }
     num = (size_t)indexing_size_;
   } else {
     num = nlist * 256;
-    LOG(WARNING) << "Index_size[" << indexing_size_ << "] is too big. "
-                 << "The appropriate range is [ncentroids * 39, ncentroids * 256]."
-                 << "index_size becomes ncentroids * 256[" << num << "].";
+    LOG(WARNING)
+        << "Index_size[" << indexing_size_ << "] is too big. "
+        << "The appropriate range is [ncentroids * 39, ncentroids * 256]."
+        << "index_size becomes ncentroids * 256[" << num << "].";
   }
   if (num > vectors_count) {
     LOG(ERROR) << "vector total count [" << vectors_count
-                << "] less then index_size[" << num << "], failed!";
+               << "] less then index_size[" << num << "], failed!";
     return -1;
   }
-  
+
   ScopeVectors headers;
   std::vector<int> lens;
   raw_vec->GetVectorHeader(0, num, headers, lens);
@@ -255,7 +259,7 @@ int GammaIVFPQFastScanIndex::Indexing() {
       offset += sizeof(float) * raw_d * lens[i];
     }
   }
-  
+
   const float *xt = nullptr;
   utils::ScopeDeleter1<float> del_xt;
   if (opq_ != nullptr) {
@@ -276,7 +280,7 @@ int GammaIVFPQFastScanIndex::Delete(const std::vector<int64_t> &ids) {
   return 0;
 }
 
-int GammaIVFPQFastScanIndex::Update(const std::vector<int64_t> &ids, 
+int GammaIVFPQFastScanIndex::Update(const std::vector<int64_t> &ids,
                                     const std::vector<const uint8_t *> &vecs) {
   return 0;
 }
@@ -327,8 +331,8 @@ int reorder_result(faiss::MetricType metric_type, int k, float *simi,
   return 0;
 };
 
-void compute_dis(int k, const float *xi, float *simi, idx_t *idxi, float *recall_simi, 
-                 idx_t *recall_idxi, int recall_num,
+void compute_dis(int k, const float *xi, float *simi, idx_t *idxi,
+                 float *recall_simi, idx_t *recall_idxi, int recall_num,
                  faiss::MetricType metric_type, VectorReader *vec) {
   ScopeVectors scope_vecs;
   std::vector<idx_t> vids(recall_idxi, recall_idxi + recall_num);
@@ -367,8 +371,8 @@ void compute_dis(int k, const float *xi, float *simi, idx_t *idxi, float *recall
 }  // namespace
 
 int GammaIVFPQFastScanIndex::Search(RetrievalContext *retrieval_context, int n,
-                            const uint8_t *x, int k, float *distances,
-                            idx_t *labels) {
+                                    const uint8_t *x, int k, float *distances,
+                                    idx_t *labels) {
   /*
   IVFPQRetrievalParameters *retrieval_params =
       dynamic_cast<IVFPQRetrievalParameters *>(
@@ -386,8 +390,8 @@ int GammaIVFPQFastScanIndex::Search(RetrievalContext *retrieval_context, int n,
     // reset retrieval_params
     delete retrieval_context->RetrievalParams();
     retrieval_context->retrieval_params_ = new FlatRetrievalParameters(
-        retrieval_params->ParallelOnQueries(), retrieval_params->GetDistanceComputeType());
-    int ret =
+        retrieval_params->ParallelOnQueries(),
+  retrieval_params->GetDistanceComputeType()); int ret =
         GammaFLATIndex::Search(retrieval_context, n, x, k, distances, labels);
     return ret;
   }
@@ -401,7 +405,7 @@ int GammaIVFPQFastScanIndex::Search(RetrievalContext *retrieval_context, int n,
   idx_t *recall_labels = nullptr;
   utils::ScopeDeleter<float> del1;
   utils::ScopeDeleter<idx_t> del2;
- 
+
   int k_rerank = 0;
   if (rerank_ > 0) {
     k_rerank = k * rerank_;
@@ -437,7 +441,8 @@ int GammaIVFPQFastScanIndex::Search(RetrievalContext *retrieval_context, int n,
       idx_t *recall_idxi = recall_labels + i * k_rerank;
 
       init_result(metric_type, k, simi, idxi);
-      compute_dis(k, xq + i * d, simi, idxi, recall_simi, recall_idxi, k_rerank, metric_type, vector_);
+      compute_dis(k, xq + i * d, simi, idxi, recall_simi, recall_idxi, k_rerank,
+                  metric_type, vector_);
     }
 #ifdef PERFORMANCE_TESTING
     retrieval_context->GetPerfTool().Perf("recompute");
@@ -446,12 +451,8 @@ int GammaIVFPQFastScanIndex::Search(RetrievalContext *retrieval_context, int n,
   return 0;
 }
 
-int GammaIVFPQFastScanIndex::Dump(const std::string &dir) {
-  return 0;
-}
+int GammaIVFPQFastScanIndex::Dump(const std::string &dir) { return 0; }
 
-int GammaIVFPQFastScanIndex::Load(const std::string &index_dir) {
-  return 0;
-}
+int GammaIVFPQFastScanIndex::Load(const std::string &index_dir) { return 0; }
 
 }  // namespace tig_gamma

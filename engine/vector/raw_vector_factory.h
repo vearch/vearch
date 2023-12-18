@@ -8,7 +8,6 @@
 #pragma once
 
 #include "memory_raw_vector.h"
-#include "mmap_raw_vector.h"
 #include "raw_vector.h"
 
 #include "io/rocksdb_raw_vector_io.h"
@@ -18,7 +17,6 @@
 
 #include "common/gamma_common_data.h"
 #include "io/memory_raw_vector_io.h"
-#include "io/mmap_raw_vector_io.h"
 
 namespace tig_gamma {
 
@@ -42,27 +40,22 @@ class RawVectorFactory {
                                          docids_bitmap);
         vio = new MemoryRawVectorIO((MemoryRawVector *)raw_vector);
         break;
-      case VectorStorageType::Mmap:
-        raw_vector = new MmapRawVector(meta_info, root_path, store_params,
-                                       docids_bitmap);
-        vio = new MmapRawVectorIO(raw_vector);
-        break;
       case VectorStorageType::RocksDB:
         raw_vector = new RocksDBRawVector(meta_info, root_path, store_params,
                                           docids_bitmap);
         if (meta_info->with_io_)
-            vio = new RocksDBRawVectorIO((RocksDBRawVector *)raw_vector);
+          vio = new RocksDBRawVectorIO((RocksDBRawVector *)raw_vector);
         break;
       default:
         LOG(ERROR) << "invalid raw feature type:" << static_cast<int>(type);
         return nullptr;
     }
     if (meta_info->with_io_) {
-        if (vio && vio->Init()) {
-            Fail(raw_vector, vio, "init raw vector io error");
-            return nullptr;
-        }
-        raw_vector->SetIO(vio);
+      if (vio && vio->Init()) {
+        Fail(raw_vector, vio, "init raw vector io error");
+        return nullptr;
+      }
+      raw_vector->SetIO(vio);
     }
     return raw_vector;
   }

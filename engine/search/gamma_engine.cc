@@ -26,11 +26,11 @@
 #include <vector>
 
 #include "cjson/cJSON.h"
+#include "common/error_code.h"
 #include "common/gamma_common_data.h"
 #include "gamma_table_io.h"
 #include "io/raw_vector_io.h"
 #include "omp.h"
-#include "common/error_code.h"
 #include "util/bitmap.h"
 #include "util/log.h"
 #include "util/utils.h"
@@ -273,7 +273,7 @@ int GammaEngine::Setup() {
   }
 
   if (!vec_manager_) {
-    vec_manager_ = new VectorManager(VectorStorageType::Mmap, docids_bitmap_,
+    vec_manager_ = new VectorManager(VectorStorageType::RocksDB, docids_bitmap_,
                                      index_root_path_);
   }
 
@@ -326,7 +326,8 @@ int GammaEngine::Search(Request &request, Response &response_results) {
   std::vector<struct VectorQuery> &vec_fields = request.VecFields();
   size_t vec_fields_num = vec_fields.size();
 
-  if (vec_fields_num > 0 && (not brute_force_search) && (index_status_ != IndexStatus::INDEXED)) {
+  if (vec_fields_num > 0 && (not brute_force_search) &&
+      (index_status_ != IndexStatus::INDEXED)) {
     string msg = "index not trained!";
     LOG(WARNING) << msg;
     for (int i = 0; i < req_num; ++i) {
@@ -342,7 +343,8 @@ int GammaEngine::Search(Request &request, Response &response_results) {
   GammaQuery gamma_query;
   gamma_query.vec_query = vec_fields;
 
-  gamma_query.condition = new GammaSearchCondition(static_cast<PerfTool *>(response_results.GetPerTool()));
+  gamma_query.condition = new GammaSearchCondition(
+      static_cast<PerfTool *>(response_results.GetPerTool()));
   gamma_query.condition->topn = topn;
   gamma_query.condition->multi_vector_rank =
       request.MultiVectorRank() == 1 ? true : false;
@@ -399,7 +401,8 @@ int GammaEngine::Search(Request &request, Response &response_results) {
 #ifdef PERFORMANCE_TESTING
     gamma_query.condition->GetPerfTool().Perf("search total");
 #endif
-    response_results.SetEngineInfo(table_, vec_manager_, gamma_results, req_num);
+    response_results.SetEngineInfo(table_, vec_manager_, gamma_results,
+                                   req_num);
   } else {
     GammaResult *gamma_result = new GammaResult[1];
     gamma_result->init(topn, nullptr, 0);
@@ -423,7 +426,7 @@ int GammaEngine::Search(Request &request, Response &response_results) {
     response_results.SetOnlineLogMessage(
         gamma_query.condition->GetPerfTool().OutputPerf().str());
   }
-#endif // PERFORMANCE_TESTING
+#endif  // PERFORMANCE_TESTING
 
   RequestConcurrentController::GetInstance().Release(req_num);
   return ret;
@@ -577,7 +580,7 @@ int GammaEngine::CreateTable(TableInfo &table) {
     LOG(ERROR) << "add numeric index fields error!";
     return -3;
   }
-  
+
   std::string table_name = table.Name();
   std::string path = index_root_path_ + "/" + table_name + ".schema";
   TableSchemaIO tio(path);  // rewrite it if the path is already existed
@@ -628,7 +631,9 @@ int GammaEngine::AddOrUpdate(Doc &doc) {
     LOG(ERROR) << "Add to store error max_docid [" << max_docid_ << "]";
     return -4;
   }
-  if (migrate_data_) { migrate_data_->AddDocid(max_docid_); }
+  if (migrate_data_) {
+    migrate_data_->AddDocid(max_docid_);
+  }
   ++max_docid_;
   docids_bitmap_->SetMaxID(max_docid_);
 
@@ -684,7 +689,9 @@ int GammaEngine::AddOrUpdateDocs(Docs &docs, BatchResult &result) {
         LOG(ERROR) << msg;
         continue;
       }
-      if (migrate_data_) { migrate_data_->AddDocid(max_docid_ + i - start_id); }
+      if (migrate_data_) {
+        migrate_data_->AddDocid(max_docid_ + i - start_id);
+      }
     }
 
     max_docid_ += batch_size;
@@ -765,7 +772,9 @@ int GammaEngine::Update(int doc_id, std::vector<struct Field> &fields_table,
     int idx = table_->GetAttrIdx(field.name);
     field_range_index_->Add(doc_id, idx);
   }
-  if (migrate_data_) { migrate_data_->AddDocid(doc_id); }
+  if (migrate_data_) {
+    migrate_data_->AddDocid(doc_id);
+  }
 
 #ifdef DEBUG
   LOG(INFO) << "update success! key=" << key;
@@ -792,7 +801,9 @@ int GammaEngine::Delete(std::string &key) {
   table_->Delete(key);
 
   vec_manager_->Delete(docid);
-  if (migrate_data_) { migrate_data_->DeleteDocid(docid); }
+  if (migrate_data_) {
+    migrate_data_->DeleteDocid(docid);
+  }
   is_dirty_ = true;
 
   return ret;
@@ -1159,7 +1170,8 @@ int GammaEngine::LoadFromFaiss() {
   int d = index->vector_->MetaInfo()->Dimension();
   int fd = open("files/feature", O_RDONLY);
   size_t mmap_size = load_num * sizeof(float) * d;
-  float *feature = (float *)mmap(NULL, mmap_size, PROT_READ, MAP_PRIVATE, fd, 0);
+  float *feature =
+      (float *)mmap(NULL, mmap_size, PROT_READ, MAP_PRIVATE, fd, 0);
   for (int i = 0; i < load_num; ++i) {
     Doc doc;
     Field field;
@@ -1170,7 +1182,8 @@ int GammaEngine::LoadFromFaiss() {
     doc.AddField(std::move(field));
     field.name = "faiss";
     field.datatype = DataType::VECTOR;
-    field.value = std::string((char *)(feature + (uint64_t)i * d), d * sizeof(float));
+    field.value =
+        std::string((char *)(feature + (uint64_t)i * d), d * sizeof(float));
     doc.AddField(std::move(field));
     AddOrUpdate(doc);
   }

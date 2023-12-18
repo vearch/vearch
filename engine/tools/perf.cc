@@ -104,7 +104,7 @@ struct GammaPerfConf {
     vector_name = "abc";
     model_id = "model";
     retrieval_type = "IVFPQ";
-    store_type = "Mmap";
+    store_type = "RocksDB";
     store_param = "";
     has_rank = 1;
     fixed_search_threads = -1;

@@ -135,7 +135,7 @@ table = {
         "field7": {
             "type": "vector",
             "dimension": 256,
-            "store_type": "Mmap",
+            "store_type": "RocksDB",
             "store_param": {
                 "cache_size": 2000
             }
@@ -160,7 +160,7 @@ engine.create_table(table)
     - - dimension: feature dimension, should be integer
     - - retrieval_type: default "IVFPQ"
     - - model_id: shows feature vector' s type, like vgg16
-    - - store_type : "Mmap" default "Mmap"
+    - - store_type : "RocksDB" or "MemoryOnly"
     - - store_param : example {"cache_size":2592}
 
 Add
