@@ -54,7 +54,7 @@ class ItemToDocID {
  */
 class Table {
  public:
-  explicit Table(const std::string &root_path, bool b_compress = false);
+  explicit Table(const std::string &root_path);
 
   ~Table();
 
@@ -145,8 +145,6 @@ class Table {
 
   int Load(int &doc_num);
 
-  int Sync();
-
   int FieldsNum() { return attrs_.size(); }
 
   const std::map<std::string, int> &FieldMap() { return attr_idx_map_; }
@@ -155,11 +153,9 @@ class Table {
 
   uint8_t IdType() { return id_type_; }
 
-  bool IsCompress() { return b_compress_; }
+  bool AlterCacheSize(int cache_size);
 
-  bool AlterCacheSize(int cache_size, int str_cache_size);
-
-  void GetCacheSize(int &cache_size, int &str_cache_size);
+  void GetCacheSize(int &cache_size);
 
   int GetStorageManagerSize();
 
@@ -170,14 +166,6 @@ class Table {
   int FTypeSize(DataType fType);
 
   int AddField(const std::string &name, DataType ftype, bool is_index);
-
-  int ParseStrPosition(const uint8_t *buf, uint32_t &block_id,
-                       in_block_pos_t &in_block_pos, str_len_t &len);
-
-  int SetStrPosition(uint8_t *buf, uint32_t block_id,
-                     in_block_pos_t in_block_pos, str_len_t len);
-
-  void CheckStrLen(const std::string &field_name, str_len_t &len);
 
   std::string name_;   // table name
   int item_length_;    // every doc item length
@@ -197,7 +185,6 @@ class Table {
   std::map<int, int> str_field_id_;  // <field_id, str_field_id>
 
   uint8_t id_type_;  // 0 string, 1 long, default 1
-  bool b_compress_;
   ItemToDocID *item_to_docid_;
 
   int seg_num_;  // cur segment num

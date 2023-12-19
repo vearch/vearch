@@ -14,7 +14,6 @@
 #include "c_api/api_data/gamma_doc.h"
 #include "index/retrieval_model.h"
 #include "io/io_common.h"
-#include "storage/storage_manager.h"
 #include "util/bitmap_manager.h"
 #include "util/log.h"
 #include "util/utils.h"
@@ -31,7 +30,6 @@ class RawVectorIO;
 struct StoreParams : DumpConfig {
   long cache_size;  // bytes
   int segment_size;
-  utils::JsonParser compress;
 
   StoreParams(std::string name_ = "") : DumpConfig(name_) {
     cache_size = 1024;  // 1024M
@@ -42,7 +40,6 @@ struct StoreParams : DumpConfig {
     name = other.name;
     cache_size = other.cache_size;
     segment_size = other.segment_size;
-    compress = other.compress;
   }
 
   int Parse(const char *str);
@@ -53,8 +50,7 @@ struct StoreParams : DumpConfig {
     std::stringstream ss;
     ss << "{";
     ss << "\"cache_size\":" << cache_size << ",";
-    ss << "\"segment_size\":" << segment_size << ",";
-    ss << "\"compress\":" << compress.ToStr();
+    ss << "\"segment_size\":" << segment_size;
     ss << "}";
     return ss.str();
   }
@@ -62,7 +58,6 @@ struct StoreParams : DumpConfig {
   int ToJson(utils::JsonParser &jp) {
     jp.PutDouble("cache_size", cache_size);
     jp.PutInt("segment_size", segment_size);
-    jp.PutObject("compress", compress);
     return 0;
   }
 };
@@ -173,8 +168,6 @@ class RawVector : public VectorReader {
 
   std::string RootPath() { return root_path_; }
   DumpConfig *GetDumpConfig();
-
-  StorageManager *storage_mgr_;
 
  protected:
   /** get vector by id

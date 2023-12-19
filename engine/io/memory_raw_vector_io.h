@@ -9,9 +9,9 @@
 
 #include <string>
 #include "async_flush.h"
+#include "raw_vector_io.h"
 #include "vector/memory_raw_vector.h"
 #include "vector/rocksdb_wrapper.h"
-#include "raw_vector_io.h"
 
 namespace tig_gamma {
 

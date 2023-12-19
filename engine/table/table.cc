@@ -87,14 +87,13 @@ int ItemToDocID::Delete(const std::string &key) {
   return 0;
 }
 
-Table::Table(const string &root_path, bool b_compress) {
+Table::Table(const string &root_path) {
   item_length_ = 0;
   field_num_ = 0;
   string_field_num_ = 0;
   key_idx_ = -1;
   root_path_ = root_path + "/table";
   seg_num_ = 0;
-  b_compress_ = b_compress;
 
   table_created_ = false;
   last_docid_ = -1;
@@ -120,10 +119,8 @@ Table::~Table() {
 }
 
 int Table::Load(int &num) {
-  int doc_num = storage_mgr_->Size();
-  storage_mgr_->Truncate(num);
+  int doc_num = num;
   LOG(INFO) << "Load doc_num [" << doc_num << "] truncate to [" << num << "]";
-  doc_num = num;
 
   const auto &iter = attr_idx_map_.find(key_field_name_);
   if (iter == attr_idx_map_.end()) {
@@ -144,13 +141,6 @@ int Table::Load(int &num) {
   return 0;
 }
 
-int Table::Sync() {
-  int ret = storage_mgr_->Sync();
-  LOG(INFO) << "Table [" << name_ << "] sync, doc num[" << storage_mgr_->Size()
-            << "]";
-  return ret;
-}
-
 int Table::CreateTable(TableInfo &table, TableParams &table_params,
                        bitmap::BitmapManager *bitmap_mgr) {
   if (table_created_) {
@@ -159,9 +149,6 @@ int Table::CreateTable(TableInfo &table, TableParams &table_params,
   bitmap_mgr_ = bitmap_mgr;
   name_ = table.Name();
   std::vector<struct FieldInfo> &fields = table.Fields();
-
-  b_compress_ = table.IsCompress();
-  LOG(INFO) << "Table compress [" << b_compress_ << "]";
 
   size_t fields_num = fields.size();
   for (size_t i = 0; i < fields_num; ++i) {
@@ -202,11 +189,9 @@ int Table::CreateTable(TableInfo &table, TableParams &table_params,
   options.segment_size = 500000;
   options.fixed_value_bytes = item_length_;
   options.seg_block_capacity = 400000;
-  storage_mgr_ =
-      new StorageManager(root_path_, BlockType::TableBlockType, options);
+  storage_mgr_ = new StorageManager(root_path_, options);
   int cache_size = 512;  // unit : M
-  int str_cache_size = 512;
-  ret = storage_mgr_->Init(name_ + "_table", cache_size, str_cache_size);
+  ret = storage_mgr_->Init(name_ + "_table", cache_size);
   if (ret) {
     LOG(ERROR) << "init gamma db error, ret=" << ret;
     return ret;
@@ -228,8 +213,7 @@ int Table::FTypeSize(DataType fType) {
   } else if (fType == DataType::DOUBLE) {
     length = sizeof(double);
   } else if (fType == DataType::STRING) {
-    // block_id, in_block_pos, str_len
-    length = sizeof(uint32_t) + sizeof(in_block_pos_t) + sizeof(str_len_t);
+    length = 0;
   }
   return length;
 }
@@ -257,35 +241,6 @@ int Table::AddField(const string &name, DataType ftype, bool is_index) {
   attr_is_index_map_.insert(std::pair<string, bool>(name, is_index));
   ++field_num_;
   return 0;
-}
-
-int Table::ParseStrPosition(const uint8_t *buf, uint32_t &block_id,
-                            in_block_pos_t &in_block_pos, str_len_t &len) {
-  memcpy(&block_id, buf, sizeof(block_id));
-  memcpy(&in_block_pos, buf + sizeof(block_id), sizeof(in_block_pos));
-  memcpy(&len, buf + sizeof(block_id) + sizeof(in_block_pos), sizeof(len));
-  return 0;
-}
-
-int Table::SetStrPosition(uint8_t *buf, uint32_t block_id,
-                          in_block_pos_t in_block_pos, str_len_t len) {
-  memcpy(buf, &block_id, sizeof(block_id));
-  memcpy(buf + sizeof(block_id), &in_block_pos, sizeof(in_block_pos));
-  memcpy(buf + sizeof(block_id) + sizeof(in_block_pos), &len, sizeof(len));
-  return 0;
-}
-
-void Table::CheckStrLen(const std::string &field_name, str_len_t &len) {
-  if (len > STR_MAX_INDEX_LEN && attr_is_index_map_[field_name] == true) {
-    LOG(ERROR) << "Str len[" << len << "] greater than STR_MAX_INDEX_LEN["
-               << STR_MAX_INDEX_LEN << "] does not support indexing.";
-    len = STR_MAX_INDEX_LEN;
-  }
-  if (len > MAX_STRING_LEN) {
-    LOG(ERROR) << "Str len[" << len << "] > MAX_STRING_LEN[" << MAX_STRING_LEN
-               << "]. Truncation occurs.";
-    len = MAX_STRING_LEN;
-  }
 }
 
 int Table::GetDocIDByKey(const std::string &key, int &docid) {
@@ -351,18 +306,12 @@ int Table::Add(const std::string &key, const std::vector<struct Field> &fields,
       int type_size = FTypeSize(attr);
       memcpy(doc_value + offset, field_value.value.c_str(), type_size);
     } else {
-      str_len_t len = field_value.value.size();
-      CheckStrLen(name, len);
-      uint32_t block_id;
-      in_block_pos_t in_block_pos;
-      storage_mgr_->AddString(field_value.value.c_str(), len, block_id,
-                              in_block_pos);
-
-      SetStrPosition(doc_value + offset, block_id, in_block_pos, len);
+      int len = field_value.value.size();
+      storage_mgr_->AddString(docid, name, field_value.value.c_str(), len);
     }
   }
 
-  storage_mgr_->Add((const uint8_t *)doc_value, item_length_);
+  storage_mgr_->Add(docid, (const uint8_t *)doc_value, item_length_);
 
   if (docid % 10000 == 0) {
     if (id_type_ == 0) {
@@ -428,18 +377,12 @@ int Table::BatchAdd(int start_id, int batch_size, int docid,
         int type_size = FTypeSize(attr);
         memcpy(doc_value + offset, field_value.value.c_str(), type_size);
       } else {
-        str_len_t len = field_value.value.size();
-        CheckStrLen(name, len);
-
-        uint32_t block_id;
-        in_block_pos_t in_block_pos;
-        storage_mgr_->AddString(field_value.value.c_str(), len, block_id,
-                                in_block_pos);
-        SetStrPosition(doc_value + offset, block_id, in_block_pos, len);
+        int len = field_value.value.size();
+        storage_mgr_->AddString(docid, name, field_value.value.c_str(), len);
       }
     }
 
-    storage_mgr_->Add((const uint8_t *)doc_value, item_length_);
+    storage_mgr_->Add(docid, (const uint8_t *)doc_value, item_length_);
     if (id % 10000 == 0) {
       std::string &key = doc_vec[i].Key();
       if (id_type_ == 0) {
@@ -452,7 +395,6 @@ int Table::BatchAdd(int start_id, int batch_size, int docid,
     }
   }
 
-  // Compress();
 #ifdef PERFORMANCE_TESTING
   double end = utils::getmillisecs();
   if (docid % 10000 == 0) {
@@ -487,19 +429,8 @@ int Table::Update(const std::vector<Field> &fields, int docid) {
     int offset = idx_attr_offset_[field_id];
 
     if (field_value.datatype == DataType::STRING) {
-      uint32_t old_block_id;
-      in_block_pos_t old_in_block_pos;
-      str_len_t old_len;
-      ParseStrPosition(doc_value + offset, old_block_id, old_in_block_pos,
-                       old_len);
-
-      str_len_t len = field_value.value.size();
-      CheckStrLen(name, len);
-      uint32_t block_id = old_block_id;
-      in_block_pos_t in_block_pos = old_in_block_pos;
-      storage_mgr_->UpdateString(docid, field_value.value.c_str(), old_len, len,
-                                 block_id, in_block_pos);
-      SetStrPosition(doc_value + offset, block_id, in_block_pos, len);
+      int len = field_value.value.size();
+      storage_mgr_->UpdateString(docid, name, field_value.value.c_str(), len);
     } else {
       memcpy(doc_value + offset, field_value.value.data(),
              field_value.value.size());
@@ -625,6 +556,14 @@ int Table::GetFieldRawValue(int docid, int field_id, std::string &value,
                             const uint8_t *doc_v) {
   if ((docid < 0) or (field_id < 0 || field_id >= field_num_)) return -1;
 
+  const auto iter = idx_attr_map_.find(field_id);
+  if (iter == idx_attr_map_.end()) {
+    LOG(ERROR) << "Cannot find field [" << field_id << "]";
+    return -1;
+  }
+
+  std::string field_name = iter->second;
+
   const uint8_t *doc_value = doc_v;
   bool is_free = false;
   if (doc_value == nullptr) {
@@ -636,11 +575,7 @@ int Table::GetFieldRawValue(int docid, int field_id, std::string &value,
   size_t offset = idx_attr_offset_[field_id];
 
   if (data_type == DataType::STRING) {
-    uint32_t block_id = 0;
-    in_block_pos_t in_block_pos = 0;
-    str_len_t len = 0;
-    ParseStrPosition(doc_value + offset, block_id, in_block_pos, len);
-    storage_mgr_->GetString(docid, value, block_id, in_block_pos, len);
+    storage_mgr_->GetString(docid, field_name, value);
   } else {
     int value_len = FTypeSize(data_type);
     value = std::string((const char *)(doc_value + offset), value_len);
@@ -668,15 +603,20 @@ int Table::GetFieldRawValue(int docid, int field_id,
   size_t offset = idx_attr_offset_[field_id];
 
   if (data_type == DataType::STRING) {
-    uint32_t block_id = 0;
-    in_block_pos_t in_block_pos = 0;
-    str_len_t len = 0;
-    ParseStrPosition(doc_value + offset, block_id, in_block_pos, len);
+    LOG(ERROR) << docid;
+    const auto iter = idx_attr_map_.find(field_id);
+    if (iter == idx_attr_map_.end()) {
+      LOG(ERROR) << "Cannot find field [" << field_id << "]";
+      return -1;
+    }
+
+    std::string field_name = iter->second;
     std::string str;
-    storage_mgr_->GetString(docid, str, block_id, in_block_pos, len);
+    storage_mgr_->GetString(docid, field_name, str);
     value.resize(str.size());
     memcpy(value.data(), str.c_str(), str.size());
   } else {
+    LOG(ERROR) << docid;
     int value_len = FTypeSize(data_type);
     value.resize(value_len);
     memcpy(value.data(), doc_value + offset, value_len);
@@ -718,12 +658,13 @@ int Table::GetAttrIdx(const std::string &field) const {
   return (iter != attr_idx_map_.end()) ? iter->second : -1;
 }
 
-bool Table::AlterCacheSize(int cache_size, int str_cache_size) {
-  return storage_mgr_->AlterCacheSize(cache_size, str_cache_size);
+bool Table::AlterCacheSize(int cache_size) {
+  // return storage_mgr_->AlterCacheSize(cache_size);
+  return 0;
 }
 
-void Table::GetCacheSize(int &cache_size, int &str_cache_size) {
-  storage_mgr_->GetCacheSize(cache_size, str_cache_size);
+void Table::GetCacheSize(int &cache_size) {
+  storage_mgr_->GetCacheSize(cache_size);
 }
 
 int Table::GetStorageManagerSize() {

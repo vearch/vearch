@@ -21,9 +21,8 @@
 #include "io/async_flush.h"
 #include "table/field_range_index.h"
 #include "table/table.h"
-#include "vector/vector_manager.h"
 #include "util/bitmap_manager.h"
-#include "storage/migrate_data.h"
+#include "vector/vector_manager.h"
 
 namespace tig_gamma {
 
@@ -77,9 +76,9 @@ class GammaEngine {
   int LoadFromFaiss();
 
   int GetDocsNum();
-  
+
   int GetBRunning() { return b_running_; }
-  int GetIndexingSize() { return indexing_size_;}
+  int GetIndexingSize() { return indexing_size_; }
   void SetIsDirty(bool is_dirty) { is_dirty_ = is_dirty; }
   int GetMaxDocid() { return max_docid_; }
   void SetMaxDocid(int max_docid) { max_docid_ = max_docid; }
@@ -111,12 +110,6 @@ class GammaEngine {
 
   int SetConfig(Config &config);
 
-  int BeginMigrate();
-
-  int GetMigrageDoc(Doc &doc, int *is_delete);
-
-  int TerminateMigrate();
-
  private:
   GammaEngine(const std::string &index_root_path);
 
@@ -139,15 +132,13 @@ class GammaEngine {
   bitmap::BitmapManager *docids_bitmap_;
   Table *table_;
   VectorManager *vec_manager_;
-  
-  MigrateData *migrate_data_;
 
   int max_docid_;
   int indexing_size_;
 
   std::atomic<int> delete_num_;
 
-  int b_running_; // 0 not run, not 0 running
+  int b_running_;  // 0 not run, not 0 running
 
   std::condition_variable running_cv_;
 
@@ -170,7 +161,6 @@ class GammaEngine {
 
   AsyncFlushExecutor *af_exector_;
 };
-
 
 class RequestConcurrentController {
  public:

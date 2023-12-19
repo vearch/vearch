@@ -182,7 +182,6 @@ GammaEngine::GammaEngine(const string &index_root_path)
   created_table_ = false;
   b_loading_ = false;
   docids_bitmap_ = nullptr;
-  migrate_data_ = nullptr;
 #ifdef PERFORMANCE_TESTING
   search_num_ = 0;
 #endif
@@ -220,11 +219,6 @@ GammaEngine::~GammaEngine() {
   if (docids_bitmap_) {
     delete docids_bitmap_;
     docids_bitmap_ = nullptr;
-  }
-  if (migrate_data_) {
-    migrate_data_->TerminateMigrate(index_root_path_);
-    delete migrate_data_;
-    migrate_data_ = nullptr;
   }
 }
 
@@ -631,9 +625,6 @@ int GammaEngine::AddOrUpdate(Doc &doc) {
     LOG(ERROR) << "Add to store error max_docid [" << max_docid_ << "]";
     return -4;
   }
-  if (migrate_data_) {
-    migrate_data_->AddDocid(max_docid_);
-  }
   ++max_docid_;
   docids_bitmap_->SetMaxID(max_docid_);
 
@@ -688,9 +679,6 @@ int GammaEngine::AddOrUpdateDocs(Docs &docs, BatchResult &result) {
         result.SetResult(i, -1, msg);
         LOG(ERROR) << msg;
         continue;
-      }
-      if (migrate_data_) {
-        migrate_data_->AddDocid(max_docid_ + i - start_id);
       }
     }
 
@@ -772,9 +760,6 @@ int GammaEngine::Update(int doc_id, std::vector<struct Field> &fields_table,
     int idx = table_->GetAttrIdx(field.name);
     field_range_index_->Add(doc_id, idx);
   }
-  if (migrate_data_) {
-    migrate_data_->AddDocid(doc_id);
-  }
 
 #ifdef DEBUG
   LOG(INFO) << "update success! key=" << key;
@@ -801,9 +786,6 @@ int GammaEngine::Delete(std::string &key) {
   table_->Delete(key);
 
   vec_manager_->Delete(docid);
-  if (migrate_data_) {
-    migrate_data_->DeleteDocid(docid);
-  }
   is_dirty_ = true;
 
   return ret;
@@ -954,12 +936,7 @@ void GammaEngine::GetMemoryInfo(MemoryInfo &memory_info) {
 }
 
 int GammaEngine::Dump() {
-  int ret = table_->Sync();
-  if (ret != 0) {
-    LOG(ERROR) << "dump table error, ret=" << ret;
-    return -1;
-  }
-
+  int ret = 0;
   if (is_dirty_) {
     int max_docid = max_docid_ - 1;
     std::time_t t = std::time(nullptr);
@@ -1221,70 +1198,22 @@ int GammaEngine::GetConfig(Config &conf) {
   conf.ClearCacheInfos();
   vec_manager_->GetAllCacheSize(conf);
   int table_cache_size = 0;
-  int str_cache_size = 0;
-  table_->GetCacheSize(table_cache_size, str_cache_size);
+  table_->GetCacheSize(table_cache_size);
   conf.AddCacheInfo("table", table_cache_size);
-  conf.AddCacheInfo("string", str_cache_size);
   return 0;
 }
 
 int GammaEngine::SetConfig(Config &conf) {
   int table_cache_size = 0;
-  int str_cache_size = 0;
   for (auto &c : conf.CacheInfos()) {
     if (c.field_name == "table") {
       table_cache_size = c.cache_size;
-    } else if (c.field_name == "string") {
-      str_cache_size = c.cache_size;
     } else {
       vec_manager_->AlterCacheSize(c);
     }
   }
-  table_->AlterCacheSize(table_cache_size, str_cache_size);
+  table_->AlterCacheSize(table_cache_size);
   GetConfig(conf);
-  return 0;
-}
-
-int GammaEngine::BeginMigrate() {
-  if (migrate_data_) {
-    TerminateMigrate();
-    delete migrate_data_;
-    migrate_data_ = nullptr;
-  }
-  migrate_data_ = new MigrateData();
-  migrate_data_->Init(docids_bitmap_, index_root_path_);
-  migrate_data_->BeginMigrate(max_docid_);
-  return 0;
-}
-
-int GammaEngine::GetMigrageDoc(Doc &doc, int *is_delete) {
-  if (migrate_data_ == nullptr) return -1;
-  int docid = -1, ret = -1;
-  bool is_del;
-  if (migrate_data_->GetMigrateDocid(docid, is_del)) {
-    if (docid < 0 || docid >= max_docid_) {
-      LOG(ERROR) << "MigrateDocid[" << docid << "] is error.";
-      return -1;
-    }
-    if (is_del) {
-      std::vector<string> table_fields;
-      table_fields.push_back(table_->GetKeyFieldName());
-      ret = table_->GetDocInfo(docid, doc, table_fields);
-      *is_delete = 1;
-    } else {
-      ret = GetDoc(docid, doc);
-      *is_delete = 0;
-    }
-  }
-  return ret;
-}
-
-int GammaEngine::TerminateMigrate() {
-  if (migrate_data_) {
-    migrate_data_->TerminateMigrate(index_root_path_);
-    delete migrate_data_;
-    migrate_data_ = nullptr;
-  }
   return 0;
 }
 

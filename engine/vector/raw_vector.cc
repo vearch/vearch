@@ -66,8 +66,7 @@ int RawVector::Init(std::string vec_name, bool has_source, bool multi_vids) {
   LOG(INFO) << "raw vector init success! name=" << meta_info_->Name()
             << ", has source=" << has_source << ", multi_vids=" << multi_vids
             << ", vector_byte_size=" << vector_byte_size_
-            << ", dimension=" << meta_info_->Dimension()
-            << ", compress=" << store_params_.compress.ToStr();
+            << ", dimension=" << meta_info_->Dimension();
   return 0;
 }
 
@@ -184,11 +183,6 @@ int StoreParams::Parse(utils::JsonParser &jp) {
       LOG(ERROR) << "invalid segment size=" << segment_size;
       return -1;
     }
-  }
-
-  if (jp.Contains("compress") && jp.GetObject("compress", compress)) {
-    LOG(ERROR) << "parse compress error";
-    return -1;
   }
 
   return 0;

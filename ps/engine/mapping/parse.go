@@ -1,4 +1,4 @@
-// Copyright 2018 The Couchbase Authors.
+// Copyright 2019 The Vearch Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -447,7 +447,7 @@ func MergeSchema(old, new []byte) ([]byte, error) {
 
 }
 
-//it use for parse docmapping
+// it use for parse docmapping
 func (im *IndexMapping) documentMappingForPath(path string) *DocumentMapping {
 	paths := decodePath(path)
 	properties := im.DocumentMapping.Properties

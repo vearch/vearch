@@ -241,23 +241,3 @@ int GetConfig(void *engine, char **config_str, int *len) {
   }
   return res;
 }
-
-int BeginMigrate(void *engine) {
-  int res = static_cast<tig_gamma::GammaEngine *>(engine)->BeginMigrate();
-  return res;
-}
-
-int GetMigrageDoc(void *engine, char **doc_str, int *len, int *is_del) {
-  tig_gamma::Doc doc;
-  int ret =
-      static_cast<tig_gamma::GammaEngine *>(engine)->GetMigrageDoc(doc, is_del);
-  if (ret == 0) {
-    doc.Serialize(doc_str, len);
-  }
-  return ret;
-}
-
-int TerminateMigrate(void *engine) {
-  int res = static_cast<tig_gamma::GammaEngine *>(engine)->TerminateMigrate();
-  return res;
-}

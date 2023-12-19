@@ -171,23 +171,6 @@ int SetConfig(void *engine, const char *config_str, int len);
  */
 int GetConfig(void *engine, char **config_str, int *len);
 
-/** start data migration
- * @param engine  engine pointer
- */
-int BeginMigrate(void *engine);
-
-/** get a migration doc. support concurrent calls.
- *  this interface supports concurrent calls.
- * @param engine  engine pointer
- * @return  a doc. when is_del is 1, doc is deleted. 
- */
-int GetMigrageDoc(void *engine, char **doc_str, int *len, int *is_del);
-
-/** terminate data migration
- * @param engine  engine pointer
- */
-int TerminateMigrate(void *engine);
-
 #ifdef __cplusplus
 }
 #endif

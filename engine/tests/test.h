@@ -27,11 +27,11 @@
 #include <utility>
 #include <vector>
 
+#include "c_api/api_data/gamma_batch_result.h"
 #include "c_api/api_data/gamma_config.h"
 #include "c_api/api_data/gamma_docs.h"
 #include "c_api/api_data/gamma_engine_status.h"
 #include "c_api/api_data/gamma_request.h"
-#include "c_api/api_data/gamma_batch_result.h"
 #include "c_api/api_data/gamma_response.h"
 #include "c_api/api_data/gamma_table.h"
 #include "c_api/gamma_api.h"
@@ -366,33 +366,6 @@ float random_float(float min, float max, unsigned int seed = 0) {
   static std::default_random_engine e(seed);
   static std::uniform_real_distribution<float> u(min, max);
   return u(e);
-}
-
-int TestMigrateDataImpl(struct Options &opt) {
-  char *str_doc = nullptr;
-  int n_migrage_doc = 0;
-  int str_len = 0, is_del = 0;
-  int fail_num = 0;
-  BeginMigrate(opt.engine);
-  while (fail_num < 100) {
-    if (0 == GetMigrageDoc(opt.engine, &str_doc, &str_len, &is_del)) {
-      tig_gamma::Doc doc;
-      doc.SetEngine((tig_gamma::GammaEngine *)opt.engine);
-      doc.Deserialize(str_doc, str_len);
-      free(str_doc);
-      str_doc = nullptr;
-      if (++n_migrage_doc % 5000 == 0) {
-        LOG(INFO) << "_id:" << doc.Key() << " is_delete:" << is_del
-                  << " n_migrage_doc:" << n_migrage_doc;
-      }
-    } else {
-      ++fail_num;
-      sleep(0.1);
-    }
-  }
-  LOG(INFO) << "Migrate complete, migrate doc num:" << n_migrage_doc;
-  TerminateMigrate(opt.engine);
-  return 0;
 }
 
 int TestMigrateThread(struct Options &opt) {
@@ -905,14 +878,16 @@ void UpdateThread(struct Options &opt) {
 
 void InitEngine(struct Options &opt) {
   if (opt.testing_with_rawdata) {
-    opt.feature = fvecs_read(opt.feature_file.c_str(), &opt.d, &opt.add_doc_num);
+    opt.feature =
+        fvecs_read(opt.feature_file.c_str(), &opt.d, &opt.add_doc_num);
     int fd = open(opt.feature_file.c_str(), O_RDONLY, 0);
     size_t mmap_size = opt.add_doc_num * sizeof(float) * opt.d;
-    opt.feature =
-      static_cast<float *>(mmap(NULL, mmap_size, PROT_READ, MAP_SHARED, fd, 0));
+    opt.feature = static_cast<float *>(
+        mmap(NULL, mmap_size, PROT_READ, MAP_SHARED, fd, 0));
     close(fd);
   } else {
-    opt.feature = fvecs_read(opt.feature_file.c_str(), &opt.d, &opt.add_doc_num);
+    opt.feature =
+        fvecs_read(opt.feature_file.c_str(), &opt.d, &opt.add_doc_num);
   }
 
   std::cout << "n [" << opt.add_doc_num << "]" << std::endl;
@@ -1085,7 +1060,9 @@ int AlterCacheSizeTest(struct Options &opt) {
   int len = 0;
   conf.Serialize(&buf, &len);
   int ret = SetConfig(opt.engine, buf, len);
-  if (buf) { free(buf); }
+  if (buf) {
+    free(buf);
+  }
   return ret;
 }
 
@@ -1099,7 +1076,9 @@ int GetCacheSizeTest(struct Options &opt) {
     LOG(INFO) << "TestGetCacheSize() field_name:" << cache_info.field_name
               << ", cache_size:" << cache_info.cache_size;
   }
-  if (buf) { free(buf); }
+  if (buf) {
+    free(buf);
+  }
   return 0;
 }
 
@@ -1118,7 +1097,9 @@ int LoadEngine(struct Options &opt) {
   config.Serialize(&config_str, &config_len);
 
   opt.engine = Init(config_str, config_len);
-  if (config_str) { free(config_str); }
+  if (config_str) {
+    free(config_str);
+  }
 
   ret = Load(opt.engine);
   return ret;
@@ -1155,9 +1136,9 @@ int TestIndexes(struct Options &opt) {
   // Add();
   Search(opt);
 
-    GetCacheSizeTest(opt);
-    AlterCacheSizeTest(opt);
-    GetCacheSizeTest(opt);
+  GetCacheSizeTest(opt);
+  AlterCacheSizeTest(opt);
+  GetCacheSizeTest(opt);
 
   //   UpdateThread(opt);
   if (not opt.b_load) {
