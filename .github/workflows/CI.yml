@@ -41,5 +41,5 @@ jobs:
     - name: test
       run: |
         cd test
-        pytest --log-cli-level=DEBUG
+        pytest -x --log-cli-level=DEBUG
         ls -l

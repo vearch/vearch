@@ -33,9 +33,8 @@ StorageManager::~StorageManager() {
 
 void StorageManager::GetCacheSize(int &cache_size) { cache_size = 0; }
 
-int StorageManager::Init(std::string name, int cache_size) {
-  LOG(INFO) << "path " << root_path_;
-  root_path_ += "/table/";
+int StorageManager::Init(const std::string &name, int cache_size) {
+  root_path_ += "/" + name;
   name_ = name;
 
   if (!options_.IsValid()) {
@@ -46,9 +45,6 @@ int StorageManager::Init(std::string name, int cache_size) {
     LOG(ERROR) << "mkdir error, path=" << root_path_;
     return IO_ERR;
   }
-
-  LOG(INFO) << "Storage[" << name_ << "]. lrucache cache_size[" << cache_size
-            << "M]";
 
   rocksdb::Options options;
   if (cache_size) {
@@ -77,12 +73,13 @@ int StorageManager::Init(std::string name, int cache_size) {
     size_ = 0;
   }
 
-  LOG(INFO) << "init storage[" << name_
-            << "] success! options=" << options_.ToStr() << " size " << size_;
+  LOG(INFO) << "init storage [" << name_
+            << "] success! options=" << options_.ToStr() << " size " << size_
+            << " cache_size [" << cache_size << "]M";
   return 0;
 }
 
-int StorageManager::Add(int doc_id, const uint8_t *value, int len) {
+int StorageManager::Add(int id, const uint8_t *value, int len) {
   if (len != options_.fixed_value_bytes) {
     LOG(ERROR) << "Add len error [" << len << "] != options_.fixed_value_bytes["
                << options_.fixed_value_bytes << "]";
@@ -90,7 +87,7 @@ int StorageManager::Add(int doc_id, const uint8_t *value, int len) {
   }
 
   std::string key_str;
-  ToRowKey(doc_id, key_str);
+  ToRowKey(id, key_str);
 
   rocksdb::Status s = db_->Put(rocksdb::WriteOptions(), rocksdb::Slice(key_str),
                                rocksdb::Slice((char *)value, len));
@@ -109,10 +106,10 @@ int StorageManager::Add(int doc_id, const uint8_t *value, int len) {
   return 0;
 }
 
-int StorageManager::AddString(int docid, std::string field_name,
-                              const char *value, int len) {
+int StorageManager::AddString(int id, std::string field_name, const char *value,
+                              int len) {
   std::string key_str;
-  ToRowKey(docid, key_str);
+  ToRowKey(id, key_str);
   key_str = field_name + ":" + key_str;
 
   rocksdb::Status s = db_->Put(rocksdb::WriteOptions(), rocksdb::Slice(key_str),
@@ -143,9 +140,9 @@ int StorageManager::Update(int id, uint8_t *value, int len) {
   return 0;
 }
 
-int StorageManager::UpdateString(int docid, std::string field_name,
+int StorageManager::UpdateString(int id, std::string field_name,
                                  const char *value, int len) {
-  return AddString(docid, field_name, value, len);
+  return AddString(id, field_name, value, len);
 }
 
 int StorageManager::Get(int id, const uint8_t *&v) {
@@ -154,7 +151,7 @@ int StorageManager::Get(int id, const uint8_t *&v) {
   rocksdb::Status s =
       db_->Get(rocksdb::ReadOptions(), rocksdb::Slice(key), &value);
   if (!s.ok()) {
-    LOG(ERROR) << "rocksdb get error:" << s.ToString() << ", key=" << key;
+    LOG(DEBUG) << "rocksdb get error:" << s.ToString() << ", key=" << key;
     return IO_ERR;
   }
 
@@ -173,7 +170,7 @@ int StorageManager::GetString(int id, std::string &field_name,
   rocksdb::Status s =
       db_->Get(rocksdb::ReadOptions(), rocksdb::Slice(key_str), &value);
   if (!s.ok()) {
-    LOG(ERROR) << "rocksdb get error:" << s.ToString() << ", key=" << key_str;
+    LOG(DEBUG) << "rocksdb get error:" << s.ToString() << ", key=" << key_str;
     return IO_ERR;
   }
 

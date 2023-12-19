@@ -186,9 +186,7 @@ int Table::CreateTable(TableInfo &table, TableParams &table_params,
             << ", field num=" << (int)field_num_;
 
   StorageManagerOptions options;
-  options.segment_size = 500000;
   options.fixed_value_bytes = item_length_;
-  options.seg_block_capacity = 400000;
   storage_mgr_ = new StorageManager(root_path_, options);
   int cache_size = 512;  // unit : M
   ret = storage_mgr_->Init(name_ + "_table", cache_size);
@@ -260,8 +258,9 @@ int Table::GetKeyByDocid(int docid, std::string &key) {
     return -1;
   }
   const uint8_t *doc_value = nullptr;
-  if (0 != storage_mgr_->Get(docid, doc_value)) {
-    return -1;
+  int ret = storage_mgr_->Get(docid, doc_value);
+  if (ret != 0) {
+    return ret;
   }
   int field_id = attr_idx_map_[key_field_name_];
   GetFieldRawValue(docid, field_id, key, doc_value);
@@ -408,8 +407,13 @@ int Table::BatchAdd(int start_id, int batch_size, int docid,
 int Table::Update(const std::vector<Field> &fields, int docid) {
   if (fields.size() == 0) return 0;
 
+  int ret = 0;
   const uint8_t *ori_doc_value = nullptr;
-  storage_mgr_->Get(docid, ori_doc_value);
+
+  ret = storage_mgr_->Get(docid, ori_doc_value);
+  if (ret != 0) {
+    return ret;
+  }
 
   uint8_t doc_value[item_length_];
 
@@ -568,7 +572,10 @@ int Table::GetFieldRawValue(int docid, int field_id, std::string &value,
   bool is_free = false;
   if (doc_value == nullptr) {
     is_free = true;
-    storage_mgr_->Get(docid, doc_value);
+    int ret = storage_mgr_->Get(docid, doc_value);
+    if (ret != 0) {
+      return ret;
+    }
   }
 
   DataType data_type = attrs_[field_id];
@@ -596,14 +603,16 @@ int Table::GetFieldRawValue(int docid, int field_id,
   bool is_free = false;
   if (doc_value == nullptr) {
     is_free = true;
-    storage_mgr_->Get(docid, doc_value);
+    int ret = storage_mgr_->Get(docid, doc_value);
+    if (ret != 0) {
+      return ret;
+    }
   }
 
   DataType data_type = attrs_[field_id];
   size_t offset = idx_attr_offset_[field_id];
 
   if (data_type == DataType::STRING) {
-    LOG(ERROR) << docid;
     const auto iter = idx_attr_map_.find(field_id);
     if (iter == idx_attr_map_.end()) {
       LOG(ERROR) << "Cannot find field [" << field_id << "]";
@@ -616,7 +625,6 @@ int Table::GetFieldRawValue(int docid, int field_id,
     value.resize(str.size());
     memcpy(value.data(), str.c_str(), str.size());
   } else {
-    LOG(ERROR) << docid;
     int value_len = FTypeSize(data_type);
     value.resize(value_len);
     memcpy(value.data(), doc_value + offset, value_len);

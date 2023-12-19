@@ -13,15 +13,3 @@ vector\_mem: stores all vectors in sequential memory space, Each vector has fixe
 source\_mem: stores all sources in sequential memory space too, but source's length is not fixed.
 
 source\_pos: stores the begining address of each source in source_mem. Combine source\_pos and source\_mem, it can find any source of vector, just need the id of vector.
- 
-![memory_struct](/doc/img/vector/memory_structure.png)
-
-### File Structure
-
-Dump to two files
-
-name| usage
-----|----|----
-.fet|storage of all vectors
-.src|storage of all sources of vector
-

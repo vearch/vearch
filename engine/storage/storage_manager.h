@@ -16,34 +16,22 @@
 namespace tig_gamma {
 
 struct StorageManagerOptions {
-  int segment_size;
   int fixed_value_bytes;
-  uint32_t seg_block_capacity;
 
-  StorageManagerOptions() {
-    segment_size = -1;
-    fixed_value_bytes = -1;
-    seg_block_capacity = 0;
-  }
+  StorageManagerOptions() { fixed_value_bytes = -1; }
 
   StorageManagerOptions(const StorageManagerOptions &options) {
-    segment_size = options.segment_size;
     fixed_value_bytes = options.fixed_value_bytes;
-    seg_block_capacity = options.seg_block_capacity;
   }
 
   bool IsValid() {
-    if (segment_size == -1 || fixed_value_bytes == -1 ||
-        seg_block_capacity == 0)
-      return false;
+    if (fixed_value_bytes == -1) return false;
     return true;
   }
 
   std::string ToStr() {
     std::stringstream ss;
-    ss << "{segment_size=" << segment_size
-       << ", fixed_value_bytes=" << fixed_value_bytes
-       << ", seg_block_capacity=" << seg_block_capacity << "}";
+    ss << "{fixed_value_bytes=" << fixed_value_bytes << "}";
     return ss.str();
   }
 };
@@ -53,16 +41,15 @@ class StorageManager {
   StorageManager(const std::string &root_path,
                  const StorageManagerOptions &options);
   ~StorageManager();
-  int Init(std::string name, int cache_size);
+  int Init(const std::string &name, int cache_size);
 
-  int Add(int doc_id, const uint8_t *value, int len);
+  int Add(int id, const uint8_t *value, int len);
 
-  int AddString(int docid, std::string field_name, const char *value, int len);
+  int AddString(int id, std::string field_name, const char *value, int len);
 
   int Update(int id, uint8_t *value, int len);
 
-  int UpdateString(int docid, std::string field_name, const char *value,
-                   int len);
+  int UpdateString(int id, std::string field_name, const char *value, int len);
 
   // warning: vec can't be free
   int Get(int id, const uint8_t *&value);

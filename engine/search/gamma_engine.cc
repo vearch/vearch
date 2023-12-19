@@ -610,7 +610,7 @@ int GammaEngine::AddOrUpdate(Doc &doc) {
     }
   } else {
     if (Update(docid, fields_table, fields_vec)) {
-      LOG(ERROR) << "update error, key=" << key << ", docid=" << docid;
+      LOG(DEBUG) << "update error, key=" << key << ", docid=" << docid;
       return -3;
     }
     is_dirty_ = true;
@@ -748,7 +748,7 @@ int GammaEngine::Update(int doc_id, std::vector<struct Field> &fields_table,
   }
 
   if (table_->Update(fields_table, doc_id) != 0) {
-    LOG(ERROR) << "table update error";
+    LOG(DEBUG) << "table update error";
     return -1;
   }
 
