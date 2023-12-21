@@ -1114,6 +1114,17 @@ func FlushToContent(shards *vearchpb.SearchStatus) ([]byte, error) {
 	return builder.Output()
 }
 
+func IndexResponseToContent(shards *vearchpb.SearchStatus) ([]byte, error) {
+	var builder = cbjson.ContentBuilderFactory()
+
+	builder.BeginObject()
+	builder.Field("_shards")
+	builder.ValueInterface(shards)
+	builder.EndObject()
+
+	return builder.Output()
+}
+
 func SearchNullToContent(searchStatus vearchpb.SearchStatus, took time.Duration) ([]byte, error) {
 	var builder = cbjson.ContentBuilderFactory()
 

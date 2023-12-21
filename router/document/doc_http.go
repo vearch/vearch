@@ -128,7 +128,7 @@ func (handler *DocumentHandler) ExportInterfacesToServer() error {
 	// index
 	handler.httpServer.HandlesMethods([]string{http.MethodPost}, "/index/flush", []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleIndexFlush}, nil)
 	handler.httpServer.HandlesMethods([]string{http.MethodPost}, "/index/forcemerge", []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleIndexForceMerge}, nil)
-	// handler.httpServer.HandlesMethods([]string{http.MethodPost}, "/index/rebuild", []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleIndexRebuild}, nil)
+	handler.httpServer.HandlesMethods([]string{http.MethodPost}, "/index/rebuild", []netutil.HandleContinued{handler.handleTimeout, handler.handleAuth, handler.handleIndexRebuild}, nil)
 
 	return nil
 }
@@ -1319,7 +1319,7 @@ func (handler *DocumentHandler) handleIndexFlush(ctx context.Context, w http.Res
 		return ctx, false
 	}
 	flushResponse := handler.docService.flush(ctx, args)
-	shardsBytes, err := FlushToContent(flushResponse.Shards)
+	shardsBytes, err := IndexResponseToContent(flushResponse.Shards)
 	if err != nil {
 		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 		return ctx, true
@@ -1355,7 +1355,49 @@ func (handler *DocumentHandler) handleIndexForceMerge(ctx context.Context, w htt
 	}
 
 	forceMergeResponse := handler.docService.forceMerge(ctx, args)
-	shardsBytes, err := ForceMergeToContent(forceMergeResponse.Shards)
+	shardsBytes, err := IndexResponseToContent(forceMergeResponse.Shards)
+	if err != nil {
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
+		return ctx, true
+	}
+
+	resp.SendJsonBytes(ctx, w, shardsBytes)
+	return ctx, true
+}
+
+// handleIndexRebuild rebuild index
+func (handler *DocumentHandler) handleIndexRebuild(ctx context.Context, w http.ResponseWriter, r *http.Request, params netutil.UriParams) (context.Context, bool) {
+	startTime := time.Now()
+	defer monitor.Profiler("handleIndexRebuild", startTime)
+	args := &vearchpb.IndexRequest{}
+	args.Head = setRequestHeadParams(params, r)
+
+	indexRequest, err := IndexRequestParse(r)
+	if err != nil {
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
+		return ctx, false
+	}
+
+	args.Head.DbName = indexRequest.DbName
+	args.Head.SpaceName = indexRequest.SpaceName
+	if indexRequest.DropBeforeRebuild {
+		args.DropBeforeRebuild = 1
+	} else {
+		args.DropBeforeRebuild = 0
+	}
+	args.LimitCpu = int64(indexRequest.LimitCPU)
+
+	space, err := handler.docService.getSpace(ctx, args.Head.DbName, args.Head.SpaceName)
+	if space == nil {
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", fmt.Sprintf("dbName:%s or spaceName:%s param not build db or space", args.Head.DbName, args.Head.SpaceName))
+		return ctx, true
+	}
+	if err != nil {
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
+	}
+
+	indexResponse := handler.docService.rebuildIndex(ctx, args)
+	shardsBytes, err := IndexResponseToContent(indexResponse.Shards)
 	if err != nil {
 		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 		return ctx, true

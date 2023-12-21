@@ -66,6 +66,7 @@ const (
 	ReplaceDocHandler         = "ReplaceDocHandler"
 	BatchHandler              = "BatchHandler"
 	ForceMergeHandler         = "ForceMergeHandler"
+	RebuildIndexHandler       = "RebuildIndexHandler"
 	FlushHandler              = "FlushHandler"
 
 	CreatePartitionHandler = "CreatePartitionHandler"

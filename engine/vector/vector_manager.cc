@@ -147,9 +147,11 @@ void VectorManager::DestroyRawVectors() {
   LOG(INFO) << "Raw vector cleared.";
 }
 
-int VectorManager::CreateVectorIndex(std::string &retrieval_type, std::string &retrieval_parma,
-                                      std::string vec_name, RawVector *vec, TableInfo &table) {
+int VectorManager::CreateVectorIndex(std::string &retrieval_type, std::string &retrieval_param,
+                                      RawVector *vec, int indexing_size,
+                                      std::map<std::string, RetrievalModel *> &vector_indexes) {
   LOG(INFO) << "Create index model [" << retrieval_type << "]";
+  std::string &vec_name = vec->MetaInfo()->Name();
   RetrievalModel *retrieval_model = dynamic_cast<RetrievalModel *>(
       reflector().GetNewModel(retrieval_type));
   if (retrieval_model == nullptr) {
@@ -167,7 +169,7 @@ int VectorManager::CreateVectorIndex(std::string &retrieval_type, std::string &r
   }
   retrieval_model->vector_ = vec;
 
-  if (retrieval_model->Init(retrieval_parma, table.IndexingSize()) !=
+  if (retrieval_model->Init(retrieval_param, indexing_size) !=
       0) {
     LOG(ERROR) << "gamma index init " << vec_name << " error!";
     RawVectorIO *rio = vec->GetIO();
@@ -185,13 +187,13 @@ int VectorManager::CreateVectorIndex(std::string &retrieval_type, std::string &r
   }
   // init indexed count
   retrieval_model->indexed_count_ = 0;
-  vector_indexes_[IndexName(vec_name, retrieval_type)] =
+  vector_indexes[IndexName(vec_name, retrieval_type)] =
       retrieval_model;
 
   return 0;
 }
 
-void VectorManager::DestroyVectorIndexs() {
+void VectorManager::DestroyVectorIndexes() {
   for (const auto &iter : vector_indexes_) {
     if (iter.second != nullptr) {
       delete iter.second;
@@ -200,6 +202,36 @@ void VectorManager::DestroyVectorIndexs() {
   vector_indexes_.clear();
   LOG(INFO) << "Vector indexes cleared.";
 }
+
+int VectorManager::CreateVectorIndexes(int indexing_size, std::map<std::string, RetrievalModel *> &vector_indexes) {
+  int i = 0, ret = 0;
+  for (const auto &iter : raw_vectors_) {
+    if (iter.second != nullptr) {
+      std::string &vec_name = iter.second->MetaInfo()->Name();
+
+      for (size_t i = 0; i < retrieval_types_.size(); ++i) {
+        ret = CreateVectorIndex(retrieval_types_[i], retrieval_params_[i],
+                                iter.second, indexing_size, vector_indexes);
+        if (ret) {
+          LOG(ERROR) << vec_name << " create index failed ret: " << ret;
+          return ret;
+        }
+      }
+    }
+    i++;
+  }
+  return 0;
+}
+
+void VectorManager::SetVectorIndexes(std::map<std::string, RetrievalModel *> &rebuild_vector_indexes) {
+  for (const auto &iter : rebuild_vector_indexes) {
+    if (iter.second != nullptr) {
+      vector_indexes_[iter.first] = iter.second;
+      LOG(INFO) << "Set " << iter.first << " index";
+    }
+  }
+}
+
 
 int VectorManager::CreateVectorTable(TableInfo &table,
                                      utils::JsonParser *meta_jp) {
@@ -224,13 +256,12 @@ int VectorManager::CreateVectorTable(TableInfo &table,
     meta_jp->GetObject("vectors", vectors_jp);
   }
 
-  std::vector<std::string> retrieval_params;
   if (table.RetrievalType() != "") {
     retrieval_types_.push_back(table.RetrievalType());
-    retrieval_params.push_back(table.RetrievalParam());
+    retrieval_params_.push_back(table.RetrievalParam());
   } else {
     retrieval_types_ = table.RetrievalTypes();
-    retrieval_params = table.RetrievalParams();
+    retrieval_params_ = table.RetrievalParams();
     for (string &type : retrieval_types_) {
       if (type == "BINARYIVF" && retrieval_types_.size() > 1) {
         LOG(ERROR) << "field can only has one model if it has BINARYIVF";
@@ -259,8 +290,8 @@ int VectorManager::CreateVectorTable(TableInfo &table,
     }
 
     for (size_t i = 0; i < retrieval_types_.size(); ++i) {
-      ret = CreateVectorIndex(retrieval_types_[i], retrieval_params[i],
-                        vec_name, vec, table);
+      ret = CreateVectorIndex(retrieval_types_[i], retrieval_params_[i],
+                              vec, table.IndexingSize(), vector_indexes_);
       if (ret) {
         LOG(ERROR) << vec_name << " create index failed ret: " << ret;
         return ret;
@@ -339,9 +370,9 @@ int VectorManager::Delete(int docid) {
   return 0;
 }
 
-int VectorManager::Indexing() {
+int VectorManager::TrainIndex(std::map<std::string, RetrievalModel *> &vector_indexes) {
   int ret = 0;
-  for (const auto &iter : vector_indexes_) {
+  for (const auto &iter : vector_indexes) {
     if (0 != iter.second->Indexing()) {
       ret = -1;
       LOG(ERROR) << "vector table " << iter.first << " indexing failed!";
@@ -883,7 +914,7 @@ bool VectorManager::Contains(std::string &field_name) {
 void VectorManager::Close() {
   DestroyRawVectors();
 
-  DestroyVectorIndexs();
+  DestroyVectorIndexes();
 
   LOG(INFO) << "VectorManager closed.";
 }

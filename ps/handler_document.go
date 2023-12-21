@@ -100,11 +100,11 @@ func (handler *UnaryHandler) Execute(ctx context.Context, req *vearchpb.Partitio
 	reqMap := ctx.Value(share.ReqMetaDataKey).(map[string]string)
 	method, ok := reqMap[client.HandlerType]
 	if !ok {
-        msg := fmt.Sprintf("client type not found in matadata, key [%s]", client.HandlerType)
-        reply.Err = vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, errors.New(msg)).GetError()
-        return
+		msg := fmt.Sprintf("client type not found in matadata, key [%s]", client.HandlerType)
+		reply.Err = vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, errors.New(msg)).GetError()
+		return
 	}
-	defer cost("UnaryHandler: " + method, time.Now())
+	defer cost("UnaryHandler: "+method, time.Now())
 	if spanCtx, err := opentracing.GlobalTracer().Extract(opentracing.TextMap, opentracing.TextMapCarrier(reqMap)); err == nil {
 		span := opentracing.StartSpan("server-execute", ext.RPCServerOption(spanCtx))
 		defer span.Finish()
@@ -218,6 +218,8 @@ func (handler *UnaryHandler) execute(ctx context.Context, req *vearchpb.Partitio
 			bulkSearch(ctx, store, req.SearchRequests, req.SearchResponses)
 		case client.ForceMergeHandler:
 			forceMerge(ctx, store, req.Err)
+		case client.RebuildIndexHandler:
+			rebuildIndex(ctx, store, req.Err, req.IndexRequest)
 		case client.DeleteByQueryHandler:
 			if req.DelByQueryResponse == nil {
 				req.DelByQueryResponse = &vearchpb.DelByQueryeResponse{DelNum: 0}
@@ -377,6 +379,18 @@ func bulkSearch(ctx context.Context, store PartitionStore, request []*vearchpb.S
 
 func forceMerge(ctx context.Context, store PartitionStore, error *vearchpb.Error) {
 	err := store.GetEngine().Optimize()
+	if err != nil {
+		partitionID := store.GetPartition().Id
+		pIdStr := strconv.Itoa(int(partitionID))
+		error = &vearchpb.Error{Code: vearchpb.ErrorEnum_FORCE_MERGE_BUILD_INDEX_ERR,
+			Msg: "build index err, PartitionID :" + pIdStr}
+	} else {
+		error = nil
+	}
+}
+
+func rebuildIndex(ctx context.Context, store PartitionStore, error *vearchpb.Error, indexRequest *vearchpb.IndexRequest) {
+	err := store.GetEngine().Rebuild(int(indexRequest.DropBeforeRebuild), int(indexRequest.LimitCpu))
 	if err != nil {
 		partitionID := store.GetPartition().Id
 		pIdStr := strconv.Itoa(int(partitionID))

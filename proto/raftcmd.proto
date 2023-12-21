@@ -2,7 +2,7 @@ syntax = "proto3";
 
 import "errors.proto";
 import "data_model.proto";
-import  "router_grpc.proto";
+import "router_grpc.proto";
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 
 option go_package = "vearchpb";
@@ -21,61 +21,62 @@ option (gogoproto.benchgen_all) = false;
 option (gogoproto.goproto_getters_all) = false;
 
 enum OpType {
-    CREATE = 0;
-    DELETE = 1;
-    REPLACE = 2;
-    BULK = 3;
-    GET = 4;
-    SEARCH = 5;
+  CREATE = 0;
+  DELETE = 1;
+  REPLACE = 2;
+  BULK = 3;
+  GET = 4;
+  SEARCH = 5;
 }
 //*********************** Partition *********************** //
 
-message PartitionData{
-    OpType type = 1;
-    uint32 partitionID = 2;
-    string messageID = 3;
-    repeated Item items = 4;
-    SearchRequest search_request = 5;
-    SearchResponse search_response = 6;
-    bytes data = 7;
-    Error err = 8;
-    repeated SearchRequest search_requests = 9;
-    repeated SearchResponse search_responses = 10;
-    int32 del_num = 11;
-    DelByQueryeResponse del_by_query_response = 12;
+message PartitionData {
+  OpType type = 1;
+  uint32 partitionID = 2;
+  string messageID = 3;
+  repeated Item items = 4;
+  SearchRequest search_request = 5;
+  SearchResponse search_response = 6;
+  bytes data = 7;
+  Error err = 8;
+  repeated SearchRequest search_requests = 9;
+  repeated SearchResponse search_responses = 10;
+  int32 del_num = 11;
+  DelByQueryeResponse del_by_query_response = 12;
+  IndexRequest index_request = 13;
+  IndexResponse index_response = 14;
 }
 
 //*********************** Raft *********************** //
 message UpdateSpace {
-    bytes Space = 1;
-    uint64 version = 2;
+  bytes Space = 1;
+  uint64 version = 2;
 }
 
 message DocCmd {
-    OpType type = 1;
-    int64 version = 3;
-    uint32 slot = 5;
-    bytes doc = 7;
-	repeated bytes docs = 8;
+  OpType type = 1;
+  int64 version = 3;
+  uint32 slot = 5;
+  bytes doc = 7;
+  repeated bytes docs = 8;
 }
 
 enum CmdType {
-    WRITE = 0;
-    UPDATESPACE = 1;
-    FLUSH = 2;
-    SEARCHDEL = 3;
+  WRITE = 0;
+  UPDATESPACE = 1;
+  FLUSH = 2;
+  SEARCHDEL = 3;
 }
 
 message RaftCommand {
-    CmdType type = 1;
-    DocCmd write_command = 2;
-    UpdateSpace update_space = 3;
-    SearchRequest search_del_req = 4;
-    SearchResponse search_del_resp = 5;
+  CmdType type = 1;
+  DocCmd write_command = 2;
+  UpdateSpace update_space = 3;
+  SearchRequest search_del_req = 4;
+  SearchResponse search_del_resp = 5;
 }
 
 message SnapData {
-    bytes key = 1;
-    bytes value = 2;
+  bytes key = 1;
+  bytes value = 2;
 }
-

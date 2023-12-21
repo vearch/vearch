@@ -36,10 +36,15 @@ class VectorManager {
 
   void DestroyRawVectors();
 
-  int CreateVectorIndex(std::string &retrieval_type, std::string &retrieval_parma,
-                        std::string vec_name, RawVector *vec, TableInfo &table);
+  int CreateVectorIndex(std::string &retrieval_type, std::string &retrieval_param,
+                        RawVector *vec, int indexing_size,
+                        std::map<std::string, RetrievalModel *> &vector_indexes);
 
-  void DestroyVectorIndexs();
+  void DestroyVectorIndexes();
+
+  int CreateVectorIndexes(int index_size, std::map<std::string, RetrievalModel *> &vector_indexes);
+
+  void SetVectorIndexes(std::map<std::string, RetrievalModel *> &rebuild_vector_indexes);
 
   int CreateVectorTable(TableInfo &table, utils::JsonParser *jp);
 
@@ -47,7 +52,7 @@ class VectorManager {
 
   int Update(int docid, std::vector<struct Field> &fields);
 
-  int Indexing();
+  int TrainIndex(std::map<std::string, RetrievalModel *> &vector_indexes);
 
   int AddRTVecsToIndex(bool &index_is_dirty);
 
@@ -110,6 +115,7 @@ class VectorManager {
   std::map<std::string, RawVector *> raw_vectors_;
   std::map<std::string, RetrievalModel *> vector_indexes_;
   std::vector<std::string> retrieval_types_;
+  std::vector<std::string> retrieval_params_;
 };
 
 }  // namespace tig_gamma

@@ -132,6 +132,11 @@ int GetDocByDocID(void *engine, int docid, char **doc_str, int *len);
  */
 int BuildIndex(void *engine);
 
+/** @param engine  search engine pointer
+ * @return 0 successed, 1 failed
+ */
+int RebuildIndex(void *engine, int drop_before_rebuild, int limit_cpu);
+
 /** dump datas into disk accord to Config
  *
  * @param engine

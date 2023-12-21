@@ -846,8 +846,8 @@ int GammaEngine::GetDoc(int docid, Doc &doc) {
 int GammaEngine::BuildIndex() {
   int running = __sync_fetch_and_add(&b_running_, 1);
   if (running) {
-    if (vec_manager_->Indexing() != 0) {
-      LOG(ERROR) << space_name_ << " create index failed!";
+    if (vec_manager_->TrainIndex(vec_manager_->VectorIndexes()) != 0) {
+      LOG(ERROR) << "Create index failed!";
       return -1;
     }
     return 0;
@@ -859,14 +859,64 @@ int GammaEngine::BuildIndex() {
   return 0;
 }
 
+// TODO set limit for cpu and should to avoid using vector indexes on the same time
+int GammaEngine::RebuildIndex(int drop_before_rebuild, int limit_cpu) {
+  int ret = 0;
+  std::map<std::string, RetrievalModel *> vector_indexes;
+
+  if (!drop_before_rebuild) {
+    ret = vec_manager_->CreateVectorIndexes(indexing_size_, vector_indexes);
+    if (vec_manager_->TrainIndex(vector_indexes) != 0) {
+      LOG(ERROR) << "RebuildIndex TrainIndex failed!";
+      return -1;
+    }
+    LOG(INFO) << "vector manager RebuildIndex TrainIndex success!";
+  }
+
+  index_status_ = IndexStatus::UNINDEXED;
+  if (b_running_) {
+    b_running_ = 0;
+    std::mutex running_mutex;
+    std::unique_lock<std::mutex> lk(running_mutex);
+    running_cv_.wait(lk);
+  }
+
+  vec_manager_->DestroyVectorIndexes();
+
+  if (drop_before_rebuild) {
+    ret = vec_manager_->CreateVectorIndexes(indexing_size_, vec_manager_->VectorIndexes());
+    if (ret) {
+      LOG(ERROR) << "RebuildIndex CreateVectorIndexes failed, ret: " << ret;
+      vec_manager_->DestroyVectorIndexes();
+      return ret;
+    }
+    if (vec_manager_->TrainIndex(vec_manager_->VectorIndexes()) != 0) {
+      LOG(ERROR) << "RebuildIndex TrainIndex failed!";
+      return -1;
+    }
+    LOG(INFO) << "vector manager RebuildIndex TrainIndex success!";
+  } else {
+    vec_manager_->SetVectorIndexes(vector_indexes);
+    LOG(INFO) << "vector manager SetVectorIndexes success!";
+  }
+
+  ret = BuildIndex();
+  if (ret) {
+    LOG(ERROR) << "ReBuildIndex BuildIndex failed, ret: " << ret;
+    return ret;
+  }
+
+  return 0;
+}
+
 int GammaEngine::Indexing() {
-  if (vec_manager_->Indexing() != 0) {
-    LOG(ERROR) << space_name_ << " create index failed!";
+  if (vec_manager_->TrainIndex(vec_manager_->VectorIndexes()) != 0) {
+    LOG(ERROR) << "Create index failed!";
     b_running_ = 0;
     return -1;
   }
 
-  LOG(INFO) << space_name_ << " vector manager indexing success!";
+  LOG(INFO) << "vector manager TrainIndex success!";
   int ret = 0;
   bool has_error = false;
   while (b_running_) {

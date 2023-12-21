@@ -1586,6 +1586,23 @@ func (r *routerRequest) CommonByPartitions() *routerRequest {
 	return r
 }
 
+func (r *routerRequest) CommonSetByPartitions(args *vearchpb.IndexRequest) *routerRequest {
+	if r.Err != nil {
+		return r
+	}
+	sendMap := make(map[entity.PartitionID]*vearchpb.PartitionData)
+	for _, partitionInfo := range r.space.Partitions {
+		partitionID := partitionInfo.Id
+		if _, ok := sendMap[partitionID]; ok {
+			log.Error("db Id:%d , space Id:%d, have multiple partitionID:%d", partitionInfo.DBId, partitionInfo.SpaceId, partitionID)
+		} else {
+			sendMap[partitionID] = &vearchpb.PartitionData{PartitionID: partitionID, MessageID: r.GetMsgID(), IndexRequest: args}
+		}
+	}
+	r.sendMap = sendMap
+	return r
+}
+
 // ForceMergeExecute Execute request
 func (r *routerRequest) ForceMergeExecute() *vearchpb.ForceMergeResponse {
 	// ctx := context.WithValue(r.ctx, share.ReqMetaDataKey, r.md)
@@ -1630,6 +1647,52 @@ func (r *routerRequest) ForceMergeExecute() *vearchpb.ForceMergeResponse {
 	respShards.Msg = errMsg.String()
 	forceMergeResponse.Shards = respShards
 	return forceMergeResponse
+}
+
+// RebuildIndexExecute Execute request
+func (r *routerRequest) RebuildIndexExecute() *vearchpb.IndexResponse {
+	// ctx := context.WithValue(r.ctx, share.ReqMetaDataKey, r.md)
+	var wg sync.WaitGroup
+	partitionLen := len(r.sendMap)
+	respChain := make(chan *vearchpb.PartitionData, partitionLen)
+	for partitionID, pData := range r.sendMap {
+		wg.Add(1)
+		c := context.WithValue(r.ctx, share.ReqMetaDataKey, util.CopyMap(r.md))
+		go func(ctx context.Context, pid entity.PartitionID, d *vearchpb.PartitionData) {
+			defer wg.Done()
+			replyPartition := new(vearchpb.PartitionData)
+			defer func() {
+				if r := recover(); r != nil {
+					d.Err = &vearchpb.Error{Code: vearchpb.ErrorEnum_RECOVER, Msg: fmt.Sprintf("[Recover] partitionID: [%v], err: [%s]", pid, cast.ToString(r))}
+					respChain <- d
+				}
+			}()
+			partition, e := r.client.Master().Cache().PartitionByCache(ctx, r.space.Name, pid)
+			if e != nil {
+				panic(e.Error())
+			}
+			responsePartition := r.ReplicaRebuildIndexExecute(partition, ctx, d, replyPartition)
+			respChain <- responsePartition
+		}(c, partitionID, pData)
+	}
+	wg.Wait()
+	close(respChain)
+	respShards := new(vearchpb.SearchStatus)
+	respShards.Total = int32(partitionLen)
+	respShards.Failed = 0
+	indexResponse := &vearchpb.IndexResponse{}
+	var errMsg strings.Builder
+	for resp := range respChain {
+		if resp.Err == nil {
+			respShards.Successful++
+		} else {
+			respShards.Failed++
+			errMsg.WriteString(resp.Err.Msg)
+		}
+	}
+	respShards.Msg = errMsg.String()
+	indexResponse.Shards = respShards
+	return indexResponse
 }
 
 // FlushExecute Execute request
@@ -1678,8 +1741,41 @@ func (r *routerRequest) FlushExecute() *vearchpb.FlushResponse {
 	return flushResponse
 }
 
-// replicaForceMergeExecute Execute request
+// ReplicaForceMergeExecute Execute request
 func (r *routerRequest) ReplicaForceMergeExecute(partition *entity.Partition, ctx context.Context, d *vearchpb.PartitionData, replyPartition *vearchpb.PartitionData) *vearchpb.PartitionData {
+	var wgOther sync.WaitGroup
+	nodeIds := partition.Replicas
+	replicaNum := len(nodeIds)
+	respChain := make(chan *vearchpb.PartitionData, replicaNum)
+	senderResp := new(vearchpb.PartitionData)
+	for i := 0; i < replicaNum; i++ {
+		wgOther.Add(1)
+		go func(nodeId entity.NodeID) {
+			defer wgOther.Done()
+			err := r.client.PS().GetOrCreateRPCClient(ctx, nodeId).Execute(ctx, UnaryHandler, d, replyPartition)
+			if err != nil {
+				replyPartition.Err = vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err).GetError()
+			} else {
+				respChain <- replyPartition
+			}
+		}(nodeIds[i])
+	}
+	wgOther.Wait()
+	close(respChain)
+
+	for res := range respChain {
+		if res.Err != nil {
+			senderResp.Err = res.Err
+			break
+		}
+		senderResp.Err = res.Err
+	}
+
+	return senderResp
+}
+
+// ReplicaRebuildIndexExecute Execute request
+func (r *routerRequest) ReplicaRebuildIndexExecute(partition *entity.Partition, ctx context.Context, d *vearchpb.PartitionData, replyPartition *vearchpb.PartitionData) *vearchpb.PartitionData {
 	var wgOther sync.WaitGroup
 	nodeIds := partition.Replicas
 	replicaNum := len(nodeIds)

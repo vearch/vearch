@@ -120,6 +120,10 @@ func BuildIndex(engine unsafe.Pointer) int {
 	return int(C.BuildIndex(engine))
 }
 
+func RebuildIndex(engine unsafe.Pointer, drop_before_rebuild int, limit_cpu int) int {
+	return int(C.RebuildIndex(engine, C.int(drop_before_rebuild), C.int(limit_cpu)))
+}
+
 func Dump(engine unsafe.Pointer) int {
 	return int(C.Dump(engine))
 }

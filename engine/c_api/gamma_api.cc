@@ -216,6 +216,11 @@ int BuildIndex(void *engine) {
   return ret;
 }
 
+int RebuildIndex(void *engine, int drop_before_rebuild, int limit_cpu) {
+  int ret = static_cast<tig_gamma::GammaEngine *>(engine)->RebuildIndex(drop_before_rebuild, limit_cpu);
+  return ret;
+}
+
 void GetEngineStatus(void *engine, char **status_str, int *len) {
   tig_gamma::EngineStatus engine_status;
   static_cast<tig_gamma::GammaEngine *>(engine)->GetIndexStatus(engine_status);

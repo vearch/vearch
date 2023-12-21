@@ -67,6 +67,8 @@ type Engine interface {
 	NewSnapshot() (proto.Snapshot, error)
 	ApplySnapshot(peers []proto.Peer, iter proto.SnapIterator) error
 	Optimize() error
+	RebuildIndex(int, int) error
+	Rebuild(int, int) error
 	IndexInfo() (int, int, int)
 	EngineStatus(status *EngineStatus) error
 	Close()

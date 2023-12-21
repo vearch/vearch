@@ -176,6 +176,18 @@ func (ge *gammaEngine) Optimize() error {
 	return nil
 }
 
+func (ge *gammaEngine) Rebuild(drop_before_rebuild int, limit_cpu int) error {
+	go func() {
+		log.Info("RebuildIndex index:[%d] begin", ge.partitionID)
+		if e := ge.RebuildIndex(drop_before_rebuild, limit_cpu); e != nil {
+			log.Error("RebuildIndex index:[%d] has err %v", ge.partitionID, e.Error())
+			return
+		}
+		log.Info("RebuildIndex index:[%d] end", ge.partitionID)
+	}()
+	return nil
+}
+
 func (ge *gammaEngine) IndexInfo() (int, int, int) {
 	var status gamma.EngineStatus
 	gamma.GetEngineStatus(ge.gamma, &status)
@@ -210,6 +222,30 @@ func (ge *gammaEngine) BuildIndex() error {
 		} else {
 			endTime := time.Now()
 			log.Info("BuildIndex cost:[%f],rc :[%d]", (endTime.Sub(startTime).Seconds())*1000, rc)
+		}
+	}()
+
+	return nil
+}
+
+func (ge *gammaEngine) RebuildIndex(drop_before_rebuild int, limit_cpu int) error {
+	indexLocker.Lock()
+	defer indexLocker.Unlock()
+	ge.counter.Incr()
+	defer ge.counter.Decr()
+	gammaEngine := ge.gamma
+	if gammaEngine == nil {
+		return vearchlog.LogErrAndReturn(vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_IS_CLOSED, nil))
+	}
+
+	// UNINDEXED = 0, INDEXING, INDEXED
+	go func() {
+		startTime := time.Now()
+		if rc := gamma.RebuildIndex(gammaEngine, drop_before_rebuild, limit_cpu); rc != 0 {
+			log.Error("RebuildIndex:[%d] err response code:[%d]", ge.partitionID, rc)
+		} else {
+			endTime := time.Now()
+			log.Info("RebuildIndex cost:[%f],rc :[%d]", (endTime.Sub(startTime).Seconds())*1000, rc)
 		}
 	}()
 
