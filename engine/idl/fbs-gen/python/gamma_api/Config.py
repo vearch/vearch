@@ -33,8 +33,15 @@ class Config(object):
         return None
 
     # Config
-    def CacheInfos(self, j):
+    def SpaceName(self):
         o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(8))
+        if o != 0:
+            return self._tab.String(o + self._tab.Pos)
+        return None
+
+    # Config
+    def CacheInfos(self, j):
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(10))
         if o != 0:
             x = self._tab.Vector(o)
             x += flatbuffers.number_types.UOffsetTFlags.py_type(j) * 4
@@ -47,14 +54,15 @@ class Config(object):
 
     # Config
     def CacheInfosLength(self):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(8))
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(10))
         if o != 0:
             return self._tab.VectorLen(o)
         return 0
 
-def ConfigStart(builder): builder.StartObject(3)
+def ConfigStart(builder): builder.StartObject(4)
 def ConfigAddPath(builder, path): builder.PrependUOffsetTRelativeSlot(0, flatbuffers.number_types.UOffsetTFlags.py_type(path), 0)
 def ConfigAddLogDir(builder, logDir): builder.PrependUOffsetTRelativeSlot(1, flatbuffers.number_types.UOffsetTFlags.py_type(logDir), 0)
-def ConfigAddCacheInfos(builder, cacheInfos): builder.PrependUOffsetTRelativeSlot(2, flatbuffers.number_types.UOffsetTFlags.py_type(cacheInfos), 0)
+def ConfigAddSpaceName(builder, spaceName): builder.PrependUOffsetTRelativeSlot(2, flatbuffers.number_types.UOffsetTFlags.py_type(spaceName), 0)
+def ConfigAddCacheInfos(builder, cacheInfos): builder.PrependUOffsetTRelativeSlot(3, flatbuffers.number_types.UOffsetTFlags.py_type(cacheInfos), 0)
 def ConfigStartCacheInfosVector(builder, numElems): return builder.StartVector(4, numElems, 4)
 def ConfigEnd(builder): return builder.EndObject()

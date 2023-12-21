@@ -44,14 +44,15 @@ void *Init(const char *config_str, int len) {
   }
 
   const std::string &path = config.Path();
-  tig_gamma::GammaEngine *engine = tig_gamma::GammaEngine::GetInstance(path);
+  tig_gamma::GammaEngine *engine =
+      tig_gamma::GammaEngine::GetInstance(path, config.SpaceName());
   if (engine == nullptr) {
     LOG(ERROR) << "Engine init faild!";
     return nullptr;
   }
 
   tig_gamma::RequestConcurrentController::GetInstance();
-  LOG(INFO) << "Engine init successed!";
+  LOG(INFO) << config.SpaceName() << " init successed!";
   return static_cast<void *>(engine);
 }
 
@@ -72,20 +73,30 @@ int SetLogDictionary(const std::string &log_dir) {
                           "209715200");  // 200MB
   std::string filename;
   std::string prefix = "gamma.";
-  filename = prefix + el::LevelHelper::convertToString(el::Level::Debug) + ".log";
-  defaultConf.set(el::Level::Debug, el::ConfigurationType::Filename, dir + "/" + filename);
+  filename =
+      prefix + el::LevelHelper::convertToString(el::Level::Debug) + ".log";
+  defaultConf.set(el::Level::Debug, el::ConfigurationType::Filename,
+                  dir + "/" + filename);
 
-  filename = prefix + el::LevelHelper::convertToString(el::Level::Error) + ".log";
-  defaultConf.set(el::Level::Error, el::ConfigurationType::Filename, dir + "/" + filename);
+  filename =
+      prefix + el::LevelHelper::convertToString(el::Level::Error) + ".log";
+  defaultConf.set(el::Level::Error, el::ConfigurationType::Filename,
+                  dir + "/" + filename);
 
-  filename = prefix + el::LevelHelper::convertToString(el::Level::Info) + ".log";
-  defaultConf.set(el::Level::Info, el::ConfigurationType::Filename, dir + "/" + filename);
+  filename =
+      prefix + el::LevelHelper::convertToString(el::Level::Info) + ".log";
+  defaultConf.set(el::Level::Info, el::ConfigurationType::Filename,
+                  dir + "/" + filename);
 
-  filename = prefix + el::LevelHelper::convertToString(el::Level::Trace) + ".log";
-  defaultConf.set(el::Level::Trace, el::ConfigurationType::Filename, dir + "/" + filename);
+  filename =
+      prefix + el::LevelHelper::convertToString(el::Level::Trace) + ".log";
+  defaultConf.set(el::Level::Trace, el::ConfigurationType::Filename,
+                  dir + "/" + filename);
 
-  filename = prefix + el::LevelHelper::convertToString(el::Level::Warning) + ".log";
-  defaultConf.set(el::Level::Warning, el::ConfigurationType::Filename, dir + "/" + filename);
+  filename =
+      prefix + el::LevelHelper::convertToString(el::Level::Warning) + ".log";
+  defaultConf.set(el::Level::Warning, el::ConfigurationType::Filename,
+                  dir + "/" + filename);
 
   el::Loggers::reconfigureLogger("default", defaultConf);
   el::Helpers::installPreRollOutCallback(
@@ -158,9 +169,7 @@ int AddOrUpdateDocs(void *engine, char **doc_str, int len, char **result_str,
   return ret;
 }
 
-int UpdateDoc(void *engine, const char *doc_str, int len) {
-  return -1;
-}
+int UpdateDoc(void *engine, const char *doc_str, int len) { return -1; }
 
 int Search(void *engine, const char *request_str, int req_len,
            char **response_str, int *res_len) {
@@ -170,9 +179,12 @@ int Search(void *engine, const char *request_str, int req_len,
 
   int ret =
       static_cast<tig_gamma::GammaEngine *>(engine)->Search(request, response);
-  if (ret != 0) { return ret; }
+  if (ret != 0) {
+    return ret;
+  }
 
-  response.Serialize(request.Fields(), response_str, res_len);
+  response.Serialize(static_cast<tig_gamma::GammaEngine *>(engine)->SpaceName(),
+                     request.Fields(), response_str, res_len);
 
   return ret;
 }

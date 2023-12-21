@@ -12,20 +12,18 @@ namespace tig_gamma {
 int Config::Serialize(char **out, int *out_len) {
   flatbuffers::FlatBufferBuilder builder;
 
-  std::vector<flatbuffers::Offset<gamma_api::CacheInfo>>
-                                        cache_vector(cache_infos_.size());
+  std::vector<flatbuffers::Offset<gamma_api::CacheInfo>> cache_vector(
+      cache_infos_.size());
   int i = 0;
   for (auto &c : cache_infos_) {
-    auto cache = gamma_api::CreateCacheInfo(builder, 
-                                builder.CreateString(c.field_name),
-                                c.cache_size);
+    auto cache = gamma_api::CreateCacheInfo(
+        builder, builder.CreateString(c.field_name), c.cache_size);
     cache_vector[i++] = cache;
   }
   auto cache_vec = builder.CreateVector(cache_vector);
-  auto config =
-      gamma_api::CreateConfig(builder, builder.CreateString(path_),
-                              builder.CreateString(log_dir_),
-                              cache_vec);
+  auto config = gamma_api::CreateConfig(
+      builder, builder.CreateString(path_), builder.CreateString(log_dir_),
+      builder.CreateString(space_name_), cache_vec);
 
   builder.Finish(config);
   *out_len = builder.GetSize();
@@ -39,6 +37,7 @@ void Config::Deserialize(const char *data, int len) {
 
   path_ = config_->path()->str();
   log_dir_ = config_->log_dir()->str();
+  space_name_ = config_->space_name()->str();
 
   size_t cache_num = config_->cache_infos()->size();
   cache_infos_.resize(cache_num);
@@ -61,6 +60,11 @@ void Config::SetPath(std::string &path) { path_ = path; }
 const std::string &Config::LogDir() {
   assert(config_);
   return log_dir_;
+}
+
+const std::string &Config::SpaceName() {
+  assert(config_);
+  return space_name_;
 }
 
 void Config::SetLogDir(std::string &log_dir) { log_dir_ = log_dir; }

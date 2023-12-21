@@ -51,6 +51,8 @@ class Config : public RawData {
 
   const std::string &LogDir();
 
+  const std::string &SpaceName();
+
   void SetLogDir(std::string &log_dir);
 
   void AddCacheInfo(const struct CacheInfo &cache);
@@ -68,6 +70,7 @@ class Config : public RawData {
 
   std::string path_;
   std::string log_dir_;
+  std::string space_name_;
   std::vector<CacheInfo> cache_infos_;
 };
 

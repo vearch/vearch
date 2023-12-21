@@ -21,10 +21,12 @@ using std::move;
 using std::string;
 using std::vector;
 
+static const std::string dirName = std::string("/key_to_id/");
+
 namespace tig_gamma {
 
 ItemToDocID::ItemToDocID(const std::string &root_path)
-    : root_path_(root_path + std::string("/itemToDocID/")), db_(nullptr) {}
+    : root_path_(root_path + dirName), db_(nullptr) {}
 
 ItemToDocID::~ItemToDocID() { Close(); }
 
@@ -87,7 +89,8 @@ int ItemToDocID::Delete(const std::string &key) {
   return 0;
 }
 
-Table::Table(const string &root_path) {
+Table::Table(const string &root_path, const string &space_name)
+    : name_(space_name) {
   item_length_ = 0;
   field_num_ = 0;
   string_field_num_ = 0;
@@ -102,7 +105,6 @@ Table::Table(const string &root_path) {
   storage_mgr_ = nullptr;
   item_to_docid_ = nullptr;
   key_field_name_ = "_id";
-  LOG(INFO) << "Table created success!";
 }
 
 Table::~Table() {
@@ -115,7 +117,7 @@ Table::~Table() {
 
   delete item_to_docid_;
   item_to_docid_ = nullptr;
-  LOG(INFO) << "Table deleted.";
+  LOG(INFO) << "Table " << name_ << " deleted.";
 }
 
 int Table::Load(int &num) {
@@ -132,11 +134,11 @@ int Table::Load(int &num) {
     item_to_docid_ = new ItemToDocID(root_path_);
     int ret = item_to_docid_->Open();
     if (ret) {
-      LOG(ERROR) << "init item to docid error, ret=" << ret;
+      LOG(ERROR) << name_ << " init item to docid error, ret=" << ret;
       return ret;
     }
   }
-  LOG(INFO) << "Table load successed! doc num [" << doc_num << "]";
+  LOG(INFO) << name_ << " load successed! doc num [" << doc_num << "]";
   last_docid_ = doc_num - 1;
   return 0;
 }
@@ -155,7 +157,7 @@ int Table::CreateTable(TableInfo &table, TableParams &table_params,
     const string name = fields[i].name;
     DataType ftype = fields[i].data_type;
     bool is_index = fields[i].is_index;
-    LOG(INFO) << "Add field name [" << name << "], type [" << (int)ftype
+    LOG(INFO) << name_ << " add field [" << name << "], type [" << (int)ftype
               << "], index [" << is_index << "]";
     int ret = AddField(name, ftype, is_index);
     if (ret != 0) {
@@ -175,7 +177,7 @@ int Table::CreateTable(TableInfo &table, TableParams &table_params,
   item_to_docid_ = new ItemToDocID(root_path_);
   int ret = item_to_docid_->Open();
   if (ret) {
-    LOG(ERROR) << "init item to docid error, ret=" << ret;
+    LOG(ERROR) << name_ << " init item to docid error, ret=" << ret;
     return ret;
   }
 
@@ -218,7 +220,7 @@ int Table::FTypeSize(DataType fType) {
 
 int Table::AddField(const string &name, DataType ftype, bool is_index) {
   if (attr_idx_map_.find(name) != attr_idx_map_.end()) {
-    LOG(ERROR) << "Duplicate field " << name;
+    LOG(ERROR) << name_ << " duplicate field " << name;
     return -1;
   }
   if (name == key_field_name_) {
@@ -254,7 +256,8 @@ int Table::GetDocIDByKey(const std::string &key, int &docid) {
 
 int Table::GetKeyByDocid(int docid, std::string &key) {
   if (docid > last_docid_) {
-    LOG(ERROR) << "doc [" << docid << "] in front of [" << last_docid_ << "]";
+    LOG(ERROR) << name_ << " doc [" << docid << "] in front of [" << last_docid_
+               << "]";
     return -1;
   }
   const uint8_t *doc_value = nullptr;
@@ -278,12 +281,12 @@ int Table::GetKeyByDocid(int docid, std::string &key) {
 int Table::Add(const std::string &key, const std::vector<struct Field> &fields,
                int docid) {
   if (fields.size() != attr_idx_map_.size()) {
-    LOG(ERROR) << "Field num [" << fields.size() << "] not equal to ["
+    LOG(ERROR) << name_ << " field num [" << fields.size() << "] not equal to ["
                << attr_idx_map_.size() << "]";
     return -2;
   }
   if (key.size() == 0) {
-    LOG(ERROR) << "Add item error : _id is null!";
+    LOG(ERROR) << name_ << " add item error : _id is null!";
     return -3;
   }
 
@@ -314,11 +317,13 @@ int Table::Add(const std::string &key, const std::vector<struct Field> &fields,
 
   if (docid % 10000 == 0) {
     if (id_type_ == 0) {
-      LOG(INFO) << "Add item _id [" << key << "], num [" << docid << "]";
+      LOG(INFO) << name_ << " add item _id [" << key << "], num [" << docid
+                << "]";
     } else {
       long key_long = -1;
       memcpy(&key_long, key.data(), sizeof(key_long));
-      LOG(INFO) << "Add item _id [" << key_long << "], num [" << docid << "]";
+      LOG(INFO) << name_ << " add item _id [" << key_long << "], num [" << docid
+                << "]";
     }
   }
   last_docid_ = docid;
@@ -338,7 +343,7 @@ int Table::BatchAdd(int start_id, int batch_size, int docid,
 
     std::string &key = doc.Key();
     if (key.size() == 0) {
-      std::string msg = "Add item error : _id is null!";
+      std::string msg = name_ + " add item error : _id is null!";
       result.SetResult(i, -1, msg);
       LOG(ERROR) << msg;
       continue;
@@ -385,11 +390,13 @@ int Table::BatchAdd(int start_id, int batch_size, int docid,
     if (id % 10000 == 0) {
       std::string &key = doc_vec[i].Key();
       if (id_type_ == 0) {
-        LOG(INFO) << "Add item _id [" << key << "], num [" << id << "]";
+        LOG(INFO) << name_ << " add item _id [" << key << "], num [" << id
+                  << "]";
       } else {
         long key_long = -1;
         memcpy(&key_long, key.data(), sizeof(key_long));
-        LOG(INFO) << "Add item _id [" << key_long << "], num [" << id << "]";
+        LOG(INFO) << name_ << " add item _id [" << key_long << "], num [" << id
+                  << "]";
       }
     }
   }
@@ -397,7 +404,7 @@ int Table::BatchAdd(int start_id, int batch_size, int docid,
 #ifdef PERFORMANCE_TESTING
   double end = utils::getmillisecs();
   if (docid % 10000 == 0) {
-    LOG(INFO) << "table cost [" << end - start << "]ms";
+    LOG(INFO) << name_ << " batch add cost [" << end - start << "]ms";
   }
 #endif
   last_docid_ = docid + batch_size;
@@ -425,7 +432,7 @@ int Table::Update(const std::vector<Field> &fields, int docid) {
     const string &name = field_value.name;
     const auto &it = attr_idx_map_.find(name);
     if (it == attr_idx_map_.end()) {
-      LOG(ERROR) << "Cannot find field name [" << name << "]";
+      LOG(ERROR) << name_ << " cannot find field name [" << name << "]";
       continue;
     }
 
@@ -532,7 +539,7 @@ int Table::GetDocInfo(const int docid, Doc &doc,
     for (const std::string &f : fields) {
       const auto &iter = attr_idx_map_.find(f);
       if (iter == attr_idx_map_.end()) {
-        LOG(ERROR) << "Cannot find field [" << f << "]";
+        LOG(ERROR) << name_ << " cannot find field [" << f << "]";
         continue;
       }
       int field_idx = iter->second;
@@ -549,7 +556,7 @@ int Table::GetFieldRawValue(int docid, const std::string &field_name,
                             std::string &value, const uint8_t *doc_v) {
   const auto iter = attr_idx_map_.find(field_name);
   if (iter == attr_idx_map_.end()) {
-    LOG(ERROR) << "Cannot find field [" << field_name << "]";
+    LOG(ERROR) << name_ << " cannot find field [" << field_name << "]";
     return -1;
   }
   GetFieldRawValue(docid, iter->second, value, doc_v);
@@ -562,7 +569,7 @@ int Table::GetFieldRawValue(int docid, int field_id, std::string &value,
 
   const auto iter = idx_attr_map_.find(field_id);
   if (iter == idx_attr_map_.end()) {
-    LOG(ERROR) << "Cannot find field [" << field_id << "]";
+    LOG(ERROR) << name_ << " cannot find field [" << field_id << "]";
     return -1;
   }
 
@@ -615,7 +622,7 @@ int Table::GetFieldRawValue(int docid, int field_id,
   if (data_type == DataType::STRING) {
     const auto iter = idx_attr_map_.find(field_id);
     if (iter == idx_attr_map_.end()) {
-      LOG(ERROR) << "Cannot find field [" << field_id << "]";
+      LOG(ERROR) << name_ << " cannot find field [" << field_id << "]";
       return -1;
     }
 
@@ -640,7 +647,7 @@ int Table::GetFieldRawValue(int docid, int field_id,
 int Table::GetFieldType(const std::string &field_name, DataType &type) {
   const auto &it = attr_type_map_.find(field_name);
   if (it == attr_type_map_.end()) {
-    LOG(ERROR) << "Cannot find field [" << field_name << "]";
+    LOG(ERROR) << name_ << " cannot find field [" << field_name << "]";
     return -1;
   }
   type = it->second;
@@ -680,7 +687,8 @@ int Table::GetStorageManagerSize() {
   if (storage_mgr_) {
     table_doc_num = storage_mgr_->Size();
   }
-  LOG(INFO) << "read doc_num=" << table_doc_num << " in table storage_mgr.";
+  LOG(INFO) << name_ << " read doc_num=" << table_doc_num
+            << " in table storage_mgr.";
   return table_doc_num;
 }
 

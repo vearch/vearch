@@ -8,30 +8,31 @@
 #include "gamma_response.h"
 #include "c_api/api_data/gamma_doc.h"
 #include "table/table.h"
-#include "vector/vector_manager.h"
 #include "util/log.h"
 #include "util/utils.h"
+#include "vector/vector_manager.h"
 
 namespace tig_gamma {
 
-Response::Response() { 
+Response::Response() {
   response_ = nullptr;
 #ifdef PERFORMANCE_TESTING
   perf_tool_ = (void *)new PerfTool();
 #endif
 }
 
-Response::~Response() { 
+Response::~Response() {
 #ifdef PERFORMANCE_TESTING
-  if(perf_tool_) {
+  if (perf_tool_) {
     PerfTool *perf_tool = static_cast<PerfTool *>(perf_tool_);
     delete perf_tool;
-    perf_tool_ = nullptr; 
+    perf_tool_ = nullptr;
   }
 #endif
 }
 
-int Response::Serialize(std::vector<std::string> &fields_name, char **out,
+int Response::Serialize(const std::string &space_name,
+                        std::vector<std::string> &fields_name, char **out,
                         int *out_len) {
   std::vector<std::string> vec_fields;
   std::map<std::string, int> attr_idx;
@@ -70,7 +71,7 @@ int Response::Serialize(std::vector<std::string> &fields_name, char **out,
       double score = vec_doc->score;
 
       const uint8_t *doc_buffer = table->GetDocBuffer(docid);
-      if (doc_buffer == nullptr) { 
+      if (doc_buffer == nullptr) {
         LOG(ERROR) << "docid[" << docid << "] table doc_buffer is nullptr";
         continue;
       }
@@ -80,9 +81,9 @@ int Response::Serialize(std::vector<std::string> &fields_name, char **out,
         std::vector<uint8_t> val;
         table->GetFieldRawValue(docid, it.second, val, doc_buffer);
 
-        attributes.emplace_back(gamma_api::CreateAttribute(
-            builder, builder.CreateString(it.first),
-            builder.CreateVector(val)));
+        attributes.emplace_back(
+            gamma_api::CreateAttribute(builder, builder.CreateString(it.first),
+                                       builder.CreateVector(val)));
       }
       delete[] doc_buffer;
       for (uint32_t k = 0; k < vec_fields.size(); ++k) {
@@ -103,12 +104,15 @@ int Response::Serialize(std::vector<std::string> &fields_name, char **out,
           VectorDocField *vec_field = vec_doc->fields + k;
           cJSON *vec_field_json = cJSON_CreateObject();
 
-          cJSON_AddStringToObject(vec_field_json, EXTRA_VECTOR_FIELD_NAME.c_str(),
+          cJSON_AddStringToObject(vec_field_json,
+                                  EXTRA_VECTOR_FIELD_NAME.c_str(),
                                   vec_field->name.c_str());
           string source = string(vec_field->source, vec_field->source_len);
-          cJSON_AddStringToObject(vec_field_json, EXTRA_VECTOR_FIELD_SOURCE.c_str(),
+          cJSON_AddStringToObject(vec_field_json,
+                                  EXTRA_VECTOR_FIELD_SOURCE.c_str(),
                                   source.c_str());
-          cJSON_AddNumberToObject(vec_field_json, EXTRA_VECTOR_FIELD_SCORE.c_str(),
+          cJSON_AddNumberToObject(vec_field_json,
+                                  EXTRA_VECTOR_FIELD_SCORE.c_str(),
                                   vec_field->score);
           cJSON_AddItemToArray(vec_result_json, vec_field_json);
         }
@@ -128,9 +132,10 @@ int Response::Serialize(std::vector<std::string> &fields_name, char **out,
     auto item_vec = builder.CreateVector(result_items);
     auto msg = builder.CreateString(str_msg);
 
-    gamma_api::SearchResultCode result_code = gamma_api::SearchResultCode::SUCCESS;
-    auto results = gamma_api::CreateSearchResult(builder, gamma_results_[i].total,
-                                                 result_code, msg, item_vec);
+    gamma_api::SearchResultCode result_code =
+        gamma_api::SearchResultCode::SUCCESS;
+    auto results = gamma_api::CreateSearchResult(
+        builder, gamma_results_[i].total, result_code, msg, item_vec);
     search_results.push_back(results);
   }
 
@@ -149,7 +154,7 @@ int Response::Serialize(std::vector<std::string> &fields_name, char **out,
 #ifdef PERFORMANCE_TESTING
   PerfTool *perf_tool = static_cast<PerfTool *>(perf_tool_);
   perf_tool->Perf("serialize total");
-  LOG(TRACE) << perf_tool->OutputPerf().str();
+  LOG(TRACE) << space_name << " " << perf_tool->OutputPerf().str();
 #endif
   return 0;
 }
@@ -212,14 +217,14 @@ void Response::SetOnlineLogMessage(const std::string &msg) {
 }
 
 void Response::SetEngineInfo(void *table, void *vector_mgr,
-                          GammaResult *gamma_results, int req_num) {
+                             GammaResult *gamma_results, int req_num) {
   gamma_results_ = gamma_results;
   req_num_ = req_num;
   table_ = table;
   vector_mgr_ = vector_mgr;
 }
 
-int Response::PackResultItem(const VectorDoc *vec_doc, 
+int Response::PackResultItem(const VectorDoc *vec_doc,
                              std::vector<std::string> &fields_name,
                              struct ResultItem &result_item) {
   result_item.score = vec_doc->score;
@@ -236,7 +241,7 @@ int Response::PackResultItem(const VectorDoc *vec_doc,
     std::vector<string> table_fields;
 
     for (size_t i = 0; i < fields_size; ++i) {
-      std::string &name =  fields_name[i];
+      std::string &name = fields_name[i];
       if (!vector_mgr->Contains(name)) {
         table_fields.push_back(name);
       } else {

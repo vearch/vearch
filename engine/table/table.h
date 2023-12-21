@@ -19,7 +19,6 @@
 #include "rocksdb/options.h"
 #include "rocksdb/table.h"
 #include "storage/storage_manager.h"
-#include "table_define.h"
 #include "util/bitmap_manager.h"
 #include "util/log.h"
 
@@ -54,7 +53,7 @@ class ItemToDocID {
  */
 class Table {
  public:
-  explicit Table(const std::string &root_path);
+  explicit Table(const std::string &root_path, const std::string &space_name);
 
   ~Table();
 

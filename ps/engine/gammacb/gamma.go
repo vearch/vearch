@@ -24,6 +24,7 @@ import (
 	"time"
 	"unsafe"
 
+	"github.com/spf13/cast"
 	"github.com/vearch/vearch/config"
 	"github.com/vearch/vearch/engine/sdk/go/gamma"
 	"github.com/vearch/vearch/proto/entity"
@@ -60,7 +61,11 @@ func New(cfg register.EngineConfig) (engine.Engine, error) {
 		return nil, e
 	}
 
-	config := &gamma.Config{Path: cfg.Path, LogDir: config.Conf().GetLogDir()}
+	config := &gamma.Config{
+		Path:      cfg.Path,
+		SpaceName: cfg.Space.Name + "-" + cast.ToString(cfg.PartitionID),
+		LogDir:    config.Conf().GetLogDir()}
+
 	ge := &gammaEngine{
 		ctx:          ctx,
 		cancel:       cancel,

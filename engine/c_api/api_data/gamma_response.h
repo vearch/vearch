@@ -100,10 +100,12 @@ struct SearchResult {
 class Response {
  public:
   Response();
-  
+
   virtual ~Response();
 
-  virtual int Serialize(std::vector<std::string> &fields_name, char **out, int *out_len);
+  virtual int Serialize(const std::string &space_name,
+                        std::vector<std::string> &fields_name, char **out,
+                        int *out_len);
 
   virtual void Deserialize(const char *data, int len);
 
@@ -115,16 +117,17 @@ class Response {
 
   void SetOnlineLogMessage(const std::string &msg);
 
-  void SetEngineInfo(void *table, void *vector_mgr,
-                  GammaResult *gamma_results, int req_num);
- 
+  void SetEngineInfo(void *table, void *vector_mgr, GammaResult *gamma_results,
+                     int req_num);
+
   void *GetPerTool() { return perf_tool_; }
 
   int PackResults(std::vector<std::string> &fields_name);
-  
-  int PackResultItem(const VectorDoc *vec_doc, std::vector<std::string> &fields_name,
+
+  int PackResultItem(const VectorDoc *vec_doc,
+                     std::vector<std::string> &fields_name,
                      struct ResultItem &result_item);
- 
+
  private:
   gamma_api::Response *response_;
   std::vector<struct SearchResult> results_;

@@ -42,8 +42,16 @@ func (rcv *Config) LogDir() []byte {
 	return nil
 }
 
-func (rcv *Config) CacheInfos(obj *CacheInfo, j int) bool {
+func (rcv *Config) SpaceName() []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(8))
+	if o != 0 {
+		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+	}
+	return nil
+}
+
+func (rcv *Config) CacheInfos(obj *CacheInfo, j int) bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(10))
 	if o != 0 {
 		x := rcv._tab.Vector(o)
 		x += flatbuffers.UOffsetT(j) * 4
@@ -55,7 +63,7 @@ func (rcv *Config) CacheInfos(obj *CacheInfo, j int) bool {
 }
 
 func (rcv *Config) CacheInfosLength() int {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(8))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(10))
 	if o != 0 {
 		return rcv._tab.VectorLen(o)
 	}
@@ -63,7 +71,7 @@ func (rcv *Config) CacheInfosLength() int {
 }
 
 func ConfigStart(builder *flatbuffers.Builder) {
-	builder.StartObject(3)
+	builder.StartObject(4)
 }
 func ConfigAddPath(builder *flatbuffers.Builder, path flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(path), 0)
@@ -71,8 +79,11 @@ func ConfigAddPath(builder *flatbuffers.Builder, path flatbuffers.UOffsetT) {
 func ConfigAddLogDir(builder *flatbuffers.Builder, logDir flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(logDir), 0)
 }
+func ConfigAddSpaceName(builder *flatbuffers.Builder, spaceName flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(2, flatbuffers.UOffsetT(spaceName), 0)
+}
 func ConfigAddCacheInfos(builder *flatbuffers.Builder, cacheInfos flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(2, flatbuffers.UOffsetT(cacheInfos), 0)
+	builder.PrependUOffsetTSlot(3, flatbuffers.UOffsetT(cacheInfos), 0)
 }
 func ConfigStartCacheInfosVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(4, numElems, 4)

@@ -969,7 +969,7 @@ void MultiFieldsRangeIndex::FieldOperateWorker() {
     } else {
       DeleteDoc(doc_id, field_id, field_op->value);
     }
-    
+
     delete field_op;
   }
   LOG(INFO) << "FieldOperateWorker exited!";
@@ -1216,7 +1216,8 @@ int MultiFieldsRangeIndex::Intersect(std::vector<RangeQueryResult> &results,
   return total;
 }
 
-int MultiFieldsRangeIndex::AddField(int field, enum DataType field_type, std::string &field_name) {
+int MultiFieldsRangeIndex::AddField(int field, enum DataType field_type,
+                                    std::string &field_name) {
   BTreeParameters bt_param;
   bt_param.mainleafxtra = 0;
   bt_param.maxleaves = 1000000;

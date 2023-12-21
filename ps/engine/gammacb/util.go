@@ -82,7 +82,7 @@ func mapping2Table(cfg register.EngineConfig, m *mapping.IndexMapping) (*gamma.T
 	}
 
 	table := &gamma.Table{
-		Name:            cast.ToString(cfg.PartitionID),
+		Name:            cfg.Space.Name + "-" + cast.ToString(cfg.PartitionID),
 		IndexingSize:    int32(engine.IndexSize),
 		RetrievalType:   engine.RetrievalType,
 		RetrievalTypes:  engine.RetrievalTypes,

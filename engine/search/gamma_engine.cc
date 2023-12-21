@@ -36,7 +36,6 @@
 #include "util/utils.h"
 
 using std::string;
-using namespace tig_gamma::table;
 
 namespace tig_gamma {
 
@@ -169,8 +168,10 @@ void MemTrimHandler() {
 }
 #endif
 
-GammaEngine::GammaEngine(const string &index_root_path)
+GammaEngine::GammaEngine(const string &index_root_path,
+                         const string &space_name)
     : index_root_path_(index_root_path),
+      space_name_(space_name),
       date_time_format_("%Y-%m-%d-%H:%M:%S") {
   table_ = nullptr;
   vec_manager_ = nullptr;
@@ -222,11 +223,13 @@ GammaEngine::~GammaEngine() {
   }
 }
 
-GammaEngine *GammaEngine::GetInstance(const string &index_root_path) {
-  GammaEngine *engine = new GammaEngine(index_root_path);
+GammaEngine *GammaEngine::GetInstance(const string &index_root_path,
+                                      const string &space_name) {
+  GammaEngine *engine = new GammaEngine(index_root_path, space_name);
   int ret = engine->Setup();
   if (ret < 0) {
-    LOG(ERROR) << "BuildSearchEngine [" << index_root_path << "] error!";
+    LOG(ERROR) << "Build " << space_name << " [" << index_root_path
+               << "] failed!";
     return nullptr;
   }
   return engine;
@@ -263,7 +266,7 @@ int GammaEngine::Setup() {
   }
 
   if (!table_) {
-    table_ = new Table(index_root_path_);
+    table_ = new Table(index_root_path_, space_name_);
   }
 
   if (!vec_manager_) {
@@ -283,7 +286,7 @@ int GammaEngine::Setup() {
 #endif
 
   max_docid_ = 0;
-  LOG(INFO) << "GammaEngine setup successed! bitmap_bytes_size="
+  LOG(INFO) << space_name_ << " setup successed! bitmap_bytes_size="
             << docids_bitmap_->BytesSize();
   return 0;
 }
@@ -297,7 +300,7 @@ int GammaEngine::Search(Request &request, Response &response_results) {
   int req_num = request.ReqNum();
 
   if (req_num <= 0) {
-    string msg = "req_num should not less than 0";
+    string msg = space_name_ + " req_num should not less than 0";
     LOG(ERROR) << msg;
     return -1;
   }
@@ -380,7 +383,7 @@ int GammaEngine::Search(Request &request, Response &response_results) {
 
     ret = vec_manager_->Search(gamma_query, gamma_results);
     if (ret != 0) {
-      string msg = "search error [" + std::to_string(ret) + "]";
+      string msg = space_name_ + " search error [" + std::to_string(ret) + "]";
       for (int i = 0; i < req_num; ++i) {
         SearchResult result;
         result.msg = msg;
@@ -463,7 +466,7 @@ int GammaEngine::MultiRangeQuery(Request &request,
   int retval = field_range_index_->Search(filters, range_query_result);
 
   if (retval == 0) {
-    string msg = "No result: numeric filter return 0 result";
+    string msg = space_name_ + " no result: numeric filter return 0 result";
     LOG(INFO) << msg;
     for (int i = 0; i < request.ReqNum(); ++i) {
       SearchResult result;
@@ -481,7 +484,7 @@ int GammaEngine::MultiRangeQuery(Request &request,
 
 int GammaEngine::CreateTable(TableInfo &table) {
   if (!vec_manager_ || !table_) {
-    LOG(ERROR) << "vector and table should not be null!";
+    LOG(ERROR) << space_name_ << " vector and table should not be null!";
     return -1;
   }
 
@@ -493,13 +496,15 @@ int GammaEngine::CreateTable(TableInfo &table) {
     if (len > 0) {
       utils::FileIO fio(dump_meta_path);
       if (fio.Open("r")) {
-        LOG(ERROR) << "open file error, path=" << dump_meta_path;
+        LOG(ERROR) << space_name_
+                   << " open file error, path=" << dump_meta_path;
         return IO_ERR;
       }
       char *buf = new char[len + 1];
       buf[len] = '\0';
       if ((size_t)len != fio.Read(buf, 1, (size_t)len)) {
-        LOG(ERROR) << "read file error, path=" << dump_meta_path;
+        LOG(ERROR) << space_name_
+                   << " read file error, path=" << dump_meta_path;
         delete[] buf;
         buf = nullptr;
         return IO_ERR;
@@ -517,7 +522,7 @@ int GammaEngine::CreateTable(TableInfo &table) {
   }
 
   if (vec_manager_->CreateVectorTable(table, meta_jp) != 0) {
-    LOG(ERROR) << "Cannot create VectorTable!";
+    LOG(ERROR) << space_name_ << " cannot create VectorTable!";
     vec_manager_->Close();
     return -2;
   }
@@ -530,7 +535,7 @@ int GammaEngine::CreateTable(TableInfo &table) {
   int ret_table = table_->CreateTable(table, disk_table_params, docids_bitmap_);
   indexing_size_ = table.IndexingSize();
   if (ret_table != 0) {
-    LOG(ERROR) << "Cannot create table!";
+    LOG(ERROR) << space_name_ << " cannot create table!";
     return -2;
   }
 
@@ -569,7 +574,9 @@ int GammaEngine::CreateTable(TableInfo &table) {
     }
   }
 
-  field_range_index_ = new MultiFieldsRangeIndex(index_root_path_, table_);
+  std::string scalar_index_path = index_root_path_ + "/scalar_index";
+  utils::make_dir(scalar_index_path.c_str());
+  field_range_index_ = new MultiFieldsRangeIndex(scalar_index_path, table_);
   if ((nullptr == field_range_index_) || (AddNumIndexFields() < 0)) {
     LOG(ERROR) << "add numeric index fields error!";
     return -3;
@@ -637,8 +644,8 @@ int GammaEngine::AddOrUpdate(Doc &doc) {
 #ifdef PERFORMANCE_TESTING
   double end = utils::getmillisecs();
   if (max_docid_ % 10000 == 0) {
-    LOG(INFO) << "table cost [" << end_table - start << "]ms, vec store cost ["
-              << end - end_table << "]ms";
+    LOG(INFO) << space_name_ << " table cost [" << end_table - start
+              << "]ms, vec store cost [" << end - end_table << "]ms";
   }
 #endif
   is_dirty_ = true;
@@ -721,8 +728,8 @@ int GammaEngine::AddOrUpdateDocs(Docs &docs, BatchResult &result) {
 #ifdef PERFORMANCE_TESTING
   double end = utils::getmillisecs();
   if (max_docid_ % 10000 == 0) {
-    LOG(INFO) << "Doc_num[" << max_docid_ << "], BatchAdd[" << batch_size
-              << "] total cost [" << end - start << "]ms";
+    LOG(INFO) << space_name_ << " doc_num[" << max_docid_ << "], BatchAdd["
+              << batch_size << "] total cost [" << end - start << "]ms";
   }
 #endif
   is_dirty_ = true;
@@ -795,7 +802,7 @@ int GammaEngine::GetDoc(const std::string &key, Doc &doc) {
   int docid = -1, ret = 0;
   ret = table_->GetDocIDByKey(key, docid);
   if (ret != 0 || docid < 0) {
-    LOG(INFO) << "GetDocIDbyKey [" << key << "] not found!";
+    LOG(INFO) << space_name_ << " GetDocIDbyKey [" << key << "] not found!";
     return -1;
   }
 
@@ -805,7 +812,7 @@ int GammaEngine::GetDoc(const std::string &key, Doc &doc) {
 int GammaEngine::GetDoc(int docid, Doc &doc) {
   int ret = 0;
   if (docids_bitmap_->Test(docid)) {
-    LOG(INFO) << "docid [" << docid << "] is deleted!";
+    LOG(INFO) << space_name_ << " docid [" << docid << "] is deleted!";
     return -1;
   }
   std::vector<std::string> index_names;
@@ -840,7 +847,7 @@ int GammaEngine::BuildIndex() {
   int running = __sync_fetch_and_add(&b_running_, 1);
   if (running) {
     if (vec_manager_->Indexing() != 0) {
-      LOG(ERROR) << "Create index failed!";
+      LOG(ERROR) << space_name_ << " create index failed!";
       return -1;
     }
     return 0;
@@ -854,12 +861,12 @@ int GammaEngine::BuildIndex() {
 
 int GammaEngine::Indexing() {
   if (vec_manager_->Indexing() != 0) {
-    LOG(ERROR) << "Create index failed!";
+    LOG(ERROR) << space_name_ << " create index failed!";
     b_running_ = 0;
     return -1;
   }
 
-  LOG(INFO) << "vector manager indexing success!";
+  LOG(INFO) << space_name_ << " vector manager indexing success!";
   int ret = 0;
   bool has_error = false;
   while (b_running_) {
@@ -881,7 +888,7 @@ int GammaEngine::Indexing() {
     usleep(1000 * 1000);  // sleep 5000ms
   }
   running_cv_.notify_one();
-  LOG(INFO) << "Build index exited!";
+  LOG(INFO) << space_name_ << " build index exited!";
   return ret;
 }
 
@@ -951,9 +958,10 @@ int GammaEngine::Dump() {
 
     ret = vec_manager_->Dump(path, 0, max_docid);
     if (ret != 0) {
-      LOG(ERROR) << "dump vector error, ret=" << ret;
+      LOG(ERROR) << space_name_ << " dump vector error, ret=" << ret;
       utils::remove_dir(path.c_str());
-      LOG(ERROR) << "Dumped to [" << path << "] failed, now removed";
+      LOG(ERROR) << space_name_ << " dumped to [" << path
+                 << "] failed, now removed";
       return -1;
     }
 
@@ -971,7 +979,7 @@ int GammaEngine::Dump() {
     if (last_dump_dir_ != "" && utils::remove_dir(last_dump_dir_.c_str())) {
       LOG(ERROR) << "remove last dump directory error, path=" << last_dump_dir_;
     }
-    LOG(INFO) << "Dumped to [" << path
+    LOG(INFO) << space_name_ << " dumped to [" << path
               << "], last dump directory(removed)=" << last_dump_dir_;
     last_dump_dir_ = path;
     is_dirty_ = false;
@@ -988,7 +996,7 @@ int GammaEngine::CreateTableFromLocal(std::string &table_name) {
       assert(begin != std::string::npos);
       begin += 1;
       table_name = file_path.substr(begin, pos - begin);
-      LOG(INFO) << "local table name=" << table_name;
+      LOG(INFO) << space_name_ << " local table name=" << table_name;
       TableSchemaIO tio(file_path);
       TableInfo table;
       if (tio.Read(table_name, table)) {
@@ -1011,10 +1019,11 @@ int GammaEngine::Load() {
   if (!created_table_) {
     string table_name;
     if (CreateTableFromLocal(table_name)) {
-      LOG(ERROR) << "create table from local error";
+      LOG(ERROR) << space_name_ << " create table from local error";
       return -1;
     }
-    LOG(INFO) << "create table from local success, table name=" << table_name;
+    LOG(INFO) << space_name_
+              << " create table from local success, table name=" << table_name;
   }
   af_exector_->Stop();
 
@@ -1045,7 +1054,7 @@ int GammaEngine::Load() {
         folders_tm[folders_tm.size() - 1].second + "/dump.done";
     utils::FileIO fio(dump_done_file);
     if (fio.Open("r")) {
-      LOG(ERROR) << "Cannot read from file " << dump_done_file;
+      LOG(ERROR) << space_name_ << " cannot read from file " << dump_done_file;
       return -1;
     }
     long fsize = utils::get_file_size(dump_done_file);
@@ -1057,8 +1066,8 @@ int GammaEngine::Load() {
     std::vector<string> items = utils::split(lines[1], " ");
     assert(items.size() == 2);
     int index_dump_num = (int)std::strtol(items[1].c_str(), nullptr, 10) + 1;
-    LOG(INFO) << "read index_dump_num=" << index_dump_num << " from "
-              << dump_done_file;
+    LOG(INFO) << space_name_ << "read index_dump_num=" << index_dump_num
+              << " from " << dump_done_file;
     delete[] buf;
     buf = nullptr;
   }
@@ -1074,13 +1083,14 @@ int GammaEngine::Load() {
   }
   int ret = vec_manager_->Load(dirs, max_docid_);
   if (ret != 0) {
-    LOG(ERROR) << "load vector error, ret=" << ret << ", path=" << last_dir;
+    LOG(ERROR) << space_name_ << " load vector error, ret=" << ret
+               << ", path=" << last_dir;
     return ret;
   }
 
   ret = table_->Load(max_docid_);
   if (ret != 0) {
-    LOG(ERROR) << "load profile error, ret=" << ret;
+    LOG(ERROR) << space_name_ << " load profile error, ret=" << ret;
     return ret;
   }
 
@@ -1103,14 +1113,16 @@ int GammaEngine::Load() {
 
   if (not b_running_ and index_status_ == UNINDEXED) {
     if (max_docid_ >= indexing_size_) {
-      LOG(INFO) << "Begin indexing. indexing_size=" << indexing_size_;
+      LOG(INFO) << space_name_
+                << " begin indexing. indexing_size=" << indexing_size_;
       this->BuildIndex();
     }
   }
   // remove directorys which are not done
   for (const string &folder : folders_not_done) {
     if (utils::remove_dir(folder.c_str())) {
-      LOG(ERROR) << "clean error, not done directory=" << folder;
+      LOG(ERROR) << space_name_
+                 << " clean error, not done directory=" << folder;
     }
   }
   af_exector_->Start();
@@ -1127,20 +1139,20 @@ int GammaEngine::LoadFromFaiss() {
   std::map<std::string, RetrievalModel *> &vec_indexes =
       vec_manager_->VectorIndexes();
   if (vec_indexes.size() != 1) {
-    LOG(ERROR) << "Load from faiss index should be only one!";
+    LOG(ERROR) << space_name_ << " load from faiss index should be only one!";
     return -1;
   }
 
   RetrievalModel *index = vec_indexes.begin()->second;
   if (index == nullptr) {
-    LOG(ERROR) << "Cannot find faiss index";
+    LOG(ERROR) << space_name_ << " cannot find faiss index";
     return -1;
   }
   index_status_ = INDEXED;
 
   int load_num = index->Load("files");
   if (load_num < 0) {
-    LOG(ERROR) << "vector [faiss] load gamma index failed!";
+    LOG(ERROR) << space_name_ << " vector [faiss] load gamma index failed!";
     return -1;
   }
 
@@ -1180,7 +1192,7 @@ int GammaEngine::AddNumIndexFields() {
     string field_name = it.first;
     const auto &attr_index_it = attr_index.find(field_name);
     if (attr_index_it == attr_index.end()) {
-      LOG(ERROR) << "Cannot find field [" << field_name << "]";
+      LOG(ERROR) << space_name_ << " cannot find field [" << field_name << "]";
       continue;
     }
     bool is_index = attr_index_it->second;
@@ -1188,7 +1200,7 @@ int GammaEngine::AddNumIndexFields() {
       continue;
     }
     int field_idx = table_->GetAttrIdx(field_name);
-    LOG(INFO) << "Add range field [" << field_name << "]";
+    LOG(INFO) << space_name_ << " add range field [" << field_name << "]";
     field_range_index_->AddField(field_idx, it.second, field_name);
   }
   return retvals;

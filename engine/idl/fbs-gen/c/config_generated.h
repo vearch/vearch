@@ -78,13 +78,17 @@ struct Config FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_PATH = 4,
     VT_LOG_DIR = 6,
-    VT_CACHE_INFOS = 8
+    VT_SPACE_NAME = 8,
+    VT_CACHE_INFOS = 10
   };
   const flatbuffers::String *path() const {
     return GetPointer<const flatbuffers::String *>(VT_PATH);
   }
   const flatbuffers::String *log_dir() const {
     return GetPointer<const flatbuffers::String *>(VT_LOG_DIR);
+  }
+  const flatbuffers::String *space_name() const {
+    return GetPointer<const flatbuffers::String *>(VT_SPACE_NAME);
   }
   const flatbuffers::Vector<flatbuffers::Offset<CacheInfo>> *cache_infos() const {
     return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<CacheInfo>> *>(VT_CACHE_INFOS);
@@ -95,6 +99,8 @@ struct Config FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyString(path()) &&
            VerifyOffset(verifier, VT_LOG_DIR) &&
            verifier.VerifyString(log_dir()) &&
+           VerifyOffset(verifier, VT_SPACE_NAME) &&
+           verifier.VerifyString(space_name()) &&
            VerifyOffset(verifier, VT_CACHE_INFOS) &&
            verifier.VerifyVector(cache_infos()) &&
            verifier.VerifyVectorOfTables(cache_infos()) &&
@@ -110,6 +116,9 @@ struct ConfigBuilder {
   }
   void add_log_dir(flatbuffers::Offset<flatbuffers::String> log_dir) {
     fbb_.AddOffset(Config::VT_LOG_DIR, log_dir);
+  }
+  void add_space_name(flatbuffers::Offset<flatbuffers::String> space_name) {
+    fbb_.AddOffset(Config::VT_SPACE_NAME, space_name);
   }
   void add_cache_infos(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<CacheInfo>>> cache_infos) {
     fbb_.AddOffset(Config::VT_CACHE_INFOS, cache_infos);
@@ -130,9 +139,11 @@ inline flatbuffers::Offset<Config> CreateConfig(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<flatbuffers::String> path = 0,
     flatbuffers::Offset<flatbuffers::String> log_dir = 0,
+    flatbuffers::Offset<flatbuffers::String> space_name = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<CacheInfo>>> cache_infos = 0) {
   ConfigBuilder builder_(_fbb);
   builder_.add_cache_infos(cache_infos);
+  builder_.add_space_name(space_name);
   builder_.add_log_dir(log_dir);
   builder_.add_path(path);
   return builder_.Finish();
@@ -142,14 +153,17 @@ inline flatbuffers::Offset<Config> CreateConfigDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     const char *path = nullptr,
     const char *log_dir = nullptr,
+    const char *space_name = nullptr,
     const std::vector<flatbuffers::Offset<CacheInfo>> *cache_infos = nullptr) {
   auto path__ = path ? _fbb.CreateString(path) : 0;
   auto log_dir__ = log_dir ? _fbb.CreateString(log_dir) : 0;
+  auto space_name__ = space_name ? _fbb.CreateString(space_name) : 0;
   auto cache_infos__ = cache_infos ? _fbb.CreateVector<flatbuffers::Offset<CacheInfo>>(*cache_infos) : 0;
   return gamma_api::CreateConfig(
       _fbb,
       path__,
       log_dir__,
+      space_name__,
       cache_infos__);
 }
 

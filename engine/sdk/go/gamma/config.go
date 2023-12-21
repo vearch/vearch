@@ -20,6 +20,7 @@ type CacheInfo struct {
 type Config struct {
 	Path       string
 	LogDir     string
+	SpaceName  string
 	CacheInfos []*CacheInfo
 
 	config *gamma_api.Config
@@ -29,6 +30,7 @@ func (conf *Config) Serialize(buffer *[]byte) int {
 	builder := flatbuffers.NewBuilder(0)
 	path := builder.CreateString(conf.Path)
 	logDir := builder.CreateString(conf.LogDir)
+	spaceName := builder.CreateString(conf.SpaceName)
 
 	var names []flatbuffers.UOffsetT
 	var cacheSizes []int32
@@ -41,8 +43,7 @@ func (conf *Config) Serialize(buffer *[]byte) int {
 		i++
 	}
 
-	var caches []flatbuffers.UOffsetT
-	caches = make([]flatbuffers.UOffsetT, len(conf.CacheInfos))
+	caches := make([]flatbuffers.UOffsetT, len(conf.CacheInfos))
 	for i := 0; i < len(conf.CacheInfos); i++ {
 		gamma_api.CacheInfoStart(builder)
 		gamma_api.CacheInfoAddFieldName(builder, names[i])
@@ -59,6 +60,7 @@ func (conf *Config) Serialize(buffer *[]byte) int {
 	gamma_api.ConfigStart(builder)
 	gamma_api.ConfigAddPath(builder, path)
 	gamma_api.ConfigAddLogDir(builder, logDir)
+	gamma_api.ConfigAddSpaceName(builder, spaceName)
 	gamma_api.ConfigAddCacheInfos(builder, f)
 	builder.Finish(builder.EndObject())
 	bufferLen := len(builder.FinishedBytes())
@@ -71,6 +73,7 @@ func (conf *Config) DeSerialize(buffer []byte) {
 	conf.config = gamma_api.GetRootAsConfig(buffer, 0)
 	conf.Path = string(conf.config.Path())
 	conf.LogDir = string(conf.config.LogDir())
+	conf.SpaceName = string(conf.config.SpaceName())
 	conf.CacheInfos = make([]*CacheInfo, conf.config.CacheInfosLength())
 	for i := 0; i < len(conf.CacheInfos); i++ {
 		var cache gamma_api.CacheInfo
