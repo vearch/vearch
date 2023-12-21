@@ -150,8 +150,9 @@ void VectorManager::DestroyRawVectors() {
 int VectorManager::CreateVectorIndex(std::string &retrieval_type, std::string &retrieval_param,
                                       RawVector *vec, int indexing_size,
                                       std::map<std::string, RetrievalModel *> &vector_indexes) {
-  LOG(INFO) << "Create index model [" << retrieval_type << "]";
-  std::string &vec_name = vec->MetaInfo()->Name();
+  std::string vec_name = vec->MetaInfo()->Name();
+  LOG(INFO) << "Create index model [" << retrieval_type << "] for vector: " << vec_name;
+
   RetrievalModel *retrieval_model = dynamic_cast<RetrievalModel *>(
       reflector().GetNewModel(retrieval_type));
   if (retrieval_model == nullptr) {
