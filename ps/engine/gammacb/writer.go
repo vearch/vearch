@@ -124,7 +124,6 @@ func (wi *writerImpl) Commit(ctx context.Context, snx int64) (chan error, error)
 	flushC := make(chan error, 1)
 
 	go func(fc chan error, sn int64) {
-
 		wi.engine.lock.Lock()
 		if wi.running {
 			log.Info("commit is running , so skip this request")

@@ -22,7 +22,7 @@ import (
 	"github.com/vearch/vearch/util/log"
 )
 
-//log err if not nil
+// log err if not nil
 func CloseIfNotNil(c io.Closer) {
 	err := c.Close()
 
@@ -37,7 +37,7 @@ func CloseIfNotNil(c io.Closer) {
 	log.Error(err.Error())
 }
 
-//log err if not nil
+// log err if not nil
 func FunIfNotNil(f func() error) {
 	err := f()
 
@@ -45,14 +45,10 @@ func FunIfNotNil(f func() error) {
 		return
 	}
 
-	if log.IsDebugEnabled() {
-		fmt.Println(string(debug.Stack()))
-	}
-
 	log.Error(err.Error())
 }
 
-//log err if not nil
+// log err if not nil
 func LogErrAndReturn(err error) error {
 	if err == nil {
 		return err

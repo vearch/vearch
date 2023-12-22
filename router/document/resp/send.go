@@ -18,17 +18,11 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"runtime/debug"
 
-	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/util/netutil"
 )
 
 func SendError(ctx context.Context, w http.ResponseWriter, httpStatus int, errorMsg string) {
-	if log.IsDebugEnabled() {
-		fmt.Println(string(debug.Stack()))
-	}
-
 	netutil.NewResponse(w).SetHttpStatus(httpStatus).SendJson(NewBody(errorMsg, httpStatus))
 }
 
@@ -38,9 +32,6 @@ func SendErrorMethodNotAllowed(ctx context.Context, w http.ResponseWriter, url s
 }
 
 func SendErrorRootCause(ctx context.Context, w http.ResponseWriter, httpStatus int, errorType string, errorReason string) {
-	if log.IsDebugEnabled() {
-		fmt.Println(string(debug.Stack()))
-	}
 	netutil.NewResponse(w).SetHttpStatus(httpStatus).SendJson(NewBodyRootCause(errorType, errorReason, httpStatus))
 }
 

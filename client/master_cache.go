@@ -55,7 +55,6 @@ type clientCache struct {
 }
 
 func newClientCache(serverCtx context.Context, masterClient *masterClient) (*clientCache, error) {
-
 	ctx, cancel := context.WithCancel(serverCtx)
 
 	cc := &clientCache{
@@ -204,20 +203,21 @@ func (cliCache *clientCache) reloadSpaceCache(ctx context.Context, sync bool, db
 	if sync {
 		return fun()
 	}
-	if _, ok := spaceReloadWorkder.LoadOrStore(key, struct{}{}); !ok {
-		go func() {
-			defer func() {
-				if r := recover(); r != nil {
-					vearchlog.LogErrNotNil(fmt.Errorf(cast.ToString(r)))
-				}
-			}()
-			if key == "" {
-				return
-			}
-			defer spaceReloadWorkder.Delete(key)
-			vearchlog.FunIfNotNil(fun)
-		}()
+	if _, ok := spaceReloadWorkder.LoadOrStore(key, struct{}{}); ok {
+		return nil
 	}
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				vearchlog.LogErrNotNil(fmt.Errorf(cast.ToString(r)))
+			}
+		}()
+		if key == "" {
+			return
+		}
+		defer spaceReloadWorkder.Delete(key)
+		vearchlog.FunIfNotNil(fun)
+	}()
 	return nil
 }
 
@@ -246,12 +246,12 @@ func (cliCache *clientCache) reloadPartitionCache(ctx context.Context, sync bool
 	key := cachePartitionKey(spaceName, pid)
 
 	fun := func() error {
-
 		log.Info("to reload space:[%s] partition_id:[%d] ", spaceName, pid)
 
-		ctx, _ = context.WithTimeout(ctx, 10*time.Second)
+		c, cancel := context.WithTimeout(ctx, 10*time.Second)
+		defer cancel()
 
-		partition, err := cliCache.mc.QueryPartition(ctx, pid)
+		partition, err := cliCache.mc.QueryPartition(c, pid)
 		if err != nil {
 			return fmt.Errorf("can not found db by space:[%s] partition_id:[%d] err:[%s]", spaceName, pid, err.Error())
 		}
@@ -300,11 +300,12 @@ func (cliCache *clientCache) reloadServerCache(ctx context.Context, sync bool, i
 	key := cast.ToString(id)
 
 	fun := func() error {
-
 		log.Info("to reload server:[%d] ", id)
 
-		ctx, _ = context.WithTimeout(ctx, 10*time.Second)
-		server, err := cliCache.mc.QueryServer(ctx, id)
+		c, cancel := context.WithTimeout(ctx, 10*time.Second)
+		defer cancel()
+
+		server, err := cliCache.mc.QueryServer(c, id)
 		if err != nil {
 			return fmt.Errorf("can not found server node_id:[%d] err:[%s]", id, err.Error())
 		}
