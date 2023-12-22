@@ -5,6 +5,8 @@ export GOROOT=/env/app/go
 export PATH=$PATH:$GOROOT/bin
 export ROCKSDB_HOME=/env/app/rocksdb_install
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ROCKSDB_HOME/lib
+
+source /opt/rh/devtoolset-10/enable
 # to compile
 cd /vearch/build
 mkdir -p /env/app/go/src/github.com/vearch
