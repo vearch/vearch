@@ -148,7 +148,7 @@ void VectorManager::DestroyRawVectors() {
 }
 
 int VectorManager::CreateVectorIndex(std::string &retrieval_type, std::string &retrieval_param,
-                                      RawVector *vec, int indexing_size,
+                                      RawVector *vec, int indexing_size, bool destroy_vec,
                                       std::map<std::string, RetrievalModel *> &vector_indexes) {
   std::string vec_name = vec->MetaInfo()->Name();
   LOG(INFO) << "Create index model [" << retrieval_type << "] for vector: " << vec_name;
@@ -158,14 +158,16 @@ int VectorManager::CreateVectorIndex(std::string &retrieval_type, std::string &r
   if (retrieval_model == nullptr) {
     LOG(ERROR) << "Cannot get model=" << retrieval_type
                 << ", vec_name=" << vec_name;
-    RawVectorIO *rio = vec->GetIO();
-    if (rio) {
-      delete rio;
-      rio = nullptr;
-      vec->SetIO(rio);
+    if (destroy_vec) {
+      RawVectorIO *rio = vec->GetIO();
+      if (rio) {
+        delete rio;
+        rio = nullptr;
+        vec->SetIO(rio);
+      }
+      delete vec;
+      raw_vectors_[vec_name] = nullptr;
     }
-    delete vec;
-    raw_vectors_[vec_name] = nullptr;
     return -1;
   }
   retrieval_model->vector_ = vec;
@@ -173,14 +175,16 @@ int VectorManager::CreateVectorIndex(std::string &retrieval_type, std::string &r
   if (retrieval_model->Init(retrieval_param, indexing_size) !=
       0) {
     LOG(ERROR) << "gamma index init " << vec_name << " error!";
-    RawVectorIO *rio = vec->GetIO();
-    if (rio) {
-      delete rio;
-      rio = nullptr;
-      vec->SetIO(rio);
+    if (destroy_vec) {
+      RawVectorIO *rio = vec->GetIO();
+      if (rio) {
+        delete rio;
+        rio = nullptr;
+        vec->SetIO(rio);
+      }
+      delete vec;
+      raw_vectors_[vec_name] = nullptr;
     }
-    delete vec;
-    raw_vectors_[vec_name] = nullptr;
     retrieval_model->vector_ = nullptr;
     delete retrieval_model;
     retrieval_model = nullptr;
@@ -212,7 +216,7 @@ int VectorManager::CreateVectorIndexes(int indexing_size, std::map<std::string, 
 
       for (size_t i = 0; i < retrieval_types_.size(); ++i) {
         ret = CreateVectorIndex(retrieval_types_[i], retrieval_params_[i],
-                                iter.second, indexing_size, vector_indexes);
+                                iter.second, indexing_size, false, vector_indexes);
         if (ret) {
           LOG(ERROR) << vec_name << " create index failed ret: " << ret;
           return ret;
@@ -292,7 +296,7 @@ int VectorManager::CreateVectorTable(TableInfo &table,
 
     for (size_t i = 0; i < retrieval_types_.size(); ++i) {
       ret = CreateVectorIndex(retrieval_types_[i], retrieval_params_[i],
-                              vec, table.IndexingSize(), vector_indexes_);
+                              vec, table.IndexingSize(), true, vector_indexes_);
       if (ret) {
         LOG(ERROR) << vec_name << " create index failed ret: " << ret;
         return ret;

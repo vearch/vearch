@@ -37,7 +37,7 @@ class VectorManager {
   void DestroyRawVectors();
 
   int CreateVectorIndex(std::string &retrieval_type, std::string &retrieval_param,
-                        RawVector *vec, int indexing_size,
+                        RawVector *vec, int indexing_size, bool destroy_vec,
                         std::map<std::string, RetrievalModel *> &vector_indexes);
 
   void DestroyVectorIndexes();
