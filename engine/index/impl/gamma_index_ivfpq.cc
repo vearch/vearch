@@ -947,8 +947,8 @@ void GammaIVFPQIndex::copy_subset_to(faiss::IndexIVF &other, int subset_type,
   // FAISS_ASSERT(accu_n == indexed_vec_count_);
 }
 
-string IVFPQToString(const faiss::IndexIVFPQ *ivpq,
-                     const faiss::VectorTransform *vt) {
+std::string IVFPQToString(const faiss::IndexIVFPQ *ivpq,
+                          const faiss::VectorTransform *vt) {
   std::stringstream ss;
   ss << "d=" << ivpq->d << ", ntotal=" << ivpq->ntotal
      << ", is_trained=" << ivpq->is_trained
@@ -979,13 +979,13 @@ int GammaIVFPQIndex::Dump(const std::string &dir) {
     return 0;
   }
   std::string index_name = vector_->MetaInfo()->AbsoluteName();
-  string index_dir = dir + "/" + index_name;
+  std::string index_dir = dir + "/" + index_name;
   if (utils::make_dir(index_dir.c_str())) {
     LOG(ERROR) << "mkdir error, index dir=" << index_dir;
     return IO_ERR;
   }
 
-  string index_file = index_dir + "/ivfpq.index";
+  std::string index_file = index_dir + "/ivfpq.index";
   faiss::IOWriter *f = new FileIOWriter(index_file.c_str());
   utils::ScopeDeleter1<FileIOWriter> del((FileIOWriter *)f);
   const IndexIVFPQ *ivpq = static_cast<const IndexIVFPQ *>(this);
@@ -1010,7 +1010,7 @@ int GammaIVFPQIndex::Dump(const std::string &dir) {
 
 int GammaIVFPQIndex::Load(const std::string &index_dir) {
   std::string index_name = vector_->MetaInfo()->AbsoluteName();
-  string index_file = index_dir + "/" + index_name + "/ivfpq.index";
+  std::string index_file = index_dir + "/" + index_name + "/ivfpq.index";
   if (!utils::file_exist(index_file)) {
     LOG(INFO) << index_file << " isn't existed, skip loading";
     return 0;  // it should train again after load

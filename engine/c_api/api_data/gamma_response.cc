@@ -107,7 +107,8 @@ int Response::Serialize(const std::string &space_name,
           cJSON_AddStringToObject(vec_field_json,
                                   EXTRA_VECTOR_FIELD_NAME.c_str(),
                                   vec_field->name.c_str());
-          string source = string(vec_field->source, vec_field->source_len);
+          std::string source =
+              std::string(vec_field->source, vec_field->source_len);
           cJSON_AddStringToObject(vec_field_json,
                                   EXTRA_VECTOR_FIELD_SOURCE.c_str(),
                                   source.c_str());
@@ -237,8 +238,8 @@ int Response::PackResultItem(const VectorDoc *vec_doc,
   // add vector into result
   size_t fields_size = fields_name.size();
   if (fields_size != 0) {
-    std::vector<std::pair<string, int>> vec_fields_ids;
-    std::vector<string> table_fields;
+    std::vector<std::pair<std::string, int>> vec_fields_ids;
+    std::vector<std::string> table_fields;
 
     for (size_t i = 0; i < fields_size; ++i) {
       std::string &name = fields_name[i];
@@ -249,14 +250,14 @@ int Response::PackResultItem(const VectorDoc *vec_doc,
       }
     }
 
-    std::vector<string> vec;
+    std::vector<std::string> vec;
     int ret = vector_mgr->GetVector(vec_fields_ids, vec, true);
 
     table->GetDocInfo(docid, doc, table_fields);
 
     if (ret == 0 && vec.size() == vec_fields_ids.size()) {
       for (size_t i = 0; i < vec_fields_ids.size(); ++i) {
-        const string &field_name = vec_fields_ids[i].first;
+        const std::string &field_name = vec_fields_ids[i].first;
         result_item.names.emplace_back(std::move(field_name));
         result_item.values.emplace_back(vec[i]);
       }
@@ -266,7 +267,7 @@ int Response::PackResultItem(const VectorDoc *vec_doc,
       ;
     }
   } else {
-    std::vector<string> table_fields;
+    std::vector<std::string> table_fields;
     table->GetDocInfo(docid, doc, table_fields);
   }
 
@@ -287,7 +288,7 @@ int Response::PackResultItem(const VectorDoc *vec_doc,
 
     cJSON_AddStringToObject(vec_field_json, EXTRA_VECTOR_FIELD_NAME.c_str(),
                             vec_field->name.c_str());
-    string source = string(vec_field->source, vec_field->source_len);
+    std::string source = std::string(vec_field->source, vec_field->source_len);
     cJSON_AddStringToObject(vec_field_json, EXTRA_VECTOR_FIELD_SOURCE.c_str(),
                             source.c_str());
     cJSON_AddNumberToObject(vec_field_json, EXTRA_VECTOR_FIELD_SCORE.c_str(),

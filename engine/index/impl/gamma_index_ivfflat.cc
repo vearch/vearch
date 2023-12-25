@@ -29,9 +29,9 @@
 #include <cstdlib>
 #include <memory>
 
+#include "common/error_code.h"
 #include "common/gamma_common_data.h"
 #include "index/gamma_index_io.h"
-#include "common/error_code.h"
 #include "vector/rocksdb_raw_vector.h"
 
 namespace tig_gamma {
@@ -42,8 +42,8 @@ struct IVFFlatModelParams {
   int ncentroids;  // coarse cluster center number
   int nprobe;      // search how many bucket
   DistanceComputeType metric_type;
-  int bucket_init_size; // original size of RTInvertIndex bucket
-  int bucket_max_size; // max size of RTInvertIndex bucket
+  int bucket_init_size;  // original size of RTInvertIndex bucket
+  int bucket_max_size;   // max size of RTInvertIndex bucket
 
   IVFFlatModelParams() {
     ncentroids = 2048;
@@ -633,7 +633,7 @@ void GammaIndexIVFFlat::search_preassigned(RetrievalContext *retrieval_context,
   }
 }
 
-string IVFFlatToString(const faiss::IndexIVFFlat *ivfl) {
+std::string IVFFlatToString(const faiss::IndexIVFFlat *ivfl) {
   std::stringstream ss;
   ss << "d=" << ivfl->d << ", ntotal=" << ivfl->ntotal
      << ", is_trained=" << ivfl->is_trained
@@ -649,13 +649,13 @@ int GammaIndexIVFFlat::Dump(const std::string &dir) {
     return 0;
   }
   std::string index_name = vector_->MetaInfo()->AbsoluteName();
-  string index_dir = dir + "/" + index_name;
+  std::string index_dir = dir + "/" + index_name;
   if (utils::make_dir(index_dir.c_str())) {
     LOG(ERROR) << "mkdir error, index dir=" << index_dir;
     return IO_ERR;
   }
 
-  string index_file = index_dir + "/ivfflat.index";
+  std::string index_file = index_dir + "/ivfflat.index";
   faiss::IOWriter *f = new FileIOWriter(index_file.c_str());
   utils::ScopeDeleter1<FileIOWriter> del((FileIOWriter *)f);
   const IndexIVFFlat *ivfl = static_cast<const IndexIVFFlat *>(this);
@@ -677,7 +677,7 @@ int GammaIndexIVFFlat::Dump(const std::string &dir) {
 
 int GammaIndexIVFFlat::Load(const std::string &dir) {
   std::string index_name = vector_->MetaInfo()->AbsoluteName();
-  string index_file = dir + "/" + index_name + "/ivfflat.index";
+  std::string index_file = dir + "/" + index_name + "/ivfflat.index";
   if (!utils::file_exist(index_file)) {
     LOG(INFO) << index_file << " isn't existed, skip loading";
     return 0;  // it should train again after load

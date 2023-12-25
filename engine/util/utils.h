@@ -199,6 +199,4 @@ struct ScopeDeleter1 {
   ~ScopeDeleter1() { delete ptr; }
 };
 
-int64_t StringToInt64(const std::string &src);
-
 }  // namespace utils

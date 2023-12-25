@@ -113,9 +113,8 @@ int MemoryRawVector::GetVector(long vid, const uint8_t *&vec,
 }
 
 uint8_t *MemoryRawVector::GetFromMem(long vid) const {
-  uint8_t *cmprs_v = segments_[vid / segment_size_] +
-                     (size_t)vid % segment_size_ * vector_byte_size_;
-  return cmprs_v;
+  return segments_[vid / segment_size_] +
+         (size_t)vid % segment_size_ * vector_byte_size_;
 }
 
 }  // namespace tig_gamma

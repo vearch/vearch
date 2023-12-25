@@ -191,7 +191,6 @@ int StoreParams::Parse(utils::JsonParser &jp) {
 int StoreParams::MergeRight(StoreParams &other) {
   cache_size = other.cache_size;
   segment_size = other.segment_size;
-  // compress.MergeRight(other.compress);
   return 0;
 }
 

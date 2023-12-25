@@ -190,9 +190,9 @@ int RocksDBRawVector::GetVectorHeader(int start, int n, ScopeVectors &vecs,
     memcpy(dst, vstr.c_str(), vector_byte_size_);
 
 #ifdef DEBUG
-    string expect_key;
+    std::string expect_key;
     ToRowKey(c + start, expect_key);
-    string key = it->key().ToString();
+    std::string key = it->key().ToString();
     if (key != expect_key) {
       LOG(ERROR) << "vid=" << c + start << ", invalid key=" << key
                  << ", expect=" << expect_key;

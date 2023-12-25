@@ -14,7 +14,6 @@
 #include "table/field_range_index.h"
 #include "table/table.h"
 #include "util/log.h"
-#include "util/online_logger.h"
 #include "util/utils.h"
 #include "vector/raw_vector.h"
 

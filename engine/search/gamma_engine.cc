@@ -312,12 +312,6 @@ int GammaEngine::Search(Request &request, Response &response_results) {
     return -1;
   }
 
-  // TODO: it may be opened later
-  // utils::OnlineLogger logger;
-  // if (0 != logger.Init(online_log_level)) {
-  //   LOG(WARNING) << "init online logger error!";
-  // }
-
   int topn = request.TopN();
   bool brute_force_search = request.BruteForceSearch();
   std::vector<struct VectorQuery> &vec_fields = request.VecFields();
@@ -550,9 +544,8 @@ int GammaEngine::CreateTable(TableInfo &table) {
     dump_meta_.PutObject("table", std::move(table_jp));
 
     utils::JsonParser vectors_jp;
-    for (auto &it : vec_manager_->RawVectors()) {
-      DumpConfig *dc = it.second->GetDumpConfig();
-      if (dc) {
+    for (auto &[key, raw_vector_ptr] : vec_manager_->RawVectors()) {
+      if (DumpConfig *dc = raw_vector_ptr->GetDumpConfig()) {
         utils::JsonParser jp;
         dc->ToJson(jp);
         vectors_jp.PutObject(dc->name, std::move(jp));
@@ -565,8 +558,8 @@ int GammaEngine::CreateTable(TableInfo &table) {
     string meta_str = dump_meta_.ToStr(true);
     fio.Write(meta_str.c_str(), 1, meta_str.size());
   }
-  for (auto &it : vec_manager_->RawVectors()) {
-    RawVectorIO *rio = it.second->GetIO();
+  for (auto &[key, raw_vector_ptr] : vec_manager_->RawVectors()) {
+    RawVectorIO *rio = raw_vector_ptr->GetIO();
     if (rio == nullptr) continue;
     AsyncFlusher *flusher = dynamic_cast<AsyncFlusher *>(rio);
     if (flusher) {
@@ -859,7 +852,8 @@ int GammaEngine::BuildIndex() {
   return 0;
 }
 
-// TODO set limit for cpu and should to avoid using vector indexes on the same time
+// TODO set limit for cpu and should to avoid using vector indexes on the same
+// time
 int GammaEngine::RebuildIndex(int drop_before_rebuild, int limit_cpu) {
   int ret = 0;
   std::map<std::string, RetrievalModel *> vector_indexes;
@@ -884,7 +878,8 @@ int GammaEngine::RebuildIndex(int drop_before_rebuild, int limit_cpu) {
   vec_manager_->DestroyVectorIndexes();
 
   if (drop_before_rebuild) {
-    ret = vec_manager_->CreateVectorIndexes(indexing_size_, vec_manager_->VectorIndexes());
+    ret = vec_manager_->CreateVectorIndexes(indexing_size_,
+                                            vec_manager_->VectorIndexes());
     if (ret) {
       LOG(ERROR) << "RebuildIndex CreateVectorIndexes failed, ret: " << ret;
       vec_manager_->DestroyVectorIndexes();

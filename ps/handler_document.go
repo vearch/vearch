@@ -104,7 +104,9 @@ func (handler *UnaryHandler) Execute(ctx context.Context, req *vearchpb.Partitio
 		reply.Err = vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, errors.New(msg)).GetError()
 		return
 	}
-	defer cost("UnaryHandler: "+method, time.Now())
+	if config.LogInfoPrintSwitch {
+		defer cost("UnaryHandler: "+method, time.Now())
+	}
 	if spanCtx, err := opentracing.GlobalTracer().Extract(opentracing.TextMap, opentracing.TextMapCarrier(reqMap)); err == nil {
 		span := opentracing.StartSpan("server-execute", ext.RPCServerOption(spanCtx))
 		defer span.Finish()

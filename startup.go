@@ -115,9 +115,11 @@ func main() {
 				default:
 				}
 
-				var mem runtime.MemStats
-				runtime.ReadMemStats(&mem)
-				log.Debug(fmt.Sprint("mem.Alloc:", mem.Alloc, " mem.TotalAlloc:", mem.TotalAlloc, " mem.HeapAlloc:", mem.HeapAlloc, " mem.HeapSys:", mem.HeapSys, " routing :", runtime.NumGoroutine()))
+				if config.LogInfoPrintSwitch {
+					var mem runtime.MemStats
+					runtime.ReadMemStats(&mem)
+					log.Debug(fmt.Sprint("mem.Alloc:", mem.Alloc, " mem.TotalAlloc:", mem.TotalAlloc, " mem.HeapAlloc:", mem.HeapAlloc, " mem.HeapSys:", mem.HeapSys, " routing :", runtime.NumGoroutine()))
+				}
 				time.Sleep(10 * time.Second)
 			}
 		}()
