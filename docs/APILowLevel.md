@@ -50,7 +50,6 @@ index_size: For IVFPQ, it need train before building index, so you should set in
 How to use hnsw and opq in combination is controlled by retrieval_param. If you both set hnsw and opq, then you will use opq+ivf+hnsw+pq, an it is recommended to set the nsubvector of opq to be the same as the nsubvector of pq. If you just want to use ivf+hnsw+pq, then you just need to set hnsw. If you just want to use ivfpq, you don’t need to set hnsw or opq in retrieval_param. You can set hnsw or opq like this:
 ```
 "index_size": 2600000,
-"id_type": "string",
 "retrieval_type": "IVFPQ",
 "retrieval_param": {
     "metric_type": "InnerProduct",
@@ -74,7 +73,6 @@ curl -v --user "root:secret" -H "content-type: application/json" -XPUT -d'
   "replica_num": 1,
   "engine": {
     "index_size": 100000,
-    "id_type": "string",
     "retrieval_type": "IVFPQ",
     "retrieval_param": {
       "metric_type": "InnerProduct",
@@ -442,8 +440,6 @@ curl -H "content-type: application/json" -XPOST -d'
 * replica_num: how many replica has, recommend `3`
 
 * engine
-
-* id_type : the type of Primary key, default String, you can set it as `long` or `string`
 
 * index_size : default 2, if insert document num >= index_size, it will start to build index automatically. For different retrieval model, it have different index size.  For HNSW and FLAT, it doesn't need to train before building index, greater than 0 is enough. For IVFPQ, GPU and BINARYIVF, it need train before building index, so you should set index_size larger, such as 100000.
 

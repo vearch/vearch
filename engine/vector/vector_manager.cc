@@ -141,13 +141,13 @@ int VectorManager::CreateRawVector(struct VectorInfo &vector_info,
 }
 
 void VectorManager::DestroyRawVectors() {
-  for (const auto &iter : raw_vectors_) {
-    if (iter.second != nullptr) {
-      RawVectorIO *rio = iter.second->GetIO();
+  for (const auto &[name, vec] : raw_vectors_) {
+    if (vec != nullptr) {
+      RawVectorIO *rio = vec->GetIO();
       if (rio) {
         delete rio;
       }
-      delete iter.second;
+      delete vec;
     }
   }
   raw_vectors_.clear();
@@ -206,9 +206,9 @@ int VectorManager::CreateVectorIndex(
 }
 
 void VectorManager::DestroyVectorIndexes() {
-  for (const auto &iter : vector_indexes_) {
-    if (iter.second != nullptr) {
-      delete iter.second;
+  for (const auto &[name, index] : vector_indexes_) {
+    if (index != nullptr) {
+      delete index;
     }
   }
   vector_indexes_.clear();
@@ -219,14 +219,13 @@ int VectorManager::CreateVectorIndexes(
     int indexing_size,
     std::map<std::string, RetrievalModel *> &vector_indexes) {
   int i = 0, ret = 0;
-  for (const auto &iter : raw_vectors_) {
-    if (iter.second != nullptr) {
-      std::string &vec_name = iter.second->MetaInfo()->Name();
+  for (const auto &[name, index] : raw_vectors_) {
+    if (index != nullptr) {
+      std::string &vec_name = index->MetaInfo()->Name();
 
       for (size_t i = 0; i < retrieval_types_.size(); ++i) {
         ret = CreateVectorIndex(retrieval_types_[i], retrieval_params_[i],
-                                iter.second, indexing_size, false,
-                                vector_indexes);
+                                index, indexing_size, false, vector_indexes);
         if (ret) {
           LOG(ERROR) << vec_name << " create index failed ret: " << ret;
           return ret;
@@ -240,10 +239,10 @@ int VectorManager::CreateVectorIndexes(
 
 void VectorManager::SetVectorIndexes(
     std::map<std::string, RetrievalModel *> &rebuild_vector_indexes) {
-  for (const auto &iter : rebuild_vector_indexes) {
-    if (iter.second != nullptr) {
-      vector_indexes_[iter.first] = iter.second;
-      LOG(INFO) << "Set " << iter.first << " index";
+  for (const auto &[name, index] : rebuild_vector_indexes) {
+    if (index != nullptr) {
+      vector_indexes_[name] = index;
+      LOG(INFO) << "Set " << name << " index";
     }
   }
 }
@@ -372,13 +371,12 @@ int VectorManager::Update(int docid, std::vector<Field> &fields) {
 }
 
 int VectorManager::Delete(int docid) {
-  for (const auto &iter : vector_indexes_) {
+  for (const auto &[name, index] : vector_indexes_) {
     std::vector<int64_t> vids;
-    RawVector *vector = dynamic_cast<RawVector *>(iter.second->vector_);
+    RawVector *vector = dynamic_cast<RawVector *>(index->vector_);
     vector->VidMgr()->DocID2VID(docid, vids);
-    if (0 != iter.second->Delete(vids)) {
-      LOG(ERROR) << "delete index from" << iter.first
-                 << " failed! docid=" << docid;
+    if (0 != index->Delete(vids)) {
+      LOG(ERROR) << "delete index from " << name << " failed! docid=" << docid;
       return -1;
     }
   }
@@ -388,10 +386,10 @@ int VectorManager::Delete(int docid) {
 int VectorManager::TrainIndex(
     std::map<std::string, RetrievalModel *> &vector_indexes) {
   int ret = 0;
-  for (const auto &iter : vector_indexes) {
-    if (0 != iter.second->Indexing()) {
+  for (const auto &[name, index] : vector_indexes) {
+    if (index->Indexing() != 0) {
       ret = -1;
-      LOG(ERROR) << "vector table " << iter.first << " indexing failed!";
+      LOG(ERROR) << "vector table " << name << " indexing failed!";
     }
   }
   return ret;
@@ -400,8 +398,7 @@ int VectorManager::TrainIndex(
 int VectorManager::AddRTVecsToIndex(bool &index_is_dirty) {
   int ret = 0;
   index_is_dirty = false;
-  for (const auto &iter : vector_indexes_) {
-    RetrievalModel *retrieval_model = iter.second;
+  for (const auto &[name, retrieval_model] : vector_indexes_) {
     RawVector *raw_vec = dynamic_cast<RawVector *>(retrieval_model->vector_);
     int total_stored_vecs = raw_vec->MetaInfo()->Size();
     int indexed_vec_count = retrieval_model->indexed_count_;
@@ -851,29 +848,26 @@ void VectorManager::GetTotalMemBytes(long &index_total_mem_bytes,
 
 int VectorManager::Dump(const std::string &path, int dump_docid,
                         int max_docid) {
-  for (const auto &iter : vector_indexes_) {
-    const std::string &vec_name = iter.first;
-    RetrievalModel *index = iter.second;
+  for (const auto &[name, index] : vector_indexes_) {
     int ret = index->Dump(path);
     if (ret != 0) {
-      LOG(ERROR) << "vector " << vec_name << " dump gamma index failed!";
+      LOG(ERROR) << "vector " << name << " dump gamma index failed!";
       return -1;
     }
-    LOG(INFO) << "vector " << vec_name << " dump gamma index success!";
+    LOG(INFO) << "vector " << name << " dump gamma index success!";
   }
 
-  for (const auto &iter : raw_vectors_) {
-    const std::string &vec_name = iter.first;
-    RawVector *raw_vector = dynamic_cast<RawVector *>(iter.second);
+  for (const auto &[name, vec] : raw_vectors_) {
+    RawVector *raw_vector = dynamic_cast<RawVector *>(vec);
     if (raw_vector->GetIO()) {
       int start = raw_vector->VidMgr()->GetFirstVID(dump_docid);
       int end = raw_vector->VidMgr()->GetLastVID(max_docid);
       int ret = raw_vector->GetIO()->Dump(start, end + 1);
       if (ret != 0) {
-        LOG(ERROR) << "vector " << vec_name << " dump failed!";
+        LOG(ERROR) << "vector " << name << " dump failed!";
         return -1;
       }
-      LOG(INFO) << "vector " << vec_name << " dump success!";
+      LOG(INFO) << "vector " << name << " dump success!";
     }
   }
 
@@ -883,31 +877,31 @@ int VectorManager::Dump(const std::string &path, int dump_docid,
 int VectorManager::Load(const std::vector<std::string> &index_dirs,
                         int &doc_num) {
   int min_vec_num = doc_num;
-  for (const auto &iter : raw_vectors_) {
-    if (iter.second->GetIO()) {
+  for (const auto &[name, vec] : raw_vectors_) {
+    if (vec->GetIO()) {
       int vector_num = min_vec_num;
-      iter.second->GetIO()->GetDiskVecNum(vector_num);
+      vec->GetIO()->GetDiskVecNum(vector_num);
       if (vector_num < min_vec_num) min_vec_num = vector_num;
     }
   }
 
-  for (const auto &iter : raw_vectors_) {
-    if (iter.second->GetIO()) {
+  for (const auto &[name, vec] : raw_vectors_) {
+    if (vec->GetIO()) {
       // TODO: doc num to vector num
       int vec_num = min_vec_num;
-      if (0 != iter.second->GetIO()->Load(vec_num)) {
-        LOG(ERROR) << "vector [" << iter.first << "] load failed!";
+      if (0 != vec->GetIO()->Load(vec_num)) {
+        LOG(ERROR) << "vector [" << name << "] load failed!";
         return -1;
       }
-      LOG(INFO) << "vector [" << iter.first << "] load success!";
+      LOG(INFO) << "vector [" << name << "] load success!";
     }
   }
 
   if (index_dirs.size() > 0) {
-    for (const auto &iter : vector_indexes_) {
-      int load_num = iter.second->Load(index_dirs[0]);
+    for (const auto &[name, index] : vector_indexes_) {
+      int load_num = index->Load(index_dirs[0]);
       if (load_num < 0) {
-        LOG(ERROR) << "vector [" << iter.first << "] load gamma index "
+        LOG(ERROR) << "vector [" << name << "] load gamma index "
                    << index_dirs[0] << " failed, load_num: " << load_num;
         return -1;
       } else {
@@ -916,8 +910,8 @@ int VectorManager::Load(const std::vector<std::string> &index_dirs,
                      << " > raw_vec_num=" << min_vec_num;
           return -1;
         }
-        iter.second->indexed_count_ = load_num;
-        LOG(INFO) << "vector [" << iter.first
+        index->indexed_count_ = load_num;
+        LOG(INFO) << "vector [" << name
                   << "] load gamma index success and load_num=" << load_num;
       }
     }
@@ -941,10 +935,9 @@ void VectorManager::Close() {
 
 int VectorManager::MinIndexedNum() {
   int min = 0;
-  for (const auto &iter : vector_indexes_) {
-    if (iter.second != nullptr &&
-        (iter.second->indexed_count_ < min || min == 0)) {
-      min = iter.second->indexed_count_;
+  for (const auto &[name, index] : vector_indexes_) {
+    if (index != nullptr && (index->indexed_count_ < min || min == 0)) {
+      min = index->indexed_count_;
     }
   }
   return min;

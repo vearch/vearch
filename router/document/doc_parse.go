@@ -55,7 +55,7 @@ const (
 	MetaField       = "_meta"
 
 	maxStrLen        = 65535
-	maxIndexedStrLen = 255
+	maxIndexedStrLen = 1024
 )
 
 // fields index map
