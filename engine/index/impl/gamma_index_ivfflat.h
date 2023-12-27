@@ -147,6 +147,8 @@ struct GammaIndexIVFFlat : faiss::IndexIVFFlat, public RetrievalModel {
 
   void train(int64_t n, const float *x) { faiss::IndexIVFFlat::train(n, x); }
 
+  void Describe();
+
  private:
   GammaInvertedListScanner *GetGammaInvertedListScanner(
       bool store_pairs, faiss::MetricType metric_type) const;

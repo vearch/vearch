@@ -215,6 +215,15 @@ void VectorManager::DestroyVectorIndexes() {
   LOG(INFO) << "Vector indexes cleared.";
 }
 
+void VectorManager::DescribeVectorIndexes() {
+  LOG(INFO) << " show vector indexes detail informations";
+  for (const auto &[name, index] : vector_indexes_) {
+    if (index != nullptr) {
+      index->Describe();
+    }
+  }
+}
+
 int VectorManager::CreateVectorIndexes(
     int indexing_size,
     std::map<std::string, RetrievalModel *> &vector_indexes) {

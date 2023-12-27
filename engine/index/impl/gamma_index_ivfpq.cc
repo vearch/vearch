@@ -511,11 +511,15 @@ bool GammaIVFPQIndex::Add(int n, const uint8_t *vec) {
     double t1 = faiss::getmillisecs();
     LOG(INFO) << "Add time [" << (t1 - t0) / n << "]ms, count "
               << indexed_vec_count_;
-    // rt_invert_index_ptr_->PrintBucketSize();
     add_count_ = 0;
   }
 #endif
   return true;
+}
+
+void GammaIVFPQIndex::Describe() {
+  if (rt_invert_index_ptr_)
+    rt_invert_index_ptr_->PrintBucketSize();
 }
 
 int GammaIVFPQIndex::Search(RetrievalContext *retrieval_context, int n,

@@ -1386,6 +1386,7 @@ func (handler *DocumentHandler) handleIndexRebuild(ctx context.Context, w http.R
 		args.DropBeforeRebuild = 0
 	}
 	args.LimitCpu = int64(indexRequest.LimitCPU)
+	args.Describe = int64(indexRequest.Describe)
 
 	space, err := handler.docService.getSpace(ctx, args.Head.DbName, args.Head.SpaceName)
 	if space == nil {

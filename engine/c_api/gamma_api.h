@@ -135,7 +135,7 @@ int BuildIndex(void *engine);
 /** @param engine  search engine pointer
  * @return 0 successed, 1 failed
  */
-int RebuildIndex(void *engine, int drop_before_rebuild, int limit_cpu);
+int RebuildIndex(void *engine, int drop_before_rebuild, int limit_cpu, int describe);
 
 /** dump datas into disk accord to Config
  *

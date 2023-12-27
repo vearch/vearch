@@ -937,6 +937,8 @@ struct GammaIVFPQIndex : GammaFLATIndex, faiss::IndexIVFPQ {
 
   void train(int64_t n, const float *x) { faiss::IndexIVFPQ::train(n, x); }
 
+  void Describe();
+
   int indexed_vec_count_;
   realtime::RTInvertIndex *rt_invert_index_ptr_;
   bool compaction_;

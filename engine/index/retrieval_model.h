@@ -302,6 +302,8 @@ class RetrievalModel {
 
   virtual void train(int64_t n, const float *x) {}
 
+  virtual void Describe() {}
+
   VectorReader *vector_;
   tbb::concurrent_bounded_queue<int> updated_vids_;
   // warining: indexed_count_ is only used by framework, sub-class cann't use it

@@ -94,6 +94,7 @@ message IndexRequest {
   RequestHead head = 1;
   int64 drop_before_rebuild = 2;
   int64 limit_cpu = 3;
+  int64 describe = 4;
 }
 
 //*********************** doc result *********************** //

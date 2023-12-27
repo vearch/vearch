@@ -151,7 +151,7 @@ int StorageManager::Get(int id, const uint8_t *&v) {
   rocksdb::Status s =
       db_->Get(rocksdb::ReadOptions(), rocksdb::Slice(key), &value);
   if (!s.ok()) {
-    LOG(DEBUG) << "rocksdb get error:" << s.ToString() << ", key=" << key;
+    LOG(DEBUG) << "rocksdb get error:" << s.ToString() << " key=" << key;
     return IO_ERR;
   }
 

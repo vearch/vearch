@@ -216,8 +216,8 @@ int BuildIndex(void *engine) {
   return ret;
 }
 
-int RebuildIndex(void *engine, int drop_before_rebuild, int limit_cpu) {
-  int ret = static_cast<tig_gamma::GammaEngine *>(engine)->RebuildIndex(drop_before_rebuild, limit_cpu);
+int RebuildIndex(void *engine, int drop_before_rebuild, int limit_cpu, int describe) {
+  int ret = static_cast<tig_gamma::GammaEngine *>(engine)->RebuildIndex(drop_before_rebuild, limit_cpu, describe);
   return ret;
 }
 

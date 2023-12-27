@@ -65,7 +65,7 @@ class GammaEngine {
    */
   int BuildIndex();
 
-  int RebuildIndex(int drop_before_rebuild, int limit_cpu);
+  int RebuildIndex(int drop_before_rebuild, int limit_cpu, int describe);
 
   void GetIndexStatus(EngineStatus &engine_status);
   void GetMemoryInfo(MemoryInfo &memory_info);

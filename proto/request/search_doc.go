@@ -39,6 +39,7 @@ type IndexRequest struct {
 	SpaceName         string `json:"space_name,omitempty"`
 	DropBeforeRebuild bool   `json:"drop_before_rebuild,omitempty"`
 	LimitCPU          int    `json:"limit_cpu,omitempty"`
+	Describe          int    `json:"describe,omitempty"`
 }
 
 type SearchDocumentRequest struct {

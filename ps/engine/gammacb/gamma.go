@@ -176,10 +176,10 @@ func (ge *gammaEngine) Optimize() error {
 	return nil
 }
 
-func (ge *gammaEngine) Rebuild(drop_before_rebuild int, limit_cpu int) error {
+func (ge *gammaEngine) Rebuild(drop_before_rebuild int, limit_cpu int, describe int) error {
 	go func() {
 		log.Info("RebuildIndex index:[%d] begin", ge.partitionID)
-		if e := ge.RebuildIndex(drop_before_rebuild, limit_cpu); e != nil {
+		if e := ge.RebuildIndex(drop_before_rebuild, limit_cpu, describe); e != nil {
 			log.Error("RebuildIndex index:[%d] has err %v", ge.partitionID, e.Error())
 			return
 		}
@@ -228,7 +228,7 @@ func (ge *gammaEngine) BuildIndex() error {
 	return nil
 }
 
-func (ge *gammaEngine) RebuildIndex(drop_before_rebuild int, limit_cpu int) error {
+func (ge *gammaEngine) RebuildIndex(drop_before_rebuild int, limit_cpu int, describe int) error {
 	indexLocker.Lock()
 	defer indexLocker.Unlock()
 	ge.counter.Incr()
@@ -241,7 +241,7 @@ func (ge *gammaEngine) RebuildIndex(drop_before_rebuild int, limit_cpu int) erro
 	// UNINDEXED = 0, INDEXING, INDEXED
 	go func() {
 		startTime := time.Now()
-		if rc := gamma.RebuildIndex(gammaEngine, drop_before_rebuild, limit_cpu); rc != 0 {
+		if rc := gamma.RebuildIndex(gammaEngine, drop_before_rebuild, limit_cpu, describe); rc != 0 {
 			log.Error("RebuildIndex:[%d] err response code:[%d]", ge.partitionID, rc)
 		} else {
 			endTime := time.Now()

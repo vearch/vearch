@@ -392,7 +392,7 @@ func forceMerge(ctx context.Context, store PartitionStore, error *vearchpb.Error
 }
 
 func rebuildIndex(ctx context.Context, store PartitionStore, error *vearchpb.Error, indexRequest *vearchpb.IndexRequest) {
-	err := store.GetEngine().Rebuild(int(indexRequest.DropBeforeRebuild), int(indexRequest.LimitCpu))
+	err := store.GetEngine().Rebuild(int(indexRequest.DropBeforeRebuild), int(indexRequest.LimitCpu), int(indexRequest.Describe))
 	if err != nil {
 		partitionID := store.GetPartition().Id
 		pIdStr := strconv.Itoa(int(partitionID))

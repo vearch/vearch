@@ -42,7 +42,9 @@ class VectorManager {
 
   void DestroyVectorIndexes();
 
-  int CreateVectorIndexes(int index_size, std::map<std::string, RetrievalModel *> &vector_indexes);
+  void DescribeVectorIndexes();
+
+  int CreateVectorIndexes(int indexing_size, std::map<std::string, RetrievalModel *> &vector_indexes);
 
   void SetVectorIndexes(std::map<std::string, RetrievalModel *> &rebuild_vector_indexes);
 
