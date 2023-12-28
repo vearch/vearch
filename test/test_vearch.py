@@ -518,6 +518,36 @@ class VearchCase():
                 logger.debug("documentUpsertWithId:" + response.text)
                 assert response.status_code == 200
 
+    def test_documentUpsertBulkWithId(self):
+        logger.info("test_documentUpsertBulkWithId")
+        url = "http://" + proxy + "/document/upsert"
+        headers = {"content-type": "application/json"}
+        
+        with open(fileData, "r") as dataLine1:
+            data_lines = dataLine1.readlines()
+
+            for i in range(0, len(data_lines), 100):
+                batch_data_lines = data_lines[i:i+100]
+                documents_batch = []
+
+                for dataLine in batch_data_lines:
+                    idStr = dataLine.split(',', 1)[0].replace('{', '')
+                    doc_id = eval(idStr.split(':')[1])
+                    data = "{" + dataLine.split(',', 1)[1]
+                    data_json = json.loads(data)
+                    data_json["_id"] = doc_id
+                    documents_batch.append(data_json)
+
+                upsert_data = {
+                    "documents": documents_batch,
+                    "db_name": db_name,
+                    "space_name": space_name
+                }
+
+                response = requests.post(url, headers=headers, data=json.dumps(upsert_data))
+                logger.debug("test_documentUpsertBulkWithId:" + response.text)
+                assert response.status_code == 200
+
     def test_documentQueryByDocumentIds(self):
         logger.info("documentQueryByDocumentIds")
         headers = {"content-type": "application/json"}
@@ -735,6 +765,8 @@ class VearchCase():
     def run_new_document_interface_test(self):
         self.test_documentUpsert()
         self.test_documentUpsertWithId()
+        self.test_documentUpsertBulkWithId()
+        self.test_getById()
         self.test_documentQueryByDocumentIds()
         self.test_documentQueryOnSpecifyPartiton()
         self.test_documentQueryByFilter()

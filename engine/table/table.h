@@ -76,9 +76,6 @@ class Table {
   int Add(const std::string &key, const std::vector<struct Field> &fields,
           int docid);
 
-  int BatchAdd(int start_id, int batch_size, int docid,
-               std::vector<Doc> &doc_vec, BatchResult &result);
-
   /** update a doc
    *
    * @param doc     doc to update

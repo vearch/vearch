@@ -646,86 +646,16 @@ int GammaEngine::AddOrUpdate(Doc &doc) {
 }
 
 int GammaEngine::AddOrUpdateDocs(Docs &docs, BatchResult &result) {
-#ifdef PERFORMANCE_TESTING
-  double start = utils::getmillisecs();
-#endif
   std::vector<Doc> &doc_vec = docs.GetDocs();
-  std::set<std::string> remove_dupliacte;
-  int batch_size = 0, start_id = 0;
 
-  auto batchAdd = [&](int start_id, int batch_size) {
-    if (batch_size <= 0) return;
-
-    int ret =
-        table_->BatchAdd(start_id, batch_size, max_docid_, doc_vec, result);
+  int i = 0;
+  for (Doc &doc : doc_vec) {
+    int ret = AddOrUpdate(doc);
     if (ret != 0) {
-      LOG(ERROR) << "BatchAdd to table error";
-      return;
-    }
-
-    for (int i = start_id; i < start_id + batch_size; ++i) {
-      Doc &doc = doc_vec[i];
-      std::vector<struct Field> &fields_table = doc.TableFields();
-      for (size_t j = 0; j < fields_table.size(); ++j) {
-        struct Field &field = fields_table[j];
-        int idx = table_->GetAttrIdx(field.name);
-        field_range_index_->Add(max_docid_ + i - start_id, idx);
-      }
-      // add vectors by VectorManager
-      std::vector<struct Field> &fields_vec = doc.VectorFields();
-      ret = vec_manager_->AddToStore(max_docid_ + i - start_id, fields_vec);
-      if (ret != 0) {
-        std::string msg = "Add to vector manager error";
-        result.SetResult(i, -1, msg);
-        LOG(ERROR) << msg;
-        continue;
-      }
-    }
-
-    max_docid_ += batch_size;
-    docids_bitmap_->SetMaxID(max_docid_);
-  };
-
-  for (size_t i = 0; i < doc_vec.size(); ++i) {
-    Doc &doc = doc_vec[i];
-    std::string &key = doc.Key();
-    auto ite = remove_dupliacte.find(key);
-    if (ite == remove_dupliacte.end()) remove_dupliacte.insert(key);
-    // add fields into table
-    int docid = -1;
-    table_->GetDocIDByKey(key, docid);
-    if (docid == -1 && ite == remove_dupliacte.end()) {
-      ++batch_size;
-      continue;
-    } else {
-      batchAdd(start_id, batch_size);
-      batch_size = 0;
-      start_id = i + 1;
-      std::vector<struct Field> &fields_table = doc.TableFields();
-      std::vector<struct Field> &fields_vec = doc.VectorFields();
-      if (ite != remove_dupliacte.end()) table_->GetDocIDByKey(key, docid);
-      if (Update(docid, fields_table, fields_vec)) {
-        LOG(ERROR) << "update error, key=" << key << ", docid=" << docid;
-        continue;
-      }
+      std::string msg = "Add to vector manager error";
+      result.SetResult(++i, -1, msg);
     }
   }
-
-  batchAdd(start_id, batch_size);
-  if (not b_running_ and index_status_ == UNINDEXED) {
-    if (max_docid_ >= indexing_size_) {
-      LOG(INFO) << "Begin indexing.";
-      this->BuildIndex();
-    }
-  }
-#ifdef PERFORMANCE_TESTING
-  double end = utils::getmillisecs();
-  if (max_docid_ % 10000 == 0) {
-    LOG(INFO) << space_name_ << " doc_num[" << max_docid_ << "], BatchAdd["
-              << batch_size << "] total cost [" << end - start << "]ms";
-  }
-#endif
-  is_dirty_ = true;
   return 0;
 }
 
@@ -854,7 +784,8 @@ int GammaEngine::BuildIndex() {
 
 // TODO set limit for cpu and should to avoid using vector indexes on the same
 // time
-int GammaEngine::RebuildIndex(int drop_before_rebuild, int limit_cpu, int describe) {
+int GammaEngine::RebuildIndex(int drop_before_rebuild, int limit_cpu,
+                              int describe) {
   int ret = 0;
   if (describe) {
     vec_manager_->DescribeVectorIndexes();

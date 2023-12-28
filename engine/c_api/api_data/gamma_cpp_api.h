@@ -25,8 +25,6 @@ int CPPAddOrUpdateDoc(void *engine, tig_gamma::Doc *doc);
 
 int CPPAddOrUpdateDocs(void *engine, tig_gamma::Docs *docs, tig_gamma::BatchResult *results);
 
-int CPPAddOrUpdateDocs2(void *engine, tig_gamma::Docs *docs, float *data, tig_gamma::BatchResult *results);
-
 void CPPSetNprobe(void *engine, int nprobe, std::string index_type);
 
 void CPPSetRerank(void *engine, int rerank, std::string index_type);
