@@ -13,7 +13,7 @@ __description__ = """ test case for vearch """
 ip = "127.0.0.1"
 ip_master = ip + ":8817"
 ip_router = ip + ":9001"
-proxy = ip_router
+proxy = "http://" + ip_router
 db_name = "ts_db"
 space_name = "ts_space"
 fileData = "./data/test_data.json"
@@ -30,7 +30,7 @@ search_num = 10
 class VearchCase():
     logger.info("test class")
 
-    def setup(self, index_size, id_type, retrieval_type, store_type):
+    def setup(self, index_size: int, id_type: str, retrieval_type: str, store_type: str):
         self.index_size = index_size
         self.id_type = id_type
         self.retrieval_type = retrieval_type
@@ -39,21 +39,21 @@ class VearchCase():
     logging.info("cluster_information")
 
     def test_stats(self):
-        url = "http://" + proxy + "/_cluster/stats"
+        url = proxy + "/_cluster/stats"
         response = requests.get(url)
         logger.debug("cluster_stats:" + response.text)
         assert response.status_code == 200
         assert response.text.find("\"status\":200") >= 0
 
     def test_health(self):
-        url = "http://" + proxy + "/_cluster/health"
+        url = proxy + "/_cluster/health"
         response = requests.get(url)
         logger.debug("cluster_health---\n" + response.text)
         assert response.status_code == 200
         #  assert response.text.find("\"status\":\"green\"")>=0
 
     def test_server(self):
-        url = "http://" + proxy + "/list/server"
+        url = proxy + "/list/server"
         response = requests.get(url)
         logger.debug("list_server---\n" + response.text)
         assert response.status_code == 200
@@ -62,7 +62,7 @@ class VearchCase():
     logger.info("database")
 
     def test_dblist(self):
-        url = "http://" + proxy + "/list/db"
+        url = proxy + "/list/db"
         response = requests.get(url)
         logger.debug("list_db---\n" + response.text)
         assert response.status_code == 200
@@ -70,7 +70,7 @@ class VearchCase():
 
     def test_createDB(self):
         logger.info("------------")
-        url = "http://" + proxy + "/db/_create"
+        url = proxy + "/db/_create"
         headers = {"content-type": "application/json"}
         data = {
             'name': db_name
@@ -81,21 +81,21 @@ class VearchCase():
         assert response.text.find("\"msg\":\"success\"") >= 0
 
     def test_getDB(self):
-        url = "http://" + proxy + "/db/" + db_name
+        url = proxy + "/db/" + db_name
         response = requests.get(url)
         logger.debug("db_search---\n" + response.text)
         assert response.status_code == 200
         assert response.text.find("\"msg\":\"success\"") >= 0
 
     def test_listspace(self):
-        url = "http://" + proxy + "/list/space?db=" + db_name
+        url = proxy + "/list/space?db=" + db_name
         response = requests.get(url)
         logger.debug("list_space---\n" + response.text)
         assert response.status_code == 200
         assert response.text.find("\"msg\":\"success\"") >= 0
 
-    def test_createspace(self, supported = True):
-        url = "http://" + proxy + "/space/" + db_name + "/_create"
+    def test_createspace(self, supported=True):
+        url = proxy + "/space/" + db_name + "/_create"
         headers = {"content-type": "application/json"}
         data = {
             "name": space_name,
@@ -171,9 +171,8 @@ class VearchCase():
         else:
             assert response.text.find("\"code\":550") >= 0
 
-
     def test_getspace(self):
-        url = "http://" + proxy + "/space/"+db_name+"/" + space_name
+        url = proxy + "/space/"+db_name+"/" + space_name
         response = requests.get(url)
         logger.debug("get_space---\n" + response.text)
         assert response.status_code == 200
@@ -204,7 +203,7 @@ class VearchCase():
                 flag1 = idStr.split(':')[1].replace('\"', '')
                 id = str(int(flag1)+flag)
                 data = "{"+dataLine.split(',', 1)[1]
-                url = "http://" + proxy + "/" + db_name + "/" + space_name + "/" + id
+                url = proxy + "/" + db_name + "/" + space_name + "/" + id
                 response = requests.post(url, headers=headers, data=data)
                 logger.debug("insertWithID:" + response.text)
                 assert response.status_code == 200
@@ -219,15 +218,15 @@ class VearchCase():
                 flag = 0
                 flag1 = idStr.split(':')[1].replace('\"', '')
                 id = str(int(flag1)+flag)
-                url = "http://" + proxy + "/" + db_name + "/" + space_name + "/" + id
+                url = proxy + "/" + db_name + "/" + space_name + "/" + id
                 response = requests.get(url)
-                logger.debug("searchById:" + response.text)
+                logger.debug("getById:" + response.text)
                 assert response.status_code == 200
                 assert response.text.find("\"found\":true") >= 0
 
     def test_getByDocId(self):
         logger.info("test_getByDocId")
-        url = "http://" + proxy + "/space/" + db_name + "/" + space_name
+        url = proxy + "/space/" + db_name + "/" + space_name
         response = requests.get(url)
         assert response.status_code == 200
         assert response.text.find("\"msg\":\"success\"") >= 0
@@ -237,7 +236,7 @@ class VearchCase():
         partition = str(partitions[0]['id'])
 
         for i in range(0, add_num):
-            url = "http://" + proxy + "/" + db_name + "/" + \
+            url = proxy + "/" + db_name + "/" + \
                 space_name + "/" + partition + "/" + str(i)
             response = requests.get(url)
             logger.debug("searchByDocId:" + response.text)
@@ -252,7 +251,7 @@ class VearchCase():
                 idStr = dataLine.split(',', 1)[0].replace('{', '')
                 id = eval(idStr.split(':')[1])
                 data = "{"+dataLine.split(',', 1)[1]
-                url = "http://" + proxy + "/" + db_name + "/" + space_name
+                url = proxy + "/" + db_name + "/" + space_name
                 response = requests.post(url, headers=headers, data=data)
                 logger.debug("insertNoID:" + response.text)
                 assert response.status_code == 200
@@ -260,7 +259,7 @@ class VearchCase():
 
     def test_searchByFeature(self):
         headers = {"content-type": "application/json"}
-        url = "http://" + proxy + "/"+db_name+"/"+space_name+"/_search?size=100"
+        url = proxy + "/"+db_name+"/"+space_name+"/_search?size=100"
         with open(fileData, "r") as dataLine1:
             for i, dataLine in zip(range(search_num), dataLine1):
                 idStr = dataLine.split(',', 1)[0].replace('{', '')
@@ -286,7 +285,7 @@ class VearchCase():
 
     def test_bulk_searchByFeature(self):
         headers = {"content-type": "application/json"}
-        url = "http://" + proxy + "/"+db_name+"/"+space_name+"/_bulk_search"
+        url = proxy + "/"+db_name+"/"+space_name+"/_bulk_search"
         for ii in range(10):
             request_body = []
             with open(fileData, "r") as f:
@@ -311,7 +310,7 @@ class VearchCase():
             assert response.status_code == 200
 
     def test_searchByFeatureandFilter(self):
-        url = "http://" + proxy + "/"+db_name+"/"+space_name+"/_search"
+        url = proxy + "/"+db_name+"/"+space_name+"/_search"
         headers = {"content-type": "application/json"}
         with open(fileData, "r") as dataLine1:
             for i, dataLine in zip(range(search_num), dataLine1):
@@ -341,7 +340,7 @@ class VearchCase():
                 #  assert response.text.find("\"failed\":0") >= 0
 
     def test_searchByFeatureandFilter(self):
-        url = "http://" + proxy + "/"+db_name+"/"+space_name+"/_search"
+        url = proxy + "/"+db_name+"/"+space_name+"/_search"
         headers = {"content-type": "application/json"}
         with open(fileData, "r") as dataLine1:
             for i, dataLine in zip(range(search_num), dataLine1):
@@ -371,7 +370,7 @@ class VearchCase():
                 #  assert response.text.find("\"failed\":0") >= 0
 
     def test_searchByFeatureandRange(self):
-        url = "http://" + proxy + "/"+db_name+"/"+space_name+"/_search"
+        url = proxy + "/"+db_name+"/"+space_name+"/_search"
         headers = {"content-type": "application/json"}
         with open(fileData, "r") as dataLine1:
             for i, dataLine in zip(range(search_num), dataLine1):
@@ -406,7 +405,7 @@ class VearchCase():
                 #  assert response.text.find("\"failed\":0") >= 0
 
     def test_searchByTerm(self):
-        url = "http://" + proxy + "/"+db_name+"/"+space_name+"/_search"
+        url = proxy + "/"+db_name+"/"+space_name+"/_search"
         headers = {"content-type": "application/json"}
         with open(fileData, "r") as dataLine1:
             for i, dataLine in zip(range(search_num), dataLine1):
@@ -445,14 +444,14 @@ class VearchCase():
                 idStr = dataLine.split(',', 1)[0].replace('{', '')
                 id = eval(idStr.split(':')[1])
                 data = "{"+dataLine.split(',', 1)[1]
-                url = "http://" + proxy + "/" + db_name + "/" + space_name + "/" + id
+                url = proxy + "/" + db_name + "/" + space_name + "/" + id
                 response = requests.delete(url)
                 logger.debug("deleteDocById:" + response.text)
                 assert response.status_code == 200
 
     def test_insertBulk(self):
         logger.info("insertBulk")
-        url = "http://" + proxy + "/"+db_name+"/"+space_name+"/_bulk"
+        url = proxy + "/"+db_name+"/"+space_name+"/_bulk"
         headers = {"content-type": "application/json"}
         data = ''
         with open(fileData, "r") as dataLine1:
@@ -474,14 +473,14 @@ class VearchCase():
                 idStr = dataLine.split(',', 1)[0].replace('{', '')
                 id = eval(idStr.split(':')[1])
                 data = "{"+dataLine.split(',', 1)[1]
-                url = "http://" + proxy + "/" + db_name + "/" + space_name
+                url = proxy + "/" + db_name + "/" + space_name
                 response = requests.post(url, headers=headers, data=data)
                 logger.debug("insertNoID:" + response.text)
                 assert response.status_code == 200
 
     def test_documentUpsert(self):
         logger.info("documentUpsert")
-        url = "http://" + proxy + "/document/upsert"
+        url = proxy + "/document/upsert"
         headers = {"content-type": "application/json"}
         with open(fileData, "r") as dataLine1:
             for i, dataLine in zip(range(add_num), dataLine1):
@@ -499,7 +498,7 @@ class VearchCase():
 
     def test_documentUpsertWithId(self):
         logger.info("documentUpsertWithId")
-        url = "http://" + proxy + "/document/upsert"
+        url = proxy + "/document/upsert"
         headers = {"content-type": "application/json"}
         with open(fileData, "r") as dataLine1:
             for i, dataLine in zip(range(add_num), dataLine1):
@@ -520,9 +519,9 @@ class VearchCase():
 
     def test_documentUpsertBulkWithId(self):
         logger.info("test_documentUpsertBulkWithId")
-        url = "http://" + proxy + "/document/upsert"
+        url = proxy + "/document/upsert"
         headers = {"content-type": "application/json"}
-        
+
         with open(fileData, "r") as dataLine1:
             data_lines = dataLine1.readlines()
 
@@ -544,14 +543,15 @@ class VearchCase():
                     "space_name": space_name
                 }
 
-                response = requests.post(url, headers=headers, data=json.dumps(upsert_data))
+                response = requests.post(
+                    url, headers=headers, data=json.dumps(upsert_data))
                 logger.debug("test_documentUpsertBulkWithId:" + response.text)
                 assert response.status_code == 200
 
     def test_documentQueryByDocumentIds(self):
         logger.info("documentQueryByDocumentIds")
         headers = {"content-type": "application/json"}
-        url = "http://" + proxy + "/document/query"
+        url = proxy + "/document/query"
         with open(fileData, "r") as dataLine1:
             for i, dataLine in zip(range(add_num), dataLine1):
                 idStr = dataLine.split(',', 1)[0].replace('{', '')
@@ -569,7 +569,7 @@ class VearchCase():
 
     def test_documentQueryOnSpecifyPartiton(self):
         logger.info("documentQueryOnSpecifyPartiton")
-        url = "http://" + proxy + "/space/" + db_name + "/" + space_name
+        url = proxy + "/space/" + db_name + "/" + space_name
         response = requests.get(url)
         assert response.status_code == 200
         assert response.text.find("\"msg\":\"success\"") >= 0
@@ -578,7 +578,7 @@ class VearchCase():
         assert len(partitions) > 0
         partition = str(partitions[0]['id'])
 
-        url = "http://" + proxy + "/document/query"
+        url = proxy + "/document/query"
         headers = {"content-type": "application/json"}
 
         add_num_end = add_num + 100
@@ -601,7 +601,7 @@ class VearchCase():
     def test_documentQueryByFilter(self):
         logger.info("documentQueryByFilter")
         headers = {"content-type": "application/json"}
-        url = "http://" + proxy + "/document/query"
+        url = proxy + "/document/query"
         with open(fileData, "r") as dataLine1:
             for i, dataLine in zip(range(search_num), dataLine1):
                 idStr = dataLine.split(',', 1)[0].replace('{', '')
@@ -631,7 +631,7 @@ class VearchCase():
     def test_documentSearchByDocumentIds(self):
         logger.info("documentSearchByDocumentIds")
         headers = {"content-type": "application/json"}
-        url = "http://" + proxy + "/document/search"
+        url = proxy + "/document/search"
         with open(fileData, "r") as dataLine1:
             for i, dataLine in zip(range(add_num), dataLine1):
                 idStr = dataLine.split(',', 1)[0].replace('{', '')
@@ -650,7 +650,7 @@ class VearchCase():
     def test_documentSearchByVector(self):
         logger.info("documentSearchByVector")
         headers = {"content-type": "application/json"}
-        url = "http://" + proxy + "/document/search"
+        url = proxy + "/document/search"
         with open(fileData, "r") as dataLine1:
             for i, dataLine in zip(range(search_num), dataLine1):
                 idStr = dataLine.split(',', 1)[0].replace('{', '')
@@ -677,10 +677,61 @@ class VearchCase():
                 logger.debug("searchByFeature---\n" + response.text)
                 assert response.status_code == 200
 
+    def test_document_modify_singlefield(self):
+        logger.info("document_modify_singlefield")
+        headers = {"content-type": "application/json"}
+        # modify single field
+        url = proxy + "/document/upsert"
+        json_data = {
+            "db_name": db_name,
+            "space_name": space_name,
+            "documents": [
+                {
+                    "_id": "0",
+                    "float": 888.88,
+                    "string": "test"
+                }]
+        }
+        logger.debug("documentUpsertWithId:" + json.dumps(json_data))
+        response = requests.post(
+            url, headers=headers, data=json.dumps(json_data))
+        logger.debug("documentUpsertWithId:" + response.text)
+        assert response.status_code == 200
+
+        # check result
+        url = proxy + "/" + db_name + "/" + space_name + "/0"
+        response = requests.get(url)
+        logger.debug("getById:" + response.text)
+        assert response.status_code == 200
+        assert response.text.find("\"found\":true") >= 0
+        result = json.loads(response.text)
+        assert result["_source"]["float"] == 888.88
+        assert result["_source"]["string"] == "test"
+
+    def test_document_upsert_singlefield(self):
+        logger.info("document_upsert_singlefield")
+        headers = {"content-type": "application/json"}
+        # upsert single field
+        url = proxy + "/document/upsert"
+        json_data = {
+            "db_name": db_name,
+            "space_name": space_name,
+            "documents": [
+                {
+                    "float": 888.88,
+                    "string": "test"
+                }]
+        }
+        logger.debug("document_upsert_singlefield:" + json.dumps(json_data))
+        response = requests.post(
+            url, headers=headers, data=json.dumps(json_data))
+        logger.debug("document_upsert_singlefield:" + response.text)
+        assert response.status_code != 200
+
     def test_documentDeleteByDocumentIds(self):
         logger.info("documentDeleteByDocumentIds")
         headers = {"content-type": "application/json"}
-        url = "http://" + proxy + "/document/delete"
+        url = proxy + "/document/delete"
         with open(fileData, "r") as dataLine1:
             for i, dataLine in zip(range(add_num), dataLine1):
                 idStr = dataLine.split(',', 1)[0].replace('{', '')
@@ -699,7 +750,7 @@ class VearchCase():
     def test_documentDeleteByFilter(self):
         logger.info("documentQueryByFilter")
         headers = {"content-type": "application/json"}
-        url = "http://" + proxy + "/document/delete"
+        url = proxy + "/document/delete"
         with open(fileData, "r") as dataLine1:
             for i, dataLine in zip(range(search_num), dataLine1):
                 idStr = dataLine.split(',', 1)[0].replace('{', '')
@@ -727,18 +778,18 @@ class VearchCase():
                 assert response.status_code == 200
 
     def test_deleteSpace(self):
-        url = "http://" + proxy + "/space/"+db_name+"/"+space_name
+        url = proxy + "/space/"+db_name+"/"+space_name
         response = requests.delete(url)
         logger.debug("deleteSpace:" + response.text)
         assert response.status_code == 200
 
     def test_deleteDB(self):
-        url = "http://" + proxy + "/db/"+db_name
+        url = proxy + "/db/"+db_name
         response = requests.delete(url)
         logger.debug("deleteDB:" + response.text)
         assert response.status_code == 200
 
-    def run_db_space_create_test(self, supported = True):
+    def run_db_space_create_test(self, supported=True):
         self.test_createDB()
         self.test_createspace(supported)
         self.test_stats()
@@ -772,6 +823,8 @@ class VearchCase():
         self.test_documentQueryByFilter()
         self.test_documentSearchByDocumentIds()
         self.test_documentSearchByVector()
+        self.test_document_modify_singlefield()
+        self.test_document_upsert_singlefield()
         self.test_documentDeleteByDocumentIds()
         self.test_documentDeleteByFilter()
 
@@ -804,6 +857,8 @@ class VearchCase():
         self.test_deleteDB()
 
 # for FLAT HNSW IVFFLAT, now only support one store_type, no need to set
+
+
 @ pytest.mark.parametrize(["index_size", "id_type", "retrieval_type", "store_type"], [
     [1, "Long", "FLAT", ""],
     [1, "String", "FLAT", ""],
@@ -823,6 +878,8 @@ def test_vearch_usage(index_size: int, id_type: str, retrieval_type: str, store_
     case.run_db_space_create_multi_test()
 
 # Not support now so should be failed
+
+
 @ pytest.mark.parametrize(["index_size", "id_type", "retrieval_type", "store_type"], [
     [1, "Long", "FLAT", "RocksDB"],
     [1, "Long", "FLAT", "NOTSUPPORTTYPE"],

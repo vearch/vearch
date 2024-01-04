@@ -73,7 +73,8 @@ class Table {
    * @param docid   doc index number
    * @return 0 if successed
    */
-  int Add(const std::string &key, const std::vector<struct Field> &fields,
+  int Add(const std::string &key,
+          const std::unordered_map<std::string, struct Field> &fields,
           int docid);
 
   /** update a doc
@@ -82,10 +83,11 @@ class Table {
    * @param docid   doc index number
    * @return 0 if successed
    */
-  int Update(const std::vector<struct Field> &fields, int docid);
+  int Update(const std::unordered_map<std::string, struct Field> &fields,
+             int docid);
 
-  std::vector<bool> CheckFieldIsEqual(const std::vector<Field> &fields,
-                                      int docid);
+  std::unordered_map<std::string, bool> CheckFieldIsEqual(
+      const std::unordered_map<std::string, Field> &fields, int docid);
 
   int Delete(std::string &key);
 
@@ -137,8 +139,6 @@ class Table {
 
   const std::string &GetKeyFieldName() { return key_field_name_; }
 
-  uint8_t StringFieldNum() const { return string_field_num_; }
-
   int Load(int &doc_num);
 
   int FieldsNum() { return attrs_.size(); }
@@ -166,8 +166,7 @@ class Table {
   std::string name_;   // table name
   int item_length_;    // every doc item length
   uint8_t field_num_;  // field number
-  uint8_t string_field_num_;
-  int key_idx_;  // key postion
+  int key_idx_;        // key postion
   std::string key_field_name_;
 
   std::map<std::string, int> attr_offset_map_;  // <field_id, field_name>
@@ -178,12 +177,9 @@ class Table {
   std::map<std::string, bool> attr_is_index_map_;  // <field_name, is index>
   std::vector<int> idx_attr_offset_;
   std::vector<DataType> attrs_;
-  std::map<int, int> str_field_id_;  // <field_id, str_field_id>
 
   uint8_t id_type_;  // 0 string, 1 long, default 1
   ItemToDocID *item_to_docid_;
-
-  int seg_num_;  // cur segment num
 
   bool table_created_;
 

@@ -45,8 +45,9 @@ class GammaEngine {
 
   int AddOrUpdateDocs(Docs &docs, BatchResult &result);
 
-  int Update(int doc_id, std::vector<struct Field> &fields_table,
-             std::vector<struct Field> &fields_vec);
+  int Update(int doc_id,
+             std::unordered_map<std::string, struct Field> &fields_table,
+             std::unordered_map<std::string, struct Field> &fields_vec);
 
   /**
    * Delete doc
@@ -155,8 +156,6 @@ class GammaEngine {
   std::string last_dump_dir_;  // it should be delete after next dump
 
   bool created_table_;
-
-  bool b_loading_;
 
   bool is_dirty_;
 

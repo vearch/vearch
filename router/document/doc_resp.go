@@ -648,13 +648,13 @@ func docFieldSerialize(doc *vearchpb.Document, space *entity.Space, returnFields
 			} else {
 				source[name] = string(fv.Value)
 			}
+			continue
 		}
 		if (returnFieldsMap != nil && returnFieldsMap[name] != "") || returnFieldsMap == nil {
 			field := spaceProperties[name]
 			if field == nil {
 				log.Error("can not found mappping by field:[%s]", name)
 				continue
-
 			}
 			switch field.FieldType {
 			case entity.FieldType_STRING:

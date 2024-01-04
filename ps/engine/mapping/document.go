@@ -38,7 +38,6 @@ func (dm *DocumentMapping) addSubDocumentMapping(property string, sdm *DocumentM
 }
 
 func (dm *DocumentMapping) UnmarshalJSON(data []byte) error {
-
 	var tmp map[string]json.RawMessage
 	err := json.Unmarshal(data, &tmp)
 	if err != nil {

@@ -19,7 +19,7 @@ int Doc::Serialize(char **out, int *out_len) {
 
   int i = 0;
   for (const auto &fields : {table_fields_, vector_fields_}) {
-    for (const struct Field &f : fields) {
+    for (const auto &[name, f] : fields) {
       std::vector<uint8_t> value(f.value.size());
       memcpy(value.data(), f.value.data(), f.value.size());
 
@@ -46,23 +46,8 @@ void Doc::Deserialize(const char *data, int len) {
 
   doc_ = const_cast<gamma_api::Doc *>(gamma_api::GetDoc(data));
   Table *table = engine_->GetTable();
-  VectorManager *vec_manager = engine_->GetVectorManager();
   const std::map<std::string, int> &field_map = table->FieldMap();
-  int table_field_num = table->FieldsNum();
-  int vector_field_num = vec_manager->RawVectors().size();
   size_t fields_num = doc_->fields()->size();
-
-  if (fields_num != (size_t)(table_field_num + vector_field_num)) {
-    LOG(WARNING) << "Add Doc fields num [" << fields_num
-                 << "], not equal to table_field_num [" << table_field_num
-                 << "] + vector_field_num [" << vector_field_num << "]";
-    return;
-  }
-
-  table_fields_.resize(table_field_num);
-  vector_fields_.resize(vector_field_num);
-
-  int vector_idx = 0;
 
   for (size_t i = 0; i < fields_num; ++i) {
     auto f = doc_->fields()->Get(i);
@@ -83,27 +68,26 @@ void Doc::Deserialize(const char *data, int len) {
         LOG(ERROR) << "Unknown field " << field.name;
         continue;
       }
-      int field_idx = it->second;
-      table_fields_[field_idx] = std::move(field);
+      table_fields_[field.name] = std::move(field);
     } else {
-      vector_fields_[vector_idx++] = std::move(field);
+      vector_fields_[field.name] = std::move(field);
     }
   }
 }
 
 void Doc::AddField(const struct Field &field) {
   if (field.datatype == DataType::VECTOR) {
-    vector_fields_.push_back(field);
+    vector_fields_[field.name] = field;
   } else {
-    table_fields_.push_back(field);
+    table_fields_[field.name] = field;
   }
 }
 
 void Doc::AddField(struct Field &&field) {
   if (field.datatype == DataType::VECTOR) {
-    vector_fields_.emplace_back(std::forward<struct Field>(field));
+    vector_fields_[field.name] = std::move(field);
   } else {
-    table_fields_.emplace_back(std::forward<struct Field>(field));
+    table_fields_[field.name] = std::move(field);
   }
 }
 

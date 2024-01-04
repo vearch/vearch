@@ -93,10 +93,8 @@ Table::Table(const string &root_path, const string &space_name)
     : name_(space_name) {
   item_length_ = 0;
   field_num_ = 0;
-  string_field_num_ = 0;
   key_idx_ = -1;
   root_path_ = root_path + "/table";
-  seg_num_ = 0;
 
   table_created_ = false;
   last_docid_ = -1;
@@ -227,10 +225,6 @@ int Table::AddField(const string &name, DataType ftype, bool is_index) {
     key_idx_ = field_num_;
     id_type_ = ftype == DataType::STRING ? 0 : 1;
   }
-  if (ftype == DataType::STRING) {
-    str_field_id_.insert(std::make_pair(field_num_, string_field_num_));
-    ++string_field_num_;
-  }
   idx_attr_offset_.push_back(item_length_);
   attr_offset_map_.insert(std::pair<string, int>(name, item_length_));
   item_length_ += FTypeSize(ftype);
@@ -278,13 +272,9 @@ int Table::GetKeyByDocid(int docid, std::string &key) {
   return 0;
 }
 
-int Table::Add(const std::string &key, const std::vector<struct Field> &fields,
+int Table::Add(const std::string &key,
+               const std::unordered_map<std::string, struct Field> &fields,
                int docid) {
-  if (fields.size() != attr_idx_map_.size()) {
-    LOG(ERROR) << name_ << " field num [" << fields.size() << "] not equal to ["
-               << attr_idx_map_.size() << "]";
-    return -2;
-  }
   if (key.size() == 0) {
     LOG(ERROR) << name_ << " add item error : _id is null!";
     return -3;
@@ -295,25 +285,34 @@ int Table::Add(const std::string &key, const std::vector<struct Field> &fields,
   std::string v = std::string(vChar, sizeof(docid));
   item_to_docid_->Put(key, v);
 
-  uint8_t doc_value[item_length_];
+  for (size_t i = 0; i < attrs_.size(); i++) {
+    DataType data_type = attrs_[i];
+    if (data_type != DataType::STRING) {
+      continue;
+    }
 
-  for (size_t i = 0; i < fields.size(); ++i) {
-    const auto &field_value = fields[i];
-    const std::string &name = field_value.name;
+    if (fields.find(idx_attr_map_[i]) == fields.end()) {
+      storage_mgr_->AddString(docid, idx_attr_map_[i], "", 0);
+    }
+  }
+
+  uint8_t doc_value[item_length_] = {0};
+
+  for (const auto &[name, field] : fields) {
     size_t offset = attr_offset_map_[name];
 
     DataType attr = attr_type_map_[name];
 
     if (attr != DataType::STRING) {
       int type_size = FTypeSize(attr);
-      memcpy(doc_value + offset, field_value.value.c_str(), type_size);
+      memcpy(doc_value + offset, field.value.c_str(), type_size);
     } else {
-      int len = field_value.value.size();
-      storage_mgr_->AddString(docid, name, field_value.value.c_str(), len);
+      int len = field.value.size();
+      storage_mgr_->AddString(docid, name, field.value.c_str(), len);
     }
   }
 
-  storage_mgr_->Add(docid, (const uint8_t *)doc_value, item_length_);
+  storage_mgr_->Add(docid, doc_value, item_length_);
 
   if (docid % 10000 == 0) {
     if (id_type_ == 0) {
@@ -330,7 +329,8 @@ int Table::Add(const std::string &key, const std::vector<struct Field> &fields,
   return 0;
 }
 
-int Table::Update(const std::vector<Field> &fields, int docid) {
+int Table::Update(const std::unordered_map<std::string, struct Field> &fields,
+                  int docid) {
   if (fields.size() == 0) return 0;
 
   int ret = 0;
@@ -346,9 +346,7 @@ int Table::Update(const std::vector<Field> &fields, int docid) {
   memcpy(doc_value, ori_doc_value, item_length_);
   delete[] ori_doc_value;
 
-  for (size_t i = 0; i < fields.size(); ++i) {
-    const struct Field &field_value = fields[i];
-    const string &name = field_value.name;
+  for (const auto &[name, field] : fields) {
     const auto &it = attr_idx_map_.find(name);
     if (it == attr_idx_map_.end()) {
       LOG(ERROR) << name_ << " cannot find field name [" << name << "]";
@@ -358,12 +356,11 @@ int Table::Update(const std::vector<Field> &fields, int docid) {
     int field_id = it->second;
     int offset = idx_attr_offset_[field_id];
 
-    if (field_value.datatype == DataType::STRING) {
-      int len = field_value.value.size();
-      storage_mgr_->UpdateString(docid, name, field_value.value.c_str(), len);
+    if (field.datatype == DataType::STRING) {
+      int len = field.value.size();
+      storage_mgr_->UpdateString(docid, name, field.value.c_str(), len);
     } else {
-      memcpy(doc_value + offset, field_value.value.data(),
-             field_value.value.size());
+      memcpy(doc_value + offset, field.value.data(), field.value.size());
     }
   }
 
@@ -371,26 +368,25 @@ int Table::Update(const std::vector<Field> &fields, int docid) {
   return 0;
 }
 
-std::vector<bool> Table::CheckFieldIsEqual(const std::vector<Field> &fields,
-                                           int docid) {
-  int size = fields.size();
-  std::vector<bool> is_equal(size, false);
+std::unordered_map<std::string, bool> Table::CheckFieldIsEqual(
+    const std::unordered_map<std::string, Field> &fields, int docid) {
+  std::unordered_map<std::string, bool> is_equal;
   std::vector<std::string> field_names;
   Doc doc;
   if (GetDocInfo(docid, doc, field_names) == 0) {
-    const std::vector<struct Field> &table_fields = doc.TableFields();
-    for (int i = 0; i < size; ++i) {
-      const std::string &name = fields[i].name;
-      const std::string &val = fields[i].value;
+    auto &table_fields = doc.TableFields();
+    for (auto &[name, field] : fields) {
+      const std::string &val = field.value;
       if (attr_idx_map_.count(name) == false) {
         continue;
       }
-      size_t idx = attr_idx_map_[name];
-      if (idx < table_fields.size() && name == table_fields[idx].name &&
-          val == table_fields[idx].value) {
-        is_equal[i] = true;
-        // LOG(INFO) << "doc [" << docid << "] field[" << name << "], value["
-        //           << val << "] is equal.";
+
+      const auto &it = table_fields.find(name);
+      if (it == table_fields.end()) {
+        continue;
+      }
+      if (name == it->second.name && val == it->second.value) {
+        is_equal[name] = true;
       }
     }
   }
@@ -401,9 +397,6 @@ int Table::Delete(std::string &key) { return item_to_docid_->Delete(key); }
 
 long Table::GetMemoryBytes() {
   long total_mem_bytes = 0;
-  // for (int i = 0; i < seg_num_; ++i) {
-  //   total_mem_bytes += main_file_[i]->GetMemoryBytes();
-  // }
   return total_mem_bytes;
 }
 
@@ -434,7 +427,7 @@ int Table::GetDocInfo(const int docid, Doc &doc,
   if (ret != 0) {
     return ret;
   }
-  std::vector<struct Field> &table_fields = doc.TableFields();
+  auto &table_fields = doc.TableFields();
 
   auto assign_field = [&](struct Field &field, const std::string &field_name) {
     DataType type = attr_type_map_[field_name];
@@ -446,15 +439,12 @@ int Table::GetDocInfo(const int docid, Doc &doc,
 
   int i = 0;
   if (fields.size() == 0) {
-    table_fields.resize(attr_idx_map_.size());
-
     for (const auto &it : attr_idx_map_) {
-      assign_field(table_fields[it.second], it.first);
-      GetFieldRawValue(docid, it.second, table_fields[it.second].value,
+      assign_field(table_fields[it.first], it.first);
+      GetFieldRawValue(docid, it.second, table_fields[it.first].value,
                        doc_value);
     }
   } else {
-    table_fields.resize(fields.size());
     for (const std::string &f : fields) {
       const auto &iter = attr_idx_map_.find(f);
       if (iter == attr_idx_map_.end()) {
@@ -462,8 +452,9 @@ int Table::GetDocInfo(const int docid, Doc &doc,
         continue;
       }
       int field_idx = iter->second;
-      assign_field(table_fields[i], f);
-      GetFieldRawValue(docid, field_idx, table_fields[i].value, doc_value);
+      assign_field(table_fields[iter->first], f);
+      GetFieldRawValue(docid, field_idx, table_fields[iter->first].value,
+                       doc_value);
       ++i;
     }
   }

@@ -7,11 +7,12 @@
 
 #pragma once
 
+#include <unordered_map>
 #include <vector>
 
-#include "idl/fbs-gen/c/doc_generated.h"
 #include "gamma_raw_data.h"
 #include "gamma_table.h"
+#include "idl/fbs-gen/c/doc_generated.h"
 
 namespace tig_gamma {
 
@@ -23,9 +24,13 @@ struct Field {
   std::string source;
   DataType datatype;
 
-  Field() {}
+  Field() = default;
 
-  Field(const Field &other) { *this = other; }
+  Field(const Field &other)
+      : name(other.name),
+        value(other.value),
+        source(other.source),
+        datatype(other.datatype) {}
 
   Field &operator=(const Field &other) {
     name = other.name;
@@ -35,7 +40,11 @@ struct Field {
     return *this;
   }
 
-  Field(Field &&other) { *this = std::move(other); }
+  Field(Field &&other) noexcept
+      : name(std::move(other.name)),
+        value(std::move(other.value)),
+        source(std::move(other.source)),
+        datatype(std::move(other.datatype)) {}
 
   Field &operator=(Field &&other) {
     name = std::move(other.name);
@@ -44,6 +53,8 @@ struct Field {
     datatype = other.datatype;
     return *this;
   }
+
+  ~Field() = default;
 };
 
 class Doc : public RawData {
@@ -58,15 +69,8 @@ class Doc : public RawData {
   Doc &operator=(const Doc &other) {
     key_ = other.key_;
 
-    table_fields_.reserve(other.table_fields_.size());
-    for (const auto &f : other.table_fields_) {
-      table_fields_.push_back(f);
-    }
-
-    vector_fields_.reserve(other.vector_fields_.size());
-    for (const auto &f : other.vector_fields_) {
-      vector_fields_.push_back(f);
-    }
+    table_fields_ = other.table_fields_;
+    vector_fields_ = other.vector_fields_;
     return *this;
   }
 
@@ -75,16 +79,9 @@ class Doc : public RawData {
   Doc &operator=(Doc &&other) {
     key_ = std::move(other.key_);
 
-    table_fields_.resize(other.table_fields_.size());
-    for (size_t i = 0; i < other.table_fields_.size(); ++i) {
-      table_fields_[i] = std::move(other.table_fields_[i]);
-    }
+    table_fields_ = other.table_fields_;
     other.table_fields_.clear();
-
-    vector_fields_.resize(other.vector_fields_.size());
-    for (size_t i = 0; i < other.vector_fields_.size(); ++i) {
-      vector_fields_[i] = std::move(other.vector_fields_[i]);
-    }
+    vector_fields_ = other.vector_fields_;
     other.vector_fields_.clear();
 
     return *this;
@@ -99,12 +96,16 @@ class Doc : public RawData {
   void AddField(struct Field &&field);
 
   std::string &Key() { return key_; }
-  
+
   void SetKey(const std::string &key) { key_ = key; }
 
-  std::vector<struct Field> &TableFields() { return table_fields_; }
+  std::unordered_map<std::string, struct Field> &TableFields() {
+    return table_fields_;
+  }
 
-  std::vector<struct Field> &VectorFields() { return vector_fields_; }
+  std::unordered_map<std::string, struct Field> &VectorFields() {
+    return vector_fields_;
+  }
 
   void SetEngine(GammaEngine *engine) { engine_ = engine; }
 
@@ -112,8 +113,8 @@ class Doc : public RawData {
   gamma_api::Doc *doc_;
   std::string key_;
 
-  std::vector<struct Field> table_fields_;
-  std::vector<struct Field> vector_fields_;
+  std::unordered_map<std::string, struct Field> table_fields_;
+  std::unordered_map<std::string, struct Field> vector_fields_;
 
   GammaEngine *engine_;
 };

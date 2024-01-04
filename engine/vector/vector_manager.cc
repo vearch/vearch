@@ -327,23 +327,23 @@ int VectorManager::CreateVectorTable(TableInfo &table,
   return 0;
 }
 
-int VectorManager::AddToStore(int docid, std::vector<struct Field> &fields) {
+int VectorManager::AddToStore(
+    int docid, std::unordered_map<std::string, struct Field> &fields) {
   int ret = 0;
-  for (size_t i = 0; i < fields.size(); i++) {
-    std::string &name = fields[i].name;
+  for (auto &[name, field] : fields) {
     if (raw_vectors_.find(name) == raw_vectors_.end()) {
       LOG(ERROR) << "Cannot find raw vector [" << name << "]";
       continue;
     }
-    ret = raw_vectors_[name]->Add(docid, fields[i]);
+    ret = raw_vectors_[name]->Add(docid, field);
     if (ret != 0) break;
   }
   return ret;
 }
 
-int VectorManager::Update(int docid, std::vector<Field> &fields) {
-  for (size_t i = 0; i < fields.size(); i++) {
-    std::string &name = fields[i].name;
+int VectorManager::Update(
+    int docid, std::unordered_map<std::string, struct Field> &fields) {
+  for (auto &[name, field] : fields) {
     auto it = raw_vectors_.find(name);
     if (it == raw_vectors_.end()) {
       continue;
@@ -354,13 +354,13 @@ int VectorManager::Update(int docid, std::vector<Field> &fields) {
             ? sizeof(char)
             : sizeof(float);
     if ((size_t)raw_vector->MetaInfo()->Dimension() !=
-        fields[i].value.size() / element_size) {
-      LOG(ERROR) << "invalid field value len=" << fields[i].value.size()
+        field.value.size() / element_size) {
+      LOG(ERROR) << "invalid field value len=" << field.value.size()
                  << ", dimension=" << raw_vector->MetaInfo()->Dimension();
       return -1;
     }
 
-    int ret = raw_vector->Update(docid, fields[i]);
+    int ret = raw_vector->Update(docid, field);
     if (ret) return ret;
 
     int vid = docid;  // TODO docid to vid
@@ -763,7 +763,7 @@ int VectorManager::GetVector(
     int ret = raw_vec->GetSource(vid, source, len);
 
     if (ret != 0 || len < 0) {
-      LOG(ERROR) << "Get source failed!";
+      LOG(DEBUG) << "Get " << id << " source failed!";
       return -1;
     }
 

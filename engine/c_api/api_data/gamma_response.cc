@@ -271,9 +271,9 @@ int Response::PackResultItem(const VectorDoc *vec_doc,
     table->GetDocInfo(docid, doc, table_fields);
   }
 
-  std::vector<struct Field> &fields = doc.TableFields();
+  auto &fields = doc.TableFields();
 
-  for (struct Field &field : fields) {
+  for (auto &[name, field] : fields) {
     result_item.names.emplace_back(std::move(field.name));
     result_item.values.emplace_back(std::move(field.value));
   }

@@ -75,23 +75,23 @@ var FieldsIndex = map[string]int{
 }
 
 // parse doc
-func MapDocument(source []byte, space *entity.Space, proMap map[string]*entity.SpaceProperties) ([]*vearchpb.Field, error) {
+func MapDocument(source []byte, space *entity.Space, proMap map[string]*entity.SpaceProperties) ([]*vearchpb.Field, bool, error) {
 	var fast fastjson.Parser
 	v, err := fast.ParseBytes(source)
 	if err != nil {
 		log.Warnf("bytes transform to json failed when inserting, err: %s ,data:%s", err.Error(), string(source))
-		return nil, errors.Wrap(err, "data format error, please check your input!")
+		return nil, false, errors.Wrap(err, "data format error, please check your input!")
 	}
 	var path []string
 	return parseJSON(path, v, space, proMap)
 }
 
-func parseJSON(path []string, v *fastjson.Value, space *entity.Space, proMap map[string]*entity.SpaceProperties) ([]*vearchpb.Field, error) {
+func parseJSON(path []string, v *fastjson.Value, space *entity.Space, proMap map[string]*entity.SpaceProperties) ([]*vearchpb.Field, bool, error) {
 	fields := make([]*vearchpb.Field, 0)
 	obj, err := v.Object()
 	if err != nil {
 		log.Warnf("data format error, object is required but received %s", v.Type().String())
-		return nil, fmt.Errorf("data format error, object is required but received %s", v.Type().String())
+		return nil, false, fmt.Errorf("data format error, object is required but received %s", v.Type().String())
 	}
 
 	haveNoField := false
@@ -100,8 +100,11 @@ func parseJSON(path []string, v *fastjson.Value, space *entity.Space, proMap map
 	parseErr := fmt.Errorf("")
 	obj.Visit(func(key []byte, val *fastjson.Value) {
 		fieldName := string(key)
+		if fieldName == IDField {
+			return
+		}
 		pro, ok := proMap[fieldName]
-		if !ok && fieldName != IDField {
+		if !ok {
 			haveNoField = true
 			errorField = fieldName
 			log.Warnf("unrecognizable field, %s is not found in space fields", fieldName)
@@ -135,20 +138,14 @@ func parseJSON(path []string, v *fastjson.Value, space *entity.Space, proMap map
 	})
 
 	if parseErr.Error() != "" {
-		return nil, fmt.Errorf("param parse error msg:[%s]", parseErr.Error())
+		return nil, haveVector, fmt.Errorf("param parse error msg:[%s]", parseErr.Error())
 	}
 
 	if haveNoField {
-		return nil, fmt.Errorf("param have error field [%s]", errorField)
+		return nil, haveVector, fmt.Errorf("param have error field [%s]", errorField)
 	}
 
-	if !strings.EqualFold("scalar", space.Engine.DataType) {
-		if !haveVector {
-			return nil, fmt.Errorf("param have not vector value")
-		}
-	}
-
-	return fields, nil
+	return fields, haveVector, nil
 }
 
 func processPropertyString(v *fastjson.Value, pathString string, pro *entity.SpaceProperties) (*vearchpb.Field, error) {
@@ -604,7 +601,7 @@ func processVector(pro *entity.SpaceProperties, fieldName string, val []float32,
 	return field, err
 }
 
-func docParse(ctx context.Context, r *http.Request, space *entity.Space, args *vearchpb.UpdateRequest) (err error) {
+func docParse(ctx context.Context, handler *DocumentHandler, r *http.Request, space *entity.Space, args *vearchpb.UpdateRequest, pkey string) (err error) {
 	body, err := netutil.GetReqBody(r)
 	if err != nil {
 		return err
@@ -614,15 +611,47 @@ func docParse(ctx context.Context, r *http.Request, space *entity.Space, args *v
 		spacePro, _ := entity.UnmarshalPropertyJSON(space.Properties)
 		spaceProperties = spacePro
 	}
-	fields, err := MapDocument(body, space, spaceProperties)
+	fields, haveVector, err := MapDocument(body, space, spaceProperties)
 	if err != nil {
 		return err
+	}
+
+	if !haveVector {
+		arg := &vearchpb.GetRequest{}
+		uriParams := make(map[string]string)
+		uriParams["db_name"] = args.Head.DbName
+		uriParams["space_name"] = args.Head.SpaceName
+		uriParams["_id"] = pkey
+		uriParamsMap := netutil.NewMockUriParams(uriParams)
+		arg.Head = setRequestHead(uriParamsMap, r)
+		arg.PrimaryKeys = make([]string, 1)
+		arg.PrimaryKeys[0] = pkey
+		reply := handler.docService.getDocs(ctx, arg)
+
+		_, err := docGetResponse(handler.client, arg, reply, nil, false)
+		if err != nil {
+			return err
+		}
+
+		err = fmt.Errorf("doc not exist, method is insert, vector field is necessary")
+		if reply == nil {
+			return err
+		}
+		if reply.Items == nil {
+			return err
+		}
+		if len(reply.Items) == 0 {
+			return err
+		}
+		if reply.Items[0].Err != nil && reply.Items[0].Err.Code != vearchpb.ErrorEnum_SUCCESS {
+			return err
+		}
 	}
 	args.Doc = &vearchpb.Document{Fields: fields}
 	return nil
 }
 
-func docBulkParse(ctx context.Context, r *http.Request, space *entity.Space, args *vearchpb.BulkRequest) (err error) {
+func docBulkParse(ctx context.Context, handler *DocumentHandler, r *http.Request, space *entity.Space, args *vearchpb.BulkRequest) (err error) {
 	body, err := netutil.GetReqBody(r)
 	if err != nil {
 		return err
@@ -649,9 +678,41 @@ func docBulkParse(ctx context.Context, r *http.Request, space *entity.Space, arg
 			spacePro, _ := entity.UnmarshalPropertyJSON(space.Properties)
 			spaceProperties = spacePro
 		}
-		fields, err := MapDocument(source, space, spaceProperties)
+		fields, haveVector, err := MapDocument(source, space, spaceProperties)
 		if err != nil {
 			return err
+		}
+
+		if !haveVector {
+			arg := &vearchpb.GetRequest{}
+			uriParams := make(map[string]string)
+			uriParams["db_name"] = args.Head.DbName
+			uriParams["space_name"] = args.Head.SpaceName
+			uriParams["_id"] = primaryKey
+			uriParamsMap := netutil.NewMockUriParams(uriParams)
+			arg.Head = setRequestHead(uriParamsMap, r)
+			arg.PrimaryKeys = make([]string, 1)
+			arg.PrimaryKeys[0] = primaryKey
+			reply := handler.docService.getDocs(ctx, arg)
+
+			_, err := docGetResponse(handler.client, arg, reply, nil, false)
+			if err != nil {
+				return err
+			}
+
+			err = fmt.Errorf("doc not exist, method is insert, vector field is necessary")
+			if reply == nil {
+				return err
+			}
+			if reply.Items == nil {
+				return err
+			}
+			if len(reply.Items) == 0 {
+				return err
+			}
+			if reply.Items[0].Err != nil && reply.Items[0].Err.Code != vearchpb.ErrorEnum_SUCCESS {
+				return err
+			}
 		}
 		doc := &vearchpb.Document{PKey: primaryKey, Fields: fields}
 
@@ -906,7 +967,7 @@ func documentHeadParse(r *http.Request) (docRequest *request.DocumentRequest, db
 	return docRequest, docRequest.DbName, docRequest.SpaceName, nil
 }
 
-func documentParse(r *http.Request, docRequest *request.DocumentRequest, space *entity.Space, args *vearchpb.BulkRequest) (err error) {
+func documentParse(ctx context.Context, handler *DocumentHandler, r *http.Request, docRequest *request.DocumentRequest, space *entity.Space, args *vearchpb.BulkRequest) (err error) {
 	spaceProperties := space.SpaceProperties
 	if spaceProperties == nil {
 		spacePro, _ := entity.UnmarshalPropertyJSON(space.Properties)
@@ -921,9 +982,41 @@ func documentParse(r *http.Request, docRequest *request.DocumentRequest, space *
 		}
 		primaryKey := jsonMap.GetJsonValString(IDField)
 
-		fields, err := MapDocument(docJson, space, spaceProperties)
+		fields, haveVector, err := MapDocument(docJson, space, spaceProperties)
 		if err != nil {
 			return err
+		}
+
+		if !haveVector {
+			arg := &vearchpb.GetRequest{}
+			uriParams := make(map[string]string)
+			uriParams["db_name"] = args.Head.DbName
+			uriParams["space_name"] = args.Head.SpaceName
+			uriParams["_id"] = primaryKey
+			uriParamsMap := netutil.NewMockUriParams(uriParams)
+			arg.Head = setRequestHead(uriParamsMap, r)
+			arg.PrimaryKeys = make([]string, 1)
+			arg.PrimaryKeys[0] = primaryKey
+			reply := handler.docService.getDocs(ctx, arg)
+
+			_, err := docGetResponse(handler.client, arg, reply, nil, false)
+			if err != nil {
+				return err
+			}
+
+			err = fmt.Errorf("doc not exist, method is insert, vector field is necessary")
+			if reply == nil {
+				return err
+			}
+			if reply.Items == nil {
+				return err
+			}
+			if len(reply.Items) == 0 {
+				return err
+			}
+			if reply.Items[0].Err != nil && reply.Items[0].Err.Code != vearchpb.ErrorEnum_SUCCESS {
+				return err
+			}
 		}
 		doc := &vearchpb.Document{PKey: primaryKey, Fields: fields}
 

@@ -27,32 +27,39 @@ class VectorManager {
                 const std::string &root_path);
   ~VectorManager();
 
-  int SetVectorStoreType(std::string &retrieval_type, std::string &store_type_str,
-                        VectorStorageType &store_type);
+  int SetVectorStoreType(std::string &retrieval_type,
+                         std::string &store_type_str,
+                         VectorStorageType &store_type);
 
-  int CreateRawVector(struct VectorInfo &vector_info, std::string &retrieval_type,
+  int CreateRawVector(struct VectorInfo &vector_info,
+                      std::string &retrieval_type,
                       std::map<std::string, int> &vec_dups, TableInfo &table,
                       utils::JsonParser &vectors_jp, RawVector **vec);
 
   void DestroyRawVectors();
 
-  int CreateVectorIndex(std::string &retrieval_type, std::string &retrieval_param,
-                        RawVector *vec, int indexing_size, bool destroy_vec,
-                        std::map<std::string, RetrievalModel *> &vector_indexes);
+  int CreateVectorIndex(
+      std::string &retrieval_type, std::string &retrieval_param, RawVector *vec,
+      int indexing_size, bool destroy_vec,
+      std::map<std::string, RetrievalModel *> &vector_indexes);
 
   void DestroyVectorIndexes();
 
   void DescribeVectorIndexes();
 
-  int CreateVectorIndexes(int indexing_size, std::map<std::string, RetrievalModel *> &vector_indexes);
+  int CreateVectorIndexes(
+      int indexing_size,
+      std::map<std::string, RetrievalModel *> &vector_indexes);
 
-  void SetVectorIndexes(std::map<std::string, RetrievalModel *> &rebuild_vector_indexes);
+  void SetVectorIndexes(
+      std::map<std::string, RetrievalModel *> &rebuild_vector_indexes);
 
   int CreateVectorTable(TableInfo &table, utils::JsonParser *jp);
 
-  int AddToStore(int docid, std::vector<struct Field> &fields);
+  int AddToStore(int docid,
+                 std::unordered_map<std::string, struct Field> &fields);
 
-  int Update(int docid, std::vector<struct Field> &fields);
+  int Update(int docid, std::unordered_map<std::string, struct Field> &fields);
 
   int TrainIndex(std::map<std::string, RetrievalModel *> &vector_indexes);
 
@@ -60,7 +67,7 @@ class VectorManager {
 
   // int Add(int docid, const std::vector<Field *> &field_vecs);
   int Search(GammaQuery &query, GammaResult *results);
-  
+
   int GetVector(const std::vector<std::pair<std::string, int>> &fields_ids,
                 std::vector<std::string> &vec, bool is_bytearray = false);
 

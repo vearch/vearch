@@ -181,7 +181,6 @@ GammaEngine::GammaEngine(const string &index_root_path,
   is_dirty_ = false;
   field_range_index_ = nullptr;
   created_table_ = false;
-  b_loading_ = false;
   docids_bitmap_ = nullptr;
 #ifdef PERFORMANCE_TESTING
   search_num_ = 0;
@@ -593,8 +592,9 @@ int GammaEngine::AddOrUpdate(Doc &doc) {
 #ifdef PERFORMANCE_TESTING
   double start = utils::getmillisecs();
 #endif
-  std::vector<struct Field> &fields_table = doc.TableFields();
-  std::vector<struct Field> &fields_vec = doc.VectorFields();
+  auto &fields_table = doc.TableFields();
+  auto &fields_vec = doc.VectorFields();
+
   std::string &key = doc.Key();
 
   // add fields into table
@@ -603,8 +603,7 @@ int GammaEngine::AddOrUpdate(Doc &doc) {
   if (docid == -1) {
     int ret = table_->Add(key, fields_table, max_docid_);
     if (ret != 0) return -2;
-    for (size_t i = 0; i < fields_table.size(); ++i) {
-      struct Field &field = fields_table[i];
+    for (auto &[name, field] : fields_table) {
       int idx = table_->GetAttrIdx(field.name);
       field_range_index_->Add(max_docid_, idx);
     }
@@ -659,17 +658,17 @@ int GammaEngine::AddOrUpdateDocs(Docs &docs, BatchResult &result) {
   return 0;
 }
 
-int GammaEngine::Update(int doc_id, std::vector<struct Field> &fields_table,
-                        std::vector<struct Field> &fields_vec) {
+int GammaEngine::Update(
+    int doc_id, std::unordered_map<std::string, struct Field> &fields_table,
+    std::unordered_map<std::string, struct Field> &fields_vec) {
   int ret = vec_manager_->Update(doc_id, fields_vec);
   if (ret != 0) {
     return ret;
   }
 
-  std::vector<bool> is_equal = table_->CheckFieldIsEqual(fields_table, doc_id);
-  for (size_t i = 0; i < fields_table.size(); ++i) {
-    struct Field &field = fields_table[i];
-    if (is_equal[i] == true) {
+  auto is_equal = table_->CheckFieldIsEqual(fields_table, doc_id);
+  for (auto &[name, field] : fields_table) {
+    if (is_equal[name]) {
       continue;
     }
 
@@ -682,18 +681,15 @@ int GammaEngine::Update(int doc_id, std::vector<struct Field> &fields_table,
     return -1;
   }
 
-  for (size_t i = 0; i < fields_table.size(); ++i) {
-    if (is_equal[i] == true) {
+  for (auto &[name, field] : fields_table) {
+    if (is_equal[name]) {
       continue;
     }
-    struct Field &field = fields_table[i];
     int idx = table_->GetAttrIdx(field.name);
     field_range_index_->Add(doc_id, idx);
   }
 
-#ifdef DEBUG
-  LOG(INFO) << "update success! key=" << key;
-#endif
+  LOG(DEBUG) << "update success! key=" << fields_table["_id"].value;
   is_dirty_ = true;
   return 0;
 }
@@ -763,7 +759,7 @@ int GammaEngine::GetDoc(int docid, Doc &doc) {
       doc.AddField(field);
     }
   }
-  return ret;
+  return 0;
 }
 
 int GammaEngine::BuildIndex() {
@@ -995,7 +991,6 @@ int GammaEngine::CreateTableFromLocal(std::string &table_name) {
 }
 
 int GammaEngine::Load() {
-  b_loading_ = true;
   if (!created_table_) {
     string table_name;
     if (CreateTableFromLocal(table_name)) {
@@ -1111,7 +1106,6 @@ int GammaEngine::Load() {
             << ", load directory=" << last_dir
             << ", clean directorys(not done)="
             << utils::join(folders_not_done, ',');
-  b_loading_ = false;
   return 0;
 }
 
