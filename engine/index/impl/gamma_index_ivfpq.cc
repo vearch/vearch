@@ -250,6 +250,7 @@ RetrievalParameters *GammaIVFPQIndex::Parse(const std::string &parameters) {
   int recall_num;
   int nprobe;
   int parallel_on_queries;
+  int collect_metrics;
 
   if (!jp.GetInt("recall_num", recall_num)) {
     if (recall_num > 0) {
@@ -268,6 +269,12 @@ RetrievalParameters *GammaIVFPQIndex::Parse(const std::string &parameters) {
       retrieval_params->SetParallelOnQueries(true);
     } else {
       retrieval_params->SetParallelOnQueries(false);
+    }
+  }
+
+  if (!jp.GetInt("collect_metrics", collect_metrics)) {
+    if (collect_metrics > 0) {
+      retrieval_params->SetCollectMetrics(collect_metrics);
     }
   }
 
@@ -609,8 +616,7 @@ int reorder_result(faiss::MetricType metric_type, int k, float *simi,
 size_t scan_one_list(GammaInvertedListScanner *scanner, idx_t key,
                      float coarse_dis_i, float *simi, idx_t *idxi, int k,
                      idx_t nlist, faiss::InvertedLists *invlists,
-                     bool store_pairs, bool ivf_flat,
-                     MemoryRawVector *mem_raw_vec = nullptr) {
+                     bool store_pairs) {
   if (key < 0) {
     // not enough centroids for multiprobe
     return 0;
@@ -639,13 +645,9 @@ size_t scan_one_list(GammaInvertedListScanner *scanner, idx_t key,
 
   // scan_codes need uint8_t *
   const uint8_t *codes = nullptr;
+  faiss::InvertedLists::ScopedCodes scodes(invlists, key);
+  codes = scodes.get();
 
-  if (ivf_flat) {
-    codes = reinterpret_cast<uint8_t *>(mem_raw_vec);
-  } else {
-    faiss::InvertedLists::ScopedCodes scodes(invlists, key);
-    codes = scodes.get();
-  }
   scanner->scan_codes(list_size, codes, ids, simi, idxi, k);
 
   return list_size;
@@ -786,19 +788,21 @@ void GammaIVFPQIndex::search_preassigned(
   retrieval_context->GetPerfTool().Perf("search prepare");
 #endif
 
-  bool parallel_mode = retrieval_params->ParallelOnQueries() ? 0 : 1;
+  bool parallel_mode = (retrieval_params->ParallelOnQueries() || (n > 1)) ? 0 : 1;
 
-  // don't start parallel section if single query
-  bool do_parallel =
-      omp_get_max_threads() >= 2 && (parallel_mode == 0 ? n > 1 : nprobe > 1);
+  bool do_parallel = omp_get_max_threads() >= 2 &&
+          (parallel_mode == 0  ? false
+              : parallel_mode == 1 ? nprobe > 1
+              : nprobe * n > 1);
+  
+  int threads_num = n < omp_get_max_threads() ? n : omp_get_max_threads();
 
-#pragma omp parallel if (do_parallel) reduction(+ : ndis)
+#pragma omp parallel if (do_parallel) reduction(+ : ndis) num_threads(threads_num)
   {
     GammaInvertedListScanner *scanner =
         GetInvertedListScanner(store_pairs, metric_type);
     utils::ScopeDeleter1<GammaInvertedListScanner> del(scanner);
     scanner->set_search_context(retrieval_context);
-    int threads_num = n < omp_get_max_threads() ? n : omp_get_max_threads();
 
     if (parallel_mode == 0) {  // parallelize over queries
 #pragma omp parallel for schedule(dynamic) num_threads(threads_num)
@@ -822,7 +826,7 @@ void GammaIVFPQIndex::search_preassigned(
           nscan += scan_one_list(scanner, keys[i * nprobe + ik],
                                  coarse_dis[i * nprobe + ik], recall_simi,
                                  recall_idxi, recall_num, this->nlist,
-                                 this->invlists, store_pairs, false);
+                                 this->invlists, store_pairs);
 
           if (max_codes && nscan >= max_codes) break;
         }
@@ -848,12 +852,15 @@ void GammaIVFPQIndex::search_preassigned(
 
 #pragma omp parallel for schedule(dynamic) num_threads(threads_num)
         for (int ik = 0; ik < nprobe; ik++) {
-          ndis += scan_one_list(scanner, keys[i * nprobe + ik],
+          size_t nscan = scan_one_list(scanner, keys[i * nprobe + ik],
                                 coarse_dis[i * nprobe + ik], local_dis.data(),
                                 local_idx.data(), recall_num, this->nlist,
-                                this->invlists, store_pairs, false);
-
+                                this->invlists, store_pairs);
+          ndis += nscan;
           // can't do the test on max_codes
+          if (retrieval_params->CollectMetrics()) {
+            LOG(TRACE) << "nscan: " << nscan << ", ik: " << ik << ", i: " << i;
+          }
         }
 
         // merge thread-local results
@@ -900,7 +907,9 @@ void GammaIVFPQIndex::search_preassigned(
       }
     }
   }  // parallel
-
+  if (retrieval_params->CollectMetrics()) {
+    LOG(TRACE) << "parallel_mode: " << parallel_mode << ", nprobe: " << nprobe << ", ndis: " << ndis;
+  }
 #ifdef PERFORMANCE_TESTING
   std::string compute_msg = "compute ";
   compute_msg += std::to_string(n);

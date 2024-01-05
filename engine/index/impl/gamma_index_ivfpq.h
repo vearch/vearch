@@ -630,23 +630,26 @@ class IVFPQRetrievalParameters : public RetrievalParameters {
  public:
   IVFPQRetrievalParameters() : RetrievalParameters() {
     parallel_on_queries_ = true;
-    recall_num_ = 100;
+    recall_num_ = -1;
     nprobe_ = -1;
+    collect_metrics_ = 0;
   }
 
   IVFPQRetrievalParameters(bool parallel_on_queries, int recall_num, int nprobe,
-                           enum DistanceComputeType type) {
+                           enum DistanceComputeType type, int collect_metrics) {
     parallel_on_queries_ = parallel_on_queries;
     recall_num_ = recall_num;
     nprobe_ = nprobe;
     distance_compute_type_ = type;
+    collect_metrics_ = collect_metrics;
   }
 
   IVFPQRetrievalParameters(enum DistanceComputeType type) {
     parallel_on_queries_ = true;
-    recall_num_ = 100;
+    recall_num_ = -1;
     nprobe_ = -1;
     distance_compute_type_ = type;
+    collect_metrics_ = 0;
   }
 
   virtual ~IVFPQRetrievalParameters() {}

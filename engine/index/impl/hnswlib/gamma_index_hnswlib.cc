@@ -7,9 +7,7 @@
 
 #include "gamma_index_hnswlib.h"
 
-#include <immintrin.h>
 #include <unistd.h>
-
 #include <cstdlib>
 #include <mutex>
 #include <string>

@@ -67,8 +67,12 @@ class RetrievalParameters {
     distance_compute_type_ = type;
   }
 
+  int CollectMetrics() { return collect_metrics_; }
+  void SetCollectMetrics(int collect_metrics) { collect_metrics_ = collect_metrics; }
+
  protected:
   enum DistanceComputeType distance_compute_type_;
+  int collect_metrics_;
 };
 
 // Retrieval context used in search,

@@ -399,7 +399,7 @@ class HierarchicalNSW : public AlgorithmInterface<dist_t> {
 
     visited_list_pool_->releaseVisitedList(vl);
     if (collect_metrics) {
-      LOG(DEBUG) << "hops: " << metric_hops << ", computations=" << metric_distance_computations;
+      LOG(TRACE) << "hops: " << metric_hops << ", computations=" << metric_distance_computations;
     }
     return top_candidates;
   }

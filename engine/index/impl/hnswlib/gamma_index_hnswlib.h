@@ -51,13 +51,9 @@ class HNSWLIBRetrievalParameters : public RetrievalParameters {
   int DoEfSearchCheck() { return do_efSearch_check_; }
   void SetDoEfSearchCheck(int do_efSearch_check) { do_efSearch_check_ = do_efSearch_check; }
 
-  int CollectMetrics() { return collect_metrics_; }
-  void SetCollectMetrics(int collect_metrics) { collect_metrics_ = collect_metrics; }
-
  private:
   int efSearch_;
   int do_efSearch_check_;
-  int collect_metrics_;
 };
 
 struct GammaIndexHNSWLIB : public GammaFLATIndex,
