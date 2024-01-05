@@ -296,7 +296,7 @@ int Table::Add(const std::string &key,
     }
   }
 
-  uint8_t doc_value[item_length_] = {0};
+  std::vector<uint8_t> doc_value(item_length_, 0);
 
   for (const auto &[name, field] : fields) {
     size_t offset = attr_offset_map_[name];
@@ -305,14 +305,14 @@ int Table::Add(const std::string &key,
 
     if (attr != DataType::STRING) {
       int type_size = FTypeSize(attr);
-      memcpy(doc_value + offset, field.value.c_str(), type_size);
+      memcpy(doc_value.data() + offset, field.value.c_str(), type_size);
     } else {
       int len = field.value.size();
       storage_mgr_->AddString(docid, name, field.value.c_str(), len);
     }
   }
 
-  storage_mgr_->Add(docid, doc_value, item_length_);
+  storage_mgr_->Add(docid, doc_value.data(), item_length_);
 
   if (docid % 10000 == 0) {
     if (id_type_ == 0) {
@@ -565,14 +565,14 @@ int Table::GetFieldType(const std::string &field_name, DataType &type) {
 }
 
 int Table::GetAttrType(std::map<std::string, DataType> &attr_type_map) {
-  for (const auto attr_type : attr_type_map_) {
+  for (const auto &attr_type : attr_type_map_) {
     attr_type_map.insert(attr_type);
   }
   return 0;
 }
 
 int Table::GetAttrIsIndex(std::map<std::string, bool> &attr_is_index_map) {
-  for (const auto attr_is_index : attr_is_index_map_) {
+  for (const auto &attr_is_index : attr_is_index_map_) {
     attr_is_index_map.insert(attr_is_index);
   }
   return 0;
