@@ -74,7 +74,7 @@ class RawVector : public VectorReader {
    *
    * @return 0 if successed
    */
-  int Init(std::string vec_name, bool has_source, bool multi_vids);
+  int Init(std::string vec_name, bool multi_vids);
 
   /** get the header of vectors, so it can access vecotors through the
    * header if dimension is known
@@ -117,16 +117,6 @@ class RawVector : public VectorReader {
    * @return 0 if successed
    */
   virtual int Gets(const std::vector<int64_t> &vids, ScopeVectors &vecs) const;
-
-  /** get source of one vector, source is a string, for example the image url of
-   *  vector
-   *
-   * @param vid   vector id
-   * @param str   (output) the pointer of source string
-   * @param len   (output) the len of source string
-   * @return 0    if successed
-   */
-  int GetSource(int vid, char *&str, int &len);
 
   /** add one vector field
    *
@@ -185,11 +175,8 @@ class RawVector : public VectorReader {
   long vector_byte_size_;
   int data_size_;
 
-  long total_mem_bytes_;              // total used memory bytes
-  char *str_mem_ptr_;                 // source memory
-  std::vector<long> source_mem_pos_;  // position of each source
-  bool has_source_;
-  std::string desc_;  // description of this raw vector
+  long total_mem_bytes_;  // total used memory bytes
+  std::string desc_;      // description of this raw vector
   StoreParams store_params_;
   bitmap::BitmapManager *docids_bitmap_;
   VIDMgr *vid_mgr_;

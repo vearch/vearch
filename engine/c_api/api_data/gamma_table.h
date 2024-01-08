@@ -34,7 +34,6 @@ struct VectorInfo {
   std::string model_id;
   std::string store_type;
   std::string store_param;
-  bool has_source;
 };
 
 struct FieldInfo {

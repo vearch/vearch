@@ -107,11 +107,6 @@ int Response::Serialize(const std::string &space_name,
           cJSON_AddStringToObject(vec_field_json,
                                   EXTRA_VECTOR_FIELD_NAME.c_str(),
                                   vec_field->name.c_str());
-          std::string source =
-              std::string(vec_field->source, vec_field->source_len);
-          cJSON_AddStringToObject(vec_field_json,
-                                  EXTRA_VECTOR_FIELD_SOURCE.c_str(),
-                                  source.c_str());
           cJSON_AddNumberToObject(vec_field_json,
                                   EXTRA_VECTOR_FIELD_SCORE.c_str(),
                                   vec_field->score);
@@ -288,9 +283,6 @@ int Response::PackResultItem(const VectorDoc *vec_doc,
 
     cJSON_AddStringToObject(vec_field_json, EXTRA_VECTOR_FIELD_NAME.c_str(),
                             vec_field->name.c_str());
-    std::string source = std::string(vec_field->source, vec_field->source_len);
-    cJSON_AddStringToObject(vec_field_json, EXTRA_VECTOR_FIELD_SOURCE.c_str(),
-                            source.c_str());
     cJSON_AddNumberToObject(vec_field_json, EXTRA_VECTOR_FIELD_SCORE.c_str(),
                             vec_field->score);
     cJSON_AddItemToArray(vec_result_json, vec_field_json);

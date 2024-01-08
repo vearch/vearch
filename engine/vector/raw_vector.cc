@@ -30,30 +30,19 @@ RawVector::RawVector(VectorMetaInfo *meta_info, const string &root_path,
       docids_bitmap_(docids_bitmap) {
   data_size_ = meta_info_->DataSize();
   vio_ = nullptr;
-  str_mem_ptr_ = nullptr;
   vid_mgr_ = nullptr;
 }
 
 RawVector::~RawVector() {
-  CHECK_DELETE_ARRAY(str_mem_ptr_);
   CHECK_DELETE(vid_mgr_);
 }
 
-int RawVector::Init(std::string vec_name, bool has_source, bool multi_vids) {
+int RawVector::Init(std::string vec_name, bool multi_vids) {
   desc_ += "raw vector=" + meta_info_->Name() + ", ";
-  if (has_source || multi_vids) {
-    LOG(ERROR) << "source and multi-vids is unsupported now";
+  if (multi_vids) {
+    LOG(ERROR) << "multi-vids is unsupported now";
     return -1;
   }
-  // source
-  str_mem_ptr_ = nullptr;
-  if (has_source) {
-    uint64_t len = (uint64_t)kInitSize * 100;
-    str_mem_ptr_ = new (std::nothrow) char[len];
-    source_mem_pos_.resize(kInitSize + 1, 0);
-    total_mem_bytes_ += len + kInitSize * sizeof(long);
-  }
-  has_source_ = has_source;
 
   // vid2docid
   vid_mgr_ = new VIDMgr(multi_vids);
@@ -64,7 +53,7 @@ int RawVector::Init(std::string vec_name, bool has_source, bool multi_vids) {
   if (InitStore(vec_name)) return -2;
 
   LOG(INFO) << "raw vector init success! name=" << meta_info_->Name()
-            << ", has source=" << has_source << ", multi_vids=" << multi_vids
+            << ", multi_vids=" << multi_vids
             << ", vector_byte_size=" << vector_byte_size_
             << ", dimension=" << meta_info_->Dimension();
   return 0;
@@ -86,18 +75,6 @@ int RawVector::Gets(const std::vector<int64_t> &vids,
   return 0;
 }
 
-int RawVector::GetSource(int vid, char *&str, int &len) {
-  if (vid < 0 || vid >= (int)meta_info_->Size()) return -1;
-  if (!has_source_) {
-    str = nullptr;
-    len = 0;
-    return 0;
-  }
-  len = source_mem_pos_[vid + 1] - source_mem_pos_[vid];
-  str = str_mem_ptr_ + source_mem_pos_[vid];
-  return 0;
-}
-
 int RawVector::Add(int docid, struct Field &field) {
   if (field.value.size() != (size_t)data_size_ * meta_info_->Dimension()) {
     LOG(ERROR) << "Doc [" << docid << "] len [" << field.value.size() << "]";
@@ -109,18 +86,6 @@ int RawVector::Add(int docid, struct Field &field) {
     return -2;
   }
 
-  // add to source
-  if (has_source_) {
-    size_t size = meta_info_->Size();
-    int len = field.source.size();
-    if (len > 0) {
-      memcpy(str_mem_ptr_ + source_mem_pos_[size], field.source.c_str(),
-             len * sizeof(char));
-      source_mem_pos_[size + 1] = source_mem_pos_[size] + len;
-    } else {
-      source_mem_pos_[size + 1] = source_mem_pos_[size];
-    }
-  }
   return vid_mgr_->Add(meta_info_->size_++, docid);
 }
 

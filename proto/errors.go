@@ -75,14 +75,13 @@ const (
 	ERRCODE_PARTITION_IS_CLOSED
 	ERRCODE_DOCUMENT_NOT_EXIST
 	ERRCODE_DOCUMENT_EXIST
-	ERRCODE_DOCUMENT_MUST_HAS_SOURCE
 	ERRCODE_PULL_OUT_VERSION_NOT_MATCH
 	ERRCODE_FUNC_CAN_NOT_INVOKE_IN_FROZEN_ENGINE
 )
 
 const SUCCESS = "success"
 
-//General server err
+// General server err
 var (
 	errGeneralSuccess            = errors.New(SUCCESS)
 	errGeneralMethodNotImplement = errors.New("method not implement")
@@ -95,7 +94,7 @@ var (
 	errGeneralNameOrPassword     = errors.New("username or password err")
 )
 
-//Partition err
+// Partition err
 var (
 	errPartitionDuplicate             = errors.New("Partition Already Exists")
 	errPartitionNotExist              = errors.New("Partition Not Exists")
@@ -117,7 +116,6 @@ var (
 	errDocumentMergeVersionNotSpecified = errors.New("document merge version not specified")
 	errDocPulloutVersionNotMatch        = errors.New("document pullout version not match")
 	errDocumentExist                    = errors.New("Document Exists")
-	errDocumentMustHasSource            = errors.New("Document Must has source")
 )
 var (
 	errMasterAuthenticationFailed            = errors.New("master authentication failed")
@@ -157,7 +155,7 @@ var (
 	errMasterServerIsNotRunning = errors.New("master server is not running")
 )
 
-//get err code by error if error is nil , return ERRCODE_SUCCESS
+// get err code by error if error is nil , return ERRCODE_SUCCESS
 func ErrCode(err error) int64 {
 	if err == nil {
 		return int64(vearchpb.ErrorEnum_SUCCESS)
@@ -242,7 +240,6 @@ var code2ErrMap = map[int64]error{
 	ERRCODE_PARTITION_IS_INVALID:                 errPartitionInvalid,
 	ERRCODE_DOCUMENT_NOT_EXIST:                   errDocumentNotExist,
 	ERRCODE_DOCUMENT_EXIST:                       errDocumentExist,
-	ERRCODE_DOCUMENT_MUST_HAS_SOURCE:             errDocumentMustHasSource,
 	ERRCODE_PULL_OUT_VERSION_NOT_MATCH:           errDocPulloutVersionNotMatch,
 	ERRCODE_FUNC_CAN_NOT_INVOKE_IN_FROZEN_ENGINE: errFuncCanNotInvokeInFrozenEngine,
 	ERRCODE_NAME_OR_PASSWORD:                     errGeneralNameOrPassword,

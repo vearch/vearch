@@ -16,7 +16,6 @@ import (
 type Field struct {
 	Name     string
 	Value    []byte
-	Source   string
 	Datatype DataType
 }
 
@@ -27,15 +26,13 @@ type Doc struct {
 
 func (doc *Doc) Serialize() []byte {
 	builder := flatbuffers.NewBuilder(0)
-	var names, values, sources []flatbuffers.UOffsetT
+	var names, values []flatbuffers.UOffsetT
 	names = make([]flatbuffers.UOffsetT, len(doc.Fields))
 	values = make([]flatbuffers.UOffsetT, len(doc.Fields))
-	sources = make([]flatbuffers.UOffsetT, len(doc.Fields))
 	i := 0
 	for _, field := range doc.Fields {
 		names[i] = builder.CreateString(field.Name)
 		values[i] = builder.CreateString(string(field.Value))
-		sources[i] = builder.CreateString(field.Source)
 		i++
 	}
 
@@ -45,7 +42,6 @@ func (doc *Doc) Serialize() []byte {
 		gamma_api.FieldStart(builder)
 		gamma_api.FieldAddName(builder, names[i])
 		gamma_api.FieldAddValue(builder, values[i])
-		gamma_api.FieldAddSource(builder, sources[i])
 		gamma_api.FieldAddDataType(builder, int8(doc.Fields[i].Type))
 		fields[i] = gamma_api.FieldEnd(builder)
 	}
@@ -74,7 +70,6 @@ func (doc *Doc) DeSerialize(buffer []byte) {
 		doc.Fields[i] = &vearchpb.Field{}
 		doc.Fields[i].Name = string(field.Name())
 		doc.Fields[i].Value = field.ValueBytes()
-		doc.Fields[i].Source = string(field.Source())
 		doc.Fields[i].Type = vearchpb.FieldType(field.DataType())
 	}
 }

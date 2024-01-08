@@ -199,7 +199,6 @@ func (dm *DocumentMapping) processProperty(context *walkContext, fieldName strin
 		if dm.Field != nil {
 			fm := dm.Field
 			if fm.FieldType() == vearchpb.FieldType_VECTOR {
-				source := v.GetStringBytes("source")
 				feature := v.GetArray("feature")
 				if strings.Compare("BINARYIVF", retrievalType) == 0 {
 					vector := make([]uint8, len(feature))
@@ -211,7 +210,7 @@ func (dm *DocumentMapping) processProperty(context *walkContext, fieldName strin
 							vector[i] = uint8(int8)
 						}
 					}
-					field, err := processVectorBinary(context, fm, pathString, vector, string(source))
+					field, err := processVectorBinary(context, fm, pathString, vector)
 					if err != nil {
 						context.Err = fmt.Errorf("process vectory binary err:[%s] m value:[%v]", err.Error(), vector)
 						return
@@ -232,7 +231,7 @@ func (dm *DocumentMapping) processProperty(context *walkContext, fieldName strin
 						}
 					}
 
-					field, err := processVector(context, fm, pathString, vector, string(source))
+					field, err := processVector(context, fm, pathString, vector)
 					if err != nil {
 						context.Err = fmt.Errorf("process vectory err:[%s] m value:[%v]", err.Error(), vector)
 						return

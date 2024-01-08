@@ -192,7 +192,7 @@ func processPropertyBool(v *fastjson.Value, pathString string, pro *entity.Space
 	return field, nil
 }
 
-func processPropertyObjectVectorBinary(feature []*fastjson.Value, source []byte, pathString string, pro *entity.SpaceProperties) (*vearchpb.Field, error) {
+func processPropertyObjectVectorBinary(feature []*fastjson.Value, pathString string, pro *entity.SpaceProperties) (*vearchpb.Field, error) {
 	vector := make([]uint8, len(feature))
 	for i := 0; i < len(feature); i++ {
 		uint8Value, err := feature[i].Int()
@@ -205,8 +205,7 @@ func processPropertyObjectVectorBinary(feature []*fastjson.Value, source []byte,
 		}
 		vector[i] = uint8(uint8Value)
 	}
-	field, err := processVectorBinary(pro, pathString, vector, string(source))
-	field.Source = string(source)
+	field, err := processVectorBinary(pro, pathString, vector)
 	if err != nil {
 		log.Error("process vectory binary err:[%s] m value:[%v]", err.Error(), vector)
 		return nil, fmt.Errorf("process vectory binary err:[%s] m value:[%v]", err.Error(), vector)
@@ -214,7 +213,7 @@ func processPropertyObjectVectorBinary(feature []*fastjson.Value, source []byte,
 	return field, nil
 }
 
-func processPropertyObjectVectorOther(feature []*fastjson.Value, source []byte, pathString string, pro *entity.SpaceProperties) (*vearchpb.Field, error) {
+func processPropertyObjectVectorOther(feature []*fastjson.Value, pathString string, pro *entity.SpaceProperties) (*vearchpb.Field, error) {
 	vector := make([]float32, len(feature))
 	for i := 0; i < len(feature); i++ {
 		if f64, err := feature[i].Float64(); err != nil {
@@ -227,7 +226,7 @@ func processPropertyObjectVectorOther(feature []*fastjson.Value, source []byte, 
 			vector[i] = float32(f64)
 		}
 	}
-	field, err := processVector(pro, pathString, vector, string(source))
+	field, err := processVector(pro, pathString, vector)
 	if err != nil {
 		log.Error("process vectory err:[%s] m value:[%v]", err.Error(), vector)
 		return nil, fmt.Errorf("process vectory err:[%s] m value:[%v]", err.Error(), vector)
@@ -269,12 +268,11 @@ func processPropertyObject(v *fastjson.Value, pathString string, pro *entity.Spa
 	field := &vearchpb.Field{Name: ""}
 	err := fmt.Errorf("parse param processPropertyObject err retrievalType:%s", retrievalType)
 	if pro.FieldType == entity.FieldType_VECTOR {
-		source := v.GetStringBytes("source")
 		feature := v.GetArray("feature")
 		if strings.Compare(retrievalType, "BINARYIVF") == 0 {
-			field, err = processPropertyObjectVectorBinary(feature, source, pathString, pro)
+			field, err = processPropertyObjectVectorBinary(feature, pathString, pro)
 		} else {
-			field, err = processPropertyObjectVectorOther(feature, source, pathString, pro)
+			field, err = processPropertyObjectVectorOther(feature, pathString, pro)
 		}
 	}
 	return field, err
@@ -549,14 +547,14 @@ func processBool(pro *entity.SpaceProperties, fieldName string, val bool) (*vear
 	}
 }
 
-func processVectorBinary(pro *entity.SpaceProperties, fieldName string, val []uint8, source string) (*vearchpb.Field, error) {
+func processVectorBinary(pro *entity.SpaceProperties, fieldName string, val []uint8) (*vearchpb.Field, error) {
 	switch pro.FieldType {
 	case entity.FieldType_VECTOR:
 		if pro.Dimension > 0 && (pro.Dimension)/8 != len(val) {
 			return nil, fmt.Errorf("processVectorBinary field:[%s] vector_length err ,schema is:[%d] but input :[%d]", fieldName, pro.Dimension, len(val))
 		}
 
-		bs, err := cbbytes.VectorBinaryToByte(val, source)
+		bs, err := cbbytes.VectorBinaryToByte(val)
 		if err != nil {
 			return nil, err
 		}
@@ -571,7 +569,7 @@ func processVectorBinary(pro *entity.SpaceProperties, fieldName string, val []ui
 	}
 }
 
-func processVector(pro *entity.SpaceProperties, fieldName string, val []float32, source string) (*vearchpb.Field, error) {
+func processVector(pro *entity.SpaceProperties, fieldName string, val []float32) (*vearchpb.Field, error) {
 	field := &vearchpb.Field{Name: fieldName}
 	err := fmt.Errorf("parse param processVector err,fieldName:%s", fieldName)
 
@@ -582,7 +580,7 @@ func processVector(pro *entity.SpaceProperties, fieldName string, val []float32,
 			return field, err
 		}
 
-		bs, err := cbbytes.VectorToByte(val, source)
+		bs, err := cbbytes.VectorToByte(val)
 		if err != nil {
 			field = nil
 			log.Error("processVector VectorToByte error: %v", err)
@@ -592,7 +590,6 @@ func processVector(pro *entity.SpaceProperties, fieldName string, val []float32,
 				opt = vearchpb.FieldOption_Index
 			}
 			field, err = processField(fieldName, vearchpb.FieldType_VECTOR, bs, opt)
-			field.Source = source
 			return field, err
 		}
 	default:

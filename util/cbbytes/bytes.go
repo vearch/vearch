@@ -112,11 +112,11 @@ func FormatIByte(s uint64) string {
 	return humanFormat(s, 1024, iecSizes)
 }
 
-func VectorToByte(vector []float32, source string) ([]byte, error) {
+func VectorToByte(vector []float32) ([]byte, error) {
 	return FloatArrayByte(vector)
 }
 
-func VectorBinaryToByte(vector []uint8, source string) ([]byte, error) {
+func VectorBinaryToByte(vector []uint8) ([]byte, error) {
 	byteArr, error := UInt8ArrayToByteArray(vector)
 	return byteArr, error
 }

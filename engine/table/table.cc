@@ -431,9 +431,7 @@ int Table::GetDocInfo(const int docid, Doc &doc,
 
   auto assign_field = [&](struct Field &field, const std::string &field_name) {
     DataType type = attr_type_map_[field_name];
-    std::string source;
     field.name = field_name;
-    field.source = source;
     field.datatype = type;
   };
 

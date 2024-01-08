@@ -123,9 +123,8 @@ int VectorManager::CreateRawVector(struct VectorInfo &vector_info,
   }
   LOG(INFO) << "create raw vector success, vec_name[" << vec_name
             << "] store_type[" << store_type_str << "]";
-  bool has_source = vector_info.has_source;
   bool multi_vids = vec_dups[vec_name] > 1 ? true : false;
-  int ret = (*vec)->Init(vec_name, has_source, multi_vids);
+  int ret = (*vec)->Init(vec_name, multi_vids);
   if (ret != 0) {
     LOG(ERROR) << "Raw vector " << vec_name << " init error, code [" << ret
                << "]!";
@@ -528,12 +527,6 @@ int parse_index_search_result(int n, int k, VectorResult &result,
       if (docid2count.find(real_docid) == docid2count.end()) {
         int real_pos = i * k + pos;
         result.docids[real_pos] = real_docid;
-        int ret = raw_vec->GetSource(vector_id, result.sources[real_pos],
-                                     result.source_lens[real_pos]);
-        if (ret != 0) {
-          result.sources[real_pos] = nullptr;
-          result.source_lens[real_pos] = 0;
-        }
         result.dists[real_pos] = result.dists[i * k + j];
 
         pos++;
@@ -648,10 +641,7 @@ int VectorManager::Search(GammaQuery &query, GammaResult *results) {
       while (start_docid < INT_MAX) {
         for (size_t j = 0; j < vec_num; j++) {
           float vec_dist = 0;
-          char *source = nullptr;
-          int source_len = 0;
-          int cur_docid = all_vector_results[j].seek(i, start_docid, vec_dist,
-                                                     source, source_len);
+          int cur_docid = all_vector_results[j].seek(i, start_docid, vec_dist);
           if (cur_docid == start_docid) {
             common_docid_count++;
             double field_score = query.vec_query[j].has_boost == 1
@@ -659,8 +649,6 @@ int VectorManager::Search(GammaQuery &query, GammaResult *results) {
                                      : vec_dist;
             score += field_score;
             results[i].docs[common_idx]->fields[j].score = field_score;
-            results[i].docs[common_idx]->fields[j].source = source;
-            results[i].docs[common_idx]->fields[j].source_len = source_len;
             if (common_docid_count == vec_num) {
               results[i].docs[common_idx]->docid = start_docid;
               results[i].docs[common_idx++]->score = score;
@@ -716,11 +704,6 @@ int VectorManager::Search(GammaQuery &query, GammaResult *results) {
         if (all_vector_results[0].docids[real_pos] == -1) continue;
         results[i].docs[pos]->docid = all_vector_results[0].docids[real_pos];
 
-        results[i].docs[pos]->fields[0].source =
-            all_vector_results[0].sources[real_pos];
-        results[i].docs[pos]->fields[0].source_len =
-            all_vector_results[0].source_lens[real_pos];
-
         double score = all_vector_results[0].dists[real_pos];
 
         score = query.vec_query[0].has_boost == 1
@@ -758,15 +741,6 @@ int VectorManager::GetVector(
     }
     int vid = raw_vec->VidMgr()->GetFirstVID(id);
 
-    char *source = nullptr;
-    int len = -1;
-    int ret = raw_vec->GetSource(vid, source, len);
-
-    if (ret != 0 || len < 0) {
-      LOG(DEBUG) << "Get " << id << " source failed!";
-      return -1;
-    }
-
     ScopeVector scope_vec;
     raw_vec->GetVector(vid, scope_vec);
     const float *feature = (const float *)(scope_vec.Get());
@@ -775,7 +749,7 @@ int VectorManager::GetVector(
       int d = raw_vec->MetaInfo()->Dimension();
       int d_byte = d * raw_vec->MetaInfo()->DataSize();
 
-      char feat_source[sizeof(d) + d_byte + len];
+      char feat_source[sizeof(d) + d_byte];
 
       memcpy((void *)feat_source, &d_byte, sizeof(int));
       int cur = sizeof(d_byte);
@@ -783,10 +757,7 @@ int VectorManager::GetVector(
       memcpy((void *)(feat_source + cur), feature, d_byte);
       cur += d_byte;
 
-      memcpy((void *)(feat_source + cur), source, len);
-
-      str_vec =
-          std::string((char *)feat_source, sizeof(unsigned int) + d_byte + len);
+      str_vec = std::string((char *)feat_source, sizeof(unsigned int) + d_byte);
     } else {
       VectorValueType data_type = raw_vec->MetaInfo()->DataType();
       if (data_type == VectorValueType::FLOAT) {
@@ -819,14 +790,6 @@ int VectorManager::GetDocVector(int docid, std::string &field_name,
   }
   int vid = raw_vec->VidMgr()->GetFirstVID(docid);
 
-  char *source = nullptr;
-  int len = -1;
-  int ret = raw_vec->GetSource(vid, source, len);
-
-  if (ret != 0 || len < 0) {
-    LOG(ERROR) << "Get source failed!";
-    return -1;
-  }
   ScopeVector scope_vec;
   raw_vec->GetVector(vid, scope_vec);
   const float *feature = (const float *)(scope_vec.Get());
@@ -834,13 +797,10 @@ int VectorManager::GetDocVector(int docid, std::string &field_name,
   int d = raw_vec->MetaInfo()->Dimension();
   int d_byte = d * raw_vec->MetaInfo()->DataSize();
 
-  vec.resize(sizeof(d) + d_byte + len);
-  // char feat_source[sizeof(d) + d_byte + len];
+  vec.resize(sizeof(d) + d_byte);
   memcpy((void *)vec.data(), &d_byte, sizeof(int));
   int cur = sizeof(d_byte);
   memcpy((void *)(vec.data() + cur), feature, d_byte);
-  cur += d_byte;
-  memcpy((void *)(vec.data() + cur), source, len);
   return 0;
 }
 

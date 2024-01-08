@@ -67,14 +67,7 @@ class VectorInfo(object):
             return self._tab.String(o + self._tab.Pos)
         return None
 
-    # VectorInfo
-    def HasSource(self):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(18))
-        if o != 0:
-            return bool(self._tab.Get(flatbuffers.number_types.BoolFlags, o + self._tab.Pos))
-        return False
-
-def VectorInfoStart(builder): builder.StartObject(8)
+def VectorInfoStart(builder): builder.StartObject(7)
 def VectorInfoAddName(builder, name): builder.PrependUOffsetTRelativeSlot(0, flatbuffers.number_types.UOffsetTFlags.py_type(name), 0)
 def VectorInfoAddDataType(builder, dataType): builder.PrependInt8Slot(1, dataType, 0)
 def VectorInfoAddIsIndex(builder, isIndex): builder.PrependBoolSlot(2, isIndex, 0)
@@ -82,5 +75,4 @@ def VectorInfoAddDimension(builder, dimension): builder.PrependInt32Slot(3, dime
 def VectorInfoAddModelId(builder, modelId): builder.PrependUOffsetTRelativeSlot(4, flatbuffers.number_types.UOffsetTFlags.py_type(modelId), 0)
 def VectorInfoAddStoreType(builder, storeType): builder.PrependUOffsetTRelativeSlot(5, flatbuffers.number_types.UOffsetTFlags.py_type(storeType), 0)
 def VectorInfoAddStoreParam(builder, storeParam): builder.PrependUOffsetTRelativeSlot(6, flatbuffers.number_types.UOffsetTFlags.py_type(storeParam), 0)
-def VectorInfoAddHasSource(builder, hasSource): builder.PrependBoolSlot(7, hasSource, 0)
 def VectorInfoEnd(builder): return builder.EndObject()

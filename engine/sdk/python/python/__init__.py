@@ -196,7 +196,6 @@ class GammaVectorInfo:
         model_id: str = "",
         store_type: str = "MemoryOnly",
         store_param: dict = {},
-        has_source: bool = False,
     ):
         self.name = name
         self.type = type
@@ -205,7 +204,6 @@ class GammaVectorInfo:
         self.model_id = model_id
         self.store_type = store_type
         self.store_param = store_param
-        self.has_source = has_source
 
     def print_self(self):
         print("name:", self.name)
@@ -215,7 +213,6 @@ class GammaVectorInfo:
         print("model_id:", self.model_id)
         print("store_type:", self.store_type)
         print("store_param:", self.store_param)
-        print("has_source:", self.has_source)
 
 
 class ParseTable:
@@ -339,7 +336,6 @@ class GammaTable:
             VectorInfo.VectorInfoAddModelId(builder, fb_str_model_id)
             VectorInfo.VectorInfoAddStoreType(builder, fb_str_store_type)
             VectorInfo.VectorInfoAddStoreParam(builder, fb_str_store_param)
-            VectorInfo.VectorInfoAddHasSource(builder, vec_infos[key].has_source)
             lst_VecInfos.append(VectorInfo.VectorInfoEnd(builder))
         Table.TableStartVectorsInfoVector(builder, len(vec_infos))
         for i in lst_VecInfos:
@@ -424,7 +420,6 @@ class GammaTable:
                 model_id = table.VectorsInfo(i).ModelId().decode("utf-8"),
                 store_type = table.VectorsInfo(i).StoreType().decode("utf-8"),
                 store_param = json.loads(table.VectorsInfo(i).StoreParam()),
-                has_source = table.VectorsInfo(i).HasSource(),
             )
             self.vec_infos[vec_info.name] = vec_info
 

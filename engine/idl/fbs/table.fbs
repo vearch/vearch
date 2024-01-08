@@ -16,7 +16,6 @@ table VectorInfo {
   model_id:string;
   store_type:string;
   store_param:string;
-  has_source:bool;
 }
 
 table Table {

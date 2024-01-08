@@ -28,18 +28,18 @@ int TableInfo::Serialize(char **out, int *out_len) {
         builder, builder.CreateString(v.name),
         static_cast<::DataType>(v.data_type), v.is_index, v.dimension,
         builder.CreateString(v.model_id), builder.CreateString(v.store_type),
-        builder.CreateString(v.store_param), v.has_source);
+        builder.CreateString(v.store_param));
     vector_info_vector.push_back(vectorinfo);
   }
 
-  auto table = gamma_api::CreateTable(builder, builder.CreateString(name_),
-                                      builder.CreateVector(field_info_vector),
-                                      builder.CreateVector(vector_info_vector),
-                                      indexing_size_, compress_mode_,
-                                      builder.CreateString(retrieval_type_),
-                                      builder.CreateString(retrieval_param_),
-				      builder.CreateVectorOfStrings(retrieval_types_),
-				      builder.CreateVectorOfStrings(retrieval_params_));
+  auto table = gamma_api::CreateTable(
+      builder, builder.CreateString(name_),
+      builder.CreateVector(field_info_vector),
+      builder.CreateVector(vector_info_vector), indexing_size_, compress_mode_,
+      builder.CreateString(retrieval_type_),
+      builder.CreateString(retrieval_param_),
+      builder.CreateVectorOfStrings(retrieval_types_),
+      builder.CreateVectorOfStrings(retrieval_params_));
   builder.Finish(table);
   *out_len = builder.GetSize();
   *out = (char *)malloc(*out_len * sizeof(char));
@@ -74,7 +74,6 @@ void TableInfo::Deserialize(const char *data, int len) {
     vector_info.model_id = v->model_id()->str();
     vector_info.store_type = v->store_type()->str();
     vector_info.store_param = v->store_param()->str();
-    vector_info.has_source = v->has_source();
 
     vectors_infos_.emplace_back(vector_info);
   }

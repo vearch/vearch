@@ -104,7 +104,7 @@ int IndexIVFFlat::init(const std::string &index_param) {
   }
   LOG(INFO) << "create raw vector success, vec_name[" << vec_name << "]";
 
-  int ret = raw_vector_->Init(vec_name, false, false);
+  int ret = raw_vector_->Init(vec_name, false);
   if (ret != 0) {
     LOG(ERROR) << "Raw vector " << vec_name << " init error, code [" << ret
                << "]!";
@@ -240,7 +240,7 @@ int IndexIVFPQ::init(const std::string &index_param) {
   }
   LOG(INFO) << "create raw vector success, vec_name[" << vec_name << "]";
 
-  int ret = raw_vector_->Init(vec_name, false, false);
+  int ret = raw_vector_->Init(vec_name, false);
   if (ret != 0) {
     LOG(ERROR) << "Raw vector " << vec_name << " init error, code [" << ret
                << "]!";

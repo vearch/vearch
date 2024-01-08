@@ -98,8 +98,7 @@ struct VectorInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_DIMENSION = 10,
     VT_MODEL_ID = 12,
     VT_STORE_TYPE = 14,
-    VT_STORE_PARAM = 16,
-    VT_HAS_SOURCE = 18
+    VT_STORE_PARAM = 16
   };
   const flatbuffers::String *name() const {
     return GetPointer<const flatbuffers::String *>(VT_NAME);
@@ -122,9 +121,6 @@ struct VectorInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const flatbuffers::String *store_param() const {
     return GetPointer<const flatbuffers::String *>(VT_STORE_PARAM);
   }
-  bool has_source() const {
-    return GetField<uint8_t>(VT_HAS_SOURCE, 0) != 0;
-  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyOffset(verifier, VT_NAME) &&
@@ -138,7 +134,6 @@ struct VectorInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyString(store_type()) &&
            VerifyOffset(verifier, VT_STORE_PARAM) &&
            verifier.VerifyString(store_param()) &&
-           VerifyField<uint8_t>(verifier, VT_HAS_SOURCE) &&
            verifier.EndTable();
   }
 };
@@ -167,9 +162,6 @@ struct VectorInfoBuilder {
   void add_store_param(flatbuffers::Offset<flatbuffers::String> store_param) {
     fbb_.AddOffset(VectorInfo::VT_STORE_PARAM, store_param);
   }
-  void add_has_source(bool has_source) {
-    fbb_.AddElement<uint8_t>(VectorInfo::VT_HAS_SOURCE, static_cast<uint8_t>(has_source), 0);
-  }
   explicit VectorInfoBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -190,15 +182,13 @@ inline flatbuffers::Offset<VectorInfo> CreateVectorInfo(
     int32_t dimension = 0,
     flatbuffers::Offset<flatbuffers::String> model_id = 0,
     flatbuffers::Offset<flatbuffers::String> store_type = 0,
-    flatbuffers::Offset<flatbuffers::String> store_param = 0,
-    bool has_source = false) {
+    flatbuffers::Offset<flatbuffers::String> store_param = 0) {
   VectorInfoBuilder builder_(_fbb);
   builder_.add_store_param(store_param);
   builder_.add_store_type(store_type);
   builder_.add_model_id(model_id);
   builder_.add_dimension(dimension);
   builder_.add_name(name);
-  builder_.add_has_source(has_source);
   builder_.add_is_index(is_index);
   builder_.add_data_type(data_type);
   return builder_.Finish();
@@ -212,8 +202,7 @@ inline flatbuffers::Offset<VectorInfo> CreateVectorInfoDirect(
     int32_t dimension = 0,
     const char *model_id = nullptr,
     const char *store_type = nullptr,
-    const char *store_param = nullptr,
-    bool has_source = false) {
+    const char *store_param = nullptr) {
   auto name__ = name ? _fbb.CreateString(name) : 0;
   auto model_id__ = model_id ? _fbb.CreateString(model_id) : 0;
   auto store_type__ = store_type ? _fbb.CreateString(store_type) : 0;
@@ -226,8 +215,7 @@ inline flatbuffers::Offset<VectorInfo> CreateVectorInfoDirect(
       dimension,
       model_id__,
       store_type__,
-      store_param__,
-      has_source);
+      store_param__);
 }
 
 struct Table FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {

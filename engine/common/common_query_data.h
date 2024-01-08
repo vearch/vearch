@@ -1,8 +1,8 @@
 #pragma once
 
+#include <functional>
 #include <string>
 #include <vector>
-#include <functional>
 
 namespace tig_gamma {
 
@@ -36,8 +36,6 @@ struct VectorResult {
     topn = 0;
     dists = nullptr;
     docids = nullptr;
-    sources = nullptr;
-    source_lens = nullptr;
     total.resize(n);
     idx.resize(n);
     idx.assign(n, 0);
@@ -54,16 +52,6 @@ struct VectorResult {
       delete[] docids;
       docids = nullptr;
     }
-
-    if (sources) {
-      delete[] sources;
-      sources = nullptr;
-    }
-
-    if (source_lens) {
-      delete[] source_lens;
-      source_lens = nullptr;
-    }
   }
 
   bool init(int a, int b) {
@@ -71,8 +59,6 @@ struct VectorResult {
     topn = b;
     dists = new float[n * topn];
     docids = new int64_t[n * topn];
-    sources = new char *[n * topn];
-    source_lens = new int[n * topn];
     total.resize(n, 0);
     idx.resize(n, -1);
     std::fill_n(dists, n * topn, 0.0);
@@ -92,8 +78,7 @@ struct VectorResult {
     return true;
   }
 
-  int seek(const int &req_no, const int &docid, float &score, char *&source,
-           int &len) {
+  int seek(const int &req_no, const int &docid, float &score) {
     int ret = -1;
     int base_idx = req_no * topn;
     int &start_idx = idx[req_no];
@@ -102,8 +87,6 @@ struct VectorResult {
       if (docids[i] >= docid) {
         ret = docids[i];
         score = dists[i];
-        source = sources[i];
-        len = source_lens[i];
 
         start_idx = i - base_idx;
         break;
@@ -116,13 +99,10 @@ struct VectorResult {
   }
 
   void sort_by_docid() {
-    std::function<int(int64_t *, float *, char **, int *, int, int)>
-        paritition = [&](int64_t *docids, float *dists, char **sources,
-                         int *source_lens, int low, int high) {
+    std::function<int(int64_t *, float *, int, int)> paritition =
+        [&](int64_t *docids, float *dists, int low, int high) {
           long pivot = docids[low];
           float dist = dists[low];
-          char *source = sources[low];
-          int source_len = source_lens[low];
 
           while (low < high) {
             while (low < high && docids[high] >= pivot) {
@@ -130,40 +110,28 @@ struct VectorResult {
             }
             docids[low] = docids[high];
             dists[low] = dists[high];
-            sources[low] = sources[high];
-            source_lens[low] = source_lens[high];
             while (low < high && docids[low] <= pivot) {
               ++low;
             }
             docids[high] = docids[low];
             dists[high] = dists[low];
-            sources[high] = sources[low];
-            source_lens[high] = source_lens[low];
           }
           docids[low] = pivot;
           dists[low] = dist;
-          sources[low] = source;
-          source_lens[low] = source_len;
           return low;
         };
 
-    std::function<void(int64_t *, float *, char **, int *, int, int)>
-        quick_sort_by_docid = [&](int64_t *docids, float *dists, char **sources,
-                                  int *source_lens, int low, int high) {
+    std::function<void(int64_t *, float *, int, int)> quick_sort_by_docid =
+        [&](int64_t *docids, float *dists, int low, int high) {
           if (low < high) {
-            int pivot =
-                paritition(docids, dists, sources, source_lens, low, high);
-            quick_sort_by_docid(docids, dists, sources, source_lens, low,
-                                pivot - 1);
-            quick_sort_by_docid(docids, dists, sources, source_lens, pivot + 1,
-                                high);
+            int pivot = paritition(docids, dists, low, high);
+            quick_sort_by_docid(docids, dists, low, pivot - 1);
+            quick_sort_by_docid(docids, dists, pivot + 1, high);
           }
         };
 
     for (int i = 0; i < n; ++i) {
-      quick_sort_by_docid(docids + i * topn, dists + i * topn,
-                          sources + i * topn, source_lens + i * topn, 0,
-                          topn - 1);
+      quick_sort_by_docid(docids + i * topn, dists + i * topn, 0, topn - 1);
     }
   }
 
@@ -172,8 +140,6 @@ struct VectorResult {
   float *dists;
   float *query;
   int64_t *docids;
-  char **sources;
-  int *source_lens;
   std::vector<int> total;
   std::vector<int> idx;
 };
@@ -181,8 +147,6 @@ struct VectorResult {
 struct VectorDocField {
   std::string name;
   double score;
-  char *source;
-  int source_len;
 };
 
 struct VectorDoc {
@@ -264,4 +228,4 @@ struct GammaResult {
   VectorDoc **docs;
 };
 
-}
+}  // namespace tig_gamma

@@ -913,8 +913,7 @@ curl -H "content-type: application/json" -XPOST -d'
   "vector": {
     "feature": [
       "features..."
-    ],
-    "source": "14AW1mK_j19FyJvn5NR4Ep"
+    ]
   },
   "string_tags": [
     "14",
@@ -938,8 +937,7 @@ curl -H "content-type: application/json" -XPOST -d'
   "vector": {
     "feature": [
       "features..."
-    ],
-    "source": "14AW1mK_j19FyJvn5NR4Ep"
+    ]
   },
   "string_tags": [
     "14",
@@ -1338,9 +1336,9 @@ curl -H "content-type: application/json" -XPOST -d'
 ````$xslt
 curl -H "content-type: application/json" -XPOST -d'
 {"index":{"_id":"1"}}
-{"string":"14AW1mK_j19FyJvn5NR4Ep","int":14,"float":3.7416573867739413,"vector":{"feature":["features..."],"source":"14AW1mK_j19FyJvn5NR4Ep"},"string_tags":["14","10","15"]}
+{"string":"14AW1mK_j19FyJvn5NR4Ep","int":14,"float":3.7416573867739413,"vector":{"feature":["features..."]},"string_tags":["14","10","15"]}
 {"index":{"_id":"2"}}
-{"string":"15AW1mK_j19FyJvn5NR4Eq","int":15,"float":3.872983346207417,"vector":{"feature":["features..."],"source":"15AW1mK_j19FyJvn5NR4Eq"},"string_tags":["15","4","16"]}
+{"string":"15AW1mK_j19FyJvn5NR4Eq","int":15,"float":3.872983346207417,"vector":{"feature":["features..."]},"string_tags":["15","4","16"]}
 ' {{ROUTER}}/test_vector_db/vector_space/_bulk
 ````
 

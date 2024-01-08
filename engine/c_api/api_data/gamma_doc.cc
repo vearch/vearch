@@ -23,9 +23,9 @@ int Doc::Serialize(char **out, int *out_len) {
       std::vector<uint8_t> value(f.value.size());
       memcpy(value.data(), f.value.data(), f.value.size());
 
-      auto field = gamma_api::CreateField(
-          builder, builder.CreateString(f.name), builder.CreateVector(value),
-          builder.CreateString(f.source), static_cast<::DataType>(f.datatype));
+      auto field = gamma_api::CreateField(builder, builder.CreateString(f.name),
+                                          builder.CreateVector(value),
+                                          static_cast<::DataType>(f.datatype));
       field_vector[i++] = field;
     }
   }
@@ -59,7 +59,6 @@ void Doc::Deserialize(const char *data, int len) {
     if (field.name == "_id") {
       key_ = field.value;
     }
-    field.source = f->source()->str();
     field.datatype = static_cast<DataType>(f->data_type());
 
     if (field.datatype != DataType::VECTOR) {

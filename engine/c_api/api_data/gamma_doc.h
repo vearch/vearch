@@ -21,7 +21,6 @@ class GammaEngine;
 struct Field {
   std::string name;
   std::string value;
-  std::string source;
   DataType datatype;
 
   Field() = default;
@@ -29,13 +28,11 @@ struct Field {
   Field(const Field &other)
       : name(other.name),
         value(other.value),
-        source(other.source),
         datatype(other.datatype) {}
 
   Field &operator=(const Field &other) {
     name = other.name;
     value = other.value;
-    source = other.source;
     datatype = other.datatype;
     return *this;
   }
@@ -43,13 +40,11 @@ struct Field {
   Field(Field &&other) noexcept
       : name(std::move(other.name)),
         value(std::move(other.value)),
-        source(std::move(other.source)),
         datatype(std::move(other.datatype)) {}
 
   Field &operator=(Field &&other) {
     name = std::move(other.name);
     value = std::move(other.value);
-    source = std::move(other.source);
     datatype = other.datatype;
     return *this;
   }

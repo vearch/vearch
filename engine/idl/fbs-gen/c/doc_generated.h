@@ -18,17 +18,13 @@ struct Field FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_NAME = 4,
     VT_VALUE = 6,
-    VT_SOURCE = 8,
-    VT_DATA_TYPE = 10
+    VT_DATA_TYPE = 8
   };
   const flatbuffers::String *name() const {
     return GetPointer<const flatbuffers::String *>(VT_NAME);
   }
   const flatbuffers::Vector<uint8_t> *value() const {
     return GetPointer<const flatbuffers::Vector<uint8_t> *>(VT_VALUE);
-  }
-  const flatbuffers::String *source() const {
-    return GetPointer<const flatbuffers::String *>(VT_SOURCE);
   }
   DataType data_type() const {
     return static_cast<DataType>(GetField<int8_t>(VT_DATA_TYPE, 0));
@@ -39,8 +35,6 @@ struct Field FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyString(name()) &&
            VerifyOffset(verifier, VT_VALUE) &&
            verifier.VerifyVector(value()) &&
-           VerifyOffset(verifier, VT_SOURCE) &&
-           verifier.VerifyString(source()) &&
            VerifyField<int8_t>(verifier, VT_DATA_TYPE) &&
            verifier.EndTable();
   }
@@ -54,9 +48,6 @@ struct FieldBuilder {
   }
   void add_value(flatbuffers::Offset<flatbuffers::Vector<uint8_t>> value) {
     fbb_.AddOffset(Field::VT_VALUE, value);
-  }
-  void add_source(flatbuffers::Offset<flatbuffers::String> source) {
-    fbb_.AddOffset(Field::VT_SOURCE, source);
   }
   void add_data_type(DataType data_type) {
     fbb_.AddElement<int8_t>(Field::VT_DATA_TYPE, static_cast<int8_t>(data_type), 0);
@@ -77,10 +68,8 @@ inline flatbuffers::Offset<Field> CreateField(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<flatbuffers::String> name = 0,
     flatbuffers::Offset<flatbuffers::Vector<uint8_t>> value = 0,
-    flatbuffers::Offset<flatbuffers::String> source = 0,
     DataType data_type = INT) {
   FieldBuilder builder_(_fbb);
-  builder_.add_source(source);
   builder_.add_value(value);
   builder_.add_name(name);
   builder_.add_data_type(data_type);
@@ -91,16 +80,13 @@ inline flatbuffers::Offset<Field> CreateFieldDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     const char *name = nullptr,
     const std::vector<uint8_t> *value = nullptr,
-    const char *source = nullptr,
     DataType data_type = INT) {
   auto name__ = name ? _fbb.CreateString(name) : 0;
   auto value__ = value ? _fbb.CreateVector<uint8_t>(*value) : 0;
-  auto source__ = source ? _fbb.CreateString(source) : 0;
   return gamma_api::CreateField(
       _fbb,
       name__,
       value__,
-      source__,
       data_type);
 }
 

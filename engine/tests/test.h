@@ -952,7 +952,6 @@ int Create(struct Options &opt) {
   vector_info.store_type = opt.store_type;
   vector_info.store_param = "{\"cache_size\": 16, \"compress\": {\"rate\":16}}";
   // vector_info.store_param = "{\"cache_size\": 16}";
-  vector_info.has_source = false;
 
   table.AddVectorInfo(vector_info);
 

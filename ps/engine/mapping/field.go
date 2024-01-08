@@ -12,7 +12,6 @@
 // implied. See the License for the specific language governing
 // permissions and limitations under the License.
 
-
 package mapping
 
 import (
@@ -86,7 +85,6 @@ func (f *FieldMapping) UnmarshalJSON(data []byte) error {
 		StoreType  *string         `json:"store_type,omitempty"`
 		StoreParam json.RawMessage `json:"store_param,omitempty"`
 		Array      bool            `json:"array,omitempty"`
-		HasSource  bool            `json:"has_source,omitempty"`
 	}{}
 	err := json.Unmarshal(data, &tmp)
 	if err != nil {
@@ -127,11 +125,6 @@ func (f *FieldMapping) UnmarshalJSON(data []byte) error {
 		}
 		if tmp.StoreParam != nil && len(tmp.StoreParam) > 0 {
 			fieldMapping.(*VectortFieldMapping).StoreParam = tmp.StoreParam
-		}
-		if tmp.HasSource {
-			fieldMapping.(*VectortFieldMapping).HasSource = tmp.HasSource
-		} else {
-			fieldMapping.(*VectortFieldMapping).HasSource = false
 		}
 
 	default:
@@ -307,7 +300,6 @@ type VectortFieldMapping struct {
 	//	RetrievalType string  `json:"retrieval_type,omitempty"` // "IVFPQ", "PACINS","GPU" ...
 	StoreType  string `json:"store_type,omitempty"` // "Mmap", "RocksDB", "MemoryOnly"
 	StoreParam []byte `json:"store_param,omitempty"`
-	HasSource  bool   `json:"has_source,omitempty"`
 }
 
 func NewVectorFieldMapping(name string) *VectortFieldMapping {
@@ -502,7 +494,7 @@ func processBool(ctx *walkContext, fm *FieldMapping, fieldName string, val bool)
 	}
 }
 
-func processVectorBinary(ctx *walkContext, fm *FieldMapping, fieldName string, val []uint8, source string) (*vearchpb.Field, error) {
+func processVectorBinary(ctx *walkContext, fm *FieldMapping, fieldName string, val []uint8) (*vearchpb.Field, error) {
 	if ctx.Err != nil {
 		return nil, ctx.Err
 	}
@@ -513,7 +505,7 @@ func processVectorBinary(ctx *walkContext, fm *FieldMapping, fieldName string, v
 			return nil, fmt.Errorf("processVectorBinary field:[%s] vector_length err ,schema is:[%d] but input :[%d]", fieldName, fm.FieldMappingI.(*VectortFieldMapping).Dimension, len(val))
 		}
 
-		bs, err := cbbytes.VectorBinaryToByte(val, source)
+		bs, err := cbbytes.VectorBinaryToByte(val)
 		if err != nil {
 			return nil, err
 		}
@@ -529,7 +521,7 @@ func processVectorBinary(ctx *walkContext, fm *FieldMapping, fieldName string, v
 	}
 }
 
-func processVector(ctx *walkContext, fm *FieldMapping, fieldName string, val []float32, source string) (*vearchpb.Field, error) {
+func processVector(ctx *walkContext, fm *FieldMapping, fieldName string, val []float32) (*vearchpb.Field, error) {
 	if ctx.Err != nil {
 		return nil, ctx.Err
 	}
@@ -552,7 +544,7 @@ func processVector(ctx *walkContext, fm *FieldMapping, fieldName string, val []f
 			}
 		}
 
-		bs, err := cbbytes.VectorToByte(val, source)
+		bs, err := cbbytes.VectorToByte(val)
 		if err != nil {
 			return nil, err
 		}

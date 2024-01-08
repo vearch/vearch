@@ -46,14 +46,6 @@ func buildField(name string, value []byte, dataType gamma.DataType) gamma.Field 
 	return field
 }
 
-func buildFieldBySource(name string, value []byte, source string, dataType gamma.DataType) gamma.Field {
-	field := gamma.Field{Name: name, Datatype: dataType, Value: value}
-	if source != "" {
-		field.Source = source
-	}
-	return field
-}
-
 func mapping2Table(cfg register.EngineConfig, m *mapping.IndexMapping) (*gamma.Table, error) {
 	dim := make(map[string]int)
 
@@ -158,7 +150,6 @@ func mapping2Table(cfg register.EngineConfig, m *mapping.IndexMapping) (*gamma.T
 				ModelId:    fieldMapping.ModelId,
 				StoreType:  fieldMapping.StoreType,
 				StoreParam: string(fieldMapping.StoreParam),
-				HasSource:  fieldMapping.HasSource,
 			}
 			vectorInfo.IsIndex = true
 			/*if index == 1 {

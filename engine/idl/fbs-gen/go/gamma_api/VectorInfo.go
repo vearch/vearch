@@ -94,20 +94,8 @@ func (rcv *VectorInfo) StoreParam() []byte {
 	return nil
 }
 
-func (rcv *VectorInfo) HasSource() bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(18))
-	if o != 0 {
-		return rcv._tab.GetBool(o + rcv._tab.Pos)
-	}
-	return false
-}
-
-func (rcv *VectorInfo) MutateHasSource(n bool) bool {
-	return rcv._tab.MutateBoolSlot(18, n)
-}
-
 func VectorInfoStart(builder *flatbuffers.Builder) {
-	builder.StartObject(8)
+	builder.StartObject(7)
 }
 func VectorInfoAddName(builder *flatbuffers.Builder, name flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(name), 0)
@@ -129,9 +117,6 @@ func VectorInfoAddStoreType(builder *flatbuffers.Builder, storeType flatbuffers.
 }
 func VectorInfoAddStoreParam(builder *flatbuffers.Builder, storeParam flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(6, flatbuffers.UOffsetT(storeParam), 0)
-}
-func VectorInfoAddHasSource(builder *flatbuffers.Builder, hasSource bool) {
-	builder.PrependBoolSlot(7, hasSource, false)
 }
 func VectorInfoEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

@@ -19,7 +19,6 @@
 
 namespace tig_gamma {
 
-const std::string EXTRA_VECTOR_FIELD_SOURCE = "source";
 const std::string EXTRA_VECTOR_FIELD_SCORE = "score";
 const std::string EXTRA_VECTOR_FIELD_NAME = "field";
 const std::string EXTRA_VECTOR_RESULT = "vector_result";

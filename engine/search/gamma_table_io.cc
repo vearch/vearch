@@ -88,7 +88,6 @@ void TableSchemaIO::WriteVectorInfos(TableInfo &table) {
       std::string ba = kPlaceHolder;
       FWriteByteArray(fio, ba);
     }
-    fio->Write((void *)&vi.has_source, sizeof(vi.has_source), 1);
   }
 }
 
@@ -149,7 +148,6 @@ void TableSchemaIO::ReadVectorInfos(TableInfo &table) {
     if (vi.store_param == kPlaceHolder) {
       vi.store_param = "";
     }
-    fio->Read((void *)&vi.has_source, sizeof(vi.has_source), 1);
     table.AddVectorInfo(vi);
   }
 }

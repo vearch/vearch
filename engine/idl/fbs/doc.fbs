@@ -5,7 +5,6 @@ namespace gamma_api;
 table Field {
   name:string;
   value:[ubyte];
-  source:string;
   data_type:DataType;
 }
 

@@ -186,7 +186,6 @@ class Vearch(VectorStore):
             model_id = "",
             store_type = "MemoryOnly",
             store_param = {"cache_size": 10000},
-            has_source = False,
         )
         response_code = self.vearch.create_table(
             engine_info,

@@ -68,16 +68,8 @@ func (rcv *Field) MutateValue(j int, n byte) bool {
 	return false
 }
 
-func (rcv *Field) Source() []byte {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(8))
-	if o != 0 {
-		return rcv._tab.ByteVector(o + rcv._tab.Pos)
-	}
-	return nil
-}
-
 func (rcv *Field) DataType() DataType {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(10))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(8))
 	if o != 0 {
 		return rcv._tab.GetInt8(o + rcv._tab.Pos)
 	}
@@ -85,11 +77,11 @@ func (rcv *Field) DataType() DataType {
 }
 
 func (rcv *Field) MutateDataType(n DataType) bool {
-	return rcv._tab.MutateInt8Slot(10, n)
+	return rcv._tab.MutateInt8Slot(8, n)
 }
 
 func FieldStart(builder *flatbuffers.Builder) {
-	builder.StartObject(4)
+	builder.StartObject(3)
 }
 func FieldAddName(builder *flatbuffers.Builder, name flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(name), 0)
@@ -100,11 +92,8 @@ func FieldAddValue(builder *flatbuffers.Builder, value flatbuffers.UOffsetT) {
 func FieldStartValueVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(1, numElems, 1)
 }
-func FieldAddSource(builder *flatbuffers.Builder, source flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(2, flatbuffers.UOffsetT(source), 0)
-}
 func FieldAddDataType(builder *flatbuffers.Builder, dataType int8) {
-	builder.PrependInt8Slot(3, dataType, 0)
+	builder.PrependInt8Slot(2, dataType, 0)
 }
 func FieldEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

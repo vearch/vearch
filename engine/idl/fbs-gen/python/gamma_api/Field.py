@@ -48,23 +48,15 @@ class Field(object):
         return 0
 
     # Field
-    def Source(self):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(8))
-        if o != 0:
-            return self._tab.String(o + self._tab.Pos)
-        return None
-
-    # Field
     def DataType(self):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(10))
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(8))
         if o != 0:
             return self._tab.Get(flatbuffers.number_types.Int8Flags, o + self._tab.Pos)
         return 0
 
-def FieldStart(builder): builder.StartObject(4)
+def FieldStart(builder): builder.StartObject(3)
 def FieldAddName(builder, name): builder.PrependUOffsetTRelativeSlot(0, flatbuffers.number_types.UOffsetTFlags.py_type(name), 0)
 def FieldAddValue(builder, value): builder.PrependUOffsetTRelativeSlot(1, flatbuffers.number_types.UOffsetTFlags.py_type(value), 0)
 def FieldStartValueVector(builder, numElems): return builder.StartVector(1, numElems, 1)
-def FieldAddSource(builder, source): builder.PrependUOffsetTRelativeSlot(2, flatbuffers.number_types.UOffsetTFlags.py_type(source), 0)
-def FieldAddDataType(builder, dataType): builder.PrependInt8Slot(3, dataType, 0)
+def FieldAddDataType(builder, dataType): builder.PrependInt8Slot(2, dataType, 0)
 def FieldEnd(builder): return builder.EndObject()

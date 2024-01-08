@@ -278,10 +278,6 @@ void TestRawVectorDumpLoad(VectorStorageType store_type,
   ValidateVector(raw_vector, 0, update_num, dimension, 0.5f);
   ValidateVector(raw_vector, 100, load_num - update_num, dimension);
   ASSERT_EQ(load_num, raw_vector->GetVectorNum());
-  char *source1 = nullptr, *source2 = nullptr;
-  int len1 = 0, len2 = 0;
-  raw_vector->GetSource(0, source1, len1);
-  raw_vector->GetSource(load_num - 1, source2, len2);
 
   cout << "---------------dump after load and add----------------" << endl;
   int add_num = 200;

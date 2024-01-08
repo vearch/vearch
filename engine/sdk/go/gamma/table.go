@@ -31,7 +31,6 @@ type VectorInfo struct {
 	ModelId    string
 	StoreType  string
 	StoreParam string
-	HasSource  bool
 }
 
 type FieldInfo struct {
@@ -105,7 +104,6 @@ func (table *Table) Serialize(out *[]byte) int {
 		gamma_api.VectorInfoAddModelId(builder, modelIDs[i])
 		gamma_api.VectorInfoAddStoreType(builder, storeTypes[i])
 		gamma_api.VectorInfoAddStoreParam(builder, storeParams[i])
-		gamma_api.VectorInfoAddHasSource(builder, vecInfo.HasSource)
 		vectorInfos[i] = gamma_api.VectorInfoEnd(builder)
 	}
 
@@ -183,7 +181,6 @@ func (table *Table) DeSerialize(buffer []byte) {
 		table.VectorsInfos[i].ModelId = string(vecInfo.ModelId())
 		table.VectorsInfos[i].StoreType = string(vecInfo.StoreType())
 		table.VectorsInfos[i].StoreParam = string(vecInfo.StoreParam())
-		table.VectorsInfos[i].HasSource = vecInfo.HasSource()
 	}
 
 	table.IndexingSize = table.table.IndexingSize()

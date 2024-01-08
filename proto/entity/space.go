@@ -111,7 +111,6 @@ type SpaceProperties struct {
 	StoreType  *string         `json:"store_type,omitempty"`
 	StoreParam json.RawMessage `json:"store_param,omitempty"`
 	Array      bool            `json:"array,omitempty"`
-	HasSource  bool            `json:"has_source,omitempty"`
 	Option     FieldOption     `json:"option,omitempty"`
 }
 

@@ -371,7 +371,7 @@ func (r *routerRequest) Execute() []*vearchpb.Item {
 						if err := util.Normalization(float32s); err != nil {
 							log.Panic(err.Error())
 						}
-						bs, err := cbbytes.VectorToByte(float32s, "")
+						bs, err := cbbytes.VectorToByte(float32s)
 						if err != nil {
 							log.Error("processVector VectorToByte error: %v", err)
 							log.Panic(err.Error())
@@ -543,7 +543,7 @@ func (r *routerRequest) searchFromPartition(ctx context.Context, partitionID ent
 							}
 							end = qu - i
 						}
-						bs, err := cbbytes.VectorToByte(normalVector, "")
+						bs, err := cbbytes.VectorToByte(normalVector)
 						if err != nil {
 							log.Error("processVector VectorToByte error: %v", err)
 							panic(err.Error())
@@ -558,7 +558,7 @@ func (r *routerRequest) searchFromPartition(ctx context.Context, partitionID ent
 					if err := util.Normalization(float32s); err != nil {
 						panic(err.Error())
 					}
-					bs, err := cbbytes.VectorToByte(float32s, "")
+					bs, err := cbbytes.VectorToByte(float32s)
 					if err != nil {
 						log.Error("processVector VectorToByte error: %v", err)
 						panic(err.Error())
