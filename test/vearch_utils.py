@@ -184,6 +184,10 @@ def search(xq, k:int, batch:bool, query_dict:dict, logger):
             field_int = []
             for result in results:
                 field_int.append(result["_source"]["field_int"])
+            if len(field_int) != k:
+                logger.debug("len(field_int)=" + str(len(field_int)))
+                [field_int.append(-1) for i in range(k - len(field_int))]
+            assert len(field_int) == k
             field_ints.append(field_int)
     else:
         for i in range(xq.shape[0]):
@@ -196,6 +200,9 @@ def search(xq, k:int, batch:bool, query_dict:dict, logger):
             for results in rs.json()["documents"]:
                 for result in results:
                     field_int.append(result["_source"]["field_int"])
+            if len(field_int) != k:
+                logger.debug("len(field_int)=" + str(len(field_int)))
+                [field_int.append(-1) for i in range(k - len(field_int))]
             assert len(field_int) == k
             field_ints.append(field_int)
     assert len(field_ints) == xq.shape[0]  

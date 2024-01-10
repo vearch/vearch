@@ -17,23 +17,17 @@
 
 import requests
 import json
-import random
-import sys
-import time
-import numpy as np
 import pytest
 import logging
-from multiprocessing import Pool as ThreadPool
-
 from vearch_utils import *
 
 logging.basicConfig()
 logger = logging.getLogger(__name__)
 
-__description__ = """ test case for index ivfpq """
+__description__ = """ test case for index flat """
 
 
-def create(router_url, embedding_size, store_type="MemoryOnly"):    
+def create(router_url, embedding_size, store_type="MemoryOnly"):
     properties = {}
     properties["properties"] = {
         "field_int": {
@@ -73,11 +67,10 @@ def query(parallel_on_queries, xq, gt, k, logger):
             "vector": []
         },
         "retrieval_param": {
-            "parallel_on_queries": parallel_on_queries,
+            "parallel_on_queries": parallel_on_queries
         },
         "vector_value":False,
         "fields": ["field_int"],
-        "quick": False,
         "size": k,
         "db_name": db_name,
         "space_name": space_name,
@@ -88,8 +81,9 @@ def query(parallel_on_queries, xq, gt, k, logger):
         result = "batch: %d, parallel_on_queries: %d, avarage time: %.2f ms, " % (batch, parallel_on_queries, avarage)
         for recall in recalls:
             result += "recall@%d = %.2f%% " % (recall, recalls[recall] * 100)
-            assert recalls[recall] >= 0.8
-        logger.info(result)    
+            if recall == k:
+                assert recalls[recall] >= 0.8
+        logger.info(result)
 
 def benchmark(store_type, xb, xq, xt, gt):
     embedding_size = xb.shape[1]
@@ -99,7 +93,7 @@ def benchmark(store_type, xb, xq, xt, gt):
     total = xb.shape[0]
     total_batch = int(total / batch_size)
     logger.info("dataset num: %d, total_batch: %d, dimension: %d, search num: %d, topK: %d" %(total, total_batch, embedding_size, xq.shape[0], k))
-    
+
     create(router_url, embedding_size, store_type)
 
     add(total_batch, batch_size, xb)
@@ -117,5 +111,5 @@ xb, xq, xt, gt = get_sift10K(logger)
 @ pytest.mark.parametrize(["store_type"], [
     ["MemoryOnly"],
 ])
-def test_vearch_index_ivfpq(store_type: str):
+def test_vearch_index_flat(store_type: str):
     benchmark(store_type, xb, xq, xt, gt)

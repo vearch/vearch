@@ -781,26 +781,24 @@ void GammaIVFPQIndex::search_preassigned(
   retrieval_context->GetPerfTool().Perf("search prepare");
 #endif
 
-  bool parallel_mode = (retrieval_params->ParallelOnQueries() || (n > 1)) ? 0 : 1;
+  bool parallel_mode = retrieval_params->ParallelOnQueries() ? 0 : 1;
 
   bool do_parallel = omp_get_max_threads() >= 2 &&
-          (parallel_mode == 0  ? false
+          (parallel_mode == 0  ? n > 1
               : parallel_mode == 1 ? nprobe > 1
               : nprobe * n > 1);
-  
-  int threads_num = n < omp_get_max_threads() ? n : omp_get_max_threads();
 
-#pragma omp parallel if (do_parallel) reduction(+ : ndis) num_threads(threads_num)
+#pragma omp parallel if (do_parallel) reduction(+ : ndis)
   {
+    GammaInvertedListScanner *scanner =
+        GetInvertedListScanner(store_pairs, metric_type);
+    utils::ScopeDeleter1<GammaInvertedListScanner> del(scanner);
+    scanner->set_search_context(retrieval_context);
+
     if (parallel_mode == 0) {  // parallelize over queries
-#pragma omp parallel for schedule(dynamic) num_threads(threads_num)
+#pragma omp for
       for (int i = 0; i < n; i++) {
         // loop over queries
-        GammaInvertedListScanner *scanner =
-            GetInvertedListScanner(store_pairs, metric_type);
-        utils::ScopeDeleter1<GammaInvertedListScanner> del(scanner);
-        scanner->set_search_context(retrieval_context);
-
         const float *xi = vec_applied_q + i * d;
         scanner->set_query(xi);
         float *simi = distances + i * k;
@@ -834,11 +832,6 @@ void GammaIVFPQIndex::search_preassigned(
                     retrieval_context);
       }       // parallel for
     } else {  // parallelize over inverted lists
-      GammaInvertedListScanner *scanner =
-          GetInvertedListScanner(store_pairs, metric_type);
-      utils::ScopeDeleter1<GammaInvertedListScanner> del(scanner);
-      scanner->set_search_context(retrieval_context);
-
       std::vector<idx_t> local_idx(recall_num);
       std::vector<float> local_dis(recall_num);
 
@@ -849,10 +842,7 @@ void GammaIVFPQIndex::search_preassigned(
         init_result(metric_type, recall_num, local_dis.data(),
                     local_idx.data());
 
-        threads_num =
-            nprobe < omp_get_max_threads() ? nprobe : omp_get_max_threads();
-
-#pragma omp parallel for schedule(dynamic) num_threads(threads_num)
+#pragma omp for schedule(dynamic)
         for (int ik = 0; ik < nprobe; ik++) {
           size_t nscan = scan_one_list(scanner, keys[i * nprobe + ik],
                                 coarse_dis[i * nprobe + ik], local_dis.data(),

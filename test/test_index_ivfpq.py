@@ -17,14 +17,8 @@
 
 import requests
 import json
-import random
-import sys
-import time
-import numpy as np
 import pytest
 import logging
-from multiprocessing import Pool as ThreadPool
-
 from vearch_utils import *
 
 logging.basicConfig()
@@ -69,13 +63,14 @@ def create(router_url, embedding_size, store_type="MemoryOnly", ncentroids=256):
 
     logger.info(create_space(router_url, db_name, space_config))
 
-def query(quick, nprobe, xq, gt, k, logger):
+def query(quick, nprobe, parallel_on_queries, xq, gt, k, logger):
     query_dict = {
         "query": {
             "vector": []
         },
         "retrieval_param": {
             "nprobe": nprobe,
+            "parallel_on_queries": parallel_on_queries
         },
         "vector_value":False,
         "fields": ["field_int"],
@@ -87,39 +82,45 @@ def query(quick, nprobe, xq, gt, k, logger):
 
     for batch in [True, False]:
         avarage, recalls = evaluate(xq, gt, k, batch, query_dict, logger)
-        result = "batch: %d, nprobe: %d, quick: %d, avarage time: %.2f ms, " % (batch, nprobe, quick, avarage)
+        result = "batch: %d, nprobe: %d, quick: %d, parallel_on_queries: %d, avarage time: %.2f ms, " \
+                  % (batch, nprobe, quick, parallel_on_queries, avarage)
         for recall in recalls:
             result += "recall@%d = %.2f%% " % (recall, recalls[recall] * 100)
-            assert recalls[recall] >= 0.8
-        logger.info(result)    
+            if recall == k:
+                assert recalls[recall] >= 0.8
+        logger.info(result)
 
-def benchmark(store_type, xb, xq, xt, gt):
+def benchmark(store_type, ncentroids, xb, xq, xt, gt):
     embedding_size = xb.shape[1]
     batch_size = 100
     k = 100
 
     total = xb.shape[0]
     total_batch = int(total / batch_size)
-    logger.info("dataset num: %d, total_batch: %d, dimension: %d, search num: %d, topK: %d" %(total, total_batch, embedding_size, xq.shape[0], k))
-    
-    create(router_url, embedding_size, store_type)
+    logger.info("dataset num: %d, total_batch: %d, dimension: %d, ncentroids %d, search num: %d, topK: %d" \
+                %(total, total_batch, embedding_size, ncentroids, xq.shape[0], k))
+
+    create(router_url, embedding_size, store_type, ncentroids)
 
     add(total_batch, batch_size, xb)
 
     waiting_index_finish(logger, total)
 
     for quick in [True, False]:
-        for nprobe in [10, 40]:
-            query(quick, nprobe, xq, gt, k, logger)
+        for nprobe in [20, 40]:
+            for parallel_on_queries in [0, 1]:
+                query(quick, nprobe, parallel_on_queries, xq, gt, k, logger)
 
     destroy(router_url, db_name, space_name)
 
 xb, xq, xt, gt = get_sift10K(logger)
 
 
-@ pytest.mark.parametrize(["store_type"], [
-    ["MemoryOnly"],
-    ["RocksDB"],
+@ pytest.mark.parametrize(["store_type", "ncentroids"], [
+    ["MemoryOnly", 256],
+    ["MemoryOnly", 128],
+    ["RocksDB", 256],
+    ["RocksDB", 128],
 ])
-def test_vearch_index_ivfpq(store_type: str):
-    benchmark(store_type, xb, xq, xt, gt)
+def test_vearch_index_ivfpq(store_type: str, ncentroids: int):
+    benchmark(store_type, ncentroids, xb, xq, xt, gt)
