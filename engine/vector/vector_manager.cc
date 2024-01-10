@@ -505,49 +505,6 @@ int VectorManager::AddRTVecsToIndex(bool &index_is_dirty) {
   return ret;
 }
 
-namespace {
-
-int parse_index_search_result(int n, int k, VectorResult &result,
-                              RetrievalModel *index) {
-  RawVector *raw_vec = dynamic_cast<RawVector *>(index->vector_);
-  if (raw_vec == nullptr) {
-    LOG(ERROR) << "Cannot get raw vector";
-    return -1;
-  }
-  for (int i = 0; i < n; i++) {
-    int pos = 0;
-
-    std::map<int, int> docid2count;
-    for (int j = 0; j < k; j++) {
-      int64_t *docid = result.docids + i * k + j;
-      if (docid[0] == -1) continue;
-      int vector_id = (int)docid[0];
-      int real_docid = raw_vec->VidMgr()->VID2DocID(vector_id);
-
-      if (docid2count.find(real_docid) == docid2count.end()) {
-        int real_pos = i * k + pos;
-        result.docids[real_pos] = real_docid;
-        result.dists[real_pos] = result.dists[i * k + j];
-
-        pos++;
-        docid2count[real_docid] = 1;
-      }
-    }
-
-    if (pos > 0) {
-      result.idx[i] = 0;  // init start id of seeking
-    }
-
-    for (; pos < k; pos++) {
-      result.docids[i * k + pos] = -1;
-      result.dists[i * k + pos] = -1;
-    }
-  }
-  return 0;
-}
-
-}  // namespace
-
 int VectorManager::Search(GammaQuery &query, GammaResult *results) {
   int ret = 0, n = 0;
 
@@ -613,16 +570,13 @@ int VectorManager::Search(GammaQuery &query, GammaResult *results) {
       LOG(ERROR) << "faild search of query " << index_name;
       return -3;
     } else {
-      parse_index_search_result(n, query.condition->topn, all_vector_results[i],
-                                index);
-
       if (query.condition->sort_by_docid) {
         all_vector_results[i].sort_by_docid();
       }
     }
 #ifdef PERFORMANCE_TESTING
     std::string msg;
-    msg += "search " + std::to_string(i);
+    msg += "search " + index_name;
     query.condition->GetPerfTool().Perf(msg);
 #endif
   }
@@ -705,10 +659,6 @@ int VectorManager::Search(GammaQuery &query, GammaResult *results) {
         results[i].docs[pos]->docid = all_vector_results[0].docids[real_pos];
 
         double score = all_vector_results[0].dists[real_pos];
-
-        score = query.vec_query[0].has_boost == 1
-                    ? (score * query.vec_query[0].boost)
-                    : score;
 
         results[i].docs[pos]->fields[0].score = score;
         results[i].docs[pos]->score = score;

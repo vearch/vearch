@@ -46,7 +46,7 @@ func setTimeOut(ctx context.Context, head *vearchpb.RequestHead) (context.Contex
 	if config.Conf().Router.RpcTimeOut > 0 {
 		timeout = int64(config.Conf().Router.RpcTimeOut)
 	}
-	if head.TimeOutMs > 0 && head.TimeOutMs < timeout {
+	if head.TimeOutMs > 0 {
 		timeout = head.TimeOutMs
 	}
 	t := time.Duration(timeout) * time.Millisecond

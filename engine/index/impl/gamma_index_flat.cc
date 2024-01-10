@@ -232,8 +232,10 @@ int GammaFLATIndex::Search(RetrievalContext *retrieval_context, int n,
     bool parallel_on_queries =
         (retrieval_params->ParallelOnQueries() == true) && (n > 1);
 
+    int threads_num = n < omp_get_max_threads() ? n : omp_get_max_threads();
+
     if (parallel_on_queries) {  // parallelize over queries
-#pragma omp for
+#pragma omp parallel for schedule(dynamic) num_threads(threads_num)
       for (int i = 0; i < n; i++) {
         const float *xi = xq + i * d;
 

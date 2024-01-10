@@ -1018,13 +1018,6 @@ curl -H "content-type: application/json" -XPOST -d'
   "size": 10,
   "quick": false,
   "vector_value": false,
-  "sort": [
-    {
-      "_score": {
-        "order": "asc"
-      }
-    }
-  ],
   "fileds": [
     "name",
     "age"
@@ -1429,13 +1422,6 @@ curl -H "content-type: application/json" -XPOST -d'
         }
       ]
     },
-    "sort": [
-      {
-        "int": {
-          "order": "asc"
-        }
-      }
-    ],
     "fields": [
       "int",
       "float"
@@ -1482,13 +1468,6 @@ curl -H "content-type: application/json" -XPOST -d'
         }
       ]
     },
-    "sort": [
-      {
-        "float": {
-          "order": "desc"
-        }
-      }
-    ],
     "fields": [
       "int",
       "float"
@@ -1616,13 +1595,6 @@ curl -H "content-type: application/json" -XPOST -d'
         }
       ]
     },
-    "sort": [
-      {
-        "int": {
-          "order": "asc"
-        }
-      }
-    ],
     "fields": [
       "int",
       "float"
@@ -1669,13 +1641,6 @@ curl -H "content-type: application/json" -XPOST -d'
         }
       ]
     },
-    "sort": [
-      {
-        "float": {
-          "order": "desc"
-        }
-      }
-    ],
     "fields": [
       "int",
       "float"

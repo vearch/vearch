@@ -18,12 +18,13 @@ A simple usage
 2. Create a table for engine.
    
     ```python
+    dim = 128
     engine_info = {
         "index_size": 10000,
         "retrieval_type": "IVFPQ",       
         "retrieval_param": {               
             "ncentroids": 256,          
-            "nsubvector": 16
+            "nsubvector": int(dim / 4)
         }
     }
     
@@ -31,7 +32,7 @@ A simple usage
               GammaFieldInfo("field2", vearch.dataType.INT, True),
               GammaFieldInfo("field3", vearch.dataType.FLOAT, True)]
     
-    vector_field = GammaVectorInfo(name="feature", dimension=128)
+    vector_field = GammaVectorInfo(name="feature", dimension=dim)
     response_code = engine.create_table(engine_info, name="test_table", fields=fields, vector_field=vector_field)
     if response_code == 0:
         print("create table success")

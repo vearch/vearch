@@ -694,19 +694,7 @@ void compute_dis(int k, const float *xi, float *simi, idx_t *idxi,
     reorder_result(metric_type, k, simi, idxi);
   } else {
     // compute without rank
-    int i = 0;
     reorder_result(metric_type, recall_num, recall_simi, recall_idxi);
-    for (int j = 0; j < recall_num; j++) {
-      if (recall_idxi[j] == -1) continue;
-      float dis = recall_simi[j];
-
-      if (retrieval_context->IsSimilarScoreValid(dis) == true) {
-        simi[i] = dis;
-        idxi[i] = recall_idxi[j];
-        ++i;
-      }
-      if (i >= k) break;
-    }
   }
 }
 
@@ -774,13 +762,18 @@ void GammaIVFPQIndex::search_preassigned(
   using HeapForIP = faiss::CMin<float, idx_t>;
   using HeapForL2 = faiss::CMax<float, idx_t>;
 
-  int recall_num = retrieval_params->RecallNum();
-  if (recall_num < k) {
-    recall_num = k;
+  int recall_num = k;
+  if (context->has_rank && retrieval_params->RecallNum() > k) {
+    recall_num = retrieval_params->RecallNum();
   }
 
-  float *recall_distances = new float[n * recall_num];
-  idx_t *recall_labels = new idx_t[n * recall_num];
+  float *recall_distances = nullptr;
+  idx_t *recall_labels = nullptr;
+  if (context->has_rank) {
+    recall_distances = new float[n * recall_num];
+    recall_labels = new idx_t[n * recall_num];
+  }
+
   utils::ScopeDeleter<float> del1(recall_distances);
   utils::ScopeDeleter<idx_t> del2(recall_labels);
 
@@ -799,25 +792,29 @@ void GammaIVFPQIndex::search_preassigned(
 
 #pragma omp parallel if (do_parallel) reduction(+ : ndis) num_threads(threads_num)
   {
-    GammaInvertedListScanner *scanner =
-        GetInvertedListScanner(store_pairs, metric_type);
-    utils::ScopeDeleter1<GammaInvertedListScanner> del(scanner);
-    scanner->set_search_context(retrieval_context);
-
     if (parallel_mode == 0) {  // parallelize over queries
 #pragma omp parallel for schedule(dynamic) num_threads(threads_num)
       for (int i = 0; i < n; i++) {
         // loop over queries
+        GammaInvertedListScanner *scanner =
+            GetInvertedListScanner(store_pairs, metric_type);
+        utils::ScopeDeleter1<GammaInvertedListScanner> del(scanner);
+        scanner->set_search_context(retrieval_context);
+
         const float *xi = vec_applied_q + i * d;
         scanner->set_query(xi);
         float *simi = distances + i * k;
         idx_t *idxi = labels + i * k;
-
-        float *recall_simi = recall_distances + i * recall_num;
-        idx_t *recall_idxi = recall_labels + i * recall_num;
-
         init_result(metric_type, k, simi, idxi);
-        init_result(metric_type, recall_num, recall_simi, recall_idxi);
+
+        float *recall_simi = simi;
+        idx_t *recall_idxi = idxi;
+
+        if (context->has_rank) {
+          recall_simi = recall_distances + i * recall_num;
+          recall_idxi = recall_labels + i * recall_num;
+          init_result(metric_type, recall_num, recall_simi, recall_idxi);
+        }
 
         long nscan = 0;
 
@@ -837,6 +834,11 @@ void GammaIVFPQIndex::search_preassigned(
                     retrieval_context);
       }       // parallel for
     } else {  // parallelize over inverted lists
+      GammaInvertedListScanner *scanner =
+          GetInvertedListScanner(store_pairs, metric_type);
+      utils::ScopeDeleter1<GammaInvertedListScanner> del(scanner);
+      scanner->set_search_context(retrieval_context);
+
       std::vector<idx_t> local_idx(recall_num);
       std::vector<float> local_dis(recall_num);
 
@@ -868,13 +870,20 @@ void GammaIVFPQIndex::search_preassigned(
         float *simi = distances + i * k;
         idx_t *idxi = labels + i * k;
 
-        float *recall_simi = recall_distances + i * recall_num;
-        idx_t *recall_idxi = recall_labels + i * recall_num;
+        float *recall_simi = simi;
+        idx_t *recall_idxi = idxi;
+
+        if (context->has_rank) {
+          recall_simi = recall_distances + i * recall_num;
+          recall_idxi = recall_labels + i * recall_num;
+        }
 
 #pragma omp single
         {
           init_result(metric_type, k, simi, idxi);
-          init_result(metric_type, recall_num, recall_simi, recall_idxi);
+          if (context->has_rank) {
+            init_result(metric_type, recall_num, recall_simi, recall_idxi);
+          }
         }
 
 #pragma omp barrier
