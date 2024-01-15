@@ -692,7 +692,6 @@ func docFieldSerialize(doc *vearchpb.Document, space *entity.Space, returnFields
 								return nil, err
 							}
 							source[name] = map[string]interface{}{
-								"source":  fv.Source,
 								"feature": unit8s,
 							}
 						} else {
@@ -700,12 +699,11 @@ func docFieldSerialize(doc *vearchpb.Document, space *entity.Space, returnFields
 						}
 
 					} else {
-						float32s, s, err := cbbytes.ByteToVector(fv.Value)
+						float32s, _, err := cbbytes.ByteToVector(fv.Value)
 						if err != nil {
 							return nil, err
 						}
 						source[name] = map[string]interface{}{
-							"source":  s,
 							"feature": float32s,
 						}
 					}

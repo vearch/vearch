@@ -460,7 +460,7 @@ int GammaEngine::MultiRangeQuery(Request &request,
 
   if (retval == 0) {
     string msg = space_name_ + " no result: numeric filter return 0 result";
-    LOG(INFO) << msg;
+    LOG(DEBUG) << msg;
     for (int i = 0; i < request.ReqNum(); ++i) {
       SearchResult result;
       result.msg = msg;

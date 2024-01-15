@@ -980,7 +980,7 @@ func (handler *DocumentHandler) handleDocumentQuery(ctx context.Context, w http.
 		args.Head.Params = params
 	}
 
-	searchDoc, fields, documentIds, partitionId, err := documentRequestParse(r, args)
+	searchDoc, documentIds, partitionId, err := documentRequestParse(r, args)
 	if err != nil {
 		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 		return ctx, false
@@ -1012,13 +1012,13 @@ func (handler *DocumentHandler) handleDocumentQuery(ctx context.Context, w http.
 	}
 
 	if args.VecFields != nil {
-		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "document/query query condition must be one of the [document_ids, filter]")
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "document/query query condition must be one of the [document_ids, filter], vector field shouldn't set")
 		return ctx, false
 	}
 
 	if len(documentIds) != 0 {
 		if args.TermFilters != nil || args.RangeFilters != nil {
-			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "document/query query condition must be one of the [document_ids, filter]")
+			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "document/query query condition must be one of the [document_ids, filter], shouldn't set both")
 			return ctx, false
 		}
 		if len(documentIds) >= 500 {
@@ -1032,8 +1032,8 @@ func (handler *DocumentHandler) handleDocumentQuery(ctx context.Context, w http.
 		args.PrimaryKeys = documentIds
 
 		var queryFieldsParam map[string]string
-		if fields != nil {
-			queryFieldsParam = arrayToMap(fields)
+		if searchDoc.Fields != nil {
+			queryFieldsParam = arrayToMap(searchDoc.Fields)
 		}
 
 		reply := &vearchpb.GetResponse{}
@@ -1052,7 +1052,7 @@ func (handler *DocumentHandler) handleDocumentQuery(ctx context.Context, w http.
 		}
 	} else {
 		if args.TermFilters == nil && args.RangeFilters == nil {
-			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "document/query query condition must be one of the [document_ids, filter]")
+			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "document/query query condition must be one of the [document_ids, filter], must set one")
 			return ctx, false
 		}
 	}
@@ -1091,7 +1091,7 @@ func (handler *DocumentHandler) handleDocumentSearch(ctx context.Context, w http
 		args.Head.Params = params
 	}
 
-	searchDoc, _, documentIds, _, err := documentRequestParse(r, args)
+	searchDoc, documentIds, _, err := documentRequestParse(r, args)
 	if err != nil {
 		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 		return ctx, false
@@ -1124,7 +1124,7 @@ func (handler *DocumentHandler) handleDocumentSearch(ctx context.Context, w http
 
 	if len(documentIds) != 0 {
 		if args.VecFields != nil {
-			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "document/search search condition must be one of the [document_ids, vector]")
+			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "document/search search condition must be one of the [document_ids, vector], shouldn't set both")
 			return ctx, false
 		}
 		if len(documentIds) >= 100 {
@@ -1171,7 +1171,7 @@ func (handler *DocumentHandler) handleDocumentSearch(ctx context.Context, w http
 		}
 	} else {
 		if args.VecFields == nil {
-			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "document/search search condition must be one of the [document_ids, vector]")
+			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "document/search search condition must be one of the [document_ids, vector], must set one")
 			return ctx, false
 		}
 	}
@@ -1210,7 +1210,7 @@ func (handler *DocumentHandler) handleDocumentDelete(ctx context.Context, w http
 		args.Head.Params = paramMap
 	}
 
-	searchDoc, _, documentIds, _, err := documentRequestParse(r, args)
+	searchDoc, documentIds, _, err := documentRequestParse(r, args)
 	if err != nil {
 		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", err.Error())
 		return ctx, false
@@ -1242,13 +1242,13 @@ func (handler *DocumentHandler) handleDocumentDelete(ctx context.Context, w http
 	}
 
 	if args.VecFields != nil {
-		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "document/delete query condition must be one of the [document_ids, filter]")
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "document/delete query condition must be one of the [document_ids, filter], vector field shouldn't set")
 		return ctx, false
 	}
 
 	if len(documentIds) != 0 {
 		if args.TermFilters != nil || args.RangeFilters != nil {
-			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "document/delete query condition must be one of the [document_ids, filter]")
+			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "document/delete query condition must be one of the [document_ids, filter], shouldn't set both")
 			return ctx, false
 		}
 		if len(documentIds) >= 500 {
@@ -1271,7 +1271,7 @@ func (handler *DocumentHandler) handleDocumentDelete(ctx context.Context, w http
 		}
 	} else {
 		if args.TermFilters == nil && args.RangeFilters == nil {
-			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "document/delete query condition must be one of the [document_ids, filter]")
+			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "document/delete query condition must be one of the [document_ids, filter], must set one")
 			return ctx, false
 		}
 	}

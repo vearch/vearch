@@ -123,7 +123,7 @@ def get_sift10K(logger):
     return xb, xq, xt, gt
 
 
-def process_data(items):
+def process_add_data(items):
     url = router_url + "/document/upsert"
     data = {}
     data["db_name"] = db_name
@@ -132,26 +132,147 @@ def process_data(items):
     index = items[0]
     batch_size = items[1]
     features = items[2]
+    with_id = items[3]
+    full_field = items[4]
+    seed = items[5]
     for j in range(batch_size):
         param_dict = {}
-        param_dict['field_int'] = index * batch_size + j
+        if with_id:
+            param_dict['_id'] = str(index * batch_size + j)
+        param_dict['field_int'] = (index * batch_size + j) * seed
         param_dict['field_vector'] = {
             "feature": features[j].tolist()
         }
+        if full_field:
+            param_dict['field_long'] = param_dict['field_int']
+            param_dict['field_float'] = float(param_dict['field_int'])
+            param_dict['field_double'] = float(param_dict['field_int'])
+            param_dict['field_string'] = str(param_dict['field_int'])
         data["documents"].append(param_dict)
     
     json_str = json.dumps(data)
     rs = requests.post(url, json_str)
 
 
-def add(total, batch_size, xb):
+def add(total, batch_size, xb, with_id=False, full_field=False, seed=1):
     pool = ThreadPool()
     total_data = []
     for i in range(total):
-        total_data.append((i, batch_size,  xb[i * batch_size: (i + 1) * batch_size]))
-    results = pool.map(process_data, total_data)
+        total_data.append((i, batch_size,  xb[i * batch_size: (i + 1) * batch_size], with_id, full_field, seed))
+    results = pool.map(process_add_data, total_data)
     pool.close()
     pool.join()
+
+def prepare_filter(filter, index, batch_size, seed, full_field):
+    if full_field:
+        #term_filter = {
+        #    "term": {
+        #        "field_string": [str(i) for i in range(index * batch_size * seed, (index + 1) * batch_size * seed)]
+        #    }
+        #}
+        #filter.append(term_filter)
+        range_filter = {
+            "range": {
+                "field_int": {
+                    "gte": (index * batch_size) * seed,
+                    "lt": (index + 1) * batch_size * seed
+                },
+                "field_long": {
+                    "gte": (index * batch_size) * seed,
+                    "lt": (index + 1) * batch_size * seed
+                },
+                "field_float": {
+                    "gte": float(index * batch_size * seed),
+                    "lt": float((index + 1) * batch_size * seed)
+                },
+                "field_double": {
+                    "gte": float(index * batch_size * seed),
+                    "lt": float((index + 1) * batch_size * seed)
+                }
+            }
+        }
+        filter.append(range_filter)
+    else:
+        range_filter = {
+            "range": {
+                "field_int": {
+                    "gte": (index * batch_size) * seed,
+                    "lte": (index + 1) * batch_size * seed
+                }
+            }
+        }
+        filter.append(range_filter)
+
+def process_get_data(items):
+    url = router_url + "/document/query"
+    data = {}
+    data["db_name"] = db_name
+    data["space_name"] = space_name
+    data["query"] = {}
+    data["vector_value"] = True
+    # data["fields"] = ["field_int"]
+
+    logger = items[0]
+    index = items[1]
+    batch_size = items[2]
+    features = items[3]
+    full_field = items[4]
+    seed = items[5]
+    query_type = items[6]
+
+    if query_type == "by_partition" or query_type == "by_ids":
+        data["query"]["document_ids"] = []
+        for j in range(batch_size):
+            data["query"]["document_ids"].append(str(index * batch_size + j))
+
+    if query_type == "by_partition":
+        partition_id = "1"
+        partition_ids = get_partition(router_url, db_name, space_name)
+        if len(partition_ids) >= 1:
+            partition_id = partition_ids[0]
+        # logger.debug("partition_id: " + str(partition_id))
+        data["query"]["partition_id"] = str(partition_id)
+
+    if query_type == "by_filter":
+        data["query"]["filter"] = []
+        prepare_filter(data["query"]["filter"], index, batch_size, seed, full_field)
+
+    json_str = json.dumps(data)
+    rs = requests.post(url, json_str)
+    if rs.status_code != 200 or "documents" not in rs.json():
+        logger.info(rs.json())
+        logger.info(json_str)
+
+
+    documents = rs.json()["documents"]
+    assert len(documents) == batch_size
+
+    for j in range(batch_size):
+        # logger.debug(documents[j])
+        if query_type == "by_partition":
+            assert rs.text.find("\"total\":1") >= 0
+        if query_type == "by_filter" or query_type == "by_ids":
+            value = (index * batch_size + j) * seed
+            assert documents[j]['_id'] == str(index * batch_size + j)
+            assert documents[j]["_source"]['field_int'] == value
+            documents[j]["_source"]['field_vector']['feature'] == features[j].tolist()
+            if full_field:
+                assert documents[j]["_source"]['field_long'] == value
+                assert documents[j]["_source"]['field_float'] == float(value)
+                assert documents[j]["_source"]['field_double'] == float(value)
+
+def query_interface(logger, total, batch_size, xb, full_field=False, seed=1, query_type="by_ids"):
+    for i in range(total):
+        process_get_data((logger, i, batch_size,  xb[i * batch_size: (i + 1) * batch_size], full_field, seed, query_type))
+
+# def query_interface(logger, total, batch_size, xb, full_field=False, seed=1, query_type="by_ids"):
+#     pool = ThreadPool()
+#     total_data = []
+#     for i in range(total):
+#         total_data.append((logger, i, batch_size,  xb[i * batch_size: (i + 1) * batch_size], full_field, seed, query_type))
+#     results = pool.map(process_get_data, total_data)
+#     pool.close()
+#     pool.join()
 
 def waiting_index_finish(logger, total):
     url = router_url + "/_cluster/health?db=" + db_name + "&space=" + space_name
@@ -161,7 +282,14 @@ def waiting_index_finish(logger, total):
         num = response.json()[0]["spaces"][0]["partitions"][0]["index_num"]
         logger.info("index num: %d" %(num))
         time.sleep(10)
-        
+
+def get_space_num():
+    url = router_url + "/_cluster/health?db=" + db_name + "&space=" + space_name
+    num = 0
+    response = requests.get(url)
+    num = response.json()[0]["spaces"][0]["doc_num"]
+    return num
+
 def search(xq, k:int, batch:bool, query_dict:dict, logger):
     url = router_url + "/document/search?timeout=2000000"
 
@@ -252,3 +380,12 @@ def create_space(router_url: str, db_name: str, space_config: dict):
     url = f'{router_url}/space/{db_name}/_create'
     resp = requests.put(url, json=space_config)
     return resp.json()
+
+def get_partition(router_url: str, db_name: str, space_name: str):
+    url = f'{router_url}/{db_name}/{space_name}'
+    resp = requests.get(url)
+    partition_infos = resp.json()['partitions']
+    partition_ids = []
+    for partition_info in partition_infos:
+        partition_ids.append(partition_info["id"])
+    return partition_ids

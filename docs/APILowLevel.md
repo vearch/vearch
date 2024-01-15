@@ -657,7 +657,8 @@ curl -H "content-type: application/json" -XPOST -d'
 	"space_name": "ts_space",
 	"query": {
 		"document_ids": ["6560995651113580768", "-5621139761924822824", "-104688682735192253"]
-	}
+	},
+  "vector_value": true
 }
 ' http://router_server/document/query
 
@@ -673,7 +674,8 @@ curl -H "content-type: application/json" -XPOST -d'
       "10002"
     ],
     "partition_id": "1"
-  }
+  },
+  "vector_value": true
 }
 ' http://router_server/document/query
 
@@ -700,7 +702,8 @@ curl -H "content-type: application/json" -XPOST -d'
         }
       }
     ]
-  }
+  },
+  "vector_value": false
 }
 ' http://router_server/document/query
 ````

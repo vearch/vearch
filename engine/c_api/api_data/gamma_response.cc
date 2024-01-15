@@ -40,7 +40,7 @@ int Response::Serialize(const std::string &space_name,
   VectorManager *vector_mgr = static_cast<VectorManager *>(vector_mgr_);
   // empty result
   if (table == nullptr || vector_mgr == nullptr) {
-    LOG(INFO) << "nullptr: table=" << table << ", vector_mgr=" << vector_mgr;
+    LOG(DEBUG) << "nullptr: table=" << table << ", vector_mgr=" << vector_mgr;
     return 0;
   }
   const auto &attr_idx_map = table->FieldMap();

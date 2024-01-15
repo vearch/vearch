@@ -886,6 +886,7 @@ func searchParamToSearchPb(searchDoc *request.SearchDocumentRequest, searchReq *
 	}
 
 	searchReq.Head.Params["load_balance"] = searchDoc.LoadBalance
+
 	if !idFeature {
 		parseErr := parseQuery(searchDoc.Query, searchReq, space)
 		if parseErr != nil {
