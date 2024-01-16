@@ -21,7 +21,7 @@ import (
 	"github.com/cubefs/cubefs/depends/tiglabs/raft/proto"
 )
 
-//it use for raft add or remove node
+// it use for raft add or remove node
 type Replica struct {
 	NodeID        NodeID `json:"nodeID,omitempty"`
 	HeartbeatAddr string `json:"heartbeat_addr,omitempty"`
@@ -53,7 +53,13 @@ type ChangeMember struct {
 	Method      proto.ConfChangeType `json:"method"`
 }
 
-//RecoverFailServer use for recover fail server
+type MoveMember struct {
+	PartitionIDs []PartitionID        `json:"partition_ids"`
+	NodeID       NodeID               `json:"node_id"`
+	Method       proto.ConfChangeType `json:"method"`
+}
+
+// RecoverFailServer use for recover fail server
 type RecoverFailServer struct {
 	FailNodeID   NodeID `json:"fail_node_id"`
 	NewNodeID    NodeID `json:"new_node_id"`
@@ -61,7 +67,7 @@ type RecoverFailServer struct {
 	NewNodeAddr  string `json:"new_node_addr"`
 }
 
-//RecoverFailServer use for recover fail server
+// RecoverFailServer use for recover fail server
 type DBModify struct {
 	DbName    string               `json:"db_name"`
 	SpaceName string               `json:"space_name"`

@@ -98,6 +98,7 @@ func ExportToClusterHandler(router *gin.Engine, masterService *masterService, se
 
 	// partition handler
 	router.Handle(http.MethodPost, "/partition/change_member", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.changeMember, dh.TimeOutEndHandler)
+	router.Handle(http.MethodPost, "/partition/move_member", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.moveMember, dh.TimeOutEndHandler)
 
 	// schedule
 	router.Handle(http.MethodPost, "/schedule/recover_server", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.RecoverFailServer, dh.TimeOutEndHandler)
@@ -655,6 +656,20 @@ func (ca *clusterAPI) changeMember(c *gin.Context) {
 		return
 	}
 	if err := ca.masterService.ChangeMember(c, cm); err != nil {
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
+	} else {
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(nil)
+	}
+}
+
+func (ca *clusterAPI) moveMember(c *gin.Context) {
+	cm := &entity.MoveMember{}
+
+	if err := c.ShouldBindJSON(cm); err != nil {
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
+		return
+	}
+	if err := ca.masterService.MoveMember(c, cm); err != nil {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 	} else {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(nil)

@@ -138,16 +138,16 @@ def process_add_data(items):
     for j in range(batch_size):
         param_dict = {}
         if with_id:
-            param_dict['_id'] = str(index * batch_size + j)
-        param_dict['field_int'] = (index * batch_size + j) * seed
-        param_dict['field_vector'] = {
+            param_dict["_id"] = str(index * batch_size + j)
+        param_dict["field_int"] = (index * batch_size + j) * seed
+        param_dict["field_vector"] = {
             "feature": features[j].tolist()
         }
         if full_field:
-            param_dict['field_long'] = param_dict['field_int']
-            param_dict['field_float'] = float(param_dict['field_int'])
-            param_dict['field_double'] = float(param_dict['field_int'])
-            param_dict['field_string'] = str(param_dict['field_int'])
+            param_dict["field_long"] = param_dict["field_int"]
+            param_dict["field_float"] = float(param_dict["field_int"])
+            param_dict["field_double"] = float(param_dict["field_int"])
+            param_dict["field_string"] = str(param_dict["field_int"])
         data["documents"].append(param_dict)
     
     json_str = json.dumps(data)
@@ -236,6 +236,7 @@ def process_get_data(items):
     if query_type == "by_filter":
         data["query"]["filter"] = []
         prepare_filter(data["query"]["filter"], index, batch_size, seed, full_field)
+        data["size"] = batch_size
 
     json_str = json.dumps(data)
     rs = requests.post(url, json_str)
@@ -243,23 +244,26 @@ def process_get_data(items):
         logger.info(rs.json())
         logger.info(json_str)
 
-
     documents = rs.json()["documents"]
+    if len(documents) != batch_size:
+        logger.info("len(documents) = " + str(len(documents)))
+        logger.info(json_str)
     assert len(documents) == batch_size
+    assert rs.text.find("\"total\":" + str(batch_size)) >= 0
 
     for j in range(batch_size):
-        # logger.debug(documents[j])
-        if query_type == "by_partition":
-            assert rs.text.find("\"total\":1") >= 0
-        if query_type == "by_filter" or query_type == "by_ids":
-            value = (index * batch_size + j) * seed
-            assert documents[j]['_id'] == str(index * batch_size + j)
-            assert documents[j]["_source"]['field_int'] == value
-            documents[j]["_source"]['field_vector']['feature'] == features[j].tolist()
-            if full_field:
-                assert documents[j]["_source"]['field_long'] == value
-                assert documents[j]["_source"]['field_float'] == float(value)
-                assert documents[j]["_source"]['field_double'] == float(value)
+        value = int(documents[j]["_id"])
+        if "_id" in documents[j]["_source"]:
+            value = int(documents[j]["_source"]["_id"])
+        logger.debug(value)
+        logger.debug(documents[j])
+        assert documents[j]["_source"]["field_int"] == value * seed
+        if query_type == "by_ids":
+            assert documents[j]["_source"]["field_vector"]["feature"] == features[j].tolist()
+        if full_field:
+            assert documents[j]["_source"]["field_long"] == value * seed
+            assert documents[j]["_source"]["field_float"] == float(value * seed)
+            assert documents[j]["_source"]["field_double"] == float(value * seed)
 
 def query_interface(logger, total, batch_size, xb, full_field=False, seed=1, query_type="by_ids"):
     for i in range(total):
@@ -305,8 +309,10 @@ def search(xq, k:int, batch:bool, query_dict:dict, logger):
         query_dict["query"]["vector"] = vector_dict["vector"]
         json_str = json.dumps(query_dict)
         rs = requests.post(url, json_str)
-        #if rs.json()['code'] != 200:
-        #    logger.info(rs.json())
+
+        if rs.status_code != 200 or "documents" not in rs.json():
+            logger.info(rs.json())
+            logger.info(json_str)
 
         for results in rs.json()["documents"]:
             field_int = []
@@ -323,6 +329,10 @@ def search(xq, k:int, batch:bool, query_dict:dict, logger):
             query_dict["query"]["vector"] = vector_dict["vector"]
             json_str = json.dumps(query_dict)
             rs = requests.post(url, json_str)
+
+            if rs.status_code != 200 or "documents" not in rs.json():
+                logger.info(rs.json())
+                logger.info(json_str)
 
             field_int = []
             for results in rs.json()["documents"]:

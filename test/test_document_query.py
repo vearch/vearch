@@ -99,7 +99,9 @@ def check(total, bulk, full_field, query_type, xb):
     add(total_batch, batch_size, xb, with_id, full_field)
 
     logger.info("%s doc_num: %d" %(space_name, get_space_num()))
-    #time.sleep(60)
+
+    if query_type == "by_filter":
+        time.sleep(3)
 
     query_interface(logger, total_batch, batch_size, xb, full_field, seed, query_type)
 
@@ -107,10 +109,10 @@ def check(total, bulk, full_field, query_type, xb):
 
 @ pytest.mark.parametrize(["bulk", "full_field", "query_type"], [
     [True, True, "by_ids"],
-    # [True, True, "by_filter"],
+    [True, True, "by_filter"],
     [True, True, "by_partition"],
     [False, True, "by_ids"],
-    # [False, True, "by_filter"],
+    [False, True, "by_filter"],
     [False, True, "by_partition"],
 ])
 def test_vearch_document_query(bulk: bool, full_field: bool, query_type: str):

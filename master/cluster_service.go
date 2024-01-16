@@ -918,7 +918,21 @@ func (ms *masterService) ChangeMember(ctx context.Context, cm *entity.ChangeMemb
 	}
 	if cm.Method == proto.ConfRemoveNode && targetNode != nil && client.IsLive(targetNode.RpcAddr()) {
 		if err := client.DeleteReplica(targetNode.RpcAddr(), cm.PartitionID); err != nil {
-			return fmt.Errorf("create partiiton has err:[%s] addr:[%s]", err.Error(), targetNode.RpcAddr())
+			return fmt.Errorf("delete partiiton has err:[%s] addr:[%s]", err.Error(), targetNode.RpcAddr())
+		}
+	}
+	return nil
+}
+
+func (ms *masterService) MoveMember(ctx context.Context, cms *entity.MoveMember) error {
+	for partitionId := range cms.PartitionIDs {
+		cm := &entity.ChangeMember{
+			PartitionID: uint32(partitionId),
+			NodeID:      cms.NodeID,
+			Method:      cms.Method,
+		}
+		if err := ms.ChangeMember(ctx, cm); err != nil {
+			return err
 		}
 	}
 	return nil

@@ -703,7 +703,8 @@ curl -H "content-type: application/json" -XPOST -d'
       }
     ]
   },
-  "vector_value": false
+  "vector_value": false,
+  "size": 10
 }
 ' http://router_server/document/query
 ````
