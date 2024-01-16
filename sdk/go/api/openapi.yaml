@@ -1,0 +1,370 @@
+openapi: 3.0.2
+info:
+  description: API for sending dynamic records to the Vearch database.
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  title: Vearch Database API
+  version: 1.0.0
+servers:
+- description: Development server
+  url: "http://{ROUTER_URL}:{ROUTER_PORT}"
+  variables:
+    ROUTER_URL:
+      default: localhost
+    ROUTER_PORT:
+      default: "80"
+paths:
+  /db/_create:
+    put:
+      operationId: createDatabase
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/createDatabase_request'
+        required: true
+      responses:
+        "200":
+          description: Database created successfully
+        "400":
+          description: Invalid input
+        "500":
+          description: Internal server error
+      summary: Create a new database
+      tags:
+      - database
+  /space/{DB_NAME}/_create:
+    put:
+      operationId: createSpace
+      parameters:
+      - description: The name of the database where the space will be created.
+        explode: false
+        in: path
+        name: DB_NAME
+        required: true
+        schema:
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/createSpace_request'
+        required: true
+      responses:
+        "200":
+          description: Space created successfully
+        "400":
+          description: Bad request
+        "500":
+          description: Internal server error
+      summary: Create a new space
+      tags:
+      - space
+  /space/{DB_NAME}/{SPACE_NAME}:
+    delete:
+      operationId: deleteSpace
+      parameters:
+      - description: The name of the database
+        explode: false
+        in: path
+        name: DB_NAME
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: The name of the space to delete
+        explode: false
+        in: path
+        name: SPACE_NAME
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          description: Space deleted successfully
+        "400":
+          description: Invalid input or bad request
+        "404":
+          description: Space not found
+        "500":
+          description: Internal server error
+      summary: Delete a specific space
+      tags:
+      - space
+  /db/{DB_NAME}:
+    delete:
+      operationId: deleteDB
+      parameters:
+      - description: The name of the database
+        explode: false
+        in: path
+        name: DB_NAME
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          description: Database deleted successfully
+        "400":
+          description: Invalid input or bad request
+        "404":
+          description: Database not found
+        "500":
+          description: Internal server error
+      summary: Delete a specific db
+      tags:
+      - database
+  /document/upsert:
+    post:
+      operationId: upsert
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/upsert_request'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/upsert_200_response'
+          description: Document upserted successfully
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/upsert_default_response'
+          description: Unexpected error
+      summary: Upsert a document with dynamic fields into the Vearch database
+      tags:
+      - Document
+  /document/delete:
+    post:
+      operationId: deleteDocuments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/deleteDocuments_request'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/deleteDocuments_200_response'
+          description: Successful operation
+        "400":
+          description: Bad request
+        "500":
+          description: Server error
+      summary: Delete documents from a space
+      tags:
+      - Document
+  /document/search:
+    post:
+      operationId: searchDocuments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/searchDocuments_request'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/searchDocuments_200_response'
+          description: Successful search operation
+        "400":
+          description: Bad request due to invalid syntax or parameters
+        "500":
+          description: Internal server error
+      summary: Search for documents using vector and filter parameters
+      tags:
+      - Document
+components:
+  schemas:
+    createSpace_request_engine:
+      properties:
+        index_size:
+          type: integer
+        retrieval_type:
+          type: string
+        retrieval_param:
+          additionalProperties: true
+          type: object
+      type: object
+    createSpace_request_properties_value:
+      properties:
+        type:
+          type: string
+        index:
+          type: boolean
+        dimension:
+          type: integer
+        store_type:
+          type: string
+        format:
+          type: string
+      type: object
+    deleteDocuments_200_response:
+      example:
+        error_message: error_message
+        status: status
+      properties:
+        status:
+          type: string
+        error_message:
+          nullable: true
+          type: string
+      type: object
+    searchDocuments_request_query_vector_inner:
+      properties:
+        field:
+          example: field_vector
+          type: string
+        feature:
+          example:
+          - 1.0
+          - 2.0
+          - 3.0
+          items:
+            type: number
+          type: array
+      required:
+      - feature
+      - field
+      type: object
+    searchDocuments_200_response:
+      example:
+        results:
+        - "{}"
+        - "{}"
+      properties:
+        results:
+          items:
+            type: object
+          type: array
+      type: object
+    upsert_200_response:
+      example:
+        msg: msg
+      properties:
+        msg:
+          type: string
+      type: object
+    createSpace_request:
+      properties:
+        name:
+          type: string
+        partition_num:
+          type: integer
+        replica_num:
+          type: integer
+        engine:
+          $ref: '#/components/schemas/createSpace_request_engine'
+        properties:
+          additionalProperties:
+            $ref: '#/components/schemas/createSpace_request_properties_value'
+          type: object
+      type: object
+    deleteDocuments_request_query:
+      properties:
+        document_ids:
+          example:
+          - "4501743250723073467"
+          - "616335952940335471"
+          - "-2422965400649882823"
+          items:
+            type: string
+          type: array
+      type: object
+    createDatabase_request:
+      properties:
+        name:
+          example: db
+          type: string
+      type: object
+    searchDocuments_request_retrieval_param:
+      properties:
+        metric_type:
+          example: L2
+          type: string
+      required:
+      - metric_type
+      type: object
+    upsert_default_response:
+      properties:
+        error:
+          type: string
+      type: object
+    upsert_request:
+      example:
+        db_name: db
+        space_name: ts_space
+      properties:
+        db_name:
+          default: db
+          type: string
+        space_name:
+          type: string
+        documents:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+      type: object
+    searchDocuments_request:
+      properties:
+        query:
+          $ref: '#/components/schemas/searchDocuments_request_query'
+        retrieval_param:
+          $ref: '#/components/schemas/searchDocuments_request_retrieval_param'
+        size:
+          example: 3
+          type: integer
+        db_name:
+          example: ts_db
+          type: string
+        space_name:
+          example: ts_space
+          type: string
+      required:
+      - db_name
+      - query
+      - retrieval_param
+      - size
+      - space_name
+      type: object
+    deleteDocuments_request:
+      properties:
+        db_name:
+          example: ts_db
+          type: string
+        space_name:
+          example: ts_space
+          type: string
+        query:
+          $ref: '#/components/schemas/deleteDocuments_request_query'
+      type: object
+    searchDocuments_request_query:
+      properties:
+        vector:
+          items:
+            $ref: '#/components/schemas/searchDocuments_request_query_vector_inner'
+          type: array
+        filter:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+      required:
+      - vector
+      type: object

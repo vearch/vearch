@@ -1,0 +1,323 @@
+openapi: '3.0.2'
+info:
+  title: Vearch Database API
+  version: "1.0.0"
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  description: API for sending dynamic records to the Vearch database.
+servers:
+  - url: 'http://{ROUTER_URL}:{ROUTER_PORT}'
+    variables:
+        ROUTER_URL:
+          default: 'localhost'
+        ROUTER_PORT:
+          default: '80'
+    description: Development server
+paths:
+  /db/_create:
+    put:
+      summary: Create a new database
+      operationId: createDatabase
+      tags:
+        - database
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: 'db'
+      responses:
+        '200':
+          description: Database created successfully
+        '400':
+          description: Invalid input
+        '500':
+          description: Internal server error
+  
+  /space/{DB_NAME}/_create:
+    put:
+      summary: Create a new space
+      operationId: createSpace
+      tags:
+        - space
+      parameters:
+        - name: DB_NAME
+          in: path
+          required: true
+          schema:
+            type: string
+          description: The name of the database where the space will be created.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                partition_num:
+                  type: integer
+                replica_num:
+                  type: integer
+                engine:
+                  type: object
+                  properties:
+                    index_size:
+                      type: integer
+                    retrieval_type:
+                      type: string
+                    retrieval_param:
+                      type: object
+                      additionalProperties: true
+                properties:
+                  type: object
+                  additionalProperties:
+                    type: object
+                    properties:
+                      type:
+                        type: string
+                      index:
+                        type: boolean
+                      dimension:
+                        type: integer
+                      store_type:
+                        type: string
+                      format:
+                        type: string
+      responses:
+        '200':
+          description: Space created successfully
+        '400':
+          description: Bad request
+        '500':
+          description: Internal server error
+  
+  /space/{DB_NAME}/{SPACE_NAME}:
+    delete:
+      summary: Delete a specific space
+      operationId: deleteSpace
+      tags:
+        - space
+      parameters:
+        - name: DB_NAME
+          in: path
+          required: true
+          description: The name of the database
+          schema:
+            type: string
+        - name: SPACE_NAME
+          in: path
+          required: true
+          description: The name of the space to delete
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Space deleted successfully
+        '400':
+          description: Invalid input or bad request
+        '404':
+          description: Space not found
+        '500':
+          description: Internal server error
+
+  /db/{DB_NAME}:
+    delete:
+      summary: Delete a specific db
+      operationId: deleteDB
+      tags:
+        - database
+      parameters:
+        - name: DB_NAME
+          in: path
+          required: true
+          description: The name of the database
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Database deleted successfully
+        '400':
+          description: Invalid input or bad request
+        '404':
+          description: Database not found
+        '500':
+          description: Internal server error
+
+  /document/upsert:
+    post:
+      summary: Upsert a document with dynamic fields into the Vearch database
+      operationId: upsert
+      tags:
+        - Document
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                db_name:
+                  type: string
+                  default: "db"
+                space_name:
+                  type: string
+                documents:
+                  type: array
+                  items:
+                    type: object
+                    additionalProperties: true
+              example:
+                db_name: "db"
+                space_name: "ts_space"
+      responses:
+        '200':
+          description: Document upserted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  msg:
+                    type: string
+        'default':
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+
+  /document/delete:
+    post:
+      summary: Delete documents from a space
+      operationId: deleteDocuments
+      tags:
+        - Document
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                db_name:
+                  type: string
+                  example: "ts_db"
+                space_name:
+                  type: string
+                  example: "ts_space"
+                query:
+                  type: object
+                  properties:
+                    document_ids:
+                      type: array
+                      items:
+                        type: string
+                      example: ["4501743250723073467", "616335952940335471", "-2422965400649882823"]
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  error_message:
+                    type: string
+                    nullable: true
+        '400':
+          description: Bad request
+        '500':
+          description: Server error
+
+  /document/search:
+    post:
+      summary: Search for documents using vector and filter parameters
+      operationId: searchDocuments
+      tags:
+        - Document
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - query
+                - retrieval_param
+                - size
+                - db_name
+                - space_name
+              properties:
+                query:
+                  type: object
+                  required:
+                    - vector
+                  properties:
+                    vector:
+                      type: array
+                      items:
+                        type: object
+                        required:
+                          - field
+                          - feature
+                        properties:
+                          field:
+                            type: string
+                            example: "field_vector"
+                          feature:
+                            type: array
+                            items:
+                              type: number
+                            example: [1.0, 2.0, 3.0]
+                    filter:
+                      type: array
+                      items:
+                        type: object
+                        additionalProperties: true
+                retrieval_param:
+                  type: object
+                  required:
+                    - metric_type
+                  properties:
+                    metric_type:
+                      type: string
+                      example: "L2"
+                size:
+                  type: integer
+                  example: 3
+                db_name:
+                  type: string
+                  example: "ts_db"
+                space_name:
+                  type: string
+                  example: "ts_space"
+      responses:
+        '200':
+          description: Successful search operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      # Define the properties of a search result item
+                      # according to your application's data model
+        '400':
+          description: Bad request due to invalid syntax or parameters
+        '500':
+          description: Internal server error
