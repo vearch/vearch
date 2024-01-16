@@ -144,16 +144,6 @@ class VearchCase():
                     "type": "string",
                     "array": True,
                     "index": True
-                },
-                "int_tags": {
-                    "type": "integer",
-                    "array": True,
-                    "index": True
-                },
-                "float_tags": {
-                    "type": "float",
-                    "array": True,
-                    "index": True
                 }
             },
             "models": [{
