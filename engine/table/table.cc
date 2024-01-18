@@ -435,7 +435,6 @@ int Table::GetDocInfo(const int docid, Doc &doc,
     field.datatype = type;
   };
 
-  int i = 0;
   if (fields.size() == 0) {
     for (const auto &it : attr_idx_map_) {
       assign_field(table_fields[it.first], it.first);
@@ -453,7 +452,6 @@ int Table::GetDocInfo(const int docid, Doc &doc,
       assign_field(table_fields[iter->first], f);
       GetFieldRawValue(docid, field_idx, table_fields[iter->first].value,
                        doc_value);
-      ++i;
     }
   }
   delete[] doc_value;

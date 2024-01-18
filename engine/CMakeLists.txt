@@ -1,8 +1,8 @@
 #--------------------------------------------
 #    GAMMA ENGINE 
 #--------------------------------------------
-project(gamma_engine C CXX)
 cmake_minimum_required(VERSION 3.17)
+project(gamma_engine C CXX)
 
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/Modules)
 
@@ -35,14 +35,14 @@ if(APPLE)
     link_directories("/usr/local/lib"
                      "/usr/local/opt/llvm/lib"
                      "/usr/local/opt/openblas/lib")
-endif(APPLE)
+endif()
 
 set(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -std=c++17 -mavx2 -msse4 -mpopcnt -fopenmp -D_FILE_OFFSET_BITS=64 -D_LARGE_FILE -DOPEN_CORE -O0 -w -g3 -gdwarf-2")
 set(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -std=c++17 -fPIC -m64 -Wall -O3 -mavx2 -msse4 -mpopcnt -fopenmp -D_FILE_OFFSET_BITS=64 -D_LARGE_FILE -Werror=narrowing -Wno-deprecated")
 
 if(NOT DEFINED ENV{ROCKSDB_HOME})
     message(FATAL_ERROR "RocksDB home isn't set! ")
-endif(NOT DEFINED ENV{ROCKSDB_HOME})
+endif()
 
 message(STATUS "RocksDB home is set=$ENV{ROCKSDB_HOME}")
 find_package(RocksDB REQUIRED)
@@ -64,9 +64,8 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/third_party/faiss/lib64")
 else()
     link_directories(
         ${CMAKE_CURRENT_SOURCE_DIR}/third_party/faiss/lib
-        ${CMAKE_CURRENT_SOURCE_DIR}/index/impl/relayout
     )
-endif(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/third_party/faiss/lib64")
+endif()
 
 find_package(MKL)
 if(MKL_FOUND)
@@ -125,11 +124,11 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     message(STATUS "Debug Mode")
     message(STATUS "Flags:" ${CMAKE_CXX_FLAGS_DEBUG})
     add_definitions(-DDEBUG_) 
-else(CMAKE_BUILD_TYPE STREQUAL "Debug")
+else()
     set(CMAKE_BUILD_TYPE "Release" CACHE STRING "build type" FORCE)
     message(STATUS "Release Mode")
     message(STATUS "Flags:" ${CMAKE_CXX_FLAGS_RELEASE})
-endif(CMAKE_BUILD_TYPE STREQUAL "Debug")
+endif()
 
 exec_program(
     "git"
@@ -142,15 +141,15 @@ add_definitions(-DGIT_SHA1="${VERSION_SHA1}")
 if(PERFORMANCE_TESTING STREQUAL "ON")
     message(STATUS "With preformance testing")
     add_definitions(-DPERFORMANCE_TESTING) 
-endif(PERFORMANCE_TESTING STREQUAL "ON")
+endif()
 
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/index/impl/relayout/CMakeLists.txt")
     if(NOT APPLE)
         add_definitions(-DOPT_IVFPQ_RELAYOUT)
         add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/index/impl/relayout)
         include_directories(${RELAYOUT_INCLUDE})
-    endif(NOT APPLE)
-endif(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/index/impl/relayout/CMakeLists.txt")
+    endif()
+endif()
 
 set(LIB_SRCS ${DIR_SRCS} ${RELAYOUT_SRCS})
 
@@ -189,14 +188,14 @@ if(BUILD_WITH_GPU)
     /usr/local/cuda/lib64/libcudart.so
     )
 
-else(BUILD_WITH_GPU)
+else()
     add_library(gamma SHARED ${LIB_SRCS})
     target_link_libraries(gamma ${LIBRARIES})
 
     if(BUILD_RELAYOUT)
         target_link_libraries(gamma -lrelayout)
     endif()
-endif(BUILD_WITH_GPU)
+endif()
 
 if(BUILD_WITH_SCANN)
     message(STATUS "With SCANN INDEX")
@@ -214,12 +213,12 @@ if(BUILD_WITH_SCANN)
         ${LIBRARIES}
         -lscannapi
         ${CMAKE_CURRENT_SOURCE_DIR}/third_party/scann/lib/libscannapi.so)
-endif(BUILD_WITH_SCANN)
+endif()
 
 if(BUILD_PYTHON_SDK)
     message(STATUS "FOR PYTHON SDK BUILD")
     add_definitions(-DPYTHON_SDK)
-endif(BUILD_PYTHON_SDK)
+endif()
 
 
 install(TARGETS gamma
@@ -244,8 +243,8 @@ install(DIRECTORY ${PROJECT_SOURCE_DIR}/third_party DESTINATION include/gamma FI
 
 if(BUILD_TEST)
     add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/tests)
-endif(BUILD_TEST)
+endif()
 
 if(BUILD_TOOLS)
     add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/tools)
-endif(BUILD_TOOLS)
+endif()

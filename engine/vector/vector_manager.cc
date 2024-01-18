@@ -226,7 +226,7 @@ void VectorManager::DescribeVectorIndexes() {
 int VectorManager::CreateVectorIndexes(
     int indexing_size,
     std::map<std::string, RetrievalModel *> &vector_indexes) {
-  int i = 0, ret = 0;
+  int ret = 0;
   for (const auto &[name, index] : raw_vectors_) {
     if (index != nullptr) {
       std::string &vec_name = index->MetaInfo()->Name();
@@ -240,7 +240,6 @@ int VectorManager::CreateVectorIndexes(
         }
       }
     }
-    i++;
   }
   return 0;
 }

@@ -28,7 +28,7 @@ type Vector struct {
 var routerURL string
 
 func init() {
-	routerURL = "127.0.0.1"
+	routerURL = "http://127.0.0.1:9001"
 }
 
 func Test_vearch_client_APIService(t *testing.T) {

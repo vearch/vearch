@@ -432,7 +432,6 @@ FieldRangeIndex::~FieldRangeIndex() {
   BtDb *bt = bt_open(main_mgr_);
   BtPageSet set[1];
   uid next, page_no = LEAF_page;  // start on first page of leaves
-  int cnt = 0;
 
   do {
     if (set->latch = bt_pinlatch(bt, page_no, 1)) {
@@ -458,7 +457,6 @@ FieldRangeIndex::~FieldRangeIndex() {
           memcpy(&p_node, val->value, sizeof(Node *));
           delete p_node;
           // fwrite(val->value, val->len, 1, stdout);
-          cnt++;
         }
 
     bt_unlockpage(bt, BtLockRead, set->latch);
@@ -598,7 +596,11 @@ int FieldRangeIndex::Delete(std::string &key, int value) {
         pthread_rwlock_wrlock(&rw_lock_);
         p_node->Delete(value);
         if (p_node->Size() == 0) {
+#ifdef __APPLE__
+          bt_deletekey(bt, key_to_add, key_len, 0);
+#else
           bt_deletekey(main_mgr_, key_to_add, key_len, 0);
+#endif
           delete p_node;
         }
         pthread_rwlock_unlock(&rw_lock_);

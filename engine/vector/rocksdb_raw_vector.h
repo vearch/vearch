@@ -16,7 +16,7 @@
 
 namespace tig_gamma {
 
-class RocksDBRawVectorIO;
+struct RocksDBRawVectorIO;
 
 class RocksDBRawVector : public RawVector {
  public:
