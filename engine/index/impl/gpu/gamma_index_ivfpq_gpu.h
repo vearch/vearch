@@ -114,9 +114,6 @@ class GammaIVFPQGPUIndex : public RetrievalModel {
   DistanceComputeType metric_type_;
   std::mutex cpu_mutex_;
   std::mutex indexing_mutex_;
-#ifdef PERFORMANCE_TESTING
-  std::atomic<uint64_t> search_count_;
-#endif
 };
 
 }  // namespace gamma_gpu

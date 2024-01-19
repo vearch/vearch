@@ -163,14 +163,12 @@ bool GammaIndexBinaryIVF::Add(int n, const uint8_t *vec) {
   quantizer->assign(n, vec, scoped_idx.get());
   idx = scoped_idx.get();
 
-  size_t n_ignore = 0;
   size_t n_add = 0;
   long vid = indexed_vec_count_;
   for (int i = 0; i < n; i++) {
     long list_no = idx[i];
     assert(list_no < (long)nlist);
     if (list_no < 0) {
-      n_ignore++;
       continue;
     }
 

@@ -60,7 +60,6 @@ GammaIVFPQIndex::GammaIVFPQIndex() : indexed_vec_count_(0) {
   model_param_ = nullptr;
   opq_ = nullptr;
 #ifdef PERFORMANCE_TESTING
-  search_count_ = 0;
   add_count_ = 0;
 #endif
 }
@@ -486,13 +485,11 @@ bool GammaIVFPQIndex::Add(int n, const uint8_t *vec) {
   }
   pq.compute_codes(to_encode, xcodes, n);
 
-  size_t n_ignore = 0;
   long vid = indexed_vec_count_;
   for (int i = 0; i < n; i++) {
     long key = idx[i];
     assert(key < (long)nlist);
     if (key < 0) {
-      n_ignore++;
       LOG(WARNING) << "ivfpq add invalid key=" << key << ", vid=" << vid;
       key = vid % nlist;
     }
@@ -927,7 +924,7 @@ void GammaIVFPQIndex::copy_subset_to(faiss::IndexIVF &other, int subset_type,
       subset_type == 0 || subset_type == 1 || subset_type == 2,
       "subset type %d not implemented", subset_type);
 
-  int accu_n = 0;
+  // int accu_n = 0;
 
   faiss::InvertedLists *oivf = other.invlists;
 
@@ -954,7 +951,7 @@ void GammaIVFPQIndex::copy_subset_to(faiss::IndexIVF &other, int subset_type,
         }
       }
     }
-    accu_n += n;
+    // accu_n += n;
   }
   // FAISS_ASSERT(accu_n == indexed_vec_count_);
 }

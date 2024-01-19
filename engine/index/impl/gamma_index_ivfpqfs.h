@@ -21,32 +21,33 @@
 #define GAMMA_INDEX_IVFPQFS_H_
 
 #include <unistd.h>
+
 #include <atomic>
 
+#include "common/gamma_common_data.h"
+#include "faiss/IndexHNSW.h"
 #include "faiss/IndexIVF.h"
 #include "faiss/IndexIVFPQFastScan.h"
 #include "faiss/VectorTransform.h"
-#include "faiss/IndexHNSW.h"
-#include "faiss/invlists/DirectMap.h"
-#include "faiss/invlists/InvertedLists.h"
 #include "faiss/impl/FaissAssert.h"
 #include "faiss/impl/io.h"
 #include "faiss/index_io.h"
+#include "faiss/invlists/DirectMap.h"
+#include "faiss/invlists/InvertedLists.h"
 #include "faiss/utils/Heap.h"
 #include "faiss/utils/distances.h"
 #include "faiss/utils/hamming.h"
 #include "faiss/utils/utils.h"
-#include "table/field_range_index.h"
-#include "common/gamma_common_data.h"
 #include "gamma_index_flat.h"
 #include "gamma_scanner.h"
+#include "index/impl/gamma_index_ivfpq.h"
+#include "index/retrieval_model.h"
+#include "realtime/realtime_invert_index.h"
+#include "table/field_range_index.h"
 #include "util/log.h"
+#include "util/utils.h"
 #include "vector/memory_raw_vector.h"
 #include "vector/raw_vector.h"
-#include "realtime/realtime_invert_index.h"
-#include "index/retrieval_model.h"
-#include "index/impl/gamma_index_ivfpq.h"
-#include "util/utils.h"
 
 namespace tig_gamma {
 
@@ -56,7 +57,7 @@ struct IVFPQFastScanModelParams : IVFPQModelParams {
     bbs = 32;
     nbits_per_idx = 4;
   }
-    int Parse(const char *str) {
+  int Parse(const char *str) {
     utils::JsonParser jp;
     if (jp.Parse(str)) {
       LOG(ERROR) << "parse IVFPQ retrieval parameters error: " << str;
@@ -65,7 +66,7 @@ struct IVFPQFastScanModelParams : IVFPQModelParams {
 
     int ncentroids;
     int nsubvector;
-    //int nbits_per_idx;
+    // int nbits_per_idx;
     int nprobe;
     int bbs;
 
@@ -166,7 +167,7 @@ struct IVFPQFastScanModelParams : IVFPQModelParams {
           LOG(ERROR) << "invalid nlinks = " << nlinks;
           return -1;
         }
-        if(nlinks > 0) this->nlinks = nlinks;
+        if (nlinks > 0) this->nlinks = nlinks;
       }
 
       if (!jp_hnsw.GetInt("efConstruction", efConstruction)) {
@@ -174,7 +175,7 @@ struct IVFPQFastScanModelParams : IVFPQModelParams {
           LOG(ERROR) << "invalid efConstruction = " << efConstruction;
           return -1;
         }
-        if(efConstruction > 0) this->efConstruction = efConstruction;
+        if (efConstruction > 0) this->efConstruction = efConstruction;
       }
 
       if (!jp_hnsw.GetInt("efSearch", efSearch)) {
@@ -182,7 +183,7 @@ struct IVFPQFastScanModelParams : IVFPQModelParams {
           LOG(ERROR) << "invalid efSearch = " << efSearch;
           return -1;
         }
-        if(efSearch > 0) this->efSearch = efSearch;
+        if (efSearch > 0) this->efSearch = efSearch;
       }
     }
 
@@ -197,7 +198,7 @@ struct IVFPQFastScanModelParams : IVFPQModelParams {
           return -1;
         }
         if (opq_nsubvector > 0) this->opq_nsubvector = opq_nsubvector;
-      } 
+      }
     }
 
     if (!Validate()) return -1;
@@ -211,7 +212,9 @@ struct IVFPQFastScanModelParams : IVFPQModelParams {
       return false;
     }
     if (bbs % 32 != 0) {
-      LOG(ERROR) << "bbs only supports the case where 32 can be divided evenly, bbs=" << bbs;
+      LOG(ERROR)
+          << "bbs only supports the case where 32 can be divided evenly, bbs="
+          << bbs;
       return false;
     }
 
@@ -253,13 +256,13 @@ struct GammaIVFPQFastScanIndex : GammaFLATIndex, faiss::IndexIVFPQFastScan {
 
   int Indexing() override;
 
-  bool Add(int n, const uint8_t *vec);
+  bool Add(int n, const uint8_t *vec) override;
 
   int Update(const std::vector<int64_t> &ids,
-             const std::vector<const uint8_t *> &vecs);
+             const std::vector<const uint8_t *> &vecs) override;
 
   int Search(RetrievalContext *retrieval_context, int n, const uint8_t *x,
-             int k, float *distances, idx_t *labels);
+             int k, float *distances, idx_t *labels) override;
 
   long GetTotalMemBytes() override {
     if (!rt_invert_index_ptr_) {
@@ -272,9 +275,11 @@ struct GammaIVFPQFastScanIndex : GammaFLATIndex, faiss::IndexIVFPQFastScan {
 
   int Load(const std::string &index_dir) override;
 
-  int Delete(const std::vector<int64_t> &ids);
+  int Delete(const std::vector<int64_t> &ids) override;
 
-  void train(int64_t n, const float *x) { faiss::IndexIVFPQFastScan::train(n, x); }
+  void train(int64_t n, const float *x) override {
+    faiss::IndexIVFPQFastScan::train(n, x);
+  }
 
   int indexed_vec_count_;
   realtime::RTInvertIndex *rt_invert_index_ptr_ = nullptr;
@@ -289,7 +294,6 @@ struct GammaIVFPQFastScanIndex : GammaFLATIndex, faiss::IndexIVFPQFastScan {
   // 0 is FlatL2, 1 is HNSWFlat
   int quantizer_type_;
 #ifdef PERFORMANCE_TESTING
-  std::atomic<uint64_t> search_count_;
   int add_count_;
 #endif
   IVFPQFastScanModelParams *model_param_;

@@ -60,22 +60,16 @@ function get_version() {
 }
 
 function build_thirdparty() {
-  OS_NAME=$(uname)
-  if [ ${OS_NAME} == "Darwin" ]; then
+  if [ ! -n "${ROCKSDB_HOME}" ]; then
     export ROCKSDB_HOME=/usr/local/include/rocksdb
-    brew install rocksdb
-  else
-    if [ ! -n "${ROCKSDB_HOME}" ]; then
-      export ROCKSDB_HOME=/usr/local/include/rocksdb
-      if [ ! -d "${ROCKSDB_HOME}" ]; then
-        rm -rf rocksdb*
-        wget ${ROCKSDB_URL} -O rocksdb.tar.gz
-        tar -xzf rocksdb.tar.gz
-        pushd rocksdb-6.6.4
-        CFLAGS="-O3 -fPIC" make shared_lib $COMPILE_THREAD_NUM
-        make install
-        popd
-      fi
+    if [ ! -d "${ROCKSDB_HOME}" ]; then
+      rm -rf rocksdb*
+      wget ${ROCKSDB_URL} -O rocksdb.tar.gz
+      tar -xzf rocksdb.tar.gz
+      pushd rocksdb-6.6.4
+      CFLAGS="-O3 -fPIC" make shared_lib $COMPILE_THREAD_NUM
+      make install
+      popd
     fi
   fi
 }

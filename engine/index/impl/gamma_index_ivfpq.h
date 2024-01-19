@@ -21,31 +21,32 @@
 #define GAMMA_INDEX_IVFPQ_H_
 
 #include <unistd.h>
+
 #include <atomic>
 
+#include "common/gamma_common_data.h"
+#include "faiss/IndexHNSW.h"
 #include "faiss/IndexIVF.h"
 #include "faiss/IndexIVFPQ.h"
 #include "faiss/VectorTransform.h"
-#include "faiss/IndexHNSW.h"
-#include "faiss/invlists/DirectMap.h"
-#include "faiss/invlists/InvertedLists.h"
 #include "faiss/impl/FaissAssert.h"
 #include "faiss/impl/io.h"
 #include "faiss/index_io.h"
+#include "faiss/invlists/DirectMap.h"
+#include "faiss/invlists/InvertedLists.h"
 #include "faiss/utils/Heap.h"
 #include "faiss/utils/distances.h"
 #include "faiss/utils/hamming.h"
 #include "faiss/utils/utils.h"
-#include "table/field_range_index.h"
-#include "common/gamma_common_data.h"
 #include "gamma_index_flat.h"
 #include "gamma_scanner.h"
+#include "index/retrieval_model.h"
+#include "realtime/realtime_invert_index.h"
+#include "table/field_range_index.h"
 #include "util/log.h"
+#include "util/utils.h"
 #include "vector/memory_raw_vector.h"
 #include "vector/raw_vector.h"
-#include "realtime/realtime_invert_index.h"
-#include "index/retrieval_model.h"
-#include "util/utils.h"
 
 namespace tig_gamma {
 
@@ -248,8 +249,8 @@ struct QueryTables {
       dis0 = coarse_dis;
 
       faiss::fvec_madd(pq.M * pq.ksub,
-                       ivfpq.precomputed_table.data() + key * pq.ksub * pq.M, -2.0,
-                       sim_table_2, sim_table);
+                       ivfpq.precomputed_table.data() + key * pq.ksub * pq.M,
+                       -2.0, sim_table_2, sim_table);
 
       if (polysemous_ht != 0) {
         ivfpq.quantizer->compute_residual(qi, residual_vec, key);
@@ -382,8 +383,7 @@ struct IVFPQScannerT : QueryTables {
 
   explicit IVFPQScannerT(const faiss::IndexIVFPQ &ivfpq,
                          const faiss::IVFSearchParameters *params)
-      : QueryTables(ivfpq, params, METRIC_TYPE) {
-  }
+      : QueryTables(ivfpq, params, METRIC_TYPE) {}
 
   float dis0;
 
@@ -400,13 +400,13 @@ struct IVFPQScannerT : QueryTables {
 
   /// version of the scan where we use precomputed tables
   template <class SearchResultType>
-  void scan_list_with_table(size_t ncode, const uint8_t* codes,
-            SearchResultType& res) const {
+  void scan_list_with_table(size_t ncode, const uint8_t *codes,
+                            SearchResultType &res) const {
     for (size_t j = 0; j < ncode; j++) {
       PQDecoder decoder(codes, pq.nbits);
       codes += pq.code_size;
       float dis = dis0;
-      const float* tab = sim_table;
+      const float *tab = sim_table;
 
       for (size_t m = 0; m < pq.M; m++) {
         dis += tab[decoder.decode()];
@@ -415,7 +415,7 @@ struct IVFPQScannerT : QueryTables {
 
       res.add(j, dis);
     }
-  } 
+  }
 
   /// tables are not precomputed, but pointers are provided to the
   /// relevant X_c|x_r tables
@@ -425,7 +425,7 @@ struct IVFPQScannerT : QueryTables {
     for (size_t j = 0; j < ncode; j++) {
       PQDecoder decoder(codes, pq.nbits);
       codes += pq.code_size;
-      
+
       float dis = dis0;
       const float *tab = sim_table_2;
 
@@ -544,11 +544,12 @@ struct GammaIVFPQScanner : IVFPQScannerT<idx_t, METRIC_TYPE, PQDecoder>,
   bool store_pairs;
   const GammaIVFPQIndex &gamma_ivfpq_;
 
-  GammaIVFPQScanner(const GammaIVFPQIndex &gamma_ivfpq, bool store_pairs, int precompute_mode)
+  GammaIVFPQScanner(const GammaIVFPQIndex &gamma_ivfpq, bool store_pairs,
+                    int precompute_mode)
       : IVFPQScannerT<idx_t, METRIC_TYPE, PQDecoder>(gamma_ivfpq, nullptr),
-        precompute_mode(precompute_mode), store_pairs(store_pairs), 
-        gamma_ivfpq_(gamma_ivfpq) {
-  }
+        precompute_mode(precompute_mode),
+        store_pairs(store_pairs),
+        gamma_ivfpq_(gamma_ivfpq) {}
 
   inline void set_query(const float *query) override {
     this->init_query(query);
@@ -573,8 +574,8 @@ struct GammaIVFPQScanner : IVFPQScannerT<idx_t, METRIC_TYPE, PQDecoder>,
 
   /// version of the scan where we use precomputed tables
   template <class SearchResultType>
-  void scan_list_with_table(size_t ncode, const uint8_t* codes,
-            SearchResultType& res) const {
+  void scan_list_with_table(size_t ncode, const uint8_t *codes,
+                            SearchResultType &res) const {
     for (size_t j = 0; j < ncode; j++) {
       if (res.ids[j] & realtime::kDelIdxMask) {
         codes += this->pq.code_size;
@@ -589,7 +590,7 @@ struct GammaIVFPQScanner : IVFPQScannerT<idx_t, METRIC_TYPE, PQDecoder>,
       PQDecoder decoder(codes, this->pq.nbits);
       codes += this->pq.code_size;
       float dis = this->dis0;
-      const float* tab = this->sim_table;
+      const float *tab = this->sim_table;
 
       for (size_t m = 0; m < this->pq.M; m++) {
         dis += tab[decoder.decode()];
@@ -676,20 +677,21 @@ class IVFPQRetrievalParameters : public RetrievalParameters {
 };
 
 struct IVFPQModelParams {
-  int ncentroids;     // coarse cluster center number
-  int nsubvector;     // number of sub cluster center
-  bool support_indivisible_nsubvector;     // Support for nsubvectors that are not divisible by dimensions
-  int nbits_per_idx;  // bit number of sub cluster center
-  int nprobe;         // search how many bucket
+  int ncentroids;                       // coarse cluster center number
+  int nsubvector;                       // number of sub cluster center
+  bool support_indivisible_nsubvector;  // Support for nsubvectors that are not
+                                        // divisible by dimensions
+  int nbits_per_idx;                    // bit number of sub cluster center
+  int nprobe;                           // search how many bucket
   DistanceComputeType metric_type;
   bool has_hnsw;
   int nlinks;          // link number for hnsw graph
   int efConstruction;  // construction parameter for building hnsw graph
   int efSearch;        // search parameter for search in hnsw graph
   bool has_opq;
-  int opq_nsubvector;  // number of sub cluster center of opq
-  int bucket_init_size; // original size of RTInvertIndex bucket
-  int bucket_max_size; // max size of RTInvertIndex bucket
+  int opq_nsubvector;    // number of sub cluster center of opq
+  int bucket_init_size;  // original size of RTInvertIndex bucket
+  int bucket_max_size;   // max size of RTInvertIndex bucket
 
   IVFPQModelParams() {
     ncentroids = 2048;
@@ -764,8 +766,9 @@ struct IVFPQModelParams {
       }
     }
 
-    if (!jp.GetInt("support_indivisible_nsubvector", support_indivisible_nsubvector)) {
-      if (support_indivisible_nsubvector != 0) 
+    if (!jp.GetInt("support_indivisible_nsubvector",
+                   support_indivisible_nsubvector)) {
+      if (support_indivisible_nsubvector != 0)
         this->support_indivisible_nsubvector = true;
     }
 
@@ -815,7 +818,7 @@ struct IVFPQModelParams {
           LOG(ERROR) << "invalid nlinks = " << nlinks;
           return -1;
         }
-        if(nlinks > 0) this->nlinks = nlinks;
+        if (nlinks > 0) this->nlinks = nlinks;
       }
 
       if (!jp_hnsw.GetInt("efConstruction", efConstruction)) {
@@ -823,7 +826,7 @@ struct IVFPQModelParams {
           LOG(ERROR) << "invalid efConstruction = " << efConstruction;
           return -1;
         }
-        if(efConstruction > 0) this->efConstruction = efConstruction;
+        if (efConstruction > 0) this->efConstruction = efConstruction;
       }
 
       if (!jp_hnsw.GetInt("efSearch", efSearch)) {
@@ -831,7 +834,7 @@ struct IVFPQModelParams {
           LOG(ERROR) << "invalid efSearch = " << efSearch;
           return -1;
         }
-        if(efSearch > 0) this->efSearch = efSearch;
+        if (efSearch > 0) this->efSearch = efSearch;
       }
     }
 
@@ -846,7 +849,7 @@ struct IVFPQModelParams {
           return -1;
         }
         if (opq_nsubvector > 0) this->opq_nsubvector = opq_nsubvector;
-      } 
+      }
     }
 
     if (!Validate()) return -1;
@@ -855,7 +858,7 @@ struct IVFPQModelParams {
 
   bool Validate() {
     if (ncentroids <= 0 || nsubvector <= 0 || nbits_per_idx <= 0) return false;
-    //if (nbits_per_idx != 8) {
+    // if (nbits_per_idx != 8) {
     //  LOG(ERROR) << "only support 8 now, nbits_per_idx=" << nbits_per_idx;
     //  return false;
     //}
@@ -867,7 +870,8 @@ struct IVFPQModelParams {
     std::stringstream ss;
     ss << "ncentroids =" << ncentroids << ", ";
     ss << "nsubvector =" << nsubvector << ", ";
-    ss << "support_indivisible_nsubvector =" << support_indivisible_nsubvector << ", ";
+    ss << "support_indivisible_nsubvector =" << support_indivisible_nsubvector
+       << ", ";
     ss << "nbits_per_idx =" << nbits_per_idx << ", ";
     ss << "nprobe =" << nprobe << ", ";
     ss << "metric_type =" << (int)metric_type << ", ";
@@ -907,19 +911,20 @@ struct GammaIVFPQIndex : GammaFLATIndex, faiss::IndexIVFPQ {
 
   int Indexing() override;
 
-  bool Add(int n, const uint8_t *vec);
+  bool Add(int n, const uint8_t *vec) override;
 
   int Update(const std::vector<int64_t> &ids,
-             const std::vector<const uint8_t *> &vecs);
+             const std::vector<const uint8_t *> &vecs) override;
 
   // assign the vectors, then call search_preassign
   int Search(RetrievalContext *retrieval_context, int n, const uint8_t *x,
-             int k, float *distances, idx_t *labels);
+             int k, float *distances, idx_t *labels) override;
 
   void search_preassigned(RetrievalContext *retrieval_context, int n,
-                          const float *x, const float *applied_x, int k, const idx_t *keys,
-                          const float *coarse_dis, float *distances,
-                          idx_t *labels, int nprobe, bool store_pairs,
+                          const float *x, const float *applied_x, int k,
+                          const idx_t *keys, const float *coarse_dis,
+                          float *distances, idx_t *labels, int nprobe,
+                          bool store_pairs,
                           const faiss::IVFSearchParameters *params = nullptr);
 
   long GetTotalMemBytes() override {
@@ -934,13 +939,15 @@ struct GammaIVFPQIndex : GammaFLATIndex, faiss::IndexIVFPQ {
   int Load(const std::string &index_dir) override;
 
   virtual void copy_subset_to(faiss::IndexIVF &other, int subset_type, idx_t a1,
-                              idx_t a2) const;
+                              idx_t a2) const override;
 
-  int Delete(const std::vector<int64_t> &ids);
+  int Delete(const std::vector<int64_t> &ids) override;
 
-  void train(int64_t n, const float *x) { faiss::IndexIVFPQ::train(n, x); }
+  void train(int64_t n, const float *x) override {
+    faiss::IndexIVFPQ::train(n, x);
+  }
 
-  void Describe();
+  void Describe() override;
 
   int indexed_vec_count_;
   realtime::RTInvertIndex *rt_invert_index_ptr_;
@@ -955,7 +962,6 @@ struct GammaIVFPQIndex : GammaFLATIndex, faiss::IndexIVFPQ {
   // 0 is FlatL2, 1 is HNSWFlat
   int quantizer_type_;
 #ifdef PERFORMANCE_TESTING
-  std::atomic<uint64_t> search_count_;
   int add_count_;
 #endif
   IVFPQModelParams *model_param_;

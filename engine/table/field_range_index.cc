@@ -447,9 +447,9 @@ FieldRangeIndex::~FieldRangeIndex() {
       if (next || slot < set->page->cnt)
         if (!slotptr(set->page, slot)->dead) {
           BtKey *ptr = keyptr(set->page, slot);
-          unsigned char len = ptr->len;
+          // unsigned char len = ptr->len;
 
-          if (slotptr(set->page, slot)->type == Duplicate) len -= BtId;
+          // if (slotptr(set->page, slot)->type == Duplicate) len -= BtId;
 
           // fwrite(ptr->key, len, 1, stdout);
           BtVal *val = valptr(set->page, slot);

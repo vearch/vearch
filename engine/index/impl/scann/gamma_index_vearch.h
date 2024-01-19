@@ -138,7 +138,6 @@ class GammaVearchIndex : public RetrievalModel {
   BlockingConcurrentQueue<std::shared_ptr<SearchTask>> task_queue_;
 
 #ifdef PERFORMANCE_TESTING
-  std::atomic<uint64_t> search_count_{0};
   int add_count_ = 0;
 #endif
 

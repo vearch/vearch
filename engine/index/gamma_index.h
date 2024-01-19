@@ -6,15 +6,15 @@
 #include "index/impl/relayout/gamma_index_ivfpq_relayout.h"
 #include "index/impl/relayout/x86/x86_gamma_index_ivfflat.h"
 #else
-#include "index/impl/gamma_index_ivfpq.h"
 #include "index/impl/gamma_index_ivfflat.h"
+#include "index/impl/gamma_index_ivfpq.h"
 #endif
 
 #include "index/retrieval_model.h"
 
 #ifdef USE_SCANN
 #include "index/impl/scann/gamma_index_vearch.h"
-#endif // USE_SCANN
+#endif  // USE_SCANN
 
 #include "util/bitmap_manager.h"
 #include "vector/raw_vector.h"
@@ -80,20 +80,20 @@ class IndexIVFFlat : public GammaIndexIVFFlat, public Index {
 
   virtual ~IndexIVFFlat();
 
-  int init(const std::string &index_param);
+  int init(const std::string &index_param) override;
 
-  int init();
+  int init() override;
 
   void train(idx_t n, const float *x) override;
 
   void add(idx_t n, const float *x) override;
 
   void search(idx_t n, const float *x, idx_t k, float *distances,
-              idx_t *labels);
+              idx_t *labels) override;
 
-  int dump(const std::string &dir);
+  int dump(const std::string &dir) override;
 
-  int load(const std::string &dir);
+  int load(const std::string &dir) override;
 };
 
 #ifdef OPT_IVFPQ_RELAYOUT
@@ -107,26 +107,27 @@ class IndexIVFPQ : public GammaIVFPQIndex, public Index {
 
   virtual ~IndexIVFPQ();
 
-  int init(const std::string &index_param);
+  int init(const std::string &index_param) override;
 
-  int init();
+  int init() override;
 
   void train(idx_t n, const float *x) override;
 
   void add(idx_t n, const float *x) override;
 
   void search(idx_t n, const float *x, idx_t k, float *distances,
-              idx_t *labels);
+              idx_t *labels) override;
 
-  int dump(const std::string &dir);
+  int dump(const std::string &dir) override;
 
-  int load(const std::string &dir);
+  int load(const std::string &dir) override;
 };
 
 #ifdef USE_SCANN
 class IndexScann : public GammaVearchIndex, public Index {
  public:
-  IndexScann(size_t d, size_t nlist, size_t M, faiss::MetricType metric = faiss::METRIC_L2);
+  IndexScann(size_t d, size_t nlist, size_t M,
+             faiss::MetricType metric = faiss::METRIC_L2);
 
   virtual ~IndexScann();
 
@@ -145,7 +146,7 @@ class IndexScann : public GammaVearchIndex, public Index {
 
   int load(const std::string &dir);
 };
-#endif // USE_SCANN
+#endif  // USE_SCANN
 
 Index *index_factory(int d, const char *description_in,
                      faiss::MetricType metric);

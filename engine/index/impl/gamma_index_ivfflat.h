@@ -23,6 +23,7 @@
 
 #include <faiss/IndexIVFFlat.h>
 #include <faiss/utils/distances.h>
+
 #include "gamma_scanner.h"
 #include "realtime/realtime_invert_index.h"
 
@@ -65,7 +66,8 @@ struct GammaIVFFlatScanner1 : GammaInvertedListScanner {
       float dis = metric == faiss::METRIC_INNER_PRODUCT
                       ? faiss::fvec_inner_product(xi, yj, d)
                       : faiss::fvec_L2sqr(xi, yj, d);
-      if (retrieval_context_->IsSimilarScoreValid(dis) && C::cmp(simi[0], dis)) {
+      if (retrieval_context_->IsSimilarScoreValid(dis) &&
+          C::cmp(simi[0], dis)) {
         faiss::heap_pop<C>(k, simi, idxi);
         faiss::heap_push<C>(k, simi, idxi, dis, vid);
         nup++;
@@ -129,7 +131,7 @@ struct GammaIndexIVFFlat : faiss::IndexIVFFlat, public RetrievalModel {
   bool Add(int n, const uint8_t *vec) override;
   int Update(const std::vector<int64_t> &ids,
              const std::vector<const uint8_t *> &vecs) override;
-  int Delete(const std::vector<int64_t> &ids);
+  int Delete(const std::vector<int64_t> &ids) override;
   // int AddRTVecsToIndex() override;
 
   int Search(RetrievalContext *retrieval_context, int n, const uint8_t *x,
@@ -145,9 +147,11 @@ struct GammaIndexIVFFlat : faiss::IndexIVFFlat, public RetrievalModel {
   int Dump(const std::string &dir) override;
   int Load(const std::string &dir) override;
 
-  void train(int64_t n, const float *x) { faiss::IndexIVFFlat::train(n, x); }
+  void train(int64_t n, const float *x) override {
+    faiss::IndexIVFFlat::train(n, x);
+  }
 
-  void Describe();
+  void Describe() override;
 
  private:
   GammaInvertedListScanner *GetGammaInvertedListScanner(

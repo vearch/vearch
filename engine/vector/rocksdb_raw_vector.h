@@ -9,6 +9,7 @@
 
 #include <string>
 #include <vector>
+
 #include "rocksdb/db.h"
 #include "rocksdb/options.h"
 #include "rocksdb/table.h"
@@ -29,9 +30,9 @@ class RocksDBRawVector : public RawVector {
   int AddToStore(uint8_t *v, int len) override;
   int GetVectorHeader(int start, int n, ScopeVectors &vecs,
                       std::vector<int> &lens) override;
-  int UpdateToStore(int vid, uint8_t *v, int len);
+  int UpdateToStore(int vid, uint8_t *v, int len) override;
 
-  size_t GetStoreMemUsage();
+  size_t GetStoreMemUsage() override;
 
   int Gets(const std::vector<int64_t> &vids, ScopeVectors &vecs) const override;
 
@@ -42,7 +43,7 @@ class RocksDBRawVector : public RawVector {
   void ToRowKey(int vid, std::string &key) const;
 
  private:
-  friend class RocksDBRawVectorIO;
+  friend struct RocksDBRawVectorIO;
 
   rocksdb::DB *db_;
   rocksdb::BlockBasedTableOptions table_options_;

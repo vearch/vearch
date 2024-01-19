@@ -13,9 +13,9 @@
 #include <atomic>
 
 #include "c_api/api_data/gamma_request.h"
-#include "vector/raw_vector.h"
-#include "realtime/realtime_invert_index.h"
 #include "index/retrieval_model.h"
+#include "realtime/realtime_invert_index.h"
+#include "vector/raw_vector.h"
 
 namespace tig_gamma {
 
@@ -40,9 +40,7 @@ class BinaryIVFRetrievalParameters : public RetrievalParameters {
 };
 
 struct GammaBinaryInvertedListScanner {
-  GammaBinaryInvertedListScanner() {
-    retrieval_context_ = nullptr;
-  }
+  GammaBinaryInvertedListScanner() { retrieval_context_ = nullptr; }
 
   /// from now on we handle this query.
   virtual void set_query(const uint8_t *query_vector) = 0;
@@ -84,7 +82,7 @@ class GammaIndexBinaryIVF : public RetrievalModel, faiss::IndexBinaryIVF {
 
   int Init(const std::string &model_parameters, int indexing_size) override;
 
-  RetrievalParameters *Parse(const std::string &parameters);
+  RetrievalParameters *Parse(const std::string &parameters) override;
 
   int Indexing() override;
 
@@ -94,14 +92,15 @@ class GammaIndexBinaryIVF : public RetrievalModel, faiss::IndexBinaryIVF {
   int Search(RetrievalContext *retrieval_context, int n, const uint8_t *x,
              int k, float *distances, int64_t *labels) override;
 
-  long GetTotalMemBytes();
+  long GetTotalMemBytes() override;
 
-  int Dump(const std::string &dir) { return 0; }
-  int Load(const std::string &index_dir) { return 0; }
+  int Dump(const std::string &dir) override { return 0; }
+  int Load(const std::string &index_dir) override { return 0; }
 
-  int Delete(const std::vector<int64_t> &ids);
+  int Delete(const std::vector<int64_t> &ids) override;
 
-  int Update(const std::vector<int64_t> &ids, const std::vector<const uint8_t *> &vecs) {
+  int Update(const std::vector<int64_t> &ids,
+             const std::vector<const uint8_t *> &vecs) override {
     return 0;
   }
 
@@ -125,7 +124,6 @@ class GammaIndexBinaryIVF : public RetrievalModel, faiss::IndexBinaryIVF {
   realtime::RTInvertIndex *rt_invert_index_ptr_;
 
 #ifdef PERFORMANCE_TESTING
-  std::atomic<uint64_t> search_count_;
   int add_count_;
 #endif
 };

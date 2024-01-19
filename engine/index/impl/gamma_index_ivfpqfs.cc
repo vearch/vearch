@@ -44,7 +44,6 @@ GammaIVFPQFastScanIndex::GammaIVFPQFastScanIndex() : indexed_vec_count_(0) {
   is_trained = false;
   opq_ = nullptr;
 #ifdef PERFORMANCE_TESTING
-  search_count_ = 0;
   add_count_ = 0;
 #endif
 }

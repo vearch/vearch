@@ -304,9 +304,6 @@ int GammaIVFPQGPUIndex::Init(const std::string &model_parameters, int indexing_s
   cpu_index_->vector_ = vector_;
   cpu_index_->Init(model_parameters, indexing_size);
 
-#ifdef PERFORMANCE_TESTING
-  search_count_ = 0;
-#endif
   return 0;
 }
 

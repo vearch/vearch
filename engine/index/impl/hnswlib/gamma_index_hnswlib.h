@@ -13,15 +13,15 @@
 #include <string>
 #include <vector>
 
-#include "util/bitmap.h"
-#include "table/field_range_index.h"
 #include "common/gamma_common_data.h"
-#include "index/impl/gamma_index_flat.h"
 #include "hnswlib.h"
-#include "util/log.h"
-#include "vector/raw_vector.h"
+#include "index/impl/gamma_index_flat.h"
 #include "index/retrieval_model.h"
+#include "table/field_range_index.h"
+#include "util/bitmap.h"
+#include "util/log.h"
 #include "vector/memory_raw_vector.h"
+#include "vector/raw_vector.h"
 
 using namespace hnswlib;
 
@@ -29,13 +29,14 @@ namespace tig_gamma {
 
 class HNSWLIBRetrievalParameters : public RetrievalParameters {
  public:
-  HNSWLIBRetrievalParameters() : RetrievalParameters() { 
-    efSearch_ = 64; 
+  HNSWLIBRetrievalParameters() : RetrievalParameters() {
+    efSearch_ = 64;
     do_efSearch_check_ = 1;
     collect_metrics_ = 0;
   }
 
-  HNSWLIBRetrievalParameters(enum DistanceComputeType type, int efSearch, int do_efSearch_check, int collect_metrics) {
+  HNSWLIBRetrievalParameters(enum DistanceComputeType type, int efSearch,
+                             int do_efSearch_check, int collect_metrics) {
     distance_compute_type_ = type;
     efSearch_ = efSearch;
     do_efSearch_check_ = do_efSearch_check;
@@ -49,7 +50,9 @@ class HNSWLIBRetrievalParameters : public RetrievalParameters {
   void SetEfSearch(int efSearch) { efSearch_ = efSearch; }
 
   int DoEfSearchCheck() { return do_efSearch_check_; }
-  void SetDoEfSearchCheck(int do_efSearch_check) { do_efSearch_check_ = do_efSearch_check; }
+  void SetDoEfSearchCheck(int do_efSearch_check) {
+    do_efSearch_check_ = do_efSearch_check;
+  }
 
  private:
   int efSearch_;
@@ -77,10 +80,10 @@ struct GammaIndexHNSWLIB : public GammaFLATIndex,
   int Update(const std::vector<int64_t> &ids,
              const std::vector<const uint8_t *> &vecs) override;
 
-  int Delete(const std::vector<int64_t> &ids);
+  int Delete(const std::vector<int64_t> &ids) override;
 
   int Search(RetrievalContext *retrieval_context, int n, const uint8_t *x,
-             int k, float *distances, int64_t *labels);
+             int k, float *distances, int64_t *labels) override;
 
   long GetTotalMemBytes() override;
 
@@ -95,7 +98,7 @@ struct GammaIndexHNSWLIB : public GammaFLATIndex,
     return (char *)svec.Get();
   }
   */
- 
+
   virtual char *getDataByInternalId(tableint internal_id) const override {
     return (char *)raw_vec_->GetFromMem(internal_id);
   }

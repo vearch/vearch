@@ -340,13 +340,11 @@ bool GammaIndexIVFFlat::Add(int n, const uint8_t *vec) {
   uint8_t *xcodes = new uint8_t[n * code_size];
   faiss::ScopeDeleter<uint8_t> del_xcodes(xcodes);
 
-  size_t n_ignore = 0;
   long vid = indexed_vec_count_;
   for (int i = 0; i < n; i++) {
     long key = idx[i];
     assert(key < (long)nlist);
     if (key < 0) {
-      n_ignore++;
       continue;
     }
     uint8_t *code = (uint8_t *)vec + this->code_size * i;
