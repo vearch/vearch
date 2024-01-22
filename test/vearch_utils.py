@@ -174,19 +174,19 @@ def prepare_filter(filter, index, batch_size, seed, full_field):
         range_filter = {
             "range": {
                 "field_int": {
-                    "gte": (index * batch_size) * seed,
+                    "gt": (index * batch_size) * seed,
                     "lt": (index + 1) * batch_size * seed
                 },
                 "field_long": {
-                    "gte": (index * batch_size) * seed,
+                    "gt": (index * batch_size) * seed,
                     "lt": (index + 1) * batch_size * seed
                 },
                 "field_float": {
-                    "gte": float(index * batch_size * seed),
+                    "gt": float(index * batch_size * seed),
                     "lt": float((index + 1) * batch_size * seed)
                 },
                 "field_double": {
-                    "gte": float(index * batch_size * seed),
+                    "gt": float(index * batch_size * seed),
                     "lt": float((index + 1) * batch_size * seed)
                 }
             }
@@ -196,8 +196,8 @@ def prepare_filter(filter, index, batch_size, seed, full_field):
         range_filter = {
             "range": {
                 "field_int": {
-                    "gte": (index * batch_size) * seed,
-                    "lte": (index + 1) * batch_size * seed
+                    "gt": (index * batch_size) * seed,
+                    "lt": (index + 1) * batch_size * seed
                 }
             }
         }
@@ -248,6 +248,7 @@ def process_get_data(items):
     if len(documents) != batch_size:
         logger.info("len(documents) = " + str(len(documents)))
         logger.info(json_str)
+
     assert len(documents) == batch_size
     assert rs.text.find("\"total\":" + str(batch_size)) >= 0
 
@@ -277,6 +278,50 @@ def query_interface(logger, total, batch_size, xb, full_field=False, seed=1, que
 #     results = pool.map(process_get_data, total_data)
 #     pool.close()
 #     pool.join()
+
+def process_delete_data(items):
+    url = router_url + "/document/delete"
+    data = {}
+    data["db_name"] = db_name
+    data["space_name"] = space_name
+    data["query"] = {}
+
+    logger = items[0]
+    index = items[1]
+    batch_size = items[2]
+    full_field = items[3]
+    seed = items[4]
+    delete_type = items[5]
+
+    if delete_type == "by_ids":
+        data["query"]["document_ids"] = []
+        for j in range(batch_size):
+            data["query"]["document_ids"].append(str(index * batch_size + j))
+
+    if delete_type == "by_filter":
+        data["query"]["filter"] = []
+        prepare_filter(data["query"]["filter"], index, batch_size, seed, full_field)
+        data["size"] = batch_size
+
+    json_str = json.dumps(data)
+    rs = requests.post(url, json_str)
+    if rs.status_code != 200 or "document_ids" not in rs.json():
+        logger.info(rs.json())
+        logger.info(json_str)
+
+    document_ids = rs.json()["document_ids"]
+    if len(document_ids) != batch_size:
+        logger.info("batch_size = " + str(batch_size) + ", len(document_ids) = " + str(len(document_ids)))
+        logger.info(json_str)
+        logger.info(rs.json())
+        logger.info(document_ids)
+
+    assert len(document_ids) == batch_size
+    assert rs.text.find("\"total\":" + str(batch_size)) >= 0
+
+def delete_interface(logger, total, batch_size, full_field=False, seed=1, delete_type="by_ids"):
+    for i in range(total):
+        process_delete_data((logger, i, batch_size, full_field, seed, delete_type))
 
 def waiting_index_finish(logger, total):
     url = router_url + "/_cluster/health?db=" + db_name + "&space=" + space_name

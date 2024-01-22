@@ -1189,7 +1189,8 @@ func deleteByQueryResult(resp *vearchpb.DelByQueryeResponse) ([]byte, error) {
 	} else if resp.IdsLong != nil {
 		builder.ValueInterface(resp.IdsLong)
 	} else {
-		builder.ValueString("[]")
+		data := []string{}
+		builder.ValueInterface(data)
 	}
 
 	builder.EndObject()
