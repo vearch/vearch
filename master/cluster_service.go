@@ -859,7 +859,7 @@ func (ms *masterService) ChangeMember(ctx context.Context, cm *entity.ChangeMemb
 	if cm.Method != 1 {
 		for _, nodeID := range spacePartition.Replicas {
 			if nodeID == cm.NodeID {
-				return fmt.Errorf("partition:[%d] already has ms server:[%d] in replicas:[%v]", cm.PartitionID, cm.NodeID, spacePartition.Replicas)
+				return fmt.Errorf("partition:[%d] already on server:[%d] in replicas:[%v]", cm.PartitionID, cm.NodeID, spacePartition.Replicas)
 			}
 		}
 		spacePartition.Replicas = append(spacePartition.Replicas, cm.NodeID)
