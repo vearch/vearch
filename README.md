@@ -35,6 +35,9 @@ $ cp ../config/config.toml.example config.toml
 $ docker-compose up
 ```
 
+#### Deploy by docker
+Quickly start with vearch docker image, please see [SourceCompileDeployment.md](docs/SourceCompileDeployment.md).
+
 #### Compile by source code
 Quickly compile the source codes to build a distributed vector search system with RESTful API, please see [SourceCompileDeployment.md](docs/SourceCompileDeployment.md).
 

@@ -323,6 +323,70 @@ def delete_interface(logger, total, batch_size, full_field=False, seed=1, delete
     for i in range(total):
         process_delete_data((logger, i, batch_size, full_field, seed, delete_type))
 
+def process_search_data(items):
+    url = router_url + "/document/search"
+    data = {}
+    data["db_name"] = db_name
+    data["space_name"] = space_name
+    data["query"] = {}
+    data["vector_value"] = True
+
+    logger = items[0]
+    index = items[1]
+    batch_size = items[2]
+    features = items[3]
+    full_field = items[4]
+    with_filter = items[5]
+    seed = items[6]
+    query_type = items[7]
+
+    if query_type == "by_ids":
+        data["query"]["document_ids"] = []
+        for j in range(batch_size):
+            data["query"]["document_ids"].append(str(index * batch_size + j))
+
+    if query_type == "by_vector":
+        data["query"]["vector"] = []
+        # logger.debug("partition_id: " + str(partition_id))
+        vector_info = {
+            "field": "field_vector",
+            "feature": features[:batch_size].flatten().tolist()
+        }
+        data["query"]["vector"].append(vector_info)
+
+    if with_filter:
+        data["query"]["filter"] = []
+        prepare_filter(data["query"]["filter"], index, batch_size, seed, full_field)
+
+    json_str = json.dumps(data)
+    rs = requests.post(url, json_str)
+    if rs.status_code != 200 or "documents" not in rs.json():
+        logger.info(rs.json())
+        logger.info(json_str)
+
+    documents = rs.json()["documents"]
+    if len(documents) != batch_size:
+        logger.info("len(documents) = " + str(len(documents)))
+        logger.info(json_str)
+        logger.info(rs.json())
+
+    assert len(documents) == batch_size
+
+    for j in range(batch_size):
+        for document in documents[j]:
+            value = int(document["_id"])
+            logger.debug(value)
+            logger.debug(document)
+            assert document["_source"]["field_int"] == value * seed
+            if full_field:
+                assert document["_source"]["field_long"] == value * seed
+                assert document["_source"]["field_float"] == float(value * seed)
+                assert document["_source"]["field_double"] == float(value * seed)
+
+def search_interface(logger, total, batch_size, xb, full_field=False, with_filter=False, seed=1, query_type="by_ids"):
+    for i in range(total):
+        process_search_data((logger, i, batch_size, xb[i * batch_size: (i + 1) * batch_size], full_field, with_filter, seed, query_type))
+
 def waiting_index_finish(logger, total):
     url = router_url + "/_cluster/health?db=" + db_name + "&space=" + space_name
     num = 0

@@ -370,7 +370,7 @@ func parseRange(data []byte, proMap map[string]*entity.SpaceProperties) (*vearch
 		}
 
 		if docField.Option&entity.FieldOption_Index != entity.FieldOption_Index {
-			return nil, fmt.Errorf("field:[%s] not open index", field)
+			return nil, fmt.Errorf("field:[%s] not set index, please check space", field)
 		}
 
 		var found bool
@@ -607,11 +607,11 @@ func parseTerm(data []byte, proMap map[string]*entity.SpaceProperties) (*vearchp
 		fd := proMap[field]
 
 		if fd == nil {
-			return nil, fmt.Errorf("field:[%s] not found in mapping", field)
+			return nil, fmt.Errorf("field:[%s] not found in space fields", field)
 		}
 
 		if fd.Option&entity.FieldOption_Index != entity.FieldOption_Index {
-			return nil, fmt.Errorf("field:[%s] not open index", field)
+			return nil, fmt.Errorf("field:[%s] not set index, please check space", field)
 		}
 
 		buf := bytes.Buffer{}

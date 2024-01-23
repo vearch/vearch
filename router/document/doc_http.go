@@ -1127,7 +1127,7 @@ func (handler *DocumentHandler) handleDocumentSearch(ctx context.Context, w http
 			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "document/search search condition must be one of the [document_ids, vector], shouldn't set both")
 			return ctx, false
 		}
-		if len(documentIds) >= 100 {
+		if len(documentIds) > 100 {
 			resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", "document/search length of document_ids in search condition above 100")
 			return ctx, false
 		}

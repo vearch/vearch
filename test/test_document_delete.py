@@ -101,9 +101,9 @@ def check(total, bulk, full_field, delete_type, xb):
     logger.info("%s doc_num: %d" %(space_name, get_space_num()))
 
     if delete_type == "by_filter":
-        time.sleep(30)
+        time.sleep(3)
 
-    query_interface(logger, total_batch, batch_size, xb, full_field, seed, "by_filter")
+    query_interface(logger, total_batch, batch_size, xb, full_field, seed, "by_ids")
 
     delete_interface(logger, total_batch, batch_size, full_field, seed, delete_type)
 
@@ -112,10 +112,10 @@ def check(total, bulk, full_field, delete_type, xb):
     destroy(router_url, db_name, space_name)
 
 @ pytest.mark.parametrize(["bulk", "full_field", "delete_type"], [
-    # [True, True, "by_ids"],
-    # [True, True, "by_filter"],
-    # [False, True, "by_ids"],
-    [False, True, "by_filter"],
+    [True, True, "by_ids"],
+    [True, True, "by_filter"],
+    [False, True, "by_ids"],
+    # [False, True, "by_filter"],
 ])
 def test_vearch_document_delete(bulk: bool, full_field: bool, delete_type: str):
     check(100, bulk, full_field, delete_type, xb)

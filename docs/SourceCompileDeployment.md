@@ -3,7 +3,7 @@
 ## Docker Deploy
 
 #### Docker Hub Image Center 
- 1. vearch base compile environment image address: https://hub.docker.com/r/vearch/vearch/tags
+ 1. vearch base compile environment image address: https://hub.docker.com/r/vearch/vearch_env/tags
  2. vearch deploy image address: https://hub.docker.com/r/vearch/vearch/tags
 
 #### Use Vearch Image Deploy
