@@ -473,7 +473,7 @@ func processNumber(ctx *walkContext, fm *FieldMapping, fieldName string, val flo
 			Option: fm.Options(),
 		}, nil
 	default:
-		return nil, fmt.Errorf("string mismatch field:[%s] value:[%s] type:[%s] ", fieldName, val, fm.FieldType())
+		return nil, fmt.Errorf("string mismatch field:[%s] value:[%f] type:[%s] ", fieldName, val, fm.FieldType())
 	}
 }
 

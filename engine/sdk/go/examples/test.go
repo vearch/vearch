@@ -133,7 +133,6 @@ func CreteTable() {
 		ModelId:    opt.ModelID,
 		StoreType:  opt.StoreType,
 		StoreParam: string("{\"cache_size\": 2048}"),
-		HasSource:  false,
 	}
 	table.VectorsInfos = append(table.VectorsInfos, vectorInfo)
 	gamma.CreateTable(opt.Engine, &table)

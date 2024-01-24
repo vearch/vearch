@@ -371,6 +371,8 @@ class FieldRangeIndex {
 
   bool IsNumeric() { return is_numeric_; }
 
+  enum DataType DataType() { return data_type_; }
+
   char *Delim() { return kDelim_; }
 
   // for debug
@@ -382,6 +384,7 @@ class FieldRangeIndex {
   BtMgr *cache_mgr_;
 #endif
   bool is_numeric_;
+  enum DataType data_type_;
   char *kDelim_;
   std::string path_;
   std::string name_;
@@ -419,6 +422,7 @@ FieldRangeIndex::FieldRangeIndex(std::string &path, int field_idx,
   } else {
     is_numeric_ = true;
   }
+  data_type_ = field_type;
   kDelim_ = const_cast<char *>(bt_param.kDelim);
 
   int ret = pthread_rwlock_init(&rw_lock_, nullptr);
@@ -1031,6 +1035,20 @@ int MultiFieldsRangeIndex::DeleteDoc(int docid, int field, std::string &key) {
   return 0;
 }
 
+template <typename Type>
+static void AdjustBoundary(std::string &boundary, int offset) {
+  static_assert(std::is_fundamental<Type>::value, "Type must be fundamental.");
+
+  if (boundary.size() >= sizeof(Type)) {
+    Type b;
+    std::vector<char> vec(sizeof(b));
+    memcpy(&b, boundary.data(), sizeof(b));
+    b += offset;
+    memcpy(vec.data(), &b, sizeof(b));
+    boundary = std::string(vec.begin(), vec.end());
+  }
+}
+
 int MultiFieldsRangeIndex::Search(const std::vector<FilterInfo> &origin_filters,
                                   MultiRangeQueryResults *out) {
   out->Clear();
@@ -1061,11 +1079,26 @@ int MultiFieldsRangeIndex::Search(const std::vector<FilterInfo> &origin_filters,
 
   int fsize = filters.size();
 
-  if (1 == fsize) {
+  if (fsize == 1) {
     auto &filter = filters[0];
     RangeQueryResult result;
     FieldRangeIndex *index = fields_[filter.field];
 
+    if (not filter.include_lower) {
+      if (index->DataType() == DataType::INT) {
+        AdjustBoundary<int>(filter.lower_value, 1);
+      } else if (index->DataType() == DataType::LONG) {
+        AdjustBoundary<long>(filter.lower_value, 1);
+      }
+    }
+
+    if (not filter.include_upper) {
+      if (index->DataType() == DataType::INT) {
+        AdjustBoundary<int>(filter.upper_value, -1);
+      } else if (index->DataType() == DataType::LONG) {
+        AdjustBoundary<long>(filter.upper_value, -1);
+      }
+    }
     int retval = index->Search(filter.lower_value, filter.upper_value, &result);
     if (retval > 0) {
       if (filter.is_union == FilterOperator::Not) {
@@ -1093,11 +1126,26 @@ int MultiFieldsRangeIndex::Search(const std::vector<FilterInfo> &origin_filters,
       continue;
     }
 
+    if (not filter.include_lower) {
+      if (index->DataType() == DataType::INT) {
+        AdjustBoundary<int>(filter.lower_value, 1);
+      } else if (index->DataType() == DataType::LONG) {
+        AdjustBoundary<long>(filter.lower_value, 1);
+      }
+    }
+
+    if (not filter.include_upper) {
+      if (index->DataType() == DataType::INT) {
+        AdjustBoundary<int>(filter.upper_value, -1);
+      } else if (index->DataType() == DataType::LONG) {
+        AdjustBoundary<long>(filter.upper_value, -1);
+      }
+    }
     RangeQueryResult result;
-    int retval = index->Search(filter.lower_value, filter.upper_value, &result);
-    if (retval < 0) {
+    int num = index->Search(filter.lower_value, filter.upper_value, &result);
+    if (num < 0) {
       ;
-    } else if (retval == 0) {
+    } else if (num == 0) {
       if (filter.is_union == FilterOperator::Not) {
         continue;
       }
@@ -1110,8 +1158,8 @@ int MultiFieldsRangeIndex::Search(const std::vector<FilterInfo> &origin_filters,
       }
       results.emplace_back(std::move(result));
 
-      if (shortest > retval) {
-        shortest = retval;
+      if (shortest > num) {
+        shortest = num;
         shortest_idx = results.size() - 1;
       }
     }

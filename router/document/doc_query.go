@@ -21,7 +21,6 @@ import (
 	"math"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/proto/entity"
@@ -43,12 +42,10 @@ const (
 	UrlQueryVersion         = "version"
 	UrlQueryRetryOnConflict = "retry_on_conflict"
 	UrlQueryOpType          = "op_type"
-	UrlQueryRefresh         = "refresh"
 	UrlQueryURISort         = "sort"
 	UrlQueryTimeout         = "timeout"
 	LoadBalance             = "load_balance"
-	DefaultSzie             = 50
-	URLQueryRefresh         = "refresh"
+	DefaultSize             = 50
 )
 
 type VectorQuery struct {
@@ -115,6 +112,7 @@ func parseQuery(data []byte, req *vearchpb.SearchRequest, space *entity.Space) e
 		spacePro, _ := entity.UnmarshalPropertyJSON(space.Properties)
 		proMap = spacePro
 	}
+
 	for _, filterBytes := range temp.Filter {
 		tmp := make(map[string]json.RawMessage)
 		err := cbjson.Unmarshal(filterBytes, &tmp)
@@ -127,8 +125,8 @@ func parseQuery(data []byte, req *vearchpb.SearchRequest, space *entity.Space) e
 				if err != nil {
 					return err
 				}
-				if filter != nil {
-					rfs = append(rfs, filter)
+				if len(filter) != 0 {
+					rfs = append(rfs, filter...)
 				}
 			}
 		} else if termBytes, ok := tmp["term"]; ok {
@@ -137,8 +135,8 @@ func parseQuery(data []byte, req *vearchpb.SearchRequest, space *entity.Space) e
 				if err != nil {
 					return err
 				}
-				if filter != nil {
-					tfs = append(tfs, filter)
+				if len(filter) != 0 {
+					tfs = append(tfs, filter...)
 				}
 			}
 		}
@@ -346,7 +344,7 @@ func parseVectors(reqNum int, vqs []*vearchpb.VectorQuery, tmpArr []json.RawMess
 	return reqNum, vqs, nil
 }
 
-func parseRange(data []byte, proMap map[string]*entity.SpaceProperties) (*vearchpb.RangeFilter, error) {
+func parseRange(data []byte, proMap map[string]*entity.SpaceProperties) ([]*vearchpb.RangeFilter, error) {
 	tmp := make(map[string]map[string]interface{})
 	d := json.NewDecoder(bytes.NewBuffer(data))
 	d.UseNumber()
@@ -361,6 +359,8 @@ func parseRange(data []byte, proMap map[string]*entity.SpaceProperties) (*vearch
 		rv                         map[string]interface{}
 		minInclusive, maxInclusive bool
 	)
+
+	rangeFilters := make([]*vearchpb.RangeFilter, 0)
 
 	for field, rv = range tmp {
 		docField := proMap[field]
@@ -517,33 +517,6 @@ func parseRange(data []byte, proMap map[string]*entity.SpaceProperties) (*vearch
 			}
 
 			min, max = minNum, maxNum
-
-		case entity.FieldType_DATE: // deprecated
-			var minDate, maxDate time.Time
-
-			if start != nil {
-				if f, e := start.(json.Number).Int64(); e != nil {
-					if minDate, e = cast.ToTimeE(start); e != nil {
-						return nil, e
-					}
-				} else {
-					minDate = time.Unix(0, f*1e6)
-				}
-			}
-
-			if end != nil {
-				if f, e := end.(json.Number).Int64(); e != nil {
-					if maxDate, e = cast.ToTimeE(end); e != nil {
-						return nil, e
-					}
-				} else {
-					maxDate = time.Unix(0, f*1e6)
-				}
-			} else {
-				maxDate = time.Unix(math.MaxInt64, 0)
-			}
-
-			min, max = minDate.UnixNano(), maxDate.UnixNano()
 		}
 
 		var minByte, maxByte []byte
@@ -569,14 +542,13 @@ func parseRange(data []byte, proMap map[string]*entity.SpaceProperties) (*vearch
 			IncludeLower: minInclusive,
 			IncludeUpper: maxInclusive,
 		}
-		return &rangeFilter, nil
+		rangeFilters = append(rangeFilters, &rangeFilter)
 	}
 
-	return nil, nil
-
+	return rangeFilters, nil
 }
 
-func parseTerm(data []byte, proMap map[string]*entity.SpaceProperties) (*vearchpb.TermFilter, error) {
+func parseTerm(data []byte, proMap map[string]*entity.SpaceProperties) ([]*vearchpb.TermFilter, error) {
 	tmp := make(map[string]interface{})
 	err := json.Unmarshal(data, &tmp)
 	if err != nil {
@@ -602,8 +574,9 @@ func parseTerm(data []byte, proMap map[string]*entity.SpaceProperties) (*vearchp
 		delete(tmp, "operator")
 	}
 
-	for field, rv := range tmp {
+	termFilters := make([]*vearchpb.TermFilter, 0)
 
+	for field, rv := range tmp {
 		fd := proMap[field]
 
 		if fd == nil {
@@ -626,16 +599,15 @@ func parseTerm(data []byte, proMap map[string]*entity.SpaceProperties) (*vearchp
 			buf.WriteString(cast.ToString(rv))
 		}
 
-		rangeFilter := vearchpb.TermFilter{
+		termFilter := vearchpb.TermFilter{
 			Field:   field,
 			Value:   buf.Bytes(),
 			IsUnion: isUnion,
 		}
-		return &rangeFilter, nil
+		termFilters = append(termFilters, &termFilter)
 	}
 
-	return nil, nil
-
+	return termFilters, nil
 }
 
 func (query *VectorQuery) ToC(retrievalType string) (*vearchpb.VectorQuery, error) {
@@ -705,7 +677,7 @@ func searchUrlParamParse(searchReq *vearchpb.SearchRequest) {
 		searchReq.TopN = int32(size)
 	} else {
 		if searchReq.TopN == 0 {
-			searchReq.TopN = DefaultSzie
+			searchReq.TopN = DefaultSize
 		}
 	}
 	searchReq.Head.ClientType = urlParamMap[LoadBalance]

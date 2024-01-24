@@ -442,6 +442,8 @@ int GammaEngine::MultiRangeQuery(Request &request,
     filters[idx].field = table_->GetAttrIdx(filter.field);
     filters[idx].lower_value = filter.lower_value;
     filters[idx].upper_value = filter.upper_value;
+    filters[idx].include_lower = filter.include_lower;
+    filters[idx].include_upper = filter.include_upper;
 
     ++idx;
   }
@@ -456,9 +458,9 @@ int GammaEngine::MultiRangeQuery(Request &request,
     ++idx;
   }
 
-  int retval = field_range_index_->Search(filters, range_query_result);
+  int num = field_range_index_->Search(filters, range_query_result);
 
-  if (retval == 0) {
+  if (num == 0) {
     string msg = space_name_ + " no result: numeric filter return 0 result";
     LOG(DEBUG) << msg;
     for (int i = 0; i < request.ReqNum(); ++i) {
@@ -467,12 +469,12 @@ int GammaEngine::MultiRangeQuery(Request &request,
       result.result_code = SearchResultCode::SUCCESS;
       response_results.AddResults(std::move(result));
     }
-  } else if (retval < 0) {
+  } else if (num < 0) {
     condition->range_query_result = nullptr;
   } else {
     condition->range_query_result = range_query_result;
   }
-  return retval;
+  return num;
 }
 
 int GammaEngine::CreateTable(TableInfo &table) {

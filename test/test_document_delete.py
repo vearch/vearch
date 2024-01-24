@@ -34,7 +34,6 @@ def create(router_url, embedding_size, properties):
         "partition_num": 1,
         "replica_num": 1,
         "engine": {
-            "name": "gamma",
             "index_size": 1,
             "retrieval_type": "FLAT",
             "retrieval_param": {
@@ -47,7 +46,9 @@ def create(router_url, embedding_size, properties):
 
     logger.info(create_space(router_url, db_name, space_config))
 
+
 xb, xq, _, gt = get_sift10K(logger)
+
 
 def check(total, bulk, full_field, delete_type, xb):
     embedding_size = xb.shape[1]
@@ -61,7 +62,8 @@ def check(total, bulk, full_field, delete_type, xb):
     with_id = True
     seed = 1
 
-    logger.info("dataset num: %d, total_batch: %d, dimension: %d, search num: %d, topK: %d" %(total, total_batch, embedding_size, xq.shape[0], k))
+    logger.info("dataset num: %d, total_batch: %d, dimension: %d, search num: %d, topK: %d" % (
+        total, total_batch, embedding_size, xq.shape[0], k))
 
     properties = {}
     properties["properties"] = {
@@ -90,7 +92,7 @@ def check(total, bulk, full_field, delete_type, xb):
             "index": True,
             "dimension": embedding_size,
             "store_type": "MemoryOnly",
-            #"format": "normalization"
+            # "format": "normalization"
         }
     }
 
@@ -98,24 +100,27 @@ def check(total, bulk, full_field, delete_type, xb):
 
     add(total_batch, batch_size, xb, with_id, full_field)
 
-    logger.info("%s doc_num: %d" %(space_name, get_space_num()))
+    logger.info("%s doc_num: %d" % (space_name, get_space_num()))
 
     if delete_type == "by_filter":
         time.sleep(3)
 
-    query_interface(logger, total_batch, batch_size, xb, full_field, seed, "by_ids")
+    query_interface(logger, total_batch, batch_size,
+                    xb, full_field, seed, "by_ids")
 
-    delete_interface(logger, total_batch, batch_size, full_field, seed, delete_type)
+    delete_interface(logger, total_batch, batch_size,
+                     full_field, seed, delete_type)
 
     assert get_space_num() == 0
 
     destroy(router_url, db_name, space_name)
 
+
 @ pytest.mark.parametrize(["bulk", "full_field", "delete_type"], [
     [True, True, "by_ids"],
     [True, True, "by_filter"],
     [False, True, "by_ids"],
-    # [False, True, "by_filter"],
+    [False, True, "by_filter"],
 ])
 def test_vearch_document_delete(bulk: bool, full_field: bool, delete_type: str):
     check(100, bulk, full_field, delete_type, xb)

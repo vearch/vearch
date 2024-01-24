@@ -24,6 +24,8 @@ typedef struct {
   int field;
   std::string lower_value;
   std::string upper_value;
+  bool include_lower;
+  bool include_upper;
   FilterOperator is_union;
 } FilterInfo;
 

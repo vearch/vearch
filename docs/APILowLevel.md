@@ -1301,7 +1301,7 @@ curl -H "content-type: application/json" -XPOST -d'
 * `metric_type` : L2 or InnerProduct.
 
 > url: [ip]:[port]/[dbName]/[tableName]/_search
-* filter->term-> operator [`and`, `or`, `not`] default `or` 
+* filter->term->operator [`or`, `not`] default `or` 
 * `is_brute_search` : default 0 ; -1: no brute force search, 0: auto, 1: always brute force search
 * `online_log_level` : "debug", is print debug info 
 * `quick` : default is false, if quick=true it not use precision sorting
