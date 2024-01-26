@@ -163,6 +163,51 @@ def add(total, batch_size, xb, with_id=False, full_field=False, seed=1):
     pool.close()
     pool.join()
 
+
+def process_add_multi_vec_data(items):
+    url = router_url + "/document/upsert"
+    data = {}
+    data["db_name"] = db_name
+    data["space_name"] = space_name
+    data["documents"] = []
+    index = items[0]
+    batch_size = items[1]
+    features = items[2]
+    with_id = items[3]
+    full_field = items[4]
+    seed = items[5]
+    for j in range(batch_size):
+        param_dict = {}
+        if with_id:
+            param_dict["_id"] = str(index * batch_size + j)
+        param_dict["field_int"] = (index * batch_size + j) * seed
+        param_dict["field_vector"] = {
+            "feature": features[j].tolist()
+        }
+        param_dict["field_vector1"] = {
+            "feature": features[j].tolist()
+        }
+        if full_field:
+            param_dict["field_long"] = param_dict["field_int"]
+            param_dict["field_float"] = float(param_dict["field_int"])
+            param_dict["field_double"] = float(param_dict["field_int"])
+            param_dict["field_string"] = str(param_dict["field_int"])
+        data["documents"].append(param_dict)
+    
+    json_str = json.dumps(data)
+    rs = requests.post(url, json_str)
+
+
+def add_multi_vector(total, batch_size, xb, with_id=False, full_field=False, seed=1):
+    pool = ThreadPool()
+    total_data = []
+    for i in range(total):
+        total_data.append((i, batch_size,  xb[i * batch_size: (i + 1) * batch_size], with_id, full_field, seed))
+    results = pool.map(process_add_multi_vec_data, total_data)
+    pool.close()
+    pool.join()
+
+
 def prepare_filter(filter, index, batch_size, seed, full_field):
     if full_field:
         #term_filter = {
@@ -410,7 +455,7 @@ def search(xq, k:int, batch:bool, query_dict:dict, logger):
     vector_dict = {
         "vector": [{
             "field": "field_vector",
-            "feature": [],
+            "feature": []
         }]
     }
     if batch:
@@ -500,6 +545,13 @@ def create_space(router_url: str, db_name: str, space_config: dict):
     resp = requests.put(url, json=space_config)
     return resp.json()
 
+
+def get_space(router_url: str, db_name: str, space_name: str):
+    url = f'{router_url}/space/{db_name}/{space_name}'
+    resp = requests.get(url)
+    return resp.json()
+
+
 def get_partition(router_url: str, db_name: str, space_name: str):
     url = f'{router_url}/{db_name}/{space_name}'
     resp = requests.get(url)
@@ -508,3 +560,40 @@ def get_partition(router_url: str, db_name: str, space_name: str):
     for partition_info in partition_infos:
         partition_ids.append(partition_info["id"])
     return partition_ids
+
+def get_cluster_stats(router_url: str):
+    url = f'{router_url}/_cluster/stats'
+    resp = requests.get(url)
+    return resp.json()
+
+# doc num and health
+def get_cluster_health(router_url: str):
+    url = f'{router_url}/_cluster/health'
+    resp = requests.get(url)
+    return resp.json()
+
+def get_servers_status(router_url: str):
+    url = f'{router_url}/list/server'
+    resp = requests.get(url)
+    return resp.json()
+
+def list_dbs(router_url: str):
+    url = f'{router_url}/list/db'
+    resp = requests.get(url)
+    return resp.json()
+
+def create_db(router_url: str, db_name: str):
+    url = f'{router_url}/db/_create'
+    data = {'name': db_name}
+    resp = requests.put(url, json=data)
+    return resp.json()
+
+def get_db(router_url: str, db_name: str):
+    url = f'{router_url}/db/{db_name}' 
+    resp = requests.get(url)
+    return resp.json()
+
+def list_spaces(router_url: str, db_name: str):
+    url = f'{router_url}/list/space?db={db_name}'
+    resp = requests.get(url)
+    return resp.json()

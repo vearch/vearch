@@ -20,7 +20,7 @@
  2. docker pull vearch/vearch_env:latest
  3. sh vearch/cloud/complile.sh
  4. sh build.sh
- 5. reference "User vearch image deploy" step 3
+ 5. reference "Use vearch image deploy" step 3
 
 #### Use Script Create Base Image And Vearch Image
  1. build compile base environment image 

@@ -142,7 +142,7 @@ func parseJSON(path []string, v *fastjson.Value, space *entity.Space, proMap map
 	}
 
 	if haveNoField {
-		return nil, haveVector, fmt.Errorf("param have error field [%s]", errorField)
+		return nil, haveVector, fmt.Errorf("unrecognizable field, %s is not found in space fields", errorField)
 	}
 
 	return fields, haveVector, nil

@@ -352,21 +352,21 @@ func (space *Space) Validate() error {
 	rs := []rune(space.Name)
 
 	if len(rs) == 0 {
-		return fmt.Errorf("name can not set empty string")
+		return fmt.Errorf("space name can not set empty string")
 	}
 
 	if unicode.IsNumber(rs[0]) {
-		return fmt.Errorf("name : %s can not start with num", space.Name)
+		return fmt.Errorf("space name : %s can not start with num", space.Name)
 	}
 
 	if rs[0] == '_' {
-		return fmt.Errorf("name : %s can not start with _", space.Name)
+		return fmt.Errorf("space name : %s can not start with _", space.Name)
 	}
 
 	for _, r := range rs {
 		switch r {
 		case '\t', '\n', '\v', '\f', '\r', ' ', 0x85, 0xA0, '\\', '+', '-', '!', '*', '/', '(', ')', ':', '^', '[', ']', '"', '{', '}', '~', '%', '&', '\'', '<', '>', '?':
-			return fmt.Errorf("name : %s can not has char in name ", `'\t', '\n', '\v', '\f', '\r', ' ', 0x85, 0xA0 , '\\','+', '-', '!', '*', '/', '(', ')', ':' , '^','[',']','"','{','}','~','%','&','\'','<','>','?'`)
+			return fmt.Errorf("character '%c' can not in space name[%s]", r, space.Name)
 		}
 	}
 
