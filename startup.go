@@ -62,7 +62,6 @@ const (
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
-	log.Info("start server by version:[%s] commitID:[%s]", BuildVersion, CommitID)
 	config.SetConfigVersion(BuildVersion, BuildTime, CommitID)
 
 	flag.Parse()
@@ -71,15 +70,13 @@ func main() {
 		log.Error("Can not get the config file ,then exit the program!")
 		os.Exit(1)
 	}
-	log.Info("The Config File Is: %v", confPath)
 
 	config.InitConfig(confPath)
 
 	if config.Conf().Global.ResourceName == "" {
 		config.Conf().Global.ResourceName = DefaultResourceName
 	}
-	entity.SetPrefixAndSequence(config.Conf().Global.Name)
-	log.Info("The cluster prefix is: %v", entity.PrefixEtcdClusterID)
+
 	if config.Conf().TracerCfg != nil {
 		closer := tracer.InitJaeger(config.Conf().Global.Name, config.Conf().TracerCfg)
 		defer closer.Close()
@@ -102,6 +99,12 @@ func main() {
 	logName := strings.ToUpper(strings.Join(args, "-"))
 	vearchlog.SetConfig(config.Conf().GetLogFileNum(), 1024*1024*config.Conf().GetLogFileSize())
 	log.Regist(vearchlog.NewVearchLog(config.Conf().GetLogDir(), logName, config.Conf().GetLevel(), false))
+
+	log.Info("start server by version:[%s] commitID:[%s]", BuildVersion, CommitID)
+	log.Info("The Config File Is: %v", confPath)
+
+	entity.SetPrefixAndSequence(config.Conf().Global.Name)
+	log.Info("The cluster prefix is: %v", entity.PrefixEtcdClusterID)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

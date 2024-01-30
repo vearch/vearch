@@ -944,7 +944,7 @@ func (handler *DocumentHandler) handleDocumentUpsert(ctx context.Context, w http
 	args.Head.SpaceName = spaceName
 	space, err := handler.client.Space(ctx, args.Head.DbName, args.Head.SpaceName)
 	if space == nil {
-		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", fmt.Sprintf("dbName:%s or spaceName:%s param not build db or space", args.Head.DbName, args.Head.SpaceName))
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", fmt.Sprintf("dbName:%s or spaceName:%s not exist", args.Head.DbName, args.Head.SpaceName))
 		return ctx, false
 	}
 	if err != nil {
@@ -990,7 +990,7 @@ func (handler *DocumentHandler) handleDocumentQuery(ctx context.Context, w http.
 
 	space, err := handler.docService.getSpace(ctx, args.Head.DbName, args.Head.SpaceName)
 	if space == nil {
-		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", fmt.Sprintf("dbName:%s or spaceName:%s param not build db or space", args.Head.DbName, args.Head.SpaceName))
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", fmt.Sprintf("dbName:%s or spaceName:%s not exist", args.Head.DbName, args.Head.SpaceName))
 		return ctx, false
 	}
 	if err != nil {
@@ -1101,7 +1101,7 @@ func (handler *DocumentHandler) handleDocumentSearch(ctx context.Context, w http
 
 	space, err := handler.docService.getSpace(ctx, args.Head.DbName, args.Head.SpaceName)
 	if space == nil {
-		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", fmt.Sprintf("dbName:%s or spaceName:%s param not build db or space", args.Head.DbName, args.Head.SpaceName))
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", fmt.Sprintf("dbName:%s or spaceName:%s not exist", args.Head.DbName, args.Head.SpaceName))
 		return ctx, false
 	}
 	if err != nil {
@@ -1220,7 +1220,7 @@ func (handler *DocumentHandler) handleDocumentDelete(ctx context.Context, w http
 
 	space, err := handler.docService.getSpace(ctx, args.Head.DbName, args.Head.SpaceName)
 	if space == nil {
-		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", fmt.Sprintf("dbName:%s or spaceName:%s param not build db or space", args.Head.DbName, args.Head.SpaceName))
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", fmt.Sprintf("dbName:%s or spaceName:%s not exist", args.Head.DbName, args.Head.SpaceName))
 		return ctx, true
 	}
 	if err != nil {
@@ -1309,7 +1309,7 @@ func (handler *DocumentHandler) handleIndexFlush(ctx context.Context, w http.Res
 
 	space, err := handler.docService.getSpace(ctx, args.Head.DbName, args.Head.SpaceName)
 	if space == nil {
-		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", fmt.Sprintf("dbName:%s or spaceName:%s param not build db or space", args.Head.DbName, args.Head.SpaceName))
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", fmt.Sprintf("dbName:%s or spaceName:%s not exist", args.Head.DbName, args.Head.SpaceName))
 		return ctx, true
 	}
 	if err != nil {
@@ -1345,7 +1345,7 @@ func (handler *DocumentHandler) handleIndexForceMerge(ctx context.Context, w htt
 
 	space, err := handler.docService.getSpace(ctx, args.Head.DbName, args.Head.SpaceName)
 	if space == nil {
-		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", fmt.Sprintf("dbName:%s or spaceName:%s param not build db or space", args.Head.DbName, args.Head.SpaceName))
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", fmt.Sprintf("dbName:%s or spaceName:%s not exist", args.Head.DbName, args.Head.SpaceName))
 		return ctx, true
 	}
 	if err != nil {
@@ -1388,7 +1388,7 @@ func (handler *DocumentHandler) handleIndexRebuild(ctx context.Context, w http.R
 
 	space, err := handler.docService.getSpace(ctx, args.Head.DbName, args.Head.SpaceName)
 	if space == nil {
-		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", fmt.Sprintf("dbName:%s or spaceName:%s param not build db or space", args.Head.DbName, args.Head.SpaceName))
+		resp.SendErrorRootCause(ctx, w, http.StatusBadRequest, "", fmt.Sprintf("dbName:%s or spaceName:%s not exist", args.Head.DbName, args.Head.SpaceName))
 		return ctx, true
 	}
 	if err != nil {

@@ -164,6 +164,79 @@ def add(total, batch_size, xb, with_id=False, full_field=False, seed=1):
     pool.join()
 
 
+def process_add_error_data(items):
+    url = router_url + "/document/upsert"
+    data = {}
+    data["db_name"] = db_name
+    data["space_name"] = space_name
+    data["documents"] = []
+    index = items[0]
+    batch_size = items[1]
+    features = items[2]
+    logger = items[3]
+    wrong_number_value = items[4][0]
+    wrong_str_value = items[4][1]
+    without_vector = items[4][2]
+    wrong_db = items[4][3]
+    wrong_space = items[4][4]
+    wrong_field = items[4][5]
+    empty_documents = items[4][6]
+    wrong_index_string_length = items[4][7]
+    wrong_string_length = items[4][8]
+    max_index_str_length = 1025
+    max_str_length = 65536
+
+    if wrong_db:
+        data["db_name"] = "wrong_db"
+    if wrong_space:
+        data["space_name"] = "wrong_space"
+    for j in range(batch_size):
+        param_dict = {}
+        param_dict["field_int"] = (index * batch_size + j)
+
+        if not without_vector:
+            param_dict["field_vector"] = {
+                "feature": features[j].tolist()
+            }
+
+        param_dict["field_string"] = str(param_dict["field_int"])
+        if wrong_str_value:
+            param_dict["field_string"] = float(param_dict["field_int"])
+
+        if wrong_index_string_length:
+            param_dict["field_string"] = "".join(["0" for _ in range(max_index_str_length)])
+
+        if wrong_string_length:
+            param_dict["field_string1"] = "".join(["0" for _ in range(max_str_length)])
+
+        if wrong_number_value:
+            param_dict["field_long"] = param_dict["field_int"]
+            param_dict["field_float"] = "field_float"
+            param_dict["field_double"] = "field_double"
+        else:
+            param_dict["field_long"] = param_dict["field_int"]
+            param_dict["field_float"] = float(param_dict["field_int"])
+            param_dict["field_double"] = float(param_dict["field_int"])
+        if wrong_field:
+            param_dict["field_wrong"] = param_dict["field_int"]
+        if not empty_documents:
+            data["documents"].append(param_dict)
+    
+    json_str = json.dumps(data)
+    rs = requests.post(url, json_str)
+
+    if not wrong_string_length:
+        logger.info(json_str)
+    logger.info(rs.json())
+
+    assert rs.status_code != 200
+
+
+def add_error(total, batch_size, xb, logger, wrong_parameters:list):
+    for i in range(total):
+        process_add_error_data((i, batch_size,  xb[i * batch_size: (i + 1) * batch_size], logger, wrong_parameters))
+
+
 def process_add_multi_vec_data(items):
     url = router_url + "/document/upsert"
     data = {}

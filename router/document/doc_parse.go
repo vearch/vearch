@@ -529,7 +529,7 @@ func processNumber(pro *entity.SpaceProperties, fieldName string, val *fastjson.
 		}
 		field, err = processField(fieldName, vearchpb.FieldType_DATE, cbbytes.Int64ToByte(i*1e6), opt)
 	default:
-		field, err = nil, fmt.Errorf("string mismatch field:[%s] value:[%v] type:[%v] ", fieldName, val, pro.FieldType)
+		field, err = nil, fmt.Errorf("field[%s] value mismatch, value:[%v] type:[%v]", fieldName, val, pro.FieldType)
 	}
 	return field, err
 }
@@ -543,7 +543,7 @@ func processBool(pro *entity.SpaceProperties, fieldName string, val bool) (*vear
 		}
 		return processField(fieldName, vearchpb.FieldType_BOOL, cbbytes.BoolToByte(val), opt)
 	default:
-		return nil, fmt.Errorf("string mismatch field:[%s] type:[%v] ", fieldName, pro.FieldType)
+		return nil, fmt.Errorf("field:[%s] value mismatch, type:[%s]", fieldName, pro.FieldType)
 	}
 }
 
@@ -985,6 +985,10 @@ func documentParse(ctx context.Context, handler *DocumentHandler, r *http.Reques
 		}
 
 		if !haveVector {
+			if primaryKey == "" {
+				err = fmt.Errorf("vector field or document_id must have at least one")
+				return err
+			}
 			arg := &vearchpb.GetRequest{}
 			uriParams := make(map[string]string)
 			uriParams["db_name"] = args.Head.DbName
@@ -1001,7 +1005,7 @@ func documentParse(ctx context.Context, handler *DocumentHandler, r *http.Reques
 				return err
 			}
 
-			err = fmt.Errorf("doc not exist, method is insert, vector field is necessary")
+			err = fmt.Errorf("document not exist so cann't update")
 			if reply == nil {
 				return err
 			}
@@ -1020,6 +1024,10 @@ func documentParse(ctx context.Context, handler *DocumentHandler, r *http.Reques
 		docs = append(docs, doc)
 	}
 	args.Docs = docs
+	if len(args.Docs) == 0 {
+		err = fmt.Errorf("empty documents, should set at least one document")
+		return err
+	}
 	return nil
 }
 

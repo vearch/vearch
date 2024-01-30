@@ -410,7 +410,7 @@ func UnmarshalPropertyJSON(propertity []byte) (map[string]*SpaceProperties, erro
 
 			isVector = true
 			if sp.Dimension == 0 {
-				return nil, fmt.Errorf("dimension can not zero by field : [%s] ", string(data))
+				return nil, fmt.Errorf("dimension can not be zero by field : [%s] ", string(data))
 			}
 
 			if sp.StoreType != nil && *sp.StoreType != "" {

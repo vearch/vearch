@@ -24,7 +24,7 @@ from vearch_utils import *
 logging.basicConfig()
 logger = logging.getLogger(__name__)
 
-__description__ = """ test case for index flat """
+__description__ = """ test case for module vector """
 
 
 def create(router_url, embedding_size, store_type="MemoryOnly"):

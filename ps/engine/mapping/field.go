@@ -355,7 +355,7 @@ func processString(ctx *walkContext, fm *FieldMapping, fieldName, val string) (*
 				Option: fm.Options(),
 			}, nil
 		} else {
-			return nil, fmt.Errorf("string mismatch field:[%s] type:[%s] ", fieldName, fm.FieldType())
+			return nil, fmt.Errorf("field:[%s] value mismatch, type:[%s]", fieldName, fm.FieldType().String())
 		}
 	case vearchpb.FieldType_LONG:
 		numericFM := fm.FieldMappingI.(*NumericFieldMapping)
@@ -375,7 +375,7 @@ func processString(ctx *walkContext, fm *FieldMapping, fieldName, val string) (*
 				Option: fm.Options(),
 			}, nil
 		} else {
-			return nil, fmt.Errorf("string mismatch field:[%s] type:[%s] ", fieldName, fm.FieldType())
+			return nil, fmt.Errorf("field:[%s] value mismatch, type:[%s]", fieldName, fm.FieldType().String())
 		}
 	case vearchpb.FieldType_FLOAT:
 		numericFM := fm.FieldMappingI.(*NumericFieldMapping)
@@ -395,7 +395,7 @@ func processString(ctx *walkContext, fm *FieldMapping, fieldName, val string) (*
 				Option: fm.Options(),
 			}, nil
 		} else {
-			return nil, fmt.Errorf("string mismatch field type %s", fm.FieldType())
+			return nil, fmt.Errorf("field:[%s] value mismatch, type:[%s]", fieldName, fm.FieldType().String())
 		}
 	case vearchpb.FieldType_DOUBLE:
 		numericFM := fm.FieldMappingI.(*NumericFieldMapping)
@@ -415,7 +415,7 @@ func processString(ctx *walkContext, fm *FieldMapping, fieldName, val string) (*
 				Option: fm.Options(),
 			}, nil
 		} else {
-			return nil, fmt.Errorf("string mismatch field type %s", fm.FieldType())
+			return nil, fmt.Errorf("field:[%s] value mismatch, type:[%s]", fieldName, fm.FieldType().String())
 		}
 	}
 	return nil, nil
@@ -431,7 +431,7 @@ func processNumber(ctx *walkContext, fm *FieldMapping, fieldName string, val flo
 		i := int32(val)
 		e := float32(val) - float32(i)
 		if e > 0 || e < 0 {
-			return nil, fmt.Errorf("string mismatch field:[%s] type:[%s] ", fieldName, fm.FieldType())
+			return nil, fmt.Errorf("field:[%s] value mismatch, type:[%s]", fieldName, fm.FieldType().String())
 		}
 		return &vearchpb.Field{
 			Name:   fieldName,
@@ -443,7 +443,7 @@ func processNumber(ctx *walkContext, fm *FieldMapping, fieldName string, val flo
 		i := int64(val)
 		e := val - float64(i)
 		if e > 0 || e < 0 {
-			return nil, fmt.Errorf("string mismatch field:[%s] type:[%s] ", fieldName, fm.FieldType())
+			return nil, fmt.Errorf("field:[%s] value mismatch, type:[%s]", fieldName, fm.FieldType().String())
 		}
 		return &vearchpb.Field{
 			Name:   fieldName,
@@ -473,7 +473,7 @@ func processNumber(ctx *walkContext, fm *FieldMapping, fieldName string, val flo
 			Option: fm.Options(),
 		}, nil
 	default:
-		return nil, fmt.Errorf("string mismatch field:[%s] value:[%f] type:[%s] ", fieldName, val, fm.FieldType())
+		return nil, fmt.Errorf("field[%s] value mismatch, value:[%v] type:[%v]", fieldName, val, fm.FieldType().String())
 	}
 }
 
@@ -490,7 +490,7 @@ func processBool(ctx *walkContext, fm *FieldMapping, fieldName string, val bool)
 			Option: fm.Options(),
 		}, nil
 	default:
-		return nil, fmt.Errorf("string mismatch field:[%s] type:[%s] ", fieldName, fm.FieldType())
+		return nil, fmt.Errorf("field:[%s] value mismatch, type:[%s]", fieldName, fm.FieldType().String())
 	}
 }
 
@@ -517,7 +517,7 @@ func processVectorBinary(ctx *walkContext, fm *FieldMapping, fieldName string, v
 			Option: fm.Options(),
 		}, nil
 	default:
-		return nil, fmt.Errorf("processVectorBinary field:[%s] value %v mismatch field type %s", fieldName, val, fm.FieldType())
+		return nil, fmt.Errorf("processVectorBinary field:[%s] value %v mismatch field type %s", fieldName, val, fm.FieldType().String())
 	}
 }
 
@@ -556,6 +556,6 @@ func processVector(ctx *walkContext, fm *FieldMapping, fieldName string, val []f
 			Option: fm.Options(),
 		}, nil
 	default:
-		return nil, fmt.Errorf("field:[%s] value %v mismatch field type %s", fieldName, val, fm.FieldType())
+		return nil, fmt.Errorf("field:[%s] value %v mismatch field type %s", fieldName, val, fm.FieldType().String())
 	}
 }

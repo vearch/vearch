@@ -198,3 +198,74 @@ def update(total, bulk, full_field, xb):
 ])
 def test_vearch_document_upsert_update(bulk: bool, full_field: bool):
     update(100, bulk, full_field, xb)
+
+
+def check_badcase(total, xb, wrong_parameters):
+    embedding_size = xb.shape[1]
+    batch_size = 1
+    if total == 0:
+        total = xb.shape[0]
+    total_batch = int(total / batch_size)
+
+    properties = {}
+    properties["properties"] = {
+        "field_int": {
+            "type": "integer",
+            "index": False
+        },
+        "field_long": {
+            "type": "long",
+            "index": False
+        },
+        "field_float": {
+            "type": "float",
+            "index": False
+        },
+        "field_double": {
+            "type": "double",
+            "index": False
+        },
+        "field_string": {
+            "type": "string",
+            "index": True
+        },
+        "field_string1": {
+            "type": "string",
+            "index": False
+        },
+        "field_vector": {
+            "type": "vector",
+            "index": True,
+            "dimension": embedding_size,
+            "store_type": "MemoryOnly",
+            #"format": "normalization"
+        }
+    }
+
+    create(router_url, embedding_size, properties)
+
+    add_error(total_batch, batch_size, xb, logger, wrong_parameters)
+
+    assert get_space_num() == 0
+
+    destroy(router_url, db_name, space_name)
+
+@ pytest.mark.parametrize(["wrong_number_value", "wrong_str_value", "without_vector", "wrong_db", "wrong_space", 
+                           "wrong_field", "empty_documents", "wrong_index_string_length", "wrong_string_length"], [
+    [True, False,False,False,False,False,False, False,False],
+    [False, True,False,False,False,False,False, False,False],
+    [False, False,True,False,False,False,False, False,False],
+    [False, False,False,True,False,False,False, False,False],
+    [False, False,False,False,True,False,False, False,False],
+    [False, False,False,False,False,True,False, False,False],
+    [False, False,False,False,False,False,True, False,False],
+    [False, False,False,False,False,False,False, True,False],
+    [False, False,False,False,False,False,False, False,True],
+])
+def test_vearch_document_upsert_badcase(wrong_number_value, wrong_str_value, without_vector, wrong_db, wrong_space, 
+                                        wrong_field, empty_documents, wrong_index_string_length, wrong_string_length):
+    wrong_parameters = [wrong_number_value, wrong_str_value, without_vector, \
+                        wrong_db, wrong_space, wrong_field, empty_documents, \
+                        wrong_index_string_length, wrong_string_length]
+
+    check_badcase(1, xb, wrong_parameters)
