@@ -199,21 +199,6 @@ class VearchCase():
                 assert response.status_code == 200
                 #  assert response.text.find("\"status\":201")>=0
 
-    def test_getById(self):
-        logger.info("test_getById")
-        with open(fileData, "r") as dataLine1:
-            for i, dataLine in zip(range(add_num), dataLine1):
-                idStr = dataLine.split(',', 1)[0].replace('{', '')
-                # id = eval(idStr.split(':')[1])
-                flag = 0
-                flag1 = idStr.split(':')[1].replace('\"', '')
-                id = str(int(flag1)+flag)
-                url = proxy + "/" + db_name + "/" + space_name + "/" + id
-                response = requests.get(url)
-                logger.debug("getById:" + response.text)
-                assert response.status_code == 200
-                assert response.text.find("\"found\":true") >= 0
-
     def test_getByDocId(self):
         logger.info("test_getByDocId")
         url = proxy + "/space/" + db_name + "/" + space_name
@@ -689,14 +674,24 @@ class VearchCase():
         assert response.status_code == 200
 
         # check result
-        url = proxy + "/" + db_name + "/" + space_name + "/0"
-        response = requests.get(url)
+        url = proxy + "/document/query"
+
+        data = {
+            "db_name": db_name,
+            "space_name": space_name,
+            "query": {
+                "document_ids": ["0"]
+            }
+        }
+
+        response = requests.post(
+                    url, headers=headers, data=json.dumps(data))
         logger.debug("getById:" + response.text)
         assert response.status_code == 200
-        assert response.text.find("\"found\":true") >= 0
         result = json.loads(response.text)
-        assert result["_source"]["float"] == 888.88
-        assert result["_source"]["string"] == "test"
+        assert result["total"] == 1
+        assert result["documents"][0]["_source"]["float"] == 888.88
+        assert result["documents"][0]["_source"]["string"] == "test"
 
     def test_document_upsert_singlefield(self):
         logger.info("document_upsert_singlefield")
@@ -807,7 +802,6 @@ class VearchCase():
         self.test_documentUpsert()
         self.test_documentUpsertWithId()
         self.test_documentUpsertBulkWithId()
-        self.test_getById()
         self.test_documentQueryByDocumentIds()
         self.test_documentQueryOnSpecifyPartiton()
         self.test_documentQueryByFilter()
@@ -829,7 +823,6 @@ class VearchCase():
         self.test_createspace()
         self.test_getspace()
         self.test_insertWithId()
-        self.test_getById()
         self.test_getByDocId()
         self.test_insertNoId()
         self.test_searchByFeature()

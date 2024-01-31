@@ -582,7 +582,7 @@ func (m *masterClient) HTTPRequest(ctx context.Context, method string, url strin
 }
 
 // proxy HTTP request
-func (m *masterClient) ProxyHTTPRequest(ctx context.Context, method string, url string, reqBody string) (response []byte, e error) {
+func (m *masterClient) ProxyHTTPRequest(method string, url string, reqBody string) (response []byte, e error) {
 	// process panic
 	defer func() {
 		if info := recover(); info != nil {

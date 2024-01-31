@@ -17,11 +17,12 @@ package router
 import (
 	"context"
 	"fmt"
-	"io"
 	"net"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	limit "github.com/juju/ratelimit"
+	"github.com/spf13/cast"
 	"github.com/vearch/vearch/client"
 	"github.com/vearch/vearch/config"
 	"github.com/vearch/vearch/monitor"
@@ -31,18 +32,14 @@ import (
 	"github.com/vearch/vearch/util/metrics/mserver"
 	"github.com/vearch/vearch/util/netutil"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/metadata"
-	"google.golang.org/grpc/status"
 )
 
 type Server struct {
-	ctx         context.Context
-	cli         *client.Client
-	httpServer  *netutil.Server
-	rpcServer   *grpc.Server
-	cancelFunc  context.CancelFunc
-	traceCloser io.Closer
+	ctx        context.Context
+	cli        *client.Client
+	httpServer *gin.Engine
+	rpcServer  *grpc.Server
+	cancelFunc context.CancelFunc
 }
 
 func NewServer(ctx context.Context) (*Server, error) {
@@ -53,15 +50,20 @@ func NewServer(ctx context.Context) (*Server, error) {
 
 	addr := config.LocalCastAddr
 
-	httpServerConfig := &netutil.ServerConfig{
-		Name:         "HttpServer",
-		Addr:         util.BuildAddr(addr, config.Conf().Router.Port),
-		ConnLimit:    config.Conf().Router.ConnLimit,
-		CloseTimeout: time.Duration(config.Conf().Router.CloseTimeout),
-	}
-	netutil.SetMode(netutil.RouterModeGorilla) //no need
+	// httpServerConfig := &netutil.ServerConfig{
+	// 	Name:         "HttpServer",
+	// 	Addr:         util.BuildAddr(addr, config.Conf().Router.Port),
+	// 	ConnLimit:    config.Conf().Router.ConnLimit,
+	// 	CloseTimeout: time.Duration(config.Conf().Router.CloseTimeout),
+	// }
+	// netutil.SetMode(netutil.RouterModeGorilla) //no need
 
-	httpServer := netutil.NewServer(httpServerConfig)
+	// httpServer := netutil.NewServer(httpServerConfig)
+	// if !log.IsDebugEnabled() {
+	// 	gin.SetMode(gin.ReleaseMode)
+	// }
+	gin.SetMode(gin.ReleaseMode)
+	httpServer := gin.New()
 
 	document.ExportDocumentHandler(httpServer, cli)
 
@@ -114,8 +116,8 @@ func (server *Server) Start() error {
 		monitor.Register(nil, nil, config.Conf().Router.MonitorPort)
 	}
 
-	if err := server.httpServer.Run(); err != nil {
-		return fmt.Errorf("Fail to start http Server, %v", err)
+	if err := server.httpServer.Run(cast.ToString(util.BuildAddr("0.0.0.0", config.Conf().Router.Port))); err != nil {
+		return fmt.Errorf("fail to start http Server, %v", err)
 	}
 	log.Info("router exited!")
 
@@ -126,41 +128,9 @@ func (server *Server) Shutdown() {
 	server.cancelFunc()
 	log.Info("router shutdown... start")
 	if server.httpServer != nil {
-		server.httpServer.Shutdown()
 		server.httpServer = nil
 	}
 	log.Info("router shutdown... end")
-}
-
-/* For GRPC */
-var (
-	errMissingMetadata = status.Errorf(codes.InvalidArgument, "missing metadata")
-	errInvalidToken    = status.Errorf(codes.Unauthenticated, "invalid token")
-)
-
-func unaryInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-	// authentication (token verification)
-	md, ok := metadata.FromIncomingContext(ctx)
-	if !ok {
-		return nil, errMissingMetadata
-	}
-	if !valid(md["authorization"]) {
-		return nil, errInvalidToken
-	}
-	m, err := handler(ctx, req)
-	if err != nil {
-		log.Error("RPC failed with error %v", err)
-	}
-	return m, err
-}
-
-// valid validates the authorization.
-func valid(authorization []string) bool {
-	if len(authorization) < 1 {
-		return false
-	}
-	// username, password, err := util.AuthDecrypt(headerData)
-	return true
 }
 
 type Limiter struct {

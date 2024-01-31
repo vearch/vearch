@@ -952,11 +952,6 @@ curl -H "content-type: application/json" -XPOST -d'
 ' {{ROUTER}}/test_vector_db/vector_space/
 ````
 
-### search document by id 
-````$xslt
-curl -XGET {{ROUTER}}/test_vector_db/vector_space/id
-````
-
 ### search document by id on specify partition
 use this to get all data of the cluster, id can be [0, max_docid] of the specify partition
 and max_docid and partition info can get by interface of cluster/health
@@ -1479,77 +1474,6 @@ curl -H "content-type: application/json" -XPOST -d'
   }
 ]
 ' {{ROUTER}}/test_vector_db/vector_space/_bulk_search
-````
-### get vectors by ids and param search
-````$xslt
-curl -H "content-type: application/json" -XPOST -d'
-{
-  "size": 50,
-  "query": {
-    "filter": [
-      {
-        "term": {
-          "operator": "and",
-          "string_tags": [
-            "10",
-            "2"
-          ]
-        }
-      },
-      {
-        "term": {
-          "operator": "or",
-          "string_tags": [
-            "50",
-            "12"
-          ]
-        }
-      },
-      {
-        "term": {
-          "operator": "not",
-          "string_tags": [
-            "100"
-          ]
-        }
-      },
-      {
-        "term": {
-          "operator": "and",
-          "string_tags": [
-            "101"
-          ]
-        }
-      },
-      {
-        "term": {
-          "operator": "or",
-          "string_tags": [
-            "99",
-            "98"
-          ]
-        }
-      }
-    ],
-    "ids": [
-      "123"
-    ],
-    "sum": [
-      {
-        "field": "vector",
-        "feature": [
-          "features..."
-        ],
-        "boost": 1,
-        "min_score": 0.7
-      }
-    ]
-  },
-  "fields": [
-    "int"
-  ]
-}
-' {{ROUTER}}/test_vector_db/vector_space/_query_byids_feature
 ````
 
 ### delete by query

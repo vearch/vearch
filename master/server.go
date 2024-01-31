@@ -110,7 +110,7 @@ func (s *Server) Start() (err error) {
 
 	// start http server
 
-	engine := gin.Default()
+	engine := gin.New()
 
 	ExportToClusterHandler(engine, service, s)
 	ExportToMonitorHandler(engine, monitorService)

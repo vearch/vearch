@@ -17,10 +17,12 @@ package ginutil
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/vearch/vearch/proto/vearchpb"
 	"github.com/vearch/vearch/util/cbjson"
+	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/util/netutil"
 )
 
@@ -45,33 +47,43 @@ func NewAutoMehtodName(ginContext *gin.Context) *Response {
 }
 
 /*
- default status is 200
+default status is 200
 */
-func (this *Response) SetHttpStatus(httpStatus int64) *Response {
-	this.httpStatus = httpStatus
-	return this
+func (r *Response) SetHttpStatus(httpStatus int64) *Response {
+	r.httpStatus = httpStatus
+	return r
 }
 
-func (this *Response) SendJson(data interface{}) {
+func (r *Response) SendJson(data interface{}) {
 	reply, err := cbjson.Marshal(data)
 	if err != nil {
-		this.SendJsonHttpReplyError(err)
+		r.SendJsonHttpReplyError(err)
 		return
 	}
-	this.ginContext.Data(int(this.httpStatus), "application/json", reply)
+	r.ginContext.Data(int(r.httpStatus), "application/json", reply)
 }
 
-func (this *Response) SendJsonHttpReplySuccess(data interface{}) {
+func (r *Response) SendJsonBytes(bytes []byte) {
+	r.ginContext.Header("Content-Type", "application/json; charset=UTF-8")
+	r.ginContext.Header("Content-Length", strconv.Itoa(len(bytes)))
+	r.ginContext.Writer.WriteHeader(int(r.httpStatus))
+
+	if _, err := r.ginContext.Writer.Write(bytes); err != nil {
+		log.Errorf("fail to write http reply, err:[%v], body:[%s] len[%d]", err, string(bytes), len(bytes))
+	}
+}
+
+func (r *Response) SendJsonHttpReplySuccess(data interface{}) {
 	httpReply := &netutil.HttpReply{
 		Code: int64(vearchpb.ErrCode(vearchpb.ErrorEnum_SUCCESS)),
 		Msg:  vearchpb.ErrMsg(vearchpb.ErrorEnum_SUCCESS),
 		Data: data,
 	}
-	this.SetHttpStatus(httpReply.Code)
-	this.SendJson(httpReply)
+	r.SetHttpStatus(httpReply.Code)
+	r.SendJson(httpReply)
 }
 
-func (this *Response) SendJsonHttpReplyError(err error) {
+func (r *Response) SendJsonHttpReplyError(err error) {
 	if err == nil {
 		err = fmt.Errorf("")
 	}
@@ -80,6 +92,6 @@ func (this *Response) SendJsonHttpReplyError(err error) {
 		Code: int64(vearchpb.ErrCode(vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err).GetError().Code)),
 		Msg:  err.Error(),
 	}
-	this.SetHttpStatus(httpReply.Code)
-	this.SendJson(httpReply)
+	r.SetHttpStatus(httpReply.Code)
+	r.SendJson(httpReply)
 }

@@ -291,7 +291,6 @@ func (s *Server) doHandles(method, path string, handles []HandleContinued, end H
 			}
 		})
 		s.router.(*mux.Router).Handle(path, h).Methods(method)
-
 	} else if routerMode == RouterModeHttpRouter {
 		var h = func(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 
