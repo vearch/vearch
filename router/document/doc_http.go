@@ -107,7 +107,7 @@ func (handler *DocumentHandler) handleMasterRequest(c *gin.Context) {
 	method := c.Request.Method
 	bodyBytes, err := io.ReadAll(c.Request.Body)
 	if err != nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", "Error reading body", http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, "Error reading body")
 		return
 	}
 
@@ -117,7 +117,7 @@ func (handler *DocumentHandler) handleMasterRequest(c *gin.Context) {
 		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusInternalServerError).SendJsonBytes(response)
 		return
 	}
-	ginutil.NewAutoMehtodName(c).SendJsonBytes(response)
+	resp.SendJsonBytes(c, response)
 }
 
 func (handler *DocumentHandler) ExportInterfacesToServer() error {
@@ -197,11 +197,11 @@ func (handler *DocumentHandler) handleAuth(c *gin.Context) {
 	headerData := c.GetHeader("Authorization")
 	username, password, err := util.AuthDecrypt(headerData)
 	if err != nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", err.Error(), http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 	if username != "root" || password != config.Conf().Global.Signkey {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", "authorization failed, wrong user or password", http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, "authorization failed, wrong user or password")
 		return
 	}
 }
@@ -216,7 +216,7 @@ func (handler *DocumentHandler) handleRouterInfo(c *gin.Context) {
 	layer["cluster_name"] = config.Conf().Global.Name
 	layer["version"] = versionLayer
 
-	ginutil.NewAutoMehtodName(c).SendJson(layer)
+	resp.SendJson(c, layer)
 }
 
 func (handler *DocumentHandler) handleRouterIPs(c *gin.Context) {
@@ -224,7 +224,7 @@ func (handler *DocumentHandler) handleRouterIPs(c *gin.Context) {
 	ips, err := handler.client.Master().QueryRouter(ctx, config.Conf().Global.Name)
 	if err != nil {
 		log.Errorf("get router ips failed, err: [%s]", err.Error())
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusInternalServerError).SendJson(resp.NewBodyRootCause("", err.Error(), http.StatusInternalServerError))
+		resp.SendError(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -235,9 +235,9 @@ func (handler *DocumentHandler) cacheInfo(c *gin.Context) {
 	dbName := c.Param(URLParamDbName)
 	spaceName := c.Param(URLParamSpaceName)
 	if space, err := handler.client.Master().Cache().SpaceByCache(context.Background(), dbName, spaceName); err != nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusNotFound).SendJson(resp.NewBodyRootCause("", err.Error(), http.StatusNotFound))
+		resp.SendError(c, http.StatusNotFound, err.Error())
 	} else {
-		ginutil.NewAutoMehtodName(c).SendJson(space)
+		resp.SendJson(c, space)
 	}
 }
 
@@ -256,10 +256,10 @@ func (handler *DocumentHandler) handleGetDocByPartition(c *gin.Context) {
 
 	reply := handler.docService.getDocsByPartition(c.Request.Context(), args, partitionId)
 	if resultBytes, err := docGetResponse(handler.client, args, reply, nil, false); err != nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", err.Error(), http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, err.Error())
 		return
 	} else {
-		ginutil.NewAutoMehtodName(c).SendJsonBytes(resultBytes)
+		resp.SendJsonBytes(c, resultBytes)
 		return
 	}
 }
@@ -274,10 +274,10 @@ func (handler *DocumentHandler) handleDeleteDoc(c *gin.Context) {
 
 	reply := handler.docService.deleteDocs(c.Request.Context(), args)
 	if resultBytes, err := docDeleteResponses(handler.client, args, reply); err != nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", err.Error(), http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, err.Error())
 		return
 	} else {
-		ginutil.NewAutoMehtodName(c).SendJsonBytes(resultBytes)
+		resp.SendJsonBytes(c, resultBytes)
 		return
 	}
 }
@@ -294,25 +294,24 @@ func (handler *DocumentHandler) handleUpdateDoc(c *gin.Context) {
 
 	space, err := handler.client.Space(c.Request.Context(), dbName, spaceName)
 	if space == nil || err != nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", "dbName or spaceName param not build db or space", http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, "dbName or spaceName param not build db or space")
 		return
 	}
 
 	pkey := c.Param(URLParamID)
 	err = docParse(c.Request.Context(), handler, c.Request, space, args, pkey)
 	if err != nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", err.Error(), http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	args.Doc.PKey = pkey
 	reply := handler.docService.updateDoc(c.Request.Context(), args)
 	if resultBytes, err := docUpdateResponses(handler.client, args, reply); err != nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", err.Error(), http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, err.Error())
 		return
 	} else {
-		// c.Data(http.StatusOK, "application/json", resultBytes)
-		ginutil.NewAutoMehtodName(c).SendJsonBytes(resultBytes)
+		resp.SendJsonBytes(c, resultBytes)
 		return
 	}
 }
@@ -330,7 +329,7 @@ func (handler *DocumentHandler) handleBulk(c *gin.Context) {
 	args.Head = setRequestHeadFromGin(c)
 	space, err := handler.client.Space(ctx, args.Head.DbName, args.Head.SpaceName)
 	if space == nil || err != nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", "dbName or spaceName param not build db or space", http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, "dbName or spaceName param not build db or space")
 		return
 	}
 	if space.SpaceProperties == nil {
@@ -340,19 +339,18 @@ func (handler *DocumentHandler) handleBulk(c *gin.Context) {
 
 	err = docBulkParse(ctx, handler, c.Request, space, args)
 	if err != nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", err.Error(), http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	reply := handler.docService.bulk(ctx, args)
 	resultBytes, err := docBulkResponses(handler.client, args, reply)
 	if err != nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", err.Error(), http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	// c.Data(http.StatusOK, "application/json", resultBytes)
-	ginutil.NewAutoMehtodName(c).SendJsonBytes(resultBytes)
+	resp.SendJsonBytes(c, resultBytes)
 }
 
 // handleFlush for flush
@@ -368,22 +366,22 @@ func (handler *DocumentHandler) handleFlush(c *gin.Context) {
 
 	space, err := handler.docService.getSpace(ctx, args.Head.DbName, args.Head.SpaceName)
 	if space == nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", "dbName or spaceName param not build db or space", http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, "dbName or spaceName param not build db or space")
 		return
 	}
 	if err != nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", "query Cache space null", http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, "query Cache space null")
 		return
 	}
 
 	flushResponse := handler.docService.flush(ctx, args)
 	shardsBytes, err := FlushToContent(flushResponse.Shards)
 	if err != nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", err.Error(), http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	ginutil.NewAutoMehtodName(c).SendJsonBytes(shardsBytes)
+	resp.SendJsonBytes(c, shardsBytes)
 }
 
 // handleSearchDoc for search by param
@@ -405,17 +403,17 @@ func (handler *DocumentHandler) handleSearchDoc(c *gin.Context) {
 
 	space, err := handler.docService.getSpace(ctx, args.Head.DbName, args.Head.SpaceName)
 	if space == nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", "dbName or spaceName param not build db or space", http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, "dbName or spaceName param not build db or space")
 		return
 	}
 	if err != nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", "query Cache space null", http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, "query Cache space null")
 		return
 	}
 
 	err = docSearchParse(c.Request, space, args)
 	if err != nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", err.Error(), http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -432,11 +430,11 @@ func (handler *DocumentHandler) handleSearchDoc(c *gin.Context) {
 	}
 
 	if err != nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", err.Error(), http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	ginutil.NewAutoMehtodName(c).SendJsonBytes(bs)
+	resp.SendJsonBytes(c, bs)
 
 	log.Debug("search total use :[%f] service use :[%f]",
 		(time.Since(startTime).Seconds())*1000, serviceCost.Seconds()*1000)
@@ -461,18 +459,18 @@ func (handler *DocumentHandler) handleMSearchDoc(c *gin.Context) {
 
 	space, err := handler.docService.getSpace(ctx, args.Head.DbName, args.Head.SpaceName)
 	if space == nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", "dbName or spaceName param not build db or space", http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, "dbName or spaceName param not build db or space")
 		return
 	}
 	if err != nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", "query Cache space null", http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, "query Cache space null")
 		return
 	}
 
 	paramStart := time.Now()
 	err = docSearchParse(c.Request, space, args)
 	if err != nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", err.Error(), http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -485,11 +483,11 @@ func (handler *DocumentHandler) handleMSearchDoc(c *gin.Context) {
 	contentStartTime := time.Now()
 	bs, err := ToContents(searchRes.Results, args.Head, serviceCost, space)
 	if err != nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", err.Error(), http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	ginutil.NewAutoMehtodName(c).SendJsonBytes(bs)
+	resp.SendJsonBytes(c, bs)
 
 	log.Debug("msearch total use :[%f] service use :[%f]",
 		(time.Since(startTime).Seconds())*1000, serviceCost.Seconds()*1000)
@@ -635,17 +633,17 @@ func (handler *DocumentHandler) handlerQueryDocByIds(c *gin.Context) {
 
 	space, err := handler.docService.getSpace(ctx, args.Head.DbName, args.Head.SpaceName)
 	if space == nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", "dbName or spaceName param not build db or space", http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, "dbName or spaceName param not build db or space")
 		return
 	}
 	if err != nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", err.Error(), http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	fieldsParam, ids, _, err := docSearchByIdsParse(c.Request, space)
 	if err != nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", err.Error(), http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 	args.PrimaryKeys = ids
@@ -656,10 +654,10 @@ func (handler *DocumentHandler) handlerQueryDocByIds(c *gin.Context) {
 		queryFieldsParam = arrayToMap(fieldsParam)
 	}
 	if resultBytes, err := docGetResponse(handler.client, args, reply, queryFieldsParam, true); err != nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", err.Error(), http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, err.Error())
 		return
 	} else {
-		ginutil.NewAutoMehtodName(c).SendJsonBytes(resultBytes)
+		resp.SendJsonBytes(c, resultBytes)
 	}
 }
 
@@ -682,22 +680,22 @@ func (handler *DocumentHandler) handleBulkSearchDoc(c *gin.Context) {
 
 	space, err := handler.docService.getSpace(ctx, args.Head.DbName, args.Head.SpaceName)
 	if space == nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", "dbName or spaceName param not build db or space", http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, "dbName or spaceName param not build db or space")
 		return
 	}
 	if err != nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", err.Error(), http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	searchReqs, err := docBulkSearchParse(c.Request, space, args.Head)
 	if err != nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", err.Error(), http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	if len(searchReqs) == 0 {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", "param is null", http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, "param is null")
 		return
 	}
 
@@ -707,11 +705,11 @@ func (handler *DocumentHandler) handleBulkSearchDoc(c *gin.Context) {
 
 	bs, err := ToContents(searchRes.Results, args.Head, serviceCost, space)
 	if err != nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", err.Error(), http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	ginutil.NewAutoMehtodName(c).SendJsonBytes(bs)
+	resp.SendJsonBytes(c, bs)
 
 	log.Debug("handleBulkSearchDoc total use :[%f] service use :[%f]",
 		(time.Since(startTime).Seconds())*1000, serviceCost.Seconds()*1000)
@@ -726,22 +724,22 @@ func (handler *DocumentHandler) handleForceMerge(c *gin.Context) {
 
 	space, err := handler.docService.getSpace(c.Request.Context(), args.Head.DbName, args.Head.SpaceName)
 	if space == nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", "dbName or spaceName param not build db or space", http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, "dbName or spaceName param not build db or space")
 		return
 	}
 	if err != nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", "query Cache space null", http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, "query Cache space null")
 		return
 	}
 
 	forceMergeResponse := handler.docService.forceMerge(c.Request.Context(), args)
 	shardsBytes, err := ForceMergeToContent(forceMergeResponse.Shards)
 	if err != nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", err.Error(), http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	ginutil.NewAutoMehtodName(c).SendJsonBytes(shardsBytes)
+	resp.SendJsonBytes(c, shardsBytes)
 }
 
 func (handler *DocumentHandler) handleDeleteByQuery(c *gin.Context) {
@@ -757,11 +755,11 @@ func (handler *DocumentHandler) handleDeleteByQuery(c *gin.Context) {
 
 	space, err := handler.docService.getSpace(c.Request.Context(), args.Head.DbName, args.Head.SpaceName)
 	if space == nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", "dbName or spaceName param not build db or space", http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, "dbName or spaceName param not build db or space")
 		return
 	}
 	if err != nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", "query Cache space null", http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, "query Cache space null")
 		return
 	}
 
@@ -770,12 +768,12 @@ func (handler *DocumentHandler) handleDeleteByQuery(c *gin.Context) {
 
 	err = docSearchParse(c.Request, space, args)
 	if err != nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", err.Error(), http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	if args.TermFilters == nil && args.RangeFilters == nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", "query filter is null", http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, "query filter is null")
 		return
 	}
 
@@ -787,11 +785,11 @@ func (handler *DocumentHandler) handleDeleteByQuery(c *gin.Context) {
 
 	shardsBytes, err := deleteByQueryResult(delByQueryResp)
 	if err != nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", err.Error(), http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	ginutil.NewAutoMehtodName(c).SendJsonBytes(shardsBytes)
+	resp.SendJsonBytes(c, shardsBytes)
 }
 
 // handleLogPrintSwitch log print switch
@@ -803,16 +801,16 @@ func (handler *DocumentHandler) handleLogPrintSwitch(c *gin.Context) {
 
 	printSwitch, err := doLogPrintSwitchParse(c.Request)
 	if err != nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", err.Error(), http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	config.LogInfoPrintSwitch = printSwitch
 	if resultBytes, err := docPrintLogSwitchResponse(config.LogInfoPrintSwitch); err != nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", err.Error(), http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, err.Error())
 		return
 	} else {
-		ginutil.NewAutoMehtodName(c).SendJsonBytes(resultBytes)
+		resp.SendJsonBytes(c, resultBytes)
 	}
 }
 func (handler *DocumentHandler) handleDocumentUpsert(c *gin.Context) {
@@ -827,7 +825,7 @@ func (handler *DocumentHandler) handleDocumentUpsert(c *gin.Context) {
 
 	docRequest, dbName, spaceName, err := documentHeadParse(c.Request)
 	if err != nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", fmt.Sprintf("documentHeadParse error: %v", err), http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, fmt.Sprintf("documentHeadParse error: %v", err))
 		return
 	}
 
@@ -835,26 +833,26 @@ func (handler *DocumentHandler) handleDocumentUpsert(c *gin.Context) {
 	args.Head.SpaceName = spaceName
 	space, err := handler.client.Space(c.Request.Context(), args.Head.DbName, args.Head.SpaceName)
 	if space == nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", fmt.Sprintf("dbName:%s or spaceName:%s not exist", args.Head.DbName, args.Head.SpaceName), http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, fmt.Sprintf("dbName:%s or spaceName:%s not exist", args.Head.DbName, args.Head.SpaceName))
 		return
 	}
 	if err != nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", err.Error(), http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	err = documentParse(c.Request.Context(), handler, c.Request, docRequest, space, args)
 	if err != nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", err.Error(), http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 	reply := handler.docService.bulk(c.Request.Context(), args)
 	resultBytes, err := documentUpsertResponse(handler.client, args, reply)
 	if err != nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", err.Error(), http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	ginutil.NewAutoMehtodName(c).SendJsonBytes(resultBytes)
+	resp.SendJsonBytes(c, resultBytes)
 }
 
 func (handler *DocumentHandler) handleDocumentQuery(c *gin.Context) {
@@ -869,7 +867,7 @@ func (handler *DocumentHandler) handleDocumentQuery(c *gin.Context) {
 
 	searchDoc, documentIds, partitionId, err := documentRequestParse(c.Request, args)
 	if err != nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", err.Error(), http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 	args.Head.DbName = searchDoc.DbName
@@ -877,12 +875,12 @@ func (handler *DocumentHandler) handleDocumentQuery(c *gin.Context) {
 
 	space, err := handler.docService.getSpace(c.Request.Context(), args.Head.DbName, args.Head.SpaceName)
 	if space == nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", fmt.Sprintf("dbName:%s or spaceName:%s not exist", args.Head.DbName, args.Head.SpaceName), http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, fmt.Sprintf("dbName:%s or spaceName:%s not exist", args.Head.DbName, args.Head.SpaceName))
 		return
 	}
 
 	if err != nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", err.Error(), http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -895,22 +893,22 @@ func (handler *DocumentHandler) handleDocumentQuery(c *gin.Context) {
 
 	err = requestToPb(searchDoc, space, args)
 	if err != nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", err.Error(), http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	if args.VecFields != nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", "document/query query condition must be one of the [document_ids, filter], vector field shouldn't set", http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, "document/query query condition must be one of the [document_ids, filter], vector field shouldn't set")
 		return
 	}
 
 	if len(documentIds) != 0 {
 		if args.TermFilters != nil || args.RangeFilters != nil {
-			ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", "document/query query condition must be one of the [document_ids, filter], shouldn't set both", http.StatusBadRequest))
+			resp.SendError(c, http.StatusBadRequest, "document/query query condition must be one of the [document_ids, filter], shouldn't set both")
 			return
 		}
 		if len(documentIds) >= 500 {
-			ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", "document/query length of document_ids in query condition above 500", http.StatusBadRequest))
+			resp.SendError(c, http.StatusBadRequest, "document/query length of document_ids in query condition above 500")
 			return
 		}
 		args := &vearchpb.GetRequest{}
@@ -932,15 +930,15 @@ func (handler *DocumentHandler) handleDocumentQuery(c *gin.Context) {
 		}
 
 		if resultBytes, err := documentGetResponse(handler.client, args, reply, queryFieldsParam, searchDoc.VectorValue); err != nil {
-			ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", err.Error(), http.StatusBadRequest))
+			resp.SendError(c, http.StatusBadRequest, err.Error())
 			return
 		} else {
-			ginutil.NewAutoMehtodName(c).SendJsonBytes(resultBytes)
+			resp.SendJsonBytes(c, resultBytes)
 			return
 		}
 	} else {
 		if args.TermFilters == nil && args.RangeFilters == nil {
-			ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", "document/query query condition must be one of the [document_ids, filter], must set one", http.StatusBadRequest))
+			resp.SendError(c, http.StatusBadRequest, "document/query query condition must be one of the [document_ids, filter], must set one")
 			return
 		}
 	}
@@ -956,10 +954,10 @@ func (handler *DocumentHandler) handleDocumentQuery(c *gin.Context) {
 	}
 
 	if err != nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", err.Error(), http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	ginutil.NewAutoMehtodName(c).SendJsonBytes(bs)
+	resp.SendJsonBytes(c, bs)
 	log.Debug("handleDocumentQuery total use :[%f] service use :[%f]", time.Since(startTime).Seconds()*1000, serviceCost.Seconds()*1000)
 }
 
@@ -978,7 +976,7 @@ func (handler *DocumentHandler) handleDocumentSearch(c *gin.Context) {
 
 	searchDoc, documentIds, _, err := documentRequestParse(c.Request, args)
 	if err != nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", err.Error(), http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 	args.Head.DbName = searchDoc.DbName
@@ -986,11 +984,11 @@ func (handler *DocumentHandler) handleDocumentSearch(c *gin.Context) {
 
 	space, err := handler.docService.getSpace(ctx, args.Head.DbName, args.Head.SpaceName)
 	if space == nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", fmt.Sprintf("dbName:%s or spaceName:%s not exist", args.Head.DbName, args.Head.SpaceName), http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, fmt.Sprintf("dbName:%s or spaceName:%s not exist", args.Head.DbName, args.Head.SpaceName))
 		return
 	}
 	if err != nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", err.Error(), http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -1003,17 +1001,17 @@ func (handler *DocumentHandler) handleDocumentSearch(c *gin.Context) {
 
 	err = requestToPb(searchDoc, space, args)
 	if err != nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", err.Error(), http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	if len(documentIds) != 0 {
 		if args.VecFields != nil {
-			ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", "document/search search condition must be one of the [document_ids, vector], shouldn't set both", http.StatusBadRequest))
+			resp.SendError(c, http.StatusBadRequest, "document/search search condition must be one of the [document_ids, vector], shouldn't set both")
 			return
 		}
 		if len(documentIds) > 100 {
-			ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", "document/search length of document_ids in search condition above 100", http.StatusBadRequest))
+			resp.SendError(c, http.StatusBadRequest, "document/search length of document_ids in search condition above 100")
 			return
 		}
 		getArgs := &vearchpb.GetRequest{}
@@ -1029,10 +1027,10 @@ func (handler *DocumentHandler) handleDocumentSearch(c *gin.Context) {
 		if reply == nil || reply.Items == nil || len(reply.Items) == 0 {
 			result, err := documentSearchResponse(nil, reply.Head, getDocEnd.Sub(getDocStart), space, request.SearchResponse)
 			if err != nil {
-				ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", err.Error(), http.StatusBadRequest))
+				resp.SendError(c, http.StatusBadRequest, err.Error())
 				return
 			}
-			ginutil.NewAutoMehtodName(c).SendJsonBytes(result)
+			resp.SendJsonBytes(c, result)
 			return
 		}
 
@@ -1051,12 +1049,12 @@ func (handler *DocumentHandler) handleDocumentSearch(c *gin.Context) {
 		// TODO: If ids are not found, the result should be [].
 		err = documentRequestVectorParse(space, searchDoc, args, reply.Items, request.QueryVector)
 		if err != nil {
-			ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", err.Error(), http.StatusBadRequest))
+			resp.SendError(c, http.StatusBadRequest, err.Error())
 			return
 		}
 	} else {
 		if args.VecFields == nil {
-			ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", "document/search search condition must be one of the [document_ids, vector], must set one", http.StatusBadRequest))
+			resp.SendError(c, http.StatusBadRequest, "document/search search condition must be one of the [document_ids, vector], must set one")
 			return
 		}
 	}
@@ -1072,10 +1070,10 @@ func (handler *DocumentHandler) handleDocumentSearch(c *gin.Context) {
 	}
 
 	if err != nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", err.Error(), http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	ginutil.NewAutoMehtodName(c).SendJsonBytes(bs)
+	resp.SendJsonBytes(c, bs)
 	log.Debug("handleDocumentSearch total use :[%f] service use :[%f]", time.Since(startTime).Seconds()*1000, serviceCost.Seconds()*1000)
 }
 
@@ -1096,7 +1094,7 @@ func (handler *DocumentHandler) handleDocumentDelete(c *gin.Context) {
 
 	searchDoc, documentIds, _, err := documentRequestParse(c.Request, args)
 	if err != nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", err.Error(), http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 	args.Head.DbName = searchDoc.DbName
@@ -1104,11 +1102,11 @@ func (handler *DocumentHandler) handleDocumentDelete(c *gin.Context) {
 
 	space, err := handler.docService.getSpace(c.Request.Context(), args.Head.DbName, args.Head.SpaceName)
 	if space == nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", fmt.Sprintf("dbName:%s or spaceName:%s not exist", args.Head.DbName, args.Head.SpaceName), http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, fmt.Sprintf("dbName:%s or spaceName:%s not exist", args.Head.DbName, args.Head.SpaceName))
 		return
 	}
 	if err != nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", err.Error(), http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -1121,22 +1119,22 @@ func (handler *DocumentHandler) handleDocumentDelete(c *gin.Context) {
 
 	err = requestToPb(searchDoc, space, args)
 	if err != nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", err.Error(), http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	if args.VecFields != nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", "document/delete query condition must be one of the [document_ids, filter], vector field shouldn't set", http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, "document/delete query condition must be one of the [document_ids, filter], vector field shouldn't set")
 		return
 	}
 
 	if len(documentIds) != 0 {
 		if args.TermFilters != nil || args.RangeFilters != nil {
-			ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", "document/delete query condition must be one of the [document_ids, filter], shouldn't set both", http.StatusBadRequest))
+			resp.SendError(c, http.StatusBadRequest, "document/delete query condition must be one of the [document_ids, filter], shouldn't set both")
 			return
 		}
 		if len(documentIds) >= 500 {
-			ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", "document/delete length of document_ids in query condition above 500", http.StatusBadRequest))
+			resp.SendError(c, http.StatusBadRequest, "document/delete length of document_ids in query condition above 500")
 			return
 		}
 		args := &vearchpb.DeleteRequest{}
@@ -1147,15 +1145,15 @@ func (handler *DocumentHandler) handleDocumentDelete(c *gin.Context) {
 		var resultIds []string
 		reply := handler.docService.deleteDocs(c.Request.Context(), args)
 		if resultBytes, err := documentDeleteResponse(reply.Items, reply.Head, resultIds); err != nil {
-			ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", err.Error(), http.StatusBadRequest))
+			resp.SendError(c, http.StatusBadRequest, err.Error())
 			return
 		} else {
-			ginutil.NewAutoMehtodName(c).SendJsonBytes(resultBytes)
+			resp.SendJsonBytes(c, resultBytes)
 			return
 		}
 	} else {
 		if args.TermFilters == nil && args.RangeFilters == nil {
-			ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", "document/delete query condition must be one of the [document_ids, filter], must set one", http.StatusBadRequest))
+			resp.SendError(c, http.StatusBadRequest, "document/delete query condition must be one of the [document_ids, filter], must set one")
 			return
 		}
 	}
@@ -1166,11 +1164,11 @@ func (handler *DocumentHandler) handleDocumentDelete(c *gin.Context) {
 	log.Debug("handleDocumentDelete cost :%f", serviceCost)
 	shardsBytes, err := deleteByQueryResult(delByQueryResp)
 	if err != nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", err.Error(), http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	ginutil.NewAutoMehtodName(c).SendJsonBytes(shardsBytes)
+	resp.SendJsonBytes(c, shardsBytes)
 }
 
 // handleIndexFlush
@@ -1183,7 +1181,7 @@ func (handler *DocumentHandler) handleIndexFlush(c *gin.Context) {
 
 	indexRequest, err := IndexRequestParse(c.Request)
 	if err != nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", err.Error(), http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -1192,21 +1190,21 @@ func (handler *DocumentHandler) handleIndexFlush(c *gin.Context) {
 
 	space, err := handler.docService.getSpace(c.Request.Context(), args.Head.DbName, args.Head.SpaceName)
 	if space == nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", fmt.Sprintf("dbName:%s or spaceName:%s not exist", args.Head.DbName, args.Head.SpaceName), http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, fmt.Sprintf("dbName:%s or spaceName:%s not exist", args.Head.DbName, args.Head.SpaceName))
 		return
 	}
 	if err != nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", err.Error(), http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 	flushResponse := handler.docService.flush(c.Request.Context(), args)
 	shardsBytes, err := IndexResponseToContent(flushResponse.Shards)
 	if err != nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", err.Error(), http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	ginutil.NewAutoMehtodName(c).SendJsonBytes(shardsBytes)
+	resp.SendJsonBytes(c, shardsBytes)
 }
 
 // handleIndexForceMerge build index for gpu
@@ -1218,7 +1216,7 @@ func (handler *DocumentHandler) handleIndexForceMerge(c *gin.Context) {
 
 	indexRequest, err := IndexRequestParse(c.Request)
 	if err != nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", err.Error(), http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -1227,21 +1225,21 @@ func (handler *DocumentHandler) handleIndexForceMerge(c *gin.Context) {
 
 	space, err := handler.docService.getSpace(c.Request.Context(), args.Head.DbName, args.Head.SpaceName)
 	if space == nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", fmt.Sprintf("dbName:%s or spaceName:%s not exist", args.Head.DbName, args.Head.SpaceName), http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, fmt.Sprintf("dbName:%s or spaceName:%s not exist", args.Head.DbName, args.Head.SpaceName))
 		return
 	}
 	if err != nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", err.Error(), http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, err.Error())
 	}
 
 	forceMergeResponse := handler.docService.forceMerge(c.Request.Context(), args)
 	shardsBytes, err := IndexResponseToContent(forceMergeResponse.Shards)
 	if err != nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", err.Error(), http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	ginutil.NewAutoMehtodName(c).SendJsonBytes(shardsBytes)
+	resp.SendJsonBytes(c, shardsBytes)
 }
 
 // handleIndexRebuild rebuild index
@@ -1253,7 +1251,7 @@ func (handler *DocumentHandler) handleIndexRebuild(c *gin.Context) {
 
 	indexRequest, err := IndexRequestParse(c.Request)
 	if err != nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", err.Error(), http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -1269,19 +1267,19 @@ func (handler *DocumentHandler) handleIndexRebuild(c *gin.Context) {
 
 	space, err := handler.docService.getSpace(c.Request.Context(), args.Head.DbName, args.Head.SpaceName)
 	if space == nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", fmt.Sprintf("dbName:%s or spaceName:%s not exist", args.Head.DbName, args.Head.SpaceName), http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, fmt.Sprintf("dbName:%s or spaceName:%s not exist", args.Head.DbName, args.Head.SpaceName))
 		return
 	}
 	if err != nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", err.Error(), http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, err.Error())
 	}
 
 	indexResponse := handler.docService.rebuildIndex(c.Request.Context(), args)
 	shardsBytes, err := IndexResponseToContent(indexResponse.Shards)
 	if err != nil {
-		ginutil.NewAutoMehtodName(c).SetHttpStatus(http.StatusBadRequest).SendJson(resp.NewBodyRootCause("", err.Error(), http.StatusBadRequest))
+		resp.SendError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	ginutil.NewAutoMehtodName(c).SendJsonBytes(shardsBytes)
+	resp.SendJsonBytes(c, shardsBytes)
 }

@@ -15,38 +15,22 @@
 package resp
 
 import (
-	"context"
-	"fmt"
-	"net/http"
-
-	"github.com/vearch/vearch/util/netutil"
+	"github.com/gin-gonic/gin"
+	"github.com/vearch/vearch/util/ginutil"
 )
 
-func SendError(ctx context.Context, w http.ResponseWriter, httpStatus int, errorMsg string) {
-	netutil.NewResponse(w).SetHttpStatus(httpStatus).SendJson(NewBody(errorMsg, httpStatus))
+func SendError(c *gin.Context, httpStatus int, errorMsg string) {
+	ginutil.NewAutoMehtodName(c).SetHttpStatus(int64(httpStatus)).SendJson(NewBody(errorMsg, httpStatus))
 }
 
-func SendErrorMethodNotAllowed(ctx context.Context, w http.ResponseWriter, url string, method string, allowMethod string) {
-	err := fmt.Errorf(ErrReasonIncorrectHttpMethod, url, method, allowMethod)
-	netutil.NewResponse(w).SetHttpStatus(http.StatusMethodNotAllowed).SetAllowMethod(http.MethodPost).SendJson(NewBody(err.Error(), http.StatusMethodNotAllowed))
+func SendErrorRootCause(c *gin.Context, httpStatus int, errorType string, errorReason string) {
+	ginutil.NewAutoMehtodName(c).SetHttpStatus(int64(httpStatus)).SendJson(NewBodyRootCause(errorType, errorReason, httpStatus))
 }
 
-func SendErrorRootCause(ctx context.Context, w http.ResponseWriter, httpStatus int, errorType string, errorReason string) {
-	netutil.NewResponse(w).SetHttpStatus(httpStatus).SendJson(NewBodyRootCause(errorType, errorReason, httpStatus))
+func SendJsonBytes(c *gin.Context, bytes []byte) {
+	ginutil.NewAutoMehtodName(c).SendJsonBytes(bytes)
 }
 
-func SendText(ctx context.Context, w http.ResponseWriter, resp string) {
-	netutil.NewResponse(w).SetHttpStatus(http.StatusOK).SendText(resp)
-}
-
-func SendJsonBytes(ctx context.Context, w http.ResponseWriter, bytes []byte) {
-	netutil.NewResponse(w).SetHttpStatus(http.StatusOK).SendJsonBytes(bytes)
-}
-
-func SendJson(ctx context.Context, w http.ResponseWriter, obj interface{}) {
-	netutil.NewResponse(w).SetHttpStatus(http.StatusOK).SendJson(obj)
-}
-
-func SendJsonHttpReplySuccess(ctx context.Context, w http.ResponseWriter, obj interface{}) {
-	netutil.NewResponse(w).SendJsonHttpReplySuccess(obj)
+func SendJson(c *gin.Context, obj interface{}) {
+	ginutil.NewAutoMehtodName(c).SendJson(obj)
 }
