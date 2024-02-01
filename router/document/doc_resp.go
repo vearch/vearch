@@ -569,7 +569,8 @@ func documentDeleteResponse(items []*vearchpb.Item, head *vearchpb.ResponseHead,
 	if len(resultIds) != 0 {
 		builder.ValueInterface(resultIds)
 	} else {
-		builder.ValueString("[]")
+		data := []string{}
+		builder.ValueInterface(data)
 	}
 
 	builder.EndObject()

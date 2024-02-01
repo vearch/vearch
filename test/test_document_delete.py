@@ -28,25 +28,6 @@ logger = logging.getLogger(__name__)
 __description__ = """ test case for document delete """
 
 
-def create(router_url, embedding_size, properties):
-    space_config = {
-        "name": space_name,
-        "partition_num": 1,
-        "replica_num": 1,
-        "engine": {
-            "index_size": 1,
-            "retrieval_type": "FLAT",
-            "retrieval_param": {
-                "metric_type": "L2",
-            }
-        },
-        "properties": properties["properties"]
-    }
-    logger.info(create_db(router_url, db_name))
-
-    logger.info(create_space(router_url, db_name, space_config))
-
-
 xb, xq, _, gt = get_sift10K(logger)
 
 
@@ -62,41 +43,28 @@ def check(total, bulk, full_field, delete_type, xb):
     with_id = True
     seed = 1
 
-    logger.info("dataset num: %d, total_batch: %d, dimension: %d, search num: %d, topK: %d" % (
-        total, total_batch, embedding_size, xq.shape[0], k))
+    logger.info(
+        "dataset num: %d, total_batch: %d, dimension: %d, search num: %d, topK: %d"
+        % (total, total_batch, embedding_size, xq.shape[0], k)
+    )
 
     properties = {}
     properties["properties"] = {
-        "field_int": {
-            "type": "integer",
-            "index": True
-        },
-        "field_long": {
-            "type": "long",
-            "index": True
-        },
-        "field_float": {
-            "type": "float",
-            "index": True
-        },
-        "field_double": {
-            "type": "double",
-            "index": True
-        },
-        "field_string": {
-            "type": "string",
-            "index": True
-        },
+        "field_int": {"type": "integer", "index": True},
+        "field_long": {"type": "long", "index": True},
+        "field_float": {"type": "float", "index": True},
+        "field_double": {"type": "double", "index": True},
+        "field_string": {"type": "string", "index": True},
         "field_vector": {
             "type": "vector",
             "index": True,
             "dimension": embedding_size,
             "store_type": "MemoryOnly",
             # "format": "normalization"
-        }
+        },
     }
 
-    create(router_url, embedding_size, properties)
+    create_for_document_test(logger, router_url, embedding_size, properties)
 
     add(total_batch, batch_size, xb, with_id, full_field)
 
@@ -105,22 +73,59 @@ def check(total, bulk, full_field, delete_type, xb):
     if delete_type == "by_filter":
         time.sleep(3)
 
-    query_interface(logger, total_batch, batch_size,
-                    xb, full_field, seed, "by_ids")
+    query_interface(logger, total_batch, batch_size, xb, full_field, seed, "by_ids")
 
-    delete_interface(logger, total_batch, batch_size,
-                     full_field, seed, delete_type)
+    delete_interface(logger, total_batch, batch_size, full_field, seed, delete_type)
 
     assert get_space_num() == 0
 
     destroy(router_url, db_name, space_name)
 
 
-@ pytest.mark.parametrize(["bulk", "full_field", "delete_type"], [
-    [True, True, "by_ids"],
-    [True, True, "by_filter"],
-    [False, True, "by_ids"],
-    [False, True, "by_filter"],
-])
+@pytest.mark.parametrize(
+    ["bulk", "full_field", "delete_type"],
+    [
+        [True, True, "by_ids"],
+        [True, True, "by_filter"],
+        [False, True, "by_ids"],
+        [False, True, "by_filter"],
+    ],
+)
 def test_vearch_document_delete(bulk: bool, full_field: bool, delete_type: str):
     check(100, bulk, full_field, delete_type, xb)
+
+
+# prepare for badcase
+def test_prepare_cluster_badcase():
+    prepare_cluster_for_document_test(logger, 100, xb)
+
+
+@pytest.mark.parametrize(
+    ["index", "wrong_type"],
+    [
+        [0, "wrong_db"],
+        [1, "wrong_space"],
+        [2, "wrong_id"],
+        [3, "wrong_partition"],
+        [4, "wrong_range_filter"],
+        [5, "wrong_term_filter"],
+        [6, "wrong_filter_index"],
+        [7, "wrong_vector"],
+        [8, "wrong_length_document_ids"],
+        [9, "wrong_both_id_and_filter"],
+        [10, "empty_query"],
+        [11, "empty_document_ids"],
+        [12, "empty_filter"],
+        [13, "wrong_range_filter_name"],
+        [14, "wrong_term_filter_name"],
+    ],
+)
+def test_vearch_document_delete_badcase(index, wrong_type):
+    wrong_parameters = [False for i in range(15)]
+    wrong_parameters[index] = True
+    query_error(logger, 1, 1, xb, "query", wrong_parameters)
+
+
+# destroy for badcase
+def test_destroy_cluster_badcase():
+    destroy(router_url, db_name, space_name)

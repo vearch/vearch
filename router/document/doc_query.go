@@ -289,7 +289,11 @@ func parseVectors(reqNum int, vqs []*vearchpb.VectorQuery, tmpArr []json.RawMess
 		}
 		docField := proMap[vqTemp.Field]
 
-		if docField == nil || docField.FieldType != entity.FieldType_VECTOR {
+		if docField == nil {
+			return reqNum, vqs, fmt.Errorf("query has err for field:[%s] not found in space fields", vqTemp.Field)
+		}
+
+		if docField.FieldType != entity.FieldType_VECTOR {
 			return reqNum, vqs, fmt.Errorf("query has err for field:[%s] is not vector type", vqTemp.Field)
 		}
 
@@ -366,7 +370,11 @@ func parseRange(data []byte, proMap map[string]*entity.SpaceProperties) ([]*vear
 		docField := proMap[field]
 
 		if docField == nil {
-			return nil, fmt.Errorf("can not define field:[%s]", field)
+			return nil, fmt.Errorf("field:[%s] not found in space fields", field)
+		}
+
+		if docField.FieldType == entity.FieldType_STRING {
+			return nil, fmt.Errorf("range filter should be numberic type, field:[%s] is string which should be term filter", field)
 		}
 
 		if docField.Option&entity.FieldOption_Index != entity.FieldOption_Index {
@@ -581,6 +589,10 @@ func parseTerm(data []byte, proMap map[string]*entity.SpaceProperties) ([]*vearc
 
 		if fd == nil {
 			return nil, fmt.Errorf("field:[%s] not found in space fields", field)
+		}
+
+		if fd.FieldType != entity.FieldType_STRING {
+			return nil, fmt.Errorf("term filter should be string type, field:[%s] is numberic type which should be range filter", field)
 		}
 
 		if fd.Option&entity.FieldOption_Index != entity.FieldOption_Index {

@@ -27,31 +27,10 @@ logger = logging.getLogger(__name__)
 __description__ = """ test case for document upsert """
 
 
-def create(router_url, embedding_size, properties):
-    space_config = {
-        "name": space_name,
-        "partition_num": 1,
-        "replica_num": 1,
-        "engine": {
-            "name": "gamma",
-            "index_size": 1,
-            "retrieval_type": "FLAT",
-            "retrieval_param": {
-                "metric_type": "L2",
-            }
-        },
-        "properties": properties["properties"]
-    }
-    logger.info(create_db(router_url, db_name))
-
-    logger.info(create_space(router_url, db_name, space_config))
-
 def query(xq, gt, k, logger):
     query_dict = {
-        "query": {
-            "vector": []
-        },
-        "vector_value":False,
+        "query": {"vector": []},
+        "vector_value": False,
         "fields": ["field_int"],
         "size": k,
         "db_name": db_name,
@@ -67,7 +46,9 @@ def query(xq, gt, k, logger):
                 assert recalls[recall] >= 1.0
         logger.info(result)
 
+
 xb, xq, _, gt = get_sift10K(logger)
+
 
 def benchmark(total, bulk, with_id, full_field, xb, xq, gt):
     embedding_size = xb.shape[1]
@@ -78,40 +59,28 @@ def benchmark(total, bulk, with_id, full_field, xb, xq, gt):
     if total == 0:
         total = xb.shape[0]
     total_batch = int(total / batch_size)
-    logger.info("dataset num: %d, total_batch: %d, dimension: %d, search num: %d, topK: %d" %(total, total_batch, embedding_size, xq.shape[0], k))
+    logger.info(
+        "dataset num: %d, total_batch: %d, dimension: %d, search num: %d, topK: %d"
+        % (total, total_batch, embedding_size, xq.shape[0], k)
+    )
 
     properties = {}
     properties["properties"] = {
-        "field_int": {
-            "type": "integer",
-            "index": False
-        },
-        "field_long": {
-            "type": "long",
-            "index": False
-        },
-        "field_float": {
-            "type": "float",
-            "index": False
-        },
-        "field_double": {
-            "type": "double",
-            "index": False
-        },
-        "field_string": {
-            "type": "string",
-            "index": True
-        },
+        "field_int": {"type": "integer", "index": False},
+        "field_long": {"type": "long", "index": False},
+        "field_float": {"type": "float", "index": False},
+        "field_double": {"type": "double", "index": False},
+        "field_string": {"type": "string", "index": True},
         "field_vector": {
             "type": "vector",
             "index": True,
             "dimension": embedding_size,
             "store_type": "MemoryOnly",
-            #"format": "normalization"
-        }
+            # "format": "normalization"
+        },
     }
 
-    create(router_url, embedding_size, properties)
+    create_for_document_test(logger, router_url, embedding_size, properties)
 
     add(total_batch, batch_size, xb, with_id, full_field)
 
@@ -121,18 +90,23 @@ def benchmark(total, bulk, with_id, full_field, xb, xq, gt):
 
     destroy(router_url, db_name, space_name)
 
-@ pytest.mark.parametrize(["bulk", "with_id", "full_field"], [
-    [True, True, True],
-    [True, True, False],
-    [True, False, True],
-    [True, False, False],
-    [False, True, True],
-    [False, True, False],
-    [False, False, True],
-    [False, False, False],
-])
+
+@pytest.mark.parametrize(
+    ["bulk", "with_id", "full_field"],
+    [
+        [True, True, True],
+        [True, True, False],
+        [True, False, True],
+        [True, False, False],
+        [False, True, True],
+        [False, True, False],
+        [False, False, True],
+        [False, False, False],
+    ],
+)
 def test_vearch_document_upsert_benchmark(bulk: bool, with_id: bool, full_field: bool):
     benchmark(0, bulk, with_id, full_field, xb, xq, gt)
+
 
 def update(total, bulk, full_field, xb):
     embedding_size = xb.shape[1]
@@ -145,40 +119,28 @@ def update(total, bulk, full_field, xb):
     total_batch = int(total / batch_size)
     with_id = True
 
-    logger.info("dataset num: %d, total_batch: %d, dimension: %d, search num: %d, topK: %d" %(total, total_batch, embedding_size, xq.shape[0], k))
+    logger.info(
+        "dataset num: %d, total_batch: %d, dimension: %d, search num: %d, topK: %d"
+        % (total, total_batch, embedding_size, xq.shape[0], k)
+    )
 
     properties = {}
     properties["properties"] = {
-        "field_int": {
-            "type": "integer",
-            "index": False
-        },
-        "field_long": {
-            "type": "long",
-            "index": False
-        },
-        "field_float": {
-            "type": "float",
-            "index": False
-        },
-        "field_double": {
-            "type": "double",
-            "index": False
-        },
-        "field_string": {
-            "type": "string",
-            "index": True
-        },
+        "field_int": {"type": "integer", "index": False},
+        "field_long": {"type": "long", "index": False},
+        "field_float": {"type": "float", "index": False},
+        "field_double": {"type": "double", "index": False},
+        "field_string": {"type": "string", "index": True},
         "field_vector": {
             "type": "vector",
             "index": True,
             "dimension": embedding_size,
             "store_type": "MemoryOnly",
-            #"format": "normalization"
-        }
+            # "format": "normalization"
+        },
     }
 
-    create(router_url, embedding_size, properties)
+    create_for_document_test(logger, router_url, embedding_size, properties)
 
     add(total_batch, batch_size, xb, with_id, full_field)
 
@@ -190,82 +152,70 @@ def update(total, bulk, full_field, xb):
 
     destroy(router_url, db_name, space_name)
 
-@ pytest.mark.parametrize(["bulk", "full_field"], [
-    [True, True],
-    [True, False],
-    [False, True,],
-    [False, False],
-])
+
+@pytest.mark.parametrize(
+    ["bulk", "full_field"],
+    [
+        [True, True],
+        [True, False],
+        [False, True],
+        [False, False],
+    ],
+)
 def test_vearch_document_upsert_update(bulk: bool, full_field: bool):
     update(100, bulk, full_field, xb)
 
 
-def check_badcase(total, xb, wrong_parameters):
+# prepare for badcase
+def test_prepare_cluster_badcase():
     embedding_size = xb.shape[1]
-    batch_size = 1
-    if total == 0:
-        total = xb.shape[0]
-    total_batch = int(total / batch_size)
 
     properties = {}
     properties["properties"] = {
-        "field_int": {
-            "type": "integer",
-            "index": False
-        },
-        "field_long": {
-            "type": "long",
-            "index": False
-        },
-        "field_float": {
-            "type": "float",
-            "index": False
-        },
-        "field_double": {
-            "type": "double",
-            "index": False
-        },
-        "field_string": {
-            "type": "string",
-            "index": True
-        },
-        "field_string1": {
-            "type": "string",
-            "index": False
-        },
+        "field_int": {"type": "integer", "index": False},
+        "field_long": {"type": "long", "index": False},
+        "field_float": {"type": "float", "index": False},
+        "field_double": {"type": "double", "index": False},
+        "field_string": {"type": "string", "index": True},
+        "field_string1": {"type": "string", "index": False},
         "field_vector": {
             "type": "vector",
             "index": True,
             "dimension": embedding_size,
             "store_type": "MemoryOnly",
-            #"format": "normalization"
-        }
+            # "format": "normalization"
+        },
     }
 
-    create(router_url, embedding_size, properties)
+    create_for_document_test(logger, router_url, embedding_size, properties)
 
+
+@pytest.mark.parametrize(
+    ["index", "wrong_type"],
+    [
+        [0, "wrong_number_value"],
+        [1, "wrong_str_value"],
+        [2, "without_vector"],
+        [3, "wrong_db"],
+        [4, "wrong_space"],
+        [5, "wrong_field"],
+        [6, "empty_documents"],
+        [7, "wrong_index_string_length"],
+        [8, "wrong_string_length"],
+    ],
+)
+def test_vearch_document_upsert_badcase(index, wrong_type):
+    wrong_parameters = [False for i in range(9)]
+    wrong_parameters[index] = True
+    batch_size = 1
+    total = 1
+    if total == 0:
+        total = xb.shape[0]
+    total_batch = int(total / batch_size)
     add_error(total_batch, batch_size, xb, logger, wrong_parameters)
-
     assert get_space_num() == 0
 
+
+# destroy for badcase
+def test_destroy_cluster_badcase():
     destroy(router_url, db_name, space_name)
-
-@ pytest.mark.parametrize(["wrong_number_value", "wrong_str_value", "without_vector", "wrong_db", "wrong_space", 
-                           "wrong_field", "empty_documents", "wrong_index_string_length", "wrong_string_length"], [
-    [True, False,False,False,False,False,False, False,False],
-    [False, True,False,False,False,False,False, False,False],
-    [False, False,True,False,False,False,False, False,False],
-    [False, False,False,True,False,False,False, False,False],
-    [False, False,False,False,True,False,False, False,False],
-    [False, False,False,False,False,True,False, False,False],
-    [False, False,False,False,False,False,True, False,False],
-    [False, False,False,False,False,False,False, True,False],
-    [False, False,False,False,False,False,False, False,True],
-])
-def test_vearch_document_upsert_badcase(wrong_number_value, wrong_str_value, without_vector, wrong_db, wrong_space, 
-                                        wrong_field, empty_documents, wrong_index_string_length, wrong_string_length):
-    wrong_parameters = [wrong_number_value, wrong_str_value, without_vector, \
-                        wrong_db, wrong_space, wrong_field, empty_documents, \
-                        wrong_index_string_length, wrong_string_length]
-
-    check_badcase(1, xb, wrong_parameters)

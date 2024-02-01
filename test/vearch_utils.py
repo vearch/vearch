@@ -46,14 +46,15 @@ def get_ftp_ip(url):
 
     return ip_address
 
+
 def ivecs_read(fname):
-    a = np.fromfile(fname, dtype='int32')
+    a = np.fromfile(fname, dtype="int32")
     d = a[0]
     return a.reshape(-1, d + 1)[:, 1:].copy()
 
 
 def fvecs_read(fname):
-    return ivecs_read(fname).view('float32')
+    return ivecs_read(fname).view("float32")
 
 
 def download_sift(logger, host, dirname, filename):
@@ -65,8 +66,8 @@ def download_sift(logger, host, dirname, filename):
     ftp.set_pasv(True)
     ftp.cwd(dirname)
 
-    with open(filename, 'wb') as local_file:
-        ftp.retrbinary('RETR ' + filename, local_file.write)
+    with open(filename, "wb") as local_file:
+        ftp.retrbinary("RETR " + filename, local_file.write)
     ftp.quit()
 
     if os.path.isfile(filename):
@@ -79,7 +80,8 @@ def download_sift(logger, host, dirname, filename):
 
 def untar(fname, dirs):
     t = tarfile.open(fname)
-    t.extractall(path = dirs) 
+    t.extractall(path=dirs)
+
 
 def load_sift1M(logger):
     xt = fvecs_read("sift/sift_learn.fvecs")
@@ -140,16 +142,14 @@ def process_add_data(items):
         if with_id:
             param_dict["_id"] = str(index * batch_size + j)
         param_dict["field_int"] = (index * batch_size + j) * seed
-        param_dict["field_vector"] = {
-            "feature": features[j].tolist()
-        }
+        param_dict["field_vector"] = {"feature": features[j].tolist()}
         if full_field:
             param_dict["field_long"] = param_dict["field_int"]
             param_dict["field_float"] = float(param_dict["field_int"])
             param_dict["field_double"] = float(param_dict["field_int"])
             param_dict["field_string"] = str(param_dict["field_int"])
         data["documents"].append(param_dict)
-    
+
     json_str = json.dumps(data)
     rs = requests.post(url, json_str)
 
@@ -158,7 +158,16 @@ def add(total, batch_size, xb, with_id=False, full_field=False, seed=1):
     pool = ThreadPool()
     total_data = []
     for i in range(total):
-        total_data.append((i, batch_size,  xb[i * batch_size: (i + 1) * batch_size], with_id, full_field, seed))
+        total_data.append(
+            (
+                i,
+                batch_size,
+                xb[i * batch_size : (i + 1) * batch_size],
+                with_id,
+                full_field,
+                seed,
+            )
+        )
     results = pool.map(process_add_data, total_data)
     pool.close()
     pool.join()
@@ -192,19 +201,19 @@ def process_add_error_data(items):
         data["space_name"] = "wrong_space"
     for j in range(batch_size):
         param_dict = {}
-        param_dict["field_int"] = (index * batch_size + j)
+        param_dict["field_int"] = index * batch_size + j
 
         if not without_vector:
-            param_dict["field_vector"] = {
-                "feature": features[j].tolist()
-            }
+            param_dict["field_vector"] = {"feature": features[j].tolist()}
 
         param_dict["field_string"] = str(param_dict["field_int"])
         if wrong_str_value:
             param_dict["field_string"] = float(param_dict["field_int"])
 
         if wrong_index_string_length:
-            param_dict["field_string"] = "".join(["0" for _ in range(max_index_str_length)])
+            param_dict["field_string"] = "".join(
+                ["0" for _ in range(max_index_str_length)]
+            )
 
         if wrong_string_length:
             param_dict["field_string1"] = "".join(["0" for _ in range(max_str_length)])
@@ -221,7 +230,7 @@ def process_add_error_data(items):
             param_dict["field_wrong"] = param_dict["field_int"]
         if not empty_documents:
             data["documents"].append(param_dict)
-    
+
     json_str = json.dumps(data)
     rs = requests.post(url, json_str)
 
@@ -232,9 +241,17 @@ def process_add_error_data(items):
     assert rs.status_code != 200
 
 
-def add_error(total, batch_size, xb, logger, wrong_parameters:list):
+def add_error(total, batch_size, xb, logger, wrong_parameters: list):
     for i in range(total):
-        process_add_error_data((i, batch_size,  xb[i * batch_size: (i + 1) * batch_size], logger, wrong_parameters))
+        process_add_error_data(
+            (
+                i,
+                batch_size,
+                xb[i * batch_size : (i + 1) * batch_size],
+                logger,
+                wrong_parameters,
+            )
+        )
 
 
 def process_add_multi_vec_data(items):
@@ -254,19 +271,15 @@ def process_add_multi_vec_data(items):
         if with_id:
             param_dict["_id"] = str(index * batch_size + j)
         param_dict["field_int"] = (index * batch_size + j) * seed
-        param_dict["field_vector"] = {
-            "feature": features[j].tolist()
-        }
-        param_dict["field_vector1"] = {
-            "feature": features[j].tolist()
-        }
+        param_dict["field_vector"] = {"feature": features[j].tolist()}
+        param_dict["field_vector1"] = {"feature": features[j].tolist()}
         if full_field:
             param_dict["field_long"] = param_dict["field_int"]
             param_dict["field_float"] = float(param_dict["field_int"])
             param_dict["field_double"] = float(param_dict["field_int"])
             param_dict["field_string"] = str(param_dict["field_int"])
         data["documents"].append(param_dict)
-    
+
     json_str = json.dumps(data)
     rs = requests.post(url, json_str)
 
@@ -275,7 +288,16 @@ def add_multi_vector(total, batch_size, xb, with_id=False, full_field=False, see
     pool = ThreadPool()
     total_data = []
     for i in range(total):
-        total_data.append((i, batch_size,  xb[i * batch_size: (i + 1) * batch_size], with_id, full_field, seed))
+        total_data.append(
+            (
+                i,
+                batch_size,
+                xb[i * batch_size : (i + 1) * batch_size],
+                with_id,
+                full_field,
+                seed,
+            )
+        )
     results = pool.map(process_add_multi_vec_data, total_data)
     pool.close()
     pool.join()
@@ -283,30 +305,30 @@ def add_multi_vector(total, batch_size, xb, with_id=False, full_field=False, see
 
 def prepare_filter(filter, index, batch_size, seed, full_field):
     if full_field:
-        #term_filter = {
+        # term_filter = {
         #    "term": {
         #        "field_string": [str(i) for i in range(index * batch_size * seed, (index + 1) * batch_size * seed)]
         #    }
-        #}
-        #filter.append(term_filter)
+        # }
+        # filter.append(term_filter)
         range_filter = {
             "range": {
                 "field_int": {
                     "gte": (index * batch_size) * seed,
-                    "lt": (index + 1) * batch_size * seed
+                    "lt": (index + 1) * batch_size * seed,
                 },
                 "field_long": {
                     "gte": (index * batch_size) * seed,
-                    "lt": (index + 1) * batch_size * seed
+                    "lt": (index + 1) * batch_size * seed,
                 },
                 "field_float": {
                     "gt": float(index * batch_size * seed),
-                    "lt": float((index + 1) * batch_size * seed)
+                    "lt": float((index + 1) * batch_size * seed),
                 },
                 "field_double": {
                     "gt": float(index * batch_size * seed),
-                    "lt": float((index + 1) * batch_size * seed)
-                }
+                    "lt": float((index + 1) * batch_size * seed),
+                },
             }
         }
         filter.append(range_filter)
@@ -315,11 +337,212 @@ def prepare_filter(filter, index, batch_size, seed, full_field):
             "range": {
                 "field_int": {
                     "gte": (index * batch_size) * seed,
-                    "lt": (index + 1) * batch_size * seed
+                    "lt": (index + 1) * batch_size * seed,
                 }
             }
         }
         filter.append(range_filter)
+
+
+def prepare_range_filter(filter, index, batch_size):
+    range_filter = {
+        "range": {
+            "field_int": {"gte": index * batch_size, "lte": (index + 1) * batch_size}
+        }
+    }
+    filter.append(range_filter)
+
+
+def prepare_wrong_range_filter(filter, index, batch_size):
+    range_filter = {
+        "range": {
+            "field_string": [
+                str(i) for i in range(index * batch_size, (index + 1) * batch_size)
+            ]
+        }
+    }
+    filter.append(range_filter)
+
+
+def prepare_wrong_range_filter_name(filter, index, batch_size):
+    range_filter = {
+        "range": {
+            "wrong_name": {"gte": index * batch_size, "lte": (index + 1) * batch_size}
+        }
+    }
+    filter.append(range_filter)
+
+
+def prepare_wrong_index_filter(filter, index, batch_size):
+    range_filter = {
+        "range": {
+            "field_long": {"gte": index * batch_size, "lte": (index + 1) * batch_size}
+        }
+    }
+    filter.append(range_filter)
+
+
+def prepare_term_filter(filter, index, batch_size):
+    term_filter = {
+        "term": {
+            "field_string": [
+                str(i) for i in range(index * batch_size, (index + 1) * batch_size)
+            ]
+        }
+    }
+    filter.append(term_filter)
+
+
+def prepare_wrong_term_filter_name(filter, index, batch_size):
+    term_filter = {
+        "term": {
+            "wrong_name": [
+                str(i) for i in range(index * batch_size, (index + 1) * batch_size)
+            ]
+        }
+    }
+    filter.append(term_filter)
+
+
+def prepare_wrong_term_filter(filter, index, batch_size):
+    term_filter = {
+        "term": {
+            "field_int": {"gte": index * batch_size, "lte": (index + 1) * batch_size}
+        }
+    }
+    filter.append(term_filter)
+
+
+def process_query_error_data(items):
+    data = {}
+    data["db_name"] = db_name
+    data["space_name"] = space_name
+    data["query"] = {}
+    index = items[0]
+    batch_size = items[1]
+    features = items[2]
+    logger = items[3]
+    interface = items[4]
+    url = router_url + "/document/" + interface
+
+    (
+        wrong_db,
+        wrong_space,
+        wrong_id,
+        wrong_partition,
+        wrong_range_filter,
+        wrong_term_filter,
+        wrong_filter_index,
+        wrong_vector,
+        wrong_length_document_ids,
+        wrong_both_id_and_filter,
+        empty_query,
+        empty_document_ids,
+        empty_filter,
+        wrong_range_filter_name,
+        wrong_term_filter_name,
+    ) = items[5]
+
+    max_document_ids_length = 501
+
+    if wrong_db:
+        data["db_name"] = "wrong_db"
+    if wrong_space:
+        data["space_name"] = "wrong_space"
+
+    if wrong_partition and interface == "query":
+        data["query"]["document_ids"] = ["0"]
+        data["query"]["partition_id"] = "1008611"
+
+    if wrong_id:
+        data["query"]["document_ids"] = ["wrong_id"]
+
+    if wrong_range_filter:
+        data["query"]["filter"] = []
+        prepare_wrong_range_filter(data["query"]["filter"], index, batch_size)
+        data["size"] = batch_size
+
+    if wrong_term_filter:
+        data["query"]["filter"] = []
+        prepare_wrong_term_filter(data["query"]["filter"], index, batch_size)
+        data["size"] = batch_size
+
+    if wrong_filter_index:
+        data["query"]["filter"] = []
+        prepare_wrong_index_filter(data["query"]["filter"], index, batch_size)
+        data["size"] = batch_size
+
+    if wrong_range_filter_name:
+        data["query"]["filter"] = []
+        prepare_wrong_range_filter_name(data["query"]["filter"], index, batch_size)
+        data["size"] = batch_size
+
+    if wrong_term_filter_name:
+        data["query"]["filter"] = []
+        prepare_wrong_term_filter_name(data["query"]["filter"], index, batch_size)
+        data["size"] = batch_size
+
+    if wrong_vector:
+        data["query"]["vector"] = []
+        vector_info = {
+            "field": "field_vector",
+            "feature": features[:batch_size].flatten().tolist(),
+        }
+        data["query"]["vector"].append(vector_info)
+
+    if wrong_length_document_ids:
+        data["query"]["document_ids"] = [str(i) for i in range(max_document_ids_length)]
+
+    if wrong_both_id_and_filter:
+        data["query"]["document_ids"] = ["0"]
+        data["query"]["filter"] = []
+        prepare_filter(data["query"]["filter"], index, batch_size, 1, True)
+        data["size"] = batch_size
+
+    if empty_query:
+        data["query"] = {}
+
+    if empty_document_ids:
+        data["query"]["document_ids"] = []
+
+    if empty_filter:
+        data["query"]["filter"] = []
+
+    json_str = json.dumps(data)
+
+    if not wrong_vector:
+        logger.info(json_str)
+    try:
+        rs = requests.post(url, data=json_str)
+        logger.info(rs.json())
+        if interface == "query":
+            if "documents" not in rs.json():
+                assert rs.status_code != 200
+            else:
+                if len(rs.json()["documents"]) > 0:
+                    assert rs.json()["documents"][0]["status"] != 200
+        else:
+            if "document_ids" not in rs.json():
+                assert rs.status_code != 200
+            else:
+                assert len(rs.json()["document_ids"]) == 0
+    except Exception as e:
+        logger.warning("exception: %s" % (repr(e)))
+
+
+def query_error(logger, total, batch_size, xb, interface: str, wrong_parameters: list):
+    for i in range(total):
+        process_query_error_data(
+            (
+                i,
+                batch_size,
+                xb[i * batch_size : (i + 1) * batch_size],
+                logger,
+                interface,
+                wrong_parameters,
+            )
+        )
+
 
 def process_get_data(items):
     url = router_url + "/document/query"
@@ -368,7 +591,7 @@ def process_get_data(items):
         logger.info(json_str)
 
     assert len(documents) == batch_size
-    assert rs.text.find("\"total\":" + str(batch_size)) >= 0
+    assert rs.text.find('"total":' + str(batch_size)) >= 0
 
     for j in range(batch_size):
         value = int(documents[j]["_id"])
@@ -378,15 +601,32 @@ def process_get_data(items):
         logger.debug(documents[j])
         assert documents[j]["_source"]["field_int"] == value * seed
         if query_type == "by_ids":
-            assert documents[j]["_source"]["field_vector"]["feature"] == features[j].tolist()
+            assert (
+                documents[j]["_source"]["field_vector"]["feature"]
+                == features[j].tolist()
+            )
         if full_field:
             assert documents[j]["_source"]["field_long"] == value * seed
             assert documents[j]["_source"]["field_float"] == float(value * seed)
             assert documents[j]["_source"]["field_double"] == float(value * seed)
 
-def query_interface(logger, total, batch_size, xb, full_field=False, seed=1, query_type="by_ids"):
+
+def query_interface(
+    logger, total, batch_size, xb, full_field=False, seed=1, query_type="by_ids"
+):
     for i in range(total):
-        process_get_data((logger, i, batch_size,  xb[i * batch_size: (i + 1) * batch_size], full_field, seed, query_type))
+        process_get_data(
+            (
+                logger,
+                i,
+                batch_size,
+                xb[i * batch_size : (i + 1) * batch_size],
+                full_field,
+                seed,
+                query_type,
+            )
+        )
+
 
 # def query_interface(logger, total, batch_size, xb, full_field=False, seed=1, query_type="by_ids"):
 #     pool = ThreadPool()
@@ -396,6 +636,7 @@ def query_interface(logger, total, batch_size, xb, full_field=False, seed=1, que
 #     results = pool.map(process_get_data, total_data)
 #     pool.close()
 #     pool.join()
+
 
 def process_delete_data(items):
     url = router_url + "/document/delete"
@@ -429,17 +670,26 @@ def process_delete_data(items):
 
     document_ids = rs.json()["document_ids"]
     if len(document_ids) != batch_size:
-        logger.info("batch_size = " + str(batch_size) + ", len(document_ids) = " + str(len(document_ids)))
+        logger.info(
+            "batch_size = "
+            + str(batch_size)
+            + ", len(document_ids) = "
+            + str(len(document_ids))
+        )
         logger.info(json_str)
         logger.info(rs.json())
         logger.info(document_ids)
 
     assert len(document_ids) == batch_size
-    assert rs.text.find("\"total\":" + str(batch_size)) >= 0
+    assert rs.text.find('"total":' + str(batch_size)) >= 0
 
-def delete_interface(logger, total, batch_size, full_field=False, seed=1, delete_type="by_ids"):
+
+def delete_interface(
+    logger, total, batch_size, full_field=False, seed=1, delete_type="by_ids"
+):
     for i in range(total):
         process_delete_data((logger, i, batch_size, full_field, seed, delete_type))
+
 
 def process_search_data(items):
     url = router_url + "/document/search"
@@ -468,7 +718,7 @@ def process_search_data(items):
         # logger.debug("partition_id: " + str(partition_id))
         vector_info = {
             "field": "field_vector",
-            "feature": features[:batch_size].flatten().tolist()
+            "feature": features[:batch_size].flatten().tolist(),
         }
         data["query"]["vector"].append(vector_info)
 
@@ -501,9 +751,86 @@ def process_search_data(items):
                 assert document["_source"]["field_float"] == float(value * seed)
                 assert document["_source"]["field_double"] == float(value * seed)
 
-def search_interface(logger, total, batch_size, xb, full_field=False, with_filter=False, seed=1, query_type="by_ids"):
+
+def search_interface(
+    logger,
+    total,
+    batch_size,
+    xb,
+    full_field=False,
+    with_filter=False,
+    seed=1,
+    query_type="by_ids",
+):
     for i in range(total):
-        process_search_data((logger, i, batch_size, xb[i * batch_size: (i + 1) * batch_size], full_field, with_filter, seed, query_type))
+        process_search_data(
+            (
+                logger,
+                i,
+                batch_size,
+                xb[i * batch_size : (i + 1) * batch_size],
+                full_field,
+                with_filter,
+                seed,
+                query_type,
+            )
+        )
+
+
+def create_for_document_test(logger, router_url, embedding_size, properties):
+    space_config = {
+        "name": space_name,
+        "partition_num": 1,
+        "replica_num": 1,
+        "engine": {
+            "name": "gamma",
+            "index_size": 1,
+            "retrieval_type": "FLAT",
+            "retrieval_param": {
+                "metric_type": "L2",
+            },
+        },
+        "properties": properties["properties"],
+    }
+    logger.info(create_db(router_url, db_name))
+
+    logger.info(create_space(router_url, db_name, space_config))
+
+
+def prepare_cluster_for_document_test(logger, total, xb):
+    embedding_size = xb.shape[1]
+    batch_size = 100
+    if total == 0:
+        total = xb.shape[0]
+    total_batch = int(total / batch_size)
+    with_id = True
+    full_field = True
+    seed = 1
+
+    properties = {}
+    properties["properties"] = {
+        "field_int": {"type": "integer", "index": True},
+        "field_long": {"type": "long", "index": False},
+        "field_float": {"type": "float", "index": False},
+        "field_double": {"type": "double", "index": True},
+        "field_string": {"type": "string", "index": True},
+        "field_vector": {
+            "type": "vector",
+            "index": True,
+            "dimension": embedding_size,
+            "store_type": "MemoryOnly",
+            # "format": "normalization"
+        },
+    }
+
+    create_for_document_test(logger, router_url, embedding_size, properties)
+
+    add(total_batch, batch_size, xb, with_id, full_field)
+
+    time.sleep(3)
+
+    query_interface(logger, total_batch, batch_size, xb, full_field, seed, "by_ids")
+
 
 def waiting_index_finish(logger, total):
     url = router_url + "/_cluster/health?db=" + db_name + "&space=" + space_name
@@ -511,8 +838,9 @@ def waiting_index_finish(logger, total):
     while num < total:
         response = requests.get(url)
         num = response.json()[0]["spaces"][0]["partitions"][0]["index_num"]
-        logger.info("index num: %d" %(num))
+        logger.info("index num: %d" % (num))
         time.sleep(10)
+
 
 def get_space_num():
     url = router_url + "/_cluster/health?db=" + db_name + "&space=" + space_name
@@ -521,16 +849,12 @@ def get_space_num():
     num = response.json()[0]["spaces"][0]["doc_num"]
     return num
 
-def search(xq, k:int, batch:bool, query_dict:dict, logger):
+
+def search(xq, k: int, batch: bool, query_dict: dict, logger):
     url = router_url + "/document/search?timeout=2000000"
 
     field_ints = []
-    vector_dict = {
-        "vector": [{
-            "field": "field_vector",
-            "feature": []
-        }]
-    }
+    vector_dict = {"vector": [{"field": "field_vector", "feature": []}]}
     if batch:
         vector_dict["vector"][0]["feature"] = xq.flatten().tolist()
         query_dict["query"]["vector"] = vector_dict["vector"]
@@ -570,9 +894,9 @@ def search(xq, k:int, batch:bool, query_dict:dict, logger):
                 [field_int.append(-1) for i in range(k - len(field_int))]
             assert len(field_int) == k
             field_ints.append(field_int)
-    assert len(field_ints) == xq.shape[0]  
+    assert len(field_ints) == xq.shape[0]
     return np.array(field_ints)
-    
+
 
 def evaluate(xq, gt, k, batch, query_dict, logger):
     nq = xq.shape[0]
@@ -590,13 +914,13 @@ def evaluate(xq, gt, k, batch, query_dict, logger):
 
 
 def drop_db(router_url: str, db_name: str):
-    url = f'{router_url}/db/{db_name}'
+    url = f"{router_url}/db/{db_name}"
     resp = requests.delete(url)
     return resp.text
 
 
 def drop_space(router_url: str, db_name: str, space_name: str):
-    url = f'{router_url}/space/{db_name}/{space_name}'
+    url = f"{router_url}/space/{db_name}/{space_name}"
     resp = requests.delete(url)
     return resp.text
 
@@ -607,66 +931,75 @@ def destroy(router_url: str, db_name: str, space_name: str):
 
 
 def create_db(router_url: str, db_name: str):
-    url = f'{router_url}/db/_create'
-    data = {'name': db_name}
+    url = f"{router_url}/db/_create"
+    data = {"name": db_name}
     resp = requests.put(url, json=data)
     return resp.json()
 
 
 def create_space(router_url: str, db_name: str, space_config: dict):
-    url = f'{router_url}/space/{db_name}/_create'
+    url = f"{router_url}/space/{db_name}/_create"
     resp = requests.put(url, json=space_config)
     return resp.json()
 
 
 def get_space(router_url: str, db_name: str, space_name: str):
-    url = f'{router_url}/space/{db_name}/{space_name}'
+    url = f"{router_url}/space/{db_name}/{space_name}"
     resp = requests.get(url)
     return resp.json()
 
 
 def get_partition(router_url: str, db_name: str, space_name: str):
-    url = f'{router_url}/{db_name}/{space_name}'
+    url = f"{router_url}/{db_name}/{space_name}"
     resp = requests.get(url)
-    partition_infos = resp.json()['partitions']
+    partition_infos = resp.json()["partitions"]
     partition_ids = []
     for partition_info in partition_infos:
         partition_ids.append(partition_info["id"])
     return partition_ids
 
+
 def get_cluster_stats(router_url: str):
-    url = f'{router_url}/_cluster/stats'
+    url = f"{router_url}/_cluster/stats"
     resp = requests.get(url)
     return resp.json()
+
 
 # doc num and health
+
+
 def get_cluster_health(router_url: str):
-    url = f'{router_url}/_cluster/health'
+    url = f"{router_url}/_cluster/health"
     resp = requests.get(url)
     return resp.json()
+
 
 def get_servers_status(router_url: str):
-    url = f'{router_url}/list/server'
+    url = f"{router_url}/list/server"
     resp = requests.get(url)
     return resp.json()
+
 
 def list_dbs(router_url: str):
-    url = f'{router_url}/list/db'
+    url = f"{router_url}/list/db"
     resp = requests.get(url)
     return resp.json()
 
+
 def create_db(router_url: str, db_name: str):
-    url = f'{router_url}/db/_create'
-    data = {'name': db_name}
+    url = f"{router_url}/db/_create"
+    data = {"name": db_name}
     resp = requests.put(url, json=data)
     return resp.json()
 
+
 def get_db(router_url: str, db_name: str):
-    url = f'{router_url}/db/{db_name}' 
+    url = f"{router_url}/db/{db_name}"
     resp = requests.get(url)
     return resp.json()
 
+
 def list_spaces(router_url: str, db_name: str):
-    url = f'{router_url}/list/space?db={db_name}'
+    url = f"{router_url}/list/space?db={db_name}"
     resp = requests.get(url)
     return resp.json()

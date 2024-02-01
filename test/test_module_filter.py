@@ -174,7 +174,7 @@ def process_get_data_by_filter(items):
         assert rs.text.find("\"total\":" + str(0)) >= 0
 
 
-def query_by_fileter_interface(logger, total, full_field, mode: str):
+def query_by_filter_interface(logger, total, full_field, mode: str):
     for i in range(total):
         process_get_data_by_filter((logger, i, full_field, mode, total))
 
@@ -230,7 +230,7 @@ def check(total, full_field, xb, mode: str):
 
     time.sleep(3)
 
-    query_by_fileter_interface(logger, total_batch, full_field, mode)
+    query_by_filter_interface(logger, total_batch, full_field, mode)
 
     # return
     delete_interface(logger, total_batch, batch_size,
