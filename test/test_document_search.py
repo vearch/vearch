@@ -240,38 +240,41 @@ def search_error(logger, total, batch_size, xb, wrong_parameters: dict):
         )
 
 
-# prepare for badcase
-def test_prepare_cluster_badcase():
-    prepare_cluster_for_document_test(logger, 100, xb)
+class TestDocumentSearchBadCase:
+    def setup(self):
+        self.logger = logger
+        self.xb = xb
 
+    # prepare for badcase
+    def test_prepare_cluster_badcase(self):
+        prepare_cluster_for_document_test(self.logger, 100, self.xb)
 
-@pytest.mark.parametrize(
-    ["index", "wrong_type"],
-    [
-        [0, "wrong_db"],
-        [1, "wrong_space"],
-        [2, "wrong_id"],
-        [3, "wrong_range_filter"],
-        [4, "wrong_term_filter"],
-        [5, "wrong_filter_index"],
-        [6, "wrong_vector_length"],
-        [7, "wrong_vector_name"],
-        [8, "wrong_vector_type"],
-        [9, "wrong_length_document_ids"],
-        [10, "wrong_both_id_and_vector"],
-        [11, "empty_query"],
-        [12, "empty_document_ids"],
-        [13, "empty_vector"],
-        [14, "wrong_range_filter_name"],
-        [15, "wrong_term_filter_name"],
-    ],
-)
-def test_vearch_document_search_badcase(index, wrong_type):
-    wrong_parameters = [False for i in range(16)]
-    wrong_parameters[index] = True
-    search_error(logger, 1, 1, xb, wrong_parameters)
+    @pytest.mark.parametrize(
+        ["index", "wrong_type"],
+        [
+            [0, "wrong_db"],
+            [1, "wrong_space"],
+            [2, "wrong_id"],
+            [3, "wrong_range_filter"],
+            [4, "wrong_term_filter"],
+            [5, "wrong_filter_index"],
+            [6, "wrong_vector_length"],
+            [7, "wrong_vector_name"],
+            [8, "wrong_vector_type"],
+            [9, "wrong_length_document_ids"],
+            [10, "wrong_both_id_and_vector"],
+            [11, "empty_query"],
+            [12, "empty_document_ids"],
+            [13, "empty_vector"],
+            [14, "wrong_range_filter_name"],
+            [15, "wrong_term_filter_name"],
+        ],
+    )
+    def test_vearch_document_search_badcase(self, index, wrong_type):
+        wrong_parameters = [False for i in range(16)]
+        wrong_parameters[index] = True
+        search_error(self.logger, 1, 1, self.xb, wrong_parameters)
 
-
-# destroy for badcase
-def test_destroy_cluster_badcase():
-    destroy(router_url, db_name, space_name)
+    # destroy for badcase
+    def test_destroy_cluster_badcase(self):
+        destroy(router_url, db_name, space_name)

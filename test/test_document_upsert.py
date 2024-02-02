@@ -166,56 +166,59 @@ def test_vearch_document_upsert_update(bulk: bool, full_field: bool):
     update(100, bulk, full_field, xb)
 
 
-# prepare for badcase
-def test_prepare_cluster_badcase():
-    embedding_size = xb.shape[1]
+class TestDocumentUpsertBadCase:
+    def setup(self):
+        self.logger = logger
+        self.xb = xb
 
-    properties = {}
-    properties["properties"] = {
-        "field_int": {"type": "integer", "index": False},
-        "field_long": {"type": "long", "index": False},
-        "field_float": {"type": "float", "index": False},
-        "field_double": {"type": "double", "index": False},
-        "field_string": {"type": "string", "index": True},
-        "field_string1": {"type": "string", "index": False},
-        "field_vector": {
-            "type": "vector",
-            "index": True,
-            "dimension": embedding_size,
-            "store_type": "MemoryOnly",
-            # "format": "normalization"
-        },
-    }
+    # prepare for badcase
+    def test_prepare_cluster_badcase(self):
+        embedding_size = xb.shape[1]
 
-    create_for_document_test(logger, router_url, embedding_size, properties)
+        properties = {}
+        properties["properties"] = {
+            "field_int": {"type": "integer", "index": False},
+            "field_long": {"type": "long", "index": False},
+            "field_float": {"type": "float", "index": False},
+            "field_double": {"type": "double", "index": False},
+            "field_string": {"type": "string", "index": True},
+            "field_string1": {"type": "string", "index": False},
+            "field_vector": {
+                "type": "vector",
+                "index": True,
+                "dimension": embedding_size,
+                "store_type": "MemoryOnly",
+                # "format": "normalization"
+            },
+        }
 
+        create_for_document_test(self.logger, router_url, embedding_size, properties)
 
-@pytest.mark.parametrize(
-    ["index", "wrong_type"],
-    [
-        [0, "wrong_number_value"],
-        [1, "wrong_str_value"],
-        [2, "without_vector"],
-        [3, "wrong_db"],
-        [4, "wrong_space"],
-        [5, "wrong_field"],
-        [6, "empty_documents"],
-        [7, "wrong_index_string_length"],
-        [8, "wrong_string_length"],
-    ],
-)
-def test_vearch_document_upsert_badcase(index, wrong_type):
-    wrong_parameters = [False for i in range(9)]
-    wrong_parameters[index] = True
-    batch_size = 1
-    total = 1
-    if total == 0:
-        total = xb.shape[0]
-    total_batch = int(total / batch_size)
-    add_error(total_batch, batch_size, xb, logger, wrong_parameters)
-    assert get_space_num() == 0
+    @pytest.mark.parametrize(
+        ["index", "wrong_type"],
+        [
+            [0, "wrong_number_value"],
+            [1, "wrong_str_value"],
+            [2, "without_vector"],
+            [3, "wrong_db"],
+            [4, "wrong_space"],
+            [5, "wrong_field"],
+            [6, "empty_documents"],
+            [7, "wrong_index_string_length"],
+            [8, "wrong_string_length"],
+        ],
+    )
+    def test_vearch_document_upsert_badcase(self, index, wrong_type):
+        wrong_parameters = [False for i in range(9)]
+        wrong_parameters[index] = True
+        batch_size = 1
+        total = 1
+        if total == 0:
+            total = xb.shape[0]
+        total_batch = int(total / batch_size)
+        add_error(total_batch, batch_size, self.xb, self.logger, wrong_parameters)
+        assert get_space_num() == 0
 
-
-# destroy for badcase
-def test_destroy_cluster_badcase():
-    destroy(router_url, db_name, space_name)
+    # destroy for badcase
+    def test_destroy_cluster_badcase(self):
+        destroy(router_url, db_name, space_name)

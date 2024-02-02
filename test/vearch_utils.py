@@ -1003,3 +1003,10 @@ def list_spaces(router_url: str, db_name: str):
     url = f"{router_url}/list/space?db={db_name}"
     resp = requests.get(url)
     return resp.json()
+
+
+def index_rebuild(router_url: str, db_name: str, space_name: str):
+    url = f"{router_url}/index/rebuild"
+    data = {"db_name": db_name, "space_name": space_name, "drop_before_rebuild":True}
+    resp = requests.post(url, json=data)
+    return resp.json()

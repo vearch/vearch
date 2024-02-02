@@ -24,13 +24,10 @@ from vearch_utils import *
 logging.basicConfig()
 logger = logging.getLogger(__name__)
 
-__description__ = """ test case for index rebuild """
+__description__ = """ test case for module space """
 
 
-xb, xq, _, gt = get_sift10K(logger)
-
-
-class TestIndexFlush:
+class TestSpaceCreate:
     def setup(self):
         self.logger = logger
 
@@ -38,61 +35,43 @@ class TestIndexFlush:
         logger.info(create_db(router_url, db_name))
 
     @pytest.mark.parametrize(
-        ["index_size", "retrieval_type"],
-        [[1, "FLAT"], [9999, "IVFPQ"], [9999, "IVFFLAT"], [1, "HNSW"]],
+        ["retrieval_type"],
+        [["FLAT"], ["IVFPQ"], ["IVFFLAT"], ["HNSW"]],
     )
-    def test_space_create(self, index_size, retrieval_type):
-        embedding_size = xb.shape[1]
-        batch_size = 100
-        total = xb.shape[0]
-        total_batch = int(total / batch_size)
-        with_id = True
-        full_field = True
-        logger.info(
-            "dataset num: %d, total_batch: %d, dimension: %d" % (total, total_batch, embedding_size)
-        )
-
+    def test_vearch_space_create(self, retrieval_type):
+        embedding_size = 128
         space_config = {
             "name": space_name,
             "partition_num": 1,
             "replica_num": 1,
             "engine": {
-                "index_size": index_size,
+                "index_size": 70000,
                 "id_type": "String",
                 "retrieval_type": retrieval_type,
                 "retrieval_param": {
                     "metric_type": "InnerProduct",
-                    "ncentroids": 256,
+                    "ncentroids": 2048,
                     "nsubvector": 32,
                     "nlinks": 32,
                     "efConstruction": 40,
                 },
             },
             "properties": {
-                "field_int": {"type": "integer", "index": False},
-                "field_long": {"type": "long", "index": False},
-                "field_float": {"type": "float", "index": False},
-                "field_double": {"type": "double", "index": False},
-                "field_string": {"type": "string", "index": True},
-                "field_vector": {
+                "field_string": {"type": "keyword"},
+                "field_int": {"type": "integer"},
+                "field_float": {"type": "float", "index": True},
+                "field_string_array": {"type": "string", "array": True, "index": True},
+                "field_int_index": {"type": "integer", "index": True},
+                "field_vector": {"type": "vector", "dimension": embedding_size},
+                "field_vector_normal": {
                     "type": "vector",
-                    "index": True,
-                    "dimension": embedding_size,
-                    # "format": "normalization"
+                    "dimension": int(embedding_size * 2),
+                    "format": "normalization",
                 },
-            }
+            },
         }
 
         logger.info(create_space(router_url, db_name, space_config))
-        add(total_batch, batch_size, xb, with_id, full_field)
-
-        if retrieval_type != "FLAT":
-            waiting_index_finish(logger, total)
-
-        logger.info(index_rebuild(router_url, db_name, space_name))
-
-        if retrieval_type != "FLAT":
-            waiting_index_finish(logger, total)
 
         logger.info(drop_space(router_url, db_name, space_name))
 

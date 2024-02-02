@@ -93,37 +93,40 @@ def test_vearch_document_query(bulk: bool, full_field: bool, query_type: str):
     check(100, bulk, full_field, query_type, xb)
 
 
-# prepare for badcase
-def test_prepare_cluster_badcase():
-    prepare_cluster_for_document_test(logger, 100, xb)
+class TestDocumentQueryBadCase:
+    def setup(self):
+        self.logger = logger
+        self.xb = xb
 
+    # prepare for badcase
+    def test_prepare_cluster_badcase(self):
+        prepare_cluster_for_document_test(self.logger, 100, self.xb)
 
-@pytest.mark.parametrize(
-    ["index", "wrong_type"],
-    [
-        [0, "wrong_db"],
-        [1, "wrong_space"],
-        [2, "wrong_id"],
-        [3, "wrong_partition"],
-        [4, "wrong_range_filter"],
-        [5, "wrong_term_filter"],
-        [6, "wrong_filter_index"],
-        [7, "wrong_vector"],
-        [8, "wrong_length_document_ids"],
-        [9, "wrong_both_id_and_filter"],
-        [10, "empty_query"],
-        [11, "empty_document_ids"],
-        [12, "empty_filter"],
-        [13, "wrong_range_filter_name"],
-        [14, "wrong_term_filter_name"],
-    ],
-)
-def test_vearch_document_query_badcase(index, wrong_type):
-    wrong_parameters = [False for i in range(15)]
-    wrong_parameters[index] = True
-    query_error(logger, 1, 1, xb, "query", wrong_parameters)
+    @pytest.mark.parametrize(
+        ["index", "wrong_type"],
+        [
+            [0, "wrong_db"],
+            [1, "wrong_space"],
+            [2, "wrong_id"],
+            [3, "wrong_partition"],
+            [4, "wrong_range_filter"],
+            [5, "wrong_term_filter"],
+            [6, "wrong_filter_index"],
+            [7, "wrong_vector"],
+            [8, "wrong_length_document_ids"],
+            [9, "wrong_both_id_and_filter"],
+            [10, "empty_query"],
+            [11, "empty_document_ids"],
+            [12, "empty_filter"],
+            [13, "wrong_range_filter_name"],
+            [14, "wrong_term_filter_name"],
+        ],
+    )
+    def test_vearch_document_query_badcase(self, index, wrong_type):
+        wrong_parameters = [False for i in range(15)]
+        wrong_parameters[index] = True
+        query_error(self.logger, 1, 1, self.xb, "query", wrong_parameters)
 
-
-# destroy for badcase
-def test_destroy_cluster_badcase():
-    destroy(router_url, db_name, space_name)
+    # destroy for badcase
+    def test_destroy_cluster_badcase(self):
+        destroy(router_url, db_name, space_name)
