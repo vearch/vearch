@@ -95,24 +95,10 @@ Support the Grpc service for router
 Refactor for the router and partition server
 
 
-## The future enhancement for Vearch
+## Vearch 4.0 in 2024
 
-### New features or enhancement
+* decoupled compute and storage
+* hybrid search
+* multi-tenancy
 
-Router grpc client(java, c++, go and python)
 
-More fast and robust retrieval models(q-adc, IVFx+HNSWy+OPQz, NSG, …)
-
-More complex powerful query gramma like SQL or ES(enhance VQL)
-
-Ivf index: change the docid from long to int, try to compress the docids with the algorithm of newpfordelta
-
-Develop a plugin which can be used to index vectors in Spark or Flink clusters with Gamma engine
-
-Vector storage based on the clusters
-
-Support the multiple retrieval models and versions
-
-Support the auto-expired documents 
-
-Explore and integrate the best and practical vector compression technology
