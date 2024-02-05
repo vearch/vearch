@@ -10,6 +10,17 @@
 
 Vearch is a cloud-native distributed vector database for efficient similarity search of deep learning vectors. 
 
+## Key features
+
+### Fast
+Self-developed gamma engine provides high-performance vector retrieval. Supports both CPU and GPU index. Vearch can search from millions of objects in milliseconds.
+
+### Hybrid search
+Mixed scalar and vector searches, or just search using scalar filter.Flexible retrieval of various data including vectors, strings, integers, floating-point numbers.
+
+### Reliable and highly scalable
+Multiple copies ensure high availability of data and services.Flexible expansion supports massive data storage and search.
+
 ## Document
 
 * [English](https://vearch.readthedocs.io/en/latest) | [中文](https://vearch.readthedocs.io/zh_CN/latest)
@@ -44,11 +55,6 @@ Quickly start with vearch docker image, please see [SourceCompileDeployment.md](
 #### Compile by source code
 Quickly compile the source codes to build a distributed vector search system with RESTful API, please see [SourceCompileDeployment.md](docs/SourceCompileDeployment.md).
 
-#### Deploy a visual search system
-Vearch can be leveraged to build a complete visual search system to index billions of images. The image retrieval plugin for object detection and feature extraction is also required. For more information, please refer to [Quickstart.md](docs/Quickstart.md).
-
-#### Use python sdk
-Vearch Python SDK enables vearch to use locally. Vearch python sdk can be installed easily by pip install vearch. For more information, please refer to [APIPythonSDK.md](engine/sdk/python/docs/APIPythonSDK.md).
 
 ## APIs and Use Cases
 
@@ -60,9 +66,11 @@ Vearch Python SDK enables vearch to use locally. Vearch python sdk can be instal
 
 ### VisualSearchAPI
 * [APIVisualSearch.md](docs/APIVisualSearch.md)
+Vearch can be leveraged to build a complete visual search system to index billions of images. The image retrieval plugin for object detection and feature extraction is also required. For more information, please refer to [Quickstart.md](docs/Quickstart.md).
 
 ### PythonSDKAPI
 * [APIPythonSDK.md](engine/sdk/python/docs/APIPythonSDK.md)
+Vearch Python SDK enables vearch to use locally. Vearch python sdk can be installed easily by pip install vearch.
 
 ## Components
 
@@ -80,7 +88,7 @@ Vearch Python SDK enables vearch to use locally. Vearch python sdk can be instal
 
 <details>
   <summary><b>Router</b></summary>
-  Provides RESTful API: `create`  , `delete`  `search` and `update` ; request routing, and result merging. 
+  Provides RESTful API: `upsert`  , `delete`  `search` and `query` ; request routing, and result merging. 
 </details>
 
 <details>
@@ -90,12 +98,6 @@ Vearch Python SDK enables vearch to use locally. Vearch python sdk can be instal
   Gamma is the core vector search engine implemented based on [faiss](https://github.com/facebookresearch/faiss). It provides the ability of storing, indexing and retrieving the vectors and scalars.
 </details>
 
-## Benchmarks
-
-* [benchmarks](benchs/README.md)
-
-## Demo
-![docs/img/plugin/main_process.gif](docs/img/plugin/main_process.gif)
 ## Reference
 Reference to cite when you use Vearch in a research paper:
 ```
