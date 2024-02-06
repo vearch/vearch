@@ -58,7 +58,7 @@ class GammaEngine {
 
   int GetDoc(const std::string &key, Doc &doc);
 
-  int GetDoc(int docid, Doc &doc);
+  int GetDoc(int docid, Doc &doc, bool next = false);
 
   /**
    * blocking to build index

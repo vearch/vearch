@@ -299,13 +299,13 @@ func (r *routerRequest) SetSendMap(partitionId string) *routerRequest {
 
 // Execute Execute request
 func (r *routerRequest) Execute() []*vearchpb.Item {
-	normalIsOrNot := false
+	isNormal := false
 	normalField := make(map[string]string)
 	if r.md[HandlerType] == BatchHandler || r.md[HandlerType] == ReplaceDocHandler {
 		retrievalType := r.space.Engine.RetrievalType
 		if retrievalType != "" {
 			if strings.Compare(retrievalType, "BINARYIVF") != 0 {
-				normalIsOrNot = true
+				isNormal = true
 			}
 		} else {
 			retrievalTypes := r.space.Engine.RetrievalTypes
@@ -317,12 +317,12 @@ func (r *routerRequest) Execute() []*vearchpb.Item {
 					}
 				}
 				if !isBinaryivf {
-					normalIsOrNot = true
+					isNormal = true
 				}
 			}
 		}
 
-		if normalIsOrNot {
+		if isNormal {
 			spacePro := r.space.SpaceProperties
 			for field, pro := range spacePro {
 				format := pro.Format
@@ -353,9 +353,8 @@ func (r *routerRequest) Execute() []*vearchpb.Item {
 			if e != nil {
 				panic(e.Error())
 			}
-			nodeID := partition.LeaderID
 
-			if normalIsOrNot && len(normalField) > 0 {
+			if isNormal && len(normalField) > 0 {
 				for _, item := range d.Items {
 					if item.Doc == nil {
 						continue
@@ -380,6 +379,7 @@ func (r *routerRequest) Execute() []*vearchpb.Item {
 					}
 				}
 			}
+			nodeID := partition.LeaderID
 			err := r.client.PS().GetOrCreateRPCClient(ctx, nodeID).Execute(ctx, UnaryHandler, d, replyPartition)
 			if err != nil {
 				d.Err = vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err).GetError()

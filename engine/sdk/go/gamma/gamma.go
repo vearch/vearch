@@ -102,12 +102,18 @@ func GetDocByID(engine unsafe.Pointer, docID []byte, doc *Doc) int {
 	return ret
 }
 
-func GetDocByDocID(engine unsafe.Pointer, docID int, doc *Doc) int {
+func GetDocByDocID(engine unsafe.Pointer, docID int, next bool, doc *Doc) int {
 	var CBuffer *C.char
 	zero := 0
 	length := &zero
+
+	cNext := 0
+	if next {
+		cNext = 1
+	}
 	ret := int(C.GetDocByDocID(engine,
 		C.int(docID),
+		C.char(cNext),
 		(**C.char)(unsafe.Pointer(&CBuffer)),
 		(*C.int)(unsafe.Pointer(length))))
 	defer C.free(unsafe.Pointer(CBuffer))

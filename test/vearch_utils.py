@@ -561,18 +561,22 @@ def process_get_data(items):
     seed = items[5]
     query_type = items[6]
 
-    if query_type == "by_partition" or query_type == "by_ids":
+    if query_type == "by_partition" or query_type == "by_partition_next" or query_type == "by_ids":
         data["query"]["document_ids"] = []
+        if query_type == "by_partition_next" and batch_size > 1:
+            batch_size -= 1
         for j in range(batch_size):
             data["query"]["document_ids"].append(str(index * batch_size + j))
 
-    if query_type == "by_partition":
+    if query_type == "by_partition" or query_type == "by_partition_next":
         partition_id = "1"
         partition_ids = get_partition(router_url, db_name, space_name)
         if len(partition_ids) >= 1:
             partition_id = partition_ids[0]
         # logger.debug("partition_id: " + str(partition_id))
         data["query"]["partition_id"] = str(partition_id)
+        if query_type == "by_partition_next":
+            data["query"]["next"] = True
 
     if query_type == "by_filter":
         data["query"]["filter"] = []
@@ -614,6 +618,8 @@ def process_get_data(items):
 def query_interface(
     logger, total, batch_size, xb, full_field=False, seed=1, query_type="by_ids"
 ):
+    if query_type == "by_partition_next" and batch_size == 1:
+        total -= 1
     for i in range(total):
         process_get_data(
             (

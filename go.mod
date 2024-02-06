@@ -6,6 +6,7 @@ replace google.golang.org/grpc => google.golang.org/grpc v1.32.0
 
 require (
 	github.com/BurntSushi/toml v1.1.0
+	github.com/bytedance/sonic v1.10.1
 	github.com/caio/go-tdigest v3.1.0+incompatible
 	github.com/codahale/hdrhistogram v0.9.0
 	github.com/cubefs/cubefs v1.5.2-0.20230627111954-f55e96950618
@@ -48,7 +49,6 @@ require (
 	github.com/apache/thrift v0.16.0 // indirect
 	github.com/armon/go-metrics v0.4.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
-	github.com/bytedance/sonic v1.10.1 // indirect
 	github.com/cenk/backoff v2.2.1+incompatible // indirect
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
 	github.com/cenkalti/backoff/v4 v4.1.1 // indirect

@@ -43,7 +43,7 @@ type readerImpl struct {
 	engine *gammaEngine
 }
 
-func (ri *readerImpl) GetDoc(ctx context.Context, doc *vearchpb.Document, getByDocId bool) error {
+func (ri *readerImpl) GetDoc(ctx context.Context, doc *vearchpb.Document, getByDocId bool, next bool) error {
 	ri.engine.counter.Incr()
 	defer ri.engine.counter.Decr()
 
@@ -74,7 +74,7 @@ func (ri *readerImpl) GetDoc(ctx context.Context, doc *vearchpb.Document, getByD
 	docGamma := new(gamma.Doc)
 	var code int
 	if getByDocId {
-		code = gamma.GetDocByDocID(ri.engine.gamma, docID, docGamma)
+		code = gamma.GetDocByDocID(ri.engine.gamma, docID, next, docGamma)
 	} else {
 		code = gamma.GetDocByID(ri.engine.gamma, primaryKey, docGamma)
 	}

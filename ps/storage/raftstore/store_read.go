@@ -24,11 +24,11 @@ import (
 	"github.com/vearch/vearch/util/vearchlog"
 )
 
-func (s *Store) GetDocument(ctx context.Context, readLeader bool, doc *vearchpb.Document, getByDocId bool) (err error) {
+func (s *Store) GetDocument(ctx context.Context, readLeader bool, doc *vearchpb.Document, getByDocId bool, next bool) (err error) {
 	if err = s.checkReadable(readLeader); err != nil {
 		return err
 	}
-	return s.Engine.Reader().GetDoc(ctx, doc, getByDocId)
+	return s.Engine.Reader().GetDoc(ctx, doc, getByDocId, next)
 }
 
 // check this store can read

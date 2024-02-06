@@ -254,7 +254,7 @@ func (handler *DocumentHandler) handleGetDocByPartition(c *gin.Context) {
 	args.PrimaryKeys = strings.Split(c.Param(URLParamID), ",")
 	partitionId := c.Param(URLParamPartitionID)
 
-	reply := handler.docService.getDocsByPartition(c.Request.Context(), args, partitionId)
+	reply := handler.docService.getDocsByPartition(c.Request.Context(), args, partitionId, false)
 	if resultBytes, err := docGetResponse(handler.client, args, reply, nil, false); err != nil {
 		resp.SendError(c, http.StatusBadRequest, err.Error())
 		return
@@ -865,7 +865,7 @@ func (handler *DocumentHandler) handleDocumentQuery(c *gin.Context) {
 	args := &vearchpb.SearchRequest{}
 	args.Head = setRequestHeadFromGin(c)
 
-	searchDoc, documentIds, partitionId, err := documentRequestParse(c.Request, args)
+	searchDoc, query, err := documentRequestParse(c.Request, args)
 	if err != nil {
 		resp.SendError(c, http.StatusBadRequest, err.Error())
 		return
@@ -902,12 +902,12 @@ func (handler *DocumentHandler) handleDocumentQuery(c *gin.Context) {
 		return
 	}
 
-	if len(documentIds) != 0 {
+	if len(query.DocumentIds) != 0 {
 		if args.TermFilters != nil || args.RangeFilters != nil {
 			resp.SendError(c, http.StatusBadRequest, "document/query query condition must be one of the [document_ids, filter], shouldn't set both")
 			return
 		}
-		if len(documentIds) >= 500 {
+		if len(query.DocumentIds) >= 500 {
 			resp.SendError(c, http.StatusBadRequest, "document/query length of document_ids in query condition above 500")
 			return
 		}
@@ -915,7 +915,7 @@ func (handler *DocumentHandler) handleDocumentQuery(c *gin.Context) {
 		args.Head = setRequestHeadFromGin(c)
 		args.Head.DbName = searchDoc.DbName
 		args.Head.SpaceName = searchDoc.SpaceName
-		args.PrimaryKeys = documentIds
+		args.PrimaryKeys = query.DocumentIds
 
 		var queryFieldsParam map[string]string
 		if searchDoc.Fields != nil {
@@ -923,8 +923,8 @@ func (handler *DocumentHandler) handleDocumentQuery(c *gin.Context) {
 		}
 
 		reply := &vearchpb.GetResponse{}
-		if partitionId != "" {
-			reply = handler.docService.getDocsByPartition(c.Request.Context(), args, partitionId)
+		if query.PartitionId != "" {
+			reply = handler.docService.getDocsByPartition(c.Request.Context(), args, query.PartitionId, query.Next)
 		} else {
 			reply = handler.docService.getDocs(c.Request.Context(), args)
 		}
@@ -974,7 +974,7 @@ func (handler *DocumentHandler) handleDocumentSearch(c *gin.Context) {
 		args.Head.Params = params
 	}
 
-	searchDoc, documentIds, _, err := documentRequestParse(c.Request, args)
+	searchDoc, query, err := documentRequestParse(c.Request, args)
 	if err != nil {
 		resp.SendError(c, http.StatusBadRequest, err.Error())
 		return
@@ -1005,12 +1005,12 @@ func (handler *DocumentHandler) handleDocumentSearch(c *gin.Context) {
 		return
 	}
 
-	if len(documentIds) != 0 {
+	if len(query.DocumentIds) != 0 {
 		if args.VecFields != nil {
 			resp.SendError(c, http.StatusBadRequest, "document/search search condition must be one of the [document_ids, vector], shouldn't set both")
 			return
 		}
-		if len(documentIds) > 100 {
+		if len(query.DocumentIds) > 100 {
 			resp.SendError(c, http.StatusBadRequest, "document/search length of document_ids in search condition above 100")
 			return
 		}
@@ -1018,7 +1018,7 @@ func (handler *DocumentHandler) handleDocumentSearch(c *gin.Context) {
 		getArgs.Head = setRequestHeadFromGin(c)
 		getArgs.Head.DbName = searchDoc.DbName
 		getArgs.Head.SpaceName = searchDoc.SpaceName
-		getArgs.PrimaryKeys = documentIds
+		getArgs.PrimaryKeys = query.DocumentIds
 
 		getDocStart := time.Now()
 		reply := handler.docService.getDocs(ctx, getArgs)
@@ -1092,7 +1092,7 @@ func (handler *DocumentHandler) handleDocumentDelete(c *gin.Context) {
 		args.Head.Params = paramMap
 	}
 
-	searchDoc, documentIds, _, err := documentRequestParse(c.Request, args)
+	searchDoc, query, err := documentRequestParse(c.Request, args)
 	if err != nil {
 		resp.SendError(c, http.StatusBadRequest, err.Error())
 		return
@@ -1128,12 +1128,12 @@ func (handler *DocumentHandler) handleDocumentDelete(c *gin.Context) {
 		return
 	}
 
-	if len(documentIds) != 0 {
+	if len(query.DocumentIds) != 0 {
 		if args.TermFilters != nil || args.RangeFilters != nil {
 			resp.SendError(c, http.StatusBadRequest, "document/delete query condition must be one of the [document_ids, filter], shouldn't set both")
 			return
 		}
-		if len(documentIds) >= 500 {
+		if len(query.DocumentIds) >= 500 {
 			resp.SendError(c, http.StatusBadRequest, "document/delete length of document_ids in query condition above 500")
 			return
 		}
@@ -1141,7 +1141,7 @@ func (handler *DocumentHandler) handleDocumentDelete(c *gin.Context) {
 		args.Head = setRequestHeadFromGin(c)
 		args.Head.DbName = searchDoc.DbName
 		args.Head.SpaceName = searchDoc.SpaceName
-		args.PrimaryKeys = documentIds
+		args.PrimaryKeys = query.DocumentIds
 		var resultIds []string
 		reply := handler.docService.deleteDocs(c.Request.Context(), args)
 		if resultBytes, err := documentDeleteResponse(reply.Items, reply.Head, resultIds); err != nil {

@@ -123,9 +123,10 @@ int GetDocByID(void *engine, const char *docid, int docid_len, char **doc_str,
  *
  * @param engine
  * @param docid  doc id
+ * @param 0: get by docid, 1: return the next undeleted doc with a docid value
  * @return  a doc
  */
-int GetDocByDocID(void *engine, int docid, char **doc_str, int *len);
+int GetDocByDocID(void *engine, int docid, char next, char **doc_str, int *len);
 
 /** @param engine  search engine pointer
  * @return 0 successed, 1 failed

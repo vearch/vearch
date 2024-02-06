@@ -730,10 +730,19 @@ int GammaEngine::GetDoc(const std::string &key, Doc &doc) {
   return GetDoc(docid, doc);
 }
 
-int GammaEngine::GetDoc(int docid, Doc &doc) {
+int GammaEngine::GetDoc(int docid, Doc &doc, bool next) {
   int ret = 0;
-  if (docids_bitmap_->Test(docid)) {
-    LOG(INFO) << space_name_ << " docid [" << docid << "] is deleted!";
+  if (next) {
+    while (++docid < max_docid_) {
+      if (!docids_bitmap_->Test(docid)) {
+        break;
+      }
+    }
+    if (docid >= max_docid_) {
+      return 0;
+    }
+  } else if (docids_bitmap_->Test(docid)) {
+    LOG(DEBUG) << space_name_ << " docid [" << docid << "] is deleted!";
     return -1;
   }
   std::vector<std::string> index_names;
@@ -743,6 +752,15 @@ int GammaEngine::GetDoc(int docid, Doc &doc) {
   ret = table_->GetDocInfo(docid, doc, table_fields);
   if (ret != 0) {
     return ret;
+  }
+
+  if (next) {
+    struct Field field;
+    field.name = "_docid";
+    field.datatype = DataType::INT;
+    const char *bytes = reinterpret_cast<const char *>(&docid);
+    field.value = std::string(bytes, sizeof(docid));
+    doc.AddField(std::move(field));
   }
 
   std::vector<std::pair<std::string, int>> vec_fields_ids;

@@ -26,6 +26,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/bytedance/sonic"
 	"github.com/pkg/errors"
 	"github.com/spf13/cast"
 	"github.com/valyala/fastjson"
@@ -1031,11 +1032,17 @@ func documentParse(ctx context.Context, handler *DocumentHandler, r *http.Reques
 	return nil
 }
 
-func documentRequestParse(r *http.Request, searchReq *vearchpb.SearchRequest) (searchDoc *request.SearchDocumentRequest, document_ids []string, partition_id string, err error) {
+type Query struct {
+	DocumentIds []string `json:"document_ids,omitempty"`
+	PartitionId string   `json:"partition_id,omitempty"`
+	Next bool `json:"next,omitempty"`
+}
+
+func documentRequestParse(r *http.Request, searchReq *vearchpb.SearchRequest) (searchDoc *request.SearchDocumentRequest, query *Query, err error) {
 	reqBodyStart := time.Now()
 	reqBody, err := netutil.GetReqBody(r)
 	if err != nil {
-		return nil, nil, "", err
+		return nil, nil, err
 	}
 	if config.LogInfoPrintSwitch {
 		reqBodyCostTime := time.Since(reqBodyStart).Seconds() * 1000
@@ -1044,28 +1051,25 @@ func documentRequestParse(r *http.Request, searchReq *vearchpb.SearchRequest) (s
 	}
 	if len(reqBody) == 0 {
 		err = fmt.Errorf("query param is null")
-		return nil, nil, "", err
+		return nil, nil, err
 	}
 
 	searchDoc = &request.SearchDocumentRequest{}
-	err = cbjson.Unmarshal(reqBody, searchDoc)
+	err = sonic.Unmarshal(reqBody, searchDoc)
 	if err != nil {
 		err = fmt.Errorf("SearchDocumentRequest param convert json %s err: %v", string(reqBody), err)
-		return nil, nil, "", err
+		return nil, nil, err
 	}
 
-	type Query struct {
-		DocumentIds []string `json:"document_ids,omitempty"`
-		PartitionId string   `json:"partition_id,omitempty"`
-	}
-	query := &Query{}
-	err = cbjson.Unmarshal(searchDoc.Query, query)
+	query = &Query{}
+	err = sonic.Unmarshal(searchDoc.Query, query)
 	if err != nil {
-		log.Error("documentRequestParse cbjson.Unmarshal error :%v", err)
-		err = fmt.Errorf("documentRequestParse cbjson.Unmarshal error :%v", err)
-		return nil, nil, "", err
+		log.Error("documentRequestParse Unmarshal error :%v", err)
+		err = fmt.Errorf("documentRequestParse Unmarshal error :%v", err)
+		return nil, nil, err
 	}
-	return searchDoc, query.DocumentIds, query.PartitionId, nil
+
+	return searchDoc, query, nil
 }
 
 func requestToPb(searchDoc *request.SearchDocumentRequest, space *entity.Space, searchReq *vearchpb.SearchRequest) (err error) {

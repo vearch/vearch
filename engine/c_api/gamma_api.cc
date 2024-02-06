@@ -204,9 +204,13 @@ int GetDocByID(void *engine, const char *docid, int docid_len, char **doc_str,
   return ret;
 }
 
-int GetDocByDocID(void *engine, int docid, char **doc_str, int *len) {
+int GetDocByDocID(void *engine, int docid, char next, char **doc_str, int *len) {
   tig_gamma::Doc doc;
-  int ret = static_cast<tig_gamma::GammaEngine *>(engine)->GetDoc(docid, doc);
+  bool bNext = false;
+  if (next != 0) {
+    bNext = true;
+  }
+  int ret = static_cast<tig_gamma::GammaEngine *>(engine)->GetDoc(docid, doc, bNext);
   doc.Serialize(doc_str, len);
   return ret;
 }

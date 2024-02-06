@@ -24,6 +24,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/bytedance/sonic"
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/client"
 	"github.com/vearch/vearch/proto/entity"
@@ -83,7 +84,7 @@ func docGetResponse(client *client.Client, args *vearchpb.GetRequest, reply *vea
 		builder.Field("found")
 		if doc.Fields != nil {
 			builder.ValueBool(true)
-			source, _ := docFieldSerialize(doc, space, returnFieldsMap, true)
+			source, _, _ := docFieldSerialize(doc, space, returnFieldsMap, true)
 			builder.More()
 			builder.Field("_source")
 			builder.ValueInterface(source)
@@ -281,23 +282,18 @@ func documentGetResponse(client *client.Client, args *vearchpb.GetRequest, reply
 	if err != nil {
 		return nil, err
 	}
-	var builder = cbjson.ContentBuilderFactory()
-	builder.BeginObject()
 
-	builder.Field("code")
+	response := make(map[string]interface{})
+
 	if reply.Head == nil || reply.Head.Err == nil {
-		builder.ValueNumeric(int64(vearchpb.ErrorEnum_SUCCESS))
-		builder.More()
-		builder.Field("msg")
-		builder.ValueString("success")
+		response["code"] = vearchpb.ErrorEnum_SUCCESS
+		response["msg"] = "success"
 	} else {
 		if reply.Head != nil && reply.Head.Err != nil {
-			builder.ValueNumeric(int64(reply.Head.Err.Code))
-			builder.More()
-			builder.Field("msg")
-			builder.ValueString(reply.Head.Err.Msg)
+			response["code"] = reply.Head.Err.Code
+			response["msg"] = reply.Head.Err.Msg
 		} else {
-			builder.ValueNumeric(int64(vearchpb.ErrorEnum_INTERNAL_ERROR))
+			response["code"] = vearchpb.ErrorEnum_INTERNAL_ERROR
 		}
 	}
 
@@ -311,53 +307,40 @@ func documentGetResponse(client *client.Client, args *vearchpb.GetRequest, reply
 			}
 		}
 	}
-	builder.More()
-	builder.Field("total")
-	builder.ValueNumeric(total)
+	response["total"] = total
 
-	builder.More()
-	builder.BeginArrayWithField("documents")
-	for i, item := range reply.Items {
-		if i != 0 {
-			builder.More()
-		}
-		builder.BeginObject()
+	documents := make([]interface{}, 0, len(reply.Items))
+	for _, item := range reply.Items {
+		doc := make(map[string]interface{})
 
-		doc := item.Doc
-		builder.Field("_id")
 		if idIsLong(space) {
-			idInt64, err := strconv.ParseInt(doc.PKey, 10, 64)
+			idInt64, err := strconv.ParseInt(item.Doc.PKey, 10, 64)
 			if err == nil {
-				builder.ValueNumeric(idInt64)
+				doc["_id"] = idInt64
 			} else {
-				builder.ValueString(doc.PKey)
+				doc["_id"] = item.Doc.PKey
 			}
 		} else {
-			builder.ValueString(doc.PKey)
+			doc["_id"] = item.Doc.PKey
 		}
 
 		if item.Err != nil {
-			builder.More()
-			builder.Field("status")
-			builder.ValueNumeric(cast.ToInt64(vearchpb.ErrCode(item.Err.Code)))
-
-			builder.More()
-			builder.Field("error")
-			builder.ValueString(item.Err.Msg)
+			doc["status"] = cast.ToInt64(vearchpb.ErrCode(item.Err.Code))
+			doc["error"] = item.Err.Msg
 		}
 
-		if doc.Fields != nil {
-			source, _ := docFieldSerialize(doc, space, returnFieldsMap, vectorValue)
-			builder.More()
-			builder.Field("_source")
-			builder.ValueInterface(source)
+		if item.Doc.Fields != nil {
+			source, nextDocid, _ := docFieldSerialize(item.Doc, space, returnFieldsMap, vectorValue)
+			if nextDocid > 0 {
+				doc["_id"] = strconv.Itoa(int(nextDocid))
+			}
+			doc["_source"] = source
 		}
-		builder.EndObject()
+		documents = append(documents, doc)
 	}
-	builder.EndArray()
-	builder.EndObject()
+	response["documents"] = documents
 
-	return builder.Output()
+	return sonic.Marshal(response)
 }
 
 func documentSearchResponse(srs []*vearchpb.SearchResult, head *vearchpb.ResponseHead, took time.Duration, space *entity.Space, response_type string) ([]byte, error) {
@@ -634,13 +617,14 @@ func idIsLong(space *entity.Space) bool {
 	return idIsLong
 }
 
-func docFieldSerialize(doc *vearchpb.Document, space *entity.Space, returnFieldsMap map[string]string, vectorValue bool) (json.RawMessage, error) {
+func docFieldSerialize(doc *vearchpb.Document, space *entity.Space, returnFieldsMap map[string]string, vectorValue bool) (marshal json.RawMessage, nextDocid int32, err error) {
 	source := make(map[string]interface{})
 	spaceProperties := space.SpaceProperties
 	if spaceProperties == nil {
 		spacePro, _ := entity.UnmarshalPropertyJSON(space.Properties)
 		spaceProperties = spacePro
 	}
+	nextDocid = -1
 	for _, fv := range doc.Fields {
 		name := fv.Name
 		if name == mapping.IdField && returnFieldsMap == nil {
@@ -654,6 +638,10 @@ func docFieldSerialize(doc *vearchpb.Document, space *entity.Space, returnFields
 		if (returnFieldsMap != nil && returnFieldsMap[name] != "") || returnFieldsMap == nil {
 			field := spaceProperties[name]
 			if field == nil {
+				if name == "_docid" {
+					nextDocid = cbbytes.Bytes2Int32(fv.Value)
+					continue
+				}
 				log.Error("can not found mappping by field:[%s]", name)
 				continue
 			}
@@ -690,7 +678,7 @@ func docFieldSerialize(doc *vearchpb.Document, space *entity.Space, returnFields
 						if dimension != 0 {
 							unit8s, _, err := cbbytes.ByteToVectorBinary(featureByteC, dimension)
 							if err != nil {
-								return nil, err
+								return nil, nextDocid, err
 							}
 							source[name] = map[string]interface{}{
 								"feature": unit8s,
@@ -702,7 +690,7 @@ func docFieldSerialize(doc *vearchpb.Document, space *entity.Space, returnFields
 					} else {
 						float32s, _, err := cbbytes.ByteToVector(fv.Value)
 						if err != nil {
-							return nil, err
+							return nil, nextDocid, err
 						}
 						source[name] = map[string]interface{}{
 							"feature": float32s,
@@ -712,19 +700,16 @@ func docFieldSerialize(doc *vearchpb.Document, space *entity.Space, returnFields
 
 			default:
 				log.Warn("can not set value by type:[%v] ", field.FieldType)
-
 			}
 		}
 	}
-	var marshal []byte
-	var err error
 	if len(source) > 0 {
 		marshal, err = json.Marshal(source)
 	}
 	if err != nil {
-		return nil, err
+		return nil, nextDocid, err
 	}
-	return marshal, nil
+	return marshal, nextDocid, nil
 }
 
 func ToContent(sr *vearchpb.SearchResult, head *vearchpb.RequestHead, took time.Duration, space *entity.Space) ([]byte, error) {

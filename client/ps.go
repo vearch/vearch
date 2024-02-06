@@ -61,6 +61,7 @@ const (
 	GetDocHandler             = "GetDocHandler"
 	GetDocsHandler            = "GetDocsHandler"
 	GetDocsByPartitionHandler = "GetDocsByPartitionHandler"
+	GetNextDocsByPartitionHandler = "GetNextDocsByPartitionHandler"
 	CreateDocHandler          = "CreateDocHandler"
 	DeleteDocsHandler         = "DeleteDocsHandler"
 	ReplaceDocHandler         = "ReplaceDocHandler"
