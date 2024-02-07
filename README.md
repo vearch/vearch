@@ -8,18 +8,22 @@
 [![Gitter](https://badges.gitter.im/vector_search/community.svg)](https://gitter.im/vector_search/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 ## Overview
 
-Vearch is a cloud-native distributed vector database for efficient similarity search of deep learning vectors. 
+Vearch is a cloud-native distributed vector database for efficient similarity search of embedding vectors in your AI applications. 
 
 ## Key features
 
-### Fast
-Self-developed gamma engine provides high-performance vector retrieval. Supports both CPU and GPU index. Vearch can search from millions of objects in milliseconds.
-
 ### Hybrid search
-Mixed scalar and vector searches, or just search using scalar filter.Flexible retrieval of various data including vectors, strings, integers, floating-point numbers.
 
-### Reliable and highly scalable
-Multiple copies ensure high availability of data and services.Flexible expansion supports massive data storage and search.
+Both vector search and scalar filtering.
+
+### Performance
+
+Fast vector retrieval - search from millions of objects in milliseconds. 
+
+### Scalability & Reliability
+
+Replication and elastic scaling out. 
+
 
 ## Document
 
