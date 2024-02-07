@@ -123,7 +123,7 @@ func main() {
 					runtime.ReadMemStats(&mem)
 					log.Debug(fmt.Sprint("mem.Alloc:", mem.Alloc, " mem.TotalAlloc:", mem.TotalAlloc, " mem.HeapAlloc:", mem.HeapAlloc, " mem.HeapSys:", mem.HeapSys, " routing :", runtime.NumGoroutine()))
 				}
-				time.Sleep(10 * time.Second)
+				time.Sleep(3 * time.Minute)
 			}
 		}()
 	}
@@ -163,8 +163,14 @@ func main() {
 
 		if port := config.Conf().Masters.Self().PprofPort; port > 0 {
 			go func() {
-				if err := http.ListenAndServe("0.0.0.0:"+cast.ToString(port), nil); err != nil {
-					log.Error(err.Error())
+				for i := 0; i < 3; i++ {
+					err := http.ListenAndServe("0.0.0.0:"+cast.ToString(port), nil)
+					if err != nil {
+						log.Error(err.Error())
+						time.Sleep(10 * time.Second)
+					} else {
+						break
+					}
 				}
 			}()
 		}
@@ -191,8 +197,14 @@ func main() {
 
 		if port := config.Conf().PS.PprofPort; port > 0 {
 			go func() {
-				if err := http.ListenAndServe("0.0.0.0:"+cast.ToString(port), nil); err != nil {
-					log.Error(err.Error())
+				for i := 0; i < 3; i++ {
+					err := http.ListenAndServe("0.0.0.0:"+cast.ToString(port), nil)
+					if err != nil {
+						log.Error(err.Error())
+						time.Sleep(10 * time.Second)
+					} else {
+						break
+					}
 				}
 			}()
 		}
@@ -220,8 +232,14 @@ func main() {
 
 		if port := config.Conf().Router.PprofPort; port > 0 {
 			go func() {
-				if err := http.ListenAndServe("0.0.0.0:"+cast.ToString(port), nil); err != nil {
-					log.Error(err.Error())
+				for i := 0; i < 3; i++ {
+					err := http.ListenAndServe("0.0.0.0:"+cast.ToString(port), nil)
+					if err != nil {
+						log.Error(err.Error())
+						time.Sleep(10 * time.Second)
+					} else {
+						break
+					}
 				}
 			}()
 		}
