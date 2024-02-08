@@ -502,7 +502,7 @@ func processVectorBinary(ctx *walkContext, fm *FieldMapping, fieldName string, v
 	switch fm.FieldType() {
 	case vearchpb.FieldType_VECTOR:
 		if fm.FieldMappingI.(*VectortFieldMapping).Dimension > 0 && (fm.FieldMappingI.(*VectortFieldMapping).Dimension)/8 != len(val) {
-			return nil, fmt.Errorf("processVectorBinary field:[%s] vector_length err ,schema is:[%d] but input :[%d]", fieldName, fm.FieldMappingI.(*VectortFieldMapping).Dimension, len(val))
+			return nil, fmt.Errorf("field:[%s] vector length has error, dimension in space is:[%d] but input length:[%d]", fieldName, fm.FieldMappingI.(*VectortFieldMapping).Dimension, len(val))
 		}
 
 		bs, err := cbbytes.VectorBinaryToByte(val)
@@ -517,7 +517,7 @@ func processVectorBinary(ctx *walkContext, fm *FieldMapping, fieldName string, v
 			Option: fm.Options(),
 		}, nil
 	default:
-		return nil, fmt.Errorf("processVectorBinary field:[%s] value %v mismatch field type %s", fieldName, val, fm.FieldType().String())
+		return nil, fmt.Errorf("field:[%s] value %v mismatch field type %s", fieldName, val, fm.FieldType().String())
 	}
 }
 
@@ -529,7 +529,7 @@ func processVector(ctx *walkContext, fm *FieldMapping, fieldName string, val []f
 	switch fm.FieldType() {
 	case vearchpb.FieldType_VECTOR:
 		if fm.FieldMappingI.(*VectortFieldMapping).Dimension > 0 && fm.FieldMappingI.(*VectortFieldMapping).Dimension != len(val) {
-			return nil, fmt.Errorf("field:[%s] vector_length err ,schema is:[%d] but input :[%d]", fieldName, fm.FieldMappingI.(*VectortFieldMapping).Dimension, len(val))
+			return nil, fmt.Errorf("field:[%s] vector length has error, dimension in space is:[%d] but input length:[%d]", fieldName, fm.FieldMappingI.(*VectortFieldMapping).Dimension, len(val))
 		}
 
 		if fm.FieldMappingI.(*VectortFieldMapping).Format != nil {

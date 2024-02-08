@@ -20,14 +20,13 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/vearch/vearch/proto/vearchpb"
 	"github.com/vearch/vearch/util"
 	"github.com/vearch/vearch/util/cbjson"
 )
 
-type FieldType int32
-
 const (
-	FieldType_INT FieldType = iota
+	FieldType_INT vearchpb.FieldType = iota
 	FieldType_LONG
 	FieldType_FLOAT
 	FieldType_DOUBLE
@@ -38,12 +37,10 @@ const (
 	FieldType_DATE
 )
 
-type FieldOption int32
-
 const (
-	FieldOption_Null        FieldOption = 0
-	FieldOption_Index       FieldOption = 1
-	FieldOption_Index_False FieldOption = 2
+	FieldOption_Null        vearchpb.FieldOption = 0
+	FieldOption_Index       vearchpb.FieldOption = 1
+	FieldOption_Index_False vearchpb.FieldOption = 2
 )
 
 type Engine struct {
@@ -102,16 +99,16 @@ type CacheModel struct {
 }
 
 type SpaceProperties struct {
-	FieldType  FieldType       `json:"field_type"`
-	Type       string          `json:"type"`
-	Index      *bool           `json:"index,omitempty"`
-	Format     *string         `json:"format,omitempty"`
-	Dimension  int             `json:"dimension,omitempty"`
-	ModelId    string          `json:"model_id,omitempty"`
-	StoreType  *string         `json:"store_type,omitempty"`
-	StoreParam json.RawMessage `json:"store_param,omitempty"`
-	Array      bool            `json:"array,omitempty"`
-	Option     FieldOption     `json:"option,omitempty"`
+	FieldType  vearchpb.FieldType   `json:"field_type"`
+	Type       string               `json:"type"`
+	Index      *bool                `json:"index,omitempty"`
+	Format     *string              `json:"format,omitempty"`
+	Dimension  int                  `json:"dimension,omitempty"`
+	ModelId    string               `json:"model_id,omitempty"`
+	StoreType  *string              `json:"store_type,omitempty"`
+	StoreParam json.RawMessage      `json:"store_param,omitempty"`
+	Array      bool                 `json:"array,omitempty"`
+	Option     vearchpb.FieldOption `json:"option,omitempty"`
 }
 
 func (this *Space) String() string {

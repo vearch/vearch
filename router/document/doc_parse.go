@@ -128,7 +128,7 @@ func parseJSON(path []string, v *fastjson.Value, space *entity.Space, proMap map
 		}()
 		field, err := processProperty(docV, val, space.Engine.RetrievalType, pro)
 		if err != nil {
-			log.Error("processProperty unrecognizable field:[%s] value %v", fieldName, err)
+			log.Error("processProperty parse field:[%s] err: %v", fieldName, err)
 			parseErr = err
 			return
 		}
@@ -139,7 +139,7 @@ func parseJSON(path []string, v *fastjson.Value, space *entity.Space, proMap map
 	})
 
 	if parseErr.Error() != "" {
-		return nil, haveVector, fmt.Errorf("param parse error msg:[%s]", parseErr.Error())
+		return nil, haveVector, fmt.Errorf("%s", parseErr.Error())
 	}
 
 	if haveNoField {
@@ -208,8 +208,8 @@ func processPropertyObjectVectorBinary(feature []*fastjson.Value, pathString str
 	}
 	field, err := processVectorBinary(pro, pathString, vector)
 	if err != nil {
-		log.Error("process vectory binary err:[%s] m value:[%v]", err.Error(), vector)
-		return nil, fmt.Errorf("process vectory binary err:[%s] m value:[%v]", err.Error(), vector)
+		log.Error("process vector binary err:[%s] vector value:[%v]", err.Error(), vector)
+		return nil, fmt.Errorf("process vector binary err:[%s] vector value:[%v]", err.Error(), vector)
 	}
 	return field, nil
 }
@@ -229,8 +229,8 @@ func processPropertyObjectVectorOther(feature []*fastjson.Value, pathString stri
 	}
 	field, err := processVector(pro, pathString, vector)
 	if err != nil {
-		log.Error("process vectory err:[%s] m value:[%v]", err.Error(), vector)
-		return nil, fmt.Errorf("process vectory err:[%s] m value:[%v]", err.Error(), vector)
+		log.Error("%s vector value:[%v]", err.Error(), vector)
+		return nil, fmt.Errorf("%s vector value:[%v]", err.Error(), vector)
 	}
 	return field, nil
 }
@@ -267,9 +267,13 @@ func processPropertyArrayVectorInt(vs []*fastjson.Value, fieldName string, pro *
 
 func processPropertyObject(v *fastjson.Value, pathString string, pro *entity.SpaceProperties, retrievalType string) (*vearchpb.Field, error) {
 	field := &vearchpb.Field{Name: ""}
-	err := fmt.Errorf("parse param processPropertyObject err retrievalType:%s", retrievalType)
+	err := fmt.Errorf("field %s type is: %s, but value is %v", pathString, pro.FieldType.String(), v)
 	if pro.FieldType == entity.FieldType_VECTOR {
 		feature := v.GetArray("feature")
+		if len(feature) == 0 {
+			err := fmt.Errorf("vector field %s feature value should be arrry, but is: %v", pathString, v)
+			return field, err
+		}
 		if strings.Compare(retrievalType, "BINARYIVF") == 0 {
 			field, err = processPropertyObjectVectorBinary(feature, pathString, pro)
 		} else {
@@ -296,7 +300,7 @@ func processPropertyArray(v *fastjson.Value, pathString string, pro *entity.Spac
 	} else if pro.FieldType == entity.FieldType_DOUBLE && pro.Array {
 		field, err = processPropertyArrayVectorDouble(vs, fieldName, pro)
 	} else {
-		field, err = nil, fmt.Errorf("field:[%s]  this type:[%v] can't use as array", fieldName, pro.FieldType)
+		field, err = nil, fmt.Errorf("field:[%s] type:[%v] can't use as array", fieldName, pro.FieldType.String())
 	}
 	return field, err
 }
@@ -552,7 +556,7 @@ func processVectorBinary(pro *entity.SpaceProperties, fieldName string, val []ui
 	switch pro.FieldType {
 	case entity.FieldType_VECTOR:
 		if pro.Dimension > 0 && (pro.Dimension)/8 != len(val) {
-			return nil, fmt.Errorf("processVectorBinary field:[%s] vector_length err ,schema is:[%d] but input :[%d]", fieldName, pro.Dimension, len(val))
+			return nil, fmt.Errorf("processVectorBinary field:[%s] vector length has error, dimension in space is:[%d] but input length:[%d]", fieldName, pro.Dimension, len(val))
 		}
 
 		bs, err := cbbytes.VectorBinaryToByte(val)
@@ -577,7 +581,7 @@ func processVector(pro *entity.SpaceProperties, fieldName string, val []float32)
 	switch pro.FieldType {
 	case entity.FieldType_VECTOR:
 		if pro.Dimension > 0 && pro.Dimension != len(val) {
-			field, err = nil, fmt.Errorf("field:[%s] vector_length err ,schema is:[%d] but input :[%d]", fieldName, pro.Dimension, len(val))
+			field, err = nil, fmt.Errorf("field:[%s] vector length has error, dimension in space is:[%d] but input length:[%d]", fieldName, pro.Dimension, len(val))
 			return field, err
 		}
 
@@ -1035,7 +1039,7 @@ func documentParse(ctx context.Context, handler *DocumentHandler, r *http.Reques
 type Query struct {
 	DocumentIds []string `json:"document_ids,omitempty"`
 	PartitionId string   `json:"partition_id,omitempty"`
-	Next bool `json:"next,omitempty"`
+	Next        bool     `json:"next,omitempty"`
 }
 
 func documentRequestParse(r *http.Request, searchReq *vearchpb.SearchRequest) (searchDoc *request.SearchDocumentRequest, query *Query, err error) {

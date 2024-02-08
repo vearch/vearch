@@ -25,6 +25,7 @@ import socket
 import numpy as np
 import json
 import time
+import random
 from multiprocessing import Pool as ThreadPool
 
 
@@ -173,6 +174,52 @@ def add(total, batch_size, xb, with_id=False, full_field=False, seed=1):
     pool.join()
 
 
+def process_add_embedding_size_data(items):
+    url = router_url + "/document/upsert"
+    data = {}
+    data["documents"] = []
+
+    add_db_name = items[0]
+    add_space_name = items[1]
+    index = items[2]
+    batch_size = items[3]
+    embedding_size = items[4]
+
+    data["db_name"] = add_db_name
+    data["space_name"] = add_space_name
+    for j in range(batch_size):
+        param_dict = {}
+        param_dict["_id"] = str(index * batch_size + j)
+        param_dict["field_int"] = index * batch_size + j
+        param_dict["field_vector"] = {"feature": [random.random() for i in range(embedding_size)]}
+        param_dict["field_long"] = param_dict["field_int"]
+        param_dict["field_float"] = float(param_dict["field_int"])
+        param_dict["field_double"] = float(param_dict["field_int"])
+        param_dict["field_string"] = str(param_dict["field_int"])
+        data["documents"].append(param_dict)
+
+    json_str = json.dumps(data)
+    rs = requests.post(url, json_str)
+
+
+def add_embedding_size(db_name, space_name, total, batch_size, embedding_size):
+    pool = ThreadPool()
+    total_data = []
+    for i in range(total):
+        total_data.append(
+            (
+                db_name,
+                space_name,
+                i,
+                batch_size,
+                embedding_size
+            )
+        )
+    results = pool.map(process_add_embedding_size_data, total_data)
+    pool.close()
+    pool.join()
+
+
 def process_add_error_data(items):
     url = router_url + "/document/upsert"
     data = {}
@@ -192,6 +239,10 @@ def process_add_error_data(items):
     empty_documents = items[4][6]
     wrong_index_string_length = items[4][7]
     wrong_string_length = items[4][8]
+    wrong_vector_type = items[4][9]
+    wrong_vector_feature_length = items[4][10]
+    wrong_vector_feature_type = items[4][11]
+    mismatch_field_type = items[4][12]
     max_index_str_length = 1025
     max_str_length = 65536
 
@@ -204,7 +255,14 @@ def process_add_error_data(items):
         param_dict["field_int"] = index * batch_size + j
 
         if not without_vector:
-            param_dict["field_vector"] = {"feature": features[j].tolist()}
+            if wrong_vector_type:
+                param_dict["field_vector"] = features[j].tolist()
+            if wrong_vector_feature_length:
+                param_dict["field_vector"] = {"feature": features[j].tolist()[:1]}
+            if wrong_vector_feature_type:
+                param_dict["field_vector"] = {"feature": features[j].tolist()[0]}
+            if not wrong_vector_type and not wrong_vector_feature_length and not wrong_vector_feature_type:
+                param_dict["field_vector"] = {"feature": features[j].tolist()}
 
         param_dict["field_string"] = str(param_dict["field_int"])
         if wrong_str_value:
@@ -228,6 +286,10 @@ def process_add_error_data(items):
             param_dict["field_double"] = float(param_dict["field_int"])
         if wrong_field:
             param_dict["field_wrong"] = param_dict["field_int"]
+
+        if mismatch_field_type:
+            param_dict["field_int"] = {"feature": features[j].tolist()}
+
         if not empty_documents:
             data["documents"].append(param_dict)
 

@@ -212,7 +212,7 @@ func (dm *DocumentMapping) processProperty(context *walkContext, fieldName strin
 					}
 					field, err := processVectorBinary(context, fm, pathString, vector)
 					if err != nil {
-						context.Err = fmt.Errorf("process vectory binary err:[%s] m value:[%v]", err.Error(), vector)
+						context.Err = fmt.Errorf("process vector binary err:[%s],vector value:[%v]", err.Error(), vector)
 						return
 					}
 					context.AddField(field)
@@ -233,7 +233,7 @@ func (dm *DocumentMapping) processProperty(context *walkContext, fieldName strin
 
 					field, err := processVector(context, fm, pathString, vector)
 					if err != nil {
-						context.Err = fmt.Errorf("process vectory err:[%s] m value:[%v]", err.Error(), vector)
+						context.Err = fmt.Errorf("%s, vector value:[%v]", err.Error(), vector)
 						return
 					}
 					context.AddField(field)
