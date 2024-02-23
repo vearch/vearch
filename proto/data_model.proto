@@ -92,7 +92,7 @@ message VectorMetaInfo {
 
 message FieldMetaInfo {
     string name = 1;
-	FieldType data_type = 2;
+    FieldType data_type = 2;
     bool is_index = 3;
     bool is_store = 4;
     VectorMetaInfo vector_meta_info = 5;      // nil if data_type is not vector
@@ -100,7 +100,7 @@ message FieldMetaInfo {
 
 message TableMetaInfo {
     string primary_key_name = 1;
-	FieldType primary_key_type = 2;
+    FieldType primary_key_type = 2;
     int32 partitions_num = 3;
     int32 replicas_num = 4;
     repeated FieldMetaInfo field_meta_info = 5;
