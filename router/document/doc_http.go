@@ -426,7 +426,7 @@ func (handler *DocumentHandler) handleSearchDoc(c *gin.Context) {
 		searchStatus := vearchpb.SearchStatus{Failed: 0, Successful: 0, Total: 0}
 		bs, err = SearchNullToContent(searchStatus, serviceCost)
 	} else {
-		bs, err = ToContent(searchResp.Results[0], args.Head, serviceCost, space)
+		bs, err = ToContentBytes(searchResp.Results[0], args.Head, serviceCost, space)
 	}
 
 	if err != nil {

@@ -23,6 +23,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/bytedance/sonic"
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/config"
 	"github.com/vearch/vearch/master/store"
@@ -499,7 +500,7 @@ func (m *masterClient) RegisterRouter(ctx context.Context, clusterName string, t
 
 // RegisterPartition register partition
 func (m *masterClient) RegisterPartition(ctx context.Context, partition *entity.Partition) error {
-	reqBody, err := cbjson.Marshal(partition)
+	reqBody, err := sonic.Marshal(partition)
 	if err != nil {
 		return err
 	}
@@ -626,7 +627,7 @@ func (m *masterClient) RemoveNodeMeta(ctx context.Context, nodeID entity.NodeID)
 	// begin clear meta about this nodeId
 	rfs := &entity.RecoverFailServer{FailNodeID: nodeID}
 
-	reqBody, err := cbjson.Marshal(rfs)
+	reqBody, err := sonic.Marshal(rfs)
 	if err != nil {
 		return err
 	}
@@ -687,7 +688,7 @@ func (client *masterClient) RecoverByNewServer(ctx context.Context, server *enti
 func (client *masterClient) RecoverFailServer(ctx context.Context, rfs *entity.RecoverFailServer) (e error) {
 	//process panic
 	defer errutil.CatchError(&e)
-	reqBody, err := cbjson.Marshal(rfs)
+	reqBody, err := sonic.Marshal(rfs)
 	errutil.ThrowError(err)
 	response, err := client.HTTPRequest(ctx, http.MethodPost, "/schedule/recover_server", string(reqBody))
 	errutil.ThrowError(err)

@@ -19,9 +19,9 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/bytedance/sonic"
 	"github.com/gin-gonic/gin"
 	"github.com/vearch/vearch/proto/vearchpb"
-	"github.com/vearch/vearch/util/cbjson"
 	"github.com/vearch/vearch/util/log"
 	"github.com/vearch/vearch/util/netutil"
 )
@@ -55,7 +55,7 @@ func (r *Response) SetHttpStatus(httpStatus int64) *Response {
 }
 
 func (r *Response) SendJson(data interface{}) {
-	reply, err := cbjson.Marshal(data)
+	reply, err := sonic.Marshal(data)
 	if err != nil {
 		r.SendJsonHttpReplyError(err)
 		return

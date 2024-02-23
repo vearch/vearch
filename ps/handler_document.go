@@ -19,6 +19,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -154,9 +155,13 @@ func (handler *UnaryHandler) Execute(ctx context.Context, req *vearchpb.Partitio
 func (handler *UnaryHandler) execute(ctx context.Context, req *vearchpb.PartitionData) {
 	defer func() {
 		if r := recover(); r != nil {
+			buf := make([]byte, 2048)
+			n := runtime.Stack(buf, false)
+			stack := string(buf[:n])
 			err := vearchpb.NewError(vearchpb.ErrorEnum_RECOVER, errors.New(cast.ToString(r)))
 			req.Err = err.GetError()
 			log.Error(err.Error())
+			log.Error("Recovered from panic: %v\nStack Trace:\n%s", r, stack)
 		}
 	}()
 
@@ -430,7 +435,7 @@ func deleteByQuery(ctx context.Context, store PartitionStore, req *vearchpb.Sear
 		}
 
 		results := searchResponse.Results
-		if results == nil || len(results) == 0 {
+		if len(results) == 0 {
 			head := &vearchpb.ResponseHead{Err: &vearchpb.Error{Code: vearchpb.ErrorEnum_DELETE_BY_QUERY_SEARCH_ID_IS_0, Msg: "deleteByQuery search id is 0"}}
 			resp.Head = head
 		} else {

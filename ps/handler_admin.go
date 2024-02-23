@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/bytedance/sonic"
 	"github.com/cubefs/cubefs/depends/tiglabs/raft"
 	"github.com/cubefs/cubefs/depends/tiglabs/raft/proto"
 	"github.com/vearch/vearch/client"
@@ -216,7 +217,7 @@ func (pih *PartitionInfoHandler) Execute(ctx context.Context, req *vearchpb.Part
 
 		pis = append(pis, value)
 	}
-	if reply.Data, err = cbjson.Marshal(pis); err != nil {
+	if reply.Data, err = sonic.Marshal(pis); err != nil {
 		log.Error("marshal partition info failed, err: [%v]", err)
 		return err
 	}
@@ -268,7 +269,7 @@ func (sh *StatsHandler) Execute(ctx context.Context, req *vearchpb.PartitionData
 		pi.RaftStatus = store.Status()
 	})
 
-	if values, err := cbjson.Marshal(stats); err != nil {
+	if values, err := sonic.Marshal(stats); err != nil {
 		log.Error("marshal partition info failed, err: [%v]", err)
 		return err
 	} else {
@@ -412,7 +413,7 @@ func (ch *EngineCfgHandler) Execute(ctx context.Context, req *vearchpb.Partition
 		}
 		cacheCfg := new(entity.EngineCfg)
 		cacheCfg.CacheModels = cacheModels
-		data, _ := cbjson.Marshal(cacheCfg)
+		data, _ := sonic.Marshal(cacheCfg)
 		reply.Data = data
 	}
 	return nil

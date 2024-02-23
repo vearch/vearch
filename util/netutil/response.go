@@ -18,8 +18,8 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/bytedance/sonic"
 	"github.com/vearch/vearch/proto/vearchpb"
-	"github.com/vearch/vearch/util/cbjson"
 	"github.com/vearch/vearch/util/log"
 )
 
@@ -81,7 +81,7 @@ func (this *Response) SendJsonBytes(bytes []byte) {
 }
 
 func (this *Response) SendJson(data interface{}) {
-	reply, err := cbjson.Marshal(data)
+	reply, err := sonic.Marshal(data)
 	if err != nil {
 		this.SetHttpStatus(http.StatusInternalServerError).SendText(err.Error())
 		return

@@ -22,6 +22,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/bytedance/sonic"
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/proto/request"
@@ -736,17 +737,13 @@ func searchParamToSearchPb(searchDoc *request.SearchDocumentRequest, searchReq *
 		}
 	} else {
 		if searchDoc.Nprobe != 0 {
-			var builder = cbjson.ContentBuilderFactory()
-			builder.BeginObject()
-			builder.Field("nprobe")
-			builder.ValueInterface(searchDoc.Nprobe)
-			builder.EndObject()
-			jsonByte, err := builder.Output()
-			if err == nil {
-				searchReq.RetrievalParams = string(jsonByte)
-			} else {
+			retrievalParams := map[string]int{"nprobe": int(searchDoc.Nprobe)}
+
+			jsonByte, err := sonic.Marshal(retrievalParams)
+			if err != nil {
 				return fmt.Errorf("query param RetrievalParam parse err")
 			}
+			searchReq.RetrievalParams = string(jsonByte)
 		}
 	}
 	if searchDoc.Size != nil {

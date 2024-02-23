@@ -23,6 +23,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/bytedance/sonic"
 	"github.com/patrickmn/go-cache"
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/config"
@@ -771,7 +772,7 @@ func (w *watcherJob) serverDelete(cacheKey string) (err error) {
 		}
 		failServer := &entity.FailServer{ID: server.ID, TimeStamp: time.Now().Unix()}
 		failServer.Node = server
-		value, err := cbjson.Marshal(failServer)
+		value, err := sonic.Marshal(failServer)
 		errutil.ThrowError(err)
 		key := entity.FailServerKey(server.ID)
 		// put fail node info into etcd

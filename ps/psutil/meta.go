@@ -23,6 +23,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/bytedance/sonic"
 	"github.com/vearch/vearch/client"
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/util/cbjson"
@@ -102,7 +103,7 @@ func createMeta(client *client.Client, cluster, metaPath string) entity.NodeID {
 	}
 
 	temp := meta{ClusterName: cluster, Id: entity.NodeID(id)}
-	bytes, err := cbjson.Marshal(temp)
+	bytes, err := sonic.Marshal(temp)
 	if err != nil {
 		panic(err)
 	}
@@ -186,7 +187,7 @@ func LoadPartitionMeta(dataPath string, id entity.PartitionID) (*entity.Space, e
 
 func SavePartitionMeta(dataPath string, id entity.PartitionID, space *entity.Space) error {
 	_, _, meta := GetPartitionPaths(dataPath, id)
-	bytes, err := cbjson.Marshal(space)
+	bytes, err := sonic.Marshal(space)
 	if err != nil {
 		return err
 	}

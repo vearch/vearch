@@ -6,6 +6,7 @@
  */
 
 #include "gamma_response.h"
+
 #include "c_api/api_data/gamma_doc.h"
 #include "table/table.h"
 #include "util/log.h"
@@ -38,9 +39,21 @@ int Response::Serialize(const std::string &space_name,
   std::map<std::string, int> attr_idx;
   Table *table = static_cast<Table *>(table_);
   VectorManager *vector_mgr = static_cast<VectorManager *>(vector_mgr_);
+  flatbuffers::FlatBufferBuilder builder;
   // empty result
   if (table == nullptr || vector_mgr == nullptr) {
     LOG(DEBUG) << "nullptr: table=" << table << ", vector_mgr=" << vector_mgr;
+    std::vector<flatbuffers::Offset<gamma_api::SearchResult>> search_results;
+    auto result_vec = builder.CreateVector(search_results);
+
+    flatbuffers::Offset<flatbuffers::String> message =
+        builder.CreateString(online_log_message_);
+    auto res = gamma_api::CreateResponse(builder, result_vec, message);
+    builder.Finish(res);
+
+    *out_len = builder.GetSize();
+    *out = (char *)malloc(*out_len * sizeof(char));
+    memcpy(*out, (char *)builder.GetBufferPointer(), *out_len);
     return 0;
   }
   const auto &attr_idx_map = table->FieldMap();
@@ -61,7 +74,6 @@ int Response::Serialize(const std::string &space_name,
     attr_idx = attr_idx_map;
   }
 
-  flatbuffers::FlatBufferBuilder builder;
   std::vector<flatbuffers::Offset<gamma_api::SearchResult>> search_results;
   for (int i = 0; i < req_num_; ++i) {
     std::vector<flatbuffers::Offset<gamma_api::ResultItem>> result_items;

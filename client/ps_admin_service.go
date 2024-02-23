@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"strings"
 
+	"github.com/bytedance/sonic"
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/proto/vearchpb"
 	"github.com/vearch/vearch/util/cbjson"
@@ -26,7 +27,7 @@ import (
 )
 
 func operatePartition(method, addr string, space *entity.Space, pid uint32) error {
-	bytes, e := cbjson.Marshal(space)
+	bytes, e := sonic.Marshal(space)
 	if e != nil {
 		return e
 	}
@@ -74,7 +75,7 @@ func GetEngineCfg(addr string, pid entity.PartitionID) (cfg *entity.EngineCfg, e
 }
 
 func UpdateEngineCfg(addr string, cacheCfg *entity.EngineCfg, pid entity.PartitionID) error {
-	value, err := cbjson.Marshal(cacheCfg)
+	value, err := sonic.Marshal(cacheCfg)
 	if err != nil {
 		return err
 	}
@@ -179,7 +180,7 @@ func _partitionsInfo(addr string, pid entity.PartitionID, detail_info bool) (val
 }
 
 func ChangeMember(addr string, changeMember *entity.ChangeMember) error {
-	value, err := cbjson.Marshal(changeMember)
+	value, err := sonic.Marshal(changeMember)
 	if err != nil {
 		return err
 	}

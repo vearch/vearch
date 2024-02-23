@@ -37,12 +37,6 @@ import (
 )
 
 func docGetResponse(client *client.Client, args *vearchpb.GetRequest, reply *vearchpb.GetResponse, returnFieldsMap map[string]string, isBatch bool) ([]byte, error) {
-	var builder = cbjson.ContentBuilderFactory()
-	isArray := false
-	if isBatch || (reply != nil && reply.Items != nil && len(reply.Items) > 1) {
-		builder.BeginArray()
-		isArray = true
-	}
 	if args == nil || reply == nil || reply.Items == nil || len(reply.Items) < 1 {
 		if reply.GetHead() != nil && reply.GetHead().Err != nil && reply.GetHead().Err.Code != vearchpb.ErrorEnum_SUCCESS {
 			err := reply.GetHead().Err
@@ -50,59 +44,56 @@ func docGetResponse(client *client.Client, args *vearchpb.GetRequest, reply *vea
 		}
 		return nil, vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, nil)
 	}
-	for i, item := range reply.Items {
-		if i != 0 {
-			builder.More()
-		}
+
+	var response []interface{}
+
+	for _, item := range reply.Items {
 		doc := item.Doc
-		builder.BeginObject()
 		space, err := client.Space(context.Background(), args.Head.DbName, args.Head.SpaceName)
 		if err != nil {
 			return nil, err
 		}
-		builder.Field("_index")
-		builder.ValueString(args.Head.DbName)
 
-		builder.More()
-		builder.Field("_type")
-		builder.ValueString(args.Head.SpaceName)
+		docMap := make(map[string]interface{})
+		docMap["_index"] = args.Head.DbName
+		docMap["_type"] = args.Head.SpaceName
 
-		//doc := reply.Items[0].Doc
-		builder.More()
-		builder.Field("_id")
 		if idIsLong(space) {
 			idInt64, err := strconv.ParseInt(doc.PKey, 10, 64)
 			if err == nil {
-				builder.ValueNumeric(idInt64)
+				docMap["_id"] = idInt64
 			} else {
-				builder.ValueString(doc.PKey)
+				docMap["_id"] = doc.PKey
 			}
 		} else {
-			builder.ValueString(doc.PKey)
+			docMap["_id"] = doc.PKey
 		}
-		builder.More()
-		builder.Field("found")
+
+		docMap["found"] = doc.Fields != nil
 		if doc.Fields != nil {
-			builder.ValueBool(true)
 			source, _, _ := docFieldSerialize(doc, space, returnFieldsMap, true)
-			builder.More()
-			builder.Field("_source")
-			builder.ValueInterface(source)
-		} else {
-			builder.ValueBool(false)
+			docMap["_source"] = source
 		}
+
 		if item.Err != nil {
-			builder.More()
-			builder.Field("msg")
-			builder.ValueString(item.Err.Msg)
+			docMap["msg"] = item.Err.Msg
 		}
-		builder.EndObject()
+		response = append(response, docMap)
 	}
 
-	if isArray {
-		builder.EndArray()
+	var jsonData []byte
+	var err error
+	if isBatch || len(response) > 1 {
+		jsonData, err = sonic.Marshal(response)
+	} else {
+		jsonData, err = sonic.Marshal(response[0])
 	}
-	return builder.Output()
+
+	if err != nil {
+		return nil, err
+	}
+
+	return jsonData, nil
 }
 
 func docDeleteResponses(client *client.Client, args *vearchpb.DeleteRequest, reply *vearchpb.DeleteResponse) ([]byte, error) {
@@ -151,20 +142,14 @@ func docResponse(client *client.Client, head *vearchpb.RequestHead, items []*vea
 	if err != nil {
 		return nil, err
 	}
-	var builder = cbjson.ContentBuilderFactory()
-	builder.BeginArray()
-	for idx, item := range items {
-		if idx != 0 {
-			builder.More()
-		}
-		if result, err := docResultSerialize(space, head, item); err != nil {
-			return nil, err
-		} else {
-			builder.ValueRaw(string(result))
-		}
+
+	results := make([]map[string]interface{}, len(items))
+	for i, item := range items {
+		result := docResult(space, head, item)
+		results[i] = result
 	}
-	builder.EndArray()
-	return builder.Output()
+
+	return sonic.Marshal(results)
 }
 
 func documentUpsertResponse(client *client.Client, args *vearchpb.BulkRequest, reply *vearchpb.BulkResponse) ([]byte, error) {
@@ -181,92 +166,65 @@ func documentUpsertResponse(client *client.Client, args *vearchpb.BulkRequest, r
 		return nil, err
 	}
 
-	var builder = cbjson.ContentBuilderFactory()
+	response := make(map[string]interface{})
+	response["code"] = 0
 
-	builder.BeginObject()
-	builder.Field("code")
-	if reply.Head == nil || reply.Head.Err == nil {
-		builder.ValueNumeric(0)
-	} else {
-		if reply.Head != nil && reply.Head.Err != nil {
-			builder.ValueNumeric(int64(reply.Head.Err.Code))
-			builder.More()
-			builder.Field("msg")
-			builder.ValueString(reply.Head.Err.Msg)
-		} else {
-			builder.ValueNumeric(1)
-		}
+	if reply.Head != nil && reply.Head.Err != nil {
+		response["code"] = reply.Head.Err.Code
+		response["msg"] = reply.Head.Err.Msg
 	}
 
 	var total int64
 	for _, item := range reply.Items {
-		if item.Err == nil {
-			total += 1
-		} else {
-			if item.Err.Msg == "success" && item.Err.Code == vearchpb.ErrorEnum_SUCCESS {
-				total += 1
-			}
+		if item.Err == nil || (item.Err.Msg == "success" && item.Err.Code == vearchpb.ErrorEnum_SUCCESS) {
+			total++
 		}
 	}
-	builder.More()
-	builder.Field("total")
-	builder.ValueNumeric(total)
 
-	builder.More()
-	builder.BeginArrayWithField("document_ids")
-	for idx, item := range reply.Items {
-		if idx != 0 {
-			builder.More()
-		}
-		if result, err := documentResultSerialize(space, item); err != nil {
-			return nil, err
-		} else {
-			builder.ValueRaw(string(result))
-		}
+	response["total"] = total
+
+	documentIDs := make([]interface{}, 0)
+	for _, item := range reply.Items {
+		result := documentResultSerialize(space, item)
+		documentIDs = append(documentIDs, result)
 	}
-	builder.EndArray()
 
-	builder.EndObject()
+	response["document_ids"] = documentIDs
 
-	return builder.Output()
+	jsonData, err := sonic.Marshal(response)
+	if err != nil {
+		return nil, err
+	}
+
+	return jsonData, nil
 }
 
-func documentResultSerialize(space *entity.Space, item *vearchpb.Item) ([]byte, error) {
-	var builder = cbjson.ContentBuilderFactory()
-	builder.BeginObject()
+func documentResultSerialize(space *entity.Space, item *vearchpb.Item) map[string]interface{} {
+	result := make(map[string]interface{})
 	if item == nil {
-		builder.Field("error")
-		builder.ValueString("duplicate id")
-		builder.EndObject()
-		return builder.Output()
+		result["error"] = "duplicate id"
+		return result
 	}
+
 	doc := item.Doc
-	builder.Field("_id")
+
 	if idIsLong(space) {
 		idInt64, err := strconv.ParseInt(doc.PKey, 10, 64)
 		if err == nil {
-			builder.ValueNumeric(idInt64)
+			result["_id"] = idInt64
 		} else {
-			builder.ValueString(doc.PKey)
+			result["_id"] = doc.PKey
 		}
 	} else {
-		builder.ValueString(doc.PKey)
+		result["_id"] = doc.PKey
 	}
 	if item.Err != nil {
-		builder.More()
-		builder.Field("status")
-		builder.ValueNumeric(cast.ToInt64(vearchpb.ErrCode(item.Err.Code)))
-
-		builder.More()
-		builder.Field("error")
-		builder.ValueString(item.Err.Msg)
+		result["status"] = vearchpb.ErrCode(item.Err.Code)
+		result["error"] = item.Err.Msg
 	} else {
-		builder.More()
-		builder.Field("status")
-		builder.ValueNumeric(cast.ToInt64(vearchpb.ErrCode(vearchpb.ErrorEnum_SUCCESS)))
+		result["status"] = vearchpb.ErrCode(vearchpb.ErrorEnum_SUCCESS)
 	}
-	builder.EndObject()
-	return builder.Output()
+	return result
 }
 
 func documentGetResponse(client *client.Client, args *vearchpb.GetRequest, reply *vearchpb.GetResponse, returnFieldsMap map[string]string, vectorValue bool) ([]byte, error) {
@@ -309,7 +267,7 @@ func documentGetResponse(client *client.Client, args *vearchpb.GetRequest, reply
 	}
 	response["total"] = total
 
-	documents := make([]interface{}, 0, len(reply.Items))
+	documents := []interface{}{}
 	for _, item := range reply.Items {
 		doc := make(map[string]interface{})
 
@@ -364,32 +322,12 @@ func documentSearchResponse(srs []*vearchpb.SearchResult, head *vearchpb.Respons
 		}
 	}
 
-	//	builder.More()
-	//	builder.Field("took")
-	//	builder.ValueNumeric(int64(took) / 1e6)
-
 	if response_type == request.QueryResponse {
 		if srs == nil {
-			//	searchStatus := &vearchpb.SearchStatus{Failed: 0, Successful: 0, Total: 0}
-			//	builder.More()
-			//	builder.Field("timed_out")
-			//	builder.ValueBool(false)
-
-			//	builder.More()
-			//	builder.Field("_shards")
-			//	builder.ValueInterface(searchStatus)
-
 			builder.More()
 			builder.Field("total")
 			builder.ValueNumeric(0)
 		} else {
-			//	builder.More()
-			//	builder.Field("timed_out")
-			//	builder.ValueBool(sr.Timeout)
-
-			//	builder.More()
-			//	builder.Field("_shards")
-			//	builder.ValueInterface(sr.Status)
 			builder.More()
 			builder.Field("total")
 			total := len(srs[0].ResultItems)
@@ -446,13 +384,6 @@ func documentSearchResponse(srs []*vearchpb.SearchResult, head *vearchpb.Respons
 	}
 
 	builder.EndArray()
-
-	/*if sr.Explain != nil && len(sr.Explain) > 0 {
-		builder.More()
-		builder.Field("_explain")
-		builder.ValueInterface(sr.Explain)
-	}*/
-
 	builder.EndObject()
 
 	return builder.Output()
@@ -488,14 +419,6 @@ func documentToContent(dh []*vearchpb.ResultItem, space *entity.Space, response_
 				builder.ValueFloat(float64(u.Score))
 			}
 
-			/*if u.Extra != "" && len(u.Extra) > 0 {
-				builder.More()
-				var extra map[string]interface{}
-				if err := json.Unmarshal([]byte(u.Extra), &extra); err == nil {
-					builder.Field("_extra")
-					builder.ValueInterface(extra)
-				}
-			}*/
 			if u.Source != nil {
 				var sourceJson json.RawMessage
 				if err := json.Unmarshal(u.Source, &sourceJson); err != nil {
@@ -518,94 +441,67 @@ func documentToContent(dh []*vearchpb.ResultItem, space *entity.Space, response_
 }
 
 func documentDeleteResponse(items []*vearchpb.Item, head *vearchpb.ResponseHead, resultIds []string) ([]byte, error) {
-	var builder = cbjson.ContentBuilderFactory()
+	response := make(map[string]interface{})
+
 	for _, item := range items {
 		if item.Err == nil {
 			resultIds = append(resultIds, item.Doc.PKey)
 		}
 	}
 
-	builder.BeginObject()
-	builder.Field("code")
 	if head == nil || head.Err == nil {
-		builder.ValueNumeric(int64(vearchpb.ErrorEnum_SUCCESS))
-		builder.More()
-		builder.Field("msg")
-		builder.ValueString("success")
+		response["code"] = vearchpb.ErrorEnum_SUCCESS
+		response["msg"] = "success"
 	} else {
-		if head != nil && head.Err != nil {
-			builder.ValueNumeric(int64(head.Err.Code))
-			builder.More()
-			builder.Field("msg")
-			builder.ValueString(head.Err.Msg)
+		if head != nil {
+			response["code"] = head.Err.Code
+			response["msg"] = head.Err.Msg
 		} else {
-			builder.ValueNumeric(int64(vearchpb.ErrorEnum_INTERNAL_ERROR))
+			response["code"] = vearchpb.ErrorEnum_INTERNAL_ERROR
 		}
 	}
 
-	builder.More()
-	builder.Field("total")
-	builder.ValueNumeric(int64(len(resultIds)))
+	response["total"] = len(resultIds)
 
-	builder.More()
-	builder.Field("document_ids")
-	if len(resultIds) != 0 {
-		builder.ValueInterface(resultIds)
-	} else {
-		data := []string{}
-		builder.ValueInterface(data)
+	response["document_ids"] = resultIds
+	if len(resultIds) == 0 {
+		response["document_ids"] = []string{}
 	}
 
-	builder.EndObject()
+	return sonic.Marshal(response)
+}
 
-	return builder.Output()
+func docResult(space *entity.Space, head *vearchpb.RequestHead, item *vearchpb.Item) map[string]interface{} {
+	result := make(map[string]interface{})
+
+	result["_index"] = head.DbName
+	result["_type"] = head.SpaceName
+
+	if item == nil {
+		result["error"] = "duplicate id"
+		return result
+	}
+
+	doc := item.Doc
+	result["_id"] = doc.PKey
+	if idIsLong(space) {
+		if idInt64, err := strconv.ParseInt(doc.PKey, 10, 64); err == nil {
+			result["_id"] = idInt64
+		}
+	}
+
+	if item.Err != nil {
+		result["status"] = vearchpb.ErrCode(item.Err.Code)
+		result["error"] = item.Err.Msg
+	} else {
+		result["status"] = vearchpb.ErrCode(vearchpb.ErrorEnum_SUCCESS)
+	}
+
+	return result
 }
 
 func docResultSerialize(space *entity.Space, head *vearchpb.RequestHead, item *vearchpb.Item) ([]byte, error) {
-	var builder = cbjson.ContentBuilderFactory()
-	builder.BeginObject()
-
-	builder.Field("_index")
-	builder.ValueString(head.DbName)
-
-	builder.More()
-	builder.Field("_type")
-	builder.ValueString(head.SpaceName)
-
-	if item == nil {
-		builder.Field("error")
-		builder.ValueString("duplicate id")
-		builder.EndObject()
-		return builder.Output()
-	}
-	doc := item.Doc
-	builder.More()
-	builder.Field("_id")
-	if idIsLong(space) {
-		idInt64, err := strconv.ParseInt(doc.PKey, 10, 64)
-		if err == nil {
-			builder.ValueNumeric(idInt64)
-		} else {
-			builder.ValueString(doc.PKey)
-		}
-	} else {
-		builder.ValueString(doc.PKey)
-	}
-	if item.Err != nil {
-		builder.More()
-		builder.Field("status")
-		builder.ValueNumeric(cast.ToInt64(vearchpb.ErrCode(item.Err.Code)))
-
-		builder.More()
-		builder.Field("error")
-		builder.ValueString(item.Err.Msg)
-	} else {
-		builder.More()
-		builder.Field("status")
-		builder.ValueNumeric(cast.ToInt64(vearchpb.ErrCode(vearchpb.ErrorEnum_SUCCESS)))
-	}
-	builder.EndObject()
-	return builder.Output()
+	return sonic.Marshal(docResult(space, head, item))
 }
 
 func idIsLong(space *entity.Space) bool {
@@ -712,181 +608,113 @@ func docFieldSerialize(doc *vearchpb.Document, space *entity.Space, returnFields
 	return marshal, nextDocid, nil
 }
 
-func ToContent(sr *vearchpb.SearchResult, head *vearchpb.RequestHead, took time.Duration, space *entity.Space) ([]byte, error) {
-	var builder = cbjson.ContentBuilderFactory()
-
-	builder.BeginObject()
-	builder.Field("took")
-	builder.ValueNumeric(int64(took) / 1e6)
-
-	builder.More()
-	builder.Field("timed_out")
-	builder.ValueBool(sr.Timeout)
-
-	builder.More()
-	builder.Field("_shards")
-	builder.ValueInterface(sr.Status)
-
-	builder.More()
-	builder.BeginObjectWithField("hits")
-
-	builder.Field("total")
-	total := len(sr.ResultItems)
-	builder.ValueNumeric(int64(total))
-
-	builder.More()
-	builder.Field("max_score")
-	builder.ValueFloat(sr.MaxScore)
-
-	if sr.ResultItems != nil {
-		builder.More()
-		builder.BeginArrayWithField("hits")
-		content, err := DocToContent(sr.ResultItems, head, space)
-		if err != nil {
-			return nil, err
-		}
-		builder.ValueRaw(string(content))
-
-		builder.EndArray()
+func ToContentBytes(sr *vearchpb.SearchResult, head *vearchpb.RequestHead, took time.Duration, space *entity.Space) ([]byte, error) {
+	content, err := toContent(sr, head, took, space)
+	if err != nil {
+		return nil, err
 	}
-
-	builder.EndObject()
-
-	/*if sr.Explain != nil && len(sr.Explain) > 0 {
-		builder.More()
-		builder.Field("_explain")
-		builder.ValueInterface(sr.Explain)
-	}*/
-
-	builder.EndObject()
-
-	return builder.Output()
-
+	return sonic.Marshal(content)
 }
 
-func DocToContent(dh []*vearchpb.ResultItem, head *vearchpb.RequestHead, space *entity.Space) ([]byte, error) {
-	var builder = cbjson.ContentBuilderFactory()
+func toContent(sr *vearchpb.SearchResult, head *vearchpb.RequestHead, took time.Duration, space *entity.Space) (map[string]interface{}, error) {
+	hitsContent, err := docToContent(sr.ResultItems, head, space)
+	if err != nil {
+		return nil, err
+	}
+
+	content := map[string]interface{}{
+		"took":      int64(took) / 1e6,
+		"timed_out": sr.Timeout,
+		"_shards":   sr.Status,
+		"hits": map[string]interface{}{
+			"total":     len(sr.ResultItems),
+			"max_score": sr.MaxScore,
+			"hits":      hitsContent,
+		},
+	}
+
+	return content, nil
+}
+
+func docToContent(dh []*vearchpb.ResultItem, head *vearchpb.RequestHead, space *entity.Space) ([]interface{}, error) {
+	docContents := make([]interface{}, len(dh))
 	idIsLong := idIsLong(space)
 	for i, u := range dh {
-
-		if i != 0 {
-			builder.More()
-		}
-		builder.BeginObject()
-
-		builder.Field("_index")
-		builder.ValueString(head.DbName)
-
-		builder.More()
-		builder.Field("_type")
-		builder.ValueString(head.SpaceName)
-
-		builder.More()
-		builder.Field("_id")
+		docContent := make(map[string]interface{})
+		docContent["_index"] = head.DbName
+		docContent["_type"] = head.SpaceName
 		if idIsLong {
 			idInt64, err := strconv.ParseInt(u.PKey, 10, 64)
-			if err == nil {
-				builder.ValueNumeric(idInt64)
+			if err != nil {
+				log.Error("Error parsing _id as int64: %v", err)
+				return nil, err
 			}
+			docContent["_id"] = idInt64
 		} else {
-			builder.ValueString(u.PKey)
+			docContent["_id"] = u.PKey
 		}
 
 		if u.Fields != nil {
-			builder.More()
-			builder.Field("_score")
-			builder.ValueFloat(float64(u.Score))
-
-			/*if u.Extra != "" && len(u.Extra) > 0 {
-				builder.More()
-				var extra map[string]interface{}
-				if err := json.Unmarshal([]byte(u.Extra), &extra); err == nil {
-					builder.Field("_extra")
-					builder.ValueInterface(extra)
-				}
-			}*/
+			docContent["_score"] = float64(u.Score)
 			if u.Source != nil {
 				var sourceJson json.RawMessage
 				if err := json.Unmarshal(u.Source, &sourceJson); err != nil {
-					log.Error("DocToContent Source Unmarshal error:%v", err)
-				} else {
-					builder.More()
-					builder.Field("_source")
-					builder.ValueInterface(sourceJson)
+					log.Error("Error unmarshaling _source: %v", err)
+					return nil, err
 				}
+				docContent["_source"] = sourceJson
 			}
 		}
 
-		builder.EndObject()
+		docContents[i] = docContent
 	}
 
-	return builder.Output()
+	return docContents, nil
 }
 
 func ToContents(srs []*vearchpb.SearchResult, head *vearchpb.RequestHead, took time.Duration, space *entity.Space) ([]byte, error) {
-	var builder = cbjson.ContentBuilderFactory()
+	results := make([]map[string]interface{}, len(srs))
 
-	builder.BeginObject()
-
-	builder.Field("took")
-	builder.ValueNumeric(int64(took) / 1e6)
-
-	builder.More()
-
-	builder.Field("results")
-
-	builder.BeginArray()
-
-	if srs != nil && len(srs) > 1 {
+	if len(srs) > 1 {
 		var wg sync.WaitGroup
-		respChain := make(chan map[int][]byte, len(srs))
+		respChan := make(chan struct {
+			Index   int
+			Content map[string]interface{}
+		}, len(srs))
 		for i, sr := range srs {
 			wg.Add(1)
-			go func(sr *vearchpb.SearchResult, head *vearchpb.RequestHead, took time.Duration, space *entity.Space, index int) {
-				bytes, err := ToContent(sr, head, took, space)
-				if err == nil {
-					respMap := make(map[int][]byte)
-					respMap[index] = bytes
-					respChain <- respMap
+			go func(sr *vearchpb.SearchResult, index int) {
+				defer wg.Done()
+				if content, err := toContent(sr, head, took, space); err == nil {
+					respChan <- struct {
+						Index   int
+						Content map[string]interface{}
+					}{Index: index, Content: content}
 				}
-				wg.Done()
-			}(sr, head, took, space, i)
+			}(sr, i)
 		}
 		wg.Wait()
-		close(respChain)
+		close(respChan)
 
-		byteArr := make([][]byte, len(srs))
-		for resp := range respChain {
-			for index, value := range resp {
-				byteArr[index] = value
-			}
-		}
-
-		for i := 0; i < len(srs); i++ {
-			builder.ValueRaw(string(byteArr[i]))
-			if i+1 < len(srs) {
-				builder.More()
-			}
+		for resp := range respChan {
+			results[resp.Index] = resp.Content
 		}
 	} else {
 		for i, sr := range srs {
-			if bytes, err := ToContent(sr, head, took, space); err != nil {
-				return nil, err
+			if content, err := toContent(sr, head, took, space); err == nil {
+				results[i] = content
 			} else {
-				builder.ValueRaw(string(bytes))
-			}
-
-			if i+1 < len(srs) {
-				builder.More()
+				return nil, err
 			}
 		}
 	}
 
-	builder.EndArray()
+	response := map[string]interface{}{
+		"took":    int64(took) / 1e6,
+		"results": results,
+	}
 
-	builder.EndObject()
-
-	return builder.Output()
+	return sonic.Marshal(response)
 }
 
 func ToContentIds(srs []*vearchpb.SearchResult, space *entity.Space) ([]byte, error) {
@@ -918,27 +746,6 @@ func ToContentIds(srs []*vearchpb.SearchResult, space *entity.Space) ([]byte, er
 	}
 	bs.WriteString("]")
 	return bs.Bytes(), nil
-}
-
-func queryDocByIdsNoResult(took time.Duration) ([]byte, error) {
-	var builder = cbjson.ContentBuilderFactory()
-
-	builder.BeginObject()
-
-	builder.Field("took")
-	builder.ValueNumeric(int64(took) / 1e6)
-
-	builder.More()
-
-	builder.Field("results")
-
-	builder.BeginArray()
-
-	builder.EndArray()
-
-	builder.EndObject()
-
-	return builder.Output()
 }
 
 func GetVectorFieldValue(doc *vearchpb.Document, space *entity.Space) (floatFeatureMap map[string][]float32, binaryFeatureMap map[string][]int32, err error) {
@@ -982,6 +789,8 @@ func GetVectorFieldValue(doc *vearchpb.Document, space *entity.Space) (floatFeat
 			source[name] = time.Unix(u/1e6, u%1e6)
 		case entity.FieldType_FLOAT:
 			source[name] = cbbytes.ByteToFloat32(fv.Value)
+		case entity.FieldType_DOUBLE:
+			source[name] = cbbytes.ByteToFloat64New(fv.Value)
 		case entity.FieldType_VECTOR:
 			if strings.Compare(space.Engine.RetrievalType, "BINARYIVF") == 0 {
 				featureByteC := fv.Value
@@ -1024,172 +833,106 @@ func GetVectorFieldValue(doc *vearchpb.Document, space *entity.Space) (floatFeat
 			}
 
 		default:
-			log.Warn("can not set value by type:[%v] ", field.FieldType)
+			log.Warn("can not set value by name:[%v], type:[%v] ", name, field.FieldType)
 		}
 	}
 	return floatFeatureMap, binaryFeatureMap, nil
 }
 
 func MakeQueryFeature(floatFeatureMap map[string][]float32, binaryFeatureMap map[string][]int32, query_type string) ([]byte, error) {
-	var builder = cbjson.ContentBuilderFactory()
+	features := make([]map[string]interface{}, 0)
 
-	builder.BeginObject()
-
-	builder.Field(query_type)
-
-	builder.BeginArray()
-	i := 0
 	if floatFeatureMap != nil {
 		for key, value := range floatFeatureMap {
-			if i != 0 {
-				builder.More()
+			feature := map[string]interface{}{
+				"field":   key,
+				"feature": value,
 			}
-			builder.BeginObject()
-			builder.Field("field")
-			builder.ValueString(key)
-			builder.More()
-			builder.Field("feature")
-			builder.ValueInterface(value)
-			builder.EndObject()
-			i++
+			features = append(features, feature)
 		}
 	} else {
 		for key, value := range binaryFeatureMap {
-			if i != 0 {
-				builder.More()
+			feature := map[string]interface{}{
+				"field":   key,
+				"feature": value,
 			}
-			builder.BeginObject()
-			builder.Field("field")
-			builder.ValueString(key)
-			builder.More()
-			builder.Field("feature")
-			builder.ValueInterface(value)
-			builder.EndObject()
-			i++
+			features = append(features, feature)
 		}
 	}
 
-	builder.EndArray()
+	query := map[string]interface{}{
+		query_type: features,
+	}
 
-	builder.EndObject()
-
-	return builder.Output()
+	return sonic.Marshal(query)
 }
 
 func ForceMergeToContent(shards *vearchpb.SearchStatus) ([]byte, error) {
-	var builder = cbjson.ContentBuilderFactory()
+	response := map[string]interface{}{
+		"_shards": shards,
+	}
 
-	builder.BeginObject()
-	builder.Field("_shards")
-	builder.ValueInterface(shards)
-	builder.EndObject()
-
-	return builder.Output()
+	return sonic.Marshal(response)
 }
 
 func FlushToContent(shards *vearchpb.SearchStatus) ([]byte, error) {
-	var builder = cbjson.ContentBuilderFactory()
+	response := map[string]interface{}{
+		"_shards": shards,
+	}
 
-	builder.BeginObject()
-	builder.Field("_shards")
-	builder.ValueInterface(shards)
-	builder.EndObject()
-
-	return builder.Output()
+	return sonic.Marshal(response)
 }
 
 func IndexResponseToContent(shards *vearchpb.SearchStatus) ([]byte, error) {
-	var builder = cbjson.ContentBuilderFactory()
+	response := map[string]interface{}{
+		"_shards": shards,
+	}
 
-	builder.BeginObject()
-	builder.Field("_shards")
-	builder.ValueInterface(shards)
-	builder.EndObject()
-
-	return builder.Output()
+	return sonic.Marshal(response)
 }
 
 func SearchNullToContent(searchStatus vearchpb.SearchStatus, took time.Duration) ([]byte, error) {
-	var builder = cbjson.ContentBuilderFactory()
+	response := map[string]interface{}{
+		"took":      int64(took) / 1e6,
+		"timed_out": false,
+		"_shards":   searchStatus,
+		"hits": map[string]interface{}{
+			"total":     0,
+			"max_score": -1,
+		},
+	}
 
-	builder.BeginObject()
-	builder.Field("took")
-	builder.ValueNumeric(int64(took) / 1e6)
-
-	builder.More()
-	builder.Field("timed_out")
-	builder.ValueBool(false)
-
-	builder.More()
-	builder.Field("_shards")
-	builder.ValueInterface(searchStatus)
-
-	builder.More()
-	builder.BeginObjectWithField("hits")
-
-	builder.Field("total")
-	builder.ValueNumeric(0)
-
-	builder.More()
-	builder.Field("max_score")
-	builder.ValueFloat(-1)
-
-	builder.EndObject()
-
-	builder.EndObject()
-
-	return builder.Output()
+	return sonic.Marshal(response)
 }
 
 func deleteByQueryResult(resp *vearchpb.DelByQueryeResponse) ([]byte, error) {
-	var builder = cbjson.ContentBuilderFactory()
+	result := make(map[string]interface{})
 
-	builder.BeginObject()
-
-	builder.Field("code")
 	if resp.Head == nil || resp.Head.Err == nil {
-		builder.ValueNumeric(0)
-		builder.More()
-		builder.Field("msg")
-		builder.ValueString("success")
+		result["code"] = 0
+		result["msg"] = "success"
 	} else {
-		if resp.Head != nil && resp.Head.Err != nil {
-			builder.ValueNumeric(int64(resp.Head.Err.Code))
-			builder.More()
-			builder.Field("msg")
-			builder.ValueString(resp.Head.Err.Msg)
-		} else {
-			builder.ValueNumeric(1)
-		}
+		result["code"] = resp.Head.Err.Code
+		result["msg"] = resp.Head.Err.Msg
 	}
 
-	builder.More()
+	result["total"] = resp.DelNum
 
-	builder.Field("total")
-	builder.ValueNumeric(int64(resp.DelNum))
-
-	builder.More()
-	builder.Field("document_ids")
 	if resp.IdsStr != nil {
-		builder.ValueInterface(resp.IdsStr)
+		result["document_ids"] = resp.IdsStr
 	} else if resp.IdsLong != nil {
-		builder.ValueInterface(resp.IdsLong)
+		result["document_ids"] = resp.IdsLong
 	} else {
-		data := []string{}
-		builder.ValueInterface(data)
+		result["document_ids"] = []string{}
 	}
 
-	builder.EndObject()
-
-	return builder.Output()
+	return sonic.Marshal(result)
 }
 
 func docPrintLogSwitchResponse(printLogSwitch bool) ([]byte, error) {
-	var builder = cbjson.ContentBuilderFactory()
-	builder.BeginObject()
-	builder.Field("print_log_switch")
-	builder.ValueBool(printLogSwitch)
-	builder.EndObject()
+	response := map[string]bool{
+		"print_log_switch": printLogSwitch,
+	}
 
-	return builder.Output()
+	return sonic.Marshal(response)
 }
