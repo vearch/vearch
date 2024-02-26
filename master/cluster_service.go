@@ -486,7 +486,7 @@ func (ms *masterService) generatePartitionsInfo(servers []*entity.Server, server
 	}
 
 	if replicaNum > 0 {
-		return nil, vearchpb.NewError(vearchpb.ErrorEnum_MASTER_PS_NOT_ENOUGH_SELECT, fmt.Errorf("need %d but got %d", partition.Replicas, len(addres)))
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_MASTER_PS_NOT_ENOUGH_SELECT, fmt.Errorf("need %d partition server but only get %d", len(partition.Replicas), len(addres)))
 	}
 
 	return addres, nil
@@ -617,6 +617,75 @@ func (ms *masterService) queryDBs(ctx context.Context) ([]*entity.DB, error) {
 	}
 
 	return dbs, err
+}
+
+func (ms *masterService) describeSpaceService(ctx context.Context, space *entity.Space, spaceInfo *entity.SpaceInfo, detail_info bool) error {
+	spaceStatus := 0
+	color := []string{"green", "yellow", "red"}
+	for _, spacePartition := range space.Partitions {
+		p, err := ms.Master().QueryPartition(ctx, spacePartition.Id)
+		if err != nil {
+			*(spaceInfo.Errors) = append(*(spaceInfo.Errors), fmt.Sprintf("partition:[%d] not found in space: [%s]", spacePartition.Id, spaceName))
+			continue
+		}
+
+		pStatus := 0
+
+		nodeID := p.LeaderID
+		if nodeID == 0 {
+			*(spaceInfo.Errors) = append(*(spaceInfo.Errors), fmt.Sprintf("partition:[%d] no leader in space: [%s]", spacePartition.Id, spaceName))
+			pStatus = 2
+			nodeID = p.Replicas[0]
+		}
+
+		server, err := ms.Master().QueryServer(ctx, nodeID)
+		if err != nil {
+			*(spaceInfo.Errors) = append(*(spaceInfo.Errors), fmt.Sprintf("server:[%d] not found in space: [%s] , partition:[%d]", nodeID, spaceName, spacePartition.Id))
+			pStatus = 2
+			continue
+		}
+
+		partitionInfo, err := client.PartitionInfo(server.RpcAddr(), p.Id, detail_info)
+		if err != nil {
+			*(spaceInfo.Errors) = append(*(spaceInfo.Errors), fmt.Sprintf("query space:[%s] server:[%d] partition:[%d] info err :[%s]", spaceName, nodeID, spacePartition.Id, err.Error()))
+			partitionInfo = &entity.PartitionInfo{}
+			pStatus = 2
+		} else {
+			if len(partitionInfo.Unreachable) > 0 {
+				pStatus = 1
+			}
+		}
+
+		replicasStatus := make(map[entity.NodeID]string)
+		for nodeID, status := range p.ReStatusMap {
+			if status == entity.ReplicasOK {
+				replicasStatus[nodeID] = "ReplicasOK"
+			} else {
+				replicasStatus[nodeID] = "ReplicasNotReady"
+			}
+		}
+
+		//this must from space.Partitions
+		partitionInfo.PartitionID = spacePartition.Id
+		partitionInfo.Color = color[pStatus]
+		partitionInfo.ReplicaNum = len(p.Replicas)
+		partitionInfo.Ip = server.Ip
+		partitionInfo.NodeID = server.ID
+		partitionInfo.RepStatus = replicasStatus
+
+		spaceInfo.Partitions = append(spaceInfo.Partitions, partitionInfo)
+
+		if pStatus > spaceStatus {
+			spaceStatus = pStatus
+		}
+	}
+	docNum := uint64(0)
+	for _, p := range spaceInfo.Partitions {
+		docNum += cast.ToUint64(p.DocNum)
+	}
+	spaceInfo.Status = color[spaceStatus]
+	spaceInfo.DocNum = docNum
+	return nil
 }
 
 func (ms *masterService) GetEngineCfg(ctx context.Context, dbName, spaceName string) (cfg *entity.EngineCfg, err error) {

@@ -993,7 +993,7 @@ def drop_db(router_url: str, db_name: str):
 def drop_space(router_url: str, db_name: str, space_name: str):
     url = f"{router_url}/space/{db_name}/{space_name}"
     resp = requests.delete(url)
-    return resp.text
+    return resp.json()
 
 
 def destroy(router_url: str, db_name: str, space_name: str):
@@ -1075,9 +1075,25 @@ def list_spaces(router_url: str, db_name: str):
     resp = requests.get(url)
     return resp.json()
 
+def describe_space(logger, router_url: str, db_name: str, space_name: str):
+    url = f"{router_url}/space/describe"
+    data = {"db_name": db_name, "space_name": space_name}
+    try:
+        resp = requests.post(url, json=data)
+        return resp.json()
+    except Exception as e:
+        logger.error(e)
+
+def describe_space_url_param(logger, router_url: str, db_name: str, space_name: str):
+    url = f"{router_url}/space/describe?db_name={db_name}&space_name={space_name}&detail=true"
+    try:
+        resp = requests.post(url)
+        return resp.json()
+    except Exception as e:
+        logger.error(e)
 
 def index_rebuild(router_url: str, db_name: str, space_name: str):
     url = f"{router_url}/index/rebuild"
-    data = {"db_name": db_name, "space_name": space_name, "drop_before_rebuild":True}
+    data = {'db_name': db_name, 'space_name': space_name, 'drop_before_rebuild':True}
     resp = requests.post(url, json=data)
     return resp.json()

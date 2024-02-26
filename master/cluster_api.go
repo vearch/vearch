@@ -91,6 +91,11 @@ func ExportToClusterHandler(router *gin.Engine, masterService *masterService, se
 	router.Handle(http.MethodGet, "/space/:"+dbName+"/:"+spaceName, dh.PaincHandler, dh.TimeOutHandler, c.auth, c.getSpace, dh.TimeOutEndHandler)
 	router.Handle(http.MethodDelete, "/space/:"+dbName+"/:"+spaceName, dh.PaincHandler, dh.TimeOutHandler, c.auth, c.deleteSpace, dh.TimeOutEndHandler)
 	router.Handle(http.MethodPost, "/space/:"+dbName+"/:"+spaceName, dh.PaincHandler, dh.TimeOutHandler, c.auth, c.updateSpace, dh.TimeOutEndHandler)
+	// new interface format
+	// router.Handle(http.MethodPost, "/space/create", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.createSpace, dh.TimeOutEndHandler)
+	router.Handle(http.MethodPost, "/space/describe", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.describeSpace, dh.TimeOutEndHandler)
+	// router.Handle(http.MethodPost, "/space/delete", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.deleteSpace, dh.TimeOutEndHandler)
+	// router.Handle(http.MethodPost, "/space/update", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.updateSpace, dh.TimeOutEndHandler)
 
 	// modify engine config handler
 	router.Handle(http.MethodPost, "/config/:"+dbName+"/:"+spaceName, dh.PaincHandler, dh.TimeOutHandler, c.auth, c.modifyEngineCfg, dh.TimeOutEndHandler)
@@ -272,8 +277,7 @@ func (ca *clusterAPI) createSpace(c *gin.Context) {
 
 	if err := c.ShouldBindJSON(space); err != nil {
 		body, _ := netutil.GetReqBody(c.Request)
-		log.Debug("create space, space: %s, err: %s", body, err.Error())
-		log.Error("parse space settings err: %v", err)
+		log.Error("create space request: %s, err: %s", body, err.Error())
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 		return
 	}
@@ -287,7 +291,6 @@ func (ca *clusterAPI) createSpace(c *gin.Context) {
 		space.PartitionNum = 1
 	}
 
-	log.Debug("create space, db: %s", c.Param(dbName))
 	if config.Conf().Global.LimitedReplicaNum && space.ReplicaNum < 3 {
 		log.Error("LimitedReplicaNum is set and in order to ensure high availability replica should not be less than 3")
 		err := fmt.Errorf("LimitedReplicaNum is set and in order to ensure high availability replica should not be less than 3")
@@ -298,7 +301,6 @@ func (ca *clusterAPI) createSpace(c *gin.Context) {
 		space.ReplicaNum = 1
 	}
 
-	log.Debug("create space, db: %s", c.Param(dbName))
 	if space.Engine == nil {
 		space.Engine = entity.NewDefaultEngine()
 	}
@@ -311,9 +313,7 @@ func (ca *clusterAPI) createSpace(c *gin.Context) {
 
 	space.Version = 1 // first start with 1
 
-	log.Debug("create space, db: %s", c.Param(dbName))
 	if err := ca.masterService.createSpaceService(c, dbName, space); err != nil {
-		log.Debug("create space, db: %s", c.Param(dbName))
 		log.Error("createSpaceService err: %v", err)
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 	} else {
@@ -324,9 +324,9 @@ func (ca *clusterAPI) createSpace(c *gin.Context) {
 func (ca *clusterAPI) deleteSpace(c *gin.Context) {
 	log.Debug("delete space, db: %s, space: %s", c.Param(dbName), c.Param(spaceName))
 	dbName := c.Param(dbName)
-	sapceName := c.Param(spaceName)
+	spaceName := c.Param(spaceName)
 
-	if err := ca.masterService.deleteSpaceService(c, dbName, sapceName); err != nil {
+	if err := ca.masterService.deleteSpaceService(c, dbName, spaceName); err != nil {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 	} else {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(nil)
@@ -335,7 +335,7 @@ func (ca *clusterAPI) deleteSpace(c *gin.Context) {
 
 func (ca *clusterAPI) getSpace(c *gin.Context) {
 	dbName := c.Param(dbName)
-	sapceName := c.Param(spaceName)
+	spaceName := c.Param(spaceName)
 
 	dbID, err := ca.masterService.Master().QueryDBName2Id(c, dbName)
 	if err != nil {
@@ -343,25 +343,74 @@ func (ca *clusterAPI) getSpace(c *gin.Context) {
 		return
 	}
 
-	if space, err := ca.masterService.Master().QuerySpaceByName(c, dbID, sapceName); err != nil {
+	if space, err := ca.masterService.Master().QuerySpaceByName(c, dbID, spaceName); err != nil {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 	} else {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(space)
 	}
 }
 
+func (ca *clusterAPI) describeSpace(c *gin.Context) {
+	dbName := c.Query(dbName)
+	spaceName := c.Query(spaceName)
+	detail := c.Query("detail")
+	detail_info := false
+	if detail == "true" {
+		detail_info = true
+	}
+	if dbName == "" || spaceName == "" {
+		spaceDescribeRequest := &entity.SpaceDescribeRequest{}
+		if err := c.ShouldBindJSON(spaceDescribeRequest); err != nil {
+			log.Error("describe space err: %s", err.Error())
+			ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
+			return
+		} else {
+			dbName = spaceDescribeRequest.DbName
+			spaceName = spaceDescribeRequest.SpaceName
+			if spaceDescribeRequest.Detail != nil {
+				detail_info = *spaceDescribeRequest.Detail
+			}
+		}
+	}
+
+	dbID, err := ca.masterService.Master().QueryDBName2Id(c, dbName)
+	if err != nil {
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
+		return
+	}
+
+	if space, err := ca.masterService.Master().QuerySpaceByName(c, dbID, spaceName); err != nil {
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
+	} else {
+		spaceInfo := &entity.SpaceInfo{}
+		spaceInfo.DbName = dbName
+		spaceInfo.SpaceName = spaceName
+		spaceInfo.Schema = &entity.SpaceSchema{
+			Engine:     space.Engine,
+			Properties: space.Properties,
+		}
+		spaceInfo.PartitionNum = space.PartitionNum
+		spaceInfo.ReplicaNum = space.ReplicaNum
+		if err := ca.masterService.describeSpaceService(c, space, spaceInfo, detail_info); err != nil {
+			ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
+		} else {
+			ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(spaceInfo)
+		}
+	}
+}
+
 func (ca *clusterAPI) updateSpace(c *gin.Context) {
 	dbName := c.Param(dbName)
-	sapceName := c.Param(spaceName)
+	spaceName := c.Param(spaceName)
 
-	space := &entity.Space{Name: sapceName}
+	space := &entity.Space{Name: spaceName}
 
 	if err := c.ShouldBindJSON(space); err != nil {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 		return
 	}
 
-	if spaceResult, err := ca.masterService.updateSpaceService(c, dbName, sapceName, space); err != nil {
+	if spaceResult, err := ca.masterService.updateSpaceService(c, dbName, spaceName, space); err != nil {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 
 	} else {
@@ -374,9 +423,9 @@ func (ca *clusterAPI) getEngineCfg(c *gin.Context) {
 	var err error
 	defer errutil.CatchError(&err)
 	dbName := c.Param(dbName)
-	sapceName := c.Param(spaceName)
+	spaceName := c.Param(spaceName)
 	errutil.ThrowError(err)
-	if cfg, err := ca.masterService.GetEngineCfg(c, dbName, sapceName); err != nil {
+	if cfg, err := ca.masterService.GetEngineCfg(c, dbName, spaceName); err != nil {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 	} else {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(cfg)
@@ -388,8 +437,9 @@ func (ca *clusterAPI) modifyEngineCfg(c *gin.Context) {
 	var err error
 	defer errutil.CatchError(&err)
 	dbName := c.Param(dbName)
-	sapceName := c.Param(spaceName)
+	spaceName := c.Param(spaceName)
 	data, err := io.ReadAll(c.Request.Body)
+
 	errutil.ThrowError(err)
 	log.Debug("engine config json data is [%+v]", string(data))
 	cacheCfg := &entity.EngineCfg{}
@@ -403,7 +453,7 @@ func (ca *clusterAPI) modifyEngineCfg(c *gin.Context) {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(fmt.Errorf("engine config [%+v] is error", string(data)))
 		return
 	}
-	if err := ca.masterService.ModifyEngineCfg(c, dbName, sapceName, cacheCfg); err != nil {
+	if err := ca.masterService.ModifyEngineCfg(c, dbName, spaceName, cacheCfg); err != nil {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 	} else {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(cacheCfg)

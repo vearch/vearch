@@ -88,6 +88,29 @@ type Space struct {
 	SpaceProperties map[string]*SpaceProperties `json:"space_properties"`
 }
 
+type SpaceSchema struct {
+	Properties json.RawMessage `json:"properties"`
+	Engine     *Engine         `json:"engine"`
+}
+
+type SpaceInfo struct {
+	SpaceName    string           `json:"space_name"`
+	DbName       string           `json:"db_name"`
+	PartitionNum int              `json:"partition_num"`
+	ReplicaNum   uint8            `json:"replica_num"`
+	Schema       *SpaceSchema     `json:"schema"`
+	DocNum       uint64           `json:"doc_num"`
+	Partitions   []*PartitionInfo `json:"partitions"`
+	Status       string           `json:"status,omitempty"`
+	Errors       *[]string        `json:"errors,omitempty"`
+}
+
+type SpaceDescribeRequest struct {
+	SpaceName string `json:"space_name"`
+	DbName    string `json:"db_name"`
+	Detail    *bool  `json:"detail"`
+}
+
 // cache/[dbId]/[spaceId]:[cacheCfg]
 type EngineCfg struct {
 	CacheModels []*CacheModel `json:"cache_models,omitempty"`
@@ -111,13 +134,13 @@ type SpaceProperties struct {
 	Option     vearchpb.FieldOption `json:"option,omitempty"`
 }
 
-func (this *Space) String() string {
+func (s *Space) String() string {
 	return fmt.Sprintf("%d_%s_%d_%d_%d_%d",
-		this.Id, this.Name, this.Version, this.DBId, this.PartitionNum, this.ReplicaNum)
+		s.Id, s.Name, s.Version, s.DBId, s.PartitionNum, s.ReplicaNum)
 }
 
-func (this *Space) GetPartition(id PartitionID) *Partition {
-	for _, p := range this.Partitions {
+func (s *Space) GetPartition(id PartitionID) *Partition {
+	for _, p := range s.Partitions {
 		if p.Id == id {
 			return p
 		}
@@ -125,12 +148,12 @@ func (this *Space) GetPartition(id PartitionID) *Partition {
 	return nil
 }
 
-func (this *Space) PartitionId(slotID SlotID) PartitionID {
-	if len(this.Partitions) == 1 {
-		return this.Partitions[0].Id
+func (s *Space) PartitionId(slotID SlotID) PartitionID {
+	if len(s.Partitions) == 1 {
+		return s.Partitions[0].Id
 	}
 
-	arr := this.Partitions
+	arr := s.Partitions
 
 	maxKey := len(arr) - 1
 
@@ -228,7 +251,7 @@ func (engine *Engine) UnmarshalJSON(bs []byte) error {
 			retrievalType := tempEngine.RetrievalTypes[i]
 			if strings.Compare(retrievalType, "HNSW") == 0 {
 				if v.Nlinks == 0 || v.EfConstruction == 0 {
-					return fmt.Errorf("HNSW model param is 0")
+					return fmt.Errorf("HNSW index param is 0")
 				}
 				if tempEngine.IndexSize == nil || *tempEngine.IndexSize <= 0 {
 					tempEngine.IndexSize = util.PInt64(1)
@@ -238,28 +261,28 @@ func (engine *Engine) UnmarshalJSON(bs []byte) error {
 			} else if strings.Compare("BINARYIVF", retrievalType) == 0 ||
 				strings.Compare("IVFFLAT", retrievalType) == 0 {
 				if v.Ncentroids == 0 {
-					return fmt.Errorf(retrievalType + " model param is 0")
+					return fmt.Errorf(retrievalType + " index param is 0")
 				} else {
 					if tempEngine.IndexSize == nil || *tempEngine.IndexSize <= 0 {
 						tempEngine.IndexSize = util.PInt64(100000)
 					}
 				}
 				if *tempEngine.IndexSize < int64(v.Ncentroids) {
-					return fmt.Errorf(retrievalType+" model doc size:[%d] less than %d so can not to index", int64(*tempEngine.IndexSize), v.Ncentroids)
+					return fmt.Errorf(retrievalType+" index size:[%d] less than ncentroids:[%d] so can not to index", int64(*tempEngine.IndexSize), v.Ncentroids)
 				}
 			} else if strings.Compare("IVFPQ", retrievalType) == 0 ||
 				strings.Compare("SCANN", retrievalType) == 0 ||
 				strings.Compare("GPU", retrievalType) == 0 {
 
 				if v.Nsubvector == 0 || v.Ncentroids == 0 {
-					return fmt.Errorf(retrievalType + " model param is 0")
+					return fmt.Errorf(retrievalType + " index param is 0")
 				} else {
 					if tempEngine.IndexSize == nil || *tempEngine.IndexSize <= 0 {
 						tempEngine.IndexSize = util.PInt64(100000)
 					}
 				}
 				if *tempEngine.IndexSize < int64(v.Ncentroids) {
-					return fmt.Errorf(retrievalType+" model doc size:[%d] less than v.Ncentroids so can not to index", int64(*tempEngine.IndexSize), v.Ncentroids)
+					return fmt.Errorf(retrievalType+" index size:[%d] less than ncentroids:[%d] so can not to index", int64(*tempEngine.IndexSize), v.Ncentroids)
 				}
 			}
 			if v.MetricType == "" {
@@ -287,7 +310,7 @@ func (engine *Engine) UnmarshalJSON(bs []byte) error {
 
 		if strings.Compare(tempEngine.RetrievalType, "HNSW") == 0 {
 			if v.Nlinks == 0 || v.EfConstruction == 0 {
-				return fmt.Errorf("HNSW model param is 0")
+				return fmt.Errorf("HNSW index param is 0")
 			}
 			if tempEngine.IndexSize == nil || *tempEngine.IndexSize <= 0 {
 				tempEngine.IndexSize = util.PInt64(1)
@@ -297,26 +320,26 @@ func (engine *Engine) UnmarshalJSON(bs []byte) error {
 		} else if strings.Compare("BINARYIVF", tempEngine.RetrievalType) == 0 ||
 			strings.Compare("IVFFLAT", tempEngine.RetrievalType) == 0 {
 			if v.Ncentroids == 0 {
-				return fmt.Errorf(tempEngine.RetrievalType + " model param is 0")
+				return fmt.Errorf(tempEngine.RetrievalType + " index param is 0")
 			} else {
 				if tempEngine.IndexSize == nil || *tempEngine.IndexSize <= 0 {
 					tempEngine.IndexSize = util.PInt64(100000)
 				}
 			}
 			if *tempEngine.IndexSize < int64(v.Ncentroids) {
-				return fmt.Errorf(tempEngine.RetrievalType+" model doc size:[%d] less than %d so can not to index", int64(*tempEngine.IndexSize), v.Ncentroids)
+				return fmt.Errorf(tempEngine.RetrievalType+" index size:[%d] less than ncentroids:[%d] so can not to index", int64(*tempEngine.IndexSize), v.Ncentroids)
 			}
 		} else if strings.Compare("IVFPQ", tempEngine.RetrievalType) == 0 ||
 			strings.Compare("GPU", tempEngine.RetrievalType) == 0 {
 			if v.Nsubvector == 0 || v.Ncentroids == 0 {
-				return fmt.Errorf(tempEngine.RetrievalType + " model param is 0")
+				return fmt.Errorf(tempEngine.RetrievalType + " index param is 0")
 			} else {
 				if tempEngine.IndexSize == nil || *tempEngine.IndexSize <= 0 {
 					tempEngine.IndexSize = util.PInt64(100000)
 				}
 			}
 			if *tempEngine.IndexSize < int64(v.Ncentroids) {
-				return fmt.Errorf(tempEngine.RetrievalType+" model doc size:[%d] less than %d so can not to index", int64(*tempEngine.IndexSize), v.Ncentroids)
+				return fmt.Errorf(tempEngine.RetrievalType+" index size:[%d] less than ncentroids:[%d] so can not to index", int64(*tempEngine.IndexSize), v.Ncentroids)
 			}
 		}
 		if v.MetricType == "" {

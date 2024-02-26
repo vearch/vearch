@@ -48,7 +48,7 @@ class VearchCase:
         assert response.text.find('"status":200') >= 0
 
     def test_health(self):
-        url = proxy + "/_cluster/health"
+        url = proxy + "/_cluster/health?detail=true"
         response = requests.get(url)
         logger.debug("cluster_health---\n" + response.text)
         assert response.status_code == 200

@@ -604,10 +604,9 @@ func (m *masterClient) ProxyHTTPRequest(method string, url string, reqBody strin
 			panic(err)
 		}
 		query.SetAddress(m.cfg.Masters[keyNumber].ApiUrl())
-		log.Debug("remote server url: %s, req body: %s", query.GetUrl(), string(reqBody))
 		statusCode := 0
 		response, statusCode, err = query.ProxyDo()
-		log.Debug("remote server response: %v", string(response))
+		log.Debug("remote server url:%s, req body:%s, response: %v", query.GetUrl(), string(reqBody), string(response))
 
 		if statusCode < http.StatusBadRequest || statusCode > http.StatusNetworkAuthenticationRequired {
 			e = err

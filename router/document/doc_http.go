@@ -96,6 +96,12 @@ func (handler *DocumentHandler) proxyMaster() error {
 	handler.httpServer.Handle(http.MethodGet, fmt.Sprintf("/space/:%s/:%s", URLParamDbName, URLParamSpaceName), handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
 	handler.httpServer.Handle(http.MethodPost, fmt.Sprintf("/space/:%s/:%s", URLParamDbName, URLParamSpaceName), handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
 	handler.httpServer.Handle(http.MethodDelete, fmt.Sprintf("/space/:%s/:%s", URLParamDbName, URLParamSpaceName), handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
+	// new space handler
+	// handler.httpServer.Handle(http.MethodPost, "/space/create", handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
+	handler.httpServer.Handle(http.MethodPost, "/space/describe", handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
+	// handler.httpServer.Handle(http.MethodPost, "/space/delete", handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
+	// handler.httpServer.Handle(http.MethodPost, "/space/update", handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
+
 	// cluster handler
 	handler.httpServer.Handle(http.MethodGet, "/_cluster/health", handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
 	handler.httpServer.Handle(http.MethodGet, "/_cluster/stats", handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)

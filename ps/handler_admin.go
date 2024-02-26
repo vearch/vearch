@@ -217,7 +217,7 @@ func (pih *PartitionInfoHandler) Execute(ctx context.Context, req *vearchpb.Part
 
 		pis = append(pis, value)
 	}
-	if reply.Data, err = sonic.Marshal(pis); err != nil {
+	if reply.Data, err = cbjson.Marshal(pis); err != nil {
 		log.Error("marshal partition info failed, err: [%v]", err)
 		return err
 	}

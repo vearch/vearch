@@ -32,13 +32,14 @@ class TestSpaceCreate:
         self.logger = logger
 
     def test_prepare_db(self):
-        logger.info(create_db(router_url, db_name))
+        response = create_db(router_url, db_name)
+        assert response["code"] == 200
 
     @pytest.mark.parametrize(
         ["retrieval_type"],
         [["FLAT"], ["IVFPQ"], ["IVFFLAT"], ["HNSW"]],
     )
-    def test_vearch_space_create(self, retrieval_type):
+    def test_vearch_space_create_without_vector_storetype(self, retrieval_type):
         embedding_size = 128
         space_config = {
             "name": space_name,
@@ -71,9 +72,73 @@ class TestSpaceCreate:
             },
         }
 
-        logger.info(create_space(router_url, db_name, space_config))
+        response = create_space(router_url, db_name, space_config)
+        assert response["code"] == 200
 
-        logger.info(drop_space(router_url, db_name, space_name))
+        response = describe_space(logger, router_url, db_name, space_name)
+        assert response["code"] == 200
+
+        response = describe_space_url_param(logger, router_url, db_name, space_name)
+        assert response["code"] == 200
+
+        response = drop_space(router_url, db_name, space_name)
+        assert response["code"] == 200
+
+    @pytest.mark.parametrize(
+        ["wrong_index", "wrong_type", "retrieval_type"],
+        [
+            [0, "bad index size", "IVFPQ"], 
+            [1, "bad index size", "IVFFLAT"],
+            [2, "bad space name", "FLAT"],
+            [3, "not enough partition server", "FLAT"],
+        ],
+    )
+    def test_vearch_space_create_badcase(self, wrong_index, wrong_type, retrieval_type):
+        embedding_size = 128
+        index_size = 70000
+        create_space_name = space_name
+        replica_num = 1
+        if wrong_index <= 1:
+            index_size = 1
+        if wrong_index == 2:
+            create_space_name = "wrong-name"
+        if wrong_index == 3:
+            replica_num = 3
+        space_config = {
+            "name": create_space_name,
+            "partition_num": 1,
+            "replica_num": replica_num,
+            "engine": {
+                "index_size": index_size,
+                "id_type": "String",
+                "retrieval_type": retrieval_type,
+                "retrieval_param": {
+                    "metric_type": "InnerProduct",
+                    "ncentroids": 2048,
+                    "nsubvector": 32,
+                    "nlinks": 32,
+                    "efConstruction": 40,
+                },
+            },
+            "properties": {
+                "field_string": {"type": "keyword"},
+                "field_int": {"type": "integer"},
+                "field_float": {"type": "float", "index": True},
+                "field_string_array": {"type": "string", "array": True, "index": True},
+                "field_int_index": {"type": "integer", "index": True},
+                "field_vector": {"type": "vector", "dimension": embedding_size},
+                "field_vector_normal": {
+                    "type": "vector",
+                    "dimension": int(embedding_size * 2),
+                    "format": "normalization",
+                },
+            },
+        }
+
+        response = create_space(router_url, db_name, space_config)
+        logger.info(response)
+        assert response["code"] != 200
+
 
     def test_destroy_db(self):
         drop_db(router_url, db_name)
