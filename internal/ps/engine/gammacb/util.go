@@ -21,12 +21,12 @@ import (
 	"strings"
 
 	"github.com/spf13/cast"
-	"github.com/vearch/vearch/engine/sdk/go/gamma"
+	"github.com/vearch/vearch/internal/engine/sdk/go/gamma"
+	"github.com/vearch/vearch/internal/ps/engine/mapping"
+	"github.com/vearch/vearch/internal/ps/engine/register"
+	"github.com/vearch/vearch/internal/util/cbjson"
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/proto/vearchpb"
-	"github.com/vearch/vearch/ps/engine/mapping"
-	"github.com/vearch/vearch/ps/engine/register"
-	"github.com/vearch/vearch/util/cbjson"
 )
 
 var empty = []byte{0}

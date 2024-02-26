@@ -9,7 +9,7 @@ package gamma
 
 import (
 	flatbuffers "github.com/google/flatbuffers/go"
-	"github.com/vearch/vearch/engine/idl/fbs-gen/go/gamma_api"
+	"github.com/vearch/vearch/internal/engine/idl/fbs-gen/go/gamma_api"
 )
 
 type CacheInfo struct {

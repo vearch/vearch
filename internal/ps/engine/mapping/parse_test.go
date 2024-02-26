@@ -20,8 +20,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/vearch/vearch/internal/util/assert"
 	"github.com/vearch/vearch/proto/vearchpb"
-	"github.com/vearch/vearch/util/assert"
 )
 
 func TestParseSchema(t *testing.T) {

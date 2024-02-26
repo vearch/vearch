@@ -24,9 +24,9 @@ import (
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/proto/vearchpb"
-	"github.com/vearch/vearch/util/cbjson"
-	"github.com/vearch/vearch/util/log"
-	server "github.com/vearch/vearch/util/server/rpc"
+	"github.com/vearch/vearch/internal/util/cbjson"
+	"github.com/vearch/vearch/internal/util/log"
+	server "github.com/vearch/vearch/internal/util/server/rpc"
 )
 
 // ClientType decide the method to choose raft

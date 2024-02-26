@@ -22,9 +22,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/vearch/vearch/util/atomic"
-	"github.com/vearch/vearch/util/log"
-	"github.com/vearch/vearch/util/multierror"
+	"github.com/vearch/vearch/internal/util/atomic"
+	"github.com/vearch/vearch/internal/util/log"
+	"github.com/vearch/vearch/internal/util/multierror"
 )
 
 const (

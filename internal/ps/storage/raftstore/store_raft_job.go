@@ -21,8 +21,8 @@ import (
 
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/config"
-	"github.com/vearch/vearch/ps/engine"
-	"github.com/vearch/vearch/util/log"
+	"github.com/vearch/vearch/internal/ps/engine"
+	"github.com/vearch/vearch/internal/util/log"
 )
 
 const (

@@ -20,9 +20,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/vearch/vearch/util/bufalloc"
-	"github.com/vearch/vearch/util/metrics"
-	"github.com/vearch/vearch/util/metrics/export"
+	"github.com/vearch/vearch/internal/util/bufalloc"
+	"github.com/vearch/vearch/internal/util/metrics"
+	"github.com/vearch/vearch/internal/util/metrics/export"
 )
 
 func TestRuntimeStatSampler(t *testing.T) {

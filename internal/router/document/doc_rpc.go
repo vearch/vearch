@@ -23,10 +23,10 @@ import (
 	"time"
 
 	"github.com/spf13/cast"
-	"github.com/vearch/vearch/client"
-	"github.com/vearch/vearch/monitor"
+	"github.com/vearch/vearch/internal/client"
+	"github.com/vearch/vearch/internal/monitor"
+	"github.com/vearch/vearch/internal/util/log"
 	"github.com/vearch/vearch/proto/vearchpb"
-	"github.com/vearch/vearch/util/log"
 	"google.golang.org/grpc"
 )
 

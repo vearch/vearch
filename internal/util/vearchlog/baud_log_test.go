@@ -18,8 +18,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/vearch/vearch/util/assert"
-	"github.com/vearch/vearch/util/log"
+	"github.com/vearch/vearch/internal/util/assert"
+	"github.com/vearch/vearch/internal/util/log"
 )
 
 func TestVearchLog(t *testing.T) {

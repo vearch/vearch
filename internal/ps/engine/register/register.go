@@ -17,11 +17,11 @@ package register
 import (
 	"fmt"
 
+	"github.com/vearch/vearch/internal/ps/engine"
+	"github.com/vearch/vearch/internal/util/log"
+	"github.com/vearch/vearch/internal/util/vearchlog"
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/proto/vearchpb"
-	"github.com/vearch/vearch/ps/engine"
-	"github.com/vearch/vearch/util/log"
-	"github.com/vearch/vearch/util/vearchlog"
 )
 
 var (

@@ -23,7 +23,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/vearch/vearch/util/bufalloc"
+	"github.com/vearch/vearch/internal/util/bufalloc"
 )
 
 const (

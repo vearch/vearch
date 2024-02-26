@@ -19,9 +19,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/vearch/vearch/config"
-	"github.com/vearch/vearch/monitor"
-	"github.com/vearch/vearch/util/ginutil"
-	"github.com/vearch/vearch/util/server/vearchhttp"
+	"github.com/vearch/vearch/internal/monitor"
+	"github.com/vearch/vearch/internal/util/ginutil"
+	"github.com/vearch/vearch/internal/util/server/vearchhttp"
 )
 
 type monitorApi struct {

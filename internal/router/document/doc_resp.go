@@ -26,14 +26,14 @@ import (
 
 	"github.com/bytedance/sonic"
 	"github.com/spf13/cast"
-	"github.com/vearch/vearch/client"
+	"github.com/vearch/vearch/internal/client"
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/proto/request"
 	"github.com/vearch/vearch/proto/vearchpb"
-	"github.com/vearch/vearch/ps/engine/mapping"
-	"github.com/vearch/vearch/util/cbbytes"
-	"github.com/vearch/vearch/util/cbjson"
-	"github.com/vearch/vearch/util/log"
+	"github.com/vearch/vearch/internal/ps/engine/mapping"
+	"github.com/vearch/vearch/internal/util/cbbytes"
+	"github.com/vearch/vearch/internal/util/cbjson"
+	"github.com/vearch/vearch/internal/util/log"
 )
 
 func docGetResponse(client *client.Client, args *vearchpb.GetRequest, reply *vearchpb.GetResponse, returnFieldsMap map[string]string, isBatch bool) ([]byte, error) {

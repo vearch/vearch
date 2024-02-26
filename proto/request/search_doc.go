@@ -17,7 +17,7 @@ package request
 import (
 	"encoding/json"
 
-	"github.com/vearch/vearch/ps/engine/sortorder"
+	"github.com/vearch/vearch/internal/ps/engine/sortorder"
 )
 
 var (

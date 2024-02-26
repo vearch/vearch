@@ -21,8 +21,8 @@ import (
 	"unicode"
 
 	"github.com/vearch/vearch/proto/vearchpb"
-	"github.com/vearch/vearch/util"
-	"github.com/vearch/vearch/util/cbjson"
+	"github.com/vearch/vearch/internal/util"
+	"github.com/vearch/vearch/internal/util/cbjson"
 )
 
 const (

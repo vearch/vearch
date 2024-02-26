@@ -9,7 +9,7 @@ import (
 	"errors"
 	"io"
 
-	byteutil "github.com/vearch/vearch/util/cbbytes"
+	byteutil "github.com/vearch/vearch/internal/util/cbbytes"
 )
 
 const minRead = 128

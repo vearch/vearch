@@ -22,7 +22,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/vearch/vearch/util/runtime/stack"
+	"github.com/vearch/vearch/internal/util/runtime/stack"
 )
 
 func GetCurrentPath() (string, error) {

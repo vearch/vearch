@@ -30,7 +30,7 @@ import (
 	"github.com/vearch/vearch/config"
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/proto/vearchpb"
-	"github.com/vearch/vearch/util/log"
+	"github.com/vearch/vearch/internal/util/log"
 )
 
 var defaultConcurrentNum int = 2000

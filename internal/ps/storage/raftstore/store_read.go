@@ -18,10 +18,10 @@ import (
 	"context"
 	"strings"
 
+	"github.com/vearch/vearch/internal/util/log"
+	"github.com/vearch/vearch/internal/util/vearchlog"
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/proto/vearchpb"
-	"github.com/vearch/vearch/util/log"
-	"github.com/vearch/vearch/util/vearchlog"
 )
 
 func (s *Store) GetDocument(ctx context.Context, readLeader bool, doc *vearchpb.Document, getByDocId bool, next bool) (err error) {

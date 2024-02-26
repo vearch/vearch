@@ -21,7 +21,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/vearch/vearch/util"
+	"github.com/vearch/vearch/internal/util"
 )
 
 type GinServer struct {

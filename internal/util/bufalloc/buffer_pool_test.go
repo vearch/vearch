@@ -17,7 +17,7 @@ package bufalloc
 import (
 	"testing"
 
-	"github.com/vearch/vearch/util/cbbytes"
+	"github.com/vearch/vearch/internal/util/cbbytes"
 )
 
 func TestGetPoolNum(t *testing.T) {

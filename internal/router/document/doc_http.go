@@ -25,18 +25,18 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/opentracing/opentracing-go"
-	"github.com/vearch/vearch/client"
+	"github.com/vearch/vearch/internal/client"
 	"github.com/vearch/vearch/config"
-	"github.com/vearch/vearch/monitor"
+	"github.com/vearch/vearch/internal/monitor"
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/proto/request"
 	"github.com/vearch/vearch/proto/vearchpb"
-	"github.com/vearch/vearch/router/document/resp"
-	"github.com/vearch/vearch/util"
-	"github.com/vearch/vearch/util/ginutil"
-	"github.com/vearch/vearch/util/log"
-	"github.com/vearch/vearch/util/netutil"
-	"github.com/vearch/vearch/util/uuid"
+	"github.com/vearch/vearch/internal/router/document/resp"
+	"github.com/vearch/vearch/internal/util"
+	"github.com/vearch/vearch/internal/util/ginutil"
+	"github.com/vearch/vearch/internal/util/log"
+	"github.com/vearch/vearch/internal/util/netutil"
+	"github.com/vearch/vearch/internal/util/uuid"
 )
 
 const (

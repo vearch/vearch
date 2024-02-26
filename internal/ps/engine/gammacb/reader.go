@@ -25,13 +25,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/vearch/vearch/engine/sdk/go/gamma"
+	"github.com/vearch/vearch/internal/engine/sdk/go/gamma"
+	"github.com/vearch/vearch/internal/ps/engine"
+	"github.com/vearch/vearch/internal/util/cbbytes"
+	"github.com/vearch/vearch/internal/util/log"
+	"github.com/vearch/vearch/internal/util/vearchlog"
 	pkg "github.com/vearch/vearch/proto"
 	"github.com/vearch/vearch/proto/vearchpb"
-	"github.com/vearch/vearch/ps/engine"
-	"github.com/vearch/vearch/util/cbbytes"
-	"github.com/vearch/vearch/util/log"
-	"github.com/vearch/vearch/util/vearchlog"
 )
 
 const indexSn = "sn"

@@ -21,9 +21,9 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cast"
-	"github.com/vearch/vearch/client"
-	"github.com/vearch/vearch/util/errutil"
-	"github.com/vearch/vearch/util/metrics/mserver"
+	"github.com/vearch/vearch/internal/client"
+	"github.com/vearch/vearch/internal/util/errutil"
+	"github.com/vearch/vearch/internal/util/metrics/mserver"
 	"go.etcd.io/etcd/server/v3/etcdserver"
 
 	"net/http"
@@ -32,7 +32,7 @@ import (
 
 	"github.com/vearch/vearch/config"
 	"github.com/vearch/vearch/proto/entity"
-	"github.com/vearch/vearch/util/log"
+	"github.com/vearch/vearch/internal/util/log"
 )
 
 const (

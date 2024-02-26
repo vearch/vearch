@@ -26,16 +26,16 @@ import (
 
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/config"
-	"github.com/vearch/vearch/master"
+	"github.com/vearch/vearch/internal/master"
 	"github.com/vearch/vearch/proto/entity"
-	"github.com/vearch/vearch/ps"
-	"github.com/vearch/vearch/router"
-	"github.com/vearch/vearch/util/log"
-	"github.com/vearch/vearch/util/metrics/mserver"
-	tigos "github.com/vearch/vearch/util/runtime/os"
-	"github.com/vearch/vearch/util/signals"
-	"github.com/vearch/vearch/util/tracer"
-	"github.com/vearch/vearch/util/vearchlog"
+	"github.com/vearch/vearch/internal/ps"
+	"github.com/vearch/vearch/internal/router"
+	"github.com/vearch/vearch/internal/util/log"
+	"github.com/vearch/vearch/internal/util/metrics/mserver"
+	tigos "github.com/vearch/vearch/internal/util/runtime/os"
+	"github.com/vearch/vearch/internal/util/signals"
+	"github.com/vearch/vearch/internal/util/tracer"
+	"github.com/vearch/vearch/internal/util/vearchlog"
 )
 
 var (

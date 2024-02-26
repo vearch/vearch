@@ -78,7 +78,7 @@ function build_engine() {
   echo "build gamma"
   rm -rf ${GAMMAOUT} && mkdir -p $GAMMAOUT
   pushd $GAMMAOUT
-  cmake -DPERFORMANCE_TESTING=ON -DCMAKE_BUILD_TYPE=$BUILD_GAMMA_TYPE -DBUILD_TEST=$BUILD_GAMMA_TEST $ROOT/engine/
+  cmake -DPERFORMANCE_TESTING=ON -DCMAKE_BUILD_TYPE=$BUILD_GAMMA_TYPE -DBUILD_TEST=$BUILD_GAMMA_TEST $ROOT/internal/engine/
   make $COMPILE_THREAD_NUM
   popd
 }

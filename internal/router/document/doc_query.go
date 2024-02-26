@@ -27,12 +27,12 @@ import (
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/proto/request"
 	"github.com/vearch/vearch/proto/vearchpb"
-	"github.com/vearch/vearch/ps/engine/mapping"
-	"github.com/vearch/vearch/ps/engine/sortorder"
-	"github.com/vearch/vearch/router/document/rutil"
-	"github.com/vearch/vearch/util"
-	"github.com/vearch/vearch/util/cbbytes"
-	"github.com/vearch/vearch/util/cbjson"
+	"github.com/vearch/vearch/internal/ps/engine/mapping"
+	"github.com/vearch/vearch/internal/ps/engine/sortorder"
+	"github.com/vearch/vearch/internal/router/document/rutil"
+	"github.com/vearch/vearch/internal/util"
+	"github.com/vearch/vearch/internal/util/cbbytes"
+	"github.com/vearch/vearch/internal/util/cbjson"
 )
 
 const (

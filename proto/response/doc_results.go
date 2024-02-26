@@ -16,7 +16,7 @@ package response
 
 import (
 	"github.com/vearch/vearch/proto/vearchpb"
-	"github.com/vearch/vearch/ps/engine/sortorder"
+	"github.com/vearch/vearch/internal/ps/engine/sortorder"
 )
 
 type SearchDocResult struct {

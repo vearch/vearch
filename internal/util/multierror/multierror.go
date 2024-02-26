@@ -1,6 +1,6 @@
 package multierror
 
-import "github.com/vearch/vearch/util/bufalloc"
+import "github.com/vearch/vearch/internal/util/bufalloc"
 
 // Combine merge multiple error and create MultiError
 func Combine(errs ...error) *MultiError {

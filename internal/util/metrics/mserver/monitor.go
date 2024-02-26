@@ -17,8 +17,8 @@ package mserver
 import (
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/proto/vearchpb"
-	"github.com/vearch/vearch/util/metrics"
-	"github.com/vearch/vearch/util/metrics/sysstat"
+	"github.com/vearch/vearch/internal/util/metrics"
+	"github.com/vearch/vearch/internal/util/metrics/sysstat"
 )
 
 func NewErrServerStatus(ip string, err error) *ServerStats {
@@ -30,7 +30,7 @@ func NewErrServerStatus(ip string, err error) *ServerStats {
 	}
 }
 
-//stats machine infos
+// stats machine infos
 func newServerStats(ip string, lables []metrics.LabelPair, ss *metricServer) *ServerStats {
 	return &ServerStats{
 		Ip:     ip,

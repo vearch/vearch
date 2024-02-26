@@ -18,7 +18,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/vearch/vearch/util/log"
+	"github.com/vearch/vearch/internal/util/log"
 )
 
 type DocumentMapping struct {

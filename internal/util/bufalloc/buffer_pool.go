@@ -17,7 +17,7 @@ package bufalloc
 import (
 	"sync"
 
-	"github.com/vearch/vearch/util/cbbytes"
+	"github.com/vearch/vearch/internal/util/cbbytes"
 )
 
 const (

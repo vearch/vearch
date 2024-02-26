@@ -22,19 +22,19 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/config"
-	"github.com/vearch/vearch/util/log"
+	"github.com/vearch/vearch/internal/util/log"
 )
 
 var masterCallBack func(masterMonitor *MasterMonitor)
 
 type MasterMonitor struct {
-	CPU       *prometheus.GaugeVec
-	Mem       *prometheus.GaugeVec
-	FS        *prometheus.GaugeVec
-	NetIn     *prometheus.GaugeVec
-	NetOut    *prometheus.GaugeVec
-	GC        *prometheus.GaugeVec
-	Routines  *prometheus.GaugeVec
+	CPU      *prometheus.GaugeVec
+	Mem      *prometheus.GaugeVec
+	FS       *prometheus.GaugeVec
+	NetIn    *prometheus.GaugeVec
+	NetOut   *prometheus.GaugeVec
+	GC       *prometheus.GaugeVec
+	Routines *prometheus.GaugeVec
 
 	// all has
 	PartitionNum *prometheus.GaugeVec

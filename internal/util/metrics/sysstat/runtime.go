@@ -26,10 +26,10 @@ import (
 	"github.com/shirou/gopsutil/net"
 	"github.com/shirou/gopsutil/process"
 	"github.com/vearch/vearch/config"
-	"github.com/vearch/vearch/util/log"
-	"github.com/vearch/vearch/util/metrics"
-	"github.com/vearch/vearch/util/metrics/metric"
-	"github.com/vearch/vearch/util/routine"
+	"github.com/vearch/vearch/internal/util/log"
+	"github.com/vearch/vearch/internal/util/metrics"
+	"github.com/vearch/vearch/internal/util/metrics/metric"
+	"github.com/vearch/vearch/internal/util/routine"
 )
 
 const (

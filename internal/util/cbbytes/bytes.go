@@ -22,7 +22,7 @@ import (
 	"math"
 	"unsafe"
 
-	"github.com/vearch/vearch/util/log"
+	"github.com/vearch/vearch/internal/util/log"
 )
 
 // IEC Sizes.

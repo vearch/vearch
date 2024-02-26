@@ -23,18 +23,18 @@ import (
 	"time"
 
 	"github.com/cubefs/cubefs/depends/tiglabs/raft"
-	"github.com/vearch/vearch/client"
 	"github.com/vearch/vearch/config"
+	"github.com/vearch/vearch/internal/client"
+	_ "github.com/vearch/vearch/internal/ps/engine/gammacb"
+	"github.com/vearch/vearch/internal/ps/psutil"
+	"github.com/vearch/vearch/internal/ps/storage/raftstore"
+	"github.com/vearch/vearch/internal/util/atomic"
+	"github.com/vearch/vearch/internal/util/errutil"
+	"github.com/vearch/vearch/internal/util/log"
+	"github.com/vearch/vearch/internal/util/metrics/mserver"
+	"github.com/vearch/vearch/internal/util/routine"
+	rpc "github.com/vearch/vearch/internal/util/server/rpc"
 	"github.com/vearch/vearch/proto/entity"
-	_ "github.com/vearch/vearch/ps/engine/gammacb"
-	"github.com/vearch/vearch/ps/psutil"
-	"github.com/vearch/vearch/ps/storage/raftstore"
-	"github.com/vearch/vearch/util/atomic"
-	"github.com/vearch/vearch/util/errutil"
-	"github.com/vearch/vearch/util/log"
-	"github.com/vearch/vearch/util/metrics/mserver"
-	"github.com/vearch/vearch/util/routine"
-	rpc "github.com/vearch/vearch/util/server/rpc"
 )
 
 const maxTryTime = 5

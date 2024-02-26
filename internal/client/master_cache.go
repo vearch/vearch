@@ -29,10 +29,10 @@ import (
 	"github.com/vearch/vearch/config"
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/proto/vearchpb"
-	"github.com/vearch/vearch/util/cbjson"
-	"github.com/vearch/vearch/util/errutil"
-	"github.com/vearch/vearch/util/log"
-	"github.com/vearch/vearch/util/vearchlog"
+	"github.com/vearch/vearch/internal/util/cbjson"
+	"github.com/vearch/vearch/internal/util/errutil"
+	"github.com/vearch/vearch/internal/util/log"
+	"github.com/vearch/vearch/internal/util/vearchlog"
 	"go.etcd.io/etcd/api/v3/mvccpb"
 )
 

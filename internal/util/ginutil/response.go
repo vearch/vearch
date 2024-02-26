@@ -22,8 +22,8 @@ import (
 	"github.com/bytedance/sonic"
 	"github.com/gin-gonic/gin"
 	"github.com/vearch/vearch/proto/vearchpb"
-	"github.com/vearch/vearch/util/log"
-	"github.com/vearch/vearch/util/netutil"
+	"github.com/vearch/vearch/internal/util/log"
+	"github.com/vearch/vearch/internal/util/netutil"
 )
 
 type Response struct {

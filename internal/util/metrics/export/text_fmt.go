@@ -20,8 +20,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/vearch/vearch/util/cbbytes"
-	"github.com/vearch/vearch/util/metrics"
+	"github.com/vearch/vearch/internal/util/cbbytes"
+	"github.com/vearch/vearch/internal/util/metrics"
 )
 
 var (

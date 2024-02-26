@@ -21,7 +21,7 @@ import (
 
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/proto/vearchpb"
-	"github.com/vearch/vearch/util/log"
+	"github.com/vearch/vearch/internal/util/log"
 )
 
 type RpcHander interface {

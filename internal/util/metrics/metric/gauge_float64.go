@@ -19,7 +19,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/vearch/vearch/util/metrics"
+	"github.com/vearch/vearch/internal/util/metrics"
 )
 
 var _ metrics.Metric = &GaugeFloat64{}

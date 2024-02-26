@@ -4,7 +4,7 @@ import (
 	"sync"
 
 	"github.com/vearch/vearch/proto/entity"
-	"github.com/vearch/vearch/util/atomic"
+	"github.com/vearch/vearch/internal/util/atomic"
 )
 
 type ReplicaRoundRobin struct {

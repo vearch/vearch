@@ -22,8 +22,8 @@ import (
 	"runtime"
 	rpprof "runtime/pprof"
 
-	"github.com/vearch/vearch/util/gogc"
-	"github.com/vearch/vearch/util/log"
+	"github.com/vearch/vearch/internal/util/gogc"
+	"github.com/vearch/vearch/internal/util/log"
 )
 
 func StartPprofService(addr string) (*http.ServeMux, error) {

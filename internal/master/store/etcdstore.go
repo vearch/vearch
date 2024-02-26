@@ -21,7 +21,7 @@ import (
 	"time"
 
 	"github.com/vearch/vearch/config"
-	"github.com/vearch/vearch/util/cbbytes"
+	"github.com/vearch/vearch/internal/util/cbbytes"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/client/v3/concurrency"
 )

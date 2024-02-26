@@ -8,7 +8,7 @@
 package gamma
 
 import (
-	"github.com/vearch/vearch/engine/idl/fbs-gen/go/gamma_api"
+	"github.com/vearch/vearch/internal/engine/idl/fbs-gen/go/gamma_api"
 )
 
 type BatchResult struct {

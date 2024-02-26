@@ -24,10 +24,10 @@ import (
 	"github.com/vearch/vearch/config"
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/proto/vearchpb"
-	"github.com/vearch/vearch/ps/engine"
-	"github.com/vearch/vearch/ps/psutil"
-	"github.com/vearch/vearch/ps/storage/raftstore"
-	"github.com/vearch/vearch/util/log"
+	"github.com/vearch/vearch/internal/ps/engine"
+	"github.com/vearch/vearch/internal/ps/psutil"
+	"github.com/vearch/vearch/internal/ps/storage/raftstore"
+	"github.com/vearch/vearch/internal/util/log"
 )
 
 type Base interface {

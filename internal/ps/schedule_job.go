@@ -20,9 +20,9 @@ import (
 
 	"github.com/vearch/vearch/config"
 	"github.com/vearch/vearch/proto/entity"
-	"github.com/vearch/vearch/ps/psutil"
-	"github.com/vearch/vearch/util/log"
-	"github.com/vearch/vearch/util/slice"
+	"github.com/vearch/vearch/internal/ps/psutil"
+	"github.com/vearch/vearch/internal/util/log"
+	"github.com/vearch/vearch/internal/util/slice"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 

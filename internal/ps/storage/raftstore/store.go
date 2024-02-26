@@ -25,13 +25,13 @@ import (
 	"github.com/cubefs/cubefs/depends/tiglabs/raft"
 	"github.com/cubefs/cubefs/depends/tiglabs/raft/proto"
 	"github.com/cubefs/cubefs/depends/tiglabs/raft/storage/wal"
-	"github.com/vearch/vearch/client"
 	"github.com/vearch/vearch/config"
+	"github.com/vearch/vearch/internal/client"
+	"github.com/vearch/vearch/internal/ps/engine/register"
+	"github.com/vearch/vearch/internal/ps/psutil"
+	"github.com/vearch/vearch/internal/ps/storage"
+	"github.com/vearch/vearch/internal/util/log"
 	"github.com/vearch/vearch/proto/entity"
-	"github.com/vearch/vearch/ps/engine/register"
-	"github.com/vearch/vearch/ps/psutil"
-	"github.com/vearch/vearch/ps/storage"
-	"github.com/vearch/vearch/util/log"
 )
 
 // Store is the default implementation of PartitionStore interface which
