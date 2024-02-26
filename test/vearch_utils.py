@@ -503,6 +503,7 @@ def process_query_error_data(items):
         empty_filter,
         wrong_range_filter_name,
         wrong_term_filter_name,
+        out_of_bounds_ids,
     ) = items[5]
 
     max_document_ids_length = 501
@@ -570,6 +571,8 @@ def process_query_error_data(items):
     if empty_filter:
         data["query"]["filter"] = []
 
+    if out_of_bounds_ids:
+        data["query"]["document_ids"] = [str(max_document_ids_length + 1)]
     json_str = json.dumps(data)
 
     if not wrong_vector:

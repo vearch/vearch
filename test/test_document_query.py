@@ -122,10 +122,11 @@ class TestDocumentQueryBadCase:
             [12, "empty_filter"],
             [13, "wrong_range_filter_name"],
             [14, "wrong_term_filter_name"],
+            [15, "out_of_bounds_ids"],
         ],
     )
     def test_vearch_document_query_badcase(self, index, wrong_type):
-        wrong_parameters = [False for i in range(15)]
+        wrong_parameters = [False for i in range(16)]
         wrong_parameters[index] = True
         query_error(self.logger, 1, 1, self.xb, "query", wrong_parameters)
 

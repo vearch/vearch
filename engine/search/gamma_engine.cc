@@ -739,7 +739,7 @@ int GammaEngine::GetDoc(int docid, Doc &doc, bool next) {
       }
     }
     if (docid >= max_docid_) {
-      return 0;
+      return -1;
     }
   } else if (docids_bitmap_->Test(docid)) {
     LOG(DEBUG) << space_name_ << " docid [" << docid << "] is deleted!";
