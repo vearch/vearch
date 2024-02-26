@@ -18,7 +18,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"runtime"
@@ -374,7 +373,7 @@ type HttpReply struct {
 
 func LimitHandle(w http.ResponseWriter, r *http.Request) {
 	if r.Body != nil {
-		io.Copy(ioutil.Discard, r.Body)
+		io.Copy(io.Discard, r.Body)
 	}
 	Error(w, "server busy, please wait for a while and retry", http.StatusTooManyRequests)
 }

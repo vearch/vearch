@@ -3,7 +3,7 @@ package gammacb
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
+	"io/fs"
 	"math"
 	"os"
 	"path/filepath"
@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	// 每次传输10M
+	// trasport 10M everytime
 	buf_size = 1024000 * 10
 )
 
@@ -28,7 +28,7 @@ type GammaSnapshot struct {
 	sn           int64
 	index        int64
 	path         string
-	infos        []os.FileInfo
+	infos        []fs.DirEntry
 	absFileNames []string
 	reader       *os.File
 	size         int64
@@ -110,10 +110,10 @@ func (g *GammaSnapshot) Close() {
 func (ge *gammaEngine) NewSnapshot() (proto.Snapshot, error) {
 	ge.lock.RLock()
 	defer ge.lock.RUnlock()
-	infos, _ := ioutil.ReadDir(ge.path)
+	infos, _ := os.ReadDir(ge.path)
 	fileName := filepath.Join(ge.path, indexSn)
 	log.Debug("new snapshot ge path is [%+v]", fileName)
-	b, err := ioutil.ReadFile(fileName)
+	b, err := os.ReadFile(fileName)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, err

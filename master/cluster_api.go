@@ -18,7 +18,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -389,7 +389,7 @@ func (ca *clusterAPI) modifyEngineCfg(c *gin.Context) {
 	defer errutil.CatchError(&err)
 	dbName := c.Param(dbName)
 	sapceName := c.Param(spaceName)
-	data, err := ioutil.ReadAll(c.Request.Body)
+	data, err := io.ReadAll(c.Request.Body)
 	errutil.ThrowError(err)
 	log.Debug("engine config json data is [%+v]", string(data))
 	cacheCfg := &entity.EngineCfg{}

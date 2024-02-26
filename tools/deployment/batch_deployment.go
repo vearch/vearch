@@ -19,7 +19,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net"
 	"os"
@@ -70,7 +69,7 @@ func main() {
 
 	binPath := args[0]
 
-	bytes, err := ioutil.ReadFile(confDir + "/conf.json")
+	bytes, err := os.ReadFile(confDir + "/conf.json")
 
 	if err != nil {
 		panic(err)

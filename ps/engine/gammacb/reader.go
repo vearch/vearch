@@ -19,7 +19,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -90,7 +89,7 @@ func (ri *readerImpl) ReadSN(ctx context.Context) (int64, error) {
 	ri.engine.lock.RLock()
 	defer ri.engine.lock.RUnlock()
 	fileName := filepath.Join(ri.engine.path, indexSn)
-	b, err := ioutil.ReadFile(fileName)
+	b, err := os.ReadFile(fileName)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return 0, nil
@@ -128,8 +127,6 @@ func (ri *readerImpl) Capacity(ctx context.Context) (int64, error) {
 	if gammaEngine == nil {
 		return 0, vearchlog.LogErrAndReturn(vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_IS_CLOSED, nil))
 	}
-
-	//ioutil2.DirSize(ri.engine.path) TODO remove it
 
 	var status gamma.MemoryInfo
 	gamma.GetEngineMemoryInfo(gammaEngine, &status)

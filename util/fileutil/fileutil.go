@@ -1,14 +1,14 @@
 package fileutil
 
 import (
-	"io/ioutil"
+	"io/fs"
 	"os"
 	"path/filepath"
 )
 
 // get all fieInfo
-func GetAllFiles(dirPth string) (files []os.FileInfo, err error) {
-	fis, err := ioutil.ReadDir(filepath.Clean(filepath.ToSlash(dirPth)))
+func GetAllFiles(dirPth string) (files []fs.DirEntry, err error) {
+	fis, err := os.ReadDir(filepath.Clean(filepath.ToSlash(dirPth)))
 	if err != nil {
 		return nil, err
 	}
@@ -29,7 +29,7 @@ func GetAllFiles(dirPth string) (files []os.FileInfo, err error) {
 
 // get all fileNames
 func GetAllFileNames(dirPth string) (files []string, err error) {
-	fis, err := ioutil.ReadDir(filepath.Clean(filepath.ToSlash(dirPth)))
+	fis, err := os.ReadDir(filepath.Clean(filepath.ToSlash(dirPth)))
 	if err != nil {
 		return nil, err
 	}
