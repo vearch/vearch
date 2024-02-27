@@ -13,7 +13,6 @@ __pycache__/
 
 # Test binary, build with `go test -c`
 *.test
-config/config.toml
 test/grpc_client.go
 test/.pytest_cache/
 test/sift*
