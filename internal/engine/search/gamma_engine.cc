@@ -919,10 +919,11 @@ void GammaEngine::GetMemoryInfo(MemoryInfo &memory_info) {
   vec_manager_->GetTotalMemBytes(index_mem_bytes, vec_mem_bytes);
 
   long total_mem_b = 0;
-  long dense_b = 0, sparse_b = 0;
-  if (field_range_index_) {
-    total_mem_b += field_range_index_->MemorySize(dense_b, sparse_b);
-  }
+  // TODO: add lock in field_range_index_->MemorySize to prevent crash
+  // long dense_b = 0, sparse_b = 0;
+  // if (field_range_index_) {
+  //   total_mem_b += field_range_index_->MemorySize(dense_b, sparse_b);
+  // }
 
   // long total_mem_kb = total_mem_b / 1024;
   // long total_mem_mb = total_mem_kb / 1024;

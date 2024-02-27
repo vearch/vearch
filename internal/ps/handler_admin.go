@@ -208,11 +208,11 @@ func (pih *PartitionInfoHandler) Execute(ctx context.Context, req *vearchpb.Part
 			value.Path = store.GetPartition().Path
 			value.RaftStatus = store.Status()
 
-			size, err := store.GetEngine().Reader().Capacity(ctx)
-			if err != nil {
-				return err
-			}
-			value.Size = size
+			// size, err := store.GetEngine().Reader().Capacity(ctx)
+			// if err != nil {
+			// 	return err
+			// }
+			// value.Size = size
 		}
 
 		pis = append(pis, value)
@@ -250,15 +250,15 @@ func (sh *StatsHandler) Execute(ctx context.Context, req *vearchpb.PartitionData
 			return
 		}
 
-		size, err := store.GetEngine().Reader().Capacity(ctx)
-		if err != nil {
-			err = fmt.Errorf("got capacity from engine err:[%s]", err.Error())
-			pi.Error = err.Error()
-			return
-		}
+		// size, err := store.GetEngine().Reader().Capacity(ctx)
+		// if err != nil {
+		// 	err = fmt.Errorf("got capacity from engine err:[%s]", err.Error())
+		// 	pi.Error = err.Error()
+		// 	return
+		// }
 
 		pi.DocNum = docNum
-		pi.Size = size
+		pi.Size = 0
 		pi.Path = store.GetPartition().Path
 		pi.Unreachable = store.GetUnreachable(uint64(pid))
 		pi.Status = store.GetPartition().GetStatus()
