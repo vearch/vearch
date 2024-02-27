@@ -5,7 +5,7 @@
 #### modify config 
 
    1. cd config 
-   2. modify config.toml.example file
+   2. modify config.toml
    3. such as deploy two master pod,get master pod ip
    4. modify address to new ip 
    5. IP such as "192.168.0.1","192.168.0.2":

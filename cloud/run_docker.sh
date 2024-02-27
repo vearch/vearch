@@ -23,7 +23,7 @@ echo "Make Vearch Image"
 ./build.sh
 
 echo "Start service by all in one model"
-cat ../config/config.toml.example >config.toml
+cp ../config/config.toml .
 nohup docker run --privileged -p 8817:8817 -p 9001:9001 -v $PWD/config.toml:/vearch/config.toml vearch/vearch:$VERSION all &
 
 echo "good luck service is ready you can visit http://127.0.0.1:9001 to use it"

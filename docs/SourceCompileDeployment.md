@@ -7,14 +7,15 @@
  2. vearch deploy image address: https://hub.docker.com/r/vearch/vearch/tags
 
 #### Use Vearch Image Deploy
- 1. docker pull vearch/vearch:latest
- 2. one docker deploy or distributed deployment
-    1. ```If deploy a docker start vearch,master,ps,router start together: cat vearch/config/config.toml.example > config.toml nohup docker run -p 8817:8817 -p 9001:9001 -v $PWD/config.toml:/vearch/config.toml  vearch/vearch:latest all &```
-    
-    2. ```If distributed deploy ,modify vearch/config/config.toml and start separately```
-    3. ```Modify vearch/config/config.toml ,refer the step 'Local Model'```
-    4. ```Start separately image, modify step i 'all' to 'master' and 'ps' and 'router' ,master image must first start```
-
+ 1. If deploy a docker start vearch, master, ps, router start together
+   ```
+   cp vearch/config/config.toml .
+   nohup docker run -p 8817:8817 -p 9001:9001 -v $PWD/config.toml:/vearch/config.toml vearch/vearch:latest all &
+   ```
+ 
+ 2. If distributed deploy, modify vearch/config/config.toml and start separately.
+ 3. Modify vearch/config/config.toml, refer the step 'Local Model'
+ 4. Start separately image, modify step i 'all' to 'master' and 'ps' and 'router', master image must first start
 #### Use Base Image Compile And Deploy
  1. take vearch_env:latest as an example
  2. docker pull vearch/vearch_env:latest
@@ -65,7 +66,7 @@
    * generate config file conf.toml
      
 ```
-cp config/config.toml.example conf.toml
+cp config/config.toml conf.toml
 ```
    * start
 

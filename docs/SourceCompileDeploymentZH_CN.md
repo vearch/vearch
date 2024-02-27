@@ -7,13 +7,15 @@
  2. vearch部署镜像地址: https://hub.docker.com/r/vearch/vearch/tags
 
 #### 使用Vearch镜像部署
- 1. docker pull vearch/vearch:latest
- 2. 一个docker部署或分布式部署
-    1. ```If deploy a docker start vearch,master,ps,router start together: cat vearch/config/config.toml.example > config.toml nohup docker run -p 8817:8817 -p 9001:9001 -v $PWD/config.toml:/vearch/config.toml  vearch/vearch:latest all &```
-    
-    2. ```If distributed deploy ,modify vearch/config/config.toml and start separately```
-    3. ```Modify vearch/config/config.toml ,refer the step 'Local Model'```
-    4. ```Start separately image, modify step i 'all' to 'master' and 'ps' and 'router' ,master image must first start```
+ 1. 如果部署时用docker同时启动master, ps, router
+   ```
+   cp vearch/config/config.toml .
+   nohup docker run -p 8817:8817 -p 9001:9001 -v $PWD/config.toml:/vearch/config.toml vearch/vearch:latest all &
+   ```
+ 
+ 2. 如果使用分布式部署，修改vearch/config/config.toml，分别启动.
+ 3. 参考步骤 '单机模式' 修改vearch/config/config.toml.
+ 4. 分别启动镜像，将角色从all修改为master，ps，router，必须首先启动master.
 
 #### 使用基础镜像编译和部署
  1. 以vearch_env:latest为例
@@ -65,7 +67,7 @@
    * 配置文件conf.toml
      
 ```
-cp config/config.toml.example conf.toml
+cp config/config.toml conf.toml
 ```
    * 执行
 

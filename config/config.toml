@@ -1,6 +1,6 @@
 [global]
     # the name will validate join cluster by same name
-    name = "cbdb"
+    name = "vearch"
     # specify which resources to use to create space
     resource_name = "default"
     # you data save to disk path ,If you are in a production environment, You'd better set absolute paths
@@ -24,7 +24,7 @@
 
 # self_manage_etcd = true,means manage etcd by yourself,need provide additional configuration
 [etcd]
-    #etcd server ip or domain
+    # etcd server ip or domain
     address = ["127.0.0.1"]
     # advertise_client_urls AND listen_client_urls
     etcd_client_port = 2379
@@ -34,9 +34,9 @@
 
 # if you are master you'd better set all config for router and ps and router and ps use default config it so cool
 [[masters]]
-    #name machine name for cluster
+    # name machine name for cluster
     name = "m1"
-    #ip or domain
+    # ip or domain
     address = "127.0.0.1"
     # api port for http server
     api_port = 8817
@@ -65,21 +65,21 @@
 [ps]
     # port for server
     rpc_port = 8081
-    ps_heartbeat_timeout = 5 #seconds
-    #raft config begin
+    ps_heartbeat_timeout = 5 # seconds
+    # raft config begin
     raft_heartbeat_port = 8898
     raft_replicate_port = 8899
-    heartbeat-interval = 200 #ms
+    heartbeat-interval = 200 # ms
     raft_retain_logs = 20000000
     raft_replica_concurrency = 1
     raft_snap_concurrency = 1
     raft_truncate_count = 500000
-    #when behind leader this value,will stop the server for search
+    # when behind leader this value, will stop the server for search
     raft_diff_count = 10000
     # engine config
     engine_dwpt_num = 8
     pprof_port = 6060
-    # if set true , this ps only use in db meta config
+    # if set true, this ps only use in db meta config
     private = false
     # seconds
     flush_time_interval = 600

@@ -13,7 +13,7 @@ Vearch is aimed to build a simple and fast image retrieval system. Through this 
 1. Start Vearch system by docker-compose.
 ```shell
 cd cloud
-cp ../config/config.toml.example config.toml
+cp ../config/config.toml .
 docker-compose up
 ```
 

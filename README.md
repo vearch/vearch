@@ -49,7 +49,7 @@ $ helm install my-release ./charts -f ./charts/values.yaml
 #### Start by docker-compose
 ```
 $ cd cloud
-$ cp ../config/config.toml.example config.toml
+$ cp ../config/config.toml .
 $ docker-compose up
 ```
 
