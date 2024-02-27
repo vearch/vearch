@@ -33,7 +33,7 @@ elif [ `expr substr ${OS} 1 5` == "Linux" ];then
         python_tag=$(echo ${PYBIN} | cut -d '/' -f4)
         "${PYBIN}/pip" uninstall vearch --yes
         "${PYBIN}/pip" install "wheelhouse/vearch-${VERSION}-${python_tag}-manylinux_2_17_x86_64.manylinux2014_x86_64.whl"
-         "${PYBIN}/python" -c "import vearch"
+        "${PYBIN}/python" -c "import vearch"
     done
 elif [];then
     echo "Windows not support!!!"

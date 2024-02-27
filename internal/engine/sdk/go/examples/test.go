@@ -20,7 +20,7 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/vearch/vearch/engine/sdk/go/gamma"
+	"github.com/vearch/vearch/internal/engine/sdk/go/gamma"
 	"github.com/vearch/vearch/proto/vearchpb"
 	"golang.org/x/exp/mmap"
 )
