@@ -90,7 +90,7 @@ function build_vearch() {
   export LIBRARY_PATH=$LIBRARY_PATH:$GAMMAOUT
 
   echo "build vearch"
-  go build -a -tags="vector" -ldflags "$flags" -o $BUILDOUT/vearch $ROOT/startup.go
+  go build -a -tags="vector" -ldflags "$flags" -o $BUILDOUT/vearch $ROOT/cmd/vearch/startup.go
   echo "build deploy tool"
   go build -a -ldflags "$flags" -o $BUILDOUT/batch_deployment $ROOT/tools/deployment/batch_deployment.go
 }

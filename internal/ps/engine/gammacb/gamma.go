@@ -25,7 +25,7 @@ import (
 	"unsafe"
 
 	"github.com/spf13/cast"
-	"github.com/vearch/vearch/config"
+	"github.com/vearch/vearch/internal/config"
 	"github.com/vearch/vearch/internal/engine/sdk/go/gamma"
 	"github.com/vearch/vearch/internal/ps/engine"
 	"github.com/vearch/vearch/internal/ps/engine/mapping"

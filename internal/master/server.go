@@ -23,7 +23,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/internal/client"
-	"github.com/vearch/vearch/config"
+	"github.com/vearch/vearch/internal/config"
 	"github.com/vearch/vearch/internal/util/errutil"
 	"github.com/vearch/vearch/internal/util/log"
 	"go.etcd.io/etcd/server/v3/embed"

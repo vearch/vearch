@@ -25,7 +25,7 @@ import (
 	"github.com/shirou/gopsutil/mem"
 	"github.com/shirou/gopsutil/net"
 	"github.com/shirou/gopsutil/process"
-	"github.com/vearch/vearch/config"
+	"github.com/vearch/vearch/internal/config"
 	"github.com/vearch/vearch/internal/util/log"
 	"github.com/vearch/vearch/internal/util/metrics"
 	"github.com/vearch/vearch/internal/util/metrics/metric"

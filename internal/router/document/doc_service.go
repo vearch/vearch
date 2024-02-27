@@ -21,8 +21,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/vearch/vearch/config"
 	"github.com/vearch/vearch/internal/client"
+	"github.com/vearch/vearch/internal/config"
 	"github.com/vearch/vearch/internal/ps/engine/sortorder"
 	"github.com/vearch/vearch/internal/util/log"
 	"github.com/vearch/vearch/proto/entity"

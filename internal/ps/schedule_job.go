@@ -18,11 +18,11 @@ import (
 	"context"
 	"time"
 
-	"github.com/vearch/vearch/config"
-	"github.com/vearch/vearch/proto/entity"
+	"github.com/vearch/vearch/internal/config"
 	"github.com/vearch/vearch/internal/ps/psutil"
 	"github.com/vearch/vearch/internal/util/log"
 	"github.com/vearch/vearch/internal/util/slice"
+	"github.com/vearch/vearch/proto/entity"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 

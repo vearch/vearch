@@ -27,10 +27,10 @@ import (
 	"github.com/smallnest/rpcx/client"
 	"github.com/smallnest/rpcx/share"
 	"github.com/spf13/cast"
-	"github.com/vearch/vearch/config"
+	"github.com/vearch/vearch/internal/config"
+	"github.com/vearch/vearch/internal/util/log"
 	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/proto/vearchpb"
-	"github.com/vearch/vearch/internal/util/log"
 )
 
 var defaultConcurrentNum int = 2000

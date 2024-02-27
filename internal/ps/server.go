@@ -23,8 +23,8 @@ import (
 	"time"
 
 	"github.com/cubefs/cubefs/depends/tiglabs/raft"
-	"github.com/vearch/vearch/config"
 	"github.com/vearch/vearch/internal/client"
+	"github.com/vearch/vearch/internal/config"
 	_ "github.com/vearch/vearch/internal/ps/engine/gammacb"
 	"github.com/vearch/vearch/internal/ps/psutil"
 	"github.com/vearch/vearch/internal/ps/storage/raftstore"

@@ -25,9 +25,8 @@ import (
 	"time"
 
 	"github.com/spf13/cast"
-	"github.com/vearch/vearch/config"
+	"github.com/vearch/vearch/internal/config"
 	"github.com/vearch/vearch/internal/master"
-	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/internal/ps"
 	"github.com/vearch/vearch/internal/router"
 	"github.com/vearch/vearch/internal/util/log"
@@ -36,6 +35,7 @@ import (
 	"github.com/vearch/vearch/internal/util/signals"
 	"github.com/vearch/vearch/internal/util/tracer"
 	"github.com/vearch/vearch/internal/util/vearchlog"
+	"github.com/vearch/vearch/proto/entity"
 )
 
 var (

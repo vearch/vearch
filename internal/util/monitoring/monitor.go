@@ -21,7 +21,7 @@ import (
 	prometheus "github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cast"
-	"github.com/vearch/vearch/config"
+	"github.com/vearch/vearch/internal/config"
 	"github.com/vearch/vearch/internal/util/log"
 )
 

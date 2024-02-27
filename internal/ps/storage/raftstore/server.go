@@ -22,7 +22,7 @@ import (
 
 	"github.com/cubefs/cubefs/depends/tiglabs/raft"
 	"github.com/spf13/cast"
-	"github.com/vearch/vearch/config"
+	"github.com/vearch/vearch/internal/config"
 	"github.com/vearch/vearch/internal/util/log"
 	"github.com/vearch/vearch/proto/entity"
 )

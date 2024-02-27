@@ -27,15 +27,15 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/internal/client"
-	"github.com/vearch/vearch/config"
-	"github.com/vearch/vearch/proto/entity"
-	"github.com/vearch/vearch/proto/vearchpb"
+	"github.com/vearch/vearch/internal/config"
 	"github.com/vearch/vearch/internal/ps/engine/mapping"
 	"github.com/vearch/vearch/internal/util"
 	"github.com/vearch/vearch/internal/util/cbjson"
 	"github.com/vearch/vearch/internal/util/errutil"
 	"github.com/vearch/vearch/internal/util/log"
 	"github.com/vearch/vearch/internal/util/slice"
+	"github.com/vearch/vearch/proto/entity"
+	"github.com/vearch/vearch/proto/vearchpb"
 	"go.etcd.io/etcd/client/v3/concurrency"
 )
 

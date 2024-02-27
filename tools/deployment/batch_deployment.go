@@ -30,7 +30,7 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/pkg/sftp"
-	"github.com/vearch/vearch/config"
+	"github.com/vearch/vearch/internal/config"
 	"golang.org/x/crypto/ssh"
 )
 
