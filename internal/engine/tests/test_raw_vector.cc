@@ -23,7 +23,6 @@
 #include <string>
 #include <thread>
 
-#include "storage/segment.h"
 #include "test.h"
 #include "util/utils.h"
 #include "vector/raw_vector_factory.h"
@@ -189,7 +188,7 @@ void TestRawVectorNormal(VectorStorageType store_type, bool compress = false) {
 
   RawVector *raw_vector = tig_gamma::RawVectorFactory::Create(
       meta_info, store_type, root_path, store_params, doc_bitmap);
-  assert(0 == raw_vector->Init(name, false, false));
+  assert(0 == raw_vector->Init(name, false));
   int doc_num = nadd;
   for (int i = 0; i < doc_num; i++) {
     if (i % 100 == 0) cerr << "add i=" << i << endl;
@@ -237,7 +236,7 @@ void TestRawVectorDumpLoad(VectorStorageType store_type,
 
   RawVector *raw_vector = RawVectorFactory::Create(
       meta_info, store_type, root_path, store_params, doc_bitmap);
-  ASSERT_EQ(0, raw_vector->Init(name, false, false));
+  ASSERT_EQ(0, raw_vector->Init(name, false));
 
   int doc_num = 500;
   AddToRawVector(raw_vector, 0, doc_num, dimension);
@@ -258,7 +257,7 @@ void TestRawVectorDumpLoad(VectorStorageType store_type,
   raw_vector = RawVectorFactory::Create(meta_info, store_type, root_path,
                                         store_params, doc_bitmap);
   ASSERT_NE(nullptr, raw_vector);
-  ASSERT_EQ(0, raw_vector->Init(name, false, false));
+  ASSERT_EQ(0, raw_vector->Init(name, false));
   Load(raw_vector, load_num);
   ValidateVector(raw_vector, update_num, load_num - update_num * 2, dimension);
   ValidateVector(raw_vector, 0, update_num, dimension, 0.5f);
@@ -273,7 +272,7 @@ void TestRawVectorDumpLoad(VectorStorageType store_type,
   raw_vector = RawVectorFactory::Create(meta_info, store_type, root_path,
                                         store_params, doc_bitmap);
   ASSERT_NE(nullptr, raw_vector);
-  ASSERT_EQ(0, raw_vector->Init(name, false, false));
+  ASSERT_EQ(0, raw_vector->Init(name, false));
   ASSERT_EQ(0, Load(raw_vector, load_num));
   ValidateVector(raw_vector, 0, update_num, dimension, 0.5f);
   ValidateVector(raw_vector, 100, load_num - update_num, dimension);
@@ -293,7 +292,7 @@ void TestRawVectorDumpLoad(VectorStorageType store_type,
                                         store_params, doc_bitmap);
 
   ASSERT_NE(nullptr, raw_vector);
-  ASSERT_EQ(0, raw_vector->Init(name, false, false));
+  ASSERT_EQ(0, raw_vector->Init(name, false));
   ASSERT_EQ(0, Load(raw_vector, load_num));
   ValidateVector(raw_vector, 0, update_num, dimension, 0.5f);
   ValidateVector(raw_vector, 400, update_num, dimension, 0.8f);

@@ -33,7 +33,7 @@ class TableTest : public ::testing::Test {
       LOG(ERROR) << "Cannot create bitmap!";
       return;
     }
-    table = new Table("./table", false);
+    table = new Table("./table", "ts_space");
   }
 
   // You can define per-test tear-down logic as usual.
@@ -157,14 +157,14 @@ class TableTest : public ::testing::Test {
     return -1;
   }
 
-  void CreateFieldValue(std::vector<struct Field> &fields_table, int value, bool has_id) {
+  void CreateFieldValue(std::unordered_map<std::string, struct Field> &fields_table, int value, bool has_id) {
     for(size_t j = 0; j < field_names.size(); j++) {
       struct Field field;
       if (field_names[j] == "_id" && !has_id) continue;
       field.name = field_names[j];
       table->GetFieldType(field.name, field.datatype);
       CreateValue(value, field.value, field.datatype);
-      fields_table.push_back(field);
+      fields_table[field_names[j]]= field;
     }
   }
 
@@ -177,7 +177,7 @@ class TableTest : public ::testing::Test {
       } else {
         key = std::to_string(i);
       }
-      std::vector<struct Field> fields_table;
+      std::unordered_map<std::string, struct Field> fields_table;
       CreateFieldValue(fields_table, i, true);
       if(table->Add(key, fields_table, i))
         return -1;
@@ -197,15 +197,15 @@ class TableTest : public ::testing::Test {
     Doc doc;
     if(table->GetDocInfo(key, doc, fields))
       return -1;
-    std::vector<struct Field> &table_fields = doc.TableFields();
-    for (size_t j = 0; j < table_fields.size(); j++) {
+    auto &table_fields = doc.TableFields();
+    for (auto &f: table_fields) {
       tig_gamma::DataType datatype;
-      table->GetFieldType(table_fields[j].name, datatype);
-      if(table_fields[j].name == "_id") {
-        if(GetValue(doc_id, table_fields[j].value, datatype))
+      table->GetFieldType(f.second.name, datatype);
+      if(f.second.name == "_id") {
+        if(GetValue(doc_id, f.second.value, datatype))
           return -2;
       } else {
-        if(GetValue(value, table_fields[j].value, datatype))
+        if(GetValue(value, f.second.value, datatype))
           return -3;
       }
     }
@@ -227,7 +227,7 @@ class TableTest : public ::testing::Test {
     int update_value = 555555;
     // update
     for (size_t i = 0; i< update_ids.size(); i++) {
-      std::vector<struct Field> fields;
+      std::unordered_map<std::string, struct Field> fields;
       CreateFieldValue(fields, update_value, false);
       table->Update(fields, update_ids[i]);
     }

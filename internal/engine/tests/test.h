@@ -368,13 +368,6 @@ float random_float(float min, float max, unsigned int seed = 0) {
   return u(e);
 }
 
-int TestMigrateThread(struct Options &opt) {
-  auto func_Migrate_doc = std::bind(&TestMigrateDataImpl, opt);
-  std::thread t(func_Migrate_doc);
-  t.detach();
-  return 0;
-}
-
 int AddDocToEngine(struct Options &opt, int doc_num, int interval = 0) {
   double cost = 0;
   for (int i = 0; i < doc_num; ++i) {
@@ -402,9 +395,6 @@ int AddDocToEngine(struct Options &opt, int doc_num, int interval = 0) {
         field.value = data;
         url = data;
       }
-
-      field.source = url;
-
       doc.AddField(std::move(field));
     }
     {
@@ -414,14 +404,12 @@ int AddDocToEngine(struct Options &opt, int doc_num, int interval = 0) {
 
       float f = random_float(0, 100);
       field.value = std::string((char *)(&f), sizeof(f));
-      field.source = "url";
       doc.AddField(std::move(field));
     }
 
     tig_gamma::Field field;
     field.name = opt.vector_name;
     field.datatype = tig_gamma::DataType::VECTOR;
-    field.source = url;
     int len = opt.d * sizeof(float);
     if (opt.retrieval_type == "BINARYIVF") {
       len = opt.d * sizeof(char) / 8;
@@ -441,9 +429,6 @@ int AddDocToEngine(struct Options &opt, int doc_num, int interval = 0) {
     cost += end - start;
     free(doc_str);
     ++opt.doc_id;
-    if (i == (doc_num / 10) * 9) {
-      TestMigrateThread(opt);
-    }
     if (interval > 0) {
       std::this_thread::sleep_for(std::chrono::milliseconds(interval));
     }
@@ -485,8 +470,6 @@ int BatchAddDocToEngine(struct Options &opt, int doc_num, int interval = 0) {
           url = data;
         }
 
-        field.source = url;
-
         doc.AddField(std::move(field));
       }
 
@@ -497,14 +480,12 @@ int BatchAddDocToEngine(struct Options &opt, int doc_num, int interval = 0) {
 
         float f = random_float(0, 100);
         field.value = std::string((char *)(&f), sizeof(f));
-        field.source = "url";
         doc.AddField(std::move(field));
       }
 
       tig_gamma::Field field;
       field.name = opt.vector_name;
       field.datatype = tig_gamma::DataType::VECTOR;
-      field.source = url;
       int len = opt.d * sizeof(float);
       if (opt.retrieval_type == "BINARYIVF") {
         len = opt.d * sizeof(char) / 8;
@@ -776,11 +757,10 @@ void ReadScalarFile(struct Options &opt) {
 void UpdateThread(struct Options &opt) {
   ReadScalarFile(opt);
   auto DocAddField = [&](tig_gamma::Doc &doc, std::string name,
-                         std::string source, std::string val,
+                        std::string val,
                          tig_gamma::DataType data_type) {
     tig_gamma::Field field;
     field.name = name;
-    field.source = source;
     field.datatype = data_type;
     field.value = val;
     doc.AddField(field);
@@ -790,11 +770,11 @@ void UpdateThread(struct Options &opt) {
     auto fields = doc.TableFields();
     std::stringstream ss;
     for (auto &f : fields) {
-      if (f.datatype == tig_gamma::DataType::INT) {
-        int val = *(int *)(f.value.c_str());
+      if (f.second.datatype == tig_gamma::DataType::INT) {
+        int val = *(int *)(f.second.value.c_str());
         ss << val << ", ";
       } else {
-        auto val = f.value;
+        auto val = f.second.value;
         ss << val << ", ";
       }
     }
@@ -834,15 +814,15 @@ void UpdateThread(struct Options &opt) {
           value = data;
         }
       }
-      DocAddField(doc, name, "abc", value, data_type);
+      DocAddField(doc, name, value, data_type);
     }
     {
       float val = 0;
       std::string data((char *)&val, sizeof(val));
-      DocAddField(doc, "float", "abc", data, tig_gamma::DataType::FLOAT);
+      DocAddField(doc, "float", data, tig_gamma::DataType::FLOAT);
       data = std::string((char *)(opt.feature + (uint64_t)doc_id * opt.d),
                          opt.d * sizeof(float));
-      DocAddField(doc, opt.vector_name, "abc", data,
+      DocAddField(doc, opt.vector_name, data,
                   tig_gamma::DataType::VECTOR);
     }
 
