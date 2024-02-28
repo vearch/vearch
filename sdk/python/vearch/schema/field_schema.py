@@ -1,0 +1,2 @@
+class FieldSchema(object):
+    pass

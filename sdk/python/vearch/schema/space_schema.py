@@ -1,0 +1,2 @@
+class SpaceScema(object):
+    pass
