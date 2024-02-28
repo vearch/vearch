@@ -11,9 +11,9 @@
 
 #include "idl/fbs-gen/c/config_generated.h"
 #include "idl/fbs-gen/c/doc_generated.h"
-#include "gamma_raw_data.h"
 #include "idl/fbs-gen/c/response_generated.h"
 #include "idl/fbs-gen/c/table_generated.h"
+#include "raw_data.h"
 
 namespace tig_gamma {
 
@@ -86,7 +86,9 @@ class TableInfo : public RawData {
 
   const std::vector<std::string> &RetrievalTypes() { return retrieval_types_; }
 
-  const std::vector<std::string> &RetrievalParams() { return retrieval_params_; }
+  const std::vector<std::string> &RetrievalParams() {
+    return retrieval_params_;
+  }
 
   void SetRetrievalTypes(std::vector<std::string> &retrieval_types) {
     retrieval_types_ = retrieval_types;

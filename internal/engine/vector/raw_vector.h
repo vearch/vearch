@@ -11,7 +11,7 @@
 #include <string>
 #include <vector>
 
-#include "c_api/api_data/gamma_doc.h"
+#include "c_api/api_data/doc.h"
 #include "index/retrieval_model.h"
 #include "io/io_common.h"
 #include "util/bitmap_manager.h"

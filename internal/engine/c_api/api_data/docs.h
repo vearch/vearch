@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include "gamma_doc.h"
+#include "doc.h"
 
 namespace tig_gamma {
 

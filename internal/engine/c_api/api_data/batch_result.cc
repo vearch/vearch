@@ -5,7 +5,7 @@
  * found in the LICENSE file in the root directory of this source tree.
  */
 
-#include "gamma_batch_result.h"
+#include "batch_result.h"
 
 #include "util/log.h"
 #include "util/utils.h"

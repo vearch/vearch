@@ -15,13 +15,13 @@
 #include <sstream>
 #include <string>
 
-#include "api_data/gamma_batch_result.h"
-#include "api_data/gamma_config.h"
-#include "api_data/gamma_doc.h"
-#include "api_data/gamma_engine_status.h"
-#include "api_data/gamma_memory_info.h"
-#include "api_data/gamma_response.h"
-#include "api_data/gamma_table.h"
+#include "api_data/batch_result.h"
+#include "api_data/config.h"
+#include "api_data/doc.h"
+#include "api_data/engine_status.h"
+#include "api_data/memory_info.h"
+#include "api_data/response.h"
+#include "api_data/table.h"
 #include "search/gamma_engine.h"
 #include "util/log.h"
 #include "util/utils.h"
@@ -204,13 +204,15 @@ int GetDocByID(void *engine, const char *docid, int docid_len, char **doc_str,
   return ret;
 }
 
-int GetDocByDocID(void *engine, int docid, char next, char **doc_str, int *len) {
+int GetDocByDocID(void *engine, int docid, char next, char **doc_str,
+                  int *len) {
   tig_gamma::Doc doc;
   bool bNext = false;
   if (next != 0) {
     bNext = true;
   }
-  int ret = static_cast<tig_gamma::GammaEngine *>(engine)->GetDoc(docid, doc, bNext);
+  int ret =
+      static_cast<tig_gamma::GammaEngine *>(engine)->GetDoc(docid, doc, bNext);
   doc.Serialize(doc_str, len);
   return ret;
 }
@@ -220,8 +222,10 @@ int BuildIndex(void *engine) {
   return ret;
 }
 
-int RebuildIndex(void *engine, int drop_before_rebuild, int limit_cpu, int describe) {
-  int ret = static_cast<tig_gamma::GammaEngine *>(engine)->RebuildIndex(drop_before_rebuild, limit_cpu, describe);
+int RebuildIndex(void *engine, int drop_before_rebuild, int limit_cpu,
+                 int describe) {
+  int ret = static_cast<tig_gamma::GammaEngine *>(engine)->RebuildIndex(
+      drop_before_rebuild, limit_cpu, describe);
   return ret;
 }
 

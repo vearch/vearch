@@ -10,14 +10,14 @@
 #include <condition_variable>
 #include <string>
 
-#include "c_api/api_data/gamma_batch_result.h"
-#include "c_api/api_data/gamma_doc.h"
-#include "c_api/api_data/gamma_docs.h"
-#include "c_api/api_data/gamma_engine_status.h"
-#include "c_api/api_data/gamma_memory_info.h"
-#include "c_api/api_data/gamma_request.h"
-#include "c_api/api_data/gamma_response.h"
-#include "c_api/api_data/gamma_table.h"
+#include "c_api/api_data/batch_result.h"
+#include "c_api/api_data/doc.h"
+#include "c_api/api_data/docs.h"
+#include "c_api/api_data/engine_status.h"
+#include "c_api/api_data/memory_info.h"
+#include "c_api/api_data/request.h"
+#include "c_api/api_data/response.h"
+#include "c_api/api_data/table.h"
 #include "io/async_flush.h"
 #include "table/field_range_index.h"
 #include "table/table.h"

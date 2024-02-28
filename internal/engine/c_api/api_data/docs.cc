@@ -5,15 +5,14 @@
  * found in the LICENSE file in the root directory of this source tree.
  */
 
-#include "gamma_docs.h"
-#include "util/utils.h"
+#include "docs.h"
+
 #include "util/log.h"
+#include "util/utils.h"
 
 namespace tig_gamma {
 
-int Docs::Serialize(char **out, int *out_len) {
-  return 0;
-}
+int Docs::Serialize(char **out, int *out_len) { return 0; }
 
 int Docs::Serialize(char ***out, int *out_len) {
   *out = (char **)malloc(doc_vec_.size() * sizeof(char *));
@@ -28,8 +27,7 @@ int Docs::Serialize(char ***out, int *out_len) {
   return 0;
 }
 
-void Docs::Deserialize(const char *data, int len) {
-}
+void Docs::Deserialize(const char *data, int len) {}
 
 void Docs::Deserialize(char **data, int len) {
   size_t docs_num = len;

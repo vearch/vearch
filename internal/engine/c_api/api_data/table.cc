@@ -5,7 +5,7 @@
  * found in the LICENSE file in the root directory of this source tree.
  */
 
-#include "gamma_table.h"
+#include "table.h"
 
 #include "util/utils.h"
 

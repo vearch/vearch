@@ -10,9 +10,9 @@
 #include <unordered_map>
 #include <vector>
 
-#include "gamma_raw_data.h"
-#include "gamma_table.h"
 #include "idl/fbs-gen/c/doc_generated.h"
+#include "raw_data.h"
+#include "table.h"
 
 namespace tig_gamma {
 
@@ -26,9 +26,7 @@ struct Field {
   Field() = default;
 
   Field(const Field &other)
-      : name(other.name),
-        value(other.value),
-        datatype(other.datatype) {}
+      : name(other.name), value(other.value), datatype(other.datatype) {}
 
   Field &operator=(const Field &other) {
     name = other.name;

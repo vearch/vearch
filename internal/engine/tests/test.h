@@ -27,13 +27,13 @@
 #include <utility>
 #include <vector>
 
-#include "c_api/api_data/gamma_batch_result.h"
-#include "c_api/api_data/gamma_config.h"
-#include "c_api/api_data/gamma_docs.h"
-#include "c_api/api_data/gamma_engine_status.h"
-#include "c_api/api_data/gamma_request.h"
-#include "c_api/api_data/gamma_response.h"
-#include "c_api/api_data/gamma_table.h"
+#include "c_api/api_data/batch_result.h"
+#include "c_api/api_data/config.h"
+#include "c_api/api_data/docs.h"
+#include "c_api/api_data/engine_status.h"
+#include "c_api/api_data/request.h"
+#include "c_api/api_data/response.h"
+#include "c_api/api_data/table.h"
 #include "c_api/gamma_api.h"
 #include "faiss/IndexFlat.h"
 #include "faiss/IndexIVFPQ.h"
@@ -756,8 +756,7 @@ void ReadScalarFile(struct Options &opt) {
 
 void UpdateThread(struct Options &opt) {
   ReadScalarFile(opt);
-  auto DocAddField = [&](tig_gamma::Doc &doc, std::string name,
-                        std::string val,
+  auto DocAddField = [&](tig_gamma::Doc &doc, std::string name, std::string val,
                          tig_gamma::DataType data_type) {
     tig_gamma::Field field;
     field.name = name;
@@ -822,8 +821,7 @@ void UpdateThread(struct Options &opt) {
       DocAddField(doc, "float", data, tig_gamma::DataType::FLOAT);
       data = std::string((char *)(opt.feature + (uint64_t)doc_id * opt.d),
                          opt.d * sizeof(float));
-      DocAddField(doc, opt.vector_name, data,
-                  tig_gamma::DataType::VECTOR);
+      DocAddField(doc, opt.vector_name, data, tig_gamma::DataType::VECTOR);
     }
 
     {

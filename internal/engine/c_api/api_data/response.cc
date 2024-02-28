@@ -5,9 +5,9 @@
  * found in the LICENSE file in the root directory of this source tree.
  */
 
-#include "gamma_response.h"
+#include "response.h"
 
-#include "c_api/api_data/gamma_doc.h"
+#include "doc.h"
 #include "table/table.h"
 #include "util/log.h"
 #include "util/utils.h"

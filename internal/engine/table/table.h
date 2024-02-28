@@ -11,9 +11,9 @@
 #include <string>
 #include <vector>
 
-#include "c_api/api_data/gamma_batch_result.h"
-#include "c_api/api_data/gamma_doc.h"
-#include "c_api/api_data/gamma_table.h"
+#include "c_api/api_data/batch_result.h"
+#include "c_api/api_data/doc.h"
+#include "c_api/api_data/table.h"
 #include "io/io_common.h"
 #include "rocksdb/db.h"
 #include "rocksdb/options.h"

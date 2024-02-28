@@ -10,8 +10,8 @@
 #include <vector>
 
 #include "common/common_query_data.h"
-#include "gamma_raw_data.h"
 #include "idl/fbs-gen/c/request_generated.h"
+#include "raw_data.h"
 
 namespace tig_gamma {
 

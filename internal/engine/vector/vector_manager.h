@@ -11,7 +11,7 @@
 #include <map>
 #include <string>
 
-#include "c_api/api_data/gamma_config.h"
+#include "c_api/api_data/config.h"
 #include "common/gamma_common_data.h"
 #include "index/retrieval_model.h"
 #include "util/bitmap_manager.h"

@@ -21,26 +21,26 @@ typedef int64_t size_t;
 #include <iostream>
 
 #include "c_api/gamma_api.h"
-#include "c_api/api_data/gamma_cpp_api.h"
-#include "c_api/api_data/gamma_raw_data.h"
-#include "c_api/api_data/gamma_request.h"
-#include "c_api/api_data/gamma_response.h"
-#include "c_api/api_data/gamma_table.h"
-#include "c_api/api_data/gamma_doc.h"
-#include "c_api/api_data/gamma_docs.h"
-#include "c_api/api_data/gamma_batch_result.h"
+#include "c_api/api_data/cpp_api.h"
+#include "c_api/api_data/raw_data.h"
+#include "c_api/api_data/request.h"
+#include "c_api/api_data/response.h"
+#include "c_api/api_data/table.h"
+#include "c_api/api_data/doc.h"
+#include "c_api/api_data/docs.h"
+#include "c_api/api_data/batch_result.h"
 #include "common/common_query_data.h"
 %}
 
-%include "c_api/api_data/gamma_raw_data.h"
+%include "c_api/api_data/raw_data.h"
 %include "common/common_query_data.h"
-%include "c_api/api_data/gamma_request.h"
-%include "c_api/api_data/gamma_response.h"
-%include "c_api/api_data/gamma_table.h"
-%include "c_api/api_data/gamma_doc.h"
-%include "c_api/api_data/gamma_docs.h"
-%include "c_api/api_data/gamma_batch_result.h"
-%include "c_api/api_data/gamma_cpp_api.h"
+%include "c_api/api_data/request.h"
+%include "c_api/api_data/response.h"
+%include "c_api/api_data/table.h"
+%include "c_api/api_data/doc.h"
+%include "c_api/api_data/docs.h"
+%include "c_api/api_data/batch_result.h"
+%include "c_api/api_data/cpp_api.h"
 
 %inline%{
     void *swigInitEngine(unsigned char *pConfig, int len){
@@ -117,7 +117,7 @@ typedef int64_t size_t;
     std::vector<unsigned char> swigGetDocByDocID(void *engine, int docid){
         char *doc_str = NULL;
         int len = 0;
-        int res = GetDocByDocID(engine, docid, &doc_str, &len);
+        int res = GetDocByDocID(engine, docid, false, &doc_str, &len);
         if(res == 0){
             std::vector<unsigned char> vec_doc(len);
             memcpy(vec_doc.data(), doc_str, len);
@@ -202,7 +202,7 @@ typedef int64_t size_t;
     }
 
     template <typename T>
-    tig_gamma::Field CreateScalarField(const std::string &name, const T &value, int len, const std::string &source, int data_type) {
+    tig_gamma::Field CreateScalarField(const std::string &name, const T &value, int len, int data_type) {
         tig_gamma::Field field;
         field.name = name;
         if (data_type == DataType::STRING)
@@ -212,16 +212,14 @@ typedef int64_t size_t;
             memcpy(const_cast<char *>(value_str.c_str()), &value, len);
             field.value = value_str;
         }
-        field.source = source;
         field.datatype = (tig_gamma::DataType)data_type;
         return field; 
     }
 
-    tig_gamma::Field CreateVectorField(const std::string &name, uint8_t *data, int len, const std::string &source, int data_type) {
+    tig_gamma::Field CreateVectorField(const std::string &name, uint8_t *data, int len, int data_type) {
         tig_gamma::Field field;
         field.name = name;
         field.value = std::string((char *)data, len);
-        field.source = source;
         field.datatype = (tig_gamma::DataType)data_type;
         return field; 
     }

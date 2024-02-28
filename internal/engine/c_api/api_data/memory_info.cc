@@ -5,7 +5,7 @@
  * found in the LICENSE file in the root directory of this source tree.
  */
 
-#include "gamma_memory_info.h"
+#include "memory_info.h"
 
 namespace tig_gamma {
 
@@ -62,4 +62,4 @@ void MemoryInfo::SetBitmapMem(long bitmap_mem_bytes) {
   bitmap_mem_bytes_ = bitmap_mem_bytes;
 }
 
-} // namespace tig_gamma
+}  // namespace tig_gamma

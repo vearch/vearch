@@ -12,7 +12,7 @@
 
 #include <atomic>
 
-#include "c_api/api_data/gamma_request.h"
+#include "c_api/api_data/request.h"
 #include "index/retrieval_model.h"
 #include "realtime/realtime_invert_index.h"
 #include "vector/raw_vector.h"

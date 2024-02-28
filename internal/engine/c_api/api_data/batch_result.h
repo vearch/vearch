@@ -10,7 +10,7 @@
 #include <vector>
 
 #include "idl/fbs-gen/c/batch_result_generated.h"
-#include "gamma_raw_data.h"
+#include "raw_data.h"
 
 namespace tig_gamma {
 

@@ -5,7 +5,7 @@
  * found in the LICENSE file in the root directory of this source tree.
  */
 
-#include "gamma_engine_status.h"
+#include "engine_status.h"
 
 namespace tig_gamma {
 

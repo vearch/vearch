@@ -2,7 +2,7 @@
 set -e -x
 
 VERSION="lastest"
-ROOT=$(dirname "$PWD")/../..
+ROOT=$(dirname "$PWD")/../../..
 
 function get_version() {
   VEARCH_VERSION_MAJOR=`cat ${ROOT}/VERSION | grep VEARCH_VERSION_MAJOR | awk -F' ' '{print $2}'`
