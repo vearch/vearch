@@ -25,7 +25,7 @@
 
 #include "common/error_code.h"
 #include "faiss/invlists/BlockInvertedLists.h"
-#include "index/gamma_index_io.h"
+#include "index/index_io.h"
 #include "omp.h"
 #include "util/bitmap.h"
 #include "util/utils.h"

@@ -16,8 +16,7 @@
  *
  */
 
-#ifndef GAMMA_INDEX_IVF_FLAT_H_
-#define GAMMA_INDEX_IVF_FLAT_H_
+#pragma once
 
 #pragma once
 
@@ -25,7 +24,7 @@
 #include <faiss/utils/distances.h>
 
 #include "gamma_scanner.h"
-#include "realtime/realtime_invert_index.h"
+#include "index/realtime/realtime_invert_index.h"
 
 namespace tig_gamma {
 
@@ -169,5 +168,3 @@ struct GammaIndexIVFFlat : faiss::IndexIVFFlat, public RetrievalModel {
 };
 
 }  // namespace tig_gamma
-
-#endif

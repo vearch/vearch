@@ -8,7 +8,7 @@
 #include <fstream>
 #include <iostream>
 
-#include "index/gamma_index.h"
+#include "index/index.h"
 
 using namespace std;
 

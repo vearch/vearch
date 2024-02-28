@@ -24,7 +24,7 @@
 #include "index/impl/gamma_index_ivfpqfs.h"
 #include "index/impl/scann/gamma_index_vearch.h"
 #include "response.h"
-#include "search/gamma_engine.h"
+#include "search/engine.h"
 #include "table.h"
 #include "util/log.h"
 #include "util/utils.h"

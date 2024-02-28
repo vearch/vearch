@@ -25,7 +25,7 @@
 
 #include "common/error_code.h"
 #include "faiss/IndexFlat.h"
-#include "index/gamma_index_io.h"
+#include "index/index_io.h"
 #include "omp.h"
 #include "util/bitmap.h"
 #include "util/utils.h"
@@ -522,8 +522,7 @@ bool GammaIVFPQIndex::Add(int n, const uint8_t *vec) {
 }
 
 void GammaIVFPQIndex::Describe() {
-  if (rt_invert_index_ptr_)
-    rt_invert_index_ptr_->PrintBucketSize();
+  if (rt_invert_index_ptr_) rt_invert_index_ptr_->PrintBucketSize();
 }
 
 int GammaIVFPQIndex::Search(RetrievalContext *retrieval_context, int n,
@@ -780,10 +779,10 @@ void GammaIVFPQIndex::search_preassigned(
 
   bool parallel_mode = retrieval_params->ParallelOnQueries() ? 0 : 1;
 
-  bool do_parallel = omp_get_max_threads() >= 2 &&
-          (parallel_mode == 0  ? n > 1
-              : parallel_mode == 1 ? nprobe > 1
-              : nprobe * n > 1);
+  bool do_parallel =
+      omp_get_max_threads() >= 2 && (parallel_mode == 0   ? n > 1
+                                     : parallel_mode == 1 ? nprobe > 1
+                                                          : nprobe * n > 1);
 
 #pragma omp parallel if (do_parallel) reduction(+ : ndis)
   {
@@ -841,10 +840,10 @@ void GammaIVFPQIndex::search_preassigned(
 
 #pragma omp for schedule(dynamic)
         for (int ik = 0; ik < nprobe; ik++) {
-          size_t nscan = scan_one_list(scanner, keys[i * nprobe + ik],
-                                coarse_dis[i * nprobe + ik], local_dis.data(),
-                                local_idx.data(), recall_num, this->nlist,
-                                this->invlists, store_pairs);
+          size_t nscan = scan_one_list(
+              scanner, keys[i * nprobe + ik], coarse_dis[i * nprobe + ik],
+              local_dis.data(), local_idx.data(), recall_num, this->nlist,
+              this->invlists, store_pairs);
           ndis += nscan;
           // can't do the test on max_codes
           if (retrieval_params->CollectMetrics()) {
@@ -904,7 +903,8 @@ void GammaIVFPQIndex::search_preassigned(
     }
   }  // parallel
   if (retrieval_params->CollectMetrics()) {
-    LOG(TRACE) << "parallel_mode: " << parallel_mode << ", nprobe: " << nprobe << ", ndis: " << ndis;
+    LOG(TRACE) << "parallel_mode: " << parallel_mode << ", nprobe: " << nprobe
+               << ", ndis: " << ndis;
   }
 #ifdef PERFORMANCE_TESTING
   std::string compute_msg = "compute ";

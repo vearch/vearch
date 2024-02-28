@@ -5,8 +5,7 @@
  * found in the LICENSE file in the root directory of this source tree.
  */
 
-#ifndef GAMMA_INDEX_IO_H_
-#define GAMMA_INDEX_IO_H_
+#pragma once
 
 #include "faiss/IndexIVFPQ.h"
 #include "faiss/VectorTransform.h"
@@ -145,7 +144,6 @@ struct FileIOWriter : faiss::IOWriter {
 int WriteInvertedLists(faiss::IOWriter *f,
                        realtime::RTInvertIndex *rt_invert_index);
 int ReadInvertedLists(faiss::IOReader *f,
-                      realtime::RTInvertIndex *rt_invert_index, int &indexed_vec_count);
+                      realtime::RTInvertIndex *rt_invert_index,
+                      int &indexed_vec_count);
 }  // namespace tig_gamma
-
-#endif

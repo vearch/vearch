@@ -5,8 +5,7 @@
  * found in the LICENSE file in the root directory of this source tree.
  */
 
-#ifndef REALTIME_INVERT_INDEX_H_
-#define REALTIME_INVERT_INDEX_H_
+#pragma once
 
 #include <stdlib.h>
 
@@ -104,5 +103,3 @@ struct RTInvertedLists : faiss::InvertedLists {
 }  // namespace realtime
 
 }  // namespace tig_gamma
-
-#endif

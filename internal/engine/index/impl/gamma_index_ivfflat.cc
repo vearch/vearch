@@ -31,7 +31,7 @@
 
 #include "common/error_code.h"
 #include "common/gamma_common_data.h"
-#include "index/gamma_index_io.h"
+#include "index/index_io.h"
 #include "vector/rocksdb_raw_vector.h"
 
 namespace tig_gamma {
@@ -372,10 +372,8 @@ bool GammaIndexIVFFlat::Add(int n, const uint8_t *vec) {
 }
 
 void GammaIndexIVFFlat::Describe() {
-  if (rt_invert_index_ptr_)
-    rt_invert_index_ptr_->PrintBucketSize();
+  if (rt_invert_index_ptr_) rt_invert_index_ptr_->PrintBucketSize();
 }
-
 
 int GammaIndexIVFFlat::Update(const std::vector<int64_t> &ids,
                               const std::vector<const uint8_t *> &vecs) {

@@ -13,8 +13,8 @@
 #include <atomic>
 
 #include "c_api/api_data/request.h"
+#include "index/realtime/realtime_invert_index.h"
 #include "index/retrieval_model.h"
-#include "realtime/realtime_invert_index.h"
 #include "vector/raw_vector.h"
 
 namespace tig_gamma {

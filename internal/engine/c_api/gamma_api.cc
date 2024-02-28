@@ -22,7 +22,7 @@
 #include "api_data/memory_info.h"
 #include "api_data/response.h"
 #include "api_data/table.h"
-#include "search/gamma_engine.h"
+#include "search/engine.h"
 #include "util/log.h"
 #include "util/utils.h"
 

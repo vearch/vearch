@@ -5,7 +5,7 @@
  * found in the LICENSE file in the root directory of this source tree.
  */
 
-#include "gamma_index.h"
+#include "index.h"
 
 #include <assert.h>
 
@@ -17,14 +17,14 @@
 #include "common/gamma_common_data.h"
 #include "faiss/IndexIVFFlat.h"
 #include "faiss/IndexIVFPQ.h"
-#include "search/gamma_engine.h"
-#include "search/gamma_table_io.h"
+#include "search/engine.h"
+#include "table/table_io.h"
 #include "util/log.h"
 #include "util/utils.h"
 #include "vector/raw_vector_factory.h"
 #ifdef USE_SCANN
 #include "index/impl/scann/scann_api.h"
-#endif // USE_SCANN
+#endif  // USE_SCANN
 
 namespace tig_gamma {
 
@@ -313,8 +313,8 @@ int IndexIVFPQ::load(const std::string &dir) {
 }
 
 #ifdef USE_SCANN
-IndexScann::IndexScann(size_t d, size_t nlist,
-                       size_t M, faiss::MetricType metric) {
+IndexScann::IndexScann(size_t d, size_t nlist, size_t M,
+                       faiss::MetricType metric) {
   this->d_ = d;
   if (metric == faiss::METRIC_L2)
     index_param =
@@ -405,7 +405,7 @@ int IndexScann::init(const std::string &index_param) {
 int IndexScann::init() { return init(index_param); }
 
 void IndexScann::train(idx_t n, const float *x) {
-  ScannTraining(vearch_index_, (const char *)x, n * d_ *sizeof(float), d_, 0);
+  ScannTraining(vearch_index_, (const char *)x, n * d_ * sizeof(float), d_, 0);
   is_trained_ = true;
 }
 
@@ -432,7 +432,7 @@ int IndexScann::load(const std::string &dir) {
   LOG(INFO) << "load not support now!";
   return -1;
 }
-#endif // USE_SCANN
+#endif  // USE_SCANN
 
 tig_gamma::Index *index_factory(int d, const char *description_in,
                                 faiss::MetricType metric) {

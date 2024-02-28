@@ -5,7 +5,8 @@
  * found in the LICENSE file in the root directory of this source tree.
  */
 
-#include "realtime/realtime_invert_index.h"
+#include "realtime_invert_index.h"
+
 #include "util/log.h"
 #include "util/utils.h"
 

@@ -1,6 +1,3 @@
-#--------------------------------------------
-#    GAMMA ENGINE 
-#--------------------------------------------
 cmake_minimum_required(VERSION 3.17)
 project(gamma_engine C CXX)
 
@@ -113,7 +110,7 @@ aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/index/impl DIR_SRCS)
 aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/index/impl/hnswlib DIR_SRCS)
 aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/index/impl/scann DIR_SRCS)
 aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/vector DIR_SRCS)
-aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/realtime DIR_SRCS)
+aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/index/realtime DIR_SRCS)
 aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/table DIR_SRCS)
 aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/io DIR_SRCS)
 
@@ -229,7 +226,7 @@ install(FILES ${GAMMA_C_API}/gamma_api.h DESTINATION include/gamma)
 # install(DIRECTORY ${PROJECT_SOURCE_DIR} DESTINATION include/gamma FILES_MATCHING PATTERN "*.h" PATTERN "build/*" EXCLUDE)
 install(DIRECTORY ${PROJECT_SOURCE_DIR}/index DESTINATION include/gamma FILES_MATCHING PATTERN "*.h")
 install(DIRECTORY ${PROJECT_SOURCE_DIR}/common DESTINATION include/gamma FILES_MATCHING PATTERN "*.h")
-install(DIRECTORY ${PROJECT_SOURCE_DIR}/realtime DESTINATION include/gamma FILES_MATCHING PATTERN "*.h")
+install(DIRECTORY ${PROJECT_SOURCE_DIR}/index/realtime DESTINATION include/gamma FILES_MATCHING PATTERN "*.h")
 install(DIRECTORY ${PROJECT_SOURCE_DIR}/search DESTINATION include/gamma FILES_MATCHING PATTERN "*.h")
 install(DIRECTORY ${PROJECT_SOURCE_DIR}/io DESTINATION include/gamma FILES_MATCHING PATTERN "*.h")
 install(DIRECTORY ${PROJECT_SOURCE_DIR}/table DESTINATION include/gamma FILES_MATCHING PATTERN "*.h")

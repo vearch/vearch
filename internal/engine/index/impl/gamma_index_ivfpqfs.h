@@ -17,8 +17,7 @@
  *
  */
 
-#ifndef GAMMA_INDEX_IVFPQFS_H_
-#define GAMMA_INDEX_IVFPQFS_H_
+#pragma once
 
 #include <unistd.h>
 
@@ -41,8 +40,8 @@
 #include "gamma_index_flat.h"
 #include "gamma_scanner.h"
 #include "index/impl/gamma_index_ivfpq.h"
+#include "index/realtime/realtime_invert_index.h"
 #include "index/retrieval_model.h"
-#include "realtime/realtime_invert_index.h"
 #include "table/field_range_index.h"
 #include "util/log.h"
 #include "util/utils.h"
@@ -300,5 +299,3 @@ struct GammaIVFPQFastScanIndex : GammaFLATIndex, faiss::IndexIVFPQFastScan {
 };
 
 }  // namespace tig_gamma
-
-#endif

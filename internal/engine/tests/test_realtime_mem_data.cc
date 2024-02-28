@@ -1,7 +1,6 @@
+#include "index/index_io.h"
+#include "realtime/realtime_mem_data.h"
 #include "test.h"
-#include "index/gamma_index_io.h"
-#include "realtime/realtime_mem_data.h"
-#include "realtime/realtime_mem_data.h"
 #include "util/bitmap_manager.h"
 #include "util/utils.h"
 
@@ -38,7 +37,7 @@ class RealTimeMemDataTest : public ::testing::Test {
     if (docids_bitmap->Init(init_bitmap_size) != 0) {
       LOG(ERROR) << "Cannot create bitmap!";
       return;
-    }  
+    }
     vid_mgr = new VIDMgr(false);
     bucket_keys = 100;
     bucket_keys_limit = bucket_keys * 10;
@@ -215,7 +214,8 @@ TEST_F(RealTimeMemDataTest, ExtendBucket) {
   // validate
   ASSERT_NE(old_invert_prt, realtime_data->cur_invert_ptr_);
   ASSERT_EQ(num, GetRetrievePos(bucket_no));
-  ASSERT_EQ((int)(bucket_keys * ExtendCoefficient(1)), GetBucketKeys(bucket_no));
+  ASSERT_EQ((int)(bucket_keys * ExtendCoefficient(1)),
+            GetBucketKeys(bucket_no));
   std::vector<long> retrieve_keys;
   std::vector<uint8_t> retrieve_codes;
   retrieve_keys.resize(num);
@@ -304,7 +304,8 @@ TEST_F(RealTimeMemDataTest, DumpLoad) {
   ASSERT_EQ(100, new_realtime_data->cur_invert_ptr_->cur_bucket_keys_[0]);
   ASSERT_EQ(expect_nums[1],
             new_realtime_data->cur_invert_ptr_->retrieve_idx_pos_[1]);
-  ASSERT_EQ((int)(bucket_keys * ExtendCoefficient(1)), new_realtime_data->cur_invert_ptr_->cur_bucket_keys_[1]);
+  ASSERT_EQ((int)(bucket_keys * ExtendCoefficient(1)),
+            new_realtime_data->cur_invert_ptr_->cur_bucket_keys_[1]);
   int vid = 0;
   for (int bno = 0; bno < 2; bno++) {
     vector<long> retrieve_keys(expect_nums[bno], 0);

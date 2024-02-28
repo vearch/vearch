@@ -5,7 +5,7 @@
  * found in the LICENSE file in the root directory of this source tree.
  */
 
-#include "gamma_table_io.h"
+#include "table_io.h"
 
 #include "util/log.h"
 
@@ -26,10 +26,12 @@ static void FReadByteArray(utils::FileIO *fio, std::string &ba) {
   fio->Read((void *)data, sizeof(char), len);
 
   ba = std::string(data, len);
-  delete []data;
+  delete[] data;
 }
 
-TableSchemaIO::TableSchemaIO(std::string &file_path) { fio = new utils::FileIO(file_path); }
+TableSchemaIO::TableSchemaIO(std::string &file_path) {
+  fio = new utils::FileIO(file_path);
+}
 
 TableSchemaIO::~TableSchemaIO() {
   if (fio) {

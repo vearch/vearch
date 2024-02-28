@@ -5,7 +5,7 @@
  * found in the LICENSE file in the root directory of this source tree.
  */
 
-#include "gamma_engine.h"
+#include "engine.h"
 
 #include <fcntl.h>
 #include <locale.h>
@@ -28,9 +28,9 @@
 #include "cjson/cJSON.h"
 #include "common/error_code.h"
 #include "common/gamma_common_data.h"
-#include "gamma_table_io.h"
 #include "io/raw_vector_io.h"
 #include "omp.h"
+#include "table/table_io.h"
 #include "util/bitmap.h"
 #include "util/log.h"
 #include "util/utils.h"
