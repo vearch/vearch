@@ -93,7 +93,7 @@ func ExportToClusterHandler(router *gin.Engine, masterService *masterService, se
 	router.Handle(http.MethodPost, "/space/:"+dbName+"/:"+spaceName, dh.PaincHandler, dh.TimeOutHandler, c.auth, c.updateSpace, dh.TimeOutEndHandler)
 	// new interface format
 	// router.Handle(http.MethodPost, "/space/create", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.createSpace, dh.TimeOutEndHandler)
-	router.Handle(http.MethodPost, "/space/describe", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.describeSpace, dh.TimeOutEndHandler)
+	router.Handle(http.MethodGet, "/space/describe", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.describeSpace, dh.TimeOutEndHandler)
 	// router.Handle(http.MethodPost, "/space/delete", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.deleteSpace, dh.TimeOutEndHandler)
 	// router.Handle(http.MethodPost, "/space/update", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.updateSpace, dh.TimeOutEndHandler)
 
@@ -357,20 +357,6 @@ func (ca *clusterAPI) describeSpace(c *gin.Context) {
 	detail_info := false
 	if detail == "true" {
 		detail_info = true
-	}
-	if dbName == "" || spaceName == "" {
-		spaceDescribeRequest := &entity.SpaceDescribeRequest{}
-		if err := c.ShouldBindJSON(spaceDescribeRequest); err != nil {
-			log.Error("describe space err: %s", err.Error())
-			ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
-			return
-		} else {
-			dbName = spaceDescribeRequest.DbName
-			spaceName = spaceDescribeRequest.SpaceName
-			if spaceDescribeRequest.Detail != nil {
-				detail_info = *spaceDescribeRequest.Detail
-			}
-		}
 	}
 
 	dbID, err := ca.masterService.Master().QueryDBName2Id(c, dbName)

@@ -1076,18 +1076,9 @@ def list_spaces(router_url: str, db_name: str):
     return resp.json()
 
 def describe_space(logger, router_url: str, db_name: str, space_name: str):
-    url = f"{router_url}/space/describe"
-    data = {"db_name": db_name, "space_name": space_name}
-    try:
-        resp = requests.post(url, json=data)
-        return resp.json()
-    except Exception as e:
-        logger.error(e)
-
-def describe_space_url_param(logger, router_url: str, db_name: str, space_name: str):
     url = f"{router_url}/space/describe?db_name={db_name}&space_name={space_name}&detail=true"
     try:
-        resp = requests.post(url)
+        resp = requests.get(url)
         return resp.json()
     except Exception as e:
         logger.error(e)
