@@ -1,9 +1,0 @@
-Effect Evaluation
-----------------
-
-
-
-Performance Evaluation
-----------------
-
-

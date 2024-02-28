@@ -54,17 +54,16 @@ $ docker-compose up
 ```
 
 #### Deploy by docker
-Quickly start with vearch docker image, please see [SourceCompileDeployment.md](docs/SourceCompileDeployment.md).
+Quickly start with vearch docker image, please see [DelopyByDocker](docs/DeployByDocker.md) | [docker编译部署](docs/DeployByDockerZH_CN.md).
 
 #### Compile by source code
-Quickly compile the source codes to build a distributed vector search system with RESTful API, please see [SourceCompileDeployment.md](docs/SourceCompileDeployment.md).
+Quickly compile the source codes, please see [SourceCompileDeployment](docs/SourceCompileDeployment.md) | [源码编译部署](docs/SourceCompileDeploymentZH_CN.md).
 
 
 ## APIs and Use Cases
 
 
 ### LowLevelAPI
-* [APILowLevel.md](docs/APILowLevel.md)
 * For GPU [APILowLevel.md](docs/APILowLevelOnGPU.md)
 
 
@@ -127,25 +126,7 @@ Welcome to register the company name in this issue: https://github.com/vearch/ve
 
 欢迎在此 issue https://github.com/vearch/vearch/issues/230 中登记公司名称
 
-![科大讯飞](docs/img/company/kedaxunfei.png)
-![飞搜科技](docs/img/company/faceall.png)
-![君库科技](docs/img/company/bigbigwork.png)
-![爱奇艺](docs/img/company/iqiyi.png)
-![人民科技](docs/img/company/peopletech.png)
-![趣头条](docs/img/company/qutoutiao.png)
-![网易严选](docs/img/company/wangyiyanxuan.png)
-![咸唐科技](docs/img/company/sunthang.png)
-![华为技术](docs/img/company/huawei.png)
-![OPPO](docs/img/company/oppo.png)
-![汽车之家](docs/img/company/autohome.png)
-![芯翌智能](docs/img/company/xforwardai.png)
-![图灵机器人](docs/img/company/turingapi.png)
-![金山云](docs/img/company/ksyun.png)
-![汇智通信](docs/img/company/teligen.png)
-![小红书](docs/img/company/xiaohongshu.png)
-![VIVO](docs/img/company/vivo.png)
-![京东](docs/img/company/jd.png)
-![中原消费金融](docs/img/company/zhongyuan_consumer_finance.jpg)
+![Users](docs/img/company/all.jpg)
 
 ## License
 
