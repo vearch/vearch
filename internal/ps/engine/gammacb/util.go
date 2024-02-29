@@ -16,7 +16,6 @@ package gammacb
 
 import (
 	"encoding/binary"
-	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -24,8 +23,6 @@ import (
 	"github.com/vearch/vearch/internal/engine/sdk/go/gamma"
 	"github.com/vearch/vearch/internal/ps/engine/mapping"
 	"github.com/vearch/vearch/internal/ps/engine/register"
-	"github.com/vearch/vearch/internal/util/cbjson"
-	"github.com/vearch/vearch/proto/entity"
 	"github.com/vearch/vearch/proto/vearchpb"
 )
 
@@ -55,31 +52,11 @@ func mapping2Table(cfg register.EngineConfig, m *mapping.IndexMapping) (*gamma.T
 		retrievalParam = string(engine.RetrievalParam)
 	}
 
-	var retrievalParamsArr []string
-	retrievalParams := &entity.RetrievalParams{}
-	if engine.RetrievalParams != nil {
-		err := cbjson.Unmarshal(engine.RetrievalParams, &retrievalParams.RetrievalParamArr)
-		if err != nil {
-			return nil, fmt.Errorf("retrieval_params Unmarshal error")
-		}
-		retrievalParamsArr = make([]string, len(retrievalParams.RetrievalParamArr))
-		for i := 0; i < len(retrievalParams.RetrievalParamArr); i++ {
-			v := retrievalParams.RetrievalParamArr[i]
-			retrievalParamsByte, err := json.Marshal(v)
-			if err != nil {
-				return nil, fmt.Errorf("retrieval_params Unmarshal error")
-			}
-			retrievalParamsArr[i] = string(retrievalParamsByte)
-		}
-	}
-
 	table := &gamma.Table{
-		Name:            cfg.Space.Name + "-" + cast.ToString(cfg.PartitionID),
-		IndexingSize:    int32(engine.IndexSize),
-		RetrievalType:   engine.RetrievalType,
-		RetrievalTypes:  engine.RetrievalTypes,
-		RetrievalParam:  retrievalParam,
-		RetrievalParams: retrievalParamsArr,
+		Name:           cfg.Space.Name + "-" + cast.ToString(cfg.PartitionID),
+		IndexingSize:   int32(engine.IndexSize),
+		RetrievalType:  engine.RetrievalType,
+		RetrievalParam: retrievalParam,
 	}
 
 	idTypeStr := engine.IdType

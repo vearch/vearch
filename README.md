@@ -54,7 +54,7 @@ $ docker-compose up
 ```
 
 #### Deploy by docker
-Quickly start with vearch docker image, please see [DelopyByDocker](docs/DeployByDocker.md) | [docker编译部署](docs/DeployByDockerZH_CN.md).
+Quickly start with vearch docker image, please see [DeployByDocker](docs/DeployByDocker.md) | [docker编译部署](docs/DeployByDockerZH_CN.md).
 
 #### Compile by source code
 Quickly compile the source codes, please see [SourceCompileDeployment](docs/SourceCompileDeployment.md) | [源码编译部署](docs/SourceCompileDeploymentZH_CN.md).

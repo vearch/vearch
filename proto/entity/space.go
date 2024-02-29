@@ -20,9 +20,8 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/vearch/vearch/proto/vearchpb"
 	"github.com/vearch/vearch/internal/util"
-	"github.com/vearch/vearch/internal/util/cbjson"
+	"github.com/vearch/vearch/proto/vearchpb"
 )
 
 const (
@@ -44,13 +43,11 @@ const (
 )
 
 type Engine struct {
-	IndexSize       int64           `json:"index_size"`
-	MetricType      string          `json:"metric_type,omitempty"`
-	RetrievalType   string          `json:"retrieval_type,omitempty"`
-	RetrievalTypes  []string        `json:"retrieval_types,omitempty"`
-	RetrievalParam  json.RawMessage `json:"retrieval_param,omitempty"`
-	RetrievalParams json.RawMessage `json:"retrieval_params,omitempty"`
-	IdType          string          `json:"id_type,omitempty"`
+	IndexSize      int64           `json:"index_size"`
+	MetricType     string          `json:"metric_type,omitempty"`
+	RetrievalType  string          `json:"retrieval_type,omitempty"`
+	RetrievalParam json.RawMessage `json:"retrieval_param,omitempty"`
+	IdType         string          `json:"id_type,omitempty"`
 }
 
 func NewDefaultEngine() *Engine {
@@ -187,13 +184,11 @@ func (engine *Engine) UnmarshalJSON(bs []byte) error {
 	}
 
 	tempEngine := &struct {
-		IndexSize       *int64          `json:"index_size"`
-		MetricType      string          `json:"metric_type,omitempty"`
-		RetrievalParam  json.RawMessage `json:"retrieval_param,omitempty"`
-		RetrievalParams json.RawMessage `json:"retrieval_params,omitempty"`
-		RetrievalType   string          `json:"retrieval_type,omitempty"`
-		RetrievalTypes  []string        `json:"retrieval_types,omitempty"`
-		IdType          string          `json:"id_type,omitempty"`
+		IndexSize      *int64          `json:"index_size"`
+		MetricType     string          `json:"metric_type,omitempty"`
+		RetrievalParam json.RawMessage `json:"retrieval_param,omitempty"`
+		RetrievalType  string          `json:"retrieval_type,omitempty"`
+		IdType         string          `json:"id_type,omitempty"`
 	}{}
 
 	if err := json.Unmarshal(bs, tempEngine); err != nil {
@@ -203,102 +198,12 @@ func (engine *Engine) UnmarshalJSON(bs []byte) error {
 
 	retrievalTypeMap := map[string]string{"IVFPQ": "IVFPQ", "IVFFLAT": "IVFFLAT", "BINARYIVF": "BINARYIVF", "FLAT": "FLAT",
 		"HNSW": "HNSW", "GPU": "GPU", "SSG": "SSG", "IVFPQ_RELAYOUT": "IVFPQ_RELAYOUT", "SCANN": "SCANN"}
-	var retrievalParamsArr []string
 	if tempEngine.RetrievalType == "" {
-		if tempEngine.RetrievalTypes == nil || len(tempEngine.RetrievalTypes) == 0 {
-			return fmt.Errorf("retrieval_type or retrieval_types is not null")
-		}
+		return fmt.Errorf("retrieval_type is null")
 	} else {
 		_, have := retrievalTypeMap[tempEngine.RetrievalType]
 		if !have {
 			return fmt.Errorf("retrieval_type not support :%s", tempEngine.RetrievalType)
-		}
-	}
-
-	retrievalParams := &RetrievalParams{}
-	if tempEngine.RetrievalTypes != nil && len(tempEngine.RetrievalTypes) > 0 {
-		for _, retrievalType := range tempEngine.RetrievalTypes {
-			_, have := retrievalTypeMap[retrievalType]
-			if !have {
-				return fmt.Errorf("retrieval_types not support:%s", retrievalType)
-			}
-		}
-		if tempEngine.RetrievalParams == nil {
-			return fmt.Errorf("retrieval_types not null and need retrieval_params param")
-		}
-
-		err := cbjson.Unmarshal(tempEngine.RetrievalParams, &retrievalParams.RetrievalParamArr)
-		if err != nil {
-			return fmt.Errorf("retrieval_params Unmarshal error")
-		}
-
-		if len(tempEngine.RetrievalTypes) != len(retrievalParams.RetrievalParamArr) {
-			return fmt.Errorf("retrieval_types lenth not equal retrieval_params lenth")
-		}
-	}
-
-	if tempEngine.RetrievalParams != nil {
-		if tempEngine.RetrievalTypes == nil {
-			return fmt.Errorf("retrieval_params is not null need retrieval_types is not null")
-		}
-		err := cbjson.Unmarshal(tempEngine.RetrievalParams, &retrievalParams.RetrievalParamArr)
-		if err != nil {
-			return fmt.Errorf("retrieval_params Unmarshal error")
-		}
-		retrievalParamsArr = make([]string, len(retrievalParams.RetrievalParamArr))
-		for i := 0; i < len(retrievalParams.RetrievalParamArr); i++ {
-			v := retrievalParams.RetrievalParamArr[i]
-			retrievalType := tempEngine.RetrievalTypes[i]
-			if strings.Compare(retrievalType, "HNSW") == 0 {
-				if v.Nlinks == 0 || v.EfConstruction == 0 {
-					return fmt.Errorf("HNSW index param is 0")
-				}
-				if tempEngine.IndexSize == nil || *tempEngine.IndexSize <= 0 {
-					tempEngine.IndexSize = util.PInt64(1)
-				}
-			} else if strings.Compare(retrievalType, "FLAT") == 0 {
-
-			} else if strings.Compare("BINARYIVF", retrievalType) == 0 ||
-				strings.Compare("IVFFLAT", retrievalType) == 0 {
-				if v.Ncentroids == 0 {
-					return fmt.Errorf(retrievalType + " index param is 0")
-				} else {
-					if tempEngine.IndexSize == nil || *tempEngine.IndexSize <= 0 {
-						tempEngine.IndexSize = util.PInt64(100000)
-					}
-				}
-				if *tempEngine.IndexSize < int64(v.Ncentroids) {
-					return fmt.Errorf(retrievalType+" index size:[%d] less than ncentroids:[%d] so can not to index", int64(*tempEngine.IndexSize), v.Ncentroids)
-				}
-			} else if strings.Compare("IVFPQ", retrievalType) == 0 ||
-				strings.Compare("SCANN", retrievalType) == 0 ||
-				strings.Compare("GPU", retrievalType) == 0 {
-
-				if v.Nsubvector == 0 || v.Ncentroids == 0 {
-					return fmt.Errorf(retrievalType + " index param is 0")
-				} else {
-					if tempEngine.IndexSize == nil || *tempEngine.IndexSize <= 0 {
-						tempEngine.IndexSize = util.PInt64(100000)
-					}
-				}
-				if *tempEngine.IndexSize < int64(v.Ncentroids) {
-					return fmt.Errorf(retrievalType+" index size:[%d] less than ncentroids:[%d] so can not to index", int64(*tempEngine.IndexSize), v.Ncentroids)
-				}
-			}
-			if v.MetricType == "" {
-				return fmt.Errorf("metric_type is null")
-			}
-
-			tempEngine.MetricType = v.MetricType
-			retrievalParamsByte, err := json.Marshal(v)
-			if err != nil {
-				return fmt.Errorf("retrievalParams to json err")
-			}
-			retrievalParamsArr[i] = string(retrievalParamsByte)
-		}
-	} else {
-		if tempEngine.IndexSize == nil {
-			tempEngine.IndexSize = util.PInt64(100000)
 		}
 	}
 
@@ -355,13 +260,11 @@ func (engine *Engine) UnmarshalJSON(bs []byte) error {
 	}
 
 	*engine = Engine{
-		IndexSize:       *tempEngine.IndexSize,
-		RetrievalParam:  tempEngine.RetrievalParam,
-		RetrievalParams: tempEngine.RetrievalParams,
-		MetricType:      tempEngine.MetricType,
-		RetrievalType:   tempEngine.RetrievalType,
-		RetrievalTypes:  tempEngine.RetrievalTypes,
-		IdType:          tempEngine.IdType,
+		IndexSize:      *tempEngine.IndexSize,
+		RetrievalParam: tempEngine.RetrievalParam,
+		MetricType:     tempEngine.MetricType,
+		RetrievalType:  tempEngine.RetrievalType,
+		IdType:         tempEngine.IdType,
 	}
 
 	return nil

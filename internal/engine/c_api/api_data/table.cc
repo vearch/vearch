@@ -37,9 +37,7 @@ int TableInfo::Serialize(char **out, int *out_len) {
       builder.CreateVector(field_info_vector),
       builder.CreateVector(vector_info_vector), indexing_size_, compress_mode_,
       builder.CreateString(retrieval_type_),
-      builder.CreateString(retrieval_param_),
-      builder.CreateVectorOfStrings(retrieval_types_),
-      builder.CreateVectorOfStrings(retrieval_params_));
+      builder.CreateString(retrieval_param_));
   builder.Finish(table);
   *out_len = builder.GetSize();
   *out = (char *)malloc(*out_len * sizeof(char));
@@ -82,16 +80,6 @@ void TableInfo::Deserialize(const char *data, int len) {
   retrieval_type_ = table_->retrieval_type()->str();
   retrieval_param_ = table_->retrieval_param()->str();
   compress_mode_ = table_->compress_mode();
-
-  retrieval_types_.resize(table_->retrieval_types()->size());
-  for (size_t i = 0; i < table_->retrieval_types()->size(); ++i) {
-    retrieval_types_[i] = table_->retrieval_types()->Get(i)->str();
-  }
-
-  retrieval_params_.resize(table_->retrieval_params()->size());
-  for (size_t i = 0; i < table_->retrieval_params()->size(); ++i) {
-    retrieval_params_[i] = table_->retrieval_params()->Get(i)->str();
-  }
 }
 
 std::string &TableInfo::Name() { return name_; }

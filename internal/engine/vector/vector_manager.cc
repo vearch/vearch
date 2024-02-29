@@ -280,15 +280,6 @@ int VectorManager::CreateVectorTable(TableInfo &table,
   if (table.RetrievalType() != "") {
     retrieval_types_.push_back(table.RetrievalType());
     retrieval_params_.push_back(table.RetrievalParam());
-  } else {
-    retrieval_types_ = table.RetrievalTypes();
-    retrieval_params_ = table.RetrievalParams();
-    for (std::string &type : retrieval_types_) {
-      if (type == "BINARYIVF" && retrieval_types_.size() > 1) {
-        LOG(ERROR) << "field can only has one model if it has BINARYIVF";
-        return PARAM_ERR;
-      }
-    }
   }
 
   for (size_t i = 0; i < vectors_infos.size(); i++) {

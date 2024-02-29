@@ -93,37 +93,7 @@ class Table(object):
             return self._tab.String(o + self._tab.Pos)
         return None
 
-    # Table
-    def RetrievalTypes(self, j):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(18))
-        if o != 0:
-            a = self._tab.Vector(o)
-            return self._tab.String(a + flatbuffers.number_types.UOffsetTFlags.py_type(j * 4))
-        return ""
-
-    # Table
-    def RetrievalTypesLength(self):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(18))
-        if o != 0:
-            return self._tab.VectorLen(o)
-        return 0
-
-    # Table
-    def RetrievalParams(self, j):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(20))
-        if o != 0:
-            a = self._tab.Vector(o)
-            return self._tab.String(a + flatbuffers.number_types.UOffsetTFlags.py_type(j * 4))
-        return ""
-
-    # Table
-    def RetrievalParamsLength(self):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(20))
-        if o != 0:
-            return self._tab.VectorLen(o)
-        return 0
-
-def TableStart(builder): builder.StartObject(9)
+def TableStart(builder): builder.StartObject(7)
 def TableAddName(builder, name): builder.PrependUOffsetTRelativeSlot(0, flatbuffers.number_types.UOffsetTFlags.py_type(name), 0)
 def TableAddFields(builder, fields): builder.PrependUOffsetTRelativeSlot(1, flatbuffers.number_types.UOffsetTFlags.py_type(fields), 0)
 def TableStartFieldsVector(builder, numElems): return builder.StartVector(4, numElems, 4)
@@ -133,8 +103,4 @@ def TableAddIndexingSize(builder, indexingSize): builder.PrependInt32Slot(3, ind
 def TableAddCompressMode(builder, compressMode): builder.PrependInt32Slot(4, compressMode, 0)
 def TableAddRetrievalType(builder, retrievalType): builder.PrependUOffsetTRelativeSlot(5, flatbuffers.number_types.UOffsetTFlags.py_type(retrievalType), 0)
 def TableAddRetrievalParam(builder, retrievalParam): builder.PrependUOffsetTRelativeSlot(6, flatbuffers.number_types.UOffsetTFlags.py_type(retrievalParam), 0)
-def TableAddRetrievalTypes(builder, retrievalTypes): builder.PrependUOffsetTRelativeSlot(7, flatbuffers.number_types.UOffsetTFlags.py_type(retrievalTypes), 0)
-def TableStartRetrievalTypesVector(builder, numElems): return builder.StartVector(4, numElems, 4)
-def TableAddRetrievalParams(builder, retrievalParams): builder.PrependUOffsetTRelativeSlot(8, flatbuffers.number_types.UOffsetTFlags.py_type(retrievalParams), 0)
-def TableStartRetrievalParamsVector(builder, numElems): return builder.StartVector(4, numElems, 4)
 def TableEnd(builder): return builder.EndObject()

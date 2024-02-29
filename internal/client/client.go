@@ -307,19 +307,6 @@ func (r *routerRequest) Execute() []*vearchpb.Item {
 			if strings.Compare(retrievalType, "BINARYIVF") != 0 {
 				isNormal = true
 			}
-		} else {
-			retrievalTypes := r.space.Engine.RetrievalTypes
-			if retrievalTypes != nil {
-				isBinaryivf := false
-				for _, retrievalType := range retrievalTypes {
-					if strings.Compare(retrievalType, "BINARYIVF") == 0 {
-						isBinaryivf = true
-					}
-				}
-				if !isBinaryivf {
-					isNormal = true
-				}
-			}
 		}
 
 		if isNormal {
@@ -669,19 +656,6 @@ func (r *routerRequest) SearchFieldSortExecute(sortOrder sortorder.SortOrder) *v
 	if retrievalType != "" {
 		if strings.Compare(retrievalType, "BINARYIVF") != 0 {
 			normalIsOrNot = true
-		}
-	} else {
-		retrievalTypes := r.space.Engine.RetrievalTypes
-		if retrievalTypes != nil {
-			isBinaryivf := false
-			for _, retrievalType := range retrievalTypes {
-				if strings.Compare(retrievalType, "BINARYIVF") == 0 {
-					isBinaryivf = true
-				}
-			}
-			if !isBinaryivf {
-				normalIsOrNot = true
-			}
 		}
 	}
 	if normalIsOrNot {

@@ -114,42 +114,8 @@ func (rcv *Table) RetrievalParam() []byte {
 	return nil
 }
 
-func (rcv *Table) RetrievalTypes(j int) []byte {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(18))
-	if o != 0 {
-		a := rcv._tab.Vector(o)
-		return rcv._tab.ByteVector(a + flatbuffers.UOffsetT(j*4))
-	}
-	return nil
-}
-
-func (rcv *Table) RetrievalTypesLength() int {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(18))
-	if o != 0 {
-		return rcv._tab.VectorLen(o)
-	}
-	return 0
-}
-
-func (rcv *Table) RetrievalParams(j int) []byte {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(20))
-	if o != 0 {
-		a := rcv._tab.Vector(o)
-		return rcv._tab.ByteVector(a + flatbuffers.UOffsetT(j*4))
-	}
-	return nil
-}
-
-func (rcv *Table) RetrievalParamsLength() int {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(20))
-	if o != 0 {
-		return rcv._tab.VectorLen(o)
-	}
-	return 0
-}
-
 func TableStart(builder *flatbuffers.Builder) {
-	builder.StartObject(9)
+	builder.StartObject(7)
 }
 func TableAddName(builder *flatbuffers.Builder, name flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(name), 0)
@@ -177,18 +143,6 @@ func TableAddRetrievalType(builder *flatbuffers.Builder, retrievalType flatbuffe
 }
 func TableAddRetrievalParam(builder *flatbuffers.Builder, retrievalParam flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(6, flatbuffers.UOffsetT(retrievalParam), 0)
-}
-func TableAddRetrievalTypes(builder *flatbuffers.Builder, retrievalTypes flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(7, flatbuffers.UOffsetT(retrievalTypes), 0)
-}
-func TableStartRetrievalTypesVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
-	return builder.StartVector(4, numElems, 4)
-}
-func TableAddRetrievalParams(builder *flatbuffers.Builder, retrievalParams flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(8, flatbuffers.UOffsetT(retrievalParams), 0)
-}
-func TableStartRetrievalParamsVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
-	return builder.StartVector(4, numElems, 4)
 }
 func TableEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

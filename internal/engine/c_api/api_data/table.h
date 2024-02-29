@@ -84,20 +84,6 @@ class TableInfo : public RawData {
 
   int Write(const std::string &path);
 
-  const std::vector<std::string> &RetrievalTypes() { return retrieval_types_; }
-
-  const std::vector<std::string> &RetrievalParams() {
-    return retrieval_params_;
-  }
-
-  void SetRetrievalTypes(std::vector<std::string> &retrieval_types) {
-    retrieval_types_ = retrieval_types;
-  }
-
-  void SetRetrievalParams(std::vector<std::string> &retrieval_params) {
-    retrieval_params_ = retrieval_params;
-  }
-
  private:
   gamma_api::Table *table_;
 
@@ -109,9 +95,6 @@ class TableInfo : public RawData {
   std::string retrieval_type_;
   std::string retrieval_param_;
   int compress_mode_;
-
-  std::vector<std::string> retrieval_types_;
-  std::vector<std::string> retrieval_params_;
 };
 
 }  // namespace tig_gamma

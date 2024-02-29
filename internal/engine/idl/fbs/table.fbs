@@ -26,8 +26,6 @@ table Table {
   compress_mode:int;         // 0: not compress, 1: table compress
   retrieval_type:string;     // IVFPQ, GPU, HNSW, BINARY
   retrieval_param:string;
-  retrieval_types:[string];
-  retrieval_params:[string];
 }
 
 root_type Table;
