@@ -1,8 +1,8 @@
 # Low-level API for vector search on GPU
 
-Most API are same to APILowLevel.md, here only list the different places.
+Most API are same to [Vearch Documents](https://vearch.readthedocs.io/en/latest/), here only list the different places.
 * **search size** and **nprobe** should not larger than 2048(CUDA >= 9.2).
-* Since GPU index does not support real time indexing, index_size should **set 0** to prevent auto indexing. After add documents, you should call `create index` `curl -XPOST {{ROUTER}}/test_vector_db/vector_space/_forcemerge` to build index.
+* Since GPU index does not support real time indexing, index_size should **set 0** to prevent auto indexing. After add documents, you should call `curl -XPOST {{ROUTER}}/test_vector_db/vector_space/_forcemerge` to build index.
 
 * Search is not supported while add or indexing.
 * GPU memory need 2GiB at least.
