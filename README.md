@@ -1,7 +1,9 @@
 <div align="center">
   <img src="docs/img/vearch_logo.png">
+  <p>
+    <a href="https://github.com/vearch/vearch/blob/master/README_ZH_CN.md">简体中文</a> | <a href="https://github.com/vearch/vearch/blob/master/README.md">English</a>
+  </p>
 </div>
-
 
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](./LICENSE)
 [![Build Status](https://github.com/vearch/vearch/actions/workflows/CI.yml/badge.svg)](https://github.com/vearch/vearch/actions/workflows/CI.yml)
@@ -21,7 +23,7 @@ Vearch is a cloud-native distributed vector database for efficient similarity se
 
 ## Document
 
-* [English](https://vearch.readthedocs.io/en/latest) | [中文](https://vearch.readthedocs.io/zh_CN/latest)
+* [Tutorial](https://vearch.readthedocs.io/en/latest)
 
 ## Quick start
 
@@ -45,15 +47,12 @@ $ cp ../config/config.toml .
 $ docker-compose up
 ```
 
-**Deploy by docker**: Quickly start with vearch docker image, please see [DeployByDocker](docs/DeployByDocker.md) | [docker编译部署](docs/DeployByDockerZH_CN.md).
+**Deploy by docker**: Quickly start with vearch docker image, please see [DeployByDocker](docs/DeployByDocker.md)
 
-**Compile by source code**: Quickly compile the source codes, please see [SourceCompileDeployment](docs/SourceCompileDeployment.md) | [源码编译部署](docs/SourceCompileDeploymentZH_CN.md).
+**Compile by source code**: Quickly compile the source codes, please see [SourceCompileDeployment](docs/SourceCompileDeployment.md)
 
 
 ## APIs and Use Cases
-
-
-**GPU**: For GPU [APILowLevel.md](docs/APILowLevelOnGPU.md)
 
 **VisualSearch**: Vearch can be leveraged to build a complete visual search system to index billions of images. The image retrieval plugin for object detection and feature extraction is also required. For more information, please refer to [Quickstart.md](docs/Quickstart.md).
 
@@ -71,7 +70,7 @@ Vearch Python SDK enables vearch to use locally. Vearch python sdk can be instal
 
 **Master**: Responsible for schema mananagement, cluster-level metadata, and resource coordination. 
 
-**Router**: Provides RESTful API: `upsert`  , `delete`  `search` and `query` ; request routing, and result merging.
+**Router**: Provides RESTful API: `upsert`, `delete`, `search` and `query`; request routing, and result merging.
 
 **PartitionServer (PS)**: Hosts document partitions with raft-based replication. Gamma is the core vector search engine implemented based on [faiss](https://github.com/facebookresearch/faiss). It provides the ability of storing, indexing and retrieving the vectors and scalars.
 
@@ -97,8 +96,6 @@ Our slack : https://vearchwrokspace.slack.com
 
 ## Known Users
 Welcome to register the company name in this issue: https://github.com/vearch/vearch/issues/230 (in order of registration)
-
-欢迎在此 issue https://github.com/vearch/vearch/issues/230 中登记公司名称
 
 ![Users](docs/img/company/all.jpg)
 
