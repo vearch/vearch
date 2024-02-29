@@ -12,17 +12,11 @@ Vearch is a cloud-native distributed vector database for efficient similarity se
 
 ## Key features
 
-### Hybrid search
+-  **Hybrid search**: Both vector search and scalar filtering.
 
-Both vector search and scalar filtering.
+- **Performance**: Fast vector retrieval - search from millions of objects in milliseconds. 
 
-### Performance
-
-Fast vector retrieval - search from millions of objects in milliseconds. 
-
-### Scalability & Reliability
-
-Replication and elastic scaling out. 
+- **Scalability & Reliability**: Replication and elastic scaling out. 
 
 
 ## Document
@@ -31,48 +25,40 @@ Replication and elastic scaling out.
 
 ## Quick start
 
-### Install Vearch
+**[Deploy vearch cluster on k8s](https://vearch.github.io/vearch-helm/)**
 
-#### [Deploy vearch cluster on k8s](https://vearch.github.io/vearch-helm/)
-Add charts through the repo
+**Add charts through the repo**
 ```
 $ helm repo add vearch https://vearch.github.io/vearch-helm
 $ helm repo update && helm install my-release vearch/vearch
 ```
-Add charts from local
+**Add charts from local**
 ```
-$ git clone https://github.com/vearch/vearch-helm.git
-$ cd vearch-helm
+$ git clone https://github.com/vearch/vearch-helm.git && cd vearch-helm
 $ helm install my-release ./charts -f ./charts/values.yaml
 ```
 
-#### Start by docker-compose
+**Start by docker-compose**
 ```
 $ cd cloud
 $ cp ../config/config.toml .
 $ docker-compose up
 ```
 
-#### Deploy by docker
-Quickly start with vearch docker image, please see [DeployByDocker](docs/DeployByDocker.md) | [docker编译部署](docs/DeployByDockerZH_CN.md).
+**Deploy by docker**: Quickly start with vearch docker image, please see [DeployByDocker](docs/DeployByDocker.md) | [docker编译部署](docs/DeployByDockerZH_CN.md).
 
-#### Compile by source code
-Quickly compile the source codes, please see [SourceCompileDeployment](docs/SourceCompileDeployment.md) | [源码编译部署](docs/SourceCompileDeploymentZH_CN.md).
+**Compile by source code**: Quickly compile the source codes, please see [SourceCompileDeployment](docs/SourceCompileDeployment.md) | [源码编译部署](docs/SourceCompileDeploymentZH_CN.md).
 
 
 ## APIs and Use Cases
 
 
-### LowLevelAPI
-* For GPU [APILowLevel.md](docs/APILowLevelOnGPU.md)
+**LowLevelAPI**: For GPU [APILowLevel.md](docs/APILowLevelOnGPU.md)
 
-
-### VisualSearchAPI
-* [APIVisualSearch.md](docs/APIVisualSearch.md)
+**VisualSearchAPI**: [APIVisualSearch.md](docs/APIVisualSearch.md)
 Vearch can be leveraged to build a complete visual search system to index billions of images. The image retrieval plugin for object detection and feature extraction is also required. For more information, please refer to [Quickstart.md](docs/Quickstart.md).
 
-### PythonSDKAPI
-* [APIPythonSDK.md](engine/sdk/python/docs/APIPythonSDK.md)
+**PythonSDKAPI**: [APIPythonSDK.md](internal/engine/sdk/python/docs/APIPythonSDK.md)
 Vearch Python SDK enables vearch to use locally. Vearch python sdk can be installed easily by pip install vearch.
 
 ## Components
@@ -84,22 +70,11 @@ Vearch Python SDK enables vearch to use locally. Vearch python sdk can be instal
 
 </details>
 
-<details>
-  <summary><b>Master</b></summary>
-  Responsible for schema mananagement, cluster-level metadata, and resource coordination. 
-</details>
+**Master**: Responsible for schema mananagement, cluster-level metadata, and resource coordination. 
 
-<details>
-  <summary><b>Router</b></summary>
-  Provides RESTful API: `upsert`  , `delete`  `search` and `query` ; request routing, and result merging. 
-</details>
+**Router**: Provides RESTful API: `upsert`  , `delete`  `search` and `query` ; request routing, and result merging.
 
-<details>
-  <summary><b>PartitionServer (PS)</b></summary>
-  Hosts document partitions with raft-based replication.
-
-  Gamma is the core vector search engine implemented based on [faiss](https://github.com/facebookresearch/faiss). It provides the ability of storing, indexing and retrieving the vectors and scalars.
-</details>
+**PartitionServer (PS)**: Hosts document partitions with raft-based replication. Gamma is the core vector search engine implemented based on [faiss](https://github.com/facebookresearch/faiss). It provides the ability of storing, indexing and retrieving the vectors and scalars.
 
 ## Reference
 Reference to cite when you use Vearch in a research paper:
