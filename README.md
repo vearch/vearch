@@ -53,12 +53,11 @@ $ docker-compose up
 ## APIs and Use Cases
 
 
-**LowLevelAPI**: For GPU [APILowLevel.md](docs/APILowLevelOnGPU.md)
+**GPU**: For GPU [APILowLevel.md](docs/APILowLevelOnGPU.md)
 
-**VisualSearchAPI**: [APIVisualSearch.md](docs/APIVisualSearch.md)
-Vearch can be leveraged to build a complete visual search system to index billions of images. The image retrieval plugin for object detection and feature extraction is also required. For more information, please refer to [Quickstart.md](docs/Quickstart.md).
+**VisualSearch**: Vearch can be leveraged to build a complete visual search system to index billions of images. The image retrieval plugin for object detection and feature extraction is also required. For more information, please refer to [Quickstart.md](docs/Quickstart.md).
 
-**PythonSDKAPI**: [APIPythonSDK.md](internal/engine/sdk/python/docs/APIPythonSDK.md)
+**PythonSDK**: [APIPythonSDK.md](internal/engine/sdk/python/docs/APIPythonSDK.md)
 Vearch Python SDK enables vearch to use locally. Vearch python sdk can be installed easily by pip install vearch.
 
 ## Components
