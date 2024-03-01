@@ -23,10 +23,10 @@ import (
 
 	"github.com/vearch/vearch/internal/client"
 	"github.com/vearch/vearch/internal/config"
+	"github.com/vearch/vearch/internal/entity"
+	"github.com/vearch/vearch/internal/proto/vearchpb"
 	"github.com/vearch/vearch/internal/ps/engine/sortorder"
 	"github.com/vearch/vearch/internal/util/log"
-	"github.com/vearch/vearch/proto/entity"
-	"github.com/vearch/vearch/proto/vearchpb"
 )
 
 const defaultRpcTimeOut int64 = 10 * 1000 // 10 second

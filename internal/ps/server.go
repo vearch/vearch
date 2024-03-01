@@ -25,6 +25,7 @@ import (
 	"github.com/cubefs/cubefs/depends/tiglabs/raft"
 	"github.com/vearch/vearch/internal/client"
 	"github.com/vearch/vearch/internal/config"
+	"github.com/vearch/vearch/internal/entity"
 	_ "github.com/vearch/vearch/internal/ps/engine/gammacb"
 	"github.com/vearch/vearch/internal/ps/psutil"
 	"github.com/vearch/vearch/internal/ps/storage/raftstore"
@@ -34,7 +35,6 @@ import (
 	"github.com/vearch/vearch/internal/util/metrics/mserver"
 	"github.com/vearch/vearch/internal/util/routine"
 	rpc "github.com/vearch/vearch/internal/util/server/rpc"
-	"github.com/vearch/vearch/proto/entity"
 )
 
 const maxTryTime = 5

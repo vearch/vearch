@@ -20,8 +20,8 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/vearch/vearch/internal/proto/vearchpb"
 	"github.com/vearch/vearch/internal/util"
-	"github.com/vearch/vearch/proto/vearchpb"
 )
 
 const (

@@ -21,9 +21,9 @@ import (
 
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/internal/engine/sdk/go/gamma"
+	"github.com/vearch/vearch/internal/proto/vearchpb"
 	"github.com/vearch/vearch/internal/ps/engine/mapping"
 	"github.com/vearch/vearch/internal/ps/engine/register"
-	"github.com/vearch/vearch/proto/vearchpb"
 )
 
 var empty = []byte{0}

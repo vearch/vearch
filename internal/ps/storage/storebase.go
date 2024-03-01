@@ -19,8 +19,8 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/vearch/vearch/internal/entity"
 	"github.com/vearch/vearch/internal/ps/engine"
-	"github.com/vearch/vearch/proto/entity"
 )
 
 // StoreBase is the base class of partition store.

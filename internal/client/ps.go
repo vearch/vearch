@@ -22,8 +22,8 @@ import (
 
 	"github.com/patrickmn/go-cache"
 	"github.com/spf13/cast"
-	"github.com/vearch/vearch/proto/entity"
-	"github.com/vearch/vearch/proto/vearchpb"
+	"github.com/vearch/vearch/internal/entity"
+	"github.com/vearch/vearch/internal/proto/vearchpb"
 	"github.com/vearch/vearch/internal/util/cbjson"
 	"github.com/vearch/vearch/internal/util/log"
 	server "github.com/vearch/vearch/internal/util/server/rpc"

@@ -19,7 +19,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/vearch/vearch/proto/vearchpb"
+	"github.com/vearch/vearch/internal/proto/vearchpb"
 )
 
 func TestProcessString(t *testing.T) {

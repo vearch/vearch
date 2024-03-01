@@ -20,7 +20,7 @@ import (
 	"runtime/debug"
 
 	"github.com/spf13/cast"
-	"github.com/vearch/vearch/proto/vearchpb"
+	"github.com/vearch/vearch/internal/proto/vearchpb"
 	"github.com/vearch/vearch/internal/util/log"
 )
 

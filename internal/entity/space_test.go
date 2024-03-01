@@ -18,8 +18,8 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/vearch/vearch/internal/entity"
 	"github.com/vearch/vearch/internal/util/assert"
-	"github.com/vearch/vearch/proto/entity"
 )
 
 func TestSpaceString(t *testing.T) {

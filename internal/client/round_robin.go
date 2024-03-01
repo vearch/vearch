@@ -3,7 +3,7 @@ package client
 import (
 	"sync"
 
-	"github.com/vearch/vearch/proto/entity"
+	"github.com/vearch/vearch/internal/entity"
 	"github.com/vearch/vearch/internal/util/atomic"
 )
 

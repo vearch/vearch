@@ -19,8 +19,8 @@ import (
 	"strings"
 
 	"github.com/bytedance/sonic"
-	"github.com/vearch/vearch/proto/entity"
-	"github.com/vearch/vearch/proto/vearchpb"
+	"github.com/vearch/vearch/internal/entity"
+	"github.com/vearch/vearch/internal/proto/vearchpb"
 	"github.com/vearch/vearch/internal/util/cbjson"
 	"github.com/vearch/vearch/internal/util/log"
 	"github.com/vearch/vearch/internal/util/metrics/mserver"

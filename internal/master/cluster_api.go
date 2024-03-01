@@ -30,7 +30,9 @@ import (
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/internal/client"
 	"github.com/vearch/vearch/internal/config"
+	"github.com/vearch/vearch/internal/entity"
 	"github.com/vearch/vearch/internal/monitor"
+	"github.com/vearch/vearch/internal/proto/vearchpb"
 	"github.com/vearch/vearch/internal/util"
 	"github.com/vearch/vearch/internal/util/cbjson"
 	"github.com/vearch/vearch/internal/util/errutil"
@@ -38,8 +40,6 @@ import (
 	"github.com/vearch/vearch/internal/util/log"
 	"github.com/vearch/vearch/internal/util/netutil"
 	"github.com/vearch/vearch/internal/util/server/vearchhttp"
-	"github.com/vearch/vearch/proto/entity"
-	"github.com/vearch/vearch/proto/vearchpb"
 )
 
 const (

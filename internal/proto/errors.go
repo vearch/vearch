@@ -17,7 +17,7 @@ package pkg
 import (
 	"errors"
 
-	"github.com/vearch/vearch/proto/vearchpb"
+	"github.com/vearch/vearch/internal/proto/vearchpb"
 )
 
 // http response error code and error message definitions

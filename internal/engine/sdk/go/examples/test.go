@@ -21,7 +21,7 @@ import (
 	"unsafe"
 
 	"github.com/vearch/vearch/internal/engine/sdk/go/gamma"
-	"github.com/vearch/vearch/proto/vearchpb"
+	"github.com/vearch/vearch/internal/proto/vearchpb"
 	"golang.org/x/exp/mmap"
 )
 

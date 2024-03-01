@@ -35,7 +35,10 @@ import (
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/internal/config"
 	"github.com/vearch/vearch/internal/engine/sdk/go/gamma"
+	"github.com/vearch/vearch/internal/entity"
+	"github.com/vearch/vearch/internal/entity/response"
 	"github.com/vearch/vearch/internal/master/store"
+	"github.com/vearch/vearch/internal/proto/vearchpb"
 	"github.com/vearch/vearch/internal/ps/engine/mapping"
 	"github.com/vearch/vearch/internal/ps/engine/sortorder"
 	"github.com/vearch/vearch/internal/util"
@@ -43,9 +46,6 @@ import (
 	"github.com/vearch/vearch/internal/util/log"
 	"github.com/vearch/vearch/internal/util/regularutil"
 	"github.com/vearch/vearch/internal/util/uuid"
-	"github.com/vearch/vearch/proto/entity"
-	"github.com/vearch/vearch/proto/response"
-	"github.com/vearch/vearch/proto/vearchpb"
 )
 
 // Client include client of master and ps

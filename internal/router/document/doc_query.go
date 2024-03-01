@@ -24,9 +24,9 @@ import (
 
 	"github.com/bytedance/sonic"
 	"github.com/spf13/cast"
-	"github.com/vearch/vearch/proto/entity"
-	"github.com/vearch/vearch/proto/request"
-	"github.com/vearch/vearch/proto/vearchpb"
+	"github.com/vearch/vearch/internal/entity"
+	"github.com/vearch/vearch/internal/entity/request"
+	"github.com/vearch/vearch/internal/proto/vearchpb"
 	"github.com/vearch/vearch/internal/ps/engine/mapping"
 	"github.com/vearch/vearch/internal/ps/engine/sortorder"
 	"github.com/vearch/vearch/internal/router/document/rutil"

@@ -22,7 +22,7 @@ import (
 	"strings"
 
 	"github.com/valyala/fastjson"
-	"github.com/vearch/vearch/proto/vearchpb"
+	"github.com/vearch/vearch/internal/proto/vearchpb"
 	"github.com/vearch/vearch/internal/util"
 	"github.com/vearch/vearch/internal/util/cbbytes"
 	"github.com/vearch/vearch/internal/util/log"

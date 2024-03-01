@@ -27,6 +27,8 @@ import (
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/internal/config"
 	"github.com/vearch/vearch/internal/engine/sdk/go/gamma"
+	"github.com/vearch/vearch/internal/entity"
+	"github.com/vearch/vearch/internal/proto/vearchpb"
 	"github.com/vearch/vearch/internal/ps/engine"
 	"github.com/vearch/vearch/internal/ps/engine/mapping"
 	"github.com/vearch/vearch/internal/ps/engine/register"
@@ -34,8 +36,6 @@ import (
 	"github.com/vearch/vearch/internal/util/log"
 	"github.com/vearch/vearch/internal/util/uuid"
 	"github.com/vearch/vearch/internal/util/vearchlog"
-	"github.com/vearch/vearch/proto/entity"
-	"github.com/vearch/vearch/proto/vearchpb"
 )
 
 var _ engine.Engine = &gammaEngine{}
