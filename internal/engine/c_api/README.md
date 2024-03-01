@@ -8,7 +8,7 @@ This folder include gamma-engine C-style API.
 #include "c_api/gamma_api.h"
 
 int main(int argc, char **argv) {
-  tig_gamma::Config config;
+  vearch::Config config;
   config.SetPath("path");
   config.SetLogDir("log);
 

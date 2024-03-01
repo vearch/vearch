@@ -20,20 +20,20 @@
 #include <string>
 #include <vector>
 
-#include "util/bitmap.h"
+#include "common/gamma_common_data.h"
 #include "faiss/Index.h"
 #include "faiss/impl/FaissAssert.h"
 #include "faiss/utils/Heap.h"
 #include "faiss/utils/distances.h"
 #include "faiss/utils/hamming.h"
 #include "faiss/utils/utils.h"
-#include "table/field_range_index.h"
-#include "common/gamma_common_data.h"
 #include "index/retrieval_model.h"
+#include "table/field_range_index.h"
+#include "util/bitmap.h"
 #include "util/log.h"
 #include "util/utils.h"
 
-namespace tig_gamma {
+namespace vearch {
 
 class FlatRetrievalParameters : public RetrievalParameters {
  public:
@@ -55,9 +55,10 @@ class FlatRetrievalParameters : public RetrievalParameters {
   ~FlatRetrievalParameters() {}
 
   bool ParallelOnQueries() { return parallel_on_queries_; }
-  void SetParallelOnQueries(bool parallel_on_queries) { 
-      parallel_on_queries_ = parallel_on_queries; 
+  void SetParallelOnQueries(bool parallel_on_queries) {
+    parallel_on_queries_ = parallel_on_queries;
   }
+
  private:
   // parallelize over queries or vectors
   bool parallel_on_queries_;
@@ -65,7 +66,6 @@ class FlatRetrievalParameters : public RetrievalParameters {
 
 class GammaFLATIndex : public RetrievalModel {
  public:
-
   GammaFLATIndex();
 
   ~GammaFLATIndex();
@@ -93,8 +93,8 @@ class GammaFLATIndex : public RetrievalModel {
   int Load(const std::string &index_dir) override;
 
   DistanceComputeType metric_type_;
-  
+
   int rerank_ = 0;
 };
 
-}  // namespace tig_gamma
+}  // namespace vearch

@@ -12,7 +12,7 @@
 #include "idl/fbs-gen/c/config_generated.h"
 #include "raw_data.h"
 
-namespace tig_gamma {
+namespace vearch {
 
 struct CacheInfo {
   std::string field_name;
@@ -73,4 +73,4 @@ class Config : public RawData {
   std::vector<CacheInfo> cache_infos_;
 };
 
-}  // namespace tig_gamma
+}  // namespace vearch

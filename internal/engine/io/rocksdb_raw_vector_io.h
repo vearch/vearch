@@ -8,10 +8,11 @@
 #pragma once
 
 #include <string>
+
 #include "raw_vector_io.h"
 #include "vector/rocksdb_raw_vector.h"
 
-namespace tig_gamma {
+namespace vearch {
 
 struct RocksDBRawVectorIO : public RawVectorIO {
   RocksDBRawVector *raw_vector;
@@ -25,4 +26,4 @@ struct RocksDBRawVectorIO : public RawVectorIO {
   int Update(int vid) override { return 0; };
 };
 
-}  // namespace tig_gamma
+}  // namespace vearch

@@ -14,9 +14,9 @@
 #include "raw_data.h"
 #include "table.h"
 
-namespace tig_gamma {
+namespace vearch {
 
-class GammaEngine;
+class Engine;
 
 struct Field {
   std::string name;
@@ -100,7 +100,7 @@ class Doc : public RawData {
     return vector_fields_;
   }
 
-  void SetEngine(GammaEngine *engine) { engine_ = engine; }
+  void SetEngine(Engine *engine) { engine_ = engine; }
 
  private:
   gamma_api::Doc *doc_;
@@ -109,7 +109,7 @@ class Doc : public RawData {
   std::unordered_map<std::string, struct Field> table_fields_;
   std::unordered_map<std::string, struct Field> vector_fields_;
 
-  GammaEngine *engine_;
+  Engine *engine_;
 };
 
-}  // namespace tig_gamma
+}  // namespace vearch

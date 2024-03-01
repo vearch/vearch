@@ -10,7 +10,7 @@
 #include "util/log.h"
 #include "util/utils.h"
 
-namespace tig_gamma {
+namespace vearch {
 
 int BatchResult::Serialize(char **out, int *out_len) {
   flatbuffers::FlatBufferBuilder builder;
@@ -58,4 +58,4 @@ void BatchResult::Deserialize(const char *data, int len) {
   }
 }
 
-}  // namespace tig_gamma
+}  // namespace vearch

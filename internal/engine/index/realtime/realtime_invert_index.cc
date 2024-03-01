@@ -10,7 +10,7 @@
 #include "util/log.h"
 #include "util/utils.h"
 
-namespace tig_gamma {
+namespace vearch {
 namespace realtime {
 
 RTInvertIndex::RTInvertIndex(size_t nlist, size_t code_size, VIDMgr *vid_mgr,
@@ -140,4 +140,4 @@ void RTInvertedLists::update_entries(size_t list_no, size_t offset,
                                      const uint8_t *codes_in) {}
 
 }  // namespace realtime
-}  // namespace tig_gamma
+}  // namespace vearch

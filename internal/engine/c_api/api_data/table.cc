@@ -9,7 +9,7 @@
 
 #include "util/utils.h"
 
-namespace tig_gamma {
+namespace vearch {
 
 int TableInfo::Serialize(char **out, int *out_len) {
   flatbuffers::FlatBufferBuilder builder;
@@ -32,12 +32,12 @@ int TableInfo::Serialize(char **out, int *out_len) {
     vector_info_vector.push_back(vectorinfo);
   }
 
-  auto table = gamma_api::CreateTable(
-      builder, builder.CreateString(name_),
-      builder.CreateVector(field_info_vector),
-      builder.CreateVector(vector_info_vector), indexing_size_, compress_mode_,
-      builder.CreateString(retrieval_type_),
-      builder.CreateString(retrieval_param_));
+  auto table = gamma_api::CreateTable(builder, builder.CreateString(name_),
+                                      builder.CreateVector(field_info_vector),
+                                      builder.CreateVector(vector_info_vector),
+                                      indexing_size_, compress_mode_,
+                                      builder.CreateString(retrieval_type_),
+                                      builder.CreateString(retrieval_param_));
   builder.Finish(table);
   *out_len = builder.GetSize();
   *out = (char *)malloc(*out_len * sizeof(char));
@@ -143,4 +143,4 @@ int TableInfo::Write(const std::string &path) {
   free(data);
   return 0;
 }
-}  // namespace tig_gamma
+}  // namespace vearch

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.17)
-project(gamma_engine C CXX)
+project(vearch_engine C CXX)
 
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/Modules)
 

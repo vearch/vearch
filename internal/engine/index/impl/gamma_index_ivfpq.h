@@ -47,7 +47,7 @@
 #include "vector/memory_raw_vector.h"
 #include "vector/raw_vector.h"
 
-namespace tig_gamma {
+namespace vearch {
 
 /// statistics are robust to internal threading, but not if
 /// IndexIVFPQ::search_preassigned is called by multiple threads
@@ -966,4 +966,4 @@ struct GammaIVFPQIndex : GammaFLATIndex, faiss::IndexIVFPQ {
   IVFPQModelParams *model_param_;
 };
 
-}  // namespace tig_gamma
+}  // namespace vearch

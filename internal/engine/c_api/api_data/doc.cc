@@ -10,7 +10,7 @@
 #include "search/engine.h"
 #include "table/table.h"
 
-namespace tig_gamma {
+namespace vearch {
 
 int Doc::Serialize(char **out, int *out_len) {
   flatbuffers::FlatBufferBuilder builder;
@@ -90,4 +90,4 @@ void Doc::AddField(struct Field &&field) {
   }
 }
 
-}  // namespace tig_gamma
+}  // namespace vearch

@@ -10,7 +10,7 @@
 #include "idl/fbs-gen/c/memory_info_generated.h"
 #include "raw_data.h"
 
-namespace tig_gamma {
+namespace vearch {
 
 class MemoryInfo : public RawData {
  public:
@@ -50,4 +50,4 @@ class MemoryInfo : public RawData {
   long bitmap_mem_bytes_;
 };
 
-}  // namespace tig_gamma
+}  // namespace vearch

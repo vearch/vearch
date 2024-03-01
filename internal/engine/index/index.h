@@ -19,7 +19,7 @@
 #include "util/bitmap_manager.h"
 #include "vector/raw_vector.h"
 
-namespace tig_gamma {
+namespace vearch {
 
 using idx_t = faiss::Index::idx_t;
 
@@ -151,4 +151,4 @@ class IndexScann : public GammaVearchIndex, public Index {
 Index *index_factory(int d, const char *description_in,
                      faiss::MetricType metric);
 
-}  // namespace tig_gamma
+}  // namespace vearch

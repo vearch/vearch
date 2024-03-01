@@ -5,9 +5,6 @@
  * found in the LICENSE file in the root directory of this source tree.
  */
 
-#include "vector/memory_raw_vector.h"
-#include "vector/rocksdb_raw_vector.h"
-
 #include <fcntl.h>
 #include <gtest/gtest.h>
 #include <string.h>
@@ -25,9 +22,11 @@
 
 #include "test.h"
 #include "util/utils.h"
+#include "vector/memory_raw_vector.h"
 #include "vector/raw_vector_factory.h"
+#include "vector/rocksdb_raw_vector.h"
 
-using namespace tig_gamma;
+using namespace vearch;
 using namespace std;
 
 float *BuildVector(int dim, float offset) {
@@ -53,7 +52,7 @@ Field *BuildVectorField(int dim, float offset) {
   float *data = BuildVector(dim, offset);
   Field *field = new Field();
   field->value = string((char *)data, sizeof(float) * dim);
-  field->datatype = tig_gamma::DataType::VECTOR;
+  field->datatype = vearch::DataType::VECTOR;
   // Field *field =
   //     MakeField(nullptr, MakeByteArray((char *)data, sizeof(float) * dim),
   //               nullptr, VECTOR);
@@ -186,7 +185,7 @@ void TestRawVectorNormal(VectorStorageType store_type, bool compress = false) {
       new VectorMetaInfo(name, dimension, VectorValueType::FLOAT);
   bitmap::BitmapManager *doc_bitmap = nullptr;
 
-  RawVector *raw_vector = tig_gamma::RawVectorFactory::Create(
+  RawVector *raw_vector = vearch::RawVectorFactory::Create(
       meta_info, store_type, root_path, store_params, doc_bitmap);
   assert(0 == raw_vector->Init(name, false));
   int doc_num = nadd;
@@ -321,7 +320,7 @@ TEST(RocksDBRawVector, DumpLoad) {
 int main(int argc, char *argv[]) {
   string log_dir = "./test_raw_vector_log";
   utils::remove_dir(log_dir.c_str());
-  // SetLogDictionary(tig_gamma::StringToByteArray(log_dir));
+  // SetLogDictionary(vearch::StringToByteArray(log_dir));
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }

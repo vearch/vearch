@@ -18,7 +18,7 @@
 #include "util/log.h"
 #include "util/utils.h"
 
-namespace tig_gamma {
+namespace vearch {
 namespace realtime {
 
 RTInvertBucketData::RTInvertBucketData(RTInvertBucketData *other) {
@@ -515,4 +515,4 @@ void RealTimeMemData::RetrieveCodes(int bucket_no, int pos, int n,
 
 }  // namespace realtime
 
-}  // namespace tig_gamma
+}  // namespace vearch

@@ -17,7 +17,7 @@
  * Value is base type(int, char, ...).
  */
 
-namespace tig_gamma {
+namespace vearch {
 
 template <typename Base, typename Value>
 class ConcurrentVector {
@@ -205,4 +205,4 @@ class ConcurrentVector {
   std::string name_;
 };
 
-}  // namespace tig_gamma
+}  // namespace vearch

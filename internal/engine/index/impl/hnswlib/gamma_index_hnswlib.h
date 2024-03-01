@@ -25,7 +25,7 @@
 
 using namespace hnswlib;
 
-namespace tig_gamma {
+namespace vearch {
 
 class HNSWLIBRetrievalParameters : public RetrievalParameters {
  public:
@@ -124,4 +124,4 @@ struct GammaIndexHNSWLIB : public GammaFLATIndex,
 #endif
 };
 
-}  // namespace tig_gamma
+}  // namespace vearch

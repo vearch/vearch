@@ -8,10 +8,11 @@
 #pragma once
 
 #include <vector>
+
 #include "common/common_query_data.h"
 #include "idl/fbs-gen/c/response_generated.h"
 
-namespace tig_gamma {
+namespace vearch {
 
 enum class SearchResultCode : std::uint16_t {
   SUCCESS = 0,
@@ -139,4 +140,4 @@ class Response {
   void *perf_tool_;
 };
 
-}  // namespace tig_gamma
+}  // namespace vearch

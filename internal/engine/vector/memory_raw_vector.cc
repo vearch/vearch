@@ -6,11 +6,13 @@
  */
 
 #include "memory_raw_vector.h"
+
 #include <unistd.h>
+
 #include "common/error_code.h"
 
 using std::string;
-namespace tig_gamma {
+namespace vearch {
 
 MemoryRawVector::MemoryRawVector(VectorMetaInfo *meta_info,
                                  const std::string &root_path,
@@ -117,4 +119,4 @@ uint8_t *MemoryRawVector::GetFromMem(long vid) const {
          (size_t)vid % segment_size_ * vector_byte_size_;
 }
 
-}  // namespace tig_gamma
+}  // namespace vearch

@@ -10,7 +10,7 @@
 #include "c_api/api_data/table.h"
 #include "util/utils.h"
 
-namespace tig_gamma {
+namespace vearch {
 
 class TableSchemaIO {
  public:
@@ -45,4 +45,4 @@ class TableSchemaIO {
   utils::FileIO *fio;
 };
 
-}  // namespace tig_gamma
+}  // namespace vearch

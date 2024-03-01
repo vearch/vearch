@@ -13,7 +13,7 @@
 #include "idl/fbs-gen/c/request_generated.h"
 #include "raw_data.h"
 
-namespace tig_gamma {
+namespace vearch {
 
 class Request : public RawData {
  public:
@@ -98,4 +98,4 @@ class Request : public RawData {
   bool l2_sqrt_;
 };
 
-}  // namespace tig_gamma
+}  // namespace vearch

@@ -37,7 +37,7 @@
 
 using std::string;
 
-namespace tig_gamma {
+namespace vearch {
 
 bool RequestConcurrentController::Acquire(int req_num) {
 #ifndef __APPLE__
@@ -168,8 +168,7 @@ void MemTrimHandler() {
 }
 #endif
 
-GammaEngine::GammaEngine(const string &index_root_path,
-                         const string &space_name)
+Engine::Engine(const string &index_root_path, const string &space_name)
     : index_root_path_(index_root_path),
       space_name_(space_name),
       date_time_format_("%Y-%m-%d-%H:%M:%S") {
@@ -188,7 +187,7 @@ GammaEngine::GammaEngine(const string &index_root_path,
   af_exector_ = nullptr;
 }
 
-GammaEngine::~GammaEngine() {
+Engine::~Engine() {
   if (b_running_) {
     b_running_ = 0;
     std::mutex running_mutex;
@@ -222,9 +221,9 @@ GammaEngine::~GammaEngine() {
   }
 }
 
-GammaEngine *GammaEngine::GetInstance(const string &index_root_path,
-                                      const string &space_name) {
-  GammaEngine *engine = new GammaEngine(index_root_path, space_name);
+Engine *Engine::GetInstance(const string &index_root_path,
+                            const string &space_name) {
+  Engine *engine = new Engine(index_root_path, space_name);
   int ret = engine->Setup();
   if (ret < 0) {
     LOG(ERROR) << "Build " << space_name << " [" << index_root_path
@@ -234,7 +233,7 @@ GammaEngine *GammaEngine::GetInstance(const string &index_root_path,
   return engine;
 }
 
-int GammaEngine::Setup() {
+int Engine::Setup() {
   if (!utils::isFolderExist(index_root_path_.c_str())) {
     mkdir(index_root_path_.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
   }
@@ -290,7 +289,7 @@ int GammaEngine::Setup() {
   return 0;
 }
 
-int GammaEngine::Search(Request &request, Response &response_results) {
+int Engine::Search(Request &request, Response &response_results) {
 #ifdef DEBUG
 // LOG(INFO) << "search request:" << RequestToString(request);
 #endif
@@ -422,10 +421,9 @@ int GammaEngine::Search(Request &request, Response &response_results) {
   return ret;
 }
 
-int GammaEngine::MultiRangeQuery(Request &request,
-                                 GammaSearchCondition *condition,
-                                 Response &response_results,
-                                 MultiRangeQueryResults *range_query_result) {
+int Engine::MultiRangeQuery(Request &request, GammaSearchCondition *condition,
+                            Response &response_results,
+                            MultiRangeQueryResults *range_query_result) {
   std::vector<FilterInfo> filters;
   std::vector<struct RangeFilter> &range_filters = request.RangeFilters();
   std::vector<struct TermFilter> &term_filters = request.TermFilters();
@@ -477,7 +475,7 @@ int GammaEngine::MultiRangeQuery(Request &request,
   return num;
 }
 
-int GammaEngine::CreateTable(TableInfo &table) {
+int Engine::CreateTable(TableInfo &table) {
   if (!vec_manager_ || !table_) {
     LOG(ERROR) << space_name_ << " vector and table should not be null!";
     return -1;
@@ -590,7 +588,7 @@ int GammaEngine::CreateTable(TableInfo &table) {
   return 0;
 }
 
-int GammaEngine::AddOrUpdate(Doc &doc) {
+int Engine::AddOrUpdate(Doc &doc) {
 #ifdef PERFORMANCE_TESTING
   double start = utils::getmillisecs();
 #endif
@@ -646,7 +644,7 @@ int GammaEngine::AddOrUpdate(Doc &doc) {
   return 0;
 }
 
-int GammaEngine::AddOrUpdateDocs(Docs &docs, BatchResult &result) {
+int Engine::AddOrUpdateDocs(Docs &docs, BatchResult &result) {
   std::vector<Doc> &doc_vec = docs.GetDocs();
 
   int i = 0;
@@ -660,9 +658,9 @@ int GammaEngine::AddOrUpdateDocs(Docs &docs, BatchResult &result) {
   return 0;
 }
 
-int GammaEngine::Update(
-    int doc_id, std::unordered_map<std::string, struct Field> &fields_table,
-    std::unordered_map<std::string, struct Field> &fields_vec) {
+int Engine::Update(int doc_id,
+                   std::unordered_map<std::string, struct Field> &fields_table,
+                   std::unordered_map<std::string, struct Field> &fields_vec) {
   int ret = vec_manager_->Update(doc_id, fields_vec);
   if (ret != 0) {
     return ret;
@@ -696,7 +694,7 @@ int GammaEngine::Update(
   return 0;
 }
 
-int GammaEngine::Delete(std::string &key) {
+int Engine::Delete(std::string &key) {
   int docid = -1, ret = 0;
   ret = table_->GetDocIDByKey(key, docid);
   if (ret != 0 || docid < 0) return -1;
@@ -719,7 +717,7 @@ int GammaEngine::Delete(std::string &key) {
   return ret;
 }
 
-int GammaEngine::GetDoc(const std::string &key, Doc &doc) {
+int Engine::GetDoc(const std::string &key, Doc &doc) {
   int docid = -1, ret = 0;
   ret = table_->GetDocIDByKey(key, docid);
   if (ret != 0 || docid < 0) {
@@ -730,7 +728,7 @@ int GammaEngine::GetDoc(const std::string &key, Doc &doc) {
   return GetDoc(docid, doc);
 }
 
-int GammaEngine::GetDoc(int docid, Doc &doc, bool next) {
+int Engine::GetDoc(int docid, Doc &doc, bool next) {
   int ret = 0;
   if (next) {
     while (++docid < max_docid_) {
@@ -782,7 +780,7 @@ int GammaEngine::GetDoc(int docid, Doc &doc, bool next) {
   return 0;
 }
 
-int GammaEngine::BuildIndex() {
+int Engine::BuildIndex() {
   int running = __sync_fetch_and_add(&b_running_, 1);
   if (running) {
     if (vec_manager_->TrainIndex(vec_manager_->VectorIndexes()) != 0) {
@@ -792,7 +790,7 @@ int GammaEngine::BuildIndex() {
     return 0;
   }
 
-  auto func_indexing = std::bind(&GammaEngine::Indexing, this);
+  auto func_indexing = std::bind(&Engine::Indexing, this);
   std::thread t(func_indexing);
   t.detach();
   return 0;
@@ -800,8 +798,7 @@ int GammaEngine::BuildIndex() {
 
 // TODO set limit for cpu and should to avoid using vector indexes on the same
 // time
-int GammaEngine::RebuildIndex(int drop_before_rebuild, int limit_cpu,
-                              int describe) {
+int Engine::RebuildIndex(int drop_before_rebuild, int limit_cpu, int describe) {
   int ret = 0;
   if (describe) {
     vec_manager_->DescribeVectorIndexes();
@@ -855,7 +852,7 @@ int GammaEngine::RebuildIndex(int drop_before_rebuild, int limit_cpu,
   return 0;
 }
 
-int GammaEngine::Indexing() {
+int Engine::Indexing() {
   if (vec_manager_->TrainIndex(vec_manager_->VectorIndexes()) != 0) {
     LOG(ERROR) << "Create index failed!";
     b_running_ = 0;
@@ -888,9 +885,9 @@ int GammaEngine::Indexing() {
   return ret;
 }
 
-int GammaEngine::GetDocsNum() { return max_docid_ - delete_num_; }
+int Engine::GetDocsNum() { return max_docid_ - delete_num_; }
 
-void GammaEngine::GetIndexStatus(EngineStatus &engine_status) {
+void Engine::GetIndexStatus(EngineStatus &engine_status) {
   engine_status.SetIndexStatus(index_status_);
 
   // long table_mem_bytes = table_->GetMemoryBytes();
@@ -913,7 +910,7 @@ void GammaEngine::GetIndexStatus(EngineStatus &engine_status) {
   engine_status.SetMinIndexedNum(vec_manager_->MinIndexedNum());
 }
 
-void GammaEngine::GetMemoryInfo(MemoryInfo &memory_info) {
+void Engine::GetMemoryInfo(MemoryInfo &memory_info) {
   long table_mem_bytes = table_->GetMemoryBytes();
   long vec_mem_bytes = 0, index_mem_bytes = 0;
   vec_manager_->GetTotalMemBytes(index_mem_bytes, vec_mem_bytes);
@@ -939,7 +936,7 @@ void GammaEngine::GetMemoryInfo(MemoryInfo &memory_info) {
   memory_info.SetBitmapMem(docids_bitmap_->BytesSize());
 }
 
-int GammaEngine::Dump() {
+int Engine::Dump() {
   int ret = 0;
   if (is_dirty_) {
     int max_docid = max_docid_ - 1;
@@ -984,7 +981,7 @@ int GammaEngine::Dump() {
   return 0;
 }
 
-int GammaEngine::CreateTableFromLocal(std::string &table_name) {
+int Engine::CreateTableFromLocal(std::string &table_name) {
   std::vector<string> file_paths = utils::ls(index_root_path_);
   for (string &file_path : file_paths) {
     std::string::size_type pos = file_path.rfind(".schema");
@@ -1011,7 +1008,7 @@ int GammaEngine::CreateTableFromLocal(std::string &table_name) {
   return -1;
 }
 
-int GammaEngine::Load() {
+int Engine::Load() {
   if (!created_table_) {
     string table_name;
     if (CreateTableFromLocal(table_name)) {
@@ -1130,7 +1127,7 @@ int GammaEngine::Load() {
   return 0;
 }
 
-int GammaEngine::LoadFromFaiss() {
+int Engine::LoadFromFaiss() {
   std::map<std::string, RetrievalModel *> &vec_indexes =
       vec_manager_->VectorIndexes();
   if (vec_indexes.size() != 1) {
@@ -1176,7 +1173,7 @@ int GammaEngine::LoadFromFaiss() {
   return 0;
 }
 
-int GammaEngine::AddNumIndexFields() {
+int Engine::AddNumIndexFields() {
   int retvals = 0;
   std::map<std::string, enum DataType> attr_type;
   retvals = table_->GetAttrType(attr_type);
@@ -1201,7 +1198,7 @@ int GammaEngine::AddNumIndexFields() {
   return retvals;
 }
 
-int GammaEngine::GetConfig(Config &conf) {
+int Engine::GetConfig(Config &conf) {
   conf.ClearCacheInfos();
   vec_manager_->GetAllCacheSize(conf);
   int table_cache_size = 0;
@@ -1210,7 +1207,7 @@ int GammaEngine::GetConfig(Config &conf) {
   return 0;
 }
 
-int GammaEngine::SetConfig(Config &conf) {
+int Engine::SetConfig(Config &conf) {
   int table_cache_size = 0;
   for (auto &c : conf.CacheInfos()) {
     if (c.field_name == "table") {
@@ -1224,4 +1221,4 @@ int GammaEngine::SetConfig(Config &conf) {
   return 0;
 }
 
-}  // namespace tig_gamma
+}  // namespace vearch

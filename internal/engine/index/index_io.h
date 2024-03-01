@@ -15,7 +15,7 @@
 #include "faiss/index_io.h"
 #include "realtime/realtime_invert_index.h"
 
-namespace tig_gamma {
+namespace vearch {
 /*************************************************************
  * I/O macros
  *
@@ -146,4 +146,4 @@ int WriteInvertedLists(faiss::IOWriter *f,
 int ReadInvertedLists(faiss::IOReader *f,
                       realtime::RTInvertIndex *rt_invert_index,
                       int &indexed_vec_count);
-}  // namespace tig_gamma
+}  // namespace vearch

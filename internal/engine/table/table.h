@@ -22,7 +22,7 @@
 #include "util/bitmap_manager.h"
 #include "util/log.h"
 
-namespace tig_gamma {
+namespace vearch {
 
 class TableIO;
 
@@ -188,4 +188,4 @@ class Table {
   StorageManager *storage_mgr_;
 };
 
-}  // namespace tig_gamma
+}  // namespace vearch

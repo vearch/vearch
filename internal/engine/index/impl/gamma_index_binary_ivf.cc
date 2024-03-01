@@ -7,11 +7,11 @@
 
 #include "gamma_index_binary_ivf.h"
 
+#include "common/error_code.h"
 #include "faiss/IndexBinaryFlat.h"
 #include "faiss/utils/hamming.h"
-#include "common/error_code.h"
 
-namespace tig_gamma {
+namespace vearch {
 
 struct BinaryModelParams {
   int ncentroids;  // coarse cluster center number
@@ -482,4 +482,4 @@ GammaIndexBinaryIVF::get_GammaInvertedListScanner(bool store_pairs) const {
   }
 }
 
-}  // namespace tig_gamma
+}  // namespace vearch

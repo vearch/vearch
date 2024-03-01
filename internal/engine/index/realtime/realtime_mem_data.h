@@ -17,7 +17,7 @@
 #include "util/bitmap_manager.h"
 #include "vector/raw_vector_common.h"
 
-namespace tig_gamma {
+namespace vearch {
 
 namespace realtime {
 
@@ -118,4 +118,4 @@ struct RealTimeMemData {
 
 }  // namespace realtime
 
-}  // namespace tig_gamma
+}  // namespace vearch

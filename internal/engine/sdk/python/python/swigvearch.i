@@ -160,22 +160,22 @@ typedef int64_t size_t;
         }
     }
     
-    tig_gamma::Request *swigCreateRequest() {
-        return new tig_gamma::Request();    
+    vearch::Request *swigCreateRequest() {
+        return new vearch::Request();    
     }
 
-    void swigDeleteRequest(tig_gamma::Request *request) {
+    void swigDeleteRequest(vearch::Request *request) {
         if (request) {
             delete request;
             request = nullptr;
         }    
     }
     
-    tig_gamma::Response *swigCreateResponse() {
-        return new tig_gamma::Response();    
+    vearch::Response *swigCreateResponse() {
+        return new vearch::Response();    
     }
     
-    void swigDeleteResponse(tig_gamma::Response *response) {
+    void swigDeleteResponse(vearch::Response *response) {
         if (response) {
             delete response;
             response = nullptr;
@@ -202,8 +202,8 @@ typedef int64_t size_t;
     }
 
     template <typename T>
-    tig_gamma::Field CreateScalarField(const std::string &name, const T &value, int len, int data_type) {
-        tig_gamma::Field field;
+    vearch::Field CreateScalarField(const std::string &name, const T &value, int len, int data_type) {
+        vearch::Field field;
         field.name = name;
         if (data_type == DataType::STRING)
             field.value = value;
@@ -212,39 +212,39 @@ typedef int64_t size_t;
             memcpy(const_cast<char *>(value_str.c_str()), &value, len);
             field.value = value_str;
         }
-        field.datatype = (tig_gamma::DataType)data_type;
+        field.datatype = (vearch::DataType)data_type;
         return field; 
     }
 
-    tig_gamma::Field CreateVectorField(const std::string &name, uint8_t *data, int len, int data_type) {
-        tig_gamma::Field field;
+    vearch::Field CreateVectorField(const std::string &name, uint8_t *data, int len, int data_type) {
+        vearch::Field field;
         field.name = name;
         field.value = std::string((char *)data, len);
-        field.datatype = (tig_gamma::DataType)data_type;
+        field.datatype = (vearch::DataType)data_type;
         return field; 
     }
 
-    tig_gamma::Doc *swigCreateDoc() {
-        return new tig_gamma::Doc();    
+    vearch::Doc *swigCreateDoc() {
+        return new vearch::Doc();    
     }
 
-    void swigDeleteDoc(tig_gamma::Doc *doc) {
+    void swigDeleteDoc(vearch::Doc *doc) {
         if (doc) {
             delete doc;
             doc = nullptr;
         }    
     }
 
-    tig_gamma::TermFilter CreateTermFilter(const std::string &name, const std::string &value, int is_union) {
-        tig_gamma::TermFilter term_filter;
+    vearch::TermFilter CreateTermFilter(const std::string &name, const std::string &value, int is_union) {
+        vearch::TermFilter term_filter;
         term_filter.field = name;
         term_filter.value = value;
         term_filter.is_union = is_union;
         return term_filter; 
     }
 
-    tig_gamma::RangeFilter CreateRangeFilter(const std::string &name, uint8_t *lower_value, int lower_value_len, uint8_t *upper_value, int upper_value_len, int include_lower, int include_upper) {
-        tig_gamma::RangeFilter range_filter;
+    vearch::RangeFilter CreateRangeFilter(const std::string &name, uint8_t *lower_value, int lower_value_len, uint8_t *upper_value, int upper_value_len, int include_lower, int include_upper) {
+        vearch::RangeFilter range_filter;
         range_filter.field = name;
         range_filter.lower_value = std::string((char *)lower_value, lower_value_len);
         range_filter.upper_value = std::string((char *)upper_value, upper_value_len);
@@ -253,8 +253,8 @@ typedef int64_t size_t;
         return range_filter; 
     }
 
-    tig_gamma::VectorQuery CreateVectorQuery(const std::string &name, float *data, int len, double min_score, double max_score, double boost, int has_boost, const std::string &retrieval_type) {
-        tig_gamma::VectorQuery vector_query;
+    vearch::VectorQuery CreateVectorQuery(const std::string &name, float *data, int len, double min_score, double max_score, double boost, int has_boost, const std::string &retrieval_type) {
+        vearch::VectorQuery vector_query;
         vector_query.name = name;
         vector_query.value = std::string((char *)data, len * sizeof(float));
         vector_query.min_score = min_score;
@@ -265,26 +265,26 @@ typedef int64_t size_t;
         return vector_query; 
     }
 
-    int swigSearchCPP(void* engine, tig_gamma::Request *request, tig_gamma::Response *response) {
+    int swigSearchCPP(void* engine, vearch::Request *request, vearch::Response *response) {
         return CPPSearch(engine, request, response);
     }
 
-    int swigAddOrUpdateDocCPP(void* engine, tig_gamma::Doc *doc) {
+    int swigAddOrUpdateDocCPP(void* engine, vearch::Doc *doc) {
         return CPPAddOrUpdateDoc(engine, doc);
     }
 
-    tig_gamma::BatchResult *swigCreateBatchResult(int len) {
-        return new tig_gamma::BatchResult(len);    
+    vearch::BatchResult *swigCreateBatchResult(int len) {
+        return new vearch::BatchResult(len);    
     }
 
-    void swigDeleteBatchResult(tig_gamma::BatchResult *results) {
+    void swigDeleteBatchResult(vearch::BatchResult *results) {
         if(results) {
             delete results;
             results = nullptr;
         }    
     }
 
-    int swigAddOrUpdateDocsCPP(void* engine, tig_gamma::Docs *docs, tig_gamma::BatchResult *results) {
+    int swigAddOrUpdateDocsCPP(void* engine, vearch::Docs *docs, vearch::BatchResult *results) {
         return CPPAddOrUpdateDocs(engine, docs, results);
     }
 
@@ -330,10 +330,10 @@ namespace std {
 %template(FloatVector) std::vector<float>;
 %template(DoubleVector) std::vector<double>;
 %template(StringVector) std::vector<std::string>;
-%template(SearchResultVector) std::vector<tig_gamma::SearchResult>;
-%template(ResultItemVector) std::vector<tig_gamma::ResultItem>;
-%template(DocVector) std::vector<tig_gamma::Doc>;
-%template(FieldVector) std::vector<tig_gamma::Field>;
+%template(SearchResultVector) std::vector<vearch::SearchResult>;
+%template(ResultItemVector) std::vector<vearch::ResultItem>;
+%template(DocVector) std::vector<vearch::Doc>;
+%template(FieldVector) std::vector<vearch::Field>;
 
 %template(CreateStringScalarField) CreateScalarField<std::string>;
 %template(CreateIntScalarField) CreateScalarField<int>;

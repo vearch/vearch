@@ -7,7 +7,7 @@
 
 #include "memory_info.h"
 
-namespace tig_gamma {
+namespace vearch {
 
 MemoryInfo::MemoryInfo() { memory_info_ = nullptr; }
 
@@ -62,4 +62,4 @@ void MemoryInfo::SetBitmapMem(long bitmap_mem_bytes) {
   bitmap_mem_bytes_ = bitmap_mem_bytes;
 }
 
-}  // namespace tig_gamma
+}  // namespace vearch

@@ -54,7 +54,7 @@ TEST_F(GammaTest, IVFPQ) {
 }
 
 int CreateFaissTable(struct Options &opt) {
-  tig_gamma::TableInfo table;
+  vearch::TableInfo table;
   table.SetName(opt.vector_name);
   table.SetRetrievalType(opt.retrieval_type);
   if (opt.retrieval_type == "IVFPQ" || opt.retrieval_type == "IVFPQ_RELAYOUT") {
@@ -69,16 +69,16 @@ int CreateFaissTable(struct Options &opt) {
 
   table.SetIndexingSize(opt.indexing_size);
 
-  struct tig_gamma::FieldInfo field_info;
+  struct vearch::FieldInfo field_info;
   field_info.name = "_id";
 
   field_info.is_index = false;
-  field_info.data_type = tig_gamma::DataType::STRING;
+  field_info.data_type = vearch::DataType::STRING;
   table.AddField(field_info);
 
-  struct tig_gamma::VectorInfo vector_info;
+  struct vearch::VectorInfo vector_info;
   vector_info.name = "faiss";
-  vector_info.data_type = tig_gamma::DataType::FLOAT;
+  vector_info.data_type = vearch::DataType::FLOAT;
   vector_info.is_index = true;
   vector_info.dimension = opt.d;
   vector_info.model_id = opt.model_id;
@@ -180,7 +180,6 @@ int DumpFaissIndex(struct Options &opt) {
   return 0;
 }
 
-
 int SearchFaiss(struct Options &opt, size_t num) {
   size_t idx = 0;
   double time = 0;
@@ -189,7 +188,7 @@ int SearchFaiss(struct Options &opt, size_t num) {
   string error;
   while (idx < num) {
     double start = utils::getmillisecs();
-    struct tig_gamma::VectorQuery vector_query;
+    struct vearch::VectorQuery vector_query;
     vector_query.name = "faiss";
 
     int len = opt.d * sizeof(float) * req_num;
@@ -202,7 +201,7 @@ int SearchFaiss(struct Options &opt, size_t num) {
     vector_query.boost = 0.1;
     vector_query.has_boost = 0;
 
-    tig_gamma::Request request;
+    vearch::Request request;
     request.SetTopN(10);
     request.AddVectorQuery(vector_query);
     request.SetReqNum(req_num);
@@ -228,19 +227,19 @@ int SearchFaiss(struct Options &opt, size_t num) {
     }
     free(request_str);
 
-    tig_gamma::Response response;
+    vearch::Response response;
     response.Deserialize(response_str, response_len);
 
     free(response_str);
 
     if (opt.print_doc) {
-      std::vector<struct tig_gamma::SearchResult> &results = response.Results();
+      std::vector<struct vearch::SearchResult> &results = response.Results();
       for (size_t i = 0; i < results.size(); ++i) {
         int ii = idx + i;
         string msg = std::to_string(ii) + ", ";
-        struct tig_gamma::SearchResult &result = results[i];
+        struct vearch::SearchResult &result = results[i];
 
-        std::vector<struct tig_gamma::ResultItem> &result_items =
+        std::vector<struct vearch::ResultItem> &result_items =
             result.result_items;
         if (result_items.size() <= 0) {
           LOG(ERROR) << "search no result, id=" << ii;
@@ -250,7 +249,7 @@ int SearchFaiss(struct Options &opt, size_t num) {
         msg += string("result_num [") + std::to_string(result_items.size()) +
                "], ";
         for (size_t j = 0; j < result_items.size(); ++j) {
-          struct tig_gamma::ResultItem &result_item = result_items[j];
+          struct vearch::ResultItem &result_item = result_items[j];
           printDoc(result_item, msg, opt);
           msg += "\n";
         }

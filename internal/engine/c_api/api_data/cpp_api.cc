@@ -31,31 +31,29 @@
 #include "vector/raw_vector.h"
 #include "vector/vector_manager.h"
 
-int CPPSearch(void *engine, tig_gamma::Request *request,
-              tig_gamma::Response *response) {
-  int ret = static_cast<tig_gamma::GammaEngine *>(engine)->Search(*request,
-                                                                  *response);
+int CPPSearch(void *engine, vearch::Request *request,
+              vearch::Response *response) {
+  int ret = static_cast<vearch::Engine *>(engine)->Search(*request, *response);
   if (ret) return ret;
   response->PackResults(request->Fields());
   return 0;
 }
 
-int CPPSearch2(void *engine, tig_gamma::VectorResult *result) {
+int CPPSearch2(void *engine, vearch::VectorResult *result) {
   int ret = 0;
 
-  tig_gamma::GammaQuery gamma_query;
+  vearch::GammaQuery gamma_query;
   PerfTool perf_tool;
-  gamma_query.condition = new tig_gamma::GammaSearchCondition(&perf_tool);
+  gamma_query.condition = new vearch::GammaSearchCondition(&perf_tool);
 
-  auto vec_manager =
-      static_cast<tig_gamma::GammaEngine *>(engine)->GetVectorManager();
+  auto vec_manager = static_cast<vearch::Engine *>(engine)->GetVectorManager();
 
   std::map<std::string, RetrievalModel *>::iterator iter =
       vec_manager->RetrievalModels().begin();
 
   RetrievalModel *index = iter->second;
-  tig_gamma::RawVector *raw_vec =
-      dynamic_cast<tig_gamma::RawVector *>(iter->second->vector_);
+  vearch::RawVector *raw_vec =
+      dynamic_cast<vearch::RawVector *>(iter->second->vector_);
 
   if (result->n <= 0) {
     LOG(ERROR) << "Search n shouldn't less than 0!";
@@ -76,45 +74,45 @@ int CPPSearch2(void *engine, tig_gamma::VectorResult *result) {
   return ret;
 }
 
-int CPPAddOrUpdateDoc(void *engine, tig_gamma::Doc *doc) {
-  return static_cast<tig_gamma::GammaEngine *>(engine)->AddOrUpdate(*doc);
+int CPPAddOrUpdateDoc(void *engine, vearch::Doc *doc) {
+  return static_cast<vearch::Engine *>(engine)->AddOrUpdate(*doc);
 }
 
-int CPPAddOrUpdateDocs(void *engine, tig_gamma::Docs *docs,
-                       tig_gamma::BatchResult *results) {
-  return static_cast<tig_gamma::GammaEngine *>(engine)->AddOrUpdateDocs(
-      *docs, *results);
+int CPPAddOrUpdateDocs(void *engine, vearch::Docs *docs,
+                       vearch::BatchResult *results) {
+  return static_cast<vearch::Engine *>(engine)->AddOrUpdateDocs(*docs,
+                                                                *results);
 }
 
 void CPPSetNprobe(void *engine, int nprobe, std::string index_type) {
-  auto retrieval_model = static_cast<tig_gamma::GammaEngine *>(engine)
+  auto retrieval_model = static_cast<vearch::Engine *>(engine)
                              ->GetVectorManager()
                              ->RetrievalModels()
                              .begin()
                              ->second;
   if (index_type == "IVFPQ") {
-    tig_gamma::GammaIVFPQIndex *index =
-        dynamic_cast<tig_gamma::GammaIVFPQIndex *>(retrieval_model);
+    vearch::GammaIVFPQIndex *index =
+        dynamic_cast<vearch::GammaIVFPQIndex *>(retrieval_model);
     if (index) {
       index->nprobe = nprobe;
     }
   } else if (index_type == "IVFFLAT") {
-    tig_gamma::GammaIndexIVFFlat *index =
-        dynamic_cast<tig_gamma::GammaIndexIVFFlat *>(retrieval_model);
+    vearch::GammaIndexIVFFlat *index =
+        dynamic_cast<vearch::GammaIndexIVFFlat *>(retrieval_model);
     if (index) {
       index->nprobe = nprobe;
     }
   } else if (index_type == "IVFPQFastScan") {
-    tig_gamma::GammaIVFPQFastScanIndex *index =
-        dynamic_cast<tig_gamma::GammaIVFPQFastScanIndex *>(retrieval_model);
+    vearch::GammaIVFPQFastScanIndex *index =
+        dynamic_cast<vearch::GammaIVFPQFastScanIndex *>(retrieval_model);
     if (index) {
       index->nprobe = nprobe;
     }
   } else if (index_type == "VEARCH") {
 #ifdef USE_SCANN
 #ifdef PYTHON_SDK
-    tig_gamma::GammaVearchIndex *index =
-        dynamic_cast<tig_gamma::GammaVearchIndex *>(retrieval_model);
+    vearch::GammaVearchIndex *index =
+        dynamic_cast<vearch::GammaVearchIndex *>(retrieval_model);
     if (index) {
       index->nprobe = nprobe;
     }
@@ -124,36 +122,36 @@ void CPPSetNprobe(void *engine, int nprobe, std::string index_type) {
 }
 
 void CPPSetRerank(void *engine, int rerank, std::string index_type) {
-  auto retrieval_model = static_cast<tig_gamma::GammaEngine *>(engine)
+  auto retrieval_model = static_cast<vearch::Engine *>(engine)
                              ->GetVectorManager()
                              ->RetrievalModels()
                              .begin()
                              ->second;
   if (index_type == "IVFPQ") {
-    tig_gamma::GammaIVFPQIndex *index =
-        dynamic_cast<tig_gamma::GammaIVFPQIndex *>(retrieval_model);
+    vearch::GammaIVFPQIndex *index =
+        dynamic_cast<vearch::GammaIVFPQIndex *>(retrieval_model);
     if (index) {
       index->rerank_ = rerank;
     }
   } else if (index_type == "IVFPQ_RELAYOUT") {
 #ifdef OPT_IVFPQ_RELAYOUT
-    tig_gamma::GammaIndexIVFPQRelayout *index =
-        dynamic_cast<tig_gamma::GammaIndexIVFPQRelayout *>(retrieval_model);
+    vearch::GammaIndexIVFPQRelayout *index =
+        dynamic_cast<vearch::GammaIndexIVFPQRelayout *>(retrieval_model);
     if (index) {
       index->rerank_ = rerank;
     }
 #endif
   } else if (index_type == "IVFPQFastScan") {
-    tig_gamma::GammaIVFPQFastScanIndex *index =
-        dynamic_cast<tig_gamma::GammaIVFPQFastScanIndex *>(retrieval_model);
+    vearch::GammaIVFPQFastScanIndex *index =
+        dynamic_cast<vearch::GammaIVFPQFastScanIndex *>(retrieval_model);
     if (index) {
       index->rerank_ = rerank;
     }
   } else if (index_type == "VEARCH") {
 #ifdef USE_SCANN
 #ifdef PYTHON_SDK
-    tig_gamma::GammaVearchIndex *index =
-        dynamic_cast<tig_gamma::GammaVearchIndex *>(retrieval_model);
+    vearch::GammaVearchIndex *index =
+        dynamic_cast<vearch::GammaVearchIndex *>(retrieval_model);
     if (index) {
       index->rerank_ = rerank;
     }

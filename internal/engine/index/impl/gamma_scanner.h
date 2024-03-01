@@ -2,10 +2,11 @@
 #define GAMMA_SCANNER_H_
 
 #include <stdexcept>
+
 #include "faiss/IndexIVF.h"
 #include "index/retrieval_model.h"
 
-namespace tig_gamma {
+namespace vearch {
 
 struct GammaInvertedListScanner : faiss::InvertedListScanner {
   GammaInvertedListScanner() { retrieval_context_ = nullptr; }
@@ -17,6 +18,6 @@ struct GammaInvertedListScanner : faiss::InvertedListScanner {
   RetrievalContext *retrieval_context_;
 };
 
-}  // namespace tig_gamma
+}  // namespace vearch
 
 #endif  // GAMMA_SCANNER_H_

@@ -10,7 +10,7 @@
 #include "idl/fbs-gen/c/engine_status_generated.h"
 #include "raw_data.h"
 
-namespace tig_gamma {
+namespace vearch {
 
 class EngineStatus : public RawData {
  public:
@@ -74,4 +74,4 @@ class EngineStatus : public RawData {
   int min_indexed_num_;
 };
 
-}  // namespace tig_gamma
+}  // namespace vearch

@@ -12,7 +12,7 @@
 #include "common/error_code.h"
 #include "util/log.h"
 
-namespace tig_gamma {
+namespace vearch {
 void write_index_header(const faiss::Index *idx, faiss::IOWriter *f) {
   WRITE1(idx->d);
   WRITE1(idx->ntotal);
@@ -259,4 +259,4 @@ void read_opq(faiss::VectorTransform *vt, faiss::IOReader *f) {
   READ1(vt->is_trained);
 }
 
-}  // namespace tig_gamma
+}  // namespace vearch

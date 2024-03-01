@@ -23,7 +23,7 @@ using std::vector;
 
 static const std::string dirName = std::string("/key_to_id/");
 
-namespace tig_gamma {
+namespace vearch {
 
 ItemToDocID::ItemToDocID(const std::string &root_path)
     : root_path_(root_path + dirName), db_(nullptr) {}
@@ -598,4 +598,4 @@ int Table::GetStorageManagerSize() {
   return table_doc_num;
 }
 
-}  // namespace tig_gamma
+}  // namespace vearch

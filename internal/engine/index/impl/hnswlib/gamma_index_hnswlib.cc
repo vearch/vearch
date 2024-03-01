@@ -7,25 +7,26 @@
 
 #include "gamma_index_hnswlib.h"
 
+#include <omp.h>
 #include <unistd.h>
+
 #include <cstdlib>
 #include <mutex>
 #include <string>
-#include <omp.h>
 
 #include "common/error_code.h"
-#include "vector/memory_raw_vector.h"
 #include "util/utils.h"
+#include "vector/memory_raw_vector.h"
 
-namespace tig_gamma {
+namespace vearch {
 
 using idx_t = faiss::Index::idx_t;
 
 struct HNSWLIBModelParams {
-  int nlinks;                   // link number for hnsw graph
-  int efConstruction;           // construction parameter for building hnsw graph
-  int efSearch;                 // search parameter for hnsw graph
-  int do_efSearch_check;        // check efsearch or not when searching
+  int nlinks;             // link number for hnsw graph
+  int efConstruction;     // construction parameter for building hnsw graph
+  int efSearch;           // search parameter for hnsw graph
+  int do_efSearch_check;  // check efsearch or not when searching
   DistanceComputeType metric_type;
 
   HNSWLIBModelParams() {
@@ -148,7 +149,8 @@ GammaIndexHNSWLIB::~GammaIndexHNSWLIB() {
   }
 }
 
-int GammaIndexHNSWLIB::Init(const std::string &model_parameters, int indexing_size) {
+int GammaIndexHNSWLIB::Init(const std::string &model_parameters,
+                            int indexing_size) {
   indexing_size_ = indexing_size;
   raw_vec_ = dynamic_cast<MemoryRawVector *>(vector_);
   if (raw_vec_ == nullptr) {
@@ -231,7 +233,8 @@ int GammaIndexHNSWLIB::Init(const std::string &model_parameters, int indexing_si
 
 RetrievalParameters *GammaIndexHNSWLIB::Parse(const std::string &parameters) {
   if (parameters == "") {
-    return new HNSWLIBRetrievalParameters(metric_type_, ef_, do_efSearch_check_, collect_metrics_);
+    return new HNSWLIBRetrievalParameters(metric_type_, ef_, do_efSearch_check_,
+                                          collect_metrics_);
   }
 
   utils::JsonParser jp;
@@ -263,9 +266,10 @@ RetrievalParameters *GammaIndexHNSWLIB::Parse(const std::string &parameters) {
   int collect_metrics = 0;
   jp.GetInt("collect_metrics", collect_metrics);
 
-  RetrievalParameters *retrieval_params =
-      new HNSWLIBRetrievalParameters(type, efSearch > 0 ? efSearch : ef_, 
-                                     do_efSearch_check > -1 ? do_efSearch_check : do_efSearch_check_, collect_metrics);
+  RetrievalParameters *retrieval_params = new HNSWLIBRetrievalParameters(
+      type, efSearch > 0 ? efSearch : ef_,
+      do_efSearch_check > -1 ? do_efSearch_check : do_efSearch_check_,
+      collect_metrics);
   return retrieval_params;
 }
 
@@ -277,7 +281,7 @@ bool GammaIndexHNSWLIB::Add(int n, const uint8_t *vec) {
   const float *x = reinterpret_cast<const float *>(vec);
 
   std::unique_lock<std::mutex> templock(dump_mutex_);
-  AddVertices(n0, n, x);  
+  AddVertices(n0, n, x);
   indexed_vec_count_ += n;
 
   return true;
@@ -287,12 +291,12 @@ static double ExtendCoefficient(size_t max_elements, size_t dimension) {
   double result = 2;
   if (dimension >= 512) {
     if (max_elements >= 400 * 10000)
-      result =  1.25;
+      result = 1.25;
     else if (max_elements >= 200 * 10000)
       result = 1.5;
   } else {
     if (max_elements >= 800 * 10000)
-      result =  1.25;
+      result = 1.25;
     else if (max_elements >= 400 * 10000)
       result = 1.5;
   }
@@ -308,12 +312,15 @@ int GammaIndexHNSWLIB::AddVertices(size_t n0, size_t n, const float *x) {
     return 0;
   }
 
-  while(n0 + n >= max_elements_) {
-    resizeIndex(max_elements_ * ExtendCoefficient(max_elements_, vector_->MetaInfo()->Dimension()));
+  while (n0 + n >= max_elements_) {
+    resizeIndex(
+        max_elements_ *
+        ExtendCoefficient(max_elements_, vector_->MetaInfo()->Dimension()));
   }
 
-
-  int threads_num = n < (size_t)(omp_get_max_threads() - 1) ? n : (size_t)(omp_get_max_threads() - 1);
+  int threads_num = n < (size_t)(omp_get_max_threads() - 1)
+                        ? n
+                        : (size_t)(omp_get_max_threads() - 1);
 
 #pragma omp parallel for schedule(dynamic) num_threads(threads_num)
   for (size_t i = 0; i < n; ++i) {
@@ -349,7 +356,8 @@ int GammaIndexHNSWLIB::Search(RetrievalContext *retrieval_context, int n,
       dynamic_cast<HNSWLIBRetrievalParameters *>(
           retrieval_context->RetrievalParams());
   if (retrieval_params == nullptr) {
-    retrieval_params = new HNSWLIBRetrievalParameters(metric_type_, ef_, do_efSearch_check_, collect_metrics_);
+    retrieval_params = new HNSWLIBRetrievalParameters(
+        metric_type_, ef_, do_efSearch_check_, collect_metrics_);
     retrieval_context->retrieval_params_ = retrieval_params;
   }
 
@@ -378,9 +386,10 @@ int GammaIndexHNSWLIB::Search(RetrievalContext *retrieval_context, int n,
   for (int i = 0; i < n; ++i) {
     int j = 0;
 
-    auto result = searchKnn((const void *)(xq + i * d), k, fstdistfunc,
-                            retrieval_params->EfSearch(), 
-                            retrieval_params->DoEfSearchCheck(), retrieval_params->CollectMetrics(), retrieval_context);
+    auto result = searchKnn(
+        (const void *)(xq + i * d), k, fstdistfunc,
+        retrieval_params->EfSearch(), retrieval_params->DoEfSearchCheck(),
+        retrieval_params->CollectMetrics(), retrieval_context);
 
     if (retrieval_params->GetDistanceComputeType() ==
         DistanceComputeType::INNER_PRODUCT) {
@@ -421,7 +430,8 @@ int GammaIndexHNSWLIB::Update(const std::vector<int64_t> &ids,
   std::unique_lock<std::mutex> templock(dump_mutex_);
   for (size_t i = 0; i < ids.size(); i++) {
     if (indexed_vec_count_ <= ids[i]) {
-      LOG(WARNING) << "index not build so can't update, id[" << ids[i] << "] >= indexed_vec_count[" << indexed_vec_count_ << "]";
+      LOG(WARNING) << "index not build so can't update, id[" << ids[i]
+                   << "] >= indexed_vec_count[" << indexed_vec_count_ << "]";
       continue;
     }
     updatePoint((const void *)vecs[i], ids[i], 1.0);
@@ -436,7 +446,8 @@ int GammaIndexHNSWLIB::Delete(const std::vector<int64_t> &ids) {
   std::unique_lock<std::mutex> templock(dump_mutex_);
   for (size_t i = 0; i < ids.size(); i++) {
     if (indexed_vec_count_ <= ids[i]) {
-      LOG(WARNING) << "index not build so can't delete, id[" << ids[i] << "] >= indexed_vec_count[" << indexed_vec_count_ << "]";
+      LOG(WARNING) << "index not build so can't delete, id[" << ids[i]
+                   << "] >= indexed_vec_count[" << indexed_vec_count_ << "]";
       continue;
     }
     markDelete(ids[i]);
@@ -477,4 +488,4 @@ int GammaIndexHNSWLIB::Load(const std::string &index_dir) {
   return indexed_vec_count_;
 }
 
-}  // namespace tig_gamma
+}  // namespace vearch

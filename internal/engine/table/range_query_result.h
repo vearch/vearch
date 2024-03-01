@@ -18,7 +18,7 @@
 
 #define BM_OPERATE_TYPE long
 
-namespace tig_gamma {
+namespace vearch {
 
 // do intersection immediately
 class RangeQueryResult {
@@ -215,4 +215,4 @@ class MultiRangeQueryResults {
   std::vector<RangeQueryResult> all_results_;
 };
 
-}  // namespace tig_gamma
+}  // namespace vearch

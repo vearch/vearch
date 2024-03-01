@@ -10,7 +10,7 @@
 #include "util/log.h"
 #include "util/utils.h"
 
-namespace tig_gamma {
+namespace vearch {
 
 int Docs::Serialize(char **out, int *out_len) { return 0; }
 
@@ -50,4 +50,4 @@ void Docs::AddDoc(Doc &&doc) { doc_vec_.emplace_back(std::forward<Doc>(doc)); }
 
 std::vector<Doc> &Docs::GetDocs() { return doc_vec_; }
 
-}  // namespace tig_gamma
+}  // namespace vearch

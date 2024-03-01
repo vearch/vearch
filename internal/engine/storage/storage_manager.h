@@ -9,11 +9,12 @@
 
 #include <sstream>
 #include <vector>
+
 #include "rocksdb/db.h"
 #include "rocksdb/options.h"
 #include "rocksdb/table.h"
 
-namespace tig_gamma {
+namespace vearch {
 
 struct StorageManagerOptions {
   int fixed_value_bytes;
@@ -71,4 +72,4 @@ class StorageManager {
   rocksdb::BlockBasedTableOptions table_options_;
 };
 
-}  // namespace tig_gamma
+}  // namespace vearch

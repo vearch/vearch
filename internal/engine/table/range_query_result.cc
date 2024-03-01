@@ -7,7 +7,7 @@
 
 #include "range_query_result.h"
 
-namespace tig_gamma {
+namespace vearch {
 
 std::vector<int> RangeQueryResult::ToDocs() const {
   if (n_doc_ >= 0) {
@@ -65,4 +65,4 @@ std::vector<int> MultiRangeQueryResults::ToDocs() const {
   return docIDs;
 }
 
-}  // namespace tig_gamma
+}  // namespace vearch

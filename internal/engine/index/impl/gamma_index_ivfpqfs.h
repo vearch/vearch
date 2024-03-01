@@ -48,7 +48,7 @@
 #include "vector/memory_raw_vector.h"
 #include "vector/raw_vector.h"
 
-namespace tig_gamma {
+namespace vearch {
 
 struct IVFPQFastScanModelParams : IVFPQModelParams {
   int bbs;
@@ -298,4 +298,4 @@ struct GammaIVFPQFastScanIndex : GammaFLATIndex, faiss::IndexIVFPQFastScan {
   IVFPQFastScanModelParams *model_param_;
 };
 
-}  // namespace tig_gamma
+}  // namespace vearch

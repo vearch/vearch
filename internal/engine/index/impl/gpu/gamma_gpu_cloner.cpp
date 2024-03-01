@@ -56,7 +56,7 @@ using faiss::IndexFlatL2;
 using faiss::IndexSplitVectors;
 using faiss::ProductQuantizer;
 
-namespace tig_gamma {
+namespace vearch {
 namespace gamma_gpu {
 
 /**********************************************************
@@ -278,4 +278,4 @@ faiss::Index *gamma_index_cpu_to_gpu_multiple(
 }
 
 }  // namespace gamma_gpu
-}  // namespace tig_gamma
+}  // namespace vearch

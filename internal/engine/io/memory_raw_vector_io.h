@@ -8,12 +8,13 @@
 #pragma once
 
 #include <string>
+
 #include "async_flush.h"
 #include "raw_vector_io.h"
 #include "vector/memory_raw_vector.h"
 #include "vector/rocksdb_wrapper.h"
 
-namespace tig_gamma {
+namespace vearch {
 
 struct MemoryRawVectorIO : public RawVectorIO, public AsyncFlusher {
   MemoryRawVector *raw_vector;
@@ -34,4 +35,4 @@ struct MemoryRawVectorIO : public RawVectorIO, public AsyncFlusher {
   int Put(int vid);
 };
 
-}  // namespace tig_gamma
+}  // namespace vearch

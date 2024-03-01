@@ -17,15 +17,15 @@
 
 // Here are some corresponding C++ interfaces in c_api/gamma_api.h
 
-int CPPSearch(void *engine, tig_gamma::Request *request,
-              tig_gamma::Response *response);
+int CPPSearch(void *engine, vearch::Request *request,
+              vearch::Response *response);
 
-int CPPSearch2(void *engine, tig_gamma::VectorResult *result);
+int CPPSearch2(void *engine, vearch::VectorResult *result);
 
-int CPPAddOrUpdateDoc(void *engine, tig_gamma::Doc *doc);
+int CPPAddOrUpdateDoc(void *engine, vearch::Doc *doc);
 
-int CPPAddOrUpdateDocs(void *engine, tig_gamma::Docs *docs,
-                       tig_gamma::BatchResult *results);
+int CPPAddOrUpdateDocs(void *engine, vearch::Docs *docs,
+                       vearch::BatchResult *results);
 
 void CPPSetNprobe(void *engine, int nprobe, std::string index_type);
 

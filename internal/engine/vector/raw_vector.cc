@@ -18,7 +18,7 @@
 
 using namespace std;
 
-namespace tig_gamma {
+namespace vearch {
 
 RawVector::RawVector(VectorMetaInfo *meta_info, const string &root_path,
                      bitmap::BitmapManager *docids_bitmap,
@@ -33,9 +33,7 @@ RawVector::RawVector(VectorMetaInfo *meta_info, const string &root_path,
   vid_mgr_ = nullptr;
 }
 
-RawVector::~RawVector() {
-  CHECK_DELETE(vid_mgr_);
-}
+RawVector::~RawVector() { CHECK_DELETE(vid_mgr_); }
 
 int RawVector::Init(std::string vec_name, bool multi_vids) {
   desc_ += "raw vector=" + meta_info_->Name() + ", ";
@@ -159,4 +157,4 @@ int StoreParams::MergeRight(StoreParams &other) {
   return 0;
 }
 
-}  // namespace tig_gamma
+}  // namespace vearch

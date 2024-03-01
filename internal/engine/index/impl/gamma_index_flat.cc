@@ -22,7 +22,7 @@
 
 using idx_t = faiss::Index::idx_t;
 
-namespace tig_gamma {
+namespace vearch {
 
 REGISTER_MODEL(FLAT, GammaFLATIndex);
 
@@ -311,4 +311,4 @@ int GammaFLATIndex::Dump(const std::string &dir) { return 0; }
 
 int GammaFLATIndex::Load(const std::string &index_dir) { return 0; }
 
-}  // namespace tig_gamma
+}  // namespace vearch

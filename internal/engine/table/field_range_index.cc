@@ -41,7 +41,7 @@
 using std::string;
 using std::vector;
 
-namespace tig_gamma {
+namespace vearch {
 
 class Node {
  public:
@@ -1295,4 +1295,4 @@ long MultiFieldsRangeIndex::MemorySize(long &dense, long &sparse) {
   return total;
 }
 
-}  // namespace tig_gamma
+}  // namespace vearch

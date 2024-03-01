@@ -13,7 +13,7 @@
 #include "util/utils.h"
 #include "vector/vector_manager.h"
 
-namespace tig_gamma {
+namespace vearch {
 
 Response::Response() {
   response_ = nullptr;
@@ -333,4 +333,4 @@ int Response::PackResults(std::vector<std::string> &fields_name) {
   return 0;
 }
 
-}  // namespace tig_gamma
+}  // namespace vearch

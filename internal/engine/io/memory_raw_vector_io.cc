@@ -6,10 +6,11 @@
  */
 
 #include "memory_raw_vector_io.h"
+
 #include "common/error_code.h"
 #include "io_common.h"
 
-namespace tig_gamma {
+namespace vearch {
 
 using std::string;
 using std::vector;
@@ -98,4 +99,4 @@ int MemoryRawVectorIO::Update(int vid) {
   return Put(vid);
 }
 
-}  // namespace tig_gamma
+}  // namespace vearch

@@ -27,7 +27,7 @@
 
 #include "index/impl/gamma_index_ivfpq.h"
 
-namespace tig_gamma {
+namespace vearch {
 namespace gamma_gpu {
 
 using faiss::Index;
@@ -91,4 +91,4 @@ faiss::Index *gamma_index_cpu_to_gpu_multiple(
     const GpuMultipleClonerOptions *options = nullptr);
 
 }  // namespace gamma_gpu
-}  // namespace tig_gamma
+}  // namespace vearch

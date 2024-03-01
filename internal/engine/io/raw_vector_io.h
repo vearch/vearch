@@ -9,11 +9,11 @@
 
 #include <string>
 
-namespace tig_gamma {
+namespace vearch {
 
 struct RawVectorIO {
   virtual ~RawVectorIO(){};
-  
+
   virtual int Init() { return 0; }
   // [start_vid, end_vid)
   virtual int Dump(int start_vid, int end_vid) = 0;
@@ -22,4 +22,4 @@ struct RawVectorIO {
   virtual int Update(int vid) = 0;
 };
 
-}  // namespace tig_gamma
+}  // namespace vearch

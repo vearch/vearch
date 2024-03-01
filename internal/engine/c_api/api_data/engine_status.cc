@@ -7,7 +7,7 @@
 
 #include "engine_status.h"
 
-namespace tig_gamma {
+namespace vearch {
 
 EngineStatus::EngineStatus() { engine_status_ = nullptr; }
 
@@ -82,4 +82,4 @@ int EngineStatus::MaxDocID() { return max_docid_; }
 
 void EngineStatus::SetMaxDocID(int docid) { max_docid_ = docid; }
 
-}  // namespace tig_gamma
+}  // namespace vearch

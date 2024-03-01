@@ -15,7 +15,7 @@
 #include "idl/fbs-gen/c/table_generated.h"
 #include "raw_data.h"
 
-namespace tig_gamma {
+namespace vearch {
 
 enum class DataType : std::uint16_t {
   INT = 0,
@@ -97,4 +97,4 @@ class TableInfo : public RawData {
   int compress_mode_;
 };
 
-}  // namespace tig_gamma
+}  // namespace vearch

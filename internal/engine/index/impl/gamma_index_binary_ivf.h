@@ -17,7 +17,7 @@
 #include "index/retrieval_model.h"
 #include "vector/raw_vector.h"
 
-namespace tig_gamma {
+namespace vearch {
 
 using idx_t = faiss::Index::idx_t;
 
@@ -127,4 +127,4 @@ class GammaIndexBinaryIVF : public RetrievalModel, faiss::IndexBinaryIVF {
   int add_count_;
 #endif
 };
-}  // namespace tig_gamma
+}  // namespace vearch

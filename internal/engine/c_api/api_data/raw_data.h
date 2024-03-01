@@ -7,7 +7,7 @@
 
 #pragma once
 
-namespace tig_gamma {
+namespace vearch {
 
 class RawData {
  public:
@@ -17,4 +17,4 @@ class RawData {
   virtual void Deserialize(const char *data, int len) = 0;
 };
 
-}  // namespace tig_gamma
+}  // namespace vearch

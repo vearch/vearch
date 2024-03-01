@@ -7,7 +7,7 @@
 #include "util/bitmap_manager.h"
 
 using namespace std;
-using namespace tig_gamma;
+using namespace vearch;
 
 double ExtendCoefficient(uint8_t extend_time) {
   double result = 1.1 + PI / 2 - atan(extend_time);

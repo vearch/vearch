@@ -9,15 +9,15 @@
 
 #include "concurrentqueue/blockingconcurrentqueue.h"
 #include "faiss/Index.h"
-#include "table/field_range_index.h"
 #include "gamma_gpu_cloner.h"
 #include "index/impl/gamma_index_ivfpq.h"
-#include "util/log.h"
-#include "vector/raw_vector.h"
 #include "index/retrieval_model.h"
+#include "table/field_range_index.h"
+#include "util/log.h"
 #include "util/utils.h"
+#include "vector/raw_vector.h"
 
-namespace tig_gamma {
+namespace vearch {
 namespace gamma_gpu {
 
 class GPUItem;
@@ -117,4 +117,4 @@ class GammaIVFPQGPUIndex : public RetrievalModel {
 };
 
 }  // namespace gamma_gpu
-}  // namespace tig_gamma
+}  // namespace vearch

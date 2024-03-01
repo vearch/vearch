@@ -14,7 +14,7 @@
 #include <stdio.h>
 #include <iostream>
 
-namespace tig_gamma {
+namespace vearch {
 
 REGISTER_MODEL(VEARCH, GammaVearchIndex);
 

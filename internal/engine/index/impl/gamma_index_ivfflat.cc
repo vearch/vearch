@@ -34,7 +34,7 @@
 #include "index/index_io.h"
 #include "vector/rocksdb_raw_vector.h"
 
-namespace tig_gamma {
+namespace vearch {
 
 using namespace faiss;
 
@@ -662,7 +662,7 @@ int GammaIndexIVFFlat::Dump(const std::string &dir) {
   const IndexIVFFlat *ivfl = static_cast<const IndexIVFFlat *>(this);
   uint32_t h = faiss::fourcc("IvFl");
   WRITE1(h);
-  tig_gamma::write_ivf_header(ivfl, f);
+  vearch::write_ivf_header(ivfl, f);
 
   int indexed_count = indexed_vec_count_;
   if (WriteInvertedLists(f, rt_invert_index_ptr_)) {
@@ -690,7 +690,7 @@ int GammaIndexIVFFlat::Load(const std::string &dir) {
   READ1(h);
   assert(h == faiss::fourcc("IvFl"));
   IndexIVFFlat *ivfl = static_cast<IndexIVFFlat *>(this);
-  tig_gamma::read_ivf_header(ivfl, f, nullptr);  // not legacy
+  vearch::read_ivf_header(ivfl, f, nullptr);  // not legacy
 
   int indexed_vec_count = 0;
   int ret = ReadInvertedLists(f, rt_invert_index_ptr_, indexed_vec_count);
@@ -729,4 +729,4 @@ GammaInvertedListScanner *GammaIndexIVFFlat::GetGammaInvertedListScanner(
   return nullptr;
 }
 
-}  // namespace tig_gamma
+}  // namespace vearch

@@ -15,7 +15,7 @@
 #include "rocksdb/table.h"
 #include "vector/raw_vector.h"
 
-namespace tig_gamma {
+namespace vearch {
 
 struct RocksDBRawVectorIO;
 
@@ -50,4 +50,4 @@ class RocksDBRawVector : public RawVector {
   size_t block_cache_size_;
   RawVectorIO *raw_vector_io_;
 };
-}  // namespace tig_gamma
+}  // namespace vearch

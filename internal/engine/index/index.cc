@@ -26,7 +26,7 @@
 #include "index/impl/scann/scann_api.h"
 #endif  // USE_SCANN
 
-namespace tig_gamma {
+namespace vearch {
 
 Index::Index() {}
 
@@ -434,13 +434,13 @@ int IndexScann::load(const std::string &dir) {
 }
 #endif  // USE_SCANN
 
-tig_gamma::Index *index_factory(int d, const char *description_in,
-                                faiss::MetricType metric) {
+vearch::Index *index_factory(int d, const char *description_in,
+                             faiss::MetricType metric) {
   faiss::Index *coarse_quantizer = nullptr;
-  tig_gamma::Index *index = nullptr;
+  vearch::Index *index = nullptr;
 
   faiss::ScopeDeleter1<faiss::Index> del_coarse_quantizer;
-  faiss::ScopeDeleter1<tig_gamma::Index> del_index;
+  faiss::ScopeDeleter1<vearch::Index> del_index;
 
   std::string description(description_in);
   char *ptr;
@@ -457,7 +457,7 @@ tig_gamma::Index *index_factory(int d, const char *description_in,
     // do all tests before any instanciation
 
     faiss::Index *coarse_quantizer_1 = nullptr;
-    tig_gamma::Index *index_1 = nullptr;
+    vearch::Index *index_1 = nullptr;
 
     // coarse quantizers
     if (!coarse_quantizer && sscanf(tok, "IVF%ld", &ncentroids) == 1) {
@@ -518,4 +518,4 @@ tig_gamma::Index *index_factory(int d, const char *description_in,
   return index;
 }
 
-}  // namespace tig_gamma
+}  // namespace vearch

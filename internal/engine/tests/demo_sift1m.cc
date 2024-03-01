@@ -16,7 +16,7 @@ int SetLogDictionary(const std::string &log_dir);
 
 namespace test {
 
-static tig_gamma::Index *gamma_index;
+static vearch::Index *gamma_index;
 
 int64_t *labels = nullptr;
 float *feature = nullptr;
@@ -75,13 +75,13 @@ int Evaluate() {
     int nprobe = nprobes[i];
     printf("nprobe: %d\n", nprobe);
     if (retrieval_type == "IVFPQ") {
-      tig_gamma::IndexIVFPQ *index =
-          dynamic_cast<tig_gamma::IndexIVFPQ *>(gamma_index);
+      vearch::IndexIVFPQ *index =
+          dynamic_cast<vearch::IndexIVFPQ *>(gamma_index);
       index->nprobe = nprobe;
     }
     if (retrieval_type == "IVFFLAT") {
-      tig_gamma::IndexIVFFlat *index =
-          dynamic_cast<tig_gamma::IndexIVFFlat *>(gamma_index);
+      vearch::IndexIVFFlat *index =
+          dynamic_cast<vearch::IndexIVFFlat *>(gamma_index);
       index->nprobe = nprobe;
     }
     double start = utils::getmillisecs();
@@ -121,11 +121,10 @@ int Init() {
 
   if (retrieval_type == "IVFPQ") {
     gamma_index =
-        tig_gamma::index_factory(128, "IVF2048,PQ32x8", faiss::METRIC_L2);
+        vearch::index_factory(128, "IVF2048,PQ32x8", faiss::METRIC_L2);
   }
   if (retrieval_type == "IVFFLAT") {
-    gamma_index =
-        tig_gamma::index_factory(128, "IVF2048,Flat", faiss::METRIC_L2);
+    gamma_index = vearch::index_factory(128, "IVF2048,Flat", faiss::METRIC_L2);
   }
   return 0;
 }

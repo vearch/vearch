@@ -11,7 +11,7 @@
 
 #include "raw_vector.h"
 
-namespace tig_gamma {
+namespace vearch {
 
 struct MemoryRawVectorIO;
 
@@ -50,4 +50,4 @@ class MemoryRawVector : public RawVector {
   int curr_idx_in_seg_;
 };
 
-}  // namespace tig_gamma
+}  // namespace vearch

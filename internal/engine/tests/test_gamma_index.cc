@@ -78,19 +78,19 @@ class IndexRecallTest : public ::testing::Test {
       int nprobe = nprobes[i];
       printf("nprobe: %d\n", nprobe);
       if (retrieval_type == "IVFPQ_RELAYOUT" || retrieval_type == "IVFPQ") {
-        tig_gamma::IndexIVFPQ *index =
-            dynamic_cast<tig_gamma::IndexIVFPQ *>(gamma_index);
+        vearch::IndexIVFPQ *index =
+            dynamic_cast<vearch::IndexIVFPQ *>(gamma_index);
         index->nprobe = nprobe;
       }
       if (retrieval_type == "x86IVFFLAT" || retrieval_type == "IVFFLAT") {
-        tig_gamma::IndexIVFFlat *index =
-            dynamic_cast<tig_gamma::IndexIVFFlat *>(gamma_index);
+        vearch::IndexIVFFlat *index =
+            dynamic_cast<vearch::IndexIVFFlat *>(gamma_index);
         index->nprobe = nprobe;
       }
 #ifdef USE_SCANN
       if (retrieval_type == "Scann") {
-        tig_gamma::IndexScann *index =
-            dynamic_cast<tig_gamma::IndexScann *>(gamma_index);
+        vearch::IndexScann *index =
+            dynamic_cast<vearch::IndexScann *>(gamma_index);
         index->leaves_ = nprobe;
       }
 #endif  // USE_SCANN
@@ -140,24 +140,24 @@ class IndexRecallTest : public ::testing::Test {
     }
 
     if (retrieval_type == "IVFPQ_RELAYOUT" || retrieval_type == "IVFPQ") {
-      // gamma_index = tig_gamma::index_factory(128, "IVF2048,PQ32x8",
+      // gamma_index = vearch::index_factory(128, "IVF2048,PQ32x8",
       // faiss::METRIC_L2);
       gamma_index =
-          new tig_gamma::IndexIVFPQ(nullptr, d, nlist, d / 4, 8, metric_type);
-      // gamma_index = new tig_gamma::IndexIVFPQ(nullptr, 128, 2048, 32, 8,
+          new vearch::IndexIVFPQ(nullptr, d, nlist, d / 4, 8, metric_type);
+      // gamma_index = new vearch::IndexIVFPQ(nullptr, 128, 2048, 32, 8,
       // faiss::METRIC_INNER_PRODUCT);
     }
 #ifdef USE_SCANN
     if (retrieval_type == "Scann") {
-      gamma_index = new tig_gamma::IndexScann(d, nlist, d / 2, metric_type);
+      gamma_index = new vearch::IndexScann(d, nlist, d / 2, metric_type);
     }
 #endif  // USE_SCANN
     if (retrieval_type == "x86IVFFLAT" || retrieval_type == "IVFFLAT") {
       // std::string param = "IVF" + std::to_string(nlist) + ",Flat";
-      // gamma_index = tig_gamma::index_factory(d, param.c_str(),
+      // gamma_index = vearch::index_factory(d, param.c_str(),
       // faiss::METRIC_L2);
-      gamma_index = new tig_gamma::IndexIVFFlat(nullptr, d, nlist, metric_type);
-      // gamma_index = new tig_gamma::IndexIVFFlat(nullptr, 128, 2048,
+      gamma_index = new vearch::IndexIVFFlat(nullptr, d, nlist, metric_type);
+      // gamma_index = new vearch::IndexIVFFlat(nullptr, 128, 2048,
       // faiss::METRIC_INNER_PRODUCT);
     }
     if (!gamma_index) return -1;
@@ -218,7 +218,7 @@ class IndexRecallTest : public ::testing::Test {
     return ret;
   }
 
-  tig_gamma::Index *gamma_index = nullptr;
+  vearch::Index *gamma_index = nullptr;
   float *feature = nullptr;
   float *query = nullptr;
   int *gt = nullptr;

@@ -26,7 +26,7 @@
 #include "gamma_scanner.h"
 #include "index/realtime/realtime_invert_index.h"
 
-namespace tig_gamma {
+namespace vearch {
 
 template <faiss::MetricType metric, class C>
 struct GammaIVFFlatScanner1 : GammaInvertedListScanner {
@@ -167,4 +167,4 @@ struct GammaIndexIVFFlat : faiss::IndexIVFFlat, public RetrievalModel {
 #endif
 };
 
-}  // namespace tig_gamma
+}  // namespace vearch

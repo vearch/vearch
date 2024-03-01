@@ -9,7 +9,7 @@
 
 #include "util/log.h"
 
-namespace tig_gamma {
+namespace vearch {
 
 static const char *kPlaceHolder = "NULL";
 
@@ -162,4 +162,4 @@ void TableSchemaIO::ReadRetrievalParam(TableInfo &table) {
   FReadByteArray(fio, table.RetrievalParam());
 }
 
-}  // namespace tig_gamma
+}  // namespace vearch

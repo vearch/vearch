@@ -17,7 +17,7 @@
 #include "util/utils.h"
 #include "vector/raw_vector.h"
 
-namespace tig_gamma {
+namespace vearch {
 
 const std::string EXTRA_VECTOR_FIELD_SCORE = "score";
 const std::string EXTRA_VECTOR_FIELD_NAME = "field";
@@ -69,7 +69,7 @@ class GammaSearchCondition : public RetrievalContext {
 
   ~GammaSearchCondition() {
     range_query_result = nullptr;  // should not delete
-    table = nullptr;  // should not delete
+    table = nullptr;               // should not delete
   }
 
   MultiRangeQueryResults *range_query_result;
@@ -95,13 +95,13 @@ class GammaSearchCondition : public RetrievalContext {
   };
 
   bool IsValid(int id) const override {
-  #ifndef FAISSLIKE_INDEX
+#ifndef FAISSLIKE_INDEX
     int docid = raw_vec->VidMgr()->VID2DocID(id);
     if ((range_query_result != nullptr && not range_query_result->Has(docid)) ||
         docids_bitmap->Test(docid) == true) {
       return false;
     }
-  #endif
+#endif
     return true;
   };
 
@@ -135,4 +135,4 @@ struct GammaQuery {
   GammaSearchCondition *condition;
 };
 
-}  // namespace tig_gamma
+}  // namespace vearch

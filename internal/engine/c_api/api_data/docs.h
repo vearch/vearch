@@ -9,9 +9,9 @@
 
 #include "doc.h"
 
-namespace tig_gamma {
+namespace vearch {
 
-class GammaEngine;
+class Engine;
 
 class Docs : public RawData {
  public:
@@ -33,12 +33,12 @@ class Docs : public RawData {
 
   std::vector<Doc> &GetDocs();
 
-  void SetEngine(GammaEngine *engine) { engine_ = engine; }
+  void SetEngine(Engine *engine) { engine_ = engine; }
 
  private:
   std::vector<Doc> doc_vec_;
 
-  GammaEngine *engine_;
+  Engine *engine_;
 };
 
-}  // namespace tig_gamma
+}  // namespace vearch

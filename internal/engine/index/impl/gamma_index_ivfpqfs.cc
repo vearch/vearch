@@ -30,7 +30,7 @@
 #include "util/bitmap.h"
 #include "util/utils.h"
 
-namespace tig_gamma {
+namespace vearch {
 
 inline size_t roundup(size_t a, size_t b) { return (a + b - 1) / b * b; }
 
@@ -454,4 +454,4 @@ int GammaIVFPQFastScanIndex::Dump(const std::string &dir) { return 0; }
 
 int GammaIVFPQFastScanIndex::Load(const std::string &index_dir) { return 0; }
 
-}  // namespace tig_gamma
+}  // namespace vearch

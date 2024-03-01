@@ -8,6 +8,7 @@
 #pragma once
 
 #include <tbb/concurrent_queue.h>
+
 #include <map>
 #include <string>
 #include <vector>
@@ -16,7 +17,7 @@
 #include "range_query_result.h"
 #include "table.h"
 
-namespace tig_gamma {
+namespace vearch {
 
 enum class FilterOperator : uint8_t { And = 0, Or, Not };
 
@@ -79,4 +80,4 @@ class MultiFieldsRangeIndex {
   FieldOperateQueue *field_operate_q_;
 };
 
-}  // namespace tig_gamma
+}  // namespace vearch

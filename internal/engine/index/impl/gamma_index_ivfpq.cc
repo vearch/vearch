@@ -30,7 +30,7 @@
 #include "util/bitmap.h"
 #include "util/utils.h"
 
-namespace tig_gamma {
+namespace vearch {
 
 static inline void ConvertVectorDim(size_t num, int raw_d, int d,
                                     const float *raw_vec, float *vec) {
@@ -911,7 +911,7 @@ void GammaIVFPQIndex::search_preassigned(
   compute_msg += std::to_string(n);
   retrieval_context->GetPerfTool().Perf(compute_msg);
 #endif
-}  // namespace tig_gamma
+}  // namespace vearch
 
 void GammaIVFPQIndex::copy_subset_to(faiss::IndexIVF &other, int subset_type,
                                      idx_t a1, idx_t a2) const {
@@ -1000,10 +1000,10 @@ int GammaIVFPQIndex::Dump(const std::string &dir) {
   const IndexIVFPQ *ivpq = static_cast<const IndexIVFPQ *>(this);
   uint32_t h = faiss::fourcc("IwPQ");
   WRITE1(h);
-  tig_gamma::write_ivf_header(ivpq, f);
+  vearch::write_ivf_header(ivpq, f);
   WRITE1(ivpq->by_residual);
   WRITE1(ivpq->code_size);
-  tig_gamma::write_product_quantizer(&ivpq->pq, f);
+  vearch::write_product_quantizer(&ivpq->pq, f);
 
   if (opq_ != nullptr) write_opq(opq_, f);
 
@@ -1031,10 +1031,10 @@ int GammaIVFPQIndex::Load(const std::string &index_dir) {
   READ1(h);
   assert(h == faiss::fourcc("IwPQ"));
   IndexIVFPQ *ivpq = static_cast<IndexIVFPQ *>(this);
-  tig_gamma::read_ivf_header(ivpq, f, nullptr);  // not legacy
+  vearch::read_ivf_header(ivpq, f, nullptr);  // not legacy
   READ1(ivpq->by_residual);
   READ1(ivpq->code_size);
-  tig_gamma::read_product_quantizer(&ivpq->pq, f);
+  vearch::read_product_quantizer(&ivpq->pq, f);
 
   faiss::IndexHNSWFlat *hnsw_flat =
       dynamic_cast<faiss::IndexHNSWFlat *>(ivpq->quantizer);
@@ -1075,4 +1075,4 @@ int GammaIVFPQIndex::Load(const std::string &index_dir) {
   return indexed_vec_count_;
 }
 
-}  // namespace tig_gamma
+}  // namespace vearch

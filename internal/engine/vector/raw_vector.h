@@ -19,7 +19,7 @@
 #include "util/utils.h"
 #include "vector/raw_vector_common.h"
 
-namespace tig_gamma {
+namespace vearch {
 
 struct RawVectorIO;
 struct StoreParams;
@@ -182,4 +182,4 @@ class RawVector : public VectorReader {
   RawVectorIO *vio_;
 };
 
-}  // namespace tig_gamma
+}  // namespace vearch

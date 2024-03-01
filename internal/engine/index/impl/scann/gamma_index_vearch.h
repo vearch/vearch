@@ -7,7 +7,7 @@
 
 #ifdef USE_SCANN
 
-namespace tig_gamma {
+namespace vearch {
 
 using namespace moodycamel;
 struct VearchModelParams;

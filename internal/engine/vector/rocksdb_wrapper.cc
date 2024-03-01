@@ -6,13 +6,14 @@
  */
 
 #include "rocksdb_wrapper.h"
+
 #include "common/error_code.h"
 #include "util/log.h"
 
 using std::string;
 using namespace rocksdb;
 
-namespace tig_gamma {
+namespace vearch {
 
 RocksDBWrapper::RocksDBWrapper() : db_(nullptr) {}
 
@@ -68,4 +69,4 @@ void RocksDBWrapper::ToRowKey(int key, string &key_str) {
   key_str.assign(data, 10);
 }
 
-}  // namespace tig_gamma
+}  // namespace vearch

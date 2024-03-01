@@ -10,7 +10,7 @@
 #include "raw_vector_factory.h"
 #include "util/utils.h"
 
-namespace tig_gamma {
+namespace vearch {
 
 static bool InnerProductCmp(const VectorDoc *a, const VectorDoc *b) {
   return a->score > b->score;
@@ -597,7 +597,8 @@ int VectorManager::Search(GammaQuery &query, GammaResult *results) {
       return -3;
     } else {
       if (query.condition->sort_by_docid) {
-        parse_index_search_result(n, query.condition->topn, all_vector_results[i], index);
+        parse_index_search_result(n, query.condition->topn,
+                                  all_vector_results[i], index);
         all_vector_results[i].sort_by_docid();
       }
     }
@@ -918,4 +919,4 @@ int VectorManager::GetAllCacheSize(Config &conf) {
   return 0;
 }
 
-}  // namespace tig_gamma
+}  // namespace vearch

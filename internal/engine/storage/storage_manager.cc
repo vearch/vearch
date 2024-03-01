@@ -11,7 +11,7 @@
 #include "util/log.h"
 #include "util/utils.h"
 
-namespace tig_gamma {
+namespace vearch {
 
 static void ToRowKey(int key, std::string &key_str) {
   char data[11];
@@ -177,4 +177,4 @@ int StorageManager::GetString(int id, std::string &field_name,
   return 0;
 }
 
-}  // namespace tig_gamma
+}  // namespace vearch

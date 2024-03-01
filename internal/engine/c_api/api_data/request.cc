@@ -7,7 +7,7 @@
 
 #include "request.h"
 
-namespace tig_gamma {
+namespace vearch {
 
 int Request::Serialize(char **out, int *out_len) {
   flatbuffers::FlatBufferBuilder builder;
@@ -179,7 +179,9 @@ void Request::AddVectorQuery(struct VectorQuery &vec_fields) {
   vec_fields_.emplace_back(vec_fields);
 }
 
-void Request::AddField(const std::string &field) { fields_.emplace_back(field); }
+void Request::AddField(const std::string &field) {
+  fields_.emplace_back(field);
+}
 
 void Request::AddRangeFilter(struct RangeFilter &range_filter) {
   range_filters_.emplace_back(range_filter);
@@ -215,7 +217,7 @@ int Request::MultiVectorRank() {
   if (request_)
     return request_->multi_vector_rank();
   else
-    return multi_vector_rank_; 
+    return multi_vector_rank_;
 }
 
 void Request::SetMultiVectorRank(int multi_vector_rank) {
@@ -235,4 +237,4 @@ bool Request::L2Sqrt() {
 
 void Request::SetL2Sqrt(bool l2_sqrt) { l2_sqrt_ = l2_sqrt; }
 
-}  // namespace tig_gamma
+}  // namespace vearch

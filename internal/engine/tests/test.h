@@ -161,9 +161,9 @@ struct Options {
     search_num = 100;
     indexing_size = 10000 * 1;
     fields_vec = {"_id", "img", "field1", "field2", "field3"};
-    fields_type = {tig_gamma::DataType::STRING, tig_gamma::DataType::STRING,
-                   tig_gamma::DataType::STRING, tig_gamma::DataType::INT,
-                   tig_gamma::DataType::INT};
+    fields_type = {vearch::DataType::STRING, vearch::DataType::STRING,
+                   vearch::DataType::STRING, vearch::DataType::INT,
+                   vearch::DataType::INT};
     vector_name = "abc";
     path = "files";
     log_dir = "log";
@@ -195,7 +195,7 @@ struct Options {
   bool print_doc;
   int search_thread_num;
   std::vector<string> fields_vec;
-  std::vector<tig_gamma::DataType> fields_type;
+  std::vector<vearch::DataType> fields_type;
   string path;
   string log_dir;
   string vector_name;
@@ -216,15 +216,15 @@ struct Options {
   bool testing_with_rawdata;
 };
 
-void printDoc(struct tig_gamma::ResultItem &result_item, std::string &msg,
+void printDoc(struct vearch::ResultItem &result_item, std::string &msg,
               struct Options &opt) {
   msg += string("score [") + std::to_string(result_item.score) + "], ";
   for (size_t i = 0; i < result_item.names.size(); ++i) {
     std::string &name = result_item.names[i];
-    tig_gamma::DataType data_type = tig_gamma::DataType::INT;
+    vearch::DataType data_type = vearch::DataType::INT;
     for (size_t j = 0; j < opt.fields_vec.size(); ++j) {
       if (name == opt.vector_name) {
-        data_type = tig_gamma::DataType::VECTOR;
+        data_type = vearch::DataType::VECTOR;
         break;
       }
       if (name == opt.fields_vec[j]) {
@@ -233,23 +233,23 @@ void printDoc(struct tig_gamma::ResultItem &result_item, std::string &msg,
       }
     }
     if (name == "float") {
-      data_type = tig_gamma::DataType::FLOAT;
+      data_type = vearch::DataType::FLOAT;
     }
 
     msg += "field name [" + name + "], type [" +
            std::to_string(static_cast<int>(data_type)) + "], value [";
     std::string &value = result_item.values[i];
-    if (data_type == tig_gamma::DataType::INT) {
+    if (data_type == vearch::DataType::INT) {
       msg += std::to_string(*((int *)value.data()));
-    } else if (data_type == tig_gamma::DataType::LONG) {
+    } else if (data_type == vearch::DataType::LONG) {
       msg += std::to_string(*((long *)value.data()));
-    } else if (data_type == tig_gamma::DataType::FLOAT) {
+    } else if (data_type == vearch::DataType::FLOAT) {
       msg += std::to_string(*((float *)value.data()));
-    } else if (data_type == tig_gamma::DataType::DOUBLE) {
+    } else if (data_type == vearch::DataType::DOUBLE) {
       msg += std::to_string(*((double *)value.data()));
-    } else if (data_type == tig_gamma::DataType::STRING) {
+    } else if (data_type == vearch::DataType::STRING) {
       msg += value;
-    } else if (data_type == tig_gamma::DataType::VECTOR) {
+    } else if (data_type == vearch::DataType::VECTOR) {
       std::string str_vec;
       int d = -1;
       memcpy((void *)&d, value.data(), sizeof(int));
@@ -371,22 +371,22 @@ float random_float(float min, float max, unsigned int seed = 0) {
 int AddDocToEngine(struct Options &opt, int doc_num, int interval = 0) {
   double cost = 0;
   for (int i = 0; i < doc_num; ++i) {
-    tig_gamma::Doc doc;
+    vearch::Doc doc;
 
     string url;
     for (size_t j = 0; j < opt.fields_vec.size(); ++j) {
-      tig_gamma::Field field;
+      vearch::Field field;
       field.name = opt.fields_vec[j];
       field.datatype = opt.fields_type[j];
       int len = 0;
 
       string &data =
           opt.profiles[(uint64_t)opt.doc_id * opt.fields_vec.size() + j];
-      if (opt.fields_type[j] == tig_gamma::DataType::INT) {
+      if (opt.fields_type[j] == vearch::DataType::INT) {
         len = sizeof(int);
         int v = atoi(data.c_str());
         field.value = std::string((char *)(&v), len);
-      } else if (opt.fields_type[j] == tig_gamma::DataType::LONG) {
+      } else if (opt.fields_type[j] == vearch::DataType::LONG) {
         len = sizeof(long);
         long v = atol(data.c_str());
         field.value = std::string((char *)(&v), len);
@@ -398,18 +398,18 @@ int AddDocToEngine(struct Options &opt, int doc_num, int interval = 0) {
       doc.AddField(std::move(field));
     }
     {
-      tig_gamma::Field field;
+      vearch::Field field;
       field.name = "float";
-      field.datatype = tig_gamma::DataType::FLOAT;
+      field.datatype = vearch::DataType::FLOAT;
 
       float f = random_float(0, 100);
       field.value = std::string((char *)(&f), sizeof(f));
       doc.AddField(std::move(field));
     }
 
-    tig_gamma::Field field;
+    vearch::Field field;
     field.name = opt.vector_name;
-    field.datatype = tig_gamma::DataType::VECTOR;
+    field.datatype = vearch::DataType::VECTOR;
     int len = opt.d * sizeof(float);
     if (opt.retrieval_type == "BINARYIVF") {
       len = opt.d * sizeof(char) / 8;
@@ -442,25 +442,25 @@ int BatchAddDocToEngine(struct Options &opt, int doc_num, int interval = 0) {
   double cost = 0;
   int ret = 0;
   for (int i = 0; i < doc_num; i += batch_num) {
-    tig_gamma::Docs docs;
+    vearch::Docs docs;
     docs.Reserve(batch_num);
     for (int k = 0; k < batch_num; ++k) {
-      tig_gamma::Doc doc;
+      vearch::Doc doc;
 
       string url;
       for (size_t j = 0; j < opt.fields_vec.size(); ++j) {
-        tig_gamma::Field field;
+        vearch::Field field;
         field.name = opt.fields_vec[j];
         field.datatype = opt.fields_type[j];
         int len = 0;
 
         string &data =
             opt.profiles[(uint64_t)opt.doc_id * opt.fields_vec.size() + j];
-        if (opt.fields_type[j] == tig_gamma::DataType::INT) {
+        if (opt.fields_type[j] == vearch::DataType::INT) {
           len = sizeof(int);
           int v = atoi(data.c_str());
           field.value = std::string((char *)(&v), len);
-        } else if (opt.fields_type[j] == tig_gamma::DataType::LONG) {
+        } else if (opt.fields_type[j] == vearch::DataType::LONG) {
           len = sizeof(long);
           long v = atol(data.c_str());
           field.value = std::string((char *)(&v), len);
@@ -474,18 +474,18 @@ int BatchAddDocToEngine(struct Options &opt, int doc_num, int interval = 0) {
       }
 
       {
-        tig_gamma::Field field;
+        vearch::Field field;
         field.name = "float";
-        field.datatype = tig_gamma::DataType::FLOAT;
+        field.datatype = vearch::DataType::FLOAT;
 
         float f = random_float(0, 100);
         field.value = std::string((char *)(&f), sizeof(f));
         doc.AddField(std::move(field));
       }
 
-      tig_gamma::Field field;
+      vearch::Field field;
       field.name = opt.vector_name;
-      field.datatype = tig_gamma::DataType::VECTOR;
+      field.datatype = vearch::DataType::VECTOR;
       int len = opt.d * sizeof(float);
       if (opt.retrieval_type == "BINARYIVF") {
         len = opt.d * sizeof(char) / 8;
@@ -506,7 +506,7 @@ int BatchAddDocToEngine(struct Options &opt, int doc_num, int interval = 0) {
     char *result_str = nullptr;
     int result_len = 0;
     AddOrUpdateDocs(opt.engine, doc_str, doc_len, &result_str, &result_len);
-    tig_gamma::BatchResult result;
+    vearch::BatchResult result;
     result.Deserialize(result_str, 0);
     free(result_str);
     double end = utils::getmillisecs();
@@ -531,7 +531,7 @@ int SearchThread(struct Options &opt, size_t num) {
   string error;
   while (idx < num) {
     double start = utils::getmillisecs();
-    struct tig_gamma::VectorQuery vector_query;
+    struct vearch::VectorQuery vector_query;
     vector_query.name = opt.vector_name;
 
     int len = opt.d * sizeof(float) * req_num;
@@ -547,7 +547,7 @@ int SearchThread(struct Options &opt, size_t num) {
     vector_query.boost = 0.1;
     vector_query.has_boost = 0;
 
-    tig_gamma::Request request;
+    vearch::Request request;
     request.SetTopN(10);
     request.AddVectorQuery(vector_query);
     request.SetReqNum(req_num);
@@ -571,7 +571,7 @@ int SearchThread(struct Options &opt, size_t num) {
       string c1_upper = string((char *)&upper, sizeof(upper));
 
       // {
-      //   struct tig_gamma::RangeFilter range_filter;
+      //   struct vearch::RangeFilter range_filter;
       //   range_filter.field = "field2";
       //   range_filter.lower_value = string((char *)&low, sizeof(low));
       //   range_filter.upper_value = string((char *)&upper, sizeof(upper));
@@ -581,7 +581,7 @@ int SearchThread(struct Options &opt, size_t num) {
       // }
 
       {
-        struct tig_gamma::RangeFilter range_filter;
+        struct vearch::RangeFilter range_filter;
         range_filter.field = "float";
         float low = 0;
         float upper = 0.9;
@@ -592,7 +592,7 @@ int SearchThread(struct Options &opt, size_t num) {
         request.AddRangeFilter(range_filter);
       }
 
-      tig_gamma::TermFilter term_filter;
+      vearch::TermFilter term_filter;
       term_filter.field = "field1";
       term_filter.value = "1315\00115248";
       term_filter.is_union = 1;
@@ -621,19 +621,19 @@ int SearchThread(struct Options &opt, size_t num) {
     }
     free(request_str);
 
-    tig_gamma::Response response;
+    vearch::Response response;
     response.Deserialize(response_str, response_len);
 
     free(response_str);
 
     if (opt.print_doc) {
-      std::vector<struct tig_gamma::SearchResult> &results = response.Results();
+      std::vector<struct vearch::SearchResult> &results = response.Results();
       for (size_t i = 0; i < results.size(); ++i) {
         int ii = idx + i;
         string msg = std::to_string(ii) + ", ";
-        struct tig_gamma::SearchResult &result = results[i];
+        struct vearch::SearchResult &result = results[i];
 
-        std::vector<struct tig_gamma::ResultItem> &result_items =
+        std::vector<struct vearch::ResultItem> &result_items =
             result.result_items;
         if (result_items.size() <= 0) {
           LOG(ERROR) << "search no result, id=" << ii;
@@ -643,7 +643,7 @@ int SearchThread(struct Options &opt, size_t num) {
         msg += string("result_num [") + std::to_string(result_items.size()) +
                "], ";
         for (size_t j = 0; j < result_items.size(); ++j) {
-          struct tig_gamma::ResultItem &result_item = result_items[j];
+          struct vearch::ResultItem &result_item = result_items[j];
           printDoc(result_item, msg, opt);
           msg += "\n";
         }
@@ -679,7 +679,7 @@ int SearchThread(struct Options &opt, size_t num) {
 }
 
 int GetVector(struct Options &opt) {
-  tig_gamma::Request request;
+  vearch::Request request;
   request.SetTopN(10);
   request.SetReqNum(1);
   request.SetBruteForceSearch(0);
@@ -687,7 +687,7 @@ int GetVector(struct Options &opt) {
   request.SetMultiVectorRank(0);
   request.SetL2Sqrt(false);
 
-  tig_gamma::TermFilter term_filter;
+  vearch::TermFilter term_filter;
   term_filter.field = opt.vector_name;
   term_filter.value = "1.jpg";
   term_filter.is_union = 0;
@@ -703,26 +703,25 @@ int GetVector(struct Options &opt) {
 
   free(request_str);
 
-  tig_gamma::Response response;
+  vearch::Response response;
   response.Deserialize(response_str, response_len);
 
   free(response_str);
 
-  std::vector<struct tig_gamma::SearchResult> &results = response.Results();
+  std::vector<struct vearch::SearchResult> &results = response.Results();
 
   for (size_t i = 0; i < results.size(); ++i) {
     std::string msg = std::to_string(i) + ", ";
-    struct tig_gamma::SearchResult &result = results[i];
+    struct vearch::SearchResult &result = results[i];
 
-    std::vector<struct tig_gamma::ResultItem> &result_items =
-        result.result_items;
+    std::vector<struct vearch::ResultItem> &result_items = result.result_items;
     if (result_items.size() <= 0) {
       continue;
     }
     msg += string("total [") + std::to_string(result.total) + "], ";
     msg += string("result_num [") + std::to_string(result_items.size()) + "], ";
     for (size_t j = 0; j < result_items.size(); ++j) {
-      struct tig_gamma::ResultItem &result_item = result_items[j];
+      struct vearch::ResultItem &result_item = result_items[j];
       printDoc(result_item, msg, opt);
       msg += "\n";
     }
@@ -756,20 +755,20 @@ void ReadScalarFile(struct Options &opt) {
 
 void UpdateThread(struct Options &opt) {
   ReadScalarFile(opt);
-  auto DocAddField = [&](tig_gamma::Doc &doc, std::string name, std::string val,
-                         tig_gamma::DataType data_type) {
-    tig_gamma::Field field;
+  auto DocAddField = [&](vearch::Doc &doc, std::string name, std::string val,
+                         vearch::DataType data_type) {
+    vearch::Field field;
     field.name = name;
     field.datatype = data_type;
     field.value = val;
     doc.AddField(field);
   };
 
-  auto DocInfoToString = [&](tig_gamma::Doc &doc, std::string &res_str) {
+  auto DocInfoToString = [&](vearch::Doc &doc, std::string &res_str) {
     auto fields = doc.TableFields();
     std::stringstream ss;
     for (auto &f : fields) {
-      if (f.second.datatype == tig_gamma::DataType::INT) {
+      if (f.second.datatype == vearch::DataType::INT) {
         int val = *(int *)(f.second.value.c_str());
         ss << val << ", ";
       } else {
@@ -783,10 +782,10 @@ void UpdateThread(struct Options &opt) {
   for (size_t i = 0; i < opt.add_doc_num; i += 1000) {
     int doc_id = i;
     std::string _id;
-    tig_gamma::Doc doc;
+    vearch::Doc doc;
 
     for (size_t j = 0; j < opt.fields_vec.size(); ++j) {
-      tig_gamma::DataType data_type = opt.fields_type[j];
+      vearch::DataType data_type = opt.fields_type[j];
       std::string &name = opt.fields_vec[j];
       std::string &data =
           opt.profiles[(uint64_t)doc_id * opt.fields_vec.size() + j];
@@ -794,13 +793,13 @@ void UpdateThread(struct Options &opt) {
         _id = data;
       }
       std::string value;
-      if (opt.fields_type[j] == tig_gamma::DataType::INT) {
+      if (opt.fields_type[j] == vearch::DataType::INT) {
         char *value_str = static_cast<char *>(malloc(sizeof(int)));
         int v = atoi("88");
         memcpy(value_str, &v, sizeof(int));
         value = std::string(value_str, sizeof(int));
         free(value_str);
-      } else if (opt.fields_type[j] == tig_gamma::DataType::LONG) {
+      } else if (opt.fields_type[j] == vearch::DataType::LONG) {
         char *value_str = static_cast<char *>(malloc(sizeof(long)));
         long v = atol(data.c_str());
         memcpy(value_str, &v, sizeof(long));
@@ -818,18 +817,18 @@ void UpdateThread(struct Options &opt) {
     {
       float val = 0;
       std::string data((char *)&val, sizeof(val));
-      DocAddField(doc, "float", data, tig_gamma::DataType::FLOAT);
+      DocAddField(doc, "float", data, vearch::DataType::FLOAT);
       data = std::string((char *)(opt.feature + (uint64_t)doc_id * opt.d),
                          opt.d * sizeof(float));
-      DocAddField(doc, opt.vector_name, data, tig_gamma::DataType::VECTOR);
+      DocAddField(doc, opt.vector_name, data, vearch::DataType::VECTOR);
     }
 
     {
       char *str_doc = nullptr;
       int str_len = 0;
       GetDocByID(opt.engine, _id.c_str(), _id.size(), &str_doc, &str_len);
-      tig_gamma::Doc old_doc;
-      old_doc.SetEngine((tig_gamma::GammaEngine *)opt.engine);
+      vearch::Doc old_doc;
+      old_doc.SetEngine((vearch::Engine *)opt.engine);
       old_doc.Deserialize(str_doc, str_len);
       std::string get_res;
       DocInfoToString(old_doc, get_res);
@@ -844,8 +843,8 @@ void UpdateThread(struct Options &opt) {
     char *str_doc = nullptr;
     int str_len = 0;
     GetDocByID(opt.engine, _id.c_str(), _id.size(), &str_doc, &str_len);
-    tig_gamma::Doc get_doc;
-    get_doc.SetEngine((tig_gamma::GammaEngine *)opt.engine);
+    vearch::Doc get_doc;
+    get_doc.SetEngine((vearch::Engine *)opt.engine);
     get_doc.Deserialize(str_doc, str_len);
     std::string get_res;
     DocInfoToString(get_doc, get_res);
@@ -879,7 +878,7 @@ void InitEngine(struct Options &opt) {
   ASSERT_EQ(ret, 0);
 
   ASSERT_NE(opt.docids_bitmap_, nullptr);
-  tig_gamma::Config config;
+  vearch::Config config;
   config.SetPath(opt.path);
   config.SetLogDir(opt.log_dir);
 
@@ -894,14 +893,14 @@ void InitEngine(struct Options &opt) {
 }
 
 int Create(struct Options &opt) {
-  tig_gamma::TableInfo table;
+  vearch::TableInfo table;
   table.SetName(opt.vector_name);
   table.SetRetrievalType(opt.retrieval_type);
   table.SetRetrievalParam(opt.retrieval_param);
   table.SetIndexingSize(opt.indexing_size);
 
   for (size_t i = 0; i < opt.fields_vec.size(); ++i) {
-    struct tig_gamma::FieldInfo field_info;
+    struct vearch::FieldInfo field_info;
     field_info.name = opt.fields_vec[i];
 
     char is_index = 0;
@@ -914,16 +913,16 @@ int Create(struct Options &opt) {
   }
 
   {
-    struct tig_gamma::FieldInfo field_info;
+    struct vearch::FieldInfo field_info;
     field_info.name = "float";
 
     field_info.is_index = 1;
-    field_info.data_type = tig_gamma::DataType::FLOAT;
+    field_info.data_type = vearch::DataType::FLOAT;
     table.AddField(field_info);
   }
-  struct tig_gamma::VectorInfo vector_info;
+  struct vearch::VectorInfo vector_info;
   vector_info.name = opt.vector_name;
-  vector_info.data_type = tig_gamma::DataType::FLOAT;
+  vector_info.data_type = vearch::DataType::FLOAT;
   vector_info.is_index = true;
   vector_info.dimension = opt.d;
   vector_info.model_id = opt.model_id;
@@ -963,7 +962,7 @@ int BuildEngineIndex(struct Options &opt) {
     char *status = nullptr;
     int len = 0;
     GetEngineStatus(opt.engine, &status, &len);
-    tig_gamma::EngineStatus engine_status;
+    vearch::EngineStatus engine_status;
     engine_status.Deserialize(status, len);
     free(status);
     std::this_thread::sleep_for(std::chrono::seconds(2));
@@ -974,8 +973,8 @@ int BuildEngineIndex(struct Options &opt) {
   int doc_str_len = 0;
   string docid = "1";
   GetDocByID(opt.engine, docid.c_str(), docid.size(), &doc_str, &doc_str_len);
-  tig_gamma::Doc doc;
-  doc.SetEngine((tig_gamma::GammaEngine *)opt.engine);
+  vearch::Doc doc;
+  doc.SetEngine((vearch::Engine *)opt.engine);
   doc.Deserialize(doc_str, doc_str_len);
   LOG(INFO) << "Doc fields [" << doc.TableFields().size() << "]";
   free(doc_str);
@@ -1029,7 +1028,7 @@ int Search(struct Options &opt) {
 }
 
 int AlterCacheSizeTest(struct Options &opt) {
-  tig_gamma::Config conf;
+  vearch::Config conf;
   conf.AddCacheInfo("table", 1024);
   conf.AddCacheInfo("string", 2048);
   conf.AddCacheInfo(opt.vector_name, 4096);
@@ -1044,7 +1043,7 @@ int AlterCacheSizeTest(struct Options &opt) {
 }
 
 int GetCacheSizeTest(struct Options &opt) {
-  tig_gamma::Config config;
+  vearch::Config config;
   char *buf = nullptr;
   int len = 0;
   GetConfig(opt.engine, &buf, &len);
@@ -1066,7 +1065,7 @@ int LoadEngine(struct Options &opt) {
   if (ret != 0) {
     LOG(ERROR) << "Create bitmap failed!";
   }
-  tig_gamma::Config config;
+  vearch::Config config;
   config.SetPath(opt.path);
 
   char *config_str;

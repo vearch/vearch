@@ -33,7 +33,7 @@
 using std::string;
 using std::vector;
 
-namespace tig_gamma {
+namespace vearch {
 namespace gamma_gpu {
 
 static inline void ConvertVectorDim(size_t num, int raw_d, int d,
@@ -275,7 +275,8 @@ GammaIVFPQGPUIndex::~GammaIVFPQGPUIndex() {
   resources_.clear();
 }
 
-int GammaIVFPQGPUIndex::Init(const std::string &model_parameters, int indexing_size) {
+int GammaIVFPQGPUIndex::Init(const std::string &model_parameters,
+                             int indexing_size) {
   IVFPQModelParams ivfpq_param;
   if (model_parameters != "" && ivfpq_param.Parse(model_parameters.c_str())) {
     return -1;
@@ -498,14 +499,13 @@ int GammaIVFPQGPUIndex::AddRTVecsToIndex() {
   std::vector<int64_t> vids;
   int vid;
   while (this->updated_vids_.try_pop(vid)) {
-    if (raw_vec->Bitmap()->Test(raw_vec->VidMgr()->VID2DocID(vid)))
-      continue;
+    if (raw_vec->Bitmap()->Test(raw_vec->VidMgr()->VID2DocID(vid))) continue;
     if (vid >= this->indexed_count_) {
       this->updated_vids_.push(vid);
       break;
     } else {
       vids.push_back(vid);
-    }  
+    }
     if (vids.size() >= 20000) break;
   }
   if (vids.size() == 0) return 0;
@@ -972,8 +972,8 @@ int GammaIVFPQGPUIndex::Search(RetrievalContext *retrieval_context, int n,
       RawVector *raw_vec = dynamic_cast<RawVector *>(vector_);
       ScopeVectors scope_vecs;
       if (raw_vec->Gets(I, scope_vecs)) {
-          LOG(ERROR) << "get raw vector error!";
-          return;
+        LOG(ERROR) << "get raw vector error!";
+        return;
       }
       compute_vec(scope_vecs.Get());
     };
@@ -993,4 +993,4 @@ int GammaIVFPQGPUIndex::Search(RetrievalContext *retrieval_context, int n,
 }
 
 }  // namespace gamma_gpu
-}  // namespace tig_gamma
+}  // namespace vearch

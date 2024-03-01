@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-namespace tig_gamma {
+namespace vearch {
 
 struct TermFilter {
   std::string field;
@@ -228,4 +228,4 @@ struct GammaResult {
   VectorDoc **docs;
 };
 
-}  // namespace tig_gamma
+}  // namespace vearch

@@ -7,18 +7,16 @@
 
 #pragma once
 
-#include "memory_raw_vector.h"
-#include "raw_vector.h"
-
-#include "io/rocksdb_raw_vector_io.h"
-#include "vector/rocksdb_raw_vector.h"
-
 #include <string>
 
 #include "common/gamma_common_data.h"
 #include "io/memory_raw_vector_io.h"
+#include "io/rocksdb_raw_vector_io.h"
+#include "memory_raw_vector.h"
+#include "raw_vector.h"
+#include "vector/rocksdb_raw_vector.h"
 
-namespace tig_gamma {
+namespace vearch {
 
 static void Fail(RawVector *raw_vector, RawVectorIO *vio, std::string err_msg) {
   LOG(ERROR) << err_msg;
@@ -61,4 +59,4 @@ class RawVectorFactory {
   }
 };
 
-}  // namespace tig_gamma
+}  // namespace vearch

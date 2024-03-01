@@ -6,11 +6,12 @@
  */
 
 #include <string>
+
 #include "rocksdb/db.h"
 #include "rocksdb/options.h"
 #include "rocksdb/table.h"
 
-namespace tig_gamma {
+namespace vearch {
 
 struct RocksDBWrapper {
   rocksdb::DB *db_;
@@ -25,4 +26,4 @@ struct RocksDBWrapper {
   void ToRowKey(int key, std::string &key_str);
 };
 
-}  // namespace tig_gamma
+}  // namespace vearch

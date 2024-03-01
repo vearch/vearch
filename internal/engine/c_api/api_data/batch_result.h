@@ -12,11 +12,11 @@
 #include "idl/fbs-gen/c/batch_result_generated.h"
 #include "raw_data.h"
 
-namespace tig_gamma {
+namespace vearch {
 
 class BatchResult : public RawData {
  public:
-  BatchResult() {};
+  BatchResult(){};
 
   explicit BatchResult(int size) {
     codes_.resize(size);
@@ -43,4 +43,4 @@ class BatchResult : public RawData {
   std::vector<std::string> msgs_;
 };
 
-}  // namespace tig_gamma
+}  // namespace vearch

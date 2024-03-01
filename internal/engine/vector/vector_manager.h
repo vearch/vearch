@@ -18,7 +18,7 @@
 #include "util/log.h"
 #include "vector/raw_vector.h"
 
-namespace tig_gamma {
+namespace vearch {
 
 class VectorManager {
  public:
@@ -127,4 +127,4 @@ class VectorManager {
   std::vector<std::string> retrieval_params_;
 };
 
-}  // namespace tig_gamma
+}  // namespace vearch

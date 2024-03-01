@@ -7,7 +7,7 @@
 
 #include "config.h"
 
-namespace tig_gamma {
+namespace vearch {
 
 int Config::Serialize(char **out, int *out_len) {
   flatbuffers::FlatBufferBuilder builder;
@@ -84,4 +84,4 @@ void Config::AddCacheInfo(std::string name, int cache_size) {
   cache_infos_.push_back(c);
 }
 
-}  // namespace tig_gamma
+}  // namespace vearch

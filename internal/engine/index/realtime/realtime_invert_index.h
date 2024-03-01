@@ -18,7 +18,7 @@
 #include "util/bitmap.h"
 #include "util/bitmap_manager.h"
 
-namespace tig_gamma {
+namespace vearch {
 namespace realtime {
 
 struct RTInvertIndex {
@@ -102,4 +102,4 @@ struct RTInvertedLists : faiss::InvertedLists {
 
 }  // namespace realtime
 
-}  // namespace tig_gamma
+}  // namespace vearch

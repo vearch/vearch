@@ -24,16 +24,16 @@
 #include "util/bitmap_manager.h"
 #include "vector/vector_manager.h"
 
-namespace tig_gamma {
+namespace vearch {
 
 enum IndexStatus { UNINDEXED = 0, INDEXING, INDEXED };
 
-class GammaEngine {
+class Engine {
  public:
-  static GammaEngine *GetInstance(const std::string &index_root_path,
-                                  const std::string &space_name = "");
+  static Engine *GetInstance(const std::string &index_root_path,
+                             const std::string &space_name = "");
 
-  ~GammaEngine();
+  ~Engine();
 
   int Setup();
 
@@ -117,8 +117,7 @@ class GammaEngine {
   const std::string SpaceName() { return space_name_; }
 
  private:
-  GammaEngine(const std::string &index_root_path,
-              const std::string &space_name);
+  Engine(const std::string &index_root_path, const std::string &space_name);
 
   int CreateTableFromLocal(std::string &table_name);
 
@@ -199,4 +198,4 @@ class RequestConcurrentController {
   int max_threads_;
 };
 
-}  // namespace tig_gamma
+}  // namespace vearch

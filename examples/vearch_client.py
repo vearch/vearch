@@ -466,7 +466,6 @@ def usage(usage_type: str, router_url: str):
         "partition_num": 1,
         "replica_num": 1,
         "engine": {
-            "name": "gamma",
             "index_size": 1,
             "retrieval_type": "FLAT",
             "retrieval_param": {

@@ -16,7 +16,7 @@
 
 using namespace rocksdb;
 
-namespace tig_gamma {
+namespace vearch {
 
 RocksDBRawVector::RocksDBRawVector(VectorMetaInfo *meta_info,
                                    const std::string &root_path,
@@ -212,4 +212,4 @@ void RocksDBRawVector::ToRowKey(int vid, std::string &key) const {
   key.assign(data, 10);
 }
 
-}  // namespace tig_gamma
+}  // namespace vearch
