@@ -17,6 +17,7 @@ test/grpc_client.go
 test/.pytest_cache/
 test/sift*
 go.work
+go.work.sum
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out

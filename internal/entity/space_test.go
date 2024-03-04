@@ -32,9 +32,9 @@ func TestSpaceString(t *testing.T) {
 
 func TestEngineSpaceString(t *testing.T) {
 	space := &entity.Space{}
-	str := `{"engine": {"nprobe":10, "name":"gamma", "index_size":1000}}`
+	str := `{"name":"ts_space","partition_num":1,"replica_num":1,"engine":{"index_size":100000,"metric_type":"InnerProduct","retrieval_type":"IVFPQ","retrieval_param":{"metric_type":"InnerProduct","ncentroids":128,"nsubvector":32,"nlinks":32,"efConstruction":200,"efSearch":64}},"properties":{"string":{"type":"string","array":true,"index":true},"float":{"type":"float","index":true},"int":{"type":"integer","index":true},"double":{"type":"double","index":true},"vector":{"type":"vector","dimension":128,"store_type":"MemoryOnly","format":"normalization"}}}`
 	if err := json.Unmarshal([]byte(str), &space); err != nil {
 		t.Errorf(err.Error())
 	}
-	assert.Equal(t, space.Engine.IndexSize, int64(1000), "unmarshal string to engine err")
+	assert.Equal(t, space.Engine.IndexSize, int64(100000), "unmarshal string to engine err")
 }

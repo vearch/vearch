@@ -22,97 +22,70 @@ import (
 	"log"
 	"os"
 
+	"github.com/bytedance/sonic"
 	"github.com/go-resty/resty/v2"
+	"github.com/vearch/vearch/tools/backup/entity"
 )
 
-type ListSpaceResponse struct {
-	Code int    `json:"code"`
-	Msg  string `json:"msg"`
-	Data []struct {
-		ID           int    `json:"id"`
-		Name         string `json:"name"`
-		ResourceName string `json:"resource_name"`
-		Version      int    `json:"version"`
-		DbID         int    `json:"db_id"`
-		Enabled      bool   `json:"enabled"`
-		Partitions   []struct {
-			ID                int   `json:"id"`
-			SpaceID           int   `json:"space_id"`
-			DbID              int   `json:"db_id"`
-			PartitionSlot     int   `json:"partition_slot"`
-			Replicas          []int `json:"replicas"`
-			ResourceExhausted bool  `json:"resourceExhausted"`
-		} `json:"partitions"`
-		PartitionNum    int             `json:"partition_num"`
-		ReplicaNum      int             `json:"replica_num"`
-		Properties      json.RawMessage `json:"properties"`
-		Engine          json.RawMessage `json:"engine"`
-		SpaceProperties json.RawMessage `json:"space_properties"`
-	} `json:"data"`
+func dumpSchema(space string, describeSpaceResponse *entity.DescribeSpaceResponse, path string) error {
+	schema := &entity.SpaceSchema{
+		Name:         space,
+		PartitionNum: describeSpaceResponse.Data.PartitionNum,
+		ReplicaNum:   describeSpaceResponse.Data.ReplicaNum,
+		Engine:       describeSpaceResponse.Data.Schema.Engine,
+		Properties:   describeSpaceResponse.Data.Schema.Properties,
+	}
+
+	s, _ := sonic.Marshal(schema)
+	log.Printf("schema :%s\n", string(s))
+
+	file, err := os.OpenFile(path+"/schema.json", os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	_, err = file.WriteString(string(s))
+	return err
 }
 
-type QueryByDocID struct {
-	DbName    string `json:"db_name"`
-	SpaceName string `json:"space_name"`
-	Query     struct {
-		DocumentIds []string `json:"document_ids"`
-		PartitionID string   `json:"partition_id"`
-		Next        bool     `json:"next"`
-	} `json:"query"`
-	VectorValue bool `json:"vector_value"`
-}
-
-type DocInfo struct {
-	Code      int    `json:"code"`
-	Msg       string `json:"msg"`
-	Total     int    `json:"total"`
-	Documents []struct {
-		ID     string          `json:"_id"`
-		Source json.RawMessage `json:"_source"`
-	} `json:"documents"`
-}
-
-type Document struct {
-	DbName    string            `json:"db_name"`
-	SpaceName string            `json:"space_name"`
-	Documents []json.RawMessage `json:"documents"`
-}
-
-func dump(url string, db string, space string, output string) error {
+func dump(url string, db_name string, space_name string, output string) error {
 	client := resty.New()
 
-	listSpaceUrl := fmt.Sprintf("%s/list/space?db=%s", url, db)
+	listSpaceUrl := fmt.Sprintf("%s/space/describe", url)
 
-	spaceSchema := &ListSpaceResponse{}
+	describeSpaceResponse := &entity.DescribeSpaceResponse{}
 	resp, err := client.R().
 		SetHeader("Content-Type", "application/json").
-		SetBody(`{"name":"John Doe","occupation":"gardener"}`).
-		SetResult(spaceSchema).
+		SetQueryParams(map[string]string{
+			"db_name":    db_name,
+			"space_name": space_name,
+		}).
+		SetResult(describeSpaceResponse).
 		Get(listSpaceUrl)
 
 	if err != nil {
-		fmt.Printf("The HTTP request failed with error %s\n", err)
+		log.Printf("The HTTP request failed with error %s\n", err)
 		return err
-	} else {
-		fmt.Println(resp)
+	}
+	log.Println(resp)
+
+	err = dumpSchema(space_name, describeSpaceResponse, output)
+	if err != nil {
+		log.Fatalf("failed to dump schema: %s", err)
+		return err
 	}
 
 	partitionIDs := make([]int, 0)
-	for _, s := range spaceSchema.Data {
-		if s.Name == space {
-			fmt.Printf("space %s\n", string(s.SpaceProperties))
-			fmt.Printf("engine %s\n", string(s.Engine))
-			for _, p := range s.Partitions {
-				partitionIDs = append(partitionIDs, p.ID)
-			}
-		}
+	for _, p := range describeSpaceResponse.Data.Partitions {
+		partitionIDs = append(partitionIDs, p.Pid)
 	}
 
-	fmt.Printf("partitions %v\n", partitionIDs)
+	log.Printf("partitions %v\n", partitionIDs)
 
-	q := QueryByDocID{
-		DbName:    db,
-		SpaceName: space,
+	q := entity.QueryByDocID{
+		DbName:    db_name,
+		SpaceName: space_name,
 		Query: struct {
 			DocumentIds []string `json:"document_ids"`
 			PartitionID string   `json:"partition_id"`
@@ -130,7 +103,7 @@ func dump(url string, db string, space string, output string) error {
 		log.Fatalf("failed to open file: %s", err)
 	}
 	defer file.Close()
-	doc := &DocInfo{}
+	doc := &entity.DocInfo{}
 	for _, pid := range partitionIDs {
 		getDocUrl := fmt.Sprintf("%s/document/query", url)
 
@@ -149,7 +122,7 @@ func dump(url string, db string, space string, output string) error {
 				SetResult(doc).
 				Post(getDocUrl)
 			if err != nil {
-				fmt.Printf("resp %v err %v\n", resp, err)
+				log.Printf("resp %v err %v\n", resp, err)
 				break
 			}
 
@@ -159,20 +132,78 @@ func dump(url string, db string, space string, output string) error {
 			_, err = file.WriteString(string(doc.Documents[0].Source) + "\n")
 			if err != nil {
 				log.Fatalf("failed to write to file: %s", err)
+				return err
 			}
 		}
 	}
 	return nil
 }
 
-func restore(url string, db string, space string, path string) error {
+func restoreSpace(url string, db_name string, path string) error {
+	client := resty.New()
+	restoreDbUrl := fmt.Sprintf("%s/db/_create", url)
+	restoreSpaceUrl := fmt.Sprintf("%s/space/%s/_create", url, db_name)
+
+	createDbBody := &entity.CreateDbBody{
+		Name: db_name,
+	}
+	createDbResponse := &entity.CreateDbResponse{}
+	resp, err := client.R().
+		SetHeader("Content-Type", "application/json").
+		SetBody(createDbBody).
+		SetResult(createDbResponse).
+		Put(restoreDbUrl)
+
+	if err != nil {
+		log.Printf("create db error %s\n", err)
+		return err
+	}
+	log.Println(resp)
+
+	createSpaceResponse := &entity.CreateSpaceResponse{}
+
+	schemaBytes, err := os.ReadFile(path + "/schema.json")
+	if err != nil {
+		log.Fatal(err)
+		return err
+	}
+
+
+	createSpaceBody := &entity.SpaceSchema{}
+	err = sonic.Unmarshal(schemaBytes, createSpaceBody)
+	if err != nil {
+		log.Printf("create space %s\n", err)
+		return err
+	}
+
+	resp, err = client.R().
+		SetHeader("Content-Type", "application/json").
+		SetBody(createSpaceBody).
+		SetResult(createSpaceResponse).
+		Put(restoreSpaceUrl)
+
+	if err != nil {
+		return err
+	}
+	log.Println(resp)
+
+	return nil
+}
+
+func restore(url string, db_name string, space_name string, path string) error {
+	err := restoreSpace(url, db_name, path)
+	if err != nil {
+		log.Printf("restore space error %s\n", err)
+		return err
+	}
+
 	client := resty.New()
 
 	upsertSpaceUrl := fmt.Sprintf("%s/document/upsert", url)
 
-	doc := &Document{
-		DbName:    db,
-		SpaceName: space,
+	doc := &entity.Document{
+		DbName:    db_name,
+		SpaceName: space_name,
 		Documents: make([]json.RawMessage, 1),
 	}
 	file, err := os.OpenFile(path+"/data.txt", os.O_RDONLY, 0644)
@@ -191,7 +222,7 @@ func restore(url string, db string, space string, path string) error {
 			SetBody(doc).
 			Post(upsertSpaceUrl)
 		if err != nil {
-			fmt.Printf("resp %v err %v\n", resp, err)
+			log.Printf("resp %v err %v\n", resp, err)
 			break
 		}
 	}
@@ -204,6 +235,7 @@ func restore(url string, db string, space string, path string) error {
 }
 
 func main() {
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	var command, url, db, space, output, input string
 
 	flag.StringVar(&command, "command", "create", "backup command")
@@ -218,13 +250,13 @@ func main() {
 	case "create":
 		err := dump(url, db, space, output)
 		if err != nil {
-			fmt.Printf("err %v\n", err)
+			log.Printf("err %v\n", err)
 			os.Exit(1)
 		}
 	case "restore":
 		err := restore(url, db, space, input)
 		if err != nil {
-			fmt.Printf("err %v\n", err)
+			log.Printf("err %v\n", err)
 			os.Exit(1)
 		}
 	}
