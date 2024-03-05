@@ -73,7 +73,7 @@ func walkSpaces(masterServer *Server, spaces []*entity.Space) {
 	log.Debug("Complete Walking Spaces!")
 }
 
-func removePartition(masterServer *Server, partitionServerRpcAddr string, pid entity.PartitionID) error {
+func removePartition(partitionServerRpcAddr string, pid entity.PartitionID) error {
 	log.Debugf("Removing partition:[%s] from ps:[%s]", pid, partitionServerRpcAddr)
 	return client.DeletePartition(partitionServerRpcAddr, pid)
 }
@@ -86,7 +86,7 @@ func walkServers(masterServer *Server, servers []*entity.Server) {
 			if _, err := masterServer.client.Master().QueryPartition(ctx, pid); err != nil {
 				if vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err).GetError().Code == vearchpb.ErrorEnum_PARTITION_NOT_EXIST {
 					log.Warnf("to remove partition:%d", pid)
-					if err := removePartition(masterServer, server.RpcAddr(), pid); err != nil {
+					if err := removePartition(server.RpcAddr(), pid); err != nil {
 						log.Warnf("Failed to remove partition: %v allocated on server: %v, and err is:%v", pid, server.ID, err)
 					}
 				} else {
