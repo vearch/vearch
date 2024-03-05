@@ -174,15 +174,6 @@ func (s *Space) PartitionId(slotID SlotID) PartitionID {
 }
 
 func (engine *Engine) UnmarshalJSON(bs []byte) error {
-	var temp string
-
-	_ = json.Unmarshal(bs, &temp)
-
-	if temp == "gamma" {
-		*engine = Engine{}
-		return nil
-	}
-
 	tempEngine := &struct {
 		IndexSize      *int64          `json:"index_size"`
 		MetricType     string          `json:"metric_type,omitempty"`
@@ -193,18 +184,16 @@ func (engine *Engine) UnmarshalJSON(bs []byte) error {
 
 	if err := json.Unmarshal(bs, tempEngine); err != nil {
 		return fmt.Errorf("parameter analysis err ,the details err:%v", err)
-
 	}
 
 	retrievalTypeMap := map[string]string{"IVFPQ": "IVFPQ", "IVFFLAT": "IVFFLAT", "BINARYIVF": "BINARYIVF", "FLAT": "FLAT",
 		"HNSW": "HNSW", "GPU": "GPU", "SSG": "SSG", "IVFPQ_RELAYOUT": "IVFPQ_RELAYOUT", "SCANN": "SCANN"}
 	if tempEngine.RetrievalType == "" {
 		return fmt.Errorf("retrieval_type is null")
-	} else {
-		_, have := retrievalTypeMap[tempEngine.RetrievalType]
-		if !have {
-			return fmt.Errorf("retrieval_type not support :%s", tempEngine.RetrievalType)
-		}
+	}
+	_, have := retrievalTypeMap[tempEngine.RetrievalType]
+	if !have {
+		return fmt.Errorf("retrieval_type not support :%s", tempEngine.RetrievalType)
 	}
 
 	if tempEngine.RetrievalParam != nil {
@@ -252,7 +241,6 @@ func (engine *Engine) UnmarshalJSON(bs []byte) error {
 		}
 
 		tempEngine.MetricType = v.MetricType
-
 	} else {
 		if tempEngine.IndexSize == nil {
 			tempEngine.IndexSize = util.PInt64(100000)
