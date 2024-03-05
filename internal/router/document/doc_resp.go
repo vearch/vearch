@@ -301,7 +301,7 @@ func documentGetResponse(client *client.Client, args *vearchpb.GetRequest, reply
 	return sonic.Marshal(response)
 }
 
-func documentSearchResponse(srs []*vearchpb.SearchResult, head *vearchpb.ResponseHead, took time.Duration, space *entity.Space, response_type string) ([]byte, error) {
+func documentSearchResponse(srs []*vearchpb.SearchResult, head *vearchpb.ResponseHead, space *entity.Space, response_type string) ([]byte, error) {
 	var builder = cbjson.ContentBuilderFactory()
 
 	builder.BeginObject()
@@ -312,7 +312,7 @@ func documentSearchResponse(srs []*vearchpb.SearchResult, head *vearchpb.Respons
 		builder.Field("msg")
 		builder.ValueString("success")
 	} else {
-		if head != nil && head.Err != nil {
+		if head.Err != nil {
 			builder.ValueNumeric(int64(head.Err.Code))
 			builder.More()
 			builder.Field("msg")
@@ -453,12 +453,8 @@ func documentDeleteResponse(items []*vearchpb.Item, head *vearchpb.ResponseHead,
 		response["code"] = vearchpb.ErrorEnum_SUCCESS
 		response["msg"] = "success"
 	} else {
-		if head != nil {
-			response["code"] = head.Err.Code
-			response["msg"] = head.Err.Msg
-		} else {
-			response["code"] = vearchpb.ErrorEnum_INTERNAL_ERROR
-		}
+		response["code"] = head.Err.Code
+		response["msg"] = head.Err.Msg
 	}
 
 	response["total"] = len(resultIds)
