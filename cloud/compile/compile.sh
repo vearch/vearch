@@ -19,6 +19,5 @@ mkdir -p /vearch/build/lib/
 
 cp /env/app/rocksdb_install/lib/librocksdb.* /vearch/build/lib/
 cp /vearch/build/gamma_build/libgamma.* /vearch/build/lib/
-cp /vearch/engine/third_party/faiss/lib*/* /vearch/build/lib/
 
 rm -rf /vearch/build/gamma_build
