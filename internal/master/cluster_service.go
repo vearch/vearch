@@ -195,17 +195,17 @@ func (ms *masterService) deleteDBService(ctx context.Context, dbstr string) (err
 	return nil
 }
 
-func (this *masterService) updateDBIpList(ctx context.Context, dbModify *entity.DBModify) (db *entity.DB, err error) {
+func (ms *masterService) updateDBIpList(ctx context.Context, dbModify *entity.DBModify) (db *entity.DB, err error) {
 	// process painc
 	defer errutil.CatchError(&err)
 	var id int64
 	db = &entity.DB{}
 	if util.IsNum(dbModify.DbName) {
 		id = cast.ToInt64(dbModify.DbName)
-	} else if id, err = this.Master().QueryDBName2Id(ctx, dbModify.DbName); err != nil {
+	} else if id, err = ms.Master().QueryDBName2Id(ctx, dbModify.DbName); err != nil {
 		return nil, err
 	}
-	bs, err := this.Master().Get(ctx, entity.DBKeyBody(id))
+	bs, err := ms.Master().Get(ctx, entity.DBKeyBody(id))
 	errutil.ThrowError(err)
 	if bs == nil {
 		return nil, vearchpb.NewError(vearchpb.ErrorEnum_DB_NOTEXISTS, nil)
@@ -237,10 +237,10 @@ func (this *masterService) updateDBIpList(ctx context.Context, dbModify *entity.
 		errutil.ThrowError(err)
 	}
 	log.Debug("db info is %v", db)
-	_, _, bodyKey := this.Master().DBKeys(db.Id, db.Name)
+	_, _, bodyKey := ms.Master().DBKeys(db.Id, db.Name)
 	value, err := json.Marshal(db)
 	errutil.ThrowError(err)
-	err = this.Client.Master().Put(ctx, bodyKey, value)
+	err = ms.Client.Master().Put(ctx, bodyKey, value)
 	return db, err
 }
 
@@ -493,7 +493,6 @@ func (ms *masterService) generatePartitionsInfo(servers []*entity.Server, server
 }
 
 func (ms *masterService) filterAndSortServer(ctx context.Context, space *entity.Space, servers []*entity.Server) (map[int]int, error) {
-
 	db, err := ms.queryDBService(ctx, cast.ToString(space.DBId))
 	if err != nil {
 		return nil, err
@@ -510,6 +509,9 @@ func (ms *masterService) filterAndSortServer(ctx context.Context, space *entity.
 	serverPartitions := make(map[int]int)
 
 	spaces, err := ms.Master().QuerySpacesByKey(ctx, entity.PrefixSpace)
+	if err != nil {
+		return nil, err
+	}
 
 	serverIndex := make(map[entity.NodeID]int)
 
@@ -591,7 +593,7 @@ func (ms *masterService) deleteSpaceService(ctx context.Context, dbName string, 
 	return nil
 }
 
-func (ms *masterService) querySpacesService(ctx context.Context, dbName string, spaceName string) ([]*entity.Space, error) {
+func (ms *masterService) querySpacesService(ctx context.Context, dbName string) ([]*entity.Space, error) {
 	//send delete to partition
 	dbId, err := ms.Master().QueryDBName2Id(ctx, dbName)
 	if err != nil {
@@ -812,7 +814,6 @@ func (this *masterService) updateSpaceService(ctx context.Context, dbName, space
 	space.Partitions = temp.Partitions
 
 	if temp.Properties != nil && len(temp.Properties) > 0 {
-
 		//parse old space
 		oldFieldMap, err := mapping.SchemaMap(space.Properties)
 		if err != nil {
