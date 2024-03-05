@@ -1269,4 +1269,3 @@ func (handler *DocumentHandler) handleIndexRebuild(c *gin.Context) {
 
 	resp.SendJsonBytes(c, shardsBytes)
 }
-
