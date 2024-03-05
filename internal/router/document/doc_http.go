@@ -602,24 +602,6 @@ func setRequestHeadFromGin(c *gin.Context) *vearchpb.RequestHead {
 	return head
 }
 
-// setRequestHeadParams set head params of request
-func setRequestHeadParams(params netutil.UriParams, r *http.Request) (head *vearchpb.RequestHead) {
-	head = &vearchpb.RequestHead{}
-	head.Params = netutil.GetUrlQuery(r)
-	if len(head.Params) == 0 {
-		return
-	}
-
-	if timeout, ok := head.Params["timeout"]; ok {
-		var err error
-		if head.TimeOutMs, err = strconv.ParseInt(timeout, 10, 64); err != nil {
-			log.Warnf("timeout[%s] param parse to int failed, err: %s", timeout, err.Error())
-		}
-	}
-
-	return head
-}
-
 // handlerQueryDocByIds query byids
 func (handler *DocumentHandler) handlerQueryDocByIds(c *gin.Context) {
 	startTime := time.Now()
@@ -954,9 +936,9 @@ func (handler *DocumentHandler) handleDocumentQuery(c *gin.Context) {
 
 	var bs []byte
 	if searchResp.Results == nil || len(searchResp.Results) == 0 {
-		bs, err = documentSearchResponse(nil, searchResp.Head, serviceCost, space, request.QueryResponse)
+		bs, err = documentSearchResponse(nil, searchResp.Head, space, request.QueryResponse)
 	} else {
-		bs, err = documentSearchResponse(searchResp.Results, searchResp.Head, serviceCost, space, request.QueryResponse)
+		bs, err = documentSearchResponse(searchResp.Results, searchResp.Head, space, request.QueryResponse)
 	}
 
 	if err != nil {
@@ -1026,12 +1008,10 @@ func (handler *DocumentHandler) handleDocumentSearch(c *gin.Context) {
 		getArgs.Head.SpaceName = searchDoc.SpaceName
 		getArgs.PrimaryKeys = query.DocumentIds
 
-		getDocStart := time.Now()
 		reply := handler.docService.getDocs(ctx, getArgs)
-		getDocEnd := time.Now()
 
 		if reply == nil || reply.Items == nil || len(reply.Items) == 0 {
-			result, err := documentSearchResponse(nil, reply.Head, getDocEnd.Sub(getDocStart), space, request.SearchResponse)
+			result, err := documentSearchResponse(nil, reply.Head, space, request.SearchResponse)
 			if err != nil {
 				resp.SendError(c, http.StatusBadRequest, err.Error())
 				return
@@ -1041,7 +1021,7 @@ func (handler *DocumentHandler) handleDocumentSearch(c *gin.Context) {
 		}
 
 		// filter error items
-		if reply != nil && reply.Items != nil && len(reply.Items) != 0 {
+		if reply.Items != nil && len(reply.Items) != 0 {
 			tmpItems := make([]*vearchpb.Item, 0)
 			for _, i := range reply.Items {
 				if i == nil || (i.Err != nil && i.Err.Code != vearchpb.ErrorEnum_SUCCESS) {
@@ -1070,9 +1050,9 @@ func (handler *DocumentHandler) handleDocumentSearch(c *gin.Context) {
 
 	var bs []byte
 	if searchResp.Results == nil || len(searchResp.Results) == 0 {
-		bs, err = documentSearchResponse(nil, searchResp.Head, serviceCost, space, request.SearchResponse)
+		bs, err = documentSearchResponse(nil, searchResp.Head, space, request.SearchResponse)
 	} else {
-		bs, err = documentSearchResponse(searchResp.Results, searchResp.Head, serviceCost, space, request.SearchResponse)
+		bs, err = documentSearchResponse(searchResp.Results, searchResp.Head, space, request.SearchResponse)
 	}
 
 	if err != nil {
@@ -1289,3 +1269,4 @@ func (handler *DocumentHandler) handleIndexRebuild(c *gin.Context) {
 
 	resp.SendJsonBytes(c, shardsBytes)
 }
+
