@@ -15,8 +15,10 @@ class Database(object):
     def create(self):
         self.client._create_database(self.name)
 
-    def drop(self):
-        self.client._drop_db(self.name)
+    def drop(self) -> None:
+        if self.exist():
+            self.client._drop_db(self.name)
+        return
 
     def list_spaces(self) -> List[Space]:
         return [Space("fdasfs", "fdsafsd"), ]

@@ -1,7 +1,7 @@
 from vearch.config import Config
 from vearch.core.db import Database
 from vearch.core.client import client
-from vearch.schema.space_schema import SpaceScema
+from vearch.schema.space import SpaceSchema
 from typing import List
 
 
@@ -23,5 +23,9 @@ class Vearch(object):
     def drop_database(self, database_name: str) -> None:
         self.client._drop_db(database_name)
 
-    def create_space(self, database_name: str, space_name: str, space: SpaceScema) -> None:
+    def create_space(self, database_name: str,  space: SpaceSchema) -> None:
+        if self.database(database_name).exist():
+            pass
+        else:
+            pass
         pass
