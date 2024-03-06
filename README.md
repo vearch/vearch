@@ -1,9 +1,10 @@
 <div align="center">
-  <img src="docs/img/vearch_logo.png">
+  <img src="assets/vearch_logo.png">
   <p>
     <a href="https://github.com/vearch/vearch/blob/master/README_ZH_CN.md">简体中文</a> | <a href="https://github.com/vearch/vearch/blob/master/README.md">English</a>
   </p>
 </div>
+
 
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](./LICENSE)
 [![Build Status](https://github.com/vearch/vearch/actions/workflows/CI.yml/badge.svg)](https://github.com/vearch/vearch/actions/workflows/CI.yml)
@@ -97,7 +98,7 @@ Our slack : https://vearchwrokspace.slack.com
 ## Known Users
 Welcome to register the company name in this issue: https://github.com/vearch/vearch/issues/230 (in order of registration)
 
-![Users](docs/img/company/all.jpg)
+![Users](assets/company_logos/all.jpg)
 
 ## License
 
