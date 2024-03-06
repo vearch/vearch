@@ -10,7 +10,7 @@
    4. cmake >= 3.17
    5. OpenBLAS
    6. tbb，CentOS可使用yum安装，如：yum install tbb-devel.x86_64
-   7. [RocksDB](https://github.com/facebook/rocksdb) == 6.6.4 ***（可选）***，你不需要手动安装，脚本自动安装。但是你需要手动安装rocksdb的依赖。请参考如下安装方法：https://github.com/facebook/rocksdb/blob/master/INSTALL.md
+   7. [RocksDB](https://github.com/facebook/rocksdb) == 6.6.4，你不需要手动安装，脚本自动安装。但是你需要手动安装rocksdb的依赖。请参考如下安装方法：https://github.com/facebook/rocksdb/blob/master/INSTALL.md
    8. CUDA >= 9.2，如果你不使用GPU模型，可忽略。
 #### 编译
    * 进入 `GOPATH` 目录, `cd $GOPATH/src` `mkdir -p github.com/vearch` `cd github.com/vearch`
