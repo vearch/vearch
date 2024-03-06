@@ -28,7 +28,6 @@ type VectorInfo struct {
 	DataType   DataType
 	IsIndex    bool
 	Dimension  int32
-	ModelId    string
 	StoreType  string
 	StoreParam string
 }
@@ -75,21 +74,18 @@ func (table *Table) Serialize(out *[]byte) int {
 	}
 	fields := builder.EndVector(len(table.Fields))
 
-	var names, modelIDs, storeTypes, storeParams []flatbuffers.UOffsetT
+	var names, storeTypes, storeParams []flatbuffers.UOffsetT
 	names = make([]flatbuffers.UOffsetT, len(table.VectorsInfos))
-	modelIDs = make([]flatbuffers.UOffsetT, len(table.VectorsInfos))
 	storeTypes = make([]flatbuffers.UOffsetT, len(table.VectorsInfos))
 	storeParams = make([]flatbuffers.UOffsetT, len(table.VectorsInfos))
 	for i := 0; i < len(table.VectorsInfos); i++ {
 		vecInfo := table.VectorsInfos[i]
 		names[i] = builder.CreateString(vecInfo.Name)
-		modelIDs[i] = builder.CreateString(vecInfo.ModelId)
 		storeTypes[i] = builder.CreateString(vecInfo.StoreType)
 		storeParams[i] = builder.CreateString(vecInfo.StoreParam)
 	}
 
-	var vectorInfos []flatbuffers.UOffsetT
-	vectorInfos = make([]flatbuffers.UOffsetT, len(table.VectorsInfos))
+	vectorInfos := make([]flatbuffers.UOffsetT, len(table.VectorsInfos))
 	for i := 0; i < len(table.VectorsInfos); i++ {
 		vecInfo := table.VectorsInfos[i]
 		gamma_api.VectorInfoStart(builder)
@@ -97,7 +93,6 @@ func (table *Table) Serialize(out *[]byte) int {
 		gamma_api.VectorInfoAddDataType(builder, int8(vecInfo.DataType))
 		gamma_api.VectorInfoAddIsIndex(builder, vecInfo.IsIndex)
 		gamma_api.VectorInfoAddDimension(builder, vecInfo.Dimension)
-		gamma_api.VectorInfoAddModelId(builder, modelIDs[i])
 		gamma_api.VectorInfoAddStoreType(builder, storeTypes[i])
 		gamma_api.VectorInfoAddStoreParam(builder, storeParams[i])
 		vectorInfos[i] = gamma_api.VectorInfoEnd(builder)
@@ -146,7 +141,6 @@ func (table *Table) DeSerialize(buffer []byte) {
 		table.VectorsInfos[i].DataType = DataType(vecInfo.DataType())
 		table.VectorsInfos[i].IsIndex = vecInfo.IsIndex()
 		table.VectorsInfos[i].Dimension = vecInfo.Dimension()
-		table.VectorsInfos[i].ModelId = string(vecInfo.ModelId())
 		table.VectorsInfos[i].StoreType = string(vecInfo.StoreType())
 		table.VectorsInfos[i].StoreParam = string(vecInfo.StoreParam())
 	}

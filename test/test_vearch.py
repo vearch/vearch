@@ -121,7 +121,6 @@ class VearchCase:
                 "float": {"type": "float", "index": True},
                 "vector": {
                     "type": "vector",
-                    "model_id": "img",
                     "dimension": 128,
                     "format": "normalization",
                     # "retrieval_type": "GPU",
@@ -130,7 +129,6 @@ class VearchCase:
                 },
                 "string_tags": {"type": "string", "array": True, "index": True},
             },
-            "models": [{"model_id": "vgg16", "fields": ["string"], "out": "feature"}],
         }
         logger.debug(url + "---" + json.dumps(data))
         response = requests.put(url, headers=headers, data=json.dumps(data))

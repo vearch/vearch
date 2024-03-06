@@ -193,7 +193,6 @@ class GammaVectorInfo:
         dimension: int,
         is_index: bool = True,
         type: int = dataType.VECTOR,
-        model_id: str = "",
         store_type: str = "MemoryOnly",
         store_param: dict = {},
     ):
@@ -201,7 +200,6 @@ class GammaVectorInfo:
         self.type = type
         self.is_index = is_index
         self.dimension = dimension
-        self.model_id = model_id
         self.store_type = store_type
         self.store_param = store_param
 
@@ -210,7 +208,6 @@ class GammaVectorInfo:
         print("type:", self.type)
         print("index:", self.is_index)
         print("dimension:", self.dimension)
-        print("model_id:", self.model_id)
         print("store_type:", self.store_type)
         print("store_param:", self.store_param)
 
@@ -327,13 +324,11 @@ class GammaTable:
             fb_str_store_param = builder.CreateString(
                 json.dumps(vec_infos[key].store_param)
             )
-            fb_str_model_id = builder.CreateString(vec_infos[key].model_id)
             VectorInfo.VectorInfoStart(builder)
             VectorInfo.VectorInfoAddName(builder, fb_str_name)
             VectorInfo.VectorInfoAddDimension(builder, vec_infos[key].dimension)
             VectorInfo.VectorInfoAddIsIndex(builder, vec_infos[key].is_index)
             VectorInfo.VectorInfoAddDataType(builder, vec_infos[key].type)
-            VectorInfo.VectorInfoAddModelId(builder, fb_str_model_id)
             VectorInfo.VectorInfoAddStoreType(builder, fb_str_store_type)
             VectorInfo.VectorInfoAddStoreParam(builder, fb_str_store_param)
             lst_VecInfos.append(VectorInfo.VectorInfoEnd(builder))
@@ -417,7 +412,6 @@ class GammaTable:
                 dimension = table.VectorsInfo(i).Dimension(),
                 is_index = table.VectorsInfo(i).IsIndex(),
                 type = table.VectorsInfo(i).DataType(),
-                model_id = table.VectorsInfo(i).ModelId().decode("utf-8"),
                 store_type = table.VectorsInfo(i).StoreType().decode("utf-8"),
                 store_param = json.loads(table.VectorsInfo(i).StoreParam()),
             )

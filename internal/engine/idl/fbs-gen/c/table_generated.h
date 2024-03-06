@@ -96,9 +96,8 @@ struct VectorInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_DATA_TYPE = 6,
     VT_IS_INDEX = 8,
     VT_DIMENSION = 10,
-    VT_MODEL_ID = 12,
-    VT_STORE_TYPE = 14,
-    VT_STORE_PARAM = 16
+    VT_STORE_TYPE = 12,
+    VT_STORE_PARAM = 14
   };
   const flatbuffers::String *name() const {
     return GetPointer<const flatbuffers::String *>(VT_NAME);
@@ -111,9 +110,6 @@ struct VectorInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   int32_t dimension() const {
     return GetField<int32_t>(VT_DIMENSION, 0);
-  }
-  const flatbuffers::String *model_id() const {
-    return GetPointer<const flatbuffers::String *>(VT_MODEL_ID);
   }
   const flatbuffers::String *store_type() const {
     return GetPointer<const flatbuffers::String *>(VT_STORE_TYPE);
@@ -128,8 +124,6 @@ struct VectorInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<int8_t>(verifier, VT_DATA_TYPE) &&
            VerifyField<uint8_t>(verifier, VT_IS_INDEX) &&
            VerifyField<int32_t>(verifier, VT_DIMENSION) &&
-           VerifyOffset(verifier, VT_MODEL_ID) &&
-           verifier.VerifyString(model_id()) &&
            VerifyOffset(verifier, VT_STORE_TYPE) &&
            verifier.VerifyString(store_type()) &&
            VerifyOffset(verifier, VT_STORE_PARAM) &&
@@ -152,9 +146,6 @@ struct VectorInfoBuilder {
   }
   void add_dimension(int32_t dimension) {
     fbb_.AddElement<int32_t>(VectorInfo::VT_DIMENSION, dimension, 0);
-  }
-  void add_model_id(flatbuffers::Offset<flatbuffers::String> model_id) {
-    fbb_.AddOffset(VectorInfo::VT_MODEL_ID, model_id);
   }
   void add_store_type(flatbuffers::Offset<flatbuffers::String> store_type) {
     fbb_.AddOffset(VectorInfo::VT_STORE_TYPE, store_type);
@@ -180,13 +171,11 @@ inline flatbuffers::Offset<VectorInfo> CreateVectorInfo(
     DataType data_type = INT,
     bool is_index = false,
     int32_t dimension = 0,
-    flatbuffers::Offset<flatbuffers::String> model_id = 0,
     flatbuffers::Offset<flatbuffers::String> store_type = 0,
     flatbuffers::Offset<flatbuffers::String> store_param = 0) {
   VectorInfoBuilder builder_(_fbb);
   builder_.add_store_param(store_param);
   builder_.add_store_type(store_type);
-  builder_.add_model_id(model_id);
   builder_.add_dimension(dimension);
   builder_.add_name(name);
   builder_.add_is_index(is_index);
@@ -200,11 +189,9 @@ inline flatbuffers::Offset<VectorInfo> CreateVectorInfoDirect(
     DataType data_type = INT,
     bool is_index = false,
     int32_t dimension = 0,
-    const char *model_id = nullptr,
     const char *store_type = nullptr,
     const char *store_param = nullptr) {
   auto name__ = name ? _fbb.CreateString(name) : 0;
-  auto model_id__ = model_id ? _fbb.CreateString(model_id) : 0;
   auto store_type__ = store_type ? _fbb.CreateString(store_type) : 0;
   auto store_param__ = store_param ? _fbb.CreateString(store_param) : 0;
   return gamma_api::CreateVectorInfo(
@@ -213,7 +200,6 @@ inline flatbuffers::Offset<VectorInfo> CreateVectorInfoDirect(
       data_type,
       is_index,
       dimension,
-      model_id__,
       store_type__,
       store_param__);
 }

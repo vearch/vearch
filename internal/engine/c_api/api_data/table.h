@@ -31,7 +31,6 @@ struct VectorInfo {
   DataType data_type;
   bool is_index;
   int dimension;
-  std::string model_id;
   std::string store_type;
   std::string store_param;
 };

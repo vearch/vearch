@@ -45,7 +45,6 @@ curl -v --user "root:secret" -H "content-type: application/json" -XPUT -d'
     },
     "vector": {
       "type": "vector",
-      "model_id": "img",
       "dimension": 128,
       "format": "normalization"
     },
@@ -54,16 +53,7 @@ curl -v --user "root:secret" -H "content-type: application/json" -XPUT -d'
       "array": true,
       "index": true
     }
-  },
-  "models": [
-    {
-      "model_id": "vgg16",
-      "fields": [
-        "string"
-      ],
-      "out": "feature"
-    }
-  ]
+  }
 }
 ' {{ROUTER}}/space/test_vector_db/_create
 ````

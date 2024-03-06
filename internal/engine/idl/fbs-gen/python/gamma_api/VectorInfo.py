@@ -47,32 +47,24 @@ class VectorInfo(object):
         return 0
 
     # VectorInfo
-    def ModelId(self):
+    def StoreType(self):
         o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(12))
         if o != 0:
             return self._tab.String(o + self._tab.Pos)
         return None
 
     # VectorInfo
-    def StoreType(self):
+    def StoreParam(self):
         o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(14))
         if o != 0:
             return self._tab.String(o + self._tab.Pos)
         return None
 
-    # VectorInfo
-    def StoreParam(self):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(16))
-        if o != 0:
-            return self._tab.String(o + self._tab.Pos)
-        return None
-
-def VectorInfoStart(builder): builder.StartObject(7)
+def VectorInfoStart(builder): builder.StartObject(6)
 def VectorInfoAddName(builder, name): builder.PrependUOffsetTRelativeSlot(0, flatbuffers.number_types.UOffsetTFlags.py_type(name), 0)
 def VectorInfoAddDataType(builder, dataType): builder.PrependInt8Slot(1, dataType, 0)
 def VectorInfoAddIsIndex(builder, isIndex): builder.PrependBoolSlot(2, isIndex, 0)
 def VectorInfoAddDimension(builder, dimension): builder.PrependInt32Slot(3, dimension, 0)
-def VectorInfoAddModelId(builder, modelId): builder.PrependUOffsetTRelativeSlot(4, flatbuffers.number_types.UOffsetTFlags.py_type(modelId), 0)
-def VectorInfoAddStoreType(builder, storeType): builder.PrependUOffsetTRelativeSlot(5, flatbuffers.number_types.UOffsetTFlags.py_type(storeType), 0)
-def VectorInfoAddStoreParam(builder, storeParam): builder.PrependUOffsetTRelativeSlot(6, flatbuffers.number_types.UOffsetTFlags.py_type(storeParam), 0)
+def VectorInfoAddStoreType(builder, storeType): builder.PrependUOffsetTRelativeSlot(4, flatbuffers.number_types.UOffsetTFlags.py_type(storeType), 0)
+def VectorInfoAddStoreParam(builder, storeParam): builder.PrependUOffsetTRelativeSlot(5, flatbuffers.number_types.UOffsetTFlags.py_type(storeParam), 0)
 def VectorInfoEnd(builder): return builder.EndObject()

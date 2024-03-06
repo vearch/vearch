@@ -603,7 +603,6 @@ func (ms *masterService) querySpacesService(ctx context.Context, dbName string) 
 }
 
 func (ms *masterService) queryDBs(ctx context.Context) ([]*entity.DB, error) {
-
 	_, bytesArr, err := ms.Master().PrefixScan(ctx, entity.PrefixDataBaseBody)
 	if err != nil {
 		return nil, err

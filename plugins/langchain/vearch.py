@@ -183,7 +183,6 @@ class Vearch(VectorStore):
             type = vearch.dataType.VECTOR,
             is_index = True,
             dimension = dim,
-            model_id = "",
             store_type = "MemoryOnly",
             store_param = {"cache_size": 10000},
         )

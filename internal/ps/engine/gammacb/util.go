@@ -124,7 +124,6 @@ func mapping2Table(cfg register.EngineConfig, m *mapping.IndexMapping) (*gamma.T
 				Name:       key,
 				DataType:   gamma.FLOAT,
 				Dimension:  int32(fieldMapping.Dimension),
-				ModelId:    fieldMapping.ModelId,
 				StoreType:  fieldMapping.StoreType,
 				StoreParam: string(fieldMapping.StoreParam),
 			}

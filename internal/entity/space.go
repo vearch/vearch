@@ -124,7 +124,6 @@ type SpaceProperties struct {
 	Index      *bool                `json:"index,omitempty"`
 	Format     *string              `json:"format,omitempty"`
 	Dimension  int                  `json:"dimension,omitempty"`
-	ModelId    string               `json:"model_id,omitempty"`
 	StoreType  *string              `json:"store_type,omitempty"`
 	StoreParam json.RawMessage      `json:"store_param,omitempty"`
 	Array      bool                 `json:"array,omitempty"`

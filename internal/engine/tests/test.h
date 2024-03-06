@@ -167,7 +167,6 @@ struct Options {
     vector_name = "abc";
     path = "files";
     log_dir = "log";
-    model_id = "model";
     store_type = "RocksDB";
     profiles.resize(max_doc_size * fields_vec.size());
     engine = nullptr;
@@ -199,7 +198,6 @@ struct Options {
   string path;
   string log_dir;
   string vector_name;
-  string model_id;
   string retrieval_type;
   string retrieval_param;
   string store_type;
@@ -925,7 +923,6 @@ int Create(struct Options &opt) {
   vector_info.data_type = vearch::DataType::FLOAT;
   vector_info.is_index = true;
   vector_info.dimension = opt.d;
-  vector_info.model_id = opt.model_id;
   vector_info.store_type = opt.store_type;
   vector_info.store_param = "{\"cache_size\": 16, \"compress\": {\"rate\":16}}";
   // vector_info.store_param = "{\"cache_size\": 16}";

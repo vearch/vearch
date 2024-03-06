@@ -82,7 +82,6 @@ void TableSchemaIO::WriteVectorInfos(TableInfo &table) {
     fio->Write((void *)&vi.data_type, sizeof(vi.data_type), 1);
     fio->Write((void *)&vi.is_index, sizeof(vi.is_index), 1);
     fio->Write((void *)&vi.dimension, sizeof(vi.dimension), 1);
-    FWriteByteArray(fio, vi.model_id);
     FWriteByteArray(fio, vi.store_type);
     if (vi.store_param != "") {
       FWriteByteArray(fio, vi.store_param);
@@ -144,7 +143,6 @@ void TableSchemaIO::ReadVectorInfos(TableInfo &table) {
     fio->Read((void *)&vi.data_type, sizeof(vi.data_type), 1);
     fio->Read((void *)&vi.is_index, sizeof(vi.is_index), 1);
     fio->Read((void *)&vi.dimension, sizeof(vi.dimension), 1);
-    FReadByteArray(fio, vi.model_id);
     FReadByteArray(fio, vi.store_type);
     FReadByteArray(fio, vi.store_param);
     if (vi.store_param == kPlaceHolder) {
