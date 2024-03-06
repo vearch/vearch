@@ -1,9 +1,11 @@
-from typing import List, SupportsInt
+from typing import List, Optional
 from vearch.utils import DataType
+from vearch.schema.index import Index, BinaryIvfIndex
 
 
 class SpaceSchema:
-    def __init__(self, name, fields: List, description: str = "", partition_num: int = 1,
+    def __init__(self, name, fields: List, description: str = "",
+                 partition_num: int = 1,
                  replication_num: int = 3):
         """
 
@@ -17,13 +19,14 @@ class SpaceSchema:
         self._description = description
         self._partition_num = partition_num
         self._replication_num = replication_num
+        self._check_valid()
 
     def _check_valid(self):
         for field in self._fields:
-            if field.index == True:
+            if field.index and field.index._index_type>1:
                 assert field.data_type not in [DataType.NONE, DataType.UNKNOWN]
-            if field.data_type == DataType.VARCHAR:
-                pass
+                if isinstance(field.index, BinaryIvfIndex):
+                    assert field.dim // 8 == 0, "BinaryIvfIndex vector dimention must be power of eight"
 
     def dict(self):
         space_schema = {"name": self._name, "desc": self._description, "partition_num": self._partition_num,
