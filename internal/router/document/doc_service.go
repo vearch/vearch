@@ -17,7 +17,6 @@ package document
 import (
 	"context"
 	"fmt"
-	"strings"
 	"sync"
 	"time"
 
@@ -317,7 +316,6 @@ func (docService *docService) rebuildIndex(ctx context.Context, args *vearchpb.I
 func (docService *docService) deleteByQuery(ctx context.Context, args *vearchpb.SearchRequest) *vearchpb.DelByQueryeResponse {
 	request := client.NewRouterRequest(ctx, docService.client)
 	deleteByScalar := false
-	idIsLong := false
 	if args.VecFields != nil {
 		err := fmt.Errorf("delete_by_query vector param should be null")
 		return &vearchpb.DelByQueryeResponse{Head: setErrHead(err)}
@@ -328,11 +326,7 @@ func (docService *docService) deleteByQuery(ctx context.Context, args *vearchpb.
 		return &vearchpb.DelByQueryeResponse{Head: setErrHead(request.Err)}
 	}
 
-	if strings.Compare(args.Head.Params["idIsLong"], "true") == 0 {
-		idIsLong = true
-	}
-
-	delByQueryResponse := request.DelByQueryeExecute(deleteByScalar, idIsLong)
+	delByQueryResponse := request.DelByQueryeExecute(deleteByScalar)
 
 	if delByQueryResponse == nil {
 		return &vearchpb.DelByQueryeResponse{Head: setErrHead(request.Err)}

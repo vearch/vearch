@@ -61,8 +61,7 @@ func (handler *RpcHandler) Space(ctx context.Context, req *vearchpb.RequestHead)
 	space, err := handler.client.Space(ctx, req.DbName, req.SpaceName)
 
 	reply = &vearchpb.Table{}
-	pkt := vearchpb.FieldType_value[strings.ToUpper(space.Engine.IdType)]
-	tmi := &vearchpb.TableMetaInfo{PrimaryKeyType: vearchpb.FieldType(pkt),
+	tmi := &vearchpb.TableMetaInfo{PrimaryKeyType: vearchpb.FieldType_STRING,
 		PartitionsNum: int32(space.PartitionNum),
 		ReplicasNum:   int32(space.ReplicaNum),
 	}

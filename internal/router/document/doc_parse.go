@@ -773,45 +773,23 @@ func docSearchByIdsParse(r *http.Request, space *entity.Space) (fieldsParam []st
 		return nil, nil, reqBodyByte, err
 	}
 
-	if idIsLong(space) {
-		idsArr := struct {
-			Ids    []int64  `json:"ids"`
-			Fields []string `json:"fields"`
-		}{}
+	idsArr := struct {
+		Ids    []string `json:"ids"`
+		Fields []string `json:"fields"`
+	}{}
 
-		err = json.Unmarshal(queryParam.Query, &idsArr)
-		if err != nil {
-			err = fmt.Errorf("query param Unmarshal error :%v", err)
-			return nil, nil, reqBodyByte, err
-		}
-		fieldsParam = idsArr.Fields
-		if len(idsArr.Ids) == 0 {
-			err = fmt.Errorf("query param id is null")
-			return nil, nil, reqBodyByte, err
-		}
-		ids = make([]string, 0)
-		for _, int64id := range idsArr.Ids {
-			ids = append(ids, strconv.FormatInt(int64id, 10))
-		}
-	} else {
-		idsArr := struct {
-			Ids    []string `json:"ids"`
-			Fields []string `json:"fields"`
-		}{}
-
-		err = json.Unmarshal(queryParam.Query, &idsArr)
-		if err != nil {
-			err = fmt.Errorf("query param Unmarshal error :%v", err)
-			return nil, nil, reqBodyByte, err
-		}
-
-		fieldsParam = idsArr.Fields
-		if len(idsArr.Ids) == 0 {
-			err = fmt.Errorf("query param id is null")
-			return nil, nil, reqBodyByte, err
-		}
-		ids = idsArr.Ids
+	err = json.Unmarshal(queryParam.Query, &idsArr)
+	if err != nil {
+		err = fmt.Errorf("query param Unmarshal error :%v", err)
+		return nil, nil, reqBodyByte, err
 	}
+
+	fieldsParam = idsArr.Fields
+	if len(idsArr.Ids) == 0 {
+		err = fmt.Errorf("query param id is null")
+		return nil, nil, reqBodyByte, err
+	}
+	ids = idsArr.Ids
 
 	if len(ids) == 0 {
 		err = fmt.Errorf("id is empty")

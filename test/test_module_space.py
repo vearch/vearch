@@ -47,7 +47,6 @@ class TestSpaceCreate:
             "replica_num": 1,
             "engine": {
                 "index_size": 70000,
-                "id_type": "String",
                 "retrieval_type": retrieval_type,
                 "retrieval_param": {
                     "metric_type": "InnerProduct",
@@ -107,7 +106,6 @@ class TestSpaceCreate:
             "replica_num": replica_num,
             "engine": {
                 "index_size": index_size,
-                "id_type": "String",
                 "retrieval_type": retrieval_type,
                 "retrieval_param": {
                     "metric_type": "InnerProduct",
@@ -151,7 +149,6 @@ class TestSpaceCreate:
             "replica_num": 1,
             "engine": {
                 "index_size": 70000,
-                "id_type": "String",
                 "retrieval_type": "FLAT",
                 "retrieval_param": {
                     "metric_type": "InnerProduct",

@@ -279,16 +279,16 @@ func NewBooleanFieldMapping(name string) *BooleanFieldMapping {
 
 type VectortFieldMapping struct {
 	*BaseFieldMapping
-	Dimension int     `json:"dimension"`
-	Format    *string `json:"format,omitempty"` //default is "normalization", "normal" , if set "no" others it will not format
-	StoreType  string `json:"store_type,omitempty"` // "Mmap", "RocksDB", "MemoryOnly"
-	StoreParam []byte `json:"store_param,omitempty"`
+	Dimension  int     `json:"dimension"`
+	Format     *string `json:"format,omitempty"`     // default is "normalization", "normal" , if set "no" others it will not format
+	StoreType  string  `json:"store_type,omitempty"` // "RocksDB", "MemoryOnly"
+	StoreParam []byte  `json:"store_param,omitempty"`
 }
 
 func NewVectorFieldMapping(name string) *VectortFieldMapping {
 	return &VectortFieldMapping{
 		BaseFieldMapping: NewBaseFieldMapping(name, vearchpb.FieldType_VECTOR, 1, vearchpb.FieldOption_Index),
-		StoreType: "",
+		StoreType:        "",
 	}
 }
 

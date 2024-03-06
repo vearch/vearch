@@ -47,7 +47,6 @@ type Engine struct {
 	MetricType     string          `json:"metric_type,omitempty"`
 	RetrievalType  string          `json:"retrieval_type,omitempty"`
 	RetrievalParam json.RawMessage `json:"retrieval_param,omitempty"`
-	IdType         string          `json:"id_type,omitempty"`
 }
 
 func NewDefaultEngine() *Engine {
@@ -178,7 +177,6 @@ func (engine *Engine) UnmarshalJSON(bs []byte) error {
 		MetricType     string          `json:"metric_type,omitempty"`
 		RetrievalParam json.RawMessage `json:"retrieval_param,omitempty"`
 		RetrievalType  string          `json:"retrieval_type,omitempty"`
-		IdType         string          `json:"id_type,omitempty"`
 	}{}
 
 	if err := json.Unmarshal(bs, tempEngine); err != nil {
@@ -251,7 +249,6 @@ func (engine *Engine) UnmarshalJSON(bs []byte) error {
 		RetrievalParam: tempEngine.RetrievalParam,
 		MetricType:     tempEngine.MetricType,
 		RetrievalType:  tempEngine.RetrievalType,
-		IdType:         tempEngine.IdType,
 	}
 
 	return nil

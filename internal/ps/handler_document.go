@@ -35,7 +35,6 @@ import (
 	"github.com/vearch/vearch/internal/entity"
 	"github.com/vearch/vearch/internal/proto/vearchpb"
 	"github.com/vearch/vearch/internal/ps/engine/mapping"
-	"github.com/vearch/vearch/internal/util/cbbytes"
 	"github.com/vearch/vearch/internal/util/log"
 	"github.com/vearch/vearch/internal/util/server/rpc/handler"
 	"go.uber.org/atomic"
@@ -439,12 +438,6 @@ func deleteByQuery(ctx context.Context, store PartitionStore, req *vearchpb.Sear
 			head := &vearchpb.ResponseHead{Err: &vearchpb.Error{Code: vearchpb.ErrorEnum_DELETE_BY_QUERY_SEARCH_ID_IS_0, Msg: "deleteByQuery search id is 0"}}
 			resp.Head = head
 		} else {
-			idIsLongStr := req.Head.Params["idIsLong"]
-
-			idIsLong := false
-			if idIsLongStr == "true" {
-				idIsLong = true
-			}
 			docs := make([]*vearchpb.Item, 0)
 			for _, result := range results {
 				if result == nil || result.ResultItems == nil || len(result.ResultItems) == 0 {
@@ -458,12 +451,7 @@ func deleteByQuery(ctx context.Context, store PartitionStore, req *vearchpb.Sear
 							switch name {
 							case mapping.IdField:
 								value = fv.Value
-								if idIsLong {
-									id := int64(cbbytes.ByteArray2UInt64(fv.Value))
-									pKey = strconv.FormatInt(id, 10)
-								} else {
-									pKey = string(fv.Value)
-								}
+								pKey = string(fv.Value)
 							}
 						}
 						if pKey != "" {
@@ -484,14 +472,7 @@ func deleteByQuery(ctx context.Context, store PartitionStore, req *vearchpb.Sear
 				deleteDocs(ctx, store, docs)
 				for _, item := range docs {
 					if item.Err == nil {
-						if idIsLong {
-							i, err := strconv.ParseInt(item.Doc.PKey, 10, 64)
-							if err == nil {
-								resp.IdsLong = append(resp.IdsLong, i)
-							}
-						} else {
-							resp.IdsStr = append(resp.IdsStr, item.Doc.PKey)
-						}
+						resp.IdsStr = append(resp.IdsStr, item.Doc.PKey)
 						resp.DelNum++
 					}
 				}

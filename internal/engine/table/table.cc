@@ -223,7 +223,6 @@ int Table::AddField(const string &name, DataType ftype, bool is_index) {
   }
   if (name == key_field_name_) {
     key_idx_ = field_num_;
-    id_type_ = ftype == DataType::STRING ? 0 : 1;
   }
   idx_attr_offset_.push_back(item_length_);
   attr_offset_map_.insert(std::pair<string, int>(name, item_length_));
@@ -315,15 +314,8 @@ int Table::Add(const std::string &key,
   storage_mgr_->Add(docid, doc_value.data(), item_length_);
 
   if (docid % 10000 == 0) {
-    if (id_type_ == 0) {
-      LOG(INFO) << name_ << " add item _id [" << key << "], num [" << docid
-                << "]";
-    } else {
-      long key_long = -1;
-      memcpy(&key_long, key.data(), sizeof(key_long));
-      LOG(INFO) << name_ << " add item _id [" << key_long << "], num [" << docid
-                << "]";
-    }
+    LOG(INFO) << name_ << " add item _id [" << key << "], num [" << docid
+              << "]";
   }
   last_docid_ = docid;
   return 0;

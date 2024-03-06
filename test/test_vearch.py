@@ -31,10 +31,9 @@ class VearchCase:
     logger.info("test class")
 
     def setup(
-        self, index_size: int, id_type: str, retrieval_type: str, store_type: str
+        self, index_size: int, retrieval_type: str, store_type: str
     ):
         self.index_size = index_size
-        self.id_type = id_type
         self.retrieval_type = retrieval_type
         self.store_type = store_type
 
@@ -103,7 +102,6 @@ class VearchCase:
             "replica_num": 1,
             "engine": {
                 "index_size": self.index_size,
-                "id_type": self.id_type,
                 "retrieval_type": self.retrieval_type,
                 "retrieval_param": {
                     "metric_type": "InnerProduct",
@@ -804,25 +802,21 @@ class VearchCase:
 
 
 @pytest.mark.parametrize(
-    ["index_size", "id_type", "retrieval_type", "store_type"],
+    ["index_size", "retrieval_type", "store_type"],
     [
-        [1, "Long", "FLAT", ""],
-        [1, "String", "FLAT", ""],
-        [990, "Long", "IVFPQ", "MemoryOnly"],
-        [990, "Long", "IVFPQ", "RocksDB"],
-        [990, "String", "IVFPQ", "MemoryOnly"],
-        [990, "String", "IVFPQ", "RocksDB"],
-        [1, "Long", "HNSW", ""],
-        [1, "String", "HNSW", ""],
-        [990, "Long", "IVFFLAT", ""],
-        [990, "String", "IVFFLAT", ""],
+        [1, "FLAT", ""],
+        [1, "FLAT", ""],
+        [990, "IVFPQ", "MemoryOnly"],
+        [990, "IVFPQ", "RocksDB"],
+        [1, "HNSW", ""],
+        [990, "IVFFLAT", ""],
     ],
 )
 def test_vearch_usage(
-    index_size: int, id_type: str, retrieval_type: str, store_type: str
+    index_size: int, retrieval_type: str, store_type: str
 ):
     case = VearchCase()
-    case.setup(index_size, id_type, retrieval_type, store_type)
+    case.setup(index_size, retrieval_type, store_type)
     case.run_basic_usage_test()
     case.run_db_space_create_multi_test()
 
@@ -831,20 +825,17 @@ def test_vearch_usage(
 
 
 @pytest.mark.parametrize(
-    ["index_size", "id_type", "retrieval_type", "store_type"],
+    ["index_size", "retrieval_type", "store_type"],
     [
-        [1, "Long", "FLAT", "RocksDB"],
-        [1, "Long", "FLAT", "NOTSUPPORTTYPE"],
-        [1, "String", "FLAT", "RocksDB"],
-        [1, "Long", "HNSW", "RocksDB"],
-        [1, "String", "HNSW", "RocksDB"],
-        [990, "Long", "IVFFLAT", "MemoryOnly"],
-        [990, "String", "IVFFLAT", "MemoryOnly"],
+        [1, "FLAT", "RocksDB"],
+        [1, "FLAT", "NOTSUPPORTTYPE"],
+        [1, "HNSW", "RocksDB"],
+        [990, "IVFFLAT", "MemoryOnly"],
     ],
 )
 def test_vearch_create_space(
-    index_size: int, id_type: str, retrieval_type: str, store_type: str
+    index_size: int, retrieval_type: str, store_type: str
 ):
     case = VearchCase()
-    case.setup(index_size, id_type, retrieval_type, store_type)
+    case.setup(index_size, retrieval_type, store_type)
     case.run_db_space_create_test(False)

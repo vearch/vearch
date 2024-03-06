@@ -50,8 +50,7 @@ class TableTest : public ::testing::Test {
 
   // Some expensive resource shared by all tests.
   // static T* shared_resource_;
-  TableInfo *CreateTableInfo(struct Options &opt, bool is_index = false,
-                             bool is_long = false) {
+  TableInfo *CreateTableInfo(struct Options &opt, bool is_index = false) {
     TableInfo *table = new TableInfo();
     table->SetName(opt.vector_name);
     table->SetRetrievalType(opt.retrieval_type);
@@ -88,17 +87,13 @@ class TableTest : public ::testing::Test {
 
     field_info.name = "_id";
     field_names.push_back(field_info.name);
-    if (is_long)
-      field_info.data_type = vearch::DataType::LONG;
-    else
-      field_info.data_type = vearch::DataType::STRING;
+    field_info.data_type = vearch::DataType::STRING;
     table->AddField(field_info);
     return table;
   }
 
-  int CreateTable(struct Options &opt, bool is_index = false,
-                  bool is_long = false) {
-    table_info = CreateTableInfo(opt, is_index, is_long);
+  int CreateTable(struct Options &opt, bool is_index = false) {
+    table_info = CreateTableInfo(opt, is_index);
     TableParams table_params;
     utils::JsonParser *meta_jp = nullptr;
     if (meta_jp) {
@@ -174,12 +169,7 @@ class TableTest : public ::testing::Test {
   int Add(int add_num = 10000) {
     for (int i = 0; i < add_num; i++) {
       std::string key;
-      if (table->IdType() == 1) {
-        long v = (long)i;
-        key = std::string((char *)(&v), sizeof(long));
-      } else {
-        key = std::to_string(i);
-      }
+      key = std::to_string(i);
       std::unordered_map<std::string, struct Field> fields_table;
       CreateFieldValue(fields_table, i, true);
       if (table->Add(key, fields_table, i)) return -1;
@@ -189,12 +179,7 @@ class TableTest : public ::testing::Test {
 
   int GetFieldValue(int doc_id, int value) {
     std::string key;
-    if (table->IdType() == 1) {
-      long v = (long)doc_id;
-      key = std::string((char *)(&v), sizeof(long));
-    } else {
-      key = std::to_string(doc_id);
-    }
+    key = std::to_string(doc_id);
     std::vector<std::string> fields;
     Doc doc;
     if (table->GetDocInfo(key, doc, fields)) return -1;
@@ -243,12 +228,7 @@ class TableTest : public ::testing::Test {
     std::vector<int> delete_ids = {1, 3, 50, 100, 999};
     for (size_t i = 0; i < delete_ids.size(); i++) {
       std::string key;
-      if (table->IdType() == 1) {
-        long v = (long)delete_ids[i];
-        key = std::string((char *)(&v), sizeof(long));
-      } else {
-        key = std::to_string(delete_ids[i]);
-      }
+      key = std::to_string(delete_ids[i]);
       table->Delete(key);
     }
     // check delete
