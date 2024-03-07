@@ -211,19 +211,6 @@ func (handler *UnaryHandler) execute(ctx context.Context, req *vearchpb.Partitio
 				req.SearchResponse = &vearchpb.SearchResponse{}
 			}
 			search(ctx, store, req.SearchRequest, req.SearchResponse)
-		case client.BulkSearchHandler:
-			if req.SearchResponses == nil || len(req.SearchResponses) == 0 {
-				searchResps := make([]*vearchpb.SearchResponse, 0)
-				for i := 0; i < len(req.SearchRequests); i++ {
-					searchReq := req.SearchRequests[i]
-					sortFieldMap := searchReq.SortFieldMap
-					topSize := searchReq.TopN
-					resp := &vearchpb.SearchResponse{SortFieldMap: sortFieldMap, TopSize: topSize}
-					searchResps = append(searchResps, resp)
-				}
-				req.SearchResponses = searchResps
-			}
-			bulkSearch(ctx, store, req.SearchRequests, req.SearchResponses)
 		case client.ForceMergeHandler:
 			forceMerge(ctx, store, req.Err)
 		case client.RebuildIndexHandler:
@@ -359,30 +346,6 @@ func search(ctx context.Context, store PartitionStore, request *vearchpb.SearchR
 			response.Head.Err = &vearchpb.Error{Code: vearchpb.ErrorEnum_INTERNAL_ERROR, Msg: cast.ToString(r)}
 		}
 	}()
-}
-
-func bulkSearch(ctx context.Context, store PartitionStore, request []*vearchpb.SearchRequest, response []*vearchpb.SearchResponse) {
-	wg := sync.WaitGroup{}
-	for i, req := range request {
-		wg.Add(1)
-		go func(req *vearchpb.SearchRequest, resp *vearchpb.SearchResponse) {
-			defer wg.Done()
-			defer func() {
-				if r := recover(); r != nil {
-					if resp.Head == nil {
-						responseHead := &vearchpb.ResponseHead{Err: &vearchpb.Error{Code: vearchpb.ErrorEnum_INTERNAL_ERROR, Msg: cast.ToString(r)}}
-						resp.Head = responseHead
-					}
-				}
-			}()
-
-			if err := store.Search(ctx, req, resp); err != nil {
-				log.Error("search doc failed, err: [%s]", err.Error())
-				resp.Head.Err = vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err).GetError()
-			}
-		}(req, response[i])
-	}
-	wg.Wait()
 }
 
 func forceMerge(ctx context.Context, store PartitionStore, error *vearchpb.Error) {

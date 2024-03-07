@@ -143,8 +143,6 @@ func (handler *DocumentHandler) ExportInterfacesToServer() error {
 func (handler *DocumentHandler) ExportToServer() error {
 	// routerInfo
 	handler.httpServer.Handle(http.MethodGet, "/", handler.handleTimeout, handler.handleAuth, handler.handleRouterInfo)
-	// list router
-	handler.httpServer.Handle(http.MethodGet, "/list/router", handler.handleTimeout, handler.handleAuth, handler.handleRouterIPs)
 	// update doc: /$dbName/$spaceName/_log_collect
 	handler.httpServer.Handle(http.MethodPost, fmt.Sprintf("/:%s/:%s/_log_print_switch", URLParamDbName, URLParamSpaceName), handler.handleTimeout, handler.handleAuth, handler.handleLogPrintSwitch)
 	// cacheInfo /$dbName/$spaceName

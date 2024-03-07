@@ -86,62 +86,6 @@ func docGetResponse(client *client.Client, args *vearchpb.GetRequest, reply *vea
 	return jsonData, nil
 }
 
-func docDeleteResponses(client *client.Client, args *vearchpb.DeleteRequest, reply *vearchpb.DeleteResponse) ([]byte, error) {
-	if args == nil || reply == nil || reply.Items == nil || len(reply.Items) < 1 {
-		if reply.GetHead() != nil && reply.GetHead().Err != nil && reply.GetHead().Err.Code != vearchpb.ErrorEnum_SUCCESS {
-			err := reply.GetHead().Err
-			return nil, vearchpb.NewError(err.Code, errors.New(err.Msg))
-		}
-		return nil, vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, nil)
-	}
-	return docResponse(client, args.Head, reply.Items)
-}
-
-func docUpdateResponses(client *client.Client, args *vearchpb.UpdateRequest, reply *vearchpb.UpdateResponse) ([]byte, error) {
-	if args == nil || reply == nil || reply.Head == nil || reply.Head.Err == nil {
-		if reply.GetHead() != nil && reply.GetHead().Err != nil && reply.GetHead().Err.Code != vearchpb.ErrorEnum_SUCCESS {
-			err := reply.GetHead().Err
-			return nil, vearchpb.NewError(err.Code, errors.New(err.Msg))
-		}
-		return nil, vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, nil)
-	}
-	headErr := reply.Head.Err
-	if headErr.Code != vearchpb.ErrorEnum_SUCCESS {
-		return nil, vearchpb.NewError(headErr.Code, errors.New(headErr.Msg))
-	}
-	space, err := client.Space(context.Background(), args.Head.DbName, args.Head.SpaceName)
-	if err != nil {
-		return nil, err
-	}
-	return docResultSerialize(space, args.Head, &vearchpb.Item{Doc: &vearchpb.Document{PKey: args.Doc.PKey}})
-}
-
-func docBulkResponses(client *client.Client, args *vearchpb.BulkRequest, reply *vearchpb.BulkResponse) ([]byte, error) {
-	if args == nil || reply == nil || reply.Items == nil || len(reply.Items) < 1 {
-		if reply.GetHead() != nil && reply.GetHead().Err != nil && reply.GetHead().Err.Code != vearchpb.ErrorEnum_SUCCESS {
-			err := reply.GetHead().Err
-			return nil, vearchpb.NewError(err.Code, errors.New(err.Msg))
-		}
-		return nil, vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, nil)
-	}
-	return docResponse(client, args.Head, reply.Items)
-}
-
-func docResponse(client *client.Client, head *vearchpb.RequestHead, items []*vearchpb.Item) ([]byte, error) {
-	space, err := client.Space(context.Background(), head.DbName, head.SpaceName)
-	if err != nil {
-		return nil, err
-	}
-
-	results := make([]map[string]interface{}, len(items))
-	for i, item := range items {
-		result := docResult(space, head, item)
-		results[i] = result
-	}
-
-	return sonic.Marshal(results)
-}
-
 func documentUpsertResponse(client *client.Client, args *vearchpb.BulkRequest, reply *vearchpb.BulkResponse) ([]byte, error) {
 	if args == nil || reply == nil || reply.Items == nil || len(reply.Items) < 1 {
 		if reply.GetHead() != nil && reply.GetHead().Err != nil && reply.GetHead().Err.Code != vearchpb.ErrorEnum_SUCCESS {
@@ -428,34 +372,6 @@ func documentDeleteResponse(items []*vearchpb.Item, head *vearchpb.ResponseHead,
 	}
 
 	return sonic.Marshal(response)
-}
-
-func docResult(space *entity.Space, head *vearchpb.RequestHead, item *vearchpb.Item) map[string]interface{} {
-	result := make(map[string]interface{})
-
-	result["_index"] = head.DbName
-	result["_type"] = head.SpaceName
-
-	if item == nil {
-		result["error"] = "duplicate id"
-		return result
-	}
-
-	doc := item.Doc
-	result["_id"] = doc.PKey
-
-	if item.Err != nil {
-		result["status"] = vearchpb.ErrCode(item.Err.Code)
-		result["error"] = item.Err.Msg
-	} else {
-		result["status"] = vearchpb.ErrCode(vearchpb.ErrorEnum_SUCCESS)
-	}
-
-	return result
-}
-
-func docResultSerialize(space *entity.Space, head *vearchpb.RequestHead, item *vearchpb.Item) ([]byte, error) {
-	return sonic.Marshal(docResult(space, head, item))
 }
 
 func docFieldSerialize(doc *vearchpb.Document, space *entity.Space, returnFieldsMap map[string]string, vectorValue bool) (marshal json.RawMessage, nextDocid int32, err error) {
