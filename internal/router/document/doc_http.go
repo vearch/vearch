@@ -627,7 +627,7 @@ func (handler *DocumentHandler) handlerQueryDocByIds(c *gin.Context) {
 		return
 	}
 
-	fieldsParam, ids, _, err := docSearchByIdsParse(c.Request, space)
+	fieldsParam, ids, _, err := docSearchByIdsParse(c.Request)
 	if err != nil {
 		resp.SendError(c, http.StatusBadRequest, err.Error())
 		return

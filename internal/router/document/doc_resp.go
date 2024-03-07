@@ -558,7 +558,7 @@ func ToContentBytes(sr *vearchpb.SearchResult, head *vearchpb.RequestHead, took 
 }
 
 func toContent(sr *vearchpb.SearchResult, head *vearchpb.RequestHead, took time.Duration, space *entity.Space) (map[string]interface{}, error) {
-	hitsContent, err := docToContent(sr.ResultItems, head, space)
+	hitsContent, err := docToContent(sr.ResultItems, head)
 	if err != nil {
 		return nil, err
 	}
@@ -577,7 +577,7 @@ func toContent(sr *vearchpb.SearchResult, head *vearchpb.RequestHead, took time.
 	return content, nil
 }
 
-func docToContent(dh []*vearchpb.ResultItem, head *vearchpb.RequestHead, space *entity.Space) ([]interface{}, error) {
+func docToContent(dh []*vearchpb.ResultItem, head *vearchpb.RequestHead) ([]interface{}, error) {
 	docContents := make([]interface{}, len(dh))
 	for i, u := range dh {
 		docContent := make(map[string]interface{})

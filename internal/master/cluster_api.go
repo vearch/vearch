@@ -220,7 +220,7 @@ func (ca *clusterAPI) createDB(c *gin.Context) {
 	defer monitor.Profiler("createDB", startTime)
 	db := &entity.DB{}
 
-	if err := c.Bind(db); err != nil {
+	if err := c.ShouldBind(db); err != nil {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 		return
 	}

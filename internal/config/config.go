@@ -309,11 +309,11 @@ func (config *Config) GetEmbed() (*embed.Config, error) {
 	} else {
 		if domain_mode {
 			lpurl, _ := url.Parse("http://0.0.0.0:" + cast.ToString(masterCfg.EtcdPeerPort))
-			cfg.LPUrls = []url.URL{*lpurl}
+			cfg.ListenPeerUrls = []url.URL{*lpurl}
 		} else {
-			cfg.LPUrls = []url.URL{*urlAddr}
+			cfg.ListenPeerUrls = []url.URL{*urlAddr}
 		}
-		cfg.APUrls = []url.URL{*urlAddr}
+		cfg.AdvertisePeerUrls = []url.URL{*urlAddr}
 	}
 
 	if urlAddr, err := url.Parse("http://" + masterCfg.Address + ":" + cast.ToString(masterCfg.EtcdClientPort)); err != nil {
@@ -321,11 +321,11 @@ func (config *Config) GetEmbed() (*embed.Config, error) {
 	} else {
 		if domain_mode {
 			lcurl, _ := url.Parse("http://0.0.0.0:" + cast.ToString(masterCfg.EtcdClientPort))
-			cfg.LCUrls = []url.URL{*lcurl}
+			cfg.ListenClientUrls = []url.URL{*lcurl}
 		} else {
-			cfg.LCUrls = []url.URL{*urlAddr}
+			cfg.ListenClientUrls = []url.URL{*urlAddr}
 		}
-		cfg.ACUrls = []url.URL{*urlAddr}
+		cfg.AdvertiseClientUrls = []url.URL{*urlAddr}
 	}
 
 	return cfg, nil

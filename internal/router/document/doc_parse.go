@@ -749,7 +749,7 @@ func docSearchParse(r *http.Request, space *entity.Space, searchReq *vearchpb.Se
 	return
 }
 
-func docSearchByIdsParse(r *http.Request, space *entity.Space) (fieldsParam []string, ids []string, reqBodyByte []byte, err error) {
+func docSearchByIdsParse(r *http.Request) (fieldsParam []string, ids []string, reqBodyByte []byte, err error) {
 	reqBody, err := netutil.GetReqBody(r)
 	if err != nil {
 		return nil, nil, nil, err
