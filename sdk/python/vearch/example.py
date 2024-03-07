@@ -16,6 +16,9 @@ def create_space_schema() -> SpaceSchema:
     return space_schema
 
 
+def create_database(conf:Config):
+    pass
+
 if __name__ == "__main__":
     # config = Config(host="http://127.0.0.1")
     # vc = Vearch(config)
