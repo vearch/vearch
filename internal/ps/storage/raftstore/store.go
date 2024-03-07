@@ -28,10 +28,10 @@ import (
 	"github.com/vearch/vearch/internal/client"
 	"github.com/vearch/vearch/internal/config"
 	"github.com/vearch/vearch/internal/entity"
+	"github.com/vearch/vearch/internal/pkg/log"
 	"github.com/vearch/vearch/internal/ps/engine/register"
 	"github.com/vearch/vearch/internal/ps/psutil"
 	"github.com/vearch/vearch/internal/ps/storage"
-	"github.com/vearch/vearch/internal/util/log"
 )
 
 // Store is the default implementation of PartitionStore interface which

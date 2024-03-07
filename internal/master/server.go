@@ -24,8 +24,8 @@ import (
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/internal/client"
 	"github.com/vearch/vearch/internal/config"
-	"github.com/vearch/vearch/internal/util/errutil"
-	"github.com/vearch/vearch/internal/util/log"
+	"github.com/vearch/vearch/internal/pkg/errutil"
+	"github.com/vearch/vearch/internal/pkg/log"
 	"go.etcd.io/etcd/server/v3/embed"
 	"go.etcd.io/etcd/server/v3/etcdserver"
 )

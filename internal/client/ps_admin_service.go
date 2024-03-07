@@ -20,10 +20,10 @@ import (
 
 	"github.com/bytedance/sonic"
 	"github.com/vearch/vearch/internal/entity"
+	"github.com/vearch/vearch/internal/pkg/cbjson"
+	"github.com/vearch/vearch/internal/pkg/log"
+	"github.com/vearch/vearch/internal/pkg/metrics/mserver"
 	"github.com/vearch/vearch/internal/proto/vearchpb"
-	"github.com/vearch/vearch/internal/util/cbjson"
-	"github.com/vearch/vearch/internal/util/log"
-	"github.com/vearch/vearch/internal/util/metrics/mserver"
 )
 
 func operatePartition(method, addr string, space *entity.Space, pid uint32) error {

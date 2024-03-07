@@ -26,11 +26,11 @@ import (
 	"github.com/vearch/vearch/internal/client"
 	"github.com/vearch/vearch/internal/config"
 	"github.com/vearch/vearch/internal/monitor"
+	util "github.com/vearch/vearch/internal/pkg"
+	"github.com/vearch/vearch/internal/pkg/log"
+	"github.com/vearch/vearch/internal/pkg/metrics/mserver"
+	"github.com/vearch/vearch/internal/pkg/netutil"
 	"github.com/vearch/vearch/internal/router/document"
-	"github.com/vearch/vearch/internal/util"
-	"github.com/vearch/vearch/internal/util/log"
-	"github.com/vearch/vearch/internal/util/metrics/mserver"
-	"github.com/vearch/vearch/internal/util/netutil"
 	"google.golang.org/grpc"
 )
 

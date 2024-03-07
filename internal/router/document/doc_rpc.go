@@ -25,8 +25,8 @@ import (
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/internal/client"
 	"github.com/vearch/vearch/internal/monitor"
+	"github.com/vearch/vearch/internal/pkg/log"
 	"github.com/vearch/vearch/internal/proto/vearchpb"
-	"github.com/vearch/vearch/internal/util/log"
 	"google.golang.org/grpc"
 )
 

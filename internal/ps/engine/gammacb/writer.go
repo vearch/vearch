@@ -27,11 +27,11 @@ import (
 
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/internal/engine/sdk/go/gamma"
+	"github.com/vearch/vearch/internal/pkg/ioutil2"
+	"github.com/vearch/vearch/internal/pkg/log"
+	"github.com/vearch/vearch/internal/pkg/vearchlog"
 	"github.com/vearch/vearch/internal/proto/vearchpb"
 	"github.com/vearch/vearch/internal/ps/engine"
-	"github.com/vearch/vearch/internal/util/ioutil2"
-	"github.com/vearch/vearch/internal/util/log"
-	"github.com/vearch/vearch/internal/util/vearchlog"
 )
 
 var _ engine.Writer = &writerImpl{}

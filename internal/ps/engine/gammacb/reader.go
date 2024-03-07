@@ -25,11 +25,11 @@ import (
 	"time"
 
 	"github.com/vearch/vearch/internal/engine/sdk/go/gamma"
+	"github.com/vearch/vearch/internal/pkg/log"
+	"github.com/vearch/vearch/internal/pkg/vearchlog"
 	pkg "github.com/vearch/vearch/internal/proto"
 	"github.com/vearch/vearch/internal/proto/vearchpb"
 	"github.com/vearch/vearch/internal/ps/engine"
-	"github.com/vearch/vearch/internal/util/log"
-	"github.com/vearch/vearch/internal/util/vearchlog"
 )
 
 const indexSn = "sn"

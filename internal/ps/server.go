@@ -26,15 +26,15 @@ import (
 	"github.com/vearch/vearch/internal/client"
 	"github.com/vearch/vearch/internal/config"
 	"github.com/vearch/vearch/internal/entity"
+	"github.com/vearch/vearch/internal/pkg/atomic"
+	"github.com/vearch/vearch/internal/pkg/errutil"
+	"github.com/vearch/vearch/internal/pkg/log"
+	"github.com/vearch/vearch/internal/pkg/metrics/mserver"
+	"github.com/vearch/vearch/internal/pkg/routine"
+	rpc "github.com/vearch/vearch/internal/pkg/server/rpc"
 	_ "github.com/vearch/vearch/internal/ps/engine/gammacb"
 	"github.com/vearch/vearch/internal/ps/psutil"
 	"github.com/vearch/vearch/internal/ps/storage/raftstore"
-	"github.com/vearch/vearch/internal/util/atomic"
-	"github.com/vearch/vearch/internal/util/errutil"
-	"github.com/vearch/vearch/internal/util/log"
-	"github.com/vearch/vearch/internal/util/metrics/mserver"
-	"github.com/vearch/vearch/internal/util/routine"
-	rpc "github.com/vearch/vearch/internal/util/server/rpc"
 )
 
 const maxTryTime = 5

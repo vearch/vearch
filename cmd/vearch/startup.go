@@ -28,14 +28,14 @@ import (
 	"github.com/vearch/vearch/internal/config"
 	"github.com/vearch/vearch/internal/entity"
 	"github.com/vearch/vearch/internal/master"
+	"github.com/vearch/vearch/internal/pkg/log"
+	"github.com/vearch/vearch/internal/pkg/metrics/mserver"
+	tigos "github.com/vearch/vearch/internal/pkg/runtime/os"
+	"github.com/vearch/vearch/internal/pkg/signals"
+	"github.com/vearch/vearch/internal/pkg/tracer"
+	"github.com/vearch/vearch/internal/pkg/vearchlog"
 	"github.com/vearch/vearch/internal/ps"
 	"github.com/vearch/vearch/internal/router"
-	"github.com/vearch/vearch/internal/util/log"
-	"github.com/vearch/vearch/internal/util/metrics/mserver"
-	tigos "github.com/vearch/vearch/internal/util/runtime/os"
-	"github.com/vearch/vearch/internal/util/signals"
-	"github.com/vearch/vearch/internal/util/tracer"
-	"github.com/vearch/vearch/internal/util/vearchlog"
 )
 
 var (
