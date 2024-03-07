@@ -26,13 +26,13 @@ import (
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/internal/entity"
 	"github.com/vearch/vearch/internal/entity/request"
+	util "github.com/vearch/vearch/internal/pkg"
+	"github.com/vearch/vearch/internal/pkg/cbbytes"
+	"github.com/vearch/vearch/internal/pkg/cbjson"
 	"github.com/vearch/vearch/internal/proto/vearchpb"
 	"github.com/vearch/vearch/internal/ps/engine/mapping"
 	"github.com/vearch/vearch/internal/ps/engine/sortorder"
 	"github.com/vearch/vearch/internal/router/document/rutil"
-	"github.com/vearch/vearch/internal/util"
-	"github.com/vearch/vearch/internal/util/cbbytes"
-	"github.com/vearch/vearch/internal/util/cbjson"
 )
 
 const (

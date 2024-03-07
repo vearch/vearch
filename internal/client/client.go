@@ -38,14 +38,13 @@ import (
 	"github.com/vearch/vearch/internal/entity"
 	"github.com/vearch/vearch/internal/entity/response"
 	"github.com/vearch/vearch/internal/master/store"
+	util "github.com/vearch/vearch/internal/pkg"
+	"github.com/vearch/vearch/internal/pkg/cbbytes"
+	"github.com/vearch/vearch/internal/pkg/log"
+	"github.com/vearch/vearch/internal/pkg/uuid"
 	"github.com/vearch/vearch/internal/proto/vearchpb"
 	"github.com/vearch/vearch/internal/ps/engine/mapping"
 	"github.com/vearch/vearch/internal/ps/engine/sortorder"
-	"github.com/vearch/vearch/internal/util"
-	"github.com/vearch/vearch/internal/util/cbbytes"
-	"github.com/vearch/vearch/internal/util/log"
-	"github.com/vearch/vearch/internal/util/regularutil"
-	"github.com/vearch/vearch/internal/util/uuid"
 )
 
 // Client include client of master and ps
@@ -197,27 +196,17 @@ func (r *routerRequest) SetDocsField() *routerRequest {
 	if r.Err != nil {
 		return r
 	}
-	IDIsLong := idIsLong(r.space)
 	for _, doc := range r.docs {
-		key, err := generateUUID(doc.PKey, IDIsLong)
+		key, err := generateUUID(doc.PKey)
 		if err != nil {
 			r.Err = err
 			return r
 		}
 		doc.PKey = key
 		field := &vearchpb.Field{Name: mapping.IdField}
-		if IDIsLong {
-			keyInt, err := strconv.ParseInt(doc.PKey, 10, 64)
-			if err != nil {
-				r.Err = vearchpb.NewError(vearchpb.ErrorEnum_Primary_IS_INVALID, err)
-				return r
-			}
-			field.Value, _ = cbbytes.ValueToByte(keyInt)
-			field.Type = vearchpb.FieldType_LONG
-		} else {
-			field.Value = []byte(doc.PKey)
-			field.Type = vearchpb.FieldType_STRING
-		}
+
+		field.Value = []byte(doc.PKey)
+		field.Type = vearchpb.FieldType_STRING
 		doc.Fields = append(doc.Fields, field)
 	}
 	return r
@@ -228,11 +217,7 @@ func (r *routerRequest) SetDocsByKey(keys []string) *routerRequest {
 	if r.Err != nil {
 		return r
 	}
-	isIdLong := false
-	if idIsLong(r.space) {
-		isIdLong = true
-	}
-	r.docs, r.Err = setDocs(keys, isIdLong)
+	r.docs, r.Err = setDocs(keys)
 	return r
 }
 
@@ -241,7 +226,7 @@ func (r *routerRequest) SetDocsBySpecifyKey(keys []string) *routerRequest {
 	if r.Err != nil {
 		return r
 	}
-	r.docs, r.Err = setDocs(keys, true)
+	r.docs, r.Err = setDocs(keys)
 	return r
 }
 
@@ -581,10 +566,6 @@ func (r *routerRequest) searchFromPartition(ctx context.Context, partitionID ent
 	}
 
 	sortFieldMap := pd.SearchRequest.SortFieldMap
-	isIsLong := false
-	if idIsLong(space) {
-		isIsLong = true
-	}
 	searchResponse := replyPartition.SearchResponse
 	sortValueMap := make(map[string][]sortorder.SortValue)
 	if searchResponse != nil {
@@ -613,11 +594,11 @@ func (r *routerRequest) searchFromPartition(ctx context.Context, partitionID ent
 				searchResponse.Head.Params["deSerializeCostTime"] = deSerializeCostTimeStr
 			}
 			searchResults := searchResponse.Results
-			if searchResults != nil && len(searchResults) > 0 {
+			if len(searchResults) > 0 {
 				for i, searchResult := range searchResults {
 					searchItems := searchResult.ResultItems
 					for _, item := range searchItems {
-						source, sortValues, pkey, err := GetSource(item, space, isIsLong, sortFieldMap, pd.SearchRequest.SortFields)
+						source, sortValues, pkey, err := GetSource(item, space, sortFieldMap, pd.SearchRequest.SortFields)
 						if err != nil {
 							err := &vearchpb.Error{Code: vearchpb.ErrorEnum_PARSING_RESULT_ERROR, Msg: "router call ps rpc service err nodeID:" + fmt.Sprint(nodeID)}
 							replyPartition.SearchResponse.Head.Err = err
@@ -906,30 +887,15 @@ func partition(arr []*vearchpb.ResultItem, sortValueMap map[string][]sortorder.S
 	return j
 }
 
-func setDocs(keys []string, idIsLong bool) (docs []*vearchpb.Document, err error) {
+func setDocs(keys []string) (docs []*vearchpb.Document, err error) {
 	docs = make([]*vearchpb.Document, 0)
 	for _, key := range keys {
 		if key == "" {
 			return nil, errors.New("key can not be null")
 		}
-		if idIsLong {
-			_, err := strconv.ParseInt(key, 10, 64)
-			if err != nil {
-				return nil, err
-			}
-		}
 		docs = append(docs, &vearchpb.Document{PKey: key})
 	}
 	return docs, nil
-}
-
-func idIsLong(space *entity.Space) bool {
-	idIsLong := false
-	idType := space.Engine.IdType
-	if strings.EqualFold("long", idType) {
-		idIsLong = true
-	}
-	return idIsLong
 }
 
 // GetMD5Encode return md5 value of given data
@@ -939,7 +905,7 @@ func GetMD5Encode(data string) string {
 	return hex.EncodeToString(h.Sum(nil))
 }
 
-func generateUUID(key string, idIsLong bool) (string, error) {
+func generateUUID(key string) (string, error) {
 	if key == "" {
 		keyUUID := uuid.FlakeUUID()
 		keyMd5 := GetMD5Encode(keyUUID)
@@ -954,15 +920,6 @@ func generateUUID(key string, idIsLong bool) (string, error) {
 
 		key64 := beforeInt64 ^ afterInt64
 		key = strconv.FormatInt(key64, 10)
-	} else {
-		if idIsLong {
-			result := regularutil.StringCheckNum(key)
-			if !result {
-				msg := fmt.Errorf("key must be a number, [%s] convert failed", key)
-				err := vearchpb.NewError(vearchpb.ErrorEnum_Primary_IS_INVALID, msg)
-				return "", err
-			}
-		}
 	}
 	return key, nil
 }
@@ -1113,7 +1070,7 @@ func GetNodeIdsByClientType(clientType string, partition *entity.Partition, serv
 	return nodeId
 }
 
-func GetSource(doc *vearchpb.ResultItem, space *entity.Space, idIsLong bool, sortFieldMap map[string]string, sortFields []*vearchpb.SortField) (json.RawMessage, []sortorder.SortValue, string, error) {
+func GetSource(doc *vearchpb.ResultItem, space *entity.Space, sortFieldMap map[string]string, sortFields []*vearchpb.SortField) (json.RawMessage, []sortorder.SortValue, string, error) {
 	source := make(map[string]interface{})
 	sortValues := make([]sortorder.SortValue, len(sortFields))
 	if sortFieldMap != nil && sortFieldMap["_score"] != "" {
@@ -1139,31 +1096,15 @@ func GetSource(doc *vearchpb.ResultItem, space *entity.Space, idIsLong bool, sor
 		name := fv.Name
 		switch name {
 		case mapping.IdField:
-			if idIsLong {
-				id := int64(cbbytes.ByteArray2UInt64(fv.Value))
-				pKey = strconv.FormatInt(id, 10)
-				if sortFieldMap != nil && sortFieldMap[name] != "" {
-					for i, v := range sortFields {
-						if v.Field == name {
-							sortValues[i] = &sortorder.IntSortValue{
-								Val:      id,
-								SortName: name,
-							}
-							break
+			pKey = string(fv.Value)
+			if sortFieldMap != nil && sortFieldMap[name] != "" {
+				for i, v := range sortFields {
+					if v.Field == name {
+						sortValues[i] = &sortorder.StringSortValue{
+							Val:      pKey,
+							SortName: name,
 						}
-					}
-				}
-			} else {
-				pKey = string(fv.Value)
-				if sortFieldMap != nil && sortFieldMap[name] != "" {
-					for i, v := range sortFields {
-						if v.Field == name {
-							sortValues[i] = &sortorder.StringSortValue{
-								Val:      pKey,
-								SortName: name,
-							}
-							break
-						}
+						break
 					}
 				}
 			}
@@ -1787,8 +1728,7 @@ func (r *routerRequest) LeaderFlushExecute(partition *entity.Partition, ctx cont
 }
 
 // DelByQueryeExecute Execute request
-func (r *routerRequest) DelByQueryeExecute(deleteByScalar bool, idIsLong bool) *vearchpb.DelByQueryeResponse {
-	// ctx := context.WithValue(r.ctx, share.ReqMetaDataKey, r.md)
+func (r *routerRequest) DelByQueryeExecute(deleteByScalar bool) *vearchpb.DelByQueryeResponse {
 	var wg sync.WaitGroup
 	partitionLen := len(r.sendMap)
 	respChain := make(chan *vearchpb.PartitionData, partitionLen)
@@ -1822,49 +1762,26 @@ func (r *routerRequest) DelByQueryeExecute(deleteByScalar bool, idIsLong bool) *
 
 	if deleteByScalar {
 		delByQueryResponse := &vearchpb.DelByQueryeResponse{}
-		if idIsLong {
-			for resp := range respChain {
-				respStr := string(resp.SearchResponse.FlatBytes)
-				jsonType := struct {
-					Array []int64
-				}{}
-				json.Unmarshal([]byte(respStr), &jsonType.Array)
-				if jsonType.Array != nil && len(jsonType.Array) > 0 {
-					delByQueryResponse.IdsLong = append(delByQueryResponse.IdsLong, jsonType.Array...)
-				}
+		for resp := range respChain {
+			respStr := string(resp.SearchResponse.FlatBytes)
+			jsonType := struct {
+				Array []string
+			}{}
+			json.Unmarshal([]byte(respStr), &jsonType.Array)
+			if jsonType.Array != nil && len(jsonType.Array) > 0 {
+				delByQueryResponse.IdsStr = append(delByQueryResponse.IdsStr, jsonType.Array...)
 			}
-			delByQueryResponse.DelNum = int32(len(delByQueryResponse.IdsLong))
-		} else {
-			for resp := range respChain {
-				respStr := string(resp.SearchResponse.FlatBytes)
-				jsonType := struct {
-					Array []string
-				}{}
-				json.Unmarshal([]byte(respStr), &jsonType.Array)
-				if jsonType.Array != nil && len(jsonType.Array) > 0 {
-					delByQueryResponse.IdsStr = append(delByQueryResponse.IdsStr, jsonType.Array...)
-				}
-			}
-			delByQueryResponse.DelNum = int32(len(delByQueryResponse.IdsStr))
 		}
+		delByQueryResponse.DelNum = int32(len(delByQueryResponse.IdsStr))
 		return delByQueryResponse
 	} else {
 		delByQueryResponse := &vearchpb.DelByQueryeResponse{}
-		if idIsLong {
-			for resp := range respChain {
-				if len(resp.DelByQueryResponse.IdsLong) > 0 {
-					delByQueryResponse.IdsLong = append(delByQueryResponse.IdsLong, resp.DelByQueryResponse.IdsLong...)
-				}
+		for resp := range respChain {
+			if len(resp.DelByQueryResponse.IdsStr) > 0 {
+				delByQueryResponse.IdsStr = append(delByQueryResponse.IdsStr, resp.DelByQueryResponse.IdsStr...)
 			}
-			delByQueryResponse.DelNum = int32(len(delByQueryResponse.IdsLong))
-		} else {
-			for resp := range respChain {
-				if len(resp.DelByQueryResponse.IdsStr) > 0 {
-					delByQueryResponse.IdsStr = append(delByQueryResponse.IdsStr, resp.DelByQueryResponse.IdsStr...)
-				}
-			}
-			delByQueryResponse.DelNum = int32(len(delByQueryResponse.IdsStr))
 		}
+		delByQueryResponse.DelNum = int32(len(delByQueryResponse.IdsStr))
 		return delByQueryResponse
 	}
 }

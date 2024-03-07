@@ -17,16 +17,15 @@ package document
 import (
 	"context"
 	"fmt"
-	"strings"
 	"sync"
 	"time"
 
 	"github.com/vearch/vearch/internal/client"
 	"github.com/vearch/vearch/internal/config"
 	"github.com/vearch/vearch/internal/entity"
+	"github.com/vearch/vearch/internal/pkg/log"
 	"github.com/vearch/vearch/internal/proto/vearchpb"
 	"github.com/vearch/vearch/internal/ps/engine/sortorder"
-	"github.com/vearch/vearch/internal/util/log"
 )
 
 const defaultRpcTimeOut int64 = 10 * 1000 // 10 second
@@ -317,7 +316,6 @@ func (docService *docService) rebuildIndex(ctx context.Context, args *vearchpb.I
 func (docService *docService) deleteByQuery(ctx context.Context, args *vearchpb.SearchRequest) *vearchpb.DelByQueryeResponse {
 	request := client.NewRouterRequest(ctx, docService.client)
 	deleteByScalar := false
-	idIsLong := false
 	if args.VecFields != nil {
 		err := fmt.Errorf("delete_by_query vector param should be null")
 		return &vearchpb.DelByQueryeResponse{Head: setErrHead(err)}
@@ -328,11 +326,7 @@ func (docService *docService) deleteByQuery(ctx context.Context, args *vearchpb.
 		return &vearchpb.DelByQueryeResponse{Head: setErrHead(request.Err)}
 	}
 
-	if strings.Compare(args.Head.Params["idIsLong"], "true") == 0 {
-		idIsLong = true
-	}
-
-	delByQueryResponse := request.DelByQueryeExecute(deleteByScalar, idIsLong)
+	delByQueryResponse := request.DelByQueryeExecute(deleteByScalar)
 
 	if delByQueryResponse == nil {
 		return &vearchpb.DelByQueryeResponse{Head: setErrHead(request.Err)}

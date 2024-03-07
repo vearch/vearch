@@ -21,10 +21,10 @@ import (
 	"github.com/cubefs/cubefs/depends/tiglabs/raft/proto"
 	"github.com/vearch/vearch/internal/config"
 	"github.com/vearch/vearch/internal/entity"
+	"github.com/vearch/vearch/internal/pkg/cbjson"
+	"github.com/vearch/vearch/internal/pkg/log"
 	"github.com/vearch/vearch/internal/proto/vearchpb"
 	"github.com/vearch/vearch/internal/ps/psutil"
-	"github.com/vearch/vearch/internal/util/cbjson"
-	"github.com/vearch/vearch/internal/util/log"
 )
 
 // replicas status,behind leader or equal leader

@@ -28,14 +28,14 @@ import (
 	"github.com/vearch/vearch/internal/config"
 	"github.com/vearch/vearch/internal/engine/sdk/go/gamma"
 	"github.com/vearch/vearch/internal/entity"
+	"github.com/vearch/vearch/internal/pkg/atomic"
+	"github.com/vearch/vearch/internal/pkg/log"
+	"github.com/vearch/vearch/internal/pkg/uuid"
+	"github.com/vearch/vearch/internal/pkg/vearchlog"
 	"github.com/vearch/vearch/internal/proto/vearchpb"
 	"github.com/vearch/vearch/internal/ps/engine"
 	"github.com/vearch/vearch/internal/ps/engine/mapping"
 	"github.com/vearch/vearch/internal/ps/engine/register"
-	"github.com/vearch/vearch/internal/util/atomic"
-	"github.com/vearch/vearch/internal/util/log"
-	"github.com/vearch/vearch/internal/util/uuid"
-	"github.com/vearch/vearch/internal/util/vearchlog"
 )
 
 var _ engine.Engine = &gammaEngine{}

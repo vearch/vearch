@@ -29,13 +29,13 @@ import (
 	"github.com/vearch/vearch/internal/client"
 	"github.com/vearch/vearch/internal/config"
 	"github.com/vearch/vearch/internal/entity"
+	util "github.com/vearch/vearch/internal/pkg"
+	"github.com/vearch/vearch/internal/pkg/cbjson"
+	"github.com/vearch/vearch/internal/pkg/errutil"
+	"github.com/vearch/vearch/internal/pkg/log"
+	"github.com/vearch/vearch/internal/pkg/slice"
 	"github.com/vearch/vearch/internal/proto/vearchpb"
 	"github.com/vearch/vearch/internal/ps/engine/mapping"
-	"github.com/vearch/vearch/internal/util"
-	"github.com/vearch/vearch/internal/util/cbjson"
-	"github.com/vearch/vearch/internal/util/errutil"
-	"github.com/vearch/vearch/internal/util/log"
-	"github.com/vearch/vearch/internal/util/slice"
 	"go.etcd.io/etcd/client/v3/concurrency"
 )
 
@@ -593,17 +593,7 @@ func (ms *masterService) deleteSpaceService(ctx context.Context, dbName string, 
 	return nil
 }
 
-func (ms *masterService) querySpacesService(ctx context.Context, dbName string) ([]*entity.Space, error) {
-	//send delete to partition
-	dbId, err := ms.Master().QueryDBName2Id(ctx, dbName)
-	if err != nil {
-		return nil, err
-	}
-	return ms.Master().QuerySpaces(ctx, dbId)
-}
-
 func (ms *masterService) queryDBs(ctx context.Context) ([]*entity.DB, error) {
-
 	_, bytesArr, err := ms.Master().PrefixScan(ctx, entity.PrefixDataBaseBody)
 	if err != nil {
 		return nil, err
@@ -756,10 +746,9 @@ func (ms *masterService) ModifyEngineCfg(ctx context.Context, dbName,
 	return nil
 }
 
-func (this *masterService) updateSpaceService(ctx context.Context, dbName, spaceName string, temp *entity.Space) (*entity.Space, error) {
-
-	//it will lock cluster ,to create space
-	mutex := this.Master().NewLock(ctx, entity.LockSpaceKey(dbName, spaceName), time.Second*300)
+func (ms *masterService) updateSpaceService(ctx context.Context, dbName, spaceName string, temp *entity.Space) (*entity.Space, error) {
+	// it will lock cluster ,to create space
+	mutex := ms.Master().NewLock(ctx, entity.LockSpaceKey(dbName, spaceName), time.Second*300)
 	if err := mutex.Lock(); err != nil {
 		return nil, err
 	}
@@ -769,12 +758,12 @@ func (this *masterService) updateSpaceService(ctx context.Context, dbName, space
 		}
 	}()
 
-	dbId, err := this.Master().QueryDBName2Id(ctx, dbName)
+	dbId, err := ms.Master().QueryDBName2Id(ctx, dbName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find database id according database name:%v,the Error is:%v ", dbName, err)
 	}
 
-	space, err := this.Master().QuerySpaceByName(ctx, dbId, spaceName)
+	space, err := ms.Master().QuerySpaceByName(ctx, dbId, spaceName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find space according space name:%v,the Error is:%v ", spaceName, err)
 	}
@@ -850,12 +839,12 @@ func (this *masterService) updateSpaceService(ctx context.Context, dbName, space
 
 	// notify all partitions
 	for _, p := range space.Partitions {
-		partition, err := this.Master().QueryPartition(ctx, p.Id)
+		partition, err := ms.Master().QueryPartition(ctx, p.Id)
 		if err != nil {
 			return nil, err
 		}
 
-		server, err := this.Master().QueryServer(ctx, partition.LeaderID)
+		server, err := ms.Master().QueryServer(ctx, partition.LeaderID)
 		if err != nil {
 			return nil, err
 		}
@@ -866,12 +855,12 @@ func (this *masterService) updateSpaceService(ctx context.Context, dbName, space
 	}
 
 	for _, p := range space.Partitions {
-		partition, err := this.Master().QueryPartition(ctx, p.Id)
+		partition, err := ms.Master().QueryPartition(ctx, p.Id)
 		if err != nil {
 			return nil, err
 		}
 
-		server, err := this.Master().QueryServer(ctx, partition.LeaderID)
+		server, err := ms.Master().QueryServer(ctx, partition.LeaderID)
 		if err != nil {
 			return nil, err
 		}
@@ -887,7 +876,7 @@ func (this *masterService) updateSpaceService(ctx context.Context, dbName, space
 
 	log.Debug("update space  is [%+v]", space)
 	space.Version--
-	if err := this.updateSpace(ctx, space); err != nil {
+	if err := ms.updateSpace(ctx, space); err != nil {
 		return nil, err
 	} else {
 		return space, nil

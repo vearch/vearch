@@ -20,9 +20,9 @@ import (
 	"fmt"
 
 	"github.com/spf13/cast"
+	util "github.com/vearch/vearch/internal/pkg"
+	"github.com/vearch/vearch/internal/pkg/cbbytes"
 	"github.com/vearch/vearch/internal/proto/vearchpb"
-	"github.com/vearch/vearch/internal/util"
-	"github.com/vearch/vearch/internal/util/cbbytes"
 )
 
 const (
@@ -80,7 +80,6 @@ func (f *FieldMapping) UnmarshalJSON(data []byte) error {
 		Index     *bool   `json:"index,omitempty"`
 		Format    *string `json:"format,omitempty"`
 		Dimension int     `json:"dimension,omitempty"`
-		ModelId   string  `json:"model_id,omitempty"`
 		//		RetrievalType *string         `json:"retrieval_type,omitempty"`
 		StoreType  *string         `json:"store_type,omitempty"`
 		StoreParam json.RawMessage `json:"store_param,omitempty"`
@@ -112,11 +111,6 @@ func (f *FieldMapping) UnmarshalJSON(data []byte) error {
 		if tmp.Dimension == 0 {
 			return fmt.Errorf("dimension can not zero by field : [%s] ", string(data))
 		}
-		/*if tmp.RetrievalType != nil && *tmp.RetrievalType != "" {
-			fieldMapping.(*VectortFieldMapping).RetrievalType = *tmp.RetrievalType
-		} else {
-			return fmt.Errorf("retrieval_type can not null by field : [%s] ", string(data))
-		}*/
 		if tmp.StoreType != nil && *tmp.StoreType != "" {
 			if *tmp.StoreType != "RocksDB" && *tmp.StoreType != "MemoryOnly" {
 				return fmt.Errorf("vector field:[%s] not support this store type:[%s] it only RocksDB or MemoryOnly", fieldMapping.FieldName(), *tmp.StoreType)
@@ -148,15 +142,6 @@ func (f *FieldMapping) UnmarshalJSON(data []byte) error {
 			mapping.Dimension = tmp.Dimension
 		} else {
 			return fmt.Errorf("type:[%s] can not set dimension", fieldMapping.FieldType().String())
-		}
-	}
-
-	//set model id
-	if tmp.ModelId != "" {
-		if mapping, ok := fieldMapping.(*VectortFieldMapping); ok {
-			mapping.ModelId = tmp.ModelId
-		} else {
-			return fmt.Errorf("type:[%s] can not set model_id", fieldMapping.FieldType().String())
 		}
 	}
 
@@ -294,19 +279,16 @@ func NewBooleanFieldMapping(name string) *BooleanFieldMapping {
 
 type VectortFieldMapping struct {
 	*BaseFieldMapping
-	Dimension int     `json:"dimension"`
-	ModelId   string  `json:"model_id"`
-	Format    *string `json:"format,omitempty"` //default is "normalization", "normal" , if set "no" others it will not format
-	//	RetrievalType string  `json:"retrieval_type,omitempty"` // "IVFPQ", "PACINS","GPU" ...
-	StoreType  string `json:"store_type,omitempty"` // "Mmap", "RocksDB", "MemoryOnly"
-	StoreParam []byte `json:"store_param,omitempty"`
+	Dimension  int     `json:"dimension"`
+	Format     *string `json:"format,omitempty"`     // default is "normalization", "normal" , if set "no" others it will not format
+	StoreType  string  `json:"store_type,omitempty"` // "RocksDB", "MemoryOnly"
+	StoreParam []byte  `json:"store_param,omitempty"`
 }
 
 func NewVectorFieldMapping(name string) *VectortFieldMapping {
 	return &VectortFieldMapping{
 		BaseFieldMapping: NewBaseFieldMapping(name, vearchpb.FieldType_VECTOR, 1, vearchpb.FieldOption_Index),
-		//		RetrievalType:    "IVFPQ",
-		StoreType: "",
+		StoreType:        "",
 	}
 }
 

@@ -13,7 +13,6 @@ table VectorInfo {
   data_type:DataType;
   is_index:bool;
   dimension:int;
-  model_id:string;
   store_type:string;
   store_param:string;
 }

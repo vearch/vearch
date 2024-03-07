@@ -20,8 +20,8 @@ import (
 	"strings"
 
 	"github.com/vearch/vearch/internal/entity"
+	"github.com/vearch/vearch/internal/pkg/log"
 	"github.com/vearch/vearch/internal/proto/vearchpb"
-	"github.com/vearch/vearch/internal/util/log"
 )
 
 // An IndexMapping controls how objects are placed

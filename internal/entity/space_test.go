@@ -19,7 +19,7 @@ import (
 	"testing"
 
 	"github.com/vearch/vearch/internal/entity"
-	"github.com/vearch/vearch/internal/util/assert"
+	"github.com/vearch/vearch/internal/pkg/assert"
 )
 
 func TestEngineErrorSpaceString(t *testing.T) {

@@ -24,7 +24,7 @@ import (
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/internal/config"
 	"github.com/vearch/vearch/internal/entity"
-	"github.com/vearch/vearch/internal/util/log"
+	"github.com/vearch/vearch/internal/pkg/log"
 )
 
 func StartRaftServer(nodeId entity.NodeID, ip string, resolver raft.SocketResolver) (*raft.RaftServer, error) {

@@ -22,10 +22,10 @@ import (
 	"strings"
 
 	"github.com/valyala/fastjson"
+	util "github.com/vearch/vearch/internal/pkg"
+	"github.com/vearch/vearch/internal/pkg/cbbytes"
+	"github.com/vearch/vearch/internal/pkg/log"
 	"github.com/vearch/vearch/internal/proto/vearchpb"
-	"github.com/vearch/vearch/internal/util"
-	"github.com/vearch/vearch/internal/util/cbbytes"
-	"github.com/vearch/vearch/internal/util/log"
 )
 
 func ParseSchema(schema []byte) (*DocumentMapping, error) {

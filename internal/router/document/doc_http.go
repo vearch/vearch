@@ -30,13 +30,13 @@ import (
 	"github.com/vearch/vearch/internal/entity"
 	"github.com/vearch/vearch/internal/entity/request"
 	"github.com/vearch/vearch/internal/monitor"
+	util "github.com/vearch/vearch/internal/pkg"
+	"github.com/vearch/vearch/internal/pkg/ginutil"
+	"github.com/vearch/vearch/internal/pkg/log"
+	"github.com/vearch/vearch/internal/pkg/netutil"
+	"github.com/vearch/vearch/internal/pkg/uuid"
 	"github.com/vearch/vearch/internal/proto/vearchpb"
 	"github.com/vearch/vearch/internal/router/document/resp"
-	"github.com/vearch/vearch/internal/util"
-	"github.com/vearch/vearch/internal/util/ginutil"
-	"github.com/vearch/vearch/internal/util/log"
-	"github.com/vearch/vearch/internal/util/netutil"
-	"github.com/vearch/vearch/internal/util/uuid"
 )
 
 const (
@@ -47,8 +47,6 @@ const (
 	URLParams           = "url_params"
 	ReqsBody            = "req_body"
 	SpaceEntity         = "space_entity"
-	IDType              = "id_type"
-	IDIsLong            = "IDIsLong"
 	QueryIsOnlyID       = "QueryIsOnlyID"
 	URLQueryTimeout     = "timeout"
 )
@@ -629,7 +627,7 @@ func (handler *DocumentHandler) handlerQueryDocByIds(c *gin.Context) {
 		return
 	}
 
-	fieldsParam, ids, _, err := docSearchByIdsParse(c.Request, space)
+	fieldsParam, ids, _, err := docSearchByIdsParse(c.Request)
 	if err != nil {
 		resp.SendError(c, http.StatusBadRequest, err.Error())
 		return
@@ -751,9 +749,6 @@ func (handler *DocumentHandler) handleDeleteByQuery(c *gin.Context) {
 		return
 	}
 
-	IDIsLong := idIsLong(space)
-	args.Head.Params["idIsLong"] = strconv.FormatBool(IDIsLong)
-
 	err = docSearchParse(c.Request, space, args)
 	if err != nil {
 		resp.SendError(c, http.StatusBadRequest, err.Error())
@@ -872,13 +867,6 @@ func (handler *DocumentHandler) handleDocumentQuery(c *gin.Context) {
 		return
 	}
 
-	IDIsLong := idIsLong(space)
-	if IDIsLong {
-		args.Head.Params["idIsLong"] = "true"
-	} else {
-		args.Head.Params["idIsLong"] = "false"
-	}
-
 	err = requestToPb(searchDoc, space, args)
 	if err != nil {
 		resp.SendError(c, http.StatusBadRequest, err.Error())
@@ -978,13 +966,6 @@ func (handler *DocumentHandler) handleDocumentSearch(c *gin.Context) {
 	if err != nil {
 		resp.SendError(c, http.StatusBadRequest, err.Error())
 		return
-	}
-
-	IDIsLong := idIsLong(space)
-	if IDIsLong {
-		args.Head.Params["idIsLong"] = "true"
-	} else {
-		args.Head.Params["idIsLong"] = "false"
 	}
 
 	err = requestToPb(searchDoc, space, args)
@@ -1094,13 +1075,6 @@ func (handler *DocumentHandler) handleDocumentDelete(c *gin.Context) {
 	if err != nil {
 		resp.SendError(c, http.StatusBadRequest, err.Error())
 		return
-	}
-
-	IDIsLong := idIsLong(space)
-	if IDIsLong {
-		args.Head.Params["idIsLong"] = "true"
-	} else {
-		args.Head.Params["idIsLong"] = "false"
 	}
 
 	err = requestToPb(searchDoc, space, args)

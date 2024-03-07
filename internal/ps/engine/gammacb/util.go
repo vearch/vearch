@@ -17,7 +17,6 @@ package gammacb
 import (
 	"encoding/binary"
 	"fmt"
-	"strings"
 
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/internal/engine/sdk/go/gamma"
@@ -59,14 +58,8 @@ func mapping2Table(cfg register.EngineConfig, m *mapping.IndexMapping) (*gamma.T
 		RetrievalParam: retrievalParam,
 	}
 
-	idTypeStr := engine.IdType
-	if strings.EqualFold("long", idTypeStr) {
-		fieldInfo := gamma.FieldInfo{Name: mapping.IdField, DataType: gamma.LONG, IsIndex: false}
-		table.Fields = append(table.Fields, fieldInfo)
-	} else {
-		fieldInfo := gamma.FieldInfo{Name: mapping.IdField, DataType: gamma.STRING, IsIndex: false}
-		table.Fields = append(table.Fields, fieldInfo)
-	}
+	fieldInfo := gamma.FieldInfo{Name: mapping.IdField, DataType: gamma.STRING, IsIndex: false}
+	table.Fields = append(table.Fields, fieldInfo)
 
 	err := m.SortRangeField(func(key string, value *mapping.DocumentMapping) error {
 		switch value.Field.FieldType() {
@@ -124,7 +117,6 @@ func mapping2Table(cfg register.EngineConfig, m *mapping.IndexMapping) (*gamma.T
 				Name:       key,
 				DataType:   gamma.FLOAT,
 				Dimension:  int32(fieldMapping.Dimension),
-				ModelId:    fieldMapping.ModelId,
 				StoreType:  fieldMapping.StoreType,
 				StoreParam: string(fieldMapping.StoreParam),
 			}

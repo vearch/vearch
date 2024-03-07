@@ -193,7 +193,6 @@ class GammaVectorInfo:
         dimension: int,
         is_index: bool = True,
         type: int = dataType.VECTOR,
-        model_id: str = "",
         store_type: str = "MemoryOnly",
         store_param: dict = {},
     ):
@@ -201,7 +200,6 @@ class GammaVectorInfo:
         self.type = type
         self.is_index = is_index
         self.dimension = dimension
-        self.model_id = model_id
         self.store_type = store_type
         self.store_param = store_param
 
@@ -210,7 +208,6 @@ class GammaVectorInfo:
         print("type:", self.type)
         print("index:", self.is_index)
         print("dimension:", self.dimension)
-        print("model_id:", self.model_id)
         print("store_type:", self.store_type)
         print("store_param:", self.store_param)
 
@@ -221,19 +218,10 @@ class ParseTable:
 
     def parse_field(self, fields: List[GammaFieldInfo]):
         field_infos = {}
-        is_long_type_id = False
         for field in fields:
             name = field.name
-            if name == "_id":
-                if field.type == dataType.LONG:
-                    is_long_type_id = True
-                if field.type != dataType.LONG and field.type != dataType.STRING:
-                    ex = Exception(
-                        'The "type" of "_id" fields must is "string" or "integer"'
-                    )
-                    raise ex
             field_infos[name] = field
-        return field_infos, is_long_type_id
+        return field_infos
 
     def parse_other_info(self):
         engine = self.engine_info
@@ -274,7 +262,6 @@ class GammaTable:
         self.field_infos = {}
         self.name = None
         self.is_binaryivf = False
-        self.is_long_type_id = False
 
     def init(
         self,
@@ -284,7 +271,7 @@ class GammaTable:
     ):
         parseTable = ParseTable(engine_info)
         self.engine, self.is_binaryivf = parseTable.parse_other_info()
-        self.field_infos, self.is_long_type_id = parseTable.parse_field(fields)
+        self.field_infos = parseTable.parse_field(fields)
         self.vec_infos = parseTable.parse_vector(vector_field)
         for key in self.vec_infos:
             self.norms[key] = {}
@@ -327,13 +314,11 @@ class GammaTable:
             fb_str_store_param = builder.CreateString(
                 json.dumps(vec_infos[key].store_param)
             )
-            fb_str_model_id = builder.CreateString(vec_infos[key].model_id)
             VectorInfo.VectorInfoStart(builder)
             VectorInfo.VectorInfoAddName(builder, fb_str_name)
             VectorInfo.VectorInfoAddDimension(builder, vec_infos[key].dimension)
             VectorInfo.VectorInfoAddIsIndex(builder, vec_infos[key].is_index)
             VectorInfo.VectorInfoAddDataType(builder, vec_infos[key].type)
-            VectorInfo.VectorInfoAddModelId(builder, fb_str_model_id)
             VectorInfo.VectorInfoAddStoreType(builder, fb_str_store_type)
             VectorInfo.VectorInfoAddStoreParam(builder, fb_str_store_param)
             lst_VecInfos.append(VectorInfo.VectorInfoEnd(builder))
@@ -417,7 +402,6 @@ class GammaTable:
                 dimension = table.VectorsInfo(i).Dimension(),
                 is_index = table.VectorsInfo(i).IsIndex(),
                 type = table.VectorsInfo(i).DataType(),
-                model_id = table.VectorsInfo(i).ModelId().decode("utf-8"),
                 store_type = table.VectorsInfo(i).StoreType().decode("utf-8"),
                 store_param = json.loads(table.VectorsInfo(i).StoreParam()),
             )
@@ -428,9 +412,6 @@ class GammaTable:
         self.engine["retrieval_param"] = json.loads(table.RetrievalParam())
         self.is_binaryivf = (
             True if self.engine["retrieval_type"] == "BINARYIVF" else False
-        )
-        self.is_long_type_id = (
-            True if self.field_infos["_id"].type == dataType.LONG else False
         )
 
     def print_table_detail_infor(self):
@@ -1344,20 +1325,13 @@ class Engine:
         doc_id: delete doc' id
         """
         id_len = 0
-        if self.gamma_table.is_long_type_id:
-            if not isinstance(doc_id, int):
-                ex = Exception('"_id" type should is int.')
-                raise ex
-            doc_id = np.array([doc_id]).astype("int64")
-            doc_id = doc_id.view(dtype=np.uint8)
-            id_len = 8
-        else:
-            if not isinstance(doc_id, str):
-                ex = Exception('"_id" type should is str.')
-                raise ex
-            id_len = len(doc_id)
-            doc_id = doc_id.encode("utf-8")
-            doc_id = np.frombuffer(doc_id, dtype="uint8")
+
+        if not isinstance(doc_id, str):
+            ex = Exception('"_id" type should is str.')
+            raise ex
+        id_len = len(doc_id)
+        doc_id = doc_id.encode("utf-8")
+        doc_id = np.frombuffer(doc_id, dtype="uint8")
         doc_id = swig_ptr(doc_id)
         response_code = swigDeleteDoc(self.c_engine, doc_id, id_len)
         return response_code

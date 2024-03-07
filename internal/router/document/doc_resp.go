@@ -29,11 +29,11 @@ import (
 	"github.com/vearch/vearch/internal/client"
 	"github.com/vearch/vearch/internal/entity"
 	"github.com/vearch/vearch/internal/entity/request"
+	"github.com/vearch/vearch/internal/pkg/cbbytes"
+	"github.com/vearch/vearch/internal/pkg/cbjson"
+	"github.com/vearch/vearch/internal/pkg/log"
 	"github.com/vearch/vearch/internal/proto/vearchpb"
 	"github.com/vearch/vearch/internal/ps/engine/mapping"
-	"github.com/vearch/vearch/internal/util/cbbytes"
-	"github.com/vearch/vearch/internal/util/cbjson"
-	"github.com/vearch/vearch/internal/util/log"
 )
 
 func docGetResponse(client *client.Client, args *vearchpb.GetRequest, reply *vearchpb.GetResponse, returnFieldsMap map[string]string, isBatch bool) ([]byte, error) {
@@ -57,17 +57,7 @@ func docGetResponse(client *client.Client, args *vearchpb.GetRequest, reply *vea
 		docMap := make(map[string]interface{})
 		docMap["_index"] = args.Head.DbName
 		docMap["_type"] = args.Head.SpaceName
-
-		if idIsLong(space) {
-			idInt64, err := strconv.ParseInt(doc.PKey, 10, 64)
-			if err == nil {
-				docMap["_id"] = idInt64
-			} else {
-				docMap["_id"] = doc.PKey
-			}
-		} else {
-			docMap["_id"] = doc.PKey
-		}
+		docMap["_id"] = doc.PKey
 
 		docMap["found"] = doc.Fields != nil
 		if doc.Fields != nil {
@@ -207,17 +197,8 @@ func documentResultSerialize(space *entity.Space, item *vearchpb.Item) map[strin
 	}
 
 	doc := item.Doc
+	result["_id"] = doc.PKey
 
-	if idIsLong(space) {
-		idInt64, err := strconv.ParseInt(doc.PKey, 10, 64)
-		if err == nil {
-			result["_id"] = idInt64
-		} else {
-			result["_id"] = doc.PKey
-		}
-	} else {
-		result["_id"] = doc.PKey
-	}
 	if item.Err != nil {
 		result["status"] = vearchpb.ErrCode(item.Err.Code)
 		result["error"] = item.Err.Msg
@@ -270,17 +251,7 @@ func documentGetResponse(client *client.Client, args *vearchpb.GetRequest, reply
 	documents := []interface{}{}
 	for _, item := range reply.Items {
 		doc := make(map[string]interface{})
-
-		if idIsLong(space) {
-			idInt64, err := strconv.ParseInt(item.Doc.PKey, 10, 64)
-			if err == nil {
-				doc["_id"] = idInt64
-			} else {
-				doc["_id"] = item.Doc.PKey
-			}
-		} else {
-			doc["_id"] = item.Doc.PKey
-		}
+		doc["_id"] = item.Doc.PKey
 
 		if item.Err != nil {
 			doc["status"] = cast.ToInt64(vearchpb.ErrCode(item.Err.Code))
@@ -391,7 +362,6 @@ func documentSearchResponse(srs []*vearchpb.SearchResult, head *vearchpb.Respons
 
 func documentToContent(dh []*vearchpb.ResultItem, space *entity.Space, response_type string) ([]byte, error) {
 	var builder = cbjson.ContentBuilderFactory()
-	idIsLong := idIsLong(space)
 	if response_type == request.SearchResponse {
 		builder.BeginArray()
 	}
@@ -403,14 +373,7 @@ func documentToContent(dh []*vearchpb.ResultItem, space *entity.Space, response_
 		builder.BeginObject()
 
 		builder.Field("_id")
-		if idIsLong {
-			idInt64, err := strconv.ParseInt(u.PKey, 10, 64)
-			if err == nil {
-				builder.ValueNumeric(idInt64)
-			}
-		} else {
-			builder.ValueString(u.PKey)
-		}
+		builder.ValueString(u.PKey)
 
 		if u.Fields != nil {
 			if response_type == request.SearchResponse {
@@ -480,11 +443,6 @@ func docResult(space *entity.Space, head *vearchpb.RequestHead, item *vearchpb.I
 
 	doc := item.Doc
 	result["_id"] = doc.PKey
-	if idIsLong(space) {
-		if idInt64, err := strconv.ParseInt(doc.PKey, 10, 64); err == nil {
-			result["_id"] = idInt64
-		}
-	}
 
 	if item.Err != nil {
 		result["status"] = vearchpb.ErrCode(item.Err.Code)
@@ -500,15 +458,6 @@ func docResultSerialize(space *entity.Space, head *vearchpb.RequestHead, item *v
 	return sonic.Marshal(docResult(space, head, item))
 }
 
-func idIsLong(space *entity.Space) bool {
-	idIsLong := false
-	idType := space.Engine.IdType
-	if strings.EqualFold("long", idType) {
-		idIsLong = true
-	}
-	return idIsLong
-}
-
 func docFieldSerialize(doc *vearchpb.Document, space *entity.Space, returnFieldsMap map[string]string, vectorValue bool) (marshal json.RawMessage, nextDocid int32, err error) {
 	source := make(map[string]interface{})
 	spaceProperties := space.SpaceProperties
@@ -520,11 +469,7 @@ func docFieldSerialize(doc *vearchpb.Document, space *entity.Space, returnFields
 	for _, fv := range doc.Fields {
 		name := fv.Name
 		if name == mapping.IdField && returnFieldsMap == nil {
-			if strings.EqualFold("long", space.Engine.IdType) {
-				source[name] = cbbytes.Bytes2Int(fv.Value)
-			} else {
-				source[name] = string(fv.Value)
-			}
+			source[name] = string(fv.Value)
 			continue
 		}
 		if (returnFieldsMap != nil && returnFieldsMap[name] != "") || returnFieldsMap == nil {
@@ -613,7 +558,7 @@ func ToContentBytes(sr *vearchpb.SearchResult, head *vearchpb.RequestHead, took 
 }
 
 func toContent(sr *vearchpb.SearchResult, head *vearchpb.RequestHead, took time.Duration, space *entity.Space) (map[string]interface{}, error) {
-	hitsContent, err := docToContent(sr.ResultItems, head, space)
+	hitsContent, err := docToContent(sr.ResultItems, head)
 	if err != nil {
 		return nil, err
 	}
@@ -632,23 +577,13 @@ func toContent(sr *vearchpb.SearchResult, head *vearchpb.RequestHead, took time.
 	return content, nil
 }
 
-func docToContent(dh []*vearchpb.ResultItem, head *vearchpb.RequestHead, space *entity.Space) ([]interface{}, error) {
+func docToContent(dh []*vearchpb.ResultItem, head *vearchpb.RequestHead) ([]interface{}, error) {
 	docContents := make([]interface{}, len(dh))
-	idIsLong := idIsLong(space)
 	for i, u := range dh {
 		docContent := make(map[string]interface{})
 		docContent["_index"] = head.DbName
 		docContent["_type"] = head.SpaceName
-		if idIsLong {
-			idInt64, err := strconv.ParseInt(u.PKey, 10, 64)
-			if err != nil {
-				log.Error("Error parsing _id as int64: %v", err)
-				return nil, err
-			}
-			docContent["_id"] = idInt64
-		} else {
-			docContent["_id"] = u.PKey
-		}
+		docContent["_id"] = u.PKey
 
 		if u.Fields != nil {
 			docContent["_score"] = float64(u.Score)
@@ -714,7 +649,6 @@ func ToContents(srs []*vearchpb.SearchResult, head *vearchpb.RequestHead, took t
 }
 
 func ToContentIds(srs []*vearchpb.SearchResult, space *entity.Space) ([]byte, error) {
-	idIsLong := idIsLong(space)
 	bs := bytes.Buffer{}
 	bs.WriteString("[")
 	for _, sr := range srs {
@@ -727,14 +661,9 @@ func ToContentIds(srs []*vearchpb.SearchResult, space *entity.Space) ([]byte, er
 					name := fv.Name
 					switch name {
 					case mapping.IdField:
-						if idIsLong {
-							id := int64(cbbytes.ByteArray2UInt64(fv.Value))
-							bs.WriteString(strconv.FormatInt(id, 10))
-						} else {
-							bs.WriteString("\"")
-							bs.WriteString(string(fv.Value))
-							bs.WriteString("\"")
-						}
+						bs.WriteString("\"")
+						bs.WriteString(string(fv.Value))
+						bs.WriteString("\"")
 					}
 				}
 			}

@@ -22,16 +22,14 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/vearch/vearch/internal/engine/sdk/go/gamma"
+	"github.com/vearch/vearch/internal/pkg/log"
+	"github.com/vearch/vearch/internal/pkg/vearchlog"
 	pkg "github.com/vearch/vearch/internal/proto"
 	"github.com/vearch/vearch/internal/proto/vearchpb"
 	"github.com/vearch/vearch/internal/ps/engine"
-	"github.com/vearch/vearch/internal/util/cbbytes"
-	"github.com/vearch/vearch/internal/util/log"
-	"github.com/vearch/vearch/internal/util/vearchlog"
 )
 
 const indexSn = "sn"
@@ -48,7 +46,6 @@ func (ri *readerImpl) GetDoc(ctx context.Context, doc *vearchpb.Document, getByD
 
 	var primaryKey []byte
 	var docID int
-	idType := ri.engine.space.Engine.IdType
 	if getByDocId {
 		docId, err := strconv.ParseUint(doc.PKey, 10, 32)
 		if err != nil {
@@ -57,17 +54,7 @@ func (ri *readerImpl) GetDoc(ctx context.Context, doc *vearchpb.Document, getByD
 		}
 		docID = int(docId)
 	} else {
-		if strings.EqualFold("long", idType) {
-			int64Id, err := strconv.ParseInt(doc.PKey, 10, 64)
-			if err != nil {
-				msg := fmt.Sprintf("key: [%s] convert to long failed, err: [%s]", doc.PKey, err.Error())
-				return vearchpb.NewError(vearchpb.ErrorEnum_Primary_IS_INVALID, errors.New(msg))
-			}
-			toByteId, _ := cbbytes.ValueToByte(int64Id)
-			primaryKey = toByteId
-		} else {
-			primaryKey = []byte(doc.PKey)
-		}
+		primaryKey = []byte(doc.PKey)
 	}
 
 	docGamma := new(gamma.Doc)

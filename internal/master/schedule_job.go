@@ -22,8 +22,8 @@ import (
 
 	"github.com/vearch/vearch/internal/client"
 	"github.com/vearch/vearch/internal/entity"
+	"github.com/vearch/vearch/internal/pkg/log"
 	"github.com/vearch/vearch/internal/proto/vearchpb"
-	"github.com/vearch/vearch/internal/util/log"
 	"go.etcd.io/etcd/client/v3/concurrency"
 )
 

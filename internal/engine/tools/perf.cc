@@ -9,6 +9,7 @@
 #include <sys/mman.h>
 #include <sys/sysinfo.h>
 #include <unistd.h>
+
 #include <cmath>
 #include <fstream>
 #include <functional>
@@ -16,6 +17,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+
 #include "util/log.h"
 #include "util/utils.h"
 
@@ -102,7 +104,6 @@ struct GammaPerfConf {
     fields_type = {LONG, STRING, STRING};
     root_path = "files";
     vector_name = "abc";
-    model_id = "model";
     retrieval_type = "IVFPQ";
     store_type = "RocksDB";
     store_param = "";
@@ -167,7 +168,6 @@ struct GammaPerfConf {
   std::vector<enum DataType> fields_type;
   string root_path;
   string vector_name;
-  string model_id;
   string retrieval_type;
   string store_type;
   string store_param;
@@ -410,8 +410,7 @@ class GammaPerfTest {
     VectorInfo **vectors_info = MakeVectorInfos(1);
     VectorInfo *vector_info =
         MakeVectorInfo(StringToByteArray(conf_->vector_name), FLOAT, TRUE,
-                       conf_->dimension, StringToByteArray(conf_->model_id),
-                       StringToByteArray(conf_->store_type),
+                       conf_->dimension, StringToByteArray(conf_->store_type),
                        StringToByteArray(conf_->store_param), FALSE);
     SetVectorInfo(vectors_info, 0, vector_info);
 

@@ -16,7 +16,7 @@ package entity
 
 import (
 	"github.com/spf13/cast"
-	"github.com/vearch/vearch/internal/util"
+	util "github.com/vearch/vearch/internal/pkg"
 )
 
 type BuildVersion struct {

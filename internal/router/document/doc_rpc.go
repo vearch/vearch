@@ -25,8 +25,8 @@ import (
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/internal/client"
 	"github.com/vearch/vearch/internal/monitor"
+	"github.com/vearch/vearch/internal/pkg/log"
 	"github.com/vearch/vearch/internal/proto/vearchpb"
-	"github.com/vearch/vearch/internal/util/log"
 	"google.golang.org/grpc"
 )
 
@@ -61,8 +61,7 @@ func (handler *RpcHandler) Space(ctx context.Context, req *vearchpb.RequestHead)
 	space, err := handler.client.Space(ctx, req.DbName, req.SpaceName)
 
 	reply = &vearchpb.Table{}
-	pkt := vearchpb.FieldType_value[strings.ToUpper(space.Engine.IdType)]
-	tmi := &vearchpb.TableMetaInfo{PrimaryKeyType: vearchpb.FieldType(pkt),
+	tmi := &vearchpb.TableMetaInfo{PrimaryKeyType: vearchpb.FieldType_STRING,
 		PartitionsNum: int32(space.PartitionNum),
 		ReplicasNum:   int32(space.ReplicaNum),
 	}

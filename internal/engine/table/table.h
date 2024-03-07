@@ -147,8 +147,6 @@ class Table {
 
   DumpConfig *GetDumpConfig() { return table_params_; }
 
-  uint8_t IdType() { return id_type_; }
-
   bool AlterCacheSize(int cache_size);
 
   void GetCacheSize(int &cache_size);
@@ -178,7 +176,6 @@ class Table {
   std::vector<int> idx_attr_offset_;
   std::vector<DataType> attrs_;
 
-  uint8_t id_type_;  // 0 string, 1 long, default 1
   ItemToDocID *item_to_docid_;
 
   bool table_created_;

@@ -70,7 +70,7 @@ func (rcv *VectorInfo) MutateDimension(n int32) bool {
 	return rcv._tab.MutateInt32Slot(10, n)
 }
 
-func (rcv *VectorInfo) ModelId() []byte {
+func (rcv *VectorInfo) StoreType() []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(12))
 	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
@@ -78,7 +78,7 @@ func (rcv *VectorInfo) ModelId() []byte {
 	return nil
 }
 
-func (rcv *VectorInfo) StoreType() []byte {
+func (rcv *VectorInfo) StoreParam() []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(14))
 	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
@@ -86,16 +86,8 @@ func (rcv *VectorInfo) StoreType() []byte {
 	return nil
 }
 
-func (rcv *VectorInfo) StoreParam() []byte {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(16))
-	if o != 0 {
-		return rcv._tab.ByteVector(o + rcv._tab.Pos)
-	}
-	return nil
-}
-
 func VectorInfoStart(builder *flatbuffers.Builder) {
-	builder.StartObject(7)
+	builder.StartObject(6)
 }
 func VectorInfoAddName(builder *flatbuffers.Builder, name flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(name), 0)
@@ -109,14 +101,11 @@ func VectorInfoAddIsIndex(builder *flatbuffers.Builder, isIndex bool) {
 func VectorInfoAddDimension(builder *flatbuffers.Builder, dimension int32) {
 	builder.PrependInt32Slot(3, dimension, 0)
 }
-func VectorInfoAddModelId(builder *flatbuffers.Builder, modelId flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(4, flatbuffers.UOffsetT(modelId), 0)
-}
 func VectorInfoAddStoreType(builder *flatbuffers.Builder, storeType flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(5, flatbuffers.UOffsetT(storeType), 0)
+	builder.PrependUOffsetTSlot(4, flatbuffers.UOffsetT(storeType), 0)
 }
 func VectorInfoAddStoreParam(builder *flatbuffers.Builder, storeParam flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(6, flatbuffers.UOffsetT(storeParam), 0)
+	builder.PrependUOffsetTSlot(5, flatbuffers.UOffsetT(storeParam), 0)
 }
 func VectorInfoEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

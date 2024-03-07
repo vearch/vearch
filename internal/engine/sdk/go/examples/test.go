@@ -43,7 +43,6 @@ type Options struct {
 	Path            string
 	LogDir          string
 	VectorName      string
-	ModelID         string
 	RetrievalType   string
 	StoreType       string
 	Profiles        []string
@@ -77,7 +76,6 @@ func Init() {
 		Path:            "./files",
 		LogDir:          "./log",
 		VectorName:      "abc",
-		ModelID:         "model",
 		RetrievalType:   "IVFPQ",
 		StoreType:       "RocksDB",
 		Profiles:        make([]string, MaxDocSize*len(FieldsVec)),
@@ -130,7 +128,6 @@ func CreteTable() {
 		DataType:   gamma.FLOAT,
 		IsIndex:    true,
 		Dimension:  int32(opt.D),
-		ModelId:    opt.ModelID,
 		StoreType:  opt.StoreType,
 		StoreParam: string("{\"cache_size\": 2048}"),
 	}

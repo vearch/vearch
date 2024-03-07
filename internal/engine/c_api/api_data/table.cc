@@ -27,7 +27,7 @@ int TableInfo::Serialize(char **out, int *out_len) {
     auto vectorinfo = gamma_api::CreateVectorInfo(
         builder, builder.CreateString(v.name),
         static_cast<::DataType>(v.data_type), v.is_index, v.dimension,
-        builder.CreateString(v.model_id), builder.CreateString(v.store_type),
+        builder.CreateString(v.store_type),
         builder.CreateString(v.store_param));
     vector_info_vector.push_back(vectorinfo);
   }
@@ -69,7 +69,6 @@ void TableInfo::Deserialize(const char *data, int len) {
     vector_info.data_type = static_cast<DataType>(v->data_type());
     vector_info.is_index = v->is_index();
     vector_info.dimension = v->dimension();
-    vector_info.model_id = v->model_id()->str();
     vector_info.store_type = v->store_type()->str();
     vector_info.store_param = v->store_param()->str();
 

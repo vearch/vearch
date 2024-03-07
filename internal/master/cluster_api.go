@@ -32,14 +32,14 @@ import (
 	"github.com/vearch/vearch/internal/config"
 	"github.com/vearch/vearch/internal/entity"
 	"github.com/vearch/vearch/internal/monitor"
+	util "github.com/vearch/vearch/internal/pkg"
+	"github.com/vearch/vearch/internal/pkg/cbjson"
+	"github.com/vearch/vearch/internal/pkg/errutil"
+	"github.com/vearch/vearch/internal/pkg/ginutil"
+	"github.com/vearch/vearch/internal/pkg/log"
+	"github.com/vearch/vearch/internal/pkg/netutil"
+	"github.com/vearch/vearch/internal/pkg/server/vearchhttp"
 	"github.com/vearch/vearch/internal/proto/vearchpb"
-	"github.com/vearch/vearch/internal/util"
-	"github.com/vearch/vearch/internal/util/cbjson"
-	"github.com/vearch/vearch/internal/util/errutil"
-	"github.com/vearch/vearch/internal/util/ginutil"
-	"github.com/vearch/vearch/internal/util/log"
-	"github.com/vearch/vearch/internal/util/netutil"
-	"github.com/vearch/vearch/internal/util/server/vearchhttp"
 )
 
 const (
@@ -220,7 +220,7 @@ func (ca *clusterAPI) createDB(c *gin.Context) {
 	defer monitor.Profiler("createDB", startTime)
 	db := &entity.DB{}
 
-	if err := c.Bind(db); err != nil {
+	if err := c.ShouldBind(db); err != nil {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 		return
 	}
@@ -292,8 +292,8 @@ func (ca *clusterAPI) createSpace(c *gin.Context) {
 	}
 
 	if config.Conf().Global.LimitedReplicaNum && space.ReplicaNum < 3 {
-		log.Error("LimitedReplicaNum is set and in order to ensure high availability replica should not be less than 3")
 		err := fmt.Errorf("LimitedReplicaNum is set and in order to ensure high availability replica should not be less than 3")
+		log.Error(err.Error())
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 		return
 	}

@@ -28,12 +28,12 @@ import (
 	"github.com/vearch/vearch/internal/config"
 	"github.com/vearch/vearch/internal/entity"
 	"github.com/vearch/vearch/internal/master/store"
+	util "github.com/vearch/vearch/internal/pkg"
+	"github.com/vearch/vearch/internal/pkg/cbjson"
+	"github.com/vearch/vearch/internal/pkg/errutil"
+	"github.com/vearch/vearch/internal/pkg/log"
+	"github.com/vearch/vearch/internal/pkg/netutil"
 	"github.com/vearch/vearch/internal/proto/vearchpb"
-	"github.com/vearch/vearch/internal/util"
-	"github.com/vearch/vearch/internal/util/cbjson"
-	"github.com/vearch/vearch/internal/util/errutil"
-	"github.com/vearch/vearch/internal/util/log"
-	"github.com/vearch/vearch/internal/util/netutil"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
