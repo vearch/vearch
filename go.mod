@@ -8,6 +8,7 @@ require (
 	github.com/caio/go-tdigest v3.1.0+incompatible
 	github.com/codahale/hdrhistogram v0.9.0
 	github.com/cubefs/cubefs v1.5.2-0.20230627111954-f55e96950618
+	github.com/gin-contrib/cors v1.5.0
 	github.com/gin-gonic/gin v1.9.1
 	github.com/gogo/protobuf v1.3.2
 	github.com/golang/protobuf v1.5.3

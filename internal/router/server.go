@@ -20,6 +20,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	limit "github.com/juju/ratelimit"
 	"github.com/spf13/cast"
@@ -64,6 +65,12 @@ func NewServer(ctx context.Context) (*Server, error) {
 	// }
 	gin.SetMode(gin.ReleaseMode)
 	httpServer := gin.New()
+	if len(config.Conf().Router.AllowOrigins) > 0 {
+		corsConfig := cors.DefaultConfig()
+		corsConfig.AllowCredentials = true
+		corsConfig.AllowOrigins = config.Conf().Router.AllowOrigins
+		httpServer.Use(cors.New(corsConfig))
+	}
 
 	document.ExportDocumentHandler(httpServer, cli)
 

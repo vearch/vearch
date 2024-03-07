@@ -61,6 +61,7 @@
     # rpc_port = 9002
     pprof_port = 6061
     plugin_path = "plugin"
+    allow_origins = ["http://google.com"]
 
 [ps]
     # port for server

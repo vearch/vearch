@@ -340,7 +340,8 @@ type RouterCfg struct {
 	CloseTimeout  int64    `toml:"close_timeout" json:"close_timeout"`
 	RouterIPS     []string `toml:"router_ips" json:"router_ips"`
 	ConcurrentNum int      `toml:"concurrent_num" json:"concurrent_num"`
-	RpcTimeOut    int      `toml:"rpc_timeout" json:"rpc_timeout"` //ms
+	RpcTimeOut    int      `toml:"rpc_timeout" json:"rpc_timeout"` // ms
+	AllowOrigins  []string `toml:"allow_origins" json:"allow_origins"`
 }
 
 func (routerCfg *RouterCfg) ApiUrl(keyNumber int) string {
