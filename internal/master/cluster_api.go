@@ -81,10 +81,11 @@ func ExportToClusterHandler(router *gin.Engine, masterService *masterService, se
 	router.Handle(http.MethodPost, "/register_router", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.registerRouter, dh.TimeOutEndHandler)
 
 	// db handler
-	router.Handle(http.MethodPut, "/db/_create", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.createDB, dh.TimeOutEndHandler)
-	router.Handle(http.MethodDelete, "/db/:"+DB, dh.PaincHandler, dh.TimeOutHandler, c.auth, c.deleteDB, dh.TimeOutEndHandler)
-	router.Handle(http.MethodGet, "/db/:"+DB, dh.PaincHandler, dh.TimeOutHandler, c.auth, c.getDB, dh.TimeOutEndHandler)
-	router.Handle(http.MethodPost, "/db/modify", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.modifyDB, dh.TimeOutEndHandler)
+	router.Handle(http.MethodPost, fmt.Sprintf("/dbs/:%s", dbName), dh.PaincHandler, dh.TimeOutHandler, c.auth, c.createDB, dh.TimeOutEndHandler)
+	router.Handle(http.MethodGet, fmt.Sprintf("/dbs/:%s", dbName), dh.PaincHandler, dh.TimeOutHandler, c.auth, c.getDB, dh.TimeOutEndHandler)
+	router.Handle(http.MethodGet, "/dbs", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.getDB, dh.TimeOutEndHandler)
+	router.Handle(http.MethodDelete, fmt.Sprintf("/dbs/:%s", dbName), dh.PaincHandler, dh.TimeOutHandler, c.auth, c.deleteDB, dh.TimeOutEndHandler)
+	router.Handle(http.MethodPut, fmt.Sprintf("/dbs/:%s", dbName), dh.PaincHandler, dh.TimeOutHandler, c.auth, c.modifyDB, dh.TimeOutEndHandler)
 
 	// space handler
 	router.Handle(http.MethodPut, "/space/:"+dbName+"/_create", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.createSpace, dh.TimeOutEndHandler)
@@ -218,12 +219,9 @@ func (ca *clusterAPI) registerPartition(c *gin.Context) {
 func (ca *clusterAPI) createDB(c *gin.Context) {
 	startTime := time.Now()
 	defer monitor.Profiler("createDB", startTime)
-	db := &entity.DB{}
+	dbName := c.Param(dbName)
+	db := &entity.DB{Name: dbName}
 
-	if err := c.ShouldBind(db); err != nil {
-		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
-		return
-	}
 	log.Debug("create db: %s", db.Name)
 
 	if err := ca.masterService.createDBService(c, db); err != nil {
@@ -234,8 +232,8 @@ func (ca *clusterAPI) createDB(c *gin.Context) {
 }
 
 func (ca *clusterAPI) deleteDB(c *gin.Context) {
-	log.Debug("delete db, db: %s", c.Param(DB))
-	db := c.Param(DB)
+	log.Debug("delete db, db: %s", c.Param(dbName))
+	db := c.Param(dbName)
 
 	if err := ca.masterService.deleteDBService(c, db); err != nil {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
@@ -245,12 +243,19 @@ func (ca *clusterAPI) deleteDB(c *gin.Context) {
 }
 
 func (ca *clusterAPI) getDB(c *gin.Context) {
-	db := c.Param(DB)
-
-	if db, err := ca.masterService.queryDBService(c, db); err != nil {
-		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
+	db := c.Param(dbName)
+	if db == "" {
+		if dbs, err := ca.masterService.queryDBs(c); err != nil {
+			ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
+		} else {
+			ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(dbs)
+		}
 	} else {
-		ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(db)
+		if db, err := ca.masterService.queryDBService(c, db); err != nil {
+			ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
+		} else {
+			ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(db)
+		}
 	}
 }
 

@@ -985,9 +985,9 @@ def evaluate(xq, gt, k, batch, query_dict, logger):
 
 
 def drop_db(router_url: str, db_name: str):
-    url = f"{router_url}/db/{db_name}"
+    url = f"{router_url}/dbs/{db_name}"
     resp = requests.delete(url)
-    return resp.text
+    return resp.json()
 
 
 def drop_space(router_url: str, db_name: str, space_name: str):
@@ -1052,20 +1052,19 @@ def get_servers_status(router_url: str):
 
 
 def list_dbs(router_url: str):
-    url = f"{router_url}/list/db"
+    url = f"{router_url}/dbs"
     resp = requests.get(url)
     return resp.json()
 
 
 def create_db(router_url: str, db_name: str):
-    url = f"{router_url}/db/_create"
-    data = {"name": db_name}
-    resp = requests.put(url, json=data)
+    url = f"{router_url}/dbs/" + db_name
+    resp = requests.post(url)
     return resp.json()
 
 
 def get_db(router_url: str, db_name: str):
-    url = f"{router_url}/db/{db_name}"
+    url = f"{router_url}/dbs/{db_name}"
     resp = requests.get(url)
     return resp.json()
 

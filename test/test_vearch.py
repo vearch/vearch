@@ -63,7 +63,7 @@ class VearchCase:
     logger.info("database")
 
     def test_dblist(self):
-        url = proxy + "/list/db"
+        url = proxy + "/dbs"
         response = requests.get(url)
         logger.debug("list_db---\n" + response.text)
         assert response.status_code == 200
@@ -71,16 +71,15 @@ class VearchCase:
 
     def test_createDB(self):
         logger.info("------------")
-        url = proxy + "/db/_create"
+        url = proxy + "/dbs/" + db_name
         headers = {"content-type": "application/json"}
-        data = {"name": db_name}
-        response = requests.put(url, headers=headers, data=json.dumps(data))
+        response = requests.post(url, headers=headers)
         logger.debug("db_create---\n" + response.text)
         assert response.status_code == 200
         assert response.text.find('"msg":"success"') >= 0
 
     def test_getDB(self):
-        url = proxy + "/db/" + db_name
+        url = proxy + "/dbs/" + db_name
         response = requests.get(url)
         logger.debug("db_search---\n" + response.text)
         assert response.status_code == 200
@@ -449,7 +448,7 @@ class VearchCase:
         assert response.status_code == 200
 
     def test_deleteDB(self):
-        url = proxy + "/db/" + db_name
+        url = proxy + "/dbs/" + db_name
         response = requests.delete(url)
         logger.debug("deleteDB:" + response.text)
         assert response.status_code == 200

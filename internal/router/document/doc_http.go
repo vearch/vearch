@@ -20,7 +20,6 @@ import (
 	"io"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -85,10 +84,11 @@ func (handler *DocumentHandler) proxyMaster() error {
 	handler.httpServer.Handle(http.MethodGet, "/list/partition", handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
 	handler.httpServer.Handle(http.MethodGet, "/list/router", handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
 	// db handler
-	handler.httpServer.Handle(http.MethodPut, "/db/_create", handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
-	handler.httpServer.Handle(http.MethodGet, fmt.Sprintf("/db/:%s", URLParamDbName), handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
-	handler.httpServer.Handle(http.MethodDelete, fmt.Sprintf("/db/:%s", URLParamDbName), handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
-	handler.httpServer.Handle(http.MethodPost, "/db/modify", handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
+	handler.httpServer.Handle(http.MethodPost, fmt.Sprintf("/dbs/:%s", URLParamDbName), handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
+	handler.httpServer.Handle(http.MethodGet, fmt.Sprintf("/dbs/*%s", URLParamDbName), handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
+	handler.httpServer.Handle(http.MethodGet, "/dbs", handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
+	handler.httpServer.Handle(http.MethodDelete, fmt.Sprintf("/dbs/:%s", URLParamDbName), handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
+	handler.httpServer.Handle(http.MethodPut, fmt.Sprintf("/dbs/:%s", URLParamDbName), handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
 	// space handler
 	handler.httpServer.Handle(http.MethodPut, fmt.Sprintf("/space/:%s/_create", URLParamDbName), handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
 	handler.httpServer.Handle(http.MethodGet, fmt.Sprintf("/space/:%s/:%s", URLParamDbName, URLParamSpaceName), handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
@@ -182,18 +182,6 @@ func (handler *DocumentHandler) handleRouterInfo(c *gin.Context) {
 	layer["version"] = versionLayer
 
 	resp.SendJson(c, layer)
-}
-
-func (handler *DocumentHandler) handleRouterIPs(c *gin.Context) {
-	ctx := c.Request.Context()
-	ips, err := handler.client.Master().QueryRouter(ctx, config.Conf().Global.Name)
-	if err != nil {
-		log.Errorf("get router ips failed, err: [%s]", err.Error())
-		resp.SendError(c, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	c.String(http.StatusOK, strings.Join(ips, ","))
 }
 
 func (handler *DocumentHandler) cacheInfo(c *gin.Context) {
