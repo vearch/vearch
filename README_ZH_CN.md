@@ -60,14 +60,11 @@ $ docker-compose up
 **Python使用文档**: [APIPythonSDK.md](internal/engine/sdk/python/docs/APIPythonSDK.md)
 Vearch Python SDK 使vearch能够在本地使用。 Vearch python sdk 可以通过以下方式轻松安装： pip install vearch.
 
-## 架构
+## 组件
 
-<details>
-  <summary><b>Vearch 架构</b></summary>
+**Vearch 架构**
 
-![arc](docs/img/simple_architecture.png)
-
-</details>
+![arc](assets/architecture.excalidraw.png)
 
 **Master**: 负责模式管理、集群级元数据和资源协调。
 
@@ -102,4 +99,4 @@ slack：https://vearchwrokspace.slack.com
 
 ## 开源许可
 
-根据 Apache 许可证 2.0 版获得许可。详细请参见 [LICENSE and NOTICE](https://github.com/vearch/vearch/blob/master/LICENSE).
+根据Apache许可证2.0版本授权。详细请参见 [LICENSE and NOTICE](https://github.com/vearch/vearch/blob/master/LICENSE).

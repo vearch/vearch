@@ -1,6 +1,6 @@
 # Architecture of Vearch
 
-![arc](img/VearchArch.jpg)
+![arc](../assets/architecture.excalidraw.png)
 
 * Components
 

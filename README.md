@@ -62,12 +62,9 @@ Vearch Python SDK enables vearch to use locally. Vearch python sdk can be instal
 
 ## Components
 
-<details>
-  <summary><b>Vearch Architecture</b></summary>
+**Vearch Architecture**
 
-![arc](docs/img/simple_architecture.png)
-
-</details>
+![arc](assets/architecture.excalidraw.png)
 
 **Master**: Responsible for schema mananagement, cluster-level metadata, and resource coordination. 
 
