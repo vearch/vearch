@@ -339,7 +339,7 @@ int Engine::Search(Request &request, Response &response_results) {
       request.MultiVectorRank() == 1 ? true : false;
   gamma_query.condition->brute_force_search = brute_force_search;
   gamma_query.condition->l2_sqrt = request.L2Sqrt();
-  gamma_query.condition->retrieval_parameters = request.RetrievalParams();
+  gamma_query.condition->index_params = request.IndexParams();
   gamma_query.condition->has_rank = request.HasRank();
 
   gamma_query.condition->range_filters = request.RangeFilters();
@@ -526,7 +526,8 @@ int Engine::CreateTable(TableInfo &table) {
     disk_table_params.Parse(table_jp);
   }
   int ret_table = table_->CreateTable(table, disk_table_params, docids_bitmap_);
-  indexing_size_ = table.IndexingSize();
+  training_threshold_ = table.TrainingThreshold();
+  LOG(INFO) << space_name_ << " training_threshold=" << training_threshold_;
   if (ret_table != 0) {
     LOG(ERROR) << space_name_ << " cannot create table!";
     return -2;
@@ -628,8 +629,9 @@ int Engine::AddOrUpdate(Doc &doc) {
   docids_bitmap_->SetMaxID(max_docid_);
 
   if (not b_running_ and index_status_ == UNINDEXED) {
-    if (max_docid_ >= indexing_size_) {
-      LOG(INFO) << "Begin indexing.";
+    if (max_docid_ >= training_threshold_) {
+      LOG(INFO) << space_name_
+                << " begin indexing. training_threshold=" << training_threshold_;
       this->BuildIndex();
     }
   }
@@ -807,7 +809,7 @@ int Engine::RebuildIndex(int drop_before_rebuild, int limit_cpu, int describe) {
   std::map<std::string, RetrievalModel *> vector_indexes;
 
   if (!drop_before_rebuild) {
-    ret = vec_manager_->CreateVectorIndexes(indexing_size_, vector_indexes);
+    ret = vec_manager_->CreateVectorIndexes(training_threshold_, vector_indexes);
     if (vec_manager_->TrainIndex(vector_indexes) != 0) {
       LOG(ERROR) << "RebuildIndex TrainIndex failed!";
       return -1;
@@ -826,7 +828,7 @@ int Engine::RebuildIndex(int drop_before_rebuild, int limit_cpu, int describe) {
   vec_manager_->DestroyVectorIndexes();
 
   if (drop_before_rebuild) {
-    ret = vec_manager_->CreateVectorIndexes(indexing_size_,
+    ret = vec_manager_->CreateVectorIndexes(training_threshold_,
                                             vec_manager_->VectorIndexes());
     if (ret) {
       LOG(ERROR) << "RebuildIndex CreateVectorIndexes failed, ret: " << ret;
@@ -1105,9 +1107,9 @@ int Engine::Load() {
   }
 
   if (not b_running_ and index_status_ == UNINDEXED) {
-    if (max_docid_ >= indexing_size_) {
+    if (max_docid_ >= training_threshold_) {
       LOG(INFO) << space_name_
-                << " begin indexing. indexing_size=" << indexing_size_;
+                << " begin indexing. training_threshold=" << training_threshold_;
       this->BuildIndex();
     }
   }

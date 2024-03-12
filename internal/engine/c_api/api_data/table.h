@@ -67,17 +67,17 @@ class TableInfo : public RawData {
 
   void AddVectorInfo(struct VectorInfo &vector_info);
 
-  int IndexingSize();
+  int TrainingThreshold();
 
-  void SetIndexingSize(int indexing_size);
+  void SetTrainingThreshold(int training_threshold);
 
-  std::string &RetrievalType();
+  std::string &IndexType();
 
-  void SetRetrievalType(std::string &retrieval_type);
+  void SetIndexType(std::string &index_type);
 
-  std::string &RetrievalParam();
+  std::string &IndexParams();
 
-  void SetRetrievalParam(std::string &retrieval_param);
+  void SetIndexParams(std::string &index_params);
 
   int Read(const std::string &path);
 
@@ -90,9 +90,9 @@ class TableInfo : public RawData {
   std::vector<struct FieldInfo> fields_;
   std::vector<struct VectorInfo> vectors_infos_;
 
-  int indexing_size_;
-  std::string retrieval_type_;
-  std::string retrieval_param_;
+  int training_threshold_ = 0;
+  std::string index_type_;
+  std::string index_params_;
   int compress_mode_;
 };
 

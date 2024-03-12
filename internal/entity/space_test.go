@@ -24,18 +24,17 @@ import (
 
 func TestEngineErrorSpaceString(t *testing.T) {
 	space := &entity.Space{}
-	str := `{"name":"ts_space","partition_num":1,"replica_num":1,"engine":{"index_size":100000,"metric_type":"InnerProduct","retrieval_type":"ERROR_INDEX","retrieval_param":{"metric_type":"InnerProduct","ncentroids":128,"nsubvector":32,"nlinks":32,"efConstruction":200,"efSearch":64}},"properties":{"string":{"type":"string","array":true,"index":true},"float":{"type":"float","index":true},"int":{"type":"integer","index":true},"double":{"type":"double","index":true},"vector":{"type":"vector","dimension":128,"store_type":"MemoryOnly","format":"normalization"}}}`
+	str := `{"name":"ts_space","partition_num":1,"replica_num":1,"index":{"index_name":"ts_index","retrieval_type":"ERROR_INDEX","retrieval_param":{"metric_type":"InnerProduct","ncentroids":128,"nsubvector":32,"nlinks":32,"efConstruction":200,"efSearch":64}},"fields":{"string":{"type":"string","array":true,"index":true},"float":{"type":"float","index":true},"int":{"type":"integer","index":true},"double":{"type":"double","index":true},"vector":{"type":"vector","dimension":128,"store_type":"MemoryOnly","format":"normalization"}}}`
 	err := json.Unmarshal([]byte(str), &space)
 	assert.NotNil(t, err)
 }
 
 func TestEngineSpaceString(t *testing.T) {
 	space := &entity.Space{}
-	str := `{"name":"ts_space","partition_num":1,"replica_num":1,"engine":{"index_size":100000,"metric_type":"InnerProduct","retrieval_type":"IVFPQ","retrieval_param":{"metric_type":"InnerProduct","ncentroids":128,"nsubvector":32,"nlinks":32,"efConstruction":200,"efSearch":64}},"properties":{"string":{"type":"string","array":true,"index":true},"float":{"type":"float","index":true},"int":{"type":"integer","index":true},"double":{"type":"double","index":true},"vector":{"type":"vector","dimension":128,"store_type":"MemoryOnly","format":"normalization"}}}`
+	str := `{"name":"ts_space","partition_num":1,"replica_num":1,"engine":{"index_size":100000,"metric_type":"InnerProduct","retrieval_type":"IVFPQ","retrieval_param":{"metric_type":"InnerProduct","ncentroids":128,"nsubvector":32,"nlinks":32,"efConstruction":200,"efSearch":64}},"fields":{"string":{"type":"string","array":true,"index":true},"float":{"type":"float","index":true},"int":{"type":"integer","index":true},"double":{"type":"double","index":true},"vector":{"type":"vector","dimension":128,"store_type":"MemoryOnly","format":"normalization"}}}`
 	if err := json.Unmarshal([]byte(str), &space); err != nil {
 		t.Errorf(err.Error())
 	}
-	assert.Equal(t, space.Engine.IndexSize, int64(100000), "unmarshal string to engine err")
 }
 
 func TestSpace_Validate(t *testing.T) {
@@ -49,8 +48,8 @@ func TestSpace_Validate(t *testing.T) {
 		Partitions      []*entity.Partition
 		PartitionNum    int
 		ReplicaNum      uint8
-		Properties      json.RawMessage
-		Engine          *entity.Engine
+		Fields          json.RawMessage
+		Index           *entity.Index
 		Models          json.RawMessage
 		SpaceProperties map[string]*entity.SpaceProperties
 	}
@@ -108,8 +107,8 @@ func TestSpace_Validate(t *testing.T) {
 				Partitions:      tt.fields.Partitions,
 				PartitionNum:    tt.fields.PartitionNum,
 				ReplicaNum:      tt.fields.ReplicaNum,
-				Properties:      tt.fields.Properties,
-				Engine:          tt.fields.Engine,
+				Fields:          tt.fields.Fields,
+				Index:           tt.fields.Index,
 				Models:          tt.fields.Models,
 				SpaceProperties: tt.fields.SpaceProperties,
 			}

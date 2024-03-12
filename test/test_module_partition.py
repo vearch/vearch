@@ -35,20 +35,21 @@ class TestPartitionEmptySpaceMemorySize:
         logger.info(create_db(router_url, db_name))
 
     @pytest.mark.parametrize(
-        ["embedding_size", "retrieval_type"],
+        ["embedding_size", "index_type"],
         [[128, "FLAT"], [128, "IVFPQ"], [128, "IVFFLAT"], [128, "HNSW"],
         [512, "FLAT"], [512, "IVFPQ"], [512, "IVFFLAT"], [512, "HNSW"],
         [1536, "FLAT"], [1536, "IVFPQ"], [1536, "IVFFLAT"], [1536, "HNSW"]],
     )
-    def test_vearch_space_create(self, embedding_size, retrieval_type):
+    def test_vearch_space_create(self, embedding_size, index_type):
         space_config = {
-            "name": space_name + "empty" + str(embedding_size) + retrieval_type,
+            "name": space_name + "empty" + str(embedding_size) + index_type,
             "partition_num": 1,
             "replica_num": 1,
-            "engine": {
+            "index": {
+                "index_name": "gamma",
                 "index_size": 70000,
-                "retrieval_type": retrieval_type,
-                "retrieval_param": {
+                "index_type": index_type,
+                "index_params": {
                     "metric_type": "InnerProduct",
                     "ncentroids": 2048,
                     "nsubvector": int(embedding_size / 4),
@@ -56,7 +57,7 @@ class TestPartitionEmptySpaceMemorySize:
                     "efConstruction": 100,
                 },
             },
-            "properties": {
+            "fields": {
                 "field_int": {"type": "integer", "index": False},
                 "field_long": {"type": "long", "index": False},
                 "field_float": {"type": "float", "index": False},
@@ -88,21 +89,21 @@ class TestPartitionSmallDataMemorySize:
         logger.info(create_db(router_url, db_name))
 
     @pytest.mark.parametrize(
-        ["embedding_size", "retrieval_type"],
+        ["embedding_size", "index_type"],
         [[128, "FLAT"], [128, "IVFPQ"], [128, "IVFFLAT"], [128, "HNSW"],
         [512, "FLAT"], [512, "IVFPQ"], [512, "IVFFLAT"], [512, "HNSW"],
         [1536, "FLAT"], [1536, "IVFPQ"], [1536, "IVFFLAT"], [1536, "HNSW"]],
     )
-    def test_vearch_space_create(self, embedding_size, retrieval_type):
-        space_name_each = space_name + "smalldata" + str(embedding_size) + retrieval_type
+    def test_vearch_space_create(self, embedding_size, index_type):
+        space_name_each = space_name + "smalldata" + str(embedding_size) + index_type
         space_config = {
             "name": space_name_each,
             "partition_num": 1,
             "replica_num": 1,
-            "engine": {
-                "index_size": 9999,
-                "retrieval_type": retrieval_type,
-                "retrieval_param": {
+            "index": {
+                "index_name": "gamma",
+                "index_type": index_type,
+                "index_params": {
                     "metric_type": "InnerProduct",
                     "ncentroids": 2048,
                     "nsubvector": int(embedding_size / 4),
@@ -110,7 +111,7 @@ class TestPartitionSmallDataMemorySize:
                     "efConstruction": 100,
                 },
             },
-            "properties": {
+            "fields": {
                 "field_int": {"type": "integer", "index": False},
                 "field_long": {"type": "long", "index": False},
                 "field_float": {"type": "float", "index": False},

@@ -40,7 +40,7 @@ class VectorManager {
 
   int CreateVectorIndex(
       std::string &retrieval_type, std::string &retrieval_param, RawVector *vec,
-      int indexing_size, bool destroy_vec,
+      int training_threshold, bool destroy_vec,
       std::map<std::string, RetrievalModel *> &vector_indexes);
 
   void DestroyVectorIndexes();
@@ -48,7 +48,7 @@ class VectorManager {
   void DescribeVectorIndexes();
 
   int CreateVectorIndexes(
-      int indexing_size,
+      int training_threshold,
       std::map<std::string, RetrievalModel *> &vector_indexes);
 
   void SetVectorIndexes(
@@ -111,8 +111,8 @@ class VectorManager {
 
  private:
   inline std::string IndexName(const std::string &field_name,
-                               const std::string &retrieval_type) {
-    return field_name + "_" + retrieval_type;
+                               const std::string &index_type) {
+    return field_name + "_" + index_type;
   }
 
  private:
@@ -123,8 +123,8 @@ class VectorManager {
 
   std::map<std::string, RawVector *> raw_vectors_;
   std::map<std::string, RetrievalModel *> vector_indexes_;
-  std::vector<std::string> retrieval_types_;
-  std::vector<std::string> retrieval_params_;
+  std::vector<std::string> index_types_;
+  std::vector<std::string> index_params_;
 };
 
 }  // namespace vearch

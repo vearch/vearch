@@ -183,10 +183,10 @@ message VectorQuery {
   double boost = 5;
   int32 has_boost = 6;
   string format = 7;
-  string retrieval_type = 8;
+  string index_type = 8;
 }
 
-message RetrievalParameters {
+message IndexParameters {
   enum DistanceMetricType {
     InnerProduct = 0;
     L2 = 1;
@@ -206,7 +206,7 @@ message SearchRequest {
   repeated RangeFilter range_filters = 7;
   repeated TermFilter term_filters = 8;
   string online_log_level = 9;
-  string retrieval_params = 10;
+  string index_params = 10;
   bool has_rank = 11;
   int32 multi_vector_rank = 12;
   bool parallel_based_on_query = 13;

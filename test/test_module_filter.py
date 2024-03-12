@@ -33,14 +33,15 @@ def create(router_url, properties):
         "name": space_name,
         "partition_num": 1,
         "replica_num": 1,
-        "engine": {
+        "index": {
+            "index_name": "name",
             "index_size": 1,
-            "retrieval_type": "FLAT",
-            "retrieval_param": {
+            "index_type": "FLAT",
+            "index_params": {
                 "metric_type": "L2",
             }
         },
-        "properties": properties["properties"]
+        "fields": properties["fields"]
     }
     logger.info(create_db(router_url, db_name))
     logger.info(create_space(router_url, db_name, space_config))
@@ -192,7 +193,7 @@ def check(total, full_field, xb, mode: str):
         total, total_batch, dim, xq.shape[0], k))
 
     properties = {}
-    properties["properties"] = {
+    properties["fields"] = {
         "field_int": {
             "type": "integer",
             "index": True

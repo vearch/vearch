@@ -48,9 +48,9 @@ func ParseSchema(schema []byte) (*DocumentMapping, error) {
 	return dms, nil
 }
 
-func (im *IndexMapping) MapDocument(source []byte, retrievalType string) ([]*vearchpb.Field, map[string]vearchpb.FieldType, error) {
+func (im *IndexMapping) MapDocument(source []byte, indexType string) ([]*vearchpb.Field, map[string]vearchpb.FieldType, error) {
 	walkContext := im.newWalkContext()
-	im.walkDocument(walkContext, source, retrievalType)
+	im.walkDocument(walkContext, source, indexType)
 	if walkContext.Err != nil {
 		return nil, nil, walkContext.Err
 	}
@@ -62,7 +62,7 @@ func (im *IndexMapping) MapDocument(source []byte, retrievalType string) ([]*vea
 	return walkContext.Fields, walkContext.DynamicFields, nil
 }
 
-func (im *IndexMapping) walkDocument(context *walkContext, data []byte, retrievalType string) {
+func (im *IndexMapping) walkDocument(context *walkContext, data []byte, indexType string) {
 	var fast fastjson.Parser
 	v, err := fast.ParseBytes(data)
 	if err != nil {
@@ -75,10 +75,10 @@ func (im *IndexMapping) walkDocument(context *walkContext, data []byte, retrieva
 		return
 	}
 	var path []string
-	im.DocumentMapping.parseJson(context, path, v, retrievalType)
+	im.DocumentMapping.parseJson(context, path, v, indexType)
 }
 
-func (dm *DocumentMapping) parseJson(context *walkContext, path []string, v *fastjson.Value, retrievalType string) {
+func (dm *DocumentMapping) parseJson(context *walkContext, path []string, v *fastjson.Value, indexType string) {
 	switch v.Type() {
 	case fastjson.TypeObject:
 		obj, err := v.Object()
@@ -90,7 +90,7 @@ func (dm *DocumentMapping) parseJson(context *walkContext, path []string, v *fas
 			fieldName := string(key)
 			subDocM := dm.subDocumentMapping(fieldName)
 			if subDocM != nil {
-				subDocM.processProperty(context, fieldName, path, val, retrievalType)
+				subDocM.processProperty(context, fieldName, path, val, indexType)
 			} else {
 				context.Err = fmt.Errorf("unrecognizable field:[%s] value %s %v", fieldName, v.String(), dm)
 			}
@@ -103,23 +103,23 @@ func (dm *DocumentMapping) parseJson(context *walkContext, path []string, v *fas
 		}
 		if dm.Field != nil {
 			for _, item := range items {
-				dm.processProperty(context, dm.Field.FieldName(), path, item, retrievalType)
+				dm.processProperty(context, dm.Field.FieldName(), path, item, indexType)
 			}
 		} else {
 			for _, item := range items {
-				dm.parseJson(context, path, item, retrievalType)
+				dm.parseJson(context, path, item, indexType)
 			}
 		}
 	default:
 		if dm.Field != nil {
-			dm.processProperty(context, dm.Field.FieldName(), path, v, retrievalType)
+			dm.processProperty(context, dm.Field.FieldName(), path, v, indexType)
 		} else {
-			dm.processProperty(context, path[len(path)-1], path[:len(path)-1], v, retrievalType)
+			dm.processProperty(context, path[len(path)-1], path[:len(path)-1], v, indexType)
 		}
 	}
 }
 
-func (dm *DocumentMapping) processProperty(context *walkContext, fieldName string, path []string, v *fastjson.Value, retrievalType string) {
+func (dm *DocumentMapping) processProperty(context *walkContext, fieldName string, path []string, v *fastjson.Value, indexType string) {
 
 	if context.Err != nil {
 		return
@@ -200,7 +200,7 @@ func (dm *DocumentMapping) processProperty(context *walkContext, fieldName strin
 			fm := dm.Field
 			if fm.FieldType() == vearchpb.FieldType_VECTOR {
 				feature := v.GetArray("feature")
-				if strings.Compare("BINARYIVF", retrievalType) == 0 {
+				if strings.Compare("BINARYIVF", indexType) == 0 {
 					vector := make([]uint8, len(feature))
 					for i := 0; i < len(feature); i++ {
 						if int8, err := feature[i].Int(); err != nil {
@@ -241,7 +241,7 @@ func (dm *DocumentMapping) processProperty(context *walkContext, fieldName strin
 				}
 			}
 		}
-		dm.parseJson(context, append(path, fieldName), v, retrievalType)
+		dm.parseJson(context, append(path, fieldName), v, indexType)
 	case fastjson.TypeArray:
 		vs, err := v.Array()
 		if err != nil {
@@ -345,7 +345,7 @@ func (dm *DocumentMapping) processProperty(context *walkContext, fieldName strin
 		}
 
 		for _, vv := range vs {
-			dm.processProperty(context, fieldName, path, vv, retrievalType)
+			dm.processProperty(context, fieldName, path, vv, indexType)
 		}
 	}
 }

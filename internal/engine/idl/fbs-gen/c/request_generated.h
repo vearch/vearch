@@ -202,7 +202,7 @@ struct VectorQuery FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_MAX_SCORE = 10,
     VT_BOOST = 12,
     VT_HAS_BOOST = 14,
-    VT_RETRIEVAL_TYPE = 16
+    VT_INDEX_TYPE = 16
   };
   const flatbuffers::String *name() const {
     return GetPointer<const flatbuffers::String *>(VT_NAME);
@@ -222,8 +222,8 @@ struct VectorQuery FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   int32_t has_boost() const {
     return GetField<int32_t>(VT_HAS_BOOST, 0);
   }
-  const flatbuffers::String *retrieval_type() const {
-    return GetPointer<const flatbuffers::String *>(VT_RETRIEVAL_TYPE);
+  const flatbuffers::String *index_type() const {
+    return GetPointer<const flatbuffers::String *>(VT_INDEX_TYPE);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -235,8 +235,8 @@ struct VectorQuery FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<double>(verifier, VT_MAX_SCORE) &&
            VerifyField<double>(verifier, VT_BOOST) &&
            VerifyField<int32_t>(verifier, VT_HAS_BOOST) &&
-           VerifyOffset(verifier, VT_RETRIEVAL_TYPE) &&
-           verifier.VerifyString(retrieval_type()) &&
+           VerifyOffset(verifier, VT_INDEX_TYPE) &&
+           verifier.VerifyString(index_type()) &&
            verifier.EndTable();
   }
 };
@@ -262,8 +262,8 @@ struct VectorQueryBuilder {
   void add_has_boost(int32_t has_boost) {
     fbb_.AddElement<int32_t>(VectorQuery::VT_HAS_BOOST, has_boost, 0);
   }
-  void add_retrieval_type(flatbuffers::Offset<flatbuffers::String> retrieval_type) {
-    fbb_.AddOffset(VectorQuery::VT_RETRIEVAL_TYPE, retrieval_type);
+  void add_index_type(flatbuffers::Offset<flatbuffers::String> index_type) {
+    fbb_.AddOffset(VectorQuery::VT_INDEX_TYPE, index_type);
   }
   explicit VectorQueryBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -285,12 +285,12 @@ inline flatbuffers::Offset<VectorQuery> CreateVectorQuery(
     double max_score = 0.0,
     double boost = 0.0,
     int32_t has_boost = 0,
-    flatbuffers::Offset<flatbuffers::String> retrieval_type = 0) {
+    flatbuffers::Offset<flatbuffers::String> index_type = 0) {
   VectorQueryBuilder builder_(_fbb);
   builder_.add_boost(boost);
   builder_.add_max_score(max_score);
   builder_.add_min_score(min_score);
-  builder_.add_retrieval_type(retrieval_type);
+  builder_.add_index_type(index_type);
   builder_.add_has_boost(has_boost);
   builder_.add_value(value);
   builder_.add_name(name);
@@ -305,10 +305,10 @@ inline flatbuffers::Offset<VectorQuery> CreateVectorQueryDirect(
     double max_score = 0.0,
     double boost = 0.0,
     int32_t has_boost = 0,
-    const char *retrieval_type = nullptr) {
+    const char *index_type = nullptr) {
   auto name__ = name ? _fbb.CreateString(name) : 0;
   auto value__ = value ? _fbb.CreateVector<uint8_t>(*value) : 0;
-  auto retrieval_type__ = retrieval_type ? _fbb.CreateString(retrieval_type) : 0;
+  auto index_type__ = index_type ? _fbb.CreateString(index_type) : 0;
   return gamma_api::CreateVectorQuery(
       _fbb,
       name__,
@@ -317,7 +317,7 @@ inline flatbuffers::Offset<VectorQuery> CreateVectorQueryDirect(
       max_score,
       boost,
       has_boost,
-      retrieval_type__);
+      index_type__);
 }
 
 struct Request FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -329,7 +329,7 @@ struct Request FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_FIELDS = 12,
     VT_RANGE_FILTERS = 14,
     VT_TERM_FILTERS = 16,
-    VT_RETRIEVAL_PARAMS = 18,
+    VT_INDEX_PARAMS = 18,
     VT_HAS_RANK = 20,
     VT_ONLINE_LOG_LEVEL = 22,
     VT_MULTI_VECTOR_RANK = 24,
@@ -356,8 +356,8 @@ struct Request FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const flatbuffers::Vector<flatbuffers::Offset<TermFilter>> *term_filters() const {
     return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<TermFilter>> *>(VT_TERM_FILTERS);
   }
-  const flatbuffers::String *retrieval_params() const {
-    return GetPointer<const flatbuffers::String *>(VT_RETRIEVAL_PARAMS);
+  const flatbuffers::String *index_params() const {
+    return GetPointer<const flatbuffers::String *>(VT_INDEX_PARAMS);
   }
   bool has_rank() const {
     return GetField<uint8_t>(VT_HAS_RANK, 0) != 0;
@@ -388,8 +388,8 @@ struct Request FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyOffset(verifier, VT_TERM_FILTERS) &&
            verifier.VerifyVector(term_filters()) &&
            verifier.VerifyVectorOfTables(term_filters()) &&
-           VerifyOffset(verifier, VT_RETRIEVAL_PARAMS) &&
-           verifier.VerifyString(retrieval_params()) &&
+           VerifyOffset(verifier, VT_INDEX_PARAMS) &&
+           verifier.VerifyString(index_params()) &&
            VerifyField<uint8_t>(verifier, VT_HAS_RANK) &&
            VerifyOffset(verifier, VT_ONLINE_LOG_LEVEL) &&
            verifier.VerifyString(online_log_level()) &&
@@ -423,8 +423,8 @@ struct RequestBuilder {
   void add_term_filters(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TermFilter>>> term_filters) {
     fbb_.AddOffset(Request::VT_TERM_FILTERS, term_filters);
   }
-  void add_retrieval_params(flatbuffers::Offset<flatbuffers::String> retrieval_params) {
-    fbb_.AddOffset(Request::VT_RETRIEVAL_PARAMS, retrieval_params);
+  void add_index_params(flatbuffers::Offset<flatbuffers::String> index_params) {
+    fbb_.AddOffset(Request::VT_INDEX_PARAMS, index_params);
   }
   void add_has_rank(bool has_rank) {
     fbb_.AddElement<uint8_t>(Request::VT_HAS_RANK, static_cast<uint8_t>(has_rank), 0);
@@ -459,7 +459,7 @@ inline flatbuffers::Offset<Request> CreateRequest(
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> fields = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<RangeFilter>>> range_filters = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TermFilter>>> term_filters = 0,
-    flatbuffers::Offset<flatbuffers::String> retrieval_params = 0,
+    flatbuffers::Offset<flatbuffers::String> index_params = 0,
     bool has_rank = false,
     flatbuffers::Offset<flatbuffers::String> online_log_level = 0,
     int32_t multi_vector_rank = 0,
@@ -467,7 +467,7 @@ inline flatbuffers::Offset<Request> CreateRequest(
   RequestBuilder builder_(_fbb);
   builder_.add_multi_vector_rank(multi_vector_rank);
   builder_.add_online_log_level(online_log_level);
-  builder_.add_retrieval_params(retrieval_params);
+  builder_.add_index_params(index_params);
   builder_.add_term_filters(term_filters);
   builder_.add_range_filters(range_filters);
   builder_.add_fields(fields);
@@ -489,7 +489,7 @@ inline flatbuffers::Offset<Request> CreateRequestDirect(
     const std::vector<flatbuffers::Offset<flatbuffers::String>> *fields = nullptr,
     const std::vector<flatbuffers::Offset<RangeFilter>> *range_filters = nullptr,
     const std::vector<flatbuffers::Offset<TermFilter>> *term_filters = nullptr,
-    const char *retrieval_params = nullptr,
+    const char *index_params = nullptr,
     bool has_rank = false,
     const char *online_log_level = nullptr,
     int32_t multi_vector_rank = 0,
@@ -498,7 +498,7 @@ inline flatbuffers::Offset<Request> CreateRequestDirect(
   auto fields__ = fields ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*fields) : 0;
   auto range_filters__ = range_filters ? _fbb.CreateVector<flatbuffers::Offset<RangeFilter>>(*range_filters) : 0;
   auto term_filters__ = term_filters ? _fbb.CreateVector<flatbuffers::Offset<TermFilter>>(*term_filters) : 0;
-  auto retrieval_params__ = retrieval_params ? _fbb.CreateString(retrieval_params) : 0;
+  auto index_params__ = index_params ? _fbb.CreateString(index_params) : 0;
   auto online_log_level__ = online_log_level ? _fbb.CreateString(online_log_level) : 0;
   return gamma_api::CreateRequest(
       _fbb,
@@ -509,7 +509,7 @@ inline flatbuffers::Offset<Request> CreateRequestDirect(
       fields__,
       range_filters__,
       term_filters__,
-      retrieval_params__,
+      index_params__,
       has_rank,
       online_log_level__,
       multi_vector_rank,

@@ -26,21 +26,21 @@ class TableSchemaIO {
 
   void WriteVectorInfos(TableInfo &table);
 
-  void WriteRetrievalType(TableInfo &table);
+  void WriteIndexType(TableInfo &table);
 
-  void WriteRetrievalParam(TableInfo &table);
+  void WriteIndexParams(TableInfo &table);
 
   int Read(std::string &name, TableInfo &table);
 
-  void ReadIndexingSize(TableInfo &table);
+  void ReadTrainingThreshold(TableInfo &table);
 
   void ReadFieldInfos(TableInfo &table);
 
   void ReadVectorInfos(TableInfo &table);
 
-  void ReadRetrievalType(TableInfo &table);
+  void ReadIndexType(TableInfo &table);
 
-  void ReadRetrievalParam(TableInfo &table);
+  void ReadIndexParams(TableInfo &table);
 
   utils::FileIO *fio;
 };

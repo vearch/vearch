@@ -143,12 +143,12 @@ func (ge *gammaEngine) Writer() engine.Writer {
 func (ge *gammaEngine) UpdateMapping(space *entity.Space) error {
 	var oldProperties, newProperties interface{}
 
-	if err := json.Unmarshal([]byte(ge.space.Properties), &oldProperties); err != nil {
-		return fmt.Errorf("unmarshal old space properties:[%s] has err:[%s] ", ge.space.Properties, err.Error())
+	if err := json.Unmarshal([]byte(ge.space.Fields), &oldProperties); err != nil {
+		return fmt.Errorf("unmarshal old space properties:[%s] has err:[%s] ", ge.space.Fields, err.Error())
 	}
 
-	if err := json.Unmarshal([]byte(space.Properties), &newProperties); err != nil {
-		return fmt.Errorf("unmarshal new space properties:[%s] has err :[%s]", space.Properties, err.Error())
+	if err := json.Unmarshal([]byte(space.Fields), &newProperties); err != nil {
+		return fmt.Errorf("unmarshal new space properties:[%s] has err :[%s]", space.Fields, err.Error())
 	}
 
 	if !reflect.DeepEqual(oldProperties, newProperties) {

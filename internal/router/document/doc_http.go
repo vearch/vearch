@@ -85,20 +85,16 @@ func (handler *DocumentHandler) proxyMaster() error {
 	handler.httpServer.Handle(http.MethodGet, "/list/router", handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
 	// db handler
 	handler.httpServer.Handle(http.MethodPost, fmt.Sprintf("/dbs/:%s", URLParamDbName), handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
-	handler.httpServer.Handle(http.MethodGet, fmt.Sprintf("/dbs/*%s", URLParamDbName), handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
+	handler.httpServer.Handle(http.MethodGet, fmt.Sprintf("/dbs/:%s", URLParamDbName), handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
 	handler.httpServer.Handle(http.MethodGet, "/dbs", handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
 	handler.httpServer.Handle(http.MethodDelete, fmt.Sprintf("/dbs/:%s", URLParamDbName), handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
 	handler.httpServer.Handle(http.MethodPut, fmt.Sprintf("/dbs/:%s", URLParamDbName), handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
 	// space handler
-	handler.httpServer.Handle(http.MethodPut, fmt.Sprintf("/space/:%s/_create", URLParamDbName), handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
-	handler.httpServer.Handle(http.MethodGet, fmt.Sprintf("/space/:%s/:%s", URLParamDbName, URLParamSpaceName), handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
-	handler.httpServer.Handle(http.MethodPost, fmt.Sprintf("/space/:%s/:%s", URLParamDbName, URLParamSpaceName), handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
-	handler.httpServer.Handle(http.MethodDelete, fmt.Sprintf("/space/:%s/:%s", URLParamDbName, URLParamSpaceName), handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
-	// new space handler
-	// handler.httpServer.Handle(http.MethodPost, "/space/create", handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
-	handler.httpServer.Handle(http.MethodGet, "/space/describe", handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
-	// handler.httpServer.Handle(http.MethodPost, "/space/delete", handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
-	// handler.httpServer.Handle(http.MethodPost, "/space/update", handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
+	handler.httpServer.Handle(http.MethodPost, fmt.Sprintf("/dbs/:%s/spaces", URLParamDbName), handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
+	handler.httpServer.Handle(http.MethodGet, fmt.Sprintf("/dbs/:%s/spaces/:%s", URLParamDbName, URLParamSpaceName), handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
+	handler.httpServer.Handle(http.MethodGet, fmt.Sprintf("/dbs/:%s/spaces", URLParamDbName), handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
+	handler.httpServer.Handle(http.MethodDelete, fmt.Sprintf("/dbs/:%s/spaces/:%s", URLParamDbName, URLParamSpaceName), handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
+	handler.httpServer.Handle(http.MethodPut, fmt.Sprintf("/dbs/:%s/spaces/:%s", URLParamDbName, URLParamSpaceName), handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
 
 	// cluster handler
 	handler.httpServer.Handle(http.MethodGet, "/_cluster/health", handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)

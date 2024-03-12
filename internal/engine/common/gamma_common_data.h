@@ -86,7 +86,7 @@ class GammaSearchCondition : public RetrievalContext {
   bool brute_force_search;
   bool l2_sqrt;
   bool has_rank;
-  std::string retrieval_parameters;
+  std::string index_params;
   float min_score;
   float max_score;
 

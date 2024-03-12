@@ -21,10 +21,9 @@ table Table {
   name:string;
   fields:[FieldInfo];
   vectors_info:[VectorInfo];
-  indexing_size:int;
   compress_mode:int;         // 0: not compress, 1: table compress
-  retrieval_type:string;     // IVFPQ, GPU, HNSW, BINARY
-  retrieval_param:string;
+  index_type:string;     // IVFPQ, GPU, HNSW, BINARY
+  index_params:string;
 }
 
 root_type Table;

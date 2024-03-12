@@ -287,9 +287,9 @@ func (r *routerRequest) Execute() []*vearchpb.Item {
 	isNormal := false
 	normalField := make(map[string]string)
 	if r.md[HandlerType] == BatchHandler || r.md[HandlerType] == ReplaceDocHandler {
-		retrievalType := r.space.Engine.RetrievalType
-		if retrievalType != "" {
-			if strings.Compare(retrievalType, "BINARYIVF") != 0 {
+		indexType := r.space.Index.IndexType
+		if indexType != "" {
+			if strings.Compare(indexType, "BINARYIVF") != 0 {
 				isNormal = true
 			}
 		}
@@ -633,9 +633,9 @@ func (r *routerRequest) SearchFieldSortExecute(sortOrder sortorder.SortOrder) *v
 	sendPartitionMap := r.sendMap
 	normalIsOrNot := false
 	normalField := make(map[string]string)
-	retrievalType := r.space.Engine.RetrievalType
-	if retrievalType != "" {
-		if strings.Compare(retrievalType, "BINARYIVF") != 0 {
+	indexType := r.space.Index.IndexType
+	if indexType != "" {
+		if strings.Compare(indexType, "BINARYIVF") != 0 {
 			normalIsOrNot = true
 		}
 	}
@@ -1087,7 +1087,7 @@ func GetSource(doc *vearchpb.ResultItem, space *entity.Space, sortFieldMap map[s
 
 	spaceProperties := space.SpaceProperties
 	if spaceProperties == nil {
-		spacePro, _ := entity.UnmarshalPropertyJSON(space.Properties)
+		spacePro, _ := entity.UnmarshalPropertyJSON(space.Fields)
 		spaceProperties = spacePro
 	}
 	var pKey string
@@ -1199,7 +1199,7 @@ func GetSource(doc *vearchpb.ResultItem, space *entity.Space, sortFieldMap map[s
 					}
 				}
 			case entity.FieldType_VECTOR:
-				if strings.Compare(space.Engine.RetrievalType, "BINARYIVF") == 0 {
+				if strings.Compare(space.Index.IndexType, "BINARYIVF") == 0 {
 					featureByteC := fv.Value
 					dimension := field.Dimension
 					if dimension != 0 {

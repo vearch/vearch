@@ -30,13 +30,13 @@ type RangeFilter struct {
 }
 
 type VectorQuery struct {
-	Name          string
-	Value         []byte
-	MinScore      float64
-	MaxScore      float64
-	Boost         float64
-	HasBoost      int32
-	RetrievalType string
+	Name      string
+	Value     []byte
+	MinScore  float64
+	MaxScore  float64
+	Boost     float64
+	HasBoost  int32
+	IndexType string
 }
 
 type Request struct {
@@ -48,7 +48,7 @@ type Request struct {
 	RangeFilters         []RangeFilter
 	TermFilters          []TermFilter
 	OnlineLogLevel       string
-	RetrievalParams      string
+	IndexParams          string
 	HasRank              bool
 	MultiVectorRank      int32
 	ParallelBasedOnQuery bool
@@ -61,7 +61,7 @@ type Request struct {
 func (request *Request) Serialize(buffer *[]byte) int {
 	builder := flatbuffers.NewBuilder(0)
 	onlineLogLevel := builder.CreateString(request.OnlineLogLevel)
-	retrievalParams := builder.CreateString(request.RetrievalParams)
+	indexParams := builder.CreateString(request.IndexParams)
 
 	var fields, vectorQuerys, rangeFilters, termFilters []flatbuffers.UOffsetT
 	fields = make([]flatbuffers.UOffsetT, len(request.Fields))
@@ -87,7 +87,7 @@ func (request *Request) Serialize(buffer *[]byte) int {
 		gamma_api.VectorQueryAddMaxScore(builder, request.VecFields[i].MaxScore)
 		gamma_api.VectorQueryAddBoost(builder, request.VecFields[i].Boost)
 		gamma_api.VectorQueryAddHasBoost(builder, request.VecFields[i].HasBoost)
-		gamma_api.VectorQueryAddRetrievalType(builder, builder.CreateString(request.VecFields[i].RetrievalType))
+		gamma_api.VectorQueryAddIndexType(builder, builder.CreateString(request.VecFields[i].IndexType))
 		vectorQuerys[i] = gamma_api.VectorQueryEnd(builder)
 	}
 
@@ -161,7 +161,7 @@ func (request *Request) Serialize(buffer *[]byte) int {
 	gamma_api.RequestAddRangeFilters(builder, r)
 	gamma_api.RequestAddTermFilters(builder, t)
 	gamma_api.RequestAddOnlineLogLevel(builder, onlineLogLevel)
-	gamma_api.RequestAddRetrievalParams(builder, retrievalParams)
+	gamma_api.RequestAddIndexParams(builder, indexParams)
 	gamma_api.RequestAddHasRank(builder, request.HasRank)
 	gamma_api.RequestAddMultiVectorRank(builder, request.MultiVectorRank)
 	gamma_api.RequestAddL2Sqrt(builder, request.L2Sqrt)
@@ -177,7 +177,7 @@ func (request *Request) Serialize(buffer *[]byte) int {
 func SearchRequestSerialize(request *vearchpb.SearchRequest) []byte {
 	builder := flatbuffers.NewBuilder(0)
 	onlineLogLevel := builder.CreateString(request.OnlineLogLevel)
-	retrievalParams := builder.CreateString(request.RetrievalParams)
+	indexParams := builder.CreateString(request.IndexParams)
 
 	var fields, vectorQuerys, rangeFilters, termFilters []flatbuffers.UOffsetT
 	fields = make([]flatbuffers.UOffsetT, len(request.Fields))
@@ -191,7 +191,7 @@ func SearchRequestSerialize(request *vearchpb.SearchRequest) []byte {
 
 	for i := 0; i < len(request.VecFields); i++ {
 		name := builder.CreateString(request.VecFields[i].Name)
-		retrieval_type := builder.CreateString(request.VecFields[i].RetrievalType)
+		index_type := builder.CreateString(request.VecFields[i].IndexType)
 		gamma_api.VectorQueryStartValueVector(builder, len(request.VecFields[i].Value))
 		for j := len(request.VecFields[i].Value) - 1; j >= 0; j-- {
 			builder.PrependByte(request.VecFields[i].Value[j])
@@ -204,7 +204,7 @@ func SearchRequestSerialize(request *vearchpb.SearchRequest) []byte {
 		gamma_api.VectorQueryAddMaxScore(builder, request.VecFields[i].MaxScore)
 		gamma_api.VectorQueryAddBoost(builder, request.VecFields[i].Boost)
 		gamma_api.VectorQueryAddHasBoost(builder, request.VecFields[i].HasBoost)
-		gamma_api.VectorQueryAddRetrievalType(builder, retrieval_type)
+		gamma_api.VectorQueryAddIndexType(builder, index_type)
 		vectorQuerys[i] = gamma_api.VectorQueryEnd(builder)
 	}
 
@@ -278,7 +278,7 @@ func SearchRequestSerialize(request *vearchpb.SearchRequest) []byte {
 	gamma_api.RequestAddRangeFilters(builder, r)
 	gamma_api.RequestAddTermFilters(builder, t)
 	gamma_api.RequestAddOnlineLogLevel(builder, onlineLogLevel)
-	gamma_api.RequestAddRetrievalParams(builder, retrievalParams)
+	gamma_api.RequestAddIndexParams(builder, indexParams)
 	gamma_api.RequestAddHasRank(builder, request.HasRank)
 	gamma_api.RequestAddMultiVectorRank(builder, request.MultiVectorRank)
 	gamma_api.RequestAddL2Sqrt(builder, request.L2Sqrt)

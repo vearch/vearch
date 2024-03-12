@@ -49,7 +49,7 @@ type SearchDocumentRequest struct {
 	Query          json.RawMessage `json:"query,omitempty"`
 	MinScore       float64         `json:"min_score,omitempty"`
 	Sort           json.RawMessage `json:"sort,omitempty"`
-	RetrievalParam json.RawMessage `json:"retrieval_param,omitempty"`
+	IndexParams    json.RawMessage `json:"index_params,omitempty"`
 	Explain        bool            `json:"explain,omitempty"`
 	Quick          bool            `json:"quick,omitempty"`
 	L2Sqrt         bool            `json:"l2_sqrt,omitempty"`

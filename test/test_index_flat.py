@@ -29,7 +29,7 @@ __description__ = """ test case for index flat """
 
 def create(router_url, embedding_size, store_type="MemoryOnly"):
     properties = {}
-    properties["properties"] = {
+    properties["fields"] = {
         "field_int": {
             "type": "integer",
             "index": False
@@ -47,15 +47,14 @@ def create(router_url, embedding_size, store_type="MemoryOnly"):
         "name": space_name,
         "partition_num": 1,
         "replica_num": 1,
-        "engine": {
-            "name": "gamma",
-            "index_size": 1,
-            "retrieval_type": "FLAT",
-            "retrieval_param": {
+        "index": {
+            "index_name": "gamma",
+            "index_type": "FLAT",
+            "index_params": {
                 "metric_type": "L2",
             }
         },
-        "properties": properties["properties"]
+        "fields": properties["fields"]
     }
     logger.info(create_db(router_url, db_name))
 
@@ -66,7 +65,7 @@ def query(parallel_on_queries, xq, gt, k, logger):
         "query": {
             "vector": []
         },
-        "retrieval_param": {
+        "index_params": {
             "parallel_on_queries": parallel_on_queries
         },
         "vector_value":False,
@@ -82,7 +81,7 @@ def query(parallel_on_queries, xq, gt, k, logger):
         for recall in recalls:
             result += "recall@%d = %.2f%% " % (recall, recalls[recall] * 100)
             if recall == k:
-                assert recalls[recall] >= 0.8
+                assert recalls[recall] >= 0.99
         logger.info(result)
 
 def benchmark(store_type, xb, xq, xt, gt):

@@ -50,18 +50,18 @@ const (
 )
 
 type VectorQuery struct {
-	Field         string          `json:"field"`
-	FeatureData   json.RawMessage `json:"feature"`
-	Feature       []float32       `json:"-"`
-	FeatureUint8  []uint8         `json:"-"`
-	Symbol        string          `json:"symbol"`
-	Value         *float64        `json:"value"`
-	Boost         *float64        `json:"boost"`
-	Format        *string         `json:"format,omitempty"`
-	MinScore      *float64        `json:"min_score,omitempty"`
-	MaxScore      *float64        `json:"max_score,omitempty"`
-	RetrievalType string          `json:"retrieval_type"`
-	HasBoost      *int32          `json:"has_boost"`
+	Field        string          `json:"field"`
+	FeatureData  json.RawMessage `json:"feature"`
+	Feature      []float32       `json:"-"`
+	FeatureUint8 []uint8         `json:"-"`
+	Symbol       string          `json:"symbol"`
+	Value        *float64        `json:"value"`
+	Boost        *float64        `json:"boost"`
+	Format       *string         `json:"format,omitempty"`
+	MinScore     *float64        `json:"min_score,omitempty"`
+	MaxScore     *float64        `json:"max_score,omitempty"`
+	IndexType    string          `json:"index_type"`
+	HasBoost     *int32          `json:"has_boost"`
 }
 
 var defaultBoost = util.PFloat64(1)
@@ -110,7 +110,7 @@ func parseQuery(data []byte, req *vearchpb.SearchRequest, space *entity.Space) e
 
 	proMap := space.SpaceProperties
 	if proMap == nil {
-		spacePro, _ := entity.UnmarshalPropertyJSON(space.Properties)
+		spacePro, _ := entity.UnmarshalPropertyJSON(space.Fields)
 		proMap = spacePro
 	}
 
@@ -168,7 +168,7 @@ func parseQueryForIdFeature(searchQuery []byte, space *entity.Space, items []*ve
 	var binary bool
 	var featureBinaryMap map[string][]int32
 	var featureFloat32Map map[string][]float32
-	if space.Engine.RetrievalType == "BINARYIVF" {
+	if space.Index.IndexType == "BINARYIVF" {
 		featureBinaryMap = ToContentMapBinaryFeature(space, items)
 		binary = true
 	} else {
@@ -273,10 +273,10 @@ func parseQueryForIdFeature(searchQuery []byte, space *entity.Space, items []*ve
 
 func parseVectors(reqNum int, vqs []*vearchpb.VectorQuery, tmpArr []json.RawMessage, space *entity.Space) (int, []*vearchpb.VectorQuery, error) {
 	var err error
-	retrievalType := space.Engine.RetrievalType
+	indexType := space.Index.IndexType
 	proMap := space.SpaceProperties
 	if proMap == nil {
-		spacePro, _ := entity.UnmarshalPropertyJSON(space.Properties)
+		spacePro, _ := entity.UnmarshalPropertyJSON(space.Fields)
 		proMap = spacePro
 	}
 	for i := 0; i < len(tmpArr); i++ {
@@ -285,8 +285,8 @@ func parseVectors(reqNum int, vqs []*vearchpb.VectorQuery, tmpArr []json.RawMess
 			return reqNum, vqs, err
 		}
 
-		if vqTemp.RetrievalType != "" {
-			retrievalType = vqTemp.RetrievalType
+		if vqTemp.IndexType != "" {
+			indexType = vqTemp.IndexType
 		}
 		docField := proMap[vqTemp.Field]
 
@@ -305,7 +305,7 @@ func parseVectors(reqNum int, vqs []*vearchpb.VectorQuery, tmpArr []json.RawMess
 		d := docField.Dimension
 		queryNum := 0
 		validate := 0
-		if strings.Compare(retrievalType, "BINARYIVF") == 0 {
+		if strings.Compare(indexType, "BINARYIVF") == 0 {
 			if vqTemp.FeatureUint8, err = rutil.RowDateToUInt8Array(vqTemp.FeatureData, d/8); err != nil {
 				return reqNum, vqs, err
 			}
@@ -329,7 +329,7 @@ func parseVectors(reqNum int, vqs []*vearchpb.VectorQuery, tmpArr []json.RawMess
 			return reqNum, vqs, fmt.Errorf("query has err for field:[%s] not same queryNum mapping:[%d] query:[%d] ", vqTemp.Field, len(vqTemp.Feature), d)
 		}
 
-		if strings.Compare(retrievalType, "BINARYIVF") != 0 {
+		if strings.Compare(indexType, "BINARYIVF") != 0 {
 			if vqTemp.Format != nil && len(*vqTemp.Format) > 0 {
 				switch *vqTemp.Format {
 				case "normalization", "normal":
@@ -340,7 +340,7 @@ func parseVectors(reqNum int, vqs []*vearchpb.VectorQuery, tmpArr []json.RawMess
 			}
 		}
 
-		vq, err := vqTemp.ToC(retrievalType)
+		vq, err := vqTemp.ToC(indexType)
 		if err != nil {
 			return reqNum, vqs, err
 		}
@@ -623,9 +623,9 @@ func parseTerm(data []byte, proMap map[string]*entity.SpaceProperties) ([]*vearc
 	return termFilters, nil
 }
 
-func (query *VectorQuery) ToC(retrievalType string) (*vearchpb.VectorQuery, error) {
+func (query *VectorQuery) ToC(indexType string) (*vearchpb.VectorQuery, error) {
 	var codeByte []byte
-	if strings.Compare(retrievalType, "BINARYIVF") == 0 {
+	if strings.Compare(indexType, "BINARYIVF") == 0 {
 		code, err := cbbytes.UInt8ArrayToByteArray(query.FeatureUint8)
 		if err != nil {
 			return nil, err
@@ -672,13 +672,13 @@ func (query *VectorQuery) ToC(retrievalType string) (*vearchpb.VectorQuery, erro
 	}
 
 	vectorQuery := &vearchpb.VectorQuery{
-		Name:          query.Field,
-		Value:         codeByte,
-		MinScore:      *query.MinScore,
-		MaxScore:      *query.MaxScore,
-		Boost:         *query.Boost,
-		HasBoost:      *query.HasBoost,
-		RetrievalType: retrievalType,
+		Name:      query.Field,
+		Value:     codeByte,
+		MinScore:  *query.MinScore,
+		MaxScore:  *query.MaxScore,
+		Boost:     *query.Boost,
+		HasBoost:  *query.HasBoost,
+		IndexType: indexType,
 	}
 	return vectorQuery, nil
 }
@@ -706,25 +706,25 @@ func searchParamToSearchPb(searchDoc *request.SearchDocumentRequest, searchReq *
 	searchReq.ParallelBasedOnQuery = searchDoc.Parallel
 	searchReq.L2Sqrt = searchDoc.L2Sqrt
 	searchReq.IvfFlat = searchDoc.IVFFlat
-	searchReq.RetrievalParams = string(searchDoc.RetrievalParam)
+	searchReq.IndexParams = string(searchDoc.IndexParams)
 	searchReq.Fields = searchDoc.Fields
 	searchReq.IsBruteSearch = searchDoc.IsBruteSearch
 
 	metricType := ""
-	if searchDoc.RetrievalParam != nil {
+	if searchDoc.IndexParams != nil {
 		temp := struct {
 			MetricType string `json:"metric_type,omitempty"`
 			Nprobe     int64  `json:"nprobe,omitempty"`
 		}{}
 
-		err := cbjson.Unmarshal(searchDoc.RetrievalParam, &temp)
+		err := cbjson.Unmarshal(searchDoc.IndexParams, &temp)
 		if err != nil {
-			return fmt.Errorf("unmarshal err:[%s] , query:[%s]", err.Error(), string(searchDoc.RetrievalParam))
+			return fmt.Errorf("unmarshal err:[%s] , query:[%s]", err.Error(), string(searchDoc.IndexParams))
 		}
 		metricType = temp.MetricType
 		if temp.Nprobe == 0 && searchDoc.Nprobe != 0 {
 			jsonMap := make(map[string]interface{})
-			err := json.Unmarshal(searchDoc.RetrievalParam, &jsonMap)
+			err := json.Unmarshal(searchDoc.IndexParams, &jsonMap)
 			if err != nil {
 				return fmt.Errorf("query param RetrievalParam parse err")
 			}
@@ -733,17 +733,17 @@ func searchParamToSearchPb(searchDoc *request.SearchDocumentRequest, searchReq *
 			if err != nil {
 				return fmt.Errorf("query param RetrievalParam parse err")
 			}
-			searchReq.RetrievalParams = string(retrievalByte)
+			searchReq.IndexParams = string(retrievalByte)
 		}
 	} else {
 		if searchDoc.Nprobe != 0 {
-			retrievalParams := map[string]int{"nprobe": int(searchDoc.Nprobe)}
+			IndexParams := map[string]int{"nprobe": int(searchDoc.Nprobe)}
 
-			jsonByte, err := sonic.Marshal(retrievalParams)
+			jsonByte, err := sonic.Marshal(IndexParams)
 			if err != nil {
 				return fmt.Errorf("query param RetrievalParam parse err")
 			}
-			searchReq.RetrievalParams = string(jsonByte)
+			searchReq.IndexParams = string(jsonByte)
 		}
 	}
 	if searchDoc.Size != nil {
@@ -755,7 +755,7 @@ func searchParamToSearchPb(searchDoc *request.SearchDocumentRequest, searchReq *
 	} else {
 		spaceProKeyMap := space.SpaceProperties
 		if spaceProKeyMap == nil {
-			spacePro, _ := entity.UnmarshalPropertyJSON(space.Properties)
+			spacePro, _ := entity.UnmarshalPropertyJSON(space.Fields)
 			spaceProKeyMap = spacePro
 		}
 		vectorFieldArr := make([]string, 0)
@@ -763,7 +763,7 @@ func searchParamToSearchPb(searchDoc *request.SearchDocumentRequest, searchReq *
 			searchReq.Fields = make([]string, 0)
 			spaceProKeyMap := space.SpaceProperties
 			if spaceProKeyMap == nil {
-				spacePro, _ := entity.UnmarshalPropertyJSON(space.Properties)
+				spacePro, _ := entity.UnmarshalPropertyJSON(space.Fields)
 				spaceProKeyMap = spacePro
 			}
 			for fieldName, property := range spaceProKeyMap {
@@ -811,8 +811,13 @@ func searchParamToSearchPb(searchDoc *request.SearchDocumentRequest, searchReq *
 		return err
 	}
 
-	if metricType == "" && space != nil && space.Engine != nil {
-		metricType = space.Engine.MetricType
+	if metricType == "" && space != nil && space.Index != nil {
+		indexParams := &entity.IndexParams{}
+		err := cbjson.Unmarshal(space.Index.IndexParams, indexParams)
+		if err != nil {
+			return fmt.Errorf("unmarshal err:[%s] , space.Index.IndexParams:[%s]", err.Error(), string(space.Index.IndexParams))
+		}
+		metricType = indexParams.MetricType
 	}
 
 	if metricType != "" && metricType == "L2" {
@@ -820,7 +825,7 @@ func searchParamToSearchPb(searchDoc *request.SearchDocumentRequest, searchReq *
 	}
 	spaceProMap := space.SpaceProperties
 	if spaceProMap == nil {
-		spacePro, _ := entity.UnmarshalPropertyJSON(space.Properties)
+		spacePro, _ := entity.UnmarshalPropertyJSON(space.Fields)
 		spaceProMap = spacePro
 	}
 	sortFieldMap := make(map[string]string)

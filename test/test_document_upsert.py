@@ -65,7 +65,7 @@ def benchmark(total, bulk, with_id, full_field, xb, xq, gt):
     )
 
     properties = {}
-    properties["properties"] = {
+    properties["fields"] = {
         "field_int": {"type": "integer", "index": False},
         "field_long": {"type": "long", "index": False},
         "field_float": {"type": "float", "index": False},
@@ -125,7 +125,7 @@ def update(total, bulk, full_field, xb):
     )
 
     properties = {}
-    properties["properties"] = {
+    properties["fields"] = {
         "field_int": {"type": "integer", "index": False},
         "field_long": {"type": "long", "index": False},
         "field_float": {"type": "float", "index": False},
@@ -176,7 +176,7 @@ class TestDocumentUpsertBadCase:
         embedding_size = xb.shape[1]
 
         properties = {}
-        properties["properties"] = {
+        properties["fields"] = {
             "field_int": {"type": "integer", "index": False},
             "field_long": {"type": "long", "index": False},
             "field_float": {"type": "float", "index": False},

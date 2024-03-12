@@ -76,7 +76,7 @@ class VectorQuery(object):
         return 0
 
     # VectorQuery
-    def RetrievalType(self):
+    def IndexType(self):
         o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(16))
         if o != 0:
             return self._tab.String(o + self._tab.Pos)
@@ -90,5 +90,5 @@ def VectorQueryAddMinScore(builder, minScore): builder.PrependFloat64Slot(2, min
 def VectorQueryAddMaxScore(builder, maxScore): builder.PrependFloat64Slot(3, maxScore, 0.0)
 def VectorQueryAddBoost(builder, boost): builder.PrependFloat64Slot(4, boost, 0.0)
 def VectorQueryAddHasBoost(builder, hasBoost): builder.PrependInt32Slot(5, hasBoost, 0)
-def VectorQueryAddRetrievalType(builder, retrievalType): builder.PrependUOffsetTRelativeSlot(6, flatbuffers.number_types.UOffsetTFlags.py_type(retrievalType), 0)
+def VectorQueryAddIndexType(builder, indexType): builder.PrependUOffsetTRelativeSlot(6, flatbuffers.number_types.UOffsetTFlags.py_type(indexType), 0)
 def VectorQueryEnd(builder): return builder.EndObject()

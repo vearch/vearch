@@ -38,10 +38,10 @@ class TestIndexFlush:
         logger.info(create_db(router_url, db_name))
 
     @pytest.mark.parametrize(
-        ["index_size", "retrieval_type"],
+        ["training_threshold", "index_type"],
         [[1, "FLAT"], [9999, "IVFPQ"], [9999, "IVFFLAT"], [1, "HNSW"]],
     )
-    def test_space_create(self, index_size, retrieval_type):
+    def test_space_create(self, training_threshold, index_type):
         embedding_size = xb.shape[1]
         batch_size = 100
         total = xb.shape[0]
@@ -56,18 +56,19 @@ class TestIndexFlush:
             "name": space_name,
             "partition_num": 1,
             "replica_num": 1,
-            "engine": {
-                "index_size": index_size,
-                "retrieval_type": retrieval_type,
-                "retrieval_param": {
+            "index": {
+                "index_name": "gamma",
+                "index_type": index_type,
+                "index_params": {
                     "metric_type": "InnerProduct",
                     "ncentroids": 256,
                     "nsubvector": 32,
                     "nlinks": 32,
                     "efConstruction": 40,
+                    "training_threshold": training_threshold
                 },
             },
-            "properties": {
+            "fields": {
                 "field_int": {"type": "integer", "index": False},
                 "field_long": {"type": "long", "index": False},
                 "field_float": {"type": "float", "index": False},
@@ -85,12 +86,12 @@ class TestIndexFlush:
         logger.info(create_space(router_url, db_name, space_config))
         add(total_batch, batch_size, xb, with_id, full_field)
 
-        if retrieval_type != "FLAT":
+        if index_type != "FLAT":
             waiting_index_finish(logger, total)
 
         logger.info(index_rebuild(router_url, db_name, space_name))
 
-        if retrieval_type != "FLAT":
+        if index_type != "FLAT":
             waiting_index_finish(logger, total)
 
         logger.info(drop_space(router_url, db_name, space_name))

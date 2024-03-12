@@ -48,13 +48,13 @@ int TableSchemaIO::Write(TableInfo &table) {
   WriteIndexingSize(table);
   WriteFieldInfos(table);
   WriteVectorInfos(table);
-  WriteRetrievalType(table);
-  WriteRetrievalParam(table);
+  WriteIndexType(table);
+  WriteIndexParams(table);
   return 0;
 }
 
 void TableSchemaIO::WriteIndexingSize(TableInfo &table) {
-  int indexing_size = table.IndexingSize();
+  int indexing_size = table.TrainingThreshold();
   fio->Write((void *)&indexing_size, sizeof(int), 1);
 }
 
@@ -92,12 +92,12 @@ void TableSchemaIO::WriteVectorInfos(TableInfo &table) {
   }
 }
 
-void TableSchemaIO::WriteRetrievalType(TableInfo &table) {
-  FWriteByteArray(fio, table.RetrievalType());
+void TableSchemaIO::WriteIndexType(TableInfo &table) {
+  FWriteByteArray(fio, table.IndexType());
 }
 
-void TableSchemaIO::WriteRetrievalParam(TableInfo &table) {
-  FWriteByteArray(fio, table.RetrievalParam());
+void TableSchemaIO::WriteIndexParams(TableInfo &table) {
+  FWriteByteArray(fio, table.IndexParams());
 }
 
 int TableSchemaIO::Read(std::string &name, TableInfo &table) {
@@ -106,18 +106,18 @@ int TableSchemaIO::Read(std::string &name, TableInfo &table) {
     return -1;
   }
   table.SetName(name);
-  ReadIndexingSize(table);
+  ReadTrainingThreshold(table);
   ReadFieldInfos(table);
   ReadVectorInfos(table);
-  ReadRetrievalType(table);
-  ReadRetrievalParam(table);
+  ReadIndexType(table);
+  ReadIndexParams(table);
   return 0;
 }
 
-void TableSchemaIO::ReadIndexingSize(TableInfo &table) {
-  int indexing_size = 0;
-  fio->Read((void *)&indexing_size, sizeof(int), 1);
-  table.SetIndexingSize(indexing_size);
+void TableSchemaIO::ReadTrainingThreshold(TableInfo &table) {
+  int training_threshold = 0;
+  fio->Read((void *)&training_threshold, sizeof(int), 1);
+  table.SetTrainingThreshold(training_threshold);
 }
 
 void TableSchemaIO::ReadFieldInfos(TableInfo &table) {
@@ -152,12 +152,12 @@ void TableSchemaIO::ReadVectorInfos(TableInfo &table) {
   }
 }
 
-void TableSchemaIO::ReadRetrievalType(TableInfo &table) {
-  FReadByteArray(fio, table.RetrievalType());
+void TableSchemaIO::ReadIndexType(TableInfo &table) {
+  FReadByteArray(fio, table.IndexType());
 }
 
-void TableSchemaIO::ReadRetrievalParam(TableInfo &table) {
-  FReadByteArray(fio, table.RetrievalParam());
+void TableSchemaIO::ReadIndexParams(TableInfo &table) {
+  FReadByteArray(fio, table.IndexParams());
 }
 
 }  // namespace vearch

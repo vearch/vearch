@@ -31,10 +31,10 @@ class VearchCase:
     logger.info("test class")
 
     def setup(
-        self, index_size: int, retrieval_type: str, store_type: str
+        self, training_threshold: int, index_type: str, store_type: str
     ):
-        self.index_size = index_size
-        self.retrieval_type = retrieval_type
+        self.training_threshold = training_threshold
+        self.index_type = index_type
         self.store_type = store_type
 
     logging.info("cluster_information")
@@ -93,16 +93,16 @@ class VearchCase:
         assert response.text.find('"msg":"success"') >= 0
 
     def test_createspace(self, supported=True):
-        url = proxy + "/space/" + db_name + "/_create"
+        url = proxy + "/dbs/" + db_name + "/spaces"
         headers = {"content-type": "application/json"}
         data = {
             "name": space_name,
             "partition_num": 1,
             "replica_num": 1,
-            "engine": {
-                "index_size": self.index_size,
-                "retrieval_type": self.retrieval_type,
-                "retrieval_param": {
+            "Index": {
+                "index_name": "gamma",
+                "index_type": self.index_type,
+                "index_params": {
                     "metric_type": "InnerProduct",
                     "nprobe": 15,
                     "ncentroids": 256,
@@ -110,9 +110,11 @@ class VearchCase:
                     "nlinks": 16,
                     "efConstruction": 60,
                     "efSearch": 32,
+                    "training_threshold": self.training_threshold,
+
                 },
             },
-            "properties": {
+            "fields": {
                 "string": {"type": "keyword", "index": True},
                 "int": {"type": "integer", "index": True},
                 "float": {"type": "float", "index": True},
@@ -120,7 +122,6 @@ class VearchCase:
                     "type": "vector",
                     "dimension": 128,
                     "format": "normalization",
-                    # "retrieval_type": "GPU",
                     "store_type": self.store_type,
                     "store_param": {"cache_size": 1024},
                 },
@@ -128,7 +129,7 @@ class VearchCase:
             },
         }
         logger.debug(url + "---" + json.dumps(data))
-        response = requests.put(url, headers=headers, data=json.dumps(data))
+        response = requests.post(url, headers=headers, data=json.dumps(data))
         logger.debug("space_create---\n" + response.text)
         assert response.status_code == 200
         if supported:
@@ -137,7 +138,7 @@ class VearchCase:
             assert response.text.find('"code":550') >= 0
 
     def test_getspace(self):
-        url = proxy + "/space/" + db_name + "/" + space_name
+        url = proxy + "/dbs/" + db_name + "/spaces/" + space_name
         response = requests.get(url)
         logger.debug("get_space---\n" + response.text)
         assert response.status_code == 200
@@ -251,14 +252,14 @@ class VearchCase:
 
     def test_documentQueryOnSpecifyPartiton(self):
         logger.info("documentQueryOnSpecifyPartiton")
-        url = proxy + "/space/" + db_name + "/" + space_name
+        url = proxy + "/dbs/" + db_name + "/spaces/" + space_name
         response = requests.get(url)
         assert response.status_code == 200
         assert response.text.find('"msg":"success"') >= 0
 
         partitions = response.json()["data"]["partitions"]
         assert len(partitions) > 0
-        partition = str(partitions[0]["id"])
+        partition = str(partitions[0]["pid"])
 
         url = proxy + "/document/query"
         headers = {"content-type": "application/json"}
@@ -442,7 +443,7 @@ class VearchCase:
                 assert response.status_code == 200
 
     def test_deleteSpace(self):
-        url = proxy + "/space/" + db_name + "/" + space_name
+        url = proxy + "/dbs/" + db_name + "/spaces/" + space_name
         response = requests.delete(url)
         logger.debug("deleteSpace:" + response.text)
         assert response.status_code == 200
@@ -510,7 +511,7 @@ class VearchCase:
 
 
 @pytest.mark.parametrize(
-    ["index_size", "retrieval_type", "store_type"],
+    ["training_threshold", "index_type", "store_type"],
     [
         [1, "FLAT", ""],
         [1, "FLAT", ""],
@@ -521,10 +522,10 @@ class VearchCase:
     ],
 )
 def test_vearch_usage(
-    index_size: int, retrieval_type: str, store_type: str
+    training_threshold: int, index_type: str, store_type: str
 ):
     case = VearchCase()
-    case.setup(index_size, retrieval_type, store_type)
+    case.setup(training_threshold, index_type, store_type)
     case.run_basic_usage_test()
     case.run_db_space_create_multi_test()
 
@@ -533,7 +534,7 @@ def test_vearch_usage(
 
 
 @pytest.mark.parametrize(
-    ["index_size", "retrieval_type", "store_type"],
+    ["training_threshold", "index_type", "store_type"],
     [
         [1, "FLAT", "RocksDB"],
         [1, "FLAT", "NOTSUPPORTTYPE"],
@@ -542,8 +543,8 @@ def test_vearch_usage(
     ],
 )
 def test_vearch_create_space(
-    index_size: int, retrieval_type: str, store_type: str
+    training_threshold: int, index_type: str, store_type: str
 ):
     case = VearchCase()
-    case.setup(index_size, retrieval_type, store_type)
+    case.setup(training_threshold, index_type, store_type)
     case.run_db_space_create_test(False)

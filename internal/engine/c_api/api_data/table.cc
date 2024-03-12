@@ -35,9 +35,9 @@ int TableInfo::Serialize(char **out, int *out_len) {
   auto table = gamma_api::CreateTable(builder, builder.CreateString(name_),
                                       builder.CreateVector(field_info_vector),
                                       builder.CreateVector(vector_info_vector),
-                                      indexing_size_, compress_mode_,
-                                      builder.CreateString(retrieval_type_),
-                                      builder.CreateString(retrieval_param_));
+                                      compress_mode_,
+                                      builder.CreateString(index_type_),
+                                      builder.CreateString(index_params_));
   builder.Finish(table);
   *out_len = builder.GetSize();
   *out = (char *)malloc(*out_len * sizeof(char));
@@ -75,9 +75,14 @@ void TableInfo::Deserialize(const char *data, int len) {
     vectors_infos_.emplace_back(vector_info);
   }
 
-  indexing_size_ = table_->indexing_size();
-  retrieval_type_ = table_->retrieval_type()->str();
-  retrieval_param_ = table_->retrieval_param()->str();
+  index_type_ = table_->index_type()->str();
+  index_params_ = table_->index_params()->str();
+  utils::JsonParser params_parser;
+  int training_threshold = 0;
+  params_parser.GetInt("training_threshold", training_threshold);
+  if (training_threshold > 0) {
+    training_threshold_ = training_threshold;
+  }
   compress_mode_ = table_->compress_mode();
 }
 
@@ -99,22 +104,22 @@ void TableInfo::AddField(struct FieldInfo &field) {
   fields_.emplace_back(field);
 }
 
-int TableInfo::IndexingSize() { return indexing_size_; }
+int TableInfo::TrainingThreshold() { return training_threshold_; }
 
-void TableInfo::SetIndexingSize(int indexing_size) {
-  indexing_size_ = indexing_size;
+void TableInfo::SetTrainingThreshold(int training_threshold) {
+  training_threshold_ = training_threshold;
 }
 
-std::string &TableInfo::RetrievalType() { return retrieval_type_; }
+std::string &TableInfo::IndexType() { return index_type_; }
 
-void TableInfo::SetRetrievalType(std::string &retrieval_type) {
-  retrieval_type_ = retrieval_type;
+void TableInfo::SetIndexType(std::string &index_type) {
+  index_type_ = index_type;
 }
 
-std::string &TableInfo::RetrievalParam() { return retrieval_param_; }
+std::string &TableInfo::IndexParams() { return index_params_; }
 
-void TableInfo::SetRetrievalParam(std::string &retrieval_param) {
-  retrieval_param_ = retrieval_param;
+void TableInfo::SetIndexParams(std::string &index_params) {
+  index_params_ = index_params;
 }
 
 int TableInfo::Read(const std::string &path) {

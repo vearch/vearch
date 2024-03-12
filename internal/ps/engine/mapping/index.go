@@ -141,7 +141,7 @@ func (im *IndexMapping) SortRangeField(f func(key string, value *DocumentMapping
 func Space2Mapping(space *entity.Space) (indexMapping *IndexMapping, err error) {
 	var docMapping *DocumentMapping
 
-	docMapping, err = ParseSchema(space.Properties)
+	docMapping, err = ParseSchema(space.Fields)
 	if err != nil {
 		return nil, err
 	}

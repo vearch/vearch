@@ -340,7 +340,7 @@ func (cliCache *clientCache) startWSJob(ctx context.Context) error {
 	if err := cliCache.initServer(ctx); err != nil {
 		return err
 	}
-	log.Debug("server info is %v", cliCache.serverCache)
+	log.Debug("server info is %v", *cliCache.serverCache)
 	serverJob := watcherJob{ctx: ctx, prefix: entity.PrefixServer, masterClient: cliCache.mc, cache: cliCache.serverCache}
 	serverJob.put = serverJob.serverPut
 	serverJob.delete = serverJob.serverDelete

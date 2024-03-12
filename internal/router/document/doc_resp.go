@@ -378,7 +378,7 @@ func docFieldSerialize(doc *vearchpb.Document, space *entity.Space, returnFields
 	source := make(map[string]interface{})
 	spaceProperties := space.SpaceProperties
 	if spaceProperties == nil {
-		spacePro, _ := entity.UnmarshalPropertyJSON(space.Properties)
+		spacePro, _ := entity.UnmarshalPropertyJSON(space.Fields)
 		spaceProperties = spacePro
 	}
 	nextDocid = -1
@@ -425,7 +425,7 @@ func docFieldSerialize(doc *vearchpb.Document, space *entity.Space, returnFields
 				source[name] = cbbytes.ByteToFloat64New(fv.Value)
 			case entity.FieldType_VECTOR:
 				if vectorValue {
-					if strings.Compare(space.Engine.RetrievalType, "BINARYIVF") == 0 {
+					if strings.Compare(space.Index.IndexType, "BINARYIVF") == 0 {
 						featureByteC := fv.Value
 						dimension := field.Dimension
 						if dimension != 0 {
@@ -593,7 +593,7 @@ func GetVectorFieldValue(doc *vearchpb.Document, space *entity.Space) (floatFeat
 	source := make(map[string]interface{})
 	spaceProperties := space.SpaceProperties
 	if spaceProperties == nil {
-		spacePro, _ := entity.UnmarshalPropertyJSON(space.Properties)
+		spacePro, _ := entity.UnmarshalPropertyJSON(space.Fields)
 		spaceProperties = spacePro
 	}
 	for _, fv := range doc.Fields {
@@ -633,7 +633,7 @@ func GetVectorFieldValue(doc *vearchpb.Document, space *entity.Space) (floatFeat
 		case entity.FieldType_DOUBLE:
 			source[name] = cbbytes.ByteToFloat64New(fv.Value)
 		case entity.FieldType_VECTOR:
-			if strings.Compare(space.Engine.RetrievalType, "BINARYIVF") == 0 {
+			if strings.Compare(space.Index.IndexType, "BINARYIVF") == 0 {
 				featureByteC := fv.Value
 				dimension := field.Dimension
 				if dimension != 0 {

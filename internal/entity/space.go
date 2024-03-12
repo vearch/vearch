@@ -20,7 +20,6 @@ import (
 	"strings"
 	"unicode"
 
-	util "github.com/vearch/vearch/internal/pkg"
 	"github.com/vearch/vearch/internal/proto/vearchpb"
 )
 
@@ -42,34 +41,31 @@ const (
 	FieldOption_Index_False vearchpb.FieldOption = 2
 )
 
-type Engine struct {
-	IndexSize      int64           `json:"index_size"`
-	MetricType     string          `json:"metric_type,omitempty"`
-	RetrievalType  string          `json:"retrieval_type,omitempty"`
-	RetrievalParam json.RawMessage `json:"retrieval_param,omitempty"`
+type Index struct {
+	IndexName   string          `json:"index_name"`
+	IndexParams json.RawMessage `json:"index_params,omitempty"`
+	IndexType   string          `json:"index_type,omitempty"`
 }
 
-func NewDefaultEngine() *Engine {
-	return &Engine{}
+func NewDefaultIndex() *Index {
+	return &Index{}
 }
 
-type RetrievalParams struct {
-	RetrievalParamArr []RetrievalParam `json:"retrieval_params,omitempty"`
-}
-
-type RetrievalParam struct {
-	Nlinks         int    `json:"nlinks"`
-	EfSearch       int    `json:"efSearch"`
-	EfConstruction int    `json:"efConstruction"`
-	MetricType     string `json:"metric_type,omitempty"`
-	Ncentroids     int    `json:"ncentroids"`
-	Nprobe         int    `json:"nprobe"`
-	Nsubvector     int    `json:"nsubvector"`
+type IndexParams struct {
+	Nlinks            int    `json:"nlinks"`
+	EfSearch          int    `json:"efSearch,omitempty"`
+	EfConstruction    int    `json:"efConstruction"`
+	MetricType        string `json:"metric_type,omitempty"`
+	Ncentroids        int    `json:"ncentroids"`
+	Nprobe            int    `json:"nprobe,omitempty"`
+	Nsubvector        int    `json:"nsubvector,omitempty"`
+	TrainingThreshold int    `json:"training_threshold,omitempty"`
 }
 
 // space/[dbId]/[spaceId]:[spaceBody]
 type Space struct {
 	Id              SpaceID                     `json:"id,omitempty"`
+	Desc            string                      `json:"desc,omitempty"` //user setting
 	Name            string                      `json:"name,omitempty"` //user setting
 	ResourceName    string                      `toml:"resource_name,omitempty" json:"resource_name"`
 	Version         Version                     `json:"version,omitempty"`
@@ -78,15 +74,15 @@ type Space struct {
 	Partitions      []*Partition                `json:"partitions"` // partitionids not sorted
 	PartitionNum    int                         `json:"partition_num"`
 	ReplicaNum      uint8                       `json:"replica_num"`
-	Properties      json.RawMessage             `json:"properties"`
-	Engine          *Engine                     `json:"engine"`
+	Fields          json.RawMessage             `json:"fields"`
+	Index           *Index                      `json:"index"`
 	Models          json.RawMessage             `json:"models,omitempty"` //json model config for python plugin
 	SpaceProperties map[string]*SpaceProperties `json:"space_properties"`
 }
 
 type SpaceSchema struct {
-	Properties json.RawMessage `json:"properties"`
-	Engine     *Engine         `json:"engine"`
+	Fields json.RawMessage `json:"fields"`
+	Index  *Index          `json:"index"`
 }
 
 type SpaceInfo struct {
@@ -171,86 +167,74 @@ func (s *Space) PartitionId(slotID SlotID) PartitionID {
 	return arr[low-1].Id
 }
 
-func (engine *Engine) UnmarshalJSON(bs []byte) error {
-	tempEngine := &struct {
-		IndexSize      *int64          `json:"index_size"`
-		MetricType     string          `json:"metric_type,omitempty"`
-		RetrievalParam json.RawMessage `json:"retrieval_param,omitempty"`
-		RetrievalType  string          `json:"retrieval_type,omitempty"`
+func (index *Index) UnmarshalJSON(bs []byte) error {
+	if len(bs) == 0 {
+		return fmt.Errorf("space Index json.Unmarshal err: empty json")
+	}
+	tempIndex := &struct {
+		IndexName   string          `json:"index_name,omitempty"`
+		IndexParams json.RawMessage `json:"index_params,omitempty"`
+		IndexType   string          `json:"index_type,omitempty"`
 	}{}
-
-	if err := json.Unmarshal(bs, tempEngine); err != nil {
-		return fmt.Errorf("parameter analysis err ,the details err:%v", err)
+	if err := json.Unmarshal(bs, tempIndex); err != nil {
+		return fmt.Errorf("space Index json.Unmarshal err:%v", err)
 	}
 
-	retrievalTypeMap := map[string]string{"IVFPQ": "IVFPQ", "IVFFLAT": "IVFFLAT", "BINARYIVF": "BINARYIVF", "FLAT": "FLAT",
+	indexTypeMap := map[string]string{"IVFPQ": "IVFPQ", "IVFFLAT": "IVFFLAT", "BINARYIVF": "BINARYIVF", "FLAT": "FLAT",
 		"HNSW": "HNSW", "GPU": "GPU", "SSG": "SSG", "IVFPQ_RELAYOUT": "IVFPQ_RELAYOUT", "SCANN": "SCANN"}
-	if tempEngine.RetrievalType == "" {
-		return fmt.Errorf("retrieval_type is null")
+	if tempIndex.IndexType == "" {
+		return fmt.Errorf("IndexType is null")
 	}
-	_, have := retrievalTypeMap[tempEngine.RetrievalType]
+	_, have := indexTypeMap[tempIndex.IndexType]
 	if !have {
-		return fmt.Errorf("retrieval_type not support :%s", tempEngine.RetrievalType)
+		return fmt.Errorf("IndexType not support :%s", tempIndex.IndexType)
 	}
 
-	if tempEngine.RetrievalParam != nil {
-		var v RetrievalParam
-		if err := json.Unmarshal(tempEngine.RetrievalParam, &v); err != nil {
-			return fmt.Errorf("engine UnmarshalJSON RetrievalParam json.Unmarshal err :[%s]", err.Error())
+	var v IndexParams
+	if tempIndex.IndexParams != nil && len(tempIndex.IndexParams) != 0 {
+		if err := json.Unmarshal(tempIndex.IndexParams, &v); err != nil {
+			return fmt.Errorf("IndexParams json.Unmarshal err :[%s]", err.Error())
 		}
 
-		if strings.Compare(tempEngine.RetrievalType, "HNSW") == 0 {
+		if strings.Compare(tempIndex.IndexType, "HNSW") == 0 {
 			if v.Nlinks == 0 || v.EfConstruction == 0 {
-				return fmt.Errorf("HNSW index param is 0")
+				return fmt.Errorf(tempIndex.IndexType + " index param has 0")
 			}
-			if tempEngine.IndexSize == nil || *tempEngine.IndexSize <= 0 {
-				tempEngine.IndexSize = util.PInt64(1)
-			}
-		} else if strings.Compare(tempEngine.RetrievalType, "FLAT") == 0 {
+		} else if strings.Compare(tempIndex.IndexType, "FLAT") == 0 {
 
-		} else if strings.Compare("BINARYIVF", tempEngine.RetrievalType) == 0 ||
-			strings.Compare("IVFFLAT", tempEngine.RetrievalType) == 0 {
+		} else if strings.Compare("BINARYIVF", tempIndex.IndexType) == 0 ||
+			strings.Compare("IVFFLAT", tempIndex.IndexType) == 0 {
 			if v.Ncentroids == 0 {
-				return fmt.Errorf(tempEngine.RetrievalType + " index param is 0")
+				return fmt.Errorf(tempIndex.IndexType + " index param has 0")
 			} else {
-				if tempEngine.IndexSize == nil || *tempEngine.IndexSize <= 0 {
-					tempEngine.IndexSize = util.PInt64(100000)
+				if v.TrainingThreshold != 0 && int64(v.TrainingThreshold) < int64(v.Ncentroids) {
+					return fmt.Errorf(tempIndex.IndexType+" training_threshold:[%d] less than ncentroids:[%d] so can not to index", int64(v.TrainingThreshold), v.Ncentroids)
+				}
+				if v.TrainingThreshold == 0 {
+					v.TrainingThreshold = 39 * v.Ncentroids
 				}
 			}
-			if *tempEngine.IndexSize < int64(v.Ncentroids) {
-				return fmt.Errorf(tempEngine.RetrievalType+" index size:[%d] less than ncentroids:[%d] so can not to index", int64(*tempEngine.IndexSize), v.Ncentroids)
-			}
-		} else if strings.Compare("IVFPQ", tempEngine.RetrievalType) == 0 ||
-			strings.Compare("GPU", tempEngine.RetrievalType) == 0 {
+		} else if strings.Compare("IVFPQ", tempIndex.IndexType) == 0 ||
+			strings.Compare("GPU", tempIndex.IndexType) == 0 {
 			if v.Nsubvector == 0 || v.Ncentroids == 0 {
-				return fmt.Errorf(tempEngine.RetrievalType + " index param is 0")
+				return fmt.Errorf(tempIndex.IndexType + " index param has 0")
 			} else {
-				if tempEngine.IndexSize == nil || *tempEngine.IndexSize <= 0 {
-					tempEngine.IndexSize = util.PInt64(100000)
+				if v.TrainingThreshold != 0 && int64(v.TrainingThreshold) < int64(v.Ncentroids) {
+					return fmt.Errorf(tempIndex.IndexType+" training_threshold:[%d] less than ncentroids:[%d] so can not to index", int64(v.TrainingThreshold), v.Ncentroids)
+				}
+				if v.TrainingThreshold == 0 {
+					v.TrainingThreshold = 39 * v.Ncentroids
 				}
 			}
-			if *tempEngine.IndexSize < int64(v.Ncentroids) {
-				return fmt.Errorf(tempEngine.RetrievalType+" index size:[%d] less than ncentroids:[%d] so can not to index", int64(*tempEngine.IndexSize), v.Ncentroids)
-			}
 		}
-		if v.MetricType == "" {
-			return fmt.Errorf("metric_type is null")
-		}
-
-		tempEngine.MetricType = v.MetricType
 	} else {
-		if tempEngine.IndexSize == nil {
-			tempEngine.IndexSize = util.PInt64(100000)
-		}
+		return fmt.Errorf("IndexParams is empty")
 	}
-
-	*engine = Engine{
-		IndexSize:      *tempEngine.IndexSize,
-		RetrievalParam: tempEngine.RetrievalParam,
-		MetricType:     tempEngine.MetricType,
-		RetrievalType:  tempEngine.RetrievalType,
+	*index = Index{
+		IndexName:   tempIndex.IndexName,
+		IndexType:   tempIndex.IndexType,
+		IndexParams: tempIndex.IndexParams,
 	}
-
 	return nil
 }
 

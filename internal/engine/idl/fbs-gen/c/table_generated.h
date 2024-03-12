@@ -209,10 +209,9 @@ struct Table FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_NAME = 4,
     VT_FIELDS = 6,
     VT_VECTORS_INFO = 8,
-    VT_INDEXING_SIZE = 10,
-    VT_COMPRESS_MODE = 12,
-    VT_RETRIEVAL_TYPE = 14,
-    VT_RETRIEVAL_PARAM = 16
+    VT_COMPRESS_MODE = 10,
+    VT_INDEX_TYPE = 12,
+    VT_INDEX_PARAMS = 14
   };
   const flatbuffers::String *name() const {
     return GetPointer<const flatbuffers::String *>(VT_NAME);
@@ -223,17 +222,14 @@ struct Table FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const flatbuffers::Vector<flatbuffers::Offset<VectorInfo>> *vectors_info() const {
     return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<VectorInfo>> *>(VT_VECTORS_INFO);
   }
-  int32_t indexing_size() const {
-    return GetField<int32_t>(VT_INDEXING_SIZE, 0);
-  }
   int32_t compress_mode() const {
     return GetField<int32_t>(VT_COMPRESS_MODE, 0);
   }
-  const flatbuffers::String *retrieval_type() const {
-    return GetPointer<const flatbuffers::String *>(VT_RETRIEVAL_TYPE);
+  const flatbuffers::String *index_type() const {
+    return GetPointer<const flatbuffers::String *>(VT_INDEX_TYPE);
   }
-  const flatbuffers::String *retrieval_param() const {
-    return GetPointer<const flatbuffers::String *>(VT_RETRIEVAL_PARAM);
+  const flatbuffers::String *index_params() const {
+    return GetPointer<const flatbuffers::String *>(VT_INDEX_PARAMS);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -245,12 +241,11 @@ struct Table FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyOffset(verifier, VT_VECTORS_INFO) &&
            verifier.VerifyVector(vectors_info()) &&
            verifier.VerifyVectorOfTables(vectors_info()) &&
-           VerifyField<int32_t>(verifier, VT_INDEXING_SIZE) &&
            VerifyField<int32_t>(verifier, VT_COMPRESS_MODE) &&
-           VerifyOffset(verifier, VT_RETRIEVAL_TYPE) &&
-           verifier.VerifyString(retrieval_type()) &&
-           VerifyOffset(verifier, VT_RETRIEVAL_PARAM) &&
-           verifier.VerifyString(retrieval_param()) &&
+           VerifyOffset(verifier, VT_INDEX_TYPE) &&
+           verifier.VerifyString(index_type()) &&
+           VerifyOffset(verifier, VT_INDEX_PARAMS) &&
+           verifier.VerifyString(index_params()) &&
            verifier.EndTable();
   }
 };
@@ -267,17 +262,14 @@ struct TableBuilder {
   void add_vectors_info(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<VectorInfo>>> vectors_info) {
     fbb_.AddOffset(Table::VT_VECTORS_INFO, vectors_info);
   }
-  void add_indexing_size(int32_t indexing_size) {
-    fbb_.AddElement<int32_t>(Table::VT_INDEXING_SIZE, indexing_size, 0);
-  }
   void add_compress_mode(int32_t compress_mode) {
     fbb_.AddElement<int32_t>(Table::VT_COMPRESS_MODE, compress_mode, 0);
   }
-  void add_retrieval_type(flatbuffers::Offset<flatbuffers::String> retrieval_type) {
-    fbb_.AddOffset(Table::VT_RETRIEVAL_TYPE, retrieval_type);
+  void add_index_type(flatbuffers::Offset<flatbuffers::String> index_type) {
+    fbb_.AddOffset(Table::VT_INDEX_TYPE, index_type);
   }
-  void add_retrieval_param(flatbuffers::Offset<flatbuffers::String> retrieval_param) {
-    fbb_.AddOffset(Table::VT_RETRIEVAL_PARAM, retrieval_param);
+  void add_index_params(flatbuffers::Offset<flatbuffers::String> index_params) {
+    fbb_.AddOffset(Table::VT_INDEX_PARAMS, index_params);
   }
   explicit TableBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -296,15 +288,13 @@ inline flatbuffers::Offset<Table> CreateTable(
     flatbuffers::Offset<flatbuffers::String> name = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<FieldInfo>>> fields = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<VectorInfo>>> vectors_info = 0,
-    int32_t indexing_size = 0,
     int32_t compress_mode = 0,
-    flatbuffers::Offset<flatbuffers::String> retrieval_type = 0,
-    flatbuffers::Offset<flatbuffers::String> retrieval_param = 0) {
+    flatbuffers::Offset<flatbuffers::String> index_type = 0,
+    flatbuffers::Offset<flatbuffers::String> index_params = 0) {
   TableBuilder builder_(_fbb);
-  builder_.add_retrieval_param(retrieval_param);
-  builder_.add_retrieval_type(retrieval_type);
+  builder_.add_index_params(index_params);
+  builder_.add_index_type(index_type);
   builder_.add_compress_mode(compress_mode);
-  builder_.add_indexing_size(indexing_size);
   builder_.add_vectors_info(vectors_info);
   builder_.add_fields(fields);
   builder_.add_name(name);
@@ -316,24 +306,22 @@ inline flatbuffers::Offset<Table> CreateTableDirect(
     const char *name = nullptr,
     const std::vector<flatbuffers::Offset<FieldInfo>> *fields = nullptr,
     const std::vector<flatbuffers::Offset<VectorInfo>> *vectors_info = nullptr,
-    int32_t indexing_size = 0,
     int32_t compress_mode = 0,
-    const char *retrieval_type = nullptr,
-    const char *retrieval_param = nullptr) {
+    const char *index_type = nullptr,
+    const char *index_params = nullptr) {
   auto name__ = name ? _fbb.CreateString(name) : 0;
   auto fields__ = fields ? _fbb.CreateVector<flatbuffers::Offset<FieldInfo>>(*fields) : 0;
   auto vectors_info__ = vectors_info ? _fbb.CreateVector<flatbuffers::Offset<VectorInfo>>(*vectors_info) : 0;
-  auto retrieval_type__ = retrieval_type ? _fbb.CreateString(retrieval_type) : 0;
-  auto retrieval_param__ = retrieval_param ? _fbb.CreateString(retrieval_param) : 0;
+  auto index_type__ = index_type ? _fbb.CreateString(index_type) : 0;
+  auto index_params__ = index_params ? _fbb.CreateString(index_params) : 0;
   return gamma_api::CreateTable(
       _fbb,
       name__,
       fields__,
       vectors_info__,
-      indexing_size,
       compress_mode,
-      retrieval_type__,
-      retrieval_param__);
+      index_type__,
+      index_params__);
 }
 
 inline const gamma_api::Table *GetTable(const void *buf) {

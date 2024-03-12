@@ -21,7 +21,7 @@ table VectorQuery {
   max_score:double;
   boost:double;
   has_boost:int;
-  retrieval_type:string;
+  index_type:string;
 }
 
 table Request {
@@ -32,7 +32,7 @@ table Request {
   fields:[string];
   range_filters:[RangeFilter];
   term_filters:[TermFilter];
-  retrieval_params:string;
+  index_params:string;
   has_rank:bool;                  // default false, not rank
   online_log_level:string;        // DEBUG, INFO, WARN, ERROR
   multi_vector_rank:int;

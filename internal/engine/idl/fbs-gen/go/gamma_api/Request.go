@@ -139,7 +139,7 @@ func (rcv *Request) TermFiltersLength() int {
 	return 0
 }
 
-func (rcv *Request) RetrievalParams() []byte {
+func (rcv *Request) IndexParams() []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(18))
 	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
@@ -227,8 +227,8 @@ func RequestAddTermFilters(builder *flatbuffers.Builder, termFilters flatbuffers
 func RequestStartTermFiltersVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(4, numElems, 4)
 }
-func RequestAddRetrievalParams(builder *flatbuffers.Builder, retrievalParams flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(7, flatbuffers.UOffsetT(retrievalParams), 0)
+func RequestAddIndexParams(builder *flatbuffers.Builder, indexParams flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(7, flatbuffers.UOffsetT(indexParams), 0)
 }
 func RequestAddHasRank(builder *flatbuffers.Builder, hasRank bool) {
 	builder.PrependBoolSlot(8, hasRank, false)

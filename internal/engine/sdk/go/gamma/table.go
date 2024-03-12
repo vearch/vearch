@@ -39,13 +39,12 @@ type FieldInfo struct {
 }
 
 type Table struct {
-	Name           string
-	Fields         []FieldInfo
-	VectorsInfos   []VectorInfo
-	IndexingSize   int32
-	RetrievalType  string
-	RetrievalParam string
-	table          *gamma_api.Table
+	Name         string
+	Fields       []FieldInfo
+	VectorsInfos []VectorInfo
+	IndexType    string
+	IndexParams  string
+	table        *gamma_api.Table
 }
 
 func (table *Table) Serialize(out *[]byte) int {
@@ -104,16 +103,15 @@ func (table *Table) Serialize(out *[]byte) int {
 	}
 	vecInfos := builder.EndVector(len(table.VectorsInfos))
 
-	retrievalType := builder.CreateString(table.RetrievalType)
-	retrievalParam := builder.CreateString(table.RetrievalParam)
+	indexType := builder.CreateString(table.IndexType)
+	indexParams := builder.CreateString(table.IndexParams)
 
 	gamma_api.TableStart(builder)
 	gamma_api.TableAddName(builder, name)
 	gamma_api.TableAddFields(builder, fields)
 	gamma_api.TableAddVectorsInfo(builder, vecInfos)
-	gamma_api.TableAddIndexingSize(builder, table.IndexingSize)
-	gamma_api.TableAddRetrievalType(builder, retrievalType)
-	gamma_api.TableAddRetrievalParam(builder, retrievalParam)
+	gamma_api.TableAddIndexType(builder, indexType)
+	gamma_api.TableAddIndexParams(builder, indexParams)
 	builder.Finish(builder.EndObject())
 	outLen := len(builder.FinishedBytes())
 	*out = make([]byte, outLen)
@@ -145,7 +143,6 @@ func (table *Table) DeSerialize(buffer []byte) {
 		table.VectorsInfos[i].StoreParam = string(vecInfo.StoreParam())
 	}
 
-	table.IndexingSize = table.table.IndexingSize()
-	table.RetrievalType = string(table.table.RetrievalType())
-	table.RetrievalParam = string(table.table.RetrievalParam())
+	table.IndexType = string(table.table.IndexType())
+	table.IndexParams = string(table.table.IndexParams())
 }

@@ -116,7 +116,7 @@ func (rcv *VectorQuery) MutateHasBoost(n int32) bool {
 	return rcv._tab.MutateInt32Slot(14, n)
 }
 
-func (rcv *VectorQuery) RetrievalType() []byte {
+func (rcv *VectorQuery) IndexType() []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(16))
 	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
@@ -148,8 +148,8 @@ func VectorQueryAddBoost(builder *flatbuffers.Builder, boost float64) {
 func VectorQueryAddHasBoost(builder *flatbuffers.Builder, hasBoost int32) {
 	builder.PrependInt32Slot(5, hasBoost, 0)
 }
-func VectorQueryAddRetrievalType(builder *flatbuffers.Builder, retrievalType flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(6, flatbuffers.UOffsetT(retrievalType), 0)
+func VectorQueryAddIndexType(builder *flatbuffers.Builder, indexType flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(6, flatbuffers.UOffsetT(indexType), 0)
 }
 func VectorQueryEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

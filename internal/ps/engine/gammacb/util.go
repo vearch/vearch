@@ -45,17 +45,16 @@ func buildField(name string, value []byte, dataType gamma.DataType) gamma.Field 
 func mapping2Table(cfg register.EngineConfig, m *mapping.IndexMapping) (*gamma.Table, error) {
 	dim := make(map[string]int)
 
-	engine := cfg.Space.Engine
-	retrievalParam := ""
-	if engine.RetrievalParam != nil {
-		retrievalParam = string(engine.RetrievalParam)
+	index := cfg.Space.Index
+	indexParams := ""
+	if index.IndexParams != nil {
+		indexParams = string(index.IndexParams)
 	}
 
 	table := &gamma.Table{
-		Name:           cfg.Space.Name + "-" + cast.ToString(cfg.PartitionID),
-		IndexingSize:   int32(engine.IndexSize),
-		RetrievalType:  engine.RetrievalType,
-		RetrievalParam: retrievalParam,
+		Name:        cfg.Space.Name + "-" + cast.ToString(cfg.PartitionID),
+		IndexType:   index.IndexType,
+		IndexParams: indexParams,
 	}
 
 	fieldInfo := gamma.FieldInfo{Name: mapping.IdField, DataType: gamma.STRING, IsIndex: false}
@@ -145,94 +144,3 @@ func mapping2Table(cfg register.EngineConfig, m *mapping.IndexMapping) (*gamma.T
 	return table, nil
 
 }
-
-/*
-//create new_doc
-func NewDocCmd2Document(docCmd *vearchpb.DocCmd, idType string) (*gamma.Doc, error) {
-
-	//fields := make([]gamma.Field, len(docCmd.Fields)+2)
-	var doc gamma.Doc
-	if strings.EqualFold("long", idType) {
-		int64Id, err := strconv.ParseInt(docCmd.Doc.PKey, 10, 64)
-		if err != nil {
-			return nil, fmt.Errorf("table id is long but docId is string , docId Convert long error")
-		}
-
-		if toByte, e := cbbytes.ValueToByte(int64Id); e != nil {
-			return nil, e
-		} else {
-			doc.Fields = append(doc.Fields, buildField(mapping.IdField, toByte, gamma.LONG))
-		}
-	} else {
-		doc.Fields = append(doc.Fields, buildField(mapping.IdField, []byte(docCmd.Doc.PKey), gamma.STRING))
-	}
-
-	checkVectorHave := false
-	for _, f := range docCmd.Doc.Fields {
-
-		if f.Value == nil {
-			return nil, fmt.Errorf("miss field value by name:%s", f.Name)
-		}
-
-		if mapping.FieldsIndex[f.Name] > 0 {
-			continue
-		}
-
-		switch f.Type {
-		case vearchpb.FieldType_STRING:
-			doc.Fields = append(doc.Fields, buildField(f.Name, f.Value, gamma.STRING))
-		case vearchpb.FieldType_FLOAT:
-			doc.Fields = append(doc.Fields, buildField(f.Name, f.Value, gamma.FLOAT))
-		case vearchpb.FieldType_DATE:
-			doc.Fields = append(doc.Fields, buildField(f.Name, f.Value, gamma.LONG))
-		case vearchpb.FieldType_INT:
-			doc.Fields = append(doc.Fields, buildField(f.Name, f.Value, gamma.INT))
-		case vearchpb.FieldType_LONG:
-			doc.Fields = append(doc.Fields, buildField(f.Name, f.Value, gamma.LONG))
-		case vearchpb.FieldType_BOOL:
-			doc.Fields = append(doc.Fields, buildField(f.Name, f.Value, gamma.INT))
-		case vearchpb.FieldType_VECTOR:
-			length := int(cbbytes.ByteToUInt32(f.Value))
-			if length > 0 {
-				checkVectorHave = true
-			}
-			doc.Fields = append(doc.Fields, buildFieldBySource(f.Name, f.Value[4:length+4], string(f.Value[length+4:]), gamma.VECTOR))
-		default:
-			log.Debug("gamma invalid field type:[%v]", f.Type)
-		}
-	}
-
-	if !checkVectorHave {
-		return nil, fmt.Errorf("insert field data no vector please check")
-	}
-
-	return &doc, nil
-}
-
-func (ge *gammaEngine) convertFieldType(gammaField gamma.Field) vearchpb.Field {
-	vearchpbF := vearchpb.Field{Name: gammaField.Name, Source: gammaField.Source, Value: gammaField.Value}
-	switch gammaField.Datatype {
-	case gamma.INT:
-		vearchpbF.Type = vearchpb.FieldType_INT
-	case gamma.LONG:
-		vearchpbF.Type = vearchpb.FieldType_LONG
-	case gamma.FLOAT:
-		vearchpbF.Type = vearchpb.FieldType_FLOAT
-	case gamma.DOUBLE:
-		vearchpbF.Type = vearchpb.FieldType_FLOAT
-	case gamma.STRING:
-		vearchpbF.Type = vearchpb.FieldType_STRING
-	case gamma.VECTOR:
-		vearchpbF.Type = vearchpb.FieldType_VECTOR
-	}
-	return vearchpbF
-}
-
-func (ge *gammaEngine) GammaDocConvertGODoc(docGamma *gamma.Doc, doc *vearchpb.Document) {
-	fields := docGamma.Fields
-	for _, fv := range fields {
-		vearchpbF := ge.convertFieldType(fv)
-		doc.Fields = append(doc.Fields, &vearchpbF)
-	}
-}
-*/

@@ -115,7 +115,7 @@ class Request(object):
         return 0
 
     # Request
-    def RetrievalParams(self):
+    def IndexParams(self):
         o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(18))
         if o != 0:
             return self._tab.String(o + self._tab.Pos)
@@ -161,7 +161,7 @@ def RequestAddRangeFilters(builder, rangeFilters): builder.PrependUOffsetTRelati
 def RequestStartRangeFiltersVector(builder, numElems): return builder.StartVector(4, numElems, 4)
 def RequestAddTermFilters(builder, termFilters): builder.PrependUOffsetTRelativeSlot(6, flatbuffers.number_types.UOffsetTFlags.py_type(termFilters), 0)
 def RequestStartTermFiltersVector(builder, numElems): return builder.StartVector(4, numElems, 4)
-def RequestAddRetrievalParams(builder, retrievalParams): builder.PrependUOffsetTRelativeSlot(7, flatbuffers.number_types.UOffsetTFlags.py_type(retrievalParams), 0)
+def RequestAddIndexParams(builder, indexParams): builder.PrependUOffsetTRelativeSlot(7, flatbuffers.number_types.UOffsetTFlags.py_type(indexParams), 0)
 def RequestAddHasRank(builder, hasRank): builder.PrependBoolSlot(8, hasRank, 0)
 def RequestAddOnlineLogLevel(builder, onlineLogLevel): builder.PrependUOffsetTRelativeSlot(9, flatbuffers.number_types.UOffsetTFlags.py_type(onlineLogLevel), 0)
 def RequestAddMultiVectorRank(builder, multiVectorRank): builder.PrependInt32Slot(10, multiVectorRank, 0)

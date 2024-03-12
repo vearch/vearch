@@ -88,15 +88,11 @@ func ExportToClusterHandler(router *gin.Engine, masterService *masterService, se
 	router.Handle(http.MethodPut, fmt.Sprintf("/dbs/:%s", dbName), dh.PaincHandler, dh.TimeOutHandler, c.auth, c.modifyDB, dh.TimeOutEndHandler)
 
 	// space handler
-	router.Handle(http.MethodPut, "/space/:"+dbName+"/_create", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.createSpace, dh.TimeOutEndHandler)
-	router.Handle(http.MethodGet, "/space/:"+dbName+"/:"+spaceName, dh.PaincHandler, dh.TimeOutHandler, c.auth, c.getSpace, dh.TimeOutEndHandler)
-	router.Handle(http.MethodDelete, "/space/:"+dbName+"/:"+spaceName, dh.PaincHandler, dh.TimeOutHandler, c.auth, c.deleteSpace, dh.TimeOutEndHandler)
-	router.Handle(http.MethodPost, "/space/:"+dbName+"/:"+spaceName, dh.PaincHandler, dh.TimeOutHandler, c.auth, c.updateSpace, dh.TimeOutEndHandler)
-	// new interface format
-	// router.Handle(http.MethodPost, "/space/create", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.createSpace, dh.TimeOutEndHandler)
-	router.Handle(http.MethodGet, "/space/describe", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.describeSpace, dh.TimeOutEndHandler)
-	// router.Handle(http.MethodPost, "/space/delete", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.deleteSpace, dh.TimeOutEndHandler)
-	// router.Handle(http.MethodPost, "/space/update", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.updateSpace, dh.TimeOutEndHandler)
+	router.Handle(http.MethodPost, fmt.Sprintf("/dbs/:%s/spaces", dbName), dh.PaincHandler, dh.TimeOutHandler, c.auth, c.createSpace, dh.TimeOutEndHandler)
+	router.Handle(http.MethodGet, fmt.Sprintf("/dbs/:%s/spaces/:%s", dbName, spaceName), dh.PaincHandler, dh.TimeOutHandler, c.auth, c.getSpace, dh.TimeOutEndHandler)
+	router.Handle(http.MethodGet, fmt.Sprintf("/dbs/:%s/spaces", dbName), dh.PaincHandler, dh.TimeOutHandler, c.auth, c.getSpace, dh.TimeOutEndHandler)
+	router.Handle(http.MethodDelete, fmt.Sprintf("/dbs/:%s/spaces/:%s", dbName, spaceName), dh.PaincHandler, dh.TimeOutHandler, c.auth, c.deleteSpace, dh.TimeOutEndHandler)
+	router.Handle(http.MethodPut, fmt.Sprintf("/dbs/:%s/spaces/:%s", dbName, spaceName), dh.PaincHandler, dh.TimeOutHandler, c.auth, c.updateSpace, dh.TimeOutEndHandler)
 
 	// modify engine config handler
 	router.Handle(http.MethodPost, "/config/:"+dbName+"/:"+spaceName, dh.PaincHandler, dh.TimeOutHandler, c.auth, c.modifyEngineCfg, dh.TimeOutEndHandler)
@@ -279,7 +275,6 @@ func (ca *clusterAPI) createSpace(c *gin.Context) {
 	dbName := c.Param(dbName)
 
 	space := &entity.Space{}
-
 	if err := c.ShouldBindJSON(space); err != nil {
 		body, _ := netutil.GetReqBody(c.Request)
 		log.Error("create space request: %s, err: %s", body, err.Error())
@@ -306,11 +301,11 @@ func (ca *clusterAPI) createSpace(c *gin.Context) {
 		space.ReplicaNum = 1
 	}
 
-	if space.Engine == nil {
-		space.Engine = entity.NewDefaultEngine()
+	if space.Index == nil {
+		space.Index = entity.NewDefaultIndex()
 	}
 
-	// check engine name is ok
+	// check index name is ok
 	if err := space.Validate(); err != nil {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 		return
@@ -341,23 +336,6 @@ func (ca *clusterAPI) deleteSpace(c *gin.Context) {
 func (ca *clusterAPI) getSpace(c *gin.Context) {
 	dbName := c.Param(dbName)
 	spaceName := c.Param(spaceName)
-
-	dbID, err := ca.masterService.Master().QueryDBName2Id(c, dbName)
-	if err != nil {
-		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
-		return
-	}
-
-	if space, err := ca.masterService.Master().QuerySpaceByName(c, dbID, spaceName); err != nil {
-		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
-	} else {
-		ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(space)
-	}
-}
-
-func (ca *clusterAPI) describeSpace(c *gin.Context) {
-	dbName := c.Query(dbName)
-	spaceName := c.Query(spaceName)
 	detail := c.Query("detail")
 	detail_info := false
 	if detail == "true" {
@@ -369,23 +347,48 @@ func (ca *clusterAPI) describeSpace(c *gin.Context) {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 		return
 	}
-
-	if space, err := ca.masterService.Master().QuerySpaceByName(c, dbID, spaceName); err != nil {
-		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
-	} else {
-		spaceInfo := &entity.SpaceInfo{}
-		spaceInfo.DbName = dbName
-		spaceInfo.SpaceName = spaceName
-		spaceInfo.Schema = &entity.SpaceSchema{
-			Engine:     space.Engine,
-			Properties: space.Properties,
-		}
-		spaceInfo.PartitionNum = space.PartitionNum
-		spaceInfo.ReplicaNum = space.ReplicaNum
-		if err := ca.masterService.describeSpaceService(c, space, spaceInfo, detail_info); err != nil {
+	if spaceName != "" {
+		if space, err := ca.masterService.Master().QuerySpaceByName(c, dbID, spaceName); err != nil {
 			ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 		} else {
-			ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(spaceInfo)
+			spaceInfo := &entity.SpaceInfo{}
+			spaceInfo.DbName = dbName
+			spaceInfo.SpaceName = spaceName
+			spaceInfo.Schema = &entity.SpaceSchema{
+				Index:  space.Index,
+				Fields: space.Fields,
+			}
+			spaceInfo.PartitionNum = space.PartitionNum
+			spaceInfo.ReplicaNum = space.ReplicaNum
+			if err := ca.masterService.describeSpaceService(c, space, spaceInfo, detail_info); err != nil {
+				ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
+			} else {
+				ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(spaceInfo)
+			}
+		}
+	} else {
+		if spaces, err := ca.masterService.Master().QuerySpaces(c, dbID); err != nil {
+			ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
+		} else {
+			spaceInfos := make([]*entity.SpaceInfo, 0, len(spaces))
+			for _, space := range spaces {
+				var spaceInfo = &entity.SpaceInfo{}
+				spaceInfo.DbName = dbName
+				spaceInfo.SpaceName = spaceName
+				spaceInfo.Schema = &entity.SpaceSchema{
+					Index:  space.Index,
+					Fields: space.Fields,
+				}
+				spaceInfo.PartitionNum = space.PartitionNum
+				spaceInfo.ReplicaNum = space.ReplicaNum
+				if err := ca.masterService.describeSpaceService(c, space, spaceInfo, detail_info); err != nil {
+					ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
+				} else {
+					ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(spaceInfo)
+				}
+				spaceInfos = append(spaceInfos, spaceInfo)
+			}
+			ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(spaceInfos)
 		}
 	}
 }

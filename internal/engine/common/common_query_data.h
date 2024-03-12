@@ -27,7 +27,7 @@ struct VectorQuery {
   double max_score;
   double boost;
   int has_boost;
-  std::string retrieval_type;
+  std::string index_type;
 };
 
 struct VectorResult {

@@ -49,7 +49,7 @@ def check(total, bulk, full_field, delete_type, xb):
     )
 
     properties = {}
-    properties["properties"] = {
+    properties["fields"] = {
         "field_int": {"type": "integer", "index": True},
         "field_long": {"type": "long", "index": True},
         "field_float": {"type": "float", "index": True},

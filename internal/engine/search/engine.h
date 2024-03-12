@@ -82,7 +82,7 @@ class Engine {
   int GetDocsNum();
 
   int GetBRunning() { return b_running_; }
-  int GetIndexingSize() { return indexing_size_; }
+  int GetTrainingThreshold() { return training_threshold_; }
   void SetIsDirty(bool is_dirty) { is_dirty_ = is_dirty; }
   int GetMaxDocid() { return max_docid_; }
   void SetMaxDocid(int max_docid) { max_docid_ = max_docid; }
@@ -141,7 +141,7 @@ class Engine {
   VectorManager *vec_manager_;
 
   int max_docid_;
-  int indexing_size_;
+  int training_threshold_;
 
   std::atomic<int> delete_num_;
 

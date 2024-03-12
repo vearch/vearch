@@ -57,9 +57,9 @@ class Request : public RawData {
 
   std::vector<struct TermFilter> &TermFilters();
 
-  const std::string &RetrievalParams();
+  const std::string &IndexParams();
 
-  void SetRetrievalParams(const std::string &retrieval_params);
+  void SetIndexParams(const std::string &index_params);
 
   std::string OnlineLogLevel();
 
@@ -91,7 +91,7 @@ class Request : public RawData {
   std::vector<struct RangeFilter> range_filters_;
   std::vector<struct TermFilter> term_filters_;
 
-  std::string retrieval_params_;
+  std::string index_params_;
   std::string online_log_level_;
   bool has_rank_;
   int multi_vector_rank_;

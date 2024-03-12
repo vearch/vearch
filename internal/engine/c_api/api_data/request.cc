@@ -27,7 +27,7 @@ int Request::Serialize(char **out, int *out_len) {
     auto vector_query = gamma_api::CreateVectorQuery(
         builder, builder.CreateString(name), builder.CreateVector(value),
         min_score, max_score, boost, has_boost,
-        builder.CreateString(vec_field.retrieval_type));
+        builder.CreateString(vec_field.index_type));
     vec_fields_vector.push_back(vector_query);
   }
 
@@ -72,7 +72,7 @@ int Request::Serialize(char **out, int *out_len) {
       builder.CreateVector(fields_vector),
       builder.CreateVector(range_filter_vector),
       builder.CreateVector(term_filter_vector),
-      builder.CreateString(retrieval_params_), has_rank_,
+      builder.CreateString(index_params_), has_rank_,
       builder.CreateString(online_log_level_), multi_vector_rank_, l2_sqrt_);
 
   builder.Finish(res);
@@ -101,7 +101,7 @@ void Request::Deserialize(const char *data, int len) {
     vector_query.max_score = fbs_vector_query->max_score();
     vector_query.boost = fbs_vector_query->boost();
     vector_query.has_boost = fbs_vector_query->has_boost();
-    vector_query.retrieval_type = fbs_vector_query->retrieval_type()->str();
+    vector_query.index_type = fbs_vector_query->index_type()->str();
 
     vec_fields_.emplace_back(vector_query);
   }
@@ -139,7 +139,7 @@ void Request::Deserialize(const char *data, int len) {
     term_filters_.emplace_back(term_filter);
   }
 
-  retrieval_params_ = request_->retrieval_params()->str();
+  index_params_ = request_->index_params()->str();
   online_log_level_ = request_->online_log_level()->str();
   has_rank_ = request_->has_rank();
   multi_vector_rank_ = request_->multi_vector_rank();
@@ -201,10 +201,10 @@ std::vector<struct RangeFilter> &Request::RangeFilters() {
 
 std::vector<struct TermFilter> &Request::TermFilters() { return term_filters_; }
 
-const std::string &Request::RetrievalParams() { return retrieval_params_; }
+const std::string &Request::IndexParams() { return index_params_; }
 
-void Request::SetRetrievalParams(const std::string &retrieval_params) {
-  retrieval_params_ = retrieval_params;
+void Request::SetIndexParams(const std::string &index_params) {
+  index_params_ = index_params;
 }
 
 std::string Request::OnlineLogLevel() { return online_log_level_; }

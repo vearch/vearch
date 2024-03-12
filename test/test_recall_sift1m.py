@@ -27,14 +27,14 @@ logger = logging.getLogger(__name__)
 __description__ = """ test case for index recall of sift1M """
 
 
-def create(router_url, embedding_size, retrieval_type="FLAT", store_type="MemoryOnly"):
-    index_size = 1
+def create(router_url, embedding_size, index_type="FLAT", store_type="MemoryOnly"):
+    training_threshold = 1
     ncentroids = 1024
-    if retrieval_type == "IVFFLAT" or retrieval_type == "IVFPQ":
-        index_size = ncentroids * 39
+    if index_type == "IVFFLAT" or index_type == "IVFPQ":
+        training_threshold = ncentroids * 39
     
     properties = {}
-    properties["properties"] = {
+    properties["fields"] = {
         "field_int": {
             "type": "integer",
             "index": False
@@ -52,27 +52,27 @@ def create(router_url, embedding_size, retrieval_type="FLAT", store_type="Memory
         "name": space_name,
         "partition_num": 1,
         "replica_num": 1,
-        "engine": {
-            "name": "gamma",
-            "index_size": index_size,
-            "retrieval_type": retrieval_type,
-            "retrieval_param": {
+        "index": {
+            "index_name": "gamma",
+            "index_type": index_type,
+            "index_params": {
                 "metric_type": "L2",
                 "ncentroids": ncentroids,
                 "nsubvector": int(embedding_size / 4),
                 "nlinks": 32,
                 "efConstruction": 160,
-                "efSearch": 64
+                "efSearch": 64,
+                "training_threshold": training_threshold,
             }
         },
-        "properties": properties["properties"]
+        "fields": properties["fields"]
     }
     logger.info(create_db(router_url, db_name))
 
     logger.info(create_space(router_url, db_name, space_config))
 
 
-def benchmark(retrieval_type, store_type, xb, xq, xt, gt):
+def benchmark(index_type, store_type, xb, xq, xt, gt):
     embedding_size = xb.shape[1]
     batch_size = 100
     k = 100
@@ -81,7 +81,7 @@ def benchmark(retrieval_type, store_type, xb, xq, xt, gt):
     total_batch = int(total / batch_size)
     logger.info("dataset num: %d, total_batch: %d, dimension: %d, search num: %d, topK: %d" %(total, total_batch, embedding_size, xq.shape[0], k))
 
-    create(router_url, embedding_size, retrieval_type, store_type)
+    create(router_url, embedding_size, index_type, store_type)
 
     add(total_batch, batch_size, xb)
 
@@ -104,6 +104,8 @@ def benchmark(retrieval_type, store_type, xb, xq, xt, gt):
         result = "batch: %d, search avarage time: %.2f ms, " % (batch, avarage)
         for recall in recalls:
             result += "recall@%d = %.2f%% " % (recall, recalls[recall] * 100)
+            if recall == k:
+                assert recalls[recall] >= 0.98
         logger.info(result)
 
     destroy(router_url, db_name, space_name)
@@ -111,12 +113,12 @@ def benchmark(retrieval_type, store_type, xb, xq, xt, gt):
 xb, xq, xt, gt = get_sift1M(logger)
 
 
-@ pytest.mark.parametrize(["retrieval_type", "store_type"], [
+@ pytest.mark.parametrize(["index_type", "store_type"], [
     ["HNSW", "MemoryOnly"],
     ["IVFPQ", "MemoryOnly"],
     ["IVFPQ", "RocksDB"],
     ["IVFFLAT", "RocksDB"],
     ["FLAT", "MemoryOnly"]
 ])
-def test_vearch_index_recall(retrieval_type: str, store_type: str):
-    benchmark(retrieval_type, store_type, xb, xq, xt, gt)
+def test_vearch_index_recall(index_type: str, store_type: str):
+    benchmark(index_type, store_type, xb, xq, xt, gt)

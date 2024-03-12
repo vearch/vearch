@@ -124,7 +124,7 @@ func parseJSON(path []string, v *fastjson.Value, space *entity.Space, proMap map
 		defer func() {
 			rutil.PutDocVal(docV)
 		}()
-		field, err := processProperty(docV, val, space.Engine.RetrievalType, pro)
+		field, err := processProperty(docV, val, space.Index.IndexType, pro)
 		if err != nil {
 			log.Error("processProperty parse field:[%s] err: %v", fieldName, err)
 			parseErr = err
@@ -263,7 +263,7 @@ func processPropertyArrayVectorInt(vs []*fastjson.Value, fieldName string, pro *
 	return field, nil
 }
 
-func processPropertyObject(v *fastjson.Value, pathString string, pro *entity.SpaceProperties, retrievalType string) (*vearchpb.Field, error) {
+func processPropertyObject(v *fastjson.Value, pathString string, pro *entity.SpaceProperties, indexType string) (*vearchpb.Field, error) {
 	field := &vearchpb.Field{Name: ""}
 	err := fmt.Errorf("field %s type is: %s, but value is %v", pathString, pro.FieldType.String(), v)
 	if pro.FieldType == entity.FieldType_VECTOR {
@@ -272,7 +272,7 @@ func processPropertyObject(v *fastjson.Value, pathString string, pro *entity.Spa
 			err := fmt.Errorf("vector field %s feature value should be arrry, but is: %v", pathString, v)
 			return field, err
 		}
-		if strings.Compare(retrievalType, "BINARYIVF") == 0 {
+		if strings.Compare(indexType, "BINARYIVF") == 0 {
 			field, err = processPropertyObjectVectorBinary(feature, pathString, pro)
 		} else {
 			field, err = processPropertyObjectVectorOther(feature, pathString, pro)
@@ -362,7 +362,7 @@ func processPropertyArrayVectorDouble(vs []*fastjson.Value, fieldName string, pr
 	return field, nil
 }
 
-func processProperty(docVal *rutil.DocVal, v *fastjson.Value, retrievalType string, pro *entity.SpaceProperties) (*vearchpb.Field, error) {
+func processProperty(docVal *rutil.DocVal, v *fastjson.Value, indexType string, pro *entity.SpaceProperties) (*vearchpb.Field, error) {
 	fieldName := docVal.FieldName
 	path := docVal.Path
 	if len(path) == 0 && FieldsIndex[fieldName] > 0 {
@@ -390,8 +390,7 @@ func processProperty(docVal *rutil.DocVal, v *fastjson.Value, retrievalType stri
 	case fastjson.TypeTrue, fastjson.TypeFalse:
 		field, err = processPropertyBool(v, pathString, pro)
 	case fastjson.TypeObject:
-		field, err = processPropertyObject(v, pathString, pro, retrievalType)
-		//parseJson(append(path, fieldName), v, retrievalType,pro)
+		field, err = processPropertyObject(v, pathString, pro, indexType)
 	case fastjson.TypeArray:
 		field, err = processPropertyArray(v, pathString, pro, fieldName)
 	}
@@ -432,9 +431,9 @@ func processString(pro *entity.SpaceProperties, fieldName, val string) (*vearchp
 			isIndex = true
 		}
 		if isIndex && len(val) > maxIndexedStrLen {
-			err = fmt.Errorf("indexed string len should less than %d", maxIndexedStrLen)
+			err = fmt.Errorf("string field %s indexed, length should less than %d", fieldName, maxIndexedStrLen)
 		} else if len(val) > maxStrLen {
-			err = fmt.Errorf("string len should less than %d", maxStrLen)
+			err = fmt.Errorf("string field %s length should less than %d", fieldName, maxStrLen)
 		} else {
 			field, err = processField(fieldName, vearchpb.FieldType_STRING, []byte(val), opt)
 		}
@@ -649,7 +648,7 @@ func documentHeadParse(r *http.Request) (docRequest *request.DocumentRequest, db
 func documentParse(ctx context.Context, handler *DocumentHandler, r *http.Request, docRequest *request.DocumentRequest, space *entity.Space, args *vearchpb.BulkRequest) (err error) {
 	spaceProperties := space.SpaceProperties
 	if spaceProperties == nil {
-		spacePro, _ := entity.UnmarshalPropertyJSON(space.Properties)
+		spacePro, _ := entity.UnmarshalPropertyJSON(space.Fields)
 		spaceProperties = spacePro
 	}
 

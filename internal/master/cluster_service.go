@@ -279,7 +279,7 @@ func (ms *masterService) createSpaceService(ctx context.Context, dbName string, 
 	}
 
 	//to validate schema
-	_, err = mapping.SchemaMap(space.Properties)
+	_, err = mapping.SchemaMap(space.Fields)
 	if err != nil {
 		log.Error("master service createSpaceService error: %v", err)
 		return err
@@ -356,7 +356,7 @@ func (ms *masterService) createSpaceService(ctx context.Context, dbName string, 
 		}
 	}()
 
-	spaceProperties, err := entity.UnmarshalPropertyJSON(space.Properties)
+	spaceProperties, err := entity.UnmarshalPropertyJSON(space.Fields)
 	if err != nil {
 		return err
 	}
@@ -802,15 +802,15 @@ func (ms *masterService) updateSpaceService(ctx context.Context, dbName, spaceNa
 	space.Version++
 	space.Partitions = temp.Partitions
 
-	if temp.Properties != nil && len(temp.Properties) > 0 {
+	if temp.Fields != nil && len(temp.Fields) > 0 {
 		//parse old space
-		oldFieldMap, err := mapping.SchemaMap(space.Properties)
+		oldFieldMap, err := mapping.SchemaMap(space.Fields)
 		if err != nil {
 			return nil, err
 		}
 
 		//parse new space
-		newFieldMap, err := mapping.SchemaMap(temp.Properties)
+		newFieldMap, err := mapping.SchemaMap(temp.Fields)
 		if err != nil {
 			return nil, err
 		}
@@ -825,14 +825,14 @@ func (ms *masterService) updateSpaceService(ctx context.Context, dbName, spaceNa
 		}
 
 		if len(newFieldMap) > 0 {
-			log.Info("change schema for space: %s , change fields : %d , value is :[%s]", space.Name, len(newFieldMap), string(temp.Properties))
+			log.Info("change schema for space: %s , change fields : %d , value is :[%s]", space.Name, len(newFieldMap), string(temp.Fields))
 
-			schema, err := mapping.MergeSchema(space.Properties, temp.Properties)
+			schema, err := mapping.MergeSchema(space.Fields, temp.Fields)
 			if err != nil {
 				return nil, err
 			}
 
-			space.Properties = schema
+			space.Fields = schema
 		}
 
 	}

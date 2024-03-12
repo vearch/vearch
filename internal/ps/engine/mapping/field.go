@@ -76,11 +76,10 @@ func NewFieldMapping(name string, i FieldMappingI) *FieldMapping {
 
 func (f *FieldMapping) UnmarshalJSON(data []byte) error {
 	tmp := struct {
-		Type      string  `json:"type"`
-		Index     *bool   `json:"index,omitempty"`
-		Format    *string `json:"format,omitempty"`
-		Dimension int     `json:"dimension,omitempty"`
-		//		RetrievalType *string         `json:"retrieval_type,omitempty"`
+		Type       string          `json:"type"`
+		Index      *bool           `json:"index,omitempty"`
+		Format     *string         `json:"format,omitempty"`
+		Dimension  int             `json:"dimension,omitempty"`
 		StoreType  *string         `json:"store_type,omitempty"`
 		StoreParam json.RawMessage `json:"store_param,omitempty"`
 		Array      bool            `json:"array,omitempty"`
