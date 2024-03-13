@@ -1,0 +1,15 @@
+ListServer:
+  get:
+    summary: List vearch cluster server
+    operationId: listServer
+    tags:
+      - cluster
+    responses:
+      '200':
+        description: Server list successfully
+      '400':
+        description: Invalid input or bad request
+      '404':
+        description: Cluster not found
+      '500':
+        description: Internal server error

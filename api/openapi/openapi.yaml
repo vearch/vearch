@@ -1,0 +1,35 @@
+openapi: '3.0.2'
+info:
+  title: Vearch Database API
+  version: "1.0.0"
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  description: API for sending dynamic records to the Vearch database.
+servers:
+  - url: 'http://{vearchHost}:{vearchPort}'
+    variables:
+        vearchHost:
+          default: 'localhost'
+        vearchPort:
+          default: '80'
+    description: Vearch server
+paths:
+  /list/server:
+    $ref: 'paths/cluster.yaml#/ListServer'
+
+  /dbs/{dbName}:
+    $ref: 'paths/database.yaml#/DbsPath'
+  /dbs:
+    $ref: 'paths/database.yaml#/Dbs'
+  /dbs/{dbName}/spaces:
+    $ref: 'paths/space.yaml#/Spaces'
+  /dbs/{dbName}/spaces/{spaceName}:
+    $ref: 'paths/space.yaml#/Delete'
+
+  /document/upsert:
+    $ref: 'paths/document.yaml#/Upsert'
+  /document/delete:
+    $ref: 'paths/document.yaml#/Delete'
+  /document/search:
+    $ref: 'paths/document.yaml#/Search'

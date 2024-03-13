@@ -1,0 +1,83 @@
+DbsPath:
+  post:
+    summary: Create a new database
+    operationId: createDatabase
+    tags:
+      - database
+    parameters:
+      - name: dbName
+        in: path
+        required: true
+        description: The name of the database
+        schema:
+          type: string
+    responses:
+      '200':
+        description: Database created successfully
+      '400':
+        description: Invalid input
+      '500':
+        description: Internal server error
+      '550':
+        description: Database is existed
+
+  delete:
+    summary: Delete a specific database
+    operationId: deleteDatabase
+    tags:
+      - database
+    parameters:
+      - name: dbName
+        in: path
+        required: true
+        description: The name of the database
+        schema:
+          type: string
+    responses:
+      '200':
+        description: Database deleted successfully
+      '400':
+        description: Invalid input or bad request
+      '404':
+        description: Database not found
+      '500':
+        description: Internal server error
+      '562':
+        description: Database not exist
+  get:
+    summary: Get vearch database
+    operationId: getDb
+    tags:
+      - database
+    parameters:
+      - name: dbName
+        in: path
+        required: true
+        description: The name of the database
+        schema:
+          type: string
+    responses:
+      '200':
+        description: Database list successfully
+      '400':
+        description: Invalid input or bad request
+      '404':
+        description: Database not found
+      '500':
+        description: Internal server error
+
+Dbs:
+  get:
+    summary: List vearch database
+    operationId: listDb
+    tags:
+      - database
+    responses:
+      '200':
+        description: Database list successfully
+      '400':
+        description: Invalid input or bad request
+      '404':
+        description: Database not found
+      '500':
+        description: Internal server error

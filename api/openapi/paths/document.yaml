@@ -1,0 +1,181 @@
+Upsert:
+  post:
+    summary: Upsert document into database
+    operationId: upsert
+    tags:
+      - Document
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              db_name:
+                type: string
+                default: "db"
+              space_name:
+                type: string
+              documents:
+                type: array
+                items:
+                  type: object
+                  additionalProperties: true
+            example:
+              db_name: "db"
+              space_name: "ts_space"
+    responses:
+      '200':
+        description: Space created successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code:
+                  type: integer
+                msg:
+                  type: string
+                total:
+                  type: integer
+                  description: Total upsert documents.
+                document_ids:
+                  type: array
+                  items:
+                    type: object
+                    additionalProperties: true
+      'default':
+        description: Unexpected error
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                error:
+                  type: string
+
+Delete:
+  post:
+    summary: Delete documents from a space
+    operationId: deleteDocuments
+    tags:
+      - Document
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              db_name:
+                type: string
+                example: "ts_db"
+              space_name:
+                type: string
+                example: "ts_space"
+              query:
+                type: object
+                properties:
+                  document_ids:
+                    type: array
+                    items:
+                      type: string
+                    example: ["4501743250723073467", "616335952940335471", "-2422965400649882823"]
+    responses:
+      '200':
+        description: Successful operation
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                error_message:
+                  type: string
+                  nullable: true
+      '400':
+        description: Bad request
+      '500':
+        description: Server error
+
+Search:
+  post:
+    summary: Search for documents using vector and filter parameters
+    operationId: searchDocuments
+    tags:
+      - Document
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - query
+              - retrieval_param
+              - size
+              - db_name
+              - space_name
+            properties:
+              query:
+                type: object
+                required:
+                  - vector
+                properties:
+                  vector:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - field
+                        - feature
+                      properties:
+                        field:
+                          type: string
+                          example: "field_vector"
+                        feature:
+                          type: array
+                          items:
+                            type: number
+                          example: [1.0, 2.0, 3.0]
+                  filter:
+                    type: array
+                    items:
+                      type: object
+                      additionalProperties: true
+              retrieval_param:
+                type: object
+                required:
+                  - metric_type
+                properties:
+                  metric_type:
+                    type: string
+                    example: "L2"
+              size:
+                type: integer
+                example: 3
+              db_name:
+                type: string
+                example: "ts_db"
+              space_name:
+                type: string
+                example: "ts_space"
+    responses:
+      '200':
+        description: Successful search operation
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                results:
+                  type: array
+                  items:
+                    type: object
+                    # Define the properties of a search result item
+                    # according to your application's data model
+      '400':
+        description: Bad request due to invalid syntax or parameters
+      '500':
+        description: Internal server error

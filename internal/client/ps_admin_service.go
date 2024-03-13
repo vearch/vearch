@@ -167,7 +167,9 @@ func _partitionsInfo(addr string, pid entity.PartitionID, detail_info bool) (val
 	err = Execute(addr, PartitionInfoHandler, args, reply)
 	if err != nil {
 		return nil, err
-	} else if reply != nil && reply.Err.Code != vearchpb.ErrorEnum_SUCCESS {
+	}
+
+	if reply.Err.Code != vearchpb.ErrorEnum_SUCCESS {
 		return nil, vearchpb.NewError(reply.Err.Code, nil)
 	}
 	value = make([]*entity.PartitionInfo, 0, 1)
