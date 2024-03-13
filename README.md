@@ -24,7 +24,7 @@ Vearch is a cloud-native distributed vector database for efficient similarity se
 
 ## Document
 
-* [Tutorial](https://vearch.readthedocs.io/en/latest)
+* [Tutorial](https://vearch.readthedocs.io/en/latest) | [参考文档](https://vearch.readthedocs.io/zh_CN/latest)
 
 ## Quick start
 

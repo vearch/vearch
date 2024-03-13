@@ -24,7 +24,7 @@ Vearch 是一个云原生分布式向量数据库，用于在 AI 应用程序中
 
 ## 文档
 
-* [API参考文档](https://vearch.readthedocs.io/zh_CN/latest)
+* [参考文档](https://vearch.readthedocs.io/zh_CN/latest)
 
 ## 快速开始
 
