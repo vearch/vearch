@@ -15,7 +15,6 @@
 package document
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -86,18 +85,13 @@ func docGetResponse(client *client.Client, args *vearchpb.GetRequest, reply *vea
 	return jsonData, nil
 }
 
-func documentUpsertResponse(client *client.Client, args *vearchpb.BulkRequest, reply *vearchpb.BulkResponse) ([]byte, error) {
+func documentUpsertResponse(args *vearchpb.BulkRequest, reply *vearchpb.BulkResponse) ([]byte, error) {
 	if args == nil || reply == nil || reply.Items == nil || len(reply.Items) < 1 {
 		if reply.GetHead() != nil && reply.GetHead().Err != nil && reply.GetHead().Err.Code != vearchpb.ErrorEnum_SUCCESS {
 			err := reply.GetHead().Err
 			return nil, vearchpb.NewError(err.Code, errors.New(err.Msg))
 		}
 		return nil, vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, nil)
-	}
-
-	space, err := client.Space(context.Background(), args.Head.DbName, args.Head.SpaceName)
-	if err != nil {
-		return nil, err
 	}
 
 	response := make(map[string]interface{})
@@ -119,7 +113,7 @@ func documentUpsertResponse(client *client.Client, args *vearchpb.BulkRequest, r
 
 	documentIDs := make([]interface{}, 0)
 	for _, item := range reply.Items {
-		result := documentResultSerialize(space, item)
+		result := documentResultSerialize(item)
 		documentIDs = append(documentIDs, result)
 	}
 
@@ -133,7 +127,7 @@ func documentUpsertResponse(client *client.Client, args *vearchpb.BulkRequest, r
 	return jsonData, nil
 }
 
-func documentResultSerialize(space *entity.Space, item *vearchpb.Item) map[string]interface{} {
+func documentResultSerialize(item *vearchpb.Item) map[string]interface{} {
 	result := make(map[string]interface{})
 	if item == nil {
 		result["error"] = "duplicate id"
@@ -216,7 +210,7 @@ func documentGetResponse(client *client.Client, args *vearchpb.GetRequest, reply
 	return sonic.Marshal(response)
 }
 
-func documentSearchResponse(srs []*vearchpb.SearchResult, head *vearchpb.ResponseHead, space *entity.Space, response_type string) ([]byte, error) {
+func documentSearchResponse(srs []*vearchpb.SearchResult, head *vearchpb.ResponseHead, response_type string) ([]byte, error) {
 	var builder = cbjson.ContentBuilderFactory()
 
 	builder.BeginObject()
@@ -258,15 +252,15 @@ func documentSearchResponse(srs []*vearchpb.SearchResult, head *vearchpb.Respons
 		respChain := make(chan map[int][]byte, len(srs))
 		for i, sr := range srs {
 			wg.Add(1)
-			go func(sr *vearchpb.SearchResult, space *entity.Space, index int) {
-				bytes, err := documentToContent(sr.ResultItems, space, response_type)
+			go func(sr *vearchpb.SearchResult, index int) {
+				bytes, err := documentToContent(sr.ResultItems, response_type)
 				if err == nil {
 					respMap := make(map[int][]byte)
 					respMap[index] = bytes
 					respChain <- respMap
 				}
 				wg.Done()
-			}(sr, space, i)
+			}(sr, i)
 		}
 		wg.Wait()
 		close(respChain)
@@ -286,7 +280,7 @@ func documentSearchResponse(srs []*vearchpb.SearchResult, head *vearchpb.Respons
 		}
 	} else {
 		for i, sr := range srs {
-			if bytes, err := documentToContent(sr.ResultItems, space, response_type); err != nil {
+			if bytes, err := documentToContent(sr.ResultItems, response_type); err != nil {
 				return nil, err
 			} else {
 				builder.ValueRaw(string(bytes))
@@ -304,7 +298,7 @@ func documentSearchResponse(srs []*vearchpb.SearchResult, head *vearchpb.Respons
 	return builder.Output()
 }
 
-func documentToContent(dh []*vearchpb.ResultItem, space *entity.Space, response_type string) ([]byte, error) {
+func documentToContent(dh []*vearchpb.ResultItem, response_type string) ([]byte, error) {
 	var builder = cbjson.ContentBuilderFactory()
 	if response_type == request.SearchResponse {
 		builder.BeginArray()
@@ -463,130 +457,6 @@ func docFieldSerialize(doc *vearchpb.Document, space *entity.Space, returnFields
 		return nil, nextDocid, err
 	}
 	return marshal, nextDocid, nil
-}
-
-func ToContentBytes(sr *vearchpb.SearchResult, head *vearchpb.RequestHead, took time.Duration, space *entity.Space) ([]byte, error) {
-	content, err := toContent(sr, head, took, space)
-	if err != nil {
-		return nil, err
-	}
-	return sonic.Marshal(content)
-}
-
-func toContent(sr *vearchpb.SearchResult, head *vearchpb.RequestHead, took time.Duration, space *entity.Space) (map[string]interface{}, error) {
-	hitsContent, err := docToContent(sr.ResultItems, head)
-	if err != nil {
-		return nil, err
-	}
-
-	content := map[string]interface{}{
-		"took":      int64(took) / 1e6,
-		"timed_out": sr.Timeout,
-		"_shards":   sr.Status,
-		"hits": map[string]interface{}{
-			"total":     len(sr.ResultItems),
-			"max_score": sr.MaxScore,
-			"hits":      hitsContent,
-		},
-	}
-
-	return content, nil
-}
-
-func docToContent(dh []*vearchpb.ResultItem, head *vearchpb.RequestHead) ([]interface{}, error) {
-	docContents := make([]interface{}, len(dh))
-	for i, u := range dh {
-		docContent := make(map[string]interface{})
-		docContent["_index"] = head.DbName
-		docContent["_type"] = head.SpaceName
-		docContent["_id"] = u.PKey
-
-		if u.Fields != nil {
-			docContent["_score"] = float64(u.Score)
-			if u.Source != nil {
-				var sourceJson json.RawMessage
-				if err := json.Unmarshal(u.Source, &sourceJson); err != nil {
-					log.Error("Error unmarshaling _source: %v", err)
-					return nil, err
-				}
-				docContent["_source"] = sourceJson
-			}
-		}
-
-		docContents[i] = docContent
-	}
-
-	return docContents, nil
-}
-
-func ToContents(srs []*vearchpb.SearchResult, head *vearchpb.RequestHead, took time.Duration, space *entity.Space) ([]byte, error) {
-	results := make([]map[string]interface{}, len(srs))
-
-	if len(srs) > 1 {
-		var wg sync.WaitGroup
-		respChan := make(chan struct {
-			Index   int
-			Content map[string]interface{}
-		}, len(srs))
-		for i, sr := range srs {
-			wg.Add(1)
-			go func(sr *vearchpb.SearchResult, index int) {
-				defer wg.Done()
-				if content, err := toContent(sr, head, took, space); err == nil {
-					respChan <- struct {
-						Index   int
-						Content map[string]interface{}
-					}{Index: index, Content: content}
-				}
-			}(sr, i)
-		}
-		wg.Wait()
-		close(respChan)
-
-		for resp := range respChan {
-			results[resp.Index] = resp.Content
-		}
-	} else {
-		for i, sr := range srs {
-			if content, err := toContent(sr, head, took, space); err == nil {
-				results[i] = content
-			} else {
-				return nil, err
-			}
-		}
-	}
-
-	response := map[string]interface{}{
-		"took":    int64(took) / 1e6,
-		"results": results,
-	}
-
-	return sonic.Marshal(response)
-}
-
-func ToContentIds(srs []*vearchpb.SearchResult, space *entity.Space) ([]byte, error) {
-	bs := bytes.Buffer{}
-	bs.WriteString("[")
-	for _, sr := range srs {
-		if sr.ResultItems != nil {
-			for j, u := range sr.ResultItems {
-				if j != 0 {
-					bs.WriteString(",")
-				}
-				for _, fv := range u.Fields {
-					name := fv.Name
-					switch name {
-					case mapping.IdField:
-						bs.WriteString("\"")
-						bs.WriteString(string(fv.Value))
-						bs.WriteString("\"")
-					}
-				}
-			}
-		}
-	}
-	bs.WriteString("]")
-	return bs.Bytes(), nil
 }
 
 func GetVectorFieldValue(doc *vearchpb.Document, space *entity.Space) (floatFeatureMap map[string][]float32, binaryFeatureMap map[string][]int32, err error) {

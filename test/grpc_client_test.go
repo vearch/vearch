@@ -113,8 +113,8 @@ func loadData() DocsList {
 
 		// package field
 		fileds := make([]*vearchpb.Field, 0)
-		fileds = append(fileds, &vearchpb.Field{Name: "sku", Type: vearchpb.FieldType_STRING, Value: cbbytes.StringToByte(d[0])})
-		fileds = append(fileds, &vearchpb.Field{Name: "url", Type: vearchpb.FieldType_STRING, Value: cbbytes.StringToByte(d[1])})
+		fileds = append(fileds, &vearchpb.Field{Name: "sku", Type: vearchpb.FieldType_STRING, Value: []byte(d[0])})
+		fileds = append(fileds, &vearchpb.Field{Name: "url", Type: vearchpb.FieldType_STRING, Value: []byte(d[1])})
 		fileds = append(fileds, &vearchpb.Field{Name: "cid1", Type: vearchpb.FieldType_INT, Value: cbbytes.Int32ToByte(int32(cid1))})
 		fileds = append(fileds, &vearchpb.Field{Name: "vector", Type: vearchpb.FieldType_VECTOR, Value: vec_byte})
 		// document := &vearchpb.Document{Fields: fileds}

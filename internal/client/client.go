@@ -237,7 +237,7 @@ func (r *routerRequest) PartitionDocs() *routerRequest {
 	}
 	dataMap := make(map[entity.PartitionID]*vearchpb.PartitionData)
 	for _, doc := range r.docs {
-		partitionID := r.space.PartitionId(murmur3.Sum32WithSeed(cbbytes.StringToByte(doc.PKey), 0))
+		partitionID := r.space.PartitionId(murmur3.Sum32WithSeed([]byte(doc.PKey), 0))
 		item := &vearchpb.Item{Doc: doc}
 		if d, ok := dataMap[partitionID]; ok {
 			d.Items = append(d.Items, item)

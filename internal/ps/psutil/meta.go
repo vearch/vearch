@@ -157,10 +157,6 @@ func CreatePartitionPaths(dataPath string, space *entity.Space, id entity.Partit
 		return
 	}
 
-	if err != nil {
-		return
-	}
-
 	err = SavePartitionMeta(dataPath, id, space)
 	if err != nil {
 		return

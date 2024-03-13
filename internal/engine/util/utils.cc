@@ -9,11 +9,11 @@
 
 #include <dirent.h>
 #include <string.h>
-#include <sys/stat.h>
 #include <sys/time.h>
 #include <unistd.h>
 
 #include <algorithm>
+#include <filesystem>
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
@@ -24,12 +24,19 @@ namespace utils {
 
 long get_file_size(const char *path) {
   long filesize = -1;
-  struct stat statbuff;
-  if (stat(path, &statbuff) < 0) {
-    return filesize;
-  } else {
-    filesize = statbuff.st_size;
+  std::filesystem::path pathToFile = path;
+
+  try {
+    auto size = std::filesystem::file_size(pathToFile);
+    filesize = (long)size;
+  } catch (const std::filesystem::filesystem_error &e) {
+    filesize = -1;
+    LOG(ERROR) << "Error: " << e.what();
+    if (!std::filesystem::exists(pathToFile)) {
+      LOG(ERROR) << "The file does not exist.";
+    }
   }
+
   return filesize;
 }
 
@@ -122,10 +129,7 @@ int isFolderExist(const char *path) {
 }
 
 bool file_exist(const std::string &path) {
-  if (access(path.c_str(), F_OK) != 0) {
-    return false;  // not exist
-  }
-  return true;
+  return std::filesystem::exists(path);
 }
 
 int make_dir(const char *path) {
@@ -197,12 +201,7 @@ int move_dir(const char *src, const char *dst, bool backup) {
 }
 
 inline bool is_folder(const char *dir_name) {
-  auto dir = opendir(dir_name);
-  if (dir) {
-    closedir(dir);
-    return true;
-  }
-  return false;
+  return std::filesystem::is_directory(dir_name);
 }
 
 inline bool is_folder(const std::string &dir_name) {

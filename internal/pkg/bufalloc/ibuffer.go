@@ -8,8 +8,6 @@ import (
 	"bytes"
 	"errors"
 	"io"
-
-	byteutil "github.com/vearch/vearch/internal/pkg/cbbytes"
 )
 
 const minRead = 128
@@ -95,7 +93,7 @@ func (b *ibuffer) Grow(n int) {
 }
 
 func (b *ibuffer) WriteString(s string) (n int, err error) {
-	p := byteutil.StringToByte(s)
+	p := []byte(s)
 	m := b.grow(len(p))
 	return copy(b.buf[m:], p), nil
 }

@@ -284,7 +284,7 @@ func (handler *DocumentHandler) handleDocumentUpsert(c *gin.Context) {
 		return
 	}
 	reply := handler.docService.bulk(c.Request.Context(), args)
-	resultBytes, err := documentUpsertResponse(handler.client, args, reply)
+	resultBytes, err := documentUpsertResponse(args, reply)
 	if err != nil {
 		resp.SendError(c, http.StatusBadRequest, err.Error())
 		return
@@ -378,9 +378,9 @@ func (handler *DocumentHandler) handleDocumentQuery(c *gin.Context) {
 
 	var bs []byte
 	if searchResp.Results == nil || len(searchResp.Results) == 0 {
-		bs, err = documentSearchResponse(nil, searchResp.Head, space, request.QueryResponse)
+		bs, err = documentSearchResponse(nil, searchResp.Head, request.QueryResponse)
 	} else {
-		bs, err = documentSearchResponse(searchResp.Results, searchResp.Head, space, request.QueryResponse)
+		bs, err = documentSearchResponse(searchResp.Results, searchResp.Head, request.QueryResponse)
 	}
 
 	if err != nil {
@@ -446,7 +446,7 @@ func (handler *DocumentHandler) handleDocumentSearch(c *gin.Context) {
 		reply := handler.docService.getDocs(ctx, getArgs)
 
 		if reply == nil || reply.Items == nil || len(reply.Items) == 0 {
-			result, err := documentSearchResponse(nil, reply.Head, space, request.SearchResponse)
+			result, err := documentSearchResponse(nil, reply.Head, request.SearchResponse)
 			if err != nil {
 				resp.SendError(c, http.StatusBadRequest, err.Error())
 				return
@@ -485,9 +485,9 @@ func (handler *DocumentHandler) handleDocumentSearch(c *gin.Context) {
 
 	var bs []byte
 	if searchResp.Results == nil || len(searchResp.Results) == 0 {
-		bs, err = documentSearchResponse(nil, searchResp.Head, space, request.SearchResponse)
+		bs, err = documentSearchResponse(nil, searchResp.Head, request.SearchResponse)
 	} else {
-		bs, err = documentSearchResponse(searchResp.Results, searchResp.Head, space, request.SearchResponse)
+		bs, err = documentSearchResponse(searchResp.Results, searchResp.Head, request.SearchResponse)
 	}
 
 	if err != nil {
