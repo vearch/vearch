@@ -691,10 +691,11 @@ struct IVFPQModelParams {
   int opq_nsubvector;    // number of sub cluster center of opq
   int bucket_init_size;  // original size of RTInvertIndex bucket
   int bucket_max_size;   // max size of RTInvertIndex bucket
+  int training_threshold;
 
   IVFPQModelParams() {
     ncentroids = 2048;
-    nsubvector = 64;
+    nsubvector = 0;
     support_indivisible_nsubvector = false;
     nbits_per_idx = 8;
     nprobe = 80;
@@ -704,7 +705,7 @@ struct IVFPQModelParams {
     efConstruction = 200;
     efSearch = 64;
     has_opq = false;
-    opq_nsubvector = 64;
+    opq_nsubvector = 0;
     bucket_init_size = 1000;
     bucket_max_size = 1280000;
   }
@@ -729,9 +730,6 @@ struct IVFPQModelParams {
         return -1;
       }
       if (ncentroids > 0) this->ncentroids = ncentroids;
-    } else {
-      LOG(ERROR) << "cannot get ncentroids for ivfpq, set it when create space";
-      return -1;
     }
 
     if (!jp.GetInt("nsubvector", nsubvector)) {
@@ -740,9 +738,6 @@ struct IVFPQModelParams {
         return -1;
       }
       if (nsubvector > 0) this->nsubvector = nsubvector;
-    } else {
-      LOG(ERROR) << "cannot get nsubvector for ivfpq, set it when create space";
-      return -1;
     }
 
     if (!jp.GetInt("nbits_per_idx", nbits_per_idx)) {
@@ -856,7 +851,7 @@ struct IVFPQModelParams {
   }
 
   bool Validate() {
-    if (ncentroids <= 0 || nsubvector <= 0 || nbits_per_idx <= 0) return false;
+    if (ncentroids <= 0 || nbits_per_idx <= 0) return false;
     // if (nbits_per_idx != 8) {
     //  LOG(ERROR) << "only support 8 now, nbits_per_idx=" << nbits_per_idx;
     //  return false;
@@ -875,7 +870,8 @@ struct IVFPQModelParams {
     ss << "nprobe =" << nprobe << ", ";
     ss << "metric_type =" << (int)metric_type << ", ";
     ss << "bucket_init_size =" << bucket_init_size << ", ";
-    ss << "bucket_max_size =" << bucket_max_size;
+    ss << "bucket_max_size =" << bucket_max_size << ", ";
+    ss << "training_threshold = " << training_threshold;
 
     if (has_hnsw) {
       ss << ", hnsw: nlinks=" << nlinks << ", ";

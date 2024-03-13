@@ -119,16 +119,16 @@ GammaInvertedListScanner *GammaIVFPQIndex::GetGammaInvertedListScanner(
 
 int GammaIVFPQIndex::Init(const std::string &model_parameters,
                           int indexing_size) {
-  indexing_size_ = indexing_size;
   model_param_ = new IVFPQModelParams();
   IVFPQModelParams &ivfpq_param = *model_param_;
   if (model_parameters != "" && ivfpq_param.Parse(model_parameters.c_str())) {
     return -1;
   }
-  LOG(INFO) << ivfpq_param.ToString();
 
   d = vector_->MetaInfo()->Dimension();
-
+  if (ivfpq_param.nsubvector == 0) {
+    ivfpq_param.nsubvector = int(d / 2);
+  }
   if (d % ivfpq_param.nsubvector != 0) {
     if (!ivfpq_param.support_indivisible_nsubvector) {
       LOG(ERROR) << "Dimension [" << vector_->MetaInfo()->Dimension()
@@ -146,6 +146,14 @@ int GammaIVFPQIndex::Init(const std::string &model_parameters,
   RawVector *raw_vec = dynamic_cast<RawVector *>(vector_);
 
   nlist = ivfpq_param.ncentroids;
+  if (indexing_size) {
+    indexing_size_ = indexing_size;
+  } else {
+    indexing_size_ = nlist * min_points_per_centroid;
+  }
+  ivfpq_param.training_threshold = indexing_size_;
+  LOG(INFO) << ivfpq_param.ToString();
+
   if (ivfpq_param.has_hnsw == false) {
     quantizer = new faiss::IndexFlatL2(d);
     quantizer_type_ = 0;

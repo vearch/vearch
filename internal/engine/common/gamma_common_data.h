@@ -25,6 +25,9 @@ const std::string EXTRA_VECTOR_RESULT = "vector_result";
 
 const float GAMMA_INDEX_RECALL_RATIO = 1.0f;
 
+const int min_points_per_centroid = 39;
+const int max_points_per_centroid = 256;
+
 enum class ResultCode : std::uint16_t {
 #define DefineResultCode(Name, Value) Name = Value,
 #include "definition_list.h"

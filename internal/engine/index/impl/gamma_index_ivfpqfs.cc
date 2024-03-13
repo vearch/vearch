@@ -75,7 +75,6 @@ GammaIVFPQFastScanIndex::~GammaIVFPQFastScanIndex() {
 
 int GammaIVFPQFastScanIndex::Init(const std::string &model_parameters,
                                   int indexing_size) {
-  indexing_size_ = indexing_size;
   model_param_ = new IVFPQFastScanModelParams();
   IVFPQFastScanModelParams &ivfpqfs_param = *model_param_;
   if (model_parameters != "" && ivfpqfs_param.Parse(model_parameters.c_str())) {
@@ -92,6 +91,11 @@ int GammaIVFPQFastScanIndex::Init(const std::string &model_parameters,
   }
 
   nlist = ivfpqfs_param.ncentroids;
+  if (indexing_size) {
+    indexing_size_ = indexing_size;
+  } else {
+    indexing_size_ = nlist * min_points_per_centroid;
+  }
   if (ivfpqfs_param.has_hnsw == false) {
     quantizer = new faiss::IndexFlatL2(d);
     quantizer_type_ = 0;

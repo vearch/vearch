@@ -308,6 +308,13 @@ int VectorManager::CreateVectorTable(TableInfo &table,
         LOG(ERROR) << vec_name << " create index failed ret: " << ret;
         return ret;
       }
+      // update TrainingThreshold when TrainingThreshold = 0
+      if (!table.TrainingThreshold()) {
+        RetrievalModel * index = vector_indexes_[IndexName(vec_name, index_types_[i])];
+        if (index) {
+          table.SetTrainingThreshold(index->indexing_size_);
+        }
+      }
     }
   }
   table_created_ = true;

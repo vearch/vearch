@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 __description__ = """ test case for index ivfpq """
 
 
-def create(router_url, embedding_size, store_type="MemoryOnly", ncentroids=256):
+def create(router_url, embedding_size, store_type="MemoryOnly", index_params={}):
     properties = {}
     properties["fields"] = {
         "field_int": {
@@ -50,12 +50,7 @@ def create(router_url, embedding_size, store_type="MemoryOnly", ncentroids=256):
         "index": {
             "index_name": "gamma",
             "index_type": "IVFPQ",
-            "index_params": {
-                "metric_type": "L2",
-                "ncentroids": ncentroids,
-                "nsubvector": int(embedding_size / 4),
-                "training_threshold": ncentroids * 39
-            }
+            "index_params": index_params
         },
         "fields": properties["fields"]
     }
@@ -90,7 +85,7 @@ def query(quick, nprobe, parallel_on_queries, xq, gt, k, logger):
                 assert recalls[recall] >= 0.9
         logger.info(result)
 
-def benchmark(store_type, ncentroids, xb, xq, xt, gt):
+def benchmark(store_type, index_params, xb, xq, xt, gt):
     embedding_size = xb.shape[1]
     batch_size = 100
     k = 100
@@ -98,9 +93,9 @@ def benchmark(store_type, ncentroids, xb, xq, xt, gt):
     total = xb.shape[0]
     total_batch = int(total / batch_size)
     logger.info("dataset num: %d, total_batch: %d, dimension: %d, ncentroids %d, search num: %d, topK: %d" \
-                %(total, total_batch, embedding_size, ncentroids, xq.shape[0], k))
+                %(total, total_batch, embedding_size, index_params["ncentroids"], xq.shape[0], k))
 
-    create(router_url, embedding_size, store_type, ncentroids)
+    create(router_url, embedding_size, store_type, index_params)
 
     add(total_batch, batch_size, xb)
 
@@ -117,10 +112,61 @@ xb, xq, xt, gt = get_sift10K(logger)
 
 
 @ pytest.mark.parametrize(["store_type", "ncentroids"], [
-    ["MemoryOnly", 256],
     ["MemoryOnly", 128],
-    ["RocksDB", 256],
     ["RocksDB", 128],
 ])
 def test_vearch_index_ivfpq(store_type: str, ncentroids: int):
-    benchmark(store_type, ncentroids, xb, xq, xt, gt)
+    index_params = {}
+    index_params["metric_type"] = "L2"
+    index_params["ncentroids"] = ncentroids
+    benchmark(store_type, index_params, xb, xq, xt, gt)
+
+
+def benchmark_index_params(store_type, index_params, xb, xq, xt, gt):
+    embedding_size = xb.shape[1]
+    batch_size = 100
+    k = 100
+
+    total = xb.shape[0]
+    total_batch = int(total / batch_size)
+    logger.info("dataset num: %d, total_batch: %d, dimension: %d, ncentroids %d, search num: %d, topK: %d" \
+                %(total, total_batch, embedding_size, index_params["ncentroids"], xq.shape[0], k))
+
+    create(router_url, embedding_size, store_type, index_params)
+
+    add(total_batch, batch_size, xb)
+
+    waiting_index_finish(logger, total)
+
+    for quick in [True, False]:
+        for nprobe in [20, 40]:
+            for parallel_on_queries in [0, 1]:
+                query(quick, nprobe, parallel_on_queries, xq, gt, k, logger)
+
+    destroy(router_url, db_name, space_name)
+
+@ pytest.mark.parametrize(["store_type", "ncentroids", "nsubvector", "training_threshold"], [
+    ["MemoryOnly", 256, 32, 10000],
+    ["MemoryOnly", 256, 64, 10000],
+    ["MemoryOnly", 128, 32, 10000],
+    ["MemoryOnly", 128, 64, 10000],
+    ["MemoryOnly", 256, 32, 1000],
+    ["MemoryOnly", 256, 64, 1000],
+    ["MemoryOnly", 128, 32, 1000],
+    ["MemoryOnly", 128, 64, 1000],
+    ["RocksDB", 256, 32, 10000],
+    ["RocksDB", 256, 64, 10000],
+    ["RocksDB", 128, 32, 10000],
+    ["RocksDB", 128, 64, 10000],
+    ["RocksDB", 256, 32, 1000],
+    ["RocksDB", 256, 64, 1000],
+    ["RocksDB", 128, 32, 1000],
+    ["RocksDB", 128, 64, 1000],
+])
+def test_vearch_index_ivfpq_index_params(store_type: str, ncentroids: int, nsubvector: int, training_threshold: int):
+    index_params = {}
+    index_params["metric_type"] = "L2"
+    index_params["ncentroids"] = ncentroids
+    index_params["nsubvector"] = nsubvector
+    index_params["training_threshold"] = training_threshold
+    benchmark_index_params(store_type, index_params, xb, xq, xt, gt)

@@ -56,13 +56,7 @@ def create(router_url, embedding_size, index_type="FLAT", store_type="MemoryOnly
             "index_name": "gamma",
             "index_type": index_type,
             "index_params": {
-                "metric_type": "L2",
-                "ncentroids": ncentroids,
-                "nsubvector": int(embedding_size / 4),
-                "nlinks": 32,
-                "efConstruction": 160,
-                "efSearch": 64,
-                "training_threshold": training_threshold,
+                "metric_type": "L2"
             }
         },
         "fields": properties["fields"]

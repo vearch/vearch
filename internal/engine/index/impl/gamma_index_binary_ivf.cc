@@ -8,6 +8,7 @@
 #include "gamma_index_binary_ivf.h"
 
 #include "common/error_code.h"
+#include "common/gamma_common_data.h"
 #include "faiss/IndexBinaryFlat.h"
 #include "faiss/utils/hamming.h"
 
@@ -15,6 +16,7 @@ namespace vearch {
 
 struct BinaryModelParams {
   int ncentroids;  // coarse cluster center number
+  int training_threshold;
 
   BinaryModelParams() { ncentroids = 256; }
 
@@ -34,9 +36,6 @@ struct BinaryModelParams {
         return -1;
       }
       if (ncentroids > 0) this->ncentroids = ncentroids;
-    } else {
-      LOG(ERROR) << "cannot get ncentroids for ivf, set it when create space";
-      return -1;
     }
 
     return 0;
@@ -50,6 +49,7 @@ struct BinaryModelParams {
   std::string ToString() {
     std::stringstream ss;
     ss << "ncentroids =" << ncentroids << ", ";
+    ss << "training_threshold = " << training_threshold;
     return ss.str();
   }
 };
@@ -81,13 +81,18 @@ GammaIndexBinaryIVF::~GammaIndexBinaryIVF() {
 
 int GammaIndexBinaryIVF::Init(const std::string &model_parameters,
                               int indexing_size) {
-  indexing_size_ = indexing_size;
   BinaryModelParams binary_param;
   if (model_parameters != "" && binary_param.Parse(model_parameters.c_str())) {
     return -1;
   }
-  LOG(INFO) << binary_param.ToString();
   nlist = binary_param.ncentroids;
+  if (indexing_size) {
+    indexing_size_ = indexing_size;
+  } else {
+    indexing_size_ = nlist * min_points_per_centroid;
+  }
+  binary_param.training_threshold = indexing_size_;
+  LOG(INFO) << binary_param.ToString();
 
   cp.niter = 10;
   clustering_index = nullptr;

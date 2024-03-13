@@ -61,9 +61,6 @@ struct HNSWLIBModelParams {
         return -1;
       }
       if (nlinks > 0) this->nlinks = nlinks;
-    } else {
-      LOG(ERROR) << "cannot get nlinks for hnsw, set it when create space";
-      return -1;
     }
 
     if (!jp.GetInt("efConstruction", efConstruction)) {
@@ -72,10 +69,6 @@ struct HNSWLIBModelParams {
         return -1;
       }
       if (efConstruction > 0) this->efConstruction = efConstruction;
-    } else {
-      LOG(ERROR)
-          << "cannot get efConstruction for hnsw, set it when create space";
-      return -1;
     }
 
     if (!jp.GetInt("efSearch", efSearch)) {

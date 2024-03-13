@@ -85,12 +85,64 @@ class TestSpaceCreate:
         assert response["code"] == 200
 
     @pytest.mark.parametrize(
+        ["index_type"],
+        [["FLAT"], ["IVFPQ"], ["IVFFLAT"], ["HNSW"]],
+    )
+    def test_vearch_space_create_empty_index_params(self, index_type):
+        embedding_size = 128
+        space_config = {
+            "name": space_name,
+            "partition_num": 1,
+            "replica_num": 1,
+            "index": {
+                "index_name": "gamma",
+                "index_type": index_type
+            },
+            "fields": {
+                "field_string": {"type": "keyword"},
+                "field_int": {"type": "integer"},
+                "field_float": {"type": "float", "index": True},
+                "field_string_array": {"type": "string", "array": True, "index": True},
+                "field_int_index": {"type": "integer", "index": True},
+                "field_vector": {"type": "vector", "dimension": embedding_size},
+                "field_vector_normal": {
+                    "type": "vector",
+                    "dimension": int(embedding_size * 2),
+                    "format": "normalization"
+                }
+            }
+        }
+
+        response = create_space(router_url, db_name, space_config)
+        logger.info(response)
+        assert response["code"] == 200
+
+        response = describe_space(logger, router_url, db_name, space_name)
+        logger.info(response)
+        assert response["code"] == 200
+
+        response = drop_space(router_url, db_name, space_name)
+        assert response["code"] == 200
+
+    @pytest.mark.parametrize(
         ["wrong_index", "wrong_type", "index_type"],
         [
-            [0, "bad index size", "IVFPQ"], 
-            [1, "bad index size", "IVFFLAT"],
+            [0, "bad training_threshold", "IVFPQ"], 
+            [1, "bad training_threshold", "IVFFLAT"],
             [2, "bad space name", "FLAT"],
-            [3, "not enough partition server", "FLAT"],
+            [3, "beyond max nlinks", "HNSW"],
+            [4, "below min nlinks", "HNSW"],
+            [5, "beyond max efConstruction", "HNSW"],
+            [6, "below min efConstruction", "HNSW"],
+            [7, "beyond max ncentroids", "IVFPQ"],
+            [8, "beyond max ncentroids", "IVFFLAT"],
+            [9, "below min ncentroids", "IVFPQ"],
+            [10, "below min ncentroids", "IVFFLAT"],
+            [11, "bad nsubvector", "IVFPQ"],
+            [12, "bad metric type", "FLAT"],
+            [13, "bad nprobe", "IVFPQ"],
+            [14, "beyond max training_threshold", "IVFPQ"],
+            [15, "beyond max training_threshold", "IVFFLAT"],
         ],
     )
     def test_vearch_space_create_badcase(self, wrong_index, wrong_type, index_type):
@@ -104,6 +156,32 @@ class TestSpaceCreate:
             create_space_name = "wrong-name"
         if wrong_index == 3:
             replica_num = 3
+        nlinks = 32
+        if wrong_index == 4:
+            nlinks = 97
+        if wrong_index == 5:
+            nlinks = 7
+        efConstruction = 100
+        if wrong_index == 6:
+            efConstruction = 1025
+        if wrong_index == 7:
+            efConstruction = 15
+        ncentroids = 2048
+        if wrong_index == 7 or wrong_index == 8:
+            ncentroids = 65537
+        if wrong_index == 9 or wrong_index == 10:
+            ncentroids = 0
+        nsubvector = int(embedding_size / 2)
+        if wrong_index == 11:
+            nsubvector = 33
+        metric_type = "InnerProduct"
+        if wrong_index == 12:
+            metric_type = "WRONG_TYPE"
+        nprobe = 80
+        if wrong_index == 13:
+            nprobe = 99999
+        if wrong_index == 14 or wrong_index == 15:
+            training_threshold = int(ncentroids * 256 + 100)
         space_config = {
             "name": create_space_name,
             "partition_num": 1,
@@ -111,11 +189,12 @@ class TestSpaceCreate:
             "index": {
                 "index_type": index_type,
                 "index_params": {
-                    "metric_type": "InnerProduct",
-                    "ncentroids": 2048,
-                    "nsubvector": 32,
-                    "nlinks": 32,
-                    "efConstruction": 40,
+                    "metric_type": metric_type,
+                    "ncentroids": ncentroids,
+                    "nsubvector": nsubvector,
+                    "nlinks": nlinks,
+                    "nprobe": nprobe,
+                    "efConstruction": efConstruction,
                     "training_threshold": training_threshold
                 },
             },

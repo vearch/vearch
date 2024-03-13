@@ -52,6 +52,12 @@ struct FLATModelParams {
     }
     return 0;
   }
+
+  std::string ToString() {
+    std::stringstream ss;
+    ss << "metric_type =" << (int)metric_type;
+    return ss.str();
+  }
 };
 
 GammaFLATIndex::GammaFLATIndex() {}
@@ -71,6 +77,7 @@ int GammaFLATIndex::Init(const std::string &model_parameters,
     return -1;
   }
   metric_type_ = flat_param.metric_type;
+  LOG(INFO) << flat_param.ToString();
   return 0;
 }
 

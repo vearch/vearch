@@ -27,19 +27,19 @@ class VectorManager {
                 const std::string &root_path);
   ~VectorManager();
 
-  int SetVectorStoreType(std::string &retrieval_type,
+  int SetVectorStoreType(std::string &index_type,
                          std::string &store_type_str,
                          VectorStorageType &store_type);
 
   int CreateRawVector(struct VectorInfo &vector_info,
-                      std::string &retrieval_type,
+                      std::string &index_type,
                       std::map<std::string, int> &vec_dups, TableInfo &table,
                       utils::JsonParser &vectors_jp, RawVector **vec);
 
   void DestroyRawVectors();
 
   int CreateVectorIndex(
-      std::string &retrieval_type, std::string &retrieval_param, RawVector *vec,
+      std::string &index_type, std::string &index_params, RawVector *vec,
       int training_threshold, bool destroy_vec,
       std::map<std::string, RetrievalModel *> &vector_indexes);
 

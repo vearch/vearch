@@ -527,7 +527,7 @@ int Engine::CreateTable(TableInfo &table) {
   }
   int ret_table = table_->CreateTable(table, disk_table_params, docids_bitmap_);
   training_threshold_ = table.TrainingThreshold();
-  LOG(INFO) << space_name_ << " training_threshold=" << training_threshold_;
+  LOG(INFO) << space_name_ << " init training_threshold=" << training_threshold_;
   if (ret_table != 0) {
     LOG(ERROR) << space_name_ << " cannot create table!";
     return -2;

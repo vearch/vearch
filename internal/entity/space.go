@@ -43,20 +43,33 @@ const (
 
 type Index struct {
 	IndexName   string          `json:"index_name"`
-	IndexParams json.RawMessage `json:"index_params,omitempty"`
 	IndexType   string          `json:"index_type,omitempty"`
+	IndexParams json.RawMessage `json:"index_params,omitempty"`
 }
 
 func NewDefaultIndex() *Index {
 	return &Index{}
 }
 
+var (
+	MinNlinks                   = 8
+	MaxNlinks                   = 96
+	MinEfConstruction           = 16
+	MaxEfConstruction           = 1024
+	DefaultMetricType           = "InnerProduct"
+	MinNcentroids               = 1
+	MaxNcentroids               = 65536
+	DefaultTrainingThreshold    = 0
+	DefaultMaxPointsPerCentroid = 256
+	DefaultMinPointsPerCentroid = 39
+)
+
 type IndexParams struct {
-	Nlinks            int    `json:"nlinks"`
+	Nlinks            int    `json:"nlinks,omitempty"`
 	EfSearch          int    `json:"efSearch,omitempty"`
-	EfConstruction    int    `json:"efConstruction"`
+	EfConstruction    int    `json:"efConstruction,omitempty"`
 	MetricType        string `json:"metric_type,omitempty"`
-	Ncentroids        int    `json:"ncentroids"`
+	Ncentroids        int    `json:"ncentroids,omitempty"`
 	Nprobe            int    `json:"nprobe,omitempty"`
 	Nsubvector        int    `json:"nsubvector,omitempty"`
 	TrainingThreshold int    `json:"training_threshold,omitempty"`
@@ -173,8 +186,8 @@ func (index *Index) UnmarshalJSON(bs []byte) error {
 	}
 	tempIndex := &struct {
 		IndexName   string          `json:"index_name,omitempty"`
-		IndexParams json.RawMessage `json:"index_params,omitempty"`
 		IndexType   string          `json:"index_type,omitempty"`
+		IndexParams json.RawMessage `json:"index_params,omitempty"`
 	}{}
 	if err := json.Unmarshal(bs, tempIndex); err != nil {
 		return fmt.Errorf("space Index json.Unmarshal err:%v", err)
@@ -187,54 +200,75 @@ func (index *Index) UnmarshalJSON(bs []byte) error {
 	}
 	_, have := indexTypeMap[tempIndex.IndexType]
 	if !have {
-		return fmt.Errorf("IndexType not support :%s", tempIndex.IndexType)
+		return fmt.Errorf("IndexType not support: %s", tempIndex.IndexType)
 	}
 
-	var v IndexParams
 	if tempIndex.IndexParams != nil && len(tempIndex.IndexParams) != 0 {
-		if err := json.Unmarshal(tempIndex.IndexParams, &v); err != nil {
-			return fmt.Errorf("IndexParams json.Unmarshal err :[%s]", err.Error())
+		var indexParams IndexParams
+		if err := json.Unmarshal(tempIndex.IndexParams, &indexParams); err != nil {
+			return fmt.Errorf("IndexParams:%s json.Unmarshal err :[%s]", tempIndex.IndexParams, err.Error())
+		}
+		if strings.Compare(indexParams.MetricType, "InnerProduct") != 0 &&
+			strings.Compare(indexParams.MetricType, "L2") != 0 {
+			return fmt.Errorf("IndexParams metric_type not support: %s, should be L2 or InnerProduct", indexParams.MetricType)
 		}
 
 		if strings.Compare(tempIndex.IndexType, "HNSW") == 0 {
-			if v.Nlinks == 0 || v.EfConstruction == 0 {
-				return fmt.Errorf(tempIndex.IndexType + " index param has 0")
+			if indexParams.Nlinks != 0 {
+				if indexParams.Nlinks < MinNlinks || indexParams.Nlinks > MaxNlinks {
+					return fmt.Errorf("IndexParams nlinks:%d should in [%d, %d]", indexParams.Nlinks, MinNlinks, MaxNlinks)
+				}
 			}
+			if indexParams.EfConstruction != 0 {
+				if indexParams.EfConstruction < MinEfConstruction || indexParams.EfConstruction > MaxEfConstruction {
+					return fmt.Errorf("IndexParams efConstruction:%d should in [%d, %d]", indexParams.EfConstruction, MinEfConstruction, MaxEfConstruction)
+				}
+			}
+			indexParams.TrainingThreshold = DefaultTrainingThreshold
 		} else if strings.Compare(tempIndex.IndexType, "FLAT") == 0 {
 
 		} else if strings.Compare("BINARYIVF", tempIndex.IndexType) == 0 ||
-			strings.Compare("IVFFLAT", tempIndex.IndexType) == 0 {
-			if v.Ncentroids == 0 {
-				return fmt.Errorf(tempIndex.IndexType + " index param has 0")
-			} else {
-				if v.TrainingThreshold != 0 && int64(v.TrainingThreshold) < int64(v.Ncentroids) {
-					return fmt.Errorf(tempIndex.IndexType+" training_threshold:[%d] less than ncentroids:[%d] so can not to index", int64(v.TrainingThreshold), v.Ncentroids)
-				}
-				if v.TrainingThreshold == 0 {
-					v.TrainingThreshold = 39 * v.Ncentroids
+			strings.Compare("IVFFLAT", tempIndex.IndexType) == 0 ||
+			strings.Compare("IVFPQ", tempIndex.IndexType) == 0 ||
+			strings.Compare("GPU", tempIndex.IndexType) == 0 {
+			if indexParams.Ncentroids != 0 {
+				if indexParams.Ncentroids < MinNcentroids || indexParams.Ncentroids > MaxNcentroids {
+					return fmt.Errorf("IndexParams ncentroids:%d should in [%d, %d]", indexParams.Ncentroids, MinNcentroids, MaxNcentroids)
 				}
 			}
-		} else if strings.Compare("IVFPQ", tempIndex.IndexType) == 0 ||
-			strings.Compare("GPU", tempIndex.IndexType) == 0 {
-			if v.Nsubvector == 0 || v.Ncentroids == 0 {
-				return fmt.Errorf(tempIndex.IndexType + " index param has 0")
+
+			if indexParams.TrainingThreshold != 0 {
+				if indexParams.TrainingThreshold < indexParams.Ncentroids {
+					return fmt.Errorf(tempIndex.IndexType+" training_threshold:[%d] should more than ncentroids:[%d]", indexParams.TrainingThreshold, indexParams.Ncentroids)
+				}
+				if indexParams.TrainingThreshold > DefaultMaxPointsPerCentroid*indexParams.Ncentroids {
+					return fmt.Errorf(tempIndex.IndexType+" training_threshold:[%d] should less than DefaultMaxPointsPerCentroid(%d) * ncentroids(%d):[%d] so can not to index",
+						indexParams.TrainingThreshold, DefaultMaxPointsPerCentroid, indexParams.Ncentroids, DefaultMaxPointsPerCentroid*indexParams.Ncentroids)
+				}
 			} else {
-				if v.TrainingThreshold != 0 && int64(v.TrainingThreshold) < int64(v.Ncentroids) {
-					return fmt.Errorf(tempIndex.IndexType+" training_threshold:[%d] less than ncentroids:[%d] so can not to index", int64(v.TrainingThreshold), v.Ncentroids)
-				}
-				if v.TrainingThreshold == 0 {
-					v.TrainingThreshold = 39 * v.Ncentroids
-				}
+				indexParams.TrainingThreshold = DefaultMinPointsPerCentroid * indexParams.Ncentroids
+			}
+			if indexParams.Nprobe != 0 && indexParams.Nprobe > indexParams.Ncentroids {
+				return fmt.Errorf(tempIndex.IndexType+" nprobe:[%d] should less than ncentroids:[%d]", indexParams.Nprobe, indexParams.Ncentroids)
 			}
 		}
+		jsonBytes, err := json.Marshal(indexParams)
+		if err != nil {
+			return fmt.Errorf("IndexParams:%v json.Marshal err :[%s]", indexParams, err.Error())
+		}
+		*index = Index{
+			IndexName:   tempIndex.IndexName,
+			IndexType:   tempIndex.IndexType,
+			IndexParams: json.RawMessage(jsonBytes),
+		}
 	} else {
-		return fmt.Errorf("IndexParams is empty")
+		*index = Index{
+			IndexName:   tempIndex.IndexName,
+			IndexType:   tempIndex.IndexType,
+			IndexParams: tempIndex.IndexParams,
+		}
 	}
-	*index = Index{
-		IndexName:   tempIndex.IndexName,
-		IndexType:   tempIndex.IndexType,
-		IndexParams: tempIndex.IndexParams,
-	}
+
 	return nil
 }
 

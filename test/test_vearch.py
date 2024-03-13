@@ -99,7 +99,7 @@ class VearchCase:
             "name": space_name,
             "partition_num": 1,
             "replica_num": 1,
-            "Index": {
+            "index": {
                 "index_name": "gamma",
                 "index_type": self.index_type,
                 "index_params": {

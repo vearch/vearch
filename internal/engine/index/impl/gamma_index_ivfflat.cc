@@ -44,6 +44,7 @@ struct IVFFlatModelParams {
   DistanceComputeType metric_type;
   int bucket_init_size;  // original size of RTInvertIndex bucket
   int bucket_max_size;   // max size of RTInvertIndex bucket
+  int training_threshold;
 
   IVFFlatModelParams() {
     ncentroids = 2048;
@@ -56,7 +57,7 @@ struct IVFFlatModelParams {
   int Parse(const char *str) {
     utils::JsonParser jp;
     if (jp.Parse(str)) {
-      LOG(ERROR) << "parse IVFPQ model parameters error: " << str;
+      LOG(ERROR) << "parse IVFFLAT model parameters error: " << str;
       return -1;
     }
 
@@ -70,9 +71,6 @@ struct IVFFlatModelParams {
       }
       if (nc > 0) {
         ncentroids = nc;
-      } else if (nc <= 0 && nc != -1) {
-        LOG(ERROR) << "invalid ncentroids=" << nc;
-        return PARAM_ERR;
       }
     }
     if (!jp.GetInt("nprobe", nprobe)) {
@@ -130,7 +128,8 @@ struct IVFFlatModelParams {
     ss << "nprobe =" << nprobe << ", ";
     ss << "metric_type =" << (int)metric_type << ", ";
     ss << "bucket_init_size =" << bucket_init_size << ", ";
-    ss << "bucket_max_size =" << bucket_max_size;
+    ss << "bucket_max_size =" << bucket_max_size << ", ";
+    ss << "training_threshold = " << training_threshold;
 
     return ss.str();
   }
@@ -155,13 +154,11 @@ GammaIndexIVFFlat::~GammaIndexIVFFlat() {
 
 int GammaIndexIVFFlat::Init(const std::string &model_parameters,
                             int indexing_size) {
-  indexing_size_ = indexing_size;
   IVFFlatModelParams params;
-  if (params.Parse(model_parameters.c_str())) {
+  if (model_parameters != "" && params.Parse(model_parameters.c_str())) {
     LOG(ERROR) << "parse model parameters error";
     return PARAM_ERR;
   }
-  LOG(INFO) << params.ToString();
 
   RawVector *raw_vec = nullptr;
   raw_vec = dynamic_cast<RawVector *>(vector_);
@@ -172,6 +169,15 @@ int GammaIndexIVFFlat::Init(const std::string &model_parameters,
 
   d = vector_->MetaInfo()->Dimension();
   nlist = params.ncentroids;
+  if (indexing_size) {
+    indexing_size_ = indexing_size;
+  } else {
+    indexing_size_ = nlist * min_points_per_centroid;
+  }
+  params.training_threshold = indexing_size_;
+
+  LOG(INFO) << params.ToString();
+
   quantizer = new faiss::IndexFlatL2(d);
   own_fields = false;
   code_size = sizeof(float) * d;
