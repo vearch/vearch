@@ -4,6 +4,8 @@ from vearch.core.client import client
 from vearch.core.result import Result, ResultStatus, get_result
 from vearch.core.const import DATABASE_URI, SPACE_URI
 from vearch.schema.space import SpaceSchema
+from vearch.exception import DatabaseException
+from vearch.utils import CodeType
 import requests
 
 
@@ -13,16 +15,19 @@ class Database(object):
         self.client = client
 
     def exist(self) -> bool:
-        url_params = {"database": self.name}
-        url = self.client.host + DATABASE_URI % url_params
-        req = requests.request(method="GET", url=url, headers={"token": self.client.token})
-        resp = self.client.s.send(req)
-        result = get_result(resp)
-        if result.code == ResultStatus.success:
-            return result.content == self.name
-        else:
-            raise Exception("get database info error")
-        return False
+        try:
+            url_params = {"database": self.name}
+            url = self.client.host + DATABASE_URI % url_params
+            req = requests.request(method="GET", url=url, headers={"token": self.client.token})
+            resp = self.client.s.send(req)
+            result = get_result(resp)
+            if result.code == ResultStatus.success:
+                return result.content == self.name
+            else:
+                return False
+        except Exception as e:
+            print(e)
+            raise DatabaseException(code=CodeType.GET_DATABASE, message=e.__str__())
 
     def create(self) -> Result:
         self.client._create_db(self.name)

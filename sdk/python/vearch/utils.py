@@ -13,6 +13,22 @@ def singleton(cls):
     return inner
 
 
+class CodeType(IntEnum):
+    CREATE_DATABASE = 2019
+    LIST_DATABASES = 2020
+    DROP_DATABASE = 2021
+    GET_DATABASE = 2022
+    CHECK_DATABASE_EXIST = 2023
+    CREATE_SPACE = 2024
+    LIST_SPACES = 2025
+    DROP_SPACE = 2026
+    CREARE_INDEX = 2027
+    QUERY_DOC = 2028
+    SEARCH_DOC = 2029
+    UPSERT_DOC = 2030
+    DELETE_DOC = 2031
+
+
 class DataType:
     NONE = 0
     INT32 = 1
@@ -57,7 +73,7 @@ reg_exp = "^([a-zA-Z]+)([a-z0-9A-Z]*[\-\_]{0,1}[a-z0-9A-Z]+)+"
 def name_valid_check(name: str) -> bool:
     pattern = re.compile(reg_exp)
     match_ret = pattern.match(name)
-    return match_ret.span()[1]-match_ret.span()[0] == len(name)
+    return match_ret.span()[1] - match_ret.span()[0] == len(name)
 
 
 if __name__ == "__main__":

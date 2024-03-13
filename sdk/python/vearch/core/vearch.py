@@ -4,6 +4,8 @@ from vearch.core.client import client
 from vearch.core.result import Result, get_result, ResultStatus
 from vearch.schema.space import SpaceSchema
 from vearch.core.const import SPACE_URI
+from vearch.exception import DatabaseException
+from vearch.utils import CodeType
 import requests
 from typing import List
 import json
@@ -27,7 +29,7 @@ class Vearch(object):
                 l.append(db)
             return l
         else:
-            raise Exception("list database failed")
+            raise DatabaseException(code=CodeType.LIST_DATABASES, message="list database failed:" + result.err_msg)
 
     def database(self, database_name: str) -> Database:
 
@@ -40,7 +42,7 @@ class Vearch(object):
         if not self.database(database_name).exist():
             ret = self.database(database_name).create()
             if ret.code == ResultStatus.failed:
-                raise Exception("create database error")
+                raise DatabaseException(code=CodeType.CREATE_DATABASE, message="create database error:" + ret.err_msg)
         url_params = {"database_name": database_name, "space_name": space._name}
         url = self.client.host + SPACE_URI % url_params
         req = requests.request(method="POST", url=url, data=space.dict(), headers={"token": self.client.token})
