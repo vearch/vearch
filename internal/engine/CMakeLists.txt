@@ -94,25 +94,13 @@ if(BUILD_FAISSLIKE_INDEX)
 endif(BUILD_FAISSLIKE_INDEX)
 
 #ADDITIONAL SOURCE DIR
-aux_source_directory(${THIRDPARTY} DIR_SRCS)
-aux_source_directory(${BTREE} DIR_SRCS)
-aux_source_directory(${GAMMA_C_API} DIR_SRCS)
-aux_source_directory(${GAMMA_C_API}/api_data DIR_SRCS)
-aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/third_party/cjson DIR_SRCS)
-aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/third_party/easyloggingpp DIR_SRCS)
-aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/util DIR_SRCS)
-aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/common DIR_SRCS)
-aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/search DIR_SRCS)
-aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/index DIR_SRCS)
-aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/storage DIR_SRCS)
-aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/storage/compress DIR_SRCS)
-aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/index/impl DIR_SRCS)
-aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/index/impl/hnswlib DIR_SRCS)
-aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/index/impl/scann DIR_SRCS)
-aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/vector DIR_SRCS)
-aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/index/realtime DIR_SRCS)
-aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/table DIR_SRCS)
-aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/io DIR_SRCS)
+file(GLOB_RECURSE ALL_SOURCES
+     "${CMAKE_CURRENT_SOURCE_DIR}/*.cc"
+     "${CMAKE_CURRENT_SOURCE_DIR}/*.c"
+)
+list(FILTER ALL_SOURCES EXCLUDE REGEX "${CMAKE_CURRENT_SOURCE_DIR}/third_party/scann-1.2.1/.*")
+list(FILTER ALL_SOURCES EXCLUDE REGEX "${CMAKE_CURRENT_SOURCE_DIR}/tests/.*")
+list(FILTER ALL_SOURCES EXCLUDE REGEX "${CMAKE_CURRENT_SOURCE_DIR}/tools/.*")
 
 add_definitions(-DHAVE_NETINET_IN_H)
 add_definitions(-DFINTEGER=int)
@@ -148,14 +136,14 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/index/impl/relayout/CMakeLists.txt")
     endif()
 endif()
 
-set(LIB_SRCS ${DIR_SRCS} ${RELAYOUT_SRCS})
+set(LIB_SRCS ${ALL_SOURCES} ${RELAYOUT_SRCS})
 
 if(BUILD_WITH_GPU)
     message(STATUS "With GPU")
     add_definitions(-DBUILD_WITH_GPU) 
     set(GAMMA_GPU ${CMAKE_CURRENT_SOURCE_DIR}/index/impl/gpu)
 
-    aux_source_directory(${GAMMA_GPU} DIR_SRCS)
+    aux_source_directory(${GAMMA_GPU} ALL_SOURCES)
 
     include(cmake/Modules/gpu/CUDA.cmake)
     
@@ -184,8 +172,8 @@ if(BUILD_WITH_GPU)
     /usr/local/cuda/lib64/libcublas.so
     /usr/local/cuda/lib64/libcudart.so
     )
-
 else()
+    list(FILTER LIB_SRCS EXCLUDE REGEX "${CMAKE_CURRENT_SOURCE_DIR}/index/impl/gpu/.*")
     add_library(gamma SHARED ${LIB_SRCS})
     target_link_libraries(gamma ${LIBRARIES})
 
@@ -223,20 +211,28 @@ install(TARGETS gamma
 	ARCHIVE	DESTINATION	lib)
 
 install(FILES ${GAMMA_C_API}/gamma_api.h DESTINATION include/gamma)
-# install(DIRECTORY ${PROJECT_SOURCE_DIR} DESTINATION include/gamma FILES_MATCHING PATTERN "*.h" PATTERN "build/*" EXCLUDE)
-install(DIRECTORY ${PROJECT_SOURCE_DIR}/index DESTINATION include/gamma FILES_MATCHING PATTERN "*.h")
-install(DIRECTORY ${PROJECT_SOURCE_DIR}/common DESTINATION include/gamma FILES_MATCHING PATTERN "*.h")
-install(DIRECTORY ${PROJECT_SOURCE_DIR}/index/realtime DESTINATION include/gamma FILES_MATCHING PATTERN "*.h")
-install(DIRECTORY ${PROJECT_SOURCE_DIR}/search DESTINATION include/gamma FILES_MATCHING PATTERN "*.h")
-install(DIRECTORY ${PROJECT_SOURCE_DIR}/io DESTINATION include/gamma FILES_MATCHING PATTERN "*.h")
-install(DIRECTORY ${PROJECT_SOURCE_DIR}/table DESTINATION include/gamma FILES_MATCHING PATTERN "*.h")
-install(DIRECTORY ${PROJECT_SOURCE_DIR}/util DESTINATION include/gamma FILES_MATCHING PATTERN "*.h")
-install(DIRECTORY ${PROJECT_SOURCE_DIR}/storage DESTINATION include/gamma FILES_MATCHING PATTERN "*.h")
-install(DIRECTORY ${PROJECT_SOURCE_DIR}/vector DESTINATION include/gamma FILES_MATCHING PATTERN "*.h")
-install(DIRECTORY ${PROJECT_SOURCE_DIR}/c_api DESTINATION include/gamma FILES_MATCHING PATTERN "*.h")
-install(DIRECTORY ${PROJECT_SOURCE_DIR}/idl/fbs-gen/c DESTINATION include/gamma/idl/fbs-gen FILES_MATCHING PATTERN "*.h")
-install(DIRECTORY ${PROJECT_SOURCE_DIR}/index/impl/relayout DESTINATION include/gamma FILES_MATCHING PATTERN "*.h")
-install(DIRECTORY ${PROJECT_SOURCE_DIR}/third_party DESTINATION include/gamma FILES_MATCHING PATTERN "*.h" PATTERN "*.hh")
+set(INSTALL_INCLUDE_DIRS
+    index
+    common
+    index/realtime
+    search
+    io
+    table
+    util
+    storage
+    vector
+    c_api
+    idl/fbs-gen/c
+    index/impl/relayout
+    third_party
+)
+
+foreach(dir ${INSTALL_INCLUDE_DIRS})
+    install(DIRECTORY ${PROJECT_SOURCE_DIR}/${dir} 
+            DESTINATION include/gamma 
+            FILES_MATCHING PATTERN "*.h" 
+            PATTERN "build/*" EXCLUDE)
+endforeach()
 
 if(BUILD_TEST)
     add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/tests)

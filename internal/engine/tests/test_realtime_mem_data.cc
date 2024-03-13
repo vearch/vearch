@@ -1,5 +1,5 @@
 #include "index/index_io.h"
-#include "realtime/realtime_mem_data.h"
+#include "index/realtime/realtime_mem_data.h"
 #include "test.h"
 #include "util/bitmap_manager.h"
 #include "util/utils.h"

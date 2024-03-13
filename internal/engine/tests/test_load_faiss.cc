@@ -56,18 +56,18 @@ TEST_F(GammaTest, IVFPQ) {
 int CreateFaissTable(struct Options &opt) {
   vearch::TableInfo table;
   table.SetName(opt.vector_name);
-  table.SetRetrievalType(opt.retrieval_type);
+  table.SetIndexType(opt.retrieval_type);
   if (opt.retrieval_type == "IVFPQ" || opt.retrieval_type == "IVFPQ_RELAYOUT") {
-    table.SetRetrievalParam(kIVFPQParam);
+    table.SetIndexParams(kIVFPQParam);
   } else if (opt.retrieval_type == "IVFFLAT") {
-    table.SetRetrievalParam(kIVFPQParam);
+    table.SetIndexParams(kIVFPQParam);
   } else if (opt.retrieval_type == "FLAT") {
-    table.SetRetrievalParam(kFLATParam);
+    table.SetIndexParams(kFLATParam);
   } else if (opt.retrieval_type == "HNSW") {
-    table.SetRetrievalParam(kHNSWParam);
+    table.SetIndexParams(kHNSWParam);
   }
 
-  table.SetIndexingSize(opt.indexing_size);
+  table.SetTrainingThreshold(opt.indexing_size);
 
   struct vearch::FieldInfo field_info;
   field_info.name = "_id";
@@ -209,7 +209,7 @@ int SearchFaiss(struct Options &opt, size_t num) {
     std::string retrieval_params =
         "{\"metric_type\" : \"L2\", \"recall_num\" : "
         "10, \"nprobe\" : 10, \"ivf_flat\" : 0}";
-    request.SetRetrievalParams(retrieval_params);
+    request.SetIndexParams(retrieval_params);
     // request.SetOnlineLogLevel("");
     request.SetMultiVectorRank(0);
     request.SetL2Sqrt(false);

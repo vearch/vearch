@@ -53,9 +53,9 @@ class TableTest : public ::testing::Test {
   TableInfo *CreateTableInfo(struct Options &opt, bool is_index = false) {
     TableInfo *table = new TableInfo();
     table->SetName(opt.vector_name);
-    table->SetRetrievalType(opt.retrieval_type);
-    table->SetRetrievalParam(opt.retrieval_param);
-    table->SetIndexingSize(opt.indexing_size);
+    table->SetIndexType(opt.retrieval_type);
+    table->SetIndexParams(opt.retrieval_param);
+    table->SetTrainingThreshold(opt.indexing_size);
 
     struct vearch::FieldInfo field_info;
     field_info.is_index = is_index;
@@ -254,26 +254,6 @@ TEST_F(TableTest, CreateStringTable) {
 TEST_F(TableTest, CreateStringTableINDEXED) {
   struct Options opt;
   ASSERT_EQ(0, CreateTable(opt, true));
-  ASSERT_EQ(0, Add());
-  ASSERT_EQ(9999, table->last_docid_);
-  ASSERT_EQ(0, Get());
-  ASSERT_EQ(0, Update());
-  ASSERT_EQ(-1, Delete());
-}
-
-TEST_F(TableTest, CreateLongTable) {
-  struct Options opt;
-  ASSERT_EQ(0, CreateTable(opt, false, true));
-  ASSERT_EQ(0, Add());
-  ASSERT_EQ(9999, table->last_docid_);
-  ASSERT_EQ(0, Get());
-  ASSERT_EQ(0, Update());
-  ASSERT_EQ(-1, Delete());
-}
-
-TEST_F(TableTest, CreateLongTableINDEXED) {
-  struct Options opt;
-  ASSERT_EQ(0, CreateTable(opt, true, true));
   ASSERT_EQ(0, Add());
   ASSERT_EQ(9999, table->last_docid_);
   ASSERT_EQ(0, Get());

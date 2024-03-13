@@ -554,7 +554,7 @@ int SearchThread(struct Options &opt, size_t num) {
     std::string retrieval_params =
         "{\"metric_type\" : \"InnerProduct\", \"recall_num\" : "
         "10, \"nprobe\" : 10, \"ivf_flat\" : 0}";
-    request.SetRetrievalParams(retrieval_params);
+    request.SetIndexParams(retrieval_params);
     // request.SetOnlineLogLevel("");
     request.SetMultiVectorRank(0);
     request.SetL2Sqrt(false);
@@ -893,9 +893,9 @@ void InitEngine(struct Options &opt) {
 int Create(struct Options &opt) {
   vearch::TableInfo table;
   table.SetName(opt.vector_name);
-  table.SetRetrievalType(opt.retrieval_type);
-  table.SetRetrievalParam(opt.retrieval_param);
-  table.SetIndexingSize(opt.indexing_size);
+  table.SetIndexType(opt.retrieval_type);
+  table.SetIndexParams(opt.retrieval_param);
+  table.SetTrainingThreshold(opt.indexing_size);
 
   for (size_t i = 0; i < opt.fields_vec.size(); ++i) {
     struct vearch::FieldInfo field_info;
