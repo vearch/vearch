@@ -26,7 +26,6 @@ import (
 	"github.com/vearch/vearch/internal/client"
 	"github.com/vearch/vearch/internal/config"
 	"github.com/vearch/vearch/internal/entity"
-	"github.com/vearch/vearch/internal/pkg/atomic"
 	"github.com/vearch/vearch/internal/pkg/errutil"
 	"github.com/vearch/vearch/internal/pkg/log"
 	"github.com/vearch/vearch/internal/pkg/metrics/mserver"
@@ -56,7 +55,7 @@ type Server struct {
 	client          *client.Client
 	ctx             context.Context
 	ctxCancel       context.CancelFunc
-	stopping        atomic.AtomicBool
+	stopping        bool
 	wg              sync.WaitGroup
 	changeLeaderC   chan *changeLeaderEntry
 	replicasStatusC chan *raftstore.ReplicasStatusEntry
@@ -110,7 +109,7 @@ func (s *Server) Start() error {
 
 	var err error
 
-	s.stopping.Set(false) // set start flag for all job if false all job will to end
+	s.stopping = false // set start flag for all job if false all job will to end
 
 	// load meta data
 	nodeId := psutil.InitMeta(s.client, config.Conf().Global.Name, config.Conf().GetDataDir())
@@ -153,7 +152,7 @@ func (s *Server) Start() error {
 // Stop stop server
 func (s *Server) Close() error {
 	log.Info("ps shutdown... start")
-	s.stopping.Set(true)
+	s.stopping = true
 	s.ctxCancel()
 
 	if err := routine.Stop(); err != nil {

@@ -80,7 +80,7 @@ type InitAdminHandler struct {
 }
 
 func (i *InitAdminHandler) Execute(ctx context.Context, req *vearchpb.PartitionData, reply *vearchpb.PartitionData) error {
-	if i.server.stopping.Get() {
+	if i.server.stopping {
 		return vearchpb.NewError(vearchpb.ErrorEnum_SERVICE_UNAVAILABLE, nil)
 	}
 	return nil

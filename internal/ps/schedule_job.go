@@ -51,7 +51,7 @@ func (s *Server) StartHeartbeatJob() {
 		var leaseId clientv3.LeaseID = 0
 		var lastPartitionIds []entity.PartitionID
 
-		if s.stopping.Get() {
+		if s.stopping {
 			return
 		}
 

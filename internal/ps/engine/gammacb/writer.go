@@ -27,7 +27,7 @@ import (
 
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/internal/engine/sdk/go/gamma"
-	"github.com/vearch/vearch/internal/pkg/ioutil2"
+	"github.com/vearch/vearch/internal/pkg/fileutil"
 	"github.com/vearch/vearch/internal/pkg/log"
 	"github.com/vearch/vearch/internal/pkg/vearchlog"
 	"github.com/vearch/vearch/internal/proto/vearchpb"
@@ -105,7 +105,7 @@ func (wi *writerImpl) Flush(ctx context.Context, sn int64) error {
 	}
 
 	fileName := filepath.Join(wi.engine.path, indexSn)
-	err := ioutil2.WriteFileAtomic(fileName, []byte(string(strconv.FormatInt(sn, 10))), os.ModePerm)
+	err := fileutil.WriteFileAtomic(fileName, []byte(string(strconv.FormatInt(sn, 10))), os.ModePerm)
 	if err != nil {
 		return err
 	}
@@ -151,7 +151,7 @@ func (wi *writerImpl) Commit(ctx context.Context, snx int64) (chan error, error)
 			fc <- vearchlog.LogErrAndReturn(fmt.Errorf("dump index err response code :[%d]", code))
 		} else {
 			fileName := filepath.Join(wi.engine.path, indexSn)
-			err := ioutil2.WriteFileAtomic(fileName, []byte(string(strconv.FormatInt(sn, 10))), os.ModePerm)
+			err := fileutil.WriteFileAtomic(fileName, []byte(string(strconv.FormatInt(sn, 10))), os.ModePerm)
 			if err != nil {
 				return
 			}

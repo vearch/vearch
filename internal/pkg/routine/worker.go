@@ -23,8 +23,8 @@ import (
 	"sync"
 
 	"github.com/vearch/vearch/internal/pkg/atomic"
+	"github.com/vearch/vearch/internal/pkg/errutil"
 	"github.com/vearch/vearch/internal/pkg/log"
-	"github.com/vearch/vearch/internal/pkg/multierror"
 )
 
 const (
@@ -159,7 +159,7 @@ func Stop() error {
 	globalWorker.rwMu.RLock()
 	defer globalWorker.rwMu.RUnlock()
 
-	merr := &multierror.MultiError{}
+	merr := &errutil.MultiError{}
 	for _, c := range globalWorker.closers {
 		merr.Append(c())
 	}

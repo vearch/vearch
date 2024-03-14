@@ -27,7 +27,7 @@ import (
 	"github.com/vearch/vearch/internal/client"
 	"github.com/vearch/vearch/internal/entity"
 	"github.com/vearch/vearch/internal/pkg/cbjson"
-	"github.com/vearch/vearch/internal/pkg/ioutil2"
+	"github.com/vearch/vearch/internal/pkg/fileutil"
 	"github.com/vearch/vearch/internal/pkg/log"
 )
 
@@ -108,7 +108,7 @@ func createMeta(client *client.Client, cluster, metaPath string) entity.NodeID {
 		panic(err)
 	}
 
-	if err := ioutil2.WriteFileAtomic(metaPath, bytes, os.ModePerm); err != nil {
+	if err := fileutil.WriteFileAtomic(metaPath, bytes, os.ModePerm); err != nil {
 		panic(err)
 	}
 	return entity.NodeID(id)
@@ -187,7 +187,7 @@ func SavePartitionMeta(dataPath string, id entity.PartitionID, space *entity.Spa
 	if err != nil {
 		return err
 	}
-	return ioutil2.WriteFileAtomic(path.Join(meta, "meta.txt"), bytes, os.ModePerm)
+	return fileutil.WriteFileAtomic(path.Join(meta, "meta.txt"), bytes, os.ModePerm)
 }
 
 func GetPartitionPaths(path string, id entity.PartitionID) (data, raft, meta string) {

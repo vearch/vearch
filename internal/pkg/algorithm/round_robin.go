@@ -12,31 +12,34 @@
 // implied. See the License for the specific language governing
 // permissions and limitations under the License.
 
-package errutil
+package algorithm
 
 import (
-	"fmt"
-	"runtime/debug"
+	"sync"
 
-	"github.com/pkg/errors"
-	"github.com/vearch/vearch/internal/pkg/log"
+	"github.com/vearch/vearch/internal/pkg/atomic"
 )
 
-// throw error panic
-func ThrowError(err error) {
-	if err != nil {
-		panic(errors.WithStack(err))
-	}
+type RoundRobin[K comparable, V any] struct {
+	counterMap sync.Map
 }
 
-// catch error
-func CatchError(err *error) {
-	if info := recover(); info != nil {
-		if log.IsDebugEnabled() {
+func NewRoundRobin[K comparable, V any]() *RoundRobin[K, V] {
+	return &RoundRobin[K, V]{}
+}
 
-			debug.PrintStack()
-		}
-		tempErr := fmt.Errorf("CatchError is %v", info)
-		err = &tempErr
+func (rr *RoundRobin[K, V]) Next(k K, v []V) V {
+	if len(v) <= 0 {
+		var zeroValue V
+		return zeroValue
 	}
+
+	var ix uint64
+	counter, ok := rr.counterMap.LoadOrStore(k, atomic.NewCounter(1))
+	if ok {
+		// loaded
+		newValue := counter.(*atomic.AtomicCounter).Incr()
+		ix = (newValue - 1) % uint64(len(v))
+	}
+	return v[ix]
 }

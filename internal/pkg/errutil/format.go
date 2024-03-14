@@ -12,34 +12,25 @@
 // implied. See the License for the specific language governing
 // permissions and limitations under the License.
 
-package atomic
+package errutil
 
-import "sync/atomic"
+import (
+	"io"
+)
 
-type AtomicBool struct {
-	v int32
-}
+// ErrorFormat error print format definition
+type ErrorFormat func([]error, io.Writer)
 
-func NewAtomicBool(v bool) *AtomicBool {
-	return &AtomicBool{v: boolToInt(v)}
-}
+var (
+	multilinePrefix    = []byte("the following errors occurred:")
+	multilineSeparator = []byte("\n -- ")
+)
 
-func (b *AtomicBool) Get() bool {
-	return atomic.LoadInt32(&b.v) != 0
-}
-
-func (b *AtomicBool) Set(newValue bool) {
-	atomic.StoreInt32(&b.v, boolToInt(newValue))
-}
-
-func (b *AtomicBool) CompareAndSet(expect, update bool) bool {
-	return atomic.CompareAndSwapInt32(&b.v, boolToInt(expect), boolToInt(update))
-}
-
-func boolToInt(v bool) int32 {
-	if v {
-		return 1
-	} else {
-		return 0
+// MultilineFormat error print format
+func MultilineFormat(errs []error, w io.Writer) {
+	w.Write(multilinePrefix)
+	for _, err := range errs {
+		w.Write(multilineSeparator)
+		io.WriteString(w, err.Error())
 	}
 }

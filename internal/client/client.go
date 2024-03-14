@@ -39,6 +39,7 @@ import (
 	"github.com/vearch/vearch/internal/entity/response"
 	"github.com/vearch/vearch/internal/master/store"
 	util "github.com/vearch/vearch/internal/pkg"
+	"github.com/vearch/vearch/internal/pkg/algorithm"
 	"github.com/vearch/vearch/internal/pkg/cbbytes"
 	"github.com/vearch/vearch/internal/pkg/log"
 	"github.com/vearch/vearch/internal/pkg/uuid"
@@ -960,7 +961,7 @@ func (r *routerRequest) BulkSearchByPartitions(searchReq []*vearchpb.SearchReque
 	return r
 }
 
-var replicaRoundRobin = NewReplicaRoundRobin()
+var replicaRoundRobin = algorithm.NewRoundRobin[entity.PartitionID, entity.NodeID]()
 
 func GetNodeIdsByClientType(clientType string, partition *entity.Partition, servers *cache.Cache, client *Client) entity.NodeID {
 	nodeId := uint64(0)

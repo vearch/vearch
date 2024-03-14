@@ -12,31 +12,31 @@
 // implied. See the License for the specific language governing
 // permissions and limitations under the License.
 
-package errutil
+package fileutil
 
 import (
+	"bytes"
 	"fmt"
-	"runtime/debug"
-
-	"github.com/pkg/errors"
-	"github.com/vearch/vearch/internal/pkg/log"
+	"os"
+	"testing"
+	"time"
 )
 
-// throw error panic
-func ThrowError(err error) {
+func TestWrite(t *testing.T) {
+	data := []byte("test string\n")
+	fname := fmt.Sprintf("/tmp/atomic-file-test-%v.txt", time.Now().UnixNano())
+	err := WriteFileAtomic(fname, data, 0664)
 	if err != nil {
-		panic(errors.WithStack(err))
+		t.Fatal(err)
 	}
-}
-
-// catch error
-func CatchError(err *error) {
-	if info := recover(); info != nil {
-		if log.IsDebugEnabled() {
-
-			debug.PrintStack()
-		}
-		tempErr := fmt.Errorf("CatchError is %v", info)
-		err = &tempErr
+	rData, err := os.ReadFile(fname)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(data, rData) {
+		t.Fatalf("data mismatch: %v != %v", data, rData)
+	}
+	if err := os.Remove(fname); err != nil {
+		t.Fatal(err)
 	}
 }
