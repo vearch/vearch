@@ -105,10 +105,9 @@ func CreteTable() {
 	//
 	//kFLATParam_str := "{\"metric_type\" : \"InnerProduct\"}"
 	table := gamma.Table{
-		Name:           opt.VectorName,
-		IndexingSize:   10000,
-		RetrievalType:  opt.RetrievalType,
-		RetrievalParam: kIVFPQParam}
+		Name:        opt.VectorName,
+		IndexType:   opt.RetrievalType,
+		IndexParams: kIVFPQParam}
 
 	for i := 0; i < len(opt.FieldsVec); i++ {
 		isIndex := false
@@ -312,7 +311,7 @@ func Search() {
 		OnlineLogLevel:       "",
 		MultiVectorRank:      0,
 		ParallelBasedOnQuery: true,
-		RetrievalParams:      "{\"metric_type\" : \"InnerProduct\", \"recall_num\" : 100, \"nprobe\" : 10, \"ivf_flat\" : 0}",
+		IndexParams:          "{\"metric_type\" : \"InnerProduct\", \"recall_num\" : 100, \"nprobe\" : 10, \"ivf_flat\" : 0}",
 		L2Sqrt:               false,
 		IvfFlat:              false,
 	}

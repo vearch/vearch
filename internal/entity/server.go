@@ -15,8 +15,9 @@
 package entity
 
 import (
+	"fmt"
+
 	"github.com/spf13/cast"
-	util "github.com/vearch/vearch/internal/pkg"
 )
 
 type BuildVersion struct {
@@ -54,8 +55,8 @@ func (s *Server) RpcAddr() string {
 func (s *Server) Replica() *Replica {
 	return &Replica{
 		NodeID:        s.ID,
-		HeartbeatAddr: util.BuildAddr(s.Ip, s.RaftHeartbeatPort),
-		ReplicateAddr: util.BuildAddr(s.Ip, s.RaftReplicatePort),
-		RpcAddr:       util.BuildAddr(s.Ip, s.RpcPort),
+		HeartbeatAddr: fmt.Sprintf("%s:%d", s.Ip, s.RaftHeartbeatPort),
+		ReplicateAddr: fmt.Sprintf("%s:%d", s.Ip, s.RaftReplicatePort),
+		RpcAddr:       fmt.Sprintf("%s:%d", s.Ip, s.RpcPort),
 	}
 }

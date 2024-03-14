@@ -16,12 +16,12 @@ package ginutil
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	util "github.com/vearch/vearch/internal/pkg"
 )
 
 type GinServer struct {
@@ -38,7 +38,7 @@ func NewGinServer(ginRouter *gin.Engine, ip string, port uint16) *GinServer {
 	}
 
 	server := &http.Server{
-		Addr:         util.BuildAddr(ip, port),
+		Addr:         fmt.Sprintf("%s:%d", ip, port),
 		Handler:      ginRouter,
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
@@ -48,27 +48,16 @@ func NewGinServer(ginRouter *gin.Engine, ip string, port uint16) *GinServer {
 	return &GinServer{Server: server}
 }
 
-//func (this *GinServer) Export() error {
-//	docService, err := document.NewDocService()
-//	if err != nil {
-//		return err
-//	}
-//
-//	document.StartHttp(this.server.Handler.(*gin.Engine), *docService)
-//
-//	return nil
-//}
-
-func (this *GinServer) Run() error {
-	if err := this.Server.ListenAndServe(); err != nil {
+func (g *GinServer) Run() error {
+	if err := g.Server.ListenAndServe(); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (this GinServer) Stop() {
-	if this.Server != nil {
-		this.Server.Close()
+func (g GinServer) Stop() {
+	if g.Server != nil {
+		g.Server.Close()
 	}
 }

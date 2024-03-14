@@ -27,7 +27,6 @@ import (
 	"github.com/vearch/vearch/internal/client"
 	"github.com/vearch/vearch/internal/config"
 	"github.com/vearch/vearch/internal/monitor"
-	util "github.com/vearch/vearch/internal/pkg"
 	"github.com/vearch/vearch/internal/pkg/log"
 	"github.com/vearch/vearch/internal/pkg/metrics/mserver"
 	"github.com/vearch/vearch/internal/pkg/netutil"
@@ -76,7 +75,7 @@ func NewServer(ctx context.Context) (*Server, error) {
 
 	var rpcServer *grpc.Server
 	if config.Conf().Router.RpcPort > 0 {
-		lis, err := net.Listen("tcp", util.BuildAddr(addr, config.Conf().Router.RpcPort))
+		lis, err := net.Listen("tcp", fmt.Sprintf("%s:%d", addr, config.Conf().Router.RpcPort))
 		if err != nil {
 			panic(fmt.Errorf("start rpc server failed to listen: %v", err))
 		}
@@ -123,7 +122,7 @@ func (server *Server) Start() error {
 		monitor.Register(nil, nil, config.Conf().Router.MonitorPort)
 	}
 
-	if err := server.httpServer.Run(cast.ToString(util.BuildAddr("0.0.0.0", config.Conf().Router.Port))); err != nil {
+	if err := server.httpServer.Run(cast.ToString(fmt.Sprintf("0.0.0.0:%d", config.Conf().Router.Port))); err != nil {
 		return fmt.Errorf("fail to start http Server, %v", err)
 	}
 	log.Info("router exited!")

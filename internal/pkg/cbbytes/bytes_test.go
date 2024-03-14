@@ -62,7 +62,7 @@ func BenchmarkVectorToByte(b *testing.B) {
 	}
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			VectorToByte(fa, "")
+			VectorToByte(fa)
 		}
 	})
 }

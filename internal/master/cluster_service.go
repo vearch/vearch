@@ -347,7 +347,8 @@ func (ms *masterService) createSpaceService(ctx context.Context, dbName string, 
 			int(space.ReplicaNum), len(serverPartitions))
 	}
 
-	space.Enabled = util.PBool(false)
+	bFlase := false
+	space.Enabled = &bFlase
 	defer func() {
 		if !(*space.Enabled) { // if space is still not enabled , so to remove it
 			if e := ms.Master().Delete(context.Background(), entity.SpaceKey(space.DBId, space.Id)); e != nil {
@@ -433,12 +434,14 @@ func (ms *masterService) createSpaceService(ctx context.Context, dbName string, 
 		}
 	}
 
-	space.Enabled = util.PBool(true)
+	bTrue := true
+	space.Enabled = &bTrue
 
 	//update version
 	err = ms.updateSpace(ctx, space)
 	if err != nil {
-		space.Enabled = util.PBool(false)
+		bFalse := false
+		space.Enabled = &bFalse
 		return err
 	}
 

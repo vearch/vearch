@@ -26,7 +26,6 @@ import (
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/internal/entity"
 	"github.com/vearch/vearch/internal/entity/request"
-	util "github.com/vearch/vearch/internal/pkg"
 	"github.com/vearch/vearch/internal/pkg/cbbytes"
 	"github.com/vearch/vearch/internal/pkg/cbjson"
 	"github.com/vearch/vearch/internal/proto/vearchpb"
@@ -64,10 +63,8 @@ type VectorQuery struct {
 	HasBoost     *int32          `json:"has_boost"`
 }
 
-var defaultBoost = util.PFloat64(1)
-var defaultHasBoost = util.PInt32(0)
-
-var minOffset float64 = 0.0000001
+var defaultBoost = float64(1)
+var defaultHasBoost = int32(0)
 
 func parseQuery(data []byte, req *vearchpb.SearchRequest, space *entity.Space) error {
 	if len(data) == 0 {
@@ -651,24 +648,24 @@ func (query *VectorQuery) ToC(indexType string) (*vearchpb.VectorQuery, error) {
 	if query.Value != nil {
 		switch strings.TrimSpace(query.Symbol) {
 		case ">":
-			query.MinScore = util.PFloat64(*query.Value + minOffset)
+			query.MinScore = query.Value
 		case ">=":
-			query.MinScore = util.PFloat64(*query.Value)
+			query.MinScore = query.Value
 		case "<":
-			query.MaxScore = util.PFloat64(*query.Value - minOffset)
+			query.MaxScore = query.Value
 		case "<=":
-			query.MaxScore = util.PFloat64(*query.Value)
+			query.MaxScore = query.Value
 		default:
 			return nil, fmt.Errorf("symbol value unknow:[%s]", query.Symbol)
 		}
 	}
 
 	if query.Boost == nil {
-		query.Boost = defaultBoost
+		query.Boost = &defaultBoost
 	}
 
 	if query.HasBoost == nil {
-		query.HasBoost = defaultHasBoost
+		query.HasBoost = &defaultHasBoost
 	}
 
 	vectorQuery := &vearchpb.VectorQuery{

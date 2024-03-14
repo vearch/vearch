@@ -56,7 +56,7 @@ type Client struct {
 // NewClient create a new client by config
 func NewClient(conf *config.Config) (client *Client, err error) {
 	client = &Client{}
-	err = client.initPsClient(conf)
+	err = client.initPsClient()
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +67,7 @@ func NewClient(conf *config.Config) (client *Client, err error) {
 	return client, err
 }
 
-func (client *Client) initPsClient(conf *config.Config) error {
+func (client *Client) initPsClient() error {
 	client.ps = &psClient{client: client}
 	client.ps.initFaultylist()
 	return nil
@@ -397,7 +397,7 @@ func str2decimalFloat(str string) decimal.Decimal {
 	return decimalFloat
 }
 
-func (r *routerRequest) searchFromPartition(ctx context.Context, partitionID entity.PartitionID, pd *vearchpb.PartitionData, space *entity.Space, sortOrder sortorder.SortOrder, respChain chan *response.SearchDocResult, normalIsOrNot bool, normalField map[string]string) {
+func (r *routerRequest) searchFromPartition(ctx context.Context, partitionID entity.PartitionID, pd *vearchpb.PartitionData, space *entity.Space, respChain chan *response.SearchDocResult, normalIsOrNot bool, normalField map[string]string) {
 	pidCacheStart := time.Now()
 	responseDoc := &response.SearchDocResult{}
 	defer func() {
@@ -665,7 +665,7 @@ func (r *routerRequest) SearchFieldSortExecute(sortOrder sortorder.SortOrder) *v
 		c := context.WithValue(r.ctx, share.ReqMetaDataKey, util.CopyMap(r.md))
 		go func(ctx context.Context, partitionID entity.PartitionID, pd *vearchpb.PartitionData, space *entity.Space, sortOrder sortorder.SortOrder, respChain chan *response.SearchDocResult, normalIsOrNot bool, normalField map[string]string) {
 			defer wg.Done()
-			r.searchFromPartition(ctx, partitionID, pd, space, sortOrder, respChain, normalIsOrNot, normalField)
+			r.searchFromPartition(ctx, partitionID, pd, space, respChain, normalIsOrNot, normalField)
 		}(c, partitionID, pData, r.space, sortOrder, respChain, normalIsOrNot, normalField)
 	}
 	wg.Wait()

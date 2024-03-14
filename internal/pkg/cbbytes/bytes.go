@@ -185,7 +185,7 @@ func UInt8ArrayToByteArray(in []uint8) (code []byte, err error) {
 	var byteArr = make([]byte, uint8Lenth)
 	for i := 0; i < uint8Lenth; i++ {
 		unit8Value := in[i]
-		if unit8Value < 0 || unit8Value > 255 {
+		if unit8Value > 255 {
 			return nil, fmt.Errorf("byte value overflows byte constant :%v", unit8Value)
 		}
 		byteArr[i] = unit8Value

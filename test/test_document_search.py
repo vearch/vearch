@@ -91,6 +91,7 @@ def check(total, bulk, full_field, with_filter, query_type, xb):
         [False, True, False, "by_ids"],
         [False, True, True, "by_vector"],
         [False, True, False, "by_vector"],
+        [False, True, False, "by_vector_with_symbol"],
     ],
 )
 def test_vearch_document_search(

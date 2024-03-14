@@ -37,7 +37,7 @@ func operatePartition(method, addr string, space *entity.Space, pid uint32) erro
 	if err != nil {
 		return err
 	}
-	if reply != nil && reply.Err.Code != vearchpb.ErrorEnum_SUCCESS {
+	if reply.Err.Code != vearchpb.ErrorEnum_SUCCESS {
 		return vearchpb.NewError(reply.Err.Code, nil)
 	}
 	return nil
@@ -57,7 +57,7 @@ func GetEngineCfg(addr string, pid entity.PartitionID) (cfg *entity.EngineCfg, e
 	err = Execute(addr, EngineCfgHandler, args, reply)
 	if err != nil {
 		return nil, err
-	} else if reply != nil && reply.Err.Code != vearchpb.ErrorEnum_SUCCESS {
+	} else if reply.Err.Code != vearchpb.ErrorEnum_SUCCESS {
 		return nil, vearchpb.NewError(reply.Err.Code, nil)
 	}
 	if reply.Data != nil {
@@ -85,7 +85,7 @@ func UpdateEngineCfg(addr string, cacheCfg *entity.EngineCfg, pid entity.Partiti
 	err = Execute(addr, EngineCfgHandler, args, reply)
 	if err != nil {
 		return err
-	} else if reply != nil && reply.Err.Code != vearchpb.ErrorEnum_SUCCESS {
+	} else if reply.Err.Code != vearchpb.ErrorEnum_SUCCESS {
 		return vearchpb.NewError(reply.Err.Code, nil)
 	}
 	return nil
@@ -97,7 +97,7 @@ func DeleteReplica(addr string, partitionId uint32) error {
 	err := Execute(addr, DeleteReplicaHandler, args, reply)
 	if err != nil {
 		return err
-	} else if reply != nil && reply.Err.Code != vearchpb.ErrorEnum_SUCCESS {
+	} else if reply.Err.Code != vearchpb.ErrorEnum_SUCCESS {
 		return vearchpb.NewError(reply.Err.Code, nil)
 	}
 	return nil
@@ -109,7 +109,7 @@ func DeletePartition(addr string, pid uint32) error {
 	err := Execute(addr, DeletePartitionHandler, args, reply)
 	if err != nil {
 		return err
-	} else if reply != nil && reply.Err.Code != vearchpb.ErrorEnum_SUCCESS {
+	} else if reply.Err.Code != vearchpb.ErrorEnum_SUCCESS {
 		return vearchpb.NewError(reply.Err.Code, nil)
 	}
 	return nil
@@ -121,7 +121,7 @@ func ServerStats(addr string) *mserver.ServerStats {
 	err := Execute(addr, StatsHandler, args, reply)
 	if err != nil {
 		return mserver.NewErrServerStatus(strings.Split(addr, ":")[0], err)
-	} else if reply != nil && reply.Err.Code != vearchpb.ErrorEnum_SUCCESS {
+	} else if reply.Err.Code != vearchpb.ErrorEnum_SUCCESS {
 		err = vearchpb.NewError(reply.Err.Code, nil)
 		return mserver.NewErrServerStatus(strings.Split(addr, ":")[0], err)
 	}
@@ -192,7 +192,7 @@ func ChangeMember(addr string, changeMember *entity.ChangeMember) error {
 	err = Execute(addr, ChangeMemberHandler, args, reply)
 	if err != nil {
 		return err
-	} else if reply != nil && reply.Err.Code != vearchpb.ErrorEnum_SUCCESS {
+	} else if reply.Err.Code != vearchpb.ErrorEnum_SUCCESS {
 		return vearchpb.NewError(reply.Err.Code, nil)
 	}
 	return nil

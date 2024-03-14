@@ -60,16 +60,16 @@ func getDocs() DocsList {
 	t0 := time.Now()
 	fmt.Println("begin load data")
 	docs := loadData()
-	fmt.Println("finish load data", time.Now().Sub(t0))
+	fmt.Println("finish load data", time.Since(t0))
 	return docs
 }
 
 func printArgs() {
 	fmt.Println("################### param #############################")
-	fmt.Println(fmt.Sprintf("\t batchNum: [%d], instertNum: [%d]", batchNum, instertNum))
-	fmt.Println(fmt.Sprintf("\t address: [%s]", address))
-	fmt.Println(fmt.Sprintf("\t profile path: [%s]", pathProfile))
-	fmt.Println(fmt.Sprintf("\t feature path: [%s]", pathFeature))
+	fmt.Printf("\t batchNum: [%d], instertNum: [%d]\n", batchNum, instertNum)
+	fmt.Printf("\t address: [%s]\n", address)
+	fmt.Printf("\t profile path: [%s]\n", pathProfile)
+	fmt.Printf("\t feature path: [%s]\n", pathFeature)
 }
 
 func loadData() DocsList {
@@ -168,7 +168,7 @@ func Bulk(addr string, docs DocsList) {
 		}(d)
 	}
 	wg.Wait()
-	log.Println(fmt.Sprintf("total cost %v", time.Now().Sub(t0)))
+	log.Printf("total cost %v\n", time.Since(t0))
 }
 
 func TestBulk(t *testing.T) {
@@ -388,7 +388,7 @@ func makeSearchRequests(n, m int) []*vearchpb.SearchRequest {
 			query.ParallelBasedOnQuery = false
 			query.L2Sqrt = false
 			query.IvfFlat = false
-			query.RetrievalParams = `{"nprobe" : 10, "metric_type" : "InnerProduct", "ncentroids" : 4096,"nsubvector" : 32}`
+			query.IndexParams = `{"nprobe" : 10, "metric_type" : "InnerProduct", "ncentroids" : 4096,"nsubvector" : 32}`
 			query.MultiVectorRank = 0
 			query.Head = &vearchpb.RequestHead{
 				TimeOutMs: 10000,

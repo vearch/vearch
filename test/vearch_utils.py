@@ -784,6 +784,12 @@ def process_search_data(items):
         for j in range(batch_size):
             data["query"]["document_ids"].append(str(index * batch_size + j))
 
+    with_symbol = False
+    if query_type == "by_vector_with_symbol":
+        query_type = "by_vector"
+        with_symbol = True
+
+
     if query_type == "by_vector":
         data["query"]["vector"] = []
         # logger.debug("partition_id: " + str(partition_id))
@@ -791,6 +797,9 @@ def process_search_data(items):
             "field": "field_vector",
             "feature": features[:batch_size].flatten().tolist(),
         }
+        if with_symbol:
+            vector_info["symbol"] = "<"
+            vector_info["value"] = 40000
         data["query"]["vector"].append(vector_info)
 
     if with_filter:
@@ -821,6 +830,8 @@ def process_search_data(items):
                 assert document["_source"]["field_long"] == value * seed
                 assert document["_source"]["field_float"] == float(value * seed)
                 assert document["_source"]["field_double"] == float(value * seed)
+            if with_symbol:
+                assert document["_score"] < 40000
 
 
 def search_interface(
