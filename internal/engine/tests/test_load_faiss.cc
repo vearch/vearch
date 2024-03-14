@@ -67,7 +67,7 @@ int CreateFaissTable(struct Options &opt) {
     table.SetIndexParams(kHNSWParam);
   }
 
-  table.SetTrainingThreshold(opt.indexing_size);
+  table.SetTrainingThreshold(opt.training_threshold);
 
   struct vearch::FieldInfo field_info;
   field_info.name = "_id";
@@ -290,7 +290,7 @@ TEST_F(GammaTest, LOAD_FAISS_INDEX) {
   opt.retrieval_type = "IVFPQ";
   opt.store_type = "MemoryOnly";
   opt.add_doc_num = 20000;
-  opt.indexing_size = 5000;
+  opt.training_threshold = 5000;
   opt.b_load = true;
   int ret = 0;
   InitEngine(opt);

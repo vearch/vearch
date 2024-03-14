@@ -156,14 +156,14 @@ void VectorManager::DestroyRawVectors() {
 int VectorManager::CreateVectorIndex(
     std::string &index_type, std::string &index_params, RawVector *vec,
     int training_threshold, bool destroy_vec,
-    std::map<std::string, RetrievalModel *> &vector_indexes) {
+    std::map<std::string, IndexModel *> &vector_indexes) {
   std::string vec_name = vec->MetaInfo()->Name();
   LOG(INFO) << "Create index model [" << index_type
             << "] for vector: " << vec_name;
 
-  RetrievalModel *retrieval_model =
-      dynamic_cast<RetrievalModel *>(reflector().GetNewModel(index_type));
-  if (retrieval_model == nullptr) {
+  IndexModel *index_model =
+      dynamic_cast<IndexModel *>(reflector().GetNewIndex(index_type));
+  if (index_model == nullptr) {
     LOG(ERROR) << "Cannot get model=" << index_type
                << ", vec_name=" << vec_name;
     if (destroy_vec) {
@@ -178,9 +178,9 @@ int VectorManager::CreateVectorIndex(
     }
     return -1;
   }
-  retrieval_model->vector_ = vec;
+  index_model->vector_ = vec;
 
-  if (retrieval_model->Init(index_params, training_threshold) != 0) {
+  if (index_model->Init(index_params, training_threshold) != 0) {
     LOG(ERROR) << "gamma index init " << vec_name << " error!";
     if (destroy_vec) {
       RawVectorIO *rio = vec->GetIO();
@@ -192,14 +192,14 @@ int VectorManager::CreateVectorIndex(
       delete vec;
       raw_vectors_[vec_name] = nullptr;
     }
-    retrieval_model->vector_ = nullptr;
-    delete retrieval_model;
-    retrieval_model = nullptr;
+    index_model->vector_ = nullptr;
+    delete index_model;
+    index_model = nullptr;
     return -1;
   }
   // init indexed count
-  retrieval_model->indexed_count_ = 0;
-  vector_indexes[IndexName(vec_name, index_type)] = retrieval_model;
+  index_model->indexed_count_ = 0;
+  vector_indexes[IndexName(vec_name, index_type)] = index_model;
 
   return 0;
 }
@@ -225,7 +225,7 @@ void VectorManager::DescribeVectorIndexes() {
 
 int VectorManager::CreateVectorIndexes(
     int training_threshold,
-    std::map<std::string, RetrievalModel *> &vector_indexes) {
+    std::map<std::string, IndexModel *> &vector_indexes) {
   int ret = 0;
   for (const auto &[name, index] : raw_vectors_) {
     if (index != nullptr) {
@@ -245,7 +245,7 @@ int VectorManager::CreateVectorIndexes(
 }
 
 void VectorManager::SetVectorIndexes(
-    std::map<std::string, RetrievalModel *> &rebuild_vector_indexes) {
+    std::map<std::string, IndexModel *> &rebuild_vector_indexes) {
   for (const auto &[name, index] : rebuild_vector_indexes) {
     if (index != nullptr) {
       vector_indexes_[name] = index;
@@ -310,9 +310,9 @@ int VectorManager::CreateVectorTable(TableInfo &table,
       }
       // update TrainingThreshold when TrainingThreshold = 0
       if (!table.TrainingThreshold()) {
-        RetrievalModel * index = vector_indexes_[IndexName(vec_name, index_types_[i])];
+        IndexModel * index = vector_indexes_[IndexName(vec_name, index_types_[i])];
         if (index) {
-          table.SetTrainingThreshold(index->indexing_size_);
+          table.SetTrainingThreshold(index->training_threshold_);
         }
       }
     }
@@ -389,7 +389,7 @@ int VectorManager::Delete(int docid) {
 }
 
 int VectorManager::TrainIndex(
-    std::map<std::string, RetrievalModel *> &vector_indexes) {
+    std::map<std::string, IndexModel *> &vector_indexes) {
   int ret = 0;
   for (const auto &[name, index] : vector_indexes) {
     if (index->Indexing() != 0) {
@@ -403,10 +403,10 @@ int VectorManager::TrainIndex(
 int VectorManager::AddRTVecsToIndex(bool &index_is_dirty) {
   int ret = 0;
   index_is_dirty = false;
-  for (const auto &[name, retrieval_model] : vector_indexes_) {
-    RawVector *raw_vec = dynamic_cast<RawVector *>(retrieval_model->vector_);
+  for (const auto &[name, index_model] : vector_indexes_) {
+    RawVector *raw_vec = dynamic_cast<RawVector *>(index_model->vector_);
     int total_stored_vecs = raw_vec->MetaInfo()->Size();
-    int indexed_vec_count = retrieval_model->indexed_count_;
+    int indexed_vec_count = index_model->indexed_count_;
 
     if (indexed_vec_count > total_stored_vecs) {
       LOG(ERROR) << "internal error : indexed_vec_count=" << indexed_vec_count
@@ -423,7 +423,7 @@ int VectorManager::AddRTVecsToIndex(bool &index_is_dirty) {
           (total_stored_vecs - indexed_vec_count) / MAX_NUM_PER_INDEX + 1;
 
       for (int i = 0; i < index_count; i++) {
-        int start_docid = retrieval_model->indexed_count_;
+        int start_docid = index_model->indexed_count_;
         size_t count_per_index =
             (i == (index_count - 1) ? total_stored_vecs - start_docid
                                     : MAX_NUM_PER_INDEX);
@@ -462,11 +462,11 @@ int VectorManager::AddRTVecsToIndex(bool &index_is_dirty) {
             }
           }
         }
-        if (!retrieval_model->Add(count_per_index, add_vec)) {
+        if (!index_model->Add(count_per_index, add_vec)) {
           LOG(ERROR) << "add index from docid " << start_docid << " error!";
           ret = -2;
         } else {
-          retrieval_model->indexed_count_ += count_per_index;
+          index_model->indexed_count_ += count_per_index;
           index_is_dirty = true;
         }
       }
@@ -476,10 +476,10 @@ int VectorManager::AddRTVecsToIndex(bool &index_is_dirty) {
     }
     std::vector<int64_t> vids;
     int vid;
-    while (retrieval_model->updated_vids_.try_pop(vid)) {
+    while (index_model->updated_vids_.try_pop(vid)) {
       if (raw_vec->Bitmap()->Test(raw_vec->VidMgr()->VID2DocID(vid))) continue;
-      if (vid >= retrieval_model->indexed_count_) {
-        retrieval_model->updated_vids_.push(vid);
+      if (vid >= index_model->indexed_count_) {
+        index_model->updated_vids_.push(vid);
         break;
       } else {
         vids.push_back(vid);
@@ -493,7 +493,7 @@ int VectorManager::AddRTVecsToIndex(bool &index_is_dirty) {
       ret = -3;
       return ret;
     }
-    if (retrieval_model->Update(vids, scope_vecs.Get())) {
+    if (index_model->Update(vids, scope_vecs.Get())) {
       LOG(ERROR) << "update index error!";
       ret = -4;
     }
@@ -504,7 +504,7 @@ int VectorManager::AddRTVecsToIndex(bool &index_is_dirty) {
 
 namespace {
 int parse_index_search_result(int n, int k, VectorResult &result,
-                              RetrievalModel *index) {
+                              IndexModel *index) {
   RawVector *raw_vec = dynamic_cast<RawVector *>(index->vector_);
   if (raw_vec == nullptr) {
     LOG(ERROR) << "Cannot get raw vector";
@@ -558,7 +558,7 @@ int VectorManager::Search(GammaQuery &query, GammaResult *results) {
       index_type = vec_query.index_type;
     }
     index_name = IndexName(name, index_type);
-    std::map<std::string, RetrievalModel *>::iterator iter =
+    std::map<std::string, IndexModel *>::iterator iter =
         vector_indexes_.find(index_name);
     if (iter == vector_indexes_.end()) {
       LOG(ERROR) << "Query name " << index_name
@@ -566,7 +566,7 @@ int VectorManager::Search(GammaQuery &query, GammaResult *results) {
       return -1;
     }
 
-    RetrievalModel *index = iter->second;
+    IndexModel *index = iter->second;
     RawVector *raw_vec = dynamic_cast<RawVector *>(iter->second->vector_);
     int d = raw_vec->MetaInfo()->Dimension();
     if (raw_vec->MetaInfo()->DataType() == VectorValueType::BINARY) {

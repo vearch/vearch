@@ -65,7 +65,7 @@ TEST_F(GammaTest, SSG) {
   opt.retrieval_type = "SSG";
   opt.store_type = "MemoryOnly";
   opt.add_doc_num = 20000;
-  opt.indexing_size = 5000;
+  opt.training_threshold = 5000;
   opt.retrieval_param = kSSGParam;
   ASSERT_EQ(TestIndexes(opt), 0);
   opt.b_load = true;

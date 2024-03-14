@@ -159,7 +159,7 @@ struct Options {
     max_doc_size = 10000 * 100;
     add_doc_num = 10000 * 10;
     search_num = 100;
-    indexing_size = 10000 * 1;
+    training_threshold = 10000 * 1;
     fields_vec = {"_id", "img", "field1", "field2", "field3"};
     fields_type = {vearch::DataType::STRING, vearch::DataType::STRING,
                    vearch::DataType::STRING, vearch::DataType::INT,
@@ -189,7 +189,7 @@ struct Options {
   size_t max_doc_size;
   size_t add_doc_num;
   size_t search_num;
-  int indexing_size;
+  int training_threshold;
   bool filter;
   bool print_doc;
   int search_thread_num;
@@ -895,7 +895,7 @@ int Create(struct Options &opt) {
   table.SetName(opt.vector_name);
   table.SetIndexType(opt.retrieval_type);
   table.SetIndexParams(opt.retrieval_param);
-  table.SetTrainingThreshold(opt.indexing_size);
+  table.SetTrainingThreshold(opt.training_threshold);
 
   for (size_t i = 0; i < opt.fields_vec.size(); ++i) {
     struct vearch::FieldInfo field_info;

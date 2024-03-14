@@ -4,7 +4,7 @@
 #include <stdexcept>
 
 #include "faiss/IndexIVF.h"
-#include "index/retrieval_model.h"
+#include "index/index_model.h"
 
 namespace vearch {
 

@@ -55,7 +55,7 @@ class TableTest : public ::testing::Test {
     table->SetName(opt.vector_name);
     table->SetIndexType(opt.retrieval_type);
     table->SetIndexParams(opt.retrieval_param);
-    table->SetTrainingThreshold(opt.indexing_size);
+    table->SetTrainingThreshold(opt.training_threshold);
 
     struct vearch::FieldInfo field_info;
     field_info.is_index = is_index;

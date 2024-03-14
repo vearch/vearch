@@ -12,7 +12,7 @@
 #include <vector>
 
 #include "c_api/api_data/doc.h"
-#include "index/retrieval_model.h"
+#include "index/index_model.h"
 #include "io/io_common.h"
 #include "util/bitmap_manager.h"
 #include "util/log.h"

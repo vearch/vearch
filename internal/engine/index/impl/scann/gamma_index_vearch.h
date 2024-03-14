@@ -1,6 +1,6 @@
 #pragma once
 
-#include "index/retrieval_model.h"
+#include "index/index_model.h"
 #include <condition_variable>
 #include <atomic>
 #include <memory>
@@ -79,7 +79,7 @@ class VearchRetrievalParameters : public RetrievalParameters {
   int nprobe_;
 };
 
-class GammaVearchIndex : public RetrievalModel {
+class GammaVearchIndex : public IndexModel {
 
  public:
   GammaVearchIndex(VectorReader *vec, const std::string &model_parameters);
@@ -88,7 +88,7 @@ class GammaVearchIndex : public RetrievalModel {
 
   virtual ~GammaVearchIndex();
 
-  int Init(const std::string &model_parameters, int indexing_size) override;
+  int Init(const std::string &model_parameters, int training_threshold) override;
 
   RetrievalParameters *Parse(const std::string &parameters) override;
 

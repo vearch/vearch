@@ -16,7 +16,7 @@
 #include "common/gamma_common_data.h"
 #include "hnswlib.h"
 #include "index/impl/gamma_index_flat.h"
-#include "index/retrieval_model.h"
+#include "index/index_model.h"
 #include "table/field_range_index.h"
 #include "util/bitmap.h"
 #include "util/log.h"
@@ -67,7 +67,7 @@ struct GammaIndexHNSWLIB : public GammaFLATIndex,
 
   virtual ~GammaIndexHNSWLIB();
 
-  int Init(const std::string &model_parameters, int indexing_size) override;
+  int Init(const std::string &model_parameters, int training_threshold) override;
 
   RetrievalParameters *Parse(const std::string &parameters) override;
 

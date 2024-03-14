@@ -13,7 +13,7 @@
 
 #include "c_api/api_data/config.h"
 #include "common/gamma_common_data.h"
-#include "index/retrieval_model.h"
+#include "index/index_model.h"
 #include "util/bitmap_manager.h"
 #include "util/log.h"
 #include "vector/raw_vector.h"
@@ -41,7 +41,7 @@ class VectorManager {
   int CreateVectorIndex(
       std::string &index_type, std::string &index_params, RawVector *vec,
       int training_threshold, bool destroy_vec,
-      std::map<std::string, RetrievalModel *> &vector_indexes);
+      std::map<std::string, IndexModel *> &vector_indexes);
 
   void DestroyVectorIndexes();
 
@@ -49,10 +49,10 @@ class VectorManager {
 
   int CreateVectorIndexes(
       int training_threshold,
-      std::map<std::string, RetrievalModel *> &vector_indexes);
+      std::map<std::string, IndexModel *> &vector_indexes);
 
   void SetVectorIndexes(
-      std::map<std::string, RetrievalModel *> &rebuild_vector_indexes);
+      std::map<std::string, IndexModel *> &rebuild_vector_indexes);
 
   int CreateVectorTable(TableInfo &table, utils::JsonParser *jp);
 
@@ -61,7 +61,7 @@ class VectorManager {
 
   int Update(int docid, std::unordered_map<std::string, struct Field> &fields);
 
-  int TrainIndex(std::map<std::string, RetrievalModel *> &vector_indexes);
+  int TrainIndex(std::map<std::string, IndexModel *> &vector_indexes);
 
   int AddRTVecsToIndex(bool &index_is_dirty);
 
@@ -88,14 +88,14 @@ class VectorManager {
     }
   }
 
-  std::map<std::string, RetrievalModel *> &VectorIndexes() {
+  std::map<std::string, IndexModel *> &VectorIndexes() {
     return vector_indexes_;
   }
 
   int Delete(int docid);
 
   std::map<std::string, RawVector *> RawVectors() { return raw_vectors_; }
-  std::map<std::string, RetrievalModel *> RetrievalModels() {
+  std::map<std::string, IndexModel *> IndexModels() {
     return vector_indexes_;
   }
 
@@ -122,7 +122,7 @@ class VectorManager {
   std::string root_path_;
 
   std::map<std::string, RawVector *> raw_vectors_;
-  std::map<std::string, RetrievalModel *> vector_indexes_;
+  std::map<std::string, IndexModel *> vector_indexes_;
   std::vector<std::string> index_types_;
   std::vector<std::string> index_params_;
 };

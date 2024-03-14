@@ -806,7 +806,7 @@ int Engine::RebuildIndex(int drop_before_rebuild, int limit_cpu, int describe) {
     vec_manager_->DescribeVectorIndexes();
     return ret;
   }
-  std::map<std::string, RetrievalModel *> vector_indexes;
+  std::map<std::string, IndexModel *> vector_indexes;
 
   if (!drop_before_rebuild) {
     ret = vec_manager_->CreateVectorIndexes(training_threshold_, vector_indexes);
@@ -1130,14 +1130,14 @@ int Engine::Load() {
 }
 
 int Engine::LoadFromFaiss() {
-  std::map<std::string, RetrievalModel *> &vec_indexes =
+  std::map<std::string, IndexModel *> &vec_indexes =
       vec_manager_->VectorIndexes();
   if (vec_indexes.size() != 1) {
     LOG(ERROR) << space_name_ << " load from faiss index should be only one!";
     return -1;
   }
 
-  RetrievalModel *index = vec_indexes.begin()->second;
+  IndexModel *index = vec_indexes.begin()->second;
   if (index == nullptr) {
     LOG(ERROR) << space_name_ << " cannot find faiss index";
     return -1;

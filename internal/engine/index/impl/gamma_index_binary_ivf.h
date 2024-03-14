@@ -14,7 +14,7 @@
 
 #include "c_api/api_data/request.h"
 #include "index/realtime/realtime_invert_index.h"
-#include "index/retrieval_model.h"
+#include "index/index_model.h"
 #include "vector/raw_vector.h"
 
 namespace vearch {
@@ -74,13 +74,13 @@ struct GammaBinaryInvertedListScanner {
   RetrievalContext *retrieval_context_;
 };
 
-class GammaIndexBinaryIVF : public RetrievalModel, faiss::IndexBinaryIVF {
+class GammaIndexBinaryIVF : public IndexModel, faiss::IndexBinaryIVF {
  public:
   GammaIndexBinaryIVF();
 
   virtual ~GammaIndexBinaryIVF();
 
-  int Init(const std::string &model_parameters, int indexing_size) override;
+  int Init(const std::string &model_parameters, int training_threshold) override;
 
   RetrievalParameters *Parse(const std::string &parameters) override;
 

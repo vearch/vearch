@@ -46,7 +46,7 @@ static inline void ConvertVectorDim(size_t num, int raw_d, int d,
 
 IndexIVFPQStats indexIVFPQ_stats;
 
-REGISTER_MODEL(IVFPQ, GammaIVFPQIndex)
+REGISTER_INDEX(IVFPQ, GammaIVFPQIndex)
 
 GammaIVFPQIndex::GammaIVFPQIndex() : indexed_vec_count_(0) {
   compaction_ = false;
@@ -118,7 +118,7 @@ GammaInvertedListScanner *GammaIVFPQIndex::GetGammaInvertedListScanner(
 }
 
 int GammaIVFPQIndex::Init(const std::string &model_parameters,
-                          int indexing_size) {
+                          int training_threshold) {
   model_param_ = new IVFPQModelParams();
   IVFPQModelParams &ivfpq_param = *model_param_;
   if (model_parameters != "" && ivfpq_param.Parse(model_parameters.c_str())) {
@@ -146,12 +146,12 @@ int GammaIVFPQIndex::Init(const std::string &model_parameters,
   RawVector *raw_vec = dynamic_cast<RawVector *>(vector_);
 
   nlist = ivfpq_param.ncentroids;
-  if (indexing_size) {
-    indexing_size_ = indexing_size;
+  if (training_threshold) {
+    training_threshold_ = training_threshold;
   } else {
-    indexing_size_ = nlist * min_points_per_centroid;
+    training_threshold_ = nlist * min_points_per_centroid;
   }
-  ivfpq_param.training_threshold = indexing_size_;
+  ivfpq_param.training_threshold = training_threshold_;
   LOG(INFO) << ivfpq_param.ToString();
 
   if (ivfpq_param.has_hnsw == false) {
@@ -297,28 +297,28 @@ int GammaIVFPQIndex::Indexing() {
   size_t vectors_count = raw_vec->MetaInfo()->Size();
 
   size_t num;
-  if ((size_t)indexing_size_ < nlist) {
+  if ((size_t)training_threshold_ < nlist) {
     num = nlist * 39;
-    LOG(WARNING) << "Because index_size[" << indexing_size_ << "] < ncentroids["
-                 << nlist << "], index_size becomes ncentroids * 39[" << num
+    LOG(WARNING) << "Because training_threshold[" << training_threshold_ << "] < ncentroids["
+                 << nlist << "], training_threshold becomes ncentroids * 39[" << num
                  << "].";
-  } else if ((size_t)indexing_size_ <= nlist * 256) {
-    if ((size_t)indexing_size_ < nlist * 39) {
+  } else if ((size_t)training_threshold_ <= nlist * 256) {
+    if ((size_t)training_threshold_ < nlist * 39) {
       LOG(WARNING)
-          << "Index_size[" << indexing_size_ << "] is too small. "
+          << "training_threshold[" << training_threshold_ << "] is too small. "
           << "The appropriate range is [ncentroids * 39, ncentroids * 256]";
     }
-    num = (size_t)indexing_size_;
+    num = (size_t)training_threshold_;
   } else {
     num = nlist * 256;
     LOG(WARNING)
-        << "Index_size[" << indexing_size_ << "] is too big. "
+        << "training_threshold[" << training_threshold_ << "] is too big. "
         << "The appropriate range is [ncentroids * 39, ncentroids * 256]."
-        << "index_size becomes ncentroids * 256[" << num << "].";
+        << "training_threshold becomes ncentroids * 256[" << num << "].";
   }
   if (num > vectors_count) {
     LOG(ERROR) << "vector total count [" << vectors_count
-               << "] less then index_size[" << num << "], failed!";
+               << "] less then training_threshold[" << num << "], failed!";
     return -1;
   }
 

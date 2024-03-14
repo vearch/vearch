@@ -117,7 +117,7 @@ struct HNSWLIBModelParams {
   }
 };
 
-REGISTER_MODEL(HNSW, GammaIndexHNSWLIB);
+REGISTER_INDEX(HNSW, GammaIndexHNSWLIB);
 
 GammaIndexHNSWLIB::GammaIndexHNSWLIB()
     : GammaFLATIndex(), HierarchicalNSW(nullptr) {
@@ -143,8 +143,8 @@ GammaIndexHNSWLIB::~GammaIndexHNSWLIB() {
 }
 
 int GammaIndexHNSWLIB::Init(const std::string &model_parameters,
-                            int indexing_size) {
-  indexing_size_ = indexing_size;
+                            int training_threshold) {
+  training_threshold_ = training_threshold;
   raw_vec_ = dynamic_cast<MemoryRawVector *>(vector_);
   if (raw_vec_ == nullptr) {
     LOG(ERROR) << "HNSW can only work in memory only mode";

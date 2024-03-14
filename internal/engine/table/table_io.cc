@@ -54,8 +54,8 @@ int TableSchemaIO::Write(TableInfo &table) {
 }
 
 void TableSchemaIO::WriteIndexingSize(TableInfo &table) {
-  int indexing_size = table.TrainingThreshold();
-  fio->Write((void *)&indexing_size, sizeof(int), 1);
+  int training_threshold = table.TrainingThreshold();
+  fio->Write((void *)&training_threshold, sizeof(int), 1);
 }
 
 void TableSchemaIO::WriteFieldInfos(TableInfo &table) {

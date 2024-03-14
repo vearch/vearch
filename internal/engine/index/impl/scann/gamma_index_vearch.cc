@@ -120,9 +120,9 @@ struct VearchModelParams {
     return ss.str();
   }
 
-  std::string GetConfig(int dimension, int indexing_size) {
+  std::string GetConfig(int dimension, int training_threshold) {
     int num_children = ncentroids;
-    int sample_size = indexing_size;
+    int sample_size = training_threshold;
     int num_blocks = nsubvector;
     int num_dims_per_block = dimension / num_blocks;
     std::string partitioning_type = "GENERIC";
@@ -269,8 +269,8 @@ int GammaVearchIndex::CreateThreads(int thread_num) {
   return 0;
 }
 
-int GammaVearchIndex::Init(const std::string &model_parameters, int indexing_size) {
-  indexing_size_ = indexing_size;
+int GammaVearchIndex::Init(const std::string &model_parameters, int training_threshold) {
+  training_threshold_ = training_threshold;
   if (model_param_) { delete model_param_; }
   model_param_ = new VearchModelParams();
   if (model_param_->Parse(model_parameters.c_str()) != 0) {
@@ -278,7 +278,7 @@ int GammaVearchIndex::Init(const std::string &model_parameters, int indexing_siz
   }
   d_ = vector_->MetaInfo()->Dimension();
   LOG(INFO) << model_param_->ToString();
-  std::string str_config = model_param_->GetConfig(d_, indexing_size_);
+  std::string str_config = model_param_->GetConfig(d_, training_threshold_);
 #ifndef PYTHON_SDK
   LOG(INFO) << str_config;
 #endif // PYTHON_SDK
@@ -345,12 +345,12 @@ int GammaVearchIndex::Indexing() {
 
   ScopeVectors headers;
   std::vector<int> lens;
-  raw_vec->GetVectorHeader(0, indexing_size_, headers, lens);
+  raw_vec->GetVectorHeader(0, training_threshold_, headers, lens);
 
   // merge vectors
   int raw_d = raw_vec->MetaInfo()->Dimension();
   const char *train_raw_vec = nullptr;
-  int bytes_num = raw_d * indexing_size_ * sizeof(float);
+  int bytes_num = raw_d * training_threshold_ * sizeof(float);
   utils::ScopeDeleter<uint8_t> del_train_raw_vec;
   if (lens.size() == 1) {
     train_raw_vec = (const char *)headers.Get(0);
@@ -369,7 +369,7 @@ int GammaVearchIndex::Indexing() {
   int ret = ScannTraining(vearch_index_, train_raw_vec, bytes_num,
                           raw_d, model_param_->n_thread);
 
-  indexed_count_ = indexing_size_;
+  indexed_count_ = training_threshold_;
   is_trained_ = true;
   CreateThreads(model_param_->n_thread);
   LOG(INFO) << "vearch index trained successful ! ! !";

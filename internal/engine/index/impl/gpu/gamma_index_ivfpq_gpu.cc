@@ -245,9 +245,9 @@ struct IVFPQModelParams {
   }
 };
 
-REGISTER_MODEL(GPU, GammaIVFPQGPUIndex)
+REGISTER_INDEX(GPU, GammaIVFPQGPUIndex)
 
-GammaIVFPQGPUIndex::GammaIVFPQGPUIndex() : RetrievalModel() {
+GammaIVFPQGPUIndex::GammaIVFPQGPUIndex() : IndexModel() {
   M_ = 0;
   nbits_per_idx_ = 0;
   tmp_mem_num_ = 0;
@@ -276,7 +276,7 @@ GammaIVFPQGPUIndex::~GammaIVFPQGPUIndex() {
 }
 
 int GammaIVFPQGPUIndex::Init(const std::string &model_parameters,
-                             int indexing_size) {
+                             int training_threshold) {
   IVFPQModelParams ivfpq_param;
   if (model_parameters != "" && ivfpq_param.Parse(model_parameters.c_str())) {
     return -1;
@@ -303,7 +303,7 @@ int GammaIVFPQGPUIndex::Init(const std::string &model_parameters,
   gpu_index_ = nullptr;
   cpu_index_ = new GammaIVFPQIndex();
   cpu_index_->vector_ = vector_;
-  cpu_index_->Init(model_parameters, indexing_size);
+  cpu_index_->Init(model_parameters, training_threshold);
 
   return 0;
 }

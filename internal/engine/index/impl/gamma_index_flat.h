@@ -27,7 +27,7 @@
 #include "faiss/utils/distances.h"
 #include "faiss/utils/hamming.h"
 #include "faiss/utils/utils.h"
-#include "index/retrieval_model.h"
+#include "index/index_model.h"
 #include "table/field_range_index.h"
 #include "util/bitmap.h"
 #include "util/log.h"
@@ -64,13 +64,13 @@ class FlatRetrievalParameters : public RetrievalParameters {
   bool parallel_on_queries_;
 };
 
-class GammaFLATIndex : public RetrievalModel {
+class GammaFLATIndex : public IndexModel {
  public:
   GammaFLATIndex();
 
   ~GammaFLATIndex();
 
-  int Init(const std::string &model_parameters, int indexing_size) override;
+  int Init(const std::string &model_parameters, int training_threshold) override;
 
   RetrievalParameters *Parse(const std::string &parameters) override;
 

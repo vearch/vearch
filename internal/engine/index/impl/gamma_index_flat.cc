@@ -24,7 +24,7 @@ using idx_t = faiss::Index::idx_t;
 
 namespace vearch {
 
-REGISTER_MODEL(FLAT, GammaFLATIndex);
+REGISTER_INDEX(FLAT, GammaFLATIndex);
 
 struct FLATModelParams {
   DistanceComputeType metric_type;
@@ -65,8 +65,8 @@ GammaFLATIndex::GammaFLATIndex() {}
 GammaFLATIndex::~GammaFLATIndex() {}
 
 int GammaFLATIndex::Init(const std::string &model_parameters,
-                         int indexing_size) {
-  indexing_size_ = indexing_size;
+                         int training_threshold) {
+  training_threshold_ = training_threshold;
   auto raw_vec_type = dynamic_cast<MemoryRawVector *>(vector_);
   if (raw_vec_type == nullptr) {
     LOG(ERROR) << "FLAT can only work in memory only mode";

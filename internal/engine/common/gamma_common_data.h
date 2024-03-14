@@ -10,7 +10,7 @@
 #include <algorithm>
 
 #include "common/common_query_data.h"
-#include "index/retrieval_model.h"
+#include "index/index_model.h"
 #include "table/field_range_index.h"
 #include "table/table.h"
 #include "util/log.h"

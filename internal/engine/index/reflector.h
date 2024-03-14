@@ -11,70 +11,70 @@
 #include <map>
 #include <mutex>
 
-class RetrievalModel;
+class IndexModel;
 
-// Reflector retrieval model base class, to create new retrieval model
-class ModelFactory {
+// Reflector index base class, to create new index
+class IndexFactory {
  public:
-  ModelFactory() {}
+  IndexFactory() {}
 
-  virtual ~ModelFactory() {}
+  virtual ~IndexFactory() {}
 
-  virtual RetrievalModel *NewModel() = 0;
+  virtual IndexModel *NewIndex() = 0;
 };
 
-// Model reflector, manage class_name and retrieval model factories
+// Index reflector, manage class_name and index factories
 class Reflector {
  public:
   Reflector() {}
   ~Reflector() {
-    for (auto &factory : model_factories_) {
+    for (auto &factory : index_factories_) {
       delete factory.second;
     }
-    model_factories_.clear();
+    index_factories_.clear();
   }
 
-  // Register retrieval model factory with model_name
-  void RegisterFactory(const std::string &model_name,
-                       ModelFactory *model_factory) {
+  // Register index factory with index_name
+  void RegisterFactory(const std::string &index_name,
+                       IndexFactory *index_factory) {
     std::lock_guard<std::mutex> lock(mutex_);
-    const auto &it = model_factories_.find(model_name);
-    if (it != model_factories_.end()) {
-      std::cout << "Duplicated model [" << model_name << "]";
+    const auto &it = index_factories_.find(index_name);
+    if (it != index_factories_.end()) {
+      std::cout << "Duplicated model [" << index_name << "]";
     } else {
-      model_factories_[model_name] = model_factory;
+      index_factories_[index_name] = index_factory;
     }
   }
 
-  // Create a new retrieval model with model_name
-  RetrievalModel *GetNewModel(const std::string &model_name) {
-    const auto &it = model_factories_.find(model_name);
-    if (it != model_factories_.end()) {
-      ModelFactory *model = it->second;
-      return model->NewModel();
+  // Create a new index with index_name
+  IndexModel *GetNewIndex(const std::string &index_name) {
+    const auto &it = index_factories_.find(index_name);
+    if (it != index_factories_.end()) {
+      IndexFactory *index = it->second;
+      return index->NewIndex();
     }
     return nullptr;
   }
 
  private:
-  std::map<std::string, ModelFactory *> model_factories_;
+  std::map<std::string, IndexFactory *> index_factories_;
   std::mutex mutex_;
 };
 
 // Global var
 Reflector &reflector();
 
-// Register model with model_name, example REGISTER_MODEL("MODEL", MODEL_CLASS)
-#define REGISTER_MODEL(model_name, class_name)                      \
-  class ModelFactory_##class_name : public ModelFactory {           \
+// Register index with index_name, example REGISTER_INDEX("INDEX", INDEX_CLASS)
+#define REGISTER_INDEX(index_name, class_name)                      \
+  class IndexFactory_##class_name : public IndexFactory {           \
    public:                                                          \
-    RetrievalModel *NewModel() { return new class_name(); }         \
+    IndexModel *NewIndex() { return new class_name(); }         \
   };                                                                \
   class Register_##class_name {                                     \
    public:                                                          \
     Register_##class_name() {                                       \
-      reflector().RegisterFactory(#model_name,                      \
-                                  new ModelFactory_##class_name()); \
+      reflector().RegisterFactory(#index_name,                      \
+                                  new IndexFactory_##class_name()); \
     }                                                               \
   };                                                                \
   Register_##class_name register_##class_name;

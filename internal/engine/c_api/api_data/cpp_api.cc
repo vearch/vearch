@@ -48,10 +48,10 @@ int CPPSearch2(void *engine, vearch::VectorResult *result) {
 
   auto vec_manager = static_cast<vearch::Engine *>(engine)->GetVectorManager();
 
-  std::map<std::string, RetrievalModel *>::iterator iter =
-      vec_manager->RetrievalModels().begin();
+  std::map<std::string, IndexModel *>::iterator iter =
+      vec_manager->IndexModels().begin();
 
-  RetrievalModel *index = iter->second;
+  IndexModel *index = iter->second;
   vearch::RawVector *raw_vec =
       dynamic_cast<vearch::RawVector *>(iter->second->vector_);
 
@@ -85,26 +85,26 @@ int CPPAddOrUpdateDocs(void *engine, vearch::Docs *docs,
 }
 
 void CPPSetNprobe(void *engine, int nprobe, std::string index_type) {
-  auto retrieval_model = static_cast<vearch::Engine *>(engine)
+  auto index_model = static_cast<vearch::Engine *>(engine)
                              ->GetVectorManager()
-                             ->RetrievalModels()
+                             ->IndexModels()
                              .begin()
                              ->second;
   if (index_type == "IVFPQ") {
     vearch::GammaIVFPQIndex *index =
-        dynamic_cast<vearch::GammaIVFPQIndex *>(retrieval_model);
+        dynamic_cast<vearch::GammaIVFPQIndex *>(index_model);
     if (index) {
       index->nprobe = nprobe;
     }
   } else if (index_type == "IVFFLAT") {
     vearch::GammaIndexIVFFlat *index =
-        dynamic_cast<vearch::GammaIndexIVFFlat *>(retrieval_model);
+        dynamic_cast<vearch::GammaIndexIVFFlat *>(index_model);
     if (index) {
       index->nprobe = nprobe;
     }
   } else if (index_type == "IVFPQFastScan") {
     vearch::GammaIVFPQFastScanIndex *index =
-        dynamic_cast<vearch::GammaIVFPQFastScanIndex *>(retrieval_model);
+        dynamic_cast<vearch::GammaIVFPQFastScanIndex *>(index_model);
     if (index) {
       index->nprobe = nprobe;
     }
@@ -112,7 +112,7 @@ void CPPSetNprobe(void *engine, int nprobe, std::string index_type) {
 #ifdef USE_SCANN
 #ifdef PYTHON_SDK
     vearch::GammaVearchIndex *index =
-        dynamic_cast<vearch::GammaVearchIndex *>(retrieval_model);
+        dynamic_cast<vearch::GammaVearchIndex *>(index_model);
     if (index) {
       index->nprobe = nprobe;
     }
@@ -122,28 +122,28 @@ void CPPSetNprobe(void *engine, int nprobe, std::string index_type) {
 }
 
 void CPPSetRerank(void *engine, int rerank, std::string index_type) {
-  auto retrieval_model = static_cast<vearch::Engine *>(engine)
+  auto index_model = static_cast<vearch::Engine *>(engine)
                              ->GetVectorManager()
-                             ->RetrievalModels()
+                             ->IndexModels()
                              .begin()
                              ->second;
   if (index_type == "IVFPQ") {
     vearch::GammaIVFPQIndex *index =
-        dynamic_cast<vearch::GammaIVFPQIndex *>(retrieval_model);
+        dynamic_cast<vearch::GammaIVFPQIndex *>(index_model);
     if (index) {
       index->rerank_ = rerank;
     }
   } else if (index_type == "IVFPQ_RELAYOUT") {
 #ifdef OPT_IVFPQ_RELAYOUT
     vearch::GammaIndexIVFPQRelayout *index =
-        dynamic_cast<vearch::GammaIndexIVFPQRelayout *>(retrieval_model);
+        dynamic_cast<vearch::GammaIndexIVFPQRelayout *>(index_model);
     if (index) {
       index->rerank_ = rerank;
     }
 #endif
   } else if (index_type == "IVFPQFastScan") {
     vearch::GammaIVFPQFastScanIndex *index =
-        dynamic_cast<vearch::GammaIVFPQFastScanIndex *>(retrieval_model);
+        dynamic_cast<vearch::GammaIVFPQFastScanIndex *>(index_model);
     if (index) {
       index->rerank_ = rerank;
     }
@@ -151,7 +151,7 @@ void CPPSetRerank(void *engine, int rerank, std::string index_type) {
 #ifdef USE_SCANN
 #ifdef PYTHON_SDK
     vearch::GammaVearchIndex *index =
-        dynamic_cast<vearch::GammaVearchIndex *>(retrieval_model);
+        dynamic_cast<vearch::GammaVearchIndex *>(index_model);
     if (index) {
       index->rerank_ = rerank;
     }

@@ -40,7 +40,7 @@
 #include "gamma_index_flat.h"
 #include "gamma_scanner.h"
 #include "index/realtime/realtime_invert_index.h"
-#include "index/retrieval_model.h"
+#include "index/index_model.h"
 #include "table/field_range_index.h"
 #include "util/log.h"
 #include "util/utils.h"
@@ -900,7 +900,7 @@ struct GammaIVFPQIndex : GammaFLATIndex, faiss::IndexIVFPQ {
   GammaInvertedListScanner *GetGammaInvertedListScanner(
       bool store_pairs, faiss::MetricType metric_type);
 
-  int Init(const std::string &model_parameters, int indexing_size) override;
+  int Init(const std::string &model_parameters, int training_threshold) override;
 
   RetrievalParameters *Parse(const std::string &parameters) override;
 

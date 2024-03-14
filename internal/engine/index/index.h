@@ -10,7 +10,7 @@
 #include "index/impl/gamma_index_ivfpq.h"
 #endif
 
-#include "index/retrieval_model.h"
+#include "index/index_model.h"
 
 #ifdef USE_SCANN
 #include "index/impl/scann/gamma_index_vearch.h"

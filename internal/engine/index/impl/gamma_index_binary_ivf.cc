@@ -54,7 +54,7 @@ struct BinaryModelParams {
   }
 };
 
-REGISTER_MODEL(BINARYIVF, GammaIndexBinaryIVF)
+REGISTER_INDEX(BINARYIVF, GammaIndexBinaryIVF)
 
 GammaIndexBinaryIVF::GammaIndexBinaryIVF() {
   indexed_vec_count_ = 0;
@@ -80,18 +80,18 @@ GammaIndexBinaryIVF::~GammaIndexBinaryIVF() {
 }
 
 int GammaIndexBinaryIVF::Init(const std::string &model_parameters,
-                              int indexing_size) {
+                              int training_threshold) {
   BinaryModelParams binary_param;
   if (model_parameters != "" && binary_param.Parse(model_parameters.c_str())) {
     return -1;
   }
   nlist = binary_param.ncentroids;
-  if (indexing_size) {
-    indexing_size_ = indexing_size;
+  if (training_threshold) {
+    training_threshold_ = training_threshold;
   } else {
-    indexing_size_ = nlist * min_points_per_centroid;
+    training_threshold_ = nlist * min_points_per_centroid;
   }
-  binary_param.training_threshold = indexing_size_;
+  binary_param.training_threshold = training_threshold_;
   LOG(INFO) << binary_param.ToString();
 
   cp.niter = 10;
@@ -105,7 +105,7 @@ int GammaIndexBinaryIVF::Init(const std::string &model_parameters,
   verbose = false;
 
   int bucket_keys =
-      std::max(1000, this->indexing_size_ / binary_param.ncentroids);
+      std::max(1000, this->training_threshold_ / binary_param.ncentroids);
   rt_invert_index_ptr_ = new realtime::RTInvertIndex(
       this->nlist, this->code_size, raw_vec->VidMgr(), raw_vec->Bitmap(),
       bucket_keys, 1280000);
@@ -217,28 +217,28 @@ int GammaIndexBinaryIVF::Indexing() {
   size_t vectors_count = raw_vec->MetaInfo()->Size();
 
   size_t num;
-  if ((size_t)indexing_size_ < nlist) {
+  if ((size_t)training_threshold_ < nlist) {
     num = nlist * 39;
-    LOG(WARNING) << "Because index_size[" << indexing_size_ << "] < ncentroids["
-                 << nlist << "], index_size becomes ncentroids * 39[" << num
+    LOG(WARNING) << "Because training_threshold[" << training_threshold_ << "] < ncentroids["
+                 << nlist << "], training_threshold becomes ncentroids * 39[" << num
                  << "].";
-  } else if ((size_t)indexing_size_ <= nlist * 256) {
-    if ((size_t)indexing_size_ < nlist * 39) {
+  } else if ((size_t)training_threshold_ <= nlist * 256) {
+    if ((size_t)training_threshold_ < nlist * 39) {
       LOG(WARNING)
-          << "Index_size[" << indexing_size_ << "] is too small. "
+          << "training_threshold[" << training_threshold_ << "] is too small. "
           << "The appropriate range is [ncentroids * 39, ncentroids * 256]";
     }
-    num = (size_t)indexing_size_;
+    num = (size_t)training_threshold_;
   } else {
     num = nlist * 256;
     LOG(WARNING)
-        << "Index_size[" << indexing_size_ << "] is too big. "
+        << "training_threshold[" << training_threshold_ << "] is too big. "
         << "The appropriate range is [ncentroids * 39, ncentroids * 256]."
-        << "index_size becomes ncentroids * 256[" << num << "].";
+        << "training_threshold becomes ncentroids * 256[" << num << "].";
   }
   if (num > vectors_count) {
     LOG(ERROR) << "vector total count [" << vectors_count
-               << "] less then index_size[" << num << "], failed!";
+               << "] less then training_threshold[" << num << "], failed!";
     return -1;
   }
 

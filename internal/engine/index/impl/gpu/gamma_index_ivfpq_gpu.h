@@ -11,7 +11,7 @@
 #include "faiss/Index.h"
 #include "gamma_gpu_cloner.h"
 #include "index/impl/gamma_index_ivfpq.h"
-#include "index/retrieval_model.h"
+#include "index/index_model.h"
 #include "table/field_range_index.h"
 #include "util/log.h"
 #include "util/utils.h"
@@ -54,7 +54,7 @@ class GPURetrievalParameters : public RetrievalParameters {
   int nprobe_;
 };
 
-class GammaIVFPQGPUIndex : public RetrievalModel {
+class GammaIVFPQGPUIndex : public IndexModel {
  public:
   GammaIVFPQGPUIndex(VectorReader *vec, const std::string &model_parameters);
 
@@ -62,7 +62,7 @@ class GammaIVFPQGPUIndex : public RetrievalModel {
 
   virtual ~GammaIVFPQGPUIndex();
 
-  int Init(const std::string &model_parameters, int indexing_size);
+  int Init(const std::string &model_parameters, int training_threshold);
 
   RetrievalParameters *Parse(const std::string &parameters);
 
