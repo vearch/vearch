@@ -1,6 +1,7 @@
 from typing import List, Optional
 from vearch.utils import DataType
-from vearch.schema.index import Index, BinaryIvfIndex
+from vearch.schema.index import BinaryIvfIndex
+from vearch.schema.field import Field
 
 
 class SpaceSchema:
@@ -23,7 +24,7 @@ class SpaceSchema:
 
     def _check_valid(self):
         for field in self._fields:
-            if field.index and field.index._index_type>1:
+            if field.index and field.index._index_type > 1:
                 assert field.data_type not in [DataType.NONE, DataType.UNKNOWN]
                 if isinstance(field.index, BinaryIvfIndex):
                     assert field.dim // 8 == 0, "BinaryIvfIndex vector dimention must be power of eight"
@@ -33,4 +34,12 @@ class SpaceSchema:
                         "replication_num": self._replication_num}
         fields_dict = [field.dict() for field in self._fields]
         space_schema["fields"] = fields_dict
+        return space_schema
+
+    @classmethod
+    def from_dict(cls,data_dict):
+        fields = [Field.from_dict(field) for field in data_dict.get("fields")]
+        space_schema = SpaceSchema(name=data_dict.get("name"), fields=fields, description=data_dict.get("desc"),
+                                   partition_num=data_dict.get("partition_num"),
+                                   replication_num=data_dict.get("replication_num"))
         return space_schema

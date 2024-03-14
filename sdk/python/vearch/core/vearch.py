@@ -1,9 +1,9 @@
 from vearch.config import Config
 from vearch.core.db import Database
 from vearch.core.client import client
-from vearch.core.result import Result, get_result, ResultStatus
+from vearch.result import Result, get_result, ResultStatus
 from vearch.schema.space import SpaceSchema
-from vearch.core.const import SPACE_URI
+from vearch.const import SPACE_URI
 from vearch.exception import DatabaseException
 from vearch.utils import CodeType
 import requests

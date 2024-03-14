@@ -2,8 +2,8 @@ import requests
 from requests.adapters import HTTPAdapter
 from vearch.utils import singleton
 from vearch.config import Config, DefaultConfig
-from vearch.core.const import DATABASE_URI, LIST_DATABASE_URI
-from vearch.core.result import Result, get_result
+from vearch.const import DATABASE_URI, LIST_DATABASE_URI
+from vearch.result import Result, get_result
 
 
 @singleton

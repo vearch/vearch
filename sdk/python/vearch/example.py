@@ -33,3 +33,6 @@ if __name__ == "__main__":
 
 # / vearch / space / {sapce_name} / field / {field}
 # / vearch / space / {sapce_name} / index / {index}
+    data=[["fdsmafk",93289,"r89329492",893291],]
+    print(data)
+

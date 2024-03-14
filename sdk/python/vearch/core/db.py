@@ -1,8 +1,8 @@
 from vearch.core.space import Space
 from typing import List
 from vearch.core.client import client
-from vearch.core.result import Result, ResultStatus, get_result
-from vearch.core.const import DATABASE_URI, SPACE_URI
+from vearch.result import Result, ResultStatus, get_result
+from vearch.const import DATABASE_URI, SPACE_URI
 from vearch.schema.space import SpaceSchema
 from vearch.exception import DatabaseException
 from vearch.utils import CodeType

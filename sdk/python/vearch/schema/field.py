@@ -30,7 +30,8 @@ class Field:
             assert self.dim > 0, "the vector field's dimention must above zero"
         if self.data_type == DataType.VARCHAR:
             self.array = self._kwargs.get("array", False)
-        assert name_valid_check(self.name)==True,"field name must match ^([a-zA-Z]+)([a-z0-9A-Z]*[\-\_]{0,1}[a-z0-9A-Z]+)+"
+        assert name_valid_check(
+            self.name) == True, "field name must match ^([a-zA-Z]+)([a-z0-9A-Z]*[\-\_]{0,1}[a-z0-9A-Z]+)+"
 
     def dict(self):
         field_dict = {"field_name": self.name, "data_type": self.data_type, "desc": self.desc}
@@ -40,3 +41,10 @@ class Field:
             field_dict["index"] = self.index.dict()
 
         return field_dict
+
+    @classmethod
+    def from_dict(cls, field_data):
+        name = field_data.get("field_name")
+        data_type = field_data.get("data_type")
+        describe = field_data.get("desc")
+        return Field(name=name, data_type=data_type, desc=describe)
