@@ -24,13 +24,13 @@ import (
 	"time"
 	"unsafe"
 
+	"github.com/google/uuid"
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/internal/config"
 	"github.com/vearch/vearch/internal/engine/sdk/go/gamma"
 	"github.com/vearch/vearch/internal/entity"
 	"github.com/vearch/vearch/internal/pkg/atomic"
 	"github.com/vearch/vearch/internal/pkg/log"
-	"github.com/vearch/vearch/internal/pkg/uuid"
 	"github.com/vearch/vearch/internal/pkg/vearchlog"
 	"github.com/vearch/vearch/internal/proto/vearchpb"
 	"github.com/vearch/vearch/internal/ps/engine"
@@ -269,7 +269,7 @@ func (ge *gammaEngine) Close() {
 				log.Info("wait stop gamma engine times:[%d]", i)
 				continue
 			}
-			start, flakeUUID := time.Now(), uuid.FlakeUUID()
+			start, flakeUUID := time.Now(), uuid.NewString()
 			log.Info("to close gamma engine begin token:[%s]", flakeUUID)
 			if resp := gamma.Close(closeEngine); resp != 0 {
 				log.Error("to close gamma engine fail:[%d]", resp)

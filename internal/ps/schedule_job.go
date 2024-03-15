@@ -21,7 +21,7 @@ import (
 	"github.com/vearch/vearch/internal/config"
 	"github.com/vearch/vearch/internal/entity"
 	"github.com/vearch/vearch/internal/pkg/log"
-	"github.com/vearch/vearch/internal/pkg/slice"
+	"github.com/vearch/vearch/internal/pkg/number"
 	"github.com/vearch/vearch/internal/ps/psutil"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
@@ -75,7 +75,7 @@ func (s *Server) StartHeartbeatJob() {
 				}
 
 				server.PartitionIds = psutil.GetAllPartitions(config.Conf().GetDatas())
-				if slice.EqualUint32(lastPartitionIds, server.PartitionIds) {
+				if number.EqualUint32(lastPartitionIds, server.PartitionIds) {
 					// log.Debug("PartitionIds not change, do nothing!")
 					continue
 				}

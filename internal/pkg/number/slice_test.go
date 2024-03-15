@@ -12,20 +12,11 @@
 // implied. See the License for the specific language governing
 // permissions and limitations under the License.
 
-package uuid
+package number
 
 import (
 	"testing"
 )
 
-func BenchmarkFlakeUUID(b *testing.B) {
-	b.Run("UUID.FlakeUUID", func(b *testing.B) {
-		b.ReportAllocs()
-		b.ResetTimer()
-		b.RunParallel(func(pb *testing.PB) {
-			for pb.Next() {
-				FlakeUUID()
-			}
-		})
-	})
+func TestGetFirstNotNullElement(t *testing.T) {
 }

@@ -12,23 +12,12 @@
 // implied. See the License for the specific language governing
 // permissions and limitations under the License.
 
-package slice
+package number
 
 import (
 	"reflect"
 	"sort"
 )
-
-type FilterFunc func(element string) bool
-
-func GetFirstNotNullElement(slice []string, f FilterFunc) string {
-	for _, value := range slice {
-		if f(value) == true {
-			return value
-		}
-	}
-	return ""
-}
 
 // Equal tells whether a and b contain the same elements.
 // A nil argument is equivalent to an empty slice.

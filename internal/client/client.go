@@ -28,6 +28,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/patrickmn/go-cache"
 	"github.com/shopspring/decimal"
 	"github.com/smallnest/rpcx/share"
@@ -43,7 +44,6 @@ import (
 	"github.com/vearch/vearch/internal/pkg/log"
 	vmap "github.com/vearch/vearch/internal/pkg/map"
 	"github.com/vearch/vearch/internal/pkg/number"
-	"github.com/vearch/vearch/internal/pkg/uuid"
 	"github.com/vearch/vearch/internal/proto/vearchpb"
 	"github.com/vearch/vearch/internal/ps/engine/mapping"
 	"github.com/vearch/vearch/internal/ps/engine/sortorder"
@@ -136,19 +136,19 @@ func (r *routerRequest) GetMD() map[string]string {
 
 // SetMsgID
 func (r *routerRequest) SetMsgID() *routerRequest {
-	r.md[MessageID] = uuid.FlakeUUID()
+	r.md[MessageID] = uuid.NewString()
 	return r
 }
 
 // GetMsgID
 func (r *routerRequest) GetMsgID() string {
-	if msgID, ok := r.md[MessageID]; ok {
-		return msgID
-	} else {
-		msgID = uuid.FlakeUUID()
-		r.md[MessageID] = msgID
+	msgID, ok := r.md[MessageID]
+	if ok {
 		return msgID
 	}
+	msgID = uuid.NewString()
+	r.md[MessageID] = msgID
+	return msgID
 }
 
 // SetMethod set method
@@ -909,7 +909,7 @@ func GetMD5Encode(data string) string {
 
 func generateUUID(key string) (string, error) {
 	if key == "" {
-		keyUUID := uuid.FlakeUUID()
+		keyUUID := uuid.NewString()
 		keyMd5 := GetMD5Encode(keyUUID)
 		bi := big.NewInt(0)
 		before := keyMd5[0:16]

@@ -18,15 +18,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/vearch/vearch/internal/pkg/assert"
 	"github.com/vearch/vearch/internal/pkg/log"
 )
 
 func TestVearchLog(t *testing.T) {
-
 	log.Regist(NewVearchLog("test", "Test", "debug", false))
 
-	assert.True(t, log.IsDebugEnabled())
+	if !log.IsDebugEnabled() {
+		t.Fatal("error: log debug not enabled")
+	}
 
 	log.Info("hello %s", "info")
 	log.Debug("hello %s", "debug")

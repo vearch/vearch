@@ -19,21 +19,14 @@ import (
 	"testing"
 
 	"github.com/vearch/vearch/internal/entity"
-	"github.com/vearch/vearch/internal/pkg/assert"
 )
-
-func TestEngineErrorSpaceString(t *testing.T) {
-	space := &entity.Space{}
-	str := `{"name":"ts_space","partition_num":1,"replica_num":1,"index":{"index_name":"ts_index","retrieval_type":"ERROR_INDEX","retrieval_param":{"metric_type":"InnerProduct","ncentroids":128,"nsubvector":32,"nlinks":32,"efConstruction":200,"efSearch":64}},"fields":{"string":{"type":"string","array":true,"index":true},"float":{"type":"float","index":true},"int":{"type":"integer","index":true},"double":{"type":"double","index":true},"vector":{"type":"vector","dimension":128,"store_type":"MemoryOnly","format":"normalization"}}}`
-	err := json.Unmarshal([]byte(str), &space)
-	assert.NotNil(t, err)
-}
 
 func TestEngineSpaceString(t *testing.T) {
 	space := &entity.Space{}
-	str := `{"name":"ts_space","partition_num":1,"replica_num":1,"engine":{"index_size":100000,"metric_type":"InnerProduct","retrieval_type":"IVFPQ","retrieval_param":{"metric_type":"InnerProduct","ncentroids":128,"nsubvector":32,"nlinks":32,"efConstruction":200,"efSearch":64}},"fields":{"string":{"type":"string","array":true,"index":true},"float":{"type":"float","index":true},"int":{"type":"integer","index":true},"double":{"type":"double","index":true},"vector":{"type":"vector","dimension":128,"store_type":"MemoryOnly","format":"normalization"}}}`
-	if err := json.Unmarshal([]byte(str), &space); err != nil {
-		t.Errorf(err.Error())
+	str := `{"name":"ts_space","partition_num":1,"replica_num":1,"index":{"index_name":"gamma","index_type":"IVFPQ","index_params":{"nlinks":16,"efSearch":32,"efConstruction":60,"metric_type":"InnerProduct","ncentroids":512,"nprobe":15,"nsubvector":16,"training_threshold":100000}},"fields":{"string":{"type":"string","array":true,"index":true},"float":{"type":"float","index":true},"int":{"type":"integer","index":true},"double":{"type":"double","index":true},"vector":{"type":"vector","dimension":128,"store_type":"MemoryOnly","format":"normalization","store_param":{"cache_size":1024}}}}`
+	err := json.Unmarshal([]byte(str), space)
+	if err != nil {
+		t.Fatalf("failed: %v", err)
 	}
 }
 

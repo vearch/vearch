@@ -33,7 +33,6 @@ import (
 	"github.com/vearch/vearch/internal/pkg/errutil"
 	"github.com/vearch/vearch/internal/pkg/log"
 	"github.com/vearch/vearch/internal/pkg/number"
-	"github.com/vearch/vearch/internal/pkg/slice"
 	"github.com/vearch/vearch/internal/proto/vearchpb"
 	"github.com/vearch/vearch/internal/ps/engine/mapping"
 	"go.etcd.io/etcd/client/v3/concurrency"
@@ -1085,7 +1084,7 @@ func (ms *masterService) ChangeReplica(ctx context.Context, dbModify *entity.DBM
 		// change server
 		for _, s := range servers {
 			if dbModify.Method == proto.ConfAddNode {
-				exist, _ := slice.IsExistSlice(s.ID, partition.Replicas)
+				exist, _ := number.IsExistSlice(s.ID, partition.Replicas)
 				if !exist {
 					// server don't contain this partition, then create it
 					cm := &entity.ChangeMember{PartitionID: partition.Id, NodeID: s.ID, Method: dbModify.Method}
@@ -1094,7 +1093,7 @@ func (ms *masterService) ChangeReplica(ctx context.Context, dbModify *entity.DBM
 					break
 				}
 			} else if dbModify.Method == proto.ConfRemoveNode {
-				exist, index := slice.IsExistSlice(partition.Id, s.PartitionIds)
+				exist, index := number.IsExistSlice(partition.Id, s.PartitionIds)
 				if exist {
 					// server contain this partition, then remove it
 					cm := &entity.ChangeMember{PartitionID: partition.Id, NodeID: s.ID, Method: dbModify.Method}

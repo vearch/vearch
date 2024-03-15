@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/opentracing/opentracing-go"
 	"github.com/vearch/vearch/internal/client"
 	"github.com/vearch/vearch/internal/config"
@@ -32,7 +33,6 @@ import (
 	"github.com/vearch/vearch/internal/pkg/ginutil"
 	"github.com/vearch/vearch/internal/pkg/log"
 	"github.com/vearch/vearch/internal/pkg/netutil"
-	"github.com/vearch/vearch/internal/pkg/uuid"
 	"github.com/vearch/vearch/internal/proto/vearchpb"
 	"github.com/vearch/vearch/internal/router/document/resp"
 )
@@ -144,7 +144,7 @@ func (handler *DocumentHandler) ExportToServer() error {
 }
 
 func (handler *DocumentHandler) handleTimeout(c *gin.Context) {
-	messageID := uuid.FlakeUUID()
+	messageID := uuid.NewString()
 	c.Set(entity.MessageID, messageID)
 }
 
