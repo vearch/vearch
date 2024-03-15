@@ -229,7 +229,7 @@ func (s *Server) getRouterIPS(ctx context.Context) (routerIPS []string) {
 			log.Info("query router ip error error:[%v]", err)
 			panic(fmt.Errorf("query router ip error"))
 		}
-		if routerIPS != nil && len(routerIPS) > 0 {
+		if len(routerIPS) > 0 {
 			for _, IP := range routerIPS {
 				config.Conf().Router.RouterIPS = append(config.Conf().Router.RouterIPS, IP)
 			}

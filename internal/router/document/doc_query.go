@@ -31,7 +31,6 @@ import (
 	"github.com/vearch/vearch/internal/proto/vearchpb"
 	"github.com/vearch/vearch/internal/ps/engine/mapping"
 	"github.com/vearch/vearch/internal/ps/engine/sortorder"
-	"github.com/vearch/vearch/internal/router/document/rutil"
 )
 
 const (
@@ -268,6 +267,25 @@ func parseQueryForIdFeature(searchQuery []byte, space *entity.Space, items []*ve
 	}
 }
 
+func unmarshalArray[T any](data []byte, dimension int) ([]T, error) {
+	if len(data) < dimension {
+		return nil, fmt.Errorf("vector query length err, need feature num:[%d]", dimension)
+	}
+
+	var result []T
+	if err := sonic.Unmarshal(data, &result); err != nil {
+		return nil, err
+	}
+
+	if len(result) > 0 {
+		if _, ok := any(result).([]float32); ok && (len(result)%dimension) != 0 {
+			return nil, fmt.Errorf("vector query length err, not equals dimension multiple:[%d]", (len(result) % dimension))
+		}
+	}
+
+	return result, nil
+}
+
 func parseVectors(reqNum int, vqs []*vearchpb.VectorQuery, tmpArr []json.RawMessage, space *entity.Space) (int, []*vearchpb.VectorQuery, error) {
 	var err error
 	indexType := space.Index.IndexType
@@ -303,13 +321,13 @@ func parseVectors(reqNum int, vqs []*vearchpb.VectorQuery, tmpArr []json.RawMess
 		queryNum := 0
 		validate := 0
 		if strings.Compare(indexType, "BINARYIVF") == 0 {
-			if vqTemp.FeatureUint8, err = rutil.RowDateToUInt8Array(vqTemp.FeatureData, d/8); err != nil {
+			if vqTemp.FeatureUint8, err = unmarshalArray[uint8](vqTemp.FeatureData, d/8); err != nil {
 				return reqNum, vqs, err
 			}
 			queryNum = len(vqTemp.FeatureUint8) / (d / 8)
 			validate = len(vqTemp.FeatureUint8) % (d / 8)
 		} else {
-			if vqTemp.Feature, err = rutil.RowDateToFloatArray(vqTemp.FeatureData, d); err != nil {
+			if vqTemp.Feature, err = unmarshalArray[float32](vqTemp.FeatureData, d); err != nil {
 				return reqNum, vqs, err
 			}
 			queryNum = len(vqTemp.Feature) / d

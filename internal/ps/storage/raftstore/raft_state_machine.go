@@ -86,7 +86,7 @@ func (s *Store) Apply(command []byte, index uint64) (resp interface{}, err error
 		panic(err)
 	}
 
-	resp = s.innerApply(command, index, raftCmd)
+	resp = s.innerApply(index, raftCmd)
 
 	if err := raftCmd.Close(); err != nil {
 		log.Error(err.Error())
@@ -114,13 +114,13 @@ func (s *Store) Apply(command []byte, index uint64) (resp interface{}, err error
 }
 
 // Apply implements the raft interface.
-func (s *Store) innerApply(command []byte, index uint64, raftCmd *vearchpb.RaftCommand) interface{} {
+func (s *Store) innerApply(index uint64, raftCmd *vearchpb.RaftCommand) interface{} {
 	resp := new(RaftApplyResponse)
 	switch raftCmd.Type {
 	case vearchpb.CmdType_WRITE:
 		resp.Err = s.Engine.Writer().Write(s.Ctx, raftCmd.WriteCommand)
 	case vearchpb.CmdType_UPDATESPACE:
-		resp = s.updateSchemaBySpace(raftCmd.UpdateSpace.Space, raftCmd.UpdateSpace.Version)
+		resp = s.updateSchemaBySpace(raftCmd.UpdateSpace.Space)
 	case vearchpb.CmdType_FLUSH:
 		flushC, err := s.Engine.Writer().Commit(s.Ctx, int64(index))
 		resp.FlushC = flushC
@@ -137,12 +137,8 @@ func (s *Store) innerApply(command []byte, index uint64, raftCmd *vearchpb.RaftC
 }
 
 // changeSchema for add schema field
-func (s *Store) updateSchemaBySpace(spaceBytes []byte, version uint64) (rap *RaftApplyResponse) {
+func (s *Store) updateSchemaBySpace(spaceBytes []byte) (rap *RaftApplyResponse) {
 	rap = new(RaftApplyResponse)
-	/*if s.Space.Version > version {
-		log.Warn("update schema version not right, old:[%d] new:[%d] ", s.Space.Version, version)
-		return
-	}*/
 
 	space := &entity.Space{}
 	err := cbjson.Unmarshal(spaceBytes, space)

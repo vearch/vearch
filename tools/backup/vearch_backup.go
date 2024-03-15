@@ -24,6 +24,7 @@ import (
 
 	"github.com/bytedance/sonic"
 	"github.com/go-resty/resty/v2"
+	"github.com/gosuri/uiprogress"
 	"github.com/vearch/vearch/tools/backup/entity"
 )
 
@@ -32,14 +33,14 @@ func dumpSchema(space string, describeSpaceResponse *entity.DescribeSpaceRespons
 		Name:         space,
 		PartitionNum: describeSpaceResponse.Data.PartitionNum,
 		ReplicaNum:   describeSpaceResponse.Data.ReplicaNum,
-		Engine:       describeSpaceResponse.Data.Schema.Engine,
-		Properties:   describeSpaceResponse.Data.Schema.Properties,
+		Index:        describeSpaceResponse.Data.Schema.Index,
+		Fields:       describeSpaceResponse.Data.Schema.Fields,
 	}
 
 	s, _ := sonic.Marshal(schema)
 	log.Printf("schema :%s\n", string(s))
 
-	file, err := os.OpenFile(path+"/schema.json", os.O_CREATE|os.O_WRONLY, 0644)
+	file, err := os.OpenFile(path+"/schema.json", os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
 	}
@@ -52,7 +53,7 @@ func dumpSchema(space string, describeSpaceResponse *entity.DescribeSpaceRespons
 func dump(url string, db_name string, space_name string, output string) error {
 	client := resty.New()
 
-	listSpaceUrl := fmt.Sprintf("%s/space/describe", url)
+	getSpaceUrl := fmt.Sprintf("%s/dbs/%s/spaces/%s", url, db_name, space_name)
 
 	describeSpaceResponse := &entity.DescribeSpaceResponse{}
 	resp, err := client.R().
@@ -62,7 +63,7 @@ func dump(url string, db_name string, space_name string, output string) error {
 			"space_name": space_name,
 		}).
 		SetResult(describeSpaceResponse).
-		Get(listSpaceUrl)
+		Get(getSpaceUrl)
 
 	if err != nil {
 		log.Printf("The HTTP request failed with error %s\n", err)
@@ -81,7 +82,13 @@ func dump(url string, db_name string, space_name string, output string) error {
 		partitionIDs = append(partitionIDs, p.Pid)
 	}
 
-	log.Printf("partitions %v\n", partitionIDs)
+	docNum := describeSpaceResponse.Data.DocNum
+	log.Printf("partitions %v, doc num %d\n", partitionIDs, docNum)
+	uiprogress.Start()
+	bar := uiprogress.AddBar(docNum)
+
+	bar.AppendCompleted()
+	bar.PrependElapsed()
 
 	q := entity.QueryByDocID{
 		DbName:    db_name,
@@ -98,7 +105,7 @@ func dump(url string, db_name string, space_name string, output string) error {
 		VectorValue: true,
 	}
 
-	file, err := os.OpenFile(output+"/data.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	file, err := os.OpenFile(output+"/data.txt", os.O_APPEND|os.O_TRUNC|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		log.Fatalf("failed to open file: %s", err)
 	}
@@ -134,6 +141,7 @@ func dump(url string, db_name string, space_name string, output string) error {
 				log.Fatalf("failed to write to file: %s", err)
 				return err
 			}
+			bar.Incr()
 		}
 	}
 	return nil
@@ -141,18 +149,14 @@ func dump(url string, db_name string, space_name string, output string) error {
 
 func restoreSpace(url string, db_name string, path string) error {
 	client := resty.New()
-	restoreDbUrl := fmt.Sprintf("%s/db/_create", url)
-	restoreSpaceUrl := fmt.Sprintf("%s/space/%s/_create", url, db_name)
+	restoreDbUrl := fmt.Sprintf("%s/dbs/%s", url, db_name)
+	restoreSpaceUrl := fmt.Sprintf("%s/dbs/%s/spaces", url, db_name)
 
-	createDbBody := &entity.CreateDbBody{
-		Name: db_name,
-	}
 	createDbResponse := &entity.CreateDbResponse{}
 	resp, err := client.R().
 		SetHeader("Content-Type", "application/json").
-		SetBody(createDbBody).
 		SetResult(createDbResponse).
-		Put(restoreDbUrl)
+		Post(restoreDbUrl)
 
 	if err != nil {
 		log.Printf("create db error %s\n", err)
@@ -168,7 +172,6 @@ func restoreSpace(url string, db_name string, path string) error {
 		return err
 	}
 
-
 	createSpaceBody := &entity.SpaceSchema{}
 	err = sonic.Unmarshal(schemaBytes, createSpaceBody)
 	if err != nil {
@@ -180,7 +183,7 @@ func restoreSpace(url string, db_name string, path string) error {
 		SetHeader("Content-Type", "application/json").
 		SetBody(createSpaceBody).
 		SetResult(createSpaceResponse).
-		Put(restoreSpaceUrl)
+		Post(restoreSpaceUrl)
 
 	if err != nil {
 		return err

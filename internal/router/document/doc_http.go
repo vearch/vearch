@@ -481,7 +481,7 @@ func (handler *DocumentHandler) handleDocumentSearch(c *gin.Context) {
 	serviceCost := time.Since(serviceStart)
 
 	var bs []byte
-	if searchResp.Results == nil || len(searchResp.Results) == 0 {
+	if len(searchResp.Results) == 0 {
 		bs, err = documentSearchResponse(nil, searchResp.Head, request.SearchResponse)
 	} else {
 		bs, err = documentSearchResponse(searchResp.Results, searchResp.Head, request.SearchResponse)

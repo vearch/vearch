@@ -36,7 +36,6 @@ import (
 	"github.com/vearch/vearch/internal/pkg/log"
 	"github.com/vearch/vearch/internal/pkg/netutil"
 	"github.com/vearch/vearch/internal/proto/vearchpb"
-	"github.com/vearch/vearch/internal/router/document/rutil"
 )
 
 const (
@@ -113,16 +112,16 @@ func parseJSON(path []string, v *fastjson.Value, space *entity.Space, proMap map
 			log.Warnf("filed name [%s]  is an internal field that cannot be used", fieldName)
 			return
 		}
-		docV := rutil.GetDocVal()
+		docV := GetDocVal()
 		if docV == nil {
-			docV = &rutil.DocVal{FieldName: fieldName, Path: path}
+			docV = &DocVal{FieldName: fieldName, Path: path}
 		} else {
 			docV.FieldName = fieldName
 			docV.Path = path
 		}
 
 		defer func() {
-			rutil.PutDocVal(docV)
+			PutDocVal(docV)
 		}()
 		field, err := processProperty(docV, val, space.Index.IndexType, pro)
 		if err != nil {
@@ -362,7 +361,7 @@ func processPropertyArrayVectorDouble(vs []*fastjson.Value, fieldName string, pr
 	return field, nil
 }
 
-func processProperty(docVal *rutil.DocVal, v *fastjson.Value, indexType string, pro *entity.SpaceProperties) (*vearchpb.Field, error) {
+func processProperty(docVal *DocVal, v *fastjson.Value, indexType string, pro *entity.SpaceProperties) (*vearchpb.Field, error) {
 	fieldName := docVal.FieldName
 	path := docVal.Path
 	if len(path) == 0 && FieldsIndex[fieldName] > 0 {

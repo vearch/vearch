@@ -212,16 +212,16 @@ func (handler *UnaryHandler) execute(ctx context.Context, req *vearchpb.Partitio
 			}
 			search(ctx, store, req.SearchRequest, req.SearchResponse)
 		case client.ForceMergeHandler:
-			forceMerge(ctx, store, req.Err)
+			req.Err = forceMerge(store)
 		case client.RebuildIndexHandler:
-			rebuildIndex(ctx, store, req.Err, req.IndexRequest)
+			req.Err = rebuildIndex(store, req.IndexRequest)
 		case client.DeleteByQueryHandler:
 			if req.DelByQueryResponse == nil {
 				req.DelByQueryResponse = &vearchpb.DelByQueryeResponse{DelNum: 0}
 			}
 			deleteByQuery(ctx, store, req.SearchRequest, req.DelByQueryResponse)
 		case client.FlushHandler:
-			flush(ctx, store, req.Err)
+			req.Err = flush(ctx, store)
 		default:
 			log.Error("method not found, method: [%s]", method)
 			req.Err = vearchpb.NewError(vearchpb.ErrorEnum_METHOD_NOT_IMPLEMENT, nil).GetError()
@@ -332,7 +332,7 @@ func search(ctx context.Context, store PartitionStore, request *vearchpb.SearchR
 		log.Error("search doc failed, err: [%s]", err.Error())
 		response.Head.Err = vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err).GetError()
 	}
-	handlerCostTime := (time.Now().Sub(startTime).Seconds()) * 1000
+	handlerCostTime := (time.Since(startTime).Seconds()) * 1000
 	handlerCostTimeStr := strconv.FormatFloat(handlerCostTime, 'f', -1, 64)
 
 	if response.Head != nil && response.Head.Params != nil {
@@ -348,40 +348,34 @@ func search(ctx context.Context, store PartitionStore, request *vearchpb.SearchR
 	}()
 }
 
-func forceMerge(ctx context.Context, store PartitionStore, error *vearchpb.Error) {
+func forceMerge(store PartitionStore) *vearchpb.Error {
 	err := store.GetEngine().Optimize()
 	if err != nil {
 		partitionID := store.GetPartition().Id
 		pIdStr := strconv.Itoa(int(partitionID))
-		error = &vearchpb.Error{Code: vearchpb.ErrorEnum_FORCE_MERGE_BUILD_INDEX_ERR,
-			Msg: "build index err, PartitionID :" + pIdStr}
-	} else {
-		error = nil
+		return &vearchpb.Error{Code: vearchpb.ErrorEnum_FORCE_MERGE_BUILD_INDEX_ERR, Msg: "build index err, PartitionID :" + pIdStr}
 	}
+	return nil
 }
 
-func rebuildIndex(ctx context.Context, store PartitionStore, error *vearchpb.Error, indexRequest *vearchpb.IndexRequest) {
+func rebuildIndex(store PartitionStore, indexRequest *vearchpb.IndexRequest) *vearchpb.Error {
 	err := store.GetEngine().Rebuild(int(indexRequest.DropBeforeRebuild), int(indexRequest.LimitCpu), int(indexRequest.Describe))
 	if err != nil {
 		partitionID := store.GetPartition().Id
 		pIdStr := strconv.Itoa(int(partitionID))
-		error = &vearchpb.Error{Code: vearchpb.ErrorEnum_FORCE_MERGE_BUILD_INDEX_ERR,
-			Msg: "build index err, PartitionID :" + pIdStr}
-	} else {
-		error = nil
+		return &vearchpb.Error{Code: vearchpb.ErrorEnum_FORCE_MERGE_BUILD_INDEX_ERR, Msg: "build index err, PartitionID :" + pIdStr}
 	}
+	return nil
 }
 
-func flush(ctx context.Context, store PartitionStore, error *vearchpb.Error) {
+func flush(ctx context.Context, store PartitionStore) *vearchpb.Error {
 	err := store.Flush(ctx)
 	if err != nil {
 		partitionID := store.GetPartition().Id
 		pIdStr := strconv.Itoa(int(partitionID))
-		error = &vearchpb.Error{Code: vearchpb.ErrorEnum_FLUSH_ERR,
-			Msg: "flush err, PartitionID :" + pIdStr}
-	} else {
-		error = nil
+		return &vearchpb.Error{Code: vearchpb.ErrorEnum_FLUSH_ERR, Msg: "flush err, PartitionID :" + pIdStr}
 	}
+	return nil
 }
 
 func deleteByQuery(ctx context.Context, store PartitionStore, req *vearchpb.SearchRequest, resp *vearchpb.DelByQueryeResponse) {
@@ -390,56 +384,56 @@ func deleteByQuery(ctx context.Context, store PartitionStore, req *vearchpb.Sear
 		log.Error("deleteByQuery search doc failed, err: [%s]", err.Error())
 		head := &vearchpb.ResponseHead{Err: &vearchpb.Error{Code: vearchpb.ErrorEnum_DELETE_BY_QUERY_SERACH_ERR, Msg: "deleteByQuery search doc failed"}}
 		resp.Head = head
-	} else {
-		flatBytes := searchResponse.FlatBytes
-		if flatBytes != nil {
-			gamma.DeSerialize(flatBytes, searchResponse)
-		}
+		return
+	}
+	flatBytes := searchResponse.FlatBytes
+	if flatBytes != nil {
+		gamma.DeSerialize(flatBytes, searchResponse)
+	}
 
-		results := searchResponse.Results
-		if len(results) == 0 {
-			head := &vearchpb.ResponseHead{Err: &vearchpb.Error{Code: vearchpb.ErrorEnum_DELETE_BY_QUERY_SEARCH_ID_IS_0, Msg: "deleteByQuery search id is 0"}}
-			resp.Head = head
-		} else {
-			docs := make([]*vearchpb.Item, 0)
-			for _, result := range results {
-				if result == nil || result.ResultItems == nil || len(result.ResultItems) == 0 {
-					log.Error("query id is 0")
-				} else {
-					for _, doc := range result.ResultItems {
-						var pKey string
-						var value []byte
-						for _, fv := range doc.Fields {
-							name := fv.Name
-							switch name {
-							case mapping.IdField:
-								value = fv.Value
-								pKey = string(fv.Value)
-							}
-						}
-						if pKey != "" {
-							field := &vearchpb.Field{Name: "_id", Value: value}
-							fields := make([]*vearchpb.Field, 0)
-							fields = append(fields, field)
-							doc := &vearchpb.Document{PKey: pKey, Fields: fields}
-							item := &vearchpb.Item{Doc: doc}
-							docs = append(docs, item)
-						}
-					}
+	results := searchResponse.Results
+	if len(results) == 0 {
+		head := &vearchpb.ResponseHead{Err: &vearchpb.Error{Code: vearchpb.ErrorEnum_DELETE_BY_QUERY_SEARCH_ID_IS_0, Msg: "deleteByQuery search id is 0"}}
+		resp.Head = head
+		return
+	}
+	docs := make([]*vearchpb.Item, 0)
+	for _, result := range results {
+		if result == nil || result.ResultItems == nil || len(result.ResultItems) == 0 {
+			log.Error("query id is 0")
+			continue
+		}
+		for _, doc := range result.ResultItems {
+			var pKey string
+			var value []byte
+			for _, fv := range doc.Fields {
+				name := fv.Name
+				switch name {
+				case mapping.IdField:
+					value = fv.Value
+					pKey = string(fv.Value)
 				}
 			}
-			if len(docs) == 0 {
-				head := &vearchpb.ResponseHead{Err: &vearchpb.Error{Code: vearchpb.ErrorEnum_DELETE_BY_QUERY_SEARCH_ID_IS_0, Msg: "deleteByQuery search id is 0"}}
-				resp.Head = head
-			} else {
-				deleteDocs(ctx, store, docs)
-				for _, item := range docs {
-					if item.Err == nil {
-						resp.IdsStr = append(resp.IdsStr, item.Doc.PKey)
-						resp.DelNum++
-					}
-				}
+			if pKey != "" {
+				field := &vearchpb.Field{Name: "_id", Value: value}
+				fields := make([]*vearchpb.Field, 0)
+				fields = append(fields, field)
+				doc := &vearchpb.Document{PKey: pKey, Fields: fields}
+				item := &vearchpb.Item{Doc: doc}
+				docs = append(docs, item)
 			}
+		}
+	}
+	if len(docs) == 0 {
+		head := &vearchpb.ResponseHead{Err: &vearchpb.Error{Code: vearchpb.ErrorEnum_DELETE_BY_QUERY_SEARCH_ID_IS_0, Msg: "deleteByQuery search id is 0"}}
+		resp.Head = head
+		return
+	}
+	deleteDocs(ctx, store, docs)
+	for _, item := range docs {
+		if item.Err == nil {
+			resp.IdsStr = append(resp.IdsStr, item.Doc.PKey)
+			resp.DelNum++
 		}
 	}
 }
