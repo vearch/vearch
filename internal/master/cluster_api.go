@@ -32,7 +32,6 @@ import (
 	"github.com/vearch/vearch/internal/config"
 	"github.com/vearch/vearch/internal/entity"
 	"github.com/vearch/vearch/internal/monitor"
-	util "github.com/vearch/vearch/internal/pkg"
 	"github.com/vearch/vearch/internal/pkg/cbjson"
 	"github.com/vearch/vearch/internal/pkg/errutil"
 	"github.com/vearch/vearch/internal/pkg/ginutil"
@@ -734,7 +733,7 @@ func Auth(c *gin.Context) (err error) {
 		return nil
 	}
 	headerData := c.GetHeader(headerAuthKey)
-	username, password, err := util.AuthDecrypt(headerData)
+	username, password, err := netutil.AuthDecrypt(headerData)
 	if username != "root" || password != config.Conf().Global.Signkey {
 		return vearchpb.NewError(vearchpb.ErrorEnum_AUTHENTICATION_FAILED, err)
 	}

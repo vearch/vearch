@@ -29,7 +29,6 @@ import (
 	"github.com/vearch/vearch/internal/entity"
 	"github.com/vearch/vearch/internal/entity/request"
 	"github.com/vearch/vearch/internal/monitor"
-	util "github.com/vearch/vearch/internal/pkg"
 	"github.com/vearch/vearch/internal/pkg/ginutil"
 	"github.com/vearch/vearch/internal/pkg/log"
 	"github.com/vearch/vearch/internal/pkg/netutil"
@@ -156,7 +155,7 @@ func (handler *DocumentHandler) handleAuth(c *gin.Context) {
 		return
 	}
 	headerData := c.GetHeader("Authorization")
-	username, password, err := util.AuthDecrypt(headerData)
+	username, password, err := netutil.AuthDecrypt(headerData)
 	if err != nil {
 		resp.SendError(c, http.StatusBadRequest, err.Error())
 		return

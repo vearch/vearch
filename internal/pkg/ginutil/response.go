@@ -22,13 +22,19 @@ import (
 	"github.com/bytedance/sonic"
 	"github.com/gin-gonic/gin"
 	"github.com/vearch/vearch/internal/pkg/log"
-	"github.com/vearch/vearch/internal/pkg/netutil"
 	"github.com/vearch/vearch/internal/proto/vearchpb"
 )
 
 type Response struct {
 	ginContext *gin.Context
 	httpStatus int64
+}
+
+// http protocal
+type HttpReply struct {
+	Code int64       `json:"code"`
+	Msg  string      `json:"msg,omitempty"`
+	Data interface{} `json:"data,omitempty"`
 }
 
 func New(ginContext *gin.Context) *Response {
@@ -74,7 +80,7 @@ func (r *Response) SendJsonBytes(bytes []byte) {
 }
 
 func (r *Response) SendJsonHttpReplySuccess(data interface{}) {
-	httpReply := &netutil.HttpReply{
+	httpReply := &HttpReply{
 		Code: int64(vearchpb.ErrCode(vearchpb.ErrorEnum_SUCCESS)),
 		Msg:  vearchpb.ErrMsg(vearchpb.ErrorEnum_SUCCESS),
 		Data: data,
@@ -88,7 +94,7 @@ func (r *Response) SendJsonHttpReplyError(err error) {
 		err = fmt.Errorf("")
 	}
 
-	httpReply := &netutil.HttpReply{
+	httpReply := &HttpReply{
 		Code: int64(vearchpb.ErrCode(vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err).GetError().Code)),
 		Msg:  err.Error(),
 	}

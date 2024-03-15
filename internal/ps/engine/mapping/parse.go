@@ -18,7 +18,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	util "github.com/vearch/vearch/internal/pkg"
+	vmap "github.com/vearch/vearch/internal/pkg/map"
 )
 
 const pathSeparator = "."
@@ -104,14 +104,14 @@ func MergeSchema(old, new []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	newSchemaMap = util.DrawMap(newSchemaMap, ".")
+	newSchemaMap = vmap.DrawMap(newSchemaMap, ".")
 
 	oldSchemaMap := make(map[string]interface{})
 	err = json.Unmarshal([]byte(old), &oldSchemaMap)
 	if err != nil {
 		return nil, err
 	}
-	oldSchemaMap = util.DrawMap(oldSchemaMap, ".")
+	oldSchemaMap = vmap.DrawMap(oldSchemaMap, ".")
 
 	for ok, ov := range oldSchemaMap {
 		if nv := newSchemaMap[ok]; nv != nil && nv != ov {
@@ -121,7 +121,7 @@ func MergeSchema(old, new []byte) ([]byte, error) {
 		}
 	}
 
-	newSchemaMap = util.AssembleMap(newSchemaMap, ".")
+	newSchemaMap = vmap.AssembleMap(newSchemaMap, ".")
 	bytes, err := json.Marshal(newSchemaMap)
 	if err != nil {
 		return nil, err

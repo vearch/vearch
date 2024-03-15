@@ -28,7 +28,6 @@ import (
 	"github.com/vearch/vearch/internal/config"
 	"github.com/vearch/vearch/internal/entity"
 	"github.com/vearch/vearch/internal/master/store"
-	util "github.com/vearch/vearch/internal/pkg"
 	"github.com/vearch/vearch/internal/pkg/cbjson"
 	"github.com/vearch/vearch/internal/pkg/errutil"
 	"github.com/vearch/vearch/internal/pkg/log"
@@ -421,7 +420,7 @@ func (m *masterClient) Register(ctx context.Context, clusterName string, nodeID 
 	masterServer.reset()
 	var response []byte
 	for {
-		query := netutil.NewQuery().SetHeader(Authorization, util.AuthEncrypt(Root, m.cfg.Global.Signkey))
+		query := netutil.NewQuery().SetHeader(Authorization, netutil.AuthEncrypt(Root, m.cfg.Global.Signkey))
 
 		keyNumber, err := masterServer.getKey()
 		if err != nil {
@@ -468,7 +467,7 @@ func (m *masterClient) RegisterRouter(ctx context.Context, clusterName string, t
 	var response []byte
 	for {
 
-		query := netutil.NewQuery().SetHeader(Authorization, util.AuthEncrypt(Root, m.cfg.Global.Signkey))
+		query := netutil.NewQuery().SetHeader(Authorization, netutil.AuthEncrypt(Root, m.cfg.Global.Signkey))
 
 		keyNumber, err := masterServer.getKey()
 		if err != nil {
@@ -508,7 +507,7 @@ func (m *masterClient) RegisterPartition(ctx context.Context, partition *entity.
 	masterServer.reset()
 	var response []byte
 	for {
-		query := netutil.NewQuery().SetHeader(Authorization, util.AuthEncrypt(Root, m.cfg.Global.Signkey))
+		query := netutil.NewQuery().SetHeader(Authorization, netutil.AuthEncrypt(Root, m.cfg.Global.Signkey))
 		keyNumber, err := masterServer.getKey()
 		if err != nil {
 			return err
@@ -554,7 +553,7 @@ func (m *masterClient) HTTPRequest(ctx context.Context, method string, url strin
 			e = fmt.Errorf("panic is %v", info)
 		}
 	}()
-	query := netutil.NewQuery().SetHeader(Authorization, util.AuthEncrypt(Root, m.cfg.Global.Signkey))
+	query := netutil.NewQuery().SetHeader(Authorization, netutil.AuthEncrypt(Root, m.cfg.Global.Signkey))
 	query.SetMethod(method)
 	query.SetUrlPath(url)
 	query.SetReqBody(reqBody)
@@ -590,7 +589,7 @@ func (m *masterClient) ProxyHTTPRequest(method string, url string, reqBody strin
 			e = fmt.Errorf("panic is %v", info)
 		}
 	}()
-	query := netutil.NewQuery().SetHeader(Authorization, util.AuthEncrypt(Root, m.cfg.Global.Signkey))
+	query := netutil.NewQuery().SetHeader(Authorization, netutil.AuthEncrypt(Root, m.cfg.Global.Signkey))
 	query.SetMethod(method)
 	query.SetUrlPath(url)
 	query.SetReqBody(reqBody)

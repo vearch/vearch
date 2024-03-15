@@ -23,6 +23,37 @@ import (
 	"time"
 )
 
+type UriParams interface {
+	ByName(name string) string
+	Put(name string, value string)
+}
+
+type UriParamsMap struct {
+	values map[string]string
+}
+
+func (p *UriParamsMap) Put(name, value string) {
+	p.values[name] = value
+}
+
+func (p *UriParamsMap) ByName(name string) string {
+	if len(name) == 0 {
+		return ""
+	}
+	v, ok := p.values[name]
+	if !ok {
+		return ""
+	} else {
+		return v
+	}
+}
+
+func NewMockUriParams(values map[string]string) UriParams {
+	return &UriParamsMap{
+		values: values,
+	}
+}
+
 func NewQuery() *query {
 	query := &query{
 		header: make(map[string]string),

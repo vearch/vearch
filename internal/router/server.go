@@ -18,11 +18,9 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"time"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	limit "github.com/juju/ratelimit"
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/internal/client"
 	"github.com/vearch/vearch/internal/config"
@@ -137,12 +135,4 @@ func (server *Server) Shutdown() {
 		server.httpServer = nil
 	}
 	log.Info("router shutdown... end")
-}
-
-type Limiter struct {
-	bucker *limit.Bucket
-}
-
-func (l *Limiter) Limit() bool {
-	return !l.bucker.WaitMaxDuration(1, time.Second)
 }

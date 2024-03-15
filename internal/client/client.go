@@ -38,10 +38,11 @@ import (
 	"github.com/vearch/vearch/internal/entity"
 	"github.com/vearch/vearch/internal/entity/response"
 	"github.com/vearch/vearch/internal/master/store"
-	util "github.com/vearch/vearch/internal/pkg"
 	"github.com/vearch/vearch/internal/pkg/algorithm"
 	"github.com/vearch/vearch/internal/pkg/cbbytes"
 	"github.com/vearch/vearch/internal/pkg/log"
+	vmap "github.com/vearch/vearch/internal/pkg/map"
+	"github.com/vearch/vearch/internal/pkg/number"
 	"github.com/vearch/vearch/internal/pkg/uuid"
 	"github.com/vearch/vearch/internal/proto/vearchpb"
 	"github.com/vearch/vearch/internal/ps/engine/mapping"
@@ -312,7 +313,7 @@ func (r *routerRequest) Execute() []*vearchpb.Item {
 	respChain := make(chan *vearchpb.PartitionData, len(r.sendMap))
 	for partitionID, pData := range r.sendMap {
 		wg.Add(1)
-		c := context.WithValue(r.ctx, share.ReqMetaDataKey, util.CopyMap(r.md))
+		c := context.WithValue(r.ctx, share.ReqMetaDataKey, vmap.CopyMap(r.md))
 		go func(ctx context.Context, pid entity.PartitionID, d *vearchpb.PartitionData) {
 			defer wg.Done()
 			replyPartition := new(vearchpb.PartitionData)
@@ -340,7 +341,7 @@ func (r *routerRequest) Execute() []*vearchpb.Item {
 						if err != nil {
 							log.Panic(err.Error())
 						}
-						if err := util.Normalization(float32s); err != nil {
+						if err := number.Normalization(float32s); err != nil {
 							log.Panic(err.Error())
 						}
 						bs, err := cbbytes.VectorToByte(float32s)
@@ -503,13 +504,13 @@ func (r *routerRequest) searchFromPartition(ctx context.Context, partitionID ent
 							qu := i * dimension
 							if i != dPage {
 								norma := float32s[i-1+end : qu]
-								if err := util.Normalization(norma); err != nil {
+								if err := number.Normalization(norma); err != nil {
 									panic(err.Error())
 								}
 								normalVector = append(normalVector, norma...)
 							} else {
 								norma := float32s[i-1+end:]
-								if err := util.Normalization(norma); err != nil {
+								if err := number.Normalization(norma); err != nil {
 									panic(err.Error())
 								}
 								normalVector = append(normalVector, norma...)
@@ -528,7 +529,7 @@ func (r *routerRequest) searchFromPartition(ctx context.Context, partitionID ent
 					if err != nil {
 						panic(err.Error())
 					}
-					if err := util.Normalization(float32s); err != nil {
+					if err := number.Normalization(float32s); err != nil {
 						panic(err.Error())
 					}
 					bs, err := cbbytes.VectorToByte(float32s)
@@ -663,7 +664,7 @@ func (r *routerRequest) SearchFieldSortExecute(sortOrder sortorder.SortOrder) *v
 	for partitionID, pData := range sendPartitionMap {
 		searchReq = pData.SearchRequest
 		wg.Add(1)
-		c := context.WithValue(r.ctx, share.ReqMetaDataKey, util.CopyMap(r.md))
+		c := context.WithValue(r.ctx, share.ReqMetaDataKey, vmap.CopyMap(r.md))
 		go func(ctx context.Context, partitionID entity.PartitionID, pd *vearchpb.PartitionData, space *entity.Space, sortOrder sortorder.SortOrder, respChain chan *response.SearchDocResult, normalIsOrNot bool, normalField map[string]string) {
 			defer wg.Done()
 			r.searchFromPartition(ctx, partitionID, pd, space, respChain, normalIsOrNot, normalField)
@@ -1522,7 +1523,7 @@ func (r *routerRequest) ForceMergeExecute() *vearchpb.ForceMergeResponse {
 	respChain := make(chan *vearchpb.PartitionData, partitionLen)
 	for partitionID, pData := range r.sendMap {
 		wg.Add(1)
-		c := context.WithValue(r.ctx, share.ReqMetaDataKey, util.CopyMap(r.md))
+		c := context.WithValue(r.ctx, share.ReqMetaDataKey, vmap.CopyMap(r.md))
 		go func(ctx context.Context, pid entity.PartitionID, d *vearchpb.PartitionData) {
 			defer wg.Done()
 			replyPartition := new(vearchpb.PartitionData)
@@ -1568,7 +1569,7 @@ func (r *routerRequest) RebuildIndexExecute() *vearchpb.IndexResponse {
 	respChain := make(chan *vearchpb.PartitionData, partitionLen)
 	for partitionID, pData := range r.sendMap {
 		wg.Add(1)
-		c := context.WithValue(r.ctx, share.ReqMetaDataKey, util.CopyMap(r.md))
+		c := context.WithValue(r.ctx, share.ReqMetaDataKey, vmap.CopyMap(r.md))
 		go func(ctx context.Context, pid entity.PartitionID, d *vearchpb.PartitionData) {
 			defer wg.Done()
 			replyPartition := new(vearchpb.PartitionData)
@@ -1614,7 +1615,7 @@ func (r *routerRequest) FlushExecute() *vearchpb.FlushResponse {
 	respChain := make(chan *vearchpb.PartitionData, partitionLen)
 	for partitionID, pData := range r.sendMap {
 		wg.Add(1)
-		c := context.WithValue(r.ctx, share.ReqMetaDataKey, util.CopyMap(r.md))
+		c := context.WithValue(r.ctx, share.ReqMetaDataKey, vmap.CopyMap(r.md))
 		go func(ctx context.Context, pid entity.PartitionID, d *vearchpb.PartitionData) {
 			defer wg.Done()
 			replyPartition := new(vearchpb.PartitionData)
@@ -1735,7 +1736,7 @@ func (r *routerRequest) DelByQueryeExecute(deleteByScalar bool) *vearchpb.DelByQ
 	respChain := make(chan *vearchpb.PartitionData, partitionLen)
 	for partitionID, pData := range r.sendMap {
 		wg.Add(1)
-		c := context.WithValue(r.ctx, share.ReqMetaDataKey, util.CopyMap(r.md))
+		c := context.WithValue(r.ctx, share.ReqMetaDataKey, vmap.CopyMap(r.md))
 		go func(ctx context.Context, pid entity.PartitionID, d *vearchpb.PartitionData) {
 			defer wg.Done()
 			replyPartition := new(vearchpb.PartitionData)

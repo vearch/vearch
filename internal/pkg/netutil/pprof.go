@@ -26,6 +26,23 @@ import (
 	"github.com/vearch/vearch/internal/pkg/log"
 )
 
+type ResponseWriter struct {
+	http.ResponseWriter
+	writer io.Writer
+}
+
+func NewResponseWriter(w http.ResponseWriter, writer io.Writer) *ResponseWriter {
+	return &ResponseWriter{ResponseWriter: w, writer: writer}
+}
+
+func (w *ResponseWriter) Write(b []byte) (int, error) {
+	if w.writer == nil {
+		return w.Write(b)
+	} else {
+		return w.writer.Write(b)
+	}
+}
+
 func StartPprofService(addr string) (*http.ServeMux, error) {
 	pprofMux := http.NewServeMux()
 	pprofMux.HandleFunc("/debug/ping", PingPong)
@@ -47,7 +64,6 @@ func StartPprofService(addr string) (*http.ServeMux, error) {
 }
 func PingPong(w http.ResponseWriter, _ *http.Request) {
 	w.Write([]byte("ok"))
-	return
 }
 
 func DebugPprofHandler(w http.ResponseWriter, r *http.Request) {
@@ -127,7 +143,6 @@ func DebugPprofTraceHandler(w http.ResponseWriter, r *http.Request) {
 
 func GCHandler(w http.ResponseWriter, _ *http.Request) {
 	gogc.PrintGCSummary(w)
-	return
 }
 
 func DebugPprofHeapHandler(w http.ResponseWriter, r *http.Request) {

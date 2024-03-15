@@ -29,10 +29,10 @@ import (
 	"github.com/vearch/vearch/internal/client"
 	"github.com/vearch/vearch/internal/config"
 	"github.com/vearch/vearch/internal/entity"
-	util "github.com/vearch/vearch/internal/pkg"
 	"github.com/vearch/vearch/internal/pkg/cbjson"
 	"github.com/vearch/vearch/internal/pkg/errutil"
 	"github.com/vearch/vearch/internal/pkg/log"
+	"github.com/vearch/vearch/internal/pkg/number"
 	"github.com/vearch/vearch/internal/pkg/slice"
 	"github.com/vearch/vearch/internal/proto/vearchpb"
 	"github.com/vearch/vearch/internal/ps/engine/mapping"
@@ -200,7 +200,7 @@ func (ms *masterService) updateDBIpList(ctx context.Context, dbModify *entity.DB
 	defer errutil.CatchError(&err)
 	var id int64
 	db = &entity.DB{}
-	if util.IsNum(dbModify.DbName) {
+	if number.IsNum(dbModify.DbName) {
 		id = cast.ToInt64(dbModify.DbName)
 	} else if id, err = ms.Master().QueryDBName2Id(ctx, dbModify.DbName); err != nil {
 		return nil, err
@@ -247,7 +247,7 @@ func (ms *masterService) updateDBIpList(ctx context.Context, dbModify *entity.DB
 func (ms *masterService) queryDBService(ctx context.Context, dbstr string) (db *entity.DB, err error) {
 	var id int64
 	db = &entity.DB{}
-	if util.IsNum(dbstr) {
+	if number.IsNum(dbstr) {
 		id = cast.ToInt64(dbstr)
 	} else if id, err = ms.Master().QueryDBName2Id(ctx, dbstr); err != nil {
 		return nil, err
