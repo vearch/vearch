@@ -2,13 +2,14 @@ from vearch.schema.index import Index
 from vearch.core.client import client
 from vearch.schema.space import SpaceSchema
 from vearch.result import Result, ResultStatus, get_result
-from vearch.const import SPACE_URI, INDEX_URI, UPSERT_DOC_URI
+from vearch.const import SPACE_URI, INDEX_URI, UPSERT_DOC_URI, DELETE_DOC_URI
 from vearch.exception import SpaceException, DocumentException
 from vearch.utils import CodeType
+from vearch.filter import Filter
 import requests
 import json
 import pandas as pd
-from typing import List, Union, Dict
+from typing import List, Union
 
 
 class Space(object):
@@ -54,7 +55,7 @@ class Space(object):
         resp = self.client.s.send(req)
         return get_result(resp)
 
-    def upsert_doc(self, data: Union[List, pd.DataFrame, Dict]) -> Result:
+    def upsert_doc(self, data: Union[List, pd.DataFrame]) -> Result:
         if not self._schema:
             has, schema = self.exist()
             if has:
@@ -95,8 +96,12 @@ class Space(object):
             raise DocumentException(CodeType.UPSERT_DOC, "data is empty")
         return True
 
-    def delete_doc(self):
-        pass
+    def delete_doc(self, expr: Filter) -> Result:
+        url = self.client.host + DELETE_DOC_URI
+        req_body = {"database": self.db_name, "space": self.name, "filter": expr.dict()}
+        req = requests.request(method="POST", url=url, data=json.dumps(req_body), headers={"token": self.client.token})
+        resp = self.client.s.send(req)
+        return get_result(resp)
 
     def search(self):
         pass
