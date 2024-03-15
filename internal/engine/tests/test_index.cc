@@ -62,11 +62,11 @@ char **GammaTest::my_argv = nullptr;
 TEST_F(GammaTest, SSG) {
   struct Options opt;
   opt.set_file(my_argv, my_argc);
-  opt.retrieval_type = "SSG";
+  opt.index_type = "SSG";
   opt.store_type = "MemoryOnly";
   opt.add_doc_num = 20000;
   opt.training_threshold = 5000;
-  opt.retrieval_param = kSSGParam;
+  opt.index_params = kSSGParam;
   ASSERT_EQ(TestIndexes(opt), 0);
   opt.b_load = true;
   ASSERT_EQ(TestIndexes(opt), 0);
@@ -75,9 +75,9 @@ TEST_F(GammaTest, SSG) {
 TEST_F(GammaTest, IVFPQFastScan_MemoryOnly) {
   struct Options opt;
   opt.set_file(my_argv, my_argc);
-  opt.retrieval_type = "IVFPQFastScan";
+  opt.index_type = "IVFPQFastScan";
   opt.store_type = "MemoryOnly";
-  opt.retrieval_param = kIVFPQParam;
+  opt.index_params = kIVFPQParam;
   ASSERT_EQ(TestIndexes(opt), 0);
   //   opt.b_load = true;
   //   ASSERT_EQ(TestIndexes(opt), 0);
@@ -86,9 +86,9 @@ TEST_F(GammaTest, IVFPQFastScan_MemoryOnly) {
 TEST_F(GammaTest, IVFPQFastScan_ROCKSDB) {
   struct Options opt;
   opt.set_file(my_argv, my_argc);
-  opt.retrieval_type = "IVFPQFastScan";
+  opt.index_type = "IVFPQFastScan";
   opt.store_type = "RocksDB";
-  opt.retrieval_param = kIVFPQParam;
+  opt.index_params = kIVFPQParam;
   ASSERT_EQ(TestIndexes(opt), 0);
   //   opt.b_load = true;
   //   ASSERT_EQ(TestIndexes(opt), 0);
@@ -99,8 +99,8 @@ TEST_F(GammaTest, IVFPQFastScan_ROCKSDB) {
 TEST_F(GammaTest, RELAYOUT_MEMORYONLY) {
   struct Options opt;
   opt.set_file(my_argv, my_argc);
-  opt.retrieval_type = "IVFPQ_RELAYOUT";
-  opt.retrieval_param = kIVFPQParam;
+  opt.index_type = "IVFPQ_RELAYOUT";
+  opt.index_params = kIVFPQParam;
   opt.store_type = "MemoryOnly";
   ASSERT_EQ(TestIndexes(opt), 0);
   opt.b_load = true;
@@ -110,9 +110,9 @@ TEST_F(GammaTest, RELAYOUT_MEMORYONLY) {
 TEST_F(GammaTest, RELAYOUT_ROCKSDB) {
   struct Options opt;
   opt.set_file(my_argv, my_argc);
-  opt.retrieval_type = "IVFPQ_RELAYOUT";
+  opt.index_type = "IVFPQ_RELAYOUT";
   opt.store_type = "RocksDB";
-  opt.retrieval_param = kIVFPQParam;
+  opt.index_params = kIVFPQParam;
   ASSERT_EQ(TestIndexes(opt), 0);
   opt.b_load = true;
   ASSERT_EQ(TestIndexes(opt), 0);
@@ -121,9 +121,9 @@ TEST_F(GammaTest, RELAYOUT_ROCKSDB) {
 TEST_F(GammaTest, x86IVFFLAT) {
   struct Options opt;
   opt.set_file(my_argv, my_argc);
-  opt.retrieval_type = "x86IVFFLAT";
+  opt.index_type = "x86IVFFLAT";
   opt.store_type = "RocksDB";
-  opt.retrieval_param = kIVFPQOPQParam;
+  opt.index_params = kIVFPQOPQParam;
   ASSERT_EQ(TestIndexes(opt), 0);
   opt.b_load = true;
   ASSERT_EQ(TestIndexes(opt), 0);

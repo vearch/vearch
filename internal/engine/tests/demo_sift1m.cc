@@ -20,7 +20,7 @@ static vearch::Index *gamma_index;
 
 int64_t *labels = nullptr;
 float *feature = nullptr;
-string retrieval_type;
+string index_type;
 size_t d;
 size_t xb;
 string path = "files";
@@ -74,12 +74,12 @@ int Evaluate() {
   for (size_t i = 0; i < nprobes.size(); i++) {
     int nprobe = nprobes[i];
     printf("nprobe: %d\n", nprobe);
-    if (retrieval_type == "IVFPQ") {
+    if (index_type == "IVFPQ") {
       vearch::IndexIVFPQ *index =
           dynamic_cast<vearch::IndexIVFPQ *>(gamma_index);
       index->nprobe = nprobe;
     }
-    if (retrieval_type == "IVFFLAT") {
+    if (index_type == "IVFFLAT") {
       vearch::IndexIVFFlat *index =
           dynamic_cast<vearch::IndexIVFFlat *>(gamma_index);
       index->nprobe = nprobe;
@@ -119,11 +119,11 @@ int Init() {
   // if don't set, log will be output to stdout
   SetLogDictionary(log_dir);
 
-  if (retrieval_type == "IVFPQ") {
+  if (index_type == "IVFPQ") {
     gamma_index =
         vearch::index_factory(128, "IVF2048,PQ32x8", faiss::METRIC_L2);
   }
-  if (retrieval_type == "IVFFLAT") {
+  if (index_type == "IVFFLAT") {
     gamma_index = vearch::index_factory(128, "IVF2048,Flat", faiss::METRIC_L2);
   }
   return 0;
@@ -176,7 +176,7 @@ int main(int argc, char **argv) {
     std::cout << "Usage: [Program] [IVFPQ/IVFFLAT]\n";
     return 1;
   }
-  test::retrieval_type = argv[1];
+  test::index_type = argv[1];
 
   if (test::Init()) return 0;
   if (bLoad) {

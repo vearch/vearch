@@ -47,7 +47,7 @@ TEST_F(GammaTest, IVFPQ) {
   struct Options opt;
   opt.profile_file = my_argv[1];
   opt.feature_file = my_argv[2];
-  opt.retrieval_type = "IVFPQ";
+  opt.index_type = "IVFPQ";
   ASSERT_EQ(TestIndexes(opt), 0);
   opt.b_load = true;
   ASSERT_EQ(TestIndexes(opt), 0);
@@ -56,14 +56,14 @@ TEST_F(GammaTest, IVFPQ) {
 int CreateFaissTable(struct Options &opt) {
   vearch::TableInfo table;
   table.SetName(opt.vector_name);
-  table.SetIndexType(opt.retrieval_type);
-  if (opt.retrieval_type == "IVFPQ" || opt.retrieval_type == "IVFPQ_RELAYOUT") {
+  table.SetIndexType(opt.index_type);
+  if (opt.index_type == "IVFPQ" || opt.index_type == "IVFPQ_RELAYOUT") {
     table.SetIndexParams(kIVFPQParam);
-  } else if (opt.retrieval_type == "IVFFLAT") {
+  } else if (opt.index_type == "IVFFLAT") {
     table.SetIndexParams(kIVFPQParam);
-  } else if (opt.retrieval_type == "FLAT") {
+  } else if (opt.index_type == "FLAT") {
     table.SetIndexParams(kFLATParam);
-  } else if (opt.retrieval_type == "HNSW") {
+  } else if (opt.index_type == "HNSW") {
     table.SetIndexParams(kHNSWParam);
   }
 
@@ -206,10 +206,10 @@ int SearchFaiss(struct Options &opt, size_t num) {
     request.SetReqNum(req_num);
     request.SetBruteForceSearch(0);
     request.SetHasRank(true);
-    std::string retrieval_params =
+    std::string index_params =
         "{\"metric_type\" : \"L2\", \"recall_num\" : "
         "10, \"nprobe\" : 10, \"ivf_flat\" : 0}";
-    request.SetIndexParams(retrieval_params);
+    request.SetIndexParams(index_params);
     // request.SetOnlineLogLevel("");
     request.SetMultiVectorRank(0);
     request.SetL2Sqrt(false);
@@ -287,7 +287,7 @@ TEST_F(GammaTest, LOAD_FAISS_INDEX) {
   struct Options opt;
   opt.profile_file = my_argv[1];
   opt.feature_file = my_argv[2];
-  opt.retrieval_type = "IVFPQ";
+  opt.index_type = "IVFPQ";
   opt.store_type = "MemoryOnly";
   opt.add_doc_num = 20000;
   opt.training_threshold = 5000;

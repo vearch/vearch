@@ -36,18 +36,6 @@ using std::vector;
 namespace vearch {
 namespace gamma_gpu {
 
-static inline void ConvertVectorDim(size_t num, int raw_d, int d,
-                                    const float *raw_vec, float *vec) {
-  memset(vec, 0, num * d * sizeof(float));
-
-#pragma omp parallel for
-  for (size_t i = 0; i < num; ++i) {
-    for (int j = 0; j < raw_d; ++j) {
-      vec[i * d + j] = raw_vec[i * raw_d + j];
-    }
-  }
-}
-
 namespace {
 const int kMaxBatch = 200;  // max search batch num
 const int kMaxReqNum = 200;
@@ -790,17 +778,7 @@ int GammaIVFPQGPUIndex::Search(RetrievalContext *retrieval_context, int n,
 
   RawVector *raw_vec = dynamic_cast<RawVector *>(vector_);
   int raw_d = raw_vec->MetaInfo()->Dimension();
-  const float *vec_q = nullptr;
-  utils::ScopeDeleter1<float> del_vec_q;
-  if (d_ > raw_d) {
-    float *vec = new float[n * d_];
-    ConvertVectorDim(n, raw_d, d_, xq, vec);
-    vec_q = vec;
-    del_vec_q.set(vec_q);
-  } else {
-    vec_q = xq;
-  }
-
+  const float *vec_q = xq;
   int recall_num = retrieval_params->RecallNum();
 
   int max_recallnum = faiss::gpu::getMaxKSelection();

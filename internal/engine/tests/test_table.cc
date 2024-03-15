@@ -53,8 +53,8 @@ class TableTest : public ::testing::Test {
   TableInfo *CreateTableInfo(struct Options &opt, bool is_index = false) {
     TableInfo *table = new TableInfo();
     table->SetName(opt.vector_name);
-    table->SetIndexType(opt.retrieval_type);
-    table->SetIndexParams(opt.retrieval_param);
+    table->SetIndexType(opt.index_type);
+    table->SetIndexParams(opt.index_params);
     table->SetTrainingThreshold(opt.training_threshold);
 
     struct vearch::FieldInfo field_info;

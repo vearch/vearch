@@ -353,7 +353,7 @@ class VearchCase:
                 logger.debug("searchByFeature---\n" + response.text)
                 assert response.status_code == 200
 
-    def test_document_modify_singlefield(self):
+    def test_documentModifySinglefield(self):
         logger.info("document_modify_singlefield")
         headers = {"content-type": "application/json"}
         # modify single field
@@ -385,7 +385,7 @@ class VearchCase:
         assert result["documents"][0]["_source"]["float"] == 888.88
         assert result["documents"][0]["_source"]["string"] == "test"
 
-    def test_document_upsert_singlefield(self):
+    def test_documentUpsertSinglefield(self):
         logger.info("document_upsert_singlefield")
         headers = {"content-type": "application/json"}
         # upsert single field
@@ -487,8 +487,8 @@ class VearchCase:
         self.test_documentQueryByFilter()
         self.test_documentSearchByDocumentIds()
         self.test_documentSearchByVector()
-        self.test_document_modify_singlefield()
-        self.test_document_upsert_singlefield()
+        self.test_documentModifySinglefield()
+        self.test_documentUpsertSinglefield()
         self.test_documentDeleteByDocumentIds()
         self.test_documentDeleteByFilter()
 

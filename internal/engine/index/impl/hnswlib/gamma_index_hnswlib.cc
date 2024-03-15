@@ -144,7 +144,7 @@ GammaIndexHNSWLIB::~GammaIndexHNSWLIB() {
 
 int GammaIndexHNSWLIB::Init(const std::string &model_parameters,
                             int training_threshold) {
-  training_threshold_ = training_threshold;
+  training_threshold_ = 0;
   raw_vec_ = dynamic_cast<MemoryRawVector *>(vector_);
   if (raw_vec_ == nullptr) {
     LOG(ERROR) << "HNSW can only work in memory only mode";

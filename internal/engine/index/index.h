@@ -32,7 +32,7 @@ class Index {
   /**
    * @brief Construct a new Gamma Faisslike Index object
    *
-   * @param retrieval_type : IVFFLAT, IVFPQ
+   * @param index_type : IVFFLAT, IVFPQ
    * @param d : dimension
    * @param metric : support METRIC_INNER_PRODUCT, METRIC_L2
    */

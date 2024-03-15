@@ -66,7 +66,7 @@ GammaFLATIndex::~GammaFLATIndex() {}
 
 int GammaFLATIndex::Init(const std::string &model_parameters,
                          int training_threshold) {
-  training_threshold_ = training_threshold;
+  training_threshold_ = 0;
   auto raw_vec_type = dynamic_cast<MemoryRawVector *>(vector_);
   if (raw_vec_type == nullptr) {
     LOG(ERROR) << "FLAT can only work in memory only mode";

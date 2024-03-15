@@ -77,18 +77,18 @@ class IndexRecallTest : public ::testing::Test {
     for (size_t i = 0; i < nprobes.size(); i++) {
       int nprobe = nprobes[i];
       printf("nprobe: %d\n", nprobe);
-      if (retrieval_type == "IVFPQ_RELAYOUT" || retrieval_type == "IVFPQ") {
+      if (index_type == "IVFPQ_RELAYOUT" || index_type == "IVFPQ") {
         vearch::IndexIVFPQ *index =
             dynamic_cast<vearch::IndexIVFPQ *>(gamma_index);
         index->nprobe = nprobe;
       }
-      if (retrieval_type == "x86IVFFLAT" || retrieval_type == "IVFFLAT") {
+      if (index_type == "x86IVFFLAT" || index_type == "IVFFLAT") {
         vearch::IndexIVFFlat *index =
             dynamic_cast<vearch::IndexIVFFlat *>(gamma_index);
         index->nprobe = nprobe;
       }
 #ifdef USE_SCANN
-      if (retrieval_type == "Scann") {
+      if (index_type == "Scann") {
         vearch::IndexScann *index =
             dynamic_cast<vearch::IndexScann *>(gamma_index);
         index->leaves_ = nprobe;
@@ -126,7 +126,7 @@ class IndexRecallTest : public ::testing::Test {
   }
 
   int Create(std::string index_type, std::string data_type) {
-    retrieval_type = index_type;
+    index_type = index_type;
     SetLogDictionary("./log");
     size_t nlist = 2048;
     faiss::MetricType metric_type;
@@ -139,7 +139,7 @@ class IndexRecallTest : public ::testing::Test {
       metric_type = faiss::METRIC_INNER_PRODUCT;
     }
 
-    if (retrieval_type == "IVFPQ_RELAYOUT" || retrieval_type == "IVFPQ") {
+    if (index_type == "IVFPQ_RELAYOUT" || index_type == "IVFPQ") {
       // gamma_index = vearch::index_factory(128, "IVF2048,PQ32x8",
       // faiss::METRIC_L2);
       gamma_index =
@@ -148,11 +148,11 @@ class IndexRecallTest : public ::testing::Test {
       // faiss::METRIC_INNER_PRODUCT);
     }
 #ifdef USE_SCANN
-    if (retrieval_type == "Scann") {
+    if (index_type == "Scann") {
       gamma_index = new vearch::IndexScann(d, nlist, d / 2, metric_type);
     }
 #endif  // USE_SCANN
-    if (retrieval_type == "x86IVFFLAT" || retrieval_type == "IVFFLAT") {
+    if (index_type == "x86IVFFLAT" || index_type == "IVFFLAT") {
       // std::string param = "IVF" + std::to_string(nlist) + ",Flat";
       // gamma_index = vearch::index_factory(d, param.c_str(),
       // faiss::METRIC_L2);
@@ -187,7 +187,7 @@ class IndexRecallTest : public ::testing::Test {
   }
 
   int Fit() {
-    if (retrieval_type == "Scann") {
+    if (index_type == "Scann") {
       double start = utils::getmillisecs();
       gamma_index->train(nb, feature);
       double elap = utils::getmillisecs() - start;
@@ -230,7 +230,7 @@ class IndexRecallTest : public ::testing::Test {
   std::string feature_file;
   std::string query_file;
   std::string groundtruth_file;
-  std::string retrieval_type;
+  std::string index_type;
 };
 /*
 TEST_F(IndexRecallTest, IVFPQ) {

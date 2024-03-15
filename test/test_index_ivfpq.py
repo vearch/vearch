@@ -122,29 +122,6 @@ def test_vearch_index_ivfpq(store_type: str, ncentroids: int):
     benchmark(store_type, index_params, xb, xq, xt, gt)
 
 
-def benchmark_index_params(store_type, index_params, xb, xq, xt, gt):
-    embedding_size = xb.shape[1]
-    batch_size = 100
-    k = 100
-
-    total = xb.shape[0]
-    total_batch = int(total / batch_size)
-    logger.info("dataset num: %d, total_batch: %d, dimension: %d, ncentroids %d, search num: %d, topK: %d" \
-                %(total, total_batch, embedding_size, index_params["ncentroids"], xq.shape[0], k))
-
-    create(router_url, embedding_size, store_type, index_params)
-
-    add(total_batch, batch_size, xb)
-
-    waiting_index_finish(logger, total)
-
-    for quick in [True, False]:
-        for nprobe in [20, 40]:
-            for parallel_on_queries in [0, 1]:
-                query(quick, nprobe, parallel_on_queries, xq, gt, k, logger)
-
-    destroy(router_url, db_name, space_name)
-
 @ pytest.mark.parametrize(["store_type", "ncentroids", "nsubvector", "training_threshold"], [
     ["MemoryOnly", 256, 32, 10000],
     ["MemoryOnly", 256, 64, 10000],
@@ -169,4 +146,26 @@ def test_vearch_index_ivfpq_index_params(store_type: str, ncentroids: int, nsubv
     index_params["ncentroids"] = ncentroids
     index_params["nsubvector"] = nsubvector
     index_params["training_threshold"] = training_threshold
-    benchmark_index_params(store_type, index_params, xb, xq, xt, gt)
+    benchmark(store_type, index_params, xb, xq, xt, gt)
+
+
+@ pytest.mark.parametrize(["store_type", "ncentroids", "nsubvector", "training_threshold", "with_opq"], [
+    ["MemoryOnly", 256, 32, 10000, False],
+    ["MemoryOnly", 256, 32, 10000, True],
+    ["RocksDB", 256, 32, 10000, False],
+    ["RocksDB", 256, 32, 10000, True],
+])
+def test_vearch_index_ivfpq_hnsw_opq(store_type: str, ncentroids: int, nsubvector: int, training_threshold: int, with_opq: bool):
+    index_params = {}
+    index_params["metric_type"] = "L2"
+    index_params["ncentroids"] = ncentroids
+    index_params["nsubvector"] = nsubvector
+    index_params["training_threshold"] = training_threshold
+    index_params["hnsw"] = {}
+    index_params["hnsw"]["nlinks"] = 32
+    index_params["hnsw"]["efConstruction"] = 200
+    index_params["hnsw"]["efSearch"] = 120
+    if with_opq:
+        index_params["opq"] = {}
+        index_params["opq"]["nsubvector"] = 32        
+    benchmark(store_type, index_params, xb, xq, xt, gt)

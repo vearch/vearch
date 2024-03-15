@@ -198,8 +198,8 @@ struct Options {
   string path;
   string log_dir;
   string vector_name;
-  string retrieval_type;
-  string retrieval_param;
+  string index_type;
+  string index_params;
   string store_type;
   int add_type;  // 0 single add, 1 batch add
 
@@ -409,7 +409,7 @@ int AddDocToEngine(struct Options &opt, int doc_num, int interval = 0) {
     field.name = opt.vector_name;
     field.datatype = vearch::DataType::VECTOR;
     int len = opt.d * sizeof(float);
-    if (opt.retrieval_type == "BINARYIVF") {
+    if (opt.index_type == "BINARYIVF") {
       len = opt.d * sizeof(char) / 8;
     }
 
@@ -485,7 +485,7 @@ int BatchAddDocToEngine(struct Options &opt, int doc_num, int interval = 0) {
       field.name = opt.vector_name;
       field.datatype = vearch::DataType::VECTOR;
       int len = opt.d * sizeof(float);
-      if (opt.retrieval_type == "BINARYIVF") {
+      if (opt.index_type == "BINARYIVF") {
         len = opt.d * sizeof(char) / 8;
       }
 
@@ -533,7 +533,7 @@ int SearchThread(struct Options &opt, size_t num) {
     vector_query.name = opt.vector_name;
 
     int len = opt.d * sizeof(float) * req_num;
-    if (opt.retrieval_type == "BINARYIVF") {
+    if (opt.index_type == "BINARYIVF") {
       len = opt.d * sizeof(char) / 8 * req_num;
     }
     char *value = reinterpret_cast<char *>(opt.feature + (uint64_t)idx * opt.d);
@@ -551,10 +551,10 @@ int SearchThread(struct Options &opt, size_t num) {
     request.SetReqNum(req_num);
     request.SetBruteForceSearch(0);
     request.SetHasRank(true);
-    std::string retrieval_params =
+    std::string index_params =
         "{\"metric_type\" : \"InnerProduct\", \"recall_num\" : "
         "10, \"nprobe\" : 10, \"ivf_flat\" : 0}";
-    request.SetIndexParams(retrieval_params);
+    request.SetIndexParams(index_params);
     // request.SetOnlineLogLevel("");
     request.SetMultiVectorRank(0);
     request.SetL2Sqrt(false);
@@ -893,8 +893,8 @@ void InitEngine(struct Options &opt) {
 int Create(struct Options &opt) {
   vearch::TableInfo table;
   table.SetName(opt.vector_name);
-  table.SetIndexType(opt.retrieval_type);
-  table.SetIndexParams(opt.retrieval_param);
+  table.SetIndexType(opt.index_type);
+  table.SetIndexParams(opt.index_params);
   table.SetTrainingThreshold(opt.training_threshold);
 
   for (size_t i = 0; i < opt.fields_vec.size(); ++i) {

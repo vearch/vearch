@@ -224,7 +224,6 @@ func (index *Index) UnmarshalJSON(bs []byte) error {
 					return fmt.Errorf("IndexParams efConstruction:%d should in [%d, %d]", indexParams.EfConstruction, MinEfConstruction, MaxEfConstruction)
 				}
 			}
-			indexParams.TrainingThreshold = DefaultTrainingThreshold
 		} else if strings.Compare(tempIndex.IndexType, "FLAT") == 0 {
 
 		} else if strings.Compare("BINARYIVF", tempIndex.IndexType) == 0 ||
@@ -245,28 +244,17 @@ func (index *Index) UnmarshalJSON(bs []byte) error {
 					return fmt.Errorf(tempIndex.IndexType+" training_threshold:[%d] should less than DefaultMaxPointsPerCentroid(%d) * ncentroids(%d):[%d] so can not to index",
 						indexParams.TrainingThreshold, DefaultMaxPointsPerCentroid, indexParams.Ncentroids, DefaultMaxPointsPerCentroid*indexParams.Ncentroids)
 				}
-			} else {
-				indexParams.TrainingThreshold = DefaultMinPointsPerCentroid * indexParams.Ncentroids
 			}
 			if indexParams.Nprobe != 0 && indexParams.Nprobe > indexParams.Ncentroids {
 				return fmt.Errorf(tempIndex.IndexType+" nprobe:[%d] should less than ncentroids:[%d]", indexParams.Nprobe, indexParams.Ncentroids)
 			}
 		}
-		jsonBytes, err := json.Marshal(indexParams)
-		if err != nil {
-			return fmt.Errorf("IndexParams:%v json.Marshal err :[%s]", indexParams, err.Error())
-		}
-		*index = Index{
-			IndexName:   tempIndex.IndexName,
-			IndexType:   tempIndex.IndexType,
-			IndexParams: json.RawMessage(jsonBytes),
-		}
-	} else {
-		*index = Index{
-			IndexName:   tempIndex.IndexName,
-			IndexType:   tempIndex.IndexType,
-			IndexParams: tempIndex.IndexParams,
-		}
+	}
+
+	*index = Index{
+		IndexName:   tempIndex.IndexName,
+		IndexType:   tempIndex.IndexType,
+		IndexParams: tempIndex.IndexParams,
 	}
 
 	return nil

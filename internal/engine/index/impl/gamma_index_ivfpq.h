@@ -696,7 +696,6 @@ struct IVFPQModelParams {
   IVFPQModelParams() {
     ncentroids = 2048;
     nsubvector = 0;
-    support_indivisible_nsubvector = false;
     nbits_per_idx = 8;
     nprobe = 80;
     metric_type = DistanceComputeType::INNER_PRODUCT;
@@ -721,7 +720,6 @@ struct IVFPQModelParams {
     int nsubvector;
     int nbits_per_idx;
     int nprobe;
-    int support_indivisible_nsubvector;
 
     // -1 as default
     if (!jp.GetInt("ncentroids", ncentroids)) {
@@ -758,12 +756,6 @@ struct IVFPQModelParams {
         LOG(ERROR) << "nprobe should less than ncentroids";
         return -1;
       }
-    }
-
-    if (!jp.GetInt("support_indivisible_nsubvector",
-                   support_indivisible_nsubvector)) {
-      if (support_indivisible_nsubvector != 0)
-        this->support_indivisible_nsubvector = true;
     }
 
     int bucket_init_size;
@@ -864,8 +856,6 @@ struct IVFPQModelParams {
     std::stringstream ss;
     ss << "ncentroids =" << ncentroids << ", ";
     ss << "nsubvector =" << nsubvector << ", ";
-    ss << "support_indivisible_nsubvector =" << support_indivisible_nsubvector
-       << ", ";
     ss << "nbits_per_idx =" << nbits_per_idx << ", ";
     ss << "nprobe =" << nprobe << ", ";
     ss << "metric_type =" << (int)metric_type << ", ";

@@ -46,8 +46,8 @@ char **GammaTest::my_argv = nullptr;
 TEST_F(GammaTest, IVFPQ) {
   struct Options opt;
   opt.set_file(my_argv, my_argc);
-  opt.retrieval_type = "IVFPQ";
-  opt.retrieval_param = kIVFPQParam;
+  opt.index_type = "IVFPQ";
+  opt.index_params = kIVFPQParam;
   ASSERT_EQ(TestIndexes(opt), 0);
 
   opt.b_load = true;
@@ -57,8 +57,8 @@ TEST_F(GammaTest, IVFPQ) {
 TEST_F(GammaTest, IVFPQ_BATCH) {
   struct Options opt;
   opt.set_file(my_argv, my_argc);
-  opt.retrieval_type = "IVFPQ";
-  opt.retrieval_param = kIVFPQParam;
+  opt.index_type = "IVFPQ";
+  opt.index_params = kIVFPQParam;
   opt.add_type = 1;
   ASSERT_EQ(TestIndexes(opt), 0);
 
@@ -69,8 +69,8 @@ TEST_F(GammaTest, IVFPQ_BATCH) {
 TEST_F(GammaTest, IVFPQ_MEMORYONLY) {
   struct Options opt;
   opt.set_file(my_argv, my_argc);
-  opt.retrieval_type = "IVFPQ";
-  opt.retrieval_param = kIVFPQParam;
+  opt.index_type = "IVFPQ";
+  opt.index_params = kIVFPQParam;
   opt.store_type = "MemoryOnly";
   ASSERT_EQ(TestIndexes(opt), 0);
 
@@ -81,8 +81,8 @@ TEST_F(GammaTest, IVFPQ_MEMORYONLY) {
 TEST_F(GammaTest, IVFPQ_MEMORYONLY_BATCH) {
   struct Options opt;
   opt.set_file(my_argv, my_argc);
-  opt.retrieval_type = "IVFPQ";
-  opt.retrieval_param = kIVFPQParam;
+  opt.index_type = "IVFPQ";
+  opt.index_params = kIVFPQParam;
   opt.store_type = "MemoryOnly";
   opt.add_type = 1;
   ASSERT_EQ(TestIndexes(opt), 0);
@@ -94,8 +94,8 @@ TEST_F(GammaTest, IVFPQ_MEMORYONLY_BATCH) {
 TEST_F(GammaTest, IVFPQ_ROCKSDB) {
   struct Options opt;
   opt.set_file(my_argv, my_argc);
-  opt.retrieval_type = "IVFPQ";
-  opt.retrieval_param = kIVFPQParam;
+  opt.index_type = "IVFPQ";
+  opt.index_params = kIVFPQParam;
   opt.store_type = "RocksDB";
   ASSERT_EQ(TestIndexes(opt), 0);
 
@@ -106,8 +106,8 @@ TEST_F(GammaTest, IVFPQ_ROCKSDB) {
 TEST_F(GammaTest, IVFPQ_ROCKSDB_BATCH) {
   struct Options opt;
   opt.set_file(my_argv, my_argc);
-  opt.retrieval_type = "IVFPQ";
-  opt.retrieval_param = kIVFPQParam;
+  opt.index_type = "IVFPQ";
+  opt.index_params = kIVFPQParam;
   opt.store_type = "RocksDB";
   opt.add_type = 1;
   ASSERT_EQ(TestIndexes(opt), 0);
@@ -119,8 +119,8 @@ TEST_F(GammaTest, IVFPQ_ROCKSDB_BATCH) {
 TEST_F(GammaTest, IVFPQ_HNSW) {
   struct Options opt;
   opt.set_file(my_argv, my_argc);
-  opt.retrieval_type = "IVFPQ";
-  opt.retrieval_param = kIVFHNSWPQParam;
+  opt.index_type = "IVFPQ";
+  opt.index_params = kIVFHNSWPQParam;
   ASSERT_EQ(TestIndexes(opt), 0);
 
   opt.b_load = true;
@@ -130,8 +130,8 @@ TEST_F(GammaTest, IVFPQ_HNSW) {
 TEST_F(GammaTest, IVFPQ_HNSW_BATCH) {
   struct Options opt;
   opt.set_file(my_argv, my_argc);
-  opt.retrieval_type = "IVFPQ";
-  opt.retrieval_param = kIVFHNSWPQParam;
+  opt.index_type = "IVFPQ";
+  opt.index_params = kIVFHNSWPQParam;
   opt.add_type = 1;
   ASSERT_EQ(TestIndexes(opt), 0);
 
@@ -142,8 +142,8 @@ TEST_F(GammaTest, IVFPQ_HNSW_BATCH) {
 TEST_F(GammaTest, IVFPQ_HNSW_OPQ) {
   struct Options opt;
   opt.set_file(my_argv, my_argc);
-  opt.retrieval_type = "IVFPQ";
-  opt.retrieval_param = kIVFHNSWOPQParam;
+  opt.index_type = "IVFPQ";
+  opt.index_params = kIVFHNSWOPQParam;
   ASSERT_EQ(TestIndexes(opt), 0);
 
   opt.b_load = true;
@@ -153,8 +153,8 @@ TEST_F(GammaTest, IVFPQ_HNSW_OPQ) {
 TEST_F(GammaTest, IVFPQ_HNSW_OPQ_BATCH) {
   struct Options opt;
   opt.set_file(my_argv, my_argc);
-  opt.retrieval_type = "IVFPQ";
-  opt.retrieval_param = kIVFHNSWOPQParam;
+  opt.index_type = "IVFPQ";
+  opt.index_params = kIVFHNSWOPQParam;
   opt.add_type = 1;
   ASSERT_EQ(TestIndexes(opt), 0);
 
@@ -165,8 +165,8 @@ TEST_F(GammaTest, IVFPQ_HNSW_OPQ_BATCH) {
 TEST_F(GammaTest, IVFFLAT) {
   struct Options opt;
   opt.set_file(my_argv, my_argc);
-  opt.retrieval_type = "IVFFLAT";
-  opt.retrieval_param = kIVFPQParam;
+  opt.index_type = "IVFFLAT";
+  opt.index_params = kIVFPQParam;
   opt.store_type = "RocksDB";
   ASSERT_EQ(TestIndexes(opt), 0);
   
@@ -177,8 +177,8 @@ TEST_F(GammaTest, IVFFLAT) {
 TEST_F(GammaTest, IVFFLAT_BATCH) {
   struct Options opt;
   opt.set_file(my_argv, my_argc);
-  opt.retrieval_type = "IVFFLAT";
-  opt.retrieval_param = kIVFPQParam;
+  opt.index_type = "IVFFLAT";
+  opt.index_params = kIVFPQParam;
   opt.store_type = "RocksDB";
   opt.add_type = 1;
   ASSERT_EQ(TestIndexes(opt), 0);
@@ -190,8 +190,8 @@ TEST_F(GammaTest, IVFFLAT_BATCH) {
 TEST_F(GammaTest, FLAT) {
   struct Options opt;
   opt.set_file(my_argv, my_argc);
-  opt.retrieval_type = "FLAT";
-  opt.retrieval_param = kIVFPQParam;
+  opt.index_type = "FLAT";
+  opt.index_params = kIVFPQParam;
   opt.store_type = "MemoryOnly";
   opt.add_doc_num = 100000;
   ASSERT_EQ(TestIndexes(opt), 0);
@@ -203,8 +203,8 @@ TEST_F(GammaTest, FLAT) {
 TEST_F(GammaTest, FLAT_BATCH) {
   struct Options opt;
   opt.set_file(my_argv, my_argc);
-  opt.retrieval_type = "FLAT";
-  opt.retrieval_param = kIVFPQParam;
+  opt.index_type = "FLAT";
+  opt.index_params = kIVFPQParam;
   opt.store_type = "MemoryOnly";
   opt.add_doc_num = 100000;
   opt.add_type = 1;
@@ -217,8 +217,8 @@ TEST_F(GammaTest, FLAT_BATCH) {
 TEST_F(GammaTest, HNSW) {
   struct Options opt;
   opt.set_file(my_argv, my_argc);
-  opt.retrieval_type = "HNSW";
-  opt.retrieval_param = kHNSWParam;
+  opt.index_type = "HNSW";
+  opt.index_params = kHNSWParam;
   opt.store_type = "MemoryOnly";
   opt.add_doc_num = 20000;
   ASSERT_EQ(TestIndexes(opt), 0);
@@ -230,8 +230,8 @@ TEST_F(GammaTest, HNSW) {
 TEST_F(GammaTest, HNSW_BATCH) {
   struct Options opt;
   opt.set_file(my_argv, my_argc);
-  opt.retrieval_type = "HNSW";
-  opt.retrieval_param = kHNSWParam;
+  opt.index_type = "HNSW";
+  opt.index_params = kHNSWParam;
   opt.store_type = "MemoryOnly";
   opt.add_doc_num = 20000;
   opt.add_type = 1;
@@ -244,8 +244,8 @@ TEST_F(GammaTest, HNSW_BATCH) {
 TEST_F(GammaTest, BINARYIVF) {
   struct Options opt;
   opt.set_file(my_argv, my_argc);
-  opt.retrieval_type = "BINARYIVF";
-  opt.retrieval_param = kIVFBINARYParam;
+  opt.index_type = "BINARYIVF";
+  opt.index_params = kIVFBINARYParam;
   ASSERT_EQ(TestIndexes(opt), 0);
 
   opt.b_load = true;
@@ -255,8 +255,8 @@ TEST_F(GammaTest, BINARYIVF) {
 TEST_F(GammaTest, BINARYIVF_BATCH) {
   struct Options opt;
   opt.set_file(my_argv, my_argc);
-  opt.retrieval_type = "BINARYIVF";
-  opt.retrieval_param = kIVFBINARYParam;
+  opt.index_type = "BINARYIVF";
+  opt.index_params = kIVFBINARYParam;
   opt.add_type = 1;
   ASSERT_EQ(TestIndexes(opt), 0);
   
@@ -268,8 +268,8 @@ TEST_F(GammaTest, BINARYIVF_BATCH) {
 TEST_F(GammaTest, SCANN_ROCKSDB) {
   struct Options opt;
   opt.set_file(my_argv, my_argc);
-  opt.retrieval_type = "VEARCH";
-  opt.retrieval_param = kSCANNParam;
+  opt.index_type = "VEARCH";
+  opt.index_params = kSCANNParam;
   opt.store_type = "RocksDB";
   ASSERT_EQ(TestIndexes(opt), 0);
 }
@@ -277,8 +277,8 @@ TEST_F(GammaTest, SCANN_ROCKSDB) {
 TEST_F(GammaTest, SCANN_THREADPOOL_ROCKSDB) {
   struct Options opt;
   opt.set_file(my_argv, my_argc);
-  opt.retrieval_type = "VEARCH";
-  opt.retrieval_param = kSCANNWithThreadPoolParam;
+  opt.index_type = "VEARCH";
+  opt.index_params = kSCANNWithThreadPoolParam;
   opt.store_type = "RocksDB";
   ASSERT_EQ(TestIndexes(opt), 0);
 }
@@ -288,8 +288,8 @@ TEST_F(GammaTest, SCANN_THREADPOOL_ROCKSDB) {
 TEST_F(GammaTest, GPU) {
   struct Options opt;
   opt.set_file(my_argv, my_argc);
-  opt.retrieval_type = "GPU";
-  opt.retrieval_param = kIVFPQParam;
+  opt.index_type = "GPU";
+  opt.index_params = kIVFPQParam;
   ASSERT_EQ(TestIndexes(opt), 0);
 
   opt.b_load = true;
@@ -299,8 +299,8 @@ TEST_F(GammaTest, GPU) {
 TEST_F(GammaTest, GPU_BATCH) {
   struct Options opt;
   opt.set_file(my_argv, my_argc);
-  opt.retrieval_type = "GPU";
-  opt.retrieval_param = kIVFPQParam;
+  opt.index_type = "GPU";
+  opt.index_params = kIVFPQParam;
   opt.add_type = 1;
   ASSERT_EQ(TestIndexes(opt), 0);
 
@@ -311,9 +311,9 @@ TEST_F(GammaTest, GPU_BATCH) {
 TEST_F(GammaTest, GPU_MEMORYONLY) {
   struct Options opt;
   opt.set_file(my_argv, my_argc);
-  opt.retrieval_type = "GPU";
+  opt.index_type = "GPU";
   opt.store_type = "MemoryOnly";
-  opt.retrieval_param = kIVFPQParam;
+  opt.index_params = kIVFPQParam;
   ASSERT_EQ(TestIndexes(opt), 0);
 
   opt.b_load = true;
@@ -323,9 +323,9 @@ TEST_F(GammaTest, GPU_MEMORYONLY) {
 TEST_F(GammaTest, GPU_MEMORYONLY_BATCH) {
   struct Options opt;
   opt.set_file(my_argv, my_argc);
-  opt.retrieval_type = "GPU";
+  opt.index_type = "GPU";
   opt.store_type = "MemoryOnly";
-  opt.retrieval_param = kIVFPQParam;
+  opt.index_params = kIVFPQParam;
   opt.add_type = 1;
   ASSERT_EQ(TestIndexes(opt), 0);
 
@@ -336,9 +336,9 @@ TEST_F(GammaTest, GPU_MEMORYONLY_BATCH) {
 TEST_F(GammaTest, GPU_ROCKSDB) {
   struct Options opt;
   opt.set_file(my_argv, my_argc);
-  opt.retrieval_type = "GPU";
+  opt.index_type = "GPU";
   opt.store_type = "RocksDB";
-  opt.retrieval_param = kIVFPQParam;
+  opt.index_params = kIVFPQParam;
   ASSERT_EQ(TestIndexes(opt), 0);
 
   opt.b_load = true;
@@ -348,9 +348,9 @@ TEST_F(GammaTest, GPU_ROCKSDB) {
 TEST_F(GammaTest, GPU_ROCKSDB_BATCH) {
   struct Options opt;
   opt.set_file(my_argv, my_argc);
-  opt.retrieval_type = "GPU";
+  opt.index_type = "GPU";
   opt.store_type = "RocksDB";
-  opt.retrieval_param = kIVFPQParam;
+  opt.index_params = kIVFPQParam;
   opt.add_type = 1;
   ASSERT_EQ(TestIndexes(opt), 0);
 

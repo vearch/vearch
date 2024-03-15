@@ -32,18 +32,6 @@
 
 namespace vearch {
 
-static inline void ConvertVectorDim(size_t num, int raw_d, int d,
-                                    const float *raw_vec, float *vec) {
-  memset(vec, 0, num * d * sizeof(float));
-
-#pragma omp parallel for
-  for (size_t i = 0; i < num; ++i) {
-    for (int j = 0; j < raw_d; ++j) {
-      vec[i * d + j] = raw_vec[i * raw_d + j];
-    }
-  }
-}
-
 IndexIVFPQStats indexIVFPQ_stats;
 
 REGISTER_INDEX(IVFPQ, GammaIVFPQIndex)
@@ -130,17 +118,10 @@ int GammaIVFPQIndex::Init(const std::string &model_parameters,
     ivfpq_param.nsubvector = int(d / 2);
   }
   if (d % ivfpq_param.nsubvector != 0) {
-    if (!ivfpq_param.support_indivisible_nsubvector) {
-      LOG(ERROR) << "Dimension [" << vector_->MetaInfo()->Dimension()
-                 << "] cannot divide by nsubvector [" << ivfpq_param.nsubvector
-                 << "]. If you really want to use this nsubvector, please set "
-                    "support_indivisible_nsubvector to a non-zero value";
-      return -2;
-    }
-    d = (d / ivfpq_param.nsubvector + 1) * ivfpq_param.nsubvector;
-    LOG(INFO) << "Dimension [" << vector_->MetaInfo()->Dimension()
-              << "] cannot divide by nsubvector [" << ivfpq_param.nsubvector
-              << "], adjusted to [" << d << "]";
+    LOG(ERROR) << "Dimension [" << vector_->MetaInfo()->Dimension()
+                << "] cannot divide by nsubvector [" << ivfpq_param.nsubvector
+                << "].";
+    return -2;
   }
 
   RawVector *raw_vec = dynamic_cast<RawVector *>(vector_);
@@ -343,33 +324,17 @@ int GammaIVFPQIndex::Indexing() {
     }
   }
 
-  const float *train_vec = nullptr;
-
-  if (d_ > raw_d) {
-    float *vec = new float[num * d_];
-
-    ConvertVectorDim(num, raw_d, d, (const float *)train_raw_vec, vec);
-
-    train_vec = vec;
-  } else {
-    train_vec = (const float *)train_raw_vec;
-  }
-
   const float *xt = nullptr;
   utils::ScopeDeleter<float> del_xt;
   if (opq_ != nullptr) {
-    opq_->train(num, train_vec);
-    xt = opq_->apply(num, train_vec);
-    del_xt.set(xt == train_vec ? nullptr : xt);
+    opq_->train(num, (const float *)train_raw_vec);
+    xt = opq_->apply(num, (const float *)train_raw_vec);
+    del_xt.set(xt == (const float *)train_raw_vec ? nullptr : xt);
   } else {
-    xt = train_vec;
+    xt = (const float *)train_raw_vec;
   }
 
   faiss::IndexIVFPQ::train(num, xt);
-
-  if (d_ > raw_d) {
-    delete[] train_vec;
-  }
 
   LOG(INFO) << "train successed!";
   return 0;
@@ -396,19 +361,8 @@ int GammaIVFPQIndex::Delete(const std::vector<int64_t> &ids) {
 
 int GammaIVFPQIndex::Update(const std::vector<int64_t> &ids,
                             const std::vector<const uint8_t *> &vecs) {
-  int raw_d = vector_->MetaInfo()->Dimension();
   for (size_t i = 0; i < ids.size(); i++) {
-    const float *vec = nullptr;
-    utils::ScopeDeleter<float> del_vec;
-    const float *add_vec = reinterpret_cast<const float *>(vecs[i]);
-    if (d_ > raw_d) {
-      float *extend_vec = new float[d_];
-      ConvertVectorDim(1, raw_d, d_, add_vec, extend_vec);
-      vec = (const float *)extend_vec;
-      del_vec.set(vec);
-    } else {
-      vec = add_vec;
-    }
+    const float *vec = reinterpret_cast<const float *>(vecs[i]);
     const float *applied_vec = nullptr;
     utils::ScopeDeleter<float> del_applied;
     if (opq_ != nullptr) {
@@ -452,19 +406,7 @@ bool GammaIVFPQIndex::Add(int n, const uint8_t *vec) {
 
   idx_t *idx;
   utils::ScopeDeleter<idx_t> del_idx;
-  const float *add_vec = reinterpret_cast<const float *>(vec);
-  const float *add_vec_head = nullptr;
-  utils::ScopeDeleter<float> del_vec;
-  int raw_d = vector_->MetaInfo()->Dimension();
-  if (d_ > raw_d) {
-    float *vector = new float[n * d_];
-    ConvertVectorDim(n, raw_d, d, add_vec, vector);
-    add_vec_head = vector;
-    del_vec.set(add_vec_head);
-  } else {
-    add_vec_head = add_vec;
-  }
-
+  const float *add_vec_head = reinterpret_cast<const float *>(vec);
   const float *applied_vec = nullptr;
   utils::ScopeDeleter<float> del_applied;
   if (opq_ != nullptr) {
@@ -709,34 +651,9 @@ void GammaIVFPQIndex::search_preassigned(
     const float *applied_x, int k, const idx_t *keys, const float *coarse_dis,
     float *distances, idx_t *labels, int nprobe, bool store_pairs,
     const faiss::IVFSearchParameters *params) {
-  int raw_d = vector_->MetaInfo()->Dimension();
   // for opq, rerank need raw vector
-  float *vec_q = nullptr;
-  utils::ScopeDeleter<float> del_vec_q;
-  if (d > raw_d) {
-    float *vec = new float[n * d];
-
-    ConvertVectorDim(n, raw_d, d, x, vec);
-
-    vec_q = vec;
-    del_vec_q.set(vec_q);
-  } else {
-    vec_q = const_cast<float *>(x);
-  }
-
-  float *vec_applied_q = nullptr;
-  utils::ScopeDeleter<float> del_applied_q;
-  if (d > raw_d) {
-    float *applied_vec = new float[n * d];
-
-    ConvertVectorDim(n, raw_d, d, applied_x, applied_vec);
-
-    vec_applied_q = applied_vec;
-    del_applied_q.set(vec_applied_q);
-  } else {
-    vec_applied_q = const_cast<float *>(applied_x);
-  }
-
+  float *vec_q = const_cast<float *>(x);
+  float *vec_applied_q = const_cast<float *>(applied_x);
   GammaSearchCondition *context =
       dynamic_cast<GammaSearchCondition *>(retrieval_context);
   IVFPQRetrievalParameters *retrieval_params =

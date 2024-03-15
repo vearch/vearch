@@ -2,7 +2,7 @@
 
 Most API are same to [Vearch Documents](https://vearch.readthedocs.io/en/latest/), here only list the different places.
 * **search size** and **nprobe** should not larger than 2048(CUDA >= 9.2).
-* Since GPU index does not support real time indexing, index_size should **set 0** to prevent auto indexing. After add documents, you should call `curl -XPOST ${VEARCH_HOST}:${VEARCH_PORT}/test_vector_db/vector_space/_forcemerge` to build index.
+* Since GPU index does not support real time indexing, index_size should **set 0** to prevent auto indexing. After add documents, you should call `curl -XPOST -H "content-type: application/json" -d '{"db_name":"test_vecot_db", "space_name":"vector_space"}' '${VEARCH_HOST}:${VEARCH_PORT}/index/forcemerge` to build index.
 
 * Search is not supported while add or indexing.
 * GPU memory need 2GiB at least.
@@ -13,7 +13,7 @@ Most API are same to [Vearch Documents](https://vearch.readthedocs.io/en/latest/
 
 ### create space
 
-You should set `retrieval_type : "GPU"`.
+You should set `index_type : "GPU"`.
 
 ````$xslt
 curl -v --user "root:secret" -H "content-type: application/json" -XPUT -d'
@@ -21,16 +21,15 @@ curl -v --user "root:secret" -H "content-type: application/json" -XPUT -d'
   "name": "vector_space",
   "partition_num": 1,
   "replica_num": 1,
-  "engine": {
-    "index_size": 0,
-    "retrieval_type": "GPU",
-    "retrieval_param": {
+  "index": {
+    "index_type": "GPU",
+    "index_params": {
       "metric_type": "L2",
       "ncentroids": 1024,
       "nsubvector": -1
     }
   },
-  "properties": {
+  "fields": {
     "string": {
       "type": "keyword",
       "index": true
@@ -55,7 +54,7 @@ curl -v --user "root:secret" -H "content-type: application/json" -XPUT -d'
     }
   }
 }
-' ${VEARCH_HOST}:${VEARCH_PORT}/space/test_vector_db/_create
+' ${VEARCH_HOST}:${VEARCH_PORT}/dbs/test_vector_db/spaces
 ````
 
 * engine

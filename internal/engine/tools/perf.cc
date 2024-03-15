@@ -104,7 +104,7 @@ struct GammaPerfConf {
     fields_type = {LONG, STRING, STRING};
     root_path = "files";
     vector_name = "abc";
-    retrieval_type = "IVFPQ";
+    index_type = "IVFPQ";
     store_type = "RocksDB";
     store_param = "";
     has_rank = 1;
@@ -168,7 +168,7 @@ struct GammaPerfConf {
   std::vector<enum DataType> fields_type;
   string root_path;
   string vector_name;
-  string retrieval_type;
+  string index_type;
   string store_type;
   string store_param;
   int has_rank;
@@ -427,7 +427,7 @@ class GammaPerfTest {
 
     Table *table = MakeTable(
         table_name, field_infos, conf_->fields_vec.size(), vectors_info, 1,
-        StringToByteArray(conf_->retrieval_type), retrieve_param, 0);
+        StringToByteArray(conf_->index_type), retrieve_param, 0);
     enum ResponseCode ret = ::CreateTable(engine_, table);
     DestroyTable(table);
     return ret;
