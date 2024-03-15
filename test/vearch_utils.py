@@ -1070,7 +1070,7 @@ def get_db(router_url: str, db_name: str):
 
 
 def list_spaces(router_url: str, db_name: str):
-    url = f"{router_url}/list/space?db={db_name}"
+    url = f"{router_url}/dbs/{db_name}/spaces"
     resp = requests.get(url)
     return resp.json()
 

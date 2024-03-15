@@ -47,7 +47,6 @@ class TestPartitionEmptySpaceMemorySize:
             "replica_num": 1,
             "index": {
                 "index_name": "gamma",
-                "index_size": 70000,
                 "index_type": index_type,
                 "index_params": {
                     "metric_type": "InnerProduct",
@@ -77,8 +76,9 @@ class TestPartitionEmptySpaceMemorySize:
 
     def test_destroy_db(self):
         space_info = list_spaces(router_url, db_name)
+        logger.info(space_info)
         for space in space_info["data"]:
-                logger.info(drop_space(router_url, db_name, space["name"]))
+            logger.info(drop_space(router_url, db_name, space["space_name"]))
         drop_db(router_url, db_name)
 
 class TestPartitionSmallDataMemorySize:
@@ -133,6 +133,7 @@ class TestPartitionSmallDataMemorySize:
 
     def test_destroy_db(self):
         space_info = list_spaces(router_url, db_name)
+        logger.info(space_info)
         for space in space_info["data"]:
-                logger.info(drop_space(router_url, db_name, space["name"]))
+            logger.info(drop_space(router_url, db_name, space["space_name"]))
         drop_db(router_url, db_name)

@@ -369,7 +369,7 @@ func (ca *clusterAPI) getSpace(c *gin.Context) {
 			for _, space := range spaces {
 				var spaceInfo = &entity.SpaceInfo{}
 				spaceInfo.DbName = dbName
-				spaceInfo.SpaceName = spaceName
+				spaceInfo.SpaceName = space.Name
 				spaceInfo.Schema = &entity.SpaceSchema{
 					Index:  space.Index,
 					Fields: space.Fields,
@@ -379,9 +379,8 @@ func (ca *clusterAPI) getSpace(c *gin.Context) {
 				if err := ca.masterService.describeSpaceService(c, space, spaceInfo, detail_info); err != nil {
 					ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 				} else {
-					ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(spaceInfo)
+					spaceInfos = append(spaceInfos, spaceInfo)
 				}
-				spaceInfos = append(spaceInfos, spaceInfo)
 			}
 			ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(spaceInfos)
 		}
