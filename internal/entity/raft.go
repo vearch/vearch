@@ -53,7 +53,7 @@ type ChangeMember struct {
 	Method      proto.ConfChangeType `json:"method"`
 }
 
-type MoveMember struct {
+type ChangeMembers struct {
 	PartitionIDs []PartitionID        `json:"partition_ids"`
 	NodeID       NodeID               `json:"node_id"`
 	Method       proto.ConfChangeType `json:"method"`

@@ -36,8 +36,8 @@ func ExportToMonitorHandler(router *gin.Engine, monitorService *monitorService) 
 	c := &monitorApi{router: router, monitorService: monitorService, dh: dh}
 
 	// cluster handler
-	router.Handle(http.MethodGet, "/_cluster/health", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.health, dh.TimeOutEndHandler)
-	router.Handle(http.MethodGet, "/_cluster/stats", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.stats, dh.TimeOutEndHandler)
+	router.Handle(http.MethodGet, "/cluster/health", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.health, dh.TimeOutEndHandler)
+	router.Handle(http.MethodGet, "/cluster/stats", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.stats, dh.TimeOutEndHandler)
 
 	monitor.Register(monitorService.Client, monitorService.etcdServer, config.Conf().Masters.Self().MonitorPort)
 	// monitorService.Register()

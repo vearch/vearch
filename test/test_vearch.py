@@ -40,21 +40,21 @@ class VearchCase:
     logging.info("cluster_information")
 
     def test_stats(self):
-        url = proxy + "/_cluster/stats"
+        url = proxy + "/cluster/stats"
         response = requests.get(url)
         logger.debug("cluster_stats:" + response.text)
         assert response.status_code == 200
         assert response.text.find('"status":200') >= 0
 
     def test_health(self):
-        url = proxy + "/_cluster/health?detail=true"
+        url = proxy + "/cluster/health?detail=true"
         response = requests.get(url)
         logger.debug("cluster_health---\n" + response.text)
         assert response.status_code == 200
         #  assert response.text.find("\"status\":\"green\"")>=0
 
     def test_server(self):
-        url = proxy + "/list/server"
+        url = proxy + "/servers"
         response = requests.get(url)
         logger.debug("list_server---\n" + response.text)
         assert response.status_code == 200
@@ -86,7 +86,7 @@ class VearchCase:
         assert response.text.find('"msg":"success"') >= 0
 
     def test_listspace(self):
-        url = proxy + "/list/space?db=" + db_name
+        url = proxy + "/dbs/" + db_name + "/spaces"
         response = requests.get(url)
         logger.debug("list_space---\n" + response.text)
         assert response.status_code == 200
@@ -143,6 +143,12 @@ class VearchCase:
         logger.debug("get_space---\n" + response.text)
         assert response.status_code == 200
         assert response.text.find('"msg":"success"') >= 0
+
+    def test_getpartition(self):
+        url = proxy + "/partitions"
+        response = requests.get(url)
+        logger.debug("get_space---\n" + response.text)
+        assert response.status_code == 200
 
     # def test_changemember():
     #     url = "http://" + ip_master + "/partition/change_member"
@@ -354,7 +360,7 @@ class VearchCase:
                 assert response.status_code == 200
 
     def test_documentModifySinglefield(self):
-        logger.info("document_modify_singlefield")
+        logger.info("documentModifySinglefield")
         headers = {"content-type": "application/json"}
         # modify single field
         url = proxy + "/document/upsert"
@@ -386,7 +392,7 @@ class VearchCase:
         assert result["documents"][0]["_source"]["string"] == "test"
 
     def test_documentUpsertSinglefield(self):
-        logger.info("document_upsert_singlefield")
+        logger.info("documentUpsertSinglefield")
         headers = {"content-type": "application/json"}
         # upsert single field
         url = proxy + "/document/upsert"
@@ -395,9 +401,9 @@ class VearchCase:
             "space_name": space_name,
             "documents": [{"float": 888.88, "string": "test"}],
         }
-        logger.debug("document_upsert_singlefield:" + json.dumps(json_data))
+        logger.debug("documentUpsertSinglefield:" + json.dumps(json_data))
         response = requests.post(url, headers=headers, data=json.dumps(json_data))
-        logger.debug("document_upsert_singlefield:" + response.text)
+        logger.debug("documentUpsertSinglefield:" + response.text)
         assert response.status_code != 200
 
     def test_documentDeleteByDocumentIds(self):
@@ -475,10 +481,11 @@ class VearchCase:
             self.test_listspace()
             self.test_createspace()
             self.test_getspace()
+            self.test_getpartition()
             self.test_deleteSpace()
             self.test_deleteDB()
 
-    def run_new_document_interface_test(self):
+    def test_documentInterface(self):
         self.test_documentUpsert()
         self.test_documentUpsertWithId()
         self.test_documentUpsertBulkWithId()
@@ -502,7 +509,8 @@ class VearchCase:
         self.test_listspace()
         self.test_createspace()
         self.test_getspace()
-        self.run_new_document_interface_test()
+        self.test_getpartition()
+        self.test_documentInterface()
         self.test_deleteSpace()
         self.test_deleteDB()
 

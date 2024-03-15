@@ -23,7 +23,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"unicode"
 
 	"github.com/cubefs/cubefs/depends/tiglabs/raft/proto"
 	"github.com/gin-gonic/gin"
@@ -68,11 +67,9 @@ func ExportToClusterHandler(router *gin.Engine, masterService *masterService, se
 	router.Handle(http.MethodGet, "/clean_lock", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.cleanLock, dh.TimeOutEndHandler)
 
 	// db,servers handler
-	router.Handle(http.MethodGet, "/list/server", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.serverList, dh.TimeOutEndHandler)
-	router.Handle(http.MethodGet, "/list/db", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.dbList, dh.TimeOutEndHandler)
-	router.Handle(http.MethodGet, "/list/space", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.spaceList, dh.TimeOutEndHandler)
-	router.Handle(http.MethodGet, "/list/partition", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.partitionList, dh.TimeOutEndHandler)
-	router.Handle(http.MethodGet, "/list/router", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.routerList, dh.TimeOutEndHandler)
+	router.Handle(http.MethodGet, "/servers", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.serverList, dh.TimeOutEndHandler)
+	router.Handle(http.MethodGet, "/partitions", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.partitionList, dh.TimeOutEndHandler)
+	router.Handle(http.MethodGet, "/routers", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.routerList, dh.TimeOutEndHandler)
 
 	// partition register
 	router.Handle(http.MethodPost, "/register", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.register, dh.TimeOutEndHandler)
@@ -99,7 +96,6 @@ func ExportToClusterHandler(router *gin.Engine, masterService *masterService, se
 
 	// partition handler
 	router.Handle(http.MethodPost, "/partition/change_member", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.changeMember, dh.TimeOutEndHandler)
-	router.Handle(http.MethodPost, "/partition/move_member", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.moveMember, dh.TimeOutEndHandler)
 
 	// schedule
 	router.Handle(http.MethodPost, "/schedule/recover_server", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.RecoverFailServer, dh.TimeOutEndHandler)
@@ -499,53 +495,12 @@ func (ca *clusterAPI) serverList(c *gin.Context) {
 	ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(map[string]interface{}{"servers": serverInfos, "count": len(servers)})
 }
 
-// dbList list db
-func (ca *clusterAPI) dbList(c *gin.Context) {
-	if dbs, err := ca.masterService.queryDBs(c); err != nil {
-		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
-	} else {
-		ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(dbs)
-	}
-}
-
 // routerList list router
 func (ca *clusterAPI) routerList(c *gin.Context) {
 	if routerIPs, err := ca.masterService.Master().QueryRouter(c, config.Conf().Global.Name); err != nil {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 	} else {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(routerIPs)
-	}
-}
-
-// list space
-func (ca *clusterAPI) spaceList(c *gin.Context) {
-	db := c.Query(DB)
-	if db == "" {
-		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(fmt.Errorf("can find param in url ?db=[dbName or dbId]"))
-		return
-	}
-
-	var dbId entity.DBID
-	if unicode.IsNumber([]rune(db)[0]) {
-		id, err := cast.ToInt64E(db)
-		if err != nil {
-			ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
-			return
-		}
-		dbId = entity.DBID(id)
-	} else {
-		id, err := ca.masterService.Master().QueryDBName2Id(c, db)
-		if err != nil {
-			ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
-			return
-		}
-		dbId = id
-	}
-
-	if dbs, err := ca.masterService.Master().QuerySpaces(c, dbId); err != nil {
-		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
-	} else {
-		ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(dbs)
 	}
 }
 
@@ -692,27 +647,13 @@ func (cluster *clusterAPI) ChangeReplicas(c *gin.Context) {
 }
 
 func (ca *clusterAPI) changeMember(c *gin.Context) {
-	cm := &entity.ChangeMember{}
+	cm := &entity.ChangeMembers{}
 
 	if err := c.ShouldBindJSON(cm); err != nil {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 		return
 	}
-	if err := ca.masterService.ChangeMember(c, cm); err != nil {
-		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
-	} else {
-		ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(nil)
-	}
-}
-
-func (ca *clusterAPI) moveMember(c *gin.Context) {
-	cm := &entity.MoveMember{}
-
-	if err := c.ShouldBindJSON(cm); err != nil {
-		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
-		return
-	}
-	if err := ca.masterService.MoveMember(c, cm); err != nil {
+	if err := ca.masterService.ChangeMembers(c, cm); err != nil {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 	} else {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(nil)

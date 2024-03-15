@@ -986,7 +986,7 @@ func (ms *masterService) ChangeMember(ctx context.Context, cm *entity.ChangeMemb
 	return nil
 }
 
-func (ms *masterService) MoveMember(ctx context.Context, cms *entity.MoveMember) error {
+func (ms *masterService) ChangeMembers(ctx context.Context, cms *entity.ChangeMembers) error {
 	for partitionId := range cms.PartitionIDs {
 		cm := &entity.ChangeMember{
 			PartitionID: uint32(partitionId),

@@ -77,11 +77,9 @@ func ExportDocumentHandler(httpServer *gin.Engine, client *client.Client) {
 
 func (handler *DocumentHandler) proxyMaster() error {
 	// list/*
-	handler.httpServer.Handle(http.MethodGet, "/list/server", handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
-	handler.httpServer.Handle(http.MethodGet, "/list/db", handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
-	handler.httpServer.Handle(http.MethodGet, "/list/space", handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
-	handler.httpServer.Handle(http.MethodGet, "/list/partition", handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
-	handler.httpServer.Handle(http.MethodGet, "/list/router", handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
+	handler.httpServer.Handle(http.MethodGet, "/servers", handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
+	handler.httpServer.Handle(http.MethodGet, "/partitions", handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
+	handler.httpServer.Handle(http.MethodGet, "/routers", handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
 	// db handler
 	handler.httpServer.Handle(http.MethodPost, fmt.Sprintf("/dbs/:%s", URLParamDbName), handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
 	handler.httpServer.Handle(http.MethodGet, fmt.Sprintf("/dbs/:%s", URLParamDbName), handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
@@ -96,8 +94,8 @@ func (handler *DocumentHandler) proxyMaster() error {
 	handler.httpServer.Handle(http.MethodPut, fmt.Sprintf("/dbs/:%s/spaces/:%s", URLParamDbName, URLParamSpaceName), handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
 
 	// cluster handler
-	handler.httpServer.Handle(http.MethodGet, "/_cluster/health", handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
-	handler.httpServer.Handle(http.MethodGet, "/_cluster/stats", handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
+	handler.httpServer.Handle(http.MethodGet, "/cluster/health", handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
+	handler.httpServer.Handle(http.MethodGet, "/cluster/stats", handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
 
 	return nil
 }
