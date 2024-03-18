@@ -35,7 +35,6 @@ def create(router_url, properties):
         "replica_num": 1,
         "index": {
             "index_name": "name",
-            "index_size": 1,
             "index_type": "FLAT",
             "index_params": {
                 "metric_type": "L2",

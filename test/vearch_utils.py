@@ -918,7 +918,7 @@ def waiting_index_finish(logger, total):
     num = 0
     while num < total:
         response = requests.get(url)
-        num = response.json()[0]["spaces"][0]["partitions"][0]["index_num"]
+        num = response.json()["data"][0]["spaces"][0]["partitions"][0]["index_num"]
         logger.info("index num: %d" % (num))
         time.sleep(10)
 
@@ -927,7 +927,7 @@ def get_space_num():
     url = router_url + "/cluster/health?db=" + db_name + "&space=" + space_name
     num = 0
     response = requests.get(url)
-    num = response.json()[0]["spaces"][0]["doc_num"]
+    num = response.json()["data"][0]["spaces"][0]["doc_num"]
     return num
 
 
@@ -1040,13 +1040,18 @@ def get_cluster_stats(router_url: str):
 
 
 def get_cluster_health(router_url: str):
-    url = f"{router_url}/cluster/health"
+    url = f"{router_url}/cluster/health?detail=true"
     resp = requests.get(url)
     return resp.json()
 
 
 def get_servers_status(router_url: str):
-    url = f"{router_url}/list/server"
+    url = f"{router_url}/servers"
+    resp = requests.get(url)
+    return resp.json()
+
+def get_cluster_partition(router_url: str):
+    url = f"{router_url}/partitions"
     resp = requests.get(url)
     return resp.json()
 

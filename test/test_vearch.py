@@ -4,18 +4,14 @@ import logging
 import pytest
 import requests
 import json
+from vearch_utils import *
 
 logging.basicConfig()
 logger = logging.getLogger(__name__)
 
 __description__ = """ test case for vearch """
 
-ip = "127.0.0.1"
-ip_master = ip + ":8817"
-ip_router = ip + ":9001"
-proxy = "http://" + ip_router
-db_name = "ts_db"
-space_name = "ts_space"
+
 fileData = "./data/test_data.json"
 total = 10000
 add_num = 1000
@@ -40,61 +36,43 @@ class VearchCase:
     logging.info("cluster_information")
 
     def test_stats(self):
-        url = proxy + "/cluster/stats"
-        response = requests.get(url)
-        logger.debug("cluster_stats:" + response.text)
-        assert response.status_code == 200
-        assert response.text.find('"status":200') >= 0
+        response = get_cluster_stats(router_url)
+        logger.debug("cluster_stats:" + json.dumps(response))
+        assert response["code"] == 200
 
     def test_health(self):
-        url = proxy + "/cluster/health?detail=true"
-        response = requests.get(url)
-        logger.debug("cluster_health---\n" + response.text)
-        assert response.status_code == 200
-        #  assert response.text.find("\"status\":\"green\"")>=0
+        response = get_cluster_health(router_url)
+        logger.debug("cluster_health---\n" + json.dumps(response))
+        assert response["code"] == 200
 
     def test_server(self):
-        url = proxy + "/servers"
-        response = requests.get(url)
-        logger.debug("list_server---\n" + response.text)
-        assert response.status_code == 200
-        assert response.text.find('"msg":"success"') >= 0
+        response = get_servers_status(router_url)
+        logger.debug("list_server---\n" + json.dumps(response))
+        assert response["code"] == 200
 
     logger.info("database")
 
     def test_dblist(self):
-        url = proxy + "/dbs"
-        response = requests.get(url)
-        logger.debug("list_db---\n" + response.text)
-        assert response.status_code == 200
-        assert response.text.find('"msg":"success"') >= 0
+        response = list_dbs(router_url)
+        logger.debug("list_db---\n" + json.dumps(response))
+        assert response["code"] == 200
 
     def test_createDB(self):
-        logger.info("------------")
-        url = proxy + "/dbs/" + db_name
-        headers = {"content-type": "application/json"}
-        response = requests.post(url, headers=headers)
-        logger.debug("db_create---\n" + response.text)
-        assert response.status_code == 200
-        assert response.text.find('"msg":"success"') >= 0
+        response = create_db(router_url, db_name)
+        logger.debug("db_create---\n" + json.dumps(response))
+        assert response["code"] == 200
 
     def test_getDB(self):
-        url = proxy + "/dbs/" + db_name
-        response = requests.get(url)
-        logger.debug("db_search---\n" + response.text)
-        assert response.status_code == 200
-        assert response.text.find('"msg":"success"') >= 0
+        response = get_db(router_url, db_name)
+        logger.debug("db_search---\n" + json.dumps(response))
+        assert response["code"] == 200
 
     def test_listspace(self):
-        url = proxy + "/dbs/" + db_name + "/spaces"
-        response = requests.get(url)
-        logger.debug("list_space---\n" + response.text)
-        assert response.status_code == 200
-        assert response.text.find('"msg":"success"') >= 0
+        response = list_spaces(router_url, db_name)
+        logger.debug("list_space---\n" + json.dumps(response))
+        assert response["code"] == 200
 
     def test_createspace(self, supported=True):
-        url = proxy + "/dbs/" + db_name + "/spaces"
-        headers = {"content-type": "application/json"}
         data = {
             "name": space_name,
             "partition_num": 1,
@@ -128,27 +106,23 @@ class VearchCase:
                 "string_tags": {"type": "string", "array": True, "index": True},
             },
         }
-        logger.debug(url + "---" + json.dumps(data))
-        response = requests.post(url, headers=headers, data=json.dumps(data))
-        logger.debug("space_create---\n" + response.text)
-        assert response.status_code == 200
+        logger.debug(router_url + "---" + json.dumps(data))
+        response = create_space(router_url, db_name, data)
+        logger.debug("space_create---\n" + json.dumps(response))
         if supported:
-            assert response.text.find('"msg":"success"') >= 0
+            assert response["code"] == 200
         else:
-            assert response.text.find('"code":550') >= 0
+            assert response["code"] != 200
 
     def test_getspace(self):
-        url = proxy + "/dbs/" + db_name + "/spaces/" + space_name
-        response = requests.get(url)
-        logger.debug("get_space---\n" + response.text)
-        assert response.status_code == 200
-        assert response.text.find('"msg":"success"') >= 0
+        response = get_space(router_url, db_name, space_name)
+        logger.debug("get_space---\n" + json.dumps(response))
+        assert response["code"] == 200
 
     def test_getpartition(self):
-        url = proxy + "/partitions"
-        response = requests.get(url)
-        logger.debug("get_space---\n" + response.text)
-        assert response.status_code == 200
+        response = get_cluster_partition(router_url)
+        logger.debug("get_space---\n" + json.dumps(response))
+        assert response["code"] == 200
 
     # def test_changemember():
     #     url = "http://" + ip_master + "/partition/change_member"
@@ -167,7 +141,7 @@ class VearchCase:
 
     def test_documentUpsert(self):
         logger.info("documentUpsert")
-        url = proxy + "/document/upsert"
+        url = router_url + "/document/upsert"
         headers = {"content-type": "application/json"}
         with open(fileData, "r") as dataLine1:
             for i, dataLine in zip(range(add_num), dataLine1):
@@ -186,7 +160,7 @@ class VearchCase:
 
     def test_documentUpsertWithId(self):
         logger.info("documentUpsertWithId")
-        url = proxy + "/document/upsert"
+        url = router_url + "/document/upsert"
         headers = {"content-type": "application/json"}
         with open(fileData, "r") as dataLine1:
             for i, dataLine in zip(range(add_num), dataLine1):
@@ -207,8 +181,8 @@ class VearchCase:
                 assert response.status_code == 200
 
     def test_documentUpsertBulkWithId(self):
-        logger.info("test_documentUpsertBulkWithId")
-        url = proxy + "/document/upsert"
+        logger.info("documentUpsertBulkWithId")
+        url = router_url + "/document/upsert"
         headers = {"content-type": "application/json"}
 
         with open(fileData, "r") as dataLine1:
@@ -241,7 +215,7 @@ class VearchCase:
     def test_documentQueryByDocumentIds(self):
         logger.info("documentQueryByDocumentIds")
         headers = {"content-type": "application/json"}
-        url = proxy + "/document/query"
+        url = router_url + "/document/query"
         with open(fileData, "r") as dataLine1:
             for i, dataLine in zip(range(add_num), dataLine1):
                 idStr = dataLine.split(",", 1)[0].replace("{", "")
@@ -258,16 +232,14 @@ class VearchCase:
 
     def test_documentQueryOnSpecifyPartiton(self):
         logger.info("documentQueryOnSpecifyPartiton")
-        url = proxy + "/dbs/" + db_name + "/spaces/" + space_name
-        response = requests.get(url)
-        assert response.status_code == 200
-        assert response.text.find('"msg":"success"') >= 0
+        response = get_space(router_url, db_name, space_name)
+        assert response["code"] == 200
 
-        partitions = response.json()["data"]["partitions"]
+        partitions = response["data"]["partitions"]
         assert len(partitions) > 0
         partition = str(partitions[0]["pid"])
 
-        url = proxy + "/document/query"
+        url = router_url + "/document/query"
         headers = {"content-type": "application/json"}
 
         add_num_end = add_num + 100
@@ -289,7 +261,7 @@ class VearchCase:
     def test_documentQueryByFilter(self):
         logger.info("documentQueryByFilter")
         headers = {"content-type": "application/json"}
-        url = proxy + "/document/query"
+        url = router_url + "/document/query"
         with open(fileData, "r") as dataLine1:
             for i, dataLine in zip(range(search_num), dataLine1):
                 idStr = dataLine.split(",", 1)[0].replace("{", "")
@@ -313,7 +285,7 @@ class VearchCase:
     def test_documentSearchByDocumentIds(self):
         logger.info("documentSearchByDocumentIds")
         headers = {"content-type": "application/json"}
-        url = proxy + "/document/search"
+        url = router_url + "/document/search"
         with open(fileData, "r") as dataLine1:
             for i, dataLine in zip(range(add_num), dataLine1):
                 idStr = dataLine.split(",", 1)[0].replace("{", "")
@@ -331,7 +303,7 @@ class VearchCase:
     def test_documentSearchByVector(self):
         logger.info("documentSearchByVector")
         headers = {"content-type": "application/json"}
-        url = proxy + "/document/search"
+        url = router_url + "/document/search"
         with open(fileData, "r") as dataLine1:
             for i, dataLine in zip(range(search_num), dataLine1):
                 idStr = dataLine.split(",", 1)[0].replace("{", "")
@@ -363,7 +335,7 @@ class VearchCase:
         logger.info("documentModifySinglefield")
         headers = {"content-type": "application/json"}
         # modify single field
-        url = proxy + "/document/upsert"
+        url = router_url + "/document/upsert"
         json_data = {
             "db_name": db_name,
             "space_name": space_name,
@@ -375,7 +347,7 @@ class VearchCase:
         assert response.status_code == 200
 
         # check result
-        url = proxy + "/document/query"
+        url = router_url + "/document/query"
 
         data = {
             "db_name": db_name,
@@ -395,7 +367,7 @@ class VearchCase:
         logger.info("documentUpsertSinglefield")
         headers = {"content-type": "application/json"}
         # upsert single field
-        url = proxy + "/document/upsert"
+        url = router_url + "/document/upsert"
         json_data = {
             "db_name": db_name,
             "space_name": space_name,
@@ -409,7 +381,7 @@ class VearchCase:
     def test_documentDeleteByDocumentIds(self):
         logger.info("documentDeleteByDocumentIds")
         headers = {"content-type": "application/json"}
-        url = proxy + "/document/delete"
+        url = router_url + "/document/delete"
         with open(fileData, "r") as dataLine1:
             for i, dataLine in zip(range(add_num), dataLine1):
                 idStr = dataLine.split(",", 1)[0].replace("{", "")
@@ -427,7 +399,7 @@ class VearchCase:
     def test_documentDeleteByFilter(self):
         logger.info("documentQueryByFilter")
         headers = {"content-type": "application/json"}
-        url = proxy + "/document/delete"
+        url = router_url + "/document/delete"
         with open(fileData, "r") as dataLine1:
             for i, dataLine in zip(range(search_num), dataLine1):
                 idStr = dataLine.split(",", 1)[0].replace("{", "")
@@ -449,16 +421,14 @@ class VearchCase:
                 assert response.status_code == 200
 
     def test_deleteSpace(self):
-        url = proxy + "/dbs/" + db_name + "/spaces/" + space_name
-        response = requests.delete(url)
-        logger.debug("deleteSpace:" + response.text)
-        assert response.status_code == 200
+        response = drop_space(router_url, db_name, space_name)
+        logger.debug("deleteSpace:" + json.dumps(response))
+        assert response["code"] == 200
 
     def test_deleteDB(self):
-        url = proxy + "/dbs/" + db_name
-        response = requests.delete(url)
-        logger.debug("deleteDB:" + response.text)
-        assert response.status_code == 200
+        response = drop_db(router_url, db_name)
+        logger.debug("deleteDB:" + json.dumps(response))
+        assert response["code"] == 200
 
     def run_db_space_create_test(self, supported=True):
         self.test_createDB()
@@ -521,7 +491,6 @@ class VearchCase:
 @pytest.mark.parametrize(
     ["training_threshold", "index_type", "store_type"],
     [
-        [1, "FLAT", ""],
         [1, "FLAT", ""],
         [990, "IVFPQ", "MemoryOnly"],
         [990, "IVFPQ", "RocksDB"],

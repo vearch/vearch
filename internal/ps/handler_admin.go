@@ -269,7 +269,7 @@ func (sh *StatsHandler) Execute(ctx context.Context, req *vearchpb.PartitionData
 		pi.RaftStatus = store.Status()
 	})
 
-	if values, err := sonic.Marshal(stats); err != nil {
+	if values, err := cbjson.Marshal(stats); err != nil {
 		log.Error("marshal partition info failed, err: [%v]", err)
 		return err
 	} else {

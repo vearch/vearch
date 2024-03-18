@@ -50,7 +50,7 @@ func (m *monitorApi) stats(c *gin.Context) {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 		return
 	}
-	ginutil.NewAutoMehtodName(c).SendJson(list)
+	ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(list)
 }
 
 // cluster health in partition level
@@ -65,7 +65,7 @@ func (m *monitorApi) health(c *gin.Context) {
 		return
 	}
 
-	ginutil.NewAutoMehtodName(c).SendJson(result)
+	ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(result)
 }
 
 func (m *monitorApi) auth(c *gin.Context) {

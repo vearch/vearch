@@ -101,12 +101,12 @@ type SpaceSchema struct {
 type SpaceInfo struct {
 	SpaceName    string           `json:"space_name"`
 	DbName       string           `json:"db_name"`
+	DocNum       uint64           `json:"doc_num"`
 	PartitionNum int              `json:"partition_num"`
 	ReplicaNum   uint8            `json:"replica_num"`
 	Schema       *SpaceSchema     `json:"schema"`
-	DocNum       uint64           `json:"doc_num"`
-	Partitions   []*PartitionInfo `json:"partitions"`
 	Status       string           `json:"status,omitempty"`
+	Partitions   []*PartitionInfo `json:"partitions"`
 	Errors       *[]string        `json:"errors,omitempty"`
 }
 
