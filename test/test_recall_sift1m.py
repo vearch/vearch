@@ -19,7 +19,8 @@ import requests
 import json
 import pytest
 import logging
-from vearch_utils import *
+from utils.vearch_utils import *
+from utils.data_utils import *
 
 logging.basicConfig()
 logger = logging.getLogger(__name__)

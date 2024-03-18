@@ -37,7 +37,7 @@ jobs:
     - name: sleep
       run: sleep 30s
     - name: pip install requests
-      run: pip install requests pytest
+      run: pip install requests pytest numpy
     - name: test
       run: |
         cd test

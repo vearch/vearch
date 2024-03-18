@@ -4,7 +4,7 @@ import logging
 import pytest
 import requests
 import json
-from vearch_utils import *
+from utils.vearch_utils import *
 
 logging.basicConfig()
 logger = logging.getLogger(__name__)
