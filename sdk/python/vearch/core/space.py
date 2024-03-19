@@ -2,14 +2,14 @@ from vearch.schema.index import Index
 from vearch.core.client import client
 from vearch.schema.space import SpaceSchema
 from vearch.result import Result, ResultStatus, get_result
-from vearch.const import SPACE_URI, INDEX_URI, UPSERT_DOC_URI, DELETE_DOC_URI
+from vearch.const import SPACE_URI, INDEX_URI, UPSERT_DOC_URI, DELETE_DOC_URI, QUERY_DOC_URI
 from vearch.exception import SpaceException, DocumentException
 from vearch.utils import CodeType
 from vearch.filter import Filter
 import requests
 import json
 import pandas as pd
-from typing import List, Union
+from typing import List, Union, Optional, Dict
 
 
 class Space(object):
@@ -96,9 +96,9 @@ class Space(object):
             raise DocumentException(CodeType.UPSERT_DOC, "data is empty")
         return True
 
-    def delete_doc(self, expr: Filter) -> Result:
+    def delete_doc(self, filter: Filter) -> Result:
         url = self.client.host + DELETE_DOC_URI
-        req_body = {"database": self.db_name, "space": self.name, "filter": expr.dict()}
+        req_body = {"database": self.db_name, "space": self.name, "filter": filter.dict()}
         req = requests.request(method="POST", url=url, data=json.dumps(req_body), headers={"token": self.client.token})
         resp = self.client.s.send(req)
         return get_result(resp)
@@ -106,5 +106,36 @@ class Space(object):
     def search(self):
         pass
 
-    def query(self):
-        pass
+    def query(self, document_ids: Optional[List], filter: Optional[Filter], partition_id: Optional[str] = "",
+              fields: Optional[List] = [], vector: bool = False, size: int = 50) -> List[Dict]:
+        """
+        you can asign  the document_ids in [xxx,xxx,xxx,xxx,xxx],or give the other filter condition.
+        partition id also can be set to reduce the scope of the search space
+        :param document_ids document id list
+        :param expr Filter expression of filter
+        :param partition_id assign which partition you want to query,default query all partitions
+        :param fields the scalar fields you want to output
+        :param vector return vector or not
+        :param size the output result size you queried out
+        :return:
+        """
+        if (not document_ids) and (not filter):
+            raise SpaceException(CodeType.QUERY_DOC, "document_ids and filter can not both null")
+        url = self.client.host + QUERY_DOC_URI
+        req_body = {"database": self.db_name, "space": self.name, "vector_value": vector, "size": size}
+        query = {"query": {}}
+        if document_ids:
+            query["query"]["document_ids"] = document_ids
+        if partition_id:
+            query["query"]["partition_id"] = partition_id
+        if fields:
+            req_body["fields"] = fields
+        if filter:
+            query["query"]["filter"] = filter.dict()
+        req_body.update(query)
+        req = requests.request(method="POST", url=url, data=json.dumps(req_body), headers={"token": self.client.token})
+        resp = self.client.s.send(req)
+        ret=get_result(resp)
+        if ret.code==ResultStatus.success:
+            return json.dumps(ret.content)
+        return []
