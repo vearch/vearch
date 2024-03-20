@@ -164,7 +164,7 @@ func parseQueryForIdFeature(searchQuery []byte, space *entity.Space, items []*ve
 	var binary bool
 	var featureBinaryMap map[string][]int32
 	var featureFloat32Map map[string][]float32
-	if space.Index.IndexType == "BINARYIVF" {
+	if space.Index.Type == "BINARYIVF" {
 		featureBinaryMap = ToContentMapBinaryFeature(space, items)
 		binary = true
 	} else {
@@ -288,7 +288,7 @@ func unmarshalArray[T any](data []byte, dimension int) ([]T, error) {
 
 func parseVectors(reqNum int, vqs []*vearchpb.VectorQuery, tmpArr []json.RawMessage, space *entity.Space) (int, []*vearchpb.VectorQuery, error) {
 	var err error
-	indexType := space.Index.IndexType
+	indexType := space.Index.Type
 	proMap := space.SpaceProperties
 	if proMap == nil {
 		spacePro, _ := entity.UnmarshalPropertyJSON(space.Fields)
@@ -828,9 +828,9 @@ func searchParamToSearchPb(searchDoc *request.SearchDocumentRequest, searchReq *
 
 	if metricType == "" && space != nil && space.Index != nil {
 		indexParams := &entity.IndexParams{}
-		err := cbjson.Unmarshal(space.Index.IndexParams, indexParams)
+		err := cbjson.Unmarshal(space.Index.Params, indexParams)
 		if err != nil {
-			return fmt.Errorf("unmarshal err:[%s] , space.Index.IndexParams:[%s]", err.Error(), string(space.Index.IndexParams))
+			return fmt.Errorf("unmarshal err:[%s] , space.Index.IndexParams:[%s]", err.Error(), string(space.Index.Params))
 		}
 		metricType = indexParams.MetricType
 	}

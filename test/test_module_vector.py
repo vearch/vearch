@@ -30,38 +30,38 @@ __description__ = """ test case for module vector """
 
 def create(router_url, embedding_size, store_type="MemoryOnly"):
     properties = {}
-    properties["fields"] = {
-        "field_int": {
+    properties["fields"] = [
+        {
+            "name": "field_int",
             "type": "integer",
-            "index": False
         },
-        "field_vector": {
+        {
+            "name": "field_vector",
             "type": "vector",
-            "index": True,
+            "index": {
+                "name": "gamma",
+                "type": "FLAT",
+                "params": {
+                    "metric_type": "L2",
+                }
+            },
             "dimension": embedding_size,
             "store_type": store_type,
             #"format": "normalization"
         },
-        "field_vector1": {
+        {
+            "name": "field_vector1",
             "type": "vector",
-            "index": True,
             "dimension": embedding_size,
             "store_type": store_type,
             #"format": "normalization"
         }
-    }
+    ]
 
     space_config = {
         "name": space_name,
         "partition_num": 1,
         "replica_num": 1,
-        "index": {
-            "index_name": "gamma",
-            "index_type": "FLAT",
-            "index_params": {
-                "metric_type": "L2",
-            }
-        },
         "fields": properties["fields"]
     }
     logger.info(create_db(router_url, db_name))

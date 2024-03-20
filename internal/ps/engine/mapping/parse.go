@@ -24,7 +24,7 @@ import (
 const pathSeparator = "."
 
 func ParseSchema(schema []byte) (*DocumentMapping, error) {
-	tmp := make(map[string]json.RawMessage)
+	tmp := make([]json.RawMessage, 0)
 	err := json.Unmarshal(schema, &tmp)
 	if err != nil {
 		return nil, err
@@ -32,13 +32,13 @@ func ParseSchema(schema []byte) (*DocumentMapping, error) {
 
 	dms := NewDocumentMapping()
 
-	for name, data := range tmp {
+	for _, data := range tmp {
 		dm := NewDocumentMapping()
 		err = json.Unmarshal(data, dm)
 		if err != nil {
 			return nil, err
 		}
-		dms.addSubDocumentMapping(name, dm)
+		dms.addSubDocumentMapping(dm.Field.Name, dm)
 	}
 	return dms, nil
 }

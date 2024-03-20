@@ -30,34 +30,34 @@ __description__ = """ test case for index hnsw """
 
 def create(router_url, embedding_size, nlinks=32, efConstruction=120):
     properties = {}
-    properties["fields"] = {
-        "field_int": {
+    properties["fields"] = [
+        {
+            "name": "field_int",
             "type": "integer",
-            "index": False
         },
-        "field_vector": {
+        {
+            "name": "field_vector",
             "type": "vector",
-            "index": True,
             "dimension": embedding_size,
             "store_type": "MemoryOnly",
+            "index": {
+                "name": "gamma",
+                "type": "HNSW",
+                "params": {
+                    "metric_type": "L2",
+                    "nlinks": nlinks,
+                    "efConstruction": efConstruction,
+                    "efSearch": 64
+                }
+            },
             #"format": "normalization"
         }
-    }
+    ]
 
     space_config = {
         "name": space_name,
         "partition_num": 1,
         "replica_num": 1,
-        "index": {
-            "index_name": "gamma",
-            "index_type": "HNSW",
-            "index_params": {
-                "metric_type": "L2",
-                "nlinks": nlinks,
-                "efConstruction": efConstruction,
-                "efSearch": 64
-            }
-        },
         "fields": properties["fields"]
     }
     logger.info(create_db(router_url, db_name))

@@ -82,34 +82,63 @@ class VearchCase:
             "name": space_name,
             "partition_num": 1,
             "replica_num": 1,
-            "index": {
-                "index_name": "gamma",
-                "index_type": self.index_type,
-                "index_params": {
-                    "metric_type": "InnerProduct",
-                    "nprobe": 15,
-                    "ncentroids": 256,
-                    "nsubvector": 16,
-                    "nlinks": 16,
-                    "efConstruction": 60,
-                    "efSearch": 32,
-                    "training_threshold": self.training_threshold,
-
+            "fields": [
+                {
+                    "name": "string",
+                    "type": "keyword",
+                    "index": {
+                        "name": "string",
+                        "type": "SCALAR",
+                    },
                 },
-            },
-            "fields": {
-                "string": {"type": "keyword", "index": True},
-                "int": {"type": "integer", "index": True},
-                "float": {"type": "float", "index": True},
-                "vector": {
+                {
+                    "name": "int",
+                    "type": "integer",
+                    "index": {
+                        "name": "int",
+                        "type": "SCALAR",
+                    },
+                },
+                {
+                    "name": "float",
+                    "type": "float",
+                    "index": {
+                        "name": "float",
+                        "type": "SCALAR",
+                    },
+                },
+                {
+                    "name": "vector",
                     "type": "vector",
                     "dimension": 128,
                     "format": "normalization",
                     "store_type": self.store_type,
                     "store_param": {"cache_size": 1024},
+                    "index": {
+                        "name": "gamma",
+                        "type": self.index_type,
+                        "params": {
+                            "metric_type": "InnerProduct",
+                            "nprobe": 15,
+                            "ncentroids": 256,
+                            "nsubvector": 16,
+                            "nlinks": 16,
+                            "efConstruction": 60,
+                            "efSearch": 32,
+                            "training_threshold": self.training_threshold,
+                        },
+                    },
                 },
-                "string_tags": {"type": "string", "array": True, "index": True},
-            },
+                {
+                    "name": "string_tags",
+                    "type": "string",
+                    "array": True,
+                    "index": {
+                        "name": "float",
+                        "type": "SCALAR",
+                    },
+                },
+            ],
         }
         logger.debug(router_url + "---" + json.dumps(data))
         response = create_space(router_url, db_name, data)

@@ -298,10 +298,6 @@ func (ca *clusterAPI) createSpace(c *gin.Context) {
 		space.ReplicaNum = 1
 	}
 
-	if space.Index == nil {
-		space.Index = entity.NewDefaultIndex()
-	}
-
 	// check index name is ok
 	if err := space.Validate(); err != nil {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
@@ -315,6 +311,10 @@ func (ca *clusterAPI) createSpace(c *gin.Context) {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 	} else {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(space)
+	}
+
+	if space.Index == nil {
+		space.Index = entity.NewDefaultIndex()
 	}
 }
 

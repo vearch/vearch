@@ -277,14 +277,14 @@ func (ms *masterService) createSpaceService(ctx context.Context, dbName string, 
 		return err
 	}
 
-	//to validate schema
+	// to validate schema
 	_, err = mapping.SchemaMap(space.Fields)
 	if err != nil {
 		log.Error("master service createSpaceService error: %v", err)
 		return err
 	}
 
-	//it will lock cluster ,to create space
+	// it will lock cluster to create space
 	mutex := ms.Master().NewLock(ctx, "space", time.Second*300)
 	if err = mutex.Lock(); err != nil {
 		return err
@@ -295,7 +295,7 @@ func (ms *masterService) createSpaceService(ctx context.Context, dbName string, 
 		}
 	}()
 
-	//spaces is existed
+	// spaces is existed
 	if _, err := ms.Master().QuerySpaceByName(ctx, space.DBId, space.Name); err != nil {
 		vErr := vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err)
 		if vErr.GetError().Code != vearchpb.ErrorEnum_SPACE_NOTEXISTS {
@@ -305,9 +305,9 @@ func (ms *masterService) createSpaceService(ctx context.Context, dbName string, 
 		return vearchpb.NewError(vearchpb.ErrorEnum_DUP_SPACE, nil)
 	}
 
-	log.Info("create space, db: %s, spaceName: %s ,space :[%s]", dbName, space.Name, cbjson.ToJsonString(space))
+	log.Info("create space, db: %s, spaceName: %s, space :[%s]", dbName, space.Name, cbjson.ToJsonString(space))
 
-	//find all servers for create space
+	// find all servers for create space
 	servers, err := ms.Master().QueryServers(ctx)
 	if err != nil {
 		return err
@@ -362,6 +362,11 @@ func (ms *masterService) createSpaceService(ctx context.Context, dbName string, 
 	}
 
 	space.SpaceProperties = spaceProperties
+	for _, f := range spaceProperties {
+		if f.FieldType == entity.FieldType_VECTOR && f.Index != nil {
+			space.Index = f.Index
+		}
+	}
 
 	marshal, err := json.Marshal(space)
 	if err != nil {
@@ -383,7 +388,7 @@ func (ms *masterService) createSpaceService(ctx context.Context, dbName string, 
 	}
 
 	var errChain = make(chan error, 1)
-	//send create space to every space
+	// send create space to every space
 	for i := 0; i < len(space.Partitions); i++ {
 		go func(addrs []string, partition *entity.Partition) {
 			//send request for all server
@@ -404,7 +409,7 @@ func (ms *masterService) createSpaceService(ctx context.Context, dbName string, 
 		}(paddrs[i], space.Partitions[i])
 	}
 
-	//check all partition is ok
+	// check all partition is ok
 	for i := 0; i < len(space.Partitions); i++ {
 		v := 0
 		for {

@@ -289,7 +289,7 @@ func (r *routerRequest) Execute() []*vearchpb.Item {
 	isNormal := false
 	normalField := make(map[string]string)
 	if r.md[HandlerType] == BatchHandler || r.md[HandlerType] == ReplaceDocHandler {
-		indexType := r.space.Index.IndexType
+		indexType := r.space.Index.Type
 		if indexType != "" {
 			if strings.Compare(indexType, "BINARYIVF") != 0 {
 				isNormal = true
@@ -635,7 +635,7 @@ func (r *routerRequest) SearchFieldSortExecute(sortOrder sortorder.SortOrder) *v
 	sendPartitionMap := r.sendMap
 	normalIsOrNot := false
 	normalField := make(map[string]string)
-	indexType := r.space.Index.IndexType
+	indexType := r.space.Index.Type
 	if indexType != "" {
 		if strings.Compare(indexType, "BINARYIVF") != 0 {
 			normalIsOrNot = true
@@ -1201,7 +1201,7 @@ func GetSource(doc *vearchpb.ResultItem, space *entity.Space, sortFieldMap map[s
 					}
 				}
 			case entity.FieldType_VECTOR:
-				if strings.Compare(space.Index.IndexType, "BINARYIVF") == 0 {
+				if strings.Compare(space.Index.Type, "BINARYIVF") == 0 {
 					featureByteC := fv.Value
 					dimension := field.Dimension
 					if dimension != 0 {

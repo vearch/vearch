@@ -123,7 +123,7 @@ func parseJSON(path []string, v *fastjson.Value, space *entity.Space, proMap map
 		defer func() {
 			PutDocVal(docV)
 		}()
-		field, err := processProperty(docV, val, space.Index.IndexType, pro)
+		field, err := processProperty(docV, val, space.Index.Type, pro)
 		if err != nil {
 			log.Error("processProperty parse field:[%s] err: %v", fieldName, err)
 			parseErr = err
@@ -426,7 +426,7 @@ func processString(pro *entity.SpaceProperties, fieldName, val string) (*vearchp
 	switch pro.FieldType {
 	case entity.FieldType_STRING:
 		isIndex := false
-		if pro.Index != nil && *pro.Index {
+		if pro.Index != nil {
 			isIndex = true
 		}
 		if isIndex && len(val) > maxIndexedStrLen {

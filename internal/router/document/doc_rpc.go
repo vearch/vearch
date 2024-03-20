@@ -68,7 +68,7 @@ func (handler *RpcHandler) Space(ctx context.Context, req *vearchpb.RequestHead)
 	tmi.FieldMetaInfo = make([]*vearchpb.FieldMetaInfo, 0)
 	for name, field := range space.SpaceProperties {
 		isIndex := false
-		if field.Index != nil && *field.Index {
+		if field.Index != nil {
 			isIndex = true
 		}
 		fmi := &vearchpb.FieldMetaInfo{Name: name,

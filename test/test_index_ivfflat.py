@@ -30,33 +30,33 @@ __description__ = """ test case for index ivfflat """
 
 def create(router_url, embedding_size, store_type="MemoryOnly", ncentroids=256):
     properties = {}
-    properties["fields"] = {
-        "field_int": {
+    properties["fields"] = [
+        {
+            "name": "field_int",
             "type": "integer",
-            "index": False
         },
-        "field_vector": {
+        {
+            "name": "field_vector",
             "type": "vector",
-            "index": True,
             "dimension": embedding_size,
             "store_type": store_type,
+            "index": {
+                "name": "gamma",
+                "type": "IVFFLAT",
+                "params": {
+                    "metric_type": "L2",
+                    "ncentroids": ncentroids,
+                    "training_threshold": ncentroids * 39
+                }
+            },
             #"format": "normalization"
         }
-    }
+    ]
 
     space_config = {
         "name": space_name,
         "partition_num": 1,
         "replica_num": 1,
-        "index": {
-            "index_name": "gamma",
-            "index_type": "IVFFLAT",
-            "index_params": {
-                "metric_type": "L2",
-                "ncentroids": ncentroids,
-                "training_threshold": ncentroids * 39
-            }
-        },
         "fields": properties["fields"]
     }
     logger.info(create_db(router_url, db_name))

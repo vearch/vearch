@@ -66,20 +66,27 @@ def benchmark(total, bulk, with_id, full_field, xb, xq, gt):
     )
 
     properties = {}
-    properties["fields"] = {
-        "field_int": {"type": "integer", "index": False},
-        "field_long": {"type": "long", "index": False},
-        "field_float": {"type": "float", "index": False},
-        "field_double": {"type": "double", "index": False},
-        "field_string": {"type": "string", "index": True},
-        "field_vector": {
+    properties["fields"] = [
+        {"name": "field_int", "type": "integer"},
+        {"name": "field_long", "type": "long"},
+        {"name": "field_float", "type": "float"},
+        {"name": "field_double", "type": "double"},
+        {"name": "field_string", "type": "string", "index": {"name": "field_string","type": "SCALAR"}},
+        {
+            "name": "field_vector",
             "type": "vector",
-            "index": True,
+            "index": {
+                "name": "gamma",
+                "type": "FLAT",
+                "params": {
+                    "metric_type": "L2",
+                },
+            },
             "dimension": embedding_size,
             "store_type": "MemoryOnly",
             # "format": "normalization"
         },
-    }
+    ]
 
     create_for_document_test(logger, router_url, embedding_size, properties)
 
@@ -126,20 +133,27 @@ def update(total, bulk, full_field, xb):
     )
 
     properties = {}
-    properties["fields"] = {
-        "field_int": {"type": "integer", "index": False},
-        "field_long": {"type": "long", "index": False},
-        "field_float": {"type": "float", "index": False},
-        "field_double": {"type": "double", "index": False},
-        "field_string": {"type": "string", "index": True},
-        "field_vector": {
+    properties["fields"] = [
+        {"name": "field_int", "type": "integer"},
+        {"name": "field_long", "type": "long"},
+        {"name": "field_float", "type": "float"},
+        {"name": "field_double", "type": "double"},
+        {"name": "field_string", "type": "string", "index": {"name": "field_string","type": "SCALAR"}},
+        {
+            "name": "field_vector",
             "type": "vector",
-            "index": True,
+            "index": {
+                "name": "gamma",
+                "type": "FLAT",
+                "params": {
+                    "metric_type": "L2",
+                },
+            },
             "dimension": embedding_size,
             "store_type": "MemoryOnly",
             # "format": "normalization"
         },
-    }
+    ]
 
     create_for_document_test(logger, router_url, embedding_size, properties)
 
@@ -177,21 +191,28 @@ class TestDocumentUpsertBadCase:
         embedding_size = xb.shape[1]
 
         properties = {}
-        properties["fields"] = {
-            "field_int": {"type": "integer", "index": False},
-            "field_long": {"type": "long", "index": False},
-            "field_float": {"type": "float", "index": False},
-            "field_double": {"type": "double", "index": False},
-            "field_string": {"type": "string", "index": True},
-            "field_string1": {"type": "string", "index": False},
-            "field_vector": {
+        properties["fields"] = [
+            {"name": "field_int", "type": "integer"},
+            {"name": "field_long", "type": "long"},
+            {"name": "field_float", "type": "float"},
+            {"name": "field_double", "type": "double"},
+            {"name": "field_string", "type": "string", "index": {"name": "field_string","type": "SCALAR"}},
+            {"name": "field_string1", "type": "string"},
+            {
+                "name": "field_vector",
                 "type": "vector",
-                "index": True,
+                "index": {
+                    "name": "gamma",
+                    "type": "FLAT",
+                    "params": {
+                        "metric_type": "L2",
+                    },
+                },
                 "dimension": embedding_size,
                 "store_type": "MemoryOnly",
                 # "format": "normalization"
-            },
-        }
+                },
+        ]
 
         create_for_document_test(self.logger, router_url, embedding_size, properties)
 

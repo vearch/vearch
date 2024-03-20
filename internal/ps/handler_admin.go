@@ -109,6 +109,7 @@ func (c *CreatePartitionHandler) Execute(ctx context.Context, req *vearchpb.Part
 
 	if err := c.server.CreatePartition(ctx, space, req.PartitionID); err != nil {
 		c.server.DeletePartition(req.PartitionID)
+		log.Error(err)
 		return err
 	}
 	return nil

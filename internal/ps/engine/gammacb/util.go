@@ -15,7 +15,6 @@
 package gammacb
 
 import (
-	"encoding/binary"
 	"fmt"
 
 	"github.com/spf13/cast"
@@ -25,35 +24,18 @@ import (
 	"github.com/vearch/vearch/internal/ps/engine/register"
 )
 
-var empty = []byte{0}
-
-func int64ToBytes(i int64) []byte {
-	var buf = make([]byte, 8)
-	binary.BigEndian.PutUint64(buf, uint64(i))
-	return buf
-}
-
-func bytesToInt64(buf []byte) int64 {
-	return int64(binary.BigEndian.Uint64(buf))
-}
-
-func buildField(name string, value []byte, dataType gamma.DataType) gamma.Field {
-	field := gamma.Field{Name: name, Datatype: dataType, Value: value}
-	return field
-}
-
 func mapping2Table(cfg register.EngineConfig, m *mapping.IndexMapping) (*gamma.Table, error) {
 	dim := make(map[string]int)
 
 	index := cfg.Space.Index
 	indexParams := ""
-	if index.IndexParams != nil {
-		indexParams = string(index.IndexParams)
+	if index.Params != nil {
+		indexParams = string(index.Params)
 	}
 
 	table := &gamma.Table{
 		Name:        cfg.Space.Name + "-" + cast.ToString(cfg.PartitionID),
-		IndexType:   index.IndexType,
+		IndexType:   index.Type,
 		IndexParams: indexParams,
 	}
 
@@ -111,7 +93,6 @@ func mapping2Table(cfg register.EngineConfig, m *mapping.IndexMapping) (*gamma.T
 		case vearchpb.FieldType_VECTOR:
 			fieldMapping := value.Field.FieldMappingI.(*mapping.VectortFieldMapping)
 			dim[key] = fieldMapping.Dimension
-			//index := (value.Field.Options() & vearchpb.FieldOption_Index) / vearchpb.FieldOption_Index
 			vectorInfo := gamma.VectorInfo{
 				Name:       key,
 				DataType:   gamma.FLOAT,
@@ -120,11 +101,6 @@ func mapping2Table(cfg register.EngineConfig, m *mapping.IndexMapping) (*gamma.T
 				StoreParam: string(fieldMapping.StoreParam),
 			}
 			vectorInfo.IsIndex = true
-			/*if index == 1 {
-				vectorInfo.IsIndex = true
-			} else {
-				vectorInfo.IsIndex = false
-			}*/
 			table.VectorsInfos = append(table.VectorsInfos, vectorInfo)
 		}
 

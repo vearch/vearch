@@ -35,31 +35,31 @@ def create(router_url, embedding_size, index_type="FLAT", store_type="MemoryOnly
         training_threshold = ncentroids * 39
     
     properties = {}
-    properties["fields"] = {
-        "field_int": {
+    properties["fields"] = [
+        {
+            "name": "field_int",
             "type": "integer",
-            "index": False
         },
-        "field_vector": {
+        {
+            "name": "field_vector",
             "type": "vector",
-            "index": True,
             "dimension": embedding_size,
             "store_type": store_type,
+            "index": {
+                "name": "gamma",
+                "type": index_type,
+                "params": {
+                    "metric_type": "L2"
+                }
+            },
             #"format": "normalization"
         }
-    }
+    ]
 
     space_config = {
         "name": space_name,
         "partition_num": 1,
         "replica_num": 1,
-        "index": {
-            "index_name": "gamma",
-            "index_type": index_type,
-            "index_params": {
-                "metric_type": "L2"
-            }
-        },
         "fields": properties["fields"]
     }
     logger.info(create_db(router_url, db_name))

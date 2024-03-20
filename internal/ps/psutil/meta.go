@@ -185,6 +185,7 @@ func SavePartitionMeta(dataPath string, id entity.PartitionID, space *entity.Spa
 	_, _, meta := GetPartitionPaths(dataPath, id)
 	bytes, err := sonic.Marshal(space)
 	if err != nil {
+		log.Error(err)
 		return err
 	}
 	return fileutil.WriteFileAtomic(path.Join(meta, "meta.txt"), bytes, os.ModePerm)

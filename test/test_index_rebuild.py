@@ -57,31 +57,50 @@ class TestIndexFlush:
             "name": space_name,
             "partition_num": 1,
             "replica_num": 1,
-            "index": {
-                "index_name": "gamma",
-                "index_type": index_type,
-                "index_params": {
-                    "metric_type": "InnerProduct",
-                    "ncentroids": 256,
-                    "nsubvector": 32,
-                    "nlinks": 32,
-                    "efConstruction": 40,
-                    "training_threshold": training_threshold
+            "fields": [
+                {
+                    "name": "field_int",
+                    "type": "integer",
                 },
-            },
-            "fields": {
-                "field_int": {"type": "integer", "index": False},
-                "field_long": {"type": "long", "index": False},
-                "field_float": {"type": "float", "index": False},
-                "field_double": {"type": "double", "index": False},
-                "field_string": {"type": "string", "index": True},
-                "field_vector": {
+                {
+                    "name": "field_long",
+                    "type": "long",
+                },
+                {
+                    "name": "field_float",
+                    "type": "float",
+                },
+                {
+                    "name": "field_double",
+                    "type": "double",
+                },
+                {
+                    "name": "field_string",
+                    "type": "string",
+                    "index": {
+                        "name": "field_string",
+                        "type": "SCALAR",
+                    },
+                },
+                {
+                    "name": "field_vector",
                     "type": "vector",
-                    "index": True,
+                    "index": {
+                        "name": "gamma",
+                        "type": index_type,
+                        "params": {
+                            "metric_type": "InnerProduct",
+                            "ncentroids": 256,
+                            "nsubvector": 32,
+                            "nlinks": 32,
+                            "efConstruction": 40,
+                            "training_threshold": training_threshold
+                        },
+                    },
                     "dimension": embedding_size,
                     # "format": "normalization"
                 },
-            }
+            ]
         }
 
         logger.info(create_space(router_url, db_name, space_config))

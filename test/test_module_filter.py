@@ -34,13 +34,6 @@ def create(router_url, properties):
         "name": space_name,
         "partition_num": 1,
         "replica_num": 1,
-        "index": {
-            "index_name": "name",
-            "index_type": "FLAT",
-            "index_params": {
-                "metric_type": "L2",
-            }
-        },
         "fields": properties["fields"]
     }
     logger.info(create_db(router_url, db_name))
@@ -193,35 +186,62 @@ def check(total, full_field, xb, mode: str):
         total, total_batch, dim, xq.shape[0], k))
 
     properties = {}
-    properties["fields"] = {
-        "field_int": {
+    properties["fields"] = [
+        {
+            "name": "field_int",
             "type": "integer",
-            "index": True
+            "index": {
+                "name": "field_int",
+                "type": "SCALAR",
+            },
         },
-        "field_long": {
+        {
+            "name": "field_long",
             "type": "long",
-            "index": True
+            "index": {
+                "name": "field_long",
+                "type": "SCALAR",
+            },
         },
-        "field_float": {
+        {
+            "name": "field_float",
             "type": "float",
-            "index": True
+            "index": {
+                "name": "field_float",
+                "type": "SCALAR",
+            },
         },
-        "field_double": {
+        {
+            "name": "field_double",
             "type": "double",
-            "index": True
+            "index": {
+                "name": "field_double",
+                "type": "SCALAR",
+            },
         },
-        "field_string": {
+        {
+            "name": "field_string",
             "type": "string",
-            "index": True
+            "index": {
+                "name": "field_string",
+                "type": "SCALAR",
+            },
         },
-        "field_vector": {
+        {
+            "name": "field_vector",
             "type": "vector",
-            "index": True,
+            "index": {
+                "name": "name",
+                "type": "FLAT",
+                "params": {
+                    "metric_type": "L2",
+                }
+            },
             "dimension": dim,
             "store_type": "MemoryOnly",
             # "format": "normalization"
         }
-    }
+    ]
 
     create(router_url, properties)
 

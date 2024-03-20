@@ -23,7 +23,72 @@ import (
 
 func TestEngineSpaceString(t *testing.T) {
 	space := &entity.Space{}
-	str := `{"name":"ts_space","partition_num":1,"replica_num":1,"index":{"index_name":"gamma","index_type":"IVFPQ","index_params":{"nlinks":16,"efSearch":32,"efConstruction":60,"metric_type":"InnerProduct","ncentroids":512,"nprobe":15,"nsubvector":16,"training_threshold":100000}},"fields":{"string":{"type":"string","array":true,"index":true},"float":{"type":"float","index":true},"int":{"type":"integer","index":true},"double":{"type":"double","index":true},"vector":{"type":"vector","dimension":128,"store_type":"MemoryOnly","format":"normalization","store_param":{"cache_size":1024}}}}`
+	str := `
+	{
+		"name": "ts_space",
+		"partition_num": 1,
+		"replica_num": 1,
+		"fields": [
+		  {
+			"name": "string",
+			"type": "string",
+			"array": true,
+			"index": {
+			  "name": "string",
+			  "type": "SCALAR"
+			}
+		  },
+		  {
+			"name": "float",
+			"type": "float",
+			"index": {
+			  "name": "float",
+			  "type": "SCALAR"
+			}
+		  },
+		  {
+			"name": "int",
+			"type": "integer",
+			"index": {
+			  "name": "int",
+			  "type": "SCALAR"
+			}
+		  },
+		  {
+			"name": "double",
+			"type": "double",
+			"index": {
+			  "name": "double",
+			  "type": "SCALAR"
+			}
+		  },
+		  {
+			"name": "vector",
+			"type": "vector",
+			"dimension": 128,
+			"store_type": "MemoryOnly",
+			"format": "normalization",
+			"index": {
+			  "name": "gamma",
+			  "type": "IVFPQ",
+			  "params": {
+				"nlinks": 16,
+				"efSearch": 32,
+				"efConstruction": 60,
+				"metric_type": "InnerProduct",
+				"ncentroids": 512,
+				"nprobe": 15,
+				"nsubvector": 16,
+				"training_threshold": 100000
+			  }
+			},
+			"store_param": {
+			  "cache_size": 1024
+			}
+		  }
+		]
+	  }
+	`
 	err := json.Unmarshal([]byte(str), space)
 	if err != nil {
 		t.Fatalf("failed: %v", err)
@@ -43,7 +108,6 @@ func TestSpace_Validate(t *testing.T) {
 		ReplicaNum      uint8
 		Fields          json.RawMessage
 		Index           *entity.Index
-		Models          json.RawMessage
 		SpaceProperties map[string]*entity.SpaceProperties
 	}
 	tests := []struct {
@@ -102,7 +166,6 @@ func TestSpace_Validate(t *testing.T) {
 				ReplicaNum:      tt.fields.ReplicaNum,
 				Fields:          tt.fields.Fields,
 				Index:           tt.fields.Index,
-				Models:          tt.fields.Models,
 				SpaceProperties: tt.fields.SpaceProperties,
 			}
 			if err := space.Validate(); (err != nil) != tt.wantErr {

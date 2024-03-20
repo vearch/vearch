@@ -30,29 +30,34 @@ __description__ = """ test case for index ivfpq """
 
 def create(router_url, embedding_size, store_type="MemoryOnly", index_params={}):
     properties = {}
-    properties["fields"] = {
-        "field_int": {
+    properties["fields"] = [
+        {
+            "name": "field_int",
             "type": "integer",
-            "index": False
+            "index": {
+                "name": "field_int",
+                "type": "SCALAR",
+            },
         },
-        "field_vector": {
+        {
+            "name": "field_vector",
             "type": "vector",
             "index": True,
             "dimension": embedding_size,
             "store_type": store_type,
+            "index": {
+                "name": "gamma",
+                "type": "IVFPQ",
+                "params": index_params
+            },
             #"format": "normalization"
         }
-    }
+    ]
 
     space_config = {
         "name": space_name,
         "partition_num": 1,
         "replica_num": 1,
-        "index": {
-            "index_name": "gamma",
-            "index_type": "IVFPQ",
-            "index_params": index_params
-        },
         "fields": properties["fields"]
     }
     logger.info(create_db(router_url, db_name))

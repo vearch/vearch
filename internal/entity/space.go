@@ -20,6 +20,7 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/cubefs/cubefs/blobstore/util/log"
 	"github.com/vearch/vearch/internal/proto/vearchpb"
 )
 
@@ -42,9 +43,9 @@ const (
 )
 
 type Index struct {
-	IndexName   string          `json:"index_name"`
-	IndexType   string          `json:"index_type,omitempty"`
-	IndexParams json.RawMessage `json:"index_params,omitempty"`
+	Name   string          `json:"name"`
+	Type   string          `json:"type,omitempty"`
+	Params json.RawMessage `json:"params,omitempty"`
 }
 
 func NewDefaultIndex() *Index {
@@ -88,8 +89,7 @@ type Space struct {
 	PartitionNum    int                         `json:"partition_num"`
 	ReplicaNum      uint8                       `json:"replica_num"`
 	Fields          json.RawMessage             `json:"fields"`
-	Index           *Index                      `json:"index"`
-	Models          json.RawMessage             `json:"models,omitempty"` //json model config for python plugin
+	Index           *Index                      `json:"index,omitempty"`
 	SpaceProperties map[string]*SpaceProperties `json:"space_properties"`
 }
 
@@ -129,7 +129,7 @@ type CacheModel struct {
 type SpaceProperties struct {
 	FieldType  vearchpb.FieldType   `json:"field_type"`
 	Type       string               `json:"type"`
-	Index      *bool                `json:"index,omitempty"`
+	Index      *Index               `json:"index,omitempty"`
 	Format     *string              `json:"format,omitempty"`
 	Dimension  int                  `json:"dimension,omitempty"`
 	StoreType  *string              `json:"store_type,omitempty"`
@@ -185,16 +185,16 @@ func (index *Index) UnmarshalJSON(bs []byte) error {
 		return fmt.Errorf("space Index json.Unmarshal err: empty json")
 	}
 	tempIndex := &struct {
-		IndexName   string          `json:"index_name,omitempty"`
-		IndexType   string          `json:"index_type,omitempty"`
-		IndexParams json.RawMessage `json:"index_params,omitempty"`
+		IndexName   string          `json:"name,omitempty"`
+		IndexType   string          `json:"type,omitempty"`
+		IndexParams json.RawMessage `json:"params,omitempty"`
 	}{}
 	if err := json.Unmarshal(bs, tempIndex); err != nil {
 		return fmt.Errorf("space Index json.Unmarshal err:%v", err)
 	}
 
 	indexTypeMap := map[string]string{"IVFPQ": "IVFPQ", "IVFFLAT": "IVFFLAT", "BINARYIVF": "BINARYIVF", "FLAT": "FLAT",
-		"HNSW": "HNSW", "GPU": "GPU", "SSG": "SSG", "IVFPQ_RELAYOUT": "IVFPQ_RELAYOUT", "SCANN": "SCANN"}
+		"HNSW": "HNSW", "GPU": "GPU", "SSG": "SSG", "IVFPQ_RELAYOUT": "IVFPQ_RELAYOUT", "SCANN": "SCANN", "SCALAR": "SCALAR"}
 	if tempIndex.IndexType == "" {
 		return fmt.Errorf("IndexType is null")
 	}
@@ -252,9 +252,9 @@ func (index *Index) UnmarshalJSON(bs []byte) error {
 	}
 
 	*index = Index{
-		IndexName:   tempIndex.IndexName,
-		IndexType:   tempIndex.IndexType,
-		IndexParams: tempIndex.IndexParams,
+		Name:   tempIndex.IndexName,
+		Type:   tempIndex.IndexType,
+		Params: tempIndex.IndexParams,
 	}
 
 	return nil
@@ -286,22 +286,32 @@ func (space *Space) Validate() error {
 	return nil
 }
 
+type Field struct {
+	Name       string  `json:"name"`
+	Type       string  `json:"type"`
+	Array      *bool   `json:"array,omitempty"`
+	Dimension  int     `json:"dimension,omitempty"`
+	StoreType  *string `json:"store_type,omitempty"`
+	Format     *string `json:"format,omitempty"`
+	Index      *Index  `json:"index,omitempty"`
+	StoreParam *struct {
+		CacheSize int `json:"cache_size,omitempty"`
+	} `json:"store_param,omitempty"`
+}
+
 func UnmarshalPropertyJSON(propertity []byte) (map[string]*SpaceProperties, error) {
 	tmpPro := make(map[string]*SpaceProperties)
-	tmp := make(map[string]json.RawMessage)
-	err := json.Unmarshal([]byte(propertity), &tmp)
+	tmp := make([]Field, 0)
+	err := json.Unmarshal(propertity, &tmp)
 	if err != nil {
-		fmt.Println(err)
+		log.Error(err)
+		return nil, err
 	}
 
-	for name, data := range tmp {
+	for _, data := range tmp {
 		sp := &SpaceProperties{}
-		err = json.Unmarshal(data, sp)
-		if err != nil {
-			return nil, err
-		}
-
 		isVector := false
+		sp.Type = data.Type
 
 		switch sp.Type {
 		case "text", "keyword", "string":
@@ -322,17 +332,19 @@ func UnmarshalPropertyJSON(propertity []byte) (map[string]*SpaceProperties, erro
 			sp.FieldType = FieldType_VECTOR
 
 			isVector = true
-			if sp.Dimension == 0 {
-				return nil, fmt.Errorf("dimension can not be zero by field : [%s] ", string(data))
+			if data.Dimension == 0 {
+				return nil, fmt.Errorf("dimension can not be zero by field : [%s] ", data.Name)
 			}
+			sp.Dimension = data.Dimension
 
-			if sp.StoreType != nil && *sp.StoreType != "" {
-				if *sp.StoreType != "RocksDB" && *sp.StoreType != "MemoryOnly" {
-					return nil, fmt.Errorf("vector field:[%s] not support this store type:[%s] it only RocksDB or MemoryOnly", name, *sp.StoreType)
+			if data.StoreType != nil && *data.StoreType != "" {
+				if *data.StoreType != "RocksDB" && *data.StoreType != "MemoryOnly" {
+					return nil, fmt.Errorf("vector field:[%s] not support this store type:[%s] it only RocksDB or MemoryOnly", data.Name, *sp.StoreType)
 				}
 			}
-
-			format := sp.Format
+			sp.StoreType = data.StoreType
+			sp.Format = data.Format
+			format := data.Format
 			if format != nil && *format != "" && !(strings.Compare(*format, "normalization") == 0 ||
 				strings.Compare(*format, "normal") == 0 || strings.Compare(*format, "no") == 0) {
 				return nil, fmt.Errorf("unknow vector process method:[%s]", *format)
@@ -341,37 +353,30 @@ func UnmarshalPropertyJSON(propertity []byte) (map[string]*SpaceProperties, erro
 		default:
 			return nil, fmt.Errorf("space property invalid field type")
 		}
-
-		if isVector {
-			if sp.Index != nil {
-				if *sp.Index {
-					sp.Option = FieldOption_Index
-				} else {
-					sp.Option = FieldOption_Null
-				}
-			} else {
-				sp.Option = FieldOption_Index
-			}
-		} else {
-			if sp.Index != nil {
-				if *sp.Index {
-					sp.Option = FieldOption_Index
-				} else {
-					sp.Option = FieldOption_Null
-				}
-			} else {
-				sp.Option = FieldOption_Null
-			}
+		sp.Index = data.Index
+		sp.Array = false
+		if data.Array != nil {
+			sp.Array = *data.Array
 		}
 
-		//set date format
+		if sp.Index != nil {
+			sp.Option = FieldOption_Index
+		} else {
+			sp.Option = FieldOption_Null
+		}
+
+		if isVector {
+			sp.Index = data.Index
+		}
+
+		// set date format
 		if sp.Format != nil {
 			if !(sp.FieldType == FieldType_DATE || sp.FieldType == FieldType_VECTOR) {
 				return nil, fmt.Errorf("type:[%d] can not set format", sp.FieldType)
 			}
 		}
 
-		tmpPro[name] = sp
+		tmpPro[data.Name] = sp
 	}
 	return tmpPro, nil
 }

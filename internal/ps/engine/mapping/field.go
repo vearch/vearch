@@ -19,6 +19,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/vearch/vearch/internal/entity"
 	"github.com/vearch/vearch/internal/proto/vearchpb"
 )
 
@@ -73,8 +74,9 @@ func NewFieldMapping(name string, i FieldMappingI) *FieldMapping {
 
 func (f *FieldMapping) UnmarshalJSON(data []byte) error {
 	tmp := struct {
+		Name       *string         `json:"name,omitempty"`
 		Type       string          `json:"type"`
-		Index      *bool           `json:"index,omitempty"`
+		Index      *entity.Index   `json:"index,omitempty"`
 		Format     *string         `json:"format,omitempty"`
 		Dimension  int             `json:"dimension,omitempty"`
 		StoreType  *string         `json:"store_type,omitempty"`
@@ -84,6 +86,9 @@ func (f *FieldMapping) UnmarshalJSON(data []byte) error {
 	err := json.Unmarshal(data, &tmp)
 	if err != nil {
 		return err
+	}
+	if tmp.Name != nil {
+		f.Name = *tmp.Name
 	}
 
 	var fieldMapping FieldMappingI
@@ -125,11 +130,7 @@ func (f *FieldMapping) UnmarshalJSON(data []byte) error {
 
 	//set index
 	if tmp.Index != nil {
-		if *tmp.Index {
-			fieldMapping.Base().Option |= vearchpb.FieldOption_Index
-		} else {
-			fieldMapping.Base().Option = fieldMapping.Base().Option & withOutIndex
-		}
+		fieldMapping.Base().Option |= vearchpb.FieldOption_Index
 	}
 
 	//set dimension

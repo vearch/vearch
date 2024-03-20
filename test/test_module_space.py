@@ -46,36 +46,70 @@ class TestSpaceCreate:
             "name": space_name,
             "partition_num": 1,
             "replica_num": 1,
-            "index": {
-                "index_name": "gamma",
-                "index_type": index_type,
-                "index_params": {
-                    "metric_type": "InnerProduct",
-                    "ncentroids": 2048,
-                    "nsubvector": 32,
-                    "nlinks": 32,
-                    "efConstruction": 40,
-                    "nprobe":80,
-                    "efSearch":64,
-                    "training_threshold":70000
-                }
-            },
-            "fields": {
-                "field_string": {"type": "keyword"},
-                "field_int": {"type": "integer"},
-                "field_float": {"type": "float", "index": True},
-                "field_string_array": {"type": "string", "array": True, "index": True},
-                "field_int_index": {"type": "integer", "index": True},
-                "field_vector": {"type": "vector", "dimension": embedding_size},
-                "field_vector_normal": {
+            "fields": [
+                {
+                    "name": "field_string",
+                    "type": "keyword"
+                },
+                {
+                    "name": "field_int",
+                    "type": "integer"
+                },
+                {
+                    "name": "field_float",
+                    "type": "float",
+                    "index": {
+                        "name": "field_float",
+                        "type": "SCALAR",
+                    },
+                },
+                {
+                    "name": "field_string_array",
+                    "type": "string",
+                    "array": True,
+                    "index": {
+                        "name": "field_string_array",
+                        "type": "SCALAR",
+                    },
+                },
+                {
+                    "name": "field_int_index",
+                    "type": "integer",
+                    "index": {
+                        "name": "field_int_index",
+                        "type": "SCALAR",
+                    },
+                },
+                {
+                    "name": "field_vector",
                     "type": "vector",
-                    "dimension": int(embedding_size * 2),
-                    "format": "normalization"
-                }
-            }
+                    "dimension": embedding_size,
+                    "index": {
+                        "name": "gamma",
+                        "type": index_type,
+                        "params": {
+                            "metric_type": "InnerProduct",
+                            "ncentroids": 2048,
+                            "nsubvector": 32,
+                            "nlinks": 32,
+                            "efConstruction": 40,
+                            "nprobe":80,
+                            "efSearch":64,
+                            "training_threshold":70000
+                        }
+                    },
+                },
+                # {
+                #     "name": "field_vector_normal",
+                #     "type": "vector",
+                #     "dimension": int(embedding_size * 2),
+                #     "format": "normalization"
+                # }
+            ]
         }
 
         response = create_space(router_url, db_name, space_config)
+        logger.info(response)
         assert response["code"] == 200
 
         response = describe_space(logger, router_url, db_name, space_name)
@@ -95,23 +129,56 @@ class TestSpaceCreate:
             "name": space_name,
             "partition_num": 1,
             "replica_num": 1,
-            "index": {
-                "index_name": "gamma",
-                "index_type": index_type
-            },
-            "fields": {
-                "field_string": {"type": "keyword"},
-                "field_int": {"type": "integer"},
-                "field_float": {"type": "float", "index": True},
-                "field_string_array": {"type": "string", "array": True, "index": True},
-                "field_int_index": {"type": "integer", "index": True},
-                "field_vector": {"type": "vector", "dimension": embedding_size},
-                "field_vector_normal": {
+            "fields": [
+                {
+                    "name": "field_string",
+                    "type": "keyword"
+                },
+                {
+                    "name": "field_int",
+                    "type": "integer"
+                },
+                {
+                    "name": "field_float",
+                    "type": "float",
+                    "index": {
+                        "name": "field_float",
+                        "type": "SCALAR",
+                    },
+                },
+                {
+                    "name": "field_string_array",
+                    "type": "string", 
+                    "array": True,
+                    "index": {
+                        "name": "field_float",
+                        "type": "SCALAR",
+                    },
+                },
+                {
+                    "name": "field_int_index",
+                    "type": "integer",
+                    "index": {
+                        "name": "field_int_index",
+                        "type": "SCALAR",
+                    },
+                },
+                {
+                    "name": "field_vector",
+                    "type": "vector",
+                    "dimension": embedding_size,
+                    "index": {
+                        "name": "gamma",
+                        "type": index_type
+                    },
+                },
+                {
+                    "name": "field_vector_normal",
                     "type": "vector",
                     "dimension": int(embedding_size * 2),
                     "format": "normalization"
                 }
-            }
+            ]
         }
 
         response = create_space(router_url, db_name, space_config)
@@ -187,31 +254,33 @@ class TestSpaceCreate:
             "name": create_space_name,
             "partition_num": 1,
             "replica_num": replica_num,
-            "index": {
-                "index_type": index_type,
-                "index_params": {
-                    "metric_type": metric_type,
-                    "ncentroids": ncentroids,
-                    "nsubvector": nsubvector,
-                    "nlinks": nlinks,
-                    "nprobe": nprobe,
-                    "efConstruction": efConstruction,
-                    "training_threshold": training_threshold
-                },
-            },
-            "fields": {
-                "field_string": {"type": "keyword"},
-                "field_int": {"type": "integer"},
-                "field_float": {"type": "float", "index": True},
-                "field_string_array": {"type": "string", "array": True, "index": True},
-                "field_int_index": {"type": "integer", "index": True},
-                "field_vector": {"type": "vector", "dimension": embedding_size},
-                "field_vector_normal": {
+            "fields": [
+                {"name": "field_string", "type": "keyword"},
+                {"name": "field_int", "type": "integer"},
+                {"name": "field_float", "type": "float", "index": {"name": "field_float","type": "SCALAR"}},
+                {"name": "field_string_array", "type": "string", "array": True, "index": {"name": "field_string_array","type": "SCALAR"}},
+                {"name": "field_int_index", "type": "integer", "index": {"name": "field_int_index","type": "SCALAR"}},
+                {"name": "field_vector", "type": "vector", "dimension": embedding_size},
+                {
+                    "name": "field_vector_normal", 
                     "type": "vector",
                     "dimension": int(embedding_size * 2),
                     "format": "normalization",
+                    "index": {
+                        "name": "gamma",
+                        "type": index_type,
+                        "params": {
+                            "metric_type": metric_type,
+                            "ncentroids": ncentroids,
+                            "nsubvector": nsubvector,
+                            "nlinks": nlinks,
+                            "nprobe": nprobe,
+                            "efConstruction": efConstruction,
+                            "training_threshold": training_threshold
+                        },
+                    },
                 },
-            },
+            ],
         }
 
         response = create_space(router_url, db_name, space_config)
@@ -231,30 +300,31 @@ class TestSpaceCreate:
             "name": space_name,
             "partition_num": 1,
             "replica_num": 1,
-            "index": {
-                "index_size": 70000,
-                "index_type": "FLAT",
-                "index_params": {
-                    "metric_type": "InnerProduct",
-                    "ncentroids": 2048,
-                    "nsubvector": 32,
-                    "nlinks": 32,
-                    "efConstruction": 40,
-                },
-            },
-            "fields": {
-                "field_string": {"type": "keyword"},
-                "field_int": {"type": "integer"},
-                "field_float": {"type": "float", "index": True},
-                "field_string_array": {"type": "string", "array": True, "index": True},
-                "field_int_index": {"type": "integer", "index": True},
-                "field_vector": {"type": "vector", "dimension": embedding_size},
-                "field_vector_normal": {
+            "fields": [
+                {"name": "field_string", "type": "keyword", "index": {"name": "field_string","type": "SCALAR"}},
+                {"name": "field_int", "type": "integer"},
+                {"name": "field_float", "type": "float", "index": {"name": "field_float","type": "SCALAR"}},
+                {"name": "field_string_array", "type": "string", "array": True, "index": {"name": "field_string_array","type": "SCALAR"}},
+                {"name": "field_int_index", "type": "integer", "index": {"name": "field_int_index","type": "SCALAR"}},
+                {"name": "field_vector", "type": "vector", "dimension": embedding_size},
+                {
+                    "name": "field_vector_normal", 
                     "type": "vector",
                     "dimension": int(embedding_size * 2),
                     "format": "normalization",
+                    "index": {
+                        "name": "gamma",
+                        "type": "FLAT",
+                        "iparams": {
+                            "metric_type": "InnerProduct",
+                            "ncentroids": 2048,
+                            "nsubvector": 32,
+                            "nlinks": 32,
+                            "efConstruction": 40,
+                        },
+                    },
                 },
-            },
+            ],
         }
 
         response = create_space(router_url, db_name, space_config)
