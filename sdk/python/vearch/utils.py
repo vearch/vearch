@@ -68,6 +68,25 @@ class IndexType(IntEnum):
     UNKNOWN = 999
 
 
+class VectorInfo:
+    field_name = ""
+    feature = []
+
+    def __init__(self, field_name, feature, min_score=-1, boost=-1):
+        self.field_name = field_name
+        self.feature = feature
+        self.min_score = min_score if min_score != -1 else 0
+        self.boost = boost if boost != -1 else 0
+
+    def dict(self):
+        vi_dict = {"field_name": self.field_name, "feature": self.feature}
+        if self.min_score:
+            vi_dict["min_score"] = self.min_score
+        if self.boost:
+            vi_dict["boost"] = self.boost
+        return vi_dict
+
+
 reg_exp = "^([a-zA-Z]+)([a-z0-9A-Z]*[\-\_]{0,1}[a-z0-9A-Z]+)+"
 
 
