@@ -134,8 +134,6 @@ func (handler *DocumentHandler) ExportInterfacesToServer() error {
 }
 
 func (handler *DocumentHandler) ExportToServer() error {
-	// routerInfo
-	handler.httpServer.Handle(http.MethodGet, "/", handler.handleTimeout, handler.handleAuth, handler.handleRouterInfo)
 	// update doc: /$dbName/$spaceName/_log_collect
 	handler.httpServer.Handle(http.MethodPost, fmt.Sprintf("/:%s/:%s/_log_print_switch", URLParamDbName, URLParamSpaceName), handler.handleTimeout, handler.handleAuth, handler.handleLogPrintSwitch)
 	// cacheInfo /$dbName/$spaceName
@@ -162,19 +160,6 @@ func (handler *DocumentHandler) handleAuth(c *gin.Context) {
 		resp.SendError(c, http.StatusBadRequest, "authorization failed, wrong user or password")
 		return
 	}
-}
-
-func (handler *DocumentHandler) handleRouterInfo(c *gin.Context) {
-	versionLayer := make(map[string]interface{})
-	versionLayer["build_version"] = config.GetBuildVersion()
-	versionLayer["build_time"] = config.GetBuildTime()
-	versionLayer["commit_id"] = config.GetCommitID()
-
-	layer := make(map[string]interface{})
-	layer["cluster_name"] = config.Conf().Global.Name
-	layer["version"] = versionLayer
-
-	resp.SendJson(c, layer)
 }
 
 func (handler *DocumentHandler) cacheInfo(c *gin.Context) {

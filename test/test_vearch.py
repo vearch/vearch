@@ -40,6 +40,11 @@ class VearchCase:
         logger.debug("cluster_stats:" + json.dumps(response))
         assert response["code"] == 200
 
+    def test_version(self):
+        response = get_cluster_version(router_url)
+        logger.debug("cluster_stats:" + json.dumps(response))
+        assert response["code"] == 200
+
     def test_health(self):
         response = get_cluster_health(router_url)
         logger.debug("cluster_health---\n" + json.dumps(response))

@@ -66,9 +66,10 @@ func ExportToClusterHandler(router *gin.Engine, masterService *masterService, se
 	// cluster handler
 	router.Handle(http.MethodGet, "/clean_lock", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.cleanLock, dh.TimeOutEndHandler)
 
-	// db,servers handler
+	// servers handler
 	router.Handle(http.MethodGet, "/servers", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.serverList, dh.TimeOutEndHandler)
-	router.Handle(http.MethodGet, "/partitions", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.partitionList, dh.TimeOutEndHandler)
+
+	// router  handler
 	router.Handle(http.MethodGet, "/routers", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.routerList, dh.TimeOutEndHandler)
 
 	// partition register
@@ -95,7 +96,8 @@ func ExportToClusterHandler(router *gin.Engine, masterService *masterService, se
 	router.Handle(http.MethodGet, "/config/:"+dbName+"/:"+spaceName, dh.PaincHandler, dh.TimeOutHandler, c.auth, c.getEngineCfg, dh.TimeOutEndHandler)
 
 	// partition handler
-	router.Handle(http.MethodPost, "/partition/change_member", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.changeMember, dh.TimeOutEndHandler)
+	router.Handle(http.MethodGet, "/partitions", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.partitionList, dh.TimeOutEndHandler)
+	router.Handle(http.MethodPost, "/partitions/change_member", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.changeMember, dh.TimeOutEndHandler)
 
 	// schedule
 	router.Handle(http.MethodPost, "/schedule/recover_server", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.RecoverFailServer, dh.TimeOutEndHandler)
@@ -121,7 +123,7 @@ func (ca *clusterAPI) handleClusterInfo(c *gin.Context) {
 	layer["version"] = versionLayer
 	layer["tagline"] = ""
 
-	ginutil.NewAutoMehtodName(c).SendJson(layer)
+	ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(layer)
 }
 
 // cleanLock lock for admin, when space locked, waring make sure not create space ing

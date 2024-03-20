@@ -963,6 +963,12 @@ def get_cluster_partition(router_url: str):
     return resp.json()
 
 
+def get_cluster_version(router_url: str):
+    url = f"{router_url}/"
+    resp = requests.get(url)
+    return resp.json()
+
+
 def list_dbs(router_url: str):
     url = f"{router_url}/dbs"
     resp = requests.get(url)
