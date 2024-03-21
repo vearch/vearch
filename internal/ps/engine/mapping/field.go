@@ -56,12 +56,6 @@ var FieldsIndex = map[string]int{
 	//	SlotField:       13,
 }
 
-// control the default behavior for dynamic fields (those not explicitly mapped)
-var (
-	withOutIndex = vearchpb.FieldOption_Null
-	withIndex    = vearchpb.FieldOption_Index
-)
-
 type FieldMapping struct {
 	Name string
 	FieldMappingI

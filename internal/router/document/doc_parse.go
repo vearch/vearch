@@ -647,8 +647,7 @@ func documentHeadParse(r *http.Request) (docRequest *request.DocumentRequest, db
 func documentParse(ctx context.Context, handler *DocumentHandler, r *http.Request, docRequest *request.DocumentRequest, space *entity.Space, args *vearchpb.BulkRequest) (err error) {
 	spaceProperties := space.SpaceProperties
 	if spaceProperties == nil {
-		spacePro, _ := entity.UnmarshalPropertyJSON(space.Fields)
-		spaceProperties = spacePro
+		spaceProperties, _ = entity.UnmarshalPropertyJSON(space.Fields)
 	}
 
 	docs := make([]*vearchpb.Document, 0)

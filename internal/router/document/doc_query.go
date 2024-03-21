@@ -106,8 +106,7 @@ func parseQuery(data []byte, req *vearchpb.SearchRequest, space *entity.Space) e
 
 	proMap := space.SpaceProperties
 	if proMap == nil {
-		spacePro, _ := entity.UnmarshalPropertyJSON(space.Fields)
-		proMap = spacePro
+		proMap, _ = entity.UnmarshalPropertyJSON(space.Fields)
 	}
 
 	for _, filterBytes := range temp.Filter {
@@ -291,8 +290,7 @@ func parseVectors(reqNum int, vqs []*vearchpb.VectorQuery, tmpArr []json.RawMess
 	indexType := space.Index.Type
 	proMap := space.SpaceProperties
 	if proMap == nil {
-		spacePro, _ := entity.UnmarshalPropertyJSON(space.Fields)
-		proMap = spacePro
+		proMap, _ = entity.UnmarshalPropertyJSON(space.Fields)
 	}
 	for i := 0; i < len(tmpArr); i++ {
 		vqTemp := &VectorQuery{}
@@ -770,16 +768,14 @@ func searchParamToSearchPb(searchDoc *request.SearchDocumentRequest, searchReq *
 	} else {
 		spaceProKeyMap := space.SpaceProperties
 		if spaceProKeyMap == nil {
-			spacePro, _ := entity.UnmarshalPropertyJSON(space.Fields)
-			spaceProKeyMap = spacePro
+			spaceProKeyMap, _ = entity.UnmarshalPropertyJSON(space.Fields)
 		}
 		vectorFieldArr := make([]string, 0)
 		if searchReq.Fields == nil || len(searchReq.Fields) == 0 {
 			searchReq.Fields = make([]string, 0)
 			spaceProKeyMap := space.SpaceProperties
 			if spaceProKeyMap == nil {
-				spacePro, _ := entity.UnmarshalPropertyJSON(space.Fields)
-				spaceProKeyMap = spacePro
+				spaceProKeyMap, _ = entity.UnmarshalPropertyJSON(space.Fields)
 			}
 			for fieldName, property := range spaceProKeyMap {
 				if property.Type != "" && strings.Compare(property.Type, "vector") != 0 {
