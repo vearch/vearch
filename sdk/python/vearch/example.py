@@ -20,11 +20,22 @@ def create_space_schema() -> SpaceSchema:
 
 
 def create_database(conf: Config):
-    vc = Vearch(config)
+    vc = Vearch(conf)
     logger.debug(vc.client.host)
     ret = vc.create_database("database1")
     logger.debug(ret.dict_str())
-    pass
+
+def list_databases(conf: Config):
+    vc = Vearch(conf)
+    logger.debug(vc.client.host)
+    ret = vc.list_databases()
+    logger.debug(ret)
+
+def drop_database(conf: Config):
+    vc = Vearch(conf)
+    logger.debug(vc.client.host)
+    ret = vc.drop_database("database1")
+    logger.debug(ret.dict_str())
 
 
 if __name__ == "__main__":
@@ -34,7 +45,9 @@ if __name__ == "__main__":
 --data ''"""
 
     config = Config(host="http://test-api-interface-1-router.vectorbase.svc.sq01.n.jd.local", token="secret")
-    create_database(config)
+    create_database(conf=config)
+    list_databases(conf=config)
+    drop_database(conf=config)
     # vc.drop_database("database1")
     # db = Database(name="fjakjfks")
     # db.create()

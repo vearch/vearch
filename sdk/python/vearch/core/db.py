@@ -2,7 +2,7 @@ from vearch.core.space import Space
 from typing import List
 from vearch.core.client import client
 from vearch.result import Result, ResultStatus, get_result
-from vearch.const import DATABASE_URI, SPACE_URI,AUTH_KEY
+from vearch.const import DATABASE_URI, SPACE_URI, AUTH_KEY
 from vearch.schema.space import SpaceSchema
 from vearch.exception import DatabaseException
 from vearch.utils import CodeType
@@ -16,7 +16,7 @@ class Database(object):
 
     def exist(self) -> bool:
         try:
-            url_params = {"database": self.name}
+            url_params = {"database_name": self.name}
             url = self.client.host + DATABASE_URI % url_params
             req = requests.request(method="GET", url=url, headers={"Authorization": self.client.token})
             resp = self.client.s.send(req)

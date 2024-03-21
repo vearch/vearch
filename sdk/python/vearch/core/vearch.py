@@ -10,6 +10,9 @@ from vearch.utils import CodeType
 import requests
 from typing import List
 import json
+import logging
+
+logger = logging.getLogger("vearch")
 
 
 class Vearch(object):
@@ -23,13 +26,16 @@ class Vearch(object):
     def list_databases(self) -> List[Database]:
         result = self.client._list_db()
         l = []
-        if result.code == "success":
-            database_names = json.loads(result.content)
+        logger.debug(result.dict_str())
+        if result.code == 200:
+            logger.debug(result.text)
+            database_names = result.text
             for database_name in database_names:
                 db = Database(database_name)
                 l.append(db)
             return l
         else:
+            logger.error(result.dict_str())
             raise DatabaseException(code=CodeType.LIST_DATABASES, message="list database failed:" + result.err_msg)
 
     def database(self, database_name: str) -> Database:
@@ -37,7 +43,7 @@ class Vearch(object):
         return Database(database_name)
 
     def drop_database(self, database_name: str) -> Result:
-        self.client._drop_db(database_name)
+        return self.client._drop_db(database_name)
 
     def create_space(self, database_name: str, space: SpaceSchema) -> Result:
         if not self.database(database_name).exist():

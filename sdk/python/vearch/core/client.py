@@ -1,6 +1,6 @@
 import requests
 from requests.adapters import HTTPAdapter
-from vearch.utils import singleton,compute_sign_auth
+from vearch.utils import singleton, compute_sign_auth
 from vearch.config import Config, DefaultConfig
 from vearch.const import DATABASE_URI, LIST_DATABASE_URI, AUTH_KEY
 from vearch.result import Result, get_result
@@ -43,17 +43,18 @@ class RestClient(object):
             logger.debug("resp:" + str(resp.text))
         return get_result(resp)
 
-    def _drop_db(self, database_name) -> Result:
+    def _drop_db(self, database_name: str) -> Result:
         url_params = {"database_name": database_name}
-        url = self.host + DATABASE_URI % url_params
-        req = requests.request(method="DELETE", url=url, headers={AUTH_KEY: self.token})
-        resp = self.s.send(req)
+        url = self.host + (DATABASE_URI % url_params)
+        logger.debug(url)
+        sign = compute_sign_auth(secret=self.token)
+        resp = requests.request(method="DELETE", url=url, headers={AUTH_KEY: sign})
         return get_result(resp)
 
     def _list_db(self) -> Result:
         url = self.host + LIST_DATABASE_URI
-        req = requests.request(method="GET", url=url, headers={AUTH_KEY: self.token})
-        resp = self.s.send(req)
+        sign = compute_sign_auth(secret=self.token)
+        resp = requests.request(method="GET", url=url, headers={AUTH_KEY: sign})
         return get_result(resp)
 
 
