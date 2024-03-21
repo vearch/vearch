@@ -44,6 +44,7 @@ const (
 	DB                  = "db"
 	dbName              = "db_name"
 	spaceName           = "space_name"
+	aliasName           = "alias_name"
 	headerAuthKey       = "Authorization"
 	NodeID              = "node_id"
 	DefaultResourceName = "default"
@@ -102,12 +103,19 @@ func ExportToClusterHandler(router *gin.Engine, masterService *masterService, se
 	// schedule
 	router.Handle(http.MethodPost, "/schedule/recover_server", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.RecoverFailServer, dh.TimeOutEndHandler)
 	router.Handle(http.MethodPost, "/schedule/change_replicas", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.ChangeReplicas, dh.TimeOutEndHandler)
-	router.Handle(http.MethodGet, "/schedule/fail_server/list", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.FailServerList, dh.TimeOutEndHandler)
+	router.Handle(http.MethodGet, "/schedule/fail_server", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.FailServerList, dh.TimeOutEndHandler)
 	router.Handle(http.MethodDelete, "/schedule/fail_server/:"+NodeID, dh.PaincHandler, dh.TimeOutHandler, c.auth, c.FailServerClear, dh.TimeOutEndHandler)
 	router.Handle(http.MethodGet, "/schedule/clean_task", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.CleanTask, dh.TimeOutEndHandler)
 
 	// remove server metadata
 	router.Handle(http.MethodPost, "/meta/remove_server", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.RemoveServerMeta, dh.TimeOutEndHandler)
+
+	// alias handler
+	router.Handle(http.MethodPost, fmt.Sprintf("/alias/:%s/dbs/:%s/spaces/:%s", aliasName, dbName, spaceName), dh.PaincHandler, dh.TimeOutHandler, c.auth, c.createAlias, dh.TimeOutEndHandler)
+	router.Handle(http.MethodGet, fmt.Sprintf("/alias/:%s", aliasName), dh.PaincHandler, dh.TimeOutHandler, c.auth, c.getAlias, dh.TimeOutEndHandler)
+	router.Handle(http.MethodGet, "/alias", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.getAlias, dh.TimeOutEndHandler)
+	router.Handle(http.MethodDelete, fmt.Sprintf("/alias/:%s", aliasName), dh.PaincHandler, dh.TimeOutHandler, c.auth, c.deleteAlias, dh.TimeOutEndHandler)
+	router.Handle(http.MethodPut, fmt.Sprintf("/alias/:%s/dbs/:%s/spaces/:%s", aliasName, dbName, spaceName), dh.PaincHandler, dh.TimeOutHandler, c.auth, c.modifyAlias, dh.TimeOutEndHandler)
 }
 
 func (ca *clusterAPI) handleClusterInfo(c *gin.Context) {
@@ -405,6 +413,85 @@ func (ca *clusterAPI) updateSpace(c *gin.Context) {
 
 	} else {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(spaceResult)
+	}
+}
+
+func (ca *clusterAPI) createAlias(c *gin.Context) {
+	aliasName := c.Param(aliasName)
+	dbName := c.Param(dbName)
+	spaceName := c.Param(spaceName)
+	dbID, err := ca.masterService.Master().QueryDBName2Id(c, dbName)
+	if err != nil {
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
+		return
+	}
+
+	if _, err := ca.masterService.Master().QuerySpaceByName(c, dbID, spaceName); err != nil {
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
+		return
+	}
+	alias := &entity.Alias{Name: aliasName, DbName: dbName, SpaceName: spaceName}
+
+	log.Debug("create alias: %s, dbName: %s, spaceName: %s", aliasName, dbName, spaceName)
+
+	if err := ca.masterService.createAliasService(c, alias); err != nil {
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
+	} else {
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(alias)
+	}
+}
+
+func (ca *clusterAPI) deleteAlias(c *gin.Context) {
+	log.Debug("delete alias: %s", c.Param(aliasName))
+	aliasName := c.Param(aliasName)
+
+	if err := ca.masterService.deleteAliasService(c, aliasName); err != nil {
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
+	} else {
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(nil)
+	}
+}
+
+func (ca *clusterAPI) getAlias(c *gin.Context) {
+	aliasName := c.Param(aliasName)
+	if aliasName == "" {
+		if alias, err := ca.masterService.queryAllAlias(c); err != nil {
+			ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
+		} else {
+			ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(alias)
+		}
+	} else {
+		if alias, err := ca.masterService.queryAliasService(c, aliasName); err != nil {
+			ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
+		} else {
+			ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(alias)
+		}
+	}
+}
+
+func (ca *clusterAPI) modifyAlias(c *gin.Context) {
+	aliasName := c.Param(aliasName)
+	dbName := c.Param(dbName)
+	spaceName := c.Param(spaceName)
+	dbID, err := ca.masterService.Master().QueryDBName2Id(c, dbName)
+	if err != nil {
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
+		return
+	}
+	if _, err := ca.masterService.Master().QuerySpaceByName(c, dbID, spaceName); err != nil {
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
+		return
+	}
+
+	alias := &entity.Alias{
+		Name:      aliasName,
+		DbName:    dbName,
+		SpaceName: spaceName,
+	}
+	if err := ca.masterService.updateAliasService(c, alias); err != nil {
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
+	} else {
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(alias)
 	}
 }
 

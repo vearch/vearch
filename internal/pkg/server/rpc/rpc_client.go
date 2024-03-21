@@ -127,7 +127,7 @@ func (r *RpcClient) Execute(ctx context.Context, servicePath string, args interf
 		cli := r.clientPool.Get().(*client.OneClient)
 		defer r.clientPool.Put(cli)
 		if err = cli.Call(ctx, servicePath, serviceMethod, args, reply); err != nil {
-			err = vearchpb.NewError(vearchpb.ErrorEnum_Call_RpcClient_Failed, err)
+			err = vearchpb.NewError(vearchpb.ErrorEnum_CALL_RPCCLIENT_FAILED, err)
 		}
 		return
 	}

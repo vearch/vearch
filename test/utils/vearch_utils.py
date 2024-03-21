@@ -1039,3 +1039,33 @@ def index_rebuild(router_url: str, db_name: str, space_name: str):
     data = {'db_name': db_name, 'space_name': space_name, 'drop_before_rebuild':True}
     resp = requests.post(url, json=data)
     return resp.json()
+
+
+def create_alias(router_url: str, alias_name: str, db_name: str, space_name: str):
+    url = f"{router_url}/alias/{alias_name}/dbs/{db_name}/spaces/{space_name}" 
+    resp = requests.post(url)
+    return resp.json()
+
+
+def update_alias(router_url: str, alias_name: str, db_name: str, space_name: str):
+    url = f"{router_url}/alias/{alias_name}/dbs/{db_name}/spaces/{space_name}" 
+    resp = requests.put(url)
+    return resp.json()
+
+
+def get_alias(router_url: str, alias_name: str):
+    url = f"{router_url}/alias/{alias_name}"
+    resp = requests.get(url)
+    return resp.json()
+
+
+def get_all_alias(router_url: str):
+    url = f"{router_url}/alias"
+    resp = requests.get(url)
+    return resp.json()
+
+
+def drop_alias(router_url: str, alias_name: str):
+    url = f"{router_url}/alias/{alias_name}"
+    resp = requests.delete(url)
+    return resp.json()

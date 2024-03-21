@@ -20,7 +20,7 @@ import (
 )
 
 func LockSpaceKey(db, space string) string {
-	return fmt.Sprintf("%s/%s", db, space)
+	return fmt.Sprintf("%s/%s/%s", PrefixLock, db, space)
 }
 
 func ServerKey(name NodeID) string {
@@ -61,27 +61,39 @@ func RouterKey(key, value string) string {
 	return fmt.Sprintf("%s%s/%s", PrefixRouter, key, value)
 }
 
-func SetPrefixAndSequence(cluster_id string) {
-    if strings.HasPrefix(cluster_id, Prefix) {
-		PrefixEtcdClusterID = cluster_id
-    } else {
-		PrefixEtcdClusterID = Prefix + cluster_id
-    }
-    NodeIdSequence = PrefixEtcdClusterID + PrefixNodeId
-    SpaceIdSequence = PrefixEtcdClusterID + PrefixSpaceId
-    DBIdSequence = PrefixEtcdClusterID + PrefixDBId
-    PartitionIdSequence = PrefixEtcdClusterID + PrefixPartitionId
+func AliasKey(aliasName string) string {
+	return fmt.Sprintf("%s%s", PrefixAlias, aliasName)
+}
 
-    PrefixUser         = PrefixEtcdClusterID + PrefixUser
-    PrefixLock         = PrefixEtcdClusterID + PrefixLock
-    PrefixLockCluster  = PrefixEtcdClusterID + PrefixLockCluster
-    PrefixServer       = PrefixEtcdClusterID + PrefixServer
-    PrefixSpace        = PrefixEtcdClusterID + PrefixSpace
-    PrefixPartition    = PrefixEtcdClusterID + PrefixPartition
-    PrefixDataBase     = PrefixEtcdClusterID + PrefixDataBase
-    PrefixDataBaseBody = PrefixEtcdClusterID + PrefixDataBaseBody
-    PrefixFailServer   = PrefixEtcdClusterID + PrefixFailServer
-    PrefixRouter       = PrefixEtcdClusterID + PrefixRouter
+func AliasValue(dbName string, spaceName string) string {
+	return fmt.Sprintf("%s/%s", dbName, spaceName)
+}
+
+func LockAliasKey(aliasName string) string {
+	return fmt.Sprintf("%s%s", PrefixLock, aliasName)
+}
+
+func SetPrefixAndSequence(cluster_id string) {
+	if strings.HasPrefix(cluster_id, Prefix) {
+		PrefixEtcdClusterID = cluster_id
+	} else {
+		PrefixEtcdClusterID = Prefix + cluster_id
+	}
+	NodeIdSequence = PrefixEtcdClusterID + PrefixNodeId
+	SpaceIdSequence = PrefixEtcdClusterID + PrefixSpaceId
+	DBIdSequence = PrefixEtcdClusterID + PrefixDBId
+	PartitionIdSequence = PrefixEtcdClusterID + PrefixPartitionId
+
+	PrefixUser = PrefixEtcdClusterID + PrefixUser
+	PrefixLock = PrefixEtcdClusterID + PrefixLock
+	PrefixLockCluster = PrefixEtcdClusterID + PrefixLockCluster
+	PrefixServer = PrefixEtcdClusterID + PrefixServer
+	PrefixSpace = PrefixEtcdClusterID + PrefixSpace
+	PrefixPartition = PrefixEtcdClusterID + PrefixPartition
+	PrefixDataBase = PrefixEtcdClusterID + PrefixDataBase
+	PrefixDataBaseBody = PrefixEtcdClusterID + PrefixDataBaseBody
+	PrefixFailServer = PrefixEtcdClusterID + PrefixFailServer
+	PrefixRouter = PrefixEtcdClusterID + PrefixRouter
 }
 
 // sids sequence key for etcd
@@ -96,7 +108,7 @@ var (
 	Prefix             = "/"
 	PrefixUser         = "/user/"
 	PrefixLock         = "/lock/"
-	PrefixLockCluster  = "/lock/_cluster"
+	PrefixLockCluster  = "/lock/cluster"
 	PrefixServer       = "/server/"
 	PrefixSpace        = "/space/"
 	PrefixPartition    = "/partition/"
@@ -108,6 +120,7 @@ var (
 	PrefixSpaceId      = "/id/space"
 	PrefixDBId         = "/id/db"
 	PrefixPartitionId  = "/id/partition"
+	PrefixAlias        = "/alias/"
 )
 
 var PrefixEtcdClusterID = "/vearch/default/"

@@ -74,7 +74,7 @@ class TestDB:
             [0, "bad db name"],
         ],
     )
-    def test_get_db_bad(self, wrong_index, wrong_type):
+    def test_get_db_badcase(self, wrong_index, wrong_type):
         db_param = db_name
         if wrong_index == 0:
             db_param = "wrong_db"

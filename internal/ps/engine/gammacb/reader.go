@@ -50,7 +50,7 @@ func (ri *readerImpl) GetDoc(ctx context.Context, doc *vearchpb.Document, getByD
 		docId, err := strconv.ParseUint(doc.PKey, 10, 32)
 		if err != nil {
 			msg := fmt.Sprintf("key: [%s] convert to uint32 failed, err: [%s]", doc.PKey, err.Error())
-			return vearchpb.NewError(vearchpb.ErrorEnum_Primary_IS_INVALID, errors.New(msg))
+			return vearchpb.NewError(vearchpb.ErrorEnum_PRIMARY_IS_INVALID, errors.New(msg))
 		}
 		docID = int(docId)
 	} else {

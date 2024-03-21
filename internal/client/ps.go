@@ -172,7 +172,7 @@ func (r *rpcClient) lastUse() *rpcClient {
 
 func (r *rpcClient) Execute(ctx context.Context, servicePath string, args interface{}, reply *vearchpb.PartitionData) error {
 	if r == nilClient {
-		return vearchpb.NewError(vearchpb.ErrorEnum_Create_RpcClient_Failed, nil)
+		return vearchpb.NewError(vearchpb.ErrorEnum_CREATE_RPCCLIENT_FAILED, nil)
 	}
 	return r.client.Execute(ctx, servicePath, args, reply)
 }

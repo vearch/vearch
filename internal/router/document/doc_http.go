@@ -47,6 +47,7 @@ const (
 	SpaceEntity         = "space_entity"
 	QueryIsOnlyID       = "QueryIsOnlyID"
 	URLQueryTimeout     = "timeout"
+	URLAliasName        = "alias_name"
 )
 
 type DocumentHandler struct {
@@ -92,7 +93,12 @@ func (handler *DocumentHandler) proxyMaster() error {
 	handler.httpServer.Handle(http.MethodGet, fmt.Sprintf("/dbs/:%s/spaces", URLParamDbName), handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
 	handler.httpServer.Handle(http.MethodDelete, fmt.Sprintf("/dbs/:%s/spaces/:%s", URLParamDbName, URLParamSpaceName), handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
 	handler.httpServer.Handle(http.MethodPut, fmt.Sprintf("/dbs/:%s/spaces/:%s", URLParamDbName, URLParamSpaceName), handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
-
+	// alias handler
+	handler.httpServer.Handle(http.MethodPost, fmt.Sprintf("/alias/:%s/dbs/:%s/spaces/:%s", URLAliasName, URLParamDbName, URLParamSpaceName), handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
+	handler.httpServer.Handle(http.MethodGet, fmt.Sprintf("/alias/:%s", URLAliasName), handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
+	handler.httpServer.Handle(http.MethodGet, "/alias", handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
+	handler.httpServer.Handle(http.MethodDelete, fmt.Sprintf("/alias/:%s", URLAliasName), handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
+	handler.httpServer.Handle(http.MethodPut, fmt.Sprintf("/alias/:%s/dbs/:%s/spaces/:%s", URLAliasName, URLParamDbName, URLParamSpaceName), handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
 	// cluster handler
 	handler.httpServer.Handle(http.MethodGet, "/cluster/health", handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
 	handler.httpServer.Handle(http.MethodGet, "/cluster/stats", handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
