@@ -16,21 +16,19 @@ package ps
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 
-	"github.com/bytedance/sonic"
 	"github.com/cubefs/cubefs/depends/tiglabs/raft"
 	"github.com/cubefs/cubefs/depends/tiglabs/raft/proto"
 	"github.com/vearch/vearch/internal/client"
 	"github.com/vearch/vearch/internal/engine/sdk/go/gamma"
 	"github.com/vearch/vearch/internal/entity"
-	"github.com/vearch/vearch/internal/pkg/cbjson"
 	"github.com/vearch/vearch/internal/pkg/errutil"
 	"github.com/vearch/vearch/internal/pkg/log"
 	"github.com/vearch/vearch/internal/pkg/metrics/mserver"
 	"github.com/vearch/vearch/internal/pkg/server/rpc/handler"
+	"github.com/vearch/vearch/internal/pkg/vjson"
 	"github.com/vearch/vearch/internal/proto/vearchpb"
 	"github.com/vearch/vearch/internal/ps/engine"
 )
@@ -93,7 +91,7 @@ type CreatePartitionHandler struct {
 func (c *CreatePartitionHandler) Execute(ctx context.Context, req *vearchpb.PartitionData, reply *vearchpb.PartitionData) error {
 	reply.Err = &vearchpb.Error{Code: vearchpb.ErrorEnum_SUCCESS}
 	space := new(entity.Space)
-	err := cbjson.Unmarshal(req.Data, space)
+	err := vjson.Unmarshal(req.Data, space)
 	if err != nil {
 		log.Error("Create partition failed, err: [%s]", err.Error())
 		return vearchpb.NewError(vearchpb.ErrorEnum_RPC_PARAM_ERROR, err)
@@ -143,7 +141,7 @@ func (handler *UpdatePartitionHandler) Execute(ctx context.Context, req *vearchp
 	reply.Err = &vearchpb.Error{Code: vearchpb.ErrorEnum_SUCCESS}
 
 	space := new(entity.Space)
-	if err := cbjson.Unmarshal(req.Data, space); err != nil {
+	if err := vjson.Unmarshal(req.Data, space); err != nil {
 		return vearchpb.NewError(vearchpb.ErrorEnum_RPC_PARAM_ERROR, err)
 	}
 
@@ -218,7 +216,7 @@ func (pih *PartitionInfoHandler) Execute(ctx context.Context, req *vearchpb.Part
 
 		pis = append(pis, value)
 	}
-	if reply.Data, err = cbjson.Marshal(pis); err != nil {
+	if reply.Data, err = vjson.Marshal(pis); err != nil {
 		log.Error("marshal partition info failed, err: [%v]", err)
 		return err
 	}
@@ -270,7 +268,7 @@ func (sh *StatsHandler) Execute(ctx context.Context, req *vearchpb.PartitionData
 		pi.RaftStatus = store.Status()
 	})
 
-	if values, err := cbjson.Marshal(stats); err != nil {
+	if values, err := vjson.Marshal(stats); err != nil {
 		log.Error("marshal partition info failed, err: [%v]", err)
 		return err
 	} else {
@@ -287,7 +285,7 @@ func (ch *ChangeMemberHandler) Execute(ctx context.Context, req *vearchpb.Partit
 	reply.Err = &vearchpb.Error{Code: vearchpb.ErrorEnum_SUCCESS}
 
 	reqObj := new(entity.ChangeMember)
-	if err := cbjson.Unmarshal(req.Data, reqObj); err != nil {
+	if err := vjson.Unmarshal(req.Data, reqObj); err != nil {
 		return err
 	}
 
@@ -344,7 +342,7 @@ func psErrorChange(server *Server) handler.ErrorChangeFun {
 			if id == 0 {
 				reply.Err = &vearchpb.Error{Code: vearchpb.ErrorEnum_PARTITION_NO_LEADER}
 			} else {
-				bytes, err := json.Marshal(server.raftResolver.ToReplica(id))
+				bytes, err := vjson.Marshal(server.raftResolver.ToReplica(id))
 				if err != nil {
 					log.Error("find raft resolver err[%s]", err.Error())
 					return err
@@ -378,7 +376,7 @@ func (ch *EngineCfgHandler) Execute(ctx context.Context, req *vearchpb.Partition
 	}
 	if req.Type == vearchpb.OpType_CREATE {
 		cacheCfg := new(entity.EngineCfg)
-		if err := cbjson.Unmarshal(req.Data, cacheCfg); err != nil {
+		if err := vjson.Unmarshal(req.Data, cacheCfg); err != nil {
 			errutil.ThrowError(err)
 			return err
 		}
@@ -414,7 +412,7 @@ func (ch *EngineCfgHandler) Execute(ctx context.Context, req *vearchpb.Partition
 		}
 		cacheCfg := new(entity.EngineCfg)
 		cacheCfg.CacheModels = cacheModels
-		data, _ := sonic.Marshal(cacheCfg)
+		data, _ := vjson.Marshal(cacheCfg)
 		reply.Data = data
 	}
 	return nil

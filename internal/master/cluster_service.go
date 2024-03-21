@@ -17,7 +17,6 @@ package master
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"math"
 	"sort"
@@ -30,10 +29,10 @@ import (
 	"github.com/vearch/vearch/internal/client"
 	"github.com/vearch/vearch/internal/config"
 	"github.com/vearch/vearch/internal/entity"
-	"github.com/vearch/vearch/internal/pkg/cbjson"
 	"github.com/vearch/vearch/internal/pkg/errutil"
 	"github.com/vearch/vearch/internal/pkg/log"
 	"github.com/vearch/vearch/internal/pkg/number"
+	"github.com/vearch/vearch/internal/pkg/vjson"
 	"github.com/vearch/vearch/internal/proto/vearchpb"
 	"github.com/vearch/vearch/internal/ps/engine/mapping"
 	"go.etcd.io/etcd/client/v3/concurrency"
@@ -75,7 +74,7 @@ func (ms *masterService) registerServerService(ctx context.Context, ip string, n
 // registerPartitionService partition/[id]:[body]
 func (ms *masterService) registerPartitionService(ctx context.Context, partition *entity.Partition) error {
 	log.Info("register parttion:[%d] ", partition.Id)
-	marshal, err := json.Marshal(partition)
+	marshal, err := vjson.Marshal(partition)
 	if err != nil {
 		return err
 	}
@@ -119,7 +118,7 @@ func (ms *masterService) createDBService(ctx context.Context, db *entity.DB) (er
 		if stm.Get(idKey) != "" {
 			return fmt.Errorf("dbID %d is exists", db.Id)
 		}
-		value, err := json.Marshal(db)
+		value, err := vjson.Marshal(db)
 		if err != nil {
 			return err
 		}
@@ -213,7 +212,7 @@ func (ms *masterService) updateDBIpList(ctx context.Context, dbModify *entity.DB
 	if bs == nil {
 		return nil, vearchpb.NewError(vearchpb.ErrorEnum_DB_NOTEXISTS, nil)
 	}
-	err = json.Unmarshal(bs, db)
+	err = vjson.Unmarshal(bs, db)
 	errutil.ThrowError(err)
 	if dbModify.Method == proto.ConfRemoveNode {
 		ps := make([]string, 0, len(db.Ps))
@@ -241,7 +240,7 @@ func (ms *masterService) updateDBIpList(ctx context.Context, dbModify *entity.DB
 	}
 	log.Debug("db info is %v", db)
 	_, _, bodyKey := ms.Master().DBKeys(db.Id, db.Name)
-	value, err := json.Marshal(db)
+	value, err := vjson.Marshal(db)
 	errutil.ThrowError(err)
 	err = ms.Client.Master().Put(ctx, bodyKey, value)
 	return db, err
@@ -266,7 +265,7 @@ func (ms *masterService) queryDBService(ctx context.Context, dbstr string) (db *
 		return nil, vearchpb.NewError(vearchpb.ErrorEnum_DB_NOTEXISTS, nil)
 	}
 
-	if err := json.Unmarshal(bs, db); err != nil {
+	if err := vjson.Unmarshal(bs, db); err != nil {
 		return nil, err
 	} else {
 		return db, nil
@@ -309,7 +308,7 @@ func (ms *masterService) createSpaceService(ctx context.Context, dbName string, 
 		return vearchpb.NewError(vearchpb.ErrorEnum_DUP_SPACE, nil)
 	}
 
-	log.Info("create space, db: %s, spaceName: %s, space :[%s]", dbName, space.Name, cbjson.ToJsonString(space))
+	log.Info("create space, db: %s, spaceName: %s, space :[%s]", dbName, space.Name, vjson.ToJsonString(space))
 
 	// find all servers for create space
 	servers, err := ms.Master().QueryServers(ctx)
@@ -372,7 +371,7 @@ func (ms *masterService) createSpaceService(ctx context.Context, dbName string, 
 		}
 	}
 
-	marshal, err := json.Marshal(space)
+	marshal, err := vjson.Marshal(space)
 	if err != nil {
 		return err
 	}
@@ -612,7 +611,7 @@ func (ms *masterService) queryDBs(ctx context.Context) ([]*entity.DB, error) {
 	dbs := make([]*entity.DB, 0, len(bytesArr))
 	for _, bs := range bytesArr {
 		db := &entity.DB{}
-		if err := json.Unmarshal(bs, db); err != nil {
+		if err := vjson.Unmarshal(bs, db); err != nil {
 			log.Error("decode db err: %s,and the bs is:%s", err.Error(), string(bs))
 			continue
 		}
@@ -1030,7 +1029,7 @@ func (ms *masterService) updateSpaceService(ctx context.Context, dbName, spaceNa
 func (ms *masterService) updateSpace(ctx context.Context, space *entity.Space) error {
 	space.Version++
 	space.PartitionNum = len(space.Partitions)
-	marshal, err := json.Marshal(space)
+	marshal, err := vjson.Marshal(space)
 	if err != nil {
 		return err
 	}
@@ -1246,7 +1245,7 @@ func (ms *masterService) ChangeReplica(ctx context.Context, dbModify *entity.DBM
 			}
 		}
 	}
-	log.Info("need change partition is [%+v] ", cbjson.ToJsonString(changeServer))
+	log.Info("need change partition is [%+v] ", vjson.ToJsonString(changeServer))
 	// sleep time
 	sleepTime := config.Conf().PS.RaftHeartbeatInterval
 	// change partition
@@ -1296,7 +1295,7 @@ func (ms *masterService) IsExistNode(ctx context.Context, id entity.NodeID, ip s
 		return nil
 	}
 	server := &entity.Server{}
-	err = json.Unmarshal(values, server)
+	err = vjson.Unmarshal(values, server)
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("parse key[%s] in etcd failed", entity.ServerKey(id)))
 	}

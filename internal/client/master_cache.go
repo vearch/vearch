@@ -23,15 +23,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/bytedance/sonic"
 	"github.com/patrickmn/go-cache"
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/internal/config"
 	"github.com/vearch/vearch/internal/entity"
-	"github.com/vearch/vearch/internal/pkg/cbjson"
 	"github.com/vearch/vearch/internal/pkg/errutil"
 	"github.com/vearch/vearch/internal/pkg/log"
 	"github.com/vearch/vearch/internal/pkg/vearchlog"
+	"github.com/vearch/vearch/internal/pkg/vjson"
 	"github.com/vearch/vearch/internal/proto/vearchpb"
 	"go.etcd.io/etcd/api/v3/mvccpb"
 )
@@ -429,7 +428,7 @@ func (cliCache *clientCache) startCacheJob(ctx context.Context) error {
 	userJob := watcherJob{ctx: ctx, prefix: entity.PrefixUser, masterClient: cliCache.mc, cache: cliCache.userCache,
 		put: func(value []byte) (err error) {
 			user := &entity.User{}
-			if err := cbjson.Unmarshal(value, user); err != nil {
+			if err := vjson.Unmarshal(value, user); err != nil {
 				return fmt.Errorf("put event user cache err, can't unmarshal event value: %s , error: %s", string(value), err.Error())
 			}
 			cliCache.userCache.Set(entity.UserKey(user.Name), user, cache.NoExpiration)
@@ -452,7 +451,7 @@ func (cliCache *clientCache) startCacheJob(ctx context.Context) error {
 	spaceJob := watcherJob{ctx: ctx, prefix: entity.PrefixSpace, masterClient: cliCache.mc, cache: cliCache.spaceCache,
 		put: func(value []byte) (err error) {
 			space := &entity.Space{}
-			if err := cbjson.Unmarshal(value, space); err != nil {
+			if err := vjson.Unmarshal(value, space); err != nil {
 				return err
 			}
 			if space.ResourceName != config.Conf().Global.ResourceName {
@@ -503,7 +502,7 @@ func (cliCache *clientCache) startCacheJob(ctx context.Context) error {
 	partitionJob := watcherJob{ctx: ctx, prefix: entity.PrefixPartition, masterClient: cliCache.mc, cache: cliCache.partitionCache,
 		put: func(value []byte) (err error) {
 			partition := &entity.Partition{}
-			if err = cbjson.Unmarshal(value, partition); err != nil {
+			if err = vjson.Unmarshal(value, partition); err != nil {
 				return
 			}
 			space, err := cliCache.mc.QuerySpaceByID(ctx, partition.DBId, partition.SpaceId)
@@ -538,7 +537,7 @@ func (cliCache *clientCache) startCacheJob(ctx context.Context) error {
 		put: func(value []byte) (err error) {
 			defer errutil.CatchError(&err)
 			server := &entity.Server{}
-			if err := cbjson.Unmarshal(value, server); err != nil {
+			if err := vjson.Unmarshal(value, server); err != nil {
 				return err
 			}
 			if server.ResourceName != config.Conf().Global.ResourceName {
@@ -590,7 +589,7 @@ func (cliCache *clientCache) initUser(ctx context.Context) error {
 	}
 	for _, v := range users {
 		user := &entity.User{}
-		err := cbjson.Unmarshal(v, user)
+		err := vjson.Unmarshal(v, user)
 		if err != nil {
 			log.Error("init user cache err: %s", err.Error())
 			return err
@@ -643,7 +642,7 @@ func (cliCache *clientCache) initPartition(ctx context.Context) error {
 
 	for _, bs := range values {
 		pt := &entity.Partition{}
-		err := cbjson.Unmarshal(bs, pt)
+		err := vjson.Unmarshal(bs, pt)
 		if err != nil {
 			log.Error("init partition cache err , err:[%s]", err.Error())
 			continue
@@ -674,7 +673,7 @@ func (cliCache *clientCache) initServer(ctx context.Context) error {
 	}
 	for _, bs := range values {
 		server := &entity.Server{}
-		err := cbjson.Unmarshal(bs, server)
+		err := vjson.Unmarshal(bs, server)
 		if err != nil {
 			log.Error("unmarshal server cache err [%s]", err.Error())
 			continue
@@ -708,7 +707,7 @@ func (w *watcherJob) serverPut(value []byte) (e error) {
 	defer errutil.CatchError(&e)
 	// parse server info
 	server := &entity.Server{}
-	err := cbjson.Unmarshal(value, server)
+	err := vjson.Unmarshal(value, server)
 	if err != nil {
 		panic(err)
 	}
@@ -772,7 +771,7 @@ func (w *watcherJob) serverDelete(cacheKey string) (err error) {
 		}
 		failServer := &entity.FailServer{ID: server.ID, TimeStamp: time.Now().Unix()}
 		failServer.Node = server
-		value, err := sonic.Marshal(failServer)
+		value, err := vjson.Marshal(failServer)
 		errutil.ThrowError(err)
 		key := entity.FailServerKey(server.ID)
 		// put fail node info into etcd

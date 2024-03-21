@@ -12,7 +12,7 @@
 // implied. See the License for the specific language governing
 // permissions and limitations under the License.
 
-package cbjson
+package vjson
 
 import (
 	"encoding/json"
@@ -44,25 +44,25 @@ func ByteToJsonMap(bytes []byte) (JsonMap, error) {
 	return maps, nil
 }
 
-func (this JsonMap) GetJsonMap(key string) JsonMap {
-	if obj, ok := this[key]; ok {
+func (jm JsonMap) GetJsonMap(key string) JsonMap {
+	if obj, ok := jm[key]; ok {
 		return JsonMap(obj.(map[string]interface{}))
 	} else {
 		return nil
 	}
 }
 
-func (this JsonMap) GetJsonArr(key string) JsonArr {
-	if obj, ok := this[key]; ok {
+func (jm JsonMap) GetJsonArr(key string) JsonArr {
+	if obj, ok := jm[key]; ok {
 		return JsonArr(obj.([]interface{}))
 	} else {
 		return nil
 	}
 }
 
-func (this JsonMap) GetJsonArrMap(key string) JsonArrMap {
+func (jm JsonMap) GetJsonArrMap(key string) JsonArrMap {
 	jsonArrMap := JsonArrMap{}
-	arr := this.GetJsonArr(key)
+	arr := jm.GetJsonArr(key)
 	for i := range arr {
 		obj := arr[i]
 
@@ -73,25 +73,25 @@ func (this JsonMap) GetJsonArrMap(key string) JsonArrMap {
 	return jsonArrMap
 }
 
-func (this JsonMap) GetJsonVal(key string) JsonVal {
-	if obj, ok := this[key]; ok {
+func (jm JsonMap) GetJsonVal(key string) JsonVal {
+	if obj, ok := jm[key]; ok {
 		return JsonVal(obj)
 	} else {
 		return nil
 	}
 }
 
-func (this JsonMap) GetJsonValIntE(key string) (int, error) {
-	val := this.GetJsonVal(key)
+func (jm JsonMap) GetJsonValIntE(key string) (int, error) {
+	val := jm.GetJsonVal(key)
 	if val == nil {
-		return 0, fmt.Errorf("JsonMap GetJsonValIntE key: %s not found.", key)
+		return 0, fmt.Errorf("jsonMap GetJsonValIntE key: %s not found", key)
 	}
 
 	return cast.ToIntE(val)
 }
 
-func (this JsonMap) GetJsonValInt64(key string) int64 {
-	val := this.GetJsonVal(key)
+func (jm JsonMap) GetJsonValInt64(key string) int64 {
+	val := jm.GetJsonVal(key)
 	if val == nil {
 		return 0
 	}
@@ -99,22 +99,22 @@ func (this JsonMap) GetJsonValInt64(key string) int64 {
 	return cast.ToInt64(val)
 }
 
-func (this JsonMap) GetJsonValString(key string) string {
-	val, _ := this.GetJsonValStringE(key)
+func (jm JsonMap) GetJsonValString(key string) string {
+	val, _ := jm.GetJsonValStringE(key)
 	return val
 }
 
-func (this JsonMap) GetJsonValStringE(key string) (string, error) {
-	val := this.GetJsonVal(key)
+func (jm JsonMap) GetJsonValStringE(key string) (string, error) {
+	val := jm.GetJsonVal(key)
 	if val == nil {
-		return "", fmt.Errorf("JsonMap GetJsonValString key: %s not found.", key)
+		return "", fmt.Errorf("jsonMap GetJsonValString key: %s not found", key)
 	}
 
 	return cast.ToStringE(val)
 }
 
-func (this JsonMap) GetJsonValStringOrDefault(key, def string) string {
-	val := this.GetJsonVal(key)
+func (jm JsonMap) GetJsonValStringOrDefault(key, def string) string {
+	val := jm.GetJsonVal(key)
 	if val == nil {
 		return def
 	}
@@ -122,29 +122,29 @@ func (this JsonMap) GetJsonValStringOrDefault(key, def string) string {
 	return cast.ToString(val)
 }
 
-func (this JsonMap) GetJsonValBool(key string) bool {
-	val, _ := this.GetJsonValBoolE(key)
+func (jm JsonMap) GetJsonValBool(key string) bool {
+	val, _ := jm.GetJsonValBoolE(key)
 	return val
 }
 
-func (this JsonMap) GetJsonValBoolE(key string) (bool, error) {
-	val := this.GetJsonVal(key)
+func (jm JsonMap) GetJsonValBoolE(key string) (bool, error) {
+	val := jm.GetJsonVal(key)
 	if val == nil {
-		return false, fmt.Errorf("JsonMap GetJsonValBoolE key: %s not found.", key)
+		return false, fmt.Errorf("jsonMap GetJsonValBoolE key: %s not found", key)
 	}
 
 	return cast.ToBoolE(val)
 }
 
-func (this JsonMap) GetJsonValBytes(key string) ([]byte, error) {
-	val := this.GetJsonVal(key)
+func (jm JsonMap) GetJsonValBytes(key string) ([]byte, error) {
+	val := jm.GetJsonVal(key)
 	if val == nil {
-		return []byte{}, fmt.Errorf("JsonMap GetJsonValBytes key: %s not found.", key)
+		return []byte{}, fmt.Errorf("jsonMap GetJsonValBytes key: %s not found", key)
 	}
 
 	data, err := Marshal(val)
 	if err != nil {
-		return []byte{}, fmt.Errorf("JsonMap GetJsonValBytes key: %s to bytes failed, err: %v", key, err)
+		return []byte{}, fmt.Errorf("jsonMap GetJsonValBytes key: %s to bytes failed, err: %v", key, err)
 	}
 
 	return data, nil

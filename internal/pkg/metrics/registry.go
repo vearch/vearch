@@ -18,7 +18,7 @@ import (
 	"reflect"
 	"sync"
 
-	"github.com/bytedance/sonic"
+	"github.com/vearch/vearch/internal/pkg/vjson"
 )
 
 // Registry is a list of metrics. It provides a simple way of iterating over them.
@@ -117,5 +117,5 @@ func (r *Registry) MarshalJSON() ([]byte, error) {
 	r.Each(func(nm string, v Metric) {
 		m[nm] = v
 	})
-	return sonic.Marshal(m)
+	return vjson.Marshal(m)
 }

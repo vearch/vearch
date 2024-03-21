@@ -32,9 +32,9 @@ import (
 	"github.com/vearch/vearch/internal/entity"
 	"github.com/vearch/vearch/internal/entity/request"
 	"github.com/vearch/vearch/internal/pkg/cbbytes"
-	"github.com/vearch/vearch/internal/pkg/cbjson"
 	"github.com/vearch/vearch/internal/pkg/log"
 	"github.com/vearch/vearch/internal/pkg/netutil"
+	"github.com/vearch/vearch/internal/pkg/vjson"
 	"github.com/vearch/vearch/internal/proto/vearchpb"
 )
 
@@ -635,7 +635,7 @@ func documentHeadParse(r *http.Request) (docRequest *request.DocumentRequest, db
 	}
 
 	docRequest = &request.DocumentRequest{}
-	err = cbjson.Unmarshal(reqBody, docRequest)
+	err = vjson.Unmarshal(reqBody, docRequest)
 	if err != nil {
 		err = fmt.Errorf("documentRequest param convert json %s err: %v", string(reqBody), err)
 		return nil, "", "", err
@@ -652,7 +652,7 @@ func documentParse(ctx context.Context, handler *DocumentHandler, r *http.Reques
 
 	docs := make([]*vearchpb.Document, 0)
 	for _, docJson := range docRequest.Documents {
-		jsonMap, err := cbjson.ByteToJsonMap(docJson)
+		jsonMap, err := vjson.ByteToJsonMap(docJson)
 		if err != nil {
 			return err
 		}
@@ -733,14 +733,14 @@ func documentRequestParse(r *http.Request, searchReq *vearchpb.SearchRequest) (s
 	}
 
 	searchDoc = &request.SearchDocumentRequest{}
-	err = cbjson.Unmarshal(reqBody, searchDoc)
+	err = vjson.Unmarshal(reqBody, searchDoc)
 	if err != nil {
 		err = fmt.Errorf("SearchDocumentRequest param convert json %s err: %v", string(reqBody), err)
 		return nil, nil, err
 	}
 
 	query = &Query{}
-	err = cbjson.Unmarshal(searchDoc.Query, query)
+	err = vjson.Unmarshal(searchDoc.Query, query)
 	if err != nil {
 		log.Error("documentRequestParse Unmarshal error :%v", err)
 		err = fmt.Errorf("documentRequestParse Unmarshal error :%v", err)
@@ -775,7 +775,7 @@ func IndexRequestParse(r *http.Request) (index *request.IndexRequest, err error)
 	}
 
 	index = &request.IndexRequest{}
-	err = cbjson.Unmarshal(reqBody, index)
+	err = vjson.Unmarshal(reqBody, index)
 	if err != nil {
 		err = fmt.Errorf("index param convert json %s err: %v", string(reqBody), err)
 		return nil, err

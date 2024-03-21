@@ -23,7 +23,7 @@ import (
 	"github.com/patrickmn/go-cache"
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/internal/entity"
-	"github.com/vearch/vearch/internal/pkg/cbjson"
+	"github.com/vearch/vearch/internal/pkg/vjson"
 	"github.com/vearch/vearch/internal/pkg/log"
 	server "github.com/vearch/vearch/internal/pkg/server/rpc"
 	"github.com/vearch/vearch/internal/proto/vearchpb"
@@ -200,7 +200,7 @@ func Execute(addr, servicePath string, args *vearchpb.PartitionData, reply *vear
 			continue
 		} else if reply.Err != nil && reply.Err.Code == vearchpb.ErrorEnum_PARTITION_NOT_LEADER {
 			addrs := new(entity.Replica)
-			err = cbjson.Unmarshal([]byte(reply.Err.Msg), addrs)
+			err = vjson.Unmarshal([]byte(reply.Err.Msg), addrs)
 			if err != nil {
 				return err
 			}

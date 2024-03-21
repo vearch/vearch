@@ -16,22 +16,20 @@ package client
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
 
-	"github.com/bytedance/sonic"
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/internal/config"
 	"github.com/vearch/vearch/internal/entity"
 	"github.com/vearch/vearch/internal/master/store"
-	"github.com/vearch/vearch/internal/pkg/cbjson"
 	"github.com/vearch/vearch/internal/pkg/errutil"
 	"github.com/vearch/vearch/internal/pkg/log"
 	"github.com/vearch/vearch/internal/pkg/netutil"
+	"github.com/vearch/vearch/internal/pkg/vjson"
 	"github.com/vearch/vearch/internal/proto/vearchpb"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
@@ -121,7 +119,7 @@ func (m *masterClient) QueryPartition(ctx context.Context, partitionID entity.Pa
 	}
 
 	p := new(entity.Partition)
-	err = json.Unmarshal(bytes, p)
+	err = vjson.Unmarshal(bytes, p)
 	return p, err
 }
 
@@ -138,7 +136,7 @@ func (m *masterClient) QueryServer(ctx context.Context, id entity.NodeID) (*enti
 	}
 
 	p := new(entity.Server)
-	if err = json.Unmarshal(bytes, p); err != nil {
+	if err = vjson.Unmarshal(bytes, p); err != nil {
 		log.Error("server find on master, but json.Unmarshal(bytes, p) error, nodeId:[%d], bytes:[%s], err:[%v]", id, string(bytes), err)
 		return nil, err
 	}
@@ -153,7 +151,7 @@ func (m *masterClient) QueryUser(ctx context.Context, username string) (*entity.
 		return nil, vearchpb.NewError(vearchpb.ErrorEnum_USER_NOT_EXISTS, err)
 	}
 	user := new(entity.User)
-	if err = json.Unmarshal(bytes, user); err != nil {
+	if err = vjson.Unmarshal(bytes, user); err != nil {
 		return nil, err
 	}
 	return user, nil
@@ -181,7 +179,7 @@ func (m *masterClient) QueryServers(ctx context.Context) ([]*entity.Server, erro
 	servers := make([]*entity.Server, 0, len(bytesServers))
 	for _, bs := range bytesServers {
 		var s = &entity.Server{}
-		if err := json.Unmarshal(bs, s); err != nil {
+		if err := vjson.Unmarshal(bs, s); err != nil {
 			log.Error("unmarshl server err: %s", err.Error())
 			continue
 		}
@@ -220,7 +218,7 @@ func (m *masterClient) QuerySpacesByKey(ctx context.Context, prefix string) ([]*
 	spaces := make([]*entity.Space, 0, len(bytesSpaces))
 	for _, bs := range bytesSpaces {
 		var space = &entity.Space{}
-		if err := json.Unmarshal(bs, space); err != nil {
+		if err := vjson.Unmarshal(bs, space); err != nil {
 			log.Error("unmarshl space err: %s", err.Error())
 			continue
 		}
@@ -241,7 +239,7 @@ func (m *masterClient) QueryFailServerByNodeID(ctx context.Context, nodeID uint6
 		return nil
 	}
 	fs := &entity.FailServer{}
-	if err := json.Unmarshal(bytesArr, fs); err != nil {
+	if err := vjson.Unmarshal(bytesArr, fs); err != nil {
 		log.Error("unmarshl FailServer err: %s,nodeId is %d", err.Error(), nodeID)
 		return nil
 	}
@@ -288,7 +286,7 @@ func (m *masterClient) QueryFailServerByKey(ctx context.Context, prefix string) 
 	failServers := make([]*entity.FailServer, 0, len(bytesArr))
 	for _, bs := range bytesArr {
 		fs := &entity.FailServer{}
-		if err := json.Unmarshal(bs, fs); err != nil {
+		if err := vjson.Unmarshal(bs, fs); err != nil {
 			log.Error("unmarshl FailServer err: %s", err.Error())
 			continue
 		}
@@ -313,7 +311,7 @@ func (m *masterClient) QueryDBs(ctx context.Context) ([]*entity.DB, error) {
 	dbs := make([]*entity.DB, 0, len(bytesDBs))
 	for _, bs := range bytesDBs {
 		db := &entity.DB{}
-		if err := json.Unmarshal(bs, db); err != nil {
+		if err := vjson.Unmarshal(bs, db); err != nil {
 			log.Error("decode db err: %s,and the bs is:%s", err.Error(), string(bs))
 			continue
 		}
@@ -332,7 +330,7 @@ func (m *masterClient) QueryPartitions(ctx context.Context) ([]*entity.Partition
 	partitions := make([]*entity.Partition, 0, len(bytesPartitions))
 	for _, partitionBytes := range bytesPartitions {
 		p := &entity.Partition{}
-		if err := json.Unmarshal(partitionBytes, p); err != nil {
+		if err := vjson.Unmarshal(partitionBytes, p); err != nil {
 			log.Error("unmarshl partition err: %s", err.Error())
 			continue
 		}
@@ -348,7 +346,7 @@ func (m *masterClient) QuerySpaceByID(ctx context.Context, dbID entity.DBID, spa
 		return nil, vearchpb.NewError(vearchpb.ErrorEnum_SPACE_NOTEXISTS, err)
 	}
 	space := &entity.Space{}
-	if err := json.Unmarshal(bytes, space); err != nil {
+	if err := vjson.Unmarshal(bytes, space); err != nil {
 		return nil, err
 	}
 	return space, nil
@@ -373,7 +371,7 @@ func (m *masterClient) QuerySpaceByName(ctx context.Context, dbID int64, spaceNa
 // client will continue sending keep alive requests to the etcd server, but will drop responses
 // until there is capacity on the channel to send more responses.
 func (m *masterClient) KeepAlive(ctx context.Context, server *entity.Server) (<-chan *clientv3.LeaseKeepAliveResponse, error) {
-	bytes, err := json.Marshal(server)
+	bytes, err := vjson.Marshal(server)
 	if err != nil {
 		return nil, err
 	}
@@ -386,7 +384,7 @@ func (m *masterClient) KeepAlive(ctx context.Context, server *entity.Server) (<-
 
 // PutServerWithLeaseID PutServerWithLeaseID
 func (m *masterClient) PutServerWithLeaseID(ctx context.Context, server *entity.Server, leaseID clientv3.LeaseID) error {
-	bytes, err := json.Marshal(server)
+	bytes, err := vjson.Marshal(server)
 	if err != nil {
 		return err
 	}
@@ -451,7 +449,7 @@ func (m *masterClient) Register(ctx context.Context, clusterName string, nodeID 
 		return nil, err
 	}
 	server = &entity.Server{}
-	if err := cbjson.Unmarshal(data, server); err != nil {
+	if err := vjson.Unmarshal(data, server); err != nil {
 		return nil, err
 	}
 
@@ -499,7 +497,7 @@ func (m *masterClient) RegisterRouter(ctx context.Context, clusterName string, t
 
 // RegisterPartition register partition
 func (m *masterClient) RegisterPartition(ctx context.Context, partition *entity.Partition) error {
-	reqBody, err := sonic.Marshal(partition)
+	reqBody, err := vjson.Marshal(partition)
 	if err != nil {
 		return err
 	}
@@ -528,7 +526,7 @@ func (m *masterClient) RegisterPartition(ctx context.Context, partition *entity.
 		masterServer.next()
 	}
 
-	jsonMap, err := cbjson.ByteToJsonMap(response)
+	jsonMap, err := vjson.ByteToJsonMap(response)
 	if err != nil {
 		return err
 	}
@@ -625,7 +623,7 @@ func (m *masterClient) RemoveNodeMeta(ctx context.Context, nodeID entity.NodeID)
 	// begin clear meta about this nodeId
 	rfs := &entity.RecoverFailServer{FailNodeID: nodeID}
 
-	reqBody, err := sonic.Marshal(rfs)
+	reqBody, err := vjson.Marshal(rfs)
 	if err != nil {
 		return err
 	}
@@ -686,11 +684,11 @@ func (client *masterClient) RecoverByNewServer(ctx context.Context, server *enti
 func (client *masterClient) RecoverFailServer(ctx context.Context, rfs *entity.RecoverFailServer) (e error) {
 	//process panic
 	defer errutil.CatchError(&e)
-	reqBody, err := sonic.Marshal(rfs)
+	reqBody, err := vjson.Marshal(rfs)
 	errutil.ThrowError(err)
 	response, err := client.HTTPRequest(ctx, http.MethodPost, "/schedule/recover_server", string(reqBody))
 	errutil.ThrowError(err)
-	jsonMap, err := cbjson.ByteToJsonMap(response)
+	jsonMap, err := vjson.ByteToJsonMap(response)
 	errutil.ThrowError(err)
 	_, err = jsonMap.GetJsonValIntE("code")
 	errutil.ThrowError(err)
@@ -698,7 +696,7 @@ func (client *masterClient) RecoverFailServer(ctx context.Context, rfs *entity.R
 }
 
 func parseRegisterData(response []byte) ([]byte, error) {
-	jsonMap, err := cbjson.ByteToJsonMap(response)
+	jsonMap, err := vjson.ByteToJsonMap(response)
 	if err != nil {
 		return nil, err
 	}

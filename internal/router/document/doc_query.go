@@ -22,12 +22,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/bytedance/sonic"
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/internal/entity"
 	"github.com/vearch/vearch/internal/entity/request"
 	"github.com/vearch/vearch/internal/pkg/cbbytes"
-	"github.com/vearch/vearch/internal/pkg/cbjson"
+	"github.com/vearch/vearch/internal/pkg/vjson"
 	"github.com/vearch/vearch/internal/proto/vearchpb"
 	"github.com/vearch/vearch/internal/ps/engine/mapping"
 	"github.com/vearch/vearch/internal/ps/engine/sortorder"
@@ -78,7 +77,7 @@ func parseQuery(data []byte, req *vearchpb.SearchRequest, space *entity.Space) e
 		OnlineLogLevel string            `json:"online_log_level"`
 	}{}
 
-	err := cbjson.Unmarshal(data, &temp)
+	err := vjson.Unmarshal(data, &temp)
 	if err != nil {
 		return fmt.Errorf("unmarshal err:[%s] , query:[%s]", err.Error(), string(data))
 	}
@@ -111,7 +110,7 @@ func parseQuery(data []byte, req *vearchpb.SearchRequest, space *entity.Space) e
 
 	for _, filterBytes := range temp.Filter {
 		tmp := make(map[string]json.RawMessage)
-		err := cbjson.Unmarshal(filterBytes, &tmp)
+		err := vjson.Unmarshal(filterBytes, &tmp)
 		if err != nil {
 			return err
 		}
@@ -172,7 +171,7 @@ func parseQueryForIdFeature(searchQuery []byte, space *entity.Space, items []*ve
 	}
 	if searchQuery != nil {
 		queryMap := map[string]interface{}{}
-		err := json.Unmarshal(searchQuery, &queryMap)
+		err := vjson.Unmarshal(searchQuery, &queryMap)
 
 		if err != nil {
 			return nil, fmt.Errorf("unmarshal err:[%s] , query:[%s]", err.Error(), searchQuery)
@@ -246,7 +245,7 @@ func parseQueryForIdFeature(searchQuery []byte, space *entity.Space, items []*ve
 					}
 				}
 			}
-			queryJson, _ := json.MarshalIndent(queryMap, "", "  ")
+			queryJson, _ := vjson.Marshal(queryMap)
 			return queryJson, nil
 		}
 	} else {
@@ -272,7 +271,7 @@ func unmarshalArray[T any](data []byte, dimension int) ([]T, error) {
 	}
 
 	var result []T
-	if err := sonic.Unmarshal(data, &result); err != nil {
+	if err := vjson.Unmarshal(data, &result); err != nil {
 		return nil, err
 	}
 
@@ -294,7 +293,7 @@ func parseVectors(reqNum int, vqs []*vearchpb.VectorQuery, tmpArr []json.RawMess
 	}
 	for i := 0; i < len(tmpArr); i++ {
 		vqTemp := &VectorQuery{}
-		if err = json.Unmarshal(tmpArr[i], vqTemp); err != nil {
+		if err = vjson.Unmarshal(tmpArr[i], vqTemp); err != nil {
 			return reqNum, vqs, err
 		}
 
@@ -572,7 +571,7 @@ func parseRange(data []byte, proMap map[string]*entity.SpaceProperties) ([]*vear
 
 func parseTerm(data []byte, proMap map[string]*entity.SpaceProperties) ([]*vearchpb.TermFilter, error) {
 	tmp := make(map[string]interface{})
-	err := json.Unmarshal(data, &tmp)
+	err := vjson.Unmarshal(data, &tmp)
 	if err != nil {
 		return nil, err
 	}
@@ -730,19 +729,19 @@ func searchParamToSearchPb(searchDoc *request.SearchDocumentRequest, searchReq *
 			Nprobe     int64  `json:"nprobe,omitempty"`
 		}{}
 
-		err := cbjson.Unmarshal(searchDoc.IndexParams, &temp)
+		err := vjson.Unmarshal(searchDoc.IndexParams, &temp)
 		if err != nil {
 			return fmt.Errorf("unmarshal err:[%s] , query:[%s]", err.Error(), string(searchDoc.IndexParams))
 		}
 		metricType = temp.MetricType
 		if temp.Nprobe == 0 && searchDoc.Nprobe != 0 {
 			jsonMap := make(map[string]interface{})
-			err := json.Unmarshal(searchDoc.IndexParams, &jsonMap)
+			err := vjson.Unmarshal(searchDoc.IndexParams, &jsonMap)
 			if err != nil {
 				return fmt.Errorf("query param RetrievalParam parse err")
 			}
 			jsonMap["nprobe"] = searchDoc.Nprobe
-			retrievalByte, err := json.Marshal(jsonMap)
+			retrievalByte, err := vjson.Marshal(jsonMap)
 			if err != nil {
 				return fmt.Errorf("query param RetrievalParam parse err")
 			}
@@ -752,7 +751,7 @@ func searchParamToSearchPb(searchDoc *request.SearchDocumentRequest, searchReq *
 		if searchDoc.Nprobe != 0 {
 			IndexParams := map[string]int{"nprobe": int(searchDoc.Nprobe)}
 
-			jsonByte, err := sonic.Marshal(IndexParams)
+			jsonByte, err := vjson.Marshal(IndexParams)
 			if err != nil {
 				return fmt.Errorf("query param RetrievalParam parse err")
 			}
@@ -824,7 +823,7 @@ func searchParamToSearchPb(searchDoc *request.SearchDocumentRequest, searchReq *
 
 	if metricType == "" && space != nil && space.Index != nil {
 		indexParams := &entity.IndexParams{}
-		err := cbjson.Unmarshal(space.Index.Params, indexParams)
+		err := vjson.Unmarshal(space.Index.Params, indexParams)
 		if err != nil {
 			return fmt.Errorf("unmarshal err:[%s] , space.Index.IndexParams:[%s]", err.Error(), string(space.Index.Params))
 		}

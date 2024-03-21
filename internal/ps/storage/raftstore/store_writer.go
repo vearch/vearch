@@ -18,11 +18,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/bytedance/sonic"
 	"github.com/vearch/vearch/internal/entity"
 	"github.com/vearch/vearch/internal/pkg/log"
 	"github.com/vearch/vearch/internal/pkg/runtime/os"
 	"github.com/vearch/vearch/internal/pkg/vearchlog"
+	"github.com/vearch/vearch/internal/pkg/vjson"
 	"github.com/vearch/vearch/internal/proto/vearchpb"
 )
 
@@ -41,7 +41,7 @@ func (s *Store) UpdateSpace(ctx context.Context, space *entity.Space) error {
 		return err
 	}
 
-	bytes, err := sonic.Marshal(space)
+	bytes, err := vjson.Marshal(space)
 	if err != nil {
 		return err
 	}

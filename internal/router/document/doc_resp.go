@@ -23,14 +23,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/bytedance/sonic"
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/internal/client"
 	"github.com/vearch/vearch/internal/entity"
 	"github.com/vearch/vearch/internal/entity/request"
 	"github.com/vearch/vearch/internal/pkg/cbbytes"
-	"github.com/vearch/vearch/internal/pkg/cbjson"
 	"github.com/vearch/vearch/internal/pkg/log"
+	"github.com/vearch/vearch/internal/pkg/vjson"
 	"github.com/vearch/vearch/internal/proto/vearchpb"
 	"github.com/vearch/vearch/internal/ps/engine/mapping"
 )
@@ -73,9 +72,9 @@ func docGetResponse(client *client.Client, args *vearchpb.GetRequest, reply *vea
 	var jsonData []byte
 	var err error
 	if isBatch || len(response) > 1 {
-		jsonData, err = sonic.Marshal(response)
+		jsonData, err = vjson.Marshal(response)
 	} else {
-		jsonData, err = sonic.Marshal(response[0])
+		jsonData, err = vjson.Marshal(response[0])
 	}
 
 	if err != nil {
@@ -119,7 +118,7 @@ func documentUpsertResponse(args *vearchpb.BulkRequest, reply *vearchpb.BulkResp
 
 	response["document_ids"] = documentIDs
 
-	jsonData, err := sonic.Marshal(response)
+	jsonData, err := vjson.Marshal(response)
 	if err != nil {
 		return nil, err
 	}
@@ -207,11 +206,11 @@ func documentGetResponse(client *client.Client, args *vearchpb.GetRequest, reply
 	}
 	response["documents"] = documents
 
-	return sonic.Marshal(response)
+	return vjson.Marshal(response)
 }
 
 func documentSearchResponse(srs []*vearchpb.SearchResult, head *vearchpb.ResponseHead, response_type string) ([]byte, error) {
-	var builder = cbjson.ContentBuilderFactory()
+	var builder = vjson.ContentBuilderFactory()
 
 	builder.BeginObject()
 	builder.Field("code")
@@ -299,7 +298,7 @@ func documentSearchResponse(srs []*vearchpb.SearchResult, head *vearchpb.Respons
 }
 
 func documentToContent(dh []*vearchpb.ResultItem, response_type string) ([]byte, error) {
-	var builder = cbjson.ContentBuilderFactory()
+	var builder = vjson.ContentBuilderFactory()
 	if response_type == request.SearchResponse {
 		builder.BeginArray()
 	}
@@ -322,7 +321,7 @@ func documentToContent(dh []*vearchpb.ResultItem, response_type string) ([]byte,
 
 			if u.Source != nil {
 				var sourceJson json.RawMessage
-				if err := json.Unmarshal(u.Source, &sourceJson); err != nil {
+				if err := vjson.Unmarshal(u.Source, &sourceJson); err != nil {
 					log.Error("DocToContent Source Unmarshal error:%v", err)
 				} else {
 					builder.More()
@@ -365,7 +364,7 @@ func documentDeleteResponse(items []*vearchpb.Item, head *vearchpb.ResponseHead,
 		response["document_ids"] = []string{}
 	}
 
-	return sonic.Marshal(response)
+	return vjson.Marshal(response)
 }
 
 func docFieldSerialize(doc *vearchpb.Document, space *entity.Space, returnFieldsMap map[string]string, vectorValue bool) (marshal json.RawMessage, nextDocid int32, err error) {
@@ -451,7 +450,7 @@ func docFieldSerialize(doc *vearchpb.Document, space *entity.Space, returnFields
 		}
 	}
 	if len(source) > 0 {
-		marshal, err = json.Marshal(source)
+		marshal, err = vjson.Marshal(source)
 	}
 	if err != nil {
 		return nil, nextDocid, err
@@ -575,7 +574,7 @@ func MakeQueryFeature(floatFeatureMap map[string][]float32, binaryFeatureMap map
 		query_type: features,
 	}
 
-	return sonic.Marshal(query)
+	return vjson.Marshal(query)
 }
 
 func ForceMergeToContent(shards *vearchpb.SearchStatus) ([]byte, error) {
@@ -583,7 +582,7 @@ func ForceMergeToContent(shards *vearchpb.SearchStatus) ([]byte, error) {
 		"_shards": shards,
 	}
 
-	return sonic.Marshal(response)
+	return vjson.Marshal(response)
 }
 
 func FlushToContent(shards *vearchpb.SearchStatus) ([]byte, error) {
@@ -591,7 +590,7 @@ func FlushToContent(shards *vearchpb.SearchStatus) ([]byte, error) {
 		"_shards": shards,
 	}
 
-	return sonic.Marshal(response)
+	return vjson.Marshal(response)
 }
 
 func IndexResponseToContent(shards *vearchpb.SearchStatus) ([]byte, error) {
@@ -599,7 +598,7 @@ func IndexResponseToContent(shards *vearchpb.SearchStatus) ([]byte, error) {
 		"_shards": shards,
 	}
 
-	return sonic.Marshal(response)
+	return vjson.Marshal(response)
 }
 
 func SearchNullToContent(searchStatus vearchpb.SearchStatus, took time.Duration) ([]byte, error) {
@@ -613,7 +612,7 @@ func SearchNullToContent(searchStatus vearchpb.SearchStatus, took time.Duration)
 		},
 	}
 
-	return sonic.Marshal(response)
+	return vjson.Marshal(response)
 }
 
 func deleteByQueryResult(resp *vearchpb.DelByQueryeResponse) ([]byte, error) {
@@ -637,7 +636,7 @@ func deleteByQueryResult(resp *vearchpb.DelByQueryeResponse) ([]byte, error) {
 		result["document_ids"] = []string{}
 	}
 
-	return sonic.Marshal(result)
+	return vjson.Marshal(result)
 }
 
 func docPrintLogSwitchResponse(printLogSwitch bool) ([]byte, error) {
@@ -645,5 +644,5 @@ func docPrintLogSwitchResponse(printLogSwitch bool) ([]byte, error) {
 		"print_log_switch": printLogSwitch,
 	}
 
-	return sonic.Marshal(response)
+	return vjson.Marshal(response)
 }

@@ -16,7 +16,6 @@ package master
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -31,12 +30,12 @@ import (
 	"github.com/vearch/vearch/internal/config"
 	"github.com/vearch/vearch/internal/entity"
 	"github.com/vearch/vearch/internal/monitor"
-	"github.com/vearch/vearch/internal/pkg/cbjson"
 	"github.com/vearch/vearch/internal/pkg/errutil"
 	"github.com/vearch/vearch/internal/pkg/ginutil"
 	"github.com/vearch/vearch/internal/pkg/log"
 	"github.com/vearch/vearch/internal/pkg/netutil"
 	"github.com/vearch/vearch/internal/pkg/server/vearchhttp"
+	"github.com/vearch/vearch/internal/pkg/vjson"
 	"github.com/vearch/vearch/internal/proto/vearchpb"
 )
 
@@ -520,7 +519,7 @@ func (ca *clusterAPI) modifyEngineCfg(c *gin.Context) {
 	errutil.ThrowError(err)
 	log.Debug("engine config json data is [%+v]", string(data))
 	cacheCfg := &entity.EngineCfg{}
-	err = json.Unmarshal(data, &cacheCfg)
+	err = vjson.Unmarshal(data, &cacheCfg)
 	if err != nil {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 		return
@@ -700,7 +699,7 @@ func (cluster *clusterAPI) RecoverFailServer(c *gin.Context) {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 		return
 	}
-	rsStr := cbjson.ToJsonString(rs)
+	rsStr := vjson.ToJsonString(rs)
 	log.Info("RecoverFailServer is %s,", rsStr)
 	if err := cluster.masterService.RecoverFailServer(ctx.(context.Context), rs); err != nil {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(fmt.Errorf("%s failed recover,err is %v", rsStr, err))
@@ -717,7 +716,7 @@ func (cluster *clusterAPI) ChangeReplicas(c *gin.Context) {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 		return
 	}
-	dbByte, err := json.Marshal(dbModify)
+	dbByte, err := vjson.Marshal(dbModify)
 	if err != nil {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 		return
