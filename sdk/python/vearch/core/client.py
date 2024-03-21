@@ -1,9 +1,14 @@
 import requests
 from requests.adapters import HTTPAdapter
-from vearch.utils import singleton
+from vearch.utils import singleton,compute_sign_auth
 from vearch.config import Config, DefaultConfig
-from vearch.const import DATABASE_URI, LIST_DATABASE_URI
+from vearch.const import DATABASE_URI, LIST_DATABASE_URI, AUTH_KEY
 from vearch.result import Result, get_result
+import logging
+import base64
+import json
+
+logger = logging.getLogger("vearch")
 
 
 @singleton
@@ -29,20 +34,25 @@ class RestClient(object):
     def _create_db(self, database_name) -> Result:
         url_params = {"database_name": database_name}
         url = self.host + DATABASE_URI % url_params
-        req = requests.request(method="POST", url=url, headers={"token": self.token})
-        resp = self.s.send(req)
+        logger.debug("curl -X POST " + url + " -H Authorization:%s" % self.token)
+        sign = compute_sign_auth(secret=self.token)
+        resp = requests.request(method="POST", url=url, headers={AUTH_KEY: sign})
+        if resp.status_code != 200:
+            logger.error("resp:" + str(resp.text))
+        else:
+            logger.debug("resp:" + str(resp.text))
         return get_result(resp)
 
     def _drop_db(self, database_name) -> Result:
         url_params = {"database_name": database_name}
         url = self.host + DATABASE_URI % url_params
-        req = requests.request(method="DELETE", url=url, headers={"token": self.token})
+        req = requests.request(method="DELETE", url=url, headers={AUTH_KEY: self.token})
         resp = self.s.send(req)
         return get_result(resp)
 
     def _list_db(self) -> Result:
         url = self.host + LIST_DATABASE_URI
-        req = requests.request(method="GET", url=url, headers={"token": self.token})
+        req = requests.request(method="GET", url=url, headers={AUTH_KEY: self.token})
         resp = self.s.send(req)
         return get_result(resp)
 

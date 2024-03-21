@@ -5,6 +5,9 @@ from vearch.schema.field import Field
 from vearch.schema.space import SpaceSchema
 from vearch.utils import DataType, MetricType
 from vearch.schema.index import IvfPQIndex, Index, ScalarIndex
+import logging
+
+logger = logging.getLogger("vearch")
 
 
 def create_space_schema() -> SpaceSchema:
@@ -16,23 +19,31 @@ def create_space_schema() -> SpaceSchema:
     return space_schema
 
 
-def create_database(conf:Config):
+def create_database(conf: Config):
+    vc = Vearch(config)
+    logger.debug(vc.client.host)
+    ret = vc.create_database("database1")
+    logger.debug(ret.dict_str())
     pass
 
+
 if __name__ == "__main__":
-    # config = Config(host="http://127.0.0.1")
-    # vc = Vearch(config)
-    # print(vc.client.host)
-    # vc.create_database("database1")
+    """
+    curl --location 'http://test-api-interface-1-router.vectorbase.svc.sq01.n.jd.local/cluster/stats' \
+--header 'Authorization: secret' \
+--data ''"""
+
+    config = Config(host="http://test-api-interface-1-router.vectorbase.svc.sq01.n.jd.local", token="secret")
+    create_database(config)
+    # vc.drop_database("database1")
     # db = Database(name="fjakjfks")
     # db.create()
-    space_schema = create_space_schema()
-    print(space_schema.dict())
-    inv_pq = IvfPQIndex("book_vec_idx", 7000, MetricType.Inner_product, 40, 700)
-    print(isinstance(inv_pq, Index))
+    # space_schema = create_space_schema()
+    # print(space_schema.dict())
+    # inv_pq = IvfPQIndex("book_vec_idx", 7000, MetricType.Inner_product, 40, 700)
+    # print(isinstance(inv_pq, Index))
 
-# / vearch / space / {sapce_name} / field / {field}
-# / vearch / space / {sapce_name} / index / {index}
-    data=[["fdsmafk",93289,"r89329492",893291],]
+    # / vearch / space / {sapce_name} / field / {field}
+    # / vearch / space / {sapce_name} / index / {index}
+    data = [["fdsmafk", 93289, "r89329492", 893291], ]
     print(data)
-

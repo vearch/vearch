@@ -2,7 +2,7 @@ from vearch.core.space import Space
 from typing import List
 from vearch.core.client import client
 from vearch.result import Result, ResultStatus, get_result
-from vearch.const import DATABASE_URI, SPACE_URI
+from vearch.const import DATABASE_URI, SPACE_URI,AUTH_KEY
 from vearch.schema.space import SpaceSchema
 from vearch.exception import DatabaseException
 from vearch.utils import CodeType
@@ -18,7 +18,7 @@ class Database(object):
         try:
             url_params = {"database": self.name}
             url = self.client.host + DATABASE_URI % url_params
-            req = requests.request(method="GET", url=url, headers={"token": self.client.token})
+            req = requests.request(method="GET", url=url, headers={"Authorization": self.client.token})
             resp = self.client.s.send(req)
             result = get_result(resp)
             if result.code == ResultStatus.success:
@@ -56,6 +56,6 @@ class Database(object):
                 raise Exception("database not exist,and create error")
         url_params = {"database_name": self.name, "space_name": space._name}
         url = self.client.host + SPACE_URI % url_params
-        req = requests.request(method="POST", url=url, data=space.dict(), headers={"token": self.client.token})
+        req = requests.request(method="POST", url=url, data=space.dict(), headers={AUTH_KEY: self.client.token})
         resp = self.client.s.send(req)
         return get_result(resp)

@@ -1,5 +1,50 @@
 from enum import IntEnum
 import re
+import logging
+import logging.handlers
+import logging.config
+import datetime
+import base64
+
+LOG_LEVEL = "DEBUG"
+
+LOGGING_CONF = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "err_formatter_type": {
+            "format": "%(asctime)s - %(levelname)s - %(filename)s[:%(lineno)d] - %(message)s",
+        },
+        "normal": {
+            "format": "%(asctime)s - %(levelname)s - %(message)s",
+        }
+
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "level": LOG_LEVEL,
+            "formatter": "normal",
+        },
+        "vearch_sdk_err": {
+            "class": "logging.handlers.TimedRotatingFileHandler",
+            "filename": "err.log",
+            "when": "midnight",
+            "interval": 1,
+            "backupCount": 7,
+            "level": "ERROR",
+            "formatter": "err_formatter_type",
+        },
+    },
+    "loggers": {
+        "vearch": {
+            "handlers": ["console", "vearch_sdk_err"],
+            "level": LOG_LEVEL,
+        },
+    },
+}
+
+logging.config.dictConfig(LOGGING_CONF)
 
 
 def singleton(cls):
@@ -69,21 +114,22 @@ class IndexType(IntEnum):
 
 
 class VectorInfo:
-    field_name = ""
-    feature = []
 
-    def __init__(self, field_name, feature, min_score=-1, boost=-1):
+    def __init__(self, field_name, feature, min_score=-1, max_score=-1, weight=-1):
         self.field_name = field_name
         self.feature = feature
-        self.min_score = min_score if min_score != -1 else 0
-        self.boost = boost if boost != -1 else 0
+        self.min_score = min_score if min_score != -1 else -1
+        self.max_score = max_score if max_score != -1 else -1
+        self.weight = weight if weight != -1 else -1
 
     def dict(self):
         vi_dict = {"field_name": self.field_name, "feature": self.feature}
-        if self.min_score:
+        if self.min_score != -1:
             vi_dict["min_score"] = self.min_score
-        if self.boost:
-            vi_dict["boost"] = self.boost
+        if self.max_score != -1:
+            vi_dict["max_score"] = self.max_score
+        if self.weight != -1:
+            vi_dict["weight"] = self.weight
         return vi_dict
 
 
@@ -94,6 +140,11 @@ def name_valid_check(name: str) -> bool:
     pattern = re.compile(reg_exp)
     match_ret = pattern.match(name)
     return match_ret.span()[1] - match_ret.span()[0] == len(name)
+
+
+def compute_sign_auth(user="root", secret=""):
+    sign = base64.b64encode(bytes(user +":"+ secret, encoding="utf-8"))
+    return sign
 
 
 if __name__ == "__main__":

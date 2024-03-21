@@ -7,3 +7,5 @@ DELETE_DOC_URI = "/documents/delete"
 SEARCH_DOC_URI = "/documents/search"
 QUERY_DOC_URI = "/documents/query"
 INDEX_URI = "/documents/index"
+
+AUTH_KEY = "Authorization"

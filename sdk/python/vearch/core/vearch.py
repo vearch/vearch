@@ -2,8 +2,9 @@ from vearch.config import Config
 from vearch.core.db import Database
 from vearch.core.client import client
 from vearch.result import Result, get_result, ResultStatus
+from vearch.schema.index import Index
 from vearch.schema.space import SpaceSchema
-from vearch.const import SPACE_URI
+from vearch.const import SPACE_URI, INDEX_URI
 from vearch.exception import DatabaseException
 from vearch.utils import CodeType
 import requests
@@ -49,3 +50,18 @@ class Vearch(object):
         resp = self.client.s.send(req)
         result = get_result(resp)
         return result
+
+    def drop_space(self, database_name: str, space_name: str) -> Result:
+        url_params = {"database_name": database_name, "space_name": space_name}
+        url = self.client.host + SPACE_URI % url_params
+        req = requests.request(method="POST", url=url, headers={"token": self.client.token})
+        resp = self.client.s.send(req)
+        return get_result(resp)
+
+    def create_index(self, database_name: str, space_name: str, field: str, index: Index) -> Result:
+        url = self.client.host + INDEX_URI
+        req_body = {"field": field, "index": index.dict(), "database": database_name, "space": space_name}
+        req = requests.request(method="POST", url=url, data=json.dumps(req_body),
+                               headers={"token": self.client.token})
+        resp = self.client.s.send(req)
+        return get_result(resp)

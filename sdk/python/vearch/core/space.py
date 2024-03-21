@@ -24,21 +24,21 @@ class Space(object):
         url = self.client.host + SPACE_URI % url_params
         if not self._schema:
             self._schema = space
-        req = requests.request(method="POST", url=url, data=space.dict(), headers={"token": self.client.token})
+        req = requests.request(method="POST", url=url, data=space.dict(), headers={"Authorization": self.client.token})
         resp = self.client.s.send(req)
         return get_result(resp)
 
     def drop(self) -> Result:
         url_params = {"database_name": self.db_name, "space_name": self.name}
         url = self.client.host + SPACE_URI % url_params
-        req = requests.request(method="POST", url=url, headers={"token": self.client.token})
+        req = requests.request(method="POST", url=url, headers={"Authorization": self.client.token})
         resp = self.client.s.send(req)
         return get_result(resp)
 
     def exist(self) -> [bool, SpaceSchema]:
         url_params = {"database_name": self.db_name, "space_name": self.name}
         url = self.client.host + SPACE_URI % url_params
-        req = requests.request(method="GET", url=url, headers={"token": self.client.token})
+        req = requests.request(method="GET", url=url, headers={"Authorization": self.client.token})
         resp = self.client.s.send(req)
         result = get_result(resp)
         if result.code == ResultStatus.success:
@@ -51,7 +51,7 @@ class Space(object):
         url = self.client.host + INDEX_URI
         req_body = {"field": field, "index": index.dict(), "database": self.db_name, "space": self.name}
         req = requests.request(method="POST", url=url, data=json.dumps(req_body),
-                               headers={"token": self.client.token})
+                               headers={"Authorization": self.client.token})
         resp = self.client.s.send(req)
         return get_result(resp)
 
@@ -81,7 +81,7 @@ class Space(object):
                     records.append(record)
             req_body.update({"data": records})
             req = requests.request(method="POST", url=url, data=json.dumps(req_body),
-                                   headers={"token": self.client.token})
+                                   headers={"Authorization": self.client.token})
             resp = self.client.s.send(req)
             return get_result(resp)
         else:
@@ -99,7 +99,7 @@ class Space(object):
     def delete_doc(self, filter: Filter) -> Result:
         url = self.client.host + DELETE_DOC_URI
         req_body = {"database": self.db_name, "space": self.name, "filter": filter.dict()}
-        req = requests.request(method="POST", url=url, data=json.dumps(req_body), headers={"token": self.client.token})
+        req = requests.request(method="POST", url=url, data=json.dumps(req_body), headers={"Authorization": self.client.token})
         resp = self.client.s.send(req)
         return get_result(resp)
 
@@ -168,7 +168,7 @@ class Space(object):
         req_body.update(query)
         if kwargs:
             req_body.update(kwargs)
-        req = requests.request(method="POST", url=url, data=json.dumps(req_body), headers={"token": self.client.token})
+        req = requests.request(method="POST", url=url, data=json.dumps(req_body), headers={"Authorization": self.client.token})
         resp = self.client.s.send(req)
         ret = get_result(resp)
         if ret.code != ResultStatus.success:
