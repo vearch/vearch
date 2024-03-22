@@ -210,134 +210,88 @@ func documentGetResponse(client *client.Client, args *vearchpb.GetRequest, reply
 }
 
 func documentSearchResponse(srs []*vearchpb.SearchResult, head *vearchpb.ResponseHead, response_type string) ([]byte, error) {
-	var builder = vjson.ContentBuilderFactory()
+	response := make(map[string]interface{})
 
-	builder.BeginObject()
-	builder.Field("code")
 	if head == nil || head.Err == nil {
-		builder.ValueNumeric(int64(vearchpb.ErrorEnum_SUCCESS))
-		builder.More()
-		builder.Field("msg")
-		builder.ValueString("success")
+		response["code"] = int64(vearchpb.ErrorEnum_SUCCESS)
+		response["msg"] = "success"
+	} else if head.Err != nil {
+		response["code"] = int64(head.Err.Code)
+		response["msg"] = head.Err.Msg
 	} else {
-		if head.Err != nil {
-			builder.ValueNumeric(int64(head.Err.Code))
-			builder.More()
-			builder.Field("msg")
-			builder.ValueString(head.Err.Msg)
-		} else {
-			builder.ValueNumeric(int64(vearchpb.ErrorEnum_INTERNAL_ERROR))
-		}
+		response["code"] = int64(vearchpb.ErrorEnum_INTERNAL_ERROR)
 	}
 
 	if response_type == request.QueryResponse {
 		if srs == nil {
-			builder.More()
-			builder.Field("total")
-			builder.ValueNumeric(0)
+			response["total"] = 0
 		} else {
-			builder.More()
-			builder.Field("total")
-			total := len(srs[0].ResultItems)
-			builder.ValueNumeric(int64(total))
+			response["total"] = len(srs[0].ResultItems)
 		}
 	}
 
-	builder.More()
-	builder.BeginArrayWithField("documents")
-
+	var documents []json.RawMessage
 	if len(srs) > 1 {
 		var wg sync.WaitGroup
-		respChain := make(chan map[int][]byte, len(srs))
-		for i, sr := range srs {
+		respChain := make(chan json.RawMessage, len(srs))
+		for _, sr := range srs {
 			wg.Add(1)
-			go func(sr *vearchpb.SearchResult, index int) {
+			go func(sr *vearchpb.SearchResult) {
+				defer wg.Done()
 				bytes, err := documentToContent(sr.ResultItems, response_type)
-				if err == nil {
-					respMap := make(map[int][]byte)
-					respMap[index] = bytes
-					respChain <- respMap
+				if err != nil {
+					return
 				}
-				wg.Done()
-			}(sr, i)
+				respChain <- json.RawMessage(bytes)
+			}(sr)
 		}
+
 		wg.Wait()
 		close(respChain)
 
-		byteArr := make([][]byte, len(srs))
-		for resp := range respChain {
-			for index, value := range resp {
-				byteArr[index] = value
-			}
-		}
-
-		for i := 0; i < len(srs); i++ {
-			builder.ValueRaw(string(byteArr[i]))
-			if i+1 < len(srs) {
-				builder.More()
-			}
+		for msg := range respChain {
+			documents = append(documents, msg)
 		}
 	} else {
-		for i, sr := range srs {
-			if bytes, err := documentToContent(sr.ResultItems, response_type); err != nil {
+		for _, sr := range srs {
+			bytes, err := documentToContent(sr.ResultItems, response_type)
+			if err != nil {
 				return nil, err
-			} else {
-				builder.ValueRaw(string(bytes))
 			}
-
-			if i+1 < len(srs) {
-				builder.More()
-			}
+			documents = append(documents, json.RawMessage(bytes))
 		}
 	}
 
-	builder.EndArray()
-	builder.EndObject()
-
-	return builder.Output()
+	response["documents"] = documents
+	return vjson.Marshal(response)
 }
 
 func documentToContent(dh []*vearchpb.ResultItem, response_type string) ([]byte, error) {
-	var builder = vjson.ContentBuilderFactory()
-	if response_type == request.SearchResponse {
-		builder.BeginArray()
-	}
-	for i, u := range dh {
+	contents := make([]map[string]interface{}, 0)
 
-		if i != 0 {
-			builder.More()
-		}
-		builder.BeginObject()
+	for _, u := range dh {
+		content := make(map[string]interface{})
+		content["_id"] = u.PKey
 
-		builder.Field("_id")
-		builder.ValueString(u.PKey)
-
-		if u.Fields != nil {
-			if response_type == request.SearchResponse {
-				builder.More()
-				builder.Field("_score")
-				builder.ValueFloat(float64(u.Score))
-			}
-
-			if u.Source != nil {
-				var sourceJson json.RawMessage
-				if err := vjson.Unmarshal(u.Source, &sourceJson); err != nil {
-					log.Error("DocToContent Source Unmarshal error:%v", err)
-				} else {
-					builder.More()
-					builder.Field("_source")
-					builder.ValueInterface(sourceJson)
-				}
-			}
+		if response_type == request.SearchResponse && u.Fields != nil {
+			content["_score"] = &u.Score
 		}
 
-		builder.EndObject()
-	}
-	if response_type == request.SearchResponse {
-		builder.EndArray()
+		if u.Source != nil {
+			content["_source"] = u.Source
+		}
+
+		contents = append(contents, content)
 	}
 
-	return builder.Output()
+	if response_type == request.SearchResponse {
+		return vjson.Marshal(contents)
+	}
+
+	if len(contents) > 0 {
+		return vjson.Marshal(contents[0])
+	}
+	return vjson.Marshal(nil)
 }
 
 func documentDeleteResponse(items []*vearchpb.Item, head *vearchpb.ResponseHead, resultIds []string) ([]byte, error) {
