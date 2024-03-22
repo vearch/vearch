@@ -19,6 +19,7 @@ import requests
 import json
 import pytest
 import logging
+from multiprocessing import Pool as ThreadPool
 from utils.vearch_utils import *
 from utils.data_utils import *
 
@@ -131,10 +132,12 @@ class TestAlias:
         logger.info(response)
         assert response["code"] == 200
 
+
     def test_drop_alias(self):
         response = drop_alias(router_url, "alias_name")
         logger.info(response)
         assert response["code"] == 200
+
 
     def test_alias_array(self):
         response = create_alias(router_url, "alias_name1", db_name, space_name)
@@ -220,9 +223,45 @@ class TestAlias:
             logger.info(response)
             assert response["code"] != 200
 
+    def process_alias(self, operation):
+        if operation == "create":
+            response = create_alias(router_url, "alias_name", db_name, space_name)
+            logger.info(response)
+        if operation == "delete":
+            response = drop_alias(router_url, "alias_name")
+            logger.info(response)
+        if operation == "update":
+            response = update_alias(router_url, "alias_not_exist", db_name, space_name)
+            logger.info(response)
+
+
+    def test_multithread(self):
+        pool = ThreadPool()
+        total_data = ["create", "create", "create", "delete", "delete", "delete", "update", "update", "update"]
+        results = pool.map(self.process_alias, total_data)
+        pool.close()
+        pool.join()
+        response = get_all_alias(router_url)
+        assert response["code"] == 200
+        for alias in response["data"]:
+            response = drop_alias(router_url, alias["name"])
+            assert response["code"] == 200
 
     def test_destroy_db_and_space(self):
         space_info = list_spaces(router_url, db_name)
         for space in space_info["data"]:
-            logger.info(drop_space(router_url, db_name, space["space_name"]))
+            response = create_alias(router_url, "alias_name", db_name, space["space_name"])
+            assert response["code"] == 200
+
+            response = get_alias(router_url, "alias_name")
+            logger.info(response)
+            assert response["code"] == 200
+
+            response = drop_space(router_url, db_name, space["space_name"])
+            assert response["code"] == 200
+
+            # delete space should also delete correspond alias
+            response = get_alias(router_url, "alias_name")
+            logger.info(response)
+            assert response["code"] != 200
         drop_db(router_url, db_name)

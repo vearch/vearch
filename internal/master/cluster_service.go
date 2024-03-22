@@ -578,12 +578,22 @@ func (ms *masterService) deleteSpaceService(ctx context.Context, dbName string, 
 		return nil
 	}
 
+	mutex := ms.Master().NewLock(ctx, entity.LockSpaceKey(dbName, spaceName), time.Second*60)
+	if err = mutex.Lock(); err != nil {
+		return err
+	}
+	defer func() {
+		if err := mutex.Unlock(); err != nil {
+			log.Error("unlock space err:[%s]", err.Error())
+		}
+	}()
 	//delete key
 	err = ms.Master().Delete(ctx, entity.SpaceKey(dbId, space.Id))
 	if err != nil {
 		return err
 	}
 
+	// delete parition and partitionKey
 	for _, p := range space.Partitions {
 		for _, replica := range p.Replicas {
 			if server, err := ms.Master().QueryServer(ctx, replica); err != nil {
@@ -597,6 +607,19 @@ func (ms *masterService) deleteSpaceService(ctx context.Context, dbName string, 
 		err = ms.Master().Delete(ctx, entity.PartitionKey(p.Id))
 		if err != nil {
 			return err
+		}
+	}
+
+	// delete alias
+	if aliases, err := ms.queryAllAlias(ctx); err != nil {
+		return err
+	} else {
+		for _, alias := range aliases {
+			if alias.DbName == dbName && alias.SpaceName == spaceName {
+				if err := ms.deleteAliasService(ctx, alias.Name); err != nil {
+					return err
+				}
+			}
 		}
 	}
 
@@ -696,7 +719,7 @@ func (ms *masterService) createAliasService(ctx context.Context, alias *entity.A
 	if err = alias.Validate(); err != nil {
 		return err
 	}
-	mutex := ms.Master().NewLock(ctx, entity.PrefixLockCluster, time.Second*300)
+	mutex := ms.Master().NewLock(ctx, entity.LockAliasKey(alias.Name), time.Second*30)
 	if err = mutex.Lock(); err != nil {
 		return err
 	}
@@ -724,7 +747,7 @@ func (ms *masterService) deleteAliasService(ctx context.Context, alias_name stri
 		return err
 	}
 	//it will lock cluster
-	mutex := ms.Master().NewLock(ctx, entity.PrefixLockCluster, time.Second*300)
+	mutex := ms.Master().NewLock(ctx, entity.LockAliasKey(alias_name), time.Second*30)
 	if err = mutex.Lock(); err != nil {
 		return err
 	}
@@ -757,7 +780,8 @@ func (ms *masterService) updateAliasService(ctx context.Context, alias *entity.A
 		return vearchpb.NewError(vearchpb.ErrorEnum_ALIAS_NOT_EXIST, nil)
 	}
 
-	mutex := ms.Master().NewLock(ctx, entity.PrefixLockCluster, time.Second*300)
+	//it will lock cluster
+	mutex := ms.Master().NewLock(ctx, entity.LockAliasKey(alias.Name), time.Second*30)
 	if err = mutex.Lock(); err != nil {
 		return err
 	}
@@ -786,7 +810,7 @@ func (ms *masterService) queryAllAlias(ctx context.Context) ([]*entity.Alias, er
 		}
 		result := strings.Split(string(values[index]), "/")
 		if len(result) != 2 {
-			return nil, fmt.Errorf("get alias:%s err: wrong space:%s", alias_result[1], string(values[index]))
+			return nil, fmt.Errorf("get alias:%s err, wrong value:%s", alias_result[1], string(values[index]))
 		} else {
 			alias := &entity.Alias{
 				Name:      alias_result[1],
@@ -815,7 +839,7 @@ func (ms *masterService) queryAliasService(ctx context.Context, alias_name strin
 
 	result := strings.Split(string(bs), "/")
 	if len(result) != 2 {
-		return nil, fmt.Errorf("get alias:%s err: wrong space:%s", alias.Name, string(bs))
+		return nil, fmt.Errorf("get alias:%s err, wrong value:%s", alias.Name, string(bs))
 	} else {
 		alias.DbName = result[0]
 		alias.SpaceName = result[1]
