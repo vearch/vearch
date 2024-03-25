@@ -31,15 +31,14 @@ class Space(object):
     def drop(self) -> Result:
         url_params = {"database_name": self.db_name, "space_name": self.name}
         url = self.client.host + SPACE_URI % url_params
-        req = requests.request(method="POST", url=url, headers={"Authorization": self.client.token})
+        req = requests.request(method="DELETE", url=url, headers={"Authorization": self.client.token})
         resp = self.client.s.send(req)
         return get_result(resp)
 
     def exist(self) -> [bool, SpaceSchema]:
         url_params = {"database_name": self.db_name, "space_name": self.name}
         url = self.client.host + SPACE_URI % url_params
-        req = requests.request(method="GET", url=url, headers={"Authorization": self.client.token})
-        resp = self.client.s.send(req)
+        resp = requests.request(method="GET", url=url, headers={"Authorization": self.client.token})
         result = get_result(resp)
         if result.code == ResultStatus.success:
             space_schema_dict = json.loads(result.content)

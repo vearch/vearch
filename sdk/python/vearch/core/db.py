@@ -5,8 +5,11 @@ from vearch.result import Result, ResultStatus, get_result
 from vearch.const import DATABASE_URI, SPACE_URI, AUTH_KEY
 from vearch.schema.space import SpaceSchema
 from vearch.exception import DatabaseException
-from vearch.utils import CodeType
+from vearch.utils import CodeType, compute_sign_auth
 import requests
+import logging
+
+logger = logging.getLogger("vearch")
 
 
 class Database(object):
@@ -18,11 +21,13 @@ class Database(object):
         try:
             url_params = {"database_name": self.name}
             url = self.client.host + DATABASE_URI % url_params
-            req = requests.request(method="GET", url=url, headers={"Authorization": self.client.token})
-            resp = self.client.s.send(req)
+            sign = compute_sign_auth(secret=self.client.token)
+            resp = requests.request(method="GET", url=url, headers={AUTH_KEY: sign})
             result = get_result(resp)
-            if result.code == ResultStatus.success:
-                return result.content == self.name
+            logger.debug("database exist return:"+result.dict_str())
+            logger.debug(resp.status_code)
+            if result.code == 200:
+                return True
             else:
                 return False
         except Exception as e:

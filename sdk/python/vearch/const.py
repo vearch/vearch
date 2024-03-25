@@ -9,3 +9,4 @@ QUERY_DOC_URI = "/documents/query"
 INDEX_URI = "/documents/index"
 
 AUTH_KEY = "Authorization"
+

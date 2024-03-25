@@ -4,9 +4,9 @@ from vearch.core.client import client
 from vearch.result import Result, get_result, ResultStatus
 from vearch.schema.index import Index
 from vearch.schema.space import SpaceSchema
-from vearch.const import SPACE_URI, INDEX_URI
+from vearch.const import SPACE_URI, INDEX_URI, AUTH_KEY
 from vearch.exception import DatabaseException
-from vearch.utils import CodeType
+from vearch.utils import CodeType, compute_sign_auth
 import requests
 from typing import List
 import json
@@ -38,6 +38,10 @@ class Vearch(object):
             logger.error(result.dict_str())
             raise DatabaseException(code=CodeType.LIST_DATABASES, message="list database failed:" + result.err_msg)
 
+    def is_database_exist(self, database_name: str) -> bool:
+        db = Database(database_name)
+        return db.exist()
+
     def database(self, database_name: str) -> Database:
 
         return Database(database_name)
@@ -48,20 +52,34 @@ class Vearch(object):
     def create_space(self, database_name: str, space: SpaceSchema) -> Result:
         if not self.database(database_name).exist():
             ret = self.database(database_name).create()
-            if ret.code == ResultStatus.failed:
+            if ret.code != 200:
                 raise DatabaseException(code=CodeType.CREATE_DATABASE, message="create database error:" + ret.err_msg)
-        url_params = {"database_name": database_name, "space_name": space._name}
+        url_params = {"database_name": database_name, "space_name": space.name}
         url = self.client.host + SPACE_URI % url_params
-        req = requests.request(method="POST", url=url, data=space.dict(), headers={"token": self.client.token})
-        resp = self.client.s.send(req)
+        url = self.client.host + "/dbs/%(database_name)s/spaces" % url_params
+        sign = compute_sign_auth(secret=self.client.token)
+        logger.debug("create space:" + url)
+        logger.debug("schema:" + json.dumps(space.dict()))
+        resp = requests.request(method="POST", url=url, data=json.dumps(space.dict()), headers={AUTH_KEY: sign})
+        logger.debug(str(resp.status_code) + resp.text)
         result = get_result(resp)
         return result
 
     def drop_space(self, database_name: str, space_name: str) -> Result:
         url_params = {"database_name": database_name, "space_name": space_name}
         url = self.client.host + SPACE_URI % url_params
-        req = requests.request(method="POST", url=url, headers={"token": self.client.token})
-        resp = self.client.s.send(req)
+        logger.debug("delete space url:" + url)
+        sign = compute_sign_auth(secret=self.client.token)
+        resp = requests.request(method="DELETE", url=url, headers={"Authorization": sign})
+        logger.debug("delete space ret" + resp.text)
+        return get_result(resp)
+
+    def is_space_exist(self, database_name: str, space_name: str) -> Result:
+        url_params = {"database_name": database_name, "space_name": space_name}
+        url = self.client.host + SPACE_URI % url_params
+        sign = compute_sign_auth(secret=self.client.token)
+        resp = requests.request(method="GET", url=url, headers={"Authorization": sign})
+        logger.debug("get space exist result:" + resp.text)
         return get_result(resp)
 
     def create_index(self, database_name: str, space_name: str, field: str, index: Index) -> Result:

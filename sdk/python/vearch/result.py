@@ -1,5 +1,6 @@
 import json
 import requests
+from vearch.exception import VearchException
 
 
 class ResultStatus:
@@ -21,12 +22,14 @@ class Result(object):
 
 def get_result(resp: requests.Response) -> Result:
     r = Result()
+    ret = json.loads(resp.text)
+    r.code = ret.get("code", -1)
+    r.text = ret.get("data", "")
+    r.err_msg = ret.get("msg", "")
     if resp.status_code / 100 == 2:
-        ret=json.loads(resp.text)
-        r.code = ret.get("code")
-        r.text = ret.get("data","")
-        r.err_msg=ret.get("msg","")
+        if r.code != 200:
+            raise VearchException(r.code, r.err_msg)
         return r
-    r.code = ResultStatus.failed
-    r.err_msg = resp.text
-    return r
+    else:
+        if r.code != -1:
+            raise VearchException(r.code, r.err_msg)

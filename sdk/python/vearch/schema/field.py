@@ -3,6 +3,10 @@ from typing import Optional
 from vearch.schema.index import Index
 from vearch.utils import name_valid_check
 import copy
+import logging
+import json
+
+logger = logging.getLogger("vearch")
 
 
 class Field:
@@ -28,23 +32,24 @@ class Field:
             self.dim = self._kwargs.get("dim", None)
             assert isinstance(self.dim, int), "vector field must set dimention,you should set dim=xxx"
             assert self.dim > 0, "the vector field's dimention must above zero"
-        if self.data_type == DataType.VARCHAR:
+        if self.data_type == DataType.STRING:
             self.array = self._kwargs.get("array", False)
         assert name_valid_check(
             self.name) == True, "field name must match ^([a-zA-Z]+)([a-z0-9A-Z]*[\-\_]{0,1}[a-z0-9A-Z]+)+"
 
     def dict(self):
-        field_dict = {"field_name": self.name, "data_type": self.data_type, "desc": self.desc}
+        field_dict = {"name": self.name, "type": self.data_type, "desc": self.desc}
+        logger.debug(json.dumps(field_dict))
         if self.data_type == DataType.VECTOR:
-            field_dict["dim"] = self.dim
+            field_dict["dimension"] = self.dim
         if self.index:
             field_dict["index"] = self.index.dict()
-
+        logger.debug(json.dumps(field_dict))
         return field_dict
 
     @classmethod
     def from_dict(cls, field_data):
-        name = field_data.get("field_name")
-        data_type = field_data.get("data_type")
+        name = field_data.get("name")
+        data_type = field_data.get("type")
         describe = field_data.get("desc")
         return Field(name=name, data_type=data_type, desc=describe)

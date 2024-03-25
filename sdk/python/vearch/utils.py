@@ -76,13 +76,15 @@ class CodeType(IntEnum):
 
 
 class DataType:
-    NONE = 0
-    INT32 = 1
-    INT64 = 2
-    DOUBLE = 3
-    VARCHAR = 4
-    VECTOR = 5
-    UNKNOWN = 99
+    NONE = "none"
+    INTEGER = "integer"
+    LONG = "long"
+    FLOAT = "float"
+    DOUBLE = "double"
+    STRING = "string"
+    STRING_ARRAY = "string_array"
+    VECTOR = "vector"
+    UNKNOWN = "unknown"
 
 
 class MetricType:
@@ -98,19 +100,19 @@ index type
 """
 
 
-class IndexType(IntEnum):
-    NONE = 0,
-    SCALAR = 1,
-    IVFPQ = 2,
-    IVFFLAT = 3,
-    BINARYIVF = 4,
-    FLAT = 5,
-    HNSW = 6,
-    GPU_IVFPQ = 7,
-    SSG = 8,
-    IVFPQ_RELAYOUT = 9,
-    SCANN = 10,
-    UNKNOWN = 999
+class IndexType:
+    NONE = "NONE"
+    SCALAR = "SCALAR"
+    IVFPQ = "IVFPQ"
+    IVFFLAT = "IVFFLAT"
+    BINARYIVF = "BINARYIVF"
+    FLAT = "FLAT"
+    HNSW = "HNSW"
+    GPU_IVFPQ = "GPU_IVFPQ"
+    SSG = "SSG"
+    IVFPQ_RELAYOUT = "IVFPQ_RELATOUT"
+    SCANN = "SCANN"
+    UNKNOWN = "UNKNOWN"
 
 
 class VectorInfo:
@@ -143,7 +145,7 @@ def name_valid_check(name: str) -> bool:
 
 
 def compute_sign_auth(user="root", secret=""):
-    sign = base64.b64encode(bytes(user +":"+ secret, encoding="utf-8"))
+    sign = base64.b64encode(bytes(user + ":" + secret, encoding="utf-8"))
     return sign
 
 
