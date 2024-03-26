@@ -11,6 +11,7 @@
 
 #include "common/common_query_data.h"
 #include "idl/fbs-gen/c/response_generated.h"
+#include "util/status.h"
 
 namespace vearch {
 
@@ -105,8 +106,8 @@ class Response {
   virtual ~Response();
 
   virtual int Serialize(const std::string &space_name,
-                        std::vector<std::string> &fields_name, char **out,
-                        int *out_len);
+                        std::vector<std::string> &fields_name, Status &status,
+                        char **out, int *out_len);
 
   virtual void Deserialize(const char *data, int len);
 

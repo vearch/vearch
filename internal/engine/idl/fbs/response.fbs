@@ -1,6 +1,6 @@
-namespace gamma_api;
+include "status.fbs";
 
-enum SearchResultCode : byte { SUCCESS = 0, INDEX_NOT_TRAINED, SEARCH_ERROR }
+namespace gamma_api;
 
 table Attribute  {
   name:string;
@@ -15,7 +15,7 @@ table ResultItem {
 
 table SearchResult {
   total:int;
-  result_code:SearchResultCode;
+  result_code:vearch.status.Code;
   msg:string;
   result_items:[ResultItem];
 }

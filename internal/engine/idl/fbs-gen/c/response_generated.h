@@ -6,6 +6,8 @@
 
 #include "flatbuffers/flatbuffers.h"
 
+#include "status_generated.h"
+
 namespace gamma_api {
 
 struct Attribute;
@@ -15,37 +17,6 @@ struct ResultItem;
 struct SearchResult;
 
 struct Response;
-
-enum SearchResultCode {
-  SUCCESS = 0,
-  INDEX_NOT_TRAINED = 1,
-  SEARCH_ERROR = 2
-};
-
-inline const SearchResultCode (&EnumValuesSearchResultCode())[3] {
-  static const SearchResultCode values[] = {
-    SUCCESS,
-    INDEX_NOT_TRAINED,
-    SEARCH_ERROR
-  };
-  return values;
-}
-
-inline const char * const *EnumNamesSearchResultCode() {
-  static const char * const names[] = {
-    "SUCCESS",
-    "INDEX_NOT_TRAINED",
-    "SEARCH_ERROR",
-    nullptr
-  };
-  return names;
-}
-
-inline const char *EnumNameSearchResultCode(SearchResultCode e) {
-  if (e < SUCCESS || e > SEARCH_ERROR) return "";
-  const size_t index = static_cast<size_t>(e);
-  return EnumNamesSearchResultCode()[index];
-}
 
 struct Attribute FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
@@ -198,8 +169,8 @@ struct SearchResult FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   int32_t total() const {
     return GetField<int32_t>(VT_TOTAL, 0);
   }
-  SearchResultCode result_code() const {
-    return static_cast<SearchResultCode>(GetField<int8_t>(VT_RESULT_CODE, 0));
+  vearch::status::Code result_code() const {
+    return static_cast<vearch::status::Code>(GetField<int8_t>(VT_RESULT_CODE, 0));
   }
   const flatbuffers::String *msg() const {
     return GetPointer<const flatbuffers::String *>(VT_MSG);
@@ -226,7 +197,7 @@ struct SearchResultBuilder {
   void add_total(int32_t total) {
     fbb_.AddElement<int32_t>(SearchResult::VT_TOTAL, total, 0);
   }
-  void add_result_code(SearchResultCode result_code) {
+  void add_result_code(vearch::status::Code result_code) {
     fbb_.AddElement<int8_t>(SearchResult::VT_RESULT_CODE, static_cast<int8_t>(result_code), 0);
   }
   void add_msg(flatbuffers::Offset<flatbuffers::String> msg) {
@@ -250,7 +221,7 @@ struct SearchResultBuilder {
 inline flatbuffers::Offset<SearchResult> CreateSearchResult(
     flatbuffers::FlatBufferBuilder &_fbb,
     int32_t total = 0,
-    SearchResultCode result_code = SUCCESS,
+    vearch::status::Code result_code = vearch::status::kOk,
     flatbuffers::Offset<flatbuffers::String> msg = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<ResultItem>>> result_items = 0) {
   SearchResultBuilder builder_(_fbb);
@@ -264,7 +235,7 @@ inline flatbuffers::Offset<SearchResult> CreateSearchResult(
 inline flatbuffers::Offset<SearchResult> CreateSearchResultDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     int32_t total = 0,
-    SearchResultCode result_code = SUCCESS,
+    vearch::status::Code result_code = vearch::status::kOk,
     const char *msg = nullptr,
     const std::vector<flatbuffers::Offset<ResultItem>> *result_items = nullptr) {
   auto msg__ = msg ? _fbb.CreateString(msg) : 0;

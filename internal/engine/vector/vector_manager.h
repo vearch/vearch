@@ -16,6 +16,7 @@
 #include "index/index_model.h"
 #include "util/bitmap_manager.h"
 #include "util/log.h"
+#include "util/status.h"
 #include "vector/raw_vector.h"
 
 namespace vearch {
@@ -27,29 +28,26 @@ class VectorManager {
                 const std::string &root_path);
   ~VectorManager();
 
-  int SetVectorStoreType(std::string &index_type,
-                         std::string &store_type_str,
+  int SetVectorStoreType(std::string &index_type, std::string &store_type_str,
                          VectorStorageType &store_type);
 
-  int CreateRawVector(struct VectorInfo &vector_info,
-                      std::string &index_type,
+  int CreateRawVector(struct VectorInfo &vector_info, std::string &index_type,
                       std::map<std::string, int> &vec_dups, TableInfo &table,
                       utils::JsonParser &vectors_jp, RawVector **vec);
 
   void DestroyRawVectors();
 
-  int CreateVectorIndex(
-      std::string &index_type, std::string &index_params, RawVector *vec,
-      int training_threshold, bool destroy_vec,
-      std::map<std::string, IndexModel *> &vector_indexes);
+  int CreateVectorIndex(std::string &index_type, std::string &index_params,
+                        RawVector *vec, int training_threshold,
+                        bool destroy_vec,
+                        std::map<std::string, IndexModel *> &vector_indexes);
 
   void DestroyVectorIndexes();
 
   void DescribeVectorIndexes();
 
-  int CreateVectorIndexes(
-      int training_threshold,
-      std::map<std::string, IndexModel *> &vector_indexes);
+  int CreateVectorIndexes(int training_threshold,
+                          std::map<std::string, IndexModel *> &vector_indexes);
 
   void SetVectorIndexes(
       std::map<std::string, IndexModel *> &rebuild_vector_indexes);
@@ -66,7 +64,7 @@ class VectorManager {
   int AddRTVecsToIndex(bool &index_is_dirty);
 
   // int Add(int docid, const std::vector<Field *> &field_vecs);
-  int Search(GammaQuery &query, GammaResult *results);
+  Status Search(GammaQuery &query, GammaResult *results);
 
   int GetVector(const std::vector<std::pair<std::string, int>> &fields_ids,
                 std::vector<std::string> &vec, bool is_bytearray = false);
@@ -95,9 +93,7 @@ class VectorManager {
   int Delete(int docid);
 
   std::map<std::string, RawVector *> RawVectors() { return raw_vectors_; }
-  std::map<std::string, IndexModel *> IndexModels() {
-    return vector_indexes_;
-  }
+  std::map<std::string, IndexModel *> IndexModels() { return vector_indexes_; }
 
   int MinIndexedNum();
 

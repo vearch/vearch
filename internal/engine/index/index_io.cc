@@ -9,7 +9,6 @@
 
 #include <numeric>
 
-#include "common/error_code.h"
 #include "util/log.h"
 
 namespace vearch {
@@ -141,9 +140,9 @@ int WriteInvertedLists(faiss::IOWriter *f,
   return 0;
 }
 
-int ReadInvertedLists(faiss::IOReader *f,
-                      realtime::RTInvertIndex *rt_invert_index,
-                      int &indexed_vec_count) {
+Status ReadInvertedLists(faiss::IOReader *f,
+                         realtime::RTInvertIndex *rt_invert_index,
+                         int &indexed_vec_count) {
   realtime::RealTimeMemData *rt_data = rt_invert_index->cur_ptr_;
   uint32_t h;
   size_t buckets_num = 0, code_bytes = 0;
@@ -157,7 +156,7 @@ int ReadInvertedLists(faiss::IOReader *f,
   assert(list_type == faiss::fourcc("full"));
   if (buckets_num != rt_data->buckets_num_ ||
       code_bytes != rt_data->code_bytes_per_vec_) {
-    return FORMAT_ERR;
+    return Status::IndexError();
   }
 
   std::vector<size_t> sizes;
@@ -169,8 +168,9 @@ int ReadInvertedLists(faiss::IOReader *f,
 
     indexed_vec_count += sizes[bno];
     if (rt_data->ExtendBucketIfNeed(bno, sizes[bno])) {
-      LOG(ERROR) << "loading, extend bucket error";
-      return INTERNAL_ERR;
+      std::string msg = "loading, extend bucket error";
+      LOG(ERROR) << msg;
+      return Status::IndexError(msg);
     }
     uint8_t *codes = rt_data->cur_invert_ptr_->codes_array_[bno];
     long *ids = rt_data->cur_invert_ptr_->idx_array_[bno];
@@ -190,7 +190,7 @@ int ReadInvertedLists(faiss::IOReader *f,
     indexed_vec_count -= rt_data->cur_invert_ptr_->deleted_nums_[bno];
     rt_data->cur_invert_ptr_->retrieve_idx_pos_[bno] = sizes[bno];
   }
-  return 0;
+  return Status::OK();
 }
 
 void write_hnsw(const faiss::HNSW *hnsw, faiss::IOWriter *f) {

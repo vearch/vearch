@@ -49,7 +49,7 @@ class RawVectorFactory {
         return nullptr;
     }
     if (meta_info->with_io_) {
-      if (vio && vio->Init()) {
+      if (vio && !vio->Init().ok()) {
         Fail(raw_vector, vio, "init raw vector io error");
         return nullptr;
       }

@@ -9,12 +9,9 @@
 
 #include <stdio.h>
 
-#include "common/error_code.h"
 #include "rocksdb/table.h"
 #include "util/log.h"
 #include "util/utils.h"
-
-using namespace rocksdb;
 
 namespace vearch {
 
@@ -37,9 +34,10 @@ RocksDBRawVector::~RocksDBRawVector() {
 int RocksDBRawVector::InitStore(std::string &vec_name) {
   block_cache_size_ = (size_t)store_params_.cache_size * 1024 * 1024;
 
-  std::shared_ptr<Cache> cache = NewLRUCache(block_cache_size_);
+  std::shared_ptr<rocksdb::Cache> cache =
+      rocksdb::NewLRUCache(block_cache_size_);
   table_options_.block_cache = cache;
-  Options options;
+  rocksdb::Options options;
   options.table_factory.reset(NewBlockBasedTableFactory(table_options_));
 
   options.IncreaseParallelism();
@@ -53,10 +51,10 @@ int RocksDBRawVector::InitStore(std::string &vec_name) {
   }
 
   // open DB
-  Status s = DB::Open(options, db_path, &db_);
+  rocksdb::Status s = rocksdb::DB::Open(options, db_path, &db_);
   if (!s.ok()) {
     LOG(ERROR) << "open rocks db error: " << s.ToString();
-    return IO_ERR;
+    return -1;
   }
   LOG(INFO) << "rocks raw vector init success! name=" << meta_info_->Name()
             << ", block cache size=" << block_cache_size_ << "Bytes";
@@ -71,10 +69,11 @@ int RocksDBRawVector::GetVector(long vid, const uint8_t *&vec,
   }
   std::string key, value;
   ToRowKey((int)vid, key);
-  Status s = db_->Get(ReadOptions(), Slice(key), &value);
+  rocksdb::Status s =
+      db_->Get(rocksdb::ReadOptions(), rocksdb::Slice(key), &value);
   if (!s.ok()) {
     LOG(ERROR) << "rocksdb get error:" << s.ToString() << ", key=" << key;
-    return IO_ERR;
+    return s.code();
   }
   vec = new uint8_t[vector_byte_size_];
   assert((size_t)vector_byte_size_ == value.size());
@@ -88,7 +87,7 @@ int RocksDBRawVector::Gets(const std::vector<int64_t> &vids,
                            ScopeVectors &vecs) const {
   size_t k = vids.size();
   std::vector<std::string> keys_data(k);
-  std::vector<Slice> keys;
+  std::vector<rocksdb::Slice> keys;
   keys.reserve(k);
 
   size_t j = 0;
@@ -103,7 +102,8 @@ int RocksDBRawVector::Gets(const std::vector<int64_t> &vids,
   }
 
   std::vector<std::string> values(j);
-  std::vector<Status> statuses = db_->MultiGet(ReadOptions(), keys, &values);
+  std::vector<rocksdb::Status> statuses =
+      db_->MultiGet(rocksdb::ReadOptions(), keys, &values);
   assert(statuses.size() == j);
 
   j = 0;
@@ -153,11 +153,12 @@ int RocksDBRawVector::UpdateToStore(int vid, uint8_t *v, int len) {
 
   std::string key;
   ToRowKey(vid, key);
-  Status s = db_->Put(WriteOptions(), Slice(key),
-                      Slice((const char *)v, this->vector_byte_size_));
+  rocksdb::Status s =
+      db_->Put(rocksdb::WriteOptions(), rocksdb::Slice(key),
+               rocksdb::Slice((const char *)v, this->vector_byte_size_));
   if (!s.ok()) {
     LOG(ERROR) << "rocksdb update error:" << s.ToString() << ", key=" << key;
-    return IO_ERR;
+    return -1;
   }
   return 0;
 }
@@ -165,14 +166,14 @@ int RocksDBRawVector::UpdateToStore(int vid, uint8_t *v, int len) {
 int RocksDBRawVector::GetVectorHeader(int start, int n, ScopeVectors &vecs,
                                       std::vector<int> &lens) {
   if (start < 0 || (size_t)start + n > meta_info_->Size()) {
-    return PARAM_ERR;
+    return -1;
   }
 
   rocksdb::Iterator *it = db_->NewIterator(rocksdb::ReadOptions());
   std::string start_key, end_key;
   ToRowKey(start, start_key);
   ToRowKey(start + n, end_key);
-  it->Seek(Slice(start_key));
+  it->Seek(rocksdb::Slice(start_key));
   int dimension = meta_info_->Dimension();
   uint8_t *vectors = new uint8_t[(uint64_t)dimension * n * data_size_];
   uint8_t *dst = vectors;
@@ -181,10 +182,10 @@ int RocksDBRawVector::GetVectorHeader(int start, int n, ScopeVectors &vecs,
       LOG(ERROR) << "rocksdb iterator error, vid=" << start + c;
       delete it;
       delete[] vectors;
-      return INTERNAL_ERR;
+      return -1;
     }
 
-    Slice value = it->value();
+    rocksdb::Slice value = it->value();
     std::string vstr = value.ToString();
     assert((size_t)vector_byte_size_ == vstr.size());
     memcpy(dst, vstr.c_str(), vector_byte_size_);

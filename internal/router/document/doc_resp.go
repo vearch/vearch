@@ -262,7 +262,15 @@ func documentSearchResponse(srs []*vearchpb.SearchResult, head *vearchpb.Respons
 		}
 	}
 
-	response["documents"] = documents
+	if response_type == request.SearchResponse {
+		response["documents"] = documents
+	} else {
+		if len(documents) > 0 {
+			response["documents"] = documents[0]
+		} else {
+			response["documents"] = nil
+		}
+	}
 	return vjson.Marshal(response)
 }
 
@@ -289,14 +297,7 @@ func documentToContent(dh []*vearchpb.ResultItem, response_type string) ([]byte,
 		contents = append(contents, content)
 	}
 
-	if response_type == request.SearchResponse {
-		return vjson.Marshal(contents)
-	}
-
-	if len(contents) > 0 {
-		return vjson.Marshal(contents[0])
-	}
-	return vjson.Marshal(nil)
+	return vjson.Marshal(contents)
 }
 
 func documentDeleteResponse(items []*vearchpb.Item, head *vearchpb.ResponseHead, resultIds []string) ([]byte, error) {

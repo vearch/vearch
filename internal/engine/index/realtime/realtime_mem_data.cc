@@ -12,7 +12,6 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "common/error_code.h"
 #include "faiss/impl/io.h"
 #include "util/bitmap.h"
 #include "util/log.h"

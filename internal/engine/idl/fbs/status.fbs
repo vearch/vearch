@@ -1,0 +1,13 @@
+namespace vearch.status;
+
+enum Code : byte { 
+  kOk = 0,
+  kNotFound = 1,
+  kIndexError = 2,
+  kNotSupported = 3,
+  kInvalidArgument = 4,
+  kIOError = 5,
+  kBusy = 6,
+  kTimedOut = 7,
+  kMaxCode
+}

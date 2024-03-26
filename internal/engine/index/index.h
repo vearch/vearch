@@ -47,9 +47,9 @@ class Index {
    * ,\"nsubvector\" : 64}"
    * @return int
    */
-  virtual int init(const std::string &index_param) { return 0; };
+  virtual Status init(const std::string &index_param) { return Status::OK(); };
 
-  virtual int init() { return 0; };
+  virtual Status init() { return Status::OK(); };
 
   virtual void train(idx_t n, const float *x){};
 
@@ -58,9 +58,12 @@ class Index {
   virtual void search(idx_t n, const float *x, idx_t k, float *distances,
                       idx_t *labels){};
 
-  virtual int dump(const std::string &dir) { return 0; };
+  virtual Status dump(const std::string &dir) { return Status::OK(); };
 
-  virtual int load(const std::string &dir) { return 0; };
+  virtual Status load(const std::string &dir, int &load_num) {
+    load_num = 0;
+    return Status::OK();
+  };
 
  protected:
   bitmap::BitmapManager *docids_bitmap_;
@@ -80,9 +83,9 @@ class IndexIVFFlat : public GammaIndexIVFFlat, public Index {
 
   virtual ~IndexIVFFlat();
 
-  int init(const std::string &index_param) override;
+  Status init(const std::string &index_param) override;
 
-  int init() override;
+  Status init() override;
 
   void train(idx_t n, const float *x) override;
 
@@ -91,9 +94,9 @@ class IndexIVFFlat : public GammaIndexIVFFlat, public Index {
   void search(idx_t n, const float *x, idx_t k, float *distances,
               idx_t *labels) override;
 
-  int dump(const std::string &dir) override;
+  Status dump(const std::string &dir) override;
 
-  int load(const std::string &dir) override;
+  Status load(const std::string &dir, int &load_num) override;
 };
 
 #ifdef OPT_IVFPQ_RELAYOUT
@@ -107,9 +110,9 @@ class IndexIVFPQ : public GammaIVFPQIndex, public Index {
 
   virtual ~IndexIVFPQ();
 
-  int init(const std::string &index_param) override;
+  Status init(const std::string &index_param) override;
 
-  int init() override;
+  Status init() override;
 
   void train(idx_t n, const float *x) override;
 
@@ -118,9 +121,9 @@ class IndexIVFPQ : public GammaIVFPQIndex, public Index {
   void search(idx_t n, const float *x, idx_t k, float *distances,
               idx_t *labels) override;
 
-  int dump(const std::string &dir) override;
+  Status dump(const std::string &dir) override;
 
-  int load(const std::string &dir) override;
+  Status load(const std::string &dir, int &load_num) override;
 };
 
 #ifdef USE_SCANN

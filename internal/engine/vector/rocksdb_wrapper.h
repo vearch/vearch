@@ -10,6 +10,7 @@
 #include "rocksdb/db.h"
 #include "rocksdb/options.h"
 #include "rocksdb/table.h"
+#include "util/status.h"
 
 namespace vearch {
 
@@ -19,10 +20,10 @@ struct RocksDBWrapper {
 
   RocksDBWrapper();
   ~RocksDBWrapper();
-  int Open(std::string db_path, size_t block_cache_size = 0);
-  int Put(int key, const char *v, size_t len);
-  int Put(const std::string &key, const char *v, size_t len);
-  int Put(const std::string &key, const std::string &value);
+  Status Open(std::string db_path, size_t block_cache_size = 0);
+  Status Put(int key, const char *v, size_t len);
+  Status Put(const std::string &key, const char *v, size_t len);
+  Status Put(const std::string &key, const std::string &value);
   void ToRowKey(int key, std::string &key_str);
 };
 

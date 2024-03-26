@@ -98,9 +98,12 @@ int VectorManager::CreateRawVector(struct VectorInfo &vector_info,
       new VectorMetaInfo(vec_name, dimension, value_type);
 
   StoreParams store_params(meta_info->AbsoluteName());
-  if (store_param != "" && store_params.Parse(store_param.c_str())) {
-    delete meta_info;
-    return PARAM_ERR;
+  if (store_param != "") {
+    Status status = store_params.Parse(store_param.c_str());
+    if (!status.ok()) {
+      delete meta_info;
+      return status.code();
+    }
   }
 
   LOG(INFO) << "store params=" << store_params.ToJsonStr();
@@ -180,7 +183,8 @@ int VectorManager::CreateVectorIndex(
   }
   index_model->vector_ = vec;
 
-  if (index_model->Init(index_params, training_threshold) != 0) {
+  Status status = index_model->Init(index_params, training_threshold);
+  if (!status.ok()) {
     LOG(ERROR) << "gamma index init " << vec_name << " error!";
     if (destroy_vec) {
       RawVectorIO *rio = vec->GetIO();
@@ -232,8 +236,8 @@ int VectorManager::CreateVectorIndexes(
       std::string &vec_name = index->MetaInfo()->Name();
 
       for (size_t i = 0; i < index_types_.size(); ++i) {
-        ret = CreateVectorIndex(index_types_[i], index_params_[i],
-                                index, training_threshold, false, vector_indexes);
+        ret = CreateVectorIndex(index_types_[i], index_params_[i], index,
+                                training_threshold, false, vector_indexes);
         if (ret) {
           LOG(ERROR) << vec_name << " create index failed ret: " << ret;
           return ret;
@@ -310,7 +314,8 @@ int VectorManager::CreateVectorTable(TableInfo &table,
       }
       // update TrainingThreshold when TrainingThreshold = 0
       if (!table.TrainingThreshold()) {
-        IndexModel * index = vector_indexes_[IndexName(vec_name, index_types_[i])];
+        IndexModel *index =
+            vector_indexes_[IndexName(vec_name, index_types_[i])];
         if (index) {
           table.SetTrainingThreshold(index->training_threshold_);
         }
@@ -367,8 +372,8 @@ int VectorManager::Update(
       }
     }
     if (raw_vector->GetIO()) {
-      ret = raw_vector->GetIO()->Update(vid);
-      if (ret) return ret;
+      Status status = raw_vector->GetIO()->Update(vid);
+      if (!status.ok()) return status.code();
     }
   }
 
@@ -538,8 +543,8 @@ int parse_index_search_result(int n, int k, VectorResult &result,
 }
 }  // namespace
 
-int VectorManager::Search(GammaQuery &query, GammaResult *results) {
-  int ret = 0, n = 0;
+Status VectorManager::Search(GammaQuery &query, GammaResult *results) {
+  int n = 0;
 
   size_t vec_num = query.vec_query.size();
   VectorResult all_vector_results[vec_num];
@@ -561,9 +566,10 @@ int VectorManager::Search(GammaQuery &query, GammaResult *results) {
     std::map<std::string, IndexModel *>::iterator iter =
         vector_indexes_.find(index_name);
     if (iter == vector_indexes_.end()) {
-      LOG(ERROR) << "Query name " << index_name
-                 << " not exist in created vector table";
-      return -1;
+      std::string err =
+          "Query name " + index_name + " not exist in created vector table";
+      LOG(ERROR) << err;
+      return Status::InvalidArgument(err);
     }
 
     IndexModel *index = iter->second;
@@ -576,14 +582,12 @@ int VectorManager::Search(GammaQuery &query, GammaResult *results) {
     }
 
     if (n <= 0) {
-      LOG(ERROR) << "Search n shouldn't less than 0!";
-      return -1;
+      std::string err = "Search n shouldn't less than 0!";
+      LOG(ERROR) << err;
+      return Status::InvalidArgument(err);
     }
 
-    if (!all_vector_results[i].init(n, query.condition->topn)) {
-      LOG(ERROR) << "Query name " << index_name << "init vector result error";
-      return -2;
-    }
+    all_vector_results[i].init(n, query.condition->topn);
 
     query.condition->Init(vec_query.min_score, vec_query.max_score,
                           docids_bitmap_, raw_vec);
@@ -599,16 +603,16 @@ int VectorManager::Search(GammaQuery &query, GammaResult *results) {
                                 all_vector_results[i].docids);
 
     if (ret_vec != 0) {
-      ret = ret_vec;
-      LOG(ERROR) << "faild search of query " << index_name;
-      return -3;
-    } else {
-      if (query.condition->sort_by_docid) {
-        parse_index_search_result(n, query.condition->topn,
-                                  all_vector_results[i], index);
-        all_vector_results[i].sort_by_docid();
-      }
+      std::string err = "faild search of query " + index_name;
+      LOG(ERROR) << err;
+      return Status::InvalidArgument(err);
     }
+    if (query.condition->sort_by_docid) {
+      parse_index_search_result(n, query.condition->topn, all_vector_results[i],
+                                index);
+      all_vector_results[i].sort_by_docid();
+    }
+
 #ifdef PERFORMANCE_TESTING
     std::string msg;
     msg += "search " + index_name;
@@ -622,11 +626,8 @@ int VectorManager::Search(GammaQuery &query, GammaResult *results) {
       size_t common_docid_count = 0;
       double score = 0;
       bool has_common_docid = true;
-      if (!results[i].init(query.condition->topn, vec_names, vec_num)) {
-        LOG(ERROR) << "init gamma result(sort by docid) error, topn="
-                   << query.condition->topn << ", vector number=" << vec_num;
-        return -4;
-      }
+      results[i].init(query.condition->topn, vec_names, vec_num);
+
       while (start_docid < INT_MAX) {
         for (size_t j = 0; j < vec_num; j++) {
           float vec_dist = 0;
@@ -679,11 +680,7 @@ int VectorManager::Search(GammaQuery &query, GammaResult *results) {
   } else {
     for (int i = 0; i < n; i++) {
       // double score = 0;
-      if (!results[i].init(query.condition->topn, vec_names, vec_num)) {
-        LOG(ERROR) << "init gamma result error, topn=" << query.condition->topn
-                   << ", vector number=" << vec_num;
-        return -5;
-      }
+      results[i].init(query.condition->topn, vec_names, vec_num);
       results[i].total = all_vector_results[0].total[i] > 0
                              ? all_vector_results[0].total[i]
                              : results[i].total;
@@ -706,7 +703,7 @@ int VectorManager::Search(GammaQuery &query, GammaResult *results) {
 #ifdef PERFORMANCE_TESTING
   query.condition->GetPerfTool().Perf("merge result");
 #endif
-  return ret;
+  return Status::OK();
 }
 
 int VectorManager::GetVector(
@@ -803,10 +800,10 @@ void VectorManager::GetTotalMemBytes(long &index_total_mem_bytes,
 int VectorManager::Dump(const std::string &path, int dump_docid,
                         int max_docid) {
   for (const auto &[name, index] : vector_indexes_) {
-    int ret = index->Dump(path);
-    if (ret != 0) {
+    Status status = index->Dump(path);
+    if (!status.ok()) {
       LOG(ERROR) << "vector " << name << " dump gamma index failed!";
-      return -1;
+      return status.code();
     }
     LOG(INFO) << "vector " << name << " dump gamma index success!";
   }
@@ -816,10 +813,10 @@ int VectorManager::Dump(const std::string &path, int dump_docid,
     if (raw_vector->GetIO()) {
       int start = raw_vector->VidMgr()->GetFirstVID(dump_docid);
       int end = raw_vector->VidMgr()->GetLastVID(max_docid);
-      int ret = raw_vector->GetIO()->Dump(start, end + 1);
-      if (ret != 0) {
+      Status status = raw_vector->GetIO()->Dump(start, end + 1);
+      if (!status.ok()) {
         LOG(ERROR) << "vector " << name << " dump failed!";
-        return -1;
+        return status.code();
       }
       LOG(INFO) << "vector " << name << " dump success!";
     }
@@ -843,9 +840,10 @@ int VectorManager::Load(const std::vector<std::string> &index_dirs,
     if (vec->GetIO()) {
       // TODO: doc num to vector num
       int vec_num = min_vec_num;
-      if (0 != vec->GetIO()->Load(vec_num)) {
+      Status status = vec->GetIO()->Load(vec_num);
+      if (!status.ok()) {
         LOG(ERROR) << "vector [" << name << "] load failed!";
-        return -1;
+        return status.code();
       }
       LOG(INFO) << "vector [" << name << "] load success!";
     }
@@ -853,8 +851,9 @@ int VectorManager::Load(const std::vector<std::string> &index_dirs,
 
   if (index_dirs.size() > 0) {
     for (const auto &[name, index] : vector_indexes_) {
-      int load_num = index->Load(index_dirs[0]);
-      if (load_num < 0) {
+      int load_num;
+      Status status = index->Load(index_dirs[0], load_num);
+      if (!status.ok()) {
         LOG(ERROR) << "vector [" << name << "] load gamma index "
                    << index_dirs[0] << " failed, load_num: " << load_num;
         return -1;

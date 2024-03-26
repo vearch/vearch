@@ -31,26 +31,29 @@ struct FLATModelParams {
 
   FLATModelParams() { metric_type = DistanceComputeType::INNER_PRODUCT; }
 
-  int Parse(const char *str) {
+  Status Parse(const char *str) {
     utils::JsonParser jp;
     if (jp.Parse(str)) {
-      LOG(ERROR) << "parse FLAT retrieval parameters error: " << str;
-      return -1;
+      std::string msg =
+          std::string("parse FLAT retrieval parameters error: ") + str;
+      LOG(ERROR) << msg;
+      return Status::ParamError(msg);
     }
     std::string metric_type;
 
     if (!jp.GetString("metric_type", metric_type)) {
       if (strcasecmp("L2", metric_type.c_str()) &&
           strcasecmp("InnerProduct", metric_type.c_str())) {
-        LOG(ERROR) << "invalid metric_type = " << metric_type;
-        return -1;
+        std::string msg = std::string("invalid metric_type = ") + metric_type;
+        LOG(ERROR) << msg;
+        return Status::ParamError(msg);
       }
       if (!strcasecmp("L2", metric_type.c_str()))
         this->metric_type = DistanceComputeType::L2;
       else
         this->metric_type = DistanceComputeType::INNER_PRODUCT;
     }
-    return 0;
+    return Status::OK();
   }
 
   std::string ToString() {
@@ -64,21 +67,23 @@ GammaFLATIndex::GammaFLATIndex() {}
 
 GammaFLATIndex::~GammaFLATIndex() {}
 
-int GammaFLATIndex::Init(const std::string &model_parameters,
-                         int training_threshold) {
+Status GammaFLATIndex::Init(const std::string &model_parameters,
+                            int training_threshold) {
   training_threshold_ = 0;
   auto raw_vec_type = dynamic_cast<MemoryRawVector *>(vector_);
   if (raw_vec_type == nullptr) {
-    LOG(ERROR) << "FLAT can only work in memory only mode";
-    return -1;
+    std::string msg = "FLAT can only work in memory only mode";
+    LOG(ERROR) << msg;
+    return Status::ParamError(msg);
   }
   FLATModelParams flat_param;
-  if (model_parameters != "" && flat_param.Parse(model_parameters.c_str())) {
-    return -1;
+  if (model_parameters != "") {
+    Status status = flat_param.Parse(model_parameters.c_str());
+    if (!status.ok()) return status;
   }
   metric_type_ = flat_param.metric_type;
   LOG(INFO) << flat_param.ToString();
-  return 0;
+  return Status::OK();
 }
 
 RetrievalParameters *GammaFLATIndex::Parse(const std::string &parameters) {
@@ -314,8 +319,11 @@ int GammaFLATIndex::Update(const std::vector<idx_t> &ids,
   return 0;
 }
 
-int GammaFLATIndex::Dump(const std::string &dir) { return 0; }
+Status GammaFLATIndex::Dump(const std::string &dir) { return Status::OK(); }
 
-int GammaFLATIndex::Load(const std::string &index_dir) { return 0; }
+Status GammaFLATIndex::Load(const std::string &index_dir, int &load_num) {
+  load_num = 0;
+  return Status::OK();
+}
 
 }  // namespace vearch

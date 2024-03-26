@@ -101,7 +101,9 @@ class TableTest : public ::testing::Test {
       meta_jp->GetObject("table", table_jp);
       table_params.Parse(table_jp);
     }
-    return table->CreateTable(*table_info, table_params, docids_bitmap);
+    Status status =
+        table->CreateTable(*table_info, table_params, docids_bitmap);
+    return status.ok();
   }
 
   void CreateValue(int i, std::string &value, vearch::DataType dataype) {

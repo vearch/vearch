@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cassert>
 #include <functional>
 #include <string>
 #include <vector>
@@ -54,7 +55,7 @@ struct VectorResult {
     }
   }
 
-  bool init(int a, int b) {
+  void init(int a, int b) {
     n = a;
     topn = b;
     dists = new float[n * topn];
@@ -63,8 +64,6 @@ struct VectorResult {
     idx.resize(n, -1);
     std::fill_n(dists, n * topn, 0.0);
     std::fill_n(docids, n * topn, -1);
-
-    return true;
   }
 
   bool init(int a, int b, float *distances, int64_t *labels) {
@@ -162,21 +161,13 @@ struct VectorDoc {
     }
   }
 
-  bool init(std::string *vec_names, int vec_num) {
-    if (vec_num <= 0) {
-      fields = nullptr;
-      fields_len = 0;
-      return true;
-    }
+  void init(std::string *vec_names, int vec_num) {
     fields = new (std::nothrow) VectorDocField[vec_num];
-    if (fields == nullptr) {
-      return false;
-    }
+    assert(fields != nullptr);
     for (int i = 0; i < vec_num; i++) {
       fields[i].name = vec_names[i];
     }
     fields_len = vec_num;
-    return true;
   }
 
   int docid;
@@ -205,20 +196,15 @@ struct GammaResult {
     }
   }
 
-  bool init(int n, std::string *vec_names, int vec_num) {
+  void init(int n, std::string *vec_names, int vec_num) {
     topn = n;
     docs = new (std::nothrow) VectorDoc *[topn];
-    if (!docs) {
-      // LOG(ERROR) << "docs in CommonDocs init error!";
-      return false;
-    }
+    assert(docs != nullptr);
+
     for (int i = 0; i < n; i++) {
       docs[i] = new VectorDoc();
-      if (!docs[i]->init(vec_names, vec_num)) {
-        return false;
-      }
+      docs[i]->init(vec_names, vec_num);
     }
-    return true;
   }
 
   int topn;

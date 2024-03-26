@@ -23,7 +23,6 @@
 #include <stdexcept>
 #include <vector>
 
-#include "common/error_code.h"
 #include "faiss/IndexFlat.h"
 #include "index/index_io.h"
 #include "omp.h"
@@ -105,12 +104,13 @@ GammaInvertedListScanner *GammaIVFPQIndex::GetGammaInvertedListScanner(
   return nullptr;
 }
 
-int GammaIVFPQIndex::Init(const std::string &model_parameters,
-                          int training_threshold) {
+Status GammaIVFPQIndex::Init(const std::string &model_parameters,
+                             int training_threshold) {
   model_param_ = new IVFPQModelParams();
   IVFPQModelParams &ivfpq_param = *model_param_;
-  if (model_parameters != "" && ivfpq_param.Parse(model_parameters.c_str())) {
-    return -1;
+  if (model_parameters != "") {
+    Status status = ivfpq_param.Parse(model_parameters.c_str());
+    if (!status.ok()) return status;
   }
 
   d = vector_->MetaInfo()->Dimension();
@@ -118,10 +118,12 @@ int GammaIVFPQIndex::Init(const std::string &model_parameters,
     ivfpq_param.nsubvector = int(d / 2);
   }
   if (d % ivfpq_param.nsubvector != 0) {
-    LOG(ERROR) << "Dimension [" << vector_->MetaInfo()->Dimension()
-                << "] cannot divide by nsubvector [" << ivfpq_param.nsubvector
-                << "].";
-    return -2;
+    std::string msg = std::string("Dimension [") +
+                      std::to_string(vector_->MetaInfo()->Dimension()) +
+                      "] cannot divide by nsubvector [" +
+                      std::to_string(ivfpq_param.nsubvector) + "].";
+    LOG(ERROR) << msg;
+    return Status::ParamError(msg);
   }
 
   RawVector *raw_vec = dynamic_cast<RawVector *>(vector_);
@@ -150,9 +152,12 @@ int GammaIVFPQIndex::Init(const std::string &model_parameters,
 
   if (ivfpq_param.has_opq) {
     if (d % ivfpq_param.opq_nsubvector != 0) {
-      LOG(ERROR) << d << " % " << ivfpq_param.opq_nsubvector
-                 << " != 0, opq nsubvector should be divisible by dimension.";
-      return -2;
+      std::string msg =
+          std::to_string(d) + " % " +
+          std::to_string(ivfpq_param.opq_nsubvector) +
+          " != 0, opq nsubvector should be divisible by dimension.";
+      LOG(ERROR) << msg;
+      return Status::ParamError(msg);
     }
     opq_ = new faiss::OPQMatrix(d, ivfpq_param.opq_nsubvector, d);
   }
@@ -203,7 +208,7 @@ int GammaIVFPQIndex::Init(const std::string &model_parameters,
   }
 
   this->nprobe = ivfpq_param.nprobe;
-  return 0;
+  return Status::OK();
 }
 
 RetrievalParameters *GammaIVFPQIndex::Parse(const std::string &parameters) {
@@ -280,8 +285,9 @@ int GammaIVFPQIndex::Indexing() {
   size_t num;
   if ((size_t)training_threshold_ < nlist) {
     num = nlist * 39;
-    LOG(WARNING) << "Because training_threshold[" << training_threshold_ << "] < ncentroids["
-                 << nlist << "], training_threshold becomes ncentroids * 39[" << num
+    LOG(WARNING) << "Because training_threshold[" << training_threshold_
+                 << "] < ncentroids[" << nlist
+                 << "], training_threshold becomes ncentroids * 39[" << num
                  << "].";
   } else if ((size_t)training_threshold_ <= nlist * 256) {
     if ((size_t)training_threshold_ < nlist * 39) {
@@ -488,8 +494,8 @@ int GammaIVFPQIndex::Search(RetrievalContext *retrieval_context, int n,
     del_params.set(retrieval_params);
   }
 
-  GammaSearchCondition *condition =
-      dynamic_cast<GammaSearchCondition *>(retrieval_context);
+  SearchCondition *condition =
+      dynamic_cast<SearchCondition *>(retrieval_context);
   if (condition->brute_force_search == true || is_trained == false) {
     // reset retrieval_params
     delete retrieval_context->RetrievalParams();
@@ -654,8 +660,7 @@ void GammaIVFPQIndex::search_preassigned(
   // for opq, rerank need raw vector
   float *vec_q = const_cast<float *>(x);
   float *vec_applied_q = const_cast<float *>(applied_x);
-  GammaSearchCondition *context =
-      dynamic_cast<GammaSearchCondition *>(retrieval_context);
+  SearchCondition *context = dynamic_cast<SearchCondition *>(retrieval_context);
   IVFPQRetrievalParameters *retrieval_params =
       dynamic_cast<IVFPQRetrievalParameters *>(
           retrieval_context->RetrievalParams());
@@ -907,16 +912,16 @@ std::string IVFPQToString(const faiss::IndexIVFPQ *ivpq,
   return ss.str();
 }
 
-int GammaIVFPQIndex::Dump(const std::string &dir) {
+Status GammaIVFPQIndex::Dump(const std::string &dir) {
   if (!this->is_trained) {
     LOG(INFO) << "gamma index is not trained, skip dumping";
-    return 0;
+    return Status::OK();
   }
   std::string index_name = vector_->MetaInfo()->AbsoluteName();
   std::string index_dir = dir + "/" + index_name;
   if (utils::make_dir(index_dir.c_str())) {
-    LOG(ERROR) << "mkdir error, index dir=" << index_dir;
-    return IO_ERR;
+    std::string msg = std::string("mkdir error, index dir=") + index_dir;
+    return Status::IOError(msg);
   }
 
   std::string index_file = index_dir + "/ivfpq.index";
@@ -933,21 +938,23 @@ int GammaIVFPQIndex::Dump(const std::string &dir) {
   if (opq_ != nullptr) write_opq(opq_, f);
 
   if (WriteInvertedLists(f, rt_invert_index_ptr_)) {
-    LOG(ERROR) << "write invert list error, index name=" << index_name;
-    return INTERNAL_ERR;
+    std::string msg =
+        std::string("write invert list error, index name=") + index_name;
+    LOG(ERROR) << msg;
+    return Status::IndexError(msg);
   }
 
   LOG(INFO) << "dump:" << IVFPQToString(ivpq, opq_)
             << ", indexed count=" << indexed_vec_count_;
-  return 0;
+  return Status::OK();
 }
 
-int GammaIVFPQIndex::Load(const std::string &index_dir) {
+Status GammaIVFPQIndex::Load(const std::string &index_dir, int &load_num) {
   std::string index_name = vector_->MetaInfo()->AbsoluteName();
   std::string index_file = index_dir + "/" + index_name + "/ivfpq.index";
   if (!utils::file_exist(index_file)) {
     LOG(INFO) << index_file << " isn't existed, skip loading";
-    return 0;  // it should train again after load
+    return Status::OK();  // it should train again after load
   }
 
   faiss::IOReader *f = new FileIOReader(index_file.c_str());
@@ -971,11 +978,12 @@ int GammaIVFPQIndex::Load(const std::string &index_dir) {
     read_opq(opq_, f);
   }
 
-  int ret = ReadInvertedLists(f, rt_invert_index_ptr_, indexed_vec_count_);
-  if (ret == FORMAT_ERR) {
+  Status status =
+      ReadInvertedLists(f, rt_invert_index_ptr_, indexed_vec_count_);
+  if (status.code() == status::kIndexError) {
     indexed_vec_count_ = 0;
     LOG(INFO) << "unsupported inverted list format, it need rebuilding!";
-  } else if (ret == 0) {
+  } else if (status.ok()) {
     // if (indexed_vec_count_ < 0 ||
     //     indexed_vec_count_ > (int)vector_->MetaInfo()->size_) {
     //   LOG(ERROR) << "invalid indexed count [" << indexed_vec_count_
@@ -988,8 +996,10 @@ int GammaIVFPQIndex::Load(const std::string &index_dir) {
     LOG(INFO) << "load: " << IVFPQToString(ivpq, opq_)
               << ", indexed vector count=" << indexed_vec_count_;
   } else {
-    LOG(ERROR) << "read invert list error, index name=" << index_name;
-    return INTERNAL_ERR;
+    std::string msg =
+        std::string("read invert list error, index name=") + index_name;
+    LOG(ERROR) << msg;
+    return Status::IOError(msg);
   }
   if (ivpq->metric_type == faiss::METRIC_INNER_PRODUCT) {
     metric_type_ = DistanceComputeType::INNER_PRODUCT;
@@ -997,7 +1007,8 @@ int GammaIVFPQIndex::Load(const std::string &index_dir) {
     metric_type_ = DistanceComputeType::L2;
   }
   assert(this->is_trained);
-  return indexed_vec_count_;
+  load_num = indexed_vec_count_;
+  return Status::OK();
 }
 
 }  // namespace vearch

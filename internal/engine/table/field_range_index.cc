@@ -35,7 +35,6 @@
 #include "threadskv10h.h"
 #endif
 
-#include "common/error_code.h"
 #include "util/utils.h"
 
 using std::string;

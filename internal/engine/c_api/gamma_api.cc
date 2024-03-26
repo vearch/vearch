@@ -24,6 +24,7 @@
 #include "api_data/table.h"
 #include "search/engine.h"
 #include "util/log.h"
+#include "util/status.h"
 #include "util/utils.h"
 
 INITIALIZE_EASYLOGGINGPP
@@ -127,8 +128,9 @@ int Close(void *engine) {
 int CreateTable(void *engine, const char *table_str, int len) {
   vearch::TableInfo table;
   table.Deserialize(table_str, len);
-  int ret = static_cast<vearch::Engine *>(engine)->CreateTable(table);
-  return ret;
+  vearch::Status status =
+      static_cast<vearch::Engine *>(engine)->CreateTable(table);
+  return status.code();
 }
 
 int AddOrUpdateDoc(void *engine, const char *doc_str, int len) {
@@ -175,13 +177,15 @@ int Search(void *engine, const char *request_str, int req_len,
   vearch::Request request;
   request.Deserialize(request_str, req_len);
 
-  int ret = static_cast<vearch::Engine *>(engine)->Search(request, response);
+  vearch::Status status;
+  int ret =
+      static_cast<vearch::Engine *>(engine)->Search(request, response, status);
   if (ret != 0) {
     return ret;
   }
 
   response.Serialize(static_cast<vearch::Engine *>(engine)->SpaceName(),
-                     request.Fields(), response_str, res_len);
+                     request.Fields(), status, response_str, res_len);
 
   return ret;
 }

@@ -7,32 +7,30 @@
 
 #include "memory_raw_vector_io.h"
 
-#include "common/error_code.h"
 #include "io_common.h"
 
 namespace vearch {
 
 using std::string;
 using std::vector;
-using namespace rocksdb;
 
-int MemoryRawVectorIO::Init() {
+Status MemoryRawVectorIO::Init() {
   const std::string &name = raw_vector->MetaInfo()->AbsoluteName();
   string db_path = raw_vector->RootPath() + "/" + name;
-  if (rdb.Open(db_path)) {
-    LOG(ERROR) << "open rocks db error, path=" << db_path;
-    return IO_ERR;
+  Status status = rdb.Open(db_path);
+  if (!status.ok()) {
+    return status;
   }
-  return 0;
+  return Status::OK();
 }
 
-int MemoryRawVectorIO::Dump(int start_vid, int end_vid) {
-  int ret = Until(end_vid, 1000 * 10);
-  if (ret == TIMEOUT_ERR) {
-    LOG(ERROR) << "dump wait async flusher timeout!";
-    return TIMEOUT_ERR;
+Status MemoryRawVectorIO::Dump(int start_vid, int end_vid) {
+  Status status = Until(end_vid, 1000 * 10);
+  if (!status.ok()) {
+    LOG(ERROR) << status.ToString();
+    return status;
   }
-  return 0;
+  return Status::OK();
 }
 
 int MemoryRawVectorIO::GetDiskVecNum(int &vec_num) {
@@ -41,7 +39,8 @@ int MemoryRawVectorIO::GetDiskVecNum(int &vec_num) {
   string key, value;
   for (int i = disk_vec_num; i >= 0; --i) {
     rdb.ToRowKey(i, key);
-    Status s = rdb.db_->Get(ReadOptions(), Slice(key), &value);
+    rocksdb::Status s =
+        rdb.db_->Get(rocksdb::ReadOptions(), rocksdb::Slice(key), &value);
     if (s.ok()) {
       vec_num = i + 1;
       LOG(INFO) << "In the disk rocksdb vec_num=" << vec_num;
@@ -53,48 +52,51 @@ int MemoryRawVectorIO::GetDiskVecNum(int &vec_num) {
   return 0;
 }
 
-int MemoryRawVectorIO::Load(int vec_num) {
+Status MemoryRawVectorIO::Load(int vec_num) {
   rocksdb::Iterator *it = rdb.db_->NewIterator(rocksdb::ReadOptions());
   utils::ScopeDeleter1<rocksdb::Iterator> del1(it);
   string start_key;
   rdb.ToRowKey(0, start_key);
-  it->Seek(Slice(start_key));
+  it->Seek(rocksdb::Slice(start_key));
   for (int c = 0; c < vec_num; c++, it->Next()) {
     if (!it->Valid()) {
-      LOG(ERROR) << "load vectors error, expected num=" << vec_num
-                 << ", current=" << c;
-      return INTERNAL_ERR;
+      std::string msg = std::string("load vectors error, expected num=") +
+                        std::to_string(vec_num) +
+                        ", current=" + std::to_string(c);
+      LOG(ERROR) << msg;
+      return Status::IOError(msg);
     }
-    Slice value = it->value();
+    rocksdb::Slice value = it->value();
     raw_vector->AddToMem((uint8_t *)value.data_, raw_vector->VectorByteSize());
   }
 
   raw_vector->MetaInfo()->size_ = vec_num;
   Reset(vec_num);
 
-  return 0;
+  return Status::OK();
 }
 
-int MemoryRawVectorIO::FlushOnce() {
+Status MemoryRawVectorIO::FlushOnce() {
   int size = raw_vector->MetaInfo()->size_;
-  if (nflushed_ == size) return 0;
+  if (nflushed_ == size) return Status::OK();
   for (int vid = nflushed_; vid < size; vid++) {
-    if (Put(vid)) return -1;
+    Status status = Put(vid);
+    if (!status.ok()) return status;
   }
   nflushed_ = size;
-  return 0;
+  return Status::OK();
 }
 
-int MemoryRawVectorIO::Put(int vid) {
+Status MemoryRawVectorIO::Put(int vid) {
   const uint8_t *vec = raw_vector->GetFromMem(vid);
   return rdb.Put(vid, (const char *)vec, raw_vector->VectorByteSize());
 }
 
-int MemoryRawVectorIO::Update(int vid) {
-  int ret = Until(vid + 1, 1000 * 3);  // waiting until vid is flushed
-  if (ret == TIMEOUT_ERR) {
+Status MemoryRawVectorIO::Update(int vid) {
+  Status status = Until(vid + 1, 1000 * 3);  // waiting until vid is flushed
+  if (status.code() == status::kTimedOut) {
     LOG(ERROR) << "update vector, wait async flush timeout";
-    return TIMEOUT_ERR;
+    return status;
   }
   return Put(vid);
 }

@@ -14,7 +14,6 @@
 #include <mutex>
 #include <string>
 
-#include "common/error_code.h"
 #include "util/utils.h"
 #include "vector/memory_raw_vector.h"
 
@@ -42,11 +41,13 @@ struct HNSWLIBModelParams {
     return true;
   }
 
-  int Parse(const char *str) {
+  Status Parse(const char *str) {
     utils::JsonParser jp;
     if (jp.Parse(str)) {
-      LOG(ERROR) << "parse HNSW retrieval parameters error: " << str;
-      return -1;
+      std::string msg =
+          std::string("parse HNSW retrieval parameters error: ") + str;
+      LOG(ERROR) << msg;
+      return Status::ParamError(msg);
     }
 
     int nlinks;
@@ -57,32 +58,40 @@ struct HNSWLIBModelParams {
     // for -1, set as default
     if (!jp.GetInt("nlinks", nlinks)) {
       if (nlinks < -1) {
-        LOG(ERROR) << "invalid nlinks = " << nlinks;
-        return -1;
+        std::string msg =
+            std::string("invalid nlinks = ") + std::to_string(nlinks);
+        LOG(ERROR) << msg;
+        return Status::ParamError(msg);
       }
       if (nlinks > 0) this->nlinks = nlinks;
     }
 
     if (!jp.GetInt("efConstruction", efConstruction)) {
       if (efConstruction < -1) {
-        LOG(ERROR) << "invalid efConstruction = " << efConstruction;
-        return -1;
+        std::string msg = std::string("invalid efConstruction = ") +
+                          std::to_string(efConstruction);
+        LOG(ERROR) << msg;
+        return Status::ParamError(msg);
       }
       if (efConstruction > 0) this->efConstruction = efConstruction;
     }
 
     if (!jp.GetInt("efSearch", efSearch)) {
       if (efSearch < -1) {
-        LOG(ERROR) << "invalid efSearch = " << efSearch;
-        return -1;
+        std::string msg =
+            std::string("invalid efSearch = ") + std::to_string(efSearch);
+        LOG(ERROR) << msg;
+        return Status::ParamError(msg);
       }
       if (efSearch > 0) this->efSearch = efSearch;
     }
 
     if (!jp.GetInt("do_efSearch_check", do_efSearch_check)) {
       if (do_efSearch_check < -1) {
-        LOG(ERROR) << "invalid do_efSearch_check = " << do_efSearch_check;
-        return -1;
+        std::string msg = std::string("invalid do_efSearch_check = ") +
+                          std::to_string(do_efSearch_check);
+        LOG(ERROR) << msg;
+        return Status::ParamError(msg);
       }
       if (do_efSearch_check > 0) this->do_efSearch_check = 1;
       if (do_efSearch_check == 0) this->do_efSearch_check = 0;
@@ -93,8 +102,9 @@ struct HNSWLIBModelParams {
     if (!jp.GetString("metric_type", metric_type)) {
       if (strcasecmp("L2", metric_type.c_str()) &&
           strcasecmp("InnerProduct", metric_type.c_str())) {
-        LOG(ERROR) << "invalid metric_type = " << metric_type;
-        return -1;
+        std::string msg = std::string("invalid metric_type = ") + metric_type;
+        LOG(ERROR) << msg;
+        return Status::ParamError(msg);
       }
       if (!strcasecmp("L2", metric_type.c_str()))
         this->metric_type = DistanceComputeType::L2;
@@ -103,7 +113,7 @@ struct HNSWLIBModelParams {
     } else {
       this->metric_type = DistanceComputeType::L2;
     }
-    return 0;
+    return Status::OK();
   }
 
   std::string ToString() {
@@ -142,18 +152,20 @@ GammaIndexHNSWLIB::~GammaIndexHNSWLIB() {
   }
 }
 
-int GammaIndexHNSWLIB::Init(const std::string &model_parameters,
-                            int training_threshold) {
+Status GammaIndexHNSWLIB::Init(const std::string &model_parameters,
+                               int training_threshold) {
   training_threshold_ = 0;
   raw_vec_ = dynamic_cast<MemoryRawVector *>(vector_);
   if (raw_vec_ == nullptr) {
-    LOG(ERROR) << "HNSW can only work in memory only mode";
-    return -1;
+    std::string msg = "HNSW can only work in memory only mode";
+    LOG(ERROR) << msg;
+    return Status::ParamError(msg);
   }
 
   HNSWLIBModelParams hnsw_param;
-  if (model_parameters != "" && hnsw_param.Parse(model_parameters.c_str())) {
-    return -2;
+  if (model_parameters != "") {
+    Status status = hnsw_param.Parse(model_parameters.c_str());
+    if (!status.ok()) return status;
   }
   LOG(INFO) << hnsw_param.ToString();
 
@@ -221,7 +233,7 @@ int GammaIndexHNSWLIB::Init(const std::string &model_parameters,
     LOG(ERROR) << "init read-write lock error, ret=" << ret;
   }
 
-  return 0;
+  return Status::OK();
 }
 
 RetrievalParameters *GammaIndexHNSWLIB::Parse(const std::string &parameters) {
@@ -354,8 +366,8 @@ int GammaIndexHNSWLIB::Search(RetrievalContext *retrieval_context, int n,
     retrieval_context->retrieval_params_ = retrieval_params;
   }
 
-  GammaSearchCondition *condition =
-      dynamic_cast<GammaSearchCondition *>(retrieval_context);
+  SearchCondition *condition =
+      dynamic_cast<SearchCondition *>(retrieval_context);
   if (condition->brute_force_search == true) {
     // reset retrieval_params
     delete retrieval_context->RetrievalParams();
@@ -451,26 +463,28 @@ int GammaIndexHNSWLIB::Delete(const std::vector<int64_t> &ids) {
   return 0;
 }
 
-int GammaIndexHNSWLIB::Dump(const std::string &dir) {
+Status GammaIndexHNSWLIB::Dump(const std::string &dir) {
   std::string index_name = vector_->MetaInfo()->AbsoluteName();
   std::string index_dir = dir + "/" + index_name;
   if (utils::make_dir(index_dir.c_str())) {
-    LOG(ERROR) << "mkdir error, index dir=" << index_dir;
-    return IO_ERR;
+    std::string msg = std::string("mkdir error, index dir=") + index_dir;
+    LOG(ERROR) << msg;
+    return Status::IOError(msg);
   }
 
   std::string index_file = index_dir + "/hnswlib.index";
   std::unique_lock<std::mutex> templock(dump_mutex_);
   saveIndex(index_file);
-  return 0;
+  return Status::OK();
 }
 
-int GammaIndexHNSWLIB::Load(const std::string &index_dir) {
+Status GammaIndexHNSWLIB::Load(const std::string &index_dir, int &load_num) {
   std::string index_name = vector_->MetaInfo()->AbsoluteName();
   std::string index_file = index_dir + "/" + index_name + "/hnswlib.index";
   if (!utils::file_exist(index_file)) {
     LOG(INFO) << index_file << " isn't existed, skip loading";
-    return 0;  // it should train again after load
+    load_num = 0;
+    return Status::OK();  // it should train again after load
   }
   if (metric_type_ == DistanceComputeType::INNER_PRODUCT) {
     loadIndex(index_file, space_interface_ip_);
@@ -478,7 +492,8 @@ int GammaIndexHNSWLIB::Load(const std::string &index_dir) {
     loadIndex(index_file, space_interface_);
   }
   indexed_vec_count_ = cur_element_count;
-  return indexed_vec_count_;
+  load_num = indexed_vec_count_;
+  return Status::OK();
 }
 
 }  // namespace vearch

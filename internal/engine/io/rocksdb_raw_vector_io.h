@@ -19,11 +19,11 @@ struct RocksDBRawVectorIO : public RawVectorIO {
 
   RocksDBRawVectorIO(RocksDBRawVector *raw_vector_) : raw_vector(raw_vector_) {}
   ~RocksDBRawVectorIO() {}
-  int Init() override { return 0; };
-  int Dump(int start_vid, int end_vid) override { return 0; };
+  Status Init() override { return Status::OK(); };
+  Status Dump(int start_vid, int end_vid) override { return Status::OK(); };
   int GetDiskVecNum(int &vec_num) override;
-  int Load(int vec_num) override;
-  int Update(int vid) override { return 0; };
+  Status Load(int vec_num) override;
+  Status Update(int vid) override { return Status::OK(); };
 };
 
 }  // namespace vearch

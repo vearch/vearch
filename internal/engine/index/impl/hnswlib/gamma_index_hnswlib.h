@@ -67,7 +67,8 @@ struct GammaIndexHNSWLIB : public GammaFLATIndex,
 
   virtual ~GammaIndexHNSWLIB();
 
-  int Init(const std::string &model_parameters, int training_threshold) override;
+  Status Init(const std::string &model_parameters,
+              int training_threshold) override;
 
   RetrievalParameters *Parse(const std::string &parameters) override;
 
@@ -87,9 +88,9 @@ struct GammaIndexHNSWLIB : public GammaFLATIndex,
 
   long GetTotalMemBytes() override;
 
-  int Dump(const std::string &dir) override;
+  Status Dump(const std::string &dir) override;
 
-  int Load(const std::string &index_dir) override;
+  Status Load(const std::string &index_dir, int &load_num) override;
 
   /*
   virtual char *getDataByInternalId(tableint internal_id) const override {

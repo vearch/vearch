@@ -33,8 +33,8 @@ Response::~Response() {
 }
 
 int Response::Serialize(const std::string &space_name,
-                        std::vector<std::string> &fields_name, char **out,
-                        int *out_len) {
+                        std::vector<std::string> &fields_name, Status &status,
+                        char **out, int *out_len) {
   std::vector<std::string> vec_fields;
   std::map<std::string, int> attr_idx;
   Table *table = static_cast<Table *>(table_);
@@ -136,12 +136,12 @@ int Response::Serialize(const std::string &space_name,
           builder.CreateString(extra)));
     }
 
-    std::string str_msg = "Success";
+    std::string str_msg = status.ToString();
     auto item_vec = builder.CreateVector(result_items);
     auto msg = builder.CreateString(str_msg);
 
-    gamma_api::SearchResultCode result_code =
-        gamma_api::SearchResultCode::SUCCESS;
+    vearch::status::Code result_code =
+        static_cast<vearch::status::Code>(status.code());
     auto results = gamma_api::CreateSearchResult(
         builder, gamma_results_[i].total, result_code, msg, item_vec);
     search_results.push_back(results);

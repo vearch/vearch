@@ -13,6 +13,7 @@
 #include "rocksdb/db.h"
 #include "rocksdb/options.h"
 #include "rocksdb/table.h"
+#include "util/status.h"
 
 namespace vearch {
 
@@ -42,20 +43,21 @@ class StorageManager {
   StorageManager(const std::string &root_path,
                  const StorageManagerOptions &options);
   ~StorageManager();
-  int Init(const std::string &name, int cache_size);
+  Status Init(const std::string &name, int cache_size);
 
-  int Add(int id, const uint8_t *value, int len);
+  Status Add(int id, const uint8_t *value, int len);
 
-  int AddString(int id, std::string field_name, const char *value, int len);
+  Status AddString(int id, std::string field_name, const char *value, int len);
 
-  int Update(int id, uint8_t *value, int len);
+  Status Update(int id, uint8_t *value, int len);
 
-  int UpdateString(int id, std::string field_name, const char *value, int len);
+  Status UpdateString(int id, std::string field_name, const char *value,
+                      int len);
 
   // warning: vec can't be free
-  int Get(int id, const uint8_t *&value);
+  Status Get(int id, const uint8_t *&value);
 
-  int GetString(int id, std::string &field_name, std::string &value);
+  Status GetString(int id, std::string &field_name, std::string &value);
 
   int Size() { return size_; }
 

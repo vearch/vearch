@@ -11,29 +11,30 @@
 #include <string>
 #include <thread>
 #include <vector>
-#include "common/error_code.h"
+
 #include "util/log.h"
+#include "util/status.h"
 #include "util/utils.h"
 
 struct AsyncFlusher {
   AsyncFlusher(std::string name) : name_(name) { nflushed_ = 0; }
   ~AsyncFlusher() {}
 
-  int Until(int vid, int timeout = 0) {
+  vearch::Status Until(int vid, int timeout = 0) {
     double begin = utils::getmillisecs();
     while (nflushed_ < vid) {
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
       if (timeout > 0 && utils::getmillisecs() - begin > timeout) {
-        return TIMEOUT_ERR;
+        return vearch::Status::TimedOut();
       }
     }
-    return 0;
+    return vearch::Status::OK();
   }
 
   // reset after load()
   void Reset(int num) { nflushed_ = num; }
 
-  virtual int FlushOnce() = 0;
+  virtual vearch::Status FlushOnce() = 0;
 
   std::string name_;
   std::atomic<long> nflushed_;
@@ -74,28 +75,29 @@ struct AsyncFlushExecutor {
 
   static void Handler(AsyncFlushExecutor *executor) {
     LOG(INFO) << "async flush executor is started!";
-    int ret = executor->Flush();
-    if (ret != 0) {
-      LOG(ERROR) << "async flush executor exit unexpectedly! ret=" << ret;
+    vearch::Status status = executor->Flush();
+    if (!status.ok()) {
+      LOG(ERROR) << "async flush executor exit unexpectedly! ret="
+                 << status.ToString();
     } else {
       LOG(INFO) << "async flush executor exit successfully!";
     }
   }
 
-  int Flush() {
+  vearch::Status Flush() {
     while (!stopped_) {
       for (AsyncFlusher *af : async_flushers_) {
-        int ret = af->FlushOnce();
-        if (ret) {
-          LOG(ERROR) << "aysnc flush error, ret=" << ret
+        vearch::Status status = af->FlushOnce();
+        if (!status.ok()) {
+          LOG(ERROR) << "aysnc flush error, ret=" << status.ToString()
                      << ", name=" << af->name_;
-          return ret;
+          return status;
         }
-        if (stopped_) return 0;
+        if (stopped_) return vearch::Status::OK();
       }
       std::this_thread::sleep_for(std::chrono::milliseconds(interval_));
     }
-    return 0;
+    return vearch::Status::OK();
   }
 
   void Add(AsyncFlusher *af) { async_flushers_.push_back(af); }

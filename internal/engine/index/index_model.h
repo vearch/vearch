@@ -13,6 +13,7 @@
 
 // #include "concurrentqueue/concurrentqueue.h"
 #include "reflector.h"
+#include "util/status.h"
 #include "util/utils.h"
 
 enum class VectorValueType : std::uint8_t { FLOAT = 0, BINARY = 1, INT8 = 2 };
@@ -68,7 +69,9 @@ class RetrievalParameters {
   }
 
   int CollectMetrics() { return collect_metrics_; }
-  void SetCollectMetrics(int collect_metrics) { collect_metrics_ = collect_metrics; }
+  void SetCollectMetrics(int collect_metrics) {
+    collect_metrics_ = collect_metrics;
+  }
 
  protected:
   enum DistanceComputeType distance_compute_type_;
@@ -80,7 +83,7 @@ class RetrievalParameters {
 // it also provides performance tool to record performance info
 class RetrievalContext {
  public:
-  RetrievalContext() { 
+  RetrievalContext() {
     retrieval_params_ = nullptr;
     perf_tool_ = nullptr;
   }
@@ -197,7 +200,7 @@ class VectorReader {
  public:
   VectorReader(VectorMetaInfo *meta_info) : meta_info_(meta_info) {}
 
-  virtual ~VectorReader() { 
+  virtual ~VectorReader() {
     delete meta_info_;
     meta_info_ = nullptr;
   };
@@ -234,7 +237,8 @@ class IndexModel {
    * @param model_parameters   include model params, need parse by yourself
    * @return 0 if successed
    */
-  virtual int Init(const std::string &model_parameters, int training_threshold) = 0;
+  virtual vearch::Status Init(const std::string &model_parameters,
+                              int training_threshold) = 0;
 
   /** Parse parameters for dynamic retrieval
    *
@@ -293,16 +297,17 @@ class IndexModel {
   /** Dump model and index
    *
    * @param dir   dump directory
-   * @return 0 if successed
+   * @return Status::OK if successed
    */
-  virtual int Dump(const std::string &dir) = 0;
+  virtual vearch::Status Dump(const std::string &dir) = 0;
 
   /** Load model and index
    *
    * @param dir   load directory
+   * @param load_num   load doc num
    * @return load number(>=0) if successed
    */
-  virtual int Load(const std::string &dir) = 0;
+  virtual vearch::Status Load(const std::string &dir, int &load_num) = 0;
 
   virtual void train(int64_t n, const float *x) {}
 
