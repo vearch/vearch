@@ -60,7 +60,7 @@ func (s *Store) UpdateSpace(ctx context.Context, space *entity.Space) error {
 		}
 	}()
 
-	data, err := raftCmd.Marshal()
+	data, err := vjson.Marshal(raftCmd)
 
 	if err != nil {
 		return err
@@ -103,7 +103,7 @@ func (s *Store) Write(ctx context.Context, request *vearchpb.DocCmd) (err error)
 	raftCmd.Type = vearchpb.CmdType_WRITE
 	raftCmd.WriteCommand = request
 
-	data, err := raftCmd.Marshal()
+	data, err := vjson.Marshal(raftCmd)
 	if err != nil {
 		return err
 	}
@@ -147,7 +147,7 @@ func (s *Store) Flush(ctx context.Context) error {
 	raftCmd := vearchpb.CreateRaftCommand()
 	raftCmd.Type = vearchpb.CmdType_FLUSH
 
-	data, err := raftCmd.Marshal()
+	data, err := vjson.Marshal(raftCmd)
 	if err != nil {
 		return err
 	}

@@ -82,7 +82,7 @@ func (s *Store) ReplicasStatusChange() bool {
 func (s *Store) Apply(command []byte, index uint64) (resp interface{}, err error) {
 	raftCmd := vearchpb.CreateRaftCommand()
 
-	if err = raftCmd.Unmarshal(command); err != nil {
+	if err = vjson.Unmarshal(command, raftCmd); err != nil {
 		panic(err)
 	}
 

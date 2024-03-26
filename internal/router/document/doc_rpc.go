@@ -27,7 +27,6 @@ import (
 	"github.com/vearch/vearch/internal/monitor"
 	"github.com/vearch/vearch/internal/pkg/log"
 	"github.com/vearch/vearch/internal/proto/vearchpb"
-	"google.golang.org/grpc"
 )
 
 const defaultTimeOutMs = 1 * 1000
@@ -41,16 +40,16 @@ type RpcHandler struct {
 	docService docService
 }
 
-func ExportRpcHandler(rpcServer *grpc.Server, client *client.Client) {
-	docService := newDocService(client)
+// func ExportRpcHandler(rpcServer *grpc.Server, client *client.Client) {
+// 	docService := newDocService(client)
 
-	rpcHandler := &RpcHandler{
-		client:     client,
-		docService: *docService,
-	}
+// 	rpcHandler := &RpcHandler{
+// 		client:     client,
+// 		docService: *docService,
+// 	}
 
-	vearchpb.RegisterRouterGRPCServiceServer(rpcServer, rpcHandler)
-}
+// 	vearchpb.RegisterRouterGRPCServiceServer(rpcServer, rpcHandler)
+// }
 
 func (handler *RpcHandler) Space(ctx context.Context, req *vearchpb.RequestHead) (reply *vearchpb.Table, err error) {
 	defer func() {

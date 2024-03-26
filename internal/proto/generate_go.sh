@@ -30,25 +30,9 @@ check_protoc_version() {
     fi
 }
 
+go install google.golang.org/protobuf/cmd/protoc-gen-go@lates
+go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 check_protoc_version
-
-# find protoc-gen-gofast
-GOGO_GOPATH=""
-for path in $(echo "${GOPATH}" | sed -e 's/:/ /g'); do
-    gogo_proto_bin="${path}/bin/protoc-gen-gofast"
-    if [ -e "${gogo_proto_bin}" ]; then
-        export PATH=$(dirname "${gogo_proto_bin}"):$PATH
-        GOGO_GOPATH=${path}
-        break
-    fi
-done
-
-# protoc-gen-gofast not found
-if [[ -z ${GOGO_GOPATH} ]]; then
-    echo >&2 "ERR: Could not find protoc-gen-gofast"
-    echo >&2 "Please run \`go get github.com/gogo/protobuf/protoc-gen-gofast\` first"
-    exit 1
-fi
 
 gen_out_dir=./vearchpb
 if [ "$1" ]; then
@@ -61,12 +45,5 @@ if [ "$2" ]; then
     proto_dir=$2
 fi
 
-ret=0
-for file in $(ls ${proto_dir}/*.proto); do
-    name=$(echo "$file" | awk -F '/' '{print $2}')
-    protoc -I=$GOPATH/pkg/mod -I=$GOPATH/src -I=${proto_dir} --gofast_out=plugins=grpc,$GO_OUT_M:$gen_out_dir $name || ret=$?
-    pb_files=${gen_out_dir}/*.pb.go
-    rm -f ${gen_out_dir}/*.bak
-    goimports -w $pb_files
-done
-exit $ret
+protoc --go_out=$proto_dir *.proto
+exit $?

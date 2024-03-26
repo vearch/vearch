@@ -83,7 +83,7 @@ func NewServer(ctx context.Context) (*Server, error) {
 				panic(fmt.Errorf("start rpc server failed to start: %v", err))
 			}
 		}()
-		document.ExportRpcHandler(rpcServer, cli)
+		// document.ExportRpcHandler(rpcServer, cli)
 	}
 
 	routerCtx, routerCancel := context.WithCancel(ctx)
