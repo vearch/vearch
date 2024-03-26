@@ -233,23 +233,22 @@ func documentSearchResponse(srs []*vearchpb.SearchResult, head *vearchpb.Respons
 	var documents []json.RawMessage
 	if len(srs) > 1 {
 		var wg sync.WaitGroup
-		respChain := make(chan json.RawMessage, len(srs))
-		for _, sr := range srs {
+		resp := make([][]byte, len(srs))
+		for i, sr := range srs {
 			wg.Add(1)
-			go func(sr *vearchpb.SearchResult) {
+			go func(sr *vearchpb.SearchResult, index int) {
 				defer wg.Done()
 				bytes, err := documentToContent(sr.ResultItems, response_type)
 				if err != nil {
 					return
 				}
-				respChain <- json.RawMessage(bytes)
-			}(sr)
+				resp[index] = json.RawMessage(bytes)
+			}(sr, i)
 		}
 
 		wg.Wait()
-		close(respChain)
 
-		for msg := range respChain {
+		for _, msg := range resp {
 			documents = append(documents, msg)
 		}
 	} else {
