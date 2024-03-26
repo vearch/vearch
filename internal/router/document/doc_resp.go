@@ -278,7 +278,12 @@ func documentToContent(dh []*vearchpb.ResultItem, response_type string) ([]byte,
 		}
 
 		if u.Source != nil {
-			content["_source"] = u.Source
+			var sourceJson json.RawMessage
+			if err := vjson.Unmarshal(u.Source, &sourceJson); err != nil {
+				log.Error("DocToContent Source Unmarshal error:%v", err)
+			} else {
+				content["_source"] = sourceJson
+			}
 		}
 
 		contents = append(contents, content)
