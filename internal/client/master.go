@@ -366,6 +366,27 @@ func (m *masterClient) QuerySpaceByName(ctx context.Context, dbID int64, spaceNa
 	return nil, vearchpb.NewError(vearchpb.ErrorEnum_SPACE_NOTEXISTS, nil)
 }
 
+// QueryAliasByName query alias by alias name
+func (m *masterClient) QueryAliasByName(ctx context.Context, alias_name string) (*entity.Alias, error) {
+	alias := &entity.Alias{Name: alias_name}
+
+	bs, err := m.client.master.Get(ctx, entity.AliasKey(alias_name))
+
+	if err != nil {
+		return nil, err
+	}
+
+	if bs == nil {
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_ALIAS_NOT_EXIST, nil)
+	}
+
+	err = vjson.Unmarshal(bs, alias)
+	if err != nil {
+		return nil, fmt.Errorf("get alias:%s value:%s, err:%s", alias.Name, string(bs), err.Error())
+	}
+	return alias, nil
+}
+
 // KeepAlive attempts to keep the given lease alive forever. If the keepalive responses posted
 // to the channel are not consumed promptly the channel may become full. When full, the lease
 // client will continue sending keep alive requests to the etcd server, but will drop responses

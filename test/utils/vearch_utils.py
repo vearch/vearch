@@ -45,6 +45,8 @@ def process_add_data(items):
     with_id = items[3]
     full_field = items[4]
     seed = items[5]
+    if items[6] != "":
+        data["space_name"] = items[6]
     for j in range(batch_size):
         param_dict = {}
         if with_id:
@@ -62,7 +64,7 @@ def process_add_data(items):
     rs = requests.post(url, json_str)
 
 
-def add(total, batch_size, xb, with_id=False, full_field=False, seed=1):
+def add(total, batch_size, xb, with_id=False, full_field=False, seed=1,  alias_name=""):
     pool = ThreadPool()
     total_data = []
     for i in range(total):
@@ -74,6 +76,7 @@ def add(total, batch_size, xb, with_id=False, full_field=False, seed=1):
                 with_id,
                 full_field,
                 seed,
+                alias_name,
             )
         )
     results = pool.map(process_add_data, total_data)
@@ -532,6 +535,8 @@ def process_get_data(items):
     full_field = items[4]
     seed = items[5]
     query_type = items[6]
+    if items[7] != "":
+        data["space_name"] = items[7]
 
     if query_type == "by_partition" or query_type == "by_partition_next" or query_type == "by_ids":
         data["query"]["document_ids"] = []
@@ -564,6 +569,7 @@ def process_get_data(items):
     documents = rs.json()["documents"]
     if len(documents) != batch_size:
         logger.info("len(documents) = " + str(len(documents)))
+        logger.info(rs.json())
         logger.info(json_str)
 
     assert len(documents) == batch_size
@@ -588,7 +594,7 @@ def process_get_data(items):
 
 
 def query_interface(
-    logger, total, batch_size, xb, full_field=False, seed=1, query_type="by_ids"
+    logger, total, batch_size, xb, full_field=False, seed=1, query_type="by_ids", alias_name=""
 ):
     if query_type == "by_partition_next" and batch_size == 1:
         total -= 1
@@ -602,6 +608,7 @@ def query_interface(
                 full_field,
                 seed,
                 query_type,
+                alias_name,
             )
         )
 
@@ -629,6 +636,8 @@ def process_delete_data(items):
     full_field = items[3]
     seed = items[4]
     delete_type = items[5]
+    if items[6] != "":
+        data["space_name"] = items[6]
 
     if delete_type == "by_ids":
         data["query"]["document_ids"] = []
@@ -656,17 +665,16 @@ def process_delete_data(items):
         )
         logger.info(json_str)
         logger.info(rs.json())
-        logger.info(document_ids)
 
     assert len(document_ids) == batch_size
     assert rs.text.find('"total":' + str(batch_size)) >= 0
 
 
 def delete_interface(
-    logger, total, batch_size, full_field=False, seed=1, delete_type="by_ids"
+    logger, total, batch_size, full_field=False, seed=1, delete_type="by_ids", alias_name=""
 ):
     for i in range(total):
-        process_delete_data((logger, i, batch_size, full_field, seed, delete_type))
+        process_delete_data((logger, i, batch_size, full_field, seed, delete_type, alias_name))
 
 
 def process_search_data(items):
@@ -685,6 +693,8 @@ def process_search_data(items):
     with_filter = items[5]
     seed = items[6]
     query_type = items[7]
+    if items[8] != "":
+        data["space_name"] = items[8]
 
     if query_type == "by_ids":
         data["query"]["document_ids"] = []
@@ -750,6 +760,7 @@ def search_interface(
     with_filter=False,
     seed=1,
     query_type="by_ids",
+    alias_name=""
 ):
     for i in range(total):
         process_search_data(
@@ -762,6 +773,7 @@ def search_interface(
                 with_filter,
                 seed,
                 query_type,
+                alias_name,
             )
         )
 
