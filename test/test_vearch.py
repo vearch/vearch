@@ -303,7 +303,7 @@ class VearchCase:
                 feature = "{" + dataLine.split(",", 1)[1]
                 feature = json.loads(feature)
                 string_tags = feature["string_tags"]
-                feature = feature["vector"]["feature"]
+                feature = feature["vector"]
                 data = {
                     "query": {
                         "filter": [{"term": {"string": string_tags, "operator": "or"}}],
@@ -345,7 +345,7 @@ class VearchCase:
                 feature = "{" + dataLine.split(",", 1)[1]
                 feature = json.loads(feature)
                 string_tags = feature["string_tags"]
-                feature = feature["vector"]["feature"]
+                feature = feature["vector"]
                 data = {
                     "query": {
                         "vector": [
@@ -441,7 +441,7 @@ class VearchCase:
                 feature = "{" + dataLine.split(",", 1)[1]
                 feature = json.loads(feature)
                 string_tags = feature["string_tags"]
-                feature = feature["vector"]["feature"]
+                feature = feature["vector"]
                 data = {
                     "query": {
                         "filter": [{"term": {"string": string_tags, "operator": "or"}}],

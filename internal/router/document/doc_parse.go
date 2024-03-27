@@ -262,25 +262,11 @@ func processPropertyArrayVectorInt(vs []*fastjson.Value, fieldName string, pro *
 	return field, nil
 }
 
-func processPropertyObject(v *fastjson.Value, pathString string, pro *entity.SpaceProperties, indexType string) (*vearchpb.Field, error) {
-	field := &vearchpb.Field{Name: ""}
-	err := fmt.Errorf("field %s type is: %s, but value is %v", pathString, pro.FieldType.String(), v)
-	if pro.FieldType == entity.FieldType_VECTOR {
-		feature := v.GetArray("feature")
-		if len(feature) == 0 {
-			err := fmt.Errorf("vector field %s feature value should be arrry, but is: %v", pathString, v)
-			return field, err
-		}
-		if strings.Compare(indexType, "BINARYIVF") == 0 {
-			field, err = processPropertyObjectVectorBinary(feature, pathString, pro)
-		} else {
-			field, err = processPropertyObjectVectorOther(feature, pathString, pro)
-		}
-	}
-	return field, err
+func processPropertyObject() (*vearchpb.Field, error) {
+	return nil, nil
 }
 
-func processPropertyArray(v *fastjson.Value, pathString string, pro *entity.SpaceProperties, fieldName string) (*vearchpb.Field, error) {
+func processPropertyArray(v *fastjson.Value, pathString string, pro *entity.SpaceProperties, fieldName string, indexType string) (*vearchpb.Field, error) {
 	field := &vearchpb.Field{Name: fieldName}
 	vs, err := v.Array()
 	if err != nil {
@@ -296,9 +282,20 @@ func processPropertyArray(v *fastjson.Value, pathString string, pro *entity.Spac
 		field, err = processPropertyArrayVectorFloat(vs, fieldName, pro)
 	} else if pro.FieldType == entity.FieldType_DOUBLE && pro.Array {
 		field, err = processPropertyArrayVectorDouble(vs, fieldName, pro)
+	} else if pro.FieldType == entity.FieldType_VECTOR {
+		if len(vs) == 0 {
+			err := fmt.Errorf("vector field %s feature value should be arrry, but is: %v", pathString, v)
+			return field, err
+		}
+		if strings.Compare(indexType, "BINARYIVF") == 0 {
+			field, err = processPropertyObjectVectorBinary(vs, pathString, pro)
+		} else {
+			field, err = processPropertyObjectVectorOther(vs, pathString, pro)
+		}
 	} else {
 		field, err = nil, fmt.Errorf("field:[%s] type:[%v] can't use as array", fieldName, pro.FieldType.String())
 	}
+
 	return field, err
 }
 
@@ -389,9 +386,9 @@ func processProperty(docVal *DocVal, v *fastjson.Value, indexType string, pro *e
 	case fastjson.TypeTrue, fastjson.TypeFalse:
 		field, err = processPropertyBool(v, pathString, pro)
 	case fastjson.TypeObject:
-		field, err = processPropertyObject(v, pathString, pro, indexType)
+		field, err = processPropertyObject()
 	case fastjson.TypeArray:
-		field, err = processPropertyArray(v, pathString, pro, fieldName)
+		field, err = processPropertyArray(v, pathString, pro, fieldName, indexType)
 	}
 	return field, err
 }

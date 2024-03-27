@@ -52,7 +52,7 @@ def process_add_data(items):
         if with_id:
             param_dict["_id"] = str(index * batch_size + j)
         param_dict["field_int"] = (index * batch_size + j) * seed
-        param_dict["field_vector"] = {"feature": features[j].tolist()}
+        param_dict["field_vector"] = features[j].tolist()
         if full_field:
             param_dict["field_long"] = param_dict["field_int"]
             param_dict["field_float"] = float(param_dict["field_int"])
@@ -101,7 +101,7 @@ def process_add_embedding_size_data(items):
         param_dict = {}
         param_dict["_id"] = str(index * batch_size + j)
         param_dict["field_int"] = index * batch_size + j
-        param_dict["field_vector"] = {"feature": [random.random() for i in range(embedding_size)]}
+        param_dict["field_vector"] = [random.random() for i in range(embedding_size)]
         param_dict["field_long"] = param_dict["field_int"]
         param_dict["field_float"] = float(param_dict["field_int"])
         param_dict["field_double"] = float(param_dict["field_int"])
@@ -168,11 +168,11 @@ def process_add_error_data(items):
             if wrong_vector_type:
                 param_dict["field_vector"] = features[j].tolist()
             if wrong_vector_feature_length:
-                param_dict["field_vector"] = {"feature": features[j].tolist()[:1]}
+                param_dict["field_vector"] = features[j].tolist()[:1]
             if wrong_vector_feature_type:
-                param_dict["field_vector"] = {"feature": features[j].tolist()[0]}
+                param_dict["field_vector"] = features[j].tolist()[0]
             if not wrong_vector_type and not wrong_vector_feature_length and not wrong_vector_feature_type:
-                param_dict["field_vector"] = {"feature": features[j].tolist()}
+                param_dict["field_vector"] = features[j].tolist()
 
         param_dict["field_string"] = str(param_dict["field_int"])
         if wrong_str_value:
@@ -198,7 +198,7 @@ def process_add_error_data(items):
             param_dict["field_wrong"] = param_dict["field_int"]
 
         if mismatch_field_type:
-            param_dict["field_int"] = {"feature": features[j].tolist()}
+            param_dict["field_int"] = features[j].tolist()
 
         if not empty_documents:
             data["documents"].append(param_dict)
@@ -243,8 +243,8 @@ def process_add_multi_vec_data(items):
         if with_id:
             param_dict["_id"] = str(index * batch_size + j)
         param_dict["field_int"] = (index * batch_size + j) * seed
-        param_dict["field_vector"] = {"feature": features[j].tolist()}
-        param_dict["field_vector1"] = {"feature": features[j].tolist()}
+        param_dict["field_vector"] = features[j].tolist()
+        param_dict["field_vector1"] = features[j].tolist()
         if full_field:
             param_dict["field_long"] = param_dict["field_int"]
             param_dict["field_float"] = float(param_dict["field_int"])
