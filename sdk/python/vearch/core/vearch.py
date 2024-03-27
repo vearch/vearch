@@ -4,8 +4,8 @@ from vearch.core.client import client
 from vearch.result import Result, get_result, ResultStatus
 from vearch.schema.index import Index
 from vearch.schema.space import SpaceSchema
-from vearch.const import SPACE_URI, INDEX_URI, AUTH_KEY
-from vearch.exception import DatabaseException
+from vearch.const import SPACE_URI, INDEX_URI, AUTH_KEY, ERR_CODE_SPACE_NOT_EXIST
+from vearch.exception import DatabaseException, VearchException, SpaceException
 from vearch.utils import CodeType, compute_sign_auth
 import requests
 from typing import List
@@ -74,13 +74,24 @@ class Vearch(object):
         logger.debug("delete space ret" + resp.text)
         return get_result(resp)
 
-    def is_space_exist(self, database_name: str, space_name: str) -> Result:
-        url_params = {"database_name": database_name, "space_name": space_name}
-        url = self.client.host + SPACE_URI % url_params
-        sign = compute_sign_auth(secret=self.client.token)
-        resp = requests.request(method="GET", url=url, headers={"Authorization": sign})
-        logger.debug("get space exist result:" + resp.text)
-        return get_result(resp)
+    def is_space_exist(self, database_name: str, space_name: str) -> [bool, SpaceSchema]:
+        try:
+            url_params = {"database_name": database_name, "space_name": space_name}
+            url = self.client.host + SPACE_URI % url_params
+            sign = compute_sign_auth(secret=self.client.token)
+            resp = requests.request(method="GET", url=url, headers={"Authorization": sign})
+            logger.debug("get space exist result:" + resp.text)
+            ret = get_result(resp)
+            if ret.code == 200:
+                space_schema = json.dumps(ret.text)
+                return True, space_schema
+            else:
+                return False, None
+        except VearchException as e:
+            if e.code == ERR_CODE_SPACE_NOT_EXIST and "notexists" in e.message:
+                return False, None
+            else:
+                raise SpaceException(CodeType.CHECK_SPACE_EXIST, e.message)
 
     def create_index(self, database_name: str, space_name: str, field: str, index: Index) -> Result:
         url = self.client.host + INDEX_URI

@@ -10,7 +10,7 @@ logger = logging.getLogger("vearch")
 
 
 class Field:
-    def __init__(self, name: str, data_type: DataType, index: Optional[Index] = None, desc: str = "", **kwargs):
+    def __init__(self, name:str, data_type: DataType, index: Optional[Index] = None, desc: str = "", **kwargs):
         """
 
         :param name: the name of field
@@ -29,7 +29,9 @@ class Field:
 
     def _valid_check(self):
         if self.data_type == DataType.VECTOR:
-            self.dim = self._kwargs.get("dim", None)
+            logger.debug(self.data_type)
+            self.dim = self._kwargs.get("dimension", None)
+            logger.debug(self.dim)
             assert isinstance(self.dim, int), "vector field must set dimention,you should set dim=xxx"
             assert self.dim > 0, "the vector field's dimention must above zero"
         if self.data_type == DataType.STRING:
@@ -49,7 +51,11 @@ class Field:
 
     @classmethod
     def from_dict(cls, field_data):
-        name = field_data.get("name")
-        data_type = field_data.get("type")
-        describe = field_data.get("desc")
-        return Field(name=name, data_type=data_type, desc=describe)
+        name = field_data.pop("name")
+        data_type = field_data.pop("type")
+        describe = field_data.pop("desc")
+        index = field_data.pop("index", None)
+        logger.debug(field_data)
+        if index:
+            return Field(name, data_type=data_type, index=index, desc=describe, **field_data)
+        return Field(name=name, data_type=data_type, desc=describe, **field_data)

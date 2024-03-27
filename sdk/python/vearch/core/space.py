@@ -2,18 +2,22 @@ from vearch.schema.index import Index
 from vearch.core.client import client
 from vearch.schema.space import SpaceSchema
 from vearch.result import Result, ResultStatus, get_result
-from vearch.const import SPACE_URI, INDEX_URI, UPSERT_DOC_URI, DELETE_DOC_URI, QUERY_DOC_URI, SEARCH_DOC_URI
-from vearch.exception import SpaceException, DocumentException
-from vearch.utils import CodeType, VectorInfo
+from vearch.const import SPACE_URI, INDEX_URI, UPSERT_DOC_URI, DELETE_DOC_URI, QUERY_DOC_URI, SEARCH_DOC_URI, \
+    ERR_CODE_SPACE_NOT_EXIST
+from vearch.exception import SpaceException, DocumentException, VearchException
+from vearch.utils import CodeType, VectorInfo, compute_sign_auth, DataType
 from vearch.filter import Filter
 import requests
 import json
 import pandas as pd
 from typing import List, Union, Optional, Dict
+import logging
+
+logger = logging.getLogger("vearch")
 
 
 class Space(object):
-    def __int__(self, db_name, name):
+    def __init__(self, db_name, name):
         self.db_name = db_name
         self.name = name
         self.client = client
@@ -24,73 +28,95 @@ class Space(object):
         url = self.client.host + SPACE_URI % url_params
         if not self._schema:
             self._schema = space
-        req = requests.request(method="POST", url=url, data=space.dict(), headers={"Authorization": self.client.token})
+        sign = compute_sign_auth(secret=self.client.token)
+        req = requests.request(method="POST", url=url, data=space.dict(), headers={"Authorization": sign})
         resp = self.client.s.send(req)
         return get_result(resp)
 
     def drop(self) -> Result:
         url_params = {"database_name": self.db_name, "space_name": self.name}
         url = self.client.host + SPACE_URI % url_params
-        req = requests.request(method="DELETE", url=url, headers={"Authorization": self.client.token})
+        sign = compute_sign_auth(secret=self.client.token)
+        req = requests.request(method="DELETE", url=url, headers={"Authorization": sign})
         resp = self.client.s.send(req)
         return get_result(resp)
 
     def exist(self) -> [bool, SpaceSchema]:
-        url_params = {"database_name": self.db_name, "space_name": self.name}
-        url = self.client.host + SPACE_URI % url_params
-        resp = requests.request(method="GET", url=url, headers={"Authorization": self.client.token})
-        result = get_result(resp)
-        if result.code == ResultStatus.success:
-            space_schema_dict = json.loads(result.content)
-            space_schema = SpaceSchema.from_dict(space_schema_dict)
-            return True, space_schema
-        return False, None
+        try:
+            url_params = {"database_name": self.db_name, "space_name": self.name}
+            uri = SPACE_URI % url_params
+            url = self.client.host + str(uri)
+            sign = compute_sign_auth(secret=self.client.token)
+            resp = requests.request(method="GET", url=url, headers={"Authorization": sign})
+            result = get_result(resp)
+            if result.code == 200:
+                space_schema_dict = result.text
+                space_schema = SpaceSchema.from_dict(space_schema_dict)
+                return True, space_schema
+            else:
+                return False, None
+        except VearchException as e:
+            if e.code == ERR_CODE_SPACE_NOT_EXIST and "notexist" in e.message:
+                return False, None
+            else:
+                raise SpaceException(CodeType.CHECK_SPACE_EXIST, e.message)
 
     def create_index(self, field: str, index: Index) -> Result:
         url = self.client.host + INDEX_URI
         req_body = {"field": field, "index": index.dict(), "database": self.db_name, "space": self.name}
-        req = requests.request(method="POST", url=url, data=json.dumps(req_body),
-                               headers={"Authorization": self.client.token})
-        resp = self.client.s.send(req)
+        sign = compute_sign_auth(secret=self.client.token)
+        resp = requests.request(method="POST", url=url, data=json.dumps(req_body),
+                                headers={"Authorization": sign})
         return get_result(resp)
 
     def upsert_doc(self, data: Union[List, pd.DataFrame]) -> Result:
-        if not self._schema:
-            has, schema = self.exist()
-            if has:
-                self._schema = schema
+        try:
+            if not self._schema:
+                has, schema = self.exist()
+                if has:
+                    self._schema = schema
+                else:
+                    raise SpaceException(CodeType.CHECK_SPACE_EXIST,
+                                         "space %s not exist,please create it first" % self.name)
+            url = self.client.host + UPSERT_DOC_URI
+            req_body = {"db_name": self.db_name, "space_name": self.name}
+            records = []
+            if self._check_data_conforms_schema(data):
+                if isinstance(data, pd.DataFrame):
+                    for index, row in data.iterrows():
+                        record = {}
+                        for i, field in enumerate(self._schema._fileds):
+                            record[field.name] = row[field.name]
+                        records.append(record)
+                else:
+                    for em in data:
+                        record = {}
+                        for i, field in enumerate(self._schema.fields):
+                            if field.data_type == DataType.VECTOR:
+                                record[field.name] = {"feature": em[i]}
+                            else:
+                                record[field.name] = em[i]
+                        records.append(record)
+                req_body.update({"documents": records})
+                logger.debug(req_body)
+                sign = compute_sign_auth(secret=self.client.token)
+                resp = requests.request(method="POST", url=url, data=json.dumps(req_body),
+                                        headers={"Authorization": sign})
+                return get_result(resp)
             else:
-                raise SpaceException(CodeType.CHECK_SPACE_EXIST,
-                                     "space %s not exist,please create it first" % self.name)
-        url = self.client.host + UPSERT_DOC_URI
-        req_body = {"database": self.db_name, "space": self.name}
-        records = []
-        if self._check_data_conforms_schema(data):
-            if isinstance(data, pd.DataFrame):
-                for index, row in data.iterrows():
-                    record = {}
-                    for i, field in enumerate(self._schema._fileds):
-                        record[field.name] = row[field.name]
-                    records.append(record)
-            else:
-                for em in data:
-                    record = {}
-                    for i, field in enumerate(self._schema._fileds):
-                        record[field.name] = em[i]
-                    records.append(record)
-            req_body.update({"data": records})
-            req = requests.request(method="POST", url=url, data=json.dumps(req_body),
-                                   headers={"Authorization": self.client.token})
-            resp = self.client.s.send(req)
-            return get_result(resp)
-        else:
-            raise DocumentException(CodeType.UPSERT_DOC, "data fields not conform space schema")
+                raise DocumentException(CodeType.UPSERT_DOC, "data fields not conform space schema")
+        except VearchException as e:
+            if e.code == 0:
+                logger.error(e.code)
+                logger.error(e.message)
+                r = Result(code="200", text=e.message)
+                return r
 
     def _check_data_conforms_schema(self, data: Union[List, pd.DataFrame]) -> bool:
         if data:
             is_dataframe = isinstance(data, pd.DataFrame)
             data_fields_len = len(data.columns) if is_dataframe else len(data[0])
-            return data_fields_len == len(self._schema._fileds)
+            return data_fields_len == len(self._schema.fields)
         else:
             raise DocumentException(CodeType.UPSERT_DOC, "data is empty")
         return True
@@ -98,7 +124,8 @@ class Space(object):
     def delete_doc(self, filter: Filter) -> Result:
         url = self.client.host + DELETE_DOC_URI
         req_body = {"database": self.db_name, "space": self.name, "filter": filter.dict()}
-        req = requests.request(method="POST", url=url, data=json.dumps(req_body), headers={"Authorization": self.client.token})
+        req = requests.request(method="POST", url=url, data=json.dumps(req_body),
+                               headers={"Authorization": self.client.token})
         resp = self.client.s.send(req)
         return get_result(resp)
 
@@ -167,7 +194,8 @@ class Space(object):
         req_body.update(query)
         if kwargs:
             req_body.update(kwargs)
-        req = requests.request(method="POST", url=url, data=json.dumps(req_body), headers={"Authorization": self.client.token})
+        req = requests.request(method="POST", url=url, data=json.dumps(req_body),
+                               headers={"Authorization": self.client.token})
         resp = self.client.s.send(req)
         ret = get_result(resp)
         if ret.code != ResultStatus.success:

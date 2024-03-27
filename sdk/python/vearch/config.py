@@ -2,7 +2,7 @@ from typing import NamedTuple
 
 
 class Config(NamedTuple):
-    host: str = ""
+    host: str
     token: str = ""
     max_retries: int = 3
     max_connections: int = 12

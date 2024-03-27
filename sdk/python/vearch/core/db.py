@@ -2,9 +2,9 @@ from vearch.core.space import Space
 from typing import List
 from vearch.core.client import client
 from vearch.result import Result, ResultStatus, get_result
-from vearch.const import DATABASE_URI, SPACE_URI, AUTH_KEY
+from vearch.const import DATABASE_URI, SPACE_URI, AUTH_KEY, ERR_CODE_DATABASE_NOT_EXIST
 from vearch.schema.space import SpaceSchema
-from vearch.exception import DatabaseException
+from vearch.exception import DatabaseException, VearchException
 from vearch.utils import CodeType, compute_sign_auth
 import requests
 import logging
@@ -24,15 +24,17 @@ class Database(object):
             sign = compute_sign_auth(secret=self.client.token)
             resp = requests.request(method="GET", url=url, headers={AUTH_KEY: sign})
             result = get_result(resp)
-            logger.debug("database exist return:"+result.dict_str())
+            logger.debug("database exist return:" + result.dict_str())
             logger.debug(resp.status_code)
             if result.code == 200:
                 return True
             else:
                 return False
-        except Exception as e:
-            print(e)
-            raise DatabaseException(code=CodeType.GET_DATABASE, message=e.__str__())
+        except VearchException  as e:
+            if e.code == ERR_CODE_DATABASE_NOT_EXIST and "notexists" in e.message:
+                return False
+            else:
+                raise DatabaseException(code=CodeType.GET_DATABASE, message=e.__str__())
 
     def create(self) -> Result:
         self.client._create_db(self.name)
