@@ -253,10 +253,9 @@ func (handler *DocumentHandler) handleDocumentUpsert(c *gin.Context) {
 		resp.SendError(c, http.StatusBadRequest, fmt.Sprintf("documentHeadParse error: %v", err))
 		return
 	}
-
 	args.Head.DbName = dbName
 	args.Head.SpaceName = spaceName
-	space, err := handler.client.Space(c.Request.Context(), args.Head.DbName, args.Head.SpaceName)
+	space, err := handler.docService.getSpace(c.Request.Context(), args.Head)
 	if space == nil {
 		resp.SendError(c, http.StatusBadRequest, fmt.Sprintf("dbName:%s or spaceName:%s not exist", args.Head.DbName, args.Head.SpaceName))
 		return
@@ -298,7 +297,7 @@ func (handler *DocumentHandler) handleDocumentQuery(c *gin.Context) {
 	args.Head.DbName = searchDoc.DbName
 	args.Head.SpaceName = searchDoc.SpaceName
 
-	space, err := handler.docService.getSpace(c.Request.Context(), args.Head.DbName, args.Head.SpaceName)
+	space, err := handler.docService.getSpace(c.Request.Context(), args.Head)
 	if space == nil {
 		resp.SendError(c, http.StatusBadRequest, fmt.Sprintf("dbName:%s or spaceName:%s not exist", args.Head.DbName, args.Head.SpaceName))
 		return
@@ -308,6 +307,8 @@ func (handler *DocumentHandler) handleDocumentQuery(c *gin.Context) {
 		resp.SendError(c, http.StatusBadRequest, err.Error())
 		return
 	}
+	// update space name because maybe is alias name
+	searchDoc.SpaceName = args.Head.SpaceName
 
 	err = requestToPb(searchDoc, space, args)
 	if err != nil {
@@ -400,7 +401,7 @@ func (handler *DocumentHandler) handleDocumentSearch(c *gin.Context) {
 	args.Head.DbName = searchDoc.DbName
 	args.Head.SpaceName = searchDoc.SpaceName
 
-	space, err := handler.docService.getSpace(ctx, args.Head.DbName, args.Head.SpaceName)
+	space, err := handler.docService.getSpace(c.Request.Context(), args.Head)
 	if space == nil {
 		resp.SendError(c, http.StatusBadRequest, fmt.Sprintf("dbName:%s or spaceName:%s not exist", args.Head.DbName, args.Head.SpaceName))
 		return
@@ -409,6 +410,8 @@ func (handler *DocumentHandler) handleDocumentSearch(c *gin.Context) {
 		resp.SendError(c, http.StatusBadRequest, err.Error())
 		return
 	}
+	// update space name because maybe is alias name
+	searchDoc.SpaceName = args.Head.SpaceName
 
 	err = requestToPb(searchDoc, space, args)
 	if err != nil {
@@ -509,7 +512,7 @@ func (handler *DocumentHandler) handleDocumentDelete(c *gin.Context) {
 	args.Head.DbName = searchDoc.DbName
 	args.Head.SpaceName = searchDoc.SpaceName
 
-	space, err := handler.docService.getSpace(c.Request.Context(), args.Head.DbName, args.Head.SpaceName)
+	space, err := handler.docService.getSpace(c.Request.Context(), args.Head)
 	if space == nil {
 		resp.SendError(c, http.StatusBadRequest, fmt.Sprintf("dbName:%s or spaceName:%s not exist", args.Head.DbName, args.Head.SpaceName))
 		return
@@ -518,6 +521,8 @@ func (handler *DocumentHandler) handleDocumentDelete(c *gin.Context) {
 		resp.SendError(c, http.StatusBadRequest, err.Error())
 		return
 	}
+	// update space name because maybe is alias name
+	searchDoc.SpaceName = args.Head.SpaceName
 
 	err = requestToPb(searchDoc, space, args)
 	if err != nil {
@@ -590,7 +595,7 @@ func (handler *DocumentHandler) handleIndexFlush(c *gin.Context) {
 	args.Head.DbName = indexRequest.DbName
 	args.Head.SpaceName = indexRequest.SpaceName
 
-	space, err := handler.docService.getSpace(c.Request.Context(), args.Head.DbName, args.Head.SpaceName)
+	space, err := handler.docService.getSpace(c.Request.Context(), args.Head)
 	if space == nil {
 		resp.SendError(c, http.StatusBadRequest, fmt.Sprintf("dbName:%s or spaceName:%s not exist", args.Head.DbName, args.Head.SpaceName))
 		return
@@ -625,7 +630,7 @@ func (handler *DocumentHandler) handleIndexForceMerge(c *gin.Context) {
 	args.Head.DbName = indexRequest.DbName
 	args.Head.SpaceName = indexRequest.SpaceName
 
-	space, err := handler.docService.getSpace(c.Request.Context(), args.Head.DbName, args.Head.SpaceName)
+	space, err := handler.docService.getSpace(c.Request.Context(), args.Head)
 	if space == nil {
 		resp.SendError(c, http.StatusBadRequest, fmt.Sprintf("dbName:%s or spaceName:%s not exist", args.Head.DbName, args.Head.SpaceName))
 		return
@@ -667,7 +672,7 @@ func (handler *DocumentHandler) handleIndexRebuild(c *gin.Context) {
 	args.LimitCpu = int64(indexRequest.LimitCPU)
 	args.Describe = int64(indexRequest.Describe)
 
-	space, err := handler.docService.getSpace(c.Request.Context(), args.Head.DbName, args.Head.SpaceName)
+	space, err := handler.docService.getSpace(c.Request.Context(), args.Head)
 	if space == nil {
 		resp.SendError(c, http.StatusBadRequest, fmt.Sprintf("dbName:%s or spaceName:%s not exist", args.Head.DbName, args.Head.SpaceName))
 		return

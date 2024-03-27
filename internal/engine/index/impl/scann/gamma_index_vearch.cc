@@ -1,26 +1,28 @@
 
 #ifdef USE_SCANN
 
+#include "gamma_index_vearch.h"
+
+#include <fcntl.h>
+#include <stdio.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
+
+#include <iostream>
 
 #include "common/gamma_common_data.h"
-#include "gamma_index_vearch.h"
-#include "vector/raw_vector.h"
 #include "scann_api.h"
 #include "util/log.h"
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <iostream>
+#include "vector/raw_vector.h"
 
 namespace vearch {
 
 REGISTER_MODEL(VEARCH, GammaVearchIndex);
 
 struct VearchModelParams {
-  int ncentroids;       // coarse cluster center number
-  int nsubvector;       // number of sub cluster center
+  int ncentroids;  // coarse cluster center number
+  int nsubvector;  // number of sub cluster center
   std::string metric_type;
   double noise_shaping_threshold;
   bool reordering;
@@ -53,7 +55,8 @@ struct VearchModelParams {
       }
       if (ncentroids > 0) this->ncentroids = ncentroids;
     } else {
-      LOG(ERROR) << "cannot get ncentroids for vearch, set it when create space";
+      LOG(ERROR)
+          << "cannot get ncentroids for vearch, set it when create space";
       return -1;
     }
 
@@ -64,7 +67,8 @@ struct VearchModelParams {
       }
       if (nsubvector > 0) this->nsubvector = nsubvector;
     } else {
-      LOG(ERROR) << "cannot get nsubvector for vearch, set it when create space";
+      LOG(ERROR)
+          << "cannot get nsubvector for vearch, set it when create space";
       return -1;
     }
 
@@ -89,7 +93,8 @@ struct VearchModelParams {
 
     if (!jp.GetBool("reordering", use_reordering)) {
       if (use_reordering == true) {
-        LOG(INFO) << "The raw vectors are stored inside vearch. Using vearch reordering.";
+        LOG(INFO) << "The raw vectors are stored inside vearch. Using vearch "
+                     "reordering.";
         reordering = true;
       }
     }
@@ -129,7 +134,8 @@ struct VearchModelParams {
     std::string max_spill_centers = "1";
     std::string use_residual_quantization = "False";
     std::string use_global_topn = "False";
-    std::string str_noise_shaping_threshold = std::to_string(noise_shaping_threshold);
+    std::string str_noise_shaping_threshold =
+        std::to_string(noise_shaping_threshold);
     if (noise_shaping_threshold < 0) {
       str_noise_shaping_threshold = "nan";
     }
@@ -142,35 +148,54 @@ struct VearchModelParams {
     }
 
     std::string projection =
-"    projection {\n\
-        input_dim: " + std::to_string(dimension) + "\n\
+        "    projection {\n\
+        input_dim: " +
+        std::to_string(dimension) +
+        "\n\
         projection_type: CHUNK\n\
-        num_blocks: " + std::to_string(num_blocks) + "\n\
-        num_dims_per_block: " + std::to_string(num_dims_per_block) + "\n\
+        num_blocks: " +
+        std::to_string(num_blocks) +
+        "\n\
+        num_dims_per_block: " +
+        std::to_string(num_dims_per_block) +
+        "\n\
     }\n";
     int residual_dims = dimension % num_blocks;
     if (residual_dims > 0) {
       projection =
-"    projection {\n\
-        input_dim: " + std::to_string(dimension) + "\n\
+          "    projection {\n\
+        input_dim: " +
+          std::to_string(dimension) +
+          "\n\
         projection_type: VARIABLE_CHUNK\n\
         variable_blocks {\n\
-            num_blocks: " + std::to_string(num_blocks) + "\n\
-            num_dims_per_block: " + std::to_string(num_dims_per_block) + "\n\
+            num_blocks: " +
+          std::to_string(num_blocks) +
+          "\n\
+            num_dims_per_block: " +
+          std::to_string(num_dims_per_block) +
+          "\n\
         }\n\
         variable_blocks {\n\
             num_blocks: 1\n\
-            num_dims_per_block: " + std::to_string(residual_dims) + "\n\
+            num_dims_per_block: " +
+          std::to_string(residual_dims) +
+          "\n\
         }\n\
     }\n";
     }
 
-    std::string str_config = "num_neighbors: 100\n\
+    std::string str_config =
+        "num_neighbors: 100\n\
 distance_measure {\n\
-    distance_measure: \"" + metric_type + "\"\n\
+    distance_measure: \"" +
+        metric_type +
+        "\"\n\
 }\n\
 partitioning {\n\
-    num_children: " + std::to_string(num_children) + "\n\
+    num_children: " +
+        std::to_string(num_children) +
+        "\n\
     min_cluster_size: 50\n\
     max_clustering_iterations: 12\n\
     single_machine_center_initialization: RANDOM_INITIALIZATION\n\
@@ -179,34 +204,51 @@ partitioning {\n\
     }\n\
     query_spilling {\n\
         spilling_type: FIXED_NUMBER_OF_CENTERS\n\
-        max_spill_centers: " + max_spill_centers + "\n\
+        max_spill_centers: " +
+        max_spill_centers +
+        "\n\
     }\n\
-    expected_sample_size: " + std::to_string(sample_size) + "\n\
+    expected_sample_size: " +
+        std::to_string(sample_size) +
+        "\n\
     query_tokenization_distance_override {\n\
-        distance_measure: \"" + metric_type + "\"\n\
+        distance_measure: \"" +
+        metric_type +
+        "\"\n\
     }\n\
-    partitioning_type: " + partitioning_type + "\n\
+    partitioning_type: " +
+        partitioning_type +
+        "\n\
     query_tokenization_type: FIXED_POINT_INT8\n\
 }\n\
 hash {\n\
     asymmetric_hash {\n\
         lookup_type: INT8_LUT16\n\
-        use_residual_quantization: " + use_residual_quantization + "\n\
-        use_global_topn: " + use_global_topn + "\n\
+        use_residual_quantization: " +
+        use_residual_quantization +
+        "\n\
+        use_global_topn: " +
+        use_global_topn +
+        "\n\
         quantization_distance {\n\
             distance_measure: \"SquaredL2Distance\"\n\
         }\n\
         num_clusters_per_block: 16\n" +
-        projection + "\
-        noise_shaping_threshold: " + str_noise_shaping_threshold + "\n\
-        expected_sample_size: " + std::to_string(sample_size) + "\n\
+        projection +
+        "\
+        noise_shaping_threshold: " +
+        str_noise_shaping_threshold +
+        "\n\
+        expected_sample_size: " +
+        std::to_string(sample_size) +
+        "\n\
         min_cluster_size: 100\n\
         max_clustering_iterations: 10\n\
     }\n\
 }\n";
     if (reordering) {
       std::string reorder_config =
-"exact_reordering {\n\
+          "exact_reordering {\n\
     approx_num_neighbors: 100\n\
     fixed_point {\n\
         enabled: False\n\
@@ -220,14 +262,12 @@ hash {\n\
   int ToJson(utils::JsonParser &jp) { return 0; }
 };
 
-
-GammaVearchIndex::GammaVearchIndex(VectorReader *vec, const std::string &model_parameters) {
+GammaVearchIndex::GammaVearchIndex(VectorReader *vec,
+                                   const std::string &model_parameters) {
   indexed_count_ = 0;
 }
 
-GammaVearchIndex::GammaVearchIndex() {
-  indexed_count_ = 0;
-}
+GammaVearchIndex::GammaVearchIndex() { indexed_count_ = 0; }
 
 GammaVearchIndex::~GammaVearchIndex() {
   is_run_ = false;
@@ -251,8 +291,9 @@ void GammaVearchIndex::ThreadRun(int timeout) {
   while (is_run_) {
     if (task_queue_.wait_dequeue_timed(task, timeout) > 0) {
       if (task->done_status_ != 0) continue;
-      task->done_status_ = ScannSearch(vearch_index_, task->x_, task->n_, task->k_,
-                                       task->k_, task->leaves_, task->results);
+      task->done_status_ =
+          ScannSearch(vearch_index_, task->x_, task->n_, task->k_, task->k_,
+                      task->leaves_, task->results);
       task->Notify();
     }
   }
@@ -262,16 +303,20 @@ int GammaVearchIndex::CreateThreads(int thread_num) {
   if (thread_num <= 0) return 0;
   threads_.resize(thread_num);
   for (int i = 0; i < thread_num; ++i) {
-    auto func_search = std::bind(&GammaVearchIndex::ThreadRun, this, 4 * (i + 1));
+    auto func_search =
+        std::bind(&GammaVearchIndex::ThreadRun, this, 4 * (i + 1));
     threads_[i] = std::thread(func_search);
   }
   LOG(INFO) << "Create search thread, num:" << thread_num;
   return 0;
 }
 
-int GammaVearchIndex::Init(const std::string &model_parameters, int training_threshold) {
+int GammaVearchIndex::Init(const std::string &model_parameters,
+                           int training_threshold) {
   training_threshold_ = training_threshold;
-  if (model_param_) { delete model_param_; }
+  if (model_param_) {
+    delete model_param_;
+  }
   model_param_ = new VearchModelParams();
   if (model_param_->Parse(model_parameters.c_str()) != 0) {
     return -1;
@@ -281,7 +326,7 @@ int GammaVearchIndex::Init(const std::string &model_parameters, int training_thr
   std::string str_config = model_param_->GetConfig(d_, training_threshold_);
 #ifndef PYTHON_SDK
   LOG(INFO) << str_config;
-#endif // PYTHON_SDK
+#endif  // PYTHON_SDK
 
   vearch_index_ = ScannInit(str_config.c_str(), str_config.length());
   if (vearch_index_ == nullptr) {
@@ -294,7 +339,7 @@ int GammaVearchIndex::Init(const std::string &model_parameters, int training_thr
 }
 
 RetrievalParameters *GammaVearchIndex::Parse(const std::string &parameters) {
-if (parameters == "") {
+  if (parameters == "") {
     return new VearchRetrievalParameters(metric_type_);
   }
 
@@ -340,7 +385,9 @@ if (parameters == "") {
 }
 
 int GammaVearchIndex::Indexing() {
-  if (is_trained_) { return -1; }
+  if (is_trained_) {
+    return -1;
+  }
   RawVector *raw_vec = dynamic_cast<RawVector *>(vector_);
 
   ScopeVectors headers;
@@ -365,9 +412,9 @@ int GammaVearchIndex::Indexing() {
       offset += sizeof(float) * raw_d * lens[i];
     }
   }
-  
-  int ret = ScannTraining(vearch_index_, train_raw_vec, bytes_num,
-                          raw_d, model_param_->n_thread);
+
+  int ret = ScannTraining(vearch_index_, train_raw_vec, bytes_num, raw_d,
+                          model_param_->n_thread);
 
   indexed_count_ = training_threshold_;
   is_trained_ = true;
@@ -377,7 +424,9 @@ int GammaVearchIndex::Indexing() {
 }
 
 bool GammaVearchIndex::Add(int n, const uint8_t *vec) {
-  if (is_trained_ == false) { return false; }
+  if (is_trained_ == false) {
+    return false;
+  }
 #ifdef PERFORMANCE_TESTING
   double t0 = utils::getmillisecs();
 #endif
@@ -401,19 +450,24 @@ bool GammaVearchIndex::Add(int n, const uint8_t *vec) {
 
 int GammaVearchIndex::Update(const std::vector<int64_t> &ids,
                              const std::vector<const uint8_t *> &vecs) {
-  if (is_trained_ == false) { return -1; }
+  if (is_trained_ == false) {
+    return -1;
+  }
   LOG(WARNING) << "vearch not support update.";
   return 0;
 }
 
 int GammaVearchIndex::Delete(const std::vector<int64_t> &ids) {
-  if (is_trained_ == false) { return -1; }
+  if (is_trained_ == false) {
+    return -1;
+  }
   ++delete_num_;
   return 0;
 }
 
-int GammaVearchIndex::Search(RetrievalContext *retrieval_context, int n, const uint8_t *x,
-                             int k, float *distances, int64_t *ids) {
+int GammaVearchIndex::Search(RetrievalContext *retrieval_context, int n,
+                             const uint8_t *x, int k, float *distances,
+                             int64_t *ids) {
   if (is_trained_ == false) return -1;
 
   int ret = -1;
@@ -422,20 +476,23 @@ int GammaVearchIndex::Search(RetrievalContext *retrieval_context, int n, const u
   const float *q = (const float *)x;
   if (rerank_ <= k) rerank_ = k;
   std::vector<std::vector<std::pair<uint32_t, float>>> results;
-#else // else PYTHON_SDK
+#else   // else PYTHON_SDK
   VearchRetrievalParameters *retrieval_params =
-      dynamic_cast<VearchRetrievalParameters *>(retrieval_context->RetrievalParams());
+      dynamic_cast<VearchRetrievalParameters *>(
+          retrieval_context->RetrievalParams());
   int leaves = leaves_;
   if (retrieval_params && retrieval_params->nprobe_ > 0 &&
       retrieval_params->nprobe_ < model_param_->ncentroids) {
     leaves = retrieval_params->nprobe_;
   }
-  
+
   const float *q = (const float *)x;
   int top = k;
-  GammaSearchCondition *condition =
-      dynamic_cast<GammaSearchCondition *>(retrieval_context);
-  if (condition->range_query_result) { top *= 1.5; }
+  SearchCondition *condition =
+      dynamic_cast<SearchCondition *>(retrieval_context);
+  if (condition->range_query_result) {
+    top *= 1.5;
+  }
 #endif  // PYTHON_SDK
 
 #ifdef PERFORMANCE_TESTING
@@ -452,13 +509,14 @@ int GammaVearchIndex::Search(RetrievalContext *retrieval_context, int n, const u
       ids[i * k + j] = (int64_t)results[i][j].first;
     }
   }
-#else // else PYTHON_SDK
+#else   // else PYTHON_SDK
   if (model_param_->n_thread > 0) {
     if (task_queue_.size_approx() > 3000) {
       LOG(INFO) << "task_queue.size_approx() > 3000. abandon";
       return -1;
     }
-    std::shared_ptr<SearchTask> task = std::make_shared<SearchTask>(n, q, top, leaves);
+    std::shared_ptr<SearchTask> task =
+        std::make_shared<SearchTask>(n, q, top, leaves);
     task_queue_.enqueue(task);
     ret = task->WaitForDone();
     if (ret != 0) {
@@ -472,7 +530,9 @@ int GammaVearchIndex::Search(RetrievalContext *retrieval_context, int n, const u
         if (condition->IsValid(task->results[i][j].first)) {
           float score = fabs(task->results[i][j].second);
           if (count >= k || score < condition->min_score ||
-              score > condition->max_score) { break; }
+              score > condition->max_score) {
+            break;
+          }
           distances[i * k + count] = score;
           ids[i * k + count] = (int64_t)(task->results[i][j].first);
           ++count;
@@ -489,7 +549,9 @@ int GammaVearchIndex::Search(RetrievalContext *retrieval_context, int n, const u
         if (condition->IsValid(results[i][j].first)) {
           float score = fabs(results[i][j].second);
           if (count >= k || score < condition->min_score ||
-              score > condition->max_score) { break; }
+              score > condition->max_score) {
+            break;
+          }
           distances[i * k + count] = score;
           ids[i * k + count] = (int64_t)(results[i][j].first);
           ++count;
@@ -504,21 +566,11 @@ int GammaVearchIndex::Search(RetrievalContext *retrieval_context, int n, const u
   return ret;
 }
 
-long GammaVearchIndex::GetTotalMemBytes() {
+long GammaVearchIndex::GetTotalMemBytes() { return 0; }
 
-  return 0;
-}
+int GammaVearchIndex::Dump(const std::string &dir) { return 0; }
 
-int GammaVearchIndex::Dump(const std::string &dir) {
+int GammaVearchIndex::Load(const std::string &index_dir) { return 0; }
 
-  return 0;
-}
-
-int GammaVearchIndex::Load(const std::string &index_dir) {
-
-  return 0;
-}
-
-}
+}  // namespace vearch
 #endif
-

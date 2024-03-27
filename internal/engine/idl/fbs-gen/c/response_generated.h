@@ -6,6 +6,8 @@
 
 #include "flatbuffers/flatbuffers.h"
 
+#include "status_generated.h"
+
 namespace gamma_api {
 
 struct Attribute;
@@ -15,37 +17,6 @@ struct ResultItem;
 struct SearchResult;
 
 struct Response;
-
-enum SearchResultCode {
-  SUCCESS = 0,
-  INDEX_NOT_TRAINED = 1,
-  SEARCH_ERROR = 2
-};
-
-inline const SearchResultCode (&EnumValuesSearchResultCode())[3] {
-  static const SearchResultCode values[] = {
-    SUCCESS,
-    INDEX_NOT_TRAINED,
-    SEARCH_ERROR
-  };
-  return values;
-}
-
-inline const char * const *EnumNamesSearchResultCode() {
-  static const char * const names[] = {
-    "SUCCESS",
-    "INDEX_NOT_TRAINED",
-    "SEARCH_ERROR",
-    nullptr
-  };
-  return names;
-}
-
-inline const char *EnumNameSearchResultCode(SearchResultCode e) {
-  if (e < SUCCESS || e > SEARCH_ERROR) return "";
-  const size_t index = static_cast<size_t>(e);
-  return EnumNamesSearchResultCode()[index];
-}
 
 struct Attribute FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
@@ -114,8 +85,7 @@ inline flatbuffers::Offset<Attribute> CreateAttributeDirect(
 struct ResultItem FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_SCORE = 4,
-    VT_ATTRIBUTES = 6,
-    VT_EXTRA = 8
+    VT_ATTRIBUTES = 6
   };
   double score() const {
     return GetField<double>(VT_SCORE, 0.0);
@@ -123,17 +93,12 @@ struct ResultItem FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const flatbuffers::Vector<flatbuffers::Offset<Attribute>> *attributes() const {
     return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<Attribute>> *>(VT_ATTRIBUTES);
   }
-  const flatbuffers::String *extra() const {
-    return GetPointer<const flatbuffers::String *>(VT_EXTRA);
-  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<double>(verifier, VT_SCORE) &&
            VerifyOffset(verifier, VT_ATTRIBUTES) &&
            verifier.VerifyVector(attributes()) &&
            verifier.VerifyVectorOfTables(attributes()) &&
-           VerifyOffset(verifier, VT_EXTRA) &&
-           verifier.VerifyString(extra()) &&
            verifier.EndTable();
   }
 };
@@ -146,9 +111,6 @@ struct ResultItemBuilder {
   }
   void add_attributes(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<Attribute>>> attributes) {
     fbb_.AddOffset(ResultItem::VT_ATTRIBUTES, attributes);
-  }
-  void add_extra(flatbuffers::Offset<flatbuffers::String> extra) {
-    fbb_.AddOffset(ResultItem::VT_EXTRA, extra);
   }
   explicit ResultItemBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -165,11 +127,9 @@ struct ResultItemBuilder {
 inline flatbuffers::Offset<ResultItem> CreateResultItem(
     flatbuffers::FlatBufferBuilder &_fbb,
     double score = 0.0,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<Attribute>>> attributes = 0,
-    flatbuffers::Offset<flatbuffers::String> extra = 0) {
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<Attribute>>> attributes = 0) {
   ResultItemBuilder builder_(_fbb);
   builder_.add_score(score);
-  builder_.add_extra(extra);
   builder_.add_attributes(attributes);
   return builder_.Finish();
 }
@@ -177,15 +137,12 @@ inline flatbuffers::Offset<ResultItem> CreateResultItem(
 inline flatbuffers::Offset<ResultItem> CreateResultItemDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     double score = 0.0,
-    const std::vector<flatbuffers::Offset<Attribute>> *attributes = nullptr,
-    const char *extra = nullptr) {
+    const std::vector<flatbuffers::Offset<Attribute>> *attributes = nullptr) {
   auto attributes__ = attributes ? _fbb.CreateVector<flatbuffers::Offset<Attribute>>(*attributes) : 0;
-  auto extra__ = extra ? _fbb.CreateString(extra) : 0;
   return gamma_api::CreateResultItem(
       _fbb,
       score,
-      attributes__,
-      extra__);
+      attributes__);
 }
 
 struct SearchResult FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -198,8 +155,8 @@ struct SearchResult FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   int32_t total() const {
     return GetField<int32_t>(VT_TOTAL, 0);
   }
-  SearchResultCode result_code() const {
-    return static_cast<SearchResultCode>(GetField<int8_t>(VT_RESULT_CODE, 0));
+  vearch::status::Code result_code() const {
+    return static_cast<vearch::status::Code>(GetField<int8_t>(VT_RESULT_CODE, 0));
   }
   const flatbuffers::String *msg() const {
     return GetPointer<const flatbuffers::String *>(VT_MSG);
@@ -226,7 +183,7 @@ struct SearchResultBuilder {
   void add_total(int32_t total) {
     fbb_.AddElement<int32_t>(SearchResult::VT_TOTAL, total, 0);
   }
-  void add_result_code(SearchResultCode result_code) {
+  void add_result_code(vearch::status::Code result_code) {
     fbb_.AddElement<int8_t>(SearchResult::VT_RESULT_CODE, static_cast<int8_t>(result_code), 0);
   }
   void add_msg(flatbuffers::Offset<flatbuffers::String> msg) {
@@ -250,7 +207,7 @@ struct SearchResultBuilder {
 inline flatbuffers::Offset<SearchResult> CreateSearchResult(
     flatbuffers::FlatBufferBuilder &_fbb,
     int32_t total = 0,
-    SearchResultCode result_code = SUCCESS,
+    vearch::status::Code result_code = vearch::status::kOk,
     flatbuffers::Offset<flatbuffers::String> msg = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<ResultItem>>> result_items = 0) {
   SearchResultBuilder builder_(_fbb);
@@ -264,7 +221,7 @@ inline flatbuffers::Offset<SearchResult> CreateSearchResult(
 inline flatbuffers::Offset<SearchResult> CreateSearchResultDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     int32_t total = 0,
-    SearchResultCode result_code = SUCCESS,
+    vearch::status::Code result_code = vearch::status::kOk,
     const char *msg = nullptr,
     const std::vector<flatbuffers::Offset<ResultItem>> *result_items = nullptr) {
   auto msg__ = msg ? _fbb.CreateString(msg) : 0;

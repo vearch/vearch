@@ -14,6 +14,7 @@
 #include "faiss/impl/io.h"
 #include "faiss/index_io.h"
 #include "realtime/realtime_invert_index.h"
+#include "util/status.h"
 
 namespace vearch {
 /*************************************************************
@@ -143,7 +144,7 @@ struct FileIOWriter : faiss::IOWriter {
 
 int WriteInvertedLists(faiss::IOWriter *f,
                        realtime::RTInvertIndex *rt_invert_index);
-int ReadInvertedLists(faiss::IOReader *f,
-                      realtime::RTInvertIndex *rt_invert_index,
-                      int &indexed_vec_count);
+Status ReadInvertedLists(faiss::IOReader *f,
+                         realtime::RTInvertIndex *rt_invert_index,
+                         int &indexed_vec_count);
 }  // namespace vearch

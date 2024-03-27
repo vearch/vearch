@@ -1,22 +1,9 @@
 syntax = "proto3";
 
 import "errors.proto";
-import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 
 option optimize_for = SPEED;
-option (gogoproto.marshaler_all) = true;
-option (gogoproto.sizer_all) = true;
-option (gogoproto.unmarshaler_all) = true;
-option (gogoproto.gostring_all) = false;
-option (gogoproto.equal_all) = true;
-option (gogoproto.verbose_equal_all) = false;
-option (gogoproto.goproto_stringer_all) = false;
-option (gogoproto.stringer_all) = true;
-option (gogoproto.populate_all) = true;
-option (gogoproto.testgen_all) = false;
-option (gogoproto.benchgen_all) = false;
-option (gogoproto.goproto_getters_all) = false;
-option go_package = "vearchpb";
+option go_package = "./vearchpb";
 
 enum FieldType {
   INT = 0;
@@ -50,13 +37,11 @@ message Field {
 }
 
 message Document {
-  option (gogoproto.goproto_getters) = true;
   string p_key = 1;
   repeated Field fields = 2;
 }
 
 message Item {
-  option (gogoproto.goproto_getters) = true;
   Error err = 1;
   Document doc = 2;
   string msg = 3;

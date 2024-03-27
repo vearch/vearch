@@ -242,7 +242,6 @@ class ParseTable:
 
         if engine.get("retrieval_param") == None:
             engine["retrieval_param"] = ""
-        engine["compress_mode"] = 0
         engine["retrieval_types"] = []
         engine["retrieval_params"] = []
 
@@ -373,7 +372,6 @@ class GammaTable:
         Table.TableAddFields(builder, ser_fields)
         Table.TableAddVectorsInfo(builder, ser_vectors)
         Table.TableAddIndexingSize(builder, self.engine["index_size"])
-        Table.TableAddCompressMode(builder, self.engine["compress_mode"])
         Table.TableAddRetrievalType(builder, retrieval_type)
         Table.TableAddRetrievalParam(builder, retrieval_param)
         Table.TableAddRetrievalTypes(builder, retrieval_types)

@@ -74,20 +74,8 @@ func (rcv *Table) VectorsInfoLength() int {
 	return 0
 }
 
-func (rcv *Table) CompressMode() int32 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(10))
-	if o != 0 {
-		return rcv._tab.GetInt32(o + rcv._tab.Pos)
-	}
-	return 0
-}
-
-func (rcv *Table) MutateCompressMode(n int32) bool {
-	return rcv._tab.MutateInt32Slot(10, n)
-}
-
 func (rcv *Table) IndexType() []byte {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(12))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(10))
 	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
 	}
@@ -95,7 +83,7 @@ func (rcv *Table) IndexType() []byte {
 }
 
 func (rcv *Table) IndexParams() []byte {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(14))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(12))
 	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
 	}
@@ -103,7 +91,7 @@ func (rcv *Table) IndexParams() []byte {
 }
 
 func TableStart(builder *flatbuffers.Builder) {
-	builder.StartObject(6)
+	builder.StartObject(5)
 }
 func TableAddName(builder *flatbuffers.Builder, name flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(name), 0)
@@ -120,14 +108,11 @@ func TableAddVectorsInfo(builder *flatbuffers.Builder, vectorsInfo flatbuffers.U
 func TableStartVectorsInfoVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(4, numElems, 4)
 }
-func TableAddCompressMode(builder *flatbuffers.Builder, compressMode int32) {
-	builder.PrependInt32Slot(3, compressMode, 0)
-}
 func TableAddIndexType(builder *flatbuffers.Builder, indexType flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(4, flatbuffers.UOffsetT(indexType), 0)
+	builder.PrependUOffsetTSlot(3, flatbuffers.UOffsetT(indexType), 0)
 }
 func TableAddIndexParams(builder *flatbuffers.Builder, indexParams flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(5, flatbuffers.UOffsetT(indexParams), 0)
+	builder.PrependUOffsetTSlot(4, flatbuffers.UOffsetT(indexParams), 0)
 }
 func TableEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

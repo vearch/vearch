@@ -61,9 +61,9 @@ class Table {
    *
    * @param table  table definition
    * @param table_params unused
-   * @return 0 if successed
+   * @return Status::OK() if successed
    */
-  int CreateTable(TableInfo &table, TableParams &table_params,
+  Status CreateTable(TableInfo &table, TableParams &table_params,
                   bitmap::BitmapManager *bitmap_mgr);
 
   /** add a doc to table
@@ -159,7 +159,7 @@ class Table {
  private:
   int FTypeSize(DataType fType);
 
-  int AddField(const std::string &name, DataType ftype, bool is_index);
+  Status AddField(const std::string &name, DataType ftype, bool is_index);
 
   std::string name_;   // table name
   int item_length_;    // every doc item length

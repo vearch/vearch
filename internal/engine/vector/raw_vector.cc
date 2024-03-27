@@ -121,40 +121,44 @@ DumpConfig *RawVector::GetDumpConfig() {
   return dynamic_cast<DumpConfig *>(&store_params_);
 }
 
-int StoreParams::Parse(const char *str) {
+Status StoreParams::Parse(const char *str) {
   utils::JsonParser jp;
   if (jp.Parse(str)) {
-    LOG(ERROR) << "parse store parameters error: " << str;
-    return -1;
+    std::string msg = std::string("parse store parameters error: ") + str;
+    LOG(ERROR) << msg;
+    return Status::ParamError(msg);
   }
   return Parse(jp);
 }
 
-int StoreParams::Parse(utils::JsonParser &jp) {
+Status StoreParams::Parse(utils::JsonParser &jp) {
   double cache_size = 0;
   if (!jp.GetDouble("cache_size", cache_size)) {
     if (cache_size > MAX_CACHE_SIZE || cache_size < 0) {
-      LOG(ERROR) << "invalid cache size=" << cache_size << "M"
-                 << ", limit size=" << MAX_CACHE_SIZE << "M";
-      return -1;
+      std::stringstream msg;
+      msg << "invalid cache size=" << cache_size << "M"
+          << ", limit size=" << MAX_CACHE_SIZE << "M";
+      LOG(ERROR) << msg.str();
+      return Status::ParamError(msg.str());
     }
     this->cache_size = cache_size;
   }
 
   if (!jp.GetInt("segment_size", segment_size)) {
     if (segment_size <= 0) {
-      LOG(ERROR) << "invalid segment size=" << segment_size;
-      return -1;
+      std::stringstream msg;
+      msg << "invalid segment size=" << segment_size;
+      LOG(ERROR) << msg.str();
+      return Status::ParamError(msg.str());
     }
   }
 
-  return 0;
+  return Status::OK();
 }
 
-int StoreParams::MergeRight(StoreParams &other) {
+void StoreParams::MergeRight(StoreParams &other) {
   cache_size = other.cache_size;
   segment_size = other.segment_size;
-  return 0;
 }
 
 }  // namespace vearch

@@ -29,6 +29,9 @@ logger = logging.getLogger(__name__)
 __description__ = """ test case for module alias """
 
 
+xb, xq, _, gt = get_sift10K(logger)
+
+
 class TestAlias:
     def setup(self):
         self.logger = logger
@@ -50,36 +53,11 @@ class TestAlias:
             "replica_num": 1,
             "fields": [
                 {
-                    "name": "field_string",
-                    "type": "keyword"
-                },
-                {
                     "name": "field_int",
-                    "type": "integer"
-                },
-                {
-                    "name": "field_float",
-                    "type": "float",
-                    "index": {
-                        "name": "field_float",
-                        "type": "SCALAR",
-                    },
-                },
-                {
-                    "name": "field_string_array",
-                    "type": "string",
-                    "array": True,
-                    "index": {
-                        "name": "field_string_array",
-                        "type": "SCALAR",
-                    },
-                },
-                {
-                    "name": "field_int_index",
                     "type": "integer",
                     "index": {
-                        "name": "field_int_index",
-                        "type": "SCALAR",
+                        "name": "field_int",
+                        "type": "SCALAR"
                     },
                 },
                 {
@@ -90,23 +68,11 @@ class TestAlias:
                         "name": "gamma",
                         "type": "FLAT",
                         "params": {
-                            "metric_type": "InnerProduct",
-                            "ncentroids": 2048,
-                            "nsubvector": 32,
-                            "nlinks": 32,
-                            "efConstruction": 40,
-                            "nprobe":80,
-                            "efSearch":64,
-                            "training_threshold":70000
+                            "metric_type": "L2",
                         }
                     },
-                },
-                # {
-                #     "name": "field_vector_normal",
-                #     "type": "vector",
-                #     "dimension": int(embedding_size * 2),
-                #     "format": "normalization"
-                # }
+                    #"format": "normalization"
+                }
             ]
         }
 
@@ -246,6 +212,35 @@ class TestAlias:
         for alias in response["data"]:
             response = drop_alias(router_url, alias["name"])
             assert response["code"] == 200
+
+    def test_document_operation(self):
+        embedding_size = xb.shape[1]
+        batch_size = 100
+        k = 100
+
+        total_batch = 1
+        total = int(total_batch * batch_size)
+
+        response = create_alias(router_url, "alias_name", db_name, space_name)
+        assert response["code"] == 200
+
+        add(total_batch, batch_size, xb, with_id=True, alias_name="alias_name")
+
+        waiting_index_finish(logger, total)
+
+        query_interface(logger, total_batch, batch_size, xb, query_type = "by_ids", alias_name="alias_name")
+        query_interface(logger, total_batch, batch_size, xb, query_type = "by_filter", alias_name="alias_name")
+
+        search_interface(logger, total_batch, batch_size, xb, query_type="by_vector", alias_name="alias_name")
+        search_interface(logger, total_batch, batch_size, xb, query_type="by_ids", alias_name="alias_name")
+
+        delete_interface(logger, total_batch, batch_size, delete_type="by_filter", alias_name="alias_name")
+
+        add(total_batch, batch_size, xb, with_id=True, alias_name="alias_name")
+        delete_interface(logger, total_batch, batch_size, delete_type="by_ids", alias_name="alias_name")
+
+        response = drop_alias(router_url, "alias_name")
+        assert response["code"] == 200
 
     def test_destroy_db_and_space(self):
         space_info = list_spaces(router_url, db_name)

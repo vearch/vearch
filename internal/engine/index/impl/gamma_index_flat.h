@@ -70,7 +70,8 @@ class GammaFLATIndex : public IndexModel {
 
   ~GammaFLATIndex();
 
-  int Init(const std::string &model_parameters, int training_threshold) override;
+  Status Init(const std::string &model_parameters,
+              int training_threshold) override;
 
   RetrievalParameters *Parse(const std::string &parameters) override;
 
@@ -88,9 +89,9 @@ class GammaFLATIndex : public IndexModel {
 
   long GetTotalMemBytes() override;
 
-  int Dump(const std::string &dir) override;
+  Status Dump(const std::string &dir) override;
 
-  int Load(const std::string &index_dir) override;
+  Status Load(const std::string &index_dir, int &load_num) override;
 
   DistanceComputeType metric_type_;
 

@@ -233,23 +233,22 @@ func documentSearchResponse(srs []*vearchpb.SearchResult, head *vearchpb.Respons
 	var documents []json.RawMessage
 	if len(srs) > 1 {
 		var wg sync.WaitGroup
-		respChain := make(chan json.RawMessage, len(srs))
-		for _, sr := range srs {
+		resp := make([][]byte, len(srs))
+		for i, sr := range srs {
 			wg.Add(1)
-			go func(sr *vearchpb.SearchResult) {
+			go func(sr *vearchpb.SearchResult, index int) {
 				defer wg.Done()
 				bytes, err := documentToContent(sr.ResultItems, response_type)
 				if err != nil {
 					return
 				}
-				respChain <- json.RawMessage(bytes)
-			}(sr)
+				resp[index] = json.RawMessage(bytes)
+			}(sr, i)
 		}
 
 		wg.Wait()
-		close(respChain)
 
-		for msg := range respChain {
+		for _, msg := range resp {
 			documents = append(documents, msg)
 		}
 	} else {
@@ -262,7 +261,15 @@ func documentSearchResponse(srs []*vearchpb.SearchResult, head *vearchpb.Respons
 		}
 	}
 
-	response["documents"] = documents
+	if response_type == request.SearchResponse {
+		response["documents"] = documents
+	} else {
+		if len(documents) > 0 {
+			response["documents"] = documents[0]
+		} else {
+			response["documents"] = nil
+		}
+	}
 	return vjson.Marshal(response)
 }
 
@@ -278,20 +285,18 @@ func documentToContent(dh []*vearchpb.ResultItem, response_type string) ([]byte,
 		}
 
 		if u.Source != nil {
-			content["_source"] = u.Source
+			var sourceJson json.RawMessage
+			if err := vjson.Unmarshal(u.Source, &sourceJson); err != nil {
+				log.Error("DocToContent Source Unmarshal error:%v", err)
+			} else {
+				content["_source"] = sourceJson
+			}
 		}
 
 		contents = append(contents, content)
 	}
 
-	if response_type == request.SearchResponse {
-		return vjson.Marshal(contents)
-	}
-
-	if len(contents) > 0 {
-		return vjson.Marshal(contents[0])
-	}
-	return vjson.Marshal(nil)
+	return vjson.Marshal(contents)
 }
 
 func documentDeleteResponse(items []*vearchpb.Item, head *vearchpb.ResponseHead, resultIds []string) ([]byte, error) {

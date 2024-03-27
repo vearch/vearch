@@ -24,15 +24,15 @@ struct MemoryRawVectorIO : public RawVectorIO, public AsyncFlusher {
       : AsyncFlusher(raw_vector_->MetaInfo()->Name()),
         raw_vector(raw_vector_) {}
   ~MemoryRawVectorIO() {}
-  int Init() override;
-  int Dump(int start_vid, int end_vid) override;
+  Status Init() override;
+  Status Dump(int start_vid, int end_vid) override;
   int GetDiskVecNum(int &vec_num) override;
-  int Load(int vec_num) override;
-  int Update(int vid) override;
+  Status Load(int vec_num) override;
+  Status Update(int vid) override;
 
-  int FlushOnce() override;
+  Status FlushOnce() override;
 
-  int Put(int vid);
+  Status Put(int vid);
 };
 
 }  // namespace vearch

@@ -40,8 +40,8 @@
 #include "gamma_index_flat.h"
 #include "gamma_scanner.h"
 #include "index/impl/gamma_index_ivfpq.h"
-#include "index/realtime/realtime_invert_index.h"
 #include "index/index_model.h"
+#include "index/realtime/realtime_invert_index.h"
 #include "table/field_range_index.h"
 #include "util/log.h"
 #include "util/utils.h"
@@ -56,11 +56,13 @@ struct IVFPQFastScanModelParams : IVFPQModelParams {
     bbs = 32;
     nbits_per_idx = 4;
   }
-  int Parse(const char *str) {
+  Status Parse(const char *str) {
     utils::JsonParser jp;
     if (jp.Parse(str)) {
-      LOG(ERROR) << "parse IVFPQ retrieval parameters error: " << str;
-      return -1;
+      std::string msg =
+          std::string("parse IVFPQ retrieval parameters error: ") + str;
+      LOG(ERROR) << msg;
+      return Status::ParamError(msg);
     }
 
     int ncentroids;
@@ -72,24 +74,32 @@ struct IVFPQFastScanModelParams : IVFPQModelParams {
     // -1 as default
     if (!jp.GetInt("ncentroids", ncentroids)) {
       if (ncentroids < -1) {
-        LOG(ERROR) << "invalid ncentroids =" << ncentroids;
-        return -1;
+        std::string msg =
+            std::string("invalid ncentroids =") + std::to_string(ncentroids);
+        LOG(ERROR) << msg;
+        return Status::ParamError(msg);
       }
       if (ncentroids > 0) this->ncentroids = ncentroids;
     } else {
-      LOG(ERROR) << "cannot get ncentroids for ivfpq, set it when create space";
-      return -1;
+      std::string msg =
+          "cannot get ncentroids for ivfpq, set it when create space";
+      LOG(ERROR) << msg;
+      return Status::ParamError(msg);
     }
 
     if (!jp.GetInt("nsubvector", nsubvector)) {
       if (nsubvector < -1) {
-        LOG(ERROR) << "invalid nsubvector =" << nsubvector;
-        return -1;
+        std::string msg =
+            std::string("invalid nsubvector =") + std::to_string(nsubvector);
+        LOG(ERROR) << msg;
+        return Status::ParamError(msg);
       }
       if (nsubvector > 0) this->nsubvector = nsubvector;
     } else {
-      LOG(ERROR) << "cannot get nsubvector for ivfpq, set it when create space";
-      return -1;
+      std::string msg =
+          "cannot get nsubvector for ivfpq, set it when create space";
+      LOG(ERROR) << msg;
+      return Status::ParamError(msg);
     }
     /*
     if (!jp.GetInt("nbits_per_idx", nbits_per_idx)) {
@@ -102,20 +112,24 @@ struct IVFPQFastScanModelParams : IVFPQModelParams {
     */
     if (!jp.GetInt("nprobe", nprobe)) {
       if (nprobe < -1) {
-        LOG(ERROR) << "invalid nprobe =" << nprobe;
-        return -1;
+        std::string msg =
+            std::string("invalid nprobe =") + std::to_string(nprobe);
+        LOG(ERROR) << msg;
+        return Status::ParamError(msg);
       }
       if (nprobe > 0) this->nprobe = nprobe;
       if (this->nprobe > this->ncentroids) {
-        LOG(ERROR) << "nprobe should less than ncentroids";
-        return -1;
+        std::string msg = "nprobe should less than ncentroids";
+        LOG(ERROR) << msg;
+        return Status::ParamError(msg);
       }
     }
 
     if (!jp.GetInt("bbs", bbs)) {
       if (bbs < -1) {
-        LOG(ERROR) << "invalid bbs =" << bbs;
-        return -1;
+        std::string msg = std::string("invalid bbs =") + std::to_string(bbs);
+        LOG(ERROR) << msg;
+        return Status::ParamError(msg);
       }
       if (bbs > 0) this->bbs = bbs;
     }
@@ -126,16 +140,20 @@ struct IVFPQFastScanModelParams : IVFPQModelParams {
     // -1 as default
     if (!jp.GetInt("bucket_init_size", bucket_init_size)) {
       if (bucket_init_size < -1) {
-        LOG(ERROR) << "invalid bucket_init_size =" << bucket_init_size;
-        return -1;
+        std::string msg = std::string("invalid bucket_init_size =") +
+                          std::to_string(bucket_init_size);
+        LOG(ERROR) << msg;
+        return Status::ParamError(msg);
       }
       if (bucket_init_size > 0) this->bucket_init_size = bucket_init_size;
     }
 
     if (!jp.GetInt("bucket_max_size", bucket_max_size)) {
       if (bucket_max_size < -1) {
-        LOG(ERROR) << "invalid bucket_max_size =" << bucket_max_size;
-        return -1;
+        std::string msg = std::string("invalid bucket_max_size =") +
+                          std::to_string(bucket_max_size);
+        LOG(ERROR) << msg;
+        return Status::ParamError(msg);
       }
       if (bucket_max_size > 0) this->bucket_max_size = bucket_max_size;
     }
@@ -145,8 +163,9 @@ struct IVFPQFastScanModelParams : IVFPQModelParams {
     if (!jp.GetString("metric_type", metric_type)) {
       if (strcasecmp("L2", metric_type.c_str()) &&
           strcasecmp("InnerProduct", metric_type.c_str())) {
-        LOG(ERROR) << "invalid metric_type = " << metric_type;
-        return -1;
+        std::string msg = std::string("invalid metric_type = ") + metric_type;
+        LOG(ERROR) << msg;
+        return Status::ParamError(msg);
       }
       if (!strcasecmp("L2", metric_type.c_str()))
         this->metric_type = DistanceComputeType::L2;
@@ -163,24 +182,29 @@ struct IVFPQFastScanModelParams : IVFPQModelParams {
       // -1 as default
       if (!jp_hnsw.GetInt("nlinks", nlinks)) {
         if (nlinks < -1) {
-          LOG(ERROR) << "invalid nlinks = " << nlinks;
-          return -1;
+          std::string msg =
+              std::string("invalid nlinks = ") + std::to_string(nlinks);
+          return Status::ParamError(msg);
         }
         if (nlinks > 0) this->nlinks = nlinks;
       }
 
       if (!jp_hnsw.GetInt("efConstruction", efConstruction)) {
         if (efConstruction < -1) {
-          LOG(ERROR) << "invalid efConstruction = " << efConstruction;
-          return -1;
+          std::string msg = std::string("invalid efConstruction = ") +
+                            std::to_string(efConstruction);
+          LOG(ERROR) << msg;
+          return Status::ParamError(msg);
         }
         if (efConstruction > 0) this->efConstruction = efConstruction;
       }
 
       if (!jp_hnsw.GetInt("efSearch", efSearch)) {
         if (efSearch < -1) {
-          LOG(ERROR) << "invalid efSearch = " << efSearch;
-          return -1;
+          std::string msg =
+              std::string("invalid efSearch = ") + std::to_string(efSearch);
+          LOG(ERROR) << msg;
+          return Status::ParamError(msg);
         }
         if (efSearch > 0) this->efSearch = efSearch;
       }
@@ -193,15 +217,17 @@ struct IVFPQFastScanModelParams : IVFPQModelParams {
       // -1 as default
       if (!jp_opq.GetInt("nsubvector", opq_nsubvector)) {
         if (nsubvector < -1) {
-          LOG(ERROR) << "invalid opq_nsubvector = " << opq_nsubvector;
-          return -1;
+          std::string msg = std::string("invalid opq_nsubvector = ") +
+                            std::to_string(opq_nsubvector);
+          LOG(ERROR) << msg;
+          return Status::ParamError(msg);
         }
         if (opq_nsubvector > 0) this->opq_nsubvector = opq_nsubvector;
       }
     }
 
-    if (!Validate()) return -1;
-    return 0;
+    if (!Validate()) return Status::ParamError();
+    return Status::OK();
   }
 
   bool Validate() {
@@ -250,7 +276,8 @@ struct GammaIVFPQFastScanIndex : GammaFLATIndex, faiss::IndexIVFPQFastScan {
 
   virtual ~GammaIVFPQFastScanIndex();
 
-  int Init(const std::string &model_parameters, int training_threshold) override;
+  Status Init(const std::string &model_parameters,
+              int training_threshold) override;
 
   RetrievalParameters *Parse(const std::string &parameters) override;
 
@@ -271,9 +298,9 @@ struct GammaIVFPQFastScanIndex : GammaFLATIndex, faiss::IndexIVFPQFastScan {
     return rt_invert_index_ptr_->GetTotalMemBytes();
   }
 
-  int Dump(const std::string &dir) override;
+  Status Dump(const std::string &dir) override;
 
-  int Load(const std::string &index_dir) override;
+  Status Load(const std::string &index_dir, int &load_num) override;
 
   int Delete(const std::vector<int64_t> &ids) override;
 

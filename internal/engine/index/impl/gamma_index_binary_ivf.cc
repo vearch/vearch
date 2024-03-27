@@ -7,7 +7,6 @@
 
 #include "gamma_index_binary_ivf.h"
 
-#include "common/error_code.h"
 #include "common/gamma_common_data.h"
 #include "faiss/IndexBinaryFlat.h"
 #include "faiss/utils/hamming.h"
@@ -20,11 +19,12 @@ struct BinaryModelParams {
 
   BinaryModelParams() { ncentroids = 256; }
 
-  int Parse(const char *str) {
+  Status Parse(const char *str) {
     utils::JsonParser jp;
     if (jp.Parse(str)) {
-      LOG(ERROR) << "parse IVF model parameters error: " << str;
-      return -1;
+      std::string msg = std::string("parse IVF model parameters error: ") + str;
+      LOG(ERROR) << msg;
+      return Status::ParamError(msg);
     }
 
     int ncentroids;
@@ -32,13 +32,15 @@ struct BinaryModelParams {
     // -1 as default
     if (!jp.GetInt("ncentroids", ncentroids)) {
       if (ncentroids < -1) {
-        LOG(ERROR) << "invalid ncentroids =" << ncentroids;
-        return -1;
+        std::string msg =
+            std::string("invalid ncentroids = ") + std::to_string(ncentroids);
+        LOG(ERROR) << msg;
+        return Status::ParamError(msg);
       }
       if (ncentroids > 0) this->ncentroids = ncentroids;
     }
 
-    return 0;
+    return Status::OK();
   }
 
   bool Validate() {
@@ -79,11 +81,12 @@ GammaIndexBinaryIVF::~GammaIndexBinaryIVF() {
   }
 }
 
-int GammaIndexBinaryIVF::Init(const std::string &model_parameters,
-                              int training_threshold) {
+Status GammaIndexBinaryIVF::Init(const std::string &model_parameters,
+                                 int training_threshold) {
   BinaryModelParams binary_param;
-  if (model_parameters != "" && binary_param.Parse(model_parameters.c_str())) {
-    return -1;
+  if (model_parameters != "") {
+    Status status = binary_param.Parse(model_parameters.c_str());
+    if (!status.ok()) return status;
   }
   nlist = binary_param.ncentroids;
   if (training_threshold) {
@@ -125,7 +128,7 @@ int GammaIndexBinaryIVF::Init(const std::string &model_parameters,
     this->invlists =
         new realtime::RTInvertedLists(rt_invert_index_ptr_, nlist, code_size);
   }
-  return 0;
+  return Status::OK();
 }
 
 RetrievalParameters *GammaIndexBinaryIVF::Parse(const std::string &parameters) {
@@ -219,8 +222,9 @@ int GammaIndexBinaryIVF::Indexing() {
   size_t num;
   if ((size_t)training_threshold_ < nlist) {
     num = nlist * 39;
-    LOG(WARNING) << "Because training_threshold[" << training_threshold_ << "] < ncentroids["
-                 << nlist << "], training_threshold becomes ncentroids * 39[" << num
+    LOG(WARNING) << "Because training_threshold[" << training_threshold_
+                 << "] < ncentroids[" << nlist
+                 << "], training_threshold becomes ncentroids * 39[" << num
                  << "].";
   } else if ((size_t)training_threshold_ <= nlist * 256) {
     if ((size_t)training_threshold_ < nlist * 39) {

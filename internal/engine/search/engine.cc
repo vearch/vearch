@@ -26,16 +26,14 @@
 #include <vector>
 
 #include "cjson/cJSON.h"
-#include "common/error_code.h"
 #include "common/gamma_common_data.h"
 #include "io/raw_vector_io.h"
 #include "omp.h"
 #include "table/table_io.h"
 #include "util/bitmap.h"
 #include "util/log.h"
+#include "util/status.h"
 #include "util/utils.h"
-
-using std::string;
 
 namespace vearch {
 
@@ -113,49 +111,6 @@ int RequestConcurrentController::GetSystemInfo(const char *cmd) {
   return num;
 }
 
-#ifdef DEBUG
-static string float_array_to_string(float *data, int len) {
-  if (data == nullptr) return "";
-  std::stringstream ss;
-  ss << "[";
-  for (int i = 0; i < len; ++i) {
-    ss << data[i];
-    if (i != len - 1) {
-      ss << ",";
-    }
-  }
-  ss << "]";
-  return ss.str();
-}
-
-static string VectorQueryToString(VectorQuery *vector_query) {
-  std::stringstream ss;
-  ss << "name:"
-     << std::string(vector_query->name->value, vector_query->name->len)
-     << " min score:" << vector_query->min_score
-     << " max score:" << vector_query->max_score
-     << " boost:" << vector_query->boost
-     << " has boost:" << vector_query->has_boost << " value:"
-     << float_array_to_string((float *)vector_query->value->value,
-                              vector_query->value->len / sizeof(float));
-  return ss.str();
-}
-
-// static string RequestToString(const Request *request) {
-//   std::stringstream ss;
-//   ss << "{req_num:" << request->req_num << " topn:" << request->topn
-//      << " has_rank:" << request->has_rank
-//      << " vec_num:" << request->vec_fields_num;
-//   for (int i = 0; i < request->vec_fields_num; ++i) {
-//     ss << " vec_id:" << i << " [" <<
-//     VectorQueryToString(request->vec_fields[i])
-//        << "]";
-//   }
-//   ss << "}";
-//   return ss.str();
-// }
-#endif  // DEBUG
-
 #ifndef __APPLE__
 static std::thread *gMemTrimThread = nullptr;
 void MemTrimHandler() {
@@ -168,7 +123,8 @@ void MemTrimHandler() {
 }
 #endif
 
-Engine::Engine(const string &index_root_path, const string &space_name)
+Engine::Engine(const std::string &index_root_path,
+               const std::string &space_name)
     : index_root_path_(index_root_path),
       space_name_(space_name),
       date_time_format_("%Y-%m-%d-%H:%M:%S") {
@@ -221,11 +177,11 @@ Engine::~Engine() {
   }
 }
 
-Engine *Engine::GetInstance(const string &index_root_path,
-                            const string &space_name) {
+Engine *Engine::GetInstance(const std::string &index_root_path,
+                            const std::string &space_name) {
   Engine *engine = new Engine(index_root_path, space_name);
-  int ret = engine->Setup();
-  if (ret < 0) {
+  Status status = engine->Setup();
+  if (!status.ok()) {
     LOG(ERROR) << "Build " << space_name << " [" << index_root_path
                << "] failed!";
     return nullptr;
@@ -233,7 +189,7 @@ Engine *Engine::GetInstance(const string &index_root_path,
   return engine;
 }
 
-int Engine::Setup() {
+Status Engine::Setup() {
   if (!utils::isFolderExist(index_root_path_.c_str())) {
     mkdir(index_root_path_.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
   }
@@ -254,8 +210,9 @@ int Engine::Setup() {
   }
 
   if (docids_bitmap_->Init(init_bitmap_size) != 0) {
-    LOG(ERROR) << "Cannot create bitmap!";
-    return INTERNAL_ERR;
+    std::string msg = "Cannot create bitmap!";
+    LOG(ERROR) << msg;
+    return Status::IOError(msg);
   }
   if (is_load) {
     docids_bitmap_->Load();
@@ -286,28 +243,27 @@ int Engine::Setup() {
   max_docid_ = 0;
   LOG(INFO) << space_name_ << " setup successed! bitmap_bytes_size="
             << docids_bitmap_->BytesSize();
-  return 0;
+  return Status::OK();
 }
 
-int Engine::Search(Request &request, Response &response_results) {
-#ifdef DEBUG
-// LOG(INFO) << "search request:" << RequestToString(request);
-#endif
-
-  int ret = 0;
+int Engine::Search(Request &request, Response &response_results,
+                   Status &status) {
   int req_num = request.ReqNum();
 
   if (req_num <= 0) {
-    string msg = space_name_ + " req_num should not less than 0";
+    std::string msg = space_name_ + " req_num should not less than 0";
+    status = Status::InvalidArgument(msg);
     LOG(ERROR) << msg;
-    return -1;
+    return status.code();
   }
 
   bool req_permit = RequestConcurrentController::GetInstance().Acquire(req_num);
   if (not req_permit) {
-    LOG(WARNING) << "Resource temporarily unavailable";
+    std::string msg = "Resource temporarily unavailable";
+    LOG(WARNING) << msg;
     RequestConcurrentController::GetInstance().Release(req_num);
-    return -1;
+    status = Status::ResourceExhausted();
+    return status.code();
   }
 
   int topn = request.TopN();
@@ -317,7 +273,7 @@ int Engine::Search(Request &request, Response &response_results) {
 
   if (vec_fields_num > 0 && (not brute_force_search) &&
       (index_status_ != IndexStatus::INDEXED)) {
-    string msg = "index not trained!";
+    std::string msg = "index not trained!";
     LOG(WARNING) << msg;
     for (int i = 0; i < req_num; ++i) {
       SearchResult result;
@@ -326,13 +282,14 @@ int Engine::Search(Request &request, Response &response_results) {
       response_results.AddResults(std::move(result));
     }
     RequestConcurrentController::GetInstance().Release(req_num);
-    return -2;
+    status = Status::IndexNotTrained();
+    return status.code();
   }
 
   GammaQuery gamma_query;
   gamma_query.vec_query = vec_fields;
 
-  gamma_query.condition = new GammaSearchCondition(
+  gamma_query.condition = new SearchCondition(
       static_cast<PerfTool *>(response_results.GetPerTool()));
   gamma_query.condition->topn = topn;
   gamma_query.condition->multi_vector_rank =
@@ -357,7 +314,7 @@ int Engine::Search(Request &request, Response &response_results) {
                               &range_query_result);
     if (num == 0) {
       RequestConcurrentController::GetInstance().Release(req_num);
-      return 0;
+      return status.code();
     }
   }
 #ifdef PERFORMANCE_TESTING
@@ -373,9 +330,10 @@ int Engine::Search(Request &request, Response &response_results) {
       gamma_results[i].total = doc_num;
     }
 
-    ret = vec_manager_->Search(gamma_query, gamma_results);
-    if (ret != 0) {
-      string msg = space_name_ + " search error [" + std::to_string(ret) + "]";
+    status = vec_manager_->Search(gamma_query, gamma_results);
+    if (!status.ok()) {
+      std::string msg =
+          space_name_ + " search error [" + status.ToString() + "]";
       for (int i = 0; i < req_num; ++i) {
         SearchResult result;
         result.msg = msg;
@@ -384,7 +342,7 @@ int Engine::Search(Request &request, Response &response_results) {
       }
       RequestConcurrentController::GetInstance().Release(req_num);
       delete[] gamma_results;
-      return -3;
+      return status.code();
     }
 
 #ifdef PERFORMANCE_TESTING
@@ -418,10 +376,10 @@ int Engine::Search(Request &request, Response &response_results) {
 #endif  // PERFORMANCE_TESTING
 
   RequestConcurrentController::GetInstance().Release(req_num);
-  return ret;
+  return status.code();
 }
 
-int Engine::MultiRangeQuery(Request &request, GammaSearchCondition *condition,
+int Engine::MultiRangeQuery(Request &request, SearchCondition *condition,
                             Response &response_results,
                             MultiRangeQueryResults *range_query_result) {
   std::vector<FilterInfo> filters;
@@ -459,7 +417,8 @@ int Engine::MultiRangeQuery(Request &request, GammaSearchCondition *condition,
   int num = field_range_index_->Search(filters, range_query_result);
 
   if (num == 0) {
-    string msg = space_name_ + " no result: numeric filter return 0 result";
+    std::string msg =
+        space_name_ + " no result: numeric filter return 0 result";
     LOG(DEBUG) << msg;
     for (int i = 0; i < request.ReqNum(); ++i) {
       SearchResult result;
@@ -475,13 +434,14 @@ int Engine::MultiRangeQuery(Request &request, GammaSearchCondition *condition,
   return num;
 }
 
-int Engine::CreateTable(TableInfo &table) {
+Status Engine::CreateTable(TableInfo &table) {
   if (!vec_manager_ || !table_) {
-    LOG(ERROR) << space_name_ << " vector and table should not be null!";
-    return -1;
+    std::string msg = space_name_ + " vector and table should not be null!";
+    LOG(ERROR) << msg;
+    return Status::ParamError(msg);
   }
 
-  string dump_meta_path = index_root_path_ + "/dump.meta";
+  std::string dump_meta_path = index_root_path_ + "/dump.meta";
   utils::JsonParser *meta_jp = nullptr;
   utils::ScopeDeleter1<utils::JsonParser> del1;
   if (utils::file_exist(dump_meta_path)) {
@@ -489,25 +449,27 @@ int Engine::CreateTable(TableInfo &table) {
     if (len > 0) {
       utils::FileIO fio(dump_meta_path);
       if (fio.Open("r")) {
-        LOG(ERROR) << space_name_
-                   << " open file error, path=" << dump_meta_path;
-        return IO_ERR;
+        std::string msg =
+            space_name_ + " open file error, path=" + dump_meta_path;
+        LOG(ERROR) << msg;
+        return Status::IOError(msg);
       }
       char *buf = new char[len + 1];
       buf[len] = '\0';
       if ((size_t)len != fio.Read(buf, 1, (size_t)len)) {
-        LOG(ERROR) << space_name_
-                   << " read file error, path=" << dump_meta_path;
+        std::string msg =
+            space_name_ + " read file error, path=" + dump_meta_path;
+        LOG(ERROR) << msg;
         delete[] buf;
         buf = nullptr;
-        return IO_ERR;
+        return Status::IOError(msg);
       }
       meta_jp = new utils::JsonParser();
       del1.set(meta_jp);
       if (meta_jp->Parse(buf)) {
         delete[] buf;
         buf = nullptr;
-        return FORMAT_ERR;
+        return Status::ParamError();
       }
       delete[] buf;
       buf = nullptr;
@@ -515,9 +477,10 @@ int Engine::CreateTable(TableInfo &table) {
   }
 
   if (vec_manager_->CreateVectorTable(table, meta_jp) != 0) {
-    LOG(ERROR) << space_name_ << " cannot create VectorTable!";
+    std::string msg = space_name_ + " cannot create VectorTable!";
+    LOG(ERROR) << msg;
     vec_manager_->Close();
-    return -2;
+    return Status::ParamError(msg);
   }
   TableParams disk_table_params;
   if (meta_jp) {
@@ -525,12 +488,14 @@ int Engine::CreateTable(TableInfo &table) {
     meta_jp->GetObject("table", table_jp);
     disk_table_params.Parse(table_jp);
   }
-  int ret_table = table_->CreateTable(table, disk_table_params, docids_bitmap_);
+  Status status = table_->CreateTable(table, disk_table_params, docids_bitmap_);
   training_threshold_ = table.TrainingThreshold();
-  LOG(INFO) << space_name_ << " init training_threshold=" << training_threshold_;
-  if (ret_table != 0) {
-    LOG(ERROR) << space_name_ << " cannot create table!";
-    return -2;
+  LOG(INFO) << space_name_
+            << " init training_threshold=" << training_threshold_;
+  if (!status.ok()) {
+    std::string msg = space_name_ + " cannot create table!";
+    LOG(ERROR) << msg;
+    return Status::ParamError(msg);
   }
 
   af_exector_ = new AsyncFlushExecutor();
@@ -555,7 +520,7 @@ int Engine::CreateTable(TableInfo &table) {
 
     utils::FileIO fio(dump_meta_path);
     fio.Open("w");
-    string meta_str = dump_meta_.ToStr(true);
+    std::string meta_str = dump_meta_.ToStr(true);
     fio.Write(meta_str.c_str(), 1, meta_str.size());
   }
   for (auto &[key, raw_vector_ptr] : vec_manager_->RawVectors()) {
@@ -571,8 +536,9 @@ int Engine::CreateTable(TableInfo &table) {
   utils::make_dir(scalar_index_path.c_str());
   field_range_index_ = new MultiFieldsRangeIndex(scalar_index_path, table_);
   if ((nullptr == field_range_index_) || (AddNumIndexFields() < 0)) {
-    LOG(ERROR) << "add numeric index fields error!";
-    return -3;
+    std::string msg = "add numeric index fields error!";
+    LOG(ERROR) << msg;
+    return Status::ParamError(msg);
   }
 
   std::string table_name = table.Name();
@@ -586,7 +552,7 @@ int Engine::CreateTable(TableInfo &table) {
 
   LOG(INFO) << "create table [" << table_name << "] success!";
   created_table_ = true;
-  return 0;
+  return Status::OK();
 }
 
 int Engine::AddOrUpdate(Doc &doc) {
@@ -630,8 +596,8 @@ int Engine::AddOrUpdate(Doc &doc) {
 
   if (not b_running_ and index_status_ == UNINDEXED) {
     if (max_docid_ >= training_threshold_) {
-      LOG(INFO) << space_name_
-                << " begin indexing. training_threshold=" << training_threshold_;
+      LOG(INFO) << space_name_ << " begin indexing. training_threshold="
+                << training_threshold_;
       this->BuildIndex();
     }
   }
@@ -748,7 +714,7 @@ int Engine::GetDoc(int docid, Doc &doc, bool next) {
   std::vector<std::string> index_names;
   vec_manager_->VectorNames(index_names);
 
-  std::vector<string> table_fields;
+  std::vector<std::string> table_fields;
   ret = table_->GetDocInfo(docid, doc, table_fields);
   if (ret != 0) {
     return ret;
@@ -809,7 +775,8 @@ int Engine::RebuildIndex(int drop_before_rebuild, int limit_cpu, int describe) {
   std::map<std::string, IndexModel *> vector_indexes;
 
   if (!drop_before_rebuild) {
-    ret = vec_manager_->CreateVectorIndexes(training_threshold_, vector_indexes);
+    ret =
+        vec_manager_->CreateVectorIndexes(training_threshold_, vector_indexes);
     if (vec_manager_->TrainIndex(vector_indexes) != 0) {
       LOG(ERROR) << "RebuildIndex TrainIndex failed!";
       return -1;
@@ -947,7 +914,7 @@ int Engine::Dump() {
     std::strftime(tm_str, sizeof(tm_str), date_time_format_.c_str(),
                   std::localtime(&t));
 
-    string path = dump_path_ + "/" + tm_str;
+    std::string path = dump_path_ + "/" + tm_str;
     if (!utils::isFolderExist(path.c_str())) {
       mkdir(path.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     }
@@ -961,7 +928,7 @@ int Engine::Dump() {
       return -1;
     }
 
-    const string dump_done_file = path + "/dump.done";
+    const std::string dump_done_file = path + "/dump.done";
     std::ofstream f_done;
     f_done.open(dump_done_file);
     if (!f_done.is_open()) {
@@ -984,8 +951,8 @@ int Engine::Dump() {
 }
 
 int Engine::CreateTableFromLocal(std::string &table_name) {
-  std::vector<string> file_paths = utils::ls(index_root_path_);
-  for (string &file_path : file_paths) {
+  std::vector<std::string> file_paths = utils::ls(index_root_path_);
+  for (std::string &file_path : file_paths) {
     std::string::size_type pos = file_path.rfind(".schema");
     if (pos == file_path.size() - 7) {
       std::string::size_type begin = file_path.rfind('/');
@@ -1000,7 +967,8 @@ int Engine::CreateTableFromLocal(std::string &table_name) {
         return -1;
       }
 
-      if (CreateTable(table)) {
+      Status status = CreateTable(table);
+      if (!status.ok()) {
         LOG(ERROR) << "create table error when loading";
         return -1;
       }
@@ -1012,7 +980,7 @@ int Engine::CreateTableFromLocal(std::string &table_name) {
 
 int Engine::Load() {
   if (!created_table_) {
-    string table_name;
+    std::string table_name;
     if (CreateTableFromLocal(table_name)) {
       LOG(ERROR) << space_name_ << " create table from local error";
       return -1;
@@ -1022,13 +990,13 @@ int Engine::Load() {
   }
   af_exector_->Stop();
 
-  std::vector<std::pair<std::time_t, string>> folders_tm;
-  std::vector<string> folders = utils::ls_folder(dump_path_);
-  std::vector<string> folders_not_done;
-  for (const string &folder_name : folders) {
+  std::vector<std::pair<std::time_t, std::string>> folders_tm;
+  std::vector<std::string> folders = utils::ls_folder(dump_path_);
+  std::vector<std::string> folders_not_done;
+  for (const std::string &folder_name : folders) {
     if (folder_name == "") continue;
-    string folder_path = dump_path_ + "/" + folder_name;
-    string done_file = folder_path + "/dump.done";
+    std::string folder_path = dump_path_ + "/" + folder_name;
+    std::string done_file = folder_path + "/dump.done";
     if (!utils::file_exist(done_file)) {
       LOG(INFO) << "done file is not existed, skip it! path=" << done_file;
       folders_not_done.push_back(folder_path);
@@ -1040,12 +1008,12 @@ int Engine::Load() {
     folders_tm.push_back(std::make_pair(t, folder_path));
   }
   std::sort(folders_tm.begin(), folders_tm.end(),
-            [](const std::pair<std::time_t, string> &a,
-               const std::pair<std::time_t, string> &b) {
+            [](const std::pair<std::time_t, std::string> &a,
+               const std::pair<std::time_t, std::string> &b) {
               return a.first < b.first;
             });
   if (folders_tm.size() > 0) {
-    string dump_done_file =
+    std::string dump_done_file =
         folders_tm[folders_tm.size() - 1].second + "/dump.done";
     utils::FileIO fio(dump_done_file);
     if (fio.Open("r")) {
@@ -1055,10 +1023,10 @@ int Engine::Load() {
     long fsize = utils::get_file_size(dump_done_file);
     char *buf = new char[fsize];
     fio.Read(buf, 1, fsize);
-    string buf_str(buf, fsize);
-    std::vector<string> lines = utils::split(buf_str, "\n");
+    std::string buf_str(buf, fsize);
+    std::vector<std::string> lines = utils::split(buf_str, "\n");
     assert(lines.size() == 2);
-    std::vector<string> items = utils::split(lines[1], " ");
+    std::vector<std::string> items = utils::split(lines[1], " ");
     assert(items.size() == 2);
     int index_dump_num = (int)std::strtol(items[1].c_str(), nullptr, 10) + 1;
     LOG(INFO) << space_name_ << "read index_dump_num=" << index_dump_num
@@ -1069,8 +1037,8 @@ int Engine::Load() {
 
   max_docid_ = table_->GetStorageManagerSize();
 
-  string last_dir = "";
-  std::vector<string> dirs;
+  std::string last_dir = "";
+  std::vector<std::string> dirs;
   if (folders_tm.size() > 0) {
     last_dir = folders_tm[folders_tm.size() - 1].second;
     LOG(INFO) << "Loading from " << last_dir;
@@ -1108,13 +1076,13 @@ int Engine::Load() {
 
   if (not b_running_ and index_status_ == UNINDEXED) {
     if (max_docid_ >= training_threshold_) {
-      LOG(INFO) << space_name_
-                << " begin indexing. training_threshold=" << training_threshold_;
+      LOG(INFO) << space_name_ << " begin indexing. training_threshold="
+                << training_threshold_;
       this->BuildIndex();
     }
   }
   // remove directorys which are not done
-  for (const string &folder : folders_not_done) {
+  for (const std::string &folder : folders_not_done) {
     if (utils::remove_dir(folder.c_str())) {
       LOG(ERROR) << space_name_
                  << " clean error, not done directory=" << folder;
@@ -1144,8 +1112,9 @@ int Engine::LoadFromFaiss() {
   }
   index_status_ = INDEXED;
 
-  int load_num = index->Load("files");
-  if (load_num < 0) {
+  int load_num;
+  Status status = index->Load("files", load_num);
+  if (!status.ok()) {
     LOG(ERROR) << space_name_ << " vector [faiss] load gamma index failed!";
     return -1;
   }
@@ -1183,7 +1152,7 @@ int Engine::AddNumIndexFields() {
   std::map<std::string, bool> attr_index;
   retvals = table_->GetAttrIsIndex(attr_index);
   for (const auto &it : attr_type) {
-    string field_name = it.first;
+    std::string field_name = it.first;
     const auto &attr_index_it = attr_index.find(field_name);
     if (attr_index_it == attr_index.end()) {
       LOG(ERROR) << space_name_ << " cannot find field [" << field_name << "]";

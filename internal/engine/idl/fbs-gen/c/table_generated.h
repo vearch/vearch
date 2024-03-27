@@ -209,9 +209,8 @@ struct Table FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_NAME = 4,
     VT_FIELDS = 6,
     VT_VECTORS_INFO = 8,
-    VT_COMPRESS_MODE = 10,
-    VT_INDEX_TYPE = 12,
-    VT_INDEX_PARAMS = 14
+    VT_INDEX_TYPE = 10,
+    VT_INDEX_PARAMS = 12
   };
   const flatbuffers::String *name() const {
     return GetPointer<const flatbuffers::String *>(VT_NAME);
@@ -221,9 +220,6 @@ struct Table FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   const flatbuffers::Vector<flatbuffers::Offset<VectorInfo>> *vectors_info() const {
     return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<VectorInfo>> *>(VT_VECTORS_INFO);
-  }
-  int32_t compress_mode() const {
-    return GetField<int32_t>(VT_COMPRESS_MODE, 0);
   }
   const flatbuffers::String *index_type() const {
     return GetPointer<const flatbuffers::String *>(VT_INDEX_TYPE);
@@ -241,7 +237,6 @@ struct Table FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyOffset(verifier, VT_VECTORS_INFO) &&
            verifier.VerifyVector(vectors_info()) &&
            verifier.VerifyVectorOfTables(vectors_info()) &&
-           VerifyField<int32_t>(verifier, VT_COMPRESS_MODE) &&
            VerifyOffset(verifier, VT_INDEX_TYPE) &&
            verifier.VerifyString(index_type()) &&
            VerifyOffset(verifier, VT_INDEX_PARAMS) &&
@@ -261,9 +256,6 @@ struct TableBuilder {
   }
   void add_vectors_info(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<VectorInfo>>> vectors_info) {
     fbb_.AddOffset(Table::VT_VECTORS_INFO, vectors_info);
-  }
-  void add_compress_mode(int32_t compress_mode) {
-    fbb_.AddElement<int32_t>(Table::VT_COMPRESS_MODE, compress_mode, 0);
   }
   void add_index_type(flatbuffers::Offset<flatbuffers::String> index_type) {
     fbb_.AddOffset(Table::VT_INDEX_TYPE, index_type);
@@ -288,13 +280,11 @@ inline flatbuffers::Offset<Table> CreateTable(
     flatbuffers::Offset<flatbuffers::String> name = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<FieldInfo>>> fields = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<VectorInfo>>> vectors_info = 0,
-    int32_t compress_mode = 0,
     flatbuffers::Offset<flatbuffers::String> index_type = 0,
     flatbuffers::Offset<flatbuffers::String> index_params = 0) {
   TableBuilder builder_(_fbb);
   builder_.add_index_params(index_params);
   builder_.add_index_type(index_type);
-  builder_.add_compress_mode(compress_mode);
   builder_.add_vectors_info(vectors_info);
   builder_.add_fields(fields);
   builder_.add_name(name);
@@ -306,7 +296,6 @@ inline flatbuffers::Offset<Table> CreateTableDirect(
     const char *name = nullptr,
     const std::vector<flatbuffers::Offset<FieldInfo>> *fields = nullptr,
     const std::vector<flatbuffers::Offset<VectorInfo>> *vectors_info = nullptr,
-    int32_t compress_mode = 0,
     const char *index_type = nullptr,
     const char *index_params = nullptr) {
   auto name__ = name ? _fbb.CreateString(name) : 0;
@@ -319,7 +308,6 @@ inline flatbuffers::Offset<Table> CreateTableDirect(
       name__,
       fields__,
       vectors_info__,
-      compress_mode,
       index_type__,
       index_params__);
 }

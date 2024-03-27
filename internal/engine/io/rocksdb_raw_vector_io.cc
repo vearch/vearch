@@ -9,16 +9,14 @@
 
 namespace vearch {
 
-using std::string;
-using namespace rocksdb;
-
 int RocksDBRawVectorIO::GetDiskVecNum(int &vec_num) {
   if (vec_num <= 0) return 0;
   int max_id_in_disk = vec_num - 1;
-  string key, value;
+  std::string key, value;
   for (int i = max_id_in_disk; i >= 0; --i) {
     raw_vector->ToRowKey(i, key);
-    Status s = raw_vector->db_->Get(ReadOptions(), Slice(key), &value);
+    rocksdb::Status s = raw_vector->db_->Get(rocksdb::ReadOptions(),
+                                             rocksdb::Slice(key), &value);
     if (s.ok()) {
       vec_num = i + 1;
       LOG(INFO) << "In the disk rocksdb vec_num=" << vec_num;
@@ -30,19 +28,21 @@ int RocksDBRawVectorIO::GetDiskVecNum(int &vec_num) {
   return 0;
 }
 
-int RocksDBRawVectorIO::Load(int vec_num) {
-  if (vec_num == 0) return 0;
-  string key, value;
+Status RocksDBRawVectorIO::Load(int vec_num) {
+  if (vec_num == 0) return Status::OK();
+  std::string key, value;
   raw_vector->ToRowKey(vec_num - 1, key);
-  Status s = raw_vector->db_->Get(ReadOptions(), Slice(key), &value);
+  rocksdb::Status s =
+      raw_vector->db_->Get(rocksdb::ReadOptions(), rocksdb::Slice(key), &value);
   if (!s.ok()) {
-    LOG(ERROR) << "load vectors, get error:" << s.ToString()
-               << ", expected key=" << key;
-    return INTERNAL_ERR;
+    std::string msg = std::string("load vectors, get error:") + s.ToString() +
+                      ", expected key=" + key;
+    LOG(ERROR) << msg;
+    return Status::IOError(msg);
   }
   raw_vector->MetaInfo()->size_ = vec_num;
   LOG(INFO) << "rocksdb load success! vec_num=" << vec_num;
-  return 0;
+  return Status::OK();
 }
 
 }  // namespace vearch

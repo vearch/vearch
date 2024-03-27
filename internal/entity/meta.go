@@ -65,10 +65,6 @@ func AliasKey(aliasName string) string {
 	return fmt.Sprintf("%s%s", PrefixAlias, aliasName)
 }
 
-func AliasValue(dbName string, spaceName string) string {
-	return fmt.Sprintf("%s/%s", dbName, spaceName)
-}
-
 func LockAliasKey(aliasName string) string {
 	return fmt.Sprintf("%s%s", PrefixLock, aliasName)
 }

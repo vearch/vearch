@@ -33,8 +33,8 @@ Response::~Response() {
 }
 
 int Response::Serialize(const std::string &space_name,
-                        std::vector<std::string> &fields_name, char **out,
-                        int *out_len) {
+                        std::vector<std::string> &fields_name, Status &status,
+                        char **out, int *out_len) {
   std::vector<std::string> vec_fields;
   std::map<std::string, int> attr_idx;
   Table *table = static_cast<Table *>(table_);
@@ -106,42 +106,17 @@ int Response::Serialize(const std::string &space_name,
               builder.CreateVector(vec)));
         }
       }
-      std::string extra;
-      if (vec_fields.size() > 0 && vec_doc->fields_len > 0) {
-        cJSON *extra_json = cJSON_CreateObject();
-        cJSON *vec_result_json = cJSON_CreateArray();
-        cJSON_AddItemToObject(extra_json, EXTRA_VECTOR_RESULT.c_str(),
-                              vec_result_json);
-        for (int k = 0; k < vec_doc->fields_len; ++k) {
-          VectorDocField *vec_field = vec_doc->fields + k;
-          cJSON *vec_field_json = cJSON_CreateObject();
-
-          cJSON_AddStringToObject(vec_field_json,
-                                  EXTRA_VECTOR_FIELD_NAME.c_str(),
-                                  vec_field->name.c_str());
-          cJSON_AddNumberToObject(vec_field_json,
-                                  EXTRA_VECTOR_FIELD_SCORE.c_str(),
-                                  vec_field->score);
-          cJSON_AddItemToArray(vec_result_json, vec_field_json);
-        }
-
-        char *extra_data = cJSON_PrintUnformatted(extra_json);
-        extra = std::string(extra_data, std::strlen(extra_data));
-        free(extra_data);
-        cJSON_Delete(extra_json);
-      }
 
       result_items.emplace_back(gamma_api::CreateResultItem(
-          builder, score, builder.CreateVector(attributes),
-          builder.CreateString(extra)));
+          builder, score, builder.CreateVector(attributes)));
     }
 
-    std::string str_msg = "Success";
+    std::string str_msg = status.ToString();
     auto item_vec = builder.CreateVector(result_items);
     auto msg = builder.CreateString(str_msg);
 
-    gamma_api::SearchResultCode result_code =
-        gamma_api::SearchResultCode::SUCCESS;
+    vearch::status::Code result_code =
+        static_cast<vearch::status::Code>(status.code());
     auto results = gamma_api::CreateSearchResult(
         builder, gamma_results_[i].total, result_code, msg, item_vec);
     search_results.push_back(results);
@@ -270,7 +245,6 @@ int Response::PackResultItem(const VectorDoc *vec_doc,
       }
     } else {
       // get vector error
-      // TODO : release extra field
       ;
     }
   } else {
@@ -284,26 +258,6 @@ int Response::PackResultItem(const VectorDoc *vec_doc,
     result_item.names.emplace_back(std::move(field.name));
     result_item.values.emplace_back(std::move(field.value));
   }
-
-  cJSON *extra_json = cJSON_CreateObject();
-  cJSON *vec_result_json = cJSON_CreateArray();
-  cJSON_AddItemToObject(extra_json, EXTRA_VECTOR_RESULT.c_str(),
-                        vec_result_json);
-  for (int i = 0; i < vec_doc->fields_len; ++i) {
-    VectorDocField *vec_field = vec_doc->fields + i;
-    cJSON *vec_field_json = cJSON_CreateObject();
-
-    cJSON_AddStringToObject(vec_field_json, EXTRA_VECTOR_FIELD_NAME.c_str(),
-                            vec_field->name.c_str());
-    cJSON_AddNumberToObject(vec_field_json, EXTRA_VECTOR_FIELD_SCORE.c_str(),
-                            vec_field->score);
-    cJSON_AddItemToArray(vec_result_json, vec_field_json);
-  }
-
-  char *extra_data = cJSON_PrintUnformatted(extra_json);
-  result_item.extra = std::string(extra_data, std::strlen(extra_data));
-  free(extra_data);
-  cJSON_Delete(extra_json);
 
   return 0;
 }

@@ -2,22 +2,9 @@ syntax = "proto3";
 
 import "data_model.proto";
 import "errors.proto";
-import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 
 option optimize_for = SPEED;
-option (gogoproto.marshaler_all) = true;
-option (gogoproto.sizer_all) = true;
-option (gogoproto.unmarshaler_all) = true;
-option (gogoproto.gostring_all) = false;
-option (gogoproto.equal_all) = true;
-option (gogoproto.verbose_equal_all) = false;
-option (gogoproto.goproto_stringer_all) = false;
-option (gogoproto.stringer_all) = true;
-option (gogoproto.populate_all) = true;
-option (gogoproto.testgen_all) = false;
-option (gogoproto.benchgen_all) = false;
-option (gogoproto.goproto_getters_all) = false;
-option go_package = "vearchpb";
+option go_package = "./vearchpb";
 
 service RouterGRPCService {
   rpc Get(GetRequest) returns (GetResponse) {}
@@ -50,47 +37,39 @@ message ResponseHead {
 //*********************** doc query *********************** //
 
 message GetRequest {
-  option (gogoproto.goproto_getters) = true;
   RequestHead head = 1;
   repeated string primary_keys = 4;
 }
 
 message DeleteRequest {
-  option (gogoproto.goproto_getters) = true;
   RequestHead head = 1;
   repeated string primary_keys = 4;
 }
 
 message AddRequest {
-  option (gogoproto.goproto_getters) = true;
   RequestHead head = 1;
   Document doc = 4;
 }
 
 message UpdateRequest {
-  option (gogoproto.goproto_getters) = true;
   RequestHead head = 1;
   Document doc = 4;
 }
 
 message BulkRequest {
-  option (gogoproto.goproto_getters) = true;
   RequestHead head = 1;
   repeated Document docs = 4;
 }
 
 message ForceMergeRequest {
-  option (gogoproto.goproto_getters) = true;
   RequestHead head = 1;
 }
 
 message FlushRequest {
-  option (gogoproto.goproto_getters) = true;
   RequestHead head = 1;
 }
 
 message IndexRequest {
-  option (gogoproto.goproto_getters) = true;
   RequestHead head = 1;
   int64 drop_before_rebuild = 2;
   int64 limit_cpu = 3;
@@ -100,42 +79,35 @@ message IndexRequest {
 //*********************** doc result *********************** //
 
 message GetResponse {
-  option (gogoproto.goproto_getters) = true;
   ResponseHead head = 1;
   repeated Item items = 2;
 }
 
 message AddResponse {
-  option (gogoproto.goproto_getters) = true;
   ResponseHead head = 1;
   string primary_key = 4;
 }
 
 message UpdateResponse {
-  option (gogoproto.goproto_getters) = true;
   ResponseHead head = 1;
 }
 
 message DeleteResponse {
-  option (gogoproto.goproto_getters) = true;
   ResponseHead head = 1;
   repeated Item items = 2;
 }
 
 message BulkResponse {
-  option (gogoproto.goproto_getters) = true;
   ResponseHead head = 1;
   repeated Item items = 2;
 }
 
 message ForceMergeResponse {
-  option (gogoproto.goproto_getters) = true;
   ResponseHead head = 1;
   SearchStatus shards = 2;
 }
 
 message DelByQueryeResponse {
-  option (gogoproto.goproto_getters) = true;
   ResponseHead head = 1;
   int32 DelNum = 2;
   repeated string ids_str = 3;
@@ -143,13 +115,11 @@ message DelByQueryeResponse {
 }
 
 message FlushResponse {
-  option (gogoproto.goproto_getters) = true;
   ResponseHead head = 1;
   SearchStatus shards = 2;
 }
 
 message IndexResponse {
-  option (gogoproto.goproto_getters) = true;
   ResponseHead head = 1;
   SearchStatus shards = 2;
 }
@@ -196,7 +166,6 @@ message IndexParameters {
 }
 
 message SearchRequest {
-  option (gogoproto.goproto_getters) = true;
   RequestHead head = 1;
   int32 req_num = 2;
   int32 topN = 3;
@@ -222,9 +191,8 @@ message SearchRequest {
 message ResultItem {
   double score = 1;
   repeated Field fields = 2;
-  string extra = 3;
-  string p_key = 4;
-  bytes source = 5;
+  string p_key = 3;
+  bytes source = 4;
 }
 
 message SearchResult {
@@ -242,7 +210,6 @@ message SearchResult {
 }
 
 message SearchResponse {
-  option (gogoproto.goproto_getters) = true;
   ResponseHead head = 1;
   repeated SearchResult results = 2;
   string online_log_message = 3;
@@ -260,7 +227,6 @@ message SearchStatus {
 }
 
 message MSearchRequest {
-  option (gogoproto.goproto_getters) = true;
   RequestHead head = 1;
   repeated SearchRequest search_requests = 2;
 }

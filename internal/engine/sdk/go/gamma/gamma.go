@@ -138,24 +138,6 @@ func Load(engine unsafe.Pointer) int {
 	return int(C.Load(engine))
 }
 
-/*func Search(engine unsafe.Pointer, request *Request, response *Response) int {
-	var buffer []byte
-	request.Serialize(&buffer)
-
-	var CBuffer *C.char
-	zero := 0
-	length := &zero
-
-	ret := int(C.Search(engine,
-		(*C.char)(unsafe.Pointer(&buffer[0])), C.int(len(buffer)),
-		(**C.char)(unsafe.Pointer(&CBuffer)),
-		(*C.int)(unsafe.Pointer(length))))
-	defer C.free(unsafe.Pointer(CBuffer))
-	res := C.GoBytes(unsafe.Pointer(CBuffer), C.int(*length))
-	response.DeSerialize(res)
-	return ret
-}*/
-
 func Search(engine unsafe.Pointer, reqByte []byte) (int, []byte) {
 	var CBuffer *C.char
 	zero := 0

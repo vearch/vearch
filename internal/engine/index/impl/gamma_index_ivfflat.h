@@ -25,6 +25,7 @@
 
 #include "gamma_scanner.h"
 #include "index/realtime/realtime_invert_index.h"
+#include "util/status.h"
 
 namespace vearch {
 
@@ -124,7 +125,8 @@ struct GammaIndexIVFFlat : faiss::IndexIVFFlat, public IndexModel {
                           const float *coarse_dis, float *distances,
                           idx_t *labels, int nprobe, bool store_pairs) const;
 
-  int Init(const std::string &model_parameters, int training_threshold) override;
+  Status Init(const std::string &model_parameters,
+              int training_threshold) override;
   RetrievalParameters *Parse(const std::string &parameters) override;
   int Indexing() override;
   bool Add(int n, const uint8_t *vec) override;
@@ -143,8 +145,8 @@ struct GammaIndexIVFFlat : faiss::IndexIVFFlat, public IndexModel {
 
   long GetTotalMemBytes() override { return 0; };
 
-  int Dump(const std::string &dir) override;
-  int Load(const std::string &dir) override;
+  Status Dump(const std::string &dir) override;
+  Status Load(const std::string &dir, int &load_num) override;
 
   void train(int64_t n, const float *x) override {
     faiss::IndexIVFFlat::train(n, x);

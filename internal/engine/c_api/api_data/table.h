@@ -45,7 +45,6 @@ class TableInfo : public RawData {
  public:
   TableInfo() {
     table_ = nullptr;
-    compress_mode_ = 0;
   }
 
   virtual int Serialize(char **out, int *out_len);
@@ -54,10 +53,6 @@ class TableInfo : public RawData {
   std::string &Name();
 
   void SetName(std::string &name);
-
-  bool IsCompress() { return compress_mode_; }
-
-  void SetCompress(int compress_mode) { compress_mode_ = compress_mode; }
 
   std::vector<struct FieldInfo> &Fields();
 
@@ -93,7 +88,6 @@ class TableInfo : public RawData {
   int training_threshold_ = 0;
   std::string index_type_;
   std::string index_params_;
-  int compress_mode_;
 };
 
 }  // namespace vearch

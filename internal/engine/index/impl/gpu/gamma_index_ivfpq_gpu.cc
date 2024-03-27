@@ -628,7 +628,7 @@ int GammaIVFPQGPUIndex::GPUThread() {
 
 namespace {
 
-int ParseFilters(GammaSearchCondition *condition,
+int ParseFilters(SearchCondition *condition,
                  vector<enum DataType> &range_filter_types,
                  vector<vector<string>> &all_term_items) {
   for (size_t i = 0; i < condition->range_filters.size(); ++i) {
@@ -691,7 +691,7 @@ bool IsInRange(Table *table, RangeFilter &range, long docid) {
   return false;
 }
 
-bool FilteredByRangeFilter(GammaSearchCondition *condition,
+bool FilteredByRangeFilter(SearchCondition *condition,
                            vector<enum DataType> &range_filter_types,
                            long docid) {
   for (size_t i = 0; i < condition->range_filters.size(); ++i) {
@@ -710,7 +710,7 @@ bool FilteredByRangeFilter(GammaSearchCondition *condition,
   return false;
 }
 
-bool FilteredByTermFilter(GammaSearchCondition *condition,
+bool FilteredByTermFilter(SearchCondition *condition,
                           vector<vector<string>> &all_term_items, long docid) {
   for (size_t i = 0; i < condition->term_filters.size(); ++i) {
     auto term = condition->term_filters[i];
@@ -820,8 +820,8 @@ int GammaIVFPQGPUIndex::Search(RetrievalContext *retrieval_context, int n,
 #endif
 
   bool right_filter = false;
-  GammaSearchCondition *condition =
-      dynamic_cast<GammaSearchCondition *>(retrieval_context);
+  SearchCondition *condition =
+      dynamic_cast<SearchCondition *>(retrieval_context);
 
   vector<enum DataType> range_filter_types(condition->range_filters.size());
 

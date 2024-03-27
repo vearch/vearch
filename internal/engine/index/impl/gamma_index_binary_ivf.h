@@ -13,8 +13,8 @@
 #include <atomic>
 
 #include "c_api/api_data/request.h"
-#include "index/realtime/realtime_invert_index.h"
 #include "index/index_model.h"
+#include "index/realtime/realtime_invert_index.h"
 #include "vector/raw_vector.h"
 
 namespace vearch {
@@ -80,7 +80,8 @@ class GammaIndexBinaryIVF : public IndexModel, faiss::IndexBinaryIVF {
 
   virtual ~GammaIndexBinaryIVF();
 
-  int Init(const std::string &model_parameters, int training_threshold) override;
+  Status Init(const std::string &model_parameters,
+              int training_threshold) override;
 
   RetrievalParameters *Parse(const std::string &parameters) override;
 
@@ -94,8 +95,11 @@ class GammaIndexBinaryIVF : public IndexModel, faiss::IndexBinaryIVF {
 
   long GetTotalMemBytes() override;
 
-  int Dump(const std::string &dir) override { return 0; }
-  int Load(const std::string &index_dir) override { return 0; }
+  Status Dump(const std::string &dir) override { return Status::OK(); }
+  Status Load(const std::string &index_dir, int &load_num) override {
+    load_num = 0;
+    return Status::OK();
+  }
 
   int Delete(const std::vector<int64_t> &ids) override;
 

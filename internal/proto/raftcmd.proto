@@ -3,22 +3,9 @@ syntax = "proto3";
 import "errors.proto";
 import "data_model.proto";
 import "router_grpc.proto";
-import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 
-option go_package = "vearchpb";
+option go_package = "./vearchpb";
 option optimize_for = SPEED;
-option (gogoproto.marshaler_all) = true;
-option (gogoproto.sizer_all) = true;
-option (gogoproto.unmarshaler_all) = true;
-option (gogoproto.gostring_all) = false;
-option (gogoproto.equal_all) = true;
-option (gogoproto.verbose_equal_all) = false;
-option (gogoproto.goproto_stringer_all) = false;
-option (gogoproto.stringer_all) = true;
-option (gogoproto.populate_all) = true;
-option (gogoproto.testgen_all) = false;
-option (gogoproto.benchgen_all) = false;
-option (gogoproto.goproto_getters_all) = false;
 
 enum OpType {
   CREATE = 0;

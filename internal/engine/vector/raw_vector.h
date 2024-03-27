@@ -41,9 +41,9 @@ struct StoreParams : DumpConfig {
     segment_size = other.segment_size;
   }
 
-  int Parse(const char *str);
-  int Parse(utils::JsonParser &jp);
-  int MergeRight(StoreParams &other);
+  Status Parse(const char *str);
+  Status Parse(utils::JsonParser &jp);
+  void MergeRight(StoreParams &other);
 
   std::string ToJsonStr() {
     std::stringstream ss;

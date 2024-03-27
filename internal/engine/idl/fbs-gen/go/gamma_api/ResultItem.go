@@ -58,16 +58,8 @@ func (rcv *ResultItem) AttributesLength() int {
 	return 0
 }
 
-func (rcv *ResultItem) Extra() []byte {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(8))
-	if o != 0 {
-		return rcv._tab.ByteVector(o + rcv._tab.Pos)
-	}
-	return nil
-}
-
 func ResultItemStart(builder *flatbuffers.Builder) {
-	builder.StartObject(3)
+	builder.StartObject(2)
 }
 func ResultItemAddScore(builder *flatbuffers.Builder, score float64) {
 	builder.PrependFloat64Slot(0, score, 0.0)
@@ -77,9 +69,6 @@ func ResultItemAddAttributes(builder *flatbuffers.Builder, attributes flatbuffer
 }
 func ResultItemStartAttributesVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(4, numElems, 4)
-}
-func ResultItemAddExtra(builder *flatbuffers.Builder, extra flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(2, flatbuffers.UOffsetT(extra), 0)
 }
 func ResultItemEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

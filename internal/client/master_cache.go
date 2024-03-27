@@ -44,14 +44,15 @@ var (
 	spaceReloadWorkder     sync.Map
 	partitionReloadWorkder sync.Map
 	serverReloadWorkder    sync.Map
+	aliasReloadWorkder     sync.Map
 )
 
 type clientCache struct {
 	sync.Map
-	mc                                                               *masterClient
-	cancel                                                           context.CancelFunc
-	lock                                                             sync.Mutex
-	userCache, spaceCache, spaceIDCache, partitionCache, serverCache *cache.Cache
+	mc                                                                           *masterClient
+	cancel                                                                       context.CancelFunc
+	lock                                                                         sync.Mutex
+	userCache, spaceCache, spaceIDCache, partitionCache, serverCache, aliasCache *cache.Cache
 }
 
 func newClientCache(serverCtx context.Context, masterClient *masterClient) (*clientCache, error) {
@@ -65,6 +66,7 @@ func newClientCache(serverCtx context.Context, masterClient *masterClient) (*cli
 		spaceIDCache:   cache.New(cache.NoExpiration, cache.NoExpiration),
 		partitionCache: cache.New(cache.NoExpiration, cache.NoExpiration),
 		serverCache:    cache.New(cache.NoExpiration, cache.NoExpiration),
+		aliasCache:     cache.New(cache.NoExpiration, cache.NoExpiration),
 	}
 
 	if err := cc.startCacheJob(ctx); err != nil {
@@ -186,7 +188,7 @@ func (cliCache *clientCache) reloadSpaceCache(ctx context.Context, sync bool, db
 
 		space, err := cliCache.mc.QuerySpaceByName(ctx, dbID, spaceName)
 		if err != nil {
-			return fmt.Errorf("can not found db by name:[%s] err:[%s]", db, err.Error())
+			return fmt.Errorf("can not found space by space name:[%s] and db name:[%s] err:[%s]", spaceName, db, err.Error())
 		}
 		if space.ResourceName != config.Conf().Global.ResourceName {
 			log.Info("space name [%s] resource name don't match [%s], [%s], reloadSpaceCache failed. ",
@@ -441,7 +443,6 @@ func (cliCache *clientCache) startCacheJob(ctx context.Context) error {
 			return nil
 		},
 	}
-
 	userJob.start()
 
 	//init space
@@ -568,6 +569,32 @@ func (cliCache *clientCache) startCacheJob(ctx context.Context) error {
 		},
 	}
 	serverJob.start()
+
+	//init alias
+	if err := cliCache.initAlias(ctx); err != nil {
+		return err
+	}
+	aliasJob := watcherJob{ctx: ctx, prefix: entity.PrefixAlias, masterClient: cliCache.mc, cache: cliCache.aliasCache,
+		put: func(value []byte) (err error) {
+			defer errutil.CatchError(&err)
+			alias := &entity.Alias{}
+			if err := vjson.Unmarshal(value, alias); err != nil {
+				return err
+			}
+			log.Debug("[%v] add to alias cache.", *alias)
+			cliCache.aliasCache.Set(alias.Name, alias, cache.NoExpiration)
+			return nil
+		},
+		delete: func(key string) (err error) {
+			defer errutil.CatchError(&err)
+			aliasSplit := strings.Split(key, "/")
+			alias_name := aliasSplit[len(aliasSplit)-1]
+			log.Debug("[%s] delete from alias cache.", alias_name)
+			cliCache.aliasCache.Delete(alias_name)
+			return nil
+		},
+	}
+	aliasJob.start()
 
 	log.Info("cache inited ok use time %v", time.Since(start))
 
@@ -787,6 +814,86 @@ func (w *watcherJob) serverDelete(cacheKey string) (err error) {
 	return err
 }
 
+// find alias from cache
+func (cliCache *clientCache) AliasByCache(ctx context.Context, alias_name string) (*entity.Alias, error) {
+	get, found := cliCache.aliasCache.Get(alias_name)
+	if found {
+		return get.(*entity.Alias), nil
+	}
+
+	err := cliCache.reloadAliasCache(ctx, false, alias_name)
+	vearchlog.LogErrNotNil(err)
+
+	if err != nil {
+		return nil, fmt.Errorf("alias_name:[%s] err:[%s]", alias_name,
+			vearchpb.NewError(vearchpb.ErrorEnum_ALIAS_NOT_EXIST, nil))
+	}
+
+	for i := 0; i < retryNum; i++ {
+		time.Sleep(retrySleepTime)
+		log.Debug("to find alias by key:[%s] ", alias_name)
+		if get, found = cliCache.aliasCache.Get(alias_name); found {
+			return get.(*entity.Alias), nil
+		}
+	}
+
+	return nil, fmt.Errorf("alias_name:[%s] err:[%s]", alias_name, vearchpb.NewError(vearchpb.ErrorEnum_ALIAS_NOT_EXIST, nil))
+}
+
+func (cliCache *clientCache) reloadAliasCache(ctx context.Context, sync bool, alias_name string) error {
+	fun := func() error {
+		log.Info("to reload alias_name:[%s]", alias_name)
+
+		alias, err := cliCache.mc.QueryAliasByName(ctx, alias_name)
+
+		if err != nil {
+			return fmt.Errorf("can not found alias by name:[%s] err:[%s]", alias_name, err.Error())
+		}
+		cliCache.aliasCache.Set(alias_name, alias, cache.NoExpiration)
+		return nil
+	}
+
+	if sync {
+		return fun()
+	}
+	if _, ok := aliasReloadWorkder.LoadOrStore(alias_name, struct{}{}); ok {
+		return nil
+	}
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				vearchlog.LogErrNotNil(fmt.Errorf(cast.ToString(r)))
+			}
+		}()
+		if alias_name == "" {
+			return
+		}
+		defer aliasReloadWorkder.Delete(alias_name)
+		vearchlog.FunIfNotNil(fun)
+	}()
+	return nil
+}
+
+func (cliCache *clientCache) initAlias(ctx context.Context) error {
+	_, values, err := cliCache.mc.PrefixScan(ctx, entity.PrefixAlias)
+	if err != nil {
+		log.Error("init server cache err , err:[%s]", err.Error())
+		return err
+	}
+	for _, value := range values {
+		alias := &entity.Alias{}
+		err := vjson.Unmarshal(value, alias)
+		if err != nil {
+			log.Error("unmarshal alias cache err [%s]", err.Error())
+			continue
+		}
+		if err := cliCache.aliasCache.Add(alias.Name, alias, cache.NoExpiration); err != nil {
+			log.Error(err.Error())
+		}
+	}
+	return nil
+}
+
 func (wj *watcherJob) start() {
 	go func() {
 		defer func() {
@@ -798,10 +905,10 @@ func (wj *watcherJob) start() {
 		for {
 			select {
 			case <-wj.ctx.Done():
-				log.Debug("watchjob job to stop")
+				log.Debug("watchjob job to stop %s", wj.prefix)
 				return
 			default:
-				log.Debug("start watcher routine")
+				log.Debug("start watcher routine %s", wj.prefix)
 			}
 
 			wj.wg.Add(1)
@@ -816,7 +923,7 @@ func (wj *watcherJob) start() {
 
 				select {
 				case <-wj.ctx.Done():
-					log.Debug("watchjob job to stop")
+					log.Debug("watchjob job to stop %s", wj.prefix)
 					return
 				default:
 				}

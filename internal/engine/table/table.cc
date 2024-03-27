@@ -141,10 +141,10 @@ int Table::Load(int &num) {
   return 0;
 }
 
-int Table::CreateTable(TableInfo &table, TableParams &table_params,
-                       bitmap::BitmapManager *bitmap_mgr) {
+Status Table::CreateTable(TableInfo &table, TableParams &table_params,
+                          bitmap::BitmapManager *bitmap_mgr) {
   if (table_created_) {
-    return -10;
+    return Status::IOError();
   }
   bitmap_mgr_ = bitmap_mgr;
   name_ = table.Name();
@@ -157,15 +157,16 @@ int Table::CreateTable(TableInfo &table, TableParams &table_params,
     bool is_index = fields[i].is_index;
     LOG(INFO) << name_ << " add field [" << name << "], type [" << (int)ftype
               << "], index [" << is_index << "]";
-    int ret = AddField(name, ftype, is_index);
-    if (ret != 0) {
-      return ret;
+    Status status = AddField(name, ftype, is_index);
+    if (!status.ok()) {
+      return status;
     }
   }
 
   if (key_idx_ == -1) {
-    LOG(ERROR) << "No field _id! ";
-    return -1;
+    std::string msg = "No field _id! ";
+    LOG(ERROR) << msg;
+    return Status::ParamError(msg);
   }
 
   if (!utils::isFolderExist(root_path_.c_str())) {
@@ -175,8 +176,10 @@ int Table::CreateTable(TableInfo &table, TableParams &table_params,
   item_to_docid_ = new ItemToDocID(root_path_);
   int ret = item_to_docid_->Open();
   if (ret) {
-    LOG(ERROR) << name_ << " init item to docid error, ret=" << ret;
-    return ret;
+    std::stringstream msg;
+    msg << name_ << " init item to docid error, ret=" << ret;
+    LOG(ERROR) << msg.str();
+    return Status::ParamError(msg.str());
   }
 
   table_params_ = new TableParams("table");
@@ -189,15 +192,15 @@ int Table::CreateTable(TableInfo &table, TableParams &table_params,
   options.fixed_value_bytes = item_length_;
   storage_mgr_ = new StorageManager(root_path_, options);
   int cache_size = 512;  // unit : M
-  ret = storage_mgr_->Init(name_ + "_table", cache_size);
-  if (ret) {
-    LOG(ERROR) << "init gamma db error, ret=" << ret;
-    return ret;
+  Status status = storage_mgr_->Init(name_ + "_table", cache_size);
+  if (!status.ok()) {
+    LOG(ERROR) << "init gamma db error, ret=" << status.ToString();
+    return status;
   }
 
   LOG(INFO) << "init storageManager success! vector byte size="
             << options.fixed_value_bytes << ", path=" << root_path_;
-  return 0;
+  return Status::OK();
 }
 
 int Table::FTypeSize(DataType fType) {
@@ -216,10 +219,11 @@ int Table::FTypeSize(DataType fType) {
   return length;
 }
 
-int Table::AddField(const string &name, DataType ftype, bool is_index) {
+Status Table::AddField(const string &name, DataType ftype, bool is_index) {
   if (attr_idx_map_.find(name) != attr_idx_map_.end()) {
-    LOG(ERROR) << name_ << " duplicate field " << name;
-    return -1;
+    std::string msg = name_ + " duplicate field " + name;
+    LOG(ERROR) << msg;
+    return Status::ParamError(msg);
   }
   if (name == key_field_name_) {
     key_idx_ = field_num_;
@@ -233,7 +237,7 @@ int Table::AddField(const string &name, DataType ftype, bool is_index) {
   attr_type_map_.insert(std::pair<string, DataType>(name, ftype));
   attr_is_index_map_.insert(std::pair<string, bool>(name, is_index));
   ++field_num_;
-  return 0;
+  return Status::OK();
 }
 
 int Table::GetDocIDByKey(const std::string &key, int &docid) {
@@ -254,9 +258,9 @@ int Table::GetKeyByDocid(int docid, std::string &key) {
     return -1;
   }
   const uint8_t *doc_value = nullptr;
-  int ret = storage_mgr_->Get(docid, doc_value);
-  if (ret != 0) {
-    return ret;
+  Status status = storage_mgr_->Get(docid, doc_value);
+  if (!status.ok()) {
+    return -1;
   }
   int field_id = attr_idx_map_[key_field_name_];
   GetFieldRawValue(docid, field_id, key, doc_value);
@@ -325,12 +329,11 @@ int Table::Update(const std::unordered_map<std::string, struct Field> &fields,
                   int docid) {
   if (fields.size() == 0) return 0;
 
-  int ret = 0;
   const uint8_t *ori_doc_value = nullptr;
 
-  ret = storage_mgr_->Get(docid, ori_doc_value);
-  if (ret != 0) {
-    return ret;
+  Status status = storage_mgr_->Get(docid, ori_doc_value);
+  if (!status.ok()) {
+    return status.code();
   }
 
   uint8_t doc_value[item_length_];
@@ -415,9 +418,9 @@ int Table::GetDocInfo(const int docid, Doc &doc,
     return -1;
   }
   const uint8_t *doc_value = nullptr;
-  int ret = storage_mgr_->Get(docid, doc_value);
-  if (ret != 0) {
-    return ret;
+  Status status = storage_mgr_->Get(docid, doc_value);
+  if (!status.ok()) {
+    return status.code();
   }
   auto &table_fields = doc.TableFields();
 
@@ -477,9 +480,9 @@ int Table::GetFieldRawValue(int docid, int field_id, std::string &value,
   bool is_free = false;
   if (doc_value == nullptr) {
     is_free = true;
-    int ret = storage_mgr_->Get(docid, doc_value);
-    if (ret != 0) {
-      return ret;
+    Status status = storage_mgr_->Get(docid, doc_value);
+    if (!status.ok()) {
+      return status.code();
     }
   }
 
@@ -508,9 +511,9 @@ int Table::GetFieldRawValue(int docid, int field_id,
   bool is_free = false;
   if (doc_value == nullptr) {
     is_free = true;
-    int ret = storage_mgr_->Get(docid, doc_value);
-    if (ret != 0) {
-      return ret;
+    Status status = storage_mgr_->Get(docid, doc_value);
+    if (!status.ok()) {
+      return status.code();
     }
   }
 

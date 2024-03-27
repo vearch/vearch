@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"math"
 	"sort"
-	"strings"
 	"time"
 
 	"github.com/cubefs/cubefs/depends/tiglabs/raft/proto"
@@ -713,7 +712,7 @@ func (ms *masterService) describeSpaceService(ctx context.Context, space *entity
 	return nil
 }
 
-// createAliasService keys "/alias/alias_name:dbName/spaceName"
+// createAliasService keys "/alias/alias_name:alias"
 func (ms *masterService) createAliasService(ctx context.Context, alias *entity.Alias) (err error) {
 	//validate name
 	if err = alias.Validate(); err != nil {
@@ -735,7 +734,11 @@ func (ms *masterService) createAliasService(ctx context.Context, alias *entity.A
 		if value != "" {
 			return vearchpb.NewError(vearchpb.ErrorEnum_ALIAS_EXIST, nil)
 		}
-		stm.Put(aliasKey, entity.AliasValue(alias.DbName, alias.SpaceName))
+		marshal, err := vjson.Marshal(alias)
+		if err != nil {
+			return err
+		}
+		stm.Put(aliasKey, string(marshal))
 		return nil
 	})
 	return err
@@ -759,8 +762,7 @@ func (ms *masterService) deleteAliasService(ctx context.Context, alias_name stri
 
 	err = ms.Master().STM(context.Background(),
 		func(stm concurrency.STM) error {
-			aliasKey := entity.AliasKey(alias.Name)
-			stm.Del(aliasKey)
+			stm.Del(entity.AliasKey(alias.Name))
 			return nil
 		})
 
@@ -791,34 +793,32 @@ func (ms *masterService) updateAliasService(ctx context.Context, alias *entity.A
 		}
 	}()
 	err = ms.Master().STM(context.Background(), func(stm concurrency.STM) error {
-		stm.Put(entity.AliasKey(alias.Name), entity.AliasValue(alias.DbName, alias.SpaceName))
+		marshal, err := vjson.Marshal(alias)
+		if err != nil {
+			return err
+		}
+		stm.Put(entity.AliasKey(alias.Name), string(marshal))
 		return nil
 	})
 	return nil
 }
 
 func (ms *masterService) queryAllAlias(ctx context.Context) ([]*entity.Alias, error) {
-	keys, values, err := ms.Master().PrefixScan(ctx, entity.PrefixAlias)
+	_, values, err := ms.Master().PrefixScan(ctx, entity.PrefixAlias)
 	if err != nil {
 		return nil, err
 	}
-	allAlias := make([]*entity.Alias, 0, len(keys))
-	for index, key := range keys {
-		alias_result := strings.Split(string(key), entity.PrefixAlias)
-		if len(alias_result) != 2 {
-			return nil, fmt.Errorf("get alias:%s err", string(key))
+	allAlias := make([]*entity.Alias, 0, len(values))
+	for _, value := range values {
+		if value == nil {
+			return nil, vearchpb.NewError(vearchpb.ErrorEnum_ALIAS_NOT_EXIST, nil)
 		}
-		result := strings.Split(string(values[index]), "/")
-		if len(result) != 2 {
-			return nil, fmt.Errorf("get alias:%s err, wrong value:%s", alias_result[1], string(values[index]))
-		} else {
-			alias := &entity.Alias{
-				Name:      alias_result[1],
-				DbName:    result[0],
-				SpaceName: result[1],
-			}
-			allAlias = append(allAlias, alias)
+		alias := &entity.Alias{}
+		err = vjson.Unmarshal(value, alias)
+		if err != nil {
+			return nil, fmt.Errorf("get alias:%s value:%s, err:%s", alias.Name, string(value), err.Error())
 		}
+		allAlias = append(allAlias, alias)
 	}
 
 	return allAlias, err
@@ -837,14 +837,11 @@ func (ms *masterService) queryAliasService(ctx context.Context, alias_name strin
 		return nil, vearchpb.NewError(vearchpb.ErrorEnum_ALIAS_NOT_EXIST, nil)
 	}
 
-	result := strings.Split(string(bs), "/")
-	if len(result) != 2 {
-		return nil, fmt.Errorf("get alias:%s err, wrong value:%s", alias.Name, string(bs))
-	} else {
-		alias.DbName = result[0]
-		alias.SpaceName = result[1]
-		return alias, nil
+	err = vjson.Unmarshal(bs, alias)
+	if err != nil {
+		return nil, fmt.Errorf("get alias:%s value:%s, err:%s", alias.Name, string(bs), err.Error())
 	}
+	return alias, nil
 }
 
 func (ms *masterService) GetEngineCfg(ctx context.Context, dbName, spaceName string) (cfg *entity.EngineCfg, err error) {

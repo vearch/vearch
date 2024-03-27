@@ -35,11 +35,11 @@ class Engine {
 
   ~Engine();
 
-  int Setup();
+  Status Setup();
 
-  int Search(Request &request, Response &response_results);
+  int Search(Request &request, Response &response_results, Status &status);
 
-  int CreateTable(TableInfo &table);
+  Status CreateTable(TableInfo &table);
 
   int AddOrUpdate(Doc &doc);
 
@@ -125,7 +125,7 @@ class Engine {
 
   int AddNumIndexFields();
 
-  int MultiRangeQuery(Request &request, GammaSearchCondition *condition,
+  int MultiRangeQuery(Request &request, SearchCondition *condition,
                       Response &response_results,
                       MultiRangeQueryResults *range_query_result);
 

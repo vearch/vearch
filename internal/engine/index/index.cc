@@ -59,7 +59,7 @@ IndexIVFFlat::~IndexIVFFlat() {
   }
 }
 
-int IndexIVFFlat::init(const std::string &index_param) {
+Status IndexIVFFlat::init(const std::string &index_param) {
   if (index_param != "") {
     this->index_param = index_param;
   }
@@ -73,18 +73,19 @@ int IndexIVFFlat::init(const std::string &index_param) {
 
   std::string vec_root_path = index_root_path_ + "/vectors";
   if (utils::make_dir(vec_root_path.c_str())) {
-    LOG(ERROR) << "make directory error, path=" << vec_root_path;
-    return -2;
+    std::string msg =
+        std::string("make directory error, path=") + vec_root_path;
+    LOG(ERROR) << msg;
+    return Status::PathNotFound(msg);
   }
   VectorMetaInfo *meta_info = new VectorMetaInfo(vec_name, d, value_type);
   meta_info->with_io_ = false;
 
   StoreParams store_params(meta_info->AbsoluteName());
-  // std::string store_param = "{\"cache_size\": 16, \"compress\":
-  // {\"rate\":16}}";
   std::string store_param = "";
-  if (store_param != "" && store_params.Parse(store_param.c_str())) {
-    return PARAM_ERR;
+  if (store_param != "") {
+    Status status = store_params.Parse(store_param.c_str());
+    if (!status.ok()) return status;
   }
 
   LOG(INFO) << "store params=" << store_params.ToJsonStr();
@@ -92,38 +93,42 @@ int IndexIVFFlat::init(const std::string &index_param) {
   docids_bitmap_ = new bitmap::BitmapManager();
   int init_bitmap_size = 1000 * 10000;
   if (docids_bitmap_->Init(init_bitmap_size) != 0) {
-    LOG(ERROR) << "Cannot create bitmap!";
-    return INTERNAL_ERR;
+    std::string msg = "Cannot create bitmap!";
+    LOG(ERROR) << msg;
+    return Status::IOError(msg);
   }
 
   raw_vector_ = RawVectorFactory::Create(meta_info, storage_type, vec_root_path,
                                          store_params, docids_bitmap_);
   if (raw_vector_ == nullptr) {
-    LOG(ERROR) << "create raw vector error";
-    return -1;
+    std::string msg = "create raw vector error";
+    LOG(ERROR) << msg;
+    return Status::IOError(msg);
   }
   LOG(INFO) << "create raw vector success, vec_name[" << vec_name << "]";
 
   int ret = raw_vector_->Init(vec_name, false);
   if (ret != 0) {
-    LOG(ERROR) << "Raw vector " << vec_name << " init error, code [" << ret
-               << "]!";
+    std::string msg = std::string("Raw vector ") + vec_name +
+                      " init error, code [" + std::to_string(ret) + "]!";
+    LOG(ERROR) << msg;
     delete raw_vector_;
-    return -1;
+    return Status::IOError(msg);
   }
 
   vector_ = raw_vector_;
 
-  if (GammaIndexIVFFlat::Init(this->index_param, 100000) != 0) {
+  Status status = GammaIndexIVFFlat::Init(this->index_param, 100000);
+  if (!status.ok()) {
     LOG(ERROR) << "gamma index init " << vec_name << " error!";
-    return -1;
+    return status;
   }
   // init indexed count
   indexed_count_ = 0;
-  return 0;
+  return Status::OK();
 }
 
-int IndexIVFFlat::init() { return init(index_param); }
+Status IndexIVFFlat::init() { return init(index_param); }
 
 void IndexIVFFlat::train(idx_t n, const float *x) {
   faiss::IndexIVFFlat::train(n, x);
@@ -134,7 +139,7 @@ void IndexIVFFlat::add(idx_t n, const float *x) { Add(n, (const uint8_t *)x); }
 void IndexIVFFlat::search(idx_t n, const float *x, idx_t k, float *distances,
                           idx_t *labels) {
   PerfTool perf_tool;
-  GammaSearchCondition *condition = new GammaSearchCondition(&perf_tool);
+  SearchCondition *condition = new SearchCondition(&perf_tool);
   condition->has_rank = false;
   condition->topn = k;
   condition->Init(std::numeric_limits<float>::lowest(),
@@ -143,7 +148,7 @@ void IndexIVFFlat::search(idx_t n, const float *x, idx_t k, float *distances,
   delete condition;
 }
 
-int IndexIVFFlat::dump(const std::string &dir) {
+Status IndexIVFFlat::dump(const std::string &dir) {
   if (utils::isFolderExist(dir.c_str()) == 0) {
     utils::make_dir(dir.c_str());
   }
@@ -154,7 +159,7 @@ int IndexIVFFlat::dump(const std::string &dir) {
   return Dump(dir);
 }
 
-int IndexIVFFlat::load(const std::string &dir) {
+Status IndexIVFFlat::load(const std::string &dir, int &load_num) {
   std::string index_param_file_path = dir + "/index_param_file.txt";
   long file_size = utils::get_file_size(index_param_file_path);
   char index_param_str[file_size];
@@ -163,7 +168,7 @@ int IndexIVFFlat::load(const std::string &dir) {
   index_param_io.Read(index_param_str, file_size, 1);
   index_param = std::string(index_param_str, file_size);
   init(index_param);
-  return Load(dir);
+  return Load(dir, load_num);
 }
 
 IndexIVFPQ::IndexIVFPQ(faiss::Index *quantizer, size_t d, size_t nlist,
@@ -195,7 +200,7 @@ IndexIVFPQ::~IndexIVFPQ() {
   }
 }
 
-int IndexIVFPQ::init(const std::string &index_param) {
+Status IndexIVFPQ::init(const std::string &index_param) {
   if (index_param != "") {
     this->index_param = index_param;
   }
@@ -209,18 +214,19 @@ int IndexIVFPQ::init(const std::string &index_param) {
 
   std::string vec_root_path = index_root_path_ + "/vectors";
   if (utils::make_dir(vec_root_path.c_str())) {
-    LOG(ERROR) << "make directory error, path=" << vec_root_path;
-    return -2;
+    std::string msg =
+        std::string("make directory error, path=") + vec_root_path;
+    LOG(ERROR) << msg;
+    return Status::PathNotFound(msg);
   }
   VectorMetaInfo *meta_info = new VectorMetaInfo(vec_name, d, value_type);
   meta_info->with_io_ = false;
 
   StoreParams store_params(meta_info->AbsoluteName());
-  // std::string store_param = "{\"cache_size\": 16, \"compress\":
-  // {\"rate\":16}}";
   std::string store_param = "";
-  if (store_param != "" && store_params.Parse(store_param.c_str())) {
-    return PARAM_ERR;
+  if (store_param != "") {
+    Status status = store_params.Parse(store_param.c_str());
+    if (!status.ok()) return status;
   }
 
   LOG(INFO) << "store params=" << store_params.ToJsonStr();
@@ -228,45 +234,51 @@ int IndexIVFPQ::init(const std::string &index_param) {
   docids_bitmap_ = new bitmap::BitmapManager();
   int init_bitmap_size = 1000 * 10000;
   if (docids_bitmap_->Init(init_bitmap_size) != 0) {
-    LOG(ERROR) << "Cannot create bitmap!";
-    return INTERNAL_ERR;
+    std::string msg = "Cannot create bitmap!";
+    LOG(ERROR) << msg;
+    return Status::IOError(msg);
   }
 
   raw_vector_ = RawVectorFactory::Create(meta_info, storage_type, vec_root_path,
                                          store_params, docids_bitmap_);
   if (raw_vector_ == nullptr) {
-    LOG(ERROR) << "create raw vector error";
-    return -1;
+    std::string msg = "create raw vector error";
+    LOG(ERROR) << msg;
+    return Status::IOError(msg);
   }
   LOG(INFO) << "create raw vector success, vec_name[" << vec_name << "]";
 
   int ret = raw_vector_->Init(vec_name, false);
   if (ret != 0) {
-    LOG(ERROR) << "Raw vector " << vec_name << " init error, code [" << ret
-               << "]!";
+    std::string msg = std::string("Raw vector ") + vec_name +
+                      " init error, code [" + std::to_string(ret) + "]!";
+    LOG(ERROR) << msg;
     delete raw_vector_;
-    return -1;
+    return Status::IOError(msg);
   }
 
   vector_ = raw_vector_;
+  Status status;
 
 #ifdef OPT_IVFPQ_RELAYOUT
-  if (GammaIndexIVFPQRelayout::Init(this->index_param, 100000) != 0) {
+  status = GammaIndexIVFPQRelayout::Init(this->index_param, 100000);
+  if (!status.ok()) {
     LOG(ERROR) << "gamma index init " << vec_name << " error!";
-    return -1;
+    return status;
   }
 #else
-  if (GammaIVFPQIndex::Init(this->index_param, 100000) != 0) {
+  status = GammaIVFPQIndex::Init(this->index_param, 100000);
+  if (!status.ok()) {
     LOG(ERROR) << "gamma index init " << vec_name << " error!";
-    return -1;
+    return status;
   }
 #endif
   // init indexed count
   indexed_count_ = 0;
-  return 0;
+  return Status::OK();
 }
 
-int IndexIVFPQ::init() { return init(index_param); }
+Status IndexIVFPQ::init() { return init(index_param); }
 
 void IndexIVFPQ::train(idx_t n, const float *x) {
   faiss::IndexIVFPQ::train(n, x);
@@ -277,7 +289,7 @@ void IndexIVFPQ::add(idx_t n, const float *x) { Add(n, (const uint8_t *)x); }
 void IndexIVFPQ::search(idx_t n, const float *x, idx_t k, float *distances,
                         idx_t *labels) {
   PerfTool perf_tool;
-  GammaSearchCondition *condition = new GammaSearchCondition(&perf_tool);
+  SearchCondition *condition = new SearchCondition(&perf_tool);
   condition->has_rank = false;
   condition->topn = k;
   condition->Init(std::numeric_limits<float>::lowest(),
@@ -286,7 +298,7 @@ void IndexIVFPQ::search(idx_t n, const float *x, idx_t k, float *distances,
   delete condition;
 }
 
-int IndexIVFPQ::dump(const std::string &dir) {
+Status IndexIVFPQ::dump(const std::string &dir) {
   if (utils::isFolderExist(dir.c_str()) == 0) {
     utils::make_dir(dir.c_str());
   }
@@ -297,7 +309,7 @@ int IndexIVFPQ::dump(const std::string &dir) {
   return Dump(dir);
 }
 
-int IndexIVFPQ::load(const std::string &dir) {
+Status IndexIVFPQ::load(const std::string &dir, int &load_num) {
   std::string index_param_file_path = dir + "/index_param_file.txt";
   long file_size = utils::get_file_size(index_param_file_path);
   char index_param_str[file_size];
@@ -309,7 +321,7 @@ int IndexIVFPQ::load(const std::string &dir) {
 #ifdef OPT_IVFPQ_RELAYOUT
   check_vector_size_ = false;
 #endif
-  return Load(dir);
+  return Load(dir, load_num);
 }
 
 #ifdef USE_SCANN
@@ -359,8 +371,6 @@ int IndexScann::init(const std::string &index_param) {
   meta_info->with_io_ = false;
 
   StoreParams store_params(meta_info->AbsoluteName());
-  // std::string store_param = "{\"cache_size\": 16, \"compress\":
-  // {\"rate\":16}}";
   std::string store_param = "";
   if (store_param != "" && store_params.Parse(store_param.c_str())) {
     return PARAM_ERR;
@@ -414,7 +424,7 @@ void IndexScann::add(idx_t n, const float *x) { Add(n, (const uint8_t *)x); }
 void IndexScann::search(idx_t n, const float *x, idx_t k, float *distances,
                         idx_t *labels) {
   PerfTool perf_tool;
-  GammaSearchCondition *condition = new GammaSearchCondition(&perf_tool);
+  SearchCondition *condition = new SearchCondition(&perf_tool);
   condition->has_rank = false;
   condition->topn = k;
   condition->Init(std::numeric_limits<float>::lowest(),

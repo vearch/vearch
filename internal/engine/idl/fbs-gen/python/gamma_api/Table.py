@@ -66,33 +66,25 @@ class Table(object):
         return 0
 
     # Table
-    def CompressMode(self):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(10))
-        if o != 0:
-            return self._tab.Get(flatbuffers.number_types.Int32Flags, o + self._tab.Pos)
-        return 0
-
-    # Table
     def IndexType(self):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(12))
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(10))
         if o != 0:
             return self._tab.String(o + self._tab.Pos)
         return None
 
     # Table
     def IndexParams(self):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(14))
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(12))
         if o != 0:
             return self._tab.String(o + self._tab.Pos)
         return None
 
-def TableStart(builder): builder.StartObject(6)
+def TableStart(builder): builder.StartObject(5)
 def TableAddName(builder, name): builder.PrependUOffsetTRelativeSlot(0, flatbuffers.number_types.UOffsetTFlags.py_type(name), 0)
 def TableAddFields(builder, fields): builder.PrependUOffsetTRelativeSlot(1, flatbuffers.number_types.UOffsetTFlags.py_type(fields), 0)
 def TableStartFieldsVector(builder, numElems): return builder.StartVector(4, numElems, 4)
 def TableAddVectorsInfo(builder, vectorsInfo): builder.PrependUOffsetTRelativeSlot(2, flatbuffers.number_types.UOffsetTFlags.py_type(vectorsInfo), 0)
 def TableStartVectorsInfoVector(builder, numElems): return builder.StartVector(4, numElems, 4)
-def TableAddCompressMode(builder, compressMode): builder.PrependInt32Slot(3, compressMode, 0)
-def TableAddIndexType(builder, indexType): builder.PrependUOffsetTRelativeSlot(4, flatbuffers.number_types.UOffsetTFlags.py_type(indexType), 0)
-def TableAddIndexParams(builder, indexParams): builder.PrependUOffsetTRelativeSlot(5, flatbuffers.number_types.UOffsetTFlags.py_type(indexParams), 0)
+def TableAddIndexType(builder, indexType): builder.PrependUOffsetTRelativeSlot(3, flatbuffers.number_types.UOffsetTFlags.py_type(indexType), 0)
+def TableAddIndexParams(builder, indexParams): builder.PrependUOffsetTRelativeSlot(4, flatbuffers.number_types.UOffsetTFlags.py_type(indexParams), 0)
 def TableEnd(builder): return builder.EndObject()

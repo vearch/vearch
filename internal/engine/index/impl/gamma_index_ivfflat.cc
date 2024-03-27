@@ -29,7 +29,6 @@
 #include <cstdlib>
 #include <memory>
 
-#include "common/error_code.h"
 #include "common/gamma_common_data.h"
 #include "index/index_io.h"
 #include "vector/rocksdb_raw_vector.h"
@@ -54,11 +53,13 @@ struct IVFFlatModelParams {
     bucket_max_size = 1280000;
   }
 
-  int Parse(const char *str) {
+  Status Parse(const char *str) {
     utils::JsonParser jp;
     if (jp.Parse(str)) {
-      LOG(ERROR) << "parse IVFFLAT model parameters error: " << str;
-      return -1;
+      std::string msg =
+          std::string("parse IVFFLAT model parameters error: ") + str;
+      LOG(ERROR) << msg;
+      return Status::ParamError(msg);
     }
 
     // -1 as default
@@ -66,8 +67,9 @@ struct IVFFlatModelParams {
     int nprobe = 0;
     if (jp.Contains("ncentroids")) {
       if (jp.GetInt("ncentroids", nc)) {
-        LOG(ERROR) << "parse ncentroids error";
-        return PARAM_ERR;
+        std::string msg = "parse ncentroids error";
+        LOG(ERROR) << msg;
+        return Status::ParamError(msg);
       }
       if (nc > 0) {
         ncentroids = nc;
@@ -75,13 +77,16 @@ struct IVFFlatModelParams {
     }
     if (!jp.GetInt("nprobe", nprobe)) {
       if (nprobe < -1) {
-        LOG(ERROR) << "invalid nprobe =" << nprobe;
-        return -1;
+        std::string msg =
+            std::string("invalid nprobe =") + std::to_string(nprobe);
+        LOG(ERROR) << msg;
+        return Status::ParamError(msg);
       }
       if (nprobe > 0) this->nprobe = nprobe;
       if (this->nprobe > this->ncentroids) {
-        LOG(ERROR) << "nprobe should less than ncentroids";
-        return -1;
+        std::string msg = "nprobe should less than ncentroids";
+        LOG(ERROR) << msg;
+        return Status::ParamError(msg);
       }
     }
 
@@ -91,16 +96,19 @@ struct IVFFlatModelParams {
     // -1 as default
     if (!jp.GetInt("bucket_init_size", bucket_init_size)) {
       if (bucket_init_size < -1) {
-        LOG(ERROR) << "invalid bucket_init_size =" << bucket_init_size;
-        return -1;
+        std::string msg = std::string("invalid bucket_init_size =") +
+                          std::to_string(bucket_init_size);
+        return Status::ParamError(msg);
       }
       if (bucket_init_size > 0) this->bucket_init_size = bucket_init_size;
     }
 
     if (!jp.GetInt("bucket_max_size", bucket_max_size)) {
       if (bucket_max_size < -1) {
-        LOG(ERROR) << "invalid bucket_max_size =" << bucket_max_size;
-        return -1;
+        std::string msg = std::string("invalid bucket_max_size =") +
+                          std::to_string(bucket_max_size);
+        LOG(ERROR) << msg;
+        return Status::ParamError(msg);
       }
       if (bucket_max_size > 0) this->bucket_max_size = bucket_max_size;
     }
@@ -110,8 +118,9 @@ struct IVFFlatModelParams {
     if (!jp.GetString("metric_type", metric_type)) {
       if (strcasecmp("L2", metric_type.c_str()) &&
           strcasecmp("InnerProduct", metric_type.c_str())) {
-        LOG(ERROR) << "invalid metric_type = " << metric_type;
-        return -1;
+        std::string msg = std::string("invalid metric_type = ") + metric_type;
+        LOG(ERROR) << msg;
+        return Status::ParamError(msg);
       }
       if (!strcasecmp("L2", metric_type.c_str()))
         this->metric_type = DistanceComputeType::L2;
@@ -119,7 +128,7 @@ struct IVFFlatModelParams {
         this->metric_type = DistanceComputeType::INNER_PRODUCT;
     }
 
-    return 0;
+    return Status::OK();
   }
 
   std::string ToString() {
@@ -152,19 +161,23 @@ GammaIndexIVFFlat::~GammaIndexIVFFlat() {
   CHECK_DELETE(quantizer);
 }
 
-int GammaIndexIVFFlat::Init(const std::string &model_parameters,
-                            int training_threshold) {
+Status GammaIndexIVFFlat::Init(const std::string &model_parameters,
+                               int training_threshold) {
   IVFFlatModelParams params;
-  if (model_parameters != "" && params.Parse(model_parameters.c_str())) {
-    LOG(ERROR) << "parse model parameters error";
-    return PARAM_ERR;
+  if (model_parameters != "") {
+    Status status = params.Parse(model_parameters.c_str());
+    if (!status.ok()) {
+      LOG(ERROR) << status.ToString();
+      return status;
+    }
   }
 
   RawVector *raw_vec = nullptr;
   raw_vec = dynamic_cast<RawVector *>(vector_);
   if (raw_vec == nullptr) {
-    LOG(ERROR) << "IVFFlat needs store type=RocksDB";
-    return PARAM_ERR;
+    std::string msg = "IVFFlat needs store type=RocksDB";
+    LOG(ERROR) << msg;
+    return Status::ParamError(msg);
   }
 
   d = vector_->MetaInfo()->Dimension();
@@ -194,8 +207,9 @@ int GammaIndexIVFFlat::Init(const std::string &model_parameters,
 
   bool ret = rt_invert_index_ptr_->Init();
   if (!ret) {
-    LOG(ERROR) << "init realtime invert index error";
-    return INTERNAL_ERR;
+    std::string msg = "init realtime invert index error";
+    LOG(ERROR) << msg;
+    return Status::ParamError(msg);
   }
   this->invlists =
       new realtime::RTInvertedLists(rt_invert_index_ptr_, nlist, code_size);
@@ -208,7 +222,7 @@ int GammaIndexIVFFlat::Init(const std::string &model_parameters,
   }
   this->nprobe = params.nprobe;
 
-  return 0;
+  return Status::OK();
 }
 
 RetrievalParameters *GammaIndexIVFFlat::Parse(const std::string &parameters) {
@@ -278,8 +292,9 @@ int GammaIndexIVFFlat::Indexing() {
   size_t num;
   if ((size_t)training_threshold_ < nlist) {
     num = nlist * 39;
-    LOG(WARNING) << "Because training_threshold[" << training_threshold_ << "] < ncentroids["
-                 << nlist << "], training_threshold becomes ncentroids * 39[" << num
+    LOG(WARNING) << "Because training_threshold[" << training_threshold_
+                 << "] < ncentroids[" << nlist
+                 << "], training_threshold becomes ncentroids * 39[" << num
                  << "].";
   } else if ((size_t)training_threshold_ <= nlist * 256) {
     if ((size_t)training_threshold_ < nlist * 39) {
@@ -650,16 +665,17 @@ std::string IVFFlatToString(const faiss::IndexIVFFlat *ivfl) {
   return ss.str();
 }
 
-int GammaIndexIVFFlat::Dump(const std::string &dir) {
+Status GammaIndexIVFFlat::Dump(const std::string &dir) {
   if (!this->is_trained) {
     LOG(INFO) << "gamma index is not trained, skip dumping";
-    return 0;
+    return Status::OK();
   }
   std::string index_name = vector_->MetaInfo()->AbsoluteName();
   std::string index_dir = dir + "/" + index_name;
   if (utils::make_dir(index_dir.c_str())) {
-    LOG(ERROR) << "mkdir error, index dir=" << index_dir;
-    return IO_ERR;
+    std::string msg = std::string("mkdir error, index dir=") + index_dir;
+    LOG(ERROR) << msg;
+    return Status::PathNotFound(msg);
   }
 
   std::string index_file = index_dir + "/ivfflat.index";
@@ -672,22 +688,25 @@ int GammaIndexIVFFlat::Dump(const std::string &dir) {
 
   int indexed_count = indexed_vec_count_;
   if (WriteInvertedLists(f, rt_invert_index_ptr_)) {
-    LOG(ERROR) << "write invert list error, index name=" << index_name;
-    return INTERNAL_ERR;
+    std::string msg =
+        std::string("write invert list error, index name=") + index_name;
+    LOG(ERROR) << msg;
+    return Status::IOError(msg);
   }
   WRITE1(indexed_count);
 
   LOG(INFO) << "dump:" << IVFFlatToString(ivfl)
             << ", indexed count=" << indexed_count;
-  return 0;
+  return Status::OK();
 };
 
-int GammaIndexIVFFlat::Load(const std::string &dir) {
+Status GammaIndexIVFFlat::Load(const std::string &dir, int &load_num) {
   std::string index_name = vector_->MetaInfo()->AbsoluteName();
   std::string index_file = dir + "/" + index_name + "/ivfflat.index";
   if (!utils::file_exist(index_file)) {
     LOG(INFO) << index_file << " isn't existed, skip loading";
-    return 0;  // it should train again after load
+    load_num = 0;
+    return Status::OK();  // it should train again after load
   }
 
   faiss::IOReader *f = new FileIOReader(index_file.c_str());
@@ -699,25 +718,31 @@ int GammaIndexIVFFlat::Load(const std::string &dir) {
   vearch::read_ivf_header(ivfl, f, nullptr);  // not legacy
 
   int indexed_vec_count = 0;
-  int ret = ReadInvertedLists(f, rt_invert_index_ptr_, indexed_vec_count);
-  if (ret == FORMAT_ERR) {
+  Status status = ReadInvertedLists(f, rt_invert_index_ptr_, indexed_vec_count);
+  if (status.code() == status::kIndexError) {
     indexed_vec_count_ = 0;
+    load_num = 0;
     LOG(INFO) << "unsupported inverted list format, it need rebuilding!";
-  } else if (ret == 0) {
+  } else if (status.ok()) {
     READ1(indexed_vec_count_);
     if (indexed_vec_count_ < 0) {
-      LOG(ERROR) << "invalid indexed count [" << indexed_vec_count_
-                 << "] vector size [" << vector_->MetaInfo()->size_ << "]";
-      return INTERNAL_ERR;
+      std::string msg = std::string("invalid indexed count [") +
+                        std::to_string(indexed_vec_count_) + "] vector size [" +
+                        std::to_string(vector_->MetaInfo()->size_) + "]";
+      LOG(ERROR) << msg;
+      return Status::IndexError(msg);
     }
     LOG(INFO) << "load: " << IVFFlatToString(ivfl)
               << ", indexed vector count=" << indexed_vec_count_;
   } else {
-    LOG(ERROR) << "read invert list error, index name=" << index_name;
-    return INTERNAL_ERR;
+    std::string msg =
+        std::string("read invert list error, index name=") + index_name;
+    LOG(ERROR) << msg;
+    return Status::IndexError(msg);
   }
   assert(this->is_trained);
-  return indexed_vec_count_;
+  load_num = indexed_vec_count_;
+  return Status::OK();
 };
 
 GammaInvertedListScanner *GammaIndexIVFFlat::GetGammaInvertedListScanner(

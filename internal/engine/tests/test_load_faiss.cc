@@ -82,8 +82,7 @@ int CreateFaissTable(struct Options &opt) {
   vector_info.is_index = true;
   vector_info.dimension = opt.d;
   vector_info.store_type = opt.store_type;
-  vector_info.store_param = "{\"cache_size\": 16, \"compress\": {\"rate\":16}}";
-  // vector_info.store_param = "{\"cache_size\": 16}";
+  vector_info.store_param = "{\"cache_size\": 16}";
 
   table.AddVectorInfo(vector_info);
 

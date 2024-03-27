@@ -19,27 +19,16 @@
 
 namespace vearch {
 
-const std::string EXTRA_VECTOR_FIELD_SCORE = "score";
-const std::string EXTRA_VECTOR_FIELD_NAME = "field";
-const std::string EXTRA_VECTOR_RESULT = "vector_result";
-
 const float GAMMA_INDEX_RECALL_RATIO = 1.0f;
 
 const int min_points_per_centroid = 39;
 const int max_points_per_centroid = 256;
 
-enum class ResultCode : std::uint16_t {
-#define DefineResultCode(Name, Value) Name = Value,
-#include "definition_list.h"
-#undef DefineResultCode
-  Undefined
-};
-
 enum class VectorStorageType : std::uint8_t { MemoryOnly, RocksDB };
 
-class GammaSearchCondition : public RetrievalContext {
+class SearchCondition : public RetrievalContext {
  public:
-  GammaSearchCondition(PerfTool *perf_tool) {
+  SearchCondition(PerfTool *perf_tool) {
     range_query_result = nullptr;
     topn = 0;
     multi_vector_rank = false;
@@ -54,7 +43,7 @@ class GammaSearchCondition : public RetrievalContext {
     table = nullptr;
   }
 
-  GammaSearchCondition(GammaSearchCondition *condition) {
+  SearchCondition(SearchCondition *condition) {
     range_query_result = condition->range_query_result;
     topn = condition->topn;
     multi_vector_rank = condition->multi_vector_rank;
@@ -70,7 +59,7 @@ class GammaSearchCondition : public RetrievalContext {
     table = condition->table;
   }
 
-  ~GammaSearchCondition() {
+  ~SearchCondition() {
     range_query_result = nullptr;  // should not delete
     table = nullptr;               // should not delete
   }
@@ -135,7 +124,7 @@ struct GammaQuery {
   }
 
   std::vector<struct VectorQuery> vec_query;
-  GammaSearchCondition *condition;
+  SearchCondition *condition;
 };
 
 }  // namespace vearch

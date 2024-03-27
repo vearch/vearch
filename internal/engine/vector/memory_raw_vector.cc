@@ -9,8 +9,6 @@
 
 #include <unistd.h>
 
-#include "common/error_code.h"
-
 using std::string;
 namespace vearch {
 
@@ -42,12 +40,12 @@ int MemoryRawVector::InitStore(std::string &vec_name) {
   LOG(INFO) << "init memory raw vector success! vector byte size="
             << vector_byte_size_
             << ", path=" << root_path_ + "/" + meta_info_->Name();
-  return SUCC;
+  return 0;
 }
 
 int MemoryRawVector::AddToStore(uint8_t *v, int len) {
   AddToMem(v, vector_byte_size_);
-  return SUCC;
+  return 0;
 }
 
 int MemoryRawVector::AddToMem(uint8_t *v, int len) {
@@ -62,7 +60,7 @@ int MemoryRawVector::AddToMem(uint8_t *v, int len) {
 int MemoryRawVector::ExtendSegments() {
   if (nsegments_ >= kMaxSegments) {
     LOG(ERROR) << this->desc_ << "segment number can't be > " << kMaxSegments;
-    return LIMIT_ERR;
+    return -1;
   }
   segments_[nsegments_] =
       new (std::nothrow) uint8_t[segment_size_ * vector_byte_size_];
@@ -71,12 +69,12 @@ int MemoryRawVector::ExtendSegments() {
     LOG(ERROR) << this->desc_
                << "malloc new segment failed, segment num=" << nsegments_
                << ", segment size=" << segment_size_;
-    return ALLOC_ERR;
+    return -1;
   }
   curr_idx_in_seg_ = 0;
   ++nsegments_;
   LOG(INFO) << "extend segment sucess! nsegments=" << nsegments_;
-  return SUCC;
+  return 0;
 }
 
 int MemoryRawVector::GetVectorHeader(int start, int n, ScopeVectors &vecs,
@@ -95,14 +93,14 @@ int MemoryRawVector::GetVectorHeader(int start, int n, ScopeVectors &vecs,
     start += len;
     n -= len;
   }
-  return SUCC;
+  return 0;
 }
 
 int MemoryRawVector::UpdateToStore(int vid, uint8_t *v, int len) {
   memcpy((void *)(segments_[vid / segment_size_] +
                   (size_t)vid % segment_size_ * vector_byte_size_),
          (void *)v, vector_byte_size_);
-  return SUCC;
+  return 0;
 }
 
 int MemoryRawVector::GetVector(long vid, const uint8_t *&vec,
@@ -111,7 +109,7 @@ int MemoryRawVector::GetVector(long vid, const uint8_t *&vec,
         (size_t)vid % segment_size_ * vector_byte_size_;
 
   deletable = false;
-  return SUCC;
+  return 0;
 }
 
 uint8_t *MemoryRawVector::GetFromMem(long vid) const {

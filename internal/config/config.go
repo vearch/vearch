@@ -200,7 +200,6 @@ func (ms Masters) Self() *MasterCfg {
 		}
 	}
 	return nil
-
 }
 
 type MasterCfg struct {
@@ -394,7 +393,6 @@ func LoadConfig(conf *Config, path string) {
 // CurrentByMasterNameDomainIp find this machine domain.The main purpose of this function is to find the master from from multiple masters and set it‘s Field:self to true.
 // The only criterion for judging is: Is the IP address the same with one of the masters?
 func (config *Config) CurrentByMasterNameDomainIp(masterName string) error {
-
 	//find local all ip
 	addrMap := config.addrMap()
 
@@ -460,7 +458,6 @@ func (config *Config) addrMap() map[string]bool {
 }
 
 func (config *Config) Validate(model Model) error {
-
 	switch model {
 	case Master:
 		masterNum := 0
@@ -477,7 +474,7 @@ func (config *Config) Validate(model Model) error {
 		if config.PS.EngineDWPTNum == 0 {
 			config.PS.EngineDWPTNum = 1
 		}
-		if config.PS.EngineDWPTNum < 0 || config.PS.EngineDWPTNum > 100 {
+		if config.PS.EngineDWPTNum > 100 {
 			return fmt.Errorf("EngineDWPTNum need gt 0 and le 100")
 		}
 	}

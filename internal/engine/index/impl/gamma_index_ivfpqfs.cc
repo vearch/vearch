@@ -23,7 +23,6 @@
 #include <stdexcept>
 #include <vector>
 
-#include "common/error_code.h"
 #include "faiss/invlists/BlockInvertedLists.h"
 #include "index/index_io.h"
 #include "omp.h"
@@ -73,21 +72,25 @@ GammaIVFPQFastScanIndex::~GammaIVFPQFastScanIndex() {
   }
 }
 
-int GammaIVFPQFastScanIndex::Init(const std::string &model_parameters,
-                                  int training_threshold) {
+Status GammaIVFPQFastScanIndex::Init(const std::string &model_parameters,
+                                     int training_threshold) {
   model_param_ = new IVFPQFastScanModelParams();
   IVFPQFastScanModelParams &ivfpqfs_param = *model_param_;
-  if (model_parameters != "" && ivfpqfs_param.Parse(model_parameters.c_str())) {
-    return -1;
+  if (model_parameters != "") {
+    Status status = ivfpqfs_param.Parse(model_parameters.c_str());
+    if (!status.ok()) return status;
   }
   LOG(INFO) << ivfpqfs_param.ToString();
 
   d = vector_->MetaInfo()->Dimension();
 
   if (d % ivfpqfs_param.nsubvector != 0) {
-    LOG(ERROR) << "Dimension [" << vector_->MetaInfo()->Dimension()
-               << "] cannot divide by nsubvector [" << ivfpqfs_param.nsubvector;
-    return -2;
+    std::string msg = std::string("Dimension [") +
+                      std::to_string(vector_->MetaInfo()->Dimension()) +
+                      "] cannot divide by nsubvector [" +
+                      std::to_string(ivfpqfs_param.nsubvector);
+    LOG(ERROR) << msg;
+    return Status::IndexError(msg);
   }
 
   nlist = ivfpqfs_param.ncentroids;
@@ -111,9 +114,12 @@ int GammaIVFPQFastScanIndex::Init(const std::string &model_parameters,
 
   if (ivfpqfs_param.has_opq) {
     if (d % ivfpqfs_param.opq_nsubvector != 0) {
-      LOG(ERROR) << d << " % " << ivfpqfs_param.opq_nsubvector
-                 << " != 0, opq nsubvector should be divisible by dimension.";
-      return -2;
+      std::string msg =
+          std::to_string(d) + " % " +
+          std::to_string(ivfpqfs_param.opq_nsubvector) +
+          " != 0, opq nsubvector should be divisible by dimension.";
+      LOG(ERROR) << msg;
+      return Status::IndexError(msg);
     }
     opq_ = new faiss::OPQMatrix(d, ivfpqfs_param.opq_nsubvector, d);
   }
@@ -159,7 +165,7 @@ int GammaIVFPQFastScanIndex::Init(const std::string &model_parameters,
     LOG(ERROR) << "init read-write lock error, ret=" << ret;
   }
 
-  return ret;
+  return Status::OK();
 }
 
 RetrievalParameters *GammaIVFPQFastScanIndex::Parse(
@@ -219,8 +225,9 @@ int GammaIVFPQFastScanIndex::Indexing() {
   size_t num;
   if ((size_t)training_threshold_ < nlist) {
     num = nlist * 39;
-    LOG(WARNING) << "Because training_threshold[" << training_threshold_ << "] < ncentroids["
-                 << nlist << "], training_threshold becomes ncentroids * 39[" << num
+    LOG(WARNING) << "Because training_threshold[" << training_threshold_
+                 << "] < ncentroids[" << nlist
+                 << "], training_threshold becomes ncentroids * 39[" << num
                  << "].";
   } else if ((size_t)training_threshold_ <= nlist * 256) {
     if ((size_t)training_threshold_ < nlist * 39) {
@@ -387,8 +394,8 @@ int GammaIVFPQFastScanIndex::Search(RetrievalContext *retrieval_context, int n,
     del_params.set(retrieval_params);
   }
 
-  GammaSearchCondition *condition =
-      dynamic_cast<GammaSearchCondition *>(retrieval_context);
+  SearchCondition *condition =
+      dynamic_cast<SearchCondition *>(retrieval_context);
   if (condition->brute_force_search == true || is_trained == false) {
     // reset retrieval_params
     delete retrieval_context->RetrievalParams();
@@ -454,8 +461,14 @@ int GammaIVFPQFastScanIndex::Search(RetrievalContext *retrieval_context, int n,
   return 0;
 }
 
-int GammaIVFPQFastScanIndex::Dump(const std::string &dir) { return 0; }
+Status GammaIVFPQFastScanIndex::Dump(const std::string &dir) {
+  return Status::OK();
+}
 
-int GammaIVFPQFastScanIndex::Load(const std::string &index_dir) { return 0; }
+Status GammaIVFPQFastScanIndex::Load(const std::string &index_dir,
+                                     int &load_num) {
+  load_num = 0;
+  return Status::OK();
+}
 
 }  // namespace vearch

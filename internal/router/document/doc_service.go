@@ -184,8 +184,12 @@ func newOkHead() *vearchpb.ResponseHead {
 	return &vearchpb.ResponseHead{Err: vearchpb.NewError(code, nil).GetError()}
 }
 
-func (docService *docService) getSpace(ctx context.Context, dbName string, spaceName string) (*entity.Space, error) {
-	return docService.client.Master().Cache().SpaceByCache(ctx, dbName, spaceName)
+func (docService *docService) getSpace(ctx context.Context, head *vearchpb.RequestHead) (*entity.Space, error) {
+	if alias, err := docService.client.Master().Cache().AliasByCache(ctx, head.SpaceName); err == nil {
+		head.SpaceName = alias.SpaceName
+	}
+	return docService.client.Master().Cache().SpaceByCache(ctx, head.DbName, head.SpaceName)
+
 }
 
 func (docService *docService) search(ctx context.Context, args *vearchpb.SearchRequest) *vearchpb.SearchResponse {

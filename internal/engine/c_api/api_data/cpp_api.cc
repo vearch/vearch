@@ -33,7 +33,9 @@
 
 int CPPSearch(void *engine, vearch::Request *request,
               vearch::Response *response) {
-  int ret = static_cast<vearch::Engine *>(engine)->Search(*request, *response);
+  vearch::Status status;
+  int ret = static_cast<vearch::Engine *>(engine)->Search(*request, *response,
+                                                          status);
   if (ret) return ret;
   response->PackResults(request->Fields());
   return 0;
@@ -44,7 +46,7 @@ int CPPSearch2(void *engine, vearch::VectorResult *result) {
 
   vearch::GammaQuery gamma_query;
   PerfTool perf_tool;
-  gamma_query.condition = new vearch::GammaSearchCondition(&perf_tool);
+  gamma_query.condition = new vearch::SearchCondition(&perf_tool);
 
   auto vec_manager = static_cast<vearch::Engine *>(engine)->GetVectorManager();
 
@@ -86,10 +88,10 @@ int CPPAddOrUpdateDocs(void *engine, vearch::Docs *docs,
 
 void CPPSetNprobe(void *engine, int nprobe, std::string index_type) {
   auto index_model = static_cast<vearch::Engine *>(engine)
-                             ->GetVectorManager()
-                             ->IndexModels()
-                             .begin()
-                             ->second;
+                         ->GetVectorManager()
+                         ->IndexModels()
+                         .begin()
+                         ->second;
   if (index_type == "IVFPQ") {
     vearch::GammaIVFPQIndex *index =
         dynamic_cast<vearch::GammaIVFPQIndex *>(index_model);
@@ -123,10 +125,10 @@ void CPPSetNprobe(void *engine, int nprobe, std::string index_type) {
 
 void CPPSetRerank(void *engine, int rerank, std::string index_type) {
   auto index_model = static_cast<vearch::Engine *>(engine)
-                             ->GetVectorManager()
-                             ->IndexModels()
-                             .begin()
-                             ->second;
+                         ->GetVectorManager()
+                         ->IndexModels()
+                         .begin()
+                         ->second;
   if (index_type == "IVFPQ") {
     vearch::GammaIVFPQIndex *index =
         dynamic_cast<vearch::GammaIVFPQIndex *>(index_model);

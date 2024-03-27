@@ -38,7 +38,7 @@ func (rcv *SearchResult) MutateTotal(n int32) bool {
 	return rcv._tab.MutateInt32Slot(4, n)
 }
 
-func (rcv *SearchResult) ResultCode() SearchResultCode {
+func (rcv *SearchResult) ResultCode() Code {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
 	if o != 0 {
 		return rcv._tab.GetInt8(o + rcv._tab.Pos)
@@ -46,7 +46,7 @@ func (rcv *SearchResult) ResultCode() SearchResultCode {
 	return 0
 }
 
-func (rcv *SearchResult) MutateResultCode(n SearchResultCode) bool {
+func (rcv *SearchResult) MutateResultCode(n Code) bool {
 	return rcv._tab.MutateInt8Slot(6, n)
 }
 
