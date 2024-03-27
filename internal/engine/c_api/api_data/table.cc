@@ -35,7 +35,6 @@ int TableInfo::Serialize(char **out, int *out_len) {
   auto table = gamma_api::CreateTable(builder, builder.CreateString(name_),
                                       builder.CreateVector(field_info_vector),
                                       builder.CreateVector(vector_info_vector),
-                                      compress_mode_,
                                       builder.CreateString(index_type_),
                                       builder.CreateString(index_params_));
   builder.Finish(table);
@@ -84,7 +83,6 @@ void TableInfo::Deserialize(const char *data, int len) {
   if (training_threshold > 0) {
     training_threshold_ = training_threshold;
   }
-  compress_mode_ = table_->compress_mode();
 }
 
 std::string &TableInfo::Name() { return name_; }

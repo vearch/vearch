@@ -191,9 +191,8 @@ message SearchRequest {
 message ResultItem {
   double score = 1;
   repeated Field fields = 2;
-  string extra = 3;
-  string p_key = 4;
-  bytes source = 5;
+  string p_key = 3;
+  bytes source = 4;
 }
 
 message SearchResult {

@@ -21,7 +21,6 @@ table Table {
   name:string;
   fields:[FieldInfo];
   vectors_info:[VectorInfo];
-  compress_mode:int;         // 0: not compress, 1: table compress
   index_type:string;     // IVFPQ, GPU, HNSW, BINARY
   index_params:string;
 }

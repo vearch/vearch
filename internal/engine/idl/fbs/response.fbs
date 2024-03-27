@@ -10,7 +10,6 @@ table Attribute  {
 table ResultItem {
   score:double;
   attributes:[Attribute];
-  extra:string;
 }
 
 table SearchResult {

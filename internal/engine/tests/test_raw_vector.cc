@@ -169,7 +169,7 @@ static void Delete(RawVector *raw_vector) {
   delete raw_vector;
 }
 
-void TestRawVectorNormal(VectorStorageType store_type, bool compress = false) {
+void TestRawVectorNormal(VectorStorageType store_type) {
   string root_path = "./" + GetCurrentCaseName();
   string name = "abc";
   int dimension = 512;
@@ -214,8 +214,7 @@ void TestRawVectorNormal(VectorStorageType store_type, bool compress = false) {
   delete raw_vector;
 }
 
-void TestRawVectorDumpLoad(VectorStorageType store_type,
-                           bool compress = false) {
+void TestRawVectorDumpLoad(VectorStorageType store_type) {
   string root_path = GetCurrentCaseName() + "/vectors";
   string name = "abc";
   int dimension = 512;

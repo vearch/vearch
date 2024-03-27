@@ -29,7 +29,6 @@ type Attribute struct {
 type ResultItem struct {
 	Score      float64
 	Attributes []Attribute
-	Extra      string
 }
 
 type SearchResult struct {
@@ -79,12 +78,9 @@ func (response *Response) Serialize(buffer *[]byte) int {
 			}
 			attrs := builder.EndVector(len(response.Results[i].ResultItems[j].Attributes))
 
-			extra := builder.CreateString(response.Results[i].ResultItems[j].Extra)
-
 			gamma_api.ResultItemStart(builder)
 			gamma_api.ResultItemAddScore(builder, response.Results[i].ResultItems[j].Score)
 			gamma_api.ResultItemAddAttributes(builder, attrs)
-			gamma_api.ResultItemAddExtra(builder, extra)
 			resultItems[j] = gamma_api.ResultItemEnd(builder)
 		}
 
@@ -141,7 +137,6 @@ func (response *Response) DeSerialize(buffer []byte) {
 			result.ResultItems(&item, j)
 
 			response.Results[i].ResultItems[j].Score = item.Score()
-			response.Results[i].ResultItems[j].Extra = string(item.Extra())
 			response.Results[i].ResultItems[j].Attributes = make([]Attribute, item.AttributesLength())
 
 			for k := 0; k < item.AttributesLength(); k++ {
@@ -187,7 +182,6 @@ func DeSerialize(buffer []byte, resp *vearchpb.SearchResponse) {
 			}
 			resultItem := vearchpb.ResultItem{}
 			resultItem.Score = item.Score()
-			resultItem.Extra = string(item.Extra())
 
 			for k := 0; k < item.AttributesLength(); k++ {
 				var attrs gamma_api.Attribute

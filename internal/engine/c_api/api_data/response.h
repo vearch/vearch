@@ -28,14 +28,12 @@ struct ResultItem {
     score = other.score;
     names = other.names;
     values = other.values;
-    extra = other.extra;
   }
 
   ResultItem &operator=(const ResultItem &other) {
     score = other.score;
     names = other.names;
     values = other.values;
-    extra = other.extra;
     return *this;
   }
 
@@ -43,21 +41,18 @@ struct ResultItem {
     score = other.score;
     names = std::move(other.names);
     values = std::move(other.values);
-    extra = std::move(other.extra);
   }
 
   ResultItem &operator=(ResultItem &&other) {
     score = other.score;
     names = std::move(other.names);
     values = std::move(other.values);
-    extra = std::move(other.extra);
     return *this;
   }
 
   double score;
   std::vector<std::string> names;
   std::vector<std::string> values;
-  std::string extra;
 };
 
 struct SearchResult {

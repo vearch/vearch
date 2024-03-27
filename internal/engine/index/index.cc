@@ -82,8 +82,6 @@ Status IndexIVFFlat::init(const std::string &index_param) {
   meta_info->with_io_ = false;
 
   StoreParams store_params(meta_info->AbsoluteName());
-  // std::string store_param = "{\"cache_size\": 16, \"compress\":
-  // {\"rate\":16}}";
   std::string store_param = "";
   if (store_param != "") {
     Status status = store_params.Parse(store_param.c_str());
@@ -225,8 +223,6 @@ Status IndexIVFPQ::init(const std::string &index_param) {
   meta_info->with_io_ = false;
 
   StoreParams store_params(meta_info->AbsoluteName());
-  // std::string store_param = "{\"cache_size\": 16, \"compress\":
-  // {\"rate\":16}}";
   std::string store_param = "";
   if (store_param != "") {
     Status status = store_params.Parse(store_param.c_str());
@@ -375,8 +371,6 @@ int IndexScann::init(const std::string &index_param) {
   meta_info->with_io_ = false;
 
   StoreParams store_params(meta_info->AbsoluteName());
-  // std::string store_param = "{\"cache_size\": 16, \"compress\":
-  // {\"rate\":16}}";
   std::string store_param = "";
   if (store_param != "" && store_params.Parse(store_param.c_str())) {
     return PARAM_ERR;

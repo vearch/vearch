@@ -45,16 +45,8 @@ class ResultItem(object):
             return self._tab.VectorLen(o)
         return 0
 
-    # ResultItem
-    def Extra(self):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(8))
-        if o != 0:
-            return self._tab.String(o + self._tab.Pos)
-        return None
-
-def ResultItemStart(builder): builder.StartObject(3)
+def ResultItemStart(builder): builder.StartObject(2)
 def ResultItemAddScore(builder, score): builder.PrependFloat64Slot(0, score, 0.0)
 def ResultItemAddAttributes(builder, attributes): builder.PrependUOffsetTRelativeSlot(1, flatbuffers.number_types.UOffsetTFlags.py_type(attributes), 0)
 def ResultItemStartAttributesVector(builder, numElems): return builder.StartVector(4, numElems, 4)
-def ResultItemAddExtra(builder, extra): builder.PrependUOffsetTRelativeSlot(2, flatbuffers.number_types.UOffsetTFlags.py_type(extra), 0)
 def ResultItemEnd(builder): return builder.EndObject()

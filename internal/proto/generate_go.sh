@@ -30,7 +30,7 @@ check_protoc_version() {
     fi
 }
 
-go install google.golang.org/protobuf/cmd/protoc-gen-go@lates
+go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
 go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 check_protoc_version
 
@@ -45,5 +45,6 @@ if [ "$2" ]; then
     proto_dir=$2
 fi
 
+export PATH=$PATH:$GOPATH/bin
 protoc --go_out=$proto_dir *.proto
 exit $?

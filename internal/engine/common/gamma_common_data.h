@@ -19,10 +19,6 @@
 
 namespace vearch {
 
-const std::string EXTRA_VECTOR_FIELD_SCORE = "score";
-const std::string EXTRA_VECTOR_FIELD_NAME = "field";
-const std::string EXTRA_VECTOR_RESULT = "vector_result";
-
 const float GAMMA_INDEX_RECALL_RATIO = 1.0f;
 
 const int min_points_per_centroid = 39;
