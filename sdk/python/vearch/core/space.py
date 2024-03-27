@@ -1,7 +1,7 @@
 from vearch.schema.index import Index
 from vearch.core.client import client
 from vearch.schema.space import SpaceSchema
-from vearch.result import Result, ResultStatus, get_result
+from vearch.result import Result, ResultStatus, get_result, UpsertResult
 from vearch.const import SPACE_URI, INDEX_URI, UPSERT_DOC_URI, DELETE_DOC_URI, QUERY_DOC_URI, SEARCH_DOC_URI, \
     ERR_CODE_SPACE_NOT_EXIST
 from vearch.exception import SpaceException, DocumentException, VearchException
@@ -69,7 +69,7 @@ class Space(object):
                                 headers={"Authorization": sign})
         return get_result(resp)
 
-    def upsert_doc(self, data: Union[List, pd.DataFrame]) -> Result:
+    def upsert_doc(self, data: Union[List, pd.DataFrame]) -> UpsertResult:
         try:
             if not self._schema:
                 has, schema = self.exist()
@@ -102,14 +102,14 @@ class Space(object):
                 sign = compute_sign_auth(secret=self.client.token)
                 resp = requests.request(method="POST", url=url, data=json.dumps(req_body),
                                         headers={"Authorization": sign})
-                return get_result(resp)
+                return UpsertResult.parse_upsert_result_from_response(resp)
             else:
                 raise DocumentException(CodeType.UPSERT_DOC, "data fields not conform space schema")
         except VearchException as e:
             if e.code == 0:
                 logger.error(e.code)
                 logger.error(e.message)
-                r = Result(code="200", text=e.message)
+                r = UpsertResult(code="200", msg=e.message)
                 return r
 
     def _check_data_conforms_schema(self, data: Union[List, pd.DataFrame]) -> bool:

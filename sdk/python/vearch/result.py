@@ -2,6 +2,7 @@ import json
 import requests
 from vearch.exception import VearchException
 import logging
+from typing import List
 
 logger = logging.getLogger("vearch")
 
@@ -21,6 +22,41 @@ class Result(object):
         ret = {"code": self.code, "err_msg": self.err_msg, "content": self.text}
         ret_str = json.dumps(ret)
         return ret_str
+
+
+class UpsertResult(object):
+    def __init__(self, code: int = 0, msg: str = "", total: int = 0):
+        self.code = code
+        self.msg = msg
+        self.total = total
+        self.document_ids = []
+
+    @classmethod
+    def parse_upsert_result_from_response(cls, resp: requests.Response):
+        """
+       response content like:
+       {"code":0,"msg":"success","total":5,"document_ids":[{"_id":"-7406650708070185766","status":200,"error":"success"},{"status":200,"error":"success","_id":"-1644104496683872820"},{"_id":"-509921751725925904","status":200,"error":"success"},{"status":200,"error":"success","_id":"6142641378725051944"},{"_id":"-2560796653511183804","status":200,"error":"success"}]}
+
+        :param resp:
+        :return:
+        """
+        logger.debug(resp.text)
+        ret = json.loads(resp.text)
+        code = ret.get("code", -1)
+        msg = ret.get("msg", "")
+        total = ret.get("total", -1)
+        document_ids = ret.get("document_ids", [])
+        ur = cls(code, msg, total)
+        ur.document_ids = document_ids
+        return ur
+
+    def get_document_ids(self) -> List:
+        ids = []
+        for document in self.document_ids:
+            id = document.get("_id")
+            if document.get("status") == 200:
+                ids.append(id)
+        return ids
 
 
 def get_result(resp: requests.Response) -> Result:

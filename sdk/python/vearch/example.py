@@ -42,7 +42,7 @@ def upsert_document(vc: Vearch):
     ractor = ["ractor_logical", "ractor_industry", "ractor_philosophy"]
     book_name_template = "abcdefghijklmnopqrstuvwxyz0123456789"
     data = []
-    for i in range(50):
+    for i in range(5):
         book_item = ["".join(random.choices(book_name_template, k=5)),
                      [random.uniform(0, 1) for _ in range(512)],
                      ractor[random.randint(0, 2)]]
@@ -51,8 +51,7 @@ def upsert_document(vc: Vearch):
     space = Space("database1", "book_info")
     ret = space.upsert_doc(data)
     if ret:
-        print(ret.text)
-
+        print(ret.get_document_ids())
     pass
 
 
