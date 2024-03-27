@@ -5,8 +5,6 @@ from vearch.config import Config, DefaultConfig
 from vearch.const import DATABASE_URI, LIST_DATABASE_URI, AUTH_KEY
 from vearch.result import Result, get_result
 import logging
-import base64
-import json
 
 logger = logging.getLogger("vearch")
 

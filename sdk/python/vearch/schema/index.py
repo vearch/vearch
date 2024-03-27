@@ -52,7 +52,7 @@ class IvfPQIndex(Index):
 
     def dict(self):
         return {"name": self._index_name, "type": IndexType.IVFPQ,
-                "index_params": {
+                "params": {
                     "training_threshold": self._index_params.training_threshold,
                     "metric_type": self._index_params.metric_type, "ncentroids": self._index_params.ncentroids,
                     "nsubvector": self._index_params.nsubvector,
@@ -60,6 +60,9 @@ class IvfPQIndex(Index):
                     "bucket_max_size": self._index_params.buckert_max_size
                 }
                 }
+
+    def nsubvector(self):
+        return self._index_params.nsubvector
 
 
 class IvfFlatIndex(Index):
@@ -69,7 +72,7 @@ class IvfFlatIndex(Index):
 
     def dict(self):
         return {"name": self._index_name, "type": IndexType.IVFFLAT,
-                "index_params": {
+                "params": {
                     "metric_type": self._index_params.metric_type,
                     "ncentroids": self._index_params.ncentroids
                 }
@@ -87,7 +90,7 @@ class BinaryIvfIndex(Index):
 
     def dict(self):
         return {"name": self._index_name, "type": IndexType.BINARYIVF,
-                "index_params": {
+                "params": {
                     "ncentroids": self._index_params.ncentroids}
                 }
 
@@ -99,7 +102,7 @@ class FlatIndex(Index):
 
     def dict(self):
         return {"name": self._index_name, "type": IndexType.FLAT,
-                "index_params": {
+                "params": {
                     "metric_type": self._index_params.metric_type
                 }
                 }
@@ -111,7 +114,7 @@ class HNSWIndex(Index):
         self._index_params = IndexParams(metric_type=metric_type, nlinks=nlinks, efConstruction=efConstruction)
 
     def dict(self):
-        return {"name": self._index_name, "type": IndexType.HNSW, "index_params": {
+        return {"name": self._index_name, "type": IndexType.HNSW, "params": {
             "nlinks": self._index_params.nlinks,
             "efConstruction": self._index_params.efConstruction, "metric_type": self._index_params.metric_type
         }
@@ -125,7 +128,7 @@ class GPUIvfPQIndex(Index):
 
     def dict(self):
         return {"name": self._index_name, "type": IndexType.GPU_IVFPQ,
-                "index_params": {
+                "params": {
                     "metric_type": self._index_params.metric_type,
                     "ncentroids": self._index_params.ncentroids, "nsubvector": self._index_params.nsubvector
                 }

@@ -1,14 +1,15 @@
 from typing import List, Optional
 from vearch.utils import DataType
-from vearch.schema.index import BinaryIvfIndex
+from vearch.schema.index import BinaryIvfIndex, IvfPQIndex
 from vearch.schema.field import Field
 import logging
 import json
+
 logger = logging.getLogger("vearch")
 
 
 class SpaceSchema:
-    def __init__(self,name:str, fields: List, description: str = "",
+    def __init__(self, name: str, fields: List, description: str = "",
                  partition_num: int = 1,
                  replication_num: int = 3):
         """
@@ -31,8 +32,9 @@ class SpaceSchema:
             if field.index:
                 assert field.data_type not in [DataType.NONE, DataType.UNKNOWN]
                 if isinstance(field.index, BinaryIvfIndex):
-                    assert field.dim // 8 == 0, "BinaryIvfIndex vector dimention must be power of eight"
-
+                    assert field.dim % 8 == 0, "BinaryIvfIndex vector dimention must be power of eight"
+                if isinstance(field.index, IvfPQIndex):
+                    assert field.dim % field.index.nsubvector() == 0, "IVFPQIndex vector dimention must be power of nsubvector"
 
     def dict(self):
         space_schema = {"name": self.name, "desc": self.description, "partition_num": self.partition_num,
@@ -47,12 +49,12 @@ class SpaceSchema:
     @classmethod
     def from_dict(cls, data_dict):
         print(data_dict)
-        name=data_dict.get("space_name")
+        name = data_dict.get("space_name")
         schema_dict = data_dict.get("schema")
         logger.debug(schema_dict)
         fields = [Field.from_dict(field) for field in schema_dict.get("fields")]
         print(type(name))
         return cls(name=name, fields=fields,
-                                   description=data_dict.get("desc", ""),
-                                   partition_num=data_dict.get("partition_num"),
-                                   replication_num=data_dict.get("replica_num"))
+                   description=data_dict.get("desc", ""),
+                   partition_num=data_dict.get("partition_num"),
+                   replication_num=data_dict.get("replica_num"))

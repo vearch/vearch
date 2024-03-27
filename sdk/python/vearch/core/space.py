@@ -3,7 +3,7 @@ from vearch.core.client import client
 from vearch.schema.space import SpaceSchema
 from vearch.result import Result, ResultStatus, get_result, UpsertResult
 from vearch.const import SPACE_URI, INDEX_URI, UPSERT_DOC_URI, DELETE_DOC_URI, QUERY_DOC_URI, SEARCH_DOC_URI, \
-    ERR_CODE_SPACE_NOT_EXIST
+    ERR_CODE_SPACE_NOT_EXIST, AUTH_KEY
 from vearch.exception import SpaceException, DocumentException, VearchException
 from vearch.utils import CodeType, VectorInfo, compute_sign_auth, DataType
 from vearch.filter import Filter
@@ -29,7 +29,7 @@ class Space(object):
         if not self._schema:
             self._schema = space
         sign = compute_sign_auth(secret=self.client.token)
-        req = requests.request(method="POST", url=url, data=space.dict(), headers={"Authorization": sign})
+        req = requests.request(method="POST", url=url, data=space.dict(), headers={AUTH_KEY: sign})
         resp = self.client.s.send(req)
         return get_result(resp)
 
@@ -37,7 +37,7 @@ class Space(object):
         url_params = {"database_name": self.db_name, "space_name": self.name}
         url = self.client.host + SPACE_URI % url_params
         sign = compute_sign_auth(secret=self.client.token)
-        req = requests.request(method="DELETE", url=url, headers={"Authorization": sign})
+        req = requests.request(method="DELETE", url=url, headers={AUTH_KEY: sign})
         resp = self.client.s.send(req)
         return get_result(resp)
 
@@ -47,7 +47,7 @@ class Space(object):
             uri = SPACE_URI % url_params
             url = self.client.host + str(uri)
             sign = compute_sign_auth(secret=self.client.token)
-            resp = requests.request(method="GET", url=url, headers={"Authorization": sign})
+            resp = requests.request(method="GET", url=url, headers={AUTH_KEY: sign})
             result = get_result(resp)
             if result.code == 200:
                 space_schema_dict = result.text
@@ -66,7 +66,7 @@ class Space(object):
         req_body = {"field": field, "index": index.dict(), "database": self.db_name, "space": self.name}
         sign = compute_sign_auth(secret=self.client.token)
         resp = requests.request(method="POST", url=url, data=json.dumps(req_body),
-                                headers={"Authorization": sign})
+                                headers={AUTH_KEY: sign})
         return get_result(resp)
 
     def upsert_doc(self, data: Union[List, pd.DataFrame]) -> UpsertResult:
@@ -92,16 +92,13 @@ class Space(object):
                     for em in data:
                         record = {}
                         for i, field in enumerate(self._schema.fields):
-                            if field.data_type == DataType.VECTOR:
-                                record[field.name] = {"feature": em[i]}
-                            else:
-                                record[field.name] = em[i]
+                            record[field.name] = em[i]
                         records.append(record)
                 req_body.update({"documents": records})
                 logger.debug(req_body)
                 sign = compute_sign_auth(secret=self.client.token)
                 resp = requests.request(method="POST", url=url, data=json.dumps(req_body),
-                                        headers={"Authorization": sign})
+                                        headers={AUTH_KEY: sign})
                 return UpsertResult.parse_upsert_result_from_response(resp)
             else:
                 raise DocumentException(CodeType.UPSERT_DOC, "data fields not conform space schema")
@@ -125,7 +122,7 @@ class Space(object):
         url = self.client.host + DELETE_DOC_URI
         req_body = {"database": self.db_name, "space": self.name, "filter": filter.dict()}
         req = requests.request(method="POST", url=url, data=json.dumps(req_body),
-                               headers={"Authorization": self.client.token})
+                               headers={AUTH_KEY: self.client.token})
         resp = self.client.s.send(req)
         return get_result(resp)
 
@@ -195,7 +192,7 @@ class Space(object):
         if kwargs:
             req_body.update(kwargs)
         req = requests.request(method="POST", url=url, data=json.dumps(req_body),
-                               headers={"Authorization": self.client.token})
+                               headers={AUTH_KEY: self.client.token})
         resp = self.client.s.send(req)
         ret = get_result(resp)
         if ret.code != ResultStatus.success:
@@ -203,7 +200,8 @@ class Space(object):
         search_ret = json.dumps(ret.code)
         return search_ret
 
-    def query(self, document_ids: Optional[List], filter: Optional[Filter], partition_id: Optional[str] = "",
+    def query(self, document_ids: Optional[List] = [], filter: Optional[Filter] = None,
+              partition_id: Optional[str] = "",
               fields: Optional[List] = [], vector: bool = False, size: int = 50) -> List[Dict]:
         """
         you can asign  the document_ids in [xxx,xxx,xxx,xxx,xxx],or give the other filter condition.
@@ -219,7 +217,7 @@ class Space(object):
         if (not document_ids) and (not filter):
             raise SpaceException(CodeType.QUERY_DOC, "document_ids and filter can not both null")
         url = self.client.host + QUERY_DOC_URI
-        req_body = {"database": self.db_name, "space": self.name, "vector_value": vector, "size": size}
+        req_body = {"db_name": self.db_name, "space_name": self.name, "vector_value": vector}
         query = {"query": {}}
         if document_ids:
             query["query"]["document_ids"] = document_ids
@@ -230,9 +228,11 @@ class Space(object):
         if filter:
             query["query"]["filter"] = filter.dict()
         req_body.update(query)
-        req = requests.request(method="POST", url=url, data=json.dumps(req_body), headers={"token": self.client.token})
-        resp = self.client.s.send(req)
+        logger.debug(url)
+        logger.debug(json.dumps(req_body))
+        sign = compute_sign_auth(secret=self.client.token)
+        resp = requests.request(method="POST", url=url, data=json.dumps(req_body), headers={AUTH_KEY: sign})
         ret = get_result(resp)
-        if ret.code == ResultStatus.success:
-            return json.dumps(ret.content)
+        if ret.code == 200:
+            return json.dumps(ret.text)
         return []
