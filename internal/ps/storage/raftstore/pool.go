@@ -12,29 +12,25 @@
 // implied. See the License for the specific language governing
 // permissions and limitations under the License.
 
-package vearchpb
+package raftstore
 
 import (
 	"sync"
+
+	"github.com/vearch/vearch/internal/proto/vearchpb"
 )
 
 var (
 	raftCmdPool = &sync.Pool{
 		New: func() interface{} {
-			return new(RaftCommand)
-		},
-	}
-
-	snapDataPool = &sync.Pool{
-		New: func() interface{} {
-			return new(SnapData)
+			return new(vearchpb.RaftCommand)
 		},
 	}
 )
 
 // CreateRaftCommand create a RaftCommand object
-func CreateRaftCommand() *RaftCommand {
-	cmd := raftCmdPool.Get().(*RaftCommand)
+func CreateRaftCommand() *vearchpb.RaftCommand {
+	cmd := raftCmdPool.Get().(*vearchpb.RaftCommand)
 	cmd.UpdateSpace = nil
 	cmd.WriteCommand = nil
 	cmd.Type = 0
@@ -42,10 +38,9 @@ func CreateRaftCommand() *RaftCommand {
 }
 
 // Close reset and put to pool
-func (c *RaftCommand) Close() error {
+func CloseRaftCommand(c *vearchpb.RaftCommand) {
 	c.Type = 0
 	c.WriteCommand = nil
 	c.UpdateSpace = nil
 	raftCmdPool.Put(c)
-	return nil
 }

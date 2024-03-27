@@ -80,7 +80,7 @@ func (s *Store) ReplicasStatusChange() bool {
 
 // Apply implements the raft interface.
 func (s *Store) Apply(command []byte, index uint64) (resp interface{}, err error) {
-	raftCmd := vearchpb.CreateRaftCommand()
+	raftCmd := CreateRaftCommand()
 
 	if err = vjson.Unmarshal(command, raftCmd); err != nil {
 		panic(err)
@@ -88,9 +88,7 @@ func (s *Store) Apply(command []byte, index uint64) (resp interface{}, err error
 
 	resp = s.innerApply(index, raftCmd)
 
-	if err := raftCmd.Close(); err != nil {
-		log.Error(err.Error())
-	}
+	CloseRaftCommand(raftCmd)
 	// if follow after leader this value,means can't offer server
 	// just leader check
 	if config.Conf().Global.RaftConsistent {

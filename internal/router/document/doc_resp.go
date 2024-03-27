@@ -267,7 +267,7 @@ func documentSearchResponse(srs []*vearchpb.SearchResult, head *vearchpb.Respons
 		if len(documents) > 0 {
 			response["documents"] = documents[0]
 		} else {
-			response["documents"] = nil
+			response["documents"] = []json.RawMessage{}
 		}
 	}
 	return vjson.Marshal(response)
