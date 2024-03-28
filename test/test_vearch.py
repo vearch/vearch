@@ -290,7 +290,7 @@ class VearchCase:
             logger.debug("documentQueryOnSpecifyPartiton:" + response.text)
             assert response.status_code == 200
             assert response.text.find('"total":1') >= 0
-            assert len(response.json()["documents"]) == 1
+            assert len(response.json()["data"]["documents"]) == 1
 
     def test_documentQueryByFilter(self):
         logger.info("documentQueryByFilter")
@@ -393,9 +393,9 @@ class VearchCase:
         logger.debug("getById:" + response.text)
         assert response.status_code == 200
         result = json.loads(response.text)
-        assert result["total"] == 1
-        assert result["documents"][0]["_source"]["float"] == 888.88
-        assert result["documents"][0]["_source"]["string"] == "test"
+        assert result["data"]["total"] == 1
+        assert result["data"]["documents"][0]["_source"]["float"] == 888.88
+        assert result["data"]["documents"][0]["_source"]["string"] == "test"
 
     def test_documentUpsertSinglefield(self):
         logger.info("documentUpsertSinglefield")

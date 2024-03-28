@@ -210,7 +210,11 @@ def process_add_error_data(items):
         logger.info(json_str)
     logger.info(rs.json())
 
-    assert rs.status_code != 200
+    if "data" in rs.json():
+        for result in rs.json()["data"]["document_ids"]:
+            assert result["code"] != 200
+    else:
+        assert rs.json()["code"] != 200
 
 
 def add_error(total, batch_size, xb, logger, wrong_parameters: list):
@@ -487,22 +491,13 @@ def process_query_error_data(items):
 
     if not wrong_vector:
         logger.info(json_str)
-    try:
-        rs = requests.post(url, data=json_str)
-        logger.info(rs.json())
-        if interface == "query":
-            if "documents" not in rs.json():
-                assert rs.status_code != 200
-            else:
-                if len(rs.json()["documents"]) > 0:
-                    assert rs.json()["documents"][0]["status"] != 200
-        else:
-            if "document_ids" not in rs.json():
-                assert rs.status_code != 200
-            else:
-                assert len(rs.json()["document_ids"]) == 0
-    except Exception as e:
-        logger.warning("exception: %s" % (repr(e)))
+
+    rs = requests.post(url, data=json_str)
+    logger.info(rs.json())
+    if "data" in rs.json():
+        assert rs.json()["data"]["total"] == 0
+    else:
+        assert rs.json()["code"] != 200
 
 
 def query_error(logger, total, batch_size, xb, interface: str, wrong_parameters: list):
@@ -562,11 +557,11 @@ def process_get_data(items):
 
     json_str = json.dumps(data)
     rs = requests.post(url, json_str)
-    if rs.status_code != 200 or "documents" not in rs.json():
-        logger.info(rs.json())
+    if rs.status_code != 200 or "documents" not in rs.json()["data"]:
+        logger.info(rs.json()["data"])
         logger.info(json_str)
 
-    documents = rs.json()["documents"]
+    documents = rs.json()["data"]["documents"]
     if len(documents) != batch_size:
         logger.info("len(documents) = " + str(len(documents)))
         logger.info(rs.json())
@@ -651,11 +646,11 @@ def process_delete_data(items):
 
     json_str = json.dumps(data)
     rs = requests.post(url, json_str)
-    if rs.status_code != 200 or "document_ids" not in rs.json():
+    if rs.status_code != 200 or "document_ids" not in rs.json()["data"]:
         logger.info(rs.json())
         logger.info(json_str)
 
-    document_ids = rs.json()["document_ids"]
+    document_ids = rs.json()["data"]["document_ids"]
     if len(document_ids) != batch_size:
         logger.info(
             "batch_size = "
@@ -725,11 +720,11 @@ def process_search_data(items):
 
     json_str = json.dumps(data)
     rs = requests.post(url, json_str)
-    if rs.status_code != 200 or "documents" not in rs.json():
+    if rs.status_code != 200 or "documents" not in rs.json()["data"]:
         logger.info(rs.json())
         logger.info(json_str)
 
-    documents = rs.json()["documents"]
+    documents = rs.json()["data"]["documents"]
     if len(documents) != batch_size:
         logger.info("len(documents) = " + str(len(documents)))
         logger.info(json_str)
@@ -895,11 +890,11 @@ def search(xq, k: int, batch: bool, query_dict: dict, logger):
         json_str = json.dumps(query_dict)
         rs = requests.post(url, json_str)
 
-        if rs.status_code != 200 or "documents" not in rs.json():
+        if rs.status_code != 200 or "documents" not in rs.json()["data"]:
             logger.info(rs.json())
             logger.info(json_str)
 
-        for results in rs.json()["documents"]:
+        for results in rs.json()["data"]["documents"]:
             field_int = []
             for result in results:
                 field_int.append(result["_source"]["field_int"])
@@ -915,12 +910,12 @@ def search(xq, k: int, batch: bool, query_dict: dict, logger):
             json_str = json.dumps(query_dict)
             rs = requests.post(url, json_str)
 
-            if rs.status_code != 200 or "documents" not in rs.json():
+            if rs.status_code != 200 or "documents" not in rs.json()["data"]:
                 logger.info(rs.json())
                 logger.info(json_str)
 
             field_int = []
-            for results in rs.json()["documents"]:
+            for results in rs.json()["data"]["documents"]:
                 for result in results:
                     field_int.append(result["_source"]["field_int"])
             if len(field_int) != k:
@@ -979,7 +974,7 @@ def get_space(router_url: str, db_name: str, space_name: str):
 def get_partition(router_url: str, db_name: str, space_name: str):
     url = f"{router_url}/{db_name}/{space_name}"
     resp = requests.get(url)
-    partition_infos = resp.json()["partitions"]
+    partition_infos = resp.json()["data"]["partitions"]
     partition_ids = []
     for partition_info in partition_infos:
         partition_ids.append(partition_info["id"])

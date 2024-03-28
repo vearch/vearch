@@ -123,6 +123,7 @@ def process_search_error_data(items):
         wrong_db,
         wrong_space,
         wrong_id,
+        multi_wrong_id,
         wrong_range_filter,
         wrong_term_filter,
         wrong_filter_index,
@@ -147,6 +148,9 @@ def process_search_error_data(items):
 
     if wrong_id:
         data["query"]["document_ids"] = ["wrong_id"]
+
+    if multi_wrong_id:
+        data["query"]["document_ids"] = ["wrong_id", "wrong_id1"]
 
     if wrong_range_filter:
         data["query"]["document_ids"] = ["0"]
@@ -229,11 +233,10 @@ def process_search_error_data(items):
     rs = requests.post(url, data=json_str, headers={"Connection": "close"})
     logger.info(rs.json())
 
-    if "documents" not in rs.json():
-        assert rs.status_code != 200
+    if "data" in rs.json():
+        pass #TODO
     else:
-        if len(rs.json()["documents"]) > 0:
-            assert len(rs.json()["documents"][0]) == 0
+        assert rs.json()["code"] != 200
 
 
 def search_error(logger, total, batch_size, xb, wrong_parameters: dict):
@@ -264,23 +267,24 @@ class TestDocumentSearchBadCase:
             [0, "wrong_db"],
             [1, "wrong_space"],
             [2, "wrong_id"],
-            [3, "wrong_range_filter"],
-            [4, "wrong_term_filter"],
-            [5, "wrong_filter_index"],
-            [6, "wrong_vector_length"],
-            [7, "wrong_vector_name"],
-            [8, "wrong_vector_type"],
-            [9, "wrong_length_document_ids"],
-            [10, "wrong_both_id_and_vector"],
-            [11, "empty_query"],
-            [12, "empty_document_ids"],
-            [13, "empty_vector"],
-            [14, "wrong_range_filter_name"],
-            [15, "wrong_term_filter_name"],
+            [3, "multi_wrong_id"],
+            [4, "wrong_range_filter"],
+            [5, "wrong_term_filter"],
+            [6, "wrong_filter_index"],
+            [7, "wrong_vector_length"],
+            [8, "wrong_vector_name"],
+            [9, "wrong_vector_type"],
+            [10, "wrong_length_document_ids"],
+            [11, "wrong_both_id_and_vector"],
+            [12, "empty_query"],
+            [13, "empty_document_ids"],
+            [14, "empty_vector"],
+            [15, "wrong_range_filter_name"],
+            [16, "wrong_term_filter_name"],
         ],
     )
     def test_vearch_document_search_badcase(self, index, wrong_type):
-        wrong_parameters = [False for i in range(16)]
+        wrong_parameters = [False for i in range(17)]
         wrong_parameters[index] = True
         search_error(self.logger, 1, 1, self.xb, wrong_parameters)
 

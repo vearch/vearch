@@ -822,8 +822,6 @@ func (cliCache *clientCache) AliasByCache(ctx context.Context, alias_name string
 	}
 
 	err := cliCache.reloadAliasCache(ctx, false, alias_name)
-	vearchlog.LogErrNotNil(err)
-
 	if err != nil {
 		return nil, fmt.Errorf("alias_name:[%s] err:[%s]", alias_name,
 			vearchpb.NewError(vearchpb.ErrorEnum_ALIAS_NOT_EXIST, nil))

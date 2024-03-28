@@ -84,7 +84,7 @@ func docGetResponse(client *client.Client, args *vearchpb.GetRequest, reply *vea
 	return jsonData, nil
 }
 
-func documentUpsertResponse(args *vearchpb.BulkRequest, reply *vearchpb.BulkResponse) ([]byte, error) {
+func documentUpsertResponse(args *vearchpb.BulkRequest, reply *vearchpb.BulkResponse) (map[string]interface{}, error) {
 	if args == nil || reply == nil || reply.Items == nil || len(reply.Items) < 1 {
 		if reply.GetHead() != nil && reply.GetHead().Err != nil && reply.GetHead().Err.Code != vearchpb.ErrorEnum_SUCCESS {
 			err := reply.GetHead().Err
@@ -94,11 +94,11 @@ func documentUpsertResponse(args *vearchpb.BulkRequest, reply *vearchpb.BulkResp
 	}
 
 	response := make(map[string]interface{})
-	response["code"] = 0
 
 	if reply.Head != nil && reply.Head.Err != nil {
-		response["code"] = reply.Head.Err.Code
-		response["msg"] = reply.Head.Err.Msg
+		if reply.Head.Err.Code != vearchpb.ErrorEnum_SUCCESS {
+			return nil, vearchpb.NewError(reply.Head.Err.Code, nil)
+		}
 	}
 
 	var total int64
@@ -118,12 +118,7 @@ func documentUpsertResponse(args *vearchpb.BulkRequest, reply *vearchpb.BulkResp
 
 	response["document_ids"] = documentIDs
 
-	jsonData, err := vjson.Marshal(response)
-	if err != nil {
-		return nil, err
-	}
-
-	return jsonData, nil
+	return response, nil
 }
 
 func documentResultSerialize(item *vearchpb.Item) map[string]interface{} {
@@ -145,7 +140,7 @@ func documentResultSerialize(item *vearchpb.Item) map[string]interface{} {
 	return result
 }
 
-func documentGetResponse(client *client.Client, args *vearchpb.GetRequest, reply *vearchpb.GetResponse, returnFieldsMap map[string]string, vectorValue bool) ([]byte, error) {
+func documentGetResponse(client *client.Client, args *vearchpb.GetRequest, reply *vearchpb.GetResponse, returnFieldsMap map[string]string, vectorValue bool) (map[string]interface{}, error) {
 	if args == nil || reply == nil || reply.Items == nil || len(reply.Items) < 1 {
 		if reply.GetHead() != nil && reply.GetHead().Err != nil && reply.GetHead().Err.Code != vearchpb.ErrorEnum_SUCCESS {
 			err := reply.GetHead().Err
@@ -161,15 +156,9 @@ func documentGetResponse(client *client.Client, args *vearchpb.GetRequest, reply
 
 	response := make(map[string]interface{})
 
-	if reply.Head == nil || reply.Head.Err == nil {
-		response["code"] = vearchpb.ErrorEnum_SUCCESS
-		response["msg"] = "success"
-	} else {
-		if reply.Head != nil && reply.Head.Err != nil {
-			response["code"] = reply.Head.Err.Code
-			response["msg"] = reply.Head.Err.Msg
-		} else {
-			response["code"] = vearchpb.ErrorEnum_INTERNAL_ERROR
+	if reply.Head != nil && reply.Head.Err != nil {
+		if reply.Head.Err.Code != vearchpb.ErrorEnum_SUCCESS {
+			return nil, vearchpb.NewError(reply.Head.Err.Code, errors.New(reply.Head.Err.Msg))
 		}
 	}
 
@@ -191,8 +180,8 @@ func documentGetResponse(client *client.Client, args *vearchpb.GetRequest, reply
 		doc["_id"] = item.Doc.PKey
 
 		if item.Err != nil {
-			doc["status"] = cast.ToInt64(vearchpb.ErrCode(item.Err.Code))
-			doc["error"] = item.Err.Msg
+			doc["code"] = cast.ToInt64(vearchpb.ErrCode(item.Err.Code))
+			doc["msg"] = item.Err.Msg
 		}
 
 		if item.Doc.Fields != nil {
@@ -206,20 +195,16 @@ func documentGetResponse(client *client.Client, args *vearchpb.GetRequest, reply
 	}
 	response["documents"] = documents
 
-	return vjson.Marshal(response)
+	return response, nil
 }
 
-func documentSearchResponse(srs []*vearchpb.SearchResult, head *vearchpb.ResponseHead, response_type string) ([]byte, error) {
+func documentSearchResponse(srs []*vearchpb.SearchResult, head *vearchpb.ResponseHead, response_type string) (map[string]interface{}, error) {
 	response := make(map[string]interface{})
 
-	if head == nil || head.Err == nil {
-		response["code"] = int64(vearchpb.ErrorEnum_SUCCESS)
-		response["msg"] = "success"
-	} else if head.Err != nil {
-		response["code"] = int64(head.Err.Code)
-		response["msg"] = head.Err.Msg
-	} else {
-		response["code"] = int64(vearchpb.ErrorEnum_INTERNAL_ERROR)
+	if head != nil && head.Err != nil {
+		if head.Err.Code != vearchpb.ErrorEnum_SUCCESS {
+			return nil, vearchpb.NewError(head.Err.Code, errors.New(head.Err.Msg))
+		}
 	}
 
 	if response_type == request.QueryResponse {
@@ -270,7 +255,7 @@ func documentSearchResponse(srs []*vearchpb.SearchResult, head *vearchpb.Respons
 			response["documents"] = []json.RawMessage{}
 		}
 	}
-	return vjson.Marshal(response)
+	return response, nil
 }
 
 func documentToContent(dh []*vearchpb.ResultItem, response_type string) ([]byte, error) {
@@ -299,7 +284,7 @@ func documentToContent(dh []*vearchpb.ResultItem, response_type string) ([]byte,
 	return vjson.Marshal(contents)
 }
 
-func documentDeleteResponse(items []*vearchpb.Item, head *vearchpb.ResponseHead, resultIds []string) ([]byte, error) {
+func documentDeleteResponse(items []*vearchpb.Item, head *vearchpb.ResponseHead, resultIds []string) (map[string]interface{}, error) {
 	response := make(map[string]interface{})
 
 	for _, item := range items {
@@ -308,12 +293,10 @@ func documentDeleteResponse(items []*vearchpb.Item, head *vearchpb.ResponseHead,
 		}
 	}
 
-	if head == nil || head.Err == nil {
-		response["code"] = vearchpb.ErrorEnum_SUCCESS
-		response["msg"] = "success"
-	} else {
-		response["code"] = head.Err.Code
-		response["msg"] = head.Err.Msg
+	if head != nil && head.Err != nil {
+		if head.Err.Code != 0 {
+			return nil, vearchpb.NewError(head.Err.Code, errors.New(head.Err.Msg))
+		}
 	}
 
 	response["total"] = len(resultIds)
@@ -323,7 +306,7 @@ func documentDeleteResponse(items []*vearchpb.Item, head *vearchpb.ResponseHead,
 		response["document_ids"] = []string{}
 	}
 
-	return vjson.Marshal(response)
+	return response, nil
 }
 
 func docFieldSerialize(doc *vearchpb.Document, space *entity.Space, returnFieldsMap map[string]string, vectorValue bool) (marshal json.RawMessage, nextDocid int32, err error) {
@@ -552,12 +535,12 @@ func FlushToContent(shards *vearchpb.SearchStatus) ([]byte, error) {
 	return vjson.Marshal(response)
 }
 
-func IndexResponseToContent(shards *vearchpb.SearchStatus) ([]byte, error) {
+func IndexResponseToContent(shards *vearchpb.SearchStatus) (map[string]interface{}, error) {
 	response := map[string]interface{}{
 		"_shards": shards,
 	}
 
-	return vjson.Marshal(response)
+	return response, nil
 }
 
 func SearchNullToContent(searchStatus vearchpb.SearchStatus, took time.Duration) ([]byte, error) {
@@ -574,17 +557,13 @@ func SearchNullToContent(searchStatus vearchpb.SearchStatus, took time.Duration)
 	return vjson.Marshal(response)
 }
 
-func deleteByQueryResult(resp *vearchpb.DelByQueryeResponse) ([]byte, error) {
+func deleteByQueryResult(resp *vearchpb.DelByQueryeResponse) (map[string]interface{}, error) {
 	result := make(map[string]interface{})
-
-	if resp.Head == nil || resp.Head.Err == nil {
-		result["code"] = 0
-		result["msg"] = "success"
-	} else {
-		result["code"] = resp.Head.Err.Code
-		result["msg"] = resp.Head.Err.Msg
+	if resp.Head != nil && resp.Head.Err != nil {
+		if resp.Head.Err.Code != vearchpb.ErrorEnum_SUCCESS {
+			return nil, vearchpb.NewError(resp.Head.Err.Code, nil)
+		}
 	}
-
 	result["total"] = resp.DelNum
 
 	if resp.IdsStr != nil {
@@ -595,7 +574,7 @@ func deleteByQueryResult(resp *vearchpb.DelByQueryeResponse) ([]byte, error) {
 		result["document_ids"] = []string{}
 	}
 
-	return vjson.Marshal(result)
+	return result, nil
 }
 
 func docPrintLogSwitchResponse(printLogSwitch bool) ([]byte, error) {
