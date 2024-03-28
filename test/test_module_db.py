@@ -29,7 +29,7 @@ __description__ = """ test case for module database """
 
 
 class TestDB:
-    def setup(self):
+    def setup_class(self):
         self.logger = logger
 
     def test_create_db(self):

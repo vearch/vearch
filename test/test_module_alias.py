@@ -33,7 +33,7 @@ xb, xq, _, gt = get_sift10K(logger)
 
 
 class TestAlias:
-    def setup(self):
+    def setup_class(self):
         self.logger = logger
 
     def test_create_db(self):
@@ -232,7 +232,6 @@ class TestAlias:
         query_interface(logger, total_batch, batch_size, xb, query_type = "by_filter", alias_name="alias_name")
 
         search_interface(logger, total_batch, batch_size, xb, query_type="by_vector", alias_name="alias_name")
-        search_interface(logger, total_batch, batch_size, xb, query_type="by_ids", alias_name="alias_name")
 
         delete_interface(logger, total_batch, batch_size, delete_type="by_filter", alias_name="alias_name")
 

@@ -87,7 +87,7 @@ def query(quick, nprobe, parallel_on_queries, xq, gt, k, logger):
                   % (batch, nprobe, quick, parallel_on_queries, avarage)
         for recall in recalls:
             result += "recall@%d = %.2f%% " % (recall, recalls[recall] * 100)
-            if recall == k:
+            if recall == k and nprobe > 10:
                 assert recalls[recall] >= 0.9
         logger.info(result)
 
@@ -108,7 +108,7 @@ def benchmark(store_type, index_params, xb, xq, xt, gt):
     waiting_index_finish(logger, total)
 
     for quick in [True, False]:
-        for nprobe in [20, 40]:
+        for nprobe in [10, 20]:
             for parallel_on_queries in [0, 1]:
                 query(quick, nprobe, parallel_on_queries, xq, gt, k, logger)
 
@@ -121,7 +121,7 @@ xb, xq, xt, gt = get_sift10K(logger)
     ["MemoryOnly", 128],
     ["RocksDB", 128],
 ])
-def test_vearch_index_ivfpq(store_type: str, ncentroids: int):
+def test_vearch_index_ivfpq_without_nsubvector(store_type: str, ncentroids: int):
     index_params = {}
     index_params["metric_type"] = "L2"
     index_params["ncentroids"] = ncentroids

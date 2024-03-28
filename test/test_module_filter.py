@@ -114,7 +114,7 @@ def process_get_data_by_filter(items):
         logger.info(rs.json())
         logger.info(json_str)
 
-    documents = rs.json()["documents"]
+    documents = rs.json()["data"]["documents"]
     if len(documents) != batch_size:
         logger.info("len(documents) = " + str(len(documents)))
         logger.info(json_str)

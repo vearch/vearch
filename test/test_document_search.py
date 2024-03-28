@@ -246,7 +246,7 @@ def search_error(logger, total, batch_size, xb, wrong_parameters: dict):
 
 
 class TestDocumentSearchBadCase:
-    def setup(self):
+    def setup_class(self):
         self.logger = logger
         self.xb = xb
 

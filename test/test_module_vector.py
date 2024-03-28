@@ -102,11 +102,11 @@ def search_result(xq, k:int, batch:bool, query_dict:dict, multi_vector:bool, log
         json_str = json.dumps(query_dict)
         rs = requests.post(url, json_str)
 
-        if rs.status_code != 200 or "documents" not in rs.json():
+        if rs.status_code != 200 or "documents" not in rs.json()["data"]:
             logger.info(rs.json())
             logger.info(json_str)
 
-        for results in rs.json()["documents"]:
+        for results in rs.json()["data"]["documents"]:
             field_int = []
             for result in results:
                 field_int.append(result["_source"]["field_int"])
@@ -126,12 +126,12 @@ def search_result(xq, k:int, batch:bool, query_dict:dict, multi_vector:bool, log
             json_str = json.dumps(query_dict)
             rs = requests.post(url, json_str)
 
-            if rs.status_code != 200 or "documents" not in rs.json():
+            if rs.status_code != 200 or "documents" not in rs.json()["data"]:
                 logger.info(rs.json())
                 logger.info(json_str)
 
             field_int = []
-            for results in rs.json()["documents"]:
+            for results in rs.json()["data"]["documents"]:
                 for result in results:
                     field_int.append(result["_source"]["field_int"])
             if len(field_int) != k:

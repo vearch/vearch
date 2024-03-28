@@ -29,7 +29,7 @@ __description__ = """ test case for module partition """
 
 
 class TestPartitionEmptySpaceMemorySize:
-    def setup(self):
+    def setup_class(self):
         self.logger = logger
 
     def test_prepare_db(self):
@@ -83,7 +83,7 @@ class TestPartitionEmptySpaceMemorySize:
         drop_db(router_url, db_name)
 
 class TestPartitionSmallDataMemorySize:
-    def setup(self):
+    def setup_class(self):
         self.logger = logger
 
     def test_prepare_db(self):

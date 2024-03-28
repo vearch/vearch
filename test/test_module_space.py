@@ -29,7 +29,7 @@ __description__ = """ test case for module space """
 
 
 class TestSpaceCreate:
-    def setup(self):
+    def setup_class(self):
         self.logger = logger
 
     def test_prepare_db(self):

@@ -104,7 +104,7 @@ def test_vearch_document_delete(bulk: bool, full_field: bool, delete_type: str):
 
 
 class TestDocumentDeleteBadCase:
-    def setup(self):
+    def setup_class(self):
         self.logger = logger
         self.xb = xb
 

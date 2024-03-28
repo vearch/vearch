@@ -31,8 +31,8 @@ __description__ = """ test case for index rebuild """
 xb, xq, _, gt = get_sift10K(logger)
 
 
-class TestIndexFlush:
-    def setup(self):
+class TestIndexRebuild:
+    def setup_class(self):
         self.logger = logger
 
     def test_prepare_db(self):

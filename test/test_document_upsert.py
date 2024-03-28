@@ -182,7 +182,7 @@ def test_vearch_document_upsert_update(bulk: bool, full_field: bool):
 
 
 class TestDocumentUpsertBadCase:
-    def setup(self):
+    def setup_class(self):
         self.logger = logger
         self.xb = xb
 

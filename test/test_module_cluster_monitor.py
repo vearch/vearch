@@ -18,7 +18,7 @@ __description__ = """ test case for cluster monitor """
 
 
 class TestVearchClusterMonitor:
-    def setup(self):
+    def setup_class(self):
         self.logger = logger
 
     def test_prepare_db(self):

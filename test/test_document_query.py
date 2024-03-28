@@ -104,7 +104,7 @@ def test_vearch_document_query(bulk: bool, full_field: bool, query_type: str):
 
 
 class TestDocumentQueryBadCase:
-    def setup(self):
+    def setup_class(self):
         self.logger = logger
         self.xb = xb
 

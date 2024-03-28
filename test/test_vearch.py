@@ -26,7 +26,7 @@ search_num = 10
 class VearchCase:
     logger.info("test class")
 
-    def setup(
+    def setup_class(
         self, training_threshold: int, index_type: str, store_type: str
     ):
         self.training_threshold = training_threshold
@@ -517,7 +517,7 @@ def test_vearch_usage(
     training_threshold: int, index_type: str, store_type: str
 ):
     case = VearchCase()
-    case.setup(training_threshold, index_type, store_type)
+    case.setup_class(training_threshold, index_type, store_type)
     case.run_basic_usage_test()
     case.run_db_space_create_multi_test()
 
@@ -538,5 +538,5 @@ def test_vearch_create_space(
     training_threshold: int, index_type: str, store_type: str
 ):
     case = VearchCase()
-    case.setup(training_threshold, index_type, store_type)
+    case.setup_class(training_threshold, index_type, store_type)
     case.run_db_space_create_test(False)
