@@ -270,7 +270,7 @@ func processPropertyArray(v *fastjson.Value, pathString string, pro *entity.Spac
 	field := &vearchpb.Field{Name: fieldName}
 	vs, err := v.Array()
 	if err != nil {
-		field = nil
+		return nil, err
 	}
 	if pro.FieldType == entity.FieldType_STRING && pro.Array {
 		field, err = processPropertyArrayVectorString(vs, pathString, pro)

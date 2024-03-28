@@ -166,7 +166,7 @@ def process_add_error_data(items):
 
         if not without_vector:
             if wrong_vector_type:
-                param_dict["field_vector"] = features[j].tolist()
+                param_dict["field_vector"] = {"feature":features[j].tolist()}
             if wrong_vector_feature_length:
                 param_dict["field_vector"] = features[j].tolist()[:1]
             if wrong_vector_feature_type:
@@ -691,11 +691,6 @@ def process_search_data(items):
     if items[8] != "":
         data["space_name"] = items[8]
 
-    if query_type == "by_ids":
-        data["query"]["document_ids"] = []
-        for j in range(batch_size):
-            data["query"]["document_ids"].append(str(index * batch_size + j))
-
     with_symbol = False
     if query_type == "by_vector_with_symbol":
         query_type = "by_vector"
@@ -754,7 +749,7 @@ def search_interface(
     full_field=False,
     with_filter=False,
     seed=1,
-    query_type="by_ids",
+    query_type="by_vector",
     alias_name=""
 ):
     for i in range(total):
@@ -861,14 +856,14 @@ def prepare_cluster_for_document_test(logger, total, xb):
     query_interface(logger, total_batch, batch_size, xb, full_field, seed, "by_ids")
 
 
-def waiting_index_finish(logger, total):
+def waiting_index_finish(logger, total, timewait=5):
     url = router_url + "/cluster/health?db=" + db_name + "&space=" + space_name
     num = 0
     while num < total:
         response = requests.get(url)
         num = response.json()["data"][0]["spaces"][0]["partitions"][0]["index_num"]
         logger.info("index num: %d" % (num))
-        time.sleep(10)
+        time.sleep(timewait)
 
 
 def get_space_num():

@@ -42,4 +42,5 @@ jobs:
       run: |
         cd test
         pytest test_vearch.py -x --log-cli-level=INFO
+        pytest test_document* -x --log-cli-level=INFO
         ls -l

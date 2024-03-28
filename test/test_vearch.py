@@ -316,24 +316,6 @@ class VearchCase:
                 logger.debug("searchByFeature---\n" + response.text)
                 assert response.status_code == 200
 
-    def test_documentSearchByDocumentIds(self):
-        logger.info("documentSearchByDocumentIds")
-        headers = {"content-type": "application/json"}
-        url = router_url + "/document/search"
-        with open(fileData, "r") as dataLine1:
-            for i, dataLine in zip(range(add_num), dataLine1):
-                idStr = dataLine.split(",", 1)[0].replace("{", "")
-                doc_id = eval(idStr.split(":")[1])
-                data = "{" + dataLine.split(",", 1)[1]
-                data = json.loads(data)
-                data["db_name"] = db_name
-                data["space_name"] = space_name
-                data["query"] = {}
-                data["query"]["document_ids"] = [doc_id for i in range(1)]
-                response = requests.post(url, headers=headers, data=json.dumps(data))
-                logger.debug("insertNoID:" + response.text)
-                assert response.status_code == 200
-
     def test_documentSearchByVector(self):
         logger.info("documentSearchByVector")
         headers = {"content-type": "application/json"}
@@ -496,7 +478,6 @@ class VearchCase:
         self.test_documentQueryByDocumentIds()
         self.test_documentQueryOnSpecifyPartiton()
         self.test_documentQueryByFilter()
-        self.test_documentSearchByDocumentIds()
         self.test_documentSearchByVector()
         self.test_documentModifySinglefield()
         self.test_documentUpsertSinglefield()

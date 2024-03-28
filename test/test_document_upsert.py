@@ -92,7 +92,7 @@ def benchmark(total, bulk, with_id, full_field, xb, xq, gt):
 
     add(total_batch, batch_size, xb, with_id, full_field)
 
-    waiting_index_finish(logger, total)
+    waiting_index_finish(logger, total, 1)
 
     query(xq, gt, k, logger)
 

@@ -91,12 +91,8 @@ def check(total, bulk, full_field, with_filter, query_type, xb):
 @pytest.mark.parametrize(
     ["bulk", "full_field", "with_filter", "query_type"],
     [
-        [True, True, True, "by_ids"],
-        [True, True, False, "by_ids"],
         [True, True, True, "by_vector"],
         [True, True, False, "by_vector"],
-        [False, True, True, "by_ids"],
-        [False, True, False, "by_ids"],
         [False, True, True, "by_vector"],
         [False, True, False, "by_vector"],
         [False, True, False, "by_vector_with_symbol"],
@@ -122,62 +118,74 @@ def process_search_error_data(items):
     [
         wrong_db,
         wrong_space,
-        wrong_id,
-        multi_wrong_id,
         wrong_range_filter,
         wrong_term_filter,
         wrong_filter_index,
         wrong_vector_length,
         wrong_vector_name,
         wrong_vector_type,
-        wrong_length_document_ids,
-        wrong_both_id_and_vector,
         empty_query,
-        empty_document_ids,
         empty_vector,
         wrong_range_filter_name,
         wrong_term_filter_name,
     ] = items[4]
-
-    max_document_ids_length = 101
 
     if wrong_db:
         data["db_name"] = "wrong_db"
     if wrong_space:
         data["space_name"] = "wrong_space"
 
-    if wrong_id:
-        data["query"]["document_ids"] = ["wrong_id"]
-
-    if multi_wrong_id:
-        data["query"]["document_ids"] = ["wrong_id", "wrong_id1"]
-
     if wrong_range_filter:
-        data["query"]["document_ids"] = ["0"]
+        data["query"]["vector"] = []
+        vector_info = {
+            "field": "field_vector",
+            "feature": features[:batch_size].flatten().tolist(),
+        }
+        data["query"]["vector"].append(vector_info)
         data["query"]["filter"] = []
         prepare_wrong_range_filter(data["query"]["filter"], index, batch_size)
         data["size"] = batch_size
 
     if wrong_term_filter:
-        data["query"]["document_ids"] = ["0"]
+        data["query"]["vector"] = []
+        vector_info = {
+            "field": "field_vector",
+            "feature": features[:batch_size].flatten().tolist(),
+        }
+        data["query"]["vector"].append(vector_info)
         data["query"]["filter"] = []
         prepare_wrong_term_filter(data["query"]["filter"], index, batch_size)
         data["size"] = batch_size
 
     if wrong_filter_index:
-        data["query"]["document_ids"] = ["0"]
+        data["query"]["vector"] = []
+        vector_info = {
+            "field": "field_vector",
+            "feature": features[:batch_size].flatten().tolist(),
+        }
+        data["query"]["vector"].append(vector_info)
         data["query"]["filter"] = []
         prepare_wrong_index_filter(data["query"]["filter"], index, batch_size)
         data["size"] = batch_size
 
     if wrong_range_filter_name:
-        data["query"]["document_ids"] = ["0"]
+        data["query"]["vector"] = []
+        vector_info = {
+            "field": "field_vector",
+            "feature": features[:batch_size].flatten().tolist(),
+        }
+        data["query"]["vector"].append(vector_info)
         data["query"]["filter"] = []
         prepare_wrong_range_filter_name(data["query"]["filter"], index, batch_size)
         data["size"] = batch_size
 
     if wrong_term_filter_name:
-        data["query"]["document_ids"] = ["0"]
+        data["query"]["vector"] = []
+        vector_info = {
+            "field": "field_vector",
+            "feature": features[:batch_size].flatten().tolist(),
+        }
+        data["query"]["vector"].append(vector_info)
         data["query"]["filter"] = []
         prepare_wrong_term_filter_name(data["query"]["filter"], index, batch_size)
         data["size"] = batch_size
@@ -206,23 +214,8 @@ def process_search_error_data(items):
         }
         data["query"]["vector"].append(vector_info)
 
-    if wrong_length_document_ids:
-        data["query"]["document_ids"] = [str(i) for i in range(max_document_ids_length)]
-
-    if wrong_both_id_and_vector:
-        data["query"]["document_ids"] = ["0"]
-        data["query"]["vector"] = []
-        vector_info = {
-            "field": "field_vector",
-            "feature": features[:batch_size].flatten().tolist(),
-        }
-        data["query"]["vector"].append(vector_info)
-
     if empty_query:
         data["query"] = {}
-
-    if empty_document_ids:
-        data["query"]["document_ids"] = []
 
     if empty_vector:
         data["query"]["vector"] = []
@@ -266,25 +259,20 @@ class TestDocumentSearchBadCase:
         [
             [0, "wrong_db"],
             [1, "wrong_space"],
-            [2, "wrong_id"],
-            [3, "multi_wrong_id"],
-            [4, "wrong_range_filter"],
-            [5, "wrong_term_filter"],
-            [6, "wrong_filter_index"],
-            [7, "wrong_vector_length"],
-            [8, "wrong_vector_name"],
-            [9, "wrong_vector_type"],
-            [10, "wrong_length_document_ids"],
-            [11, "wrong_both_id_and_vector"],
-            [12, "empty_query"],
-            [13, "empty_document_ids"],
-            [14, "empty_vector"],
-            [15, "wrong_range_filter_name"],
-            [16, "wrong_term_filter_name"],
+            [2, "wrong_range_filter"],
+            [3, "wrong_term_filter"],
+            [4, "wrong_filter_index"],
+            [5, "wrong_vector_length"],
+            [6, "wrong_vector_name"],
+            [7, "wrong_vector_type"],
+            [8, "empty_query"],
+            [9, "empty_vector"],
+            [10, "wrong_range_filter_name"],
+            [11, "wrong_term_filter_name"],
         ],
     )
     def test_vearch_document_search_badcase(self, index, wrong_type):
-        wrong_parameters = [False for i in range(17)]
+        wrong_parameters = [False for i in range(12)]
         wrong_parameters[index] = True
         search_error(self.logger, 1, 1, self.xb, wrong_parameters)
 

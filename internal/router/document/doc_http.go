@@ -388,7 +388,7 @@ func (handler *DocumentHandler) handleDocumentSearch(c *gin.Context) {
 		args.Head.Params = params
 	}
 
-	searchDoc, query, err := documentRequestParse(c.Request, args)
+	searchDoc, _, err := documentRequestParse(c.Request, args)
 	if err != nil {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 		return
@@ -410,60 +410,12 @@ func (handler *DocumentHandler) handleDocumentSearch(c *gin.Context) {
 		return
 	}
 
-	if len(query.DocumentIds) != 0 {
-		if args.VecFields != nil {
-			err := vearchpb.NewError(vearchpb.ErrorEnum_SEARCH_INVALID_PARAMS_BOTH_DOCUMENT_IDS_AND_VECTOR, nil)
-			ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
-			return
-		}
-		if len(query.DocumentIds) > 100 {
-			err := vearchpb.NewError(vearchpb.ErrorEnum_SEARCH_INVALID_PARAMS_LENGTH_OF_DOCUMENT_IDS_BEYOND_100, nil)
-			ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
-			return
-		}
-		getArgs := &vearchpb.GetRequest{}
-		getArgs.Head = setRequestHeadFromGin(c)
-		getArgs.Head.DbName = searchDoc.DbName
-		getArgs.Head.SpaceName = searchDoc.SpaceName
-		getArgs.PrimaryKeys = query.DocumentIds
-
-		reply := handler.docService.getDocs(ctx, getArgs)
-
-		if reply == nil || reply.Items == nil || len(reply.Items) == 0 {
-			result, err := documentSearchResponse(nil, reply.Head, request.SearchResponse)
-			if err != nil {
-				ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
-				return
-			}
-			ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(result)
-			return
-		}
-
-		// filter error items
-		if reply.Items != nil && len(reply.Items) != 0 {
-			tmpItems := make([]*vearchpb.Item, 0)
-			for _, i := range reply.Items {
-				if i == nil || (i.Err != nil && i.Err.Code != vearchpb.ErrorEnum_SUCCESS) {
-					continue
-				}
-				tmpItems = append(tmpItems, i)
-			}
-			reply.Items = tmpItems
-		}
-
-		// TODO: If ids are not found, the result should be [].
-		err = documentRequestVectorParse(space, searchDoc, args, reply.Items, request.QueryVector)
-		if err != nil {
-			ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
-			return
-		}
-	} else {
-		if args.VecFields == nil {
-			err := vearchpb.NewError(vearchpb.ErrorEnum_SEARCH_INVALID_PARAMS_SHOULD_HAVE_ONE_OF_DOCUMENT_IDS_OR_FILTER, nil)
-			ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
-			return
-		}
+	if args.VecFields == nil {
+		err := vearchpb.NewError(vearchpb.ErrorEnum_SEARCH_INVALID_PARAMS_SHOULD_HAVE_VECTOR_FIELD, nil)
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
+		return
 	}
+
 	serviceStart := time.Now()
 	searchResp := handler.docService.search(ctx, args)
 	serviceCost := time.Since(serviceStart)
