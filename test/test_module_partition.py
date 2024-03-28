@@ -101,7 +101,7 @@ class TestPartitionSmallDataMemorySize:
             "name": space_name_each,
             "partition_num": 1,
             "replica_num": 1,
-            "fields": {
+            "fields": [
                {"name": "field_int", "type": "integer"},
                {"name": "field_long", "type": "long"},
                {"name": "field_float", "type": "float"},
@@ -124,7 +124,7 @@ class TestPartitionSmallDataMemorySize:
                     },
                     # "format": "normalization"
                 },
-            },
+            ],
         }
 
         logger.info(create_space(router_url, db_name, space_config))

@@ -27,7 +27,6 @@ import (
 	"github.com/vearch/vearch/internal/engine/sdk/go/gamma"
 	"github.com/vearch/vearch/internal/pkg/log"
 	"github.com/vearch/vearch/internal/pkg/vearchlog"
-	pkg "github.com/vearch/vearch/internal/proto"
 	"github.com/vearch/vearch/internal/proto/vearchpb"
 	"github.com/vearch/vearch/internal/ps/engine"
 )
@@ -134,7 +133,7 @@ func (ri *readerImpl) Search(ctx context.Context, request *vearchpb.SearchReques
 
 	gammaEngine := ri.engine.gamma
 	if gammaEngine == nil {
-		return pkg.NewCodeErr(pkg.ERRCODE_PARTITION_IS_CLOSED, "search gamma engine is null")
+		return vearchpb.NewErrorInfo(vearchpb.ErrorEnum_PARTITION_IS_CLOSED, "search engine is null")
 	}
 
 	if response == nil {
