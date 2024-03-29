@@ -507,9 +507,7 @@ int VectorManager::AddRTVecsToIndex(bool &index_is_dirty) {
   return ret;
 }
 
-namespace {
-int parse_index_search_result(int n, int k, VectorResult &result,
-                              IndexModel *index) {
+int ParseSearchResult(int n, int k, VectorResult &result, IndexModel *index) {
   RawVector *raw_vec = dynamic_cast<RawVector *>(index->vector_);
   if (raw_vec == nullptr) {
     LOG(ERROR) << "Cannot get raw vector";
@@ -541,7 +539,6 @@ int parse_index_search_result(int n, int k, VectorResult &result,
   }
   return 0;
 }
-}  // namespace
 
 Status VectorManager::Search(GammaQuery &query, GammaResult *results) {
   int n = 0;
@@ -608,8 +605,7 @@ Status VectorManager::Search(GammaQuery &query, GammaResult *results) {
       return Status::InvalidArgument(err);
     }
     if (query.condition->sort_by_docid) {
-      parse_index_search_result(n, query.condition->topn, all_vector_results[i],
-                                index);
+      ParseSearchResult(n, query.condition->topn, all_vector_results[i], index);
       all_vector_results[i].sort_by_docid();
     }
 
@@ -779,10 +775,9 @@ int VectorManager::GetDocVector(int docid, std::string &field_name,
   int d = raw_vec->MetaInfo()->Dimension();
   int d_byte = d * raw_vec->MetaInfo()->DataSize();
 
-  vec.resize(sizeof(d) + d_byte);
-  memcpy((void *)vec.data(), &d_byte, sizeof(int));
-  int cur = sizeof(d_byte);
-  memcpy((void *)(vec.data() + cur), feature, d_byte);
+  vec.resize(d_byte);
+
+  memcpy((void *)(vec.data()), feature, d_byte);
   return 0;
 }
 

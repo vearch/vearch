@@ -208,7 +208,7 @@ func documentSearchResponse(srs []*vearchpb.SearchResult, head *vearchpb.Respons
 	}
 
 	if response_type == request.QueryResponse {
-		if srs == nil {
+		if len(srs) == 0 {
 			response["total"] = 0
 		} else {
 			response["total"] = len(srs[0].ResultItems)
@@ -364,25 +364,21 @@ func docFieldSerialize(doc *vearchpb.Document, space *entity.Space, returnFields
 						featureByteC := fv.Value
 						dimension := field.Dimension
 						if dimension != 0 {
-							unit8s, _, err := cbbytes.ByteToVectorBinary(featureByteC, dimension)
+							unit8s, err := cbbytes.ByteToVectorBinary(featureByteC, dimension)
 							if err != nil {
 								return nil, nextDocid, err
 							}
-							source[name] = map[string]interface{}{
-								"feature": unit8s,
-							}
+							source[name] = unit8s
 						} else {
 							log.Error("GetSource can not found dimension by field:[%s]", name)
 						}
 
 					} else {
-						float32s, _, err := cbbytes.ByteToVector(fv.Value)
+						float32s, err := cbbytes.ByteToVector(fv.Value)
 						if err != nil {
 							return nil, nextDocid, err
 						}
-						source[name] = map[string]interface{}{
-							"feature": float32s,
-						}
+						source[name] = float32s
 					}
 				}
 
@@ -448,14 +444,11 @@ func GetVectorFieldValue(doc *vearchpb.Document, space *entity.Space) (floatFeat
 				featureByteC := fv.Value
 				dimension := field.Dimension
 				if dimension != 0 {
-					unit8s, _, err := cbbytes.ByteToVectorBinary(featureByteC, dimension)
+					unit8s, err := cbbytes.ByteToVectorBinary(featureByteC, dimension)
 					if err != nil {
 						return nil, nil, err
 					}
-					source[name] = map[string]interface{}{
-						"source":  fv.Source,
-						"feature": unit8s,
-					}
+					source[name] = unit8s
 					if binaryFeatureMap != nil {
 						binaryFeatureMap[name] = unit8s
 					} else {
@@ -465,17 +458,12 @@ func GetVectorFieldValue(doc *vearchpb.Document, space *entity.Space) (floatFeat
 				} else {
 					log.Error("GetSource can not found dimension by field:[%s]", name)
 				}
-
 			} else {
-				float32s, s, err := cbbytes.ByteToVector(fv.Value)
-				//log.Error("vector.Field.value len %d, source is [%s]", len(fv.Value), s)
+				float32s, err := cbbytes.ByteToVector(fv.Value)
 				if err != nil {
 					return nil, nil, err
 				}
-				source[name] = map[string]interface{}{
-					"source":  s,
-					"feature": float32s,
-				}
+				source[name] = float32s
 				if floatFeatureMap != nil {
 					floatFeatureMap[name] = float32s
 				} else {
@@ -489,34 +477,6 @@ func GetVectorFieldValue(doc *vearchpb.Document, space *entity.Space) (floatFeat
 		}
 	}
 	return floatFeatureMap, binaryFeatureMap, nil
-}
-
-func MakeQueryFeature(floatFeatureMap map[string][]float32, binaryFeatureMap map[string][]int32, query_type string) ([]byte, error) {
-	features := make([]map[string]interface{}, 0)
-
-	if floatFeatureMap != nil {
-		for key, value := range floatFeatureMap {
-			feature := map[string]interface{}{
-				"field":   key,
-				"feature": value,
-			}
-			features = append(features, feature)
-		}
-	} else {
-		for key, value := range binaryFeatureMap {
-			feature := map[string]interface{}{
-				"field":   key,
-				"feature": value,
-			}
-			features = append(features, feature)
-		}
-	}
-
-	query := map[string]interface{}{
-		query_type: features,
-	}
-
-	return vjson.Marshal(query)
 }
 
 func ForceMergeToContent(shards *vearchpb.SearchStatus) ([]byte, error) {

@@ -129,17 +129,13 @@ func ByteToVectorForFloat32(bs []byte) ([]float32, string, error) {
 	return float32s, "", nil
 }
 
-func ByteToVector(bs []byte) ([]float32, string, error) {
-	length := int(ByteToUInt32(bs))
-
-	float32s, err := ByteToFloat32Array(bs[4 : length+4])
-	// float32s, err := ByteToFloat32Array(bs)
+func ByteToVector(bs []byte) ([]float32, error) {
+	float32s, err := ByteToFloat32Array(bs)
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
 
-	// return float32s, "", nil
-	return float32s, string(bs[length+4:]), nil
+	return float32s, nil
 }
 
 /*func ByteToVectorBinary(bs []byte, dimension int) ([]int32, string, error) {
@@ -151,15 +147,13 @@ func ByteToVector(bs []byte) ([]float32, string, error) {
 	return result, "", nil
 }*/
 
-func ByteToVectorBinary(bs []byte, dimension int) ([]int32, string, error) {
+func ByteToVectorBinary(bs []byte, dimension int) ([]int32, error) {
 	featureLength := int(dimension / 8)
-	newFeatureLength := featureLength + 4
-	newbyte := bs[4:newFeatureLength]
 	result := make([]int32, featureLength)
 	for i := 0; i < featureLength; i++ {
-		result[i] = int32(newbyte[i])
+		result[i] = int32(bs[i])
 	}
-	return result, "", nil
+	return result, nil
 }
 
 func FloatArrayByte(fa []float32) (code []byte, err error) {

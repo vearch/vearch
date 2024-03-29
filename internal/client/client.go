@@ -1204,27 +1204,17 @@ func GetSource(doc *vearchpb.ResultItem, space *entity.Space, sortFieldMap map[s
 				if strings.Compare(space.Index.Type, "BINARYIVF") == 0 {
 					featureByteC := fv.Value
 					dimension := field.Dimension
-					if dimension != 0 {
-						unit8s, uri, err := cbbytes.ByteToVectorBinary(featureByteC, dimension)
-						if err != nil {
-							return nil, sortValues, pKey, err
-						}
-						source[name] = map[string]interface{}{
-							"source":  uri,
-							"feature": unit8s,
-						}
-					} else {
-						log.Error("GetSource can not found dimension by field:[%s]", name)
-					}
-				} else {
-					float32s, uri, err := cbbytes.ByteToVector(fv.Value)
+					unit8s, err := cbbytes.ByteToVectorBinary(featureByteC, dimension)
 					if err != nil {
 						return nil, sortValues, pKey, err
 					}
-					source[name] = map[string]interface{}{
-						"source":  uri,
-						"feature": float32s,
+					source[name] = unit8s
+				} else {
+					float32s, err := cbbytes.ByteToVector(fv.Value)
+					if err != nil {
+						return nil, sortValues, pKey, err
 					}
+					source[name] = float32s
 				}
 
 			default:

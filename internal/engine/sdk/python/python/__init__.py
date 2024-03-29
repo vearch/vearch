@@ -426,7 +426,7 @@ class GammaTable:
 
 
 class GammaField:
-    def __init__(self, name, value, source: str, data_type):
+    def __init__(self, name, value, data_type):
         self.name = name
         self.origin_value = value
         if data_type == dataType.VECTOR:
@@ -440,13 +440,11 @@ class GammaField:
         else:
             np_value = np.asarray([value], dtype=type_map[data_type])
             self.value = np_value.view(np.uint8)
-        self.source = source
         self.type = data_type
 
     def print_self(self):
         print("name:", self.name)
         print("value:", self.origin_value)
-        print("source:", self.source)
         print("type:", self.type)
 
     def get_field_info(self):
@@ -503,13 +501,13 @@ class GammaDoc:
                 # if not table.is_binaryivf_type():
                 #    vector, norm = normalize_numpy_array(vector)
                 #    table.norms[key][doc_id] = norm
-                fieldNode = GammaField(key, vector, "source", dataType.VECTOR)
+                fieldNode = GammaField(key, vector, dataType.VECTOR)
             elif key in table.field_infos:  # is fields
                 self.check_scalar_field_type(
                     doc_info[key], key, table.field_infos[key].type
                 )
                 fieldNode = GammaField(
-                    key, doc_info[key], "source", table.field_infos[key].type
+                    key, doc_info[key], table.field_infos[key].type
                 )
             else:
                 ex = Exception("Item have error, " + key + " not in table properties")
@@ -535,7 +533,6 @@ class GammaDoc:
                     field.name,
                     swig_ptr(field.value),
                     field.value.shape[0],
-                    field.source,
                     field.type,
                 )
             else:
@@ -545,7 +542,6 @@ class GammaDoc:
                     field.name,
                     field.origin_value,
                     field.value.shape[0],
-                    field.source,
                     field.type,
                 )
             self.doc.AddField(field_type)
@@ -570,7 +566,6 @@ class GammaDoc:
         lstFieldData = []
         for i in range(len(self.fields)):
             nameData = builder.CreateString(self.fields[i].name)
-            sourceData = builder.CreateString(self.fields[i].source)
 
             bytesOfValue = self.fields[i].value.tobytes()
             PField.FieldStartValueVector(builder, len(bytesOfValue))
@@ -582,7 +577,6 @@ class GammaDoc:
 
             PField.FieldStart(builder)
             PField.FieldAddName(builder, nameData)
-            PField.FieldAddSource(builder, sourceData)
             PField.FieldAddValue(builder, valueData)
             PField.FieldAddDataType(builder, self.fields[i].type)
             lstFieldData.append(PField.FieldEnd(builder))
@@ -620,7 +614,7 @@ class GammaDoc:
                 value = value.view(dtype=type_map[data_type])[0]
             self.fields.append(
                 GammaField(
-                    name, value, doc.Fields(i).Source().decode("utf-8"), data_type
+                    name, value, data_type
                 )
             )
 

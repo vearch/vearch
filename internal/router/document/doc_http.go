@@ -421,11 +421,8 @@ func (handler *DocumentHandler) handleDocumentSearch(c *gin.Context) {
 	serviceCost := time.Since(serviceStart)
 
 	var result map[string]interface{}
-	if len(searchResp.Results) == 0 {
-		result, err = documentSearchResponse(nil, searchResp.Head, request.SearchResponse)
-	} else {
-		result, err = documentSearchResponse(searchResp.Results, searchResp.Head, request.SearchResponse)
-	}
+
+	result, err = documentSearchResponse(searchResp.Results, searchResp.Head, request.SearchResponse)
 
 	if err != nil {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)

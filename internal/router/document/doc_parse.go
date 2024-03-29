@@ -752,15 +752,6 @@ func requestToPb(searchDoc *request.SearchDocumentRequest, space *entity.Space, 
 	return err
 }
 
-func documentRequestVectorParse(space *entity.Space, searchDoc *request.SearchDocumentRequest, searchReq *vearchpb.SearchRequest, items []*vearchpb.Item, query_type string) (err error) {
-	queryByte, err := parseQueryForIdFeature(searchDoc.Query, space, items, query_type)
-	if err != nil {
-		return
-	}
-	err = parseQuery(queryByte, searchReq, space)
-	return
-}
-
 func IndexRequestParse(r *http.Request) (index *request.IndexRequest, err error) {
 	reqBody, err := netutil.GetReqBody(r)
 	if err != nil {
