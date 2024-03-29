@@ -13,7 +13,6 @@ service RouterGRPCService {
   rpc Update(UpdateRequest) returns (UpdateResponse) {}
   rpc Search(SearchRequest) returns (SearchResponse) {}
   rpc Bulk(BulkRequest) returns (BulkResponse) {}
-  rpc MSearch(MSearchRequest) returns (SearchResponse) {}
   rpc Space(RequestHead) returns (Table) {}
   rpc SearchByID(SearchRequest) returns (SearchResponse) {}
 }
@@ -216,9 +215,4 @@ message SearchStatus {
   int32 failed = 2;
   int32 successful = 3;
   string msg = 4;
-}
-
-message MSearchRequest {
-  RequestHead head = 1;
-  repeated SearchRequest search_requests = 2;
 }

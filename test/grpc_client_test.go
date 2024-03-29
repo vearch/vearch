@@ -324,39 +324,6 @@ func TestSearch(t *testing.T) {
 	}
 }
 
-func TestMSearch(t *testing.T) {
-	conn, err := grpc.Dial(address, grpc.WithInsecure())
-	if err != nil {
-		t.Fatalf("did not connect: %v", err)
-	}
-	defer func() {
-		if err := conn.Close(); err != nil {
-			t.Fatalf("close conn failed, %v", err)
-		}
-	}()
-	api := vearchpb.NewRouterGRPCServiceClient(conn)
-
-	n, m := 10, 10
-	queries := makeSearchRequests(n, m)
-	for i := 0; i < n; i++ {
-		begin, end := i*m, (i+1)*m
-		query := &vearchpb.MSearchRequest{}
-		query.SearchRequests = queries[begin:end]
-		query.Head = &vearchpb.RequestHead{
-			TimeOutMs: 10000,
-			DbName:    "ts_db",
-			SpaceName: "ts_space",
-		}
-
-		resp, err := api.MSearch(context.Background(), query)
-		if err != nil {
-			t.Errorf("request failed, response: %v, err: %s", resp.String(), err.Error())
-		} else {
-			t.Logf("request success, response: %s", resp.String())
-		}
-	}
-}
-
 func makeSearchRequests(n, m int) []*vearchpb.SearchRequest {
 	queries := make([]*vearchpb.SearchRequest, 0)
 	for _, docs := range docsList[0:n] {

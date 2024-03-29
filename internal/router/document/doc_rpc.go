@@ -161,22 +161,6 @@ func (handler *RpcHandler) Search(ctx context.Context, req *vearchpb.SearchReque
 	return reply, nil
 }
 
-func (handler *RpcHandler) MSearch(ctx context.Context, req *vearchpb.MSearchRequest) (reply *vearchpb.SearchResponse, err error) {
-	defer Cost("MSearch", time.Now())
-	if req.SearchRequests == nil || len(req.SearchRequests) < 1 {
-		return nil, vearchpb.NewError(vearchpb.ErrorEnum_RPC_PARAM_ERROR, fmt.Errorf("SearchRequests can not be nil or length smaller than 1"))
-	}
-	res, err := handler.deal(ctx, req)
-	if err != nil {
-		return nil, err
-	}
-	reply, ok := res.(*vearchpb.SearchResponse)
-	if !ok {
-		return nil, vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, nil)
-	}
-	return reply, nil
-}
-
 func (handler *RpcHandler) SearchByID(ctx context.Context, req *vearchpb.SearchRequest) (reply *vearchpb.SearchResponse, err error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -296,8 +280,6 @@ func (handler *RpcHandler) deal(ctx context.Context, req Request) (reply interfa
 		reply = handler.docService.bulk(ctx, v)
 	case *vearchpb.SearchRequest:
 		reply = handler.docService.search(ctx, v)
-	case *vearchpb.MSearchRequest:
-		reply = handler.docService.bulkSearch(ctx, v.SearchRequests)
 	default:
 		return nil, vearchpb.NewError(vearchpb.ErrorEnum_METHOD_NOT_IMPLEMENT, nil)
 	}
