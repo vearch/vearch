@@ -14,15 +14,11 @@
 
 package cbbytes
 
-import "C"
 import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
 	"math"
-	"unsafe"
-
-	"github.com/vearch/vearch/internal/pkg/log"
 )
 
 // IEC Sizes.
@@ -47,41 +43,9 @@ const (
 	IEB   = IPB * 1000
 )
 
-var byteSizes = map[string]uint64{
-	"b":   Byte,
-	"kib": KB,
-	"kb":  IKB,
-	"mib": MB,
-	"mb":  IMB,
-	"gib": GB,
-	"gb":  IGB,
-	"tib": TB,
-	"tb":  ITB,
-	"pib": PB,
-	"pb":  IPB,
-	"eib": EB,
-	"eb":  IEB,
-
-	"":   Byte,
-	"ki": KB,
-	"k":  IKB,
-	"mi": MB,
-	"m":  IMB,
-	"gi": GB,
-	"g":  IGB,
-	"ti": TB,
-	"t":  ITB,
-	"pi": PB,
-	"p":  IPB,
-	"ei": EB,
-	"e":  IEB,
-}
-
 var (
 	siSizes  = []string{"B", "kB", "MB", "GB", "TB", "PB", "EB"}
 	iecSizes = []string{"B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB"}
-
-	jsonPrefix = []byte("{")
 )
 
 func logn(n, b float64) float64 {
@@ -121,31 +85,13 @@ func VectorBinaryToByte(vector []uint8) ([]byte, error) {
 	return byteArr, error
 }
 
-func ByteToVectorForFloat32(bs []byte) ([]float32, string, error) {
-	float32s, err := ByteToFloat32Array(bs)
-	if err != nil {
-		return nil, "", err
-	}
-	return float32s, "", nil
-}
-
-func ByteToVector(bs []byte) ([]float32, error) {
+func ByteToVectorForFloat32(bs []byte) ([]float32, error) {
 	float32s, err := ByteToFloat32Array(bs)
 	if err != nil {
 		return nil, err
 	}
-
 	return float32s, nil
 }
-
-/*func ByteToVectorBinary(bs []byte, dimension int) ([]int32, string, error) {
-	newbytelength := int(dimension / 8)
-	result := make([]int32, newbytelength)
-	for i := 0; i < newbytelength; i++ {
-		result[i] = BytesToInt32(bs[i:])
-	}
-	return result, "", nil
-}*/
 
 func ByteToVectorBinary(bs []byte, dimension int) ([]int32, error) {
 	featureLength := int(dimension / 8)
@@ -195,28 +141,6 @@ func FloatArray(fa []float32) (code string, err error) {
 		}
 	}
 	return buf.String(), nil
-}
-
-// Returns a slice of the bytes of the provided float64 slice.
-// This allows highly performant access to large float64 slices for such things
-// as computing hashes or simply writing the bytes to a file.
-// BEWARE: this also means this []byte _is platform dependent_.
-func UnsafeFloat32SliceAsByteSlice(floats []float32) []byte {
-	lf := 4 * len(floats)
-	// step by step
-	pf := &(floats[0])                        // To pointer to the first byte of b
-	up := unsafe.Pointer(pf)                  // To *special* unsafe.Pointer, it can be converted to any pointer
-	pi := (*[1]byte)(up)                      // To pointer as byte array
-	buf := (*pi)[:]                           // Creates slice to our array of 1 byte
-	address := unsafe.Pointer(&buf)           // Capture the address to the slice structure
-	lenAddr := uintptr(address) + uintptr(8)  // Capture the address where the length and cap size is stored
-	capAddr := uintptr(address) + uintptr(16) // WARNING: This is fragile, depending on a go-internal structure.
-	lenPtr := (*int)(unsafe.Pointer(lenAddr)) // Create pointers to the length and cap size
-	capPtr := (*int)(unsafe.Pointer(capAddr)) //
-	*lenPtr = lf                              // Assign the actual slice size and cap
-	*capPtr = lf                              //
-
-	return buf
 }
 
 func BoolToByte(b bool) []byte {
@@ -270,17 +194,6 @@ func ValueToByte(fa interface{}) ([]byte, error) {
 		return nil, err
 	}
 	return buf.Bytes(), nil
-}
-
-func ByteArray2UInt64(bs []byte) uint64 {
-	if len(bs) == 4 {
-		return uint64(binary.LittleEndian.Uint32(bs))
-	} else if len(bs) == 8 {
-		return binary.LittleEndian.Uint64(bs)
-	} else {
-		log.Error("err byte to int len:[%d] , value:%v", len(bs), bs)
-		return 0
-	}
 }
 
 func ArrayByteFloat(bs []byte) (result []float32) {

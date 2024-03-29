@@ -726,16 +726,7 @@ int VectorManager::GetVector(
     if (is_bytearray) {
       int d = raw_vec->MetaInfo()->Dimension();
       int d_byte = d * raw_vec->MetaInfo()->DataSize();
-
-      char feat_source[sizeof(d) + d_byte];
-
-      memcpy((void *)feat_source, &d_byte, sizeof(int));
-      int cur = sizeof(d_byte);
-
-      memcpy((void *)(feat_source + cur), feature, d_byte);
-      cur += d_byte;
-
-      str_vec = std::string((char *)feat_source, sizeof(unsigned int) + d_byte);
+      str_vec = std::string((const char *)feature, d_byte);
     } else {
       VectorValueType data_type = raw_vec->MetaInfo()->DataType();
       if (data_type == VectorValueType::FLOAT) {

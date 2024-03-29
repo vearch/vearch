@@ -81,8 +81,6 @@ message TableMetaInfo {
 message Table {
   string name = 1;
   TableMetaInfo table_meta_info = 2;
-  int32 start_training_threshold = 3;
-  int64 total_docs_size = 4;
 }
 
 //*********************** DB *********************** //

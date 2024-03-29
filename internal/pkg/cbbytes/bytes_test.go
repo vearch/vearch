@@ -36,7 +36,6 @@ func TestFloatArray(t *testing.T) {
 			t.Fatal("diff value ", f)
 		}
 	}
-
 }
 
 func TestReadFloatArray(t *testing.T) {
@@ -53,7 +52,6 @@ func TestReadFloatArray(t *testing.T) {
 	f := ByteToFloat32(code)
 
 	print(f)
-
 }
 
 func BenchmarkVectorToByte(b *testing.B) {

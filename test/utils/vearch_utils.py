@@ -579,8 +579,7 @@ def process_get_data(items):
         assert documents[j]["_source"]["field_int"] == value * seed
         if query_type == "by_ids":
             assert (
-                documents[j]["_source"]["field_vector"]["feature"]
-                == features[j].tolist()
+                documents[j]["_source"]["field_vector"] == features[j].tolist()
             )
         if full_field:
             assert documents[j]["_source"]["field_long"] == value * seed
@@ -880,7 +879,7 @@ def search(xq, k: int, batch: bool, query_dict: dict, logger):
     field_ints = []
     vector_dict = {"vector": [{"field": "field_vector", "feature": []}]}
     if batch:
-        vector_dict["vector"][0]["feature"] = xq.flatten().tolist()
+        vector_dict["vector"][0] = xq.flatten().tolist()
         query_dict["query"]["vector"] = vector_dict["vector"]
         json_str = json.dumps(query_dict)
         rs = requests.post(url, json_str)
@@ -900,7 +899,7 @@ def search(xq, k: int, batch: bool, query_dict: dict, logger):
             field_ints.append(field_int)
     else:
         for i in range(xq.shape[0]):
-            vector_dict["vector"][0]["feature"] = xq[i].tolist()
+            vector_dict["vector"][0] = xq[i].tolist()
             query_dict["query"]["vector"] = vector_dict["vector"]
             json_str = json.dumps(query_dict)
             rs = requests.post(url, json_str)

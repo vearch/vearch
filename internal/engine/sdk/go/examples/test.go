@@ -137,7 +137,6 @@ func CreteTable() {
 func AddDocToEngine(docNum int) {
 	for i := 0; i < docNum; i++ {
 		var doc gamma.Doc
-		var url string
 		for j := 0; j < len(opt.FieldsVec); j++ {
 			field := &vearchpb.Field{
 				Name: opt.FieldsVec[j],
@@ -156,16 +155,13 @@ func AddDocToEngine(docNum int) {
 				field.Value = bytesBuffer.Bytes()
 			} else {
 				field.Value = []byte(profileStr)
-				url = profileStr
 			}
-			field.Source = url
 			doc.Fields = append(doc.Fields, field)
 		}
 
 		field := &vearchpb.Field{
-			Name:   opt.VectorName,
-			Type:   vearchpb.FieldType_VECTOR,
-			Source: "",
+			Name: opt.VectorName,
+			Type: vearchpb.FieldType_VECTOR,
 		}
 		field.Value = make([]byte, opt.D*4)
 		_, _ = opt.FeatureMmap.ReadAt(field.Value, int64(i*opt.D)*4)

@@ -337,7 +337,7 @@ func (r *routerRequest) Execute() []*vearchpb.Item {
 						if field == nil || field.Name == "" || normalField[field.Name] == "" {
 							continue
 						}
-						float32s, _, err := cbbytes.ByteToVectorForFloat32(field.Value)
+						float32s, err := cbbytes.ByteToVectorForFloat32(field.Value)
 						if err != nil {
 							log.Panic(err.Error())
 						}
@@ -491,7 +491,7 @@ func (r *routerRequest) searchFromPartition(ctx context.Context, partitionID ent
 				docField := proMap[query.Name]
 				if docField != nil {
 					dimension := docField.Dimension
-					float32s, _, err := cbbytes.ByteToVectorForFloat32(query.Value)
+					float32s, err := cbbytes.ByteToVectorForFloat32(query.Value)
 					if err != nil {
 						panic(err.Error())
 					}
@@ -525,7 +525,7 @@ func (r *routerRequest) searchFromPartition(ctx context.Context, partitionID ent
 						query.Value = bs
 					}
 				} else {
-					float32s, _, err := cbbytes.ByteToVectorForFloat32(query.Value)
+					float32s, err := cbbytes.ByteToVectorForFloat32(query.Value)
 					if err != nil {
 						panic(err.Error())
 					}
@@ -1210,7 +1210,7 @@ func GetSource(doc *vearchpb.ResultItem, space *entity.Space, sortFieldMap map[s
 					}
 					source[name] = unit8s
 				} else {
-					float32s, err := cbbytes.ByteToVector(fv.Value)
+					float32s, err := cbbytes.ByteToVectorForFloat32(fv.Value)
 					if err != nil {
 						return nil, sortValues, pKey, err
 					}

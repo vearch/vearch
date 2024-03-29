@@ -374,7 +374,7 @@ func docFieldSerialize(doc *vearchpb.Document, space *entity.Space, returnFields
 						}
 
 					} else {
-						float32s, err := cbbytes.ByteToVector(fv.Value)
+						float32s, err := cbbytes.ByteToVectorForFloat32(fv.Value)
 						if err != nil {
 							return nil, nextDocid, err
 						}
@@ -459,7 +459,7 @@ func GetVectorFieldValue(doc *vearchpb.Document, space *entity.Space) (floatFeat
 					log.Error("GetSource can not found dimension by field:[%s]", name)
 				}
 			} else {
-				float32s, err := cbbytes.ByteToVector(fv.Value)
+				float32s, err := cbbytes.ByteToVectorForFloat32(fv.Value)
 				if err != nil {
 					return nil, nil, err
 				}
