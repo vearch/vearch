@@ -40,20 +40,18 @@ type VectorQuery struct {
 }
 
 type Request struct {
-	ReqNum               int32
-	TopN                 int32
-	BruteForceSearch     int32
-	VecFields            []VectorQuery
-	Fields               []string
-	RangeFilters         []RangeFilter
-	TermFilters          []TermFilter
-	OnlineLogLevel       string
-	IndexParams          string
-	HasRank              bool
-	MultiVectorRank      int32
-	ParallelBasedOnQuery bool
-	L2Sqrt               bool
-	IvfFlat              bool
+	ReqNum           int32
+	TopN             int32
+	BruteForceSearch int32
+	VecFields        []VectorQuery
+	Fields           []string
+	RangeFilters     []RangeFilter
+	TermFilters      []TermFilter
+	OnlineLogLevel   string
+	IndexParams      string
+	HasRank          bool
+	MultiVectorRank  int32
+	L2Sqrt           bool
 
 	request *gamma_api.Request
 }

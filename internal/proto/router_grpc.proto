@@ -61,13 +61,9 @@ message BulkRequest {
   repeated Document docs = 4;
 }
 
-message ForceMergeRequest {
-  RequestHead head = 1;
-}
+message ForceMergeRequest { RequestHead head = 1; }
 
-message FlushRequest {
-  RequestHead head = 1;
-}
+message FlushRequest { RequestHead head = 1; }
 
 message IndexRequest {
   RequestHead head = 1;
@@ -88,9 +84,7 @@ message AddResponse {
   string primary_key = 4;
 }
 
-message UpdateResponse {
-  ResponseHead head = 1;
-}
+message UpdateResponse { ResponseHead head = 1; }
 
 message DeleteResponse {
   ResponseHead head = 1;
@@ -178,12 +172,10 @@ message SearchRequest {
   string index_params = 10;
   bool has_rank = 11;
   int32 multi_vector_rank = 12;
-  bool parallel_based_on_query = 13;
-  bool l2_sqrt = 14;
-  bool ivf_flat = 15;
-  bool is_vector_value = 16;
-  map<string, string> sort_field_map = 17;
-  repeated SortField sort_fields = 18;
+  bool l2_sqrt = 13;
+  bool is_vector_value = 14;
+  map<string, string> sort_field_map = 15;
+  repeated SortField sort_fields = 16;
 }
 
 //*********************** Search response *********************** //

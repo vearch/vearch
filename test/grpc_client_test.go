@@ -385,9 +385,7 @@ func makeSearchRequests(n, m int) []*vearchpb.SearchRequest {
 			query.OnlineLogLevel = "debug"
 			query.HasRank = false
 			query.IsVectorValue = false
-			query.ParallelBasedOnQuery = false
 			query.L2Sqrt = false
-			query.IvfFlat = false
 			query.IndexParams = `{"nprobe" : 10, "metric_type" : "InnerProduct", "ncentroids" : 4096,"nsubvector" : 32}`
 			query.MultiVectorRank = 0
 			query.Head = &vearchpb.RequestHead{

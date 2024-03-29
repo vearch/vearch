@@ -854,21 +854,6 @@ func (cliCache *clientCache) reloadAliasCache(ctx context.Context, sync bool, al
 	if sync {
 		return fun()
 	}
-	if _, ok := aliasReloadWorkder.LoadOrStore(alias_name, struct{}{}); ok {
-		return nil
-	}
-	go func() {
-		defer func() {
-			if r := recover(); r != nil {
-				vearchlog.LogErrNotNil(fmt.Errorf(cast.ToString(r)))
-			}
-		}()
-		if alias_name == "" {
-			return
-		}
-		defer aliasReloadWorkder.Delete(alias_name)
-		vearchlog.FunIfNotNil(fun)
-	}()
 	return nil
 }
 

@@ -54,9 +54,6 @@ type SearchDocumentRequest struct {
 	Quick          bool            `json:"quick,omitempty"`
 	L2Sqrt         bool            `json:"l2_sqrt,omitempty"`
 	VectorValue    bool            `json:"vector_value,omitempty"`
-	Parallel       bool            `json:"parallel,omitempty"`
-	Nprobe         int64           `json:"nprobe,omitempty"`
-	IVFFlat        bool            `json:"ivf_flat,omitempty"`
 	OnlineLogLevel string          `json:"online_log_level"`
 	IsBruteSearch  int32           `json:"is_brute_search"`
 	DbName         string          `json:"db_name,omitempty"`
@@ -85,10 +82,7 @@ type SearchDocument struct {
 	Quick          bool     `json:"quick,omitempty"`
 	VectorValue    bool     `json:"vector_value,omitempty"`
 	ClietType      string   `json:"client_type,omitempty"`
-	Parallel       bool     `json:"parallel,omitempty"`
 	L2Sqrt         bool     `json:"l2_sqrt,omitempty"`
-	IVFFlat        bool     `json:"ivf_flat,omitempty"`
-	Nprobe         int      `json:"nprobe,omitempty"`
 	Size           int      `json:"size,omitempty"`
 }
 

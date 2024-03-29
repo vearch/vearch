@@ -608,49 +608,15 @@ func searchParamToSearchPb(searchDoc *request.SearchDocumentRequest, searchReq *
 	}
 	searchReq.HasRank = hasRank
 	searchReq.IsVectorValue = searchDoc.VectorValue
-	searchReq.ParallelBasedOnQuery = searchDoc.Parallel
 	searchReq.L2Sqrt = searchDoc.L2Sqrt
-	searchReq.IvfFlat = searchDoc.IVFFlat
-	searchReq.IndexParams = string(searchDoc.IndexParams)
 	searchReq.Fields = searchDoc.Fields
 	searchReq.IsBruteSearch = searchDoc.IsBruteSearch
 
 	metricType := ""
 	if searchDoc.IndexParams != nil {
-		temp := struct {
-			MetricType string `json:"metric_type,omitempty"`
-			Nprobe     int64  `json:"nprobe,omitempty"`
-		}{}
-
-		err := vjson.Unmarshal(searchDoc.IndexParams, &temp)
-		if err != nil {
-			return fmt.Errorf("unmarshal err:[%s] , query:[%s]", err.Error(), string(searchDoc.IndexParams))
-		}
-		metricType = temp.MetricType
-		if temp.Nprobe == 0 && searchDoc.Nprobe != 0 {
-			jsonMap := make(map[string]interface{})
-			err := vjson.Unmarshal(searchDoc.IndexParams, &jsonMap)
-			if err != nil {
-				return fmt.Errorf("query param RetrievalParam parse err")
-			}
-			jsonMap["nprobe"] = searchDoc.Nprobe
-			retrievalByte, err := vjson.Marshal(jsonMap)
-			if err != nil {
-				return fmt.Errorf("query param RetrievalParam parse err")
-			}
-			searchReq.IndexParams = string(retrievalByte)
-		}
-	} else {
-		if searchDoc.Nprobe != 0 {
-			IndexParams := map[string]int{"nprobe": int(searchDoc.Nprobe)}
-
-			jsonByte, err := vjson.Marshal(IndexParams)
-			if err != nil {
-				return fmt.Errorf("query param RetrievalParam parse err")
-			}
-			searchReq.IndexParams = string(jsonByte)
-		}
+		searchReq.IndexParams = string(searchDoc.IndexParams)
 	}
+
 	if searchDoc.Size != nil {
 		searchReq.TopN = int32(*searchDoc.Size)
 	}
