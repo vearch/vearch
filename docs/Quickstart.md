@@ -113,7 +113,7 @@ Use the following `curl` command to get a record by ID
 curl -XGET http://127.0.0.1:4101/test/test/AW63W9I4JG6WicwQX_RC
 
 # response
-{"_index":"test","_type":"test","_id":"AW63W9I4JG6WicwQX_RC","found":true,"_version":1,"_source":{"url":"../images/COCO_val2014_000000123599.jpg"}}
+{"_index":"test","_type":"test","_id":"AW63W9I4JG6WicwQX_RC","found":true,"_version":1"url":"../images/COCO_val2014_000000123599.jpg"}
 ```
 
 
@@ -160,7 +160,7 @@ curl -H "content-type: application/json" -XPOST -d '{ "query": { "sum": [{"featu
 A successful response looks like this:
 
 ```shell
-{"took":14,"timed_out":false,"_shards":{"total":2,"failed":0,"successful":2},"hits":{"total":1,"max_score":0.9999997615814209,"hits":[{"_index":"test","_type":"test","_id":"AW8OftTLJG6WicwQyAt2","_score":0.9999997615814209,"_extra":{"vector_result":[{"field":"feature1","score":0.9999997615814209}]},"_version":1,"_source":{"url":"../images/COCO_val2014_000000123599.jpg"}}]}}
+{"took":14,"timed_out":false,"_shards":{"total":2,"failed":0,"successful":2},"hits":{"total":1,"max_score":0.9999997615814209,"hits":[{"_index":"test","_type":"test","_id":"AW8OftTLJG6WicwQyAt2","_score":0.9999997615814209,"_extra":{"vector_result":[{"field":"feature1","score":0.9999997615814209}]},"_version":1,"url":"../images/COCO_val2014_000000123599.jpg"}]}}
 ```
 
 search result look like this

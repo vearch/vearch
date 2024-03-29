@@ -127,14 +127,14 @@ def process_get_data_by_filter(items):
             value = int(index)
             logger.debug(value)
             logger.debug(documents[j])
-            assert documents[j]["_source"]["field_int"] == value or documents[j]["_source"]["field_int"] == value + 1
+            assert documents[j]["field_int"] == value or documents[j]["field_int"] == value + 1
 
             if full_field:
-                assert documents[j]["_source"]["field_long"] == value or documents[j]["_source"]["field_long"] == value + 1
-                assert documents[j]["_source"]["field_float"] == float(
-                    value) or documents[j]["_source"]["field_float"] == float(value) + 1
-                assert documents[j]["_source"]["field_double"] == float(
-                    value) or documents[j]["_source"]["field_double"] == float(value) + 1
+                assert documents[j]["field_long"] == value or documents[j]["field_long"] == value + 1
+                assert documents[j]["field_float"] == float(
+                    value) or documents[j]["field_float"] == float(value) + 1
+                assert documents[j]["field_double"] == float(
+                    value) or documents[j]["field_double"] == float(value) + 1
     elif mode == "[)":
         assert len(documents) == batch_size
         assert rs.text.find("\"total\":" + str(batch_size)) >= 0
@@ -143,12 +143,12 @@ def process_get_data_by_filter(items):
             value = int(index)
             logger.debug(value)
             logger.debug(documents[j])
-            assert documents[j]["_source"]["field_int"] == value
+            assert documents[j]["field_int"] == value
 
             if full_field:
-                assert documents[j]["_source"]["field_long"] == value
-                assert documents[j]["_source"]["field_float"] == float(value)
-                assert documents[j]["_source"]["field_double"] == float(value)
+                assert documents[j]["field_long"] == value
+                assert documents[j]["field_float"] == float(value)
+                assert documents[j]["field_double"] == float(value)
     elif mode == "(]" and index != total - 1:
         assert len(documents) == batch_size
         assert rs.text.find("\"total\":" + str(batch_size)) >= 0
@@ -157,12 +157,12 @@ def process_get_data_by_filter(items):
             value = int(index) + 1
             logger.debug(value)
             logger.debug(documents[j])
-            assert documents[j]["_source"]["field_int"] == value
+            assert documents[j]["field_int"] == value
 
             if full_field:
-                assert documents[j]["_source"]["field_long"] == value
-                assert documents[j]["_source"]["field_float"] == float(value)
-                assert documents[j]["_source"]["field_double"] == float(value)
+                assert documents[j]["field_long"] == value
+                assert documents[j]["field_float"] == float(value)
+                assert documents[j]["field_double"] == float(value)
     elif mode == "()":
         assert len(documents) == 0
         assert rs.text.find("\"total\":" + str(0)) >= 0

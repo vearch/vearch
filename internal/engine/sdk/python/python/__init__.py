@@ -1177,7 +1177,6 @@ class GammaResponse:
             for j in range(search_res.ResultItemsLength()):
                 detail = {}
                 res_item = search_res.ResultItems(j)
-                _source = {}
                 _id = ""
                 for k in range(res_item.AttributesLength()):
                     attri = res_item.Attributes(k)
@@ -1186,13 +1185,12 @@ class GammaResponse:
                     if name == "_id":
                         _id = self.npValue_to_value(table, name, np_value)
                     else:
-                        _source[name] = self.npValue_to_value(table, name, np_value)
-                _source = self.norm_to_origin(
-                    table, _id, _source, table.is_binaryivf_type()
+                        detail[name] = self.npValue_to_value(table, name, np_value)
+                detail = self.norm_to_origin(
+                    table, _id, detail, table.is_binaryivf_type()
                 )
                 detail["_score"] = res_item.Score()
                 detail["_id"] = _id
-                detail["_source"] = _source
                 item_res.append(detail)
 
             query_result["total"] = search_res.Total()

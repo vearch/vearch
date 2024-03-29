@@ -109,7 +109,7 @@ def search_result(xq, k:int, batch:bool, query_dict:dict, multi_vector:bool, log
         for results in rs.json()["data"]["documents"]:
             field_int = []
             for result in results:
-                field_int.append(result["_source"]["field_int"])
+                field_int.append(result["field_int"])
             if len(field_int) != k:
                 logger.info("len(field_int)=" + str(len(field_int)))
                 logger.info(field_int)
@@ -133,7 +133,7 @@ def search_result(xq, k:int, batch:bool, query_dict:dict, multi_vector:bool, log
             field_int = []
             for results in rs.json()["data"]["documents"]:
                 for result in results:
-                    field_int.append(result["_source"]["field_int"])
+                    field_int.append(result["field_int"])
             if len(field_int) != k:
                 logger.debug("len(field_int)=" + str(len(field_int)))
                 [field_int.append(-1) for i in range(k - len(field_int))]

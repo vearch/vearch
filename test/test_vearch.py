@@ -376,8 +376,8 @@ class VearchCase:
         assert response.status_code == 200
         result = json.loads(response.text)
         assert result["data"]["total"] == 1
-        assert result["data"]["documents"][0]["_source"]["float"] == 888.88
-        assert result["data"]["documents"][0]["_source"]["string"] == "test"
+        assert result["data"]["documents"][0]["float"] == 888.88
+        assert result["data"]["documents"][0]["string"] == "test"
 
     def test_documentUpsertSinglefield(self):
         logger.info("documentUpsertSinglefield")

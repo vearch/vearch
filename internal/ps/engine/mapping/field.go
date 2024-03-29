@@ -24,37 +24,8 @@ import (
 )
 
 const (
-	IndexField      = "_index"
-	UidField        = "_uid"
-	TypeField       = "_type"
-	IdField         = "_id"
-	SourceField     = "_source"
-	SizeField       = "_size"
-	AllField        = "_all"
-	FieldNamesField = "_field_names"
-	IgnoredField    = "_ignored"
-	RoutingField    = "_routing"
-	MetaField       = "_meta"
-
-	//	VersionField    = "_version"
-	//	SlotField       = "_slot"
+	IdField = "_id"
 )
-
-var FieldsIndex = map[string]int{
-	IndexField:      1,
-	UidField:        2,
-	TypeField:       3,
-	IdField:         4,
-	SourceField:     5,
-	SizeField:       6,
-	AllField:        7,
-	FieldNamesField: 8,
-	IgnoredField:    9,
-	RoutingField:    10,
-	MetaField:       11,
-	//	VersionField:    12,
-	//	SlotField:       13,
-}
 
 type FieldMapping struct {
 	Name string
@@ -91,7 +62,7 @@ func (f *FieldMapping) UnmarshalJSON(data []byte) error {
 		fieldMapping = NewStringFieldMapping("")
 	case "date":
 		fieldMapping = NewDateFieldMapping("")
-	case "integer", "short", "byte":
+	case "integer", "int":
 		fieldMapping = NewIntegerFieldMapping("")
 	case "long":
 		fieldMapping = NewLongFieldMapping("")

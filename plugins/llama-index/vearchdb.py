@@ -391,7 +391,6 @@ class VearchVectorStore(VectorStore):
             node_id = ""
             if self.flag:
                 score = item["_score"]
-                item = item["_source"]
             for item_key in item:
                 if item_key == "text":
                     content = item[item_key]

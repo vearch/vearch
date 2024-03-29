@@ -433,8 +433,6 @@ class Vearch(VectorStore):
         for item in res:
             content = ""
             meta_data={}
-            if self.flag:
-                item = item["_source"]
             for item_key in item:
                 if item_key == "text":
                     content = item[item_key]
@@ -507,7 +505,6 @@ class Vearch(VectorStore):
             meta_data = {}
             if self.flag:
                 score = item["_score"]
-                item = item["_source"]
             for item_key in item:
                 if item_key == "text":
                     content = item[item_key]
@@ -588,12 +585,12 @@ class Vearch(VectorStore):
                     continue
                 content = ""
                 meta_info = {}
-                for field in record["_source"]:
+                for field in record:
                     if field == "text":
-                        content = record["_source"][field]
+                        content = record[field]
                         continue
                     elif field in meta_field_list:
-                        meta_info[field] = record["_source"][field]
+                        meta_info[field] = record[field]
                         meta_field_list.remove(field)
                         continue
                 results[record["_id"]] = Document(

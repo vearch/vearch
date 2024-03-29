@@ -59,8 +59,7 @@ func docGetResponse(client *client.Client, args *vearchpb.GetRequest, reply *vea
 
 		docMap["found"] = doc.Fields != nil
 		if doc.Fields != nil {
-			source, _, _ := docFieldSerialize(doc, space, returnFieldsMap, true)
-			docMap["_source"] = source
+			docFieldSerialize(doc, space, returnFieldsMap, true, docMap)
 		}
 
 		if item.Err != nil {
@@ -185,11 +184,10 @@ func documentGetResponse(client *client.Client, args *vearchpb.GetRequest, reply
 		}
 
 		if item.Doc.Fields != nil {
-			source, nextDocid, _ := docFieldSerialize(item.Doc, space, returnFieldsMap, vectorValue)
+			nextDocid, _ := docFieldSerialize(item.Doc, space, returnFieldsMap, vectorValue, doc)
 			if nextDocid > 0 {
-				doc["_id"] = strconv.Itoa(int(nextDocid))
+				doc["_docid"] = strconv.Itoa(int(nextDocid))
 			}
-			doc["_source"] = source
 		}
 		documents = append(documents, doc)
 	}
@@ -270,11 +268,15 @@ func documentToContent(dh []*vearchpb.ResultItem, response_type string) ([]byte,
 		}
 
 		if u.Source != nil {
-			var sourceJson json.RawMessage
-			if err := vjson.Unmarshal(u.Source, &sourceJson); err != nil {
+			var source map[string]interface{}
+			if err := vjson.Unmarshal(u.Source, &source); err != nil {
 				log.Error("DocToContent Source Unmarshal error:%v", err)
 			} else {
-				content["_source"] = sourceJson
+				for k, v := range source {
+					if _, exists := content[k]; !exists {
+						content[k] = v
+					}
+				}
 			}
 		}
 
@@ -309,8 +311,7 @@ func documentDeleteResponse(items []*vearchpb.Item, head *vearchpb.ResponseHead,
 	return response, nil
 }
 
-func docFieldSerialize(doc *vearchpb.Document, space *entity.Space, returnFieldsMap map[string]string, vectorValue bool) (marshal json.RawMessage, nextDocid int32, err error) {
-	source := make(map[string]interface{})
+func docFieldSerialize(doc *vearchpb.Document, space *entity.Space, returnFieldsMap map[string]string, vectorValue bool, docOut map[string]interface{}) (nextDocid int32, err error) {
 	spaceProperties := space.SpaceProperties
 	if spaceProperties == nil {
 		spacePro, _ := entity.UnmarshalPropertyJSON(space.Fields)
@@ -320,7 +321,7 @@ func docFieldSerialize(doc *vearchpb.Document, space *entity.Space, returnFields
 	for _, fv := range doc.Fields {
 		name := fv.Name
 		if name == mapping.IdField && returnFieldsMap == nil {
-			source[name] = string(fv.Value)
+			docOut[name] = string(fv.Value)
 			continue
 		}
 		if (returnFieldsMap != nil && returnFieldsMap[name] != "") || returnFieldsMap == nil {
@@ -337,49 +338,45 @@ func docFieldSerialize(doc *vearchpb.Document, space *entity.Space, returnFields
 			case entity.FieldType_STRING:
 				tempValue := string(fv.Value)
 				if field.Array {
-					source[name] = strings.Split(tempValue, string([]byte{'\001'}))
+					docOut[name] = strings.Split(tempValue, string([]byte{'\001'}))
 				} else {
-					source[name] = tempValue
+					docOut[name] = tempValue
 				}
 			case entity.FieldType_INT:
-				source[name] = cbbytes.Bytes2Int32(fv.Value)
+				docOut[name] = cbbytes.Bytes2Int32(fv.Value)
 			case entity.FieldType_LONG:
-				source[name] = cbbytes.Bytes2Int(fv.Value)
+				docOut[name] = cbbytes.Bytes2Int(fv.Value)
 			case entity.FieldType_BOOL:
 				if cbbytes.Bytes2Int(fv.Value) == 0 {
-					source[name] = false
+					docOut[name] = false
 				} else {
-					source[name] = true
+					docOut[name] = true
 				}
 			case entity.FieldType_DATE:
 				u := cbbytes.Bytes2Int(fv.Value)
-				source[name] = time.Unix(u/1e6, u%1e6)
+				docOut[name] = time.Unix(u/1e6, u%1e6)
 			case entity.FieldType_FLOAT:
-				source[name] = cbbytes.ByteToFloat32(fv.Value)
+				docOut[name] = cbbytes.ByteToFloat32(fv.Value)
 			case entity.FieldType_DOUBLE:
-				source[name] = cbbytes.ByteToFloat64New(fv.Value)
+				docOut[name] = cbbytes.ByteToFloat64New(fv.Value)
 			case entity.FieldType_VECTOR:
-				if vectorValue {
-					if strings.Compare(space.Index.Type, "BINARYIVF") == 0 {
-						featureByteC := fv.Value
-						dimension := field.Dimension
-						if dimension != 0 {
-							unit8s, err := cbbytes.ByteToVectorBinary(featureByteC, dimension)
-							if err != nil {
-								return nil, nextDocid, err
-							}
-							source[name] = unit8s
-						} else {
-							log.Error("GetSource can not found dimension by field:[%s]", name)
-						}
-
-					} else {
-						float32s, err := cbbytes.ByteToVectorForFloat32(fv.Value)
-						if err != nil {
-							return nil, nextDocid, err
-						}
-						source[name] = float32s
+				if !vectorValue {
+					break
+				}
+				if strings.Compare(space.Index.Type, "BINARYIVF") == 0 {
+					featureByteC := fv.Value
+					dimension := field.Dimension
+					unit8s, err := cbbytes.ByteToVectorBinary(featureByteC, dimension)
+					if err != nil {
+						return nextDocid, err
 					}
+					docOut[name] = unit8s
+				} else {
+					float32s, err := cbbytes.ByteToVectorForFloat32(fv.Value)
+					if err != nil {
+						return nextDocid, err
+					}
+					docOut[name] = float32s
 				}
 
 			default:
@@ -387,13 +384,8 @@ func docFieldSerialize(doc *vearchpb.Document, space *entity.Space, returnFields
 			}
 		}
 	}
-	if len(source) > 0 {
-		marshal, err = vjson.Marshal(source)
-	}
-	if err != nil {
-		return nil, nextDocid, err
-	}
-	return marshal, nextDocid, nil
+
+	return nextDocid, err
 }
 
 func GetVectorFieldValue(doc *vearchpb.Document, space *entity.Space) (floatFeatureMap map[string][]float32, binaryFeatureMap map[string][]int32, err error) {

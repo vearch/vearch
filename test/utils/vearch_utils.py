@@ -572,19 +572,17 @@ def process_get_data(items):
 
     for j in range(batch_size):
         value = int(documents[j]["_id"])
-        if "_id" in documents[j]["_source"]:
-            value = int(documents[j]["_source"]["_id"])
         logger.debug(value)
         logger.debug(documents[j])
-        assert documents[j]["_source"]["field_int"] == value * seed
+        assert documents[j]["field_int"] == value * seed
         if query_type == "by_ids":
             assert (
-                documents[j]["_source"]["field_vector"] == features[j].tolist()
+                documents[j]["field_vector"] == features[j].tolist()
             )
         if full_field:
-            assert documents[j]["_source"]["field_long"] == value * seed
-            assert documents[j]["_source"]["field_float"] == float(value * seed)
-            assert documents[j]["_source"]["field_double"] == float(value * seed)
+            assert documents[j]["field_long"] == value * seed
+            assert documents[j]["field_float"] == float(value * seed)
+            assert documents[j]["field_double"] == float(value * seed)
 
 
 def query_interface(
@@ -731,11 +729,11 @@ def process_search_data(items):
             value = int(document["_id"])
             logger.debug(value)
             logger.debug(document)
-            assert document["_source"]["field_int"] == value * seed
+            assert document["field_int"] == value * seed
             if full_field:
-                assert document["_source"]["field_long"] == value * seed
-                assert document["_source"]["field_float"] == float(value * seed)
-                assert document["_source"]["field_double"] == float(value * seed)
+                assert document["field_long"] == value * seed
+                assert document["field_float"] == float(value * seed)
+                assert document["field_double"] == float(value * seed)
             if with_symbol:
                 assert document["_score"] < 40000
 
@@ -879,7 +877,7 @@ def search(xq, k: int, batch: bool, query_dict: dict, logger):
     field_ints = []
     vector_dict = {"vector": [{"field": "field_vector", "feature": []}]}
     if batch:
-        vector_dict["vector"][0] = xq.flatten().tolist()
+        vector_dict["vector"][0]["feature"] = xq.flatten().tolist()
         query_dict["query"]["vector"] = vector_dict["vector"]
         json_str = json.dumps(query_dict)
         rs = requests.post(url, json_str)
@@ -891,7 +889,7 @@ def search(xq, k: int, batch: bool, query_dict: dict, logger):
         for results in rs.json()["data"]["documents"]:
             field_int = []
             for result in results:
-                field_int.append(result["_source"]["field_int"])
+                field_int.append(result["field_int"])
             if len(field_int) != k:
                 logger.debug("len(field_int)=" + str(len(field_int)))
                 [field_int.append(-1) for i in range(k - len(field_int))]
@@ -899,7 +897,7 @@ def search(xq, k: int, batch: bool, query_dict: dict, logger):
             field_ints.append(field_int)
     else:
         for i in range(xq.shape[0]):
-            vector_dict["vector"][0] = xq[i].tolist()
+            vector_dict["vector"][0]["feature"] = xq[i].tolist()
             query_dict["query"]["vector"] = vector_dict["vector"]
             json_str = json.dumps(query_dict)
             rs = requests.post(url, json_str)
@@ -911,7 +909,7 @@ def search(xq, k: int, batch: bool, query_dict: dict, logger):
             field_int = []
             for results in rs.json()["data"]["documents"]:
                 for result in results:
-                    field_int.append(result["_source"]["field_int"])
+                    field_int.append(result["field_int"])
             if len(field_int) != k:
                 logger.debug("len(field_int)=" + str(len(field_int)))
                 [field_int.append(-1) for i in range(k - len(field_int))]

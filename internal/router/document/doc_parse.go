@@ -40,17 +40,7 @@ import (
 
 const (
 	// key index field
-	IndexField      = "_index"
-	UIDField        = "_uid"
-	TypeField       = "_type"
-	IDField         = "_id"
-	SourceField     = "_source"
-	SizeField       = "_size"
-	AllField        = "_all"
-	FieldNamesField = "_field_names"
-	IgnoredField    = "_ignored"
-	RoutingField    = "_routing"
-	MetaField       = "_meta"
+	IDField = "_id"
 
 	maxStrLen        = 65535
 	maxIndexedStrLen = 1024
@@ -59,17 +49,7 @@ const (
 // fields index map
 var FieldsIndex = map[string]int{
 	// value index
-	IndexField:      1,
-	UIDField:        2,
-	TypeField:       3,
-	IDField:         4,
-	SourceField:     5,
-	SizeField:       6,
-	AllField:        7,
-	FieldNamesField: 8,
-	IgnoredField:    9,
-	RoutingField:    10,
-	MetaField:       11,
+	IDField: 1,
 }
 
 // parse doc
@@ -683,9 +663,6 @@ func documentParse(ctx context.Context, handler *DocumentHandler, r *http.Reques
 
 			err = fmt.Errorf("document not exist so cann't update")
 			if reply == nil {
-				return err
-			}
-			if reply.Items == nil {
 				return err
 			}
 			if len(reply.Items) == 0 {

@@ -360,12 +360,7 @@ func (handler *DocumentHandler) handleDocumentQuery(c *gin.Context) {
 	searchResp := handler.docService.search(c.Request.Context(), args)
 	serviceCost := time.Since(serviceStart)
 
-	var result map[string]interface{}
-	if searchResp.Results == nil || len(searchResp.Results) == 0 {
-		result, err = documentSearchResponse(nil, searchResp.Head, request.QueryResponse)
-	} else {
-		result, err = documentSearchResponse(searchResp.Results, searchResp.Head, request.QueryResponse)
-	}
+	result, err := documentSearchResponse(searchResp.Results, searchResp.Head, request.QueryResponse)
 
 	if err != nil {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
@@ -420,9 +415,7 @@ func (handler *DocumentHandler) handleDocumentSearch(c *gin.Context) {
 	searchResp := handler.docService.search(ctx, args)
 	serviceCost := time.Since(serviceStart)
 
-	var result map[string]interface{}
-
-	result, err = documentSearchResponse(searchResp.Results, searchResp.Head, request.SearchResponse)
+	result, err := documentSearchResponse(searchResp.Results, searchResp.Head, request.SearchResponse)
 
 	if err != nil {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)

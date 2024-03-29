@@ -246,7 +246,6 @@ func (docService *docService) bulkSearch(ctx context.Context, args []*vearchpb.S
 				searchResponse.Results = append(searchResponse.Results, resp.Results[0])
 			}
 		}
-
 	}
 	return searchResponse
 }
@@ -319,7 +318,6 @@ func (docService *docService) rebuildIndex(ctx context.Context, args *vearchpb.I
 
 func (docService *docService) deleteByQuery(ctx context.Context, args *vearchpb.SearchRequest) *vearchpb.DelByQueryeResponse {
 	request := client.NewRouterRequest(ctx, docService.client)
-	deleteByScalar := false
 	if args.VecFields != nil {
 		err := fmt.Errorf("delete_by_query vector param should be null")
 		return &vearchpb.DelByQueryeResponse{Head: setErrHead(err)}
@@ -330,7 +328,7 @@ func (docService *docService) deleteByQuery(ctx context.Context, args *vearchpb.
 		return &vearchpb.DelByQueryeResponse{Head: setErrHead(request.Err)}
 	}
 
-	delByQueryResponse := request.DelByQueryeExecute(deleteByScalar)
+	delByQueryResponse := request.DelByQueryeExecute()
 
 	if delByQueryResponse == nil {
 		return &vearchpb.DelByQueryeResponse{Head: setErrHead(request.Err)}

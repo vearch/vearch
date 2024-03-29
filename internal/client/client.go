@@ -1235,7 +1235,6 @@ func GetSource(doc *vearchpb.ResultItem, space *entity.Space, sortFieldMap map[s
 }
 
 func MergeArrForField(dest []*vearchpb.SearchResult, src []*vearchpb.SearchResult, firstSortValue map[string][]sortorder.SortValue, so sortorder.SortOrder, size int32) error {
-
 	if len(dest) != len(src) {
 		log.Error("dest length:[%d] not equal src length:[%d]", len(dest), len(src))
 	}
@@ -1259,13 +1258,10 @@ func MergeArrForField(dest []*vearchpb.SearchResult, src []*vearchpb.SearchResul
 			}
 		}
 	}
-
 	return nil
-
 }
 
 func BulkMergeArrForField(dest []*vearchpb.SearchResult, src []*vearchpb.SearchResult, firstSortValue map[string][]sortorder.SortValue, soArr []sortorder.SortOrder, sizes []int32) error {
-
 	if len(dest) != len(src) {
 		log.Error("dest length:[%d] not equal src length:[%d]", len(dest), len(src))
 	}
@@ -1289,13 +1285,10 @@ func BulkMergeArrForField(dest []*vearchpb.SearchResult, src []*vearchpb.SearchR
 			}
 		}
 	}
-
 	return nil
-
 }
 
 func MergeForField(old *vearchpb.SearchResult, other *vearchpb.SearchResult, firstSortValue map[string][]sortorder.SortValue, sortOrder sortorder.SortOrder, from, size int32) (err error) {
-
 	old.Status = SearchStatusMerge(old.Status, other.Status)
 
 	old.TotalHits += other.TotalHits
@@ -1338,7 +1331,6 @@ func SearchStatusMerge(old *vearchpb.SearchStatus, other *vearchpb.SearchStatus)
 }
 
 func HitsMergeForField(dh []*vearchpb.ResultItem, firstSortValue map[string][]sortorder.SortValue, spid, fpid uint32, sh []*vearchpb.ResultItem, sortOrder sortorder.SortOrder, from, size int32) []*vearchpb.ResultItem {
-
 	result := make([]*vearchpb.ResultItem, 0, int(math.Min(float64(len(sh)+len(dh)), float64(from+size))))
 
 	var d, s, c int
@@ -1384,7 +1376,6 @@ func HitsMergeForField(dh []*vearchpb.ResultItem, firstSortValue map[string][]so
 }
 
 func AddMergeResultArr(dest []*vearchpb.SearchResult, src []*vearchpb.SearchResult) error {
-
 	if len(dest) != len(src) {
 		log.Error("dest length:[%d] not equal src length:[%d]", len(dest), len(src))
 	}
@@ -1720,7 +1711,7 @@ func (r *routerRequest) LeaderFlushExecute(partition *entity.Partition, ctx cont
 }
 
 // DelByQueryeExecute Execute request
-func (r *routerRequest) DelByQueryeExecute(deleteByScalar bool) *vearchpb.DelByQueryeResponse {
+func (r *routerRequest) DelByQueryeExecute() *vearchpb.DelByQueryeResponse {
 	var wg sync.WaitGroup
 	partitionLen := len(r.sendMap)
 	respChain := make(chan *vearchpb.PartitionData, partitionLen)
@@ -1752,28 +1743,12 @@ func (r *routerRequest) DelByQueryeExecute(deleteByScalar bool) *vearchpb.DelByQ
 	wg.Wait()
 	close(respChain)
 
-	if deleteByScalar {
-		delByQueryResponse := &vearchpb.DelByQueryeResponse{}
-		for resp := range respChain {
-			respStr := string(resp.SearchResponse.FlatBytes)
-			jsonType := struct {
-				Array []string
-			}{}
-			json.Unmarshal([]byte(respStr), &jsonType.Array)
-			if jsonType.Array != nil && len(jsonType.Array) > 0 {
-				delByQueryResponse.IdsStr = append(delByQueryResponse.IdsStr, jsonType.Array...)
-			}
+	delByQueryResponse := &vearchpb.DelByQueryeResponse{}
+	for resp := range respChain {
+		if len(resp.DelByQueryResponse.IdsStr) > 0 {
+			delByQueryResponse.IdsStr = append(delByQueryResponse.IdsStr, resp.DelByQueryResponse.IdsStr...)
 		}
-		delByQueryResponse.DelNum = int32(len(delByQueryResponse.IdsStr))
-		return delByQueryResponse
-	} else {
-		delByQueryResponse := &vearchpb.DelByQueryeResponse{}
-		for resp := range respChain {
-			if len(resp.DelByQueryResponse.IdsStr) > 0 {
-				delByQueryResponse.IdsStr = append(delByQueryResponse.IdsStr, resp.DelByQueryResponse.IdsStr...)
-			}
-		}
-		delByQueryResponse.DelNum = int32(len(delByQueryResponse.IdsStr))
-		return delByQueryResponse
 	}
+	delByQueryResponse.DelNum = int32(len(delByQueryResponse.IdsStr))
+	return delByQueryResponse
 }
