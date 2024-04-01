@@ -13,12 +13,7 @@ enum FieldType {
   STRING = 4;
   VECTOR = 5;
   BOOL = 6;
-  GEOPOINT = 7;
-  DATE = 8;
-}
-
-message Vector {
-  repeated float feature = 1 [ packed = true ];
+  DATE = 7;
 }
 
 // Whether index this field
@@ -57,7 +52,6 @@ message VectorMetaInfo {
   enum StoreType {
     MEMORYONLY = 0;
     ROCKSDB = 1;
-    MMAP = 2;
   }
   StoreType store_type = 3;
   string store_param = 4;

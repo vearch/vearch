@@ -131,8 +131,8 @@ func (ri *readerImpl) Search(ctx context.Context, request *vearchpb.SearchReques
 	ri.engine.counter.Incr()
 	defer ri.engine.counter.Decr()
 
-	gammaEngine := ri.engine.gamma
-	if gammaEngine == nil {
+	engine := ri.engine.gamma
+	if engine == nil {
 		return vearchpb.NewErrorInfo(vearchpb.ErrorEnum_PARTITION_IS_CLOSED, "search engine is null")
 	}
 

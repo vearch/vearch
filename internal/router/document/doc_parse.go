@@ -725,7 +725,7 @@ func documentRequestParse(r *http.Request, searchReq *vearchpb.SearchRequest) (s
 }
 
 func requestToPb(searchDoc *request.SearchDocumentRequest, space *entity.Space, searchReq *vearchpb.SearchRequest) (err error) {
-	err = searchParamToSearchPb(searchDoc, searchReq, space, false)
+	err = searchParamToSearchPb(searchDoc, searchReq, space)
 	return err
 }
 

@@ -495,7 +495,7 @@ func IndexResponseToContent(shards *vearchpb.SearchStatus) (map[string]interface
 	return response, nil
 }
 
-func SearchNullToContent(searchStatus vearchpb.SearchStatus, took time.Duration) ([]byte, error) {
+func SearchNullToContent(searchStatus *vearchpb.SearchStatus, took time.Duration) ([]byte, error) {
 	response := map[string]interface{}{
 		"took":      int64(took) / 1e6,
 		"timed_out": false,

@@ -133,11 +133,6 @@ message RangeFilter {
   bool include_upper = 5;
 }
 
-message SortField {
-  string field = 1;
-  bool type = 2;
-}
-
 message VectorQuery {
   string name = 1;
   bytes value = 2;
@@ -173,8 +168,6 @@ message SearchRequest {
   int32 multi_vector_rank = 12;
   bool l2_sqrt = 13;
   bool is_vector_value = 14;
-  map<string, string> sort_field_map = 15;
-  repeated SortField sort_fields = 16;
 }
 
 //*********************** Search response *********************** //
@@ -195,9 +188,8 @@ message SearchResult {
   string msg = 6;
   repeated ResultItem result_items = 7;
   uint32 pID = 8;
-  map<uint32, string> explain = 9;
-  bool timeout = 10;
-  int32 topN = 11;
+  bool timeout = 9;
+  int32 topN = 10;
 }
 
 message SearchResponse {
@@ -206,7 +198,6 @@ message SearchResponse {
   string online_log_message = 3;
   bool timeout = 4;
   bytes FlatBytes = 5;
-  map<string, string> sort_field_map = 6;
   int32 top_size = 7;
 }
 

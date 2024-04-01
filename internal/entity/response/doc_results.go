@@ -16,16 +16,13 @@ package response
 
 import (
 	"github.com/vearch/vearch/internal/proto/vearchpb"
-	"github.com/vearch/vearch/internal/ps/engine/sortorder"
 )
 
 type SearchDocResult struct {
 	PartitionData *vearchpb.PartitionData
-	SortValueMap  map[string][]sortorder.SortValue
 	TopSizes      []int32
 }
 
 type SearchItemsSort struct {
 	ResultItem *vearchpb.ResultItem
-	SortValues sortorder.SortValues
 }
