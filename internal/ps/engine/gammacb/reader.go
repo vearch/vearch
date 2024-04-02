@@ -175,7 +175,7 @@ func (ri *readerImpl) Search(ctx context.Context, request *vearchpb.SearchReques
 		case -3:
 			vearchErr = vearchpb.NewErrorInfo(vearchpb.ErrorEnum_GAMMA_SEARCH_INDEX_QUERY_ERR, "index search error")
 		default:
-			vearchErr = vearchpb.NewErrorInfo(vearchpb.ErrorEnum_GAMMA_SEARCH_OTHER_ERR, "gamma return err: other errr")
+			vearchErr = vearchpb.NewErrorInfo(vearchpb.ErrorEnum_GAMMA_SEARCH_OTHER_ERR, "search internal error")
 		}
 		return vearchErr
 	}

@@ -20,7 +20,6 @@ package vearchlog
 
 import (
 	"container/list"
-	"errors"
 	"fmt"
 	"os"
 	"os/user"
@@ -139,12 +138,12 @@ func create(dir, prefix, tag string) (*os.File, int64, error) {
 	fOpt := os.O_RDWR | os.O_CREATE | os.O_APPEND
 	f, err := os.OpenFile(fPath, fOpt, os.ModePerm)
 	if err != nil {
-		return nil, 0, errors.New(fmt.Sprintf("open log file[%s] err[%v]", fPath, err))
+		return nil, 0, fmt.Errorf("open log file[%s] err[%v]", fPath, err)
 	}
 
 	fInfo, err := f.Stat()
 	if err != nil {
-		return nil, 0, errors.New(fmt.Sprintf("stat log file[%s] err[%v]", fPath, err))
+		return nil, 0, fmt.Errorf("stat log file[%s] err[%v]", fPath, err)
 	}
 
 	return f, fInfo.Size(), nil
@@ -158,7 +157,7 @@ func renameAndCreate(dir, prefix, tag string, t time.Time) (*os.File, error) {
 	fOldPath := filepath.Join(dir, fOldName)
 	fNewPath := filepath.Join(dir, fNewName)
 	if err := os.Rename(fOldPath, fNewPath); err != nil {
-		return nil, errors.New(fmt.Sprintf("rename log file err[%v]", err))
+		return nil, fmt.Errorf("rename log file err[%v]", err)
 	}
 
 	f, _, err := create(dir, prefix, tag)
@@ -171,7 +170,7 @@ func renameAndCreate(dir, prefix, tag string, t time.Time) (*os.File, error) {
 	if queue.Len() > RotateNum {
 		removeFile := queue.Remove(queue.Front()).(string)
 		if err = os.Remove(removeFile); err != nil {
-			fmt.Println(fmt.Sprintf("Remove log file %s failed, err %s", removeFile, err.Error()))
+			fmt.Printf("Remove log file %s failed, err %s", removeFile, err.Error())
 		}
 	}
 
