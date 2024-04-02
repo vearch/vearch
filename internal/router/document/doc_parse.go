@@ -267,7 +267,7 @@ func processPropertyArray(v *fastjson.Value, pathString string, pro *entity.Spac
 			err := fmt.Errorf("vector field %s feature value should be arrry, but is: %v", pathString, v)
 			return field, err
 		}
-		if strings.Compare(indexType, "BINARYIVF") == 0 {
+		if indexType == "BINARYIVF" {
 			field, err = processPropertyObjectVectorBinary(vs, pathString, pro)
 		} else {
 			field, err = processPropertyObjectVectorOther(vs, pathString, pro)
@@ -722,11 +722,6 @@ func documentRequestParse(r *http.Request, searchReq *vearchpb.SearchRequest) (s
 	}
 
 	return searchDoc, query, nil
-}
-
-func requestToPb(searchDoc *request.SearchDocumentRequest, space *entity.Space, searchReq *vearchpb.SearchRequest) (err error) {
-	err = searchParamToSearchPb(searchDoc, searchReq, space)
-	return err
 }
 
 func IndexRequestParse(r *http.Request) (index *request.IndexRequest, err error) {

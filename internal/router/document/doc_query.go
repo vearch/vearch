@@ -32,17 +32,16 @@ import (
 )
 
 const (
-	URLQueryFrom            = "from"
-	URLQuerySize            = "size"
-	UrlQueryRouting         = "routing"
-	UrlQueryTypedKey        = "typed_keys"
-	UrlQueryVersion         = "version"
-	UrlQueryRetryOnConflict = "retry_on_conflict"
-	UrlQueryOpType          = "op_type"
-	UrlQueryURISort         = "sort"
-	UrlQueryTimeout         = "timeout"
-	LoadBalance             = "load_balance"
-	DefaultSize             = 50
+	URLQueryFrom     = "from"
+	URLQuerySize     = "size"
+	UrlQueryRouting  = "routing"
+	UrlQueryTypedKey = "typed_keys"
+	UrlQueryVersion  = "version"
+	UrlQueryOpType   = "op_type"
+	UrlQueryURISort  = "sort"
+	UrlQueryTimeout  = "timeout"
+	LoadBalance      = "load_balance"
+	DefaultSize      = 50
 )
 
 type VectorQuery struct {
@@ -69,8 +68,6 @@ func parseQuery(data []byte, req *vearchpb.SearchRequest, space *entity.Space) e
 	}
 
 	temp := struct {
-		And            []json.RawMessage `json:"and"`
-		Sum            []json.RawMessage `json:"sum"`
 		Vector         []json.RawMessage `json:"vector"`
 		Filter         []json.RawMessage `json:"filter"`
 		OnlineLogLevel string            `json:"online_log_level"`
@@ -86,16 +83,7 @@ func parseQuery(data []byte, req *vearchpb.SearchRequest, space *entity.Space) e
 
 	var reqNum int
 
-	if len(temp.And) > 0 {
-		if reqNum, vqs, err = parseVectors(reqNum, vqs, temp.And, space); err != nil {
-			return err
-		}
-	} else if len(temp.Sum) > 0 {
-		req.MultiVectorRank = 1
-		if reqNum, vqs, err = parseVectors(reqNum, vqs, temp.Sum, space); err != nil {
-			return err
-		}
-	} else if len(temp.Vector) > 0 {
+	if len(temp.Vector) > 0 {
 		req.MultiVectorRank = 1
 		if reqNum, vqs, err = parseVectors(reqNum, vqs, temp.Vector, space); err != nil {
 			return err
@@ -114,24 +102,26 @@ func parseQuery(data []byte, req *vearchpb.SearchRequest, space *entity.Space) e
 			return err
 		}
 		if filterBytes, ok := tmp["range"]; ok {
-			if filterBytes != nil {
-				filter, err := parseRange(filterBytes, proMap)
-				if err != nil {
-					return err
-				}
-				if len(filter) != 0 {
-					rfs = append(rfs, filter...)
-				}
+			if filterBytes == nil {
+				continue
+			}
+			filter, err := parseRange(filterBytes, proMap)
+			if err != nil {
+				return err
+			}
+			if len(filter) != 0 {
+				rfs = append(rfs, filter...)
 			}
 		} else if termBytes, ok := tmp["term"]; ok {
-			if termBytes != nil {
-				filter, err := parseTerm(termBytes, proMap)
-				if err != nil {
-					return err
-				}
-				if len(filter) != 0 {
-					tfs = append(tfs, filter...)
-				}
+			if termBytes == nil {
+				continue
+			}
+			filter, err := parseTerm(termBytes, proMap)
+			if err != nil {
+				return err
+			}
+			if len(filter) != 0 {
+				tfs = append(tfs, filter...)
 			}
 		}
 	}
@@ -209,7 +199,7 @@ func parseVectors(reqNum int, vqs []*vearchpb.VectorQuery, tmpArr []json.RawMess
 		d := docField.Dimension
 		queryNum := 0
 		validate := 0
-		if strings.Compare(indexType, "BINARYIVF") == 0 {
+		if indexType == "BINARYIVF" {
 			if vqTemp.FeatureUint8, err = unmarshalArray[uint8](vqTemp.FeatureData, d/8); err != nil {
 				return reqNum, vqs, err
 			}
@@ -233,7 +223,7 @@ func parseVectors(reqNum int, vqs []*vearchpb.VectorQuery, tmpArr []json.RawMess
 			return reqNum, vqs, fmt.Errorf("query has err for field:[%s] not same queryNum mapping:[%d] query:[%d] ", vqTemp.Field, len(vqTemp.Feature), d)
 		}
 
-		if strings.Compare(indexType, "BINARYIVF") != 0 {
+		if indexType != "BINARYIVF" {
 			if vqTemp.Format != nil && len(*vqTemp.Format) > 0 {
 				switch *vqTemp.Format {
 				case "normalization", "normal":
@@ -529,7 +519,7 @@ func parseTerm(data []byte, proMap map[string]*entity.SpaceProperties) ([]*vearc
 
 func (query *VectorQuery) ToC(indexType string) (*vearchpb.VectorQuery, error) {
 	var codeByte []byte
-	if strings.Compare(indexType, "BINARYIVF") == 0 {
+	if indexType == "BINARYIVF" {
 		code, err := cbbytes.UInt8ArrayToByteArray(query.FeatureUint8)
 		if err != nil {
 			return nil, err
@@ -600,7 +590,7 @@ func searchUrlParamParse(searchReq *vearchpb.SearchRequest) {
 	searchReq.Head.ClientType = urlParamMap[LoadBalance]
 }
 
-func searchParamToSearchPb(searchDoc *request.SearchDocumentRequest, searchReq *vearchpb.SearchRequest, space *entity.Space) error {
+func requestToPb(searchDoc *request.SearchDocumentRequest, space *entity.Space, searchReq *vearchpb.SearchRequest) error {
 	hasRank := true
 	if searchDoc.Quick {
 		hasRank = false
@@ -627,27 +617,24 @@ func searchParamToSearchPb(searchDoc *request.SearchDocumentRequest, searchReq *
 			spaceProKeyMap, _ = entity.UnmarshalPropertyJSON(space.Fields)
 		}
 		vectorFieldArr := make([]string, 0)
-		if searchReq.Fields == nil || len(searchReq.Fields) == 0 {
+		if len(searchReq.Fields) == 0 {
 			searchReq.Fields = make([]string, 0)
 			spaceProKeyMap := space.SpaceProperties
 			if spaceProKeyMap == nil {
 				spaceProKeyMap, _ = entity.UnmarshalPropertyJSON(space.Fields)
 			}
 			for fieldName, property := range spaceProKeyMap {
-				if property.Type != "" && strings.Compare(property.Type, "vector") != 0 {
+				if property.Type != "vector" {
 					searchReq.Fields = append(searchReq.Fields, fieldName)
-				}
-				if property.Type != "" && strings.Compare(property.Type, "vector") == 0 {
+				} else {
 					vectorFieldArr = append(vectorFieldArr, fieldName)
 				}
 			}
 			searchReq.Fields = append(searchReq.Fields, mapping.IdField)
 		} else {
 			for _, field := range searchReq.Fields {
-				if field != mapping.IdField {
-					if spaceProKeyMap[field] == nil {
-						return fmt.Errorf("query param fields are not exist in the table")
-					}
+				if field != mapping.IdField && spaceProKeyMap[field] == nil {
+					return fmt.Errorf("query param fields are not exist in the table")
 				}
 			}
 		}
@@ -700,9 +687,9 @@ func searchParamToSearchPb(searchDoc *request.SearchDocumentRequest, searchReq *
 
 	searchReq.Head.Params["load_balance"] = searchDoc.LoadBalance
 
-	parseErr := parseQuery(searchDoc.Query, searchReq, space)
-	if parseErr != nil {
-		return parseErr
+	err := parseQuery(searchDoc.Query, searchReq, space)
+	if err != nil {
+		return err
 	}
 
 	searchUrlParamParse(searchReq)

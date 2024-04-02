@@ -22,7 +22,6 @@ var (
 	SearchResponse string = "SearchResponse"
 	QueryResponse  string = "QueryResponse"
 	QueryAnd       string = "and"
-	QuerySum       string = "sum"
 	QueryVector    string = "vector"
 )
 
@@ -55,32 +54,4 @@ type SearchDocumentRequest struct {
 	DbName         string          `json:"db_name,omitempty"`
 	SpaceName      string          `json:"space_name,omitempty"`
 	LoadBalance    string          `json:"load_balance"`
-}
-
-type SearchRequestPo struct {
-	SearchDocumentRequestArr []*SearchDocumentRequest `json:"search_doc_arr,omitempty"`
-}
-
-type SearchDocument struct {
-	Query          Query    `json:"query,omitempty"`
-	Fields         []string `json:"fields,omitempty"`
-	OnlineLogLevel string   `json:"online_log_level,omitempty"`
-	Quick          bool     `json:"quick,omitempty"`
-	VectorValue    bool     `json:"vector_value,omitempty"`
-	ClietType      string   `json:"client_type,omitempty"`
-	L2Sqrt         bool     `json:"l2_sqrt,omitempty"`
-	Size           int      `json:"size,omitempty"`
-}
-
-type Query struct {
-	Sum    []VecQuery      `json:"sum,omitempty"`
-	Filter json.RawMessage `json:"filter,omitempty"`
-}
-
-type VecQuery struct {
-	Field    string          `json:"field,omitempty"`
-	Feature  json.RawMessage `json:"feature,omitempty"`
-	MinScore float64         `json:"min_score,omitempty"`
-	MaxScore float64         `json:"max_score,omitempty"`
-	Boost    float64         `json:"boost,omitempty"`
 }

@@ -66,7 +66,7 @@ func main() {
 
 	flag.Parse()
 
-	if strings.Compare(confPath, "") == 0 {
+	if confPath == "" {
 		log.Error("Can not get the config file ,then exit the program!")
 		os.Exit(1)
 	}

@@ -288,19 +288,15 @@ func (r *routerRequest) Execute() []*vearchpb.Item {
 	normalField := make(map[string]string)
 	if r.md[HandlerType] == BatchHandler || r.md[HandlerType] == ReplaceDocHandler {
 		indexType := r.space.Index.Type
-		if indexType != "" {
-			if strings.Compare(indexType, "BINARYIVF") != 0 {
-				isNormal = true
-			}
+		if indexType != "" && indexType != "BINARYIVF" {
+			isNormal = true
 		}
 
 		if isNormal {
 			spacePro := r.space.SpaceProperties
 			for field, pro := range spacePro {
 				format := pro.Format
-				if pro.FieldType == entity.FieldType_VECTOR && format != nil &&
-					(strings.Compare(*format, "normalization") == 0 ||
-						strings.Compare(*format, "normal") == 0) {
+				if pro.FieldType == entity.FieldType_VECTOR && format != nil && (*format == "normalization" || *format == "normal") {
 					normalField[field] = field
 				}
 			}
@@ -629,17 +625,14 @@ func (r *routerRequest) SearchFieldSortExecute(sortOrder string) *vearchpb.Searc
 	isNormal := false
 	normalField := make(map[string]string)
 	indexType := r.space.Index.Type
-	if indexType != "" {
-		if strings.Compare(indexType, "BINARYIVF") != 0 {
-			isNormal = true
-		}
+	if indexType != "" && indexType != "BINARYIVF" {
+		isNormal = true
 	}
 	if isNormal {
 		spacePro := r.space.SpaceProperties
 		for field, pro := range spacePro {
 			format := pro.Format
-			if pro.FieldType == entity.FieldType_VECTOR && format != nil &&
-				(strings.Compare(*format, "normalization") == 0 || strings.Compare(*format, "normal") == 0) {
+			if pro.FieldType == entity.FieldType_VECTOR && format != nil && (*format == "normalization" || *format == "normal") {
 				normalField[field] = field
 			}
 		}
@@ -1119,7 +1112,7 @@ func GetSource(doc *vearchpb.ResultItem, space *entity.Space) (json.RawMessage, 
 				floatVal := cbbytes.ByteToFloat64(fv.Value)
 				source[name] = floatVal
 			case entity.FieldType_VECTOR:
-				if strings.Compare(space.Index.Type, "BINARYIVF") == 0 {
+				if space.Index.Type == "BINARYIVF" {
 					featureByteC := fv.Value
 					dimension := field.Dimension
 					unit8s, err := cbbytes.ByteToVectorBinary(featureByteC, dimension)

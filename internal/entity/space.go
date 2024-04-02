@@ -17,7 +17,6 @@ package entity
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
 	"unicode"
 
 	"github.com/vearch/vearch/internal/pkg/log"
@@ -208,12 +207,11 @@ func (index *Index) UnmarshalJSON(bs []byte) error {
 		if err := json.Unmarshal(tempIndex.Params, &indexParams); err != nil {
 			return fmt.Errorf("IndexParams:%s json.Unmarshal err :[%s]", tempIndex.Params, err.Error())
 		}
-		if strings.Compare(indexParams.MetricType, "InnerProduct") != 0 &&
-			strings.Compare(indexParams.MetricType, "L2") != 0 {
+		if indexParams.MetricType != "InnerProduct" && indexParams.MetricType != "L2" {
 			return fmt.Errorf("IndexParams metric_type not support: %s, should be L2 or InnerProduct", indexParams.MetricType)
 		}
 
-		if strings.Compare(tempIndex.Type, "HNSW") == 0 {
+		if tempIndex.Type == "HNSW" {
 			if indexParams.Nlinks != 0 {
 				if indexParams.Nlinks < MinNlinks || indexParams.Nlinks > MaxNlinks {
 					return fmt.Errorf("IndexParams nlinks:%d should in [%d, %d]", indexParams.Nlinks, MinNlinks, MaxNlinks)
@@ -224,12 +222,9 @@ func (index *Index) UnmarshalJSON(bs []byte) error {
 					return fmt.Errorf("IndexParams efConstruction:%d should in [%d, %d]", indexParams.EfConstruction, MinEfConstruction, MaxEfConstruction)
 				}
 			}
-		} else if strings.Compare(tempIndex.Type, "FLAT") == 0 {
+		} else if tempIndex.Type == "FLAT" {
 
-		} else if strings.Compare("BINARYIVF", tempIndex.Type) == 0 ||
-			strings.Compare("IVFFLAT", tempIndex.Type) == 0 ||
-			strings.Compare("IVFPQ", tempIndex.Type) == 0 ||
-			strings.Compare("GPU", tempIndex.Type) == 0 {
+		} else if tempIndex.Type == "BINARYIVF" || tempIndex.Type == "IVFFLAT" || tempIndex.Type == "IVFPQ" || tempIndex.Type == "GPU" {
 			if indexParams.Ncentroids != 0 {
 				if indexParams.Ncentroids < MinNcentroids || indexParams.Ncentroids > MaxNcentroids {
 					return fmt.Errorf("IndexParams ncentroids:%d should in [%d, %d]", indexParams.Ncentroids, MinNcentroids, MaxNcentroids)
@@ -345,8 +340,7 @@ func UnmarshalPropertyJSON(propertity []byte) (map[string]*SpaceProperties, erro
 			sp.StoreType = data.StoreType
 			sp.Format = data.Format
 			format := data.Format
-			if format != nil && *format != "" && !(strings.Compare(*format, "normalization") == 0 ||
-				strings.Compare(*format, "normal") == 0 || strings.Compare(*format, "no") == 0) {
+			if format != nil && !(*format == "normalization" || *format == "normal" || *format == "no") {
 				return nil, fmt.Errorf("unknow vector process method:[%s]", *format)
 			}
 

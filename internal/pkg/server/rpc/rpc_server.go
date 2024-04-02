@@ -18,7 +18,6 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"strings"
 
 	"github.com/smallnest/rpcx/client"
 	"github.com/smallnest/rpcx/protocol"
@@ -53,7 +52,7 @@ func NewRpcServer(ip string, port uint16) *RpcServer {
 }
 
 func (r *RpcServer) Run() error {
-	if strings.Compare(r.serverAddress, "127.0.0.1") == 0 || strings.Compare(r.serverAddress, "localhost") == 0 {
+	if r.serverAddress == "127.0.0.1" || r.serverAddress == "localhost" {
 		r.serverAddress = ""
 	}
 	r.server = server.NewServer()

@@ -187,7 +187,6 @@ func (docService *docService) getSpace(ctx context.Context, head *vearchpb.Reque
 		head.SpaceName = alias.SpaceName
 	}
 	return docService.client.Master().Cache().SpaceByCache(ctx, head.DbName, head.SpaceName)
-
 }
 
 func (docService *docService) search(ctx context.Context, args *vearchpb.SearchRequest) *vearchpb.SearchResponse {
