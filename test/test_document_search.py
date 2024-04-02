@@ -149,7 +149,7 @@ def test_vearch_document_search_brute_force_search_threshold(index_type):
     create_for_document_test(logger, router_url, embedding_size, properties)
 
     add(total_batch, batch_size, xb, with_id, full_field)
-    logger.info("%s doc_num: %d" % (space_name, get_space_num(logger=logger)))
+    logger.info("%s doc_num: %d" % (space_name, get_space_num()))
 
     time.sleep(3)
 
@@ -174,7 +174,7 @@ def test_vearch_document_search_brute_force_search_threshold(index_type):
     assert rs.json()["code"] == 200
 
     add(total_batch, batch_size, xb, with_id, full_field)
-    logger.info("%s doc_num: %d" % (space_name, get_space_num(logger=logger)))
+    logger.info("%s doc_num: %d" % (space_name, get_space_num()))
 
     rs = requests.post(url, json_str)
     logger.info(rs.json())
