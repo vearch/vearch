@@ -45,6 +45,8 @@ def process_add_data(items):
     with_id = items[3]
     full_field = items[4]
     seed = items[5]
+    alias_name = items[6]
+    logger = items[7]
     if items[6] != "":
         data["space_name"] = items[6]
     for j in range(batch_size):
@@ -62,9 +64,11 @@ def process_add_data(items):
 
     json_str = json.dumps(data)
     rs = requests.post(url, json_str)
+    if logger != None:
+        logger.info(rs.json())
 
 
-def add(total, batch_size, xb, with_id=False, full_field=False, seed=1,  alias_name=""):
+def add(total, batch_size, xb, with_id=False, full_field=False, seed=1,  alias_name="", logger=None):
     pool = ThreadPool()
     total_data = []
     for i in range(total):
@@ -77,6 +81,7 @@ def add(total, batch_size, xb, with_id=False, full_field=False, seed=1,  alias_n
                 full_field,
                 seed,
                 alias_name,
+                logger
             )
         )
     results = pool.map(process_add_data, total_data)
@@ -770,13 +775,6 @@ def create_for_document_test(logger, router_url, embedding_size, properties):
         "name": space_name,
         "partition_num": 1,
         "replica_num": 1,
-        "index": {
-            "name": "gamma",
-            "type": "FLAT",
-            "params": {
-                "metric_type": "L2",
-            },
-        },
         "fields": properties["fields"],
     }
     logger.info(create_db(router_url, db_name))
@@ -854,20 +852,20 @@ def prepare_cluster_for_document_test(logger, total, xb):
 
 
 def waiting_index_finish(logger, total, timewait=5):
-    url = router_url + "/cluster/health?db=" + db_name + "&space=" + space_name
+    url = router_url + "/dbs/" + db_name + "/spaces/" + space_name
     num = 0
     while num < total:
         response = requests.get(url)
-        num = response.json()["data"][0]["spaces"][0]["partitions"][0]["index_num"]
+        num = response.json()["data"]["partitions"][0]["index_num"]
         logger.info("index num: %d" % (num))
         time.sleep(timewait)
 
 
 def get_space_num():
-    url = router_url + "/cluster/health?db=" + db_name + "&space=" + space_name
+    url = f"{router_url}/dbs/{db_name}/spaces/{space_name}"
     num = 0
     response = requests.get(url)
-    num = response.json()["data"][0]["spaces"][0]["doc_num"]
+    num = response.json()["data"]["doc_num"]
     return num
 
 

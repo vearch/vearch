@@ -32,7 +32,6 @@
 #include "common/gamma_common_data.h"
 #include "index/index_io.h"
 #include "vector/rocksdb_raw_vector.h"
-
 namespace vearch {
 
 using namespace faiss;
@@ -220,8 +219,10 @@ Status GammaIndexIVFFlat::Init(const std::string &model_parameters,
   } else {
     metric_type = faiss::METRIC_L2;
   }
-  this->nprobe = params.nprobe;
-
+  if ((size_t)params.nprobe <= this->nlist)
+    this->nprobe = params.nprobe;
+  else
+    this->nprobe = size_t(this->nlist / 2);
   return Status::OK();
 }
 
@@ -421,16 +422,6 @@ int GammaIndexIVFFlat::Delete(const std::vector<int64_t> &ids) {
   return 0;
 }
 
-void GammaIndexIVFFlat::SearchPreassgined(RetrievalContext *retrieval_context,
-                                          idx_t n, const float *x, int k,
-                                          const idx_t *keys,
-                                          const float *coarse_dis,
-                                          float *distances, idx_t *labels,
-                                          int nprobe, bool store_pairs) {
-  return search_preassigned(retrieval_context, n, x, k, keys, coarse_dis,
-                            distances, labels, nprobe, store_pairs);
-}
-
 int GammaIndexIVFFlat::Search(RetrievalContext *retrieval_context, int n,
                               const uint8_t *rx, int k, float *distances,
                               idx_t *labels) {
@@ -451,6 +442,7 @@ int GammaIndexIVFFlat::Search(RetrievalContext *retrieval_context, int n,
     nprobe = retrieval_params->Nprobe();
   } else {
     retrieval_params->SetNprobe(this->nprobe);
+    LOG(WARNING) << "nlist = " << this->nlist << "nprobe = " << retrieval_params->Nprobe() << "invalid, now use:" << this->nprobe; 
   }
 #else
   int nprobe = this->nprobe;
@@ -462,7 +454,7 @@ int GammaIndexIVFFlat::Search(RetrievalContext *retrieval_context, int n,
 
   quantizer->search(n, x, nprobe, coarse_dis.get(), idx.get());
 
-  SearchPreassgined(retrieval_context, n, x, k, idx.get(), coarse_dis.get(),
+  search_preassigned(retrieval_context, n, x, k, idx.get(), coarse_dis.get(),
                     distances, labels, nprobe, false);
 
   return 0;
@@ -473,7 +465,7 @@ void GammaIndexIVFFlat::search_preassigned(RetrievalContext *retrieval_context,
                                            const idx_t *keys,
                                            const float *coarse_dis,
                                            float *distances, idx_t *labels,
-                                           int nprobe, bool store_pairs) const {
+                                           int nprobe, bool store_pairs) {
   IVFFlatRetrievalParameters *retrieval_params =
       dynamic_cast<IVFFlatRetrievalParameters *>(
           retrieval_context->RetrievalParams());
@@ -481,6 +473,17 @@ void GammaIndexIVFFlat::search_preassigned(RetrievalContext *retrieval_context,
   if (retrieval_params == nullptr) {
     retrieval_params = new IVFFlatRetrievalParameters();
     del_params.set(retrieval_params);
+  }
+  SearchCondition *condition =
+      dynamic_cast<SearchCondition *>(retrieval_context);
+  if (condition->brute_force_search == true || is_trained == false) {
+    // reset retrieval_params
+    delete retrieval_context->RetrievalParams();
+    retrieval_context->retrieval_params_ =
+        new FlatRetrievalParameters(retrieval_params->ParallelOnQueries(),
+                                    retrieval_params->GetDistanceComputeType());
+    GammaFLATIndex::Search(retrieval_context, n, (const uint8_t*)x, k, distances, labels);
+    return;
   }
   faiss::MetricType metric_type;
   if (retrieval_params->GetDistanceComputeType() ==

@@ -103,6 +103,85 @@ def test_vearch_document_search(
 ):
     check(100, bulk, full_field, with_filter, query_type, xb)
 
+@pytest.mark.parametrize(
+    ["index_type"],
+    [["IVFPQ"], ["IVFFLAT"]],
+)
+def test_vearch_document_search_brute_force_search_threshold(index_type):
+    embedding_size = xb.shape[1]
+    batch_size = 100
+    k = 100
+    with_id = False
+    full_field = True
+    seed = 1
+    brute_force_search_threshold = 100
+    total_batch = int(brute_force_search_threshold / batch_size)
+
+    logger.info(
+        "dataset num: %d, total_batch: %d, dimension: %d, search num: %d, topK: %d"
+        % (brute_force_search_threshold, total_batch, embedding_size, xq.shape[0], k)
+    )
+
+    properties = {}
+    properties["fields"] = [
+        {"name": "field_int", "type": "integer", "index": {"name": "field_int","type": "SCALAR"}},
+        {"name": "field_long", "type": "long", "index": {"name": "field_long","type": "SCALAR"}},
+        {"name": "field_float", "type": "float", "index": {"name": "field_float","type": "SCALAR"}},
+        {"name": "field_double", "type": "double", "index": {"name": "field_double","type": "SCALAR"}},
+        {"name": "field_string", "type": "string", "index": {"name": "field_string","type": "SCALAR"}},
+        {
+            "name": "field_vector",
+            "type": "vector",
+            "index": {
+                "name": "gamma",
+                "type": index_type,
+                "params": {
+                    "metric_type": "L2",
+                    "training_threshold": 3 * brute_force_search_threshold,
+                    "ncentroids": 2
+                },
+            },
+            "dimension": embedding_size,
+            # "format": "normalization"
+        },
+    ]
+
+    create_for_document_test(logger, router_url, embedding_size, properties)
+
+    add(total_batch, batch_size, xb, with_id, full_field)
+    logger.info("%s doc_num: %d" % (space_name, get_space_num(logger=logger)))
+
+    time.sleep(3)
+
+    data = {}
+    data["db_name"] = db_name
+    data["space_name"] = space_name
+    data["query"] = {}
+    data["query"]["vector"] = []
+    vector_info = {
+        "field": "field_vector",
+        "feature": xb[:1].flatten().tolist(),
+    }
+    data["query"]["vector"].append(vector_info)
+    data["index_params"] = {
+        "nprobe": 1
+    }
+
+    json_str = json.dumps(data)
+    logger.info(json_str)
+    url = router_url + "/document/search"
+    rs = requests.post(url, json_str)
+    assert rs.json()["code"] == 200
+
+    add(total_batch, batch_size, xb, with_id, full_field)
+    logger.info("%s doc_num: %d" % (space_name, get_space_num(logger=logger)))
+
+    rs = requests.post(url, json_str)
+    logger.info(rs.json())
+    assert rs.json()["code"] != 200
+
+    destroy(router_url, db_name, space_name)
+
 
 def process_search_error_data(items):
     data = {}

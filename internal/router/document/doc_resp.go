@@ -123,7 +123,8 @@ func documentUpsertResponse(args *vearchpb.BulkRequest, reply *vearchpb.BulkResp
 func documentResultSerialize(item *vearchpb.Item) map[string]interface{} {
 	result := make(map[string]interface{})
 	if item == nil {
-		result["error"] = "duplicate id"
+		result["msg"] = "duplicate id"
+		result["code"] = vearchpb.ErrCode(vearchpb.ErrorEnum_INTERNAL_ERROR)
 		return result
 	}
 
@@ -131,10 +132,10 @@ func documentResultSerialize(item *vearchpb.Item) map[string]interface{} {
 	result["_id"] = doc.PKey
 
 	if item.Err != nil {
-		result["status"] = vearchpb.ErrCode(item.Err.Code)
-		result["error"] = item.Err.Msg
-	} else {
-		result["status"] = vearchpb.ErrCode(vearchpb.ErrorEnum_SUCCESS)
+		if item.Err.Msg != "success" {
+			result["code"] = vearchpb.ErrCode(item.Err.Code)
+			result["msg"] = item.Err.Msg
+		}
 	}
 	return result
 }
@@ -221,6 +222,7 @@ func documentSearchResponse(srs []*vearchpb.SearchResult, head *vearchpb.Respons
 			wg.Add(1)
 			go func(sr *vearchpb.SearchResult, index int) {
 				defer wg.Done()
+
 				bytes, err := documentToContent(sr.ResultItems, response_type)
 				if err != nil {
 					return

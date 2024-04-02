@@ -128,11 +128,11 @@ Status GammaIVFPQIndex::Init(const std::string &model_parameters,
 
   RawVector *raw_vec = dynamic_cast<RawVector *>(vector_);
 
-  nlist = ivfpq_param.ncentroids;
+  this->nlist = ivfpq_param.ncentroids;
   if (training_threshold) {
     training_threshold_ = training_threshold;
   } else {
-    training_threshold_ = nlist * min_points_per_centroid;
+    training_threshold_ = std::max((int)nlist * min_points_per_centroid, max_points_per_centroid);
   }
   ivfpq_param.training_threshold = training_threshold_;
   LOG(INFO) << ivfpq_param.ToString();
@@ -206,8 +206,10 @@ Status GammaIVFPQIndex::Init(const std::string &model_parameters,
   } else {
     metric_type = faiss::METRIC_L2;
   }
-
-  this->nprobe = ivfpq_param.nprobe;
+  if ((size_t)ivfpq_param.nprobe <= this->nlist)
+    this->nprobe = ivfpq_param.nprobe;
+  else
+    this->nprobe = size_t(this->nlist / 2);
   return Status::OK();
 }
 
@@ -513,6 +515,7 @@ int GammaIVFPQIndex::Search(RetrievalContext *retrieval_context, int n,
     nprobe = retrieval_params->Nprobe();
   } else {
     retrieval_params->SetNprobe(this->nprobe);
+    LOG(WARNING) << "nlist = " << this->nlist << "nprobe = " << retrieval_params->Nprobe() << "invalid, now use:" << this->nprobe; 
   }
 
   const float *xq = reinterpret_cast<const float *>(x);

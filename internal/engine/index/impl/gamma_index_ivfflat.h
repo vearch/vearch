@@ -26,6 +26,7 @@
 #include "gamma_scanner.h"
 #include "index/realtime/realtime_invert_index.h"
 #include "util/status.h"
+#include "gamma_index_flat.h"
 
 namespace vearch {
 
@@ -116,14 +117,14 @@ class IVFFlatRetrievalParameters : public RetrievalParameters {
   int nprobe_;
 };
 
-struct GammaIndexIVFFlat : faiss::IndexIVFFlat, public IndexModel {
+struct GammaIndexIVFFlat : faiss::IndexIVFFlat, public GammaFLATIndex {
   GammaIndexIVFFlat();
   virtual ~GammaIndexIVFFlat();
 
   void search_preassigned(RetrievalContext *retrieval_context, idx_t n,
                           const float *x, int k, const idx_t *keys,
                           const float *coarse_dis, float *distances,
-                          idx_t *labels, int nprobe, bool store_pairs) const;
+                          idx_t *labels, int nprobe, bool store_pairs);
 
   Status Init(const std::string &model_parameters,
               int training_threshold) override;
@@ -136,12 +137,7 @@ struct GammaIndexIVFFlat : faiss::IndexIVFFlat, public IndexModel {
   // int AddRTVecsToIndex() override;
 
   int Search(RetrievalContext *retrieval_context, int n, const uint8_t *x,
-             int k, float *distances, int64_t *ids) override;
-
-  virtual void SearchPreassgined(RetrievalContext *retrieval_context, idx_t n,
-                                 const float *x, int k, const idx_t *keys,
-                                 const float *coarse_dis, float *distances,
-                                 idx_t *labels, int nprobe, bool store_pairs);
+             int k, float *distances, idx_t *labels) override;
 
   long GetTotalMemBytes() override { return 0; };
 

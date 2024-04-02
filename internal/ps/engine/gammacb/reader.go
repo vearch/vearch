@@ -169,11 +169,11 @@ func (ri *readerImpl) Search(ctx context.Context, request *vearchpb.SearchReques
 		var vearchErr *vearchpb.VearchErr
 		switch code {
 		case -1:
-			vearchErr = vearchpb.NewErrorInfo(vearchpb.ErrorEnum_GAMMA_SEARCH_QUERY_NUM_LESS_0, "gamma return err:query num less than 0")
-		case -2:
-			vearchErr = vearchpb.NewErrorInfo(vearchpb.ErrorEnum_GAMMA_SEARCH_NO_CREATE_INDEX, "gamma return err:no create index")
+			vearchErr = vearchpb.NewErrorInfo(vearchpb.ErrorEnum_GAMMA_SEARCH_QUERY_NUM_LESS_0, "search num less than 0")
+		case 1:
+			vearchErr = vearchpb.NewErrorInfo(vearchpb.ErrorEnum_GAMMA_SEARCH_NO_CREATE_INDEX, "index not trained")
 		case -3:
-			vearchErr = vearchpb.NewErrorInfo(vearchpb.ErrorEnum_GAMMA_SEARCH_INDEX_QUERY_ERR, "gamma return err:index search error")
+			vearchErr = vearchpb.NewErrorInfo(vearchpb.ErrorEnum_GAMMA_SEARCH_INDEX_QUERY_ERR, "index search error")
 		default:
 			vearchErr = vearchpb.NewErrorInfo(vearchpb.ErrorEnum_GAMMA_SEARCH_OTHER_ERR, "gamma return err: other errr")
 		}
