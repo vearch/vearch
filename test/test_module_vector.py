@@ -211,3 +211,35 @@ xb, xq, xt, gt = get_sift10K(logger)
 ])
 def test_vearch_module_multi_vector(store_type: str):
     benchmark(store_type, xb, xq, xt, gt)
+
+
+class TestUpsertMultiVectorBadCase:
+    def setup_class(self):
+        self.logger = logger
+        self.xb = xb
+
+    # prepare for badcase
+    def test_prepare_cluster_badcase(self):
+        create(router_url, self.xb.shape[1], "MemoryOnly")
+
+    @pytest.mark.parametrize(
+        ["index", "wrong_type"],
+        [
+            [0, "only one vector"],
+            [1, "bad vector length"],
+        ],
+    )
+    def test_badcase(self, index, wrong_type):
+        wrong_parameters = [False for i in range(3)]
+        wrong_parameters[index] = True
+        batch_size = 1
+        total = 1
+        if total == 0:
+            total = xb.shape[0]
+        total_batch = int(total / batch_size)
+        add_multi_vector_error(total_batch, batch_size, self.xb, self.logger, wrong_parameters)
+        assert get_space_num() == 0
+
+    # destroy for badcase
+    def test_destroy_cluster_badcase(self):
+        destroy(router_url, db_name, space_name)

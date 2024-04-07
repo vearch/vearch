@@ -331,6 +331,9 @@ int VectorManager::CreateVectorTable(TableInfo &table,
 int VectorManager::AddToStore(
     int docid, std::unordered_map<std::string, struct Field> &fields) {
   int ret = 0;
+  if (fields.size() != raw_vectors_.size()) {
+    return -1;
+  }
   for (auto &[name, field] : fields) {
     if (raw_vectors_.find(name) == raw_vectors_.end()) {
       LOG(ERROR) << "Cannot find raw vector [" << name << "]";

@@ -284,6 +284,55 @@ def add_multi_vector(total, batch_size, xb, with_id=False, full_field=False, see
     pool.join()
 
 
+def process_add_multi_vector_error_data(items):
+    url = router_url + "/document/upsert"
+    data = {}
+    data["db_name"] = db_name
+    data["space_name"] = space_name
+    data["documents"] = []
+    index = items[0]
+    batch_size = items[1]
+    features = items[2]
+    logger = items[3]
+    only_one_vector = items[4][0]
+    bad_vector_length = items[4][1]
+
+    for j in range(batch_size):
+        param_dict = {}
+        param_dict["field_int"] = index * batch_size + j
+
+        if only_one_vector:
+            param_dict["field_vector"] = features[j].tolist()
+
+        if bad_vector_length:
+            param_dict["field_vector"] = features[j].tolist()
+            param_dict["field_vector1"] = features[j].tolist()[:1]
+        data["documents"].append(param_dict)
+
+    json_str = json.dumps(data)
+    rs = requests.post(url, json_str)
+    logger.info(rs.json())
+
+    if "data" in rs.json():
+        for result in rs.json()["data"]["document_ids"]:
+            assert result["code"] != 200
+    else:
+        assert rs.json()["code"] != 200
+
+
+def add_multi_vector_error(total, batch_size, xb, logger, wrong_parameters: list):
+    for i in range(total):
+        process_add_multi_vector_error_data(
+            (
+                i,
+                batch_size,
+                xb[i * batch_size : (i + 1) * batch_size],
+                logger,
+                wrong_parameters,
+            )
+        )
+
+
 def prepare_filter(filter, index, batch_size, seed, full_field):
     if full_field:
         # term_filter = {

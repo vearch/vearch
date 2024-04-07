@@ -53,29 +53,30 @@ var FieldsIndex = map[string]int{
 }
 
 // parse doc
-func MapDocument(source []byte, space *entity.Space, proMap map[string]*entity.SpaceProperties) ([]*vearchpb.Field, bool, error) {
+func MapDocument(source []byte, space *entity.Space, proMap map[string]*entity.SpaceProperties) ([]*vearchpb.Field, int, error) {
 	var fast fastjson.Parser
 	v, err := fast.ParseBytes(source)
 	if err != nil {
 		log.Warnf("bytes transform to json failed when inserting, err: %s ,data:%s", err.Error(), string(source))
-		return nil, false, errors.Wrap(err, "data format error, please check your input!")
+		return nil, 0, errors.Wrap(err, "data format error, please check your input!")
 	}
 	var path []string
 	return parseJSON(path, v, space, proMap)
 }
 
-func parseJSON(path []string, v *fastjson.Value, space *entity.Space, proMap map[string]*entity.SpaceProperties) ([]*vearchpb.Field, bool, error) {
+func parseJSON(path []string, v *fastjson.Value, space *entity.Space, proMap map[string]*entity.SpaceProperties) ([]*vearchpb.Field, int, error) {
 	fields := make([]*vearchpb.Field, 0)
 	obj, err := v.Object()
 	if err != nil {
 		log.Warnf("data format error, object is required but received %s", v.Type().String())
-		return nil, false, fmt.Errorf("data format error, object is required but received %s", v.Type().String())
+		return nil, 0, fmt.Errorf("data format error, object is required but received %s", v.Type().String())
 	}
 
 	haveNoField := false
 	errorField := ""
-	haveVector := false
+	haveVector := 0
 	parseErr := fmt.Errorf("")
+
 	obj.Visit(func(key []byte, val *fastjson.Value) {
 		fieldName := string(key)
 		if fieldName == IDField {
@@ -110,7 +111,7 @@ func parseJSON(path []string, v *fastjson.Value, space *entity.Space, proMap map
 			return
 		}
 		if field != nil && field.Type == vearchpb.FieldType_VECTOR && field.Value != nil {
-			haveVector = true
+			haveVector += 1
 		}
 		fields = append(fields, field)
 	})
@@ -626,7 +627,12 @@ func documentParse(ctx context.Context, handler *DocumentHandler, r *http.Reques
 	if spaceProperties == nil {
 		spaceProperties, _ = entity.UnmarshalPropertyJSON(space.Fields)
 	}
-
+	vectorFieldNum := 0
+	for _, value := range spaceProperties {
+		if value.FieldType == vearchpb.FieldType_VECTOR {
+			vectorFieldNum += 1
+		}
+	}
 	docs := make([]*vearchpb.Document, 0)
 	for _, docJson := range docRequest.Documents {
 		jsonMap, err := vjson.ByteToJsonMap(docJson)
@@ -640,9 +646,9 @@ func documentParse(ctx context.Context, handler *DocumentHandler, r *http.Reques
 			return err
 		}
 
-		if !haveVector {
+		if haveVector != vectorFieldNum {
 			if primaryKey == "" {
-				err = fmt.Errorf("vector field or document_id must have at least one")
+				err = fmt.Errorf("vector field num:%d is not equal to vector num of space fields:%d and document_id is empty", haveVector, vectorFieldNum)
 				return err
 			}
 			arg := &vearchpb.GetRequest{}
