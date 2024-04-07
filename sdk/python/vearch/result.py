@@ -44,8 +44,9 @@ class UpsertResult(object):
         ret = json.loads(resp.text)
         code = ret.get("code", -1)
         msg = ret.get("msg", "")
-        total = ret.get("total", -1)
-        document_ids = ret.get("document_ids", [])
+        data = ret.get("data", None)
+        total = data.get("total", -1)
+        document_ids = data.get("document_ids", [])
         ur = cls(code, msg, total)
         ur.document_ids = document_ids
         return ur

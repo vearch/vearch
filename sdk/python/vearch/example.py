@@ -52,6 +52,7 @@ def upsert_document(vc: Vearch) -> List:
     space = Space("database1", "book_info")
     ret = space.upsert_doc(data)
     if ret:
+        logger.debug("upsert result:"+str(ret.get_document_ids()))
         return ret.get_document_ids()
     return []
 
