@@ -4,28 +4,29 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//	http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
 // implied. See the License for the specific language governing
 // permissions and limitations under the License.
+package sortorder
 
-package response
-
-import (
-	"github.com/vearch/vearch/internal/proto/vearchpb"
-	"github.com/vearch/vearch/internal/ps/engine/sortorder"
-)
-
-type SearchDocResult struct {
-	PartitionData *vearchpb.PartitionData
-	SortValueMap  map[string][]sortorder.SortValue
-	TopSizes      []int32
+type SortScore struct {
+	Desc bool
 }
 
-type SearchItemsSort struct {
-	ResultItem *vearchpb.ResultItem
-	SortValues sortorder.SortValues
+func (s *SortScore) Compare(i, j SortValue) int {
+	c := i.Compare(j)
+	if s.Desc {
+		return -1 * c
+	}
+	return c
+}
+func (s *SortScore) SortField() string {
+	return "_score"
+}
+func (s *SortScore) GetSortOrder() bool {
+	return s.Desc
 }

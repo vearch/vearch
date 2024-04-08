@@ -29,6 +29,7 @@ import (
 	"github.com/vearch/vearch/internal/pkg/vjson"
 	"github.com/vearch/vearch/internal/proto/vearchpb"
 	"github.com/vearch/vearch/internal/ps/engine/mapping"
+	"github.com/vearch/vearch/internal/ps/engine/sortorder"
 )
 
 const (
@@ -601,6 +602,7 @@ func requestToPb(searchDoc *request.SearchDocumentRequest, space *entity.Space, 
 	searchReq.Fields = searchDoc.Fields
 	searchReq.IsBruteSearch = searchDoc.IsBruteSearch
 
+	metricType := ""
 	if searchDoc.IndexParams != nil {
 		searchReq.IndexParams = string(searchDoc.IndexParams)
 	}
@@ -617,24 +619,27 @@ func requestToPb(searchDoc *request.SearchDocumentRequest, space *entity.Space, 
 			spaceProKeyMap, _ = entity.UnmarshalPropertyJSON(space.Fields)
 		}
 		vectorFieldArr := make([]string, 0)
-		if len(searchReq.Fields) == 0 {
+		if searchReq.Fields == nil || len(searchReq.Fields) == 0 {
 			searchReq.Fields = make([]string, 0)
 			spaceProKeyMap := space.SpaceProperties
 			if spaceProKeyMap == nil {
 				spaceProKeyMap, _ = entity.UnmarshalPropertyJSON(space.Fields)
 			}
 			for fieldName, property := range spaceProKeyMap {
-				if property.Type != "vector" {
+				if property.Type != "" && strings.Compare(property.Type, "vector") != 0 {
 					searchReq.Fields = append(searchReq.Fields, fieldName)
-				} else {
+				}
+				if property.Type != "" && strings.Compare(property.Type, "vector") == 0 {
 					vectorFieldArr = append(vectorFieldArr, fieldName)
 				}
 			}
 			searchReq.Fields = append(searchReq.Fields, mapping.IdField)
 		} else {
 			for _, field := range searchReq.Fields {
-				if field != mapping.IdField && spaceProKeyMap[field] == nil {
-					return fmt.Errorf("query param fields are not exist in the table")
+				if field != mapping.IdField {
+					if spaceProKeyMap[field] == nil {
+						return fmt.Errorf("query param fields are not exist in the table")
+					}
 				}
 			}
 		}
@@ -660,36 +665,76 @@ func requestToPb(searchDoc *request.SearchDocumentRequest, space *entity.Space, 
 		queryFieldMap[feild] = feild
 	}
 
-	if searchReq.Head.Params == nil {
-		searchReq.Head.Params = make(map[string]string)
+	sortOrder, err := searchDoc.SortOrder()
+	if err != nil {
+		return err
 	}
 
-	indexParams := &entity.IndexParams{}
-	if searchReq.IndexParams != "" {
-		err := vjson.Unmarshal([]byte(searchReq.IndexParams), indexParams)
-		if err != nil {
-			return fmt.Errorf("unmarshal err:[%s], searchReq.IndexParams:[%s]", err.Error(), searchReq.IndexParams)
-		}
-	} else if space != nil && space.Index != nil {
+	if metricType == "" && space != nil && space.Index != nil {
+		indexParams := &entity.IndexParams{}
 		err := vjson.Unmarshal(space.Index.Params, indexParams)
 		if err != nil {
-			return fmt.Errorf("unmarshal err:[%s], space.Index.IndexParams:[%s]", err.Error(), string(space.Index.Params))
+			return fmt.Errorf("unmarshal err:[%s] , space.Index.IndexParams:[%s]", err.Error(), string(space.Index.Params))
+		}
+		metricType = indexParams.MetricType
+	}
+
+	if metricType != "" && metricType == "L2" {
+		sortOrder = sortorder.SortOrder{&sortorder.SortScore{Desc: false}}
+	}
+	spaceProMap := space.SpaceProperties
+	if spaceProMap == nil {
+		spacePro, _ := entity.UnmarshalPropertyJSON(space.Fields)
+		spaceProMap = spacePro
+	}
+	sortFieldMap := make(map[string]string)
+
+	sortFieldArr := make([]*vearchpb.SortField, 0, len(sortOrder))
+
+	for _, sort := range sortOrder {
+		sortField := sort.SortField()
+		if !(sortField == "_score" || sortField == "_id" || (spaceProMap[sortField] != nil)) {
+			return fmt.Errorf("query param sort field not space field")
+		}
+
+		sortFieldArr = append(sortFieldArr, &vearchpb.SortField{Field: sort.SortField(), Type: sort.GetSortOrder()})
+
+		if sortField != "_score" && sortField != "_id" && queryFieldMap[sortField] == "" {
+			searchReq.Fields = append(searchReq.Fields, sortField)
+		}
+
+		sortDesc := sort.GetSortOrder()
+		if sortDesc {
+			sortFieldMap[sortField] = "true"
+		} else {
+			sortFieldMap[sortField] = "false"
 		}
 	}
 
-	sort := ""
-	if indexParams.MetricType == "L2" {
-		sort = "asc"
-	} else {
-		sort = "desc"
+	searchReq.SortFields = sortFieldArr
+	searchReq.SortFieldMap = sortFieldMap
+
+	order := "desc"
+	if len(sortOrder) > 0 {
+		sortBool := sortOrder[0].GetSortOrder()
+		if !sortBool {
+			order = "asc"
+		}
 	}
-	searchReq.Head.Params["sort"] = sort
+
+	if searchReq.Head.Params == nil {
+		paramMap := make(map[string]string)
+		paramMap["sort"] = order
+		searchReq.Head.Params = paramMap
+	} else {
+		searchReq.Head.Params["sort"] = order
+	}
 
 	searchReq.Head.Params["load_balance"] = searchDoc.LoadBalance
 
-	err := parseQuery(searchDoc.Query, searchReq, space)
-	if err != nil {
-		return err
+	parseErr := parseQuery(searchDoc.Query, searchReq, space)
+	if parseErr != nil {
+		return parseErr
 	}
 
 	searchUrlParamParse(searchReq)

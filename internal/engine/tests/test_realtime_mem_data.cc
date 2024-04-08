@@ -257,7 +257,7 @@ TEST_F(RealTimeMemDataTest, NoMaxSize) {
 }
 
 TEST_F(RealTimeMemDataTest, DumpLoad) {
-  int nums[2];
+  size_t nums[2];
   nums[0] = bucket_keys;
   nums[1] = bucket_keys + 10;
   int ntotal = 0;
@@ -291,12 +291,12 @@ TEST_F(RealTimeMemDataTest, DumpLoad) {
   rt_invert_index->cur_ptr_ = new_realtime_data;
   faiss::IOReader *fr = new FileIOReader(index_file.c_str());
   int nload = 0;
-  ASSERT_EQ(0, ReadInvertedLists(fr, rt_invert_index, nload));
+  ASSERT_EQ(0, ReadInvertedLists(fr, rt_invert_index, nload).code());
   delete fr;
 
   // validate
   int nexpect = ntotal;
-  int expect_nums[2] = {nums[0], nums[1]};
+  size_t expect_nums[2] = {nums[0], nums[1]};
 
   ASSERT_EQ(nexpect, nload);
   ASSERT_EQ(expect_nums[0],

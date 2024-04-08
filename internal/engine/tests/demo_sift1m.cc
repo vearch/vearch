@@ -146,12 +146,13 @@ int Train() {
 }
 
 int Dump() {
-  int ret = gamma_index->dump(test::path);
+  int ret = gamma_index->dump(test::path).code();
   return ret;
 }
 
 int Load() {
-  int ret = gamma_index->load(test::path);
+  int num;
+  int ret = gamma_index->load(test::path, num).code();
   return ret;
 }
 

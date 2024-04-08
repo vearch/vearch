@@ -89,7 +89,7 @@ void UpdateToRawVector(RawVector *raw_vector, int start_id, int num,
     int ret = raw_vector->Update(i, *field);
     assert(0 == ret);
     if (raw_vector->GetIO()) {
-      ret = raw_vector->GetIO()->Update(i);
+      ret = raw_vector->GetIO()->Update(i).code();
       assert(0 == ret);
     }
     delete field;
@@ -150,14 +150,14 @@ void ValidateVectorHeader(RawVector *raw_vector, int start_id, int num,
 
 static int Dump(RawVector *raw_vector, int start, int end) {
   if (raw_vector->GetIO()) {
-    return raw_vector->GetIO()->Dump(start, end);
+    return raw_vector->GetIO()->Dump(start, end).code();
   }
   return 0;
 }
 
 static int Load(RawVector *raw_vector, int num) {
   if (raw_vector->GetIO()) {
-    return raw_vector->GetIO()->Load(num);
+    return raw_vector->GetIO()->Load(num).code();
   }
   return 0;
 }

@@ -24,6 +24,7 @@ import (
 	"github.com/vearch/vearch/internal/entity"
 	"github.com/vearch/vearch/internal/pkg/log"
 	"github.com/vearch/vearch/internal/proto/vearchpb"
+	"github.com/vearch/vearch/internal/ps/engine/sortorder"
 )
 
 const defaultRpcTimeOut int64 = 10 * 1000 // 10 second
@@ -198,8 +199,13 @@ func (docService *docService) search(ctx context.Context, args *vearchpb.SearchR
 		return &vearchpb.SearchResponse{Head: setErrHead(request.Err)}
 	}
 
-	order := args.Head.Params["sort"]
-	searchResponse := request.SearchFieldSortExecute(order)
+	sortOrder := make([]sortorder.Sort, 0)
+	if args.SortFields != nil && len(args.SortFields) > 0 {
+		for _, sortF := range args.SortFields {
+			sortOrder = append(sortOrder, &sortorder.SortField{Field: sortF.Field, Desc: sortF.Type})
+		}
+	}
+	searchResponse := request.SearchFieldSortExecute(sortOrder)
 
 	if searchResponse == nil {
 		return &vearchpb.SearchResponse{Head: setErrHead(request.Err)}
