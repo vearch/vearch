@@ -215,7 +215,6 @@ query = {
     }],
     "retrieval_param":{"metric_type": "InnerProduct", "nprobe":20},
     "direct_search_type": 0,
-    "online_log_level": "debug",
     "topn": 10,
     "fields": ["field1", "field2"]
 }
@@ -281,7 +280,6 @@ print(result)
     - nprobe :  It is used in the IVFPQ , BINARYIVF and IVFFLAT model. Scan clustered buckets, default 10, it should be less than ncentroids.
     - efSearch: It is used in the HNSW model.  defaul 64.
 - direct_search_type : Specify the query type. 0 means to use index if the feature has been created, and violent search if it has not been created; and 1 means not to use index only for violent search. The default value is 0.
-- online_log_level : debug|info|warn|error|none . Set “debug” to specify to print more detailed logs on the server, which is convenient for troubleshooting in the development and test phase.
 - topn : Specifies the maximum number of results to return.
 - has_rank : whether it needs reranking after recalling from PQ index. default 0, has not rank; 1, has rank
 - multi_vector_rank : whether it needs reranking after merging the searching result of multi-vectors. default 0, has not rank; 1, has rank

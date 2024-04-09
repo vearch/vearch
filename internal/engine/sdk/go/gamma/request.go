@@ -47,7 +47,6 @@ type Request struct {
 	Fields           []string
 	RangeFilters     []RangeFilter
 	TermFilters      []TermFilter
-	OnlineLogLevel   string
 	IndexParams      string
 	HasRank          bool
 	MultiVectorRank  int32
@@ -58,7 +57,6 @@ type Request struct {
 
 func (request *Request) Serialize(buffer *[]byte) int {
 	builder := flatbuffers.NewBuilder(0)
-	onlineLogLevel := builder.CreateString(request.OnlineLogLevel)
 	indexParams := builder.CreateString(request.IndexParams)
 
 	var fields, vectorQuerys, rangeFilters, termFilters []flatbuffers.UOffsetT
@@ -158,7 +156,6 @@ func (request *Request) Serialize(buffer *[]byte) int {
 	gamma_api.RequestAddVecFields(builder, v)
 	gamma_api.RequestAddRangeFilters(builder, r)
 	gamma_api.RequestAddTermFilters(builder, t)
-	gamma_api.RequestAddOnlineLogLevel(builder, onlineLogLevel)
 	gamma_api.RequestAddIndexParams(builder, indexParams)
 	gamma_api.RequestAddHasRank(builder, request.HasRank)
 	gamma_api.RequestAddMultiVectorRank(builder, request.MultiVectorRank)
@@ -174,7 +171,6 @@ func (request *Request) Serialize(buffer *[]byte) int {
 
 func SearchRequestSerialize(request *vearchpb.SearchRequest) []byte {
 	builder := flatbuffers.NewBuilder(0)
-	onlineLogLevel := builder.CreateString("")
 	indexParams := builder.CreateString(request.IndexParams)
 
 	var fields, vectorQuerys, rangeFilters, termFilters []flatbuffers.UOffsetT
@@ -275,7 +271,6 @@ func SearchRequestSerialize(request *vearchpb.SearchRequest) []byte {
 	gamma_api.RequestAddVecFields(builder, v)
 	gamma_api.RequestAddRangeFilters(builder, r)
 	gamma_api.RequestAddTermFilters(builder, t)
-	gamma_api.RequestAddOnlineLogLevel(builder, onlineLogLevel)
 	gamma_api.RequestAddIndexParams(builder, indexParams)
 	gamma_api.RequestAddHasRank(builder, request.HasRank)
 	gamma_api.RequestAddMultiVectorRank(builder, request.MultiVectorRank)

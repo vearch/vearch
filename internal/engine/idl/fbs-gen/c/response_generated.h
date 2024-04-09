@@ -236,22 +236,16 @@ inline flatbuffers::Offset<SearchResult> CreateSearchResultDirect(
 
 struct Response FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_RESULTS = 4,
-    VT_ONLINE_LOG_MESSAGE = 6
+    VT_RESULTS = 4
   };
   const flatbuffers::Vector<flatbuffers::Offset<SearchResult>> *results() const {
     return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<SearchResult>> *>(VT_RESULTS);
-  }
-  const flatbuffers::String *online_log_message() const {
-    return GetPointer<const flatbuffers::String *>(VT_ONLINE_LOG_MESSAGE);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyOffset(verifier, VT_RESULTS) &&
            verifier.VerifyVector(results()) &&
            verifier.VerifyVectorOfTables(results()) &&
-           VerifyOffset(verifier, VT_ONLINE_LOG_MESSAGE) &&
-           verifier.VerifyString(online_log_message()) &&
            verifier.EndTable();
   }
 };
@@ -261,9 +255,6 @@ struct ResponseBuilder {
   flatbuffers::uoffset_t start_;
   void add_results(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<SearchResult>>> results) {
     fbb_.AddOffset(Response::VT_RESULTS, results);
-  }
-  void add_online_log_message(flatbuffers::Offset<flatbuffers::String> online_log_message) {
-    fbb_.AddOffset(Response::VT_ONLINE_LOG_MESSAGE, online_log_message);
   }
   explicit ResponseBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -279,24 +270,19 @@ struct ResponseBuilder {
 
 inline flatbuffers::Offset<Response> CreateResponse(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<SearchResult>>> results = 0,
-    flatbuffers::Offset<flatbuffers::String> online_log_message = 0) {
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<SearchResult>>> results = 0) {
   ResponseBuilder builder_(_fbb);
-  builder_.add_online_log_message(online_log_message);
   builder_.add_results(results);
   return builder_.Finish();
 }
 
 inline flatbuffers::Offset<Response> CreateResponseDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
-    const std::vector<flatbuffers::Offset<SearchResult>> *results = nullptr,
-    const char *online_log_message = nullptr) {
+    const std::vector<flatbuffers::Offset<SearchResult>> *results = nullptr) {
   auto results__ = results ? _fbb.CreateVector<flatbuffers::Offset<SearchResult>>(*results) : 0;
-  auto online_log_message__ = online_log_message ? _fbb.CreateString(online_log_message) : 0;
   return gamma_api::CreateResponse(
       _fbb,
-      results__,
-      online_log_message__);
+      results__);
 }
 
 inline const gamma_api::Response *GetResponse(const void *buf) {

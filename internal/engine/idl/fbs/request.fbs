@@ -34,7 +34,6 @@ table Request {
   term_filters:[TermFilter];
   index_params:string;
   has_rank:bool;                  // default false, not rank
-  online_log_level:string;        // DEBUG, INFO, WARN, ERROR
   multi_vector_rank:int;
   l2_sqrt:bool;                   // default FALSE, don't do sqrt; TRUE, do sqrt
 }

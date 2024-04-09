@@ -209,7 +209,6 @@ int SearchFaiss(struct Options &opt, size_t num) {
         "{\"metric_type\" : \"L2\", \"recall_num\" : "
         "10, \"nprobe\" : 10, \"ivf_flat\" : 0}";
     request.SetIndexParams(index_params);
-    // request.SetOnlineLogLevel("");
     request.SetMultiVectorRank(0);
     request.SetL2Sqrt(false);
 

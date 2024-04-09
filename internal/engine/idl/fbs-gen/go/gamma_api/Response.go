@@ -46,25 +46,14 @@ func (rcv *Response) ResultsLength() int {
 	return 0
 }
 
-func (rcv *Response) OnlineLogMessage() []byte {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
-	if o != 0 {
-		return rcv._tab.ByteVector(o + rcv._tab.Pos)
-	}
-	return nil
-}
-
 func ResponseStart(builder *flatbuffers.Builder) {
-	builder.StartObject(2)
+	builder.StartObject(1)
 }
 func ResponseAddResults(builder *flatbuffers.Builder, results flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(results), 0)
 }
 func ResponseStartResultsVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(4, numElems, 4)
-}
-func ResponseAddOnlineLogMessage(builder *flatbuffers.Builder, onlineLogMessage flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(onlineLogMessage), 0)
 }
 func ResponseEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

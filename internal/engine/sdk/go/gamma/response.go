@@ -40,13 +40,11 @@ type SearchResult struct {
 
 type Response struct {
 	Results          []SearchResult
-	OnlineLogMessage string
 	response         *gamma_api.Response
 }
 
 func (response *Response) Serialize(buffer *[]byte) int {
 	builder := flatbuffers.NewBuilder(0)
-	onlineLogMessage := builder.CreateString(response.OnlineLogMessage)
 
 	var results []flatbuffers.UOffsetT
 	results = make([]flatbuffers.UOffsetT, len(response.Results))
@@ -107,7 +105,6 @@ func (response *Response) Serialize(buffer *[]byte) int {
 
 	gamma_api.ResponseStart(builder)
 	gamma_api.ResponseAddResults(builder, r)
-	gamma_api.ResponseAddOnlineLogMessage(builder, onlineLogMessage)
 
 	builder.Finish(builder.EndObject())
 
@@ -119,7 +116,6 @@ func (response *Response) Serialize(buffer *[]byte) int {
 
 func (response *Response) DeSerialize(buffer []byte) {
 	response.response = gamma_api.GetRootAsResponse(buffer, 0)
-	response.OnlineLogMessage = string(response.response.OnlineLogMessage())
 	response.Results = make([]SearchResult, response.response.ResultsLength())
 
 	for i := 0; i < response.response.ResultsLength(); i++ {
@@ -152,7 +148,6 @@ func (response *Response) DeSerialize(buffer []byte) {
 
 func DeSerialize(buffer []byte, resp *vearchpb.SearchResponse) {
 	gammaResponse := gamma_api.GetRootAsResponse(buffer, 0)
-	resp.OnlineLogMessage = string(gammaResponse.OnlineLogMessage())
 	for i := 0; i < gammaResponse.ResultsLength(); i++ {
 		var result gamma_api.SearchResult
 		respResult := vearchpb.SearchResult{}

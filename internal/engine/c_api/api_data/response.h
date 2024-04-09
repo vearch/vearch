@@ -112,8 +112,6 @@ class Response {
 
   std::vector<struct SearchResult> &Results();
 
-  void SetOnlineLogMessage(const std::string &msg);
-
   void SetEngineInfo(void *table, void *vector_mgr, GammaResult *gamma_results,
                      int req_num);
 
@@ -128,7 +126,6 @@ class Response {
  private:
   gamma_api::Response *response_;
   std::vector<struct SearchResult> results_;
-  std::string online_log_message_;
   GammaResult *gamma_results_ = nullptr;
   void *table_ = nullptr;
   void *vector_mgr_ = nullptr;

@@ -61,10 +61,6 @@ class Request : public RawData {
 
   void SetIndexParams(const std::string &index_params);
 
-  std::string OnlineLogLevel();
-
-  void SetOnlineLogLevel(const std::string &online_log_level);
-
   bool HasRank();
 
   void SetHasRank(bool has_rank);
@@ -92,7 +88,6 @@ class Request : public RawData {
   std::vector<struct TermFilter> term_filters_;
 
   std::string index_params_;
-  std::string online_log_level_;
   bool has_rank_;
   int multi_vector_rank_;
   bool l2_sqrt_;

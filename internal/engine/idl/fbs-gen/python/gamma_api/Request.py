@@ -129,27 +129,20 @@ class Request(object):
         return False
 
     # Request
-    def OnlineLogLevel(self):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(22))
-        if o != 0:
-            return self._tab.String(o + self._tab.Pos)
-        return None
-
-    # Request
     def MultiVectorRank(self):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(24))
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(22))
         if o != 0:
             return self._tab.Get(flatbuffers.number_types.Int32Flags, o + self._tab.Pos)
         return 0
 
     # Request
     def L2Sqrt(self):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(26))
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(24))
         if o != 0:
             return bool(self._tab.Get(flatbuffers.number_types.BoolFlags, o + self._tab.Pos))
         return False
 
-def RequestStart(builder): builder.StartObject(12)
+def RequestStart(builder): builder.StartObject(11)
 def RequestAddReqNum(builder, reqNum): builder.PrependInt32Slot(0, reqNum, 0)
 def RequestAddTopn(builder, topn): builder.PrependInt32Slot(1, topn, 0)
 def RequestAddBruteForceSearch(builder, bruteForceSearch): builder.PrependInt32Slot(2, bruteForceSearch, 0)
@@ -163,7 +156,6 @@ def RequestAddTermFilters(builder, termFilters): builder.PrependUOffsetTRelative
 def RequestStartTermFiltersVector(builder, numElems): return builder.StartVector(4, numElems, 4)
 def RequestAddIndexParams(builder, indexParams): builder.PrependUOffsetTRelativeSlot(7, flatbuffers.number_types.UOffsetTFlags.py_type(indexParams), 0)
 def RequestAddHasRank(builder, hasRank): builder.PrependBoolSlot(8, hasRank, 0)
-def RequestAddOnlineLogLevel(builder, onlineLogLevel): builder.PrependUOffsetTRelativeSlot(9, flatbuffers.number_types.UOffsetTFlags.py_type(onlineLogLevel), 0)
-def RequestAddMultiVectorRank(builder, multiVectorRank): builder.PrependInt32Slot(10, multiVectorRank, 0)
-def RequestAddL2Sqrt(builder, l2Sqrt): builder.PrependBoolSlot(11, l2Sqrt, 0)
+def RequestAddMultiVectorRank(builder, multiVectorRank): builder.PrependInt32Slot(9, multiVectorRank, 0)
+def RequestAddL2Sqrt(builder, l2Sqrt): builder.PrependBoolSlot(10, l2Sqrt, 0)
 def RequestEnd(builder): return builder.EndObject()

@@ -681,7 +681,6 @@ class GammaRequest:
         self.brute_force_search = 0
         self.retrieval_params = ""
         self.has_rank = True
-        self.online_log_level = "DEBUG"
         self.multi_vector_rank = 0
         self.l2_sqrt = False
 
@@ -713,7 +712,6 @@ class GammaRequest:
         request.SetTopN(self.topn)
         request.SetBruteForceSearch(self.brute_force_search)
         request.SetRetrievalParams(self.retrieval_params)
-        request.SetOnlineLogLevel(self.online_log_level)
         request.SetHasRank(self.has_rank)
         request.SetMultiVectorRank(self.multi_vector_rank)
         request.SetL2Sqrt(self.l2_sqrt)
@@ -762,11 +760,6 @@ class GammaRequest:
             self.brute_force_search = 1 if querys["is_brute_search"] == 1 else 0
         if "has_rank" in querys and isinstance(querys["has_rank"], bool):
             self.has_rank = querys["has_rank"]
-        if (
-            "online_log_level" in querys
-            and querys["online_log_level"].upper() in self.log_level_map
-        ):
-            self.onlin_log_leval = querys["online_log_level"]
         if "l2_sqrt" in querys and isinstance(querys["l2_sqrt"], bool):
             self.l2_sqrt = querys["l2_sqrt"]
         # if 'multi_vector_rank' in querys and isinstance(querys['multi_vector_rank'], int):
@@ -1031,7 +1024,6 @@ class GammaRequest:
         TfSeria = self.get_term_filters_seria(self.term_filters, builder)
         FdSeria = self.get_fields_seria(self.fields, builder)
         RpSeria = builder.CreateString(self.retrieval_params)
-        OllSeria = builder.CreateString(self.online_log_level)
 
         PRequest.RequestStart(builder)
         PRequest.RequestAddReqNum(builder, self.req_num)
@@ -1041,7 +1033,6 @@ class GammaRequest:
         PRequest.RequestAddVecFields(builder, VqSeria)
         PRequest.RequestAddRangeFilters(builder, RfSeria)
         PRequest.RequestAddTermFilters(builder, TfSeria)
-        PRequest.RequestAddOnlineLogLevel(builder, OllSeria)
         PRequest.RequestAddRetrievalParams(builder, RpSeria)
         PRequest.RequestAddHasRank(builder, self.has_rank)
         PRequest.RequestAddMultiVectorRank(builder, self.multi_vector_rank)
@@ -1139,9 +1130,8 @@ class GammaMemoryInfo:
 
 
 class GammaResponse:
-    def __init__(self, results=None, online_log_message=None):
+    def __init__(self, results=None):
         self.search_res = []
-        self.online_log_message = online_log_message
 
     def npValue_to_value(self, table, name, np_value):
         if type(np_value) is not np.ndarray:
@@ -1168,7 +1158,6 @@ class GammaResponse:
 
     def deserialize(self, table, buf):
         response = PResponse.Response.GetRootAsResponse(buf, 0)
-        online_log_message = response.OnlineLogMessage().decode("utf-8")
         query_results = []
         for i in range(response.ResultsLength()):
             query_result = {}

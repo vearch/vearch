@@ -38,15 +38,7 @@ class Response(object):
             return self._tab.VectorLen(o)
         return 0
 
-    # Response
-    def OnlineLogMessage(self):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(6))
-        if o != 0:
-            return self._tab.String(o + self._tab.Pos)
-        return None
-
-def ResponseStart(builder): builder.StartObject(2)
+def ResponseStart(builder): builder.StartObject(1)
 def ResponseAddResults(builder, results): builder.PrependUOffsetTRelativeSlot(0, flatbuffers.number_types.UOffsetTFlags.py_type(results), 0)
 def ResponseStartResultsVector(builder, numElems): return builder.StartVector(4, numElems, 4)
-def ResponseAddOnlineLogMessage(builder, onlineLogMessage): builder.PrependUOffsetTRelativeSlot(1, flatbuffers.number_types.UOffsetTFlags.py_type(onlineLogMessage), 0)
 def ResponseEnd(builder): return builder.EndObject()

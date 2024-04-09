@@ -365,14 +365,6 @@ int Engine::Search(Request &request, Response &response_results,
     response_results.SetEngineInfo(table_, vec_manager_, gamma_result, 1);
   }
 
-#ifdef PERFORMANCE_TESTING
-  std::string online_log_level = request.OnlineLogLevel();
-  if (strncasecmp("debug", online_log_level.c_str(), 5) == 0) {
-    response_results.SetOnlineLogMessage(
-        gamma_query.condition->GetPerfTool().OutputPerf().str());
-  }
-#endif  // PERFORMANCE_TESTING
-
   RequestConcurrentController::GetInstance().Release(req_num);
   return status.code();
 }

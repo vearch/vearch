@@ -46,9 +46,7 @@ int Response::Serialize(const std::string &space_name,
     std::vector<flatbuffers::Offset<gamma_api::SearchResult>> search_results;
     auto result_vec = builder.CreateVector(search_results);
 
-    flatbuffers::Offset<flatbuffers::String> message =
-        builder.CreateString(online_log_message_);
-    auto res = gamma_api::CreateResponse(builder, result_vec, message);
+    auto res = gamma_api::CreateResponse(builder, result_vec);
     builder.Finish(res);
 
     *out_len = builder.GetSize();
@@ -123,10 +121,7 @@ int Response::Serialize(const std::string &space_name,
   }
 
   auto result_vec = builder.CreateVector(search_results);
-
-  flatbuffers::Offset<flatbuffers::String> message =
-      builder.CreateString(online_log_message_);
-  auto res = gamma_api::CreateResponse(builder, result_vec, message);
+  auto res = gamma_api::CreateResponse(builder, result_vec);
   builder.Finish(res);
 
   *out_len = builder.GetSize();
@@ -181,8 +176,6 @@ void Response::Deserialize(const char *data, int len) {
     }
     results_[i] = std::move(result);
   }
-
-  online_log_message_ = response_->online_log_message()->str();
 }
 
 void Response::AddResults(const struct SearchResult &result) {
@@ -194,10 +187,6 @@ void Response::AddResults(struct SearchResult &&result) {
 }
 
 std::vector<struct SearchResult> &Response::Results() { return results_; }
-
-void Response::SetOnlineLogMessage(const std::string &msg) {
-  online_log_message_ = msg;
-}
 
 void Response::SetEngineInfo(void *table, void *vector_mgr,
                              GammaResult *gamma_results, int req_num) {

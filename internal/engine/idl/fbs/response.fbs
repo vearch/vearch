@@ -21,7 +21,6 @@ table SearchResult {
 
 table Response {
   results:[SearchResult];
-  online_log_message:string;
 }
 
 root_type Response;

@@ -201,10 +201,9 @@ message SearchResult {
 message SearchResponse {
   ResponseHead head = 1;
   repeated SearchResult results = 2;
-  string online_log_message = 3;
-  bool timeout = 4;
-  bytes FlatBytes = 5;
-  int32 top_size = 7;
+  bool timeout = 3;
+  bytes FlatBytes = 4;
+  int32 top_size = 5;
 }
 
 message SearchStatus {

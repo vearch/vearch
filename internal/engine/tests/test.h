@@ -555,7 +555,6 @@ int SearchThread(struct Options &opt, size_t num) {
         "{\"metric_type\" : \"InnerProduct\", \"recall_num\" : "
         "10, \"nprobe\" : 10, \"ivf_flat\" : 0}";
     request.SetIndexParams(index_params);
-    // request.SetOnlineLogLevel("");
     request.SetMultiVectorRank(0);
     request.SetL2Sqrt(false);
 
@@ -681,7 +680,6 @@ int GetVector(struct Options &opt) {
   request.SetTopN(10);
   request.SetReqNum(1);
   request.SetBruteForceSearch(0);
-  // request.SetOnlineLogLevel("");
   request.SetMultiVectorRank(0);
   request.SetL2Sqrt(false);
 

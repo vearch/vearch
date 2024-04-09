@@ -66,14 +66,14 @@ int Request::Serialize(char **out, int *out_len) {
                                     builder.CreateVector(value), is_union));
   }
 
-  auto res = gamma_api::CreateRequest(
-      builder, req_num_, topn_, brute_force_search_,
-      builder.CreateVector(vec_fields_vector),
-      builder.CreateVector(fields_vector),
-      builder.CreateVector(range_filter_vector),
-      builder.CreateVector(term_filter_vector),
-      builder.CreateString(index_params_), has_rank_,
-      builder.CreateString(online_log_level_), multi_vector_rank_, l2_sqrt_);
+  auto res =
+      gamma_api::CreateRequest(builder, req_num_, topn_, brute_force_search_,
+                               builder.CreateVector(vec_fields_vector),
+                               builder.CreateVector(fields_vector),
+                               builder.CreateVector(range_filter_vector),
+                               builder.CreateVector(term_filter_vector),
+                               builder.CreateString(index_params_), has_rank_,
+                               multi_vector_rank_, l2_sqrt_);
 
   builder.Finish(res);
   *out_len = builder.GetSize();
@@ -140,7 +140,6 @@ void Request::Deserialize(const char *data, int len) {
   }
 
   index_params_ = request_->index_params()->str();
-  online_log_level_ = request_->online_log_level()->str();
   has_rank_ = request_->has_rank();
   multi_vector_rank_ = request_->multi_vector_rank();
   l2_sqrt_ = request_->l2_sqrt();
@@ -207,8 +206,6 @@ void Request::SetIndexParams(const std::string &index_params) {
   index_params_ = index_params;
 }
 
-std::string Request::OnlineLogLevel() { return online_log_level_; }
-
 bool Request::HasRank() { return has_rank_; }
 
 void Request::SetHasRank(bool has_rank) { has_rank_ = has_rank; }
@@ -222,10 +219,6 @@ int Request::MultiVectorRank() {
 
 void Request::SetMultiVectorRank(int multi_vector_rank) {
   multi_vector_rank_ = multi_vector_rank;
-}
-
-void Request::SetOnlineLogLevel(const std::string &online_log_level) {
-  online_log_level_ = online_log_level;
 }
 
 bool Request::L2Sqrt() {
