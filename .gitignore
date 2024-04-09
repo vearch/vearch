@@ -16,6 +16,7 @@ __pycache__/
 test/grpc_client.go
 test/.pytest_cache/
 test/sift*
+test/datasets
 go.work
 go.work.sum
 

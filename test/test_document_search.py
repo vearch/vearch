@@ -29,7 +29,10 @@ logger = logging.getLogger(__name__)
 __description__ = """ test case for document search """
 
 
-xb, xq, _, gt = get_sift10K(logger)
+sift10k = DatasetSift10K(logger)
+xb = sift10k.get_database()
+xq = sift10k.get_queries()
+gt = sift10k.get_groundtruth()
 
 
 def check(total, bulk, full_field, with_filter, query_type, xb):
@@ -51,11 +54,16 @@ def check(total, bulk, full_field, with_filter, query_type, xb):
 
     properties = {}
     properties["fields"] = [
-        {"name": "field_int", "type": "integer", "index": {"name": "field_int","type": "SCALAR"}},
-        {"name": "field_long", "type": "long", "index": {"name": "field_long","type": "SCALAR"}},
-        {"name": "field_float", "type": "float", "index": {"name": "field_float","type": "SCALAR"}},
-        {"name": "field_double", "type": "double", "index": {"name": "field_double","type": "SCALAR"}},
-        {"name": "field_string", "type": "string", "index": {"name": "field_string","type": "SCALAR"}},
+        {"name": "field_int", "type": "integer", "index": {
+            "name": "field_int", "type": "SCALAR"}},
+        {"name": "field_long", "type": "long", "index": {
+            "name": "field_long", "type": "SCALAR"}},
+        {"name": "field_float", "type": "float", "index": {
+            "name": "field_float", "type": "SCALAR"}},
+        {"name": "field_double", "type": "double", "index": {
+            "name": "field_double", "type": "SCALAR"}},
+        {"name": "field_string", "type": "string", "index": {
+            "name": "field_string", "type": "SCALAR"}},
         {
             "name": "field_vector",
             "type": "vector",
@@ -103,6 +111,7 @@ def test_vearch_document_search(
 ):
     check(100, bulk, full_field, with_filter, query_type, xb)
 
+
 @pytest.mark.parametrize(
     ["index_type"],
     [["IVFPQ"], ["IVFFLAT"]],
@@ -124,11 +133,16 @@ def test_vearch_document_search_brute_force_search_threshold(index_type):
 
     properties = {}
     properties["fields"] = [
-        {"name": "field_int", "type": "integer", "index": {"name": "field_int","type": "SCALAR"}},
-        {"name": "field_long", "type": "long", "index": {"name": "field_long","type": "SCALAR"}},
-        {"name": "field_float", "type": "float", "index": {"name": "field_float","type": "SCALAR"}},
-        {"name": "field_double", "type": "double", "index": {"name": "field_double","type": "SCALAR"}},
-        {"name": "field_string", "type": "string", "index": {"name": "field_string","type": "SCALAR"}},
+        {"name": "field_int", "type": "integer", "index": {
+            "name": "field_int", "type": "SCALAR"}},
+        {"name": "field_long", "type": "long", "index": {
+            "name": "field_long", "type": "SCALAR"}},
+        {"name": "field_float", "type": "float", "index": {
+            "name": "field_float", "type": "SCALAR"}},
+        {"name": "field_double", "type": "double", "index": {
+            "name": "field_double", "type": "SCALAR"}},
+        {"name": "field_string", "type": "string", "index": {
+            "name": "field_string", "type": "SCALAR"}},
         {
             "name": "field_vector",
             "type": "vector",
@@ -255,7 +269,8 @@ def process_search_error_data(items):
         }
         data["query"]["vector"].append(vector_info)
         data["query"]["filter"] = []
-        prepare_wrong_range_filter_name(data["query"]["filter"], index, batch_size)
+        prepare_wrong_range_filter_name(
+            data["query"]["filter"], index, batch_size)
         data["size"] = batch_size
 
     if wrong_term_filter_name:
@@ -266,7 +281,8 @@ def process_search_error_data(items):
         }
         data["query"]["vector"].append(vector_info)
         data["query"]["filter"] = []
-        prepare_wrong_term_filter_name(data["query"]["filter"], index, batch_size)
+        prepare_wrong_term_filter_name(
+            data["query"]["filter"], index, batch_size)
         data["size"] = batch_size
 
     if wrong_vector_length:
@@ -306,7 +322,7 @@ def process_search_error_data(items):
     logger.info(rs.json())
 
     if "data" in rs.json():
-        pass #TODO
+        pass  # TODO
     else:
         assert rs.json()["code"] != 200
 
@@ -317,7 +333,7 @@ def search_error(logger, total, batch_size, xb, wrong_parameters: dict):
             (
                 i,
                 batch_size,
-                xb[i * batch_size : (i + 1) * batch_size],
+                xb[i * batch_size: (i + 1) * batch_size],
                 logger,
                 wrong_parameters,
             )

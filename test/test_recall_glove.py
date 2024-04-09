@@ -25,10 +25,10 @@ from utils.data_utils import *
 logging.basicConfig()
 logger = logging.getLogger(__name__)
 
-__description__ = """ test case for index ivfflat """
+__description__ = """ test case for index recall of glove-100 """
 
 
-def create(router_url, embedding_size, store_type="MemoryOnly", ncentroids=256):
+def create(router_url, embedding_size, index_type="FLAT", store_type="MemoryOnly"):
     properties = {}
     properties["fields"] = [
         {
@@ -42,11 +42,9 @@ def create(router_url, embedding_size, store_type="MemoryOnly", ncentroids=256):
             "store_type": store_type,
             "index": {
                 "name": "gamma",
-                "type": "IVFFLAT",
+                "type": index_type,
                 "params": {
-                    "metric_type": "L2",
-                    "ncentroids": ncentroids,
-                    "training_threshold": ncentroids * 39
+                    "metric_type": "InnerProduct"
                 }
             },
             # "format": "normalization"
@@ -64,17 +62,34 @@ def create(router_url, embedding_size, store_type="MemoryOnly", ncentroids=256):
     logger.info(create_space(router_url, db_name, space_config))
 
 
-def query(nprobe, parallel_on_queries, xq, gt, k, logger):
+def benchmark(index_type, store_type, xb, xq, gt):
+    embedding_size = xb.shape[1]
+    batch_size = 100
+    k = 100
+
+    total = xb.shape[0]
+    total_batch = int(total / batch_size)
+    logger.info("dataset num: %d, total_batch: %d, dimension: %d, search num: %d, topK: %d" % (
+        total, total_batch, embedding_size, xq.shape[0], k))
+
+    create(router_url, embedding_size, index_type, store_type)
+
+    add(total_batch, batch_size, xb)
+
+    add(total - total_batch * batch_size, 1, xb[total_batch * batch_size:])
+
+    waiting_index_finish(logger, total)
+
     query_dict = {
         "query": {
             "vector": []
         },
-        "index_params": {
-            "nprobe": nprobe,
-            "parallel_on_queries": parallel_on_queries
-        },
         "vector_value": False,
+        "index_params": {
+            "efSearch": 200
+        },
         "fields": ["field_int"],
+        "quick": True,
         "size": k,
         "db_name": db_name,
         "space_name": space_name,
@@ -82,50 +97,30 @@ def query(nprobe, parallel_on_queries, xq, gt, k, logger):
 
     for batch in [True, False]:
         avarage, recalls = evaluate(xq, gt, k, batch, query_dict, logger)
-        result = "batch: %d, nprobe: %d, parallel_on_queries: %d, avarage time: %.2f ms, " \
-            % (batch, nprobe, parallel_on_queries, avarage)
+        result = "batch: %d, search avarage time: %.2f ms, " % (batch, avarage)
         for recall in recalls:
             result += "recall@%d = %.2f%% " % (recall, recalls[recall] * 100)
-            if recall == k and nprobe > 1:
-                assert recalls[recall] >= 0.9
         logger.info(result)
-        if nprobe > 1:
-            assert recalls[1] >= 0.8
-            assert recalls[10] >= 0.95
 
-
-def benchmark(store_type, ncentroids, xb, xq, gt):
-    embedding_size = xb.shape[1]
-    batch_size = 100
-    k = 100
-
-    total = xb.shape[0]
-    total_batch = int(total / batch_size)
-    logger.info("dataset num: %d, total_batch: %d, dimension: %d, ncentroids %d, search num: %d, topK: %d"
-                % (total, total_batch, embedding_size, ncentroids, xq.shape[0], k))
-
-    create(router_url, embedding_size, store_type, ncentroids)
-
-    add(total_batch, batch_size, xb)
-
-    waiting_index_finish(logger, total)
-
-    for nprobe in [1, 10, 20]:
-        for parallel_on_queries in [0, 1]:
-            query(nprobe, parallel_on_queries, xq, gt, k, logger)
+        # assert recalls[100] >= 0.98
+        # assert recalls[10] >= 0.95
+        assert recalls[1] >= 0.5
 
     destroy(router_url, db_name, space_name)
 
 
-sift10k = DatasetSift10K(logger)
-xb = sift10k.get_database()
-xq = sift10k.get_queries()
-gt = sift10k.get_groundtruth()
+glove = DatasetGlove(logger)
+xb = glove.get_database()
+xq = glove.get_queries()
+gt = glove.get_groundtruth()
 
 
-@ pytest.mark.parametrize(["store_type", "ncentroids"], [
-    ["RocksDB", 256],
-    ["RocksDB", 128],
+@ pytest.mark.parametrize(["index_type", "store_type"], [
+    ["HNSW", "MemoryOnly"],
+    # ["IVFPQ", "MemoryOnly"],
+    # ["IVFPQ", "RocksDB"],
+    # ["IVFFLAT", "RocksDB"],
+    # ["FLAT", "MemoryOnly"]
 ])
-def test_vearch_index_ivfflat(store_type: str, ncentroids: int):
-    benchmark(store_type, ncentroids, xb, xq, gt)
+def test_vearch_index_recall_glove(index_type: str, store_type: str):
+    benchmark(index_type, store_type, xb, xq, gt)

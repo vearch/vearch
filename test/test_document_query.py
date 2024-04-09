@@ -29,7 +29,10 @@ logger = logging.getLogger(__name__)
 __description__ = """ test case for document query """
 
 
-xb, xq, _, gt = get_sift10K(logger)
+sift10k = DatasetSift10K(logger)
+xb = sift10k.get_database()
+xq = sift10k.get_queries()
+gt = sift10k.get_groundtruth()
 
 
 def check(total, bulk, full_field, query_type, xb):
@@ -51,11 +54,16 @@ def check(total, bulk, full_field, query_type, xb):
 
     properties = {}
     properties["fields"] = [
-        {"name": "field_int", "type": "integer", "index": {"name": "field_int","type": "SCALAR"}},
-        {"name": "field_long", "type": "long", "index": {"name": "field_long","type": "SCALAR"}},
-        {"name": "field_float", "type": "float", "index": {"name": "field_float","type": "SCALAR"}},
-        {"name": "field_double", "type": "double", "index": {"name": "field_double","type": "SCALAR"}},
-        {"name": "field_string", "type": "string", "index": {"name": "field_string","type": "SCALAR"}},
+        {"name": "field_int", "type": "integer", "index": {
+            "name": "field_int", "type": "SCALAR"}},
+        {"name": "field_long", "type": "long", "index": {
+            "name": "field_long", "type": "SCALAR"}},
+        {"name": "field_float", "type": "float", "index": {
+            "name": "field_float", "type": "SCALAR"}},
+        {"name": "field_double", "type": "double", "index": {
+            "name": "field_double", "type": "SCALAR"}},
+        {"name": "field_string", "type": "string", "index": {
+            "name": "field_string", "type": "SCALAR"}},
         {
             "name": "field_vector",
             "type": "vector",
@@ -81,7 +89,8 @@ def check(total, bulk, full_field, query_type, xb):
     if query_type == "by_filter":
         time.sleep(3)
 
-    query_interface(logger, total_batch, batch_size, xb, full_field, seed, query_type)
+    query_interface(logger, total_batch, batch_size,
+                    xb, full_field, seed, query_type)
 
     destroy(router_url, db_name, space_name)
 
@@ -138,6 +147,27 @@ class TestDocumentQueryBadCase:
         wrong_parameters[index] = True
         query_error(self.logger, 1, 1, self.xb, "query", wrong_parameters)
 
+    def test_prepare_add_for_badcase(self):
+        add(1, 100, self.xb, with_id=True, full_field=True)
+
+    @pytest.mark.parametrize(
+        ["index", "wrong_type"],
+        [
+            [0, "params_both_wrong"],
+            [1, "params_just_one_wrong"],
+            [2, "return_both_wrong"],
+            [3, "return_just_one_wrong"],
+        ],
+    )
+    def test_vearch_document_query_multiple_badcase(self, index: int, wrong_type: str):
+        wrong_parameters = [False for i in range(4)]
+        wrong_parameters[index] = True
+        total_batch = 1
+        batch_size = 2
+        query_error(self.logger, total_batch, batch_size,
+                    self.xb, "query", wrong_parameters)
+
     # destroy for badcase
+
     def test_destroy_cluster_badcase(self):
         destroy(router_url, db_name, space_name)

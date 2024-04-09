@@ -93,9 +93,9 @@ class TestSpaceCreate:
                             "nsubvector": 32,
                             "nlinks": 32,
                             "efConstruction": 40,
-                            "nprobe":80,
-                            "efSearch":64,
-                            "training_threshold":70000
+                            "nprobe": 80,
+                            "efSearch": 64,
+                            "training_threshold": 70000
                         }
                     },
                 },
@@ -148,7 +148,7 @@ class TestSpaceCreate:
                 },
                 {
                     "name": "field_string_array",
-                    "type": "string", 
+                    "type": "string",
                     "array": True,
                     "index": {
                         "name": "field_float",
@@ -195,7 +195,7 @@ class TestSpaceCreate:
     @pytest.mark.parametrize(
         ["wrong_index", "wrong_type", "index_type"],
         [
-            [0, "bad training_threshold", "IVFPQ"], 
+            [0, "bad training_threshold", "IVFPQ"],
             [1, "bad training_threshold", "IVFFLAT"],
             [2, "bad space name", "FLAT"],
             [3, "beyond max nlinks", "HNSW"],
@@ -257,12 +257,16 @@ class TestSpaceCreate:
             "fields": [
                 {"name": "field_string", "type": "keyword"},
                 {"name": "field_int", "type": "integer"},
-                {"name": "field_float", "type": "float", "index": {"name": "field_float","type": "SCALAR"}},
-                {"name": "field_string_array", "type": "string", "array": True, "index": {"name": "field_string_array","type": "SCALAR"}},
-                {"name": "field_int_index", "type": "integer", "index": {"name": "field_int_index","type": "SCALAR"}},
-                {"name": "field_vector", "type": "vector", "dimension": embedding_size},
+                {"name": "field_float", "type": "float", "index": {
+                    "name": "field_float", "type": "SCALAR"}},
+                {"name": "field_string_array", "type": "string", "array": True,
+                    "index": {"name": "field_string_array", "type": "SCALAR"}},
+                {"name": "field_int_index", "type": "integer", "index": {
+                    "name": "field_int_index", "type": "SCALAR"}},
+                {"name": "field_vector", "type": "vector",
+                    "dimension": embedding_size},
                 {
-                    "name": "field_vector_normal", 
+                    "name": "field_vector_normal",
                     "type": "vector",
                     "dimension": int(embedding_size * 2),
                     "format": "normalization",
@@ -290,7 +294,7 @@ class TestSpaceCreate:
     @pytest.mark.parametrize(
         ["wrong_index", "wrong_type"],
         [
-            [0, "bad db name"], 
+            [0, "bad db name"],
             [1, "bad space name"],
         ],
     )
@@ -301,14 +305,19 @@ class TestSpaceCreate:
             "partition_num": 1,
             "replica_num": 1,
             "fields": [
-                {"name": "field_string", "type": "keyword", "index": {"name": "field_string","type": "SCALAR"}},
+                {"name": "field_string", "type": "keyword", "index": {
+                    "name": "field_string", "type": "SCALAR"}},
                 {"name": "field_int", "type": "integer"},
-                {"name": "field_float", "type": "float", "index": {"name": "field_float","type": "SCALAR"}},
-                {"name": "field_string_array", "type": "string", "array": True, "index": {"name": "field_string_array","type": "SCALAR"}},
-                {"name": "field_int_index", "type": "integer", "index": {"name": "field_int_index","type": "SCALAR"}},
-                {"name": "field_vector", "type": "vector", "dimension": embedding_size},
+                {"name": "field_float", "type": "float", "index": {
+                    "name": "field_float", "type": "SCALAR"}},
+                {"name": "field_string_array", "type": "string", "array": True,
+                    "index": {"name": "field_string_array", "type": "SCALAR"}},
+                {"name": "field_int_index", "type": "integer", "index": {
+                    "name": "field_int_index", "type": "SCALAR"}},
+                {"name": "field_vector", "type": "vector",
+                    "dimension": embedding_size},
                 {
-                    "name": "field_vector_normal", 
+                    "name": "field_vector_normal",
                     "type": "vector",
                     "dimension": int(embedding_size * 2),
                     "format": "normalization",
@@ -336,7 +345,8 @@ class TestSpaceCreate:
             describe_db_name = "wrong_db"
         if wrong_index == 1:
             describe_space_name = "wrong_space"
-        response = describe_space(logger, router_url, describe_db_name, describe_space_name)
+        response = describe_space(
+            logger, router_url, describe_db_name, describe_space_name)
         logger.info(response)
         assert response["code"] != 200
 

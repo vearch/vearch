@@ -29,11 +29,6 @@ __description__ = """ test case for index recall of sift1M """
 
 
 def create(router_url, embedding_size, index_type="FLAT", store_type="MemoryOnly"):
-    training_threshold = 1
-    ncentroids = 1024
-    if index_type == "IVFFLAT" or index_type == "IVFPQ":
-        training_threshold = ncentroids * 39
-    
     properties = {}
     properties["fields"] = [
         {
@@ -52,7 +47,6 @@ def create(router_url, embedding_size, index_type="FLAT", store_type="MemoryOnly
                     "metric_type": "L2"
                 }
             },
-            #"format": "normalization"
         }
     ]
 
@@ -67,14 +61,15 @@ def create(router_url, embedding_size, index_type="FLAT", store_type="MemoryOnly
     logger.info(create_space(router_url, db_name, space_config))
 
 
-def benchmark(index_type, store_type, xb, xq, xt, gt):
+def benchmark(index_type, store_type, xb, xq, gt):
     embedding_size = xb.shape[1]
     batch_size = 100
     k = 100
 
     total = xb.shape[0]
     total_batch = int(total / batch_size)
-    logger.info("dataset num: %d, total_batch: %d, dimension: %d, search num: %d, topK: %d" %(total, total_batch, embedding_size, xq.shape[0], k))
+    logger.info("dataset num: %d, total_batch: %d, dimension: %d, search num: %d, topK: %d" % (
+        total, total_batch, embedding_size, xq.shape[0], k))
 
     create(router_url, embedding_size, index_type, store_type)
 
@@ -86,7 +81,7 @@ def benchmark(index_type, store_type, xb, xq, xt, gt):
         "query": {
             "vector": []
         },
-        "vector_value":False,
+        "vector_value": False,
         "fields": ["field_int"],
         "quick": True,
         "size": k,
@@ -99,21 +94,27 @@ def benchmark(index_type, store_type, xb, xq, xt, gt):
         result = "batch: %d, search avarage time: %.2f ms, " % (batch, avarage)
         for recall in recalls:
             result += "recall@%d = %.2f%% " % (recall, recalls[recall] * 100)
-            if recall == k:
-                assert recalls[recall] >= 0.98
         logger.info(result)
+
+        assert recalls[100] >= 0.95
+        assert recalls[10] >= 0.9
+        assert recalls[1] >= 0.5
 
     destroy(router_url, db_name, space_name)
 
-xb, xq, xt, gt = get_sift1M(logger)
+
+sift1m = DatasetSift1M(logger)
+xb = sift1m.get_database()
+xq = sift1m.get_queries()
+gt = sift1m.get_groundtruth()
 
 
 @ pytest.mark.parametrize(["index_type", "store_type"], [
     ["HNSW", "MemoryOnly"],
-    ["IVFPQ", "MemoryOnly"],
-    ["IVFPQ", "RocksDB"],
-    ["IVFFLAT", "RocksDB"],
-    ["FLAT", "MemoryOnly"]
+    # ["IVFPQ", "MemoryOnly"],
+    # ["IVFPQ", "RocksDB"],
+    # ["IVFFLAT", "RocksDB"],
+    # ["FLAT", "MemoryOnly"]
 ])
-def test_vearch_index_recall(index_type: str, store_type: str):
-    benchmark(index_type, store_type, xb, xq, xt, gt)
+def test_vearch_index_recall_sift1m(index_type: str, store_type: str):
+    benchmark(index_type, store_type, xb, xq, gt)

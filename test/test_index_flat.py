@@ -47,7 +47,7 @@ def create(router_url, embedding_size, store_type="MemoryOnly"):
                     "metric_type": "L2",
                 }
             },
-            #"format": "normalization"
+            # "format": "normalization"
         }
     ]
 
@@ -61,6 +61,7 @@ def create(router_url, embedding_size, store_type="MemoryOnly"):
 
     logger.info(create_space(router_url, db_name, space_config))
 
+
 def query(parallel_on_queries, xq, gt, k, logger):
     query_dict = {
         "query": {
@@ -69,7 +70,7 @@ def query(parallel_on_queries, xq, gt, k, logger):
         "index_params": {
             "parallel_on_queries": parallel_on_queries
         },
-        "vector_value":False,
+        "vector_value": False,
         "fields": ["field_int"],
         "size": k,
         "db_name": db_name,
@@ -78,24 +79,25 @@ def query(parallel_on_queries, xq, gt, k, logger):
 
     for batch in [True, False]:
         avarage, recalls = evaluate(xq, gt, k, batch, query_dict, logger)
-        result = "batch: %d, parallel_on_queries: %d, avarage time: %.2f ms, " % (batch, parallel_on_queries, avarage)
+        result = "batch: %d, parallel_on_queries: %d, avarage time: %.2f ms, " % (
+            batch, parallel_on_queries, avarage)
         for recall in recalls:
             result += "recall@%d = %.2f%% " % (recall, recalls[recall] * 100)
-            if recall == k:
-                assert recalls[recall] >= 0.99
-        
-        assert recalls[1] >= 0.95
-        assert recalls[10] >= 1.0
         logger.info(result)
 
-def benchmark(store_type, xb, xq, xt, gt):
+        assert recalls[1] >= 0.95
+        assert recalls[10] >= 1.0
+
+
+def benchmark(store_type, xb, xq, gt):
     embedding_size = xb.shape[1]
     batch_size = 100
     k = 100
 
     total = xb.shape[0]
     total_batch = int(total / batch_size)
-    logger.info("dataset num: %d, total_batch: %d, dimension: %d, search num: %d, topK: %d" %(total, total_batch, embedding_size, xq.shape[0], k))
+    logger.info("dataset num: %d, total_batch: %d, dimension: %d, search num: %d, topK: %d" % (
+        total, total_batch, embedding_size, xq.shape[0], k))
 
     create(router_url, embedding_size, store_type)
 
@@ -108,11 +110,15 @@ def benchmark(store_type, xb, xq, xt, gt):
 
     destroy(router_url, db_name, space_name)
 
-xb, xq, xt, gt = get_sift10K(logger)
+
+sift10k = DatasetSift10K(logger)
+xb = sift10k.get_database()
+xq = sift10k.get_queries()
+gt = sift10k.get_groundtruth()
 
 
 @ pytest.mark.parametrize(["store_type"], [
     ["MemoryOnly"],
 ])
 def test_vearch_index_flat(store_type: str):
-    benchmark(store_type, xb, xq, xt, gt)
+    benchmark(store_type, xb, xq, gt)

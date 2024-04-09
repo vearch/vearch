@@ -76,7 +76,7 @@ def add(total, batch_size, xb, with_id=False, full_field=False, seed=1,  alias_n
             (
                 i,
                 batch_size,
-                xb[i * batch_size : (i + 1) * batch_size],
+                xb[i * batch_size: (i + 1) * batch_size],
                 with_id,
                 full_field,
                 seed,
@@ -106,7 +106,8 @@ def process_add_embedding_size_data(items):
         param_dict = {}
         param_dict["_id"] = str(index * batch_size + j)
         param_dict["field_int"] = index * batch_size + j
-        param_dict["field_vector"] = [random.random() for i in range(embedding_size)]
+        param_dict["field_vector"] = [random.random()
+                                      for i in range(embedding_size)]
         param_dict["field_long"] = param_dict["field_int"]
         param_dict["field_float"] = float(param_dict["field_int"])
         param_dict["field_double"] = float(param_dict["field_int"])
@@ -171,7 +172,7 @@ def process_add_error_data(items):
 
         if not without_vector:
             if wrong_vector_type:
-                param_dict["field_vector"] = {"feature":features[j].tolist()}
+                param_dict["field_vector"] = {"feature": features[j].tolist()}
             if wrong_vector_feature_length:
                 param_dict["field_vector"] = features[j].tolist()[:1]
             if wrong_vector_feature_type:
@@ -189,7 +190,8 @@ def process_add_error_data(items):
             )
 
         if wrong_string_length:
-            param_dict["field_string1"] = "".join(["0" for _ in range(max_str_length)])
+            param_dict["field_string1"] = "".join(
+                ["0" for _ in range(max_str_length)])
 
         if wrong_number_value:
             param_dict["field_long"] = param_dict["field_int"]
@@ -222,17 +224,58 @@ def process_add_error_data(items):
         assert rs.json()["code"] != 200
 
 
+def process_add_mul_error_data(items):
+    url = router_url + "/document/upsert"
+    data = {}
+    data["db_name"] = db_name
+    data["space_name"] = space_name
+    data["documents"] = []
+    index = items[0]
+    batch_size = items[1]
+    features = items[2]
+    logger = items[3]
+    parmas_both_wrong, parmas_just_one_wrong = items[4]
+
+    for j in range(batch_size):
+        param_dict = {}
+        param_dict["field_int"] = index * batch_size + j
+        param_dict["field_vector"] = features[j].tolist()
+
+        if parmas_both_wrong:
+            param_dict["field_string"] = float(param_dict["field_int"])
+        if parmas_just_one_wrong and j == batch_size - 1:
+            param_dict["field_string"] = float(param_dict["field_int"])
+        data["documents"].append(param_dict)
+
+    json_str = json.dumps(data)
+    rs = requests.post(url, json_str)
+    logger.info(rs.json())
+
+    assert rs.json()["code"] != 200
+
+
 def add_error(total, batch_size, xb, logger, wrong_parameters: list):
     for i in range(total):
-        process_add_error_data(
-            (
-                i,
-                batch_size,
-                xb[i * batch_size : (i + 1) * batch_size],
-                logger,
-                wrong_parameters,
+        if batch_size == 1:
+            process_add_error_data(
+                (
+                    i,
+                    batch_size,
+                    xb[i * batch_size: (i + 1) * batch_size],
+                    logger,
+                    wrong_parameters,
+                )
             )
-        )
+        if batch_size == 2:
+            process_add_mul_error_data(
+                (
+                    i,
+                    batch_size,
+                    xb[i * batch_size: (i + 1) * batch_size],
+                    logger,
+                    wrong_parameters,
+                )
+            )
 
 
 def process_add_multi_vec_data(items):
@@ -273,7 +316,7 @@ def add_multi_vector(total, batch_size, xb, with_id=False, full_field=False, see
             (
                 i,
                 batch_size,
-                xb[i * batch_size : (i + 1) * batch_size],
+                xb[i * batch_size: (i + 1) * batch_size],
                 with_id,
                 full_field,
                 seed,
@@ -326,7 +369,7 @@ def add_multi_vector_error(total, batch_size, xb, logger, wrong_parameters: list
             (
                 i,
                 batch_size,
-                xb[i * batch_size : (i + 1) * batch_size],
+                xb[i * batch_size: (i + 1) * batch_size],
                 logger,
                 wrong_parameters,
             )
@@ -575,7 +618,8 @@ def process_query_error_data(items):
         data["query"]["vector"].append(vector_info)
 
     if wrong_length_document_ids:
-        data["query"]["document_ids"] = [str(i) for i in range(max_document_ids_length)]
+        data["query"]["document_ids"] = [
+            str(i) for i in range(max_document_ids_length)]
 
     if wrong_both_id_and_filter:
         data["query"]["document_ids"] = ["0"]
@@ -613,18 +657,74 @@ def process_query_error_data(items):
         assert rs.json()["code"] != 200
 
 
+def process_query_multiple_error_data(items):
+    data = {}
+    data["db_name"] = db_name
+    data["space_name"] = space_name
+    data["query"] = {}
+    index = items[0]
+    batch_size = items[1]
+    features = items[2]
+    logger = items[3]
+    interface = items[4]
+    url = router_url + "/document/" + interface
+
+    (
+        params_both_wrong, params_just_one_wrong, return_both_wrong, return_just_one_wrong
+    ) = items[5]
+
+    if params_both_wrong:
+        data["query"]["document_ids"] = [1, 2]
+
+    if params_just_one_wrong:
+        data["query"]["document_ids"] = ["1", 2]
+
+    # not exist so call it return error
+    if return_both_wrong:
+        data["query"]["document_ids"] = ["1008611", "10086"]
+
+    if return_just_one_wrong:
+        data["query"]["document_ids"] = ["1", "10086"]
+
+    json_str = json.dumps(data)
+    logger.info(json_str)
+
+    rs = requests.post(url, data=json_str)
+    logger.info(rs.json())
+
+    if params_both_wrong or params_just_one_wrong:
+        assert rs.json()["code"] != 200
+    else:
+        if return_both_wrong:
+            assert rs.json()["data"]["total"] == 0
+        if return_just_one_wrong:
+            assert rs.json()["data"]["total"] == 1
+
+
 def query_error(logger, total, batch_size, xb, interface: str, wrong_parameters: list):
     for i in range(total):
-        process_query_error_data(
-            (
-                i,
-                batch_size,
-                xb[i * batch_size : (i + 1) * batch_size],
-                logger,
-                interface,
-                wrong_parameters,
+        if batch_size == 1:
+            process_query_error_data(
+                (
+                    i,
+                    batch_size,
+                    xb[i * batch_size: (i + 1) * batch_size],
+                    logger,
+                    interface,
+                    wrong_parameters,
+                )
             )
-        )
+        if batch_size == 2:
+            process_query_multiple_error_data(
+                (
+                    i,
+                    batch_size,
+                    xb[i * batch_size: (i + 1) * batch_size],
+                    logger,
+                    interface,
+                    wrong_parameters,
+                )
+            )
 
 
 def process_get_data(items):
@@ -712,7 +812,7 @@ def query_interface(
                 logger,
                 i,
                 batch_size,
-                xb[i * batch_size : (i + 1) * batch_size],
+                xb[i * batch_size: (i + 1) * batch_size],
                 full_field,
                 seed,
                 query_type,
@@ -785,7 +885,8 @@ def delete_interface(
     logger, total, batch_size, full_field=False, seed=1, delete_type="by_ids", alias_name=""
 ):
     for i in range(total):
-        process_delete_data((logger, i, batch_size, full_field, seed, delete_type, alias_name))
+        process_delete_data(
+            (logger, i, batch_size, full_field, seed, delete_type, alias_name))
 
 
 def process_search_data(items):
@@ -811,7 +912,6 @@ def process_search_data(items):
     if query_type == "by_vector_with_symbol":
         query_type = "by_vector"
         with_symbol = True
-
 
     if query_type == "by_vector":
         data["query"]["vector"] = []
@@ -877,7 +977,7 @@ def search_interface(
                 logger,
                 i,
                 batch_size,
-                xb[i * batch_size : (i + 1) * batch_size],
+                xb[i * batch_size: (i + 1) * batch_size],
                 full_field,
                 with_filter,
                 seed,
@@ -965,7 +1065,8 @@ def prepare_cluster_for_document_test(logger, total, xb):
 
     time.sleep(3)
 
-    query_interface(logger, total_batch, batch_size, xb, full_field, seed, "by_ids")
+    query_interface(logger, total_batch, batch_size,
+                    xb, full_field, seed, "by_ids")
 
 
 def waiting_index_finish(logger, total, timewait=5):
@@ -1105,6 +1206,7 @@ def get_servers_status(router_url: str):
     resp = requests.get(url)
     return resp.json()
 
+
 def get_cluster_partition(router_url: str):
     url = f"{router_url}/partitions"
     resp = requests.get(url)
@@ -1140,6 +1242,7 @@ def list_spaces(router_url: str, db_name: str):
     resp = requests.get(url)
     return resp.json()
 
+
 def describe_space(logger, router_url: str, db_name: str, space_name: str):
     url = f"{router_url}/dbs/{db_name}/spaces/{space_name}?detail=true"
     try:
@@ -1148,21 +1251,23 @@ def describe_space(logger, router_url: str, db_name: str, space_name: str):
     except Exception as e:
         logger.error(e)
 
+
 def index_rebuild(router_url: str, db_name: str, space_name: str):
     url = f"{router_url}/index/rebuild"
-    data = {'db_name': db_name, 'space_name': space_name, 'drop_before_rebuild':True}
+    data = {'db_name': db_name, 'space_name': space_name,
+            'drop_before_rebuild': True}
     resp = requests.post(url, json=data)
     return resp.json()
 
 
 def create_alias(router_url: str, alias_name: str, db_name: str, space_name: str):
-    url = f"{router_url}/alias/{alias_name}/dbs/{db_name}/spaces/{space_name}" 
+    url = f"{router_url}/alias/{alias_name}/dbs/{db_name}/spaces/{space_name}"
     resp = requests.post(url)
     return resp.json()
 
 
 def update_alias(router_url: str, alias_name: str, db_name: str, space_name: str):
-    url = f"{router_url}/alias/{alias_name}/dbs/{db_name}/spaces/{space_name}" 
+    url = f"{router_url}/alias/{alias_name}/dbs/{db_name}/spaces/{space_name}"
     resp = requests.put(url)
     return resp.json()
 

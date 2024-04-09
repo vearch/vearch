@@ -29,7 +29,10 @@ logger = logging.getLogger(__name__)
 __description__ = """ test case for module alias """
 
 
-xb, xq, _, gt = get_sift10K(logger)
+sift10k = DatasetSift10K(logger)
+xb = sift10k.get_database()
+xq = sift10k.get_queries()
+gt = sift10k.get_groundtruth()
 
 
 class TestAlias:
@@ -71,7 +74,7 @@ class TestAlias:
                             "metric_type": "L2",
                         }
                     },
-                    #"format": "normalization"
+                    # "format": "normalization"
                 }
             ]
         }
@@ -80,30 +83,25 @@ class TestAlias:
         logger.info(response)
         assert response["code"] == 200
 
-
     def test_create_alias(self):
         response = create_alias(router_url, "alias_name", db_name, space_name)
         logger.info(response)
         assert response["code"] == 200
-
 
     def test_get_alias(self):
         response = get_alias(router_url, "alias_name")
         logger.info(response)
         assert response["code"] == 200
 
-
     def test_update_alias(self):
         response = update_alias(router_url, "alias_name", db_name, "ts_space1")
         logger.info(response)
         assert response["code"] == 200
 
-
     def test_drop_alias(self):
         response = drop_alias(router_url, "alias_name")
         logger.info(response)
         assert response["code"] == 200
-
 
     def test_alias_array(self):
         response = create_alias(router_url, "alias_name1", db_name, space_name)
@@ -143,25 +141,29 @@ class TestAlias:
         db_param = db_name
         if wrong_index == 0:
             db_param = "wrong_db"
-            response = create_alias(router_url, "alias_name", db_param, space_name)
+            response = create_alias(
+                router_url, "alias_name", db_param, space_name)
             logger.info(response)
             assert response["code"] != 200
 
         if wrong_index == 1:
             space_param = "wrong_space"
-            response = create_alias(router_url, "alias_name", db_name, space_param)
+            response = create_alias(
+                router_url, "alias_name", db_name, space_param)
             logger.info(response)
             assert response["code"] != 200
 
         if wrong_index == 2:
             db_param = "wrong_db"
-            response = update_alias(router_url, "alias_name", db_param, space_name)
+            response = update_alias(
+                router_url, "alias_name", db_param, space_name)
             logger.info(response)
             assert response["code"] != 200
 
         if wrong_index == 3:
             space_param = "wrong_space"
-            response = update_alias(router_url, "alias_name", db_name, space_param)
+            response = update_alias(
+                router_url, "alias_name", db_name, space_param)
             logger.info(response)
             assert response["code"] != 200
 
@@ -176,34 +178,39 @@ class TestAlias:
             assert response["code"] != 200
 
         if wrong_index == 6:
-            response = create_alias(router_url, "alias_name", db_name, space_name)
+            response = create_alias(
+                router_url, "alias_name", db_name, space_name)
             assert response["code"] == 200
-            response = create_alias(router_url, "alias_name", db_name, space_name)
+            response = create_alias(
+                router_url, "alias_name", db_name, space_name)
             logger.info(response)
             assert response["code"] != 200
             response = drop_alias(router_url, "alias_name")
             assert response["code"] == 200
 
         if wrong_index == 7:
-            response = update_alias(router_url, "alias_not_exist", db_name, space_name)
+            response = update_alias(
+                router_url, "alias_not_exist", db_name, space_name)
             logger.info(response)
             assert response["code"] != 200
 
     def process_alias(self, operation):
         if operation == "create":
-            response = create_alias(router_url, "alias_name", db_name, space_name)
+            response = create_alias(
+                router_url, "alias_name", db_name, space_name)
             logger.info(response)
         if operation == "delete":
             response = drop_alias(router_url, "alias_name")
             logger.info(response)
         if operation == "update":
-            response = update_alias(router_url, "alias_not_exist", db_name, space_name)
+            response = update_alias(
+                router_url, "alias_not_exist", db_name, space_name)
             logger.info(response)
-
 
     def test_multithread(self):
         pool = ThreadPool()
-        total_data = ["create", "create", "create", "delete", "delete", "delete", "update", "update", "update"]
+        total_data = ["create", "create", "create", "delete",
+                      "delete", "delete", "update", "update", "update"]
         results = pool.map(self.process_alias, total_data)
         pool.close()
         pool.join()
@@ -228,15 +235,20 @@ class TestAlias:
 
         waiting_index_finish(logger, total)
 
-        query_interface(logger, total_batch, batch_size, xb, query_type = "by_ids", alias_name="alias_name")
-        query_interface(logger, total_batch, batch_size, xb, query_type = "by_filter", alias_name="alias_name")
+        query_interface(logger, total_batch, batch_size, xb,
+                        query_type="by_ids", alias_name="alias_name")
+        query_interface(logger, total_batch, batch_size, xb,
+                        query_type="by_filter", alias_name="alias_name")
 
-        search_interface(logger, total_batch, batch_size, xb, query_type="by_vector", alias_name="alias_name")
+        search_interface(logger, total_batch, batch_size, xb,
+                         query_type="by_vector", alias_name="alias_name")
 
-        delete_interface(logger, total_batch, batch_size, delete_type="by_filter", alias_name="alias_name")
+        delete_interface(logger, total_batch, batch_size,
+                         delete_type="by_filter", alias_name="alias_name")
 
         add(total_batch, batch_size, xb, with_id=True, alias_name="alias_name")
-        delete_interface(logger, total_batch, batch_size, delete_type="by_ids", alias_name="alias_name")
+        delete_interface(logger, total_batch, batch_size,
+                         delete_type="by_ids", alias_name="alias_name")
 
         response = drop_alias(router_url, "alias_name")
         assert response["code"] == 200
@@ -244,7 +256,8 @@ class TestAlias:
     def test_destroy_db_and_space(self):
         space_info = list_spaces(router_url, db_name)
         for space in space_info["data"]:
-            response = create_alias(router_url, "alias_name", db_name, space["space_name"])
+            response = create_alias(
+                router_url, "alias_name", db_name, space["space_name"])
             assert response["code"] == 200
 
             response = get_alias(router_url, "alias_name")

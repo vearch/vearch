@@ -40,7 +40,10 @@ def create(router_url, properties):
     logger.info(create_space(router_url, db_name, space_config))
 
 
-xb, xq, _, gt = get_sift10K(logger)
+sift10k = DatasetSift10K(logger)
+xb = sift10k.get_database()
+xq = sift10k.get_queries()
+gt = sift10k.get_groundtruth()
 
 
 def prepare_filter_bound(conditions, index, batch_size, full_field, left, right):

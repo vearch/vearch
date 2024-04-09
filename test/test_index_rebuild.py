@@ -28,7 +28,10 @@ logger = logging.getLogger(__name__)
 __description__ = """ test case for index rebuild """
 
 
-xb, xq, _, gt = get_sift10K(logger)
+sift10k = DatasetSift10K(logger)
+xb = sift10k.get_database()
+xq = sift10k.get_queries()
+gt = sift10k.get_groundtruth()
 
 
 class TestIndexRebuild:
@@ -50,7 +53,8 @@ class TestIndexRebuild:
         with_id = True
         full_field = True
         logger.info(
-            "dataset num: %d, total_batch: %d, dimension: %d" % (total, total_batch, embedding_size)
+            "dataset num: %d, total_batch: %d, dimension: %d" % (
+                total, total_batch, embedding_size)
         )
 
         space_config = {
