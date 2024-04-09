@@ -306,7 +306,16 @@ class VearchCase:
                 feature = feature["vector"]
                 data = {
                     "query": {
-                        "filter": [{"term": {"string": string_tags, "operator": "or"}}],
+                        "filters": {
+                            "operator": "AND",
+                            "conditions": [
+                                    {
+                                        "field": "string",
+                                        "operator": "IN",
+                                        "value": string_tags
+                                    }
+                                ]
+                        }
                     },
                     "db_name": db_name,
                     "space_name": space_name,
@@ -426,7 +435,16 @@ class VearchCase:
                 feature = feature["vector"]
                 data = {
                     "query": {
-                        "filter": [{"term": {"string": string_tags, "operator": "or"}}],
+                        "filters": {
+                            "operator": "AND",
+                            "conditions": [
+                                {
+                                        "field": "string",
+                                        "operator": "IN",
+                                        "value": string_tags
+                                }
+                            ]
+                        }
                     },
                     "db_name": db_name,
                     "space_name": space_name,

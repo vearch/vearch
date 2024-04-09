@@ -43,39 +43,65 @@ def create(router_url, properties):
 xb, xq, _, gt = get_sift10K(logger)
 
 
-def prepare_filter_bound(filter, index, batch_size, full_field, left, right):
+def prepare_filter_bound(conditions, index, batch_size, full_field, left, right):
     if full_field:
-        range_filter = {
-            "range": {
-                "field_int": {
-                    left: index * batch_size,
-                    right: (index + 1) * batch_size
-                },
-                "field_long": {
-                    left: index * batch_size,
-                    right: (index + 1) * batch_size
-                },
-                "field_float": {
-                    left: float(index * batch_size),
-                    right: float((index + 1) * batch_size)
-                },
-                "field_double": {
-                    left: float(index * batch_size),
-                    right: float((index + 1) * batch_size)
-                }
-            }
-        }
-        filter.append(range_filter)
+        range_filter = [
+            {
+                "field": "field_int",
+                "operator": left,
+                "value": index * batch_size
+            },
+            {
+                "field": "field_int",
+                "operator": right,
+                "value": (index + 1) * batch_size
+            },
+            {
+                "field": "field_long",
+                "operator": left,
+                "value": index * batch_size
+            },
+            {
+                "field": "field_long",
+                "operator": right,
+                "value": (index + 1) * batch_size
+            },
+            {
+                "field": "field_float",
+                "operator": left,
+                "value": float(index * batch_size)
+            },
+            {
+                "field": "field_float",
+                "operator": right,
+                "value": float((index + 1) * batch_size)
+            },
+            {
+                "field": "field_double",
+                "operator": left,
+                "value": float(index * batch_size)
+            },
+            {
+                "field": "field_double",
+                "operator": right,
+                "value": float((index + 1) * batch_size)
+            },
+        ]
+        conditions.extend(range_filter)
     else:
-        range_filter = {
-            "range": {
-                "field_int": {
-                    left: index * batch_size,
-                    right: (index + 1) * batch_size
-                }
-            }
-        }
-        filter.append(range_filter)
+        range_filter = [
+            {
+                "field": "field_int",
+                "operator": left,
+                "value": index * batch_size
+            },
+            {
+                "field": "field_int",
+                "operator": right,
+                "value": (index + 1) * batch_size
+            },
+        ]
+        conditions.extend(range_filter)
 
 
 def process_get_data_by_filter(items):
@@ -93,26 +119,30 @@ def process_get_data_by_filter(items):
     mode = items[3]
     total = items[4]
 
-    data["query"]["filter"] = []
+    data["query"]["filters"] = {
+        "operator": "AND",
+        "conditions": []
+    }
     if mode == "[]":
-        prepare_filter_bound(data["query"]["filter"], index,
-                             batch_size, full_field, "gte", "lte")
+        prepare_filter_bound(data["query"]["filters"]["conditions"], index,
+                             batch_size, full_field, ">=", "<=")
     elif mode == "[)":
-        prepare_filter_bound(data["query"]["filter"], index,
-                             batch_size, full_field, "gte", "lt")
+        prepare_filter_bound(data["query"]["filters"]["conditions"], index,
+                             batch_size, full_field, ">=", "<")
     elif mode == "(]":
-        prepare_filter_bound(data["query"]["filter"], index,
-                             batch_size, full_field, "gt", "lte")
+        prepare_filter_bound(data["query"]["filters"]["conditions"], index,
+                             batch_size, full_field, ">", "<=")
     elif mode == "()":
-        prepare_filter_bound(data["query"]["filter"], index,
-                             batch_size, full_field, "gt", "lt")
+        prepare_filter_bound(data["query"]["filters"]["conditions"], index,
+                             batch_size, full_field, ">", "<")
     data["size"] = batch_size
 
     json_str = json.dumps(data)
     rs = requests.post(url, json_str)
-    if rs.status_code != 200 or "documents" not in rs.json():
+    if rs.status_code != 200 or "documents" not in rs.json()["data"]:
         logger.info(rs.json())
         logger.info(json_str)
+        assert False
 
     documents = rs.json()["data"]["documents"]
     if len(documents) != batch_size:

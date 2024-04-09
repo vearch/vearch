@@ -341,106 +341,144 @@ def prepare_filter(filter, index, batch_size, seed, full_field):
         #    }
         # }
         # filter.append(term_filter)
-        range_filter = {
-            "range": {
-                "field_int": {
-                    "gte": (index * batch_size) * seed,
-                    "lt": (index + 1) * batch_size * seed,
-                },
-                "field_long": {
-                    "gte": (index * batch_size) * seed,
-                    "lt": (index + 1) * batch_size * seed,
-                },
-                "field_float": {
-                    "gt": float(index * batch_size * seed),
-                    "lt": float((index + 1) * batch_size * seed),
-                },
-                "field_double": {
-                    "gt": float(index * batch_size * seed),
-                    "lt": float((index + 1) * batch_size * seed),
-                },
-            }
-        }
-        filter.append(range_filter)
+        range_filter = [
+            {
+                "field": "field_int",
+                "operator": ">=",
+                "value": (index * batch_size) * seed
+            },
+            {
+                "field": "field_int",
+                "operator": "<",
+                "value": (index + 1) * batch_size * seed
+            },
+            {
+                "field": "field_long",
+                "operator": ">=",
+                "value": (index * batch_size) * seed
+            },
+            {
+                "field": "field_long",
+                "operator": "<",
+                "value": (index + 1) * batch_size * seed
+            },
+            {
+                "field": "field_float",
+                "operator": ">",
+                "value": float(index * batch_size * seed)
+            },
+            {
+                "field": "field_float",
+                "operator": "<",
+                "value": float((index + 1) * batch_size * seed)
+            },
+            {
+                "field": "field_double",
+                "operator": ">",
+                "value": float(index * batch_size * seed)
+            },
+            {
+                "field": "field_double",
+                "operator": "<",
+                "value": float((index + 1) * batch_size * seed)
+            },
+        ]
+        filter.extend(range_filter)
     else:
-        range_filter = {
-            "range": {
-                "field_int": {
-                    "gte": (index * batch_size) * seed,
-                    "lt": (index + 1) * batch_size * seed,
-                }
-            }
-        }
-        filter.append(range_filter)
-
-
-def prepare_range_filter(filter, index, batch_size):
-    range_filter = {
-        "range": {
-            "field_int": {"gte": index * batch_size, "lte": (index + 1) * batch_size}
-        }
-    }
-    filter.append(range_filter)
+        range_filter = [
+            {
+                "field": "field_int",
+                "operator": ">=",
+                "value": (index * batch_size) * seed
+            },
+            {
+                "field": "field_int",
+                "operator": "<",
+                "value": (index + 1) * batch_size * seed
+            },
+        ]
+        filter.extend(range_filter)
 
 
 def prepare_wrong_range_filter(filter, index, batch_size):
-    range_filter = {
-        "range": {
-            "field_string": [
-                str(i) for i in range(index * batch_size, (index + 1) * batch_size)
-            ]
-        }
-    }
-    filter.append(range_filter)
+    range_filter = [
+        {
+            "field": "field_string",
+            "operator": ">",
+            "value": [str(i) for i in range(index * batch_size, (index + 1) * batch_size)]
+        },
+    ]
+    filter.extend(range_filter)
 
 
 def prepare_wrong_range_filter_name(filter, index, batch_size):
-    range_filter = {
-        "range": {
-            "wrong_name": {"gte": index * batch_size, "lte": (index + 1) * batch_size}
-        }
-    }
-    filter.append(range_filter)
+    range_filter = [
+        {
+            "field": "wrong_name",
+            "operator": ">=",
+            "value": index * batch_size
+        },
+        {
+            "field": "wrong_name",
+            "operator": "<=",
+            "value": (index + 1) * batch_size
+        },
+    ]
+    filter.extend(range_filter)
 
 
 def prepare_wrong_index_filter(filter, index, batch_size):
-    range_filter = {
-        "range": {
-            "field_long": {"gte": index * batch_size, "lte": (index + 1) * batch_size}
-        }
-    }
-    filter.append(range_filter)
+    range_filter = [
+        {
+            "field": "field_long",
+            "operator": ">=",
+            "value": index * batch_size
+        },
+        {
+            "field": "field_long",
+            "operator": "<=",
+            "value": (index + 1) * batch_size
+        },
+    ]
+    filter.extend(range_filter)
 
 
 def prepare_term_filter(filter, index, batch_size):
-    term_filter = {
-        "term": {
-            "field_string": [
-                str(i) for i in range(index * batch_size, (index + 1) * batch_size)
-            ]
-        }
-    }
-    filter.append(term_filter)
+    term_filter = [
+        {
+            "field": "field_string",
+            "operator": "IN",
+            "value": [str(i) for i in range(index * batch_size, (index + 1) * batch_size)]
+        },
+    ]
+    filter.extend(term_filter)
 
 
 def prepare_wrong_term_filter_name(filter, index, batch_size):
-    term_filter = {
-        "term": {
-            "wrong_name": [
-                str(i) for i in range(index * batch_size, (index + 1) * batch_size)
-            ]
-        }
-    }
-    filter.append(term_filter)
+    term_filter = [
+        {
+            "field": "wrong_name",
+            "operator": "IN",
+            "value": [str(i) for i in range(index * batch_size, (index + 1) * batch_size)]
+        },
+    ]
+    filter.extend(term_filter)
 
 
 def prepare_wrong_term_filter(filter, index, batch_size):
-    term_filter = {
-        "term": {
-            "field_int": {"gte": index * batch_size, "lte": (index + 1) * batch_size}
-        }
-    }
-    filter.append(term_filter)
+    term_filter = [
+        {
+            "field": "field_int",
+            "operator": "IN",
+            "value": index * batch_size
+        },
+        {
+            "field": "field_int",
+            "operator": "IN",
+            "value": (index + 1) * batch_size
+        },
+    ]
+    filter.extend(term_filter)
 
 
 def process_query_error_data(items):
@@ -489,28 +527,43 @@ def process_query_error_data(items):
         data["query"]["document_ids"] = ["wrong_id"]
 
     if wrong_range_filter:
-        data["query"]["filter"] = []
-        prepare_wrong_range_filter(data["query"]["filter"], index, batch_size)
+        data["query"]["filters"] = {
+            "operator": "AND",
+            "conditions": []
+        }
+        prepare_wrong_range_filter(data["query"]["filters"]["conditions"], index, batch_size)
         data["size"] = batch_size
 
     if wrong_term_filter:
-        data["query"]["filter"] = []
-        prepare_wrong_term_filter(data["query"]["filter"], index, batch_size)
+        data["query"]["filters"] = {
+            "operator": "AND",
+            "conditions": []
+        }
+        prepare_wrong_term_filter(data["query"]["filters"]["conditions"], index, batch_size)
         data["size"] = batch_size
 
     if wrong_filter_index:
-        data["query"]["filter"] = []
-        prepare_wrong_index_filter(data["query"]["filter"], index, batch_size)
+        data["query"]["filters"] = {
+            "operator": "AND",
+            "conditions": []
+        }
+        prepare_wrong_index_filter(data["query"]["filters"]["conditions"], index, batch_size)
         data["size"] = batch_size
 
     if wrong_range_filter_name:
-        data["query"]["filter"] = []
-        prepare_wrong_range_filter_name(data["query"]["filter"], index, batch_size)
+        data["query"]["filters"] = {
+            "operator": "AND",
+            "conditions": []
+        }
+        prepare_wrong_range_filter_name(data["query"]["filters"]["conditions"], index, batch_size)
         data["size"] = batch_size
 
     if wrong_term_filter_name:
-        data["query"]["filter"] = []
-        prepare_wrong_term_filter_name(data["query"]["filter"], index, batch_size)
+        data["query"]["filters"] = {
+            "operator": "AND",
+            "conditions": []
+        }
+        prepare_wrong_term_filter_name(data["query"]["filters"]["conditions"], index, batch_size)
         data["size"] = batch_size
 
     if wrong_vector:
@@ -526,8 +579,11 @@ def process_query_error_data(items):
 
     if wrong_both_id_and_filter:
         data["query"]["document_ids"] = ["0"]
-        data["query"]["filter"] = []
-        prepare_filter(data["query"]["filter"], index, batch_size, 1, True)
+        data["query"]["filters"] = {
+            "operator": "AND",
+            "conditions": []
+        }
+        prepare_filter(data["query"]["filters"]["conditions"], index, batch_size, 1, True)
         data["size"] = batch_size
 
     if empty_query:
@@ -537,7 +593,10 @@ def process_query_error_data(items):
         data["query"]["document_ids"] = []
 
     if empty_filter:
-        data["query"]["filter"] = []
+        data["query"]["filters"] = {
+            "operator": "AND",
+            "conditions": []
+        }
 
     if out_of_bounds_ids:
         data["query"]["document_ids"] = [str(max_document_ids_length + 1)]
@@ -605,8 +664,11 @@ def process_get_data(items):
             data["query"]["next"] = True
 
     if query_type == "by_filter":
-        data["query"]["filter"] = []
-        prepare_filter(data["query"]["filter"], index, batch_size, seed, full_field)
+        data["query"]["filters"] = {
+            "operator": "AND",
+            "conditions": []
+        }
+        prepare_filter(data["query"]["filters"]["conditions"], index, batch_size, seed, full_field)
         data["size"] = batch_size
 
     json_str = json.dumps(data)
@@ -691,8 +753,11 @@ def process_delete_data(items):
             data["query"]["document_ids"].append(str(index * batch_size + j))
 
     if delete_type == "by_filter":
-        data["query"]["filter"] = []
-        prepare_filter(data["query"]["filter"], index, batch_size, seed, full_field)
+        data["query"]["filters"] = {
+            "operator": "AND",
+            "conditions": []
+        }
+        prepare_filter(data["query"]["filters"]["conditions"], index, batch_size, seed, full_field)
         data["size"] = batch_size
 
     json_str = json.dumps(data)
@@ -761,8 +826,11 @@ def process_search_data(items):
         data["query"]["vector"].append(vector_info)
 
     if with_filter:
-        data["query"]["filter"] = []
-        prepare_filter(data["query"]["filter"], index, batch_size, seed, full_field)
+        data["query"]["filters"] = {
+            "operator": "AND",
+            "conditions": []
+        }
+        prepare_filter(data["query"]["filters"]["conditions"], index, batch_size, seed, full_field)
 
     json_str = json.dumps(data)
     rs = requests.post(url, json_str)

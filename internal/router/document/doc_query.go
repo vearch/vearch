@@ -19,7 +19,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
-	"strconv"
 	"strings"
 
 	"github.com/spf13/cast"
@@ -63,14 +62,36 @@ type VectorQuery struct {
 var defaultBoost = float64(1)
 var defaultHasBoost = int32(0)
 
+type Range struct {
+	Gt  json.RawMessage
+	Gte json.RawMessage
+	Lt  json.RawMessage
+	Lte json.RawMessage
+}
+
+type Term struct {
+	Value json.RawMessage
+}
+
 func parseQuery(data []byte, req *vearchpb.SearchRequest, space *entity.Space) error {
 	if len(data) == 0 {
 		return nil
 	}
 
+	type Condition struct {
+		Operator string          `json:"operator"`
+		Field    string          `json:"field,omitempty"`
+		Value    json.RawMessage `json:"value,omitempty"`
+	}
+
+	type Filter struct {
+		Operator   string      `json:"operator"`
+		Conditions []Condition `json:"conditions,omitempty"`
+	}
+
 	temp := struct {
 		Vector         []json.RawMessage `json:"vector"`
-		Filter         []json.RawMessage `json:"filter"`
+		Filter         *Filter           `json:"filters,omitempty"`
 		OnlineLogLevel string            `json:"online_log_level"`
 	}{}
 
@@ -96,34 +117,78 @@ func parseQuery(data []byte, req *vearchpb.SearchRequest, space *entity.Space) e
 		proMap, _ = entity.UnmarshalPropertyJSON(space.Fields)
 	}
 
-	for _, filterBytes := range temp.Filter {
-		tmp := make(map[string]json.RawMessage)
-		err := vjson.Unmarshal(filterBytes, &tmp)
-		if err != nil {
-			return err
+	if temp.Filter != nil {
+		if temp.Filter.Operator != "AND" {
+			return fmt.Errorf("operator %v not supported", temp.Filter.Operator)
 		}
-		if filterBytes, ok := tmp["range"]; ok {
-			if filterBytes == nil {
-				continue
+		rangeConditionMap := make(map[string]*Range)
+		termConditionMap := make(map[string]*Term)
+		for _, condition := range temp.Filter.Conditions {
+			if condition.Operator == "<" {
+				cm, ok := rangeConditionMap[condition.Field]
+				if !ok {
+					cm = &Range{
+						Lt: condition.Value,
+					}
+					rangeConditionMap[condition.Field] = cm
+				} else {
+					cm.Lt = condition.Value
+				}
+			} else if condition.Operator == "<=" {
+				cm, ok := rangeConditionMap[condition.Field]
+				if !ok {
+					cm = &Range{
+						Lte: condition.Value,
+					}
+					rangeConditionMap[condition.Field] = cm
+				} else {
+					cm.Lte = condition.Value
+				}
+			} else if condition.Operator == ">" {
+				cm, ok := rangeConditionMap[condition.Field]
+				if !ok {
+					cm = &Range{
+						Gt: condition.Value,
+					}
+					rangeConditionMap[condition.Field] = cm
+				} else {
+					cm.Gt = condition.Value
+				}
+			} else if condition.Operator == ">=" {
+				cm, ok := rangeConditionMap[condition.Field]
+				if !ok {
+					cm = &Range{
+						Gte: condition.Value,
+					}
+					rangeConditionMap[condition.Field] = cm
+				} else {
+					cm.Gte = condition.Value
+				}
+			} else if condition.Operator == "IN" {
+				tm, ok := termConditionMap[condition.Field]
+				if !ok {
+					tm = &Term{
+						Value: condition.Value,
+					}
+					termConditionMap[condition.Field] = tm
+				} else {
+					tm.Value = condition.Value
+				}
 			}
-			filter, err := parseRange(filterBytes, proMap)
-			if err != nil {
-				return err
-			}
-			if len(filter) != 0 {
-				rfs = append(rfs, filter...)
-			}
-		} else if termBytes, ok := tmp["term"]; ok {
-			if termBytes == nil {
-				continue
-			}
-			filter, err := parseTerm(termBytes, proMap)
-			if err != nil {
-				return err
-			}
-			if len(filter) != 0 {
-				tfs = append(tfs, filter...)
-			}
+		}
+		filter, err := parseRange(rangeConditionMap, proMap)
+		if err != nil {
+			return fmt.Errorf("%v parseRange err %s", rangeConditionMap, err.Error())
+		}
+		if len(filter) != 0 {
+			rfs = append(rfs, filter...)
+		}
+		tmFilter, err := parseTerm(termConditionMap, proMap)
+		if err != nil {
+			return fmt.Errorf("%v parseTerm err %s", termConditionMap, err.Error())
+		}
+		if len(tmFilter) != 0 {
+			tfs = append(tfs, tmFilter...)
 		}
 	}
 
@@ -244,25 +309,15 @@ func parseVectors(reqNum int, vqs []*vearchpb.VectorQuery, tmpArr []json.RawMess
 	return reqNum, vqs, nil
 }
 
-func parseRange(data []byte, proMap map[string]*entity.SpaceProperties) ([]*vearchpb.RangeFilter, error) {
-	tmp := make(map[string]map[string]interface{})
-	d := json.NewDecoder(bytes.NewBuffer(data))
-	d.UseNumber()
-	err := d.Decode(&tmp)
-	if err != nil {
-		return nil, err
-	}
-
+func parseRange(rangeConditionMap map[string]*Range, proMap map[string]*entity.SpaceProperties) ([]*vearchpb.RangeFilter, error) {
 	var (
-		field                      string
 		min, max                   interface{}
-		rv                         map[string]interface{}
 		minInclusive, maxInclusive bool
 	)
 
 	rangeFilters := make([]*vearchpb.RangeFilter, 0)
 
-	for field, rv = range tmp {
+	for field, rv := range rangeConditionMap {
 		docField := proMap[field]
 
 		if docField == nil {
@@ -277,39 +332,22 @@ func parseRange(data []byte, proMap map[string]*entity.SpaceProperties) ([]*vear
 			return nil, fmt.Errorf("field:[%s] not set index, please check space", field)
 		}
 
-		var found bool
-		var start, end interface{}
+		var start, end json.RawMessage
 
-		if start, found = rv["from"]; !found {
-			if start, found = rv["gt"]; !found {
-				if start, found = rv["gte"]; found {
-					minInclusive = true
-				}
-			} else {
-				minInclusive = false
-			}
-		} else {
-			if rv["include_lower"] == nil || !cast.ToBool(rv["include_lower"]) {
-				minInclusive = false
-			} else {
-				minInclusive = true
-			}
+		if rv.Gte != nil {
+			minInclusive = true
+			start = rv.Gte
+		} else if rv.Gt != nil {
+			minInclusive = false
+			start = rv.Gt
 		}
 
-		if end, found = rv["to"]; !found {
-			if end, found = rv["lt"]; !found {
-				if end, found = rv["lte"]; found {
-					maxInclusive = true
-				}
-			} else {
-				maxInclusive = false
-			}
-		} else {
-			if rv["include_upper"] == nil || !cast.ToBool(rv["include_upper"]) {
-				maxInclusive = false
-			} else {
-				maxInclusive = true
-			}
+		if rv.Lte != nil {
+			maxInclusive = true
+			end = rv.Lte
+		} else if rv.Lt != nil {
+			maxInclusive = false
+			end = rv.Lt
 		}
 
 		switch docField.FieldType {
@@ -317,80 +355,62 @@ func parseRange(data []byte, proMap map[string]*entity.SpaceProperties) ([]*vear
 			var minNum, maxNum int32
 
 			if start != nil {
-				v := start.(json.Number).String()
-				if v != "" {
-					vInt32, err := strconv.ParseInt(v, 10, 32)
-					if err != nil {
-						return nil, err
-					}
-					minNum = int32(vInt32)
-				} else {
-					minNum = math.MinInt32
+				err := vjson.Unmarshal(start, &minNum)
+				if err != nil {
+					return nil, fmt.Errorf("INT %s Unmarshal err %s", string(start), err.Error())
 				}
 			} else {
 				minNum = math.MinInt32
 			}
 
 			if end != nil {
-				v := end.(json.Number).String()
-				if v != "" {
-					vInt32, err := strconv.ParseInt(v, 10, 32)
-					if err != nil {
-						return nil, err
-					}
-					maxNum = int32(vInt32)
-				} else {
-					maxNum = math.MaxInt32
+				err := vjson.Unmarshal(end, &maxNum)
+				if err != nil {
+					return nil, fmt.Errorf("INT %s Unmarshal err %s", string(end), err.Error())
 				}
 			} else {
 				maxNum = math.MaxInt32
 			}
 
 			min, max = minNum, maxNum
-
 		case entity.FieldType_LONG:
 			var minNum, maxNum int64
 
 			if start != nil {
-				if f, e := start.(json.Number).Int64(); e != nil {
-					return nil, e
-				} else {
-					minNum = f
+				err := vjson.Unmarshal(start, &minNum)
+				if err != nil {
+					return nil, fmt.Errorf("LONG %s Unmarshal err %s", string(start), err.Error())
 				}
 			} else {
 				minNum = math.MinInt64
 			}
 
 			if end != nil {
-				if f, e := end.(json.Number).Int64(); e != nil {
-					return nil, e
-				} else {
-					maxNum = f
+				err := vjson.Unmarshal(end, &maxNum)
+				if err != nil {
+					return nil, fmt.Errorf("LONG %s Unmarshal err %s", string(end), err.Error())
 				}
 			} else {
 				maxNum = math.MaxInt64
 			}
 
 			min, max = minNum, maxNum
-
 		case entity.FieldType_FLOAT:
 			var minNum, maxNum float32
 
 			if start != nil {
-				if f, e := start.(json.Number).Float64(); e != nil {
-					return nil, e
-				} else {
-					minNum = float32(f)
+				err := vjson.Unmarshal(start, &minNum)
+				if err != nil {
+					return nil, fmt.Errorf("FLOAT %s Unmarshal err %s", string(start), err.Error())
 				}
 			} else {
 				minNum = -math.MaxFloat32
 			}
 
 			if end != nil {
-				if f, e := end.(json.Number).Float64(); e != nil {
-					return nil, e
-				} else {
-					maxNum = float32(f)
+				err := vjson.Unmarshal(end, &maxNum)
+				if err != nil {
+					return nil, fmt.Errorf("FLOAT %s Unmarshal err %s", string(end), err.Error())
 				}
 			} else {
 				maxNum = math.MaxFloat32
@@ -401,20 +421,18 @@ func parseRange(data []byte, proMap map[string]*entity.SpaceProperties) ([]*vear
 			var minNum, maxNum float64
 
 			if start != nil {
-				if f, e := start.(json.Number).Float64(); e != nil {
-					return nil, e
-				} else {
-					minNum = f
+				err := vjson.Unmarshal(start, &minNum)
+				if err != nil {
+					return nil, fmt.Errorf("FLOAT64 %s Unmarshal err %s", string(start), err.Error())
 				}
 			} else {
 				minNum = -math.MaxFloat64
 			}
 
 			if end != nil {
-				if f, e := end.(json.Number).Float64(); e != nil {
-					return nil, e
-				} else {
-					maxNum = f
+				err := vjson.Unmarshal(end, &maxNum)
+				if err != nil {
+					return nil, fmt.Errorf("FLOAT64 %s Unmarshal err %s", string(end), err.Error())
 				}
 			} else {
 				maxNum = math.MaxFloat64
@@ -425,7 +443,7 @@ func parseRange(data []byte, proMap map[string]*entity.SpaceProperties) ([]*vear
 
 		var minByte, maxByte []byte
 
-		minByte, err = cbbytes.ValueToByte(min)
+		minByte, err := cbbytes.ValueToByte(min)
 		if err != nil {
 			return nil, err
 		}
@@ -452,35 +470,13 @@ func parseRange(data []byte, proMap map[string]*entity.SpaceProperties) ([]*vear
 	return rangeFilters, nil
 }
 
-func parseTerm(data []byte, proMap map[string]*entity.SpaceProperties) ([]*vearchpb.TermFilter, error) {
-	tmp := make(map[string]interface{})
-	err := vjson.Unmarshal(data, &tmp)
-	if err != nil {
-		return nil, err
-	}
-
+func parseTerm(tm map[string]*Term, proMap map[string]*entity.SpaceProperties) ([]*vearchpb.TermFilter, error) {
 	var isUnion int32
 	isUnion = 1
 
-	if operator, found := tmp["operator"]; found {
-		op := strings.ToLower(cast.ToString(operator))
-		switch op {
-		case "and":
-			isUnion = 0
-		case "or":
-			isUnion = 1
-		case "not":
-			isUnion = 2
-		default:
-			return nil, fmt.Errorf("err term filter by operator:[%s]", operator)
-		}
-
-		delete(tmp, "operator")
-	}
-
 	termFilters := make([]*vearchpb.TermFilter, 0)
 
-	for field, rv := range tmp {
+	for field, rv := range tm {
 		fd := proMap[field]
 
 		if fd == nil {
@@ -496,7 +492,12 @@ func parseTerm(data []byte, proMap map[string]*entity.SpaceProperties) ([]*vearc
 		}
 
 		buf := bytes.Buffer{}
-		if ia, ok := rv.([]interface{}); ok {
+		var v interface{}
+		err := vjson.Unmarshal(rv.Value, &v)
+		if err != nil {
+			return nil, fmt.Errorf("unmarshal [%s] err %s", string(rv.Value), err.Error())
+		}
+		if ia, ok := v.([]interface{}); ok {
 			for i, obj := range ia {
 				buf.WriteString(cast.ToString(obj))
 				if i != len(ia)-1 {
@@ -504,7 +505,7 @@ func parseTerm(data []byte, proMap map[string]*entity.SpaceProperties) ([]*vearc
 				}
 			}
 		} else {
-			buf.WriteString(cast.ToString(rv))
+			buf.WriteString(cast.ToString(rv.Value))
 		}
 
 		termFilter := vearchpb.TermFilter{

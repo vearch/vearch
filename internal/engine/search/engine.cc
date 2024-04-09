@@ -271,9 +271,8 @@ int Engine::Search(Request &request, Response &response_results,
   std::vector<struct VectorQuery> &vec_fields = request.VecFields();
   size_t vec_fields_num = vec_fields.size();
 
-  if (vec_fields_num > 0 && 
-      (not brute_force_search) &&
-      (index_status_ != IndexStatus::INDEXED) && 
+  if (vec_fields_num > 0 && (not brute_force_search) &&
+      (index_status_ != IndexStatus::INDEXED) &&
       (max_docid_ > brute_force_search_threshold)) {
     std::string msg = "index not trained!";
     LOG(WARNING) << msg;
@@ -306,11 +305,8 @@ int Engine::Search(Request &request, Response &response_results,
   gamma_query.condition->table = table_;
 
   MultiRangeQueryResults range_query_result;
-  std::vector<struct RangeFilter> &range_filters = request.RangeFilters();
-  size_t range_filters_num = range_filters.size();
-
-  std::vector<struct TermFilter> &term_filters = request.TermFilters();
-  size_t term_filters_num = term_filters.size();
+  size_t range_filters_num = request.RangeFilters().size();
+  size_t term_filters_num = request.TermFilters().size();
   if (range_filters_num > 0 || term_filters_num > 0) {
     int num = MultiRangeQuery(request, gamma_query.condition, response_results,
                               &range_query_result);
