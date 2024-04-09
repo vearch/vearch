@@ -170,13 +170,12 @@ def test_vearch_document_search_brute_force_search_threshold(index_type):
     data = {}
     data["db_name"] = db_name
     data["space_name"] = space_name
-    data["query"] = {}
-    data["query"]["vector"] = []
+    data["vectors"] = []
     vector_info = {
         "field": "field_vector",
         "feature": xb[:1].flatten().tolist(),
     }
-    data["query"]["vector"].append(vector_info)
+    data["vectors"].append(vector_info)
     data["index_params"] = {
         "nprobe": 1
     }
@@ -201,7 +200,6 @@ def process_search_error_data(items):
     data = {}
     data["db_name"] = db_name
     data["space_name"] = space_name
-    data["query"] = {}
     index = items[0]
     batch_size = items[1]
     features = items[2]
@@ -229,91 +227,88 @@ def process_search_error_data(items):
         data["space_name"] = "wrong_space"
 
     if wrong_range_filter:
-        data["query"]["vector"] = []
+        data["vectors"] = []
         vector_info = {
             "field": "field_vector",
             "feature": features[:batch_size].flatten().tolist(),
         }
-        data["query"]["vector"].append(vector_info)
-        data["query"]["filter"] = []
-        prepare_wrong_range_filter(data["query"]["filter"], index, batch_size)
+        data["vectors"].append(vector_info)
+        data["filters"] = []
+        prepare_wrong_range_filter(data["filters"], index, batch_size)
         data["size"] = batch_size
 
     if wrong_term_filter:
-        data["query"]["vector"] = []
+        data["vectors"] = []
         vector_info = {
             "field": "field_vector",
             "feature": features[:batch_size].flatten().tolist(),
         }
-        data["query"]["vector"].append(vector_info)
-        data["query"]["filter"] = []
-        prepare_wrong_term_filter(data["query"]["filter"], index, batch_size)
+        data["vectors"].append(vector_info)
+        data["filters"] = []
+        prepare_wrong_term_filter(data["filters"], index, batch_size)
         data["size"] = batch_size
 
     if wrong_filter_index:
-        data["query"]["vector"] = []
+        data["vectors"] = []
         vector_info = {
             "field": "field_vector",
             "feature": features[:batch_size].flatten().tolist(),
         }
-        data["query"]["vector"].append(vector_info)
-        data["query"]["filter"] = []
-        prepare_wrong_index_filter(data["query"]["filter"], index, batch_size)
+        data["vectors"].append(vector_info)
+        data["filters"] = []
+        prepare_wrong_index_filter(data["filters"], index, batch_size)
         data["size"] = batch_size
 
     if wrong_range_filter_name:
-        data["query"]["vector"] = []
+        data["vectors"] = []
         vector_info = {
             "field": "field_vector",
             "feature": features[:batch_size].flatten().tolist(),
         }
-        data["query"]["vector"].append(vector_info)
-        data["query"]["filter"] = []
+        data["vectors"].append(vector_info)
+        data["filters"] = []
         prepare_wrong_range_filter_name(
-            data["query"]["filter"], index, batch_size)
+            data["filters"], index, batch_size)
         data["size"] = batch_size
 
     if wrong_term_filter_name:
-        data["query"]["vector"] = []
+        data["vectors"] = []
         vector_info = {
             "field": "field_vector",
             "feature": features[:batch_size].flatten().tolist(),
         }
-        data["query"]["vector"].append(vector_info)
-        data["query"]["filter"] = []
+        data["vectors"].append(vector_info)
+        data["filters"] = []
         prepare_wrong_term_filter_name(
-            data["query"]["filter"], index, batch_size)
+            data["filters"], index, batch_size)
         data["size"] = batch_size
 
     if wrong_vector_length:
-        data["query"]["vector"] = []
+        data["vectors"] = []
         vector_info = {
             "field": "field_vector",
             "feature": features[:batch_size].flatten()[:1].tolist(),
         }
-        data["query"]["vector"].append(vector_info)
+        data["vectors"].append(vector_info)
 
     if wrong_vector_name:
-        data["query"]["vector"] = []
+        data["vectors"] = []
         vector_info = {
             "field": "wrong_name",
             "feature": features[:batch_size].flatten().tolist(),
         }
-        data["query"]["vector"].append(vector_info)
+        data["vectors"].append(vector_info)
 
     if wrong_vector_type:
-        data["query"]["vector"] = []
+        data["vectors"] = []
         vector_info = {
             "field": "field_int",
             "feature": features[:batch_size].flatten().tolist(),
         }
-        data["query"]["vector"].append(vector_info)
-
-    if empty_query:
-        data["query"] = {}
+        data["vectors"].append(vector_info)
 
     if empty_vector:
-        data["query"]["vector"] = []
+        data["vectors"] = []
 
     json_str = json.dumps(data)
     logger.info(json_str)

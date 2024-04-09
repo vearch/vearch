@@ -67,9 +67,7 @@ def create(router_url, embedding_size, store_type="MemoryOnly", index_params={})
 
 def query(quick, nprobe, parallel_on_queries, xq, gt, k, logger):
     query_dict = {
-        "query": {
-            "vector": []
-        },
+        "vectors": [],
         "index_params": {
             "nprobe": nprobe,
             "parallel_on_queries": parallel_on_queries

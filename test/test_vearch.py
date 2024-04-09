@@ -258,8 +258,7 @@ class VearchCase:
                 data = json.loads(data)
                 data["db_name"] = db_name
                 data["space_name"] = space_name
-                data["query"] = {}
-                data["query"]["document_ids"] = [doc_id for i in range(1)]
+                data["document_ids"] = [doc_id for i in range(1)]
                 response = requests.post(url, headers=headers, data=json.dumps(data))
                 logger.debug("insertNoID:" + response.text)
                 assert response.status_code == 200
@@ -283,9 +282,8 @@ class VearchCase:
             data = {}
             data["db_name"] = db_name
             data["space_name"] = space_name
-            data["query"] = {}
-            data["query"]["document_ids"] = [str(i) for j in range(1)]
-            data["query"]["partition_id"] = partition
+            data["document_ids"] = [str(i) for j in range(1)]
+            data["partition_id"] = partition
             response = requests.post(url, headers=headers, data=json.dumps(data))
             logger.debug("documentQueryOnSpecifyPartiton:" + response.text)
             assert response.status_code == 200
@@ -305,17 +303,15 @@ class VearchCase:
                 string_tags = feature["string_tags"]
                 feature = feature["vector"]
                 data = {
-                    "query": {
-                        "filters": {
-                            "operator": "AND",
-                            "conditions": [
-                                    {
-                                        "field": "string",
-                                        "operator": "IN",
-                                        "value": string_tags
-                                    }
-                                ]
-                        }
+                    "filters": {
+                        "operator": "AND",
+                        "conditions": [
+                                {
+                                    "field": "string",
+                                    "operator": "IN",
+                                    "value": string_tags
+                                }
+                            ]
                     },
                     "db_name": db_name,
                     "space_name": space_name,
@@ -338,14 +334,12 @@ class VearchCase:
                 string_tags = feature["string_tags"]
                 feature = feature["vector"]
                 data = {
-                    "query": {
-                        "vector": [
-                            {
-                                "field": "vector",
-                                "feature": feature,
-                            }
-                        ]
-                    },
+                    "vectors": [
+                        {
+                            "field": "vector",
+                            "feature": feature,
+                        }
+                    ],
                     "db_name": db_name,
                     "space_name": space_name,
                     "size": 3,
@@ -377,7 +371,7 @@ class VearchCase:
         data = {
             "db_name": db_name,
             "space_name": space_name,
-            "query": {"document_ids": ["0"]},
+            "document_ids": ["0"],
         }
 
         response = requests.post(url, headers=headers, data=json.dumps(data))
@@ -415,8 +409,7 @@ class VearchCase:
                 data = json.loads(data)
                 data["db_name"] = db_name
                 data["space_name"] = space_name
-                data["query"] = {}
-                data["query"]["document_ids"] = [doc_id for i in range(1)]
+                data["document_ids"] = [doc_id for i in range(1)]
                 response = requests.post(url, headers=headers, data=json.dumps(data))
                 logger.debug("insertNoID:" + response.text)
                 assert response.status_code == 200
@@ -434,17 +427,15 @@ class VearchCase:
                 string_tags = feature["string_tags"]
                 feature = feature["vector"]
                 data = {
-                    "query": {
-                        "filters": {
-                            "operator": "AND",
-                            "conditions": [
-                                {
-                                        "field": "string",
-                                        "operator": "IN",
-                                        "value": string_tags
-                                }
-                            ]
-                        }
+                    "filters": {
+                        "operator": "AND",
+                        "conditions": [
+                            {
+                                    "field": "string",
+                                    "operator": "IN",
+                                    "value": string_tags
+                            }
+                        ]
                     },
                     "db_name": db_name,
                     "space_name": space_name,

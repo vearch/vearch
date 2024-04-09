@@ -67,9 +67,7 @@ def create(router_url, embedding_size, nlinks=32, efConstruction=120):
 
 def query(do_efSearch_check, efSearch, xq, gt, k, logger):
     query_dict = {
-        "query": {
-            "vector": []
-        },
+        "vectors": [],
         "index_params": {
             "efSearch": efSearch,
             "do_efSearch_check": do_efSearch_check

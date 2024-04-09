@@ -349,7 +349,6 @@ func makeSearchRequests(n, m int) []*vearchpb.SearchRequest {
 
 			query.RangeFilters = []*vearchpb.RangeFilter{rf}
 			query.IsBruteSearch = 0
-			query.OnlineLogLevel = "debug"
 			query.HasRank = false
 			query.IsVectorValue = false
 			query.L2Sqrt = false

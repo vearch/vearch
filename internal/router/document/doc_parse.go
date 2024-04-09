@@ -690,17 +690,11 @@ func documentParse(ctx context.Context, handler *DocumentHandler, r *http.Reques
 	return nil
 }
 
-type Query struct {
-	DocumentIds []string `json:"document_ids,omitempty"`
-	PartitionId string   `json:"partition_id,omitempty"`
-	Next        bool     `json:"next,omitempty"`
-}
-
-func documentRequestParse(r *http.Request, searchReq *vearchpb.SearchRequest) (searchDoc *request.SearchDocumentRequest, query *Query, err error) {
+func documentRequestParse(r *http.Request, searchReq *vearchpb.SearchRequest) (searchDoc *request.SearchDocumentRequest, err error) {
 	reqBodyStart := time.Now()
 	reqBody, err := netutil.GetReqBody(r)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	if config.LogInfoPrintSwitch {
 		reqBodyCostTime := time.Since(reqBodyStart).Seconds() * 1000
@@ -709,25 +703,17 @@ func documentRequestParse(r *http.Request, searchReq *vearchpb.SearchRequest) (s
 	}
 	if len(reqBody) == 0 {
 		err = fmt.Errorf("query param is null")
-		return nil, nil, err
+		return nil, err
 	}
 
 	searchDoc = &request.SearchDocumentRequest{}
 	err = vjson.Unmarshal(reqBody, searchDoc)
 	if err != nil {
 		err = fmt.Errorf("SearchDocumentRequest param convert json %s err: %v", string(reqBody), err)
-		return nil, nil, err
+		return nil, err
 	}
 
-	query = &Query{}
-	err = vjson.Unmarshal(searchDoc.Query, query)
-	if err != nil {
-		log.Error("documentRequestParse Unmarshal error :%v", err)
-		err = fmt.Errorf("documentRequestParse Unmarshal error :%v", err)
-		return nil, nil, err
-	}
-
-	return searchDoc, query, nil
+	return searchDoc, nil
 }
 
 func IndexRequestParse(r *http.Request) (index *request.IndexRequest, err error) {

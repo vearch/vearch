@@ -304,7 +304,6 @@ func Search() {
 		ReqNum:          1,
 		TopN:            100,
 		IsBruteSearch:   0,
-		OnlineLogLevel:  "",
 		MultiVectorRank: 0,
 		IndexParams:     "{\"metric_type\" : \"InnerProduct\", \"recall_num\" : 100, \"nprobe\" : 10, \"ivf_flat\" : 0}",
 		L2Sqrt:          false,

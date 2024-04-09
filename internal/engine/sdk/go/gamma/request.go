@@ -174,7 +174,7 @@ func (request *Request) Serialize(buffer *[]byte) int {
 
 func SearchRequestSerialize(request *vearchpb.SearchRequest) []byte {
 	builder := flatbuffers.NewBuilder(0)
-	onlineLogLevel := builder.CreateString(request.OnlineLogLevel)
+	onlineLogLevel := builder.CreateString("")
 	indexParams := builder.CreateString(request.IndexParams)
 
 	var fields, vectorQuerys, rangeFilters, termFilters []flatbuffers.UOffsetT

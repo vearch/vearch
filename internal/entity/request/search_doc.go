@@ -41,23 +41,37 @@ type IndexRequest struct {
 	Describe          int    `json:"describe,omitempty"`
 }
 
+type Condition struct {
+	Operator string          `json:"operator"`
+	Field    string          `json:"field,omitempty"`
+	Value    json.RawMessage `json:"value,omitempty"`
+}
+
+type Filter struct {
+	Operator   string      `json:"operator"`
+	Conditions []Condition `json:"conditions,omitempty"`
+}
+
 type SearchDocumentRequest struct {
-	From           int             `json:"from,omitempty"`
-	Size           *int            `json:"size,omitempty"`
-	Fields         []string        `json:"fields,omitempty"`
-	Query          json.RawMessage `json:"query,omitempty"`
-	MinScore       float64         `json:"min_score,omitempty"`
-	Sort           json.RawMessage `json:"sort,omitempty"`
-	IndexParams    json.RawMessage `json:"index_params,omitempty"`
-	Quick          bool            `json:"quick,omitempty"`
-	L2Sqrt         bool            `json:"l2_sqrt,omitempty"`
-	VectorValue    bool            `json:"vector_value,omitempty"`
-	OnlineLogLevel string          `json:"online_log_level"`
-	IsBruteSearch  int32           `json:"is_brute_search"`
-	DbName         string          `json:"db_name,omitempty"`
-	SpaceName      string          `json:"space_name,omitempty"`
-	LoadBalance    string          `json:"load_balance"`
-	sortOrder      sortorder.SortOrder
+	From          int               `json:"from,omitempty"`
+	Size          *int              `json:"size,omitempty"`
+	Fields        []string          `json:"fields,omitempty"`
+	Filters       *Filter           `json:"filters,omitempty"`
+	Vectors       []json.RawMessage `json:"vectors,omitempty"`
+	MinScore      float64           `json:"min_score,omitempty"`
+	Sort          json.RawMessage   `json:"sort,omitempty"`
+	IndexParams   json.RawMessage   `json:"index_params,omitempty"`
+	Quick         bool              `json:"quick,omitempty"`
+	L2Sqrt        bool              `json:"l2_sqrt,omitempty"`
+	VectorValue   bool              `json:"vector_value,omitempty"`
+	IsBruteSearch int32             `json:"is_brute_search"`
+	DbName        string            `json:"db_name,omitempty"`
+	SpaceName     string            `json:"space_name,omitempty"`
+	LoadBalance   string            `json:"load_balance"`
+	DocumentIds   *[]string         `json:"document_ids,omitempty"`
+	PartitionId   *string           `json:"partition_id,omitempty"`
+	Next          *bool             `json:"next,omitempty"`
+	sortOrder     sortorder.SortOrder
 }
 
 func (s *SearchDocumentRequest) SortOrder() (sortorder.SortOrder, error) {

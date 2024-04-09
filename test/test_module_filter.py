@@ -112,7 +112,6 @@ def process_get_data_by_filter(items):
     data = {}
     data["db_name"] = db_name
     data["space_name"] = space_name
-    data["query"] = {}
     data["vector_value"] = False
 
     logger = items[0]
@@ -122,21 +121,21 @@ def process_get_data_by_filter(items):
     mode = items[3]
     total = items[4]
 
-    data["query"]["filters"] = {
+    data["filters"] = {
         "operator": "AND",
         "conditions": []
     }
     if mode == "[]":
-        prepare_filter_bound(data["query"]["filters"]["conditions"], index,
+        prepare_filter_bound(data["filters"]["conditions"], index,
                              batch_size, full_field, ">=", "<=")
     elif mode == "[)":
-        prepare_filter_bound(data["query"]["filters"]["conditions"], index,
+        prepare_filter_bound(data["filters"]["conditions"], index,
                              batch_size, full_field, ">=", "<")
     elif mode == "(]":
-        prepare_filter_bound(data["query"]["filters"]["conditions"], index,
+        prepare_filter_bound(data["filters"]["conditions"], index,
                              batch_size, full_field, ">", "<=")
     elif mode == "()":
-        prepare_filter_bound(data["query"]["filters"]["conditions"], index,
+        prepare_filter_bound(data["filters"]["conditions"], index,
                              batch_size, full_field, ">", "<")
     data["size"] = batch_size
 

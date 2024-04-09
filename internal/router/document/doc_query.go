@@ -73,41 +73,17 @@ type Term struct {
 	Value json.RawMessage
 }
 
-func parseQuery(data []byte, req *vearchpb.SearchRequest, space *entity.Space) error {
-	if len(data) == 0 {
-		return nil
-	}
-
-	type Condition struct {
-		Operator string          `json:"operator"`
-		Field    string          `json:"field,omitempty"`
-		Value    json.RawMessage `json:"value,omitempty"`
-	}
-
-	type Filter struct {
-		Operator   string      `json:"operator"`
-		Conditions []Condition `json:"conditions,omitempty"`
-	}
-
-	temp := struct {
-		Vector         []json.RawMessage `json:"vector"`
-		Filter         *Filter           `json:"filters,omitempty"`
-		OnlineLogLevel string            `json:"online_log_level"`
-	}{}
-
-	err := vjson.Unmarshal(data, &temp)
-	if err != nil {
-		return fmt.Errorf("unmarshal err:[%s] , query:[%s]", err.Error(), string(data))
-	}
+func parseQuery(vectors []json.RawMessage, filters *request.Filter, req *vearchpb.SearchRequest, space *entity.Space) error {
 	vqs := make([]*vearchpb.VectorQuery, 0)
 	rfs := make([]*vearchpb.RangeFilter, 0)
 	tfs := make([]*vearchpb.TermFilter, 0)
 
+	var err error
 	var reqNum int
 
-	if len(temp.Vector) > 0 {
+	if len(vectors) > 0 {
 		req.MultiVectorRank = 1
-		if reqNum, vqs, err = parseVectors(reqNum, vqs, temp.Vector, space); err != nil {
+		if reqNum, vqs, err = parseVectors(reqNum, vqs, vectors, space); err != nil {
 			return err
 		}
 	}
@@ -117,13 +93,13 @@ func parseQuery(data []byte, req *vearchpb.SearchRequest, space *entity.Space) e
 		proMap, _ = entity.UnmarshalPropertyJSON(space.Fields)
 	}
 
-	if temp.Filter != nil {
-		if temp.Filter.Operator != "AND" {
-			return fmt.Errorf("operator %v not supported", temp.Filter.Operator)
+	if filters != nil {
+		if filters.Operator != "AND" {
+			return fmt.Errorf("operator %v not supported", filters.Operator)
 		}
 		rangeConditionMap := make(map[string]*Range)
 		termConditionMap := make(map[string]*Term)
-		for _, condition := range temp.Filter.Conditions {
+		for _, condition := range filters.Conditions {
 			if condition.Operator == "<" {
 				cm, ok := rangeConditionMap[condition.Field]
 				if !ok {
@@ -209,7 +185,6 @@ func parseQuery(data []byte, req *vearchpb.SearchRequest, space *entity.Space) e
 	}
 
 	req.ReqNum = int32(reqNum)
-	req.OnlineLogLevel = temp.OnlineLogLevel
 	return nil
 }
 
@@ -733,9 +708,9 @@ func requestToPb(searchDoc *request.SearchDocumentRequest, space *entity.Space, 
 
 	searchReq.Head.Params["load_balance"] = searchDoc.LoadBalance
 
-	parseErr := parseQuery(searchDoc.Query, searchReq, space)
-	if parseErr != nil {
-		return parseErr
+	err = parseQuery(searchDoc.Vectors, searchDoc.Filters, searchReq, space)
+	if err != nil {
+		return err
 	}
 
 	searchUrlParamParse(searchReq)

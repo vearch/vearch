@@ -99,7 +99,7 @@ def search_result(xq, k: int, batch: bool, query_dict: dict, multi_vector: bool,
         vector_dict["vector"][0]["feature"] = xq.flatten().tolist()
         if multi_vector:
             vector_dict["vector"][1]["feature"] = xq.flatten().tolist()
-        query_dict["query"]["vector"] = vector_dict["vector"]
+        query_dict["vectors"] = vector_dict["vector"]
         json_str = json.dumps(query_dict)
         rs = requests.post(url, json_str)
 
@@ -123,7 +123,7 @@ def search_result(xq, k: int, batch: bool, query_dict: dict, multi_vector: bool,
             if multi_vector:
                 vector_dict["vector"][1]["feature"] = xq[i].tolist()
 
-            query_dict["query"]["vector"] = vector_dict["vector"]
+            query_dict["vectors"] = vector_dict["vector"]
             json_str = json.dumps(query_dict)
             rs = requests.post(url, json_str)
 
@@ -161,9 +161,7 @@ def evaluate_recall(xq, gt, k, batch, query_dict, multi_vector, logger):
 
 def query(parallel_on_queries, xq, gt, k, multi_vector, logger):
     query_dict = {
-        "query": {
-            "vector": []
-        },
+        "vectors": [],
         "index_params": {
             "parallel_on_queries": parallel_on_queries
         },

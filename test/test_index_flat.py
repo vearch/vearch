@@ -64,9 +64,7 @@ def create(router_url, embedding_size, store_type="MemoryOnly"):
 
 def query(parallel_on_queries, xq, gt, k, logger):
     query_dict = {
-        "query": {
-            "vector": []
-        },
+        "vectors": [],
         "index_params": {
             "parallel_on_queries": parallel_on_queries
         },

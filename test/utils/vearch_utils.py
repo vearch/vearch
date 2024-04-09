@@ -528,7 +528,6 @@ def process_query_error_data(items):
     data = {}
     data["db_name"] = db_name
     data["space_name"] = space_name
-    data["query"] = {}
     index = items[0]
     batch_size = items[1]
     features = items[2]
@@ -563,87 +562,84 @@ def process_query_error_data(items):
         data["space_name"] = "wrong_space"
 
     if wrong_partition and interface == "query":
-        data["query"]["document_ids"] = ["0"]
-        data["query"]["partition_id"] = "1008611"
+        data["document_ids"] = ["0"]
+        data["partition_id"] = "1008611"
 
     if wrong_id:
-        data["query"]["document_ids"] = ["wrong_id"]
+        data["document_ids"] = ["wrong_id"]
 
     if wrong_range_filter:
-        data["query"]["filters"] = {
+        data["filters"] = {
             "operator": "AND",
             "conditions": []
         }
-        prepare_wrong_range_filter(data["query"]["filters"]["conditions"], index, batch_size)
+        prepare_wrong_range_filter(data["filters"]["conditions"], index, batch_size)
         data["size"] = batch_size
 
     if wrong_term_filter:
-        data["query"]["filters"] = {
+        data["filters"] = {
             "operator": "AND",
             "conditions": []
         }
-        prepare_wrong_term_filter(data["query"]["filters"]["conditions"], index, batch_size)
+        prepare_wrong_term_filter(data["filters"]["conditions"], index, batch_size)
         data["size"] = batch_size
 
     if wrong_filter_index:
-        data["query"]["filters"] = {
+        data["filters"] = {
             "operator": "AND",
             "conditions": []
         }
-        prepare_wrong_index_filter(data["query"]["filters"]["conditions"], index, batch_size)
+        prepare_wrong_index_filter(data["filters"]["conditions"], index, batch_size)
         data["size"] = batch_size
 
     if wrong_range_filter_name:
-        data["query"]["filters"] = {
+        data["filters"] = {
             "operator": "AND",
             "conditions": []
         }
-        prepare_wrong_range_filter_name(data["query"]["filters"]["conditions"], index, batch_size)
+        prepare_wrong_range_filter_name(data["filters"]["conditions"], index, batch_size)
         data["size"] = batch_size
 
     if wrong_term_filter_name:
-        data["query"]["filters"] = {
+        data["filters"] = {
             "operator": "AND",
             "conditions": []
         }
-        prepare_wrong_term_filter_name(data["query"]["filters"]["conditions"], index, batch_size)
+        prepare_wrong_term_filter_name(data["filters"]["conditions"], index, batch_size)
         data["size"] = batch_size
 
     if wrong_vector:
-        data["query"]["vector"] = []
+        data["vectors"] = []
         vector_info = {
             "field": "field_vector",
             "feature": features[:batch_size].flatten().tolist(),
         }
-        data["query"]["vector"].append(vector_info)
+        data["vectors"].append(vector_info)
 
     if wrong_length_document_ids:
-        data["query"]["document_ids"] = [
+        data["document_ids"] = [
             str(i) for i in range(max_document_ids_length)]
 
     if wrong_both_id_and_filter:
-        data["query"]["document_ids"] = ["0"]
-        data["query"]["filters"] = {
+        data["document_ids"] = ["0"]
+        data["filters"] = {
             "operator": "AND",
             "conditions": []
         }
-        prepare_filter(data["query"]["filters"]["conditions"], index, batch_size, 1, True)
+        prepare_filter(data["filters"]["conditions"], index, batch_size, 1, True)
         data["size"] = batch_size
 
-    if empty_query:
-        data["query"] = {}
-
     if empty_document_ids:
-        data["query"]["document_ids"] = []
+        data["document_ids"] = []
 
     if empty_filter:
-        data["query"]["filters"] = {
+        data["filters"] = {
             "operator": "AND",
             "conditions": []
         }
 
     if out_of_bounds_ids:
-        data["query"]["document_ids"] = [str(max_document_ids_length + 1)]
+        data["document_ids"] = [str(max_document_ids_length + 1)]
     json_str = json.dumps(data)
 
     if not wrong_vector:
@@ -661,7 +657,6 @@ def process_query_multiple_error_data(items):
     data = {}
     data["db_name"] = db_name
     data["space_name"] = space_name
-    data["query"] = {}
     index = items[0]
     batch_size = items[1]
     features = items[2]
@@ -674,17 +669,17 @@ def process_query_multiple_error_data(items):
     ) = items[5]
 
     if params_both_wrong:
-        data["query"]["document_ids"] = [1, 2]
+        data["document_ids"] = [1, 2]
 
     if params_just_one_wrong:
-        data["query"]["document_ids"] = ["1", 2]
+        data["document_ids"] = ["1", 2]
 
     # not exist so call it return error
     if return_both_wrong:
-        data["query"]["document_ids"] = ["1008611", "10086"]
+        data["document_ids"] = ["1008611", "10086"]
 
     if return_just_one_wrong:
-        data["query"]["document_ids"] = ["1", "10086"]
+        data["document_ids"] = ["1", "10086"]
 
     json_str = json.dumps(data)
     logger.info(json_str)
@@ -732,7 +727,6 @@ def process_get_data(items):
     data = {}
     data["db_name"] = db_name
     data["space_name"] = space_name
-    data["query"] = {}
     data["vector_value"] = True
     # data["fields"] = ["field_int"]
 
@@ -747,11 +741,11 @@ def process_get_data(items):
         data["space_name"] = items[7]
 
     if query_type == "by_partition" or query_type == "by_partition_next" or query_type == "by_ids":
-        data["query"]["document_ids"] = []
+        data["document_ids"] = []
         if query_type == "by_partition_next" and batch_size > 1:
             batch_size -= 1
         for j in range(batch_size):
-            data["query"]["document_ids"].append(str(index * batch_size + j))
+            data["document_ids"].append(str(index * batch_size + j))
 
     if query_type == "by_partition" or query_type == "by_partition_next":
         partition_id = "1"
@@ -759,16 +753,16 @@ def process_get_data(items):
         if len(partition_ids) >= 1:
             partition_id = partition_ids[0]
         # logger.debug("partition_id: " + str(partition_id))
-        data["query"]["partition_id"] = str(partition_id)
+        data["partition_id"] = str(partition_id)
         if query_type == "by_partition_next":
-            data["query"]["next"] = True
+            data["next"] = True
 
     if query_type == "by_filter":
-        data["query"]["filters"] = {
+        data["filters"] = {
             "operator": "AND",
             "conditions": []
         }
-        prepare_filter(data["query"]["filters"]["conditions"], index, batch_size, seed, full_field)
+        prepare_filter(data["filters"]["conditions"], index, batch_size, seed, full_field)
         data["size"] = batch_size
 
     json_str = json.dumps(data)
@@ -836,7 +830,6 @@ def process_delete_data(items):
     data = {}
     data["db_name"] = db_name
     data["space_name"] = space_name
-    data["query"] = {}
 
     logger = items[0]
     index = items[1]
@@ -848,16 +841,16 @@ def process_delete_data(items):
         data["space_name"] = items[6]
 
     if delete_type == "by_ids":
-        data["query"]["document_ids"] = []
+        data["document_ids"] = []
         for j in range(batch_size):
-            data["query"]["document_ids"].append(str(index * batch_size + j))
+            data["document_ids"].append(str(index * batch_size + j))
 
     if delete_type == "by_filter":
-        data["query"]["filters"] = {
+        data["filters"] = {
             "operator": "AND",
             "conditions": []
         }
-        prepare_filter(data["query"]["filters"]["conditions"], index, batch_size, seed, full_field)
+        prepare_filter(data["filters"]["conditions"], index, batch_size, seed, full_field)
         data["size"] = batch_size
 
     json_str = json.dumps(data)
@@ -894,7 +887,6 @@ def process_search_data(items):
     data = {}
     data["db_name"] = db_name
     data["space_name"] = space_name
-    data["query"] = {}
     data["vector_value"] = True
 
     logger = items[0]
@@ -914,7 +906,7 @@ def process_search_data(items):
         with_symbol = True
 
     if query_type == "by_vector":
-        data["query"]["vector"] = []
+        data["vectors"] = []
         # logger.debug("partition_id: " + str(partition_id))
         vector_info = {
             "field": "field_vector",
@@ -923,14 +915,14 @@ def process_search_data(items):
         if with_symbol:
             vector_info["symbol"] = "<"
             vector_info["value"] = 40000
-        data["query"]["vector"].append(vector_info)
+        data["vectors"].append(vector_info)
 
     if with_filter:
-        data["query"]["filters"] = {
+        data["filters"] = {
             "operator": "AND",
             "conditions": []
         }
-        prepare_filter(data["query"]["filters"]["conditions"], index, batch_size, seed, full_field)
+        prepare_filter(data["filters"]["conditions"], index, batch_size, seed, full_field)
 
     json_str = json.dumps(data)
     rs = requests.post(url, json_str)
@@ -1094,7 +1086,7 @@ def search(xq, k: int, batch: bool, query_dict: dict, logger):
     vector_dict = {"vector": [{"field": "field_vector", "feature": []}]}
     if batch:
         vector_dict["vector"][0]["feature"] = xq.flatten().tolist()
-        query_dict["query"]["vector"] = vector_dict["vector"]
+        query_dict["vectors"] = vector_dict["vector"]
         json_str = json.dumps(query_dict)
         rs = requests.post(url, json_str)
 
@@ -1114,7 +1106,7 @@ def search(xq, k: int, batch: bool, query_dict: dict, logger):
     else:
         for i in range(xq.shape[0]):
             vector_dict["vector"][0]["feature"] = xq[i].tolist()
-            query_dict["query"]["vector"] = vector_dict["vector"]
+            query_dict["vectors"] = vector_dict["vector"]
             json_str = json.dumps(query_dict)
             rs = requests.post(url, json_str)
 

@@ -69,12 +69,12 @@ func (docService *docService) getDocs(ctx context.Context, args *vearchpb.GetReq
 	return reply
 }
 
-func (docService *docService) getDocsByPartition(ctx context.Context, args *vearchpb.GetRequest, partitionId string, next bool) *vearchpb.GetResponse {
+func (docService *docService) getDocsByPartition(ctx context.Context, args *vearchpb.GetRequest, partitionId string, next *bool) *vearchpb.GetResponse {
 	ctx, cancel := setTimeOut(ctx, args.Head)
 	defer cancel()
 	reply := &vearchpb.GetResponse{Head: newOkHead()}
 	request := client.NewRouterRequest(ctx, docService.client)
-	if next {
+	if next != nil && *next {
 		request.SetMsgID().SetMethod(client.GetNextDocsByPartitionHandler).SetHead(args.Head).SetSpace().SetDocsBySpecifyKey(args.PrimaryKeys).SetSendMap(partitionId)
 	} else {
 		request.SetMsgID().SetMethod(client.GetDocsByPartitionHandler).SetHead(args.Head).SetSpace().SetDocsBySpecifyKey(args.PrimaryKeys).SetSendMap(partitionId)

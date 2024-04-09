@@ -30,7 +30,7 @@ __description__ = """ test case for document upsert """
 
 def query(xq, gt, k, logger):
     query_dict = {
-        "query": {"vector": []},
+        "vectors": [],
         "vector_value": False,
         "fields": ["field_int"],
         "size": k,

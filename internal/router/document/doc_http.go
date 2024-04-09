@@ -285,7 +285,7 @@ func (handler *DocumentHandler) handleDocumentQuery(c *gin.Context) {
 	args := &vearchpb.SearchRequest{}
 	args.Head = setRequestHeadFromGin(c)
 
-	searchDoc, query, err := documentRequestParse(c.Request, args)
+	searchDoc, err := documentRequestParse(c.Request, args)
 	if err != nil {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 		return
@@ -313,13 +313,13 @@ func (handler *DocumentHandler) handleDocumentQuery(c *gin.Context) {
 		return
 	}
 
-	if len(query.DocumentIds) != 0 {
+	if searchDoc.DocumentIds != nil && len(*searchDoc.DocumentIds) != 0 {
 		if args.TermFilters != nil || args.RangeFilters != nil {
 			err := vearchpb.NewError(vearchpb.ErrorEnum_QUERY_INVALID_PARAMS_BOTH_DOCUMENT_IDS_AND_FILTER, nil)
 			ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 			return
 		}
-		if len(query.DocumentIds) >= 500 {
+		if len(*searchDoc.DocumentIds) >= 500 {
 			err := vearchpb.NewError(vearchpb.ErrorEnum_QUERY_INVALID_PARAMS_LENGTH_OF_DOCUMENT_IDS_BEYOND_500, nil)
 			ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 			return
@@ -328,7 +328,7 @@ func (handler *DocumentHandler) handleDocumentQuery(c *gin.Context) {
 		args.Head = setRequestHeadFromGin(c)
 		args.Head.DbName = searchDoc.DbName
 		args.Head.SpaceName = searchDoc.SpaceName
-		args.PrimaryKeys = query.DocumentIds
+		args.PrimaryKeys = *searchDoc.DocumentIds
 
 		var queryFieldsParam map[string]string
 		if searchDoc.Fields != nil {
@@ -336,8 +336,8 @@ func (handler *DocumentHandler) handleDocumentQuery(c *gin.Context) {
 		}
 
 		reply := &vearchpb.GetResponse{}
-		if query.PartitionId != "" {
-			reply = handler.docService.getDocsByPartition(c.Request.Context(), args, query.PartitionId, query.Next)
+		if searchDoc.PartitionId != nil && *searchDoc.PartitionId != "" {
+			reply = handler.docService.getDocsByPartition(c.Request.Context(), args, *searchDoc.PartitionId, searchDoc.Next)
 		} else {
 			reply = handler.docService.getDocs(c.Request.Context(), args)
 		}
@@ -383,7 +383,7 @@ func (handler *DocumentHandler) handleDocumentSearch(c *gin.Context) {
 		args.Head.Params = params
 	}
 
-	searchDoc, _, err := documentRequestParse(c.Request, args)
+	searchDoc, err := documentRequestParse(c.Request, args)
 	if err != nil {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 		return
@@ -440,7 +440,7 @@ func (handler *DocumentHandler) handleDocumentDelete(c *gin.Context) {
 		args.Head.Params = paramMap
 	}
 
-	searchDoc, query, err := documentRequestParse(c.Request, args)
+	searchDoc, err := documentRequestParse(c.Request, args)
 	if err != nil {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 		return
@@ -468,13 +468,13 @@ func (handler *DocumentHandler) handleDocumentDelete(c *gin.Context) {
 		return
 	}
 
-	if len(query.DocumentIds) != 0 {
+	if searchDoc.DocumentIds != nil && len(*searchDoc.DocumentIds) != 0 {
 		if args.TermFilters != nil || args.RangeFilters != nil {
 			err := vearchpb.NewError(vearchpb.ErrorEnum_DELETE_INVALID_PARAMS_BOTH_DOCUMENT_IDS_AND_VECTOR, nil)
 			ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 			return
 		}
-		if len(query.DocumentIds) >= 500 {
+		if len(*searchDoc.DocumentIds) >= 500 {
 			err := vearchpb.NewError(vearchpb.ErrorEnum_DELETE_INVALID_PARAMS_LENGTH_OF_DOCUMENT_IDS_BEYOND_500, nil)
 			ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 			return
@@ -483,7 +483,7 @@ func (handler *DocumentHandler) handleDocumentDelete(c *gin.Context) {
 		args.Head = setRequestHeadFromGin(c)
 		args.Head.DbName = searchDoc.DbName
 		args.Head.SpaceName = searchDoc.SpaceName
-		args.PrimaryKeys = query.DocumentIds
+		args.PrimaryKeys = *searchDoc.DocumentIds
 		var resultIds []string
 		reply := handler.docService.deleteDocs(c.Request.Context(), args)
 		if result, err := documentDeleteResponse(reply.Items, reply.Head, resultIds); err != nil {

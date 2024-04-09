@@ -81,9 +81,7 @@ def benchmark(index_type, store_type, xb, xq, gt):
     waiting_index_finish(logger, total)
 
     query_dict = {
-        "query": {
-            "vector": []
-        },
+        "vectors": [],
         "vector_value": False,
         "index_params": {
             "efSearch": 200
