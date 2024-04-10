@@ -52,8 +52,7 @@ func (s *Store) checkReadable(readLeader bool) error {
 
 func (s *Store) Search(ctx context.Context, request *vearchpb.SearchRequest, response *vearchpb.SearchResponse) (err error) {
 	leader := false
-	clientType := request.Head.ClientType
-	if clientType == "leader" {
+	if request.Head.ClientType == "leader" {
 		leader = true
 	}
 	if err = s.checkReadable(leader); err != nil {

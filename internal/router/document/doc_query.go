@@ -33,14 +33,11 @@ import (
 
 const (
 	URLQueryFrom     = "from"
-	URLQuerySize     = "size"
 	UrlQueryRouting  = "routing"
 	UrlQueryTypedKey = "typed_keys"
 	UrlQueryVersion  = "version"
 	UrlQueryOpType   = "op_type"
-	UrlQueryURISort  = "sort"
 	UrlQueryTimeout  = "timeout"
-	LoadBalance      = "load_balance"
 	DefaultSize      = 50
 )
 
@@ -554,19 +551,6 @@ func (query *VectorQuery) ToC(indexType string) (*vearchpb.VectorQuery, error) {
 	return vectorQuery, nil
 }
 
-func searchUrlParamParse(searchReq *vearchpb.SearchRequest) {
-	urlParamMap := searchReq.Head.Params
-	if urlParamMap[URLQuerySize] != "" {
-		size := cast.ToInt(urlParamMap[URLQuerySize])
-		searchReq.TopN = int32(size)
-	} else {
-		if searchReq.TopN == 0 {
-			searchReq.TopN = DefaultSize
-		}
-	}
-	searchReq.Head.ClientType = urlParamMap[LoadBalance]
-}
-
 func requestToPb(searchDoc *request.SearchDocumentRequest, space *entity.Space, searchReq *vearchpb.SearchRequest) error {
 	hasRank := true
 	if searchDoc.Quick {
@@ -583,8 +567,9 @@ func requestToPb(searchDoc *request.SearchDocumentRequest, space *entity.Space, 
 		searchReq.IndexParams = string(searchDoc.IndexParams)
 	}
 
-	if searchDoc.Size != nil {
-		searchReq.TopN = int32(*searchDoc.Size)
+	searchReq.TopN = searchDoc.Limit
+	if searchReq.TopN == 0 {
+		searchReq.TopN = DefaultSize
 	}
 
 	if searchReq.Head.Params != nil && searchReq.Head.Params["queryOnlyId"] != "" {
@@ -690,30 +675,12 @@ func requestToPb(searchDoc *request.SearchDocumentRequest, space *entity.Space, 
 	searchReq.SortFields = sortFieldArr
 	searchReq.SortFieldMap = sortFieldMap
 
-	order := "desc"
-	if len(sortOrder) > 0 {
-		sortBool := sortOrder[0].GetSortOrder()
-		if !sortBool {
-			order = "asc"
-		}
-	}
-
-	if searchReq.Head.Params == nil {
-		paramMap := make(map[string]string)
-		paramMap["sort"] = order
-		searchReq.Head.Params = paramMap
-	} else {
-		searchReq.Head.Params["sort"] = order
-	}
-
-	searchReq.Head.Params["load_balance"] = searchDoc.LoadBalance
-
 	err = parseQuery(searchDoc.Vectors, searchDoc.Filters, searchReq, space)
 	if err != nil {
 		return err
 	}
 
-	searchUrlParamParse(searchReq)
+	searchReq.Head.ClientType = searchDoc.LoadBalance
 	return nil
 }
 

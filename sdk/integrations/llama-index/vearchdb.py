@@ -361,7 +361,7 @@ class VearchVectorStore(VectorStore):
                     ],
                 },
                 "retrieval_param": {"metric_type": "InnerProduct", "efSearch": 64},
-                "size": k,
+                "limit": k,
                 "fields": meta_field_list,
             }
             query_result = self.vearch.search(

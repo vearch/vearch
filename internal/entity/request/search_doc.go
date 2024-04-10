@@ -53,12 +53,10 @@ type Filter struct {
 }
 
 type SearchDocumentRequest struct {
-	From          int               `json:"from,omitempty"`
-	Size          *int              `json:"size,omitempty"`
+	Limit         int32             `json:"limit,omitempty"`
 	Fields        []string          `json:"fields,omitempty"`
 	Filters       *Filter           `json:"filters,omitempty"`
 	Vectors       []json.RawMessage `json:"vectors,omitempty"`
-	MinScore      float64           `json:"min_score,omitempty"`
 	Sort          json.RawMessage   `json:"sort,omitempty"`
 	IndexParams   json.RawMessage   `json:"index_params,omitempty"`
 	Quick         bool              `json:"quick,omitempty"`

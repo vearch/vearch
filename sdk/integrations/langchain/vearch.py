@@ -407,7 +407,7 @@ class Vearch(VectorStore):
                     ],
                 },
                 "retrieval_param": {"metric_type": "InnerProduct", "efSearch": 64},
-                "size": k,
+                "limit": k,
                 "fields": meta_field_list,
                 
             }
@@ -476,7 +476,7 @@ class Vearch(VectorStore):
                         }
                     ],
                 },
-                "size": k,
+                "limit": k,
                 "fields": meta_field_list,
                 "retrieval_param": {"metric_type": "InnerProduct", "efSearch": 64},
 

@@ -342,7 +342,7 @@ class VearchCase:
                     ],
                     "db_name": db_name,
                     "space_name": space_name,
-                    "size": 3,
+                    "limit": 3,
                     "is_brute_search": 1,
                 }
 

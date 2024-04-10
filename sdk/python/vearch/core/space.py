@@ -142,7 +142,7 @@ class Space(object):
             "vector_value": false,
             "load_balance": "leader",
             "l2_sqrt": false,
-            "size": 10
+            "limit": 10
 
             retrieval_param: the retrieval parameter which control the search action,user can asign it to precisely
              control search result,different index type different parameters

@@ -574,7 +574,7 @@ def process_query_error_data(items):
             "conditions": []
         }
         prepare_wrong_range_filter(data["filters"]["conditions"], index, batch_size)
-        data["size"] = batch_size
+        data["limit"] = batch_size
 
     if wrong_term_filter:
         data["filters"] = {
@@ -582,7 +582,7 @@ def process_query_error_data(items):
             "conditions": []
         }
         prepare_wrong_term_filter(data["filters"]["conditions"], index, batch_size)
-        data["size"] = batch_size
+        data["limit"] = batch_size
 
     if wrong_filter_index:
         data["filters"] = {
@@ -590,7 +590,7 @@ def process_query_error_data(items):
             "conditions": []
         }
         prepare_wrong_index_filter(data["filters"]["conditions"], index, batch_size)
-        data["size"] = batch_size
+        data["limit"] = batch_size
 
     if wrong_range_filter_name:
         data["filters"] = {
@@ -598,7 +598,7 @@ def process_query_error_data(items):
             "conditions": []
         }
         prepare_wrong_range_filter_name(data["filters"]["conditions"], index, batch_size)
-        data["size"] = batch_size
+        data["limit"] = batch_size
 
     if wrong_term_filter_name:
         data["filters"] = {
@@ -606,7 +606,7 @@ def process_query_error_data(items):
             "conditions": []
         }
         prepare_wrong_term_filter_name(data["filters"]["conditions"], index, batch_size)
-        data["size"] = batch_size
+        data["limit"] = batch_size
 
     if wrong_vector:
         data["vectors"] = []
@@ -627,7 +627,7 @@ def process_query_error_data(items):
             "conditions": []
         }
         prepare_filter(data["filters"]["conditions"], index, batch_size, 1, True)
-        data["size"] = batch_size
+        data["limit"] = batch_size
 
     if empty_document_ids:
         data["document_ids"] = []
@@ -763,7 +763,7 @@ def process_get_data(items):
             "conditions": []
         }
         prepare_filter(data["filters"]["conditions"], index, batch_size, seed, full_field)
-        data["size"] = batch_size
+        data["limit"] = batch_size
 
     json_str = json.dumps(data)
     rs = requests.post(url, json_str)
@@ -851,7 +851,7 @@ def process_delete_data(items):
             "conditions": []
         }
         prepare_filter(data["filters"]["conditions"], index, batch_size, seed, full_field)
-        data["size"] = batch_size
+        data["limit"] = batch_size
 
     json_str = json.dumps(data)
     rs = requests.post(url, json_str)

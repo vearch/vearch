@@ -75,7 +75,7 @@ def query(quick, nprobe, parallel_on_queries, xq, gt, k, logger):
         "vector_value": False,
         "fields": ["field_int"],
         "quick": quick,
-        "size": k,
+        "limit": k,
         "db_name": db_name,
         "space_name": space_name,
     }

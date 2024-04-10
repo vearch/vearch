@@ -235,7 +235,7 @@ def process_search_error_data(items):
         data["vectors"].append(vector_info)
         data["filters"] = []
         prepare_wrong_range_filter(data["filters"], index, batch_size)
-        data["size"] = batch_size
+        data["limit"] = batch_size
 
     if wrong_term_filter:
         data["vectors"] = []
@@ -246,7 +246,7 @@ def process_search_error_data(items):
         data["vectors"].append(vector_info)
         data["filters"] = []
         prepare_wrong_term_filter(data["filters"], index, batch_size)
-        data["size"] = batch_size
+        data["limit"] = batch_size
 
     if wrong_filter_index:
         data["vectors"] = []
@@ -257,7 +257,7 @@ def process_search_error_data(items):
         data["vectors"].append(vector_info)
         data["filters"] = []
         prepare_wrong_index_filter(data["filters"], index, batch_size)
-        data["size"] = batch_size
+        data["limit"] = batch_size
 
     if wrong_range_filter_name:
         data["vectors"] = []
@@ -269,7 +269,7 @@ def process_search_error_data(items):
         data["filters"] = []
         prepare_wrong_range_filter_name(
             data["filters"], index, batch_size)
-        data["size"] = batch_size
+        data["limit"] = batch_size
 
     if wrong_term_filter_name:
         data["vectors"] = []
@@ -281,7 +281,7 @@ def process_search_error_data(items):
         data["filters"] = []
         prepare_wrong_term_filter_name(
             data["filters"], index, batch_size)
-        data["size"] = batch_size
+        data["limit"] = batch_size
 
     if wrong_vector_length:
         data["vectors"] = []

@@ -137,7 +137,7 @@ def process_get_data_by_filter(items):
     elif mode == "()":
         prepare_filter_bound(data["filters"]["conditions"], index,
                              batch_size, full_field, ">", "<")
-    data["size"] = batch_size
+    data["limit"] = batch_size
 
     json_str = json.dumps(data)
     rs = requests.post(url, json_str)

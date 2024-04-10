@@ -299,7 +299,7 @@ def operate_document_search(router_url: str, db_name: str, space_name: str, embe
                 }
             }]
         },
-        "size": 3
+        "limit": 3
     }
     print(search(router_url, db_name, space_name, search_query))
     bulk_queries = [{
@@ -309,7 +309,7 @@ def operate_document_search(router_url: str, db_name: str, space_name: str, embe
                 "feature": [random.random() for i in range(embedding_dimension)]
             }]
         },
-        "size": 3
+        "limit": 3
     },
         {
         "query": {
@@ -318,7 +318,7 @@ def operate_document_search(router_url: str, db_name: str, space_name: str, embe
                 "feature": [random.random() for i in range(embedding_dimension)]
             }]
         },
-        "size": 1
+        "limit": 1
     }]
     print(bulk_search(router_url, db_name, space_name, bulk_queries))
     msearch_size = 2
@@ -343,7 +343,7 @@ def operate_document_search(router_url: str, db_name: str, space_name: str, embe
                 }
             }]
         },
-        "size": 3
+        "limit": 3
     }
     print(msearch(router_url, db_name, space_name, msearch_query))
 
@@ -446,7 +446,7 @@ def simple_usage(router_url: str, db_name: str, space_name: str, space_config: d
                 }
             }]
         },
-        "size": 3
+        "limit": 3
     }
     time.sleep(3)
     print("\nstep 4: search document")

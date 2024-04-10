@@ -285,7 +285,7 @@ func (handler *DocumentHandler) handleDocumentQuery(c *gin.Context) {
 	args := &vearchpb.SearchRequest{}
 	args.Head = setRequestHeadFromGin(c)
 
-	searchDoc, err := documentRequestParse(c.Request, args)
+	searchDoc, err := documentRequestParse(c.Request)
 	if err != nil {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 		return
@@ -378,12 +378,8 @@ func (handler *DocumentHandler) handleDocumentSearch(c *gin.Context) {
 	defer span.Finish()
 	args := &vearchpb.SearchRequest{}
 	args.Head = setRequestHeadFromGin(c)
-	if args.Head.Params == nil {
-		params := make(map[string]string)
-		args.Head.Params = params
-	}
 
-	searchDoc, err := documentRequestParse(c.Request, args)
+	searchDoc, err := documentRequestParse(c.Request)
 	if err != nil {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 		return
@@ -430,17 +426,9 @@ func (handler *DocumentHandler) handleDocumentDelete(c *gin.Context) {
 	defer monitor.Profiler("handleDocumentDelete", startTime)
 	args := &vearchpb.SearchRequest{}
 	args.Head = setRequestHeadFromGin(c)
-	if args.Head.Params != nil {
-		paramMap := args.Head.Params
-		paramMap["queryOnlyId"] = "true"
-		args.Head.Params = paramMap
-	} else {
-		paramMap := make(map[string]string)
-		paramMap["queryOnlyId"] = "true"
-		args.Head.Params = paramMap
-	}
+	args.Head.Params["queryOnlyId"] = "true"
 
-	searchDoc, err := documentRequestParse(c.Request, args)
+	searchDoc, err := documentRequestParse(c.Request)
 	if err != nil {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 		return

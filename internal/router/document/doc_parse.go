@@ -21,14 +21,12 @@ import (
 	"fmt"
 	"math"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cast"
 	"github.com/valyala/fastjson"
-	"github.com/vearch/vearch/internal/config"
 	"github.com/vearch/vearch/internal/entity"
 	"github.com/vearch/vearch/internal/entity/request"
 	"github.com/vearch/vearch/internal/pkg/cbbytes"
@@ -690,16 +688,10 @@ func documentParse(ctx context.Context, handler *DocumentHandler, r *http.Reques
 	return nil
 }
 
-func documentRequestParse(r *http.Request, searchReq *vearchpb.SearchRequest) (searchDoc *request.SearchDocumentRequest, err error) {
-	reqBodyStart := time.Now()
+func documentRequestParse(r *http.Request) (searchDoc *request.SearchDocumentRequest, err error) {
 	reqBody, err := netutil.GetReqBody(r)
 	if err != nil {
 		return nil, err
-	}
-	if config.LogInfoPrintSwitch {
-		reqBodyCostTime := time.Since(reqBodyStart).Seconds() * 1000
-		reqBodyCostTimeStr := strconv.FormatFloat(reqBodyCostTime, 'f', -1, 64)
-		searchReq.Head.Params["reqBodyCostTime"] = reqBodyCostTimeStr
 	}
 	if len(reqBody) == 0 {
 		err = fmt.Errorf("query param is null")

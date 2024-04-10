@@ -88,7 +88,7 @@ def benchmark(index_type, store_type, xb, xq, gt):
         },
         "fields": ["field_int"],
         "quick": True,
-        "size": k,
+        "limit": k,
         "db_name": db_name,
         "space_name": space_name,
     }

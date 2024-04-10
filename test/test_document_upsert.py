@@ -33,7 +33,7 @@ def query(xq, gt, k, logger):
         "vectors": [],
         "vector_value": False,
         "fields": ["field_int"],
-        "size": k,
+        "limit": k,
         "db_name": db_name,
         "space_name": space_name,
     }
