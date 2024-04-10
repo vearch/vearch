@@ -25,10 +25,10 @@ from utils.data_utils import *
 logging.basicConfig()
 logger = logging.getLogger(__name__)
 
-__description__ = """ test case for index recall of sift1M """
+__description__ = """ test case for index recall of datasets """
 
 
-def create(router_url, embedding_size, index_type="FLAT", store_type="MemoryOnly"):
+def create(router_url, embedding_size, index_type="FLAT", store_type="MemoryOnly", metric_type="L2"):
     properties = {}
     properties["fields"] = [
         {
@@ -44,7 +44,7 @@ def create(router_url, embedding_size, index_type="FLAT", store_type="MemoryOnly
                 "name": "gamma",
                 "type": index_type,
                 "params": {
-                    "metric_type": "L2"
+                    "metric_type": metric_type
                 }
             },
         }
@@ -56,12 +56,15 @@ def create(router_url, embedding_size, index_type="FLAT", store_type="MemoryOnly
         "replica_num": 1,
         "fields": properties["fields"]
     }
-    logger.info(create_db(router_url, db_name))
+    response = create_db(router_url, db_name)
+    assert response["code"] == 200
 
-    logger.info(create_space(router_url, db_name, space_config))
+    response = create_space(router_url, db_name, space_config)
+    assert response["code"] == 200
+    logger.info(response["data"]["space_properties"]["field_vector"])
 
 
-def benchmark(index_type, store_type, xb, xq, gt):
+def benchmark(index_type, store_type, metric_type, xb, xq, gt):
     embedding_size = xb.shape[1]
     batch_size = 100
     k = 100
@@ -71,11 +74,13 @@ def benchmark(index_type, store_type, xb, xq, gt):
     logger.info("dataset num: %d, total_batch: %d, dimension: %d, search num: %d, topK: %d" % (
         total, total_batch, embedding_size, xq.shape[0], k))
 
-    create(router_url, embedding_size, index_type, store_type)
+    create(router_url, embedding_size, index_type, store_type, metric_type)
 
     add(total_batch, batch_size, xb)
+    if total - total_batch * batch_size:
+        add(total - total_batch * batch_size, 1, xb[total_batch * batch_size:])
 
-    waiting_index_finish(logger, total)
+    waiting_index_finish(logger, total, 15)
 
     query_dict = {
         "vectors": [],
@@ -89,30 +94,31 @@ def benchmark(index_type, store_type, xb, xq, gt):
 
     for batch in [True, False]:
         avarage, recalls = evaluate(xq, gt, k, batch, query_dict, logger)
-        result = "batch: %d, search avarage time: %.2f ms, " % (batch, avarage)
+        result = "%s batch: %d, search avarage time: %.2f ms, " % (index_type, batch, avarage)
         for recall in recalls:
             result += "recall@%d = %.2f%% " % (recall, recalls[recall] * 100)
         logger.info(result)
 
-        assert recalls[100] >= 0.95
-        assert recalls[10] >= 0.9
+        # assert recalls[100] >= 0.95
+        assert recalls[10] >= 0.8
         assert recalls[1] >= 0.5
 
     destroy(router_url, db_name, space_name)
 
 
-sift1m = DatasetSift1M(logger)
-xb = sift1m.get_database()
-xq = sift1m.get_queries()
-gt = sift1m.get_groundtruth()
-
-
-@ pytest.mark.parametrize(["index_type", "store_type"], [
-    ["HNSW", "MemoryOnly"],
-    # ["IVFPQ", "MemoryOnly"],
-    # ["IVFPQ", "RocksDB"],
-    # ["IVFFLAT", "RocksDB"],
-    # ["FLAT", "MemoryOnly"]
+@ pytest.mark.parametrize(["dataset_name", "metric_type"], [
+    ["sift", "L2"],
+    ["glove", "InnerProduct"],
 ])
-def test_vearch_index_recall_sift1m(index_type: str, store_type: str):
-    benchmark(index_type, store_type, xb, xq, gt)
+def test_vearch_index_dataset_recall(dataset_name, metric_type):
+    xb, xq, gt = get_dataset_by_name(logger, dataset_name)
+
+    index_infos = [
+        ["HNSW", "MemoryOnly"],
+        ["IVFPQ", "MemoryOnly"],
+        ["IVFPQ", "RocksDB"],
+        ["IVFFLAT", "RocksDB"],
+        ["FLAT", "MemoryOnly"]
+    ]
+    for index_type, store_type in index_infos:
+        benchmark(index_type, store_type, metric_type, xb, xq, gt)

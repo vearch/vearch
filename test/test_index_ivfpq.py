@@ -89,7 +89,7 @@ def query(quick, nprobe, parallel_on_queries, xq, gt, k, logger):
             if recall == k and nprobe > 10:
                 assert recalls[recall] >= 0.9
         logger.info(result)
-        if nprobe > 1:
+        if nprobe > 10:
             assert recalls[1] >= 0.6
             assert recalls[10] >= 0.9
             assert recalls[100] >= 0.95

@@ -351,3 +351,17 @@ class DatasetMusic1M(Dataset):
 
     def get_groundtruth(self):
         return np.load(self.basedir + "gt.npy")
+
+def get_dataset_by_name(logger, name):
+    if name == "sift":
+        dataset = DatasetSift1M(logger)
+        return dataset.get_database(), dataset.get_queries(), dataset.get_groundtruth()
+    elif name == "siftsmall":
+        dataset = DatasetSift10K(logger)
+        return dataset.get_database(), dataset.get_queries(), dataset.get_groundtruth()
+    elif name == "glove":
+        dataset = DatasetGlove(logger)
+        return dataset.get_database(), dataset.get_queries(), dataset.get_groundtruth()
+    elif name == "nytimes":
+        dataset = DatasetNytimes(logger)
+        return dataset.get_database(), dataset.get_queries(), dataset.get_groundtruth()
