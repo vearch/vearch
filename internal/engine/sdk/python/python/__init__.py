@@ -680,7 +680,6 @@ class GammaRequest:
         self.topn = 100
         self.brute_force_search = 0
         self.retrieval_params = ""
-        self.has_rank = True
         self.multi_vector_rank = 0
         self.l2_sqrt = False
 
@@ -712,7 +711,6 @@ class GammaRequest:
         request.SetTopN(self.topn)
         request.SetBruteForceSearch(self.brute_force_search)
         request.SetRetrievalParams(self.retrieval_params)
-        request.SetHasRank(self.has_rank)
         request.SetMultiVectorRank(self.multi_vector_rank)
         request.SetL2Sqrt(self.l2_sqrt)
 
@@ -758,8 +756,6 @@ class GammaRequest:
             self.topn = querys["topn"]
         if "is_brute_search" in querys and isinstance(querys["is_brute_search"], int):
             self.brute_force_search = 1 if querys["is_brute_search"] == 1 else 0
-        if "has_rank" in querys and isinstance(querys["has_rank"], bool):
-            self.has_rank = querys["has_rank"]
         if "l2_sqrt" in querys and isinstance(querys["l2_sqrt"], bool):
             self.l2_sqrt = querys["l2_sqrt"]
         # if 'multi_vector_rank' in querys and isinstance(querys['multi_vector_rank'], int):
@@ -1034,7 +1030,6 @@ class GammaRequest:
         PRequest.RequestAddRangeFilters(builder, RfSeria)
         PRequest.RequestAddTermFilters(builder, TfSeria)
         PRequest.RequestAddRetrievalParams(builder, RpSeria)
-        PRequest.RequestAddHasRank(builder, self.has_rank)
         PRequest.RequestAddMultiVectorRank(builder, self.multi_vector_rank)
         PRequest.RequestAddL2Sqrt(builder, self.l2_sqrt)
 

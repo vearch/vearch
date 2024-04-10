@@ -281,7 +281,6 @@ print(result)
     - efSearch: It is used in the HNSW model.  defaul 64.
 - direct_search_type : Specify the query type. 0 means to use index if the feature has been created, and violent search if it has not been created; and 1 means not to use index only for violent search. The default value is 0.
 - topn : Specifies the maximum number of results to return.
-- has_rank : whether it needs reranking after recalling from PQ index. default 0, has not rank; 1, has rank
 - multi_vector_rank : whether it needs reranking after merging the searching result of multi-vectors. default 0, has not rank; 1, has rank
 - fields : what field you want get from query result. If you don't set any field in profile fields(here means none feature vector  field), all profile fields will return; And when you want to get feature vectors then specify the feature vector field.
 

@@ -48,7 +48,6 @@ type Request struct {
 	RangeFilters     []RangeFilter
 	TermFilters      []TermFilter
 	IndexParams      string
-	HasRank          bool
 	MultiVectorRank  int32
 	L2Sqrt           bool
 
@@ -157,7 +156,6 @@ func (request *Request) Serialize(buffer *[]byte) int {
 	gamma_api.RequestAddRangeFilters(builder, r)
 	gamma_api.RequestAddTermFilters(builder, t)
 	gamma_api.RequestAddIndexParams(builder, indexParams)
-	gamma_api.RequestAddHasRank(builder, request.HasRank)
 	gamma_api.RequestAddMultiVectorRank(builder, request.MultiVectorRank)
 	gamma_api.RequestAddL2Sqrt(builder, request.L2Sqrt)
 
@@ -272,7 +270,6 @@ func SearchRequestSerialize(request *vearchpb.SearchRequest) []byte {
 	gamma_api.RequestAddRangeFilters(builder, r)
 	gamma_api.RequestAddTermFilters(builder, t)
 	gamma_api.RequestAddIndexParams(builder, indexParams)
-	gamma_api.RequestAddHasRank(builder, request.HasRank)
 	gamma_api.RequestAddMultiVectorRank(builder, request.MultiVectorRank)
 	gamma_api.RequestAddL2Sqrt(builder, request.L2Sqrt)
 

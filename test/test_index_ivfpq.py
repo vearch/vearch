@@ -65,16 +65,16 @@ def create(router_url, embedding_size, store_type="MemoryOnly", index_params={})
     logger.info(create_space(router_url, db_name, space_config))
 
 
-def query(quick, nprobe, parallel_on_queries, xq, gt, k, logger):
+def query(rerank, nprobe, parallel_on_queries, xq, gt, k, logger):
     query_dict = {
         "vectors": [],
         "index_params": {
             "nprobe": nprobe,
-            "parallel_on_queries": parallel_on_queries
+            "parallel_on_queries": parallel_on_queries,
+            "recall_num": rerank
         },
         "vector_value": False,
         "fields": ["field_int"],
-        "quick": quick,
         "limit": k,
         "db_name": db_name,
         "space_name": space_name,
@@ -82,8 +82,8 @@ def query(quick, nprobe, parallel_on_queries, xq, gt, k, logger):
 
     for batch in [True, False]:
         avarage, recalls = evaluate(xq, gt, k, batch, query_dict, logger)
-        result = "batch: %d, nprobe: %d, quick: %d, parallel_on_queries: %d, avarage time: %.2f ms, " \
-            % (batch, nprobe, quick, parallel_on_queries, avarage)
+        result = "batch: %d, nprobe: %d, rerank: %d, parallel_on_queries: %d, avarage time: %.2f ms, " \
+            % (batch, nprobe, rerank, parallel_on_queries, avarage)
         for recall in recalls:
             result += "recall@%d = %.2f%% " % (recall, recalls[recall] * 100)
             if recall == k and nprobe > 10:
@@ -109,12 +109,12 @@ def benchmark(store_type, index_params, xb, xq, gt):
 
     add(total_batch, batch_size, xb)
 
-    waiting_index_finish(logger, total)
+    waiting_index_finish(logger, total, 10)
 
-    for quick in [True, False]:
+    for rerank in [0, 100]:
         for nprobe in [10, 20]:
             for parallel_on_queries in [0, 1]:
-                query(quick, nprobe, parallel_on_queries, xq, gt, k, logger)
+                query(rerank, nprobe, parallel_on_queries, xq, gt, k, logger)
 
     destroy(router_url, db_name, space_name)
 

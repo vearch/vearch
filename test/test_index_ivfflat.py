@@ -106,7 +106,7 @@ def benchmark(store_type, ncentroids, xb, xq, gt):
 
     add(total_batch, batch_size, xb)
 
-    waiting_index_finish(logger, total)
+    waiting_index_finish(logger, total, 10)
 
     for nprobe in [1, 10, 20]:
         for parallel_on_queries in [0, 1]:

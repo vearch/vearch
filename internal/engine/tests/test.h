@@ -550,7 +550,6 @@ int SearchThread(struct Options &opt, size_t num) {
     request.AddVectorQuery(vector_query);
     request.SetReqNum(req_num);
     request.SetBruteForceSearch(0);
-    request.SetHasRank(true);
     std::string index_params =
         "{\"metric_type\" : \"InnerProduct\", \"recall_num\" : "
         "10, \"nprobe\" : 10, \"ivf_flat\" : 0}";

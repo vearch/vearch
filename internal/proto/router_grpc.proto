@@ -168,12 +168,11 @@ message SearchRequest {
   repeated RangeFilter range_filters = 7;
   repeated TermFilter term_filters = 8;
   string index_params = 9;
-  bool has_rank = 10;
-  int32 multi_vector_rank = 11;
-  bool l2_sqrt = 12;
-  bool is_vector_value = 13;
-  map<string, string> sort_field_map = 14;
-  repeated SortField sort_fields = 15;
+  int32 multi_vector_rank = 10;
+  bool l2_sqrt = 11;
+  bool is_vector_value = 12;
+  map<string, string> sort_field_map = 13;
+  repeated SortField sort_fields = 14;
 }
 
 //*********************** Search response *********************** //

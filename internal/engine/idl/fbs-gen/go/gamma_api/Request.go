@@ -147,20 +147,8 @@ func (rcv *Request) IndexParams() []byte {
 	return nil
 }
 
-func (rcv *Request) HasRank() bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(20))
-	if o != 0 {
-		return rcv._tab.GetBool(o + rcv._tab.Pos)
-	}
-	return false
-}
-
-func (rcv *Request) MutateHasRank(n bool) bool {
-	return rcv._tab.MutateBoolSlot(20, n)
-}
-
 func (rcv *Request) MultiVectorRank() int32 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(22))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(20))
 	if o != 0 {
 		return rcv._tab.GetInt32(o + rcv._tab.Pos)
 	}
@@ -168,11 +156,11 @@ func (rcv *Request) MultiVectorRank() int32 {
 }
 
 func (rcv *Request) MutateMultiVectorRank(n int32) bool {
-	return rcv._tab.MutateInt32Slot(22, n)
+	return rcv._tab.MutateInt32Slot(20, n)
 }
 
 func (rcv *Request) L2Sqrt() bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(24))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(22))
 	if o != 0 {
 		return rcv._tab.GetBool(o + rcv._tab.Pos)
 	}
@@ -180,11 +168,11 @@ func (rcv *Request) L2Sqrt() bool {
 }
 
 func (rcv *Request) MutateL2Sqrt(n bool) bool {
-	return rcv._tab.MutateBoolSlot(24, n)
+	return rcv._tab.MutateBoolSlot(22, n)
 }
 
 func RequestStart(builder *flatbuffers.Builder) {
-	builder.StartObject(11)
+	builder.StartObject(10)
 }
 func RequestAddReqNum(builder *flatbuffers.Builder, reqNum int32) {
 	builder.PrependInt32Slot(0, reqNum, 0)
@@ -222,14 +210,11 @@ func RequestStartTermFiltersVector(builder *flatbuffers.Builder, numElems int) f
 func RequestAddIndexParams(builder *flatbuffers.Builder, indexParams flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(7, flatbuffers.UOffsetT(indexParams), 0)
 }
-func RequestAddHasRank(builder *flatbuffers.Builder, hasRank bool) {
-	builder.PrependBoolSlot(8, hasRank, false)
-}
 func RequestAddMultiVectorRank(builder *flatbuffers.Builder, multiVectorRank int32) {
-	builder.PrependInt32Slot(9, multiVectorRank, 0)
+	builder.PrependInt32Slot(8, multiVectorRank, 0)
 }
 func RequestAddL2Sqrt(builder *flatbuffers.Builder, l2Sqrt bool) {
-	builder.PrependBoolSlot(10, l2Sqrt, false)
+	builder.PrependBoolSlot(9, l2Sqrt, false)
 }
 func RequestEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

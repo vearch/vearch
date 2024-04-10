@@ -140,7 +140,6 @@ void IndexIVFFlat::search(idx_t n, const float *x, idx_t k, float *distances,
                           idx_t *labels) {
   PerfTool perf_tool;
   SearchCondition *condition = new SearchCondition(&perf_tool);
-  condition->has_rank = false;
   condition->topn = k;
   condition->Init(std::numeric_limits<float>::lowest(),
                   std::numeric_limits<float>::max(), nullptr, nullptr);
@@ -290,7 +289,6 @@ void IndexIVFPQ::search(idx_t n, const float *x, idx_t k, float *distances,
                         idx_t *labels) {
   PerfTool perf_tool;
   SearchCondition *condition = new SearchCondition(&perf_tool);
-  condition->has_rank = false;
   condition->topn = k;
   condition->Init(std::numeric_limits<float>::lowest(),
                   std::numeric_limits<float>::max(), nullptr, nullptr);
@@ -425,7 +423,6 @@ void IndexScann::search(idx_t n, const float *x, idx_t k, float *distances,
                         idx_t *labels) {
   PerfTool perf_tool;
   SearchCondition *condition = new SearchCondition(&perf_tool);
-  condition->has_rank = false;
   condition->topn = k;
   condition->Init(std::numeric_limits<float>::lowest(),
                   std::numeric_limits<float>::max(), nullptr, nullptr);

@@ -38,7 +38,6 @@ class SearchCondition : public RetrievalContext {
     sort_by_docid = false;
     brute_force_search = false;
     l2_sqrt = false;
-    has_rank = 1;
     min_score = std::numeric_limits<float>::min();
     max_score = std::numeric_limits<float>::max();
     perf_tool_ = perf_tool;
@@ -53,7 +52,6 @@ class SearchCondition : public RetrievalContext {
     sort_by_docid = condition->sort_by_docid;
     brute_force_search = condition->brute_force_search;
     l2_sqrt = condition->l2_sqrt;
-    has_rank = condition->has_rank;
     perf_tool_ = condition->perf_tool_;
 
     range_filters = condition->range_filters;
@@ -79,7 +77,6 @@ class SearchCondition : public RetrievalContext {
   bool sort_by_docid;
   bool brute_force_search;
   bool l2_sqrt;
-  bool has_rank;
   std::string index_params;
   float min_score;
   float max_score;

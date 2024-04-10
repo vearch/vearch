@@ -298,7 +298,6 @@ int Engine::Search(Request &request, Response &response_results,
   gamma_query.condition->brute_force_search = brute_force_search;
   gamma_query.condition->l2_sqrt = request.L2Sqrt();
   gamma_query.condition->index_params = request.IndexParams();
-  gamma_query.condition->has_rank = request.HasRank();
 
   gamma_query.condition->range_filters = request.RangeFilters();
   gamma_query.condition->term_filters = request.TermFilters();

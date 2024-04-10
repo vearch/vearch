@@ -349,7 +349,6 @@ func makeSearchRequests(n, m int) []*vearchpb.SearchRequest {
 
 			query.RangeFilters = []*vearchpb.RangeFilter{rf}
 			query.IsBruteSearch = 0
-			query.HasRank = false
 			query.IsVectorValue = false
 			query.L2Sqrt = false
 			query.IndexParams = `{"nprobe" : 10, "metric_type" : "InnerProduct", "ncentroids" : 4096,"nsubvector" : 32}`

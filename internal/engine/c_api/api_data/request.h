@@ -61,10 +61,6 @@ class Request : public RawData {
 
   void SetIndexParams(const std::string &index_params);
 
-  bool HasRank();
-
-  void SetHasRank(bool has_rank);
-
   int MultiVectorRank();
 
   void SetMultiVectorRank(int multi_vector_rank);
@@ -88,7 +84,6 @@ class Request : public RawData {
   std::vector<struct TermFilter> term_filters_;
 
   std::string index_params_;
-  bool has_rank_;
   int multi_vector_rank_;
   bool l2_sqrt_;
 };

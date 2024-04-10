@@ -552,11 +552,6 @@ func (query *VectorQuery) ToC(indexType string) (*vearchpb.VectorQuery, error) {
 }
 
 func requestToPb(searchDoc *request.SearchDocumentRequest, space *entity.Space, searchReq *vearchpb.SearchRequest) error {
-	hasRank := true
-	if searchDoc.Quick {
-		hasRank = false
-	}
-	searchReq.HasRank = hasRank
 	searchReq.IsVectorValue = searchDoc.VectorValue
 	searchReq.L2Sqrt = searchDoc.L2Sqrt
 	searchReq.Fields = searchDoc.Fields

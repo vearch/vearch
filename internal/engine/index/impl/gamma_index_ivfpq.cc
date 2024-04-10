@@ -611,9 +611,9 @@ size_t scan_one_list(GammaInvertedListScanner *scanner, idx_t key,
 
 void compute_dis(int k, const float *xi, float *simi, idx_t *idxi,
                  float *recall_simi, idx_t *recall_idxi, int recall_num,
-                 bool has_rank, faiss::MetricType metric_type,
+                 bool rerank, faiss::MetricType metric_type,
                  VectorReader *vec, RetrievalContext *retrieval_context) {
-  if (has_rank == true) {
+  if (rerank == true) {
     ScopeVectors scope_vecs;
     std::vector<idx_t> vids(recall_idxi, recall_idxi + recall_num);
     if (vec->Gets(vids, scope_vecs)) {
@@ -664,7 +664,6 @@ void GammaIVFPQIndex::search_preassigned(
   // for opq, rerank need raw vector
   float *vec_q = const_cast<float *>(x);
   float *vec_applied_q = const_cast<float *>(applied_x);
-  SearchCondition *context = dynamic_cast<SearchCondition *>(retrieval_context);
   IVFPQRetrievalParameters *retrieval_params =
       dynamic_cast<IVFPQRetrievalParameters *>(
           retrieval_context->RetrievalParams());
@@ -693,13 +692,14 @@ void GammaIVFPQIndex::search_preassigned(
   using HeapForL2 = faiss::CMax<float, idx_t>;
 
   int recall_num = k;
-  if (context->has_rank && retrieval_params->RecallNum() > k) {
+  bool rerank = retrieval_params->RecallNum() > 0 ? true : false;
+  if (retrieval_params->RecallNum() > k) {
     recall_num = retrieval_params->RecallNum();
   }
 
   float *recall_distances = nullptr;
   idx_t *recall_labels = nullptr;
-  if (context->has_rank) {
+  if (rerank) {
     recall_distances = new float[n * recall_num];
     recall_labels = new idx_t[n * recall_num];
   }
@@ -738,7 +738,7 @@ void GammaIVFPQIndex::search_preassigned(
         float *recall_simi = simi;
         idx_t *recall_idxi = idxi;
 
-        if (context->has_rank) {
+        if (rerank) {
           recall_simi = recall_distances + i * recall_num;
           recall_idxi = recall_labels + i * recall_num;
           init_result(metric_type, recall_num, recall_simi, recall_idxi);
@@ -758,7 +758,7 @@ void GammaIVFPQIndex::search_preassigned(
 
         ndis += nscan;
         compute_dis(k, vec_q + i * d, simi, idxi, recall_simi, recall_idxi,
-                    recall_num, context->has_rank, metric_type, vector_,
+                    recall_num, rerank, metric_type, vector_,
                     retrieval_context);
       }       // parallel for
     } else {  // parallelize over inverted lists
@@ -793,7 +793,7 @@ void GammaIVFPQIndex::search_preassigned(
         float *recall_simi = simi;
         idx_t *recall_idxi = idxi;
 
-        if (context->has_rank) {
+        if (rerank) {
           recall_simi = recall_distances + i * recall_num;
           recall_idxi = recall_labels + i * recall_num;
         }
@@ -801,7 +801,7 @@ void GammaIVFPQIndex::search_preassigned(
 #pragma omp single
         {
           init_result(metric_type, k, simi, idxi);
-          if (context->has_rank) {
+          if (rerank) {
             init_result(metric_type, recall_num, recall_simi, recall_idxi);
           }
         }
@@ -826,7 +826,7 @@ void GammaIVFPQIndex::search_preassigned(
           retrieval_context->GetPerfTool().Perf("coarse");
 #endif
           compute_dis(k, vec_q + i * d, simi, idxi, recall_simi, recall_idxi,
-                      recall_num, context->has_rank, metric_type, vector_,
+                      recall_num, rerank, metric_type, vector_,
                       retrieval_context);
 
 #ifdef PERFORMANCE_TESTING

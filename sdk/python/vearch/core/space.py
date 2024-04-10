@@ -138,7 +138,6 @@ class Space(object):
         :param size:  the result size you want to return
         :param kwargs:
             "is_brute_search": 0,
-            "quick": false,
             "vector_value": false,
             "load_balance": "leader",
             "l2_sqrt": false,

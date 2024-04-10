@@ -155,7 +155,6 @@ def benchmark(index_type, store_type, metric_type, xb, xq, gt):
         "vectors": [],
         "vector_value": False,
         "fields": ["field_int"],
-        "quick": True,
         "limit": k,
         "db_name": db_name,
         "space_name": space_name,

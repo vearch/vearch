@@ -72,7 +72,7 @@ int Request::Serialize(char **out, int *out_len) {
                                builder.CreateVector(fields_vector),
                                builder.CreateVector(range_filter_vector),
                                builder.CreateVector(term_filter_vector),
-                               builder.CreateString(index_params_), has_rank_,
+                               builder.CreateString(index_params_),
                                multi_vector_rank_, l2_sqrt_);
 
   builder.Finish(res);
@@ -140,7 +140,6 @@ void Request::Deserialize(const char *data, int len) {
   }
 
   index_params_ = request_->index_params()->str();
-  has_rank_ = request_->has_rank();
   multi_vector_rank_ = request_->multi_vector_rank();
   l2_sqrt_ = request_->l2_sqrt();
 }
@@ -205,10 +204,6 @@ const std::string &Request::IndexParams() { return index_params_; }
 void Request::SetIndexParams(const std::string &index_params) {
   index_params_ = index_params;
 }
-
-bool Request::HasRank() { return has_rank_; }
-
-void Request::SetHasRank(bool has_rank) { has_rank_ = has_rank; }
 
 int Request::MultiVectorRank() {
   if (request_)

@@ -780,6 +780,7 @@ int GammaIVFPQGPUIndex::Search(RetrievalContext *retrieval_context, int n,
   int raw_d = raw_vec->MetaInfo()->Dimension();
   const float *vec_q = xq;
   int recall_num = retrieval_params->RecallNum();
+  bool rerank = recall_num > 0 ? true : false;
 
   int max_recallnum = faiss::gpu::getMaxKSelection();
   if (recall_num > max_recallnum) {
@@ -864,7 +865,7 @@ int GammaIVFPQGPUIndex::Search(RetrievalContext *retrieval_context, int n,
 
   std::function<void(std::vector<const uint8_t *>)> compute_vec;
 
-  if (condition->has_rank == true) {
+  if (rerank == true) {
     compute_vec = [&](std::vector<const uint8_t *> vecs) {
       for (int i = 0; i < n; ++i) {
         const float *xi = xq + i * d_;  // query
@@ -944,7 +945,7 @@ int GammaIVFPQGPUIndex::Search(RetrievalContext *retrieval_context, int n,
 
   std::function<void()> compute_dis;
 
-  if (condition->has_rank == true) {
+  if (rerank == true) {
     // calculate inner product for selected possible vectors
     compute_dis = [&]() {
       RawVector *raw_vec = dynamic_cast<RawVector *>(vector_);

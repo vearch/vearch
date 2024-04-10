@@ -59,7 +59,6 @@ type SearchDocumentRequest struct {
 	Vectors       []json.RawMessage `json:"vectors,omitempty"`
 	Sort          json.RawMessage   `json:"sort,omitempty"`
 	IndexParams   json.RawMessage   `json:"index_params,omitempty"`
-	Quick         bool              `json:"quick,omitempty"`
 	L2Sqrt        bool              `json:"l2_sqrt,omitempty"`
 	VectorValue   bool              `json:"vector_value,omitempty"`
 	IsBruteSearch int32             `json:"is_brute_search"`

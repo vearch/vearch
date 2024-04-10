@@ -33,7 +33,6 @@ table Request {
   range_filters:[RangeFilter];
   term_filters:[TermFilter];
   index_params:string;
-  has_rank:bool;                  // default false, not rank
   multi_vector_rank:int;
   l2_sqrt:bool;                   // default FALSE, don't do sqrt; TRUE, do sqrt
 }
