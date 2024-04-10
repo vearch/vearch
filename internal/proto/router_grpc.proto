@@ -124,10 +124,8 @@ message VectorQuery {
   bytes value = 2;
   double min_score = 3;
   double max_score = 4;
-  double boost = 5;
-  int32 has_boost = 6;
-  string format = 7;
-  string index_type = 8;
+  string format = 5;
+  string index_type = 6;
 }
 
 message IndexParameters {

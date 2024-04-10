@@ -34,8 +34,6 @@ type VectorQuery struct {
 	Value     []byte
 	MinScore  float64
 	MaxScore  float64
-	Boost     float64
-	HasBoost  int32
 	IndexType string
 }
 
@@ -80,8 +78,6 @@ func (request *Request) Serialize(buffer *[]byte) int {
 		gamma_api.VectorQueryAddValue(builder, value)
 		gamma_api.VectorQueryAddMinScore(builder, request.VecFields[i].MinScore)
 		gamma_api.VectorQueryAddMaxScore(builder, request.VecFields[i].MaxScore)
-		gamma_api.VectorQueryAddBoost(builder, request.VecFields[i].Boost)
-		gamma_api.VectorQueryAddHasBoost(builder, request.VecFields[i].HasBoost)
 		gamma_api.VectorQueryAddIndexType(builder, builder.CreateString(request.VecFields[i].IndexType))
 		vectorQuerys[i] = gamma_api.VectorQueryEnd(builder)
 	}
@@ -194,8 +190,6 @@ func SearchRequestSerialize(request *vearchpb.SearchRequest) []byte {
 		gamma_api.VectorQueryAddValue(builder, value)
 		gamma_api.VectorQueryAddMinScore(builder, request.VecFields[i].MinScore)
 		gamma_api.VectorQueryAddMaxScore(builder, request.VecFields[i].MaxScore)
-		gamma_api.VectorQueryAddBoost(builder, request.VecFields[i].Boost)
-		gamma_api.VectorQueryAddHasBoost(builder, request.VecFields[i].HasBoost)
 		gamma_api.VectorQueryAddIndexType(builder, index_type)
 		vectorQuerys[i] = gamma_api.VectorQueryEnd(builder)
 	}

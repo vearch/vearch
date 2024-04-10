@@ -19,8 +19,6 @@ table VectorQuery {
   value:[ubyte];
   min_score:double;
   max_score:double;
-  boost:double;
-  has_boost:int;
   index_type:string;
 }
 

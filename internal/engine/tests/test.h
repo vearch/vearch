@@ -452,8 +452,6 @@ int SearchThread(struct Options &opt, size_t num) {
 
     vector_query.min_score = 0;
     vector_query.max_score = 10000;
-    vector_query.boost = 0.1;
-    vector_query.has_boost = 0;
 
     vearch::Request request;
     request.SetTopN(10);

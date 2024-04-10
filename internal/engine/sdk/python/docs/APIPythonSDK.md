@@ -197,7 +197,6 @@ query = {
         "field": "field_name",
         "feature": np.array([0.1, 0.2, 0.3, 0.4, 0.5]),
         "min_score": 0.9,
-        "boost": 1
     }],
     "filter": [{
         "range": {
@@ -270,7 +269,6 @@ print(result)
 - feature : vector feature, dimension must be the same when defining table structure
 - min_score: Specify the minimum score of the returned result, the similarity between the two vector 
     calculation results is between 0-1, min_score can specify the minimum score of the returned result, and max_score can specify the maximum score. For example, set “min_score”: 0.8, “max_score”: 0.95 to filter the result of 0.8 <= score <= 0.95.
-- boost : Specify the weight of similarity. For example, if the similarity score of two vectors is 0.7 and boost is set to 0.5, the returned result will multiply the score 0.7 * 0.5, which is 0.35.
 - filter : Multiple conditions are supported. Multiple conditions are intersecting. There are two kind of filters, range and term.
 -  range : Specify to use the numeric field integer / float filtering, the file name is the numeric field name, gte and lte specify the range, lte is less than or equal to, gte is greater than or equal to, if equivalent filtering  is used, lte and gte settings are the same value. The above example shows that the query field_name field is greater than or equal to 160 but less than or equal to 180.
 -  term : With label filtering, field_name is a defined label field, which allows multiple value filtering. You can intersect “operator”: “or”, merge: “operator”: “and”. The above example indicates that the query field name segment value is “100”, “200” or “300”.

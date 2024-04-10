@@ -52,6 +52,11 @@ type Filter struct {
 	Conditions []Condition `json:"conditions,omitempty"`
 }
 
+type Ranker struct {
+	Type   string          `json:"type"`
+	Params json.RawMessage `json:"Params,omitempty"`
+}
+
 type SearchDocumentRequest struct {
 	Limit         int32             `json:"limit,omitempty"`
 	Fields        []string          `json:"fields,omitempty"`
@@ -68,6 +73,7 @@ type SearchDocumentRequest struct {
 	DocumentIds   *[]string         `json:"document_ids,omitempty"`
 	PartitionId   *string           `json:"partition_id,omitempty"`
 	Next          *bool             `json:"next,omitempty"`
+	Ranker        *Ranker           `json:"ranker,omitempty"`
 	sortOrder     sortorder.SortOrder
 }
 

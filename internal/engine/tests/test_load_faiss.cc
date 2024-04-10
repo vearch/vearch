@@ -194,10 +194,8 @@ int SearchFaiss(struct Options &opt, size_t num) {
 
     vector_query.value = std::string(value, len);
 
-    vector_query.min_score = -10000;
-    vector_query.max_score = 10000;
-    vector_query.boost = 0.1;
-    vector_query.has_boost = 0;
+    vector_query.min_score = -100000;
+    vector_query.max_score = 100000;
 
     vearch::Request request;
     request.SetTopN(10);

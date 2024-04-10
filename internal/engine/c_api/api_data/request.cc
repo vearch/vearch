@@ -21,12 +21,10 @@ int Request::Serialize(char **out, int *out_len) {
 
     double min_score = vec_field.min_score;
     double max_score = vec_field.max_score;
-    double boost = vec_field.boost;
-    int has_boost = vec_field.has_boost;
 
     auto vector_query = gamma_api::CreateVectorQuery(
         builder, builder.CreateString(name), builder.CreateVector(value),
-        min_score, max_score, boost, has_boost,
+        min_score, max_score,
         builder.CreateString(vec_field.index_type));
     vec_fields_vector.push_back(vector_query);
   }
@@ -99,8 +97,6 @@ void Request::Deserialize(const char *data, int len) {
         fbs_vector_query->value()->size());
     vector_query.min_score = fbs_vector_query->min_score();
     vector_query.max_score = fbs_vector_query->max_score();
-    vector_query.boost = fbs_vector_query->boost();
-    vector_query.has_boost = fbs_vector_query->has_boost();
     vector_query.index_type = fbs_vector_query->index_type()->str();
 
     vec_fields_.emplace_back(vector_query);

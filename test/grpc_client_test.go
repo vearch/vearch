@@ -302,7 +302,6 @@ func makeSearchRequests(n, m int) []*vearchpb.SearchRequest {
 					vectorQuery.Name = field.Name
 					vectorQuery.Value = field.Value
 					vectorQuery.MinScore = 0.5
-					vectorQuery.Boost = 0.5
 					break
 				}
 			}

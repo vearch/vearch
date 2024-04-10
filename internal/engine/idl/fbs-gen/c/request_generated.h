@@ -200,9 +200,7 @@ struct VectorQuery FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_VALUE = 6,
     VT_MIN_SCORE = 8,
     VT_MAX_SCORE = 10,
-    VT_BOOST = 12,
-    VT_HAS_BOOST = 14,
-    VT_INDEX_TYPE = 16
+    VT_INDEX_TYPE = 12
   };
   const flatbuffers::String *name() const {
     return GetPointer<const flatbuffers::String *>(VT_NAME);
@@ -216,12 +214,6 @@ struct VectorQuery FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   double max_score() const {
     return GetField<double>(VT_MAX_SCORE, 0.0);
   }
-  double boost() const {
-    return GetField<double>(VT_BOOST, 0.0);
-  }
-  int32_t has_boost() const {
-    return GetField<int32_t>(VT_HAS_BOOST, 0);
-  }
   const flatbuffers::String *index_type() const {
     return GetPointer<const flatbuffers::String *>(VT_INDEX_TYPE);
   }
@@ -233,8 +225,6 @@ struct VectorQuery FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyVector(value()) &&
            VerifyField<double>(verifier, VT_MIN_SCORE) &&
            VerifyField<double>(verifier, VT_MAX_SCORE) &&
-           VerifyField<double>(verifier, VT_BOOST) &&
-           VerifyField<int32_t>(verifier, VT_HAS_BOOST) &&
            VerifyOffset(verifier, VT_INDEX_TYPE) &&
            verifier.VerifyString(index_type()) &&
            verifier.EndTable();
@@ -255,12 +245,6 @@ struct VectorQueryBuilder {
   }
   void add_max_score(double max_score) {
     fbb_.AddElement<double>(VectorQuery::VT_MAX_SCORE, max_score, 0.0);
-  }
-  void add_boost(double boost) {
-    fbb_.AddElement<double>(VectorQuery::VT_BOOST, boost, 0.0);
-  }
-  void add_has_boost(int32_t has_boost) {
-    fbb_.AddElement<int32_t>(VectorQuery::VT_HAS_BOOST, has_boost, 0);
   }
   void add_index_type(flatbuffers::Offset<flatbuffers::String> index_type) {
     fbb_.AddOffset(VectorQuery::VT_INDEX_TYPE, index_type);
@@ -283,15 +267,11 @@ inline flatbuffers::Offset<VectorQuery> CreateVectorQuery(
     flatbuffers::Offset<flatbuffers::Vector<uint8_t>> value = 0,
     double min_score = 0.0,
     double max_score = 0.0,
-    double boost = 0.0,
-    int32_t has_boost = 0,
     flatbuffers::Offset<flatbuffers::String> index_type = 0) {
   VectorQueryBuilder builder_(_fbb);
-  builder_.add_boost(boost);
   builder_.add_max_score(max_score);
   builder_.add_min_score(min_score);
   builder_.add_index_type(index_type);
-  builder_.add_has_boost(has_boost);
   builder_.add_value(value);
   builder_.add_name(name);
   return builder_.Finish();
@@ -303,8 +283,6 @@ inline flatbuffers::Offset<VectorQuery> CreateVectorQueryDirect(
     const std::vector<uint8_t> *value = nullptr,
     double min_score = 0.0,
     double max_score = 0.0,
-    double boost = 0.0,
-    int32_t has_boost = 0,
     const char *index_type = nullptr) {
   auto name__ = name ? _fbb.CreateString(name) : 0;
   auto value__ = value ? _fbb.CreateVector<uint8_t>(*value) : 0;
@@ -315,8 +293,6 @@ inline flatbuffers::Offset<VectorQuery> CreateVectorQueryDirect(
       value__,
       min_score,
       max_score,
-      boost,
-      has_boost,
       index_type__);
 }
 

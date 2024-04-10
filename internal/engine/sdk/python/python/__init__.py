@@ -662,14 +662,12 @@ class GammaTermFilter:
 
 class GammaVectorQuery:
     def __init__(
-        self, name, value, min_score, max_score, boost, has_boost, retrieval_type
+        self, name, value, min_score, max_score, retrieval_type
     ):
         self.name = name
         self.value = value
         self.min_score = min_score
         self.max_score = max_score
-        self.boost = boost
-        self.has_boost = has_boost
         self.retrieval_type = retrieval_type
 
 
@@ -742,8 +740,6 @@ class GammaRequest:
                 vector_query_p.value.shape[0],
                 vector_query_p.min_score,
                 vector_query_p.max_score,
-                vector_query_p.boost,
-                vector_query_p.has_boost,
                 vector_query_p.retrieval_type,
             )
             request.AddVectorQuery(vector_query)
@@ -870,8 +866,6 @@ class GammaRequest:
                 ex = Exception("feature type is error. it is numpy")
                 raise ex
 
-            boost = 1
-            has_boost = 0
             retrieval_type = ""
             min_score = -10000000
             max_score = 10000000
@@ -894,9 +888,6 @@ class GammaRequest:
                 min_score = node["min_score"]
             if "max_score" in node and isinstance(node["max_score"], (int, float)):
                 max_score = node["max_score"]
-            if "boost" in node:
-                boost = node["boost"]
-                has_boost = 1
             if "retrieval_type" in node:
                 retrieval_type = node["retrieval_type"]
 
@@ -906,8 +897,6 @@ class GammaRequest:
                     tmpValue,
                     min_score,
                     max_score,
-                    boost,
-                    has_boost,
                     retrieval_type,
                 )
             )
@@ -934,8 +923,6 @@ class GammaRequest:
             PVectorQuery.VectorQueryAddValue(builder, valueData)
             PVectorQuery.VectorQueryAddMinScore(builder, vecQue.min_score)
             PVectorQuery.VectorQueryAddMaxScore(builder, vecQue.max_score)
-            PVectorQuery.VectorQueryAddBoost(builder, vecQue.boost)
-            PVectorQuery.VectorQueryAddHasBoost(builder, vecQue.has_boost)
             PVectorQuery.VectorQueryAddRetrievalType(builder, fb_retrieval_type)
             lst_seria.append(PVectorQuery.VectorQueryEnd(builder))
 

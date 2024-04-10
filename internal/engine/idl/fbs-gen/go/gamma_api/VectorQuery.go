@@ -92,32 +92,8 @@ func (rcv *VectorQuery) MutateMaxScore(n float64) bool {
 	return rcv._tab.MutateFloat64Slot(10, n)
 }
 
-func (rcv *VectorQuery) Boost() float64 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(12))
-	if o != 0 {
-		return rcv._tab.GetFloat64(o + rcv._tab.Pos)
-	}
-	return 0.0
-}
-
-func (rcv *VectorQuery) MutateBoost(n float64) bool {
-	return rcv._tab.MutateFloat64Slot(12, n)
-}
-
-func (rcv *VectorQuery) HasBoost() int32 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(14))
-	if o != 0 {
-		return rcv._tab.GetInt32(o + rcv._tab.Pos)
-	}
-	return 0
-}
-
-func (rcv *VectorQuery) MutateHasBoost(n int32) bool {
-	return rcv._tab.MutateInt32Slot(14, n)
-}
-
 func (rcv *VectorQuery) IndexType() []byte {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(16))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(12))
 	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
 	}
@@ -125,7 +101,7 @@ func (rcv *VectorQuery) IndexType() []byte {
 }
 
 func VectorQueryStart(builder *flatbuffers.Builder) {
-	builder.StartObject(7)
+	builder.StartObject(5)
 }
 func VectorQueryAddName(builder *flatbuffers.Builder, name flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(name), 0)
@@ -142,14 +118,8 @@ func VectorQueryAddMinScore(builder *flatbuffers.Builder, minScore float64) {
 func VectorQueryAddMaxScore(builder *flatbuffers.Builder, maxScore float64) {
 	builder.PrependFloat64Slot(3, maxScore, 0.0)
 }
-func VectorQueryAddBoost(builder *flatbuffers.Builder, boost float64) {
-	builder.PrependFloat64Slot(4, boost, 0.0)
-}
-func VectorQueryAddHasBoost(builder *flatbuffers.Builder, hasBoost int32) {
-	builder.PrependInt32Slot(5, hasBoost, 0)
-}
 func VectorQueryAddIndexType(builder *flatbuffers.Builder, indexType flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(6, flatbuffers.UOffsetT(indexType), 0)
+	builder.PrependUOffsetTSlot(4, flatbuffers.UOffsetT(indexType), 0)
 }
 func VectorQueryEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

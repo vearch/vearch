@@ -633,9 +633,7 @@ Status VectorManager::Search(GammaQuery &query, GammaResult *results) {
           int cur_docid = all_vector_results[j].seek(i, start_docid, vec_dist);
           if (cur_docid == start_docid) {
             common_docid_count++;
-            double field_score = query.vec_query[j].has_boost == 1
-                                     ? (vec_dist * query.vec_query[j].boost)
-                                     : vec_dist;
+            double field_score = vec_dist;
             score += field_score;
             results[i].docs[common_idx]->fields[j].score = field_score;
             if (common_docid_count == vec_num) {

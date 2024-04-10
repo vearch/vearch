@@ -62,33 +62,17 @@ class VectorQuery(object):
         return 0.0
 
     # VectorQuery
-    def Boost(self):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(12))
-        if o != 0:
-            return self._tab.Get(flatbuffers.number_types.Float64Flags, o + self._tab.Pos)
-        return 0.0
-
-    # VectorQuery
-    def HasBoost(self):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(14))
-        if o != 0:
-            return self._tab.Get(flatbuffers.number_types.Int32Flags, o + self._tab.Pos)
-        return 0
-
-    # VectorQuery
     def IndexType(self):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(16))
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(12))
         if o != 0:
             return self._tab.String(o + self._tab.Pos)
         return None
 
-def VectorQueryStart(builder): builder.StartObject(7)
+def VectorQueryStart(builder): builder.StartObject(5)
 def VectorQueryAddName(builder, name): builder.PrependUOffsetTRelativeSlot(0, flatbuffers.number_types.UOffsetTFlags.py_type(name), 0)
 def VectorQueryAddValue(builder, value): builder.PrependUOffsetTRelativeSlot(1, flatbuffers.number_types.UOffsetTFlags.py_type(value), 0)
 def VectorQueryStartValueVector(builder, numElems): return builder.StartVector(1, numElems, 1)
 def VectorQueryAddMinScore(builder, minScore): builder.PrependFloat64Slot(2, minScore, 0.0)
 def VectorQueryAddMaxScore(builder, maxScore): builder.PrependFloat64Slot(3, maxScore, 0.0)
-def VectorQueryAddBoost(builder, boost): builder.PrependFloat64Slot(4, boost, 0.0)
-def VectorQueryAddHasBoost(builder, hasBoost): builder.PrependInt32Slot(5, hasBoost, 0)
-def VectorQueryAddIndexType(builder, indexType): builder.PrependUOffsetTRelativeSlot(6, flatbuffers.number_types.UOffsetTFlags.py_type(indexType), 0)
+def VectorQueryAddIndexType(builder, indexType): builder.PrependUOffsetTRelativeSlot(4, flatbuffers.number_types.UOffsetTFlags.py_type(indexType), 0)
 def VectorQueryEnd(builder): return builder.EndObject()

@@ -26,8 +26,6 @@ struct VectorQuery {
   std::string value;
   double min_score;
   double max_score;
-  double boost;
-  int has_boost;
   std::string index_type;
 };
 

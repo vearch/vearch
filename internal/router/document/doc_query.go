@@ -48,16 +48,11 @@ type VectorQuery struct {
 	FeatureUint8 []uint8         `json:"-"`
 	Symbol       string          `json:"symbol"`
 	Value        *float64        `json:"value"`
-	Boost        *float64        `json:"boost"`
 	Format       *string         `json:"format,omitempty"`
 	MinScore     *float64        `json:"min_score,omitempty"`
 	MaxScore     *float64        `json:"max_score,omitempty"`
 	IndexType    string          `json:"index_type"`
-	HasBoost     *int32          `json:"has_boost"`
 }
-
-var defaultBoost = float64(1)
-var defaultHasBoost = int32(0)
 
 type Range struct {
 	Gt  json.RawMessage
@@ -531,21 +526,11 @@ func (query *VectorQuery) ToC(indexType string) (*vearchpb.VectorQuery, error) {
 		}
 	}
 
-	if query.Boost == nil {
-		query.Boost = &defaultBoost
-	}
-
-	if query.HasBoost == nil {
-		query.HasBoost = &defaultHasBoost
-	}
-
 	vectorQuery := &vearchpb.VectorQuery{
 		Name:      query.Field,
 		Value:     codeByte,
 		MinScore:  *query.MinScore,
 		MaxScore:  *query.MaxScore,
-		Boost:     *query.Boost,
-		HasBoost:  *query.HasBoost,
 		IndexType: indexType,
 	}
 	return vectorQuery, nil
