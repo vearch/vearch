@@ -15,7 +15,6 @@
 #include <sstream>
 #include <string>
 
-#include "api_data/batch_result.h"
 #include "api_data/config.h"
 #include "api_data/doc.h"
 #include "api_data/engine_status.h"
@@ -138,35 +137,6 @@ int AddOrUpdateDoc(void *engine, const char *doc_str, int len) {
   doc.SetEngine(static_cast<vearch::Engine *>(engine));
   doc.Deserialize(doc_str, len);
   return static_cast<vearch::Engine *>(engine)->AddOrUpdate(doc);
-}
-
-int AddOrUpdateDocsNum(void *engine, int i) {
-  return static_cast<vearch::Engine *>(engine)->SetBatchDocsNum(i);
-}
-
-int PrepareDocs(void *engine, char *doc_str, int id) {
-  return static_cast<vearch::Engine *>(engine)->BatchDocsPrepare(doc_str, id);
-}
-
-int AddOrUpdateDocsFinish(void *engine, int len, char **result_str,
-                          int *result_len) {
-  char **docs_str = static_cast<vearch::Engine *>(engine)->BatchDocsStr();
-  AddOrUpdateDocs(engine, docs_str, len, result_str, result_len);
-  return 0;
-}
-
-int AddOrUpdateDocs(void *engine, char **doc_str, int len, char **result_str,
-                    int *result_len) {
-  vearch::Docs docs;
-  docs.SetEngine(static_cast<vearch::Engine *>(engine));
-  docs.Deserialize(doc_str, len);
-
-  vearch::BatchResult result(docs.GetDocs().size());
-  int ret =
-      static_cast<vearch::Engine *>(engine)->AddOrUpdateDocs(docs, result);
-  result.Serialize(result_str, result_len);
-
-  return ret;
 }
 
 int UpdateDoc(void *engine, const char *doc_str, int len) { return -1; }

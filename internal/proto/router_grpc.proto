@@ -8,9 +8,7 @@ option go_package = "./vearchpb";
 
 service RouterGRPCService {
   rpc Get(GetRequest) returns (GetResponse) {}
-  rpc Add(AddRequest) returns (AddResponse) {}
   rpc Delete(DeleteRequest) returns (DeleteResponse) {}
-  rpc Update(UpdateRequest) returns (UpdateResponse) {}
   rpc Search(SearchRequest) returns (SearchResponse) {}
   rpc Bulk(BulkRequest) returns (BulkResponse) {}
   rpc Space(RequestHead) returns (Table) {}
@@ -45,16 +43,6 @@ message DeleteRequest {
   repeated string primary_keys = 4;
 }
 
-message AddRequest {
-  RequestHead head = 1;
-  Document doc = 4;
-}
-
-message UpdateRequest {
-  RequestHead head = 1;
-  Document doc = 4;
-}
-
 message BulkRequest {
   RequestHead head = 1;
   repeated Document docs = 4;
@@ -77,13 +65,6 @@ message GetResponse {
   ResponseHead head = 1;
   repeated Item items = 2;
 }
-
-message AddResponse {
-  ResponseHead head = 1;
-  string primary_key = 4;
-}
-
-message UpdateResponse { ResponseHead head = 1; }
 
 message DeleteResponse {
   ResponseHead head = 1;

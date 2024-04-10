@@ -27,8 +27,6 @@ typedef int64_t size_t;
 #include "c_api/api_data/response.h"
 #include "c_api/api_data/table.h"
 #include "c_api/api_data/doc.h"
-#include "c_api/api_data/docs.h"
-#include "c_api/api_data/batch_result.h"
 #include "common/common_query_data.h"
 %}
 
@@ -38,8 +36,6 @@ typedef int64_t size_t;
 %include "c_api/api_data/response.h"
 %include "c_api/api_data/table.h"
 %include "c_api/api_data/doc.h"
-%include "c_api/api_data/docs.h"
-%include "c_api/api_data/batch_result.h"
 %include "c_api/api_data/cpp_api.h"
 
 %inline%{

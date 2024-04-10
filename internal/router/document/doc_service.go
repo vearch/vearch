@@ -89,54 +89,6 @@ func (docService *docService) getDocsByPartition(ctx context.Context, args *vear
 	return reply
 }
 
-func (docService *docService) addDoc(ctx context.Context, args *vearchpb.AddRequest) *vearchpb.AddResponse {
-	ctx, cancel := setTimeOut(ctx, args.Head)
-	defer cancel()
-	reply := &vearchpb.AddResponse{Head: newOkHead()}
-	request := client.NewRouterRequest(ctx, docService.client)
-	docs := make([]*vearchpb.Document, 0)
-	docs = append(docs, args.Doc)
-	request.SetMsgID().SetMethod(client.ReplaceDocHandler).SetHead(args.Head).SetSpace().SetDocs(docs).SetDocsField().PartitionDocs()
-	if request.Err != nil {
-		log.Errorf("addDoc args:[%v] error: [%s]", args, request.Err)
-		return &vearchpb.AddResponse{Head: setErrHead(request.Err)}
-	}
-	items := request.Execute()
-	reply.Head.Params = request.GetMD()
-	if len(items) < 1 {
-		return &vearchpb.AddResponse{Head: setErrHead(request.Err)}
-	}
-	if items[0].Err != nil {
-		reply.Head.Err = items[0].Err
-	}
-	reply.PrimaryKey = items[0].GetDoc().GetPKey()
-	return reply
-}
-
-func (docService *docService) updateDoc(ctx context.Context, args *vearchpb.UpdateRequest) *vearchpb.UpdateResponse {
-	ctx, cancel := setTimeOut(ctx, args.Head)
-	defer cancel()
-	reply := &vearchpb.UpdateResponse{Head: newOkHead()}
-	docs := make([]*vearchpb.Document, 0)
-	docs = append(docs, args.Doc)
-	request := client.NewRouterRequest(ctx, docService.client)
-	// request.SetMsgID().SetMethod(client.ReplaceDocHandler).SetHead(args.Head).SetSpace().SetDocs(docs).PartitionDocs()
-	request.SetMsgID().SetMethod(client.ReplaceDocHandler).SetHead(args.Head).SetSpace().SetDocs(docs).SetDocsField().PartitionDocs()
-	if request.Err != nil {
-		log.Errorf("updateDoc args:[%v] error: [%s]", args, request.Err)
-		return &vearchpb.UpdateResponse{Head: setErrHead(request.Err)}
-	}
-	items := request.Execute()
-	reply.Head.Params = request.GetMD()
-	if len(items) < 1 {
-		return &vearchpb.UpdateResponse{Head: setErrHead(request.Err)}
-	}
-	if items[0].Err != nil {
-		reply.Head.Err = items[0].Err
-	}
-	return reply
-}
-
 func (docService *docService) deleteDocs(ctx context.Context, args *vearchpb.DeleteRequest) *vearchpb.DeleteResponse {
 	ctx, cancel := setTimeOut(ctx, args.Head)
 	defer cancel()

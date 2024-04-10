@@ -35,26 +35,14 @@ func CreateTable(engine unsafe.Pointer, table *Table) int {
 	return int(C.CreateTable(engine, (*C.char)(unsafe.Pointer(&buffer[0])), C.int(len(buffer))))
 }
 
-func AddOrUpdateDoc(engine unsafe.Pointer, buffer []byte) int {
-	return int(C.AddOrUpdateDoc(engine, (*C.char)(unsafe.Pointer(&buffer[0])), C.int(len(buffer))))
-}
-
-func AddOrUpdateDocs(engine unsafe.Pointer, buffer [][]byte) BatchResult {
+func AddOrUpdateDocs(engine unsafe.Pointer, buffer [][]byte) []int32 {
 	num := len(buffer)
-	C.AddOrUpdateDocsNum(engine, C.int(num))
-	for i, b := range buffer {
-		C.PrepareDocs(engine, (*C.char)(unsafe.Pointer(&(b[0]))), C.int(i))
-	}
-	var CBuffer *C.char
-	zero := 0
-	length := &zero
-	C.AddOrUpdateDocsFinish(engine, C.int(num), (**C.char)(unsafe.Pointer(&CBuffer)), (*C.int)(unsafe.Pointer(length)))
-	defer C.free(unsafe.Pointer(CBuffer))
+	resultCode := make([]int32, num)
 
-	var result BatchResult
-	buffer2 := C.GoBytes(unsafe.Pointer(CBuffer), C.int(*length))
-	result.DeSerialize(buffer2)
-	return result
+	for i := 0; i < num; i++ {
+		resultCode[i] = int32(C.AddOrUpdateDoc(engine, (*C.char)(unsafe.Pointer(&buffer[i][0])), C.int(len(buffer[i]))))
+	}
+	return resultCode
 }
 
 func DeleteDoc(engine unsafe.Pointer, docID []byte) int {

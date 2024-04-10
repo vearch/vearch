@@ -24,7 +24,6 @@ import (
 
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/internal/client"
-	"github.com/vearch/vearch/internal/monitor"
 	"github.com/vearch/vearch/internal/pkg/log"
 	"github.com/vearch/vearch/internal/proto/vearchpb"
 )
@@ -102,33 +101,6 @@ func (handler *RpcHandler) Get(ctx context.Context, req *vearchpb.GetRequest) (r
 		return nil, err
 	}
 	reply, ok := res.(*vearchpb.GetResponse)
-	if !ok {
-		return nil, vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, nil)
-	}
-	return reply, nil
-}
-
-func (handler *RpcHandler) Add(ctx context.Context, req *vearchpb.AddRequest) (reply *vearchpb.AddResponse, err error) {
-	defer Cost("Add", time.Now())
-	defer monitor.Profiler("handleReplaceDoc", time.Now())
-	res, err := handler.deal(ctx, req)
-	if err != nil {
-		return nil, err
-	}
-	reply, ok := res.(*vearchpb.AddResponse)
-	if !ok {
-		return nil, vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, nil)
-	}
-	return reply, nil
-}
-
-func (handler *RpcHandler) Update(ctx context.Context, req *vearchpb.UpdateRequest) (reply *vearchpb.UpdateResponse, err error) {
-	defer Cost("Update", time.Now())
-	res, err := handler.deal(ctx, req)
-	if err != nil {
-		return nil, err
-	}
-	reply, ok := res.(*vearchpb.UpdateResponse)
 	if !ok {
 		return nil, vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, nil)
 	}
@@ -270,10 +242,6 @@ func (handler *RpcHandler) deal(ctx context.Context, req Request) (reply interfa
 	switch v := req.(type) {
 	case *vearchpb.GetRequest:
 		reply = handler.docService.getDocs(ctx, v)
-	case *vearchpb.AddRequest:
-		reply = handler.docService.addDoc(ctx, v)
-	case *vearchpb.UpdateRequest:
-		reply = handler.docService.updateDoc(ctx, v)
 	case *vearchpb.DeleteRequest:
 		reply = handler.docService.deleteDocs(ctx, v)
 	case *vearchpb.BulkRequest:

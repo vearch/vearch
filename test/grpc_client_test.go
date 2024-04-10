@@ -234,38 +234,6 @@ func TestCreate(t *testing.T) {
 	}
 }
 
-// TestUpdate test update doc
-func TestUpdate(t *testing.T) {
-	conn, err := grpc.Dial(address, grpc.WithInsecure())
-	if err != nil {
-		t.Fatalf("did not connect: %v", err)
-	}
-	defer func() {
-		if err := conn.Close(); err != nil {
-			t.Fatalf("close conn failed, err: [%v]", err)
-		}
-	}()
-	api := vearchpb.NewRouterGRPCServiceClient(conn)
-	for _, docs := range docsList {
-		for _, doc := range docs {
-			resps, err := api.Update(context.Background(), &vearchpb.UpdateRequest{
-				Head: &vearchpb.RequestHead{
-					TimeOutMs: 10000,
-					DbName:    "ts_db",
-					SpaceName: "ts_space",
-				},
-				Doc: doc,
-			})
-			if err != nil {
-				t.Errorf("rpc return failed, doc: [%v], resps: [%v], err: [%v]", doc, resps, err)
-			}
-			if resps.Head.Err != nil && resps.Head.Err.Code != vearchpb.ErrorEnum_SUCCESS {
-				t.Errorf("rpc return failed, doc: [%v], err: [%v]", doc, resps.Head.Err)
-			}
-		}
-	}
-}
-
 // TestGet test get doc
 func TestGet(t *testing.T) {
 	conn, err := grpc.Dial(address, grpc.WithInsecure())

@@ -14,7 +14,6 @@
 #include <sstream>
 #include <vector>
 
-#include "batch_result.h"
 #include "common/gamma_common_data.h"
 #include "config.h"
 #include "doc.h"
@@ -78,12 +77,6 @@ int CPPSearch2(void *engine, vearch::VectorResult *result) {
 
 int CPPAddOrUpdateDoc(void *engine, vearch::Doc *doc) {
   return static_cast<vearch::Engine *>(engine)->AddOrUpdate(*doc);
-}
-
-int CPPAddOrUpdateDocs(void *engine, vearch::Docs *docs,
-                       vearch::BatchResult *results) {
-  return static_cast<vearch::Engine *>(engine)->AddOrUpdateDocs(*docs,
-                                                                *results);
 }
 
 void CPPSetNprobe(void *engine, int nprobe, std::string index_type) {

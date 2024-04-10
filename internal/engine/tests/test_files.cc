@@ -59,7 +59,6 @@ TEST_F(GammaTest, IVFPQ_BATCH) {
   opt.set_file(my_argv, my_argc);
   opt.index_type = "IVFPQ";
   opt.index_params = kIVFPQParam;
-  opt.add_type = 1;
   ASSERT_EQ(TestIndexes(opt), 0);
 
   opt.b_load = true;
@@ -84,7 +83,6 @@ TEST_F(GammaTest, IVFPQ_MEMORYONLY_BATCH) {
   opt.index_type = "IVFPQ";
   opt.index_params = kIVFPQParam;
   opt.store_type = "MemoryOnly";
-  opt.add_type = 1;
   ASSERT_EQ(TestIndexes(opt), 0);
   
   opt.b_load = true;
@@ -109,7 +107,6 @@ TEST_F(GammaTest, IVFPQ_ROCKSDB_BATCH) {
   opt.index_type = "IVFPQ";
   opt.index_params = kIVFPQParam;
   opt.store_type = "RocksDB";
-  opt.add_type = 1;
   ASSERT_EQ(TestIndexes(opt), 0);
 
   opt.b_load = true;
@@ -132,7 +129,6 @@ TEST_F(GammaTest, IVFPQ_HNSW_BATCH) {
   opt.set_file(my_argv, my_argc);
   opt.index_type = "IVFPQ";
   opt.index_params = kIVFHNSWPQParam;
-  opt.add_type = 1;
   ASSERT_EQ(TestIndexes(opt), 0);
 
   opt.b_load = true;
@@ -155,7 +151,6 @@ TEST_F(GammaTest, IVFPQ_HNSW_OPQ_BATCH) {
   opt.set_file(my_argv, my_argc);
   opt.index_type = "IVFPQ";
   opt.index_params = kIVFHNSWOPQParam;
-  opt.add_type = 1;
   ASSERT_EQ(TestIndexes(opt), 0);
 
   opt.b_load = true;
@@ -180,7 +175,6 @@ TEST_F(GammaTest, IVFFLAT_BATCH) {
   opt.index_type = "IVFFLAT";
   opt.index_params = kIVFPQParam;
   opt.store_type = "RocksDB";
-  opt.add_type = 1;
   ASSERT_EQ(TestIndexes(opt), 0);
   
   opt.b_load = true;
@@ -207,7 +201,6 @@ TEST_F(GammaTest, FLAT_BATCH) {
   opt.index_params = kIVFPQParam;
   opt.store_type = "MemoryOnly";
   opt.add_doc_num = 100000;
-  opt.add_type = 1;
   ASSERT_EQ(TestIndexes(opt), 0);
   
   opt.b_load = true;
@@ -234,7 +227,6 @@ TEST_F(GammaTest, HNSW_BATCH) {
   opt.index_params = kHNSWParam;
   opt.store_type = "MemoryOnly";
   opt.add_doc_num = 20000;
-  opt.add_type = 1;
   ASSERT_EQ(TestIndexes(opt), 0);
   
   opt.b_load = true;
@@ -257,7 +249,6 @@ TEST_F(GammaTest, BINARYIVF_BATCH) {
   opt.set_file(my_argv, my_argc);
   opt.index_type = "BINARYIVF";
   opt.index_params = kIVFBINARYParam;
-  opt.add_type = 1;
   ASSERT_EQ(TestIndexes(opt), 0);
   
   opt.b_load = true;
@@ -301,7 +292,6 @@ TEST_F(GammaTest, GPU_BATCH) {
   opt.set_file(my_argv, my_argc);
   opt.index_type = "GPU";
   opt.index_params = kIVFPQParam;
-  opt.add_type = 1;
   ASSERT_EQ(TestIndexes(opt), 0);
 
   opt.b_load = true;
@@ -326,7 +316,6 @@ TEST_F(GammaTest, GPU_MEMORYONLY_BATCH) {
   opt.index_type = "GPU";
   opt.store_type = "MemoryOnly";
   opt.index_params = kIVFPQParam;
-  opt.add_type = 1;
   ASSERT_EQ(TestIndexes(opt), 0);
 
   opt.b_load = true;
@@ -351,7 +340,6 @@ TEST_F(GammaTest, GPU_ROCKSDB_BATCH) {
   opt.index_type = "GPU";
   opt.store_type = "RocksDB";
   opt.index_params = kIVFPQParam;
-  opt.add_type = 1;
   ASSERT_EQ(TestIndexes(opt), 0);
 
   opt.b_load = true;

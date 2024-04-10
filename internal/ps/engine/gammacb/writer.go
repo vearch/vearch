@@ -63,16 +63,11 @@ func (wi *writerImpl) Write(ctx context.Context, doc *vearchpb.DocCmd) (err erro
 	case vearchpb.OpType_BULK:
 		resp := gamma.AddOrUpdateDocs(gammaEngine, doc.Docs)
 		var buffer bytes.Buffer
-		for _, code := range resp.Codes {
+		for _, code := range resp {
 			buffer.WriteString(strconv.Itoa(int(code)) + ",")
 		}
 		err := errors.New(buffer.String())
 		return vearchpb.NewError(vearchpb.ErrorEnum_SUCCESS, err)
-	case vearchpb.OpType_REPLACE:
-		if resp := gamma.AddOrUpdateDoc(gammaEngine, doc.Doc); resp != 0 {
-			err = fmt.Errorf("gamma create doc err code:[%d]", int(resp))
-			return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err)
-		}
 	case vearchpb.OpType_DELETE:
 		if resp := gamma.DeleteDoc(gammaEngine, doc.Doc); resp != 0 {
 			if resp == -1 {

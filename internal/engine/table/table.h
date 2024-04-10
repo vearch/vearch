@@ -11,7 +11,6 @@
 #include <string>
 #include <vector>
 
-#include "c_api/api_data/batch_result.h"
 #include "c_api/api_data/doc.h"
 #include "c_api/api_data/table.h"
 #include "io/io_common.h"
@@ -64,7 +63,7 @@ class Table {
    * @return Status::OK() if successed
    */
   Status CreateTable(TableInfo &table, TableParams &table_params,
-                  bitmap::BitmapManager *bitmap_mgr);
+                     bitmap::BitmapManager *bitmap_mgr);
 
   /** add a doc to table
    *

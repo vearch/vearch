@@ -10,10 +10,9 @@ option optimize_for = SPEED;
 enum OpType {
   CREATE = 0;
   DELETE = 1;
-  REPLACE = 2;
-  BULK = 3;
-  GET = 4;
-  SEARCH = 5;
+  BULK = 2;
+  GET = 3;
+  SEARCH = 4;
 }
 //*********************** Partition *********************** //
 

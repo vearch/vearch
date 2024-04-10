@@ -81,7 +81,7 @@ func (s *Store) Write(ctx context.Context, request *vearchpb.DocCmd) (err error)
 		return err
 	}
 
-	if request.Type == vearchpb.OpType_BULK || request.Type == vearchpb.OpType_REPLACE {
+	if request.Type == vearchpb.OpType_BULK {
 		if s.Partition.ResourceExhausted {
 			err = fmt.Errorf("ResourceExhausted")
 			return err

@@ -202,8 +202,6 @@ func (handler *UnaryHandler) execute(ctx context.Context, req *vearchpb.Partitio
 			getDocuments(ctx, store, req.Items, true, true)
 		case client.DeleteDocsHandler:
 			deleteDocs(ctx, store, req.Items)
-		case client.ReplaceDocHandler:
-			update(ctx, store, req.Items)
 		case client.BatchHandler:
 			bulk(ctx, store, req.Items)
 		case client.SearchHandler:
@@ -301,28 +299,16 @@ func bulk(ctx context.Context, store PartitionStore, items []*vearchpb.Item) {
 		for _, item := range items {
 			item.Err = vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err).GetError()
 		}
-	} else {
-		msgs := strings.Split(vErr.GetError().Msg, ",")
-		for i, msg := range msgs {
-			if code, _ := strconv.Atoi(msg); code == 0 {
-				// log.Debugf("add doc success, %s", msg)
-			} else {
-				items[i].Err = vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, errors.New(msg)).GetError()
-			}
-		}
+		return
 	}
-}
 
-func update(ctx context.Context, store PartitionStore, items []*vearchpb.Item) {
-	item := items[0]
-	docGamma := &gamma.Doc{Fields: item.Doc.Fields}
-	docBytes := docGamma.Serialize()
-	docCmd := &vearchpb.DocCmd{Type: vearchpb.OpType_REPLACE, Doc: docBytes}
-	if err := store.Write(ctx, docCmd); err != nil {
-		log.Error("Add doc failed, err: [%s]", err.Error())
-		item.Err = vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err).GetError()
-	} else {
-		item.Doc.Fields = nil
+	msgs := strings.Split(vErr.GetError().Msg, ",")
+	for i, msg := range msgs {
+		if code, _ := strconv.Atoi(msg); code == 0 {
+			// log.Debugf("add doc success, %s", msg)
+		} else {
+			items[i].Err = vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, errors.New(msg)).GetError()
+		}
 	}
 }
 

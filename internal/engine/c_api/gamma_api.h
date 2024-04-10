@@ -42,50 +42,6 @@ int CreateTable(void *engine, const char *table_str, int len);
  */
 int AddOrUpdateDoc(void *engine, const char *doc_str, int len);
 
-/** For batch operator
- * set add or update docs number
- *
- * @param engine  search engine pointer
- * @param i       docs number
- * @return 0 successed, 1 failed
- */
-int AddOrUpdateDocsNum(void *engine, int i);
-
-/** For batch operator
- * Prepare the docs to be batch updated
- *
- * @param engine    search engine pointer
- * @param doc_str   doc's serialized string
- * @param id        doc's idx
- * @return 0 successed, 1 failed
- */
-int PrepareDocs(void *engine, char *doc_str, int id);
-
-/** For batch operator
- * Batch add or update prepared docs
- *
- * @param engine     search engine pointer
- * @param len        doc's number
- * @param result_str result's serialized string
- * @param result_len result number
- * @return 0 successed, 1 failed
- */
-int AddOrUpdateDocsFinish(void *engine, int len, char **result_str,
-                          int *result_len);
-
-/** For batch operator
- * Batch add or update docs
- * 
- * @param engine     search engine pointer
- * @param doc_str    docs' serialized string
- * @param len        docs number
- * @param result_str result's serialized string
- * @param result_str result's len
- * @return 0 successed, 1 failed
- */
-int AddOrUpdateDocs(void *engine, char **doc_str, int len, char **result_str,
-                    int *result_len);
-
 /** update a doc, if _id not exist, equal to function @AddDoc
  *  the interface is not supported temporarily.
  * @param engine  search engine pointer
@@ -136,7 +92,8 @@ int BuildIndex(void *engine);
 /** @param engine  search engine pointer
  * @return 0 successed, 1 failed
  */
-int RebuildIndex(void *engine, int drop_before_rebuild, int limit_cpu, int describe);
+int RebuildIndex(void *engine, int drop_before_rebuild, int limit_cpu,
+                 int describe);
 
 /** dump datas into disk accord to Config
  *

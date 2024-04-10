@@ -23,9 +23,9 @@ import (
 	"github.com/patrickmn/go-cache"
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/internal/entity"
-	"github.com/vearch/vearch/internal/pkg/vjson"
 	"github.com/vearch/vearch/internal/pkg/log"
 	server "github.com/vearch/vearch/internal/pkg/server/rpc"
+	"github.com/vearch/vearch/internal/pkg/vjson"
 	"github.com/vearch/vearch/internal/proto/vearchpb"
 )
 
@@ -57,7 +57,6 @@ const (
 	GetDocsByPartitionHandler     = "GetDocsByPartitionHandler"
 	GetNextDocsByPartitionHandler = "GetNextDocsByPartitionHandler"
 	DeleteDocsHandler             = "DeleteDocsHandler"
-	ReplaceDocHandler             = "ReplaceDocHandler"
 	BatchHandler                  = "BatchHandler"
 	ForceMergeHandler             = "ForceMergeHandler"
 	RebuildIndexHandler           = "RebuildIndexHandler"

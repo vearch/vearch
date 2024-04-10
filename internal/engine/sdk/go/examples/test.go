@@ -176,60 +176,6 @@ func AddDocToEngine(docNum int) {
 	}
 }
 
-// func BatchAddDocToEngine(docNum int) {
-// 	batchSize := 100
-
-// 	for i := 0; i < docNum; i += batchSize {
-// 		var docs gamma.Docs
-// 		for k := 0; k < batchSize; k++ {
-// 			var doc gamma.Doc
-// 			var url string
-// 			for j := 0; j < len(opt.FieldsVec); j++ {
-// 				field := gamma.Field{
-// 					Name: opt.FieldsVec[j],
-// 					Type: opt.FieldsType[j],
-// 				}
-// 				profileStr := opt.Profiles[i*len(opt.FieldsVec)+j]
-// 				if field.Datatype == gamma.INT {
-// 					tmp, _ := strconv.Atoi(profileStr)
-// 					bytesBuffer := bytes.NewBuffer([]byte{})
-// 					binary.Write(bytesBuffer, binary.LittleEndian, &tmp)
-// 					field.Value = bytesBuffer.Bytes()
-// 				} else if field.Datatype == gamma.LONG {
-// 					tmp, _ := strconv.ParseInt(profileStr, 10, 64)
-// 					bytesBuffer := bytes.NewBuffer([]byte{})
-// 					binary.Write(bytesBuffer, binary.LittleEndian, &tmp)
-// 					field.Value = bytesBuffer.Bytes()
-// 				} else {
-// 					field.Value = []byte(profileStr)
-// 					url = profileStr
-// 				}
-// 				field.Source = url
-// 				doc.Fields = append(doc.Fields, field)
-// 			}
-
-// 			field := gamma.Field{
-// 				Name:     opt.VectorName,
-// 				Datatype: gamma.VECTOR,
-// 				Source:   "",
-// 			}
-// 			field.Value = make([]byte, opt.D*4)
-// 			_, _ = opt.FeatureMmap.ReadAt(field.Value, int64(i*opt.D)*4)
-// 			doc.Fields = append(doc.Fields, field)
-
-// 			docs.AddDoc(doc)
-// 		}
-// 		//for i := 0; i < opt.D; i++ {
-// 		//	a := Float64frombytes(field.Value[i*4:])
-// 		//	fmt.Println(a)
-// 		//}
-
-// 		//result := gamma.AddOrUpdateDocs(opt.Engine, &docs)
-// 		//fmt.Println(len(result.Codes))
-// 		gamma.AddOrUpdateDocs(opt.Engine, &docs)
-// 	}
-// }
-
 func Add() {
 	file, err := os.OpenFile(opt.ProfileFile, os.O_RDWR, 0666)
 	if err != nil {
@@ -271,7 +217,6 @@ func Add() {
 		}
 	}
 	AddDocToEngine(opt.AddDocNum)
-	// BatchAddDocToEngine(opt.AddDocNum)
 }
 
 func Load() {

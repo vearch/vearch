@@ -287,7 +287,7 @@ func (r *routerRequest) SetSendMap(partitionId string) *routerRequest {
 func (r *routerRequest) Execute() []*vearchpb.Item {
 	isNormal := false
 	normalField := make(map[string]string)
-	if r.md[HandlerType] == BatchHandler || r.md[HandlerType] == ReplaceDocHandler {
+	if r.md[HandlerType] == BatchHandler {
 		indexType := r.space.Index.Type
 		if indexType != "" && indexType != "BINARYIVF" {
 			isNormal = true

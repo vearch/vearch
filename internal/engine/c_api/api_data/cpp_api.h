@@ -8,10 +8,8 @@
 #pragma once
 #include <string>
 
-#include "batch_result.h"
 #include "common/common_query_data.h"
 #include "doc.h"
-#include "docs.h"
 #include "request.h"
 #include "response.h"
 
@@ -23,9 +21,6 @@ int CPPSearch(void *engine, vearch::Request *request,
 int CPPSearch2(void *engine, vearch::VectorResult *result);
 
 int CPPAddOrUpdateDoc(void *engine, vearch::Doc *doc);
-
-int CPPAddOrUpdateDocs(void *engine, vearch::Docs *docs,
-                       vearch::BatchResult *results);
 
 void CPPSetNprobe(void *engine, int nprobe, std::string index_type);
 

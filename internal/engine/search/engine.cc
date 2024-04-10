@@ -601,20 +601,6 @@ int Engine::AddOrUpdate(Doc &doc) {
   return 0;
 }
 
-int Engine::AddOrUpdateDocs(Docs &docs, BatchResult &result) {
-  std::vector<Doc> &doc_vec = docs.GetDocs();
-
-  int i = 0;
-  for (Doc &doc : doc_vec) {
-    int ret = AddOrUpdate(doc);
-    if (ret != 0) {
-      std::string msg = "Add to vector manager error";
-      result.SetResult(++i, -1, msg);
-    }
-  }
-  return 0;
-}
-
 int Engine::Update(int doc_id,
                    std::unordered_map<std::string, struct Field> &fields_table,
                    std::unordered_map<std::string, struct Field> &fields_vec) {
