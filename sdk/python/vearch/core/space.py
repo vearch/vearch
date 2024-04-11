@@ -1,7 +1,7 @@
 from vearch.schema.index import Index
 from vearch.core.client import client
 from vearch.schema.space import SpaceSchema
-from vearch.result import Result, ResultStatus, get_result, UpsertResult
+from vearch.result import Result, ResultStatus, get_result, UpsertResult,SearchResult
 from vearch.const import SPACE_URI, INDEX_URI, UPSERT_DOC_URI, DELETE_DOC_URI, QUERY_DOC_URI, SEARCH_DOC_URI, \
     ERR_CODE_SPACE_NOT_EXIST, AUTH_KEY
 from vearch.exception import SpaceException, DocumentException, VearchException
@@ -126,11 +126,9 @@ class Space(object):
         resp = self.client.s.send(req)
         return get_result(resp)
 
-    def search(self, document_ids: Optional[List], vector_infos: Optional[List[VectorInfo]], filter: Optional[Filter],
-               fields: Optional[List] = [], vector: bool = False, size: int = 50, **kwargs) -> List[Dict]:
+    def search(self, vector_infos: Optional[List[VectorInfo]], filter: Optional[Filter] = None,
+               fields: Optional[List] = None, vector: bool = False, size: int = 50, **kwargs) -> List[Dict]:
         """
-
-        :param document_ids: document_ids asigned will first to query its feature in the database,then ann search
         :param vector_infos: vector infomation contains field name、feature,min score and weight.
         :param filter: through scalar fields filte result to satify the expect
         :param fields: want to return field list
@@ -138,10 +136,12 @@ class Space(object):
         :param size:  the result size you want to return
         :param kwargs:
             "is_brute_search": 0,
+            "online_log_level": "debug",
+            "quick": false,
             "vector_value": false,
             "load_balance": "leader",
             "l2_sqrt": false,
-            "limit": 10
+            "size": 10
 
             retrieval_param: the retrieval parameter which control the search action,user can asign it to precisely
              control search result,different index type different parameters
@@ -172,31 +172,26 @@ class Space(object):
 
         :return:
         """
-        if (not document_ids) and (not vector_infos):
-            raise SpaceException(CodeType.SEARCH_DOC, "document_ids and vector_info can not both null")
+        if not vector_infos:
+            raise SpaceException(CodeType.SEARCH_DOC, "vector_info can not both null")
         url = self.client.host + SEARCH_DOC_URI
-        req_body = {"database": self.db_name, "space": self.name, "vector_value": vector, "size": size}
+        req_body = {"db_name": self.db_name, "space_name": self.name, "vector_value": vector, "size": size}
         if fields:
             req_body["fields"] = fields
-        query = {"query": {}}
-        if document_ids:
-            query["query"]["document_ids"] = document_ids
+        req_body["vectors"] = []
         if vector_infos:
             vector_info_dict = [vector_info.dict() for vector_info in vector_infos]
-            query["query"]["vector"] = vector_info_dict
+            req_body["vectors"] = vector_info_dict
         if filter:
-            query["query"]["filter"] = filter.dict()
-        req_body.update(query)
+            req_body["filters"] = filter.dict()
         if kwargs:
             req_body.update(kwargs)
-        req = requests.request(method="POST", url=url, data=json.dumps(req_body),
-                               headers={AUTH_KEY: self.client.token})
-        resp = self.client.s.send(req)
-        ret = get_result(resp)
-        if ret.code != ResultStatus.success:
-            raise SpaceException(CodeType.SEARCH_DOC, ret.err_msg)
-        search_ret = json.dumps(ret.code)
-        return search_ret
+        logger.debug(json.dumps(req_body))
+        sign = compute_sign_auth(secret=self.client.token)
+        resp = requests.request(method="POST", url=url, data=json.dumps(req_body),
+                                headers={AUTH_KEY: sign})
+        sr=SearchResult.parse_search_result_from_response(resp)
+        return sr.documents
 
     def query(self, document_ids: Optional[List] = [], filter: Optional[Filter] = None,
               partition_id: Optional[str] = "",
@@ -216,16 +211,14 @@ class Space(object):
             raise SpaceException(CodeType.QUERY_DOC, "document_ids and filter can not both null")
         url = self.client.host + QUERY_DOC_URI
         req_body = {"db_name": self.db_name, "space_name": self.name, "vector_value": vector}
-        query = {"query": {}}
         if document_ids:
-            query["query"]["document_ids"] = document_ids
+            req_body["document_ids"] = document_ids
         if partition_id:
-            query["query"]["partition_id"] = partition_id
+            req_body["partition_id"] = partition_id
         if fields:
             req_body["fields"] = fields
         if filter:
-            query["query"]["filter"] = filter.dict()
-        req_body.update(query)
+            req_body["filter"] = filter.dict()
         logger.debug(url)
         logger.debug(json.dumps(req_body))
         sign = compute_sign_auth(secret=self.client.token)

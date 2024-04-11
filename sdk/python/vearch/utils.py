@@ -125,7 +125,7 @@ class VectorInfo:
         self.weight = weight if weight != -1 else -1
 
     def dict(self):
-        vi_dict = {"field_name": self.field_name, "feature": self.feature}
+        vi_dict = {"field": self.field_name, "feature": self.feature}
         if self.min_score != -1:
             vi_dict["min_score"] = self.min_score
         if self.max_score != -1:

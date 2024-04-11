@@ -3,7 +3,7 @@ from vearch.core.db import Database, Space
 from vearch.core.vearch import Vearch
 from vearch.schema.field import Field
 from vearch.schema.space import SpaceSchema
-from vearch.utils import DataType, MetricType
+from vearch.utils import DataType, MetricType, VectorInfo
 from vearch.schema.index import IvfPQIndex, Index, ScalarIndex
 import logging
 from typing import List
@@ -52,7 +52,7 @@ def upsert_document(vc: Vearch) -> List:
     space = Space("database1", "book_info")
     ret = space.upsert_doc(data)
     if ret:
-        logger.debug("upsert result:"+str(ret.get_document_ids()))
+        logger.debug("upsert result:" + str(ret.get_document_ids()))
         return ret.get_document_ids()
     return []
 
@@ -62,6 +62,16 @@ def query_documents(ids: List):
     ret = space.query(ids)
     for doc in ret:
         logger.debug(doc)
+
+
+def search_documets():
+    import random
+    space = Space("database1", "book_info")
+    feature = [random.uniform(0, 1) for _ in range(512)]
+    vi = VectorInfo("book_character", feature)
+    ret = space.search(vector_infos=[vi, ])
+    for doc in ret:
+        print(doc)
 
 
 def is_database_exist(vc: Vearch):
@@ -104,7 +114,7 @@ if __name__ == "__main__":
         create_space(vc)
     ids = upsert_document(vc)
     query_documents(ids)
-
+    search_documets()
     delete_space(vc)
     drop_database(vc)
 # vc.drop_database("database1")

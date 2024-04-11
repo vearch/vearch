@@ -55,9 +55,26 @@ class UpsertResult(object):
         ids = []
         for document in self.document_ids:
             id = document.get("_id")
-            if document.get("status") == 200:
-                ids.append(id)
+            ids.append(id)
         return ids
+
+
+class SearchResult(object):
+    def __init__(self, code: int = 0, msg: str = "", documents=[]):
+        self.code = code
+        self.msg = msg
+        self.documents = documents
+
+    @classmethod
+    def parse_search_result_from_response(cls, resp: requests.Response):
+        logger.debug(resp.text)
+        ret = json.loads(resp.text)
+        code = ret.get("code", -1)
+        msg = ret.get("msg", "")
+        data = ret.get("data", None)
+        documents = data.get("documents", None)
+        sr = cls(code, msg, documents=documents)
+        return sr
 
 
 def get_result(resp: requests.Response) -> Result:
