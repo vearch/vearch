@@ -54,7 +54,7 @@ type Filter struct {
 
 type Ranker struct {
 	Type   string          `json:"type"`
-	Params json.RawMessage `json:"Params,omitempty"`
+	Params json.RawMessage `json:"params,omitempty"`
 }
 
 type SearchDocumentRequest struct {
@@ -73,7 +73,7 @@ type SearchDocumentRequest struct {
 	DocumentIds   *[]string         `json:"document_ids,omitempty"`
 	PartitionId   *string           `json:"partition_id,omitempty"`
 	Next          *bool             `json:"next,omitempty"`
-	Ranker        *Ranker           `json:"ranker,omitempty"`
+	Ranker        json.RawMessage   `json:"ranker,omitempty"`
 	sortOrder     sortorder.SortOrder
 }
 

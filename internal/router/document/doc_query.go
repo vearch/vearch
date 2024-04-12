@@ -39,6 +39,7 @@ const (
 	UrlQueryOpType   = "op_type"
 	UrlQueryTimeout  = "timeout"
 	DefaultSize      = 50
+	WeightedRanker   = "WeightedRanker"
 )
 
 type VectorQuery struct {
@@ -177,6 +178,23 @@ func parseQuery(vectors []json.RawMessage, filters *request.Filter, req *vearchp
 	}
 
 	req.ReqNum = int32(reqNum)
+	return nil
+}
+
+func parseRanker(data json.RawMessage, req *vearchpb.SearchRequest, space *entity.Space) error {
+	ranker := &request.Ranker{}
+	err := vjson.Unmarshal(data, ranker)
+	if err != nil {
+		err = fmt.Errorf("ranker param convert json %s err: %v", string(data), err)
+		return err
+	}
+	if ranker.Type != WeightedRanker {
+		err = fmt.Errorf("unsupport ranker: %s, now only support %s", ranker.Type, WeightedRanker)
+		return err
+	}
+	// TODO
+	// check ranker.Params
+	req.Ranker = string(data)
 	return nil
 }
 
@@ -658,6 +676,13 @@ func requestToPb(searchDoc *request.SearchDocumentRequest, space *entity.Space, 
 	err = parseQuery(searchDoc.Vectors, searchDoc.Filters, searchReq, space)
 	if err != nil {
 		return err
+	}
+
+	if searchDoc.Ranker != nil && string(searchDoc.Ranker) != "" && len(searchDoc.Vectors) > 1 {
+		err = parseRanker(searchDoc.Ranker, searchReq, space)
+		if err != nil {
+			return err
+		}
 	}
 
 	searchReq.Head.ClientType = searchDoc.LoadBalance

@@ -302,6 +302,30 @@ int Engine::Search(Request &request, Response &response_results,
   gamma_query.condition->range_filters = request.RangeFilters();
   gamma_query.condition->term_filters = request.TermFilters();
   gamma_query.condition->table = table_;
+  if (request.Ranker()) {
+    gamma_query.condition->ranker = dynamic_cast<WeightedRanker *>(request.Ranker());
+    if (gamma_query.condition->ranker == nullptr) {
+      std::string msg = "ranker error!";
+      LOG(WARNING) << msg;
+      for (int i = 0; i < req_num; ++i) {
+        SearchResult result;
+        result.msg = msg;
+        result.result_code = SearchResultCode::SEARCH_ERROR;
+        response_results.AddResults(std::move(result));
+      }
+      RequestConcurrentController::GetInstance().Release(req_num);
+      status = Status::InvalidArgument();
+      return status.subcode();
+    } else {
+      status = gamma_query.condition->ranker->Parse();
+      if (status.code() != status::Code::kOk) {
+        std::string msg = "ranker parse err, ranker: " + gamma_query.condition->ranker->ToString();
+        LOG(WARNING) << msg;
+        RequestConcurrentController::GetInstance().Release(req_num);
+        return status.code();
+      }
+    }
+  }
 
   MultiRangeQueryResults range_query_result;
   size_t range_filters_num = request.RangeFilters().size();

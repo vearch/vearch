@@ -33,6 +33,7 @@ table Request {
   index_params:string;
   multi_vector_rank:int;
   l2_sqrt:bool;                   // default FALSE, don't do sqrt; TRUE, do sqrt
+  ranker:string;
 }
 
 root_type Request;

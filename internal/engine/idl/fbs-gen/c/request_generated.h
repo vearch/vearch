@@ -307,7 +307,8 @@ struct Request FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_TERM_FILTERS = 16,
     VT_INDEX_PARAMS = 18,
     VT_MULTI_VECTOR_RANK = 20,
-    VT_L2_SQRT = 22
+    VT_L2_SQRT = 22,
+    VT_RANKER = 24
   };
   int32_t req_num() const {
     return GetField<int32_t>(VT_REQ_NUM, 0);
@@ -339,6 +340,9 @@ struct Request FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   bool l2_sqrt() const {
     return GetField<uint8_t>(VT_L2_SQRT, 0) != 0;
   }
+  const flatbuffers::String *ranker() const {
+    return GetPointer<const flatbuffers::String *>(VT_RANKER);
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<int32_t>(verifier, VT_REQ_NUM) &&
@@ -360,6 +364,8 @@ struct Request FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyString(index_params()) &&
            VerifyField<int32_t>(verifier, VT_MULTI_VECTOR_RANK) &&
            VerifyField<uint8_t>(verifier, VT_L2_SQRT) &&
+           VerifyOffset(verifier, VT_RANKER) &&
+           verifier.VerifyString(ranker()) &&
            verifier.EndTable();
   }
 };
@@ -397,6 +403,9 @@ struct RequestBuilder {
   void add_l2_sqrt(bool l2_sqrt) {
     fbb_.AddElement<uint8_t>(Request::VT_L2_SQRT, static_cast<uint8_t>(l2_sqrt), 0);
   }
+  void add_ranker(flatbuffers::Offset<flatbuffers::String> ranker) {
+    fbb_.AddOffset(Request::VT_RANKER, ranker);
+  }
   explicit RequestBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -420,8 +429,10 @@ inline flatbuffers::Offset<Request> CreateRequest(
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TermFilter>>> term_filters = 0,
     flatbuffers::Offset<flatbuffers::String> index_params = 0,
     int32_t multi_vector_rank = 0,
-    bool l2_sqrt = false) {
+    bool l2_sqrt = false,
+    flatbuffers::Offset<flatbuffers::String> ranker = 0) {
   RequestBuilder builder_(_fbb);
+  builder_.add_ranker(ranker);
   builder_.add_multi_vector_rank(multi_vector_rank);
   builder_.add_index_params(index_params);
   builder_.add_term_filters(term_filters);
@@ -446,12 +457,14 @@ inline flatbuffers::Offset<Request> CreateRequestDirect(
     const std::vector<flatbuffers::Offset<TermFilter>> *term_filters = nullptr,
     const char *index_params = nullptr,
     int32_t multi_vector_rank = 0,
-    bool l2_sqrt = false) {
+    bool l2_sqrt = false,
+    const char *ranker = nullptr) {
   auto vec_fields__ = vec_fields ? _fbb.CreateVector<flatbuffers::Offset<VectorQuery>>(*vec_fields) : 0;
   auto fields__ = fields ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*fields) : 0;
   auto range_filters__ = range_filters ? _fbb.CreateVector<flatbuffers::Offset<RangeFilter>>(*range_filters) : 0;
   auto term_filters__ = term_filters ? _fbb.CreateVector<flatbuffers::Offset<TermFilter>>(*term_filters) : 0;
   auto index_params__ = index_params ? _fbb.CreateString(index_params) : 0;
+  auto ranker__ = ranker ? _fbb.CreateString(ranker) : 0;
   return gamma_api::CreateRequest(
       _fbb,
       req_num,
@@ -463,7 +476,8 @@ inline flatbuffers::Offset<Request> CreateRequestDirect(
       term_filters__,
       index_params__,
       multi_vector_rank,
-      l2_sqrt);
+      l2_sqrt,
+      ranker__);
 }
 
 inline const gamma_api::Request *GetRequest(const void *buf) {

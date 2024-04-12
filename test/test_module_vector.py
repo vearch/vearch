@@ -255,3 +255,110 @@ class TestUpsertMultiVectorBadCase:
     # destroy for badcase
     def test_destroy_cluster_badcase(self):
         destroy(router_url, db_name, space_name)
+
+
+class TestSearchWeightRanker:
+    def setup_class(self):
+        self.logger = logger
+        self.xb = xb
+
+    # prepare for badcase
+    def test_prepare_cluster_badcase(self):
+        create(router_url, self.xb.shape[1], "MemoryOnly")
+
+    def test_prepare_upsert(self):
+        batch_size = 1
+        total = 1
+        total_batch = int(total / batch_size)
+        add_multi_vector(total_batch, batch_size, xb)
+        assert get_space_num() == 1
+
+    def test_search_weight_ranker(self):
+        data = {}
+        data["vectors"] = []
+        vector_info = {
+            "field": "field_vector",
+            "feature": xq[:1].flatten().tolist(),
+        }
+        vector_info1 = {
+            "field": "field_vector1",
+            "feature": xq[:1].flatten().tolist(),
+        }
+        data["vectors"].append(vector_info)
+        data["vectors"].append(vector_info1)
+        query_dict = {
+            "vectors": data["vectors"],
+            "fields": ["field_int"],
+            "limit": 100,
+            "db_name": db_name,
+            "space_name": space_name,
+            "ranker": {
+                "type": "WeightedRanker",
+                "params": [0.8, 0.2]
+            }
+        }
+        url = router_url + "/document/search"
+        json_str = json.dumps(query_dict)
+        rs = requests.post(url, json_str)
+        # logger.info(rs.json())
+        assert rs.json()["code"] == 200
+        score =np.sum(np.square(xq[:1] - xb[:1]))
+        assert abs(rs.json()["data"]["documents"][0][0]["_score"] - score) <= 0.1
+
+        query_dict["ranker"]["params"] = [1, 1]
+        url = router_url + "/document/search"
+        json_str = json.dumps(query_dict)
+        rs = requests.post(url, json_str)
+        # logger.info(rs.json()["data"]["documents"][0][0]["_score"])
+        assert abs(rs.json()["data"]["documents"][0][0]["_score"] - 2 * score) <= 0.1
+
+    # destroy for badcase
+    def test_destroy_cluster_badcase(self):
+        destroy(router_url, db_name, space_name)
+
+class TestSearchScore:
+    def setup_class(self):
+        self.logger = logger
+        self.xb = xb
+
+    # prepare for badcase
+    def test_prepare_cluster_badcase(self):
+        create(router_url, self.xb.shape[1], "MemoryOnly")
+
+    def test_prepare_upsert(self):
+        batch_size = 1
+        total_batch = 1
+        add_multi_vector(total_batch, batch_size, xb)
+        assert get_space_num() == 1
+
+    def test_search_score(self):
+        for i in range(100):
+            data = {}
+            data["vectors"] = []
+            vector_info = {
+                "field": "field_vector",
+                "feature": xq[i:i+1].flatten().tolist(),
+            }
+            data["vectors"].append(vector_info)
+            query_dict = {
+                "vectors": data["vectors"],
+                "fields": ["field_int"],
+                "limit": 1,
+                "db_name": db_name,
+                "space_name": space_name,
+                "ranker": {
+                    "type": "WeightedRanker",
+                    "params": [0.8, 0.2]
+                }
+            }
+            url = router_url + "/document/search"
+            json_str = json.dumps(query_dict)
+            rs = requests.post(url, json_str)
+            # logger.info(rs.json())
+            assert rs.json()["code"] == 200
+            score = np.sum(np.square(xq[i:i+1] - xb[:1]))
+            assert abs(rs.json()["data"]["documents"][0][0]["_score"] - score) <= 0.1
+
+    # destroy for badcase
+    def test_destroy_cluster_badcase(self):
+        destroy(router_url, db_name, space_name)

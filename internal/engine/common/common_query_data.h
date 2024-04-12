@@ -4,6 +4,9 @@
 #include <functional>
 #include <string>
 #include <vector>
+#include "util/log.h"
+#include "util/status.h"
+#include "cjson/cJSON.h"
 
 namespace vearch {
 
@@ -210,6 +213,93 @@ struct GammaResult {
   int results_count;
 
   VectorDoc **docs;
+};
+
+const std::string WeightedRanker_str = "WeightedRanker";
+
+struct Ranker {
+  Ranker(std::string str) : raw_str(str) {}
+
+  virtual ~Ranker() {}
+
+  virtual Status Parse() = 0;
+
+  std::string ToString() {
+    std::stringstream ss;
+    ss << "ranker type =" << type << ", ";
+    ss << "params: " << params;
+    return ss.str();
+  }
+  std::string raw_str;
+  std::string type;
+  std::string params;
+};
+
+struct WeightedRanker : public Ranker {
+  WeightedRanker(std::string ranker_parmas, int ranker_weight_num):
+    Ranker(ranker_parmas), weights_num(ranker_weight_num), weights(ranker_weight_num, 1.0 / ranker_weight_num) {
+  }
+
+  virtual ~WeightedRanker() {}
+
+  Status Parse() {
+    Status status;
+    std::string msg = "weighted ranker params err: " + std::string(raw_str);
+    cJSON* jsonroot = cJSON_Parse(raw_str.c_str());
+    if (jsonroot == NULL) {
+      status = Status::InvalidArgument(msg);
+      LOG(ERROR) << msg;
+      return status;
+    }
+    cJSON * ctype = cJSON_GetObjectItemCaseSensitive(jsonroot, "type");
+    if (ctype == NULL) {
+      status = Status::InvalidArgument(msg);
+      LOG(ERROR) << msg;
+      return status;
+    } else {
+      type = ctype->valuestring;
+    }
+    cJSON * arr = cJSON_GetObjectItem(jsonroot, "params");
+    if (arr == NULL) {
+      status = Status::InvalidArgument(msg);
+      LOG(ERROR) << msg;
+      return status;
+    }
+    if (cJSON_IsArray(arr)) {
+      int len = cJSON_GetArraySize(arr);
+      if (len != weights_num) {
+        msg = "weighted ranker params: " + std::string(raw_str) + ", length don't equal to " + std::to_string(weights_num);
+        status = Status::InvalidArgument(msg);
+        LOG(ERROR) << msg;
+        return status;
+      }
+      for (int i = 0; i < len; i++) {
+        cJSON * ArrNumEle = cJSON_GetArrayItem(arr, i);
+        if(NULL == ArrNumEle) {
+          continue;
+        }
+        weights[i] = ArrNumEle->valuedouble;
+      }
+    } else {
+      status = Status::InvalidArgument(msg);
+      LOG(ERROR) << msg;
+      return status;
+    }
+    return Status::OK();
+  }
+
+  std::string ToString() {
+    std::stringstream ss;
+    ss << "ranker type =" << type << ", ";
+    ss << "params: " << params << ", ";
+    ss << "weights_num: " << weights_num << ",";
+    for(int i = 0; i <  weights_num; i++)
+      ss << "weight[" << i << "]=" << weights[i] << ",";
+    return ss.str();
+  }
+
+  int weights_num;
+  std::vector<double> weights;
 };
 
 }  // namespace vearch

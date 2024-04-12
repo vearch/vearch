@@ -768,7 +768,7 @@ def process_get_data(items):
     json_str = json.dumps(data)
     rs = requests.post(url, json_str)
     if rs.status_code != 200 or "documents" not in rs.json()["data"]:
-        logger.info(rs.json()["data"])
+        logger.info(rs.json())
         logger.info(json_str)
 
     documents = rs.json()["data"]["documents"]

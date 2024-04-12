@@ -633,7 +633,12 @@ Status VectorManager::Search(GammaQuery &query, GammaResult *results) {
           int cur_docid = all_vector_results[j].seek(i, start_docid, vec_dist);
           if (cur_docid == start_docid) {
             common_docid_count++;
-            double field_score = vec_dist;
+            // now just support WeightedRanker
+            WeightedRanker *ranker = dynamic_cast<WeightedRanker *>(query.condition->ranker);
+            float weight = 1.0 / vec_num;
+            if (ranker != nullptr && ranker->weights.size() == vec_num)
+              weight = ranker->weights[j];
+            double field_score = vec_dist * weight;
             score += field_score;
             results[i].docs[common_idx]->fields[j].score = field_score;
             if (common_docid_count == vec_num) {

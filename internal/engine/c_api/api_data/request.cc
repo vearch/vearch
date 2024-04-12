@@ -6,6 +6,7 @@
  */
 
 #include "request.h"
+#include "util/status.h"
 
 namespace vearch {
 
@@ -71,7 +72,7 @@ int Request::Serialize(char **out, int *out_len) {
                                builder.CreateVector(range_filter_vector),
                                builder.CreateVector(term_filter_vector),
                                builder.CreateString(index_params_),
-                               multi_vector_rank_, l2_sqrt_);
+                               multi_vector_rank_, l2_sqrt_, builder.CreateString(ranker_->raw_str));
 
   builder.Finish(res);
   *out_len = builder.GetSize();
@@ -138,6 +139,10 @@ void Request::Deserialize(const char *data, int len) {
   index_params_ = request_->index_params()->str();
   multi_vector_rank_ = request_->multi_vector_rank();
   l2_sqrt_ = request_->l2_sqrt();
+
+  if (vec_fields_.size() > 1 && request_->ranker()->str() != "") {
+    ranker_ = new WeightedRanker(request_->ranker()->str(), vec_fields_.size());
+  }
 }
 
 int Request::ReqNum() {
@@ -220,5 +225,22 @@ bool Request::L2Sqrt() {
 }
 
 void Request::SetL2Sqrt(bool l2_sqrt) { l2_sqrt_ = l2_sqrt; }
+
+vearch::Ranker *Request::Ranker() {
+  return ranker_;
+}
+
+int Request::SetRanker(std::string params, int weight_num) {
+  ranker_ = new WeightedRanker(params, weight_num);
+  if (params == "")
+    return 0;
+  Status status = ranker_->Parse();
+  if (status.code() != status::Code::kOk) {
+    delete ranker_;
+    ranker_ = nullptr;
+    return -1;
+  }
+  return 0;
+}
 
 }  // namespace vearch

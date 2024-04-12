@@ -42,6 +42,7 @@ class SearchCondition : public RetrievalContext {
     max_score = std::numeric_limits<float>::max();
     perf_tool_ = perf_tool;
     table = nullptr;
+    ranker = nullptr;
   }
 
   SearchCondition(SearchCondition *condition) {
@@ -57,11 +58,13 @@ class SearchCondition : public RetrievalContext {
     range_filters = condition->range_filters;
     term_filters = condition->term_filters;
     table = condition->table;
+    ranker = condition->ranker;
   }
 
   ~SearchCondition() {
     range_query_result = nullptr;  // should not delete
     table = nullptr;               // should not delete
+    ranker = nullptr;              // should not delete
   }
 
   MultiRangeQueryResults *range_query_result;
@@ -80,6 +83,7 @@ class SearchCondition : public RetrievalContext {
   std::string index_params;
   float min_score;
   float max_score;
+  Ranker *ranker;
 
   bool IsSimilarScoreValid(float score) const override {
     return (score <= max_score) && (score >= min_score);

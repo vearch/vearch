@@ -319,36 +319,8 @@ func (handler *DocumentHandler) handleDocumentQuery(c *gin.Context) {
 			ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
 			return
 		}
-		if len(*searchDoc.DocumentIds) >= 500 {
-			err := vearchpb.NewError(vearchpb.ErrorEnum_QUERY_INVALID_PARAMS_LENGTH_OF_DOCUMENT_IDS_BEYOND_500, nil)
-			ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
-			return
-		}
-		args := &vearchpb.GetRequest{}
-		args.Head = setRequestHeadFromGin(c)
-		args.Head.DbName = searchDoc.DbName
-		args.Head.SpaceName = searchDoc.SpaceName
-		args.PrimaryKeys = *searchDoc.DocumentIds
-
-		var queryFieldsParam map[string]string
-		if searchDoc.Fields != nil {
-			queryFieldsParam = arrayToMap(searchDoc.Fields)
-		}
-
-		reply := &vearchpb.GetResponse{}
-		if searchDoc.PartitionId != nil && *searchDoc.PartitionId != "" {
-			reply = handler.docService.getDocsByPartition(c.Request.Context(), args, *searchDoc.PartitionId, searchDoc.Next)
-		} else {
-			reply = handler.docService.getDocs(c.Request.Context(), args)
-		}
-
-		if result, err := documentGetResponse(handler.client, args, reply, queryFieldsParam, searchDoc.VectorValue); err != nil {
-			ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
-			return
-		} else {
-			ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(result)
-			return
-		}
+		handler.handleDocumentGet(c, searchDoc)
+		return
 	} else {
 		if args.TermFilters == nil && args.RangeFilters == nil {
 			err := vearchpb.NewError(vearchpb.ErrorEnum_QUERY_INVALID_PARAMS_SHOULD_HAVE_ONE_OF_DOCUMENT_IDS_OR_FILTER, nil)
@@ -368,6 +340,39 @@ func (handler *DocumentHandler) handleDocumentQuery(c *gin.Context) {
 	}
 	ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(result)
 	log.Debug("handleDocumentQuery total use :[%f] service use :[%f]", time.Since(startTime).Seconds()*1000, serviceCost.Seconds()*1000)
+}
+
+func (handler *DocumentHandler) handleDocumentGet(c *gin.Context, searchDoc *request.SearchDocumentRequest) {
+	if len(*searchDoc.DocumentIds) >= 500 {
+		err := vearchpb.NewError(vearchpb.ErrorEnum_QUERY_INVALID_PARAMS_LENGTH_OF_DOCUMENT_IDS_BEYOND_500, nil)
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
+		return
+	}
+	args := &vearchpb.GetRequest{}
+	args.Head = setRequestHeadFromGin(c)
+	args.Head.DbName = searchDoc.DbName
+	args.Head.SpaceName = searchDoc.SpaceName
+	args.PrimaryKeys = *searchDoc.DocumentIds
+
+	var queryFieldsParam map[string]string
+	if searchDoc.Fields != nil {
+		queryFieldsParam = arrayToMap(searchDoc.Fields)
+	}
+
+	reply := &vearchpb.GetResponse{}
+	if searchDoc.PartitionId != nil && *searchDoc.PartitionId != "" {
+		reply = handler.docService.getDocsByPartition(c.Request.Context(), args, *searchDoc.PartitionId, searchDoc.Next)
+	} else {
+		reply = handler.docService.getDocs(c.Request.Context(), args)
+	}
+
+	if result, err := documentGetResponse(handler.client, args, reply, queryFieldsParam, searchDoc.VectorValue); err != nil {
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
+		return
+	} else {
+		ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(result)
+		return
+	}
 }
 
 func (handler *DocumentHandler) handleDocumentSearch(c *gin.Context) {

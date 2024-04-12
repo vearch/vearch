@@ -12,6 +12,7 @@
 #include "common/common_query_data.h"
 #include "idl/fbs-gen/c/request_generated.h"
 #include "raw_data.h"
+#include "util/status.h"
 
 namespace vearch {
 
@@ -21,9 +22,15 @@ class Request : public RawData {
     request_ = nullptr;
     req_num_ = 0;
     topn_ = 0;
+    ranker_ = nullptr;
   }
 
-  virtual ~Request() {}
+  virtual ~Request() {
+    if (ranker_) {
+      delete ranker_;
+      ranker_ = nullptr;
+    }
+  }
 
   virtual int Serialize(char **out, int *out_len);
 
@@ -69,6 +76,10 @@ class Request : public RawData {
 
   void SetL2Sqrt(bool l2_sqrt);
 
+  vearch::Ranker *Ranker();
+
+  int SetRanker(std::string params, int weight_num);
+
  private:
   gamma_api::Request *request_;
 
@@ -86,6 +97,7 @@ class Request : public RawData {
   std::string index_params_;
   int multi_vector_rank_;
   bool l2_sqrt_;
+  vearch::Ranker *ranker_;
 };
 
 }  // namespace vearch

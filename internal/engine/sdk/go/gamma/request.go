@@ -48,6 +48,7 @@ type Request struct {
 	IndexParams      string
 	MultiVectorRank  int32
 	L2Sqrt           bool
+	Ranker           string
 
 	request *gamma_api.Request
 }
@@ -143,6 +144,8 @@ func (request *Request) Serialize(buffer *[]byte) int {
 	}
 	t := builder.EndVector(len(request.TermFilters))
 
+	ranker := builder.CreateString(request.Ranker)
+
 	gamma_api.RequestStart(builder)
 	gamma_api.RequestAddReqNum(builder, request.ReqNum)
 	gamma_api.RequestAddTopn(builder, request.TopN)
@@ -154,6 +157,7 @@ func (request *Request) Serialize(buffer *[]byte) int {
 	gamma_api.RequestAddIndexParams(builder, indexParams)
 	gamma_api.RequestAddMultiVectorRank(builder, request.MultiVectorRank)
 	gamma_api.RequestAddL2Sqrt(builder, request.L2Sqrt)
+	gamma_api.RequestAddRanker(builder, ranker)
 
 	builder.Finish(builder.EndObject())
 
@@ -255,6 +259,8 @@ func SearchRequestSerialize(request *vearchpb.SearchRequest) []byte {
 	}
 	t := builder.EndVector(len(request.TermFilters))
 
+	ranker := builder.CreateString(request.Ranker)
+
 	gamma_api.RequestStart(builder)
 	gamma_api.RequestAddReqNum(builder, request.ReqNum)
 	gamma_api.RequestAddTopn(builder, request.TopN)
@@ -266,6 +272,7 @@ func SearchRequestSerialize(request *vearchpb.SearchRequest) []byte {
 	gamma_api.RequestAddIndexParams(builder, indexParams)
 	gamma_api.RequestAddMultiVectorRank(builder, request.MultiVectorRank)
 	gamma_api.RequestAddL2Sqrt(builder, request.L2Sqrt)
+	gamma_api.RequestAddRanker(builder, ranker)
 
 	builder.Finish(builder.EndObject())
 	return builder.FinishedBytes()

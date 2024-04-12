@@ -171,8 +171,16 @@ func (rcv *Request) MutateL2Sqrt(n bool) bool {
 	return rcv._tab.MutateBoolSlot(22, n)
 }
 
+func (rcv *Request) Ranker() []byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(24))
+	if o != 0 {
+		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+	}
+	return nil
+}
+
 func RequestStart(builder *flatbuffers.Builder) {
-	builder.StartObject(10)
+	builder.StartObject(11)
 }
 func RequestAddReqNum(builder *flatbuffers.Builder, reqNum int32) {
 	builder.PrependInt32Slot(0, reqNum, 0)
@@ -215,6 +223,9 @@ func RequestAddMultiVectorRank(builder *flatbuffers.Builder, multiVectorRank int
 }
 func RequestAddL2Sqrt(builder *flatbuffers.Builder, l2Sqrt bool) {
 	builder.PrependBoolSlot(9, l2Sqrt, false)
+}
+func RequestAddRanker(builder *flatbuffers.Builder, ranker flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(10, flatbuffers.UOffsetT(ranker), 0)
 }
 func RequestEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

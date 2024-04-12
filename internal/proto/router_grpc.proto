@@ -152,6 +152,7 @@ message SearchRequest {
   bool is_vector_value = 12;
   map<string, string> sort_field_map = 13;
   repeated SortField sort_fields = 14;
+  string ranker = 15;
 }
 
 //*********************** Search response *********************** //
