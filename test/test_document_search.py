@@ -183,13 +183,13 @@ def test_vearch_document_search_brute_force_search_threshold(index_type):
     json_str = json.dumps(data)
     logger.info(json_str)
     url = router_url + "/document/search"
-    rs = requests.post(url, json_str)
+    rs = requests.post(url, auth=(username, password), data=json_str)
     assert rs.json()["code"] == 200
 
     add(total_batch, batch_size, xb, with_id, full_field)
     logger.info("%s doc_num: %d" % (space_name, get_space_num()))
 
-    rs = requests.post(url, json_str)
+    rs = requests.post(url, auth=(username, password), data=json_str)
     logger.info(rs.json())
     assert rs.json()["code"] != 200
 
@@ -313,7 +313,7 @@ def process_search_error_data(items):
     json_str = json.dumps(data)
     logger.info(json_str)
 
-    rs = requests.post(url, data=json_str, headers={"Connection": "close"})
+    rs = requests.post(url, auth=(username, password), data=json_str, headers={"Connection": "close"})
     logger.info(rs.json())
 
     if "data" in rs.json():

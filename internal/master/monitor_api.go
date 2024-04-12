@@ -15,8 +15,6 @@
 package master
 
 import (
-	"net/http"
-
 	"github.com/gin-gonic/gin"
 	"github.com/vearch/vearch/internal/config"
 	"github.com/vearch/vearch/internal/monitor"
@@ -35,9 +33,18 @@ func ExportToMonitorHandler(router *gin.Engine, monitorService *monitorService) 
 
 	c := &monitorApi{router: router, monitorService: monitorService, dh: dh}
 
+	var group *gin.RouterGroup
+	if !config.Conf().Global.SkipAuth {
+		group = router.Group("", dh.PaincHandler, dh.TimeOutHandler, gin.BasicAuth(gin.Accounts{
+			"root": config.Conf().Global.Signkey,
+		}))
+	} else {
+		group = router.Group("", dh.PaincHandler, dh.TimeOutHandler)
+	}
+
 	// cluster handler
-	router.Handle(http.MethodGet, "/cluster/health", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.health, dh.TimeOutEndHandler)
-	router.Handle(http.MethodGet, "/cluster/stats", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.stats, dh.TimeOutEndHandler)
+	group.GET("/cluster/health", c.health, dh.TimeOutEndHandler)
+	group.GET("/cluster/stats", c.stats, dh.TimeOutEndHandler)
 
 	monitor.Register(monitorService.Client, monitorService.etcdServer, config.Conf().Masters.Self().MonitorPort)
 	// monitorService.Register()
@@ -66,12 +73,4 @@ func (m *monitorApi) health(c *gin.Context) {
 	}
 
 	ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(result)
-}
-
-func (m *monitorApi) auth(c *gin.Context) {
-	if err := Auth(c); err != nil {
-		defer m.dh.TimeOutEndHandler(c)
-		c.Abort()
-		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
-	}
 }

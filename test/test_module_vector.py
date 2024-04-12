@@ -101,7 +101,7 @@ def search_result(xq, k: int, batch: bool, query_dict: dict, multi_vector: bool,
             vector_dict["vector"][1]["feature"] = xq.flatten().tolist()
         query_dict["vectors"] = vector_dict["vector"]
         json_str = json.dumps(query_dict)
-        rs = requests.post(url, json_str)
+        rs = requests.post(url, auth=(username, password), data=json_str)
 
         if rs.status_code != 200 or "documents" not in rs.json()["data"]:
             logger.info(rs.json())
@@ -125,7 +125,7 @@ def search_result(xq, k: int, batch: bool, query_dict: dict, multi_vector: bool,
 
             query_dict["vectors"] = vector_dict["vector"]
             json_str = json.dumps(query_dict)
-            rs = requests.post(url, json_str)
+            rs = requests.post(url, auth=(username, password), data=json_str)
 
             if rs.status_code != 200 or "documents" not in rs.json()["data"]:
                 logger.info(rs.json())
@@ -299,7 +299,7 @@ class TestSearchWeightRanker:
         }
         url = router_url + "/document/search"
         json_str = json.dumps(query_dict)
-        rs = requests.post(url, json_str)
+        rs = requests.post(url, auth=(username, password), data=json_str)
         # logger.info(rs.json())
         assert rs.json()["code"] == 200
         score =np.sum(np.square(xq[:1] - xb[:1]))
@@ -308,7 +308,7 @@ class TestSearchWeightRanker:
         query_dict["ranker"]["params"] = [1, 1]
         url = router_url + "/document/search"
         json_str = json.dumps(query_dict)
-        rs = requests.post(url, json_str)
+        rs = requests.post(url, auth=(username, password), data=json_str)
         # logger.info(rs.json()["data"]["documents"][0][0]["_score"])
         assert abs(rs.json()["data"]["documents"][0][0]["_score"] - 2 * score) <= 0.1
 
@@ -353,7 +353,7 @@ class TestSearchScore:
             }
             url = router_url + "/document/search"
             json_str = json.dumps(query_dict)
-            rs = requests.post(url, json_str)
+            rs = requests.post(url, auth=(username, password), data=json_str)
             # logger.info(rs.json())
             assert rs.json()["code"] == 200
             score = np.sum(np.square(xq[i:i+1] - xb[:1]))

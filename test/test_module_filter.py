@@ -140,7 +140,7 @@ def process_get_data_by_filter(items):
     data["limit"] = batch_size
 
     json_str = json.dumps(data)
-    rs = requests.post(url, json_str)
+    rs = requests.post(url, auth=(username, password), data=json_str)
     if rs.status_code != 200 or "documents" not in rs.json()["data"]:
         logger.info(rs.json())
         logger.info(json_str)

@@ -18,7 +18,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -36,7 +35,6 @@ import (
 	"github.com/vearch/vearch/internal/pkg/netutil"
 	"github.com/vearch/vearch/internal/pkg/server/vearchhttp"
 	"github.com/vearch/vearch/internal/pkg/vjson"
-	"github.com/vearch/vearch/internal/proto/vearchpb"
 )
 
 const (
@@ -61,60 +59,69 @@ func ExportToClusterHandler(router *gin.Engine, masterService *masterService, se
 
 	c := &clusterAPI{router: router, masterService: masterService, dh: dh, server: server}
 
-	router.Handle(http.MethodGet, "/", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.handleClusterInfo, dh.TimeOutEndHandler)
+	var group *gin.RouterGroup
+	if !config.Conf().Global.SkipAuth {
+		group = router.Group("", dh.PaincHandler, dh.TimeOutHandler, gin.BasicAuth(gin.Accounts{
+			"root": config.Conf().Global.Signkey,
+		}))
+	} else {
+		group = router.Group("", dh.PaincHandler, dh.TimeOutHandler)
+	}
+
+	group.GET("/", c.handleClusterInfo, dh.TimeOutEndHandler)
 
 	// cluster handler
-	router.Handle(http.MethodGet, "/clean_lock", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.cleanLock, dh.TimeOutEndHandler)
+	group.GET("/clean_lock", c.cleanLock, dh.TimeOutEndHandler)
 
 	// servers handler
-	router.Handle(http.MethodGet, "/servers", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.serverList, dh.TimeOutEndHandler)
+	group.GET("/servers", c.serverList, dh.TimeOutEndHandler)
 
 	// router  handler
-	router.Handle(http.MethodGet, "/routers", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.routerList, dh.TimeOutEndHandler)
+	group.GET("/routers", c.routerList, dh.TimeOutEndHandler)
 
 	// partition register
-	router.Handle(http.MethodPost, "/register", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.register, dh.TimeOutEndHandler)
-	router.Handle(http.MethodPost, "/register_partition", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.registerPartition, dh.TimeOutEndHandler)
-	router.Handle(http.MethodPost, "/register_router", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.registerRouter, dh.TimeOutEndHandler)
+	group.POST("/register", c.register, dh.TimeOutEndHandler)
+	group.POST("/register_partition", c.registerPartition, dh.TimeOutEndHandler)
+	group.POST("/register_router", c.registerRouter, dh.TimeOutEndHandler)
 
 	// db handler
-	router.Handle(http.MethodPost, fmt.Sprintf("/dbs/:%s", dbName), dh.PaincHandler, dh.TimeOutHandler, c.auth, c.createDB, dh.TimeOutEndHandler)
-	router.Handle(http.MethodGet, fmt.Sprintf("/dbs/:%s", dbName), dh.PaincHandler, dh.TimeOutHandler, c.auth, c.getDB, dh.TimeOutEndHandler)
-	router.Handle(http.MethodGet, "/dbs", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.getDB, dh.TimeOutEndHandler)
-	router.Handle(http.MethodDelete, fmt.Sprintf("/dbs/:%s", dbName), dh.PaincHandler, dh.TimeOutHandler, c.auth, c.deleteDB, dh.TimeOutEndHandler)
-	router.Handle(http.MethodPut, fmt.Sprintf("/dbs/:%s", dbName), dh.PaincHandler, dh.TimeOutHandler, c.auth, c.modifyDB, dh.TimeOutEndHandler)
+	group.POST(fmt.Sprintf("/dbs/:%s", dbName), c.createDB, dh.TimeOutEndHandler)
+	group.GET(fmt.Sprintf("/dbs/:%s", dbName), c.getDB, dh.TimeOutEndHandler)
+	group.GET("/dbs", c.getDB, dh.TimeOutEndHandler)
+	group.DELETE(fmt.Sprintf("/dbs/:%s", dbName), c.deleteDB, dh.TimeOutEndHandler)
+	group.PUT(fmt.Sprintf("/dbs/:%s", dbName), c.modifyDB, dh.TimeOutEndHandler)
 
 	// space handler
-	router.Handle(http.MethodPost, fmt.Sprintf("/dbs/:%s/spaces", dbName), dh.PaincHandler, dh.TimeOutHandler, c.auth, c.createSpace, dh.TimeOutEndHandler)
-	router.Handle(http.MethodGet, fmt.Sprintf("/dbs/:%s/spaces/:%s", dbName, spaceName), dh.PaincHandler, dh.TimeOutHandler, c.auth, c.getSpace, dh.TimeOutEndHandler)
-	router.Handle(http.MethodGet, fmt.Sprintf("/dbs/:%s/spaces", dbName), dh.PaincHandler, dh.TimeOutHandler, c.auth, c.getSpace, dh.TimeOutEndHandler)
-	router.Handle(http.MethodDelete, fmt.Sprintf("/dbs/:%s/spaces/:%s", dbName, spaceName), dh.PaincHandler, dh.TimeOutHandler, c.auth, c.deleteSpace, dh.TimeOutEndHandler)
-	router.Handle(http.MethodPut, fmt.Sprintf("/dbs/:%s/spaces/:%s", dbName, spaceName), dh.PaincHandler, dh.TimeOutHandler, c.auth, c.updateSpace, dh.TimeOutEndHandler)
+	group.POST(fmt.Sprintf("/dbs/:%s/spaces", dbName), c.createSpace, dh.TimeOutEndHandler)
+	group.GET(fmt.Sprintf("/dbs/:%s/spaces/:%s", dbName, spaceName), c.getSpace, dh.TimeOutEndHandler)
+	group.GET(fmt.Sprintf("/dbs/:%s/spaces", dbName), c.getSpace, dh.TimeOutEndHandler)
+	group.DELETE(fmt.Sprintf("/dbs/:%s/spaces/:%s", dbName, spaceName), c.deleteSpace, dh.TimeOutEndHandler)
+	group.PUT(fmt.Sprintf("/dbs/:%s/spaces/:%s", dbName, spaceName), c.updateSpace, dh.TimeOutEndHandler)
 
 	// modify engine config handler
-	router.Handle(http.MethodPost, "/config/:"+dbName+"/:"+spaceName, dh.PaincHandler, dh.TimeOutHandler, c.auth, c.modifyEngineCfg, dh.TimeOutEndHandler)
-	router.Handle(http.MethodGet, "/config/:"+dbName+"/:"+spaceName, dh.PaincHandler, dh.TimeOutHandler, c.auth, c.getEngineCfg, dh.TimeOutEndHandler)
+	group.POST("/config/:"+dbName+"/:"+spaceName, c.modifyEngineCfg, dh.TimeOutEndHandler)
+	group.GET("/config/:"+dbName+"/:"+spaceName, c.getEngineCfg, dh.TimeOutEndHandler)
 
 	// partition handler
-	router.Handle(http.MethodGet, "/partitions", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.partitionList, dh.TimeOutEndHandler)
-	router.Handle(http.MethodPost, "/partitions/change_member", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.changeMember, dh.TimeOutEndHandler)
+	group.GET("/partitions", c.partitionList, dh.TimeOutEndHandler)
+	group.POST("/partitions/change_member", c.changeMember, dh.TimeOutEndHandler)
 
 	// schedule
-	router.Handle(http.MethodPost, "/schedule/recover_server", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.RecoverFailServer, dh.TimeOutEndHandler)
-	router.Handle(http.MethodPost, "/schedule/change_replicas", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.ChangeReplicas, dh.TimeOutEndHandler)
-	router.Handle(http.MethodGet, "/schedule/fail_server", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.FailServerList, dh.TimeOutEndHandler)
-	router.Handle(http.MethodDelete, "/schedule/fail_server/:"+NodeID, dh.PaincHandler, dh.TimeOutHandler, c.auth, c.FailServerClear, dh.TimeOutEndHandler)
-	router.Handle(http.MethodGet, "/schedule/clean_task", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.CleanTask, dh.TimeOutEndHandler)
+	group.POST("/schedule/recover_server", c.RecoverFailServer, dh.TimeOutEndHandler)
+	group.POST("/schedule/change_replicas", c.ChangeReplicas, dh.TimeOutEndHandler)
+	group.GET("/schedule/fail_server", c.FailServerList, dh.TimeOutEndHandler)
+	group.DELETE("/schedule/fail_server/:"+NodeID, c.FailServerClear, dh.TimeOutEndHandler)
+	group.GET("/schedule/clean_task", c.CleanTask, dh.TimeOutEndHandler)
 
 	// remove server metadata
-	router.Handle(http.MethodPost, "/meta/remove_server", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.RemoveServerMeta, dh.TimeOutEndHandler)
+	group.POST("/meta/remove_server", c.RemoveServerMeta, dh.TimeOutEndHandler)
 
 	// alias handler
-	router.Handle(http.MethodPost, fmt.Sprintf("/alias/:%s/dbs/:%s/spaces/:%s", aliasName, dbName, spaceName), dh.PaincHandler, dh.TimeOutHandler, c.auth, c.createAlias, dh.TimeOutEndHandler)
-	router.Handle(http.MethodGet, fmt.Sprintf("/alias/:%s", aliasName), dh.PaincHandler, dh.TimeOutHandler, c.auth, c.getAlias, dh.TimeOutEndHandler)
-	router.Handle(http.MethodGet, "/alias", dh.PaincHandler, dh.TimeOutHandler, c.auth, c.getAlias, dh.TimeOutEndHandler)
-	router.Handle(http.MethodDelete, fmt.Sprintf("/alias/:%s", aliasName), dh.PaincHandler, dh.TimeOutHandler, c.auth, c.deleteAlias, dh.TimeOutEndHandler)
-	router.Handle(http.MethodPut, fmt.Sprintf("/alias/:%s/dbs/:%s/spaces/:%s", aliasName, dbName, spaceName), dh.PaincHandler, dh.TimeOutHandler, c.auth, c.modifyAlias, dh.TimeOutEndHandler)
+	group.POST(fmt.Sprintf("/alias/:%s/dbs/:%s/spaces/:%s", aliasName, dbName, spaceName), c.createAlias, dh.TimeOutEndHandler)
+	group.GET(fmt.Sprintf("/alias/:%s", aliasName), c.getAlias, dh.TimeOutEndHandler)
+	group.GET("/alias", c.getAlias, dh.TimeOutEndHandler)
+	group.DELETE(fmt.Sprintf("/alias/:%s", aliasName), c.deleteAlias, dh.TimeOutEndHandler)
+	group.PUT(fmt.Sprintf("/alias/:%s/dbs/:%s/spaces/:%s", aliasName, dbName, spaceName), c.modifyAlias, dh.TimeOutEndHandler)
 }
 
 func (ca *clusterAPI) handleClusterInfo(c *gin.Context) {
@@ -745,25 +752,4 @@ func (ca *clusterAPI) changeMember(c *gin.Context) {
 	} else {
 		ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(nil)
 	}
-}
-
-func (ca *clusterAPI) auth(c *gin.Context) {
-	if err := Auth(c); err != nil {
-		defer ca.dh.TimeOutEndHandler(c)
-		c.Abort()
-		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
-	}
-}
-
-// Auth valid whether username is root and password equal config
-func Auth(c *gin.Context) (err error) {
-	if config.Conf().Global.SkipAuth {
-		return nil
-	}
-	headerData := c.GetHeader(headerAuthKey)
-	username, password, err := netutil.AuthDecrypt(headerData)
-	if username != "root" || password != config.Conf().Global.Signkey {
-		return vearchpb.NewError(vearchpb.ErrorEnum_AUTHENTICATION_FAILED, err)
-	}
-	return nil
 }

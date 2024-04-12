@@ -187,7 +187,7 @@ class VearchCase:
                 upsert_data["db_name"] = db_name
                 upsert_data["space_name"] = space_name
                 response = requests.post(
-                    url, headers=headers, data=json.dumps(upsert_data)
+                    url, auth=(username, password), headers=headers, data=json.dumps(upsert_data)
                 )
                 logger.debug("documentUpsert:" + response.text)
                 assert response.status_code == 200
@@ -209,7 +209,7 @@ class VearchCase:
                 json_data["space_name"] = space_name
                 logger.debug("documentUpsertWithId:" + json.dumps(json_data))
                 response = requests.post(
-                    url, headers=headers, data=json.dumps(json_data)
+                    url, auth=(username, password), headers=headers, data=json.dumps(json_data)
                 )
                 logger.debug("documentUpsertWithId:" + response.text)
                 assert response.status_code == 200
@@ -241,7 +241,7 @@ class VearchCase:
                 }
 
                 response = requests.post(
-                    url, headers=headers, data=json.dumps(upsert_data)
+                    url, auth=(username, password), headers=headers, data=json.dumps(upsert_data)
                 )
                 logger.debug("test_documentUpsertBulkWithId:" + response.text)
                 assert response.status_code == 200
@@ -259,7 +259,7 @@ class VearchCase:
                 data["db_name"] = db_name
                 data["space_name"] = space_name
                 data["document_ids"] = [doc_id for i in range(1)]
-                response = requests.post(url, headers=headers, data=json.dumps(data))
+                response = requests.post(url, auth=(username, password), headers=headers, data=json.dumps(data))
                 logger.debug("insertNoID:" + response.text)
                 assert response.status_code == 200
 
@@ -284,7 +284,7 @@ class VearchCase:
             data["space_name"] = space_name
             data["document_ids"] = [str(i) for j in range(1)]
             data["partition_id"] = partition
-            response = requests.post(url, headers=headers, data=json.dumps(data))
+            response = requests.post(url, auth=(username, password), headers=headers, data=json.dumps(data))
             logger.debug("documentQueryOnSpecifyPartiton:" + response.text)
             assert response.status_code == 200
             assert response.text.find('"total":1') >= 0
@@ -317,7 +317,7 @@ class VearchCase:
                     "space_name": space_name,
                 }
 
-                response = requests.post(url, headers=headers, data=json.dumps(data))
+                response = requests.post(url, auth=(username, password), headers=headers, data=json.dumps(data))
                 logger.debug("searchByFeature---\n" + response.text)
                 assert response.status_code == 200
 
@@ -346,7 +346,7 @@ class VearchCase:
                     "is_brute_search": 1,
                 }
 
-                response = requests.post(url, headers=headers, data=json.dumps(data))
+                response = requests.post(url, auth=(username, password), headers=headers, data=json.dumps(data))
                 logger.debug("searchByFeature---\n" + response.text)
                 assert response.status_code == 200
 
@@ -361,7 +361,7 @@ class VearchCase:
             "documents": [{"_id": "0", "float": 888.88, "string": "test"}],
         }
         logger.debug("documentUpsertWithId:" + json.dumps(json_data))
-        response = requests.post(url, headers=headers, data=json.dumps(json_data))
+        response = requests.post(url, auth=(username, password), headers=headers, data=json.dumps(json_data))
         logger.debug("documentUpsertWithId:" + response.text)
         assert response.status_code == 200
 
@@ -374,7 +374,7 @@ class VearchCase:
             "document_ids": ["0"],
         }
 
-        response = requests.post(url, headers=headers, data=json.dumps(data))
+        response = requests.post(url, auth=(username, password), headers=headers, data=json.dumps(data))
         logger.debug("getById:" + response.text)
         assert response.status_code == 200
         result = json.loads(response.text)
@@ -393,7 +393,7 @@ class VearchCase:
             "documents": [{"float": 888.88, "string": "test"}],
         }
         logger.debug("documentUpsertSinglefield:" + json.dumps(json_data))
-        response = requests.post(url, headers=headers, data=json.dumps(json_data))
+        response = requests.post(url, auth=(username, password), headers=headers, data=json.dumps(json_data))
         logger.debug("documentUpsertSinglefield:" + response.text)
         assert response.status_code != 200
 
@@ -410,7 +410,7 @@ class VearchCase:
                 data["db_name"] = db_name
                 data["space_name"] = space_name
                 data["document_ids"] = [doc_id for i in range(1)]
-                response = requests.post(url, headers=headers, data=json.dumps(data))
+                response = requests.post(url, auth=(username, password), headers=headers, data=json.dumps(data))
                 logger.debug("insertNoID:" + response.text)
                 assert response.status_code == 200
 
@@ -441,7 +441,7 @@ class VearchCase:
                     "space_name": space_name,
                 }
 
-                response = requests.post(url, headers=headers, data=json.dumps(data))
+                response = requests.post(url, auth=(username, password), headers=headers, data=json.dumps(data))
                 logger.debug("searchByFeature---\n" + response.text)
                 assert response.status_code == 200
 

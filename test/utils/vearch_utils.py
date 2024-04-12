@@ -28,6 +28,8 @@ ip_router = ip + ":9001"
 router_url = "http://" + ip_router
 db_name = "ts_db"
 space_name = "ts_space"
+username = 'root'
+password = 'secret'
 
 
 __description__ = """ test utils for vearch """
@@ -62,8 +64,7 @@ def process_add_data(items):
             param_dict["field_string"] = str(param_dict["field_int"])
         data["documents"].append(param_dict)
 
-    json_str = json.dumps(data)
-    rs = requests.post(url, json_str)
+    rs = requests.post(url, auth=(username, password), json=data)
     if logger != None:
         logger.info(rs.json())
 
@@ -114,8 +115,7 @@ def process_add_embedding_size_data(items):
         param_dict["field_string"] = str(param_dict["field_int"])
         data["documents"].append(param_dict)
 
-    json_str = json.dumps(data)
-    rs = requests.post(url, json_str)
+    rs = requests.post(url, auth=(username, password), json=data)
 
 
 def add_embedding_size(db_name, space_name, total, batch_size, embedding_size):
@@ -211,7 +211,7 @@ def process_add_error_data(items):
             data["documents"].append(param_dict)
 
     json_str = json.dumps(data)
-    rs = requests.post(url, json_str)
+    rs = requests.post(url, auth=(username, password), data=json_str)
 
     if not wrong_string_length:
         logger.info(json_str)
@@ -248,7 +248,7 @@ def process_add_mul_error_data(items):
         data["documents"].append(param_dict)
 
     json_str = json.dumps(data)
-    rs = requests.post(url, json_str)
+    rs = requests.post(url, auth=(username, password), data=json_str)
     logger.info(rs.json())
 
     assert rs.json()["code"] != 200
@@ -305,7 +305,7 @@ def process_add_multi_vec_data(items):
         data["documents"].append(param_dict)
 
     json_str = json.dumps(data)
-    rs = requests.post(url, json_str)
+    rs = requests.post(url, auth=(username, password), data=json_str)
 
 
 def add_multi_vector(total, batch_size, xb, with_id=False, full_field=False, seed=1):
@@ -352,8 +352,7 @@ def process_add_multi_vector_error_data(items):
             param_dict["field_vector1"] = features[j].tolist()[:1]
         data["documents"].append(param_dict)
 
-    json_str = json.dumps(data)
-    rs = requests.post(url, json_str)
+    rs = requests.post(url, auth=(username, password), json=data)
     logger.info(rs.json())
 
     if "data" in rs.json():
@@ -645,7 +644,7 @@ def process_query_error_data(items):
     if not wrong_vector:
         logger.info(json_str)
 
-    rs = requests.post(url, data=json_str)
+    rs = requests.post(url, auth=(username, password), data=json_str)
     logger.info(rs.json())
     if "data" in rs.json():
         assert rs.json()["data"]["total"] == 0
@@ -684,7 +683,7 @@ def process_query_multiple_error_data(items):
     json_str = json.dumps(data)
     logger.info(json_str)
 
-    rs = requests.post(url, data=json_str)
+    rs = requests.post(url, auth=(username, password), data=json_str)
     logger.info(rs.json())
 
     if params_both_wrong or params_just_one_wrong:
@@ -766,7 +765,7 @@ def process_get_data(items):
         data["limit"] = batch_size
 
     json_str = json.dumps(data)
-    rs = requests.post(url, json_str)
+    rs = requests.post(url, auth=(username, password), data=json_str)
     if rs.status_code != 200 or "documents" not in rs.json()["data"]:
         logger.info(rs.json())
         logger.info(json_str)
@@ -854,7 +853,7 @@ def process_delete_data(items):
         data["limit"] = batch_size
 
     json_str = json.dumps(data)
-    rs = requests.post(url, json_str)
+    rs = requests.post(url, auth=(username, password), data=json_str)
     if rs.status_code != 200 or "document_ids" not in rs.json()["data"]:
         logger.info(rs.json())
         logger.info(json_str)
@@ -925,7 +924,7 @@ def process_search_data(items):
         prepare_filter(data["filters"]["conditions"], index, batch_size, seed, full_field)
 
     json_str = json.dumps(data)
-    rs = requests.post(url, json_str)
+    rs = requests.post(url, auth=(username, password), data=json_str)
     if rs.status_code != 200 or "documents" not in rs.json()["data"]:
         logger.info(rs.json())
         logger.info(json_str)
@@ -1065,7 +1064,7 @@ def waiting_index_finish(logger, total, timewait=5):
     url = router_url + "/dbs/" + db_name + "/spaces/" + space_name
     num = 0
     while num < total:
-        response = requests.get(url)
+        response = requests.get(url, auth=(username, password))
         num = response.json()["data"]["partitions"][0]["index_num"]
         logger.info("index num: %d" % (num))
         time.sleep(timewait)
@@ -1074,7 +1073,7 @@ def waiting_index_finish(logger, total, timewait=5):
 def get_space_num():
     url = f"{router_url}/dbs/{db_name}/spaces/{space_name}"
     num = 0
-    response = requests.get(url)
+    response = requests.get(url, auth=(username, password))
     num = response.json()["data"]["doc_num"]
     return num
 
@@ -1088,7 +1087,7 @@ def search(xq, k: int, batch: bool, query_dict: dict, logger):
         vector_dict["vector"][0]["feature"] = xq.flatten().tolist()
         query_dict["vectors"] = vector_dict["vector"]
         json_str = json.dumps(query_dict)
-        rs = requests.post(url, json_str)
+        rs = requests.post(url, auth=(username, password), data=json_str)
 
         if rs.status_code != 200 or "documents" not in rs.json()["data"]:
             logger.info(rs.json())
@@ -1108,7 +1107,7 @@ def search(xq, k: int, batch: bool, query_dict: dict, logger):
             vector_dict["vector"][0]["feature"] = xq[i].tolist()
             query_dict["vectors"] = vector_dict["vector"]
             json_str = json.dumps(query_dict)
-            rs = requests.post(url, json_str)
+            rs = requests.post(url, auth=(username, password), data=json_str)
 
             if rs.status_code != 200 or "documents" not in rs.json()["data"]:
                 logger.info(rs.json())
@@ -1144,13 +1143,13 @@ def evaluate(xq, gt, k, batch, query_dict, logger):
 
 def drop_db(router_url: str, db_name: str):
     url = f"{router_url}/dbs/{db_name}"
-    resp = requests.delete(url)
+    resp = requests.delete(url, auth=(username, password))
     return resp.json()
 
 
 def drop_space(router_url: str, db_name: str, space_name: str):
     url = f"{router_url}/dbs/{db_name}/spaces/{space_name}"
-    resp = requests.delete(url)
+    resp = requests.delete(url, auth=(username, password))
     return resp.json()
 
 
@@ -1161,19 +1160,19 @@ def destroy(router_url: str, db_name: str, space_name: str):
 
 def create_space(router_url: str, db_name: str, space_config: dict):
     url = f"{router_url}/dbs/{db_name}/spaces"
-    resp = requests.post(url, json=space_config)
+    resp = requests.post(url, auth=(username, password), json=space_config)
     return resp.json()
 
 
 def get_space(router_url: str, db_name: str, space_name: str):
     url = f"{router_url}/dbs/{db_name}/spaces/{space_name}"
-    resp = requests.get(url)
+    resp = requests.get(url, auth=(username, password))
     return resp.json()
 
 
 def get_partition(router_url: str, db_name: str, space_name: str):
     url = f"{router_url}/{db_name}/{space_name}"
-    resp = requests.get(url)
+    resp = requests.get(url, auth=(username, password))
     partition_infos = resp.json()["data"]["partitions"]
     partition_ids = []
     for partition_info in partition_infos:
@@ -1183,62 +1182,62 @@ def get_partition(router_url: str, db_name: str, space_name: str):
 
 def get_cluster_stats(router_url: str):
     url = f"{router_url}/cluster/stats"
-    resp = requests.get(url)
+    resp = requests.get(url, auth=(username, password))
     return resp.json()
 
 
 def get_cluster_health(router_url: str):
     url = f"{router_url}/cluster/health?detail=true"
-    resp = requests.get(url)
+    resp = requests.get(url, auth=(username, password))
     return resp.json()
 
 
 def get_servers_status(router_url: str):
     url = f"{router_url}/servers"
-    resp = requests.get(url)
+    resp = requests.get(url, auth=(username, password))
     return resp.json()
 
 
 def get_cluster_partition(router_url: str):
     url = f"{router_url}/partitions"
-    resp = requests.get(url)
+    resp = requests.get(url, auth=(username, password))
     return resp.json()
 
 
 def get_cluster_version(router_url: str):
     url = f"{router_url}/"
-    resp = requests.get(url)
+    resp = requests.get(url, auth=(username, password))
     return resp.json()
 
 
 def list_dbs(router_url: str):
     url = f"{router_url}/dbs"
-    resp = requests.get(url)
+    resp = requests.get(url, auth=(username, password))
     return resp.json()
 
 
 def create_db(router_url: str, db_name: str):
     url = f"{router_url}/dbs/" + db_name
-    resp = requests.post(url)
+    resp = requests.post(url, auth=(username, password))
     return resp.json()
 
 
 def get_db(router_url: str, db_name: str):
     url = f"{router_url}/dbs/{db_name}"
-    resp = requests.get(url)
+    resp = requests.get(url, auth=(username, password))
     return resp.json()
 
 
 def list_spaces(router_url: str, db_name: str):
     url = f"{router_url}/dbs/{db_name}/spaces"
-    resp = requests.get(url)
+    resp = requests.get(url, auth=(username, password))
     return resp.json()
 
 
 def describe_space(logger, router_url: str, db_name: str, space_name: str):
     url = f"{router_url}/dbs/{db_name}/spaces/{space_name}?detail=true"
     try:
-        resp = requests.get(url)
+        resp = requests.get(url, auth=(username, password))
         return resp.json()
     except Exception as e:
         logger.error(e)
@@ -1248,35 +1247,35 @@ def index_rebuild(router_url: str, db_name: str, space_name: str):
     url = f"{router_url}/index/rebuild"
     data = {'db_name': db_name, 'space_name': space_name,
             'drop_before_rebuild': True}
-    resp = requests.post(url, json=data)
+    resp = requests.post(url, auth=(username, password), json=data)
     return resp.json()
 
 
 def create_alias(router_url: str, alias_name: str, db_name: str, space_name: str):
     url = f"{router_url}/alias/{alias_name}/dbs/{db_name}/spaces/{space_name}"
-    resp = requests.post(url)
+    resp = requests.post(url, auth=(username, password))
     return resp.json()
 
 
 def update_alias(router_url: str, alias_name: str, db_name: str, space_name: str):
     url = f"{router_url}/alias/{alias_name}/dbs/{db_name}/spaces/{space_name}"
-    resp = requests.put(url)
+    resp = requests.put(url, auth=(username, password))
     return resp.json()
 
 
 def get_alias(router_url: str, alias_name: str):
     url = f"{router_url}/alias/{alias_name}"
-    resp = requests.get(url)
+    resp = requests.get(url, auth=(username, password))
     return resp.json()
 
 
 def get_all_alias(router_url: str):
     url = f"{router_url}/alias"
-    resp = requests.get(url)
+    resp = requests.get(url, auth=(username, password))
     return resp.json()
 
 
 def drop_alias(router_url: str, alias_name: str):
     url = f"{router_url}/alias/{alias_name}"
-    resp = requests.delete(url)
+    resp = requests.delete(url, auth=(username, password))
     return resp.json()

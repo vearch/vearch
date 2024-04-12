@@ -65,43 +65,51 @@ func ExportDocumentHandler(httpServer *gin.Engine, client *client.Client) {
 		client:     client,
 	}
 
-	documentHandler.proxyMaster()
+	var group *gin.RouterGroup
+	if !config.Conf().Global.SkipAuth {
+		group = documentHandler.httpServer.Group("", documentHandler.handleTimeout, gin.BasicAuth(gin.Accounts{
+			"root": config.Conf().Global.Signkey,
+		}))
+	} else {
+		group = documentHandler.httpServer.Group("", documentHandler.handleTimeout)
+	}
+	documentHandler.proxyMaster(group)
 	// open router api
-	if err := documentHandler.ExportInterfacesToServer(); err != nil {
+	if err := documentHandler.ExportInterfacesToServer(group); err != nil {
 		panic(err)
 	}
 
-	if err := documentHandler.ExportToServer(); err != nil {
+	if err := documentHandler.ExportToServer(group); err != nil {
 		panic(err)
 	}
 }
 
-func (handler *DocumentHandler) proxyMaster() error {
+func (handler *DocumentHandler) proxyMaster(group *gin.RouterGroup) error {
 	// list/*
-	handler.httpServer.Handle(http.MethodGet, "/servers", handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
-	handler.httpServer.Handle(http.MethodGet, "/partitions", handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
-	handler.httpServer.Handle(http.MethodGet, "/routers", handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
+	group.GET("/servers", handler.handleMasterRequest)
+	group.GET("/partitions", handler.handleMasterRequest)
+	group.GET("/routers", handler.handleMasterRequest)
 	// db handler
-	handler.httpServer.Handle(http.MethodPost, fmt.Sprintf("/dbs/:%s", URLParamDbName), handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
-	handler.httpServer.Handle(http.MethodGet, fmt.Sprintf("/dbs/:%s", URLParamDbName), handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
-	handler.httpServer.Handle(http.MethodGet, "/dbs", handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
-	handler.httpServer.Handle(http.MethodDelete, fmt.Sprintf("/dbs/:%s", URLParamDbName), handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
-	handler.httpServer.Handle(http.MethodPut, fmt.Sprintf("/dbs/:%s", URLParamDbName), handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
+	group.POST(fmt.Sprintf("/dbs/:%s", URLParamDbName), handler.handleMasterRequest)
+	group.GET(fmt.Sprintf("/dbs/:%s", URLParamDbName), handler.handleMasterRequest)
+	group.GET("/dbs", handler.handleMasterRequest)
+	group.DELETE(fmt.Sprintf("/dbs/:%s", URLParamDbName), handler.handleMasterRequest)
+	group.PUT(fmt.Sprintf("/dbs/:%s", URLParamDbName), handler.handleMasterRequest)
 	// space handler
-	handler.httpServer.Handle(http.MethodPost, fmt.Sprintf("/dbs/:%s/spaces", URLParamDbName), handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
-	handler.httpServer.Handle(http.MethodGet, fmt.Sprintf("/dbs/:%s/spaces/:%s", URLParamDbName, URLParamSpaceName), handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
-	handler.httpServer.Handle(http.MethodGet, fmt.Sprintf("/dbs/:%s/spaces", URLParamDbName), handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
-	handler.httpServer.Handle(http.MethodDelete, fmt.Sprintf("/dbs/:%s/spaces/:%s", URLParamDbName, URLParamSpaceName), handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
-	handler.httpServer.Handle(http.MethodPut, fmt.Sprintf("/dbs/:%s/spaces/:%s", URLParamDbName, URLParamSpaceName), handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
+	group.POST(fmt.Sprintf("/dbs/:%s/spaces", URLParamDbName), handler.handleMasterRequest)
+	group.GET(fmt.Sprintf("/dbs/:%s/spaces/:%s", URLParamDbName, URLParamSpaceName), handler.handleMasterRequest)
+	group.GET(fmt.Sprintf("/dbs/:%s/spaces", URLParamDbName), handler.handleMasterRequest)
+	group.DELETE(fmt.Sprintf("/dbs/:%s/spaces/:%s", URLParamDbName, URLParamSpaceName), handler.handleMasterRequest)
+	group.PUT(fmt.Sprintf("/dbs/:%s/spaces/:%s", URLParamDbName, URLParamSpaceName), handler.handleMasterRequest)
 	// alias handler
-	handler.httpServer.Handle(http.MethodPost, fmt.Sprintf("/alias/:%s/dbs/:%s/spaces/:%s", URLAliasName, URLParamDbName, URLParamSpaceName), handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
-	handler.httpServer.Handle(http.MethodGet, fmt.Sprintf("/alias/:%s", URLAliasName), handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
-	handler.httpServer.Handle(http.MethodGet, "/alias", handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
-	handler.httpServer.Handle(http.MethodDelete, fmt.Sprintf("/alias/:%s", URLAliasName), handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
-	handler.httpServer.Handle(http.MethodPut, fmt.Sprintf("/alias/:%s/dbs/:%s/spaces/:%s", URLAliasName, URLParamDbName, URLParamSpaceName), handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
+	group.POST(fmt.Sprintf("/alias/:%s/dbs/:%s/spaces/:%s", URLAliasName, URLParamDbName, URLParamSpaceName), handler.handleMasterRequest)
+	group.GET(fmt.Sprintf("/alias/:%s", URLAliasName), handler.handleMasterRequest)
+	group.GET("/alias", handler.handleMasterRequest)
+	group.DELETE(fmt.Sprintf("/alias/:%s", URLAliasName), handler.handleMasterRequest)
+	group.PUT(fmt.Sprintf("/alias/:%s/dbs/:%s/spaces/:%s", URLAliasName, URLParamDbName, URLParamSpaceName), handler.handleMasterRequest)
 	// cluster handler
-	handler.httpServer.Handle(http.MethodGet, "/cluster/health", handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
-	handler.httpServer.Handle(http.MethodGet, "/cluster/stats", handler.handleTimeout, handler.handleAuth, handler.handleMasterRequest)
+	group.GET("/cluster/health", handler.handleMasterRequest)
+	group.GET("/cluster/stats", handler.handleMasterRequest)
 
 	return nil
 }
@@ -123,49 +131,33 @@ func (handler *DocumentHandler) handleMasterRequest(c *gin.Context) {
 	resp.SendJsonBytes(c, response)
 }
 
-func (handler *DocumentHandler) ExportInterfacesToServer() error {
+func (handler *DocumentHandler) ExportInterfacesToServer(group *gin.RouterGroup) error {
 	// The data operation will be redefined as the following 2 type interfaces: document and index
 	// document
-	handler.httpServer.Handle(http.MethodPost, "/document/upsert", handler.handleTimeout, handler.handleAuth, handler.handleDocumentUpsert)
-	handler.httpServer.Handle(http.MethodPost, "/document/query", handler.handleTimeout, handler.handleAuth, handler.handleDocumentQuery)
-	handler.httpServer.Handle(http.MethodPost, "/document/search", handler.handleTimeout, handler.handleAuth, handler.handleDocumentSearch)
-	handler.httpServer.Handle(http.MethodPost, "/document/delete", handler.handleTimeout, handler.handleAuth, handler.handleDocumentDelete)
+	group.POST("/document/upsert", handler.handleDocumentUpsert)
+	group.POST("/document/query", handler.handleDocumentQuery)
+	group.POST("/document/search", handler.handleDocumentSearch)
+	group.POST("/document/delete", handler.handleDocumentDelete)
 
 	// index
-	handler.httpServer.Handle(http.MethodPost, "/index/flush", handler.handleTimeout, handler.handleAuth, handler.handleIndexFlush)
-	handler.httpServer.Handle(http.MethodPost, "/index/forcemerge", handler.handleTimeout, handler.handleAuth, handler.handleIndexForceMerge)
-	handler.httpServer.Handle(http.MethodPost, "/index/rebuild", handler.handleTimeout, handler.handleAuth, handler.handleIndexRebuild)
+	group.POST("/index/flush", handler.handleIndexFlush)
+	group.POST("/index/forcemerge", handler.handleIndexForceMerge)
+	group.POST("/index/rebuild", handler.handleIndexRebuild)
 
 	return nil
 }
 
-func (handler *DocumentHandler) ExportToServer() error {
+func (handler *DocumentHandler) ExportToServer(group *gin.RouterGroup) error {
 	// update doc: /$dbName/$spaceName/_log_collect
-	handler.httpServer.Handle(http.MethodPost, fmt.Sprintf("/:%s/:%s/_log_print_switch", URLParamDbName, URLParamSpaceName), handler.handleTimeout, handler.handleAuth, handler.handleLogPrintSwitch)
+	group.POST(fmt.Sprintf("/:%s/:%s/_log_print_switch", URLParamDbName, URLParamSpaceName), handler.handleLogPrintSwitch)
 	// cacheInfo /$dbName/$spaceName
-	handler.httpServer.Handle(http.MethodGet, fmt.Sprintf("/:%s/:%s", URLParamDbName, URLParamSpaceName), handler.handleTimeout, handler.handleAuth, handler.cacheInfo)
+	group.GET(fmt.Sprintf("/:%s/:%s", URLParamDbName, URLParamSpaceName), handler.cacheInfo)
 	return nil
 }
 
 func (handler *DocumentHandler) handleTimeout(c *gin.Context) {
 	messageID := uuid.NewString()
 	c.Set(entity.MessageID, messageID)
-}
-
-func (handler *DocumentHandler) handleAuth(c *gin.Context) {
-	if config.Conf().Global.SkipAuth {
-		return
-	}
-	headerData := c.GetHeader("Authorization")
-	username, password, err := netutil.AuthDecrypt(headerData)
-	if err != nil {
-		resp.SendError(c, http.StatusBadRequest, err.Error())
-		return
-	}
-	if username != "root" || password != config.Conf().Global.Signkey {
-		resp.SendError(c, http.StatusBadRequest, "authorization failed, wrong user or password")
-		return
-	}
 }
 
 func (handler *DocumentHandler) cacheInfo(c *gin.Context) {
