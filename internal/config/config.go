@@ -365,7 +365,6 @@ type PSCfg struct {
 	RaftSnapConcurrency    int    `toml:"raft_snap_concurrency" json:"raft-snap-concurrency"`
 	RaftTruncateCount      int64  `toml:"raft_truncate_count" json:"raft_truncate_count"`
 	RaftDiffCount          uint64 `toml:"raft_diff_count" json:"raft_diff_count"`
-	EngineDWPTNum          uint64 `toml:"engine_dwpt_num" json:"engine-dwpt-num"`
 	PprofPort              uint16 `toml:"pprof_port" json:"pprof_port"`
 	Private                bool   `toml:"private" json:"private"`                         //this ps is private if true you must set machine by dbConfig
 	FlushTimeInterval      uint32 `toml:"flush_time_interval" json:"flush_time_interval"` // seconds
@@ -469,13 +468,6 @@ func (config *Config) Validate(model Model) error {
 
 		if masterNum > 1 {
 			return fmt.Errorf("in one machine has two masters")
-		}
-	case PS:
-		if config.PS.EngineDWPTNum == 0 {
-			config.PS.EngineDWPTNum = 1
-		}
-		if config.PS.EngineDWPTNum > 100 {
-			return fmt.Errorf("EngineDWPTNum need gt 0 and le 100")
 		}
 	}
 

@@ -21,10 +21,9 @@ import (
 	"github.com/vearch/vearch/internal/engine/sdk/go/gamma"
 	"github.com/vearch/vearch/internal/proto/vearchpb"
 	"github.com/vearch/vearch/internal/ps/engine/mapping"
-	"github.com/vearch/vearch/internal/ps/engine/register"
 )
 
-func mapping2Table(cfg register.EngineConfig, m *mapping.IndexMapping) (*gamma.Table, error) {
+func mapping2Table(cfg EngineConfig, m *mapping.IndexMapping) (*gamma.Table, error) {
 	dim := make(map[string]int)
 
 	index := cfg.Space.Index

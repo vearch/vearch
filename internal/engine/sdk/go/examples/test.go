@@ -172,7 +172,9 @@ func AddDocToEngine(docNum int) {
 		//	fmt.Println(a)
 		//}
 
-		gamma.AddOrUpdateDoc(opt.Engine, doc.Serialize())
+		byteArray := make([][]byte, 1)
+		byteArray[0] = doc.Serialize()
+		gamma.AddOrUpdateDocs(opt.Engine, byteArray)
 	}
 }
 
@@ -258,8 +260,6 @@ func Search() {
 		Name:     opt.VectorName,
 		MinScore: 0,
 		MaxScore: 1000,
-		Boost:    0.1,
-		HasBoost: 0,
 	}
 
 	request.VecFields[0].Value = make([]byte, opt.D*4)

@@ -139,8 +139,6 @@ int AddOrUpdateDoc(void *engine, const char *doc_str, int len) {
   return static_cast<vearch::Engine *>(engine)->AddOrUpdate(doc);
 }
 
-int UpdateDoc(void *engine, const char *doc_str, int len) { return -1; }
-
 int Search(void *engine, const char *request_str, int req_len,
            char **response_str, int *res_len) {
   vearch::Response response;

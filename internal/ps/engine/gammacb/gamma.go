@@ -35,18 +35,29 @@ import (
 	"github.com/vearch/vearch/internal/proto/vearchpb"
 	"github.com/vearch/vearch/internal/ps/engine"
 	"github.com/vearch/vearch/internal/ps/engine/mapping"
-	"github.com/vearch/vearch/internal/ps/engine/register"
 )
 
 var _ engine.Engine = &gammaEngine{}
 
 var indexLocker sync.Mutex
 
-func init() {
-	register.Register("gamma", New)
+type EngineConfig struct {
+	// Path is the data directory.
+	Path string
+	// ExtraOptions contains extension options using a json format ("{key1:value1,key2:value2}").
+	ExtraOptions map[string]interface{}
+	// Schema
+	Space *entity.Space
+	// partitionID
+	PartitionID entity.PartitionID
 }
 
-func New(cfg register.EngineConfig) (engine.Engine, error) {
+func Build(cfg EngineConfig) (e engine.Engine, err error) {
+	e, err = New(cfg)
+	return e, err
+}
+
+func New(cfg EngineConfig) (engine.Engine, error) {
 	// init schema make mapping begin
 	indexMapping, err := mapping.Space2Mapping(cfg.Space)
 	if err != nil {

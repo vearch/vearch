@@ -82,7 +82,7 @@ func (r *Response) SendJsonBytes(bytes []byte) {
 func (r *Response) SendJsonHttpReplySuccess(data interface{}) {
 	httpReply := &HttpReply{
 		Code: int64(vearchpb.ErrCode(vearchpb.ErrorEnum_SUCCESS)),
-		Msg:  vearchpb.ErrMsg(vearchpb.ErrorEnum_SUCCESS),
+		Msg:  "",
 		Data: data,
 	}
 	r.SetHttpStatus(httpReply.Code)

@@ -29,7 +29,7 @@ import (
 	"github.com/vearch/vearch/internal/config"
 	"github.com/vearch/vearch/internal/entity"
 	"github.com/vearch/vearch/internal/pkg/log"
-	"github.com/vearch/vearch/internal/ps/engine/register"
+	"github.com/vearch/vearch/internal/ps/engine/gammacb"
 	"github.com/vearch/vearch/internal/ps/psutil"
 	"github.com/vearch/vearch/internal/ps/storage"
 )
@@ -93,11 +93,10 @@ func CreateStore(ctx context.Context, pID entity.PartitionID, nodeID entity.Node
 func (s *Store) ReBuildEngine() (err error) {
 	log.Debug("begin re build engine")
 	// re create engine
-	s.Engine, err = register.Build(register.EngineConfig{
+	s.Engine, err = gammacb.Build(gammacb.EngineConfig{
 		Path:        s.DataPath,
 		Space:       s.Space,
 		PartitionID: s.Partition.Id,
-		DWPTNum:     config.Conf().PS.EngineDWPTNum,
 	})
 	if err != nil {
 		return err
@@ -118,11 +117,10 @@ func (s *Store) ReBuildEngine() (err error) {
 // Start start the store.
 func (s *Store) Start() (err error) {
 	// todo: gamma engine load need run after snapshot finish
-	s.Engine, err = register.Build(register.EngineConfig{
+	s.Engine, err = gammacb.Build(gammacb.EngineConfig{
 		Path:        s.DataPath,
 		Space:       s.Space,
 		PartitionID: s.Partition.Id,
-		DWPTNum:     config.Conf().PS.EngineDWPTNum,
 	})
 	if err != nil {
 		return err

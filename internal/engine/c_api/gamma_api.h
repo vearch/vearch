@@ -42,14 +42,6 @@ int CreateTable(void *engine, const char *table_str, int len);
  */
 int AddOrUpdateDoc(void *engine, const char *doc_str, int len);
 
-/** update a doc, if _id not exist, equal to function @AddDoc
- *  the interface is not supported temporarily.
- * @param engine  search engine pointer
- * @param doc     doc pointer to update
- * @return 0 successed, 1 failed
- */
-int UpdateDoc(void *engine, const char *doc_str, int len);
-
 /** delete a doc from table
  *
  * @param engine  search engine pointer

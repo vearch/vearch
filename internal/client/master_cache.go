@@ -828,11 +828,10 @@ func (cliCache *clientCache) AliasByCache(ctx context.Context, alias_name string
 	}
 
 	for i := 0; i < retryNum; i++ {
-		time.Sleep(retrySleepTime)
-		log.Debug("to find alias by key:[%s] ", alias_name)
 		if get, found = cliCache.aliasCache.Get(alias_name); found {
 			return get.(*entity.Alias), nil
 		}
+		time.Sleep(retrySleepTime)
 	}
 
 	return nil, fmt.Errorf("alias_name:[%s] err:[%s]", alias_name, vearchpb.NewError(vearchpb.ErrorEnum_ALIAS_NOT_EXIST, nil))

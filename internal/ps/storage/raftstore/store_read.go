@@ -59,8 +59,5 @@ func (s *Store) Search(ctx context.Context, request *vearchpb.SearchRequest, res
 		return err
 	}
 	err = s.Engine.Reader().Search(ctx, request, response)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
