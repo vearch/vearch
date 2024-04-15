@@ -13,9 +13,11 @@ DbsPath:
           type: string
     responses:
       '200':
-        description: Database created successfully
+        $ref: 'components/responses.yaml#/SuccessResponse'
       '400':
         description: Invalid input
+      '401':
+        description: Authorization information is missing or invalid
       '500':
         description: Internal server error
       '550':
@@ -34,10 +36,12 @@ DbsPath:
         schema:
           type: string
     responses:
-      '200':
+      '204':
         description: Database deleted successfully
       '400':
         description: Invalid input or bad request
+      '401':
+        description: Authorization information is missing or invalid
       '404':
         description: Database not found
       '500':
@@ -58,9 +62,11 @@ DbsPath:
           type: string
     responses:
       '200':
-        description: Database list successfully
+        $ref: 'components/responses.yaml#/SuccessResponse'
       '400':
         description: Invalid input or bad request
+      '401':
+        description: Authorization information is missing or invalid
       '404':
         description: Database not found
       '500':
@@ -74,9 +80,11 @@ Dbs:
       - database
     responses:
       '200':
-        description: Database list successfully
+        $ref: 'components/responses.yaml#/SuccessResponse'
       '400':
         description: Invalid input or bad request
+      '401':
+        description: Authorization information is missing or invalid
       '404':
         description: Database not found
       '500':

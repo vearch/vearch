@@ -17,53 +17,68 @@ Spaces:
         application/json:
           schema:
             type: object
-            required:
-              - name
-              - partition_num
-              - replica_num
             properties:
               name:
                 type: string
               partition_num:
                 type: integer
-                default: 1
               replica_num:
                 type: integer
-                default: 1
-              index:
-                type: object
-                properties:
-                  index_name:
-                    type: string
-                    default: "gamma"
-                  index_type:
-                    type: string
-                    default: "HNSW"
-                  index_params:
-                    type: object
-                    additionalProperties: true
-                required:
-                  - index_name
               fields:
-                type: object
-                additionalProperties:
+                type: array
+                items:
                   type: object
                   properties:
+                    name:
+                      type: string
                     type:
                       type: string
-                    index:
+                    array:
                       type: boolean
+                    index:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                        type:
+                          type: string
+                        params:
+                          type: object
+                          properties:
+                            metric_type:
+                              type: string
+                            nprobe:
+                              type: integer
+                            ncentroids:
+                              type: integer
+                            nsubvector:
+                              type: integer
+                            nlinks:
+                              type: integer
+                            efConstruction:
+                              type: integer
+                            efSearch:
+                              type: integer
+                            training_threshold:
+                              type: integer
                     dimension:
                       type: integer
                     store_type:
                       type: string
                     format:
                       type: string
+                    store_param:
+                      type: object
+                      properties:
+                        cache_size:
+                          type: integer
     responses:
       '200':
-        description: Space created successfully
+        $ref: 'components/responses.yaml#/SuccessResponse'
       '400':
         description: Bad request
+      '401':
+        description: Authorization information is missing or invalid
       '500':
         description: Internal server error
 
@@ -81,9 +96,11 @@ Spaces:
       - space
     responses:
       '200':
-        description: Space list successfully
+        $ref: 'components/responses.yaml#/SuccessResponse'
       '400':
         description: Invalid input or bad request
+      '401':
+        description: Authorization information is missing or invalid
       '404':
         description: Space not found
       '500':
@@ -109,10 +126,12 @@ Delete:
         schema:
           type: string
     responses:
-      '200':
+      '204':
         description: Space deleted successfully
       '400':
         description: Invalid input or bad request
+      '401':
+        description: Authorization information is missing or invalid
       '404':
         description: Space not found
       '500':

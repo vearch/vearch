@@ -14,9 +14,20 @@ servers:
         vearchPort:
           default: '80'
     description: Vearch server
+
+components:
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+security:
+  - basicAuth: []
+
 paths:
-  /list/server:
+  /servers:
     $ref: 'paths/cluster.yaml#/ListServer'
+  /partitions:
+    $ref: 'paths/cluster.yaml#/ListPartitions'
 
   /dbs/{dbName}:
     $ref: 'paths/database.yaml#/DbsPath'

@@ -26,33 +26,9 @@ Upsert:
               space_name: "ts_space"
     responses:
       '200':
-        description: Space created successfully
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                code:
-                  type: integer
-                msg:
-                  type: string
-                total:
-                  type: integer
-                  description: Total upsert documents.
-                document_ids:
-                  type: array
-                  items:
-                    type: object
-                    additionalProperties: true
-      'default':
-        description: Unexpected error
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                error:
-                  type: string
+        $ref: 'components/responses.yaml#/SuccessResponse'
+      '401':
+        description: Authorization information is missing or invalid
 
 Delete:
   post:
@@ -83,19 +59,11 @@ Delete:
                     example: ["4501743250723073467", "616335952940335471", "-2422965400649882823"]
     responses:
       '200':
-        description: Successful operation
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                status:
-                  type: string
-                error_message:
-                  type: string
-                  nullable: true
+        $ref: 'components/responses.yaml#/SuccessResponse'
       '400':
         description: Bad request
+      '401':
+        description: Authorization information is missing or invalid
       '500':
         description: Server error
 
@@ -111,71 +79,65 @@ Search:
         application/json:
           schema:
             type: object
-            required:
-              - query
-              - retrieval_param
-              - size
-              - db_name
-              - space_name
             properties:
-              query:
-                type: object
-                required:
-                  - vector
-                properties:
-                  vector:
-                    type: array
-                    items:
-                      type: object
-                      required:
-                        - field
-                        - feature
-                      properties:
-                        field:
-                          type: string
-                          example: "field_vector"
-                        feature:
-                          type: array
-                          items:
-                            type: number
-                          example: [1.0, 2.0, 3.0]
-                  filter:
-                    type: array
-                    items:
-                      type: object
-                      additionalProperties: true
-              retrieval_param:
-                type: object
-                required:
-                  - metric_type
-                properties:
-                  metric_type:
-                    type: string
-                    example: "L2"
-              size:
-                type: integer
-                example: 3
               db_name:
                 type: string
-                example: "ts_db"
               space_name:
                 type: string
-                example: "ts_space"
+              vectors:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    field:
+                      type: string
+                    feature:
+                      type: array
+                      items:
+                        type: number
+                        format: float
+              fields:
+                type: array
+                items:
+                  type: string
+              filters:
+                type: object
+                properties:
+                  operator:
+                    type: string
+                  conditions:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        operator:
+                          type: string
+                        field:
+                          type: string
+                        value:
+                          oneOf:
+                            - type: string
+                            - type: number
+                            - type: array
+                              items:
+                                type: string
+              index_params:
+                type: object
+                properties:
+                  efSearch:
+                    type: integer
+                  metric_type:
+                    type: string
+              limit:
+                type: integer
+              vector_value:
+                type: boolean
     responses:
       '200':
-        description: Successful search operation
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                results:
-                  type: array
-                  items:
-                    type: object
-                    # Define the properties of a search result item
-                    # according to your application's data model
+        $ref: 'components/responses.yaml#/SuccessResponse'
       '400':
         description: Bad request due to invalid syntax or parameters
+      '401':
+        description: Authorization information is missing or invalid
       '500':
         description: Internal server error

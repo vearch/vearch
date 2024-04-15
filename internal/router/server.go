@@ -66,6 +66,7 @@ func NewServer(ctx context.Context) (*Server, error) {
 		corsConfig := cors.DefaultConfig()
 		corsConfig.AllowCredentials = true
 		corsConfig.AllowOrigins = config.Conf().Router.AllowOrigins
+		log.Info("use cors, AllowOrigins: %v", corsConfig.AllowOrigins)
 		httpServer.Use(cors.New(corsConfig))
 	}
 

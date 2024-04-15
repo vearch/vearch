@@ -12,7 +12,7 @@
     # master <-> ps <-> router will use this key to send or receive data
     signkey = "secret"
     # skip auth for master and router
-    skip_auth = true
+    skip_auth = false
     # tell Vearch whether it should manage it's own instance of etcd or not
     self_manage_etcd = false
     # automatically remove the failed node and recover when new nodes join
@@ -77,8 +77,6 @@
     raft_truncate_count = 500000
     # when behind leader this value, will stop the server for search
     raft_diff_count = 10000
-    # engine config
-    engine_dwpt_num = 8
     pprof_port = 6060
     # if set true, this ps only use in db meta config
     private = false

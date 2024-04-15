@@ -1,0 +1,16 @@
+SuccessResponse:
+  description: Server list successfully
+  content:
+    application/json:
+      schema:
+        type: object
+        properties:
+          code:
+            type: integer
+            example: 200
+          msg:
+            type: string
+            default: ""
+          data:
+            type: object
+            example: {}
