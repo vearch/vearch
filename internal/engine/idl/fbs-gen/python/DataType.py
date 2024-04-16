@@ -9,4 +9,7 @@ class DataType(object):
     DOUBLE = 3
     STRING = 4
     VECTOR = 5
+    BOOL = 6
+    DATE = 7
+    STRINGARRAY = 8
 

@@ -24,18 +24,6 @@ import (
 )
 
 const (
-	FieldType_INT vearchpb.FieldType = iota
-	FieldType_LONG
-	FieldType_FLOAT
-	FieldType_DOUBLE
-	FieldType_STRING
-	FieldType_VECTOR
-	FieldType_BOOL
-	FieldType_GEOPOINT
-	FieldType_DATE
-)
-
-const (
 	FieldOption_Null        vearchpb.FieldOption = 0
 	FieldOption_Index       vearchpb.FieldOption = 1
 	FieldOption_Index_False vearchpb.FieldOption = 2
@@ -133,7 +121,6 @@ type SpaceProperties struct {
 	Dimension  int                  `json:"dimension,omitempty"`
 	StoreType  *string              `json:"store_type,omitempty"`
 	StoreParam json.RawMessage      `json:"store_param,omitempty"`
-	Array      bool                 `json:"array,omitempty"`
 	Option     vearchpb.FieldOption `json:"option,omitempty"`
 }
 
@@ -284,7 +271,6 @@ func (space *Space) Validate() error {
 type Field struct {
 	Name       string  `json:"name"`
 	Type       string  `json:"type"`
-	Array      *bool   `json:"array,omitempty"`
 	Dimension  int     `json:"dimension,omitempty"`
 	StoreType  *string `json:"store_type,omitempty"`
 	Format     *string `json:"format,omitempty"`
@@ -310,21 +296,23 @@ func UnmarshalPropertyJSON(propertity []byte) (map[string]*SpaceProperties, erro
 
 		switch sp.Type {
 		case "text", "keyword", "string":
-			sp.FieldType = FieldType_STRING
+			sp.FieldType = vearchpb.FieldType_STRING
 		case "date":
-			sp.FieldType = FieldType_DATE
+			sp.FieldType = vearchpb.FieldType_DATE
 		case "integer", "short", "byte":
-			sp.FieldType = FieldType_INT
+			sp.FieldType = vearchpb.FieldType_INT
 		case "long":
-			sp.FieldType = FieldType_LONG
+			sp.FieldType = vearchpb.FieldType_LONG
 		case "float":
-			sp.FieldType = FieldType_FLOAT
+			sp.FieldType = vearchpb.FieldType_FLOAT
 		case "double":
-			sp.FieldType = FieldType_DOUBLE
+			sp.FieldType = vearchpb.FieldType_DOUBLE
 		case "boolean", "bool":
-			sp.FieldType = FieldType_BOOL
+			sp.FieldType = vearchpb.FieldType_BOOL
+		case "stringArray", "StringArray":
+			sp.FieldType = vearchpb.FieldType_STRINGARRAY
 		case "vector":
-			sp.FieldType = FieldType_VECTOR
+			sp.FieldType = vearchpb.FieldType_VECTOR
 
 			isVector = true
 			if data.Dimension == 0 {
@@ -345,13 +333,9 @@ func UnmarshalPropertyJSON(propertity []byte) (map[string]*SpaceProperties, erro
 			}
 
 		default:
-			return nil, fmt.Errorf("space property invalid field type")
+			return nil, fmt.Errorf("space invalid field type: %s", sp.Type)
 		}
 		sp.Index = data.Index
-		sp.Array = false
-		if data.Array != nil {
-			sp.Array = *data.Array
-		}
 
 		if sp.Index != nil {
 			sp.Option = FieldOption_Index
@@ -365,7 +349,7 @@ func UnmarshalPropertyJSON(propertity []byte) (map[string]*SpaceProperties, erro
 
 		// set date format
 		if sp.Format != nil {
-			if !(sp.FieldType == FieldType_DATE || sp.FieldType == FieldType_VECTOR) {
+			if !(sp.FieldType == vearchpb.FieldType_DATE || sp.FieldType == vearchpb.FieldType_VECTOR) {
 				return nil, fmt.Errorf("type:[%d] can not set format", sp.FieldType)
 			}
 		}

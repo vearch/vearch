@@ -640,7 +640,7 @@ int ParseFilters(SearchCondition *condition,
       return -1;
     }
 
-    if (type == DataType::STRING) {
+    if (type == DataType::STRING || type == DataType::STRINGARRAY) {
       LOG(ERROR) << range.field << " can't be range filter";
       return -1;
     }
@@ -656,7 +656,7 @@ int ParseFilters(SearchCondition *condition,
       return -1;
     }
 
-    if (type != DataType::STRING) {
+    if (type != DataType::STRING && type != DataType::STRINGARRAY) {
       LOG(ERROR) << term.field << " can't be term filter";
       return -1;
     }

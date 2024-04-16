@@ -10,6 +10,9 @@ const (
 	DataTypeDOUBLE DataType = 3
 	DataTypeSTRING DataType = 4
 	DataTypeVECTOR DataType = 5
+	DataTypeBOOL DataType = 6
+	DataTypeDATE DataType = 7
+	DataTypeSTRINGARRAY DataType = 8
 )
 
 var EnumNamesDataType = map[DataType]string{
@@ -19,5 +22,8 @@ var EnumNamesDataType = map[DataType]string{
 	DataTypeDOUBLE:"DOUBLE",
 	DataTypeSTRING:"STRING",
 	DataTypeVECTOR:"VECTOR",
+	DataTypeBOOL:"BOOL",
+	DataTypeDATE:"DATE",
+	DataTypeSTRINGARRAY:"STRINGARRAY",
 }
 

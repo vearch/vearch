@@ -15,12 +15,15 @@ import (
 type DataType int8
 
 const (
-	INT    DataType = 0
-	LONG   DataType = 1
-	FLOAT  DataType = 2
-	DOUBLE DataType = 3
-	STRING DataType = 4
-	VECTOR DataType = 5
+	INT         DataType = 0
+	LONG        DataType = 1
+	FLOAT       DataType = 2
+	DOUBLE      DataType = 3
+	STRING      DataType = 4
+	VECTOR      DataType = 5
+	BOOL        DataType = 6
+	DATE        DataType = 7
+	STRINGARRAY DataType = 8
 )
 
 type VectorInfo struct {
@@ -56,7 +59,6 @@ func (table *Table) Serialize(out *[]byte) int {
 		field := table.Fields[i]
 		fieldNames[i] = builder.CreateString(field.Name)
 	}
-
 	fieldInfos := make([]flatbuffers.UOffsetT, len(table.Fields))
 	for i := 0; i < len(table.Fields); i++ {
 		field := table.Fields[i]

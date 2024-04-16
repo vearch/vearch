@@ -230,17 +230,6 @@ func processPropertyArrayVectorString(vs []*fastjson.Value, pathString string, p
 	return field, nil
 }
 
-func processPropertyArrayVectorInt(vs []*fastjson.Value, fieldName string, pro *entity.SpaceProperties) (*vearchpb.Field, error) {
-	buffer, opt := processPropertyVectorIntLong(vs, pro)
-	field := &vearchpb.Field{
-		Name:   fieldName,
-		Type:   vearchpb.FieldType_INT,
-		Value:  buffer,
-		Option: opt,
-	}
-	return field, nil
-}
-
 func processPropertyObject() (*vearchpb.Field, error) {
 	return nil, nil
 }
@@ -251,17 +240,9 @@ func processPropertyArray(v *fastjson.Value, pathString string, pro *entity.Spac
 	if err != nil {
 		return nil, err
 	}
-	if pro.FieldType == entity.FieldType_STRING && pro.Array {
+	if pro.FieldType == vearchpb.FieldType_STRINGARRAY {
 		field, err = processPropertyArrayVectorString(vs, pathString, pro)
-	} else if pro.FieldType == entity.FieldType_INT && pro.Array {
-		field, err = processPropertyArrayVectorInt(vs, fieldName, pro)
-	} else if pro.FieldType == entity.FieldType_LONG && pro.Array {
-		field, err = processPropertyArrayVectorLong(vs, fieldName, pro)
-	} else if pro.FieldType == entity.FieldType_FLOAT && pro.Array {
-		field, err = processPropertyArrayVectorFloat(vs, fieldName, pro)
-	} else if pro.FieldType == entity.FieldType_DOUBLE && pro.Array {
-		field, err = processPropertyArrayVectorDouble(vs, fieldName, pro)
-	} else if pro.FieldType == entity.FieldType_VECTOR {
+	} else if pro.FieldType == vearchpb.FieldType_VECTOR {
 		if len(vs) == 0 {
 			err := fmt.Errorf("vector field %s feature value should be arrry, but is: %v", pathString, v)
 			return field, err
@@ -276,65 +257,6 @@ func processPropertyArray(v *fastjson.Value, pathString string, pro *entity.Spac
 	}
 
 	return field, err
-}
-
-func processPropertyVectorIntLong(vs []*fastjson.Value, pro *entity.SpaceProperties) ([]byte, vearchpb.FieldOption) {
-	buffer := bytes.Buffer{}
-	for _, vv := range vs {
-		buffer.Write(cbbytes.Int64ToByte(vv.GetInt64()))
-	}
-	opt := vearchpb.FieldOption_Null
-	if pro.Option == 1 {
-		opt = vearchpb.FieldOption_Index
-	}
-	return buffer.Bytes(), opt
-}
-
-func processPropertyArrayVectorLong(vs []*fastjson.Value, fieldName string, pro *entity.SpaceProperties) (*vearchpb.Field, error) {
-	buffer, opt := processPropertyVectorIntLong(vs, pro)
-	field := &vearchpb.Field{
-		Name:   fieldName,
-		Type:   vearchpb.FieldType_LONG,
-		Value:  buffer,
-		Option: opt,
-	}
-	return field, nil
-}
-
-func processPropertyArrayVectorFloat(vs []*fastjson.Value, fieldName string, pro *entity.SpaceProperties) (*vearchpb.Field, error) {
-	buffer := bytes.Buffer{}
-	for _, vv := range vs {
-		buffer.Write(cbbytes.Float32ToByte(float32(vv.GetFloat64())))
-	}
-	opt := vearchpb.FieldOption_Null
-	if pro.Option == 1 {
-		opt = vearchpb.FieldOption_Index
-	}
-	field := &vearchpb.Field{
-		Name:   fieldName,
-		Type:   vearchpb.FieldType_FLOAT,
-		Value:  buffer.Bytes(),
-		Option: opt,
-	}
-	return field, nil
-}
-
-func processPropertyArrayVectorDouble(vs []*fastjson.Value, fieldName string, pro *entity.SpaceProperties) (*vearchpb.Field, error) {
-	buffer := bytes.Buffer{}
-	for _, vv := range vs {
-		buffer.Write(cbbytes.Float64ToByte(vv.GetFloat64()))
-	}
-	opt := vearchpb.FieldOption_Null
-	if pro.Option == 1 {
-		opt = vearchpb.FieldOption_Index
-	}
-	field := &vearchpb.Field{
-		Name:   fieldName,
-		Type:   vearchpb.FieldType_DOUBLE,
-		Value:  buffer.Bytes(),
-		Option: opt,
-	}
-	return field, nil
 }
 
 func processProperty(docVal *DocVal, v *fastjson.Value, indexType string, pro *entity.SpaceProperties) (*vearchpb.Field, error) {
@@ -400,7 +322,7 @@ func processString(pro *entity.SpaceProperties, fieldName, val string) (*vearchp
 	)
 
 	switch pro.FieldType {
-	case entity.FieldType_STRING:
+	case vearchpb.FieldType_STRING:
 		isIndex := false
 		if pro.Index != nil {
 			isIndex = true
@@ -412,7 +334,19 @@ func processString(pro *entity.SpaceProperties, fieldName, val string) (*vearchp
 		} else {
 			field, err = processField(fieldName, vearchpb.FieldType_STRING, []byte(val), opt)
 		}
-	case entity.FieldType_DATE:
+	case vearchpb.FieldType_STRINGARRAY:
+		isIndex := false
+		if pro.Index != nil {
+			isIndex = true
+		}
+		if isIndex && len(val) > maxIndexedStrLen {
+			err = fmt.Errorf("string field %s indexed, length should less than %d", fieldName, maxIndexedStrLen)
+		} else if len(val) > maxStrLen {
+			err = fmt.Errorf("string field %s length should less than %d", fieldName, maxStrLen)
+		} else {
+			field, err = processField(fieldName, vearchpb.FieldType_STRINGARRAY, []byte(val), opt)
+		}
+	case vearchpb.FieldType_DATE:
 		// UTC time
 		var f time.Time
 		f, err = cast.ToTimeE(val)
@@ -421,7 +355,7 @@ func processString(pro *entity.SpaceProperties, fieldName, val string) (*vearchp
 		} else {
 			field, err = processField(fieldName, vearchpb.FieldType_DATE, cbbytes.Int64ToByte(f.UnixNano()), opt)
 		}
-	case entity.FieldType_INT:
+	case vearchpb.FieldType_INT:
 		var i int32
 		i, err = cast.ToInt32E(val)
 		if err != nil {
@@ -429,7 +363,7 @@ func processString(pro *entity.SpaceProperties, fieldName, val string) (*vearchp
 		} else {
 			field, err = processField(fieldName, vearchpb.FieldType_INT, cbbytes.Int32ToByte(i), opt)
 		}
-	case entity.FieldType_LONG:
+	case vearchpb.FieldType_LONG:
 		var i int64
 		i, err = cast.ToInt64E(val)
 		if err != nil {
@@ -437,7 +371,7 @@ func processString(pro *entity.SpaceProperties, fieldName, val string) (*vearchp
 		} else {
 			field, err = processField(fieldName, vearchpb.FieldType_LONG, cbbytes.Int64ToByte(i), opt)
 		}
-	case entity.FieldType_FLOAT:
+	case vearchpb.FieldType_FLOAT:
 		var f float32
 		f, err = cast.ToFloat32E(val)
 		if err != nil {
@@ -445,7 +379,7 @@ func processString(pro *entity.SpaceProperties, fieldName, val string) (*vearchp
 		} else {
 			field, err = processField(fieldName, vearchpb.FieldType_FLOAT, cbbytes.Float32ToByte(f), opt)
 		}
-	case entity.FieldType_DOUBLE:
+	case vearchpb.FieldType_DOUBLE:
 		var f float64
 		f, err = cast.ToFloat64E(val)
 		if err != nil {
@@ -470,35 +404,35 @@ func processNumber(pro *entity.SpaceProperties, fieldName string, val *fastjson.
 		err   error
 	)
 	switch pro.FieldType {
-	case entity.FieldType_INT:
+	case vearchpb.FieldType_INT:
 		var i int
 		i, err = val.Int()
 		if err != nil {
 			return nil, err
 		}
 		field, err = processField(fieldName, vearchpb.FieldType_INT, cbbytes.Int32ToByte(int32(i)), opt)
-	case entity.FieldType_LONG:
+	case vearchpb.FieldType_LONG:
 		var i int64
 		i, err = val.Int64()
 		if err != nil {
 			return nil, err
 		}
 		field, err = processField(fieldName, vearchpb.FieldType_LONG, cbbytes.Int64ToByte(i), opt)
-	case entity.FieldType_FLOAT:
+	case vearchpb.FieldType_FLOAT:
 		var i float64
 		i, err = val.Float64()
 		if err != nil {
 			return nil, err
 		}
 		field, err = processField(fieldName, vearchpb.FieldType_FLOAT, cbbytes.Float32ToByte(float32(i)), opt)
-	case entity.FieldType_DOUBLE:
+	case vearchpb.FieldType_DOUBLE:
 		var i float64
 		i, err = val.Float64()
 		if err != nil {
 			return nil, err
 		}
 		field, err = processField(fieldName, vearchpb.FieldType_DOUBLE, cbbytes.Float64ToByteNew(i), opt)
-	case entity.FieldType_DATE:
+	case vearchpb.FieldType_DATE:
 		var i int64
 		i, err = val.Int64()
 		if err != nil {
@@ -513,7 +447,7 @@ func processNumber(pro *entity.SpaceProperties, fieldName string, val *fastjson.
 
 func processBool(pro *entity.SpaceProperties, fieldName string, val bool) (*vearchpb.Field, error) {
 	switch pro.FieldType {
-	case entity.FieldType_BOOL:
+	case vearchpb.FieldType_BOOL:
 		opt := vearchpb.FieldOption_Null
 		if pro.Option == 1 {
 			opt = vearchpb.FieldOption_Index
@@ -526,7 +460,7 @@ func processBool(pro *entity.SpaceProperties, fieldName string, val bool) (*vear
 
 func processVectorBinary(pro *entity.SpaceProperties, fieldName string, val []uint8) (*vearchpb.Field, error) {
 	switch pro.FieldType {
-	case entity.FieldType_VECTOR:
+	case vearchpb.FieldType_VECTOR:
 		if pro.Dimension > 0 && (pro.Dimension)/8 != len(val) {
 			return nil, fmt.Errorf("processVectorBinary field:[%s] vector length has error, dimension in space is:[%d] but input length:[%d]", fieldName, pro.Dimension, len(val))
 		}
@@ -551,7 +485,7 @@ func processVector(pro *entity.SpaceProperties, fieldName string, val []float32)
 	err := fmt.Errorf("parse param processVector err,fieldName:%s", fieldName)
 
 	switch pro.FieldType {
-	case entity.FieldType_VECTOR:
+	case vearchpb.FieldType_VECTOR:
 		if pro.Dimension > 0 && pro.Dimension != len(val) {
 			field, err = nil, fmt.Errorf("field:[%s] vector length has error, dimension in space is:[%d] but input length:[%d]", fieldName, pro.Dimension, len(val))
 			return field, err
@@ -665,7 +599,7 @@ func documentParse(ctx context.Context, handler *DocumentHandler, r *http.Reques
 				return err
 			}
 
-			err = fmt.Errorf("document not exist so cann't update")
+			err = fmt.Errorf("vector field num:%d is not equal to vector num of space fields:%d and document_id not exist so can't update", haveVector, vectorFieldNum)
 			if reply == nil {
 				return err
 			}

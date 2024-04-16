@@ -13,18 +13,10 @@
 #include "idl/fbs-gen/c/doc_generated.h"
 #include "idl/fbs-gen/c/response_generated.h"
 #include "idl/fbs-gen/c/table_generated.h"
+#include "idl/fbs-gen/c/types_generated.h"
 #include "raw_data.h"
 
 namespace vearch {
-
-enum class DataType : std::uint16_t {
-  INT = 0,
-  LONG,
-  FLOAT,
-  DOUBLE,
-  STRING,
-  VECTOR
-};
 
 struct VectorInfo {
   std::string name;

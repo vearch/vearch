@@ -297,7 +297,7 @@ func (r *routerRequest) Execute() []*vearchpb.Item {
 			spacePro := r.space.SpaceProperties
 			for field, pro := range spacePro {
 				format := pro.Format
-				if pro.FieldType == entity.FieldType_VECTOR && format != nil && (*format == "normalization" || *format == "normal") {
+				if pro.FieldType == vearchpb.FieldType_VECTOR && format != nil && (*format == "normalization" || *format == "normal") {
 					normalField[field] = field
 				}
 			}
@@ -634,7 +634,7 @@ func (r *routerRequest) SearchFieldSortExecute(sortOrder sortorder.SortOrder) *v
 		spacePro := r.space.SpaceProperties
 		for field, pro := range spacePro {
 			format := pro.Format
-			if pro.FieldType == entity.FieldType_VECTOR && format != nil && (*format == "normalization" || *format == "normal") {
+			if pro.FieldType == vearchpb.FieldType_VECTOR && format != nil && (*format == "normalization" || *format == "normal") {
 				normalField[field] = field
 			}
 		}
@@ -1104,25 +1104,24 @@ func GetSource(doc *vearchpb.ResultItem, space *entity.Space, sortFieldMap map[s
 				continue
 			}
 			switch field.FieldType {
-			case entity.FieldType_STRING:
+			case vearchpb.FieldType_STRING:
 				tempValue := string(fv.Value)
-				if field.Array {
-					source[name] = strings.Split(tempValue, string([]byte{'\001'}))
-				} else {
-					source[name] = tempValue
-					if sortFieldMap != nil && sortFieldMap[name] != "" {
-						for i, v := range sortFields {
-							if v.Field == name {
-								sortValues[i] = &sortorder.StringSortValue{
-									Val:      tempValue,
-									SortName: name,
-								}
-								break
+				source[name] = tempValue
+				if sortFieldMap != nil && sortFieldMap[name] != "" {
+					for i, v := range sortFields {
+						if v.Field == name {
+							sortValues[i] = &sortorder.StringSortValue{
+								Val:      tempValue,
+								SortName: name,
 							}
+							break
 						}
 					}
 				}
-			case entity.FieldType_INT:
+			case vearchpb.FieldType_STRINGARRAY:
+				tempValue := string(fv.Value)
+				source[name] = strings.Split(tempValue, string([]byte{'\001'}))
+			case vearchpb.FieldType_INT:
 				intVal := cbbytes.Bytes2Int32(fv.Value)
 				source[name] = intVal
 				if sortFieldMap != nil && sortFieldMap[name] != "" {
@@ -1136,7 +1135,7 @@ func GetSource(doc *vearchpb.ResultItem, space *entity.Space, sortFieldMap map[s
 						}
 					}
 				}
-			case entity.FieldType_LONG:
+			case vearchpb.FieldType_LONG:
 				longVal := cbbytes.Bytes2Int(fv.Value)
 				source[name] = longVal
 				if sortFieldMap != nil && sortFieldMap[name] != "" {
@@ -1150,16 +1149,16 @@ func GetSource(doc *vearchpb.ResultItem, space *entity.Space, sortFieldMap map[s
 						}
 					}
 				}
-			case entity.FieldType_BOOL:
+			case vearchpb.FieldType_BOOL:
 				if cbbytes.Bytes2Int(fv.Value) == 0 {
 					source[name] = false
 				} else {
 					source[name] = true
 				}
-			case entity.FieldType_DATE:
+			case vearchpb.FieldType_DATE:
 				u := cbbytes.Bytes2Int(fv.Value)
 				source[name] = time.Unix(u/1e6, u%1e6)
-			case entity.FieldType_FLOAT:
+			case vearchpb.FieldType_FLOAT:
 				floatVal := cbbytes.ByteToFloat64(fv.Value)
 				source[name] = floatVal
 
@@ -1174,7 +1173,7 @@ func GetSource(doc *vearchpb.ResultItem, space *entity.Space, sortFieldMap map[s
 						}
 					}
 				}
-			case entity.FieldType_DOUBLE:
+			case vearchpb.FieldType_DOUBLE:
 				floatVal := cbbytes.ByteToFloat64(fv.Value)
 				source[name] = floatVal
 				if sortFieldMap != nil && sortFieldMap[name] != "" {
@@ -1189,7 +1188,7 @@ func GetSource(doc *vearchpb.ResultItem, space *entity.Space, sortFieldMap map[s
 					}
 				}
 
-			case entity.FieldType_VECTOR:
+			case vearchpb.FieldType_VECTOR:
 				if space.Index.Type == "BINARYIVF" {
 					featureByteC := fv.Value
 					dimension := field.Dimension

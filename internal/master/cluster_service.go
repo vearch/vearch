@@ -365,7 +365,7 @@ func (ms *masterService) createSpaceService(ctx context.Context, dbName string, 
 
 	space.SpaceProperties = spaceProperties
 	for _, f := range spaceProperties {
-		if f.FieldType == entity.FieldType_VECTOR && f.Index != nil {
+		if f.FieldType == vearchpb.FieldType_VECTOR && f.Index != nil {
 			space.Index = f.Index
 		}
 	}

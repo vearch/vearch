@@ -119,6 +119,34 @@ class TestSpaceCreate:
         response = drop_space(router_url, db_name, space_name)
         assert response["code"] == 200
 
+
+    def test_vearch_space_create_bad_field_type(self):
+        embedding_size = 128
+        space_config = {
+            "name": space_name,
+            "partition_num": 1,
+            "replica_num": 1,
+            "fields": [
+                {
+                    "name": "field_string",
+                    "type": "unsupported"
+                },
+                {
+                    "name": "field_vector",
+                    "type": "vector",
+                    "dimension": embedding_size,
+                    "index": {
+                        "name": "gamma",
+                        "type": "FLAT"
+                    }
+                }
+            ]
+        }
+
+        response = create_space(router_url, db_name, space_config)
+        logger.info(response)
+        assert response["code"] != 200
+
     @pytest.mark.parametrize(
         ["index_type"],
         [["FLAT"], ["IVFPQ"], ["IVFFLAT"], ["HNSW"]],

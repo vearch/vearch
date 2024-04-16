@@ -131,8 +131,7 @@ class VearchCase:
                 },
                 {
                     "name": "string_tags",
-                    "type": "string",
-                    "array": True,
+                    "type": "stringArray",
                     "index": {
                         "name": "float",
                         "type": "SCALAR",
@@ -306,12 +305,12 @@ class VearchCase:
                     "filters": {
                         "operator": "AND",
                         "conditions": [
-                                {
-                                    "field": "string",
-                                    "operator": "IN",
-                                    "value": string_tags
-                                }
-                            ]
+                            {
+                                "field": "string",
+                                "operator": "IN",
+                                "value": string_tags
+                            }
+                        ]
                     },
                     "db_name": db_name,
                     "space_name": space_name,
@@ -431,9 +430,9 @@ class VearchCase:
                         "operator": "AND",
                         "conditions": [
                             {
-                                    "field": "string",
-                                    "operator": "IN",
-                                    "value": string_tags
+                                "field": "string",
+                                "operator": "IN",
+                                "value": string_tags
                             }
                         ]
                     },

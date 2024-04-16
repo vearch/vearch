@@ -262,8 +262,8 @@ class TestSearchWeightRanker:
         self.logger = logger
         self.xb = xb
 
-    # prepare for badcase
-    def test_prepare_cluster_badcase(self):
+    # prepare
+    def test_prepare_cluster(self):
         create(router_url, self.xb.shape[1], "MemoryOnly")
 
     def test_prepare_upsert(self):
@@ -312,8 +312,8 @@ class TestSearchWeightRanker:
         # logger.info(rs.json()["data"]["documents"][0][0]["_score"])
         assert abs(rs.json()["data"]["documents"][0][0]["_score"] - 2 * score) <= 0.1
 
-    # destroy for badcase
-    def test_destroy_cluster_badcase(self):
+    # destroy
+    def test_destroy_cluster(self):
         destroy(router_url, db_name, space_name)
 
 class TestSearchScore:
@@ -321,15 +321,15 @@ class TestSearchScore:
         self.logger = logger
         self.xb = xb
 
-    # prepare for badcase
-    def test_prepare_cluster_badcase(self):
+    # prepare
+    def test_prepare_cluster(self):
         create(router_url, self.xb.shape[1], "MemoryOnly")
 
     def test_prepare_upsert(self):
-        batch_size = 1
+        batch_size = 100
         total_batch = 1
         add_multi_vector(total_batch, batch_size, xb)
-        assert get_space_num() == 1
+        assert get_space_num() == int(total_batch * batch_size)
 
     def test_search_score(self):
         for i in range(100):
@@ -356,9 +356,10 @@ class TestSearchScore:
             rs = requests.post(url, auth=(username, password), data=json_str)
             # logger.info(rs.json())
             assert rs.json()["code"] == 200
-            score = np.sum(np.square(xq[i:i+1] - xb[:1]))
-            assert abs(rs.json()["data"]["documents"][0][0]["_score"] - score) <= 0.1
+            index = rs.json()["data"]["documents"][0][0]["field_int"]
+            score = np.sum(np.square(xq[i:i+1] - xb[index:index+1]))
+            assert abs(rs.json()["data"]["documents"][0][0]["_score"] - score) <= 0.01
 
-    # destroy for badcase
-    def test_destroy_cluster_badcase(self):
+    # destroy
+    def test_destroy_cluster(self):
         destroy(router_url, db_name, space_name)

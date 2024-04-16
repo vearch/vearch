@@ -16,7 +16,6 @@ package mapping
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 
 	"github.com/vearch/vearch/internal/entity"
@@ -46,7 +45,6 @@ func (f *FieldMapping) UnmarshalJSON(data []byte) error {
 		Dimension  int             `json:"dimension,omitempty"`
 		StoreType  *string         `json:"store_type,omitempty"`
 		StoreParam json.RawMessage `json:"store_param,omitempty"`
-		Array      bool            `json:"array,omitempty"`
 	}{}
 	err := json.Unmarshal(data, &tmp)
 	if err != nil {
@@ -60,6 +58,8 @@ func (f *FieldMapping) UnmarshalJSON(data []byte) error {
 	switch tmp.Type {
 	case "text", "keyword", "string":
 		fieldMapping = NewStringFieldMapping("")
+	case "stringArray", "StringArray":
+		fieldMapping = NewStringArrayMapping("")
 	case "date":
 		fieldMapping = NewDateFieldMapping("")
 	case "integer", "int":
@@ -88,10 +88,8 @@ func (f *FieldMapping) UnmarshalJSON(data []byte) error {
 		}
 
 	default:
-		return errors.New("invalid field type")
+		return fmt.Errorf("space invalid field type: %s", tmp.Type)
 	}
-
-	fieldMapping.Base().Array = tmp.Array
 
 	//set index
 	if tmp.Index != nil {
@@ -128,7 +126,6 @@ type FieldMappingI interface {
 	FieldType() vearchpb.FieldType
 	Options() vearchpb.FieldOption
 	Base() *BaseFieldMapping
-	IsArray() bool
 }
 
 func NewBaseFieldMapping(name string, fieldType vearchpb.FieldType, boost float64, option vearchpb.FieldOption) *BaseFieldMapping {
@@ -145,7 +142,6 @@ type BaseFieldMapping struct {
 	Name   string               `json:"_"`
 	Boost  float64              `json:"boost,omitempty"`
 	Option vearchpb.FieldOption `json:"option,omitempty"`
-	Array  bool                 `json:"array,omitempty"`
 }
 
 func (f *BaseFieldMapping) Base() *BaseFieldMapping {
@@ -164,10 +160,6 @@ func (f *BaseFieldMapping) Options() vearchpb.FieldOption {
 	return f.Option
 }
 
-func (f *BaseFieldMapping) IsArray() bool {
-	return f.Array
-}
-
 type StringFieldMapping struct {
 	*BaseFieldMapping
 	NullValue string `json:"null_value,omitempty"`
@@ -176,6 +168,12 @@ type StringFieldMapping struct {
 func NewStringFieldMapping(name string) *StringFieldMapping {
 	return &StringFieldMapping{
 		BaseFieldMapping: NewBaseFieldMapping(name, vearchpb.FieldType_STRING, 1, vearchpb.FieldOption_Null),
+	}
+}
+
+func NewStringArrayMapping(name string) *StringFieldMapping {
+	return &StringFieldMapping{
+		BaseFieldMapping: NewBaseFieldMapping(name, vearchpb.FieldType_STRINGARRAY, 1, vearchpb.FieldOption_Null),
 	}
 }
 

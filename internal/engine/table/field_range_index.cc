@@ -416,7 +416,7 @@ FieldRangeIndex::FieldRangeIndex(std::string &path, int field_idx,
   main_mgr_->maxleaves = bt_param.maxleaves;
 #endif
 
-  if (field_type == DataType::STRING) {
+  if (field_type == DataType::STRING || field_type == DataType::STRINGARRAY) {
     is_numeric_ = false;
   } else {
     is_numeric_ = true;
@@ -807,7 +807,7 @@ int FieldRangeIndex::Search(const string &tags, RangeQueryResult *result) {
     bt_close(bt);
 
     if (ret < 0) {
-      LOG(INFO) << "find node failed, key=" << item;
+      LOG(WARNING) << "find node failed, key=" << item;
       continue;
     }
     if (p_node == nullptr) {

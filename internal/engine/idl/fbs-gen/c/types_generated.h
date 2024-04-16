@@ -12,17 +12,23 @@ enum DataType {
   FLOAT = 2,
   DOUBLE = 3,
   STRING = 4,
-  VECTOR = 5
+  VECTOR = 5,
+  BOOL = 6,
+  DATE = 7,
+  STRINGARRAY = 8
 };
 
-inline const DataType (&EnumValuesDataType())[6] {
+inline const DataType (&EnumValuesDataType())[9] {
   static const DataType values[] = {
     INT,
     LONG,
     FLOAT,
     DOUBLE,
     STRING,
-    VECTOR
+    VECTOR,
+    BOOL,
+    DATE,
+    STRINGARRAY
   };
   return values;
 }
@@ -35,13 +41,16 @@ inline const char * const *EnumNamesDataType() {
     "DOUBLE",
     "STRING",
     "VECTOR",
+    "BOOL",
+    "DATE",
+    "STRINGARRAY",
     nullptr
   };
   return names;
 }
 
 inline const char *EnumNameDataType(DataType e) {
-  if (e < INT || e > VECTOR) return "";
+  if (e < INT || e > STRINGARRAY) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesDataType()[index];
 }

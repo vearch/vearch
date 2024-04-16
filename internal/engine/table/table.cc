@@ -213,7 +213,7 @@ int Table::FTypeSize(DataType fType) {
     length = sizeof(float);
   } else if (fType == DataType::DOUBLE) {
     length = sizeof(double);
-  } else if (fType == DataType::STRING) {
+  } else if (fType == DataType::STRING || fType == DataType::STRINGARRAY) {
     length = 0;
   }
   return length;
@@ -290,7 +290,7 @@ int Table::Add(const std::string &key,
 
   for (size_t i = 0; i < attrs_.size(); i++) {
     DataType data_type = attrs_[i];
-    if (data_type != DataType::STRING) {
+    if (data_type != DataType::STRING && data_type != DataType::STRINGARRAY) {
       continue;
     }
 
@@ -306,7 +306,7 @@ int Table::Add(const std::string &key,
 
     DataType attr = attr_type_map_[name];
 
-    if (attr != DataType::STRING) {
+    if (attr != DataType::STRING && attr != DataType::STRINGARRAY) {
       int type_size = FTypeSize(attr);
       memcpy(doc_value.data() + offset, field.value.c_str(), type_size);
     } else {
@@ -351,7 +351,7 @@ int Table::Update(const std::unordered_map<std::string, struct Field> &fields,
     int field_id = it->second;
     int offset = idx_attr_offset_[field_id];
 
-    if (field.datatype == DataType::STRING) {
+    if (field.datatype == DataType::STRING || field.datatype == DataType::STRINGARRAY) {
       int len = field.value.size();
       storage_mgr_->UpdateString(docid, name, field.value.c_str(), len);
     } else {
@@ -489,7 +489,7 @@ int Table::GetFieldRawValue(int docid, int field_id, std::string &value,
   DataType data_type = attrs_[field_id];
   size_t offset = idx_attr_offset_[field_id];
 
-  if (data_type == DataType::STRING) {
+  if (data_type == DataType::STRING || data_type == DataType::STRINGARRAY) {
     storage_mgr_->GetString(docid, field_name, value);
   } else {
     int value_len = FTypeSize(data_type);
@@ -520,7 +520,7 @@ int Table::GetFieldRawValue(int docid, int field_id,
   DataType data_type = attrs_[field_id];
   size_t offset = idx_attr_offset_[field_id];
 
-  if (data_type == DataType::STRING) {
+  if (data_type == DataType::STRING || data_type == DataType::STRINGARRAY) {
     const auto iter = idx_attr_map_.find(field_id);
     if (iter == idx_attr_map_.end()) {
       LOG(ERROR) << name_ << " cannot find field [" << field_id << "]";

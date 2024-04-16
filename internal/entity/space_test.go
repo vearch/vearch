@@ -32,7 +32,6 @@ func TestEngineSpaceString(t *testing.T) {
 		  {
 			"name": "string",
 			"type": "string",
-			"array": true,
 			"index": {
 			  "name": "string",
 			  "type": "SCALAR"

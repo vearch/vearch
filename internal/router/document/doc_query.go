@@ -239,7 +239,7 @@ func parseVectors(reqNum int, vqs []*vearchpb.VectorQuery, tmpArr []json.RawMess
 			return reqNum, vqs, fmt.Errorf("query has err for field:[%s] not found in space fields", vqTemp.Field)
 		}
 
-		if docField.FieldType != entity.FieldType_VECTOR {
+		if docField.FieldType != vearchpb.FieldType_VECTOR {
 			return reqNum, vqs, fmt.Errorf("query has err for field:[%s] is not vector type", vqTemp.Field)
 		}
 
@@ -309,7 +309,7 @@ func parseRange(rangeConditionMap map[string]*Range, proMap map[string]*entity.S
 			return nil, fmt.Errorf("field:[%s] not found in space fields", field)
 		}
 
-		if docField.FieldType == entity.FieldType_STRING {
+		if docField.FieldType == vearchpb.FieldType_STRING {
 			return nil, fmt.Errorf("range filter should be numberic type, field:[%s] is string which should be term filter", field)
 		}
 
@@ -336,7 +336,7 @@ func parseRange(rangeConditionMap map[string]*Range, proMap map[string]*entity.S
 		}
 
 		switch docField.FieldType {
-		case entity.FieldType_INT:
+		case vearchpb.FieldType_INT:
 			var minNum, maxNum int32
 
 			if start != nil {
@@ -358,7 +358,7 @@ func parseRange(rangeConditionMap map[string]*Range, proMap map[string]*entity.S
 			}
 
 			min, max = minNum, maxNum
-		case entity.FieldType_LONG:
+		case vearchpb.FieldType_LONG:
 			var minNum, maxNum int64
 
 			if start != nil {
@@ -380,7 +380,7 @@ func parseRange(rangeConditionMap map[string]*Range, proMap map[string]*entity.S
 			}
 
 			min, max = minNum, maxNum
-		case entity.FieldType_FLOAT:
+		case vearchpb.FieldType_FLOAT:
 			var minNum, maxNum float32
 
 			if start != nil {
@@ -402,7 +402,7 @@ func parseRange(rangeConditionMap map[string]*Range, proMap map[string]*entity.S
 			}
 
 			min, max = minNum, maxNum
-		case entity.FieldType_DOUBLE:
+		case vearchpb.FieldType_DOUBLE:
 			var minNum, maxNum float64
 
 			if start != nil {
@@ -456,8 +456,7 @@ func parseRange(rangeConditionMap map[string]*Range, proMap map[string]*entity.S
 }
 
 func parseTerm(tm map[string]*Term, proMap map[string]*entity.SpaceProperties) ([]*vearchpb.TermFilter, error) {
-	var isUnion int32
-	isUnion = 1
+	isUnion := int32(1)
 
 	termFilters := make([]*vearchpb.TermFilter, 0)
 
@@ -468,8 +467,8 @@ func parseTerm(tm map[string]*Term, proMap map[string]*entity.SpaceProperties) (
 			return nil, fmt.Errorf("field:[%s] not found in space fields", field)
 		}
 
-		if fd.FieldType != entity.FieldType_STRING {
-			return nil, fmt.Errorf("term filter should be string type, field:[%s] is numberic type which should be range filter", field)
+		if fd.FieldType != vearchpb.FieldType_STRING && fd.FieldType != vearchpb.FieldType_STRINGARRAY {
+			return nil, fmt.Errorf("term filter should be string type or stringArray type, field:[%s] is numberic type which should be range filter", field)
 		}
 
 		if fd.Option&entity.FieldOption_Index != entity.FieldOption_Index {

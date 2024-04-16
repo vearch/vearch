@@ -44,9 +44,17 @@ func mapping2Table(cfg EngineConfig, m *mapping.IndexMapping) (*gamma.Table, err
 	err := m.SortRangeField(func(key string, value *mapping.DocumentMapping) error {
 		switch value.Field.FieldType() {
 		case vearchpb.FieldType_STRING:
-			value.Field.Options()
 			index := (value.Field.Options() & vearchpb.FieldOption_Index) / vearchpb.FieldOption_Index
 			fieldInfo := gamma.FieldInfo{Name: key, DataType: gamma.STRING}
+			if index == 1 {
+				fieldInfo.IsIndex = true
+			} else {
+				fieldInfo.IsIndex = false
+			}
+			table.Fields = append(table.Fields, fieldInfo)
+		case vearchpb.FieldType_STRINGARRAY:
+			index := (value.Field.Options() & vearchpb.FieldOption_Index) / vearchpb.FieldOption_Index
+			fieldInfo := gamma.FieldInfo{Name: key, DataType: gamma.STRINGARRAY}
 			if index == 1 {
 				fieldInfo.IsIndex = true
 			} else {
@@ -101,6 +109,8 @@ func mapping2Table(cfg EngineConfig, m *mapping.IndexMapping) (*gamma.Table, err
 			}
 			vectorInfo.IsIndex = true
 			table.VectorsInfos = append(table.VectorsInfos, vectorInfo)
+		default:
+			return fmt.Errorf("space invalid field type: %s", value.Field.FieldType().String())
 		}
 
 		return nil

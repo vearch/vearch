@@ -337,31 +337,30 @@ func docFieldSerialize(doc *vearchpb.Document, space *entity.Space, returnFields
 				continue
 			}
 			switch field.FieldType {
-			case entity.FieldType_STRING:
+			case vearchpb.FieldType_STRING:
 				tempValue := string(fv.Value)
-				if field.Array {
-					docOut[name] = strings.Split(tempValue, string([]byte{'\001'}))
-				} else {
-					docOut[name] = tempValue
-				}
-			case entity.FieldType_INT:
+				docOut[name] = tempValue
+			case vearchpb.FieldType_STRINGARRAY:
+				tempValue := string(fv.Value)
+				docOut[name] = strings.Split(tempValue, string([]byte{'\001'}))
+			case vearchpb.FieldType_INT:
 				docOut[name] = cbbytes.Bytes2Int32(fv.Value)
-			case entity.FieldType_LONG:
+			case vearchpb.FieldType_LONG:
 				docOut[name] = cbbytes.Bytes2Int(fv.Value)
-			case entity.FieldType_BOOL:
+			case vearchpb.FieldType_BOOL:
 				if cbbytes.Bytes2Int(fv.Value) == 0 {
 					docOut[name] = false
 				} else {
 					docOut[name] = true
 				}
-			case entity.FieldType_DATE:
+			case vearchpb.FieldType_DATE:
 				u := cbbytes.Bytes2Int(fv.Value)
 				docOut[name] = time.Unix(u/1e6, u%1e6)
-			case entity.FieldType_FLOAT:
+			case vearchpb.FieldType_FLOAT:
 				docOut[name] = cbbytes.ByteToFloat32(fv.Value)
-			case entity.FieldType_DOUBLE:
+			case vearchpb.FieldType_DOUBLE:
 				docOut[name] = cbbytes.ByteToFloat64New(fv.Value)
-			case entity.FieldType_VECTOR:
+			case vearchpb.FieldType_VECTOR:
 				if !vectorValue {
 					break
 				}
@@ -409,31 +408,30 @@ func GetVectorFieldValue(doc *vearchpb.Document, space *entity.Space) (floatFeat
 
 		}
 		switch field.FieldType {
-		case entity.FieldType_STRING:
+		case vearchpb.FieldType_STRING:
 			tempValue := string(fv.Value)
-			if field.Array {
-				source[name] = strings.Split(tempValue, string([]byte{'\001'}))
-			} else {
-				source[name] = tempValue
-			}
-		case entity.FieldType_INT:
+			source[name] = tempValue
+		case vearchpb.FieldType_STRINGARRAY:
+			tempValue := string(fv.Value)
+			source[name] = strings.Split(tempValue, string([]byte{'\001'}))
+		case vearchpb.FieldType_INT:
 			source[name] = cbbytes.Bytes2Int32(fv.Value)
-		case entity.FieldType_LONG:
+		case vearchpb.FieldType_LONG:
 			source[name] = cbbytes.Bytes2Int(fv.Value)
-		case entity.FieldType_BOOL:
+		case vearchpb.FieldType_BOOL:
 			if cbbytes.Bytes2Int(fv.Value) == 0 {
 				source[name] = false
 			} else {
 				source[name] = true
 			}
-		case entity.FieldType_DATE:
+		case vearchpb.FieldType_DATE:
 			u := cbbytes.Bytes2Int(fv.Value)
 			source[name] = time.Unix(u/1e6, u%1e6)
-		case entity.FieldType_FLOAT:
+		case vearchpb.FieldType_FLOAT:
 			source[name] = cbbytes.ByteToFloat32(fv.Value)
-		case entity.FieldType_DOUBLE:
+		case vearchpb.FieldType_DOUBLE:
 			source[name] = cbbytes.ByteToFloat64New(fv.Value)
-		case entity.FieldType_VECTOR:
+		case vearchpb.FieldType_VECTOR:
 			if space.Index.Type == "BINARYIVF" {
 				featureByteC := fv.Value
 				dimension := field.Dimension

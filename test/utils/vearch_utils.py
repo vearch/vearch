@@ -90,6 +90,57 @@ def add(total, batch_size, xb, with_id=False, full_field=False, seed=1,  alias_n
     pool.join()
 
 
+def process_add_string_array_data(items):
+    url = router_url + "/document/upsert"
+    data = {}
+    data["db_name"] = db_name
+    data["space_name"] = space_name
+    data["documents"] = []
+    index = items[0]
+    batch_size = items[1]
+    features = items[2]
+    with_id = items[3]
+    full_field = items[4]
+    seed = items[5]
+    alias_name = items[6]
+    logger = items[7]
+    if items[6] != "":
+        data["space_name"] = items[6]
+    for j in range(batch_size):
+        param_dict = {}
+        if with_id:
+            param_dict["_id"] = str(index * batch_size + j)
+        param_dict["field_int"] = (index * batch_size + j) * seed
+        param_dict["field_vector"] = features[j].tolist()
+        param_dict["field_string_array"] = [str(param_dict["field_int"]), str(param_dict["field_int"] + 1000)]
+        data["documents"].append(param_dict)
+
+    rs = requests.post(url, auth=(username, password), json=data)
+    if logger != None:
+        logger.info(rs.json())
+
+
+def add_string_array(total, batch_size, xb, with_id=False, full_field=False, seed=1,  alias_name="", logger=None):
+    pool = ThreadPool()
+    total_data = []
+    for i in range(total):
+        total_data.append(
+            (
+                i,
+                batch_size,
+                xb[i * batch_size: (i + 1) * batch_size],
+                with_id,
+                full_field,
+                seed,
+                alias_name,
+                logger
+            )
+        )
+    results = pool.map(process_add_string_array_data, total_data)
+    pool.close()
+    pool.join()
+
+
 def process_add_embedding_size_data(items):
     url = router_url + "/document/upsert"
     data = {}

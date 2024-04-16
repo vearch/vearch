@@ -14,6 +14,7 @@ enum FieldType {
   VECTOR = 5;
   BOOL = 6;
   DATE = 7;
+  STRINGARRAY = 8;
 }
 
 // Whether index this field
