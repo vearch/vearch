@@ -12,14 +12,14 @@
 // implied. See the License for the specific language governing
 // permissions and limitations under the License.
 
-package ginutil
+package httphelper
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/vearch/vearch/internal/entity/errors"
 	"github.com/vearch/vearch/internal/pkg/log"
 	"github.com/vearch/vearch/internal/pkg/vjson"
 	"github.com/vearch/vearch/internal/proto/vearchpb"
@@ -32,7 +32,7 @@ type Response struct {
 
 // http protocal
 type HttpReply struct {
-	Code int64       `json:"code"`
+	Code int         `json:"code"`
 	Msg  string      `json:"msg,omitempty"`
 	Data interface{} `json:"data,omitempty"`
 }
@@ -42,14 +42,6 @@ func New(ginContext *gin.Context) *Response {
 		ginContext: ginContext,
 		httpStatus: http.StatusOK,
 	}
-}
-
-func NewAutoMehtodName(ginContext *gin.Context) *Response {
-	response := &Response{
-		ginContext: ginContext,
-		httpStatus: http.StatusOK,
-	}
-	return response
 }
 
 /*
@@ -63,7 +55,7 @@ func (r *Response) SetHttpStatus(httpStatus int64) *Response {
 func (r *Response) SendJson(data interface{}) {
 	reply, err := vjson.Marshal(data)
 	if err != nil {
-		r.SendJsonHttpReplyError(err)
+		r.JsonError(errors.NewErrBadRequest(err))
 		return
 	}
 	r.ginContext.Data(int(r.httpStatus), "application/json", reply)
@@ -79,25 +71,30 @@ func (r *Response) SendJsonBytes(bytes []byte) {
 	}
 }
 
-func (r *Response) SendJsonHttpReplySuccess(data interface{}) {
+func (r *Response) JsonSuccess(data interface{}) {
 	httpReply := &HttpReply{
-		Code: int64(vearchpb.ErrCode(vearchpb.ErrorEnum_SUCCESS)),
+		Code: int(vearchpb.ErrorEnum_SUCCESS),
 		Msg:  "",
 		Data: data,
 	}
-	r.SetHttpStatus(httpReply.Code)
+	r.SetHttpStatus(int64(http.StatusOK))
 	r.SendJson(httpReply)
 }
 
-func (r *Response) SendJsonHttpReplyError(err error) {
-	if err == nil {
-		err = fmt.Errorf("")
-	}
-
+func (r *Response) SuccessDelete() {
 	httpReply := &HttpReply{
-		Code: int64(vearchpb.ErrCode(vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err).GetError().Code)),
-		Msg:  err.Error(),
+		Code: int(vearchpb.ErrorEnum_SUCCESS),
+		Msg:  "",
 	}
-	r.SetHttpStatus(httpReply.Code)
+	r.SetHttpStatus(int64(http.StatusOK))
+	r.SendJson(httpReply)
+}
+
+func (r *Response) JsonError(err *errors.ErrRequest) {
+	httpReply := &HttpReply{
+		Code: err.Code(),
+		Msg:  err.Msg(),
+	}
+	r.SetHttpStatus(int64(err.HttpCode()))
 	r.SendJson(httpReply)
 }

@@ -106,7 +106,7 @@ class TestStringArray:
             json_str = json.dumps(query_dict)
             rs = requests.post(url, auth=(username, password), data=json_str)
             # logger.info(rs.json())
-            assert rs.json()["code"] == 200
+            assert rs.status_code == 200
             assert len(rs.json()["data"]["documents"][0]["field_string_array"]) == 2
 
             query_dict["document_ids"] = []
@@ -128,7 +128,7 @@ class TestStringArray:
             json_str = json.dumps(query_dict)
             rs = requests.post(url, auth=(username, password), data=json_str)
             # logger.info(rs.json())
-            assert rs.json()["code"] == 200
+            assert rs.status_code == 200
             assert len(rs.json()["data"]["documents"][0]["field_string_array"]) == 2
 
     # destroy

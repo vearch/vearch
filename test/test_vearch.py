@@ -38,44 +38,44 @@ class VearchCase:
     def test_stats(self):
         response = get_cluster_stats(router_url)
         logger.debug("cluster_stats:" + json.dumps(response))
-        assert response["code"] == 200
+        assert response["code"] == 0
 
     def test_version(self):
         response = get_cluster_version(router_url)
         logger.debug("cluster_stats:" + json.dumps(response))
-        assert response["code"] == 200
+        assert response["code"] == 0
 
     def test_health(self):
         response = get_cluster_health(router_url)
         logger.debug("cluster_health---\n" + json.dumps(response))
-        assert response["code"] == 200
+        assert response["code"] == 0
 
     def test_server(self):
         response = get_servers_status(router_url)
         logger.debug("list_server---\n" + json.dumps(response))
-        assert response["code"] == 200
+        assert response["code"] == 0
 
     logger.info("database")
 
     def test_dblist(self):
         response = list_dbs(router_url)
         logger.debug("list_db---\n" + json.dumps(response))
-        assert response["code"] == 200
+        assert response["code"] == 0
 
     def test_createDB(self):
         response = create_db(router_url, db_name)
         logger.debug("db_create---\n" + json.dumps(response))
-        assert response["code"] == 200
+        assert response["code"] == 0
 
     def test_getDB(self):
         response = get_db(router_url, db_name)
         logger.debug("db_search---\n" + json.dumps(response))
-        assert response["code"] == 200
+        assert response["code"] == 0
 
     def test_listspace(self):
         response = list_spaces(router_url, db_name)
         logger.debug("list_space---\n" + json.dumps(response))
-        assert response["code"] == 200
+        assert response["code"] == 0
 
     def test_createspace(self, supported=True):
         data = {
@@ -143,19 +143,19 @@ class VearchCase:
         response = create_space(router_url, db_name, data)
         logger.debug("space_create---\n" + json.dumps(response))
         if supported:
-            assert response["code"] == 200
+            assert response["code"] == 0
         else:
-            assert response["code"] != 200
+            assert response["code"] != 0
 
     def test_getspace(self):
         response = get_space(router_url, db_name, space_name)
         logger.debug("get_space---\n" + json.dumps(response))
-        assert response["code"] == 200
+        assert response["code"] == 0
 
     def test_getpartition(self):
         response = get_cluster_partition(router_url)
         logger.debug("get_space---\n" + json.dumps(response))
-        assert response["code"] == 200
+        assert response["code"] == 0
 
     # def test_changemember():
     #     url = "http://" + ip_master + "/partition/change_member"
@@ -265,7 +265,7 @@ class VearchCase:
     def test_documentQueryOnSpecifyPartiton(self):
         logger.info("documentQueryOnSpecifyPartiton")
         response = get_space(router_url, db_name, space_name)
-        assert response["code"] == 200
+        assert response["code"] == 0
 
         partitions = response["data"]["partitions"]
         assert len(partitions) > 0
@@ -445,14 +445,13 @@ class VearchCase:
                 assert response.status_code == 200
 
     def test_deleteSpace(self):
-        response = drop_space(router_url, db_name, space_name)
-        logger.debug("deleteSpace:" + json.dumps(response))
-        assert response["code"] == 200
-
+        code = drop_space(router_url, db_name, space_name)
+        logger.debug("deleteSpace:" + str(code))
+        assert code in [200, 204]
     def test_deleteDB(self):
-        response = drop_db(router_url, db_name)
-        logger.debug("deleteDB:" + json.dumps(response))
-        assert response["code"] == 200
+        code = drop_db(router_url, db_name)
+        logger.debug("deleteDB:" + str(code))
+        assert code in [200, 204]
 
     def run_db_space_create_test(self, supported=True):
         self.test_createDB()

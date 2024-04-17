@@ -557,7 +557,7 @@ func (m *masterClient) RegisterPartition(ctx context.Context, partition *entity.
 		return fmt.Errorf("client master api register partiton parse response code error: %s", err.Error())
 	}
 
-	if code != vearchpb.ErrCode(vearchpb.ErrorEnum_SUCCESS) {
+	if code != int(vearchpb.ErrorEnum_SUCCESS) {
 		return fmt.Errorf("client master api register partiton parse response error, code: %d, msg: %s", code, jsonMap.GetJsonValStringOrDefault("msg", ""))
 	}
 
@@ -727,7 +727,7 @@ func parseRegisterData(response []byte) ([]byte, error) {
 		return nil, fmt.Errorf("client master api register parse response code error: %s", err.Error())
 	}
 
-	if code != vearchpb.ErrCode(vearchpb.ErrorEnum_SUCCESS) {
+	if code != int(vearchpb.ErrorEnum_SUCCESS) {
 		return nil, fmt.Errorf("client master api register parse response error, code: %d, msg: %s", code, jsonMap.GetJsonValStringOrDefault("msg", ""))
 	}
 	data, err := jsonMap.GetJsonValBytes("data")

@@ -19,6 +19,7 @@ import (
 	"fmt"
 
 	"github.com/vearch/vearch/internal/pkg/log"
+	"github.com/vearch/vearch/internal/pkg/vjson"
 )
 
 type DocumentMapping struct {
@@ -39,7 +40,7 @@ func (dm *DocumentMapping) addSubDocumentMapping(property string, sdm *DocumentM
 
 func (dm *DocumentMapping) UnmarshalJSON(data []byte) error {
 	var tmp map[string]json.RawMessage
-	err := json.Unmarshal(data, &tmp)
+	err := vjson.Unmarshal(data, &tmp)
 	if err != nil {
 		return err
 	}
@@ -58,7 +59,7 @@ func (dm *DocumentMapping) UnmarshalJSON(data []byte) error {
 			}
 		}
 	} else {
-		err := json.Unmarshal(data, &dm.Field)
+		err := vjson.Unmarshal(data, &dm.Field)
 		if err != nil {
 			return err
 		}

@@ -1,5 +1,5 @@
 SuccessResponse:
-  description: Server list successfully
+  description: Success
   content:
     application/json:
       schema:

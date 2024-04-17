@@ -18,12 +18,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"net/http"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/spf13/cast"
 	"github.com/vearch/vearch/internal/client"
 	"github.com/vearch/vearch/internal/entity"
 	"github.com/vearch/vearch/internal/entity/request"
@@ -124,7 +124,7 @@ func documentResultSerialize(item *vearchpb.Item) map[string]interface{} {
 	result := make(map[string]interface{})
 	if item == nil {
 		result["msg"] = "duplicate id"
-		result["code"] = vearchpb.ErrCode(vearchpb.ErrorEnum_INTERNAL_ERROR)
+		result["code"] = http.StatusInternalServerError
 		return result
 	}
 
@@ -133,7 +133,7 @@ func documentResultSerialize(item *vearchpb.Item) map[string]interface{} {
 
 	if item.Err != nil {
 		if item.Err.Msg != "success" {
-			result["code"] = vearchpb.ErrCode(item.Err.Code)
+			result["code"] = http.StatusNotFound
 			result["msg"] = item.Err.Msg
 		}
 	}
@@ -141,7 +141,7 @@ func documentResultSerialize(item *vearchpb.Item) map[string]interface{} {
 }
 
 func documentGetResponse(client *client.Client, args *vearchpb.GetRequest, reply *vearchpb.GetResponse, returnFieldsMap map[string]string, vectorValue bool) (map[string]interface{}, error) {
-	if args == nil || reply == nil || reply.Items == nil || len(reply.Items) < 1 {
+	if args == nil || reply == nil || len(reply.Items) < 1 {
 		if reply.GetHead() != nil && reply.GetHead().Err != nil && reply.GetHead().Err.Code != vearchpb.ErrorEnum_SUCCESS {
 			err := reply.GetHead().Err
 			return nil, vearchpb.NewError(err.Code, errors.New(err.Msg))
@@ -180,7 +180,7 @@ func documentGetResponse(client *client.Client, args *vearchpb.GetRequest, reply
 		doc["_id"] = item.Doc.PKey
 
 		if item.Err != nil {
-			doc["code"] = cast.ToInt64(vearchpb.ErrCode(item.Err.Code))
+			doc["code"] = http.StatusNotFound
 			doc["msg"] = item.Err.Msg
 		}
 
@@ -487,12 +487,12 @@ func FlushToContent(shards *vearchpb.SearchStatus) ([]byte, error) {
 	return vjson.Marshal(response)
 }
 
-func IndexResponseToContent(shards *vearchpb.SearchStatus) (map[string]interface{}, error) {
+func IndexResponseToContent(shards *vearchpb.SearchStatus) map[string]interface{} {
 	response := map[string]interface{}{
 		"_shards": shards,
 	}
 
-	return response, nil
+	return response
 }
 
 func SearchNullToContent(searchStatus *vearchpb.SearchStatus, took time.Duration) ([]byte, error) {

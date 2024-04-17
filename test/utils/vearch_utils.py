@@ -270,9 +270,9 @@ def process_add_error_data(items):
 
     if "data" in rs.json():
         for result in rs.json()["data"]["document_ids"]:
-            assert result["code"] != 200
+            assert result["code"] != 0
     else:
-        assert rs.json()["code"] != 200
+        assert rs.status_code != 200
 
 
 def process_add_mul_error_data(items):
@@ -302,7 +302,7 @@ def process_add_mul_error_data(items):
     rs = requests.post(url, auth=(username, password), data=json_str)
     logger.info(rs.json())
 
-    assert rs.json()["code"] != 200
+    assert rs.status_code != 200
 
 
 def add_error(total, batch_size, xb, logger, wrong_parameters: list):
@@ -408,9 +408,9 @@ def process_add_multi_vector_error_data(items):
 
     if "data" in rs.json():
         for result in rs.json()["data"]["document_ids"]:
-            assert result["code"] != 200
+            assert result["code"] != 0
     else:
-        assert rs.json()["code"] != 200
+        assert rs.status_code != 200
 
 
 def add_multi_vector_error(total, batch_size, xb, logger, wrong_parameters: list):
@@ -700,7 +700,7 @@ def process_query_error_data(items):
     if "data" in rs.json():
         assert rs.json()["data"]["total"] == 0
     else:
-        assert rs.json()["code"] != 200
+        assert rs.status_code != 200
 
 
 def process_query_multiple_error_data(items):
@@ -738,7 +738,7 @@ def process_query_multiple_error_data(items):
     logger.info(rs.json())
 
     if params_both_wrong or params_just_one_wrong:
-        assert rs.json()["code"] != 200
+        assert rs.status_code != 200
     else:
         if return_both_wrong:
             assert rs.json()["data"]["total"] == 0
@@ -1195,13 +1195,13 @@ def evaluate(xq, gt, k, batch, query_dict, logger):
 def drop_db(router_url: str, db_name: str):
     url = f"{router_url}/dbs/{db_name}"
     resp = requests.delete(url, auth=(username, password))
-    return resp.json()
+    return resp.status_code
 
 
 def drop_space(router_url: str, db_name: str, space_name: str):
     url = f"{router_url}/dbs/{db_name}/spaces/{space_name}"
     resp = requests.delete(url, auth=(username, password))
-    return resp.json()
+    return resp.status_code
 
 
 def destroy(router_url: str, db_name: str, space_name: str):
@@ -1329,4 +1329,4 @@ def get_all_alias(router_url: str):
 def drop_alias(router_url: str, alias_name: str):
     url = f"{router_url}/alias/{alias_name}"
     resp = requests.delete(url, auth=(username, password))
-    return resp.json()
+    return resp.status_code

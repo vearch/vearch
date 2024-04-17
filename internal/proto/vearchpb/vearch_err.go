@@ -51,15 +51,6 @@ func NewError(code ErrorEnum, err error) (vErr *VearchErr) {
 	return
 }
 
-func ErrCode(code ErrorEnum) (c int) {
-	if code == ErrorEnum_SUCCESS {
-		c = 200
-	} else {
-		c = int(code) + 549
-	}
-	return
-}
-
 func ErrMsg(code ErrorEnum) (s string) {
 	return strings.ToLower(ErrorEnum_name[int32(code)])
 }

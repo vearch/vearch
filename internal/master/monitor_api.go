@@ -17,8 +17,9 @@ package master
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/vearch/vearch/internal/config"
+	"github.com/vearch/vearch/internal/entity/errors"
 	"github.com/vearch/vearch/internal/monitor"
-	"github.com/vearch/vearch/internal/pkg/ginutil"
+	"github.com/vearch/vearch/internal/pkg/httphelper"
 	"github.com/vearch/vearch/internal/pkg/server/vearchhttp"
 )
 
@@ -54,10 +55,10 @@ func ExportToMonitorHandler(router *gin.Engine, monitorService *monitorService) 
 func (m *monitorApi) stats(c *gin.Context) {
 	list, err := m.monitorService.statsService(c)
 	if err != nil {
-		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
+		httphelper.New(c).JsonError(errors.NewErrInternal(err))
 		return
 	}
-	ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(list)
+	httphelper.New(c).JsonSuccess(list)
 }
 
 // cluster health in partition level
@@ -68,9 +69,9 @@ func (m *monitorApi) health(c *gin.Context) {
 
 	result, err := m.monitorService.partitionInfo(c, dbName, spaceName, detail)
 	if err != nil {
-		ginutil.NewAutoMehtodName(c).SendJsonHttpReplyError(err)
+		httphelper.New(c).JsonError(errors.NewErrInternal(err))
 		return
 	}
 
-	ginutil.NewAutoMehtodName(c).SendJsonHttpReplySuccess(result)
+	httphelper.New(c).JsonSuccess(result)
 }

@@ -301,7 +301,7 @@ class TestSearchWeightRanker:
         json_str = json.dumps(query_dict)
         rs = requests.post(url, auth=(username, password), data=json_str)
         # logger.info(rs.json())
-        assert rs.json()["code"] == 200
+        assert rs.status_code == 200
         score =np.sum(np.square(xq[:1] - xb[:1]))
         assert abs(rs.json()["data"]["documents"][0][0]["_score"] - score) <= 0.1
 
@@ -355,7 +355,7 @@ class TestSearchScore:
             json_str = json.dumps(query_dict)
             rs = requests.post(url, auth=(username, password), data=json_str)
             # logger.info(rs.json())
-            assert rs.json()["code"] == 200
+            assert rs.status_code == 200
             index = rs.json()["data"]["documents"][0][0]["field_int"]
             score = np.sum(np.square(xq[i:i+1] - xb[index:index+1]))
             assert abs(rs.json()["data"]["documents"][0][0]["_score"] - score) <= 0.01
