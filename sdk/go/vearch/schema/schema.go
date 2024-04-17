@@ -16,8 +16,20 @@ func (schema *API) DBCreator() *DBCreator {
 	}
 }
 
+func (schema *API) DBDeleter() *DBDeleter {
+	return &DBDeleter{
+		connection: schema.connection,
+	}
+}
+
 func (schema *API) SpaceCreator() *SpaceCreator {
 	return &SpaceCreator{
+		connection: schema.connection,
+	}
+}
+
+func (schema *API) SpaceDeleter() *SpaceDeleter {
+	return &SpaceDeleter{
 		connection: schema.connection,
 	}
 }

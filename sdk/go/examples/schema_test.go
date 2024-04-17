@@ -6,6 +6,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	client "github.com/vearch/vearch/sdk/go/v3/vearch"
+	"github.com/vearch/vearch/sdk/go/v3/vearch/auth"
 	"github.com/vearch/vearch/sdk/go/v3/vearch/entities/models"
 )
 
@@ -14,8 +15,11 @@ func TestSchemaCreateDB(t *testing.T) {
 	host := "http://127.0.0.1:9001"
 	dbName := "ts_db"
 	spaceName := "ts_space"
+	user := "root"
+	secret := "secret"
 
-	c, err := client.NewClient(client.Config{Host: host})
+	authConfig := auth.BasicAuth{UserName: user, Secret: secret}
+	c, err := client.NewClient(client.Config{Host: host, AuthConfig: authConfig})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -61,7 +65,17 @@ func TestSchemaCreateDB(t *testing.T) {
 			},
 		}
 
-		err = spaceCreator.WithDBName(db.Name).WithSpace(space).Do(ctx)
+		err = spaceCreator.WithDBName(dbName).WithSpace(space).Do(ctx)
+		require.Nil(t, err)
+	})
+
+	t.Run("Test DeleteSpace", func(t *testing.T) {
+		err = c.Schema().SpaceDeleter().WithDBName(dbName).WithSpaceName(spaceName).Do(ctx)
+		require.Nil(t, err)
+	})
+
+	t.Run("Test DeleteDatabase", func(t *testing.T) {
+		err = c.Schema().DBDeleter().WithDBName(dbName).Do(ctx)
 		require.Nil(t, err)
 	})
 }
