@@ -69,7 +69,7 @@ func (docService *docService) getDocs(ctx context.Context, args *vearchpb.GetReq
 	return reply
 }
 
-func (docService *docService) getDocsByPartition(ctx context.Context, args *vearchpb.GetRequest, partitionId string, next *bool) *vearchpb.GetResponse {
+func (docService *docService) getDocsByPartition(ctx context.Context, args *vearchpb.GetRequest, partitionId uint32, next *bool) *vearchpb.GetResponse {
 	ctx, cancel := setTimeOut(ctx, args.Head)
 	defer cancel()
 	reply := &vearchpb.GetResponse{Head: newOkHead()}
@@ -140,6 +140,36 @@ func (docService *docService) getSpace(ctx context.Context, head *vearchpb.Reque
 		head.SpaceName = alias.SpaceName
 	}
 	return docService.client.Master().Cache().SpaceByCache(ctx, head.DbName, head.SpaceName)
+}
+
+func (docService *docService) query(ctx context.Context, args *vearchpb.QueryRequest) *vearchpb.SearchResponse {
+	ctx, cancel := setTimeOut(ctx, args.Head)
+	defer cancel()
+	request := client.NewRouterRequest(ctx, docService.client)
+	request.SetMsgID().SetMethod(client.QueryHandler).SetHead(args.Head).SetSpace().QueryByPartitions(args)
+	if request.Err != nil {
+		return &vearchpb.SearchResponse{Head: setErrHead(request.Err)}
+	}
+
+	sortOrder := make([]sortorder.Sort, 0)
+	if args.SortFields != nil && len(args.SortFields) > 0 {
+		for _, sortF := range args.SortFields {
+			sortOrder = append(sortOrder, &sortorder.SortField{Field: sortF.Field, Desc: sortF.Type})
+		}
+	}
+	searchResponse := request.QueryFieldSortExecute(sortOrder)
+
+	if searchResponse == nil {
+		return &vearchpb.SearchResponse{Head: setErrHead(request.Err)}
+	}
+	if searchResponse.Head == nil {
+		searchResponse.Head = newOkHead()
+	}
+	if searchResponse.Head.Err == nil {
+		searchResponse.Head.Err = newOkHead().Err
+	}
+
+	return searchResponse
 }
 
 func (docService *docService) search(ctx context.Context, args *vearchpb.SearchRequest) *vearchpb.SearchResponse {

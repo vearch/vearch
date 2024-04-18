@@ -275,7 +275,7 @@ func (handler *DocumentHandler) handleDocumentQuery(c *gin.Context) {
 	span, _ := opentracing.StartSpanFromContext(c.Request.Context(), operateName)
 	defer span.Finish()
 
-	args := &vearchpb.SearchRequest{}
+	args := &vearchpb.QueryRequest{}
 	args.Head = setRequestHeadFromGin(c)
 
 	searchDoc, err := documentRequestParse(c.Request)
@@ -294,15 +294,9 @@ func (handler *DocumentHandler) handleDocumentQuery(c *gin.Context) {
 	// update space name because maybe is alias name
 	searchDoc.SpaceName = args.Head.SpaceName
 
-	err = requestToPb(searchDoc, space, args)
+	err = queryRequestToPb(searchDoc, space, args)
 	if err != nil {
 		httphelper.New(c).JsonError(errors.NewErrBadRequest(err))
-		return
-	}
-
-	if args.VecFields != nil {
-		err := vearchpb.NewError(vearchpb.ErrorEnum_QUERY_INVALID_PARAMS_SHOULD_NOT_HAVE_VECTOR_FIELD, nil)
-		httphelper.New(c).JsonError(errors.NewErrInternal(err))
 		return
 	}
 
@@ -322,10 +316,10 @@ func (handler *DocumentHandler) handleDocumentQuery(c *gin.Context) {
 		}
 	}
 	serviceStart := time.Now()
-	searchResp := handler.docService.search(c.Request.Context(), args)
+	searchResp := handler.docService.query(c.Request.Context(), args)
 	serviceCost := time.Since(serviceStart)
 
-	result, err := documentSearchResponse(searchResp.Results, searchResp.Head, request.QueryResponse)
+	result, err := documentQueryResponse(searchResp.Results, searchResp.Head)
 
 	if err != nil {
 		httphelper.New(c).JsonError(errors.NewErrUnprocessable(err))
@@ -353,7 +347,7 @@ func (handler *DocumentHandler) handleDocumentGet(c *gin.Context, searchDoc *req
 	}
 
 	reply := &vearchpb.GetResponse{}
-	if searchDoc.PartitionId != nil && *searchDoc.PartitionId != "" {
+	if searchDoc.PartitionId != nil {
 		reply = handler.docService.getDocsByPartition(c.Request.Context(), args, *searchDoc.PartitionId, searchDoc.Next)
 	} else {
 		reply = handler.docService.getDocs(c.Request.Context(), args)
@@ -409,7 +403,7 @@ func (handler *DocumentHandler) handleDocumentSearch(c *gin.Context) {
 	searchResp := handler.docService.search(ctx, args)
 	serviceCost := time.Since(serviceStart)
 
-	result, err := documentSearchResponse(searchResp.Results, searchResp.Head, request.SearchResponse)
+	result, err := documentSearchResponse(searchResp.Results, searchResp.Head)
 
 	if err != nil {
 		httphelper.New(c).JsonError(errors.NewErrInternal(err))

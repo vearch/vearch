@@ -269,7 +269,7 @@ class VearchCase:
 
         partitions = response["data"]["partitions"]
         assert len(partitions) > 0
-        partition = str(partitions[0]["pid"])
+        partition = partitions[0]["pid"]
 
         url = router_url + "/document/query"
         headers = {"content-type": "application/json"}

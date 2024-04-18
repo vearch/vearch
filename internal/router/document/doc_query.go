@@ -66,29 +66,23 @@ type Term struct {
 	Value json.RawMessage
 }
 
-func parseQuery(vectors []json.RawMessage, filters *request.Filter, req *vearchpb.SearchRequest, space *entity.Space) error {
-	vqs := make([]*vearchpb.VectorQuery, 0)
+func parseFilter(filters *request.Filter, space *entity.Space) ([]*vearchpb.RangeFilter, []*vearchpb.TermFilter, error) {
 	rfs := make([]*vearchpb.RangeFilter, 0)
 	tfs := make([]*vearchpb.TermFilter, 0)
 
 	var err error
-	var reqNum int
-
-	if len(vectors) > 0 {
-		req.MultiVectorRank = 1
-		if reqNum, vqs, err = parseVectors(reqNum, vqs, vectors, space); err != nil {
-			return err
-		}
-	}
 
 	proMap := space.SpaceProperties
 	if proMap == nil {
-		proMap, _ = entity.UnmarshalPropertyJSON(space.Fields)
+		proMap, err = entity.UnmarshalPropertyJSON(space.Fields)
+		if err != nil {
+			return nil, nil, err
+		}
 	}
 
 	if filters != nil {
 		if filters.Operator != "AND" {
-			return fmt.Errorf("operator %v not supported", filters.Operator)
+			return nil, nil, fmt.Errorf("operator %v not supported", filters.Operator)
 		}
 		rangeConditionMap := make(map[string]*Range)
 		termConditionMap := make(map[string]*Term)
@@ -147,30 +141,48 @@ func parseQuery(vectors []json.RawMessage, filters *request.Filter, req *vearchp
 		}
 		filter, err := parseRange(rangeConditionMap, proMap)
 		if err != nil {
-			return fmt.Errorf("%v parseRange err %s", rangeConditionMap, err.Error())
+			return nil, nil, fmt.Errorf("parseRange err %s", err.Error())
 		}
 		if len(filter) != 0 {
 			rfs = append(rfs, filter...)
 		}
 		tmFilter, err := parseTerm(termConditionMap, proMap)
 		if err != nil {
-			return fmt.Errorf("%v parseTerm err %s", termConditionMap, err.Error())
+			return nil, nil, fmt.Errorf("parseTerm err %s", err.Error())
 		}
 		if len(tmFilter) != 0 {
 			tfs = append(tfs, tmFilter...)
 		}
 	}
 
+	return rfs, tfs, nil
+}
+
+func parseSearch(vectors []json.RawMessage, filters *request.Filter, req *vearchpb.SearchRequest, space *entity.Space) error {
+	vqs := make([]*vearchpb.VectorQuery, 0)
+
+	var err error
+	var reqNum int
+
+	if len(vectors) > 0 {
+		req.MultiVectorRank = 1
+		if reqNum, vqs, err = parseVectors(reqNum, vqs, vectors, space); err != nil {
+			return err
+		}
+	}
 	if len(vqs) > 0 {
 		req.VecFields = vqs
 	}
 
-	if len(tfs) > 0 {
-		req.TermFilters = tfs
+	rfs, tfs, err := parseFilter(filters, space)
+	if err != nil {
+		return err
 	}
-
 	if len(rfs) > 0 {
 		req.RangeFilters = rfs
+	}
+	if len(tfs) > 0 {
+		req.TermFilters = tfs
 	}
 
 	if reqNum <= 0 {
@@ -553,6 +565,135 @@ func (query *VectorQuery) ToC(indexType string) (*vearchpb.VectorQuery, error) {
 	return vectorQuery, nil
 }
 
+func queryRequestToPb(searchDoc *request.SearchDocumentRequest, space *entity.Space, queryReq *vearchpb.QueryRequest) error {
+	queryReq.IsVectorValue = searchDoc.VectorValue
+	queryReq.Fields = searchDoc.Fields
+
+	metricType := ""
+
+	queryReq.Limit = searchDoc.Limit
+	if queryReq.Limit == 0 {
+		queryReq.Limit = DefaultSize
+	}
+
+	if queryReq.Head.Params != nil && queryReq.Head.Params["queryOnlyId"] != "" {
+		queryReq.Fields = []string{mapping.IdField}
+	} else {
+		spaceProKeyMap := space.SpaceProperties
+		if spaceProKeyMap == nil {
+			spaceProKeyMap, _ = entity.UnmarshalPropertyJSON(space.Fields)
+		}
+		vectorFieldArr := make([]string, 0)
+		if queryReq.Fields == nil || len(queryReq.Fields) == 0 {
+			queryReq.Fields = make([]string, 0)
+			spaceProKeyMap := space.SpaceProperties
+			if spaceProKeyMap == nil {
+				spaceProKeyMap, _ = entity.UnmarshalPropertyJSON(space.Fields)
+			}
+			for fieldName, property := range spaceProKeyMap {
+				if property.Type != "" && strings.Compare(property.Type, "vector") != 0 {
+					queryReq.Fields = append(queryReq.Fields, fieldName)
+				}
+				if property.Type != "" && strings.Compare(property.Type, "vector") == 0 {
+					vectorFieldArr = append(vectorFieldArr, fieldName)
+				}
+			}
+			queryReq.Fields = append(queryReq.Fields, mapping.IdField)
+		} else {
+			for _, field := range queryReq.Fields {
+				if field != mapping.IdField {
+					if spaceProKeyMap[field] == nil {
+						return fmt.Errorf("query param fields are not exist in the table")
+					}
+				}
+			}
+		}
+
+		if searchDoc.VectorValue {
+			queryReq.Fields = append(queryReq.Fields, vectorFieldArr...)
+		}
+	}
+
+	hasID := false
+	for _, f := range queryReq.Fields {
+		if f == mapping.IdField {
+			hasID = true
+		}
+	}
+
+	if !hasID {
+		queryReq.Fields = append(queryReq.Fields, mapping.IdField)
+	}
+
+	queryFieldMap := make(map[string]string)
+	for _, feild := range queryReq.Fields {
+		queryFieldMap[feild] = feild
+	}
+
+	sortOrder, err := searchDoc.SortOrder()
+	if err != nil {
+		return err
+	}
+
+	if metricType == "" && space != nil && space.Index != nil {
+		indexParams := &entity.IndexParams{}
+		err := vjson.Unmarshal(space.Index.Params, indexParams)
+		if err != nil {
+			return fmt.Errorf("unmarshal err:[%s] , space.Index.IndexParams:[%s]", err.Error(), string(space.Index.Params))
+		}
+		metricType = indexParams.MetricType
+	}
+
+	if metricType != "" && metricType == "L2" {
+		sortOrder = sortorder.SortOrder{&sortorder.SortScore{Desc: false}}
+	}
+	spaceProMap := space.SpaceProperties
+	if spaceProMap == nil {
+		spacePro, _ := entity.UnmarshalPropertyJSON(space.Fields)
+		spaceProMap = spacePro
+	}
+	sortFieldMap := make(map[string]string)
+
+	sortFieldArr := make([]*vearchpb.SortField, 0, len(sortOrder))
+
+	for _, sort := range sortOrder {
+		sortField := sort.SortField()
+		if !(sortField == "_score" || sortField == "_id" || (spaceProMap[sortField] != nil)) {
+			return fmt.Errorf("query param sort field not space field")
+		}
+
+		sortFieldArr = append(sortFieldArr, &vearchpb.SortField{Field: sort.SortField(), Type: sort.GetSortOrder()})
+
+		if sortField != "_score" && sortField != "_id" && queryFieldMap[sortField] == "" {
+			queryReq.Fields = append(queryReq.Fields, sortField)
+		}
+
+		sortDesc := sort.GetSortOrder()
+		if sortDesc {
+			sortFieldMap[sortField] = "true"
+		} else {
+			sortFieldMap[sortField] = "false"
+		}
+	}
+
+	queryReq.SortFields = sortFieldArr
+	queryReq.SortFieldMap = sortFieldMap
+
+	rfs, tfs, err := parseFilter(searchDoc.Filters, space)
+	if err != nil {
+		return err
+	}
+	if len(rfs) > 0 {
+		queryReq.RangeFilters = rfs
+	}
+	if len(tfs) > 0 {
+		queryReq.TermFilters = tfs
+	}
+
+	queryReq.Head.ClientType = searchDoc.LoadBalance
+	return nil
+}
+
 func requestToPb(searchDoc *request.SearchDocumentRequest, space *entity.Space, searchReq *vearchpb.SearchRequest) error {
 	searchReq.IsVectorValue = searchDoc.VectorValue
 	searchReq.L2Sqrt = searchDoc.L2Sqrt
@@ -672,7 +813,7 @@ func requestToPb(searchDoc *request.SearchDocumentRequest, space *entity.Space, 
 	searchReq.SortFields = sortFieldArr
 	searchReq.SortFieldMap = sortFieldMap
 
-	err = parseQuery(searchDoc.Vectors, searchDoc.Filters, searchReq, space)
+	err = parseSearch(searchDoc.Vectors, searchDoc.Filters, searchReq, space)
 	if err != nil {
 		return err
 	}

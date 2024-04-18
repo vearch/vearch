@@ -182,3 +182,55 @@ func (ri *readerImpl) Search(ctx context.Context, request *vearchpb.SearchReques
 
 	return nil
 }
+
+func (ri *readerImpl) Query(ctx context.Context, request *vearchpb.QueryRequest, response *vearchpb.SearchResponse) error {
+	ri.engine.counter.Incr()
+	defer ri.engine.counter.Decr()
+
+	engine := ri.engine.gamma
+	if engine == nil {
+		return vearchpb.NewErrorInfo(vearchpb.ErrorEnum_PARTITION_IS_CLOSED, "search engine is null")
+	}
+
+	if response == nil {
+		response = &vearchpb.SearchResponse{}
+	}
+
+	startTime := time.Now()
+	reqByte := gamma.QueryRequestSerialize(request)
+	serializeCostTime := (time.Since(startTime).Seconds()) * 1000
+	gammaStartTime := time.Now()
+	code, respByte := gamma.Search(ri.engine.gamma, reqByte)
+	gammaCostTime := (time.Since(gammaStartTime).Seconds()) * 1000
+	response.FlatBytes = respByte
+	serializeCostTimeStr := strconv.FormatFloat(serializeCostTime, 'f', -1, 64)
+	gammaCostTimeStr := strconv.FormatFloat(gammaCostTime, 'f', -1, 64)
+	if response.Head == nil {
+		costTimeMap := make(map[string]string)
+		costTimeMap["serializeCostTime"] = serializeCostTimeStr
+		costTimeMap["gammaCostTime"] = gammaCostTimeStr
+		responseHead := &vearchpb.ResponseHead{Params: costTimeMap}
+		response.Head = responseHead
+	} else if response.Head != nil && response.Head.Params == nil {
+		costTimeMap := make(map[string]string)
+		costTimeMap["serializeCostTime"] = serializeCostTimeStr
+		costTimeMap["gammaCostTime"] = gammaCostTimeStr
+		response.Head.Params = costTimeMap
+	} else {
+		response.Head.Params["serializeCostTime"] = serializeCostTimeStr
+		response.Head.Params["gammaCostTime"] = gammaCostTimeStr
+	}
+
+	if code != 0 {
+		var vearchErr *vearchpb.VearchErr
+		switch code {
+		case -3:
+			vearchErr = vearchpb.NewErrorInfo(vearchpb.ErrorEnum_GAMMA_SEARCH_INDEX_QUERY_ERR, "index search error")
+		default:
+			vearchErr = vearchpb.NewErrorInfo(vearchpb.ErrorEnum_GAMMA_SEARCH_OTHER_ERR, "query internal error")
+		}
+		return vearchErr
+	}
+
+	return nil
+}

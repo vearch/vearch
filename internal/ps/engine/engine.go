@@ -35,6 +35,8 @@ type Reader interface {
 	Capacity(ctx context.Context) (int64, error)
 
 	Search(ctx context.Context, request *vearchpb.SearchRequest, resp *vearchpb.SearchResponse) error
+
+	Query(ctx context.Context, request *vearchpb.QueryRequest, resp *vearchpb.SearchResponse) error
 }
 
 // Writer is the write interface to an engine's data.

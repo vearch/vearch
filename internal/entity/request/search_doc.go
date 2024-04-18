@@ -71,7 +71,7 @@ type SearchDocumentRequest struct {
 	SpaceName     string            `json:"space_name,omitempty"`
 	LoadBalance   string            `json:"load_balance"`
 	DocumentIds   *[]string         `json:"document_ids,omitempty"`
-	PartitionId   *string           `json:"partition_id,omitempty"`
+	PartitionId   *uint32           `json:"partition_id,omitempty"`
 	Next          *bool             `json:"next,omitempty"`
 	Ranker        json.RawMessage   `json:"ranker,omitempty"`
 	sortOrder     sortorder.SortOrder

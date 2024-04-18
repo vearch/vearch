@@ -44,7 +44,7 @@ def fvecs_read(fname):
     return ivecs_read(fname).view("float32")
 
 
-def download_sift(logger, host, dirname, local_dir, filename):
+def download_from_irisa(logger, host, dirname, local_dir, filename):
     if not os.path.exists(local_dir):
         os.makedirs(local_dir)
     if os.path.isfile(local_dir + filename):
@@ -103,7 +103,7 @@ def get_sift1M(logger):
     dirname = "local/texmex/corpus/"
     filename = "sift.tar.gz"
     host = get_ftp_ip(url)
-    if download_sift(logger, host, dirname, "./", filename) == False:
+    if download_from_irisa(logger, host, dirname, "./", filename) == False:
         return
     untar(logger, filename, "./", "sift")
     xb, xq, xt, gt = load_sift1M(logger)
@@ -115,7 +115,7 @@ def get_sift10K(logger):
     dirname = "local/texmex/corpus/"
     filename = "siftsmall.tar.gz"
     host = get_ftp_ip(url)
-    if download_sift(logger, host, dirname, "./", filename) == False:
+    if download_from_irisa(logger, host, dirname, "./", filename) == False:
         return
     untar(logger, filename, "./", "siftsmall")
     xb, xq, xt, gt = load_sift10K(logger)
@@ -173,7 +173,7 @@ class DatasetSift10K(Dataset):
         dirname = "local/texmex/corpus/"
         filename = "siftsmall.tar.gz"
         host = get_ftp_ip(self.url)
-        if download_sift(self.logger, host, dirname, self.basedir, filename) == False:
+        if download_from_irisa(self.logger, host, dirname, self.basedir, filename) == False:
             return
         untar(self.logger, filename, self.basedir, "siftsmall")
 
@@ -195,8 +195,8 @@ class DatasetSift1M(Dataset):
     def __init__(self, logger=None):
         self.d = 128
         self.metric = "L2"
-        self.nq = 100
-        self.nb = 10000
+        self.nq = 10000
+        self.nb = 10**6
         self.nt = -1
         self.url = "ftp://ftp.irisa.fr"
         self.basedir = "datasets/"
@@ -208,7 +208,7 @@ class DatasetSift1M(Dataset):
         dirname = "local/texmex/corpus/"
         filename = "sift.tar.gz"
         host = get_ftp_ip(self.url)
-        if download_sift(self.logger, host, dirname, self.basedir, filename) == False:
+        if download_from_irisa(self.logger, host, dirname, self.basedir, filename) == False:
             return
         untar(self.logger, filename, self.basedir, "sift")
 
@@ -352,6 +352,40 @@ class DatasetMusic1M(Dataset):
     def get_groundtruth(self):
         return np.load(self.basedir + "gt.npy")
 
+class DatasetGist1M(Dataset):
+    """
+    Data from ftp://ftp.irisa.fr/local/texmex/corpus/gist.tar.gz
+    """
+
+    def __init__(self, logger=None):
+        self.d = 960
+        self.metric = "L2"
+        self.nq = 1000
+        self.nb = 10**6
+        self.nt = -1
+        self.url = "ftp://ftp.irisa.fr"
+        self.basedir = "datasets/"
+        self.logger = logger
+
+        self.download()
+
+    def download(self):
+        dirname = "local/texmex/corpus/"
+        filename = "gist.tar.gz"
+        host = get_ftp_ip(self.url)
+        if download_from_irisa(self.logger, host, dirname, self.basedir, filename) == False:
+            return
+        untar(self.logger, filename, self.basedir, "gist")
+
+    def get_database(self):
+        return fvecs_read(self.basedir + "gist/gist_base.fvecs")
+
+    def get_queries(self):
+        return fvecs_read(self.basedir + "gist/gist_query.fvecs")
+
+    def get_groundtruth(self):
+        return ivecs_read(self.basedir + "gist/gist_groundtruth.ivecs")
+
 def get_dataset_by_name(logger, name):
     if name == "sift":
         dataset = DatasetSift1M(logger)
@@ -364,4 +398,7 @@ def get_dataset_by_name(logger, name):
         return dataset.get_database(), dataset.get_queries(), dataset.get_groundtruth()
     elif name == "nytimes":
         dataset = DatasetNytimes(logger)
+        return dataset.get_database(), dataset.get_queries(), dataset.get_groundtruth()
+    elif name == "gist":
+        dataset = DatasetGist1M(logger)
         return dataset.get_database(), dataset.get_queries(), dataset.get_groundtruth()

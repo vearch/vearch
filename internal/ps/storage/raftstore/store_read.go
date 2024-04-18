@@ -61,3 +61,15 @@ func (s *Store) Search(ctx context.Context, request *vearchpb.SearchRequest, res
 	err = s.Engine.Reader().Search(ctx, request, response)
 	return err
 }
+
+func (s *Store) Query(ctx context.Context, request *vearchpb.QueryRequest, response *vearchpb.SearchResponse) (err error) {
+	leader := false
+	if request.Head.ClientType == "leader" {
+		leader = true
+	}
+	if err = s.checkReadable(leader); err != nil {
+		return err
+	}
+	err = s.Engine.Reader().Query(ctx, request, response)
+	return err
+}

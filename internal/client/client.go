@@ -255,26 +255,19 @@ func (r *routerRequest) PartitionDocs() *routerRequest {
 }
 
 // Docs in specify partition
-func (r *routerRequest) SetSendMap(partitionId string) *routerRequest {
+func (r *routerRequest) SetSendMap(partitionId uint32) *routerRequest {
 	if r.Err != nil {
-		return r
-	}
-	pID, err := strconv.ParseUint(partitionId, 10, 32)
-	partitionID := uint32(pID)
-	if err != nil {
-		msg := fmt.Sprintf("partitionId: [%s] convert to uint32 failed, err: [%s]", partitionId, err.Error())
-		r.Err = vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, errors.New(msg))
 		return r
 	}
 	dataMap := make(map[entity.PartitionID]*vearchpb.PartitionData)
 	for _, doc := range r.docs {
 		item := &vearchpb.Item{Doc: doc}
-		if d, ok := dataMap[partitionID]; ok {
+		if d, ok := dataMap[partitionId]; ok {
 			d.Items = append(d.Items, item)
 		} else {
 			items := make([]*vearchpb.Item, 0)
-			d = &vearchpb.PartitionData{PartitionID: partitionID, MessageID: r.GetMsgID(), Items: items}
-			dataMap[partitionID] = d
+			d = &vearchpb.PartitionData{PartitionID: partitionId, MessageID: r.GetMsgID(), Items: items}
+			dataMap[partitionId] = d
 			d.Items = append(d.Items, item)
 		}
 
@@ -818,7 +811,7 @@ func (r *routerRequest) SearchFieldSortExecute(sortOrder sortorder.SortOrder) *v
 	}
 
 	if searchResponse == nil {
-		err := &vearchpb.Error{Code: vearchpb.ErrorEnum_ROUTER_CALL_PS_RPC_ERR, Msg: "query result is null"}
+		err := &vearchpb.Error{Code: vearchpb.ErrorEnum_ROUTER_CALL_PS_RPC_ERR, Msg: "search result is null"}
 		searchResponse = &vearchpb.SearchResponse{}
 		responseHead := &vearchpb.ResponseHead{Err: err}
 		searchResponse.Head = responseHead
@@ -844,6 +837,219 @@ func (r *routerRequest) SearchFieldSortExecute(sortOrder sortorder.SortOrder) *v
 		searchResponse.Head.Params["normalTime"] = normalTime.String()
 		searchResponse.Head.Params["rpcBeforeTime"] = rpcBeforeTime.String()
 		searchResponse.Head.Params["rpcTotalTime"] = rpcTotalTime.String()
+	}
+	searchResponse.Results = result
+	return searchResponse
+}
+
+func (r *routerRequest) queryFromPartition(ctx context.Context, partitionID entity.PartitionID, pd *vearchpb.PartitionData, space *entity.Space, respChain chan *response.SearchDocResult) {
+	responseDoc := &response.SearchDocResult{}
+	defer func() {
+		if r := recover(); r != nil {
+			msg := fmt.Sprintf("[Recover] partitionID: [%v], err: [%s]", partitionID, cast.ToString(r))
+			err := &vearchpb.Error{Code: vearchpb.ErrorEnum_RECOVER, Msg: msg}
+			head := &vearchpb.ResponseHead{Err: err}
+			searchResponse := &vearchpb.SearchResponse{Head: head}
+			pd.SearchResponse = searchResponse
+			responseDoc.PartitionData = pd
+			respChain <- responseDoc
+		}
+	}()
+
+	partition, e := r.client.Master().Cache().PartitionByCache(ctx, r.space.Name, partitionID)
+	if e != nil {
+		err := &vearchpb.Error{Code: vearchpb.ErrorEnum_ROUTER_NO_PS_CLIENT, Msg: "query partition cache err partitionID:" + fmt.Sprint(partitionID)}
+		head := &vearchpb.ResponseHead{Err: err}
+		searchResponse := &vearchpb.SearchResponse{Head: head}
+		pd.SearchResponse = searchResponse
+		responseDoc.PartitionData = pd
+		respChain <- responseDoc
+		return
+	}
+
+	replyPartition := new(vearchpb.PartitionData)
+	if replyPartition.SearchResponse == nil {
+		params := make(map[string]string)
+		head := &vearchpb.ResponseHead{Params: params}
+		replyPartition.SearchResponse = &vearchpb.SearchResponse{Head: head}
+	}
+
+	if replyPartition.SearchResponse.Head == nil {
+		params := make(map[string]string)
+		replyPartition.SearchResponse.Head = &vearchpb.ResponseHead{Params: params}
+	}
+
+	if replyPartition.SearchResponse.Head.Params == nil {
+		params := make(map[string]string)
+		replyPartition.SearchResponse.Head.Params = params
+	}
+
+	clientType := pd.QueryRequest.Head.ClientType
+	// ensure node is alive
+	servers := r.client.Master().Cache().serverCache
+
+	nodeID := GetNodeIdsByClientType(clientType, partition, servers, r.client)
+
+	for len(partition.Replicas) > r.client.PS().faultyList.ItemCount() {
+		if r.client.PS().TestFaulty(nodeID) {
+			nodeID = GetNodeIdsByClientType(clientType, partition, servers, r.client)
+			continue
+		}
+
+		rpcClient := r.client.PS().GetOrCreateRPCClient(ctx, nodeID)
+		if rpcClient == nil {
+			err := &vearchpb.Error{Code: vearchpb.ErrorEnum_ROUTER_NO_PS_CLIENT, Msg: "no ps client by nodeID:" + fmt.Sprint(nodeID)}
+			head := &vearchpb.ResponseHead{Err: err}
+			searchResponse := &vearchpb.SearchResponse{Head: head}
+			pd.SearchResponse = searchResponse
+			responseDoc.PartitionData = pd
+			respChain <- responseDoc
+			return
+		}
+
+		err := rpcClient.Execute(ctx, UnaryHandler, pd, replyPartition)
+		if err == nil {
+			break
+		}
+
+		if strings.Contains(err.Error(), "connect: connection refused") {
+			r.client.PS().AddFaulty(nodeID, time.Second*30)
+			nodeID = GetNodeIdsByClientType(clientType, partition, servers, r.client)
+		} else {
+			log.Error("rpc err [%v], nodeID %v", err, nodeID)
+			r.client.PS().AddFaulty(nodeID, time.Second*5)
+			break
+		}
+	}
+
+	sortFieldMap := pd.QueryRequest.SortFieldMap
+	searchResponse := replyPartition.SearchResponse
+	sortValueMap := make(map[string][]sortorder.SortValue)
+	if searchResponse != nil {
+		flatBytes := searchResponse.FlatBytes
+		if flatBytes != nil {
+			gamma.DeSerialize(flatBytes, searchResponse)
+			for i, searchResult := range searchResponse.Results {
+				for _, item := range searchResult.ResultItems {
+					source, sortValues, pkey, err := GetSource(item, space, sortFieldMap, pd.QueryRequest.SortFields)
+					if err != nil {
+						err := &vearchpb.Error{Code: vearchpb.ErrorEnum_PARSING_RESULT_ERROR, Msg: "router call ps rpc service err nodeID:" + fmt.Sprint(nodeID)}
+						replyPartition.SearchResponse.Head.Err = err
+					}
+					item.PKey = pkey
+					item.Source = source
+					index := strconv.Itoa(i)
+					sortValueMap[item.PKey+"_"+index] = sortValues
+				}
+			}
+		}
+	}
+	responseDoc.PartitionData = replyPartition
+	responseDoc.SortValueMap = sortValueMap
+	respChain <- responseDoc
+}
+
+func (r *routerRequest) QueryFieldSortExecute(sortOrder sortorder.SortOrder) *vearchpb.SearchResponse {
+	var wg sync.WaitGroup
+	sendPartitionMap := r.sendMap
+	isNormal := false
+	normalField := make(map[string]string)
+	indexType := r.space.Index.Type
+	if indexType != "" && indexType != "BINARYIVF" {
+		isNormal = true
+	}
+	if isNormal {
+		spacePro := r.space.SpaceProperties
+		for field, pro := range spacePro {
+			format := pro.Format
+			if pro.FieldType == vearchpb.FieldType_VECTOR && format != nil && (*format == "normalization" || *format == "normal") {
+				normalField[field] = field
+			}
+		}
+	}
+
+	var searchReq *vearchpb.QueryRequest
+	respChain := make(chan *response.SearchDocResult, len(sendPartitionMap))
+	for partitionID, pData := range sendPartitionMap {
+		searchReq = pData.QueryRequest
+		wg.Add(1)
+		c := context.WithValue(r.ctx, share.ReqMetaDataKey, vmap.CopyMap(r.md))
+		go func(ctx context.Context, partitionID entity.PartitionID, pd *vearchpb.PartitionData, space *entity.Space, sortOrder sortorder.SortOrder, respChain chan *response.SearchDocResult) {
+			defer wg.Done()
+			r.queryFromPartition(ctx, partitionID, pd, space, respChain)
+		}(c, partitionID, pData, r.space, sortOrder, respChain)
+	}
+	wg.Wait()
+	close(respChain)
+
+	var result []*vearchpb.SearchResult
+	var sortValueMap map[string][]sortorder.SortValue
+	var searchResponse *vearchpb.SearchResponse
+
+	for r := range respChain {
+		if result == nil && r != nil {
+			searchResponse = r.PartitionData.SearchResponse
+			if searchResponse != nil && searchResponse.Results != nil && len(searchResponse.Results) > 0 {
+				result = searchResponse.Results
+				sortValueMap = r.SortValueMap
+				continue
+			}
+		}
+
+		sortValue := r.SortValueMap
+		for PKey, sortValue := range sortValue {
+			sortValueMap[PKey] = sortValue
+		}
+		var err error
+		if err = AddMergeResultArr(result, r.PartitionData.SearchResponse.Results); err != nil {
+			log.Error("msearch AddMergeResultArr error:", err)
+		}
+	}
+
+	if len(result) > 1 {
+		var wg sync.WaitGroup
+		respChain := make(chan map[string]*vearchpb.SearchResult, len(result))
+		for i, resp := range result {
+			wg.Add(1)
+			index := strconv.Itoa(i)
+			high := len(resp.ResultItems) - 1
+			go func(result *vearchpb.SearchResult, sortValueMap map[string][]sortorder.SortValue, low, high int, so sortorder.SortOrder, index string) {
+				quickSort(result.ResultItems, sortValueMap, low, high, so, index)
+				sortMap := make(map[string]*vearchpb.SearchResult)
+				sortMap[index] = result
+				respChain <- sortMap
+				wg.Done()
+			}(resp, sortValueMap, 0, high, sortOrder, index)
+		}
+		wg.Wait()
+		close(respChain)
+		for resp := range respChain {
+			for indexStr, resu := range resp {
+				index, _ := strconv.Atoi(indexStr)
+				result[index] = resu
+			}
+		}
+	} else {
+		for i, resp := range result {
+			index := strconv.Itoa(i)
+			quickSort(resp.ResultItems, sortValueMap, 0, len(resp.ResultItems)-1, sortOrder, index)
+		}
+	}
+
+	for _, resp := range result {
+		if resp.ResultItems != nil && len(resp.ResultItems) > 0 && searchReq.Limit > 0 {
+			len := len(resp.ResultItems)
+			if int32(len) > searchReq.Limit {
+				resp.ResultItems = resp.ResultItems[0:searchReq.Limit]
+			}
+		}
+	}
+
+	if searchResponse == nil {
+		err := &vearchpb.Error{Code: vearchpb.ErrorEnum_ROUTER_CALL_PS_RPC_ERR, Msg: "query result is null"}
+		searchResponse = &vearchpb.SearchResponse{}
+		responseHead := &vearchpb.ResponseHead{Err: err}
+		searchResponse.Head = responseHead
 	}
 	searchResponse.Results = result
 	return searchResponse
@@ -916,6 +1122,24 @@ func generateUUID(key string) (string, error) {
 	return key, nil
 }
 
+func (r *routerRequest) QueryByPartitions(queryReq *vearchpb.QueryRequest) *routerRequest {
+	if r.Err != nil {
+		return r
+	}
+	sendMap := make(map[entity.PartitionID]*vearchpb.PartitionData)
+	for _, partitionInfo := range r.space.Partitions {
+		partitionID := partitionInfo.Id
+		if d, ok := sendMap[partitionID]; ok {
+			log.Error("db Id:%d , space Id:%d, have multiple partitionID:%d", partitionInfo.DBId, partitionInfo.SpaceId, partitionID)
+		} else {
+			d = &vearchpb.PartitionData{PartitionID: partitionID, MessageID: r.GetMsgID(), QueryRequest: queryReq}
+			sendMap[partitionID] = d
+		}
+	}
+	r.sendMap = sendMap
+	return r
+}
+
 func (r *routerRequest) SearchByPartitions(searchReq *vearchpb.SearchRequest) *routerRequest {
 	if r.Err != nil {
 		return r
@@ -933,6 +1157,7 @@ func (r *routerRequest) SearchByPartitions(searchReq *vearchpb.SearchRequest) *r
 	r.sendMap = sendMap
 	return r
 }
+
 func (r *routerRequest) BulkSearchByPartitions(searchReq []*vearchpb.SearchRequest) *routerRequest {
 	if r.Err != nil {
 		return r

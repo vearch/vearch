@@ -31,6 +31,7 @@ message PartitionData {
   DelByQueryeResponse del_by_query_response = 12;
   IndexRequest index_request = 13;
   IndexResponse index_response = 14;
+  QueryRequest query_request = 15;
 }
 
 //*********************** Raft *********************** //

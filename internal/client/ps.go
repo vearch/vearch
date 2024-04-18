@@ -50,6 +50,7 @@ const (
 	UnaryHandler = "UnaryHandler"
 
 	SearchHandler        = "SearchHandler"
+	QueryHandler         = "QueryHandler"
 	DeleteByQueryHandler = "DeleteByQueryHandler"
 
 	GetDocHandler                 = "GetDocHandler"

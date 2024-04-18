@@ -82,6 +82,8 @@ type PartitionStore interface {
 	Flush(ctx context.Context) error
 
 	Search(ctx context.Context, query *vearchpb.SearchRequest, response *vearchpb.SearchResponse) error
+
+	Query(ctx context.Context, query *vearchpb.QueryRequest, response *vearchpb.SearchResponse) error
 }
 
 func (s *Server) GetPartition(id entity.PartitionID) (partition PartitionStore) {

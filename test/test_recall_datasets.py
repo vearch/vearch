@@ -105,19 +105,35 @@ def benchmark(index_type, store_type, metric_type, xb, xq, gt):
     destroy(router_url, db_name, space_name)
 
 
-@ pytest.mark.parametrize(["dataset_name", "metric_type"], [
-    ["sift", "L2"],
-    ["glove", "InnerProduct"],
+xb, xq, gt = get_dataset_by_name(logger, "sift")
+@ pytest.mark.parametrize(["index_type", "store_type"], [
+    ["HNSW", "MemoryOnly"],
+    ["IVFPQ", "MemoryOnly"],
+    ["IVFPQ", "RocksDB"],
+    ["IVFFLAT", "RocksDB"],
+    ["FLAT", "MemoryOnly"]
 ])
-def test_vearch_index_dataset_recall(dataset_name, metric_type):
-    xb, xq, gt = get_dataset_by_name(logger, dataset_name)
+def test_vearch_index_recall_sift1m(index_type: str, store_type: str):
+    benchmark(index_type, store_type, "L2", xb, xq, gt)
 
-    index_infos = [
-        ["HNSW", "MemoryOnly"],
-        ["IVFPQ", "MemoryOnly"],
-        ["IVFPQ", "RocksDB"],
-        ["IVFFLAT", "RocksDB"],
-        ["FLAT", "MemoryOnly"]
-    ]
-    for index_type, store_type in index_infos:
-        benchmark(index_type, store_type, metric_type, xb, xq, gt)
+xb, xq, gt = get_dataset_by_name(logger, "glove")
+@ pytest.mark.parametrize(["index_type", "store_type"], [
+    ["HNSW", "MemoryOnly"],
+    ["IVFPQ", "MemoryOnly"],
+    ["IVFPQ", "RocksDB"],
+    ["IVFFLAT", "RocksDB"],
+    ["FLAT", "MemoryOnly"]
+])
+def test_vearch_index_recall_glove(index_type: str, store_type: str):
+    benchmark(index_type, store_type, "InnerProduct", xb, xq, gt)
+
+xb, xq, gt = get_dataset_by_name(logger, "gist")
+@ pytest.mark.parametrize(["index_type", "store_type"], [
+    ["HNSW", "MemoryOnly"],
+    # ["IVFPQ", "MemoryOnly"],
+    # ["IVFPQ", "RocksDB"],
+    # ["IVFFLAT", "RocksDB"],
+    # ["FLAT", "MemoryOnly"]
+])
+def test_vearch_index_recall_gist1m(index_type: str, store_type: str):
+    benchmark(index_type, store_type, "L2", xb, xq, gt)

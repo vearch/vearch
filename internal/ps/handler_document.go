@@ -209,6 +209,11 @@ func (handler *UnaryHandler) execute(ctx context.Context, req *vearchpb.Partitio
 				req.SearchResponse = &vearchpb.SearchResponse{}
 			}
 			search(ctx, store, req.SearchRequest, req.SearchResponse)
+		case client.QueryHandler:
+			if req.SearchResponse == nil {
+				req.SearchResponse = &vearchpb.SearchResponse{}
+			}
+			query(ctx, store, req.QueryRequest, req.SearchResponse)
 		case client.ForceMergeHandler:
 			req.Err = forceMerge(store)
 		case client.RebuildIndexHandler:
@@ -310,6 +315,28 @@ func bulk(ctx context.Context, store PartitionStore, items []*vearchpb.Item) {
 			items[i].Err = vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, errors.New(msg)).GetError()
 		}
 	}
+}
+
+func query(ctx context.Context, store PartitionStore, request *vearchpb.QueryRequest, response *vearchpb.SearchResponse) {
+	startTime := time.Now()
+	if err := store.Query(ctx, request, response); err != nil {
+		log.Error("query doc failed, err: [%s]", err.Error())
+		response.Head.Err = vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err).GetError()
+	}
+	handlerCostTime := (time.Since(startTime).Seconds()) * 1000
+	handlerCostTimeStr := strconv.FormatFloat(handlerCostTime, 'f', -1, 64)
+
+	if response.Head != nil && response.Head.Params != nil {
+		response.Head.Params["handlerCostTime"] = handlerCostTimeStr
+	} else {
+		costTimeMap := make(map[string]string)
+		costTimeMap["handlerCostTime"] = handlerCostTimeStr
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			response.Head.Err = &vearchpb.Error{Code: vearchpb.ErrorEnum_INTERNAL_ERROR, Msg: cast.ToString(r)}
+		}
+	}()
 }
 
 func search(ctx context.Context, store PartitionStore, request *vearchpb.SearchRequest, response *vearchpb.SearchResponse) {

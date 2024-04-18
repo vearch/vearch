@@ -137,6 +137,22 @@ message IndexParameters {
   int32 nprobe = 2;
 }
 
+message QueryRequest {
+  RequestHead head = 1;
+  repeated string document_ids = 2;
+  int32 partition_id = 3;
+  bool next = 4;
+  repeated RangeFilter range_filters = 5;
+  repeated TermFilter term_filters = 6;
+  repeated string fields = 7;
+  bool is_vector_value = 8;
+  int32 limit = 9;
+  int32 page_size = 10;
+  string load_balance = 11;
+  map<string, string> sort_field_map = 12;
+  repeated SortField sort_fields = 13;
+}
+
 message SearchRequest {
   RequestHead head = 1;
   int32 req_num = 2;

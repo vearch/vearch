@@ -613,7 +613,7 @@ def process_query_error_data(items):
 
     if wrong_partition and interface == "query":
         data["document_ids"] = ["0"]
-        data["partition_id"] = "1008611"
+        data["partition_id"] = 1008611
 
     if wrong_id:
         data["document_ids"] = ["wrong_id"]
@@ -798,12 +798,12 @@ def process_get_data(items):
             data["document_ids"].append(str(index * batch_size + j))
 
     if query_type == "by_partition" or query_type == "by_partition_next":
-        partition_id = "1"
+        partition_id = 1
         partition_ids = get_partition(router_url, db_name, space_name)
         if len(partition_ids) >= 1:
             partition_id = partition_ids[0]
         # logger.debug("partition_id: " + str(partition_id))
-        data["partition_id"] = str(partition_id)
+        data["partition_id"] = partition_id
         if query_type == "by_partition_next":
             data["next"] = True
 

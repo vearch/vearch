@@ -26,7 +26,6 @@ import (
 
 	"github.com/vearch/vearch/internal/client"
 	"github.com/vearch/vearch/internal/entity"
-	"github.com/vearch/vearch/internal/entity/request"
 	"github.com/vearch/vearch/internal/pkg/cbbytes"
 	"github.com/vearch/vearch/internal/pkg/log"
 	"github.com/vearch/vearch/internal/pkg/vjson"
@@ -197,7 +196,7 @@ func documentGetResponse(client *client.Client, args *vearchpb.GetRequest, reply
 	return response, nil
 }
 
-func documentSearchResponse(srs []*vearchpb.SearchResult, head *vearchpb.ResponseHead, response_type string) (map[string]interface{}, error) {
+func documentQueryResponse(srs []*vearchpb.SearchResult, head *vearchpb.ResponseHead) (map[string]interface{}, error) {
 	response := make(map[string]interface{})
 
 	if head != nil && head.Err != nil {
@@ -206,12 +205,10 @@ func documentSearchResponse(srs []*vearchpb.SearchResult, head *vearchpb.Respons
 		}
 	}
 
-	if response_type == request.QueryResponse {
-		if len(srs) == 0 {
-			response["total"] = 0
-		} else {
-			response["total"] = len(srs[0].ResultItems)
-		}
+	if len(srs) == 0 {
+		response["total"] = 0
+	} else {
+		response["total"] = len(srs[0].ResultItems)
 	}
 
 	var documents []json.RawMessage
@@ -223,7 +220,7 @@ func documentSearchResponse(srs []*vearchpb.SearchResult, head *vearchpb.Respons
 			go func(sr *vearchpb.SearchResult, index int) {
 				defer wg.Done()
 
-				bytes, err := documentToContent(sr.ResultItems, response_type)
+				bytes, err := documentQueryToContent(sr.ResultItems)
 				if err != nil {
 					return
 				}
@@ -238,7 +235,7 @@ func documentSearchResponse(srs []*vearchpb.SearchResult, head *vearchpb.Respons
 		}
 	} else {
 		for _, sr := range srs {
-			bytes, err := documentToContent(sr.ResultItems, response_type)
+			bytes, err := documentQueryToContent(sr.ResultItems)
 			if err != nil {
 				return nil, err
 			}
@@ -246,26 +243,93 @@ func documentSearchResponse(srs []*vearchpb.SearchResult, head *vearchpb.Respons
 		}
 	}
 
-	if response_type == request.SearchResponse {
-		response["documents"] = documents
+	if len(documents) > 0 {
+		response["documents"] = documents[0]
 	} else {
-		if len(documents) > 0 {
-			response["documents"] = documents[0]
-		} else {
-			response["documents"] = []json.RawMessage{}
-		}
+		response["documents"] = []json.RawMessage{}
 	}
+
 	return response, nil
 }
 
-func documentToContent(dh []*vearchpb.ResultItem, response_type string) ([]byte, error) {
+func documentSearchResponse(srs []*vearchpb.SearchResult, head *vearchpb.ResponseHead) (map[string]interface{}, error) {
+	response := make(map[string]interface{})
+
+	if head != nil && head.Err != nil {
+		if head.Err.Code != vearchpb.ErrorEnum_SUCCESS {
+			return nil, vearchpb.NewError(head.Err.Code, errors.New(head.Err.Msg))
+		}
+	}
+
+	var documents []json.RawMessage
+	if len(srs) > 1 {
+		var wg sync.WaitGroup
+		resp := make([][]byte, len(srs))
+		for i, sr := range srs {
+			wg.Add(1)
+			go func(sr *vearchpb.SearchResult, index int) {
+				defer wg.Done()
+
+				bytes, err := documentSearchToContent(sr.ResultItems)
+				if err != nil {
+					return
+				}
+				resp[index] = json.RawMessage(bytes)
+			}(sr, i)
+		}
+
+		wg.Wait()
+
+		for _, msg := range resp {
+			documents = append(documents, msg)
+		}
+	} else {
+		for _, sr := range srs {
+			bytes, err := documentSearchToContent(sr.ResultItems)
+			if err != nil {
+				return nil, err
+			}
+			documents = append(documents, json.RawMessage(bytes))
+		}
+	}
+	response["documents"] = documents
+	return response, nil
+}
+
+func documentQueryToContent(dh []*vearchpb.ResultItem) ([]byte, error) {
 	contents := make([]map[string]interface{}, 0)
 
 	for _, u := range dh {
 		content := make(map[string]interface{})
 		content["_id"] = u.PKey
 
-		if response_type == request.SearchResponse && u.Fields != nil {
+		if u.Source != nil {
+			var source map[string]interface{}
+			if err := vjson.Unmarshal(u.Source, &source); err != nil {
+				log.Error("DocToContent Source Unmarshal error:%v", err)
+			} else {
+				for k, v := range source {
+					if _, exists := content[k]; !exists {
+						content[k] = v
+					}
+				}
+			}
+		}
+
+		contents = append(contents, content)
+	}
+
+	return vjson.Marshal(contents)
+}
+
+func documentSearchToContent(dh []*vearchpb.ResultItem) ([]byte, error) {
+	contents := make([]map[string]interface{}, 0)
+
+	for _, u := range dh {
+		content := make(map[string]interface{})
+		content["_id"] = u.PKey
+
+		if u.Fields != nil {
 			content["_score"] = &u.Score
 		}
 
