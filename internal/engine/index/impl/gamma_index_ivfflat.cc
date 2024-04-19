@@ -199,10 +199,8 @@ Status GammaIndexIVFFlat::Init(const std::string &model_parameters,
       this->nlist, this->code_size, raw_vec->VidMgr(), raw_vec->Bitmap(),
       params.bucket_init_size, params.bucket_max_size);
 
-  if (this->invlists) {
-    delete this->invlists;
-    this->invlists = nullptr;
-  }
+  delete this->invlists;
+  this->invlists = nullptr;
 
   bool ret = rt_invert_index_ptr_->Init();
   if (!ret) {
@@ -442,7 +440,9 @@ int GammaIndexIVFFlat::Search(RetrievalContext *retrieval_context, int n,
     nprobe = retrieval_params->Nprobe();
   } else {
     retrieval_params->SetNprobe(this->nprobe);
-    LOG(WARNING) << "nlist = " << this->nlist << "nprobe = " << retrieval_params->Nprobe() << "invalid, now use:" << this->nprobe; 
+    LOG(WARNING) << "nlist = " << this->nlist
+                 << "nprobe = " << retrieval_params->Nprobe()
+                 << "invalid, now use:" << this->nprobe;
   }
 #else
   int nprobe = this->nprobe;
@@ -455,7 +455,7 @@ int GammaIndexIVFFlat::Search(RetrievalContext *retrieval_context, int n,
   quantizer->search(n, x, nprobe, coarse_dis.get(), idx.get());
 
   search_preassigned(retrieval_context, n, x, k, idx.get(), coarse_dis.get(),
-                    distances, labels, nprobe, false);
+                     distances, labels, nprobe, false);
 
   return 0;
 }
@@ -482,7 +482,8 @@ void GammaIndexIVFFlat::search_preassigned(RetrievalContext *retrieval_context,
     retrieval_context->retrieval_params_ =
         new FlatRetrievalParameters(retrieval_params->ParallelOnQueries(),
                                     retrieval_params->GetDistanceComputeType());
-    GammaFLATIndex::Search(retrieval_context, n, (const uint8_t*)x, k, distances, labels);
+    GammaFLATIndex::Search(retrieval_context, n, (const uint8_t *)x, k,
+                           distances, labels);
     return;
   }
   faiss::MetricType metric_type;

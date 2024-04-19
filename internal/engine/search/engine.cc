@@ -490,8 +490,10 @@ Status Engine::CreateTable(TableInfo &table) {
     }
   }
 
-  if (vec_manager_->CreateVectorTable(table, meta_jp) != 0) {
-    std::string msg = space_name_ + " cannot create VectorTable!";
+  Status status = vec_manager_->CreateVectorTable(table, meta_jp);
+  if (status != Status::OK()) {
+    std::string msg =
+        space_name_ + " cannot create VectorTable: " + status.ToString();
     LOG(ERROR) << msg;
     vec_manager_->Close();
     return Status::ParamError(msg);
@@ -502,7 +504,7 @@ Status Engine::CreateTable(TableInfo &table) {
     meta_jp->GetObject("table", table_jp);
     disk_table_params.Parse(table_jp);
   }
-  Status status = table_->CreateTable(table, disk_table_params, docids_bitmap_);
+  status = table_->CreateTable(table, disk_table_params, docids_bitmap_);
   training_threshold_ = table.TrainingThreshold();
   LOG(INFO) << space_name_
             << " init training_threshold=" << training_threshold_;
@@ -775,7 +777,7 @@ int Engine::RebuildIndex(int drop_before_rebuild, int limit_cpu, int describe) {
   std::map<std::string, IndexModel *> vector_indexes;
 
   if (!drop_before_rebuild) {
-    ret =
+    Status status =
         vec_manager_->CreateVectorIndexes(training_threshold_, vector_indexes);
     if (vec_manager_->TrainIndex(vector_indexes) != 0) {
       LOG(ERROR) << "RebuildIndex TrainIndex failed!";
@@ -795,10 +797,11 @@ int Engine::RebuildIndex(int drop_before_rebuild, int limit_cpu, int describe) {
   vec_manager_->DestroyVectorIndexes();
 
   if (drop_before_rebuild) {
-    ret = vec_manager_->CreateVectorIndexes(training_threshold_,
-                                            vec_manager_->VectorIndexes());
-    if (ret) {
-      LOG(ERROR) << "RebuildIndex CreateVectorIndexes failed, ret: " << ret;
+    Status status = vec_manager_->CreateVectorIndexes(
+        training_threshold_, vec_manager_->VectorIndexes());
+    if (status != Status::OK()) {
+      LOG(ERROR) << "RebuildIndex CreateVectorIndexes failed: "
+                 << status.ToString();
       vec_manager_->DestroyVectorIndexes();
       return ret;
     }

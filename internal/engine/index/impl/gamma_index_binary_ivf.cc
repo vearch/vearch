@@ -67,18 +67,12 @@ GammaIndexBinaryIVF::GammaIndexBinaryIVF() {
 }
 
 GammaIndexBinaryIVF::~GammaIndexBinaryIVF() {
-  if (rt_invert_index_ptr_) {
-    delete rt_invert_index_ptr_;
-    rt_invert_index_ptr_ = nullptr;
-  }
-  if (invlists) {
-    delete invlists;
-    invlists = nullptr;
-  }
-  if (quantizer) {
-    delete quantizer;  // it will not be delete in parent class
-    quantizer = nullptr;
-  }
+  delete rt_invert_index_ptr_;
+  rt_invert_index_ptr_ = nullptr;
+  delete invlists;
+  invlists = nullptr;
+  delete quantizer;  // it will not be delete in parent class
+  quantizer = nullptr;
 }
 
 Status GammaIndexBinaryIVF::Init(const std::string &model_parameters,
@@ -117,10 +111,8 @@ Status GammaIndexBinaryIVF::Init(const std::string &model_parameters,
 
   this->nprobe = 20;
 
-  if (this->invlists) {
-    delete this->invlists;
-    this->invlists = nullptr;
-  }
+  delete this->invlists;
+  this->invlists = nullptr;
 
   bool ret = rt_invert_index_ptr_->Init();
 

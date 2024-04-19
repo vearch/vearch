@@ -48,22 +48,14 @@ GammaIVFPQFastScanIndex::GammaIVFPQFastScanIndex() : indexed_vec_count_(0) {
 }
 
 GammaIVFPQFastScanIndex::~GammaIVFPQFastScanIndex() {
-  if (rt_invert_index_ptr_) {
-    delete rt_invert_index_ptr_;
-    rt_invert_index_ptr_ = nullptr;
-  }
-  if (invlists) {
-    delete invlists;
-    invlists = nullptr;
-  }
-  if (quantizer) {
-    delete quantizer;  // it will not be delete in parent class
-    quantizer = nullptr;
-  }
-  if (opq_) {
-    delete opq_;
-    opq_ = nullptr;
-  }
+  delete rt_invert_index_ptr_;
+  rt_invert_index_ptr_ = nullptr;
+  delete invlists;
+  invlists = nullptr;
+  delete quantizer;  // it will not be delete in parent class
+  quantizer = nullptr;
+  delete opq_;
+  opq_ = nullptr;
 
   CHECK_DELETE(model_param_);
   int ret = pthread_rwlock_destroy(&shared_mutex_);

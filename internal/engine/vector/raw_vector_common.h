@@ -46,10 +46,8 @@ class VIDMgr {
   ~VIDMgr() {
     if (multi_vids_) {
       for (size_t i = 0; i < docid2vid_.size(); i++) {
-        if (docid2vid_[i] != nullptr) {
-          delete[] docid2vid_[i];
-          docid2vid_[i] = nullptr;
-        }
+        delete[] docid2vid_[i];
+        docid2vid_[i] = nullptr;
       }
     }
   }

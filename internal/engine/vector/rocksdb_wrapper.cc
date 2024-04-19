@@ -16,10 +16,8 @@ namespace vearch {
 RocksDBWrapper::RocksDBWrapper() : db_(nullptr) {}
 
 RocksDBWrapper::~RocksDBWrapper() {
-  if (db_) {
-    delete db_;
-    db_ = nullptr;
-  }
+  delete db_;
+  db_ = nullptr;
 }
 
 Status RocksDBWrapper::Open(string db_path, size_t block_cache_size) {

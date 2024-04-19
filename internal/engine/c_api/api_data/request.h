@@ -26,10 +26,8 @@ class Request : public RawData {
   }
 
   virtual ~Request() {
-    if (ranker_) {
-      delete ranker_;
-      ranker_ = nullptr;
-    }
+    delete ranker_;
+    ranker_ = nullptr;
   }
 
   virtual int Serialize(char **out, int *out_len);

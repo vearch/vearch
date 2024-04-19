@@ -31,25 +31,29 @@ VectorManager::VectorManager(const VectorStorageType &store_type,
 
 VectorManager::~VectorManager() { Close(); }
 
-int VectorManager::SetVectorStoreType(std::string &index_type,
-                                      std::string &store_type_str,
-                                      VectorStorageType &store_type) {
+Status VectorManager::SetVectorStoreType(std::string &index_type,
+                                         std::string &store_type_str,
+                                         VectorStorageType &store_type) {
   if (store_type_str != "") {
     if (!strcasecmp("MemoryOnly", store_type_str.c_str())) {
       store_type = VectorStorageType::MemoryOnly;
     } else if (!strcasecmp("RocksDB", store_type_str.c_str())) {
       store_type = VectorStorageType::RocksDB;
     } else {
-      LOG(WARNING) << "NO support for store type " << store_type_str;
-      return -1;
+      std::stringstream msg;
+      msg << "NO support for store type " << store_type_str;
+      LOG(WARNING) << msg.str();
+      return Status::NotSupported(msg.str());
     }
     // ivfflat has raw vector data in index, so just use rocksdb to reduce
     // memory footprint
     if (index_type == "IVFFLAT" &&
         strcasecmp("RocksDB", store_type_str.c_str())) {
-      LOG(ERROR) << "IVFFLAT should use RocksDB, now store_type = "
-                 << store_type_str;
-      return -1;
+      std::stringstream msg;
+      msg << "IVFFLAT should use RocksDB, now store_type = " << store_type_str;
+
+      LOG(ERROR) << msg.str();
+      return Status::ParamError(msg.str());
     }
   } else {
     if (index_type == "HNSW" || index_type == "FLAT") {
@@ -60,25 +64,26 @@ int VectorManager::SetVectorStoreType(std::string &index_type,
       store_type_str = "RocksDB";
     }
   }
-  return 0;
+  return Status::OK();
 }
 
-int VectorManager::CreateRawVector(struct VectorInfo &vector_info,
-                                   std::string &index_type,
-                                   std::map<std::string, int> &vec_dups,
-                                   TableInfo &table,
-                                   utils::JsonParser &vectors_jp,
-                                   RawVector **vec) {
+Status VectorManager::CreateRawVector(struct VectorInfo &vector_info,
+                                      std::string &index_type,
+                                      std::map<std::string, int> &vec_dups,
+                                      TableInfo &table,
+                                      utils::JsonParser &vectors_jp,
+                                      RawVector **vec) {
   std::string &vec_name = vector_info.name;
   int dimension = vector_info.dimension;
 
   std::string &store_type_str = vector_info.store_type;
 
   VectorStorageType store_type = default_store_type_;
-  if (SetVectorStoreType(index_type, store_type_str, store_type)) {
+  Status status = SetVectorStoreType(index_type, store_type_str, store_type);
+  if (status != Status::OK()) {
     LOG(ERROR) << "set vector store type failed, store_type=" << store_type_str
                << ", index_type=" << index_type;
-    return -1;
+    return status;
   }
 
   std::string &store_param = vector_info.store_param;
@@ -91,8 +96,7 @@ int VectorManager::CreateRawVector(struct VectorInfo &vector_info,
 
   std::string vec_root_path = root_path_ + "/vectors";
   if (utils::make_dir(vec_root_path.c_str())) {
-    LOG(ERROR) << "make directory error, path=" << vec_root_path;
-    return -2;
+    return Status::IOError("make directory error, path=", vec_root_path);
   }
   VectorMetaInfo *meta_info =
       new VectorMetaInfo(vec_name, dimension, value_type);
@@ -102,7 +106,7 @@ int VectorManager::CreateRawVector(struct VectorInfo &vector_info,
     Status status = store_params.Parse(store_param.c_str());
     if (!status.ok()) {
       delete meta_info;
-      return status.code();
+      return status;
     }
   }
 
@@ -122,24 +126,25 @@ int VectorManager::CreateRawVector(struct VectorInfo &vector_info,
 
   if ((*vec) == nullptr) {
     LOG(ERROR) << "create raw vector error";
-    return -1;
+    return Status::IOError("create raw vector error");
   }
   LOG(INFO) << "create raw vector success, vec_name[" << vec_name
             << "] store_type[" << store_type_str << "]";
   bool multi_vids = vec_dups[vec_name] > 1 ? true : false;
   int ret = (*vec)->Init(vec_name, multi_vids);
   if (ret != 0) {
-    LOG(ERROR) << "Raw vector " << vec_name << " init error, code [" << ret
-               << "]!";
+    std::stringstream msg;
+    msg << "Raw vector " << vec_name << " init error, code [" << ret << "]!";
+    LOG(ERROR) << msg.str();
     RawVectorIO *rio = (*vec)->GetIO();
     if (rio) {
       delete rio;
       rio = nullptr;
     }
     delete (*vec);
-    return -1;
+    return Status::IOError(msg.str());
   }
-  return 0;
+  return Status::OK();
 }
 
 void VectorManager::DestroyRawVectors() {
@@ -156,7 +161,7 @@ void VectorManager::DestroyRawVectors() {
   LOG(INFO) << "Raw vector cleared.";
 }
 
-int VectorManager::CreateVectorIndex(
+Status VectorManager::CreateVectorIndex(
     std::string &index_type, std::string &index_params, RawVector *vec,
     int training_threshold, bool destroy_vec,
     std::map<std::string, IndexModel *> &vector_indexes) {
@@ -167,8 +172,9 @@ int VectorManager::CreateVectorIndex(
   IndexModel *index_model =
       dynamic_cast<IndexModel *>(reflector().GetNewIndex(index_type));
   if (index_model == nullptr) {
-    LOG(ERROR) << "Cannot get model=" << index_type
-               << ", vec_name=" << vec_name;
+    std::stringstream msg;
+    msg << "Cannot get model=" << index_type << ", vec_name=" << vec_name;
+    LOG(ERROR) << msg.str();
     if (destroy_vec) {
       RawVectorIO *rio = vec->GetIO();
       if (rio) {
@@ -179,7 +185,7 @@ int VectorManager::CreateVectorIndex(
       delete vec;
       raw_vectors_[vec_name] = nullptr;
     }
-    return -1;
+    return Status::ParamError(msg.str());
   }
   index_model->vector_ = vec;
 
@@ -199,13 +205,13 @@ int VectorManager::CreateVectorIndex(
     index_model->vector_ = nullptr;
     delete index_model;
     index_model = nullptr;
-    return -1;
+    return status;
   }
   // init indexed count
   index_model->indexed_count_ = 0;
   vector_indexes[IndexName(vec_name, index_type)] = index_model;
 
-  return 0;
+  return Status::OK();
 }
 
 void VectorManager::DestroyVectorIndexes() {
@@ -227,25 +233,26 @@ void VectorManager::DescribeVectorIndexes() {
   }
 }
 
-int VectorManager::CreateVectorIndexes(
+Status VectorManager::CreateVectorIndexes(
     int training_threshold,
     std::map<std::string, IndexModel *> &vector_indexes) {
-  int ret = 0;
   for (const auto &[name, index] : raw_vectors_) {
     if (index != nullptr) {
       std::string &vec_name = index->MetaInfo()->Name();
 
       for (size_t i = 0; i < index_types_.size(); ++i) {
-        ret = CreateVectorIndex(index_types_[i], index_params_[i], index,
-                                training_threshold, false, vector_indexes);
-        if (ret) {
-          LOG(ERROR) << vec_name << " create index failed ret: " << ret;
-          return ret;
+        Status status =
+            CreateVectorIndex(index_types_[i], index_params_[i], index,
+                              training_threshold, false, vector_indexes);
+        if (status != Status::OK()) {
+          LOG(ERROR) << vec_name
+                     << " create index failed: " << status.ToString();
+          return status;
         }
       }
     }
   }
-  return 0;
+  return Status::OK();
 }
 
 void VectorManager::SetVectorIndexes(
@@ -258,9 +265,10 @@ void VectorManager::SetVectorIndexes(
   }
 }
 
-int VectorManager::CreateVectorTable(TableInfo &table,
-                                     utils::JsonParser *meta_jp) {
-  if (table_created_) return -1;
+Status VectorManager::CreateVectorTable(TableInfo &table,
+                                        utils::JsonParser *meta_jp) {
+  Status status;
+  if (table_created_) return Status::ParamError("table is created");
 
   std::map<std::string, int> vec_dups;
 
@@ -287,15 +295,18 @@ int VectorManager::CreateVectorTable(TableInfo &table,
   }
 
   for (size_t i = 0; i < vectors_infos.size(); i++) {
-    int ret = 0;
+    Status vec_status;
     RawVector *vec = nullptr;
     struct VectorInfo &vector_info = vectors_infos[i];
     std::string &vec_name = vector_info.name;
-    ret = CreateRawVector(vector_info, index_types_[0], vec_dups, table,
-                          vectors_jp, &vec);
-    if (ret) {
-      LOG(ERROR) << vec_name << " create vector failed ret:" << ret;
-      return ret;
+    vec_status = CreateRawVector(vector_info, index_types_[0], vec_dups, table,
+                                 vectors_jp, &vec);
+    if (vec_status != Status::OK()) {
+      std::stringstream msg;
+      msg << vec_name << " create vector failed:" << vec_status.ToString();
+      LOG(ERROR) << msg.str();
+      status = Status::ParamError(msg.str());
+      return status;
     }
 
     raw_vectors_[vec_name] = vec;
@@ -306,11 +317,12 @@ int VectorManager::CreateVectorTable(TableInfo &table,
     }
 
     for (size_t i = 0; i < index_types_.size(); ++i) {
-      ret = CreateVectorIndex(index_types_[i], index_params_[i], vec,
-                              table.TrainingThreshold(), true, vector_indexes_);
-      if (ret) {
-        LOG(ERROR) << vec_name << " create index failed ret: " << ret;
-        return ret;
+      status =
+          CreateVectorIndex(index_types_[i], index_params_[i], vec,
+                            table.TrainingThreshold(), true, vector_indexes_);
+      if (status != Status::OK()) {
+        LOG(ERROR) << vec_name << " create index failed: " << status.ToString();
+        return status;
       }
       // update TrainingThreshold when TrainingThreshold = 0
       if (!table.TrainingThreshold()) {
@@ -325,7 +337,7 @@ int VectorManager::CreateVectorTable(TableInfo &table,
   table_created_ = true;
   LOG(INFO) << "create vectors and indexes success! models="
             << utils::join(index_types_, ',');
-  return 0;
+  return Status::OK();
 }
 
 int VectorManager::AddToStore(
@@ -634,7 +646,8 @@ Status VectorManager::Search(GammaQuery &query, GammaResult *results) {
           if (cur_docid == start_docid) {
             common_docid_count++;
             // now just support WeightedRanker
-            WeightedRanker *ranker = dynamic_cast<WeightedRanker *>(query.condition->ranker);
+            WeightedRanker *ranker =
+                dynamic_cast<WeightedRanker *>(query.condition->ranker);
             float weight = 1.0 / vec_num;
             if (ranker != nullptr && ranker->weights.size() == vec_num)
               weight = ranker->weights[j];

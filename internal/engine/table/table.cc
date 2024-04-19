@@ -108,10 +108,8 @@ Table::Table(const string &root_path, const string &space_name)
 Table::~Table() {
   bitmap_mgr_ = nullptr;
   CHECK_DELETE(table_params_);
-  if (storage_mgr_) {
-    delete storage_mgr_;
-    storage_mgr_ = nullptr;
-  }
+  delete storage_mgr_;
+  storage_mgr_ = nullptr;
 
   delete item_to_docid_;
   item_to_docid_ = nullptr;
@@ -351,7 +349,8 @@ int Table::Update(const std::unordered_map<std::string, struct Field> &fields,
     int field_id = it->second;
     int offset = idx_attr_offset_[field_id];
 
-    if (field.datatype == DataType::STRING || field.datatype == DataType::STRINGARRAY) {
+    if (field.datatype == DataType::STRING ||
+        field.datatype == DataType::STRINGARRAY) {
       int len = field.value.size();
       storage_mgr_->UpdateString(docid, name, field.value.c_str(), len);
     } else {

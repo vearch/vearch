@@ -246,15 +246,10 @@ GammaIVFPQGPUIndex::~GammaIVFPQGPUIndex() {
   std::lock_guard<std::mutex> lock(indexing_mutex_);
   b_exited_ = true;
   std::this_thread::sleep_for(std::chrono::seconds(2));
-  if (cpu_index_) {
-    delete cpu_index_;
-    cpu_index_ = nullptr;
-  }
-
-  if (gpu_index_) {
-    delete gpu_index_;
-    gpu_index_ = nullptr;
-  }
+  delete cpu_index_;
+  cpu_index_ = nullptr;
+  delete gpu_index_;
+  gpu_index_ = nullptr;
 
   for (auto &resource : resources_) {
     delete resource;

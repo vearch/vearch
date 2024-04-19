@@ -52,22 +52,14 @@ GammaIVFPQIndex::GammaIVFPQIndex() : indexed_vec_count_(0) {
 }
 
 GammaIVFPQIndex::~GammaIVFPQIndex() {
-  if (rt_invert_index_ptr_) {
-    delete rt_invert_index_ptr_;
-    rt_invert_index_ptr_ = nullptr;
-  }
-  if (invlists) {
-    delete invlists;
-    invlists = nullptr;
-  }
-  if (quantizer) {
-    delete quantizer;  // it will not be delete in parent class
-    quantizer = nullptr;
-  }
-  if (opq_) {
-    delete opq_;
-    opq_ = nullptr;
-  }
+  delete rt_invert_index_ptr_;
+  rt_invert_index_ptr_ = nullptr;
+  delete invlists;
+  invlists = nullptr;
+  delete quantizer;  // it will not be delete in parent class
+  quantizer = nullptr;
+  delete opq_;
+  opq_ = nullptr;
 
   CHECK_DELETE(model_param_);
 }
@@ -132,8 +124,10 @@ Status GammaIVFPQIndex::Init(const std::string &model_parameters,
   if (training_threshold) {
     training_threshold_ = training_threshold;
   } else {
-    // shouldn't less than max_points_per_centroid because of pq.train() when nbit = 8 and ksub = 2^8
-    training_threshold_ = std::max((int)nlist * min_points_per_centroid, max_points_per_centroid);
+    // shouldn't less than max_points_per_centroid because of pq.train() when
+    // nbit = 8 and ksub = 2^8
+    training_threshold_ =
+        std::max((int)nlist * min_points_per_centroid, max_points_per_centroid);
   }
   ivfpq_param.training_threshold = training_threshold_;
   LOG(INFO) << ivfpq_param.ToString();
@@ -516,7 +510,9 @@ int GammaIVFPQIndex::Search(RetrievalContext *retrieval_context, int n,
     nprobe = retrieval_params->Nprobe();
   } else {
     retrieval_params->SetNprobe(this->nprobe);
-    LOG(WARNING) << "nlist = " << this->nlist << "nprobe = " << retrieval_params->Nprobe() << "invalid, now use:" << this->nprobe; 
+    LOG(WARNING) << "nlist = " << this->nlist
+                 << "nprobe = " << retrieval_params->Nprobe()
+                 << "invalid, now use:" << this->nprobe;
   }
 
   const float *xq = reinterpret_cast<const float *>(x);
@@ -611,8 +607,8 @@ size_t scan_one_list(GammaInvertedListScanner *scanner, idx_t key,
 
 void compute_dis(int k, const float *xi, float *simi, idx_t *idxi,
                  float *recall_simi, idx_t *recall_idxi, int recall_num,
-                 bool rerank, faiss::MetricType metric_type,
-                 VectorReader *vec, RetrievalContext *retrieval_context) {
+                 bool rerank, faiss::MetricType metric_type, VectorReader *vec,
+                 RetrievalContext *retrieval_context) {
   if (rerank == true) {
     ScopeVectors scope_vecs;
     std::vector<idx_t> vids(recall_idxi, recall_idxi + recall_num);
