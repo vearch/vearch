@@ -144,7 +144,7 @@ func (ri *readerImpl) Search(ctx context.Context, request *vearchpb.SearchReques
 	reqByte := gamma.SearchRequestSerialize(request)
 	serializeCostTime := (time.Since(startTime).Seconds()) * 1000
 	gammaStartTime := time.Now()
-	code, respByte := gamma.Search(ri.engine.gamma, reqByte)
+	respByte, status := gamma.Search(ri.engine.gamma, reqByte)
 	gammaCostTime := (time.Since(gammaStartTime).Seconds()) * 1000
 	response.FlatBytes = respByte
 	serializeCostTimeStr := strconv.FormatFloat(serializeCostTime, 'f', -1, 64)
@@ -165,19 +165,8 @@ func (ri *readerImpl) Search(ctx context.Context, request *vearchpb.SearchReques
 		response.Head.Params["gammaCostTime"] = gammaCostTimeStr
 	}
 
-	if code != 0 {
-		var vearchErr *vearchpb.VearchErr
-		switch code {
-		case -1:
-			vearchErr = vearchpb.NewErrorInfo(vearchpb.ErrorEnum_GAMMA_SEARCH_QUERY_NUM_LESS_0, "search num less than 0")
-		case 1:
-			vearchErr = vearchpb.NewErrorInfo(vearchpb.ErrorEnum_GAMMA_SEARCH_NO_CREATE_INDEX, "index not trained")
-		case -3:
-			vearchErr = vearchpb.NewErrorInfo(vearchpb.ErrorEnum_GAMMA_SEARCH_INDEX_QUERY_ERR, "index search error")
-		default:
-			vearchErr = vearchpb.NewErrorInfo(vearchpb.ErrorEnum_GAMMA_SEARCH_OTHER_ERR, "search internal error")
-		}
-		return vearchErr
+	if status.Code != 0 {
+		return vearchpb.NewErrorInfo(vearchpb.ErrorEnum_SEARCH_ENGINE_ERR, status.Msg)
 	}
 
 	return nil
@@ -200,7 +189,7 @@ func (ri *readerImpl) Query(ctx context.Context, request *vearchpb.QueryRequest,
 	reqByte := gamma.QueryRequestSerialize(request)
 	serializeCostTime := (time.Since(startTime).Seconds()) * 1000
 	gammaStartTime := time.Now()
-	code, respByte := gamma.Search(ri.engine.gamma, reqByte)
+	respByte, status := gamma.Search(ri.engine.gamma, reqByte)
 	gammaCostTime := (time.Since(gammaStartTime).Seconds()) * 1000
 	response.FlatBytes = respByte
 	serializeCostTimeStr := strconv.FormatFloat(serializeCostTime, 'f', -1, 64)
@@ -221,15 +210,8 @@ func (ri *readerImpl) Query(ctx context.Context, request *vearchpb.QueryRequest,
 		response.Head.Params["gammaCostTime"] = gammaCostTimeStr
 	}
 
-	if code != 0 {
-		var vearchErr *vearchpb.VearchErr
-		switch code {
-		case -3:
-			vearchErr = vearchpb.NewErrorInfo(vearchpb.ErrorEnum_GAMMA_SEARCH_INDEX_QUERY_ERR, "index search error")
-		default:
-			vearchErr = vearchpb.NewErrorInfo(vearchpb.ErrorEnum_GAMMA_SEARCH_OTHER_ERR, "query internal error")
-		}
-		return vearchErr
+	if status.Code != 0 {
+		return vearchpb.NewErrorInfo(vearchpb.ErrorEnum_QUERY_ENGINE_ERR, status.Msg)
 	}
 
 	return nil

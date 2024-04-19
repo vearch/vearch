@@ -246,15 +246,15 @@ Status Engine::Setup() {
   return Status::OK();
 }
 
-int Engine::Search(Request &request, Response &response_results,
-                   Status &status) {
+Status Engine::Search(Request &request, Response &response_results) {
   int req_num = request.ReqNum();
+  Status status;
 
   if (req_num <= 0) {
     std::string msg = space_name_ + " req_num should not less than 0";
     status = Status::InvalidArgument(msg);
     LOG(ERROR) << msg;
-    return status.code();
+    return status;
   }
 
   bool req_permit = RequestConcurrentController::GetInstance().Acquire(req_num);
@@ -263,7 +263,7 @@ int Engine::Search(Request &request, Response &response_results,
     LOG(WARNING) << msg;
     RequestConcurrentController::GetInstance().Release(req_num);
     status = Status::ResourceExhausted();
-    return status.code();
+    return status;
   }
 
   int topn = request.TopN();
@@ -284,7 +284,7 @@ int Engine::Search(Request &request, Response &response_results,
     }
     RequestConcurrentController::GetInstance().Release(req_num);
     status = Status::IndexNotTrained();
-    return status.subcode();
+    return status;
   }
 
   GammaQuery gamma_query;
@@ -303,7 +303,8 @@ int Engine::Search(Request &request, Response &response_results,
   gamma_query.condition->term_filters = request.TermFilters();
   gamma_query.condition->table = table_;
   if (request.Ranker()) {
-    gamma_query.condition->ranker = dynamic_cast<WeightedRanker *>(request.Ranker());
+    gamma_query.condition->ranker =
+        dynamic_cast<WeightedRanker *>(request.Ranker());
     if (gamma_query.condition->ranker == nullptr) {
       std::string msg = "ranker error!";
       LOG(WARNING) << msg;
@@ -314,15 +315,15 @@ int Engine::Search(Request &request, Response &response_results,
         response_results.AddResults(std::move(result));
       }
       RequestConcurrentController::GetInstance().Release(req_num);
-      status = Status::InvalidArgument();
-      return status.subcode();
+      return Status::InvalidArgument();
     } else {
       status = gamma_query.condition->ranker->Parse();
       if (status.code() != status::Code::kOk) {
-        std::string msg = "ranker parse err, ranker: " + gamma_query.condition->ranker->ToString();
+        std::string msg = "ranker parse err, ranker: " +
+                          gamma_query.condition->ranker->ToString();
         LOG(WARNING) << msg;
         RequestConcurrentController::GetInstance().Release(req_num);
-        return status.code();
+        return status;
       }
     }
   }
@@ -335,7 +336,7 @@ int Engine::Search(Request &request, Response &response_results,
                               &range_query_result);
     if (num == 0) {
       RequestConcurrentController::GetInstance().Release(req_num);
-      return status.code();
+      return status;
     }
   }
 #ifdef PERFORMANCE_TESTING
@@ -363,7 +364,7 @@ int Engine::Search(Request &request, Response &response_results,
       }
       RequestConcurrentController::GetInstance().Release(req_num);
       delete[] gamma_results;
-      return status.code();
+      return status;
     }
 
 #ifdef PERFORMANCE_TESTING
@@ -389,7 +390,7 @@ int Engine::Search(Request &request, Response &response_results,
   }
 
   RequestConcurrentController::GetInstance().Release(req_num);
-  return status.code();
+  return status;
 }
 
 int Engine::MultiRangeQuery(Request &request, SearchCondition *condition,

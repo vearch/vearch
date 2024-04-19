@@ -47,7 +47,7 @@ func NewError(code ErrorEnum, err error) (vErr *VearchErr) {
 	if vErr, ok := err.(*VearchErr); ok {
 		return vErr
 	}
-	vErr = &VearchErr{error: &Error{Code: code, Msg: err.Error()}}
+	vErr = &VearchErr{error: &Error{Code: code, Msg: ErrMsg(code) + ":" + err.Error()}}
 	return
 }
 

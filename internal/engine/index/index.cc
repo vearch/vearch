@@ -49,14 +49,10 @@ IndexIVFFlat::IndexIVFFlat(faiss::Index *quantizer, size_t d, size_t nlist,
 }
 
 IndexIVFFlat::~IndexIVFFlat() {
-  if (raw_vector_ != nullptr) {
-    delete raw_vector_;
-    raw_vector_ = nullptr;
-  }
-  if (docids_bitmap_) {
-    delete docids_bitmap_;
-    docids_bitmap_ = nullptr;
-  }
+  delete raw_vector_;
+  raw_vector_ = nullptr;
+  delete docids_bitmap_;
+  docids_bitmap_ = nullptr;
 }
 
 Status IndexIVFFlat::init(const std::string &index_param) {
@@ -189,14 +185,10 @@ IndexIVFPQ::IndexIVFPQ(faiss::Index *quantizer, size_t d, size_t nlist,
 }
 
 IndexIVFPQ::~IndexIVFPQ() {
-  if (raw_vector_ != nullptr) {
-    delete raw_vector_;
-    raw_vector_ = nullptr;
-  }
-  if (docids_bitmap_) {
-    delete docids_bitmap_;
-    docids_bitmap_ = nullptr;
-  }
+  delete raw_vector_;
+  raw_vector_ = nullptr;
+  delete docids_bitmap_;
+  docids_bitmap_ = nullptr;
 }
 
 Status IndexIVFPQ::init(const std::string &index_param) {
@@ -338,14 +330,10 @@ IndexScann::IndexScann(size_t d, size_t nlist, size_t M,
 }
 
 IndexScann::~IndexScann() {
-  if (raw_vector_ != nullptr) {
-    delete raw_vector_;
-    raw_vector_ = nullptr;
-  }
-  if (docids_bitmap_) {
-    delete docids_bitmap_;
-    docids_bitmap_ = nullptr;
-  }
+  delete raw_vector_;
+  raw_vector_ = nullptr;
+  delete docids_bitmap_;
+  docids_bitmap_ = nullptr;
 }
 
 int IndexScann::init(const std::string &index_param) {

@@ -137,15 +137,10 @@ GammaIndexHNSWLIB::GammaIndexHNSWLIB()
 }
 
 GammaIndexHNSWLIB::~GammaIndexHNSWLIB() {
-  if (space_interface_ != nullptr) {
-    delete space_interface_;
-    space_interface_ = nullptr;
-  }
-
-  if (space_interface_ip_ != nullptr) {
-    delete space_interface_ip_;
-    space_interface_ip_ = nullptr;
-  }
+  delete space_interface_;
+  space_interface_ = nullptr;
+  delete space_interface_ip_;
+  space_interface_ip_ = nullptr;
   int ret = pthread_rwlock_destroy(&shared_mutex_);
   if (0 != ret) {
     LOG(ERROR) << "destory read write lock error, ret=" << ret;

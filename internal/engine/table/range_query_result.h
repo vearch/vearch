@@ -44,10 +44,8 @@ class RangeQueryResult {
   }
 
   ~RangeQueryResult() {
-    if (bitmap_ != nullptr) {
-      free(bitmap_);
-      bitmap_ = nullptr;
-    }
+    free(bitmap_);
+    bitmap_ = nullptr;
   }
 
   bool Has(int doc) const {

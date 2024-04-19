@@ -9,7 +9,7 @@ package gamma
 
 /*
 #cgo CFLAGS : -I../../../c_api
-#cgo LDFLAGS: -L../../../engine/build -lgamma
+#cgo LDFLAGS: -L../../../../build/gamma_build -lgamma
 
 #include "gamma_api.h"
 #include <stdlib.h>
@@ -18,6 +18,11 @@ import "C"
 import (
 	"unsafe"
 )
+
+type Status struct {
+	Code int32
+	Msg  string
+}
 
 func Init(config *Config) unsafe.Pointer {
 	var buffer []byte
@@ -29,10 +34,17 @@ func Close(engine unsafe.Pointer) int {
 	return int(C.Close(engine))
 }
 
-func CreateTable(engine unsafe.Pointer, table *Table) int {
+func CreateTable(engine unsafe.Pointer, table *Table) *Status {
 	var buffer []byte
 	table.Serialize(&buffer)
-	return int(C.CreateTable(engine, (*C.char)(unsafe.Pointer(&buffer[0])), C.int(len(buffer))))
+	cstatus := C.CreateTable(engine, (*C.char)(unsafe.Pointer(&buffer[0])), C.int(len(buffer)))
+
+	status := &Status{
+		Code: int32(cstatus.code),
+		Msg:  C.GoString(cstatus.msg),
+	}
+	C.free(unsafe.Pointer(cstatus.msg))
+	return status
 }
 
 func AddOrUpdateDocs(engine unsafe.Pointer, buffer [][]byte) []int32 {
@@ -126,18 +138,23 @@ func Load(engine unsafe.Pointer) int {
 	return int(C.Load(engine))
 }
 
-func Search(engine unsafe.Pointer, reqByte []byte) (int, []byte) {
+func Search(engine unsafe.Pointer, reqByte []byte) ([]byte, *Status) {
 	var CBuffer *C.char
 	zero := 0
 	length := &zero
 
-	ret := int(C.Search(engine,
+	cstatus := C.Search(engine,
 		(*C.char)(unsafe.Pointer(&reqByte[0])), C.int(len(reqByte)),
 		(**C.char)(unsafe.Pointer(&CBuffer)),
-		(*C.int)(unsafe.Pointer(length))))
+		(*C.int)(unsafe.Pointer(length)))
 	defer C.free(unsafe.Pointer(CBuffer))
 	respByte := C.GoBytes(unsafe.Pointer(CBuffer), C.int(*length))
-	return ret, respByte
+	status := &Status{
+		Code: int32(cstatus.code),
+		Msg:  C.GoString(cstatus.msg),
+	}
+	C.free(unsafe.Pointer(cstatus.msg))
+	return respByte, status
 }
 
 func SetEngineCfg(engine unsafe.Pointer, config *Config) int {

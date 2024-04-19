@@ -32,10 +32,9 @@
 
 int CPPSearch(void *engine, vearch::Request *request,
               vearch::Response *response) {
-  vearch::Status status;
-  int ret = static_cast<vearch::Engine *>(engine)->Search(*request, *response,
-                                                          status);
-  if (ret) return ret;
+  vearch::Status status =
+      static_cast<vearch::Engine *>(engine)->Search(*request, *response);
+  if (status.code()) return status.code();
   response->PackResults(request->Fields());
   return 0;
 }

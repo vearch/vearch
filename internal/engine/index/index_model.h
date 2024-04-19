@@ -89,10 +89,8 @@ class RetrievalContext {
   }
 
   virtual ~RetrievalContext() {
-    if (retrieval_params_ != nullptr) {
-      delete retrieval_params_;
-      retrieval_params_ = nullptr;
-    }
+    delete retrieval_params_;
+    retrieval_params_ = nullptr;
   }
 
   RetrievalParameters *RetrievalParams() { return retrieval_params_; }

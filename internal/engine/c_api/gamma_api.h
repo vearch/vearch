@@ -12,29 +12,38 @@
 extern "C" {
 #endif
 
-/** init an engine pointer
+struct CStatus {
+  int code;
+  char *msg;
+};
+
+/**
+ * @brief init an engine pointer
  *
  * @param config  engine config pointer
  * @return engine pointer
  */
 void *Init(const char *config_str, int len);
 
-/** destroy an engine point
+/**
+ * @brief destroy an engine point
  *
  * @param engine  a pointer to search engine
  * @return 0 successed, 1 failed
  */
 int Close(void *engine);
 
-/** create a table
+/**
+ * @brief create a table
  *
  * @param engine  search engine pointer
  * @param table   table info
  * @return 0 successed, 1 failed
  */
-int CreateTable(void *engine, const char *table_str, int len);
+struct CStatus CreateTable(void *engine, const char *table_str, int len);
 
-/** add a doc to table, if doc existed, update it
+/**
+ * @brief add a doc to table, if doc existed, update it
  *
  * @param engine  search engine pointer
  * @param doc     doc pointer to add
@@ -42,7 +51,8 @@ int CreateTable(void *engine, const char *table_str, int len);
  */
 int AddOrUpdateDoc(void *engine, const char *doc_str, int len);
 
-/** delete a doc from table
+/**
+ * @brief delete a doc from table
  *
  * @param engine  search engine pointer
  * @param doc     doc pointer to delete
@@ -50,7 +60,8 @@ int AddOrUpdateDoc(void *engine, const char *doc_str, int len);
  */
 int DeleteDoc(void *engine, const char *docid, int docid_len);
 
-/** get the engine status
+/**
+ * @brief get the engine status
  *
  * @param engine  search engine pointer
  */
@@ -67,7 +78,8 @@ void GetMemoryInfo(void *engine, char **memory_info, int *len);
 int GetDocByID(void *engine, const char *docid, int docid_len, char **doc_str,
                int *len);
 
-/** get a doc by docid
+/**
+ * @brief get a doc by docid
  *
  * @param engine
  * @param docid  doc id
@@ -76,41 +88,49 @@ int GetDocByID(void *engine, const char *docid, int docid_len, char **doc_str,
  */
 int GetDocByDocID(void *engine, int docid, char next, char **doc_str, int *len);
 
-/** @param engine  search engine pointer
+/**
+ * @brief build index
+ * @param engine  search engine pointer
  * @return 0 successed, 1 failed
  */
 int BuildIndex(void *engine);
 
-/** @param engine  search engine pointer
+/**
+ * @brief rebuild index
+ * @param engine  search engine pointer
  * @return 0 successed, 1 failed
  */
 int RebuildIndex(void *engine, int drop_before_rebuild, int limit_cpu,
                  int describe);
 
-/** dump datas into disk accord to Config
+/**
+ * @brief dump datas into disk accord to Config
  *
  * @param engine
  * @return 0 successed, 1 failed
  */
 int Dump(void *engine);
 
-/** load datas from disk accord to Config
+/**
+ * @brief load datas from disk accord to Config
  *
  * @param engine
  * @return 0 successed, 1 failed
  */
 int Load(void *engine);
 
-/** query vectors to index with serialized result
+/**
+ * @brief query vectors to index with serialized result
  *
  * @param engine    search engine pointer
  * @param request   search request pointer
- * @return response
+ * @return struct Status
  */
-int Search(void *engine, const char *request_str, int req_len,
-           char **response_str, int *res_len);
+struct CStatus Search(void *engine, const char *request_str, int req_len,
+                     char **response_str, int *res_len);
 
-/** alter all cache size by query
+/**
+ * @brief alter all cache size by query
  *
  * @param engine  search engine pointer
  * @param cache_str caches' serialized string
@@ -118,7 +138,8 @@ int Search(void *engine, const char *request_str, int req_len,
  */
 int SetConfig(void *engine, const char *config_str, int len);
 
-/** get all cache size by query
+/**
+ * @brief get all cache size by query
  *
  * @param engine  search engine pointer
  * @param cache_str caches' serialized string

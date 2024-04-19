@@ -35,7 +35,7 @@ class Engine {
 
   Status Setup();
 
-  int Search(Request &request, Response &response_results, Status &status);
+  Status Search(Request &request, Response &response_results);
 
   Status CreateTable(TableInfo &table);
 

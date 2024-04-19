@@ -94,10 +94,10 @@ func New(cfg EngineConfig) (engine.Engine, error) {
 	infos, _ := os.ReadDir(cfg.Path)
 
 	startTime := time.Now()
-	if resp := gamma.CreateTable(ge.gamma, table); resp != 0 {
-		log.Error("create table[%s] for gamma has err [%d] cost time: [%v]", cfg.Space.Name, resp, time.Since(startTime).Seconds())
+	if status := gamma.CreateTable(ge.gamma, table); status.Code != 0 {
+		log.Error("create table [%s] err [%s] cost time: [%v]", cfg.Space.Name, status.Msg, time.Since(startTime).Seconds())
 		ge.Close()
-		return nil, fmt.Errorf("create gamma table has err:[%d]", resp)
+		return nil, fmt.Errorf("create table err:[%s]", status.Msg)
 	}
 
 	gammaDirs := make([]string, 0)
@@ -105,12 +105,12 @@ func New(cfg EngineConfig) (engine.Engine, error) {
 		gammaDirs = append(gammaDirs, info.Name())
 	}
 
-	log.Info("create table for gamma finish by path:[%s], table: %s cost: [%v]s, files [%v]", cfg.Path, cfg.Space.Name, time.Since(startTime).Seconds(), gammaDirs)
+	log.Info("create table finish by path:[%s], table: %s cost: [%v]s, files [%v]", cfg.Path, cfg.Space.Name, time.Since(startTime).Seconds(), gammaDirs)
 
 	if len(infos) > 0 {
 		code := gamma.Load(ge.gamma)
 		if code != 0 {
-			vearchlog.LogErrNotNil(fmt.Errorf("load gamma data err code:[%d]", code))
+			vearchlog.LogErrNotNil(fmt.Errorf("load data err code:[%d]", code))
 			ge.Close()
 		}
 	}
