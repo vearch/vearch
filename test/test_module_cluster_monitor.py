@@ -23,7 +23,7 @@ class TestVearchClusterMonitor:
 
     def test_prepare_db(self):
         response = create_db(router_url, db_name)
-        assert response["code"] == 0
+        assert response.json()["code"] == 0
 
     @pytest.mark.parametrize(
         ["embedding_size", "index_type"],
@@ -79,21 +79,23 @@ class TestVearchClusterMonitor:
             ],
         }
 
-        logger.info(create_space(router_url, db_name, space_config))
+        response = create_space(router_url, db_name, space_config)
+        logger.info(response.json())
 
     def test_stats(self):
         response = get_cluster_stats(router_url)
-        logger.info(response)
-        assert response["code"] == 0
+        logger.info(response.json())
+        assert response.json()["code"] == 0
 
     def test_health(self):
         response = get_cluster_health(router_url)
-        logger.info(response)
-        assert response["code"] == 0
+        logger.info(response.json())
+        assert response.json()["code"] == 0
 
     def test_destroy_db(self):
-        space_info = list_spaces(router_url, db_name)
-        logger.info(space_info)
-        for space in space_info["data"]:
-            logger.info(drop_space(router_url, db_name, space["space_name"]))
+        response = list_spaces(router_url, db_name)
+        logger.info(response.json())
+        for space in response.json()["data"]:
+            response = drop_space(router_url, db_name, space["space_name"])
+            logger.info(response)
         drop_db(router_url, db_name)

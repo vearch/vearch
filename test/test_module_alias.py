@@ -41,8 +41,8 @@ class TestAlias:
 
     def test_create_db(self):
         response = create_db(router_url, db_name)
-        logger.info(response)
-        assert response["code"] == 0
+        logger.info(response.json())
+        assert response.json()["code"] == 0
 
     @pytest.mark.parametrize(
         ["space_name"],
@@ -80,49 +80,49 @@ class TestAlias:
         }
 
         response = create_space(router_url, db_name, space_config)
-        logger.info(response)
-        assert response["code"] == 0
+        logger.info(response.json())
+        assert response.json()["code"] == 0
 
     def test_create_alias(self):
         response = create_alias(router_url, "alias_name", db_name, space_name)
-        logger.info(response)
-        assert response["code"] == 0
+        logger.info(response.json())
+        assert response.json()["code"] == 0
 
     def test_get_alias(self):
         response = get_alias(router_url, "alias_name")
-        logger.info(response)
-        assert response["code"] == 0
+        logger.info(response.json())
+        assert response.json()["code"] == 0
 
     def test_update_alias(self):
         response = update_alias(router_url, "alias_name", db_name, "ts_space1")
-        logger.info(response)
-        assert response["code"] == 0
+        logger.info(response.json())
+        assert response.json()["code"] == 0
 
     def test_drop_alias(self):
-        code = drop_alias(router_url, "alias_name")
-        logger.info(code)
-        assert code in [200, 204]
+        response = drop_alias(router_url, "alias_name")
+        logger.info(response.json())
+        assert response.json()["code"] == 0
 
     def test_alias_array(self):
         response = create_alias(router_url, "alias_name1", db_name, space_name)
-        assert response["code"] == 0
+        assert response.json()["code"] == 0
 
         response = create_alias(router_url, "alias_name2", db_name, space_name)
-        assert response["code"] == 0
+        assert response.json()["code"] == 0
 
         response = get_all_alias(router_url)
-        logger.info(response)
-        assert response["code"] == 0
+        logger.info(response.json())
+        assert response.json()["code"] == 0
 
-        code = drop_alias(router_url, "alias_name1")
-        assert code in [200, 204]
+        response = drop_alias(router_url, "alias_name1")
+        assert response.json()["code"] == 0
 
-        code = drop_alias(router_url, "alias_name2")
-        assert code in [200, 204]
+        response = drop_alias(router_url, "alias_name2")
+        assert response.json()["code"] == 0
 
         response = get_all_alias(router_url)
-        logger.info(response)
-        assert response["code"] == 0
+        logger.info(response.json())
+        assert response.json()["code"] == 0
 
     @pytest.mark.parametrize(
         ["wrong_index", "wrong_type"],
@@ -143,69 +143,69 @@ class TestAlias:
             db_param = "wrong_db"
             response = create_alias(
                 router_url, "alias_name", db_param, space_name)
-            logger.info(response)
-            assert response["code"] != 200
+            logger.info(response.json())
+            assert response.json()["code"] != 0
 
         if wrong_index == 1:
             space_param = "wrong_space"
             response = create_alias(
                 router_url, "alias_name", db_name, space_param)
-            logger.info(response)
-            assert response["code"] != 200
+            logger.info(response.json())
+            assert response.json()["code"] != 0
 
         if wrong_index == 2:
             db_param = "wrong_db"
             response = update_alias(
                 router_url, "alias_name", db_param, space_name)
-            logger.info(response)
-            assert response["code"] != 200
+            logger.info(response.json())
+            assert response.json()["code"] != 0
 
         if wrong_index == 3:
             space_param = "wrong_space"
             response = update_alias(
                 router_url, "alias_name", db_name, space_param)
-            logger.info(response)
-            assert response["code"] != 200
+            logger.info(response.json())
+            assert response.json()["code"] != 0
 
         if wrong_index == 4:
             response = get_alias(router_url, "alias_not_exist")
-            logger.info(response)
-            assert response["code"] != 200
+            logger.info(response.json())
+            assert response.json()["code"] != 0
 
         if wrong_index == 5:
-            code = drop_alias(router_url, "alias_not_exist")
-            logger.info(code)
-            assert code not in [200, 204]
+            response = drop_alias(router_url, "alias_not_exist")
+            logger.info(response.json())
+            assert response.json()["code"] != 0
 
         if wrong_index == 6:
             response = create_alias(
                 router_url, "alias_name", db_name, space_name)
-            assert response["code"] == 0
+            assert response.json()["code"] == 0
             response = create_alias(
                 router_url, "alias_name", db_name, space_name)
-            logger.info(response)
-            assert response["code"] != 200
-            code = drop_alias(router_url, "alias_name")
-            assert code in [200, 204]
+            logger.info(response.json())
+            assert response.json()["code"] != 0
+            response = drop_alias(router_url, "alias_name")
+            assert response.json()["code"] == 0
 
         if wrong_index == 7:
             response = update_alias(
                 router_url, "alias_not_exist", db_name, space_name)
-            logger.info(response)
-            assert response["code"] != 200
+            logger.info(response.json())
+            assert response.json()["code"] != 0
 
     def process_alias(self, operation):
         if operation == "create":
             response = create_alias(
                 router_url, "alias_name", db_name, space_name)
-            logger.info(response)
+            logger.info(response.json())
         if operation == "delete":
-            code = drop_alias(router_url, "alias_name")
-            logger.info(code)
+            response = drop_alias(router_url, "alias_name")
+            logger.info(response.json())
         if operation == "update":
             response = update_alias(
                 router_url, "alias_not_exist", db_name, space_name)
-            logger.info(response)
+            logger.info(response.json())
 
     def test_multithread(self):
         pool = ThreadPool()
@@ -215,10 +215,10 @@ class TestAlias:
         pool.close()
         pool.join()
         response = get_all_alias(router_url)
-        assert response["code"] == 0
-        for alias in response["data"]:
-            code = drop_alias(router_url, alias["name"])
-            assert code in [200, 204]
+        assert response.json()["code"] == 0
+        for alias in response.json()["data"]:
+            response = drop_alias(router_url, alias["name"])
+            assert response.json()["code"] == 0
 
     def test_document_operation(self):
         embedding_size = xb.shape[1]
@@ -229,7 +229,7 @@ class TestAlias:
         total = int(total_batch * batch_size)
 
         response = create_alias(router_url, "alias_name", db_name, space_name)
-        assert response["code"] == 0
+        assert response.json()["code"] == 0
 
         add(total_batch, batch_size, xb, with_id=True, alias_name="alias_name")
 
@@ -250,25 +250,25 @@ class TestAlias:
         delete_interface(logger, total_batch, batch_size,
                          delete_type="by_ids", alias_name="alias_name")
 
-        code = drop_alias(router_url, "alias_name")
-        assert code in [200, 204]
+        response = drop_alias(router_url, "alias_name")
+        assert response.json()["code"] == 0
 
     def test_destroy_db_and_space(self):
-        space_info = list_spaces(router_url, db_name)
-        for space in space_info["data"]:
+        response = list_spaces(router_url, db_name)
+        for space in response.json()["data"]:
             response = create_alias(
                 router_url, "alias_name", db_name, space["space_name"])
-            assert response["code"] == 0
+            assert response.json()["code"] == 0
 
             response = get_alias(router_url, "alias_name")
-            logger.info(response)
-            assert response["code"] == 0
+            logger.info(response.json())
+            assert response.json()["code"] == 0
 
-            code = drop_space(router_url, db_name, space["space_name"])
-            assert code in [200, 204]
+            response = drop_space(router_url, db_name, space["space_name"])
+            assert response.json()["code"] == 0
 
             # delete space should also delete correspond alias
             response = get_alias(router_url, "alias_name")
-            logger.info(response)
-            assert response["code"] != 200
+            logger.info(response.json())
+            assert response.json()["code"] != 0
         drop_db(router_url, db_name)

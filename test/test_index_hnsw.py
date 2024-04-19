@@ -60,9 +60,11 @@ def create(router_url, embedding_size, nlinks=32, efConstruction=120):
         "replica_num": 1,
         "fields": properties["fields"]
     }
-    logger.info(create_db(router_url, db_name))
+    response = create_db(router_url, db_name)
+    logger.info(response.json())
 
-    logger.info(create_space(router_url, db_name, space_config))
+    response = create_space(router_url, db_name, space_config)
+    logger.info(response.json())
 
 
 def query(do_efSearch_check, efSearch, xq, gt, k, logger):

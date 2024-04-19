@@ -76,10 +76,11 @@ class TestPartitionEmptySpaceMemorySize:
 
 
     def test_destroy_db(self):
-        space_info = list_spaces(router_url, db_name)
-        logger.info(space_info)
-        for space in space_info["data"]:
-            logger.info(drop_space(router_url, db_name, space["space_name"]))
+        response = list_spaces(router_url, db_name)
+        logger.info(response.json())
+        for space in response.json()["data"]:
+            response = drop_space(router_url, db_name, space["space_name"])
+            logger.info(response)
         drop_db(router_url, db_name)
 
 class TestPartitionSmallDataMemorySize:
@@ -127,14 +128,16 @@ class TestPartitionSmallDataMemorySize:
             ],
         }
 
-        logger.info(create_space(router_url, db_name, space_config))
+        response = create_space(router_url, db_name, space_config)
+        logger.info(response)
 
         add_embedding_size(db_name, space_name_each, 100, 100, embedding_size)
 
 
     def test_destroy_db(self):
-        space_info = list_spaces(router_url, db_name)
-        logger.info(space_info)
-        for space in space_info["data"]:
-            logger.info(drop_space(router_url, db_name, space["space_name"]))
+        response = list_spaces(router_url, db_name)
+        logger.info(response.json())
+        for space in response.json()["data"]:
+            response = drop_space(router_url, db_name, space["space_name"])
+            logger.info(response)
         drop_db(router_url, db_name)

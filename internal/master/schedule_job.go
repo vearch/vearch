@@ -34,7 +34,7 @@ func walkPartitions(masterServer *Server, partitions []*entity.Partition) {
 	log.Debug("Start Walking Partitions!")
 	for _, partition := range partitions {
 		if space, err := masterServer.client.Master().QuerySpaceByID(ctx, partition.DBId, partition.SpaceId); err != nil {
-			if vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err).GetError().Code == vearchpb.ErrorEnum_SPACE_NOTEXISTS {
+			if vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err).GetError().Code == vearchpb.ErrorEnum_SPACE_NOT_EXIST {
 				log.Warnf("Could not find Space contains partition,PartitionID:[%d] so remove it from etcd!", partition.Id)
 				partitionKey := entity.PartitionKey(partition.Id)
 				if err := masterServer.client.Master().Delete(ctx, partitionKey); err != nil {

@@ -79,11 +79,11 @@ def create(router_url, embedding_size, index_type="FLAT", store_type="MemoryOnly
         "fields": properties["fields"]
     }
     response = create_db(router_url, db_name)
-    assert response["code"] == 0
+    assert response.json()["code"] == 0
 
     response = create_space(router_url, db_name, space_config)
-    assert response["code"] == 0
-    logger.info(response["data"]["space_properties"]["field_vector"])
+    assert response.json()["code"] == 0
+    logger.info(response.json()["data"]["space_properties"]["field_vector"])
 
 def create_faiss_index(index_type, metric_type, xb):
     dimension = xb.shape[1]

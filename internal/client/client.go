@@ -587,7 +587,7 @@ func (r *routerRequest) searchFromPartition(ctx context.Context, partitionID ent
 				for _, item := range searchResult.ResultItems {
 					source, sortValues, pkey, err := GetSource(item, space, sortFieldMap, pd.SearchRequest.SortFields)
 					if err != nil {
-						err := &vearchpb.Error{Code: vearchpb.ErrorEnum_PARSING_RESULT_ERROR, Msg: "router call ps rpc service err nodeID:" + fmt.Sprint(nodeID)}
+						err := &vearchpb.Error{Code: vearchpb.ErrorEnum_SEARCH_RESPONSE_PARSE_ERR, Msg: "router call ps rpc service err nodeID:" + fmt.Sprint(nodeID)}
 						replyPartition.SearchResponse.Head.Err = err
 					}
 					item.PKey = pkey
@@ -933,7 +933,7 @@ func (r *routerRequest) queryFromPartition(ctx context.Context, partitionID enti
 				for _, item := range searchResult.ResultItems {
 					source, sortValues, pkey, err := GetSource(item, space, sortFieldMap, pd.QueryRequest.SortFields)
 					if err != nil {
-						err := &vearchpb.Error{Code: vearchpb.ErrorEnum_PARSING_RESULT_ERROR, Msg: "router call ps rpc service err nodeID:" + fmt.Sprint(nodeID)}
+						err := &vearchpb.Error{Code: vearchpb.ErrorEnum_QUERY_RESPONSE_PARSE_ERR, Msg: "router call ps rpc service err nodeID:" + fmt.Sprint(nodeID)}
 						replyPartition.SearchResponse.Head.Err = err
 					}
 					item.PKey = pkey

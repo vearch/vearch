@@ -57,9 +57,11 @@ def create(router_url, embedding_size, store_type="MemoryOnly"):
         "replica_num": 1,
         "fields": properties["fields"]
     }
-    logger.info(create_db(router_url, db_name))
+    response = create_db(router_url, db_name)
+    logger.info(response.json())
 
-    logger.info(create_space(router_url, db_name, space_config))
+    response = create_space(router_url, db_name, space_config)
+    logger.info(response.json())
 
 
 def query(parallel_on_queries, xq, gt, k, logger):

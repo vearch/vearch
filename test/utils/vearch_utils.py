@@ -1036,10 +1036,11 @@ def create_for_document_test(logger, router_url, embedding_size, properties):
         "replica_num": 1,
         "fields": properties["fields"],
     }
-    logger.info(create_db(router_url, db_name))
+    reponse = create_db(router_url, db_name)
+    logger.info(reponse.json())
 
-    logger.info(create_space(router_url, db_name, space_config))
-
+    reponse = create_space(router_url, db_name, space_config)
+    logger.info(reponse.json())
 
 def prepare_cluster_for_document_test(logger, total, xb):
     embedding_size = xb.shape[1]
@@ -1195,30 +1196,30 @@ def evaluate(xq, gt, k, batch, query_dict, logger):
 def drop_db(router_url: str, db_name: str):
     url = f"{router_url}/dbs/{db_name}"
     resp = requests.delete(url, auth=(username, password))
-    return resp.status_code
+    return resp
 
 
 def drop_space(router_url: str, db_name: str, space_name: str):
     url = f"{router_url}/dbs/{db_name}/spaces/{space_name}"
     resp = requests.delete(url, auth=(username, password))
-    return resp.status_code
+    return resp
 
 
 def destroy(router_url: str, db_name: str, space_name: str):
-    print(drop_space(router_url, db_name, space_name))
-    print(drop_db(router_url, db_name))
+    drop_space(router_url, db_name, space_name)
+    drop_db(router_url, db_name)
 
 
 def create_space(router_url: str, db_name: str, space_config: dict):
     url = f"{router_url}/dbs/{db_name}/spaces"
     resp = requests.post(url, auth=(username, password), json=space_config)
-    return resp.json()
+    return resp
 
 
 def get_space(router_url: str, db_name: str, space_name: str):
     url = f"{router_url}/dbs/{db_name}/spaces/{space_name}"
     resp = requests.get(url, auth=(username, password))
-    return resp.json()
+    return resp
 
 
 def get_partition(router_url: str, db_name: str, space_name: str):
@@ -1234,62 +1235,62 @@ def get_partition(router_url: str, db_name: str, space_name: str):
 def get_cluster_stats(router_url: str):
     url = f"{router_url}/cluster/stats"
     resp = requests.get(url, auth=(username, password))
-    return resp.json()
+    return resp
 
 
 def get_cluster_health(router_url: str):
     url = f"{router_url}/cluster/health?detail=true"
     resp = requests.get(url, auth=(username, password))
-    return resp.json()
+    return resp
 
 
 def get_servers_status(router_url: str):
     url = f"{router_url}/servers"
     resp = requests.get(url, auth=(username, password))
-    return resp.json()
+    return resp
 
 
 def get_cluster_partition(router_url: str):
     url = f"{router_url}/partitions"
     resp = requests.get(url, auth=(username, password))
-    return resp.json()
+    return resp
 
 
 def get_cluster_version(router_url: str):
     url = f"{router_url}/"
     resp = requests.get(url, auth=(username, password))
-    return resp.json()
+    return resp
 
 
 def list_dbs(router_url: str):
     url = f"{router_url}/dbs"
     resp = requests.get(url, auth=(username, password))
-    return resp.json()
+    return resp
 
 
 def create_db(router_url: str, db_name: str):
     url = f"{router_url}/dbs/" + db_name
     resp = requests.post(url, auth=(username, password))
-    return resp.json()
+    return resp
 
 
 def get_db(router_url: str, db_name: str):
     url = f"{router_url}/dbs/{db_name}"
     resp = requests.get(url, auth=(username, password))
-    return resp.json()
+    return resp
 
 
 def list_spaces(router_url: str, db_name: str):
     url = f"{router_url}/dbs/{db_name}/spaces"
     resp = requests.get(url, auth=(username, password))
-    return resp.json()
+    return resp
 
 
 def describe_space(logger, router_url: str, db_name: str, space_name: str):
     url = f"{router_url}/dbs/{db_name}/spaces/{space_name}?detail=true"
     try:
         resp = requests.get(url, auth=(username, password))
-        return resp.json()
+        return resp
     except Exception as e:
         logger.error(e)
 
@@ -1299,34 +1300,34 @@ def index_rebuild(router_url: str, db_name: str, space_name: str):
     data = {'db_name': db_name, 'space_name': space_name,
             'drop_before_rebuild': True}
     resp = requests.post(url, auth=(username, password), json=data)
-    return resp.json()
+    return resp
 
 
 def create_alias(router_url: str, alias_name: str, db_name: str, space_name: str):
     url = f"{router_url}/alias/{alias_name}/dbs/{db_name}/spaces/{space_name}"
     resp = requests.post(url, auth=(username, password))
-    return resp.json()
+    return resp
 
 
 def update_alias(router_url: str, alias_name: str, db_name: str, space_name: str):
     url = f"{router_url}/alias/{alias_name}/dbs/{db_name}/spaces/{space_name}"
     resp = requests.put(url, auth=(username, password))
-    return resp.json()
+    return resp
 
 
 def get_alias(router_url: str, alias_name: str):
     url = f"{router_url}/alias/{alias_name}"
     resp = requests.get(url, auth=(username, password))
-    return resp.json()
+    return resp
 
 
 def get_all_alias(router_url: str):
     url = f"{router_url}/alias"
     resp = requests.get(url, auth=(username, password))
-    return resp.json()
+    return resp
 
 
 def drop_alias(router_url: str, alias_name: str):
     url = f"{router_url}/alias/{alias_name}"
     resp = requests.delete(url, auth=(username, password))
-    return resp.status_code
+    return resp

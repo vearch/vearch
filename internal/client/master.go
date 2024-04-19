@@ -92,7 +92,7 @@ func (m *masterClient) QueryDBId2Name(ctx context.Context, id int64) (string, er
 		return "", err
 	}
 	if bytes == nil {
-		return "", vearchpb.NewError(vearchpb.ErrorEnum_DB_NOTEXISTS, nil)
+		return "", vearchpb.NewError(vearchpb.ErrorEnum_DB_NOT_EXIST, nil)
 	}
 	return string(bytes), nil
 }
@@ -102,7 +102,7 @@ func (m *masterClient) QueryDBName2Id(ctx context.Context, name string) (int64, 
 	if bytes, err := m.Get(ctx, entity.DBKeyName(name)); err != nil {
 		return -1, err
 	} else if bytes == nil {
-		return -1, vearchpb.NewError(vearchpb.ErrorEnum_DB_NOTEXISTS, nil)
+		return -1, vearchpb.NewError(vearchpb.ErrorEnum_DB_NOT_EXIST, nil)
 	} else {
 		return cast.ToInt64E(string(bytes))
 	}
@@ -132,7 +132,7 @@ func (m *masterClient) QueryServer(ctx context.Context, id entity.NodeID) (*enti
 	}
 	if bytes == nil {
 		log.Error("server can not find on master, maybe server is offline, nodeId:[%d]", id)
-		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PS_NOTEXISTS, nil)
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PS_NOT_EXIST, nil)
 	}
 
 	p := new(entity.Server)
@@ -148,7 +148,7 @@ func (m *masterClient) QueryServer(ctx context.Context, id entity.NodeID) (*enti
 func (m *masterClient) QueryUser(ctx context.Context, username string) (*entity.User, error) {
 	bytes, err := m.Get(ctx, entity.UserKey(username))
 	if bytes == nil {
-		return nil, vearchpb.NewError(vearchpb.ErrorEnum_USER_NOT_EXISTS, err)
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_USER_NOT_EXIST, err)
 	}
 	user := new(entity.User)
 	if err = vjson.Unmarshal(bytes, user); err != nil {
@@ -343,7 +343,7 @@ func (m *masterClient) QueryPartitions(ctx context.Context) ([]*entity.Partition
 func (m *masterClient) QuerySpaceByID(ctx context.Context, dbID entity.DBID, spaceID entity.SpaceID) (*entity.Space, error) {
 	bytes, err := m.Store.Get(ctx, entity.SpaceKey(dbID, spaceID))
 	if bytes == nil {
-		return nil, vearchpb.NewError(vearchpb.ErrorEnum_SPACE_NOTEXISTS, err)
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_SPACE_NOT_EXIST, err)
 	}
 	space := &entity.Space{}
 	if err := vjson.Unmarshal(bytes, space); err != nil {
@@ -363,7 +363,7 @@ func (m *masterClient) QuerySpaceByName(ctx context.Context, dbID int64, spaceNa
 			return s, nil
 		}
 	}
-	return nil, vearchpb.NewError(vearchpb.ErrorEnum_SPACE_NOTEXISTS, nil)
+	return nil, vearchpb.NewError(vearchpb.ErrorEnum_SPACE_NOT_EXIST, nil)
 }
 
 // QueryAliasByName query alias by alias name

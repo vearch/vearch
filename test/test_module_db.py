@@ -34,36 +34,36 @@ class TestDB:
 
     def test_create_db(self):
         response = create_db(router_url, db_name)
-        logger.info(response)
-        assert response["code"] == 0
+        logger.info(response.json())
+        assert response.json()["code"] == 0
 
     def test_get_db(self):
         response = get_db(router_url, db_name)
-        logger.info(response)
-        assert response["code"] == 0
+        logger.info(response.json())
+        assert response.json()["code"] == 0
 
     def test_destroy_db(self):
-        code = drop_db(router_url, db_name)
-        assert code in [200, 204]
+        response = drop_db(router_url, db_name)
+        assert response.json()["code"] == 0
 
     def test_create_dbs(self):
         response = create_db(router_url, db_name + "1")
-        logger.info(response)
-        assert response["code"] == 0
+        logger.info(response.json())
+        assert response.json()["code"] == 0
         response = create_db(router_url, db_name + "2")
-        logger.info(response)
-        assert response["code"] == 0
+        logger.info(response.json())
+        assert response.json()["code"] == 0
 
     def test_get_dbs(self):
         response = list_dbs(router_url)
-        logger.info(response)
-        assert response["code"] == 0
+        logger.info(response.json())
+        assert response.json()["code"] == 0
 
     def test_destroy_dbs(self):
-        code = drop_db(router_url, db_name + "1")
-        assert code in [200, 204]
-        code = drop_db(router_url, db_name + "2")
-        assert code in [200, 204]
+        response = drop_db(router_url, db_name + "1")
+        assert response.json()["code"] == 0
+        response = drop_db(router_url, db_name + "2")
+        assert response.json()["code"] == 0
 
     @pytest.mark.parametrize(
         ["wrong_index", "wrong_type"],
@@ -76,5 +76,5 @@ class TestDB:
         if wrong_index == 0:
             db_param = "wrong_db"
         response = get_db(router_url, db_param)
-        logger.info(response)
-        assert response["code"] != 200
+        logger.info(response.json())
+        assert response.json()["code"] != 0

@@ -177,7 +177,7 @@ func (ms *masterService) deleteDBService(ctx context.Context, dbstr string) (err
 	}
 
 	if len(spaces) > 0 {
-		return vearchpb.NewError(vearchpb.ErrorEnum_DB_Not_Empty, nil)
+		return vearchpb.NewError(vearchpb.ErrorEnum_DB_NOT_EMPTY, nil)
 	}
 
 	err = ms.Master().STM(context.Background(),
@@ -209,7 +209,7 @@ func (ms *masterService) updateDBIpList(ctx context.Context, dbModify *entity.DB
 	bs, err := ms.Master().Get(ctx, entity.DBKeyBody(id))
 	errutil.ThrowError(err)
 	if bs == nil {
-		return nil, vearchpb.NewError(vearchpb.ErrorEnum_DB_NOTEXISTS, nil)
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_DB_NOT_EXIST, nil)
 	}
 	err = vjson.Unmarshal(bs, db)
 	errutil.ThrowError(err)
@@ -261,7 +261,7 @@ func (ms *masterService) queryDBService(ctx context.Context, dbstr string) (db *
 	}
 
 	if bs == nil {
-		return nil, vearchpb.NewError(vearchpb.ErrorEnum_DB_NOTEXISTS, nil)
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_DB_NOT_EXIST, nil)
 	}
 
 	if err := vjson.Unmarshal(bs, db); err != nil {
@@ -300,11 +300,11 @@ func (ms *masterService) createSpaceService(ctx context.Context, dbName string, 
 	// spaces is existed
 	if _, err := ms.Master().QuerySpaceByName(ctx, space.DBId, space.Name); err != nil {
 		vErr := vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err)
-		if vErr.GetError().Code != vearchpb.ErrorEnum_SPACE_NOTEXISTS {
+		if vErr.GetError().Code != vearchpb.ErrorEnum_SPACE_NOT_EXIST {
 			return vErr
 		}
 	} else {
-		return vearchpb.NewError(vearchpb.ErrorEnum_DUP_SPACE, nil)
+		return vearchpb.NewError(vearchpb.ErrorEnum_SPACE_EXIST, nil)
 	}
 
 	log.Info("create space, db: %s, spaceName: %s, space :[%s]", dbName, space.Name, vjson.ToJsonString(space))

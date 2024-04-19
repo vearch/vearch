@@ -25,6 +25,7 @@ import (
 	"github.com/vearch/vearch/internal/entity"
 	"github.com/vearch/vearch/internal/entity/request"
 	"github.com/vearch/vearch/internal/pkg/cbbytes"
+	"github.com/vearch/vearch/internal/pkg/log"
 	"github.com/vearch/vearch/internal/pkg/vjson"
 	"github.com/vearch/vearch/internal/proto/vearchpb"
 	"github.com/vearch/vearch/internal/ps/engine/mapping"
@@ -82,7 +83,7 @@ func parseFilter(filters *request.Filter, space *entity.Space) ([]*vearchpb.Rang
 
 	if filters != nil {
 		if filters.Operator != "AND" {
-			return nil, nil, fmt.Errorf("operator %v not supported", filters.Operator)
+			return nil, nil, vearchpb.NewError(vearchpb.ErrorEnum_FILTER_OPERATOR_TYPE_ERR, nil)
 		}
 		rangeConditionMap := make(map[string]*Range)
 		termConditionMap := make(map[string]*Term)
@@ -128,6 +129,12 @@ func parseFilter(filters *request.Filter, space *entity.Space) ([]*vearchpb.Rang
 					cm.Gte = condition.Value
 				}
 			} else if condition.Operator == "IN" {
+				tmp := make([]string, 0)
+				err := json.Unmarshal(condition.Value, &tmp)
+				if err != nil {
+					log.Error(err)
+					return nil, nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, err)
+				}
 				tm, ok := termConditionMap[condition.Field]
 				if !ok {
 					tm = &Term{
@@ -137,6 +144,8 @@ func parseFilter(filters *request.Filter, space *entity.Space) ([]*vearchpb.Rang
 				} else {
 					tm.Value = condition.Value
 				}
+			} else {
+				return nil, nil, vearchpb.NewError(vearchpb.ErrorEnum_FILTER_CONDITION_OPERATOR_TYPE_ERR, nil)
 			}
 		}
 		filter, err := parseRange(rangeConditionMap, proMap)

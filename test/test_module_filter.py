@@ -36,8 +36,10 @@ def create(router_url, properties):
         "replica_num": 1,
         "fields": properties["fields"]
     }
-    logger.info(create_db(router_url, db_name))
-    logger.info(create_space(router_url, db_name, space_config))
+    response = create_db(router_url, db_name)
+    logger.info(response.json())
+    response = create_space(router_url, db_name, space_config)
+    logger.info(response.json())
 
 
 sift10k = DatasetSift10K(logger)

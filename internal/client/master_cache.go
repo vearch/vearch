@@ -161,7 +161,7 @@ func (cliCache *clientCache) SpaceByCache(ctx context.Context, db, space string)
 
 	if err != nil {
 		return nil, fmt.Errorf("db:[%s] space:[%s] err:[%s]", db, space,
-			vearchpb.NewError(vearchpb.ErrorEnum_SPACE_NOTEXISTS, nil))
+			vearchpb.NewError(vearchpb.ErrorEnum_SPACE_NOT_EXIST, nil))
 	}
 
 	for i := 0; i < retryNum; i++ {
@@ -172,7 +172,7 @@ func (cliCache *clientCache) SpaceByCache(ctx context.Context, db, space string)
 		}
 	}
 
-	return nil, fmt.Errorf("db:[%s] space:[%s] err:[%s]", db, space, vearchpb.NewError(vearchpb.ErrorEnum_SPACE_NOTEXISTS, nil))
+	return nil, fmt.Errorf("db:[%s] space:[%s] err:[%s]", db, space, vearchpb.NewError(vearchpb.ErrorEnum_SPACE_NOT_EXIST, nil))
 }
 
 func (cliCache *clientCache) reloadSpaceCache(ctx context.Context, sync bool, db string, spaceName string) error {

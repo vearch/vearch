@@ -107,18 +107,20 @@ class TestIndexRebuild:
             ]
         }
 
-        logger.info(create_space(router_url, db_name, space_config))
+        response = create_space(router_url, db_name, space_config)
+        logger.info(response)
         add(total_batch, batch_size, xb, with_id, full_field)
 
         if index_type != "FLAT":
             waiting_index_finish(logger, total)
 
-        logger.info(index_rebuild(router_url, db_name, space_name))
+        response = index_rebuild(router_url, db_name, space_name)
+        logger.info(response)
 
         if index_type != "FLAT":
             waiting_index_finish(logger, total)
 
-        logger.info(drop_space(router_url, db_name, space_name))
+        drop_space(router_url, db_name, space_name)
 
     def test_destroy_db(self):
         drop_db(router_url, db_name)
