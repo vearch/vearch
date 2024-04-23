@@ -407,7 +407,7 @@ class Vearch(VectorStore):
                     ],
                 },
                 "retrieval_param": {"metric_type": "InnerProduct", "efSearch": 64},
-                "limit": k,
+                "size": k,
                 "fields": meta_field_list,
                 
             }
@@ -433,6 +433,8 @@ class Vearch(VectorStore):
         for item in res:
             content = ""
             meta_data={}
+            if self.flag:
+                item = item["_source"]
             for item_key in item:
                 if item_key == "text":
                     content = item[item_key]
@@ -476,7 +478,7 @@ class Vearch(VectorStore):
                         }
                     ],
                 },
-                "limit": k,
+                "size": k,
                 "fields": meta_field_list,
                 "retrieval_param": {"metric_type": "InnerProduct", "efSearch": 64},
 
@@ -505,6 +507,7 @@ class Vearch(VectorStore):
             meta_data = {}
             if self.flag:
                 score = item["_score"]
+                item = item["_source"]
             for item_key in item:
                 if item_key == "text":
                     content = item[item_key]
@@ -585,12 +588,12 @@ class Vearch(VectorStore):
                     continue
                 content = ""
                 meta_info = {}
-                for field in record:
+                for field in record["_source"]:
                     if field == "text":
-                        content = record[field]
+                        content = record["_source"][field]
                         continue
                     elif field in meta_field_list:
-                        meta_info[field] = record[field]
+                        meta_info[field] = record["_source"][field]
                         meta_field_list.remove(field)
                         continue
                 results[record["_id"]] = Document(
