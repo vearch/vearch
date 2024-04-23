@@ -80,7 +80,7 @@ Status VectorManager::CreateRawVector(struct VectorInfo &vector_info,
 
   VectorStorageType store_type = default_store_type_;
   Status status = SetVectorStoreType(index_type, store_type_str, store_type);
-  if (status != Status::OK()) {
+  if (!status.ok()) {
     LOG(ERROR) << "set vector store type failed, store_type=" << store_type_str
                << ", index_type=" << index_type;
     return status;
@@ -244,7 +244,7 @@ Status VectorManager::CreateVectorIndexes(
         Status status =
             CreateVectorIndex(index_types_[i], index_params_[i], index,
                               training_threshold, false, vector_indexes);
-        if (status != Status::OK()) {
+        if (!status.ok()) {
           LOG(ERROR) << vec_name
                      << " create index failed: " << status.ToString();
           return status;
@@ -301,7 +301,7 @@ Status VectorManager::CreateVectorTable(TableInfo &table,
     std::string &vec_name = vector_info.name;
     vec_status = CreateRawVector(vector_info, index_types_[0], vec_dups, table,
                                  vectors_jp, &vec);
-    if (vec_status != Status::OK()) {
+    if (!vec_status.ok()) {
       std::stringstream msg;
       msg << vec_name << " create vector failed:" << vec_status.ToString();
       LOG(ERROR) << msg.str();
@@ -320,7 +320,7 @@ Status VectorManager::CreateVectorTable(TableInfo &table,
       status =
           CreateVectorIndex(index_types_[i], index_params_[i], vec,
                             table.TrainingThreshold(), true, vector_indexes_);
-      if (status != Status::OK()) {
+      if (!status.ok()) {
         LOG(ERROR) << vec_name << " create index failed: " << status.ToString();
         return status;
       }

@@ -318,7 +318,7 @@ Status Engine::Search(Request &request, Response &response_results) {
       return Status::InvalidArgument();
     } else {
       status = gamma_query.condition->ranker->Parse();
-      if (status.code() != status::Code::kOk) {
+      if (!status.ok()) {
         std::string msg = "ranker parse err, ranker: " +
                           gamma_query.condition->ranker->ToString();
         LOG(WARNING) << msg;
@@ -491,7 +491,7 @@ Status Engine::CreateTable(TableInfo &table) {
   }
 
   Status status = vec_manager_->CreateVectorTable(table, meta_jp);
-  if (status != Status::OK()) {
+  if (!status.ok()) {
     std::string msg =
         space_name_ + " cannot create VectorTable: " + status.ToString();
     LOG(ERROR) << msg;
@@ -799,7 +799,7 @@ int Engine::RebuildIndex(int drop_before_rebuild, int limit_cpu, int describe) {
   if (drop_before_rebuild) {
     Status status = vec_manager_->CreateVectorIndexes(
         training_threshold_, vec_manager_->VectorIndexes());
-    if (status != Status::OK()) {
+    if (!status.ok()) {
       LOG(ERROR) << "RebuildIndex CreateVectorIndexes failed: "
                  << status.ToString();
       vec_manager_->DestroyVectorIndexes();

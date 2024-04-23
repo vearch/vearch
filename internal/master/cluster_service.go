@@ -422,7 +422,6 @@ func (ms *masterService) createSpaceService(ctx context.Context, dbName string, 
 			case <-ctx.Done():
 				return fmt.Errorf("create space has error")
 			default:
-
 			}
 
 			partition, err := ms.Master().QueryPartition(ctx, space.Partitions[i].Id)
@@ -432,11 +431,10 @@ func (ms *masterService) createSpaceService(ctx context.Context, dbName string, 
 			if err != nil && vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err).GetError().Code != vearchpb.ErrorEnum_PARTITION_NOT_EXIST {
 				return err
 			}
-			if partition == nil {
-				time.Sleep(50 * time.Millisecond)
-				continue
+			if partition != nil {
+				break
 			}
-			break
+			time.Sleep(50 * time.Millisecond)
 		}
 	}
 

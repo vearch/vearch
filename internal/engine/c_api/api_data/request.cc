@@ -6,6 +6,7 @@
  */
 
 #include "request.h"
+
 #include "util/status.h"
 
 namespace vearch {
@@ -25,8 +26,7 @@ int Request::Serialize(char **out, int *out_len) {
 
     auto vector_query = gamma_api::CreateVectorQuery(
         builder, builder.CreateString(name), builder.CreateVector(value),
-        min_score, max_score,
-        builder.CreateString(vec_field.index_type));
+        min_score, max_score, builder.CreateString(vec_field.index_type));
     vec_fields_vector.push_back(vector_query);
   }
 
@@ -65,14 +65,14 @@ int Request::Serialize(char **out, int *out_len) {
                                     builder.CreateVector(value), is_union));
   }
 
-  auto res =
-      gamma_api::CreateRequest(builder, req_num_, topn_, brute_force_search_,
-                               builder.CreateVector(vec_fields_vector),
-                               builder.CreateVector(fields_vector),
-                               builder.CreateVector(range_filter_vector),
-                               builder.CreateVector(term_filter_vector),
-                               builder.CreateString(index_params_),
-                               multi_vector_rank_, l2_sqrt_, builder.CreateString(ranker_->raw_str));
+  auto res = gamma_api::CreateRequest(
+      builder, req_num_, topn_, brute_force_search_,
+      builder.CreateVector(vec_fields_vector),
+      builder.CreateVector(fields_vector),
+      builder.CreateVector(range_filter_vector),
+      builder.CreateVector(term_filter_vector),
+      builder.CreateString(index_params_), multi_vector_rank_, l2_sqrt_,
+      builder.CreateString(ranker_->raw_str));
 
   builder.Finish(res);
   *out_len = builder.GetSize();
@@ -226,16 +226,13 @@ bool Request::L2Sqrt() {
 
 void Request::SetL2Sqrt(bool l2_sqrt) { l2_sqrt_ = l2_sqrt; }
 
-vearch::Ranker *Request::Ranker() {
-  return ranker_;
-}
+vearch::Ranker *Request::Ranker() { return ranker_; }
 
 int Request::SetRanker(std::string params, int weight_num) {
   ranker_ = new WeightedRanker(params, weight_num);
-  if (params == "")
-    return 0;
+  if (params == "") return 0;
   Status status = ranker_->Parse();
-  if (status.code() != status::Code::kOk) {
+  if (!status.ok()) {
     delete ranker_;
     ranker_ = nullptr;
     return -1;

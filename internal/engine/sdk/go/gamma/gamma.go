@@ -43,7 +43,9 @@ func CreateTable(engine unsafe.Pointer, table *Table) *Status {
 		Code: int32(cstatus.code),
 		Msg:  C.GoString(cstatus.msg),
 	}
-	C.free(unsafe.Pointer(cstatus.msg))
+	if status.Code != 0 {
+		C.free(unsafe.Pointer(cstatus.msg))
+	}
 	return status
 }
 
@@ -153,7 +155,9 @@ func Search(engine unsafe.Pointer, reqByte []byte) ([]byte, *Status) {
 		Code: int32(cstatus.code),
 		Msg:  C.GoString(cstatus.msg),
 	}
-	C.free(unsafe.Pointer(cstatus.msg))
+	if status.Code != 0 {
+		C.free(unsafe.Pointer(cstatus.msg))
+	}
 	return respByte, status
 }
 
