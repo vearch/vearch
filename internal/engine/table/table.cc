@@ -255,14 +255,8 @@ int Table::GetKeyByDocid(int docid, std::string &key) {
                << "]";
     return -1;
   }
-  const uint8_t *doc_value = nullptr;
-  Status status = storage_mgr_->Get(docid, doc_value);
-  if (!status.ok()) {
-    return -1;
-  }
   int field_id = attr_idx_map_[key_field_name_];
-  GetFieldRawValue(docid, field_id, key, doc_value);
-  delete[] doc_value;
+  GetFieldRawValue(docid, field_id, key);
 
   int check_docid;
   GetDocIDByKey(key, check_docid);
@@ -327,17 +321,14 @@ int Table::Update(const std::unordered_map<std::string, struct Field> &fields,
                   int docid) {
   if (fields.size() == 0) return 0;
 
-  const uint8_t *ori_doc_value = nullptr;
-
-  Status status = storage_mgr_->Get(docid, ori_doc_value);
-  if (!status.ok()) {
-    return status.code();
+  auto result = storage_mgr_->Get(docid);
+  if (!result.first.ok()) {
+    return result.first.code();
   }
 
   uint8_t doc_value[item_length_];
 
-  memcpy(doc_value, ori_doc_value, item_length_);
-  delete[] ori_doc_value;
+  memcpy(doc_value, result.second.data(), item_length_);
 
   for (const auto &[name, field] : fields) {
     const auto &it = attr_idx_map_.find(name);
@@ -394,12 +385,6 @@ long Table::GetMemoryBytes() {
   return total_mem_bytes;
 }
 
-const uint8_t *Table::GetDocBuffer(int docid) {
-  const uint8_t *doc_value = nullptr;
-  storage_mgr_->Get(docid, doc_value);
-  return doc_value;
-}
-
 int Table::GetDocInfo(const std::string &key, Doc &doc,
                       const std::vector<std::string> &fields) {
   int doc_id = 0;
@@ -416,11 +401,6 @@ int Table::GetDocInfo(const int docid, Doc &doc,
     LOG(ERROR) << "doc [" << docid << "] in front of [" << last_docid_ << "]";
     return -1;
   }
-  const uint8_t *doc_value = nullptr;
-  Status status = storage_mgr_->Get(docid, doc_value);
-  if (!status.ok()) {
-    return status.code();
-  }
   auto &table_fields = doc.TableFields();
 
   auto assign_field = [&](struct Field &field, const std::string &field_name) {
@@ -432,8 +412,7 @@ int Table::GetDocInfo(const int docid, Doc &doc,
   if (fields.size() == 0) {
     for (const auto &it : attr_idx_map_) {
       assign_field(table_fields[it.first], it.first);
-      GetFieldRawValue(docid, it.second, table_fields[it.first].value,
-                       doc_value);
+      GetFieldRawValue(docid, it.second, table_fields[it.first].value);
     }
   } else {
     for (const std::string &f : fields) {
@@ -444,27 +423,24 @@ int Table::GetDocInfo(const int docid, Doc &doc,
       }
       int field_idx = iter->second;
       assign_field(table_fields[iter->first], f);
-      GetFieldRawValue(docid, field_idx, table_fields[iter->first].value,
-                       doc_value);
+      GetFieldRawValue(docid, field_idx, table_fields[iter->first].value);
     }
   }
-  delete[] doc_value;
   return 0;
 }
 
 int Table::GetFieldRawValue(int docid, const std::string &field_name,
-                            std::string &value, const uint8_t *doc_v) {
+                            std::string &value) {
   const auto iter = attr_idx_map_.find(field_name);
   if (iter == attr_idx_map_.end()) {
     LOG(ERROR) << name_ << " cannot find field [" << field_name << "]";
     return -1;
   }
-  GetFieldRawValue(docid, iter->second, value, doc_v);
+  GetFieldRawValue(docid, iter->second, value);
   return 0;
 }
 
-int Table::GetFieldRawValue(int docid, int field_id, std::string &value,
-                            const uint8_t *doc_v) {
+int Table::GetFieldRawValue(int docid, int field_id, std::string &value) {
   if ((docid < 0) or (field_id < 0 || field_id >= field_num_)) return -1;
 
   const auto iter = idx_attr_map_.find(field_id);
@@ -475,14 +451,9 @@ int Table::GetFieldRawValue(int docid, int field_id, std::string &value,
 
   std::string field_name = iter->second;
 
-  const uint8_t *doc_value = doc_v;
-  bool is_free = false;
-  if (doc_value == nullptr) {
-    is_free = true;
-    Status status = storage_mgr_->Get(docid, doc_value);
-    if (!status.ok()) {
-      return status.code();
-    }
+  auto result = storage_mgr_->Get(docid);
+  if (!result.first.ok()) {
+    return result.first.code();
   }
 
   DataType data_type = attrs_[field_id];
@@ -492,29 +463,22 @@ int Table::GetFieldRawValue(int docid, int field_id, std::string &value,
     storage_mgr_->GetString(docid, field_name, value);
   } else {
     int value_len = FTypeSize(data_type);
-    value = std::string((const char *)(doc_value + offset), value_len);
-  }
-
-  if (is_free) {
-    delete[] doc_value;
+    value =
+        std::string((const char *)(result.second.data() + offset), value_len);
   }
 
   return 0;
 }
 
 int Table::GetFieldRawValue(int docid, int field_id,
-                            std::vector<uint8_t> &value, const uint8_t *doc_v) {
+                            std::vector<uint8_t> &value) {
   if ((docid < 0) or (field_id < 0 || field_id >= field_num_)) return -1;
 
-  const uint8_t *doc_value = doc_v;
-  bool is_free = false;
-  if (doc_value == nullptr) {
-    is_free = true;
-    Status status = storage_mgr_->Get(docid, doc_value);
-    if (!status.ok()) {
-      return status.code();
-    }
+  auto result = storage_mgr_->Get(docid);
+  if (!result.first.ok()) {
+    return result.first.code();
   }
+  const uint8_t *doc_value = (const uint8_t *)result.second.data();
 
   DataType data_type = attrs_[field_id];
   size_t offset = idx_attr_offset_[field_id];
@@ -535,10 +499,6 @@ int Table::GetFieldRawValue(int docid, int field_id,
     int value_len = FTypeSize(data_type);
     value.resize(value_len);
     memcpy(value.data(), doc_value + offset, value_len);
-  }
-
-  if (is_free) {
-    delete[] doc_value;
   }
 
   return 0;

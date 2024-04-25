@@ -453,8 +453,8 @@ int GammaIndexHNSWLIB::Delete(const std::vector<int64_t> &ids) {
     markDelete(ids[i]);
   }
   deleted_num_ += ids.size();
-  LOG(INFO) << "delete index success! size=" << ids.size()
-            << ", total=" << deleted_num_;
+  LOG(DEBUG) << "delete index success! size=" << ids.size()
+             << ", total=" << deleted_num_;
   return 0;
 }
 

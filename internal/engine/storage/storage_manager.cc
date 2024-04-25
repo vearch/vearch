@@ -161,7 +161,7 @@ Status StorageManager::UpdateString(int id, std::string field_name,
   return AddString(id, field_name, value, len);
 }
 
-Status StorageManager::Get(int id, const uint8_t *&v) {
+std::pair<Status, std::string> StorageManager::Get(int id) {
   std::string key, value;
   ToRowKey((int)id, key);
   rocksdb::Status s =
@@ -170,13 +170,10 @@ Status StorageManager::Get(int id, const uint8_t *&v) {
     std::stringstream msg;
     msg << "rocksdb get error:" << s.ToString() << " key=" << key;
     LOG(DEBUG) << msg.str();
-    return Status::IOError(msg.str());
+    return {Status::IOError(msg.str()), std::string()};
   }
 
-  v = new uint8_t[value.size()];
-  memcpy((void *)v, value.c_str(), value.size());
-
-  return Status::OK();
+  return {Status::OK(), std::move(value)};
 }
 
 Status StorageManager::GetString(int id, std::string &field_name,

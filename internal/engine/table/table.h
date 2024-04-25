@@ -108,21 +108,17 @@ class Table {
 
   long GetMemoryBytes();
 
-  const uint8_t *GetDocBuffer(int docid);
-
   int GetDocInfo(const std::string &key, Doc &doc,
                  const std::vector<std::string> &fields);
   int GetDocInfo(const int docid, Doc &doc,
                  const std::vector<std::string> &fields);
 
   int GetFieldRawValue(int docid, const std::string &field_name,
-                       std::string &value, const uint8_t *doc_v = nullptr);
+                       std::string &value);
 
-  int GetFieldRawValue(int docid, int field_id, std::string &value,
-                       const uint8_t *doc_v = nullptr);
+  int GetFieldRawValue(int docid, int field_id, std::string &value);
 
-  int GetFieldRawValue(int docid, int field_id, std::vector<uint8_t> &value,
-                       const uint8_t *doc_v = nullptr);
+  int GetFieldRawValue(int docid, int field_id, std::vector<uint8_t> &value);
 
   int GetFieldType(const std::string &field, DataType &type);
 

@@ -79,23 +79,15 @@ int Response::Serialize(const std::string &space_name,
       VectorDoc *vec_doc = gamma_results_[i].docs[j];
       int docid = vec_doc->docid;
       double score = vec_doc->score;
-
-      const uint8_t *doc_buffer = table->GetDocBuffer(docid);
-      if (doc_buffer == nullptr) {
-        LOG(ERROR) << "docid[" << docid << "] table doc_buffer is nullptr";
-        continue;
-      }
-
       std::vector<flatbuffers::Offset<gamma_api::Attribute>> attributes;
       for (auto &it : attr_idx) {
         std::vector<uint8_t> val;
-        table->GetFieldRawValue(docid, it.second, val, doc_buffer);
+        table->GetFieldRawValue(docid, it.second, val);
 
         attributes.emplace_back(
             gamma_api::CreateAttribute(builder, builder.CreateString(it.first),
                                        builder.CreateVector(val)));
       }
-      delete[] doc_buffer;
       for (uint32_t k = 0; k < vec_fields.size(); ++k) {
         std::vector<uint8_t> vec;
         if (vector_mgr->GetDocVector(docid, vec_fields[k], vec) == 0) {

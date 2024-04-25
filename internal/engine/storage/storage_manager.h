@@ -8,6 +8,7 @@
 #pragma once
 
 #include <sstream>
+#include <utility>
 #include <vector>
 
 #include "rocksdb/db.h"
@@ -54,8 +55,7 @@ class StorageManager {
   Status UpdateString(int id, std::string field_name, const char *value,
                       int len);
 
-  // warning: vec can't be free
-  Status Get(int id, const uint8_t *&value);
+  std::pair<Status, std::string> Get(int id);
 
   Status GetString(int id, std::string &field_name, std::string &value);
 
