@@ -177,6 +177,28 @@ Engine::~Engine() {
   }
 }
 
+void Engine::Close() {
+  if (vec_manager_) {
+    delete vec_manager_;
+    vec_manager_ = nullptr;
+  }
+
+  if (table_) {
+    delete table_;
+    table_ = nullptr;
+  }
+
+  if (field_range_index_) {
+    delete field_range_index_;
+    field_range_index_ = nullptr;
+  }
+
+  if (docids_bitmap_) {
+    delete docids_bitmap_;
+    docids_bitmap_ = nullptr;
+  }
+}
+
 Engine *Engine::GetInstance(const std::string &index_root_path,
                             const std::string &space_name) {
   Engine *engine = new Engine(index_root_path, space_name);
@@ -184,6 +206,8 @@ Engine *Engine::GetInstance(const std::string &index_root_path,
   if (!status.ok()) {
     LOG(ERROR) << "Build " << space_name << " [" << index_root_path
                << "] failed!";
+    delete engine;
+    engine = nullptr;
     return nullptr;
   }
   return engine;
@@ -191,30 +215,30 @@ Engine *Engine::GetInstance(const std::string &index_root_path,
 
 Status Engine::Setup() {
   if (!utils::isFolderExist(index_root_path_.c_str())) {
-    mkdir(index_root_path_.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+    if(mkdir(index_root_path_.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH)) {
+      std::string msg = "mkdir " + index_root_path_ + " error";
+      LOG(ERROR) << msg;
+      return Status::IOError(msg);
+    }
   }
 
   dump_path_ = index_root_path_ + "/retrieval_model_index";
   if (!utils::isFolderExist(dump_path_.c_str())) {
-    mkdir(dump_path_.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+    if(mkdir(dump_path_.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH)) {
+      std::string msg = "mkdir " + dump_path_ + " error";
+      LOG(ERROR) << msg;
+      return Status::IOError(msg);
+    }
   }
 
-  docids_bitmap_ = new bitmap::BitmapManager();
-  docids_bitmap_->SetDumpFilePath(index_root_path_ + "/bitmap");
+  docids_bitmap_ = new bitmap::RocksdbBitmapManager();
   int init_bitmap_size = 5000 * 10000;
-  bool is_load = false;
-  int file_bytes_size = docids_bitmap_->FileBytesSize();
-  if (file_bytes_size != 0) {
-    init_bitmap_size = file_bytes_size * 8;
-    is_load = true;
-  }
-
-  if (docids_bitmap_->Init(init_bitmap_size) != 0) {
+  if (docids_bitmap_->Init(init_bitmap_size, index_root_path_ + "/bitmap") != 0) {
     std::string msg = "Cannot create bitmap!";
     LOG(ERROR) << msg;
     return Status::IOError(msg);
   }
-  if (is_load) {
+  if (docids_bitmap_->IsLoad()) {
     docids_bitmap_->Load();
   } else {
     docids_bitmap_->Dump();
@@ -496,6 +520,7 @@ Status Engine::CreateTable(TableInfo &table) {
         space_name_ + " cannot create VectorTable: " + status.ToString();
     LOG(ERROR) << msg;
     vec_manager_->Close();
+    this->Close();
     return Status::ParamError(msg);
   }
   TableParams disk_table_params;
@@ -601,14 +626,19 @@ int Engine::AddOrUpdate(Doc &doc) {
 #ifdef PERFORMANCE_TESTING
   double end_table = utils::getmillisecs();
 #endif
-
+  int ret = 0;
   // add vectors by VectorManager
-  if (vec_manager_->AddToStore(max_docid_, fields_vec) != 0) {
-    LOG(ERROR) << "Add to store error max_docid [" << max_docid_ << "]";
+  ret = vec_manager_->AddToStore(max_docid_, fields_vec);
+  if (ret != 0) {
+    LOG(ERROR) << "Add to store error max_docid [" << max_docid_ << "] err=" << ret;
     return -4;
   }
   ++max_docid_;
-  docids_bitmap_->SetMaxID(max_docid_);
+  ret = docids_bitmap_->SetMaxID(max_docid_);
+  if (ret != 0) {
+    LOG(ERROR) << "Bitmap set max_docid [" << max_docid_ << "] err= " << ret;
+    return -5;
+  };
 
   if (not b_running_ and index_status_ == UNINDEXED) {
     if (max_docid_ >= training_threshold_) {
@@ -659,7 +689,7 @@ int Engine::Update(int doc_id,
     field_range_index_->Add(doc_id, idx);
   }
 
-  LOG(DEBUG) << "update success! key=" << fields_table["_id"].value;
+  LOG(DEBUG) << "update success! key=" << fields_table["_id"].value << ", doc_id=" << doc_id;
   is_dirty_ = true;
   return 0;
 }
@@ -672,8 +702,12 @@ int Engine::Delete(std::string &key) {
   if (docids_bitmap_->Test(docid)) {
     return ret;
   }
+  ret = docids_bitmap_->Set(docid);
+  if (ret) {
+    LOG(ERROR) << "bitmap set failed: ret=" << ret;
+    return ret;
+  }
   ++delete_num_;
-  docids_bitmap_->Set(docid);
   docids_bitmap_->Dump(docid, 1);
   const auto &name_to_idx = table_->FieldMap();
   for (const auto &ite : name_to_idx) {
@@ -691,7 +725,7 @@ int Engine::GetDoc(const std::string &key, Doc &doc) {
   int docid = -1, ret = 0;
   ret = table_->GetDocIDByKey(key, docid);
   if (ret != 0 || docid < 0) {
-    LOG(INFO) << space_name_ << " GetDocIDbyKey [" << key << "] not found!";
+    LOG(DEBUG) << space_name_ << " GetDocIDbyKey [" << key << "] not found!";
     return -1;
   }
 
@@ -1094,6 +1128,7 @@ int Engine::Load() {
   af_exector_->Start();
   last_dump_dir_ = last_dir;
   LOG(INFO) << "load engine success! max docid=" << max_docid_
+            << ", delete_num=" << delete_num_
             << ", load directory=" << last_dir
             << ", clean directorys(not done)="
             << utils::join(folders_not_done, ',');

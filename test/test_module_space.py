@@ -250,17 +250,15 @@ class TestSpaceCreate:
             training_threshold = 1
         if wrong_index == 2:
             create_space_name = "wrong-name"
-        if wrong_index == 3:
-            replica_num = 3
         nlinks = 32
-        if wrong_index == 4:
+        if wrong_index == 3:
             nlinks = 97
-        if wrong_index == 5:
+        if wrong_index == 4:
             nlinks = 7
         efConstruction = 100
-        if wrong_index == 6:
+        if wrong_index == 5:
             efConstruction = 1025
-        if wrong_index == 7:
+        if wrong_index == 6:
             efConstruction = 15
         ncentroids = 2048
         if wrong_index == 7 or wrong_index == 8:
@@ -365,6 +363,7 @@ class TestSpaceCreate:
         }
 
         response = create_space(router_url, db_name, space_config)
+        logger.info(response.json())
         assert response.json()["code"] == 0
 
         describe_db_name = db_name

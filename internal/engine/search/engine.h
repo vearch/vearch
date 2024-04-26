@@ -90,6 +90,8 @@ class Engine {
 
   const std::string SpaceName() { return space_name_; }
 
+  void Close();
+
  private:
   Engine(const std::string &index_root_path, const std::string &space_name);
 

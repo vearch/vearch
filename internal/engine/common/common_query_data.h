@@ -224,7 +224,7 @@ struct Ranker {
 
   virtual Status Parse() = 0;
 
-  std::string ToString() {
+  virtual std::string ToString() {
     std::stringstream ss;
     ss << "ranker type =" << type << ", ";
     ss << "params: " << params;
@@ -242,7 +242,7 @@ struct WeightedRanker : public Ranker {
 
   virtual ~WeightedRanker() {}
 
-  Status Parse() {
+  virtual Status Parse() {
     Status status;
     std::string msg = "weighted ranker params err: " + std::string(raw_str);
     cJSON* jsonroot = cJSON_Parse(raw_str.c_str());
@@ -288,7 +288,7 @@ struct WeightedRanker : public Ranker {
     return Status::OK();
   }
 
-  std::string ToString() {
+  virtual std::string ToString() {
     std::stringstream ss;
     ss << "ranker type =" << type << ", ";
     ss << "params: " << params << ", ";

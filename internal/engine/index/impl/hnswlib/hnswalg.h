@@ -612,6 +612,7 @@ class HierarchicalNSW : public AlgorithmInterface<dist_t> {
 
   void resizeIndex(size_t new_max_elements) {
     pthread_rwlock_wrlock(&shared_mutex_);
+    LOG(INFO) << "hnsw resize new_max_elements=" << new_max_elements << ", realloc base layer size: " << new_max_elements * size_data_per_element_;
     if (new_max_elements < cur_element_count)
       throw std::runtime_error(
           "Cannot resize, max element is less than the current number of "

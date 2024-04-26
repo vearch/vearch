@@ -9,43 +9,86 @@
 
 #include <string>
 
+#include "rocksdb/db.h"
+#include "rocksdb/options.h"
+#include "rocksdb/table.h"
+#include "util/status.h"
+
 namespace bitmap {
 
 class BitmapManager {
  public:
   BitmapManager();
-  ~BitmapManager();
+  virtual ~BitmapManager();
 
-  int Init(uint32_t bit_size, const std::string &fpath = "",
+  virtual int Init(uint32_t bit_size, const std::string &fpath = "",
            char *bitmap = nullptr);
 
-  int SetDumpFilePath(const std::string &fpath);
+  virtual int SetDumpFilePath(const std::string &fpath);
 
-  int Dump(uint32_t begin_bit_id = 0, uint32_t bit_len = 0);
+  virtual int Dump(uint32_t begin_bit_id = 0, uint32_t bit_len = 0);
 
-  int Load(uint32_t begin_bit_id = 0, uint32_t bit_len = 0);
+  virtual int Load(uint32_t bit_len = 0);
 
-  uint32_t FileBytesSize();
+  virtual uint32_t FileBytesSize();
 
-  int Set(uint32_t bit_id);
+  bool IsLoad() { return is_load_; }
 
-  int Unset(uint32_t bit_id);
+  virtual int Set(uint32_t bit_id);
 
-  bool Test(uint32_t bit_id);
+  virtual int Unset(uint32_t bit_id);
 
-  uint32_t BitSize() { return size_; }
+  virtual bool Test(uint32_t bit_id);
+
+  virtual uint32_t BitSize() { return size_; }
 
   char *Bitmap() { return bitmap_; }
 
-  uint32_t BytesSize() { return (size_ >> 3) + 1; }
+  virtual uint32_t BytesSize() { return (size_ >> 3) + 1; }
 
-  void SetMaxID(uint32_t bit_id);
+  virtual int SetMaxID(uint32_t bit_id);
 
- private:
   char *bitmap_;
   uint32_t size_;
   int fd_;
   std::string fpath_;
+  bool is_load_;
+};
+
+constexpr uint32_t kBitmapSegmentBits = 1024 * 8;
+constexpr uint32_t kBitmapSegmentBytes = 1024;
+constexpr uint32_t kBitmapCacheSize = 10 * 1024 * 1024;
+const std::string kBitmapSizeKey = "bitmap_size";
+
+
+class RocksdbBitmapManager : public BitmapManager {
+ public:
+  RocksdbBitmapManager();
+  virtual ~RocksdbBitmapManager();
+
+  virtual int Init(uint32_t bit_size, const std::string &fpath = "",
+           char *bitmap = nullptr);
+
+  virtual int SetDumpFilePath(const std::string &fpath);
+
+  virtual int Dump(uint32_t begin_bit_id = 0, uint32_t bit_len = 0);
+
+  virtual int Load(uint32_t bit_len = 0);
+
+  virtual uint32_t FileBytesSize();
+
+  virtual int Set(uint32_t bit_id);
+
+  virtual int Unset(uint32_t bit_id);
+
+  virtual bool Test(uint32_t bit_id);
+
+  virtual int SetMaxID(uint32_t bit_id);
+
+  virtual void ToRowKey(uint32_t bit_id, std::string &key);
+
+  rocksdb::DB *db_;
+  bool should_load_;
 };
 
 }  // namespace bitmap

@@ -86,9 +86,9 @@ Status IndexIVFFlat::init(const std::string &index_param) {
 
   LOG(INFO) << "store params=" << store_params.ToJsonStr();
 
-  docids_bitmap_ = new bitmap::BitmapManager();
+  docids_bitmap_ = new bitmap::RocksdbBitmapManager();
   int init_bitmap_size = 1000 * 10000;
-  if (docids_bitmap_->Init(init_bitmap_size) != 0) {
+  if (docids_bitmap_->Init(init_bitmap_size, index_root_path_ + "/bitmap") != 0) {
     std::string msg = "Cannot create bitmap!";
     LOG(ERROR) << msg;
     return Status::IOError(msg);
@@ -222,9 +222,9 @@ Status IndexIVFPQ::init(const std::string &index_param) {
 
   LOG(INFO) << "store params=" << store_params.ToJsonStr();
 
-  docids_bitmap_ = new bitmap::BitmapManager();
+  docids_bitmap_ = new bitmap::RocksdbBitmapManager();
   int init_bitmap_size = 1000 * 10000;
-  if (docids_bitmap_->Init(init_bitmap_size) != 0) {
+  if (docids_bitmap_->Init(init_bitmap_size, index_root_path_ + "/bitmap") != 0) {
     std::string msg = "Cannot create bitmap!";
     LOG(ERROR) << msg;
     return Status::IOError(msg);
@@ -364,9 +364,9 @@ int IndexScann::init(const std::string &index_param) {
 
   LOG(INFO) << "store params=" << store_params.ToJsonStr();
 
-  docids_bitmap_ = new bitmap::BitmapManager();
+  docids_bitmap_ = new bitmap::RocksdbBitmapManager();
   int init_bitmap_size = 1000 * 10000;
-  if (docids_bitmap_->Init(init_bitmap_size) != 0) {
+  if (docids_bitmap_->Init(init_bitmap_size, index_root_path_ + "/bitmap") != 0) {
     LOG(ERROR) << "Cannot create bitmap!";
     return INTERNAL_ERR;
   }

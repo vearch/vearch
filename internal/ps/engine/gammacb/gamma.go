@@ -77,6 +77,11 @@ func New(cfg EngineConfig) (engine.Engine, error) {
 		SpaceName: cfg.Space.Name + "-" + cast.ToString(cfg.PartitionID),
 		LogDir:    config.Conf().GetLogDir()}
 
+	gamma_engine_instance := gamma.Init(config)
+	if gamma_engine_instance == nil {
+		return nil, fmt.Errorf("init engine err")
+	}
+
 	ge := &gammaEngine{
 		ctx:          ctx,
 		cancel:       cancel,
@@ -84,7 +89,7 @@ func New(cfg EngineConfig) (engine.Engine, error) {
 		space:        cfg.Space,
 		partitionID:  cfg.PartitionID,
 		path:         cfg.Path,
-		gamma:        gamma.Init(config),
+		gamma:        gamma_engine_instance,
 		counter:      atomic.NewAtomicInt64(0),
 		hasClosed:    false,
 	}
@@ -97,7 +102,7 @@ func New(cfg EngineConfig) (engine.Engine, error) {
 	if status := gamma.CreateTable(ge.gamma, table); status.Code != 0 {
 		log.Error("create table [%s] err [%s] cost time: [%v]", cfg.Space.Name, status.Msg, time.Since(startTime).Seconds())
 		ge.Close()
-		return nil, fmt.Errorf("create table err:[%s]", status.Msg)
+		return nil, fmt.Errorf("create engine table err:[%s]", status.Msg)
 	}
 
 	gammaDirs := make([]string, 0)
@@ -112,6 +117,7 @@ func New(cfg EngineConfig) (engine.Engine, error) {
 		if code != 0 {
 			vearchlog.LogErrNotNil(fmt.Errorf("load data err code:[%d]", code))
 			ge.Close()
+			return nil, fmt.Errorf("load data err code:[%d]", code)
 		}
 	}
 

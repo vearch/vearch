@@ -64,8 +64,7 @@ func (ri *readerImpl) GetDoc(ctx context.Context, doc *vearchpb.Document, getByD
 		code = gamma.GetDocByID(ri.engine.gamma, primaryKey, docGamma)
 	}
 	if code != 0 {
-		msg := "doc not found"
-		return vearchpb.NewError(vearchpb.ErrorEnum_DOCUMENT_NOT_EXIST, errors.New(msg))
+		return vearchpb.NewError(vearchpb.ErrorEnum_DOCUMENT_NOT_EXIST, nil)
 	}
 	doc.Fields = docGamma.Fields
 	return nil
