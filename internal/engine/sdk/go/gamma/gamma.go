@@ -35,9 +35,8 @@ func Close(engine unsafe.Pointer) int {
 }
 
 func CreateTable(engine unsafe.Pointer, table *Table) *Status {
-	var buffer []byte
-	table.Serialize(&buffer)
-	cstatus := C.CreateTable(engine, (*C.char)(unsafe.Pointer(&buffer[0])), C.int(len(buffer)))
+	tableBytes := table.Serialize()
+	cstatus := C.CreateTable(engine, (*C.char)(unsafe.Pointer(&tableBytes[0])), C.int(len(tableBytes)))
 
 	status := &Status{
 		Code: int32(cstatus.code),

@@ -50,7 +50,7 @@ type Table struct {
 	table        *gamma_api.Table
 }
 
-func (table *Table) Serialize(out *[]byte) int {
+func (table *Table) Serialize() []byte {
 	builder := flatbuffers.NewBuilder(0)
 	name := builder.CreateString(table.Name)
 
@@ -115,10 +115,7 @@ func (table *Table) Serialize(out *[]byte) int {
 	gamma_api.TableAddIndexType(builder, indexType)
 	gamma_api.TableAddIndexParams(builder, indexParams)
 	builder.Finish(builder.EndObject())
-	outLen := len(builder.FinishedBytes())
-	*out = make([]byte, outLen)
-	copy(*out, builder.FinishedBytes())
-	return outLen
+	return builder.FinishedBytes()
 }
 
 func (table *Table) DeSerialize(buffer []byte) {

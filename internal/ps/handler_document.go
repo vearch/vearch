@@ -277,7 +277,7 @@ func deleteDocs(ctx context.Context, store PartitionStore, items []*vearchpb.Ite
 
 func bulk(ctx context.Context, store PartitionStore, items []*vearchpb.Item) {
 	wg := sync.WaitGroup{}
-	gammaArray := make([][]byte, len(items))
+	docBytes := make([][]byte, len(items))
 	for i, item := range items {
 		wg.Add(1)
 		go func(item *vearchpb.Item, n int) {
@@ -288,14 +288,13 @@ func bulk(ctx context.Context, store PartitionStore, items []*vearchpb.Item) {
 				}
 			}()
 			docGamma := &gamma.Doc{Fields: item.Doc.Fields}
-			docBytes := docGamma.Serialize()
-			gammaArray[n] = docBytes
+			docBytes[n] = docGamma.Serialize()
 			item.Doc.Fields = nil
 			item.Err = vearchpb.NewError(vearchpb.ErrorEnum_SUCCESS, nil).GetError()
 		}(item, i)
 	}
 	wg.Wait()
-	docCmd := &vearchpb.DocCmd{Type: vearchpb.OpType_BULK, Docs: gammaArray}
+	docCmd := &vearchpb.DocCmd{Type: vearchpb.OpType_BULK, Docs: docBytes}
 
 	err := store.Write(ctx, docCmd)
 	vErr := vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err)

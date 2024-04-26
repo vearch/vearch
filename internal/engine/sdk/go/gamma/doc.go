@@ -36,8 +36,7 @@ func (doc *Doc) Serialize() []byte {
 		i++
 	}
 
-	var fields []flatbuffers.UOffsetT
-	fields = make([]flatbuffers.UOffsetT, len(doc.Fields))
+	fields := make([]flatbuffers.UOffsetT, len(doc.Fields))
 	for i := 0; i < len(doc.Fields); i++ {
 		gamma_api.FieldStart(builder)
 		gamma_api.FieldAddName(builder, names[i])
@@ -57,8 +56,6 @@ func (doc *Doc) Serialize() []byte {
 	builder.Finish(builder.EndObject())
 
 	return builder.FinishedBytes()
-	// bufferLen := len(builder.FinishedBytes())
-	// return bufferLen
 }
 
 func (doc *Doc) DeSerialize(buffer []byte) {

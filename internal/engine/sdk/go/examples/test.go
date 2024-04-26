@@ -272,16 +272,13 @@ func Search() {
 
 	response := &vearchpb.SearchResponse{}
 	reqByte := gamma.SearchRequestSerialize(request)
-	code, respByte := gamma.Search(opt.Engine, reqByte)
+	respByte, status := gamma.Search(opt.Engine, reqByte)
 
-	if respByte != nil {
-		gamma.DeSerialize(respByte, response)
-	}
-
-	if code != 0 {
-		fmt.Printf("code %v\n", code)
+	if status.Code != 0 {
+		fmt.Printf("code %v\n", status.Code)
 		return
 	}
+	gamma.DeSerialize(respByte, response)
 
 	fmt.Printf("%v\n", *(response.Results[0]))
 }

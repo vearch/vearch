@@ -270,14 +270,12 @@ int Table::GetKeyByDocid(int docid, std::string &key) {
 int Table::Add(const std::string &key,
                const std::unordered_map<std::string, struct Field> &fields,
                int docid) {
-  if (key.size() == 0) {
+  if (key.empty()) {
     LOG(ERROR) << name_ << " add item error : _id is null!";
     return -3;
   }
 
-  char vChar[sizeof(docid)];
-  memcpy(vChar, &docid, sizeof(docid));
-  std::string v = std::string(vChar, sizeof(docid));
+  std::string v(reinterpret_cast<char *>(&docid), sizeof(docid));
   item_to_docid_->Put(key, v);
 
   for (size_t i = 0; i < attrs_.size(); i++) {

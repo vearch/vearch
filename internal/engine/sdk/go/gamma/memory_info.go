@@ -22,7 +22,7 @@ type MemoryInfo struct {
 	memoryInfo *gamma_api.MemoryInfo
 }
 
-func (status *MemoryInfo) Serialize(buffer *[]byte) int {
+func (status *MemoryInfo) Serialize() []byte {
 	builder := flatbuffers.NewBuilder(0)
 
 	gamma_api.MemoryInfoStart(builder)
@@ -32,10 +32,7 @@ func (status *MemoryInfo) Serialize(buffer *[]byte) int {
 	gamma_api.MemoryInfoAddFieldRangeMem(builder, status.FieldRangeMem)
 	gamma_api.MemoryInfoAddBitmapMem(builder, status.BitmapMem)
 	builder.Finish(builder.EndObject())
-	bufferLen := len(builder.FinishedBytes())
-	*buffer = make([]byte, bufferLen)
-	copy(*buffer, builder.FinishedBytes())
-	return bufferLen
+	return builder.FinishedBytes()
 }
 
 func (status *MemoryInfo) DeSerialize(buffer []byte) {
