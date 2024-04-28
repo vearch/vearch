@@ -49,7 +49,7 @@ class Space(object):
             sign = compute_sign_auth(secret=self.client.token)
             resp = requests.request(method="GET", url=url, auth=sign)
             result = get_result(resp)
-            if result.code == 200:
+            if result.code == 0:
                 space_schema_dict = result.text
                 space_schema = SpaceSchema.from_dict(space_schema_dict)
                 return True, space_schema
@@ -103,6 +103,7 @@ class Space(object):
             else:
                 raise DocumentException(CodeType.UPSERT_DOC, "data fields not conform space schema")
         except VearchException as e:
+            raise  e
             if e.code == 0:
                 logger.error(e.code)
                 logger.error(e.message)
@@ -225,6 +226,6 @@ class Space(object):
         sign = compute_sign_auth(secret=self.client.token)
         resp = requests.request(method="POST", url=url, data=json.dumps(req_body), auth=sign)
         ret = get_result(resp)
-        if ret.code == 200:
+        if ret.code == 0:
             return json.dumps(ret.text)
         return []

@@ -85,7 +85,7 @@ def get_result(resp: requests.Response) -> Result:
     r.text = ret.get("data", "")
     r.err_msg = ret.get("msg", "")
     if resp.status_code / 100 == 2:
-        if r.code != 200:
+        if r.code != 0:
             logger.error("result code:" + str(r.code) + "msg:" + r.err_msg)
             raise VearchException(r.code, r.err_msg)
         return r

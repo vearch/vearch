@@ -26,7 +26,7 @@ class Database(object):
             result = get_result(resp)
             logger.debug("database exist return:" + result.dict_str())
             logger.debug(resp.status_code)
-            if result.code == 200:
+            if result.code == 0:
                 return True
             else:
                 return False

@@ -27,7 +27,7 @@ class Vearch(object):
         result = self.client._list_db()
         l = []
         logger.debug(result.dict_str())
-        if result.code == 200:
+        if result.code == 0:
             logger.debug(result.text)
             database_names = result.text
             for database_name in database_names:
@@ -82,7 +82,7 @@ class Vearch(object):
             resp = requests.request(method="GET", url=url, auth=sign)
             logger.debug("get space exist result:" + resp.text)
             ret = get_result(resp)
-            if ret.code == 200:
+            if ret.code == 0:
                 space_schema = json.dumps(ret.text)
                 return True, space_schema
             else:

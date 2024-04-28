@@ -48,7 +48,7 @@ def upsert_document(vc: Vearch) -> List:
                      [random.uniform(0, 1) for _ in range(512)],
                      ractor[random.randint(0, 2)]]
         data.append(book_item)
-        logger.debug(data)
+        logger.debug(book_item)
     space = Space("database1", "book_info")
     ret = space.upsert_doc(data)
     if ret:
