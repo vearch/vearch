@@ -5,6 +5,7 @@ import logging.handlers
 import logging.config
 import datetime
 import base64
+from requests.auth import HTTPBasicAuth
 
 LOG_LEVEL = "DEBUG"
 
@@ -144,8 +145,10 @@ def name_valid_check(name: str) -> bool:
     return match_ret.span()[1] - match_ret.span()[0] == len(name)
 
 
-def compute_sign_auth(user="root", secret=""):
-    sign = base64.b64encode(bytes(user + ":" + secret, encoding="utf-8"))
+def compute_sign_auth(user="root", secret="secret"):
+    sign = HTTPBasicAuth(user, secret)
+
+    # sign = base64.b64encode(bytes(user + ":" + secret, encoding="utf-8"))
     return sign
 
 

@@ -1,7 +1,7 @@
 from vearch.schema.index import Index
 from vearch.core.client import client
 from vearch.schema.space import SpaceSchema
-from vearch.result import Result, ResultStatus, get_result, UpsertResult,SearchResult
+from vearch.result import Result, ResultStatus, get_result, UpsertResult, SearchResult
 from vearch.const import SPACE_URI, INDEX_URI, UPSERT_DOC_URI, DELETE_DOC_URI, QUERY_DOC_URI, SEARCH_DOC_URI, \
     ERR_CODE_SPACE_NOT_EXIST, AUTH_KEY
 from vearch.exception import SpaceException, DocumentException, VearchException
@@ -29,7 +29,7 @@ class Space(object):
         if not self._schema:
             self._schema = space
         sign = compute_sign_auth(secret=self.client.token)
-        req = requests.request(method="POST", url=url, data=space.dict(), headers={AUTH_KEY: sign})
+        req = requests.request(method="POST", url=url, data=space.dict(), auth=sign)
         resp = self.client.s.send(req)
         return get_result(resp)
 
@@ -37,7 +37,7 @@ class Space(object):
         url_params = {"database_name": self.db_name, "space_name": self.name}
         url = self.client.host + SPACE_URI % url_params
         sign = compute_sign_auth(secret=self.client.token)
-        req = requests.request(method="DELETE", url=url, headers={AUTH_KEY: sign})
+        req = requests.request(method="DELETE", url=url, auth=sign)
         resp = self.client.s.send(req)
         return get_result(resp)
 
@@ -47,7 +47,7 @@ class Space(object):
             uri = SPACE_URI % url_params
             url = self.client.host + str(uri)
             sign = compute_sign_auth(secret=self.client.token)
-            resp = requests.request(method="GET", url=url, headers={AUTH_KEY: sign})
+            resp = requests.request(method="GET", url=url, auth=sign)
             result = get_result(resp)
             if result.code == 200:
                 space_schema_dict = result.text
@@ -66,7 +66,7 @@ class Space(object):
         req_body = {"field": field, "index": index.dict(), "database": self.db_name, "space": self.name}
         sign = compute_sign_auth(secret=self.client.token)
         resp = requests.request(method="POST", url=url, data=json.dumps(req_body),
-                                headers={AUTH_KEY: sign})
+                                auth=sign)
         return get_result(resp)
 
     def upsert_doc(self, data: Union[List, pd.DataFrame]) -> UpsertResult:
@@ -98,7 +98,7 @@ class Space(object):
                 logger.debug(req_body)
                 sign = compute_sign_auth(secret=self.client.token)
                 resp = requests.request(method="POST", url=url, data=json.dumps(req_body),
-                                        headers={AUTH_KEY: sign})
+                                        auth=sign)
                 return UpsertResult.parse_upsert_result_from_response(resp)
             else:
                 raise DocumentException(CodeType.UPSERT_DOC, "data fields not conform space schema")
@@ -121,8 +121,9 @@ class Space(object):
     def delete_doc(self, filter: Filter) -> Result:
         url = self.client.host + DELETE_DOC_URI
         req_body = {"database": self.db_name, "space": self.name, "filter": filter.dict()}
-        req = requests.request(method="POST", url=url, data=json.dumps(req_body),
-                               headers={AUTH_KEY: self.client.token})
+        sign = compute_sign_auth()
+        req = requests.request(method="POST", url=url, data=json.dumps(req_body), auth=sign)
+
         resp = self.client.s.send(req)
         return get_result(resp)
 
@@ -189,8 +190,8 @@ class Space(object):
         logger.debug(json.dumps(req_body))
         sign = compute_sign_auth(secret=self.client.token)
         resp = requests.request(method="POST", url=url, data=json.dumps(req_body),
-                                headers={AUTH_KEY: sign})
-        sr=SearchResult.parse_search_result_from_response(resp)
+                                auth=sign)
+        sr = SearchResult.parse_search_result_from_response(resp)
         return sr.documents
 
     def query(self, document_ids: Optional[List] = [], filter: Optional[Filter] = None,
@@ -222,7 +223,7 @@ class Space(object):
         logger.debug(url)
         logger.debug(json.dumps(req_body))
         sign = compute_sign_auth(secret=self.client.token)
-        resp = requests.request(method="POST", url=url, data=json.dumps(req_body), headers={AUTH_KEY: sign})
+        resp = requests.request(method="POST", url=url, data=json.dumps(req_body), auth=sign)
         ret = get_result(resp)
         if ret.code == 200:
             return json.dumps(ret.text)

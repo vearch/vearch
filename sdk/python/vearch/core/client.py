@@ -34,7 +34,7 @@ class RestClient(object):
         url = self.host + DATABASE_URI % url_params
         logger.debug("curl -X POST " + url + " -H Authorization:%s" % self.token)
         sign = compute_sign_auth(secret=self.token)
-        resp = requests.request(method="POST", url=url, headers={AUTH_KEY: sign})
+        resp = requests.request(method="POST", url=url, auth=sign)
         if resp.status_code != 200:
             logger.error("resp:" + str(resp.text))
         else:
@@ -46,13 +46,13 @@ class RestClient(object):
         url = self.host + (DATABASE_URI % url_params)
         logger.debug(url)
         sign = compute_sign_auth(secret=self.token)
-        resp = requests.request(method="DELETE", url=url, headers={AUTH_KEY: sign})
+        resp = requests.request(method="DELETE", url=url,auth=sign)
         return get_result(resp)
 
     def _list_db(self) -> Result:
         url = self.host + LIST_DATABASE_URI
         sign = compute_sign_auth(secret=self.token)
-        resp = requests.request(method="GET", url=url, headers={AUTH_KEY: sign})
+        resp = requests.request(method="GET", url=url,auth=sign)
         return get_result(resp)
 
 

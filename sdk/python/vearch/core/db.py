@@ -22,7 +22,7 @@ class Database(object):
             url_params = {"database_name": self.name}
             url = self.client.host + DATABASE_URI % url_params
             sign = compute_sign_auth(secret=self.client.token)
-            resp = requests.request(method="GET", url=url, headers={AUTH_KEY: sign})
+            resp = requests.request(method="GET", url=url, auth=sign)
             result = get_result(resp)
             logger.debug("database exist return:" + result.dict_str())
             logger.debug(resp.status_code)
@@ -63,6 +63,7 @@ class Database(object):
                 raise Exception("database not exist,and create error")
         url_params = {"database_name": self.name, "space_name": space._name}
         url = self.client.host + SPACE_URI % url_params
-        req = requests.request(method="POST", url=url, data=space.dict(), headers={AUTH_KEY: self.client.token})
+        sign = compute_sign_auth()
+        req = requests.request(method="POST", url=url, data=space.dict(), auth=sign)
         resp = self.client.s.send(req)
         return get_result(resp)

@@ -60,7 +60,7 @@ class Vearch(object):
         sign = compute_sign_auth(secret=self.client.token)
         logger.debug("create space:" + url)
         logger.debug("schema:" + json.dumps(space.dict()))
-        resp = requests.request(method="POST", url=url, data=json.dumps(space.dict()), headers={AUTH_KEY: sign})
+        resp = requests.request(method="POST", url=url, data=json.dumps(space.dict()), auth=sign)
         logger.debug(str(resp.status_code) + resp.text)
         result = get_result(resp)
         return result
@@ -70,7 +70,7 @@ class Vearch(object):
         url = self.client.host + SPACE_URI % url_params
         logger.debug("delete space url:" + url)
         sign = compute_sign_auth(secret=self.client.token)
-        resp = requests.request(method="DELETE", url=url, headers={"Authorization": sign})
+        resp = requests.request(method="DELETE", url=url, auth=sign)
         logger.debug("delete space ret" + resp.text)
         return get_result(resp)
 
@@ -79,7 +79,7 @@ class Vearch(object):
             url_params = {"database_name": database_name, "space_name": space_name}
             url = self.client.host + SPACE_URI % url_params
             sign = compute_sign_auth(secret=self.client.token)
-            resp = requests.request(method="GET", url=url, headers={"Authorization": sign})
+            resp = requests.request(method="GET", url=url, auth=sign)
             logger.debug("get space exist result:" + resp.text)
             ret = get_result(resp)
             if ret.code == 200:
@@ -96,7 +96,8 @@ class Vearch(object):
     def create_index(self, database_name: str, space_name: str, field: str, index: Index) -> Result:
         url = self.client.host + INDEX_URI
         req_body = {"field": field, "index": index.dict(), "database": database_name, "space": space_name}
+        sign = compute_sign_auth()
         req = requests.request(method="POST", url=url, data=json.dumps(req_body),
-                               headers={"token": self.client.token})
+                               auth=sign)
         resp = self.client.s.send(req)
         return get_result(resp)
