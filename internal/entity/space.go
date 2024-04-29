@@ -82,7 +82,7 @@ type Space struct {
 
 type SpaceSchema struct {
 	Fields json.RawMessage `json:"fields"`
-	Index  *Index          `json:"index"`
+	Index  *Index          `json:"index,omitempty"`
 }
 
 type SpaceInfo struct {

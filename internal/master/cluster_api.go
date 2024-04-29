@@ -367,7 +367,6 @@ func (ca *clusterAPI) getSpace(c *gin.Context) {
 			spaceInfo.DbName = dbName
 			spaceInfo.SpaceName = spaceName
 			spaceInfo.Schema = &entity.SpaceSchema{
-				Index:  space.Index,
 				Fields: space.Fields,
 			}
 			spaceInfo.PartitionNum = space.PartitionNum
@@ -388,7 +387,6 @@ func (ca *clusterAPI) getSpace(c *gin.Context) {
 				spaceInfo.DbName = dbName
 				spaceInfo.SpaceName = space.Name
 				spaceInfo.Schema = &entity.SpaceSchema{
-					Index:  space.Index,
 					Fields: space.Fields,
 				}
 				spaceInfo.PartitionNum = space.PartitionNum
