@@ -121,7 +121,7 @@ func (cliCache *clientCache) UserByCache(ctx context.Context, userName string) (
 		}
 	}
 
-	return nil, fmt.Errorf("user:[%s] err:[%s]", userName, vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_NOT_EXIST, nil))
+	return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("user:[%s] err:[%s]", userName, vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_NOT_EXIST, nil)))
 }
 
 func (cliCache *clientCache) reloadUserCache(ctx context.Context, sync bool, userName string) error {
@@ -129,7 +129,7 @@ func (cliCache *clientCache) reloadUserCache(ctx context.Context, sync bool, use
 		log.Info("to reload user:[%s]", userName)
 		user, err := cliCache.mc.QueryUser(ctx, userName)
 		if err != nil {
-			return fmt.Errorf("can not found user by name:[%s] err:[%s]", userName, err.Error())
+			return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("can not found user by name:[%s] err:[%s]", userName, err.Error()))
 		}
 		cliCache.userCache.Set(userName, user, cache.NoExpiration)
 		return nil
@@ -172,7 +172,7 @@ func (cliCache *clientCache) SpaceByCache(ctx context.Context, db, space string)
 		}
 	}
 
-	return nil, fmt.Errorf("db:[%s] space:[%s] err:[%s]", db, space, vearchpb.NewError(vearchpb.ErrorEnum_SPACE_NOT_EXIST, nil))
+	return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("db:[%s] space:[%s] err:[%s]", db, space, vearchpb.NewError(vearchpb.ErrorEnum_SPACE_NOT_EXIST, nil)))
 }
 
 func (cliCache *clientCache) reloadSpaceCache(ctx context.Context, sync bool, db string, spaceName string) error {
@@ -183,12 +183,12 @@ func (cliCache *clientCache) reloadSpaceCache(ctx context.Context, sync bool, db
 
 		dbID, err := cliCache.mc.QueryDBName2Id(ctx, db)
 		if err != nil {
-			return fmt.Errorf("can not found db by name:[%s] err:[%s]", db, err.Error())
+			return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("can not found db by name:[%s] err:[%s]", db, err.Error()))
 		}
 
 		space, err := cliCache.mc.QuerySpaceByName(ctx, dbID, spaceName)
 		if err != nil {
-			return fmt.Errorf("can not found space by space name:[%s] and db name:[%s] err:[%s]", spaceName, db, err.Error())
+			return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("can not found space by space name:[%s] and db name:[%s] err:[%s]", spaceName, db, err.Error()))
 		}
 		if space.ResourceName != config.Conf().Global.ResourceName {
 			log.Info("space name [%s] resource name don't match [%s], [%s], reloadSpaceCache failed. ",
@@ -241,7 +241,7 @@ func (cliCache *clientCache) PartitionByCache(ctx context.Context, spaceName str
 		}
 	}
 
-	return nil, fmt.Errorf("space:[%s] partition_id:[%d] err:[%s]", spaceName, pid, vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_NOT_EXIST, nil))
+	return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("space:[%s] partition_id:[%d]", spaceName, pid))
 }
 
 func (cliCache *clientCache) reloadPartitionCache(ctx context.Context, sync bool, spaceName string, pid entity.PartitionID) error {
@@ -255,7 +255,7 @@ func (cliCache *clientCache) reloadPartitionCache(ctx context.Context, sync bool
 
 		partition, err := cliCache.mc.QueryPartition(c, pid)
 		if err != nil {
-			return fmt.Errorf("can not found db by space:[%s] partition_id:[%d] err:[%s]", spaceName, pid, err.Error())
+			return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("can not found db by space:[%s] partition_id:[%d] err:[%s]", spaceName, pid, err.Error()))
 		}
 
 		cliCache.partitionCache.Set(key, partition, cache.NoExpiration)
@@ -295,7 +295,7 @@ func (cliCache *clientCache) ServerByCache(ctx context.Context, id entity.NodeID
 		}
 	}
 
-	return nil, fmt.Errorf("node_id:[%d] err:[%s]", id, vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_NOT_EXIST, nil))
+	return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("server node id:[%d]", id))
 }
 
 func (cliCache *clientCache) reloadServerCache(ctx context.Context, sync bool, id entity.NodeID) error {
@@ -309,7 +309,7 @@ func (cliCache *clientCache) reloadServerCache(ctx context.Context, sync bool, i
 
 		server, err := cliCache.mc.QueryServer(c, id)
 		if err != nil {
-			return fmt.Errorf("can not found server node_id:[%d] err:[%s]", id, err.Error())
+			return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("can not found server node_id:[%d] err:[%s]", id, err.Error()))
 		}
 
 		cliCache.serverCache.Set(key, server, cache.NoExpiration)
@@ -431,7 +431,7 @@ func (cliCache *clientCache) startCacheJob(ctx context.Context) error {
 		put: func(value []byte) (err error) {
 			user := &entity.User{}
 			if err := vjson.Unmarshal(value, user); err != nil {
-				return fmt.Errorf("put event user cache err, can't unmarshal event value: %s , error: %s", string(value), err.Error())
+				return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("put event user cache err, can't unmarshal event value: %s, error: %s", string(value), err.Error()))
 			}
 			cliCache.userCache.Set(entity.UserKey(user.Name), user, cache.NoExpiration)
 			return nil
@@ -462,7 +462,7 @@ func (cliCache *clientCache) startCacheJob(ctx context.Context) error {
 			}
 			dbName, err := cliCache.mc.QueryDBId2Name(ctx, space.DBId)
 			if err != nil {
-				return fmt.Errorf("change cache space err: %s , not found db content: %s", err.Error(), string(value))
+				return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("find db by id err: %s, data: %s", err.Error(), string(value)))
 			}
 			key := cacheSpaceKey(dbName, space.Name)
 			if oldValue, b := cliCache.spaceCache.Get(key); !b || space.Version > oldValue.(*entity.Space).Version {

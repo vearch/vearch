@@ -48,7 +48,7 @@ func (wi *writerImpl) Write(ctx context.Context, doc *vearchpb.DocCmd) (err erro
 
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("[Rocover] [%s]", cast.ToString(r))
+			err = vearchpb.NewError(vearchpb.ErrorEnum_RECOVER, fmt.Errorf(" %s", cast.ToString(r)))
 		}
 	}()
 	wi.engine.counter.Incr()

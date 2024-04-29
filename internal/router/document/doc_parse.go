@@ -67,7 +67,7 @@ func parseJSON(path []string, v *fastjson.Value, space *entity.Space, proMap map
 	obj, err := v.Object()
 	if err != nil {
 		log.Warnf("data format error, object is required but received %s", v.Type().String())
-		return nil, 0, fmt.Errorf("data format error, object is required but received %s", v.Type().String())
+		return nil, 0, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("data format error, object is required but received %s", v.Type().String()))
 	}
 
 	haveNoField := false
@@ -115,11 +115,11 @@ func parseJSON(path []string, v *fastjson.Value, space *entity.Space, proMap map
 	})
 
 	if parseErr.Error() != "" {
-		return nil, haveVector, fmt.Errorf("%s", parseErr.Error())
+		return nil, haveVector, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("%s", parseErr.Error()))
 	}
 
 	if haveNoField {
-		return nil, haveVector, fmt.Errorf("unrecognizable field, %s is not found in space fields", errorField)
+		return nil, haveVector, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("unrecognizable field, %s is not found in space fields", errorField))
 	}
 
 	return fields, haveVector, nil
@@ -127,7 +127,7 @@ func parseJSON(path []string, v *fastjson.Value, space *entity.Space, proMap map
 
 func processPropertyString(v *fastjson.Value, pathString string, pro *entity.SpaceProperties) (*vearchpb.Field, error) {
 	if pro == nil {
-		return nil, fmt.Errorf("unrecognizable field %s %v", pathString, pro)
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("unrecognizable field %s %v", pathString, pro))
 	}
 
 	propertyValueByte, err := v.StringBytes()
@@ -145,7 +145,7 @@ func processPropertyString(v *fastjson.Value, pathString string, pro *entity.Spa
 
 func processPropertyNumber(v *fastjson.Value, pathString string, pro *entity.SpaceProperties) (*vearchpb.Field, error) {
 	if pro == nil {
-		return nil, fmt.Errorf("unrecognizable field %s %v", pathString, pro)
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("unrecognizable field %s %v", pathString, pro))
 	}
 	field, err := processNumber(pro, pathString, v)
 	if err != nil {
@@ -160,7 +160,7 @@ func processPropertyBool(v *fastjson.Value, pathString string, pro *entity.Space
 		return nil, err
 	}
 	if pro == nil {
-		return nil, fmt.Errorf("unrecognizable field %s %v", pathString, pro)
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("unrecognizable field %s %v", pathString, pro))
 	}
 	field, err := processBool(pro, pathString, propertyValBool)
 	if err != nil {
@@ -175,17 +175,17 @@ func processPropertyObjectVectorBinary(feature []*fastjson.Value, pathString str
 		uint8Value, err := feature[i].Int()
 		if err != nil {
 			log.Error("vector can not to uint8 %v", feature[i])
-			return nil, fmt.Errorf("vector can not to uint8 %v", feature[i])
+			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("binary vector embedding can not to uint8 %v", feature[i]))
 		}
 		if uint8Value < 0 || uint8Value > 255 {
-			return nil, fmt.Errorf("vector value overflows constant: %v", uint8Value)
+			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("binary vector embedding value overflows constant: %v", uint8Value))
 		}
 		vector[i] = uint8(uint8Value)
 	}
 	field, err := processVectorBinary(pro, pathString, vector)
 	if err != nil {
 		log.Error("process vector binary err:[%s] vector value:[%v]", err.Error(), vector)
-		return nil, fmt.Errorf("process vector binary err:[%s] vector value:[%v]", err.Error(), vector)
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("process binary vector embedding err:[%s] vector value:[%v]", err.Error(), vector))
 	}
 	return field, nil
 }
@@ -195,10 +195,10 @@ func processPropertyObjectVectorOther(feature []*fastjson.Value, pathString stri
 	for i := 0; i < len(feature); i++ {
 		if f64, err := feature[i].Float64(); err != nil {
 			log.Error("vector can not to float 64 %v", feature[i])
-			return nil, fmt.Errorf("vector can not to float 64 %v", feature[i])
+			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("vector embedding can not to float 64 %v", feature[i]))
 		} else if math.IsNaN(f64) || math.IsInf(f64, 0) {
-			log.Error("vector value is index:[%d], err:[ %v]", i, feature[i])
-			return nil, fmt.Errorf("vector value is index:[%d], err:[ %v]", i, feature[i])
+			log.Error("vector value index:[%d], err:[ %v] is nan or inf", i, feature[i])
+			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("vector embedding value index:[%d], err:[ %v] is nan or inf", i, feature[i]))
 		} else {
 			vector[i] = float32(f64)
 		}
@@ -206,7 +206,7 @@ func processPropertyObjectVectorOther(feature []*fastjson.Value, pathString stri
 	field, err := processVector(pro, pathString, vector)
 	if err != nil {
 		log.Error("%s vector value:[%v]", err.Error(), vector)
-		return nil, fmt.Errorf("%s vector value:[%v]", err.Error(), vector)
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("%s vector embedding value:[%v]", err.Error(), vector))
 	}
 	return field, nil
 }
@@ -244,8 +244,7 @@ func processPropertyArray(v *fastjson.Value, pathString string, pro *entity.Spac
 		field, err = processPropertyArrayVectorString(vs, pathString, pro)
 	} else if pro.FieldType == vearchpb.FieldType_VECTOR {
 		if len(vs) == 0 {
-			err := fmt.Errorf("vector field %s feature value should be arrry, but is: %v", pathString, v)
-			return field, err
+			return field, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("vector field %s embedding value should be arrry, but is: %v", pathString, v))
 		}
 		if indexType == "BINARYIVF" {
 			field, err = processPropertyObjectVectorBinary(vs, pathString, pro)
@@ -253,7 +252,7 @@ func processPropertyArray(v *fastjson.Value, pathString string, pro *entity.Spac
 			field, err = processPropertyObjectVectorOther(vs, pathString, pro)
 		}
 	} else {
-		field, err = nil, fmt.Errorf("field:[%s] type:[%v] can't use as array", fieldName, pro.FieldType.String())
+		field, err = nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("field:[%s] type:[%v] can't use as array", fieldName, pro.FieldType.String()))
 	}
 
 	return field, err
@@ -263,8 +262,8 @@ func processProperty(docVal *DocVal, v *fastjson.Value, indexType string, pro *e
 	fieldName := docVal.FieldName
 	path := docVal.Path
 	if len(path) == 0 && FieldsIndex[fieldName] > 0 {
-		log.Error("filed name [%s]  is an internal field that cannot be used", fieldName)
-		return nil, fmt.Errorf("filed name [%s]  is an internal field that cannot be used", fieldName)
+		log.Error("field name [%s]  is an internal field that cannot be used", fieldName)
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("field name [%s]  is an internal field that cannot be used", fieldName))
 	}
 
 	pathString := fieldName
@@ -273,7 +272,7 @@ func processProperty(docVal *DocVal, v *fastjson.Value, indexType string, pro *e
 	}
 
 	if v.Type() == fastjson.TypeNull {
-		return nil, fmt.Errorf("filed name [%s]  type is null", fieldName)
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("field name [%s]  type is null", fieldName))
 	}
 
 	field := &vearchpb.Field{Name: fieldName}
@@ -328,9 +327,9 @@ func processString(pro *entity.SpaceProperties, fieldName, val string) (*vearchp
 			isIndex = true
 		}
 		if isIndex && len(val) > maxIndexedStrLen {
-			err = fmt.Errorf("string field %s indexed, length should less than %d", fieldName, maxIndexedStrLen)
+			err = vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("string field %s indexed, length should less than %d", fieldName, maxIndexedStrLen))
 		} else if len(val) > maxStrLen {
-			err = fmt.Errorf("string field %s length should less than %d", fieldName, maxStrLen)
+			err = vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("string field %s length should less than %d", fieldName, maxStrLen))
 		} else {
 			field, err = processField(fieldName, vearchpb.FieldType_STRING, []byte(val), opt)
 		}
@@ -340,9 +339,9 @@ func processString(pro *entity.SpaceProperties, fieldName, val string) (*vearchp
 			isIndex = true
 		}
 		if isIndex && len(val) > maxIndexedStrLen {
-			err = fmt.Errorf("string field %s indexed, length should less than %d", fieldName, maxIndexedStrLen)
+			err = vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("string field %s indexed, length should less than %d", fieldName, maxIndexedStrLen))
 		} else if len(val) > maxStrLen {
-			err = fmt.Errorf("string field %s length should less than %d", fieldName, maxStrLen)
+			err = vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("string field %s length should less than %d", fieldName, maxStrLen))
 		} else {
 			field, err = processField(fieldName, vearchpb.FieldType_STRINGARRAY, []byte(val), opt)
 		}
@@ -351,7 +350,7 @@ func processString(pro *entity.SpaceProperties, fieldName, val string) (*vearchp
 		var f time.Time
 		f, err = cast.ToTimeE(val)
 		if err != nil {
-			field, err = nil, fmt.Errorf("parse date %s faield, err %v", val, err)
+			field, err = nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("parse date %s faield, err %v", val, err))
 		} else {
 			field, err = processField(fieldName, vearchpb.FieldType_DATE, cbbytes.Int64ToByte(f.UnixNano()), opt)
 		}
@@ -359,7 +358,7 @@ func processString(pro *entity.SpaceProperties, fieldName, val string) (*vearchp
 		var i int32
 		i, err = cast.ToInt32E(val)
 		if err != nil {
-			field, err = nil, fmt.Errorf("parse string %s to integer failed, err %v", val, err)
+			field, err = nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("parse string %s to integer failed, err %v", val, err))
 		} else {
 			field, err = processField(fieldName, vearchpb.FieldType_INT, cbbytes.Int32ToByte(i), opt)
 		}
@@ -367,7 +366,7 @@ func processString(pro *entity.SpaceProperties, fieldName, val string) (*vearchp
 		var i int64
 		i, err = cast.ToInt64E(val)
 		if err != nil {
-			field, err = nil, fmt.Errorf("parse string %s to long failed, err %v", val, err)
+			field, err = nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("parse string %s to long failed, err %v", val, err))
 		} else {
 			field, err = processField(fieldName, vearchpb.FieldType_LONG, cbbytes.Int64ToByte(i), opt)
 		}
@@ -375,7 +374,7 @@ func processString(pro *entity.SpaceProperties, fieldName, val string) (*vearchp
 		var f float32
 		f, err = cast.ToFloat32E(val)
 		if err != nil {
-			field, err = nil, fmt.Errorf("parse string %s to float32 failed, err %v", val, err)
+			field, err = nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("parse string %s to float32 failed, err %v", val, err))
 		} else {
 			field, err = processField(fieldName, vearchpb.FieldType_FLOAT, cbbytes.Float32ToByte(f), opt)
 		}
@@ -383,12 +382,12 @@ func processString(pro *entity.SpaceProperties, fieldName, val string) (*vearchp
 		var f float64
 		f, err = cast.ToFloat64E(val)
 		if err != nil {
-			field, err = nil, fmt.Errorf("parse string %s to float64 failed, err %v", val, err)
+			field, err = nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("parse string %s to float64 failed, err %v", val, err))
 		} else {
 			field, err = processField(fieldName, vearchpb.FieldType_DOUBLE, cbbytes.Float64ToByte(f), opt)
 		}
 	default:
-		field, err = nil, fmt.Errorf("parse param processString err :%s", fieldName)
+		field, err = nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("parse param processString err :%s", fieldName))
 	}
 	return field, err
 }
@@ -440,7 +439,7 @@ func processNumber(pro *entity.SpaceProperties, fieldName string, val *fastjson.
 		}
 		field, err = processField(fieldName, vearchpb.FieldType_DATE, cbbytes.Int64ToByte(i*1e6), opt)
 	default:
-		field, err = nil, fmt.Errorf("field[%s] value mismatch, value:[%v] type:[%v]", fieldName, val, pro.FieldType)
+		field, err = nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("field[%s] value mismatch, value:[%v] type:[%v]", fieldName, val, pro.FieldType))
 	}
 	return field, err
 }
@@ -454,7 +453,7 @@ func processBool(pro *entity.SpaceProperties, fieldName string, val bool) (*vear
 		}
 		return processField(fieldName, vearchpb.FieldType_BOOL, cbbytes.BoolToByte(val), opt)
 	default:
-		return nil, fmt.Errorf("field:[%s] value mismatch, type:[%s]", fieldName, pro.FieldType)
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("field:[%s] value mismatch, type:[%s]", fieldName, pro.FieldType))
 	}
 }
 
@@ -462,7 +461,7 @@ func processVectorBinary(pro *entity.SpaceProperties, fieldName string, val []ui
 	switch pro.FieldType {
 	case vearchpb.FieldType_VECTOR:
 		if pro.Dimension > 0 && (pro.Dimension)/8 != len(val) {
-			return nil, fmt.Errorf("processVectorBinary field:[%s] vector length has error, dimension in space is:[%d] but input length:[%d]", fieldName, pro.Dimension, len(val))
+			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("vector field:[%s] embedding length has error, dimension in space is:[%d] but input length:[%d]", fieldName, pro.Dimension, len(val)))
 		}
 
 		bs, err := cbbytes.VectorBinaryToByte(val)
@@ -476,18 +475,18 @@ func processVectorBinary(pro *entity.SpaceProperties, fieldName string, val []ui
 
 		return processField(fieldName, vearchpb.FieldType_VECTOR, bs, opt)
 	default:
-		return nil, fmt.Errorf("processVectorBinary field:[%s] value %v mismatch field type %v", fieldName, val, pro.FieldType)
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("vector field:[%s] embedding value %v mismatch field type %v", fieldName, val, pro.FieldType))
 	}
 }
 
 func processVector(pro *entity.SpaceProperties, fieldName string, val []float32) (*vearchpb.Field, error) {
 	field := &vearchpb.Field{Name: fieldName}
-	err := fmt.Errorf("parse param processVector err,fieldName:%s", fieldName)
+	err := vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("parse param processVector err,fieldName:%s", fieldName))
 
 	switch pro.FieldType {
 	case vearchpb.FieldType_VECTOR:
 		if pro.Dimension > 0 && pro.Dimension != len(val) {
-			field, err = nil, fmt.Errorf("field:[%s] vector length has error, dimension in space is:[%d] but input length:[%d]", fieldName, pro.Dimension, len(val))
+			field, err = nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("vector field:[%s] embedding length has error, dimension in space is:[%d] but input length:[%d]", fieldName, pro.Dimension, len(val)))
 			return field, err
 		}
 
@@ -504,7 +503,7 @@ func processVector(pro *entity.SpaceProperties, fieldName string, val []float32)
 			return field, err
 		}
 	default:
-		field, err = nil, fmt.Errorf("field:[%s] value %v mismatch field type %v", fieldName, val, pro.FieldType)
+		field, err = nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("field:[%s] value %v mismatch field type %v", fieldName, val, pro.FieldType))
 	}
 	return field, err
 }
@@ -527,7 +526,7 @@ func doLogPrintSwitchParse(r *http.Request) (printSwitch bool, err error) {
 	}{}
 	err = json.Unmarshal(reqBody, &temp)
 	if err != nil {
-		err = fmt.Errorf("doLogPrintSwitchParse param convert json %s err: %v", string(reqBody), err)
+		err = vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("doLogPrintSwitchParse param convert json %s err: %v", string(reqBody), err))
 		return false, err
 	}
 	return temp.PrintSwitch, nil
@@ -540,14 +539,14 @@ func documentHeadParse(r *http.Request) (docRequest *request.DocumentRequest, db
 	}
 
 	if len(reqBody) == 0 {
-		err = fmt.Errorf("document param is null")
+		err = vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("document param is null"))
 		return nil, "", "", err
 	}
 
 	docRequest = &request.DocumentRequest{}
 	err = vjson.Unmarshal(reqBody, docRequest)
 	if err != nil {
-		err = fmt.Errorf("documentRequest param convert json %s err: %v", string(reqBody), err)
+		err = vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("documentRequest param convert json %s err: %v", string(reqBody), err))
 		return nil, "", "", err
 	}
 
@@ -580,7 +579,7 @@ func documentParse(ctx context.Context, handler *DocumentHandler, r *http.Reques
 
 		if haveVector != vectorFieldNum {
 			if primaryKey == "" {
-				err = fmt.Errorf("vector field num:%d is not equal to vector num of space fields:%d and document_id is empty", haveVector, vectorFieldNum)
+				err = vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("vector field num:%d is not equal to vector num of space fields:%d and document_id is empty", haveVector, vectorFieldNum))
 				return err
 			}
 			arg := &vearchpb.GetRequest{}
@@ -599,7 +598,7 @@ func documentParse(ctx context.Context, handler *DocumentHandler, r *http.Reques
 				return err
 			}
 
-			err = fmt.Errorf("vector field num:%d is not equal to vector num of space fields:%d and document_id not exist so can't update", haveVector, vectorFieldNum)
+			err = vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("vector field num:%d is not equal to vector num of space fields:%d and document_id not exist so can't update", haveVector, vectorFieldNum))
 			if reply == nil {
 				return err
 			}
@@ -616,7 +615,7 @@ func documentParse(ctx context.Context, handler *DocumentHandler, r *http.Reques
 	}
 	args.Docs = docs
 	if len(args.Docs) == 0 {
-		err = fmt.Errorf("empty documents, should set at least one document")
+		err = vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("empty documents, should set at least one document"))
 		return err
 	}
 	return nil
@@ -628,14 +627,14 @@ func documentRequestParse(r *http.Request) (searchDoc *request.SearchDocumentReq
 		return nil, err
 	}
 	if len(reqBody) == 0 {
-		err = fmt.Errorf("query param is null")
+		err = vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("query param is null"))
 		return nil, err
 	}
 
 	searchDoc = &request.SearchDocumentRequest{}
 	err = vjson.Unmarshal(reqBody, searchDoc)
 	if err != nil {
-		err = fmt.Errorf("SearchDocumentRequest param convert json %s err: %v", string(reqBody), err)
+		err = vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("SearchDocumentRequest param convert json %s err: %v", string(reqBody), err))
 		return nil, err
 	}
 
@@ -648,14 +647,14 @@ func IndexRequestParse(r *http.Request) (index *request.IndexRequest, err error)
 		return nil, err
 	}
 	if len(reqBody) == 0 {
-		err = fmt.Errorf("index param is null")
+		err = vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("field index param is null"))
 		return nil, err
 	}
 
 	index = &request.IndexRequest{}
 	err = vjson.Unmarshal(reqBody, index)
 	if err != nil {
-		err = fmt.Errorf("index param convert json %s err: %v", string(reqBody), err)
+		err = vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("field index param convert json %s err: %v", string(reqBody), err))
 		return nil, err
 	}
 	return index, nil

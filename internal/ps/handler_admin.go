@@ -368,11 +368,11 @@ func (ch *EngineCfgHandler) Execute(ctx context.Context, req *vearchpb.Partition
 	partitonStore := ch.server.GetPartition(req.PartitionID)
 	if partitonStore == nil {
 		log.Debug("partitonStore is nil.")
-		return fmt.Errorf("partition (%v), partitonStore is nil ", req.PartitionID)
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_IS_INVALID, fmt.Errorf("partition (%v), partitonStore is nil ", req.PartitionID))
 	}
 	engine := partitonStore.GetEngine()
 	if engine == nil {
-		return fmt.Errorf("partition (%v), engine is nil ", req.PartitionID)
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_IS_INVALID, fmt.Errorf("partition (%v), engine is nil ", req.PartitionID))
 	}
 	if req.Type == vearchpb.OpType_CREATE {
 		cacheCfg := new(entity.EngineCfg)

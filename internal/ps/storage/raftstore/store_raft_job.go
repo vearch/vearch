@@ -22,6 +22,7 @@ import (
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/internal/config"
 	"github.com/vearch/vearch/internal/pkg/log"
+	"github.com/vearch/vearch/internal/proto/vearchpb"
 	"github.com/vearch/vearch/internal/ps/engine"
 )
 
@@ -41,7 +42,7 @@ func (s *Store) startTruncateJob(initLastFlushIndex int64) {
 		// get raft peers status
 		snapPeers := s.RaftServer.GetPendingReplica(uint64(s.Partition.Id))
 		if len(snapPeers) > 0 {
-			return fmt.Errorf("peer %v is snapShot", snapPeers)
+			return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("peer %v is snapShot", snapPeers))
 		}
 		s.RaftServer.Truncate(uint64(s.Partition.Id), uint64(truncIndex))
 		return nil

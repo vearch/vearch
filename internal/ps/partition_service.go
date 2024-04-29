@@ -120,7 +120,7 @@ func (s *Server) LoadPartition(ctx context.Context, pid entity.PartitionID, spac
 		}
 	}
 	if i < 0 {
-		return nil, fmt.Errorf("cannot found pid [%d]", pid)
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_NOT_EXIST, fmt.Errorf("cannot found partition_id [%d]", pid))
 	}
 	space := spaces[i]
 

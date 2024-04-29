@@ -79,7 +79,7 @@ func New(cfg EngineConfig) (engine.Engine, error) {
 
 	gamma_engine_instance := gamma.Init(config)
 	if gamma_engine_instance == nil {
-		return nil, fmt.Errorf("init engine err")
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("init engine err"))
 	}
 
 	ge := &gammaEngine{
@@ -102,7 +102,7 @@ func New(cfg EngineConfig) (engine.Engine, error) {
 	if status := gamma.CreateTable(ge.gamma, table); status.Code != 0 {
 		log.Error("create table [%s] err [%s] cost time: [%v]", cfg.Space.Name, status.Msg, time.Since(startTime).Seconds())
 		ge.Close()
-		return nil, fmt.Errorf("create engine table err:[%s]", status.Msg)
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("create engine table err:[%s]", status.Msg))
 	}
 
 	gammaDirs := make([]string, 0)
@@ -117,7 +117,7 @@ func New(cfg EngineConfig) (engine.Engine, error) {
 		if code != 0 {
 			vearchlog.LogErrNotNil(fmt.Errorf("load data err code:[%d]", code))
 			ge.Close()
-			return nil, fmt.Errorf("load data err code:[%d]", code)
+			return nil, vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("load data err code:[%d]", code))
 		}
 	}
 
@@ -161,15 +161,15 @@ func (ge *gammaEngine) UpdateMapping(space *entity.Space) error {
 	var oldProperties, newProperties interface{}
 
 	if err := json.Unmarshal([]byte(ge.space.Fields), &oldProperties); err != nil {
-		return fmt.Errorf("unmarshal old space properties:[%s] has err:[%s] ", ge.space.Fields, err.Error())
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("unmarshal old space properties:[%s] has err:[%s] ", ge.space.Fields, err.Error()))
 	}
 
 	if err := json.Unmarshal([]byte(space.Fields), &newProperties); err != nil {
-		return fmt.Errorf("unmarshal new space properties:[%s] has err :[%s]", space.Fields, err.Error())
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("unmarshal new space properties:[%s] has err :[%s]", space.Fields, err.Error()))
 	}
 
 	if !reflect.DeepEqual(oldProperties, newProperties) {
-		return fmt.Errorf("gamma engine not support ")
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("gamma engine not support "))
 	}
 
 	ge.space = space

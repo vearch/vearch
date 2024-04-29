@@ -26,6 +26,7 @@ import (
 
 	"github.com/shirou/gopsutil/process"
 	"github.com/vearch/vearch/internal/pkg/log"
+	"github.com/vearch/vearch/internal/proto/vearchpb"
 )
 
 func readCgroupMemory() (available, limit uint64, err error) {
@@ -33,12 +34,12 @@ func readCgroupMemory() (available, limit uint64, err error) {
 
 	data, err := os.ReadFile(memoryLimitPath)
 	if err != nil {
-		return available, limit, fmt.Errorf("failed to read file: %v", err)
+		return available, limit, vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("failed to read file: %v", err))
 	}
 
 	limitInt64, err := strconv.ParseInt(strings.TrimSpace(string(data)), 10, 64)
 	if err != nil {
-		return available, limit, fmt.Errorf("failed to convert value to int64: %v", err)
+		return available, limit, vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("failed to convert value to int64: %v", err))
 	}
 
 	pid := os.Getpid()
@@ -76,7 +77,7 @@ func CheckResource(path string) (is bool, err error) {
 	log.Debug("availDisk %dM, totalDisk %dM", availDisk, totalDisk)
 
 	if !(availDisk > 1024 || float64(availDisk)/float64(totalDisk) > 0.05) {
-		return true, fmt.Errorf("disk space not enough: total [%d]M, avail [%d]M", totalDisk, availDisk)
+		return true, vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_RESOURCE_EXHAUSTED, fmt.Errorf("disk space not enough: total [%d]M, avail [%d]M", totalDisk, availDisk))
 	}
 
 	var info syscall.Sysinfo_t
@@ -101,7 +102,7 @@ func CheckResource(path string) (is bool, err error) {
 	log.Debug("total memory %dM, available memory %dM", totalMemory, availableMemory)
 
 	if !(availableMemory > 512 || float64(availableMemory)/float64(totalMemory) > 0.05) {
-		return true, fmt.Errorf("available memory not enough: total [%d]M, avail [%d]M", totalMemory, availableMemory)
+		return true, vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_RESOURCE_EXHAUSTED, fmt.Errorf("available memory not enough: total [%d]M, avail [%d]M", totalMemory, availableMemory))
 	}
 	return false, nil
 }

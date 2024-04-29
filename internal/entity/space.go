@@ -176,37 +176,37 @@ func (index *Index) UnmarshalJSON(bs []byte) error {
 		Params json.RawMessage `json:"params,omitempty"`
 	}{}
 	if err := json.Unmarshal(bs, tempIndex); err != nil {
-		return fmt.Errorf("space Index json.Unmarshal err:%v", err)
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("space Index json.Unmarshal err:%v", err))
 	}
 
 	indexTypeMap := map[string]string{"IVFPQ": "IVFPQ", "IVFFLAT": "IVFFLAT", "BINARYIVF": "BINARYIVF", "FLAT": "FLAT",
 		"HNSW": "HNSW", "GPU": "GPU", "SSG": "SSG", "IVFPQ_RELAYOUT": "IVFPQ_RELAYOUT", "SCANN": "SCANN", "SCALAR": "SCALAR"}
 	if tempIndex.Type == "" {
-		return fmt.Errorf("IndexType is null")
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("index type is null"))
 	}
 	_, have := indexTypeMap[tempIndex.Type]
 	if !have {
-		return fmt.Errorf("IndexType not support: %s", tempIndex.Type)
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("index type not support: %s", tempIndex.Type))
 	}
 
 	if tempIndex.Params != nil && len(tempIndex.Params) != 0 {
 		var indexParams IndexParams
 		if err := json.Unmarshal(tempIndex.Params, &indexParams); err != nil {
-			return fmt.Errorf("IndexParams:%s json.Unmarshal err :[%s]", tempIndex.Params, err.Error())
+			return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("index params:%s json.Unmarshal err :[%s]", tempIndex.Params, err.Error()))
 		}
 		if indexParams.MetricType != "InnerProduct" && indexParams.MetricType != "L2" {
-			return fmt.Errorf("IndexParams metric_type not support: %s, should be L2 or InnerProduct", indexParams.MetricType)
+			return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("index params metric_type not support: %s, should be L2 or InnerProduct", indexParams.MetricType))
 		}
 
 		if tempIndex.Type == "HNSW" {
 			if indexParams.Nlinks != 0 {
 				if indexParams.Nlinks < MinNlinks || indexParams.Nlinks > MaxNlinks {
-					return fmt.Errorf("IndexParams nlinks:%d should in [%d, %d]", indexParams.Nlinks, MinNlinks, MaxNlinks)
+					return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("index params nlinks:%d should in [%d, %d]", indexParams.Nlinks, MinNlinks, MaxNlinks))
 				}
 			}
 			if indexParams.EfConstruction != 0 {
 				if indexParams.EfConstruction < MinEfConstruction || indexParams.EfConstruction > MaxEfConstruction {
-					return fmt.Errorf("IndexParams efConstruction:%d should in [%d, %d]", indexParams.EfConstruction, MinEfConstruction, MaxEfConstruction)
+					return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("index params efConstruction:%d should in [%d, %d]", indexParams.EfConstruction, MinEfConstruction, MaxEfConstruction))
 				}
 			}
 		} else if tempIndex.Type == "FLAT" {
@@ -214,21 +214,21 @@ func (index *Index) UnmarshalJSON(bs []byte) error {
 		} else if tempIndex.Type == "BINARYIVF" || tempIndex.Type == "IVFFLAT" || tempIndex.Type == "IVFPQ" || tempIndex.Type == "GPU" {
 			if indexParams.Ncentroids != 0 {
 				if indexParams.Ncentroids < MinNcentroids || indexParams.Ncentroids > MaxNcentroids {
-					return fmt.Errorf("IndexParams ncentroids:%d should in [%d, %d]", indexParams.Ncentroids, MinNcentroids, MaxNcentroids)
+					return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("index params ncentroids:%d should in [%d, %d]", indexParams.Ncentroids, MinNcentroids, MaxNcentroids))
 				}
 			}
 
 			if indexParams.TrainingThreshold != 0 {
 				if indexParams.TrainingThreshold < indexParams.Ncentroids {
-					return fmt.Errorf(tempIndex.Type+" training_threshold:[%d] should more than ncentroids:[%d]", indexParams.TrainingThreshold, indexParams.Ncentroids)
+					return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf(tempIndex.Type+" training_threshold:[%d] should more than ncentroids:[%d]", indexParams.TrainingThreshold, indexParams.Ncentroids))
 				}
 				if indexParams.TrainingThreshold > DefaultMaxPointsPerCentroid*indexParams.Ncentroids {
-					return fmt.Errorf(tempIndex.Type+" training_threshold:[%d] should less than DefaultMaxPointsPerCentroid(%d) * ncentroids(%d):[%d] so can not to index",
-						indexParams.TrainingThreshold, DefaultMaxPointsPerCentroid, indexParams.Ncentroids, DefaultMaxPointsPerCentroid*indexParams.Ncentroids)
+					return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf(tempIndex.Type+" training_threshold:[%d] should less than DefaultMaxPointsPerCentroid(%d) * ncentroids(%d):[%d] so can not to index",
+						indexParams.TrainingThreshold, DefaultMaxPointsPerCentroid, indexParams.Ncentroids, DefaultMaxPointsPerCentroid*indexParams.Ncentroids))
 				}
 			}
 			if indexParams.Nprobe != 0 && indexParams.Nprobe > indexParams.Ncentroids {
-				return fmt.Errorf(tempIndex.Type+" nprobe:[%d] should less than ncentroids:[%d]", indexParams.Nprobe, indexParams.Ncentroids)
+				return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf(tempIndex.Type+" nprobe:[%d] should less than ncentroids:[%d]", indexParams.Nprobe, indexParams.Ncentroids))
 			}
 		}
 	}
@@ -247,21 +247,21 @@ func (space *Space) Validate() error {
 	rs := []rune(space.Name)
 
 	if len(rs) == 0 {
-		return fmt.Errorf("space name can not set empty string")
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("space name can not set empty string"))
 	}
 
 	if unicode.IsNumber(rs[0]) {
-		return fmt.Errorf("space name : %s can not start with num", space.Name)
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("space name : %s can not start with num", space.Name))
 	}
 
 	if rs[0] == '_' {
-		return fmt.Errorf("space name : %s can not start with _", space.Name)
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("space name : %s can not start with _", space.Name))
 	}
 
 	for _, r := range rs {
 		switch r {
 		case '\t', '\n', '\v', '\f', '\r', ' ', 0x85, 0xA0, '\\', '+', '-', '!', '*', '/', '(', ')', ':', '^', '[', ']', '"', '{', '}', '~', '%', '&', '\'', '<', '>', '?':
-			return fmt.Errorf("character '%c' can not in space name[%s]", r, space.Name)
+			return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("character '%c' can not in space name[%s]", r, space.Name))
 		}
 	}
 
@@ -316,24 +316,24 @@ func UnmarshalPropertyJSON(propertity []byte) (map[string]*SpaceProperties, erro
 
 			isVector = true
 			if data.Dimension == 0 {
-				return nil, fmt.Errorf("dimension can not be zero by field : [%s] ", data.Name)
+				return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("dimension can not be zero by field : [%s] ", data.Name))
 			}
 			sp.Dimension = data.Dimension
 
 			if data.StoreType != nil && *data.StoreType != "" {
 				if *data.StoreType != "RocksDB" && *data.StoreType != "MemoryOnly" {
-					return nil, fmt.Errorf("vector field:[%s] not support this store type:[%s] it only RocksDB or MemoryOnly", data.Name, *sp.StoreType)
+					return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("vector field:[%s] not support this store type:[%s] it only RocksDB or MemoryOnly", data.Name, *sp.StoreType))
 				}
 			}
 			sp.StoreType = data.StoreType
 			sp.Format = data.Format
 			format := data.Format
 			if format != nil && !(*format == "normalization" || *format == "normal" || *format == "no") {
-				return nil, fmt.Errorf("unknow vector process method:[%s]", *format)
+				return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("unknow vector process method:[%s]", *format))
 			}
 
 		default:
-			return nil, fmt.Errorf("space invalid field type: %s", sp.Type)
+			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("space invalid field type: %s", sp.Type))
 		}
 		sp.Index = data.Index
 
@@ -350,7 +350,7 @@ func UnmarshalPropertyJSON(propertity []byte) (map[string]*SpaceProperties, erro
 		// set date format
 		if sp.Format != nil {
 			if !(sp.FieldType == vearchpb.FieldType_DATE || sp.FieldType == vearchpb.FieldType_VECTOR) {
-				return nil, fmt.Errorf("type:[%d] can not set format", sp.FieldType)
+				return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("type:[%d] can not set format", sp.FieldType))
 			}
 		}
 

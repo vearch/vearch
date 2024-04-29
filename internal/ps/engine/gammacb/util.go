@@ -110,7 +110,7 @@ func mapping2Table(cfg EngineConfig, m *mapping.IndexMapping) (*gamma.Table, err
 			vectorInfo.IsIndex = true
 			table.VectorsInfos = append(table.VectorsInfos, vectorInfo)
 		default:
-			return fmt.Errorf("space invalid field type: %s", value.Field.FieldType().String())
+			return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("space invalid field type: %s", value.Field.FieldType().String()))
 		}
 
 		return nil
@@ -123,7 +123,7 @@ func mapping2Table(cfg EngineConfig, m *mapping.IndexMapping) (*gamma.Table, err
 	m.DimensionMap = dim
 
 	if len(table.VectorsInfos) == 0 {
-		return nil, fmt.Errorf("create table has no vector field")
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("create table has no vector field"))
 	}
 
 	return table, nil

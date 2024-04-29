@@ -75,11 +75,11 @@ func (f *FieldMapping) UnmarshalJSON(data []byte) error {
 	case "vector":
 		fieldMapping = NewVectorFieldMapping("")
 		if tmp.Dimension == 0 {
-			return fmt.Errorf("dimension can not zero by field : [%s] ", string(data))
+			return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("vector field embedding dimension can not zero: [%s] ", string(data)))
 		}
 		if tmp.StoreType != nil && *tmp.StoreType != "" {
 			if *tmp.StoreType != "RocksDB" && *tmp.StoreType != "MemoryOnly" {
-				return fmt.Errorf("vector field:[%s] not support this store type:[%s] it only RocksDB or MemoryOnly", fieldMapping.FieldName(), *tmp.StoreType)
+				return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("vector field:[%s] not support this store type:[%s] it only RocksDB or MemoryOnly", fieldMapping.FieldName(), *tmp.StoreType))
 			}
 			fieldMapping.(*VectortFieldMapping).StoreType = *tmp.StoreType
 		}
@@ -88,7 +88,7 @@ func (f *FieldMapping) UnmarshalJSON(data []byte) error {
 		}
 
 	default:
-		return fmt.Errorf("space invalid field type: %s", tmp.Type)
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("space invalid field type: %s", tmp.Type))
 	}
 
 	//set index
@@ -101,7 +101,7 @@ func (f *FieldMapping) UnmarshalJSON(data []byte) error {
 		if mapping, ok := fieldMapping.(*VectortFieldMapping); ok {
 			mapping.Dimension = tmp.Dimension
 		} else {
-			return fmt.Errorf("type:[%s] can not set dimension", fieldMapping.FieldType().String())
+			return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("type:[%s] can not set dimension", fieldMapping.FieldType().String()))
 		}
 	}
 
@@ -112,7 +112,7 @@ func (f *FieldMapping) UnmarshalJSON(data []byte) error {
 		} else if mapping, ok := fieldMapping.(*VectortFieldMapping); ok {
 			mapping.Format = tmp.Format
 		} else {
-			return fmt.Errorf("type:[%s] can not set format", fieldMapping.FieldType().String())
+			return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("type:[%s] can not set format", fieldMapping.FieldType().String()))
 		}
 	}
 

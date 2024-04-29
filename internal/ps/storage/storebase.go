@@ -20,6 +20,7 @@ import (
 	"sync"
 
 	"github.com/vearch/vearch/internal/entity"
+	"github.com/vearch/vearch/internal/proto/vearchpb"
 	"github.com/vearch/vearch/internal/ps/engine"
 )
 
@@ -52,7 +53,7 @@ func NewStoreBase(ctx context.Context, PID entity.PartitionID, NodeID entity.Nod
 
 	partition := space.GetPartition(PID)
 	if partition == nil {
-		return nil, fmt.Errorf("can not found partition by id:[%d]", PID)
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("can not found partition by id:[%d]", PID))
 	}
 
 	base.Partition = partition

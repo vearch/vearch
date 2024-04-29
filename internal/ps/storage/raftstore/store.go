@@ -29,6 +29,7 @@ import (
 	"github.com/vearch/vearch/internal/config"
 	"github.com/vearch/vearch/internal/entity"
 	"github.com/vearch/vearch/internal/pkg/log"
+	"github.com/vearch/vearch/internal/proto/vearchpb"
 	"github.com/vearch/vearch/internal/ps/engine/gammacb"
 	"github.com/vearch/vearch/internal/ps/psutil"
 	"github.com/vearch/vearch/internal/ps/storage"
@@ -138,12 +139,12 @@ func (s *Store) Start() (err error) {
 	raftStore, err := wal.NewStorage(s.RaftPath, nil)
 	if err != nil {
 		s.Engine.Close()
-		return fmt.Errorf("start partition[%d] open raft store engine error: %s", s.Partition.Id, err.Error())
+		return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("start partition[%d] open raft store engine error: %s", s.Partition.Id, err.Error()))
 	}
 
 	partition := s.Space.GetPartition(s.Partition.Id)
 	if partition == nil {
-		return fmt.Errorf("can not found partition by id:[%d]", s.Partition.Id)
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("can not found partition by id:[%d]", s.Partition.Id))
 	}
 
 	raftConf := &raft.RaftConfig{
@@ -164,7 +165,7 @@ func (s *Store) Start() (err error) {
 	}
 	if err = s.RaftServer.CreateRaft(raftConf); err != nil {
 		s.Engine.Close()
-		return fmt.Errorf("start partition[%d] create raft error: %s", s.Partition.Id, err)
+		return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("start partition[%d] create raft error: %s", s.Partition.Id, err))
 	}
 
 	// Start Raft Sn Flush worker

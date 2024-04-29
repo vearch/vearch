@@ -26,6 +26,7 @@ import (
 	"github.com/vearch/vearch/internal/config"
 	"github.com/vearch/vearch/internal/pkg/errutil"
 	"github.com/vearch/vearch/internal/pkg/log"
+	"github.com/vearch/vearch/internal/proto/vearchpb"
 	"go.etcd.io/etcd/server/v3/embed"
 	"go.etcd.io/etcd/server/v3/etcdserver"
 )
@@ -41,7 +42,7 @@ func NewServer(ctx context.Context) (*Server, error) {
 	// log.Regist(vearchlog.NewVearchLog(config.Conf().GetLogDir(config.Master), "Master", config.Conf().GetLevel(config.Master), false))
 	//Logically, this code should not be executed, because if the local master is not found, it will panic
 	if config.Conf().Masters.Self() == nil {
-		return nil, fmt.Errorf("master not init please your address or master name ")
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_CONFIG_ERROR, fmt.Errorf("master config is null"))
 	}
 
 	var server *Server
@@ -84,7 +85,7 @@ func (s *Server) Start() (err error) {
 		case <-time.After(60 * time.Second):
 			s.etcdServer.Server.Stop() // trigger a shutdown
 			log.Error("Server took too long to start!")
-			return fmt.Errorf("etcd start timeout")
+			return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("etcd start timeout"))
 		}
 	}
 

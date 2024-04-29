@@ -150,14 +150,14 @@ func parseFilter(filters *request.Filter, space *entity.Space) ([]*vearchpb.Rang
 		}
 		filter, err := parseRange(rangeConditionMap, proMap)
 		if err != nil {
-			return nil, nil, fmt.Errorf("parseRange err %s", err.Error())
+			return nil, nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("parseRange err %s", err.Error()))
 		}
 		if len(filter) != 0 {
 			rfs = append(rfs, filter...)
 		}
 		tmFilter, err := parseTerm(termConditionMap, proMap)
 		if err != nil {
-			return nil, nil, fmt.Errorf("parseTerm err %s", err.Error())
+			return nil, nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("parseTerm err %s", err.Error()))
 		}
 		if len(tmFilter) != 0 {
 			tfs = append(tfs, tmFilter...)
@@ -206,11 +206,11 @@ func parseRanker(data json.RawMessage, req *vearchpb.SearchRequest, space *entit
 	ranker := &request.Ranker{}
 	err := vjson.Unmarshal(data, ranker)
 	if err != nil {
-		err = fmt.Errorf("ranker param convert json %s err: %v", string(data), err)
+		err = vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("ranker param convert json %s err: %v", string(data), err))
 		return err
 	}
 	if ranker.Type != WeightedRanker {
-		err = fmt.Errorf("unsupport ranker: %s, now only support %s", ranker.Type, WeightedRanker)
+		err = vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("unsupport ranker type: %s, now only support %s", ranker.Type, WeightedRanker))
 		return err
 	}
 	// TODO
@@ -221,7 +221,7 @@ func parseRanker(data json.RawMessage, req *vearchpb.SearchRequest, space *entit
 
 func unmarshalArray[T any](data []byte, dimension int) ([]T, error) {
 	if len(data) < dimension {
-		return nil, fmt.Errorf("vector query length err, need feature num:[%d]", dimension)
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("vector embedding length [%d] err, should be:[%d]", len(data), dimension))
 	}
 
 	var result []T
@@ -231,7 +231,7 @@ func unmarshalArray[T any](data []byte, dimension int) ([]T, error) {
 
 	if len(result) > 0 {
 		if _, ok := any(result).([]float32); ok && (len(result)%dimension) != 0 {
-			return nil, fmt.Errorf("vector query length err, not equals dimension multiple:[%d]", (len(result) % dimension))
+			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("vector embedding length [%d] err, not equals dimension multiple:[%d]", len(result), (len(result)%dimension)))
 		}
 	}
 
@@ -257,15 +257,15 @@ func parseVectors(reqNum int, vqs []*vearchpb.VectorQuery, tmpArr []json.RawMess
 		docField := proMap[vqTemp.Field]
 
 		if docField == nil {
-			return reqNum, vqs, fmt.Errorf("query has err for field:[%s] not found in space fields", vqTemp.Field)
+			return reqNum, vqs, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("field:[%s] not found in space fields", vqTemp.Field))
 		}
 
 		if docField.FieldType != vearchpb.FieldType_VECTOR {
-			return reqNum, vqs, fmt.Errorf("query has err for field:[%s] is not vector type", vqTemp.Field)
+			return reqNum, vqs, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("field:[%s] is not vector type", vqTemp.Field))
 		}
 
 		if vqTemp.FeatureData == nil || len(vqTemp.FeatureData) == 0 {
-			return reqNum, vqs, fmt.Errorf("query has err for feature is null")
+			return reqNum, vqs, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("vector embedding is null"))
 		}
 
 		d := docField.Dimension
@@ -286,13 +286,13 @@ func parseVectors(reqNum int, vqs []*vearchpb.VectorQuery, tmpArr []json.RawMess
 		}
 
 		if queryNum == 0 || validate != 0 {
-			return reqNum, vqs, fmt.Errorf("query has err for field:[%s] dimension size mapping:[%d] query:[%d]", vqTemp.Field, len(vqTemp.Feature), d)
+			return reqNum, vqs, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("vector field:[%s] embedding length [%d] err, dimension [%d] needs to be divided", vqTemp.Field, len(vqTemp.Feature), d))
 		}
 
 		if reqNum == 0 {
 			reqNum = queryNum
 		} else if reqNum != queryNum {
-			return reqNum, vqs, fmt.Errorf("query has err for field:[%s] not same queryNum mapping:[%d] query:[%d] ", vqTemp.Field, len(vqTemp.Feature), d)
+			return reqNum, vqs, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("vector field:[%s] not same as queryNum, embedding length [%d], dimension [%d] ", vqTemp.Field, len(vqTemp.Feature), d))
 		}
 
 		if indexType != "BINARYIVF" {
@@ -301,7 +301,7 @@ func parseVectors(reqNum int, vqs []*vearchpb.VectorQuery, tmpArr []json.RawMess
 				case "normalization", "normal":
 				case "no":
 				default:
-					return reqNum, vqs, fmt.Errorf("unknow vector process format:[%s]", *vqTemp.Format)
+					return reqNum, vqs, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("unknow vector process format:[%s]", *vqTemp.Format))
 				}
 			}
 		}
@@ -327,15 +327,15 @@ func parseRange(rangeConditionMap map[string]*Range, proMap map[string]*entity.S
 		docField := proMap[field]
 
 		if docField == nil {
-			return nil, fmt.Errorf("field:[%s] not found in space fields", field)
+			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("field:[%s] not found in space fields", field))
 		}
 
 		if docField.FieldType == vearchpb.FieldType_STRING {
-			return nil, fmt.Errorf("range filter should be numberic type, field:[%s] is string which should be term filter", field)
+			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("range filter should be numberic type, field:[%s] is string which should be term filter", field))
 		}
 
 		if docField.Option&entity.FieldOption_Index != entity.FieldOption_Index {
-			return nil, fmt.Errorf("field:[%s] not set index, please check space", field)
+			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("field:[%s] not set index", field))
 		}
 
 		var start, end json.RawMessage
@@ -363,7 +363,7 @@ func parseRange(rangeConditionMap map[string]*Range, proMap map[string]*entity.S
 			if start != nil {
 				err := vjson.Unmarshal(start, &minNum)
 				if err != nil {
-					return nil, fmt.Errorf("INT %s Unmarshal err %s", string(start), err.Error())
+					return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("INT %s Unmarshal err %s", string(start), err.Error()))
 				}
 			} else {
 				minNum = math.MinInt32
@@ -372,7 +372,7 @@ func parseRange(rangeConditionMap map[string]*Range, proMap map[string]*entity.S
 			if end != nil {
 				err := vjson.Unmarshal(end, &maxNum)
 				if err != nil {
-					return nil, fmt.Errorf("INT %s Unmarshal err %s", string(end), err.Error())
+					return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("INT %s Unmarshal err %s", string(end), err.Error()))
 				}
 			} else {
 				maxNum = math.MaxInt32
@@ -385,7 +385,7 @@ func parseRange(rangeConditionMap map[string]*Range, proMap map[string]*entity.S
 			if start != nil {
 				err := vjson.Unmarshal(start, &minNum)
 				if err != nil {
-					return nil, fmt.Errorf("LONG %s Unmarshal err %s", string(start), err.Error())
+					return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("LONG %s Unmarshal err %s", string(start), err.Error()))
 				}
 			} else {
 				minNum = math.MinInt64
@@ -394,7 +394,7 @@ func parseRange(rangeConditionMap map[string]*Range, proMap map[string]*entity.S
 			if end != nil {
 				err := vjson.Unmarshal(end, &maxNum)
 				if err != nil {
-					return nil, fmt.Errorf("LONG %s Unmarshal err %s", string(end), err.Error())
+					return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("LONG %s Unmarshal err %s", string(end), err.Error()))
 				}
 			} else {
 				maxNum = math.MaxInt64
@@ -407,7 +407,7 @@ func parseRange(rangeConditionMap map[string]*Range, proMap map[string]*entity.S
 			if start != nil {
 				err := vjson.Unmarshal(start, &minNum)
 				if err != nil {
-					return nil, fmt.Errorf("FLOAT %s Unmarshal err %s", string(start), err.Error())
+					return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("FLOAT %s Unmarshal err %s", string(start), err.Error()))
 				}
 			} else {
 				minNum = -math.MaxFloat32
@@ -416,7 +416,7 @@ func parseRange(rangeConditionMap map[string]*Range, proMap map[string]*entity.S
 			if end != nil {
 				err := vjson.Unmarshal(end, &maxNum)
 				if err != nil {
-					return nil, fmt.Errorf("FLOAT %s Unmarshal err %s", string(end), err.Error())
+					return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("FLOAT %s Unmarshal err %s", string(end), err.Error()))
 				}
 			} else {
 				maxNum = math.MaxFloat32
@@ -429,7 +429,7 @@ func parseRange(rangeConditionMap map[string]*Range, proMap map[string]*entity.S
 			if start != nil {
 				err := vjson.Unmarshal(start, &minNum)
 				if err != nil {
-					return nil, fmt.Errorf("FLOAT64 %s Unmarshal err %s", string(start), err.Error())
+					return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("FLOAT64 %s Unmarshal err %s", string(start), err.Error()))
 				}
 			} else {
 				minNum = -math.MaxFloat64
@@ -438,7 +438,7 @@ func parseRange(rangeConditionMap map[string]*Range, proMap map[string]*entity.S
 			if end != nil {
 				err := vjson.Unmarshal(end, &maxNum)
 				if err != nil {
-					return nil, fmt.Errorf("FLOAT64 %s Unmarshal err %s", string(end), err.Error())
+					return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("FLOAT64 %s Unmarshal err %s", string(end), err.Error()))
 				}
 			} else {
 				maxNum = math.MaxFloat64
@@ -460,7 +460,7 @@ func parseRange(rangeConditionMap map[string]*Range, proMap map[string]*entity.S
 		}
 
 		if minByte == nil || maxByte == nil {
-			return nil, fmt.Errorf("range param is null or have not gte lte")
+			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("range param is null or have not gte lte"))
 		}
 
 		rangeFilter := vearchpb.RangeFilter{
@@ -485,22 +485,22 @@ func parseTerm(tm map[string]*Term, proMap map[string]*entity.SpaceProperties) (
 		fd := proMap[field]
 
 		if fd == nil {
-			return nil, fmt.Errorf("field:[%s] not found in space fields", field)
+			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("field:[%s] not found in space fields", field))
 		}
 
 		if fd.FieldType != vearchpb.FieldType_STRING && fd.FieldType != vearchpb.FieldType_STRINGARRAY {
-			return nil, fmt.Errorf("term filter should be string type or stringArray type, field:[%s] is numberic type which should be range filter", field)
+			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("term filter should be string type or stringArray type, field:[%s] is numberic type which should be range filter", field))
 		}
 
 		if fd.Option&entity.FieldOption_Index != entity.FieldOption_Index {
-			return nil, fmt.Errorf("field:[%s] not set index, please check space", field)
+			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("field:[%s] not set index, please check space", field))
 		}
 
 		buf := bytes.Buffer{}
 		var v interface{}
 		err := vjson.Unmarshal(rv.Value, &v)
 		if err != nil {
-			return nil, fmt.Errorf("unmarshal [%s] err %s", string(rv.Value), err.Error())
+			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("unmarshal [%s] err %s", string(rv.Value), err.Error()))
 		}
 		if ia, ok := v.([]interface{}); ok {
 			for i, obj := range ia {
@@ -560,7 +560,7 @@ func (query *VectorQuery) ToC(indexType string) (*vearchpb.VectorQuery, error) {
 		case "<=":
 			query.MaxScore = query.Value
 		default:
-			return nil, fmt.Errorf("symbol value unknow:[%s]", query.Symbol)
+			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("symbol value unknow:[%s]", query.Symbol))
 		}
 	}
 
@@ -612,7 +612,7 @@ func queryRequestToPb(searchDoc *request.SearchDocumentRequest, space *entity.Sp
 			for _, field := range queryReq.Fields {
 				if field != mapping.IdField {
 					if spaceProKeyMap[field] == nil {
-						return fmt.Errorf("query param fields are not exist in the table")
+						return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("field [%s] is not exist in the space", field))
 					}
 				}
 			}
@@ -648,7 +648,7 @@ func queryRequestToPb(searchDoc *request.SearchDocumentRequest, space *entity.Sp
 		indexParams := &entity.IndexParams{}
 		err := vjson.Unmarshal(space.Index.Params, indexParams)
 		if err != nil {
-			return fmt.Errorf("unmarshal err:[%s] , space.Index.IndexParams:[%s]", err.Error(), string(space.Index.Params))
+			return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("unmarshal err:[%s] , space.Index.IndexParams:[%s]", err.Error(), string(space.Index.Params)))
 		}
 		metricType = indexParams.MetricType
 	}
@@ -668,7 +668,7 @@ func queryRequestToPb(searchDoc *request.SearchDocumentRequest, space *entity.Sp
 	for _, sort := range sortOrder {
 		sortField := sort.SortField()
 		if !(sortField == "_score" || sortField == "_id" || (spaceProMap[sortField] != nil)) {
-			return fmt.Errorf("query param sort field not space field")
+			return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("sort field [%s] not space field", sortField))
 		}
 
 		sortFieldArr = append(sortFieldArr, &vearchpb.SortField{Field: sort.SortField(), Type: sort.GetSortOrder()})
@@ -746,7 +746,7 @@ func requestToPb(searchDoc *request.SearchDocumentRequest, space *entity.Space, 
 			for _, field := range searchReq.Fields {
 				if field != mapping.IdField {
 					if spaceProKeyMap[field] == nil {
-						return fmt.Errorf("query param fields are not exist in the table")
+						return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("field [%s] is not exist in the space", field))
 					}
 				}
 			}
@@ -782,7 +782,7 @@ func requestToPb(searchDoc *request.SearchDocumentRequest, space *entity.Space, 
 		indexParams := &entity.IndexParams{}
 		err := vjson.Unmarshal(space.Index.Params, indexParams)
 		if err != nil {
-			return fmt.Errorf("unmarshal err:[%s] , space.Index.IndexParams:[%s]", err.Error(), string(space.Index.Params))
+			return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("unmarshal err:[%s] , space.Index.IndexParams:[%s]", err.Error(), string(space.Index.Params)))
 		}
 		metricType = indexParams.MetricType
 	}
@@ -802,7 +802,7 @@ func requestToPb(searchDoc *request.SearchDocumentRequest, space *entity.Space, 
 	for _, sort := range sortOrder {
 		sortField := sort.SortField()
 		if !(sortField == "_score" || sortField == "_id" || (spaceProMap[sortField] != nil)) {
-			return fmt.Errorf("query param sort field not space field")
+			return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("sort field [%s] not space field", sortField))
 		}
 
 		sortFieldArr = append(sortFieldArr, &vearchpb.SortField{Field: sort.SortField(), Type: sort.GetSortOrder()})

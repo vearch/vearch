@@ -396,14 +396,14 @@ func (ms *masterService) createSpaceService(ctx context.Context, dbName string, 
 			//send request for all server
 			defer func() {
 				if r := recover(); r != nil {
-					err := fmt.Errorf("create partition err: %v ", r)
+					err := vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("create partition err: %v ", r))
 					errChain <- err
 					log.Error(err.Error())
 				}
 			}()
 			for _, addr := range addrs {
 				if err := client.CreatePartition(addr, space, partition.Id); err != nil {
-					err := fmt.Errorf("create partition err: %s ", err.Error())
+					err := vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("create partition err: %s ", err.Error()))
 					errChain <- err
 					log.Error(err.Error())
 				}
@@ -420,7 +420,7 @@ func (ms *masterService) createSpaceService(ctx context.Context, dbName string, 
 			case err := <-errChain:
 				return err
 			case <-ctx.Done():
-				return fmt.Errorf("create space has error")
+				return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("create space has error"))
 			default:
 			}
 
@@ -814,7 +814,7 @@ func (ms *masterService) queryAllAlias(ctx context.Context) ([]*entity.Alias, er
 		alias := &entity.Alias{}
 		err = vjson.Unmarshal(value, alias)
 		if err != nil {
-			return nil, fmt.Errorf("get alias:%s value:%s, err:%s", alias.Name, string(value), err.Error())
+			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("get alias:%s value:%s, err:%s", alias.Name, string(value), err.Error()))
 		}
 		allAlias = append(allAlias, alias)
 	}
@@ -837,7 +837,7 @@ func (ms *masterService) queryAliasService(ctx context.Context, alias_name strin
 
 	err = vjson.Unmarshal(bs, alias)
 	if err != nil {
-		return nil, fmt.Errorf("get alias:%s value:%s, err:%s", alias.Name, string(bs), err.Error())
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("get alias:%s value:%s, err:%s", alias.Name, string(bs), err.Error()))
 	}
 	return alias, nil
 }
@@ -922,16 +922,16 @@ func (ms *masterService) updateSpaceService(ctx context.Context, dbName, spaceNa
 
 	dbId, err := ms.Master().QueryDBName2Id(ctx, dbName)
 	if err != nil {
-		return nil, fmt.Errorf("failed to find database id according database name:%v,the Error is:%v ", dbName, err)
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("failed to find database id according database name:%v,the Error is:%v ", dbName, err))
 	}
 
 	space, err := ms.Master().QuerySpaceByName(ctx, dbId, spaceName)
 	if err != nil {
-		return nil, fmt.Errorf("failed to find space according space name:%v,the Error is:%v ", spaceName, err)
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("failed to find space according space name:%v,the Error is:%v ", spaceName, err))
 	}
 
 	if space == nil {
-		return nil, fmt.Errorf("can not found space by name : %s", spaceName)
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("can not found space by name : %s", spaceName))
 	}
 
 	buff := bytes.Buffer{}
@@ -940,13 +940,13 @@ func (ms *masterService) updateSpaceService(ctx context.Context, dbName, spaceNa
 	}
 
 	if temp.PartitionNum != 0 && temp.PartitionNum != space.PartitionNum {
-		buff.WriteString("partition_num  can not change ")
+		buff.WriteString("partition_num can not change ")
 	}
 	if temp.ReplicaNum != 0 && temp.ReplicaNum != space.ReplicaNum {
-		buff.WriteString("replica_num  can not change ")
+		buff.WriteString("replica_num can not change ")
 	}
 	if buff.String() != "" {
-		return nil, fmt.Errorf(buff.String())
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf(buff.String()))
 	}
 
 	if temp.Name != "" {
@@ -980,7 +980,7 @@ func (ms *masterService) updateSpaceService(ctx context.Context, dbName, spaceNa
 		for k, v := range oldFieldMap {
 			if fm, ok := newFieldMap[k]; ok {
 				if !mapping.Equals(v, fm) {
-					return nil, fmt.Errorf("not equals by field:[%s] old[%v] new[%v]", k, v, fm)
+					return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("not equals by field:[%s] old[%v] new[%v]", k, v, fm))
 				}
 				delete(newFieldMap, k)
 			}
@@ -1012,7 +1012,7 @@ func (ms *masterService) updateSpaceService(ctx context.Context, dbName, spaceNa
 		}
 
 		if !client.IsLive(server.RpcAddr()) {
-			return nil, fmt.Errorf("partition %s is shutdown", server.RpcAddr())
+			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_IS_CLOSED, fmt.Errorf("partition %s is shutdown", server.RpcAddr()))
 		}
 	}
 
@@ -1080,7 +1080,7 @@ func (ms *masterService) ChangeMember(ctx context.Context, cm *entity.ChangeMemb
 	if cm.Method != 1 {
 		for _, nodeID := range spacePartition.Replicas {
 			if nodeID == cm.NodeID {
-				return fmt.Errorf("partition:[%d] already on server:[%d] in replicas:[%v]", cm.PartitionID, cm.NodeID, spacePartition.Replicas)
+				return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("partition:[%d] already on server:[%d] in replicas:[%v]", cm.PartitionID, cm.NodeID, spacePartition.Replicas))
 			}
 		}
 		spacePartition.Replicas = append(spacePartition.Replicas, cm.NodeID)
@@ -1114,7 +1114,7 @@ func (ms *masterService) ChangeMember(ctx context.Context, cm *entity.ChangeMemb
 	log.Info("targetNode is [%+v], cm is [%+v] ", masterNode, cm)
 
 	if !client.IsLive(masterNode.RpcAddr()) {
-		return fmt.Errorf("server:[%d] addr:[%s] can not connect ", cm.NodeID, masterNode.RpcAddr())
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_SERVER_ERROR, fmt.Errorf("server:[%d] addr:[%s] can not connect ", cm.NodeID, masterNode.RpcAddr()))
 	}
 
 	if _, err := ms.updateSpaceService(ctx, dbName, space.Name, space); err != nil {
@@ -1124,12 +1124,12 @@ func (ms *masterService) ChangeMember(ctx context.Context, cm *entity.ChangeMemb
 
 	if cm.Method == proto.ConfAddNode && targetNode != nil {
 		if err := client.CreatePartition(targetNode.RpcAddr(), space, cm.PartitionID); err != nil {
-			return fmt.Errorf("create partiiton has err:[%s] addr:[%s]", err.Error(), targetNode.RpcAddr())
+			return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("create partiiton has err:[%s] addr:[%s]", err.Error(), targetNode.RpcAddr()))
 		}
 	} else if cm.Method == proto.ConfRemoveNode {
 
 	} else {
-		return fmt.Errorf("change member only support addNode:[%d] removeNode:[%d] not support:[%d]", proto.ConfAddNode, proto.ConfRemoveNode, cm.Method)
+		return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("change member only support addNode:[%d] removeNode:[%d] not support:[%d]", proto.ConfAddNode, proto.ConfRemoveNode, cm.Method))
 	}
 
 	log.Info("execute change, master node info is [%+v]", masterNode)
@@ -1139,7 +1139,7 @@ func (ms *masterService) ChangeMember(ctx context.Context, cm *entity.ChangeMemb
 	}
 	if cm.Method == proto.ConfRemoveNode && targetNode != nil && client.IsLive(targetNode.RpcAddr()) {
 		if err := client.DeleteReplica(targetNode.RpcAddr(), cm.PartitionID); err != nil {
-			return fmt.Errorf("delete partiiton has err:[%s] addr:[%s]", err.Error(), targetNode.RpcAddr())
+			return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("delete partiiton has err:[%s] addr:[%s]", err.Error(), targetNode.RpcAddr()))
 		}
 	}
 	return nil
@@ -1185,7 +1185,7 @@ func (ms *masterService) RecoverFailServer(ctx context.Context, rs *entity.Recov
 		// if success, remove from failServer
 		ms.Master().TryRemoveFailServer(ctx, targetFailServer.Node)
 	} else {
-		return fmt.Errorf("newServer or targetFailServer is nil ")
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_SERVER_ERROR, fmt.Errorf("newServer or targetFailServer is nil"))
 	}
 
 	return e
@@ -1230,8 +1230,8 @@ func (ms *masterService) ChangeReplica(ctx context.Context, dbModify *entity.DBM
 	space, err := ms.Master().QuerySpaceByName(ctx, dbID, dbModify.SpaceName)
 	errutil.ThrowError(err)
 	if dbModify.Method == proto.ConfAddNode && (int(space.ReplicaNum)+1) > len(servers) {
-		err := fmt.Errorf("ReplicaNum [%d] is exceed server size [%d]",
-			int(space.ReplicaNum)+1, len(servers))
+		err := vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("ReplicaNum [%d] is exceed server size [%d]",
+			int(space.ReplicaNum)+1, len(servers)))
 		return err
 	}
 	// change space replicas of partition, add or delete one

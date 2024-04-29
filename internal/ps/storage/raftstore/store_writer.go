@@ -16,7 +16,6 @@ package raftstore
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/vearch/vearch/internal/entity"
 	"github.com/vearch/vearch/internal/pkg/log"
@@ -83,7 +82,7 @@ func (s *Store) Write(ctx context.Context, request *vearchpb.DocCmd) (err error)
 
 	if request.Type == vearchpb.OpType_BULK {
 		if s.Partition.ResourceExhausted {
-			err = fmt.Errorf("ResourceExhausted")
+			err = vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_RESOURCE_EXHAUSTED, nil)
 			return err
 		}
 		s.Partition.AddNum += 1

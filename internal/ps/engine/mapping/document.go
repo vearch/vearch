@@ -20,6 +20,7 @@ import (
 
 	"github.com/vearch/vearch/internal/pkg/log"
 	"github.com/vearch/vearch/internal/pkg/vjson"
+	"github.com/vearch/vearch/internal/proto/vearchpb"
 )
 
 type DocumentMapping struct {
@@ -55,7 +56,7 @@ func (dm *DocumentMapping) UnmarshalJSON(data []byte) error {
 				}
 			default:
 				log.Warn("unsupport properties type [%s]:[%s]", k, string(v))
-				return fmt.Errorf("unsupport properties type [%s]:[%s]", k, string(v))
+				return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("unsupport properties type [%s]:[%s]", k, string(v)))
 			}
 		}
 	} else {

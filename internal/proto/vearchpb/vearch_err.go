@@ -47,8 +47,13 @@ func NewError(code ErrorEnum, err error) (vErr *VearchErr) {
 	if vErr, ok := err.(*VearchErr); ok {
 		return vErr
 	}
-	vErr = &VearchErr{error: &Error{Code: code, Msg: ErrMsg(code) + ":" + err.Error()}}
-	return
+	if strings.HasPrefix(err.Error(), ErrMsg(code)) {
+		vErr = &VearchErr{error: &Error{Code: code, Msg: err.Error()}}
+		return
+	} else {
+		vErr = &VearchErr{error: &Error{Code: code, Msg: ErrMsg(code) + ":" + err.Error()}}
+		return
+	}
 }
 
 func ErrMsg(code ErrorEnum) (s string) {

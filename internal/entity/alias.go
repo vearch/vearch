@@ -17,6 +17,8 @@ package entity
 import (
 	"fmt"
 	"unicode"
+
+	"github.com/vearch/vearch/internal/proto/vearchpb"
 )
 
 // alias/dbName/spaceName
@@ -30,18 +32,18 @@ func (alias *Alias) Validate() error {
 	// validate db name
 	rs := []rune(alias.Name)
 	if len(rs) == 0 {
-		return fmt.Errorf("alias name can not set empty string")
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("alias name can not be empty string"))
 	}
 	if unicode.IsNumber(rs[0]) {
-		return fmt.Errorf("alias name : %s can not start with num", alias.Name)
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("alias name : %s can not start with num", alias.Name))
 	}
 	if rs[0] == '_' {
-		return fmt.Errorf("alias name : %s can not start with _", alias.Name)
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("alias name : %s can not start with _", alias.Name))
 	}
 	for _, r := range rs {
 		switch r {
 		case '\t', '\n', '\v', '\f', '\r', ' ', 0x85, 0xA0, '\\', '+', '-', '!', '*', '/', '(', ')', ':', '^', '[', ']', '"', '{', '}', '~', '%', '&', '\'', '<', '>', '?':
-			return fmt.Errorf("character '%c' can not in db name[%s]", r, alias.Name)
+			return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("character '%c' can not in db name[%s]", r, alias.Name))
 		}
 	}
 	return nil

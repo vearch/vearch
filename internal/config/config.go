@@ -28,6 +28,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/internal/pkg/log"
+	"github.com/vearch/vearch/internal/proto/vearchpb"
 	"go.etcd.io/etcd/server/v3/embed"
 )
 
@@ -229,7 +230,7 @@ func (config *Config) GetEmbed() (*embed.Config, error) {
 	masterCfg := config.Masters.Self()
 
 	if masterCfg == nil {
-		return nil, fmt.Errorf("not found master config by this machine, please ip , domain , or url config")
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_CONFIG_ERROR, fmt.Errorf("not found master config"))
 	}
 
 	cfg := embed.NewConfig()
@@ -467,7 +468,7 @@ func (config *Config) Validate(model Model) error {
 		}
 
 		if masterNum > 1 {
-			return fmt.Errorf("in one machine has two masters")
+			return vearchpb.NewError(vearchpb.ErrorEnum_CONFIG_ERROR, fmt.Errorf("two masters on one machine"))
 		}
 	}
 

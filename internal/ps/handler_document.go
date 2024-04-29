@@ -189,7 +189,7 @@ func (handler *UnaryHandler) execute(ctx context.Context, req *vearchpb.Partitio
 		reqMap := ctx.Value(share.ReqMetaDataKey).(map[string]string)
 		method, ok := reqMap[client.HandlerType]
 		if !ok {
-			err := fmt.Errorf("client type not found in matadata, key [%s]", client.HandlerType)
+			err := fmt.Errorf("client type not support, key [%s]", client.HandlerType)
 			req.Err = vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err).GetError()
 			return
 		}

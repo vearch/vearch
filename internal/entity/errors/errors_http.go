@@ -52,7 +52,7 @@ func NewErrBadRequest(err error) *ErrRequest {
 	return &ErrRequest{
 		err:      err,
 		msg:      err.Error(),
-		code:     int(vearchpb.ErrorEnum_UNKNOWN_ERROR),
+		code:     int(vearchpb.ErrorEnum_INTERNAL_ERROR),
 		httpCode: http.StatusBadRequest,
 	}
 }
@@ -69,7 +69,7 @@ func NewErrUnprocessable(err error) *ErrRequest {
 	return &ErrRequest{
 		err:      err,
 		msg:      err.Error(),
-		code:     int(vearchpb.ErrorEnum_UNKNOWN_ERROR),
+		code:     int(vearchpb.ErrorEnum_INTERNAL_ERROR),
 		httpCode: http.StatusUnprocessableEntity,
 	}
 }
@@ -86,7 +86,7 @@ func NewErrNotFound(err error) *ErrRequest {
 	return &ErrRequest{
 		err:      err,
 		msg:      err.Error(),
-		code:     int(vearchpb.ErrorEnum_UNKNOWN_ERROR),
+		code:     int(vearchpb.ErrorEnum_INTERNAL_ERROR),
 		httpCode: http.StatusNotFound,
 	}
 }
@@ -103,7 +103,7 @@ func NewErrInternal(err error) *ErrRequest {
 	return &ErrRequest{
 		err:      err,
 		msg:      err.Error(),
-		code:     int(vearchpb.ErrorEnum_UNKNOWN_ERROR),
+		code:     int(vearchpb.ErrorEnum_INTERNAL_ERROR),
 		httpCode: http.StatusInternalServerError,
 	}
 }

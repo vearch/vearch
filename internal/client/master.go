@@ -132,7 +132,7 @@ func (m *masterClient) QueryServer(ctx context.Context, id entity.NodeID) (*enti
 	}
 	if bytes == nil {
 		log.Error("server can not find on master, maybe server is offline, nodeId:[%d]", id)
-		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PS_NOT_EXIST, nil)
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_SERVER_NOT_EXIST, nil)
 	}
 
 	p := new(entity.Server)
@@ -382,7 +382,7 @@ func (m *masterClient) QueryAliasByName(ctx context.Context, alias_name string) 
 
 	err = vjson.Unmarshal(bs, alias)
 	if err != nil {
-		return nil, fmt.Errorf("get alias:%s value:%s, err:%s", alias.Name, string(bs), err.Error())
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("get alias:%s value:%s, err:%s", alias.Name, string(bs), err.Error()))
 	}
 	return alias, nil
 }
@@ -554,11 +554,11 @@ func (m *masterClient) RegisterPartition(ctx context.Context, partition *entity.
 
 	code, err := jsonMap.GetJsonValIntE("code")
 	if err != nil {
-		return fmt.Errorf("client master api register partiton parse response code error: %s", err.Error())
+		return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("client master api register partiton parse response code error: %s", err.Error()))
 	}
 
 	if code != int(vearchpb.ErrorEnum_SUCCESS) {
-		return fmt.Errorf("client master api register partiton parse response error, code: %d, msg: %s", code, jsonMap.GetJsonValStringOrDefault("msg", ""))
+		return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("client master api register partiton parse response error, code: %d, msg: %s", code, jsonMap.GetJsonValStringOrDefault("msg", "")))
 	}
 
 	return nil
@@ -639,7 +639,7 @@ func (m *masterClient) ProxyHTTPRequest(method string, url string, reqBody strin
 // remove metadata of the node and delete from raftServer
 func (m *masterClient) RemoveNodeMeta(ctx context.Context, nodeID entity.NodeID) error {
 	if nodeID == 0 {
-		return fmt.Errorf("nodeId is zero")
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("nodeId is zero"))
 	}
 	// begin clear meta about this nodeId
 	rfs := &entity.RecoverFailServer{FailNodeID: nodeID}
@@ -724,15 +724,15 @@ func parseRegisterData(response []byte) ([]byte, error) {
 
 	code, err := jsonMap.GetJsonValIntE("code")
 	if err != nil {
-		return nil, fmt.Errorf("client master api register parse response code error: %s", err.Error())
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("client master api register parse response code error: %s", err.Error()))
 	}
 
 	if code != int(vearchpb.ErrorEnum_SUCCESS) {
-		return nil, fmt.Errorf("client master api register parse response error, code: %d, msg: %s", code, jsonMap.GetJsonValStringOrDefault("msg", ""))
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("client master api register parse response error, code: %d, msg: %s", code, jsonMap.GetJsonValStringOrDefault("msg", "")))
 	}
 	data, err := jsonMap.GetJsonValBytes("data")
 	if err != nil {
-		return nil, fmt.Errorf("client master api register parse response data error: %s", err.Error())
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("client master api register parse response data error: %s", err.Error()))
 	}
 	return data, nil
 }
@@ -756,7 +756,7 @@ func (m *MasterServer) reset() {
 
 func (m *MasterServer) getKey() (int, error) {
 	if m.tryTimes >= m.total {
-		return 0, fmt.Errorf("master server all down")
+		return 0, vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("master server all down"))
 	}
 
 	return m.keyNumber, nil

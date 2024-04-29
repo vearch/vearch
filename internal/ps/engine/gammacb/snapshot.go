@@ -129,7 +129,7 @@ func (ge *gammaEngine) NewSnapshot() (proto.Snapshot, error) {
 		return nil, err
 	}
 	if sn < 0 {
-		return nil, fmt.Errorf("read sn:[%d] less than zero", sn)
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("read sn:[%d] less than zero", sn))
 	}
 	return &GammaSnapshot{path: ge.path, sn: sn, infos: infos, absFileNames: absFileNames}, nil
 }

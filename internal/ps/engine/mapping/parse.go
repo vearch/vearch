@@ -19,6 +19,7 @@ import (
 	"fmt"
 
 	vmap "github.com/vearch/vearch/internal/pkg/map"
+	"github.com/vearch/vearch/internal/proto/vearchpb"
 )
 
 const pathSeparator = "."
@@ -115,7 +116,7 @@ func MergeSchema(old, new []byte) ([]byte, error) {
 
 	for ok, ov := range oldSchemaMap {
 		if nv := newSchemaMap[ok]; nv != nil && nv != ov {
-			return nil, fmt.Errorf("not same save by key:%s values[%v, %v]", ok, ov, nv)
+			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("not same save by key:%s values[%v, %v]", ok, ov, nv))
 		} else if nv == nil {
 			newSchemaMap[ok] = ov
 		}

@@ -25,6 +25,7 @@ import (
 	"github.com/vearch/vearch/internal/config"
 	"github.com/vearch/vearch/internal/entity"
 	"github.com/vearch/vearch/internal/pkg/log"
+	"github.com/vearch/vearch/internal/proto/vearchpb"
 )
 
 func StartRaftServer(nodeId entity.NodeID, ip string, resolver raft.SocketResolver) (*raft.RaftServer, error) {
@@ -165,7 +166,7 @@ func (r *RaftResolver) RangeNodes(f func(key, value interface{}) bool) {
 func (r *RaftResolver) NodeAddress(nodeID uint64, stype raft.SocketType) (string, error) {
 	node := r.GetNode(entity.NodeID(nodeID))
 	if node == nil {
-		return "", fmt.Errorf("cannot get node network information, nodeID=[%d]", nodeID)
+		return "", vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("cannot get node network information, nodeID=[%d]", nodeID))
 	}
 
 	switch stype {
@@ -174,6 +175,6 @@ func (r *RaftResolver) NodeAddress(nodeID uint64, stype raft.SocketType) (string
 	case raft.Replicate:
 		return node.replicateAddr, nil
 	default:
-		return "", fmt.Errorf("unknown socket type[%v]", stype)
+		return "", vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("unknown socket type[%v]", stype))
 	}
 }
