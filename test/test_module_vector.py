@@ -76,7 +76,7 @@ def search_result(xq, k: int, batch: bool, query_dict: dict, multi_vector: bool,
 
     if multi_vector:
         vector_dict = {
-            "vector": [
+            "vectors": [
                 {
                     "field": "field_vector",
                     "feature": []
@@ -89,17 +89,17 @@ def search_result(xq, k: int, batch: bool, query_dict: dict, multi_vector: bool,
         }
     else:
         vector_dict = {
-            "vector": [{
+            "vectors": [{
                 "field": "field_vector",
                 "feature": []
             }]
         }
 
     if batch:
-        vector_dict["vector"][0]["feature"] = xq.flatten().tolist()
+        vector_dict["vectors"][0]["feature"] = xq.flatten().tolist()
         if multi_vector:
-            vector_dict["vector"][1]["feature"] = xq.flatten().tolist()
-        query_dict["vectors"] = vector_dict["vector"]
+            vector_dict["vectors"][1]["feature"] = xq.flatten().tolist()
+        query_dict["vectors"] = vector_dict["vectors"]
         json_str = json.dumps(query_dict)
         rs = requests.post(url, auth=(username, password), data=json_str)
 
@@ -119,11 +119,11 @@ def search_result(xq, k: int, batch: bool, query_dict: dict, multi_vector: bool,
             field_ints.append(field_int)
     else:
         for i in range(xq.shape[0]):
-            vector_dict["vector"][0]["feature"] = xq[i].tolist()
+            vector_dict["vectors"][0]["feature"] = xq[i].tolist()
             if multi_vector:
-                vector_dict["vector"][1]["feature"] = xq[i].tolist()
+                vector_dict["vectors"][1]["feature"] = xq[i].tolist()
 
-            query_dict["vectors"] = vector_dict["vector"]
+            query_dict["vectors"] = vector_dict["vectors"]
             json_str = json.dumps(query_dict)
             rs = requests.post(url, auth=(username, password), data=json_str)
 
