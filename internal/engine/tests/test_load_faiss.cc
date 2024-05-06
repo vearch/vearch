@@ -73,12 +73,12 @@ int CreateFaissTable(struct Options &opt) {
   field_info.name = "_id";
 
   field_info.is_index = false;
-  field_info.data_type = vearch::DataType::STRING;
+  field_info.data_type = DataType::STRING;
   table.AddField(field_info);
 
   struct vearch::VectorInfo vector_info;
   vector_info.name = "faiss";
-  vector_info.data_type = vearch::DataType::FLOAT;
+  vector_info.data_type = DataType::FLOAT;
   vector_info.is_index = true;
   vector_info.dimension = opt.d;
   vector_info.store_type = opt.store_type;
@@ -90,11 +90,16 @@ int CreateFaissTable(struct Options &opt) {
   int len = 0;
   table.Serialize(&table_str, &len);
 
-  int ret = CreateTable(opt.engine, table_str, len);
+  CStatus status = ::CreateTable(opt.engine, table_str, len);
 
   free(table_str);
+  if (status.code != 0) {
+    LOG(ERROR) << status.msg;
+    delete status.msg;
+    return status.code;
+  }
 
-  return ret;
+  return 0;
 }
 
 int DumpFaissIndex(struct Options &opt) {
@@ -213,13 +218,14 @@ int SearchFaiss(struct Options &opt, size_t num) {
     int request_len, response_len;
 
     request.Serialize(&request_str, &request_len);
-    int ret = Search(opt.engine, request_str, request_len, &response_str,
-                     &response_len);
+    CStatus status = ::Search(opt.engine, request_str, request_len,
+                              &response_str, &response_len);
 
-    if (ret != 0) {
-      LOG(ERROR) << "Search error [" << ret << "]";
-    }
     free(request_str);
+    if (status.code != 0) {
+      LOG(ERROR) << "Search error [" << status.msg << "]";
+      delete status.msg;
+    }
 
     vearch::Response response;
     response.Deserialize(response_str, response_len);

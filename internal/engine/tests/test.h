@@ -28,6 +28,7 @@
 #include <vector>
 
 #include "c_api/api_data/config.h"
+#include "c_api/api_data/doc.h"
 #include "c_api/api_data/engine_status.h"
 #include "c_api/api_data/request.h"
 #include "c_api/api_data/response.h"
@@ -159,9 +160,8 @@ struct Options {
     search_num = 100;
     training_threshold = 10000 * 1;
     fields_vec = {"_id", "img", "field1", "field2", "field3"};
-    fields_type = {vearch::DataType::STRING, vearch::DataType::STRING,
-                   vearch::DataType::STRING, vearch::DataType::INT,
-                   vearch::DataType::INT};
+    fields_type = {DataType::STRING, DataType::STRING, DataType::STRING,
+                   DataType::INT, DataType::INT};
     vector_name = "abc";
     path = "files";
     log_dir = "log";
@@ -191,7 +191,7 @@ struct Options {
   bool print_doc;
   int search_thread_num;
   std::vector<string> fields_vec;
-  std::vector<vearch::DataType> fields_type;
+  std::vector<DataType> fields_type;
   string path;
   string log_dir;
   string vector_name;
@@ -215,10 +215,10 @@ void printDoc(struct vearch::ResultItem &result_item, std::string &msg,
   msg += string("score [") + std::to_string(result_item.score) + "], ";
   for (size_t i = 0; i < result_item.names.size(); ++i) {
     std::string &name = result_item.names[i];
-    vearch::DataType data_type = vearch::DataType::INT;
+    DataType data_type = DataType::INT;
     for (size_t j = 0; j < opt.fields_vec.size(); ++j) {
       if (name == opt.vector_name) {
-        data_type = vearch::DataType::VECTOR;
+        data_type = DataType::VECTOR;
         break;
       }
       if (name == opt.fields_vec[j]) {
@@ -227,23 +227,23 @@ void printDoc(struct vearch::ResultItem &result_item, std::string &msg,
       }
     }
     if (name == "float") {
-      data_type = vearch::DataType::FLOAT;
+      data_type = DataType::FLOAT;
     }
 
     msg += "field name [" + name + "], type [" +
            std::to_string(static_cast<int>(data_type)) + "], value [";
     std::string &value = result_item.values[i];
-    if (data_type == vearch::DataType::INT) {
+    if (data_type == DataType::INT) {
       msg += std::to_string(*((int *)value.data()));
-    } else if (data_type == vearch::DataType::LONG) {
+    } else if (data_type == DataType::LONG) {
       msg += std::to_string(*((long *)value.data()));
-    } else if (data_type == vearch::DataType::FLOAT) {
+    } else if (data_type == DataType::FLOAT) {
       msg += std::to_string(*((float *)value.data()));
-    } else if (data_type == vearch::DataType::DOUBLE) {
+    } else if (data_type == DataType::DOUBLE) {
       msg += std::to_string(*((double *)value.data()));
-    } else if (data_type == vearch::DataType::STRING) {
+    } else if (data_type == DataType::STRING) {
       msg += value;
-    } else if (data_type == vearch::DataType::VECTOR) {
+    } else if (data_type == DataType::VECTOR) {
       std::string str_vec;
       int d = -1;
       memcpy((void *)&d, value.data(), sizeof(int));
@@ -376,11 +376,11 @@ int AddDocToEngine(struct Options &opt, int doc_num, int interval = 0) {
 
       string &data =
           opt.profiles[(uint64_t)opt.doc_id * opt.fields_vec.size() + j];
-      if (opt.fields_type[j] == vearch::DataType::INT) {
+      if (opt.fields_type[j] == DataType::INT) {
         len = sizeof(int);
         int v = atoi(data.c_str());
         field.value = std::string((char *)(&v), len);
-      } else if (opt.fields_type[j] == vearch::DataType::LONG) {
+      } else if (opt.fields_type[j] == DataType::LONG) {
         len = sizeof(long);
         long v = atol(data.c_str());
         field.value = std::string((char *)(&v), len);
@@ -394,7 +394,7 @@ int AddDocToEngine(struct Options &opt, int doc_num, int interval = 0) {
     {
       vearch::Field field;
       field.name = "float";
-      field.datatype = vearch::DataType::FLOAT;
+      field.datatype = DataType::FLOAT;
 
       float f = random_float(0, 100);
       field.value = std::string((char *)(&f), sizeof(f));
@@ -403,7 +403,7 @@ int AddDocToEngine(struct Options &opt, int doc_num, int interval = 0) {
 
     vearch::Field field;
     field.name = opt.vector_name;
-    field.datatype = vearch::DataType::VECTOR;
+    field.datatype = DataType::VECTOR;
     int len = opt.d * sizeof(float);
     if (opt.index_type == "BINARYIVF") {
       len = opt.d * sizeof(char) / 8;
@@ -517,11 +517,12 @@ int SearchThread(struct Options &opt, size_t num) {
     int request_len, response_len;
 
     request.Serialize(&request_str, &request_len);
-    int ret = Search(opt.engine, request_str, request_len, &response_str,
-                     &response_len);
+    struct CStatus status = ::Search(opt.engine, request_str, request_len,
+                                     &response_str, &response_len);
 
-    if (ret != 0) {
-      LOG(ERROR) << "Search error [" << ret << "]";
+    if (status.code != 0) {
+      LOG(ERROR) << "Search error [" << status.msg << "]";
+      delete status.msg;
     }
     free(request_str);
 
@@ -601,10 +602,15 @@ int GetVector(struct Options &opt) {
   int request_len, response_len;
 
   request.Serialize(&request_str, &request_len);
-  int ret = Search(opt.engine, request_str, request_len, &response_str,
-                   &response_len);
+  CStatus status = ::Search(opt.engine, request_str, request_len, &response_str,
+                            &response_len);
 
   free(request_str);
+  if (status.code != 0) {
+    LOG(ERROR) << status.msg;
+    delete status.msg;
+    return status.code;
+  }
 
   vearch::Response response;
   response.Deserialize(response_str, response_len);
@@ -630,7 +636,7 @@ int GetVector(struct Options &opt) {
     }
     LOG(INFO) << msg;
   }
-  return ret;
+  return 0;
 }
 
 void ReadScalarFile(struct Options &opt) {
@@ -659,7 +665,7 @@ void ReadScalarFile(struct Options &opt) {
 void UpdateThread(struct Options &opt) {
   ReadScalarFile(opt);
   auto DocAddField = [&](vearch::Doc &doc, std::string name, std::string val,
-                         vearch::DataType data_type) {
+                         DataType data_type) {
     vearch::Field field;
     field.name = name;
     field.datatype = data_type;
@@ -671,7 +677,7 @@ void UpdateThread(struct Options &opt) {
     auto fields = doc.TableFields();
     std::stringstream ss;
     for (auto &f : fields) {
-      if (f.second.datatype == vearch::DataType::INT) {
+      if (f.second.datatype == DataType::INT) {
         int val = *(int *)(f.second.value.c_str());
         ss << val << ", ";
       } else {
@@ -688,7 +694,7 @@ void UpdateThread(struct Options &opt) {
     vearch::Doc doc;
 
     for (size_t j = 0; j < opt.fields_vec.size(); ++j) {
-      vearch::DataType data_type = opt.fields_type[j];
+      DataType data_type = opt.fields_type[j];
       std::string &name = opt.fields_vec[j];
       std::string &data =
           opt.profiles[(uint64_t)doc_id * opt.fields_vec.size() + j];
@@ -696,13 +702,13 @@ void UpdateThread(struct Options &opt) {
         _id = data;
       }
       std::string value;
-      if (opt.fields_type[j] == vearch::DataType::INT) {
+      if (opt.fields_type[j] == DataType::INT) {
         char *value_str = static_cast<char *>(malloc(sizeof(int)));
         int v = atoi("88");
         memcpy(value_str, &v, sizeof(int));
         value = std::string(value_str, sizeof(int));
         free(value_str);
-      } else if (opt.fields_type[j] == vearch::DataType::LONG) {
+      } else if (opt.fields_type[j] == DataType::LONG) {
         char *value_str = static_cast<char *>(malloc(sizeof(long)));
         long v = atol(data.c_str());
         memcpy(value_str, &v, sizeof(long));
@@ -720,10 +726,10 @@ void UpdateThread(struct Options &opt) {
     {
       float val = 0;
       std::string data((char *)&val, sizeof(val));
-      DocAddField(doc, "float", data, vearch::DataType::FLOAT);
+      DocAddField(doc, "float", data, DataType::FLOAT);
       data = std::string((char *)(opt.feature + (uint64_t)doc_id * opt.d),
                          opt.d * sizeof(float));
-      DocAddField(doc, opt.vector_name, data, vearch::DataType::VECTOR);
+      DocAddField(doc, opt.vector_name, data, DataType::VECTOR);
     }
 
     {
@@ -820,12 +826,12 @@ int Create(struct Options &opt) {
     field_info.name = "float";
 
     field_info.is_index = 1;
-    field_info.data_type = vearch::DataType::FLOAT;
+    field_info.data_type = DataType::FLOAT;
     table.AddField(field_info);
   }
   struct vearch::VectorInfo vector_info;
   vector_info.name = opt.vector_name;
-  vector_info.data_type = vearch::DataType::FLOAT;
+  vector_info.data_type = DataType::FLOAT;
   vector_info.is_index = true;
   vector_info.dimension = opt.d;
   vector_info.store_type = opt.store_type;
@@ -837,11 +843,16 @@ int Create(struct Options &opt) {
   int len = 0;
   table.Serialize(&table_str, &len);
 
-  int ret = CreateTable(opt.engine, table_str, len);
+  CStatus status = ::CreateTable(opt.engine, table_str, len);
 
   free(table_str);
+  if (status.code != 0) {
+    LOG(ERROR) << status.msg;
+    delete status.msg;
+    return status.code;
+  }
 
-  return ret;
+  return 0;
 }
 
 int Add(struct Options &opt) {

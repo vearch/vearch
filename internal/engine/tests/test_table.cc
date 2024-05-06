@@ -62,32 +62,32 @@ class TableTest : public ::testing::Test {
 
     field_info.name = "int";
     field_names.push_back(field_info.name);
-    field_info.data_type = vearch::DataType::INT;
+    field_info.data_type = DataType::INT;
     table->AddField(field_info);
 
     field_info.name = "long";
     field_names.push_back(field_info.name);
-    field_info.data_type = vearch::DataType::LONG;
+    field_info.data_type = DataType::LONG;
     table->AddField(field_info);
 
     field_info.name = "float";
     field_names.push_back(field_info.name);
-    field_info.data_type = vearch::DataType::FLOAT;
+    field_info.data_type = DataType::FLOAT;
     table->AddField(field_info);
 
     field_info.name = "double";
     field_names.push_back(field_info.name);
-    field_info.data_type = vearch::DataType::DOUBLE;
+    field_info.data_type = DataType::DOUBLE;
     table->AddField(field_info);
 
     field_info.name = "string";
     field_names.push_back(field_info.name);
-    field_info.data_type = vearch::DataType::STRING;
+    field_info.data_type = DataType::STRING;
     table->AddField(field_info);
 
     field_info.name = "_id";
     field_names.push_back(field_info.name);
-    field_info.data_type = vearch::DataType::STRING;
+    field_info.data_type = DataType::STRING;
     table->AddField(field_info);
     return table;
   }
@@ -106,49 +106,49 @@ class TableTest : public ::testing::Test {
     return status.ok();
   }
 
-  void CreateValue(int i, std::string &value, vearch::DataType dataype) {
-    if (dataype == vearch::DataType::INT) {
+  void CreateValue(int i, std::string &value, DataType dataype) {
+    if (dataype == DataType::INT) {
       value = std::string((char *)(&i), sizeof(int));
     }
-    if (dataype == vearch::DataType::LONG) {
+    if (dataype == DataType::LONG) {
       long v = (long)i;
       value = std::string((char *)(&v), sizeof(long));
     }
-    if (dataype == vearch::DataType::FLOAT) {
+    if (dataype == DataType::FLOAT) {
       float v = (float)i;
       value = std::string((char *)(&v), sizeof(float));
     }
-    if (dataype == vearch::DataType::DOUBLE) {
+    if (dataype == DataType::DOUBLE) {
       double v = (double)i;
       value = std::string((char *)(&v), sizeof(double));
     }
-    if (dataype == vearch::DataType::STRING) {
+    if (dataype == DataType::STRING) {
       value = std::to_string(i);
     }
   }
 
-  int GetValue(int i, std::string &value, vearch::DataType datatype) {
-    if (datatype == vearch::DataType::INT) {
+  int GetValue(int i, std::string &value, DataType datatype) {
+    if (datatype == DataType::INT) {
       int v;
       memcpy(&v, value.data(), sizeof(int));
       return (v != i ? 1 : 0);
     }
-    if (datatype == vearch::DataType::LONG) {
+    if (datatype == DataType::LONG) {
       long v;
       memcpy(&v, value.data(), sizeof(long));
       return (v != i ? 1 : 0);
     }
-    if (datatype == vearch::DataType::FLOAT) {
+    if (datatype == DataType::FLOAT) {
       float v;
       memcpy(&v, value.data(), sizeof(float));
       return (v != i ? 1 : 0);
     }
-    if (datatype == vearch::DataType::DOUBLE) {
+    if (datatype == DataType::DOUBLE) {
       double v;
       memcpy(&v, value.data(), sizeof(double));
       return (v != i ? 1 : 0);
     }
-    if (datatype == vearch::DataType::STRING) {
+    if (datatype == DataType::STRING) {
       std::string v = std::to_string(i);
       return (v != value ? 1 : 0);
     }
@@ -187,7 +187,7 @@ class TableTest : public ::testing::Test {
     if (table->GetDocInfo(key, doc, fields)) return -1;
     auto &table_fields = doc.TableFields();
     for (auto &f : table_fields) {
-      vearch::DataType datatype;
+      DataType datatype;
       table->GetFieldType(f.second.name, datatype);
       if (f.second.name == "_id") {
         if (GetValue(doc_id, f.second.value, datatype)) return -2;

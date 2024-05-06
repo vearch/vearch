@@ -51,6 +51,7 @@ Status MemoryRawVector::Load(int vec_num) {
   }
 
   MetaInfo()->size_ = vec_num;
+  LOG(INFO) << "memory raw vector load [" << vec_num << "]";
 
   return Status::OK();
 }
@@ -97,6 +98,9 @@ int MemoryRawVector::InitStore(std::string &vec_name) {
 
 int MemoryRawVector::AddToStore(uint8_t *v, int len) {
   AddToMem(v, vector_byte_size_);
+  if (WithIO()) {
+    rdb.Put(meta_info_->Size(), (const char *)v, VectorByteSize());
+  }
   return 0;
 }
 
@@ -106,9 +110,6 @@ int MemoryRawVector::AddToMem(uint8_t *v, int len) {
   memcpy((void *)(current_segment_ + curr_idx_in_seg_ * vector_byte_size_),
          (void *)v, vector_byte_size_);
   ++curr_idx_in_seg_;
-  if (WithIO()) {
-    rdb.Put(meta_info_->Size(), (const char *)v, VectorByteSize());
-  }
   return 0;
 }
 

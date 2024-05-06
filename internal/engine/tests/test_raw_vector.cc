@@ -52,7 +52,7 @@ Field *BuildVectorField(int dim, float offset) {
   float *data = BuildVector(dim, offset);
   Field *field = new Field();
   field->value = string((char *)data, sizeof(float) * dim);
-  field->datatype = vearch::DataType::VECTOR;
+  field->datatype = DataType::VECTOR;
   // Field *field =
   //     MakeField(nullptr, MakeByteArray((char *)data, sizeof(float) * dim),
   //               nullptr, VECTOR);
@@ -86,10 +86,8 @@ void UpdateToRawVector(RawVector *raw_vector, int start_id, int num,
   int end = start_id + num;
   for (int i = start_id; i < end; i++) {
     Field *field = BuildVectorField(dimension, i + addition);
-    int ret = raw_vector->Update(i, *field);
-    assert(0 == ret);
-    if (raw_vector->GetIO()) {
-      ret = raw_vector->GetIO()->Update(i).code();
+    if (raw_vector->WithIO()) {
+      int ret = raw_vector->Update(i, *field);
       assert(0 == ret);
     }
     delete field;
@@ -120,7 +118,8 @@ void ValidateVector(RawVector *raw_vector, int start_id, int num, int dimension,
     ASSERT_EQ(0, raw_vector->GetVector(i, scope_vec));
     const float *peek_vector = (const float *)scope_vec.Get();
     ASSERT_TRUE(floatArrayEquals(expect, dimension, peek_vector, dimension))
-        << "******GetVector float array equal error, vid=" << i << ", peek=["
+        << "******GetVector float array equal error, vid=" << i
+        << " start_id=" << start_id << " dim=" << dimension << ", peek=["
         << peek_vector[0] << ", " << peek_vector[1] << "]"
         << ", expect=[" << expect[0] << ", " << expect[1] << "]";
     delete[] expect;
@@ -149,25 +148,20 @@ void ValidateVectorHeader(RawVector *raw_vector, int start_id, int num,
 }
 
 static int Dump(RawVector *raw_vector, int start, int end) {
-  if (raw_vector->GetIO()) {
-    return raw_vector->GetIO()->Dump(start, end).code();
+  if (raw_vector->WithIO()) {
+    return raw_vector->Dump(start, end).code();
   }
   return 0;
 }
 
 static int Load(RawVector *raw_vector, int num) {
-  if (raw_vector->GetIO()) {
-    return raw_vector->GetIO()->Load(num).code();
+  if (raw_vector->WithIO()) {
+    return raw_vector->Load(num).code();
   }
   return 0;
 }
 
-static void Delete(RawVector *raw_vector) {
-  if (raw_vector->GetIO()) {
-    delete raw_vector->GetIO();
-  }
-  delete raw_vector;
-}
+static void Delete(RawVector *raw_vector) { delete raw_vector; }
 
 void TestRawVectorNormal(VectorStorageType store_type) {
   string root_path = "./" + GetCurrentCaseName();
@@ -272,6 +266,7 @@ void TestRawVectorDumpLoad(VectorStorageType store_type) {
   ASSERT_NE(nullptr, raw_vector);
   ASSERT_EQ(0, raw_vector->Init(name, false));
   ASSERT_EQ(0, Load(raw_vector, load_num));
+  cout << "load some load_num=" << load_num << endl;
   ValidateVector(raw_vector, 0, update_num, dimension, 0.5f);
   ValidateVector(raw_vector, 100, load_num - update_num, dimension);
   ASSERT_EQ(load_num, raw_vector->GetVectorNum());
@@ -285,6 +280,7 @@ void TestRawVectorDumpLoad(VectorStorageType store_type) {
 
   cout << "---------------reload after dump----------------" << endl;
   load_num = load_num + add_num;
+  cout << "load_num=" << load_num << endl;
   meta_info = new VectorMetaInfo(name, dimension, VectorValueType::FLOAT);
   raw_vector = RawVectorFactory::Create(meta_info, store_type, root_path,
                                         store_params, doc_bitmap);
