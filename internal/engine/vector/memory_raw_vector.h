@@ -10,10 +10,9 @@
 #include <string>
 
 #include "raw_vector.h"
+#include "vector/rocksdb_wrapper.h"
 
 namespace vearch {
-
-struct MemoryRawVectorIO;
 
 class MemoryRawVector : public RawVector {
  public:
@@ -36,11 +35,15 @@ class MemoryRawVector : public RawVector {
 
   int AddToMem(uint8_t *v, int len);
 
+  Status InitIO() override;
+  Status Load(int vec_num) override;
+  int GetDiskVecNum(int &vec_num) override;
+  Status Dump(int start_vid, int end_vid) override { return Status::OK(); };
+
  protected:
   int GetVector(long vid, const uint8_t *&vec, bool &deleteable) const override;
 
  private:
-  friend MemoryRawVectorIO;
   int ExtendSegments();
 
   uint8_t **segments_;
@@ -48,6 +51,7 @@ class MemoryRawVector : public RawVector {
   int segment_size_;
   uint8_t *current_segment_;
   int curr_idx_in_seg_;
+  RocksDBWrapper rdb;
 };
 
 }  // namespace vearch

@@ -136,11 +136,6 @@ Status VectorManager::CreateRawVector(struct VectorInfo &vector_info,
     std::stringstream msg;
     msg << "Raw vector " << vec_name << " init error, code [" << ret << "]!";
     LOG(ERROR) << msg.str();
-    RawVectorIO *rio = (*vec)->GetIO();
-    if (rio) {
-      delete rio;
-      rio = nullptr;
-    }
     delete (*vec);
     return Status::IOError(msg.str());
   }
@@ -150,10 +145,6 @@ Status VectorManager::CreateRawVector(struct VectorInfo &vector_info,
 void VectorManager::DestroyRawVectors() {
   for (const auto &[name, vec] : raw_vectors_) {
     if (vec != nullptr) {
-      RawVectorIO *rio = vec->GetIO();
-      if (rio) {
-        delete rio;
-      }
       delete vec;
     }
   }
@@ -176,12 +167,6 @@ Status VectorManager::CreateVectorIndex(
     msg << "Cannot get model=" << index_type << ", vec_name=" << vec_name;
     LOG(ERROR) << msg.str();
     if (destroy_vec) {
-      RawVectorIO *rio = vec->GetIO();
-      if (rio) {
-        delete rio;
-        rio = nullptr;
-        vec->SetIO(rio);
-      }
       delete vec;
       raw_vectors_[vec_name] = nullptr;
     }
@@ -193,12 +178,6 @@ Status VectorManager::CreateVectorIndex(
   if (!status.ok()) {
     LOG(ERROR) << "gamma index init " << vec_name << " error!";
     if (destroy_vec) {
-      RawVectorIO *rio = vec->GetIO();
-      if (rio) {
-        delete rio;
-        rio = nullptr;
-        vec->SetIO(rio);
-      }
       delete vec;
       raw_vectors_[vec_name] = nullptr;
     }
@@ -385,10 +364,6 @@ int VectorManager::Update(
       if (it != vector_indexes_.end()) {
         it->second->updated_vids_.push(vid);
       }
-    }
-    if (raw_vector->GetIO()) {
-      Status status = raw_vector->GetIO()->Update(vid);
-      if (!status.ok()) return status.code();
     }
   }
 
@@ -815,10 +790,10 @@ int VectorManager::Dump(const std::string &path, int dump_docid,
 
   for (const auto &[name, vec] : raw_vectors_) {
     RawVector *raw_vector = dynamic_cast<RawVector *>(vec);
-    if (raw_vector->GetIO()) {
+    if (raw_vector->WithIO()) {
       int start = raw_vector->VidMgr()->GetFirstVID(dump_docid);
       int end = raw_vector->VidMgr()->GetLastVID(max_docid);
-      Status status = raw_vector->GetIO()->Dump(start, end + 1);
+      Status status = raw_vector->Dump(start, end + 1);
       if (!status.ok()) {
         LOG(ERROR) << "vector " << name << " dump failed!";
         return status.code();
@@ -834,18 +809,18 @@ int VectorManager::Load(const std::vector<std::string> &index_dirs,
                         int &doc_num) {
   int min_vec_num = doc_num;
   for (const auto &[name, vec] : raw_vectors_) {
-    if (vec->GetIO()) {
+    if (vec->WithIO()) {
       int vector_num = min_vec_num;
-      vec->GetIO()->GetDiskVecNum(vector_num);
+      vec->GetDiskVecNum(vector_num);
       if (vector_num < min_vec_num) min_vec_num = vector_num;
     }
   }
 
   for (const auto &[name, vec] : raw_vectors_) {
-    if (vec->GetIO()) {
+    if (vec->WithIO()) {
       // TODO: doc num to vector num
       int vec_num = min_vec_num;
-      Status status = vec->GetIO()->Load(vec_num);
+      Status status = vec->Load(vec_num);
       if (!status.ok()) {
         LOG(ERROR) << "vector [" << name << "] load failed!";
         return status.code();

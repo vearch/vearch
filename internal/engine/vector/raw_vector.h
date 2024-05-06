@@ -21,7 +21,6 @@
 
 namespace vearch {
 
-struct RawVectorIO;
 struct StoreParams;
 
 static const int kInitSize = 1000 * 1000;
@@ -147,9 +146,13 @@ class RawVector : public VectorReader {
 
   virtual int AlterCacheSize(int cache_size) { return -1; }
 
-  RawVectorIO *GetIO() { return vio_; }
+  virtual Status InitIO() { return Status::OK(); }
+  // [start_vid, end_vid)
+  virtual Status Dump(int start_vid, int end_vid) = 0;
+  virtual int GetDiskVecNum(int &vec_num) = 0;
+  virtual Status Load(int vec_num) = 0;
 
-  void SetIO(RawVectorIO *vio) { vio_ = vio; }
+  bool WithIO() { return meta_info_->with_io_; }
 
   VIDMgr *VidMgr() const { return vid_mgr_; }
   bitmap::BitmapManager *Bitmap() { return docids_bitmap_; }
@@ -179,7 +182,6 @@ class RawVector : public VectorReader {
   StoreParams store_params_;
   bitmap::BitmapManager *docids_bitmap_;
   VIDMgr *vid_mgr_;
-  RawVectorIO *vio_;
 };
 
 }  // namespace vearch

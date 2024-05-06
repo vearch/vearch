@@ -10,19 +10,11 @@
 #include <string>
 
 #include "common/gamma_common_data.h"
-#include "io/memory_raw_vector_io.h"
-#include "io/rocksdb_raw_vector_io.h"
 #include "memory_raw_vector.h"
 #include "raw_vector.h"
 #include "vector/rocksdb_raw_vector.h"
 
 namespace vearch {
-
-static void Fail(RawVector *raw_vector, RawVectorIO *vio, std::string err_msg) {
-  LOG(ERROR) << err_msg;
-  if (raw_vector) delete raw_vector;
-  if (vio) delete vio;
-}
 
 class RawVectorFactory {
  public:
@@ -31,29 +23,26 @@ class RawVectorFactory {
                            StoreParams &store_params,
                            bitmap::BitmapManager *docids_bitmap) {
     RawVector *raw_vector = nullptr;
-    RawVectorIO *vio = nullptr;
     switch (type) {
       case VectorStorageType::MemoryOnly:
         raw_vector = new MemoryRawVector(meta_info, root_path, store_params,
                                          docids_bitmap);
-        vio = new MemoryRawVectorIO((MemoryRawVector *)raw_vector);
         break;
       case VectorStorageType::RocksDB:
         raw_vector = new RocksDBRawVector(meta_info, root_path, store_params,
                                           docids_bitmap);
-        if (meta_info->with_io_)
-          vio = new RocksDBRawVectorIO((RocksDBRawVector *)raw_vector);
         break;
       default:
         LOG(ERROR) << "invalid raw feature type:" << static_cast<int>(type);
         return nullptr;
     }
     if (meta_info->with_io_) {
-      if (vio && !vio->Init().ok()) {
-        Fail(raw_vector, vio, "init raw vector io error");
+      if (!raw_vector->InitIO().ok()) {
+        LOG(ERROR) << "init raw vector io error";
+        delete raw_vector;
+        raw_vector = nullptr;
         return nullptr;
       }
-      raw_vector->SetIO(vio);
     }
     return raw_vector;
   }

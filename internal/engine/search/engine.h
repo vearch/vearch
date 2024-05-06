@@ -16,7 +16,6 @@
 #include "c_api/api_data/request.h"
 #include "c_api/api_data/response.h"
 #include "c_api/api_data/table.h"
-#include "io/async_flush.h"
 #include "table/field_range_index.h"
 #include "table/table.h"
 #include "util/bitmap_manager.h"
@@ -137,8 +136,6 @@ class Engine {
 #ifdef PERFORMANCE_TESTING
   std::atomic<uint64_t> search_num_;
 #endif
-
-  AsyncFlushExecutor *af_exector_;
 };
 
 class RequestConcurrentController {

@@ -29,7 +29,6 @@ RawVector::RawVector(VectorMetaInfo *meta_info, const string &root_path,
       store_params_(store_params),
       docids_bitmap_(docids_bitmap) {
   data_size_ = meta_info_->DataSize();
-  vio_ = nullptr;
   vid_mgr_ = nullptr;
 }
 
@@ -113,7 +112,6 @@ int RawVector::Update(int docid, struct Field &field) {
     return -1;
   }
 
-  // TODO: update source
   return 0;
 }
 

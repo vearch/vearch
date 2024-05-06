@@ -29,6 +29,42 @@ RocksDBRawVector::~RocksDBRawVector() {
   db_ = nullptr;
 }
 
+int RocksDBRawVector::GetDiskVecNum(int &vec_num) {
+  if (vec_num <= 0) return 0;
+  int max_id_in_disk = vec_num - 1;
+  std::string key, value;
+  for (int i = max_id_in_disk; i >= 0; --i) {
+    ToRowKey(i, key);
+    rocksdb::Status s =
+        db_->Get(rocksdb::ReadOptions(), rocksdb::Slice(key), &value);
+    if (s.ok()) {
+      vec_num = i + 1;
+      LOG(INFO) << "In the disk rocksdb vec_num=" << vec_num;
+      return 0;
+    }
+  }
+  vec_num = 0;
+  LOG(INFO) << "In the disk rocksdb vec_num=" << vec_num;
+  return 0;
+}
+
+Status RocksDBRawVector::Load(int vec_num) {
+  if (vec_num == 0) return Status::OK();
+  std::string key, value;
+  ToRowKey(vec_num - 1, key);
+  rocksdb::Status s =
+      db_->Get(rocksdb::ReadOptions(), rocksdb::Slice(key), &value);
+  if (!s.ok()) {
+    std::string msg = std::string("load vectors, get error:") + s.ToString() +
+                      ", expected key=" + key;
+    LOG(ERROR) << msg;
+    return Status::IOError(msg);
+  }
+  MetaInfo()->size_ = vec_num;
+  LOG(INFO) << "rocksdb load success! vec_num=" << vec_num;
+  return Status::OK();
+}
+
 int RocksDBRawVector::InitStore(std::string &vec_name) {
   block_cache_size_ = (size_t)store_params_.cache_size * 1024 * 1024;
 
