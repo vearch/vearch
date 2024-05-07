@@ -952,21 +952,6 @@ func (r *routerRequest) queryFromPartition(ctx context.Context, partitionID enti
 func (r *routerRequest) QueryFieldSortExecute(sortOrder sortorder.SortOrder) *vearchpb.SearchResponse {
 	var wg sync.WaitGroup
 	sendPartitionMap := r.sendMap
-	isNormal := false
-	normalField := make(map[string]string)
-	indexType := r.space.Index.Type
-	if indexType != "" && indexType != "BINARYIVF" {
-		isNormal = true
-	}
-	if isNormal {
-		spacePro := r.space.SpaceProperties
-		for field, pro := range spacePro {
-			format := pro.Format
-			if pro.FieldType == vearchpb.FieldType_VECTOR && format != nil && (*format == "normalization" || *format == "normal") {
-				normalField[field] = field
-			}
-		}
-	}
 
 	var searchReq *vearchpb.QueryRequest
 	respChain := make(chan *response.SearchDocResult, len(sendPartitionMap))
@@ -1002,41 +987,21 @@ func (r *routerRequest) QueryFieldSortExecute(sortOrder sortorder.SortOrder) *ve
 		}
 		var err error
 		if err = AddMergeResultArr(result, r.PartitionData.SearchResponse.Results); err != nil {
-			log.Error("msearch AddMergeResultArr error:", err)
+			log.Error("query AddMergeResultArr error:", err)
 		}
 	}
 
 	if len(result) > 1 {
-		var wg sync.WaitGroup
-		respChain := make(chan map[string]*vearchpb.SearchResult, len(result))
-		for i, resp := range result {
-			wg.Add(1)
-			index := strconv.Itoa(i)
-			high := len(resp.ResultItems) - 1
-			go func(result *vearchpb.SearchResult, sortValueMap map[string][]sortorder.SortValue, low, high int, so sortorder.SortOrder, index string) {
-				quickSort(result.ResultItems, sortValueMap, low, high, so, index)
-				sortMap := make(map[string]*vearchpb.SearchResult)
-				sortMap[index] = result
-				respChain <- sortMap
-				wg.Done()
-			}(resp, sortValueMap, 0, high, sortOrder, index)
-		}
-		wg.Wait()
-		close(respChain)
-		for resp := range respChain {
-			for indexStr, resu := range resp {
-				index, _ := strconv.Atoi(indexStr)
-				result[index] = resu
-			}
-		}
-	} else {
-		for i, resp := range result {
-			index := strconv.Itoa(i)
-			quickSort(resp.ResultItems, sortValueMap, 0, len(resp.ResultItems)-1, sortOrder, index)
-		}
+		err := &vearchpb.Error{Code: vearchpb.ErrorEnum_ROUTER_CALL_PS_RPC_ERR, Msg: "the document_ids of query should be a one-dimensional array"}
+		searchResponse = &vearchpb.SearchResponse{}
+		responseHead := &vearchpb.ResponseHead{Err: err}
+		searchResponse.Head = responseHead
 	}
 
-	for _, resp := range result {
+	for i, resp := range result {
+		index := strconv.Itoa(i)
+		quickSort(resp.ResultItems, sortValueMap, 0, len(resp.ResultItems)-1, sortOrder, index)
+
 		if resp.ResultItems != nil && len(resp.ResultItems) > 0 && searchReq.Limit > 0 {
 			len := len(resp.ResultItems)
 			if int32(len) > searchReq.Limit {

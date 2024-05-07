@@ -147,8 +147,8 @@ func (handler *UpdatePartitionHandler) Execute(ctx context.Context, req *vearchp
 
 	store := handler.server.GetPartition(req.PartitionID)
 	if store == nil {
-		msg := fmt.Sprintf("partition not found, partitionId:[%d],nodeID:[%d]",
-			req.PartitionID, handler.server.nodeID)
+		msg := fmt.Sprintf("partition not found, partitionId:[%d], nodeID:[%d], node ip:[%s]",
+			req.PartitionID, handler.server.nodeID, handler.server.ip)
 		log.Error("%s", msg)
 		return vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_NOT_EXIST, errors.New(msg))
 	}
@@ -291,7 +291,7 @@ func (ch *ChangeMemberHandler) Execute(ctx context.Context, req *vearchpb.Partit
 
 	store := ch.server.GetPartition(req.PartitionID)
 	if store == nil {
-		msg := fmt.Sprintf("partition not found, partitionId:[%d]", req.PartitionID)
+		msg := fmt.Sprintf("partition not found, partitionId:[%d], nodeID:[%d], node ip:[%s]", req.PartitionID, ch.server.nodeID, ch.server.ip)
 		log.Error("%s", msg)
 		return vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_NOT_EXIST, errors.New(msg))
 	}
@@ -332,9 +332,9 @@ func (ch *ChangeMemberHandler) Execute(ctx context.Context, req *vearchpb.Partit
 func psErrorChange(server *Server) handler.ErrorChangeFun {
 	return func(ctx context.Context, err error, req *vearchpb.PartitionData, reply *vearchpb.PartitionData) error {
 		if vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err).GetError().Code == vearchpb.ErrorEnum_PARTITION_NOT_LEADER || err == raft.ErrNotLeader {
-			store := server.GetPartition(reply.PartitionID)
+			store := server.GetPartition(req.PartitionID)
 			if store == nil {
-				msg := fmt.Sprintf("partition not found, partitionId:[%d]", reply.PartitionID)
+				msg := fmt.Sprintf("partition not found, partitionId:[%d], nodeID:[%d], node ip:[%s]", req.PartitionID, server.nodeID, server.ip)
 				log.Error("%s", msg)
 				return vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_NOT_EXIST, errors.New(msg))
 			}

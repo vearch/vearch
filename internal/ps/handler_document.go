@@ -180,7 +180,7 @@ func (handler *UnaryHandler) execute(ctx context.Context, req *vearchpb.Partitio
 		}
 		store := handler.server.GetPartition(req.PartitionID)
 		if store == nil {
-			msg := fmt.Sprintf("partition not found, partitionId:[%d]", req.PartitionID)
+			msg := fmt.Sprintf("partition not found, partitionId:[%d], nodeID:[%d], node ip:[%s]", req.PartitionID, handler.server.nodeID, handler.server.ip)
 			log.Error(msg)
 			req.Err = vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_NOT_EXIST, errors.New(msg)).GetError()
 			return
