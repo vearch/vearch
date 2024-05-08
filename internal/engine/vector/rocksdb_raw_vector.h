@@ -10,7 +10,6 @@
 #include <string>
 #include <vector>
 
-#include "rocksdb/db.h"
 #include "rocksdb/options.h"
 #include "rocksdb/table.h"
 #include "vector/raw_vector.h"
@@ -19,9 +18,9 @@ namespace vearch {
 
 class RocksDBRawVector : public RawVector {
  public:
-  RocksDBRawVector(VectorMetaInfo *meta_info, const std::string &root_path,
-                   const StoreParams &store_params,
-                   bitmap::BitmapManager *docids_bitmap);
+  RocksDBRawVector(VectorMetaInfo *meta_info, const StoreParams &store_params,
+                   bitmap::BitmapManager *docids_bitmap,
+                   StorageManager *storage_mgr, int cf_id);
   ~RocksDBRawVector();
   /* RawVector */
   int InitStore(std::string &vec_name) override;
@@ -34,7 +33,6 @@ class RocksDBRawVector : public RawVector {
 
   int Gets(const std::vector<int64_t> &vids, ScopeVectors &vecs) const override;
 
-  Status InitIO() override { return Status::OK(); };
   Status Dump(int start_vid, int end_vid) override { return Status::OK(); };
   int GetDiskVecNum(int &vec_num) override;
   Status Load(int vec_num) override;
@@ -46,7 +44,6 @@ class RocksDBRawVector : public RawVector {
   void ToRowKey(int vid, std::string &key) const;
 
  private:
-  rocksdb::DB *db_;
   rocksdb::BlockBasedTableOptions table_options_;
   size_t block_cache_size_;
 };

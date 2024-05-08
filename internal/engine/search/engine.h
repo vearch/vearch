@@ -108,6 +108,7 @@ class Engine {
   std::string index_root_path_;
   std::string dump_path_;
   std::string space_name_;
+  StorageManager *storage_mgr_;
 
   MultiFieldsRangeIndex *field_range_index_;
 

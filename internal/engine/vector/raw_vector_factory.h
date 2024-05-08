@@ -19,30 +19,22 @@ namespace vearch {
 class RawVectorFactory {
  public:
   static RawVector *Create(VectorMetaInfo *meta_info, VectorStorageType type,
-                           const std::string &root_path,
                            StoreParams &store_params,
-                           bitmap::BitmapManager *docids_bitmap) {
+                           bitmap::BitmapManager *docids_bitmap, int cf_id,
+                           StorageManager *storage_mgr) {
     RawVector *raw_vector = nullptr;
     switch (type) {
       case VectorStorageType::MemoryOnly:
-        raw_vector = new MemoryRawVector(meta_info, root_path, store_params,
-                                         docids_bitmap);
+        raw_vector = new MemoryRawVector(meta_info, store_params, docids_bitmap,
+                                         storage_mgr, cf_id);
         break;
       case VectorStorageType::RocksDB:
-        raw_vector = new RocksDBRawVector(meta_info, root_path, store_params,
-                                          docids_bitmap);
+        raw_vector = new RocksDBRawVector(meta_info, store_params,
+                                          docids_bitmap, storage_mgr, cf_id);
         break;
       default:
         LOG(ERROR) << "invalid raw feature type:" << static_cast<int>(type);
         return nullptr;
-    }
-    if (meta_info->with_io_) {
-      if (!raw_vector->InitIO().ok()) {
-        LOG(ERROR) << "init raw vector io error";
-        delete raw_vector;
-        raw_vector = nullptr;
-        return nullptr;
-      }
     }
     return raw_vector;
   }

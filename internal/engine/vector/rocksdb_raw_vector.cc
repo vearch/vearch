@@ -16,28 +16,22 @@
 namespace vearch {
 
 RocksDBRawVector::RocksDBRawVector(VectorMetaInfo *meta_info,
-                                   const std::string &root_path,
                                    const StoreParams &store_params,
-                                   bitmap::BitmapManager *docids_bitmap)
-    : RawVector(meta_info, root_path, docids_bitmap, store_params) {
-  this->root_path_ = root_path;
-  db_ = nullptr;
+                                   bitmap::BitmapManager *docids_bitmap,
+                                   StorageManager *storage_mgr, int cf_id)
+    : RawVector(meta_info, docids_bitmap, store_params) {
+  storage_mgr_ = storage_mgr;
+  cf_id_ = cf_id;
 }
 
-RocksDBRawVector::~RocksDBRawVector() {
-  delete db_;
-  db_ = nullptr;
-}
+RocksDBRawVector::~RocksDBRawVector() {}
 
 int RocksDBRawVector::GetDiskVecNum(int &vec_num) {
   if (vec_num <= 0) return 0;
   int max_id_in_disk = vec_num - 1;
-  std::string key, value;
   for (int i = max_id_in_disk; i >= 0; --i) {
-    ToRowKey(i, key);
-    rocksdb::Status s =
-        db_->Get(rocksdb::ReadOptions(), rocksdb::Slice(key), &value);
-    if (s.ok()) {
+    auto result = storage_mgr_->Get(cf_id_, i);
+    if (result.first.ok()) {
       vec_num = i + 1;
       LOG(INFO) << "In the disk rocksdb vec_num=" << vec_num;
       return 0;
@@ -52,8 +46,9 @@ Status RocksDBRawVector::Load(int vec_num) {
   if (vec_num == 0) return Status::OK();
   std::string key, value;
   ToRowKey(vec_num - 1, key);
-  rocksdb::Status s =
-      db_->Get(rocksdb::ReadOptions(), rocksdb::Slice(key), &value);
+  rocksdb::Status s = storage_mgr_->db_->Get(rocksdb::ReadOptions(),
+                                             storage_mgr_->cf_handles_[cf_id_],
+                                             rocksdb::Slice(key), &value);
   if (!s.ok()) {
     std::string msg = std::string("load vectors, get error:") + s.ToString() +
                       ", expected key=" + key;
@@ -68,30 +63,30 @@ Status RocksDBRawVector::Load(int vec_num) {
 int RocksDBRawVector::InitStore(std::string &vec_name) {
   block_cache_size_ = (size_t)store_params_.cache_size * 1024 * 1024;
 
-  std::shared_ptr<rocksdb::Cache> cache =
-      rocksdb::NewLRUCache(block_cache_size_);
-  table_options_.block_cache = cache;
-  rocksdb::Options options;
-  options.table_factory.reset(NewBlockBasedTableFactory(table_options_));
+  // std::shared_ptr<rocksdb::Cache> cache =
+  //     rocksdb::NewLRUCache(block_cache_size_);
+  // table_options_.block_cache = cache;
+  // rocksdb::Options options;
+  // options.table_factory.reset(NewBlockBasedTableFactory(table_options_));
 
-  options.IncreaseParallelism();
-  // options.OptimizeLevelStyleCompaction();
-  // create the DB if it's not already present
-  options.create_if_missing = true;
+  // options.IncreaseParallelism();
+  // // options.OptimizeLevelStyleCompaction();
+  // // create the DB if it's not already present
+  // options.create_if_missing = true;
 
-  std::string db_path = this->root_path_ + "/" + meta_info_->Name();
-  if (!utils::isFolderExist(db_path.c_str())) {
-    mkdir(db_path.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-  }
+  // std::string db_path = this->root_path_ + "/" + meta_info_->Name();
+  // if (!utils::isFolderExist(db_path.c_str())) {
+  //   mkdir(db_path.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+  // }
 
-  // open DB
-  rocksdb::Status s = rocksdb::DB::Open(options, db_path, &db_);
-  if (!s.ok()) {
-    LOG(ERROR) << "open rocks db error: " << s.ToString();
-    return -1;
-  }
-  LOG(INFO) << "rocks raw vector init success! name=" << meta_info_->Name()
-            << ", block cache size=" << block_cache_size_ << "Bytes";
+  // // open DB
+  // rocksdb::Status s = rocksdb::DB::Open(options, db_path, &db_);
+  // if (!s.ok()) {
+  //   LOG(ERROR) << "open rocks db error: " << s.ToString();
+  //   return -1;
+  // }
+  // LOG(INFO) << "rocks raw vector init success! name=" << meta_info_->Name()
+  //           << ", block cache size=" << block_cache_size_ << "Bytes";
 
   return 0;
 }
@@ -101,17 +96,15 @@ int RocksDBRawVector::GetVector(long vid, const uint8_t *&vec,
   if ((size_t)vid >= meta_info_->Size() || vid < 0) {
     return 1;
   }
-  std::string key, value;
-  ToRowKey((int)vid, key);
-  rocksdb::Status s =
-      db_->Get(rocksdb::ReadOptions(), rocksdb::Slice(key), &value);
-  if (!s.ok()) {
-    LOG(ERROR) << "rocksdb get error:" << s.ToString() << ", key=" << key;
-    return s.code();
+  auto result = storage_mgr_->Get(cf_id_, vid);
+  if (!result.first.ok()) {
+    LOG(ERROR) << "rocksdb get error:" << result.first.ToString()
+               << ", vid=" << vid;
+    return result.first.code();
   }
   vec = new uint8_t[vector_byte_size_];
-  assert((size_t)vector_byte_size_ == value.size());
-  memcpy((void *)vec, value.c_str(), vector_byte_size_);
+  assert((size_t)vector_byte_size_ == result.second.size());
+  memcpy((void *)vec, result.second.c_str(), vector_byte_size_);
 
   deletable = true;
   return 0;
@@ -122,7 +115,9 @@ int RocksDBRawVector::Gets(const std::vector<int64_t> &vids,
   size_t k = vids.size();
   std::vector<std::string> keys_data(k);
   std::vector<rocksdb::Slice> keys;
+  std::vector<rocksdb::ColumnFamilyHandle *> column_families;
   keys.reserve(k);
+  column_families.reserve(k);
 
   size_t j = 0;
   for (size_t i = 0; i < k; i++) {
@@ -131,13 +126,14 @@ int RocksDBRawVector::Gets(const std::vector<int64_t> &vids,
     }
     ToRowKey((int)vids[i], keys_data[i]);
     keys.emplace_back(std::move(keys_data[i]));
+    column_families.emplace_back(storage_mgr_->cf_handles_[cf_id_]);
     ++j;
     // LOG(INFO) << "i=" << i << "key=" << keys[i].ToString();
   }
 
   std::vector<std::string> values(j);
-  std::vector<rocksdb::Status> statuses =
-      db_->MultiGet(rocksdb::ReadOptions(), keys, &values);
+  std::vector<rocksdb::Status> statuses = storage_mgr_->db_->MultiGet(
+      rocksdb::ReadOptions(), column_families, keys, &values);
   assert(statuses.size() == j);
 
   j = 0;
@@ -166,19 +162,20 @@ int RocksDBRawVector::AddToStore(uint8_t *v, int len) {
 }
 
 size_t RocksDBRawVector::GetStoreMemUsage() {
-  size_t cache_mem = table_options_.block_cache->GetUsage();
-  std::string index_mem;
-  db_->GetProperty("rocksdb.estimate-table-readers-mem", &index_mem);
-  std::string memtable_mem;
-  db_->GetProperty("rocksdb.cur-size-all-mem-tables", &memtable_mem);
-  size_t pin_mem = table_options_.block_cache->GetPinnedUsage();
-#ifdef DEBUG
-  LOG(INFO) << "rocksdb mem usage: block cache=" << cache_mem
-            << ", index and filter=" << index_mem
-            << ", memtable=" << memtable_mem
-            << ", iterators pinned=" << pin_mem;
-#endif
-  return cache_mem + pin_mem;
+  //   size_t cache_mem = table_options_.block_cache->GetUsage();
+  //   std::string index_mem;
+  //   db_->GetProperty("rocksdb.estimate-table-readers-mem", &index_mem);
+  //   std::string memtable_mem;
+  //   db_->GetProperty("rocksdb.cur-size-all-mem-tables", &memtable_mem);
+  //   size_t pin_mem = table_options_.block_cache->GetPinnedUsage();
+  // #ifdef DEBUG
+  //   LOG(INFO) << "rocksdb mem usage: block cache=" << cache_mem
+  //             << ", index and filter=" << index_mem
+  //             << ", memtable=" << memtable_mem
+  //             << ", iterators pinned=" << pin_mem;
+  // #endif
+  //   return cache_mem + pin_mem;
+  return 0;
 }
 
 int RocksDBRawVector::UpdateToStore(int vid, uint8_t *v, int len) {
@@ -187,9 +184,10 @@ int RocksDBRawVector::UpdateToStore(int vid, uint8_t *v, int len) {
 
   std::string key;
   ToRowKey(vid, key);
-  rocksdb::Status s =
-      db_->Put(rocksdb::WriteOptions(), rocksdb::Slice(key),
-               rocksdb::Slice((const char *)v, this->vector_byte_size_));
+  rocksdb::Status s = storage_mgr_->db_->Put(
+      rocksdb::WriteOptions(), storage_mgr_->cf_handles_[cf_id_],
+      rocksdb::Slice(key),
+      rocksdb::Slice((const char *)v, this->vector_byte_size_));
   if (!s.ok()) {
     LOG(ERROR) << "rocksdb update error:" << s.ToString() << ", key=" << key;
     return -1;
@@ -203,7 +201,8 @@ int RocksDBRawVector::GetVectorHeader(int start, int n, ScopeVectors &vecs,
     return -1;
   }
 
-  rocksdb::Iterator *it = db_->NewIterator(rocksdb::ReadOptions());
+  rocksdb::Iterator *it = storage_mgr_->db_->NewIterator(
+      rocksdb::ReadOptions(), storage_mgr_->cf_handles_[cf_id_]);
   std::string start_key, end_key;
   ToRowKey(start, start_key);
   ToRowKey(start + n, end_key);

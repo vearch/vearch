@@ -179,8 +179,12 @@ void TestRawVectorNormal(VectorStorageType store_type) {
       new VectorMetaInfo(name, dimension, VectorValueType::FLOAT);
   bitmap::BitmapManager *doc_bitmap = nullptr;
 
+  StorageManager *storage_mgr = new StorageManager(root_path);
+  int cf_id = storage_mgr->CreateColumnFamily(name);
   RawVector *raw_vector = vearch::RawVectorFactory::Create(
-      meta_info, store_type, root_path, store_params, doc_bitmap);
+      meta_info, store_type, store_params, doc_bitmap, cf_id, storage_mgr);
+  auto status = storage_mgr->Init("table", 100);
+  ASSERT_EQ(status.ok(), true);
   assert(0 == raw_vector->Init(name, false));
   int doc_num = nadd;
   for (int i = 0; i < doc_num; i++) {
@@ -206,6 +210,7 @@ void TestRawVectorNormal(VectorStorageType store_type) {
   ValidateVectorHeader(raw_vector, 50, update_num, dimension, 0.5f);
 
   delete raw_vector;
+  delete storage_mgr;
 }
 
 void TestRawVectorDumpLoad(VectorStorageType store_type) {
@@ -226,8 +231,14 @@ void TestRawVectorDumpLoad(VectorStorageType store_type) {
       new VectorMetaInfo(name, dimension, VectorValueType::FLOAT);
   bitmap::BitmapManager *doc_bitmap = nullptr;
 
+  StorageManager *storage_mgr = new StorageManager(root_path);
+  int cf_id = storage_mgr->CreateColumnFamily(name);
   RawVector *raw_vector = RawVectorFactory::Create(
-      meta_info, store_type, root_path, store_params, doc_bitmap);
+      meta_info, store_type, store_params, doc_bitmap, cf_id, storage_mgr);
+
+  auto status = storage_mgr->Init("table", 100);
+  ASSERT_EQ(status.ok(), true);
+
   ASSERT_EQ(0, raw_vector->Init(name, false));
 
   int doc_num = 500;
@@ -242,12 +253,18 @@ void TestRawVectorDumpLoad(VectorStorageType store_type) {
 
   Dump(raw_vector, 0, doc_num);
   Delete(raw_vector);
+  delete storage_mgr;
 
   cout << "---------------load all----------------" << endl;
   int load_num = doc_num;
   meta_info = new VectorMetaInfo(name, dimension, VectorValueType::FLOAT);
-  raw_vector = RawVectorFactory::Create(meta_info, store_type, root_path,
-                                        store_params, doc_bitmap);
+  storage_mgr = new StorageManager(root_path);
+  cf_id = storage_mgr->CreateColumnFamily(name);
+  raw_vector = RawVectorFactory::Create(meta_info, store_type, store_params,
+                                        doc_bitmap, cf_id, storage_mgr);
+  status = storage_mgr->Init("table", 100);
+  ASSERT_EQ(status.ok(), true);
+
   ASSERT_NE(nullptr, raw_vector);
   ASSERT_EQ(0, raw_vector->Init(name, false));
   Load(raw_vector, load_num);
@@ -256,13 +273,18 @@ void TestRawVectorDumpLoad(VectorStorageType store_type) {
   ValidateVector(raw_vector, 400, update_num, dimension, 0.5f);
   ASSERT_EQ(load_num, raw_vector->GetVectorNum());
   Delete(raw_vector);
+  delete storage_mgr;
 
   cout << "---------------load some----------------" << endl;
   // load: load_num < disk_doc_num;
   load_num = doc_num - 100;
+  storage_mgr = new StorageManager(root_path);
+  cf_id = storage_mgr->CreateColumnFamily(name);
   meta_info = new VectorMetaInfo(name, dimension, VectorValueType::FLOAT);
-  raw_vector = RawVectorFactory::Create(meta_info, store_type, root_path,
-                                        store_params, doc_bitmap);
+  raw_vector = RawVectorFactory::Create(meta_info, store_type, store_params,
+                                        doc_bitmap, cf_id, storage_mgr);
+  status = storage_mgr->Init("table", 100);
+  ASSERT_EQ(status.ok(), true);
   ASSERT_NE(nullptr, raw_vector);
   ASSERT_EQ(0, raw_vector->Init(name, false));
   ASSERT_EQ(0, Load(raw_vector, load_num));
@@ -277,13 +299,18 @@ void TestRawVectorDumpLoad(VectorStorageType store_type) {
   UpdateToRawVector(raw_vector, load_num, update_num, dimension, 0.8f);
   ASSERT_EQ(0, Dump(raw_vector, 0, load_num + add_num));
   Delete(raw_vector);
+  delete storage_mgr;
 
   cout << "---------------reload after dump----------------" << endl;
   load_num = load_num + add_num;
   cout << "load_num=" << load_num << endl;
+  storage_mgr = new StorageManager(root_path);
+  cf_id = storage_mgr->CreateColumnFamily(name);
   meta_info = new VectorMetaInfo(name, dimension, VectorValueType::FLOAT);
-  raw_vector = RawVectorFactory::Create(meta_info, store_type, root_path,
-                                        store_params, doc_bitmap);
+  raw_vector = RawVectorFactory::Create(meta_info, store_type, store_params,
+                                        doc_bitmap, cf_id, storage_mgr);
+  status = storage_mgr->Init("table", 100);
+  ASSERT_EQ(status.ok(), true);
 
   ASSERT_NE(nullptr, raw_vector);
   ASSERT_EQ(0, raw_vector->Init(name, false));
@@ -294,6 +321,7 @@ void TestRawVectorDumpLoad(VectorStorageType store_type) {
   ValidateVector(raw_vector, 500, 100, dimension);
   ASSERT_EQ(load_num, raw_vector->GetVectorNum());
   Delete(raw_vector);
+  delete storage_mgr;
 }
 
 TEST(MemoryRawVector, Normal) {

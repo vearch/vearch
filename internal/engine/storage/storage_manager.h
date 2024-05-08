@@ -41,37 +41,50 @@ struct StorageManagerOptions {
 
 class StorageManager {
  public:
-  StorageManager(const std::string &root_path,
-                 const StorageManagerOptions &options);
+  StorageManager(const std::string &root_path);
   ~StorageManager();
-  Status Init(const std::string &name, int cache_size);
+  Status Init(const std::string name, int cache_size);
 
-  Status Add(int id, const uint8_t *value, int len);
+  Status Add(int cf_id, int id, const uint8_t *value, int len);
 
-  Status AddString(int id, std::string field_name, const char *value, int len);
+  Status AddString(int cf_id, int id, std::string field_name, const char *value,
+                   int len);
 
-  Status Update(int id, uint8_t *value, int len);
+  Status Update(int cf_id, int id, uint8_t *value, int len);
 
-  Status UpdateString(int id, std::string field_name, const char *value,
-                      int len);
+  Status UpdateString(int cf_id, int id, std::string field_name,
+                      const char *value, int len);
 
-  std::pair<Status, std::string> Get(int id);
+  std::pair<Status, std::string> Get(int cf_id, int id);
 
-  Status GetString(int id, std::string &field_name, std::string &value);
+  Status GetString(int cf_id, int id, std::string &field_name,
+                   std::string &value);
 
   int Size() { return size_; }
 
   void GetCacheSize(int &cache_size);
 
-  const StorageManagerOptions &GetStorageManagerOptions() { return options_; }
+  void Close();
 
- private:
+  int CreateColumnFamily(std::string name) {
+    column_families_.push_back(
+        rocksdb::ColumnFamilyDescriptor(name, rocksdb::ColumnFamilyOptions()));
+    return column_families_.size() - 1;
+  }
+  void ToRowKey(int key, std::string &key_str) {
+    char data[11];
+    snprintf(data, 11, "%010d", key);
+    key_str.assign(data, 10);
+  }
+
+  //  private:
   std::string root_path_;
   std::string name_;
   size_t size_;  // The total number of doc.
-  StorageManagerOptions options_;
   rocksdb::DB *db_;
   rocksdb::BlockBasedTableOptions table_options_;
+  std::vector<rocksdb::ColumnFamilyDescriptor> column_families_;
+  std::vector<rocksdb::ColumnFamilyHandle *> cf_handles_;
 };
 
 }  // namespace vearch

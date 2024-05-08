@@ -20,11 +20,10 @@ using namespace std;
 
 namespace vearch {
 
-RawVector::RawVector(VectorMetaInfo *meta_info, const string &root_path,
+RawVector::RawVector(VectorMetaInfo *meta_info,
                      bitmap::BitmapManager *docids_bitmap,
                      const StoreParams &store_params)
     : VectorReader(meta_info),
-      root_path_(root_path),
       total_mem_bytes_(0),
       store_params_(store_params),
       docids_bitmap_(docids_bitmap) {

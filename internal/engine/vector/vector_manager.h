@@ -35,7 +35,8 @@ class VectorManager {
   Status CreateRawVector(struct VectorInfo &vector_info,
                          std::string &index_type,
                          std::map<std::string, int> &vec_dups, TableInfo &table,
-                         utils::JsonParser &vectors_jp, RawVector **vec);
+                         utils::JsonParser &vectors_jp, RawVector **vec,
+                         int cf_id, StorageManager *storage_mgr);
 
   void DestroyRawVectors();
 
@@ -55,7 +56,9 @@ class VectorManager {
   void SetVectorIndexes(
       std::map<std::string, IndexModel *> &rebuild_vector_indexes);
 
-  Status CreateVectorTable(TableInfo &table, utils::JsonParser *jp);
+  Status CreateVectorTable(TableInfo &table, utils::JsonParser *jp,
+                           std::vector<int> &vector_cf_ids,
+                           StorageManager *storage_mgr);
 
   int AddToStore(int docid,
                  std::unordered_map<std::string, struct Field> &fields);

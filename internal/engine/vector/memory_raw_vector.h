@@ -10,15 +10,14 @@
 #include <string>
 
 #include "raw_vector.h"
-#include "vector/rocksdb_wrapper.h"
 
 namespace vearch {
 
 class MemoryRawVector : public RawVector {
  public:
-  MemoryRawVector(VectorMetaInfo *meta_info, const std::string &root_path,
-                  const StoreParams &store_params,
-                  bitmap::BitmapManager *docids_bitmap);
+  MemoryRawVector(VectorMetaInfo *meta_info, const StoreParams &store_params,
+                  bitmap::BitmapManager *docids_bitmap,
+                  StorageManager *storage_mgr, int cf_id);
 
   ~MemoryRawVector();
 
@@ -35,7 +34,6 @@ class MemoryRawVector : public RawVector {
 
   int AddToMem(uint8_t *v, int len);
 
-  Status InitIO() override;
   Status Load(int vec_num) override;
   int GetDiskVecNum(int &vec_num) override;
   Status Dump(int start_vid, int end_vid) override { return Status::OK(); };
@@ -51,7 +49,6 @@ class MemoryRawVector : public RawVector {
   int segment_size_;
   uint8_t *current_segment_;
   int curr_idx_in_seg_;
-  RocksDBWrapper rdb;
 };
 
 }  // namespace vearch

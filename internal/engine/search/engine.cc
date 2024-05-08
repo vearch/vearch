@@ -149,47 +149,24 @@ Engine::~Engine() {
     running_cv_.wait(lk);
   }
 
-  if (vec_manager_) {
-    delete vec_manager_;
-    vec_manager_ = nullptr;
-  }
-
-  if (table_) {
-    delete table_;
-    table_ = nullptr;
-  }
-
-  if (field_range_index_) {
-    delete field_range_index_;
-    field_range_index_ = nullptr;
-  }
-
-  if (docids_bitmap_) {
-    delete docids_bitmap_;
-    docids_bitmap_ = nullptr;
-  }
+  Close();
 }
 
 void Engine::Close() {
-  if (vec_manager_) {
-    delete vec_manager_;
-    vec_manager_ = nullptr;
-  }
+  delete vec_manager_;
+  vec_manager_ = nullptr;
 
-  if (table_) {
-    delete table_;
-    table_ = nullptr;
-  }
+  delete table_;
+  table_ = nullptr;
 
-  if (field_range_index_) {
-    delete field_range_index_;
-    field_range_index_ = nullptr;
-  }
+  delete field_range_index_;
+  field_range_index_ = nullptr;
 
-  if (docids_bitmap_) {
-    delete docids_bitmap_;
-    docids_bitmap_ = nullptr;
-  }
+  delete docids_bitmap_;
+  docids_bitmap_ = nullptr;
+
+  delete storage_mgr_;
+  storage_mgr_ = nullptr;
 }
 
 Engine *Engine::GetInstance(const std::string &index_root_path,
@@ -237,15 +214,6 @@ Status Engine::Setup() {
     docids_bitmap_->Load();
   } else {
     docids_bitmap_->Dump();
-  }
-
-  if (!table_) {
-    table_ = new Table(index_root_path_, space_name_);
-  }
-
-  if (!vec_manager_) {
-    vec_manager_ = new VectorManager(VectorStorageType::RocksDB, docids_bitmap_,
-                                     index_root_path_);
   }
 
 #ifndef __APPLE__
@@ -468,12 +436,6 @@ int Engine::MultiRangeQuery(Request &request, SearchCondition *condition,
 }
 
 Status Engine::CreateTable(TableInfo &table) {
-  if (!vec_manager_ || !table_) {
-    std::string msg = space_name_ + " vector and table should not be null!";
-    LOG(ERROR) << msg;
-    return Status::ParamError(msg);
-  }
-
   std::string dump_meta_path = index_root_path_ + "/dump.meta";
   utils::JsonParser *meta_jp = nullptr;
   utils::ScopeDeleter1<utils::JsonParser> del1;
@@ -509,7 +471,26 @@ Status Engine::CreateTable(TableInfo &table) {
     }
   }
 
-  Status status = vec_manager_->CreateVectorTable(table, meta_jp);
+  Status status;
+
+  storage_mgr_ = new StorageManager(index_root_path_);
+  int cache_size = 512;  // unit : M
+
+  std::vector<int> vector_cf_ids;
+
+  vec_manager_ = new VectorManager(VectorStorageType::RocksDB, docids_bitmap_,
+                                   index_root_path_);
+  {
+    std::vector<struct VectorInfo> &vectors_infos = table.VectorInfos();
+
+    for (struct VectorInfo &vectors_info : vectors_infos) {
+      std::string &name = vectors_info.name;
+      vector_cf_ids.push_back(
+          storage_mgr_->CreateColumnFamily("vector_" + name));
+    }
+  }
+  status = vec_manager_->CreateVectorTable(table, meta_jp, vector_cf_ids,
+                                           storage_mgr_);
   if (!status.ok()) {
     std::string msg =
         space_name_ + " cannot create VectorTable: " + status.ToString();
@@ -524,6 +505,17 @@ Status Engine::CreateTable(TableInfo &table) {
     meta_jp->GetObject("table", table_jp);
     disk_table_params.Parse(table_jp);
   }
+
+  int table_cf_id = storage_mgr_->CreateColumnFamily("table");
+
+  table_ = new Table(index_root_path_, space_name_, storage_mgr_, table_cf_id);
+
+  status = storage_mgr_->Init("table", cache_size);
+  if (!status.ok()) {
+    LOG(ERROR) << "init gamma db error, ret=" << status.ToString();
+    return status;
+  }
+
   status = table_->CreateTable(table, disk_table_params, docids_bitmap_);
   training_threshold_ = table.TrainingThreshold();
   LOG(INFO) << space_name_

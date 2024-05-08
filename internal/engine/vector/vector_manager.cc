@@ -72,7 +72,8 @@ Status VectorManager::CreateRawVector(struct VectorInfo &vector_info,
                                       std::map<std::string, int> &vec_dups,
                                       TableInfo &table,
                                       utils::JsonParser &vectors_jp,
-                                      RawVector **vec) {
+                                      RawVector **vec, int cf_id,
+                                      StorageManager *storage_mgr) {
   std::string &vec_name = vector_info.name;
   int dimension = vector_info.dimension;
 
@@ -94,10 +95,6 @@ Status VectorManager::CreateRawVector(struct VectorInfo &vector_info,
     dimension /= 8;
   }
 
-  std::string vec_root_path = root_path_ + "/vectors";
-  if (utils::make_dir(vec_root_path.c_str())) {
-    return Status::IOError("make directory error, path=", vec_root_path);
-  }
   VectorMetaInfo *meta_info =
       new VectorMetaInfo(vec_name, dimension, value_type);
 
@@ -121,8 +118,8 @@ Status VectorManager::CreateRawVector(struct VectorInfo &vector_info,
               << "]";
   }
 
-  *vec = RawVectorFactory::Create(meta_info, store_type, vec_root_path,
-                                  store_params, docids_bitmap_);
+  *vec = RawVectorFactory::Create(meta_info, store_type, store_params,
+                                  docids_bitmap_, cf_id, storage_mgr);
 
   if ((*vec) == nullptr) {
     LOG(ERROR) << "create raw vector error";
@@ -245,7 +242,9 @@ void VectorManager::SetVectorIndexes(
 }
 
 Status VectorManager::CreateVectorTable(TableInfo &table,
-                                        utils::JsonParser *meta_jp) {
+                                        utils::JsonParser *meta_jp,
+                                        std::vector<int> &vector_cf_ids,
+                                        StorageManager *storage_mgr) {
   Status status;
   if (table_created_) return Status::ParamError("table is created");
 
@@ -278,8 +277,9 @@ Status VectorManager::CreateVectorTable(TableInfo &table,
     RawVector *vec = nullptr;
     struct VectorInfo &vector_info = vectors_infos[i];
     std::string &vec_name = vector_info.name;
-    vec_status = CreateRawVector(vector_info, index_types_[0], vec_dups, table,
-                                 vectors_jp, &vec);
+    vec_status =
+        CreateRawVector(vector_info, index_types_[0], vec_dups, table,
+                        vectors_jp, &vec, vector_cf_ids[i], storage_mgr);
     if (!vec_status.ok()) {
       std::stringstream msg;
       msg << vec_name << " create vector failed:" << vec_status.ToString();

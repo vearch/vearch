@@ -14,6 +14,7 @@
 #include "c_api/api_data/doc.h"
 #include "index/index_model.h"
 #include "io/io_common.h"
+#include "storage/storage_manager.h"
 #include "util/bitmap_manager.h"
 #include "util/log.h"
 #include "util/utils.h"
@@ -62,8 +63,7 @@ struct StoreParams : DumpConfig {
 
 class RawVector : public VectorReader {
  public:
-  RawVector(VectorMetaInfo *meta_info, const std::string &root_path,
-            bitmap::BitmapManager *docids_bitmap,
+  RawVector(VectorMetaInfo *meta_info, bitmap::BitmapManager *docids_bitmap,
             const StoreParams &store_params);
 
   virtual ~RawVector();
@@ -146,7 +146,6 @@ class RawVector : public VectorReader {
 
   virtual int AlterCacheSize(int cache_size) { return -1; }
 
-  virtual Status InitIO() { return Status::OK(); }
   // [start_vid, end_vid)
   virtual Status Dump(int start_vid, int end_vid) = 0;
   virtual int GetDiskVecNum(int &vec_num) = 0;
@@ -157,9 +156,10 @@ class RawVector : public VectorReader {
   VIDMgr *VidMgr() const { return vid_mgr_; }
   bitmap::BitmapManager *Bitmap() { return docids_bitmap_; }
   long VectorByteSize() { return vector_byte_size_; }
-
-  std::string RootPath() { return root_path_; }
   DumpConfig *GetDumpConfig();
+
+  StorageManager *storage_mgr_;
+  int cf_id_;
 
  protected:
   /** get vector by id
@@ -173,7 +173,6 @@ class RawVector : public VectorReader {
   virtual int InitStore(std::string &vec_name) = 0;
 
  protected:
-  std::string root_path_;
   long vector_byte_size_;
   int data_size_;
 

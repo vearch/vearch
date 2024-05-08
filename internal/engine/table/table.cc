@@ -89,8 +89,9 @@ int ItemToDocID::Delete(const std::string &key) {
   return 0;
 }
 
-Table::Table(const string &root_path, const string &space_name)
-    : name_(space_name) {
+Table::Table(const string &root_path, const string &space_name,
+             StorageManager *storage_mgr, int cf_id)
+    : name_(space_name), storage_mgr_(storage_mgr), cf_id_(cf_id) {
   item_length_ = 0;
   field_num_ = 0;
   key_idx_ = -1;
@@ -100,7 +101,6 @@ Table::Table(const string &root_path, const string &space_name)
   last_docid_ = -1;
   bitmap_mgr_ = nullptr;
   table_params_ = nullptr;
-  storage_mgr_ = nullptr;
   item_to_docid_ = nullptr;
   key_field_name_ = "_id";
 }
@@ -108,8 +108,6 @@ Table::Table(const string &root_path, const string &space_name)
 Table::~Table() {
   bitmap_mgr_ = nullptr;
   CHECK_DELETE(table_params_);
-  delete storage_mgr_;
-  storage_mgr_ = nullptr;
 
   delete item_to_docid_;
   item_to_docid_ = nullptr;
@@ -188,13 +186,6 @@ Status Table::CreateTable(TableInfo &table, TableParams &table_params,
 
   StorageManagerOptions options;
   options.fixed_value_bytes = item_length_;
-  storage_mgr_ = new StorageManager(root_path_, options);
-  int cache_size = 512;  // unit : M
-  Status status = storage_mgr_->Init(name_ + "_table", cache_size);
-  if (!status.ok()) {
-    LOG(ERROR) << "init gamma db error, ret=" << status.ToString();
-    return status;
-  }
 
   LOG(INFO) << "init storageManager success! vector byte size="
             << options.fixed_value_bytes << ", path=" << root_path_;
@@ -285,7 +276,7 @@ int Table::Add(const std::string &key,
     }
 
     if (fields.find(idx_attr_map_[i]) == fields.end()) {
-      storage_mgr_->AddString(docid, idx_attr_map_[i], "", 0);
+      storage_mgr_->AddString(cf_id_, docid, idx_attr_map_[i], "", 0);
     }
   }
 
@@ -301,11 +292,11 @@ int Table::Add(const std::string &key,
       memcpy(doc_value.data() + offset, field.value.c_str(), type_size);
     } else {
       int len = field.value.size();
-      storage_mgr_->AddString(docid, name, field.value.c_str(), len);
+      storage_mgr_->AddString(cf_id_, docid, name, field.value.c_str(), len);
     }
   }
 
-  storage_mgr_->Add(docid, doc_value.data(), item_length_);
+  storage_mgr_->Add(cf_id_, docid, doc_value.data(), item_length_);
 
   if (docid % 10000 == 0) {
     LOG(INFO) << name_ << " add item _id [" << key << "], num [" << docid
@@ -319,7 +310,7 @@ int Table::Update(const std::unordered_map<std::string, struct Field> &fields,
                   int docid) {
   if (fields.size() == 0) return 0;
 
-  auto result = storage_mgr_->Get(docid);
+  auto result = storage_mgr_->Get(cf_id_, docid);
   if (!result.first.ok()) {
     return result.first.code();
   }
@@ -341,13 +332,13 @@ int Table::Update(const std::unordered_map<std::string, struct Field> &fields,
     if (field.datatype == DataType::STRING ||
         field.datatype == DataType::STRINGARRAY) {
       int len = field.value.size();
-      storage_mgr_->UpdateString(docid, name, field.value.c_str(), len);
+      storage_mgr_->UpdateString(cf_id_, docid, name, field.value.c_str(), len);
     } else {
       memcpy(doc_value + offset, field.value.data(), field.value.size());
     }
   }
 
-  storage_mgr_->Update(docid, doc_value, item_length_);
+  storage_mgr_->Update(cf_id_, docid, doc_value, item_length_);
   return 0;
 }
 
@@ -449,7 +440,7 @@ int Table::GetFieldRawValue(int docid, int field_id, std::string &value) {
 
   std::string field_name = iter->second;
 
-  auto result = storage_mgr_->Get(docid);
+  auto result = storage_mgr_->Get(cf_id_, docid);
   if (!result.first.ok()) {
     return result.first.code();
   }
@@ -458,7 +449,7 @@ int Table::GetFieldRawValue(int docid, int field_id, std::string &value) {
   size_t offset = idx_attr_offset_[field_id];
 
   if (data_type == DataType::STRING || data_type == DataType::STRINGARRAY) {
-    storage_mgr_->GetString(docid, field_name, value);
+    storage_mgr_->GetString(cf_id_, docid, field_name, value);
   } else {
     int value_len = FTypeSize(data_type);
     value =
@@ -472,7 +463,7 @@ int Table::GetFieldRawValue(int docid, int field_id,
                             std::vector<uint8_t> &value) {
   if ((docid < 0) or (field_id < 0 || field_id >= field_num_)) return -1;
 
-  auto result = storage_mgr_->Get(docid);
+  auto result = storage_mgr_->Get(cf_id_, docid);
   if (!result.first.ok()) {
     return result.first.code();
   }
@@ -490,7 +481,7 @@ int Table::GetFieldRawValue(int docid, int field_id,
 
     std::string field_name = iter->second;
     std::string str;
-    storage_mgr_->GetString(docid, field_name, str);
+    storage_mgr_->GetString(cf_id_, docid, field_name, str);
     value.resize(str.size());
     memcpy(value.data(), str.c_str(), str.size());
   } else {

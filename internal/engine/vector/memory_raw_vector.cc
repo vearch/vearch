@@ -13,12 +13,14 @@ using std::string;
 namespace vearch {
 
 MemoryRawVector::MemoryRawVector(VectorMetaInfo *meta_info,
-                                 const std::string &root_path,
                                  const StoreParams &store_params,
-                                 bitmap::BitmapManager *docids_bitmap)
-    : RawVector(meta_info, root_path, docids_bitmap, store_params) {
+                                 bitmap::BitmapManager *docids_bitmap,
+                                 StorageManager *storage_mgr, int cf_id)
+    : RawVector(meta_info, docids_bitmap, store_params) {
   segments_ = nullptr;
   nsegments_ = 0;
+  storage_mgr_ = storage_mgr;
+  cf_id_ = cf_id;
   segment_size_ = store_params.segment_size;
   vector_byte_size_ = meta_info->DataSize() * meta_info->Dimension();
   current_segment_ = nullptr;
@@ -33,10 +35,11 @@ MemoryRawVector::~MemoryRawVector() {
 }
 
 Status MemoryRawVector::Load(int vec_num) {
+  auto column_family = storage_mgr_->cf_handles_[cf_id_];
   std::unique_ptr<rocksdb::Iterator> it(
-      rdb.db_->NewIterator(rocksdb::ReadOptions()));
+      storage_mgr_->db_->NewIterator(rocksdb::ReadOptions(), column_family));
   string start_key;
-  rdb.ToRowKey(0, start_key);
+  storage_mgr_->ToRowKey(0, start_key);
   it->Seek(rocksdb::Slice(start_key));
   for (int c = 0; c < vec_num; c++, it->Next()) {
     if (!it->Valid()) {
@@ -56,24 +59,15 @@ Status MemoryRawVector::Load(int vec_num) {
   return Status::OK();
 }
 
-Status MemoryRawVector::InitIO() {
-  const std::string &name = MetaInfo()->AbsoluteName();
-  string db_path = RootPath() + "/" + name;
-  Status status = rdb.Open(db_path);
-  if (!status.ok()) {
-    return status;
-  }
-  return Status::OK();
-}
-
 int MemoryRawVector::GetDiskVecNum(int &vec_num) {
   if (vec_num <= 0) return 0;
   int disk_vec_num = vec_num - 1;
   string key, value;
   for (int i = disk_vec_num; i >= 0; --i) {
-    rdb.ToRowKey(i, key);
-    rocksdb::Status s =
-        rdb.db_->Get(rocksdb::ReadOptions(), rocksdb::Slice(key), &value);
+    storage_mgr_->ToRowKey(i, key);
+    rocksdb::Status s = storage_mgr_->db_->Get(
+        rocksdb::ReadOptions(), storage_mgr_->cf_handles_[cf_id_],
+        rocksdb::Slice(key), &value);
     if (s.ok()) {
       vec_num = i + 1;
       LOG(INFO) << "In the disk rocksdb vec_num=" << vec_num;
@@ -91,15 +85,14 @@ int MemoryRawVector::InitStore(std::string &vec_name) {
   if (ExtendSegments()) return -2;
 
   LOG(INFO) << "init memory raw vector success! vector byte size="
-            << vector_byte_size_
-            << ", path=" << root_path_ + "/" + meta_info_->Name();
+            << vector_byte_size_ << ", " + meta_info_->Name();
   return 0;
 }
 
 int MemoryRawVector::AddToStore(uint8_t *v, int len) {
   AddToMem(v, vector_byte_size_);
   if (WithIO()) {
-    rdb.Put(meta_info_->Size(), (const char *)v, VectorByteSize());
+    storage_mgr_->Add(cf_id_, meta_info_->Size(), v, VectorByteSize());
   }
   return 0;
 }
@@ -157,7 +150,7 @@ int MemoryRawVector::UpdateToStore(int vid, uint8_t *v, int len) {
                   (size_t)vid % segment_size_ * vector_byte_size_),
          (void *)v, vector_byte_size_);
   if (WithIO()) {
-    rdb.Put(vid, (const char *)v, VectorByteSize());
+    storage_mgr_->Add(cf_id_, vid, v, VectorByteSize());
   }
   return 0;
 }

@@ -32,7 +32,13 @@ class TableTest : public ::testing::Test {
       LOG(ERROR) << "Cannot create bitmap!";
       return;
     }
-    table = new Table("./table", "ts_space");
+    std::string path = "./table";
+    std::string name = "ts_space";
+    StorageManager *storage_mgr = new StorageManager(path);
+    int cf_id = storage_mgr->CreateColumnFamily(name);
+    table = new Table(path, name, storage_mgr, cf_id);
+    auto status = storage_mgr->Init("table", 100);
+    ASSERT_EQ(status.ok(), true);
   }
 
   // You can define per-test tear-down logic as usual.

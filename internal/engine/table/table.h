@@ -52,7 +52,8 @@ class ItemToDocID {
  */
 class Table {
  public:
-  explicit Table(const std::string &root_path, const std::string &space_name);
+  explicit Table(const std::string &root_path, const std::string &space_name,
+                 StorageManager *storage_mgr, int cf_id);
 
   ~Table();
 
@@ -178,6 +179,7 @@ class Table {
   bitmap::BitmapManager *bitmap_mgr_;
   TableParams *table_params_;
   StorageManager *storage_mgr_;
+  int cf_id_;
 };
 
 }  // namespace vearch
