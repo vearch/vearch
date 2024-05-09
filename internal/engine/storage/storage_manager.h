@@ -18,32 +18,11 @@
 
 namespace vearch {
 
-struct StorageManagerOptions {
-  int fixed_value_bytes;
-
-  StorageManagerOptions() { fixed_value_bytes = -1; }
-
-  StorageManagerOptions(const StorageManagerOptions &options) {
-    fixed_value_bytes = options.fixed_value_bytes;
-  }
-
-  bool IsValid() {
-    if (fixed_value_bytes == -1) return false;
-    return true;
-  }
-
-  std::string ToStr() {
-    std::stringstream ss;
-    ss << "{fixed_value_bytes=" << fixed_value_bytes << "}";
-    return ss.str();
-  }
-};
-
 class StorageManager {
  public:
   StorageManager(const std::string &root_path);
   ~StorageManager();
-  Status Init(const std::string name, int cache_size);
+  Status Init(int cache_size);
 
   Status Add(int cf_id, int id, const uint8_t *value, int len);
 
@@ -51,11 +30,14 @@ class StorageManager {
                    int len);
 
   Status Update(int cf_id, int id, uint8_t *value, int len);
+  Status Put(int cf_id, const std::string &key, std::string &value);
+  Status Delete(int cf_id, const std::string &key);
 
   Status UpdateString(int cf_id, int id, std::string field_name,
                       const char *value, int len);
 
   std::pair<Status, std::string> Get(int cf_id, int id);
+  std::pair<Status, std::string> Get(int cf_id, const std::string &key);
 
   Status GetString(int cf_id, int id, std::string &field_name,
                    std::string &value);
@@ -79,7 +61,6 @@ class StorageManager {
 
   //  private:
   std::string root_path_;
-  std::string name_;
   size_t size_;  // The total number of doc.
   rocksdb::DB *db_;
   rocksdb::BlockBasedTableOptions table_options_;

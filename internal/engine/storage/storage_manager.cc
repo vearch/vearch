@@ -30,14 +30,12 @@ void StorageManager::Close() {
   }
   delete db_;
   db_ = nullptr;
+  LOG(INFO) << "db closed";
 }
 
 void StorageManager::GetCacheSize(int &cache_size) { cache_size = 0; }
 
-Status StorageManager::Init(const std::string name, int cache_size) {
-  root_path_ += "/" + name;
-  name_ = name;
-
+Status StorageManager::Init(int cache_size) {
   if (utils::make_dir(root_path_.c_str())) {
     std::string msg = std::string("mkdir error, path=") + root_path_;
     LOG(ERROR) << msg;
@@ -60,6 +58,8 @@ Status StorageManager::Init(const std::string name, int cache_size) {
   s = rocksdb::DB::ListColumnFamilies(options, root_path_, &cf_names);
 
   if (!s.ok()) {
+    rocksdb::Options options;
+    options.create_if_missing = true;
     // create db
     s = rocksdb::DB::Open(options, root_path_, &db_);
     if (!s.ok()) {
@@ -106,7 +106,7 @@ Status StorageManager::Init(const std::string name, int cache_size) {
     size_ = 0;
   }
 
-  LOG(INFO) << "init storage [" << name_ << "] success! size " << size_
+  LOG(INFO) << "init storage [" << root_path_ << "] success! size " << size_
             << " cache_size [" << cache_size << "]M";
   return Status::OK();
 }
@@ -171,6 +171,29 @@ Status StorageManager::Update(int cf_id, int id, uint8_t *value, int len) {
   return Status::OK();
 }
 
+Status StorageManager::Put(int cf_id, const std::string &key,
+                           std::string &value) {
+  rocksdb::Status s = db_->Put(rocksdb::WriteOptions(), cf_handles_[cf_id],
+                               rocksdb::Slice(key), rocksdb::Slice(value));
+  if (!s.ok()) {
+    std::stringstream msg;
+    msg << "rocksdb put error:" << s.ToString() << ", key=" << key;
+    LOG(ERROR) << msg.str();
+    return Status::IOError(msg.str());
+  }
+  return Status::OK();
+}
+
+Status StorageManager::Delete(int cf_id, const std::string &key) {
+  rocksdb::WriteOptions write_options;
+  rocksdb::Status s = db_->Delete(write_options, cf_handles_[cf_id], key);
+  if (!s.ok()) {
+    LOG(ERROR) << "delelte rocksdb failed: " << key << " " << s.ToString();
+    return Status::IOError(s.ToString());
+  }
+  return Status::OK();
+}
+
 Status StorageManager::UpdateString(int cf_id, int id, std::string field_name,
                                     const char *value, int len) {
   return AddString(cf_id, id, field_name, value, len);
@@ -179,6 +202,21 @@ Status StorageManager::UpdateString(int cf_id, int id, std::string field_name,
 std::pair<Status, std::string> StorageManager::Get(int cf_id, int id) {
   std::string key, value;
   ToRowKey((int)id, key);
+  rocksdb::Status s = db_->Get(rocksdb::ReadOptions(), cf_handles_[cf_id],
+                               rocksdb::Slice(key), &value);
+  if (!s.ok()) {
+    std::stringstream msg;
+    msg << "rocksdb get error:" << s.ToString() << " key=" << key;
+    LOG(DEBUG) << msg.str();
+    return {Status::IOError(msg.str()), std::string()};
+  }
+
+  return {Status::OK(), std::move(value)};
+}
+
+std::pair<Status, std::string> StorageManager::Get(int cf_id,
+                                                   const std::string &key) {
+  std::string value;
   rocksdb::Status s = db_->Get(rocksdb::ReadOptions(), cf_handles_[cf_id],
                                rocksdb::Slice(key), &value);
   if (!s.ok()) {

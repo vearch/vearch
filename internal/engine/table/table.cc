@@ -21,87 +21,18 @@ using std::move;
 using std::string;
 using std::vector;
 
-static const std::string dirName = std::string("/key_to_id/");
-
 namespace vearch {
 
-ItemToDocID::ItemToDocID(const std::string &root_path)
-    : root_path_(root_path + dirName), db_(nullptr) {}
-
-ItemToDocID::~ItemToDocID() { Close(); }
-
-int ItemToDocID::Open() {
-  if (!utils::isFolderExist(root_path_.c_str())) {
-    mkdir(root_path_.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-  }
-  rocksdb::Options options;
-
-  options.IncreaseParallelism();
-  options.create_if_missing = true;
-
-  rocksdb::Status s = rocksdb::DB::Open(options, root_path_, &db_);
-  if (!s.ok()) {
-    LOG(ERROR) << "open ItemToDocID error: " << s.ToString();
-    return -1;
-  }
-
-  return 0;
-}
-
-int ItemToDocID::Close() {
-  if (db_) {
-    db_->Close();
-    delete db_;
-    db_ = nullptr;
-  }
-  return 0;
-}
-
-int ItemToDocID::Get(const std::string &key, std::string &value) {
-  rocksdb::PinnableSlice pinnableVal;
-  rocksdb::Status s = db_->Get(rocksdb::ReadOptions(),
-                               db_->DefaultColumnFamily(), key, &pinnableVal);
-
-  if (!s.ok()) {
-    return -1;
-  }
-
-  value = std::string(pinnableVal.data(), pinnableVal.size());
-  return 0;
-}
-
-int ItemToDocID::Put(const std::string &key, const std::string &value) {
-  rocksdb::Status s = db_->Put(rocksdb::WriteOptions(), key, value);
-  if (!s.ok()) {
-    LOG(ERROR) << "put rocksdb failed: " << key << " " << s.ToString();
-    return 1;
-  }
-  return 0;
-}
-
-int ItemToDocID::Delete(const std::string &key) {
-  rocksdb::WriteOptions write_options;
-  rocksdb::Status s = db_->Delete(write_options, key);
-  if (!s.ok()) {
-    LOG(ERROR) << "delelte rocksdb failed: " << key << " " << s.ToString();
-    return 1;
-  }
-  return 0;
-}
-
-Table::Table(const string &root_path, const string &space_name,
-             StorageManager *storage_mgr, int cf_id)
+Table::Table(const string &space_name, StorageManager *storage_mgr, int cf_id)
     : name_(space_name), storage_mgr_(storage_mgr), cf_id_(cf_id) {
   item_length_ = 0;
   field_num_ = 0;
   key_idx_ = -1;
-  root_path_ = root_path + "/table";
 
   table_created_ = false;
   last_docid_ = -1;
   bitmap_mgr_ = nullptr;
   table_params_ = nullptr;
-  item_to_docid_ = nullptr;
   key_field_name_ = "_id";
 }
 
@@ -109,8 +40,6 @@ Table::~Table() {
   bitmap_mgr_ = nullptr;
   CHECK_DELETE(table_params_);
 
-  delete item_to_docid_;
-  item_to_docid_ = nullptr;
   LOG(INFO) << "Table " << name_ << " deleted.";
 }
 
@@ -124,14 +53,6 @@ int Table::Load(int &num) {
     return -1;
   }
 
-  if (!item_to_docid_) {
-    item_to_docid_ = new ItemToDocID(root_path_);
-    int ret = item_to_docid_->Open();
-    if (ret) {
-      LOG(ERROR) << name_ << " init item to docid error, ret=" << ret;
-      return ret;
-    }
-  }
   LOG(INFO) << name_ << " load successed! doc num [" << doc_num << "]";
   last_docid_ = doc_num - 1;
   return 0;
@@ -165,18 +86,7 @@ Status Table::CreateTable(TableInfo &table, TableParams &table_params,
     return Status::ParamError(msg);
   }
 
-  if (!utils::isFolderExist(root_path_.c_str())) {
-    mkdir(root_path_.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-  }
-
-  item_to_docid_ = new ItemToDocID(root_path_);
-  int ret = item_to_docid_->Open();
-  if (ret) {
-    std::stringstream msg;
-    msg << name_ << " init item to docid error, ret=" << ret;
-    LOG(ERROR) << msg.str();
-    return Status::ParamError(msg.str());
-  }
+  key_cf_id_ = storage_mgr_->CreateColumnFamily("key_to_docid");
 
   table_params_ = new TableParams("table");
   table_created_ = true;
@@ -184,11 +94,6 @@ Status Table::CreateTable(TableInfo &table, TableParams &table_params,
             << " success! item length=" << item_length_
             << ", field num=" << (int)field_num_;
 
-  StorageManagerOptions options;
-  options.fixed_value_bytes = item_length_;
-
-  LOG(INFO) << "init storageManager success! vector byte size="
-            << options.fixed_value_bytes << ", path=" << root_path_;
   return Status::OK();
 }
 
@@ -231,12 +136,12 @@ Status Table::AddField(const string &name, DataType ftype, bool is_index) {
 
 int Table::GetDocIDByKey(const std::string &key, int &docid) {
   std::string v;
-  int ret = item_to_docid_->Get(key, v);
-  if (ret) {
-    return ret;
+  auto result = storage_mgr_->Get(key_cf_id_, key);
+  if (!result.first.ok()) {
+    return result.first.code();
   }
 
-  memcpy(&docid, v.data(), sizeof(docid));
+  memcpy(&docid, result.second.data(), sizeof(docid));
   return 0;
 }
 
@@ -267,7 +172,7 @@ int Table::Add(const std::string &key,
   }
 
   std::string v(reinterpret_cast<char *>(&docid), sizeof(docid));
-  item_to_docid_->Put(key, v);
+  storage_mgr_->Put(key_cf_id_, key, v);
 
   for (size_t i = 0; i < attrs_.size(); i++) {
     DataType data_type = attrs_[i];
@@ -367,7 +272,9 @@ std::unordered_map<std::string, bool> Table::CheckFieldIsEqual(
   return is_equal;
 }
 
-int Table::Delete(std::string &key) { return item_to_docid_->Delete(key); }
+int Table::Delete(std::string &key) {
+  return storage_mgr_->Delete(key_cf_id_, key).code();
+}
 
 long Table::GetMemoryBytes() {
   long total_mem_bytes = 0;

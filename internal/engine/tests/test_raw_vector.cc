@@ -183,7 +183,7 @@ void TestRawVectorNormal(VectorStorageType store_type) {
   int cf_id = storage_mgr->CreateColumnFamily(name);
   RawVector *raw_vector = vearch::RawVectorFactory::Create(
       meta_info, store_type, store_params, doc_bitmap, cf_id, storage_mgr);
-  auto status = storage_mgr->Init("table", 100);
+  auto status = storage_mgr->Init(100);
   ASSERT_EQ(status.ok(), true);
   assert(0 == raw_vector->Init(name, false));
   int doc_num = nadd;
@@ -236,7 +236,7 @@ void TestRawVectorDumpLoad(VectorStorageType store_type) {
   RawVector *raw_vector = RawVectorFactory::Create(
       meta_info, store_type, store_params, doc_bitmap, cf_id, storage_mgr);
 
-  auto status = storage_mgr->Init("table", 100);
+  auto status = storage_mgr->Init(100);
   ASSERT_EQ(status.ok(), true);
 
   ASSERT_EQ(0, raw_vector->Init(name, false));
@@ -262,7 +262,7 @@ void TestRawVectorDumpLoad(VectorStorageType store_type) {
   cf_id = storage_mgr->CreateColumnFamily(name);
   raw_vector = RawVectorFactory::Create(meta_info, store_type, store_params,
                                         doc_bitmap, cf_id, storage_mgr);
-  status = storage_mgr->Init("table", 100);
+  status = storage_mgr->Init(100);
   ASSERT_EQ(status.ok(), true);
 
   ASSERT_NE(nullptr, raw_vector);
@@ -283,7 +283,7 @@ void TestRawVectorDumpLoad(VectorStorageType store_type) {
   meta_info = new VectorMetaInfo(name, dimension, VectorValueType::FLOAT);
   raw_vector = RawVectorFactory::Create(meta_info, store_type, store_params,
                                         doc_bitmap, cf_id, storage_mgr);
-  status = storage_mgr->Init("table", 100);
+  status = storage_mgr->Init(100);
   ASSERT_EQ(status.ok(), true);
   ASSERT_NE(nullptr, raw_vector);
   ASSERT_EQ(0, raw_vector->Init(name, false));
@@ -309,7 +309,7 @@ void TestRawVectorDumpLoad(VectorStorageType store_type) {
   meta_info = new VectorMetaInfo(name, dimension, VectorValueType::FLOAT);
   raw_vector = RawVectorFactory::Create(meta_info, store_type, store_params,
                                         doc_bitmap, cf_id, storage_mgr);
-  status = storage_mgr->Init("table", 100);
+  status = storage_mgr->Init(100);
   ASSERT_EQ(status.ok(), true);
 
   ASSERT_NE(nullptr, raw_vector);

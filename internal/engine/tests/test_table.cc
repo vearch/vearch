@@ -36,8 +36,8 @@ class TableTest : public ::testing::Test {
     std::string name = "ts_space";
     StorageManager *storage_mgr = new StorageManager(path);
     int cf_id = storage_mgr->CreateColumnFamily(name);
-    table = new Table(path, name, storage_mgr, cf_id);
-    auto status = storage_mgr->Init("table", 100);
+    table = new Table(name, storage_mgr, cf_id);
+    auto status = storage_mgr->Init(100);
     ASSERT_EQ(status.ok(), true);
   }
 

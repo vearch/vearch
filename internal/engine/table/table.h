@@ -31,29 +31,12 @@ struct TableParams : DumpConfig {
   int Parse(utils::JsonParser &jp) { return 0; }
 };
 
-class ItemToDocID {
- public:
-  explicit ItemToDocID(const std::string &root_path);
-  ~ItemToDocID();
-  int Open();
-  int Close();
-
-  int Get(const std::string &key, std::string &value);
-  int Put(const std::string &key, const std::string &value);
-  int Delete(const std::string &key);
-
- private:
-  std::string root_path_;
-  rocksdb::DB *db_;
-  rocksdb::BlockBasedTableOptions table_options_;
-};
-
 /** table, support add, update, delete, dump and load.
  */
 class Table {
  public:
-  explicit Table(const std::string &root_path, const std::string &space_name,
-                 StorageManager *storage_mgr, int cf_id);
+  explicit Table(const std::string &space_name, StorageManager *storage_mgr,
+                 int cf_id);
 
   ~Table();
 
@@ -149,7 +132,6 @@ class Table {
 
   int GetStorageManagerSize();
 
-  std::string root_path_;
   int last_docid_;
 
  private:
@@ -172,14 +154,13 @@ class Table {
   std::vector<int> idx_attr_offset_;
   std::vector<DataType> attrs_;
 
-  ItemToDocID *item_to_docid_;
-
   bool table_created_;
 
   bitmap::BitmapManager *bitmap_mgr_;
   TableParams *table_params_;
   StorageManager *storage_mgr_;
   int cf_id_;
+  int key_cf_id_;
 };
 
 }  // namespace vearch

@@ -473,7 +473,7 @@ Status Engine::CreateTable(TableInfo &table) {
 
   Status status;
 
-  storage_mgr_ = new StorageManager(index_root_path_);
+  storage_mgr_ = new StorageManager(index_root_path_ + "/data");
   int cache_size = 512;  // unit : M
 
   std::vector<int> vector_cf_ids;
@@ -508,13 +508,7 @@ Status Engine::CreateTable(TableInfo &table) {
 
   int table_cf_id = storage_mgr_->CreateColumnFamily("table");
 
-  table_ = new Table(index_root_path_, space_name_, storage_mgr_, table_cf_id);
-
-  status = storage_mgr_->Init("table", cache_size);
-  if (!status.ok()) {
-    LOG(ERROR) << "init gamma db error, ret=" << status.ToString();
-    return status;
-  }
+  table_ = new Table(space_name_, storage_mgr_, table_cf_id);
 
   status = table_->CreateTable(table, disk_table_params, docids_bitmap_);
   training_threshold_ = table.TrainingThreshold();
@@ -524,6 +518,12 @@ Status Engine::CreateTable(TableInfo &table) {
     std::string msg = space_name_ + " cannot create table!";
     LOG(ERROR) << msg;
     return Status::ParamError(msg);
+  }
+
+  status = storage_mgr_->Init(cache_size);
+  if (!status.ok()) {
+    LOG(ERROR) << "init gamma db error, ret=" << status.ToString();
+    return status;
   }
 
   if (!meta_jp) {
