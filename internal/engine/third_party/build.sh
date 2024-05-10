@@ -17,7 +17,7 @@ if [ ! -d "faiss" ]; then
   else
     cmake -DFAISS_ENABLE_GPU=$1 -DFAISS_ENABLE_PYTHON=OFF -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Release -DFAISS_OPT_LEVEL=avx2 -D CMAKE_INSTALL_PREFIX=$FAISS_HOME -DBLA_VENDOR=Intel10_64_dyn -DMKL_LIBRARIES=$MKLROOT/lib/intel64 -B build .
   fi
-  make -C build -j2 faiss && make -C build install
+  make -C build -j4 faiss && make -C build install
   popd
   \rm -rf faiss-1.7.1
 fi
