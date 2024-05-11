@@ -31,10 +31,6 @@ BitmapManager::BitmapManager() {
 }
 
 BitmapManager::~BitmapManager() {
-  if (bitmap_) {
-    delete[] bitmap_;
-    bitmap_ = nullptr;
-  }
   if (fd_ != -1) {
     close(fd_);
     fd_ = -1;
@@ -42,7 +38,7 @@ BitmapManager::~BitmapManager() {
 }
 
 int BitmapManager::Init(uint32_t bit_size, const std::string &fpath,
-                        char *bitmap) {
+                        std::shared_ptr<char[]> bitmap) {
   if (bit_size <= 0) {
     LOG(ERROR) << "bit_size <= 0";
     return -1;
@@ -53,13 +49,14 @@ int BitmapManager::Init(uint32_t bit_size, const std::string &fpath,
   if (bitmap) {
     bitmap_ = bitmap;
   } else {
-    bitmap_ = new char[bytes_count];
+    bitmap_ = std::shared_ptr<char[]>(new char[bytes_count],
+                                      [](char *p) -> void { delete[] p; });
     if (bitmap_ == nullptr) {
       LOG(ERROR) << "new char[" << bytes_count << "] error.";
       return -1;
     }
   }
-  memset(bitmap_, 0, bytes_count);
+  memset(bitmap_.get(), 0, bytes_count);
 
   // open dump file
   int ret = 0;
@@ -113,7 +110,7 @@ int BitmapManager::Dump(uint32_t begin_bit_id, uint32_t bit_len) {
     int i = 0;
     while (written_bytes < dump_bytes) {
       uint32_t bytes =
-          pwrite(fd_, bitmap_ + begin_bytes + written_bytes,
+          pwrite(fd_, bitmap_.get() + begin_bytes + written_bytes,
                  dump_bytes - written_bytes, begin_bytes + written_bytes);
       written_bytes += bytes;
       if (++i >= 1000) {
@@ -133,7 +130,8 @@ int BitmapManager::Load(uint32_t bit_len) {
   if (bit_len == 0) bit_len = size_;
 
   if (bit_len < 0 || bit_len > size_) {
-    LOG(ERROR) << "parameters error, load_bit_len=" << bit_len << " size=" << size_;
+    LOG(ERROR) << "parameters error, load_bit_len=" << bit_len
+               << " size=" << size_;
     return -1;
   }
 
@@ -145,7 +143,7 @@ int BitmapManager::Load(uint32_t bit_len) {
     uint32_t read_bytes = 0;
     int i = 0;
     while (read_bytes < load_bytes) {
-      uint32_t bytes = pread(fd_, bitmap_ + begin_bytes + read_bytes,
+      uint32_t bytes = pread(fd_, bitmap_.get() + begin_bytes + read_bytes,
                              load_bytes - read_bytes, begin_bytes + read_bytes);
       read_bytes += bytes;
       if (++i >= 1000) {
@@ -197,20 +195,18 @@ int BitmapManager::SetMaxID(uint32_t bit_id) {
   uint32_t old_bytes_count = (size_ >> 3) + 1;
   size_ *= 2;
   uint32_t bytes_count = (size_ >> 3) + 1;
-  char *bitmap = new char[bytes_count];
-  if (bitmap == nullptr) {
+  auto new_bitmap = std::shared_ptr<char[]>(
+      new char[bytes_count], [](char *p) -> void { delete[] p; });
+  if (new_bitmap == nullptr) {
     LOG(INFO) << "new char [" << bytes_count << "] error.";
     return -1;
   }
-  memset(bitmap, 0, bytes_count);
-  char *old = bitmap_;
-  memcpy(bitmap, old, old_bytes_count);
-  bitmap_ = bitmap;
+  memset(new_bitmap.get(), 0, bytes_count);
+  if (bitmap_) {
+    memcpy(new_bitmap.get(), bitmap_.get(), old_bytes_count);
+  }
+  bitmap_ = new_bitmap;
   Dump();
-
-  // delay free
-  utils::AsyncWait(
-      1000 * 100, [](char *bitmap) { delete[] bitmap; }, old);  // after 100s
 
   LOG(INFO) << "Current bitmap size [" << size_ << "]";
   return 0;
@@ -234,7 +230,7 @@ RocksdbBitmapManager::~RocksdbBitmapManager() {
 }
 
 int RocksdbBitmapManager::Init(uint32_t bit_size, const std::string &fpath,
-                        char *bitmap) {
+                               std::shared_ptr<char[]> bitmap) {
   if (bit_size <= 0) {
     LOG(ERROR) << "bit_size <= 0";
     return -1;
@@ -254,7 +250,8 @@ int RocksdbBitmapManager::Init(uint32_t bit_size, const std::string &fpath,
 
   // load bitmap size
   std::string value;
-  rocksdb::Status s = db_->Get(rocksdb::ReadOptions(), rocksdb::Slice(kBitmapSizeKey), &value);
+  rocksdb::Status s =
+      db_->Get(rocksdb::ReadOptions(), rocksdb::Slice(kBitmapSizeKey), &value);
   if (s.ok()) {
     size_ = atol(value.c_str());
     LOG(INFO) << "RoskdDB set dump file path successed, load size_=" << size_;
@@ -262,10 +259,11 @@ int RocksdbBitmapManager::Init(uint32_t bit_size, const std::string &fpath,
     // dump bitmap size
     std::string value = std::to_string(size_);
     rocksdb::Status s =
-      db_->Put(rocksdb::WriteOptions(), rocksdb::Slice(kBitmapSizeKey),
-              rocksdb::Slice(value));
+        db_->Put(rocksdb::WriteOptions(), rocksdb::Slice(kBitmapSizeKey),
+                 rocksdb::Slice(value));
     if (!s.ok()) {
-      LOG(ERROR) << "rocksdb set bitmap size error:" << s.ToString() << ", key=" << kBitmapSizeKey << ", value=" << value;
+      LOG(ERROR) << "rocksdb set bitmap size error:" << s.ToString()
+                 << ", key=" << kBitmapSizeKey << ", value=" << value;
       return s.code();
     }
   }
@@ -274,16 +272,17 @@ int RocksdbBitmapManager::Init(uint32_t bit_size, const std::string &fpath,
   if (bitmap) {
     bitmap_ = bitmap;
   } else {
-    bitmap_ = new char[bytes_count];
+    bitmap_ = std::shared_ptr<char[]>(new char[bytes_count],
+                                      [](char *p) -> void { delete[] p; });
     if (bitmap_ == nullptr) {
       LOG(ERROR) << "new char[" << bytes_count << "] error.";
       return -1;
     }
   }
-  memset(bitmap_, 0, bytes_count);
+  memset(bitmap_.get(), 0, bytes_count);
 
-  LOG(INFO) << "RoskdDB BitmapManager init successed. bytes_count=" << bytes_count
-            << " bit_size=" << bit_size;
+  LOG(INFO) << "RoskdDB BitmapManager init successed. bytes_count="
+            << bytes_count << " bit_size=" << bit_size;
   return 0;
 }
 
@@ -302,7 +301,7 @@ int RocksdbBitmapManager::SetDumpFilePath(const std::string &fpath) {
     options.create_if_missing = true;
 
     if (!utils::isFolderExist(fpath.c_str())) {
-      if(mkdir(fpath.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH)) {
+      if (mkdir(fpath.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH)) {
         std::string msg = "mkdir " + fpath + " error";
         LOG(ERROR) << msg;
         return -1;
@@ -330,30 +329,32 @@ int RocksdbBitmapManager::Load(uint32_t bit_len) {
   if (bit_len == 0) bit_len = size_;
 
   if (bit_len < 0 || bit_len > size_) {
-    LOG(ERROR) << "parameters error, load_bit_len=" << bit_len << " size=" << size_;
+    LOG(ERROR) << "parameters error, load_bit_len=" << bit_len
+               << " size=" << size_;
     return -1;
   }
   int load_num = 0;
-  for(uint32_t i = 0; i < bit_len; i += kBitmapSegmentBits) {
+  for (uint32_t i = 0; i < bit_len; i += kBitmapSegmentBits) {
     std::string key, value;
     ToRowKey(i, key);
     rocksdb::Status s =
         db_->Get(rocksdb::ReadOptions(), rocksdb::Slice(key), &value);
     if (s.ok()) {
-      memcpy((void *)(bitmap_ + i / kBitmapSegmentBits * kBitmapSegmentBytes), value.c_str(), kBitmapSegmentBytes);
+      memcpy((void *)(bitmap_.get() +
+                      i / kBitmapSegmentBits * kBitmapSegmentBytes),
+             value.c_str(), kBitmapSegmentBytes);
       load_num += 1;
     }
   }
-  LOG(INFO) << "RoskdDB BitmapManager load successed. size_=" << size_ << ", load_num=" << load_num;
+  LOG(INFO) << "RoskdDB BitmapManager load successed. size_=" << size_
+            << ", load_num=" << load_num;
   return 0;
 }
 
-uint32_t RocksdbBitmapManager::FileBytesSize() {
-  return 0;
-}
+uint32_t RocksdbBitmapManager::FileBytesSize() { return 0; }
 
 void RocksdbBitmapManager::ToRowKey(uint32_t bit_id, std::string &key) {
-  //max length:6 because (2^32 -1) / 1024 / 8 = 524287
+  // max length:6 because (2^32 -1) / 1024 / 8 = 524287
   char data[7];
   snprintf(data, 7, "%06d", bit_id / kBitmapSegmentBits);
   key.assign(data, 7);
@@ -366,12 +367,16 @@ int RocksdbBitmapManager::Set(uint32_t bit_id) {
     std::string key, value;
     ToRowKey(bit_id, key);
 
-    rocksdb::Status s =
-        db_->Put(rocksdb::WriteOptions(), rocksdb::Slice(key),
-                rocksdb::Slice((const char *)(bitmap_ + bit_id / kBitmapSegmentBits * kBitmapSegmentBytes), kBitmapSegmentBytes));
+    rocksdb::Status s = db_->Put(
+        rocksdb::WriteOptions(), rocksdb::Slice(key),
+        rocksdb::Slice(
+            (const char *)(bitmap_.get() +
+                           bit_id / kBitmapSegmentBits * kBitmapSegmentBytes),
+            kBitmapSegmentBytes));
     if (!s.ok()) {
-      LOG(ERROR) << "rocksdb set bitmap error:" << s.ToString() << ", key=" << key << ", value=" << value;
-      //reset
+      LOG(ERROR) << "rocksdb set bitmap error:" << s.ToString()
+                 << ", key=" << key << ", value=" << value;
+      // reset
       bitmap_[bit_id >> 3] &= ~(0x1 << (bit_id & 0x7));
       return s.code();
     }
@@ -387,12 +392,16 @@ int RocksdbBitmapManager::Unset(uint32_t bit_id) {
     std::string key, value;
     ToRowKey(bit_id, key);
 
-    rocksdb::Status s =
-        db_->Put(rocksdb::WriteOptions(), rocksdb::Slice(key),
-                rocksdb::Slice((const char *)(bitmap_ + bit_id / kBitmapSegmentBits * kBitmapSegmentBytes), kBitmapSegmentBytes));
+    rocksdb::Status s = db_->Put(
+        rocksdb::WriteOptions(), rocksdb::Slice(key),
+        rocksdb::Slice(
+            (const char *)(bitmap_.get() +
+                           bit_id / kBitmapSegmentBits * kBitmapSegmentBytes),
+            kBitmapSegmentBytes));
     if (!s.ok()) {
-      LOG(ERROR) << "rocksdb unset bitmap error:" << s.ToString() << ", key=" << key << ", value=" << value;
-      //reset
+      LOG(ERROR) << "rocksdb unset bitmap error:" << s.ToString()
+                 << ", key=" << key << ", value=" << value;
+      // reset
       bitmap_[bit_id >> 3] |= (0x1 << (bit_id & 0x7));
       return s.code();
     }
@@ -414,29 +423,29 @@ int RocksdbBitmapManager::SetMaxID(uint32_t bit_id) {
   size_t new_size = size_ * 2;
   std::string value = std::to_string(new_size);
   rocksdb::Status s =
-    db_->Put(rocksdb::WriteOptions(), rocksdb::Slice(kBitmapSizeKey),
-            rocksdb::Slice(value));
+      db_->Put(rocksdb::WriteOptions(), rocksdb::Slice(kBitmapSizeKey),
+               rocksdb::Slice(value));
   if (!s.ok()) {
-    LOG(ERROR) << "rocksdb set bitmap size error:" << s.ToString() << ", key=" << kBitmapSizeKey << ", value=" << value;
+    LOG(ERROR) << "rocksdb set bitmap size error:" << s.ToString()
+               << ", key=" << kBitmapSizeKey << ", value=" << value;
     return s.code();
   }
 
   uint32_t old_bytes_count = (size_ >> 3) + 1;
   size_ = new_size;
   uint32_t bytes_count = (size_ >> 3) + 1;
-  char *bitmap = new char[bytes_count];
-  if (bitmap == nullptr) {
+
+  auto new_bitmap = std::shared_ptr<char[]>(
+      new char[bytes_count], [](char *p) -> void { delete[] p; });
+  if (new_bitmap == nullptr) {
     LOG(INFO) << "new char [" << bytes_count << "] error.";
     return -1;
   }
-  memset(bitmap, 0, bytes_count);
-  char *old = bitmap_;
-  memcpy(bitmap, old, old_bytes_count);
-  bitmap_ = bitmap;
-
-  // delay free
-  utils::AsyncWait(
-      1000 * 100, [](char *bitmap) { delete[] bitmap; }, old);  // after 100s
+  memset(new_bitmap.get(), 0, bytes_count);
+  if (bitmap_) {
+    memcpy(new_bitmap.get(), bitmap_.get(), old_bytes_count);
+  }
+  bitmap_ = new_bitmap;
 
   LOG(INFO) << "Current bitmap size [" << size_ << "]";
 

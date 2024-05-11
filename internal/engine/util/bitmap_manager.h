@@ -22,7 +22,7 @@ class BitmapManager {
   virtual ~BitmapManager();
 
   virtual int Init(uint32_t bit_size, const std::string &fpath = "",
-           char *bitmap = nullptr);
+                   std::shared_ptr<char[]> bitmap = nullptr);
 
   virtual int SetDumpFilePath(const std::string &fpath);
 
@@ -42,13 +42,13 @@ class BitmapManager {
 
   virtual uint32_t BitSize() { return size_; }
 
-  char *Bitmap() { return bitmap_; }
+  std::shared_ptr<char[]> Bitmap() { return bitmap_; }
 
   virtual uint32_t BytesSize() { return (size_ >> 3) + 1; }
 
   virtual int SetMaxID(uint32_t bit_id);
 
-  char *bitmap_;
+  std::shared_ptr<char[]> bitmap_;
   uint32_t size_;
   int fd_;
   std::string fpath_;
@@ -60,14 +60,13 @@ constexpr uint32_t kBitmapSegmentBytes = 1024;
 constexpr uint32_t kBitmapCacheSize = 10 * 1024 * 1024;
 const std::string kBitmapSizeKey = "bitmap_size";
 
-
 class RocksdbBitmapManager : public BitmapManager {
  public:
   RocksdbBitmapManager();
   virtual ~RocksdbBitmapManager();
 
   virtual int Init(uint32_t bit_size, const std::string &fpath = "",
-           char *bitmap = nullptr);
+                   std::shared_ptr<char[]> bitmap = nullptr);
 
   virtual int SetDumpFilePath(const std::string &fpath);
 

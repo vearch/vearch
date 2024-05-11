@@ -11,11 +11,11 @@
 
 #include <cassert>
 #include <functional>
+#include <random>
 #include <sstream>
 #include <string>
 #include <thread>
 #include <vector>
-#include <random>
 
 #include "cjson/cJSON.h"
 
@@ -165,15 +165,14 @@ struct FileIO {
 };
 
 template <typename callable, class... arguments>
-void AsyncWait(int after, callable &&f, arguments &&... args) {
+void AsyncWait(int after, callable &&f, arguments &&...args) {
   std::function<typename std::result_of<callable(arguments...)>::type()> task(
       std::bind(std::forward<callable>(f), std::forward<arguments>(args)...));
 
   std::thread([after, task]() {
     std::this_thread::sleep_for(std::chrono::milliseconds(after));
     task();
-  })
-      .detach();
+  }).detach();
 }
 
 /** bare-bones unique_ptr
