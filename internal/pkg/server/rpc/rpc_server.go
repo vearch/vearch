@@ -23,7 +23,7 @@ import (
 	"github.com/smallnest/rpcx/protocol"
 	"github.com/smallnest/rpcx/server"
 	"github.com/smallnest/rpcx/share"
-	"github.com/vearch/vearch/internal/pkg/server/rpc/handler"
+	"github.com/vearch/vearch/v3/internal/pkg/server/rpc/handler"
 )
 
 // var serializeType = protocol.MsgPack

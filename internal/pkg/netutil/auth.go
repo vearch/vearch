@@ -18,7 +18,7 @@ import (
 	"encoding/base64"
 	"strings"
 
-	"github.com/vearch/vearch/internal/pkg/log"
+	"github.com/vearch/vearch/v3/internal/pkg/log"
 )
 
 const (

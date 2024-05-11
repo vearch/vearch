@@ -19,10 +19,10 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/vearch/vearch/internal/entity/errors"
-	"github.com/vearch/vearch/internal/pkg/log"
-	"github.com/vearch/vearch/internal/pkg/vjson"
-	"github.com/vearch/vearch/internal/proto/vearchpb"
+	"github.com/vearch/vearch/v3/internal/entity/errors"
+	"github.com/vearch/vearch/v3/internal/pkg/log"
+	"github.com/vearch/vearch/v3/internal/pkg/vjson"
+	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
 )
 
 type Response struct {

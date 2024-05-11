@@ -17,10 +17,10 @@ package mserver
 import (
 	"net/http"
 
-	"github.com/vearch/vearch/internal/entity"
-	"github.com/vearch/vearch/internal/pkg/metrics"
-	"github.com/vearch/vearch/internal/pkg/metrics/sysstat"
-	"github.com/vearch/vearch/internal/proto/vearchpb"
+	"github.com/vearch/vearch/v3/internal/entity"
+	"github.com/vearch/vearch/v3/internal/pkg/metrics"
+	"github.com/vearch/vearch/v3/internal/pkg/metrics/sysstat"
+	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
 )
 
 func NewErrServerStatus(ip string, err error) *ServerStats {

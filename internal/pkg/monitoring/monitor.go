@@ -21,8 +21,8 @@ import (
 	prometheus "github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cast"
-	"github.com/vearch/vearch/internal/config"
-	"github.com/vearch/vearch/internal/pkg/log"
+	"github.com/vearch/vearch/v3/internal/config"
+	"github.com/vearch/vearch/v3/internal/pkg/log"
 )
 
 var masterCallBack func(masterMonitor *MasterMonitor)

@@ -17,7 +17,7 @@ package algorithm
 import (
 	"sync"
 
-	"github.com/vearch/vearch/internal/pkg/atomic"
+	"github.com/vearch/vearch/v3/internal/pkg/atomic"
 )
 
 type RoundRobin[K comparable, V any] struct {

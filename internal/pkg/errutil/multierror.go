@@ -14,7 +14,7 @@
 
 package errutil
 
-import "github.com/vearch/vearch/internal/pkg/bufalloc"
+import "github.com/vearch/vearch/v3/internal/pkg/bufalloc"
 
 // Combine merge multiple error and create MultiError
 func Combine(errs ...error) *MultiError {

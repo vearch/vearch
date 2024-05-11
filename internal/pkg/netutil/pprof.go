@@ -22,8 +22,8 @@ import (
 	"runtime"
 	rpprof "runtime/pprof"
 
-	"github.com/vearch/vearch/internal/pkg/gogc"
-	"github.com/vearch/vearch/internal/pkg/log"
+	"github.com/vearch/vearch/v3/internal/pkg/gogc"
+	"github.com/vearch/vearch/v3/internal/pkg/log"
 )
 
 type ResponseWriter struct {

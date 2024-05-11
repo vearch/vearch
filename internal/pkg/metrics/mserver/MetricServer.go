@@ -18,10 +18,10 @@ import (
 	"context"
 	"sync"
 
-	"github.com/vearch/vearch/internal/pkg/log"
-	"github.com/vearch/vearch/internal/pkg/metrics"
-	"github.com/vearch/vearch/internal/pkg/metrics/export"
-	"github.com/vearch/vearch/internal/pkg/metrics/sysstat"
+	"github.com/vearch/vearch/v3/internal/pkg/log"
+	"github.com/vearch/vearch/v3/internal/pkg/metrics"
+	"github.com/vearch/vearch/v3/internal/pkg/metrics/export"
+	"github.com/vearch/vearch/v3/internal/pkg/metrics/sysstat"
 )
 
 var ms = &metricServer{}

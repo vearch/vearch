@@ -20,7 +20,7 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/vearch/vearch/internal/pkg/metrics"
+	"github.com/vearch/vearch/v3/internal/pkg/metrics"
 )
 
 var _ metrics.Exporter = &MemoryExporter{}

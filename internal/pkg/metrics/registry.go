@@ -18,7 +18,7 @@ import (
 	"reflect"
 	"sync"
 
-	"github.com/vearch/vearch/internal/pkg/vjson"
+	"github.com/vearch/vearch/v3/internal/pkg/vjson"
 )
 
 // Registry is a list of metrics. It provides a simple way of iterating over them.

@@ -22,11 +22,11 @@ import (
 
 	"github.com/patrickmn/go-cache"
 	"github.com/spf13/cast"
-	"github.com/vearch/vearch/internal/entity"
-	"github.com/vearch/vearch/internal/pkg/log"
-	server "github.com/vearch/vearch/internal/pkg/server/rpc"
-	"github.com/vearch/vearch/internal/pkg/vjson"
-	"github.com/vearch/vearch/internal/proto/vearchpb"
+	"github.com/vearch/vearch/v3/internal/entity"
+	"github.com/vearch/vearch/v3/internal/pkg/log"
+	server "github.com/vearch/vearch/v3/internal/pkg/server/rpc"
+	"github.com/vearch/vearch/v3/internal/pkg/vjson"
+	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
 )
 
 // ClientType decide the method to choose raft

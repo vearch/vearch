@@ -17,10 +17,10 @@ package raftstore
 import (
 	"context"
 
-	"github.com/vearch/vearch/internal/entity"
-	"github.com/vearch/vearch/internal/pkg/log"
-	"github.com/vearch/vearch/internal/pkg/vearchlog"
-	"github.com/vearch/vearch/internal/proto/vearchpb"
+	"github.com/vearch/vearch/v3/internal/entity"
+	"github.com/vearch/vearch/v3/internal/pkg/log"
+	"github.com/vearch/vearch/v3/internal/pkg/vearchlog"
+	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
 )
 
 func (s *Store) GetDocument(ctx context.Context, readLeader bool, doc *vearchpb.Document, getByDocId bool, next bool) (err error) {

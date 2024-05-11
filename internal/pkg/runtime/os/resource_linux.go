@@ -25,8 +25,8 @@ import (
 	"syscall"
 
 	"github.com/shirou/gopsutil/process"
-	"github.com/vearch/vearch/internal/pkg/log"
-	"github.com/vearch/vearch/internal/proto/vearchpb"
+	"github.com/vearch/vearch/v3/internal/pkg/log"
+	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
 )
 
 func readCgroupMemory() (available, limit uint64, err error) {

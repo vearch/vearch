@@ -18,9 +18,9 @@ import (
 	"fmt"
 
 	"github.com/spf13/cast"
-	"github.com/vearch/vearch/internal/engine/sdk/go/gamma"
-	"github.com/vearch/vearch/internal/proto/vearchpb"
-	"github.com/vearch/vearch/internal/ps/engine/mapping"
+	"github.com/vearch/vearch/v3/internal/engine/sdk/go/gamma"
+	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
+	"github.com/vearch/vearch/v3/internal/ps/engine/mapping"
 )
 
 func mapping2Table(cfg EngineConfig, m *mapping.IndexMapping) (*gamma.Table, error) {

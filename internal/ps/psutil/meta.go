@@ -23,11 +23,11 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/vearch/vearch/internal/client"
-	"github.com/vearch/vearch/internal/entity"
-	"github.com/vearch/vearch/internal/pkg/fileutil"
-	"github.com/vearch/vearch/internal/pkg/log"
-	"github.com/vearch/vearch/internal/pkg/vjson"
+	"github.com/vearch/vearch/v3/internal/client"
+	"github.com/vearch/vearch/v3/internal/entity"
+	"github.com/vearch/vearch/v3/internal/pkg/fileutil"
+	"github.com/vearch/vearch/v3/internal/pkg/log"
+	"github.com/vearch/vearch/v3/internal/pkg/vjson"
 )
 
 const MetaFile = "server_meta.txt"

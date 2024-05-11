@@ -17,9 +17,9 @@ package router
 import (
 	"time"
 
-	"github.com/vearch/vearch/internal/config"
-	"github.com/vearch/vearch/internal/entity"
-	"github.com/vearch/vearch/internal/pkg/log"
+	"github.com/vearch/vearch/v3/internal/config"
+	"github.com/vearch/vearch/v3/internal/entity"
+	"github.com/vearch/vearch/v3/internal/pkg/log"
 )
 
 const KeepAliveTime = 10

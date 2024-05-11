@@ -18,8 +18,8 @@ import (
 	"time"
 
 	"github.com/cubefs/cubefs/depends/tiglabs/raft/proto"
-	"github.com/vearch/vearch/internal/pkg/errutil"
-	"github.com/vearch/vearch/internal/pkg/log"
+	"github.com/vearch/vearch/v3/internal/pkg/errutil"
+	"github.com/vearch/vearch/v3/internal/pkg/log"
 )
 
 // Snapshot implements the raft interface.

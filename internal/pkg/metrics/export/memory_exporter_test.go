@@ -17,9 +17,9 @@ package export
 import (
 	"testing"
 
-	"github.com/vearch/vearch/internal/pkg/bufalloc"
-	"github.com/vearch/vearch/internal/pkg/metrics"
-	"github.com/vearch/vearch/internal/pkg/metrics/metric"
+	"github.com/vearch/vearch/v3/internal/pkg/bufalloc"
+	"github.com/vearch/vearch/v3/internal/pkg/metrics"
+	"github.com/vearch/vearch/v3/internal/pkg/metrics/metric"
 )
 
 func TestMemoryExporter(t *testing.T) {

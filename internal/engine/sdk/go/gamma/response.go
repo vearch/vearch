@@ -9,8 +9,8 @@ package gamma
 
 import (
 	flatbuffers "github.com/google/flatbuffers/go"
-	"github.com/vearch/vearch/internal/engine/idl/fbs-gen/go/gamma_api"
-	"github.com/vearch/vearch/internal/proto/vearchpb"
+	"github.com/vearch/vearch/v3/internal/engine/idl/fbs-gen/go/gamma_api"
+	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
 )
 
 type SearchResultCode uint8
@@ -39,8 +39,8 @@ type SearchResult struct {
 }
 
 type Response struct {
-	Results          []SearchResult
-	response         *gamma_api.Response
+	Results  []SearchResult
+	response *gamma_api.Response
 }
 
 func (response *Response) Serialize(buffer *[]byte) int {

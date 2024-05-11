@@ -21,18 +21,18 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cast"
-	"github.com/vearch/vearch/internal/client"
-	"github.com/vearch/vearch/internal/pkg/errutil"
-	"github.com/vearch/vearch/internal/pkg/metrics/mserver"
+	"github.com/vearch/vearch/v3/internal/client"
+	"github.com/vearch/vearch/v3/internal/pkg/errutil"
+	"github.com/vearch/vearch/v3/internal/pkg/metrics/mserver"
 	"go.etcd.io/etcd/server/v3/etcdserver"
 
 	"net/http"
 	"sync"
 	"time"
 
-	"github.com/vearch/vearch/internal/config"
-	"github.com/vearch/vearch/internal/entity"
-	"github.com/vearch/vearch/internal/pkg/log"
+	"github.com/vearch/vearch/v3/internal/config"
+	"github.com/vearch/vearch/v3/internal/entity"
+	"github.com/vearch/vearch/v3/internal/pkg/log"
 )
 
 const (

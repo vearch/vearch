@@ -22,14 +22,14 @@ import (
 	"strings"
 
 	"github.com/spf13/cast"
-	"github.com/vearch/vearch/internal/entity"
-	"github.com/vearch/vearch/internal/entity/request"
-	"github.com/vearch/vearch/internal/pkg/cbbytes"
-	"github.com/vearch/vearch/internal/pkg/log"
-	"github.com/vearch/vearch/internal/pkg/vjson"
-	"github.com/vearch/vearch/internal/proto/vearchpb"
-	"github.com/vearch/vearch/internal/ps/engine/mapping"
-	"github.com/vearch/vearch/internal/ps/engine/sortorder"
+	"github.com/vearch/vearch/v3/internal/entity"
+	"github.com/vearch/vearch/v3/internal/entity/request"
+	"github.com/vearch/vearch/v3/internal/pkg/cbbytes"
+	"github.com/vearch/vearch/v3/internal/pkg/log"
+	"github.com/vearch/vearch/v3/internal/pkg/vjson"
+	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
+	"github.com/vearch/vearch/v3/internal/ps/engine/mapping"
+	"github.com/vearch/vearch/v3/internal/ps/engine/sortorder"
 )
 
 const (

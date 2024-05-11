@@ -15,8 +15,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/vearch/vearch/internal/pkg/cbbytes"
-	"github.com/vearch/vearch/internal/proto/vearchpb"
+	"github.com/vearch/vearch/v3/internal/pkg/cbbytes"
+	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
 	"google.golang.org/grpc"
 )
 

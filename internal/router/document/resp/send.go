@@ -16,7 +16,7 @@ package resp
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/vearch/vearch/internal/pkg/httphelper"
+	"github.com/vearch/vearch/v3/internal/pkg/httphelper"
 )
 
 func SendError(c *gin.Context, httpStatus int, errorMsg string) {

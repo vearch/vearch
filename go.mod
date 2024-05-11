@@ -1,4 +1,4 @@
-module github.com/vearch/vearch
+module github.com/vearch/vearch/v3
 
 go 1.19
 

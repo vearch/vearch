@@ -18,8 +18,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	vmap "github.com/vearch/vearch/internal/pkg/map"
-	"github.com/vearch/vearch/internal/proto/vearchpb"
+	vmap "github.com/vearch/vearch/v3/internal/pkg/map"
+	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
 )
 
 const pathSeparator = "."

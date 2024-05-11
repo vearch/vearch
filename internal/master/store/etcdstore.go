@@ -20,7 +20,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/vearch/vearch/internal/config"
+	"github.com/vearch/vearch/v3/internal/config"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/client/v3/concurrency"
 )

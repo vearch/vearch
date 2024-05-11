@@ -25,17 +25,17 @@ import (
 	"time"
 
 	"github.com/spf13/cast"
-	"github.com/vearch/vearch/internal/config"
-	"github.com/vearch/vearch/internal/entity"
-	"github.com/vearch/vearch/internal/master"
-	"github.com/vearch/vearch/internal/pkg/log"
-	"github.com/vearch/vearch/internal/pkg/metrics/mserver"
-	tigos "github.com/vearch/vearch/internal/pkg/runtime/os"
-	"github.com/vearch/vearch/internal/pkg/signals"
-	"github.com/vearch/vearch/internal/pkg/tracer"
-	"github.com/vearch/vearch/internal/pkg/vearchlog"
-	"github.com/vearch/vearch/internal/ps"
-	"github.com/vearch/vearch/internal/router"
+	"github.com/vearch/vearch/v3/internal/config"
+	"github.com/vearch/vearch/v3/internal/entity"
+	"github.com/vearch/vearch/v3/internal/master"
+	"github.com/vearch/vearch/v3/internal/pkg/log"
+	"github.com/vearch/vearch/v3/internal/pkg/metrics/mserver"
+	tigos "github.com/vearch/vearch/v3/internal/pkg/runtime/os"
+	"github.com/vearch/vearch/v3/internal/pkg/signals"
+	"github.com/vearch/vearch/v3/internal/pkg/tracer"
+	"github.com/vearch/vearch/v3/internal/pkg/vearchlog"
+	"github.com/vearch/vearch/v3/internal/ps"
+	"github.com/vearch/vearch/v3/internal/router"
 )
 
 var (

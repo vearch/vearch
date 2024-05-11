@@ -18,8 +18,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/vearch/vearch/internal/pkg/metrics"
-	"github.com/vearch/vearch/internal/pkg/metrics/metric"
+	"github.com/vearch/vearch/v3/internal/pkg/metrics"
+	"github.com/vearch/vearch/v3/internal/pkg/metrics/metric"
 )
 
 func getCounter(r *metrics.Registry, name string) *metric.Counter {

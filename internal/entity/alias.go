@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"unicode"
 
-	"github.com/vearch/vearch/internal/proto/vearchpb"
+	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
 )
 
 // alias/dbName/spaceName

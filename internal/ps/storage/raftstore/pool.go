@@ -17,7 +17,7 @@ package raftstore
 import (
 	"sync"
 
-	"github.com/vearch/vearch/internal/proto/vearchpb"
+	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
 )
 
 var (

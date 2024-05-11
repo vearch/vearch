@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/vearch/vearch/internal/entity"
+	"github.com/vearch/vearch/v3/internal/entity"
 	mvccpb "go.etcd.io/etcd/api/v3/mvccpb"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )

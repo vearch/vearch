@@ -25,11 +25,11 @@ import (
 	"github.com/shirou/gopsutil/mem"
 	"github.com/shirou/gopsutil/net"
 	"github.com/shirou/gopsutil/process"
-	"github.com/vearch/vearch/internal/config"
-	"github.com/vearch/vearch/internal/pkg/log"
-	"github.com/vearch/vearch/internal/pkg/metrics"
-	"github.com/vearch/vearch/internal/pkg/metrics/metric"
-	"github.com/vearch/vearch/internal/pkg/routine"
+	"github.com/vearch/vearch/v3/internal/config"
+	"github.com/vearch/vearch/v3/internal/pkg/log"
+	"github.com/vearch/vearch/v3/internal/pkg/metrics"
+	"github.com/vearch/vearch/v3/internal/pkg/metrics/metric"
+	"github.com/vearch/vearch/v3/internal/pkg/routine"
 )
 
 const (

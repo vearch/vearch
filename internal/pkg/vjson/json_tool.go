@@ -19,7 +19,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cast"
-	"github.com/vearch/vearch/internal/pkg/log"
+	"github.com/vearch/vearch/v3/internal/pkg/log"
 )
 
 type JsonMap map[string]interface{}

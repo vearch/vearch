@@ -26,15 +26,15 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/spf13/cast"
-	"github.com/vearch/vearch/internal/config"
-	"github.com/vearch/vearch/internal/engine/sdk/go/gamma"
-	"github.com/vearch/vearch/internal/entity"
-	"github.com/vearch/vearch/internal/pkg/atomic"
-	"github.com/vearch/vearch/internal/pkg/log"
-	"github.com/vearch/vearch/internal/pkg/vearchlog"
-	"github.com/vearch/vearch/internal/proto/vearchpb"
-	"github.com/vearch/vearch/internal/ps/engine"
-	"github.com/vearch/vearch/internal/ps/engine/mapping"
+	"github.com/vearch/vearch/v3/internal/config"
+	"github.com/vearch/vearch/v3/internal/engine/sdk/go/gamma"
+	"github.com/vearch/vearch/v3/internal/entity"
+	"github.com/vearch/vearch/v3/internal/pkg/atomic"
+	"github.com/vearch/vearch/v3/internal/pkg/log"
+	"github.com/vearch/vearch/v3/internal/pkg/vearchlog"
+	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
+	"github.com/vearch/vearch/v3/internal/ps/engine"
+	"github.com/vearch/vearch/v3/internal/ps/engine/mapping"
 )
 
 var _ engine.Engine = &gammaEngine{}

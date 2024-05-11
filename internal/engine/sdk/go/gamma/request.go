@@ -9,8 +9,8 @@ package gamma
 
 import (
 	flatbuffers "github.com/google/flatbuffers/go"
-	"github.com/vearch/vearch/internal/engine/idl/fbs-gen/go/gamma_api"
-	"github.com/vearch/vearch/internal/proto/vearchpb"
+	"github.com/vearch/vearch/v3/internal/engine/idl/fbs-gen/go/gamma_api"
+	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
 )
 
 type DistanceMetricType uint8

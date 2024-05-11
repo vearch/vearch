@@ -21,16 +21,16 @@ import (
 
 	"github.com/cubefs/cubefs/depends/tiglabs/raft"
 	"github.com/cubefs/cubefs/depends/tiglabs/raft/proto"
-	"github.com/vearch/vearch/internal/client"
-	"github.com/vearch/vearch/internal/engine/sdk/go/gamma"
-	"github.com/vearch/vearch/internal/entity"
-	"github.com/vearch/vearch/internal/pkg/errutil"
-	"github.com/vearch/vearch/internal/pkg/log"
-	"github.com/vearch/vearch/internal/pkg/metrics/mserver"
-	"github.com/vearch/vearch/internal/pkg/server/rpc/handler"
-	"github.com/vearch/vearch/internal/pkg/vjson"
-	"github.com/vearch/vearch/internal/proto/vearchpb"
-	"github.com/vearch/vearch/internal/ps/engine"
+	"github.com/vearch/vearch/v3/internal/client"
+	"github.com/vearch/vearch/v3/internal/engine/sdk/go/gamma"
+	"github.com/vearch/vearch/v3/internal/entity"
+	"github.com/vearch/vearch/v3/internal/pkg/errutil"
+	"github.com/vearch/vearch/v3/internal/pkg/log"
+	"github.com/vearch/vearch/v3/internal/pkg/metrics/mserver"
+	"github.com/vearch/vearch/v3/internal/pkg/server/rpc/handler"
+	"github.com/vearch/vearch/v3/internal/pkg/vjson"
+	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
+	"github.com/vearch/vearch/v3/internal/ps/engine"
 )
 
 func ExportToRpcAdminHandler(server *Server) {

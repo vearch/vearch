@@ -18,7 +18,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/vearch/vearch/internal/entity"
+	"github.com/vearch/vearch/v3/internal/entity"
 )
 
 func TestEngineSpaceString(t *testing.T) {

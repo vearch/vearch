@@ -18,9 +18,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/vearch/vearch/internal/entity"
-	"github.com/vearch/vearch/internal/pkg/log"
-	"github.com/vearch/vearch/internal/proto/vearchpb"
+	"github.com/vearch/vearch/v3/internal/entity"
+	"github.com/vearch/vearch/v3/internal/pkg/log"
+	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
 )
 
 // An IndexMapping controls how objects are placed

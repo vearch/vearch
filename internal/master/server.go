@@ -22,11 +22,11 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cast"
-	"github.com/vearch/vearch/internal/client"
-	"github.com/vearch/vearch/internal/config"
-	"github.com/vearch/vearch/internal/pkg/errutil"
-	"github.com/vearch/vearch/internal/pkg/log"
-	"github.com/vearch/vearch/internal/proto/vearchpb"
+	"github.com/vearch/vearch/v3/internal/client"
+	"github.com/vearch/vearch/v3/internal/config"
+	"github.com/vearch/vearch/v3/internal/pkg/errutil"
+	"github.com/vearch/vearch/v3/internal/pkg/log"
+	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
 	"go.etcd.io/etcd/server/v3/embed"
 	"go.etcd.io/etcd/server/v3/etcdserver"
 )

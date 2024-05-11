@@ -20,7 +20,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/vearch/vearch/internal/pkg/routine"
+	"github.com/vearch/vearch/v3/internal/pkg/routine"
 )
 
 const defaultExportInterval = 10 * time.Second

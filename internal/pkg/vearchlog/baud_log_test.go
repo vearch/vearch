@@ -18,7 +18,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/vearch/vearch/internal/pkg/log"
+	"github.com/vearch/vearch/v3/internal/pkg/log"
 )
 
 func TestVearchLog(t *testing.T) {

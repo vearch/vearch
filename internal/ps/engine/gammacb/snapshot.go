@@ -11,10 +11,10 @@ import (
 
 	"github.com/cubefs/cubefs/depends/tiglabs/raft/proto"
 	protobuf "github.com/golang/protobuf/proto"
-	"github.com/vearch/vearch/internal/pkg/errutil"
-	"github.com/vearch/vearch/internal/pkg/fileutil"
-	"github.com/vearch/vearch/internal/pkg/log"
-	"github.com/vearch/vearch/internal/proto/vearchpb"
+	"github.com/vearch/vearch/v3/internal/pkg/errutil"
+	"github.com/vearch/vearch/v3/internal/pkg/fileutil"
+	"github.com/vearch/vearch/v3/internal/pkg/log"
+	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
 )
 
 const (

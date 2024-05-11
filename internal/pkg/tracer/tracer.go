@@ -20,7 +20,7 @@ import (
 
 	jaeger "github.com/uber/jaeger-client-go"
 	config "github.com/uber/jaeger-client-go/config"
-	vconfig "github.com/vearch/vearch/internal/config"
+	vconfig "github.com/vearch/vearch/v3/internal/config"
 )
 
 // InitJaeger returns an instance of Jaeger Tracer that samples 100% of traces and logs all spans to stdout.

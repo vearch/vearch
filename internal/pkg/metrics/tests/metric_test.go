@@ -20,8 +20,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/vearch/vearch/internal/pkg/metrics"
-	"github.com/vearch/vearch/internal/pkg/metrics/metric"
+	"github.com/vearch/vearch/v3/internal/pkg/metrics"
+	"github.com/vearch/vearch/v3/internal/pkg/metrics/metric"
 )
 
 var emptyMetadata = metrics.Metadata{}

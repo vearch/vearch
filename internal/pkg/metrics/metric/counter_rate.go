@@ -18,7 +18,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/vearch/vearch/internal/pkg/metrics"
+	"github.com/vearch/vearch/v3/internal/pkg/metrics"
 )
 
 var _ metrics.Metric = &CounterRate{}

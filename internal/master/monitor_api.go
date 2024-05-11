@@ -16,11 +16,11 @@ package master
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/vearch/vearch/internal/config"
-	"github.com/vearch/vearch/internal/entity/errors"
-	"github.com/vearch/vearch/internal/monitor"
-	"github.com/vearch/vearch/internal/pkg/httphelper"
-	"github.com/vearch/vearch/internal/pkg/server/vearchhttp"
+	"github.com/vearch/vearch/v3/internal/config"
+	"github.com/vearch/vearch/v3/internal/entity/errors"
+	"github.com/vearch/vearch/v3/internal/monitor"
+	"github.com/vearch/vearch/v3/internal/pkg/httphelper"
+	"github.com/vearch/vearch/v3/internal/pkg/server/vearchhttp"
 )
 
 type monitorApi struct {

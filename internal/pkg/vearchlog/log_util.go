@@ -19,7 +19,7 @@ import (
 	"io"
 	"runtime/debug"
 
-	"github.com/vearch/vearch/internal/pkg/log"
+	"github.com/vearch/vearch/v3/internal/pkg/log"
 )
 
 // log err if not nil

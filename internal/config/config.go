@@ -27,8 +27,8 @@ import (
 	"github.com/BurntSushi/toml"
 	"github.com/pkg/errors"
 	"github.com/spf13/cast"
-	"github.com/vearch/vearch/internal/pkg/log"
-	"github.com/vearch/vearch/internal/proto/vearchpb"
+	"github.com/vearch/vearch/v3/internal/pkg/log"
+	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
 	"go.etcd.io/etcd/server/v3/embed"
 )
 

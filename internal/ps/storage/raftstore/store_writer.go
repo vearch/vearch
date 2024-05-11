@@ -17,12 +17,12 @@ package raftstore
 import (
 	"context"
 
-	"github.com/vearch/vearch/internal/entity"
-	"github.com/vearch/vearch/internal/pkg/log"
-	"github.com/vearch/vearch/internal/pkg/runtime/os"
-	"github.com/vearch/vearch/internal/pkg/vearchlog"
-	"github.com/vearch/vearch/internal/pkg/vjson"
-	"github.com/vearch/vearch/internal/proto/vearchpb"
+	"github.com/vearch/vearch/v3/internal/entity"
+	"github.com/vearch/vearch/v3/internal/pkg/log"
+	"github.com/vearch/vearch/v3/internal/pkg/runtime/os"
+	"github.com/vearch/vearch/v3/internal/pkg/vearchlog"
+	"github.com/vearch/vearch/v3/internal/pkg/vjson"
+	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
 )
 
 type RaftApplyResponse struct {

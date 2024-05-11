@@ -19,7 +19,7 @@ import (
 	"runtime/debug"
 
 	"github.com/pkg/errors"
-	"github.com/vearch/vearch/internal/pkg/log"
+	"github.com/vearch/vearch/v3/internal/pkg/log"
 )
 
 // throw error panic
