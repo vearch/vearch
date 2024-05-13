@@ -3,9 +3,10 @@ package vearch
 import (
 	"net/http"
 
-	"github.com/vearch/vearch/sdk/go/v3/vearch/auth"
-	"github.com/vearch/vearch/sdk/go/v3/vearch/connection"
-	"github.com/vearch/vearch/sdk/go/v3/vearch/schema"
+	"github.com/vearch/vearch/v3/sdk/go/vearch/auth"
+	"github.com/vearch/vearch/v3/sdk/go/vearch/connection"
+	"github.com/vearch/vearch/v3/sdk/go/vearch/data"
+	"github.com/vearch/vearch/v3/sdk/go/vearch/schema"
 )
 
 type Config struct {
@@ -18,6 +19,7 @@ type Config struct {
 type Client struct {
 	connection *connection.Connection
 	schema     *schema.API
+	data       *data.API
 }
 
 func NewClient(config Config) (*Client, error) {
@@ -39,10 +41,15 @@ func NewClient(config Config) (*Client, error) {
 	client := &Client{
 		connection: con,
 		schema:     schema.New(con),
+		data:       data.New(con),
 	}
 	return client, nil
 }
 
 func (c *Client) Schema() *schema.API {
 	return c.schema
+}
+
+func (c *Client) Data() *data.API {
+	return c.data
 }

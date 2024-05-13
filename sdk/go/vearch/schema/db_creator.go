@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/vearch/vearch/sdk/go/v3/vearch/connection"
-	"github.com/vearch/vearch/sdk/go/v3/vearch/entities/models"
-	"github.com/vearch/vearch/sdk/go/v3/vearch/except"
+	"github.com/vearch/vearch/v3/sdk/go/vearch/connection"
+	"github.com/vearch/vearch/v3/sdk/go/vearch/entities/models"
+	"github.com/vearch/vearch/v3/sdk/go/vearch/except"
 )
 
 type DBCreator struct {

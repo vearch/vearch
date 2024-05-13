@@ -3,8 +3,8 @@ package except
 import (
 	"fmt"
 
-	"github.com/vearch/vearch/sdk/go/v3/vearch/connection"
-	"github.com/vearch/vearch/sdk/go/v3/vearch/fault"
+	"github.com/vearch/vearch/v3/sdk/go/vearch/connection"
+	"github.com/vearch/vearch/v3/sdk/go/vearch/fault"
 )
 
 func NewClientError(statusCode int, format string, args ...interface{}) *fault.ClientError {

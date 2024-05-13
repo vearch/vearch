@@ -7,6 +7,8 @@ import (
 	"io"
 	"net/http"
 	"runtime"
+
+	"github.com/vearch/vearch/v3/sdk/go/vearch/fault"
 )
 
 type Connection struct {
@@ -98,4 +100,17 @@ func (con *Connection) RunREST(ctx context.Context, path string, restMethod stri
 type ResponseData struct {
 	Body       []byte
 	StatusCode int
+}
+
+func (rd *ResponseData) DecodeBodyIntoTarget(target interface{}) error {
+	err := json.Unmarshal(rd.Body, target)
+	if err != nil {
+		return &fault.ClientError{
+			IsUnexpectedStatusCode: false,
+			StatusCode:             -1,
+			Msg:                    "failed to parse resonse data check DerivedFromError field for more information",
+			DerivedFromError:       err,
+		}
+	}
+	return nil
 }

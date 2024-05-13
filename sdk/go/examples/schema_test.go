@@ -5,9 +5,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	client "github.com/vearch/vearch/sdk/go/v3/vearch"
-	"github.com/vearch/vearch/sdk/go/v3/vearch/auth"
-	"github.com/vearch/vearch/sdk/go/v3/vearch/entities/models"
+	client "github.com/vearch/vearch/v3/sdk/go/vearch"
+	"github.com/vearch/vearch/v3/sdk/go/vearch/auth"
+	"github.com/vearch/vearch/v3/sdk/go/vearch/entities/models"
 )
 
 func TestSchemaCreateDB(t *testing.T) {
