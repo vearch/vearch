@@ -10,7 +10,8 @@ import (
 )
 
 type ResultDocs struct {
-	Code int `json:"code"`
+	Code int     `json:"code"`
+	Msg  *string `json:"msg,omitempty"`
 	Data struct {
 		Total       int `json:"total"`
 		DocumentIds []struct {

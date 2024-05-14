@@ -11,9 +11,9 @@ type IndexParams struct {
 }
 
 type Index struct {
-	IndexName   string       `json:"name"`
-	IndexType   string       `json:"type"`
-	IndexParams *IndexParams `json:"params,omitempty"`
+	Name   string       `json:"name"`
+	Type   string       `json:"type"`
+	Params *IndexParams `json:"params,omitempty"`
 }
 
 type Field struct {

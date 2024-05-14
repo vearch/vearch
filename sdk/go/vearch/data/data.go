@@ -15,3 +15,15 @@ func (data *API) Creator() *Creator {
 		connection: data.connection,
 	}
 }
+
+func (data *API) Searcher() *Searcher {
+	return &Searcher{
+		connection: data.connection,
+	}
+}
+
+func (data *API) Query() *Query {
+	return &Query{
+		connection: data.connection,
+	}
+}

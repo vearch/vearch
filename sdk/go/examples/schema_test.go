@@ -10,11 +10,8 @@ import (
 	"github.com/vearch/vearch/v3/sdk/go/vearch/entities/models"
 )
 
-func TestSchemaCreateDB(t *testing.T) {
-	ctx := context.Background()
+func setupClient(t *testing.T) *client.Client {
 	host := "http://127.0.0.1:9001"
-	dbName := "ts_db"
-	spaceName := "ts_space"
 	user := "root"
 	secret := "secret"
 
@@ -23,7 +20,15 @@ func TestSchemaCreateDB(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	return c
+}
 
+func TestSchemaCreateDB(t *testing.T) {
+	ctx := context.Background()
+
+	dbName := "ts_db"
+	spaceName := "ts_space"
+	c := setupClient(t)
 	var db *models.DB
 	var space *models.Space
 
@@ -31,7 +36,7 @@ func TestSchemaCreateDB(t *testing.T) {
 		db = &models.DB{
 			Name: dbName,
 		}
-		err = c.Schema().DBCreator().WithDB(db).Do(ctx)
+		err := c.Schema().DBCreator().WithDB(db).Do(ctx)
 		require.Nil(t, err)
 	})
 
@@ -43,20 +48,48 @@ func TestSchemaCreateDB(t *testing.T) {
 			ReplicaNum:   1,
 			Fields: []*models.Field{
 				{
-					Name: "int",
-					Type: "integer",
+					Name: "field_string",
+					Type: "string",
+					Index: &models.Index{
+						Name: "string",
+						Type: "SCALAR",
+					},
 				},
 				{
-					Name:      "vector",
+					Name: "field_float",
+					Type: "float",
+					Index: &models.Index{
+						Name: "float",
+						Type: "SCALAR",
+					},
+				},
+				{
+					Name: "field_int",
+					Type: "integer",
+					Index: &models.Index{
+						Name: "integer",
+						Type: "SCALAR",
+					},
+				},
+				{
+					Name: "field_double",
+					Type: "double",
+					Index: &models.Index{
+						Name: "double",
+						Type: "SCALAR",
+					},
+				},
+				{
+					Name:      "field_vector",
 					Type:      "vector",
-					Dimension: 512,
+					Dimension: 128,
 					StoreType: "MemoryOnly",
 					Index: &models.Index{
-						IndexName: "gamma",
-						IndexType: "HNSW",
-						IndexParams: &models.IndexParams{
+						Name: "gamma",
+						Type: "HNSW",
+						Params: &models.IndexParams{
 							MetricType:        "InnerProduct",
-							TrainingThreshold: 100000,
+							TrainingThreshold: 0,
 							EfConstruction:    64,
 							EfSearch:          32,
 						},
@@ -65,17 +98,24 @@ func TestSchemaCreateDB(t *testing.T) {
 			},
 		}
 
-		err = spaceCreator.WithDBName(dbName).WithSpace(space).Do(ctx)
+		err := spaceCreator.WithDBName(dbName).WithSpace(space).Do(ctx)
 		require.Nil(t, err)
 	})
+}
+
+func TestSchemaDeleteDB(t *testing.T) {
+	ctx := context.Background()
+	dbName := "ts_db"
+	spaceName := "ts_space"
+	c := setupClient(t)
 
 	t.Run("Test DeleteSpace", func(t *testing.T) {
-		err = c.Schema().SpaceDeleter().WithDBName(dbName).WithSpaceName(spaceName).Do(ctx)
+		err := c.Schema().SpaceDeleter().WithDBName(dbName).WithSpaceName(spaceName).Do(ctx)
 		require.Nil(t, err)
 	})
 
 	t.Run("Test DeleteDatabase", func(t *testing.T) {
-		err = c.Schema().DBDeleter().WithDBName(dbName).Do(ctx)
+		err := c.Schema().DBDeleter().WithDBName(dbName).Do(ctx)
 		require.Nil(t, err)
 	})
 }
