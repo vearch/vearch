@@ -11,12 +11,13 @@ option(BUILD_FAISSLIKE_INDEX "Build faisslike index" off)
 option(BUILD_RELAYOUT "Build relayout index" off)
 option(ENABLE_COVERAGE "Use gcov" off)
 option(BUILD_PYTHON_SDK "Build python sdk" off)
+option(BUILD_THREAD_NUM "Build faiss thread num" 4)
 
 
 exec_program(
     "sh"
     ${CMAKE_CURRENT_SOURCE_DIR}/third_party
-    ARGS "build.sh" ${BUILD_WITH_GPU})
+    ARGS "build.sh" ${BUILD_WITH_GPU} ${BUILD_THREAD_NUM})
 
 #ENV VARs
 set(THIRDPARTY ${CMAKE_CURRENT_SOURCE_DIR}/third_party)

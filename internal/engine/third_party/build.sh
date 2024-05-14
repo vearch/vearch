@@ -4,8 +4,7 @@ ROOT=$(dirname "$PWD")
 
 if [ ! -d "faiss" ]; then
   FAISS_HOME=$ROOT/third_party/faiss
-  tar -xzvf faiss-1.7.1.tar.gz
-  mv faiss faiss-1.7.1
+  tar -xzf faiss-1.7.1.tar.gz
   pushd faiss-1.7.1
   if [ -z $MKLROOT ]; then
     OS_NAME=$(uname)
@@ -17,7 +16,11 @@ if [ ! -d "faiss" ]; then
   else
     cmake -DFAISS_ENABLE_GPU=$1 -DFAISS_ENABLE_PYTHON=OFF -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Release -DFAISS_OPT_LEVEL=avx2 -D CMAKE_INSTALL_PREFIX=$FAISS_HOME -DBLA_VENDOR=Intel10_64_dyn -DMKL_LIBRARIES=$MKLROOT/lib/intel64 -B build .
   fi
-  make -C build -j4 faiss && make -C build install
+
+  COMPILE_THREAD_NUM=$2
+  echo "COMPILE_THREAD_NUM="$COMPILE_THREAD_NUM
+
+  make -C build $COMPILE_THREAD_NUM faiss && make -C build install
   popd
   \rm -rf faiss-1.7.1
 fi
