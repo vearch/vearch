@@ -99,3 +99,20 @@ func TestQuerytDoc(t *testing.T) {
 	require.Nil(t, err)
 	fmt.Printf("query result %v\n", result.Docs.Data.Documents...)
 }
+
+func TestDeletetDoc(t *testing.T) {
+	ctx := context.Background()
+	dbName := "ts_db"
+	spaceName := "ts_space"
+
+	c := setupClient(t)
+
+	ids := []string{
+		"1",
+		"2",
+	}
+
+	result, err := c.Data().Deleter().WithDBName(dbName).WithSpaceName(spaceName).WithIDs(ids).Do(ctx)
+	require.Nil(t, err)
+	fmt.Printf("delete result %v\n", result.Docs.Data.DocumentsIDs)
+}

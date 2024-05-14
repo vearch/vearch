@@ -27,3 +27,9 @@ func (data *API) Query() *Query {
 		connection: data.connection,
 	}
 }
+
+func (data *API) Deleter() *Deleter {
+	return &Deleter{
+		connection: data.connection,
+	}
+}
