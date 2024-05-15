@@ -59,8 +59,6 @@ message RaftCommand {
   CmdType type = 1;
   DocCmd write_command = 2;
   UpdateSpace update_space = 3;
-  SearchRequest search_del_req = 4;
-  SearchResponse search_del_resp = 5;
 }
 
 message SnapData {

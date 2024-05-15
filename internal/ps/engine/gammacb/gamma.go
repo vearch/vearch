@@ -79,6 +79,7 @@ func New(cfg EngineConfig) (engine.Engine, error) {
 
 	gamma_engine_instance := gamma.Init(config)
 	if gamma_engine_instance == nil {
+		cancel()
 		return nil, vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("init engine err"))
 	}
 

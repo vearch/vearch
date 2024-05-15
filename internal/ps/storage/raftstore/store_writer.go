@@ -46,14 +46,13 @@ func (s *Store) UpdateSpace(ctx context.Context, space *entity.Space) error {
 	}
 
 	// Raft Commit
-	raftCmd := CreateRaftCommand()
-	raftCmd.Type = vearchpb.CmdType_UPDATESPACE
-	if raftCmd.UpdateSpace == nil {
-		raftCmd.UpdateSpace = new(vearchpb.UpdateSpace)
+	raftCmd := &vearchpb.RaftCommand{
+		Type: vearchpb.CmdType_UPDATESPACE,
+		UpdateSpace: &vearchpb.UpdateSpace{
+			Version: space.Version,
+			Space:   bytes,
+		},
 	}
-	raftCmd.UpdateSpace.Version = space.Version
-	raftCmd.UpdateSpace.Space = bytes
-	defer CloseRaftCommand(raftCmd)
 
 	data, err := vjson.Marshal(raftCmd)
 
@@ -94,16 +93,15 @@ func (s *Store) Write(ctx context.Context, request *vearchpb.DocCmd) (err error)
 		}
 	}
 
-	raftCmd := CreateRaftCommand()
-	raftCmd.Type = vearchpb.CmdType_WRITE
-	raftCmd.WriteCommand = request
+	raftCmd := &vearchpb.RaftCommand{
+		Type:         vearchpb.CmdType_WRITE,
+		WriteCommand: request,
+	}
 
 	data, err := vjson.Marshal(raftCmd)
 	if err != nil {
 		return err
 	}
-
-	CloseRaftCommand(raftCmd)
 
 	// sumbit raft
 	err = s.RaftSubmit(data)
@@ -137,15 +135,13 @@ func (s *Store) Flush(ctx context.Context) error {
 	if err != nil {
 		log.Warn(err.Error())
 	}
-	raftCmd := CreateRaftCommand()
-	raftCmd.Type = vearchpb.CmdType_FLUSH
-
+	raftCmd := &vearchpb.RaftCommand{
+		Type: vearchpb.CmdType_FLUSH,
+	}
 	data, err := vjson.Marshal(raftCmd)
 	if err != nil {
 		return err
 	}
-
-	CloseRaftCommand(raftCmd)
 
 	future := s.RaftServer.Submit(uint64(s.Partition.Id), data)
 
