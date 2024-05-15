@@ -1,6 +1,6 @@
 module github.com/vearch/vearch/tools/backup
 
-go 1.19
+go 1.22.3
 
 require (
 	github.com/bytedance/sonic v1.11.3

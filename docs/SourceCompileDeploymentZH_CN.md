@@ -5,8 +5,8 @@
 #### 依赖环境
 
    1. CentOS、ubuntu和Mac OS都支持（推荐CentOS >= 7.2）
-   2. go >= 1.19
-   3. gcc >= 7
+   2. go >= 1.22
+   3. gcc >= 10
    4. cmake >= 3.17
    5. OpenBLAS
    6. tbb，CentOS可使用yum安装，如：yum install tbb-devel.x86_64

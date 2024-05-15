@@ -5,8 +5,8 @@
 #### Dependent Environment 
 
    1. CentOS, Ubuntu and Mac OS are all OK (recommend CentOS >= 7.2).
-   2. go >= 1.19 required.
-   3. gcc >= 7 required.
+   2. go >= 1.22 required.
+   3. gcc >= 10 required.
    4. cmake >= 3.17 required.
    5. OpenBLAS.
    6. tbb，In CentOS it can be installed by yum. Such as: yum install tbb-devel.x86_64.

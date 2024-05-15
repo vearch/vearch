@@ -42,9 +42,9 @@ cp -r /env/app/rocksdb-6.6.4/include /env/app/rocksdb_install/
 rm -rf /env/app/rocksdb-6.6.4 /env/app/rocksdb.tar.gz
 
 cd /env/app/
-if [ ! -f "go1.19.9.linux-amd64.tar.gz" ]; then
-    wget https://dl.google.com/go/go1.19.9.linux-amd64.tar.gz
+if [ ! -f "go1.22.3.linux-amd64.tar.gz" ]; then
+    wget https://go.dev/dl/go1.22.3.linux-amd64.tar.gz
 fi
 
-tar -xzf go1.19.9.linux-amd64.tar.gz
-rm -rf go1.19.9.linux-amd64.tar.gz
+tar -xzf go1.22.3.linux-amd64.tar.gz
+rm -rf go1.22.3.linux-amd64.tar.gz
