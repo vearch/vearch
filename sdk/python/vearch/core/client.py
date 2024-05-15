@@ -2,7 +2,7 @@ import requests
 from requests.adapters import HTTPAdapter
 from vearch.utils import singleton, compute_sign_auth
 from vearch.config import Config, DefaultConfig
-from vearch.const import DATABASE_URI, LIST_DATABASE_URI, AUTH_KEY
+from vearch.const import DATABASE_URI, LIST_DATABASE_URI, AUTH_KEY, CODE_SUCCESS, LIST_SPACE_URI
 from vearch.result import Result, get_result
 import logging
 
@@ -55,5 +55,12 @@ class RestClient(object):
         resp = requests.request(method="GET", url=url,auth=sign)
         return get_result(resp)
 
+    
+    def _list_space(self,database_name: str) -> Result:
+        url_params = {"database_name": database_name}
+        url = self.host + (LIST_SPACE_URI % url_params)
+        sign = compute_sign_auth(secret=self.token)
+        resp = requests.request(method="GET", url=url,auth=sign)
+        return get_result(resp)
 
 client = RestClient()

@@ -3,6 +3,7 @@ import requests
 from vearch.exception import VearchException
 import logging
 from typing import List
+from vearch.const import CODE_SUCCESS
 
 logger = logging.getLogger("vearch")
 
@@ -85,9 +86,9 @@ def get_result(resp: requests.Response) -> Result:
     r.text = ret.get("data", "")
     r.err_msg = ret.get("msg", "")
     if resp.status_code / 100 == 2:
-        if r.code != 0:
-            logger.error("result code:" + str(r.code) + "msg:" + r.err_msg)
-            raise VearchException(r.code, r.err_msg)
+        if r.code != CODE_SUCCESS:
+            logger.error("respone status code:" + str(resp.status_code) + "data:" + resp.text)
+            raise VearchException(r.code, r.err_msg)  
         return r
     else:
         logger.error("respone status code:" + str(resp.status_code) + "data:" + resp.text)

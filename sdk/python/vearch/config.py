@@ -9,4 +9,5 @@ class Config(NamedTuple):
     timeout: int = 30
 
 
-DefaultConfig = Config(host="localhost:9001")
+# DefaultConfig = Config(host="localhost:9001")
+DefaultConfig = Config(host="http://test-api-interface-1-router.vectorbase.svc.sq01.n.jd.local", token="secret")

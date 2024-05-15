@@ -8,12 +8,12 @@ class RelationOperator:
     GE = ">="
     LT = "<"
     LE = "<="
-    LIKE = "like"
+    LIKE = "LIKE"
 
 
 class BooleanOperator:
-    AND = "and"
-    OR = "or"
+    AND = "AND" 
+    OR = "OR"
 
 
 BooleanOperators = [BooleanOperator.AND, BooleanOperator.OR]
@@ -26,7 +26,7 @@ class FieldValue(object):
 
 
 class Condition(object):
-    def __int__(self, operator: str, fv: FieldValue):
+    def __init__(self, operator: str, fv: FieldValue):
         self.fv = fv
         self.relation_operator = operator
 
@@ -120,7 +120,7 @@ class Filter(object):
     print(result)  # True if the data satisfies the filter condition, False otherwise
     """
 
-    def __init__(self, operator: str, conditions: Union[FieldValue, List[Union[Condition, Conditions]]]):
+    def __init__(self, operator: str, conditions: Union[FieldValue, Union[Condition, Conditions]]):
         self.operator = operator
         self.conditions = conditions
 

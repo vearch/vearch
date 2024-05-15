@@ -48,12 +48,11 @@ class SpaceSchema:
 
     @classmethod
     def from_dict(cls, data_dict):
-        print(data_dict)
+     
         name = data_dict.get("space_name")
         schema_dict = data_dict.get("schema")
         logger.debug(schema_dict)
         fields = [Field.from_dict(field) for field in schema_dict.get("fields")]
-        print(type(name))
         return cls(name=name, fields=fields,
                    description=data_dict.get("desc", ""),
                    partition_num=data_dict.get("partition_num"),
