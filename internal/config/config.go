@@ -48,6 +48,7 @@ var (
 	buildTime          = "0"
 	commitID           = "xxxxx"
 	LogInfoPrintSwitch = false
+	Trace              = false
 )
 
 // SetConfigVersion set the version, time and commit id of build

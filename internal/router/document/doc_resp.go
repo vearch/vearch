@@ -211,7 +211,7 @@ func documentQueryResponse(srs []*vearchpb.SearchResult, head *vearchpb.Response
 		response["total"] = len(srs[0].ResultItems)
 	}
 
-	var documents []json.RawMessage
+	documents := make([]json.RawMessage, 0)
 	if len(srs) > 1 {
 		var wg sync.WaitGroup
 		resp := make([][]byte, len(srs))
@@ -261,7 +261,7 @@ func documentSearchResponse(srs []*vearchpb.SearchResult, head *vearchpb.Respons
 		}
 	}
 
-	var documents []json.RawMessage
+	documents := make([]json.RawMessage, 0)
 	if len(srs) > 1 {
 		var wg sync.WaitGroup
 		resp := make([][]byte, len(srs))
@@ -593,10 +593,10 @@ func deleteByQueryResult(resp *vearchpb.DelByQueryeResponse) (map[string]interfa
 	return result, nil
 }
 
-func docPrintLogSwitchResponse(printLogSwitch bool) ([]byte, error) {
+func configTraceResponse(trace bool) (map[string]bool, error) {
 	response := map[string]bool{
-		"print_log_switch": printLogSwitch,
+		"trace": trace,
 	}
 
-	return vjson.Marshal(response)
+	return response, nil
 }

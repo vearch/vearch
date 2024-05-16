@@ -10,11 +10,13 @@ type Level int8
 
 const (
 	DEBUG Level = iota
+	TRACE
 	INFO
 	WARN
 	ERROR
 
 	debug = "[DEBUG] "
+	trace = "[TRACE] "
 	info  = "[INFO] "
 	warn  = "[WARN] "
 	err   = "[ERROR] "
@@ -39,17 +41,28 @@ func (this *GoLog) IsDebugEnabled() bool {
 	return this.L == 0
 }
 
-func (this *GoLog) IsInfoEnabled() bool {
+func (this *GoLog) IsTraceEnabled() bool {
 	return this.L <= 1
 }
 
-func (this *GoLog) IsWarnEnabled() bool {
+func (this *GoLog) IsInfoEnabled() bool {
 	return this.L <= 2
+}
+
+func (this *GoLog) IsWarnEnabled() bool {
+	return this.L <= 3
 }
 
 func (this *GoLog) Debugf(format string, args ...interface{}) {
 	if this.IsDebugEnabled() {
 		this.LevelCode = debug
+		this.write(format, args...)
+	}
+}
+
+func (this *GoLog) Tracef(format string, args ...interface{}) {
+	if this.IsTraceEnabled() {
+		this.LevelCode = trace
 		this.write(format, args...)
 	}
 }
@@ -100,7 +113,7 @@ func (this *GoLog) Error(args ...interface{}) {
 	}
 }
 func (this *GoLog) Warn(args ...interface{}) {
-	this.LevelCode = err
+	this.LevelCode = warn
 	if len(args) <= 1 {
 		this.write(fmt.Sprint(args...))
 	} else {
@@ -109,7 +122,7 @@ func (this *GoLog) Warn(args ...interface{}) {
 	}
 }
 func (this *GoLog) Info(args ...interface{}) {
-	this.LevelCode = err
+	this.LevelCode = info
 	if len(args) <= 1 {
 		this.write(fmt.Sprint(args...))
 	} else {
@@ -117,8 +130,19 @@ func (this *GoLog) Info(args ...interface{}) {
 		this.write(format, args[1:]...)
 	}
 }
+
+func (this *GoLog) Trace(args ...interface{}) {
+	this.LevelCode = trace
+	if len(args) <= 1 {
+		this.write(fmt.Sprint(args...))
+	} else {
+		format := args[0].(string)
+		this.write(format, args[1:]...)
+	}
+}
+
 func (this *GoLog) Debug(args ...interface{}) {
-	this.LevelCode = err
+	this.LevelCode = debug
 	if len(args) <= 1 {
 		this.write(fmt.Sprint(args...))
 	} else {

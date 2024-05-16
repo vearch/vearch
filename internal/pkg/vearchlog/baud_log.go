@@ -40,6 +40,10 @@ func (l *vearchLog) IsDebugEnabled() bool {
 	return l.l.outputLevel == debugLog
 }
 
+func (l *vearchLog) IsTraceEnabled() bool {
+	return int(l.l.outputLevel) <= TRACE
+}
+
 func (l *vearchLog) IsInfoEnabled() bool {
 	return int(l.l.outputLevel) <= INFO
 }

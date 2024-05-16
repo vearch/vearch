@@ -139,6 +139,8 @@ func (ri *readerImpl) Search(ctx context.Context, request *vearchpb.SearchReques
 		response = &vearchpb.SearchResponse{}
 	}
 
+	partitionIDstr := strconv.FormatUint(uint64(ri.engine.partitionID), 10)
+
 	startTime := time.Now()
 	reqByte := gamma.SearchRequestSerialize(request)
 	serializeCostTime := (time.Since(startTime).Seconds()) * 1000
@@ -148,20 +150,21 @@ func (ri *readerImpl) Search(ctx context.Context, request *vearchpb.SearchReques
 	response.FlatBytes = respByte
 	serializeCostTimeStr := strconv.FormatFloat(serializeCostTime, 'f', -1, 64)
 	gammaCostTimeStr := strconv.FormatFloat(gammaCostTime, 'f', -1, 64)
+
 	if response.Head == nil {
 		costTimeMap := make(map[string]string)
-		costTimeMap["serializeCostTime"] = serializeCostTimeStr
-		costTimeMap["gammaCostTime"] = gammaCostTimeStr
+		costTimeMap["serializeCostTime_"+partitionIDstr] = serializeCostTimeStr
+		costTimeMap["gammaCostTime_"+partitionIDstr] = gammaCostTimeStr
 		responseHead := &vearchpb.ResponseHead{Params: costTimeMap}
 		response.Head = responseHead
 	} else if response.Head != nil && response.Head.Params == nil {
 		costTimeMap := make(map[string]string)
-		costTimeMap["serializeCostTime"] = serializeCostTimeStr
-		costTimeMap["gammaCostTime"] = gammaCostTimeStr
+		costTimeMap["serializeCostTime_"+partitionIDstr] = serializeCostTimeStr
+		costTimeMap["gammaCostTime_"+partitionIDstr] = gammaCostTimeStr
 		response.Head.Params = costTimeMap
 	} else {
-		response.Head.Params["serializeCostTime"] = serializeCostTimeStr
-		response.Head.Params["gammaCostTime"] = gammaCostTimeStr
+		response.Head.Params["serializeCostTime_"+partitionIDstr] = serializeCostTimeStr
+		response.Head.Params["gammaCostTime_"+partitionIDstr] = gammaCostTimeStr
 	}
 
 	if status.Code != 0 {

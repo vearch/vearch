@@ -516,20 +516,20 @@ func arrayToMap(feilds []string) map[string]string {
 	return mapObj
 }
 
-func doLogPrintSwitchParse(r *http.Request) (printSwitch bool, err error) {
+func configTraceParse(r *http.Request) (printSwitch bool, err error) {
 	reqBody, err := netutil.GetReqBody(r)
 	if err != nil {
 		return false, err
 	}
 	temp := struct {
-		PrintSwitch bool `json:"print_switch,omitempty"`
+		Trace bool `json:"trace,omitempty"`
 	}{}
 	err = json.Unmarshal(reqBody, &temp)
 	if err != nil {
-		err = vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("doLogPrintSwitchParse param convert json %s err: %v", string(reqBody), err))
+		err = vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("config trace param convert json %s err: %v", string(reqBody), err))
 		return false, err
 	}
-	return temp.PrintSwitch, nil
+	return temp.Trace, nil
 }
 
 func documentHeadParse(r *http.Request) (docRequest *request.DocumentRequest, dbName string, spaceName string, err error) {

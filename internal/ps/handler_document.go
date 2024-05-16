@@ -92,7 +92,7 @@ type UnaryHandler struct {
 
 func cost(s string, t time.Time) {
 	engTime := time.Now()
-	log.Debug("%s cost: [%v]", s, engTime.Sub(t))
+	log.Trace("%s cost: [%v]", s, engTime.Sub(t))
 }
 
 func (handler *UnaryHandler) Execute(ctx context.Context, req *vearchpb.PartitionData, reply *vearchpb.PartitionData) (err error) {
@@ -104,9 +104,11 @@ func (handler *UnaryHandler) Execute(ctx context.Context, req *vearchpb.Partitio
 		reply.Err = vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, errors.New(msg)).GetError()
 		return
 	}
-	if config.LogInfoPrintSwitch {
+
+	if config.Trace {
 		defer cost("UnaryHandler: "+method, time.Now())
 	}
+
 	if spanCtx, err := opentracing.GlobalTracer().Extract(opentracing.TextMap, opentracing.TextMapCarrier(reqMap)); err == nil {
 		span := opentracing.StartSpan("server-execute", ext.RPCServerOption(spanCtx))
 		defer span.Finish()
@@ -322,14 +324,14 @@ func query(ctx context.Context, store PartitionStore, request *vearchpb.QueryReq
 		log.Error("query doc failed, err: [%s]", err.Error())
 		response.Head.Err = vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err).GetError()
 	}
-	handlerCostTime := (time.Since(startTime).Seconds()) * 1000
-	handlerCostTimeStr := strconv.FormatFloat(handlerCostTime, 'f', -1, 64)
+	storeQueryCostTime := (time.Since(startTime).Seconds()) * 1000
+	storeQueryCostTimeStr := strconv.FormatFloat(storeQueryCostTime, 'f', -1, 64)
 
 	if response.Head != nil && response.Head.Params != nil {
-		response.Head.Params["handlerCostTime"] = handlerCostTimeStr
+		response.Head.Params["storeQueryCostTime"] = storeQueryCostTimeStr
 	} else {
 		costTimeMap := make(map[string]string)
-		costTimeMap["handlerCostTime"] = handlerCostTimeStr
+		costTimeMap["storeQueryCostTime"] = storeQueryCostTimeStr
 	}
 	defer func() {
 		if r := recover(); r != nil {
@@ -344,14 +346,15 @@ func search(ctx context.Context, store PartitionStore, request *vearchpb.SearchR
 		log.Error("search doc failed, err: [%s]", err.Error())
 		response.Head.Err = vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err).GetError()
 	}
-	handlerCostTime := (time.Since(startTime).Seconds()) * 1000
-	handlerCostTimeStr := strconv.FormatFloat(handlerCostTime, 'f', -1, 64)
+	partitionIDstr := strconv.FormatUint(uint64(store.GetEngine().GetPartitionID()), 10)
+	storeSearchCostTime := (time.Since(startTime).Seconds()) * 1000
+	storeSearchCostTimeStr := strconv.FormatFloat(storeSearchCostTime, 'f', -1, 64)
 
 	if response.Head != nil && response.Head.Params != nil {
-		response.Head.Params["handlerCostTime"] = handlerCostTimeStr
+		response.Head.Params["storeSearchCostTime_"+partitionIDstr] = storeSearchCostTimeStr
 	} else {
 		costTimeMap := make(map[string]string)
-		costTimeMap["handlerCostTime"] = handlerCostTimeStr
+		costTimeMap["storeSearchCostTime_"+partitionIDstr] = storeSearchCostTimeStr
 	}
 	defer func() {
 		if r := recover(); r != nil {

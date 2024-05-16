@@ -8,12 +8,17 @@ import (
 type Log interface {
 	IsDebugEnabled() bool
 
+	IsTraceEnabled() bool
+
 	IsInfoEnabled() bool
 
 	IsWarnEnabled() bool
 
 	Debug(v ...interface{})
 	Debugf(format string, v ...interface{})
+
+	Trace(v ...interface{})
+	Tracef(format string, v ...interface{})
 
 	Info(v ...interface{})
 	Infof(format string, v ...interface{})
@@ -74,6 +79,10 @@ func IsDebugEnabled() bool {
 	return Get().IsDebugEnabled()
 }
 
+func IsTraceEnabled() bool {
+	return Get().IsTraceEnabled()
+}
+
 func IsInfoEnabled() bool {
 	return Get().IsInfoEnabled()
 }
@@ -92,6 +101,10 @@ func Infof(format string, args ...interface{}) {
 
 func Debugf(format string, args ...interface{}) {
 	Get().Debugf(format, args...)
+}
+
+func Tracef(format string, args ...interface{}) {
+	Get().Tracef(format, args...)
 }
 
 func Warnf(format string, args ...interface{}) {
@@ -116,6 +129,10 @@ func Info(args ...interface{}) {
 }
 func Debug(args ...interface{}) {
 	Get().Debug(args...)
+}
+
+func Trace(args ...interface{}) {
+	Get().Trace(args...)
 }
 
 func Fatal(args ...interface{}) {
