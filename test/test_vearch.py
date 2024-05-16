@@ -248,7 +248,7 @@ class VearchCase:
     def test_documentQueryByDocumentIds(self):
         logger.info("documentQueryByDocumentIds")
         headers = {"content-type": "application/json"}
-        url = router_url + "/document/query"
+        url = router_url + "/document/query?trace=true"
         with open(fileData, "r") as dataLine1:
             for i, dataLine in zip(range(add_num), dataLine1):
                 idStr = dataLine.split(",", 1)[0].replace("{", "")
@@ -271,7 +271,7 @@ class VearchCase:
         assert len(partitions) > 0
         partition = partitions[0]["pid"]
 
-        url = router_url + "/document/query"
+        url = router_url + "/document/query?trace=true"
         headers = {"content-type": "application/json"}
 
         add_num_end = add_num + 100
@@ -292,7 +292,7 @@ class VearchCase:
     def test_documentQueryByFilter(self):
         logger.info("documentQueryByFilter")
         headers = {"content-type": "application/json"}
-        url = router_url + "/document/query"
+        url = router_url + "/document/query?trace=true"
         with open(fileData, "r") as dataLine1:
             for i, dataLine in zip(range(search_num), dataLine1):
                 idStr = dataLine.split(",", 1)[0].replace("{", "")
@@ -323,7 +323,7 @@ class VearchCase:
     def test_documentSearchByVector(self):
         logger.info("documentSearchByVector")
         headers = {"content-type": "application/json"}
-        url = router_url + "/document/search"
+        url = router_url + "/document/search?trace=true"
         with open(fileData, "r") as dataLine1:
             for i, dataLine in zip(range(search_num), dataLine1):
                 idStr = dataLine.split(",", 1)[0].replace("{", "")
@@ -399,7 +399,7 @@ class VearchCase:
     def test_documentDeleteByDocumentIds(self):
         logger.info("documentDeleteByDocumentIds")
         headers = {"content-type": "application/json"}
-        url = router_url + "/document/delete"
+        url = router_url + "/document/delete?trace=true"
         with open(fileData, "r") as dataLine1:
             for i, dataLine in zip(range(add_num), dataLine1):
                 idStr = dataLine.split(",", 1)[0].replace("{", "")
@@ -416,7 +416,7 @@ class VearchCase:
     def test_documentDeleteByFilter(self):
         logger.info("documentQueryByFilter")
         headers = {"content-type": "application/json"}
-        url = router_url + "/document/delete"
+        url = router_url + "/document/delete?trace=true"
         with open(fileData, "r") as dataLine1:
             for i, dataLine in zip(range(search_num), dataLine1):
                 idStr = dataLine.split(",", 1)[0].replace("{", "")

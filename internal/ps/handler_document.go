@@ -324,14 +324,15 @@ func query(ctx context.Context, store PartitionStore, request *vearchpb.QueryReq
 		log.Error("query doc failed, err: [%s]", err.Error())
 		response.Head.Err = vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err).GetError()
 	}
-	storeQueryCostTime := (time.Since(startTime).Seconds()) * 1000
-	storeQueryCostTimeStr := strconv.FormatFloat(storeQueryCostTime, 'f', -1, 64)
+	partitionIDstr := strconv.FormatUint(uint64(store.GetEngine().GetPartitionID()), 10)
+	storeQuery := (time.Since(startTime).Seconds()) * 1000
+	storeQueryStr := strconv.FormatFloat(storeQuery, 'f', 4, 64)
 
 	if response.Head != nil && response.Head.Params != nil {
-		response.Head.Params["storeQueryCostTime"] = storeQueryCostTimeStr
+		response.Head.Params["storeQuery_"+partitionIDstr] = storeQueryStr
 	} else {
 		costTimeMap := make(map[string]string)
-		costTimeMap["storeQueryCostTime"] = storeQueryCostTimeStr
+		costTimeMap["storeQuery"] = storeQueryStr
 	}
 	defer func() {
 		if r := recover(); r != nil {
@@ -347,14 +348,14 @@ func search(ctx context.Context, store PartitionStore, request *vearchpb.SearchR
 		response.Head.Err = vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err).GetError()
 	}
 	partitionIDstr := strconv.FormatUint(uint64(store.GetEngine().GetPartitionID()), 10)
-	storeSearchCostTime := (time.Since(startTime).Seconds()) * 1000
-	storeSearchCostTimeStr := strconv.FormatFloat(storeSearchCostTime, 'f', -1, 64)
+	storeSearch := (time.Since(startTime).Seconds()) * 1000
+	storeSearchStr := strconv.FormatFloat(storeSearch, 'f', 4, 64)
 
 	if response.Head != nil && response.Head.Params != nil {
-		response.Head.Params["storeSearchCostTime_"+partitionIDstr] = storeSearchCostTimeStr
+		response.Head.Params["storeSearch_"+partitionIDstr] = storeSearchStr
 	} else {
 		costTimeMap := make(map[string]string)
-		costTimeMap["storeSearchCostTime_"+partitionIDstr] = storeSearchCostTimeStr
+		costTimeMap["storeSearch_"+partitionIDstr] = storeSearchStr
 	}
 	defer func() {
 		if r := recover(); r != nil {

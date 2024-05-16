@@ -274,6 +274,13 @@ func (handler *DocumentHandler) handleDocumentQuery(c *gin.Context) {
 	args := &vearchpb.QueryRequest{}
 	args.Head = setRequestHeadFromGin(c)
 
+	trace := config.Trace
+	if trace_info, ok := args.Head.Params["trace"]; ok {
+		if trace_info == "true" {
+			trace = true
+		}
+	}
+
 	searchDoc, err := documentRequestParse(c.Request)
 	if err != nil {
 		httphelper.New(c).JsonError(errors.NewErrBadRequest(err))
@@ -322,7 +329,9 @@ func (handler *DocumentHandler) handleDocumentQuery(c *gin.Context) {
 		return
 	}
 	httphelper.New(c).JsonSuccess(result)
-	log.Trace("handleDocumentQuery total use :[%f] service use :[%f]", time.Since(startTime).Seconds()*1000, serviceCost.Seconds()*1000)
+	if trace {
+		log.Trace("handleDocumentQuery total use :[%.4f] service use :[%.4f]", time.Since(startTime).Seconds()*1000, serviceCost.Seconds()*1000)
+	}
 }
 
 func (handler *DocumentHandler) handleDocumentGet(c *gin.Context, searchDoc *request.SearchDocumentRequest) {
@@ -416,7 +425,7 @@ func (handler *DocumentHandler) handleDocumentSearch(c *gin.Context) {
 	}
 	httphelper.New(c).JsonSuccess(result)
 	if trace {
-		log.Trace("handleDocumentSearch total use :[%f] getSpace use :[%f] service use :[%f] detail use :[%v]",
+		log.Trace("handleDocumentSearch total use :[%.4f] getSpace use :[%.4f] service use :[%.4f] detail use :[%v]",
 			time.Since(startTime).Seconds()*1000, getSpaceCost.Seconds()*1000, serviceCost.Seconds()*1000, searchResp.Head.Params)
 	}
 }
@@ -427,6 +436,13 @@ func (handler *DocumentHandler) handleDocumentDelete(c *gin.Context) {
 	args := &vearchpb.SearchRequest{}
 	args.Head = setRequestHeadFromGin(c)
 	args.Head.Params["queryOnlyId"] = "true"
+
+	trace := config.Trace
+	if trace_info, ok := args.Head.Params["trace"]; ok {
+		if trace_info == "true" {
+			trace = true
+		}
+	}
 
 	searchDoc, err := documentRequestParse(c.Request)
 	if err != nil {
@@ -492,7 +508,6 @@ func (handler *DocumentHandler) handleDocumentDelete(c *gin.Context) {
 	delByQueryResp := handler.docService.deleteByQuery(c.Request.Context(), args)
 	serviceCost := time.Since(serviceStart)
 
-	log.Trace("handleDocumentDelete cost :%f", serviceCost)
 	result, err := deleteByQueryResult(delByQueryResp)
 	if err != nil {
 		httphelper.New(c).JsonError(errors.NewErrUnprocessable(err))
@@ -500,6 +515,10 @@ func (handler *DocumentHandler) handleDocumentDelete(c *gin.Context) {
 	}
 
 	httphelper.New(c).JsonSuccess(result)
+	if trace {
+		log.Trace("handleDocumentDelete total use :[%.4f] service use :[%.4f]",
+			time.Since(startTime).Seconds()*1000, serviceCost.Seconds()*1000)
+	}
 }
 
 // handleIndexFlush

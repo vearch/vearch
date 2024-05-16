@@ -1223,7 +1223,7 @@ def get_space(router_url: str, db_name: str, space_name: str):
 
 
 def get_partition(router_url: str, db_name: str, space_name: str):
-    url = f"{router_url}/{db_name}/{space_name}"
+    url = f"{router_url}/cache/{db_name}/{space_name}"
     resp = requests.get(url, auth=(username, password))
     partition_infos = resp.json()["data"]["partitions"]
     partition_ids = []
