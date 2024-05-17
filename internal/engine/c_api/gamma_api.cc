@@ -157,10 +157,10 @@ int AddOrUpdateDoc(void *engine, const char *doc_str, int len) {
 
 struct CStatus Search(void *engine, const char *request_str, int req_len,
                       char **response_str, int *res_len) {
-  vearch::Response response;
   vearch::Request request;
   request.Deserialize(request_str, req_len);
 
+  vearch::Response response(request.Trace());
   vearch::Status status;
   status = static_cast<vearch::Engine *>(engine)->Search(request, response);
   struct CStatus cstatus;

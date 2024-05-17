@@ -801,7 +801,9 @@ int GammaIVFPQGPUIndex::Search(RetrievalContext *retrieval_context, int n,
   vector<long> I(n * max_recallnum);
 
 #ifdef PERFORMANCE_TESTING
-  retrieval_context->GetPerfTool().Perf("GPUSearch prepare");
+  if (retrieval_context->GetPerfTool()) {
+    retrieval_context->GetPerfTool()->Perf("GPUSearch prepare");
+  }
 #endif
   GPUItem *item = new GPUItem(n, vec_q, recall_num, D.data(), I.data(), nprobe);
 
@@ -812,7 +814,9 @@ int GammaIVFPQGPUIndex::Search(RetrievalContext *retrieval_context, int n,
   delete item;
 
 #ifdef PERFORMANCE_TESTING
-  retrieval_context->GetPerfTool().Perf("GPU thread");
+  if (retrieval_context->GetPerfTool()) {
+    retrieval_context->GetPerfTool()->Perf("GPU thread");
+  }
 #endif
 
   bool right_filter = false;
@@ -961,7 +965,9 @@ int GammaIVFPQGPUIndex::Search(RetrievalContext *retrieval_context, int n,
   compute_dis();
 
 #ifdef PERFORMANCE_TESTING
-  retrieval_context->GetPerfTool().Perf("reorder");
+  if (retrieval_context->GetPerfTool()) {
+    retrieval_context->GetPerfTool()->Perf("reorder");
+  }
 #endif
   return 0;
 }

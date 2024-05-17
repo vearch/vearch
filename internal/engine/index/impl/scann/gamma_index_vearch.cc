@@ -496,7 +496,9 @@ int GammaVearchIndex::Search(RetrievalContext *retrieval_context, int n,
 #endif  // PYTHON_SDK
 
 #ifdef PERFORMANCE_TESTING
-  retrieval_context->GetPerfTool().Perf("search prepare");
+  if(retrieval_context->GetPerfTool()) {
+    retrieval_context->GetPerfTool()->Perf("search prepare");
+  }
 #endif
 
 #ifdef PYTHON_SDK
@@ -561,7 +563,9 @@ int GammaVearchIndex::Search(RetrievalContext *retrieval_context, int n,
   }
 #endif  // PYTHON_SDK
 #ifdef PERFORMANCE_TESTING
-  retrieval_context->GetPerfTool().Perf("search");
+  if(retrieval_context->GetPerfTool()) {
+    retrieval_context->GetPerfTool()->Perf("search");
+  }
 #endif
   return ret;
 }

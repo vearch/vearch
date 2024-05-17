@@ -98,6 +98,8 @@ class Response {
  public:
   Response();
 
+  Response(bool trace);
+
   virtual ~Response();
 
   virtual int Serialize(const std::string &space_name,

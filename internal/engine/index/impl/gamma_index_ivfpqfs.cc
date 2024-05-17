@@ -417,21 +417,27 @@ int GammaIVFPQFastScanIndex::Search(RetrievalContext *retrieval_context, int n,
     del2.set(recall_labels);
 
 #ifdef PERFORMANCE_TESTING
-    retrieval_context->GetPerfTool().Perf("search prepare");
+    if (retrieval_context->GetPerfTool()) {
+      retrieval_context->GetPerfTool()->Perf("search prepare");
+    }
 #endif
     pthread_rwlock_rdlock(&shared_mutex_);
     search(n, xq, k_rerank, recall_distances, recall_labels);
     pthread_rwlock_unlock(&shared_mutex_);
   } else {
 #ifdef PERFORMANCE_TESTING
-    retrieval_context->GetPerfTool().Perf("search prepare");
+    if (retrieval_context->GetPerfTool()) {
+      retrieval_context->GetPerfTool()->Perf("search prepare");
+    }
 #endif
     pthread_rwlock_rdlock(&shared_mutex_);
     search(n, xq, k, distances, labels);
     pthread_rwlock_unlock(&shared_mutex_);
   }
 #ifdef PERFORMANCE_TESTING
-  retrieval_context->GetPerfTool().Perf("search");
+  if (retrieval_context->GetPerfTool()) {
+    retrieval_context->GetPerfTool()->Perf("search");
+  }
 #endif
   if (rerank_ > 0) {
 #pragma omp for
@@ -447,7 +453,9 @@ int GammaIVFPQFastScanIndex::Search(RetrievalContext *retrieval_context, int n,
                   metric_type, vector_);
     }
 #ifdef PERFORMANCE_TESTING
-    retrieval_context->GetPerfTool().Perf("recompute");
+    if (retrieval_context->GetPerfTool()) {
+      retrieval_context->GetPerfTool()->Perf("recompute");
+    }
 #endif
   }
   return 0;

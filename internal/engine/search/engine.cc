@@ -327,7 +327,9 @@ Status Engine::Search(Request &request, Response &response_results) {
     }
   }
 #ifdef PERFORMANCE_TESTING
-  gamma_query.condition->GetPerfTool().Perf("filter");
+  if(gamma_query.condition->GetPerfTool()) {
+    gamma_query.condition->GetPerfTool()->Perf("filter");
+  }
 #endif
 
   if (vec_fields_num > 0) {
@@ -355,7 +357,9 @@ Status Engine::Search(Request &request, Response &response_results) {
     }
 
 #ifdef PERFORMANCE_TESTING
-    gamma_query.condition->GetPerfTool().Perf("search total");
+    if(gamma_query.condition->GetPerfTool()) {
+      gamma_query.condition->GetPerfTool()->Perf("search total");
+    }
 #endif
     response_results.SetEngineInfo(table_, vec_manager_, gamma_results,
                                    req_num);

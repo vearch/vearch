@@ -139,6 +139,7 @@ void Request::Deserialize(const char *data, int len) {
   index_params_ = request_->index_params()->str();
   multi_vector_rank_ = request_->multi_vector_rank();
   l2_sqrt_ = request_->l2_sqrt();
+  trace_ = request_->trace();
 
   if (vec_fields_.size() > 1 && request_->ranker()->str() != "") {
     ranker_ = new WeightedRanker(request_->ranker()->str(), vec_fields_.size());
@@ -225,6 +226,15 @@ bool Request::L2Sqrt() {
 }
 
 void Request::SetL2Sqrt(bool l2_sqrt) { l2_sqrt_ = l2_sqrt; }
+
+bool Request::Trace() {
+  if (request_)
+    return request_->trace();
+  else
+    return trace_;
+}
+
+void Request::SetTrace(bool trace) { trace_ = trace; }
 
 vearch::Ranker *Request::Ranker() { return ranker_; }
 

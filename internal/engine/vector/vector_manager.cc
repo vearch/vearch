@@ -600,9 +600,11 @@ Status VectorManager::Search(GammaQuery &query, GammaResult *results) {
     }
 
 #ifdef PERFORMANCE_TESTING
-    std::string msg;
-    msg += "search " + index_name;
-    query.condition->GetPerfTool().Perf(msg);
+    if(query.condition->GetPerfTool()) {
+      std::string msg;
+      msg += "search " + index_name;
+      query.condition->GetPerfTool()->Perf(msg);
+    }
 #endif
   }
 
@@ -691,7 +693,9 @@ Status VectorManager::Search(GammaQuery &query, GammaResult *results) {
   }
 
 #ifdef PERFORMANCE_TESTING
-  query.condition->GetPerfTool().Perf("merge result");
+  if(query.condition->GetPerfTool()) {
+    query.condition->GetPerfTool()->Perf("merge result");
+  }
 #endif
   return Status::OK();
 }

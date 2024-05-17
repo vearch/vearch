@@ -69,7 +69,9 @@ int CPPSearch2(void *engine, vearch::VectorResult *result) {
   if (ret) LOG(ERROR) << "index search error with ret=" << ret;
 
 #ifdef PERFORMANCE_TESTING
-  LOG(INFO) << gamma_query.condition->GetPerfTool().OutputPerf().str();
+  if(gamma_query.condition->GetPerfTool()) {
+    LOG(INFO) << gamma_query.condition->GetPerfTool()->OutputPerf().str();
+  }
 #endif
   return ret;
 }

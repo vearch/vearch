@@ -74,6 +74,10 @@ class Request : public RawData {
 
   void SetL2Sqrt(bool l2_sqrt);
 
+  bool Trace();
+
+  void SetTrace(bool trace);
+
   vearch::Ranker *Ranker();
 
   int SetRanker(std::string params, int weight_num);
@@ -96,6 +100,7 @@ class Request : public RawData {
   int multi_vector_rank_;
   bool l2_sqrt_;
   vearch::Ranker *ranker_;
+  bool trace_;
 };
 
 }  // namespace vearch

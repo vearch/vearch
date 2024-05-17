@@ -101,7 +101,7 @@ class RetrievalContext {
   // Score filter
   virtual bool IsSimilarScoreValid(float score) const = 0;
 
-  PerfTool &GetPerfTool() { return *perf_tool_; }
+  PerfTool *GetPerfTool() { return perf_tool_; }
 
   RetrievalParameters *retrieval_params_;
   PerfTool *perf_tool_;

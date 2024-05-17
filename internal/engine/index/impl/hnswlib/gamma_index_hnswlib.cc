@@ -412,9 +412,11 @@ int GammaIndexHNSWLIB::Search(RetrievalContext *retrieval_context, int n,
   }
 
 #ifdef PERFORMANCE_TESTING
-  std::string compute_msg = "hnsw compute ";
-  compute_msg += std::to_string(n);
-  retrieval_context->GetPerfTool().Perf(compute_msg);
+  if (retrieval_context->GetPerfTool()) {
+    std::string compute_msg = "hnsw compute ";
+    compute_msg += std::to_string(n);
+    retrieval_context->GetPerfTool()->Perf(compute_msg);
+  }
 #endif  // PERFORMANCE_TESTING
 
   return 0;

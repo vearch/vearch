@@ -34,6 +34,7 @@ table Request {
   multi_vector_rank:int;
   l2_sqrt:bool;                   // default FALSE, don't do sqrt; TRUE, do sqrt
   ranker:string;
+  trace:bool;
 }
 
 root_type Request;

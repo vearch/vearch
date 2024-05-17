@@ -142,7 +142,14 @@ class Request(object):
             return self._tab.String(o + self._tab.Pos)
         return None
 
-def RequestStart(builder): builder.StartObject(11)
+    # Request
+    def Trace(self):
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(26))
+        if o != 0:
+            return bool(self._tab.Get(flatbuffers.number_types.BoolFlags, o + self._tab.Pos))
+        return False
+
+def RequestStart(builder): builder.StartObject(12)
 def RequestAddReqNum(builder, reqNum): builder.PrependInt32Slot(0, reqNum, 0)
 def RequestAddTopn(builder, topn): builder.PrependInt32Slot(1, topn, 0)
 def RequestAddBruteForceSearch(builder, bruteForceSearch): builder.PrependInt32Slot(2, bruteForceSearch, 0)
@@ -158,4 +165,5 @@ def RequestAddIndexParams(builder, indexParams): builder.PrependUOffsetTRelative
 def RequestAddMultiVectorRank(builder, multiVectorRank): builder.PrependInt32Slot(8, multiVectorRank, 0)
 def RequestAddL2Sqrt(builder, l2Sqrt): builder.PrependBoolSlot(9, l2Sqrt, 0)
 def RequestAddRanker(builder, ranker): builder.PrependUOffsetTRelativeSlot(10, flatbuffers.number_types.UOffsetTFlags.py_type(ranker), 0)
+def RequestAddTrace(builder, trace): builder.PrependBoolSlot(11, trace, 0)
 def RequestEnd(builder): return builder.EndObject()

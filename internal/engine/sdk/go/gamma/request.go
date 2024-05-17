@@ -157,6 +157,7 @@ func SearchRequestSerialize(request *vearchpb.SearchRequest) []byte {
 	gamma_api.RequestAddMultiVectorRank(builder, request.MultiVectorRank)
 	gamma_api.RequestAddL2Sqrt(builder, request.L2Sqrt)
 	gamma_api.RequestAddRanker(builder, ranker)
+	gamma_api.RequestAddTrace(builder, request.Trace)
 
 	builder.Finish(builder.EndObject())
 	return builder.FinishedBytes()
@@ -249,6 +250,7 @@ func QueryRequestSerialize(request *vearchpb.QueryRequest) []byte {
 	gamma_api.RequestAddMultiVectorRank(builder, 0)
 	gamma_api.RequestAddL2Sqrt(builder, false)
 	gamma_api.RequestAddRanker(builder, ranker)
+	gamma_api.RequestAddTrace(builder, request.Trace)
 
 	builder.Finish(builder.EndObject())
 	return builder.FinishedBytes()

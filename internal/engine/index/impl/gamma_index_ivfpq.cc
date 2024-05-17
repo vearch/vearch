@@ -704,7 +704,9 @@ void GammaIVFPQIndex::search_preassigned(
   utils::ScopeDeleter<idx_t> del2(recall_labels);
 
 #ifdef PERFORMANCE_TESTING
-  retrieval_context->GetPerfTool().Perf("search prepare");
+  if (retrieval_context->GetPerfTool()) {
+    retrieval_context->GetPerfTool()->Perf("search prepare");
+  }
 #endif
 
   bool parallel_mode = retrieval_params->ParallelOnQueries() ? 0 : 1;
@@ -819,14 +821,18 @@ void GammaIVFPQIndex::search_preassigned(
 #pragma omp single
         {
 #ifdef PERFORMANCE_TESTING
-          retrieval_context->GetPerfTool().Perf("coarse");
+          if (retrieval_context->GetPerfTool()) {
+            retrieval_context->GetPerfTool()->Perf("coarse");
+          }
 #endif
           compute_dis(k, vec_q + i * d, simi, idxi, recall_simi, recall_idxi,
                       recall_num, rerank, metric_type, vector_,
                       retrieval_context);
 
 #ifdef PERFORMANCE_TESTING
-          retrieval_context->GetPerfTool().Perf("reorder");
+          if (retrieval_context->GetPerfTool()) {
+            retrieval_context->GetPerfTool()->Perf("reorder");
+          }
 #endif
         }
       }
@@ -837,9 +843,11 @@ void GammaIVFPQIndex::search_preassigned(
                << ", ndis: " << ndis;
   }
 #ifdef PERFORMANCE_TESTING
-  std::string compute_msg = "compute ";
-  compute_msg += std::to_string(n);
-  retrieval_context->GetPerfTool().Perf(compute_msg);
+  if (retrieval_context->GetPerfTool()) {
+    std::string compute_msg = "compute ";
+    compute_msg += std::to_string(n);
+    retrieval_context->GetPerfTool()->Perf(compute_msg);
+  }
 #endif
 }  // namespace vearch
 
