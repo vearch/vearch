@@ -207,7 +207,6 @@ std::pair<Status, std::string> StorageManager::Get(int cf_id, int id) {
   if (!s.ok()) {
     std::stringstream msg;
     msg << "rocksdb get error:" << s.ToString() << " key=" << key;
-    LOG(DEBUG) << msg.str();
     return {Status::IOError(msg.str()), std::string()};
   }
 
@@ -222,7 +221,6 @@ std::pair<Status, std::string> StorageManager::Get(int cf_id,
   if (!s.ok()) {
     std::stringstream msg;
     msg << "rocksdb get error:" << s.ToString() << " key=" << key;
-    LOG(DEBUG) << msg.str();
     return {Status::IOError(msg.str()), std::string()};
   }
 
@@ -240,7 +238,6 @@ Status StorageManager::GetString(int cf_id, int id, std::string &field_name,
   if (!s.ok()) {
     std::stringstream msg;
     msg << "rocksdb get error:" << s.ToString() << ", key=" << key_str;
-    LOG(DEBUG) << msg.str();
     return Status::IOError(msg.str());
   }
 

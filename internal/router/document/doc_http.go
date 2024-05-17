@@ -330,7 +330,7 @@ func (handler *DocumentHandler) handleDocumentQuery(c *gin.Context) {
 	}
 	httphelper.New(c).JsonSuccess(result)
 	if trace {
-		log.Trace("handleDocumentQuery total use :[%.4f] service use :[%.4f]", time.Since(startTime).Seconds()*1000, serviceCost.Seconds()*1000)
+		log.Trace("handleDocumentQuery total use :[%.4f] service use :[%.4f] detail use :[%v]", time.Since(startTime).Seconds()*1000, serviceCost.Seconds()*1000, searchResp.Head.Params)
 	}
 }
 
