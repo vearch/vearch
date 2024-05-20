@@ -18,7 +18,9 @@ To install the Vearch Go SDK, run the following command:
 go get -u github.com/vearch/vearch/sdk/go/v3
 ```
 
-## Setup Client
+## Usage Examples
+
+### Setup Client
 
 To interact with Vearch, you need to set up a client with the appropriate configuration:
 
@@ -38,7 +40,7 @@ func setupClient() (*vearch.Client, error) {
 }
 ```
 
-## Creating a Database and Space
+### Creating a Database and Space
 
 The following example shows how to create a database and a space within that database:
 
@@ -72,7 +74,7 @@ func createDBAndSpace(client *vearch.Client) error {
 }
 ```
 
-## Inserting Documents
+### Inserting Documents
 
 To insert documents into a space:
 
@@ -88,7 +90,7 @@ func upsertDocs(client *vearch.Client) error {
 }
 ```
 
-## Searching Documents
+### Searching Documents
 
 To search for documents using a vector:
 
@@ -109,7 +111,7 @@ func searchDocs(client *vearch.Client) error {
 }
 ```
 
-## Deleting Documents
+### Deleting Documents
 
 To delete documents by their IDs:
 

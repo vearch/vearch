@@ -4,8 +4,8 @@ from setuptools import setup
 
 
 setup(
-    name='vearch_cluster',
-    version='0.0.1',
+    name='pyvearch',
+    version='3.5.0',
     description='A library for efficient similarity search and storage of deep learning vectors.',
     url='https://github.com/vearch/vearch',
     author='vearch author',
