@@ -1,6 +1,6 @@
 package schema
 
-import "github.com/vearch/vearch/sdk/go/v3/connection"
+import "github.com/vearch/vearch/v3/sdk/go/connection"
 
 type API struct {
 	connection *connection.Connection

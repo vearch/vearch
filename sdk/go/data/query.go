@@ -4,9 +4,9 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/vearch/vearch/sdk/go/v3/connection"
-	"github.com/vearch/vearch/sdk/go/v3/entities/models"
-	"github.com/vearch/vearch/sdk/go/v3/except"
+	"github.com/vearch/vearch/v3/sdk/go/connection"
+	"github.com/vearch/vearch/v3/sdk/go/entities/models"
+	"github.com/vearch/vearch/v3/sdk/go/except"
 )
 
 type QueryResultDocs struct {

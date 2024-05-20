@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"runtime"
 
-	"github.com/vearch/vearch/sdk/go/v3/fault"
+	"github.com/vearch/vearch/v3/sdk/go/fault"
 )
 
 type Connection struct {

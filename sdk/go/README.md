@@ -24,8 +24,8 @@ To interact with Vearch, you need to set up a client with the appropriate config
 
 ```go
 import (
-    "github.com/vearch/vearch/sdk/go/v3"
-    "github.com/vearch/vearch/sdk/go/v3/auth"
+    "github.com/vearch/vearch/v3/sdk/go"
+    "github.com/vearch/vearch/v3/sdk/go/auth"
 )
 
 func setupClient() (*vearch.Client, error) {
@@ -45,7 +45,7 @@ The following example shows how to create a database and a space within that dat
 ```go
 import (
     "context"
-    "github.com/vearch/vearch/sdk/go/v3/entities/models"
+    "github.com/vearch/vearch/v3/sdk/go/entities/models"
 )
 
 func createDBAndSpace(client *vearch.Client) error {

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/vearch/vearch/sdk/go/v3/connection"
-	"github.com/vearch/vearch/sdk/go/v3/except"
+	"github.com/vearch/vearch/v3/sdk/go/connection"
+	"github.com/vearch/vearch/v3/sdk/go/except"
 )
 
 type DBDeleter struct {

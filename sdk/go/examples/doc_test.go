@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/vearch/vearch/sdk/go/v3/entities/models"
+	"github.com/vearch/vearch/v3/sdk/go/entities/models"
 )
 
 func TestUpsertDoc(t *testing.T) {

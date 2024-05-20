@@ -1,4 +1,4 @@
-module github.com/vearch/vearch/sdk/go/v3
+module github.com/vearch/vearch/v3/sdk/go
 
 go 1.22
 

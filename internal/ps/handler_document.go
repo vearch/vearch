@@ -274,7 +274,6 @@ func deleteDocs(ctx context.Context, store PartitionStore, items []*vearchpb.Ite
 		}(item)
 	}
 	wg.Wait()
-
 }
 
 func bulk(ctx context.Context, store PartitionStore, items []*vearchpb.Item) {

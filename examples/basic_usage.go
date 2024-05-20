@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	client "github.com/vearch/vearch/sdk/go/v3"
-	"github.com/vearch/vearch/sdk/go/v3/auth"
-	"github.com/vearch/vearch/sdk/go/v3/entities/models"
+	client "github.com/vearch/vearch/v3/sdk/go"
+	"github.com/vearch/vearch/v3/sdk/go/auth"
+	"github.com/vearch/vearch/v3/sdk/go/entities/models"
 )
 
 func setupClient() *client.Client {

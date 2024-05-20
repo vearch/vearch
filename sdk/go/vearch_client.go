@@ -3,10 +3,10 @@ package vearch
 import (
 	"net/http"
 
-	"github.com/vearch/vearch/sdk/go/v3/auth"
-	"github.com/vearch/vearch/sdk/go/v3/connection"
-	"github.com/vearch/vearch/sdk/go/v3/data"
-	"github.com/vearch/vearch/sdk/go/v3/schema"
+	"github.com/vearch/vearch/v3/sdk/go/auth"
+	"github.com/vearch/vearch/v3/sdk/go/connection"
+	"github.com/vearch/vearch/v3/sdk/go/data"
+	"github.com/vearch/vearch/v3/sdk/go/schema"
 )
 
 type Config struct {
