@@ -1,6 +1,6 @@
 package data
 
-import "github.com/vearch/vearch/v3/sdk/go/vearch/connection"
+import "github.com/vearch/vearch/sdk/go/v3/connection"
 
 type API struct {
 	connection *connection.Connection

@@ -1,6 +1,6 @@
 module github.com/vearch/vearch/v3
 
-go 1.22.3
+go 1.22
 
 require (
 	github.com/BurntSushi/toml v1.1.0
@@ -19,7 +19,6 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.13.0
 	github.com/shirou/gopsutil v3.21.11+incompatible
-	github.com/shopspring/decimal v1.3.1
 	github.com/smallnest/pool v0.0.0-20170926025334-4f76a6d6402e
 	github.com/smallnest/rpcx v1.6.5
 	github.com/spaolacci/murmur3 v1.1.0

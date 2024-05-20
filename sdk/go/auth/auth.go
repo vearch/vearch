@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/vearch/vearch/v3/sdk/go/vearch/connection"
+	"github.com/vearch/vearch/sdk/go/v3/connection"
 )
 
 type Config interface {
