@@ -15,7 +15,7 @@ Vearch is a cloud-native distributed vector database for efficient similarity se
 
 ## Key features
 
--  **Hybrid search**: Both vector search and scalar filtering.
+- **Hybrid search**: Both vector search and scalar filtering.
 
 - **Performance**: Fast vector retrieval - search from millions of objects in milliseconds. 
 
@@ -24,7 +24,34 @@ Vearch is a cloud-native distributed vector database for efficient similarity se
 
 ## Document
 
+### APIS
+
 * [Tutorial](https://vearch.readthedocs.io/en/latest) | [参考文档](https://vearch.readthedocs.io/zh_CN/latest)
+
+### SDK
+
+- **[Python SDK](sdk/python/README.md)**
+
+- **[Go SDK](sdk/go/README.md)**
+
+- **[Java SDK(under development)](sdk/java/README.md)**
+
+- **[Engine Python SDK](internal/engine/sdk/python/docs/APIPythonSDK.md)**:
+Vearch engine python sdk provides a lightweight vector embedding engine for local use on a single machine. Vearch Engine python sdk can be installed easily by pip install vearch.
+
+## Usage cases
+
+### Use Vearch as a memory backend
+
+- **[Langchain](sdk/integrations/langchain/README.md)**
+
+- **[LlamaIndex](sdk/integrations/llama-index/README.md)**
+
+- **[Langchaingo](sdk/integrations/langchaingo/vearch/README.md)**
+
+### Real world Demos
+
+- **[VisualSearch](docs/Quickstart.md)**: Vearch can be leveraged to build a complete visual search system to index billions of images. The image retrieval plugin for object detection and feature extraction is also required.
 
 ## Quick start
 
@@ -51,14 +78,6 @@ $ docker-compose up
 **Deploy by docker**: Quickly start with vearch docker image, please see [DeployByDocker](docs/DeployByDocker.md)
 
 **Compile by source code**: Quickly compile the source codes, please see [SourceCompileDeployment](docs/SourceCompileDeployment.md)
-
-
-## APIs and Use Cases
-
-**VisualSearch**: Vearch can be leveraged to build a complete visual search system to index billions of images. The image retrieval plugin for object detection and feature extraction is also required. For more information, please refer to [Quickstart.md](docs/Quickstart.md).
-
-**PythonSDK**: [APIPythonSDK.md](internal/engine/sdk/python/docs/APIPythonSDK.md)
-Vearch Python SDK enables vearch to use locally. Vearch python sdk can be installed easily by pip install vearch.
 
 ## Components
 

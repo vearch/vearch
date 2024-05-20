@@ -24,7 +24,34 @@ Vearch 是一个云原生分布式向量数据库，用于在 AI 应用程序中
 
 ## 文档
 
+### 接口
+
 * [参考文档](https://vearch.readthedocs.io/zh_CN/latest)
+
+### 开发手册
+
+- **[Python SDK](sdk/python/README.md)**
+
+- **[Go SDK](sdk/go/README.md)**
+
+- **[Java SDK(under development)](sdk/java/README.md)**
+
+- **[Engine Python SDK](internal/engine/sdk/python/docs/APIPythonSDK.md)**:
+Vearch引擎python sdk提供了一个轻量级向量存储和检索引擎，供单机本地使用。 Vearch Engine python sdk 可以通过 pip install vearch 轻松安装。
+
+## 使用案例
+
+### 大模型记忆后端
+
+- **[Langchain](sdk/integrations/langchain/README.md)**
+
+- **[LlamaIndex](sdk/integrations/llama-index/README.md)**
+
+- **[Langchaingo](sdk/integrations/langchaingo/vearchREADME.md)**
+
+### 实际场景
+
+- **[图片检索插件](docs/Quickstart.md)**: Vearch 可用于构建完整的视觉搜索系统来索引数十亿张图像。 还需要用于对象检测和特征提取的图像检索插件。
 
 ## 快速开始
 
@@ -51,14 +78,6 @@ $ docker-compose up
 **Docker编译部署**: 通过vearch docker镜像快速使用，请查看 [docker编译部署](docs/DeployByDockerZH_CN.md).
 
 **源码编译部署**: 通过源码快速编译部署，请查看 [源码编译部署](docs/SourceCompileDeploymentZH_CN.md).
-
-
-## 使用教程
-
-**图片检索插件**: Vearch 可用于构建完整的视觉搜索系统来索引数十亿张图像。 还需要用于对象检测和特征提取的图像检索插件。请参阅 [Quickstart.md](docs/Quickstart.md).
-
-**Python使用文档**: [APIPythonSDK.md](internal/engine/sdk/python/docs/APIPythonSDK.md)
-Vearch Python SDK 使vearch能够在本地使用。 Vearch python sdk 可以通过以下方式轻松安装： pip install vearch.
 
 ## 组件
 
