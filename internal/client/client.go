@@ -1052,9 +1052,6 @@ func GetNodeIdsByClientType(clientType string, partition *entity.Partition, serv
 	case "leader":
 		nodeId = partition.LeaderID
 	case "not_leader":
-		if log.IsDebugEnabled() {
-			log.Debug("search by partition:%v by not leader model by partition:[%d]", partition.Id)
-		}
 		noLeaderIDs := make([]entity.NodeID, 0)
 		for _, nodeID := range partition.Replicas {
 			_, serverExist := servers.Get(cast.ToString(nodeID))
@@ -1085,9 +1082,6 @@ func GetNodeIdsByClientType(clientType string, partition *entity.Partition, serv
 			}
 		}
 		nodeId = replicaRoundRobin.Next(partition.Id, randIDs)
-		if log.IsDebugEnabled() {
-			log.Debug("search by partition:%v by random model ID:[%d]", randIDs, nodeId)
-		}
 	case "least_connection":
 		leastId := uint64(0)
 		most := 1<<32 - 1
@@ -1129,9 +1123,6 @@ func GetNodeIdsByClientType(clientType string, partition *entity.Partition, serv
 		} else {
 			nodeId = replicaRoundRobin.Next(partition.Id, randIDs)
 		}
-		if log.IsDebugEnabled() {
-			log.Debug("search by partition:%v by least connection model ID:[%d]", randIDs, nodeId)
-		}
 	default:
 		randIDs := make([]entity.NodeID, 0)
 		for _, nodeID := range partition.Replicas {
@@ -1147,9 +1138,6 @@ func GetNodeIdsByClientType(clientType string, partition *entity.Partition, serv
 			}
 		}
 		nodeId = replicaRoundRobin.Next(partition.Id, randIDs)
-		if log.IsDebugEnabled() {
-			log.Debug("search by partition:%v by default model ID:[%d]", randIDs, nodeId)
-		}
 	}
 	return nodeId
 }
@@ -1319,10 +1307,6 @@ func GetSource(doc *vearchpb.ResultItem, space *entity.Space, sortFieldMap map[s
 func AddMergeResultArr(dest []*vearchpb.SearchResult, src []*vearchpb.SearchResult) error {
 	if len(dest) != len(src) {
 		log.Error("dest length:[%d] not equal src length:[%d]", len(dest), len(src))
-	}
-
-	if log.IsDebugEnabled() {
-		log.Debug("dest length:[%d] , src length:[%d]", len(dest), len(src))
 	}
 
 	if len(dest) <= len(src) {
