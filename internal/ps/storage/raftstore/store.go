@@ -197,16 +197,26 @@ func (s *Store) Destroy() (err error) {
 	if err = s.Close(); err != nil {
 		return
 	}
-	// delete data and raft log
-	if err = os.RemoveAll(s.DataPath); err != nil {
-		return
-	}
-	if err = os.RemoveAll(s.RaftPath); err != nil {
-		return
-	}
-	if err = os.RemoveAll(s.MetaPath); err != nil {
-		return
-	}
+
+	go func(s *Store) {
+		for {
+			if (s.Engine != nil) && !s.Engine.HasClosed() {
+				time.Sleep(3 * time.Second)
+				continue
+			}
+			// delete data and raft log
+			if err = os.RemoveAll(s.DataPath); err != nil {
+				return
+			}
+			if err = os.RemoveAll(s.RaftPath); err != nil {
+				return
+			}
+			if err = os.RemoveAll(s.MetaPath); err != nil {
+				return
+			}
+			break
+		}
+	}(s)
 	return
 }
 

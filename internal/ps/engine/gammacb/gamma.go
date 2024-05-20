@@ -275,10 +275,10 @@ func (ge *gammaEngine) HasClosed() bool {
 }
 
 func (ge *gammaEngine) Close() {
-	closeEngine := ge.gamma
+	enginePtr := ge.gamma
 	ge.gamma = nil
 	ge.cancel()
-	go func(closeEngine unsafe.Pointer) {
+	go func(enginePtr unsafe.Pointer) {
 		i := 0
 		for {
 			time.Sleep(3 * time.Second)
@@ -289,7 +289,7 @@ func (ge *gammaEngine) Close() {
 			}
 			start, flakeUUID := time.Now(), uuid.NewString()
 			log.Info("to close gamma engine begin token:[%s]", flakeUUID)
-			if resp := gamma.Close(closeEngine); resp != 0 {
+			if resp := gamma.Close(enginePtr); resp != 0 {
 				log.Error("to close gamma engine fail:[%d]", resp)
 			} else {
 				log.Info("to close gamma engine success:[%d]", resp)
@@ -298,7 +298,7 @@ func (ge *gammaEngine) Close() {
 			log.Info("to close gamma engine end token:[%s] use time:[%d]", flakeUUID, time.Since(start))
 			break
 		}
-	}(closeEngine)
+	}(enginePtr)
 }
 
 func (ge *gammaEngine) SetEngineCfg(config *gamma.Config) error {
