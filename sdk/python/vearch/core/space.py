@@ -71,7 +71,7 @@ class Space(object):
                                 auth=sign)
         return get_result(resp)
 
-    def upsert_doc(self, data: Union[List, pd.DataFrame]) -> UpsertResult:
+    def upsert(self, data: Union[List, pd.DataFrame]) -> UpsertResult:
         try:
             if not self._schema:
                 has, schema = self.exist()
@@ -122,16 +122,14 @@ class Space(object):
             raise DocumentException(CodeType.UPSERT_DOC, "data is empty")
         return True
 
-    def delete_doc(self, filter: Filter) -> Result:
+    def delete(self, filter: Filter) -> Result:
         url = self.client.host + DELETE_DOC_URI
-        # req_body = {"database": self.db_name, "space": self.name, "filters": filter.dict()}
         req_body = {"db_name": self.db_name, "space_name": self.name, "filters": filter.dict()}
 
         logger.debug(req_body)
         sign = compute_sign_auth()
         resp = requests.request(method="POST", url=url, data=json.dumps(req_body), auth=sign)
         logger.debug(resp.__dict__)
-        # resp = self.client.s.send(req)
         return get_result(resp)
 
     def search(self, vector_infos: Optional[List[VectorInfo]], filter: Optional[Filter] = None,

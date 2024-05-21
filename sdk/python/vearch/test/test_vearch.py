@@ -91,7 +91,7 @@ def test_upsert_doc_data_field_missing():
         data.append(book_item)
         logger.debug(book_item)
     with pytest.raises(DocumentException) as excinfo:  
-        vc.upsert_doc(database_name, space_name, data)
+        vc.upsert(database_name, space_name, data)
     assert str(excinfo.value) == ""
         
 def test_upsert_doc() -> List:
@@ -107,8 +107,16 @@ def test_upsert_doc() -> List:
                      ractor[random.randint(0, 2)]]
         data.append(book_item)
         logger.debug(book_item)
-    ret = vc.upsert_doc(database_name, space_name, data)
+    ret = vc.upsert(database_name, space_name, data)
     assert len(ret.get_document_ids()) >= 0
+
+def test_delete_doc():
+    conditons = [Condition(operator = '<', fv = FieldValue(field = "book_num",value = 25)),
+                 Condition(operator = '>', fv = FieldValue(field = "book_num",value = 12))
+              ]
+    filters = Filter(operator = "AND",conditions = conditons)
+    ret = vc.delete(database_name, space_name,filters)
+    assert ret.__dict__["code"] == 0  
     
     
 def test_query():

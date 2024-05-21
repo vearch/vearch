@@ -5,7 +5,7 @@ This README provides examples on how to use the Vearch Python SDK for interactin
 
 Before you begin, ensure you have the following:
 
-- Python 3.8 and above.
+- Python 3.7 and above.
 - Access to a running Vearch server.
 
 ## Installation
@@ -34,19 +34,18 @@ vc = Vearch(config)
 from vearch.schema.field import Field
 from vearch.schema.space import SpaceSchema
 from vearch.utils import DataType, MetricType, VectorInfo
-from vearch.schema.index import IvfPQIndex, Index, ScalarIndex, HNSWIndex
+from vearch.schema.index import FlatIndex, ScalarIndex
 
 ret = vc.create_database("database_test")
 print("create db: ", ret.dict_str())
 
 book_name = Field("book_name", DataType.STRING, desc="the name of book", index=ScalarIndex("book_name_idx"))
 book_num=Field("book_num", DataType.INTEGER, desc="the num of book",index=ScalarIndex("book_num_idx"))
-book_vector = Field("book_character", DataType.VECTOR,
-                    IvfPQIndex("book_vec_idx", 10000, MetricType.Inner_product, 2048, 128), dimension=512)
-space_schema = SpaceSchema("book_info", fields=[book_name,book_num, book_vector, ractor_address])
+book_vector = Field("book_character", DataType.VECTOR, FlatIndex("book_vec_idx", MetricType.Inner_product), dimension=512)
+space_schema = SpaceSchema("book_info", fields=[book_name,book_num, book_vector])
 
 ret = vc.create_space("database_test", space_schema)
-print("create space: ", ret.text, ret.err_msg)
+print("create space: ", ret.text)
 ```
 
 ### Inserting Documents
@@ -61,7 +60,7 @@ for i in range(8):
                     num[i],
                     [random.uniform(0, 1) for _ in range(512)]]
     data.append(book_item)
-ret = vc.upsert_doc("database_test", "book_info", data)
+ret = vc.upsert("database_test", "book_info", data)
 document_ids = ret.get_document_ids()
 ```
 
@@ -80,14 +79,14 @@ for doc in ret:
 
 ```python
 ret = vc.query("database_test", "book_info", document_ids)
-print(ret):
+print(ret)
 ```
 
 ### Deleting Documents
 
 ```python
 ret = vc.delete("database_test", "book_info", document_ids)
-print(ret):
+print(ret)
 ```
 
 ### More

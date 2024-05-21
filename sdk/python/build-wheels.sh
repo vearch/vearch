@@ -18,7 +18,7 @@ function get_version() {
 get_version
 
 if [ ${OS} == "Darwin" ];then
-    PY_TAGS=(3.6 3.7 3.8 3.9)
+    PY_TAGS=(3.7 3.8 3.9 3.10 3.11 3.12)
     for TAG in ${PY_TAGS[*]} 
     do
         PY_NAME=python${TAG}
@@ -33,8 +33,7 @@ elif [ `expr substr ${OS} 1 5` == "Linux" ];then
     for PYBIN in /opt/python/*/bin; do
         "${PYBIN}/pip" install -r dev-requirements.txt -i https://mirrors.aliyun.com/pypi/simple/
         "${PYBIN}/python" setup.py bdist_wheel
-        auditwheel repair dist/vearch* 
-        rm -rf dist build vearch.egg-info 
+        rm -rf build pyvearch.egg-info 
     done 
 elif [ `expr substr ${OS} 1 10` == "MINGW" ];then
     echo "windows not support"

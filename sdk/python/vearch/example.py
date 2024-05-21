@@ -58,7 +58,7 @@ def upsert_document(vc: Vearch) -> List:
         data.append(book_item)
         logger.debug(book_item)
     space = Space("database_test", "book_info")
-    ret = space.upsert_doc(data)
+    ret = space.upsert(data)
     assert len(ret.get_document_ids()) >= 0
     if ret:
         logger.debug("upsert result:" + str(ret.get_document_ids()))
@@ -79,7 +79,7 @@ def upsert_document_from_vearch(vc: Vearch) -> List:
                      ractor[random.randint(0, 2)]]
         data.append(book_item)
         logger.debug(book_item)
-    ret = vc.upsert_doc("database_test", "book_info",data)
+    ret = vc.upsert("database_test", "book_info",data)
     if ret:
         logger.debug("upsert result:" + str(ret.get_document_ids()))
         return ret.get_document_ids()

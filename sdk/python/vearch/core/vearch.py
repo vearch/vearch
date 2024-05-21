@@ -5,7 +5,7 @@ from vearch.core.client import client
 from vearch.result import Result, get_result, ResultStatus, UpsertResult, SearchResult
 from vearch.schema.index import Index
 from vearch.schema.space import SpaceSchema
-from vearch.const import SPACE_URI, INDEX_URI, UPSERT_DOC_URI, SEARCH_DOC_URI, QUERY_DOC_URI, LIST_SPACE_URI, AUTH_KEY, CODE_SPACE_NOT_EXIST, CODE_SUCCESS, MSG_NOT_EXIST
+from vearch.const import SPACE_URI, INDEX_URI, UPSERT_DOC_URI, SEARCH_DOC_URI, QUERY_DOC_URI, LIST_SPACE_URI, DELETE_DOC_URI, AUTH_KEY, CODE_SPACE_NOT_EXIST, CODE_SUCCESS, MSG_NOT_EXIST
 from vearch.exception import DatabaseException, VearchException, SpaceException, DocumentException
 from vearch.utils import CodeType, compute_sign_auth, VectorInfo
 from vearch.filter import Filter
@@ -130,8 +130,16 @@ class Vearch(object):
             logger.error(result.dict_str())
             raise SpaceException(code=CodeType.LIST_SPACES, message="list space failed:" + result.err_msg)
             
+    def delete(self, database_name: str, space_name: str,filter: Filter) -> Result:
+        url = self.client.host + DELETE_DOC_URI
+        req_body = {"db_name": database_name, "space_name": space_name, "filters": filter.dict()}
+        logger.debug(req_body)
+        sign = compute_sign_auth()
+        resp = requests.request(method="POST", url=url, data=json.dumps(req_body), auth=sign)
+        logger.debug(resp.__dict__)
+        return get_result(resp)
     
-    def upsert_doc(self, database_name: str, space_name: str, data: Union[List, pd.DataFrame]) -> UpsertResult:
+    def upsert(self, database_name: str, space_name: str, data: Union[List, pd.DataFrame]) -> UpsertResult:
         try:
             if not self.is_space_exist(database_name, space_name):
                 raise SpaceException(CodeType.CHECK_SPACE_EXIST, message="space not exist")
