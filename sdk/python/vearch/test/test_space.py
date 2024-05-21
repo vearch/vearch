@@ -17,8 +17,7 @@ database_name = "database_test"
 database_name1 = "database_test1"
 space_name = "book_info"
 space_name1 = "book_info1"
-# config = Config(host="http://test-api-interface-1-router.vectorbase.svc.sq01.n.jd.local", token="secret")
-# vc = Vearch(config)
+
 space_not = Space(database_name1, space_name1)
 space = Space(database_name, space_name)
 

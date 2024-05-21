@@ -8,6 +8,8 @@ from vearch.schema.index import IvfPQIndex, Index, ScalarIndex
 from vearch.filter import Filter,Condition,FieldValue,Conditions
 from vearch.exception import DatabaseException, VearchException, SpaceException, DocumentException
 
+from config import host_url
+
 import logging
 from typing import List
 import json
@@ -17,7 +19,7 @@ logger = logging.getLogger("vearch")
 database_name = "database_test"
 database_name1 = "database_test1"
 space_name = "book_info"
-config = Config(host="http://test-api-interface-1-router.vectorbase.svc.sq01.n.jd.local", token="secret")
+config = Config(host=host_url, token="secret")
 vc = Vearch(config)
 
 def create_space_schema(space_name) -> SpaceSchema:
@@ -31,7 +33,7 @@ def create_space_schema(space_name) -> SpaceSchema:
     return space_schema
 
 def test_create_database_db_not_exist():
-    config = Config(host="http://test-api-interface-1-router.vectorbase.svc.sq01.n.jd.local", token="secret")
+    config = Config(host=host_url, token="secret")
     vc = Vearch(config)
     logger.debug(vc.client.host)
     ret = vc.create_database(database_name)
@@ -39,7 +41,7 @@ def test_create_database_db_not_exist():
     assert ret.__dict__["code"] in [0,1]
        
 def test_create_database_existed():
-    config = Config(host="http://test-api-interface-1-router.vectorbase.svc.sq01.n.jd.local", token="secret")
+    config = Config(host=host_url, token="secret")
     vc = Vearch(config)
     logger.debug(vc.client.host)
     with pytest.raises(VearchException) as excinfo:  
@@ -90,7 +92,7 @@ def test_upsert_doc_data_field_missing():
         data.append(book_item)
         logger.debug(book_item)
     with pytest.raises(DocumentException) as excinfo:  
-        vc.upsert_doc(database_name, space_name, data)
+        vc.upsert(database_name, space_name, data)
     assert str(excinfo.value) == ""
         
 def test_upsert_doc() -> List:
@@ -106,7 +108,7 @@ def test_upsert_doc() -> List:
                      ractor[random.randint(0, 2)]]
         data.append(book_item)
         logger.debug(book_item)
-    ret = vc.upsert_doc(database_name, space_name, data)
+    ret = vc.upsert(database_name, space_name, data)
     assert len(ret.get_document_ids()) >= 0
     
     

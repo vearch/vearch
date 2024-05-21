@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+#     container: vearch/vearch_env:latest
+
+    steps:
+    - uses: actions/checkout@v3
+      with:
+          fetch-depth: 0
+    - name: compile
+      run: |
+        pwd
+        ls -l
+        cd cloud
+        ./compile.sh
+    - name: build
+      run: |
+        ls -l build/lib
+        cd cloud
+        ./build.sh
+    - name: gen config
+      run: |
+        cd cloud
+        cp ../config/config.toml .
+    - name: run docker
+      run: |
+        cd cloud
+        nohup docker run -p 8817:8817 -p 9001:9001 -v $PWD/config.toml:/vearch/config.toml vearch/vearch:latest all &
+    - name: sleep
+      run: sleep 30s
+    - name: install dependency
+      run: |
+        pip install requests pytest
+        pip install -r dev-requirements.txt
+        python setup.py bdist_wheel
+        pip install dist/pyvearch*
+    - name: python sdk test
+      run: |
+        cd sdk/python/vearch/test
+        pytest

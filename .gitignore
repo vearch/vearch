@@ -10,6 +10,7 @@ vearch.iml
 .idea/
 .vscode/
 __pycache__/
+err.log
 
 # Test binary, build with `go test -c`
 *.test
@@ -40,6 +41,8 @@ cloud/compile/lib/
 sdk/python/build
 sdk/python/dist
 sdk/python/vearch_cluster.egg-info
+sdk/python/pyvearch.egg-info
+sdk/python/*.whl
 
 #skip engine
 engine/third_party/faiss-1.7.1
