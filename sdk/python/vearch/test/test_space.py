@@ -1,4 +1,5 @@
 from vearch.config import Config
+from vearch.core.db import Database
 from vearch.core.space import Space
 from vearch.schema.field import Field
 from vearch.schema.space import SpaceSchema
@@ -14,11 +15,12 @@ import pytest
 logger = logging.getLogger("vearch_test")
 
 database_name = "database_test"
-database_name1 = "database_test1"
 space_name = "book_info"
 space_name1 = "book_info1"
 
-space_not = Space(database_name1, space_name1)
+db = Database(database_name)
+
+space_not = Space(database_name, space_name1)
 space = Space(database_name, space_name)
 
 def create_space_schema(space_name) -> SpaceSchema:
@@ -31,8 +33,12 @@ def create_space_schema(space_name) -> SpaceSchema:
     space_schema = SpaceSchema(space_name, fields=[book_name,book_num, book_vector, ractor_address])
     return space_schema
 
-def test_is_space_not_exist():
-    
+def test_create_database():
+    ret = db.create()
+    logger.debug(ret)
+    assert ret.__dict__["code"] == 0
+
+def test_is_space_not_exist():    
     ret = space_not.exist()
     assert ret[0] == False
     

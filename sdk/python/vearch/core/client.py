@@ -32,19 +32,13 @@ class RestClient(object):
     def _create_db(self, database_name) -> Result:
         url_params = {"database_name": database_name}
         url = self.host + DATABASE_URI % url_params
-        logger.debug("curl -X POST " + url + " -H Authorization:%s" % self.token)
         sign = compute_sign_auth(secret=self.token)
         resp = requests.request(method="POST", url=url, auth=sign)
-        if resp.status_code != 200:
-            logger.error("resp:" + str(resp.text))
-        else:
-            logger.debug("resp:" + str(resp.text))
         return get_result(resp)
 
     def _drop_db(self, database_name: str) -> Result:
         url_params = {"database_name": database_name}
         url = self.host + (DATABASE_URI % url_params)
-        logger.debug(url)
         sign = compute_sign_auth(secret=self.token)
         resp = requests.request(method="DELETE", url=url,auth=sign)
         return get_result(resp)

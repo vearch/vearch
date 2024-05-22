@@ -36,7 +36,6 @@ class ScalarIndex(Index):
         super().__init__(index_name, IndexType.SCALAR, **kwargs)
 
     def dict(self):
-        logger.debug("type:" + IndexType.SCALAR)
         return {"name": self._index_name, "type": IndexType.SCALAR}
 
 

@@ -1,5 +1,6 @@
 from vearch.config import Config
 from vearch.core.db import Database
+from vearch.core.space import Space
 from vearch.schema.field import Field
 from vearch.schema.space import SpaceSchema
 from vearch.utils import DataType, MetricType, VectorInfo
@@ -13,8 +14,8 @@ import json
 import pytest
 logger = logging.getLogger("db_test")
 
-database_name = "database_test_exist"
-database_name1 = "database_test_not_exist"
+database_name = "database_test_db1"
+database_name1 = "database_test_db_not_exist"
 space_name = "book_info"
 space_name1 = "book_info1"
 
@@ -25,11 +26,10 @@ def test_is_database_not_exist():
     ret = db_not.exist()
     assert ret == False
 
-    
 def test_create_database():
     ret = db.create()
     logger.debug(ret)
-    assert ret.__dict__["code"] in [0,1]
+    assert ret.__dict__["code"] == 0
 
     
 def test_is_database_exist():
@@ -58,10 +58,17 @@ def test_list_spaces():
     logger.debug(ret)
     assert ret.__dict__["code"] == 0
 
+    
 def test_drop_database():
     with pytest.raises(VearchException) as excinfo:  
         db.drop()
     assert str(excinfo.value) == ""
+    
+def test_drop_db():
+    space=Space(database_name, space_name)
+    space.drop()
+    ret = db.drop()
+    assert ret.__dict__["code"] == 0
         
 
 

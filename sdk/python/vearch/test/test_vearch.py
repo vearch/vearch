@@ -1,4 +1,4 @@
-from vearch.config import Config
+from vearch.config import Config, DefaultConfig
 from vearch.core.vearch import Vearch
 from vearch.schema.field import Field
 from vearch.schema.space import SpaceSchema
@@ -7,7 +7,6 @@ from vearch.schema.index import IvfPQIndex, Index, ScalarIndex
 from vearch.filter import Filter,Condition,FieldValue,Conditions
 from vearch.exception import DatabaseException, VearchException, SpaceException, DocumentException
 
-from config import host_url
 
 import logging
 from typing import List
@@ -15,12 +14,12 @@ import json
 import pytest
 logger = logging.getLogger("vearch_test")
 
-database_name = "database_test"
+database_name = "database_test_v"
 database_name1 = "database_test_not_exist"
 space_name = "book_info"
 space_name1 = "book_infonot_exist"
 
-config = Config(host=host_url, token="secret")
+config = DefaultConfig
 vc = Vearch(config)
 
 def create_space_schema(space_name) -> SpaceSchema:
@@ -38,8 +37,6 @@ def test_is_database_not_exist():
     assert ret == False
     
 def test_create_database():
-    config = Config(host=host_url, token="secret")
-    vc = Vearch(config)
     logger.debug(vc.client.host)
     ret = vc.create_database(database_name)
     logger.debug(ret.dict_str())

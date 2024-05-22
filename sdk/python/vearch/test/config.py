@@ -1,1 +1,1 @@
-host_url="http://127.0.0.1:9001"
+host_url="http://localhost:9001"

@@ -40,8 +40,6 @@ class SpaceSchema:
         space_schema = {"name": self.name, "desc": self.description, "partition_num": self.partition_num,
                         "replication_num": self.replication_num}
 
-        logger.debug("space_schema" + json.dumps(space_schema))
-
         fields_dict = [field.dict() for field in self.fields]
         space_schema["fields"] = fields_dict
         return space_schema
@@ -51,7 +49,6 @@ class SpaceSchema:
      
         name = data_dict.get("space_name")
         schema_dict = data_dict.get("schema")
-        logger.debug(schema_dict)
         fields = [Field.from_dict(field) for field in schema_dict.get("fields")]
         return cls(name=name, fields=fields,
                    description=data_dict.get("desc", ""),

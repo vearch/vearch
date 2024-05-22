@@ -30,7 +30,6 @@ class Space(object):
             self._schema = space
         sign = compute_sign_auth(secret=self.client.token)
         resp = requests.request(method="POST", url=url, data=json.dumps(space.dict()), auth=sign)
-        logger.debug(resp.__dict__)
         return get_result(resp)
     
     
@@ -39,8 +38,6 @@ class Space(object):
         url = self.client.host + SPACE_URI % url_params
         sign = compute_sign_auth(secret=self.client.token)
         resp= requests.request(method="DELETE", url=url, auth=sign)
-        # print(resp.__dict__)
-        # resp = self.client.s.send(req)
         return get_result(resp)
 
     def exist(self) -> [bool, SpaceSchema]:
@@ -97,7 +94,6 @@ class Space(object):
                             record[field.name] = em[i]
                         records.append(record)
                 req_body.update({"documents": records})
-                logger.debug(req_body)
                 sign = compute_sign_auth(secret=self.client.token)
                 resp = requests.request(method="POST", url=url, data=json.dumps(req_body),
                                         auth=sign)
@@ -107,8 +103,6 @@ class Space(object):
         except VearchException as e:
             raise  e
             if e.code == 0:
-                logger.error(e.code)
-                logger.error(e.message)
                 r = UpsertResult(code="200", msg=e.message)
                 return r
 
@@ -126,10 +120,8 @@ class Space(object):
         url = self.client.host + DELETE_DOC_URI
         req_body = {"db_name": self.db_name, "space_name": self.name, "filters": filter.dict()}
 
-        logger.debug(req_body)
         sign = compute_sign_auth()
         resp = requests.request(method="POST", url=url, data=json.dumps(req_body), auth=sign)
-        logger.debug(resp.__dict__)
         return get_result(resp)
 
     def search(self, vector_infos: Optional[List[VectorInfo]], filter: Optional[Filter] = None,
@@ -193,7 +185,6 @@ class Space(object):
         if kwargs:
             req_body.update(kwargs)
 
-        logger.debug(json.dumps(req_body))
         sign = compute_sign_auth(secret=self.client.token)
         resp = requests.request(method="POST", url=url, data=json.dumps(req_body),
                                 auth=sign)
@@ -226,8 +217,6 @@ class Space(object):
             req_body["fields"] = fields
         if filter:
             req_body["filters"] = filter.dict()
-        logger.debug(url)
-        logger.debug(json.dumps(req_body))
         sign = compute_sign_auth(secret=self.client.token)
         resp = requests.request(method="POST", url=url, data=json.dumps(req_body), auth=sign)
         ret = get_result(resp)

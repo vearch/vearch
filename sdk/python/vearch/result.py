@@ -14,13 +14,13 @@ class ResultStatus:
 
 
 class Result(object):
-    def __init__(self, code: str = "", err_msg: str = "", text: str = ""):
+    def __init__(self, code: str = "", msg: str = "", text: str = ""):
         self.code = code
-        self.err_msg = err_msg
+        self.msg = msg
         self.text = text
 
     def dict_str(self):
-        ret = {"code": self.code, "err_msg": self.err_msg, "content": self.text}
+        ret = {"code": self.code, "msg": self.msg, "data": self.text}
         ret_str = json.dumps(ret)
         return ret_str
 
@@ -41,7 +41,6 @@ class UpsertResult(object):
         :param resp:
         :return:
         """
-        logger.debug(resp.text)
         ret = json.loads(resp.text)
         code = ret.get("code", -1)
         msg = ret.get("msg", "")
@@ -68,7 +67,6 @@ class SearchResult(object):
 
     @classmethod
     def parse_search_result_from_response(cls, resp: requests.Response):
-        logger.debug(resp.text)
         ret = json.loads(resp.text)
         code = ret.get("code", -1)
         msg = ret.get("msg", "")
@@ -80,17 +78,14 @@ class SearchResult(object):
 
 def get_result(resp: requests.Response) -> Result:
     r = Result()
-    logger.debug(resp.text)
     ret = json.loads(resp.text)
     r.code = ret.get("code", -1)
     r.text = ret.get("data", "")
     r.err_msg = ret.get("msg", "")
     if resp.status_code / 100 == 2:
         if r.code != CODE_SUCCESS:
-            logger.error("respone status code:" + str(resp.status_code) + "data:" + resp.text)
             raise VearchException(r.code, r.err_msg)  
         return r
     else:
-        logger.error("respone status code:" + str(resp.status_code) + "data:" + resp.text)
         if r.code != -1:
             raise VearchException(r.code, r.err_msg)

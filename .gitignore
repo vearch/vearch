@@ -10,7 +10,7 @@ vearch.iml
 .idea/
 .vscode/
 __pycache__/
-err.log
+err.log*
 
 # Test binary, build with `go test -c`
 *.test
