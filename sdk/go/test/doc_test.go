@@ -6,15 +6,13 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	client "github.com/vearch/vearch/v3/sdk/go"
+	"github.com/vearch/vearch/v3/sdk/go/data"
 	"github.com/vearch/vearch/v3/sdk/go/entities/models"
 )
 
-func TestUpsertDoc(t *testing.T) {
+func upsertDocs(c *client.Client, dbName, spaceName string) (result *data.DocWrapper, err error) {
 	ctx := context.Background()
-	dbName := "ts_db"
-	spaceName := "ts_space"
-
-	c := setupClient(t)
 
 	documents := []interface{}{
 		map[string]interface{}{
@@ -31,9 +29,32 @@ func TestUpsertDoc(t *testing.T) {
 		},
 	}
 
-	result, err := c.Data().Creator().WithDBName(dbName).WithSpaceName(spaceName).WithDocs(documents).Do(ctx)
+	result, err = c.Data().Creator().WithDBName(dbName).WithSpaceName(spaceName).WithDocs(documents).Do(ctx)
+	return result, err
+}
+
+func TestUpsertDoc(t *testing.T) {
+	ctx := context.Background()
+	dbName := "ts_db"
+	spaceName := "ts_space"
+
+	c := setupClient(t)
+
+	err := createDB(c, dbName)
+	require.Nil(t, err)
+
+	err = createSpace(c, dbName, spaceName)
+	require.Nil(t, err)
+
+	result, err := upsertDocs(c, dbName, spaceName)
 	require.Nil(t, err)
 	fmt.Printf("result %v\n", result.Docs.Data.Total)
+
+	err = c.Schema().SpaceDeleter().WithDBName(dbName).WithSpaceName(spaceName).Do(ctx)
+	require.Nil(t, err)
+
+	err = c.Schema().DBDeleter().WithDBName(dbName).Do(ctx)
+	require.Nil(t, err)
 }
 
 func TestSearchtDoc(t *testing.T) {
@@ -42,6 +63,15 @@ func TestSearchtDoc(t *testing.T) {
 	spaceName := "ts_space"
 
 	c := setupClient(t)
+	err := createDB(c, dbName)
+	require.Nil(t, err)
+
+	err = createSpace(c, dbName, spaceName)
+	require.Nil(t, err)
+
+	_, err = upsertDocs(c, dbName, spaceName)
+	require.Nil(t, err)
+
 	vector := []models.Vector{
 		{
 			Field:   "field_vector",
@@ -52,6 +82,12 @@ func TestSearchtDoc(t *testing.T) {
 	result, err := c.Data().Searcher().WithDBName(dbName).WithSpaceName(spaceName).WithLimit(2).WithVectors(vector).Do(ctx)
 	require.Nil(t, err)
 	fmt.Printf("result %v\n", result.Docs.Data.Documents...)
+
+	err = c.Schema().SpaceDeleter().WithDBName(dbName).WithSpaceName(spaceName).Do(ctx)
+	require.Nil(t, err)
+
+	err = c.Schema().DBDeleter().WithDBName(dbName).Do(ctx)
+	require.Nil(t, err)
 }
 
 func TestSearchtDocWithFilter(t *testing.T) {
@@ -60,6 +96,15 @@ func TestSearchtDocWithFilter(t *testing.T) {
 	spaceName := "ts_space"
 
 	c := setupClient(t)
+	err := createDB(c, dbName)
+	require.Nil(t, err)
+
+	err = createSpace(c, dbName, spaceName)
+	require.Nil(t, err)
+
+	_, err = upsertDocs(c, dbName, spaceName)
+	require.Nil(t, err)
+
 	vector := []models.Vector{
 		{
 			Field:   "field_vector",
@@ -80,7 +125,15 @@ func TestSearchtDocWithFilter(t *testing.T) {
 
 	result, err := c.Data().Searcher().WithDBName(dbName).WithSpaceName(spaceName).WithLimit(2).WithVectors(vector).WithFilters(filter).Do(ctx)
 	require.Nil(t, err)
-	fmt.Printf("result %v\n", result.Docs.Data.Documents...)
+	for i, doc := range result.Docs.Data.Documents {
+		fmt.Printf("result[%d] %v\n", i, doc)
+	}
+
+	err = c.Schema().SpaceDeleter().WithDBName(dbName).WithSpaceName(spaceName).Do(ctx)
+	require.Nil(t, err)
+
+	err = c.Schema().DBDeleter().WithDBName(dbName).Do(ctx)
+	require.Nil(t, err)
 }
 
 func TestQuerytDoc(t *testing.T) {
@@ -89,6 +142,14 @@ func TestQuerytDoc(t *testing.T) {
 	spaceName := "ts_space"
 
 	c := setupClient(t)
+	err := createDB(c, dbName)
+	require.Nil(t, err)
+
+	err = createSpace(c, dbName, spaceName)
+	require.Nil(t, err)
+
+	_, err = upsertDocs(c, dbName, spaceName)
+	require.Nil(t, err)
 
 	ids := []string{
 		"1",
@@ -97,7 +158,15 @@ func TestQuerytDoc(t *testing.T) {
 
 	result, err := c.Data().Query().WithDBName(dbName).WithSpaceName(spaceName).WithIDs(ids).Do(ctx)
 	require.Nil(t, err)
-	fmt.Printf("query result %v\n", result.Docs.Data.Documents...)
+	for i, doc := range result.Docs.Data.Documents {
+		fmt.Printf("result[%d] %v\n", i, doc)
+	}
+
+	err = c.Schema().SpaceDeleter().WithDBName(dbName).WithSpaceName(spaceName).Do(ctx)
+	require.Nil(t, err)
+
+	err = c.Schema().DBDeleter().WithDBName(dbName).Do(ctx)
+	require.Nil(t, err)
 }
 
 func TestDeletetDoc(t *testing.T) {
@@ -106,6 +175,14 @@ func TestDeletetDoc(t *testing.T) {
 	spaceName := "ts_space"
 
 	c := setupClient(t)
+	err := createDB(c, dbName)
+	require.Nil(t, err)
+
+	err = createSpace(c, dbName, spaceName)
+	require.Nil(t, err)
+
+	_, err = upsertDocs(c, dbName, spaceName)
+	require.Nil(t, err)
 
 	ids := []string{
 		"1",
@@ -115,4 +192,13 @@ func TestDeletetDoc(t *testing.T) {
 	result, err := c.Data().Deleter().WithDBName(dbName).WithSpaceName(spaceName).WithIDs(ids).Do(ctx)
 	require.Nil(t, err)
 	fmt.Printf("delete result %v\n", result.Docs.Data.DocumentsIDs)
+	for i, doc := range result.Docs.Data.DocumentsIDs {
+		fmt.Printf("result[%d] %v\n", i, doc)
+	}
+
+	err = c.Schema().SpaceDeleter().WithDBName(dbName).WithSpaceName(spaceName).Do(ctx)
+	require.Nil(t, err)
+
+	err = c.Schema().DBDeleter().WithDBName(dbName).Do(ctx)
+	require.Nil(t, err)
 }

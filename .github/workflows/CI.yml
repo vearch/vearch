@@ -44,3 +44,7 @@ jobs:
         pytest test_vearch.py -x --log-cli-level=INFO
         pytest test_document_* -k "not test_vearch_document_upsert_benchmark" -x --log-cli-level=INFO
         pytest test_module_* -x --log-cli-level=INFO
+    - name: test go sdk
+      run: |
+        cd sdk/go/test
+        go test -v
