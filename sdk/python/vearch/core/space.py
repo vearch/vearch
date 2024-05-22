@@ -1,7 +1,7 @@
 from vearch.schema.index import Index
 from vearch.core.client import client
 from vearch.schema.space import SpaceSchema
-from vearch.result import Result, ResultStatus, get_result, UpsertResult, SearchResult
+from vearch.result import Result, ResultStatus, get_result, UpsertResult, SearchResult, DeleteResult
 from vearch.const import LIST_SPACE_URI, SPACE_URI, INDEX_URI, UPSERT_DOC_URI, DELETE_DOC_URI, QUERY_DOC_URI, SEARCH_DOC_URI, \
     CODE_SPACE_NOT_EXIST, AUTH_KEY, CODE_SUCCESS, MSG_NOT_EXIST
 from vearch.exception import SpaceException, DocumentException, VearchException
@@ -49,7 +49,7 @@ class Space(object):
             resp = requests.request(method="GET", url=url, auth=sign)
             result = get_result(resp)
             if result.code == CODE_SUCCESS:
-                space_schema_dict = result.text
+                space_schema_dict = result.data
                 space_schema = SpaceSchema.from_dict(space_schema_dict)
                 return True, space_schema
             else:
@@ -116,13 +116,17 @@ class Space(object):
             raise DocumentException(CodeType.UPSERT_DOC, "data is empty")
         return True
 
-    def delete(self, filter: Filter) -> Result:
+    def delete(self, document_ids: Optional[List] = [], filter: Optional[Filter] = None,  limit: int = 50) -> Result:
         url = self.client.host + DELETE_DOC_URI
-        req_body = {"db_name": self.db_name, "space_name": self.name, "filters": filter.dict()}
+        req_body = {"db_name": self.db_name, "space_name": self.name, "limit": limit}
+        if document_ids:
+            req_body["document_ids"] = document_ids
+        if filter:
+            req_body["filters"] = filter.dict()
 
         sign = compute_sign_auth()
         resp = requests.request(method="POST", url=url, data=json.dumps(req_body), auth=sign)
-        return get_result(resp)
+        return DeleteResult.parse_delete_result_from_response(resp)
 
     def search(self, vector_infos: Optional[List[VectorInfo]], filter: Optional[Filter] = None,
                fields: Optional[List] = None, vector: bool = False, limit: int = 50, **kwargs) -> List[Dict]:
@@ -188,8 +192,7 @@ class Space(object):
         sign = compute_sign_auth(secret=self.client.token)
         resp = requests.request(method="POST", url=url, data=json.dumps(req_body),
                                 auth=sign)
-        sr = SearchResult.parse_search_result_from_response(resp)
-        return sr.documents
+        return SearchResult.parse_search_result_from_response(resp)
 
     def query(self, document_ids: Optional[List] = [], filter: Optional[Filter] = None,
               partition_id: Optional[str] = "",
@@ -208,7 +211,7 @@ class Space(object):
         if (not document_ids) and (not filter):
             raise SpaceException(CodeType.QUERY_DOC, "document_ids and filter can not both null")
         url = self.client.host + QUERY_DOC_URI
-        req_body = {"db_name": self.db_name, "space_name": self.name, "vector_value": vector}
+        req_body = {"db_name": self.db_name, "space_name": self.name, "vector_value": vector, "limit": limit}
         if document_ids:
             req_body["document_ids"] = document_ids
         if partition_id:
@@ -219,7 +222,4 @@ class Space(object):
             req_body["filters"] = filter.dict()
         sign = compute_sign_auth(secret=self.client.token)
         resp = requests.request(method="POST", url=url, data=json.dumps(req_body), auth=sign)
-        ret = get_result(resp)
-        if ret.code == CODE_SUCCESS:
-            return json.dumps(ret.text)
-        return []
+        return SearchResult.parse_search_result_from_response(resp)

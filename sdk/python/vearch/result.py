@@ -14,13 +14,13 @@ class ResultStatus:
 
 
 class Result(object):
-    def __init__(self, code: str = "", msg: str = "", text: str = ""):
+    def __init__(self, code: str = "", msg: str = "", data: str = ""):
         self.code = code
         self.msg = msg
-        self.text = text
+        self.data = data
 
     def dict_str(self):
-        ret = {"code": self.code, "msg": self.msg, "data": self.text}
+        ret = {"code": self.code, "msg": self.msg, "data": self.data}
         ret_str = json.dumps(ret)
         return ret_str
 
@@ -36,7 +36,19 @@ class UpsertResult(object):
     def parse_upsert_result_from_response(cls, resp: requests.Response):
         """
        response content like:
-       {"code":0,"msg":"success","total":5,"document_ids":[{"_id":"-7406650708070185766","status":200,"error":"success"},{"status":200,"error":"success","_id":"-1644104496683872820"},{"_id":"-509921751725925904","status":200,"error":"success"},{"status":200,"error":"success","_id":"6142641378725051944"},{"_id":"-2560796653511183804","status":200,"error":"success"}]}
+       {
+            "code":0,
+            "msg":"success",
+            "data": {
+                "total":5,
+                "document_ids":[{"_id":"-7406650708070185766","status":200,"error":"success"},
+                                {"status":200,"error":"success","_id":"-1644104496683872820"},
+                                {"_id":"-509921751725925904","status":200,"error":"success"},
+                                {"status":200,"error":"success","_id":"6142641378725051944"},
+                                {"_id":"-2560796653511183804","status":200,"error":"success"}]
+                }
+            }
+        }
 
         :param resp:
         :return:
@@ -76,16 +88,50 @@ class SearchResult(object):
         return sr
 
 
+class DeleteResult(object):
+    def __init__(self, code: int = 0, msg: str = "", total: int = 0):
+        self.code = code
+        self.msg = msg
+        self.total = total
+        self.document_ids = []
+
+    @classmethod
+    def parse_delete_result_from_response(cls, resp: requests.Response):
+        """
+       response content like:
+       {
+            "code":0,
+            "msg":"success",
+            "data": {
+                "total":5,
+                "document_ids":["-7406650708070185766","-1644104496683872820""-509921751725925904"]
+            }
+        }
+
+        :param resp:
+        :return:
+        """
+        ret = json.loads(resp.text)
+        code = ret.get("code", -1)
+        msg = ret.get("msg", "")
+        data = ret.get("data", None)
+        total = data.get("total", -1)
+        document_ids = data.get("document_ids", [])
+        dr = cls(code, msg, total)
+        dr.document_ids = document_ids
+        return dr
+
+
 def get_result(resp: requests.Response) -> Result:
     r = Result()
     ret = json.loads(resp.text)
     r.code = ret.get("code", -1)
-    r.text = ret.get("data", "")
-    r.err_msg = ret.get("msg", "")
+    r.data = ret.get("data", "")
+    r.msg = ret.get("msg", "")
     if resp.status_code / 100 == 2:
         if r.code != CODE_SUCCESS:
-            raise VearchException(r.code, r.err_msg)  
+            raise VearchException(r.code, r.msg)  
         return r
     else:
         if r.code != -1:
-            raise VearchException(r.code, r.err_msg)
+            raise VearchException(r.code, r.msg)

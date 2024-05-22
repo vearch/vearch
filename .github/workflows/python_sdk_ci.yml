@@ -39,6 +39,7 @@ jobs:
     - name: install dependency
       run: |
         pip install requests pytest
+        cd sdk/python
         pip install -r dev-requirements.txt
         python setup.py bdist_wheel
         pip install dist/pyvearch*

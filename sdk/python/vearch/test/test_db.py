@@ -50,7 +50,7 @@ def create_space_schema(space_name) -> SpaceSchema:
 
 def test_create_space():
     ret = db.create_space(create_space_schema("book_info"))
-    assert ret.text["name"] == "book_info"
+    assert ret.data["name"] == "book_info"
     
     
 def test_list_spaces():
@@ -66,7 +66,9 @@ def test_drop_database():
     
 def test_drop_db():
     space=Space(database_name, space_name)
-    space.drop()
+    ret = space.drop()
+    assert ret.__dict__["code"] == 0
+
     ret = db.drop()
     assert ret.__dict__["code"] == 0
         

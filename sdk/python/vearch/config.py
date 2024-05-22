@@ -9,4 +9,4 @@ class Config(NamedTuple):
     timeout: int = 30
 
 
-DefaultConfig = Config(host="localhost:9001", token="secret")
+DefaultConfig = Config(host="http://localhost:9001", token="secret")

@@ -2,7 +2,7 @@ from vearch.config import Config
 from vearch.core.db import Database
 from vearch.core.space import Space
 from vearch.core.client import client
-from vearch.result import Result, get_result, ResultStatus, UpsertResult, SearchResult
+from vearch.result import Result, get_result, ResultStatus, UpsertResult, SearchResult, DeleteResult
 from vearch.schema.index import Index
 from vearch.schema.space import SpaceSchema
 from vearch.const import SPACE_URI, INDEX_URI, UPSERT_DOC_URI, SEARCH_DOC_URI, QUERY_DOC_URI, LIST_SPACE_URI, DELETE_DOC_URI, AUTH_KEY, CODE_SPACE_NOT_EXIST, CODE_SUCCESS, MSG_NOT_EXIST
@@ -31,7 +31,7 @@ class Vearch(object):
         result = self.client._list_db()
         l = []
         if result.code == CODE_SUCCESS:
-            database_names = result.text
+            database_names = result.data
             for database_name in database_names:
                 db = Database(database_name)
                 l.append(db)
@@ -86,7 +86,7 @@ class Vearch(object):
             resp = requests.request(method="GET", url=url, auth=sign)
             ret = get_result(resp)
             if ret.code == CODE_SUCCESS:
-                space_schema = json.dumps(ret.text)
+                space_schema = json.dumps(ret.data)
                 return True, space_schema
             else:
                 return False, None
@@ -110,7 +110,7 @@ class Vearch(object):
         result = self.client._list_space(database_name)
         l = []
         if result.code == CODE_SUCCESS:
-            space_names = result.text
+            space_names = result.data
             for space_name in space_names:
                 space = Space(database_name, space_name)
                 l.append(space)
@@ -163,9 +163,6 @@ class Vearch(object):
 
         except VearchException as e:
             raise  e
-            if e.code == 0:
-                r = UpsertResult(code="200", msg=e.message)
-                return r
     
     def search(self, database_name: str, space_name: str, vector_infos: Optional[List[VectorInfo]], filter: Optional[Filter] = None,
                fields: Optional[List] = None, vector: bool = False, limit: int = 50, **kwargs) -> List[Dict]:
@@ -232,8 +229,7 @@ class Vearch(object):
         sign = compute_sign_auth(secret=self.client.token)
         resp = requests.request(method="POST", url=url, data=json.dumps(req_body),
                                 auth=sign)
-        sr = SearchResult.parse_search_result_from_response(resp)
-        return sr.documents
+        return SearchResult.parse_search_result_from_response(resp)
 
     def query(self, database_name: str, space_name: str, document_ids: Optional[List] = [], filter: Optional[Filter] = None,
               partition_id: Optional[str] = "",
@@ -265,18 +261,16 @@ class Vearch(object):
             req_body["filters"] = filter.dict()
         sign = compute_sign_auth(secret=self.client.token)
         resp = requests.request(method="POST", url=url, data=json.dumps(req_body), auth=sign)
-        ret = get_result(resp)
-        if ret.code == CODE_SUCCESS:
-            return json.dumps(ret.text)
-        return []
+        return SearchResult.parse_search_result_from_response(resp)
         
-    def delete(self, database_name: str, space_name: str, document_ids: Optional[List] = [], filter: Filter= None) -> Result:
+    def delete(self, database_name: str, space_name: str, document_ids: Optional[List] = [], filter: Optional[Filter] = None,
+                limit: int = 50) -> Result:
         url = self.client.host + DELETE_DOC_URI
-        req_body = {"db_name": database_name, "space_name": space_name}
+        req_body = {"db_name": database_name, "space_name": space_name, "limit": limit}
         if document_ids:
             req_body["document_ids"] = document_ids
         if filter:
             req_body["filters"] = filter.dict()
         sign = compute_sign_auth()
         resp = requests.request(method="POST", url=url, data=json.dumps(req_body), auth=sign)
-        return get_result(resp)
+        return DeleteResult.parse_delete_result_from_response(resp)

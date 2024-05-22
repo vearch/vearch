@@ -45,21 +45,16 @@ book_vector = Field("book_character", DataType.VECTOR, FlatIndex("book_vec_idx",
 space_schema = SpaceSchema("book_info", fields=[book_name,book_num, book_vector])
 
 ret = vc.create_space("database_test", space_schema)
-print("create space: ", ret.text)
+print("create space: ", ret.data)
 ```
 
 ### Inserting Documents
 
 ```python
 import random
-book_name_template = "abcdefghijklmnopqrstuvwxyz0123456789"
 data = []
-num=[12,34,56,74,53,11,14,9]
-for i in range(8):
-    book_item = ["".join(random.choices(book_name_template, k=8)),
-                    num[i],
-                    [random.uniform(0, 1) for _ in range(512)]]
-    data.append(book_item)
+book_item = ["Read", 10, [random.uniform(0, 1) for _ in range(512)]]
+data.append(book_item)
 ret = vc.upsert("database_test", "book_info", data)
 document_ids = ret.get_document_ids()
 ```
@@ -71,22 +66,21 @@ import random
 feature = [random.uniform(0, 1) for _ in range(512)]
 vi = VectorInfo("book_character", feature)
 ret = vc.search("database_test", "book_info",vector_infos=[vi, ],limit=7)
-for doc in ret:
-    print("search document",doc)
+print("search document", ret.documents)
 ```
 
 ### Querying Documents
 
 ```python
 ret = vc.query("database_test", "book_info", document_ids)
-print(ret)
+print(ret.documents)
 ```
 
 ### Deleting Documents
 
 ```python
 ret = vc.delete("database_test", "book_info", document_ids)
-print(ret)
+print(ret.document_ids)
 ```
 
 ### More

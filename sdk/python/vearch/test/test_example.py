@@ -17,7 +17,6 @@ import pytest
 logger = logging.getLogger("vearch")
 
 database_name = "database_test"
-database_name1 = "database_test1"
 space_name = "book_info"
 config = Config(host=host_url, token="secret")
 vc = Vearch(config)
@@ -33,16 +32,12 @@ def create_space_schema(space_name) -> SpaceSchema:
     return space_schema
 
 def test_create_database_db_not_exist():
-    config = Config(host=host_url, token="secret")
-    vc = Vearch(config)
     logger.debug(vc.client.host)
     ret = vc.create_database(database_name)
-    logger.debug(ret.dict_str())
-    assert ret.__dict__["code"] in [0,1]
+    assert ret.__dict__["code"] == 0
+
        
 def test_create_database_existed():
-    config = Config(host=host_url, token="secret")
-    vc = Vearch(config)
     logger.debug(vc.client.host)
     with pytest.raises(VearchException) as excinfo:  
          vc.create_database(database_name)
@@ -70,8 +65,7 @@ def test_list_spaces():
 
 def test_create_space_existed():
     ret = vc.create_space(database_name, create_space_schema("book_info"))
-    assert ret.text["name"] == "book_info"
-    
+    assert ret.data["name"] == "book_info"
 
 
 def test_is_space_exist():
@@ -119,7 +113,7 @@ def test_query():
               ]
     filters = Filter(operator = "AND",conditions = conditons)
     ret = vc.query(database_name, space_name, filter = filters)
-    assert len(json.loads(ret)["documents"]) >=0
+    assert len(ret.documents) >=0
 
 
 def test_search():
@@ -130,7 +124,8 @@ def test_search():
               ]
     filters = Filter(operator = "AND",conditions = conditons)
     ret = vc.search(database_name, space_name, vector_infos=[vi, ], filter=filters, limit=7)
-    assert ret is None or len(ret) >= 0
+    assert ret is None or len(ret.documents) >=0
+
 
 def test_drop_space_normal():
     ret = vc.drop_space(database_name, space_name)

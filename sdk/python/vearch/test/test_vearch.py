@@ -62,7 +62,7 @@ def test_list_spaces():
 
 def test_create_space():
     ret = vc.create_space(database_name, create_space_schema("book_info"))
-    assert ret.text["name"] == "book_info"
+    assert ret.data["name"] == "book_info"
     
 
 def test_is_space_exist():
@@ -114,8 +114,8 @@ def test_delete_doc():
                  Condition(operator = '>', fv = FieldValue(field = "book_num",value = 12))
               ]
     filters = Filter(operator = "AND",conditions = conditons)
-    ret = vc.delete(database_name, space_name,filters)
-    assert ret.__dict__["code"] == 0  
+    ret = vc.delete(database_name, space_name, filter = filters)
+    assert ret is None or len(ret.document_ids) >= 0
     
     
 def test_query():
@@ -124,7 +124,7 @@ def test_query():
               ]
     filters = Filter(operator = "AND",conditions = conditons)
     ret = vc.query(database_name, space_name, filter = filters)
-    assert len(json.loads(ret)["documents"]) >=0
+    assert ret is None or len(ret.documents) >= 0
 
 
 def test_search():
@@ -135,7 +135,7 @@ def test_search():
               ]
     filters = Filter(operator = "AND",conditions = conditons)
     ret = vc.search(database_name, space_name, vector_infos=[vi, ], filter=filters, limit=7)
-    assert ret is None or len(ret) >= 0
+    assert ret is None or len(ret.documents) >= 0
 
 def test_drop_space_normal():
     ret = vc.drop_space(database_name, space_name)

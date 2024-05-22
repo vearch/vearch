@@ -17,7 +17,7 @@ def create_space_schema() -> SpaceSchema:
     book_name = Field("book_name", DataType.STRING, desc="the name of book", index=ScalarIndex("book_name_idx"))
     book_num=Field("book_num", DataType.INTEGER, desc="the num of book",index=ScalarIndex("book_num_idx"))
     book_vector = Field("book_character", DataType.VECTOR,
-                        IvfPQIndex("book_vec_idx", 10000, MetricType.Inner_product, 2048, 8), dimension=512)
+                        FlatIndex("book_vec_idx", MetricType.Inner_product), dimension=512)
     ractor_address = Field("ractor_address", DataType.STRING, desc="the place of the book put")
     space_schema = SpaceSchema("book_info", fields=[book_name,book_num, book_vector, ractor_address])
     return space_schema
@@ -42,7 +42,7 @@ def list_spaces(vc: Vearch):
 def create_space(vc: Vearch):
     space_schema = create_space_schema()
     ret = vc.create_space("database_test", space_schema)
-    print("######",ret.text, ret.err_msg)
+    print("######",ret.data, ret.msg)
     
 def upsert_document(vc: Vearch) -> List:
     import random
@@ -79,7 +79,7 @@ def upsert_document_from_vearch(vc: Vearch) -> List:
                      ractor[random.randint(0, 2)]]
         data.append(book_item)
         logger.debug(book_item)
-    ret = vc.upsert("database_test", "book_info",data)
+    ret = vc.upsert("database_test", "book_info", data)
     if ret:
         logger.debug("upsert result:" + str(ret.get_document_ids()))
         return ret.get_document_ids()
@@ -87,14 +87,13 @@ def upsert_document_from_vearch(vc: Vearch) -> List:
 
 def query_documents_from_vearch(vc: Vearch,ids: List):
     ret = vc.query("database_test", "book_info",ids)
-    for doc in json.loads(ret)["documents"]:
-        logger.debug(doc)
+    print("query document",ret.documents)
+
 
 def query_documents(ids: List):
     space = Space("database_test", "book_info")
     ret = space.query(ids)
-    for doc in json.loads(ret)["documents"]:
-        logger.debug(doc)
+    print("query document",ret.documents)
 
 
 def search_documets():
@@ -102,25 +101,22 @@ def search_documets():
     space = Space("database_test", "book_info")
     
     feature = [random.uniform(0, 1) for _ in range(512)]
-    vi = VectorInfo("vec", feature)
+    vi = VectorInfo("book_character", feature)
     ret = space.search(vector_infos=[vi, ],limit=7)
-    for doc in ret:
-        print("search document",doc)
+    print("search document",ret.documents)
+
 
 def search_documets_from_vearch(vc: Vearch):
     import random
     feature = [random.uniform(0, 1) for _ in range(512)]
     vi = VectorInfo("book_character", feature)
     ret = vc.search("database_test", "book_info",vector_infos=[vi, ],limit=7)
-    for doc in ret:
-        print("search document",doc)
+    print("search document",ret.documents)
 
 def query_documnet_by_filter_of_vearch(vc: Vearch,filters):
-    
-   
     ret = vc.query("database_test", "book_info",filter=filters,limit=2)
-    for doc in json.loads(ret)["documents"]:
-        logger.debug(doc)
+    print("search document",ret.documents)
+
 
 def search_doc_by_filter_of_vearch(vc: Vearch, filters):
     import random
@@ -128,9 +124,8 @@ def search_doc_by_filter_of_vearch(vc: Vearch, filters):
     vi = VectorInfo("book_character", feature)
     
     ret = vc.search("database_test", "book_info",vector_infos=[vi, ],filter=filters,limit=3)
-    if ret is not None:
-        for doc in ret:
-            print("search document",doc)
+    print("search document",ret.documents)
+
             
 def is_database_exist(vc: Vearch):
     ret = vc.is_database_exist("database_test")
@@ -145,7 +140,7 @@ def is_space_exist(vc: Vearch):
 
 def delete_space(vc: Vearch):
     ret = vc.drop_space("database_test", "book_info")
-    print(ret.text, ret.err_msg)
+    print(ret.data, ret.msg)
 
 
 def drop_database(vc: Vearch):
@@ -157,8 +152,8 @@ def query_documnet_by_filter(filters):
     
     space = Space("database_test", "book_info")
     ret = space.query(filter=filters,limit=2)
-    for doc in json.loads(ret)["documents"]:
-        logger.debug(doc)
+    print("query document",ret.documents)
+
 
 def search_doc_by_filter(filters):
     import random
@@ -168,13 +163,12 @@ def search_doc_by_filter(filters):
     
     ret = space.search(vector_infos=[vi, ],filter=filters,limit=3)
     if ret is not None:
-        for doc in ret:
-            print("search document",doc)
+        print("search document",ret.documents)
+
 
 if __name__ == "__main__":
-  
-    
-    config = Config(host="your router path", token="secret")
+    # should set your host url
+    config = Config(host="http://localhost:9001", token="secret")
     vc = Vearch(config)
     print("is_database_exist",is_database_exist(vc))
     if not is_database_exist(vc):
@@ -185,8 +179,7 @@ if __name__ == "__main__":
     if not space_exist:
         create_space(vc)
     list_spaces(vc)
-    ids = upsert_document(vc)
-    # ids=upsert_document_from_vearch(vc)
+    ids=upsert_document_from_vearch(vc)
     query_documents_from_vearch(vc, ids[:4])
     query_documents(ids[:3])
        
