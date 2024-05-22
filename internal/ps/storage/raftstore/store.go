@@ -214,6 +214,7 @@ func (s *Store) Destroy() (err error) {
 			if err = os.RemoveAll(s.MetaPath); err != nil {
 				return
 			}
+			log.Info("removed [%s, %s, %s]", s.DataPath, s.RaftPath, s.MetaPath)
 			break
 		}
 	}(s)

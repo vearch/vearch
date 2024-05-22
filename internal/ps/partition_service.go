@@ -21,12 +21,10 @@ import (
 
 	"github.com/cubefs/cubefs/depends/tiglabs/raft"
 	"github.com/cubefs/cubefs/depends/tiglabs/raft/proto"
-	"github.com/vearch/vearch/v3/internal/config"
 	"github.com/vearch/vearch/v3/internal/entity"
 	"github.com/vearch/vearch/v3/internal/pkg/log"
 	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
 	"github.com/vearch/vearch/v3/internal/ps/engine"
-	"github.com/vearch/vearch/v3/internal/ps/psutil"
 	"github.com/vearch/vearch/v3/internal/ps/storage/raftstore"
 )
 
@@ -194,7 +192,6 @@ func (s *Server) DeleteReplica(id entity.PartitionID) {
 		}
 	}
 
-	psutil.ClearPartition(config.Conf().GetDataDirBySlot(config.PS, id), id)
 	log.Info("delete partition[%d] success", id)
 }
 
@@ -209,7 +206,6 @@ func (s *Server) DeletePartition(id entity.PartitionID) {
 			}
 			if err := partition.Destroy(); err != nil {
 				log.Error("delete partition[%v] fail cause: %v", id, err)
-				return
 			}
 
 			if partition.GetPartition().GetStatus() == entity.PA_INVALID {
@@ -218,7 +214,6 @@ func (s *Server) DeletePartition(id entity.PartitionID) {
 		}
 	}
 
-	psutil.ClearPartition(config.Conf().GetDataDirBySlot(config.PS, id), id)
 	log.Info("delete partition:[%d] success", id)
 
 	// delete partition cache

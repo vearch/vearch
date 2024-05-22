@@ -15,7 +15,7 @@ Before you begin, ensure you have the following:
 To install the Vearch Go SDK, run the following command:
 
 ```sh
-go get -u github.com/vearch/vearch/sdk/go/v3
+go get -u github.com/vearch/vearch/v3/sdk/go
 ```
 
 ## Usage Examples
