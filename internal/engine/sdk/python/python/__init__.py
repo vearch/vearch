@@ -41,7 +41,7 @@ from .gamma_api import RangeFilter as PRangeFilter
 from .gamma_api import Request as PRequest
 from .gamma_api import Response as PResponse
 from .gamma_api import SearchResult as PSearchResult
-from .gamma_api import SearchResultCode, Table
+from .gamma_api import Table
 from .gamma_api import TermFilter as PTermFilter
 from .gamma_api import VectorInfo
 from .gamma_api import VectorQuery as PVectorQuery
@@ -739,8 +739,7 @@ class GammaRequest:
                 swig_ptr(vector_query_p.value),
                 vector_query_p.value.shape[0],
                 vector_query_p.min_score,
-                vector_query_p.max_score,
-                vector_query_p.retrieval_type,
+                vector_query_p.max_score
             )
             request.AddVectorQuery(vector_query)
 
@@ -866,7 +865,6 @@ class GammaRequest:
                 ex = Exception("feature type is error. it is numpy")
                 raise ex
 
-            retrieval_type = ""
             min_score = -10000000
             max_score = 10000000
             tmpValue = node["feature"]
@@ -888,8 +886,6 @@ class GammaRequest:
                 min_score = node["min_score"]
             if "max_score" in node and isinstance(node["max_score"], (int, float)):
                 max_score = node["max_score"]
-            if "retrieval_type" in node:
-                retrieval_type = node["retrieval_type"]
 
             vec_fields.append(
                 GammaVectorQuery(
@@ -897,7 +893,6 @@ class GammaRequest:
                     tmpValue,
                     min_score,
                     max_score,
-                    retrieval_type,
                 )
             )
         req_num = 1 if req_num == 0 else req_num

@@ -7,7 +7,8 @@ import os
 import sys
 
 long_description="""
-Vearch is the vector search infrastructure for deeping learning and AI applications. 
+Vearch is the vector search infrastructure for deeping learning and AI applications.
+Vearch engine python sdk provides a lightweight vector embedding engine for local use on a single machine.
 The Python's implementation allows vearch to be used locally.
 """
 
@@ -72,12 +73,12 @@ _swigvearch = Extension(
         os.getenv('GAMMA_INCLUDE', abspath + '../../engine/') + '/third_party',
     ],
     extra_compile_args=[
-        '-std=c++11', '-mavx2', '-mf16c', '-msse4', '-mpopcnt', '-m64',
+        '-std=c++17', '-mavx2', '-mf16c', '-msse4', '-mpopcnt', '-m64',
         '-Wno-sign-compare', '-fopenmp'
-    ],
+    ]  + ([] if 'macos' in get_platform() else ['-DSWIGWORDSIZE64']),
     extra_link_args=(['-Xpreprocessor', '-fopenmp', '-lomp','-mlinker-version=450'] if 'darwin' == sys.platform else ['-fopenmp']),
     swig_opts=[
-        '-c++', '-Doverride=', 
+        '-v', '-c++', '-Doverride=', 
         '-I' + os.getenv('GAMMA_INCLUDE', abspath + '../../engine/'),
         '-I' + os.getenv('GAMMA_INCLUDE', abspath + '../../engine/') + '/third_party',
     ] + ([] if 'macos' in get_platform() else ['-DSWIGWORDSIZE64'])

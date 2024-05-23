@@ -1,13 +1,13 @@
-# Vearch Python SDK
+# Vearch Engine Python SDK
 
-vearch python sdk and python wheel packages.
+vearch Engine python sdk and python wheel packages.
 
 ## Overview
 
 This repository shows vearch python sdk and provides scripts to create wheel
 packages for the vearch library.
 
-[python sdk api](./docs/APIPythonSDK.md) is the document of python sdk api.
+[Engine Python SDK](./docs/APIPythonSDK.md) is the document of python sdk api.
 Files in directory of python shows how the python sdk encapsulate vearch.
 setup.py is written for creating wheel packages for vearch.
 
