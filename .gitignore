@@ -48,3 +48,6 @@ sdk/python/*.whl
 engine/third_party/faiss-1.7.1
 engine/sdk/python/demos/files/
 engine/sdk/python/demos/logs/
+
+#skip examples
+examples/golang/basic_usage/basic_usage
