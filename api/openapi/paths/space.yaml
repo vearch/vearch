@@ -106,7 +106,36 @@ Spaces:
       '500':
         description: Internal server error
 
-Delete:
+Space:
+  get:
+    summary: Get a specific space
+    operationId: getSpace
+    tags:
+      - space
+    parameters:
+      - name: dbName
+        in: path
+        required: true
+        description: The name of the database
+        schema:
+          type: string
+      - name: spaceName
+        in: path
+        required: true
+        description: The name of the space to delete
+        schema:
+          type: string
+    responses:
+      '200':
+        description: Space get successfully
+      '400':
+        description: Invalid input or bad request
+      '401':
+        description: Authorization information is missing or invalid
+      '404':
+        description: Space not found
+      '500':
+        description: Internal server error
   delete:
     summary: Delete a specific space
     operationId: deleteSpace

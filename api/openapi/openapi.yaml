@@ -28,6 +28,10 @@ paths:
     $ref: 'paths/cluster.yaml#/ListServer'
   /partitions:
     $ref: 'paths/cluster.yaml#/ListPartitions'
+  /cluster/stats:
+    $ref: 'paths/cluster.yaml#/Status'
+  /cluster/health:
+    $ref: 'paths/cluster.yaml#/Health'
 
   /dbs/{dbName}:
     $ref: 'paths/database.yaml#/DbsPath'
@@ -36,7 +40,7 @@ paths:
   /dbs/{dbName}/spaces:
     $ref: 'paths/space.yaml#/Spaces'
   /dbs/{dbName}/spaces/{spaceName}:
-    $ref: 'paths/space.yaml#/Delete'
+    $ref: 'paths/space.yaml#/Space'
 
   /document/upsert:
     $ref: 'paths/document.yaml#/Upsert'
@@ -44,3 +48,5 @@ paths:
     $ref: 'paths/document.yaml#/Delete'
   /document/search:
     $ref: 'paths/document.yaml#/Search'
+  /document/query:
+    $ref: 'paths/document.yaml#/Query'

@@ -49,7 +49,7 @@ DbsPath:
       '562':
         description: Database not exist
   get:
-    summary: Get vearch database
+    summary: Get database
     operationId: getDb
     tags:
       - database
@@ -74,7 +74,7 @@ DbsPath:
 
 Dbs:
   get:
-    summary: List vearch database
+    summary: List database
     operationId: listDb
     tags:
       - database

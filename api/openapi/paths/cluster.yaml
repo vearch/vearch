@@ -1,6 +1,6 @@
 ListServer:
   get:
-    summary: List vearch cluster server
+    summary: List cluster server
     operationId: listServer
     tags:
       - cluster
@@ -18,8 +18,44 @@ ListServer:
 
 ListPartitions:
   get:
-    summary: List vearch partitions
+    summary: List partitions
     operationId: listPartitions
+    tags:
+      - cluster
+    responses:
+      '200':
+        $ref: 'components/responses.yaml#/SuccessResponse'
+      '400':
+        description: Invalid input or bad request
+      '401':
+        description: Authorization information is missing or invalid
+      '404':
+        description: Cluster not found
+      '500':
+        description: Internal server error
+
+Status:
+  get:
+    summary: Show cluster status
+    operationId: status
+    tags:
+      - cluster
+    responses:
+      '200':
+        $ref: 'components/responses.yaml#/SuccessResponse'
+      '400':
+        description: Invalid input or bad request
+      '401':
+        description: Authorization information is missing or invalid
+      '404':
+        description: Cluster not found
+      '500':
+        description: Internal server error
+
+Health:
+  get:
+    summary: Show cluster health
+    operationId: health
     tags:
       - cluster
     responses:

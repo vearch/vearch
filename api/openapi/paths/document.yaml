@@ -141,3 +141,59 @@ Search:
         description: Authorization information is missing or invalid
       '500':
         description: Internal server error
+
+Query:
+  post:
+    summary: Query for documents using doc ID and filter parameters
+    operationId: queryDocuments
+    tags:
+      - Document
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              db_name:
+                type: string
+              space_name:
+                type: string
+              document_ids:
+                type: array
+                items:
+                  type: string
+              partition_id:
+                type: string
+              filters:
+                type: object
+                properties:
+                  operator:
+                    type: string
+                  conditions:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        operator:
+                          type: string
+                        field:
+                          type: string
+                        value:
+                          oneOf:
+                            - type: string
+                            - type: number
+                            - type: array
+                              items:
+                                type: string
+              vector_value:
+                type: boolean
+    responses:
+      '200':
+        $ref: 'components/responses.yaml#/SuccessResponse'
+      '400':
+        description: Bad request due to invalid syntax or parameters
+      '401':
+        description: Authorization information is missing or invalid
+      '500':
+        description: Internal server error
