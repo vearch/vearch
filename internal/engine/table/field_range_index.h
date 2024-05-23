@@ -33,8 +33,43 @@ typedef struct {
 class FieldOperate {
  public:
   typedef enum { ADD, DELETE } operate_type;
+
   explicit FieldOperate(operate_type type, int doc_id, int field_id)
       : type(type), doc_id(doc_id), field_id(field_id) {}
+
+  FieldOperate() {}
+
+  FieldOperate(const FieldOperate &other)
+      : type(other.type),
+        doc_id(other.doc_id),
+        field_id(other.field_id),
+        value(other.value) {}
+
+  FieldOperate(FieldOperate &&other) noexcept
+      : type(other.type),
+        doc_id(other.doc_id),
+        field_id(other.field_id),
+        value(std::move(other.value)) {}
+
+  FieldOperate &operator=(const FieldOperate &other) {
+    if (this != &other) {
+      type = other.type;
+      doc_id = other.doc_id;
+      field_id = other.field_id;
+      value = other.value;
+    }
+    return *this;
+  }
+
+  FieldOperate &operator=(FieldOperate &&other) noexcept {
+    if (this != &other) {
+      type = other.type;
+      doc_id = other.doc_id;
+      field_id = other.field_id;
+      value = std::move(other.value);
+    }
+    return *this;
+  }
 
   operate_type type;
   int doc_id;
@@ -42,7 +77,7 @@ class FieldOperate {
   std::string value;
 };
 
-typedef tbb::concurrent_bounded_queue<FieldOperate *> FieldOperateQueue;
+typedef tbb::concurrent_bounded_queue<FieldOperate> FieldOperateQueue;
 
 class FieldRangeIndex;
 class MultiFieldsRangeIndex {

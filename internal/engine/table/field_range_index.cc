@@ -957,7 +957,7 @@ MultiFieldsRangeIndex::~MultiFieldsRangeIndex() {
 void MultiFieldsRangeIndex::FieldOperateWorker() {
   bool ret = false;
   while (b_running_ || ret) {
-    FieldOperate *field_op = nullptr;
+    FieldOperate field_op;
     ret = field_operate_q_->try_pop(field_op);
 
     if (not ret) {
@@ -965,17 +965,15 @@ void MultiFieldsRangeIndex::FieldOperateWorker() {
       continue;
     }
 
-    int doc_id = field_op->doc_id;
-    int field_id = field_op->field_id;
+    int doc_id = field_op.doc_id;
+    int field_id = field_op.field_id;
 
-    auto op = field_op->type;
+    auto op = field_op.type;
     if (op == FieldOperate::ADD) {
       AddDoc(doc_id, field_id);
     } else {
-      DeleteDoc(doc_id, field_id, field_op->value);
+      DeleteDoc(doc_id, field_id, field_op.value);
     }
-
-    delete field_op;
   }
   LOG(INFO) << "FieldOperateWorker exited!";
   b_operate_running_ = false;
@@ -986,9 +984,9 @@ int MultiFieldsRangeIndex::Add(int docid, int field) {
   if (index == nullptr) {
     return 0;
   }
-  FieldOperate *field_op = new FieldOperate(FieldOperate::ADD, docid, field);
+  FieldOperate field_op(FieldOperate::ADD, docid, field);
 
-  field_operate_q_->push(field_op);
+  field_operate_q_->push(std::move(field_op));
 
   return 0;
 }
@@ -998,14 +996,14 @@ int MultiFieldsRangeIndex::Delete(int docid, int field) {
   if (index == nullptr) {
     return 0;
   }
-  FieldOperate *field_op = new FieldOperate(FieldOperate::DELETE, docid, field);
-  table_->GetFieldRawValue(docid, field, field_op->value);
+  FieldOperate field_op(FieldOperate::DELETE, docid, field);
+  table_->GetFieldRawValue(docid, field, field_op.value);
 
   // while (field_operate_q_->size()) {
   //   std::this_thread::sleep_for(std::chrono::milliseconds(10));
   // }
 
-  field_operate_q_->push(field_op);
+  field_operate_q_->push(std::move(field_op));
 
   return 0;
 }
