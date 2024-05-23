@@ -164,7 +164,7 @@ Query:
                 items:
                   type: string
               partition_id:
-                type: string
+                type: integer
               filters:
                 type: object
                 properties:
