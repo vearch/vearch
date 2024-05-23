@@ -36,14 +36,18 @@ jobs:
         nohup docker run -p 8817:8817 -p 9001:9001 -v $PWD/config.toml:/vearch/config.toml vearch/vearch:latest all &
     - name: sleep
       run: sleep 30s
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
     - name: install dependency
       run: |
-        pip install requests pytest
+        python -m pip install --upgrade pip setuptools wheel
+        pip install requests pytest wheel pandas
         cd sdk/python
-        pip install -r dev-requirements.txt
         python setup.py bdist_wheel
         pip install dist/pyvearch*
     - name: python sdk test
       run: |
-        cd sdk/python/vearch/test
-        pytest
+        cd sdk/python
+        pytest vearch/test
