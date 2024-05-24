@@ -5,7 +5,7 @@ from vearch.result import Result, ResultStatus, get_result, UpsertResult, Search
 from vearch.const import LIST_SPACE_URI, SPACE_URI, INDEX_URI, UPSERT_DOC_URI, DELETE_DOC_URI, QUERY_DOC_URI, SEARCH_DOC_URI, \
     CODE_SPACE_NOT_EXIST, AUTH_KEY, CODE_SUCCESS, MSG_NOT_EXIST
 from vearch.exception import SpaceException, DocumentException, VearchException
-from vearch.utils import CodeType, VectorInfo, compute_sign_auth, DataType
+from vearch.utils import CodeType, VectorInfo, compute_sign_auth, DataType, UpsertDataType
 from vearch.filter import Filter
 import requests
 import json
@@ -75,12 +75,14 @@ class Space(object):
                 if has:
                     self._schema = schema
                 else:
-                    raise SpaceException(CodeType.CHECK_SPACE_EXIST,
-                                         "space %s not exist,please create it first" % self.name)
+                    return UpsertResult(CodeType.CHECK_SPACE_EXIST,
+                                         "space %s not exist, please create it first" % self.name)
             url = self.client.host + UPSERT_DOC_URI
             req_body = {"db_name": self.db_name, "space_name": self.name}
             records = []
-            if self._check_data_conforms_schema(data):
+            data_type, err_msg = self._check_data_type(data)
+
+            if data_type != UpsertDataType.ERROR:
                 if isinstance(data, pd.DataFrame):
                     for index, row in data.iterrows():
                         record = {}
@@ -88,32 +90,63 @@ class Space(object):
                             record[field.name] = row[field.name]
                         records.append(record)
                 else:
-                    for em in data:
-                        record = {}
-                        for i, field in enumerate(self._schema.fields):
-                            record[field.name] = em[i]
-                        records.append(record)
-                req_body.update({"documents": records})
+                    if data_type == UpsertDataType.LIST_MAP:
+                        req_body.update({"documents": data})
+
+                    if data_type == UpsertDataType.LIST:
+                        for em in data:
+                            record = {}
+                            for i, field in enumerate(self._schema.fields):
+                                record[field.name] = em[i]
+                            records.append(record)
+                        req_body.update({"documents": records})
+
                 sign = compute_sign_auth(secret=self.client.token)
                 resp = requests.request(method="POST", url=url, data=json.dumps(req_body),
                                         auth=sign)
                 return UpsertResult.parse_upsert_result_from_response(resp)
             else:
-                raise DocumentException(CodeType.UPSERT_DOC, "data fields not conform space schema")
+                return UpsertResult(CodeType.UPSERT_DOC, "data type has error: " + err_msg)
         except VearchException as e:
             raise  e
-            if e.code == 0:
-                r = UpsertResult(code="200", msg=e.message)
-                return r
+
+
+    def _check_data_type(self, data: Union[List, pd.DataFrame]) -> (str, str):
+        is_dataframe = isinstance(data, pd.DataFrame)
+        data_fields_len = len(data.columns) if is_dataframe else len(data[0])
+        item_num = len(data)
+        item_dict_num = 0
+        item_list_num = 0
+        if is_dataframe:
+            if len(data.columns) == len(self._schema.fields):
+                return UpsertDataType.DATA_FRAME, ""
+            else:
+                return UpsertDataType.ERROR, "pandas.DataFrame column num should equal to space schema fields"
+
+        if isinstance(data, list):
+            for item in data:
+                if isinstance(item, dict):
+                    item_dict_num = item_dict_num + 1
+                if len(item) == len(self._schema.fields):
+                    item_list_num = item_list_num + 1
+            if item_num == item_dict_num:
+                return UpsertDataType.LIST_MAP, ""
+            else:
+                if item_num == item_list_num:
+                    return UpsertDataType.LIST, ""
+                else:
+                    return UpsertDataType.ERROR, "data item length should equal to space schema fields"
+        else:
+            return UpsertDataType.ERROR, "data type should be list or pandas.DataFrame"
+
 
     def _check_data_conforms_schema(self, data: Union[List, pd.DataFrame]) -> bool:
-       
         if data:
             is_dataframe = isinstance(data, pd.DataFrame)
             data_fields_len = len(data.columns) if is_dataframe else len(data[0])
             return data_fields_len == len(self._schema.fields)
         else:
-            raise DocumentException(CodeType.UPSERT_DOC, "data is empty")
+            return False
         return True
 
     def delete(self, document_ids: Optional[List] = [], filter: Optional[Filter] = None,  limit: int = 50) -> Result:
@@ -148,34 +181,34 @@ class Space(object):
             retrieval_param: the retrieval parameter which control the search action,user can asign it to precisely
              control search result,different index type different parameters
              For IVFPQ:
-                "retrieval_param": {
+                "index_params": {
                 "parallel_on_queries": 1,
                 "recall_num" : 100,
                 "nprobe": 80,
                 "metric_type": "L2" }
                 GPU:
-                "retrieval_param": {
+                "index_params": {
                 "recall_num" : 100,
                 "nprobe": 80,
                 "metric_type": "L2"}
                HNSW:
-               "retrieval_param": {
+               "index_params": {
                     "efSearch": 64,
                     "metric_type": "L2"
                 }
                 IVFFLAT:
-                "retrieval_param": {
+                "index_params": {
                 "parallel_on_queries": 1,
                 "nprobe": 80,
                 "metric_type": "L2" }
                FLAT:
-               "retrieval_param": {
+               "index_params": {
                "metric_type": "L2"}
 
         :return:
         """
         if not vector_infos:
-            raise SpaceException(CodeType.SEARCH_DOC, "vector_info can not both null")
+            return SearchResult(CodeType.SEARCH_DOC, "vector_info can not both null")
         url = self.client.host + SEARCH_DOC_URI
         req_body = {"db_name": self.db_name, "space_name": self.name, "vector_value": vector, "limit": limit}
         if fields:
@@ -209,7 +242,7 @@ class Space(object):
         :return:
         """
         if (not document_ids) and (not filter):
-            raise SpaceException(CodeType.QUERY_DOC, "document_ids and filter can not both null")
+            return SearchResult(CodeType.QUERY_DOC, "document_ids and filter can not both null")
         url = self.client.host + QUERY_DOC_URI
         req_body = {"db_name": self.db_name, "space_name": self.name, "vector_value": vector, "limit": limit}
         if document_ids:

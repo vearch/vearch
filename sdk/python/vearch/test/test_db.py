@@ -59,10 +59,9 @@ def test_list_spaces():
     assert ret.__dict__["code"] == 0
 
     
-def test_drop_database():
-    with pytest.raises(VearchException) as excinfo:  
-        db.drop()
-    assert str(excinfo.value) == ""
+def test_drop_db_not_empty():
+    ret = db.drop()
+    assert ret.code != 0
     
 def test_drop_db():
     space=Space(database_name, space_name)

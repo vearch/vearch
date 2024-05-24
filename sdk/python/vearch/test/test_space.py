@@ -63,10 +63,10 @@ def test_upsert_doc_data_field_missing():
                      num[i],
                      ractor[random.randint(0, 2)]]
         data.append(book_item)
-        logger.debug(book_item)
-    with pytest.raises(DocumentException) as excinfo:  
-        space.upsert(data)
-    assert str(excinfo.value) == ""
+    ret = space.upsert(data)
+    assert ret.code != 0
+    logger.info(ret.msg)
+
         
 def test_upsert_doc():
     import random

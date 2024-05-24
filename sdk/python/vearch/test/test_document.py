@@ -3,7 +3,7 @@ from vearch.core.vearch import Vearch
 from vearch.schema.field import Field
 from vearch.schema.space import SpaceSchema
 from vearch.utils import DataType, MetricType, VectorInfo
-from vearch.schema.index import IvfPQIndex, Index, ScalarIndex
+from vearch.schema.index import FlatIndex, Index, ScalarIndex
 from vearch.filter import Filter,Condition,FieldValue,Conditions
 from vearch.exception import DatabaseException, VearchException, SpaceException, DocumentException
 
@@ -12,69 +12,33 @@ import logging
 from typing import List
 import json
 import pytest
-logger = logging.getLogger("vearch_test")
+logger = logging.getLogger("vearch_document_test")
 
-database_name = "database_test_v"
-database_name1 = "database_test_not_exist"
-space_name = "book_info"
-space_name1 = "book_infonot_exist"
+database_name = "database_document_test"
+space_name = "space_document_test"
 
 config = DefaultConfig
 vc = Vearch(config)
 
 def create_space_schema(space_name) -> SpaceSchema:
-    
     book_name = Field("book_name", DataType.STRING, desc="the name of book", index=ScalarIndex("book_name_idx"))
     book_num=Field("book_num", DataType.INTEGER, desc="the num of book",index=ScalarIndex("book_num_idx"))
-    book_vector = Field("book_character", DataType.VECTOR,
-                        IvfPQIndex("book_vec_idx", 10000, MetricType.Inner_product, 2048, 8), dimension=512)
+    book_vector = Field("book_character", DataType.VECTOR, FlatIndex("book_vec_idx", MetricType.Inner_product), dimension=512)
     ractor_address = Field("ractor_address", DataType.STRING, desc="the place of the book put")
     space_schema = SpaceSchema(space_name, fields=[book_name,book_num, book_vector, ractor_address])
     return space_schema
 
-def test_is_database_not_exist():
-    ret = vc.is_database_exist(database_name1)
-    assert ret == False
     
 def test_create_database():
     logger.debug(vc.client.host)
     ret = vc.create_database(database_name)
     logger.debug(ret.dict_str())
-    assert ret.__dict__["code"] in [0,1]
-
-def test_is_database_exist():
-    ret = vc.is_database_exist(database_name)
-    assert ret == True
-
-def test_list_databases():
-    logger.debug(vc.client.host)
-    ret = vc.list_databases()
-    logger.debug(ret)
-    assert len(ret) >= 0
-
-    
-def test_list_spaces():
-    logger.debug(vc.client.host)
-    ret = vc.list_spaces(database_name)
-    logger.debug(ret)
-    assert len(ret) >= 0
+    assert ret.__dict__["code"] == 0
 
 
 def test_create_space():
-    ret = vc.create_space(database_name, create_space_schema("book_info"))
-    assert ret.data["name"] == "book_info"
-    
-
-def test_is_space_exist():
-    ret = vc.is_space_exist(database_name, space_name)
-    logger.debug(ret)
-    assert ret[0] in [True, False]
-
-    
-def test_is_space_not_exist():
-    ret = vc.is_space_exist(database_name, space_name1)
-    logger.debug(ret)
-    assert ret[0] in [True, False]
+    ret = vc.create_space(database_name, create_space_schema(space_name))
+    assert ret.data["name"] == space_name
 
     
 def test_upsert_doc_data_field_missing():
@@ -88,10 +52,10 @@ def test_upsert_doc_data_field_missing():
                      num[i],
                      ractor[random.randint(0, 2)]]
         data.append(book_item)
-        logger.debug(book_item)
-    ret = vc.upsert(database_name, space_name, data)
-    assert ret.code != 0
-    logger.info(ret.msg)
+
+    ur =  vc.upsert(database_name, space_name, data)
+    assert ur.code != 0
+    logger.info(ur.msg)
         
 def test_upsert_doc() -> List:
     import random
@@ -107,7 +71,7 @@ def test_upsert_doc() -> List:
         data.append(book_item)
         logger.debug(book_item)
     ret = vc.upsert(database_name, space_name, data)
-    assert len(ret.get_document_ids()) >= 0
+    assert len(ret.get_document_ids()) == 8
 
 def test_delete_doc():
     conditons = [Condition(operator = '<', fv = FieldValue(field = "book_num",value = 25)),
@@ -115,8 +79,16 @@ def test_delete_doc():
               ]
     filters = Filter(operator = "AND",conditions = conditons)
     ret = vc.delete(database_name, space_name, filter = filters)
+    logger.info(ret.document_ids)
     assert ret is None or len(ret.document_ids) >= 0
-    
+
+def test_delete_doc_no_result():
+    conditons = [Condition(operator = '<', fv = FieldValue(field = "book_num",value = 25)),
+                 Condition(operator = '>', fv = FieldValue(field = "book_num",value = 12))
+              ]
+    filters = Filter(operator = "AND",conditions = conditons)
+    ret = vc.delete(database_name, space_name, filter = filters)
+    logger.info(ret.msg)
     
 def test_query():
     conditons = [Condition(operator = '>', fv = FieldValue(field = "book_num",value = 0)),
@@ -124,20 +96,53 @@ def test_query():
               ]
     filters = Filter(operator = "AND",conditions = conditons)
     ret = vc.query(database_name, space_name, filter = filters)
-    assert ret is None or len(ret.documents) >= 0
+    logger.info(ret.documents)
+    assert len(ret.documents) >= 0
+
+def test_query_no_result():
+    conditons = [Condition(operator = '>', fv = FieldValue(field = "book_num",value = 0)),
+                 Condition(operator = 'IN', fv = FieldValue(field = "book_name",value = ["bpww57nu","sykboivx","edjn9542"]))
+              ]
+    filters = Filter(operator = "AND",conditions = conditons)
+    ret = vc.query(database_name, space_name, filter = filters)
+    logger.info(ret.documents)
+    assert ret.code == 0
+    logger.info(ret.msg)
 
 
 def test_search():
     import random
     feature = [random.uniform(0, 1) for _ in range(512)]
     vi = VectorInfo("book_character", feature)
-    conditons = [Condition(operator = '>', fv = FieldValue(field = "book_num",value = 0)),
-              ]
-    filters = Filter(operator = "AND",conditions = conditons)
-    ret = vc.search(database_name, space_name, vector_infos=[vi, ], filter=filters, limit=7)
-    assert ret is None or len(ret.documents) >= 0
+    conditons = [Condition(operator = '>', fv = FieldValue(field = "book_num",value = 0))]
+    ret = vc.search(database_name, space_name, vector_infos=[vi, ], limit=7)
+    assert len(ret.documents[0]) >= 7
 
-def test_drop_space_normal():
+
+def test_multi_search():
+    import random
+    limit = 7
+    feature = [random.uniform(0, 1) for _ in range(512 * 2)]
+    vi = VectorInfo("book_character", feature)
+    conditons = [Condition(operator = '>', fv = FieldValue(field = "book_num",value = 0))]
+    ret = vc.search(database_name, space_name, vector_infos=[vi, ], limit=limit)
+    assert len(ret.documents) == 2
+    logger.info(ret.documents)
+    for document in ret.documents:
+        assert len(document) == limit
+
+
+def test_search_no_result():
+    import random
+    feature = [random.uniform(0, 1) for _ in range(512)]
+    vi = VectorInfo("bad_name", feature)
+    conditons = [Condition(operator = '>', fv = FieldValue(field = "book_num",value = 0))]
+    filters = Filter(operator = "AND",conditions = conditons)
+
+    ret = vc.search(database_name, space_name, vector_infos=[vi, ], filter=filters, limit=7)
+    logger.info(ret.msg)
+
+def test_drop_space():
     ret = vc.drop_space(database_name, space_name)
     assert ret.__dict__["code"] == 0
 

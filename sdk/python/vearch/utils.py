@@ -88,6 +88,13 @@ class DataType:
     UNKNOWN = "unknown"
 
 
+class UpsertDataType:
+    LIST = "LIST"
+    LIST_MAP = "LIST_MAP"
+    DATA_FRAME = "DATA_FRAME"
+    ERROR = "ERROR"
+
+
 class MetricType:
     Inner_product = "InnerProduct"
     L2 = "L2"
@@ -109,7 +116,7 @@ class IndexType:
     BINARYIVF = "BINARYIVF"
     FLAT = "FLAT"
     HNSW = "HNSW"
-    GPU_IVFPQ = "GPU_IVFPQ"
+    GPU_IVFPQ = "GPU"
     SSG = "SSG"
     IVFPQ_RELAYOUT = "IVFPQ_RELATOUT"
     SCANN = "SCANN"

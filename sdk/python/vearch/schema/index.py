@@ -66,7 +66,7 @@ class IvfPQIndex(Index):
 
 class IvfFlatIndex(Index):
     def __init__(self, index_name: str, metric_type: str, ncentroids: int, **kwargs):
-        super().__init__(index_name, index_type=IndexType.IVFFLAT.value, **kwargs)
+        super().__init__(index_name, index_type=IndexType.IVFFLAT, **kwargs)
         self._index_params = IndexParams(metric_type=metric_type, ncentroids=ncentroids)
 
     def dict(self):
@@ -121,7 +121,7 @@ class HNSWIndex(Index):
 
 
 class GPUIvfPQIndex(Index):
-    def __int__(self, index_name: str, metric_type: str, ncentroids: int, nsubvector: str, **kwargs):
+    def __init__(self, index_name: str, metric_type: str, ncentroids: int, nsubvector: int, **kwargs):
         super().__init__(index_name, index_type=IndexType.GPU_IVFPQ, **kwargs)
         self._index_params = IndexParams(metric_type=metric_type, ncentroids=ncentroids, nsubvector=nsubvector)
 

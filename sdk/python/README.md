@@ -1,4 +1,5 @@
 # Vearch Python SDK
+
 This README provides examples on how to use the Vearch Python SDK for interacting with Vearch, a scalable distributed system for embedding-based retrieval.
 
 ## Prerequisites
@@ -85,7 +86,7 @@ print(ret.document_ids)
 
 ### More
 
-[Example](example.py)
+[Example](../../examples/python/example.py)
 
 ## Running Tests
 
@@ -96,4 +97,3 @@ pytest test/  # Run this in the directory where your test files are located
 ```
 
 Make sure your Vearch server is running and accessible at the specified host address before running the tests.
-

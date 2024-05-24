@@ -44,26 +44,25 @@ class Vearch(object):
         return db.exist()
 
     def database(self, database_name: str) -> Database:
-
         return Database(database_name)
 
     def drop_database(self, database_name: str) -> Result:
         if not self.is_database_exist(database_name):
-            raise DatabaseException(code=CodeType.CHECK_DATABASE_EXIST, message="database not exist,can not drop it:")
+            return Result(code=CodeType.CHECK_DATABASE_EXIST, message="database not exist, can not drop it")
         return self.client._drop_db(database_name)
  
 
     def create_space(self, database_name: str, space: SpaceSchema) -> Result:
         if not self.database(database_name).exist():
-            ret = self.database(database_name).create()
-            if ret.code != 200:
-                raise DatabaseException(code=CodeType.CREATE_DATABASE, message="create database error:" + ret.msg)
+            return Result(code=CodeType.CREATE_DATABASE, message="database not exist")
+
         url_params = {"database_name": database_name, "space_name": space.name}
         url = self.client.host + LIST_SPACE_URI % url_params
         sign = compute_sign_auth(secret=self.client.token)
         resp = requests.request(method="POST", url=url, data=json.dumps(space.dict()), auth=sign)
         result = get_result(resp)
         return result
+
 
     def drop_space(self, database_name: str, space_name: str) -> Result:
         if not self.is_space_exist(database_name, space_name):
@@ -73,7 +72,6 @@ class Vearch(object):
         sign = compute_sign_auth(secret=self.client.token)
         resp = requests.request(method="DELETE", url=url, auth=sign)
         return get_result(resp)  
-           
 
         
     def is_space_exist(self, database_name: str, space_name: str) -> [bool, SpaceSchema]:
@@ -115,52 +113,18 @@ class Vearch(object):
                 space = Space(database_name, space_name)
                 l.append(space)
             return l
+        elif MSG_NOT_EXIST in result.msg:
+            return l
         else:
             raise SpaceException(code=CodeType.LIST_SPACES, message="list space failed:" + result.msg)
 
-    
+
     def upsert(self, database_name: str, space_name: str, data: Union[List, pd.DataFrame]) -> UpsertResult:
         try:
             if not self.is_space_exist(database_name, space_name):
-                raise SpaceException(CodeType.CHECK_SPACE_EXIST, message="space not exist")
+                return UpsertResult(CodeType.CHECK_SPACE_EXIST, message="space %s not exist, please create it first" % space_name)
             space = Space(database_name, space_name)
-            if not self._schema:
-                has, schema = space.exist()
-                if has:
-                    self._schema = schema
-                else:
-                    raise SpaceException(CodeType.CHECK_SPACE_EXIST,
-                                         "space %s not exist,please create it first" % space_name)
-            url = self.client.host + UPSERT_DOC_URI
-            req_body = {"db_name": database_name, "space_name": space_name}
-            records = []
-            if data:
-                is_dataframe = isinstance(data, pd.DataFrame)
-                data_fields_len = len(data.columns) if is_dataframe else len(data[0])
-                if data_fields_len == len(self._schema.fields):
-                    if isinstance(data, pd.DataFrame):
-                        for index, row in data.iterrows():
-                            record = {}
-
-                            for i, field in enumerate(self._schema._fields):
-                                record[field.name] = row[field.name]
-                            records.append(record)
-                    else:
-                        for em in data:
-                            record = {}
-                            for i, field in enumerate(self._schema.fields):
-                                record[field.name] = em[i]
-                            records.append(record)
-                    req_body.update({"documents": records})
-                    sign = compute_sign_auth(secret=self.client.token)
-                    resp = requests.request(method="POST", url=url, data=json.dumps(req_body),
-                                            auth=sign)
-                    return UpsertResult.parse_upsert_result_from_response(resp)
-                else:
-                    raise DocumentException(CodeType.UPSERT_DOC, "data fields not conform space schema")
-            else:
-                raise DocumentException(CodeType.UPSERT_DOC, "data is empty")
-
+            return space.upsert(data)
         except VearchException as e:
             raise  e
     
@@ -209,10 +173,8 @@ class Vearch(object):
 
         :return:
         """
-        if not self.is_space_exist(database_name, space_name):
-            raise SpaceException(CodeType.CHECK_SPACE_EXIST, message="space not exist")
         if not vector_infos:
-            raise SpaceException(CodeType.SEARCH_DOC, "vector_info can not both null")
+            return SearchResult(CodeType.SEARCH_DOC, "vector_info can not both null")
         url = self.client.host + SEARCH_DOC_URI
         req_body = {"db_name": database_name, "space_name": space_name, "vector_value": vector, "limit": limit}
         if fields:
@@ -245,10 +207,8 @@ class Vearch(object):
         :param size the output result size you queried out
         :return:
         """
-        if not self.is_space_exist(database_name, space_name):
-            raise SpaceException(CodeType.CHECK_SPACE_EXIST, message="space not exist")
         if (not document_ids) and (not filter):
-            raise SpaceException(CodeType.QUERY_DOC, "document_ids and filter can not both null")
+            return SearchResult(CodeType.QUERY_DOC, "document_ids and filter can not both null")
         url = self.client.host + QUERY_DOC_URI
         req_body = {"db_name": database_name, "space_name": space_name, "vector_value": vector}
         if document_ids:

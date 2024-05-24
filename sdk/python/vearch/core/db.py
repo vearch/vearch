@@ -32,8 +32,7 @@ class Database(object):
         except VearchException  as e:
             if e._code == CODE_DATABASE_NOT_EXIST and MSG_NOT_EXIST in e._msg:
                 return False
-            else:
-                raise DatabaseException(code=CodeType.GET_DATABASE, message=e.__str__())
+
 
     def create(self) -> Result:
         return self.client._create_db(self.name)
@@ -44,7 +43,6 @@ class Database(object):
         return Result(code=ResultStatus.success)
 
     def list_spaces(self) -> List[Space]:
-        
         url_params = {"database_name": self.name}
         url = self.client.host + (LIST_SPACE_URI % url_params)
         sign = compute_sign_auth(secret=self.client.token)

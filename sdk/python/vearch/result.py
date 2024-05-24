@@ -57,8 +57,11 @@ class UpsertResult(object):
         code = ret.get("code", -1)
         msg = ret.get("msg", "")
         data = ret.get("data", None)
-        total = data.get("total", -1)
-        document_ids = data.get("document_ids", [])
+        total = -1
+        documents = None
+        if data != None:
+            total = data.get("total", -1)
+            document_ids = data.get("document_ids", [])
         ur = cls(code, msg, total)
         ur.document_ids = document_ids
         return ur
@@ -83,7 +86,9 @@ class SearchResult(object):
         code = ret.get("code", -1)
         msg = ret.get("msg", "")
         data = ret.get("data", None)
-        documents = data.get("documents", None)
+        documents = None
+        if data != None:
+            documents = data.get("documents", None)
         sr = cls(code, msg, documents=documents)
         return sr
 
@@ -115,8 +120,11 @@ class DeleteResult(object):
         code = ret.get("code", -1)
         msg = ret.get("msg", "")
         data = ret.get("data", None)
-        total = data.get("total", -1)
-        document_ids = data.get("document_ids", [])
+        total = -1
+        document_ids = []
+        if data != None:
+            total = data.get("total", -1)
+            document_ids = data.get("document_ids", [])
         dr = cls(code, msg, total)
         dr.document_ids = document_ids
         return dr
@@ -128,10 +136,5 @@ def get_result(resp: requests.Response) -> Result:
     r.code = ret.get("code", -1)
     r.data = ret.get("data", "")
     r.msg = ret.get("msg", "")
-    if resp.status_code / 100 == 2:
-        if r.code != CODE_SUCCESS:
-            raise VearchException(r.code, r.msg)  
-        return r
-    else:
-        if r.code != -1:
-            raise VearchException(r.code, r.msg)
+    return r
+
