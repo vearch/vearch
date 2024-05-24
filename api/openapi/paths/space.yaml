@@ -33,8 +33,6 @@ Spaces:
                       type: string
                     type:
                       type: string
-                    array:
-                      type: boolean
                     index:
                       type: object
                       properties:

@@ -1,18 +1,16 @@
 openapi: '3.0.2'
 info:
-  title: Vearch Database API
+  title: Vearch API
   version: "3.5.0"
   license:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0.html
-  description: API for sending dynamic records to the Vearch database.
+  description: API for sending dynamic records to the Vearch.
 servers:
-  - url: 'http://{vearchHost}:{vearchPort}'
+  - url: 'http://{VearchURL}'
     variables:
-        vearchHost:
-          default: 'localhost'
-        vearchPort:
-          default: '80'
+        VearchURL:
+          default: 'localhost:9001'
     description: Vearch server
 
 components:

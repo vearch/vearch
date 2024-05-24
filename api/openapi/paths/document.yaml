@@ -3,7 +3,7 @@ Upsert:
     summary: Upsert document into database
     operationId: upsert
     tags:
-      - Document
+      - document
     requestBody:
       required: true
       content:
@@ -24,6 +24,7 @@ Upsert:
             example:
               db_name: "db"
               space_name: "ts_space"
+              documents: [{"field_int": 1.2, "field_str": "test", "field_vec": [0.1, 0.2, 0.3]}]
     responses:
       '200':
         $ref: 'components/responses.yaml#/SuccessResponse'
@@ -35,7 +36,7 @@ Delete:
     summary: Delete documents from a space
     operationId: deleteDocuments
     tags:
-      - Document
+      - document
     requestBody:
       required: true
       content:
@@ -72,7 +73,7 @@ Search:
     summary: Search for documents using vector and filter parameters
     operationId: searchDocuments
     tags:
-      - Document
+      - document
     requestBody:
       required: true
       content:
@@ -147,7 +148,7 @@ Query:
     summary: Query for documents using doc ID and filter parameters
     operationId: queryDocuments
     tags:
-      - Document
+      - document
     requestBody:
       required: true
       content:
