@@ -132,6 +132,10 @@ func deleteDocs(client *vearch.Client) error {
 }
 ```
 
+### More
+
+[Example](../../examples/golang/basic_usage/README.md)
+
 ## Running Tests
 
 To run the provided tests, execute the following command in your terminal:

@@ -129,7 +129,6 @@ func (handler *DocumentHandler) handleMasterRequest(c *gin.Context) {
 }
 
 func (handler *DocumentHandler) ExportInterfacesToServer(group *gin.RouterGroup) error {
-	// The data operation will be redefined as the following 2 type interfaces: document and index
 	// document
 	group.POST("/document/upsert", handler.handleDocumentUpsert)
 	group.POST("/document/query", handler.handleDocumentQuery)
@@ -147,7 +146,7 @@ func (handler *DocumentHandler) ExportInterfacesToServer(group *gin.RouterGroup)
 
 	// cacheInfo
 	// /cache/$dbName/$spaceName
-	group.GET(fmt.Sprintf("/cache/:%s/:%s", URLParamDbName, URLParamSpaceName), handler.cacheInfo)
+	group.GET(fmt.Sprintf("/cache/:%s/:%s", URLParamDbName, URLParamSpaceName), handler.cacheSpaceInfo)
 
 	return nil
 }
@@ -157,7 +156,7 @@ func (handler *DocumentHandler) handleTimeout(c *gin.Context) {
 	c.Set(entity.MessageID, messageID)
 }
 
-func (handler *DocumentHandler) cacheInfo(c *gin.Context) {
+func (handler *DocumentHandler) cacheSpaceInfo(c *gin.Context) {
 	dbName := c.Param(URLParamDbName)
 	spaceName := c.Param(URLParamSpaceName)
 	if space, err := handler.client.Master().Cache().SpaceByCache(context.Background(), dbName, spaceName); err != nil {

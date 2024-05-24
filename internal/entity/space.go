@@ -194,7 +194,8 @@ func (index *Index) UnmarshalJSON(bs []byte) error {
 		if err := json.Unmarshal(tempIndex.Params, &indexParams); err != nil {
 			return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("index params:%s json.Unmarshal err :[%s]", tempIndex.Params, err.Error()))
 		}
-		if indexParams.MetricType != "InnerProduct" && indexParams.MetricType != "L2" {
+
+		if indexParams.MetricType != "" && indexParams.MetricType != "InnerProduct" && indexParams.MetricType != "L2" {
 			return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("index params metric_type not support: %s, should be L2 or InnerProduct", indexParams.MetricType))
 		}
 
