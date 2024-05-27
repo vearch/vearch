@@ -27,24 +27,34 @@ if [ ! -f "cmake" ]; then
 fi
 
 cd /env/app
-if [ ! -f "rocksdb-v6.6.4.tar.gz" ]; then
-    wget https://github.com/facebook/rocksdb/archive/refs/tags/v6.6.4.tar.gz -O rocksdb.tar.gz
+if [ ! -f "rocksdb-v9.2.1.tar.gz" ]; then
+    wget https://github.com/facebook/rocksdb/archive/refs/tags/v9.2.1.tar.gz -O rocksdb.tar.gz
 fi
 tar xf rocksdb.tar.gz
-cd /env/app/rocksdb-6.6.4
+cd /env/app/rocksdb-9.2.1
 make shared_lib -j4
 mkdir -p /env/app/rocksdb_install/lib
-cp librocksdb.so.6.6.4 /env/app/rocksdb_install/lib
+cp librocksdb.so.9.2.1 /env/app/rocksdb_install/lib
 cd /env/app/rocksdb_install/lib
-ln -s librocksdb.so.6.6.4 librocksdb.so.6.6
-ln -s librocksdb.so.6.6 librocksdb.so
-cp -r /env/app/rocksdb-6.6.4/include /env/app/rocksdb_install/
-rm -rf /env/app/rocksdb-6.6.4 /env/app/rocksdb.tar.gz
+ln -s librocksdb.so.9.2.1 librocksdb.so.9.2
+ln -s librocksdb.so.9.2 librocksdb.so
+cp -r /env/app/rocksdb-9.2.1/include /env/app/rocksdb_install/
+rm -rf /env/app/rocksdb-9.2.1 /env/app/rocksdb.tar.gz
 
 cd /env/app/
-if [ ! -f "go1.22.3.linux-amd64.tar.gz" ]; then
-    wget https://go.dev/dl/go1.22.3.linux-amd64.tar.gz
-fi
 
-tar -xzf go1.22.3.linux-amd64.tar.gz
-rm -rf go1.22.3.linux-amd64.tar.gz
+ARCH=$(arch)
+
+if [ $ARCH = "x86_64" ]; then
+    if [ ! -f "go1.22.3.linux-amd64.tar.gz" ]; then
+        wget https://go.dev/dl/go1.22.3.linux-amd64.tar.gz
+    fi
+    tar -xzf go1.22.3.linux-amd64.tar.gz
+    rm -rf go1.22.3.linux-amd64.tar.gz
+elif [ $ARCH = "aarch64" ]; then
+    if [ ! -f "go1.22.3.linux-arm64.tar.gz" ]; then
+        wget https://go.dev/dl/go1.22.3.linux-arm64.tar.gz
+    fi
+    tar -xzf go1.22.3.linux-arm64.tar.gz
+    rm -rf go1.22.3.linux-arm64.tar.gz
+fi

@@ -485,7 +485,6 @@ func (m *masterClient) RegisterRouter(ctx context.Context, clusterName string, t
 	masterServer.reset()
 	var response []byte
 	for {
-
 		query := netutil.NewQuery().SetHeader(Authorization, netutil.AuthEncrypt(Root, m.cfg.Global.Signkey))
 
 		keyNumber, err := masterServer.getKey()

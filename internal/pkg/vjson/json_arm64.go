@@ -12,10 +12,28 @@
 // implied. See the License for the specific language governing
 // permissions and limitations under the License.
 
-//go:build darwin
+//go:build arm64
 
-package os
+package vjson
 
-func CheckResource(path string) (is bool, err error) {
-	return false, nil
+import (
+	"encoding/json"
+)
+
+// Marshal marshal v into valid JSON
+func Marshal(v interface{}) ([]byte, error) {
+	if m, ok := v.(json.Marshaler); ok {
+		return m.MarshalJSON()
+	}
+
+	return json.Marshal(v)
+}
+
+// Unmarshal unmarshal a JSON data to v
+func Unmarshal(data []byte, v interface{}) error {
+	if m, ok := v.(json.Unmarshaler); ok {
+		return m.UnmarshalJSON(data)
+	}
+
+	return json.Unmarshal(data, v)
 }

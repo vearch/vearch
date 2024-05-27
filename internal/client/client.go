@@ -74,12 +74,12 @@ func (client *Client) initPsClient() error {
 }
 
 func (client *Client) initMasterClient(conf *config.Config) error {
-	openStore, err := store.OpenStore("etcd", conf.GetEtcdAddress())
+	etcdStore, err := store.OpenStore("etcd", conf.GetEtcdAddress())
 	if err != nil {
 		return err
 	}
 
-	client.master = &masterClient{client: client, Store: openStore, cfg: conf}
+	client.master = &masterClient{client: client, Store: etcdStore, cfg: conf}
 	masterServer.init(len(conf.Masters))
 	return nil
 }
