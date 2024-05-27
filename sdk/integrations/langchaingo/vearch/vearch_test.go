@@ -11,7 +11,6 @@ import (
 	"github.com/tmc/langchaingo/vectorstores/vearch"
 )
 
-
 func TestVearchStoreRest(t *testing.T) {
 	t.Parallel()
 
@@ -40,5 +39,3 @@ func TestVearchStoreRest(t *testing.T) {
 	require.Len(t, docs, 1)
 	require.Equal(t, "tokyo", docs[0].PageContent)
 }
-
-

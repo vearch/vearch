@@ -20,7 +20,7 @@ func (s Store) upsertDocuments(
 	vectors [][]float32,
 	payloads []map[string]interface{},
 ) ([]string, error) {
-    
+
 	ids := make([]string, len(vectors))
 	for i := range ids {
 		ids[i] = uuid.NewString()
@@ -35,7 +35,7 @@ func (s Store) upsertDocuments(
 	}
 
 	url := baseURL.JoinPath("http://", &s.ClusterUrl, "/document/upsert")
-    fmt.println("concant url:::::",url)
+	fmt.println("concant url:::::", url)
 	body,
 		status,
 		err := DoRequest(
