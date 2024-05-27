@@ -29,20 +29,21 @@ class Space(object):
         if not self._schema:
             self._schema = space
         sign = compute_sign_auth(secret=self.client.token)
-        resp = requests.request(method="POST", url=url, data=json.dumps(space.dict()), auth=sign)
+        resp = requests.request(method="POST", url=url,
+                                data=json.dumps(space.dict()), auth=sign)
         return get_result(resp)
-    
-    
+
     def drop(self) -> Result:
         url_params = {"database_name": self.db_name, "space_name": self.name}
         url = self.client.host + SPACE_URI % url_params
         sign = compute_sign_auth(secret=self.client.token)
-        resp= requests.request(method="DELETE", url=url, auth=sign)
+        resp = requests.request(method="DELETE", url=url, auth=sign)
         return get_result(resp)
 
     def exist(self) -> [bool, SpaceSchema]:
         try:
-            url_params = {"database_name": self.db_name, "space_name": self.name}
+            url_params = {"database_name": self.db_name,
+                          "space_name": self.name}
             uri = SPACE_URI % url_params
             url = self.client.host + str(uri)
             sign = compute_sign_auth(secret=self.client.token)
@@ -62,7 +63,8 @@ class Space(object):
 
     def create_index(self, field: str, index: Index) -> Result:
         url = self.client.host + INDEX_URI
-        req_body = {"field": field, "index": index.dict(), "database": self.db_name, "space": self.name}
+        req_body = {"field": field, "index": index.dict(
+        ), "database": self.db_name, "space": self.name}
         sign = compute_sign_auth(secret=self.client.token)
         resp = requests.request(method="POST", url=url, data=json.dumps(req_body),
                                 auth=sign)
@@ -76,7 +78,7 @@ class Space(object):
                     self._schema = schema
                 else:
                     return UpsertResult(CodeType.CHECK_SPACE_EXIST,
-                                         "space %s not exist, please create it first" % self.name)
+                                        "space %s not exist, please create it first" % self.name)
             url = self.client.host + UPSERT_DOC_URI
             req_body = {"db_name": self.db_name, "space_name": self.name}
             records = []
@@ -108,11 +110,14 @@ class Space(object):
             else:
                 return UpsertResult(CodeType.UPSERT_DOC, "data type has error: " + err_msg)
         except VearchException as e:
-            raise  e
+            raise e
 
+    def _check_data_type(self, data: Union[List, pd.DataFrame]) -> List[str]:
+        if data == None or len(data) == 0:
+            return UpsertDataType.ERROR, "data is null"
 
-    def _check_data_type(self, data: Union[List, pd.DataFrame]) -> (str, str):
         is_dataframe = isinstance(data, pd.DataFrame)
+
         data_fields_len = len(data.columns) if is_dataframe else len(data[0])
         item_num = len(data)
         item_dict_num = 0
@@ -139,11 +144,11 @@ class Space(object):
         else:
             return UpsertDataType.ERROR, "data type should be list or pandas.DataFrame"
 
-
     def _check_data_conforms_schema(self, data: Union[List, pd.DataFrame]) -> bool:
         if data:
             is_dataframe = isinstance(data, pd.DataFrame)
-            data_fields_len = len(data.columns) if is_dataframe else len(data[0])
+            data_fields_len = len(
+                data.columns) if is_dataframe else len(data[0])
             return data_fields_len == len(self._schema.fields)
         else:
             return False
@@ -151,14 +156,16 @@ class Space(object):
 
     def delete(self, document_ids: Optional[List] = [], filter: Optional[Filter] = None,  limit: int = 50) -> Result:
         url = self.client.host + DELETE_DOC_URI
-        req_body = {"db_name": self.db_name, "space_name": self.name, "limit": limit}
+        req_body = {"db_name": self.db_name,
+                    "space_name": self.name, "limit": limit}
         if document_ids:
             req_body["document_ids"] = document_ids
         if filter:
             req_body["filters"] = filter.dict()
 
         sign = compute_sign_auth()
-        resp = requests.request(method="POST", url=url, data=json.dumps(req_body), auth=sign)
+        resp = requests.request(method="POST", url=url,
+                                data=json.dumps(req_body), auth=sign)
         return DeleteResult.parse_delete_result_from_response(resp)
 
     def search(self, vector_infos: Optional[List[VectorInfo]], filter: Optional[Filter] = None,
@@ -171,12 +178,10 @@ class Space(object):
         :param limit:  the result size you want to return
         :param kwargs:
             "is_brute_search": 0,
-            "online_log_level": "debug",
-            "quick": false,
             "vector_value": false,
             "load_balance": "leader",
             "l2_sqrt": false,
-            "size": 10
+            "limit": 10
 
             retrieval_param: the retrieval parameter which control the search action,user can asign it to precisely
              control search result,different index type different parameters
@@ -210,12 +215,14 @@ class Space(object):
         if not vector_infos:
             return SearchResult(CodeType.SEARCH_DOC, "vector_info can not both null")
         url = self.client.host + SEARCH_DOC_URI
-        req_body = {"db_name": self.db_name, "space_name": self.name, "vector_value": vector, "limit": limit}
+        req_body = {"db_name": self.db_name, "space_name": self.name,
+                    "vector_value": vector, "limit": limit}
         if fields:
             req_body["fields"] = fields
         req_body["vectors"] = []
         if vector_infos:
-            vector_info_dict = [vector_info.dict() for vector_info in vector_infos]
+            vector_info_dict = [vector_info.dict()
+                                for vector_info in vector_infos]
             req_body["vectors"] = vector_info_dict
         if filter:
             req_body["filters"] = filter.dict()
@@ -228,7 +235,7 @@ class Space(object):
         return SearchResult.parse_search_result_from_response(resp)
 
     def query(self, document_ids: Optional[List] = [], filter: Optional[Filter] = None,
-              partition_id: Optional[str] = "",
+              partition_id: Optional[int] = None,
               fields: Optional[List] = [], vector: bool = False, limit: int = 50) -> List[Dict]:
         """
         you can asign  the document_ids in [xxx,xxx,xxx,xxx,xxx],or give the other filter condition.
@@ -238,13 +245,14 @@ class Space(object):
         :param partition_id assign which partition you want to query,default query all partitions
         :param fields the scalar fields you want to output
         :param vector return vector or not
-        :param size the output result size you queried out
+        :param limit the output result size you queried out
         :return:
         """
         if (not document_ids) and (not filter):
             return SearchResult(CodeType.QUERY_DOC, "document_ids and filter can not both null")
         url = self.client.host + QUERY_DOC_URI
-        req_body = {"db_name": self.db_name, "space_name": self.name, "vector_value": vector, "limit": limit}
+        req_body = {"db_name": self.db_name, "space_name": self.name,
+                    "vector_value": vector, "limit": limit}
         if document_ids:
             req_body["document_ids"] = document_ids
         if partition_id:
@@ -254,5 +262,6 @@ class Space(object):
         if filter:
             req_body["filters"] = filter.dict()
         sign = compute_sign_auth(secret=self.client.token)
-        resp = requests.request(method="POST", url=url, data=json.dumps(req_body), auth=sign)
+        resp = requests.request(method="POST", url=url,
+                                data=json.dumps(req_body), auth=sign)
         return SearchResult.parse_search_result_from_response(resp)

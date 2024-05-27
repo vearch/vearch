@@ -29,10 +29,9 @@ class Database(object):
                 return True
             else:
                 return False
-        except VearchException  as e:
+        except VearchException as e:
             if e._code == CODE_DATABASE_NOT_EXIST and MSG_NOT_EXIST in e._msg:
                 return False
-
 
     def create(self) -> Result:
         return self.client._create_db(self.name)
@@ -46,7 +45,7 @@ class Database(object):
         url_params = {"database_name": self.name}
         url = self.client.host + (LIST_SPACE_URI % url_params)
         sign = compute_sign_auth(secret=self.client.token)
-        resp = requests.request(method="GET", url=url,auth=sign)
+        resp = requests.request(method="GET", url=url, auth=sign)
         return get_result(resp)
 
     def space(self, name) -> Space:
@@ -66,7 +65,6 @@ class Database(object):
         url_params = {"database_name": self.name, "space_name": space.name}
         url = self.client.host + LIST_SPACE_URI % url_params
         sign = compute_sign_auth(secret=self.client.token)
-        resp = requests.request(method="POST", url=url, data=json.dumps(space.dict()), auth=sign)
+        resp = requests.request(method="POST", url=url,
+                                data=json.dumps(space.dict()), auth=sign)
         return get_result(resp)
-    
-    

@@ -12,7 +12,8 @@ logger = logging.getLogger("vearch")
 @singleton
 class RestClient(object):
     def __init__(self):
-        httpAdapter = HTTPAdapter(pool_maxsize=DefaultConfig.max_connections, max_retries=DefaultConfig.max_retries)
+        httpAdapter = HTTPAdapter(
+            pool_maxsize=DefaultConfig.max_connections, max_retries=DefaultConfig.max_retries)
         s = requests.Session()
         s.mount("http://", adapter=httpAdapter)
         self.s = s
@@ -21,7 +22,8 @@ class RestClient(object):
         self.timeout = 30
 
     def config(self, config: Config):
-        httpAdapter = HTTPAdapter(pool_maxsize=config.max_connections, max_retries=config.max_retries)
+        httpAdapter = HTTPAdapter(
+            pool_maxsize=config.max_connections, max_retries=config.max_retries)
         s = requests.Session()
         s.mount("http://", adapter=httpAdapter)
         self.s = s
@@ -40,21 +42,21 @@ class RestClient(object):
         url_params = {"database_name": database_name}
         url = self.host + (DATABASE_URI % url_params)
         sign = compute_sign_auth(secret=self.token)
-        resp = requests.request(method="DELETE", url=url,auth=sign)
+        resp = requests.request(method="DELETE", url=url, auth=sign)
         return get_result(resp)
 
     def _list_db(self) -> Result:
         url = self.host + LIST_DATABASE_URI
         sign = compute_sign_auth(secret=self.token)
-        resp = requests.request(method="GET", url=url,auth=sign)
+        resp = requests.request(method="GET", url=url, auth=sign)
         return get_result(resp)
 
-    
-    def _list_space(self,database_name: str) -> Result:
+    def _list_space(self, database_name: str) -> Result:
         url_params = {"database_name": database_name}
         url = self.host + (LIST_SPACE_URI % url_params)
         sign = compute_sign_auth(secret=self.token)
-        resp = requests.request(method="GET", url=url,auth=sign)
+        resp = requests.request(method="GET", url=url, auth=sign)
         return get_result(resp)
+
 
 client = RestClient()

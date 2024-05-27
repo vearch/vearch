@@ -41,11 +41,12 @@ class UpsertResult(object):
             "msg":"success",
             "data": {
                 "total":5,
-                "document_ids":[{"_id":"-7406650708070185766","status":200,"error":"success"},
-                                {"status":200,"error":"success","_id":"-1644104496683872820"},
-                                {"_id":"-509921751725925904","status":200,"error":"success"},
-                                {"status":200,"error":"success","_id":"6142641378725051944"},
-                                {"_id":"-2560796653511183804","status":200,"error":"success"}]
+                "document_ids":[
+                    {"_id":"-7406650708070185766","status":200,"error":"success"},
+                    {"status":200,"error":"success","_id":"-1644104496683872820"},
+                    {"_id":"-509921751725925904","status":200,"error":"success"},
+                    {"status":200,"error":"success","_id":"6142641378725051944"},
+                    {"_id":"-2560796653511183804","status":200,"error":"success"}]
                 }
             }
         }
@@ -58,7 +59,7 @@ class UpsertResult(object):
         msg = ret.get("msg", "")
         data = ret.get("data", None)
         total = -1
-        documents = None
+        document_ids = None
         if data != None:
             total = data.get("total", -1)
             document_ids = data.get("document_ids", [])
@@ -137,4 +138,3 @@ def get_result(resp: requests.Response) -> Result:
     r.data = ret.get("data", "")
     r.msg = ret.get("msg", "")
     return r
-

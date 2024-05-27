@@ -12,7 +12,7 @@ class RelationOperator:
 
 
 class BooleanOperator:
-    AND = "AND" 
+    AND = "AND"
     OR = "OR"
 
 

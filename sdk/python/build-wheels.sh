@@ -31,9 +31,15 @@ if [ ${OS} == "Darwin" ];then
 elif [ `expr substr ${OS} 1 5` == "Linux" ];then
     #Compile wheels
     for PYBIN in /opt/python/*/bin; do
+        if [[ $PYBIN == *"313"* ]]; then
+            continue
+        fi
         "${PYBIN}/pip" install -r dev-requirements.txt -i https://mirrors.aliyun.com/pypi/simple/
         "${PYBIN}/python" setup.py bdist_wheel
-        rm -rf build pyvearch.egg-info 
+        "${PYBIN}/pip" install dist/*
+        "${PYBIN}/python" -c "import vearch"
+        rm -rf dist build pyvearch.egg-info
+        "${PYBIN}/pytest"
     done 
 elif [ `expr substr ${OS} 1 10` == "MINGW" ];then
     echo "windows not support"

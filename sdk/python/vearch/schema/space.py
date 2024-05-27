@@ -34,7 +34,8 @@ class SpaceSchema:
                 if isinstance(field.index, BinaryIvfIndex):
                     assert field.dim % 8 == 0, "BinaryIvfIndex vector dimention must be power of eight"
                 if isinstance(field.index, IvfPQIndex):
-                    assert field.dim % field.index.nsubvector() == 0, "IVFPQIndex vector dimention must be power of nsubvector"
+                    assert field.dim % field.index.nsubvector(
+                    ) == 0, "IVFPQIndex vector dimention must be power of nsubvector"
 
     def dict(self):
         space_schema = {"name": self.name, "desc": self.description, "partition_num": self.partition_num,
@@ -46,10 +47,11 @@ class SpaceSchema:
 
     @classmethod
     def from_dict(cls, data_dict):
-     
+
         name = data_dict.get("space_name")
         schema_dict = data_dict.get("schema")
-        fields = [Field.from_dict(field) for field in schema_dict.get("fields")]
+        fields = [Field.from_dict(field)
+                  for field in schema_dict.get("fields")]
         return cls(name=name, fields=fields,
                    description=data_dict.get("desc", ""),
                    partition_num=data_dict.get("partition_num"),

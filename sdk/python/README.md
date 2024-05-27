@@ -9,6 +9,14 @@ Before you begin, ensure you have the following:
 - Python 3.7 and above.
 - Access to a running Vearch server.
 
+## Compatibility
+
+The following table shows Vearch versions and recommended PyVearch versions:
+
+| Vearch version | Recommended PyVearch version |
+|:--------------:|:----------------------------:|
+|      3.5.X     |             3.5.0            |
+
 ## Installation
 
 Install Vearch via pip or pip3:
@@ -54,7 +62,7 @@ print("create space: ", ret.data)
 ```python
 import random
 data = []
-book_item = ["Read", 10, [random.uniform(0, 1) for _ in range(512)]]
+book_item = {"book_name": "Write", "book_num": 7, "book_character":[random.uniform(0, 1) for _ in range(512)]}
 data.append(book_item)
 ret = vc.upsert("database_test", "book_info", data)
 document_ids = ret.get_document_ids()
