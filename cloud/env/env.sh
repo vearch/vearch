@@ -9,22 +9,25 @@ yum -y install devtoolset-10
 source /opt/rh/devtoolset-10/enable
 g++ -v
 
+ARCH=$(arch)
+
 if [ ! -d "/env/app" ]; then
     mkdir -p /env/app
 fi
 cd /env/app/
-if [ ! -f "cmake-3.20.0-rc3.tar.gz" ]; then
-    wget https://cmake.org/files/v3.20/cmake-3.20.0-rc3.tar.gz
+
+CMAKE_FILE=""
+
+if [ $ARCH = "x86_64" ]; then
+    CMAKE_FILE=cmake-3.20.0-linux-x86_64
+elif [ $ARCH = "aarch64" ]; then
+    CMAKE_FILE=cmake-3.20.0-linux-aarch64
 fi
-tar xf cmake-3.20.0-rc3.tar.gz
-cd /env/app/cmake-3.20.0-rc3
-./bootstrap
-gmake -j4 && gmake install
-rm -rf /env/app/cmake-3.20.0-rc3 /env/app/cmake-3.20.0-rc3.tar.gz
-cd /usr/bin
-if [ ! -f "cmake" ]; then
-    ln -s cmake3 cmake
-fi
+
+wget https://github.com/Kitware/CMake/releases/download/v3.20.0/${CMAKE_FILE}.sh
+bash ${CMAKE_FILE}.sh --skip-license --prefix=/usr/local
+cp -r -p /usr/local/${CMAKE_FILE}/bin/* /bin/
+rm -rf ${CMAKE_FILE}.sh
 
 cd /env/app
 if [ ! -f "rocksdb-v9.2.1.tar.gz" ]; then
@@ -42,8 +45,6 @@ cp -r /env/app/rocksdb-9.2.1/include /env/app/rocksdb_install/
 rm -rf /env/app/rocksdb-9.2.1 /env/app/rocksdb.tar.gz
 
 cd /env/app/
-
-ARCH=$(arch)
 
 if [ $ARCH = "x86_64" ]; then
     if [ ! -f "go1.22.3.linux-amd64.tar.gz" ]; then

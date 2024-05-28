@@ -1,0 +1,99 @@
+name: Build dev env on CentOS
+
+on: [workflow_dispatch]
+
+jobs:
+  build-arm64-image:
+    name: Build ARM64 Image
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v3
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Login to DockerHub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Get the current tag
+      run: |
+        BUILD_VERSION=$(awk '/VEARCH_VERSION_MAJOR/ {major=$2} /VEARCH_VERSION_MINOR/ {minor=$2} /VEARCH_VERSION_PATCH/ {patch=$2} END {print major"."minor"."patch}' VERSION)
+        echo "BUILD_VERSION=$BUILD_VERSION"
+        echo "TAG=$BUILD_VERSION" >> $GITHUB_ENV
+        echo "version=$BUILD_VERSION" >> $GITHUB_ENV 
+
+    - name: Build and push
+      uses: docker/build-push-action@v5
+      with:
+        context: cloud/env
+        file: cloud/env/Dockerfile
+        push: true
+        tags: |
+          vearch/vearch-dev-env-arm64:latest,
+          vearch/vearch-dev-env-arm64:${{ env.version }}
+        platforms: linux/arm64
+
+  build-amd64-image:
+    name: Build AMD64 Image
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Login to DockerHub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Get the current tag
+      run: |
+        BUILD_VERSION=$(awk '/VEARCH_VERSION_MAJOR/ {major=$2} /VEARCH_VERSION_MINOR/ {minor=$2} /VEARCH_VERSION_PATCH/ {patch=$2} END {print major"."minor"."patch}' VERSION)
+        echo "BUILD_VERSION=$BUILD_VERSION"
+        echo "TAG=$BUILD_VERSION" >> $GITHUB_ENV
+        echo "version=$BUILD_VERSION" >> $GITHUB_ENV 
+
+    - name: Build and push
+      uses: docker/build-push-action@v5
+      with:
+        context: cloud/env
+        file: cloud/env/Dockerfile
+        push: true
+        tags: |
+          vearch/vearch-dev-env-amd64:latest,
+          vearch/vearch-dev-env-amd64:${{ env.version }}
+        platforms: linux/amd64
+
+  # FIXME: "docker manifest inspect vearch/vearch-dev-env-amd64:latest" return two manifests, so can't combine
+  # combine-two-images:
+  #   runs-on: ubuntu-latest
+  #   needs:
+  #     - build-arm64-image
+  #     - build-amd64-image
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
+
+  #     - name: Login to Docker Hub
+  #       uses: docker/login-action@v3
+  #       with:
+  #         username: ${{ secrets.DOCKER_USERNAME }}
+  #         password: ${{ secrets.DOCKER_PASSWORD }}
+      
+  #     - name: Combine two images
+  #       run: |
+  #         docker manifest create vearch/vearch-dev-env:latest --amend vearch/vearch-dev-env-amd64:latest --amend vearch/vearch-dev-env-arm64:latest
+  #         docker manifest push vearch/vearch-dev-env:latest
+
+  #         docker tag vearch/vearch-dev-env:latest vearch/vearch-dev-env:${{ env.version }}
+  #         docker manifest push vearch/vearch-dev-env:${{ env.version }}
