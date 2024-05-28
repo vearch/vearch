@@ -73,19 +73,37 @@ endif()
 find_package(MKL)
 if(MKL_FOUND)
     #LINK LIBRARY
-    set(LIBRARIES
-        -lfaiss_avx2
-        ${RocksDB_LIB}
-        ${MKL_LIBRARIES}
-        -ltbb
-    )
+    if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm|ARM|aarch64|AARCH64")
+        set(LIBRARIES
+            -lfaiss
+            ${RocksDB_LIB}
+            ${MKL_LIBRARIES}
+            -ltbb
+        )
+    else()
+        set(LIBRARIES
+            -lfaiss_avx2
+            ${RocksDB_LIB}
+            ${MKL_LIBRARIES}
+            -ltbb
+        )
+    endif()
 else()
-    set(LIBRARIES
-        -lfaiss_avx2
-        ${RocksDB_LIB}
-        -lopenblas
-        -ltbb
-   ) 
+   if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm|ARM|aarch64|AARCH64")
+       set(LIBRARIES
+           -lfaiss
+           ${RocksDB_LIB}
+           -lopenblas
+           -ltbb
+       )
+   else()
+       set(LIBRARIES
+           -lfaiss_avx2
+           ${RocksDB_LIB}
+           -lopenblas
+           -ltbb
+       )
+   endif()
 endif()
 
 message(STATUS ENABLE_COVERAGE=${ENABLE_COVERAGE})

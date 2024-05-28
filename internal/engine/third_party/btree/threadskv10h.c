@@ -30,7 +30,7 @@ REDISTRIBUTION OF THIS SOFTWARE.
 // Please see the project home page for documentation
 // code.google.com/p/high-concurrency-btree
 
-#ifndef __APPLE__
+#if !defined(__APPLE__) && !defined(__aarch64__)
 
 #define _FILE_OFFSET_BITS 64
 #define _LARGEFILE64_SOURCE

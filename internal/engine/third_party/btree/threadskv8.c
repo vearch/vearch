@@ -27,7 +27,7 @@ REDISTRIBUTION OF THIS SOFTWARE.
 
 // Please see the project home page for documentation
 // code.google.com/p/high-concurrency-btree
-#ifdef __APPLE__
+#if defined(__APPLE__) || defined(__aarch64__)
 #define unix
 #define _FILE_OFFSET_BITS 64
 #define _LARGEFILE64_SOURCE
@@ -63,11 +63,11 @@ REDISTRIBUTION OF THIS SOFTWARE.
 
 typedef unsigned long long	uid;
 
-// #ifndef unix
+#ifndef unix
 typedef unsigned long long	off64_t;
 typedef unsigned short		ushort;
 typedef unsigned int		uint;
-// #endif
+#endif
 
 #define BT_ro 0x6f72	// ro
 #define BT_rw 0x7772	// rw

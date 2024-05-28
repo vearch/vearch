@@ -29,7 +29,7 @@
 #include "util/bitmap.h"
 #include "util/log.h"
 
-#ifdef __APPLE__
+#if defined(__APPLE__) || defined(__aarch64__)
 #include "threadskv8.h"
 #else
 #include "threadskv10h.h"
@@ -379,7 +379,7 @@ class FieldRangeIndex {
 
  private:
   BtMgr *main_mgr_;
-#ifndef __APPLE__
+#if !defined(__APPLE__) && !defined(__aarch64__)
   BtMgr *cache_mgr_;
 #endif
   bool is_numeric_;
@@ -404,7 +404,7 @@ FieldRangeIndex::FieldRangeIndex(std::string &path, int field_idx,
   remove(cache_file.c_str());
   remove(main_file.c_str());
 
-#ifdef __APPLE__
+#if defined(__APPLE__) || defined(__aarch64__)
   main_mgr_ = bt_mgr(const_cast<char *>(main_file.c_str()), bt_param.mainbits,
                      bt_param.poolsize);
 #else
@@ -431,7 +431,7 @@ FieldRangeIndex::FieldRangeIndex(std::string &path, int field_idx,
 }
 
 FieldRangeIndex::~FieldRangeIndex() {
-#ifdef __APPLE__
+#if defined(__APPLE__) || defined(__aarch64__)
   BtDb *bt = bt_open(main_mgr_);
   BtPageSet set[1];
   uid next, page_no = LEAF_page;  // start on first page of leaves
@@ -487,7 +487,7 @@ FieldRangeIndex::~FieldRangeIndex() {
 
   bt_close(bt);
 
-#ifndef __APPLE__
+#if !defined(__APPLE__) && !defined(__aarch64__)
   if (cache_mgr_) {
     bt_mgrclose(cache_mgr_);
     cache_mgr_ = nullptr;
@@ -512,7 +512,7 @@ static int ReverseEndian(const unsigned char *in, unsigned char *out,
 }
 
 int FieldRangeIndex::Add(std::string &key, int value) {
-#ifdef __APPLE__
+#if defined(__APPLE__) || defined(__aarch64__)
   BtDb *bt = bt_open(main_mgr_);
 #else
   BtDb *bt = bt_open(cache_mgr_, main_mgr_);
@@ -529,7 +529,7 @@ int FieldRangeIndex::Add(std::string &key, int value) {
         if (ret < 0) {
           p_node = new Node;
           p_node->Add(value);
-#ifdef __APPLE__
+#if defined(__APPLE__) || defined(__aarch64__)
           BTERR bterr = bt_insertkey(bt, key_to_add, key_len, 0,
                                      static_cast<void *>(&p_node),
                                      sizeof(Node *), Update);
@@ -578,7 +578,7 @@ int FieldRangeIndex::Add(std::string &key, int value) {
 }
 
 int FieldRangeIndex::Delete(std::string &key, int value) {
-#ifdef __APPLE__
+#if defined(__APPLE__) || defined(__aarch64__)
   BtDb *bt = bt_open(main_mgr_);
 #else
   BtDb *bt = bt_open(cache_mgr_, main_mgr_);
@@ -599,7 +599,7 @@ int FieldRangeIndex::Delete(std::string &key, int value) {
         pthread_rwlock_wrlock(&rw_lock_);
         p_node->Delete(value);
         if (p_node->Size() == 0) {
-#ifdef __APPLE__
+#if defined(__APPLE__) || defined(__aarch64__)
           bt_deletekey(bt, key_to_add, key_len, 0);
 #else
           bt_deletekey(main_mgr_, key_to_add, key_len, 0);
@@ -645,7 +645,7 @@ int FieldRangeIndex::Search(const string &lower, const string &upper,
 #ifdef DEBUG
   double start = utils::getmillisecs();
 #endif
-#ifdef __APPLE__
+#if defined(__APPLE__) || defined(__aarch64__)
   BtDb *bt = bt_open(main_mgr_);
 #else
   BtDb *bt = bt_open(cache_mgr_, main_mgr_);
@@ -664,7 +664,7 @@ int FieldRangeIndex::Search(const string &lower, const string &upper,
   int max_doc = 0;
   int max_aligned = 0;
   pthread_rwlock_rdlock(&rw_lock_);
-#ifdef __APPLE__
+#if defined(__APPLE__) || defined(__aarch64__)
   uint slot = bt_startkey(bt, key_l, lower.length());
   while (slot) {
     BtKey *key = bt_key(bt, slot);
@@ -796,7 +796,7 @@ int FieldRangeIndex::Search(const string &tags, RangeQueryResult *result) {
         reinterpret_cast<const unsigned char *>(item.data());
 
     Node *p_node = nullptr;
-#ifdef __APPLE__
+#if defined(__APPLE__) || defined(__aarch64__)
     BtDb *bt = bt_open(main_mgr_);
 #else
     BtDb *bt = bt_open(cache_mgr_, main_mgr_);
@@ -877,7 +877,7 @@ int FieldRangeIndex::Search(const string &tags, RangeQueryResult *result) {
 
 long FieldRangeIndex::ScanMemory(long &dense, long &sparse) {
   long total = 0;
-#ifdef __APPLE__
+#if defined(__APPLE__) || defined(__aarch64__)
   BtDb *bt = bt_open(main_mgr_);
 
   uint slot = bt_startkey(bt, nullptr, 0);

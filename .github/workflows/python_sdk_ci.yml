@@ -9,7 +9,6 @@ on:
 jobs:
   ci:
     runs-on: ubuntu-latest
-    #     container: vearch/vearch_env:latest
 
     steps:
       - uses: actions/checkout@v4
