@@ -7,13 +7,12 @@ on:
     branches: [ "master" ]
 
 jobs:
-  ci:
+  ci-amd64:
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v4
-      with:
-          fetch-depth: 0
+
     - name: compile
       run: |
         pwd
@@ -25,16 +24,59 @@ jobs:
         ls -l build/lib
         cd cloud
         ./build.sh
-    - name: gen config
-      run: |
-        cd cloud
-        cp ../config/config.toml .
     - name: run docker
       run: |
         cd cloud
+        cp ../config/config.toml .
         nohup docker run -p 8817:8817 -p 9001:9001 -v $PWD/config.toml:/vearch/config.toml vearch/vearch:latest all &
     - name: sleep
-      run: sleep 30s
+      run: sleep 10s
+    - name: pip install requests
+      run: pip install requests pytest numpy
+    - name: test
+      run: |
+        cd test
+        pytest test_vearch.py -x --log-cli-level=INFO
+        pytest test_document_* -k "not test_vearch_document_upsert_benchmark" -x --log-cli-level=INFO
+        pytest test_module_* -x --log-cli-level=INFO
+    - name: test go sdk
+      run: |
+        cd sdk/go/test
+        go test -v
+
+  ci-arm64:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v3
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: compile
+      run: |
+        pwd
+        ls -l
+        cd cloud
+        docker run --platform linux/arm64 --privileged -i -v $(dirname "$PWD"):/vearch vearch/vearch-dev-env:latest /vearch/cloud/compile/compile.sh
+    - name: build
+      run: |
+        ls -l build/lib
+        cd cloud
+        cp -r ../build/bin compile/; cp -r ../build/lib compile/
+        docker build --platform linux/arm64 -t vearch/vearch:latest .
+
+    - name: run docker
+      run: |
+        arch
+        cd cloud
+        cp ../config/config.toml .
+        nohup docker run --platform linux/arm64 --privileged -p 8817:8817 -p 9001:9001 -v $PWD/config.toml:/vearch/config.toml vearch/vearch:latest all &
+    - name: sleep
+      run: sleep 10s
     - name: pip install requests
       run: pip install requests pytest numpy
     - name: test

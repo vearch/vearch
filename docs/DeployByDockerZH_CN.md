@@ -18,16 +18,16 @@
  4. 分别启动镜像，将角色从all修改为master，ps，router，必须首先启动master.
 
 #### 使用基础镜像编译和部署
- 1. 以vearch_env:latest为例
- 2. docker pull vearch/vearch_env:latest
+ 1. 以vearch-dev-env:latest为例
+ 2. docker pull vearch/vearch-dev-env:latest
  3. sh vearch/cloud/complile.sh
  4. sh build.sh
  5. 参考“使用Vearch镜像部署”步骤3
 
 #### 使用脚本创建基础镜像和vearch镜像
  1. 构建编译基础环境镜像
-    1. 进入$vearch/cloud目录
-    2. 执行./compile_env.sh，你将得到一个名为vearch_env的镜像
+    1. 进入$vearch/cloud/env目录
+    2. 执行`docker build -t vearch/vearch-dev-env:latest .`，你将得到一个名为vearch-dev-env的镜像
  2. 编译vearch
     1. 进入$vearch/cloud目录
     2. 执行./compile.sh，编译结果在$vearch/build/bin , $vearch/build/lib中
