@@ -14,7 +14,9 @@ function get_version() {
 get_version
 
 echo "Build compile Environment"
-./compile_env.sh
+pushd env
+docker build -t vearch/vearch-dev-env:latest .
+pod
 
 echo "Compile Vearch"
 ./compile.sh
