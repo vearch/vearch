@@ -1,1 +1,0 @@
-Docker image for running vearch test cases

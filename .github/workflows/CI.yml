@@ -32,17 +32,11 @@ jobs:
 
     - name: Compile and Build
       run: |
-        pwd
-        ls -l
+        pwd; ls -l
         cd cloud
-        if [ "${{ matrix.platform }}" == "amd64" ]; then
-          ./compile.sh
-          ./build.sh
-        else
-          docker run ${{ matrix.docker-arch }} --privileged -i -v $(dirname "$PWD"):/vearch vearch/vearch-dev-env:latest /vearch/cloud/compile/compile.sh
-          cp -r ../build/bin compile/; cp -r ../build/lib compile/
-          docker build ${{ matrix.docker-arch }} -t vearch/vearch:latest .
-        fi
+        docker run ${{ matrix.docker-arch }} --privileged -i -v $(dirname "$PWD"):/vearch vearch/vearch-dev-env:latest /vearch/cloud/compile/compile.sh
+        cp -r ../build/bin compile/; cp -r ../build/lib compile/
+        docker build ${{ matrix.docker-arch }} -t vearch/vearch:latest .
 
     - name: Run Docker
       run: |

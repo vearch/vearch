@@ -19,10 +19,11 @@ docker build -t vearch/vearch-dev-env:latest .
 pod
 
 echo "Compile Vearch"
-./compile.sh
+docker run --privileged -i -v $(dirname "$PWD"):/vearch vearch/vearch-dev-env:latest /vearch/cloud/compile/compile.sh
 
 echo "Make Vearch Image"
-./build.sh
+cp -r ../build/bin compile/; cp -r ../build/lib compile/
+docker build -t vearch/vearch:latest .
 
 echo "Start service by all in one model"
 cp ../config/config.toml .

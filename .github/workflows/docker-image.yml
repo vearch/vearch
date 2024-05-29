@@ -22,9 +22,8 @@ jobs:
           pwd
           ls -l
           cd cloud
-          ./compile.sh
+          docker run --privileged -i -v $(dirname "$PWD"):/vearch vearch/vearch-dev-env:latest /vearch/cloud/compile/compile.sh
 
-          
       - name: Build Image
         run: |
           cd cloud
