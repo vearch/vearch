@@ -7,6 +7,7 @@
 
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](./LICENSE)
 [![Build Status](https://github.com/vearch/vearch/actions/workflows/CI.yml/badge.svg)](https://github.com/vearch/vearch/actions/workflows/CI.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/vearch/vearch/v3)](https://goreportcard.com/report/github.com/vearch/vearch/v3)
 [![Gitter](https://badges.gitter.im/vector_search/community.svg)](https://gitter.im/vector_search/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 
 ## Overview
