@@ -27,8 +27,10 @@ REDISTRIBUTION OF THIS SOFTWARE.
 
 // Please see the project home page for documentation
 // code.google.com/p/high-concurrency-btree
-#if defined(__APPLE__) || defined(__aarch64__)
+
+#ifndef unix
 #define unix
+#endif
 #define _FILE_OFFSET_BITS 64
 #define _LARGEFILE64_SOURCE
 
@@ -3474,5 +3476,3 @@ BtDb *bt;
 }
 
 #endif	//STANDALONE
-
-#endif

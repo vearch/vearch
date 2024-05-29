@@ -26,15 +26,9 @@
 #include <sstream>
 #include <typeinfo>
 
+#include "threadskv8.h"
 #include "util/bitmap.h"
 #include "util/log.h"
-
-#if defined(__APPLE__) || defined(__aarch64__)
-#include "threadskv8.h"
-#else
-#include "threadskv10h.h"
-#endif
-
 #include "util/utils.h"
 
 using std::string;
@@ -344,13 +338,8 @@ class Node {
 };
 
 typedef struct BTreeParameters {
-  uint mainleafxtra;
-  uint maxleaves;
   uint poolsize;
-  uint leafxtra;
-  uint mainpool;
   uint mainbits;
-  uint bits;
   const char *kDelim;
 } BTreeParameters;
 
@@ -379,9 +368,6 @@ class FieldRangeIndex {
 
  private:
   BtMgr *main_mgr_;
-#if !defined(__APPLE__) && !defined(__aarch64__)
-  BtMgr *cache_mgr_;
-#endif
   bool is_numeric_;
   enum DataType data_type_;
   char *kDelim_;
@@ -396,25 +382,12 @@ FieldRangeIndex::FieldRangeIndex(std::string &path, int field_idx,
                                  enum DataType field_type,
                                  BTreeParameters &bt_param, std::string &name)
     : path_(path), name_(name) {
-  string cache_file =
-      path + string("/cache_") + std::to_string(field_idx) + ".dis";
   string main_file =
       path + string("/main_") + std::to_string(field_idx) + ".dis";
-
-  remove(cache_file.c_str());
   remove(main_file.c_str());
 
-#if defined(__APPLE__) || defined(__aarch64__)
   main_mgr_ = bt_mgr(const_cast<char *>(main_file.c_str()), bt_param.mainbits,
                      bt_param.poolsize);
-#else
-  cache_mgr_ = bt_mgr(const_cast<char *>(cache_file.c_str()), bt_param.bits,
-                      bt_param.leafxtra, bt_param.poolsize);
-  cache_mgr_->maxleaves = bt_param.maxleaves;
-  main_mgr_ = bt_mgr(const_cast<char *>(main_file.c_str()), bt_param.mainbits,
-                     bt_param.mainleafxtra, bt_param.mainpool);
-  main_mgr_->maxleaves = bt_param.maxleaves;
-#endif
 
   if (field_type == DataType::STRING || field_type == DataType::STRINGARRAY) {
     is_numeric_ = false;
@@ -431,13 +404,12 @@ FieldRangeIndex::FieldRangeIndex(std::string &path, int field_idx,
 }
 
 FieldRangeIndex::~FieldRangeIndex() {
-#if defined(__APPLE__) || defined(__aarch64__)
   BtDb *bt = bt_open(main_mgr_);
   BtPageSet set[1];
   uid next, page_no = LEAF_page;  // start on first page of leaves
 
   do {
-    if (set->latch = bt_pinlatch(bt, page_no, 1)) {
+    if ((set->latch = bt_pinlatch(bt, page_no, 1))) {
       set->page = bt_mappage(bt, set->latch);
     } else {
       LOG(ERROR) << "unable to obtain latch";
@@ -446,53 +418,22 @@ FieldRangeIndex::~FieldRangeIndex() {
     bt_lockpage(bt, BtLockRead, set->latch);
     next = bt_getid(set->page->right);
 
-    for (uint slot = 0; slot++ < set->page->cnt;)
-      if (next || slot < set->page->cnt)
-        if (!slotptr(set->page, slot)->dead) {
-          BtKey *ptr = keyptr(set->page, slot);
-          // unsigned char len = ptr->len;
-
-          // if (slotptr(set->page, slot)->type == Duplicate) len -= BtId;
-
-          // fwrite(ptr->key, len, 1, stdout);
-          BtVal *val = valptr(set->page, slot);
-          Node *p_node = nullptr;
-          memcpy(&p_node, val->value, sizeof(Node *));
-          delete p_node;
-          // fwrite(val->value, val->len, 1, stdout);
-        }
-
-    bt_unlockpage(bt, BtLockRead, set->latch);
-    bt_unpinlatch(set->latch);
-  } while (page_no = next);
-#else
-  BtDb *bt = bt_open(cache_mgr_, main_mgr_);
-
-  if (bt_startkey(bt, nullptr, 0) == 0) {
-    while (bt_nextkey(bt)) {
-      if (bt->phase == 1) {
+    for (uint slot = 1; slot < set->page->cnt; slot++) {
+      if (!slotptr(set->page, slot)->dead) {
+        BtVal *val = valptr(set->page, slot);
         Node *p_node = nullptr;
-        memcpy(&p_node, bt->mainval->value, sizeof(Node *));
+        memcpy(&p_node, val->value, sizeof(Node *));
         delete p_node;
       }
     }
-  }
 
-  bt_unlockpage(BtLockRead, bt->cacheset->latch, __LINE__);
-  bt_unpinlatch(bt->cacheset->latch);
-
-  bt_unlockpage(BtLockRead, bt->mainset->latch, __LINE__);
-  bt_unpinlatch(bt->mainset->latch);
-#endif
+    bt_unlockpage(bt, BtLockRead, set->latch);
+    bt_unpinlatch(set->latch);
+    page_no = next;
+  } while (page_no);
 
   bt_close(bt);
 
-#if !defined(__APPLE__) && !defined(__aarch64__)
-  if (cache_mgr_) {
-    bt_mgrclose(cache_mgr_);
-    cache_mgr_ = nullptr;
-  }
-#endif
   if (main_mgr_) {
     bt_mgrclose(main_mgr_);
     main_mgr_ = nullptr;
@@ -512,11 +453,7 @@ static int ReverseEndian(const unsigned char *in, unsigned char *out,
 }
 
 int FieldRangeIndex::Add(std::string &key, int value) {
-#if defined(__APPLE__) || defined(__aarch64__)
   BtDb *bt = bt_open(main_mgr_);
-#else
-  BtDb *bt = bt_open(cache_mgr_, main_mgr_);
-#endif
   size_t key_len = key.size();
   unsigned char key2[key_len];
 
@@ -529,21 +466,12 @@ int FieldRangeIndex::Add(std::string &key, int value) {
         if (ret < 0) {
           p_node = new Node;
           p_node->Add(value);
-#if defined(__APPLE__) || defined(__aarch64__)
           BTERR bterr = bt_insertkey(bt, key_to_add, key_len, 0,
                                      static_cast<void *>(&p_node),
                                      sizeof(Node *), Update);
           if (bterr) {
             LOG(ERROR) << "Error " << bt->err;
           }
-#else
-          BTERR bterr = bt_insertkey(bt->main, key_to_add, key_len, 0,
-                                     static_cast<void *>(&p_node),
-                                     sizeof(Node *), Unique);
-          if (bterr) {
-            LOG(ERROR) << "Error " << bt->mgr->err;
-          }
-#endif
         } else {
           pthread_rwlock_wrlock(&rw_lock_);
           p_node->Add(value);
@@ -578,11 +506,7 @@ int FieldRangeIndex::Add(std::string &key, int value) {
 }
 
 int FieldRangeIndex::Delete(std::string &key, int value) {
-#if defined(__APPLE__) || defined(__aarch64__)
   BtDb *bt = bt_open(main_mgr_);
-#else
-  BtDb *bt = bt_open(cache_mgr_, main_mgr_);
-#endif
   size_t key_len = key.size();
   unsigned char key2[key_len];
 
@@ -599,11 +523,7 @@ int FieldRangeIndex::Delete(std::string &key, int value) {
         pthread_rwlock_wrlock(&rw_lock_);
         p_node->Delete(value);
         if (p_node->Size() == 0) {
-#if defined(__APPLE__) || defined(__aarch64__)
           bt_deletekey(bt, key_to_add, key_len, 0);
-#else
-          bt_deletekey(main_mgr_, key_to_add, key_len, 0);
-#endif
           delete p_node;
         }
         pthread_rwlock_unlock(&rw_lock_);
@@ -645,11 +565,7 @@ int FieldRangeIndex::Search(const string &lower, const string &upper,
 #ifdef DEBUG
   double start = utils::getmillisecs();
 #endif
-#if defined(__APPLE__) || defined(__aarch64__)
   BtDb *bt = bt_open(main_mgr_);
-#else
-  BtDb *bt = bt_open(cache_mgr_, main_mgr_);
-#endif
   unsigned char key_l[lower.length()];
   unsigned char key_u[upper.length()];
   ReverseEndian(reinterpret_cast<const unsigned char *>(lower.data()), key_l,
@@ -664,7 +580,6 @@ int FieldRangeIndex::Search(const string &lower, const string &upper,
   int max_doc = 0;
   int max_aligned = 0;
   pthread_rwlock_rdlock(&rw_lock_);
-#if defined(__APPLE__) || defined(__aarch64__)
   uint slot = bt_startkey(bt, key_l, lower.length());
   while (slot) {
     BtKey *key = bt_key(bt, slot);
@@ -684,31 +599,6 @@ int FieldRangeIndex::Search(const string &lower, const string &upper,
 
     slot = bt_nextkey(bt, slot);
   }
-#else
-  if (bt_startkey(bt, key_l, lower.length()) == 0) {
-    while (bt_nextkey(bt)) {
-      if (bt->phase == 1) {
-        if (keycmp(bt->mainkey, key_u, upper.length()) > 0) {
-          break;
-        }
-        Node *p_node = nullptr;
-        memcpy(&p_node, bt->mainval->value, sizeof(Node *));
-        lists.push_back(p_node);
-
-        min_doc = std::min(min_doc, p_node->Min());
-        min_aligned = std::min(min_aligned, p_node->MinAligned());
-        max_doc = std::max(max_doc, p_node->Max());
-        max_aligned = std::max(max_aligned, p_node->MaxAligned());
-      }
-    }
-  }
-
-  bt_unlockpage(BtLockRead, bt->cacheset->latch, __LINE__);
-  bt_unpinlatch(bt->cacheset->latch);
-
-  bt_unlockpage(BtLockRead, bt->mainset->latch, __LINE__);
-  bt_unpinlatch(bt->mainset->latch);
-#endif
   bt_close(bt);
 
 #ifdef DEBUG
@@ -796,11 +686,7 @@ int FieldRangeIndex::Search(const string &tags, RangeQueryResult *result) {
         reinterpret_cast<const unsigned char *>(item.data());
 
     Node *p_node = nullptr;
-#if defined(__APPLE__) || defined(__aarch64__)
     BtDb *bt = bt_open(main_mgr_);
-#else
-    BtDb *bt = bt_open(cache_mgr_, main_mgr_);
-#endif
     int ret =
         bt_findkey(bt, const_cast<unsigned char *>(key_tag), item.length(),
                    (unsigned char *)&p_node, sizeof(Node *));
@@ -877,7 +763,6 @@ int FieldRangeIndex::Search(const string &tags, RangeQueryResult *result) {
 
 long FieldRangeIndex::ScanMemory(long &dense, long &sparse) {
   long total = 0;
-#if defined(__APPLE__) || defined(__aarch64__)
   BtDb *bt = bt_open(main_mgr_);
 
   uint slot = bt_startkey(bt, nullptr, 0);
@@ -894,27 +779,6 @@ long FieldRangeIndex::ScanMemory(long &dense, long &sparse) {
     total += sizeof(Node);
     slot = bt_nextkey(bt, slot);
   }
-#else
-  BtDb *bt = bt_open(cache_mgr_, main_mgr_);
-
-  if (bt_startkey(bt, nullptr, 0) == 0) {
-    while (bt_nextkey(bt)) {
-      if (bt->phase == 1) {
-        Node *p_node = nullptr;
-        memcpy(&p_node, bt->mainval->value, sizeof(Node *));
-        p_node->MemorySize(dense, sparse);
-
-        total += sizeof(Node);
-      }
-    }
-  }
-
-  bt_unlockpage(BtLockRead, bt->cacheset->latch, __LINE__);
-  bt_unpinlatch(bt->cacheset->latch);
-
-  bt_unlockpage(BtLockRead, bt->mainset->latch, __LINE__);
-  bt_unpinlatch(bt->mainset->latch);
-#endif
 
   bt_close(bt);
 
@@ -1266,13 +1130,8 @@ int MultiFieldsRangeIndex::Intersect(std::vector<RangeQueryResult> &results,
 int MultiFieldsRangeIndex::AddField(int field, enum DataType field_type,
                                     std::string &field_name) {
   BTreeParameters bt_param;
-  bt_param.mainleafxtra = 0;
-  bt_param.maxleaves = 1000000;
-  bt_param.poolsize = 500;
-  bt_param.leafxtra = 0;
-  bt_param.mainpool = 500;
+  bt_param.poolsize = 1024;
   bt_param.mainbits = 16;
-  bt_param.bits = 16;
   bt_param.kDelim = "\001";
 
   FieldRangeIndex *index =

@@ -1,6 +1,4 @@
-#if defined(__APPLE__) || defined(__aarch64__)
 #define unix
-#endif
 
 
 typedef unsigned long long	uid;
