@@ -1,27 +1,29 @@
+import json
 import logging
-import os
-import time
 import typing
 import uuid
 from typing import TYPE_CHECKING, Any, Iterable, List, Optional
 
 import numpy as np
-
 from llama_index.core.schema import BaseNode, MetadataMode, TextNode
-from llama_index.core.vector_stores.types import (
-    VectorStore,
-    VectorStoreQuery,
-    VectorStoreQueryResult,
-)
-from llama_index.core.vector_stores.utils import (
-    legacy_metadata_dict_to_node,
-    metadata_dict_to_node,
-    node_to_metadata_dict,
-)
+from llama_index.core.vector_stores.types import (VectorStore,
+                                                  VectorStoreQuery,
+                                                  VectorStoreQueryResult)
+from llama_index.core.vector_stores.utils import (legacy_metadata_dict_to_node,
+                                                  metadata_dict_to_node,
+                                                  node_to_metadata_dict)
 
-if TYPE_CHECKING:
-    import vearch
+import vearch
+from vearch.config import Config
+from vearch.core.vearch import Vearch
+from vearch.schema.field import Field
+from vearch.schema.index import HNSWIndex, ScalarIndex
+from vearch.schema.space import SpaceSchema
+from vearch.utils import DataType, MetricType, VectorInfo
+
 logger = logging.getLogger(__name__)
+_DEFAULT_TABLE_NAME = "liama_index_vearch"
+_DEFAULT_CLUSTER_DB_NAME = "liama_index_vearch_client_db"
 
 
 class VearchVectorStore(VectorStore):
@@ -38,66 +40,40 @@ class VearchVectorStore(VectorStore):
 
     flat_metadata: bool = True
     stores_text: bool = True
-    _DEFAULT_TABLE_NAME = "liama_index_vearch"
-    _DEFAULT_CLUSTER_DB_NAME = "liama_index_vearch_client_db"
-    _DEFAULT_VERSION = 1
-
+    
     def __init__(
         self,
         path_or_url: Optional[str] = None,
         table_name: str = _DEFAULT_TABLE_NAME,
         db_name: str = _DEFAULT_CLUSTER_DB_NAME,
-        flag: int = _DEFAULT_VERSION,
         **kwargs: Any,
     ) -> None:
         """
         Initialize vearch vector store
-        flag 1 for cluster,0 for standalone.
         """
-        try:
-            if flag:
-                import vearch_cluster
-            else:
-                import vearch
-        except ImportError:
-            raise ValueError(
-                "Could not import suitable python package."
-                "Please install it with `pip install vearch or vearch_cluster."
-            )
+        if path_or_url is None:
+            raise ValueError("Please input url of cluster")
 
-        if flag:
-            if path_or_url is None:
-                raise ValueError("Please input url of cluster")
-            if not db_name:
-                db_name = self._DEFAULT_CLUSTER_DB_NAME
-                db_name += "_"
-                db_name += str(uuid.uuid4()).split("-")[-1]
-            self.using_db_name = db_name
-            self.url = path_or_url
-            self.vearch = vearch_cluster.VearchCluster(path_or_url)
-        else:
-            if path_or_url is None:
-                metadata_path = os.getcwd().replace("\\", "/")
-            else:
-                metadata_path = path_or_url
-            if not os.path.isdir(metadata_path):
-                os.makedirs(metadata_path)
-            log_path = os.path.join(metadata_path, "log")
-            if not os.path.isdir(log_path):
-                os.makedirs(log_path)
-            self.vearch = vearch.Engine(metadata_path, log_path)
-            self.using_metapath = metadata_path
+        if not db_name:
+            db_name = self._DEFAULT_CLUSTER_DB_NAME
+            db_name += "_"
+            db_name += str(uuid.uuid4()).split("-")[-1]
+        
         if not table_name:
             table_name = self._DEFAULT_TABLE_NAME
             table_name += "_"
             table_name += str(uuid.uuid4()).split("-")[-1]
+            
+        self.using_db_name = db_name
         self.using_table_name = table_name
-        self.flag = flag
+        self.url = path_or_url
+        self.vearch = Vearch(Config(host=path_or_url))
+        
 
     @property
     def client(self) -> Any:
         """Get client."""
-        return self.vearch
+        return self._vearch
 
     def _get_matadata_field(self, metadatas: Optional[List[dict]] = None) -> None:
         field_list = []
@@ -131,175 +107,63 @@ class VearchVectorStore(VectorStore):
         if embeddings is None:
             raise ValueError("embeddings is None")
         self._get_matadata_field(metadatas)
-        if self.flag:
-            dbs_list = self.vearch.list_dbs()
-            if self.using_db_name not in dbs_list:
-                create_db_code = self.vearch.create_db(self.using_db_name)
-                if not create_db_code:
-                    raise ValueError("create db failed!!!")
-            space_list = self.vearch.list_spaces(self.using_db_name)
-            if self.using_table_name not in space_list:
-                create_space_code = self._create_space(len(embeddings[0]))
-                if not create_space_code:
-                    raise ValueError("create space failed!!!")
-            docid = []
-            if embeddings is not None and metadatas is not None:
-                meta_field_list = [i["field"] for i in self.field_list]
-                for text, metadata, embed, id_d in zip(
-                    texts, metadatas, embeddings, ids
-                ):
-                    profiles: typing.Dict[str, Any] = {}
-                    profiles["text"] = text
-                    for f in meta_field_list:
-                        profiles[f] = metadata[f]
-                    embed_np = np.array(embed)
-                    profiles["text_embedding"] = {
-                        "feature": (embed_np / np.linalg.norm(embed_np)).tolist()
-                    }
-                    insert_res = self.vearch.insert_one(
-                        self.using_db_name, self.using_table_name, profiles, id_d
+        dbs= self._vearch.list_databases()
+        dbs_list = [item.name["name"] for item in dbs]
+        if self.using_db_name not in dbs_list:
+            create_db_code = self._vearch.create_database(self.using_db_name)
+            if create_db_code.code != 0:
+                raise ValueError("create db failed!!!")
+        spaces = self._vearch.list_spaces(self.using_db_name)
+        space_list = [item.name["space_name"] for item in spaces]
+        if self.using_table_name not in space_list:
+            create_code = self._vearch.create_space(self.using_db_name, 
+                self._create_space_schema(len(embeddings[0])))
+            if create_code.code !=0 :
+                raise ValueError("create space failed!!!")
+        docid = []
+        if embeddings is not None and metadatas is not None:
+            meta_field_list = [i["field"] for i in self.field_list]
+            for text, metadata, embed, id_d in zip(
+                texts, metadatas, embeddings, ids
+            ):
+                profiles: typing.Dict[str, Any] = {}
+                profiles["ref_doc_id"] = id_d
+                profiles["text"] = text
+                for f in meta_field_list:
+                    profiles[f] = metadata[f]
+                embed_np = np.array(embed)
+                profiles["text_embedding"] = (embed_np / np.linalg.norm(embed_np)).tolist()
+                insert_res = self._vearch.upsert(self.using_db_name, self.using_table_name, [profiles])
+                if insert_res.code == 0:
+                    docid.append(insert_res.document_ids[0]["_id"])
+                    continue
+                else:
+                    retry_insert = self._vearch.upsert(
+                        self.using_db_name, self.using_table_name, [profiles]
                     )
-                    if insert_res["status"] == 200:
-                        docid.append(insert_res["_id"])
-                        continue
-                    else:
-                        retry_insert = self.vearch.insert_one(
-                            self.using_db_name, self.using_table_name, profiles
-                        )
-                        docid.append(retry_insert["_id"])
-                        continue
-        else:
-            table_path = os.path.join(
-                self.using_metapath, self.using_table_name + ".schema"
-            )
-            if not os.path.exists(table_path):
-                dim = len(embeddings[0])
-                response_code = self._create_table(dim)
-                if response_code:
-                    raise ValueError("create table failed!!!")
-            if embeddings is not None and metadatas is not None:
-                doc_items = []
-                meta_field_list = [i["field"] for i in self.field_list]
-                for text, metadata, embed, id_d in zip(
-                    texts, metadatas, embeddings, ids
-                ):
-                    profiles_v: typing.Dict[str, Any] = {}
-                    profiles_v["text"] = text
-                    profiles_v["_id"] = id_d
-                    for f in meta_field_list:
-                        profiles_v[f] = metadata[f]
-                    embed_np = np.array(embed)
-                    profiles_v["text_embedding"] = embed_np / np.linalg.norm(embed_np)
-                    doc_items.append(profiles_v)
-                docid = self.vearch.add(doc_items)
-                t_time = 0
-                while len(docid) != len(embeddings):
-                    time.sleep(0.5)
-                    if t_time > 6:
-                        break
-                    t_time += 1
-                self.vearch.dump()
+                    docid.append(retry_insert.document_ids[0]["_id"])
+                    continue
         return docid
 
-    def _create_table(
-        self,
-        dim: int = 1024,
-    ) -> int:
-        """
-        Create Standalone VectorStore Table.
+    def _create_space_schema(self, dim) ->SpaceSchema:
+        filed_list_add = self.field_list + [{"field": "text", "type": "str"},{"field":"ref_doc_id","type":"str"}]
+        type_dict = {"int": DataType.INTEGER, "str": DataType.STRING, 
+                        "float": DataType.FLOAT}
+        fields = [Field("text_embedding", DataType.VECTOR, 
+            HNSWIndex("vec_idx", MetricType.Inner_product, 32, 64),dimension=dim)]
+        for fi in filed_list_add:
+            fields.append(Field(fi["field"], type_dict[fi["type"]], 
+                index=ScalarIndex(fi["field"]+"_idx")))
+        space_schema = SpaceSchema(self.using_table_name, fields)
+        return space_schema
 
-        Args:
-            dim:dimension of vector.
-            fields_list: the field you want to store.
-
-        Return:
-            code,0 for success,1 for failed.
-        """
-        type_dict = {
-            "int": vearch.dataType.INT,
-            "str": vearch.dataType.STRING,
-            "float": vearch.dataType.FLOAT,
-        }
-        engine_info = {
-            "index_size": 1,
-            "retrieval_type": "HNSW",
-            "retrieval_param": {
-                "metric_type": "InnerProduct",
-                "nlinks": -1,
-                "efConstruction": -1,
-            },
-        }
-        filed_list_add = self.field_list.append({"field": "text", "type": "str"})
-        fields = [
-            vearch.GammaFieldInfo(fi["field"], type_dict[fi["type"]])
-            for fi in filed_list_add
-        ]
-        vector_field = vearch.GammaVectorInfo(
-            name="text_embedding",
-            type=vearch.dataType.VECTOR,
-            is_index=True,
-            dimension=dim,
-            model_id="",
-            store_type="MemoryOnly",
-            store_param={"cache_size": 10000},
-        )
-
-        return self.vearch.create_table(
-            engine_info,
-            name=self.using_table_name,
-            fields=fields,
-            vector_field=vector_field,
-        )
-
-    def _create_space(
-        self,
-        dim: int = 1024,
-    ) -> int:
-        """
-        Create Cluster VectorStore space.
-
-        Args:
-            dim:dimension of vector.
-
-        Return:
-            code,0 failed for ,1 for success.
-        """
-        type_dict = {"int": "integer", "str": "string", "float": "float"}
-        space_config = {
-            "name": self.using_table_name,
-            "partition_num": 1,
-            "replica_num": 1,
-            "engine": {
-                "index_size": 1,
-                "retrieval_type": "HNSW",
-                "retrieval_param": {
-                    "metric_type": "InnerProduct",
-                    "nlinks": -1,
-                    "efConstruction": -1,
-                },
-            },
-        }
-        tmp_proer = {
-            "text": {"type": "string"},
-            "text_embedding": {
-                "type": "vector",
-                "index": True,
-                "dimension": dim,
-                "store_type": "MemoryOnly",
-            },
-        }
-        for item in self.field_list:
-            tmp_proer[item["field"]] = {"type": type_dict[item["type"]]}
-        space_config["properties"] = tmp_proer
-
-        return self.vearch.create_space(self.using_db_name, space_config)
 
     def add(
         self,
         nodes: List[BaseNode],
         **add_kwargs: Any,
     ) -> List[str]:
-        if not self.vearch:
+        if not self._vearch:
             raise ValueError("Vearch Engine is not initialized")
 
         embeddings = []
@@ -341,47 +205,21 @@ class VearchVectorStore(VectorStore):
         if query.filters is not None:
             for filter_ in query.filters.legacy_filters():
                 meta_filters[filter_.key] = filter_.value
-        if self.flag:
-            meta_field_list = self.vearch.get_space(
-                self.using_db_name, self.using_table_name
-            )
-            meta_field_list.remove("text_embedding")
+        _, _, schemas= self._vearch.is_space_exist(
+            self.using_db_name, self.using_table_name
+        )
+        raw_fields = json.loads(schemas)["schema"]["fields"]
+        meta_field_list = [item["name"] for item in raw_fields]
+        meta_field_list.remove("text_embedding")
         embed = query.query_embedding
         if embed is None:
             raise ValueError("query.query_embedding is None")
         k = query.similarity_top_k
-        if self.flag:
-            query_data = {
-                "query": {
-                    "sum": [
-                        {
-                            "field": "text_embedding",
-                            "feature": (embed / np.linalg.norm(embed)).tolist(),
-                        }
-                    ],
-                },
-                "retrieval_param": {"metric_type": "InnerProduct", "efSearch": 64},
-                "limit": k,
-                "fields": meta_field_list,
-            }
-            query_result = self.vearch.search(
-                self.using_db_name, self.using_table_name, query_data
-            )
-            res = query_result["hits"]["hits"]
-        else:
-            query_data = {
-                "vector": [
-                    {
-                        "field": "text_embedding",
-                        "feature": embed / np.linalg.norm(embed),
-                    }
-                ],
-                "fields": [],
-                "retrieval_param": {"metric_type": "InnerProduct", "efSearch": 64},
-                "topn": k,
-            }
-            query_result = self.vearch.search(query_data)
-            res = query_result[0]["result_items"]
+        vector = VectorInfo("text_embedding", (embed / np.linalg.norm(embed)).tolist())
+        query_result = self._vearch.search(
+            self.using_db_name, self.using_table_name, [vector,],
+            fields = meta_field_list, limit = k)
+        res = query_result.documents[0]
         nodes = []
         similarities = []
         ids = []
@@ -389,8 +227,8 @@ class VearchVectorStore(VectorStore):
             content = ""
             meta_data = {}
             node_id = ""
-            if self.flag:
-                score = item["_score"]
+           
+            score = item["_score"]
             for item_key in item:
                 if item_key == "text":
                     content = item[item_key]
@@ -399,10 +237,10 @@ class VearchVectorStore(VectorStore):
                     node_id = item[item_key]
                     ids.append(node_id)
                     continue
-                if self.flag != 1 and item_key == "score":
-                    score = item[item_key]
+                if item_key in meta_field_list:
+                    meta_data[item_key] = item[item_key]
+                    meta_field_list.remove(item_key)
                     continue
-                meta_data[item_key] = item[item_key]
             similarities.append(score)
             try:
                 node = metadata_dict_to_node(meta_data)
@@ -439,16 +277,14 @@ class VearchVectorStore(VectorStore):
             False otherwise, None if not implemented.
         """
         ret: Optional[bool] = None
-        tmp_res = []
         if ids is None or len(ids) == 0:
             return ret
-        for _id in ids:
-            if self.flag:
-                ret = self.vearch.delete(self.using_db_name, self.using_table_name, _id)
-            else:
-                ret = self.vearch.del_doc(_id)
-            tmp_res.append(ret)
-        return all(i == 0 for i in tmp_res)
+        res = self.vearch.delete(self.using_db_name, self.using_table_name, ids)
+        if res.code ==0:
+            return True
+        else:
+            return False
+        
 
     def delete(self, ref_doc_id: str, **delete_kwargs: Any) -> None:
         """Delete nodes using with ref_doc_id.
