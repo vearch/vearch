@@ -455,43 +455,46 @@ static int ReverseEndian(const unsigned char *in, unsigned char *out,
 int FieldRangeIndex::Add(std::string &key, int value) {
   BtDb *bt = bt_open(main_mgr_);
   size_t key_len = key.size();
-  unsigned char key2[key_len];
+  std::vector<unsigned char> key2(key_len);
 
-  std::function<void(unsigned char *, uint)> InsertToBt =
-      [&](unsigned char *key_to_add, uint key_len) {
-        Node *p_node = nullptr;
-        int ret = bt_findkey(bt, key_to_add, key_len, (unsigned char *)&p_node,
-                             sizeof(Node *));
+  auto InsertToBt = [&](unsigned char *key_to_add, uint key_len) {
+    Node *p_node = nullptr;
+    int ret = bt_findkey(bt, key_to_add, key_len, (unsigned char *)&p_node,
+                         sizeof(Node *));
 
-        if (ret < 0) {
-          p_node = new Node;
-          p_node->Add(value);
-          BTERR bterr = bt_insertkey(bt, key_to_add, key_len, 0,
-                                     static_cast<void *>(&p_node),
-                                     sizeof(Node *), Update);
-          if (bterr) {
-            LOG(ERROR) << "Error " << bt->err;
-          }
-        } else {
-          pthread_rwlock_wrlock(&rw_lock_);
-          p_node->Add(value);
-          pthread_rwlock_unlock(&rw_lock_);
-        }
-      };
+    if (ret < 0) {
+      auto new_node = std::make_unique<Node>();
+      new_node->Add(value);
+      Node *raw_ptr = new_node.get();
+      BTERR bterr =
+          bt_insertkey(bt, key_to_add, key_len, 0,
+                       static_cast<void *>(&raw_ptr), sizeof(Node *), Update);
+      if (bterr) {
+        LOG(ERROR) << "Error " << bt->err;
+        return;
+      }
+      new_node.release();  // successfully inserted, release ownership
+    } else {
+      pthread_rwlock_wrlock(&rw_lock_);
+      p_node->Add(value);
+      pthread_rwlock_unlock(&rw_lock_);
+    }
+  };
 
   if (is_numeric_) {
-    ReverseEndian((const unsigned char *)key.c_str(), key2, key_len);
-    InsertToBt(key2, key_len);
+    ReverseEndian(reinterpret_cast<const unsigned char *>(key.c_str()),
+                  key2.data(), key_len);
+    InsertToBt(key2.data(), key_len);
   } else {
-    char key_s[key_len + 1];
-    memcpy(key_s, key.c_str(), key_len);
-    key_s[key_len] = 0;
+    std::vector<char> key_s(key_len + 1);
+    memcpy(key_s.data(), key.c_str(), key_len);
+    key_s[key_len] = '\0';
 
     char *p, *k;
-    k = strtok_r(key_s, kDelim_, &p);
+    k = strtok_r(key_s.data(), kDelim_, &p);
     while (k != nullptr) {
       InsertToBt(reinterpret_cast<unsigned char *>(k), strlen(k));
-      k = strtok_r(NULL, kDelim_, &p);
+      k = strtok_r(nullptr, kDelim_, &p);
     }
   }
 
@@ -508,44 +511,44 @@ int FieldRangeIndex::Add(std::string &key, int value) {
 int FieldRangeIndex::Delete(std::string &key, int value) {
   BtDb *bt = bt_open(main_mgr_);
   size_t key_len = key.size();
-  unsigned char key2[key_len];
+  std::vector<unsigned char> key2(key_len);
 
-  std::function<void(unsigned char *, uint)> DeleteFromBt =
-      [&](unsigned char *key_to_add, uint key_len) {
-        Node *p_node = nullptr;
-        int ret = bt_findkey(bt, key_to_add, key_len, (unsigned char *)&p_node,
-                             sizeof(Node *));
+  auto DeleteFromBt = [&](unsigned char *key_to_add, uint key_len) {
+    Node *p_node = nullptr;
+    int ret =
+        bt_findkey(bt, key_to_add, key_len,
+                   reinterpret_cast<unsigned char *>(&p_node), sizeof(Node *));
 
-        if (ret < 0) {
-          LOG(WARNING) << "Cannot find docid [" << value << "] in range index";
-          return;
-        }
-        pthread_rwlock_wrlock(&rw_lock_);
-        p_node->Delete(value);
-        if (p_node->Size() == 0) {
-          bt_deletekey(bt, key_to_add, key_len, 0);
-          delete p_node;
-        }
-        pthread_rwlock_unlock(&rw_lock_);
-      };
+    if (ret < 0) {
+      LOG(WARNING) << "Cannot find docid [" << value << "] in range index";
+      return;
+    }
+
+    pthread_rwlock_wrlock(&rw_lock_);
+    p_node->Delete(value);
+    if (p_node->Size() == 0) {
+      bt_deletekey(bt, key_to_add, key_len, 0);
+      delete p_node;
+    }
+    pthread_rwlock_unlock(&rw_lock_);
+  };
 
   if (is_numeric_) {
-    ReverseEndian((const unsigned char *)key.c_str(), key2, key_len);
-    DeleteFromBt(key2, key_len);
+    ReverseEndian(reinterpret_cast<const unsigned char *>(key.c_str()),
+                  key2.data(), key_len);
+    DeleteFromBt(key2.data(), key_len);
   } else {
-    char key_s[key_len + 1];
-    memcpy(key_s, key.c_str(), key_len);
-    key_s[key_len] = 0;
-
-    char *p, *k;
-    k = strtok_r(key_s, kDelim_, &p);
+    std::string key_copy = key;
+    char *p = nullptr;
+    char *k = strtok_r(&key_copy[0], kDelim_, &p);
     while (k != nullptr) {
       DeleteFromBt(reinterpret_cast<unsigned char *>(k), strlen(k));
-      k = strtok_r(NULL, kDelim_, &p);
+      k = strtok_r(nullptr, kDelim_, &p);
     }
   }
 
   bt_close(bt);
+
 #ifdef PERFORMANCE_TESTING
   delete_num_ += 1;
   if (delete_num_ % 10000 == 0) {
@@ -556,7 +559,7 @@ int FieldRangeIndex::Delete(std::string &key, int value) {
   return 0;
 }
 
-int FieldRangeIndex::Search(const string &lower, const string &upper,
+int FieldRangeIndex::Search(const std::string &lower, const std::string &upper,
                             RangeQueryResult *result) {
   if (!is_numeric_) {
     return Search(lower, result);
@@ -566,12 +569,14 @@ int FieldRangeIndex::Search(const string &lower, const string &upper,
   double start = utils::getmillisecs();
 #endif
   BtDb *bt = bt_open(main_mgr_);
-  unsigned char key_l[lower.length()];
-  unsigned char key_u[upper.length()];
-  ReverseEndian(reinterpret_cast<const unsigned char *>(lower.data()), key_l,
-                lower.length());
-  ReverseEndian(reinterpret_cast<const unsigned char *>(upper.data()), key_u,
-                upper.length());
+  size_t lower_len = lower.length();
+  size_t upper_len = upper.length();
+  std::vector<unsigned char> key_l(lower_len);
+  std::vector<unsigned char> key_u(upper_len);
+  ReverseEndian(reinterpret_cast<const unsigned char *>(lower.data()),
+                key_l.data(), lower_len);
+  ReverseEndian(reinterpret_cast<const unsigned char *>(upper.data()),
+                key_u.data(), upper_len);
 
   std::vector<Node *> lists;
 
@@ -580,12 +585,12 @@ int FieldRangeIndex::Search(const string &lower, const string &upper,
   int max_doc = 0;
   int max_aligned = 0;
   pthread_rwlock_rdlock(&rw_lock_);
-  uint slot = bt_startkey(bt, key_l, lower.length());
+  uint slot = bt_startkey(bt, key_l.data(), lower_len);
   while (slot) {
     BtKey *key = bt_key(bt, slot);
     BtVal *val = bt_val(bt, slot);
 
-    if (keycmp(key, key_u, upper.length()) > 0) {
+    if (keycmp(key, key_u.data(), upper_len) > 0) {
       break;
     }
     Node *p_node = nullptr;
@@ -635,8 +640,9 @@ int FieldRangeIndex::Search(const string &lower, const string &upper,
 
       total += list->Size();
 
-      BM_OPERATE_TYPE *op_data_dst = (BM_OPERATE_TYPE *)bitmap;
-      BM_OPERATE_TYPE *op_data_ori = (BM_OPERATE_TYPE *)data;
+      BM_OPERATE_TYPE *op_data_dst =
+          reinterpret_cast<BM_OPERATE_TYPE *>(bitmap);
+      BM_OPERATE_TYPE *op_data_ori = reinterpret_cast<BM_OPERATE_TYPE *>(data);
       int offset = (min - min_aligned) / op_len;
       for (int j = 0; j < (max - min + 1) / op_len; ++j) {
         op_data_dst[j + offset] |= op_data_ori[j];
@@ -671,9 +677,9 @@ int FieldRangeIndex::Search(const string &lower, const string &upper,
   return max_doc - min_doc + 1;
 }
 
-int FieldRangeIndex::Search(const string &tags, RangeQueryResult *result) {
-  std::vector<string> items = utils::split(tags, kDelim_);
-  Node *nodes[items.size()];
+int FieldRangeIndex::Search(const std::string &tags, RangeQueryResult *result) {
+  std::vector<std::string> items = utils::split(tags, kDelim_);
+  std::vector<Node *> nodes(items.size());
   int op_len = sizeof(BM_OPERATE_TYPE) * 8;
 #ifdef DEBUG
   double begin = utils::getmillisecs();
@@ -681,7 +687,7 @@ int FieldRangeIndex::Search(const string &tags, RangeQueryResult *result) {
 
   for (size_t i = 0; i < items.size(); ++i) {
     nodes[i] = nullptr;
-    string item = items[i];
+    const std::string &item = items[i];
     const unsigned char *key_tag =
         reinterpret_cast<const unsigned char *>(item.data());
 
@@ -689,7 +695,7 @@ int FieldRangeIndex::Search(const string &tags, RangeQueryResult *result) {
     BtDb *bt = bt_open(main_mgr_);
     int ret =
         bt_findkey(bt, const_cast<unsigned char *>(key_tag), item.length(),
-                   (unsigned char *)&p_node, sizeof(Node *));
+                   reinterpret_cast<unsigned char *>(&p_node), sizeof(Node *));
     bt_close(bt);
 
     if (ret < 0) {
@@ -709,10 +715,10 @@ int FieldRangeIndex::Search(const string &tags, RangeQueryResult *result) {
   pthread_rwlock_rdlock(&rw_lock_);
   int min_doc = std::numeric_limits<int>::max();
   int max_doc = 0;
-  for (size_t i = 0; i < items.size(); ++i) {
-    if (nodes[i] == nullptr || nodes[i]->Size() <= 0) continue;
-    min_doc = std::min(min_doc, nodes[i]->MinAligned());
-    max_doc = std::max(max_doc, nodes[i]->MaxAligned());
+  for (Node *node : nodes) {
+    if (node == nullptr || node->Size() <= 0) continue;
+    min_doc = std::min(min_doc, node->MinAligned());
+    max_doc = std::max(max_doc, node->MaxAligned());
   }
 
   if (max_doc - min_doc + 1 <= 0) {
@@ -727,95 +733,93 @@ int FieldRangeIndex::Search(const string &tags, RangeQueryResult *result) {
 #ifdef DEBUG
   double mbegin = utils::getmillisecs();
 #endif
-  for (size_t i = 0; i < items.size(); i++) {
-    Node *p_node = nodes[i];
-    if (p_node == nullptr) continue;
-    int min_aligned = p_node->MinAligned();
-    int max_aligned = p_node->MaxAligned();
-    if (p_node->Type() == Node::NodeType::Dense) {
-      char *data = p_node->DataDense();
-      BM_OPERATE_TYPE *op_data_dst = (BM_OPERATE_TYPE *)bitmap;
-      BM_OPERATE_TYPE *op_data_ori = (BM_OPERATE_TYPE *)data;
+  for (Node *node : nodes) {
+    if (node == nullptr) continue;
+    int min_aligned = node->MinAligned();
+    int max_aligned = node->MaxAligned();
+    if (node->Type() == Node::NodeType::Dense) {
+      char *data = node->DataDense();
+      BM_OPERATE_TYPE *op_data_dst =
+          reinterpret_cast<BM_OPERATE_TYPE *>(bitmap);
+      BM_OPERATE_TYPE *op_data_ori = reinterpret_cast<BM_OPERATE_TYPE *>(data);
 
       int offset = (min_aligned - min_doc) / op_len;
       for (int j = 0; j < (max_aligned - min_aligned + 1) / op_len; ++j) {
         op_data_dst[j + offset] |= op_data_ori[j];
       }
     } else {
-      int *data = p_node->DataSparse();
-      int size = p_node->Size();
+      int *data = node->DataSparse();
+      int size = node->Size();
+
       for (int j = 0; j < size; ++j) {
         bitmap::set(bitmap, data[j] - min_doc);
       }
     }
-    total += p_node->Size();
+    total += node->Size();
   }
   pthread_rwlock_unlock(&rw_lock_);
+
   result->SetDocNum(total);
 
 #ifdef DEBUG
-  double mend = utils::getmillisecs();
-  LOG(INFO) << "total cost=" << mend - begin << ", find cost=" << fend - begin
-            << ", merge cost=" << mend - mbegin << ", total num=" << total;
+  double end = utils::getmillisecs();
+  LOG(INFO) << "find node cost [" << fend - begin << "], merge cost ["
+            << end - mbegin << "], total [" << end - begin << "]";
 #endif
   return total;
 }
 
 long FieldRangeIndex::ScanMemory(long &dense, long &sparse) {
-  long total = 0;
-  BtDb *bt = bt_open(main_mgr_);
+  dense = 0;
+  sparse = 0;
 
+  BtDb *bt = bt_open(main_mgr_);
   uint slot = bt_startkey(bt, nullptr, 0);
   while (slot) {
     BtVal *val = bt_val(bt, slot);
-    if (val->len == 0) {
-      slot = bt_nextkey(bt, slot);
-      continue;
-    }
     Node *p_node = nullptr;
     memcpy(&p_node, val->value, sizeof(Node *));
-    p_node->MemorySize(dense, sparse);
 
-    total += sizeof(Node);
+    long node_dense = 0;
+    long node_sparse = 0;
+    p_node->MemorySize(node_dense, node_sparse);
+
+    dense += node_dense;
+    sparse += node_sparse;
+
     slot = bt_nextkey(bt, slot);
   }
-
   bt_close(bt);
 
-  return total;
+  return dense + sparse;
 }
 
 MultiFieldsRangeIndex::MultiFieldsRangeIndex(std::string &path, Table *table)
-    : path_(path) {
-  table_ = table;
-  fields_.resize(table->FieldsNum());
+    : path_(path),
+      table_(table),
+      fields_(table->FieldsNum()),
+      field_operate_q_(std::make_unique<FieldOperateQueue>()),
+      b_operate_running_(true),
+      b_running_(true) {
   std::fill(fields_.begin(), fields_.end(), nullptr);
 
-  b_operate_running_ = true;
-  b_running_ = true;
-  field_operate_q_ = new FieldOperateQueue;
-  {
-    auto func_operate =
-        std::bind(&MultiFieldsRangeIndex::FieldOperateWorker, this);
-    std::thread t(func_operate);
-    t.detach();
-  }
+  worker_thread_ =
+      std::thread(&MultiFieldsRangeIndex::FieldOperateWorker, this);
 }
 
 MultiFieldsRangeIndex::~MultiFieldsRangeIndex() {
   b_running_ = false;
-  while (field_operate_q_->size() > 0 || b_operate_running_) {
-    std::this_thread::sleep_for(std::chrono::seconds(1));
+  {
+    std::unique_lock<std::mutex> lock(cv_mutex_);
+    cv_.notify_all();
   }
+  worker_thread_.join();
   for (size_t i = 0; i < fields_.size(); i++) {
     if (fields_[i]) {
       delete fields_[i];
       fields_[i] = nullptr;
     }
   }
-
-  delete field_operate_q_;
-  field_operate_q_ = nullptr;
 }
 
 void MultiFieldsRangeIndex::FieldOperateWorker() {
@@ -824,8 +828,9 @@ void MultiFieldsRangeIndex::FieldOperateWorker() {
     FieldOperate field_op;
     ret = field_operate_q_->try_pop(field_op);
 
-    if (not ret) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    if (!ret) {
+      std::unique_lock<std::mutex> lock(cv_mutex_);
+      cv_.wait_for(lock, std::chrono::seconds(1));
       continue;
     }
 
@@ -862,10 +867,6 @@ int MultiFieldsRangeIndex::Delete(int docid, int field) {
   }
   FieldOperate field_op(FieldOperate::DELETE, docid, field);
   table_->GetFieldRawValue(docid, field, field_op.value);
-
-  // while (field_operate_q_->size()) {
-  //   std::this_thread::sleep_for(std::chrono::milliseconds(10));
-  // }
 
   field_operate_q_->push(std::move(field_op));
 

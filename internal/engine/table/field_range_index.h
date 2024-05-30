@@ -9,6 +9,7 @@
 
 #include <tbb/concurrent_queue.h>
 
+#include <condition_variable>
 #include <map>
 #include <string>
 #include <vector>
@@ -107,12 +108,15 @@ class MultiFieldsRangeIndex {
   int AddDoc(int docid, int field);
 
   int DeleteDoc(int docid, int field, std::string &key);
-  std::vector<FieldRangeIndex *> fields_;
-  Table *table_;
   std::string path_;
-  bool b_running_;
-  bool b_operate_running_;
-  FieldOperateQueue *field_operate_q_;
+  Table *table_;
+  std::vector<FieldRangeIndex *> fields_;
+  std::unique_ptr<FieldOperateQueue> field_operate_q_;
+  std::atomic<bool> b_operate_running_;
+  std::atomic<bool> b_running_;
+  std::thread worker_thread_;
+  std::condition_variable cv_;
+  std::mutex cv_mutex_;
 };
 
 }  // namespace vearch
