@@ -9,32 +9,31 @@
 
 #include "search/engine.h"
 #include "table/table.h"
-
 namespace vearch {
-
 int Doc::Serialize(char **out, int *out_len) {
   flatbuffers::FlatBufferBuilder builder;
-  std::vector<flatbuffers::Offset<gamma_api::Field>> field_vector(
-      table_fields_.size() + vector_fields_.size());
+  std::vector<flatbuffers::Offset<gamma_api::Field>> field_vector;
+  field_vector.reserve(table_fields_.size() + vector_fields_.size());
 
-  int i = 0;
   for (const auto &fields : {table_fields_, vector_fields_}) {
     for (const auto &[name, f] : fields) {
-      std::vector<uint8_t> value(f.value.size());
-      memcpy(value.data(), f.value.data(), f.value.size());
-
-      auto field = gamma_api::CreateField(builder, builder.CreateString(f.name),
-                                          builder.CreateVector(value),
-                                          static_cast<::DataType>(f.datatype));
-      field_vector[i++] = field;
+      auto value = builder.CreateVector(
+          reinterpret_cast<const uint8_t *>(f.value.data()), f.value.size());
+      auto field =
+          gamma_api::CreateField(builder, builder.CreateString(f.name), value,
+                                 static_cast<::DataType>(f.datatype));
+      field_vector.push_back(field);
     }
   }
+
   auto field_vec = builder.CreateVector(field_vector);
   auto doc = gamma_api::CreateDoc(builder, field_vec);
   builder.Finish(doc);
+
   *out_len = builder.GetSize();
-  *out = (char *)malloc(*out_len * sizeof(char));
-  memcpy(*out, (char *)builder.GetBufferPointer(), *out_len);
+  *out = static_cast<char *>(malloc(*out_len));
+  memcpy(*out, builder.GetBufferPointer(), *out_len);
+
   return 0;
 }
 
@@ -46,24 +45,23 @@ void Doc::Deserialize(const char *data, int len) {
 
   doc_ = const_cast<gamma_api::Doc *>(gamma_api::GetDoc(data));
   Table *table = engine_->GetTable();
-  const std::map<std::string, int> &field_map = table->FieldMap();
-  size_t fields_num = doc_->fields()->size();
+  const auto &field_map = table->FieldMap();
+  const auto fields_num = doc_->fields()->size();
 
   for (size_t i = 0; i < fields_num; ++i) {
     auto f = doc_->fields()->Get(i);
-    struct Field field;
+    Field field;
     field.name = f->name()->str();
     field.value = std::string(
         reinterpret_cast<const char *>(f->value()->Data()), f->value()->size());
+    field.datatype = static_cast<DataType>(f->data_type());
 
     if (field.name == "_id") {
       key_ = field.value;
     }
-    field.datatype = static_cast<DataType>(f->data_type());
 
     if (field.datatype != DataType::VECTOR) {
-      auto it = field_map.find(field.name);
-      if (it == field_map.end()) {
+      if (field_map.find(field.name) == field_map.end()) {
         LOG(ERROR) << "Unknown field " << field.name;
         continue;
       }
@@ -74,7 +72,7 @@ void Doc::Deserialize(const char *data, int len) {
   }
 }
 
-void Doc::AddField(const struct Field &field) {
+void Doc::AddField(const Field &field) {
   if (field.datatype == DataType::VECTOR) {
     vector_fields_[field.name] = field;
   } else {
@@ -82,7 +80,7 @@ void Doc::AddField(const struct Field &field) {
   }
 }
 
-void Doc::AddField(struct Field &&field) {
+void Doc::AddField(Field &&field) {
   if (field.datatype == DataType::VECTOR) {
     vector_fields_[field.name] = std::move(field);
   } else {

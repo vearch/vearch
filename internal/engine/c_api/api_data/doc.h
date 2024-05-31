@@ -25,78 +25,39 @@ struct Field {
 
   Field() = default;
 
-  Field(const Field &other)
-      : name(other.name), value(other.value), datatype(other.datatype) {}
+  Field(const Field &other) = default;
+  Field &operator=(const Field &other) = default;
 
-  Field &operator=(const Field &other) {
-    name = other.name;
-    value = other.value;
-    datatype = other.datatype;
-    return *this;
-  }
-
-  Field(Field &&other) noexcept
-      : name(std::move(other.name)),
-        value(std::move(other.value)),
-        datatype(std::move(other.datatype)) {}
-
-  Field &operator=(Field &&other) {
-    name = std::move(other.name);
-    value = std::move(other.value);
-    datatype = other.datatype;
-    return *this;
-  }
+  Field(Field &&other) noexcept = default;
+  Field &operator=(Field &&other) noexcept = default;
 
   ~Field() = default;
 };
 
 class Doc : public RawData {
  public:
-  Doc() {
-    doc_ = nullptr;
-    engine_ = nullptr;
-  }
+  Doc() : doc_(nullptr), engine_(nullptr) {}
 
-  Doc(const Doc &other) { *this = other; }
+  Doc(const Doc &other) = default;
+  Doc &operator=(const Doc &other) = default;
 
-  Doc &operator=(const Doc &other) {
-    key_ = other.key_;
-
-    table_fields_ = other.table_fields_;
-    vector_fields_ = other.vector_fields_;
-    return *this;
-  }
-
-  Doc(Doc &&other) { *this = std::move(other); }
-
-  Doc &operator=(Doc &&other) {
-    key_ = std::move(other.key_);
-
-    table_fields_ = other.table_fields_;
-    other.table_fields_.clear();
-    vector_fields_ = other.vector_fields_;
-    other.vector_fields_.clear();
-
-    return *this;
-  }
+  Doc(Doc &&other) noexcept = default;
+  Doc &operator=(Doc &&other) noexcept = default;
 
   virtual int Serialize(char **out, int *out_len);
 
   virtual void Deserialize(const char *data, int len);
 
-  void AddField(const struct Field &field);
-
-  void AddField(struct Field &&field);
+  void AddField(const Field &field);
+  void AddField(Field &&field);
 
   std::string &Key() { return key_; }
-
   void SetKey(const std::string &key) { key_ = key; }
 
-  std::unordered_map<std::string, struct Field> &TableFields() {
+  std::unordered_map<std::string, Field> &TableFields() {
     return table_fields_;
   }
-
-  std::unordered_map<std::string, struct Field> &VectorFields() {
+  std::unordered_map<std::string, Field> &VectorFields() {
     return vector_fields_;
   }
 
@@ -105,10 +66,8 @@ class Doc : public RawData {
  private:
   gamma_api::Doc *doc_;
   std::string key_;
-
-  std::unordered_map<std::string, struct Field> table_fields_;
-  std::unordered_map<std::string, struct Field> vector_fields_;
-
+  std::unordered_map<std::string, Field> table_fields_;
+  std::unordered_map<std::string, Field> vector_fields_;
   Engine *engine_;
 };
 

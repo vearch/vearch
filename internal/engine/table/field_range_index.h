@@ -112,7 +112,6 @@ class MultiFieldsRangeIndex {
   Table *table_;
   std::vector<FieldRangeIndex *> fields_;
   std::unique_ptr<FieldOperateQueue> field_operate_q_;
-  std::atomic<bool> b_operate_running_;
   std::atomic<bool> b_running_;
   std::thread worker_thread_;
   std::condition_variable cv_;

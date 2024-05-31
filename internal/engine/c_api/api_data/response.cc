@@ -161,7 +161,7 @@ void Response::Deserialize(const char *data, int len) {
 
     for (size_t j = 0; j < items_num; ++j) {
       auto fbs_result_item = fbs_result->result_items()->Get(j);
-      struct ResultItem item;
+      ResultItem item;
       item.score = fbs_result_item->score();
       size_t attr_num = fbs_result_item->attributes()->size();
       item.names.resize(attr_num);
@@ -183,15 +183,15 @@ void Response::Deserialize(const char *data, int len) {
   }
 }
 
-void Response::AddResults(const struct SearchResult &result) {
+void Response::AddResults(const SearchResult &result) {
   results_.emplace_back(result);
 }
 
-void Response::AddResults(struct SearchResult &&result) {
-  results_.emplace_back(std::forward<struct SearchResult>(result));
+void Response::AddResults(SearchResult &&result) {
+  results_.emplace_back(std::forward<SearchResult>(result));
 }
 
-std::vector<struct SearchResult> &Response::Results() { return results_; }
+std::vector<SearchResult> &Response::Results() { return results_; }
 
 void Response::SetEngineInfo(void *table, void *vector_mgr,
                              GammaResult *gamma_results, int req_num) {
@@ -203,7 +203,7 @@ void Response::SetEngineInfo(void *table, void *vector_mgr,
 
 int Response::PackResultItem(const VectorDoc *vec_doc,
                              std::vector<std::string> &fields_name,
-                             struct ResultItem &result_item) {
+                             ResultItem &result_item) {
   result_item.score = vec_doc->score;
 
   Doc doc;
@@ -258,12 +258,12 @@ int Response::PackResultItem(const VectorDoc *vec_doc,
 
 int Response::PackResults(std::vector<std::string> &fields_name) {
   for (int i = 0; i < req_num_; ++i) {
-    struct SearchResult result;
+    SearchResult result;
     result.total = gamma_results_[i].total;
     result.result_items.resize(gamma_results_[i].results_count);
     for (int j = 0; j < gamma_results_[i].results_count; ++j) {
       VectorDoc *vec_doc = gamma_results_[i].docs[j];
-      struct ResultItem result_item;
+      ResultItem result_item;
       PackResultItem(vec_doc, fields_name, result_item);
       result.result_items[j] = std::move(result_item);
     }

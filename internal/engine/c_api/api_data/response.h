@@ -22,33 +22,13 @@ enum class SearchResultCode : std::uint16_t {
 };
 
 struct ResultItem {
-  ResultItem() { score = -1; }
+  ResultItem() : score(-1) {}
 
-  ResultItem(const ResultItem &other) {
-    score = other.score;
-    names = other.names;
-    values = other.values;
-  }
+  ResultItem(const ResultItem &other) = default;
+  ResultItem &operator=(const ResultItem &other) = default;
 
-  ResultItem &operator=(const ResultItem &other) {
-    score = other.score;
-    names = other.names;
-    values = other.values;
-    return *this;
-  }
-
-  ResultItem(ResultItem &&other) {
-    score = other.score;
-    names = std::move(other.names);
-    values = std::move(other.values);
-  }
-
-  ResultItem &operator=(ResultItem &&other) {
-    score = other.score;
-    names = std::move(other.names);
-    values = std::move(other.values);
-    return *this;
-  }
+  ResultItem(ResultItem &&other) noexcept = default;
+  ResultItem &operator=(ResultItem &&other) noexcept = default;
 
   double score;
   std::vector<std::string> names;
@@ -56,49 +36,24 @@ struct ResultItem {
 };
 
 struct SearchResult {
-  SearchResult() { total = 0; }
+  SearchResult() : total(0) {}
 
-  SearchResult(const SearchResult &other) {
-    total = other.total;
-    result_code = other.result_code;
-    msg = other.msg;
-    result_items = other.result_items;
-  }
+  SearchResult(const SearchResult &other) = default;
+  SearchResult &operator=(const SearchResult &other) = default;
 
-  SearchResult &operator=(const SearchResult &other) {
-    total = other.total;
-    result_code = other.result_code;
-    msg = other.msg;
-    result_items = other.result_items;
-    return *this;
-  }
-
-  SearchResult(SearchResult &&other) {
-    total = other.total;
-    result_code = other.result_code;
-    msg = std::move(other.msg);
-    result_items = std::move(other.result_items);
-  }
-
-  SearchResult &operator=(SearchResult &&other) {
-    total = other.total;
-    result_code = other.result_code;
-    msg = std::move(other.msg);
-    result_items = std::move(other.result_items);
-    return *this;
-  }
+  SearchResult(SearchResult &&other) noexcept = default;
+  SearchResult &operator=(SearchResult &&other) noexcept = default;
 
   int total;
   SearchResultCode result_code;
   std::string msg;
-  std::vector<struct ResultItem> result_items;
+  std::vector<ResultItem> result_items;
 };
 
 class Response {
  public:
   Response();
-
-  Response(bool trace);
+  explicit Response(bool trace);
 
   virtual ~Response();
 
@@ -108,11 +63,10 @@ class Response {
 
   virtual void Deserialize(const char *data, int len);
 
-  void AddResults(const struct SearchResult &result);
+  void AddResults(const SearchResult &result);
+  void AddResults(SearchResult &&result);
 
-  void AddResults(struct SearchResult &&result);
-
-  std::vector<struct SearchResult> &Results();
+  std::vector<SearchResult> &Results();
 
   void SetEngineInfo(void *table, void *vector_mgr, GammaResult *gamma_results,
                      int req_num);
@@ -123,16 +77,16 @@ class Response {
 
   int PackResultItem(const VectorDoc *vec_doc,
                      std::vector<std::string> &fields_name,
-                     struct ResultItem &result_item);
+                     ResultItem &result_item);
 
  private:
-  gamma_api::Response *response_;
-  std::vector<struct SearchResult> results_;
+  gamma_api::Response *response_ = nullptr;
+  std::vector<SearchResult> results_;
   GammaResult *gamma_results_ = nullptr;
   void *table_ = nullptr;
   void *vector_mgr_ = nullptr;
   int req_num_ = 0;
-  void *perf_tool_;
+  void *perf_tool_ = nullptr;
 };
 
 }  // namespace vearch

@@ -31,9 +31,6 @@
 #include "util/log.h"
 #include "util/utils.h"
 
-using std::string;
-using std::vector;
-
 namespace vearch {
 
 class Node {
@@ -353,9 +350,10 @@ class FieldRangeIndex {
 
   int Delete(std::string &key, int value);
 
-  int Search(const string &low, const string &high, RangeQueryResult *result);
+  int Search(const std::string &low, const std::string &high,
+             RangeQueryResult *result);
 
-  int Search(const string &tags, RangeQueryResult *result);
+  int Search(const std::string &tags, RangeQueryResult *result);
 
   bool IsNumeric() { return is_numeric_; }
 
@@ -382,8 +380,8 @@ FieldRangeIndex::FieldRangeIndex(std::string &path, int field_idx,
                                  enum DataType field_type,
                                  BTreeParameters &bt_param, std::string &name)
     : path_(path), name_(name) {
-  string main_file =
-      path + string("/main_") + std::to_string(field_idx) + ".dis";
+  std::string main_file =
+      path + std::string("/main_") + std::to_string(field_idx) + ".dis";
   remove(main_file.c_str());
 
   main_mgr_ = bt_mgr(const_cast<char *>(main_file.c_str()), bt_param.mainbits,
@@ -799,7 +797,6 @@ MultiFieldsRangeIndex::MultiFieldsRangeIndex(std::string &path, Table *table)
       table_(table),
       fields_(table->FieldsNum()),
       field_operate_q_(std::make_unique<FieldOperateQueue>()),
-      b_operate_running_(true),
       b_running_(true) {
   std::fill(fields_.begin(), fields_.end(), nullptr);
 
@@ -845,7 +842,6 @@ void MultiFieldsRangeIndex::FieldOperateWorker() {
     }
   }
   LOG(INFO) << "FieldOperateWorker exited!";
-  b_operate_running_ = false;
 }
 
 int MultiFieldsRangeIndex::Add(int docid, int field) {
@@ -927,9 +923,9 @@ int MultiFieldsRangeIndex::Search(const std::vector<FilterInfo> &origin_filters,
     }
     if (not index->IsNumeric() && (filter.is_union == FilterOperator::And)) {
       // type is string and operator is "and", split this filter
-      std::vector<string> items =
+      std::vector<std::string> items =
           utils::split(filter.lower_value, index->Delim());
-      for (string &item : items) {
+      for (std::string &item : items) {
         FilterInfo f = filter;
         f.lower_value = item;
         filters.push_back(f);
