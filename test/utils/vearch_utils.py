@@ -28,8 +28,8 @@ ip_router = ip + ":9001"
 router_url = "http://" + ip_router
 db_name = "ts_db"
 space_name = "ts_space"
-username = 'root'
-password = 'secret'
+username = "root"
+password = "secret"
 
 
 __description__ = """ test utils for vearch """
@@ -69,7 +69,16 @@ def process_add_data(items):
         logger.info(rs.json())
 
 
-def add(total, batch_size, xb, with_id=False, full_field=False, seed=1,  alias_name="", logger=None):
+def add(
+    total,
+    batch_size,
+    xb,
+    with_id=False,
+    full_field=False,
+    seed=1,
+    alias_name="",
+    logger=None,
+):
     pool = ThreadPool()
     total_data = []
     for i in range(total):
@@ -77,12 +86,12 @@ def add(total, batch_size, xb, with_id=False, full_field=False, seed=1,  alias_n
             (
                 i,
                 batch_size,
-                xb[i * batch_size: (i + 1) * batch_size],
+                xb[i * batch_size : (i + 1) * batch_size],
                 with_id,
                 full_field,
                 seed,
                 alias_name,
-                logger
+                logger,
             )
         )
     results = pool.map(process_add_data, total_data)
@@ -112,7 +121,10 @@ def process_add_string_array_data(items):
             param_dict["_id"] = str(index * batch_size + j)
         param_dict["field_int"] = (index * batch_size + j) * seed
         param_dict["field_vector"] = features[j].tolist()
-        param_dict["field_string_array"] = [str(param_dict["field_int"]), str(param_dict["field_int"] + 1000)]
+        param_dict["field_string_array"] = [
+            str(param_dict["field_int"]),
+            str(param_dict["field_int"] + 1000),
+        ]
         data["documents"].append(param_dict)
 
     rs = requests.post(url, auth=(username, password), json=data)
@@ -120,7 +132,16 @@ def process_add_string_array_data(items):
         logger.info(rs.json())
 
 
-def add_string_array(total, batch_size, xb, with_id=False, full_field=False, seed=1,  alias_name="", logger=None):
+def add_string_array(
+    total,
+    batch_size,
+    xb,
+    with_id=False,
+    full_field=False,
+    seed=1,
+    alias_name="",
+    logger=None,
+):
     pool = ThreadPool()
     total_data = []
     for i in range(total):
@@ -128,12 +149,12 @@ def add_string_array(total, batch_size, xb, with_id=False, full_field=False, see
             (
                 i,
                 batch_size,
-                xb[i * batch_size: (i + 1) * batch_size],
+                xb[i * batch_size : (i + 1) * batch_size],
                 with_id,
                 full_field,
                 seed,
                 alias_name,
-                logger
+                logger,
             )
         )
     results = pool.map(process_add_string_array_data, total_data)
@@ -158,8 +179,7 @@ def process_add_embedding_size_data(items):
         param_dict = {}
         param_dict["_id"] = str(index * batch_size + j)
         param_dict["field_int"] = index * batch_size + j
-        param_dict["field_vector"] = [random.random()
-                                      for i in range(embedding_size)]
+        param_dict["field_vector"] = [random.random() for i in range(embedding_size)]
         param_dict["field_long"] = param_dict["field_int"]
         param_dict["field_float"] = float(param_dict["field_int"])
         param_dict["field_double"] = float(param_dict["field_int"])
@@ -173,15 +193,7 @@ def add_embedding_size(db_name, space_name, total, batch_size, embedding_size):
     pool = ThreadPool()
     total_data = []
     for i in range(total):
-        total_data.append(
-            (
-                db_name,
-                space_name,
-                i,
-                batch_size,
-                embedding_size
-            )
-        )
+        total_data.append((db_name, space_name, i, batch_size, embedding_size))
     results = pool.map(process_add_embedding_size_data, total_data)
     pool.close()
     pool.join()
@@ -228,7 +240,11 @@ def process_add_error_data(items):
                 param_dict["field_vector"] = features[j].tolist()[:1]
             if wrong_vector_feature_type:
                 param_dict["field_vector"] = features[j].tolist()[0]
-            if not wrong_vector_type and not wrong_vector_feature_length and not wrong_vector_feature_type:
+            if (
+                not wrong_vector_type
+                and not wrong_vector_feature_length
+                and not wrong_vector_feature_type
+            ):
                 param_dict["field_vector"] = features[j].tolist()
 
         param_dict["field_string"] = str(param_dict["field_int"])
@@ -241,8 +257,7 @@ def process_add_error_data(items):
             )
 
         if wrong_string_length:
-            param_dict["field_string1"] = "".join(
-                ["0" for _ in range(max_str_length)])
+            param_dict["field_string1"] = "".join(["0" for _ in range(max_str_length)])
 
         if wrong_number_value:
             param_dict["field_long"] = param_dict["field_int"]
@@ -312,7 +327,7 @@ def add_error(total, batch_size, xb, logger, wrong_parameters: list):
                 (
                     i,
                     batch_size,
-                    xb[i * batch_size: (i + 1) * batch_size],
+                    xb[i * batch_size : (i + 1) * batch_size],
                     logger,
                     wrong_parameters,
                 )
@@ -322,7 +337,7 @@ def add_error(total, batch_size, xb, logger, wrong_parameters: list):
                 (
                     i,
                     batch_size,
-                    xb[i * batch_size: (i + 1) * batch_size],
+                    xb[i * batch_size : (i + 1) * batch_size],
                     logger,
                     wrong_parameters,
                 )
@@ -367,7 +382,7 @@ def add_multi_vector(total, batch_size, xb, with_id=False, full_field=False, see
             (
                 i,
                 batch_size,
-                xb[i * batch_size: (i + 1) * batch_size],
+                xb[i * batch_size : (i + 1) * batch_size],
                 with_id,
                 full_field,
                 seed,
@@ -419,7 +434,7 @@ def add_multi_vector_error(total, batch_size, xb, logger, wrong_parameters: list
             (
                 i,
                 batch_size,
-                xb[i * batch_size: (i + 1) * batch_size],
+                xb[i * batch_size : (i + 1) * batch_size],
                 logger,
                 wrong_parameters,
             )
@@ -438,42 +453,42 @@ def prepare_filter(filter, index, batch_size, seed, full_field):
             {
                 "field": "field_int",
                 "operator": ">=",
-                "value": (index * batch_size) * seed
+                "value": (index * batch_size) * seed,
             },
             {
                 "field": "field_int",
                 "operator": "<",
-                "value": (index + 1) * batch_size * seed
+                "value": (index + 1) * batch_size * seed,
             },
             {
                 "field": "field_long",
                 "operator": ">=",
-                "value": (index * batch_size) * seed
+                "value": (index * batch_size) * seed,
             },
             {
                 "field": "field_long",
                 "operator": "<",
-                "value": (index + 1) * batch_size * seed
+                "value": (index + 1) * batch_size * seed,
             },
             {
                 "field": "field_float",
                 "operator": ">",
-                "value": float(index * batch_size * seed)
+                "value": float(index * batch_size * seed),
             },
             {
                 "field": "field_float",
                 "operator": "<",
-                "value": float((index + 1) * batch_size * seed)
+                "value": float((index + 1) * batch_size * seed),
             },
             {
                 "field": "field_double",
                 "operator": ">",
-                "value": float(index * batch_size * seed)
+                "value": float(index * batch_size * seed),
             },
             {
                 "field": "field_double",
                 "operator": "<",
-                "value": float((index + 1) * batch_size * seed)
+                "value": float((index + 1) * batch_size * seed),
             },
         ]
         filter.extend(range_filter)
@@ -482,12 +497,12 @@ def prepare_filter(filter, index, batch_size, seed, full_field):
             {
                 "field": "field_int",
                 "operator": ">=",
-                "value": (index * batch_size) * seed
+                "value": (index * batch_size) * seed,
             },
             {
                 "field": "field_int",
                 "operator": "<",
-                "value": (index + 1) * batch_size * seed
+                "value": (index + 1) * batch_size * seed,
             },
         ]
         filter.extend(range_filter)
@@ -498,7 +513,9 @@ def prepare_wrong_range_filter(filter, index, batch_size):
         {
             "field": "field_string",
             "operator": ">",
-            "value": [str(i) for i in range(index * batch_size, (index + 1) * batch_size)]
+            "value": [
+                str(i) for i in range(index * batch_size, (index + 1) * batch_size)
+            ],
         },
     ]
     filter.extend(range_filter)
@@ -506,32 +523,16 @@ def prepare_wrong_range_filter(filter, index, batch_size):
 
 def prepare_wrong_range_filter_name(filter, index, batch_size):
     range_filter = [
-        {
-            "field": "wrong_name",
-            "operator": ">=",
-            "value": index * batch_size
-        },
-        {
-            "field": "wrong_name",
-            "operator": "<=",
-            "value": (index + 1) * batch_size
-        },
+        {"field": "wrong_name", "operator": ">=", "value": index * batch_size},
+        {"field": "wrong_name", "operator": "<=", "value": (index + 1) * batch_size},
     ]
     filter.extend(range_filter)
 
 
 def prepare_wrong_index_filter(filter, index, batch_size):
     range_filter = [
-        {
-            "field": "field_long",
-            "operator": ">=",
-            "value": index * batch_size
-        },
-        {
-            "field": "field_long",
-            "operator": "<=",
-            "value": (index + 1) * batch_size
-        },
+        {"field": "field_long", "operator": ">=", "value": index * batch_size},
+        {"field": "field_long", "operator": "<=", "value": (index + 1) * batch_size},
     ]
     filter.extend(range_filter)
 
@@ -541,7 +542,9 @@ def prepare_term_filter(filter, index, batch_size):
         {
             "field": "field_string",
             "operator": "IN",
-            "value": [str(i) for i in range(index * batch_size, (index + 1) * batch_size)]
+            "value": [
+                str(i) for i in range(index * batch_size, (index + 1) * batch_size)
+            ],
         },
     ]
     filter.extend(term_filter)
@@ -552,7 +555,9 @@ def prepare_wrong_term_filter_name(filter, index, batch_size):
         {
             "field": "wrong_name",
             "operator": "IN",
-            "value": [str(i) for i in range(index * batch_size, (index + 1) * batch_size)]
+            "value": [
+                str(i) for i in range(index * batch_size, (index + 1) * batch_size)
+            ],
         },
     ]
     filter.extend(term_filter)
@@ -560,16 +565,8 @@ def prepare_wrong_term_filter_name(filter, index, batch_size):
 
 def prepare_wrong_term_filter(filter, index, batch_size):
     term_filter = [
-        {
-            "field": "field_int",
-            "operator": "IN",
-            "value": index * batch_size
-        },
-        {
-            "field": "field_int",
-            "operator": "IN",
-            "value": (index + 1) * batch_size
-        },
+        {"field": "field_int", "operator": "IN", "value": index * batch_size},
+        {"field": "field_int", "operator": "IN", "value": (index + 1) * batch_size},
     ]
     filter.extend(term_filter)
 
@@ -619,42 +616,29 @@ def process_query_error_data(items):
         data["document_ids"] = ["wrong_id"]
 
     if wrong_range_filter:
-        data["filters"] = {
-            "operator": "AND",
-            "conditions": []
-        }
+        data["filters"] = {"operator": "AND", "conditions": []}
         prepare_wrong_range_filter(data["filters"]["conditions"], index, batch_size)
         data["limit"] = batch_size
 
     if wrong_term_filter:
-        data["filters"] = {
-            "operator": "AND",
-            "conditions": []
-        }
+        data["filters"] = {"operator": "AND", "conditions": []}
         prepare_wrong_term_filter(data["filters"]["conditions"], index, batch_size)
         data["limit"] = batch_size
 
     if wrong_filter_index:
-        data["filters"] = {
-            "operator": "AND",
-            "conditions": []
-        }
+        data["filters"] = {"operator": "AND", "conditions": []}
         prepare_wrong_index_filter(data["filters"]["conditions"], index, batch_size)
         data["limit"] = batch_size
 
     if wrong_range_filter_name:
-        data["filters"] = {
-            "operator": "AND",
-            "conditions": []
-        }
-        prepare_wrong_range_filter_name(data["filters"]["conditions"], index, batch_size)
+        data["filters"] = {"operator": "AND", "conditions": []}
+        prepare_wrong_range_filter_name(
+            data["filters"]["conditions"], index, batch_size
+        )
         data["limit"] = batch_size
 
     if wrong_term_filter_name:
-        data["filters"] = {
-            "operator": "AND",
-            "conditions": []
-        }
+        data["filters"] = {"operator": "AND", "conditions": []}
         prepare_wrong_term_filter_name(data["filters"]["conditions"], index, batch_size)
         data["limit"] = batch_size
 
@@ -667,15 +651,11 @@ def process_query_error_data(items):
         data["vectors"].append(vector_info)
 
     if wrong_length_document_ids:
-        data["document_ids"] = [
-            str(i) for i in range(max_document_ids_length)]
+        data["document_ids"] = [str(i) for i in range(max_document_ids_length)]
 
     if wrong_both_id_and_filter:
         data["document_ids"] = ["0"]
-        data["filters"] = {
-            "operator": "AND",
-            "conditions": []
-        }
+        data["filters"] = {"operator": "AND", "conditions": []}
         prepare_filter(data["filters"]["conditions"], index, batch_size, 1, True)
         data["limit"] = batch_size
 
@@ -683,10 +663,7 @@ def process_query_error_data(items):
         data["document_ids"] = []
 
     if empty_filter:
-        data["filters"] = {
-            "operator": "AND",
-            "conditions": []
-        }
+        data["filters"] = {"operator": "AND", "conditions": []}
 
     if out_of_bounds_ids:
         data["document_ids"] = [str(max_document_ids_length + 1)]
@@ -715,7 +692,10 @@ def process_query_multiple_error_data(items):
     url = router_url + "/document/" + interface
 
     (
-        params_both_wrong, params_just_one_wrong, return_both_wrong, return_just_one_wrong
+        params_both_wrong,
+        params_just_one_wrong,
+        return_both_wrong,
+        return_just_one_wrong,
     ) = items[5]
 
     if params_both_wrong:
@@ -753,7 +733,7 @@ def query_error(logger, total, batch_size, xb, interface: str, wrong_parameters:
                 (
                     i,
                     batch_size,
-                    xb[i * batch_size: (i + 1) * batch_size],
+                    xb[i * batch_size : (i + 1) * batch_size],
                     logger,
                     interface,
                     wrong_parameters,
@@ -764,7 +744,7 @@ def query_error(logger, total, batch_size, xb, interface: str, wrong_parameters:
                 (
                     i,
                     batch_size,
-                    xb[i * batch_size: (i + 1) * batch_size],
+                    xb[i * batch_size : (i + 1) * batch_size],
                     logger,
                     interface,
                     wrong_parameters,
@@ -790,7 +770,11 @@ def process_get_data(items):
     if items[7] != "":
         data["space_name"] = items[7]
 
-    if query_type == "by_partition" or query_type == "by_partition_next" or query_type == "by_ids":
+    if (
+        query_type == "by_partition"
+        or query_type == "by_partition_next"
+        or query_type == "by_ids"
+    ):
         data["document_ids"] = []
         if query_type == "by_partition_next" and batch_size > 1:
             batch_size -= 1
@@ -808,11 +792,10 @@ def process_get_data(items):
             data["next"] = True
 
     if query_type == "by_filter":
-        data["filters"] = {
-            "operator": "AND",
-            "conditions": []
-        }
-        prepare_filter(data["filters"]["conditions"], index, batch_size, seed, full_field)
+        data["filters"] = {"operator": "AND", "conditions": []}
+        prepare_filter(
+            data["filters"]["conditions"], index, batch_size, seed, full_field
+        )
         data["limit"] = batch_size
 
     json_str = json.dumps(data)
@@ -836,9 +819,7 @@ def process_get_data(items):
         logger.debug(documents[j])
         assert documents[j]["field_int"] == value * seed
         if query_type == "by_ids":
-            assert (
-                documents[j]["field_vector"] == features[j].tolist()
-            )
+            assert documents[j]["field_vector"] == features[j].tolist()
         if full_field:
             assert documents[j]["field_long"] == value * seed
             assert documents[j]["field_float"] == float(value * seed)
@@ -846,7 +827,14 @@ def process_get_data(items):
 
 
 def query_interface(
-    logger, total, batch_size, xb, full_field=False, seed=1, query_type="by_ids", alias_name=""
+    logger,
+    total,
+    batch_size,
+    xb,
+    full_field=False,
+    seed=1,
+    query_type="by_ids",
+    alias_name="",
 ):
     if query_type == "by_partition_next" and batch_size == 1:
         total -= 1
@@ -856,7 +844,7 @@ def query_interface(
                 logger,
                 i,
                 batch_size,
-                xb[i * batch_size: (i + 1) * batch_size],
+                xb[i * batch_size : (i + 1) * batch_size],
                 full_field,
                 seed,
                 query_type,
@@ -896,11 +884,10 @@ def process_delete_data(items):
             data["document_ids"].append(str(index * batch_size + j))
 
     if delete_type == "by_filter":
-        data["filters"] = {
-            "operator": "AND",
-            "conditions": []
-        }
-        prepare_filter(data["filters"]["conditions"], index, batch_size, seed, full_field)
+        data["filters"] = {"operator": "AND", "conditions": []}
+        prepare_filter(
+            data["filters"]["conditions"], index, batch_size, seed, full_field
+        )
         data["limit"] = batch_size
 
     json_str = json.dumps(data)
@@ -925,11 +912,18 @@ def process_delete_data(items):
 
 
 def delete_interface(
-    logger, total, batch_size, full_field=False, seed=1, delete_type="by_ids", alias_name=""
+    logger,
+    total,
+    batch_size,
+    full_field=False,
+    seed=1,
+    delete_type="by_ids",
+    alias_name="",
 ):
     for i in range(total):
         process_delete_data(
-            (logger, i, batch_size, full_field, seed, delete_type, alias_name))
+            (logger, i, batch_size, full_field, seed, delete_type, alias_name)
+        )
 
 
 def process_search_data(items):
@@ -968,11 +962,10 @@ def process_search_data(items):
         data["vectors"].append(vector_info)
 
     if with_filter:
-        data["filters"] = {
-            "operator": "AND",
-            "conditions": []
-        }
-        prepare_filter(data["filters"]["conditions"], index, batch_size, seed, full_field)
+        data["filters"] = {"operator": "AND", "conditions": []}
+        prepare_filter(
+            data["filters"]["conditions"], index, batch_size, seed, full_field
+        )
 
     json_str = json.dumps(data)
     rs = requests.post(url, auth=(username, password), data=json_str)
@@ -1011,7 +1004,7 @@ def search_interface(
     with_filter=False,
     seed=1,
     query_type="by_vector",
-    alias_name=""
+    alias_name="",
 ):
     for i in range(total):
         process_search_data(
@@ -1019,7 +1012,7 @@ def search_interface(
                 logger,
                 i,
                 batch_size,
-                xb[i * batch_size: (i + 1) * batch_size],
+                xb[i * batch_size : (i + 1) * batch_size],
                 full_field,
                 with_filter,
                 seed,
@@ -1041,6 +1034,7 @@ def create_for_document_test(logger, router_url, embedding_size, properties):
 
     reponse = create_space(router_url, db_name, space_config)
     logger.info(reponse.json())
+
 
 def prepare_cluster_for_document_test(logger, total, xb):
     embedding_size = xb.shape[1]
@@ -1108,8 +1102,7 @@ def prepare_cluster_for_document_test(logger, total, xb):
 
     time.sleep(3)
 
-    query_interface(logger, total_batch, batch_size,
-                    xb, full_field, seed, "by_ids")
+    query_interface(logger, total_batch, batch_size, xb, full_field, seed, "by_ids")
 
 
 def waiting_index_finish(logger, total, timewait=5):
@@ -1232,6 +1225,12 @@ def get_partition(router_url: str, db_name: str, space_name: str):
     return partition_ids
 
 
+def get_router_info(router_url: str):
+    url = f"{router_url}"
+    resp = requests.get(url, auth=(username, password))
+    return resp
+
+
 def get_cluster_stats(router_url: str):
     url = f"{router_url}/cluster/stats"
     resp = requests.get(url, auth=(username, password))
@@ -1297,8 +1296,7 @@ def describe_space(logger, router_url: str, db_name: str, space_name: str):
 
 def index_rebuild(router_url: str, db_name: str, space_name: str):
     url = f"{router_url}/index/rebuild"
-    data = {'db_name': db_name, 'space_name': space_name,
-            'drop_before_rebuild': True}
+    data = {"db_name": db_name, "space_name": space_name, "drop_before_rebuild": True}
     resp = requests.post(url, auth=(username, password), json=data)
     return resp
 

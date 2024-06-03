@@ -129,6 +129,9 @@ func (handler *DocumentHandler) handleMasterRequest(c *gin.Context) {
 }
 
 func (handler *DocumentHandler) ExportInterfacesToServer(group *gin.RouterGroup) error {
+	// router info
+	group.GET("/", handler.handleRouterInfo)
+
 	// document
 	group.POST("/document/upsert", handler.handleDocumentUpsert)
 	group.POST("/document/query", handler.handleDocumentQuery)
@@ -154,6 +157,19 @@ func (handler *DocumentHandler) ExportInterfacesToServer(group *gin.RouterGroup)
 func (handler *DocumentHandler) handleTimeout(c *gin.Context) {
 	messageID := uuid.NewString()
 	c.Set(entity.MessageID, messageID)
+}
+
+func (handler *DocumentHandler) handleRouterInfo(c *gin.Context) {
+	versionLayer := make(map[string]interface{})
+	versionLayer["build_version"] = config.GetBuildVersion()
+	versionLayer["build_time"] = config.GetBuildTime()
+	versionLayer["commit_id"] = config.GetCommitID()
+
+	layer := make(map[string]interface{})
+	layer["version"] = versionLayer
+	layer["name"] = config.Conf().Global.Name
+
+	httphelper.New(c).JsonSuccess(layer)
 }
 
 func (handler *DocumentHandler) cacheSpaceInfo(c *gin.Context) {

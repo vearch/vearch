@@ -133,10 +133,7 @@ func (ca *clusterAPI) handleClusterInfo(c *gin.Context) {
 
 	layer := make(map[string]interface{})
 	layer["name"] = config.Conf().Global.Name
-	layer["cluster_name"] = config.Conf().Global.Name
-	layer["cluster_uuid"] = ""
 	layer["version"] = versionLayer
-	layer["tagline"] = ""
 
 	httphelper.New(c).JsonSuccess(layer)
 }
