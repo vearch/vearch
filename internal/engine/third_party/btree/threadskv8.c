@@ -65,7 +65,7 @@ REDISTRIBUTION OF THIS SOFTWARE.
 
 typedef unsigned long long	uid;
 
-#ifndef unix
+#if !defined(unix) || defined(__APPLE__)
 typedef unsigned long long	off64_t;
 typedef unsigned short		ushort;
 typedef unsigned int		uint;
