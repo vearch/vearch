@@ -63,6 +63,8 @@ class Doc : public RawData {
 
   void SetEngine(Engine *engine) { engine_ = engine; }
 
+  std::string ToJson();
+
  private:
   gamma_api::Doc *doc_;
   std::string key_;

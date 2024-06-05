@@ -16,6 +16,8 @@
 #include <sys/mman.h>
 #include <time.h>
 #include <unistd.h>
+#include <zlib.h>
+#include <zstd.h>
 
 #include <chrono>
 #include <cstring>
@@ -29,10 +31,13 @@
 #include "common/gamma_common_data.h"
 #include "omp.h"
 #include "table/table_io.h"
+#include "third_party/nlohmann/json.hpp"
 #include "util/bitmap.h"
 #include "util/log.h"
 #include "util/status.h"
 #include "util/utils.h"
+
+using json = nlohmann::json;
 
 namespace vearch {
 
@@ -327,7 +332,7 @@ Status Engine::Search(Request &request, Response &response_results) {
     }
   }
 #ifdef PERFORMANCE_TESTING
-  if(gamma_query.condition->GetPerfTool()) {
+  if (gamma_query.condition->GetPerfTool()) {
     gamma_query.condition->GetPerfTool()->Perf("filter");
   }
 #endif
@@ -357,7 +362,7 @@ Status Engine::Search(Request &request, Response &response_results) {
     }
 
 #ifdef PERFORMANCE_TESTING
-    if(gamma_query.condition->GetPerfTool()) {
+    if (gamma_query.condition->GetPerfTool()) {
       gamma_query.condition->GetPerfTool()->Perf("search total");
     }
 #endif
@@ -1163,26 +1168,104 @@ int Engine::LoadFromFaiss() {
 int vearch::Engine::Backup(int command) {
   std::string backup_path = index_root_path_ + "/backup";
   utils::make_dir(backup_path.c_str());
-  std::string backup_file = backup_path + "/backup.meta";
-  utils::JsonParser jp;
-  jp.PutInt("version", 327);
-  utils::JsonParser table_jp;
-  table_->GetDumpConfig()->ToJson(table_jp);
-  jp.PutObject("table", std::move(table_jp));
-  utils::JsonParser vectors_jp;
-  for (auto &[key, raw_vector_ptr] : vec_manager_->RawVectors()) {
-    if (DumpConfig *dc = raw_vector_ptr->GetDumpConfig()) {
-      utils::JsonParser jp;
-      dc->ToJson(jp);
-      vectors_jp.PutObject(dc->name, std::move(jp));
+
+  const std::string raw_filename = backup_path + "/raw_data.json";
+  const std::string compressed_filename = raw_filename + ".zst";
+  std::ofstream outfile(compressed_filename);
+  if (!outfile.is_open()) {
+    LOG(ERROR) << "Failed to open file: " << compressed_filename;
+    return 1;
+  }
+
+  ZSTD_CStream *const cstream = ZSTD_createCStream();
+  if (cstream == NULL) {
+    LOG(ERROR) << "Failed to create ZSTD_CStream";
+    return 1;
+  }
+
+  size_t const initResult = ZSTD_initCStream(cstream, 1);
+  if (ZSTD_isError(initResult)) {
+    LOG(ERROR) << "ZSTD_initCStream() error: " << ZSTD_getErrorName(initResult);
+    ZSTD_freeCStream(cstream);
+    return 1;
+  }
+
+  std::vector<std::string> index_names;
+  vec_manager_->VectorNames(index_names);
+  int ret = 0;
+  for (int docid = 0; docid < max_docid_; docid++) {
+    if (docids_bitmap_->Test(docid)) {
+      continue;
+    }
+
+    Doc doc;
+    std::vector<std::string> table_fields;
+    ret = table_->GetDocInfo(docid, doc, table_fields);
+    if (ret != 0) {
+      LOG(ERROR) << "get doc info failed " << docid;
+      continue;
+    }
+
+    std::vector<std::pair<std::string, int>> vec_fields_ids;
+    for (size_t i = 0; i < index_names.size(); ++i) {
+      vec_fields_ids.emplace_back(std::make_pair(index_names[i], docid));
+    }
+
+    std::vector<std::string> vec;
+    ret = vec_manager_->GetVector(vec_fields_ids, vec, true);
+    if (ret == 0 && vec.size() == vec_fields_ids.size()) {
+      for (size_t i = 0; i < index_names.size(); ++i) {
+        struct Field field;
+        field.name = index_names[i];
+        field.datatype = DataType::VECTOR;
+        field.value = vec[i];
+        doc.AddField(field);
+      }
+    }
+
+    std::string json = doc.ToJson() + "\n";
+    ZSTD_inBuffer input = {json.data(), json.size(), 0};
+    while (input.pos < input.size) {
+      char buffer[4096];
+      ZSTD_outBuffer output = {buffer, sizeof(buffer), 0};
+      size_t const advance = ZSTD_compressStream(cstream, &output, &input);
+      if (ZSTD_isError(advance)) {
+        LOG(ERROR) << "ZSTD_compressStream() error: "
+                   << ZSTD_getErrorName(advance);
+        ZSTD_freeCStream(cstream);
+        return 1;
+      }
+      outfile.write(buffer, output.pos);
     }
   }
-  jp.PutObject("vectors", std::move(vectors_jp));
-  utils::FileIO fio(backup_file);
-  fio.Open("w");
-  std::string meta_str = jp.ToStr(true);
-  fio.Write(meta_str.c_str(), 1, meta_str.size());
-  LOG(INFO) << space_name_ << " backup to [" << backup_file << "] success!";
+
+  char buffer[4096];
+  ZSTD_outBuffer output = {buffer, sizeof(buffer), 0};
+  size_t remaining;
+  do {
+    remaining = ZSTD_endStream(cstream, &output);
+    if (ZSTD_isError(remaining)) {
+      LOG(ERROR) << "ZSTD_endStream() error: " << ZSTD_getErrorName(remaining);
+      ZSTD_freeCStream(cstream);
+      return 1;
+    }
+    outfile.write(buffer, output.pos);
+    output.pos = 0;
+  } while (remaining != 0);
+
+  outfile.write(buffer, output.pos);
+
+  outfile.close();
+  if (outfile.fail()) {
+    LOG(ERROR) << "Failed to close file: " << compressed_filename;
+    ZSTD_freeCStream(cstream);
+    return 1;
+  }
+
+  ZSTD_freeCStream(cstream);
+
+  LOG(INFO) << space_name_ << " backup to [" << compressed_filename
+            << "] success!";
   return 0;
 }
 

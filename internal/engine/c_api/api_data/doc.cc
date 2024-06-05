@@ -9,6 +9,9 @@
 
 #include "search/engine.h"
 #include "table/table.h"
+#include "third_party/nlohmann/json.hpp"
+#include "util/utils.h"
+
 namespace vearch {
 int Doc::Serialize(char **out, int *out_len) {
   flatbuffers::FlatBufferBuilder builder;
@@ -86,6 +89,43 @@ void Doc::AddField(Field &&field) {
   } else {
     table_fields_[field.name] = std::move(field);
   }
+}
+
+std::string Doc::ToJson() {
+  nlohmann::json j;
+  j["_id"] = key_;
+  for (const auto &fields : {table_fields_, vector_fields_}) {
+    for (const auto &[name, f] : fields) {
+      if (f.datatype == DataType::STRING) {
+        j[name] = f.value;
+      } else if (f.datatype == DataType::STRINGARRAY) {
+        std::vector<std::string> items = utils::split(f.value, "\001");
+        j[name] = items;
+      } else if (f.datatype == DataType::INT) {
+        int v;
+        memcpy(&v, f.value.data(), sizeof(v));
+        j[name] = v;
+      } else if (f.datatype == DataType::LONG) {
+        long v;
+        memcpy(&v, f.value.data(), sizeof(v));
+        j[name] = v;
+      } else if (f.datatype == DataType::FLOAT) {
+        float v;
+        memcpy(&v, f.value.data(), sizeof(v));
+        j[name] = v;
+      } else if (f.datatype == DataType::DOUBLE) {
+        double v;
+        memcpy(&v, f.value.data(), sizeof(v));
+        j[name] = v;
+      } else if (f.datatype == DataType::VECTOR) {
+        std::vector<float> v;
+        v.resize(f.value.size() / sizeof(float));
+        memcpy(v.data(), f.value.data(), f.value.size());
+        j[name] = v;
+      }
+    }
+  }
+  return j.dump();
 }
 
 }  // namespace vearch

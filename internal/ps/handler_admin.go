@@ -446,9 +446,11 @@ func (bh *BackupHandler) Execute(ctx context.Context, req *vearchpb.PartitionDat
 	}
 	// invoke c interface
 	log.Debug("backup info is [%+v]", backup)
-	err = engine.BackupSpace(backup.Command, backup.S3Param)
-	if err != nil {
-		log.Debug("backup info set error [%+v]", err)
-	}
+	go func() {
+		err = engine.BackupSpace(backup.Command, backup.S3Param)
+		if err != nil {
+			log.Error("backup error [%+v]", err)
+		}
+	}()
 	return nil
 }

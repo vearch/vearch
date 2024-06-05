@@ -70,41 +70,27 @@ else()
     )
 endif()
 
+set(COMMON_LIBRARIES
+    ${RocksDB_LIB}
+    -ltbb
+    -lzstd
+)
+
 find_package(MKL)
-if(MKL_FOUND)
-    #LINK LIBRARY
-    if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm|ARM|aarch64|AARCH64")
-        set(LIBRARIES
-            -lfaiss
-            ${RocksDB_LIB}
-            ${MKL_LIBRARIES}
-            -ltbb
-        )
-    else()
-        set(LIBRARIES
-            -lfaiss_avx2
-            ${RocksDB_LIB}
-            ${MKL_LIBRARIES}
-            -ltbb
-        )
-    endif()
+
+if (MKL_FOUND)
+    list(APPEND COMMON_LIBRARIES ${MKL_LIBRARIES})
 else()
-   if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm|ARM|aarch64|AARCH64")
-       set(LIBRARIES
-           -lfaiss
-           ${RocksDB_LIB}
-           -lopenblas
-           -ltbb
-       )
-   else()
-       set(LIBRARIES
-           -lfaiss_avx2
-           ${RocksDB_LIB}
-           -lopenblas
-           -ltbb
-       )
-   endif()
+    list(APPEND COMMON_LIBRARIES -lopenblas)
 endif()
+
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm|ARM|aarch64|AARCH64")
+    list(APPEND COMMON_LIBRARIES -lfaiss)
+else()
+    list(APPEND COMMON_LIBRARIES -lfaiss_avx2)
+endif()
+
+set(LIBRARIES ${COMMON_LIBRARIES})
 
 message(STATUS ENABLE_COVERAGE=${ENABLE_COVERAGE})
 if(ENABLE_COVERAGE)
