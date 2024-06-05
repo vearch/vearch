@@ -47,14 +47,8 @@ class TestSpaceCreate:
             "partition_num": 1,
             "replica_num": 1,
             "fields": [
-                {
-                    "name": "field_string",
-                    "type": "keyword"
-                },
-                {
-                    "name": "field_int",
-                    "type": "integer"
-                },
+                {"name": "field_string", "type": "keyword"},
+                {"name": "field_int", "type": "integer"},
                 {
                     "name": "field_float",
                     "type": "float",
@@ -95,8 +89,8 @@ class TestSpaceCreate:
                             "efConstruction": 40,
                             "nprobe": 80,
                             "efSearch": 64,
-                            "training_threshold": 70000
-                        }
+                            "training_threshold": 70000,
+                        },
                     },
                 },
                 # {
@@ -105,11 +99,10 @@ class TestSpaceCreate:
                 #     "dimension": int(embedding_size * 2),
                 #     "format": "normalization"
                 # }
-            ]
+            ],
         }
 
         response = create_space(router_url, db_name, space_config)
-        logger.info(response.json())
         assert response.json()["code"] == 0
 
         response = describe_space(logger, router_url, db_name, space_name)
@@ -119,6 +112,93 @@ class TestSpaceCreate:
         response = drop_space(router_url, db_name, space_name)
         assert response.json()["code"] == 0
 
+    @pytest.mark.parametrize(
+        ["index_type"],
+        [["FLAT"]],
+    )
+    def test_vearch_update_space_partition(self, index_type):
+        embedding_size = 128
+        space_config = {
+            "name": space_name,
+            "partition_num": 1,
+            "replica_num": 1,
+            "fields": [
+                {"name": "field_string", "type": "keyword"},
+                {"name": "field_int", "type": "integer"},
+                {
+                    "name": "field_float",
+                    "type": "float",
+                    "index": {
+                        "name": "field_float",
+                        "type": "SCALAR",
+                    },
+                },
+                {
+                    "name": "field_string_array",
+                    "type": "string",
+                    "array": True,
+                    "index": {
+                        "name": "field_string_array",
+                        "type": "SCALAR",
+                    },
+                },
+                {
+                    "name": "field_int_index",
+                    "type": "integer",
+                    "index": {
+                        "name": "field_int_index",
+                        "type": "SCALAR",
+                    },
+                },
+                {
+                    "name": "field_vector",
+                    "type": "vector",
+                    "dimension": embedding_size,
+                    "index": {
+                        "name": "gamma",
+                        "type": index_type,
+                        "params": {
+                            "metric_type": "InnerProduct",
+                            "ncentroids": 2048,
+                            "nsubvector": 32,
+                            "nlinks": 32,
+                            "efConstruction": 40,
+                            "nprobe": 80,
+                            "efSearch": 64,
+                            "training_threshold": 70000,
+                        },
+                    },
+                },
+                # {
+                #     "name": "field_vector_normal",
+                #     "type": "vector",
+                #     "dimension": int(embedding_size * 2),
+                #     "format": "normalization"
+                # }
+            ],
+        }
+
+        response = create_space(router_url, db_name, space_config)
+        assert response.json()["code"] == 0
+
+        response = update_space_partition(router_url, db_name, space_name, 2)
+        logger.info(response.json())
+        assert response.json()["code"] == 0
+
+        response = get_space_cache(router_url, db_name, space_name)
+        logger.info(response.text)
+        assert response.json()["code"] == 0
+
+        response = update_space_partition(router_url, db_name, space_name, 1)
+        logger.info(response.json())
+        assert response.json()["code"] != 0
+
+        response = describe_space(logger, router_url, db_name, space_name)
+        logger.info(response.json())
+        assert response.json()["code"] == 0
+
+        response = drop_space(router_url, db_name, space_name)
+        assert response.json()["code"] == 0
 
     def test_vearch_space_create_bad_field_type(self):
         embedding_size = 128
@@ -127,20 +207,14 @@ class TestSpaceCreate:
             "partition_num": 1,
             "replica_num": 1,
             "fields": [
-                {
-                    "name": "field_string",
-                    "type": "unsupported"
-                },
+                {"name": "field_string", "type": "unsupported"},
                 {
                     "name": "field_vector",
                     "type": "vector",
                     "dimension": embedding_size,
-                    "index": {
-                        "name": "gamma",
-                        "type": "FLAT"
-                    }
-                }
-            ]
+                    "index": {"name": "gamma", "type": "FLAT"},
+                },
+            ],
         }
 
         response = create_space(router_url, db_name, space_config)
@@ -158,14 +232,8 @@ class TestSpaceCreate:
             "partition_num": 1,
             "replica_num": 1,
             "fields": [
-                {
-                    "name": "field_string",
-                    "type": "keyword"
-                },
-                {
-                    "name": "field_int",
-                    "type": "integer"
-                },
+                {"name": "field_string", "type": "keyword"},
+                {"name": "field_int", "type": "integer"},
                 {
                     "name": "field_float",
                     "type": "float",
@@ -195,18 +263,15 @@ class TestSpaceCreate:
                     "name": "field_vector",
                     "type": "vector",
                     "dimension": embedding_size,
-                    "index": {
-                        "name": "gamma",
-                        "type": index_type
-                    },
+                    "index": {"name": "gamma", "type": index_type},
                 },
                 {
                     "name": "field_vector_normal",
                     "type": "vector",
                     "dimension": int(embedding_size * 2),
-                    "format": "normalization"
-                }
-            ]
+                    "format": "normalization",
+                },
+            ],
         }
 
         response = create_space(router_url, db_name, space_config)
@@ -283,14 +348,23 @@ class TestSpaceCreate:
             "fields": [
                 {"name": "field_string", "type": "keyword"},
                 {"name": "field_int", "type": "integer"},
-                {"name": "field_float", "type": "float", "index": {
-                    "name": "field_float", "type": "SCALAR"}},
-                {"name": "field_string_array", "type": "string", "array": True,
-                    "index": {"name": "field_string_array", "type": "SCALAR"}},
-                {"name": "field_int_index", "type": "integer", "index": {
-                    "name": "field_int_index", "type": "SCALAR"}},
-                {"name": "field_vector", "type": "vector",
-                    "dimension": embedding_size},
+                {
+                    "name": "field_float",
+                    "type": "float",
+                    "index": {"name": "field_float", "type": "SCALAR"},
+                },
+                {
+                    "name": "field_string_array",
+                    "type": "string",
+                    "array": True,
+                    "index": {"name": "field_string_array", "type": "SCALAR"},
+                },
+                {
+                    "name": "field_int_index",
+                    "type": "integer",
+                    "index": {"name": "field_int_index", "type": "SCALAR"},
+                },
+                {"name": "field_vector", "type": "vector", "dimension": embedding_size},
                 {
                     "name": "field_vector_normal",
                     "type": "vector",
@@ -306,7 +380,7 @@ class TestSpaceCreate:
                             "nlinks": nlinks,
                             "nprobe": nprobe,
                             "efConstruction": efConstruction,
-                            "training_threshold": training_threshold
+                            "training_threshold": training_threshold,
                         },
                     },
                 },
@@ -331,17 +405,29 @@ class TestSpaceCreate:
             "partition_num": 1,
             "replica_num": 1,
             "fields": [
-                {"name": "field_string", "type": "keyword", "index": {
-                    "name": "field_string", "type": "SCALAR"}},
+                {
+                    "name": "field_string",
+                    "type": "keyword",
+                    "index": {"name": "field_string", "type": "SCALAR"},
+                },
                 {"name": "field_int", "type": "integer"},
-                {"name": "field_float", "type": "float", "index": {
-                    "name": "field_float", "type": "SCALAR"}},
-                {"name": "field_string_array", "type": "string", "array": True,
-                    "index": {"name": "field_string_array", "type": "SCALAR"}},
-                {"name": "field_int_index", "type": "integer", "index": {
-                    "name": "field_int_index", "type": "SCALAR"}},
-                {"name": "field_vector", "type": "vector",
-                    "dimension": embedding_size},
+                {
+                    "name": "field_float",
+                    "type": "float",
+                    "index": {"name": "field_float", "type": "SCALAR"},
+                },
+                {
+                    "name": "field_string_array",
+                    "type": "string",
+                    "array": True,
+                    "index": {"name": "field_string_array", "type": "SCALAR"},
+                },
+                {
+                    "name": "field_int_index",
+                    "type": "integer",
+                    "index": {"name": "field_int_index", "type": "SCALAR"},
+                },
+                {"name": "field_vector", "type": "vector", "dimension": embedding_size},
                 {
                     "name": "field_vector_normal",
                     "type": "vector",
@@ -373,7 +459,8 @@ class TestSpaceCreate:
         if wrong_index == 1:
             describe_space_name = "wrong_space"
         response = describe_space(
-            logger, router_url, describe_db_name, describe_space_name)
+            logger, router_url, describe_db_name, describe_space_name
+        )
         logger.info(response.json())
         assert response.json()["code"] != 0
 

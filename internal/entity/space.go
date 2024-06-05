@@ -97,6 +97,13 @@ type SpaceInfo struct {
 	Errors       *[]string        `json:"errors,omitempty"`
 }
 
+type SpaceResource struct {
+	SpaceName    string `json:"space_name"`
+	DbName       string `json:"db_name"`
+	PartitionNum int    `json:"partition_num,omitempty"`
+	ReplicaNum   uint8  `json:"replica_num,omitempty"`
+}
+
 type SpaceDescribeRequest struct {
 	SpaceName string `json:"space_name"`
 	DbName    string `json:"db_name"`

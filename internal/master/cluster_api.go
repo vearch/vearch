@@ -97,7 +97,8 @@ func ExportToClusterHandler(router *gin.Engine, masterService *masterService, se
 	group.GET(fmt.Sprintf("/dbs/:%s/spaces/:%s", dbName, spaceName), c.getSpace, dh.TimeOutEndHandler)
 	group.GET(fmt.Sprintf("/dbs/:%s/spaces", dbName), c.getSpace, dh.TimeOutEndHandler)
 	group.DELETE(fmt.Sprintf("/dbs/:%s/spaces/:%s", dbName, spaceName), c.deleteSpace, dh.TimeOutEndHandler)
-	group.PUT(fmt.Sprintf("/dbs/:%s/spaces/:%s", dbName, spaceName), c.updateSpace, dh.TimeOutEndHandler)
+	// group.PUT(fmt.Sprintf("/dbs/:%s/spaces/:%s", dbName, spaceName), c.updateSpace, dh.TimeOutEndHandler)
+	group.PUT(fmt.Sprintf("/dbs/:%s/spaces/:%s", dbName, spaceName), c.updateSpaceResource, dh.TimeOutEndHandler)
 
 	// modify engine config handler
 	group.POST("/config/:"+dbName+"/:"+spaceName, c.modifyEngineCfg, dh.TimeOutEndHandler)
@@ -413,6 +414,29 @@ func (ca *clusterAPI) updateSpace(c *gin.Context) {
 	if spaceResult, err := ca.masterService.updateSpaceService(c, dbName, spaceName, space); err != nil {
 		httphelper.New(c).JsonError(errors.NewErrInternal(err))
 
+	} else {
+		httphelper.New(c).JsonSuccess(spaceResult)
+	}
+}
+
+func (ca *clusterAPI) updateSpaceResource(c *gin.Context) {
+	dbName := c.Param(dbName)
+	spaceName := c.Param(spaceName)
+
+	space := &entity.SpaceResource{
+		SpaceName: spaceName,
+		DbName:    dbName,
+	}
+
+	if err := c.ShouldBindJSON(space); err != nil {
+		httphelper.New(c).JsonError(errors.NewErrBadRequest(err))
+		return
+	}
+
+	log.Debug("updateSpaceResource %v", space)
+
+	if spaceResult, err := ca.masterService.updateSpaceResourceService(c, space); err != nil {
+		httphelper.New(c).JsonError(errors.NewErrInternal(err))
 	} else {
 		httphelper.New(c).JsonSuccess(spaceResult)
 	}

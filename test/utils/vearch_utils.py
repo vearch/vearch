@@ -1209,6 +1209,15 @@ def create_space(router_url: str, db_name: str, space_config: dict):
     return resp
 
 
+def update_space_partition(
+    router_url: str, db_name: str, space_name: str, partition_num: int
+):
+    url = f"{router_url}/dbs/{db_name}/spaces/{space_name}"
+    data = {"partition_num": partition_num}
+    resp = requests.put(url, auth=(username, password), json=data)
+    return resp
+
+
 def get_space(router_url: str, db_name: str, space_name: str):
     url = f"{router_url}/dbs/{db_name}/spaces/{space_name}"
     resp = requests.get(url, auth=(username, password))
@@ -1223,6 +1232,12 @@ def get_partition(router_url: str, db_name: str, space_name: str):
     for partition_info in partition_infos:
         partition_ids.append(partition_info["id"])
     return partition_ids
+
+
+def get_space_cache(router_url: str, db_name: str, space_name: str):
+    url = f"{router_url}/cache/{db_name}/{space_name}"
+    resp = requests.get(url, auth=(username, password))
+    return resp
 
 
 def get_router_info(router_url: str):
