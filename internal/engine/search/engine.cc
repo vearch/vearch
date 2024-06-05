@@ -1160,6 +1160,32 @@ int Engine::LoadFromFaiss() {
   return 0;
 }
 
+int vearch::Engine::Backup(int command) {
+  std::string backup_path = index_root_path_ + "/backup";
+  utils::make_dir(backup_path.c_str());
+  std::string backup_file = backup_path + "/backup.meta";
+  utils::JsonParser jp;
+  jp.PutInt("version", 327);
+  utils::JsonParser table_jp;
+  table_->GetDumpConfig()->ToJson(table_jp);
+  jp.PutObject("table", std::move(table_jp));
+  utils::JsonParser vectors_jp;
+  for (auto &[key, raw_vector_ptr] : vec_manager_->RawVectors()) {
+    if (DumpConfig *dc = raw_vector_ptr->GetDumpConfig()) {
+      utils::JsonParser jp;
+      dc->ToJson(jp);
+      vectors_jp.PutObject(dc->name, std::move(jp));
+    }
+  }
+  jp.PutObject("vectors", std::move(vectors_jp));
+  utils::FileIO fio(backup_file);
+  fio.Open("w");
+  std::string meta_str = jp.ToStr(true);
+  fio.Write(meta_str.c_str(), 1, meta_str.size());
+  LOG(INFO) << space_name_ << " backup to [" << backup_file << "] success!";
+  return 0;
+}
+
 int Engine::AddNumIndexFields() {
   int retvals = 0;
   std::map<std::string, enum DataType> attr_type;

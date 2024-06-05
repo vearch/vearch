@@ -47,7 +47,6 @@ type limitPlugin struct {
 
 func (lp *limitPlugin) HandleConnAccept(conn net.Conn) (net.Conn, bool) {
 	if lp.limit.Load() > lp.size {
-
 		for _, m := range config.Conf().Masters {
 			if m.Address == conn.RemoteAddr().Network() || strings.HasPrefix(conn.RemoteAddr().Network(), m.Address+":") {
 				log.Info("too many routine:[%d]  but this conn is master so can conn")
@@ -71,7 +70,6 @@ func ExportToRpcHandler(server *Server) {
 	if err := server.rpcServer.RegisterName(handler.NewChain(client.UnaryHandler, handler.DefaultPanicHandler, psErrorChange, initHandler, &UnaryHandler{server: server}), ""); err != nil {
 		panic(err)
 	}
-
 }
 
 type InitHandler struct {
@@ -82,7 +80,6 @@ func (i *InitHandler) Execute(ctx context.Context, req *vearchpb.PartitionData, 
 	if i.server.stopping {
 		return vearchpb.NewError(vearchpb.ErrorEnum_SERVICE_UNAVAILABLE, nil)
 	}
-
 	return nil
 }
 

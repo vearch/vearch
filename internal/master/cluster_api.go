@@ -99,6 +99,7 @@ func ExportToClusterHandler(router *gin.Engine, masterService *masterService, se
 	group.DELETE(fmt.Sprintf("/dbs/:%s/spaces/:%s", dbName, spaceName), c.deleteSpace, dh.TimeOutEndHandler)
 	// group.PUT(fmt.Sprintf("/dbs/:%s/spaces/:%s", dbName, spaceName), c.updateSpace, dh.TimeOutEndHandler)
 	group.PUT(fmt.Sprintf("/dbs/:%s/spaces/:%s", dbName, spaceName), c.updateSpaceResource, dh.TimeOutEndHandler)
+	group.POST(fmt.Sprintf("/backup/dbs/:%s/spaces/:%s", dbName, spaceName), c.backupSpace, dh.TimeOutEndHandler)
 
 	// modify engine config handler
 	group.POST("/config/:"+dbName+"/:"+spaceName, c.modifyEngineCfg, dh.TimeOutEndHandler)
@@ -413,7 +414,6 @@ func (ca *clusterAPI) updateSpace(c *gin.Context) {
 
 	if spaceResult, err := ca.masterService.updateSpaceService(c, dbName, spaceName, space); err != nil {
 		httphelper.New(c).JsonError(errors.NewErrInternal(err))
-
 	} else {
 		httphelper.New(c).JsonSuccess(spaceResult)
 	}
@@ -439,6 +439,29 @@ func (ca *clusterAPI) updateSpaceResource(c *gin.Context) {
 		httphelper.New(c).JsonError(errors.NewErrInternal(err))
 	} else {
 		httphelper.New(c).JsonSuccess(spaceResult)
+	}
+}
+
+func (ca *clusterAPI) backupSpace(c *gin.Context) {
+	var err error
+	defer errutil.CatchError(&err)
+	dbName := c.Param(dbName)
+	spaceName := c.Param(spaceName)
+	data, err := io.ReadAll(c.Request.Body)
+
+	errutil.ThrowError(err)
+	log.Debug("engine config json data is [%+v]", string(data))
+	backup := &entity.BackupSpace{}
+	err = vjson.Unmarshal(data, &backup)
+	if err != nil {
+		httphelper.New(c).JsonError(errors.NewErrBadRequest(err))
+		return
+	}
+
+	if err := ca.masterService.BackupSpace(c, dbName, spaceName, backup); err != nil {
+		httphelper.New(c).JsonError(errors.NewErrInternal(err))
+	} else {
+		httphelper.New(c).JsonSuccess(backup)
 	}
 }
 

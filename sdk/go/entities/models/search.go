@@ -6,8 +6,8 @@ type Vector struct {
 }
 
 type Condition struct {
-	Operator string `json:"operator"`
-	Field    string `json:"field"`
+	Operator string      `json:"operator"`
+	Field    string      `json:"field"`
 	Value    interface{} `json:"value"`
 }
 
@@ -21,5 +21,5 @@ type SearchRequest struct {
 	SpaceName string   `json:"space_name"`
 	Limit     int      `json:"limit"`
 	Vectors   []Vector `json:"vectors"`
-	Filters   *Filters  `json:"filters,omitempty"`
+	Filters   *Filters `json:"filters,omitempty"`
 }

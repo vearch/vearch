@@ -121,7 +121,7 @@ var (
 
 var PrefixEtcdClusterID = "/vearch/default/"
 
-// when master runing clean job , it will set value to this key,
+// when master running clean job , it will set value to this key,
 // when other got key , now time less than this they will skip this job
 const ClusterCleanJobKey = "/cluster/cleanjob"
 

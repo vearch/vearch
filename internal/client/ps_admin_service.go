@@ -89,6 +89,23 @@ func UpdateEngineCfg(addr string, cacheCfg *entity.EngineCfg, pid entity.Partiti
 	return nil
 }
 
+func BackupSpace(addr string, backup *entity.BackupSpace, pid entity.PartitionID) error {
+	value, err := vjson.Marshal(backup)
+	if err != nil {
+		return err
+	}
+
+	args := &vearchpb.PartitionData{PartitionID: pid, Data: value, Type: vearchpb.OpType_CREATE}
+	reply := new(vearchpb.PartitionData)
+	err = Execute(addr, BackupHandler, args, reply)
+	if err != nil {
+		return err
+	} else if reply.Err.Code != vearchpb.ErrorEnum_SUCCESS {
+		return vearchpb.NewError(reply.Err.Code, nil)
+	}
+	return nil
+}
+
 func DeleteReplica(addr string, partitionId uint32) error {
 	args := &vearchpb.PartitionData{PartitionID: partitionId}
 	reply := new(vearchpb.PartitionData)

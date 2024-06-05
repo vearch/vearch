@@ -64,10 +64,10 @@ class Engine {
   IndexStatus GetIndexStatus() { return index_status_; }
 
   int Dump();
-
   int Load();
-
   int LoadFromFaiss();
+
+  int Backup(int command);
 
   int GetDocsNum();
 

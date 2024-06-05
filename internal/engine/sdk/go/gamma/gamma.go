@@ -176,3 +176,8 @@ func GetEngineCfg(engine unsafe.Pointer, config *Config) {
 	buffer := C.GoBytes(unsafe.Pointer(CBuffer), C.int(*length))
 	config.DeSerialize(buffer)
 }
+
+func BackupSpace(engine unsafe.Pointer, command, s3Param string) {
+	s3ParamBytes := []byte(s3Param)
+	C.Backup(engine, C.int(0), (*C.char)(unsafe.Pointer(&s3ParamBytes[0])), C.int(len(s3ParamBytes)))
+}

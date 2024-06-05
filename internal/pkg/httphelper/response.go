@@ -30,7 +30,7 @@ type Response struct {
 	httpStatus int64
 }
 
-// http protocal
+// http protocol
 type HttpReply struct {
 	Code int         `json:"code"`
 	Msg  string      `json:"msg,omitempty"`

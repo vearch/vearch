@@ -71,6 +71,9 @@ func ExportToRpcAdminHandler(server *Server) {
 	if err := server.rpcServer.RegisterName(handler.NewChain(client.EngineCfgHandler, handler.DefaultPanicHandler, nil, initAdminHandler, &EngineCfgHandler{server: server}), ""); err != nil {
 		panic(err)
 	}
+	if err := server.rpcServer.RegisterName(handler.NewChain(client.BackupHandler, handler.DefaultPanicHandler, nil, initAdminHandler, &BackupHandler{server: server}), ""); err != nil {
+		panic(err)
+	}
 }
 
 type InitAdminHandler struct {
@@ -414,6 +417,38 @@ func (ch *EngineCfgHandler) Execute(ctx context.Context, req *vearchpb.Partition
 		cacheCfg.CacheModels = cacheModels
 		data, _ := vjson.Marshal(cacheCfg)
 		reply.Data = data
+	}
+	return nil
+}
+
+type BackupHandler struct {
+	server *Server
+}
+
+func (bh *BackupHandler) Execute(ctx context.Context, req *vearchpb.PartitionData, reply *vearchpb.PartitionData) (err error) {
+	defer errutil.CatchError(&err)
+	reply.Err = &vearchpb.Error{Code: vearchpb.ErrorEnum_SUCCESS}
+	// get store engine
+	log.Debug("request pid [%+v]", req.PartitionID)
+	partitonStore := bh.server.GetPartition(req.PartitionID)
+	if partitonStore == nil {
+		log.Debug("partitonStore is nil.")
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_IS_INVALID, fmt.Errorf("partition (%v), partitonStore is nil ", req.PartitionID))
+	}
+	engine := partitonStore.GetEngine()
+	if engine == nil {
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_IS_INVALID, fmt.Errorf("partition (%v), engine is nil ", req.PartitionID))
+	}
+	backup := new(entity.BackupSpace)
+	if err := vjson.Unmarshal(req.Data, backup); err != nil {
+		errutil.ThrowError(err)
+		return err
+	}
+	// invoke c interface
+	log.Debug("backup info is [%+v]", backup)
+	err = engine.BackupSpace(backup.Command, backup.S3Param)
+	if err != nil {
+		log.Debug("backup info set error [%+v]", err)
 	}
 	return nil
 }

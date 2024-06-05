@@ -94,7 +94,7 @@ func (wi *writerImpl) Flush(ctx context.Context, sn int64) error {
 
 	wi.engine.lock.Lock()
 	defer wi.engine.lock.Unlock()
-	//if code := C.Dump(gamma); code != 0 {
+
 	if code := gamma.Dump(gammaEngine); code != 0 {
 		return fmt.Errorf("dump index err response code :[%d]", code)
 	}
@@ -141,7 +141,6 @@ func (wi *writerImpl) Commit(ctx context.Context, snx int64) (chan error, error)
 
 		log.Info("begin dump data for gamma")
 
-		//if code := C.Dump(gamma); code != 0 {
 		if code := gamma.Dump(gammaEngine); code != 0 {
 			fc <- vearchlog.LogErrAndReturn(fmt.Errorf("dump index err response code :[%d]", code))
 		} else {

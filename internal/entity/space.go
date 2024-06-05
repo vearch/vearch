@@ -115,6 +115,11 @@ type EngineCfg struct {
 	CacheModels []*CacheModel `json:"cache_models,omitempty"`
 }
 
+type BackupSpace struct {
+	Command string `json:"command,omitempty"`
+	S3Param string `json:"s3_param,omitempty"`
+}
+
 type CacheModel struct {
 	Name      string `json:"name,omitempty"` //user setting
 	CacheSize int32  `json:"cache_size,omitempty"`

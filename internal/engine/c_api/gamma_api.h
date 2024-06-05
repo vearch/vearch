@@ -127,7 +127,7 @@ int Load(void *engine);
  * @return struct Status
  */
 struct CStatus Search(void *engine, const char *request_str, int req_len,
-                     char **response_str, int *res_len);
+                      char **response_str, int *res_len);
 
 /**
  * @brief alter all cache size by query
@@ -147,6 +147,7 @@ int SetConfig(void *engine, const char *config_str, int len);
  */
 int GetConfig(void *engine, char **config_str, int *len);
 
+int Backup(void *engine, int command, const char *s3_param, int len);
 #ifdef __cplusplus
 }
 #endif

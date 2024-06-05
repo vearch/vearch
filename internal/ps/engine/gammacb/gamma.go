@@ -310,3 +310,8 @@ func (ge *gammaEngine) GetEngineCfg(config *gamma.Config) error {
 	gamma.GetEngineCfg(ge.gamma, config)
 	return nil
 }
+
+func (ge *gammaEngine) BackupSpace(command, s3Param string) error {
+	gamma.BackupSpace(ge.gamma, command, s3Param)
+	return nil
+}

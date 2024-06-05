@@ -454,7 +454,7 @@ func (ms *masterService) createSpaceService(ctx context.Context, dbName string, 
 
 // create partitions for space create
 func (ms *masterService) generatePartitionsInfo(servers []*entity.Server, serverPartitions map[int]int, replicaNum uint8, partition *entity.Partition) ([]string, error) {
-	addres := make([]string, 0, replicaNum)
+	address := make([]string, 0, replicaNum)
 	partition.Replicas = make([]entity.NodeID, 0, replicaNum)
 
 	kvList := make([]struct {
@@ -483,7 +483,7 @@ func (ms *masterService) generatePartitionsInfo(servers []*entity.Server, server
 			continue
 		}
 		serverPartitions[kv.index] = serverPartitions[kv.index] + 1
-		addres = append(addres, addr)
+		address = append(address, addr)
 		partition.Replicas = append(partition.Replicas, ID)
 
 		replicaNum--
@@ -493,10 +493,10 @@ func (ms *masterService) generatePartitionsInfo(servers []*entity.Server, server
 	}
 
 	if replicaNum > 0 {
-		return nil, vearchpb.NewError(vearchpb.ErrorEnum_MASTER_PS_NOT_ENOUGH_SELECT, fmt.Errorf("need %d partition server but only get %d", len(partition.Replicas), len(addres)))
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_MASTER_PS_NOT_ENOUGH_SELECT, fmt.Errorf("need %d partition server but only get %d", len(partition.Replicas), len(address)))
 	}
 
-	return addres, nil
+	return address, nil
 }
 
 func (ms *masterService) filterAndSortServer(ctx context.Context, space *entity.Space, servers []*entity.Server) (map[int]int, error) {
@@ -1056,6 +1056,47 @@ func (ms *masterService) updateSpace(ctx context.Context, space *entity.Space) e
 		return err
 	}
 
+	return nil
+}
+
+func (ms *masterService) BackupSpace(ctx context.Context, dbName, spaceName string, backup *entity.BackupSpace) (err error) {
+	defer errutil.CatchError(&err)
+	// get space info
+	dbId, err := ms.Master().QueryDBName2Id(ctx, dbName)
+	if err != nil {
+		errutil.ThrowError(err)
+	}
+
+	space, err := ms.Master().QuerySpaceByName(ctx, dbId, spaceName)
+	if err != nil {
+		errutil.ThrowError(err)
+	}
+	if space == nil || space.Partitions == nil {
+		return nil
+	}
+	// invoke all space nodeID
+	for _, partition := range space.Partitions {
+		if partition.Replicas != nil {
+			for _, nodeID := range partition.Replicas {
+				log.Debug("nodeID is [%+v],partition is [%+v], [%+v]", nodeID, partition.Id, partition.LeaderID)
+				if nodeID != partition.LeaderID {
+					continue
+				}
+				server, err := ms.Master().QueryServer(ctx, nodeID)
+				errutil.ThrowError(err)
+				log.Debug("invoke nodeID [%+v],address [%+v]", partition.Id, server.RpcAddr())
+				err = client.BackupSpace(server.RpcAddr(), backup, partition.Id)
+				errutil.ThrowError(err)
+			}
+			if len(partition.Replicas) == 1 && partition.LeaderID == 0 {
+				server, err := ms.Master().QueryServer(ctx, partition.Replicas[0])
+				errutil.ThrowError(err)
+				log.Debug("invoke nodeID [%+v],address [%+v]", partition.Id, server.RpcAddr())
+				err = client.BackupSpace(server.RpcAddr(), backup, partition.Id)
+				errutil.ThrowError(err)
+			}
+		}
+	}
 	return nil
 }
 

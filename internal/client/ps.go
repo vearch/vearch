@@ -62,6 +62,7 @@ const (
 	ForceMergeHandler             = "ForceMergeHandler"
 	RebuildIndexHandler           = "RebuildIndexHandler"
 	FlushHandler                  = "FlushHandler"
+	BackupHandler                 = "BackupHandler"
 
 	CreatePartitionHandler = "CreatePartitionHandler"
 	DeletePartitionHandler = "DeletePartitionHandler"
