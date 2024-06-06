@@ -46,16 +46,13 @@ type Response struct {
 func (response *Response) Serialize(buffer *[]byte) int {
 	builder := flatbuffers.NewBuilder(0)
 
-	var results []flatbuffers.UOffsetT
-	results = make([]flatbuffers.UOffsetT, len(response.Results))
+	results := make([]flatbuffers.UOffsetT, len(response.Results))
 
 	for i := 0; i < len(response.Results); i++ {
-		var resultItems []flatbuffers.UOffsetT
-		resultItems = make([]flatbuffers.UOffsetT, len(response.Results[i].ResultItems))
+		resultItems := make([]flatbuffers.UOffsetT, len(response.Results[i].ResultItems))
 
 		for j := 0; j < len(response.Results[i].ResultItems); j++ {
-			var attributes []flatbuffers.UOffsetT
-			attributes = make([]flatbuffers.UOffsetT, len(response.Results[i].ResultItems[j].Attributes))
+			attributes := make([]flatbuffers.UOffsetT, len(response.Results[i].ResultItems[j].Attributes))
 
 			for k := 0; k < len(response.Results[i].ResultItems[j].Attributes); k++ {
 				gamma_api.AttributeStartValueVector(builder, len(response.Results[i].ResultItems[j].Attributes[k].Value))

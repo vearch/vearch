@@ -93,7 +93,7 @@ class TestStringArray:
 
     def test_query_string_array(self):
         # wait for scalar index finished
-        time.sleep(3)
+        time.sleep(5)
 
         for i in range(100):
             query_dict = {
@@ -102,7 +102,7 @@ class TestStringArray:
                 "db_name": db_name,
                 "space_name": space_name,
             }
-            url = router_url + "/document/query"
+            url = router_url + "/document/query?trace=true"
             json_str = json.dumps(query_dict)
             rs = requests.post(url, auth=(username, password), data=json_str)
             # logger.info(rs.json())

@@ -508,14 +508,6 @@ func processVector(pro *entity.SpaceProperties, fieldName string, val []float32)
 	return field, err
 }
 
-func arrayToMap(feilds []string) map[string]string {
-	mapObj := make(map[string]string)
-	for _, feild := range feilds {
-		mapObj[feild] = feild
-	}
-	return mapObj
-}
-
 func configTraceParse(r *http.Request) (printSwitch bool, err error) {
 	reqBody, err := netutil.GetReqBody(r)
 	if err != nil {

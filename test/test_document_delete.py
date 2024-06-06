@@ -54,16 +54,31 @@ def check(total, bulk, full_field, delete_type, xb):
 
     properties = {}
     properties["fields"] = [
-        {"name": "field_int", "type": "integer", "index": {
-            "name": "field_int", "type": "SCALAR"}},
-        {"name": "field_long", "type": "long", "index": {
-            "name": "field_long", "type": "SCALAR"}},
-        {"name": "field_float", "type": "float", "index": {
-            "name": "field_float", "type": "SCALAR"}},
-        {"name": "field_double", "type": "double", "index": {
-            "name": "field_double", "type": "SCALAR"}},
-        {"name": "field_string", "type": "string", "index": {
-            "name": "field_string", "type": "SCALAR"}},
+        {
+            "name": "field_int",
+            "type": "integer",
+            "index": {"name": "field_int", "type": "SCALAR"},
+        },
+        {
+            "name": "field_long",
+            "type": "long",
+            "index": {"name": "field_long", "type": "SCALAR"},
+        },
+        {
+            "name": "field_float",
+            "type": "float",
+            "index": {"name": "field_float", "type": "SCALAR"},
+        },
+        {
+            "name": "field_double",
+            "type": "double",
+            "index": {"name": "field_double", "type": "SCALAR"},
+        },
+        {
+            "name": "field_string",
+            "type": "string",
+            "index": {"name": "field_string", "type": "SCALAR"},
+        },
         {
             "name": "field_vector",
             "type": "vector",
@@ -87,13 +102,11 @@ def check(total, bulk, full_field, delete_type, xb):
     logger.info("%s doc_num: %d" % (space_name, get_space_num()))
 
     if delete_type == "by_filter":
-        time.sleep(3)
+        time.sleep(10)
 
-    query_interface(logger, total_batch, batch_size,
-                    xb, full_field, seed, "by_ids")
+    query_interface(logger, total_batch, batch_size, xb, full_field, seed, "by_ids")
 
-    delete_interface(logger, total_batch, batch_size,
-                     full_field, seed, delete_type)
+    delete_interface(logger, total_batch, batch_size, full_field, seed, delete_type)
 
     assert get_space_num() == 0
 
@@ -165,12 +178,14 @@ class TestDocumentDeleteBadCase:
         wrong_parameters[index] = True
         total_batch = 1
         batch_size = 2
-        query_error(self.logger, total_batch, batch_size,
-                    self.xb, "delete", wrong_parameters)
+        query_error(
+            self.logger, total_batch, batch_size, self.xb, "delete", wrong_parameters
+        )
 
     # destroy for badcase
     def test_destroy_cluster_badcase(self):
         destroy(router_url, db_name, space_name)
+
 
 class TestDocumentDeleteAndUpsert:
     def setup_class(self):
@@ -190,54 +205,60 @@ class TestDocumentDeleteAndUpsert:
         assert response.json()["data"]["partitions"][0]["max_docid"] == 0
 
         query_dict = {
-            "document_ids":["0"],
+            "document_ids": ["0"],
             "limit": 1,
             "db_name": db_name,
             "space_name": space_name,
         }
         partition_id = get_partition(router_url, db_name, space_name)[0]
         query_dict_partition = {
-            "document_ids":["0"],
+            "document_ids": ["0"],
             "partition_id": partition_id,
             "limit": 1,
             "db_name": db_name,
             "space_name": space_name,
         }
-        url = router_url + "/document/query"
+        query_url = router_url + "/document/query"
         json_str = json.dumps(query_dict)
-        response = requests.post(url, auth=(username, password), data=json_str)
+        response = requests.post(query_url, auth=(username, password), data=json_str)
         logger.info(response.json()["data"])
         assert response.json()["data"]["total"] == 1
 
         delete_interface(self.logger, 1, 1, delete_type="by_ids")
 
-        response = requests.post(url, auth=(username, password), json=query_dict_partition)
+        response = requests.post(
+            query_url, auth=(username, password), json=query_dict_partition
+        )
         logger.info(response.json()["data"])
         assert response.json()["data"]["total"] == 0
 
         assert get_space_num() == 0
 
-        response = requests.post(url, auth=(username, password), data=json_str)
+        response = requests.post(query_url, auth=(username, password), data=json_str)
         logger.info(response.json()["data"])
 
         add(1, 1, self.xb, with_id=True, full_field=True)
 
         assert get_space_num() == 1
 
-        response = requests.post(url, auth=(username, password), data=json_str)
+        response = requests.post(query_url, auth=(username, password), data=json_str)
         logger.info(response.json()["data"])
         assert response.status_code == 200
 
-        # add same _id then delete and add again, max_doc_id will increase 
+        # add same _id then delete and add again, max_doc_id will increase
         response = get_space(router_url, db_name, space_name)
         assert response.json()["data"]["partitions"][0]["max_docid"] == 1
 
-        response = requests.post(url, auth=(username, password), json=query_dict_partition)
+        response = requests.post(
+            query_url, auth=(username, password), json=query_dict_partition
+        )
         logger.info(response.json()["data"])
         assert response.json()["data"]["total"] == 0
 
         query_dict_partition["document_ids"] = ["1"]
-        response = requests.post(url, auth=(username, password), json=query_dict_partition)
+        response = requests.post(
+            query_url, auth=(username, password), json=query_dict_partition
+        )
         logger.info(response.json()["data"])
         assert response.json()["data"]["total"] == 1
 

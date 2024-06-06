@@ -249,6 +249,34 @@ Status Engine::Search(Request &request, Response &response_results) {
     return status;
   }
 
+  if (request.DocumentIds().size() > 0) {
+    std::vector<std::string> document_ids = request.DocumentIds();
+    GammaResult *gamma_result = new GammaResult[1];
+    gamma_result->init(document_ids.size(), nullptr, 0);
+
+    for(size_t i = 0; i < document_ids.size(); i++) {
+      int docid = -1, ret = 0;
+      if (request.PartitionId() > 0) {
+        docid = atoi(document_ids[i].c_str());
+        if (docid < 0 || docid >= max_docid_) {
+          continue;
+        }
+      } else {
+        ret = table_->GetDocIDByKey(document_ids[i], docid);
+        if (ret != 0 || docid < 0) {
+          continue;
+        }
+      }
+
+      if (!docids_bitmap_->Test(docid)) {
+        ++(gamma_result->total);
+          gamma_result->docs[(gamma_result->results_count)++]->docid = docid;
+      }
+    }
+    response_results.SetEngineInfo(table_, vec_manager_, gamma_result, 1);
+    return status;
+  }
+
   bool req_permit = RequestConcurrentController::GetInstance().Acquire(req_num);
   if (not req_permit) {
     std::string msg = "Resource temporarily unavailable";
@@ -259,6 +287,17 @@ Status Engine::Search(Request &request, Response &response_results) {
   }
 
   int topn = request.TopN();
+  if (topn <= 0) {
+    std::string msg = "limit[topN] is zero";
+    for (int i = 0; i < req_num; ++i) {
+      SearchResult result;
+      result.msg = msg;
+      result.result_code = SearchResultCode::SEARCH_ERROR;
+      response_results.AddResults(std::move(result));
+    }
+    RequestConcurrentController::GetInstance().Release(req_num);
+    return Status::InvalidArgument();
+  }
   bool brute_force_search = request.BruteForceSearch();
   std::vector<struct VectorQuery> &vec_fields = request.VecFields();
   size_t vec_fields_num = vec_fields.size();
@@ -326,16 +365,16 @@ Status Engine::Search(Request &request, Response &response_results) {
   if (range_filters_num > 0 || term_filters_num > 0) {
     int num = MultiRangeQuery(request, gamma_query.condition, response_results,
                               &range_query_result);
+#ifdef PERFORMANCE_TESTING
+  if(gamma_query.condition->GetPerfTool()) {
+    gamma_query.condition->GetPerfTool()->Perf("filter result num " + std::to_string(num));
+  }
+#endif
     if (num == 0) {
       RequestConcurrentController::GetInstance().Release(req_num);
       return status;
     }
   }
-#ifdef PERFORMANCE_TESTING
-  if (gamma_query.condition->GetPerfTool()) {
-    gamma_query.condition->GetPerfTool()->Perf("filter");
-  }
-#endif
 
   if (vec_fields_num > 0) {
     GammaResult *gamma_results = new GammaResult[req_num];

@@ -29,7 +29,6 @@ import (
 	"github.com/vearch/vearch/v3/internal/config"
 	"github.com/vearch/vearch/v3/internal/entity"
 	"github.com/vearch/vearch/v3/internal/entity/errors"
-	"github.com/vearch/vearch/v3/internal/entity/request"
 	"github.com/vearch/vearch/v3/internal/monitor"
 	"github.com/vearch/vearch/v3/internal/pkg/httphelper"
 	"github.com/vearch/vearch/v3/internal/pkg/log"
@@ -324,8 +323,11 @@ func (handler *DocumentHandler) handleDocumentQuery(c *gin.Context) {
 			httphelper.New(c).JsonError(errors.NewErrBadRequest(err))
 			return
 		}
-		handler.handleDocumentGet(c, searchDoc)
-		return
+		if len(*searchDoc.DocumentIds) >= 500 {
+			err := vearchpb.NewError(vearchpb.ErrorEnum_QUERY_INVALID_PARAMS_LENGTH_OF_DOCUMENT_IDS_BEYOND_500, nil)
+			httphelper.New(c).JsonError(errors.NewErrUnprocessable(err))
+			return
+		}
 	} else {
 		if args.TermFilters == nil && args.RangeFilters == nil {
 			err := vearchpb.NewError(vearchpb.ErrorEnum_QUERY_INVALID_PARAMS_SHOULD_HAVE_ONE_OF_DOCUMENT_IDS_OR_FILTER, nil)
@@ -333,6 +335,7 @@ func (handler *DocumentHandler) handleDocumentQuery(c *gin.Context) {
 			return
 		}
 	}
+
 	serviceStart := time.Now()
 	searchResp := handler.docService.query(c.Request.Context(), args)
 	serviceCost := time.Since(serviceStart)
@@ -346,39 +349,6 @@ func (handler *DocumentHandler) handleDocumentQuery(c *gin.Context) {
 	httphelper.New(c).JsonSuccess(result)
 	if trace {
 		log.Trace("handleDocumentQuery total use :[%.4f] service use :[%.4f] detail use :[%v]", time.Since(startTime).Seconds()*1000, serviceCost.Seconds()*1000, searchResp.Head.Params)
-	}
-}
-
-func (handler *DocumentHandler) handleDocumentGet(c *gin.Context, searchDoc *request.SearchDocumentRequest) {
-	if len(*searchDoc.DocumentIds) >= 500 {
-		err := vearchpb.NewError(vearchpb.ErrorEnum_QUERY_INVALID_PARAMS_LENGTH_OF_DOCUMENT_IDS_BEYOND_500, nil)
-		httphelper.New(c).JsonError(errors.NewErrUnprocessable(err))
-		return
-	}
-	args := &vearchpb.GetRequest{}
-	args.Head = setRequestHeadFromGin(c)
-	args.Head.DbName = searchDoc.DbName
-	args.Head.SpaceName = searchDoc.SpaceName
-	args.PrimaryKeys = *searchDoc.DocumentIds
-
-	var queryFieldsParam map[string]string
-	if searchDoc.Fields != nil {
-		queryFieldsParam = arrayToMap(searchDoc.Fields)
-	}
-
-	reply := &vearchpb.GetResponse{}
-	if searchDoc.PartitionId != nil {
-		reply = handler.docService.getDocsByPartition(c.Request.Context(), args, *searchDoc.PartitionId, searchDoc.Next)
-	} else {
-		reply = handler.docService.getDocs(c.Request.Context(), args)
-	}
-
-	if result, err := documentGetResponse(handler.client, args, reply, queryFieldsParam, searchDoc.VectorValue); err != nil {
-		httphelper.New(c).JsonError(errors.NewErrInternal(err))
-		return
-	} else {
-		httphelper.New(c).JsonSuccess(result)
-		return
 	}
 }
 
@@ -448,7 +418,7 @@ func (handler *DocumentHandler) handleDocumentSearch(c *gin.Context) {
 func (handler *DocumentHandler) handleDocumentDelete(c *gin.Context) {
 	startTime := time.Now()
 	defer monitor.Profiler("handleDocumentDelete", startTime)
-	args := &vearchpb.SearchRequest{}
+	args := &vearchpb.QueryRequest{}
 	args.Head = setRequestHeadFromGin(c)
 	args.Head.Params["queryOnlyId"] = "true"
 
@@ -475,14 +445,8 @@ func (handler *DocumentHandler) handleDocumentDelete(c *gin.Context) {
 	// update space name because maybe is alias name
 	searchDoc.SpaceName = args.Head.SpaceName
 
-	err = requestToPb(searchDoc, space, args)
+	err = queryRequestToPb(searchDoc, space, args)
 	if err != nil {
-		httphelper.New(c).JsonError(errors.NewErrBadRequest(err))
-		return
-	}
-
-	if args.VecFields != nil {
-		err := vearchpb.NewError(vearchpb.ErrorEnum_DELETE_INVALID_PARAMS_SHOULD_NOT_HAVE_VECTOR_FIELD, nil)
 		httphelper.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
 	}
@@ -496,20 +460,6 @@ func (handler *DocumentHandler) handleDocumentDelete(c *gin.Context) {
 		if len(*searchDoc.DocumentIds) >= 500 {
 			err := vearchpb.NewError(vearchpb.ErrorEnum_DELETE_INVALID_PARAMS_LENGTH_OF_DOCUMENT_IDS_BEYOND_500, nil)
 			httphelper.New(c).JsonError(errors.NewErrBadRequest(err))
-			return
-		}
-		args := &vearchpb.DeleteRequest{}
-		args.Head = setRequestHeadFromGin(c)
-		args.Head.DbName = searchDoc.DbName
-		args.Head.SpaceName = searchDoc.SpaceName
-		args.PrimaryKeys = *searchDoc.DocumentIds
-		var resultIds []string
-		reply := handler.docService.deleteDocs(c.Request.Context(), args)
-		if result, err := documentDeleteResponse(reply.Items, reply.Head, resultIds); err != nil {
-			httphelper.New(c).JsonError(errors.NewErrInternal(err))
-			return
-		} else {
-			httphelper.New(c).JsonSuccess(result)
 			return
 		}
 	} else {

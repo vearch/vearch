@@ -145,11 +145,16 @@ func SearchRequestSerialize(request *vearchpb.SearchRequest) []byte {
 
 	ranker := builder.CreateString(request.Ranker)
 
+	// will check in engine to decide is search or query, so set it
+	gamma_api.RequestStartDocumentIdsVector(builder, 0)
+	d := builder.EndVector(0)
+
 	gamma_api.RequestStart(builder)
 	gamma_api.RequestAddReqNum(builder, request.ReqNum)
 	gamma_api.RequestAddTopn(builder, request.TopN)
 	gamma_api.RequestAddBruteForceSearch(builder, request.IsBruteSearch)
 	gamma_api.RequestAddFields(builder, f)
+	gamma_api.RequestAddDocumentIds(builder, d)
 	gamma_api.RequestAddVecFields(builder, v)
 	gamma_api.RequestAddRangeFilters(builder, r)
 	gamma_api.RequestAddTermFilters(builder, t)
@@ -165,14 +170,19 @@ func SearchRequestSerialize(request *vearchpb.SearchRequest) []byte {
 
 func QueryRequestSerialize(request *vearchpb.QueryRequest) []byte {
 	builder := flatbuffers.NewBuilder(0)
-	var fields, vectorQuerys, rangeFilters, termFilters []flatbuffers.UOffsetT
+	var fields, document_ids, vectorQuerys, rangeFilters, termFilters []flatbuffers.UOffsetT
 	vectorQuerys = make([]flatbuffers.UOffsetT, 0)
 	fields = make([]flatbuffers.UOffsetT, len(request.Fields))
+	document_ids = make([]flatbuffers.UOffsetT, len(request.DocumentIds))
 	rangeFilters = make([]flatbuffers.UOffsetT, len(request.RangeFilters))
 	termFilters = make([]flatbuffers.UOffsetT, len(request.TermFilters))
 
 	for i := 0; i < len(request.Fields); i++ {
 		fields[i] = builder.CreateString(request.Fields[i])
+	}
+
+	for i := 0; i < len(request.DocumentIds); i++ {
+		document_ids[i] = builder.CreateString(request.DocumentIds[i])
 	}
 
 	for i := 0; i < len(request.RangeFilters); i++ {
@@ -217,6 +227,12 @@ func QueryRequestSerialize(request *vearchpb.QueryRequest) []byte {
 	}
 	f := builder.EndVector(len(request.Fields))
 
+	gamma_api.RequestStartDocumentIdsVector(builder, len(request.DocumentIds))
+	for i := 0; i < len(request.DocumentIds); i++ {
+		builder.PrependUOffsetT(document_ids[i])
+	}
+	d := builder.EndVector(len(request.DocumentIds))
+
 	gamma_api.RequestStartVecFieldsVector(builder, len(vectorQuerys))
 	for i := 0; i < len(vectorQuerys); i++ {
 		builder.PrependUOffsetT(vectorQuerys[i])
@@ -243,6 +259,7 @@ func QueryRequestSerialize(request *vearchpb.QueryRequest) []byte {
 	gamma_api.RequestAddTopn(builder, request.Limit)
 	gamma_api.RequestAddBruteForceSearch(builder, 0)
 	gamma_api.RequestAddFields(builder, f)
+	gamma_api.RequestAddDocumentIds(builder, d)
 	gamma_api.RequestAddVecFields(builder, v)
 	gamma_api.RequestAddRangeFilters(builder, r)
 	gamma_api.RequestAddTermFilters(builder, t)
@@ -251,6 +268,7 @@ func QueryRequestSerialize(request *vearchpb.QueryRequest) []byte {
 	gamma_api.RequestAddL2Sqrt(builder, false)
 	gamma_api.RequestAddRanker(builder, ranker)
 	gamma_api.RequestAddTrace(builder, request.Trace)
+	gamma_api.RequestAddPartitionId(builder, request.PartitionId)
 
 	builder.Finish(builder.EndObject())
 	return builder.FinishedBytes()

@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -762,7 +763,7 @@ func (r *routerRequest) queryFromPartition(ctx context.Context, partitionID enti
 
 	partition, e := r.client.Master().Cache().PartitionByCache(ctx, r.space.Name, partitionID)
 	if e != nil {
-		err := &vearchpb.Error{Code: vearchpb.ErrorEnum_ROUTER_NO_PS_CLIENT, Msg: "query partition cache err partitionID:" + fmt.Sprint(partitionID)}
+		err := &vearchpb.Error{Code: vearchpb.ErrorEnum_PARTITION_NOT_EXIST, Msg: "query partition cache err partitionID:" + fmt.Sprint(partitionID)}
 		head := &vearchpb.ResponseHead{Err: err}
 		searchResponse := &vearchpb.SearchResponse{Head: head}
 		pd.SearchResponse = searchResponse
@@ -874,10 +875,15 @@ func (r *routerRequest) QueryFieldSortExecute(sortOrder sortorder.SortOrder) *ve
 	var result []*vearchpb.SearchResult
 	var sortValueMap map[string][]sortorder.SortValue
 	var searchResponse *vearchpb.SearchResponse
+	var head vearchpb.ResponseHead
 
 	for r := range respChain {
 		if result == nil && r != nil {
 			searchResponse = r.PartitionData.SearchResponse
+			if searchResponse != nil && searchResponse.Head != nil && searchResponse.Head.Err != nil {
+				head.Err = searchResponse.Head.Err
+				continue
+			}
 			if searchResponse != nil && searchResponse.Results != nil && len(searchResponse.Results) > 0 {
 				result = searchResponse.Results
 				sortValueMap = r.SortValueMap
@@ -889,29 +895,18 @@ func (r *routerRequest) QueryFieldSortExecute(sortOrder sortorder.SortOrder) *ve
 		for PKey, sortValue := range sortValue {
 			sortValueMap[PKey] = sortValue
 		}
-		var err error
-		if err = AddMergeResultArr(result, r.PartitionData.SearchResponse.Results); err != nil {
+
+		if err := AddMergeResultArr(result, r.PartitionData.SearchResponse.Results); err != nil {
 			log.Error("query AddMergeResultArr error:", err)
 		}
 	}
 
-	if len(result) > 1 {
-		err := &vearchpb.Error{Code: vearchpb.ErrorEnum_ROUTER_CALL_PS_RPC_ERR, Msg: "the document_ids of query should be a one-dimensional array"}
+	if result == nil && head.Err != nil {
+		err := &vearchpb.Error{Code: head.Err.Code, Msg: head.Err.Msg}
 		searchResponse = &vearchpb.SearchResponse{}
 		responseHead := &vearchpb.ResponseHead{Err: err}
 		searchResponse.Head = responseHead
-	}
-
-	for i, resp := range result {
-		index := strconv.Itoa(i)
-		quickSort(resp.ResultItems, sortValueMap, 0, len(resp.ResultItems)-1, sortOrder, index)
-
-		if resp.ResultItems != nil && len(resp.ResultItems) > 0 && searchReq.Limit > 0 {
-			len := len(resp.ResultItems)
-			if int32(len) > searchReq.Limit {
-				resp.ResultItems = resp.ResultItems[0:searchReq.Limit]
-			}
-		}
+		return searchResponse
 	}
 
 	if searchResponse == nil {
@@ -919,7 +914,48 @@ func (r *routerRequest) QueryFieldSortExecute(sortOrder sortorder.SortOrder) *ve
 		searchResponse = &vearchpb.SearchResponse{}
 		responseHead := &vearchpb.ResponseHead{Err: err}
 		searchResponse.Head = responseHead
+		return searchResponse
 	}
+
+	if len(result) == 0 {
+		searchResponse = &vearchpb.SearchResponse{}
+		responseHead := &vearchpb.ResponseHead{}
+		searchResponse.Head = responseHead
+		return searchResponse
+	}
+
+	if len(result) > 1 {
+		err := &vearchpb.Error{Code: vearchpb.ErrorEnum_PARAM_ERROR, Msg: "the document_ids of query should be a one-dimensional array"}
+		searchResponse = &vearchpb.SearchResponse{}
+		responseHead := &vearchpb.ResponseHead{Err: err}
+		searchResponse.Head = responseHead
+		return searchResponse
+	}
+
+	if len(searchReq.DocumentIds) == 0 {
+		// query by filter, so order by sortField
+		for i, resp := range result {
+			index := strconv.Itoa(i)
+			quickSort(resp.ResultItems, sortValueMap, 0, len(resp.ResultItems)-1, sortOrder, index)
+
+			if resp.ResultItems != nil && len(resp.ResultItems) > 0 && searchReq.Limit > 0 {
+				len := len(resp.ResultItems)
+				if int32(len) > searchReq.Limit {
+					resp.ResultItems = resp.ResultItems[0:searchReq.Limit]
+				}
+			}
+		}
+	} else {
+		// order by document_ids
+		orderMap := make(map[string]int)
+		for i, name := range searchReq.DocumentIds {
+			orderMap[name] = i
+		}
+		sort.Slice(result[0].ResultItems, func(i, j int) bool {
+			return orderMap[result[0].ResultItems[i].PKey] < orderMap[result[0].ResultItems[j].PKey]
+		})
+	}
+
 	searchResponse.Results = result
 	return searchResponse
 }
@@ -995,16 +1031,29 @@ func (r *routerRequest) QueryByPartitions(queryReq *vearchpb.QueryRequest) *rout
 	if r.Err != nil {
 		return r
 	}
+
 	sendMap := make(map[entity.PartitionID]*vearchpb.PartitionData)
-	for _, partitionInfo := range r.space.Partitions {
-		partitionID := partitionInfo.Id
+	if queryReq.PartitionId != 0 {
+		partitionID := uint32(queryReq.PartitionId)
 		if d, ok := sendMap[partitionID]; ok {
-			log.Error("db Id:%d , space Id:%d, have multiple partitionID:%d", partitionInfo.DBId, partitionInfo.SpaceId, partitionID)
+			log.Error("db Id:%s , space :%s, have multiple partitionID:%d", queryReq.Head.DbName, queryReq.Head.SpaceName, partitionID)
 		} else {
 			d = &vearchpb.PartitionData{PartitionID: partitionID, MessageID: r.GetMsgID(), QueryRequest: queryReq}
 			sendMap[partitionID] = d
 		}
+
+	} else {
+		for _, partitionInfo := range r.space.Partitions {
+			partitionID := partitionInfo.Id
+			if d, ok := sendMap[partitionID]; ok {
+				log.Error("db Id:%d , space Id:%d, have multiple partitionID:%d", partitionInfo.DBId, partitionInfo.SpaceId, partitionID)
+			} else {
+				d = &vearchpb.PartitionData{PartitionID: partitionID, MessageID: r.GetMsgID(), QueryRequest: queryReq}
+				sendMap[partitionID] = d
+			}
+		}
 	}
+
 	r.sendMap = sendMap
 	return r
 }

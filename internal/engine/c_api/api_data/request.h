@@ -82,6 +82,14 @@ class Request : public RawData {
 
   int SetRanker(std::string params, int weight_num);
 
+  void AddDocumentId(const std::string &document_id);
+
+  std::vector<std::string> &DocumentIds();
+
+  int PartitionId();
+
+  void SetPartitionId(int partition_id);
+
  private:
   gamma_api::Request *request_;
 
@@ -92,6 +100,9 @@ class Request : public RawData {
   std::vector<struct VectorQuery> vec_fields_;
 
   std::vector<std::string> fields_;
+
+  std::vector<std::string> document_ids_;
+  int partition_id_;
 
   std::vector<struct RangeFilter> range_filters_;
   std::vector<struct TermFilter> term_filters_;

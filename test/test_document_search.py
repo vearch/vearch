@@ -54,16 +54,31 @@ def check(total, bulk, full_field, with_filter, query_type, xb):
 
     properties = {}
     properties["fields"] = [
-        {"name": "field_int", "type": "integer", "index": {
-            "name": "field_int", "type": "SCALAR"}},
-        {"name": "field_long", "type": "long", "index": {
-            "name": "field_long", "type": "SCALAR"}},
-        {"name": "field_float", "type": "float", "index": {
-            "name": "field_float", "type": "SCALAR"}},
-        {"name": "field_double", "type": "double", "index": {
-            "name": "field_double", "type": "SCALAR"}},
-        {"name": "field_string", "type": "string", "index": {
-            "name": "field_string", "type": "SCALAR"}},
+        {
+            "name": "field_int",
+            "type": "integer",
+            "index": {"name": "field_int", "type": "SCALAR"},
+        },
+        {
+            "name": "field_long",
+            "type": "long",
+            "index": {"name": "field_long", "type": "SCALAR"},
+        },
+        {
+            "name": "field_float",
+            "type": "float",
+            "index": {"name": "field_float", "type": "SCALAR"},
+        },
+        {
+            "name": "field_double",
+            "type": "double",
+            "index": {"name": "field_double", "type": "SCALAR"},
+        },
+        {
+            "name": "field_string",
+            "type": "string",
+            "index": {"name": "field_string", "type": "SCALAR"},
+        },
         {
             "name": "field_vector",
             "type": "vector",
@@ -87,7 +102,7 @@ def check(total, bulk, full_field, with_filter, query_type, xb):
     logger.info("%s doc_num: %d" % (space_name, get_space_num()))
 
     if with_filter:
-        time.sleep(3)
+        time.sleep(10)
 
     search_interface(
         logger, total_batch, batch_size, xb, full_field, with_filter, seed, query_type
@@ -133,16 +148,31 @@ def test_vearch_document_search_brute_force_search_threshold(index_type):
 
     properties = {}
     properties["fields"] = [
-        {"name": "field_int", "type": "integer", "index": {
-            "name": "field_int", "type": "SCALAR"}},
-        {"name": "field_long", "type": "long", "index": {
-            "name": "field_long", "type": "SCALAR"}},
-        {"name": "field_float", "type": "float", "index": {
-            "name": "field_float", "type": "SCALAR"}},
-        {"name": "field_double", "type": "double", "index": {
-            "name": "field_double", "type": "SCALAR"}},
-        {"name": "field_string", "type": "string", "index": {
-            "name": "field_string", "type": "SCALAR"}},
+        {
+            "name": "field_int",
+            "type": "integer",
+            "index": {"name": "field_int", "type": "SCALAR"},
+        },
+        {
+            "name": "field_long",
+            "type": "long",
+            "index": {"name": "field_long", "type": "SCALAR"},
+        },
+        {
+            "name": "field_float",
+            "type": "float",
+            "index": {"name": "field_float", "type": "SCALAR"},
+        },
+        {
+            "name": "field_double",
+            "type": "double",
+            "index": {"name": "field_double", "type": "SCALAR"},
+        },
+        {
+            "name": "field_string",
+            "type": "string",
+            "index": {"name": "field_string", "type": "SCALAR"},
+        },
         {
             "name": "field_vector",
             "type": "vector",
@@ -152,7 +182,7 @@ def test_vearch_document_search_brute_force_search_threshold(index_type):
                 "params": {
                     "metric_type": "L2",
                     "training_threshold": 3 * brute_force_search_threshold,
-                    "ncentroids": 2
+                    "ncentroids": 2,
                 },
             },
             "dimension": embedding_size,
@@ -176,9 +206,7 @@ def test_vearch_document_search_brute_force_search_threshold(index_type):
         "feature": xb[:1].flatten().tolist(),
     }
     data["vectors"].append(vector_info)
-    data["index_params"] = {
-        "nprobe": 1
-    }
+    data["index_params"] = {"nprobe": 1}
 
     json_str = json.dumps(data)
     logger.info(json_str)
@@ -267,8 +295,7 @@ def process_search_error_data(items):
         }
         data["vectors"].append(vector_info)
         data["filters"] = []
-        prepare_wrong_range_filter_name(
-            data["filters"], index, batch_size)
+        prepare_wrong_range_filter_name(data["filters"], index, batch_size)
         data["limit"] = batch_size
 
     if wrong_term_filter_name:
@@ -279,8 +306,7 @@ def process_search_error_data(items):
         }
         data["vectors"].append(vector_info)
         data["filters"] = []
-        prepare_wrong_term_filter_name(
-            data["filters"], index, batch_size)
+        prepare_wrong_term_filter_name(data["filters"], index, batch_size)
         data["limit"] = batch_size
 
     if wrong_vector_length:
@@ -313,7 +339,9 @@ def process_search_error_data(items):
     json_str = json.dumps(data)
     logger.info(json_str)
 
-    rs = requests.post(url, auth=(username, password), data=json_str, headers={"Connection": "close"})
+    rs = requests.post(
+        url, auth=(username, password), data=json_str, headers={"Connection": "close"}
+    )
     logger.info(rs.json())
 
     if "data" in rs.json():
@@ -328,7 +356,7 @@ def search_error(logger, total, batch_size, xb, wrong_parameters: dict):
             (
                 i,
                 batch_size,
-                xb[i * batch_size: (i + 1) * batch_size],
+                xb[i * batch_size : (i + 1) * batch_size],
                 logger,
                 wrong_parameters,
             )

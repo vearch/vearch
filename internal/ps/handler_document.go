@@ -221,7 +221,7 @@ func (handler *UnaryHandler) execute(ctx context.Context, req *vearchpb.Partitio
 			if req.DelByQueryResponse == nil {
 				req.DelByQueryResponse = &vearchpb.DelByQueryeResponse{DelNum: 0}
 			}
-			deleteByQuery(ctx, store, req.SearchRequest, req.DelByQueryResponse)
+			deleteByQuery(ctx, store, req.QueryRequest, req.DelByQueryResponse)
 		case client.FlushHandler:
 			req.Err = flush(ctx, store)
 		default:
@@ -390,9 +390,9 @@ func flush(ctx context.Context, store PartitionStore) *vearchpb.Error {
 	return nil
 }
 
-func deleteByQuery(ctx context.Context, store PartitionStore, req *vearchpb.SearchRequest, resp *vearchpb.DelByQueryeResponse) {
+func deleteByQuery(ctx context.Context, store PartitionStore, req *vearchpb.QueryRequest, resp *vearchpb.DelByQueryeResponse) {
 	searchResponse := &vearchpb.SearchResponse{}
-	if err := store.Search(ctx, req, searchResponse); err != nil {
+	if err := store.Query(ctx, req, searchResponse); err != nil {
 		log.Error("deleteByQuery search doc failed, err: [%s]", err.Error())
 		head := &vearchpb.ResponseHead{Err: &vearchpb.Error{Code: vearchpb.ErrorEnum_DELETE_BY_QUERY_SERACH_ERR, Msg: "deleteByQuery search doc failed"}}
 		resp.Head = head
@@ -437,7 +437,7 @@ func deleteByQuery(ctx context.Context, store PartitionStore, req *vearchpb.Sear
 		}
 	}
 	if len(docs) == 0 {
-		head := &vearchpb.ResponseHead{Err: &vearchpb.Error{Code: vearchpb.ErrorEnum_DELETE_BY_QUERY_SEARCH_ID_IS_0, Msg: "deleteByQuery search id is 0"}}
+		head := &vearchpb.ResponseHead{Err: &vearchpb.Error{Code: vearchpb.ErrorEnum_DELETE_BY_QUERY_SEARCH_ID_IS_0, Msg: "deleteByQuery document id is empty"}}
 		resp.Head = head
 		return
 	}

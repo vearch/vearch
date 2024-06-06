@@ -18,8 +18,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -139,63 +139,6 @@ func documentResultSerialize(item *vearchpb.Item) map[string]interface{} {
 	return result
 }
 
-func documentGetResponse(client *client.Client, args *vearchpb.GetRequest, reply *vearchpb.GetResponse, returnFieldsMap map[string]string, vectorValue bool) (map[string]interface{}, error) {
-	if args == nil || reply == nil || len(reply.Items) < 1 {
-		if reply.GetHead() != nil && reply.GetHead().Err != nil && reply.GetHead().Err.Code != vearchpb.ErrorEnum_SUCCESS {
-			err := reply.GetHead().Err
-			return nil, vearchpb.NewError(err.Code, errors.New(err.Msg))
-		}
-		return nil, vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, nil)
-	}
-
-	space, err := client.Space(context.Background(), args.Head.DbName, args.Head.SpaceName)
-	if err != nil {
-		return nil, err
-	}
-
-	response := make(map[string]interface{})
-
-	if reply.Head != nil && reply.Head.Err != nil {
-		if reply.Head.Err.Code != vearchpb.ErrorEnum_SUCCESS {
-			return nil, vearchpb.NewError(reply.Head.Err.Code, errors.New(reply.Head.Err.Msg))
-		}
-	}
-
-	var total int64
-	for _, item := range reply.Items {
-		if item.Doc.Fields != nil {
-			total += 1
-		} else {
-			if item.Err.Msg == "success" && item.Err.Code == vearchpb.ErrorEnum_SUCCESS {
-				total += 1
-			}
-		}
-	}
-	response["total"] = total
-
-	documents := []interface{}{}
-	for _, item := range reply.Items {
-		doc := make(map[string]interface{})
-		doc["_id"] = item.Doc.PKey
-
-		if item.Err != nil {
-			doc["code"] = http.StatusNotFound
-			doc["msg"] = item.Err.Msg
-		}
-
-		if item.Doc.Fields != nil {
-			nextDocid, _ := docFieldSerialize(item.Doc, space, returnFieldsMap, vectorValue, doc)
-			if nextDocid > 0 {
-				doc["_docid"] = strconv.Itoa(int(nextDocid))
-			}
-		}
-		documents = append(documents, doc)
-	}
-	response["documents"] = documents
-
-	return response, nil
-}
-
 func documentQueryResponse(srs []*vearchpb.SearchResult, head *vearchpb.ResponseHead) (map[string]interface{}, error) {
 	response := make(map[string]interface{})
 
@@ -213,26 +156,7 @@ func documentQueryResponse(srs []*vearchpb.SearchResult, head *vearchpb.Response
 
 	documents := make([]json.RawMessage, 0)
 	if len(srs) > 1 {
-		var wg sync.WaitGroup
-		resp := make([][]byte, len(srs))
-		for i, sr := range srs {
-			wg.Add(1)
-			go func(sr *vearchpb.SearchResult, index int) {
-				defer wg.Done()
-
-				bytes, err := documentQueryToContent(sr.ResultItems)
-				if err != nil {
-					return
-				}
-				resp[index] = json.RawMessage(bytes)
-			}(sr, i)
-		}
-
-		wg.Wait()
-
-		for _, msg := range resp {
-			documents = append(documents, msg)
-		}
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("query result length should be one"))
 	} else {
 		for _, sr := range srs {
 			bytes, err := documentQueryToContent(sr.ResultItems)
@@ -350,31 +274,6 @@ func documentSearchToContent(dh []*vearchpb.ResultItem) ([]byte, error) {
 	}
 
 	return vjson.Marshal(contents)
-}
-
-func documentDeleteResponse(items []*vearchpb.Item, head *vearchpb.ResponseHead, resultIds []string) (map[string]interface{}, error) {
-	response := make(map[string]interface{})
-
-	for _, item := range items {
-		if item.Err == nil {
-			resultIds = append(resultIds, item.Doc.PKey)
-		}
-	}
-
-	if head != nil && head.Err != nil {
-		if head.Err.Code != 0 {
-			return nil, vearchpb.NewError(head.Err.Code, errors.New(head.Err.Msg))
-		}
-	}
-
-	response["total"] = len(resultIds)
-
-	response["document_ids"] = resultIds
-	if len(resultIds) == 0 {
-		response["document_ids"] = []string{}
-	}
-
-	return response, nil
 }
 
 func docFieldSerialize(doc *vearchpb.Document, space *entity.Space, returnFieldsMap map[string]string, vectorValue bool, docOut map[string]interface{}) (nextDocid int32, err error) {

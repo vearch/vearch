@@ -1022,21 +1022,25 @@ def search_interface(
         )
 
 
-def create_for_document_test(logger, router_url, embedding_size, properties):
+def create_for_document_test(
+    logger, router_url, embedding_size, properties, partition_num=1
+):
     space_config = {
         "name": space_name,
-        "partition_num": 1,
+        "partition_num": partition_num,
         "replica_num": 1,
         "fields": properties["fields"],
     }
-    reponse = create_db(router_url, db_name)
-    logger.info(reponse.json())
+    response = create_db(router_url, db_name)
+    logger.info(response.json())
+    assert response.json()["code"] == 0
 
-    reponse = create_space(router_url, db_name, space_config)
-    logger.info(reponse.json())
+    response = create_space(router_url, db_name, space_config)
+    logger.info(response.json())
+    assert response.json()["code"] == 0
 
 
-def prepare_cluster_for_document_test(logger, total, xb):
+def prepare_cluster_for_document_test(logger, total, xb, partition_num=1):
     embedding_size = xb.shape[1]
     batch_size = 100
     if total == 0:
@@ -1096,7 +1100,9 @@ def prepare_cluster_for_document_test(logger, total, xb):
         },
     ]
 
-    create_for_document_test(logger, router_url, embedding_size, properties)
+    create_for_document_test(
+        logger, router_url, embedding_size, properties, partition_num
+    )
 
     add(total_batch, batch_size, xb, with_id, full_field)
 

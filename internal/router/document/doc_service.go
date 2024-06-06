@@ -16,7 +16,6 @@ package document
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/vearch/vearch/v3/internal/client"
@@ -59,26 +58,6 @@ func (docService *docService) getDocs(ctx context.Context, args *vearchpb.GetReq
 	reply := &vearchpb.GetResponse{Head: newOkHead()}
 	request := client.NewRouterRequest(ctx, docService.client)
 	request.SetMsgID().SetMethod(client.GetDocsHandler).SetHead(args.Head).SetSpace().SetDocsByKey(args.PrimaryKeys).PartitionDocs()
-	if request.Err != nil {
-		log.Errorf("getDoc args:[%v] error: [%s]", args, request.Err)
-		return &vearchpb.GetResponse{Head: setErrHead(request.Err)}
-	}
-	items := request.Execute()
-	reply.Head.Params = request.GetMD()
-	reply.Items = items
-	return reply
-}
-
-func (docService *docService) getDocsByPartition(ctx context.Context, args *vearchpb.GetRequest, partitionId uint32, next *bool) *vearchpb.GetResponse {
-	ctx, cancel := setTimeOut(ctx, args.Head)
-	defer cancel()
-	reply := &vearchpb.GetResponse{Head: newOkHead()}
-	request := client.NewRouterRequest(ctx, docService.client)
-	if next != nil && *next {
-		request.SetMsgID().SetMethod(client.GetNextDocsByPartitionHandler).SetHead(args.Head).SetSpace().SetDocsBySpecifyKey(args.PrimaryKeys).SetSendMap(partitionId)
-	} else {
-		request.SetMsgID().SetMethod(client.GetDocsByPartitionHandler).SetHead(args.Head).SetSpace().SetDocsBySpecifyKey(args.PrimaryKeys).SetSendMap(partitionId)
-	}
 	if request.Err != nil {
 		log.Errorf("getDoc args:[%v] error: [%s]", args, request.Err)
 		return &vearchpb.GetResponse{Head: setErrHead(request.Err)}
@@ -268,14 +247,9 @@ func (docService *docService) rebuildIndex(ctx context.Context, args *vearchpb.I
 	return indexResponse
 }
 
-func (docService *docService) deleteByQuery(ctx context.Context, args *vearchpb.SearchRequest) *vearchpb.DelByQueryeResponse {
+func (docService *docService) deleteByQuery(ctx context.Context, args *vearchpb.QueryRequest) *vearchpb.DelByQueryeResponse {
 	request := client.NewRouterRequest(ctx, docService.client)
-	if args.VecFields != nil {
-		err := fmt.Errorf("delete_by_query vector param should be null")
-		return &vearchpb.DelByQueryeResponse{Head: setErrHead(err)}
-	}
-
-	request.SetMsgID().SetMethod(client.DeleteByQueryHandler).SetHead(args.Head).SetSpace().SearchByPartitions(args)
+	request.SetMsgID().SetMethod(client.DeleteByQueryHandler).SetHead(args.Head).SetSpace().QueryByPartitions(args)
 	if request.Err != nil {
 		return &vearchpb.DelByQueryeResponse{Head: setErrHead(request.Err)}
 	}

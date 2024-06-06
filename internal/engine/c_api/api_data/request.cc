@@ -65,6 +65,12 @@ int Request::Serialize(char **out, int *out_len) {
                                     builder.CreateVector(value), is_union));
   }
 
+  std::vector<flatbuffers::Offset<flatbuffers::String>> document_ids_vector;
+
+  for (std::string &document_id : document_ids_) {
+    document_ids_vector.emplace_back(builder.CreateString(document_id));
+  }
+
   auto res = gamma_api::CreateRequest(
       builder, req_num_, topn_, brute_force_search_,
       builder.CreateVector(vec_fields_vector),
@@ -72,7 +78,9 @@ int Request::Serialize(char **out, int *out_len) {
       builder.CreateVector(range_filter_vector),
       builder.CreateVector(term_filter_vector),
       builder.CreateString(index_params_), multi_vector_rank_, l2_sqrt_,
-      builder.CreateString(ranker_->raw_str));
+      builder.CreateString(ranker_->raw_str), trace_,
+      builder.CreateVector(document_ids_vector), partition_id_
+);
 
   builder.Finish(res);
   *out_len = builder.GetSize();
@@ -144,6 +152,13 @@ void Request::Deserialize(const char *data, int len) {
   if (vec_fields_.size() > 1 && request_->ranker()->str() != "") {
     ranker_ = new WeightedRanker(request_->ranker()->str(), vec_fields_.size());
   }
+
+  for (size_t i = 0; i < request_->document_ids()->size(); ++i) {
+    auto fbs_document_id = request_->document_ids()->Get(i);
+    document_ids_.emplace_back(fbs_document_id->str());
+  }
+
+  partition_id_ = request_->partition_id();
 }
 
 int Request::ReqNum() {
@@ -249,5 +264,20 @@ int Request::SetRanker(std::string params, int weight_num) {
   }
   return 0;
 }
+
+void Request::AddDocumentId(const std::string &document_id) {
+  document_ids_.emplace_back(document_id);
+}
+
+std::vector<std::string> &Request::DocumentIds() { return document_ids_; }
+
+int Request::PartitionId() {
+  if (request_)
+    return request_->partition_id();
+  else
+    return partition_id_;
+}
+
+void Request::SetPartitionId(int partition_id) { partition_id_ = partition_id; }
 
 }  // namespace vearch

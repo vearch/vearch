@@ -35,6 +35,8 @@ table Request {
   l2_sqrt:bool;                   // default FALSE, don't do sqrt; TRUE, do sqrt
   ranker:string;
   trace:bool;
+  document_ids:[string];          // can also translate to term_filter, but filter is asynchronous
+  partition_id:int;
 }
 
 root_type Request;

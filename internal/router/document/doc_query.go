@@ -202,7 +202,7 @@ func parseSearch(vectors []json.RawMessage, filters *request.Filter, req *vearch
 	return nil
 }
 
-func parseRanker(data json.RawMessage, req *vearchpb.SearchRequest, space *entity.Space) error {
+func parseRanker(data json.RawMessage, req *vearchpb.SearchRequest) error {
 	ranker := &request.Ranker{}
 	err := vjson.Unmarshal(data, ranker)
 	if err != nil {
@@ -688,15 +688,28 @@ func queryRequestToPb(searchDoc *request.SearchDocumentRequest, space *entity.Sp
 	queryReq.SortFields = sortFieldArr
 	queryReq.SortFieldMap = sortFieldMap
 
-	rfs, tfs, err := parseFilter(searchDoc.Filters, space)
-	if err != nil {
-		return err
+	if searchDoc.Filters != nil {
+		rfs, tfs, err := parseFilter(searchDoc.Filters, space)
+		if err != nil {
+			return err
+		}
+		if len(rfs) > 0 {
+			queryReq.RangeFilters = rfs
+		}
+		if len(tfs) > 0 {
+			queryReq.TermFilters = tfs
+		}
 	}
-	if len(rfs) > 0 {
-		queryReq.RangeFilters = rfs
+	if searchDoc.DocumentIds != nil && len(*searchDoc.DocumentIds) > 0 {
+		queryReq.DocumentIds = *searchDoc.DocumentIds
+		queryReq.Limit = int32(len(queryReq.DocumentIds))
 	}
-	if len(tfs) > 0 {
-		queryReq.TermFilters = tfs
+	if searchDoc.PartitionId != nil {
+		queryReq.PartitionId = int32(*searchDoc.PartitionId)
+	}
+
+	if queryReq.Limit <= 0 {
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("query limit[topN] is zero"))
 	}
 
 	queryReq.Head.ClientType = searchDoc.LoadBalance
@@ -828,7 +841,7 @@ func requestToPb(searchDoc *request.SearchDocumentRequest, space *entity.Space, 
 	}
 
 	if searchDoc.Ranker != nil && string(searchDoc.Ranker) != "" && len(searchDoc.Vectors) > 1 {
-		err = parseRanker(searchDoc.Ranker, searchReq, space)
+		err = parseRanker(searchDoc.Ranker, searchReq)
 		if err != nil {
 			return err
 		}

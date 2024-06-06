@@ -54,16 +54,31 @@ def check(total, bulk, full_field, query_type, xb):
 
     properties = {}
     properties["fields"] = [
-        {"name": "field_int", "type": "integer", "index": {
-            "name": "field_int", "type": "SCALAR"}},
-        {"name": "field_long", "type": "long", "index": {
-            "name": "field_long", "type": "SCALAR"}},
-        {"name": "field_float", "type": "float", "index": {
-            "name": "field_float", "type": "SCALAR"}},
-        {"name": "field_double", "type": "double", "index": {
-            "name": "field_double", "type": "SCALAR"}},
-        {"name": "field_string", "type": "string", "index": {
-            "name": "field_string", "type": "SCALAR"}},
+        {
+            "name": "field_int",
+            "type": "integer",
+            "index": {"name": "field_int", "type": "SCALAR"},
+        },
+        {
+            "name": "field_long",
+            "type": "long",
+            "index": {"name": "field_long", "type": "SCALAR"},
+        },
+        {
+            "name": "field_float",
+            "type": "float",
+            "index": {"name": "field_float", "type": "SCALAR"},
+        },
+        {
+            "name": "field_double",
+            "type": "double",
+            "index": {"name": "field_double", "type": "SCALAR"},
+        },
+        {
+            "name": "field_string",
+            "type": "string",
+            "index": {"name": "field_string", "type": "SCALAR"},
+        },
         {
             "name": "field_vector",
             "type": "vector",
@@ -89,8 +104,7 @@ def check(total, bulk, full_field, query_type, xb):
     if query_type == "by_filter":
         time.sleep(3)
 
-    query_interface(logger, total_batch, batch_size,
-                    xb, full_field, seed, query_type)
+    query_interface(logger, total_batch, batch_size, xb, full_field, seed, query_type)
 
     destroy(router_url, db_name, space_name)
 
@@ -110,6 +124,19 @@ def check(total, bulk, full_field, query_type, xb):
 )
 def test_vearch_document_query(bulk: bool, full_field: bool, query_type: str):
     check(100, bulk, full_field, query_type, xb)
+
+
+class TestDocumentQueryMultiPartition:
+    def setup_class(self):
+        self.logger = logger
+        self.xb = xb
+
+    # prepare for badcase
+    def test_prepare_cluster_multi_partition(self):
+        prepare_cluster_for_document_test(self.logger, 100, self.xb, 2)
+
+    def test_destroy_cluster_multi_partition(self):
+        destroy(router_url, db_name, space_name)
 
 
 class TestDocumentQueryBadCase:
@@ -164,8 +191,9 @@ class TestDocumentQueryBadCase:
         wrong_parameters[index] = True
         total_batch = 1
         batch_size = 2
-        query_error(self.logger, total_batch, batch_size,
-                    self.xb, "query", wrong_parameters)
+        query_error(
+            self.logger, total_batch, batch_size, self.xb, "query", wrong_parameters
+        )
 
     # destroy for badcase
 
