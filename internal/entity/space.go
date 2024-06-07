@@ -117,7 +117,12 @@ type EngineCfg struct {
 
 type BackupSpace struct {
 	Command string `json:"command,omitempty"`
-	S3Param string `json:"s3_param,omitempty"`
+	S3Param struct {
+		BucketName string `json:"bucket_name"`
+		EndPoint   string `json:"endpoint"`
+		AccessKey  string `json:"access_key"`
+		SecretKey  string `json:"secret_key"`
+	} `json:"s3_param,omitempty"`
 }
 
 type CacheModel struct {

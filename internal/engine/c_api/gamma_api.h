@@ -147,7 +147,7 @@ int SetConfig(void *engine, const char *config_str, int len);
  */
 int GetConfig(void *engine, char **config_str, int *len);
 
-int Backup(void *engine, int command, const char *s3_param, int len);
+int Backup(void *engine, int command);
 #ifdef __cplusplus
 }
 #endif

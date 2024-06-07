@@ -21,6 +21,8 @@ import (
 
 	"github.com/cubefs/cubefs/depends/tiglabs/raft"
 	"github.com/cubefs/cubefs/depends/tiglabs/raft/proto"
+	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/vearch/vearch/v3/internal/client"
 	"github.com/vearch/vearch/v3/internal/engine/sdk/go/gamma"
 	"github.com/vearch/vearch/v3/internal/entity"
@@ -444,13 +446,46 @@ func (bh *BackupHandler) Execute(ctx context.Context, req *vearchpb.PartitionDat
 		errutil.ThrowError(err)
 		return err
 	}
+	space := partitonStore.GetSpace()
+	dbName, err := bh.server.client.Master().QueryDBId2Name(ctx, space.DBId)
+	if err != nil {
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("find db by id err: %s, data: %d", err.Error(), space.DBId))
+	}
 	// invoke c interface
 	log.Debug("backup info is [%+v]", backup)
 	go func() {
-		err = engine.BackupSpace(backup.Command, backup.S3Param)
+		err := engine.BackupSpace(backup.Command)
 		if err != nil {
 			log.Error("backup error [%+v]", err)
 		}
+		engineConfig := gamma.Config{}
+		err = engine.GetEngineCfg(&engineConfig)
+		if err != nil {
+			log.Error("get engine config error [%+v]", err)
+			return
+		}
+
+		backupFileName := engineConfig.Path + "/backup/raw_data.json.zst"
+		log.Info("backup success, file is [%s]", backupFileName)
+
+		useSSL := true
+		minioClient, err := minio.New(backup.S3Param.EndPoint, &minio.Options{
+			Creds:  credentials.NewStaticV4(backup.S3Param.AccessKey, backup.S3Param.SecretKey, ""),
+			Secure: useSSL,
+		})
+		if err != nil {
+			log.Error(err)
+			return
+		}
+		bucketName := backup.S3Param.BucketName
+		uploadFileName := fmt.Sprintf("%s/%s/%d.json.zst", dbName, space.Name, req.PartitionID)
+		info, err := minioClient.FPutObject(context.Background(), bucketName, uploadFileName, backupFileName, minio.PutObjectOptions{ContentType: "application/octet-stream"})
+		if err != nil {
+			log.Error(err)
+			return
+		}
+
+		log.Info(info)
 	}()
 	return nil
 }

@@ -16,7 +16,6 @@
 #include <sys/mman.h>
 #include <time.h>
 #include <unistd.h>
-#include <zlib.h>
 #include <zstd.h>
 
 #include <chrono>
@@ -1339,6 +1338,7 @@ int Engine::GetConfig(Config &conf) {
   int table_cache_size = 0;
   table_->GetCacheSize(table_cache_size);
   conf.AddCacheInfo("table", table_cache_size);
+  conf.SetPath(index_root_path_);
   return 0;
 }
 

@@ -252,8 +252,8 @@ int GetConfig(void *engine, char **config_str, int *len) {
   return res;
 }
 
-int Backup(void *engine, int command, const char *s3_param, int len) {
-  LOG(INFO) << "Backup command: " << command << ", s3_param: " << s3_param;
+int Backup(void *engine, int command) {
+  LOG(INFO) << "Backup command: " << command;
   int ret = static_cast<vearch::Engine *>(engine)->Backup(command);
   return ret;
 }

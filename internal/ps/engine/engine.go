@@ -85,5 +85,5 @@ type Engine interface {
 	SetEngineCfg(config *gamma.Config) error
 	GetEngineCfg(config *gamma.Config) error
 
-	BackupSpace(command, s3Param string) error
+	BackupSpace(command string) error
 }
