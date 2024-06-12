@@ -49,8 +49,11 @@ def process_add_data(items):
     seed = items[5]
     alias_name = items[6]
     logger = items[7]
-    if items[6] != "":
-        data["space_name"] = items[6]
+    partitions = items[8]
+    if len(partitions) > 0:
+        data["partitions"] = partitions
+    if alias_name != "":
+        data["space_name"] = alias_name
     for j in range(batch_size):
         param_dict = {}
         if with_id:
@@ -65,6 +68,7 @@ def process_add_data(items):
         data["documents"].append(param_dict)
 
     rs = requests.post(url, auth=(username, password), json=data)
+    assert rs.json()["code"] == 0
     if logger != None:
         logger.info(rs.json())
 
@@ -78,6 +82,7 @@ def add(
     seed=1,
     alias_name="",
     logger=None,
+    partitions=[],
 ):
     pool = ThreadPool()
     total_data = []
@@ -92,6 +97,7 @@ def add(
                 seed,
                 alias_name,
                 logger,
+                partitions,
             )
         )
     results = pool.map(process_add_data, total_data)
@@ -222,6 +228,7 @@ def process_add_error_data(items):
     wrong_vector_feature_length = items[4][10]
     wrong_vector_feature_type = items[4][11]
     mismatch_field_type = items[4][12]
+    wrong_partition_id = items[4][13]
     max_index_str_length = 1025
     max_str_length = 65536
 
@@ -275,6 +282,9 @@ def process_add_error_data(items):
 
         if not empty_documents:
             data["documents"].append(param_dict)
+
+        if wrong_partition_id:
+            data["partitions"] = [111]
 
     json_str = json.dumps(data)
     rs = requests.post(url, auth=(username, password), data=json_str)
@@ -1115,8 +1125,11 @@ def waiting_index_finish(logger, total, timewait=5):
     url = router_url + "/dbs/" + db_name + "/spaces/" + space_name
     num = 0
     while num < total:
+        num = 0
         response = requests.get(url, auth=(username, password))
-        num = response.json()["data"]["partitions"][0]["index_num"]
+        partitions = response.json()["data"]["partitions"]
+        for p in partitions:
+            num += p["index_num"]
         logger.info("index num: %d" % (num))
         time.sleep(timewait)
 

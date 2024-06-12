@@ -147,7 +147,7 @@ func (cliCache *clientCache) reloadUserCache(ctx context.Context, sync bool, use
 	return nil
 }
 
-// find a space by db and space name , if not exist so query it from db
+// find a space by db and space name, if not exist so query it from etcd
 func (cliCache *clientCache) SpaceByCache(ctx context.Context, db, space string) (*entity.Space, error) {
 	key := cacheSpaceKey(db, space)
 

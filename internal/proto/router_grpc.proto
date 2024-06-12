@@ -28,24 +28,25 @@ message RequestHead {
 
 message ResponseHead {
   Error err = 1;
-  map<string, string> params = 3;
+  map<string, string> params = 2;
 }
 
 //*********************** doc query *********************** //
 
 message GetRequest {
   RequestHead head = 1;
-  repeated string primary_keys = 4;
+  repeated string primary_keys = 2;
 }
 
 message DeleteRequest {
   RequestHead head = 1;
-  repeated string primary_keys = 4;
+  repeated string primary_keys = 2;
 }
 
 message BulkRequest {
   RequestHead head = 1;
-  repeated Document docs = 4;
+  repeated Document docs = 2;
+  repeated uint32 partitions = 3;
 }
 
 message ForceMergeRequest { RequestHead head = 1; }

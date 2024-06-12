@@ -1176,7 +1176,7 @@ func (ms *masterService) updateSpaceResourceService(ctx context.Context, spaceRe
 
 	log.Debug("updateSpacePartitionNum origin paritionNum %d, serverPartitions %v, paddrs %v", space.PartitionNum, serverPartitions, paddrs)
 
-	// when create partition, new partition id will be used
+	// when create partition, new partition id will be stored in server partition cache
 	space.PartitionNum = spaceResource.PartitionNum
 	space.Partitions = append(space.Partitions, partitions...)
 
@@ -1230,8 +1230,10 @@ func (ms *masterService) updateSpaceResourceService(ctx context.Context, spaceRe
 	}
 
 	//update space
-	space.Version++
-
+	width := math.MaxUint32 / space.PartitionNum
+	for i := 0; i < space.PartitionNum; i++ {
+		space.Partitions[i].Slot = entity.SlotID(i * width)
+	}
 	log.Debug("updateSpacePartitionNum space version %d, partition_num %d", space.Version, space.PartitionNum)
 
 	if err := ms.updateSpace(ctx, space); err != nil {

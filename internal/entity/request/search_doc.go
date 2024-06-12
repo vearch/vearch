@@ -17,6 +17,7 @@ package request
 import (
 	"encoding/json"
 
+	"github.com/vearch/vearch/v3/internal/entity"
 	"github.com/vearch/vearch/v3/internal/ps/engine/sortorder"
 )
 
@@ -28,9 +29,10 @@ var (
 )
 
 type DocumentRequest struct {
-	Documents []json.RawMessage `json:"documents,omitempty"`
-	DbName    string            `json:"db_name,omitempty"`
-	SpaceName string            `json:"space_name,omitempty"`
+	Documents  []json.RawMessage     `json:"documents,omitempty"`
+	DbName     string                `json:"db_name,omitempty"`
+	SpaceName  string                `json:"space_name,omitempty"`
+	Partitions *[]entity.PartitionID `json:"partitions,omitempty"`
 }
 
 type IndexRequest struct {

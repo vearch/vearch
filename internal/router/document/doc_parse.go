@@ -556,6 +556,22 @@ func documentParse(ctx context.Context, handler *DocumentHandler, r *http.Reques
 			vectorFieldNum += 1
 		}
 	}
+	if docRequest.Partitions != nil && len(*docRequest.Partitions) != 0 {
+		// check partition
+		for _, pid := range *docRequest.Partitions {
+			found := false
+			for _, partition := range space.Partitions {
+				if pid == partition.Id {
+					found = true
+					break
+				}
+			}
+			if !found {
+				return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("partition id %d not belong to space[%s]", pid, space.Name))
+			}
+		}
+		args.Partitions = *docRequest.Partitions
+	}
 	docs := make([]*vearchpb.Document, 0)
 	for _, docJson := range docRequest.Documents {
 		jsonMap, err := vjson.ByteToJsonMap(docJson)
@@ -574,30 +590,28 @@ func documentParse(ctx context.Context, handler *DocumentHandler, r *http.Reques
 				err = vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("vector field num:%d is not equal to vector num of space fields:%d and document_id is empty", haveVector, vectorFieldNum))
 				return err
 			}
-			arg := &vearchpb.GetRequest{}
+			arg := &vearchpb.QueryRequest{}
 			uriParams := make(map[string]string)
 			uriParams["db_name"] = args.Head.DbName
 			uriParams["space_name"] = args.Head.SpaceName
 			uriParams["_id"] = primaryKey
 			uriParamsMap := netutil.NewMockUriParams(uriParams)
 			arg.Head = setRequestHead(uriParamsMap, r)
-			arg.PrimaryKeys = make([]string, 1)
-			arg.PrimaryKeys[0] = primaryKey
-			reply := handler.docService.getDocs(ctx, arg)
+			arg.DocumentIds = make([]string, 1)
+			arg.DocumentIds[0] = primaryKey
+			reply := handler.docService.query(ctx, arg)
 
-			_, err := docGetResponse(handler.client, arg, reply, nil, false)
+			result, err := documentQueryResponse(reply.Results, reply.Head)
 			if err != nil {
 				return err
 			}
 
 			err = vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("vector field num:%d is not equal to vector num of space fields:%d and document_id not exist so can't update", haveVector, vectorFieldNum))
-			if reply == nil {
+			if reply == nil || reply.Results == nil || len(reply.Results) != 1 {
 				return err
 			}
-			if len(reply.Items) == 0 {
-				return err
-			}
-			if reply.Items[0].Err != nil && reply.Items[0].Err.Code != vearchpb.ErrorEnum_SUCCESS {
+
+			if result["total"] != 1 {
 				return err
 			}
 		}

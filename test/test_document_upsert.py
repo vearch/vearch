@@ -74,8 +74,11 @@ def benchmark(total, bulk, with_id, full_field, xb, xq, gt):
         {"name": "field_long", "type": "long"},
         {"name": "field_float", "type": "float"},
         {"name": "field_double", "type": "double"},
-        {"name": "field_string", "type": "string", "index": {
-            "name": "field_string", "type": "SCALAR"}},
+        {
+            "name": "field_string",
+            "type": "string",
+            "index": {"name": "field_string", "type": "SCALAR"},
+        },
         {
             "name": "field_vector",
             "type": "vector",
@@ -142,8 +145,11 @@ def update(total, bulk, full_field, xb):
         {"name": "field_long", "type": "long"},
         {"name": "field_float", "type": "float"},
         {"name": "field_double", "type": "double"},
-        {"name": "field_string", "type": "string", "index": {
-            "name": "field_string", "type": "SCALAR"}},
+        {
+            "name": "field_string",
+            "type": "string",
+            "index": {"name": "field_string", "type": "SCALAR"},
+        },
         {
             "name": "field_vector",
             "type": "vector",
@@ -201,8 +207,11 @@ class TestDocumentUpsertBadCase:
             {"name": "field_long", "type": "long"},
             {"name": "field_float", "type": "float"},
             {"name": "field_double", "type": "double"},
-            {"name": "field_string", "type": "string", "index": {
-                "name": "field_string", "type": "SCALAR"}},
+            {
+                "name": "field_string",
+                "type": "string",
+                "index": {"name": "field_string", "type": "SCALAR"},
+            },
             {"name": "field_string1", "type": "string"},
             {
                 "name": "field_vector",
@@ -220,8 +229,7 @@ class TestDocumentUpsertBadCase:
             },
         ]
 
-        create_for_document_test(
-            self.logger, router_url, embedding_size, properties)
+        create_for_document_test(self.logger, router_url, embedding_size, properties)
 
     @pytest.mark.parametrize(
         ["index", "wrong_type"],
@@ -239,18 +247,18 @@ class TestDocumentUpsertBadCase:
             [10, "wrong_vector_feature_length"],
             [11, "wrong_vector_feature_type"],
             [12, "mismatch_field_type"],
+            [13, "wrong partition id"],
         ],
     )
     def test_vearch_document_upsert_badcase(self, index, wrong_type):
-        wrong_parameters = [False for i in range(13)]
+        wrong_parameters = [False for i in range(14)]
         wrong_parameters[index] = True
         batch_size = 1
         total = 1
         if total == 0:
             total = xb.shape[0]
         total_batch = int(total / batch_size)
-        add_error(total_batch, batch_size, self.xb,
-                  self.logger, wrong_parameters)
+        add_error(total_batch, batch_size, self.xb, self.logger, wrong_parameters)
         assert get_space_num() == 0
 
     @pytest.mark.parametrize(
@@ -265,8 +273,7 @@ class TestDocumentUpsertBadCase:
         wrong_parameters[index] = True
         total_batch = 1
         batch_size = 2
-        add_error(total_batch, batch_size, self.xb,
-                  self.logger, wrong_parameters)
+        add_error(total_batch, batch_size, self.xb, self.logger, wrong_parameters)
 
         assert get_space_num() == 0
 

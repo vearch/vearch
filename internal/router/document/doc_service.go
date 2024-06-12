@@ -89,7 +89,7 @@ func (docService *docService) bulk(ctx context.Context, args *vearchpb.BulkReque
 	defer cancel()
 	reply := &vearchpb.BulkResponse{Head: newOkHead()}
 	request := client.NewRouterRequest(ctx, docService.client)
-	request.SetMsgID().SetMethod(client.BatchHandler).SetHead(args.Head).SetSpace().SetDocs(args.Docs).SetDocsField().PartitionDocs()
+	request.SetMsgID().SetMethod(client.BatchHandler).SetHead(args.Head).SetSpace().SetDocs(args.Docs).SetDocsField().UpsertByPartitions(args.Partitions)
 	if request.Err != nil {
 		log.Errorf("bulk args:[%v] error: [%s]", args, request.Err)
 		return &vearchpb.BulkResponse{Head: setErrHead(request.Err)}

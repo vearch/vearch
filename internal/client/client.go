@@ -254,23 +254,30 @@ func (r *routerRequest) PartitionDocs() *routerRequest {
 	return r
 }
 
-// Docs in specify partition
-func (r *routerRequest) SetSendMap(partitionId uint32) *routerRequest {
+// UpsertByPartitions split docs by specify partitons
+func (r *routerRequest) UpsertByPartitions(partitions []uint32) *routerRequest {
 	if r.Err != nil {
 		return r
 	}
+	partitionID := uint32(0)
 	dataMap := make(map[entity.PartitionID]*vearchpb.PartitionData)
 	for _, doc := range r.docs {
+		if len(partitions) == 0 {
+			partitionID = r.space.PartitionId(murmur3.Sum32WithSeed([]byte(doc.PKey), 0))
+		} else {
+			random_index := murmur3.Sum32WithSeed([]byte(doc.PKey), 0) % uint32(len(partitions))
+			partitionID = partitions[random_index]
+		}
+		log.Error("upsert partition:%d", partitionID)
 		item := &vearchpb.Item{Doc: doc}
-		if d, ok := dataMap[partitionId]; ok {
+		if d, ok := dataMap[partitionID]; ok {
 			d.Items = append(d.Items, item)
 		} else {
 			items := make([]*vearchpb.Item, 0)
-			d = &vearchpb.PartitionData{PartitionID: partitionId, MessageID: r.GetMsgID(), Items: items}
-			dataMap[partitionId] = d
+			d = &vearchpb.PartitionData{PartitionID: partitionID, MessageID: r.GetMsgID(), Items: items}
+			dataMap[partitionID] = d
 			d.Items = append(d.Items, item)
 		}
-
 	}
 	r.sendMap = dataMap
 	return r

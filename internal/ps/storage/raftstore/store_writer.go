@@ -84,8 +84,9 @@ func (s *Store) Write(ctx context.Context, request *vearchpb.DocCmd) (err error)
 			err = vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_RESOURCE_EXHAUSTED, nil)
 			return err
 		}
-		s.Partition.AddNum += 1
-		if s.Partition.AddNum%10000 == 0 {
+		s.Partition.AddNum += int64(len(request.Docs))
+		if s.Partition.AddNum >= 50000 {
+			s.Partition.AddNum = 0
 			s.Partition.ResourceExhausted, err = os.CheckResource(s.RaftPath)
 			if s.Partition.ResourceExhausted {
 				return err
