@@ -7,7 +7,9 @@
 
 #pragma once
 
+#include <map>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include "idl/fbs-gen/c/doc_generated.h"
@@ -64,6 +66,9 @@ class Doc : public RawData {
   void SetEngine(Engine *engine) { engine_ = engine; }
 
   std::string ToJson();
+
+  int FromJson(std::string &raw, std::map<std::string, DataType> &attr_type_map,
+               std::unordered_set<std::string> &raw_vectors);
 
  private:
   gamma_api::Doc *doc_;

@@ -178,5 +178,9 @@ func GetEngineCfg(engine unsafe.Pointer, config *Config) {
 }
 
 func BackupSpace(engine unsafe.Pointer, command string) {
-	C.Backup(engine, C.int(0))
+	if command == "create" {
+		C.Backup(engine, C.int(0))
+	} else if command == "restore" {
+		C.Backup(engine, C.int(1))
+	}
 }

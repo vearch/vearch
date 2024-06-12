@@ -128,4 +128,128 @@ std::string Doc::ToJson() {
   return j.dump();
 }
 
+int Doc::FromJson(std::string &raw,
+                  std::map<std::string, DataType> &attr_type_map,
+                  std::unordered_set<std::string> &raw_vectors) {
+  try {
+    nlohmann::json json_object = nlohmann::json::parse(raw);
+    for (auto &element : json_object.items()) {
+      std::string key = element.key();
+      if (key == "_id") {
+        key_ = element.value();
+      }
+      auto it = attr_type_map.find(key);
+      auto vec_it = raw_vectors.find(key);
+      DataType type;
+      if (it != attr_type_map.end()) {
+        type = it->second;
+      } else if (vec_it != raw_vectors.end()) {
+        type = DataType::VECTOR;
+      } else {
+        LOG(ERROR) << "cannot find key " << key;
+        continue;
+      }
+
+      if (type == DataType::STRING) {
+        if (!element.value().is_string()) {
+          continue;
+        }
+        Field f;
+        f.datatype = DataType::STRING;
+        f.name = key;
+        f.value = element.value();
+        table_fields_[f.name] = std::move(f);
+      } else if (type == DataType::STRINGARRAY) {
+        if (!element.value().is_array()) {
+          continue;
+        }
+        Field f;
+        f.datatype = DataType::STRINGARRAY;
+        f.name = key;
+
+        for (std::size_t i = 0; i < element.value().size(); ++i) {
+          if (i == 0) {
+            f.value = element.value()[i];
+          } else {
+            f.value = "\001" + element.value()[i].get<std::string>();
+          }
+        }
+        table_fields_[f.name] = std::move(f);
+      } else if (type == DataType::INT) {
+        if (!element.value().is_number_integer()) {
+          continue;
+        }
+        int value = element.value().get<int>();
+        Field f;
+        f.datatype = DataType::INT;
+        f.name = key;
+        f.value =
+            std::string(reinterpret_cast<const char *>(&value), sizeof(value));
+        table_fields_[f.name] = std::move(f);
+      } else if (type == DataType::LONG) {
+        if (!element.value().is_number_integer()) {
+          continue;
+        }
+        long value = element.value().get<long>();
+        Field f;
+        f.datatype = DataType::LONG;
+        f.name = key;
+        f.value =
+            std::string(reinterpret_cast<const char *>(&value), sizeof(value));
+        table_fields_[f.name] = std::move(f);
+      } else if (type == DataType::FLOAT) {
+        if (!element.value().is_number_float()) {
+          continue;
+        }
+        float value = element.value().get<float>();
+        Field f;
+        f.datatype = DataType::FLOAT;
+        f.name = key;
+        f.value =
+            std::string(reinterpret_cast<const char *>(&value), sizeof(value));
+        table_fields_[f.name] = std::move(f);
+      } else if (type == DataType::DOUBLE) {
+        if (!element.value().is_number_float()) {
+          continue;
+        }
+        double value = element.value().get<double>();
+        Field f;
+        f.datatype = DataType::DOUBLE;
+        f.name = key;
+        f.value =
+            std::string(reinterpret_cast<const char *>(&value), sizeof(value));
+        table_fields_[f.name] = std::move(f);
+      } else if (type == DataType::VECTOR) {
+        if (!element.value().is_array()) {
+          continue;
+        }
+        Field f;
+        f.datatype = DataType::VECTOR;
+        f.name = key;
+        bool all_floats =
+            std::all_of(element.value().begin(), element.value().end(),
+                        [](const nlohmann::json &element) {
+                          return element.is_number_float();
+                        });
+
+        if (all_floats) {
+          std::vector<float> float_vector =
+              element.value().get<std::vector<float>>();
+          f.value =
+              std::string(reinterpret_cast<const char *>(float_vector.data()),
+                          sizeof(float) * float_vector.size());
+        } else {
+          LOG(ERROR) << "Not all elements are floats.";
+          continue;
+        }
+        vector_fields_[key] = std::move(f);
+      }
+    }
+  } catch (nlohmann::json::parse_error &e) {
+    LOG(ERROR) << "JSON parse error: " << e.what();
+    return 1;
+  }
+
+  return 0;
+}
 }  // namespace vearch

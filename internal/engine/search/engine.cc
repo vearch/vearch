@@ -253,7 +253,7 @@ Status Engine::Search(Request &request, Response &response_results) {
     GammaResult *gamma_result = new GammaResult[1];
     gamma_result->init(document_ids.size(), nullptr, 0);
 
-    for(size_t i = 0; i < document_ids.size(); i++) {
+    for (size_t i = 0; i < document_ids.size(); i++) {
       int docid = -1, ret = 0;
       if (request.PartitionId() > 0) {
         docid = atoi(document_ids[i].c_str());
@@ -268,8 +268,8 @@ Status Engine::Search(Request &request, Response &response_results) {
       }
 
       if (!docids_bitmap_->Test(docid)) {
-        ++(gamma_result->total);
-          gamma_result->docs[(gamma_result->results_count)++]->docid = docid;
+        gamma_result->total++;
+        gamma_result->docs[(gamma_result->results_count)++]->docid = docid;
       }
     }
     response_results.SetEngineInfo(table_, vec_manager_, gamma_result, 1);
@@ -365,9 +365,10 @@ Status Engine::Search(Request &request, Response &response_results) {
     int num = MultiRangeQuery(request, gamma_query.condition, response_results,
                               &range_query_result);
 #ifdef PERFORMANCE_TESTING
-  if(gamma_query.condition->GetPerfTool()) {
-    gamma_query.condition->GetPerfTool()->Perf("filter result num " + std::to_string(num));
-  }
+    if (gamma_query.condition->GetPerfTool()) {
+      gamma_query.condition->GetPerfTool()->Perf("filter result num " +
+                                                 std::to_string(num));
+    }
 #endif
     if (num == 0) {
       RequestConcurrentController::GetInstance().Release(req_num);
@@ -1209,101 +1210,195 @@ int vearch::Engine::Backup(int command) {
 
   const std::string raw_filename = backup_path + "/raw_data.json";
   const std::string compressed_filename = raw_filename + ".zst";
-  std::ofstream outfile(compressed_filename);
-  if (!outfile.is_open()) {
-    LOG(ERROR) << "Failed to open file: " << compressed_filename;
-    return 1;
-  }
 
-  ZSTD_CStream *const cstream = ZSTD_createCStream();
-  if (cstream == NULL) {
-    LOG(ERROR) << "Failed to create ZSTD_CStream";
-    return 1;
-  }
-
-  size_t const initResult = ZSTD_initCStream(cstream, 1);
-  if (ZSTD_isError(initResult)) {
-    LOG(ERROR) << "ZSTD_initCStream() error: " << ZSTD_getErrorName(initResult);
-    ZSTD_freeCStream(cstream);
-    return 1;
-  }
-
-  std::vector<std::string> index_names;
-  vec_manager_->VectorNames(index_names);
-  int ret = 0;
-  for (int docid = 0; docid < max_docid_; docid++) {
-    if (docids_bitmap_->Test(docid)) {
-      continue;
+  // create
+  if (command == 0) {
+    std::ofstream raw_file(compressed_filename, std::ios::binary);
+    if (!raw_file.is_open()) {
+      LOG(ERROR) << "Failed to open file: " << compressed_filename;
+      return 1;
+    }
+    ZSTD_CStream *const cstream = ZSTD_createCStream();
+    if (cstream == NULL) {
+      LOG(ERROR) << "Failed to create ZSTD_CStream";
+      return 1;
     }
 
-    Doc doc;
-    std::vector<std::string> table_fields;
-    ret = table_->GetDocInfo(docid, doc, table_fields);
-    if (ret != 0) {
-      LOG(ERROR) << "get doc info failed " << docid;
-      continue;
-    }
-
-    std::vector<std::pair<std::string, int>> vec_fields_ids;
-    for (size_t i = 0; i < index_names.size(); ++i) {
-      vec_fields_ids.emplace_back(std::make_pair(index_names[i], docid));
-    }
-
-    std::vector<std::string> vec;
-    ret = vec_manager_->GetVector(vec_fields_ids, vec, true);
-    if (ret == 0 && vec.size() == vec_fields_ids.size()) {
-      for (size_t i = 0; i < index_names.size(); ++i) {
-        struct Field field;
-        field.name = index_names[i];
-        field.datatype = DataType::VECTOR;
-        field.value = vec[i];
-        doc.AddField(field);
-      }
-    }
-
-    std::string json = doc.ToJson() + "\n";
-    ZSTD_inBuffer input = {json.data(), json.size(), 0};
-    while (input.pos < input.size) {
-      char buffer[4096];
-      ZSTD_outBuffer output = {buffer, sizeof(buffer), 0};
-      size_t const advance = ZSTD_compressStream(cstream, &output, &input);
-      if (ZSTD_isError(advance)) {
-        LOG(ERROR) << "ZSTD_compressStream() error: "
-                   << ZSTD_getErrorName(advance);
-        ZSTD_freeCStream(cstream);
-        return 1;
-      }
-      outfile.write(buffer, output.pos);
-    }
-  }
-
-  char buffer[4096];
-  ZSTD_outBuffer output = {buffer, sizeof(buffer), 0};
-  size_t remaining;
-  do {
-    remaining = ZSTD_endStream(cstream, &output);
-    if (ZSTD_isError(remaining)) {
-      LOG(ERROR) << "ZSTD_endStream() error: " << ZSTD_getErrorName(remaining);
+    size_t const initResult = ZSTD_initCStream(cstream, 1);
+    if (ZSTD_isError(initResult)) {
+      LOG(ERROR) << "ZSTD_initCStream() error: "
+                 << ZSTD_getErrorName(initResult);
       ZSTD_freeCStream(cstream);
       return 1;
     }
-    outfile.write(buffer, output.pos);
-    output.pos = 0;
-  } while (remaining != 0);
 
-  outfile.write(buffer, output.pos);
+    size_t const bufferSize = ZSTD_DStreamInSize();
+    std::vector<std::string> index_names;
+    vec_manager_->VectorNames(index_names);
+    int ret = 0;
+    for (int docid = 0; docid < max_docid_; docid++) {
+      if (docids_bitmap_->Test(docid)) {
+        continue;
+      }
 
-  outfile.close();
-  if (outfile.fail()) {
-    LOG(ERROR) << "Failed to close file: " << compressed_filename;
+      Doc doc;
+      std::vector<std::string> table_fields;
+      ret = table_->GetDocInfo(docid, doc, table_fields);
+      if (ret != 0) {
+        LOG(ERROR) << "get doc info failed " << docid;
+        continue;
+      }
+
+      std::vector<std::pair<std::string, int>> vec_fields_ids;
+      for (size_t i = 0; i < index_names.size(); ++i) {
+        vec_fields_ids.emplace_back(std::make_pair(index_names[i], docid));
+      }
+
+      std::vector<std::string> vec;
+      ret = vec_manager_->GetVector(vec_fields_ids, vec, true);
+      if (ret == 0 && vec.size() == vec_fields_ids.size()) {
+        for (size_t i = 0; i < index_names.size(); ++i) {
+          struct Field field;
+          field.name = index_names[i];
+          field.datatype = DataType::VECTOR;
+          field.value = vec[i];
+          doc.AddField(field);
+        }
+      }
+
+      std::string json = doc.ToJson() + "\n";
+      ZSTD_inBuffer input = {json.data(), json.size(), 0};
+      while (input.pos < input.size) {
+        std::vector<char> buffer(bufferSize);
+        ZSTD_outBuffer output = {buffer.data(), buffer.size(), 0};
+        size_t const advance = ZSTD_compressStream(cstream, &output, &input);
+        if (ZSTD_isError(advance)) {
+          LOG(ERROR) << "ZSTD_compressStream() error: "
+                     << ZSTD_getErrorName(advance);
+          ZSTD_freeCStream(cstream);
+          return 1;
+        }
+        raw_file.write(buffer.data(), output.pos);
+      }
+    }
+
+    std::vector<char> buffer(bufferSize);
+    ZSTD_outBuffer output = {buffer.data(), buffer.size(), 0};
+    size_t remaining;
+    do {
+      remaining = ZSTD_endStream(cstream, &output);
+      if (ZSTD_isError(remaining)) {
+        LOG(ERROR) << "ZSTD_endStream() error: "
+                   << ZSTD_getErrorName(remaining);
+        ZSTD_freeCStream(cstream);
+        return 1;
+      }
+      raw_file.write(buffer.data(), output.pos);
+      output.pos = 0;
+    } while (remaining != 0);
+
+    raw_file.write(buffer.data(), output.pos);
+
+    raw_file.close();
+    if (raw_file.fail()) {
+      LOG(ERROR) << "Failed to close file: " << compressed_filename;
+      ZSTD_freeCStream(cstream);
+      return 1;
+    }
+
     ZSTD_freeCStream(cstream);
-    return 1;
+
+    LOG(INFO) << space_name_ << " backup to [" << compressed_filename
+              << "] success!";
+  } else if (command == 1) {  // restore
+    std::map<std::string, DataType> attr_type_map;
+    table_->GetAttrType(attr_type_map);
+
+    auto raw_vectors = vec_manager_->RawVectors();
+    std::unordered_set<std::string> raw_vector_name;
+    for (auto &[name, v] : raw_vectors) {
+      raw_vector_name.insert(name);
+    }
+
+    std::ifstream compressed_file(compressed_filename, std::ios::binary);
+    if (!compressed_file.is_open()) {
+      LOG(ERROR) << "Failed to open file: " << compressed_filename;
+      return 1;
+    }
+
+    ZSTD_DStream *const dstream = ZSTD_createDStream();
+    if (dstream == NULL) {
+      LOG(ERROR) << "Failed to create ZSTD_DStream";
+      return 1;
+    }
+
+    size_t const initResult = ZSTD_initDStream(dstream);
+    if (ZSTD_isError(initResult)) {
+      LOG(ERROR) << "ZSTD_initDStream() error: "
+                 << ZSTD_getErrorName(initResult);
+      ZSTD_freeDStream(dstream);
+      return 1;
+    }
+
+    size_t const bufferSize = ZSTD_DStreamOutSize();
+    std::vector<char> inBuffer(bufferSize);
+    std::vector<char> outBuffer(bufferSize);
+    ZSTD_inBuffer input = {inBuffer.data(), 0, 0};
+    ZSTD_outBuffer output = {outBuffer.data(), bufferSize, 0};
+    std::string decompressed_data;
+    std::string line;
+
+    while (compressed_file.good()) {
+      compressed_file.read(inBuffer.data(), bufferSize);
+      input.size = compressed_file.gcount();
+      input.pos = 0;
+
+      while (input.pos < input.size) {
+        output.pos = 0;
+        size_t const ret = ZSTD_decompressStream(dstream, &output, &input);
+        if (ZSTD_isError(ret)) {
+          LOG(ERROR) << "ZSTD_decompressStream() error: "
+                     << ZSTD_getErrorName(ret);
+          ZSTD_freeDStream(dstream);
+          return 1;
+        }
+
+        decompressed_data.append(outBuffer.data(), output.pos);
+
+        // process the decompressed data line by line
+        std::stringstream ss(decompressed_data);
+        while (std::getline(ss, line, '\n')) {
+          if (!ss.eof()) {
+            Doc doc;
+            doc.FromJson(line, attr_type_map, raw_vector_name);
+            AddOrUpdate(doc);
+          } else {
+            // if this is the last incomplete line, then save it back to
+            // decompressed_data
+            decompressed_data = line;
+          }
+        }
+      }
+    }
+
+    // handle the potentially remaining last line
+    if (!decompressed_data.empty()) {
+      std::stringstream ss(decompressed_data);
+      while (std::getline(ss, line, '\n')) {
+        if (!ss.eof()) {
+          Doc doc;
+          doc.FromJson(line, attr_type_map, raw_vector_name);
+          AddOrUpdate(doc);
+        }
+      }
+    }
+
+    ZSTD_freeDStream(dstream);
+
+    LOG(INFO) << space_name_ << " restored from [" << compressed_filename
+              << "] successfully!";
   }
 
-  ZSTD_freeCStream(cstream);
-
-  LOG(INFO) << space_name_ << " backup to [" << compressed_filename
-            << "] success!";
   return 0;
 }
 

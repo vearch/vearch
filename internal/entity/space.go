@@ -117,11 +117,13 @@ type EngineCfg struct {
 
 type BackupSpace struct {
 	Command string `json:"command,omitempty"`
+	Part    int    `json:"part"`
 	S3Param struct {
 		BucketName string `json:"bucket_name"`
 		EndPoint   string `json:"endpoint"`
 		AccessKey  string `json:"access_key"`
 		SecretKey  string `json:"secret_key"`
+		UseSSL     bool   `json:"use_ssl"`
 	} `json:"s3_param,omitempty"`
 }
 

@@ -432,6 +432,7 @@ func (bh *BackupHandler) Execute(ctx context.Context, req *vearchpb.PartitionDat
 	reply.Err = &vearchpb.Error{Code: vearchpb.ErrorEnum_SUCCESS}
 	// get store engine
 	log.Debug("request pid [%+v]", req.PartitionID)
+
 	partitonStore := bh.server.GetPartition(req.PartitionID)
 	if partitonStore == nil {
 		log.Debug("partitonStore is nil.")
@@ -446,46 +447,65 @@ func (bh *BackupHandler) Execute(ctx context.Context, req *vearchpb.PartitionDat
 		errutil.ThrowError(err)
 		return err
 	}
+	if backup.Command != "create" && backup.Command != "restore" {
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("unknow command %s", backup.Command))
+	}
 	space := partitonStore.GetSpace()
 	dbName, err := bh.server.client.Master().QueryDBId2Name(ctx, space.DBId)
 	if err != nil {
 		return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("find db by id err: %s, data: %d", err.Error(), space.DBId))
 	}
-	// invoke c interface
-	log.Debug("backup info is [%+v]", backup)
+
 	go func() {
-		err := engine.BackupSpace(backup.Command)
-		if err != nil {
-			log.Error("backup error [%+v]", err)
-		}
 		engineConfig := gamma.Config{}
-		err = engine.GetEngineCfg(&engineConfig)
+		err := engine.GetEngineCfg(&engineConfig)
 		if err != nil {
 			log.Error("get engine config error [%+v]", err)
 			return
 		}
 
 		backupFileName := engineConfig.Path + "/backup/raw_data.json.zst"
-		log.Info("backup success, file is [%s]", backupFileName)
 
-		useSSL := true
 		minioClient, err := minio.New(backup.S3Param.EndPoint, &minio.Options{
 			Creds:  credentials.NewStaticV4(backup.S3Param.AccessKey, backup.S3Param.SecretKey, ""),
-			Secure: useSSL,
+			Secure: backup.S3Param.UseSSL,
 		})
 		if err != nil {
-			log.Error(err)
+			log.Error("failed to create minio client: %+v", err)
 			return
 		}
 		bucketName := backup.S3Param.BucketName
-		uploadFileName := fmt.Sprintf("%s/%s/%d.json.zst", dbName, space.Name, req.PartitionID)
-		info, err := minioClient.FPutObject(context.Background(), bucketName, uploadFileName, backupFileName, minio.PutObjectOptions{ContentType: "application/octet-stream"})
-		if err != nil {
-			log.Error(err)
-			return
-		}
+		objectName := fmt.Sprintf("%s/%s/%d.json.zst", dbName, space.Name, backup.Part)
+		log.Info("objectName %s", objectName)
 
-		log.Info(info)
+		if backup.Command == "create" {
+			err = engine.BackupSpace(backup.Command)
+			if err != nil {
+				log.Error("backup error [%+v]", err)
+				return
+			}
+
+			_, err := minioClient.FPutObject(context.Background(), bucketName, objectName, backupFileName, minio.PutObjectOptions{ContentType: "application/octet-stream"})
+			if err != nil {
+				log.Error("failed to backup space: %+v", err)
+				return
+			}
+			log.Info("backup success, file is [%s]", backupFileName)
+		} else if backup.Command == "restore" {
+			err = minioClient.FGetObject(context.Background(), bucketName, objectName, backupFileName, minio.GetObjectOptions{})
+			if err != nil {
+				log.Error("failed to download file from S3: %+v", err)
+				return
+			}
+			log.Info("downloaded backup file from S3: %s", backupFileName)
+
+			err = engine.BackupSpace(backup.Command)
+			if err != nil {
+				log.Error("failed to restore space: %+v", err)
+				return
+			}
+			log.Info("space restored successfully")
+		}
 	}()
 	return nil
 }

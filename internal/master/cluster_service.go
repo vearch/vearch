@@ -1075,6 +1075,7 @@ func (ms *masterService) BackupSpace(ctx context.Context, dbName, spaceName stri
 		return nil
 	}
 	// invoke all space nodeID
+	part := 0
 	for _, partition := range space.Partitions {
 		if partition.Replicas != nil {
 			for _, nodeID := range partition.Replicas {
@@ -1085,15 +1086,19 @@ func (ms *masterService) BackupSpace(ctx context.Context, dbName, spaceName stri
 				server, err := ms.Master().QueryServer(ctx, nodeID)
 				errutil.ThrowError(err)
 				log.Debug("invoke nodeID [%+v],address [%+v]", partition.Id, server.RpcAddr())
+				backup.Part = part
 				err = client.BackupSpace(server.RpcAddr(), backup, partition.Id)
 				errutil.ThrowError(err)
+				part++
 			}
 			if len(partition.Replicas) == 1 && partition.LeaderID == 0 {
 				server, err := ms.Master().QueryServer(ctx, partition.Replicas[0])
 				errutil.ThrowError(err)
 				log.Debug("invoke nodeID [%+v],address [%+v]", partition.Id, server.RpcAddr())
+				backup.Part = part
 				err = client.BackupSpace(server.RpcAddr(), backup, partition.Id)
 				errutil.ThrowError(err)
+				part++
 			}
 		}
 	}
