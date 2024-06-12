@@ -32,6 +32,9 @@ jobs:
 
     - name: Compile and Build
       run: |
+        mkdir test/oss_data
+        docker network create vearch_network
+        docker run -d --name minio -p 10000:9000 --network vearch_network minio/minio server test/oss_data
         pwd; ls -l
         cd cloud
         docker run ${{ matrix.docker-arch }} --privileged -i -v $(dirname "$PWD"):/vearch vearch/vearch-dev-env:latest /vearch/cloud/compile/compile.sh
@@ -42,10 +45,14 @@ jobs:
       run: |
         cd cloud
         cp ../config/config.toml .
-        nohup docker run ${{ matrix.docker-arch }} --privileged -p 8817:8817 -p 9001:9001 -v $PWD/config.toml:/vearch/config.toml vearch/vearch:latest all &
+        nohup docker run ${{ matrix.docker-arch }} --name vearch --network vearch_network --privileged -p 8817:8817 -p 9001:9001 -v $PWD/config.toml:/vearch/config.toml vearch/vearch:latest all &
 
-    - name: Sleep
-      run: sleep 10s
+    - name: Create Minio bucket
+      run: |
+        wget https://dl.min.io/client/mc/release/linux-amd64/mc
+        chmod +x mc
+        ./mc alias set myminio http://127.0.0.1:10000 minioadmin minioadmin
+        ./mc mb myminio/test
 
     - name: Set up Python
       uses: actions/setup-python@v5
