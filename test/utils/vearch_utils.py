@@ -17,15 +17,13 @@
 
 import requests
 import json
+import os
 import time
 import random
 from multiprocessing import Pool as ThreadPool
 import numpy as np
 
-ip = "127.0.0.1"
-ip_master = ip + ":8817"
-ip_router = ip + ":9001"
-router_url = "http://" + ip_router
+router_url = os.getenv("ROUTER_URL", "http://127.0.0.1:9001")
 db_name = "ts_db"
 space_name = "ts_space"
 username = "root"

@@ -105,6 +105,12 @@ def query(parallel_on_queries, xq, gt, k, logger):
         assert recalls[10] >= 1.0
 
 
+def compare_doc(doc1, doc2):
+    logger.debug("doc1: " + json.dumps(doc1))
+    logger.debug("doc2: " + json.dumps(doc2))
+    return doc1["_id"] == doc2["_id"] and doc1["field_int"] == doc2["field_int"] and doc1["field_vector"] == doc2["field_vector"]
+
+
 def benchmark(store_type, xb, xq, gt):
     embedding_size = xb.shape[1]
     batch_size = 100
@@ -117,7 +123,7 @@ def benchmark(store_type, xb, xq, gt):
 
     create(router_url, embedding_size, store_type)
 
-    add(total_batch, batch_size, xb)
+    add(total_batch, batch_size, xb, with_id=True)
 
     waiting_index_finish(logger, total)
 
@@ -132,6 +138,26 @@ def benchmark(store_type, xb, xq, gt):
 
     for parallel_on_queries in [0, 1]:
         query(parallel_on_queries, xq, gt, k, logger)
+
+    for i in range(total):
+        query_dict_partition = {
+            "document_ids": [str(i)],
+            "limit": 1,
+            "db_name": db_name,
+            "space_name": space_name,
+            "vector_value": True,
+        }
+        query_url = router_url + "/document/query"
+        response = requests.post(
+            query_url, auth=(username, password), json=query_dict_partition
+        )
+        assert response.json()["data"]["total"] == 1
+        doc = response.json()["data"]["documents"][0]
+        origin_doc = {}
+        origin_doc["_id"] = str(i)
+        origin_doc["field_int"] = i
+        origin_doc["field_vector"] = xb[i].tolist()
+        assert compare_doc(doc, origin_doc)
 
     destroy(router_url, db_name, space_name)
 
