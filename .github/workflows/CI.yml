@@ -45,6 +45,7 @@ jobs:
       run: |
         cd cloud
         cp ../config/config.toml .
+        sed -i 's/resource_limit_rate = 0.85/resource_limit_rate = 0.98/' config.toml
         nohup docker run ${{ matrix.docker-arch }} --name vearch --network vearch_network --privileged -p 8817:8817 -p 9001:9001 -v $PWD/config.toml:/vearch/config.toml vearch/vearch:latest all &
 
     - name: Create Minio bucket

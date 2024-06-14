@@ -377,7 +377,11 @@ type PSCfg struct {
 }
 
 func InitConfig(path string) {
-	single = &Config{}
+	single = &Config{
+		Global: &GlobalCfg{
+			ResourceLimitRate: 0.85,
+		},
+	}
 	LoadConfig(single, path)
 }
 
