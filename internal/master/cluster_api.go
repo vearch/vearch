@@ -108,6 +108,7 @@ func ExportToClusterHandler(router *gin.Engine, masterService *masterService, se
 	// partition handler
 	group.GET("/partitions", c.partitionList, dh.TimeOutEndHandler)
 	group.POST("/partitions/change_member", c.changeMember, dh.TimeOutEndHandler)
+	group.POST("/partitions/resource_limit", c.ResourceLimit, dh.TimeOutEndHandler)
 
 	// schedule
 	group.POST("/schedule/recover_server", c.RecoverFailServer, dh.TimeOutEndHandler)
@@ -125,6 +126,7 @@ func ExportToClusterHandler(router *gin.Engine, masterService *masterService, se
 	group.GET("/alias", c.getAlias, dh.TimeOutEndHandler)
 	group.DELETE(fmt.Sprintf("/alias/:%s", aliasName), c.deleteAlias, dh.TimeOutEndHandler)
 	group.PUT(fmt.Sprintf("/alias/:%s/dbs/:%s/spaces/:%s", aliasName, dbName, spaceName), c.modifyAlias, dh.TimeOutEndHandler)
+
 }
 
 func (ca *clusterAPI) handleClusterInfo(c *gin.Context) {
@@ -462,6 +464,20 @@ func (ca *clusterAPI) backupSpace(c *gin.Context) {
 		httphelper.New(c).JsonError(errors.NewErrInternal(err))
 	} else {
 		httphelper.New(c).JsonSuccess(backup)
+	}
+}
+
+func (ca *clusterAPI) ResourceLimit(c *gin.Context) {
+	resourceLimit := &entity.ResourceLimit{}
+	if err := c.ShouldBindJSON(resourceLimit); err != nil {
+		httphelper.New(c).JsonError(errors.NewErrBadRequest(err))
+		return
+	}
+	if err := ca.masterService.ResourceLimitService(c, resourceLimit); err != nil {
+		httphelper.New(c).JsonError(errors.NewErrInternal(err))
+		return
+	} else {
+		httphelper.New(c).JsonSuccess(resourceLimit)
 	}
 }
 

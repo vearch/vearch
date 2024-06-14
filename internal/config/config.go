@@ -159,16 +159,17 @@ type Base struct {
 
 type GlobalCfg struct {
 	Base
-	Name              string `toml:"name,omitempty" json:"name"`
-	ResourceName      string `toml:"resource_name,omitempty" json:"resource_name"`
-	Signkey           string `toml:"signkey,omitempty" json:"signkey"`
-	SkipAuth          bool   `toml:"skip_auth,omitempty" json:"skip_auth"`
-	SelfManageEtcd    bool   `toml:"self_manage_etcd,omitempty" json:"self_manage_etcd"`
-	AutoRecoverPs     bool   `toml:"auto_recover_ps,omitempty" json:"auto_recover_ps"`
-	SupportEtcdAuth   bool   `toml:"support_etcd_auth,omitempty" json:"support_etcd_auth"`
-	RaftConsistent    bool   `toml:"raft_consistent,omitempty" json:"raft_consistent"`
-	LimitedDBNum      bool   `toml:"limited_db_num,omitempty" json:"limited_db_num"`
-	LimitedReplicaNum bool   `toml:"limited_replica_num,omitempty" json:"limited_replica_num"`
+	Name              string  `toml:"name,omitempty" json:"name"`
+	ResourceName      string  `toml:"resource_name,omitempty" json:"resource_name"`
+	Signkey           string  `toml:"signkey,omitempty" json:"signkey"`
+	SkipAuth          bool    `toml:"skip_auth,omitempty" json:"skip_auth"`
+	SelfManageEtcd    bool    `toml:"self_manage_etcd,omitempty" json:"self_manage_etcd"`
+	AutoRecoverPs     bool    `toml:"auto_recover_ps,omitempty" json:"auto_recover_ps"`
+	SupportEtcdAuth   bool    `toml:"support_etcd_auth,omitempty" json:"support_etcd_auth"`
+	RaftConsistent    bool    `toml:"raft_consistent,omitempty" json:"raft_consistent"`
+	LimitedDBNum      bool    `toml:"limited_db_num,omitempty" json:"limited_db_num"`
+	LimitedReplicaNum bool    `toml:"limited_replica_num,omitempty" json:"limited_replica_num"`
+	ResourceLimitRate float64 `toml:"resource_limit_rate,omitempty" json:"resource_limit_rate"`
 }
 
 type EtcdCfg struct {

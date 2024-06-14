@@ -63,6 +63,7 @@ const (
 	RebuildIndexHandler           = "RebuildIndexHandler"
 	FlushHandler                  = "FlushHandler"
 	BackupHandler                 = "BackupHandler"
+	ResourceLimitHandler          = "ResourceLimitHandler"
 
 	CreatePartitionHandler = "CreatePartitionHandler"
 	DeletePartitionHandler = "DeletePartitionHandler"

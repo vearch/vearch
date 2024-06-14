@@ -17,6 +17,7 @@
 package os
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"strconv"
@@ -24,6 +25,7 @@ import (
 	"syscall"
 
 	"github.com/shirou/gopsutil/process"
+	"github.com/vearch/vearch/v3/internal/config"
 	"github.com/vearch/vearch/v3/internal/pkg/log"
 	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
 )
@@ -62,6 +64,46 @@ func readCgroupMemory() (available, limit uint64, err error) {
 	return available, limit, nil
 }
 
+func readProcMemory() (available, total uint64, err error) {
+	file, err := os.Open("/proc/meminfo")
+	if err != nil {
+		return 0, 0, err
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.HasPrefix(line, "MemAvailable:") {
+			fields := strings.Fields(line)
+			if len(fields) < 2 {
+				return 0, 0, fmt.Errorf("unexpected format in /proc/meminfo")
+			}
+			availableBytes, err := strconv.ParseUint(fields[1], 10, 64)
+			if err != nil {
+				return 0, 0, err
+			}
+			available = availableBytes / 1024
+		}
+		if strings.HasPrefix(line, "MemTotal:") {
+			fields := strings.Fields(line)
+			if len(fields) < 2 {
+				return 0, 0, fmt.Errorf("unexpected format in /proc/meminfo")
+			}
+			totalBytes, err := strconv.ParseUint(fields[1], 10, 64)
+			if err != nil {
+				return 0, 0, err
+			}
+			total = totalBytes / 1024
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		return 0, 0, err
+	}
+	return available, total, nil
+}
+
 func CheckResource(path string) (is bool, err error) {
 	var stat syscall.Statfs_t
 	err = syscall.Statfs(path, &stat)
@@ -73,23 +115,20 @@ func CheckResource(path string) (is bool, err error) {
 
 	totalDisk := stat.Blocks * uint64(stat.Bsize) / 1024 / 1024
 	availDisk := stat.Bavail * uint64(stat.Bsize) / 1024 / 1024
-	log.Debug("availDisk %dM, totalDisk %dM", availDisk, totalDisk)
+	log.Debug("path: %s, availDisk %dM, totalDisk %dM", path, availDisk, totalDisk)
 
-	if !(availDisk > 1024 || float64(availDisk)/float64(totalDisk) > 0.05) {
+	if float64(availDisk)/float64(totalDisk) <= (1 - config.Conf().Global.ResourceLimitRate) {
 		return true, vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_RESOURCE_EXHAUSTED, fmt.Errorf("disk space not enough: total [%d]M, avail [%d]M", totalDisk, availDisk))
 	}
 
-	var info syscall.Sysinfo_t
-
-	if err = syscall.Sysinfo(&info); err != nil {
-		log.Error("syscall.Sysinfo err %v", err)
-		return false, nil
+	availableMemory, totalMemory, err := readProcMemory()
+	if err != nil {
+		log.Error(err.Error())
 	}
 
-	totalMemory := (info.Totalram * uint64(info.Unit)) / 1024 / 1024
-	availableMemory := (info.Freeram*uint64(info.Unit) + info.Bufferram*uint64(info.Unit)) / 1024 / 1024
-
 	cgroupAvailableMemory, cgroupTotalMemory, err := readCgroupMemory()
+
+	log.Debug("total memory %dM, available memory %dM, cgroup total memory %dM, cgroup available memory %dM", totalMemory, availableMemory, cgroupTotalMemory, cgroupAvailableMemory)
 
 	if err == nil {
 		if cgroupTotalMemory < totalMemory {
@@ -98,9 +137,7 @@ func CheckResource(path string) (is bool, err error) {
 		}
 	}
 
-	log.Debug("total memory %dM, available memory %dM", totalMemory, availableMemory)
-
-	if !(availableMemory > 512 || float64(availableMemory)/float64(totalMemory) > 0.05) {
+	if float64(availableMemory)/float64(totalMemory) <= (1 - config.Conf().Global.ResourceLimitRate) {
 		return true, vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_RESOURCE_EXHAUSTED, fmt.Errorf("available memory not enough: total [%d]M, avail [%d]M", totalMemory, availableMemory))
 	}
 	return false, nil

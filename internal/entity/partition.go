@@ -90,3 +90,10 @@ type PartitionInfo struct {
 	MaxDocid    int               `json:"max_docid"`
 	Error       string            `json:"error,omitempty"`
 }
+
+type ResourceLimit struct {
+	Rate              *float64 `json:"rate,omitempty"`
+	ResourceExhausted *bool    `json:"resource_exhausted,omitempty"`
+	SpaceName         *string  `json:"space_name,omitempty"`
+	DbName            *string  `json:"db_name,omitempty"`
+}

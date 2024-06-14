@@ -375,7 +375,7 @@ func rebuildIndex(store PartitionStore, indexRequest *vearchpb.IndexRequest) *ve
 	if err != nil {
 		partitionID := store.GetPartition().Id
 		pIdStr := strconv.Itoa(int(partitionID))
-		return &vearchpb.Error{Code: vearchpb.ErrorEnum_FORCE_MERGE_BUILD_INDEX_ERR, Msg: "build index err, PartitionID :" + pIdStr}
+		return &vearchpb.Error{Code: vearchpb.ErrorEnum_FORCE_MERGE_BUILD_INDEX_ERR, Msg: "rebuild index err, PartitionID :" + pIdStr}
 	}
 	return nil
 }

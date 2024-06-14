@@ -105,6 +105,7 @@ func main() {
 
 	entity.SetPrefixAndSequence(config.Conf().Global.Name)
 	log.Info("The cluster prefix is: %v", entity.PrefixEtcdClusterID)
+	log.Info("ResourceLimitRate: %f", config.Conf().Global.ResourceLimitRate)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

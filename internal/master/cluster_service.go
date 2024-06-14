@@ -1105,6 +1105,69 @@ func (ms *masterService) BackupSpace(ctx context.Context, dbName, spaceName stri
 	return nil
 }
 
+func (ms *masterService) ResourceLimitService(ctx context.Context, resourceLimit *entity.ResourceLimit) (err error) {
+	spaces := make([]*entity.Space, 0)
+	dbNames := make([]string, 0)
+	if resourceLimit.DbName == nil && resourceLimit.SpaceName != nil {
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("if space_name is set, db_name must be set"))
+	}
+	if resourceLimit.DbName != nil {
+		dbNames = append(dbNames, *resourceLimit.DbName)
+	}
+
+	if len(dbNames) == 0 {
+		dbs, err := ms.queryDBs(ctx)
+		if err != nil {
+			return err
+		}
+		dbNames = make([]string, len(dbs))
+		for i, db := range dbs {
+			dbNames[i] = db.Name
+		}
+	}
+
+	for _, dbName := range dbNames {
+		dbID, err := ms.Master().QueryDBName2Id(ctx, dbName)
+		if err != nil {
+			return err
+		}
+		if resourceLimit.SpaceName != nil {
+			if space, err := ms.Master().QuerySpaceByName(ctx, dbID, *resourceLimit.SpaceName); err != nil {
+				return err
+			} else {
+				spaces = append(spaces, space)
+			}
+		} else {
+			if dbSpaces, err := ms.Master().QuerySpaces(ctx, dbID); err != nil {
+				return err
+			} else {
+				spaces = append(spaces, dbSpaces...)
+			}
+		}
+	}
+
+	log.Debug("dbNames: %v, len(spaces): %d", dbNames, len(spaces))
+	check := false
+	for _, space := range spaces {
+		for _, partition := range space.Partitions {
+			for _, nodeID := range partition.Replicas {
+				if server, err := ms.Master().QueryServer(ctx, nodeID); err != nil {
+					return err
+				} else {
+					check = true
+					err = client.ResourceLimit(server.RpcAddr(), resourceLimit, partition.Id)
+					return err
+				}
+			}
+		}
+	}
+	if !check {
+		return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("cluster is empty, no need to check resource limit"))
+	}
+
+	return nil
+}
+
 func (ms *masterService) updateSpaceResourceService(ctx context.Context, spaceResource *entity.SpaceResource) (*entity.Space, error) {
 	// it will lock cluster, to create space
 	mutex := ms.Master().NewLock(ctx, entity.LockSpaceKey(spaceResource.DbName, spaceResource.SpaceName), time.Second*300)

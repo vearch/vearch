@@ -29,6 +29,7 @@ import (
 	"github.com/vearch/vearch/v3/internal/pkg/errutil"
 	"github.com/vearch/vearch/v3/internal/pkg/log"
 	"github.com/vearch/vearch/v3/internal/pkg/metrics/mserver"
+	"github.com/vearch/vearch/v3/internal/pkg/runtime/os"
 	"github.com/vearch/vearch/v3/internal/pkg/server/rpc/handler"
 	"github.com/vearch/vearch/v3/internal/pkg/vjson"
 	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
@@ -76,6 +77,9 @@ func ExportToRpcAdminHandler(server *Server) {
 	if err := server.rpcServer.RegisterName(handler.NewChain(client.BackupHandler, handler.DefaultPanicHandler, nil, initAdminHandler, &BackupHandler{server: server}), ""); err != nil {
 		panic(err)
 	}
+	if err := server.rpcServer.RegisterName(handler.NewChain(client.ResourceLimitHandler, handler.DefaultPanicHandler, nil, initAdminHandler, &ResourceLimitHandler{server: server}), ""); err != nil {
+		panic(err)
+	}
 }
 
 type InitAdminHandler struct {
@@ -107,7 +111,7 @@ func (c *CreatePartitionHandler) Execute(ctx context.Context, req *vearchpb.Part
 	})
 
 	if partitionStore := c.server.GetPartition(req.PartitionID); partitionStore != nil {
-		return vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_DUPLICATE, nil)
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_EXIST, nil)
 	}
 
 	if err := c.server.CreatePartition(ctx, space, req.PartitionID); err != nil {
@@ -507,5 +511,37 @@ func (bh *BackupHandler) Execute(ctx context.Context, req *vearchpb.PartitionDat
 			log.Info("space restored successfully")
 		}
 	}()
+	return nil
+}
+
+type ResourceLimitHandler struct {
+	server *Server
+}
+
+func (rlh *ResourceLimitHandler) Execute(ctx context.Context, req *vearchpb.PartitionData, reply *vearchpb.PartitionData) (err error) {
+	defer errutil.CatchError(&err)
+	reply.Err = &vearchpb.Error{Code: vearchpb.ErrorEnum_SUCCESS}
+
+	partitonStore := rlh.server.GetPartition(req.PartitionID)
+	if partitonStore == nil {
+		log.Debug("partitonStore is nil, pid %d not found", req.PartitionID)
+		return nil
+	}
+
+	resourceLimit := new(entity.ResourceLimit)
+	if err := vjson.Unmarshal(req.Data, resourceLimit); err != nil {
+		return err
+	}
+	// check resource or set
+	if resourceLimit.ResourceExhausted != nil {
+		partitonStore.GetPartition().ResourceExhausted = *resourceLimit.ResourceExhausted
+	} else {
+		if resource_exhausted, err := os.CheckResource(partitonStore.GetPartition().Path); err != nil {
+			return err
+		} else {
+			partitonStore.GetPartition().ResourceExhausted = resource_exhausted
+		}
+	}
+	log.Debug("partition %d set ResourceExhausted as %v", req.PartitionID, partitonStore.GetPartition().ResourceExhausted)
 	return nil
 }

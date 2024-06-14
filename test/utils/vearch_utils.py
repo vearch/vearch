@@ -1361,3 +1361,21 @@ def drop_alias(router_url: str, alias_name: str):
     url = f"{router_url}/alias/{alias_name}"
     resp = requests.delete(url, auth=(username, password))
     return resp
+
+
+def server_resource_limit(
+    router_url: str,
+    resource_exhausted: bool = None,
+    rate: float = None,
+    logger=None,
+):
+    url = f"{router_url}/partitions/resource_limit"
+    data = {}
+    if resource_exhausted != None:
+        data["resource_exhausted"] = resource_exhausted
+    if rate != None:
+        data["rate"] = rate
+    if logger != None:
+        logger.info(data)
+    resp = requests.post(url, auth=(username, password), json=data)
+    return resp

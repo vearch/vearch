@@ -23,6 +23,7 @@ import (
 	"github.com/cubefs/cubefs/depends/tiglabs/raft/proto"
 	"github.com/vearch/vearch/v3/internal/entity"
 	"github.com/vearch/vearch/v3/internal/pkg/log"
+	"github.com/vearch/vearch/v3/internal/pkg/runtime/os"
 	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
 	"github.com/vearch/vearch/v3/internal/ps/engine"
 	"github.com/vearch/vearch/v3/internal/ps/storage/raftstore"
@@ -126,6 +127,7 @@ func (s *Server) LoadPartition(ctx context.Context, pid entity.PartitionID, spac
 	if err != nil {
 		return nil, err
 	}
+
 	// partition status chan
 	store.RsStatusC = s.replicasStatusC
 	replicas := store.GetPartition().Replicas
@@ -141,6 +143,13 @@ func (s *Server) LoadPartition(ctx context.Context, pid entity.PartitionID, spac
 		return nil, err
 	}
 
+	// LoadPartition means start, should check resource and set it for partition as init
+	if resource_exhausted, err := os.CheckResource(store.RaftPath); err != nil {
+		return nil, err
+	} else {
+		store.Partition.ResourceExhausted = resource_exhausted
+	}
+
 	s.partitions.Store(pid, store)
 
 	return store, nil
@@ -154,6 +163,16 @@ func (s *Server) CreatePartition(ctx context.Context, space *entity.Space, pid e
 	if err != nil {
 		return err
 	}
+
+	// check resource
+	if resource_exhausted, err := os.CheckResource(store.RaftPath); err != nil {
+		return err
+	} else {
+		if resource_exhausted {
+			return vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_RESOURCE_EXHAUSTED, nil)
+		}
+	}
+
 	store.RsStatusC = s.replicasStatusC
 	if _, ok := s.partitions.LoadOrStore(pid, store); ok {
 		log.Warn("partition is already exist partition id:[%d]", pid)

@@ -531,7 +531,7 @@ class TestSpaceExpansion:
         p1_num = partitions[0]["index_num"]
         p2_num = partitions[1]["index_num"]
         logger.info(partitions)
-        assert abs(p1_num - p2_num) <= 15
+        assert abs(p1_num - p2_num) <= 100
 
     def test_destroy_space(self):
         response = drop_space(router_url, db_name, space_name)

@@ -81,9 +81,14 @@ func ExportDocumentHandler(httpServer *gin.Engine, client *client.Client) {
 }
 
 func (handler *DocumentHandler) proxyMaster(group *gin.RouterGroup) error {
-	// list/*
+	// server handler
 	group.GET("/servers", handler.handleMasterRequest)
+
+	// partition handler
 	group.GET("/partitions", handler.handleMasterRequest)
+	group.POST("/partitions/change_member", handler.handleMasterRequest)
+	group.POST("/partitions/resource_limit", handler.handleMasterRequest)
+
 	group.GET("/routers", handler.handleMasterRequest)
 	// db handler
 	group.POST(fmt.Sprintf("/dbs/:%s", URLParamDbName), handler.handleMasterRequest)
@@ -107,6 +112,8 @@ func (handler *DocumentHandler) proxyMaster(group *gin.RouterGroup) error {
 	// cluster handler
 	group.GET("/cluster/health", handler.handleMasterRequest)
 	group.GET("/cluster/stats", handler.handleMasterRequest)
+
+	// schedule handler
 
 	return nil
 }

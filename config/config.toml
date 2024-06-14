@@ -21,6 +21,8 @@
     support_etcd_auth = false
     # ensure leader-follow raft data synchronization is consistent
     raft_consistent = false
+    # server resource limit to avoid resource exhausted
+    resource_limit_rate = 0.85
 
 # self_manage_etcd = true,means manage etcd by yourself,need provide additional configuration
 [etcd]
