@@ -8,7 +8,6 @@
 #pragma once
 
 #include "c_api/api_data/table.h"
-#include "util/utils.h"
 
 namespace vearch {
 
@@ -20,29 +19,9 @@ class TableSchemaIO {
 
   int Write(TableInfo &table);
 
-  void WriteIndexingSize(TableInfo &table);
-
-  void WriteFieldInfos(TableInfo &table);
-
-  void WriteVectorInfos(TableInfo &table);
-
-  void WriteIndexType(TableInfo &table);
-
-  void WriteIndexParams(TableInfo &table);
-
   int Read(std::string &name, TableInfo &table);
 
-  void ReadTrainingThreshold(TableInfo &table);
-
-  void ReadFieldInfos(TableInfo &table);
-
-  void ReadVectorInfos(TableInfo &table);
-
-  void ReadIndexType(TableInfo &table);
-
-  void ReadIndexParams(TableInfo &table);
-
-  utils::FileIO *fio;
+  std::string file_path;
 };
 
 }  // namespace vearch
