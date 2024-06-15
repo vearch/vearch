@@ -51,3 +51,7 @@ engine/sdk/python/demos/logs/
 
 #skip examples
 examples/golang/basic_usage/basic_usage
+
+#scripts
+scripts/benchmarks/*log
+scripts/benchmarks/__pycache__
