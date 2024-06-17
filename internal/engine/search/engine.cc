@@ -484,41 +484,6 @@ int Engine::MultiRangeQuery(Request &request, SearchCondition *condition,
 }
 
 Status Engine::CreateTable(TableInfo &table) {
-  std::string dump_meta_path = index_root_path_ + "/dump.meta";
-  utils::JsonParser *meta_jp = nullptr;
-  utils::ScopeDeleter1<utils::JsonParser> del1;
-  if (utils::file_exist(dump_meta_path)) {
-    long len = utils::get_file_size(dump_meta_path);
-    if (len > 0) {
-      utils::FileIO fio(dump_meta_path);
-      if (fio.Open("r")) {
-        std::string msg =
-            space_name_ + " open file error, path=" + dump_meta_path;
-        LOG(ERROR) << msg;
-        return Status::IOError(msg);
-      }
-      char *buf = new char[len + 1];
-      buf[len] = '\0';
-      if ((size_t)len != fio.Read(buf, 1, (size_t)len)) {
-        std::string msg =
-            space_name_ + " read file error, path=" + dump_meta_path;
-        LOG(ERROR) << msg;
-        delete[] buf;
-        buf = nullptr;
-        return Status::IOError(msg);
-      }
-      meta_jp = new utils::JsonParser();
-      del1.set(meta_jp);
-      if (meta_jp->Parse(buf)) {
-        delete[] buf;
-        buf = nullptr;
-        return Status::ParamError();
-      }
-      delete[] buf;
-      buf = nullptr;
-    }
-  }
-
   Status status;
 
   storage_mgr_ = new StorageManager(index_root_path_ + "/data");
@@ -537,8 +502,7 @@ Status Engine::CreateTable(TableInfo &table) {
           storage_mgr_->CreateColumnFamily("vector_" + name));
     }
   }
-  status = vec_manager_->CreateVectorTable(table, meta_jp, vector_cf_ids,
-                                           storage_mgr_);
+  status = vec_manager_->CreateVectorTable(table, vector_cf_ids, storage_mgr_);
   if (!status.ok()) {
     std::string msg =
         space_name_ + " cannot create VectorTable: " + status.ToString();
@@ -547,18 +511,12 @@ Status Engine::CreateTable(TableInfo &table) {
     this->Close();
     return Status::ParamError(msg);
   }
-  TableParams disk_table_params;
-  if (meta_jp) {
-    utils::JsonParser table_jp;
-    meta_jp->GetObject("table", table_jp);
-    disk_table_params.Parse(table_jp);
-  }
 
   int table_cf_id = storage_mgr_->CreateColumnFamily("table");
 
   table_ = new Table(space_name_, storage_mgr_, table_cf_id);
 
-  status = table_->CreateTable(table, disk_table_params, docids_bitmap_);
+  status = table_->CreateTable(table, docids_bitmap_);
   training_threshold_ = table.TrainingThreshold();
   LOG(INFO) << space_name_
             << " init training_threshold=" << training_threshold_;
@@ -572,30 +530,6 @@ Status Engine::CreateTable(TableInfo &table) {
   if (!status.ok()) {
     LOG(ERROR) << "init gamma db error, ret=" << status.ToString();
     return status;
-  }
-
-  if (!meta_jp) {
-    utils::JsonParser dump_meta_;
-    dump_meta_.PutInt("version", 327);
-
-    utils::JsonParser table_jp;
-    table_->GetDumpConfig()->ToJson(table_jp);
-    dump_meta_.PutObject("table", std::move(table_jp));
-
-    utils::JsonParser vectors_jp;
-    for (auto &[key, raw_vector_ptr] : vec_manager_->RawVectors()) {
-      if (DumpConfig *dc = raw_vector_ptr->GetDumpConfig()) {
-        utils::JsonParser jp;
-        dc->ToJson(jp);
-        vectors_jp.PutObject(dc->name, std::move(jp));
-      }
-    }
-    dump_meta_.PutObject("vectors", std::move(vectors_jp));
-
-    utils::FileIO fio(dump_meta_path);
-    fio.Open("w");
-    std::string meta_str = dump_meta_.ToStr(true);
-    fio.Write(meta_str.c_str(), 1, meta_str.size());
   }
 
   std::string scalar_index_path = index_root_path_ + "/scalar_index";

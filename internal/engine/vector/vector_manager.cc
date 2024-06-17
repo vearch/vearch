@@ -70,10 +70,8 @@ Status VectorManager::SetVectorStoreType(std::string &index_type,
 Status VectorManager::CreateRawVector(struct VectorInfo &vector_info,
                                       std::string &index_type,
                                       std::map<std::string, int> &vec_dups,
-                                      TableInfo &table,
-                                      utils::JsonParser &vectors_jp,
-                                      RawVector **vec, int cf_id,
-                                      StorageManager *storage_mgr) {
+                                      TableInfo &table, RawVector **vec,
+                                      int cf_id, StorageManager *storage_mgr) {
   std::string &vec_name = vector_info.name;
   int dimension = vector_info.dimension;
 
@@ -108,15 +106,6 @@ Status VectorManager::CreateRawVector(struct VectorInfo &vector_info,
   }
 
   LOG(INFO) << "store params=" << store_params.ToJsonStr();
-  if (vectors_jp.Contains(meta_info->AbsoluteName())) {
-    utils::JsonParser vec_jp;
-    vectors_jp.GetObject(meta_info->AbsoluteName(), vec_jp);
-    StoreParams disk_store_params(meta_info->AbsoluteName());
-    disk_store_params.Parse(vec_jp);
-    store_params.MergeRight(disk_store_params);
-    LOG(INFO) << "after merge, store parameters [" << store_params.ToJsonStr()
-              << "]";
-  }
 
   *vec = RawVectorFactory::Create(meta_info, store_type, store_params,
                                   docids_bitmap_, cf_id, storage_mgr);
@@ -242,7 +231,6 @@ void VectorManager::SetVectorIndexes(
 }
 
 Status VectorManager::CreateVectorTable(TableInfo &table,
-                                        utils::JsonParser *meta_jp,
                                         std::vector<int> &vector_cf_ids,
                                         StorageManager *storage_mgr) {
   Status status;
@@ -262,11 +250,6 @@ Status VectorManager::CreateVectorTable(TableInfo &table,
     }
   }
 
-  utils::JsonParser vectors_jp;
-  if (meta_jp) {
-    meta_jp->GetObject("vectors", vectors_jp);
-  }
-
   if (table.IndexType() != "") {
     index_types_.push_back(table.IndexType());
     index_params_.push_back(table.IndexParams());
@@ -277,9 +260,8 @@ Status VectorManager::CreateVectorTable(TableInfo &table,
     RawVector *vec = nullptr;
     struct VectorInfo &vector_info = vectors_infos[i];
     std::string &vec_name = vector_info.name;
-    vec_status =
-        CreateRawVector(vector_info, index_types_[0], vec_dups, table,
-                        vectors_jp, &vec, vector_cf_ids[i], storage_mgr);
+    vec_status = CreateRawVector(vector_info, index_types_[0], vec_dups, table,
+                                 &vec, vector_cf_ids[i], storage_mgr);
     if (!vec_status.ok()) {
       std::stringstream msg;
       msg << vec_name << " create vector failed:" << vec_status.ToString();
@@ -600,7 +582,7 @@ Status VectorManager::Search(GammaQuery &query, GammaResult *results) {
     }
 
 #ifdef PERFORMANCE_TESTING
-    if(query.condition->GetPerfTool()) {
+    if (query.condition->GetPerfTool()) {
       std::string msg;
       msg += "search " + index_name;
       query.condition->GetPerfTool()->Perf(msg);
@@ -693,7 +675,7 @@ Status VectorManager::Search(GammaQuery &query, GammaResult *results) {
   }
 
 #ifdef PERFORMANCE_TESTING
-  if(query.condition->GetPerfTool()) {
+  if (query.condition->GetPerfTool()) {
     query.condition->GetPerfTool()->Perf("merge result");
   }
 #endif

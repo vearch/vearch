@@ -13,6 +13,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include "third_party/nlohmann/json.hpp"
 #include "util/log.h"
 #include "util/utils.h"
 
@@ -119,43 +120,35 @@ DumpConfig *RawVector::GetDumpConfig() {
 }
 
 Status StoreParams::Parse(const char *str) {
-  utils::JsonParser jp;
-  if (jp.Parse(str)) {
-    std::string msg = std::string("parse store parameters error: ") + str;
-    LOG(ERROR) << msg;
-    return Status::ParamError(msg);
-  }
-  return Parse(jp);
-}
+  try {
+    nlohmann::json json_object = nlohmann::json::parse(str);
 
-Status StoreParams::Parse(utils::JsonParser &jp) {
-  double cache_size = 0;
-  if (!jp.GetDouble("cache_size", cache_size)) {
-    if (cache_size > MAX_CACHE_SIZE || cache_size < 0) {
-      std::stringstream msg;
-      msg << "invalid cache size=" << cache_size << "M"
-          << ", limit size=" << MAX_CACHE_SIZE << "M";
-      LOG(ERROR) << msg.str();
-      return Status::ParamError(msg.str());
+    if (json_object.contains("cache_size")) {
+      double cache_size = json_object["cache_size"].get<double>();
+      if (cache_size > MAX_CACHE_SIZE || cache_size < 0) {
+        std::stringstream msg;
+        msg << "invalid cache size=" << cache_size << "M"
+            << ", limit size=" << MAX_CACHE_SIZE << "M";
+        LOG(ERROR) << msg.str();
+        return Status::ParamError(msg.str());
+      }
+      this->cache_size = cache_size;
     }
-    this->cache_size = cache_size;
-  }
 
-  if (!jp.GetInt("segment_size", segment_size)) {
-    if (segment_size <= 0) {
-      std::stringstream msg;
-      msg << "invalid segment size=" << segment_size;
-      LOG(ERROR) << msg.str();
-      return Status::ParamError(msg.str());
+    if (json_object.contains("segment_size")) {
+      int segment_size = json_object["segment_size"].get<int>();
+      if (segment_size <= 0) {
+        std::stringstream msg;
+        msg << "invalid segment size=" << segment_size;
+        LOG(ERROR) << msg.str();
+        return Status::ParamError(msg.str());
+      }
+      this->segment_size = segment_size;
     }
+  } catch (nlohmann::json::parse_error &e) {
+    return Status::ParamError(e.what());
   }
-
   return Status::OK();
-}
-
-void StoreParams::MergeRight(StoreParams &other) {
-  cache_size = other.cache_size;
-  segment_size = other.segment_size;
 }
 
 }  // namespace vearch

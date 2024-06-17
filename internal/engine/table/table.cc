@@ -58,8 +58,7 @@ int Table::Load(int &num) {
   return 0;
 }
 
-Status Table::CreateTable(TableInfo &table, TableParams &table_params,
-                          bitmap::BitmapManager *bitmap_mgr) {
+Status Table::CreateTable(TableInfo &table, bitmap::BitmapManager *bitmap_mgr) {
   if (table_created_) {
     return Status::IOError();
   }

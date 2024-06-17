@@ -17,7 +17,6 @@
 #include "storage/storage_manager.h"
 #include "util/bitmap_manager.h"
 #include "util/log.h"
-#include "util/utils.h"
 #include "vector/raw_vector_common.h"
 
 namespace vearch {
@@ -42,8 +41,6 @@ struct StoreParams : DumpConfig {
   }
 
   Status Parse(const char *str);
-  Status Parse(utils::JsonParser &jp);
-  void MergeRight(StoreParams &other);
 
   std::string ToJsonStr() {
     std::stringstream ss;

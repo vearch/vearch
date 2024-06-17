@@ -43,11 +43,9 @@ class Table {
   /** create table
    *
    * @param table  table definition
-   * @param table_params unused
    * @return Status::OK() if successed
    */
-  Status CreateTable(TableInfo &table, TableParams &table_params,
-                     bitmap::BitmapManager *bitmap_mgr);
+  Status CreateTable(TableInfo &table, bitmap::BitmapManager *bitmap_mgr);
 
   /** add a doc to table
    *

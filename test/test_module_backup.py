@@ -17,6 +17,7 @@
 
 import requests
 import json
+import os
 import pytest
 import logging
 from utils.vearch_utils import *
@@ -30,14 +31,16 @@ __description__ = """ test case for index flat """
 
 def backup(router_url, db_name, space_name, command):
     url = router_url + "/backup/dbs/" + db_name + "/spaces/" + space_name
+    use_ssl_str = os.getenv("S3_USE_SSL", "False")
+
     data = {
         "command": command,
         "s3_param": {
-            "access_key": "minioadmin",
-            "secret_key": "minioadmin",
-            "bucket_name": "test",
-            "endpoint": "minio:9000",
-            "use_ssl": False
+            "access_key": os.getenv("S3_ACCESS_KEY", "minioadmin"),
+            "secret_key": os.getenv("S3_SECRET_KEY", "minioadmin"),
+            "bucket_name": os.getenv("S3_BUCKET_NAME", "test"),
+            "endpoint": os.getenv("S3_ENDPOINT", "minio:9000"),
+            "use_ssl": use_ssl_str.lower() in ['true', '1']
         },
     }
     response = requests.post(url, auth=(username, password), json=data)
