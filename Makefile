@@ -10,7 +10,10 @@ all:
 	cd build && ./build.sh -n $(JOBS)
 
 test:
-	cd test && pytest -x --log-cli-level=INFO test_vearch.py
+	cd test;\
+	pytest -x --log-cli-level=INFO test_vearch.py;\
+	pytest test_document_* -k "not test_vearch_document_upsert_benchmark" -x --log-cli-level=INFO;\
+    pytest test_module_* -x --log-cli-level=INFO
 
 tools:
 	for tools in $(shell find ./tools -mindepth 1 -maxdepth 1 -type d); do \

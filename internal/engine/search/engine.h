@@ -12,7 +12,6 @@
 #include <string>
 
 #include "c_api/api_data/doc.h"
-#include "c_api/api_data/memory_info.h"
 #include "c_api/api_data/request.h"
 #include "c_api/api_data/response.h"
 #include "c_api/api_data/table.h"
@@ -59,7 +58,7 @@ class Engine {
   int RebuildIndex(int drop_before_rebuild, int limit_cpu, int describe);
 
   std::string EngineStatus();
-  void GetMemoryInfo(MemoryInfo &memory_info);
+  std::string GetMemoryInfo();
 
   IndexStatus GetIndexStatus() { return index_status_; }
 

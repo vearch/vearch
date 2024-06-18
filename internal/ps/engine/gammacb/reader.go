@@ -115,7 +115,10 @@ func (ri *readerImpl) Capacity(ctx context.Context) (int64, error) {
 	}
 
 	var status gamma.MemoryInfo
-	gamma.GetEngineMemoryInfo(gammaEngine, &status)
+	err := gamma.GetEngineMemoryInfo(gammaEngine, &status)
+	if err != nil {
+		return 0, err
+	}
 	vectorMem := status.VectorMem
 	tableMem := status.TableMem
 	fieldRangeMem := status.FieldRangeMem

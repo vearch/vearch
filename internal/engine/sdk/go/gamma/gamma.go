@@ -16,7 +16,10 @@ package gamma
 */
 import "C"
 import (
+	"fmt"
 	"unsafe"
+
+	"github.com/vearch/vearch/v3/internal/pkg/vjson"
 )
 
 type Status struct {
@@ -75,9 +78,17 @@ func GetEngineStatus(engine unsafe.Pointer) (status string) {
 	return string(buffer)
 }
 
-func GetEngineMemoryInfo(engine unsafe.Pointer, status *MemoryInfo) {
-	if engine == nil || status == nil {
-		return
+type MemoryInfo struct {
+	TableMem      int64 `json:"table_mem,omitempty"`
+	IndexMem      int64 `json:"index_mem,omitempty"`
+	VectorMem     int64 `json:"vector_mem,omitempty"`
+	FieldRangeMem int64 `json:"field_range_mem,omitempty"`
+	BitmapMem     int64 `json:"bitmap_mem,omitempty"`
+}
+
+func GetEngineMemoryInfo(engine unsafe.Pointer, status *MemoryInfo) error {
+	if engine == nil {
+		return fmt.Errorf("engine is null")
 	}
 	var CBuffer *C.char
 	zero := 0
@@ -85,7 +96,11 @@ func GetEngineMemoryInfo(engine unsafe.Pointer, status *MemoryInfo) {
 	C.GetMemoryInfo(engine, (**C.char)(unsafe.Pointer(&CBuffer)), (*C.int)(unsafe.Pointer(length)))
 	defer C.free(unsafe.Pointer(CBuffer))
 	buffer := C.GoBytes(unsafe.Pointer(CBuffer), C.int(*length))
-	status.DeSerialize(buffer)
+
+	if err := vjson.Unmarshal(buffer, status); err != nil {
+		return err
+	}
+	return nil
 }
 
 func GetDocByID(engine unsafe.Pointer, docID []byte, doc *Doc) int {

@@ -211,8 +211,8 @@ type EngineStatus struct {
 	IndexStatus   int32 `json:"index_status,omitempty"`
 	BackupStatus  int32 `json:"backup_status,omitempty"`
 	DocNum        int32 `json:"doc_num,omitempty"`
-	MinIndexedNum int32 `json:"db_name,omitempty"`
-	MaxDocid      int32 `json:"space_name,omitempty"`
+	MinIndexedNum int32 `json:"min_indexed_num,omitempty"`
+	MaxDocid      int32 `json:"max_docid,omitempty"`
 }
 
 func (ge *gammaEngine) IndexInfo() (int, int, int) {

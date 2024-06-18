@@ -879,8 +879,9 @@ std::string Engine::EngineStatus() {
   // engine_status.SetBitmapMem(docids_bitmap_->BytesSize());
 }
 
-void Engine::GetMemoryInfo(MemoryInfo &memory_info) {
-  long table_mem_bytes = table_->GetMemoryBytes();
+std::string Engine::GetMemoryInfo() {
+  nlohmann::json j;
+  j["table_mem"] = table_->GetMemoryBytes();
   long vec_mem_bytes = 0, index_mem_bytes = 0;
   vec_manager_->GetTotalMemBytes(index_mem_bytes, vec_mem_bytes);
 
@@ -898,11 +899,11 @@ void Engine::GetMemoryInfo(MemoryInfo &memory_info) {
   //           << "]MB sparse [" << sparse_b / 1024 / 1024
   //           << "]MB";
 
-  memory_info.SetTableMem(table_mem_bytes);
-  memory_info.SetIndexMem(index_mem_bytes);
-  memory_info.SetVectorMem(vec_mem_bytes);
-  memory_info.SetFieldRangeMem(total_mem_b);
-  memory_info.SetBitmapMem(docids_bitmap_->BytesSize());
+  j["index_mem"] = index_mem_bytes;
+  j["vector_mem"] = vec_mem_bytes;
+  j["field_range_mem"] = total_mem_b;
+  j["bitmap_mem"] = docids_bitmap_->BytesSize();
+  return j.dump();
 }
 
 int Engine::Dump() {
