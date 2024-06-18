@@ -73,7 +73,7 @@ type Engine interface {
 	RebuildIndex(int, int, int) error
 	Rebuild(int, int, int) error
 	IndexInfo() (int, int, int)
-	EngineStatus(status *EngineStatus) error
+	GetEngineStatus(status *EngineStatus) error
 	Close()
 	HasClosed() bool
 

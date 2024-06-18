@@ -32,6 +32,7 @@ import (
 	"github.com/vearch/vearch/v3/internal/pkg/atomic"
 	"github.com/vearch/vearch/v3/internal/pkg/log"
 	"github.com/vearch/vearch/v3/internal/pkg/vearchlog"
+	"github.com/vearch/vearch/v3/internal/pkg/vjson"
 	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
 	"github.com/vearch/vearch/v3/internal/ps/engine"
 	"github.com/vearch/vearch/v3/internal/ps/engine/mapping"
@@ -206,20 +207,33 @@ func (ge *gammaEngine) Rebuild(drop_before_rebuild int, limit_cpu int, describe 
 	return nil
 }
 
+type EngineStatus struct {
+	IndexStatus   int32 `json:"index_status,omitempty"`
+	BackupStatus  int32 `json:"backup_status,omitempty"`
+	DocNum        int32 `json:"doc_num,omitempty"`
+	MinIndexedNum int32 `json:"db_name,omitempty"`
+	MaxDocid      int32 `json:"space_name,omitempty"`
+}
+
 func (ge *gammaEngine) IndexInfo() (int, int, int) {
-	var status gamma.EngineStatus
-	gamma.GetEngineStatus(ge.gamma, &status)
+	status := &engine.EngineStatus{}
+	if err := ge.GetEngineStatus(status); err != nil {
+		return 0, 0, 0
+	}
 	return int(status.IndexStatus), int(status.MinIndexedNum), int(status.MaxDocid)
 }
 
-func (ge *gammaEngine) EngineStatus(status *engine.EngineStatus) error {
-	var ges gamma.EngineStatus
-	gamma.GetEngineStatus(ge.gamma, &ges)
-	status.IndexStatus = ges.IndexStatus
-	status.BackupStatus = ges.BackupStatus
-	status.DocNum = ges.DocNum
-	status.MaxDocid = ges.MaxDocid
-	status.MinIndexedNum = ges.MinIndexedNum
+func (ge *gammaEngine) GetEngineStatus(status *engine.EngineStatus) error {
+	ges := gamma.GetEngineStatus(ge.gamma)
+	s := &EngineStatus{}
+	if err := vjson.Unmarshal([]byte(ges), s); err != nil {
+		return err
+	}
+	status.IndexStatus = s.IndexStatus
+	status.BackupStatus = s.BackupStatus
+	status.DocNum = s.DocNum
+	status.MaxDocid = s.MaxDocid
+	status.MinIndexedNum = s.MinIndexedNum
 	return nil
 }
 

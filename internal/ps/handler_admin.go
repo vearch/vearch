@@ -200,7 +200,7 @@ func (pih *PartitionInfoHandler) Execute(ctx context.Context, req *vearchpb.Part
 	pis := make([]*entity.PartitionInfo, 0, 1)
 	for _, store := range stores {
 		status := &engine.EngineStatus{}
-		err := store.GetEngine().EngineStatus(status)
+		err := store.GetEngine().GetEngineStatus(status)
 		if err != nil {
 			return err
 		}
@@ -450,7 +450,7 @@ func (bh *BackupHandler) Execute(ctx context.Context, req *vearchpb.PartitionDat
 	}
 
 	status := &engine.EngineStatus{}
-	err = e.EngineStatus(status)
+	err = e.GetEngineStatus(status)
 
 	if err != nil {
 		log.Error("get engine status error [%+v]", err)
@@ -504,7 +504,7 @@ func (bh *BackupHandler) Execute(ctx context.Context, req *vearchpb.PartitionDat
 
 		go func() {
 			status := &engine.EngineStatus{}
-			err = e.EngineStatus(status)
+			err = e.GetEngineStatus(status)
 
 			if err != nil {
 				log.Error("get engine status error [%+v]", err)
@@ -514,7 +514,7 @@ func (bh *BackupHandler) Execute(ctx context.Context, req *vearchpb.PartitionDat
 				log.Debug("status.BackupStatus %d", status.BackupStatus)
 				time.Sleep(2 * time.Second)
 				status = &engine.EngineStatus{}
-				err = e.EngineStatus(status)
+				err = e.GetEngineStatus(status)
 				if err != nil {
 					log.Error("get engine status error [%+v]", err)
 					return

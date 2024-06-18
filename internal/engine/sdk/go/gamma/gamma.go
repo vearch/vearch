@@ -62,8 +62,8 @@ func DeleteDoc(engine unsafe.Pointer, docID []byte) int {
 	return int(C.DeleteDoc(engine, (*C.char)(unsafe.Pointer(&docID[0])), C.int(len(docID))))
 }
 
-func GetEngineStatus(engine unsafe.Pointer, status *EngineStatus) {
-	if engine == nil || status == nil {
+func GetEngineStatus(engine unsafe.Pointer) (status string) {
+	if engine == nil {
 		return
 	}
 	var CBuffer *C.char
@@ -72,7 +72,7 @@ func GetEngineStatus(engine unsafe.Pointer, status *EngineStatus) {
 	C.GetEngineStatus(engine, (**C.char)(unsafe.Pointer(&CBuffer)), (*C.int)(unsafe.Pointer(length)))
 	defer C.free(unsafe.Pointer(CBuffer))
 	buffer := C.GoBytes(unsafe.Pointer(CBuffer), C.int(*length))
-	status.DeSerialize(buffer)
+	return string(buffer)
 }
 
 func GetEngineMemoryInfo(engine unsafe.Pointer, status *MemoryInfo) {

@@ -854,10 +854,14 @@ int Engine::Indexing() {
 
 int Engine::GetDocsNum() { return max_docid_ - delete_num_; }
 
-void Engine::GetIndexStatus(EngineStatus &engine_status) {
-  engine_status.SetIndexStatus(index_status_);
-  engine_status.SetBackupStatus(backup_status_.load());
-
+std::string Engine::EngineStatus() {
+  nlohmann::json j;
+  j["index_status"] = index_status_;
+  j["backup_status"] = backup_status_.load();
+  j["doc_num"] = GetDocsNum();
+  j["max_docid"] = max_docid_ - 1;
+  j["min_indexed_num"] = vec_manager_->MinIndexedNum();
+  return j.dump();
   // long table_mem_bytes = table_->GetMemoryBytes();
   // long vec_mem_bytes = 0, index_mem_bytes = 0;
   // vec_manager_->GetTotalMemBytes(index_mem_bytes, vec_mem_bytes);
@@ -873,9 +877,6 @@ void Engine::GetIndexStatus(EngineStatus &engine_status) {
   // engine_status.SetVectorMem(vec_mem_bytes);
   // engine_status.SetFieldRangeMem(total_mem_b);
   // engine_status.SetBitmapMem(docids_bitmap_->BytesSize());
-  engine_status.SetDocNum(GetDocsNum());
-  engine_status.SetMaxDocID(max_docid_ - 1);
-  engine_status.SetMinIndexedNum(vec_manager_->MinIndexedNum());
 }
 
 void Engine::GetMemoryInfo(MemoryInfo &memory_info) {

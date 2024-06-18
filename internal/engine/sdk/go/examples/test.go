@@ -293,10 +293,8 @@ func main() {
 	Add()
 	GetDoc()
 	time.Sleep(time.Duration(1) * time.Second)
-	var status gamma.EngineStatus
-	for status.IndexStatus != 2 {
-		gamma.GetEngineStatus(opt.Engine, &status)
-	}
+	status := gamma.GetEngineStatus(opt.Engine)
+	fmt.Println(status)
 	Search()
 
 	Dump()

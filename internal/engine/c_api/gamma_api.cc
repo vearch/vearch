@@ -17,7 +17,6 @@
 
 #include "api_data/config.h"
 #include "api_data/doc.h"
-#include "api_data/engine_status.h"
 #include "api_data/memory_info.h"
 #include "api_data/response.h"
 #include "api_data/table.h"
@@ -215,9 +214,10 @@ int RebuildIndex(void *engine, int drop_before_rebuild, int limit_cpu,
 }
 
 void GetEngineStatus(void *engine, char **status_str, int *len) {
-  vearch::EngineStatus engine_status;
-  static_cast<vearch::Engine *>(engine)->GetIndexStatus(engine_status);
-  engine_status.Serialize(status_str, len);
+  std::string status = static_cast<vearch::Engine *>(engine)->EngineStatus();
+  *len = status.length();
+  *status_str = (char *)malloc(*len * sizeof(char));
+  memcpy(*status_str, status.c_str(), *len);
 }
 
 void GetMemoryInfo(void *engine, char **memory_info_str, int *len) {

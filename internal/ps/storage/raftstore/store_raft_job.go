@@ -114,7 +114,7 @@ func (s *Store) startFlushJob() {
 
 		// init last min indexed num and doc num
 		var engineStatus engine.EngineStatus
-		s.Engine.EngineStatus(&engineStatus)
+		s.Engine.GetEngineStatus(&engineStatus)
 		lastIndexNum := engineStatus.MinIndexedNum
 		lastMaxDocid := engineStatus.MaxDocid
 
@@ -131,7 +131,7 @@ func (s *Store) startFlushJob() {
 			}
 
 			var status engine.EngineStatus
-			s.Engine.EngineStatus(&status)
+			s.Engine.GetEngineStatus(&status)
 			t := time.Now()
 			tempSn := s.Sn
 			if t.Sub(s.LastFlushTime).Seconds() > float64(fti) && (tempSn-s.LastFlushSn > int64(fct) || status.MinIndexedNum-lastIndexNum > fct || status.MaxDocid-lastMaxDocid > fct) {

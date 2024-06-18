@@ -99,8 +99,8 @@ func (ri *readerImpl) DocCount(ctx context.Context) (uint64, error) {
 		return 0, vearchlog.LogErrAndReturn(vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_IS_CLOSED, nil))
 	}
 
-	var status gamma.EngineStatus
-	gamma.GetEngineStatus(gammaEngine, &status)
+	status := &engine.EngineStatus{}
+	ri.engine.GetEngineStatus(status)
 	docNum := status.DocNum
 	return uint64(docNum), nil
 }

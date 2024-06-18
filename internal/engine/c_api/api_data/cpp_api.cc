@@ -17,7 +17,6 @@
 #include "common/gamma_common_data.h"
 #include "config.h"
 #include "doc.h"
-#include "engine_status.h"
 #include "index/impl/gamma_index_ivfflat.h"
 #include "index/impl/gamma_index_ivfpq.h"
 #include "index/impl/gamma_index_ivfpqfs.h"
@@ -69,7 +68,7 @@ int CPPSearch2(void *engine, vearch::VectorResult *result) {
   if (ret) LOG(ERROR) << "index search error with ret=" << ret;
 
 #ifdef PERFORMANCE_TESTING
-  if(gamma_query.condition->GetPerfTool()) {
+  if (gamma_query.condition->GetPerfTool()) {
     LOG(INFO) << gamma_query.condition->GetPerfTool()->OutputPerf().str();
   }
 #endif
