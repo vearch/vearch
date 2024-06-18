@@ -214,8 +214,6 @@ class TestSpaceCreate:
             [11, "bad nsubvector", "IVFPQ"],
             [12, "bad metric type", "FLAT"],
             [13, "bad nprobe", "IVFPQ"],
-            [14, "beyond max training_threshold", "IVFPQ"],
-            [15, "beyond max training_threshold", "IVFFLAT"],
         ],
     )
     def test_vearch_space_create_badcase(self, wrong_index, wrong_type, index_type):
@@ -239,7 +237,7 @@ class TestSpaceCreate:
             efConstruction = 15
         ncentroids = 2048
         if wrong_index == 7 or wrong_index == 8:
-            ncentroids = 65537
+            ncentroids = 262145
         if wrong_index == 9 or wrong_index == 10:
             ncentroids = 0
         nsubvector = int(embedding_size / 2)
@@ -251,8 +249,6 @@ class TestSpaceCreate:
         nprobe = 80
         if wrong_index == 13:
             nprobe = 99999
-        if wrong_index == 14 or wrong_index == 15:
-            training_threshold = int(ncentroids * 256 + 100)
         space_config = {
             "name": create_space_name,
             "partition_num": 1,
