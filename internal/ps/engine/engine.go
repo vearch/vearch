@@ -56,6 +56,7 @@ type Writer interface {
 
 type EngineStatus struct {
 	IndexStatus   int32
+	BackupStatus  int32
 	DocNum        int32
 	MaxDocid      int32
 	MinIndexedNum int32

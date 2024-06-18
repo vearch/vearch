@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include <atomic>
 #include <condition_variable>
 #include <string>
 
@@ -67,7 +68,7 @@ class Engine {
   int Load();
   int LoadFromFaiss();
 
-  int Backup(int command);
+  Status Backup(int command);
 
   int GetDocsNum();
 
@@ -104,6 +105,8 @@ class Engine {
                       Response &response_results,
                       MultiRangeQueryResults *range_query_result);
 
+  void BacupThread(int command);
+
  private:
   std::string index_root_path_;
   std::string dump_path_;
@@ -129,6 +132,8 @@ class Engine {
 
   const std::string date_time_format_;
   std::string last_dump_dir_;  // it should be delete after next dump
+  std::atomic<int> backup_status_;
+  std::thread backup_thread_;
 
   bool created_table_;
 

@@ -252,8 +252,11 @@ int GetConfig(void *engine, char **config_str, int *len) {
   return res;
 }
 
-int Backup(void *engine, int command) {
+struct CStatus Backup(void *engine, int command) {
   LOG(INFO) << "Backup command: " << command;
-  int ret = static_cast<vearch::Engine *>(engine)->Backup(command);
-  return ret;
+  vearch::Status status;
+  status = static_cast<vearch::Engine *>(engine)->Backup(command);
+  struct CStatus cstatus;
+  Status2CStatus(status, cstatus);
+  return cstatus;
 }

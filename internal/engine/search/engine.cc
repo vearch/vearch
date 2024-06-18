@@ -130,7 +130,8 @@ Engine::Engine(const std::string &index_root_path,
                const std::string &space_name)
     : index_root_path_(index_root_path),
       space_name_(space_name),
-      date_time_format_("%Y-%m-%d-%H:%M:%S") {
+      date_time_format_("%Y-%m-%d-%H:%M:%S"),
+      backup_status_(0) {
   table_ = nullptr;
   vec_manager_ = nullptr;
   index_status_ = IndexStatus::UNINDEXED;
@@ -171,6 +172,7 @@ void Engine::Close() {
 
   delete storage_mgr_;
   storage_mgr_ = nullptr;
+  LOG(INFO) << space_name_ << " engine cloesed";
 }
 
 Engine *Engine::GetInstance(const std::string &index_root_path,
@@ -854,6 +856,7 @@ int Engine::GetDocsNum() { return max_docid_ - delete_num_; }
 
 void Engine::GetIndexStatus(EngineStatus &engine_status) {
   engine_status.SetIndexStatus(index_status_);
+  engine_status.SetBackupStatus(backup_status_.load());
 
   // long table_mem_bytes = table_->GetMemoryBytes();
   // long vec_mem_bytes = 0, index_mem_bytes = 0;
@@ -1138,7 +1141,21 @@ int Engine::LoadFromFaiss() {
   return 0;
 }
 
-int vearch::Engine::Backup(int command) {
+Status vearch::Engine::Backup(int command) {
+  if (backup_status_.load()) {
+    return Status::IOError("backup is in progress, wait done");
+  }
+
+  backup_status_.store(-1);
+  auto func_backup =
+      std::bind(&Engine::BacupThread, this, std::placeholders::_1);
+  backup_thread_ = std::thread(func_backup, command);
+  backup_thread_.detach();
+
+  return Status::OK();
+}
+
+void Engine::BacupThread(int command) {
   std::string backup_path = index_root_path_ + "/backup";
   utils::make_dir(backup_path.c_str());
 
@@ -1147,15 +1164,16 @@ int vearch::Engine::Backup(int command) {
 
   // create
   if (command == 0) {
+    backup_status_.store(1);
     std::ofstream raw_file(compressed_filename, std::ios::binary);
     if (!raw_file.is_open()) {
       LOG(ERROR) << "Failed to open file: " << compressed_filename;
-      return 1;
+      goto out;
     }
     ZSTD_CStream *const cstream = ZSTD_createCStream();
     if (cstream == NULL) {
       LOG(ERROR) << "Failed to create ZSTD_CStream";
-      return 1;
+      goto out;
     }
 
     size_t const initResult = ZSTD_initCStream(cstream, 1);
@@ -1163,7 +1181,7 @@ int vearch::Engine::Backup(int command) {
       LOG(ERROR) << "ZSTD_initCStream() error: "
                  << ZSTD_getErrorName(initResult);
       ZSTD_freeCStream(cstream);
-      return 1;
+      goto out;
     }
 
     size_t const bufferSize = ZSTD_DStreamInSize();
@@ -1210,7 +1228,7 @@ int vearch::Engine::Backup(int command) {
           LOG(ERROR) << "ZSTD_compressStream() error: "
                      << ZSTD_getErrorName(advance);
           ZSTD_freeCStream(cstream);
-          return 1;
+          goto out;
         }
         raw_file.write(buffer.data(), output.pos);
       }
@@ -1225,7 +1243,7 @@ int vearch::Engine::Backup(int command) {
         LOG(ERROR) << "ZSTD_endStream() error: "
                    << ZSTD_getErrorName(remaining);
         ZSTD_freeCStream(cstream);
-        return 1;
+        goto out;
       }
       raw_file.write(buffer.data(), output.pos);
       output.pos = 0;
@@ -1237,7 +1255,7 @@ int vearch::Engine::Backup(int command) {
     if (raw_file.fail()) {
       LOG(ERROR) << "Failed to close file: " << compressed_filename;
       ZSTD_freeCStream(cstream);
-      return 1;
+      goto out;
     }
 
     ZSTD_freeCStream(cstream);
@@ -1245,6 +1263,7 @@ int vearch::Engine::Backup(int command) {
     LOG(INFO) << space_name_ << " backup to [" << compressed_filename
               << "] success!";
   } else if (command == 1) {  // restore
+    backup_status_.store(2);
     std::map<std::string, DataType> attr_type_map;
     table_->GetAttrType(attr_type_map);
 
@@ -1257,13 +1276,13 @@ int vearch::Engine::Backup(int command) {
     std::ifstream compressed_file(compressed_filename, std::ios::binary);
     if (!compressed_file.is_open()) {
       LOG(ERROR) << "Failed to open file: " << compressed_filename;
-      return 1;
+      goto out;
     }
 
     ZSTD_DStream *const dstream = ZSTD_createDStream();
     if (dstream == NULL) {
       LOG(ERROR) << "Failed to create ZSTD_DStream";
-      return 1;
+      goto out;
     }
 
     size_t const initResult = ZSTD_initDStream(dstream);
@@ -1271,7 +1290,7 @@ int vearch::Engine::Backup(int command) {
       LOG(ERROR) << "ZSTD_initDStream() error: "
                  << ZSTD_getErrorName(initResult);
       ZSTD_freeDStream(dstream);
-      return 1;
+      goto out;
     }
 
     size_t const bufferSize = ZSTD_DStreamOutSize();
@@ -1294,7 +1313,7 @@ int vearch::Engine::Backup(int command) {
           LOG(ERROR) << "ZSTD_decompressStream() error: "
                      << ZSTD_getErrorName(ret);
           ZSTD_freeDStream(dstream);
-          return 1;
+          goto out;
         }
 
         decompressed_data.append(outBuffer.data(), output.pos);
@@ -1330,10 +1349,11 @@ int vearch::Engine::Backup(int command) {
     ZSTD_freeDStream(dstream);
 
     LOG(INFO) << space_name_ << " restored from [" << compressed_filename
-              << "] successfully!";
+              << "] successfully!, max_docid_=" << max_docid_;
   }
 
-  return 0;
+out:
+  backup_status_.store(0);
 }
 
 int Engine::AddNumIndexFields() {

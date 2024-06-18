@@ -216,6 +216,7 @@ func (ge *gammaEngine) EngineStatus(status *engine.EngineStatus) error {
 	var ges gamma.EngineStatus
 	gamma.GetEngineStatus(ge.gamma, &ges)
 	status.IndexStatus = ges.IndexStatus
+	status.BackupStatus = ges.BackupStatus
 	status.DocNum = ges.DocNum
 	status.MaxDocid = ges.MaxDocid
 	status.MinIndexedNum = ges.MinIndexedNum
@@ -312,6 +313,9 @@ func (ge *gammaEngine) GetEngineCfg(config *gamma.Config) error {
 }
 
 func (ge *gammaEngine) BackupSpace(command string) error {
-	gamma.BackupSpace(ge.gamma, command)
+	status := gamma.BackupSpace(ge.gamma, command)
+	if status.Code != 0 {
+		return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("backup space err:[%s]", status.Msg))
+	}
 	return nil
 }

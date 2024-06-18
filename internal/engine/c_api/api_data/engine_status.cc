@@ -14,9 +14,9 @@ EngineStatus::EngineStatus() { engine_status_ = nullptr; }
 int EngineStatus::Serialize(char **out, int *out_len) {
   flatbuffers::FlatBufferBuilder builder;
   auto table = gamma_api::CreateEngineStatus(
-      builder, index_status_, table_mem_bytes_, index_mem_bytes_,
-      vector_mem_bytes_, field_range_mem_bytes_, bitmap_mem_bytes_, doc_num_,
-      max_docid_, min_indexed_num_);
+      builder, index_status_, backup_status_, table_mem_bytes_,
+      index_mem_bytes_, vector_mem_bytes_, field_range_mem_bytes_,
+      bitmap_mem_bytes_, doc_num_, max_docid_, min_indexed_num_);
   builder.Finish(table);
   *out_len = builder.GetSize();
   *out = (char *)malloc(*out_len * sizeof(char));
@@ -29,6 +29,7 @@ void EngineStatus::Deserialize(const char *data, int len) {
       const_cast<gamma_api::EngineStatus *>(gamma_api::GetEngineStatus(data));
 
   index_status_ = engine_status_->index_status();
+  backup_status_ = engine_status_->backup_status();
   table_mem_bytes_ = engine_status_->table_mem();
   index_mem_bytes_ = engine_status_->index_mem();
   vector_mem_bytes_ = engine_status_->vector_mem();
@@ -44,6 +45,12 @@ int EngineStatus::IndexStatus() { return index_status_; }
 
 void EngineStatus::SetIndexStatus(int index_status) {
   index_status_ = index_status;
+}
+
+int EngineStatus::BackupStatus() { return backup_status_; }
+
+void EngineStatus::SetBackupStatus(int backup_status) {
+  backup_status_ = backup_status;
 }
 
 long EngineStatus::TableMem() { return table_mem_bytes_; }

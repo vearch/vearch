@@ -629,6 +629,10 @@ func (m *masterClient) ProxyHTTPRequest(method string, url string, reqBody strin
 			e = err
 			break
 		}
+		if strings.HasPrefix(url, "/backup/dbs/") {
+			// backup command need only send to one master
+			break
+		}
 
 		masterServer.next()
 	}

@@ -14,6 +14,7 @@ import (
 
 type EngineStatus struct {
 	IndexStatus   int32
+	BackupStatus  int32
 	TableMem      int64
 	IndexMem      int64
 	VectorMem     int64
@@ -49,6 +50,7 @@ func (status *EngineStatus) Serialize(buffer *[]byte) int {
 func (status *EngineStatus) DeSerialize(buffer []byte) {
 	status.engineStatus = gamma_api.GetRootAsEngineStatus(buffer, 0)
 	status.IndexStatus = status.engineStatus.IndexStatus()
+	status.BackupStatus = status.engineStatus.BackupStatus()
 	status.TableMem = status.engineStatus.TableMem()
 	status.IndexMem = status.engineStatus.IndexMem()
 	status.VectorMem = status.engineStatus.VectorMem()

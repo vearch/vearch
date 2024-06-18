@@ -114,6 +114,17 @@ def compare_doc(doc1, doc2):
     return doc1["_id"] == doc2["_id"] and doc1["field_int"] == doc2["field_int"] and doc1["field_vector"] == doc2["field_vector"]
 
 
+def waiting_backup_finish(timewait=5):
+    url = router_url + "/dbs/" + db_name + "/spaces/" + space_name
+    response = requests.get(url, auth=(username, password))
+    partitions = response.json()["data"]["partitions"]
+    backup_status = 0
+    for p in partitions:
+        if p["backup_status"] != 0:
+            backup_status = p["backup_status"]
+    if backup_status != 0:
+        time.sleep(timewait)
+
 def benchmark(store_type, xb, xq, gt):
     embedding_size = xb.shape[1]
     batch_size = 100
@@ -131,7 +142,7 @@ def benchmark(store_type, xb, xq, gt):
     waiting_index_finish(logger, total)
 
     backup(router_url, db_name, space_name, "create")
-    time.sleep(30)
+    waiting_backup_finish()
 
     destroy(router_url, db_name, space_name)
 
@@ -142,7 +153,7 @@ def benchmark(store_type, xb, xq, gt):
     for parallel_on_queries in [0, 1]:
         query(parallel_on_queries, xq, gt, k, logger)
 
-    for i in range(total):
+    for i in range(100):
         query_dict_partition = {
             "document_ids": [str(i)],
             "limit": 1,

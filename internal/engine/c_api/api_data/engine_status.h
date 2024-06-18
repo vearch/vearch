@@ -24,6 +24,10 @@ class EngineStatus : public RawData {
 
   void SetIndexStatus(int index_status);
 
+  int BackupStatus();
+
+  void SetBackupStatus(int backup_status);
+
   long TableMem();
 
   void SetTableMem(long table_mem_bytes);
@@ -62,6 +66,7 @@ class EngineStatus : public RawData {
   gamma_api::EngineStatus *engine_status_;
 
   int index_status_;
+  int backup_status_;
   long table_mem_bytes_;
   long index_mem_bytes_;
   long vector_mem_bytes_;

@@ -13,17 +13,21 @@ struct EngineStatus;
 struct EngineStatus FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_INDEX_STATUS = 4,
-    VT_TABLE_MEM = 6,
-    VT_INDEX_MEM = 8,
-    VT_VECTOR_MEM = 10,
-    VT_FIELD_RANGE_MEM = 12,
-    VT_BITMAP_MEM = 14,
-    VT_DOC_NUM = 16,
-    VT_MAX_DOCID = 18,
-    VT_MIN_INDEXED_NUM = 20
+    VT_BACKUP_STATUS = 6,
+    VT_TABLE_MEM = 8,
+    VT_INDEX_MEM = 10,
+    VT_VECTOR_MEM = 12,
+    VT_FIELD_RANGE_MEM = 14,
+    VT_BITMAP_MEM = 16,
+    VT_DOC_NUM = 18,
+    VT_MAX_DOCID = 20,
+    VT_MIN_INDEXED_NUM = 22
   };
   int32_t index_status() const {
     return GetField<int32_t>(VT_INDEX_STATUS, 0);
+  }
+  int32_t backup_status() const {
+    return GetField<int32_t>(VT_BACKUP_STATUS, 0);
   }
   int64_t table_mem() const {
     return GetField<int64_t>(VT_TABLE_MEM, 0);
@@ -52,6 +56,7 @@ struct EngineStatus FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<int32_t>(verifier, VT_INDEX_STATUS) &&
+           VerifyField<int32_t>(verifier, VT_BACKUP_STATUS) &&
            VerifyField<int64_t>(verifier, VT_TABLE_MEM) &&
            VerifyField<int64_t>(verifier, VT_INDEX_MEM) &&
            VerifyField<int64_t>(verifier, VT_VECTOR_MEM) &&
@@ -69,6 +74,9 @@ struct EngineStatusBuilder {
   flatbuffers::uoffset_t start_;
   void add_index_status(int32_t index_status) {
     fbb_.AddElement<int32_t>(EngineStatus::VT_INDEX_STATUS, index_status, 0);
+  }
+  void add_backup_status(int32_t backup_status) {
+    fbb_.AddElement<int32_t>(EngineStatus::VT_BACKUP_STATUS, backup_status, 0);
   }
   void add_table_mem(int64_t table_mem) {
     fbb_.AddElement<int64_t>(EngineStatus::VT_TABLE_MEM, table_mem, 0);
@@ -109,6 +117,7 @@ struct EngineStatusBuilder {
 inline flatbuffers::Offset<EngineStatus> CreateEngineStatus(
     flatbuffers::FlatBufferBuilder &_fbb,
     int32_t index_status = 0,
+    int32_t backup_status = 0,
     int64_t table_mem = 0,
     int64_t index_mem = 0,
     int64_t vector_mem = 0,
@@ -126,6 +135,7 @@ inline flatbuffers::Offset<EngineStatus> CreateEngineStatus(
   builder_.add_min_indexed_num(min_indexed_num);
   builder_.add_max_docid(max_docid);
   builder_.add_doc_num(doc_num);
+  builder_.add_backup_status(backup_status);
   builder_.add_index_status(index_status);
   return builder_.Finish();
 }

@@ -177,10 +177,21 @@ func GetEngineCfg(engine unsafe.Pointer, config *Config) {
 	config.DeSerialize(buffer)
 }
 
-func BackupSpace(engine unsafe.Pointer, command string) {
+func BackupSpace(engine unsafe.Pointer, command string) *Status {
+	var c int
 	if command == "create" {
-		C.Backup(engine, C.int(0))
+		c = 0
 	} else if command == "restore" {
-		C.Backup(engine, C.int(1))
+		c = 1
 	}
+	cstatus := C.Backup(engine, C.int(c))
+
+	status := &Status{
+		Code: int32(cstatus.code),
+		Msg:  C.GoString(cstatus.msg),
+	}
+	if status.Code != 0 {
+		C.free(unsafe.Pointer(cstatus.msg))
+	}
+	return status
 }
