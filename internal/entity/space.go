@@ -46,7 +46,7 @@ var (
 	MaxEfConstruction           = 1024
 	DefaultMetricType           = "InnerProduct"
 	MinNcentroids               = 1
-	MaxNcentroids               = 65536
+	MaxNcentroids               = 262144
 	DefaultTrainingThreshold    = 0
 	DefaultMaxPointsPerCentroid = 256
 	DefaultMinPointsPerCentroid = 39
@@ -241,10 +241,6 @@ func (index *Index) UnmarshalJSON(bs []byte) error {
 			if indexParams.TrainingThreshold != 0 {
 				if indexParams.TrainingThreshold < indexParams.Ncentroids {
 					return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf(tempIndex.Type+" training_threshold:[%d] should more than ncentroids:[%d]", indexParams.TrainingThreshold, indexParams.Ncentroids))
-				}
-				if indexParams.TrainingThreshold > DefaultMaxPointsPerCentroid*indexParams.Ncentroids {
-					return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf(tempIndex.Type+" training_threshold:[%d] should less than DefaultMaxPointsPerCentroid(%d) * ncentroids(%d):[%d] so can not to index",
-						indexParams.TrainingThreshold, DefaultMaxPointsPerCentroid, indexParams.Ncentroids, DefaultMaxPointsPerCentroid*indexParams.Ncentroids))
 				}
 			}
 			if indexParams.Nprobe != 0 && indexParams.Nprobe > indexParams.Ncentroids {

@@ -268,7 +268,6 @@ func (r *routerRequest) UpsertByPartitions(partitions []uint32) *routerRequest {
 			random_index := murmur3.Sum32WithSeed([]byte(doc.PKey), 0) % uint32(len(partitions))
 			partitionID = partitions[random_index]
 		}
-		log.Error("upsert partition:%d", partitionID)
 		item := &vearchpb.Item{Doc: doc}
 		if d, ok := dataMap[partitionID]; ok {
 			d.Items = append(d.Items, item)

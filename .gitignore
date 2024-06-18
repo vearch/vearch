@@ -55,3 +55,4 @@ examples/golang/basic_usage/basic_usage
 #scripts
 scripts/benchmarks/*log
 scripts/benchmarks/__pycache__
+scripts/benchmarks/datasets/
