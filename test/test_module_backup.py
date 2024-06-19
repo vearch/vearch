@@ -29,12 +29,13 @@ logger = logging.getLogger(__name__)
 __description__ = """ test case for index flat """
 
 
-def backup(router_url, db_name, space_name, command):
+def backup(router_url, db_name, space_name, command, with_schema):
     url = router_url + "/backup/dbs/" + db_name + "/spaces/" + space_name
     use_ssl_str = os.getenv("S3_USE_SSL", "False")
 
     data = {
         "command": command,
+        "with_schema": with_schema,
         "s3_param": {
             "access_key": os.getenv("S3_ACCESS_KEY", "minioadmin"),
             "secret_key": os.getenv("S3_SECRET_KEY", "minioadmin"),
@@ -125,7 +126,7 @@ def waiting_backup_finish(timewait=5):
     if backup_status != 0:
         time.sleep(timewait)
 
-def benchmark(store_type, xb, xq, gt):
+def benchmark(store_type: str, with_schema: bool, xb, xq, gt):
     embedding_size = xb.shape[1]
     batch_size = 100
     k = 100
@@ -141,13 +142,16 @@ def benchmark(store_type, xb, xq, gt):
 
     waiting_index_finish(logger, total)
 
-    backup(router_url, db_name, space_name, "create")
+    backup(router_url, db_name, space_name, "create", with_schema)
     waiting_backup_finish()
 
-    destroy(router_url, db_name, space_name)
+    if with_schema:
+        drop_space(router_url, db_name, space_name)
+    else:
+        destroy(router_url, db_name, space_name)
+        create(router_url, embedding_size, store_type)
 
-    create(router_url, embedding_size, store_type)
-    backup(router_url, db_name, space_name, "restore")
+    backup(router_url, db_name, space_name, "restore", with_schema)
     waiting_index_finish(logger, total)
 
     for parallel_on_queries in [0, 1]:
@@ -182,8 +186,9 @@ xq = sift10k.get_queries()
 gt = sift10k.get_groundtruth()
 
 
-@ pytest.mark.parametrize(["store_type"], [
-    ["MemoryOnly"],
+@ pytest.mark.parametrize(["store_type", "with_schema"], [
+    ["MemoryOnly", False],
+    ["MemoryOnly", True],
 ])
-def test_vearch_index_flat(store_type: str):
-    benchmark(store_type, xb, xq, gt)
+def test_vearch_index_flat(store_type: str, with_schema: bool):
+    benchmark(store_type, with_schema, xb, xq, gt)

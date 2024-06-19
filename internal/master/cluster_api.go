@@ -18,12 +18,15 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/cubefs/cubefs/depends/tiglabs/raft/proto"
 	"github.com/gin-gonic/gin"
+	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/v3/internal/client"
 	"github.com/vearch/vearch/v3/internal/config"
@@ -458,6 +461,102 @@ func (ca *clusterAPI) backupSpace(c *gin.Context) {
 	if err != nil {
 		httphelper.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
+	}
+
+	if backup.Command == "create" {
+		dbID, err := ca.masterService.Master().QueryDBName2Id(c, dbName)
+		if err != nil {
+			httphelper.New(c).JsonError(errors.NewErrUnprocessable(err))
+			return
+		}
+
+		space, err := ca.masterService.Master().QuerySpaceByName(c, dbID, spaceName)
+		if err != nil {
+			httphelper.New(c).JsonError(errors.NewErrInternal(err))
+			return
+		}
+
+		spaceJson, err := vjson.Marshal(space)
+		if err != nil {
+			log.Error("vjson.Marshal err: %v", err)
+		}
+
+		backupFileName := space.Name + ".schema"
+
+		err = os.WriteFile(backupFileName, spaceJson, 0644)
+		if err != nil {
+			log.Error("Error writing to file:", err)
+			return
+		}
+
+		minioClient, err := minio.New(backup.S3Param.EndPoint, &minio.Options{
+			Creds:  credentials.NewStaticV4(backup.S3Param.AccessKey, backup.S3Param.SecretKey, ""),
+			Secure: backup.S3Param.UseSSL,
+		})
+		if err != nil {
+			log.Error("failed to create minio client: %+v", err)
+			return
+		}
+		bucketName := backup.S3Param.BucketName
+		objectName := fmt.Sprintf("%s/%s/%s.schema", dbName, space.Name, space.Name)
+		_, err = minioClient.FPutObject(context.Background(), bucketName, objectName, backupFileName, minio.PutObjectOptions{ContentType: "application/octet-stream"})
+		if err != nil {
+			log.Error("failed to backup space: %+v", err)
+			return
+		}
+		log.Info("backup schema success, file is [%s]", backupFileName)
+		os.Remove(backupFileName)
+	} else if backup.Command == "restore" && backup.WitchShema {
+		dbID, err := ca.masterService.Master().QueryDBName2Id(c, dbName)
+		if err != nil {
+			httphelper.New(c).JsonError(errors.NewErrUnprocessable(err))
+			return
+		}
+
+		_, err = ca.masterService.Master().QuerySpaceByName(c, dbID, spaceName)
+		if err == nil {
+			httphelper.New(c).JsonError(errors.NewErrInternal(fmt.Errorf("space duplicate")))
+			return
+		}
+		minioClient, err := minio.New(backup.S3Param.EndPoint, &minio.Options{
+			Creds:  credentials.NewStaticV4(backup.S3Param.AccessKey, backup.S3Param.SecretKey, ""),
+			Secure: backup.S3Param.UseSSL,
+		})
+		if err != nil {
+			log.Error("failed to create minio client: %+v", err)
+			return
+		}
+
+		backupFileName := spaceName + ".schema"
+		bucketName := backup.S3Param.BucketName
+		objectName := fmt.Sprintf("%s/%s/%s.schema", dbName, spaceName, spaceName)
+		err = minioClient.FGetObject(context.Background(), bucketName, objectName, backupFileName, minio.GetObjectOptions{})
+		if err != nil {
+			log.Error("failed to download file from S3: %+v", err)
+			return
+		}
+		log.Info("downloaded backup file from S3: %s", backupFileName)
+
+		spaceJson, err := os.ReadFile(backupFileName)
+		if err != nil {
+			log.Error("Error read file:", err)
+			return
+		}
+
+		log.Debug("%s", spaceJson)
+		space := &entity.Space{}
+		err = vjson.Unmarshal(spaceJson, space)
+		if err != nil {
+			log.Error("Unmarshal file:", err)
+			return
+		}
+		space.Partitions = make([]*entity.Partition, 0)
+
+		if err := ca.masterService.createSpaceService(c, dbName, space); err != nil {
+			log.Error("createSpaceService err: %v", err)
+			httphelper.New(c).JsonError(errors.NewErrInternal(err))
+		}
+		os.Remove(backupFileName)
 	}
 
 	if err := ca.masterService.BackupSpace(c, dbName, spaceName, backup); err != nil {
