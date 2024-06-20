@@ -530,11 +530,12 @@ func (ca *clusterAPI) backupSpace(c *gin.Context) {
 		backupFileName := spaceName + ".schema"
 		bucketName := backup.S3Param.BucketName
 		objectName := fmt.Sprintf("%s/%s/%s.schema", dbName, spaceName, spaceName)
-		err = minioClient.FGetObject(context.Background(), bucketName, objectName, backupFileName, minio.GetObjectOptions{})
+		err = minioClient.FGetObject(c, bucketName, objectName, backupFileName, minio.GetObjectOptions{})
 		if err != nil {
 			log.Error("failed to download file from S3: %+v", err)
 			return
 		}
+		defer os.Remove(backupFileName)
 		log.Info("downloaded backup file from S3: %s", backupFileName)
 
 		spaceJson, err := os.ReadFile(backupFileName)
@@ -550,13 +551,76 @@ func (ca *clusterAPI) backupSpace(c *gin.Context) {
 			log.Error("Unmarshal file:", err)
 			return
 		}
+
+		partitionNum := len(space.Partitions)
 		space.Partitions = make([]*entity.Partition, 0)
 
+		objectCh := minioClient.ListObjects(c, bucketName, minio.ListObjectsOptions{
+			Recursive: true,
+		})
+
+		patitionMap := make(map[string]string, 0)
+		for object := range objectCh {
+			if object.Err != nil {
+				fmt.Println(object.Err)
+				continue
+			}
+			if strings.HasSuffix(object.Key, ".json.zst") {
+				patitionMap[object.Key] = object.Key
+			}
+		}
+
+		if len(patitionMap) != partitionNum {
+			httphelper.New(c).JsonError(errors.NewErrInternal(fmt.Errorf("oss partition num %d not equal schema %d", len(patitionMap), partitionNum)))
+			return
+		}
 		if err := ca.masterService.createSpaceService(c, dbName, space); err != nil {
 			log.Error("createSpaceService err: %v", err)
 			httphelper.New(c).JsonError(errors.NewErrInternal(err))
 		}
-		os.Remove(backupFileName)
+	} else if backup.Command == "restore" && !backup.WitchShema {
+		dbID, err := ca.masterService.Master().QueryDBName2Id(c, dbName)
+		if err != nil {
+			httphelper.New(c).JsonError(errors.NewErrUnprocessable(err))
+			return
+		}
+		space, err := ca.masterService.Master().QuerySpaceByName(c, dbID, spaceName)
+		if err != nil {
+			httphelper.New(c).JsonError(errors.NewErrInternal(fmt.Errorf("space duplicate")))
+			return
+		}
+		minioClient, err := minio.New(backup.S3Param.EndPoint, &minio.Options{
+			Creds:  credentials.NewStaticV4(backup.S3Param.AccessKey, backup.S3Param.SecretKey, ""),
+			Secure: backup.S3Param.UseSSL,
+		})
+		if err != nil {
+			log.Error("failed to create minio client: %+v", err)
+			return
+		}
+
+		partitionNum := len(space.Partitions)
+		space.Partitions = make([]*entity.Partition, 0)
+
+		bucketName := backup.S3Param.BucketName
+		objectCh := minioClient.ListObjects(c, bucketName, minio.ListObjectsOptions{
+			Recursive: true,
+		})
+
+		patitionMap := make(map[string]string, 0)
+		for object := range objectCh {
+			if object.Err != nil {
+				fmt.Println(object.Err)
+				continue
+			}
+			if strings.HasSuffix(object.Key, ".json.zst") {
+				patitionMap[object.Key] = object.Key
+			}
+		}
+
+		if len(patitionMap) != partitionNum {
+			httphelper.New(c).JsonError(errors.NewErrInternal(fmt.Errorf("oss partition num %d not equal schema %d", len(patitionMap), partitionNum)))
+			return
+		}
 	}
 
 	if err := ca.masterService.BackupSpace(c, dbName, spaceName, backup); err != nil {
