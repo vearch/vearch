@@ -522,12 +522,12 @@ def run_crud(args: argparse.Namespace):
 
     args.vector_value = False
     query(args)
-    args.vector_value = True
 
     batch_size = args.batch_size
     args.batch_size = 1
     query(args)
     args.batch_size = batch_size
+    args.vector_value = True
 
     delete(args)
 

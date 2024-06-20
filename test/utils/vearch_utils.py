@@ -823,8 +823,13 @@ def process_get_data(items):
 
     for j in range(batch_size):
         value = int(documents[j]["_id"])
-        logger.debug(value)
         logger.debug(documents[j])
+        if query_type == "by_ids" or query_type == "by_filter":
+            assert value == index * batch_size + j
+        # TODO
+        # if query_type == "by_partition_next":
+        #     assert documents[j]["_docid"] == index * batch_size + j
+
         assert documents[j]["field_int"] == value * seed
         if query_type == "by_ids":
             assert documents[j]["field_vector"] == features[j].tolist()

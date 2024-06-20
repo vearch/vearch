@@ -18,7 +18,6 @@ import (
 	"context"
 	"crypto/md5"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -587,17 +586,17 @@ func (r *routerRequest) searchFromPartition(ctx context.Context, partitionID ent
 			}
 			for i, searchResult := range searchResponse.Results {
 				for _, item := range searchResult.ResultItems {
-					source, sortValues, pkey, err := GetSource(item, space, sortFieldMap, pd.SearchRequest.SortFields)
+					sortValues, pkey, err := GetSortOrder(item, space, sortFieldMap, pd.SearchRequest.SortFields)
 					if err != nil {
 						err := &vearchpb.Error{Code: vearchpb.ErrorEnum_SEARCH_RESPONSE_PARSE_ERR, Msg: "router call ps rpc service err nodeID:" + fmt.Sprint(nodeID)}
 						replyPartition.SearchResponse.Head.Err = err
 					}
 					item.PKey = pkey
-					item.Source = source
 					index := strconv.Itoa(i)
 					sortValueMap[item.PKey+"_"+index] = sortValues
 				}
 			}
+
 			if trace {
 				fieldParsingTime := time.Since(deSerializeEndTime).Seconds() * 1000
 				fieldParsingTimeStr := strconv.FormatFloat(fieldParsingTime, 'f', 4, 64)
@@ -842,13 +841,12 @@ func (r *routerRequest) queryFromPartition(ctx context.Context, partitionID enti
 			gamma.DeSerialize(flatBytes, searchResponse)
 			for i, searchResult := range searchResponse.Results {
 				for _, item := range searchResult.ResultItems {
-					source, sortValues, pkey, err := GetSource(item, space, sortFieldMap, pd.QueryRequest.SortFields)
+					sortValues, pkey, err := GetSortOrder(item, space, sortFieldMap, pd.QueryRequest.SortFields)
 					if err != nil {
 						err := &vearchpb.Error{Code: vearchpb.ErrorEnum_QUERY_RESPONSE_PARSE_ERR, Msg: "router call ps rpc service err nodeID:" + fmt.Sprint(nodeID)}
 						replyPartition.SearchResponse.Head.Err = err
 					}
 					item.PKey = pkey
-					item.Source = source
 					index := strconv.Itoa(i)
 					sortValueMap[item.PKey+"_"+index] = sortValues
 				}
@@ -1197,20 +1195,21 @@ func GetNodeIdsByClientType(clientType string, partition *entity.Partition, serv
 	return nodeId
 }
 
-func GetSource(doc *vearchpb.ResultItem, space *entity.Space, sortFieldMap map[string]string, sortFields []*vearchpb.SortField) (json.RawMessage, []sortorder.SortValue, string, error) {
-	source := make(map[string]interface{})
+func GetSortOrder(doc *vearchpb.ResultItem, space *entity.Space, sortFieldMap map[string]string, sortFields []*vearchpb.SortField) ([]sortorder.SortValue, string, error) {
 	sortValues := make([]sortorder.SortValue, len(sortFields))
-	if sortFieldMap != nil && sortFieldMap["_score"] != "" {
+
+	if sortFieldMap != nil && sortFieldMap[mapping.ScoreField] != "" {
 		for i, v := range sortFields {
-			if v.Field == "_score" {
+			if v.Field == mapping.ScoreField {
 				sortValues[i] = &sortorder.FloatSortValue{
 					Val:      doc.Score,
-					SortName: "_score",
+					SortName: mapping.ScoreField,
 				}
 				break
 			}
 		}
 	}
+
 	spaceProperties := space.SpaceProperties
 	if spaceProperties == nil {
 		spacePro, _ := entity.UnmarshalPropertyJSON(space.Fields)
@@ -1243,7 +1242,6 @@ func GetSource(doc *vearchpb.ResultItem, space *entity.Space, sortFieldMap map[s
 			switch field.FieldType {
 			case vearchpb.FieldType_STRING:
 				tempValue := string(fv.Value)
-				source[name] = tempValue
 				if sortFieldMap != nil && sortFieldMap[name] != "" {
 					for i, v := range sortFields {
 						if v.Field == name {
@@ -1255,12 +1253,8 @@ func GetSource(doc *vearchpb.ResultItem, space *entity.Space, sortFieldMap map[s
 						}
 					}
 				}
-			case vearchpb.FieldType_STRINGARRAY:
-				tempValue := string(fv.Value)
-				source[name] = strings.Split(tempValue, string([]byte{'\001'}))
 			case vearchpb.FieldType_INT:
 				intVal := cbbytes.Bytes2Int32(fv.Value)
-				source[name] = intVal
 				if sortFieldMap != nil && sortFieldMap[name] != "" {
 					for i, v := range sortFields {
 						if v.Field == name {
@@ -1274,7 +1268,6 @@ func GetSource(doc *vearchpb.ResultItem, space *entity.Space, sortFieldMap map[s
 				}
 			case vearchpb.FieldType_LONG:
 				longVal := cbbytes.Bytes2Int(fv.Value)
-				source[name] = longVal
 				if sortFieldMap != nil && sortFieldMap[name] != "" {
 					for i, v := range sortFields {
 						if v.Field == name {
@@ -1286,18 +1279,8 @@ func GetSource(doc *vearchpb.ResultItem, space *entity.Space, sortFieldMap map[s
 						}
 					}
 				}
-			case vearchpb.FieldType_BOOL:
-				if cbbytes.Bytes2Int(fv.Value) == 0 {
-					source[name] = false
-				} else {
-					source[name] = true
-				}
-			case vearchpb.FieldType_DATE:
-				u := cbbytes.Bytes2Int(fv.Value)
-				source[name] = time.Unix(u/1e6, u%1e6)
 			case vearchpb.FieldType_FLOAT:
 				floatVal := cbbytes.ByteToFloat64(fv.Value)
-				source[name] = floatVal
 
 				if sortFieldMap != nil && sortFieldMap[name] != "" {
 					for i, v := range sortFields {
@@ -1312,7 +1295,6 @@ func GetSource(doc *vearchpb.ResultItem, space *entity.Space, sortFieldMap map[s
 				}
 			case vearchpb.FieldType_DOUBLE:
 				floatVal := cbbytes.ByteToFloat64(fv.Value)
-				source[name] = floatVal
 				if sortFieldMap != nil && sortFieldMap[name] != "" {
 					for i, v := range sortFields {
 						if v.Field == name {
@@ -1324,23 +1306,10 @@ func GetSource(doc *vearchpb.ResultItem, space *entity.Space, sortFieldMap map[s
 						}
 					}
 				}
-
+			case vearchpb.FieldType_BOOL:
+			case vearchpb.FieldType_STRINGARRAY:
+			case vearchpb.FieldType_DATE:
 			case vearchpb.FieldType_VECTOR:
-				if space.Index.Type == "BINARYIVF" {
-					featureByteC := fv.Value
-					dimension := field.Dimension
-					unit8s, err := cbbytes.ByteToVectorBinary(featureByteC, dimension)
-					if err != nil {
-						return nil, sortValues, pKey, err
-					}
-					source[name] = unit8s
-				} else {
-					float32s, err := cbbytes.ByteToVectorForFloat32(fv.Value)
-					if err != nil {
-						return nil, sortValues, pKey, err
-					}
-					source[name] = float32s
-				}
 
 			default:
 				log.Warn("can not set value by type:[%v] ", field.FieldType)
@@ -1348,15 +1317,7 @@ func GetSource(doc *vearchpb.ResultItem, space *entity.Space, sortFieldMap map[s
 		}
 	}
 
-	var marshal []byte
-	var err error
-	if len(source) > 0 {
-		marshal, err = json.Marshal(source)
-	}
-	if err != nil {
-		return nil, sortValues, pKey, err
-	}
-	return marshal, sortValues, pKey, nil
+	return sortValues, pKey, nil
 }
 
 func AddMergeResultArr(dest []*vearchpb.SearchResult, src []*vearchpb.SearchResult) error {

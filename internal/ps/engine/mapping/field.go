@@ -23,7 +23,8 @@ import (
 )
 
 const (
-	IdField = "_id"
+	IdField    = "_id"
+	ScoreField = "_score"
 )
 
 type FieldMapping struct {

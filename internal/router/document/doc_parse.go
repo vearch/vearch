@@ -601,7 +601,7 @@ func documentParse(ctx context.Context, handler *DocumentHandler, r *http.Reques
 			arg.DocumentIds[0] = primaryKey
 			reply := handler.docService.query(ctx, arg)
 
-			result, err := documentQueryResponse(reply.Results, reply.Head)
+			result, err := documentQueryResponse(reply.Results, reply.Head, space)
 			if err != nil {
 				return err
 			}

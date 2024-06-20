@@ -139,7 +139,7 @@ func documentResultSerialize(item *vearchpb.Item) map[string]interface{} {
 	return result
 }
 
-func documentQueryResponse(srs []*vearchpb.SearchResult, head *vearchpb.ResponseHead) (map[string]interface{}, error) {
+func documentQueryResponse(srs []*vearchpb.SearchResult, head *vearchpb.ResponseHead, space *entity.Space) (map[string]interface{}, error) {
 	response := make(map[string]interface{})
 
 	if head != nil && head.Err != nil {
@@ -159,11 +159,19 @@ func documentQueryResponse(srs []*vearchpb.SearchResult, head *vearchpb.Response
 		return nil, vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("query result length should be one"))
 	} else {
 		for _, sr := range srs {
-			bytes, err := documentQueryToContent(sr.ResultItems)
-			if err != nil {
-				return nil, err
+			docMaps := make([]map[string]interface{}, 0)
+			for _, item := range sr.ResultItems {
+				result_data, err := GetDocSource(item, space, "query")
+				if err != nil {
+					return nil, vearchpb.NewError(vearchpb.ErrorEnum_QUERY_RESPONSE_PARSE_ERR, errors.New("get data err:"+err.Error()))
+				}
+				docMaps = append(docMaps, result_data)
 			}
-			documents = append(documents, json.RawMessage(bytes))
+			if data, err := vjson.Marshal(docMaps); err != nil {
+				return nil, vearchpb.NewError(vearchpb.ErrorEnum_QUERY_RESPONSE_PARSE_ERR, errors.New("get data err:"+err.Error()))
+			} else {
+				documents = append(documents, json.RawMessage(data))
+			}
 		}
 	}
 
@@ -176,7 +184,7 @@ func documentQueryResponse(srs []*vearchpb.SearchResult, head *vearchpb.Response
 	return response, nil
 }
 
-func documentSearchResponse(srs []*vearchpb.SearchResult, head *vearchpb.ResponseHead) (map[string]interface{}, error) {
+func documentSearchResponse(srs []*vearchpb.SearchResult, head *vearchpb.ResponseHead, space *entity.Space) (map[string]interface{}, error) {
 	response := make(map[string]interface{})
 
 	if head != nil && head.Err != nil {
@@ -189,91 +197,55 @@ func documentSearchResponse(srs []*vearchpb.SearchResult, head *vearchpb.Respons
 	if len(srs) > 1 {
 		var wg sync.WaitGroup
 		resp := make([][]byte, len(srs))
+		var final_err error
 		for i, sr := range srs {
 			wg.Add(1)
 			go func(sr *vearchpb.SearchResult, index int) {
 				defer wg.Done()
-
-				bytes, err := documentSearchToContent(sr.ResultItems)
-				if err != nil {
-					return
+				docMaps := make([]map[string]interface{}, 0)
+				for _, item := range sr.ResultItems {
+					result_data, err := GetDocSource(item, space, "search")
+					if err != nil {
+						final_err = vearchpb.NewError(vearchpb.ErrorEnum_QUERY_RESPONSE_PARSE_ERR, errors.New("get data err:"+err.Error()))
+						return
+					}
+					docMaps = append(docMaps, result_data)
 				}
-				resp[index] = json.RawMessage(bytes)
+				if data, err := vjson.Marshal(docMaps); err != nil {
+					final_err = vearchpb.NewError(vearchpb.ErrorEnum_QUERY_RESPONSE_PARSE_ERR, errors.New("get data err:"+err.Error()))
+					return
+				} else {
+					resp[index] = json.RawMessage(data)
+				}
 			}(sr, i)
 		}
 
 		wg.Wait()
-
+		if final_err != nil {
+			return nil, final_err
+		}
 		for _, msg := range resp {
 			documents = append(documents, msg)
 		}
 	} else {
 		for _, sr := range srs {
-			bytes, err := documentSearchToContent(sr.ResultItems)
-			if err != nil {
-				return nil, err
+			docMaps := make([]map[string]interface{}, 0)
+			for _, item := range sr.ResultItems {
+				result_data, err := GetDocSource(item, space, "search")
+				if err != nil {
+					return nil, vearchpb.NewError(vearchpb.ErrorEnum_QUERY_RESPONSE_PARSE_ERR, errors.New("get data err:"+err.Error()))
+				}
+				docMaps = append(docMaps, result_data)
 			}
-			documents = append(documents, json.RawMessage(bytes))
+			if data, err := vjson.Marshal(docMaps); err != nil {
+				return nil, vearchpb.NewError(vearchpb.ErrorEnum_QUERY_RESPONSE_PARSE_ERR, errors.New("get data err:"+err.Error()))
+			} else {
+				documents = append(documents, json.RawMessage(data))
+			}
 		}
 	}
 	response["documents"] = documents
 	return response, nil
-}
-
-func documentQueryToContent(dh []*vearchpb.ResultItem) ([]byte, error) {
-	contents := make([]map[string]interface{}, 0)
-
-	for _, u := range dh {
-		content := make(map[string]interface{})
-		content["_id"] = u.PKey
-
-		if u.Source != nil {
-			var source map[string]interface{}
-			if err := vjson.Unmarshal(u.Source, &source); err != nil {
-				log.Error("DocToContent Source Unmarshal error:%v", err)
-			} else {
-				for k, v := range source {
-					if _, exists := content[k]; !exists {
-						content[k] = v
-					}
-				}
-			}
-		}
-
-		contents = append(contents, content)
-	}
-
-	return vjson.Marshal(contents)
-}
-
-func documentSearchToContent(dh []*vearchpb.ResultItem) ([]byte, error) {
-	contents := make([]map[string]interface{}, 0)
-
-	for _, u := range dh {
-		content := make(map[string]interface{})
-		content["_id"] = u.PKey
-
-		if u.Fields != nil {
-			content["_score"] = &u.Score
-		}
-
-		if u.Source != nil {
-			var source map[string]interface{}
-			if err := vjson.Unmarshal(u.Source, &source); err != nil {
-				log.Error("DocToContent Source Unmarshal error:%v", err)
-			} else {
-				for k, v := range source {
-					if _, exists := content[k]; !exists {
-						content[k] = v
-					}
-				}
-			}
-		}
-
-		contents = append(contents, content)
-	}
-
-	return vjson.Marshal(contents)
 }
 
 func docFieldSerialize(doc *vearchpb.Document, space *entity.Space, returnFieldsMap map[string]string, vectorValue bool, docOut map[string]interface{}) (nextDocid int32, err error) {
@@ -350,6 +322,82 @@ func docFieldSerialize(doc *vearchpb.Document, space *entity.Space, returnFields
 	}
 
 	return nextDocid, err
+}
+
+func GetDocSource(doc *vearchpb.ResultItem, space *entity.Space, from string) (map[string]interface{}, error) {
+	source := make(map[string]interface{})
+	spaceProperties := space.SpaceProperties
+	if spaceProperties == nil {
+		spacePro, _ := entity.UnmarshalPropertyJSON(space.Fields)
+		spaceProperties = spacePro
+	}
+	var pKey string
+
+	for _, fv := range doc.Fields {
+		name := fv.Name
+		switch name {
+		case mapping.IdField:
+			pKey = string(fv.Value)
+		default:
+			field := spaceProperties[name]
+			if field == nil {
+				log.Error("can not found mappping by field:[%s]", name)
+				continue
+			}
+			switch field.FieldType {
+			case vearchpb.FieldType_STRING:
+				tempValue := string(fv.Value)
+				source[name] = tempValue
+			case vearchpb.FieldType_STRINGARRAY:
+				tempValue := string(fv.Value)
+				source[name] = strings.Split(tempValue, string([]byte{'\001'}))
+			case vearchpb.FieldType_INT:
+				intVal := cbbytes.Bytes2Int32(fv.Value)
+				source[name] = intVal
+			case vearchpb.FieldType_LONG:
+				longVal := cbbytes.Bytes2Int(fv.Value)
+				source[name] = longVal
+			case vearchpb.FieldType_BOOL:
+				if cbbytes.Bytes2Int(fv.Value) == 0 {
+					source[name] = false
+				} else {
+					source[name] = true
+				}
+			case vearchpb.FieldType_DATE:
+				u := cbbytes.Bytes2Int(fv.Value)
+				source[name] = time.Unix(u/1e6, u%1e6)
+			case vearchpb.FieldType_FLOAT:
+				source[name] = cbbytes.ByteToFloat32(fv.Value)
+			case vearchpb.FieldType_DOUBLE:
+				source[name] = cbbytes.ByteToFloat64New(fv.Value)
+			case vearchpb.FieldType_VECTOR:
+				if space.Index.Type == "BINARYIVF" {
+					featureByteC := fv.Value
+					dimension := field.Dimension
+					unit8s, err := cbbytes.ByteToVectorBinary(featureByteC, dimension)
+					if err != nil {
+						return nil, err
+					}
+					source[name] = unit8s
+				} else {
+					float32s, err := cbbytes.ByteToVectorForFloat32(fv.Value)
+					if err != nil {
+						return nil, err
+					}
+					source[name] = float32s
+				}
+
+			default:
+				log.Warn("can not set value by type:[%v] ", field.FieldType)
+			}
+		}
+	}
+	source[mapping.IdField] = pKey
+	if from == "search" {
+		source[mapping.ScoreField] = doc.Score
+	}
+
+	return source, nil
 }
 
 func GetVectorFieldValue(doc *vearchpb.Document, space *entity.Space) (floatFeatureMap map[string][]float32, binaryFeatureMap map[string][]int32, err error) {

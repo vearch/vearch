@@ -348,8 +348,7 @@ func (handler *DocumentHandler) handleDocumentQuery(c *gin.Context) {
 	searchResp := handler.docService.query(c.Request.Context(), args)
 	serviceCost := time.Since(serviceStart)
 
-	result, err := documentQueryResponse(searchResp.Results, searchResp.Head)
-
+	result, err := documentQueryResponse(searchResp.Results, searchResp.Head, space)
 	if err != nil {
 		httphelper.New(c).JsonError(errors.NewErrUnprocessable(err))
 		return
@@ -410,7 +409,7 @@ func (handler *DocumentHandler) handleDocumentSearch(c *gin.Context) {
 	searchResp := handler.docService.search(ctx, args)
 	serviceCost := time.Since(serviceStart)
 
-	result, err := documentSearchResponse(searchResp.Results, searchResp.Head)
+	result, err := documentSearchResponse(searchResp.Results, searchResp.Head, space)
 
 	if err != nil {
 		httphelper.New(c).JsonError(errors.NewErrInternal(err))
