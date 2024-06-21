@@ -578,8 +578,6 @@ func queryRequestToPb(searchDoc *request.SearchDocumentRequest, space *entity.Sp
 	queryReq.IsVectorValue = searchDoc.VectorValue
 	queryReq.Fields = searchDoc.Fields
 
-	metricType := ""
-
 	queryReq.Limit = searchDoc.Limit
 	if queryReq.Limit == 0 {
 		queryReq.Limit = DefaultSize
@@ -644,18 +642,6 @@ func queryRequestToPb(searchDoc *request.SearchDocumentRequest, space *entity.Sp
 		return err
 	}
 
-	if metricType == "" && space != nil && space.Index != nil {
-		indexParams := &entity.IndexParams{}
-		err := vjson.Unmarshal(space.Index.Params, indexParams)
-		if err != nil {
-			return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("unmarshal err:[%s] , space.Index.IndexParams:[%s]", err.Error(), string(space.Index.Params)))
-		}
-		metricType = indexParams.MetricType
-	}
-
-	if metricType != "" && metricType == "L2" {
-		sortOrder = sortorder.SortOrder{&sortorder.SortScore{Desc: false}}
-	}
 	spaceProMap := space.SpaceProperties
 	if spaceProMap == nil {
 		spacePro, _ := entity.UnmarshalPropertyJSON(space.Fields)
@@ -706,6 +692,9 @@ func queryRequestToPb(searchDoc *request.SearchDocumentRequest, space *entity.Sp
 	}
 	if searchDoc.PartitionId != nil {
 		queryReq.PartitionId = int32(*searchDoc.PartitionId)
+	}
+	if searchDoc.Next != nil {
+		queryReq.Next = *searchDoc.Next
 	}
 
 	if queryReq.Limit <= 0 {

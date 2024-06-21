@@ -167,10 +167,11 @@ class TestDocumentQueryBadCase:
             [13, "wrong_range_filter_name"],
             [14, "wrong_term_filter_name"],
             [15, "out_of_bounds_ids"],
+            [16, "wrong_partition_of_bad_type"],
         ],
     )
-    def test_vearch_document_query_badcase(self, index, wrong_type):
-        wrong_parameters = [False for i in range(16)]
+    def test_document_query_badcase(self, index, wrong_type):
+        wrong_parameters = [False for i in range(17)]
         wrong_parameters[index] = True
         query_error(self.logger, 1, 1, self.xb, "query", wrong_parameters)
 
@@ -186,7 +187,7 @@ class TestDocumentQueryBadCase:
             [3, "return_just_one_wrong"],
         ],
     )
-    def test_vearch_document_query_multiple_badcase(self, index: int, wrong_type: str):
+    def test_document_query_multiple_badcase(self, index: int, wrong_type: str):
         wrong_parameters = [False for i in range(4)]
         wrong_parameters[index] = True
         total_batch = 1
@@ -198,4 +199,69 @@ class TestDocumentQueryBadCase:
     # destroy for badcase
 
     def test_destroy_cluster_badcase(self):
+        destroy(router_url, db_name, space_name)
+
+
+class TestDocumentQueryOnSpecifyPartition:
+    def setup_class(self):
+        self.logger = logger
+        self.xb = xb
+
+    # prepare for badcase
+    def test_prepare_cluster(self):
+        prepare_cluster_for_document_test(self.logger, 100, self.xb)
+
+    def test_prepare_add(self):
+        batch_size = 100
+        total_batch = 1
+        total = int(batch_size * total_batch)
+        add(total_batch, batch_size, self.xb, with_id=True, full_field=True)
+
+        waiting_index_finish(logger, total, 1)
+
+        partition_ids = get_partition(router_url, db_name, space_name)
+        assert len(partition_ids) == 1
+        partition_id = partition_ids[0]
+
+        query_dict = {
+            "document_ids": ["0"],
+            "partition_id": partition_id,
+            "limit": 1,
+            "db_name": db_name,
+            "space_name": space_name,
+        }
+        delete_url = router_url + "/document/delete"
+        for i in range(int(total / 2)):
+            query_dict["document_ids"] = [str(i)]
+            json_str = json.dumps(query_dict)
+            response = requests.post(
+                delete_url, auth=(username, password), data=json_str
+            )
+            assert response.json()["data"]["total"] == 1
+
+        query_url = router_url + "/document/query"
+        for i in range(int(total / 2)):
+            query_dict["document_ids"] = [str(i)]
+            query_dict["partition_id"] = partition_id
+            query_dict["next"] = True
+            json_str = json.dumps(query_dict)
+            response = requests.post(
+                query_url, auth=(username, password), data=json_str
+            )
+            assert len(response.json()["data"]["documents"]) == 1
+            assert response.json()["data"]["documents"][0]["_docid"] == "50"
+
+        query_url = router_url + "/document/query"
+        for i in range(int(total / 2), total - 1):
+            query_dict["document_ids"] = [str(i)]
+            query_dict["partition_id"] = partition_id
+            query_dict["next"] = True
+            json_str = json.dumps(query_dict)
+            response = requests.post(
+                query_url, auth=(username, password), data=json_str
+            )
+            assert len(response.json()["data"]["documents"]) == 1
+            assert response.json()["data"]["documents"][0]["_docid"] == str(i + 1)
+
+    def test_destroy_cluster(self):
         destroy(router_url, db_name, space_name)

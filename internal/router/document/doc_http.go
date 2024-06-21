@@ -29,6 +29,7 @@ import (
 	"github.com/vearch/vearch/v3/internal/config"
 	"github.com/vearch/vearch/v3/internal/entity"
 	"github.com/vearch/vearch/v3/internal/entity/errors"
+	"github.com/vearch/vearch/v3/internal/entity/request"
 	"github.com/vearch/vearch/v3/internal/monitor"
 	"github.com/vearch/vearch/v3/internal/pkg/httphelper"
 	"github.com/vearch/vearch/v3/internal/pkg/log"
@@ -336,6 +337,10 @@ func (handler *DocumentHandler) handleDocumentQuery(c *gin.Context) {
 			httphelper.New(c).JsonError(errors.NewErrUnprocessable(err))
 			return
 		}
+		if searchDoc.PartitionId != nil {
+			handler.handleDocumentGet(c, searchDoc, space)
+			return
+		}
 	} else {
 		if args.TermFilters == nil && args.RangeFilters == nil {
 			err := vearchpb.NewError(vearchpb.ErrorEnum_QUERY_INVALID_PARAMS_SHOULD_HAVE_ONE_OF_DOCUMENT_IDS_OR_FILTER, nil)
@@ -356,6 +361,48 @@ func (handler *DocumentHandler) handleDocumentQuery(c *gin.Context) {
 	httphelper.New(c).JsonSuccess(result)
 	if trace {
 		log.Trace("handleDocumentQuery total use :[%.4f] service use :[%.4f] detail use :[%v]", time.Since(startTime).Seconds()*1000, serviceCost.Seconds()*1000, searchResp.Head.Params)
+	}
+}
+
+func (handler *DocumentHandler) handleDocumentGet(c *gin.Context, searchDoc *request.SearchDocumentRequest, space *entity.Space) {
+	args := &vearchpb.GetRequest{}
+	args.Head = setRequestHeadFromGin(c)
+	args.Head.DbName = searchDoc.DbName
+	args.Head.SpaceName = searchDoc.SpaceName
+	args.PrimaryKeys = *searchDoc.DocumentIds
+
+	var queryFieldsParam map[string]string
+	if searchDoc.Fields != nil {
+		queryFieldsParam = arrayToMap(searchDoc.Fields)
+	}
+
+	reply := &vearchpb.GetResponse{}
+	if searchDoc.PartitionId != nil {
+		found := false
+		for _, partition := range space.Partitions {
+			if partition.Id == *searchDoc.PartitionId {
+				found = true
+				break
+			}
+		}
+		if !found {
+			err := vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("partition_id %d not belong to space %s", *searchDoc.PartitionId, space.Name))
+			httphelper.New(c).JsonError(errors.NewErrBadRequest(err))
+			return
+		}
+		reply = handler.docService.getDocsByPartition(c.Request.Context(), args, *searchDoc.PartitionId, searchDoc.Next)
+	} else {
+		err := vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("get docs by partition should set partition_id"))
+		httphelper.New(c).JsonError(errors.NewErrBadRequest(err))
+		return
+	}
+
+	if result, err := documentGetResponse(space, reply, queryFieldsParam, searchDoc.VectorValue); err != nil {
+		httphelper.New(c).JsonError(errors.NewErrInternal(err))
+		return
+	} else {
+		httphelper.New(c).JsonSuccess(result)
+		return
 	}
 }
 

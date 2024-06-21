@@ -607,6 +607,7 @@ def process_query_error_data(items):
         wrong_range_filter_name,
         wrong_term_filter_name,
         out_of_bounds_ids,
+        wrong_partition_of_bad_type
     ) = items[5]
 
     max_document_ids_length = 501
@@ -675,6 +676,11 @@ def process_query_error_data(items):
 
     if out_of_bounds_ids:
         data["document_ids"] = [str(max_document_ids_length + 1)]
+
+    if wrong_partition_of_bad_type and interface == "query":
+        data["document_ids"] = ["0"]
+        data["partition_id"] = "1008611"
+
     json_str = json.dumps(data)
 
     if not wrong_vector:
@@ -826,9 +832,8 @@ def process_get_data(items):
         logger.debug(documents[j])
         if query_type == "by_ids" or query_type == "by_filter":
             assert value == index * batch_size + j
-        # TODO
-        # if query_type == "by_partition_next":
-        #     assert documents[j]["_docid"] == index * batch_size + j
+        if query_type == "by_partition_next":
+            assert documents[j]["_docid"] == str(index * batch_size + j + 1)
 
         assert documents[j]["field_int"] == value * seed
         if query_type == "by_ids":

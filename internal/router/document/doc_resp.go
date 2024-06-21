@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -137,6 +138,57 @@ func documentResultSerialize(item *vearchpb.Item) map[string]interface{} {
 		}
 	}
 	return result
+}
+
+func documentGetResponse(space *entity.Space, reply *vearchpb.GetResponse, returnFieldsMap map[string]string, vectorValue bool) (map[string]interface{}, error) {
+	if reply == nil || len(reply.Items) < 1 {
+		if reply.GetHead() != nil && reply.GetHead().Err != nil && reply.GetHead().Err.Code != vearchpb.ErrorEnum_SUCCESS {
+			err := reply.GetHead().Err
+			return nil, vearchpb.NewError(err.Code, errors.New(err.Msg))
+		}
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, nil)
+	}
+
+	response := make(map[string]interface{})
+
+	if reply.Head != nil && reply.Head.Err != nil {
+		if reply.Head.Err.Code != vearchpb.ErrorEnum_SUCCESS {
+			return nil, vearchpb.NewError(reply.Head.Err.Code, errors.New(reply.Head.Err.Msg))
+		}
+	}
+
+	var total int64
+	for _, item := range reply.Items {
+		if item.Doc.Fields != nil {
+			total += 1
+		} else {
+			if item.Err.Msg == "success" && item.Err.Code == vearchpb.ErrorEnum_SUCCESS {
+				total += 1
+			}
+		}
+	}
+	response["total"] = total
+
+	documents := []interface{}{}
+	for _, item := range reply.Items {
+		doc := make(map[string]interface{})
+		doc["_id"] = item.Doc.PKey
+
+		if item.Err != nil {
+			doc["code"] = http.StatusNotFound
+			doc["msg"] = item.Err.Msg
+		}
+
+		if item.Doc.Fields != nil {
+			nextDocid, _ := docFieldSerialize(item.Doc, space, returnFieldsMap, vectorValue, doc)
+			if nextDocid > 0 {
+				doc["_docid"] = strconv.Itoa(int(nextDocid))
+			}
+		}
+		documents = append(documents, doc)
+	}
+	response["documents"] = documents
+	return response, nil
 }
 
 func documentQueryResponse(srs []*vearchpb.SearchResult, head *vearchpb.ResponseHead, space *entity.Space) (map[string]interface{}, error) {
