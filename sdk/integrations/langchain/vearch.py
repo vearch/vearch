@@ -9,6 +9,7 @@ import numpy as np
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
 from langchain_core.vectorstores import VectorStore
+
 from vearch.config import Config
 from vearch.core.vearch import Vearch
 from vearch.schema.field import Field
@@ -128,11 +129,14 @@ class VearchDb(VectorStore):
         
 
     def _create_space_schema(self, dim) ->SpaceSchema:
-        filed_list_add = self.field_list + [{"field": "text", "type": "str"}]
+        filed_list_add = self.field_list
         type_dict = {"int": DataType.INTEGER, "str": DataType.STRING, 
                         "float": DataType.FLOAT}
-        fields = [Field("text_embedding", DataType.VECTOR, 
-            HNSWIndex("vec_idx", MetricType.Inner_product, 32, 64),dimension=dim)]
+        fields = [
+            Field("text_embedding", DataType.VECTOR, 
+                HNSWIndex("vec_idx", MetricType.Inner_product, 32, 64),dimension=dim),
+            Field("text", DataType.STRING)
+        ]
         for fi in filed_list_add:
             fields.append(Field(fi["field"], type_dict[fi["type"]], 
                 index=ScalarIndex(fi["field"]+"_idx")))
