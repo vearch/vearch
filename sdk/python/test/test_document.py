@@ -5,13 +5,19 @@ from vearch.schema.space import SpaceSchema
 from vearch.utils import DataType, MetricType, VectorInfo
 from vearch.schema.index import FlatIndex, Index, ScalarIndex
 from vearch.filter import Filter, Condition, FieldValue, Conditions
-from vearch.exception import DatabaseException, VearchException, SpaceException, DocumentException
+from vearch.exception import (
+    DatabaseException,
+    VearchException,
+    SpaceException,
+    DocumentException,
+)
 
 import time
 import logging
 from typing import List
 import json
 import pytest
+
 logger = logging.getLogger("vearch_document_test")
 
 database_name = "database_document_test"
@@ -22,16 +28,30 @@ vc = Vearch(config)
 
 
 def create_space_schema(space_name) -> SpaceSchema:
-    book_name = Field("book_name", DataType.STRING,
-                      desc="the name of book", index=ScalarIndex("book_name_idx"))
-    book_num = Field("book_num", DataType.INTEGER,
-                     desc="the num of book", index=ScalarIndex("book_num_idx"))
-    book_vector = Field("book_character", DataType.VECTOR, FlatIndex(
-        "book_vec_idx", MetricType.Inner_product), dimension=512)
-    ractor_address = Field("ractor_address", DataType.STRING,
-                           desc="the place of the book put")
+    book_name = Field(
+        "book_name",
+        DataType.STRING,
+        desc="the name of book",
+        index=ScalarIndex("book_name_idx"),
+    )
+    book_num = Field(
+        "book_num",
+        DataType.INTEGER,
+        desc="the num of book",
+        index=ScalarIndex("book_num_idx"),
+    )
+    book_vector = Field(
+        "book_character",
+        DataType.VECTOR,
+        FlatIndex("book_vec_idx", MetricType.Inner_product),
+        dimension=512,
+    )
+    ractor_address = Field(
+        "ractor_address", DataType.STRING, desc="the place of the book put"
+    )
     space_schema = SpaceSchema(
-        space_name, fields=[book_name, book_num, book_vector, ractor_address])
+        space_name, fields=[book_name, book_num, book_vector, ractor_address]
+    )
     return space_schema
 
 
@@ -49,14 +69,17 @@ def test_create_space():
 
 def test_upsert_doc_data_field_missing():
     import random
+
     ractor = ["ractor_logical", "ractor_industry", "ractor_philosophy"]
     book_name_template = "abcdefghijklmnopqrstuvwxyz0123456789"
     data = []
     num = [12, 34, 56, 74, 53, 11, 14, 9]
     for i in range(8):
-        book_item = ["".join(random.choices(book_name_template, k=8)),
-                     num[i],
-                     ractor[random.randint(0, 2)]]
+        book_item = [
+            "".join(random.choices(book_name_template, k=8)),
+            num[i],
+            ractor[random.randint(0, 2)],
+        ]
         data.append(book_item)
 
     ur = vc.upsert(database_name, space_name, data)
@@ -66,15 +89,18 @@ def test_upsert_doc_data_field_missing():
 
 def test_upsert_doc() -> List:
     import random
+
     ractor = ["ractor_logical", "ractor_industry", "ractor_philosophy"]
     book_name_template = "abcdefghijklmnopqrstuvwxyz0123456789"
     data = []
     num = [12, 34, 56, 74, 53, 11, 14, 9]
     for i in range(8):
-        book_item = ["".join(random.choices(book_name_template, k=8)),
-                     num[i],
-                     [random.uniform(0, 1) for _ in range(512)],
-                     ractor[random.randint(0, 2)]]
+        book_item = [
+            "".join(random.choices(book_name_template, k=8)),
+            num[i],
+            [random.uniform(0, 1) for _ in range(512)],
+            ractor[random.randint(0, 2)],
+        ]
         data.append(book_item)
         logger.debug(book_item)
     ret = vc.upsert(database_name, space_name, data)
@@ -83,10 +109,10 @@ def test_upsert_doc() -> List:
 
 def test_delete_doc():
     time.sleep(2)
-    conditons = [Condition(operator='<', fv=FieldValue(field="book_num", value=25)),
-                 Condition(operator='>', fv=FieldValue(
-                     field="book_num", value=12))
-                 ]
+    conditons = [
+        Condition(operator="<", fv=FieldValue(field="book_num", value=25)),
+        Condition(operator=">", fv=FieldValue(field="book_num", value=12)),
+    ]
     filters = Filter(operator="AND", conditions=conditons)
     ret = vc.delete(database_name, space_name, filter=filters)
     logger.info(ret.document_ids)
@@ -95,10 +121,10 @@ def test_delete_doc():
 
 def test_delete_doc_no_result():
     time.sleep(2)
-    conditons = [Condition(operator='<', fv=FieldValue(field="book_num", value=25)),
-                 Condition(operator='>', fv=FieldValue(
-                     field="book_num", value=12))
-                 ]
+    conditons = [
+        Condition(operator="<", fv=FieldValue(field="book_num", value=25)),
+        Condition(operator=">", fv=FieldValue(field="book_num", value=12)),
+    ]
     filters = Filter(operator="AND", conditions=conditons)
     ret = vc.delete(database_name, space_name, filter=filters)
     logger.info(ret.msg)
@@ -106,10 +132,15 @@ def test_delete_doc_no_result():
 
 def test_query():
     time.sleep(2)
-    conditons = [Condition(operator='>', fv=FieldValue(field="book_num", value=0)),
-                 Condition(operator='IN', fv=FieldValue(
-                     field="book_name", value=["bpww57nu", "sykboivx", "edjn9542"]))
-                 ]
+    conditons = [
+        Condition(operator=">", fv=FieldValue(field="book_num", value=0)),
+        Condition(
+            operator="IN",
+            fv=FieldValue(
+                field="book_name", value=["bpww57nu", "sykboivx", "edjn9542"]
+            ),
+        ),
+    ]
     filters = Filter(operator="AND", conditions=conditons)
     ret = vc.query(database_name, space_name, filter=filters)
     logger.info(ret.documents)
@@ -118,10 +149,15 @@ def test_query():
 
 def test_query_no_result():
     time.sleep(2)
-    conditons = [Condition(operator='>', fv=FieldValue(field="book_num", value=0)),
-                 Condition(operator='IN', fv=FieldValue(
-                     field="book_name", value=["bpww57nu", "sykboivx", "edjn9542"]))
-                 ]
+    conditons = [
+        Condition(operator=">", fv=FieldValue(field="book_num", value=0)),
+        Condition(
+            operator="IN",
+            fv=FieldValue(
+                field="book_name", value=["bpww57nu", "sykboivx", "edjn9542"]
+            ),
+        ),
+    ]
     filters = Filter(operator="AND", conditions=conditons)
     ret = vc.query(database_name, space_name, filter=filters)
     logger.info(ret.documents)
@@ -131,24 +167,37 @@ def test_query_no_result():
 
 def test_search():
     import random
+
     time.sleep(2)
     feature = [random.uniform(0, 1) for _ in range(512)]
     vi = VectorInfo("book_character", feature)
-    conditons = [
-        Condition(operator='>', fv=FieldValue(field="book_num", value=0))]
-    ret = vc.search(database_name, space_name, vector_infos=[vi, ], limit=7)
+    conditons = [Condition(operator=">", fv=FieldValue(field="book_num", value=0))]
+    ret = vc.search(
+        database_name,
+        space_name,
+        vector_infos=[
+            vi,
+        ],
+        limit=7,
+    )
     assert len(ret.documents[0]) >= 7
 
 
 def test_multi_search():
     import random
+
     limit = 7
     feature = [random.uniform(0, 1) for _ in range(512 * 2)]
     vi = VectorInfo("book_character", feature)
-    conditons = [
-        Condition(operator='>', fv=FieldValue(field="book_num", value=0))]
-    ret = vc.search(database_name, space_name,
-                    vector_infos=[vi, ], limit=limit)
+    conditons = [Condition(operator=">", fv=FieldValue(field="book_num", value=0))]
+    ret = vc.search(
+        database_name,
+        space_name,
+        vector_infos=[
+            vi,
+        ],
+        limit=limit,
+    )
     assert len(ret.documents) == 2
     logger.info(ret.documents)
     for document in ret.documents:
@@ -157,14 +206,21 @@ def test_multi_search():
 
 def test_search_no_result():
     import random
+
     feature = [random.uniform(0, 1) for _ in range(512)]
     vi = VectorInfo("bad_name", feature)
-    conditons = [
-        Condition(operator='>', fv=FieldValue(field="book_num", value=0))]
+    conditons = [Condition(operator=">", fv=FieldValue(field="book_num", value=0))]
     filters = Filter(operator="AND", conditions=conditons)
 
-    ret = vc.search(database_name, space_name, vector_infos=[
-                    vi, ], filter=filters, limit=7)
+    ret = vc.search(
+        database_name,
+        space_name,
+        vector_infos=[
+            vi,
+        ],
+        filter=filters,
+        limit=7,
+    )
     logger.info(ret.msg)
 
 

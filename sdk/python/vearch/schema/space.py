@@ -9,9 +9,14 @@ logger = logging.getLogger("vearch")
 
 
 class SpaceSchema:
-    def __init__(self, name: str, fields: List, description: str = "",
-                 partition_num: int = 1,
-                 replication_num: int = 3):
+    def __init__(
+        self,
+        name: str,
+        fields: List,
+        description: str = "",
+        partition_num: int = 1,
+        replication_num: int = 3,
+    ):
         """
 
         :param name:
@@ -32,14 +37,21 @@ class SpaceSchema:
             if field.index:
                 assert field.data_type not in [DataType.NONE, DataType.UNKNOWN]
                 if isinstance(field.index, BinaryIvfIndex):
-                    assert field.dim % 8 == 0, "BinaryIvfIndex vector dimention must be power of eight"
+                    assert (
+                        field.dim % 8 == 0
+                    ), "BinaryIvfIndex vector dimention must be power of eight"
                 if isinstance(field.index, IvfPQIndex):
-                    assert field.dim % field.index.nsubvector(
-                    ) == 0, "IVFPQIndex vector dimention must be power of nsubvector"
+                    assert (
+                        field.dim % field.index.nsubvector() == 0
+                    ), "IVFPQIndex vector dimention must be power of nsubvector"
 
     def dict(self):
-        space_schema = {"name": self.name, "desc": self.description, "partition_num": self.partition_num,
-                        "replication_num": self.replication_num}
+        space_schema = {
+            "name": self.name,
+            "desc": self.description,
+            "partition_num": self.partition_num,
+            "replication_num": self.replication_num,
+        }
 
         fields_dict = [field.dict() for field in self.fields]
         space_schema["fields"] = fields_dict
@@ -50,9 +62,11 @@ class SpaceSchema:
 
         name = data_dict.get("space_name")
         schema_dict = data_dict.get("schema")
-        fields = [Field.from_dict(field)
-                  for field in schema_dict.get("fields")]
-        return cls(name=name, fields=fields,
-                   description=data_dict.get("desc", ""),
-                   partition_num=data_dict.get("partition_num"),
-                   replication_num=data_dict.get("replica_num"))
+        fields = [Field.from_dict(field) for field in schema_dict.get("fields")]
+        return cls(
+            name=name,
+            fields=fields,
+            description=data_dict.get("desc", ""),
+            partition_num=data_dict.get("partition_num"),
+            replication_num=data_dict.get("replica_num"),
+        )

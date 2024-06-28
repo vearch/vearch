@@ -10,7 +10,14 @@ logger = logging.getLogger("vearch")
 
 
 class Field:
-    def __init__(self, name: str, data_type: DataType, index: Optional[Index] = None, desc: str = "", **kwargs):
+    def __init__(
+        self,
+        name: str,
+        data_type: DataType,
+        index: Optional[Index] = None,
+        desc: str = "",
+        **kwargs
+    ):
         """
 
         :param name: the name of field
@@ -31,16 +38,17 @@ class Field:
         if self.data_type == DataType.VECTOR:
             self.dim = self._kwargs.get("dimension", None)
             assert isinstance(
-                self.dim, int), "vector field must set dimention,you should set dim=xxx"
+                self.dim, int
+            ), "vector field must set dimention,you should set dim=xxx"
             assert self.dim > 0, "the vector field's dimention must above zero"
         if self.data_type == DataType.STRING:
             self.array = self._kwargs.get("array", False)
-        assert name_valid_check(
-            self.name) == True, "field name must match ^([a-zA-Z]+)([a-z0-9A-Z]*[\-\_]{0,1}[a-z0-9A-Z]+)+"
+        assert (
+            name_valid_check(self.name) == True
+        ), "field name must match ^([a-zA-Z]+)([a-z0-9A-Z]*[\-\_]{0,1}[a-z0-9A-Z]+)+"
 
     def dict(self):
-        field_dict = {"name": self.name,
-                      "type": self.data_type, "desc": self.desc}
+        field_dict = {"name": self.name, "type": self.data_type, "desc": self.desc}
         if self.data_type == DataType.VECTOR:
             field_dict["dimension"] = self.dim
         if self.index:
@@ -54,5 +62,7 @@ class Field:
         describe = field_data.pop("desc")
         index = field_data.pop("index", None)
         if index:
-            return Field(name, data_type=data_type, index=index, desc=describe, **field_data)
+            return Field(
+                name, data_type=data_type, index=index, desc=describe, **field_data
+            )
         return Field(name=name, data_type=data_type, desc=describe, **field_data)

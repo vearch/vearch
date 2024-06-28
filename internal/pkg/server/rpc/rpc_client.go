@@ -95,6 +95,7 @@ func (r *RpcClient) Execute(ctx context.Context, servicePath string, args interf
 	case <-ctx.Done():
 		msg := fmt.Sprintf("Too much concurrency causes time out, the max num of concurrency is [%d]", r.concurrentNum)
 		err = vearchpb.NewError(vearchpb.ErrorEnum_TIMEOUT, errors.New(msg))
+		log.Errorf(msg)
 		return
 	default:
 		var (

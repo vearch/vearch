@@ -40,45 +40,78 @@ class ScalarIndex(Index):
 
 
 class IvfPQIndex(Index):
-    def __init__(self, index_name: str, training_threshold: int, metric_type: str, ncentroids: int,
-                 nsubvector: int, bucket_init_size: Optional[int] = None, bucket_max_size: Optional[int] = None,
-                 **kwargs):
+    def __init__(
+        self,
+        index_name: str,
+        metric_type: str,
+        ncentroids: int,
+        nsubvector: int,
+        training_threshold: int = None,
+        bucket_init_size: Optional[int] = None,
+        bucket_max_size: Optional[int] = None,
+        **kwargs
+    ):
         super().__init__(index_name, index_type=IndexType.IVFPQ, **kwargs)
-        self._index_params = IndexParams(training_threshold=training_threshold, metric_type=metric_type,
-                                         ncentroids=ncentroids, nsubvector=nsubvector)
+        self._index_params = IndexParams(
+            metric_type=metric_type, ncentroids=ncentroids, nsubvector=nsubvector
+        )
         self._index_params._replace(
-            bucket_init_size=bucket_init_size if bucket_init_size else 1000)
+            bucket_init_size=bucket_init_size if bucket_init_size else 1000
+        )
         self._index_params._replace(
-            buckert_max_size=bucket_max_size if bucket_max_size else 1280000)
+            buckert_max_size=bucket_max_size if bucket_max_size else 1280000
+        )
+        self._index_params._replace(
+            training_threshold=(
+                training_threshold if training_threshold else int(ncentroids * 39)
+            )
+        )
 
     def dict(self):
-        return {"name": self._index_name, "type": IndexType.IVFPQ,
-                "params": {
-                    "training_threshold": self._index_params.training_threshold,
-                    "metric_type": self._index_params.metric_type, "ncentroids": self._index_params.ncentroids,
-                    "nsubvector": self._index_params.nsubvector,
-                    "bucket_init_size": self._index_params.bucket_init_size,
-                    "bucket_max_size": self._index_params.buckert_max_size
-                }
-                }
+        return {
+            "name": self._index_name,
+            "type": IndexType.IVFPQ,
+            "params": {
+                "training_threshold": self._index_params.training_threshold,
+                "metric_type": self._index_params.metric_type,
+                "ncentroids": self._index_params.ncentroids,
+                "nsubvector": self._index_params.nsubvector,
+                "bucket_init_size": self._index_params.bucket_init_size,
+                "bucket_max_size": self._index_params.buckert_max_size,
+            },
+        }
 
     def nsubvector(self):
         return self._index_params.nsubvector
 
 
 class IvfFlatIndex(Index):
-    def __init__(self, index_name: str, metric_type: str, ncentroids: int, **kwargs):
+    def __init__(
+        self,
+        index_name: str,
+        metric_type: str,
+        ncentroids: int,
+        training_threshold: int = None,
+        **kwargs
+    ):
         super().__init__(index_name, index_type=IndexType.IVFFLAT, **kwargs)
-        self._index_params = IndexParams(
-            metric_type=metric_type, ncentroids=ncentroids)
+        self._index_params = IndexParams(metric_type=metric_type, ncentroids=ncentroids)
+        self._index_params._replace(
+            training_threshold=(
+                training_threshold if training_threshold else int(ncentroids * 39)
+            )
+        )
 
     def dict(self):
-        return {"name": self._index_name, "type": IndexType.IVFFLAT,
-                "params": {
-                    "metric_type": self._index_params.metric_type,
-                    "ncentroids": self._index_params.ncentroids
-                }
-                }
+        return {
+            "name": self._index_name,
+            "type": IndexType.IVFFLAT,
+            "params": {
+                "metric_type": self._index_params.metric_type,
+                "ncentroids": self._index_params.ncentroids,
+                "training_threshold": self._index_params.training_threshold,
+            },
+        }
 
 
 class BinaryIvfIndex(Index):
@@ -91,10 +124,11 @@ class BinaryIvfIndex(Index):
         self._index_params = IndexParams(ncentroids=ncentroids)
 
     def dict(self):
-        return {"name": self._index_name, "type": IndexType.BINARYIVF,
-                "params": {
-                    "ncentroids": self._index_params.ncentroids}
-                }
+        return {
+            "name": self._index_name,
+            "type": IndexType.BINARYIVF,
+            "params": {"ncentroids": self._index_params.ncentroids},
+        }
 
 
 class FlatIndex(Index):
@@ -103,37 +137,60 @@ class FlatIndex(Index):
         self._index_params = IndexParams(metric_type=metric_type)
 
     def dict(self):
-        return {"name": self._index_name, "type": IndexType.FLAT,
-                "params": {
-                    "metric_type": self._index_params.metric_type
-                }
-                }
+        return {
+            "name": self._index_name,
+            "type": IndexType.FLAT,
+            "params": {"metric_type": self._index_params.metric_type},
+        }
 
 
 class HNSWIndex(Index):
-    def __init__(self, index_name: str, metric_type: str, nlinks: int, efConstruction: int, **kwargs):
+    def __init__(
+        self,
+        index_name: str,
+        metric_type: str,
+        nlinks: int,
+        efConstruction: int,
+        **kwargs
+    ):
         super().__init__(index_name, index_type=IndexType.HNSW, **kwargs)
         self._index_params = IndexParams(
-            metric_type=metric_type, nlinks=nlinks, efConstruction=efConstruction)
+            metric_type=metric_type, nlinks=nlinks, efConstruction=efConstruction
+        )
 
     def dict(self):
-        return {"name": self._index_name, "type": IndexType.HNSW, "params": {
-            "nlinks": self._index_params.nlinks,
-            "efConstruction": self._index_params.efConstruction, "metric_type": self._index_params.metric_type
-        }
+        return {
+            "name": self._index_name,
+            "type": IndexType.HNSW,
+            "params": {
+                "nlinks": self._index_params.nlinks,
+                "efConstruction": self._index_params.efConstruction,
+                "metric_type": self._index_params.metric_type,
+            },
         }
 
 
 class GPUIvfPQIndex(Index):
-    def __init__(self, index_name: str, metric_type: str, ncentroids: int, nsubvector: int, **kwargs):
+    def __init__(
+        self,
+        index_name: str,
+        metric_type: str,
+        ncentroids: int,
+        nsubvector: int,
+        **kwargs
+    ):
         super().__init__(index_name, index_type=IndexType.GPU_IVFPQ, **kwargs)
         self._index_params = IndexParams(
-            metric_type=metric_type, ncentroids=ncentroids, nsubvector=nsubvector)
+            metric_type=metric_type, ncentroids=ncentroids, nsubvector=nsubvector
+        )
 
     def dict(self):
-        return {"name": self._index_name, "type": IndexType.GPU_IVFPQ,
-                "params": {
-                    "metric_type": self._index_params.metric_type,
-                    "ncentroids": self._index_params.ncentroids, "nsubvector": self._index_params.nsubvector
-                }
-                }
+        return {
+            "name": self._index_name,
+            "type": IndexType.GPU_IVFPQ,
+            "params": {
+                "metric_type": self._index_params.metric_type,
+                "ncentroids": self._index_params.ncentroids,
+                "nsubvector": self._index_params.nsubvector,
+            },
+        }
