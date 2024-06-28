@@ -9,7 +9,6 @@ import numpy as np
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
 from langchain_core.vectorstores import VectorStore
-
 from vearch.config import Config
 from vearch.core.vearch import Vearch
 from vearch.schema.field import Field

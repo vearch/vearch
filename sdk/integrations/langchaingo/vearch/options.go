@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	DefaultDbName    = "ts_db"
+	DefaultDBName    = "ts_db"
 	DefaultSpaceName = "ts_space"
 )
 
@@ -27,7 +27,7 @@ func WithEmbedder(embedder embeddings.Embedder) Option {
 }
 
 // WithDbName returns an Option for setting the database name. Required.
-func WithDbName(name string) Option {
+func WithDBName(name string) Option {
 	return func(store *Store) {
 		store.DbName = name
 	}
@@ -41,22 +41,20 @@ func WithSpaceName(name string) Option {
 }
 
 // WithURL returns an Option for setting the Vearch cluster URL. Required.
-func WithURL(clusterUrl url.URL) Option {
+func WithURL(clusterURL url.URL) Option {
 	return func(store *Store) {
-		store.ClusterUrl = clusterUrl
+		store.ClusterURL = clusterURL
 	}
 }
 
 func applyClientOptions(opts ...Option) (Store, error) {
 
-	store := &Store{
-		contentKey: DefaultContentKey,
-	}
+	store := &Store{}
 	for _, opt := range opts {
 		opt(store)
 	}
 
-	if store.DbName == "" {
+	if store.DBName == "" {
 		return Store{}, fmt.Errorf("%w: missing database name", ErrInvalidOptions)
 	}
 
@@ -64,7 +62,7 @@ func applyClientOptions(opts ...Option) (Store, error) {
 		return Store{}, fmt.Errorf("%w: missing space name", ErrInvalidOptions)
 	}
 
-	if store.ClusterUrl == (url.URL{}) {
+	if store.ClusterURL == (url.URL{}) {
 		return Store{}, fmt.Errorf("%w: missing cluster URL", ErrInvalidOptions)
 	}
 

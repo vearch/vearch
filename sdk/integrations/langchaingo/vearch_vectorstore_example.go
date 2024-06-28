@@ -4,33 +4,36 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/url"
 
-	"github.com/tmc/langchaingo/embeddings"
-	"github.com/tmc/langchaingo/llms/openai"
+	// "github.com/tmc/langchaingo/embeddings"
+	embedHug "github.com/tmc/langchaingo/embeddings/huggingface"
+
 	"github.com/tmc/langchaingo/schema"
 	"github.com/tmc/langchaingo/vectorstores"
-	"github.com/tmc/langchaingo/vectorstores/vearch"
+	// "github.com/vearch/vearch/sdk/integrations/langchaingo/vearch"
+	// "github.com/vearch/vearch/sdk/go/vearch/entities/models"
 )
 
 func main() {
 	// Create an embeddings client using the OpenAI API. Requires environment variable OPENAI_API_KEY to be set.
-	llm, err := openai.New(openai.WithEmbeddingModel("model/bge-small-en-v1.5")) // Specify your preferred embedding model
+	e, err := embedHug.NewHuggingface(embedHug.WithModel("text2vec/text2vec-large-chinese"))
+	if err != nil {
+		log.Fatal(err)
+
+	}
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	e, err := embeddings.NewEmbedder(llm)
+	url, err := url.Parse("http://liama-index-router.vectorbase.svc.sq01.n.jd.local")
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	ctx := context.Background()
-
 	// Create a new Vearch vector store.
 	store, err := vearch.New(
-		vearch.WithDbName("langchaingo_dbt"),
+		vearch.WithDBName("langchaingo_dbt"),
 		vearch.WithSpaceName("langchaingo_t"),
-		vearch.WithURL("your router url"),
+		vearch.WithURL(*url),
 		vearch.WithEmbedder(e),
 	)
 	if err != nil {
@@ -66,12 +69,11 @@ func main() {
 		log.Fatal(err)
 	}
 	fmt.Println("ids", ids)
-
 	// Search for similar documents.
-	docs, err := store.SimilaritySearch(ctx, "japan", 1)
-	fmt.Println(docs)
+	var docs []schema.Document
+	docs, err = store.SimilaritySearch(context.Background(), "japan", 1)
+	fmt.Println("&&&&&&&&", docs)
 
-	// Search for similar documents using score threshold and metadata filter.
 	filter := map[string]interface{}{
 		"AND": []map[string]interface{}{
 			{
@@ -83,9 +85,9 @@ func main() {
 			},
 		},
 	}
-	var docs_f []schema.Document
-	docs_f, err = store.SimilaritySearch(ctx, "only cities in earth",
-		10,
+	var docs1 []schema.Document
+	docs1, err = store.SimilaritySearch(context.Background(), "only cities in earth",
+		20,
 		vectorstores.WithFilters(filter))
-	fmt.Println(docs_f)
+	fmt.Println("*****", docs1)
 }

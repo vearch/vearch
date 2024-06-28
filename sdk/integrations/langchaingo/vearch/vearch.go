@@ -18,10 +18,9 @@ import (
 )
 
 type Store struct {
-	DbName     string
+	DBName     string
 	SpaceName  string
-	ClusterUrl url.URL
-	contentKey string
+	ClusterURL url.URL
 	embedder   embeddings.Embedder
 }
 
@@ -54,8 +53,7 @@ func (s Store) AddDocuments(
 	options ...vectorstores.Option,
 ) ([]string, error) {
 
-	fmt.Println(s.ClusterUrl.String(), s.DbName, s.SpaceName)
-	c := setupClient(s.ClusterUrl.String())
+	c := setupClient(s.ClusterURL.String())
 
 	vectors := [][]float32{
 		{1.3, 2.4, 1, 4, 5, 6, 7, 78},
@@ -78,7 +76,7 @@ func (s Store) AddDocuments(
 		}
 		documents = append(documents, document)
 	}
-	resp, err := c.Data().Creator().WithDBName(s.DbName).WithSpaceName(s.SpaceName).WithDocs(documents).Do(ctx)
+	resp, err := c.Data().Creator().WithDBName(s.DBName).WithSpaceName(s.SpaceName).WithDocs(documents).Do(ctx)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -101,8 +99,8 @@ func (s *Store) SimilaritySearch(
 ) ([]schema.Document, error) {
 
 	opts := s.getOptions(options...)
-	filters_input := s.getFilters(opts)
-	c := setupClient(s.ClusterUrl.String())
+	filtersInput := s.getFilters(opts)
+	c := setupClient(s.ClusterURL.String())
 
 	vectors := []models.Vector{
 		{
@@ -118,13 +116,11 @@ func (s *Store) SimilaritySearch(
 
 	var resp *data.SearchWrapper
 	var err error
-	if filters_input != nil {
+	if filtersInput != nil {
 		filters := &models.Filters{}
-		for operator, conditions := range filters_input.(map[string]interface{}) {
+		for operator, conditions := range filtersInput.(map[string]interface{}) {
 			filters.Operator = operator
 			for _, condMap := range conditions.([]map[string]interface{}) {
-				fmt.Println("^^condMap^^^", condMap)
-				fmt.Println("^^condp^^^", condMap["condition"])
 				conditionInterface, ok := condMap["condition"].(map[string]interface{})
 				fmt.Println("^^inter^^^", conditionInterface)
 				if !ok {
@@ -142,10 +138,10 @@ func (s *Store) SimilaritySearch(
 			fmt.Println("(((\n", filters)
 		}
 
-		resp, err = c.Data().Searcher().WithDBName(s.DbName).WithSpaceName(s.SpaceName).WithLimit(numDocuments).WithVectors(vectors).WithFilters(filters).Do(ctx)
+		resp, err = c.Data().Searcher().WithDBName(s.DBName).WithSpaceName(s.SpaceName).WithLimit(numDocuments).WithVectors(vectors).WithFilters(filters).Do(ctx)
 
 	} else {
-		resp, err = c.Data().Searcher().WithDBName(s.DbName).WithSpaceName(s.SpaceName).WithLimit(numDocuments).WithVectors(vectors).Do(ctx)
+		resp, err = c.Data().Searcher().WithDBName(s.DBName).WithSpaceName(s.SpaceName).WithLimit(numDocuments).WithVectors(vectors).Do(ctx)
 
 	}
 
