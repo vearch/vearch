@@ -7,6 +7,8 @@
 
 #include "storage_manager.h"
 
+#include <rocksdb/advanced_cache.h>
+
 #include <sstream>
 
 #include "util/log.h"
