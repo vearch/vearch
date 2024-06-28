@@ -25,7 +25,6 @@ import (
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/vearch/vearch/v3/internal/client"
-	"github.com/vearch/vearch/v3/internal/engine/sdk/go/gamma"
 	"github.com/vearch/vearch/v3/internal/entity"
 	"github.com/vearch/vearch/v3/internal/pkg/errutil"
 	"github.com/vearch/vearch/v3/internal/pkg/log"
@@ -386,44 +385,19 @@ func (ch *EngineCfgHandler) Execute(ctx context.Context, req *vearchpb.Partition
 		return vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_IS_INVALID, fmt.Errorf("partition (%v), engine is nil ", req.PartitionID))
 	}
 	if req.Type == vearchpb.OpType_CREATE {
-		cacheCfg := new(entity.EngineCfg)
-		if err := vjson.Unmarshal(req.Data, cacheCfg); err != nil {
-			errutil.ThrowError(err)
-			return err
-		}
-		// invoke c interface
-		log.Debug("cache cfg info is [%+v]", cacheCfg)
-		cfg := &gamma.Config{}
-		var CacheInfos []*gamma.CacheInfo
-		if cacheCfg.CacheModels != nil {
-			for _, model := range cacheCfg.CacheModels {
-				cf := &gamma.CacheInfo{Name: model.Name, CacheSize: model.CacheSize}
-				CacheInfos = append(CacheInfos, cf)
-			}
-		}
-		cfg.CacheInfos = CacheInfos
-		err := engine.SetEngineCfg(cfg)
+		err := engine.SetEngineCfg(req.Data)
 		if err != nil {
 			log.Debug("cache info set error [%+v]", err)
 		}
 	} else if req.Type == vearchpb.OpType_GET {
 		// invoke c interface
 		log.Debug("invoke cfg info is get")
-		cfg := &gamma.Config{}
+		cfg := &entity.EngineConfig{}
 		err := engine.GetEngineCfg(cfg)
 		if err != nil {
 			log.Debug("cache info set error [%+v]", err)
 		}
-		var cacheModels []*entity.CacheModel
-		if cfg.CacheInfos != nil {
-			for _, cf := range cfg.CacheInfos {
-				model := &entity.CacheModel{Name: cf.Name, CacheSize: cf.CacheSize}
-				cacheModels = append(cacheModels, model)
-			}
-		}
-		cacheCfg := new(entity.EngineCfg)
-		cacheCfg.CacheModels = cacheModels
-		data, _ := vjson.Marshal(cacheCfg)
+		data, _ := vjson.Marshal(cfg)
 		reply.Data = data
 	}
 	return nil
@@ -474,7 +448,7 @@ func (bh *BackupHandler) Execute(ctx context.Context, req *vearchpb.PartitionDat
 		return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("find db by id err: %s, data: %d", err.Error(), space.DBId))
 	}
 
-	engineConfig := gamma.Config{}
+	engineConfig := entity.EngineConfig{}
 	err = e.GetEngineCfg(&engineConfig)
 	if err != nil {
 		log.Error("get engine config error [%+v]", err)

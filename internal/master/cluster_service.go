@@ -842,7 +842,7 @@ func (ms *masterService) queryAliasService(ctx context.Context, alias_name strin
 	return alias, nil
 }
 
-func (ms *masterService) GetEngineCfg(ctx context.Context, dbName, spaceName string) (cfg *entity.EngineCfg, err error) {
+func (ms *masterService) GetEngineCfg(ctx context.Context, dbName, spaceName string) (cfg *entity.EngineConfig, err error) {
 	defer errutil.CatchError(&err)
 	// get space info
 	dbId, err := ms.Master().QueryDBName2Id(ctx, dbName)
@@ -876,8 +876,7 @@ func (ms *masterService) GetEngineCfg(ctx context.Context, dbName, spaceName str
 	return nil, nil
 }
 
-func (ms *masterService) ModifyEngineCfg(ctx context.Context, dbName,
-	spaceName string, cacheCfg *entity.EngineCfg) (err error) {
+func (ms *masterService) ModifyEngineCfg(ctx context.Context, dbName, spaceName string, cacheCfg *entity.EngineConfig) (err error) {
 	defer errutil.CatchError(&err)
 	// get space info
 	dbId, err := ms.Master().QueryDBName2Id(ctx, dbName)

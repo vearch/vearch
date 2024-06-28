@@ -114,6 +114,9 @@ func (handler *DocumentHandler) proxyMaster(group *gin.RouterGroup) error {
 	group.GET("/cluster/health", handler.handleMasterRequest)
 	group.GET("/cluster/stats", handler.handleMasterRequest)
 
+	// config handler
+	group.POST("/config/:"+URLParamDbName+"/:"+URLParamSpaceName, handler.handleMasterRequest)
+	group.GET("/config/:"+URLParamDbName+"/:"+URLParamSpaceName, handler.handleMasterRequest)
 	// schedule handler
 
 	return nil

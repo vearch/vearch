@@ -15,11 +15,11 @@
 #include <sstream>
 #include <string>
 
-#include "api_data/config.h"
 #include "api_data/doc.h"
 #include "api_data/response.h"
 #include "api_data/table.h"
 #include "search/engine.h"
+#include "third_party/nlohmann/json.hpp"
 #include "util/log.h"
 #include "util/status.h"
 #include "util/utils.h"
@@ -31,26 +31,24 @@ static int log_dir_flag = 0;
 int SetLogDictionary(const std::string &log_dir);
 
 void *Init(const char *config_str, int len) {
-  vearch::Config config;
-  config.Deserialize(config_str, len);
+  nlohmann::json j = nlohmann::json::parse(std::string(config_str, len));
 
   int flag = __sync_fetch_and_add(&log_dir_flag, 1);
 
   if (flag == 0) {
-    const std::string &log_dir = config.LogDir();
+    const std::string &log_dir = j["log_dir"];
     SetLogDictionary(log_dir);
   }
 
-  const std::string &path = config.Path();
-  vearch::Engine *engine =
-      vearch::Engine::GetInstance(path, config.SpaceName());
+  const std::string &path = j["path"];
+  vearch::Engine *engine = vearch::Engine::GetInstance(path, j["space_name"]);
   if (engine == nullptr) {
     LOG(ERROR) << "Engine init faild!";
     return nullptr;
   }
 
   vearch::RequestConcurrentController::GetInstance();
-  LOG(INFO) << config.SpaceName() << " init successed!";
+  LOG(INFO) << j["space_name"] << " init successed!";
   return static_cast<void *>(engine);
 }
 
@@ -238,18 +236,17 @@ int Load(void *engine) {
 }
 
 int SetConfig(void *engine, const char *config_str, int len) {
-  vearch::Config config;
-  config.Deserialize(config_str, len);
-  int ret = static_cast<vearch::Engine *>(engine)->SetConfig(config);
+  int ret = static_cast<vearch::Engine *>(engine)->SetConfig(
+      std::string(config_str, len));
   return ret;
 }
 
 int GetConfig(void *engine, char **config_str, int *len) {
-  vearch::Config config;
+  std::string config;
   int res = static_cast<vearch::Engine *>(engine)->GetConfig(config);
-  if (res == 0) {
-    res = config.Serialize(config_str, len);
-  }
+  *len = config.length();
+  *config_str = (char *)malloc(*len * sizeof(char));
+  memcpy(*config_str, config.c_str(), *len);
   return res;
 }
 

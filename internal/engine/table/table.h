@@ -124,10 +124,6 @@ class Table {
 
   DumpConfig *GetDumpConfig() { return table_params_; }
 
-  bool AlterCacheSize(int cache_size);
-
-  void GetCacheSize(int &cache_size);
-
   int GetStorageManagerSize();
 
   int last_docid_;

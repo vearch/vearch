@@ -15,7 +15,6 @@
 #include <vector>
 
 #include "common/gamma_common_data.h"
-#include "config.h"
 #include "doc.h"
 #include "index/impl/gamma_index_ivfflat.h"
 #include "index/impl/gamma_index_ivfpq.h"

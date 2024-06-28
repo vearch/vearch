@@ -139,10 +139,6 @@ class RawVector : public VectorReader {
 
   virtual int UpdateToStore(int vid, uint8_t *v, int len) = 0;
 
-  virtual int GetCacheSize(int &cache_size) { return -1; };
-
-  virtual int AlterCacheSize(int cache_size) { return -1; }
-
   // [start_vid, end_vid)
   virtual Status Dump(int start_vid, int end_vid) = 0;
   virtual int GetDiskVecNum(int &vec_num) = 0;

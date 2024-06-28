@@ -33,7 +33,15 @@ void StorageManager::Close() {
   LOG(INFO) << "db closed";
 }
 
-void StorageManager::GetCacheSize(int &cache_size) { cache_size = 0; }
+void StorageManager::GetCacheSize(size_t &cache_size) {
+  cache_size = table_options_.block_cache->GetCapacity();
+  cache_size = cache_size / 1024 / 1024;
+}
+
+void StorageManager::AlterCacheSize(size_t cache_size) {
+  cache_size = cache_size * 1024 * 1024;
+  table_options_.block_cache->SetCapacity(cache_size);
+}
 
 Status StorageManager::Init(int cache_size) {
   if (utils::make_dir(root_path_.c_str())) {

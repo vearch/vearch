@@ -489,7 +489,7 @@ Status Engine::CreateTable(TableInfo &table) {
   Status status;
 
   storage_mgr_ = new StorageManager(index_root_path_ + "/data");
-  int cache_size = 512;  // unit : M
+  int cache_size = 512 * 1024 * 1024;  // unit : byte
 
   std::vector<int> vector_cf_ids;
 
@@ -1383,27 +1383,21 @@ int Engine::AddNumIndexFields() {
   return retvals;
 }
 
-int Engine::GetConfig(Config &conf) {
-  conf.ClearCacheInfos();
-  vec_manager_->GetAllCacheSize(conf);
-  int table_cache_size = 0;
-  table_->GetCacheSize(table_cache_size);
-  conf.AddCacheInfo("table", table_cache_size);
-  conf.SetPath(index_root_path_);
+int Engine::GetConfig(std::string &conf_str) {
+  size_t table_cache_size = 0;
+  storage_mgr_->GetCacheSize(table_cache_size);
+  nlohmann::json j;
+  j["engine_cache_size"] = table_cache_size;
+  j["path"] = index_root_path_;
+  conf_str = j.dump();
   return 0;
 }
 
-int Engine::SetConfig(Config &conf) {
-  int table_cache_size = 0;
-  for (auto &c : conf.CacheInfos()) {
-    if (c.field_name == "table") {
-      table_cache_size = c.cache_size;
-    } else {
-      vec_manager_->AlterCacheSize(c);
-    }
-  }
-  table_->AlterCacheSize(table_cache_size);
-  GetConfig(conf);
+int Engine::SetConfig(std::string conf_str) {
+  nlohmann::json j = nlohmann::json::parse(conf_str);
+
+  size_t table_cache_size = j["engine_cache_size"];
+  storage_mgr_->AlterCacheSize(table_cache_size);
   return 0;
 }
 

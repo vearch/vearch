@@ -11,7 +11,6 @@
 #include <map>
 #include <string>
 
-#include "c_api/api_data/config.h"
 #include "common/gamma_common_data.h"
 #include "index/index_model.h"
 #include "util/bitmap_manager.h"
@@ -101,10 +100,6 @@ class VectorManager {
   std::map<std::string, IndexModel *> IndexModels() { return vector_indexes_; }
 
   int MinIndexedNum();
-
-  int AlterCacheSize(struct CacheInfo &cache_info);
-
-  int GetAllCacheSize(Config &conf);
 
   bitmap::BitmapManager *Bitmap() { return docids_bitmap_; };
 

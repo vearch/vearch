@@ -9,7 +9,6 @@
 
 #include <vector>
 
-#include "idl/fbs-gen/c/config_generated.h"
 #include "idl/fbs-gen/c/doc_generated.h"
 #include "idl/fbs-gen/c/response_generated.h"
 #include "idl/fbs-gen/c/table_generated.h"
@@ -35,9 +34,7 @@ struct FieldInfo {
 
 class TableInfo : public RawData {
  public:
-  TableInfo() {
-    table_ = nullptr;
-  }
+  TableInfo() { table_ = nullptr; }
 
   virtual int Serialize(char **out, int *out_len);
   virtual void Deserialize(const char *data, int len);

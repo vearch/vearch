@@ -743,21 +743,13 @@ func (ca *clusterAPI) modifyEngineCfg(c *gin.Context) {
 	defer errutil.CatchError(&err)
 	dbName := c.Param(dbName)
 	spaceName := c.Param(spaceName)
-	data, err := io.ReadAll(c.Request.Body)
+	cacheCfg := &entity.EngineConfig{}
 
-	errutil.ThrowError(err)
-	log.Debug("engine config json data is [%+v]", string(data))
-	cacheCfg := &entity.EngineCfg{}
-	err = vjson.Unmarshal(data, &cacheCfg)
-	if err != nil {
+	if err := c.ShouldBindJSON(cacheCfg); err != nil {
 		httphelper.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
 	}
 
-	if cacheCfg.CacheModels == nil {
-		httphelper.New(c).JsonError(errors.NewErrBadRequest(fmt.Errorf("engine config [%+v] is error", string(data))))
-		return
-	}
 	if err := ca.masterService.ModifyEngineCfg(c, dbName, spaceName, cacheCfg); err != nil {
 		httphelper.New(c).JsonError(errors.NewErrInternal(err))
 	} else {

@@ -110,11 +110,6 @@ type SpaceDescribeRequest struct {
 	Detail    *bool  `json:"detail"`
 }
 
-// cache/[dbId]/[spaceId]:[cacheCfg]
-type EngineCfg struct {
-	CacheModels []*CacheModel `json:"cache_models,omitempty"`
-}
-
 type BackupSpace struct {
 	Command    string `json:"command,omitempty"`
 	WitchShema bool   `json:"with_schema,omitempty"`
@@ -126,11 +121,6 @@ type BackupSpace struct {
 		SecretKey  string `json:"secret_key"`
 		UseSSL     bool   `json:"use_ssl"`
 	} `json:"s3_param,omitempty"`
-}
-
-type CacheModel struct {
-	Name      string `json:"name,omitempty"` //user setting
-	CacheSize int32  `json:"cache_size,omitempty"`
 }
 
 type SpaceProperties struct {

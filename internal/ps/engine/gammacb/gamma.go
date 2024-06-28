@@ -73,13 +73,19 @@ func New(cfg EngineConfig) (engine.Engine, error) {
 		return nil, e
 	}
 
-	config := &gamma.Config{
+	config := struct {
+		Path      string `json:"path"`
+		SpaceName string `json:"space_name"`
+		LogDir    string `json:"log_dir"`
+	}{
 		Path:      cfg.Path,
 		SpaceName: cfg.Space.Name + "-" + cast.ToString(cfg.PartitionID),
-		LogDir:    config.Conf().GetLogDir()}
+		LogDir:    config.Conf().GetLogDir(),
+	}
 
-	gamma_engine_instance := gamma.Init(config)
-	if gamma_engine_instance == nil {
+	configJson, _ := vjson.Marshal(&config)
+	engineInstance := gamma.Init(configJson)
+	if engineInstance == nil {
 		cancel()
 		return nil, vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("init engine err"))
 	}
@@ -91,7 +97,7 @@ func New(cfg EngineConfig) (engine.Engine, error) {
 		space:        cfg.Space,
 		partitionID:  cfg.PartitionID,
 		path:         cfg.Path,
-		gamma:        gamma_engine_instance,
+		gamma:        engineInstance,
 		counter:      atomic.NewAtomicInt64(0),
 		hasClosed:    false,
 	}
@@ -316,14 +322,14 @@ func (ge *gammaEngine) Close() {
 	}(enginePtr)
 }
 
-func (ge *gammaEngine) SetEngineCfg(config *gamma.Config) error {
-	gamma.SetEngineCfg(ge.gamma, config)
+func (ge *gammaEngine) SetEngineCfg(configJson []byte) error {
+	gamma.SetEngineCfg(ge.gamma, configJson)
 	return nil
 }
 
-func (ge *gammaEngine) GetEngineCfg(config *gamma.Config) error {
-	gamma.GetEngineCfg(ge.gamma, config)
-	return nil
+func (ge *gammaEngine) GetEngineCfg(config *entity.EngineConfig) error {
+	configJson := gamma.GetEngineCfg(ge.gamma)
+	return vjson.Unmarshal(configJson, config)
 }
 
 func (ge *gammaEngine) BackupSpace(command string) error {

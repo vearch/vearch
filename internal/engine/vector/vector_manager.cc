@@ -862,33 +862,4 @@ int VectorManager::MinIndexedNum() {
   return min;
 }
 
-int VectorManager::AlterCacheSize(struct CacheInfo &cache_info) {
-  auto ite = raw_vectors_.find(cache_info.field_name);
-  if (ite != raw_vectors_.end()) {
-    RawVector *raw_vec = ite->second;
-    int cache_size = cache_info.cache_size;
-    int res = raw_vec->AlterCacheSize(cache_size);
-    if (res == 0) {
-      LOG(INFO) << "vector field[" << cache_info.field_name
-                << "] AlterCacheSize success!";
-    } else {
-      LOG(INFO) << "vector field[" << cache_info.field_name
-                << "] AlterCacheSize failure!";
-    }
-  } else {
-    LOG(INFO) << "field_name[" << cache_info.field_name << "] error.";
-  }
-  return 0;
-}
-
-int VectorManager::GetAllCacheSize(Config &conf) {
-  for (auto ite = raw_vectors_.begin(); ite != raw_vectors_.end(); ++ite) {
-    RawVector *raw_vec = ite->second;
-    int cache_size = 0;
-    if (0 != raw_vec->GetCacheSize(cache_size)) continue;
-    conf.AddCacheInfo(ite->first, (int)cache_size);
-  }
-  return 0;
-}
-
 }  // namespace vearch
