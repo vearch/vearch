@@ -48,7 +48,7 @@ while getopts ":n:g:tdh" opt; do
   esac
 done
 
-ROCKSDB_URL=https://github.com/facebook/rocksdb/archive/refs/tags/v6.6.4.tar.gz
+ROCKSDB_URL=https://github.com/facebook/rocksdb/archive/refs/tags/v9.2.1.tar.gz
 
 function get_version() {
   VEARCH_VERSION_MAJOR=$(cat ${ROOT}/VERSION | grep VEARCH_VERSION_MAJOR | awk -F' ' '{print $2}')
@@ -66,9 +66,9 @@ function build_thirdparty() {
       rm -rf rocksdb*
       wget ${ROCKSDB_URL} -O rocksdb.tar.gz
       tar -xzf rocksdb.tar.gz
-      pushd rocksdb-6.6.4
+      pushd rocksdb-9.2.1
       CFLAGS="-O3 -fPIC" make shared_lib $COMPILE_THREAD_NUM
-      make install
+      make shared_lib install
       popd
     fi
   fi
