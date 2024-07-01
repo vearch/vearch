@@ -27,9 +27,7 @@
 #include <utility>
 #include <vector>
 
-#include "c_api/api_data/config.h"
 #include "c_api/api_data/doc.h"
-#include "c_api/api_data/engine_status.h"
 #include "c_api/api_data/request.h"
 #include "c_api/api_data/response.h"
 #include "c_api/api_data/table.h"
@@ -150,15 +148,15 @@ struct Options {
   Options() {
     nprobe = 10;
     doc_id = 0;
-    d = 512;
+    d = 128;
     topK = 100;
     filter = false;
     print_doc = true;
     search_thread_num = 1;
-    max_doc_size = 10000 * 100;
-    add_doc_num = 10000 * 10;
+    max_doc_size = 11000 * 1;
+    add_doc_num = 10000 * 2;
     search_num = 100;
-    training_threshold = 10000 * 1;
+    training_threshold = 0;
     fields_vec = {"_id", "img", "field1", "field2", "field3"};
     fields_type = {DataType::STRING, DataType::STRING, DataType::STRING,
                    DataType::INT, DataType::INT};
@@ -787,16 +785,17 @@ void InitEngine(struct Options &opt) {
   ASSERT_EQ(ret, 0);
 
   ASSERT_NE(opt.docids_bitmap_, nullptr);
-  vearch::Config config;
-  config.SetPath(opt.path);
-  config.SetLogDir(opt.log_dir);
-
-  char *config_str = nullptr;
-  int len = 0;
-  config.Serialize(&config_str, &len);
-  opt.engine = Init(config_str, len);
-  free(config_str);
-  config_str = nullptr;
+  try {
+    nlohmann::json j;
+    j["path"] = opt.path;
+    j["log_dir"] = opt.log_dir;
+    j["space_name"] = "test";
+    std::string conf = j.dump();
+    LOG(INFO) << conf;
+    opt.engine = Init(conf.data(), conf.size());
+  } catch (nlohmann::json::parse_error &e) {
+    LOG(ERROR) << "JSON parse error: " << e.what();
+  }
 
   ASSERT_NE(opt.engine, nullptr);
 }
@@ -868,11 +867,15 @@ int BuildEngineIndex(struct Options &opt) {
     char *status = nullptr;
     int len = 0;
     GetEngineStatus(opt.engine, &status, &len);
-    vearch::EngineStatus engine_status;
-    engine_status.Deserialize(status, len);
-    free(status);
-    std::this_thread::sleep_for(std::chrono::seconds(2));
-    n_index_status = engine_status.IndexStatus();
+    try {
+      nlohmann::json j = nlohmann::json::parse(std::string(status, len));
+      std::this_thread::sleep_for(std::chrono::seconds(2));
+      n_index_status = j["index_status"];
+      LOG(INFO) << std::string(status, len);
+      free(status);
+    } catch (nlohmann::json::parse_error &e) {
+      LOG(ERROR) << "JSON parse error: " << e.what();
+    }
   } while (n_index_status != 2);
 
   char *doc_str = nullptr;
@@ -934,29 +937,27 @@ int Search(struct Options &opt) {
 }
 
 int AlterCacheSizeTest(struct Options &opt) {
-  vearch::Config conf;
-  conf.AddCacheInfo("table", 1024);
-  conf.AddCacheInfo("string", 2048);
-  conf.AddCacheInfo(opt.vector_name, 4096);
-  char *buf = nullptr;
-  int len = 0;
-  conf.Serialize(&buf, &len);
-  int ret = SetConfig(opt.engine, buf, len);
-  if (buf) {
-    free(buf);
+  int ret;
+  try {
+    nlohmann::json j;
+    j["engine_cache_size"] = 256;
+    std::string conf = j.dump();
+    ret = SetConfig(opt.engine, conf.data(), conf.size());
+  } catch (nlohmann::json::parse_error &e) {
+    LOG(ERROR) << "JSON parse error: " << e.what();
   }
   return ret;
 }
 
 int GetCacheSizeTest(struct Options &opt) {
-  vearch::Config config;
   char *buf = nullptr;
   int len = 0;
   GetConfig(opt.engine, &buf, &len);
-  config.Deserialize(buf, len);
-  for (auto &cache_info : config.CacheInfos()) {
-    LOG(INFO) << "TestGetCacheSize() field_name:" << cache_info.field_name
-              << ", cache_size:" << cache_info.cache_size;
+  try {
+    nlohmann::json j = nlohmann::json::parse(std::string(buf, len));
+    LOG(INFO) << "cache size " << j["engine_cache_size"];
+  } catch (nlohmann::json::parse_error &e) {
+    LOG(ERROR) << "JSON parse error: " << e.what();
   }
   if (buf) {
     free(buf);
@@ -971,18 +972,16 @@ int LoadEngine(struct Options &opt) {
   if (ret != 0) {
     LOG(ERROR) << "Create bitmap failed!";
   }
-  vearch::Config config;
-  config.SetPath(opt.path);
+  try {
+    nlohmann::json j;
+    j["path"] = opt.path;
 
-  char *config_str;
-  int config_len;
-  config.Serialize(&config_str, &config_len);
+    std::string conf = j.dump();
 
-  opt.engine = Init(config_str, config_len);
-  if (config_str) {
-    free(config_str);
+    opt.engine = Init(conf.data(), conf.size());
+  } catch (nlohmann::json::parse_error &e) {
+    LOG(ERROR) << "JSON parse error: " << e.what();
   }
-
   ret = Load(opt.engine);
   return ret;
 }

@@ -100,15 +100,7 @@ class TableTest : public ::testing::Test {
 
   int CreateTable(struct Options &opt, bool is_index = false) {
     table_info = CreateTableInfo(opt, is_index);
-    TableParams table_params;
-    utils::JsonParser *meta_jp = nullptr;
-    if (meta_jp) {
-      utils::JsonParser table_jp;
-      meta_jp->GetObject("table", table_jp);
-      table_params.Parse(table_jp);
-    }
-    Status status =
-        table->CreateTable(*table_info, table_params, docids_bitmap);
+    Status status = table->CreateTable(*table_info, docids_bitmap);
     return status.ok();
   }
 

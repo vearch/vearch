@@ -21,6 +21,7 @@ import (
 	"unsafe"
 
 	"github.com/vearch/vearch/v3/internal/engine/sdk/go/gamma"
+	"github.com/vearch/vearch/v3/internal/pkg/vjson"
 	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
 	"golang.org/x/exp/mmap"
 )
@@ -91,8 +92,18 @@ func Init() {
 
 	opt.FeatureMmap, _ = mmap.Open(opt.FeatureFile)
 
-	config := gamma.Config{Path: opt.Path, LogDir: opt.LogDir}
-	opt.Engine = gamma.Init(&config)
+	config := struct {
+		Path      string `json:"path"`
+		SpaceName string `json:"space_name"`
+		LogDir    string `json:"log_dir"`
+	}{
+		Path:      opt.Path,
+		SpaceName: "test",
+		LogDir:    opt.LogDir,
+	}
+
+	configJson, _ := vjson.Marshal(&config)
+	opt.Engine = gamma.Init(configJson)
 	fmt.Println("Inited")
 }
 
