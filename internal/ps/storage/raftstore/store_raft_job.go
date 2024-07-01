@@ -21,9 +21,9 @@ import (
 
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/v3/internal/config"
+	"github.com/vearch/vearch/v3/internal/entity"
 	"github.com/vearch/vearch/v3/internal/pkg/log"
 	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
-	"github.com/vearch/vearch/v3/internal/ps/engine"
 )
 
 const (
@@ -113,7 +113,7 @@ func (s *Store) startFlushJob() {
 		}
 
 		// init last min indexed num and doc num
-		var engineStatus engine.EngineStatus
+		var engineStatus entity.EngineStatus
 		s.Engine.GetEngineStatus(&engineStatus)
 		lastIndexNum := engineStatus.MinIndexedNum
 		lastMaxDocid := engineStatus.MaxDocid
@@ -130,7 +130,7 @@ func (s *Store) startFlushJob() {
 				return
 			}
 
-			var status engine.EngineStatus
+			var status entity.EngineStatus
 			s.Engine.GetEngineStatus(&status)
 			t := time.Now()
 			tempSn := s.Sn

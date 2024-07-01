@@ -18,3 +18,11 @@ type EngineConfig struct {
 	EngineCacheSize int64  `json:"engine_cache_size"`
 	Path            string `json:"path"`
 }
+
+type EngineStatus struct {
+	IndexStatus   int32 `json:"index_status,omitempty"`
+	BackupStatus  int32 `json:"backup_status,omitempty"`
+	DocNum        int32 `json:"doc_num,omitempty"`
+	MinIndexedNum int32 `json:"min_indexed_num,omitempty"`
+	MaxDocid      int32 `json:"max_docid,omitempty"`
+}

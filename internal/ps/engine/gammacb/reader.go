@@ -26,6 +26,7 @@ import (
 
 	"github.com/vearch/vearch/v3/internal/config"
 	"github.com/vearch/vearch/v3/internal/engine/sdk/go/gamma"
+	"github.com/vearch/vearch/v3/internal/entity"
 	"github.com/vearch/vearch/v3/internal/pkg/log"
 	"github.com/vearch/vearch/v3/internal/pkg/vearchlog"
 	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
@@ -99,7 +100,7 @@ func (ri *readerImpl) DocCount(ctx context.Context) (uint64, error) {
 		return 0, vearchlog.LogErrAndReturn(vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_IS_CLOSED, nil))
 	}
 
-	status := &engine.EngineStatus{}
+	status := &entity.EngineStatus{}
 	ri.engine.GetEngineStatus(status)
 	docNum := status.DocNum
 	return uint64(docNum), nil

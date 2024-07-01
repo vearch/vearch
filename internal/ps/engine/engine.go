@@ -53,14 +53,6 @@ type Writer interface {
 	Commit(ctx context.Context, sn int64) (chan error, error)
 }
 
-type EngineStatus struct {
-	IndexStatus   int32
-	BackupStatus  int32
-	DocNum        int32
-	MaxDocid      int32
-	MinIndexedNum int32
-}
-
 // Engine is the interface that wraps the core operations of a document store.
 type Engine interface {
 	Reader() Reader
@@ -72,7 +64,7 @@ type Engine interface {
 	RebuildIndex(int, int, int) error
 	Rebuild(int, int, int) error
 	IndexInfo() (int, int, int)
-	GetEngineStatus(status *EngineStatus) error
+	GetEngineStatus(status *entity.EngineStatus) error
 	Close()
 	HasClosed() bool
 

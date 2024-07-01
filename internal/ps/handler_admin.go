@@ -33,7 +33,6 @@ import (
 	"github.com/vearch/vearch/v3/internal/pkg/server/rpc/handler"
 	"github.com/vearch/vearch/v3/internal/pkg/vjson"
 	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
-	"github.com/vearch/vearch/v3/internal/ps/engine"
 )
 
 func ExportToRpcAdminHandler(server *Server) {
@@ -198,7 +197,7 @@ func (pih *PartitionInfoHandler) Execute(ctx context.Context, req *vearchpb.Part
 
 	pis := make([]*entity.PartitionInfo, 0, 1)
 	for _, store := range stores {
-		status := &engine.EngineStatus{}
+		status := &entity.EngineStatus{}
 		err := store.GetEngine().GetEngineStatus(status)
 		if err != nil {
 			return err
@@ -423,7 +422,7 @@ func (bh *BackupHandler) Execute(ctx context.Context, req *vearchpb.PartitionDat
 		return vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_IS_INVALID, fmt.Errorf("partition (%v), engine is nil ", req.PartitionID))
 	}
 
-	status := &engine.EngineStatus{}
+	status := &entity.EngineStatus{}
 	err = e.GetEngineStatus(status)
 
 	if err != nil {
@@ -477,7 +476,7 @@ func (bh *BackupHandler) Execute(ctx context.Context, req *vearchpb.PartitionDat
 		}
 
 		go func() {
-			status := &engine.EngineStatus{}
+			status := &entity.EngineStatus{}
 			err = e.GetEngineStatus(status)
 
 			if err != nil {
@@ -487,7 +486,7 @@ func (bh *BackupHandler) Execute(ctx context.Context, req *vearchpb.PartitionDat
 			for status.BackupStatus != 0 {
 				log.Debug("status.BackupStatus %d", status.BackupStatus)
 				time.Sleep(2 * time.Second)
-				status = &engine.EngineStatus{}
+				status = &entity.EngineStatus{}
 				err = e.GetEngineStatus(status)
 				if err != nil {
 					log.Error("get engine status error [%+v]", err)

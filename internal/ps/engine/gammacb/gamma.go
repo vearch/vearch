@@ -213,33 +213,19 @@ func (ge *gammaEngine) Rebuild(drop_before_rebuild int, limit_cpu int, describe 
 	return nil
 }
 
-type EngineStatus struct {
-	IndexStatus   int32 `json:"index_status,omitempty"`
-	BackupStatus  int32 `json:"backup_status,omitempty"`
-	DocNum        int32 `json:"doc_num,omitempty"`
-	MinIndexedNum int32 `json:"min_indexed_num,omitempty"`
-	MaxDocid      int32 `json:"max_docid,omitempty"`
-}
-
 func (ge *gammaEngine) IndexInfo() (int, int, int) {
-	status := &engine.EngineStatus{}
+	status := &entity.EngineStatus{}
 	if err := ge.GetEngineStatus(status); err != nil {
 		return 0, 0, 0
 	}
 	return int(status.IndexStatus), int(status.MinIndexedNum), int(status.MaxDocid)
 }
 
-func (ge *gammaEngine) GetEngineStatus(status *engine.EngineStatus) error {
+func (ge *gammaEngine) GetEngineStatus(status *entity.EngineStatus) error {
 	ges := gamma.GetEngineStatus(ge.gamma)
-	s := &EngineStatus{}
-	if err := vjson.Unmarshal([]byte(ges), s); err != nil {
+	if err := vjson.Unmarshal([]byte(ges), status); err != nil {
 		return err
 	}
-	status.IndexStatus = s.IndexStatus
-	status.BackupStatus = s.BackupStatus
-	status.DocNum = s.DocNum
-	status.MaxDocid = s.MaxDocid
-	status.MinIndexedNum = s.MinIndexedNum
 	return nil
 }
 
