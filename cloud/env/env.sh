@@ -29,6 +29,11 @@ bash ${CMAKE_FILE}.sh --skip-license --prefix=/usr/local
 cp -r -p /usr/local/${CMAKE_FILE}/bin/* /bin/
 rm -rf ${CMAKE_FILE}.sh
 
+wget https://github.com/protocolbuffers/protobuf/releases/download/v3.6.1/protobuf-cpp-3.6.1.tar.gz
+tar xf protobuf-cpp-3.6.1.tar.gz
+cd protobuf-3.6.1
+./configure && make && make install
+
 cd /env/app
 if [ ! -f "rocksdb-v9.2.1.tar.gz" ]; then
     wget https://github.com/facebook/rocksdb/archive/refs/tags/v9.2.1.tar.gz -O rocksdb.tar.gz

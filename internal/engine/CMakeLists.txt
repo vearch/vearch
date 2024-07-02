@@ -74,6 +74,7 @@ set(COMMON_LIBRARIES
     ${RocksDB_LIB}
     -ltbb
     -lzstd
+    -lprotobuf
 )
 
 find_package(MKL)

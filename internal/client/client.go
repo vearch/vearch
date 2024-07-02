@@ -677,10 +677,10 @@ func (r *routerRequest) SearchFieldSortExecute(sortOrder sortorder.SortOrder) *v
 		searchReq = pData.SearchRequest
 		wg.Add(1)
 		c := context.WithValue(r.ctx, share.ReqMetaDataKey, vmap.CopyMap(r.md))
-		go func(ctx context.Context, partitionID entity.PartitionID, pd *vearchpb.PartitionData, space *entity.Space, sortOrder sortorder.SortOrder, respChain chan *response.SearchDocResult, normalIsOrNot bool, normalField map[string]string) {
+		go func(ctx context.Context, partitionID entity.PartitionID, pd *vearchpb.PartitionData, space *entity.Space, respChain chan *response.SearchDocResult, isNormal bool, normalField map[string]string) {
 			defer wg.Done()
-			r.searchFromPartition(ctx, partitionID, pd, space, respChain, normalIsOrNot, normalField)
-		}(c, partitionID, pData, r.space, sortOrder, respChain, isNormal, normalField)
+			r.searchFromPartition(ctx, partitionID, pd, space, respChain, isNormal, normalField)
+		}(c, partitionID, pData, r.space, respChain, isNormal, normalField)
 	}
 	wg.Wait()
 	close(respChain)
@@ -890,10 +890,10 @@ func (r *routerRequest) QueryFieldSortExecute(sortOrder sortorder.SortOrder) *ve
 		searchReq = pData.QueryRequest
 		wg.Add(1)
 		c := context.WithValue(r.ctx, share.ReqMetaDataKey, vmap.CopyMap(r.md))
-		go func(ctx context.Context, partitionID entity.PartitionID, pd *vearchpb.PartitionData, space *entity.Space, sortOrder sortorder.SortOrder, respChain chan *response.SearchDocResult) {
+		go func(ctx context.Context, partitionID entity.PartitionID, pd *vearchpb.PartitionData, space *entity.Space, respChain chan *response.SearchDocResult) {
 			defer wg.Done()
 			r.queryFromPartition(ctx, partitionID, pd, space, respChain)
-		}(c, partitionID, pData, r.space, sortOrder, respChain)
+		}(c, partitionID, pData, r.space, respChain)
 	}
 	wg.Wait()
 	close(respChain)

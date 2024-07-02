@@ -171,6 +171,26 @@ struct CStatus Search(void *engine, const char *request_str, int req_len,
   return cstatus;
 }
 
+struct CStatus Query(void *engine, const char *request_str, int req_len,
+                     char **response_str, int *res_len) {
+  vearch::QueryRequest request;
+  request.Deserialize(request_str, req_len);
+
+  vearch::Response response(false);
+  vearch::Status status;
+  status = static_cast<vearch::Engine *>(engine)->Query(request, response);
+  struct CStatus cstatus;
+  Status2CStatus(status, cstatus);
+  if (status.code() != 0) {
+    return cstatus;
+  }
+
+  response.Serialize(static_cast<vearch::Engine *>(engine)->SpaceName(),
+                     request.Fields(), status, response_str, res_len);
+
+  return cstatus;
+}
+
 int DeleteDoc(void *engine, const char *docid, int docid_len) {
   std::string id = std::string(docid, docid_len);
   int ret = static_cast<vearch::Engine *>(engine)->Delete(id);

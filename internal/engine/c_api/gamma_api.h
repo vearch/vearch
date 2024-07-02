@@ -129,6 +129,8 @@ int Load(void *engine);
 struct CStatus Search(void *engine, const char *request_str, int req_len,
                       char **response_str, int *res_len);
 
+struct CStatus Query(void *engine, const char *request_str, int req_len,
+                     char **response_str, int *res_len);
 /**
  * @brief alter all cache size by query
  *

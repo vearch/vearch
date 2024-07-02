@@ -47,4 +47,5 @@ fi
 
 export PATH=$PATH:$GOPATH/bin
 protoc --go_out=$proto_dir *.proto
+protoc --cpp_out=../engine/idl/pb-gen *.proto
 exit $?

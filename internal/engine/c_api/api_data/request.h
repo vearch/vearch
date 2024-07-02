@@ -10,7 +10,6 @@
 #include <vector>
 
 #include "common/common_query_data.h"
-#include "idl/fbs-gen/c/request_generated.h"
 #include "raw_data.h"
 #include "util/status.h"
 
@@ -19,7 +18,6 @@ namespace vearch {
 class Request : public RawData {
  public:
   Request() {
-    request_ = nullptr;
     req_num_ = 0;
     topn_ = 0;
     ranker_ = nullptr;
@@ -82,17 +80,7 @@ class Request : public RawData {
 
   int SetRanker(std::string params, int weight_num);
 
-  void AddDocumentId(const std::string &document_id);
-
-  std::vector<std::string> &DocumentIds();
-
-  int PartitionId();
-
-  void SetPartitionId(int partition_id);
-
  private:
-  gamma_api::Request *request_;
-
   int req_num_;
   int topn_;
   int brute_force_search_;  // 1 : brute force search; 0 : normal search
@@ -100,9 +88,6 @@ class Request : public RawData {
   std::vector<struct VectorQuery> vec_fields_;
 
   std::vector<std::string> fields_;
-
-  std::vector<std::string> document_ids_;
-  int partition_id_;
 
   std::vector<struct RangeFilter> range_filters_;
   std::vector<struct TermFilter> term_filters_;
@@ -112,6 +97,42 @@ class Request : public RawData {
   bool l2_sqrt_;
   vearch::Ranker *ranker_;
   bool trace_;
+};
+
+class QueryRequest : public RawData {
+ public:
+  QueryRequest() { req_num_ = 0; }
+
+  virtual ~QueryRequest() {}
+
+  virtual int Serialize(char **out, int *out_len);
+
+  virtual void Deserialize(const char *data, int len);
+
+  int TopN() { return topn_; };
+
+  void AddDocumentId(const std::string &document_id);
+
+  std::vector<std::string> &DocumentIds();
+
+  std::vector<std::string> &Fields();
+
+  std::vector<struct RangeFilter> &RangeFilters();
+
+  std::vector<struct TermFilter> &TermFilters();
+  int PartitionId();
+
+  void SetPartitionId(int partition_id);
+
+ private:
+  int req_num_;
+
+  std::vector<std::string> document_ids_;
+  std::vector<std::string> fields_;
+  std::vector<struct RangeFilter> range_filters_;
+  std::vector<struct TermFilter> term_filters_;
+  int partition_id_;
+  int topn_;
 };
 
 }  // namespace vearch

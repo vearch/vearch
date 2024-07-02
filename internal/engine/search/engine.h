@@ -35,6 +35,8 @@ class Engine {
 
   Status Search(Request &request, Response &response_results);
 
+  Status Query(QueryRequest &request, Response &response_results);
+
   Status CreateTable(TableInfo &table);
 
   int AddOrUpdate(Doc &doc);

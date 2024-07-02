@@ -22,9 +22,8 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"time"
 
-	"github.com/vearch/vearch/v3/internal/config"
+	"github.com/golang/protobuf/proto"
 	"github.com/vearch/vearch/v3/internal/engine/sdk/go/gamma"
 	"github.com/vearch/vearch/v3/internal/entity"
 	"github.com/vearch/vearch/v3/internal/pkg/log"
@@ -144,57 +143,24 @@ func (ri *readerImpl) Search(ctx context.Context, request *vearchpb.SearchReques
 		response = &vearchpb.SearchResponse{}
 	}
 
-	trace := config.Trace
 	if trace_info, ok := request.Head.Params["trace"]; ok {
 		if trace_info == "true" {
-			trace = true
 			request.Trace = true
 		}
 	}
+	reqByte, err := proto.Marshal(request)
+	if err != nil {
+		return vearchpb.NewErrorInfo(vearchpb.ErrorEnum_SEARCH_ENGINE_ERR, err.Error())
+	}
+	respByte, status := gamma.Search(ri.engine.gamma, reqByte)
+	response.FlatBytes = respByte
 
-	if trace {
-		partitionIDstr := strconv.FormatUint(uint64(ri.engine.partitionID), 10)
-
-		startTime := time.Now()
-		reqByte := gamma.SearchRequestSerialize(request)
-		serialize := (time.Since(startTime).Seconds()) * 1000
-		gammaStartTime := time.Now()
-		respByte, status := gamma.Search(ri.engine.gamma, reqByte)
-		gamma := (time.Since(gammaStartTime).Seconds()) * 1000
-		response.FlatBytes = respByte
-		serializeStr := strconv.FormatFloat(serialize, 'f', 4, 64)
-		gammaStr := strconv.FormatFloat(gamma, 'f', 4, 64)
-
-		if response.Head == nil {
-			costTimeMap := make(map[string]string)
-			costTimeMap["serialize_"+partitionIDstr] = serializeStr
-			costTimeMap["gamma_"+partitionIDstr] = gammaStr
-			responseHead := &vearchpb.ResponseHead{Params: costTimeMap}
-			response.Head = responseHead
-		} else if response.Head != nil && response.Head.Params == nil {
-			costTimeMap := make(map[string]string)
-			costTimeMap["serialize_"+partitionIDstr] = serializeStr
-			costTimeMap["gamma_"+partitionIDstr] = gammaStr
-			response.Head.Params = costTimeMap
-		} else {
-			response.Head.Params["serialize_"+partitionIDstr] = serializeStr
-			response.Head.Params["gamma_"+partitionIDstr] = gammaStr
-		}
-		if status.Code != 0 {
-			return vearchpb.NewErrorInfo(vearchpb.ErrorEnum_SEARCH_ENGINE_ERR, status.Msg)
-		}
-	} else {
-		reqByte := gamma.SearchRequestSerialize(request)
-		respByte, status := gamma.Search(ri.engine.gamma, reqByte)
-		response.FlatBytes = respByte
-
-		if response.Head == nil {
-			responseHead := &vearchpb.ResponseHead{}
-			response.Head = responseHead
-		}
-		if status.Code != 0 {
-			return vearchpb.NewErrorInfo(vearchpb.ErrorEnum_SEARCH_ENGINE_ERR, status.Msg)
-		}
+	if response.Head == nil {
+		responseHead := &vearchpb.ResponseHead{}
+		response.Head = responseHead
+	}
+	if status.Code != 0 {
+		return vearchpb.NewErrorInfo(vearchpb.ErrorEnum_SEARCH_ENGINE_ERR, status.Msg)
 	}
 
 	return nil
@@ -213,57 +179,25 @@ func (ri *readerImpl) Query(ctx context.Context, request *vearchpb.QueryRequest,
 		response = &vearchpb.SearchResponse{}
 	}
 
-	trace := config.Trace
 	if trace_info, ok := request.Head.Params["trace"]; ok {
 		if trace_info == "true" {
-			trace = true
 			request.Trace = true
 		}
 	}
 
-	if trace {
-		partitionIDstr := strconv.FormatUint(uint64(ri.engine.partitionID), 10)
+	reqByte, err := proto.Marshal(request)
+	if err != nil {
+		return vearchpb.NewErrorInfo(vearchpb.ErrorEnum_SEARCH_ENGINE_ERR, err.Error())
+	}
+	respByte, status := gamma.Query(ri.engine.gamma, reqByte)
+	response.FlatBytes = respByte
+	if response.Head == nil {
+		responseHead := &vearchpb.ResponseHead{}
+		response.Head = responseHead
+	}
 
-		startTime := time.Now()
-		reqByte := gamma.QueryRequestSerialize(request)
-		serialize := (time.Since(startTime).Seconds()) * 1000
-		gammaStartTime := time.Now()
-		respByte, status := gamma.Search(ri.engine.gamma, reqByte)
-		gamma := (time.Since(gammaStartTime).Seconds()) * 1000
-		response.FlatBytes = respByte
-		serializeStr := strconv.FormatFloat(serialize, 'f', 4, 64)
-		gammaStr := strconv.FormatFloat(gamma, 'f', 4, 64)
-		if response.Head == nil {
-			costTimeMap := make(map[string]string)
-			costTimeMap["serialize_"+partitionIDstr] = serializeStr
-			costTimeMap["gamma_"+partitionIDstr] = gammaStr
-			responseHead := &vearchpb.ResponseHead{Params: costTimeMap}
-			response.Head = responseHead
-		} else if response.Head != nil && response.Head.Params == nil {
-			costTimeMap := make(map[string]string)
-			costTimeMap["serialize_"+partitionIDstr] = serializeStr
-			costTimeMap["gamma_"+partitionIDstr] = gammaStr
-			response.Head.Params = costTimeMap
-		} else {
-			response.Head.Params["serialize_"+partitionIDstr] = serializeStr
-			response.Head.Params["gamma_"+partitionIDstr] = gammaStr
-		}
-
-		if status.Code != 0 {
-			return vearchpb.NewErrorInfo(vearchpb.ErrorEnum_QUERY_ENGINE_ERR, status.Msg)
-		}
-	} else {
-		reqByte := gamma.QueryRequestSerialize(request)
-		respByte, status := gamma.Search(ri.engine.gamma, reqByte)
-		response.FlatBytes = respByte
-		if response.Head == nil {
-			responseHead := &vearchpb.ResponseHead{}
-			response.Head = responseHead
-		}
-
-		if status.Code != 0 {
-			return vearchpb.NewErrorInfo(vearchpb.ErrorEnum_QUERY_ENGINE_ERR, status.Msg)
-		}
+	if status.Code != 0 {
+		return vearchpb.NewErrorInfo(vearchpb.ErrorEnum_QUERY_ENGINE_ERR, status.Msg)
 	}
 
 	return nil

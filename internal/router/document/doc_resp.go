@@ -209,22 +209,22 @@ func documentQueryResponse(srs []*vearchpb.SearchResult, head *vearchpb.Response
 	documents := make([]json.RawMessage, 0)
 	if len(srs) > 1 {
 		return nil, vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("query result length should be one"))
-	} else {
-		for _, sr := range srs {
-			docMaps := make([]map[string]interface{}, 0)
-			for _, item := range sr.ResultItems {
-				result_data, err := GetDocSource(item, space, "query")
-				if err != nil {
-					return nil, vearchpb.NewError(vearchpb.ErrorEnum_QUERY_RESPONSE_PARSE_ERR, errors.New("get data err:"+err.Error()))
-				}
-				docMaps = append(docMaps, result_data)
-			}
-			if data, err := vjson.Marshal(docMaps); err != nil {
+	}
+
+	for _, sr := range srs {
+		docMaps := make([]map[string]interface{}, 0)
+		for _, item := range sr.ResultItems {
+			resultData, err := GetDocSource(item, space, "query")
+			if err != nil {
 				return nil, vearchpb.NewError(vearchpb.ErrorEnum_QUERY_RESPONSE_PARSE_ERR, errors.New("get data err:"+err.Error()))
-			} else {
-				documents = append(documents, json.RawMessage(data))
 			}
+			docMaps = append(docMaps, resultData)
 		}
+		data, err := vjson.Marshal(docMaps)
+		if err != nil {
+			return nil, vearchpb.NewError(vearchpb.ErrorEnum_QUERY_RESPONSE_PARSE_ERR, errors.New("get data err:"+err.Error()))
+		}
+		documents = append(documents, json.RawMessage(data))
 	}
 
 	if len(documents) > 0 {

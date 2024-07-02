@@ -250,34 +250,6 @@ Status Engine::Search(Request &request, Response &response_results) {
     return status;
   }
 
-  if (request.DocumentIds().size() > 0) {
-    std::vector<std::string> document_ids = request.DocumentIds();
-    GammaResult *gamma_result = new GammaResult[1];
-    gamma_result->init(document_ids.size(), nullptr, 0);
-
-    for (size_t i = 0; i < document_ids.size(); i++) {
-      int docid = -1, ret = 0;
-      if (request.PartitionId() > 0) {
-        docid = atoi(document_ids[i].c_str());
-        if (docid < 0 || docid >= max_docid_) {
-          continue;
-        }
-      } else {
-        ret = table_->GetDocIDByKey(document_ids[i], docid);
-        if (ret != 0 || docid < 0) {
-          continue;
-        }
-      }
-
-      if (!docids_bitmap_->Test(docid)) {
-        gamma_result->total++;
-        gamma_result->docs[(gamma_result->results_count)++]->docid = docid;
-      }
-    }
-    response_results.SetEngineInfo(table_, vec_manager_, gamma_result, 1);
-    return status;
-  }
-
   bool req_permit = RequestConcurrentController::GetInstance().Acquire(req_num);
   if (not req_permit) {
     std::string msg = "Resource temporarily unavailable";
@@ -409,24 +381,108 @@ Status Engine::Search(Request &request, Response &response_results) {
 #endif
     response_results.SetEngineInfo(table_, vec_manager_, gamma_results,
                                    req_num);
-  } else {
-    GammaResult *gamma_result = new GammaResult[1];
-    gamma_result->init(topn, nullptr, 0);
-
-    for (int docid = 0; docid < max_docid_; ++docid) {
-      if (range_query_result.Has(docid) && !docids_bitmap_->Test(docid)) {
-        ++(gamma_result->total);
-        if (gamma_result->results_count < topn) {
-          gamma_result->docs[(gamma_result->results_count)++]->docid = docid;
-        } else {
-          break;
-        }
-      }
-    }
-    response_results.SetEngineInfo(table_, vec_manager_, gamma_result, 1);
   }
 
   RequestConcurrentController::GetInstance().Release(req_num);
+  return status;
+}
+
+Status Engine::Query(QueryRequest &request, Response &response_results) {
+  Status status;
+
+  if (request.DocumentIds().size() > 0) {
+    std::vector<std::string> document_ids = request.DocumentIds();
+    GammaResult *gamma_result = new GammaResult[1];
+    gamma_result->init(document_ids.size(), nullptr, 0);
+
+    for (size_t i = 0; i < document_ids.size(); i++) {
+      int docid = -1, ret = 0;
+      if (request.PartitionId() > 0) {
+        docid = atoi(document_ids[i].c_str());
+        if (docid < 0 || docid >= max_docid_) {
+          continue;
+        }
+      } else {
+        ret = table_->GetDocIDByKey(document_ids[i], docid);
+        if (ret != 0 || docid < 0) {
+          continue;
+        }
+      }
+
+      if (!docids_bitmap_->Test(docid)) {
+        gamma_result->total++;
+        gamma_result->docs[(gamma_result->results_count)++]->docid = docid;
+      }
+    }
+    response_results.SetEngineInfo(table_, vec_manager_, gamma_result, 1);
+    return status;
+  }
+
+  MultiRangeQueryResults range_query_result;
+  size_t range_filters_num = request.RangeFilters().size();
+  size_t term_filters_num = request.TermFilters().size();
+  if (range_filters_num > 0 || term_filters_num > 0) {
+    std::vector<FilterInfo> filters;
+    std::vector<struct RangeFilter> &range_filters = request.RangeFilters();
+    std::vector<struct TermFilter> &term_filters = request.TermFilters();
+
+    int range_filters_size = range_filters.size();
+    int term_filters_size = term_filters.size();
+
+    filters.resize(range_filters_size + term_filters_size);
+    int idx = 0;
+
+    for (int i = 0; i < range_filters_size; ++i) {
+      struct RangeFilter &filter = range_filters[i];
+
+      filters[idx].field = table_->GetAttrIdx(filter.field);
+      filters[idx].lower_value = filter.lower_value;
+      filters[idx].upper_value = filter.upper_value;
+      filters[idx].include_lower = filter.include_lower;
+      filters[idx].include_upper = filter.include_upper;
+
+      ++idx;
+    }
+
+    for (int i = 0; i < term_filters_size; ++i) {
+      struct TermFilter &filter = term_filters[i];
+
+      filters[idx].field = table_->GetAttrIdx(filter.field);
+      filters[idx].lower_value = filter.value;
+      filters[idx].is_union = static_cast<FilterOperator>(filter.is_union);
+
+      ++idx;
+    }
+
+    int num = field_range_index_->Search(filters, &range_query_result);
+
+    if (num <= 0) {
+      std::string msg =
+          space_name_ + " no result: numeric filter return 0 result";
+      LOG(DEBUG) << msg;
+      SearchResult result;
+      result.msg = msg;
+      result.result_code = SearchResultCode::SUCCESS;
+      response_results.AddResults(std::move(result));
+      return status;
+    }
+  }
+
+  int topn = request.TopN();
+  GammaResult *gamma_result = new GammaResult[1];
+  gamma_result->init(topn, nullptr, 0);
+
+  for (int docid = 0; docid < max_docid_; docid++) {
+    if (range_query_result.Has(docid) && !docids_bitmap_->Test(docid)) {
+      gamma_result->total++;
+      if (gamma_result->results_count < topn) {
+        gamma_result->docs[(gamma_result->results_count)++]->docid = docid;
+      } else {
+        break;
+      }
+    }
+  }
+  response_results.SetEngineInfo(table_, vec_manager_, gamma_result, 1);
   return status;
 }
 

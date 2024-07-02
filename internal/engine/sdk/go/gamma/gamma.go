@@ -173,6 +173,27 @@ func Search(engine unsafe.Pointer, reqByte []byte) ([]byte, *Status) {
 	return respByte, status
 }
 
+func Query(engine unsafe.Pointer, reqByte []byte) ([]byte, *Status) {
+	var CBuffer *C.char
+	zero := 0
+	length := &zero
+
+	cstatus := C.Query(engine,
+		(*C.char)(unsafe.Pointer(&reqByte[0])), C.int(len(reqByte)),
+		(**C.char)(unsafe.Pointer(&CBuffer)),
+		(*C.int)(unsafe.Pointer(length)))
+	defer C.free(unsafe.Pointer(CBuffer))
+	respByte := C.GoBytes(unsafe.Pointer(CBuffer), C.int(*length))
+	status := &Status{
+		Code: int32(cstatus.code),
+		Msg:  C.GoString(cstatus.msg),
+	}
+	if status.Code != 0 {
+		C.free(unsafe.Pointer(cstatus.msg))
+	}
+	return respByte, status
+}
+
 func SetEngineCfg(engine unsafe.Pointer, configJson []byte) int {
 	ret := int(C.SetConfig(engine, (*C.char)(unsafe.Pointer(&configJson[0])), C.int(len(configJson))))
 	return ret
