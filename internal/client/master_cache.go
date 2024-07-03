@@ -45,14 +45,15 @@ var (
 	partitionReloadWorkder sync.Map
 	serverReloadWorkder    sync.Map
 	aliasReloadWorkder     sync.Map
+	roleReloadWorkder      sync.Map
 )
 
 type clientCache struct {
 	sync.Map
-	mc                                                                           *masterClient
-	cancel                                                                       context.CancelFunc
-	lock                                                                         sync.Mutex
-	userCache, spaceCache, spaceIDCache, partitionCache, serverCache, aliasCache *cache.Cache
+	mc                                                                                      *masterClient
+	cancel                                                                                  context.CancelFunc
+	lock                                                                                    sync.Mutex
+	userCache, spaceCache, spaceIDCache, partitionCache, serverCache, aliasCache, roleCache *cache.Cache
 }
 
 func newClientCache(serverCtx context.Context, masterClient *masterClient) (*clientCache, error) {
@@ -67,6 +68,7 @@ func newClientCache(serverCtx context.Context, masterClient *masterClient) (*cli
 		partitionCache: cache.New(cache.NoExpiration, cache.NoExpiration),
 		serverCache:    cache.New(cache.NoExpiration, cache.NoExpiration),
 		aliasCache:     cache.New(cache.NoExpiration, cache.NoExpiration),
+		roleCache:      cache.New(cache.NoExpiration, cache.NoExpiration),
 	}
 
 	if err := cc.startCacheJob(ctx); err != nil {
@@ -111,17 +113,17 @@ func (cliCache *clientCache) UserByCache(ctx context.Context, userName string) (
 		return get.(*entity.User), nil
 	}
 
-	_ = cliCache.reloadUserCache(ctx, false, userName)
+	_ = cliCache.reloadUserCache(ctx, true, userName)
 
 	for i := 0; i < retryNum; i++ {
 		time.Sleep(retrySleepTime)
 		log.Debug("to find user by key:[%s] ", userName)
-		if get, found = cliCache.spaceCache.Get(userName); found {
+		if get, found = cliCache.userCache.Get(userName); found {
 			return get.(*entity.User), nil
 		}
 	}
 
-	return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("user:[%s] err:[%s]", userName, vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_NOT_EXIST, nil)))
+	return nil, vearchpb.NewError(vearchpb.ErrorEnum_USER_NOT_EXIST, nil)
 }
 
 func (cliCache *clientCache) reloadUserCache(ctx context.Context, sync bool, userName string) error {
@@ -141,6 +143,50 @@ func (cliCache *clientCache) reloadUserCache(ctx context.Context, sync bool, use
 	if _, ok := userReloadWorkder.LoadOrStore(userName, struct{}{}); !ok {
 		go func() {
 			defer userReloadWorkder.Delete(userName)
+			vearchlog.FunIfNotNil(fun)
+		}()
+	}
+	return nil
+}
+
+// find a role by cache
+func (cliCache *clientCache) RoleByCache(ctx context.Context, roleName string) (*entity.Role, error) {
+
+	get, found := cliCache.roleCache.Get(roleName)
+	if found {
+		return get.(*entity.Role), nil
+	}
+
+	_ = cliCache.reloadRoleCache(ctx, true, roleName)
+
+	for i := 0; i < retryNum; i++ {
+		time.Sleep(retrySleepTime)
+		log.Debug("to find role by key:[%s] ", roleName)
+		if get, found = cliCache.roleCache.Get(roleName); found {
+			return get.(*entity.Role), nil
+		}
+	}
+
+	return nil, vearchpb.NewError(vearchpb.ErrorEnum_ROLE_NOT_EXIST, nil)
+}
+
+func (cliCache *clientCache) reloadRoleCache(ctx context.Context, sync bool, roleName string) error {
+	fun := func() error {
+		log.Info("to reload user:[%s]", roleName)
+		role, err := cliCache.mc.QueryRole(ctx, roleName)
+		if err != nil {
+			return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("can not found role by name:[%s] err:[%s]", roleName, err.Error()))
+		}
+		cliCache.roleCache.Set(roleName, role, cache.NoExpiration)
+		return nil
+	}
+
+	if sync {
+		return fun()
+	}
+	if _, ok := roleReloadWorkder.LoadOrStore(roleName, struct{}{}); !ok {
+		go func() {
+			defer roleReloadWorkder.Delete(roleName)
 			vearchlog.FunIfNotNil(fun)
 		}()
 	}
@@ -433,12 +479,14 @@ func (cliCache *clientCache) startCacheJob(ctx context.Context) error {
 			if err := vjson.Unmarshal(value, user); err != nil {
 				return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("put event user cache err, can't unmarshal event value: %s, error: %s", string(value), err.Error()))
 			}
+			log.Debug("[%v] add to user cache.", *user)
 			cliCache.userCache.Set(entity.UserKey(user.Name), user, cache.NoExpiration)
 			return nil
 		},
 		delete: func(key string) (err error) {
 			userSplit := strings.Split(key, "/")
 			username := userSplit[len(userSplit)-1]
+			log.Debug("[%s] delete from user cache.", username)
 			cliCache.userCache.Delete(username)
 			return nil
 		},
@@ -595,6 +643,30 @@ func (cliCache *clientCache) startCacheJob(ctx context.Context) error {
 		},
 	}
 	aliasJob.start()
+
+	//init role
+	if err := cliCache.initRole(ctx); err != nil {
+		return err
+	}
+	roleJob := watcherJob{ctx: ctx, prefix: entity.PrefixRole, masterClient: cliCache.mc, cache: cliCache.roleCache,
+		put: func(value []byte) (err error) {
+			role := &entity.Role{}
+			if err := vjson.Unmarshal(value, role); err != nil {
+				return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("put event role cache err, can't unmarshal event value: %s, error: %s", string(value), err.Error()))
+			}
+			log.Debug("[%v] add to role cache.", *role)
+			cliCache.roleCache.Set(entity.RoleKey(role.Name), role, cache.NoExpiration)
+			return nil
+		},
+		delete: func(key string) (err error) {
+			roleSplit := strings.Split(key, "/")
+			rolename := roleSplit[len(roleSplit)-1]
+			log.Debug("[%s] delete from role cache.", rolename)
+			cliCache.roleCache.Delete(rolename)
+			return nil
+		},
+	}
+	roleJob.start()
 
 	log.Info("cache inited ok use time %v", time.Since(start))
 
@@ -859,7 +931,7 @@ func (cliCache *clientCache) reloadAliasCache(ctx context.Context, sync bool, al
 func (cliCache *clientCache) initAlias(ctx context.Context) error {
 	_, values, err := cliCache.mc.PrefixScan(ctx, entity.PrefixAlias)
 	if err != nil {
-		log.Error("init server cache err , err:[%s]", err.Error())
+		log.Error("init alias cache err , err:[%s]", err.Error())
 		return err
 	}
 	for _, value := range values {
@@ -870,6 +942,26 @@ func (cliCache *clientCache) initAlias(ctx context.Context) error {
 			continue
 		}
 		if err := cliCache.aliasCache.Add(alias.Name, alias, cache.NoExpiration); err != nil {
+			log.Error(err.Error())
+		}
+	}
+	return nil
+}
+
+func (cliCache *clientCache) initRole(ctx context.Context) error {
+	_, values, err := cliCache.mc.PrefixScan(ctx, entity.PrefixRole)
+	if err != nil {
+		log.Error("init role cache err , err:[%s]", err.Error())
+		return err
+	}
+	for _, value := range values {
+		role := &entity.Role{}
+		err := vjson.Unmarshal(value, role)
+		if err != nil {
+			log.Error("unmarshal role cache err [%s]", err.Error())
+			continue
+		}
+		if err := cliCache.roleCache.Add(role.Name, role, cache.NoExpiration); err != nil {
 			log.Error(err.Error())
 		}
 	}

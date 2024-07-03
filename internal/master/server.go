@@ -24,6 +24,7 @@ import (
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/v3/internal/client"
 	"github.com/vearch/vearch/v3/internal/config"
+	"github.com/vearch/vearch/v3/internal/entity"
 	"github.com/vearch/vearch/v3/internal/pkg/errutil"
 	"github.com/vearch/vearch/v3/internal/pkg/log"
 	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
@@ -114,6 +115,7 @@ func (s *Server) Start() (err error) {
 	engine := gin.New()
 
 	ExportToClusterHandler(engine, service, s)
+
 	ExportToMonitorHandler(engine, monitorService)
 
 	//register monitor
@@ -124,6 +126,25 @@ func (s *Server) Start() (err error) {
 		}
 	}()
 
+	// add root user
+	root := entity.RootName
+	userInfo := &entity.User{
+		Name:     root,
+		Password: &config.Conf().Global.Signkey,
+		RoleName: &root,
+	}
+	if _, err := service.queryUserService(s.ctx, userInfo.Name, true); err != nil {
+		log.Error("Query root user : %s", err.Error())
+		if err := service.createUserService(s.ctx, userInfo, false); err != nil {
+			log.Error("create root user : %s", err.Error())
+			panic(err)
+		} else {
+			log.Info("Root user create success")
+		}
+	} else {
+		log.Info("Root user already exist")
+	}
+
 	// start watch server
 	err = s.WatchServerJob(s.ctx, s.client)
 	errutil.ThrowError(err)
@@ -131,6 +152,7 @@ func (s *Server) Start() (err error) {
 	if !config.Conf().Global.SelfManageEtcd {
 		return <-s.etcdServer.Err()
 	}
+
 	return nil
 }
 

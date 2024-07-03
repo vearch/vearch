@@ -141,6 +141,18 @@ func (docService *docService) getSpace(ctx context.Context, head *vearchpb.Reque
 	return docService.client.Master().Cache().SpaceByCache(ctx, head.DbName, head.SpaceName)
 }
 
+func (docService *docService) getUser(ctx context.Context, userName string) (*entity.User, error) {
+	return docService.client.Master().Cache().UserByCache(ctx, userName)
+}
+
+func (docService *docService) getRole(ctx context.Context, roleName string) (*entity.Role, error) {
+	if value, exists := entity.RoleMap[roleName]; exists {
+		role := &value
+		return role, nil
+	}
+	return docService.client.Master().Cache().RoleByCache(ctx, roleName)
+}
+
 func (docService *docService) query(ctx context.Context, args *vearchpb.QueryRequest) *vearchpb.SearchResponse {
 	ctx, cancel := setTimeOut(ctx, args.Head)
 	defer cancel()

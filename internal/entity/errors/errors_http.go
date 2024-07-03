@@ -107,3 +107,20 @@ func NewErrInternal(err error) *ErrRequest {
 		httpCode: http.StatusInternalServerError,
 	}
 }
+
+func NewErrUnauthorized(err error) *ErrRequest {
+	if vErr, ok := err.(*vearchpb.VearchErr); ok {
+		return &ErrRequest{
+			err:      fmt.Errorf(vErr.Error()),
+			msg:      vErr.Error(),
+			code:     int(vErr.GetError().Code),
+			httpCode: http.StatusInternalServerError,
+		}
+	}
+	return &ErrRequest{
+		err:      err,
+		msg:      err.Error(),
+		code:     int(vearchpb.ErrorEnum_AUTHENTICATION_FAILED),
+		httpCode: http.StatusUnauthorized,
+	}
+}

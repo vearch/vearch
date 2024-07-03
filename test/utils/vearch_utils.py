@@ -66,9 +66,9 @@ def process_add_data(items):
         data["documents"].append(param_dict)
 
     rs = requests.post(url, auth=(username, password), json=data)
-    assert rs.json()["code"] == 0
     if logger != None:
         logger.info(rs.json())
+    assert rs.json()["code"] == 0
 
 
 def add(
@@ -607,7 +607,7 @@ def process_query_error_data(items):
         wrong_range_filter_name,
         wrong_term_filter_name,
         out_of_bounds_ids,
-        wrong_partition_of_bad_type
+        wrong_partition_of_bad_type,
     ) = items[5]
 
     max_document_ids_length = 501
@@ -906,6 +906,7 @@ def process_delete_data(items):
         prepare_filter(
             data["filters"]["conditions"], index, batch_size, seed, full_field
         )
+
         data["limit"] = batch_size
 
     json_str = json.dumps(data)
@@ -1252,7 +1253,7 @@ def get_space(router_url: str, db_name: str, space_name: str):
 
 
 def get_partition(router_url: str, db_name: str, space_name: str):
-    url = f"{router_url}/cache/{db_name}/{space_name}"
+    url = f"{router_url}/cache/dbs/{db_name}/spaces/{space_name}"
     resp = requests.get(url, auth=(username, password))
     partition_infos = resp.json()["data"]["partitions"]
     partition_ids = []
@@ -1262,7 +1263,7 @@ def get_partition(router_url: str, db_name: str, space_name: str):
 
 
 def get_space_cache(router_url: str, db_name: str, space_name: str):
-    url = f"{router_url}/cache/{db_name}/{space_name}"
+    url = f"{router_url}/cache/dbs/{db_name}/spaces/{space_name}"
     resp = requests.get(url, auth=(username, password))
     return resp
 
@@ -1373,6 +1374,88 @@ def drop_alias(router_url: str, alias_name: str):
     return resp
 
 
+def create_user(
+    router_url: str, user_name: str, user_password: str = None, role_name: str = None
+):
+    url = f"{router_url}/users"
+    data = {"name": user_name}
+    if role_name is not None:
+        data["role_name"] = role_name
+    if user_password is not None:
+        data["password"] = user_password
+    resp = requests.post(url, json=data, auth=(username, password))
+    return resp
+
+
+def update_user(
+    router_url: str, user_name: str, user_password: str = None, role_name: str = None
+):
+    url = f"{router_url}/users/{user_name}"
+    data = {"name": user_name}
+    if user_password is not None:
+        data["password"] = user_password
+    if role_name is not None:
+        data["role_name"] = role_name
+    resp = requests.put(url, json=data, auth=(username, password))
+    return resp
+
+
+def get_user(router_url: str, user_name: str):
+    url = f"{router_url}/users/{user_name}"
+    resp = requests.get(url, auth=(username, password))
+    return resp
+
+
+def get_all_users(router_url: str):
+    url = f"{router_url}/users"
+    resp = requests.get(url, auth=(username, password))
+    return resp
+
+
+def drop_user(router_url: str, user_name: str):
+    url = f"{router_url}/users/{user_name}"
+    resp = requests.delete(url, auth=(username, password))
+    return resp
+
+
+def create_role(router_url: str, role_name: str, privileges: dict):
+    url = f"{router_url}/roles"
+    data = {"name": role_name, "privileges": privileges}
+    resp = requests.post(url, json=data, auth=(username, password))
+    return resp
+
+
+def change_role_privilege(
+    router_url: str, role_name: str, operator: str, privileges: dict
+):
+    url = f"{router_url}/roles/{role_name}/privileges"
+    data = {"operator": operator, "privileges": privileges}
+    resp = requests.put(url, json=data, auth=(username, password))
+    return resp
+
+
+def get_role(router_url: str, role_name: str):
+    url = f"{router_url}/roles/{role_name}"
+    resp = requests.get(url, auth=(username, password))
+    return resp
+
+def get_cache_role(router_url: str, role_name: str):
+    url = f"{router_url}/cache/roles/{role_name}"
+    resp = requests.get(url, auth=(username, password))
+    return resp
+
+def get_all_roles(router_url: str):
+    url = f"{router_url}/roles"
+    resp = requests.get(url, auth=(username, password))
+    return resp
+
+
+def drop_role(router_url: str, role_name: str):
+    url = f"{router_url}/roles/{role_name}"
+    resp = requests.delete(url, auth=(username, password))
+    return resp
+
+
 def server_resource_limit(
     router_url: str,
     resource_exhausted: bool = None,
@@ -1381,11 +1464,11 @@ def server_resource_limit(
 ):
     url = f"{router_url}/partitions/resource_limit"
     data = {}
-    if resource_exhausted != None:
+    if resource_exhausted is not None:
         data["resource_exhausted"] = resource_exhausted
-    if rate != None:
+    if rate is not None:
         data["rate"] = rate
-    if logger != None:
+    if logger is not None:
         logger.info(data)
     resp = requests.post(url, auth=(username, password), json=data)
     return resp

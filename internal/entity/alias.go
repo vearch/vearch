@@ -29,7 +29,7 @@ type Alias struct {
 }
 
 func (alias *Alias) Validate() error {
-	// validate db name
+	// validate alias name
 	rs := []rune(alias.Name)
 	if len(rs) == 0 {
 		return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("alias name can not be empty string"))
@@ -43,7 +43,7 @@ func (alias *Alias) Validate() error {
 	for _, r := range rs {
 		switch r {
 		case '\t', '\n', '\v', '\f', '\r', ' ', 0x85, 0xA0, '\\', '+', '-', '!', '*', '/', '(', ')', ':', '^', '[', ']', '"', '{', '}', '~', '%', '&', '\'', '<', '>', '?':
-			return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("character '%c' can not in db name[%s]", r, alias.Name))
+			return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("character '%c' can not in alias name[%s]", r, alias.Name))
 		}
 	}
 	return nil

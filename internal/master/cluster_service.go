@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"math"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/cubefs/cubefs/depends/tiglabs/raft/proto"
@@ -30,6 +31,7 @@ import (
 	"github.com/vearch/vearch/v3/internal/entity"
 	"github.com/vearch/vearch/v3/internal/pkg/errutil"
 	"github.com/vearch/vearch/v3/internal/pkg/log"
+	"github.com/vearch/vearch/v3/internal/pkg/metrics/mserver"
 	"github.com/vearch/vearch/v3/internal/pkg/number"
 	"github.com/vearch/vearch/v3/internal/pkg/vjson"
 	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
@@ -842,6 +844,350 @@ func (ms *masterService) queryAliasService(ctx context.Context, alias_name strin
 	return alias, nil
 }
 
+// createUserService keys "/user/user_name:user"
+func (ms *masterService) createUserService(ctx context.Context, user *entity.User, check_root bool) (err error) {
+	//validate name
+	if err = user.Validate(check_root); err != nil {
+		return err
+	}
+
+	if user.RoleName != nil {
+		if _, err := ms.queryRoleService(ctx, *user.RoleName); err != nil {
+			return err
+		}
+	} else {
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("role name is empty"))
+	}
+	if user.Password == nil {
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("password is empty"))
+	}
+
+	mutex := ms.Master().NewLock(ctx, entity.LockUserKey(user.Name), time.Second*30)
+	if err = mutex.Lock(); err != nil {
+		return err
+	}
+	defer func() {
+		if err := mutex.Unlock(); err != nil {
+			log.Error("unlock lock for create user err %s", err)
+		}
+	}()
+	err = ms.Master().STM(context.Background(), func(stm concurrency.STM) error {
+		userKey := entity.UserKey(user.Name)
+
+		value := stm.Get(userKey)
+		if value != "" {
+			return vearchpb.NewError(vearchpb.ErrorEnum_USER_EXIST, nil)
+		}
+		marshal, err := vjson.Marshal(user)
+		if err != nil {
+			return err
+		}
+		stm.Put(userKey, string(marshal))
+		return nil
+	})
+	return err
+}
+
+func (ms *masterService) deleteUserService(ctx context.Context, user_name string) (err error) {
+	if strings.EqualFold(user_name, entity.RootName) {
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("cann't delete root user"))
+	}
+	user, err := ms.queryUserService(ctx, user_name, false)
+	if user == nil {
+		return err
+	}
+	//it will lock cluster
+	mutex := ms.Master().NewLock(ctx, entity.LockUserKey(user_name), time.Second*30)
+	if err = mutex.Lock(); err != nil {
+		return err
+	}
+	defer func() {
+		if err := mutex.Unlock(); err != nil {
+			log.Error("unlock lock for delete user err %s", err)
+		}
+	}()
+
+	err = ms.Master().STM(context.Background(),
+		func(stm concurrency.STM) error {
+			stm.Del(entity.UserKey(user.Name))
+			return nil
+		})
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (ms *masterService) updateUserService(ctx context.Context, user *entity.User) (err error) {
+	bs, err := ms.Master().Get(ctx, entity.UserKey(user.Name))
+	if err != nil {
+		return err
+	}
+	if bs == nil {
+		return vearchpb.NewError(vearchpb.ErrorEnum_USER_NOT_EXIST, nil)
+	}
+
+	old_user := &entity.User{}
+	err = vjson.Unmarshal(bs, old_user)
+	if err != nil {
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("updata user:%s err:%s", user.Name, err.Error()))
+	}
+
+	if user.Password != nil {
+		if *user.Password == *old_user.Password {
+			return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("password is same with old password"))
+		}
+	} else {
+		user.Password = old_user.Password
+	}
+	if user.RoleName != nil {
+		if _, err := ms.queryRoleService(ctx, *user.RoleName); err != nil {
+			return err
+		}
+	} else {
+		user.RoleName = old_user.RoleName
+	}
+
+	//it will lock cluster
+	mutex := ms.Master().NewLock(ctx, entity.LockUserKey(user.Name), time.Second*30)
+	if err = mutex.Lock(); err != nil {
+		return err
+	}
+	defer func() {
+		if err := mutex.Unlock(); err != nil {
+			log.Error("unlock lock for update alias err %s", err)
+		}
+	}()
+	err = ms.Master().STM(context.Background(), func(stm concurrency.STM) error {
+		marshal, err := vjson.Marshal(user)
+		if err != nil {
+			return err
+		}
+		stm.Put(entity.UserKey(user.Name), string(marshal))
+		return nil
+	})
+	return nil
+}
+
+func (ms *masterService) queryAllUser(ctx context.Context) ([]*entity.UserRole, error) {
+	_, values, err := ms.Master().PrefixScan(ctx, entity.PrefixUser)
+	if err != nil {
+		return nil, err
+	}
+	users := make([]*entity.UserRole, 0, len(values))
+	for _, value := range values {
+		if value == nil {
+			return nil, vearchpb.NewError(vearchpb.ErrorEnum_USER_NOT_EXIST, nil)
+		}
+		user := &entity.User{}
+		err = vjson.Unmarshal(value, user)
+		if err != nil {
+			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("get user:%s, err:%s", user.Name, err.Error()))
+		}
+		userRole := &entity.UserRole{Name: user.Name, Password: user.Password}
+		if role, err := ms.queryRoleService(ctx, *user.RoleName); err != nil {
+			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("get user:%s role:%s, err:%s", user.Name, *user.RoleName, err.Error()))
+		} else {
+			userRole.Role = *role
+		}
+
+		users = append(users, userRole)
+	}
+
+	return users, err
+}
+
+func (ms *masterService) queryUserService(ctx context.Context, user_name string, check_role bool) (userRole *entity.UserRole, err error) {
+	user := &entity.User{Name: user_name}
+
+	bs, err := ms.Master().Get(ctx, entity.UserKey(user_name))
+
+	if err != nil {
+		return nil, err
+	}
+
+	if bs == nil {
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_USER_NOT_EXIST, nil)
+	}
+
+	err = vjson.Unmarshal(bs, user)
+	if err != nil {
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("get user:%s, err:%s", user.Name, err.Error()))
+	}
+
+	userRole = &entity.UserRole{Name: user.Name, Password: user.Password}
+	if check_role {
+		if role, err := ms.queryRoleService(ctx, *user.RoleName); err != nil {
+			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("get user:%s role:%s, err:%s", user.Name, *user.RoleName, err.Error()))
+		} else {
+			userRole.Role = *role
+		}
+	}
+
+	return userRole, nil
+}
+
+// createRoleService keys "/role/role_name:role"
+func (ms *masterService) createRoleService(ctx context.Context, role *entity.Role) (err error) {
+	//validate
+	if err = role.Validate(); err != nil {
+		return err
+	}
+	mutex := ms.Master().NewLock(ctx, entity.LockRoleKey(role.Name), time.Second*30)
+	if err = mutex.Lock(); err != nil {
+		return err
+	}
+	defer func() {
+		if err := mutex.Unlock(); err != nil {
+			log.Error("unlock lock for create role err %s", err)
+		}
+	}()
+	err = ms.Master().STM(context.Background(), func(stm concurrency.STM) error {
+		roleKey := entity.RoleKey(role.Name)
+
+		value := stm.Get(roleKey)
+		if value != "" {
+			return vearchpb.NewError(vearchpb.ErrorEnum_ROLE_EXIST, nil)
+		}
+		marshal, err := vjson.Marshal(role)
+		if err != nil {
+			return err
+		}
+		stm.Put(roleKey, string(marshal))
+		return nil
+	})
+	return err
+}
+
+func (ms *masterService) deleteRoleService(ctx context.Context, role_name string) (err error) {
+	role, err := ms.queryRoleService(ctx, role_name)
+	if err != nil {
+		return err
+	}
+	//it will lock cluster
+	mutex := ms.Master().NewLock(ctx, entity.LockRoleKey(role_name), time.Second*30)
+	if err = mutex.Lock(); err != nil {
+		return err
+	}
+	defer func() {
+		if err := mutex.Unlock(); err != nil {
+			log.Error("unlock lock for delete role err %s", err)
+		}
+	}()
+
+	err = ms.Master().STM(context.Background(),
+		func(stm concurrency.STM) error {
+			stm.Del(entity.RoleKey(role.Name))
+			return nil
+		})
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (ms *masterService) changeRolePrivilegeService(ctx context.Context, role *entity.Role) (new_role *entity.Role, err error) {
+	//validate
+	if err = role.Validate(); err != nil {
+		return nil, err
+	}
+
+	bs, err := ms.Master().Get(ctx, entity.RoleKey(role.Name))
+	if err != nil {
+		return nil, err
+	}
+	if bs == nil {
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_ROLE_NOT_EXIST, nil)
+	}
+	old_role := &entity.Role{}
+	err = vjson.Unmarshal(bs, old_role)
+	if err != nil {
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("get role privilege:%s err:%s", old_role.Name, err.Error()))
+	}
+
+	//it will lock cluster
+	mutex := ms.Master().NewLock(ctx, entity.LockRoleKey(role.Name), time.Second*30)
+	if err = mutex.Lock(); err != nil {
+		return nil, err
+	}
+	defer func() {
+		if err := mutex.Unlock(); err != nil {
+			log.Error("unlock lock for update role privilege err %s", err)
+		}
+	}()
+	err = ms.Master().STM(context.Background(), func(stm concurrency.STM) error {
+		if len(old_role.Privileges) == 0 {
+			old_role.Privileges = make(map[entity.Resource]entity.Privilege)
+		}
+		for resource, privilege := range role.Privileges {
+			if role.Operator == entity.Grant {
+				old_role.Privileges[resource] = privilege
+			}
+			if role.Operator == entity.Revoke {
+				delete(old_role.Privileges, resource)
+			}
+		}
+		marshal, err := vjson.Marshal(old_role)
+		if err != nil {
+			return err
+		}
+		stm.Put(entity.RoleKey(old_role.Name), string(marshal))
+		return nil
+	})
+	return old_role, nil
+}
+
+func (ms *masterService) queryAllRole(ctx context.Context) ([]*entity.Role, error) {
+	_, values, err := ms.Master().PrefixScan(ctx, entity.PrefixRole)
+	if err != nil {
+		return nil, err
+	}
+	roles := make([]*entity.Role, 0, len(values))
+	for _, value := range values {
+		if value == nil {
+			return nil, vearchpb.NewError(vearchpb.ErrorEnum_ROLE_NOT_EXIST, nil)
+		}
+		role := &entity.Role{}
+		err = vjson.Unmarshal(value, role)
+		if err != nil {
+			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("get role:%s, err:%s", role.Name, err.Error()))
+		}
+		roles = append(roles, role)
+	}
+
+	return roles, err
+}
+
+func (ms *masterService) queryRoleService(ctx context.Context, role_name string) (role *entity.Role, err error) {
+	role = &entity.Role{Name: role_name}
+
+	if value, exists := entity.RoleMap[role_name]; exists {
+		role = &value
+		return role, nil
+	}
+
+	bs, err := ms.Master().Get(ctx, entity.RoleKey(role_name))
+
+	if err != nil {
+		return nil, err
+	}
+
+	if bs == nil {
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_ROLE_NOT_EXIST, nil)
+	}
+
+	err = vjson.Unmarshal(bs, role)
+	if err != nil {
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("get role:%s, err:%s", role.Name, err.Error()))
+	}
+
+	return role, nil
+}
+
 func (ms *masterService) GetEngineCfg(ctx context.Context, dbName, spaceName string) (cfg *entity.EngineConfig, err error) {
 	defer errutil.CatchError(&err)
 	// get space info
@@ -1573,4 +1919,212 @@ func (ms *masterService) IsExistNode(ctx context.Context, id entity.NodeID, ip s
 		return errors.Errorf("node id[%d] has register on ip[%s]", server.ID, server.Ip)
 	}
 	return nil
+}
+
+func (ms *masterService) partitionInfo(ctx context.Context, dbName string, spaceName string, detail string) ([]map[string]interface{}, error) {
+	dbNames := make([]string, 0)
+	if dbName != "" {
+		dbNames = strings.Split(dbName, ",")
+	}
+
+	if len(dbNames) == 0 {
+		dbs, err := ms.queryDBs(ctx)
+		if err != nil {
+			return nil, err
+		}
+		dbNames = make([]string, len(dbs))
+		for i, db := range dbs {
+			dbNames[i] = db.Name
+		}
+	}
+
+	color := []string{"green", "yellow", "red"}
+
+	var errors []string
+
+	spaceNames := strings.Split(spaceName, ",")
+
+	detail_info := false
+	if detail == "true" {
+		detail_info = true
+	}
+
+	resultInsideDbs := make([]map[string]interface{}, 0)
+	for i := range dbNames {
+		dbName := dbNames[i]
+
+		dbId, err := ms.Master().QueryDBName2Id(ctx, dbName)
+		if err != nil {
+			errors = append(errors, dbName+" find dbID err: "+err.Error())
+			continue
+		}
+
+		spaces, err := ms.Master().QuerySpaces(ctx, dbId)
+		if err != nil {
+			errors = append(errors, dbName+" find space err: "+err.Error())
+			continue
+		}
+
+		dbStatus := 0
+
+		resultInsideSpaces := make([]map[string]interface{}, 0, len(spaces))
+		for _, space := range spaces {
+
+			spaceName := space.Name
+
+			if len(spaceNames) > 1 || spaceNames[0] != "" { //filter spaceName by user define
+				var index = -1
+
+				for i, name := range spaceNames {
+					if name == spaceName {
+						index = i
+						break
+					}
+				}
+
+				if index < 0 {
+					continue
+				}
+			}
+
+			spaceStatus := 0
+			resultInsidePartition := make([]*entity.PartitionInfo, 0)
+			for _, spacePartition := range space.Partitions {
+				p, err := ms.Master().QueryPartition(ctx, spacePartition.Id)
+				if err != nil {
+					errors = append(errors, fmt.Sprintf("partition:[%d] not found in space: [%s]", spacePartition.Id, spaceName))
+					continue
+				}
+
+				pStatus := 0
+
+				nodeID := p.LeaderID
+				if nodeID == 0 {
+					errors = append(errors, fmt.Sprintf("partition:[%d] no leader in space: [%s]", spacePartition.Id, spaceName))
+					pStatus = 2
+					nodeID = p.Replicas[0]
+				}
+
+				server, err := ms.Master().QueryServer(ctx, nodeID)
+				if err != nil {
+					errors = append(errors, fmt.Sprintf("server:[%d] not found in space: [%s] , partition:[%d]", nodeID, spaceName, spacePartition.Id))
+					pStatus = 2
+					continue
+				}
+
+				partitionInfo, err := client.PartitionInfo(server.RpcAddr(), p.Id, detail_info)
+				if err != nil {
+					errors = append(errors, fmt.Sprintf("query space:[%s] server:[%d] partition:[%d] info err :[%s]", spaceName, nodeID, spacePartition.Id, err.Error()))
+					partitionInfo = &entity.PartitionInfo{}
+					pStatus = 2
+				} else {
+					if len(partitionInfo.Unreachable) > 0 {
+						pStatus = 1
+					}
+				}
+
+				replicasStatus := make(map[entity.NodeID]string)
+				for nodeID, status := range p.ReStatusMap {
+					if status == entity.ReplicasOK {
+						replicasStatus[nodeID] = "ReplicasOK"
+					} else {
+						replicasStatus[nodeID] = "ReplicasNotReady"
+					}
+				}
+
+				//this must from space.Partitions
+				partitionInfo.PartitionID = spacePartition.Id
+				partitionInfo.Color = color[pStatus]
+				partitionInfo.ReplicaNum = len(p.Replicas)
+				partitionInfo.Ip = server.Ip
+				partitionInfo.NodeID = server.ID
+				partitionInfo.RepStatus = replicasStatus
+
+				resultInsidePartition = append(resultInsidePartition, partitionInfo)
+
+				if pStatus > spaceStatus {
+					spaceStatus = pStatus
+				}
+			}
+
+			docNum := uint64(0)
+			size := int64(0)
+			for _, p := range resultInsidePartition {
+				docNum += cast.ToUint64(p.DocNum)
+				size += cast.ToInt64(p.Size)
+			}
+			resultSpace := make(map[string]interface{})
+			resultSpace["name"] = spaceName
+			resultSpace["partition_num"] = len(resultInsidePartition)
+			resultSpace["replica_num"] = int(space.ReplicaNum)
+			resultSpace["doc_num"] = docNum
+			resultSpace["size"] = size
+			resultSpace["partitions"] = resultInsidePartition
+			resultSpace["status"] = color[spaceStatus]
+			resultInsideSpaces = append(resultInsideSpaces, resultSpace)
+
+			if spaceStatus > dbStatus {
+				dbStatus = spaceStatus
+			}
+		}
+
+		docNum := uint64(0)
+		size := int64(0)
+		for _, s := range resultInsideSpaces {
+			docNum += cast.ToUint64(s["doc_num"])
+			size += cast.ToInt64(s["size"])
+		}
+		resultDb := make(map[string]interface{})
+		resultDb["db_name"] = dbName
+		resultDb["space_num"] = len(spaces)
+		resultDb["doc_num"] = docNum
+		resultDb["size"] = size
+		resultDb["spaces"] = resultInsideSpaces
+		resultDb["status"] = color[dbStatus]
+		resultDb["errors"] = errors
+		resultInsideDbs = append(resultInsideDbs, resultDb)
+	}
+
+	return resultInsideDbs, nil
+}
+
+func (ms *masterService) statsService(ctx context.Context) ([]*mserver.ServerStats, error) {
+	servers, err := ms.Master().QueryServers(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	statsChan := make(chan *mserver.ServerStats, len(servers))
+
+	for _, s := range servers {
+		go func(s *entity.Server) {
+			defer func() {
+				if r := recover(); r != nil {
+					statsChan <- mserver.NewErrServerStatus(s.RpcAddr(), errors.New(cast.ToString(r)))
+				}
+			}()
+			statsChan <- client.ServerStats(s.RpcAddr())
+		}(s)
+	}
+
+	result := make([]*mserver.ServerStats, 0, len(servers))
+
+	for {
+		select {
+		case s := <-statsChan:
+			result = append(result, s)
+		case <-ctx.Done():
+			return nil, vearchpb.NewError(vearchpb.ErrorEnum_TIMEOUT, nil)
+		default:
+			time.Sleep(time.Millisecond * 10)
+			if len(result) >= len(servers) {
+				close(statsChan)
+				goto out
+			}
+		}
+	}
+
+out:
+
+	return result, nil
 }

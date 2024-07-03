@@ -17,9 +17,7 @@ package master
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/vearch/vearch/v3/internal/config"
-	"github.com/vearch/vearch/v3/internal/entity/errors"
 	"github.com/vearch/vearch/v3/internal/monitor"
-	"github.com/vearch/vearch/v3/internal/pkg/httphelper"
 	"github.com/vearch/vearch/v3/internal/pkg/server/vearchhttp"
 )
 
@@ -30,48 +28,7 @@ type monitorApi struct {
 }
 
 func ExportToMonitorHandler(router *gin.Engine, monitorService *monitorService) {
-	dh := vearchhttp.NewBaseHandler(30)
-
-	c := &monitorApi{router: router, monitorService: monitorService, dh: dh}
-
-	var group *gin.RouterGroup
-	if !config.Conf().Global.SkipAuth {
-		group = router.Group("", dh.PaincHandler, dh.TimeOutHandler, gin.BasicAuth(gin.Accounts{
-			"root": config.Conf().Global.Signkey,
-		}))
-	} else {
-		group = router.Group("", dh.PaincHandler, dh.TimeOutHandler)
-	}
-
-	// cluster handler
-	group.GET("/cluster/health", c.health, dh.TimeOutEndHandler)
-	group.GET("/cluster/stats", c.stats, dh.TimeOutEndHandler)
 
 	monitor.Register(monitorService.Client, monitorService.etcdServer, config.Conf().Masters.Self().MonitorPort)
 	// monitorService.Register()
-}
-
-// got every partition servers system info
-func (m *monitorApi) stats(c *gin.Context) {
-	list, err := m.monitorService.statsService(c)
-	if err != nil {
-		httphelper.New(c).JsonError(errors.NewErrInternal(err))
-		return
-	}
-	httphelper.New(c).JsonSuccess(list)
-}
-
-// cluster health in partition level
-func (m *monitorApi) health(c *gin.Context) {
-	dbName := c.Query("db")
-	spaceName := c.Query("space")
-	detail := c.Query("detail")
-
-	result, err := m.monitorService.partitionInfo(c, dbName, spaceName, detail)
-	if err != nil {
-		httphelper.New(c).JsonError(errors.NewErrInternal(err))
-		return
-	}
-
-	httphelper.New(c).JsonSuccess(result)
 }

@@ -51,6 +51,18 @@ func UserKey(username string) string {
 	return fmt.Sprintf("%s%s", PrefixUser, username)
 }
 
+func LockUserKey(username string) string {
+	return fmt.Sprintf("%s%s", PrefixLock, username)
+}
+
+func RoleKey(rolename string) string {
+	return fmt.Sprintf("%s%s", PrefixRole, rolename)
+}
+
+func LockRoleKey(rolename string) string {
+	return fmt.Sprintf("%s%s", PrefixLock, rolename)
+}
+
 // FailServerKey generate fail server key
 func FailServerKey(nodeID uint64) string {
 	return fmt.Sprintf("%s%d", PrefixFailServer, nodeID)
@@ -90,6 +102,8 @@ func SetPrefixAndSequence(cluster_id string) {
 	PrefixDataBaseBody = PrefixEtcdClusterID + PrefixDataBaseBody
 	PrefixFailServer = PrefixEtcdClusterID + PrefixFailServer
 	PrefixRouter = PrefixEtcdClusterID + PrefixRouter
+	PrefixAlias = PrefixEtcdClusterID + PrefixAlias
+	PrefixRole = PrefixEtcdClusterID + PrefixRole
 }
 
 // sids sequence key for etcd
@@ -117,6 +131,7 @@ var (
 	PrefixDBId         = "/id/db"
 	PrefixPartitionId  = "/id/partition"
 	PrefixAlias        = "/alias/"
+	PrefixRole         = "/role/"
 )
 
 var PrefixEtcdClusterID = "/vearch/default/"

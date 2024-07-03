@@ -164,10 +164,23 @@ func (m *masterClient) QueryUserByPassword(ctx context.Context, username, passwo
 		return nil, err
 	}
 
-	if user.Password != password {
+	if user.Password != nil && *user.Password != password {
 		return nil, vearchpb.NewError(vearchpb.ErrorEnum_AUTHENTICATION_FAILED, nil)
 	}
 	return user, nil
+}
+
+// QueryRole query role info from etcd by key /role/{rolename}
+func (m *masterClient) QueryRole(ctx context.Context, rolename string) (*entity.Role, error) {
+	bytes, err := m.Get(ctx, entity.RoleKey(rolename))
+	if bytes == nil {
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_ROLE_NOT_EXIST, err)
+	}
+	role := new(entity.Role)
+	if err = vjson.Unmarshal(bytes, role); err != nil {
+		return nil, err
+	}
+	return role, nil
 }
 
 // QueryServers scan all servers
@@ -600,14 +613,14 @@ func (m *masterClient) HTTPRequest(ctx context.Context, method string, url strin
 }
 
 // proxy HTTP request
-func (m *masterClient) ProxyHTTPRequest(method string, url string, reqBody string) (response []byte, e error) {
+func (m *masterClient) ProxyHTTPRequest(method string, url string, reqBody string, authHeader string) (response []byte, e error) {
 	// process panic
 	defer func() {
 		if info := recover(); info != nil {
 			e = fmt.Errorf("panic is %v", info)
 		}
 	}()
-	query := netutil.NewQuery().SetHeader(Authorization, netutil.AuthEncrypt(Root, m.cfg.Global.Signkey))
+	query := netutil.NewQuery().SetHeader(Authorization, authHeader)
 	query.SetMethod(method)
 	query.SetUrlPath(url)
 	query.SetReqBody(reqBody)

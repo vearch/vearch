@@ -16,8 +16,6 @@ package master
 
 import (
 	context "context"
-	"fmt"
-	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -28,7 +26,6 @@ import (
 	"github.com/vearch/vearch/v3/internal/pkg/log"
 	"github.com/vearch/vearch/v3/internal/pkg/metrics/mserver"
 	"github.com/vearch/vearch/v3/internal/pkg/monitoring"
-	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
 	"go.etcd.io/etcd/server/v3/etcdserver"
 )
 
@@ -42,47 +39,6 @@ type monitorService struct {
 	etcdServer *etcdserver.EtcdServer
 }
 
-func (ms *monitorService) statsService(ctx context.Context) ([]*mserver.ServerStats, error) {
-	servers, err := ms.Master().QueryServers(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	statsChan := make(chan *mserver.ServerStats, len(servers))
-
-	for _, s := range servers {
-		go func(s *entity.Server) {
-			defer func() {
-				if r := recover(); r != nil {
-					statsChan <- mserver.NewErrServerStatus(s.RpcAddr(), errors.New(cast.ToString(r)))
-				}
-			}()
-			statsChan <- client.ServerStats(s.RpcAddr())
-		}(s)
-	}
-
-	result := make([]*mserver.ServerStats, 0, len(servers))
-
-	for {
-		select {
-		case s := <-statsChan:
-			result = append(result, s)
-		case <-ctx.Done():
-			return nil, vearchpb.NewError(vearchpb.ErrorEnum_TIMEOUT, nil)
-		default:
-			time.Sleep(time.Millisecond * 10)
-			if len(result) >= len(servers) {
-				close(statsChan)
-				goto out
-			}
-		}
-	}
-
-out:
-
-	return result, nil
-}
-
 func (ms *monitorService) Register() {
 	msConf := config.Conf().Masters.Self()
 	if msConf != nil && msConf.MonitorPort > 0 {
@@ -91,173 +47,6 @@ func (ms *monitorService) Register() {
 	} else {
 		log.Info("skip register master monitor")
 	}
-}
-
-func (ms *monitorService) partitionInfo(ctx context.Context, dbName string, spaceName string, detail string) ([]map[string]interface{}, error) {
-	dbNames := make([]string, 0)
-	if dbName != "" {
-		dbNames = strings.Split(dbName, ",")
-	}
-
-	if len(dbNames) == 0 {
-		dbs, err := ms.queryDBs(ctx)
-		if err != nil {
-			return nil, err
-		}
-		dbNames = make([]string, len(dbs))
-		for i, db := range dbs {
-			dbNames[i] = db.Name
-		}
-	}
-
-	color := []string{"green", "yellow", "red"}
-
-	var errors []string
-
-	spaceNames := strings.Split(spaceName, ",")
-
-	detail_info := false
-	if detail == "true" {
-		detail_info = true
-	}
-
-	resultInsideDbs := make([]map[string]interface{}, 0)
-	for i := range dbNames {
-		dbName := dbNames[i]
-
-		dbId, err := ms.Master().QueryDBName2Id(ctx, dbName)
-		if err != nil {
-			errors = append(errors, dbName+" find dbID err: "+err.Error())
-			continue
-		}
-
-		spaces, err := ms.Master().QuerySpaces(ctx, dbId)
-		if err != nil {
-			errors = append(errors, dbName+" find space err: "+err.Error())
-			continue
-		}
-
-		dbStatus := 0
-
-		resultInsideSpaces := make([]map[string]interface{}, 0, len(spaces))
-		for _, space := range spaces {
-
-			spaceName := space.Name
-
-			if len(spaceNames) > 1 || spaceNames[0] != "" { //filter spaceName by user define
-				var index = -1
-
-				for i, name := range spaceNames {
-					if name == spaceName {
-						index = i
-						break
-					}
-				}
-
-				if index < 0 {
-					continue
-				}
-			}
-
-			spaceStatus := 0
-			resultInsidePartition := make([]*entity.PartitionInfo, 0)
-			for _, spacePartition := range space.Partitions {
-				p, err := ms.Master().QueryPartition(ctx, spacePartition.Id)
-				if err != nil {
-					errors = append(errors, fmt.Sprintf("partition:[%d] not found in space: [%s]", spacePartition.Id, spaceName))
-					continue
-				}
-
-				pStatus := 0
-
-				nodeID := p.LeaderID
-				if nodeID == 0 {
-					errors = append(errors, fmt.Sprintf("partition:[%d] no leader in space: [%s]", spacePartition.Id, spaceName))
-					pStatus = 2
-					nodeID = p.Replicas[0]
-				}
-
-				server, err := ms.Master().QueryServer(ctx, nodeID)
-				if err != nil {
-					errors = append(errors, fmt.Sprintf("server:[%d] not found in space: [%s] , partition:[%d]", nodeID, spaceName, spacePartition.Id))
-					pStatus = 2
-					continue
-				}
-
-				partitionInfo, err := client.PartitionInfo(server.RpcAddr(), p.Id, detail_info)
-				if err != nil {
-					errors = append(errors, fmt.Sprintf("query space:[%s] server:[%d] partition:[%d] info err :[%s]", spaceName, nodeID, spacePartition.Id, err.Error()))
-					partitionInfo = &entity.PartitionInfo{}
-					pStatus = 2
-				} else {
-					if len(partitionInfo.Unreachable) > 0 {
-						pStatus = 1
-					}
-				}
-
-				replicasStatus := make(map[entity.NodeID]string)
-				for nodeID, status := range p.ReStatusMap {
-					if status == entity.ReplicasOK {
-						replicasStatus[nodeID] = "ReplicasOK"
-					} else {
-						replicasStatus[nodeID] = "ReplicasNotReady"
-					}
-				}
-
-				//this must from space.Partitions
-				partitionInfo.PartitionID = spacePartition.Id
-				partitionInfo.Color = color[pStatus]
-				partitionInfo.ReplicaNum = len(p.Replicas)
-				partitionInfo.Ip = server.Ip
-				partitionInfo.NodeID = server.ID
-				partitionInfo.RepStatus = replicasStatus
-
-				resultInsidePartition = append(resultInsidePartition, partitionInfo)
-
-				if pStatus > spaceStatus {
-					spaceStatus = pStatus
-				}
-			}
-
-			docNum := uint64(0)
-			size := int64(0)
-			for _, p := range resultInsidePartition {
-				docNum += cast.ToUint64(p.DocNum)
-				size += cast.ToInt64(p.Size)
-			}
-			resultSpace := make(map[string]interface{})
-			resultSpace["name"] = spaceName
-			resultSpace["partition_num"] = len(resultInsidePartition)
-			resultSpace["replica_num"] = int(space.ReplicaNum)
-			resultSpace["doc_num"] = docNum
-			resultSpace["size"] = size
-			resultSpace["partitions"] = resultInsidePartition
-			resultSpace["status"] = color[spaceStatus]
-			resultInsideSpaces = append(resultInsideSpaces, resultSpace)
-
-			if spaceStatus > dbStatus {
-				dbStatus = spaceStatus
-			}
-		}
-
-		docNum := uint64(0)
-		size := int64(0)
-		for _, s := range resultInsideSpaces {
-			docNum += cast.ToUint64(s["doc_num"])
-			size += cast.ToInt64(s["size"])
-		}
-		resultDb := make(map[string]interface{})
-		resultDb["db_name"] = dbName
-		resultDb["space_num"] = len(spaces)
-		resultDb["doc_num"] = docNum
-		resultDb["size"] = size
-		resultDb["spaces"] = resultInsideSpaces
-		resultDb["status"] = color[dbStatus]
-		resultDb["errors"] = errors
-		resultInsideDbs = append(resultInsideDbs, resultDb)
-	}
-
-	return resultInsideDbs, nil
 }
 
 func (ms *monitorService) monitorCallBack(masterMonitor *monitoring.MasterMonitor) {

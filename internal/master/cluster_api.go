@@ -16,6 +16,7 @@ package master
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"os"
@@ -46,6 +47,8 @@ const (
 	dbName              = "db_name"
 	spaceName           = "space_name"
 	aliasName           = "alias_name"
+	userName            = "user_name"
+	roleName            = "role_name"
 	headerAuthKey       = "Authorization"
 	NodeID              = "node_id"
 	DefaultResourceName = "default"
@@ -58,6 +61,71 @@ type clusterAPI struct {
 	server        *Server
 }
 
+func BasicAuthMiddleware(masterService *masterService) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		authHeader := c.GetHeader("Authorization")
+		if authHeader == "" {
+			err := fmt.Errorf("auth header is empty")
+			httphelper.New(c).JsonError(errors.NewErrUnauthorized(err))
+			c.Abort()
+			return
+		}
+
+		parts := strings.SplitN(authHeader, " ", 2)
+		if len(parts) != 2 || parts[0] != "Basic" {
+			err := fmt.Errorf("auth header type is invalid")
+			httphelper.New(c).JsonError(errors.NewErrUnauthorized(err))
+			c.Abort()
+			return
+		}
+
+		decoded, err := base64.StdEncoding.DecodeString(parts[1])
+		if err != nil {
+			httphelper.New(c).JsonError(errors.NewErrUnauthorized(err))
+			c.Abort()
+			return
+		}
+
+		credentials := strings.SplitN(string(decoded), ":", 2)
+		if len(credentials) != 2 {
+			err := fmt.Errorf("auth header credentials is invalid")
+			httphelper.New(c).JsonError(errors.NewErrUnauthorized(err))
+			c.Abort()
+			return
+		}
+
+		user, err := masterService.queryUserService(c, credentials[0], true)
+		if err != nil {
+			ferr := fmt.Errorf("auth header user %s is invalid", credentials[0])
+			httphelper.New(c).JsonError(errors.NewErrUnauthorized(ferr))
+			c.Abort()
+			return
+		}
+		if *user.Password != credentials[1] {
+			err := fmt.Errorf("auth header password is invalid")
+			httphelper.New(c).JsonError(errors.NewErrUnauthorized(err))
+			c.Abort()
+			return
+		}
+
+		role, err := masterService.queryRoleService(c, user.Role.Name)
+		if err != nil {
+			httphelper.New(c).JsonError(errors.NewErrUnauthorized(err))
+			c.Abort()
+			return
+		}
+		endpoint := c.FullPath()
+		method := c.Request.Method
+		if err := role.HasPermissionForResources(endpoint, method); err != nil {
+			httphelper.New(c).JsonError(errors.NewErrUnauthorized(err))
+			c.Abort()
+			return
+		}
+
+		c.Next()
+	}
+}
+
 func ExportToClusterHandler(router *gin.Engine, masterService *masterService, server *Server) {
 	dh := vearchhttp.NewBaseHandler(30)
 
@@ -65,9 +133,7 @@ func ExportToClusterHandler(router *gin.Engine, masterService *masterService, se
 
 	var group *gin.RouterGroup
 	if !config.Conf().Global.SkipAuth {
-		group = router.Group("", dh.PaincHandler, dh.TimeOutHandler, gin.BasicAuth(gin.Accounts{
-			"root": config.Conf().Global.Signkey,
-		}))
+		group = router.Group("", dh.PaincHandler, dh.TimeOutHandler, BasicAuthMiddleware(masterService))
 	} else {
 		group = router.Group("", dh.PaincHandler, dh.TimeOutHandler)
 	}
@@ -130,6 +196,48 @@ func ExportToClusterHandler(router *gin.Engine, masterService *masterService, se
 	group.DELETE(fmt.Sprintf("/alias/:%s", aliasName), c.deleteAlias, dh.TimeOutEndHandler)
 	group.PUT(fmt.Sprintf("/alias/:%s/dbs/:%s/spaces/:%s", aliasName, dbName, spaceName), c.modifyAlias, dh.TimeOutEndHandler)
 
+	// user handler
+	group.POST("/users", c.createUser, dh.TimeOutEndHandler)
+	group.GET(fmt.Sprintf("/users/:%s", userName), c.getUser, dh.TimeOutEndHandler)
+	group.GET("/users", c.getUser, dh.TimeOutEndHandler)
+	group.DELETE(fmt.Sprintf("/users/:%s", userName), c.deleteUser, dh.TimeOutEndHandler)
+	group.PUT(fmt.Sprintf("/users/:%s", userName), c.updateUser, dh.TimeOutEndHandler)
+
+	// role handler
+	group.POST("/roles", c.createRole, dh.TimeOutEndHandler)
+	group.GET(fmt.Sprintf("/roles/:%s", roleName), c.getRole, dh.TimeOutEndHandler)
+	group.GET("/roles", c.getRole, dh.TimeOutEndHandler)
+	group.DELETE(fmt.Sprintf("/roles/:%s", roleName), c.deleteRole, dh.TimeOutEndHandler)
+	group.PUT(fmt.Sprintf("/roles/:%s/privileges", roleName), c.changeRolePrivilege, dh.TimeOutEndHandler)
+
+	group.GET("/cluster/stats", c.stats, dh.TimeOutEndHandler)
+	group.GET("/cluster/health", c.health, dh.TimeOutEndHandler)
+
+}
+
+// got every partition servers system info
+func (ca *clusterAPI) stats(c *gin.Context) {
+	list, err := ca.masterService.statsService(c)
+	if err != nil {
+		httphelper.New(c).JsonError(errors.NewErrInternal(err))
+		return
+	}
+	httphelper.New(c).JsonSuccess(list)
+}
+
+// cluster health in partition level
+func (ca *clusterAPI) health(c *gin.Context) {
+	dbName := c.Query("db")
+	spaceName := c.Query("space")
+	detail := c.Query("detail")
+
+	result, err := ca.masterService.partitionInfo(c, dbName, spaceName, detail)
+	if err != nil {
+		httphelper.New(c).JsonError(errors.NewErrInternal(err))
+		return
+	}
+
+	httphelper.New(c).JsonSuccess(result)
 }
 
 func (ca *clusterAPI) handleClusterInfo(c *gin.Context) {
@@ -720,6 +828,137 @@ func (ca *clusterAPI) modifyAlias(c *gin.Context) {
 		httphelper.New(c).JsonError(errors.NewErrInternal(err))
 	} else {
 		httphelper.New(c).JsonSuccess(alias)
+	}
+}
+
+func (ca *clusterAPI) createUser(c *gin.Context) {
+	user := &entity.User{}
+	if err := c.ShouldBindJSON(user); err != nil {
+		body, _ := netutil.GetReqBody(c.Request)
+		log.Error("create space request: %s, err: %s", body, err.Error())
+		httphelper.New(c).JsonError(errors.NewErrBadRequest(err))
+		return
+	}
+
+	log.Debug("create user: %s", user.Name)
+
+	if err := ca.masterService.createUserService(c, user, true); err != nil {
+		httphelper.New(c).JsonError(errors.NewErrInternal(err))
+	} else {
+		// just return user name
+		user_return := &entity.User{Name: user.Name}
+		httphelper.New(c).JsonSuccess(user_return)
+	}
+}
+
+func (ca *clusterAPI) deleteUser(c *gin.Context) {
+	log.Debug("delete user: %s", c.Param(userName))
+	name := c.Param(userName)
+
+	if err := ca.masterService.deleteUserService(c, name); err != nil {
+		httphelper.New(c).JsonError(errors.NewErrInternal(err))
+	} else {
+		httphelper.New(c).SuccessDelete()
+	}
+}
+
+func (ca *clusterAPI) getUser(c *gin.Context) {
+	name := c.Param(userName)
+	if name == "" {
+		if users, err := ca.masterService.queryAllUser(c); err != nil {
+			httphelper.New(c).JsonError(errors.NewErrNotFound(err))
+		} else {
+			httphelper.New(c).JsonSuccess(users)
+		}
+	} else {
+		if user, err := ca.masterService.queryUserService(c, name, true); err != nil {
+			httphelper.New(c).JsonError(errors.NewErrNotFound(err))
+		} else {
+			httphelper.New(c).JsonSuccess(user)
+		}
+	}
+}
+
+func (ca *clusterAPI) updateUser(c *gin.Context) {
+	log.Debug("update user: %s", c.Param(userName))
+	name := c.Param(userName)
+
+	user := &entity.User{Name: name}
+	if err := c.ShouldBindJSON(user); err != nil {
+		body, _ := netutil.GetReqBody(c.Request)
+		log.Error("create space request: %s, err: %s", body, err.Error())
+		httphelper.New(c).JsonError(errors.NewErrBadRequest(err))
+		return
+	}
+
+	if err := ca.masterService.updateUserService(c, user); err != nil {
+		httphelper.New(c).JsonError(errors.NewErrInternal(err))
+	} else {
+		httphelper.New(c).JsonSuccess(user)
+	}
+}
+
+func (ca *clusterAPI) createRole(c *gin.Context) {
+	role := &entity.Role{}
+	if err := c.ShouldBindJSON(role); err != nil {
+		body, _ := netutil.GetReqBody(c.Request)
+		log.Error("create space request: %s, err: %s", body, err.Error())
+		httphelper.New(c).JsonError(errors.NewErrBadRequest(err))
+		return
+	}
+
+	log.Debug("create role: %s", role.Name)
+
+	if err := ca.masterService.createRoleService(c, role); err != nil {
+		httphelper.New(c).JsonError(errors.NewErrInternal(err))
+	} else {
+		httphelper.New(c).JsonSuccess(role)
+	}
+}
+
+func (ca *clusterAPI) deleteRole(c *gin.Context) {
+	log.Debug("delete role: %s", c.Param(roleName))
+	name := c.Param(roleName)
+
+	if err := ca.masterService.deleteRoleService(c, name); err != nil {
+		httphelper.New(c).JsonError(errors.NewErrInternal(err))
+	} else {
+		httphelper.New(c).SuccessDelete()
+	}
+}
+
+func (ca *clusterAPI) getRole(c *gin.Context) {
+	name := c.Param(roleName)
+	if name == "" {
+		if roles, err := ca.masterService.queryAllRole(c); err != nil {
+			httphelper.New(c).JsonError(errors.NewErrNotFound(err))
+		} else {
+			httphelper.New(c).JsonSuccess(roles)
+		}
+	} else {
+		if role, err := ca.masterService.queryRoleService(c, name); err != nil {
+			httphelper.New(c).JsonError(errors.NewErrNotFound(err))
+		} else {
+			httphelper.New(c).JsonSuccess(role)
+		}
+	}
+}
+
+func (ca *clusterAPI) changeRolePrivilege(c *gin.Context) {
+	log.Debug("update role: %s privilege", c.Param(roleName))
+	name := c.Param(roleName)
+	role := &entity.Role{Name: name}
+	if err := c.ShouldBindJSON(role); err != nil {
+		body, _ := netutil.GetReqBody(c.Request)
+		log.Error("create space request: %s, err: %s", body, err.Error())
+		httphelper.New(c).JsonError(errors.NewErrBadRequest(err))
+		return
+	}
+
+	if new_role, err := ca.masterService.changeRolePrivilegeService(c, role); err != nil {
+		httphelper.New(c).JsonError(errors.NewErrInternal(err))
+	} else {
+		httphelper.New(c).JsonSuccess(new_role)
 	}
 }
 

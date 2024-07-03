@@ -36,8 +36,13 @@ enum ErrorEnum {
   PARTITION_SERVER_NOT_EXIST = 160;
   PARTITION_SERVER_ERROR = 161;
 
-  // user 180-199
+  // user 180-190
   USER_NOT_EXIST = 180;
+  USER_EXIST = 181;
+
+  // role 190-199
+  ROLE_NOT_EXIST = 190;
+  ROLE_EXIST = 191;
 
   // schema 200-399
   // db 200-219

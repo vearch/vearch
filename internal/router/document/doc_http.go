@@ -16,10 +16,12 @@ package document
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -48,13 +50,79 @@ const (
 	SpaceEntity         = "space_entity"
 	QueryIsOnlyID       = "QueryIsOnlyID"
 	URLQueryTimeout     = "timeout"
-	URLAliasName        = "alias_name"
+	URLParamAliasName   = "alias_name"
+	URLParamUserName    = "user_name"
+	URLParamRoleName    = "role_name"
 )
 
 type DocumentHandler struct {
 	httpServer *gin.Engine
 	docService docService
 	client     *client.Client
+}
+
+func BasicAuthMiddleware(docService docService) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		authHeader := c.GetHeader("Authorization")
+		if authHeader == "" {
+			err := fmt.Errorf("auth header is empty")
+			httphelper.New(c).JsonError(errors.NewErrUnauthorized(err))
+			c.Abort()
+			return
+		}
+
+		parts := strings.SplitN(authHeader, " ", 2)
+		if len(parts) != 2 || parts[0] != "Basic" {
+			err := fmt.Errorf("auth header type is invalid")
+			httphelper.New(c).JsonError(errors.NewErrUnauthorized(err))
+			c.Abort()
+			return
+		}
+
+		decoded, err := base64.StdEncoding.DecodeString(parts[1])
+		if err != nil {
+			httphelper.New(c).JsonError(errors.NewErrUnauthorized(err))
+			c.Abort()
+			return
+		}
+
+		credentials := strings.SplitN(string(decoded), ":", 2)
+		if len(credentials) != 2 {
+			err := fmt.Errorf("auth header credentials is invalid")
+			httphelper.New(c).JsonError(errors.NewErrUnauthorized(err))
+			c.Abort()
+			return
+		}
+
+		user, err := docService.getUser(c, credentials[0])
+		if err != nil {
+			ferr := fmt.Errorf("auth header user %s is invalid", credentials[0])
+			httphelper.New(c).JsonError(errors.NewErrUnauthorized(ferr))
+			c.Abort()
+			return
+		}
+		if *user.Password != credentials[1] {
+			err := fmt.Errorf("auth header password is invalid")
+			httphelper.New(c).JsonError(errors.NewErrUnauthorized(err))
+			c.Abort()
+			return
+		}
+		role, err := docService.getRole(c, *user.RoleName)
+		if err != nil {
+			httphelper.New(c).JsonError(errors.NewErrUnauthorized(err))
+			c.Abort()
+			return
+		}
+		endpoint := c.FullPath()
+		method := c.Request.Method
+		if err := role.HasPermissionForResources(endpoint, method); err != nil {
+			httphelper.New(c).JsonError(errors.NewErrUnauthorized(err))
+			c.Abort()
+			return
+		}
+
+		c.Next()
+	}
 }
 
 func ExportDocumentHandler(httpServer *gin.Engine, client *client.Client) {
@@ -67,14 +135,17 @@ func ExportDocumentHandler(httpServer *gin.Engine, client *client.Client) {
 	}
 
 	var group *gin.RouterGroup
+	var groupProxy *gin.RouterGroup
 	if !config.Conf().Global.SkipAuth {
-		group = documentHandler.httpServer.Group("", documentHandler.handleTimeout, gin.BasicAuth(gin.Accounts{
-			"root": config.Conf().Global.Signkey,
-		}))
+		group = documentHandler.httpServer.Group("", documentHandler.handleTimeout, BasicAuthMiddleware(documentHandler.docService))
+		// auth by master
+		groupProxy = documentHandler.httpServer.Group("", documentHandler.handleTimeout)
 	} else {
 		group = documentHandler.httpServer.Group("", documentHandler.handleTimeout)
+		groupProxy = documentHandler.httpServer.Group("", documentHandler.handleTimeout)
 	}
-	documentHandler.proxyMaster(group)
+
+	documentHandler.proxyMaster(groupProxy)
 	// open router api
 	if err := documentHandler.ExportInterfacesToServer(group); err != nil {
 		panic(err)
@@ -91,6 +162,7 @@ func (handler *DocumentHandler) proxyMaster(group *gin.RouterGroup) error {
 	group.POST("/partitions/resource_limit", handler.handleMasterRequest)
 
 	group.GET("/routers", handler.handleMasterRequest)
+
 	// db handler
 	group.POST(fmt.Sprintf("/dbs/:%s", URLParamDbName), handler.handleMasterRequest)
 	group.GET(fmt.Sprintf("/dbs/:%s", URLParamDbName), handler.handleMasterRequest)
@@ -104,12 +176,28 @@ func (handler *DocumentHandler) proxyMaster(group *gin.RouterGroup) error {
 	group.GET(fmt.Sprintf("/dbs/:%s/spaces", URLParamDbName), handler.handleMasterRequest)
 	group.DELETE(fmt.Sprintf("/dbs/:%s/spaces/:%s", URLParamDbName, URLParamSpaceName), handler.handleMasterRequest)
 	group.PUT(fmt.Sprintf("/dbs/:%s/spaces/:%s", URLParamDbName, URLParamSpaceName), handler.handleMasterRequest)
+
 	// alias handler
-	group.POST(fmt.Sprintf("/alias/:%s/dbs/:%s/spaces/:%s", URLAliasName, URLParamDbName, URLParamSpaceName), handler.handleMasterRequest)
-	group.GET(fmt.Sprintf("/alias/:%s", URLAliasName), handler.handleMasterRequest)
+	group.POST(fmt.Sprintf("/alias/:%s/dbs/:%s/spaces/:%s", URLParamAliasName, URLParamDbName, URLParamSpaceName), handler.handleMasterRequest)
+	group.GET(fmt.Sprintf("/alias/:%s", URLParamAliasName), handler.handleMasterRequest)
 	group.GET("/alias", handler.handleMasterRequest)
-	group.DELETE(fmt.Sprintf("/alias/:%s", URLAliasName), handler.handleMasterRequest)
-	group.PUT(fmt.Sprintf("/alias/:%s/dbs/:%s/spaces/:%s", URLAliasName, URLParamDbName, URLParamSpaceName), handler.handleMasterRequest)
+	group.DELETE(fmt.Sprintf("/alias/:%s", URLParamAliasName), handler.handleMasterRequest)
+	group.PUT(fmt.Sprintf("/alias/:%s/dbs/:%s/spaces/:%s", URLParamAliasName, URLParamDbName, URLParamSpaceName), handler.handleMasterRequest)
+
+	// user handler
+	group.POST("/users", handler.handleMasterRequest)
+	group.GET(fmt.Sprintf("/users/:%s", URLParamUserName), handler.handleMasterRequest)
+	group.GET("/users", handler.handleMasterRequest)
+	group.DELETE(fmt.Sprintf("/users/:%s", URLParamUserName), handler.handleMasterRequest)
+	group.PUT(fmt.Sprintf("/users/:%s", URLParamUserName), handler.handleMasterRequest)
+
+	// role handler
+	group.POST("/roles", handler.handleMasterRequest)
+	group.GET(fmt.Sprintf("/roles/:%s", URLParamRoleName), handler.handleMasterRequest)
+	group.GET("/roles", handler.handleMasterRequest)
+	group.DELETE(fmt.Sprintf("/roles/:%s", URLParamRoleName), handler.handleMasterRequest)
+	group.PUT(fmt.Sprintf("/roles/:%s/privileges", URLParamRoleName), handler.handleMasterRequest)
+
 	// cluster handler
 	group.GET("/cluster/health", handler.handleMasterRequest)
 	group.GET("/cluster/stats", handler.handleMasterRequest)
@@ -129,8 +217,8 @@ func (handler *DocumentHandler) handleMasterRequest(c *gin.Context) {
 		resp.SendError(c, http.StatusBadRequest, "Error reading body")
 		return
 	}
-
-	res, err := handler.client.Master().ProxyHTTPRequest(method, c.Request.RequestURI, string(bodyBytes))
+	authHeader := c.GetHeader("Authorization")
+	res, err := handler.client.Master().ProxyHTTPRequest(method, c.Request.RequestURI, string(bodyBytes), authHeader)
 	if err != nil {
 		log.Error("handleMasterRequest %v, response %s", err, string(res))
 		httphelper.New(c).SetHttpStatus(http.StatusInternalServerError).SendJsonBytes(res)
@@ -160,7 +248,9 @@ func (handler *DocumentHandler) ExportInterfacesToServer(group *gin.RouterGroup)
 
 	// cacheInfo
 	// /cache/$dbName/$spaceName
-	group.GET(fmt.Sprintf("/cache/:%s/:%s", URLParamDbName, URLParamSpaceName), handler.cacheSpaceInfo)
+	group.GET(fmt.Sprintf("/cache/dbs/:%s/spaces/:%s", URLParamDbName, URLParamSpaceName), handler.cacheSpaceInfo)
+	group.GET(fmt.Sprintf("/cache/users/:%s", URLParamUserName), handler.cacheUserInfo)
+	group.GET(fmt.Sprintf("/cache/roles/:%s", URLParamRoleName), handler.cacheRoleInfo)
 
 	return nil
 }
@@ -187,6 +277,24 @@ func (handler *DocumentHandler) cacheSpaceInfo(c *gin.Context) {
 	dbName := c.Param(URLParamDbName)
 	spaceName := c.Param(URLParamSpaceName)
 	if space, err := handler.client.Master().Cache().SpaceByCache(context.Background(), dbName, spaceName); err != nil {
+		httphelper.New(c).JsonError(errors.NewErrInternal(err))
+	} else {
+		httphelper.New(c).JsonSuccess(space)
+	}
+}
+
+func (handler *DocumentHandler) cacheUserInfo(c *gin.Context) {
+	userName := c.Param(URLParamUserName)
+	if space, err := handler.client.Master().Cache().UserByCache(context.Background(), userName); err != nil {
+		httphelper.New(c).JsonError(errors.NewErrInternal(err))
+	} else {
+		httphelper.New(c).JsonSuccess(space)
+	}
+}
+
+func (handler *DocumentHandler) cacheRoleInfo(c *gin.Context) {
+	roleName := c.Param(URLParamRoleName)
+	if space, err := handler.client.Master().Cache().RoleByCache(context.Background(), roleName); err != nil {
 		httphelper.New(c).JsonError(errors.NewErrInternal(err))
 	} else {
 		httphelper.New(c).JsonSuccess(space)
