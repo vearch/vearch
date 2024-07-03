@@ -72,6 +72,14 @@ function build_thirdparty() {
       popd
     fi
   fi
+
+  if [[ ! -f "/usr/local/lib/libprotobuf.so" ]]; then
+    wget https://github.com/protocolbuffers/protobuf/releases/download/v3.6.1/protobuf-cpp-3.6.1.tar.gz
+    tar xf protobuf-cpp-3.6.1.tar.gz
+    pushd protobuf-3.6.1
+    ./configure && make -j4 && make install
+    popd
+  fi
 }
 
 function build_engine() {
