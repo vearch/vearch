@@ -6,11 +6,12 @@ export PATH=$PATH:$GOROOT/bin
 export ROCKSDB_HOME=/env/app/rocksdb_install
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ROCKSDB_HOME/lib
 
-source /opt/rh/devtoolset-10/enable
 # to compile
 cd /vearch/build
 mkdir -p /env/app/go/src/github.com/vearch
 ln -s /vearch/ /env/app/go/src/github.com/vearch
+
+git config --global --add safe.directory /vearch
 
 cd /env/app/go/src/github.com/vearch/vearch/build
 ./build.sh
@@ -18,6 +19,7 @@ cd /env/app/go/src/github.com/vearch/vearch/build
 mkdir -p /vearch/build/lib/
 
 cp /env/app/rocksdb_install/lib/librocksdb.* /vearch/build/lib/
+cp -r -p /usr/local/lib/libprotobuf.so* /vearch/build/lib/
 cp /vearch/build/gamma_build/libgamma.* /vearch/build/lib/
 
 rm -rf /vearch/build/gamma_build

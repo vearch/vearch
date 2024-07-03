@@ -11,7 +11,6 @@ require (
 	github.com/gin-contrib/cors v1.5.0
 	github.com/gin-gonic/gin v1.9.1
 	github.com/gogo/protobuf v1.3.2
-	github.com/golang/protobuf v1.5.4
 	github.com/google/flatbuffers v23.5.26+incompatible
 	github.com/google/uuid v1.6.0
 	github.com/minio/minio-go/v7 v7.0.70
@@ -75,6 +74,7 @@ require (
 	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/golang-jwt/jwt/v4 v4.4.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
+	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/btree v1.0.1 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect

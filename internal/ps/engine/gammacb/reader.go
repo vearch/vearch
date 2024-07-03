@@ -23,13 +23,13 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/vearch/vearch/v3/internal/engine/sdk/go/gamma"
 	"github.com/vearch/vearch/v3/internal/entity"
 	"github.com/vearch/vearch/v3/internal/pkg/log"
 	"github.com/vearch/vearch/v3/internal/pkg/vearchlog"
 	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
 	"github.com/vearch/vearch/v3/internal/ps/engine"
+	"google.golang.org/protobuf/proto"
 )
 
 const indexSn = "sn"

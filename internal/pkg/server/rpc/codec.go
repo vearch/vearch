@@ -18,10 +18,10 @@ import (
 	"bytes"
 
 	"github.com/gogo/protobuf/proto"
-	pb "github.com/golang/protobuf/proto"
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/v3/internal/pkg/log"
 	"github.com/vmihailenco/msgpack"
+	pb "google.golang.org/protobuf/proto"
 )
 
 type MsgpackCodec struct {

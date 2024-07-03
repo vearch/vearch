@@ -1,12 +1,10 @@
 #!/usr/bin/env bash
 
-yum update
-yum install -y epel-release
-yum install -y wget make automake git blas-devel lapack-devel which libzstd-devel openssl-devel openblas-devel tbb-devel boost-devel
-
-yum -y install centos-release-scl
-yum -y install devtoolset-10
-source /opt/rh/devtoolset-10/enable
+dnf update
+dnf install -y epel-release
+dnf install -y wget make automake git which libzstd-devel openssl-devel tbb-devel boost-devel
+dnf --enablerepo=crb install -y blas-devel lapack-devel openblas-devel
+dnf -y install gcc-c++
 g++ -v
 
 ARCH=$(arch)
@@ -32,7 +30,7 @@ rm -rf ${CMAKE_FILE}.sh
 wget https://github.com/protocolbuffers/protobuf/releases/download/v3.6.1/protobuf-cpp-3.6.1.tar.gz
 tar xf protobuf-cpp-3.6.1.tar.gz
 cd protobuf-3.6.1
-./configure && make && make install
+./configure && make -j4 && make install
 
 cd /env/app
 if [ ! -f "rocksdb-v9.2.1.tar.gz" ]; then
