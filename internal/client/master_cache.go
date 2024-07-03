@@ -172,7 +172,7 @@ func (cliCache *clientCache) RoleByCache(ctx context.Context, roleName string) (
 
 func (cliCache *clientCache) reloadRoleCache(ctx context.Context, sync bool, roleName string) error {
 	fun := func() error {
-		log.Info("to reload user:[%s]", roleName)
+		log.Info("to reload role:[%s]", roleName)
 		role, err := cliCache.mc.QueryRole(ctx, roleName)
 		if err != nil {
 			return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("can not found role by name:[%s] err:[%s]", roleName, err.Error()))
