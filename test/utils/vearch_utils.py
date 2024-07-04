@@ -27,8 +27,7 @@ router_url = os.getenv("ROUTER_URL", "http://127.0.0.1:9001")
 db_name = "ts_db"
 space_name = "ts_space"
 username = "root"
-password = "secret"
-
+password = os.getenv("PASSWORD", "secret")
 
 __description__ = """ test utils for vearch """
 
@@ -1386,14 +1385,19 @@ def create_user(
     resp = requests.post(url, json=data, auth=(username, password))
     return resp
 
+def set_password(value):
+    global password
+    password = value
 
 def update_user(
-    router_url: str, user_name: str, user_password: str = None, role_name: str = None
+    router_url: str, user_name: str, new_password: str = None, old_password : str = None, role_name: str = None
 ):
-    url = f"{router_url}/users/{user_name}"
+    url = f"{router_url}/users"
     data = {"name": user_name}
-    if user_password is not None:
-        data["password"] = user_password
+    if new_password is not None:
+        data["password"] = new_password
+    if old_password is not None:
+        data["old_password"] = old_password
     if role_name is not None:
         data["role_name"] = role_name
     resp = requests.put(url, json=data, auth=(username, password))
@@ -1428,8 +1432,8 @@ def create_role(router_url: str, role_name: str, privileges: dict):
 def change_role_privilege(
     router_url: str, role_name: str, operator: str, privileges: dict
 ):
-    url = f"{router_url}/roles/{role_name}/privileges"
-    data = {"operator": operator, "privileges": privileges}
+    url = f"{router_url}/roles"
+    data = {"name": role_name,"operator": operator, "privileges": privileges}
     resp = requests.put(url, json=data, auth=(username, password))
     return resp
 

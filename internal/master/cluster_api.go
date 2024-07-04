@@ -94,7 +94,7 @@ func BasicAuthMiddleware(masterService *masterService) gin.HandlerFunc {
 			return
 		}
 
-		user, err := masterService.queryUserService(c, credentials[0], true)
+		user, err := masterService.queryUserWithPasswordService(c, credentials[0], true)
 		if err != nil {
 			ferr := fmt.Errorf("auth header user %s is invalid", credentials[0])
 			httphelper.New(c).JsonError(errors.NewErrUnauthorized(ferr))
@@ -131,87 +131,88 @@ func ExportToClusterHandler(router *gin.Engine, masterService *masterService, se
 
 	c := &clusterAPI{router: router, masterService: masterService, dh: dh, server: server}
 
-	var group *gin.RouterGroup
+	var groupAuth *gin.RouterGroup
+	var group *gin.RouterGroup = router.Group("", dh.PaincHandler, dh.TimeOutHandler)
 	if !config.Conf().Global.SkipAuth {
-		group = router.Group("", dh.PaincHandler, dh.TimeOutHandler, BasicAuthMiddleware(masterService))
+		groupAuth = router.Group("", dh.PaincHandler, dh.TimeOutHandler, BasicAuthMiddleware(masterService))
 	} else {
-		group = router.Group("", dh.PaincHandler, dh.TimeOutHandler)
+		groupAuth = router.Group("", dh.PaincHandler, dh.TimeOutHandler)
 	}
 
-	group.GET("/", c.handleClusterInfo, dh.TimeOutEndHandler)
+	groupAuth.GET("/", c.handleClusterInfo, dh.TimeOutEndHandler)
 
 	// cluster handler
-	group.GET("/clean_lock", c.cleanLock, dh.TimeOutEndHandler)
+	groupAuth.GET("/clean_lock", c.cleanLock, dh.TimeOutEndHandler)
 
 	// servers handler
-	group.GET("/servers", c.serverList, dh.TimeOutEndHandler)
+	groupAuth.GET("/servers", c.serverList, dh.TimeOutEndHandler)
 
 	// router  handler
-	group.GET("/routers", c.routerList, dh.TimeOutEndHandler)
+	groupAuth.GET("/routers", c.routerList, dh.TimeOutEndHandler)
 
-	// partition register
+	// partition register, use internal so no need to auth
 	group.POST("/register", c.register, dh.TimeOutEndHandler)
 	group.POST("/register_partition", c.registerPartition, dh.TimeOutEndHandler)
 	group.POST("/register_router", c.registerRouter, dh.TimeOutEndHandler)
 
 	// db handler
-	group.POST(fmt.Sprintf("/dbs/:%s", dbName), c.createDB, dh.TimeOutEndHandler)
-	group.GET(fmt.Sprintf("/dbs/:%s", dbName), c.getDB, dh.TimeOutEndHandler)
-	group.GET("/dbs", c.getDB, dh.TimeOutEndHandler)
-	group.DELETE(fmt.Sprintf("/dbs/:%s", dbName), c.deleteDB, dh.TimeOutEndHandler)
-	group.PUT(fmt.Sprintf("/dbs/:%s", dbName), c.modifyDB, dh.TimeOutEndHandler)
+	groupAuth.POST(fmt.Sprintf("/dbs/:%s", dbName), c.createDB, dh.TimeOutEndHandler)
+	groupAuth.GET(fmt.Sprintf("/dbs/:%s", dbName), c.getDB, dh.TimeOutEndHandler)
+	groupAuth.GET("/dbs", c.getDB, dh.TimeOutEndHandler)
+	groupAuth.DELETE(fmt.Sprintf("/dbs/:%s", dbName), c.deleteDB, dh.TimeOutEndHandler)
+	groupAuth.PUT(fmt.Sprintf("/dbs/:%s", dbName), c.modifyDB, dh.TimeOutEndHandler)
 
 	// space handler
-	group.POST(fmt.Sprintf("/dbs/:%s/spaces", dbName), c.createSpace, dh.TimeOutEndHandler)
-	group.GET(fmt.Sprintf("/dbs/:%s/spaces/:%s", dbName, spaceName), c.getSpace, dh.TimeOutEndHandler)
-	group.GET(fmt.Sprintf("/dbs/:%s/spaces", dbName), c.getSpace, dh.TimeOutEndHandler)
-	group.DELETE(fmt.Sprintf("/dbs/:%s/spaces/:%s", dbName, spaceName), c.deleteSpace, dh.TimeOutEndHandler)
+	groupAuth.POST(fmt.Sprintf("/dbs/:%s/spaces", dbName), c.createSpace, dh.TimeOutEndHandler)
+	groupAuth.GET(fmt.Sprintf("/dbs/:%s/spaces/:%s", dbName, spaceName), c.getSpace, dh.TimeOutEndHandler)
+	groupAuth.GET(fmt.Sprintf("/dbs/:%s/spaces", dbName), c.getSpace, dh.TimeOutEndHandler)
+	groupAuth.DELETE(fmt.Sprintf("/dbs/:%s/spaces/:%s", dbName, spaceName), c.deleteSpace, dh.TimeOutEndHandler)
 	// group.PUT(fmt.Sprintf("/dbs/:%s/spaces/:%s", dbName, spaceName), c.updateSpace, dh.TimeOutEndHandler)
-	group.PUT(fmt.Sprintf("/dbs/:%s/spaces/:%s", dbName, spaceName), c.updateSpaceResource, dh.TimeOutEndHandler)
-	group.POST(fmt.Sprintf("/backup/dbs/:%s/spaces/:%s", dbName, spaceName), c.backupSpace, dh.TimeOutEndHandler)
+	groupAuth.PUT(fmt.Sprintf("/dbs/:%s/spaces/:%s", dbName, spaceName), c.updateSpaceResource, dh.TimeOutEndHandler)
+	groupAuth.POST(fmt.Sprintf("/backup/dbs/:%s/spaces/:%s", dbName, spaceName), c.backupSpace, dh.TimeOutEndHandler)
 
 	// modify engine config handler
-	group.POST("/config/:"+dbName+"/:"+spaceName, c.modifyEngineCfg, dh.TimeOutEndHandler)
-	group.GET("/config/:"+dbName+"/:"+spaceName, c.getEngineCfg, dh.TimeOutEndHandler)
+	groupAuth.POST("/config/:"+dbName+"/:"+spaceName, c.modifyEngineCfg, dh.TimeOutEndHandler)
+	groupAuth.GET("/config/:"+dbName+"/:"+spaceName, c.getEngineCfg, dh.TimeOutEndHandler)
 
 	// partition handler
-	group.GET("/partitions", c.partitionList, dh.TimeOutEndHandler)
-	group.POST("/partitions/change_member", c.changeMember, dh.TimeOutEndHandler)
-	group.POST("/partitions/resource_limit", c.ResourceLimit, dh.TimeOutEndHandler)
+	groupAuth.GET("/partitions", c.partitionList, dh.TimeOutEndHandler)
+	groupAuth.POST("/partitions/change_member", c.changeMember, dh.TimeOutEndHandler)
+	groupAuth.POST("/partitions/resource_limit", c.ResourceLimit, dh.TimeOutEndHandler)
 
 	// schedule
-	group.POST("/schedule/recover_server", c.RecoverFailServer, dh.TimeOutEndHandler)
-	group.POST("/schedule/change_replicas", c.ChangeReplicas, dh.TimeOutEndHandler)
-	group.GET("/schedule/fail_server", c.FailServerList, dh.TimeOutEndHandler)
-	group.DELETE("/schedule/fail_server/:"+NodeID, c.FailServerClear, dh.TimeOutEndHandler)
-	group.GET("/schedule/clean_task", c.CleanTask, dh.TimeOutEndHandler)
+	groupAuth.POST("/schedule/recover_server", c.RecoverFailServer, dh.TimeOutEndHandler)
+	groupAuth.POST("/schedule/change_replicas", c.ChangeReplicas, dh.TimeOutEndHandler)
+	groupAuth.GET("/schedule/fail_server", c.FailServerList, dh.TimeOutEndHandler)
+	groupAuth.DELETE("/schedule/fail_server/:"+NodeID, c.FailServerClear, dh.TimeOutEndHandler)
+	groupAuth.GET("/schedule/clean_task", c.CleanTask, dh.TimeOutEndHandler)
 
 	// remove server metadata
-	group.POST("/meta/remove_server", c.RemoveServerMeta, dh.TimeOutEndHandler)
+	groupAuth.POST("/meta/remove_server", c.RemoveServerMeta, dh.TimeOutEndHandler)
 
 	// alias handler
-	group.POST(fmt.Sprintf("/alias/:%s/dbs/:%s/spaces/:%s", aliasName, dbName, spaceName), c.createAlias, dh.TimeOutEndHandler)
-	group.GET(fmt.Sprintf("/alias/:%s", aliasName), c.getAlias, dh.TimeOutEndHandler)
-	group.GET("/alias", c.getAlias, dh.TimeOutEndHandler)
-	group.DELETE(fmt.Sprintf("/alias/:%s", aliasName), c.deleteAlias, dh.TimeOutEndHandler)
-	group.PUT(fmt.Sprintf("/alias/:%s/dbs/:%s/spaces/:%s", aliasName, dbName, spaceName), c.modifyAlias, dh.TimeOutEndHandler)
+	groupAuth.POST(fmt.Sprintf("/alias/:%s/dbs/:%s/spaces/:%s", aliasName, dbName, spaceName), c.createAlias, dh.TimeOutEndHandler)
+	groupAuth.GET(fmt.Sprintf("/alias/:%s", aliasName), c.getAlias, dh.TimeOutEndHandler)
+	groupAuth.GET("/alias", c.getAlias, dh.TimeOutEndHandler)
+	groupAuth.DELETE(fmt.Sprintf("/alias/:%s", aliasName), c.deleteAlias, dh.TimeOutEndHandler)
+	groupAuth.PUT(fmt.Sprintf("/alias/:%s/dbs/:%s/spaces/:%s", aliasName, dbName, spaceName), c.modifyAlias, dh.TimeOutEndHandler)
 
 	// user handler
-	group.POST("/users", c.createUser, dh.TimeOutEndHandler)
-	group.GET(fmt.Sprintf("/users/:%s", userName), c.getUser, dh.TimeOutEndHandler)
-	group.GET("/users", c.getUser, dh.TimeOutEndHandler)
-	group.DELETE(fmt.Sprintf("/users/:%s", userName), c.deleteUser, dh.TimeOutEndHandler)
-	group.PUT(fmt.Sprintf("/users/:%s", userName), c.updateUser, dh.TimeOutEndHandler)
+	groupAuth.POST("/users", c.createUser, dh.TimeOutEndHandler)
+	groupAuth.GET(fmt.Sprintf("/users/:%s", userName), c.getUser, dh.TimeOutEndHandler)
+	groupAuth.GET("/users", c.getUser, dh.TimeOutEndHandler)
+	groupAuth.DELETE(fmt.Sprintf("/users/:%s", userName), c.deleteUser, dh.TimeOutEndHandler)
+	groupAuth.PUT("/users", c.updateUser, dh.TimeOutEndHandler)
 
 	// role handler
-	group.POST("/roles", c.createRole, dh.TimeOutEndHandler)
-	group.GET(fmt.Sprintf("/roles/:%s", roleName), c.getRole, dh.TimeOutEndHandler)
-	group.GET("/roles", c.getRole, dh.TimeOutEndHandler)
-	group.DELETE(fmt.Sprintf("/roles/:%s", roleName), c.deleteRole, dh.TimeOutEndHandler)
-	group.PUT(fmt.Sprintf("/roles/:%s/privileges", roleName), c.changeRolePrivilege, dh.TimeOutEndHandler)
+	groupAuth.POST("/roles", c.createRole, dh.TimeOutEndHandler)
+	groupAuth.GET(fmt.Sprintf("/roles/:%s", roleName), c.getRole, dh.TimeOutEndHandler)
+	groupAuth.GET("/roles", c.getRole, dh.TimeOutEndHandler)
+	groupAuth.DELETE(fmt.Sprintf("/roles/:%s", roleName), c.deleteRole, dh.TimeOutEndHandler)
+	groupAuth.PUT("/roles", c.changeRolePrivilege, dh.TimeOutEndHandler)
 
-	group.GET("/cluster/stats", c.stats, dh.TimeOutEndHandler)
-	group.GET("/cluster/health", c.health, dh.TimeOutEndHandler)
+	groupAuth.GET("/cluster/stats", c.stats, dh.TimeOutEndHandler)
+	groupAuth.GET("/cluster/health", c.health, dh.TimeOutEndHandler)
 
 }
 
@@ -880,10 +881,7 @@ func (ca *clusterAPI) getUser(c *gin.Context) {
 }
 
 func (ca *clusterAPI) updateUser(c *gin.Context) {
-	log.Debug("update user: %s", c.Param(userName))
-	name := c.Param(userName)
-
-	user := &entity.User{Name: name}
+	user := &entity.User{}
 	if err := c.ShouldBindJSON(user); err != nil {
 		body, _ := netutil.GetReqBody(c.Request)
 		log.Error("create space request: %s, err: %s", body, err.Error())
@@ -945,15 +943,14 @@ func (ca *clusterAPI) getRole(c *gin.Context) {
 }
 
 func (ca *clusterAPI) changeRolePrivilege(c *gin.Context) {
-	log.Debug("update role: %s privilege", c.Param(roleName))
-	name := c.Param(roleName)
-	role := &entity.Role{Name: name}
+	role := &entity.Role{}
 	if err := c.ShouldBindJSON(role); err != nil {
 		body, _ := netutil.GetReqBody(c.Request)
 		log.Error("create space request: %s, err: %s", body, err.Error())
 		httphelper.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
 	}
+	log.Debug("update role: %s privilege", role.Name)
 
 	if new_role, err := ca.masterService.changeRolePrivilegeService(c, role); err != nil {
 		httphelper.New(c).JsonError(errors.NewErrInternal(err))

@@ -189,14 +189,14 @@ func (handler *DocumentHandler) proxyMaster(group *gin.RouterGroup) error {
 	group.GET(fmt.Sprintf("/users/:%s", URLParamUserName), handler.handleMasterRequest)
 	group.GET("/users", handler.handleMasterRequest)
 	group.DELETE(fmt.Sprintf("/users/:%s", URLParamUserName), handler.handleMasterRequest)
-	group.PUT(fmt.Sprintf("/users/:%s", URLParamUserName), handler.handleMasterRequest)
+	group.PUT("/users", handler.handleMasterRequest)
 
 	// role handler
 	group.POST("/roles", handler.handleMasterRequest)
 	group.GET(fmt.Sprintf("/roles/:%s", URLParamRoleName), handler.handleMasterRequest)
 	group.GET("/roles", handler.handleMasterRequest)
 	group.DELETE(fmt.Sprintf("/roles/:%s", URLParamRoleName), handler.handleMasterRequest)
-	group.PUT(fmt.Sprintf("/roles/:%s/privileges", URLParamRoleName), handler.handleMasterRequest)
+	group.PUT("/roles", handler.handleMasterRequest)
 
 	// cluster handler
 	group.GET("/cluster/health", handler.handleMasterRequest)

@@ -890,7 +890,7 @@ func (ms *masterService) createUserService(ctx context.Context, user *entity.Use
 
 func (ms *masterService) deleteUserService(ctx context.Context, user_name string) (err error) {
 	if strings.EqualFold(user_name, entity.RootName) {
-		return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("cann't delete root user"))
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("can't delete root user"))
 	}
 	user, err := ms.queryUserService(ctx, user_name, false)
 	if user == nil {
@@ -935,19 +935,29 @@ func (ms *masterService) updateUserService(ctx context.Context, user *entity.Use
 		return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("updata user:%s err:%s", user.Name, err.Error()))
 	}
 
-	if user.Password != nil {
-		if *user.Password == *old_user.Password {
-			return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("password is same with old password"))
-		}
-	} else {
-		user.Password = old_user.Password
-	}
 	if user.RoleName != nil {
+		if user.Password != nil || user.OldPassword != nil {
+			return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("don't update role or password at same time"))
+		}
 		if _, err := ms.queryRoleService(ctx, *user.RoleName); err != nil {
 			return err
 		}
+		if old_user.Password != nil {
+			user.Password = old_user.Password
+		}
 	} else {
-		user.RoleName = old_user.RoleName
+		if user.Password == nil || user.OldPassword == nil {
+			return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("empty password or old password"))
+		}
+		if old_user.Password != nil && *user.Password == *old_user.Password {
+			return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("password is same with old password"))
+		}
+		if old_user.Password != nil && *user.OldPassword != *old_user.Password {
+			return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("old password is invalid"))
+		}
+		if old_user.RoleName != nil {
+			user.RoleName = old_user.RoleName
+		}
 	}
 
 	//it will lock cluster
@@ -986,7 +996,7 @@ func (ms *masterService) queryAllUser(ctx context.Context) ([]*entity.UserRole, 
 		if err != nil {
 			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("get user:%s, err:%s", user.Name, err.Error()))
 		}
-		userRole := &entity.UserRole{Name: user.Name, Password: user.Password}
+		userRole := &entity.UserRole{Name: user.Name}
 		if role, err := ms.queryRoleService(ctx, *user.RoleName); err != nil {
 			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("get user:%s role:%s, err:%s", user.Name, *user.RoleName, err.Error()))
 		} else {
@@ -1000,6 +1010,36 @@ func (ms *masterService) queryAllUser(ctx context.Context) ([]*entity.UserRole, 
 }
 
 func (ms *masterService) queryUserService(ctx context.Context, user_name string, check_role bool) (userRole *entity.UserRole, err error) {
+	user := &entity.User{Name: user_name}
+
+	bs, err := ms.Master().Get(ctx, entity.UserKey(user_name))
+
+	if err != nil {
+		return nil, err
+	}
+
+	if bs == nil {
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_USER_NOT_EXIST, nil)
+	}
+
+	err = vjson.Unmarshal(bs, user)
+	if err != nil {
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("get user:%s, err:%s", user.Name, err.Error()))
+	}
+
+	userRole = &entity.UserRole{Name: user.Name}
+	if check_role {
+		if role, err := ms.queryRoleService(ctx, *user.RoleName); err != nil {
+			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("get user:%s role:%s, err:%s", user.Name, *user.RoleName, err.Error()))
+		} else {
+			userRole.Role = *role
+		}
+	}
+
+	return userRole, nil
+}
+
+func (ms *masterService) queryUserWithPasswordService(ctx context.Context, user_name string, check_role bool) (userRole *entity.UserRole, err error) {
 	user := &entity.User{Name: user_name}
 
 	bs, err := ms.Master().Get(ctx, entity.UserKey(user_name))

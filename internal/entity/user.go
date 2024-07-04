@@ -311,15 +311,17 @@ func (role *Role) HasPermissionForResources(endpoint string, method string) erro
 }
 
 type User struct {
-	Name     string  `json:"name"`
-	Password *string `json:"password,omitempty"`
-	RoleName *string `json:"role_name,omitempty"`
+	Name        string  `json:"name"`
+	Password    *string `json:"password,omitempty"`
+	OldPassword *string `json:"old_password,omitempty"`
+	RoleName    *string `json:"role_name,omitempty"`
 }
 
 type UserRole struct {
-	Name     string  `json:"name"`
-	Password *string `json:"password,omitempty"`
-	Role     Role    `json:"role,omitempty"`
+	Name        string  `json:"name"`
+	Password    *string `json:"password,omitempty"`
+	OldPassword *string `json:"old_password,omitempty"`
+	Role        Role    `json:"role,omitempty"`
 }
 
 func (user *User) Validate(check_root bool) error {
