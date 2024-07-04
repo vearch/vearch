@@ -63,9 +63,22 @@ class TestUser:
         assert response.json()["code"] == 0
 
     def test_update_user_password(self):
-        response = update_user(router_url, "user_name", user_password="password_new")
-        logger.info(response.text)
+        response = update_user(router_url, "user_name", new_password="password_new", old_password="password")
+        logger.info(response.json())
         assert response.json()["code"] == 0
+
+    def test_update_root_password(self):
+        url = f"{router_url}/users"
+        data = {"name": "root"}
+        new_password="password_new"
+        global password
+        data["password"] = new_password
+        data["old_password"] = password
+
+        response = requests.put(url, json=data, auth=(username, password))
+        logger.info(response.json())
+        assert response.json()["code"] == 0
+        set_password(new_password)
 
     def test_drop_user(self):
         response = drop_user(router_url, "user_name")
@@ -109,8 +122,12 @@ class TestUser:
             [4, "create user with root role"],
             [5, "update user with role not exits"],
             [6, "delete root user"],
-            [7, "crate user without password"],
-            [8, "crate user without role name"],
+            [7, "create user without password"],
+            [8, "create user without role name"],
+            [9, "update user password without password"],
+            [10, "update user password without old password"],
+            [11, "update user password with same password"],
+            [12, "update user withboth password and role name"],
         ],
     )
     def test_user_badcase(self, wrong_index, wrong_type):
@@ -139,7 +156,7 @@ class TestUser:
 
         if wrong_index == 3:
             response = update_user(
-                router_url, "user_not_exist", user_password="password_new"
+                router_url, "user_not_exist", new_password="password_new", old_password="password"
             )
             logger.info(response.json())
             assert response.json()["code"] != 0
@@ -161,20 +178,68 @@ class TestUser:
             response = drop_user(router_url, "user_exist")
             assert response.json()["code"] == 0
 
-        if wrong_index == 7:
+        if wrong_index == 6:
             # check case none-sensitive
             response = drop_user(router_url, "RoOt")
             assert response.json()["code"] != 0
 
-        if wrong_index == 8:
+        if wrong_index == 7:
             response = create_user(
                 router_url, "user_exist", role_name="defaultSpaceAdmin"
             )
             assert response.json()["code"] != 0
 
-        if wrong_index == 9:
+        if wrong_index == 8:
             response = create_user(router_url, "user_exist", user_password="password")
             assert response.json()["code"] != 0
+
+        if wrong_index == 9:
+            response = create_user(
+                router_url, "user_exist", "password", "defaultSpaceAdmin"
+            )
+            assert response.json()["code"] == 0
+
+            response = update_user(router_url, "user_exist", new_password="password_new")
+            logger.info(response.json())
+            assert response.json()["code"] != 0
+            response = drop_user(router_url, "user_exist")
+            assert response.json()["code"] == 0
+
+        if wrong_index == 10:
+            response = create_user(
+                router_url, "user_exist", "password", "defaultSpaceAdmin"
+            )
+            assert response.json()["code"] == 0
+
+            response = update_user(router_url, "user_exist", old_password="password")
+            logger.info(response.json())
+            assert response.json()["code"] != 0
+            response = drop_user(router_url, "user_exist")
+            assert response.json()["code"] == 0
+
+        if wrong_index == 11:
+            response = create_user(
+                router_url, "user_exist", "password", "defaultSpaceAdmin"
+            )
+            assert response.json()["code"] == 0
+
+            response = update_user(router_url, "user_exist", new_password="password", old_password="password")
+            logger.info(response.json())
+            assert response.json()["code"] != 0
+            response = drop_user(router_url, "user_exist")
+            assert response.json()["code"] == 0
+
+        if wrong_index == 12:
+            response = create_user(
+                router_url, "user_exist", "password", "defaultSpaceAdmin"
+            )
+            assert response.json()["code"] == 0
+
+            response = update_user(router_url, "user_exist", new_password="password_new", old_password="password", role_name="defaultDocumentAdmin")
+            logger.info(response.json())
+            assert response.json()["code"] != 0
+            response = drop_user(router_url, "user_exist")
+            assert response.json()["code"] == 0
 
     def process_user(self, operation):
         if operation == "create":
@@ -187,7 +252,7 @@ class TestUser:
             logger.info(response.json())
         if operation == "update":
             response = update_user(
-                router_url, "user_name_mul", user_password="password_new"
+                router_url, "user_name_mul", new_password="password_new", old_password="password"
             )
             logger.info(response.json())
 
@@ -389,3 +454,18 @@ class TestUserDefaultReadSpaceEditDocument:
         response = drop_user(router_url, "user_name")
         logger.info(response.json())
         assert response.json()["code"] == 0
+
+
+class TestResetRoot:
+    def test_update_root_password(self):
+        url = f"{router_url}/users"
+        data = {"name": "root"}
+        new_password="secret"
+        global password
+        data["password"] = new_password
+        data["old_password"] = "password_new"
+
+        response = requests.put(url, json=data, auth=(username, "password_new"))
+        logger.info(response.json())
+        assert response.json()["code"] == 0
+        set_password(new_password)
