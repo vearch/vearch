@@ -34,7 +34,7 @@ from vearch.exception import (
 from vearch.utils import CodeType, compute_sign_auth, VectorInfo
 from vearch.filter import Filter
 import requests
-from typing import List, Union, Optional, Dict
+from typing import List, Union, Optional, Dict, Tuple
 import pandas as pd
 import json
 import logging
@@ -103,7 +103,7 @@ class Vearch(object):
 
     def is_space_exist(
         self, database_name: str, space_name: str
-    ) -> [bool, Result, SpaceSchema]:
+    ) -> Tuple[bool, Result, SpaceSchema]:
         try:
             if not self.is_database_exist(database_name):
                 return (
@@ -140,7 +140,7 @@ class Vearch(object):
             "database": database_name,
             "space": space_name,
         }
-        sign = compute_sign_auth()
+        sign = compute_sign_auth(secret=self.client.token)
         req = requests.request(
             method="POST", url=url, data=json.dumps(req_body), auth=sign
         )
@@ -288,6 +288,7 @@ class Vearch(object):
             "db_name": database_name,
             "space_name": space_name,
             "vector_value": vector,
+            "limit": limit
         }
         if document_ids:
             req_body["document_ids"] = document_ids
@@ -322,7 +323,7 @@ class Vearch(object):
             req_body["document_ids"] = document_ids
         if filter:
             req_body["filters"] = filter.dict()
-        sign = compute_sign_auth()
+        sign = compute_sign_auth(secret=self.client.token)
         resp = requests.request(
             method="POST", url=url, data=json.dumps(req_body), auth=sign
         )

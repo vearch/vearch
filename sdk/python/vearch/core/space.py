@@ -34,7 +34,7 @@ from vearch.filter import Filter
 import requests
 import json
 import pandas as pd
-from typing import List, Union, Optional, Dict
+from typing import List, Union, Optional, Dict, Tuple
 import logging
 
 logger = logging.getLogger("vearch")
@@ -65,7 +65,7 @@ class Space(object):
         resp = requests.request(method="DELETE", url=url, auth=sign)
         return get_result(resp)
 
-    def exist(self) -> [bool, SpaceSchema]:
+    def exist(self) -> Tuple[bool, SpaceSchema]:
         try:
             url_params = {"database_name": self.db_name, "space_name": self.name}
             uri = SPACE_URI % url_params
