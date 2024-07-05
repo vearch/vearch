@@ -920,7 +920,7 @@ func (ms *masterService) deleteUserService(ctx context.Context, user_name string
 	return nil
 }
 
-func (ms *masterService) updateUserService(ctx context.Context, user *entity.User) (err error) {
+func (ms *masterService) updateUserService(ctx context.Context, user *entity.User, auth_user string) (err error) {
 	bs, err := ms.Master().Get(ctx, entity.UserKey(user.Name))
 	if err != nil {
 		return err
@@ -946,15 +946,25 @@ func (ms *masterService) updateUserService(ctx context.Context, user *entity.Use
 			user.Password = old_user.Password
 		}
 	} else {
-		if user.Password == nil || user.OldPassword == nil {
-			return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("empty password or old password"))
+		if auth_user == entity.RootName && user.Name != entity.RootName {
+			if user.Password == nil {
+				return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("empty password"))
+			}
+			if old_user.Password != nil && *user.Password == *old_user.Password {
+				return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("password is same with old password"))
+			}
+		} else {
+			if user.Password == nil || user.OldPassword == nil {
+				return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("empty password or old password"))
+			}
+			if old_user.Password != nil && *user.Password == *old_user.Password {
+				return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("password is same with old password"))
+			}
+			if old_user.Password != nil && *user.OldPassword != *old_user.Password {
+				return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("old password is invalid"))
+			}
 		}
-		if old_user.Password != nil && *user.Password == *old_user.Password {
-			return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("password is same with old password"))
-		}
-		if old_user.Password != nil && *user.OldPassword != *old_user.Password {
-			return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("old password is invalid"))
-		}
+
 		if old_user.RoleName != nil {
 			user.RoleName = old_user.RoleName
 		}

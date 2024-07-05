@@ -1390,7 +1390,8 @@ def set_password(value):
     password = value
 
 def update_user(
-    router_url: str, user_name: str, new_password: str = None, old_password : str = None, role_name: str = None
+    router_url: str, user_name: str, new_password: str = None, old_password : str = None, role_name: str = None,
+    auth_user : str = None, auth_password : str = None
 ):
     url = f"{router_url}/users"
     data = {"name": user_name}
@@ -1400,9 +1401,12 @@ def update_user(
         data["old_password"] = old_password
     if role_name is not None:
         data["role_name"] = role_name
-    resp = requests.put(url, json=data, auth=(username, password))
-    return resp
-
+    if auth_user is not None and auth_password is not None:
+        resp = requests.put(url, json=data, auth=(auth_user, auth_password))
+        return resp
+    else:
+        resp = requests.put(url, json=data, auth=(username, password))
+        return resp
 
 def get_user(router_url: str, user_name: str):
     url = f"{router_url}/users/{user_name}"

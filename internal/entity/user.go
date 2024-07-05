@@ -101,6 +101,8 @@ var ClusterPrivilege = map[Resource]Privilege{
 	"ResourceIndex":     WriteRead,
 	"ResourceAlias":     WriteRead,
 	"ResourceConfig":    WriteRead,
+	"ResourceUser":      WriteRead,
+	"ResourceRole":      WriteRead,
 }
 
 var SpaceAdminPrivilege = map[Resource]Privilege{

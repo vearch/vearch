@@ -98,6 +98,7 @@ class TestRole:
             [3, "update role not exits"],
             [4, "bad operator type"],
             [5, "bad privilege"],
+            [6, "create root role"],
         ],
     )
     def test_user_badcase(self, wrong_index, wrong_type):
@@ -139,6 +140,12 @@ class TestRole:
         if wrong_index == 5:
             response = change_role_privilege(
                 router_url, "role_not_exist", "Grant", {"ResourceDocument": "Update"})
+            logger.info(response.json())
+            assert response.json()["code"] != 0
+
+        if wrong_index == 6:
+            response = create_role(
+                router_url, "root", {})
             logger.info(response.json())
             assert response.json()["code"] != 0
 

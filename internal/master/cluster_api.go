@@ -888,8 +888,42 @@ func (ca *clusterAPI) updateUser(c *gin.Context) {
 		httphelper.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
 	}
+	auth_user := ""
+	if !config.Conf().Global.SkipAuth {
+		authHeader := c.GetHeader("Authorization")
+		if authHeader == "" {
+			err := fmt.Errorf("auth header is empty")
+			httphelper.New(c).JsonError(errors.NewErrUnauthorized(err))
+			c.Abort()
+			return
+		}
 
-	if err := ca.masterService.updateUserService(c, user); err != nil {
+		parts := strings.SplitN(authHeader, " ", 2)
+		if len(parts) != 2 || parts[0] != "Basic" {
+			err := fmt.Errorf("auth header type is invalid")
+			httphelper.New(c).JsonError(errors.NewErrUnauthorized(err))
+			c.Abort()
+			return
+		}
+
+		decoded, err := base64.StdEncoding.DecodeString(parts[1])
+		if err != nil {
+			httphelper.New(c).JsonError(errors.NewErrUnauthorized(err))
+			c.Abort()
+			return
+		}
+
+		credentials := strings.SplitN(string(decoded), ":", 2)
+		if len(credentials) != 2 {
+			err := fmt.Errorf("auth header credentials is invalid")
+			httphelper.New(c).JsonError(errors.NewErrUnauthorized(err))
+			c.Abort()
+			return
+		}
+		auth_user = credentials[0]
+	}
+
+	if err := ca.masterService.updateUserService(c, user, auth_user); err != nil {
 		httphelper.New(c).JsonError(errors.NewErrInternal(err))
 	} else {
 		httphelper.New(c).JsonSuccess(user)
