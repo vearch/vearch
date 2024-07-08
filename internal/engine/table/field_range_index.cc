@@ -876,7 +876,11 @@ int MultiFieldsRangeIndex::AddDoc(int docid, int field) {
   }
 
   std::string key;
-  table_->GetFieldRawValue(docid, field, key);
+  int ret = table_->GetFieldRawValue(docid, field, key);
+  if (ret != 0) {
+    LOG(ERROR) << "get doc " << docid << " failed";
+    return ret;
+  }
   index->Add(key, docid);
 
   return 0;
