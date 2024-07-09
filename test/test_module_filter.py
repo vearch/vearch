@@ -15,10 +15,12 @@
 
 # -*- coding: UTF-8 -*-
 
+import functools
 import requests
 import json
 import pytest
 import logging
+from concurrent.futures import ThreadPoolExecutor
 import time
 from utils.vearch_utils import *
 from utils.data_utils import *
@@ -205,7 +207,19 @@ def process_get_data_by_filter(items):
 def query_by_filter_interface(logger, total, full_field, mode: str):
     for i in range(total):
         process_get_data_by_filter((logger, i, full_field, mode, total))
+    logger.info("query_by_filter_interface finished")
 
+
+def parallel_filter(id, total_batch, full_field: bool, mode: str):
+    try:
+        add(total_batch, 1, xb, full_field, True)
+        logger.info("%s doc_num: %d" % (space_name, get_space_num()))
+        query_by_filter_interface(logger, total_batch, full_field, mode)
+        delete_interface(logger, total_batch, 1, full_field, 1, "by_filter")
+    except Exception as e:
+        logger.error(f"Thread {id}: encountered an error: {e}")
+    finally:
+        logger.info(f"Thread {id}: exited")
 
 def check(total, full_field, xb, mode: str):
     dim = xb.shape[1]
@@ -287,12 +301,27 @@ def check(total, full_field, xb, mode: str):
 
     query_by_filter_interface(logger, total_batch, full_field, mode)
 
-    # return
-    delete_interface(logger, total_batch, batch_size,
-                     full_field, 1, "by_filter")
+    delete_interface(logger, total_batch, batch_size, full_field, 1, "by_filter")
 
     assert get_space_num() == 0
+    for i in range(total):
+        process_add_data((i, batch_size, xb[i * batch_size : (i + 1) * batch_size], with_id, full_field, 1, "", None, []))
+        process_get_data_by_filter((logger, i, full_field, "[)", total))
+        assert get_space_num() == i + 1
 
+    for i in range(total):
+        process_delete_data(
+            (logger, i, batch_size, full_field, 1, "by_filter", "")
+        )
+        assert get_space_num() == total - i - 1
+
+    with ThreadPoolExecutor(max_workers=10, thread_name_prefix="non_daemon_thread") as executor:
+        partial_parallel_filter = functools.partial(parallel_filter, total_batch=total_batch, full_field=full_field, mode=mode)
+        args_array = [(index,) for index in range(10)]
+        futures = [executor.submit(partial_parallel_filter, *args) for args in args_array]
+
+        for future in futures:
+            future.result()
     destroy(router_url, db_name, space_name)
 
 

@@ -172,7 +172,7 @@ void Engine::Close() {
 
   delete storage_mgr_;
   storage_mgr_ = nullptr;
-  LOG(INFO) << space_name_ << " engine cloesed";
+  LOG(INFO) << space_name_ << " engine closed";
 }
 
 Engine *Engine::GetInstance(const std::string &index_root_path,
@@ -1116,9 +1116,6 @@ int Engine::Load() {
   int field_num = table_->FieldsNum();
   for (int i = 0; i < max_docid_; ++i) {
     for (int j = 0; j < field_num; ++j) {
-      while (field_range_index_->PendingTasks() > 100000) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-      }
       field_range_index_->Add(i, j);
     }
   }

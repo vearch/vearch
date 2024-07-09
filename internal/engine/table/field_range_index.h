@@ -7,14 +7,10 @@
 
 #pragma once
 
-#include <tbb/concurrent_queue.h>
-
-#include <condition_variable>
 #include <map>
 #include <string>
 #include <vector>
 
-#include "concurrentqueue/blockingconcurrentqueue.h"
 #include "range_query_result.h"
 #include "table.h"
 
@@ -78,8 +74,6 @@ class FieldOperate {
   std::string value;
 };
 
-typedef tbb::concurrent_bounded_queue<FieldOperate> FieldOperateQueue;
-
 class FieldRangeIndex;
 class MultiFieldsRangeIndex {
  public:
@@ -98,12 +92,9 @@ class MultiFieldsRangeIndex {
   // for debug
   long MemorySize(long &dense, long &sparse);
 
-  int PendingTasks() { return field_operate_q_->size(); }
-
  private:
   int Intersect(std::vector<RangeQueryResult> &results, int shortest_idx,
                 RangeQueryResult *out);
-  void FieldOperateWorker();
 
   int AddDoc(int docid, int field);
 
@@ -111,11 +102,7 @@ class MultiFieldsRangeIndex {
   std::string path_;
   Table *table_;
   std::vector<FieldRangeIndex *> fields_;
-  std::unique_ptr<FieldOperateQueue> field_operate_q_;
-  std::atomic<bool> b_running_;
-  std::thread worker_thread_;
-  std::condition_variable cv_;
-  std::mutex cv_mutex_;
+  pthread_rwlock_t rw_lock_;
 };
 
 }  // namespace vearch

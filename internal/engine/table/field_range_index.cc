@@ -12,7 +12,6 @@
 
 #include <algorithm>
 #include <cassert>
-#include <condition_variable>
 #include <cstddef>
 #include <cstdint>
 #include <ctime>
@@ -371,7 +370,6 @@ class FieldRangeIndex {
   char *kDelim_;
   std::string path_;
   std::string name_;
-  pthread_rwlock_t rw_lock_;
   long add_num_ = 0;
   long delete_num_ = 0;
 };
@@ -394,11 +392,6 @@ FieldRangeIndex::FieldRangeIndex(std::string &path, int field_idx,
   }
   data_type_ = field_type;
   kDelim_ = const_cast<char *>(bt_param.kDelim);
-
-  int ret = pthread_rwlock_init(&rw_lock_, nullptr);
-  if (ret != 0) {
-    LOG(ERROR) << "init lock failed[";
-  }
 }
 
 FieldRangeIndex::~FieldRangeIndex() {
@@ -436,7 +429,6 @@ FieldRangeIndex::~FieldRangeIndex() {
     bt_mgrclose(main_mgr_);
     main_mgr_ = nullptr;
   }
-  pthread_rwlock_destroy(&rw_lock_);
 }
 
 static int ReverseEndian(const unsigned char *in, unsigned char *out,
@@ -473,9 +465,7 @@ int FieldRangeIndex::Add(std::string &key, int value) {
       }
       new_node.release();  // successfully inserted, release ownership
     } else {
-      pthread_rwlock_wrlock(&rw_lock_);
       p_node->Add(value);
-      pthread_rwlock_unlock(&rw_lock_);
     }
   };
 
@@ -522,13 +512,18 @@ int FieldRangeIndex::Delete(std::string &key, int value) {
       return;
     }
 
-    pthread_rwlock_wrlock(&rw_lock_);
     p_node->Delete(value);
-    if (p_node->Size() == 0) {
-      bt_deletekey(bt, key_to_add, key_len, 0);
-      delete p_node;
-    }
-    pthread_rwlock_unlock(&rw_lock_);
+    // if (p_node->Size() == 0) {
+    //   BTERR err1 = bt_deletekey(bt, key_to_add, key_len, 1);
+    //   if (err1 != BTERR_ok) {
+    //     LOG(ERROR) << "Error deleting key at level 1: %d\n" << err1;
+    //   }
+    //   BTERR err2 = bt_deletekey(bt, key_to_add, key_len, 0);
+    //   if (err2 != BTERR_ok) {
+    //     LOG(ERROR) << "Error deleting key at level 0: %d\n" << err2;
+    //   }
+    //   delete p_node;
+    // }
   };
 
   if (is_numeric_) {
@@ -582,7 +577,6 @@ int FieldRangeIndex::Search(const std::string &lower, const std::string &upper,
   int min_aligned = std::numeric_limits<int>::max();
   int max_doc = 0;
   int max_aligned = 0;
-  pthread_rwlock_rdlock(&rw_lock_);
   uint slot = bt_startkey(bt, key_l.data(), lower_len);
   while (slot) {
     BtKey *key = bt_key(bt, slot);
@@ -608,7 +602,6 @@ int FieldRangeIndex::Search(const std::string &lower, const std::string &upper,
   double search_bt = utils::getmillisecs();
 #endif
   if (max_doc - min_doc + 1 <= 0) {
-    pthread_rwlock_unlock(&rw_lock_);
     return 0;
   }
 
@@ -662,7 +655,6 @@ int FieldRangeIndex::Search(const std::string &lower, const std::string &upper,
       }
     }
   }
-  pthread_rwlock_unlock(&rw_lock_);
 
   result->SetDocNum(total);
 
@@ -710,7 +702,6 @@ int FieldRangeIndex::Search(const std::string &tags, RangeQueryResult *result) {
   double fend = utils::getmillisecs();
 #endif
 
-  pthread_rwlock_rdlock(&rw_lock_);
   int min_doc = std::numeric_limits<int>::max();
   int max_doc = 0;
   for (Node *node : nodes) {
@@ -720,7 +711,6 @@ int FieldRangeIndex::Search(const std::string &tags, RangeQueryResult *result) {
   }
 
   if (max_doc - min_doc + 1 <= 0) {
-    pthread_rwlock_unlock(&rw_lock_);
     return 0;
   }
 
@@ -755,7 +745,6 @@ int FieldRangeIndex::Search(const std::string &tags, RangeQueryResult *result) {
     }
     total += node->Size();
   }
-  pthread_rwlock_unlock(&rw_lock_);
 
   result->SetDocNum(total);
 
@@ -793,55 +782,22 @@ long FieldRangeIndex::ScanMemory(long &dense, long &sparse) {
 }
 
 MultiFieldsRangeIndex::MultiFieldsRangeIndex(std::string &path, Table *table)
-    : path_(path),
-      table_(table),
-      fields_(table->FieldsNum()),
-      field_operate_q_(std::make_unique<FieldOperateQueue>()),
-      b_running_(true) {
+    : path_(path), table_(table), fields_(table->FieldsNum()) {
   std::fill(fields_.begin(), fields_.end(), nullptr);
-
-  worker_thread_ =
-      std::thread(&MultiFieldsRangeIndex::FieldOperateWorker, this);
+  int ret = pthread_rwlock_init(&rw_lock_, nullptr);
+  if (ret != 0) {
+    LOG(ERROR) << "init lock failed!";
+  }
 }
 
 MultiFieldsRangeIndex::~MultiFieldsRangeIndex() {
-  b_running_ = false;
-  {
-    std::unique_lock<std::mutex> lock(cv_mutex_);
-    cv_.notify_all();
-  }
-  worker_thread_.join();
   for (size_t i = 0; i < fields_.size(); i++) {
     if (fields_[i]) {
       delete fields_[i];
       fields_[i] = nullptr;
     }
   }
-}
-
-void MultiFieldsRangeIndex::FieldOperateWorker() {
-  bool ret = false;
-  while (b_running_ || ret) {
-    FieldOperate field_op;
-    ret = field_operate_q_->try_pop(field_op);
-
-    if (!ret) {
-      std::unique_lock<std::mutex> lock(cv_mutex_);
-      cv_.wait_for(lock, std::chrono::seconds(1));
-      continue;
-    }
-
-    int doc_id = field_op.doc_id;
-    int field_id = field_op.field_id;
-
-    auto op = field_op.type;
-    if (op == FieldOperate::ADD) {
-      AddDoc(doc_id, field_id);
-    } else {
-      DeleteDoc(doc_id, field_id, field_op.value);
-    }
-  }
-  LOG(INFO) << "FieldOperateWorker exited!";
+  pthread_rwlock_destroy(&rw_lock_);
 }
 
 int MultiFieldsRangeIndex::Add(int docid, int field) {
@@ -851,9 +807,9 @@ int MultiFieldsRangeIndex::Add(int docid, int field) {
   }
   FieldOperate field_op(FieldOperate::ADD, docid, field);
 
-  field_operate_q_->push(std::move(field_op));
+  int ret = AddDoc(docid, field);
 
-  return 0;
+  return ret;
 }
 
 int MultiFieldsRangeIndex::Delete(int docid, int field) {
@@ -862,11 +818,14 @@ int MultiFieldsRangeIndex::Delete(int docid, int field) {
     return 0;
   }
   FieldOperate field_op(FieldOperate::DELETE, docid, field);
-  table_->GetFieldRawValue(docid, field, field_op.value);
+  int ret = table_->GetFieldRawValue(docid, field, field_op.value);
+  if (ret != 0) {
+    return ret;
+  }
 
-  field_operate_q_->push(std::move(field_op));
+  ret = DeleteDoc(docid, field, field_op.value);
 
-  return 0;
+  return ret;
 }
 
 int MultiFieldsRangeIndex::AddDoc(int docid, int field) {
@@ -881,7 +840,9 @@ int MultiFieldsRangeIndex::AddDoc(int docid, int field) {
     LOG(ERROR) << "get doc " << docid << " failed";
     return ret;
   }
+  pthread_rwlock_wrlock(&rw_lock_);
   index->Add(key, docid);
+  pthread_rwlock_unlock(&rw_lock_);
 
   return 0;
 }
@@ -892,7 +853,9 @@ int MultiFieldsRangeIndex::DeleteDoc(int docid, int field, std::string &key) {
     return 0;
   }
 
+  pthread_rwlock_wrlock(&rw_lock_);
   index->Delete(key, docid);
+  pthread_rwlock_unlock(&rw_lock_);
 
   return 0;
 }
@@ -961,6 +924,7 @@ int MultiFieldsRangeIndex::Search(const std::vector<FilterInfo> &origin_filters,
         AdjustBoundary<long>(filter.upper_value, -1);
       }
     }
+    pthread_rwlock_rdlock(&rw_lock_);
     int retval = index->Search(filter.lower_value, filter.upper_value, &result);
     if (retval > 0) {
       if (filter.is_union == FilterOperator::Not) {
@@ -970,6 +934,7 @@ int MultiFieldsRangeIndex::Search(const std::vector<FilterInfo> &origin_filters,
     } else if (filter.is_union == FilterOperator::Not) {
       retval = -1;
     }
+    pthread_rwlock_unlock(&rw_lock_);
     // result->Output();
     return retval;
   }
@@ -980,6 +945,7 @@ int MultiFieldsRangeIndex::Search(const std::vector<FilterInfo> &origin_filters,
   // record the shortest docid list
   int shortest_idx = -1, shortest = std::numeric_limits<int>::max();
 
+  pthread_rwlock_rdlock(&rw_lock_);
   for (int i = 0; i < fsize; ++i) {
     auto &filter = filters[i];
 
@@ -1011,6 +977,7 @@ int MultiFieldsRangeIndex::Search(const std::vector<FilterInfo> &origin_filters,
       if (filter.is_union == FilterOperator::Not) {
         continue;
       }
+      pthread_rwlock_unlock(&rw_lock_);
       return 0;  // no intersection
     } else {
       if (filter.is_union == FilterOperator::Not) {
@@ -1029,8 +996,10 @@ int MultiFieldsRangeIndex::Search(const std::vector<FilterInfo> &origin_filters,
 
   if (results.size() == 0) {
     if (out->Size() > 0) {
+      pthread_rwlock_unlock(&rw_lock_);
       return 1;
     }
+    pthread_rwlock_unlock(&rw_lock_);
     return -1;  // universal set
   }
 
@@ -1040,6 +1009,7 @@ int MultiFieldsRangeIndex::Search(const std::vector<FilterInfo> &origin_filters,
     out->Add(std::move(tmp));
   }
 
+  pthread_rwlock_unlock(&rw_lock_);
   return count;
 }
 

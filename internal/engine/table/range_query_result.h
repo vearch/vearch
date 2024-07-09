@@ -108,6 +108,10 @@ class RangeQueryResult {
 
   void Resize() {
     int n = max_aligned_ - min_aligned_ + 1;
+    if (n <= 0) {
+      LOG(ERROR) << "max_aligned_ " << max_aligned_ << " min_aligned_ "
+                 << min_aligned_ << " max_ " << max_ << " min_ " << min_;
+    }
     assert(n > 0);
     if (bitmap_ != nullptr) {
       free(bitmap_);
