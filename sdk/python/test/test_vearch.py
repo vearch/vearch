@@ -23,7 +23,6 @@ from vearch.exception import (
 
 from config import test_host_url
 
-import time
 import logging
 from typing import List
 import json
@@ -290,7 +289,6 @@ class TestVearchBadcase(object):
 
         ret = vc.delete(database_name, space_name, ids, filter=filters)
         assert ret.code == 0
-        time.sleep(2)
 
     conditons_query = [
         Condition(operator=">", fv=FieldValue(field="book_num", value=0)),

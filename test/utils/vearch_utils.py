@@ -1124,8 +1124,6 @@ def prepare_cluster_for_document_test(logger, total, xb, partition_num=1):
 
     add(total_batch, batch_size, xb, with_id, full_field)
 
-    time.sleep(3)
-
     query_interface(logger, total_batch, batch_size, xb, full_field, seed, "by_ids")
 
 

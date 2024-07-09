@@ -19,7 +19,6 @@ import requests
 import json
 import pytest
 import logging
-import time
 from utils.vearch_utils import *
 from utils.data_utils import *
 
@@ -100,9 +99,6 @@ def check(total, bulk, full_field, with_filter, query_type, xb):
     add(total_batch, batch_size, xb, with_id, full_field)
 
     logger.info("%s doc_num: %d" % (space_name, get_space_num()))
-
-    if with_filter:
-        time.sleep(10)
 
     search_interface(
         logger, total_batch, batch_size, xb, full_field, with_filter, seed, query_type
@@ -194,8 +190,6 @@ def test_vearch_document_search_brute_force_search_threshold(index_type):
 
     add(total_batch, batch_size, xb, with_id, full_field)
     logger.info("%s doc_num: %d" % (space_name, get_space_num()))
-
-    time.sleep(3)
 
     data = {}
     data["db_name"] = db_name

@@ -19,7 +19,6 @@ import requests
 import json
 import pytest
 import logging
-import time
 from utils.vearch_utils import *
 from utils.data_utils import *
 
@@ -100,9 +99,6 @@ def check(total, bulk, full_field, delete_type, xb):
     add(total_batch, batch_size, xb, with_id, full_field)
 
     logger.info("%s doc_num: %d" % (space_name, get_space_num()))
-
-    if delete_type == "by_filter":
-        time.sleep(10)
 
     query_interface(logger, total_batch, batch_size, xb, full_field, seed, "by_ids")
 

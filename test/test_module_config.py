@@ -91,9 +91,6 @@ class TestConfig:
         assert get_space_num() == int(total_batch * batch_size)
 
     def test_modify_config(self):
-        # wait for scalar index finished
-        time.sleep(5)
-
         cache_size = 512 * 1024 # bytes
 
         for i in range(100):

@@ -17,7 +17,6 @@ import logging
 from typing import List
 import json
 import pytest
-import time
 
 logger = logging.getLogger("vearch_test")
 
@@ -174,8 +173,6 @@ def test_search_with_filter():
         limit=7,
         trace=True,
     )
-    # wait for scalar index finished
-    time.sleep(3)
     logger.info(ret.msg)
     logger.info(ret.documents)
     assert ret.code == 0

@@ -21,7 +21,6 @@ import json
 import pytest
 import logging
 from concurrent.futures import ThreadPoolExecutor
-import time
 from utils.vearch_utils import *
 from utils.data_utils import *
 
@@ -296,8 +295,6 @@ def check(total, full_field, xb, mode: str):
     add(total_batch, 1, xb, with_id, full_field)
 
     logger.info("%s doc_num: %d" % (space_name, get_space_num()))
-
-    time.sleep(3)
 
     query_by_filter_interface(logger, total_batch, full_field, mode)
 

@@ -12,7 +12,6 @@ from vearch.exception import (
     DocumentException,
 )
 
-import time
 import logging
 from typing import List
 import json
@@ -108,7 +107,6 @@ def test_upsert_doc() -> List:
 
 
 def test_delete_doc():
-    time.sleep(2)
     conditons = [
         Condition(operator="<", fv=FieldValue(field="book_num", value=25)),
         Condition(operator=">", fv=FieldValue(field="book_num", value=12)),
@@ -120,7 +118,6 @@ def test_delete_doc():
 
 
 def test_delete_doc_no_result():
-    time.sleep(2)
     conditons = [
         Condition(operator="<", fv=FieldValue(field="book_num", value=25)),
         Condition(operator=">", fv=FieldValue(field="book_num", value=12)),
@@ -131,7 +128,6 @@ def test_delete_doc_no_result():
 
 
 def test_query():
-    time.sleep(2)
     conditons = [
         Condition(operator=">", fv=FieldValue(field="book_num", value=0)),
         Condition(
@@ -148,7 +144,6 @@ def test_query():
 
 
 def test_query_no_result():
-    time.sleep(2)
     conditons = [
         Condition(operator=">", fv=FieldValue(field="book_num", value=0)),
         Condition(
@@ -168,7 +163,6 @@ def test_query_no_result():
 def test_search():
     import random
 
-    time.sleep(2)
     feature = [random.uniform(0, 1) for _ in range(512)]
     vi = VectorInfo("book_character", feature)
     conditons = [Condition(operator=">", fv=FieldValue(field="book_num", value=0))]
