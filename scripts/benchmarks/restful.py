@@ -461,7 +461,8 @@ def run_normal(args: argparse.Namespace):
 
     upsert(args, xb)
 
-    train_and_build_index(args)
+    if args.waiting_index:
+        train_and_build_index(args)
 
     query(args)
 
@@ -472,7 +473,8 @@ def run_normal(args: argparse.Namespace):
     args.batch_size = batch_size
     delete(args)
 
-    destroy(args)
+    if not args.keep_space:
+        destroy(args)
 
 
 def run_similar_search(
@@ -487,7 +489,8 @@ def run_similar_search(
 
     upsert(args, xb)
 
-    train_and_build_index(args)
+    if args.waiting_index:
+        train_and_build_index(args)
 
     query(args)
 
@@ -506,8 +509,8 @@ def run_similar_search(
     args.trace = False
     delete(args)
 
-    destroy(args)
-
+    if not args.keep_space:
+        destroy(args)
 
 def run_crud(args: argparse.Namespace):
     """crud means create read update delete"""
@@ -537,7 +540,8 @@ def run_crud(args: argparse.Namespace):
 
     delete(args)
 
-    destroy(args)
+    if not args.keep_space:
+        destroy(args)
 
 
 def run_task(args: argparse.Namespace):

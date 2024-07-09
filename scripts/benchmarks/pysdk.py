@@ -458,7 +458,8 @@ def run_normal(args: argparse.Namespace):
 
     upsert(args, xb)
 
-    train_and_build_index(args)
+    if args.waiting_index:
+        train_and_build_index(args)
 
     query(args)
 
@@ -469,8 +470,9 @@ def run_normal(args: argparse.Namespace):
     args.batch_size = batch_size
     delete(args)
 
-    vc.drop_space(args.db, args.space)
-    vc.drop_database(args.db)
+    if not args.keep_space:
+        vc.drop_space(args.db, args.space)
+        vc.drop_database(args.db)
 
 
 def run_similar_search(
@@ -487,7 +489,8 @@ def run_similar_search(
 
     upsert(args, xb)
 
-    train_and_build_index(args)
+    if args.waiting_index:
+        train_and_build_index(args)
 
     query(args)
 
@@ -500,8 +503,9 @@ def run_similar_search(
     args.trace = False
     delete(args)
 
-    vc.drop_space(args.db, args.space)
-    vc.drop_database(args.db)
+    if not args.keep_space:
+        vc.drop_space(args.db, args.space)
+        vc.drop_database(args.db)
 
 
 def run_crud(args: argparse.Namespace):
@@ -531,8 +535,9 @@ def run_crud(args: argparse.Namespace):
 
     delete(args)
 
-    vc.drop_space(args.db, args.space)
-    vc.drop_database(args.db)
+    if not args.keep_space:
+        vc.drop_space(args.db, args.space)
+        vc.drop_database(args.db)
 
 
 def run_task(args: argparse.Namespace):

@@ -205,6 +205,20 @@ def parse_arguments() -> argparse.Namespace:
         help="the trace option for search or query",
         choices=[True, False],
     )
+    parser.add_argument(
+        "--waiting-index",
+        default=True,
+        type=str2bool,
+        help="waiting train and build index finished",
+        choices=[True, False],
+    )
+    parser.add_argument(
+        "--keep-space",
+        default=False,
+        type=str2bool,
+        help="keep space and db or not",
+        choices=[True, False],
+    )
     args = parser.parse_args()
 
     return args
