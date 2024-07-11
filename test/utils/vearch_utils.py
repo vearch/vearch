@@ -227,10 +227,11 @@ def process_add_date_data(items):
         param_dict["field_float"] = float(param_dict["field_int"])
         param_dict["field_double"] = float(param_dict["field_int"])
         param_dict["field_string"] = str(param_dict["field_int"])
+        date_str = datetime.date.today().strftime("%Y-%m-%d")
         if date_type == "str":
-            param_dict["field_date"]  = datetime.date.today().strftime("%Y-%m-%d")
+            param_dict["field_date"]  = date_str
         else:
-            param_dict["field_date"]  = datetime.datetime.strptime(datetime.date.today().strftime("%Y-%m-%d"), "%Y-%m-%d").timestamp()
+            param_dict["field_date"]  = datetime.datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=datetime.timezone.utc).timestamp()
         data["documents"].append(param_dict)
 
     response = requests.post(url, auth=(username, password), json=data)

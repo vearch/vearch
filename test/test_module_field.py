@@ -20,7 +20,7 @@ import json
 import logging
 from utils.vearch_utils import *
 from utils.data_utils import *
-from datetime import date, datetime
+import datetime
 
 logging.basicConfig()
 logger = logging.getLogger(__name__)
@@ -183,9 +183,7 @@ class TestDateField:
         assert get_space_num() == int(total_batch * batch_size * 2)
 
     def test_query_date(self):
-        # wait for scalar index finished
-        time.sleep(5)
-
+        today_str = datetime.date.today().strftime("%Y-%m-%d")
         for i in range(100):
             query_dict = {
                 "document_ids": [str(i)],
@@ -196,11 +194,11 @@ class TestDateField:
             url = router_url + "/document/query?trace=true"
             json_str = json.dumps(query_dict)
             rs = requests.post(url, auth=(username, password), data=json_str)
-            # logger.info(rs.json())
+            logger.info(rs.json())
             assert rs.status_code == 200
-            dt = datetime.strptime(rs.json()["data"]["documents"][0]["field_date"], '%Y-%m-%dT%H:%M:%S%z')
+            dt = datetime.datetime.strptime(rs.json()["data"]["documents"][0]["field_date"], '%Y-%m-%dT%H:%M:%S%z')
             date_str = dt.strftime("%Y-%m-%d")
-            assert  date_str == date.today().strftime("%Y-%m-%d")
+            assert  date_str == today_str
 
         for i in range(100, 200):
             query_dict = {
@@ -212,11 +210,11 @@ class TestDateField:
             url = router_url + "/document/query?trace=true"
             json_str = json.dumps(query_dict)
             rs = requests.post(url, auth=(username, password), data=json_str)
-            # logger.info(rs.json())
+            logger.info(rs.json())
             assert rs.status_code == 200
-            dt = datetime.strptime(rs.json()["data"]["documents"][0]["field_date"], '%Y-%m-%dT%H:%M:%S%z')
+            dt = datetime.datetime.strptime(rs.json()["data"]["documents"][0]["field_date"], '%Y-%m-%dT%H:%M:%S%z')
             date_str = dt.strftime("%Y-%m-%d")
-            assert  date_str == date.today().strftime("%Y-%m-%d")
+            assert  date_str == today_str
 
         query_dict = {
             "document_ids": [],
@@ -230,12 +228,12 @@ class TestDateField:
                 {
                     "field": "field_date",
                     "operator": "<=",
-                    "value": date.today().strftime("%Y-%m-%d"),
+                    "value": today_str,
                 },
                 {
                     "field": "field_date",
                     "operator": ">=",
-                    "value": date.today().strftime("%Y-%m-%d"),
+                    "value": today_str,
                 },
             ],
         }
@@ -243,7 +241,7 @@ class TestDateField:
         rs = requests.post(url, auth=(username, password), data=json_str)
         # logger.info(rs.json())
         assert rs.status_code == 200
-        assert len(rs.json()["data"]["documents"]) == 100
+        assert len(rs.json()["data"]["documents"]) == 200
 
         query_dict = {
             "document_ids": [],
@@ -257,12 +255,12 @@ class TestDateField:
                 {
                     "field": "field_date",
                     "operator": "<=",
-                    "value": datetime.strptime(date.today().strftime("%Y-%m-%d"), "%Y-%m-%d").timestamp(),
+                    "value": datetime.datetime.strptime(today_str, "%Y-%m-%d").replace(tzinfo=datetime.timezone.utc).timestamp(),
                 },
                 {
                     "field": "field_date",
                     "operator": ">=",
-                    "value": datetime.strptime(date.today().strftime("%Y-%m-%d"), "%Y-%m-%d").timestamp(),
+                    "value": datetime.datetime.strptime(today_str, "%Y-%m-%d").replace(tzinfo=datetime.timezone.utc).timestamp(),
                 },
             ],
         }
@@ -270,7 +268,7 @@ class TestDateField:
         rs = requests.post(url, auth=(username, password), data=json_str)
         # logger.info(rs.json())
         assert rs.status_code == 200
-        assert len(rs.json()["data"]["documents"]) == 100
+        assert len(rs.json()["data"]["documents"]) == 200
 
     # destroy
     def test_destroy_cluster(self):
