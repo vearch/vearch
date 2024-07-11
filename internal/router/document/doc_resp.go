@@ -342,7 +342,7 @@ func docFieldSerialize(doc *vearchpb.Document, space *entity.Space, returnFields
 				}
 			case vearchpb.FieldType_DATE:
 				u := cbbytes.Bytes2Int(fv.Value)
-				docOut[name] = time.Unix(u/1e6, u%1e6)
+				docOut[name] = time.Unix(u/1e9, u%1e9)
 			case vearchpb.FieldType_FLOAT:
 				docOut[name] = cbbytes.ByteToFloat32(fv.Value)
 			case vearchpb.FieldType_DOUBLE:
@@ -417,7 +417,7 @@ func GetDocSource(doc *vearchpb.ResultItem, space *entity.Space, from string) (m
 				}
 			case vearchpb.FieldType_DATE:
 				u := cbbytes.Bytes2Int(fv.Value)
-				source[name] = time.Unix(u/1e6, u%1e6)
+				source[name] = time.Unix(u/1e9, u%1e9)
 			case vearchpb.FieldType_FLOAT:
 				source[name] = cbbytes.ByteToFloat32(fv.Value)
 			case vearchpb.FieldType_DOUBLE:
@@ -489,7 +489,7 @@ func GetVectorFieldValue(doc *vearchpb.Document, space *entity.Space) (floatFeat
 			}
 		case vearchpb.FieldType_DATE:
 			u := cbbytes.Bytes2Int(fv.Value)
-			source[name] = time.Unix(u/1e6, u%1e6)
+			source[name] = time.Unix(u/1e9, u%1e9)
 		case vearchpb.FieldType_FLOAT:
 			source[name] = cbbytes.ByteToFloat32(fv.Value)
 		case vearchpb.FieldType_DOUBLE:

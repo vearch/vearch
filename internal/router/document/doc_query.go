@@ -445,6 +445,48 @@ func parseRange(rangeConditionMap map[string]*Range, proMap map[string]*entity.S
 			}
 
 			min, max = minNum, maxNum
+		case vearchpb.FieldType_DATE:
+			var minNum, maxNum int64
+			var minfloat, maxfloat float64
+			if start != nil {
+				err := vjson.Unmarshal(start, &minfloat)
+				if err != nil {
+					var dateStr string
+					new_err := json.Unmarshal(start, &dateStr)
+					if new_err != nil {
+						return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("Date %s Unmarshal err %s", string(start), err.Error()))
+					}
+					f, err := cast.ToTimeE(dateStr)
+					if err != nil {
+						return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("Date %s Unmarshal err %s", string(start), err.Error()))
+					}
+					minNum = f.UnixNano()
+				} else {
+					minNum = int64(minfloat * 1e9)
+				}
+			} else {
+				minNum = math.MinInt64
+			}
+
+			if end != nil {
+				err := vjson.Unmarshal(end, &maxfloat)
+				if err != nil {
+					var dateStr string
+					if err := json.Unmarshal(start, &dateStr); err != nil {
+						return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("Date %s Unmarshal err %s", string(start), err.Error()))
+					}
+					f, err := cast.ToTimeE(dateStr)
+					if err != nil {
+						return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("Date %s Unmarshal err %s", string(start), err.Error()))
+					}
+					maxNum = f.UnixNano()
+				} else {
+					maxNum = int64(maxfloat * 1e9)
+				}
+			} else {
+				maxNum = math.MaxInt64
+			}
+			min, max = minNum, maxNum
 		}
 
 		var minByte, maxByte []byte
