@@ -296,12 +296,12 @@ class TestPartitionRule:
 
         waiting_index_finish(logger, 10 * 100, 1)
 
-        # _id is same and partition is same
+        # _id is same and partition field is same
         add_date(db_name, space_name, 0, 10, 100, embedding_size, "str", logger)
 
         assert get_partitions_doc_num("p1") == 10 * 100
 
-        # _id is same but partition is different
+        # _id is same but partition field is different
         add_date(
             db_name, space_name, 0, 10, 100, embedding_size, "str", logger, delta=1
         )
@@ -310,11 +310,126 @@ class TestPartitionRule:
 
         assert get_space_num() == 2 * 10 * 100
 
+        # _id is different but partition field is same
         add_date(db_name, space_name, 10, 20, 100, embedding_size, "random", logger)
 
         waiting_index_finish(logger, 10 * 100 * 2, 1)
 
         assert get_space_num() == 3 * 10 * 100
+
+        response = describe_space(logger, router_url, db_name, space_name)
+        logger.info(response.json())
+        assert response.json()["code"] == 0
+
+    def test_destroy_db(self):
+        response = list_spaces(router_url, db_name)
+        logger.info(response.json())
+        for space in response.json()["data"]:
+            response = drop_space(router_url, db_name, space["space_name"])
+            logger.info(response)
+        drop_db(router_url, db_name)
+
+
+class TestPartitionRuleWithWeek:
+    def setup_class(self):
+        self.logger = logger
+
+    def test_prepare_db(self):
+        logger.info(create_db(router_url, db_name))
+
+    @pytest.mark.parametrize(
+        ["embedding_size", "index_type"],
+        [[128, "FLAT"]],
+    )
+    def test_vearch_space_create(self, embedding_size, index_type):
+        today = datetime.datetime.today().date()
+        next_week = today + datetime.timedelta(days=7)
+        week_after_next = today + datetime.timedelta(days=14)
+        date_format = "%Y-%m-%d"
+        space_config = {
+            "name": space_name,
+            "partition_num": 2,
+            "replica_num": 1,
+            "fields": [
+                {"name": "field_int", "type": "integer"},
+                {"name": "field_long", "type": "long"},
+                {"name": "field_float", "type": "float"},
+                {"name": "field_double", "type": "double"},
+                {
+                    "name": "field_string",
+                    "type": "string",
+                    "index": {"name": "field_string", "type": "SCALAR"},
+                },
+                {
+                    "name": "field_date",
+                    "type": "date",
+                    "index": {"name": "field_date", "type": "SCALAR"},
+                },
+                {
+                    "name": "field_vector",
+                    "type": "vector",
+                    "dimension": embedding_size,
+                    "index": {
+                        "name": "gamma",
+                        "type": index_type,
+                        "params": {
+                            "metric_type": "InnerProduct",
+                            "ncentroids": 2048,
+                            "nsubvector": int(embedding_size / 4),
+                            "nlinks": 32,
+                            "efConstruction": 100,
+                        },
+                    },
+                    # "format": "normalization"
+                },
+            ],
+            "partition_rule": {
+                "type": "RANGE",
+                "field": "field_date",
+                "ranges": [
+                    {"name": "p0", "value": today.strftime(date_format)},
+                    {"name": "p1", "value": next_week.strftime(date_format)},
+                    {"name": "p2", "value": week_after_next.strftime(date_format)},
+                ],
+            },
+        }
+
+        response = create_space(router_url, db_name, space_config)
+        logger.info(response.json())
+        assert response.json()["code"] == 0
+
+        add_date(db_name, space_name, 0, 10, 100, embedding_size, "str", logger)
+
+        response = describe_space(logger, router_url, db_name, space_name)
+        logger.info(response.json())
+        assert response.json()["code"] == 0
+
+        assert get_partitions_doc_num("p1") == 10 * 100
+
+        waiting_index_finish(logger, 10 * 100, 1)
+
+        # _id is same and partition field is same
+        add_date(db_name, space_name, 0, 10, 100, embedding_size, "str", logger)
+
+        assert get_partitions_doc_num("p1") == 10 * 100
+
+        # _id is same but partition field value is different, range is same
+        add_date(
+            db_name, space_name, 0, 10, 100, embedding_size, "str", logger, delta=1
+        )
+
+        assert get_partitions_doc_num("p1") == 10 * 100
+
+        assert get_space_num() == 1 * 10 * 100
+
+        # _id is different but partition field is same
+        add_date(db_name, space_name, 10, 20, 100, embedding_size, "random", logger)
+
+        waiting_index_finish(logger, 10 * 100 * 2, 1)
+
+        assert get_partitions_doc_num("p1") == 20 * 100
+
+        assert get_space_num() == 2 * 10 * 100
 
         response = describe_space(logger, router_url, db_name, space_name)
         logger.info(response.json())
