@@ -282,23 +282,63 @@ func (r *routerRequest) UpsertByPartitions(partitions []uint32) *routerRequest {
 	}
 	partitionID := uint32(0)
 	dataMap := make(map[entity.PartitionID]*vearchpb.PartitionData)
-	for _, doc := range r.docs {
-		if len(partitions) == 0 {
-			partitionID = r.space.PartitionId(murmur3.Sum32WithSeed([]byte(doc.PKey), 0))
-		} else {
-			random_index := murmur3.Sum32WithSeed([]byte(doc.PKey), 0) % uint32(len(partitions))
-			partitionID = partitions[random_index]
+	// partition by specify rule
+	if r.space.PartitionRule != nil {
+		for _, doc := range r.docs {
+			found := false
+			for _, field := range doc.Fields {
+				if field.Name == r.space.PartitionRule.Field {
+					found = true
+					pids, err := r.space.PartitionIdsByRangeField(field.Value, field.Type)
+					if err != nil {
+						r.Err = err
+						return r
+					}
+					if len(pids) == 1 {
+						partitionID = pids[0]
+					} else {
+						random_index := murmur3.Sum32WithSeed([]byte(doc.PKey), 0) % uint32(len(pids))
+						partitionID = pids[random_index]
+					}
+					break
+				}
+			}
+			if !found {
+				r.Err = vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("document must have partition rule field"))
+				return r
+			}
+
+			item := &vearchpb.Item{Doc: doc}
+			if d, ok := dataMap[partitionID]; ok {
+				d.Items = append(d.Items, item)
+			} else {
+				items := make([]*vearchpb.Item, 0)
+				d = &vearchpb.PartitionData{PartitionID: partitionID, MessageID: r.GetMsgID(), Items: items}
+				dataMap[partitionID] = d
+				d.Items = append(d.Items, item)
+			}
 		}
-		item := &vearchpb.Item{Doc: doc}
-		if d, ok := dataMap[partitionID]; ok {
-			d.Items = append(d.Items, item)
-		} else {
-			items := make([]*vearchpb.Item, 0)
-			d = &vearchpb.PartitionData{PartitionID: partitionID, MessageID: r.GetMsgID(), Items: items}
-			dataMap[partitionID] = d
-			d.Items = append(d.Items, item)
+	} else {
+		// partition by hash or specify pids
+		for _, doc := range r.docs {
+			if len(partitions) == 0 {
+				partitionID = r.space.PartitionId(murmur3.Sum32WithSeed([]byte(doc.PKey), 0))
+			} else {
+				random_index := murmur3.Sum32WithSeed([]byte(doc.PKey), 0) % uint32(len(partitions))
+				partitionID = partitions[random_index]
+			}
+			item := &vearchpb.Item{Doc: doc}
+			if d, ok := dataMap[partitionID]; ok {
+				d.Items = append(d.Items, item)
+			} else {
+				items := make([]*vearchpb.Item, 0)
+				d = &vearchpb.PartitionData{PartitionID: partitionID, MessageID: r.GetMsgID(), Items: items}
+				dataMap[partitionID] = d
+				d.Items = append(d.Items, item)
+			}
 		}
 	}
+
 	r.sendMap = dataMap
 	return r
 }

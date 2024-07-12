@@ -484,6 +484,7 @@ func (ca *clusterAPI) getSpace(c *gin.Context) {
 			}
 			spaceInfo.PartitionNum = space.PartitionNum
 			spaceInfo.ReplicaNum = space.ReplicaNum
+			spaceInfo.PartitionRule = space.PartitionRule
 			if err := ca.masterService.describeSpaceService(c, space, spaceInfo, detail_info); err != nil {
 				httphelper.New(c).JsonError(errors.NewErrInternal(err))
 			} else {
@@ -504,6 +505,7 @@ func (ca *clusterAPI) getSpace(c *gin.Context) {
 				}
 				spaceInfo.PartitionNum = space.PartitionNum
 				spaceInfo.ReplicaNum = space.ReplicaNum
+				spaceInfo.PartitionRule = space.PartitionRule
 				if err := ca.masterService.describeSpaceService(c, space, spaceInfo, detail_info); err != nil {
 					httphelper.New(c).JsonError(errors.NewErrInternal(err))
 				} else {
@@ -537,7 +539,7 @@ func (ca *clusterAPI) updateSpaceResource(c *gin.Context) {
 	dbName := c.Param(dbName)
 	spaceName := c.Param(spaceName)
 
-	space := &entity.SpaceResource{
+	space := &entity.SpacePartitionResource{
 		SpaceName: spaceName,
 		DbName:    dbName,
 	}

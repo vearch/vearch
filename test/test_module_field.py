@@ -151,7 +151,11 @@ class TestDateField:
                 "type": "string",
                 "index": {"name": "field_string", "type": "SCALAR"},
             },
-            {"name": "field_date", "type": "date", "index": {"name": "field_string", "type": "SCALAR"}},
+            {
+                "name": "field_date",
+                "type": "date",
+                "index": {"name": "field_string", "type": "SCALAR"},
+            },
             {
                 "name": "field_vector",
                 "type": "vector",
@@ -176,10 +180,21 @@ class TestDateField:
         embedding_size = self.xb.shape[1]
         batch_size = 100
         total_batch = 1
-        add_date(db_name, space_name, 0, total_batch, batch_size, embedding_size, "str", logger)
+        add_date(
+            db_name,
+            space_name,
+            0,
+            total_batch,
+            batch_size,
+            embedding_size,
+            "str",
+            logger,
+        )
         assert get_space_num() == int(total_batch * batch_size)
 
-        add_date(db_name, space_name, 1, 2, batch_size, embedding_size, "timestamp", logger)
+        add_date(
+            db_name, space_name, 1, 2, batch_size, embedding_size, "timestamp", logger
+        )
         assert get_space_num() == int(total_batch * batch_size * 2)
 
     def test_query_date(self):
@@ -196,9 +211,11 @@ class TestDateField:
             rs = requests.post(url, auth=(username, password), data=json_str)
             logger.info(rs.json())
             assert rs.status_code == 200
-            dt = datetime.datetime.strptime(rs.json()["data"]["documents"][0]["field_date"], '%Y-%m-%dT%H:%M:%S%z')
+            dt = datetime.datetime.strptime(
+                rs.json()["data"]["documents"][0]["field_date"], "%Y-%m-%dT%H:%M:%S%z"
+            )
             date_str = dt.strftime("%Y-%m-%d")
-            assert  date_str == today_str
+            assert date_str == today_str
 
         for i in range(100, 200):
             query_dict = {
@@ -212,9 +229,11 @@ class TestDateField:
             rs = requests.post(url, auth=(username, password), data=json_str)
             logger.info(rs.json())
             assert rs.status_code == 200
-            dt = datetime.datetime.strptime(rs.json()["data"]["documents"][0]["field_date"], '%Y-%m-%dT%H:%M:%S%z')
+            dt = datetime.datetime.strptime(
+                rs.json()["data"]["documents"][0]["field_date"], "%Y-%m-%dT%H:%M:%S%z"
+            )
             date_str = dt.strftime("%Y-%m-%d")
-            assert  date_str == today_str
+            assert date_str == today_str
 
         query_dict = {
             "document_ids": [],
@@ -255,12 +274,20 @@ class TestDateField:
                 {
                     "field": "field_date",
                     "operator": "<=",
-                    "value": datetime.datetime.strptime(today_str, "%Y-%m-%d").replace(tzinfo=datetime.timezone.utc).timestamp(),
+                    "value": int(
+                        datetime.datetime.strptime(today_str, "%Y-%m-%d")
+                        .replace(tzinfo=datetime.timezone.utc)
+                        .timestamp()
+                    ),
                 },
                 {
                     "field": "field_date",
                     "operator": ">=",
-                    "value": datetime.datetime.strptime(today_str, "%Y-%m-%d").replace(tzinfo=datetime.timezone.utc).timestamp(),
+                    "value": int(
+                        datetime.datetime.strptime(today_str, "%Y-%m-%d")
+                        .replace(tzinfo=datetime.timezone.utc)
+                        .timestamp()
+                    ),
                 },
             ],
         }

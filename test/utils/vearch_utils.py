@@ -215,9 +215,18 @@ def process_add_date_data(items):
     embedding_size = items[4]
     date_type = items[5]
     logger = items[6]
+    delta = items[7]
 
     data["db_name"] = add_db_name
     data["space_name"] = add_space_name
+
+    today = datetime.datetime.today().date()
+    tomorrow = today + datetime.timedelta(days=1)
+    day_after_tomorrow = today + datetime.timedelta(days=2)
+    date_str = today.strftime("%Y-%m-%d")
+    tomorrow_str = tomorrow.strftime("%Y-%m-%d")
+    day_after_tomorrow_str = day_after_tomorrow.strftime("%Y-%m-%d")
+
     for j in range(batch_size):
         param_dict = {}
         param_dict["_id"] = str(index * batch_size + j)
@@ -227,27 +236,61 @@ def process_add_date_data(items):
         param_dict["field_float"] = float(param_dict["field_int"])
         param_dict["field_double"] = float(param_dict["field_int"])
         param_dict["field_string"] = str(param_dict["field_int"])
-        date_str = datetime.date.today().strftime("%Y-%m-%d")
         if date_type == "str":
-            param_dict["field_date"]  = date_str
-        else:
-            param_dict["field_date"]  = datetime.datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=datetime.timezone.utc).timestamp()
+            if delta:
+                param_dict["field_date"] = tomorrow_str
+            else:
+                param_dict["field_date"] = date_str
+        elif date_type == "timestamp":
+            param_dict["field_date"] = int(
+                datetime.datetime.strptime(date_str, "%Y-%m-%d")
+                .replace(tzinfo=datetime.timezone.utc)
+                .timestamp()
+            )
+        elif date_type == "random":
+            param_dict["field_date"] = random.choice(
+                [date_str, tomorrow_str, day_after_tomorrow_str]
+            )
+
         data["documents"].append(param_dict)
 
     response = requests.post(url, auth=(username, password), json=data)
     if response.json()["code"] != 0:
+        logger.info(data["documents"][0])
         logger.info(response.json())
     assert response.json()["code"] == 0
 
 
-def add_date(db_name, space_name, start, end, batch_size, embedding_size, date_type, logger):
+def add_date(
+    db_name,
+    space_name,
+    start,
+    end,
+    batch_size,
+    embedding_size,
+    date_type,
+    logger,
+    delta=0,
+):
     pool = ThreadPool()
     total_data = []
     for i in range(start, end):
-        total_data.append((db_name, space_name, i, batch_size, embedding_size, date_type, logger))
+        total_data.append(
+            (
+                db_name,
+                space_name,
+                i,
+                batch_size,
+                embedding_size,
+                date_type,
+                logger,
+                delta,
+            )
+        )
     results = pool.map(process_add_date_data, total_data)
     pool.close()
     pool.join()
+
 
 def process_add_error_data(items):
     url = router_url + "/document/upsert"
@@ -1195,6 +1238,18 @@ def get_space_num():
     return num
 
 
+def get_partitions_doc_num(partition_name):
+    url = router_url + "/dbs/" + db_name + "/spaces/" + space_name
+    num = 0
+
+    response = requests.get(url, auth=(username, password))
+    partitions = response.json()["data"]["partitions"]
+    for p in partitions:
+        if p["name"] == partition_name:
+            num += p["doc_num"]
+    return num
+
+
 def search(xq, k: int, batch: bool, query_dict: dict, logger):
     url = router_url + "/document/search?timeout=2000000"
 
@@ -1286,6 +1341,26 @@ def update_space_partition(
 ):
     url = f"{router_url}/dbs/{db_name}/spaces/{space_name}"
     data = {"partition_num": partition_num}
+    resp = requests.put(url, auth=(username, password), json=data)
+    return resp
+
+
+def update_space_partition_rule(
+    router_url: str,
+    db_name: str,
+    space_name: str,
+    partition_name: str = None,
+    operator_type: str = None,
+    partition_rule: dict = None,
+):
+    url = f"{router_url}/dbs/{db_name}/spaces/{space_name}"
+    data = {}
+    if partition_name is not None:
+        data["partition_name"] = partition_name
+    if operator_type is not None:
+        data["operator_type"] = operator_type
+    if partition_rule is not None:
+        data["partition_rule"] = partition_rule["partition_rule"]
     resp = requests.put(url, auth=(username, password), json=data)
     return resp
 
@@ -1430,13 +1505,20 @@ def create_user(
     resp = requests.post(url, json=data, auth=(username, password))
     return resp
 
+
 def set_password(value):
     global password
     password = value
 
+
 def update_user(
-    router_url: str, user_name: str, new_password: str = None, old_password : str = None, role_name: str = None,
-    auth_user : str = None, auth_password : str = None
+    router_url: str,
+    user_name: str,
+    new_password: str = None,
+    old_password: str = None,
+    role_name: str = None,
+    auth_user: str = None,
+    auth_password: str = None,
 ):
     url = f"{router_url}/users"
     data = {"name": user_name}
@@ -1452,6 +1534,7 @@ def update_user(
     else:
         resp = requests.put(url, json=data, auth=(username, password))
         return resp
+
 
 def get_user(router_url: str, user_name: str):
     url = f"{router_url}/users/{user_name}"
@@ -1482,7 +1565,7 @@ def change_role_privilege(
     router_url: str, role_name: str, operator: str, privileges: dict
 ):
     url = f"{router_url}/roles"
-    data = {"name": role_name,"operator": operator, "privileges": privileges}
+    data = {"name": role_name, "operator": operator, "privileges": privileges}
     resp = requests.put(url, json=data, auth=(username, password))
     return resp
 
@@ -1492,10 +1575,12 @@ def get_role(router_url: str, role_name: str):
     resp = requests.get(url, auth=(username, password))
     return resp
 
+
 def get_cache_role(router_url: str, role_name: str):
     url = f"{router_url}/cache/roles/{role_name}"
     resp = requests.get(url, auth=(username, password))
     return resp
+
 
 def get_all_roles(router_url: str):
     url = f"{router_url}/roles"

@@ -432,12 +432,12 @@ func processNumber(pro *entity.SpaceProperties, fieldName string, val *fastjson.
 		}
 		field, err = processField(fieldName, vearchpb.FieldType_DOUBLE, cbbytes.Float64ToByteNew(i), opt)
 	case vearchpb.FieldType_DATE:
-		var i float64
-		i, err = val.Float64()
+		var i int64
+		i, err = val.Int64()
 		if err != nil {
 			return nil, err
 		}
-		field, err = processField(fieldName, vearchpb.FieldType_DATE, cbbytes.Int64ToByte(int64(i*1e9)), opt)
+		field, err = processField(fieldName, vearchpb.FieldType_DATE, cbbytes.Int64ToByte(i*1e9), opt)
 	default:
 		field, err = nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("field[%s] value mismatch, value:[%v] type:[%v]", fieldName, val, pro.FieldType))
 	}

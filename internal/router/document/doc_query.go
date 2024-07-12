@@ -447,41 +447,40 @@ func parseRange(rangeConditionMap map[string]*Range, proMap map[string]*entity.S
 			min, max = minNum, maxNum
 		case vearchpb.FieldType_DATE:
 			var minNum, maxNum int64
-			var minfloat, maxfloat float64
 			if start != nil {
-				err := vjson.Unmarshal(start, &minfloat)
+				err := vjson.Unmarshal(start, &minNum)
 				if err != nil {
 					var dateStr string
 					new_err := json.Unmarshal(start, &dateStr)
 					if new_err != nil {
-						return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("Date %s Unmarshal err %s", string(start), err.Error()))
+						return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("date %s Unmarshal err %s", string(start), err.Error()))
 					}
 					f, err := cast.ToTimeE(dateStr)
 					if err != nil {
-						return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("Date %s Unmarshal err %s", string(start), err.Error()))
+						return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("date %s Unmarshal err %s", string(start), err.Error()))
 					}
 					minNum = f.UnixNano()
 				} else {
-					minNum = int64(minfloat * 1e9)
+					minNum = minNum * 1e9
 				}
 			} else {
 				minNum = math.MinInt64
 			}
 
 			if end != nil {
-				err := vjson.Unmarshal(end, &maxfloat)
+				err := vjson.Unmarshal(end, &maxNum)
 				if err != nil {
 					var dateStr string
 					if err := json.Unmarshal(start, &dateStr); err != nil {
-						return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("Date %s Unmarshal err %s", string(start), err.Error()))
+						return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("date %s Unmarshal err %s", string(start), err.Error()))
 					}
 					f, err := cast.ToTimeE(dateStr)
 					if err != nil {
-						return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("Date %s Unmarshal err %s", string(start), err.Error()))
+						return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("date %s Unmarshal err %s", string(start), err.Error()))
 					}
 					maxNum = f.UnixNano()
 				} else {
-					maxNum = int64(maxfloat * 1e9)
+					maxNum = maxNum * 1e9
 				}
 			} else {
 				maxNum = math.MaxInt64
@@ -502,7 +501,7 @@ func parseRange(rangeConditionMap map[string]*Range, proMap map[string]*entity.S
 		}
 
 		if minByte == nil || maxByte == nil {
-			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("range param is null or have not gte lte"))
+			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("range filter param is null or have not gte lte"))
 		}
 
 		rangeFilter := vearchpb.RangeFilter{
