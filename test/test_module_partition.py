@@ -250,6 +250,20 @@ class TestPartitionRule:
 
         waiting_index_finish(logger, 10 * 100, 1)
 
+        for i in range(1000):
+            query_dict = {
+                "document_ids": [str(i)],
+                "limit": 1,
+                "db_name": db_name,
+                "space_name": space_name,
+            }
+            url = router_url + "/document/query?trace=true"
+            json_str = json.dumps(query_dict)
+            rs = requests.post(url, auth=(username, password), data=json_str)
+            # logger.info(rs.json())
+            assert rs.json()["code"] == 0
+            assert rs.json()["data"]["documents"][0]["field_float"] == float(i)
+
     def test_drop_partitions(self):
         response = update_space_partition_rule(
             router_url, db_name, space_name, partition_name="p1", operator_type="DROP"
@@ -266,7 +280,9 @@ class TestPartitionRule:
     def test_add_partitions(self):
         embedding_size = 128
         today = datetime.datetime.today().date()
+        today_str = today.strftime("%Y-%m-%d")
         tomorrow = today + datetime.timedelta(days=1)
+        tomorrow_str = tomorrow.strftime("%Y-%m-%d")
         date_format = "%Y-%m-%d"
         day_after_3 = today + datetime.timedelta(days=3)
 
@@ -310,12 +326,57 @@ class TestPartitionRule:
 
         assert get_space_num() == 2 * 10 * 100
 
+        days = [today_str, tomorrow_str]
+        for i in range(1000):
+            query_dict = {
+                "document_ids": [str(i)],
+                "limit": 2,
+                "db_name": db_name,
+                "space_name": space_name,
+            }
+            url = router_url + "/document/query?trace=true"
+            json_str = json.dumps(query_dict)
+            rs = requests.post(url, auth=(username, password), data=json_str)
+            # logger.info(rs.json())
+            assert rs.json()["code"] == 0
+            assert len(rs.json()["data"]["documents"]) == 2
+            assert rs.json()["data"]["documents"][0]["field_float"] == float(i)
+
+            results = []
+
+            dt = datetime.datetime.strptime(
+                rs.json()["data"]["documents"][0]["field_date"], "%Y-%m-%dT%H:%M:%S%z"
+            )
+            results.append(dt.strftime("%Y-%m-%d"))
+
+            dt1 = datetime.datetime.strptime(
+                rs.json()["data"]["documents"][1]["field_date"], "%Y-%m-%dT%H:%M:%S%z"
+            )
+            results.append(dt1.strftime("%Y-%m-%d"))
+            results.sort()
+            assert days == results
+
         # _id is different but partition field is same
         add_date(db_name, space_name, 10, 20, 100, embedding_size, "random", logger)
 
         waiting_index_finish(logger, 10 * 100 * 2, 1)
 
         assert get_space_num() == 3 * 10 * 100
+
+        for i in range(1000, 2000):
+            query_dict = {
+                "document_ids": [str(i)],
+                "limit": 2,
+                "db_name": db_name,
+                "space_name": space_name,
+            }
+            url = router_url + "/document/query?trace=true"
+            json_str = json.dumps(query_dict)
+            rs = requests.post(url, auth=(username, password), data=json_str)
+            # logger.info(rs.json())
+            assert rs.json()["code"] == 0
+            assert len(rs.json()["data"]["documents"]) == 1
+            assert rs.json()["data"]["documents"][0]["field_float"] == float(i)
 
         response = describe_space(logger, router_url, db_name, space_name)
         logger.info(response.json())
