@@ -134,15 +134,20 @@ func (s *Server) Start() (err error) {
 		RoleName: &root,
 	}
 	if _, err := service.queryUserService(s.ctx, userInfo.Name, true); err != nil {
-		log.Error("Query root user : %s", err.Error())
+		log.Debug("query root user : %s", err.Error())
 		if err := service.createUserService(s.ctx, userInfo, false); err != nil {
-			log.Error("create root user : %s", err.Error())
-			panic(err)
+			log.Debug("create root user : %s", err.Error())
+			// check again
+			_, err := service.queryUserService(s.ctx, userInfo.Name, true)
+			if err != nil {
+				log.Error("query root user : %s", err.Error())
+				panic(err)
+			}
 		} else {
-			log.Info("Root user create success")
+			log.Info("root user create success")
 		}
 	} else {
-		log.Info("Root user already exist")
+		log.Info("root user already exist")
 	}
 
 	// start watch server
