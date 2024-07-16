@@ -139,7 +139,7 @@ func ExportToClusterHandler(router *gin.Engine, masterService *masterService, se
 		groupAuth = router.Group("", dh.PaincHandler, dh.TimeOutHandler)
 	}
 
-	groupAuth.GET("/", c.handleClusterInfo, dh.TimeOutEndHandler)
+	group.GET("/", c.handleClusterInfo, dh.TimeOutEndHandler)
 
 	// cluster handler
 	groupAuth.GET("/clean_lock", c.cleanLock, dh.TimeOutEndHandler)

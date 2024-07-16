@@ -114,7 +114,7 @@ func NewErrUnauthorized(err error) *ErrRequest {
 			err:      fmt.Errorf(vErr.Error()),
 			msg:      vErr.Error(),
 			code:     int(vErr.GetError().Code),
-			httpCode: http.StatusInternalServerError,
+			httpCode: http.StatusUnauthorized,
 		}
 	}
 	return &ErrRequest{

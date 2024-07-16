@@ -734,20 +734,28 @@ class TestPartitionRuleBadCase:
         [
             [0, "partition name not exist"],
             [1, "partition type is not DROP"],
+            [2, "db not exist"],
+            [3, "space not exist"],
         ],
     )
     def test_drop_partitions_badcase(self, wrong_index, bad_type):
+        db= db_name
+        space = space_name
         partition_name = "p0"
         operator_type = "DROP"
         if wrong_index == 0:
             partition_name = "p"
         if wrong_index == 1:
             operator_type = "drop"
+        if wrong_index == 2:
+            db = "p"
+        if wrong_index == 3:
+            space = "p"
 
         response = update_space_partition_rule(
             router_url,
-            db_name,
-            space_name,
+            db,
+            space,
             partition_name=partition_name,
             operator_type=operator_type,
         )
@@ -760,6 +768,8 @@ class TestPartitionRuleBadCase:
             [0, "partition name exist"],
             [1, "partition type is not ADD"],
             [2, "partition range value exist"],
+            [3, "db not exist"],
+            [4, "space not exist"],
         ],
     )
     def test_add_partitions_badcase(self, wrong_index, bad_type):
@@ -768,6 +778,8 @@ class TestPartitionRuleBadCase:
         day_after_3 = today + datetime.timedelta(days=3)
         day_after_tomorrow = today + datetime.timedelta(days=2)
         operator_type = "ADD"
+        db= db_name
+        space = space_name
 
         rule = {
             "partition_rule": {
@@ -787,11 +799,15 @@ class TestPartitionRuleBadCase:
             rule["partition_rule"]["ranges"][0]["value"] = day_after_tomorrow.strftime(
                 date_format
             )
+        if wrong_index == 3:
+            db = "p"
+        if wrong_index == 4:
+            space = "p"
 
         response = update_space_partition_rule(
             router_url,
-            db_name,
-            space_name,
+            db,
+            space,
             operator_type=operator_type,
             partition_rule=rule,
         )

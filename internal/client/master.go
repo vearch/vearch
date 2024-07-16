@@ -617,7 +617,7 @@ func (m *masterClient) ProxyHTTPRequest(method string, url string, reqBody strin
 	// process panic
 	defer func() {
 		if info := recover(); info != nil {
-			e = fmt.Errorf("panic is %v", info)
+			e = fmt.Errorf("%v", info)
 		}
 	}()
 	query := netutil.NewQuery().SetHeader(Authorization, authHeader)
@@ -636,14 +636,10 @@ func (m *masterClient) ProxyHTTPRequest(method string, url string, reqBody strin
 		query.SetAddress(m.cfg.Masters[keyNumber].ApiUrl())
 		statusCode := 0
 		response, statusCode, err = query.ProxyDo()
-		log.Debug("remote server url:%s, req body:%s, response: %v", query.GetUrl(), string(reqBody), string(response))
+		log.Debug("remote server url:%s, req body:%s, response: %v, statusCode %d", query.GetUrl(), string(reqBody), string(response), statusCode)
 
-		if statusCode < http.StatusBadRequest || statusCode > http.StatusNetworkAuthenticationRequired {
+		if (statusCode < http.StatusBadRequest && statusCode != -1) || statusCode > http.StatusNetworkAuthenticationRequired {
 			e = err
-			break
-		}
-		if strings.HasPrefix(url, "/backup/dbs/") {
-			// backup command need only send to one master
 			break
 		}
 

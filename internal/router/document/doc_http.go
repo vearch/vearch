@@ -221,7 +221,11 @@ func (handler *DocumentHandler) handleMasterRequest(c *gin.Context) {
 	res, err := handler.client.Master().ProxyHTTPRequest(method, c.Request.RequestURI, string(bodyBytes), authHeader)
 	if err != nil {
 		log.Error("handleMasterRequest %v, response %s", err, string(res))
-		httphelper.New(c).SetHttpStatus(http.StatusInternalServerError).SendJsonBytes(res)
+		if string(res) != "" {
+			httphelper.New(c).SetHttpStatus(http.StatusInternalServerError).SendJsonBytes(res)
+		} else {
+			httphelper.New(c).JsonError(errors.NewErrInternal(err))
+		}
 		return
 	}
 	resp.SendJsonBytes(c, res)
