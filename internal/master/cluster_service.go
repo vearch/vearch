@@ -1497,7 +1497,12 @@ func (ms *masterService) BackupSpace(ctx context.Context, dbName, spaceName stri
 	}
 	// invoke all space nodeID
 	part := 0
-	for _, partition := range space.Partitions {
+	for _, p := range space.Partitions {
+		partition, err := ms.Master().QueryPartition(ctx, p.Id)
+		if err != nil {
+			log.Error(err)
+			continue
+		}
 		if partition.Replicas != nil {
 			for _, nodeID := range partition.Replicas {
 				log.Debug("nodeID is [%+v],partition is [%+v], [%+v]", nodeID, partition.Id, partition.LeaderID)
