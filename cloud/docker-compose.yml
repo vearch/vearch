@@ -1,12 +1,201 @@
 version: '3.5'
 
-services: 
-  standalone: 
+networks:
+  vearch_network_cluster:
+    driver: bridge
+    name: vearch_network_cluster
+
+services:
+  standalone:
     container_name: vearch-standalone
     image: vearch/vearch:latest
-    ports: 
+    privileged: true
+    networks:
+      - vearch_network_cluster
+    ports:
       - "8817:8817"
       - "9001:9001"
     volumes:
       - ${DOCKER_VOLUME_DIRECTORY:-.}/config.toml:/vearch/config.toml
     command: all
+    profiles:
+      - standalone
+
+  master1:
+    container_name: vearch-master1
+    image: vearch/vearch:latest
+    privileged: true
+    networks:
+      - vearch_network_cluster
+    volumes:
+      - ${DOCKER_VOLUME_DIRECTORY:-.}/config_cluster.toml:/vearch/config.toml
+    command: master
+    profiles:
+      - cluster
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "sh",
+          "-c",
+          "curl -f http://localhost:8817 -u root:secret"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  master2:
+    container_name: vearch-master2
+    image: vearch/vearch:latest
+    privileged: true
+    networks:
+      - vearch_network_cluster
+    volumes:
+      - ${DOCKER_VOLUME_DIRECTORY:-.}/config_cluster.toml:/vearch/config.toml
+    command: master
+    profiles:
+      - cluster
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "sh",
+          "-c",
+          "curl -f http://localhost:8817 -u root:secret"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  master3:
+    container_name: vearch-master3
+    image: vearch/vearch:latest
+    privileged: true
+    networks:
+      - vearch_network_cluster
+    volumes:
+      - ${DOCKER_VOLUME_DIRECTORY:-.}/config_cluster.toml:/vearch/config.toml
+    command: master
+    profiles:
+      - cluster
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "sh",
+          "-c",
+          "curl -f http://localhost:8817 -u root:secret"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  router1:
+    container_name: vearch-router1
+    image: vearch/vearch:latest
+    privileged: true
+    networks:
+      - vearch_network_cluster
+    ports:
+      - "9001:9001"
+    volumes:
+      - ${DOCKER_VOLUME_DIRECTORY:-.}/config_cluster.toml:/vearch/config.toml
+    command: router
+    profiles:
+      - cluster
+    depends_on:
+      master1:
+        condition: service_healthy
+      master2:
+        condition: service_healthy
+      master3:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "sh",
+          "-c",
+          "curl -f http://localhost:9001/dbs -u root:secret"
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  router2:
+    container_name: vearch-router2
+    image: vearch/vearch:latest
+    privileged: true
+    networks:
+      - vearch_network_cluster
+    volumes:
+      - ${DOCKER_VOLUME_DIRECTORY:-.}/config_cluster.toml:/vearch/config.toml
+    command: router
+    profiles:
+      - cluster
+    depends_on:
+      master1:
+        condition: service_healthy
+      master2:
+        condition: service_healthy
+      master3:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "sh",
+          "-c",
+          "curl -f http://localhost:9001/dbs -u root:secret"
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  ps1:
+    container_name: vearch-ps1
+    image: vearch/vearch:latest
+    networks:
+      - vearch_network_cluster
+    volumes:
+      - ${DOCKER_VOLUME_DIRECTORY:-.}/config_cluster.toml:/vearch/config.toml
+    command: ps
+    profiles:
+      - cluster
+    depends_on:
+      router1:
+        condition: service_healthy
+      router2:
+        condition: service_healthy
+
+  ps2:
+    container_name: vearch-ps2
+    image: vearch/vearch:latest
+    networks:
+      - vearch_network_cluster
+    volumes:
+      - ${DOCKER_VOLUME_DIRECTORY:-.}/config_cluster.toml:/vearch/config.toml
+    command: ps
+    profiles:
+      - cluster
+    depends_on:
+      router1:
+        condition: service_healthy
+      router2:
+        condition: service_healthy
+
+  ps3:
+    container_name: vearch-ps3
+    image: vearch/vearch:latest
+    networks:
+      - vearch_network_cluster
+    volumes:
+      - ${DOCKER_VOLUME_DIRECTORY:-.}/config_cluster.toml:/vearch/config.toml
+    command: ps
+    profiles:
+      - cluster
+    depends_on:
+      router1:
+        condition: service_healthy
+      router2:
+        condition: service_healthy

@@ -1,0 +1,86 @@
+name: CI_cluster
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  build-and-test:
+    strategy:
+      matrix:
+        include:
+          - platform: amd64
+            runs-on: ubuntu-latest
+            docker-arch: ""
+          - platform: arm64
+            runs-on: ubuntu-latest
+            docker-arch: "--platform linux/arm64"
+    runs-on: ${{ matrix.runs-on }}
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up QEMU
+      if: matrix.platform == 'arm64'
+      uses: docker/setup-qemu-action@v3
+
+    - name: Set up Docker Buildx
+      if: matrix.platform == 'arm64'
+      uses: docker/setup-buildx-action@v3
+
+    - name: Compile and Build
+      run: |
+        cd cloud
+        docker run ${{ matrix.docker-arch }} --privileged -i -v $(dirname "$PWD"):/vearch vearch/vearch-dev-env:latest /vearch/cloud/compile/compile.sh
+        cp -r ../build/bin compile/; cp -r ../build/lib compile/
+        docker build ${{ matrix.docker-arch }} -t vearch/vearch:latest .
+        cp ../config/config_cluster.toml .
+        sed -i 's/resource_limit_rate = 0.85/resource_limit_rate = 0.98/' config_cluster.toml
+
+    - name: Run docker-compose
+      uses: hoverkraft-tech/compose-action@v2.0.1
+      with:
+        compose-file: "cloud/docker-compose.yml"
+        up-flags: "-d"
+        compose-flags: "--profile cluster"
+
+    - name: Create Minio bucket
+      run: |
+        mkdir test/oss_data
+        docker run -d --name minio -p 10000:9000 --network vearch_network_cluster minio/minio server test/oss_data
+        wget https://dl.min.io/client/mc/release/linux-amd64/mc
+        chmod +x mc
+        ./mc alias set myminio http://127.0.0.1:10000 minioadmin minioadmin
+        ./mc mb myminio/test
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.10"
+        
+    - name: Install Dependency
+      run: |
+        python -m pip install --upgrade pip setuptools wheel
+        pip install requests pytest wheel pandas numpy minio
+        cd sdk/python
+        python setup.py bdist_wheel
+        pip install dist/pyvearch*
+
+    - name: Run Python tests
+      run: |
+        cd test
+        pytest test_vearch.py -x --log-cli-level=INFO
+        pytest test_document_* -k "not test_vearch_document_upsert_benchmark" -x --log-cli-level=INFO
+        pytest test_module_* -x --log-cli-level=INFO
+
+    - name: Test Go SDK
+      run: |
+        cd sdk/go/test
+        go test -v
+
+    - name: Test Python SDK
+      run: |
+        cd sdk/python/test
+        pytest -x --log-cli-level=INFO

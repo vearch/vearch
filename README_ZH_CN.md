@@ -73,10 +73,20 @@ $ helm install my-release ./charts -f ./charts/values.yaml
 
 **通过 docker-compose 使用 vearch**
 
+单节点模式
+
 ```
 $ cd cloud
 $ cp ../config/config.toml .
-$ docker-compose up
+$ docker-compose --profile standalone up -d
+```
+
+集群模式
+
+```
+$ cd cloud
+$ cp ../config/config_cluster.toml .
+$ docker-compose --profile cluster up -d
 ```
 
 **Docker 编译部署**: 通过 vearch docker 镜像快速使用，请查看 [docker 编译部署](docs/DeployByDockerZH_CN.md).

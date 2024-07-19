@@ -74,10 +74,20 @@ $ helm install my-release ./charts -f ./charts/values.yaml
 
 **Start by docker-compose**
 
+standalone mode
+
 ```
 $ cd cloud
 $ cp ../config/config.toml .
-$ docker-compose up
+$ docker-compose --profile standalone up -d
+```
+
+cluster mode
+
+```
+$ cd cloud
+$ cp ../config/config_cluster.toml .
+$ docker-compose --profile cluster up -d
 ```
 
 **Deploy by docker**: Quickly start with vearch docker image, please see [DeployByDocker](docs/DeployByDocker.md)
