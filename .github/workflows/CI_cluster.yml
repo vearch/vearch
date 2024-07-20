@@ -84,3 +84,10 @@ jobs:
       run: |
         cd sdk/python/test
         pytest -x --log-cli-level=INFO
+
+    - name: Run tests for master down
+      run: |
+        cd cloud
+        docker-compose stop master1
+        cd ../test
+        pytest test_vearch.py -x --log-cli-level=INFO
