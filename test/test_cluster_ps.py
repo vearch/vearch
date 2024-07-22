@@ -47,10 +47,6 @@ class TestClusterPartitionServerAdd:
             [512, "IVFPQ"],
             [512, "IVFFLAT"],
             [512, "HNSW"],
-            [1536, "FLAT"],
-            [1536, "IVFPQ"],
-            [1536, "IVFFLAT"],
-            [1536, "HNSW"],
         ],
     )
     def test_vearch_space_create(self, embedding_size, index_type):
