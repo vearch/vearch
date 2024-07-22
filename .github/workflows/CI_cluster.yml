@@ -92,6 +92,7 @@ jobs:
         docker-compose stop master1
         cd ../test
         pytest test_vearch.py -x --log-cli-level=INFO
+        cd ../cloud
         docker-compose start master1
 
     - name: Run tests for restart ps
