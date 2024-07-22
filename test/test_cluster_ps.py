@@ -90,7 +90,7 @@ class TestClusterPartitionServerAdd:
         }
 
         response = create_space(router_url, db_name, space_config)
-        logger.info(response)
+        logger.info(response.json())
 
         add_embedding_size(db_name, space_name_each, 50, 100, embedding_size)
 
