@@ -973,8 +973,6 @@ def query_interface(
 def process_delete_data(items):
     url = router_url + "/document/delete"
     data = {}
-    data["db_name"] = db_name
-    data["space_name"] = space_name
 
     logger = items[0]
     index = items[1]
@@ -982,6 +980,15 @@ def process_delete_data(items):
     full_field = items[3]
     seed = items[4]
     delete_type = items[5]
+
+    if len(items) == 9:
+        delete_db_name = items[7]
+        delete_space_name = items[8]
+        data["db_name"] = delete_db_name
+        data["space_name"] = delete_space_name
+    else:
+        data["db_name"] = db_name
+        data["space_name"] = space_name        
     if items[6] != "":
         data["space_name"] = items[6]
 
@@ -1027,10 +1034,22 @@ def delete_interface(
     seed=1,
     delete_type="by_ids",
     alias_name="",
+    delete_db_name=db_name,
+    delete_space_name=space_name,
 ):
     for i in range(total):
         process_delete_data(
-            (logger, i, batch_size, full_field, seed, delete_type, alias_name)
+            (
+                logger,
+                i,
+                batch_size,
+                full_field,
+                seed,
+                delete_type,
+                alias_name,
+                delete_db_name,
+                delete_space_name,
+            )
         )
 
 

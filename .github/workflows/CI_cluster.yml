@@ -92,3 +92,15 @@ jobs:
         docker-compose stop master1
         cd ../test
         pytest test_vearch.py -x --log-cli-level=INFO
+        docker-compose start master1
+
+    - name: Run tests for restart ps
+      run: |
+        cd test
+        pytest test_cluster_ps.py -k "TestClusterPartitionServerAdd" -x --log-cli-level=INFO
+        cd ../cloud
+        docker-compose restart ps1
+        cd ../test
+        sleep 30
+        pytest test_cluster_ps.py -x -k "TestClusterPartitionServerCheckSpace" --log-cli-level=INFO
+        pytest test_cluster_ps.py -x -k "TestClusterPartitionServerDestroy" --log-cli-level=INFO

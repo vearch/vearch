@@ -1142,7 +1142,7 @@ int Engine::Load() {
     }
   }
   last_dump_dir_ = last_dir;
-  LOG(INFO) << "load engine success! max docid=" << max_docid_
+  LOG(INFO) << "load engine success! " << space_name_ << " max docid=" << max_docid_
             << ", delete_num=" << delete_num_ << ", load directory=" << last_dir
             << ", clean directorys(not done)="
             << utils::join(folders_not_done, ',');
