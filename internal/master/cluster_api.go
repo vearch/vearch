@@ -596,7 +596,9 @@ func (ca *clusterAPI) backupSpace(c *gin.Context) {
 
 		err = os.WriteFile(backupFileName, spaceJson, 0644)
 		if err != nil {
-			log.Error("Error writing to file:", err)
+			err := fmt.Errorf("error writing to file: %v", err)
+			log.Error(err)
+			httphelper.New(c).JsonError(errors.NewErrInternal(err))
 			return
 		}
 
@@ -605,14 +607,18 @@ func (ca *clusterAPI) backupSpace(c *gin.Context) {
 			Secure: backup.S3Param.UseSSL,
 		})
 		if err != nil {
-			log.Error("failed to create minio client: %+v", err)
+			err := fmt.Errorf("failed to create minio client: %+v", err)
+			log.Error(err)
+			httphelper.New(c).JsonError(errors.NewErrInternal(err))
 			return
 		}
 		bucketName := backup.S3Param.BucketName
 		objectName := fmt.Sprintf("%s/%s/%s.schema", dbName, space.Name, space.Name)
 		_, err = minioClient.FPutObject(context.Background(), bucketName, objectName, backupFileName, minio.PutObjectOptions{ContentType: "application/octet-stream"})
 		if err != nil {
-			log.Error("failed to backup space: %+v", err)
+			err := fmt.Errorf("failed to backup space: %+v", err)
+			log.Error(err)
+			httphelper.New(c).JsonError(errors.NewErrInternal(err))
 			return
 		}
 		log.Info("backup schema success, file is [%s]", backupFileName)
@@ -634,7 +640,9 @@ func (ca *clusterAPI) backupSpace(c *gin.Context) {
 			Secure: backup.S3Param.UseSSL,
 		})
 		if err != nil {
-			log.Error("failed to create minio client: %+v", err)
+			err := fmt.Errorf("failed to create minio client: %+v", err)
+			log.Error(err)
+			httphelper.New(c).JsonError(errors.NewErrInternal(err))
 			return
 		}
 
@@ -643,7 +651,9 @@ func (ca *clusterAPI) backupSpace(c *gin.Context) {
 		objectName := fmt.Sprintf("%s/%s/%s.schema", dbName, spaceName, spaceName)
 		err = minioClient.FGetObject(c, bucketName, objectName, backupFileName, minio.GetObjectOptions{})
 		if err != nil {
-			log.Error("failed to download file from S3: %+v", err)
+			err := fmt.Errorf("failed to download file from S3: %+v", err)
+			log.Error(err)
+			httphelper.New(c).JsonError(errors.NewErrInternal(err))
 			return
 		}
 		defer os.Remove(backupFileName)
@@ -651,7 +661,9 @@ func (ca *clusterAPI) backupSpace(c *gin.Context) {
 
 		spaceJson, err := os.ReadFile(backupFileName)
 		if err != nil {
-			log.Error("Error read file:", err)
+			err := fmt.Errorf("error read file:%v", err)
+			log.Error(err)
+			httphelper.New(c).JsonError(errors.NewErrInternal(err))
 			return
 		}
 
@@ -659,7 +671,9 @@ func (ca *clusterAPI) backupSpace(c *gin.Context) {
 		space := &entity.Space{}
 		err = vjson.Unmarshal(spaceJson, space)
 		if err != nil {
-			log.Error("Unmarshal file:", err)
+			err := fmt.Errorf("unmarshal file: %v", err)
+			log.Error(err)
+			httphelper.New(c).JsonError(errors.NewErrInternal(err))
 			return
 		}
 
@@ -705,7 +719,9 @@ func (ca *clusterAPI) backupSpace(c *gin.Context) {
 			Secure: backup.S3Param.UseSSL,
 		})
 		if err != nil {
-			log.Error("failed to create minio client: %+v", err)
+			err := fmt.Errorf("failed to create minio client: %+v", err)
+			log.Error(err)
+			httphelper.New(c).JsonError(errors.NewErrInternal(err))
 			return
 		}
 
