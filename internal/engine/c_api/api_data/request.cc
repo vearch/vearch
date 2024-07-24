@@ -16,7 +16,11 @@ int Request::Serialize(char **out, int *out_len) { return 0; }
 
 void Request::Deserialize(const char *data, int len) {
   SearchRequest sr;
-  sr.ParseFromString(std::string(data, len));
+  bool parse_success = sr.ParseFromString(std::string(data, len));
+  if (not parse_success) {
+    LOG(ERROR) << "parse search request failed";
+    return;
+  }
 
   req_num_ = sr.req_num();
   topn_ = sr.topn();
@@ -149,7 +153,11 @@ int QueryRequest::Serialize(char **out, int *out_len) { return 0; }
 
 void QueryRequest::Deserialize(const char *data, int len) {
   ::QueryRequest qr;
-  qr.ParseFromString(std::string(data, len));
+  bool parse_success = qr.ParseFromString(std::string(data, len));
+  if (not parse_success) {
+    LOG(ERROR) << "parse query request failed";
+    return;
+  }
   topn_ = qr.limit();
 
   for (int i = 0; i < qr.document_ids().size(); i++) {
