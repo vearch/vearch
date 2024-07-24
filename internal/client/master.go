@@ -115,7 +115,7 @@ func (m *masterClient) QueryPartition(ctx context.Context, partitionID entity.Pa
 		return nil, err
 	}
 	if bytes == nil {
-		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_NOT_EXIST, nil)
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_NOT_EXIST, fmt.Errorf("partition id %d", partitionID))
 	}
 
 	p := new(entity.Partition)
@@ -638,7 +638,7 @@ func (m *masterClient) ProxyHTTPRequest(method string, url string, reqBody strin
 		response, statusCode, err = query.ProxyDo()
 		log.Debug("remote server url:%s, req body:%s, response: %v, statusCode %d", query.GetUrl(), string(reqBody), string(response), statusCode)
 
-		if (statusCode < http.StatusBadRequest && statusCode != -1) || statusCode > http.StatusNetworkAuthenticationRequired {
+		if statusCode != -1 {
 			e = err
 			break
 		}

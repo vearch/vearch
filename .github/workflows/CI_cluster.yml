@@ -105,3 +105,4 @@ jobs:
         sleep 30
         pytest test_cluster_ps.py -x -k "TestClusterPartitionServerCheckSpace" --log-cli-level=INFO
         pytest test_cluster_ps.py -x -k "TestClusterPartitionServerDestroy" --log-cli-level=INFO
+        pytest test_cluster_ps.py -k "TestClusterPartitionChange" --log-cli-level=INFO

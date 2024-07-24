@@ -67,7 +67,7 @@ class VearchCase:
 
     def test_createDB(self):
         response = create_db(router_url, db_name)
-        logger.debug("db_create---\n" + json.dumps(response.json()))
+        logger.info("db_create---\n" + json.dumps(response.json()))
         assert response.json()["code"] == 0
 
     def test_getDB(self):

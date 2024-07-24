@@ -988,7 +988,7 @@ def process_delete_data(items):
         data["space_name"] = delete_space_name
     else:
         data["db_name"] = db_name
-        data["space_name"] = space_name        
+        data["space_name"] = space_name
     if items[6] != "":
         data["space_name"] = items[6]
 
@@ -1436,6 +1436,13 @@ def get_cluster_partition(router_url: str):
     return resp
 
 
+def change_partitons(router_url: str, pids: list, node_id: int, method: int):
+    url = f"{router_url}/partitions/change_member"
+    data = {"partition_ids": pids, "node_id": node_id, "method": method}
+    resp = requests.post(url, auth=(username, password), json=data)
+    return resp
+
+
 def get_cluster_version(router_url: str):
     url = f"{router_url}/"
     resp = requests.get(url, auth=(username, password))
@@ -1461,7 +1468,7 @@ def get_db(router_url: str, db_name: str):
 
 
 def list_spaces(router_url: str, db_name: str):
-    url = f"{router_url}/dbs/{db_name}/spaces"
+    url = f"{router_url}/dbs/{db_name}/spaces?detail=true"
     resp = requests.get(url, auth=(username, password))
     return resp
 

@@ -23,6 +23,10 @@ func LockSpaceKey(db, space string) string {
 	return fmt.Sprintf("%s/%s/%s", PrefixLock, db, space)
 }
 
+func LockDBKey(db string) string {
+	return fmt.Sprintf("%s/%s", PrefixLock, db)
+}
+
 func ServerKey(name NodeID) string {
 	return fmt.Sprintf("%s%d", PrefixServer, name)
 }

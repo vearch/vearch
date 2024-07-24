@@ -204,9 +204,9 @@ func (pih *PartitionInfoHandler) Execute(ctx context.Context, req *vearchpb.Part
 		}
 
 		value := &entity.PartitionInfo{}
-		value.PartitionID = pid
+		value.PartitionID = store.GetPartition().Id
 		value.DocNum = uint64(status.DocNum)
-		value.Unreachable = store.GetUnreachable(uint64(pid))
+		value.Unreachable = store.GetUnreachable(uint64(store.GetPartition().Id))
 		value.Status = store.GetPartition().GetStatus()
 		value.IndexStatus = int(status.IndexStatus)
 		value.BackupStatus = int(status.BackupStatus)

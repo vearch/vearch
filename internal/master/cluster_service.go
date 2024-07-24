@@ -74,7 +74,7 @@ func (ms *masterService) registerServerService(ctx context.Context, ip string, n
 
 // registerPartitionService partition/[id]:[body]
 func (ms *masterService) registerPartitionService(ctx context.Context, partition *entity.Partition) error {
-	log.Info("register parttion:[%d] ", partition.Id)
+	log.Info("register partition:[%d] ", partition.Id)
 	marshal, err := vjson.Marshal(partition)
 	if err != nil {
 		return err
@@ -109,6 +109,16 @@ func (ms *masterService) createDBService(ctx context.Context, db *entity.DB) (er
 		return err
 	}
 
+	// it will lock cluster to create db
+	mutex := ms.Master().NewLock(ctx, entity.LockDBKey(db.Name), time.Second*300)
+	if err = mutex.Lock(); err != nil {
+		return err
+	}
+	defer func() {
+		if err := mutex.Unlock(); err != nil {
+			log.Error("unlock db err:[%s]", err.Error())
+		}
+	}()
 	err = ms.Master().STM(context.Background(), func(stm concurrency.STM) error {
 		idKey, nameKey, bodyKey := ms.Master().DBKeys(db.Id, db.Name)
 
@@ -162,14 +172,14 @@ func (ms *masterService) deleteDBService(ctx context.Context, dbstr string) (err
 	if err != nil {
 		return err
 	}
-	//it will lock cluster
-	mutex := ms.Master().NewLock(ctx, entity.PrefixLockCluster, time.Second*300)
+	// it will lock cluster to delete db
+	mutex := ms.Master().NewLock(ctx, entity.LockDBKey(dbstr), time.Second*300)
 	if err = mutex.Lock(); err != nil {
 		return err
 	}
 	defer func() {
 		if err := mutex.Unlock(); err != nil {
-			log.Error("unlock space err %s", err)
+			log.Error("unlock db err:[%s]", err.Error())
 		}
 	}()
 
@@ -1921,6 +1931,7 @@ func (ms *masterService) updateSpacePartitonRuleService(ctx context.Context, spa
 func (ms *masterService) ChangeMember(ctx context.Context, cm *entity.ChangeMember) error {
 	partition, err := ms.Master().QueryPartition(ctx, cm.PartitionID)
 	if err != nil {
+		log.Error("%v", err.Error())
 		return err
 	}
 
@@ -1939,6 +1950,7 @@ func (ms *masterService) ChangeMember(ctx context.Context, cm *entity.ChangeMemb
 	if cm.Method != 1 {
 		for _, nodeID := range spacePartition.Replicas {
 			if nodeID == cm.NodeID {
+				log.Error("partition:[%d] already on server:[%d] in replicas:[%v], space:%v", cm.PartitionID, cm.NodeID, spacePartition.Replicas, space)
 				return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("partition:[%d] already on server:[%d] in replicas:[%v]", cm.PartitionID, cm.NodeID, spacePartition.Replicas))
 			}
 		}
@@ -1970,16 +1982,11 @@ func (ms *masterService) ChangeMember(ctx context.Context, cm *entity.ChangeMemb
 			return err
 		}
 	}
-	log.Info("targetNode is [%+v], cm is [%+v] ", masterNode, cm)
+	log.Info("targetNode is [%+v], cm is [%+v] ", targetNode, cm)
 
 	if !client.IsLive(masterNode.RpcAddr()) {
 		return vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_SERVER_ERROR, fmt.Errorf("server:[%d] addr:[%s] can not connect ", cm.NodeID, masterNode.RpcAddr()))
 	}
-
-	if _, err := ms.updateSpaceService(ctx, dbName, space.Name, space); err != nil {
-		return err
-	}
-	log.Info("cm is [%v] has update space ", cm)
 
 	if cm.Method == proto.ConfAddNode && targetNode != nil {
 		if err := client.CreatePartition(targetNode.RpcAddr(), space, cm.PartitionID); err != nil {
@@ -1988,11 +1995,9 @@ func (ms *masterService) ChangeMember(ctx context.Context, cm *entity.ChangeMemb
 	} else if cm.Method == proto.ConfRemoveNode {
 
 	} else {
-		return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("change member only support addNode:[%d] removeNode:[%d] not support:[%d]", proto.ConfAddNode, proto.ConfRemoveNode, cm.Method))
+		return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("change member only support add:[%d] remove:[%d] not support:[%d]", proto.ConfAddNode, proto.ConfRemoveNode, cm.Method))
 	}
 
-	log.Info("execute change, master node info is [%+v]", masterNode)
-	log.Info("change member info is [%+v]", cm)
 	if err := client.ChangeMember(masterNode.RpcAddr(), cm); err != nil {
 		return err
 	}
@@ -2001,11 +2006,16 @@ func (ms *masterService) ChangeMember(ctx context.Context, cm *entity.ChangeMemb
 			return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("delete partiiton has err:[%s] addr:[%s]", err.Error(), targetNode.RpcAddr()))
 		}
 	}
+
+	if _, err := ms.updateSpaceService(ctx, dbName, space.Name, space); err != nil {
+		return err
+	}
+	log.Info("update space: %v", space)
 	return nil
 }
 
 func (ms *masterService) ChangeMembers(ctx context.Context, cms *entity.ChangeMembers) error {
-	for partitionId := range cms.PartitionIDs {
+	for _, partitionId := range cms.PartitionIDs {
 		cm := &entity.ChangeMember{
 			PartitionID: uint32(partitionId),
 			NodeID:      cms.NodeID,

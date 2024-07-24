@@ -46,10 +46,10 @@ type PartitionForSearch struct {
 
 // partition/[id]:[body]
 type Partition struct {
-	Id                PartitionID `json:"id,omitempty"`
-	Name              string      `json:"name,omitempty"`
-	SpaceId           SpaceID     `json:"space_id,omitempty"`
-	DBId              DBID        `json:"db_id,omitempty"`
+	Id                PartitionID `json:"id"`
+	Name              string      `json:"name"`
+	SpaceId           SpaceID     `json:"space_id"`
+	DBId              DBID        `json:"db_id"`
 	Slot              SlotID      `json:"partition_slot"` // Slot stores the lower limit of the slot range
 	LeaderID          NodeID      `json:"leader_name,omitempty"`
 	Replicas          []NodeID    `json:"replicas,omitempty"` // leader in replicas
@@ -78,7 +78,7 @@ func (p *Partition) GetStatus() PartitionStatus {
 
 // get partition from every partitions
 type PartitionInfo struct {
-	PartitionID  PartitionID       `json:"pid,omitempty"`
+	PartitionID  PartitionID       `json:"pid"`
 	Name         string            `json:"name"`
 	DocNum       uint64            `json:"doc_num"`
 	Size         int64             `json:"size,omitempty"`

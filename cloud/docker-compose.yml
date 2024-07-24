@@ -40,9 +40,9 @@ services:
           "-c",
           "curl -f http://localhost:8817 -u root:secret"
         ]
-      interval: 10s
+      interval: 30s
       timeout: 5s
-      retries: 5
+      retries: 3
 
   master2:
     container_name: vearch-master2
@@ -63,9 +63,9 @@ services:
           "-c",
           "curl -f http://localhost:8817 -u root:secret"
         ]
-      interval: 10s
+      interval: 30s
       timeout: 5s
-      retries: 5
+      retries: 3
 
   master3:
     container_name: vearch-master3
@@ -86,9 +86,9 @@ services:
           "-c",
           "curl -f http://localhost:8817 -u root:secret"
         ]
-      interval: 10s
+      interval: 30s
       timeout: 5s
-      retries: 5
+      retries: 3
 
   router1:
     container_name: vearch-router1
@@ -116,11 +116,11 @@ services:
           "CMD",
           "sh",
           "-c",
-          "curl -f http://localhost:9001/dbs -u root:secret"
+          "curl -f http://localhost:9001 -u root:secret"
         ]
-      interval: 5s
+      interval: 30s
       timeout: 5s
-      retries: 5
+      retries: 3
 
   router2:
     container_name: vearch-router2
@@ -146,11 +146,11 @@ services:
           "CMD",
           "sh",
           "-c",
-          "curl -f http://localhost:9001/dbs -u root:secret"
+          "curl -f http://localhost:9001 -u root:secret"
         ]
-      interval: 5s
+      interval: 30s
       timeout: 5s
-      retries: 5
+      retries: 3
 
   ps1:
     container_name: vearch-ps1
