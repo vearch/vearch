@@ -39,10 +39,10 @@ class TestClusterPartitionServerAdd:
     @pytest.mark.parametrize(
         ["embedding_size", "index_type"],
         [
+            [128, "HNSW"],
             [128, "FLAT"],
             [128, "IVFPQ"],
             [128, "IVFFLAT"],
-            [128, "HNSW"],
             [512, "FLAT"],
             [512, "IVFPQ"],
             [512, "IVFFLAT"],
