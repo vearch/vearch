@@ -54,7 +54,7 @@ class TestClusterPartitionServerAdd:
         space_config = {
             "name": space_name_each,
             "partition_num": 2,
-            "replica_num": 1,
+            "replica_num": 3,
             "fields": [
                 {"name": "field_int", "type": "integer"},
                 {"name": "field_long", "type": "long"},
