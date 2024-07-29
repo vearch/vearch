@@ -100,7 +100,11 @@ class TestBackup:
         else:
             assert response.json()["code"] != 0
 
-    def create(self, router_url, embedding_size, store_type="MemoryOnly"):
+    def create_db(self, router_url):
+        response = create_db(router_url, self.db_name)
+        self.logger.info(response.json())
+
+    def create_space(self, router_url, embedding_size, store_type="MemoryOnly"):
         properties = {}
         properties["fields"] = [
             {
@@ -128,8 +132,6 @@ class TestBackup:
             "replica_num": 1,
             "fields": properties["fields"]
         }
-        response = create_db(router_url, self.db_name)
-        self.logger.info(response.json())
 
         response = create_space(router_url, self.db_name, space_config)
         self.logger.info(response.json())
@@ -209,7 +211,8 @@ class TestBackup:
         self.logger.info("dataset num: %d, total_batch: %d, dimension: %d, search num: %d, topK: %d" % (
             total, total_batch, embedding_size, self.xq.shape[0], k))
 
-        self.create(router_url, embedding_size)
+        self.create_db(router_url)
+        self.create_space(router_url, embedding_size)
 
         add(total_batch, batch_size, self.xb, with_id=True)
 
@@ -219,7 +222,7 @@ class TestBackup:
         self.waiting_backup_finish()
 
         destroy(router_url, self.db_name, self.space_name)
-        self.create(router_url, embedding_size)
+        self.create_db(router_url)
 
         if corrupted:
             self.remove_oss_file(f"{self.db_name}/{self.space_name}/0.json.zst")
@@ -274,7 +277,8 @@ class TestBackup:
         self.logger.info("dataset num: %d, total_batch: %d, dimension: %d, search num: %d, topK: %d" % (
             total, total_batch, embedding_size, self.xq.shape[0], k))
 
-        self.create(router_url, embedding_size)
+        self.create_db(router_url)
+        self.create_space(router_url, embedding_size)
 
         add(total_batch, batch_size, self.xb, with_id=True)
 
