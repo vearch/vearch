@@ -697,15 +697,14 @@ func (r *routerRequest) SearchFieldSortExecute(sortOrder sortorder.SortOrder) *v
 	}
 
 	trace := config.Trace
-	var req *vearchpb.SearchRequest
 	for _, pData := range sendPartitionMap {
-		req = pData.SearchRequest
-		if req != nil {
-			if trace_info, ok := req.Head.Params["trace"]; ok {
-				if trace_info == "true" {
-					trace = true
-					break
-				}
+		if pData.SearchRequest == nil {
+			continue
+		}
+		if trace_info, ok := pData.SearchRequest.Head.Params["trace"]; ok {
+			if trace_info == "true" {
+				trace = true
+				break
 			}
 		}
 	}
@@ -1131,29 +1130,11 @@ func (r *routerRequest) SearchByPartitions(searchReq *vearchpb.SearchRequest) *r
 	sendMap := make(map[entity.PartitionID]*vearchpb.PartitionData)
 	for _, partitionInfo := range r.space.Partitions {
 		partitionID := partitionInfo.Id
-		if d, ok := sendMap[partitionID]; ok {
-			log.Error("db Id:%d , space Id:%d, have multiple partitionID:%d", partitionInfo.DBId, partitionInfo.SpaceId, partitionID)
-		} else {
-			d = &vearchpb.PartitionData{PartitionID: partitionID, MessageID: r.GetMsgID(), SearchRequest: searchReq}
-			sendMap[partitionID] = d
-		}
-	}
-	r.sendMap = sendMap
-	return r
-}
-
-func (r *routerRequest) BulkSearchByPartitions(searchReq []*vearchpb.SearchRequest) *routerRequest {
-	if r.Err != nil {
-		return r
-	}
-	sendMap := make(map[entity.PartitionID]*vearchpb.PartitionData)
-	for _, partitionInfo := range r.space.Partitions {
-		partitionID := partitionInfo.Id
 		if _, ok := sendMap[partitionID]; ok {
 			log.Error("db Id:%d , space Id:%d, have multiple partitionID:%d", partitionInfo.DBId, partitionInfo.SpaceId, partitionID)
-		} else {
-			sendMap[partitionID] = &vearchpb.PartitionData{PartitionID: partitionID, MessageID: r.GetMsgID(), SearchRequests: searchReq}
+			continue
 		}
+		sendMap[partitionID] = &vearchpb.PartitionData{PartitionID: partitionID, MessageID: r.GetMsgID(), SearchRequest: searchReq}
 	}
 	r.sendMap = sendMap
 	return r
@@ -1398,7 +1379,6 @@ func AddMergeResultArr(dest []*vearchpb.SearchResult, src []*vearchpb.SearchResu
 	}
 
 	return nil
-
 }
 
 func AddMerge(sr *vearchpb.SearchResult, other *vearchpb.SearchResult) {

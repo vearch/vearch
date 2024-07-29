@@ -114,9 +114,8 @@ func (docService *docService) bulk(ctx context.Context, args *vearchpb.BulkReque
 		log.Errorf("bulk args:[%v] error: [%s]", args, request.Err)
 		return &vearchpb.BulkResponse{Head: setErrHead(request.Err)}
 	}
-	items := request.Execute()
+	reply.Items = request.Execute()
 	reply.Head.Params = request.GetMD()
-	reply.Items = items
 	return reply
 }
 

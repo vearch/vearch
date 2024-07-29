@@ -532,27 +532,6 @@ func configTraceParse(r *http.Request) (printSwitch bool, err error) {
 	return temp.Trace, nil
 }
 
-func documentHeadParse(r *http.Request) (docRequest *request.DocumentRequest, dbName string, spaceName string, err error) {
-	reqBody, err := netutil.GetReqBody(r)
-	if err != nil {
-		return nil, "", "", err
-	}
-
-	if len(reqBody) == 0 {
-		err = vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("document param is null"))
-		return nil, "", "", err
-	}
-
-	docRequest = &request.DocumentRequest{}
-	err = vjson.Unmarshal(reqBody, docRequest)
-	if err != nil {
-		err = vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("documentRequest param convert json %s err: %v", string(reqBody), err))
-		return nil, "", "", err
-	}
-
-	return docRequest, docRequest.DbName, docRequest.SpaceName, nil
-}
-
 func documentParse(ctx context.Context, handler *DocumentHandler, r *http.Request, docRequest *request.DocumentRequest, space *entity.Space, args *vearchpb.BulkRequest) (err error) {
 	spaceProperties := space.SpaceProperties
 	if spaceProperties == nil {
@@ -633,43 +612,4 @@ func documentParse(ctx context.Context, handler *DocumentHandler, r *http.Reques
 		return err
 	}
 	return nil
-}
-
-func documentRequestParse(r *http.Request) (searchDoc *request.SearchDocumentRequest, err error) {
-	reqBody, err := netutil.GetReqBody(r)
-	if err != nil {
-		return nil, err
-	}
-	if len(reqBody) == 0 {
-		err = vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("query param is null"))
-		return nil, err
-	}
-
-	searchDoc = &request.SearchDocumentRequest{}
-	err = vjson.Unmarshal(reqBody, searchDoc)
-	if err != nil {
-		err = vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("SearchDocumentRequest param convert json %s err: %v", string(reqBody), err))
-		return nil, err
-	}
-
-	return searchDoc, nil
-}
-
-func IndexRequestParse(r *http.Request) (index *request.IndexRequest, err error) {
-	reqBody, err := netutil.GetReqBody(r)
-	if err != nil {
-		return nil, err
-	}
-	if len(reqBody) == 0 {
-		err = vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("field index param is null"))
-		return nil, err
-	}
-
-	index = &request.IndexRequest{}
-	err = vjson.Unmarshal(reqBody, index)
-	if err != nil {
-		err = vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("field index param convert json %s err: %v", string(reqBody), err))
-		return nil, err
-	}
-	return index, nil
 }

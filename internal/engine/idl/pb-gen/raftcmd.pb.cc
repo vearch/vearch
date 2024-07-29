@@ -23,8 +23,6 @@ namespace _pbi = _pb::internal;
 PROTOBUF_CONSTEXPR PartitionData::PartitionData(
     ::_pbi::ConstantInitialized): _impl_{
     /*decltype(_impl_.items_)*/{}
-  , /*decltype(_impl_.search_requests_)*/{}
-  , /*decltype(_impl_.search_responses_)*/{}
   , /*decltype(_impl_.messageid_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
   , /*decltype(_impl_.data_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
   , /*decltype(_impl_.search_request_)*/nullptr
@@ -36,7 +34,6 @@ PROTOBUF_CONSTEXPR PartitionData::PartitionData(
   , /*decltype(_impl_.query_request_)*/nullptr
   , /*decltype(_impl_.type_)*/0
   , /*decltype(_impl_.partitionid_)*/0u
-  , /*decltype(_impl_.del_num_)*/0
   , /*decltype(_impl_._cached_size_)*/{}} {}
 struct PartitionDataDefaultTypeInternal {
   PROTOBUF_CONSTEXPR PartitionDataDefaultTypeInternal()
@@ -126,9 +123,6 @@ const uint32_t TableStruct_raftcmd_2eproto::offsets[] PROTOBUF_SECTION_VARIABLE(
   PROTOBUF_FIELD_OFFSET(::PartitionData, _impl_.search_response_),
   PROTOBUF_FIELD_OFFSET(::PartitionData, _impl_.data_),
   PROTOBUF_FIELD_OFFSET(::PartitionData, _impl_.err_),
-  PROTOBUF_FIELD_OFFSET(::PartitionData, _impl_.search_requests_),
-  PROTOBUF_FIELD_OFFSET(::PartitionData, _impl_.search_responses_),
-  PROTOBUF_FIELD_OFFSET(::PartitionData, _impl_.del_num_),
   PROTOBUF_FIELD_OFFSET(::PartitionData, _impl_.del_by_query_response_),
   PROTOBUF_FIELD_OFFSET(::PartitionData, _impl_.index_request_),
   PROTOBUF_FIELD_OFFSET(::PartitionData, _impl_.index_response_),
@@ -172,10 +166,10 @@ const uint32_t TableStruct_raftcmd_2eproto::offsets[] PROTOBUF_SECTION_VARIABLE(
 };
 static const ::_pbi::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) = {
   { 0, -1, -1, sizeof(::PartitionData)},
-  { 21, -1, -1, sizeof(::UpdateSpace)},
-  { 29, -1, -1, sizeof(::DocCmd)},
-  { 40, -1, -1, sizeof(::RaftCommand)},
-  { 49, -1, -1, sizeof(::SnapData)},
+  { 18, -1, -1, sizeof(::UpdateSpace)},
+  { 26, -1, -1, sizeof(::DocCmd)},
+  { 37, -1, -1, sizeof(::RaftCommand)},
+  { 46, -1, -1, sizeof(::SnapData)},
 };
 
 static const ::_pb::Message* const file_default_instances[] = {
@@ -188,30 +182,28 @@ static const ::_pb::Message* const file_default_instances[] = {
 
 const char descriptor_table_protodef_raftcmd_2eproto[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) =
   "\n\rraftcmd.proto\032\014errors.proto\032\020data_mode"
-  "l.proto\032\021router_grpc.proto\"\347\003\n\rPartition"
+  "l.proto\032\021router_grpc.proto\"\202\003\n\rPartition"
   "Data\022\025\n\004type\030\001 \001(\0162\007.OpType\022\023\n\013partition"
   "ID\030\002 \001(\r\022\021\n\tmessageID\030\003 \001(\t\022\024\n\005items\030\004 \003"
   "(\0132\005.Item\022&\n\016search_request\030\005 \001(\0132\016.Sear"
   "chRequest\022(\n\017search_response\030\006 \001(\0132\017.Sea"
   "rchResponse\022\014\n\004data\030\007 \001(\014\022\023\n\003err\030\010 \001(\0132\006"
-  ".Error\022\'\n\017search_requests\030\t \003(\0132\016.Search"
-  "Request\022)\n\020search_responses\030\n \003(\0132\017.Sear"
-  "chResponse\022\017\n\007del_num\030\013 \001(\005\0223\n\025del_by_qu"
-  "ery_response\030\014 \001(\0132\024.DelByQueryeResponse"
-  "\022$\n\rindex_request\030\r \001(\0132\r.IndexRequest\022&"
-  "\n\016index_response\030\016 \001(\0132\016.IndexResponse\022$"
-  "\n\rquery_request\030\017 \001(\0132\r.QueryRequest\"-\n\013"
-  "UpdateSpace\022\r\n\005Space\030\001 \001(\014\022\017\n\007version\030\002 "
-  "\001(\004\"Y\n\006DocCmd\022\025\n\004type\030\001 \001(\0162\007.OpType\022\017\n\007"
-  "version\030\003 \001(\003\022\014\n\004slot\030\005 \001(\r\022\013\n\003doc\030\007 \001(\014"
-  "\022\014\n\004docs\030\010 \003(\014\"i\n\013RaftCommand\022\026\n\004type\030\001 "
-  "\001(\0162\010.CmdType\022\036\n\rwrite_command\030\002 \001(\0132\007.D"
-  "ocCmd\022\"\n\014update_space\030\003 \001(\0132\014.UpdateSpac"
-  "e\"&\n\010SnapData\022\013\n\003key\030\001 \001(\014\022\r\n\005value\030\002 \001("
-  "\014*\?\n\006OpType\022\n\n\006CREATE\020\000\022\n\n\006DELETE\020\001\022\010\n\004B"
-  "ULK\020\002\022\007\n\003GET\020\003\022\n\n\006SEARCH\020\004*\?\n\007CmdType\022\t\n"
-  "\005WRITE\020\000\022\017\n\013UPDATESPACE\020\001\022\t\n\005FLUSH\020\002\022\r\n\t"
-  "SEARCHDEL\020\003B\016H\001Z\n./vearchpbb\006proto3"
+  ".Error\0223\n\025del_by_query_response\030\t \001(\0132\024."
+  "DelByQueryeResponse\022$\n\rindex_request\030\n \001"
+  "(\0132\r.IndexRequest\022&\n\016index_response\030\013 \001("
+  "\0132\016.IndexResponse\022$\n\rquery_request\030\014 \001(\013"
+  "2\r.QueryRequest\"-\n\013UpdateSpace\022\r\n\005Space\030"
+  "\001 \001(\014\022\017\n\007version\030\002 \001(\004\"Y\n\006DocCmd\022\025\n\004type"
+  "\030\001 \001(\0162\007.OpType\022\017\n\007version\030\003 \001(\003\022\014\n\004slot"
+  "\030\005 \001(\r\022\013\n\003doc\030\007 \001(\014\022\014\n\004docs\030\010 \003(\014\"i\n\013Raf"
+  "tCommand\022\026\n\004type\030\001 \001(\0162\010.CmdType\022\036\n\rwrit"
+  "e_command\030\002 \001(\0132\007.DocCmd\022\"\n\014update_space"
+  "\030\003 \001(\0132\014.UpdateSpace\"&\n\010SnapData\022\013\n\003key\030"
+  "\001 \001(\014\022\r\n\005value\030\002 \001(\014*\?\n\006OpType\022\n\n\006CREATE"
+  "\020\000\022\n\n\006DELETE\020\001\022\010\n\004BULK\020\002\022\007\n\003GET\020\003\022\n\n\006SEA"
+  "RCH\020\004*\?\n\007CmdType\022\t\n\005WRITE\020\000\022\017\n\013UPDATESPA"
+  "CE\020\001\022\t\n\005FLUSH\020\002\022\r\n\tSEARCHDEL\020\003B\016H\001Z\n./ve"
+  "archpbb\006proto3"
   ;
 static const ::_pbi::DescriptorTable* const descriptor_table_raftcmd_2eproto_deps[3] = {
   &::descriptor_table_data_5fmodel_2eproto,
@@ -220,7 +212,7 @@ static const ::_pbi::DescriptorTable* const descriptor_table_raftcmd_2eproto_dep
 };
 static ::_pbi::once_flag descriptor_table_raftcmd_2eproto_once;
 const ::_pbi::DescriptorTable descriptor_table_raftcmd_2eproto = {
-    false, false, 995, descriptor_table_protodef_raftcmd_2eproto,
+    false, false, 894, descriptor_table_protodef_raftcmd_2eproto,
     "raftcmd.proto",
     &descriptor_table_raftcmd_2eproto_once, descriptor_table_raftcmd_2eproto_deps, 3, 5,
     schemas, file_default_instances, TableStruct_raftcmd_2eproto::offsets,
@@ -329,12 +321,6 @@ void PartitionData::clear_err() {
   }
   _impl_.err_ = nullptr;
 }
-void PartitionData::clear_search_requests() {
-  _impl_.search_requests_.Clear();
-}
-void PartitionData::clear_search_responses() {
-  _impl_.search_responses_.Clear();
-}
 void PartitionData::clear_del_by_query_response() {
   if (GetArenaForAllocation() == nullptr && _impl_.del_by_query_response_ != nullptr) {
     delete _impl_.del_by_query_response_;
@@ -370,8 +356,6 @@ PartitionData::PartitionData(const PartitionData& from)
   PartitionData* const _this = this; (void)_this;
   new (&_impl_) Impl_{
       decltype(_impl_.items_){from._impl_.items_}
-    , decltype(_impl_.search_requests_){from._impl_.search_requests_}
-    , decltype(_impl_.search_responses_){from._impl_.search_responses_}
     , decltype(_impl_.messageid_){}
     , decltype(_impl_.data_){}
     , decltype(_impl_.search_request_){nullptr}
@@ -383,7 +367,6 @@ PartitionData::PartitionData(const PartitionData& from)
     , decltype(_impl_.query_request_){nullptr}
     , decltype(_impl_.type_){}
     , decltype(_impl_.partitionid_){}
-    , decltype(_impl_.del_num_){}
     , /*decltype(_impl_._cached_size_)*/{}};
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
@@ -425,8 +408,8 @@ PartitionData::PartitionData(const PartitionData& from)
     _this->_impl_.query_request_ = new ::QueryRequest(*from._impl_.query_request_);
   }
   ::memcpy(&_impl_.type_, &from._impl_.type_,
-    static_cast<size_t>(reinterpret_cast<char*>(&_impl_.del_num_) -
-    reinterpret_cast<char*>(&_impl_.type_)) + sizeof(_impl_.del_num_));
+    static_cast<size_t>(reinterpret_cast<char*>(&_impl_.partitionid_) -
+    reinterpret_cast<char*>(&_impl_.type_)) + sizeof(_impl_.partitionid_));
   // @@protoc_insertion_point(copy_constructor:PartitionData)
 }
 
@@ -436,8 +419,6 @@ inline void PartitionData::SharedCtor(
   (void)is_message_owned;
   new (&_impl_) Impl_{
       decltype(_impl_.items_){arena}
-    , decltype(_impl_.search_requests_){arena}
-    , decltype(_impl_.search_responses_){arena}
     , decltype(_impl_.messageid_){}
     , decltype(_impl_.data_){}
     , decltype(_impl_.search_request_){nullptr}
@@ -449,7 +430,6 @@ inline void PartitionData::SharedCtor(
     , decltype(_impl_.query_request_){nullptr}
     , decltype(_impl_.type_){0}
     , decltype(_impl_.partitionid_){0u}
-    , decltype(_impl_.del_num_){0}
     , /*decltype(_impl_._cached_size_)*/{}
   };
   _impl_.messageid_.InitDefault();
@@ -474,8 +454,6 @@ PartitionData::~PartitionData() {
 inline void PartitionData::SharedDtor() {
   GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
   _impl_.items_.~RepeatedPtrField();
-  _impl_.search_requests_.~RepeatedPtrField();
-  _impl_.search_responses_.~RepeatedPtrField();
   _impl_.messageid_.Destroy();
   _impl_.data_.Destroy();
   if (this != internal_default_instance()) delete _impl_.search_request_;
@@ -498,8 +476,6 @@ void PartitionData::Clear() {
   (void) cached_has_bits;
 
   _impl_.items_.Clear();
-  _impl_.search_requests_.Clear();
-  _impl_.search_responses_.Clear();
   _impl_.messageid_.ClearToEmpty();
   _impl_.data_.ClearToEmpty();
   if (GetArenaForAllocation() == nullptr && _impl_.search_request_ != nullptr) {
@@ -531,8 +507,8 @@ void PartitionData::Clear() {
   }
   _impl_.query_request_ = nullptr;
   ::memset(&_impl_.type_, 0, static_cast<size_t>(
-      reinterpret_cast<char*>(&_impl_.del_num_) -
-      reinterpret_cast<char*>(&_impl_.type_)) + sizeof(_impl_.del_num_));
+      reinterpret_cast<char*>(&_impl_.partitionid_) -
+      reinterpret_cast<char*>(&_impl_.type_)) + sizeof(_impl_.partitionid_));
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
@@ -615,67 +591,33 @@ const char* PartitionData::_InternalParse(const char* ptr, ::_pbi::ParseContext*
         } else
           goto handle_unusual;
         continue;
-      // repeated .SearchRequest search_requests = 9;
+      // .DelByQueryeResponse del_by_query_response = 9;
       case 9:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 74)) {
-          ptr -= 1;
-          do {
-            ptr += 1;
-            ptr = ctx->ParseMessage(_internal_add_search_requests(), ptr);
-            CHK_(ptr);
-            if (!ctx->DataAvailable(ptr)) break;
-          } while (::PROTOBUF_NAMESPACE_ID::internal::ExpectTag<74>(ptr));
-        } else
-          goto handle_unusual;
-        continue;
-      // repeated .SearchResponse search_responses = 10;
-      case 10:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 82)) {
-          ptr -= 1;
-          do {
-            ptr += 1;
-            ptr = ctx->ParseMessage(_internal_add_search_responses(), ptr);
-            CHK_(ptr);
-            if (!ctx->DataAvailable(ptr)) break;
-          } while (::PROTOBUF_NAMESPACE_ID::internal::ExpectTag<82>(ptr));
-        } else
-          goto handle_unusual;
-        continue;
-      // int32 del_num = 11;
-      case 11:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 88)) {
-          _impl_.del_num_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
-          CHK_(ptr);
-        } else
-          goto handle_unusual;
-        continue;
-      // .DelByQueryeResponse del_by_query_response = 12;
-      case 12:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 98)) {
           ptr = ctx->ParseMessage(_internal_mutable_del_by_query_response(), ptr);
           CHK_(ptr);
         } else
           goto handle_unusual;
         continue;
-      // .IndexRequest index_request = 13;
-      case 13:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 106)) {
+      // .IndexRequest index_request = 10;
+      case 10:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 82)) {
           ptr = ctx->ParseMessage(_internal_mutable_index_request(), ptr);
           CHK_(ptr);
         } else
           goto handle_unusual;
         continue;
-      // .IndexResponse index_response = 14;
-      case 14:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 114)) {
+      // .IndexResponse index_response = 11;
+      case 11:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 90)) {
           ptr = ctx->ParseMessage(_internal_mutable_index_response(), ptr);
           CHK_(ptr);
         } else
           goto handle_unusual;
         continue;
-      // .QueryRequest query_request = 15;
-      case 15:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 122)) {
+      // .QueryRequest query_request = 12;
+      case 12:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 98)) {
           ptr = ctx->ParseMessage(_internal_mutable_query_request(), ptr);
           CHK_(ptr);
         } else
@@ -768,53 +710,31 @@ uint8_t* PartitionData::_InternalSerialize(
         _Internal::err(this).GetCachedSize(), target, stream);
   }
 
-  // repeated .SearchRequest search_requests = 9;
-  for (unsigned i = 0,
-      n = static_cast<unsigned>(this->_internal_search_requests_size()); i < n; i++) {
-    const auto& repfield = this->_internal_search_requests(i);
-    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
-        InternalWriteMessage(9, repfield, repfield.GetCachedSize(), target, stream);
-  }
-
-  // repeated .SearchResponse search_responses = 10;
-  for (unsigned i = 0,
-      n = static_cast<unsigned>(this->_internal_search_responses_size()); i < n; i++) {
-    const auto& repfield = this->_internal_search_responses(i);
-    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
-        InternalWriteMessage(10, repfield, repfield.GetCachedSize(), target, stream);
-  }
-
-  // int32 del_num = 11;
-  if (this->_internal_del_num() != 0) {
-    target = stream->EnsureSpace(target);
-    target = ::_pbi::WireFormatLite::WriteInt32ToArray(11, this->_internal_del_num(), target);
-  }
-
-  // .DelByQueryeResponse del_by_query_response = 12;
+  // .DelByQueryeResponse del_by_query_response = 9;
   if (this->_internal_has_del_by_query_response()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
-      InternalWriteMessage(12, _Internal::del_by_query_response(this),
+      InternalWriteMessage(9, _Internal::del_by_query_response(this),
         _Internal::del_by_query_response(this).GetCachedSize(), target, stream);
   }
 
-  // .IndexRequest index_request = 13;
+  // .IndexRequest index_request = 10;
   if (this->_internal_has_index_request()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
-      InternalWriteMessage(13, _Internal::index_request(this),
+      InternalWriteMessage(10, _Internal::index_request(this),
         _Internal::index_request(this).GetCachedSize(), target, stream);
   }
 
-  // .IndexResponse index_response = 14;
+  // .IndexResponse index_response = 11;
   if (this->_internal_has_index_response()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
-      InternalWriteMessage(14, _Internal::index_response(this),
+      InternalWriteMessage(11, _Internal::index_response(this),
         _Internal::index_response(this).GetCachedSize(), target, stream);
   }
 
-  // .QueryRequest query_request = 15;
+  // .QueryRequest query_request = 12;
   if (this->_internal_has_query_request()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
-      InternalWriteMessage(15, _Internal::query_request(this),
+      InternalWriteMessage(12, _Internal::query_request(this),
         _Internal::query_request(this).GetCachedSize(), target, stream);
   }
 
@@ -837,20 +757,6 @@ size_t PartitionData::ByteSizeLong() const {
   // repeated .Item items = 4;
   total_size += 1UL * this->_internal_items_size();
   for (const auto& msg : this->_impl_.items_) {
-    total_size +=
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(msg);
-  }
-
-  // repeated .SearchRequest search_requests = 9;
-  total_size += 1UL * this->_internal_search_requests_size();
-  for (const auto& msg : this->_impl_.search_requests_) {
-    total_size +=
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(msg);
-  }
-
-  // repeated .SearchResponse search_responses = 10;
-  total_size += 1UL * this->_internal_search_responses_size();
-  for (const auto& msg : this->_impl_.search_responses_) {
     total_size +=
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(msg);
   }
@@ -890,28 +796,28 @@ size_t PartitionData::ByteSizeLong() const {
         *_impl_.err_);
   }
 
-  // .DelByQueryeResponse del_by_query_response = 12;
+  // .DelByQueryeResponse del_by_query_response = 9;
   if (this->_internal_has_del_by_query_response()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
         *_impl_.del_by_query_response_);
   }
 
-  // .IndexRequest index_request = 13;
+  // .IndexRequest index_request = 10;
   if (this->_internal_has_index_request()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
         *_impl_.index_request_);
   }
 
-  // .IndexResponse index_response = 14;
+  // .IndexResponse index_response = 11;
   if (this->_internal_has_index_response()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
         *_impl_.index_response_);
   }
 
-  // .QueryRequest query_request = 15;
+  // .QueryRequest query_request = 12;
   if (this->_internal_has_query_request()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
@@ -927,11 +833,6 @@ size_t PartitionData::ByteSizeLong() const {
   // uint32 partitionID = 2;
   if (this->_internal_partitionid() != 0) {
     total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(this->_internal_partitionid());
-  }
-
-  // int32 del_num = 11;
-  if (this->_internal_del_num() != 0) {
-    total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(this->_internal_del_num());
   }
 
   return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
@@ -953,8 +854,6 @@ void PartitionData::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::
   (void) cached_has_bits;
 
   _this->_impl_.items_.MergeFrom(from._impl_.items_);
-  _this->_impl_.search_requests_.MergeFrom(from._impl_.search_requests_);
-  _this->_impl_.search_responses_.MergeFrom(from._impl_.search_responses_);
   if (!from._internal_messageid().empty()) {
     _this->_internal_set_messageid(from._internal_messageid());
   }
@@ -995,9 +894,6 @@ void PartitionData::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::
   if (from._internal_partitionid() != 0) {
     _this->_internal_set_partitionid(from._internal_partitionid());
   }
-  if (from._internal_del_num() != 0) {
-    _this->_internal_set_del_num(from._internal_del_num());
-  }
   _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
 
@@ -1018,8 +914,6 @@ void PartitionData::InternalSwap(PartitionData* other) {
   auto* rhs_arena = other->GetArenaForAllocation();
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   _impl_.items_.InternalSwap(&other->_impl_.items_);
-  _impl_.search_requests_.InternalSwap(&other->_impl_.search_requests_);
-  _impl_.search_responses_.InternalSwap(&other->_impl_.search_responses_);
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
       &_impl_.messageid_, lhs_arena,
       &other->_impl_.messageid_, rhs_arena
@@ -1029,8 +923,8 @@ void PartitionData::InternalSwap(PartitionData* other) {
       &other->_impl_.data_, rhs_arena
   );
   ::PROTOBUF_NAMESPACE_ID::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(PartitionData, _impl_.del_num_)
-      + sizeof(PartitionData::_impl_.del_num_)
+      PROTOBUF_FIELD_OFFSET(PartitionData, _impl_.partitionid_)
+      + sizeof(PartitionData::_impl_.partitionid_)
       - PROTOBUF_FIELD_OFFSET(PartitionData, _impl_.search_request_)>(
           reinterpret_cast<char*>(&_impl_.search_request_),
           reinterpret_cast<char*>(&other->_impl_.search_request_));

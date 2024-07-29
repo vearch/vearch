@@ -375,11 +375,15 @@ func (handler *DocumentHandler) handleDocumentUpsert(c *gin.Context) {
 	args := &vearchpb.BulkRequest{}
 	args.Head = setRequestHeadFromGin(c)
 
-	docRequest, dbName, spaceName, err := documentHeadParse(c.Request)
+	docRequest := &request.DocumentRequest{}
+	err := c.ShouldBindJSON(docRequest)
 	if err != nil {
-		httphelper.New(c).JsonError(errors.NewErrInternal(err))
+		httphelper.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
 	}
+
+	dbName := docRequest.DbName
+	spaceName := docRequest.SpaceName
 	args.Head.DbName = dbName
 	args.Head.SpaceName = spaceName
 	space, err := handler.docService.getSpace(c.Request.Context(), args.Head)
@@ -394,7 +398,7 @@ func (handler *DocumentHandler) handleDocumentUpsert(c *gin.Context) {
 		return
 	}
 	reply := handler.docService.bulk(c.Request.Context(), args)
-	result, err := documentUpsertResponse(args, reply)
+	result, err := documentUpsertResponse(reply)
 	if err != nil {
 		httphelper.New(c).JsonError(errors.NewErrUnprocessable(err))
 		return
@@ -419,7 +423,8 @@ func (handler *DocumentHandler) handleDocumentQuery(c *gin.Context) {
 		}
 	}
 
-	searchDoc, err := documentRequestParse(c.Request)
+	searchDoc := &request.SearchDocumentRequest{}
+	err := c.ShouldBindJSON(searchDoc)
 	if err != nil {
 		httphelper.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
@@ -530,7 +535,8 @@ func (handler *DocumentHandler) handleDocumentSearch(c *gin.Context) {
 	args := &vearchpb.SearchRequest{}
 	args.Head = setRequestHeadFromGin(c)
 
-	searchDoc, err := documentRequestParse(c.Request)
+	searchDoc := &request.SearchDocumentRequest{}
+	err := c.ShouldBindJSON(searchDoc)
 	if err != nil {
 		httphelper.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
@@ -598,7 +604,8 @@ func (handler *DocumentHandler) handleDocumentDelete(c *gin.Context) {
 		}
 	}
 
-	searchDoc, err := documentRequestParse(c.Request)
+	searchDoc := &request.SearchDocumentRequest{}
+	err := c.ShouldBindJSON(searchDoc)
 	if err != nil {
 		httphelper.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
@@ -663,7 +670,8 @@ func (handler *DocumentHandler) handleIndexFlush(c *gin.Context) {
 	args := &vearchpb.FlushRequest{}
 	args.Head = setRequestHeadFromGin(c)
 
-	indexRequest, err := IndexRequestParse(c.Request)
+	indexRequest := &request.IndexRequest{}
+	err := c.ShouldBindJSON(indexRequest)
 	if err != nil {
 		httphelper.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
@@ -689,7 +697,8 @@ func (handler *DocumentHandler) handleIndexForceMerge(c *gin.Context) {
 	args := &vearchpb.ForceMergeRequest{}
 	args.Head = setRequestHeadFromGin(c)
 
-	indexRequest, err := IndexRequestParse(c.Request)
+	indexRequest := &request.IndexRequest{}
+	err := c.ShouldBindJSON(indexRequest)
 	if err != nil {
 		httphelper.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
@@ -717,7 +726,8 @@ func (handler *DocumentHandler) handleIndexRebuild(c *gin.Context) {
 	args := &vearchpb.IndexRequest{}
 	args.Head = setRequestHeadFromGin(c)
 
-	indexRequest, err := IndexRequestParse(c.Request)
+	indexRequest := &request.IndexRequest{}
+	err := c.ShouldBindJSON(indexRequest)
 	if err != nil {
 		httphelper.New(c).JsonError(errors.NewErrBadRequest(err))
 		return

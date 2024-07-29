@@ -134,8 +134,6 @@ func (handler *UnaryHandler) Execute(ctx context.Context, req *vearchpb.Partitio
 		reply.Items = req.Items
 		// reply.SearchRequest = req.SearchRequest
 		reply.SearchResponse = req.SearchResponse
-		// reply.SearchRequests = req.SearchRequests
-		reply.SearchResponses = req.SearchResponses
 		reply.DelByQueryResponse = req.DelByQueryResponse
 		reply.Err = req.Err
 		return

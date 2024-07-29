@@ -250,20 +250,17 @@ class PartitionData final :
 
   enum : int {
     kItemsFieldNumber = 4,
-    kSearchRequestsFieldNumber = 9,
-    kSearchResponsesFieldNumber = 10,
     kMessageIDFieldNumber = 3,
     kDataFieldNumber = 7,
     kSearchRequestFieldNumber = 5,
     kSearchResponseFieldNumber = 6,
     kErrFieldNumber = 8,
-    kDelByQueryResponseFieldNumber = 12,
-    kIndexRequestFieldNumber = 13,
-    kIndexResponseFieldNumber = 14,
-    kQueryRequestFieldNumber = 15,
+    kDelByQueryResponseFieldNumber = 9,
+    kIndexRequestFieldNumber = 10,
+    kIndexResponseFieldNumber = 11,
+    kQueryRequestFieldNumber = 12,
     kTypeFieldNumber = 1,
     kPartitionIDFieldNumber = 2,
-    kDelNumFieldNumber = 11,
   };
   // repeated .Item items = 4;
   int items_size() const;
@@ -282,42 +279,6 @@ class PartitionData final :
   ::Item* add_items();
   const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::Item >&
       items() const;
-
-  // repeated .SearchRequest search_requests = 9;
-  int search_requests_size() const;
-  private:
-  int _internal_search_requests_size() const;
-  public:
-  void clear_search_requests();
-  ::SearchRequest* mutable_search_requests(int index);
-  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::SearchRequest >*
-      mutable_search_requests();
-  private:
-  const ::SearchRequest& _internal_search_requests(int index) const;
-  ::SearchRequest* _internal_add_search_requests();
-  public:
-  const ::SearchRequest& search_requests(int index) const;
-  ::SearchRequest* add_search_requests();
-  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::SearchRequest >&
-      search_requests() const;
-
-  // repeated .SearchResponse search_responses = 10;
-  int search_responses_size() const;
-  private:
-  int _internal_search_responses_size() const;
-  public:
-  void clear_search_responses();
-  ::SearchResponse* mutable_search_responses(int index);
-  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::SearchResponse >*
-      mutable_search_responses();
-  private:
-  const ::SearchResponse& _internal_search_responses(int index) const;
-  ::SearchResponse* _internal_add_search_responses();
-  public:
-  const ::SearchResponse& search_responses(int index) const;
-  ::SearchResponse* add_search_responses();
-  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::SearchResponse >&
-      search_responses() const;
 
   // string messageID = 3;
   void clear_messageid();
@@ -401,7 +362,7 @@ class PartitionData final :
       ::Error* err);
   ::Error* unsafe_arena_release_err();
 
-  // .DelByQueryeResponse del_by_query_response = 12;
+  // .DelByQueryeResponse del_by_query_response = 9;
   bool has_del_by_query_response() const;
   private:
   bool _internal_has_del_by_query_response() const;
@@ -419,7 +380,7 @@ class PartitionData final :
       ::DelByQueryeResponse* del_by_query_response);
   ::DelByQueryeResponse* unsafe_arena_release_del_by_query_response();
 
-  // .IndexRequest index_request = 13;
+  // .IndexRequest index_request = 10;
   bool has_index_request() const;
   private:
   bool _internal_has_index_request() const;
@@ -437,7 +398,7 @@ class PartitionData final :
       ::IndexRequest* index_request);
   ::IndexRequest* unsafe_arena_release_index_request();
 
-  // .IndexResponse index_response = 14;
+  // .IndexResponse index_response = 11;
   bool has_index_response() const;
   private:
   bool _internal_has_index_response() const;
@@ -455,7 +416,7 @@ class PartitionData final :
       ::IndexResponse* index_response);
   ::IndexResponse* unsafe_arena_release_index_response();
 
-  // .QueryRequest query_request = 15;
+  // .QueryRequest query_request = 12;
   bool has_query_request() const;
   private:
   bool _internal_has_query_request() const;
@@ -491,15 +452,6 @@ class PartitionData final :
   void _internal_set_partitionid(uint32_t value);
   public:
 
-  // int32 del_num = 11;
-  void clear_del_num();
-  int32_t del_num() const;
-  void set_del_num(int32_t value);
-  private:
-  int32_t _internal_del_num() const;
-  void _internal_set_del_num(int32_t value);
-  public:
-
   // @@protoc_insertion_point(class_scope:PartitionData)
  private:
   class _Internal;
@@ -509,8 +461,6 @@ class PartitionData final :
   typedef void DestructorSkippable_;
   struct Impl_ {
     ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::Item > items_;
-    ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::SearchRequest > search_requests_;
-    ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::SearchResponse > search_responses_;
     ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr messageid_;
     ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr data_;
     ::SearchRequest* search_request_;
@@ -522,7 +472,6 @@ class PartitionData final :
     ::QueryRequest* query_request_;
     int type_;
     uint32_t partitionid_;
-    int32_t del_num_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
   union { Impl_ _impl_; };
@@ -1704,101 +1653,7 @@ inline void PartitionData::set_allocated_err(::Error* err) {
   // @@protoc_insertion_point(field_set_allocated:PartitionData.err)
 }
 
-// repeated .SearchRequest search_requests = 9;
-inline int PartitionData::_internal_search_requests_size() const {
-  return _impl_.search_requests_.size();
-}
-inline int PartitionData::search_requests_size() const {
-  return _internal_search_requests_size();
-}
-inline ::SearchRequest* PartitionData::mutable_search_requests(int index) {
-  // @@protoc_insertion_point(field_mutable:PartitionData.search_requests)
-  return _impl_.search_requests_.Mutable(index);
-}
-inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::SearchRequest >*
-PartitionData::mutable_search_requests() {
-  // @@protoc_insertion_point(field_mutable_list:PartitionData.search_requests)
-  return &_impl_.search_requests_;
-}
-inline const ::SearchRequest& PartitionData::_internal_search_requests(int index) const {
-  return _impl_.search_requests_.Get(index);
-}
-inline const ::SearchRequest& PartitionData::search_requests(int index) const {
-  // @@protoc_insertion_point(field_get:PartitionData.search_requests)
-  return _internal_search_requests(index);
-}
-inline ::SearchRequest* PartitionData::_internal_add_search_requests() {
-  return _impl_.search_requests_.Add();
-}
-inline ::SearchRequest* PartitionData::add_search_requests() {
-  ::SearchRequest* _add = _internal_add_search_requests();
-  // @@protoc_insertion_point(field_add:PartitionData.search_requests)
-  return _add;
-}
-inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::SearchRequest >&
-PartitionData::search_requests() const {
-  // @@protoc_insertion_point(field_list:PartitionData.search_requests)
-  return _impl_.search_requests_;
-}
-
-// repeated .SearchResponse search_responses = 10;
-inline int PartitionData::_internal_search_responses_size() const {
-  return _impl_.search_responses_.size();
-}
-inline int PartitionData::search_responses_size() const {
-  return _internal_search_responses_size();
-}
-inline ::SearchResponse* PartitionData::mutable_search_responses(int index) {
-  // @@protoc_insertion_point(field_mutable:PartitionData.search_responses)
-  return _impl_.search_responses_.Mutable(index);
-}
-inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::SearchResponse >*
-PartitionData::mutable_search_responses() {
-  // @@protoc_insertion_point(field_mutable_list:PartitionData.search_responses)
-  return &_impl_.search_responses_;
-}
-inline const ::SearchResponse& PartitionData::_internal_search_responses(int index) const {
-  return _impl_.search_responses_.Get(index);
-}
-inline const ::SearchResponse& PartitionData::search_responses(int index) const {
-  // @@protoc_insertion_point(field_get:PartitionData.search_responses)
-  return _internal_search_responses(index);
-}
-inline ::SearchResponse* PartitionData::_internal_add_search_responses() {
-  return _impl_.search_responses_.Add();
-}
-inline ::SearchResponse* PartitionData::add_search_responses() {
-  ::SearchResponse* _add = _internal_add_search_responses();
-  // @@protoc_insertion_point(field_add:PartitionData.search_responses)
-  return _add;
-}
-inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::SearchResponse >&
-PartitionData::search_responses() const {
-  // @@protoc_insertion_point(field_list:PartitionData.search_responses)
-  return _impl_.search_responses_;
-}
-
-// int32 del_num = 11;
-inline void PartitionData::clear_del_num() {
-  _impl_.del_num_ = 0;
-}
-inline int32_t PartitionData::_internal_del_num() const {
-  return _impl_.del_num_;
-}
-inline int32_t PartitionData::del_num() const {
-  // @@protoc_insertion_point(field_get:PartitionData.del_num)
-  return _internal_del_num();
-}
-inline void PartitionData::_internal_set_del_num(int32_t value) {
-  
-  _impl_.del_num_ = value;
-}
-inline void PartitionData::set_del_num(int32_t value) {
-  _internal_set_del_num(value);
-  // @@protoc_insertion_point(field_set:PartitionData.del_num)
-}
-
-// .DelByQueryeResponse del_by_query_response = 12;
+// .DelByQueryeResponse del_by_query_response = 9;
 inline bool PartitionData::_internal_has_del_by_query_response() const {
   return this != internal_default_instance() && _impl_.del_by_query_response_ != nullptr;
 }
@@ -1883,7 +1738,7 @@ inline void PartitionData::set_allocated_del_by_query_response(::DelByQueryeResp
   // @@protoc_insertion_point(field_set_allocated:PartitionData.del_by_query_response)
 }
 
-// .IndexRequest index_request = 13;
+// .IndexRequest index_request = 10;
 inline bool PartitionData::_internal_has_index_request() const {
   return this != internal_default_instance() && _impl_.index_request_ != nullptr;
 }
@@ -1968,7 +1823,7 @@ inline void PartitionData::set_allocated_index_request(::IndexRequest* index_req
   // @@protoc_insertion_point(field_set_allocated:PartitionData.index_request)
 }
 
-// .IndexResponse index_response = 14;
+// .IndexResponse index_response = 11;
 inline bool PartitionData::_internal_has_index_response() const {
   return this != internal_default_instance() && _impl_.index_response_ != nullptr;
 }
@@ -2053,7 +1908,7 @@ inline void PartitionData::set_allocated_index_response(::IndexResponse* index_r
   // @@protoc_insertion_point(field_set_allocated:PartitionData.index_response)
 }
 
-// .QueryRequest query_request = 15;
+// .QueryRequest query_request = 12;
 inline bool PartitionData::_internal_has_query_request() const {
   return this != internal_default_instance() && _impl_.query_request_ != nullptr;
 }

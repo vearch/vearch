@@ -25,13 +25,10 @@ message PartitionData {
   SearchResponse search_response = 6;
   bytes data = 7;
   Error err = 8;
-  repeated SearchRequest search_requests = 9;
-  repeated SearchResponse search_responses = 10;
-  int32 del_num = 11;
-  DelByQueryeResponse del_by_query_response = 12;
-  IndexRequest index_request = 13;
-  IndexResponse index_response = 14;
-  QueryRequest query_request = 15;
+  DelByQueryeResponse del_by_query_response = 9;
+  IndexRequest index_request = 10;
+  IndexResponse index_response = 11;
+  QueryRequest query_request = 12;
 }
 
 //*********************** Raft *********************** //

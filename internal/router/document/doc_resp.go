@@ -83,8 +83,8 @@ func docGetResponse(client *client.Client, args *vearchpb.GetRequest, reply *vea
 	return jsonData, nil
 }
 
-func documentUpsertResponse(args *vearchpb.BulkRequest, reply *vearchpb.BulkResponse) (map[string]interface{}, error) {
-	if args == nil || reply == nil || reply.Items == nil || len(reply.Items) < 1 {
+func documentUpsertResponse(reply *vearchpb.BulkResponse) (map[string]interface{}, error) {
+	if reply == nil || reply.Items == nil || len(reply.Items) < 1 {
 		if reply.GetHead() != nil && reply.GetHead().Err != nil && reply.GetHead().Err.Code != vearchpb.ErrorEnum_SUCCESS {
 			err := reply.GetHead().Err
 			return nil, vearchpb.NewError(err.Code, errors.New(err.Msg))
