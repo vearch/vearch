@@ -7,6 +7,8 @@ BasePath=$(
 )
 cd $BasePath
 
+CPUS=`cat /sys/fs/cgroup/cpu/cpu.cfs_quota_us` && [ -n $CPUS ] && [ $CPUS -gt 0 ] && CPUS=`expr $CPUS / 100000` && echo $CPUS && export OMP_NUM_THREADS=$CPUS
+
 function getServiceStatusInfo {
     pidFile=$1
     filterTag=$2
@@ -22,7 +24,7 @@ function start {
     info=$(getServiceStatusInfo "${stype}.pid" "${stype}")
     if [ -z "$info" ]; then
         export LD_LIBRARY_PATH=$cur_dir/lib/:$LD_LIBRARY_PATH
-        nohup $BasePath/vearch -conf $BasePath/config.toml $1 >$BasePath/vearch-${stype}-startup.log 2>&1 &
+        nohup $BasePath/bin/vearch -conf $BasePath/config.toml $1 >$BasePath/vearch-${stype}-startup.log 2>&1 &
         pid=$!
         echo $pid >$BasePath/${stype}.pid
         echo "[INFO] ${stype} started... pid:${pid}"
@@ -40,3 +42,9 @@ fi
 if [ -n "$1" ]; then
     start $1
 fi
+
+/usr/sbin/crond
+
+echo "*/1 * * * * cd /vearch && sh restart.sh $1 >> restart.log 2>&1 &" >> /var/spool/cron/root
+
+sleep 9999999d
