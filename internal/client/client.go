@@ -1680,6 +1680,7 @@ func (r *routerRequest) DelByQueryeExecute() *vearchpb.DelByQueryeResponse {
 			replyPartition := new(vearchpb.PartitionData)
 			defer func() {
 				if r := recover(); r != nil {
+					log.Error("recover info: %s", cast.ToString(r))
 					d.Err = &vearchpb.Error{Code: vearchpb.ErrorEnum_RECOVER, Msg: fmt.Sprintf("[Recover] partitionID: [%v], err: [%s]", pid, cast.ToString(r))}
 					respChain <- d
 				}
@@ -1702,6 +1703,10 @@ func (r *routerRequest) DelByQueryeExecute() *vearchpb.DelByQueryeResponse {
 
 	delByQueryResponse := &vearchpb.DelByQueryeResponse{}
 	for resp := range respChain {
+		if resp.Err != nil || resp.DelByQueryResponse == nil {
+		    log.Error("err: %s", resp.Err)
+		    continue
+		}
 		if len(resp.DelByQueryResponse.IdsStr) > 0 {
 			delByQueryResponse.IdsStr = append(delByQueryResponse.IdsStr, resp.DelByQueryResponse.IdsStr...)
 		}

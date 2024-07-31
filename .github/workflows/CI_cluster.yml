@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-and-test:
+  cluster-build-and-test:
     strategy:
       matrix:
         include:
@@ -39,6 +39,9 @@ jobs:
         docker build ${{ matrix.docker-arch }} -t vearch/vearch:latest .
         cp ../config/config_cluster.toml .
         sed -i 's/resource_limit_rate = 0.85/resource_limit_rate = 0.98/' config_cluster.toml
+        if [ "${{ matrix.docker-arch }}" == "linux/arm64" ]; then
+          echo "rpc_timeout = 500" >> config_cluster.toml
+        fi
 
     - name: Run docker-compose
       uses: hoverkraft-tech/compose-action@v2.0.1
@@ -96,8 +99,6 @@ jobs:
         docker-compose start master1
 
     - name: Run tests for restart ps
-      # TODO FIXME ON ARM64
-      if: matrix.platform != 'arm64'
       run: |
         cd test
         pytest test_cluster_ps.py -k "TestClusterPartitionServerAdd" -x --log-cli-level=INFO
