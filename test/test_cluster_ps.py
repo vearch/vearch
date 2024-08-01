@@ -99,6 +99,28 @@ class TestClusterPartitionServerAdd:
             delete_space_name=space_name_each,
         )
 
+class TestClusterPartitionServerRecover:
+    def test_ps_recover(self):
+        num = 0
+        while num != 3:
+            response = get_servers_status(router_url)
+            num = response.json()["data"]["count"]
+            time.sleep(5)
+        logger.info(num)
+        leader_status = 0
+        while leader_status == 0:
+            response = list_spaces(router_url, db_name)
+            for space in response.json()["data"]:
+                for partition in space["partitions"]:
+                    leader_status = partition["raft_status"]["Leader"]
+                    if leader_status == 0:
+                        break
+                if leader_status == 0:
+                    break
+            time.sleep(15)
+        logger.info(leader_status)
+        response = list_spaces(router_url, db_name)
+        logger.info(response.json())
 
 class TestClusterPartitionServerCheckSpace:
     def test_check_space(self):
@@ -205,7 +227,7 @@ class TestClusterPartitionChange:
         response = get_servers_status(router_url)
         logger.info(response.json())
 
-        time.sleep(10)
+        time.sleep(30)
 
         response = get_servers_status(router_url)
         for server in response.json()["data"]["servers"]:

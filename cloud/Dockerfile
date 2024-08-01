@@ -11,6 +11,6 @@ RUN chmod +x /vearch/start.sh
 
 RUN chmod +x /vearch/restart.sh
 
-RUN dnf --enablerepo=crb install -y libgomp lapack libzstd openblas-devel tbb cronie
+RUN dnf --enablerepo=crb install -y libgomp lapack libzstd openblas-devel tbb cronie procps
 
 ENTRYPOINT ["/vearch/start.sh"]
