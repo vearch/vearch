@@ -1237,7 +1237,6 @@ class HierarchicalNSW : public AlgorithmInterface<dist_t> {
           do_efSearch_check, fstdistfunc, retrieval_context);
       }
     }
-    pthread_rwlock_unlock(&shared_mutex_);
 
     while (top_candidates.size() > k) {
       top_candidates.pop();
@@ -1248,6 +1247,7 @@ class HierarchicalNSW : public AlgorithmInterface<dist_t> {
                                                getExternalLabel(rez.second)));
       top_candidates.pop();
     }
+    pthread_rwlock_unlock(&shared_mutex_);
     return result;
   };
 };
