@@ -1016,14 +1016,11 @@ def process_delete_data(items):
     seed = items[4]
     delete_type = items[5]
 
-    if len(items) == 9:
-        delete_db_name = items[7]
-        delete_space_name = items[8]
-        data["db_name"] = delete_db_name
-        data["space_name"] = delete_space_name
-    else:
-        data["db_name"] = db_name
-        data["space_name"] = space_name
+    delete_db_name = items[7]
+    delete_space_name = items[8]
+    data["db_name"] = delete_db_name
+    data["space_name"] = delete_space_name
+
     if items[6] != "":
         data["space_name"] = items[6]
 
