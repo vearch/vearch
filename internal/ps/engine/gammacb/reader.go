@@ -47,10 +47,16 @@ func (ri *readerImpl) GetDoc(ctx context.Context, doc *vearchpb.Document, getByD
 	var primaryKey []byte
 	var docID int
 	if getByDocId {
-		docId, err := strconv.ParseUint(doc.PKey, 10, 32)
+		docId, err := strconv.ParseInt(doc.PKey, 10, 32)
 		if err != nil {
-			msg := fmt.Sprintf("key: [%s] convert to uint32 failed, err: [%s]", doc.PKey, err.Error())
+			msg := fmt.Sprintf("key: [%s] convert to int32 failed, err: [%s]", doc.PKey, err.Error())
 			return vearchpb.NewError(vearchpb.ErrorEnum_PRIMARY_KEY_IS_INVALID, errors.New(msg))
+		}
+		if next && docId < -1 {
+			return vearchpb.NewError(vearchpb.ErrorEnum_PRIMARY_KEY_IS_INVALID, fmt.Errorf("docid: [%s] less than -1 with next as true", doc.PKey))
+		}
+		if docId < 0 {
+			return vearchpb.NewError(vearchpb.ErrorEnum_PRIMARY_KEY_IS_INVALID, fmt.Errorf("docid: [%s] less than 0", doc.PKey))
 		}
 		docID = int(docId)
 	} else {

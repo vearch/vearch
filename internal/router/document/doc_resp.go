@@ -179,7 +179,7 @@ func documentGetResponse(space *entity.Space, reply *vearchpb.GetResponse, retur
 			doc["msg"] = item.Err.Msg
 		}
 
-		if item.Doc.Fields != nil {
+		if item.Doc.Fields != nil && len(item.Doc.Fields) > 0 {
 			nextDocid, _ := docFieldSerialize(item.Doc, space, returnFieldsMap, vectorValue, doc)
 			if nextDocid > 0 {
 				doc["_docid"] = strconv.Itoa(int(nextDocid))

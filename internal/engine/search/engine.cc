@@ -751,6 +751,12 @@ int Engine::GetDoc(const std::string &key, Doc &doc) {
 
 int Engine::GetDoc(int docid, Doc &doc, bool next) {
   int ret = 0;
+
+  if ((next ? docid < -1 : docid < 0) || docid >= max_docid_) {
+    LOG(ERROR) << space_name_ << " docid [" << docid << "] error, max_docid_ = " << max_docid_;
+    return -1;
+  }
+
   if (next) {
     while (++docid < max_docid_) {
       if (!docids_bitmap_->Test(docid)) {
@@ -758,6 +764,7 @@ int Engine::GetDoc(int docid, Doc &doc, bool next) {
       }
     }
     if (docid >= max_docid_) {
+      LOG(ERROR) << space_name_ << " docid [" << docid << "] is greater then max_docid " << max_docid_;
       return -1;
     }
   } else if (docids_bitmap_->Test(docid)) {

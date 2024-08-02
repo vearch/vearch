@@ -308,7 +308,7 @@ def check(total, full_field, xb, mode: str):
 
     for i in range(total):
         process_delete_data(
-            (logger, i, batch_size, full_field, 1, "by_filter", "")
+            (logger, i, batch_size, full_field, 1, "by_filter", "", db_name, space_name, True)
         )
         assert get_space_num() == total - i - 1
 

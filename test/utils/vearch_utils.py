@@ -191,6 +191,8 @@ def process_add_embedding_size_data(items):
         data["documents"].append(param_dict)
 
     rs = requests.post(url, auth=(username, password), json=data)
+    assert rs.json()["code"] >= 0
+    return rs
 
 
 def add_embedding_size(db_name, space_name, total, batch_size, embedding_size):
@@ -697,6 +699,8 @@ def process_query_error_data(items):
         wrong_term_filter_name,
         out_of_bounds_ids,
         wrong_partition_of_bad_type,
+        wrong_document_id_of_partition,
+        wrong_document_id_of_partition_next
     ) = items[5]
 
     max_document_ids_length = 501
@@ -769,6 +773,21 @@ def process_query_error_data(items):
     if wrong_partition_of_bad_type and interface == "query":
         data["document_ids"] = ["0"]
         data["partition_id"] = "1008611"
+
+    if wrong_document_id_of_partition and interface == "query":
+        data["document_ids"] = ["-1"]
+        partition_id = 1
+        partition_ids = get_partition(router_url, db_name, space_name)
+        partition_id = partition_ids[0]
+        data["partition_id"] = partition_id
+
+    if wrong_document_id_of_partition_next and interface == "query":
+        data["document_ids"] = ["-2"]
+        partition_id = 1
+        partition_ids = get_partition(router_url, db_name, space_name)
+        partition_id = partition_ids[0]
+        data["partition_id"] = partition_id
+        data["next"] = True
 
     json_str = json.dumps(data)
 
@@ -855,11 +874,10 @@ def query_error(logger, total, batch_size, xb, interface: str, wrong_parameters:
             )
 
 
-def process_get_data(items):
+def process_query_data(items):
     url = router_url + "/document/query"
     data = {}
-    data["db_name"] = db_name
-    data["space_name"] = space_name
+
     data["vector_value"] = True
     # data["fields"] = ["field_int"]
 
@@ -873,6 +891,10 @@ def process_get_data(items):
     if items[7] != "":
         data["space_name"] = items[7]
 
+    data["db_name"] = items[8]
+    data["space_name"] = items[9]
+    check_vector = items[10]
+    check = items[11]
     if (
         query_type == "by_partition"
         or query_type == "by_partition_next"
@@ -886,10 +908,10 @@ def process_get_data(items):
 
     if query_type == "by_partition" or query_type == "by_partition_next":
         partition_id = 1
-        partition_ids = get_partition(router_url, db_name, space_name)
+        partition_ids = get_partition(router_url, items[8], items[9])
         if len(partition_ids) >= 1:
             partition_id = partition_ids[0]
-        # logger.debug("partition_id: " + str(partition_id))
+        logger.debug("partition_id: " + str(partition_id))
         data["partition_id"] = partition_id
         if query_type == "by_partition_next":
             data["next"] = True
@@ -903,6 +925,11 @@ def process_get_data(items):
 
     json_str = json.dumps(data)
     rs = requests.post(url, auth=(username, password), data=json_str)
+
+    if not check:
+        logger.info(rs.text)
+        assert rs.json()["code"] >= 0
+        return rs
     if rs.status_code != 200 or "documents" not in rs.json()["data"]:
         logger.info(rs.json())
         logger.info(json_str)
@@ -925,7 +952,7 @@ def process_get_data(items):
             assert documents[j]["_docid"] == str(index * batch_size + j + 1)
 
         assert documents[j]["field_int"] == value * seed
-        if query_type == "by_ids":
+        if query_type == "by_ids" and check_vector:
             assert documents[j]["field_vector"] == features[j].tolist()
         if full_field:
             assert documents[j]["field_long"] == value * seed
@@ -942,11 +969,15 @@ def query_interface(
     seed=1,
     query_type="by_ids",
     alias_name="",
+    query_db_name=db_name,
+    query_space_name=space_name,
+    check_vector=True,
+    check=True
 ):
     if query_type == "by_partition_next" and batch_size == 1:
         total -= 1
     for i in range(total):
-        process_get_data(
+        process_query_data(
             (
                 logger,
                 i,
@@ -956,6 +987,10 @@ def query_interface(
                 seed,
                 query_type,
                 alias_name,
+                query_db_name,
+                query_space_name,
+                check_vector,
+                check
             )
         )
 
@@ -965,7 +1000,7 @@ def query_interface(
 #     total_data = []
 #     for i in range(total):
 #         total_data.append((logger, i, batch_size,  xb[i * batch_size: (i + 1) * batch_size], full_field, seed, query_type))
-#     results = pool.map(process_get_data, total_data)
+#     results = pool.map(process_query_data, total_data)
 #     pool.close()
 #     pool.join()
 
@@ -992,6 +1027,8 @@ def process_delete_data(items):
     if items[6] != "":
         data["space_name"] = items[6]
 
+    check=items[9]
+
     if delete_type == "by_ids":
         data["document_ids"] = []
         for j in range(batch_size):
@@ -1007,6 +1044,9 @@ def process_delete_data(items):
 
     json_str = json.dumps(data)
     rs = requests.post(url, auth=(username, password), data=json_str)
+    if not check:
+        assert rs.json()["code"] >= 0
+        return rs
     if rs.status_code != 200 or "document_ids" not in rs.json()["data"]:
         logger.info(rs.json())
         logger.info(json_str)
@@ -1036,6 +1076,7 @@ def delete_interface(
     alias_name="",
     delete_db_name=db_name,
     delete_space_name=space_name,
+    check=True
 ):
     for i in range(total):
         process_delete_data(
@@ -1049,6 +1090,7 @@ def delete_interface(
                 alias_name,
                 delete_db_name,
                 delete_space_name,
+                check
             )
         )
 
@@ -1056,8 +1098,6 @@ def delete_interface(
 def process_search_data(items):
     url = router_url + "/document/search"
     data = {}
-    data["db_name"] = db_name
-    data["space_name"] = space_name
     data["vector_value"] = True
 
     logger = items[0]
@@ -1068,9 +1108,14 @@ def process_search_data(items):
     with_filter = items[5]
     seed = items[6]
     query_type = items[7]
+
+    data["db_name"] = items[9]
+    data["space_name"] = items[10]
+
     if items[8] != "":
         data["space_name"] = items[8]
 
+    check = items[11]
     with_symbol = False
     if query_type == "by_vector_with_symbol":
         query_type = "by_vector"
@@ -1096,6 +1141,10 @@ def process_search_data(items):
 
     json_str = json.dumps(data)
     rs = requests.post(url, auth=(username, password), data=json_str)
+
+    if not check:
+        assert rs.json()["code"] >= 0
+        return rs
     if rs.status_code != 200 or "documents" not in rs.json()["data"]:
         logger.info(rs.json())
         logger.info(json_str)
@@ -1132,6 +1181,9 @@ def search_interface(
     seed=1,
     query_type="by_vector",
     alias_name="",
+    search_db_name=db_name,
+    search_space_name=space_name,
+    check=True
 ):
     for i in range(total):
         process_search_data(
@@ -1145,6 +1197,9 @@ def search_interface(
                 seed,
                 query_type,
                 alias_name,
+                search_db_name,
+                search_space_name,
+                check
             )
         )
 
