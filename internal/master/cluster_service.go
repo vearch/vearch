@@ -209,7 +209,7 @@ func (ms *masterService) deleteDBService(ctx context.Context, dbstr string) (err
 }
 
 func (ms *masterService) updateDBIpList(ctx context.Context, dbModify *entity.DBModify) (db *entity.DB, err error) {
-	// process painc
+	// process panic
 	defer errutil.CatchError(&err)
 	var id int64
 	db = &entity.DB{}
@@ -2030,7 +2030,7 @@ func (ms *masterService) ChangeMembers(ctx context.Context, cms *entity.ChangeMe
 
 // recover fail node
 func (ms *masterService) RecoverFailServer(ctx context.Context, rs *entity.RecoverFailServer) (e error) {
-	// painc process
+	// panic process
 	defer errutil.CatchError(&e)
 	// get failserver info
 	targetFailServer := ms.Master().QueryServerByIPAddr(ctx, rs.FailNodeAddr)
@@ -2088,7 +2088,7 @@ func (ms *masterService) DBServers(ctx context.Context, dbName string) (servers 
 
 // change replicas, add or delete
 func (ms *masterService) ChangeReplica(ctx context.Context, dbModify *entity.DBModify) (e error) {
-	// painc process
+	// panic process
 	defer errutil.CatchError(&e)
 	// query server
 	servers, err := ms.DBServers(ctx, dbModify.DbName)
