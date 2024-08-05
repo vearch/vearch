@@ -1183,6 +1183,7 @@ class HierarchicalNSW : public AlgorithmInterface<dist_t> {
     dist_t curdist = fstdistfunc(
         query_data, getDataByInternalId(enterpoint_node_), dist_func_param_);
 
+    pthread_rwlock_rdlock(&shared_mutex_);
     for (int level = maxlevel_; level > 0; level--) {
       bool changed = true;
       while (changed) {
@@ -1215,7 +1216,6 @@ class HierarchicalNSW : public AlgorithmInterface<dist_t> {
                         std::vector<std::pair<dist_t, tableint>>,
                         CompareByFirst>
         top_candidates;
-    pthread_rwlock_rdlock(&shared_mutex_);
     if (num_deleted_) {
       if (collect_metrics) {
         top_candidates = searchBaseLayerST<true, true>(
