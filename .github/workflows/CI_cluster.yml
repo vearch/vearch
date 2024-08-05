@@ -34,7 +34,7 @@ jobs:
     - name: Compile and Build
       run: |
         cd cloud
-        docker run ${{ matrix.docker-arch }} --privileged -i -v $(dirname "$PWD"):/vearch vearch/vearch-dev-env:latest /vearch/cloud/compile/compile.sh
+        docker run --name vearch-dev ${{ matrix.docker-arch }} --privileged -i -v $(dirname "$PWD"):/vearch vearch/vearch-dev-env:latest /vearch/cloud/compile/compile.sh
         cp -r ../build/bin compile/; cp -r ../build/lib compile/
         docker build ${{ matrix.docker-arch }} -t vearch/vearch:latest .
         cp ../config/config_cluster.toml .
@@ -43,6 +43,8 @@ jobs:
           echo "    rpc_timeout = 500" >> config_cluster.toml
         fi
         cat config_cluster.toml
+        docker rm vearch-dev
+        docker rmi vearch/vearch-dev-env:latest
 
     - name: Run docker-compose
       uses: hoverkraft-tech/compose-action@v2.0.1
@@ -55,7 +57,7 @@ jobs:
       run: |
         mkdir test/oss_data
         docker run -d --name minio -p 10000:9000 --network vearch_network_cluster minio/minio server test/oss_data
-        wget https://dl.min.io/client/mc/release/linux-amd64/mc
+        wget -q https://dl.min.io/client/mc/release/linux-amd64/mc
         chmod +x mc
         ./mc alias set myminio http://127.0.0.1:10000 minioadmin minioadmin
         ./mc mb myminio/test
