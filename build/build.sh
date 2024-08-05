@@ -64,7 +64,7 @@ function build_thirdparty() {
     export ROCKSDB_HOME=/usr/local/include/rocksdb
     if [ ! -d "${ROCKSDB_HOME}" ]; then
       rm -rf rocksdb*
-      wget ${ROCKSDB_URL} -O rocksdb.tar.gz
+      wget -q ${ROCKSDB_URL} -O rocksdb.tar.gz
       tar -xzf rocksdb.tar.gz
       pushd rocksdb-9.2.1
       CFLAGS="-O3 -fPIC" make shared_lib $COMPILE_THREAD_NUM
@@ -74,7 +74,7 @@ function build_thirdparty() {
   fi
 
   if [[ ! -f "/usr/local/lib/libprotobuf.so" ]]; then
-    wget https://github.com/protocolbuffers/protobuf/releases/download/v21.0/protobuf-cpp-3.21.0.tar.gz
+    wget -q https://github.com/protocolbuffers/protobuf/releases/download/v21.0/protobuf-cpp-3.21.0.tar.gz
     tar xf protobuf-cpp-3.21.0.tar.gz
     pushd protobuf-3.21.0
     ./configure && make -j4 && make install

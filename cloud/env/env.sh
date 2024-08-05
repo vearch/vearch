@@ -1,12 +1,5 @@
 #!/usr/bin/env bash
 
-dnf update
-dnf install -y epel-release
-dnf install -y wget make automake git which libzstd-devel openssl-devel tbb-devel boost-devel
-dnf --enablerepo=crb install -y blas-devel lapack-devel openblas-devel
-dnf -y install gcc-c++
-g++ -v
-
 ARCH=$(arch)
 
 if [ ! -d "/env/app" ]; then
@@ -22,19 +15,19 @@ elif [ $ARCH = "aarch64" ]; then
     CMAKE_FILE=cmake-3.20.0-linux-aarch64
 fi
 
-wget https://github.com/Kitware/CMake/releases/download/v3.20.0/${CMAKE_FILE}.sh
+wget -q https://github.com/Kitware/CMake/releases/download/v3.20.0/${CMAKE_FILE}.sh
 bash ${CMAKE_FILE}.sh --skip-license --prefix=/usr/local
 cp -r -p /usr/local/${CMAKE_FILE}/bin/* /bin/
 rm -rf ${CMAKE_FILE}.sh
 
-wget https://github.com/protocolbuffers/protobuf/releases/download/v21.0/protobuf-cpp-3.21.0.tar.gz
+wget -q https://github.com/protocolbuffers/protobuf/releases/download/v21.0/protobuf-cpp-3.21.0.tar.gz
 tar xf protobuf-cpp-3.21.0.tar.gz
 cd protobuf-3.21.0
 ./configure && make -j4 && make install
 
 cd /env/app
 if [ ! -f "rocksdb-v9.2.1.tar.gz" ]; then
-    wget https://github.com/facebook/rocksdb/archive/refs/tags/v9.2.1.tar.gz -O rocksdb.tar.gz
+    wget -q https://github.com/facebook/rocksdb/archive/refs/tags/v9.2.1.tar.gz -O rocksdb.tar.gz
 fi
 tar xf rocksdb.tar.gz
 cd /env/app/rocksdb-9.2.1
@@ -49,16 +42,18 @@ rm -rf /env/app/rocksdb-9.2.1 /env/app/rocksdb.tar.gz
 
 cd /env/app/
 
+GO_VERSION=1.22.5
+
 if [ $ARCH = "x86_64" ]; then
-    if [ ! -f "go1.22.3.linux-amd64.tar.gz" ]; then
-        wget https://go.dev/dl/go1.22.3.linux-amd64.tar.gz
+    if [ ! -f "go$GO_VERSION.linux-amd64.tar.gz" ]; then
+        wget -q https://go.dev/dl/go$GO_VERSION.linux-amd64.tar.gz
     fi
-    tar -xzf go1.22.3.linux-amd64.tar.gz
-    rm -rf go1.22.3.linux-amd64.tar.gz
+    tar xf go$GO_VERSION.linux-amd64.tar.gz
+    rm -rf go$GO_VERSION.linux-amd64.tar.gz
 elif [ $ARCH = "aarch64" ]; then
-    if [ ! -f "go1.22.3.linux-arm64.tar.gz" ]; then
-        wget https://go.dev/dl/go1.22.3.linux-arm64.tar.gz
+    if [ ! -f "go$GO_VERSION.linux-arm64.tar.gz" ]; then
+        wget -q https://go.dev/dl/go$GO_VERSION.linux-arm64.tar.gz
     fi
-    tar -xzf go1.22.3.linux-arm64.tar.gz
-    rm -rf go1.22.3.linux-arm64.tar.gz
+    tar xf go$GO_VERSION.linux-arm64.tar.gz
+    rm -rf go$GO_VERSION.linux-arm64.tar.gz
 fi
