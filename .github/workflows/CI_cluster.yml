@@ -34,7 +34,7 @@ jobs:
     - name: Compile and Build
       run: |
         cd cloud
-        docker run ${{ matrix.docker-arch }} --privileged -i -v $(dirname "$PWD"):/vearch vearch/vearch-dev-env:latest /vearch/cloud/compile/compile.sh
+        docker run --name vearch-dev ${{ matrix.docker-arch }} --privileged -i -v $(dirname "$PWD"):/vearch vearch/vearch-dev-env:latest /vearch/cloud/compile/compile.sh
         cp -r ../build/bin compile/; cp -r ../build/lib compile/
         docker build ${{ matrix.docker-arch }} -t vearch/vearch:latest .
         cp ../config/config_cluster.toml .
@@ -43,6 +43,7 @@ jobs:
           echo "    rpc_timeout = 500" >> config_cluster.toml
         fi
         cat config_cluster.toml
+        docker rm vearch-dev
         docker rmi vearch/vearch-dev-env:latest
 
     - name: Run docker-compose
