@@ -55,13 +55,13 @@ class IvfPQIndex(Index):
         self._index_params = IndexParams(
             metric_type=metric_type, ncentroids=ncentroids, nsubvector=nsubvector
         )
-        self._index_params._replace(
+        self._index_params = self._index_params._replace(
             bucket_init_size=bucket_init_size if bucket_init_size else 1000
         )
-        self._index_params._replace(
+        self._index_params = self._index_params._replace(
             buckert_max_size=bucket_max_size if bucket_max_size else 1280000
         )
-        self._index_params._replace(
+        self._index_params = self._index_params._replace(
             training_threshold=(
                 training_threshold if training_threshold else int(ncentroids * 39)
             )
@@ -96,7 +96,7 @@ class IvfFlatIndex(Index):
     ):
         super().__init__(index_name, index_type=IndexType.IVFFLAT, **kwargs)
         self._index_params = IndexParams(metric_type=metric_type, ncentroids=ncentroids)
-        self._index_params._replace(
+        self._index_params = self._index_params._replace(
             training_threshold=(
                 training_threshold if training_threshold else int(ncentroids * 39)
             )
