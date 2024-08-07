@@ -470,7 +470,7 @@ int FieldRangeIndex::Add(std::string &key, int value) {
   };
 
   if (is_numeric_) {
-    ReverseEndian(reinterpret_cast<const unsigned char *>(key.c_str()),
+    ReverseEndian(reinterpret_cast<const unsigned char *>(key.data()),
                   key2.data(), key_len);
     InsertToBt(key2.data(), key_len);
   } else {
@@ -501,10 +501,10 @@ int FieldRangeIndex::Delete(std::string &key, int value) {
   size_t key_len = key.size();
   std::vector<unsigned char> key2(key_len);
 
-  auto DeleteFromBt = [&](unsigned char *key_to_add, uint key_len) {
+  auto DeleteFromBt = [&](unsigned char *key_to_delete, uint key_len) {
     Node *p_node = nullptr;
     int ret =
-        bt_findkey(bt, key_to_add, key_len,
+        bt_findkey(bt, key_to_delete, key_len,
                    reinterpret_cast<unsigned char *>(&p_node), sizeof(Node *));
 
     if (ret < 0) {
@@ -514,11 +514,11 @@ int FieldRangeIndex::Delete(std::string &key, int value) {
 
     p_node->Delete(value);
     // if (p_node->Size() == 0) {
-    //   BTERR err1 = bt_deletekey(bt, key_to_add, key_len, 1);
+    //   BTERR err1 = bt_deletekey(bt, key_to_delete, key_len, 1);
     //   if (err1 != BTERR_ok) {
     //     LOG(ERROR) << "Error deleting key at level 1: %d\n" << err1;
     //   }
-    //   BTERR err2 = bt_deletekey(bt, key_to_add, key_len, 0);
+    //   BTERR err2 = bt_deletekey(bt, key_to_delete, key_len, 0);
     //   if (err2 != BTERR_ok) {
     //     LOG(ERROR) << "Error deleting key at level 0: %d\n" << err2;
     //   }
@@ -527,7 +527,7 @@ int FieldRangeIndex::Delete(std::string &key, int value) {
   };
 
   if (is_numeric_) {
-    ReverseEndian(reinterpret_cast<const unsigned char *>(key.c_str()),
+    ReverseEndian(reinterpret_cast<const unsigned char *>(key.data()),
                   key2.data(), key_len);
     DeleteFromBt(key2.data(), key_len);
   } else {
@@ -582,6 +582,18 @@ int FieldRangeIndex::Search(const std::string &lower, const std::string &upper,
     BtKey *key = bt_key(bt, slot);
     BtVal *val = bt_val(bt, slot);
 
+    if (key->len == 2) {
+      if (((uint16_t)((unsigned char)key->key[0]) << 8 |
+           (unsigned char)key->key[1]) == 0xFFFF) {
+        LOG(INFO) << "met the lastkey " << lower << "-" << upper;
+      }
+      break;
+    }
+
+    if (val->len == 0) {
+      LOG(ERROR) << "value is NULL " << lower << "-" << upper;
+      break;
+    }
     if (keycmp(key, key_u.data(), upper_len) > 0) {
       break;
     }
