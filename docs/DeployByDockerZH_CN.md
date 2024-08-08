@@ -3,7 +3,7 @@
 ## Docker部署
 
 #### Docker Hub Image Center 
- 1. vearch基础编译环境镜像地址： https://hub.docker.com/r/vearch/vearch/tags
+ 1. vearch基础编译环境镜像地址: https://hub.docker.com/r/vearch/vearch-dev-env/tags
  2. vearch部署镜像地址: https://hub.docker.com/r/vearch/vearch/tags
 
 #### 使用Vearch镜像部署
