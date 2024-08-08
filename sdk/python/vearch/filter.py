@@ -3,12 +3,12 @@ from typing import List, Union
 
 class RelationOperator:
     IN = "IN"
-    EQ = "="
+    # TODO EQ = "="
     GT = ">"
     GE = ">="
     LT = "<"
     LE = "<="
-    LIKE = "LIKE"
+    # TODO LIKE = "LIKE"
 
 
 class BooleanOperator:
