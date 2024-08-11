@@ -197,7 +197,7 @@ endif()
 if(BUILD_WITH_SCANN)
     message(STATUS "With SCANN INDEX")
     exec_program(
-        "sh"
+        "bash"
         ${CMAKE_CURRENT_SOURCE_DIR}/third_party
         ARGS "build-scann.sh"
         RETURN_VALUE EXEC_RET_VAL)
