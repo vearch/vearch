@@ -62,7 +62,7 @@ class GammaIVFPQGPUIndex : public IndexModel {
 
   virtual ~GammaIVFPQGPUIndex();
 
-  int Init(const std::string &model_parameters, int training_threshold);
+  Status Init(const std::string &model_parameters, int training_threshold);
 
   RetrievalParameters *Parse(const std::string &parameters);
 
@@ -82,8 +82,8 @@ class GammaIVFPQGPUIndex : public IndexModel {
 
   long GetTotalMemBytes() override;
 
-  int Dump(const std::string &dir) override;
-  int Load(const std::string &index_dir) override;
+  Status Dump(const std::string &dir) override;
+  Status Load(const std::string &index_dir, int &load_num) override;
 
  private:
   int GPUThread();

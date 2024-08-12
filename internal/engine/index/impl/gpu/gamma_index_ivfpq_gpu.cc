@@ -151,11 +151,13 @@ struct IVFPQModelParams {
     metric_type = DistanceComputeType::INNER_PRODUCT;
   }
 
-  int Parse(const char *str) {
+  Status Parse(const char *str) {
     utils::JsonParser jp;
     if (jp.Parse(str)) {
-      LOG(ERROR) << "parse IVFPQ retrieval parameters error: " << str;
-      return -1;
+      std::string msg =
+          std::string("parse IVFPQ retrieval parameters error: ") + str;
+      LOG(ERROR) << msg;
+      return Status::ParamError(msg);
     }
 
     int ncentroids;
@@ -165,30 +167,30 @@ struct IVFPQModelParams {
     // -1 as default
     if (!jp.GetInt("ncentroids", ncentroids)) {
       if (ncentroids < -1) {
-        LOG(ERROR) << "invalid ncentroids =" << ncentroids;
-        return -1;
+        std::string msg =
+            std::string("invalid ncentroids =") + std::to_string(ncentroids);
+        LOG(ERROR) << msg;
+        return Status::ParamError(msg);
       }
       if (ncentroids > 0) this->ncentroids = ncentroids;
-    } else {
-      LOG(ERROR) << "cannot get ncentroids for ivfpq, set it when create space";
-      return -1;
     }
 
     if (!jp.GetInt("nsubvector", nsubvector)) {
       if (nsubvector < -1) {
-        LOG(ERROR) << "invalid nsubvector =" << nsubvector;
-        return -1;
+        std::string msg =
+            std::string("invalid nsubvector =") + std::to_string(nsubvector);
+        LOG(ERROR) << msg;
+        return Status::ParamError(msg);
       }
       if (nsubvector > 0) this->nsubvector = nsubvector;
-    } else {
-      LOG(ERROR) << "cannot get nsubvector for ivfpq, set it when create space";
-      return -1;
     }
 
     if (!jp.GetInt("nbits_per_idx", nbits_per_idx)) {
       if (nbits_per_idx < -1) {
-        LOG(ERROR) << "invalid nbits_per_idx =" << nbits_per_idx;
-        return -1;
+        std::string msg = std::string("invalid nbits_per_idx =") +
+                          std::to_string(nbits_per_idx);
+        LOG(ERROR) << msg;
+        return Status::ParamError(msg);
       }
       if (nbits_per_idx > 0) this->nbits_per_idx = nbits_per_idx;
     }
@@ -198,8 +200,9 @@ struct IVFPQModelParams {
     if (!jp.GetString("metric_type", metric_type)) {
       if (strcasecmp("L2", metric_type.c_str()) &&
           strcasecmp("InnerProduct", metric_type.c_str())) {
-        LOG(ERROR) << "invalid metric_type = " << metric_type;
-        return -1;
+        std::string msg = std::string("invalid metric_type = ") + metric_type;
+        LOG(ERROR) << msg;
+        return Status::ParamError(msg);
       }
       if (!strcasecmp("L2", metric_type.c_str()))
         this->metric_type = DistanceComputeType::L2;
@@ -207,8 +210,8 @@ struct IVFPQModelParams {
         this->metric_type = DistanceComputeType::INNER_PRODUCT;
     }
 
-    if (!Validate()) return -1;
-    return 0;
+    if (!Validate()) return Status::ParamError();
+    return Status::OK();
   }
 
   bool Validate() {
@@ -258,11 +261,12 @@ GammaIVFPQGPUIndex::~GammaIVFPQGPUIndex() {
   resources_.clear();
 }
 
-int GammaIVFPQGPUIndex::Init(const std::string &model_parameters,
+Status GammaIVFPQGPUIndex::Init(const std::string &model_parameters,
                              int training_threshold) {
   IVFPQModelParams ivfpq_param;
-  if (model_parameters != "" && ivfpq_param.Parse(model_parameters.c_str())) {
-    return -1;
+  if (model_parameters != "") {
+    Status status = ivfpq_param.Parse(model_parameters.c_str());
+    if (!status.ok()) return status;
   }
   LOG(INFO) << ivfpq_param.ToString();
   int d = vector_->MetaInfo()->Dimension();
@@ -286,9 +290,7 @@ int GammaIVFPQGPUIndex::Init(const std::string &model_parameters,
   gpu_index_ = nullptr;
   cpu_index_ = new GammaIVFPQIndex();
   cpu_index_->vector_ = vector_;
-  cpu_index_->Init(model_parameters, training_threshold);
-
-  return 0;
+  return cpu_index_->Init(model_parameters, training_threshold);
 }
 
 RetrievalParameters *GammaIVFPQGPUIndex::Parse(const std::string &parameters) {
@@ -522,12 +524,12 @@ long GammaIVFPQGPUIndex::GetTotalMemBytes() {
   return cpu_index_->GetTotalMemBytes();
 }
 
-int GammaIVFPQGPUIndex::Dump(const string &dir) {
+Status GammaIVFPQGPUIndex::Dump(const string &dir) {
   return cpu_index_->Dump(dir);
 }
 
-int GammaIVFPQGPUIndex::Load(const string &index_dir) {
-  int ret = cpu_index_->Load(index_dir);
+Status GammaIVFPQGPUIndex::Load(const string &index_dir, int &load_num) {
+  Status ret = cpu_index_->Load(index_dir, load_num);
   is_trained_ = cpu_index_->is_trained;
   d_ = cpu_index_->d_;
   metric_type_ = cpu_index_->metric_type_;

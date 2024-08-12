@@ -179,10 +179,16 @@ if(BUILD_WITH_GPU)
     ${FAISS_GPU_CU}
     ${LIB_SRCS})
 
+    find_library(CUDA_CUBLAS NAMES libcublas.so PATHS /usr/local/cuda/lib64)
+    find_library(CUDA_CUDART NAMES libcudart.so PATHS /usr/local/cuda/lib64)
+    find_library(BLAS NAMES libblas.so PATHS /usr/lib64 /usr/lib)
+    find_library(LAPACK NAMES liblapack.so PATHS /usr/lib64 /usr/lib)
     target_link_libraries(gamma 
     ${LIBRARIES}
-    /usr/local/cuda/lib64/libcublas.so
-    /usr/local/cuda/lib64/libcudart.so
+    ${CUDA_CUBLAS}
+    ${CUDA_CUDART}
+    ${BLAS}
+    ${LAPACK}
     )
 else()
     list(FILTER LIB_SRCS EXCLUDE REGEX "${CMAKE_CURRENT_SOURCE_DIR}/index/impl/gpu/.*")
