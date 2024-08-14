@@ -700,7 +700,7 @@ def process_query_error_data(items):
         out_of_bounds_ids,
         wrong_partition_of_bad_type,
         wrong_document_id_of_partition,
-        wrong_document_id_of_partition_next
+        wrong_document_id_of_partition_next,
     ) = items[5]
 
     max_document_ids_length = 501
@@ -927,7 +927,6 @@ def process_query_data(items):
     rs = requests.post(url, auth=(username, password), data=json_str)
 
     if not check:
-        logger.info(rs.text)
         assert rs.json()["code"] >= 0
         return rs
     if rs.status_code != 200 or "documents" not in rs.json()["data"]:
@@ -972,7 +971,7 @@ def query_interface(
     query_db_name=db_name,
     query_space_name=space_name,
     check_vector=True,
-    check=True
+    check=True,
 ):
     if query_type == "by_partition_next" and batch_size == 1:
         total -= 1
@@ -990,7 +989,7 @@ def query_interface(
                 query_db_name,
                 query_space_name,
                 check_vector,
-                check
+                check,
             )
         )
 
@@ -1024,7 +1023,7 @@ def process_delete_data(items):
     if items[6] != "":
         data["space_name"] = items[6]
 
-    check=items[9]
+    check = items[9]
 
     if delete_type == "by_ids":
         data["document_ids"] = []
@@ -1073,7 +1072,7 @@ def delete_interface(
     alias_name="",
     delete_db_name=db_name,
     delete_space_name=space_name,
-    check=True
+    check=True,
 ):
     for i in range(total):
         process_delete_data(
@@ -1087,7 +1086,7 @@ def delete_interface(
                 alias_name,
                 delete_db_name,
                 delete_space_name,
-                check
+                check,
             )
         )
 
@@ -1180,7 +1179,7 @@ def search_interface(
     alias_name="",
     search_db_name=db_name,
     search_space_name=space_name,
-    check=True
+    check=True,
 ):
     for i in range(total):
         process_search_data(
@@ -1196,7 +1195,7 @@ def search_interface(
                 alias_name,
                 search_db_name,
                 search_space_name,
-                check
+                check,
             )
         )
 
