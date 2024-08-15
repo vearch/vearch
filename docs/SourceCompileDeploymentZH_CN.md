@@ -15,7 +15,7 @@
 #### 编译
    * 进入 `GOPATH` 目录, `cd $GOPATH/src` `mkdir -p github.com/vearch` `cd github.com/vearch`
    * 下载源码: `git clone https://github.com/vearch/vearch.git` ($vearch表示vearch代码的绝对路径)
-   * 添加GPU索引支持: 将`$vearch/engine/CMakeLists.txt`中的 `BUILD_WITH_GPU` 从`"off"` 变为`"on"` 
+   * 添加GPU索引支持: 将`$vearch/internal/engine/CMakeLists.txt`中的 `BUILD_WITH_GPU` 从`"off"` 变为`"on"` 
    * 编译vearch和gamma
       1. `cd build`
       2. `sh build.sh`

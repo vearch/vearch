@@ -15,7 +15,7 @@
 #### Compile 
    * Enter the `GOPATH` directory, `cd $GOPATH/src` `mkdir -p github.com/vearch` `cd github.com/vearch`
    * Download the source code: `git clone https://github.com/vearch/vearch.git` ($vearch denotes the absolute path of vearch code)
-   * To add GPU Index support: change `BUILD_WITH_GPU` from `"off"` to `"on"` in `$vearch/engine/CMakeLists.txt` 
+   * To add GPU Index support: change `BUILD_WITH_GPU` from `"off"` to `"on"` in `$vearch/internal/engine/CMakeLists.txt` 
    * Compile vearch and gamma
       1. `cd build`
       2. `sh build.sh`
