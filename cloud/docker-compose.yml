@@ -1,5 +1,3 @@
-version: '3.5'
-
 networks:
   vearch_network_cluster:
     driver: bridge

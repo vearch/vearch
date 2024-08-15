@@ -398,8 +398,10 @@ Status Engine::Query(QueryRequest &request, Response &response_results) {
     for (size_t i = 0; i < document_ids.size(); i++) {
       int docid = -1, ret = 0;
       if (request.PartitionId() > 0) {
-        docid = atoi(document_ids[i].c_str());
-        if (docid < 0 || docid >= max_docid_) {
+        char *endptr;
+        docid = strtol(document_ids[i].c_str(), &endptr, 10);
+        if (*endptr != '\0' || docid < 0 || docid >= max_docid_) {
+          LOG(ERROR) << "document_id " << document_ids[i] << " is error, max_docid_ = " << max_docid_;
           continue;
         }
       } else {

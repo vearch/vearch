@@ -231,7 +231,7 @@ func unmarshalArray[T any](data []byte, dimension int) ([]T, error) {
 
 	if len(result) > 0 {
 		if _, ok := any(result).([]float32); ok && (len(result)%dimension) != 0 {
-			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("vector embedding length [%d] err, not equals dimension multiple:[%d]", len(result), (len(result)%dimension)))
+			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("vector embedding length [%d] err, dimension is [%d], not equals dimension multiple:[%d]", len(result), dimension, (len(result)%dimension)))
 		}
 	}
 
