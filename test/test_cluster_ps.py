@@ -251,3 +251,66 @@ class TestClusterPartitionChange:
             response = drop_space(router_url, db_name, space["space_name"])
             assert response.json()["code"] == 0
         drop_db(router_url, db_name)
+
+class TestClusterFaultyPartitionServerPrepare:
+    def setup_class(self):
+        self.logger = logger
+
+    def test_prepare_db(self):
+        response = create_db(router_url, db_name)
+        logger.info(response.json())
+
+    @pytest.mark.parametrize(
+        ["embedding_size", "index_type"],
+        [
+            [128, "FLAT"],
+        ],
+    )
+    def test_vearch_space_create(self, embedding_size, index_type):
+        space_config = {
+            "name": space_name,
+            "partition_num": 3,
+            "replica_num": 1,
+            "fields": [
+                {"name": "field_int", "type": "integer"},
+                {"name": "field_long", "type": "long"},
+                {"name": "field_float", "type": "float"},
+                {"name": "field_double", "type": "double"},
+                {
+                    "name": "field_string",
+                    "type": "string",
+                    "index": {"name": "field_string", "type": "SCALAR"},
+                },
+                {
+                    "name": "field_vector",
+                    "type": "vector",
+                    "dimension": embedding_size,
+                    "index": {
+                        "name": "gamma",
+                        "type": index_type,
+                        "params": {
+                            "metric_type": "InnerProduct",
+                            "ncentroids": 2048,
+                            "nsubvector": int(embedding_size / 4),
+                            "nlinks": 32,
+                            "efConstruction": 100,
+                        },
+                    },
+                },
+            ],
+        }
+
+        response = create_space(router_url, db_name, space_config)
+        logger.info(response.json())
+
+        add_embedding_size(db_name, space_name, 50, 100, embedding_size)
+
+
+class TestClusterFaultyPartitionServer:
+    def setup_class(self):
+        self.logger = logger
+
+    def test_vearch_search(self):
+        sift10k = DatasetSift10K(logger)
+        xb = sift10k.get_database()
+        search_interface(logger, 100, 100, xb, True)

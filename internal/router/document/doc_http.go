@@ -496,26 +496,26 @@ func (handler *DocumentHandler) handleDocumentGet(c *gin.Context, searchDoc *req
 		queryFieldsParam = arrayToMap(searchDoc.Fields)
 	}
 
-	reply := &vearchpb.GetResponse{}
-	if searchDoc.PartitionId != nil {
-		found := false
-		for _, partition := range space.Partitions {
-			if partition.Id == *searchDoc.PartitionId {
-				found = true
-				break
-			}
-		}
-		if !found {
-			err := vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("partition_id %d not belong to space %s", *searchDoc.PartitionId, space.Name))
-			httphelper.New(c).JsonError(errors.NewErrBadRequest(err))
-			return
-		}
-		reply = handler.docService.getDocsByPartition(c.Request.Context(), args, *searchDoc.PartitionId, searchDoc.Next)
-	} else {
+	if searchDoc.PartitionId == nil {
 		err := vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("get docs by partition should set partition_id"))
 		httphelper.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
 	}
+
+	found := false
+	for _, partition := range space.Partitions {
+		if partition.Id == *searchDoc.PartitionId {
+			found = true
+			break
+		}
+	}
+	if !found {
+		err := vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("partition_id %d not belong to space %s", *searchDoc.PartitionId, space.Name))
+		httphelper.New(c).JsonError(errors.NewErrBadRequest(err))
+		return
+	}
+
+	reply := handler.docService.getDocsByPartition(c.Request.Context(), args, *searchDoc.PartitionId, searchDoc.Next)
 
 	if result, err := documentGetResponse(space, reply, queryFieldsParam, searchDoc.VectorValue); err != nil {
 		httphelper.New(c).JsonError(errors.NewErrInternal(err))

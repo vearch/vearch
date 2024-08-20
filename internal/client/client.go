@@ -445,6 +445,16 @@ func setPartitionErr(d *vearchpb.PartitionData) {
 	}
 }
 
+func (r *routerRequest) replicasFaultyNum(replicas []uint64) int {
+	faultyNodeNum := 0
+	for _, nodeID := range replicas {
+		if r.client.PS().TestFaulty(nodeID) {
+			faultyNodeNum++
+		}
+	}
+	return faultyNodeNum
+}
+
 func (r *routerRequest) searchFromPartition(ctx context.Context, partitionID entity.PartitionID, pd *vearchpb.PartitionData, space *entity.Space, respChain chan *response.SearchDocResult, isNormal bool, normalField map[string]string) {
 	start := time.Now()
 	responseDoc := &response.SearchDocResult{}
@@ -510,9 +520,12 @@ func (r *routerRequest) searchFromPartition(ctx context.Context, partitionID ent
 	rpcEnd, rpcStart := time.Now(), time.Now()
 	nodeID := GetNodeIdsByClientType(clientType, partition, servers, r.client)
 
-	for len(partition.Replicas) > r.client.PS().faultyList.ItemCount() {
+	faultyNodeNum := r.replicasFaultyNum(partition.Replicas)
+
+	for len(partition.Replicas) > faultyNodeNum {
 		if r.client.PS().TestFaulty(nodeID) {
 			nodeID = GetNodeIdsByClientType(clientType, partition, servers, r.client)
+			faultyNodeNum = r.replicasFaultyNum(partition.Replicas)
 			continue
 		}
 		nodeIdEnd := time.Now()
@@ -616,6 +629,8 @@ func (r *routerRequest) searchFromPartition(ctx context.Context, partitionID ent
 			r.client.PS().AddFaulty(nodeID, time.Second*5)
 			break
 		}
+
+		faultyNodeNum = r.replicasFaultyNum(partition.Replicas)
 	}
 
 	sortFieldMap := pd.SearchRequest.SortFieldMap
@@ -861,9 +876,12 @@ func (r *routerRequest) queryFromPartition(ctx context.Context, partitionID enti
 
 	nodeID := GetNodeIdsByClientType(clientType, partition, servers, r.client)
 
-	for len(partition.Replicas) > r.client.PS().faultyList.ItemCount() {
+	faultyNodeNum := r.replicasFaultyNum(partition.Replicas)
+
+	for len(partition.Replicas) > faultyNodeNum {
 		if r.client.PS().TestFaulty(nodeID) {
 			nodeID = GetNodeIdsByClientType(clientType, partition, servers, r.client)
+			faultyNodeNum = r.replicasFaultyNum(partition.Replicas)
 			continue
 		}
 
@@ -891,6 +909,7 @@ func (r *routerRequest) queryFromPartition(ctx context.Context, partitionID enti
 			r.client.PS().AddFaulty(nodeID, time.Second*5)
 			break
 		}
+		faultyNodeNum = r.replicasFaultyNum(partition.Replicas)
 	}
 
 	sortFieldMap := pd.QueryRequest.SortFieldMap
@@ -1106,7 +1125,6 @@ func (r *routerRequest) QueryByPartitions(queryReq *vearchpb.QueryRequest) *rout
 			d = &vearchpb.PartitionData{PartitionID: partitionID, MessageID: r.GetMsgID(), QueryRequest: queryReq}
 			sendMap[partitionID] = d
 		}
-
 	} else {
 		for _, partitionInfo := range r.space.Partitions {
 			partitionID := partitionInfo.Id
@@ -1704,8 +1722,8 @@ func (r *routerRequest) DelByQueryeExecute() *vearchpb.DelByQueryeResponse {
 	delByQueryResponse := &vearchpb.DelByQueryeResponse{}
 	for resp := range respChain {
 		if resp.Err != nil || resp.DelByQueryResponse == nil {
-		    log.Error("err: %s", resp.Err)
-		    continue
+			log.Error("err: %s", resp.Err)
+			continue
 		}
 		if len(resp.DelByQueryResponse.IdsStr) > 0 {
 			delByQueryResponse.IdsStr = append(delByQueryResponse.IdsStr, resp.DelByQueryResponse.IdsStr...)

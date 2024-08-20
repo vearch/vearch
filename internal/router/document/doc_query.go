@@ -812,8 +812,8 @@ func requestToPb(searchDoc *request.SearchDocumentRequest, space *entity.Space, 
 	}
 
 	queryFieldMap := make(map[string]string)
-	for _, feild := range searchReq.Fields {
-		queryFieldMap[feild] = feild
+	for _, field := range searchReq.Fields {
+		queryFieldMap[field] = field
 	}
 
 	sortOrder, err := searchDoc.SortOrder()
@@ -879,32 +879,4 @@ func requestToPb(searchDoc *request.SearchDocumentRequest, space *entity.Space, 
 
 	searchReq.Head.ClientType = searchDoc.LoadBalance
 	return nil
-}
-
-func ToContentMapFloatFeature(space *entity.Space, items []*vearchpb.Item) map[string][]float32 {
-	nameFeatureMap := make(map[string][]float32)
-	for _, u := range items {
-		if u != nil {
-			floatFeatureMap, _, err := GetVectorFieldValue(u.Doc, space)
-			if floatFeatureMap != nil && err == nil {
-				for key, value := range floatFeatureMap {
-					nameFeatureMap[key] = append(nameFeatureMap[key], value...)
-				}
-			}
-		}
-	}
-	return nameFeatureMap
-}
-
-func ToContentMapBinaryFeature(space *entity.Space, items []*vearchpb.Item) map[string][]int32 {
-	nameFeatureMap := make(map[string][]int32)
-	for _, u := range items {
-		_, binaryFeatureMap, err := GetVectorFieldValue(u.Doc, space)
-		if binaryFeatureMap != nil && err == nil {
-			for key, value := range binaryFeatureMap {
-				nameFeatureMap[key] = append(nameFeatureMap[key], value...)
-			}
-		}
-	}
-	return nameFeatureMap
 }

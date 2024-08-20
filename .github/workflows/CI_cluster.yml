@@ -119,3 +119,13 @@ jobs:
         pytest test_cluster_ps.py -x -k "TestClusterPartitionServerCheckSpace" --log-cli-level=INFO
         pytest test_cluster_ps.py -x -k "TestClusterPartitionServerDestroy" --log-cli-level=INFO
         pytest test_cluster_ps.py -k "TestClusterPartitionChange" --log-cli-level=INFO
+
+    - name: Run tests for faulty ps
+      run: |
+        cd test
+        pytest test_cluster_ps.py -x -k "TestClusterFaultyPartitionServerPrepare" --log-cli-level=INFO
+        cd ../cloud
+        docker-compose stop ps1
+        cd ../test
+        pytest test_cluster_ps.py -x -k "TestClusterFaultyPartitionServer" --log-cli-level=INFO
+  

@@ -15,7 +15,6 @@
 package document
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -25,7 +24,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/vearch/vearch/v3/internal/client"
 	"github.com/vearch/vearch/v3/internal/entity"
 	"github.com/vearch/vearch/v3/internal/pkg/cbbytes"
 	"github.com/vearch/vearch/v3/internal/pkg/log"
@@ -33,55 +31,6 @@ import (
 	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
 	"github.com/vearch/vearch/v3/internal/ps/engine/mapping"
 )
-
-func docGetResponse(client *client.Client, args *vearchpb.GetRequest, reply *vearchpb.GetResponse, returnFieldsMap map[string]string, isBatch bool) ([]byte, error) {
-	if args == nil || reply == nil || reply.Items == nil || len(reply.Items) < 1 {
-		if reply.GetHead() != nil && reply.GetHead().Err != nil && reply.GetHead().Err.Code != vearchpb.ErrorEnum_SUCCESS {
-			err := reply.GetHead().Err
-			return nil, vearchpb.NewError(err.Code, errors.New(err.Msg))
-		}
-		return nil, vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, nil)
-	}
-
-	var response []interface{}
-
-	for _, item := range reply.Items {
-		doc := item.Doc
-		space, err := client.Space(context.Background(), args.Head.DbName, args.Head.SpaceName)
-		if err != nil {
-			return nil, err
-		}
-
-		docMap := make(map[string]interface{})
-		docMap["_index"] = args.Head.DbName
-		docMap["_type"] = args.Head.SpaceName
-		docMap["_id"] = doc.PKey
-
-		docMap["found"] = doc.Fields != nil
-		if doc.Fields != nil {
-			docFieldSerialize(doc, space, returnFieldsMap, true, docMap)
-		}
-
-		if item.Err != nil {
-			docMap["msg"] = item.Err.Msg
-		}
-		response = append(response, docMap)
-	}
-
-	var jsonData []byte
-	var err error
-	if isBatch || len(response) > 1 {
-		jsonData, err = vjson.Marshal(response)
-	} else {
-		jsonData, err = vjson.Marshal(response[0])
-	}
-
-	if err != nil {
-		return nil, err
-	}
-
-	return jsonData, nil
-}
 
 func documentUpsertResponse(reply *vearchpb.BulkResponse) (map[string]interface{}, error) {
 	if reply == nil || reply.Items == nil || len(reply.Items) < 1 {
@@ -450,88 +399,6 @@ func GetDocSource(doc *vearchpb.ResultItem, space *entity.Space, from string) (m
 	}
 
 	return source, nil
-}
-
-func GetVectorFieldValue(doc *vearchpb.Document, space *entity.Space) (floatFeatureMap map[string][]float32, binaryFeatureMap map[string][]int32, err error) {
-	source := make(map[string]interface{})
-	spaceProperties := space.SpaceProperties
-	if spaceProperties == nil {
-		spacePro, _ := entity.UnmarshalPropertyJSON(space.Fields)
-		spaceProperties = spacePro
-	}
-	for _, fv := range doc.Fields {
-		name := fv.Name
-		if name == mapping.IdField {
-			continue
-		}
-		field := spaceProperties[name]
-		if field == nil {
-			log.Error("can not found mappping by field:[%s]", name)
-			continue
-
-		}
-		switch field.FieldType {
-		case vearchpb.FieldType_STRING:
-			tempValue := string(fv.Value)
-			source[name] = tempValue
-		case vearchpb.FieldType_STRINGARRAY:
-			tempValue := string(fv.Value)
-			source[name] = strings.Split(tempValue, string([]byte{'\001'}))
-		case vearchpb.FieldType_INT:
-			source[name] = cbbytes.Bytes2Int32(fv.Value)
-		case vearchpb.FieldType_LONG:
-			source[name] = cbbytes.Bytes2Int(fv.Value)
-		case vearchpb.FieldType_BOOL:
-			if cbbytes.Bytes2Int(fv.Value) == 0 {
-				source[name] = false
-			} else {
-				source[name] = true
-			}
-		case vearchpb.FieldType_DATE:
-			u := cbbytes.Bytes2Int(fv.Value)
-			source[name] = time.Unix(u/1e9, u%1e9)
-		case vearchpb.FieldType_FLOAT:
-			source[name] = cbbytes.ByteToFloat32(fv.Value)
-		case vearchpb.FieldType_DOUBLE:
-			source[name] = cbbytes.ByteToFloat64New(fv.Value)
-		case vearchpb.FieldType_VECTOR:
-			if space.Index.Type == "BINARYIVF" {
-				featureByteC := fv.Value
-				dimension := field.Dimension
-				if dimension != 0 {
-					unit8s, err := cbbytes.ByteToVectorBinary(featureByteC, dimension)
-					if err != nil {
-						return nil, nil, err
-					}
-					source[name] = unit8s
-					if binaryFeatureMap != nil {
-						binaryFeatureMap[name] = unit8s
-					} else {
-						binaryFeatureMap = make(map[string][]int32)
-						binaryFeatureMap[name] = unit8s
-					}
-				} else {
-					log.Error("GetSource can not found dimension by field:[%s]", name)
-				}
-			} else {
-				float32s, err := cbbytes.ByteToVectorForFloat32(fv.Value)
-				if err != nil {
-					return nil, nil, err
-				}
-				source[name] = float32s
-				if floatFeatureMap != nil {
-					floatFeatureMap[name] = float32s
-				} else {
-					floatFeatureMap = make(map[string][]float32)
-					floatFeatureMap[name] = float32s
-				}
-			}
-
-		default:
-			log.Warn("can not set value by name:[%v], type:[%v] ", name, field.FieldType)
-		}
-	}
-	return floatFeatureMap, binaryFeatureMap, nil
 }
 
 func ForceMergeToContent(shards *vearchpb.SearchStatus) ([]byte, error) {
