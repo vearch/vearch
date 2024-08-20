@@ -179,6 +179,7 @@ def test_vearch_document_search_brute_force_search_threshold(index_type):
                     "metric_type": "L2",
                     "training_threshold": 3 * brute_force_search_threshold,
                     "ncentroids": 2,
+                    "nprobe": 1,
                 },
             },
             "dimension": embedding_size,

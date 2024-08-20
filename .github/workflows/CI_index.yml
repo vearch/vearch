@@ -61,7 +61,7 @@ jobs:
     - name: Install Dependency
       run: |
         python -m pip install --upgrade pip setuptools wheel
-        pip install requests pytest numpy
+        pip install requests pytest numpy h5py
 
     - name: Run test task for ${{ matrix.index-type }} with ${{ matrix.platform }}
       run: |
