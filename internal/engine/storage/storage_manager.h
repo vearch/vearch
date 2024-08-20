@@ -56,9 +56,9 @@ class StorageManager {
     return column_families_.size() - 1;
   }
   void ToRowKey(int key, std::string &key_str) {
-    char data[11];
-    snprintf(data, 11, "%010d", key);
-    key_str.assign(data, 10);
+    char data[12];
+    int length = snprintf(data, 12, "%010d", key);
+    key_str.assign(data, length);
   }
 
   //  private:

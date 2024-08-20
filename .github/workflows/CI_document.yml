@@ -1,4 +1,4 @@
-name: CI Index Tasks
+name: CI Document Tasks
 
 on:
   push:
@@ -8,10 +8,11 @@ on:
   workflow_dispatch:
   
 jobs:
-  index-tasks:
+  document-tasks:
     strategy:
       matrix:
-        index-type: ["flat", "ivfflat", "ivfpq", "hnsw"]
+        # avoid pytest -k mix with IVFFLAT, so flat as BFFLAT
+        index-type: ["BFFLAT", "IVFFLAT", "IVFPQ", "HNSW"]
         platform: [amd64, arm64]
         include:
           - platform: amd64
@@ -66,4 +67,4 @@ jobs:
     - name: Run test task for ${{ matrix.index-type }} with ${{ matrix.platform }}
       run: |
         cd test
-        pytest test_vector_index_${{ matrix.index-type }}.py -x --log-cli-level=INFO
+        pytest test_cluster_index.py -k "${{ matrix.index-type }} or test_vearch_index" -x --log-cli-level=INFO

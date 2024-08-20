@@ -701,6 +701,7 @@ def process_query_error_data(items):
         wrong_partition_of_bad_type,
         wrong_document_id_of_partition,
         wrong_document_id_of_partition_next,
+        wrong_document_id_with_invalid_character,
     ) = items[5]
 
     max_document_ids_length = 501
@@ -788,6 +789,13 @@ def process_query_error_data(items):
         partition_id = partition_ids[0]
         data["partition_id"] = partition_id
         data["next"] = True
+
+    if wrong_document_id_with_invalid_character and interface == "query":
+        data["document_ids"] = ["aaa"]
+        partition_id = 1
+        partition_ids = get_partition(router_url, db_name, space_name)
+        partition_id = partition_ids[0]
+        data["partition_id"] = partition_id
 
     json_str = json.dumps(data)
 

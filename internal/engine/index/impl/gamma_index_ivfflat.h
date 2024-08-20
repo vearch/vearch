@@ -93,9 +93,9 @@ class IVFFlatRetrievalParameters : public RetrievalParameters {
     distance_compute_type_ = type;
   }
 
-  IVFFlatRetrievalParameters(enum DistanceComputeType type) {
+  IVFFlatRetrievalParameters(int nprobe, enum DistanceComputeType type) {
     parallel_on_queries_ = true;
-    nprobe_ = -1;
+    nprobe_ = nprobe;
     distance_compute_type_ = type;
   }
 
@@ -163,6 +163,7 @@ struct GammaIndexIVFFlat : faiss::IndexIVFFlat, public GammaFLATIndex {
 #ifdef PERFORMANCE_TESTING
   int add_count_;
 #endif
+  DistanceComputeType metric_type_;
 };
 
 }  // namespace vearch

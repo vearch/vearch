@@ -644,10 +644,10 @@ class IVFPQRetrievalParameters : public RetrievalParameters {
     collect_metrics_ = collect_metrics;
   }
 
-  IVFPQRetrievalParameters(enum DistanceComputeType type) {
+  IVFPQRetrievalParameters(int nprobe, enum DistanceComputeType type) {
     parallel_on_queries_ = true;
     recall_num_ = -1;
-    nprobe_ = -1;
+    nprobe_ = nprobe;
     distance_compute_type_ = type;
     collect_metrics_ = 0;
   }

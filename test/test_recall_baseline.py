@@ -36,11 +36,17 @@ index_params = {
     "nprobe": 80,
     "efConstruction": 160,
     "efSearch": 100,
-    "nlinks": 32    
+    "nlinks": 32,
 }
 
 
-def create(router_url, embedding_size, index_type="FLAT", store_type="MemoryOnly", metric_type="L2"):
+def create(
+    router_url,
+    embedding_size,
+    index_type="FLAT",
+    store_type="MemoryOnly",
+    metric_type="L2",
+):
     index_params["metric_type"] = metric_type
     if index_type == "IVFFLAT" or index_type == "IVFPQ":
         index_params["training_threshold"] = index_params["ncentroids"] * 39
@@ -66,17 +72,17 @@ def create(router_url, embedding_size, index_type="FLAT", store_type="MemoryOnly
                     "nprobe": index_params["nprobe"],
                     "efConstruction": index_params["efConstruction"],
                     "efSearch": index_params["efSearch"],
-                    "nlinks": index_params["nlinks"]
-                }
+                    "nlinks": index_params["nlinks"],
+                },
             },
-        }
+        },
     ]
 
     space_config = {
         "name": space_name,
         "partition_num": 1,
         "replica_num": 1,
-        "fields": properties["fields"]
+        "fields": properties["fields"],
     }
     response = create_db(router_url, db_name)
     assert response.json()["code"] == 0
@@ -84,6 +90,7 @@ def create(router_url, embedding_size, index_type="FLAT", store_type="MemoryOnly
     response = create_space(router_url, db_name, space_config)
     assert response.json()["code"] == 0
     logger.info(response.json()["data"]["space_properties"]["field_vector"])
+
 
 def create_faiss_index(index_type, metric_type, xb):
     dimension = xb.shape[1]
@@ -101,19 +108,28 @@ def create_faiss_index(index_type, metric_type, xb):
         return index
     elif index_type == "IVFPQ":
         quantizer = faiss.IndexFlatL2(dimension)
-        index = faiss.IndexIVFPQ(quantizer, dimension, index_params["ncentroids"], int(dimension / 2), 8, metric)
+        index = faiss.IndexIVFPQ(
+            quantizer,
+            dimension,
+            index_params["ncentroids"],
+            int(dimension / 2),
+            8,
+            metric,
+        )
         index.nprobe = index_params["nprobe"]
 
-        index.train(xb[index_params["training_threshold"]:])
+        index.train(xb[: index_params["training_threshold"]])
 
         index.add(xb)
         return index
     elif index_type == "IVFFLAT":
         quantizer = faiss.IndexFlatL2(dimension)
-        index = faiss.IndexIVFFlat(quantizer, dimension, index_params["ncentroids"], metric)
+        index = faiss.IndexIVFFlat(
+            quantizer, dimension, index_params["ncentroids"], metric
+        )
         index.nprobe = index_params["nprobe"]
 
-        index.train(xb[index_params["training_threshold"]:])
+        index.train(xb[: index_params["training_threshold"]])
 
         index.add(xb)
         return index
@@ -133,6 +149,7 @@ def evaluate_faiss_index(index_type, metric_type, xb, xq, gt, k):
 
     return recalls
 
+
 def benchmark(index_type, store_type, metric_type, xb, xq, gt):
     embedding_size = xb.shape[1]
     batch_size = 100
@@ -140,14 +157,16 @@ def benchmark(index_type, store_type, metric_type, xb, xq, gt):
 
     total = xb.shape[0]
     total_batch = int(total / batch_size)
-    logger.info("dataset num: %d, total_batch: %d, dimension: %d, search num: %d, topK: %d" % (
-        total, total_batch, embedding_size, xq.shape[0], k))
+    logger.info(
+        "dataset num: %d, total_batch: %d, dimension: %d, search num: %d, topK: %d"
+        % (total, total_batch, embedding_size, xq.shape[0], k)
+    )
 
     create(router_url, embedding_size, index_type, store_type, metric_type)
 
     add(total_batch, batch_size, xb)
     if total - total_batch * batch_size:
-        add(total - total_batch * batch_size, 1, xb[total_batch * batch_size:])
+        add(total - total_batch * batch_size, 1, xb[total_batch * batch_size :])
 
     waiting_index_finish(logger, total, 15)
 
@@ -162,7 +181,7 @@ def benchmark(index_type, store_type, metric_type, xb, xq, gt):
 
     batch = True
     _, recalls = evaluate(xq, gt, k, batch, query_dict, logger)
-    result = "vearch %s: " %(index_type)
+    result = "vearch %s: " % (index_type)
     for recall in recalls:
         result += "recall@%d = %.2f%% " % (recall, recalls[recall] * 100)
     logger.info(result)
@@ -172,7 +191,7 @@ def benchmark(index_type, store_type, metric_type, xb, xq, gt):
     assert recalls[1] >= 0.5
 
     recalls = evaluate_faiss_index(index_type, metric_type, xb, xq, gt, k)
-    result = "faiss  %s: " %(index_type)
+    result = "faiss  %s: " % (index_type)
     for recall in recalls:
         result += "recall@%d = %.2f%% " % (recall, recalls[recall] * 100)
     logger.info(result)
@@ -180,11 +199,14 @@ def benchmark(index_type, store_type, metric_type, xb, xq, gt):
     destroy(router_url, db_name, space_name)
 
 
-@ pytest.mark.parametrize(["dataset_name", "metric_type"], [
-    ["sift", "L2"],
-    ["glove", "InnerProduct"],
-    ["nytimes", "InnerProduct"],
-])
+@pytest.mark.parametrize(
+    ["dataset_name", "metric_type"],
+    [
+        ["sift", "L2"],
+        ["glove", "InnerProduct"],
+        ["nytimes", "InnerProduct"],
+    ],
+)
 def test_vearch_index_dataset_recall(dataset_name, metric_type):
     xb, xq, gt = get_dataset_by_name(logger, dataset_name)
 

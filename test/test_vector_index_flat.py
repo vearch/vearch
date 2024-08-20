@@ -15,8 +15,6 @@
 
 # -*- coding: UTF-8 -*-
 
-import requests
-import json
 import pytest
 import logging
 from utils.vearch_utils import *
@@ -28,7 +26,7 @@ logger = logging.getLogger(__name__)
 __description__ = """ test case for index flat """
 
 
-def create(router_url, embedding_size, store_type="MemoryOnly"):
+def create(router_url, embedding_size, store_type="MemoryOnly", metric_type="L2"):
     properties = {}
     properties["fields"] = [
         {
@@ -44,18 +42,18 @@ def create(router_url, embedding_size, store_type="MemoryOnly"):
                 "name": "gamma",
                 "type": "FLAT",
                 "params": {
-                    "metric_type": "L2",
-                }
+                    "metric_type": metric_type,
+                },
             },
             # "format": "normalization"
-        }
+        },
     ]
 
     space_config = {
         "name": space_name,
         "partition_num": 1,
         "replica_num": 1,
-        "fields": properties["fields"]
+        "fields": properties["fields"],
     }
     response = create_db(router_url, db_name)
     logger.info(response.json())
@@ -64,11 +62,12 @@ def create(router_url, embedding_size, store_type="MemoryOnly"):
     logger.info(response.json())
 
 
-def query(parallel_on_queries, xq, gt, k, logger):
+def query(parallel_on_queries, metric_type, metric_is_same, batch, xq, gt, k, logger):
     query_dict = {
         "vectors": [],
         "index_params": {
-            "parallel_on_queries": parallel_on_queries
+            "parallel_on_queries": parallel_on_queries,
+            "metric_type": metric_type,
         },
         "vector_value": False,
         "fields": ["field_int"],
@@ -77,36 +76,84 @@ def query(parallel_on_queries, xq, gt, k, logger):
         "space_name": space_name,
     }
 
-    for batch in [True, False]:
-        avarage, recalls = evaluate(xq, gt, k, batch, query_dict, logger)
-        result = "batch: %d, parallel_on_queries: %d, avarage time: %.2f ms, " % (
-            batch, parallel_on_queries, avarage)
-        for recall in recalls:
-            result += "recall@%d = %.2f%% " % (recall, recalls[recall] * 100)
-        logger.info(result)
+    if parallel_on_queries == -1 and metric_type == "":
+        query_dict.pop("index_params")
+    else:
+        if parallel_on_queries == -1:
+            query_dict["index_params"].pop("parallel_on_queries")
+        if metric_type == "":
+            query_dict["index_params"].pop("metric_type")
 
+    avarage, recalls = evaluate(xq, gt, k, batch, query_dict, logger)
+    result = "batch: %d, parallel_on_queries: %d, metric_type: %s, avg: %.2f ms, " % (
+        batch,
+        parallel_on_queries,
+        metric_type,
+        avarage,
+    )
+    for recall in recalls:
+        result += "recall@%d = %.2f%% " % (recall, recalls[recall] * 100)
+    logger.info(result)
+
+    if metric_is_same:
         assert recalls[1] >= 0.95
         assert recalls[10] >= 1.0
 
 
-def benchmark(store_type, xb, xq, gt):
+def benchmark(store_type, metric_type, xb, xq, gt):
     embedding_size = xb.shape[1]
     batch_size = 100
     k = 100
 
     total = xb.shape[0]
     total_batch = int(total / batch_size)
-    logger.info("dataset num: %d, total_batch: %d, dimension: %d, search num: %d, topK: %d" % (
-        total, total_batch, embedding_size, xq.shape[0], k))
+    logger.info(
+        "dataset num: %d, total_batch: %d, dimension: %d, search num: %d, topK: %d"
+        % (total, total_batch, embedding_size, xq.shape[0], k)
+    )
 
-    create(router_url, embedding_size, store_type)
+    create(router_url, embedding_size, store_type, metric_type)
 
     add(total_batch, batch_size, xb)
+    if total - total_batch * batch_size:
+        add(total - total_batch * batch_size, 1, xb[total_batch * batch_size :])
 
     waiting_index_finish(logger, total)
 
-    for parallel_on_queries in [0, 1]:
-        query(parallel_on_queries, xq, gt, k, logger)
+    if metric_type == "L2":
+        for parallel_on_queries in [0, 1, -1]:
+            for query_metric_type in ["L2", "InnerProduct", ""]:
+                for batch in [0, 1]:
+                    metric_is_same = (
+                        query_metric_type == "" or query_metric_type == metric_type
+                    )
+                    query(
+                        parallel_on_queries,
+                        query_metric_type,
+                        metric_is_same,
+                        batch,
+                        xq,
+                        gt,
+                        k,
+                        logger,
+                    )
+    else:
+        for parallel_on_queries in [-1]:
+            for query_metric_type in ["L2", "InnerProduct", ""]:
+                for batch in [1]:
+                    metric_is_same = (
+                        query_metric_type == "" or query_metric_type == metric_type
+                    )
+                    query(
+                        parallel_on_queries,
+                        query_metric_type,
+                        metric_is_same,
+                        batch,
+                        xq,
+                        gt,
+                        k,
+                        logger,
+                    )
 
     destroy(router_url, db_name, space_name)
 
@@ -117,8 +164,27 @@ xq = sift10k.get_queries()
 gt = sift10k.get_groundtruth()
 
 
-@ pytest.mark.parametrize(["store_type"], [
-    ["MemoryOnly"],
-])
-def test_vearch_index_flat(store_type: str):
-    benchmark(store_type, xb, xq, gt)
+@pytest.mark.parametrize(
+    ["store_type"],
+    [
+        ["MemoryOnly"],
+    ],
+)
+def test_vearch_index_flat_l2(store_type: str):
+    benchmark(store_type, "L2", xb, xq, gt)
+
+
+glove25 = DatasetGlove25(logger)
+glove_xb = glove25.get_database()
+glove_xq = glove25.get_queries()
+glove_gt = glove25.get_groundtruth()
+
+
+@pytest.mark.parametrize(
+    ["store_type"],
+    [
+        ["MemoryOnly"],
+    ],
+)
+def test_vearch_index_flat_ip(store_type: str):
+    benchmark(store_type, "InnerProduct", glove_xb, glove_xq, glove_gt)

@@ -132,6 +132,13 @@ Status GammaIVFPQIndex::Init(const std::string &model_parameters,
   ivfpq_param.training_threshold = training_threshold_;
   LOG(INFO) << ivfpq_param.ToString();
 
+  metric_type_ = ivfpq_param.metric_type;
+  if (metric_type_ == DistanceComputeType::INNER_PRODUCT) {
+    metric_type = faiss::METRIC_INNER_PRODUCT;
+  } else {
+    metric_type = faiss::METRIC_L2;
+  }
+
   if (ivfpq_param.has_hnsw == false) {
     quantizer = new faiss::IndexFlatL2(d);
     quantizer_type_ = 0;
@@ -166,6 +173,9 @@ Status GammaIVFPQIndex::Init(const std::string &model_parameters,
   quantizer_trains_alone = 0;
   clustering_index = nullptr;
   cp.niter = 10;
+  if (metric_type == faiss::METRIC_INNER_PRODUCT) {
+    cp.spherical = true;
+  }
 
   code_size = pq.code_size;
   is_trained = false;
@@ -195,22 +205,20 @@ Status GammaIVFPQIndex::Init(const std::string &model_parameters,
         new realtime::RTInvertedLists(rt_invert_index_ptr_, nlist, code_size);
   }
 
-  metric_type_ = ivfpq_param.metric_type;
-  if (metric_type_ == DistanceComputeType::INNER_PRODUCT) {
-    metric_type = faiss::METRIC_INNER_PRODUCT;
-  } else {
-    metric_type = faiss::METRIC_L2;
-  }
-  if ((size_t)ivfpq_param.nprobe <= this->nlist)
+  if ((size_t)ivfpq_param.nprobe <= this->nlist) {
     this->nprobe = ivfpq_param.nprobe;
-  else
-    this->nprobe = size_t(this->nlist / 2);
+  } else {
+    std::string msg = "nprobe = " + std::to_string(ivfpq_param.nprobe) + 
+      " should less than ncentroids = " + std::to_string(this->nlist);
+    LOG(ERROR) << msg;
+    return Status::ParamError(msg);
+  }
   return Status::OK();
 }
 
 RetrievalParameters *GammaIVFPQIndex::Parse(const std::string &parameters) {
   if (parameters == "") {
-    return new IVFPQRetrievalParameters(metric_type_);
+    return new IVFPQRetrievalParameters(this->nprobe, metric_type_);
   }
 
   utils::JsonParser jp;
@@ -220,12 +228,12 @@ RetrievalParameters *GammaIVFPQIndex::Parse(const std::string &parameters) {
   }
 
   std::string metric_type;
-  IVFPQRetrievalParameters *retrieval_params = new IVFPQRetrievalParameters();
+  IVFPQRetrievalParameters *retrieval_params = new IVFPQRetrievalParameters(this->nprobe, metric_type_);
   if (!jp.GetString("metric_type", metric_type)) {
     if (strcasecmp("L2", metric_type.c_str()) &&
         strcasecmp("InnerProduct", metric_type.c_str())) {
       LOG(ERROR) << "invalid metric_type = " << metric_type
-                 << ", so use default value.";
+                 << ", so use default value " << (int)retrieval_params->GetDistanceComputeType();
     }
     if (!strcasecmp("L2", metric_type.c_str())) {
       retrieval_params->SetDistanceComputeType(DistanceComputeType::L2);
@@ -233,8 +241,6 @@ RetrievalParameters *GammaIVFPQIndex::Parse(const std::string &parameters) {
       retrieval_params->SetDistanceComputeType(
           DistanceComputeType::INNER_PRODUCT);
     }
-  } else {
-    retrieval_params->SetDistanceComputeType(metric_type_);
   }
 
   int recall_num;
@@ -487,7 +493,7 @@ int GammaIVFPQIndex::Search(RetrievalContext *retrieval_context, int n,
 
   utils::ScopeDeleter1<IVFPQRetrievalParameters> del_params;
   if (retrieval_params == nullptr) {
-    retrieval_params = new IVFPQRetrievalParameters();
+    retrieval_params = new IVFPQRetrievalParameters(this->nprobe, metric_type_);
     del_params.set(retrieval_params);
   }
 
@@ -509,10 +515,9 @@ int GammaIVFPQIndex::Search(RetrievalContext *retrieval_context, int n,
       (size_t)retrieval_params->Nprobe() <= this->nlist) {
     nprobe = retrieval_params->Nprobe();
   } else {
-    retrieval_params->SetNprobe(this->nprobe);
     LOG(WARNING) << "nlist = " << this->nlist
-                 << "nprobe = " << retrieval_params->Nprobe()
-                 << "invalid, now use:" << this->nprobe;
+                 << ", nprobe = " << retrieval_params->Nprobe()
+                 << ", invalid, now use:" << this->nprobe;
   }
 
   const float *xq = reinterpret_cast<const float *>(x);
@@ -665,7 +670,7 @@ void GammaIVFPQIndex::search_preassigned(
           retrieval_context->RetrievalParams());
   utils::ScopeDeleter1<IVFPQRetrievalParameters> del_params;
   if (retrieval_params == nullptr) {
-    retrieval_params = new IVFPQRetrievalParameters();
+    retrieval_params = new IVFPQRetrievalParameters(this->nprobe, metric_type_);
     del_params.set(retrieval_params);
   }
 
