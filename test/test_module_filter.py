@@ -328,7 +328,7 @@ def parallel_filter(id, total_batch, full_field: bool, mode: str):
         query_by_filter_interface(logger, total_batch, full_field, mode)
         delete_interface(logger, total_batch, 1, full_field, 1, "by_filter")
     except Exception as e:
-        logger.warn(f"Thread {id}: encountered an error: {e}")
+        logger.warning(f"Thread {id}: encountered an error: {e}")
     finally:
         logger.info(f"Thread {id}: exited")
 

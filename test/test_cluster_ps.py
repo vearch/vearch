@@ -270,7 +270,7 @@ class TestClusterFaultyPartitionServerPrepare:
         space_config = {
             "name": space_name,
             "partition_num": 3,
-            "replica_num": 1,
+            "replica_num": 3,
             "fields": [
                 {"name": "field_int", "type": "integer"},
                 {"name": "field_long", "type": "long"},

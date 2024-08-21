@@ -12,7 +12,7 @@
 // implied. See the License for the specific language governing
 // permissions and limitations under the License.
 
-package httphelper
+package response
 
 import (
 	"net/http"
@@ -21,7 +21,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/vearch/vearch/v3/internal/entity/errors"
 	"github.com/vearch/vearch/v3/internal/pkg/log"
-	"github.com/vearch/vearch/v3/internal/pkg/vjson"
 	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
 )
 
@@ -44,21 +43,14 @@ func New(ginContext *gin.Context) *Response {
 	}
 }
 
-/*
-default status is 200
-*/
+// default status is 200
 func (r *Response) SetHttpStatus(httpStatus int64) *Response {
 	r.httpStatus = httpStatus
 	return r
 }
 
 func (r *Response) SendJson(data interface{}) {
-	reply, err := vjson.Marshal(data)
-	if err != nil {
-		r.JsonError(errors.NewErrBadRequest(err))
-		return
-	}
-	r.ginContext.Data(int(r.httpStatus), "application/json", reply)
+	r.ginContext.JSON(int(r.httpStatus), data)
 }
 
 func (r *Response) SendJsonBytes(bytes []byte) {
