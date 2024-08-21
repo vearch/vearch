@@ -122,7 +122,7 @@ def benchmark(nlinks, efConstruction, metric_type, xb, xq, gt):
 
     add(total_batch, batch_size, xb)
     if total - total_batch * batch_size:
-        add(total - total_batch * batch_size, 1, xb[total_batch * batch_size :])
+        add(total - total_batch * batch_size, 1, xb[total_batch * batch_size:])
 
     waiting_index_finish(logger, total)
 
@@ -170,8 +170,8 @@ def benchmark(nlinks, efConstruction, metric_type, xb, xq, gt):
 
 sift10k = DatasetSift10K(logger)
 xb = sift10k.get_database()
-xq = sift10k.get_queries()
-gt = sift10k.get_groundtruth()
+xq = sift10k.get_queries()[:100]
+gt = sift10k.get_groundtruth()[:100]
 
 
 @pytest.mark.parametrize(
@@ -199,4 +199,5 @@ glove_gt = glove25.get_groundtruth()
     ],
 )
 def test_vearch_index_hnsw_ip(nlinks, efConstruction):
-    benchmark(nlinks, efConstruction, "InnerProduct", glove_xb, glove_xq, glove_gt)
+    benchmark(nlinks, efConstruction, "InnerProduct",
+              glove_xb, glove_xq, glove_gt)

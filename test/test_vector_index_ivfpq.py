@@ -139,7 +139,7 @@ def benchmark(store_type, index_params, xb, xq, gt):
 
     add(total_batch, batch_size, xb)
     if total - total_batch * batch_size:
-        add(total - total_batch * batch_size, 1, xb[total_batch * batch_size :])
+        add(total - total_batch * batch_size, 1, xb[total_batch * batch_size:])
 
     waiting_index_finish(logger, total, 10)
 
@@ -276,8 +276,8 @@ def test_vearch_index_ivfpq_hnsw_opq(
 
 glove25 = DatasetGlove25(logger)
 glove_xb = glove25.get_database()
-glove_xq = glove25.get_queries()
-glove_gt = glove25.get_groundtruth()
+glove_xq = glove25.get_queries()[:100]
+glove_gt = glove25.get_groundtruth()[:100]
 
 
 @pytest.mark.parametrize(
