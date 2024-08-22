@@ -212,11 +212,13 @@ Status GammaIndexIVFFlat::Init(const std::string &model_parameters,
       new realtime::RTInvertedLists(rt_invert_index_ptr_, nlist, code_size);
   own_invlists = false;
 
-  if (params.metric_type == DistanceComputeType::INNER_PRODUCT) {
+  metric_type_ = params.metric_type;
+  if (metric_type_ == DistanceComputeType::INNER_PRODUCT) {
     metric_type = faiss::METRIC_INNER_PRODUCT;
   } else {
     metric_type = faiss::METRIC_L2;
   }
+
   if ((size_t)params.nprobe <= this->nlist)
     this->nprobe = params.nprobe;
   else
@@ -225,15 +227,8 @@ Status GammaIndexIVFFlat::Init(const std::string &model_parameters,
 }
 
 RetrievalParameters *GammaIndexIVFFlat::Parse(const std::string &parameters) {
-  enum DistanceComputeType type;
-  if (this->metric_type == faiss::METRIC_L2) {
-    type = DistanceComputeType::L2;
-  } else {
-    type = DistanceComputeType::INNER_PRODUCT;
-  }
-
   if (parameters == "") {
-    return new IVFFlatRetrievalParameters(type);
+    return new IVFFlatRetrievalParameters(this->nprobe, metric_type_);
   }
 
   utils::JsonParser jp;
@@ -244,7 +239,7 @@ RetrievalParameters *GammaIndexIVFFlat::Parse(const std::string &parameters) {
 
   std::string metric_type;
   IVFFlatRetrievalParameters *retrieval_params =
-      new IVFFlatRetrievalParameters();
+      new IVFFlatRetrievalParameters(this->nprobe, metric_type_);
   if (!jp.GetString("metric_type", metric_type)) {
     if (!strcasecmp("L2", metric_type.c_str())) {
       retrieval_params->SetDistanceComputeType(DistanceComputeType::L2);
@@ -254,10 +249,10 @@ RetrievalParameters *GammaIndexIVFFlat::Parse(const std::string &parameters) {
     } else {
       LOG(ERROR) << "invalid metric_type = " << metric_type
                  << ", so use default value.";
-      retrieval_params->SetDistanceComputeType(type);
+      retrieval_params->SetDistanceComputeType(metric_type_);
     }
   } else {
-    retrieval_params->SetDistanceComputeType(type);
+    retrieval_params->SetDistanceComputeType(metric_type_);
   }
 
   int nprobe;
@@ -430,19 +425,30 @@ int GammaIndexIVFFlat::Search(RetrievalContext *retrieval_context, int n,
 
   utils::ScopeDeleter1<IVFFlatRetrievalParameters> del_params;
   if (retrieval_params == nullptr) {
-    retrieval_params = new IVFFlatRetrievalParameters();
+      retrieval_params = new IVFFlatRetrievalParameters(this->nprobe, metric_type_);
     del_params.set(retrieval_params);
   }
 
+  SearchCondition *condition =
+      dynamic_cast<SearchCondition *>(retrieval_context);
+  if (condition->brute_force_search == true || is_trained == false) {
+    // reset retrieval_params
+    delete retrieval_context->RetrievalParams();
+    retrieval_context->retrieval_params_ =
+        new FlatRetrievalParameters(retrieval_params->ParallelOnQueries(),
+                                    retrieval_params->GetDistanceComputeType());
+    int ret = GammaFLATIndex::Search(retrieval_context, n, rx, k,
+                           distances, labels);
+    return ret;
+  }
   int nprobe = this->nprobe;
   if (retrieval_params->Nprobe() > 0 &&
       (size_t)retrieval_params->Nprobe() <= this->nlist) {
     nprobe = retrieval_params->Nprobe();
   } else {
-    retrieval_params->SetNprobe(this->nprobe);
     LOG(WARNING) << "nlist = " << this->nlist
-                 << "nprobe = " << retrieval_params->Nprobe()
-                 << "invalid, now use:" << this->nprobe;
+                  << ", nprobe = " << retrieval_params->Nprobe()
+                  << ", invalid, now use:" << this->nprobe;
   }
 #else
   int nprobe = this->nprobe;
@@ -471,21 +477,10 @@ void GammaIndexIVFFlat::search_preassigned(RetrievalContext *retrieval_context,
           retrieval_context->RetrievalParams());
   utils::ScopeDeleter1<IVFFlatRetrievalParameters> del_params;
   if (retrieval_params == nullptr) {
-    retrieval_params = new IVFFlatRetrievalParameters();
+    retrieval_params = new IVFFlatRetrievalParameters(this->nprobe, metric_type_);
     del_params.set(retrieval_params);
   }
-  SearchCondition *condition =
-      dynamic_cast<SearchCondition *>(retrieval_context);
-  if (condition->brute_force_search == true || is_trained == false) {
-    // reset retrieval_params
-    delete retrieval_context->RetrievalParams();
-    retrieval_context->retrieval_params_ =
-        new FlatRetrievalParameters(retrieval_params->ParallelOnQueries(),
-                                    retrieval_params->GetDistanceComputeType());
-    GammaFLATIndex::Search(retrieval_context, n, (const uint8_t *)x, k,
-                           distances, labels);
-    return;
-  }
+
   faiss::MetricType metric_type;
   if (retrieval_params->GetDistanceComputeType() ==
       DistanceComputeType::INNER_PRODUCT) {

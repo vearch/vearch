@@ -163,7 +163,7 @@ Status GammaIVFPQFastScanIndex::Init(const std::string &model_parameters,
 RetrievalParameters *GammaIVFPQFastScanIndex::Parse(
     const std::string &parameters) {
   if (parameters == "") {
-    return new IVFPQRetrievalParameters(metric_type_);
+    return new IVFPQRetrievalParameters(this->nprobe, metric_type_);
   }
 
   utils::JsonParser jp;
@@ -173,7 +173,7 @@ RetrievalParameters *GammaIVFPQFastScanIndex::Parse(
   }
 
   std::string metric_type;
-  IVFPQRetrievalParameters *retrieval_params = new IVFPQRetrievalParameters();
+  IVFPQRetrievalParameters *retrieval_params = new IVFPQRetrievalParameters(this->nprobe, metric_type_);
   if (!jp.GetString("metric_type", metric_type)) {
     if (strcasecmp("L2", metric_type.c_str()) &&
         strcasecmp("InnerProduct", metric_type.c_str())) {

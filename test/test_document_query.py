@@ -166,10 +166,11 @@ class TestDocumentQueryBadCase:
             [16, "wrong_partition_of_bad_type"],
             [17, "wrong_document_id_of_partition"],
             [18, "wrong_document_id_of_partition_next"],
+            [19, "wrong_document_id_with_invalid_character"],
         ],
     )
     def test_document_query_badcase(self, index, wrong_type):
-        wrong_parameters = [False for i in range(19)]
+        wrong_parameters = [False for i in range(20)]
         wrong_parameters[index] = True
         query_error(self.logger, 1, 1, self.xb, "query", wrong_parameters)
 
