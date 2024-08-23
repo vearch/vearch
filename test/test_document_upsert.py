@@ -266,10 +266,11 @@ class TestDocumentUpsertBadCase:
         [
             [0, "params_both_wrong"],
             [1, "params_just_one_wrong"],
+            [2, "params_just_one_wrong_with_bad_vector"],
         ],
     )
     def test_vearch_document_upsert_multiple_badcase(self, index: int, wrong_type: str):
-        wrong_parameters = [False for i in range(2)]
+        wrong_parameters = [False for i in range(3)]
         wrong_parameters[index] = True
         total_batch = 1
         batch_size = 2

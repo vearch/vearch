@@ -399,7 +399,9 @@ def process_add_mul_error_data(items):
     batch_size = items[1]
     features = items[2]
     logger = items[3]
-    parmas_both_wrong, parmas_just_one_wrong = items[4]
+    parmas_both_wrong, parmas_just_one_wrong, params_just_one_wrong_with_bad_vector = (
+        items[4]
+    )
 
     for j in range(batch_size):
         param_dict = {}
@@ -410,6 +412,8 @@ def process_add_mul_error_data(items):
             param_dict["field_string"] = float(param_dict["field_int"])
         if parmas_just_one_wrong and j == batch_size - 1:
             param_dict["field_string"] = float(param_dict["field_int"])
+        if params_just_one_wrong_with_bad_vector and j == batch_size - 1:
+            param_dict["field_vector"] = features[j][:-2].tolist()
         data["documents"].append(param_dict)
 
     json_str = json.dumps(data)

@@ -1,4 +1,4 @@
-name: CI_cluster
+name: CI Cluster
 
 on:
   push:
@@ -22,36 +22,10 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-
-    - name: Set up QEMU
-      if: matrix.platform == 'arm64'
-      uses: docker/setup-qemu-action@v3
-
-    - name: Set up Docker Buildx
-      if: matrix.platform == 'arm64'
-      uses: docker/setup-buildx-action@v3
-
-    - name: Compile and Build
-      run: |
-        cd cloud
-        docker run --name vearch-dev ${{ matrix.docker-arch }} --privileged -i -v $(dirname "$PWD"):/vearch vearch/vearch-dev-env:latest /vearch/cloud/compile/compile.sh
-        cp -r ../build/bin compile/; cp -r ../build/lib compile/
-        docker build ${{ matrix.docker-arch }} -t vearch/vearch:latest .
-        cp ../config/config_cluster.toml .
-        sed -i 's/resource_limit_rate = 0.85/resource_limit_rate = 0.98/' config_cluster.toml
-        if [ "${{ matrix.docker-arch }}" == "--platform linux/arm64" ]; then
-          echo "    rpc_timeout = 500" >> config_cluster.toml
-        fi
-        cat config_cluster.toml
-        docker rm vearch-dev
-        docker rmi vearch/vearch-dev-env:latest
-
-    - name: Run docker-compose
-      uses: hoverkraft-tech/compose-action@v2.0.1
+    - name: Set cluster env
+      uses: ./.github/actions/set_cluster_env
       with:
-        compose-file: "cloud/docker-compose.yml"
-        up-flags: "-d"
-        compose-flags: "--profile cluster"
+        build-type: github
 
     - name: Create Minio bucket
       run: |
@@ -61,19 +35,6 @@ jobs:
         chmod +x mc
         ./mc alias set myminio http://127.0.0.1:10000 minioadmin minioadmin
         ./mc mb myminio/test
-
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: "3.10"
-        
-    - name: Install Dependency
-      run: |
-        python -m pip install --upgrade pip setuptools wheel
-        pip install requests pytest wheel pandas numpy minio
-        cd sdk/python
-        python setup.py bdist_wheel
-        pip install dist/pyvearch*
 
     - name: Run Python tests
       run: |
@@ -86,6 +47,12 @@ jobs:
       run: |
         cd sdk/go/test
         go test -v
+
+    - name: Build python sdk
+      run: |
+        cd sdk/python
+        python setup.py bdist_wheel
+        pip install dist/pyvearch*
 
     - name: Test Python SDK
       run: |

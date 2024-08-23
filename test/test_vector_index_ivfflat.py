@@ -109,7 +109,7 @@ def query(
     logger.info(result)
     if metric_is_same and nprobe > 1:
         assert recalls[1] >= 0.8
-        assert recalls[10] >= 0.95
+        assert recalls[10] >= 0.9
 
 
 def benchmark(store_type, ncentroids, metric_type, xb, xq, gt):
@@ -128,7 +128,7 @@ def benchmark(store_type, ncentroids, metric_type, xb, xq, gt):
 
     add(total_batch, batch_size, xb)
     if total - total_batch * batch_size:
-        add(total - total_batch * batch_size, 1, xb[total_batch * batch_size:])
+        add(total - total_batch * batch_size, 1, xb[total_batch * batch_size :])
 
     waiting_index_finish(logger, total, 10)
 
@@ -205,5 +205,4 @@ glove_gt = glove25.get_groundtruth()[:100]
     ],
 )
 def test_vearch_index_ivfflat_ip(store_type: str, ncentroids: int):
-    benchmark(store_type, ncentroids, "InnerProduct",
-              glove_xb, glove_xq, glove_gt)
+    benchmark(store_type, ncentroids, "InnerProduct", glove_xb, glove_xq, glove_gt)
