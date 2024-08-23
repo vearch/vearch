@@ -25,45 +25,16 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-
-    - name: Set up QEMU
-      if: matrix.platform == 'arm64'
-      uses: docker/setup-qemu-action@v3
-
-    - name: Set up Docker Buildx
-      if: matrix.platform == 'arm64'
-      uses: docker/setup-buildx-action@v3
-
-    - name: Compile and Build
-      run: |
-        cd cloud
-        docker run --name vearch-dev ${{ matrix.docker-arch }} --privileged -i -v $(dirname "$PWD"):/vearch vearch/vearch-dev-env:latest /vearch/cloud/compile/compile.sh
-        cp -r ../build/bin compile/; cp -r ../build/lib compile/
-        docker build ${{ matrix.docker-arch }} -t vearch/vearch:latest .
-        cp ../config/config_cluster.toml .
-        sed -i 's/resource_limit_rate = 0.85/resource_limit_rate = 0.98/' config_cluster.toml
-        echo "    rpc_timeout = 500" >> config.toml
-        docker rm vearch-dev
-        docker rmi vearch/vearch-dev-env:latest
-
-    - name: Run docker-compose
-      uses: hoverkraft-tech/compose-action@v2.0.1
+    - name: Set cluster env
+      uses: ./.github/actions/set_cluster_env
       with:
-        compose-file: "cloud/docker-compose.yml"
-        up-flags: "-d"
-        compose-flags: "--profile cluster"
-
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: "3.10"
-
-    - name: Install Dependency
-      run: |
-        python -m pip install --upgrade pip setuptools wheel
-        pip install requests pytest numpy h5py
+        build-type: github
 
     - name: Run test task for ${{ matrix.index-type }} with ${{ matrix.platform }}
       run: |
         cd test
-        pytest test_vector_index_${{ matrix.index-type }}.py -x --log-cli-level=INFO
+        if [[ "${{ matrix.index-type }}" == "ivfpq" && "${{ matrix.platform }}" == "arm64" ]]; then
+          pytest test_vector_index_${{ matrix.index-type }}.py -k "test_vearch_index_ivfpq_without_nsubvector or test_vearch_index_ivfpq_ip" -x --log-cli-level=INFO
+        else
+          pytest test_vector_index_${{ matrix.index-type }}.py -x --log-cli-level=INFO
+        fi

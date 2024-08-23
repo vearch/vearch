@@ -166,7 +166,7 @@ def parse_arguments() -> argparse.Namespace:
     )
     parser.add_argument(
         "--nq",
-        default=10000,
+        default=100,
         type=int,
         help="the number of interface requests of [query, delete, search]",
     )
