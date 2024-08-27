@@ -247,6 +247,24 @@ def process_get_data_by_filter(items):
             },
         ]
         data["filters"]["conditions"].extend(range_filter)
+    elif mode == "IN":
+        term_filter = [
+            {
+                "field": "field_string",
+                "operator": "IN",
+                "value": [str(index * batch_size), str((index + 1) * batch_size)]
+            },
+        ]
+        data["filters"]["conditions"].extend(term_filter)
+    elif mode == "NOT IN":
+        term_filter = [
+            {
+                "field": "field_string",
+                "operator": "NOT IN",
+                "value": [str(index * batch_size), str((index + 1) * batch_size)]
+            },
+        ]
+        data["filters"]["conditions"].extend(term_filter)
     data["limit"] = batch_size
 
     json_str = json.dumps(data)
@@ -313,6 +331,12 @@ def process_get_data_by_filter(items):
         assert rs.text.find("\"total\":" + str(0)) >= 0
     elif mode == "[lower_bound, valid_value]" or mode == "[valid_value, upper_bound]":
         assert len(documents) > 0
+    elif mode == "IN":
+        for doc in documents:
+            assert (doc["field_string"] == str(index) or doc["field_string"] == str(index + 1))
+    elif mode == "NOT IN":
+        for doc in documents:
+            assert (doc["field_string"] != str(index) and doc["field_string"] != str(index + 1))
 
 
 def query_by_filter_interface(logger, total, full_field, mode: str):
@@ -443,6 +467,8 @@ def check(total, full_field, xb, mode: str):
     [True, "lower_outbound"],
     [True, "[lower_bound, valid_value]"],
     [True, "[valid_value, upper_bound]"],
+    [True, "IN"],
+    [True, "NOT IN"],
 ])
 def test_module_filter(full_field: bool, mode: str):
     check(100, full_field, xb, mode)

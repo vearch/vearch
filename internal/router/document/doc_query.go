@@ -43,6 +43,11 @@ const (
 	WeightedRanker   = "WeightedRanker"
 )
 
+const (
+	TermOperatorIN    int32 = 1
+	TermOperatorNOTIN int32 = 2
+)
+
 type VectorQuery struct {
 	Field        string          `json:"field"`
 	FeatureData  json.RawMessage `json:"feature"`
@@ -64,7 +69,8 @@ type Range struct {
 }
 
 type Term struct {
-	Value json.RawMessage
+	Value    json.RawMessage
+	Operator int32
 }
 
 func parseFilter(filters *request.Filter, space *entity.Space) ([]*vearchpb.RangeFilter, []*vearchpb.TermFilter, error) {
@@ -138,7 +144,25 @@ func parseFilter(filters *request.Filter, space *entity.Space) ([]*vearchpb.Rang
 				tm, ok := termConditionMap[condition.Field]
 				if !ok {
 					tm = &Term{
-						Value: condition.Value,
+						Value:    condition.Value,
+						Operator: TermOperatorIN,
+					}
+					termConditionMap[condition.Field] = tm
+				} else {
+					tm.Value = condition.Value
+				}
+			} else if condition.Operator == "NOT IN" {
+				tmp := make([]string, 0)
+				err := json.Unmarshal(condition.Value, &tmp)
+				if err != nil {
+					log.Error(err)
+					return nil, nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, err)
+				}
+				tm, ok := termConditionMap[condition.Field]
+				if !ok {
+					tm = &Term{
+						Value:    condition.Value,
+						Operator: TermOperatorNOTIN,
 					}
 					termConditionMap[condition.Field] = tm
 				} else {
@@ -518,8 +542,6 @@ func parseRange(rangeConditionMap map[string]*Range, proMap map[string]*entity.S
 }
 
 func parseTerm(tm map[string]*Term, proMap map[string]*entity.SpaceProperties) ([]*vearchpb.TermFilter, error) {
-	isUnion := int32(1)
-
 	termFilters := make([]*vearchpb.TermFilter, 0)
 
 	for field, rv := range tm {
@@ -557,7 +579,7 @@ func parseTerm(tm map[string]*Term, proMap map[string]*entity.SpaceProperties) (
 		termFilter := vearchpb.TermFilter{
 			Field:   field,
 			Value:   buf.Bytes(),
-			IsUnion: isUnion,
+			IsUnion: rv.Operator,
 		}
 		termFilters = append(termFilters, &termFilter)
 	}
