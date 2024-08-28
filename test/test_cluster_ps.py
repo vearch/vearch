@@ -19,7 +19,8 @@ import requests
 import json
 import pytest
 import logging
-from utils.vearch_utils import *
+import time
+from utils import vearch_utils
 from utils.data_utils import *
 
 logging.basicConfig()
@@ -33,7 +34,7 @@ class TestClusterPartitionServerAdd:
         self.logger = logger
 
     def test_prepare_db(self):
-        response = create_db(router_url, db_name)
+        response = vearch_utils.create_db(vearch_utils.router_url, vearch_utils.db_name)
         logger.info(response.json())
 
     @pytest.mark.parametrize(
@@ -50,7 +51,7 @@ class TestClusterPartitionServerAdd:
         ],
     )
     def test_vearch_space_create(self, embedding_size, index_type):
-        space_name_each = space_name + "smalldata" + str(embedding_size) + index_type
+        space_name_each = vearch_utils.space_name + "smalldata" + str(embedding_size) + index_type
         space_config = {
             "name": space_name_each,
             "partition_num": 2,
@@ -85,46 +86,51 @@ class TestClusterPartitionServerAdd:
             ],
         }
 
-        response = create_space(router_url, db_name, space_config)
+        response = vearch_utils.create_space(vearch_utils.router_url, vearch_utils.db_name, space_config)
         logger.info(response.json())
 
-        add_embedding_size(db_name, space_name_each, 50, 100, embedding_size)
+        vearch_utils.add_embedding_size(vearch_utils.db_name, space_name_each, 50, 100, embedding_size)
 
-        delete_interface(
+        vearch_utils.delete_interface(
             logger,
             10,
             100,
             delete_type="by_ids",
-            delete_db_name=db_name,
+            delete_db_name=vearch_utils.db_name,
             delete_space_name=space_name_each,
         )
+
+def waitfor_leader_status():
+    leader_status = 0
+    while leader_status == 0:
+        response = vearch_utils.list_spaces(vearch_utils.router_url, vearch_utils.db_name)
+        for space in response.json()["data"]:
+            for partition in space["partitions"]:
+                leader_status = partition["raft_status"]["Leader"]
+                if leader_status == 0:
+                    break
+            if leader_status == 0:
+                break
+        time.sleep(15)
+    return leader_status
 
 class TestClusterPartitionServerRecover:
     def test_ps_recover(self):
         num = 0
         while num != 3:
-            response = get_servers_status(router_url)
+            response = vearch_utils.get_servers_status(vearch_utils.router_url)
             num = response.json()["data"]["count"]
             time.sleep(5)
         logger.info(num)
-        leader_status = 0
-        while leader_status == 0:
-            response = list_spaces(router_url, db_name)
-            for space in response.json()["data"]:
-                for partition in space["partitions"]:
-                    leader_status = partition["raft_status"]["Leader"]
-                    if leader_status == 0:
-                        break
-                if leader_status == 0:
-                    break
-            time.sleep(15)
+
+        leader_status = waitfor_leader_status()
         logger.info(leader_status)
-        response = list_spaces(router_url, db_name)
+        response = vearch_utils.list_spaces(vearch_utils.router_url, vearch_utils.db_name)
         logger.info(response.json())
 
 class TestClusterPartitionServerCheckSpace:
     def test_check_space(self):
-        response = list_spaces(router_url, db_name)
+        response = vearch_utils.list_spaces(vearch_utils.router_url, vearch_utils.db_name)
         logger.info(response.json())
         for space in response.json()["data"]:
             assert space["doc_num"] == 4000
@@ -132,12 +138,24 @@ class TestClusterPartitionServerCheckSpace:
 
 class TestClusterPartitionServerDestroy:
     def test_destroy_db(self):
-        response = list_spaces(router_url, db_name)
+        leader_status = waitfor_leader_status()
+        logger.info(leader_status)
+
+        response = vearch_utils.list_spaces(vearch_utils.router_url, vearch_utils.db_name)
+        while response == None:
+            time.sleep(10)
+            response = vearch_utils.list_spaces(vearch_utils.router_url, vearch_utils.db_name)
+        
+        logger.info(response.text)
         assert response.json()["code"] == 0
+
+        while len(response.json()["data"]) == 0:
+            time.sleep(10)
+            response = vearch_utils.list_spaces(vearch_utils.router_url, vearch_utils.db_name)
         for space in response.json()["data"]:
-            response = drop_space(router_url, db_name, space["space_name"])
+            response = vearch_utils.drop_space(vearch_utils.router_url, vearch_utils.db_name, space["space_name"])
             assert response.json()["code"] == 0
-        drop_db(router_url, db_name)
+        vearch_utils.drop_db(vearch_utils.router_url, vearch_utils.db_name)
 
 
 class TestClusterPartitionChange:
@@ -145,7 +163,7 @@ class TestClusterPartitionChange:
         self.logger = logger
 
     def test_prepare_db(self):
-        response = create_db(router_url, db_name)
+        response = vearch_utils.create_db(vearch_utils.router_url, vearch_utils.db_name)
         logger.info(response.json())
 
     @pytest.mark.parametrize(
@@ -156,7 +174,7 @@ class TestClusterPartitionChange:
     )
     def test_vearch_space_create(self, embedding_size, index_type):
         space_config = {
-            "name": space_name,
+            "name": vearch_utils.space_name,
             "partition_num": 2,
             "replica_num": 1,
             "fields": [
@@ -189,22 +207,22 @@ class TestClusterPartitionChange:
             ],
         }
 
-        response = create_space(router_url, db_name, space_config)
+        response = vearch_utils.create_space(vearch_utils.router_url, vearch_utils.db_name, space_config)
         logger.info(response.json())
 
-        add_embedding_size(db_name, space_name, 50, 100, embedding_size)
+        vearch_utils.add_embedding_size(vearch_utils.db_name, vearch_utils.space_name, 50, 100, embedding_size)
 
-        delete_interface(
+        vearch_utils.delete_interface(
             logger,
             10,
             100,
             delete_type="by_ids",
-            delete_db_name=db_name,
-            delete_space_name=space_name,
+            delete_db_name=vearch_utils.db_name,
+            delete_space_name=vearch_utils.space_name,
         )
 
     def test_check_space(self):
-        response = list_spaces(router_url, db_name)
+        response = vearch_utils.list_spaces(vearch_utils.router_url, vearch_utils.db_name)
         logger.info(response.json())
         for space in response.json()["data"]:
             assert space["doc_num"] == 4000
@@ -212,7 +230,7 @@ class TestClusterPartitionChange:
     def test_change_partition(self):
         pids = []
         nodes = [1, 2, 3]
-        response = get_space(router_url, db_name, space_name)
+        response = vearch_utils.get_space(vearch_utils.router_url, vearch_utils.db_name, vearch_utils.space_name)
         target_node = 0
         nums = {}
         for partition in response.json()["data"]["partitions"]:
@@ -221,15 +239,15 @@ class TestClusterPartitionChange:
             nodes.remove(partition["node_id"])
         target_node = nodes[0]
         # add partitons
-        response = change_partitons(router_url, pids, target_node, 0)
+        response = vearch_utils.change_partitons(vearch_utils.router_url, pids, target_node, 0)
         logger.info(response.json())
         assert response.json()["code"] == 0
-        response = get_servers_status(router_url)
+        response = vearch_utils.get_servers_status(vearch_utils.router_url)
         logger.info(response.json())
 
         time.sleep(30)
 
-        response = get_servers_status(router_url)
+        response = vearch_utils.get_servers_status(vearch_utils.router_url)
         for server in response.json()["data"]["servers"]:
             if server["server"]["name"] == target_node:
                 for partition in server["partitions"]:
@@ -238,26 +256,63 @@ class TestClusterPartitionChange:
                 break
 
         # delete partitions
-        response = change_partitons(router_url, pids, target_node, 1)
+        response = vearch_utils.change_partitons(vearch_utils.router_url, pids, target_node, 1)
         logger.info(response.json())
         assert response.json()["code"] == 0
-        response = get_servers_status(router_url)
+        response = vearch_utils.get_servers_status(vearch_utils.router_url)
         logger.info(response.json())
 
     def test_destroy_db(self):
-        response = list_spaces(router_url, db_name)
+        response = vearch_utils.list_spaces(vearch_utils.router_url, vearch_utils.db_name)
         assert response.json()["code"] == 0
         for space in response.json()["data"]:
-            response = drop_space(router_url, db_name, space["space_name"])
+            response = vearch_utils.drop_space(vearch_utils.router_url, vearch_utils.db_name, space["space_name"])
             assert response.json()["code"] == 0
-        drop_db(router_url, db_name)
+        vearch_utils.drop_db(vearch_utils.router_url, vearch_utils.db_name)
 
-class TestClusterFaultyPartitionServerPrepare:
+def create_space(partition_num, replica_num, embedding_size, index_type):
+    space_config = {
+        "name": vearch_utils.space_name,
+        "partition_num": partition_num,
+        "replica_num": replica_num,
+        "fields": [
+            {"name": "field_int", "type": "integer"},
+            {"name": "field_long", "type": "long"},
+            {"name": "field_float", "type": "float"},
+            {"name": "field_double", "type": "double"},
+            {
+                "name": "field_string",
+                "type": "string",
+                "index": {"name": "field_string", "type": "SCALAR"},
+            },
+            {
+                "name": "field_vector",
+                "type": "vector",
+                "dimension": embedding_size,
+                "index": {
+                    "name": "gamma",
+                    "type": index_type,
+                    "params": {
+                        "metric_type": "InnerProduct",
+                        "ncentroids": 2048,
+                        "nsubvector": int(embedding_size / 4),
+                        "nlinks": 32,
+                        "efConstruction": 100,
+                    },
+                },
+            },
+        ],
+    }
+
+    response = vearch_utils.create_space(vearch_utils.router_url, vearch_utils.db_name, space_config)
+    logger.info(response.json())
+
+class TestClusterFaultyPartitionServerCreateSpace:
     def setup_class(self):
         self.logger = logger
 
     def test_prepare_db(self):
-        response = create_db(router_url, db_name)
+        response = vearch_utils.create_db(vearch_utils.router_url, vearch_utils.db_name)
         logger.info(response.json())
 
     @pytest.mark.parametrize(
@@ -266,44 +321,22 @@ class TestClusterFaultyPartitionServerPrepare:
             [128, "FLAT"],
         ],
     )
-    def test_vearch_space_create(self, embedding_size, index_type):
-        space_config = {
-            "name": space_name,
-            "partition_num": 3,
-            "replica_num": 3,
-            "fields": [
-                {"name": "field_int", "type": "integer"},
-                {"name": "field_long", "type": "long"},
-                {"name": "field_float", "type": "float"},
-                {"name": "field_double", "type": "double"},
-                {
-                    "name": "field_string",
-                    "type": "string",
-                    "index": {"name": "field_string", "type": "SCALAR"},
-                },
-                {
-                    "name": "field_vector",
-                    "type": "vector",
-                    "dimension": embedding_size,
-                    "index": {
-                        "name": "gamma",
-                        "type": index_type,
-                        "params": {
-                            "metric_type": "InnerProduct",
-                            "ncentroids": 2048,
-                            "nsubvector": int(embedding_size / 4),
-                            "nlinks": 32,
-                            "efConstruction": 100,
-                        },
-                    },
-                },
-            ],
-        }
+    def test_prepare_data(self, embedding_size, index_type):
+        create_space(3, 3, embedding_size, index_type)
 
-        response = create_space(router_url, db_name, space_config)
-        logger.info(response.json())
 
-        add_embedding_size(db_name, space_name, 50, 100, embedding_size)
+class TestClusterFaultyPartitionServerPrepareData:
+    def setup_class(self):
+        self.logger = logger
+
+    @pytest.mark.parametrize(
+        ["embedding_size", "index_type"],
+        [
+            [128, "FLAT"],
+        ],
+    )
+    def test_prepare_data(self, embedding_size, index_type):
+        vearch_utils.add_embedding_size(vearch_utils.db_name, vearch_utils.space_name, 50, 100, embedding_size)
 
 
 class TestClusterFaultyPartitionServer:
@@ -313,4 +346,58 @@ class TestClusterFaultyPartitionServer:
     def test_vearch_search(self):
         sift10k = DatasetSift10K(logger)
         xb = sift10k.get_database()
-        search_interface(logger, 100, 100, xb, True)
+        vearch_utils.search_interface(logger, 100, 100, xb, True)
+
+class TestIncompleteShardPrepare:
+    def setup_class(self):
+        self.logger = logger
+
+    def test_prepare_db(self):
+        response = vearch_utils.create_db(vearch_utils.router_url, vearch_utils.db_name)
+        logger.info(response.json())
+
+    @pytest.mark.parametrize(
+        ["embedding_size", "index_type"],
+        [
+            [128, "FLAT"],
+        ],
+    )
+    def test_prepare_data(self, embedding_size, index_type):
+        create_space(3, 1, embedding_size, index_type)
+        vearch_utils.add_embedding_size(vearch_utils.db_name, vearch_utils.space_name, 50, 100, embedding_size)
+
+
+class TestIncompleteShardSearch:
+    def setup_class(self):
+        self.logger = logger
+
+    def test_vearch_search(self):
+        sift10k = DatasetSift10K(logger)
+        xb = sift10k.get_database()
+        vearch_utils.search_interface(logger, 100, 100, xb, True)
+
+    def test_search(self):
+        url = vearch_utils.router_url + "/document/search"
+        data = {}
+        data["db_name"] = vearch_utils.db_name
+        data["space_name"] = vearch_utils.space_name
+        data["vector_value"] = False
+        data["vectors"] = []
+        sift10k = DatasetSift10K(logger)
+        xb = sift10k.get_database()
+        vector_info = {
+            "field": "field_vector",
+            "feature": xb[:1].flatten().tolist(),
+        }
+        data["vectors"].append(vector_info)
+        data["limit"] = 1
+
+        json_str = json.dumps(data)
+        rs = requests.post(url, auth=(vearch_utils.username, vearch_utils.password), data=json_str)
+        if rs.status_code != 200 or "documents" not in rs.json()["data"]:
+            logger.info(rs.json())
+            logger.info(json_str)
+            assert False
+
+        documents = rs.json()["data"]["documents"]
+        assert len(documents) > 0

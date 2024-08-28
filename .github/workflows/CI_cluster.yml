@@ -90,10 +90,36 @@ jobs:
     - name: Run tests for faulty ps
       run: |
         cd test
-        pytest test_cluster_ps.py -x -k "TestClusterFaultyPartitionServerPrepare" --log-cli-level=INFO
+        pytest test_cluster_ps.py -x -k "TestClusterFaultyPartitionServerCreateSpace" --log-cli-level=INFO
+        cd ../cloud
+        docker-compose stop ps1
+        cd ../test
+        pytest test_cluster_ps.py -x -k "TestClusterFaultyPartitionServerPrepareData" --log-cli-level=INFO
+        cd ../cloud && docker-compose stop ps2
+        cd ../test
+        pytest test_cluster_ps.py -x -k "TestClusterFaultyPartitionServer" --log-cli-level=INFO
+        cd ../cloud
+        docker-compose start ps1
+        docker-compose start ps2
+        sleep 60
+        cd ../test
+        pytest test_cluster_ps.py -x -k "TestClusterPartitionServerDestroy" --log-cli-level=INFO
+
+    - name: Run tests for incomplete shared
+      run: |
+        cd test
+        pytest test_cluster_ps.py -x -k "TestIncompleteShardPrepare" --log-cli-level=INFO
         cd ../cloud
         docker-compose stop ps1
         docker-compose stop ps2
         cd ../test
-        pytest test_cluster_ps.py -x -k "TestClusterFaultyPartitionServer" --log-cli-level=INFO
+        pytest test_cluster_ps.py -x -k "TestIncompleteShardSearch" --log-cli-level=INFO
+        cd ../cloud
+        docker-compose stop ps3
+        docker-compose start ps1
+        docker-compose start ps2
+        docker-compose start ps3
+        sleep 60
+        cd ../test
+        pytest test_cluster_ps.py -x -k "TestClusterPartitionServerDestroy" --log-cli-level=INFO
   
