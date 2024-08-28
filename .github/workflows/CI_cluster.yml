@@ -97,7 +97,9 @@ jobs:
         pytest test_cluster_ps.py -x -k "TestClusterFaultyPartitionServerPrepareData" --log-cli-level=INFO
         cd ../cloud && docker-compose stop ps2
         cd ../test
-        pytest test_cluster_ps.py -x -k "TestClusterFaultyPartitionServer" --log-cli-level=INFO
+        pytest test_cluster_ps.py -x -k "TestClusterFaultyPartitionServerSearch" --log-cli-level=INFO
+        # check meta with faulty ps
+        pytest test_cluster_ps.py -x -k "TestClusterFaultyPartitionServerGetMetaData" --log-cli-level=INFO
         cd ../cloud
         docker-compose start ps1
         docker-compose start ps2

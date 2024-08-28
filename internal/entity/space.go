@@ -98,7 +98,7 @@ type SpaceInfo struct {
 	PartitionRule *PartitionRule   `json:"partition_rule,omitempty"`
 	Status        string           `json:"status,omitempty"`
 	Partitions    []*PartitionInfo `json:"partitions"`
-	Errors        *[]string        `json:"errors,omitempty"`
+	Errors        []string         `json:"errors,omitempty"`
 }
 
 type SpacePartitionResource struct {
@@ -118,9 +118,9 @@ type SpaceDescribeRequest struct {
 }
 
 type BackupSpace struct {
-	Command    string `json:"command,omitempty"`
-	Part       int    `json:"part"`
-	S3Param    struct {
+	Command string `json:"command,omitempty"`
+	Part    int    `json:"part"`
+	S3Param struct {
 		BucketName string `json:"bucket_name"`
 		EndPoint   string `json:"endpoint"`
 		AccessKey  string `json:"access_key"`

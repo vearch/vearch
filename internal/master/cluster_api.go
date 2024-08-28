@@ -508,6 +508,7 @@ func (ca *clusterAPI) getSpace(c *gin.Context) {
 				spaceInfo.PartitionRule = space.PartitionRule
 				if err := ca.masterService.describeSpaceService(c, space, spaceInfo, detail_info); err != nil {
 					response.New(c).JsonError(errors.NewErrInternal(err))
+					return
 				} else {
 					spaceInfos = append(spaceInfos, spaceInfo)
 				}

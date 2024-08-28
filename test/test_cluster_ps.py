@@ -321,7 +321,7 @@ class TestClusterFaultyPartitionServerCreateSpace:
             [128, "FLAT"],
         ],
     )
-    def test_prepare_data(self, embedding_size, index_type):
+    def test_prepare_space(self, embedding_size, index_type):
         create_space(3, 3, embedding_size, index_type)
 
 
@@ -339,14 +339,72 @@ class TestClusterFaultyPartitionServerPrepareData:
         vearch_utils.add_embedding_size(vearch_utils.db_name, vearch_utils.space_name, 50, 100, embedding_size)
 
 
-class TestClusterFaultyPartitionServer:
+class TestClusterFaultyPartitionServerSearch:
     def setup_class(self):
         self.logger = logger
 
     def test_vearch_search(self):
         sift10k = DatasetSift10K(logger)
         xb = sift10k.get_database()
-        vearch_utils.search_interface(logger, 100, 100, xb, True)
+        vearch_utils.search_interface(logger, 10, 100, xb, True)
+
+class TestClusterFaultyPartitionServerGetMetaData:
+    def test_list_space(self):
+        response = vearch_utils.list_spaces(vearch_utils.router_url, vearch_utils.db_name)
+        while response == None:
+            time.sleep(10)
+            response = vearch_utils.list_spaces(vearch_utils.router_url, vearch_utils.db_name)
+
+        logger.info(response.text)
+        assert response.json()["code"] == 0
+
+        while len(response.json()["data"]) == 0:
+            time.sleep(10)
+            response = vearch_utils.list_spaces(vearch_utils.router_url, vearch_utils.db_name)
+        for space in response.json()["data"]:
+            response = vearch_utils.get_space(vearch_utils.router_url, vearch_utils.db_name, space["space_name"])
+            assert response.json()["code"] == 0
+
+    def test_vearch_usage_read_metadata(self):
+        response = vearch_utils.get_router_info(vearch_utils.router_url)
+        logger.info("router_info:" + json.dumps(response.json()))
+        assert response.json()["code"] == 0
+
+        response = vearch_utils.get_cluster_stats(vearch_utils.router_url)
+        logger.debug("cluster_stats:" + json.dumps(response.json()))
+        assert response.json()["code"] == 0
+
+        response = vearch_utils.get_cluster_version(vearch_utils.router_url)
+        logger.debug("cluster_stats:" + json.dumps(response.json()))
+        assert response.json()["code"] == 0
+
+        response = vearch_utils.get_cluster_health(vearch_utils.router_url)
+        logger.debug("cluster_health---\n" + json.dumps(response.json()))
+        assert response.json()["code"] == 0
+
+        response = vearch_utils.get_servers_status(vearch_utils.router_url)
+        logger.debug("list_server---\n" + json.dumps(response.json()))
+        assert response.json()["code"] == 0
+
+        response = vearch_utils.get_space(vearch_utils.router_url, vearch_utils.db_name, vearch_utils.space_name)
+        logger.debug("get_space---\n" + json.dumps(response.json()))
+        assert response.json()["code"] == 0
+
+        response = vearch_utils.get_cluster_partition(vearch_utils.router_url)
+        logger.debug("get_space---\n" + json.dumps(response.json()))
+        assert response.json()["code"] == 0
+
+        response = vearch_utils.list_dbs(vearch_utils.router_url)
+        logger.debug("list_db---\n" + json.dumps(response.json()))
+        assert response.json()["code"] == 0
+
+        response = vearch_utils.get_db(vearch_utils.router_url, vearch_utils.db_name)
+        logger.debug("db_search---\n" + json.dumps(response.json()))
+        assert response.json()["code"] == 0
+
+        response = vearch_utils.list_spaces(vearch_utils.router_url, vearch_utils.db_name)
+        logger.debug("list_space---\n" + json.dumps(response.json()))
+        assert response.json()["code"] == 0
 
 class TestIncompleteShardPrepare:
     def setup_class(self):
@@ -374,7 +432,7 @@ class TestIncompleteShardSearch:
     def test_vearch_search(self):
         sift10k = DatasetSift10K(logger)
         xb = sift10k.get_database()
-        vearch_utils.search_interface(logger, 100, 100, xb, True)
+        vearch_utils.search_interface(logger, 10, 100, xb, True)
 
     def test_search(self):
         url = vearch_utils.router_url + "/document/search"

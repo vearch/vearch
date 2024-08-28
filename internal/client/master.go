@@ -768,7 +768,7 @@ func (m *MasterServer) reset() {
 
 func (m *MasterServer) getKey() (int, error) {
 	if m.tryTimes >= m.total {
-		return 0, vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("master server all down"))
+		return 0, vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("request to master server tryTimes: %d, total master server: %d", m.tryTimes, m.total))
 	}
 
 	return m.keyNumber, nil

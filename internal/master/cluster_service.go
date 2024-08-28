@@ -679,10 +679,11 @@ func (ms *masterService) queryDBs(ctx context.Context) ([]*entity.DB, error) {
 func (ms *masterService) describeSpaceService(ctx context.Context, space *entity.Space, spaceInfo *entity.SpaceInfo, detail_info bool) error {
 	spaceStatus := 0
 	color := []string{"green", "yellow", "red"}
+	spaceInfo.Errors = make([]string, 0)
 	for _, spacePartition := range space.Partitions {
 		p, err := ms.Master().QueryPartition(ctx, spacePartition.Id)
 		if err != nil {
-			*(spaceInfo.Errors) = append(*(spaceInfo.Errors), fmt.Sprintf("partition:[%d] not found in space: [%s]", spacePartition.Id, spaceName))
+			spaceInfo.Errors = append(spaceInfo.Errors, fmt.Sprintf("partition:[%d] not found in space: [%s]", spacePartition.Id, space.Name))
 			continue
 		}
 
@@ -690,21 +691,21 @@ func (ms *masterService) describeSpaceService(ctx context.Context, space *entity
 
 		nodeID := p.LeaderID
 		if nodeID == 0 {
-			*(spaceInfo.Errors) = append(*(spaceInfo.Errors), fmt.Sprintf("partition:[%d] no leader in space: [%s]", spacePartition.Id, spaceName))
+			spaceInfo.Errors = append(spaceInfo.Errors, fmt.Sprintf("partition:[%d] no leader in space: [%s]", spacePartition.Id, space.Name))
 			pStatus = 2
 			nodeID = p.Replicas[0]
 		}
 
 		server, err := ms.Master().QueryServer(ctx, nodeID)
 		if err != nil {
-			*(spaceInfo.Errors) = append(*(spaceInfo.Errors), fmt.Sprintf("server:[%d] not found in space: [%s] , partition:[%d]", nodeID, spaceName, spacePartition.Id))
+			spaceInfo.Errors = append(spaceInfo.Errors, fmt.Sprintf("server:[%d] not found in space: [%s] , partition:[%d]", nodeID, space.Name, spacePartition.Id))
 			pStatus = 2
 			continue
 		}
 
 		partitionInfo, err := client.PartitionInfo(server.RpcAddr(), p.Id, detail_info)
 		if err != nil {
-			*(spaceInfo.Errors) = append(*(spaceInfo.Errors), fmt.Sprintf("query space:[%s] server:[%d] partition:[%d] info err :[%s]", spaceName, nodeID, spacePartition.Id, err.Error()))
+			spaceInfo.Errors = append(spaceInfo.Errors, fmt.Sprintf("query space:[%s] server:[%d] partition:[%d] info err :[%s]", space.Name, nodeID, spacePartition.Id, err.Error()))
 			partitionInfo = &entity.PartitionInfo{}
 			pStatus = 2
 		} else {
