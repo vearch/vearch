@@ -9,9 +9,6 @@
 
 #include <fcntl.h>
 #include <locale.h>
-#ifndef __APPLE__
-#include <malloc.h>
-#endif
 #include <string.h>
 #include <sys/mman.h>
 #include <time.h>
@@ -114,18 +111,6 @@ int RequestConcurrentController::GetSystemInfo(const char *cmd) {
   return num;
 }
 
-#ifndef __APPLE__
-static std::thread *gMemTrimThread = nullptr;
-void MemTrimHandler() {
-  LOG(INFO) << "memory trim thread start......";
-  while (1) {
-    malloc_trim(0);
-    std::this_thread::sleep_for(std::chrono::seconds(60));  // 1 minute
-  }
-  LOG(INFO) << "memory trim thread exit!";
-}
-#endif
-
 Engine::Engine(const std::string &index_root_path,
                const std::string &space_name)
     : index_root_path_(index_root_path),
@@ -221,17 +206,6 @@ Status Engine::Setup() {
   } else {
     docids_bitmap_->Dump();
   }
-
-#ifndef __APPLE__
-  if (gMemTrimThread == nullptr) {
-    gMemTrimThread = new std::thread(MemTrimHandler);
-    if (gMemTrimThread) {
-      gMemTrimThread->detach();
-    } else {
-      LOG(ERROR) << "create memory trim thread error";
-    }
-  }
-#endif
 
   max_docid_ = 0;
   LOG(INFO) << space_name_ << " setup successed! bitmap_bytes_size="
