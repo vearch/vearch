@@ -1160,7 +1160,7 @@ def process_search_data(items):
     documents = rs.json()["data"]["documents"]
     if len(documents) != batch_size:
         logger.info("len(documents) = " + str(len(documents)))
-        logger.info(json_str)
+        logger.debug(json_str)
         logger.info(rs.json())
 
     assert len(documents) == batch_size
@@ -1447,8 +1447,11 @@ def update_space_partition_rule(
     return resp
 
 
-def get_space(router_url: str, db_name: str, space_name: str):
-    url = f"{router_url}/dbs/{db_name}/spaces/{space_name}"
+def get_space(router_url: str, db_name: str, space_name: str, detail: bool = False):
+    if detail:
+        url = f"{router_url}/dbs/{db_name}/spaces/{space_name}?detail=true"
+    else:
+        url = f"{router_url}/dbs/{db_name}/spaces/{space_name}"
     resp = requests.get(url, auth=(username, password))
     return resp
 

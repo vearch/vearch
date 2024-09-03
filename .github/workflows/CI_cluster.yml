@@ -64,14 +64,31 @@ jobs:
         sudo curl -L "https://github.com/docker/compose/releases/download/$(curl -s https://api.github.com/repos/docker/compose/releases/latest | grep -oP '"tag_name": "\K(.*)(?=")')/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
         sudo chmod +x /usr/local/bin/docker-compose
 
-    - name: Run tests for master down
+    - name: Run tests for master down and restart
       run: |
         cd cloud
         docker-compose stop master1
         cd ../test
-        pytest test_vearch.py -x --log-cli-level=INFO
+        pytest test_vearch.py -x -k "test_vearch_basic_usage" --log-cli-level=INFO
+        pytest test_cluster_master.py -x -k "TestClusterMasterPrepare" --log-cli-level=INFO
+        pytest test_cluster_master.py -x -k "TestClusterMasterOperate" --log-cli-level=INFO
+        # prepare for tow master down
+        pytest test_cluster_master.py -x -k "TestClusterMasterPrepare" --log-cli-level=INFO
+        cd ../cloud && docker-compose stop master2
+        cd ../test
+        pytest test_cluster_master.py -x -k "TestClusterMasterOperate" --log-cli-level=INFO
+        # all down
+        cd ../cloud && docker-compose stop master3
+        sleep 120
+        cd ../test
+        pytest test_cluster_master.py -x -k "TestClusterMasterOperate" --log-cli-level=INFO
         cd ../cloud
-        docker-compose start master1
+        docker-compose start master1 && sleep 30 && docker ps
+        docker-compose start master2 && sleep 30 && docker ps
+        docker-compose start master3 && sleep 90 && docker ps
+        cd ../test
+        pytest test_cluster_master.py -x -k "TestClusterMasterOperate" --log-cli-level=INFO
+        pytest test_vearch.py -x -k "test_vearch_basic_usage" --log-cli-level=INFO
 
     - name: Run tests for restart ps
       run: |
@@ -91,14 +108,17 @@ jobs:
       run: |
         cd test
         pytest test_cluster_ps.py -x -k "TestClusterFaultyPartitionServerCreateSpace" --log-cli-level=INFO
+        pytest test_cluster_ps.py -x -k "TestClusterFaultyPartitionServerGetMetaData" --log-cli-level=INFO
         cd ../cloud
         docker-compose stop ps1
         cd ../test
         pytest test_cluster_ps.py -x -k "TestClusterFaultyPartitionServerPrepareData" --log-cli-level=INFO
+        pytest test_cluster_ps.py -x -k "TestClusterFaultyPartitionServerGetMetaData" --log-cli-level=INFO
         cd ../cloud && docker-compose stop ps2
         cd ../test
+        # TODO remove sleep
+        sleep 60
         pytest test_cluster_ps.py -x -k "TestClusterFaultyPartitionServerSearch" --log-cli-level=INFO
-        # check meta with faulty ps
         pytest test_cluster_ps.py -x -k "TestClusterFaultyPartitionServerGetMetaData" --log-cli-level=INFO
         cd ../cloud
         docker-compose start ps1
@@ -115,6 +135,8 @@ jobs:
         docker-compose stop ps1
         docker-compose stop ps2
         cd ../test
+        # TODO remove sleep
+        sleep 60
         pytest test_cluster_ps.py -x -k "TestIncompleteShardSearch" --log-cli-level=INFO
         cd ../cloud
         docker-compose stop ps3

@@ -230,7 +230,8 @@ class TestClusterPartitionChange:
     def test_change_partition(self):
         pids = []
         nodes = [1, 2, 3]
-        response = vearch_utils.get_space(vearch_utils.router_url, vearch_utils.db_name, vearch_utils.space_name)
+        response = vearch_utils.get_space(vearch_utils.router_url, vearch_utils.db_name, vearch_utils.space_name, detail=True)
+        logger.info(response.json())
         target_node = 0
         nums = {}
         for partition in response.json()["data"]["partitions"]:
@@ -239,6 +240,8 @@ class TestClusterPartitionChange:
             nodes.remove(partition["node_id"])
         target_node = nodes[0]
         # add partitons
+        logger.info(pids)
+        logger.info(target_node)
         response = vearch_utils.change_partitons(vearch_utils.router_url, pids, target_node, 0)
         logger.info(response.json())
         assert response.json()["code"] == 0
@@ -367,7 +370,7 @@ class TestClusterFaultyPartitionServerGetMetaData:
 
     def test_vearch_usage_read_metadata(self):
         response = vearch_utils.get_router_info(vearch_utils.router_url)
-        logger.info("router_info:" + json.dumps(response.json()))
+        logger.debug("router_info:" + json.dumps(response.json()))
         assert response.json()["code"] == 0
 
         response = vearch_utils.get_cluster_stats(vearch_utils.router_url)
@@ -387,7 +390,7 @@ class TestClusterFaultyPartitionServerGetMetaData:
         assert response.json()["code"] == 0
 
         response = vearch_utils.get_space(vearch_utils.router_url, vearch_utils.db_name, vearch_utils.space_name)
-        logger.debug("get_space---\n" + json.dumps(response.json()))
+        logger.info("get_space---\n" + json.dumps(response.json()))
         assert response.json()["code"] == 0
 
         response = vearch_utils.get_cluster_partition(vearch_utils.router_url)

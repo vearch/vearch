@@ -559,10 +559,25 @@ class VearchCase:
         [990, "IVFFLAT", ""],
     ],
 )
-def test_vearch_usage(training_threshold: int, index_type: str, store_type: str):
+def test_vearch_basic_usage(training_threshold: int, index_type: str, store_type: str):
     case = VearchCase()
     case.setup_class(training_threshold, index_type, store_type)
     case.run_basic_usage_test()
+
+
+@pytest.mark.parametrize(
+    ["training_threshold", "index_type", "store_type"],
+    [
+        [1, "FLAT", ""],
+        [990, "IVFPQ", "MemoryOnly"],
+        [990, "IVFPQ", "RocksDB"],
+        [1, "HNSW", ""],
+        [990, "IVFFLAT", ""],
+    ],
+)
+def test_vearch_usage_operator_metadata(training_threshold: int, index_type: str, store_type: str):
+    case = VearchCase()
+    case.setup_class(training_threshold, index_type, store_type)
     case.run_db_space_create_multi_test()
 
 
