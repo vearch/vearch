@@ -515,17 +515,19 @@ func (r *routerRequest) searchFromPartition(ctx context.Context, partitionID ent
 
 	clientType := pd.SearchRequest.Head.ClientType
 	// ensure node is alive
-	servers := r.client.Master().Cache().serverCache
+	serverCache := r.client.Master().Cache().serverCache
 
 	rpcEnd, rpcStart := time.Now(), time.Now()
-	nodeID := GetNodeIdsByClientType(clientType, partition, servers, r.client)
+	nodeID := GetNodeIdsByClientType(clientType, partition, serverCache, r.client)
 
 	faultyNodeNum := r.replicasFaultyNum(partition.Replicas)
+	retryTime := 0
 
-	for len(partition.Replicas) > faultyNodeNum {
+	for len(partition.Replicas) > faultyNodeNum && retryTime < len(partition.Replicas) {
 		if r.client.PS().TestFaulty(nodeID) {
-			nodeID = GetNodeIdsByClientType(clientType, partition, servers, r.client)
+			nodeID = GetNodeIdsByClientType(clientType, partition, serverCache, r.client)
 			faultyNodeNum = r.replicasFaultyNum(partition.Replicas)
+			retryTime++
 			continue
 		}
 		nodeIdEnd := time.Now()
@@ -621,16 +623,12 @@ func (r *routerRequest) searchFromPartition(ctx context.Context, partitionID ent
 			break
 		}
 
-		if strings.Contains(err.Error(), "connect: connection refused") {
-			r.client.PS().AddFaulty(nodeID, time.Second*30)
-			nodeID = GetNodeIdsByClientType(clientType, partition, servers, r.client)
-		} else {
-			log.Error("rpc err [%v], nodeID %v", err, nodeID)
-			r.client.PS().AddFaulty(nodeID, time.Second*5)
-			break
-		}
+		r.client.PS().AddFaulty(nodeID, time.Second*30)
+		nodeID = GetNodeIdsByClientType(clientType, partition, serverCache, r.client)
+		log.Error("nodeID %v rpc err [%v]", nodeID, err)
 
 		faultyNodeNum = r.replicasFaultyNum(partition.Replicas)
+		retryTime++
 	}
 
 	sortFieldMap := pd.SearchRequest.SortFieldMap

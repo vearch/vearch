@@ -1103,27 +1103,17 @@ def delete_interface(
         )
 
 
-def process_search_data(items):
-    url = router_url + "/document/search"
+def process_search_data(logger, index, batch_size, features, full_field, with_filter, seed, query_type, alias_name = "", db_name = "", space_name = "", check = False):
+    url = router_url + "/document/search?timeout=2000000"
     data = {}
     data["vector_value"] = True
 
-    logger = items[0]
-    index = items[1]
-    batch_size = items[2]
-    features = items[3]
-    full_field = items[4]
-    with_filter = items[5]
-    seed = items[6]
-    query_type = items[7]
+    data["db_name"] = db_name
+    data["space_name"] = space_name
 
-    data["db_name"] = items[9]
-    data["space_name"] = items[10]
+    if alias_name != "":
+        data["space_name"] = alias_name
 
-    if items[8] != "":
-        data["space_name"] = items[8]
-
-    check = items[11]
     with_symbol = False
     if query_type == "by_vector_with_symbol":
         query_type = "by_vector"
@@ -1195,20 +1185,18 @@ def search_interface(
 ):
     for i in range(total):
         process_search_data(
-            (
-                logger,
-                i,
-                batch_size,
-                xb[i * batch_size : (i + 1) * batch_size],
-                full_field,
-                with_filter,
-                seed,
-                query_type,
-                alias_name,
-                search_db_name,
-                search_space_name,
-                check,
-            )
+            logger,
+            i,
+            batch_size,
+            xb[i * batch_size : (i + 1) * batch_size],
+            full_field,
+            with_filter,
+            seed,
+            query_type,
+            alias_name,
+            search_db_name,
+            search_space_name,
+            check,
         )
 
 
@@ -1336,7 +1324,9 @@ def search(xq, k: int, batch: bool, query_dict: dict, logger):
     url = router_url + "/document/search?timeout=2000000"
 
     field_ints = []
-    vector_dict = {"vector": [{"field": "field_vector", "feature": []}]}
+    vector_dict = {
+        "vector": [{"field": "field_vector", "feature": []}]
+    }
     if batch:
         vector_dict["vector"][0]["feature"] = xq.flatten().tolist()
         query_dict["vectors"] = vector_dict["vector"]

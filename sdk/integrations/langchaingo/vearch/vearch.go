@@ -11,10 +11,10 @@ import (
 	"github.com/tmc/langchaingo/embeddings"
 	"github.com/tmc/langchaingo/schema"
 	"github.com/tmc/langchaingo/vectorstores"
-	client "github.com/vearch/vearch/v3/sdk/go/vearch"
-	"github.com/vearch/vearch/v3/sdk/go/vearch/auth"
-	"github.com/vearch/vearch/v3/sdk/go/vearch/data"
-	"github.com/vearch/vearch/v3/sdk/go/vearch/entities/models"
+	client "github.com/vearch/vearch/v3/sdk/go"
+	"github.com/vearch/vearch/v3/sdk/go/auth"
+	"github.com/vearch/vearch/v3/sdk/go/data"
+	"github.com/vearch/vearch/v3/sdk/go/entities/models"
 )
 
 type Store struct {

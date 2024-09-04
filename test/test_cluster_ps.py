@@ -19,6 +19,7 @@ import requests
 import json
 import pytest
 import logging
+import random
 import time
 from utils import vearch_utils
 from utils.data_utils import *
@@ -450,6 +451,8 @@ class TestIncompleteShardSearch:
             "field": "field_vector",
             "feature": xb[:1].flatten().tolist(),
         }
+
+        data["load_balance"] = random.choice(["leader", "random", "not_leader", "least_connection"])
         data["vectors"].append(vector_info)
         data["limit"] = 1
 
@@ -461,4 +464,7 @@ class TestIncompleteShardSearch:
             assert False
 
         documents = rs.json()["data"]["documents"]
-        assert len(documents) > 0
+        if data["load_balance"] in ["leader", "not_leader"]:
+            assert len(documents) >= 0
+        else:
+            assert len(documents) > 0

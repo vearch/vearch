@@ -112,40 +112,24 @@ def document_search(search_db_name, search_space_name, embedding_size, crud_time
         verbose = True
 
     count = 0
-    index = 0
-    batch_size = 1
-    feature = None
-    full_field = False
-    with_filter = False
-    seed = 1
-    query_type = "by_vector"
-    alias_name = ""
-    check = False
 
-    items = [
-        logger,
-        index,
-        batch_size,
-        feature,
-        full_field,
-        with_filter,
-        seed,
-        query_type,
-        alias_name,
-        search_db_name,
-        search_space_name,
-        check,
-    ]
     while time.time() < end_time:
+        batch_size=random.randint(0, 100)
         time.sleep(0.01)
         try:
-            items[1] = random.randint(0, 30000000)
-            items[2] = random.randint(0, 100)
-            items[3] = np.random.random((batch_size, embedding_size))
-            items[4] = random.randint(0, 1)
-            items[5] = random.randint(0, 1)
-            items[7] = random.choice(["by_vector", "by_vector_with_symbol"])
-            rs = process_search_data(items)
+            rs = process_search_data(logger=logger,
+                                     index=random.randint(0, 30000000),
+                                     batch_size=batch_size,
+                                     features=np.random.random((batch_size, embedding_size)),
+                                     full_field=random.randint(0, 1),
+                                     with_filter=random.randint(0, 1),
+                                     seed=1,
+                                     query_type=random.choice(["by_vector", "by_vector_with_symbol"]),
+                                     alias_name="",
+                                     db_name=search_db_name,
+                                     space_name=search_space_name,
+                                     check=False
+                                     )
             count += 1
             if count % 10000 == 0 or verbose:
                 logger.info("search: " + str(count))
