@@ -16,12 +16,8 @@
 # -*- coding: UTF-8 -*-
 
 import pytest
-import logging
 from utils.vearch_utils import *
 from utils.data_utils import *
-
-logging.basicConfig()
-logger = logging.getLogger(__name__)
 
 __description__ = """ test case for index ivfpq """
 
@@ -71,7 +67,6 @@ def query(
     xq,
     gt,
     k,
-    logger,
 ):
     query_dict = {
         "vectors": [],
@@ -100,7 +95,7 @@ def query(
         if metric_type == "":
             query_dict["index_params"].pop("metric_type")
 
-    avarage, recalls = evaluate(xq, gt, k, batch, query_dict, logger)
+    avarage, recalls = evaluate(xq, gt, k, batch, query_dict)
     result = (
         "batch: %d, nprobe: %d, rerank: %d, parallel_on_queries: %d, metric_type: %s, avg: %.2f ms, "
         % (batch, nprobe, rerank, parallel_on_queries, metric_type, avarage)
@@ -141,7 +136,7 @@ def benchmark(store_type, index_params, xb, xq, gt):
     if total - total_batch * batch_size:
         add(total - total_batch * batch_size, 1, xb[total_batch * batch_size:])
 
-    waiting_index_finish(logger, total, 10)
+    waiting_index_finish(total, 10)
 
     if index_params["metric_type"] == "L2":
         for rerank in [0, 100, -1]:
@@ -163,7 +158,6 @@ def benchmark(store_type, index_params, xb, xq, gt):
                                 xq,
                                 gt,
                                 k,
-                                logger,
                             )
     else:
         for rerank in [-1]:
@@ -185,13 +179,12 @@ def benchmark(store_type, index_params, xb, xq, gt):
                                 xq,
                                 gt,
                                 k,
-                                logger,
                             )
 
     destroy(router_url, db_name, space_name)
 
 
-sift10k = DatasetSift10K(logger)
+sift10k = DatasetSift10K()
 xb = sift10k.get_database()
 xq = sift10k.get_queries()
 gt = sift10k.get_groundtruth()
@@ -274,7 +267,7 @@ def test_vearch_index_ivfpq_hnsw_opq(
     benchmark(store_type, index_params, xb, xq, gt)
 
 
-glove25 = DatasetGlove25(logger)
+glove25 = DatasetGlove25()
 glove_xb = glove25.get_database()
 glove_xq = glove25.get_queries()[:100]
 glove_gt = glove25.get_groundtruth()[:100]

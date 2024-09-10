@@ -18,17 +18,13 @@
 import requests
 import json
 import pytest
-import logging
 from utils.vearch_utils import *
 from utils.data_utils import *
-
-logging.basicConfig()
-logger = logging.getLogger(__name__)
 
 __description__ = """ test case for document upsert """
 
 
-def query(xq, gt, k, logger):
+def query(xq, gt, k):
     query_dict = {
         "vectors": [],
         "vector_value": False,
@@ -39,7 +35,7 @@ def query(xq, gt, k, logger):
     }
 
     for batch in [True]:
-        avarage, recalls = evaluate(xq, gt, k, batch, query_dict, logger)
+        avarage, recalls = evaluate(xq, gt, k, batch, query_dict)
         result = "batch: %d, avarage time: %.2f ms, " % (batch, avarage)
         for recall in recalls:
             result += "recall@%d = %.2f%% " % (recall, recalls[recall] * 100)
@@ -48,7 +44,7 @@ def query(xq, gt, k, logger):
         logger.info(result)
 
 
-sift10k = DatasetSift10K(logger)
+sift10k = DatasetSift10K()
 xb = sift10k.get_database()
 xq = sift10k.get_queries()
 gt = sift10k.get_groundtruth()
@@ -95,13 +91,13 @@ def benchmark(total, bulk, with_id, full_field, xb, xq, gt):
         },
     ]
 
-    create_for_document_test(logger, router_url, embedding_size, properties)
+    create_for_document_test(router_url, embedding_size, properties)
 
     add(total_batch, batch_size, xb, with_id, full_field)
 
-    waiting_index_finish(logger, total, 1)
+    waiting_index_finish(total, 1)
 
-    query(xq, gt, k, logger)
+    query(xq, gt, k)
 
     destroy(router_url, db_name, space_name)
 
@@ -166,15 +162,15 @@ def update(total, bulk, full_field, xb):
         },
     ]
 
-    create_for_document_test(logger, router_url, embedding_size, properties)
+    create_for_document_test(router_url, embedding_size, properties)
 
     add(total_batch, batch_size, xb, with_id, full_field)
 
-    query_interface(logger, total_batch, batch_size, xb, full_field)
+    query_interface(total_batch, batch_size, xb, full_field)
 
     add(total_batch, batch_size, xb, with_id, full_field, 2)
 
-    query_interface(logger, total_batch, batch_size, xb, full_field, 2)
+    query_interface(total_batch, batch_size, xb, full_field, 2)
 
     destroy(router_url, db_name, space_name)
 
@@ -194,7 +190,6 @@ def test_vearch_document_upsert_update(bulk: bool, full_field: bool):
 
 class TestDocumentUpsertBadCase:
     def setup_class(self):
-        self.logger = logger
         self.xb = xb
 
     # prepare for badcase
@@ -229,7 +224,7 @@ class TestDocumentUpsertBadCase:
             },
         ]
 
-        create_for_document_test(self.logger, router_url, embedding_size, properties)
+        create_for_document_test(router_url, embedding_size, properties)
 
     @pytest.mark.parametrize(
         ["index", "wrong_type"],
@@ -258,7 +253,7 @@ class TestDocumentUpsertBadCase:
         if total == 0:
             total = xb.shape[0]
         total_batch = int(total / batch_size)
-        add_error(total_batch, batch_size, self.xb, self.logger, wrong_parameters)
+        add_error(total_batch, batch_size, self.xb, wrong_parameters)
         assert get_space_num() == 0
 
     @pytest.mark.parametrize(
@@ -274,7 +269,7 @@ class TestDocumentUpsertBadCase:
         wrong_parameters[index] = True
         total_batch = 1
         batch_size = 2
-        add_error(total_batch, batch_size, self.xb, self.logger, wrong_parameters)
+        add_error(total_batch, batch_size, self.xb, wrong_parameters)
 
         assert get_space_num() == 0
 

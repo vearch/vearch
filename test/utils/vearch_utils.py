@@ -20,6 +20,7 @@ import json
 import os
 import time
 import random
+import logging
 from multiprocessing import Pool as ThreadPool
 import numpy as np
 import datetime
@@ -32,6 +33,8 @@ password = os.getenv("PASSWORD", "secret")
 
 __description__ = """ test utils for vearch """
 
+logging.basicConfig()
+logger = logging.getLogger(__name__)
 
 def process_add_data(items):
     url = router_url + "/document/upsert"
@@ -46,8 +49,7 @@ def process_add_data(items):
     full_field = items[4]
     seed = items[5]
     alias_name = items[6]
-    logger = items[7]
-    partitions = items[8]
+    partitions = items[7]
     if len(partitions) > 0:
         data["partitions"] = partitions
     if alias_name != "":
@@ -66,8 +68,7 @@ def process_add_data(items):
         data["documents"].append(param_dict)
 
     rs = requests.post(url, auth=(username, password), json=data)
-    if logger != None:
-        logger.info(rs.json())
+    # logger.info(rs.json())
     assert rs.json()["code"] == 0
 
 
@@ -79,7 +80,6 @@ def add(
     full_field=False,
     seed=1,
     alias_name="",
-    logger=None,
     partitions=[],
 ):
     pool = ThreadPool()
@@ -94,7 +94,6 @@ def add(
                 full_field,
                 seed,
                 alias_name,
-                logger,
                 partitions,
             )
         )
@@ -216,8 +215,7 @@ def process_add_date_data(items):
     batch_size = items[3]
     embedding_size = items[4]
     date_type = items[5]
-    logger = items[6]
-    delta = items[7]
+    delta = items[6]
 
     data["db_name"] = add_db_name
     data["space_name"] = add_space_name
@@ -271,7 +269,6 @@ def add_date(
     batch_size,
     embedding_size,
     date_type,
-    logger,
     delta=0,
 ):
     pool = ThreadPool()
@@ -285,7 +282,6 @@ def add_date(
                 batch_size,
                 embedding_size,
                 date_type,
-                logger,
                 delta,
             )
         )
@@ -303,21 +299,20 @@ def process_add_error_data(items):
     index = items[0]
     batch_size = items[1]
     features = items[2]
-    logger = items[3]
-    wrong_number_value = items[4][0]
-    wrong_str_value = items[4][1]
-    without_vector = items[4][2]
-    wrong_db = items[4][3]
-    wrong_space = items[4][4]
-    wrong_field = items[4][5]
-    empty_documents = items[4][6]
-    wrong_index_string_length = items[4][7]
-    wrong_string_length = items[4][8]
-    wrong_vector_type = items[4][9]
-    wrong_vector_feature_length = items[4][10]
-    wrong_vector_feature_type = items[4][11]
-    mismatch_field_type = items[4][12]
-    wrong_partition_id = items[4][13]
+    wrong_number_value = items[3][0]
+    wrong_str_value = items[3][1]
+    without_vector = items[3][2]
+    wrong_db = items[3][3]
+    wrong_space = items[3][4]
+    wrong_field = items[3][5]
+    empty_documents = items[3][6]
+    wrong_index_string_length = items[3][7]
+    wrong_string_length = items[3][8]
+    wrong_vector_type = items[3][9]
+    wrong_vector_feature_length = items[3][10]
+    wrong_vector_feature_type = items[3][11]
+    mismatch_field_type = items[3][12]
+    wrong_partition_id = items[3][13]
     max_index_str_length = 1025
     max_str_length = 65536
 
@@ -398,9 +393,8 @@ def process_add_mul_error_data(items):
     index = items[0]
     batch_size = items[1]
     features = items[2]
-    logger = items[3]
     parmas_both_wrong, parmas_just_one_wrong, params_just_one_wrong_with_bad_vector = (
-        items[4]
+        items[3]
     )
 
     for j in range(batch_size):
@@ -423,7 +417,7 @@ def process_add_mul_error_data(items):
     assert rs.status_code != 200
 
 
-def add_error(total, batch_size, xb, logger, wrong_parameters: list):
+def add_error(total, batch_size, xb, wrong_parameters: list):
     for i in range(total):
         if batch_size == 1:
             process_add_error_data(
@@ -431,7 +425,6 @@ def add_error(total, batch_size, xb, logger, wrong_parameters: list):
                     i,
                     batch_size,
                     xb[i * batch_size : (i + 1) * batch_size],
-                    logger,
                     wrong_parameters,
                 )
             )
@@ -441,7 +434,6 @@ def add_error(total, batch_size, xb, logger, wrong_parameters: list):
                     i,
                     batch_size,
                     xb[i * batch_size : (i + 1) * batch_size],
-                    logger,
                     wrong_parameters,
                 )
             )
@@ -505,9 +497,8 @@ def process_add_multi_vector_error_data(items):
     index = items[0]
     batch_size = items[1]
     features = items[2]
-    logger = items[3]
-    only_one_vector = items[4][0]
-    bad_vector_length = items[4][1]
+    only_one_vector = items[3][0]
+    bad_vector_length = items[3][1]
 
     for j in range(batch_size):
         param_dict = {}
@@ -531,14 +522,13 @@ def process_add_multi_vector_error_data(items):
         assert rs.status_code != 200
 
 
-def add_multi_vector_error(total, batch_size, xb, logger, wrong_parameters: list):
+def add_multi_vector_error(total, batch_size, xb, wrong_parameters: list):
     for i in range(total):
         process_add_multi_vector_error_data(
             (
                 i,
                 batch_size,
                 xb[i * batch_size : (i + 1) * batch_size],
-                logger,
                 wrong_parameters,
             )
         )
@@ -860,7 +850,7 @@ def process_query_multiple_error_data(items):
             assert rs.json()["data"]["total"] == 1
 
 
-def query_error(logger, total, batch_size, xb, interface: str, wrong_parameters: list):
+def query_error(total, batch_size, xb, interface: str, wrong_parameters: list):
     for i in range(total):
         if batch_size == 1:
             process_query_error_data(
@@ -972,7 +962,6 @@ def process_query_data(items):
 
 
 def query_interface(
-    logger,
     total,
     batch_size,
     xb,
@@ -1020,22 +1009,21 @@ def process_delete_data(items):
     url = router_url + "/document/delete"
     data = {}
 
-    logger = items[0]
-    index = items[1]
-    batch_size = items[2]
-    full_field = items[3]
-    seed = items[4]
-    delete_type = items[5]
+    index = items[0]
+    batch_size = items[1]
+    full_field = items[2]
+    seed = items[3]
+    delete_type = items[4]
 
-    delete_db_name = items[7]
-    delete_space_name = items[8]
+    delete_db_name = items[6]
+    delete_space_name = items[7]
     data["db_name"] = delete_db_name
     data["space_name"] = delete_space_name
 
-    if items[6] != "":
-        data["space_name"] = items[6]
+    if items[5] != "":
+        data["space_name"] = items[5]
 
-    check = items[9]
+    check = items[8]
 
     if delete_type == "by_ids":
         data["document_ids"] = []
@@ -1075,7 +1063,6 @@ def process_delete_data(items):
 
 
 def delete_interface(
-    logger,
     total,
     batch_size,
     full_field=False,
@@ -1089,7 +1076,6 @@ def delete_interface(
     for i in range(total):
         process_delete_data(
             (
-                logger,
                 i,
                 batch_size,
                 full_field,
@@ -1103,7 +1089,7 @@ def delete_interface(
         )
 
 
-def process_search_data(logger, index, batch_size, features, full_field, with_filter, seed, query_type, alias_name = "", db_name = "", space_name = "", check = False):
+def process_search_data(index, batch_size, features, full_field, with_filter, seed, query_type, alias_name = "", db_name = "", space_name = "", check = False):
     url = router_url + "/document/search?timeout=2000000"
     data = {}
     data["vector_value"] = True
@@ -1170,7 +1156,6 @@ def process_search_data(logger, index, batch_size, features, full_field, with_fi
 
 
 def search_interface(
-    logger,
     total,
     batch_size,
     xb,
@@ -1185,7 +1170,6 @@ def search_interface(
 ):
     for i in range(total):
         process_search_data(
-            logger,
             i,
             batch_size,
             xb[i * batch_size : (i + 1) * batch_size],
@@ -1201,7 +1185,7 @@ def search_interface(
 
 
 def create_for_document_test(
-    logger, router_url, embedding_size, properties, partition_num=1
+    router_url, embedding_size, properties, partition_num=1
 ):
     space_config = {
         "name": space_name,
@@ -1218,7 +1202,7 @@ def create_for_document_test(
     assert response.json()["code"] == 0
 
 
-def prepare_cluster_for_document_test(logger, total, xb, partition_num=1):
+def prepare_cluster_for_document_test(total, xb, partition_num=1):
     embedding_size = xb.shape[1]
     batch_size = 100
     if total == 0:
@@ -1279,15 +1263,15 @@ def prepare_cluster_for_document_test(logger, total, xb, partition_num=1):
     ]
 
     create_for_document_test(
-        logger, router_url, embedding_size, properties, partition_num
+        router_url, embedding_size, properties, partition_num
     )
 
     add(total_batch, batch_size, xb, with_id, full_field)
 
-    query_interface(logger, total_batch, batch_size, xb, full_field, seed, "by_ids")
+    query_interface(total_batch, batch_size, xb, full_field, seed, "by_ids")
 
 
-def waiting_index_finish(logger, total, timewait=5):
+def waiting_index_finish(total, timewait=5):
     url = router_url + "/dbs/" + db_name + "/spaces/" + space_name
     num = 0
     while num < total:
@@ -1320,7 +1304,7 @@ def get_partitions_doc_num(partition_name):
     return num
 
 
-def search(xq, k: int, batch: bool, query_dict: dict, logger):
+def search(xq, k: int, batch: bool, query_dict: dict):
     url = router_url + "/document/search?timeout=2000000"
 
     field_ints = []
@@ -1370,10 +1354,10 @@ def search(xq, k: int, batch: bool, query_dict: dict, logger):
     return np.array(field_ints)
 
 
-def evaluate(xq, gt, k, batch, query_dict, logger):
+def evaluate(xq, gt, k, batch, query_dict):
     nq = xq.shape[0]
     t0 = time.time()
-    I = search(xq, k, batch, query_dict, logger)
+    I = search(xq, k, batch, query_dict)
     t1 = time.time()
 
     recalls = {}
@@ -1529,7 +1513,7 @@ def list_spaces(router_url: str, db_name: str):
     return resp
 
 
-def describe_space(logger, router_url: str, db_name: str, space_name: str):
+def describe_space(router_url: str, db_name: str, space_name: str):
     url = f"{router_url}/dbs/{db_name}/spaces/{space_name}?detail=true"
     try:
         resp = requests.get(url, auth=(username, password))

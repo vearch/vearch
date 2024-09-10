@@ -18,21 +18,18 @@
 import requests
 import json
 import pytest
-import logging
 import random
 import time
 from utils import vearch_utils
+from utils.vearch_utils import logger
 from utils.data_utils import *
-
-logging.basicConfig()
-logger = logging.getLogger(__name__)
 
 __description__ = """ test case for cluster partition server """
 
 
 class TestClusterPartitionServerAdd:
     def setup_class(self):
-        self.logger = logger
+        pass
 
     def test_prepare_db(self):
         response = vearch_utils.create_db(vearch_utils.router_url, vearch_utils.db_name)
@@ -93,7 +90,6 @@ class TestClusterPartitionServerAdd:
         vearch_utils.add_embedding_size(vearch_utils.db_name, space_name_each, 50, 100, embedding_size)
 
         vearch_utils.delete_interface(
-            logger,
             10,
             100,
             delete_type="by_ids",
@@ -161,7 +157,7 @@ class TestClusterPartitionServerDestroy:
 
 class TestClusterPartitionChange:
     def setup_class(self):
-        self.logger = logger
+        pass
 
     def test_prepare_db(self):
         response = vearch_utils.create_db(vearch_utils.router_url, vearch_utils.db_name)
@@ -214,7 +210,6 @@ class TestClusterPartitionChange:
         vearch_utils.add_embedding_size(vearch_utils.db_name, vearch_utils.space_name, 50, 100, embedding_size)
 
         vearch_utils.delete_interface(
-            logger,
             10,
             100,
             delete_type="by_ids",
@@ -313,7 +308,7 @@ def create_space(partition_num, replica_num, embedding_size, index_type):
 
 class TestClusterFaultyPartitionServerCreateSpace:
     def setup_class(self):
-        self.logger = logger
+        pass
 
     def test_prepare_db(self):
         response = vearch_utils.create_db(vearch_utils.router_url, vearch_utils.db_name)
@@ -331,7 +326,7 @@ class TestClusterFaultyPartitionServerCreateSpace:
 
 class TestClusterFaultyPartitionServerPrepareData:
     def setup_class(self):
-        self.logger = logger
+        pass
 
     @pytest.mark.parametrize(
         ["embedding_size", "index_type"],
@@ -345,12 +340,12 @@ class TestClusterFaultyPartitionServerPrepareData:
 
 class TestClusterFaultyPartitionServerSearch:
     def setup_class(self):
-        self.logger = logger
+        pass
 
     def test_vearch_search(self):
-        sift10k = DatasetSift10K(logger)
+        sift10k = DatasetSift10K()
         xb = sift10k.get_database()
-        vearch_utils.search_interface(logger, 10, 100, xb, True)
+        vearch_utils.search_interface(10, 100, xb, True)
 
 class TestClusterFaultyPartitionServerGetMetaData:
     def test_list_space(self):
@@ -412,7 +407,7 @@ class TestClusterFaultyPartitionServerGetMetaData:
 
 class TestIncompleteShardPrepare:
     def setup_class(self):
-        self.logger = logger
+        pass
 
     def test_prepare_db(self):
         response = vearch_utils.create_db(vearch_utils.router_url, vearch_utils.db_name)
@@ -431,12 +426,12 @@ class TestIncompleteShardPrepare:
 
 class TestIncompleteShardSearch:
     def setup_class(self):
-        self.logger = logger
+        pass
 
     def test_vearch_search(self):
-        sift10k = DatasetSift10K(logger)
+        sift10k = DatasetSift10K()
         xb = sift10k.get_database()
-        vearch_utils.search_interface(logger, 10, 100, xb, True)
+        vearch_utils.search_interface(10, 100, xb, True)
 
     def test_search(self):
         url = vearch_utils.router_url + "/document/search"
@@ -445,7 +440,7 @@ class TestIncompleteShardSearch:
         data["space_name"] = vearch_utils.space_name
         data["vector_value"] = False
         data["vectors"] = []
-        sift10k = DatasetSift10K(logger)
+        sift10k = DatasetSift10K()
         xb = sift10k.get_database()
         vector_info = {
             "field": "field_vector",

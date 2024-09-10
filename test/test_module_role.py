@@ -18,20 +18,16 @@
 import requests
 import json
 import pytest
-import logging
 from multiprocessing import Pool as ThreadPool
 from utils.vearch_utils import *
 from utils.data_utils import *
-
-logging.basicConfig()
-logger = logging.getLogger(__name__)
 
 __description__ = """ test case for module role """
 
 
 class TestRole:
     def setup_class(self):
-        self.logger = logger
+        pass
 
     def test_create_role(self):
         response = create_role(router_url, "role_name", {"ResourceDocument": "ReadOnly"})
@@ -175,7 +171,7 @@ class TestRole:
 
 class TestRolePrivilege:
     def setup_class(self):
-        self.logger = logger
+        pass
 
     def test_create_role(self):
         response = create_role(router_url, "role_name", {"ResourceCluster": "ReadOnly"})

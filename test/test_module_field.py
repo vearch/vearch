@@ -17,18 +17,14 @@
 
 import requests
 import json
-import logging
 from utils.vearch_utils import *
 from utils.data_utils import *
 import datetime
 
-logging.basicConfig()
-logger = logging.getLogger(__name__)
-
 __description__ = """ test case for module vector """
 
 
-sift10k = DatasetSift10K(logger)
+sift10k = DatasetSift10K()
 xb = sift10k.get_database()
 xq = sift10k.get_queries()
 gt = sift10k.get_groundtruth()
@@ -49,7 +45,6 @@ def create(router_url, properties=None):
 
 class TestStringArrayField:
     def setup_class(self):
-        self.logger = logger
         self.xb = xb
 
     # prepare
@@ -134,7 +129,6 @@ class TestStringArrayField:
 
 class TestDateField:
     def setup_class(self):
-        self.logger = logger
         self.xb = xb
 
     # prepare
@@ -188,12 +182,11 @@ class TestDateField:
             batch_size,
             embedding_size,
             "str",
-            logger,
         )
         assert get_space_num() == int(total_batch * batch_size)
 
         add_date(
-            db_name, space_name, 1, 2, batch_size, embedding_size, "timestamp", logger
+            db_name, space_name, 1, 2, batch_size, embedding_size, "timestamp"
         )
         assert get_space_num() == int(total_batch * batch_size * 2)
 

@@ -18,19 +18,15 @@
 import requests
 import json
 import pytest
-import logging
 from utils.vearch_utils import *
 from utils.data_utils import *
-
-logging.basicConfig()
-logger = logging.getLogger(__name__)
 
 __description__ = """ test case for module space """
 
 
 class TestSpaceCreate:
     def setup_class(self):
-        self.logger = logger
+        pass
 
     def test_prepare_db(self):
         response = create_db(router_url, db_name)
@@ -105,7 +101,7 @@ class TestSpaceCreate:
         response = create_space(router_url, db_name, space_config)
         assert response.json()["code"] == 0
 
-        response = describe_space(logger, router_url, db_name, space_name)
+        response = describe_space(router_url, db_name, space_name)
         logger.info(response.json())
         assert response.json()["code"] == 0
 
@@ -190,7 +186,7 @@ class TestSpaceCreate:
         logger.info(response.json())
         assert response.json()["code"] == 0
 
-        response = describe_space(logger, router_url, db_name, space_name)
+        response = describe_space(router_url, db_name, space_name)
         logger.info(response.json())
         assert response.json()["code"] == 0
 
@@ -367,7 +363,7 @@ class TestSpaceCreate:
         if wrong_index == 1:
             describe_space_name = "wrong_space"
         response = describe_space(
-            logger, router_url, describe_db_name, describe_space_name
+            router_url, describe_db_name, describe_space_name
         )
         logger.info(response.json())
         assert response.json()["code"] != 0
@@ -379,7 +375,7 @@ class TestSpaceCreate:
         drop_db(router_url, db_name)
 
 
-sift10k = DatasetSift10K(logger)
+sift10k = DatasetSift10K()
 xb = sift10k.get_database()
 xq = sift10k.get_queries()
 gt = sift10k.get_groundtruth()
@@ -387,7 +383,7 @@ gt = sift10k.get_groundtruth()
 
 class TestSpaceExpansion:
     def setup_class(self):
-        self.logger = logger
+        pass
 
     @pytest.mark.parametrize(
         ["index_type"],
@@ -422,7 +418,7 @@ class TestSpaceExpansion:
             },
         ]
 
-        create_for_document_test(logger, router_url, embedding_size, properties)
+        create_for_document_test(router_url, embedding_size, properties)
 
     def test_document_upsert(self):
         batch_size = 100
@@ -431,7 +427,7 @@ class TestSpaceExpansion:
 
         add(total_batch, batch_size, xb, False, True)
 
-        waiting_index_finish(logger, total, 1)
+        waiting_index_finish(total, 1)
 
     def test_update_space_partition(self):
         response = update_space_partition(router_url, db_name, space_name, 2)
@@ -448,7 +444,7 @@ class TestSpaceExpansion:
         logger.info(response.json())
         assert response.json()["code"] != 0
 
-        response = describe_space(logger, router_url, db_name, space_name)
+        response = describe_space(router_url, db_name, space_name)
         logger.info(response.json())
         assert response.json()["code"] == 0
 
@@ -471,7 +467,7 @@ class TestSpaceExpansion:
             partitions=[new_partition],
         )
 
-        waiting_index_finish(logger, total * 2, 1)
+        waiting_index_finish(total * 2, 1)
 
         response = get_space(router_url, db_name, space_name)
         logger.info(response.json())
@@ -520,7 +516,7 @@ class TestSpaceExpansion:
 
         # add again, Each shard will have roughly half of the data
         add(total_batch, batch_size, xb, False, True)
-        waiting_index_finish(logger, total * 3, 1)
+        waiting_index_finish(total * 3, 1)
 
         response = get_space(router_url, db_name, space_name)
         partitions = response.json()["data"]["partitions"]

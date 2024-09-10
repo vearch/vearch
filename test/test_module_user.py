@@ -18,20 +18,16 @@
 import requests
 import json
 import pytest
-import logging
 from multiprocessing import Pool as ThreadPool
 from utils.vearch_utils import *
 from utils.data_utils import *
-
-logging.basicConfig()
-logger = logging.getLogger(__name__)
 
 __description__ = """ test case for module user """
 
 
 class TestUser:
     def setup_class(self):
-        self.logger = logger
+        pass
 
     def test_create_user(self):
         response = create_user(router_url, "user_name", "password", "defaultSpaceAdmin")
@@ -296,7 +292,7 @@ class TestUser:
 
 class TestUserDefaultSpaceAdmin:
     def setup_class(self):
-        self.logger = logger
+        pass
 
     def test_create_user(self):
         response = create_user(router_url, "user_name", "password", "defaultSpaceAdmin")
@@ -340,7 +336,7 @@ class TestUserDefaultSpaceAdmin:
 
 class TestUserDefalutDocumentAdmin:
     def setup_class(self):
-        self.logger = logger
+        pass
 
     def test_create_user(self):
         response = create_user(
@@ -385,7 +381,7 @@ class TestUserDefalutDocumentAdmin:
 
 class TestUserDefaultReadDBSpaceEditDocument:
     def setup_class(self):
-        self.logger = logger
+        pass
 
     def test_create_user(self):
         response = create_user(
@@ -430,7 +426,7 @@ class TestUserDefaultReadDBSpaceEditDocument:
 
 class TestUserDefaultReadSpaceEditDocument:
     def setup_class(self):
-        self.logger = logger
+        pass
 
     def test_create_user(self):
         response = create_user(

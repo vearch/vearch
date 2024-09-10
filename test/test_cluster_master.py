@@ -18,18 +18,14 @@
 import requests
 import json
 import pytest
-import logging
 from utils.vearch_utils import *
 from utils.data_utils import *
-
-logging.basicConfig()
-logger = logging.getLogger(__name__)
 
 __description__ = """ test case for cluster master """
 
 class TestClusterMasterPrepare:
     def setup_class(self):
-        self.logger = logger
+        pass
 
     def test_prepare_db(self):
         response = create_db(router_url, db_name)
@@ -81,18 +77,18 @@ class TestClusterMasterPrepare:
 
 class TestClusterMasterOperateDocument:
     def setup_class(self):
-        self.logger = logger
+        pass
 
     def test_vearch_document(self):
-        sift10k = DatasetSift10K(logger)
+        sift10k = DatasetSift10K()
         xb = sift10k.get_database()
         add(50, 100, xb, with_id=True, full_field=True)
-        search_interface(logger, 10, 100, xb, True)
+        search_interface(10, 100, xb, True)
 
 
 class TestClusterMasterOperateMetaData:
     def setup_class(self):
-        self.logger = logger
+        pass
 
     def test_destroy_db(self):
         response = list_spaces(router_url, db_name)

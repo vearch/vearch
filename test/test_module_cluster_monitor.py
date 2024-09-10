@@ -1,14 +1,10 @@
 # -*- coding: UTF-8 -*-
 
-import logging
 import pytest
 import requests
 import json
 from utils.vearch_utils import *
 from utils.data_utils import *
-
-logging.basicConfig()
-logger = logging.getLogger(__name__)
 
 __description__ = """ test case for cluster monitor """
 
@@ -19,7 +15,7 @@ __description__ = """ test case for cluster monitor """
 
 class TestVearchClusterMonitor:
     def setup_class(self):
-        self.logger = logger
+        pass
 
     def test_prepare_db(self):
         response = create_db(router_url, db_name)

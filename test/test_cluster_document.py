@@ -16,15 +16,11 @@
 # -*- coding: UTF-8 -*-
 
 import pytest
-import logging
 import numpy as np
 from utils.vearch_utils import *
 from utils.data_utils import *
 import concurrent.futures
 import time
-
-logging.basicConfig()
-logger = logging.getLogger(__name__)
 
 __description__ = """ test case for cluster index """
 
@@ -117,8 +113,7 @@ def document_search(search_db_name, search_space_name, embedding_size, crud_time
         batch_size=random.randint(0, 100)
         time.sleep(0.01)
         try:
-            rs = process_search_data(logger=logger,
-                                     index=random.randint(0, 30000000),
+            rs = process_search_data(index=random.randint(0, 30000000),
                                      batch_size=batch_size,
                                      features=np.random.random((batch_size, embedding_size)),
                                      full_field=random.randint(0, 1),
@@ -155,7 +150,6 @@ def document_delete(delete_db_name, delete_space_name, crud_time):
     check = False
 
     items = [
-        logger,
         index,
         batch_size,
         full_field,
@@ -169,10 +163,10 @@ def document_delete(delete_db_name, delete_space_name, crud_time):
     while time.time() < end_time:
         time.sleep(0.01)
         try:
-            items[1] = random.randint(0, 30000000)
-            items[2] = random.randint(0, 100)
-            items[3] = random.randint(0, 1)
-            items[5] = random.choice(["by_ids", "by_filter"])
+            items[0] = random.randint(0, 30000000)
+            items[1] = random.randint(0, 100)
+            items[2] = random.randint(0, 1)
+            items[4] = random.choice(["by_ids", "by_filter"])
             rs = process_delete_data(items)
             count += 1
             if count % 10000 == 0 or verbose:
@@ -190,7 +184,7 @@ class TestClusterIndex:
     crud_time = 3600
 
     def setup_class(self):
-        self.logger = logger
+        pass
 
     @pytest.mark.parametrize(
         ["index_type", "embedding_size"],

@@ -19,14 +19,10 @@ import functools
 import requests
 import json
 import pytest
-import logging
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from utils.vearch_utils import *
 from utils.data_utils import *
-
-logging.basicConfig()
-logger = logging.getLogger(__name__)
 
 __description__ = """ test case for module filter """
 
@@ -44,7 +40,7 @@ def create(router_url, properties):
     logger.info(response.json())
 
 
-sift10k = DatasetSift10K(logger)
+sift10k = DatasetSift10K()
 xb = sift10k.get_database()
 xq = sift10k.get_queries()
 gt = sift10k.get_groundtruth()
@@ -118,12 +114,11 @@ def process_get_data_by_filter(items):
     data["space_name"] = space_name
     data["vector_value"] = False
 
-    logger = items[0]
-    index = items[1]
+    index = items[0]
     batch_size = 1
-    full_field = items[2]
-    mode = items[3]
-    total = items[4]
+    full_field = items[1]
+    mode = items[2]
+    total = items[3]
 
     data["filters"] = {
         "operator": "AND",
@@ -339,9 +334,9 @@ def process_get_data_by_filter(items):
             assert (doc["field_string"] != str(index) and doc["field_string"] != str(index + 1))
 
 
-def query_by_filter_interface(logger, total, full_field, mode: str):
+def query_by_filter_interface(total, full_field, mode: str):
     for i in range(total):
-        process_get_data_by_filter((logger, i, full_field, mode, total))
+        process_get_data_by_filter((i, full_field, mode, total))
     logger.info("query_by_filter_interface finished")
 
 
@@ -349,8 +344,8 @@ def parallel_filter(id, total_batch, full_field: bool, mode: str):
     try:
         add(total_batch, 1, xb, full_field, True)
         logger.info("%s doc_num: %d" % (space_name, get_space_num()))
-        query_by_filter_interface(logger, total_batch, full_field, mode)
-        delete_interface(logger, total_batch, 1, full_field, 1, "by_filter")
+        query_by_filter_interface(total_batch, full_field, mode)
+        delete_interface(total_batch, 1, full_field, 1, "by_filter")
     except Exception as e:
         logger.warning(f"Thread {id}: encountered an error: {e}")
     finally:
@@ -432,19 +427,19 @@ def check(total, full_field, xb, mode: str):
 
     logger.info("%s doc_num: %d" % (space_name, get_space_num()))
 
-    query_by_filter_interface(logger, total_batch, full_field, mode)
+    query_by_filter_interface(total_batch, full_field, mode)
 
-    delete_interface(logger, total_batch, batch_size, full_field, 1, "by_filter")
+    delete_interface(total_batch, batch_size, full_field, 1, "by_filter")
 
     assert get_space_num() == 0
     for i in range(total):
-        process_add_data((i, batch_size, xb[i * batch_size : (i + 1) * batch_size], with_id, full_field, 1, "", None, []))
-        process_get_data_by_filter((logger, i, full_field, "[)", total))
+        process_add_data((i, batch_size, xb[i * batch_size : (i + 1) * batch_size], with_id, full_field, 1, "", []))
+        process_get_data_by_filter((i, full_field, "[)", total))
         assert get_space_num() == i + 1
 
     for i in range(total):
         process_delete_data(
-            (logger, i, batch_size, full_field, 1, "by_filter", "", db_name, space_name, True)
+            (i, batch_size, full_field, 1, "by_filter", "", db_name, space_name, True)
         )
         assert get_space_num() == total - i - 1
 

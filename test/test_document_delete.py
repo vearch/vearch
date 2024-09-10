@@ -18,17 +18,13 @@
 import requests
 import json
 import pytest
-import logging
 from utils.vearch_utils import *
 from utils.data_utils import *
-
-logging.basicConfig()
-logger = logging.getLogger(__name__)
 
 __description__ = """ test case for document delete """
 
 
-sift10k = DatasetSift10K(logger)
+sift10k = DatasetSift10K()
 xb = sift10k.get_database()
 xq = sift10k.get_queries()
 gt = sift10k.get_groundtruth()
@@ -94,15 +90,15 @@ def check(total, bulk, full_field, delete_type, xb):
         },
     ]
 
-    create_for_document_test(logger, router_url, embedding_size, properties)
+    create_for_document_test(router_url, embedding_size, properties)
 
     add(total_batch, batch_size, xb, with_id, full_field)
 
     logger.info("%s doc_num: %d" % (space_name, get_space_num()))
 
-    query_interface(logger, total_batch, batch_size, xb, full_field, seed, "by_ids")
+    query_interface(total_batch, batch_size, xb, full_field, seed, "by_ids")
 
-    delete_interface(logger, total_batch, batch_size, full_field, seed, delete_type)
+    delete_interface(total_batch, batch_size, full_field, seed, delete_type)
 
     assert get_space_num() == 0
 
@@ -124,12 +120,11 @@ def test_vearch_document_delete(bulk: bool, full_field: bool, delete_type: str):
 
 class TestDocumentDeleteBadCase:
     def setup_class(self):
-        self.logger = logger
         self.xb = xb
 
     # prepare for badcase
     def test_prepare_cluster_badcase(self):
-        prepare_cluster_for_document_test(self.logger, 100, self.xb)
+        prepare_cluster_for_document_test(100, self.xb)
 
     @pytest.mark.parametrize(
         ["index", "wrong_type"],
@@ -159,7 +154,7 @@ class TestDocumentDeleteBadCase:
     def test_vearch_document_delete_badcase(self, index, wrong_type):
         wrong_parameters = [False for i in range(20)]
         wrong_parameters[index] = True
-        query_error(self.logger, 1, 1, self.xb, "delete", wrong_parameters)
+        query_error(1, 1, self.xb, "delete", wrong_parameters)
 
     def test_prepare_add_for_badcase(self):
         add(1, 100, self.xb, with_id=True, full_field=True)
@@ -179,7 +174,7 @@ class TestDocumentDeleteBadCase:
         total_batch = 1
         batch_size = 2
         query_error(
-            self.logger, total_batch, batch_size, self.xb, "delete", wrong_parameters
+            total_batch, batch_size, self.xb, "delete", wrong_parameters
         )
 
     # destroy for badcase
@@ -189,12 +184,11 @@ class TestDocumentDeleteBadCase:
 
 class TestDocumentDeleteAndUpsert:
     def setup_class(self):
-        self.logger = logger
         self.xb = xb
 
     # prepare
     def test_prepare_cluster(self):
-        prepare_cluster_for_document_test(self.logger, 1, self.xb)
+        prepare_cluster_for_document_test(1, self.xb)
 
     def test_prepare_delete_and_upsert(self):
         add(1, 1, self.xb, with_id=True, full_field=True)
@@ -224,7 +218,7 @@ class TestDocumentDeleteAndUpsert:
         logger.info(response.json()["data"])
         assert response.json()["data"]["total"] == 1
 
-        delete_interface(self.logger, 1, 1, delete_type="by_ids")
+        delete_interface(1, 1, delete_type="by_ids")
 
         response = requests.post(
             query_url, auth=(username, password), json=query_dict_partition

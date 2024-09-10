@@ -18,12 +18,8 @@
 import requests
 import json
 import pytest
-import logging
 from utils.vearch_utils import *
 from utils.data_utils import *
-
-logging.basicConfig()
-logger = logging.getLogger(__name__)
 
 __description__ = """ test case for index recall of datasets """
 
@@ -80,7 +76,7 @@ def benchmark(index_type, store_type, metric_type, xb, xq, gt):
     if total - total_batch * batch_size:
         add(total - total_batch * batch_size, 1, xb[total_batch * batch_size:])
 
-    waiting_index_finish(logger, total, 15)
+    waiting_index_finish(total, 15)
 
     query_dict = {
         "vectors": [],
@@ -92,7 +88,7 @@ def benchmark(index_type, store_type, metric_type, xb, xq, gt):
     }
 
     for batch in [True, False]:
-        avarage, recalls = evaluate(xq, gt, k, batch, query_dict, logger)
+        avarage, recalls = evaluate(xq, gt, k, batch, query_dict)
         result = "%s batch: %d, search avarage time: %.2f ms, " % (index_type, batch, avarage)
         for recall in recalls:
             result += "recall@%d = %.2f%% " % (recall, recalls[recall] * 100)
@@ -105,7 +101,7 @@ def benchmark(index_type, store_type, metric_type, xb, xq, gt):
     destroy(router_url, db_name, space_name)
 
 
-sift_xb, sift_xq, sift_gt = get_dataset_by_name(logger, "sift")
+sift_xb, sift_xq, sift_gt = get_dataset_by_name("sift")
 @ pytest.mark.parametrize(["index_type", "store_type"], [
     ["HNSW", "MemoryOnly"],
     ["IVFPQ", "MemoryOnly"],
@@ -116,7 +112,7 @@ sift_xb, sift_xq, sift_gt = get_dataset_by_name(logger, "sift")
 def test_vearch_index_recall_sift1m(index_type: str, store_type: str):
     benchmark(index_type, store_type, "L2", sift_xb, sift_xq, sift_gt)
 
-glove_xb, glove_xq, glove_gt = get_dataset_by_name(logger, "glove")
+glove_xb, glove_xq, glove_gt = get_dataset_by_name("glove")
 @ pytest.mark.parametrize(["index_type", "store_type"], [
     ["HNSW", "MemoryOnly"],
     ["IVFPQ", "MemoryOnly"],
@@ -127,7 +123,7 @@ glove_xb, glove_xq, glove_gt = get_dataset_by_name(logger, "glove")
 def test_vearch_index_recall_glove(index_type: str, store_type: str):
     benchmark(index_type, store_type, "InnerProduct", glove_xb, glove_xq, glove_gt)
 
-gist_xb, gist_xq, gist_gt = get_dataset_by_name(logger, "gist")
+gist_xb, gist_xq, gist_gt = get_dataset_by_name("gist")
 @ pytest.mark.parametrize(["index_type", "store_type"], [
     ["HNSW", "MemoryOnly"],
     # ["IVFPQ", "MemoryOnly"],

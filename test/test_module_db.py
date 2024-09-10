@@ -18,19 +18,15 @@
 import requests
 import json
 import pytest
-import logging
 from utils.vearch_utils import *
 from utils.data_utils import *
-
-logging.basicConfig()
-logger = logging.getLogger(__name__)
 
 __description__ = """ test case for module database """
 
 
 class TestDB:
     def setup_class(self):
-        self.logger = logger
+        pass
 
     def test_create_db(self):
         response = create_db(router_url, db_name)

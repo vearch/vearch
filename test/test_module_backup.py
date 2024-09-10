@@ -19,7 +19,6 @@ import requests
 import json
 import os
 import pytest
-import logging
 from minio import Minio
 from minio.error import S3Error
 from utils.vearch_utils import *
@@ -32,10 +31,8 @@ __description__ = """ test case for module backup """
 class TestBackup:
     @pytest.fixture(autouse=True)
     def setup_class(self):
-        logging.basicConfig()
-        self.logger = logging.getLogger(__name__)
 
-        sift10k = DatasetSift10K(self.logger)
+        sift10k = DatasetSift10K()
         self.xb = sift10k.get_database()
         self.xq = sift10k.get_queries()
         self.gt = sift10k.get_groundtruth()
@@ -102,7 +99,7 @@ class TestBackup:
 
     def create_db(self, router_url):
         response = create_db(router_url, self.db_name)
-        self.logger.info(response.json())
+        logger.info(response.json())
 
     def create_space(self, router_url, embedding_size, store_type="MemoryOnly"):
         properties = {}
@@ -134,7 +131,7 @@ class TestBackup:
         }
 
         response = create_space(router_url, self.db_name, space_config)
-        self.logger.info(response.json())
+        logger.info(response.json())
 
     def query(self, parallel_on_queries, k):
         query_dict = {
@@ -150,19 +147,19 @@ class TestBackup:
         }
 
         for batch in [True, False]:
-            avarage, recalls = evaluate(self.xq, self.gt, k, batch, query_dict, self.logger)
+            avarage, recalls = evaluate(self.xq, self.gt, k, batch, query_dict)
             result = "batch: %d, parallel_on_queries: %d, avarage time: %.2f ms, " % (
                 batch, parallel_on_queries, avarage)
             for recall in recalls:
                 result += "recall@%d = %.2f%% " % (recall, recalls[recall] * 100)
-            self.logger.info(result)
+            logger.info(result)
 
             assert recalls[1] >= 0.95
             assert recalls[10] >= 1.0
 
     def compare_doc(self, doc1, doc2):
-        self.logger.debug("doc1: " + json.dumps(doc1))
-        self.logger.debug("doc2: " + json.dumps(doc2))
+        logger.debug("doc1: " + json.dumps(doc1))
+        logger.debug("doc2: " + json.dumps(doc2))
         return doc1["_id"] == doc2["_id"] and doc1["field_int"] == doc2["field_int"] and doc1["field_vector"] == doc2["field_vector"]
 
     def waiting_backup_finish(self, timewait=5):
@@ -195,11 +192,11 @@ class TestBackup:
 
         try:
             found = client.bucket_exists(bucket_name)
-            self.logger.info(f"{bucket_name} {found}")
+            logger.info(f"{bucket_name} {found}")
             client.remove_object(bucket_name, object_name)
-            self.logger.info(f"Object '{object_name}' in bucket '{bucket_name}' deleted successfully")
+            logger.info(f"Object '{object_name}' in bucket '{bucket_name}' deleted successfully")
         except S3Error as err:
-            self.logger.error(f"Error occurred: {err} bucket_name {bucket_name} secure {secure} endpoint {endpoint}")
+            logger.error(f"Error occurred: {err} bucket_name {bucket_name} secure {secure} endpoint {endpoint}")
 
     def benchmark(self, corrupted: bool):
         embedding_size = self.xb.shape[1]
@@ -208,7 +205,7 @@ class TestBackup:
 
         total = self.xb.shape[0]
         total_batch = int(total / batch_size)
-        self.logger.info("dataset num: %d, total_batch: %d, dimension: %d, search num: %d, topK: %d" % (
+        logger.info("dataset num: %d, total_batch: %d, dimension: %d, search num: %d, topK: %d" % (
             total, total_batch, embedding_size, self.xq.shape[0], k))
 
         self.create_db(router_url)
@@ -216,7 +213,7 @@ class TestBackup:
 
         add(total_batch, batch_size, self.xb, with_id=True)
 
-        waiting_index_finish(self.logger, total)
+        waiting_index_finish(total)
 
         self.backup(router_url, "create")
         self.waiting_backup_finish()
@@ -232,7 +229,7 @@ class TestBackup:
         if corrupted:
             destroy(router_url, self.db_name, self.space_name)
             return
-        waiting_index_finish(self.logger, total)
+        waiting_index_finish(total)
 
         for parallel_on_queries in [0, 1]:
             self.query(parallel_on_queries, k)
@@ -274,7 +271,7 @@ class TestBackup:
 
         total = self.xb.shape[0]
         total_batch = int(total / batch_size)
-        self.logger.info("dataset num: %d, total_batch: %d, dimension: %d, search num: %d, topK: %d" % (
+        logger.info("dataset num: %d, total_batch: %d, dimension: %d, search num: %d, topK: %d" % (
             total, total_batch, embedding_size, self.xq.shape[0], k))
 
         self.create_db(router_url)
@@ -282,7 +279,7 @@ class TestBackup:
 
         add(total_batch, batch_size, self.xb, with_id=True)
 
-        waiting_index_finish(self.logger, total)
+        waiting_index_finish(total)
 
         self.backup(router_url, "create", error_param=True)
 

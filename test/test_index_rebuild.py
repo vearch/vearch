@@ -18,17 +18,13 @@
 import requests
 import json
 import pytest
-import logging
 from utils.vearch_utils import *
 from utils.data_utils import *
-
-logging.basicConfig()
-logger = logging.getLogger(__name__)
 
 __description__ = """ test case for index rebuild """
 
 
-sift10k = DatasetSift10K(logger)
+sift10k = DatasetSift10K()
 xb = sift10k.get_database()
 xq = sift10k.get_queries()
 gt = sift10k.get_groundtruth()
@@ -36,7 +32,7 @@ gt = sift10k.get_groundtruth()
 
 class TestIndexRebuild:
     def setup_class(self):
-        self.logger = logger
+        pass
 
     def test_prepare_db(self):
         logger.info(create_db(router_url, db_name))
@@ -112,13 +108,13 @@ class TestIndexRebuild:
         add(total_batch, batch_size, xb, with_id, full_field)
 
         if index_type != "FLAT":
-            waiting_index_finish(logger, total)
+            waiting_index_finish(total)
 
         response = index_rebuild(router_url, db_name, space_name)
         logger.info(response)
 
         if index_type != "FLAT":
-            waiting_index_finish(logger, total)
+            waiting_index_finish(total)
 
         drop_space(router_url, db_name, space_name)
 

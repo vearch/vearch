@@ -18,13 +18,9 @@
 import requests
 import json
 import pytest
-import logging
 import faiss
 from utils.vearch_utils import *
 from utils.data_utils import *
-
-logging.basicConfig()
-logger = logging.getLogger(__name__)
 
 __description__ = """ test case for index recall compare to baseline of faiss """
 
@@ -168,7 +164,7 @@ def benchmark(index_type, store_type, metric_type, xb, xq, gt):
     if total - total_batch * batch_size:
         add(total - total_batch * batch_size, 1, xb[total_batch * batch_size :])
 
-    waiting_index_finish(logger, total, 15)
+    waiting_index_finish(total, 15)
 
     query_dict = {
         "vectors": [],
@@ -180,7 +176,7 @@ def benchmark(index_type, store_type, metric_type, xb, xq, gt):
     }
 
     batch = True
-    _, recalls = evaluate(xq, gt, k, batch, query_dict, logger)
+    _, recalls = evaluate(xq, gt, k, batch, query_dict)
     result = "vearch %s: " % (index_type)
     for recall in recalls:
         result += "recall@%d = %.2f%% " % (recall, recalls[recall] * 100)
@@ -208,7 +204,7 @@ def benchmark(index_type, store_type, metric_type, xb, xq, gt):
     ],
 )
 def test_vearch_index_dataset_recall(dataset_name, metric_type):
-    xb, xq, gt = get_dataset_by_name(logger, dataset_name)
+    xb, xq, gt = get_dataset_by_name(dataset_name)
 
     index_infos = [
         ["HNSW", "MemoryOnly"],

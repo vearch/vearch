@@ -18,12 +18,8 @@
 import requests
 import json
 import pytest
-import logging
 from utils.vearch_utils import *
 from utils.data_utils import *
-
-logging.basicConfig()
-logger = logging.getLogger(__name__)
 
 __description__ = """ test case for module vector """
 
@@ -69,7 +65,7 @@ def create(router_url, embedding_size, store_type="MemoryOnly"):
     logger.info(create_space(router_url, db_name, space_config))
 
 
-def search_result(xq, k: int, batch: bool, query_dict: dict, multi_vector: bool, logger):
+def search_result(xq, k: int, batch: bool, query_dict: dict, multi_vector: bool):
     url = router_url + "/document/search?timeout=2000000"
 
     field_ints = []
@@ -144,10 +140,10 @@ def search_result(xq, k: int, batch: bool, query_dict: dict, multi_vector: bool,
     return np.array(field_ints)
 
 
-def evaluate_recall(xq, gt, k, batch, query_dict, multi_vector, logger):
+def evaluate_recall(xq, gt, k, batch, query_dict, multi_vector):
     nq = xq.shape[0]
     t0 = time.time()
-    I = search_result(xq, k, batch, query_dict, multi_vector, logger)
+    I = search_result(xq, k, batch, query_dict, multi_vector)
     t1 = time.time()
 
     recalls = {}
@@ -159,7 +155,7 @@ def evaluate_recall(xq, gt, k, batch, query_dict, multi_vector, logger):
     return (t1 - t0) * 1000.0 / nq, recalls
 
 
-def query(parallel_on_queries, xq, gt, k, multi_vector, logger):
+def query(parallel_on_queries, xq, gt, k, multi_vector):
     query_dict = {
         "vectors": [],
         "index_params": {
@@ -174,7 +170,7 @@ def query(parallel_on_queries, xq, gt, k, multi_vector, logger):
 
     for batch in [True, False]:
         avarage, recalls = evaluate_recall(
-            xq, gt, k, batch, query_dict, multi_vector, logger)
+            xq, gt, k, batch, query_dict, multi_vector)
         result = "batch: %d, parallel_on_queries: %d, avarage time: %.2f ms, " % (
             batch, parallel_on_queries, avarage)
         for recall in recalls:
@@ -203,15 +199,15 @@ def benchmark(store_type, xb, xq, gt):
 
     add_multi_vector(total_batch, batch_size, xb)
 
-    waiting_index_finish(logger, total)
+    waiting_index_finish(total)
 
     for parallel_on_queries in [0, 1]:
-        query(parallel_on_queries, xq, gt, k, True, logger)
+        query(parallel_on_queries, xq, gt, k, True)
 
     destroy(router_url, db_name, space_name)
 
 
-sift10k = DatasetSift10K(logger)
+sift10k = DatasetSift10K()
 xb = sift10k.get_database()
 xq = sift10k.get_queries()
 gt = sift10k.get_groundtruth()
@@ -226,7 +222,6 @@ def test_vearch_module_multi_vector(store_type: str):
 
 class TestUpsertMultiVectorBadCase:
     def setup_class(self):
-        self.logger = logger
         self.xb = xb
 
     # prepare for badcase
@@ -249,7 +244,7 @@ class TestUpsertMultiVectorBadCase:
             total = xb.shape[0]
         total_batch = int(total / batch_size)
         add_multi_vector_error(total_batch, batch_size,
-                               self.xb, self.logger, wrong_parameters)
+                               self.xb, wrong_parameters)
         assert get_space_num() == 0
 
     # destroy for badcase
@@ -259,7 +254,6 @@ class TestUpsertMultiVectorBadCase:
 
 class TestSearchWeightRanker:
     def setup_class(self):
-        self.logger = logger
         self.xb = xb
 
     # prepare
@@ -318,7 +312,6 @@ class TestSearchWeightRanker:
 
 class TestSearchScore:
     def setup_class(self):
-        self.logger = logger
         self.xb = xb
 
     # prepare

@@ -18,17 +18,13 @@
 import requests
 import json
 import pytest
-import logging
 from utils.vearch_utils import *
 from utils.data_utils import *
-
-logging.basicConfig()
-logger = logging.getLogger(__name__)
 
 __description__ = """ test case for document search """
 
 
-sift10k = DatasetSift10K(logger)
+sift10k = DatasetSift10K()
 xb = sift10k.get_database()
 xq = sift10k.get_queries()
 gt = sift10k.get_groundtruth()
@@ -94,14 +90,14 @@ def check(total, bulk, full_field, with_filter, query_type, xb):
         },
     ]
 
-    create_for_document_test(logger, router_url, embedding_size, properties)
+    create_for_document_test(router_url, embedding_size, properties)
 
     add(total_batch, batch_size, xb, with_id, full_field)
 
     logger.info("%s doc_num: %d" % (space_name, get_space_num()))
 
     search_interface(
-        logger, total_batch, batch_size, xb, full_field, with_filter, seed, query_type
+        total_batch, batch_size, xb, full_field, with_filter, seed, query_type
     )
 
     destroy(router_url, db_name, space_name)
@@ -187,7 +183,7 @@ def test_vearch_document_search_brute_force_search_threshold(index_type):
         },
     ]
 
-    create_for_document_test(logger, router_url, embedding_size, properties)
+    create_for_document_test(router_url, embedding_size, properties)
 
     add(total_batch, batch_size, xb, with_id, full_field)
     logger.info("%s doc_num: %d" % (space_name, get_space_num()))
@@ -345,7 +341,7 @@ def process_search_error_data(items):
         assert rs.status_code != 200
 
 
-def search_error(logger, total, batch_size, xb, wrong_parameters: dict):
+def search_error(total, batch_size, xb, wrong_parameters: dict):
     for i in range(total):
         process_search_error_data(
             (
@@ -360,12 +356,11 @@ def search_error(logger, total, batch_size, xb, wrong_parameters: dict):
 
 class TestDocumentSearchBadCase:
     def setup_class(self):
-        self.logger = logger
         self.xb = xb
 
     # prepare for badcase
     def test_prepare_cluster_badcase(self):
-        prepare_cluster_for_document_test(self.logger, 100, self.xb)
+        prepare_cluster_for_document_test(100, self.xb)
 
     @pytest.mark.parametrize(
         ["index", "wrong_type"],
@@ -387,7 +382,7 @@ class TestDocumentSearchBadCase:
     def test_vearch_document_search_badcase(self, index, wrong_type):
         wrong_parameters = [False for i in range(12)]
         wrong_parameters[index] = True
-        search_error(self.logger, 1, 1, self.xb, wrong_parameters)
+        search_error(1, 1, self.xb, wrong_parameters)
 
     # destroy for badcase
     def test_destroy_cluster_badcase(self):

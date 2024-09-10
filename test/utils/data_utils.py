@@ -21,6 +21,7 @@ from urllib.parse import urlparse
 import socket
 import numpy as np
 import os
+from utils.vearch_utils import logger
 
 
 __description__ = """ test data utils for vearch """
@@ -44,7 +45,7 @@ def fvecs_read(fname):
     return ivecs_read(fname).view("float32")
 
 
-def download_from_irisa(logger, host, dirname, local_dir, filename):
+def download_from_irisa(host, dirname, local_dir, filename):
     if not os.path.exists(local_dir):
         os.makedirs(local_dir)
     if os.path.isfile(local_dir + filename):
@@ -67,7 +68,7 @@ def download_from_irisa(logger, host, dirname, local_dir, filename):
         return False
 
 
-def untar(logger, fname, dirs, untar_result_dirs):
+def untar(fname, dirs, untar_result_dirs):
     if not os.path.exists(dirs):
         os.makedirs(dirs)
     if not os.path.isfile(dirs + fname):
@@ -80,7 +81,7 @@ def untar(logger, fname, dirs, untar_result_dirs):
     t.extractall(path=dirs)
 
 
-def load_sift1M(logger):
+def load_sift1M():
     xt = fvecs_read("sift/sift_learn.fvecs")
     xb = fvecs_read("sift/sift_base.fvecs")
     xq = fvecs_read("sift/sift_query.fvecs")
@@ -89,7 +90,7 @@ def load_sift1M(logger):
     return xb, xq, xt, gt
 
 
-def load_sift10K(logger):
+def load_sift10K():
     xt = fvecs_read("siftsmall/siftsmall_learn.fvecs")
     xb = fvecs_read("siftsmall/siftsmall_base.fvecs")
     xq = fvecs_read("siftsmall/siftsmall_query.fvecs")
@@ -98,27 +99,27 @@ def load_sift10K(logger):
     return xb, xq, xt, gt
 
 
-def get_sift1M(logger):
+def get_sift1M():
     url = "ftp://ftp.irisa.fr"
     dirname = "local/texmex/corpus/"
     filename = "sift.tar.gz"
     host = get_ftp_ip(url)
-    if download_from_irisa(logger, host, dirname, "./", filename) == False:
+    if download_from_irisa(host, dirname, "./", filename) == False:
         return
-    untar(logger, filename, "./", "sift")
-    xb, xq, xt, gt = load_sift1M(logger)
+    untar(filename, "./", "sift")
+    xb, xq, xt, gt = load_sift1M()
     return xb, xq, xt, gt
 
 
-def get_sift10K(logger):
+def get_sift10K():
     url = "ftp://ftp.irisa.fr"
     dirname = "local/texmex/corpus/"
     filename = "siftsmall.tar.gz"
     host = get_ftp_ip(url)
-    if download_from_irisa(logger, host, dirname, "./", filename) == False:
+    if download_from_irisa(host, dirname, "./", filename) == False:
         return
-    untar(logger, filename, "./", "siftsmall")
-    xb, xq, xt, gt = load_sift10K(logger)
+    untar(filename, "./", "siftsmall")
+    xb, xq, xt, gt = load_sift10K()
     return xb, xq, xt, gt
 
 
@@ -129,7 +130,7 @@ def normalization(data):
 
 
 class Dataset:
-    def __init__(self, logger=None):
+    def __init__(self):
         self.d = -1
         self.metric = "L2"  # or InnerProduct
         self.nq = -1
@@ -137,7 +138,6 @@ class Dataset:
         self.nt = -1
         self.url = ""
         self.basedir = ""
-        self.logger = logger
 
         self.download()
 
@@ -159,7 +159,7 @@ class DatasetSift10K(Dataset):
     Data from ftp://ftp.irisa.fr/local/texmex/corpus/siftsmall.tar.gz
     """
 
-    def __init__(self, logger=None):
+    def __init__(self):
         self.d = 128
         self.metric = "L2"
         self.nq = 100
@@ -167,7 +167,6 @@ class DatasetSift10K(Dataset):
         self.nt = -1
         self.url = "ftp://ftp.irisa.fr"
         self.basedir = "datasets/"
-        self.logger = logger
 
         self.download()
 
@@ -176,11 +175,11 @@ class DatasetSift10K(Dataset):
         filename = "siftsmall.tar.gz"
         host = get_ftp_ip(self.url)
         if (
-            download_from_irisa(self.logger, host, dirname, self.basedir, filename)
+            download_from_irisa(host, dirname, self.basedir, filename)
             == False
         ):
             return
-        untar(self.logger, filename, self.basedir, "siftsmall")
+        untar(filename, self.basedir, "siftsmall")
 
     def get_database(self):
         return fvecs_read(self.basedir + "siftsmall/siftsmall_base.fvecs")
@@ -197,7 +196,7 @@ class DatasetSift1M(Dataset):
     Data from ftp://ftp.irisa.fr/local/texmex/corpus/sift.tar.gz
     """
 
-    def __init__(self, logger=None):
+    def __init__(self):
         self.d = 128
         self.metric = "L2"
         self.nq = 10000
@@ -205,7 +204,6 @@ class DatasetSift1M(Dataset):
         self.nt = -1
         self.url = "ftp://ftp.irisa.fr"
         self.basedir = "datasets/"
-        self.logger = logger
 
         self.download()
 
@@ -214,11 +212,11 @@ class DatasetSift1M(Dataset):
         filename = "sift.tar.gz"
         host = get_ftp_ip(self.url)
         if (
-            download_from_irisa(self.logger, host, dirname, self.basedir, filename)
+            download_from_irisa(host, dirname, self.basedir, filename)
             == False
         ):
             return
-        untar(self.logger, filename, self.basedir, "sift")
+        untar(filename, self.basedir, "sift")
 
     def get_database(self):
         return fvecs_read(self.basedir + "sift/sift_base.fvecs")
@@ -235,7 +233,7 @@ class DatasetGlove(Dataset):
     Data from http://ann-benchmarks.com/glove-100-angular.hdf5
     """
 
-    def __init__(self, logger=None):
+    def __init__(self):
         import h5py
 
         self.metric = "IP"
@@ -243,7 +241,6 @@ class DatasetGlove(Dataset):
 
         self.url = "http://ann-benchmarks.com/glove-100-angular.hdf5"
         self.basedir = "datasets/glove/"
-        self.logger = logger
         self.download()
 
         self.glove_h5py = h5py.File(self.basedir + "glove-100-angular.hdf5", "r")
@@ -255,7 +252,7 @@ class DatasetGlove(Dataset):
 
         fname = self.basedir + "glove-100-angular.hdf5"
         if os.path.isfile(fname):
-            self.logger.debug("%s exists, no need to download" % (fname))
+            logger.debug("%s exists, no need to download" % (fname))
             return
         if not os.path.exists(self.basedir):
             os.makedirs(self.basedir)
@@ -264,7 +261,7 @@ class DatasetGlove(Dataset):
             with open(fname, "wb") as file:
                 file.write(response.content)
         else:
-            self.logger.error(
+            logger.error(
                 f"Failed to download file. Response status code: {response.status_code}"
             )
 
@@ -285,7 +282,7 @@ class DatasetGlove25(Dataset):
     Data from http://ann-benchmarks.com/glove-25-angular.hdf5
     """
 
-    def __init__(self, logger=None):
+    def __init__(self):
         import h5py
 
         self.metric = "IP"
@@ -293,7 +290,6 @@ class DatasetGlove25(Dataset):
 
         self.url = "http://ann-benchmarks.com/glove-25-angular.hdf5"
         self.basedir = "datasets/glove/"
-        self.logger = logger
         self.download()
 
         self.glove_h5py = h5py.File(self.basedir + "glove-25-angular.hdf5", "r")
@@ -305,7 +301,7 @@ class DatasetGlove25(Dataset):
 
         fname = self.basedir + "glove-25-angular.hdf5"
         if os.path.isfile(fname):
-            self.logger.debug("%s exists, no need to download" % (fname))
+            logger.debug("%s exists, no need to download" % (fname))
             return
         if not os.path.exists(self.basedir):
             os.makedirs(self.basedir)
@@ -314,7 +310,7 @@ class DatasetGlove25(Dataset):
             with open(fname, "wb") as file:
                 file.write(response.content)
         else:
-            self.logger.error(
+            logger.error(
                 f"Failed to download file. Response status code: {response.status_code}"
             )
 
@@ -335,7 +331,7 @@ class DatasetNytimes(Dataset):
     Data from http://ann-benchmarks.com/nytimes-256-angular.hdf5
     """
 
-    def __init__(self, logger=None):
+    def __init__(self):
         import h5py
 
         self.metric = "IP"
@@ -343,7 +339,6 @@ class DatasetNytimes(Dataset):
 
         self.url = "http://ann-benchmarks.com/nytimes-256-angular.hdf5"
         self.basedir = "datasets/nytimes/"
-        self.logger = logger
         self.download()
 
         self.nytimes_h5py = h5py.File(self.basedir + "nytimes-256-angular.hdf5", "r")
@@ -355,7 +350,7 @@ class DatasetNytimes(Dataset):
 
         fname = self.basedir + "nytimes-256-angular.hdf5"
         if os.path.isfile(fname):
-            self.logger.debug("%s exists, no need to download" % (fname))
+            logger.debug("%s exists, no need to download" % (fname))
             return
         if not os.path.exists(self.basedir):
             os.makedirs(self.basedir)
@@ -364,7 +359,7 @@ class DatasetNytimes(Dataset):
             with open(fname, "wb") as file:
                 file.write(response.content)
         else:
-            self.logger.error(
+            logger.error(
                 f"Failed to download file. Response status code: {response.status_code}"
             )
 
@@ -416,7 +411,7 @@ class DatasetGist1M(Dataset):
     Data from ftp://ftp.irisa.fr/local/texmex/corpus/gist.tar.gz
     """
 
-    def __init__(self, logger=None):
+    def __init__(self):
         self.d = 960
         self.metric = "L2"
         self.nq = 1000
@@ -424,7 +419,6 @@ class DatasetGist1M(Dataset):
         self.nt = -1
         self.url = "ftp://ftp.irisa.fr"
         self.basedir = "datasets/"
-        self.logger = logger
 
         self.download()
 
@@ -433,11 +427,11 @@ class DatasetGist1M(Dataset):
         filename = "gist.tar.gz"
         host = get_ftp_ip(self.url)
         if (
-            download_from_irisa(self.logger, host, dirname, self.basedir, filename)
+            download_from_irisa(host, dirname, self.basedir, filename)
             == False
         ):
             return
-        untar(self.logger, filename, self.basedir, "gist")
+        untar(filename, self.basedir, "gist")
 
     def get_database(self):
         return fvecs_read(self.basedir + "gist/gist_base.fvecs")
@@ -449,22 +443,22 @@ class DatasetGist1M(Dataset):
         return ivecs_read(self.basedir + "gist/gist_groundtruth.ivecs")
 
 
-def get_dataset_by_name(logger, name):
+def get_dataset_by_name(name):
     if name == "sift":
-        dataset = DatasetSift1M(logger)
+        dataset = DatasetSift1M()
         return dataset.get_database(), dataset.get_queries(), dataset.get_groundtruth()
     elif name == "siftsmall":
-        dataset = DatasetSift10K(logger)
+        dataset = DatasetSift10K()
         return dataset.get_database(), dataset.get_queries(), dataset.get_groundtruth()
     elif name == "glove":
-        dataset = DatasetGlove(logger)
+        dataset = DatasetGlove()
         return dataset.get_database(), dataset.get_queries(), dataset.get_groundtruth()
     elif name == "glove25":
-        dataset = DatasetGlove25(logger)
+        dataset = DatasetGlove25()
         return dataset.get_database(), dataset.get_queries(), dataset.get_groundtruth()
     elif name == "nytimes":
-        dataset = DatasetNytimes(logger)
+        dataset = DatasetNytimes()
         return dataset.get_database(), dataset.get_queries(), dataset.get_groundtruth()
     elif name == "gist":
-        dataset = DatasetGist1M(logger)
+        dataset = DatasetGist1M()
         return dataset.get_database(), dataset.get_queries(), dataset.get_groundtruth()

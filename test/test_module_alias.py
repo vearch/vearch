@@ -18,18 +18,14 @@
 import requests
 import json
 import pytest
-import logging
 from multiprocessing import Pool as ThreadPool
 from utils.vearch_utils import *
 from utils.data_utils import *
 
-logging.basicConfig()
-logger = logging.getLogger(__name__)
-
 __description__ = """ test case for module alias """
 
 
-sift10k = DatasetSift10K(logger)
+sift10k = DatasetSift10K()
 xb = sift10k.get_database()
 xq = sift10k.get_queries()
 gt = sift10k.get_groundtruth()
@@ -37,7 +33,7 @@ gt = sift10k.get_groundtruth()
 
 class TestAlias:
     def setup_class(self):
-        self.logger = logger
+        pass
 
     def test_create_db(self):
         response = create_db(router_url, db_name)
@@ -233,21 +229,21 @@ class TestAlias:
 
         add(total_batch, batch_size, xb, with_id=True, alias_name="alias_name")
 
-        waiting_index_finish(logger, total)
+        waiting_index_finish(total)
 
-        query_interface(logger, total_batch, batch_size, xb,
+        query_interface(total_batch, batch_size, xb,
                         query_type="by_ids", alias_name="alias_name")
-        query_interface(logger, total_batch, batch_size, xb,
+        query_interface(total_batch, batch_size, xb,
                         query_type="by_filter", alias_name="alias_name")
 
-        search_interface(logger, total_batch, batch_size, xb,
+        search_interface(total_batch, batch_size, xb,
                          query_type="by_vector", alias_name="alias_name")
 
-        delete_interface(logger, total_batch, batch_size,
+        delete_interface(total_batch, batch_size,
                          delete_type="by_filter", alias_name="alias_name")
 
         add(total_batch, batch_size, xb, with_id=True, alias_name="alias_name")
-        delete_interface(logger, total_batch, batch_size,
+        delete_interface(total_batch, batch_size,
                          delete_type="by_ids", alias_name="alias_name")
 
         response = drop_alias(router_url, "alias_name")

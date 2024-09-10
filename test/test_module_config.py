@@ -18,17 +18,13 @@
 import requests
 import json
 import pytest
-import logging
 from utils.vearch_utils import *
 from utils.data_utils import *
-
-logging.basicConfig()
-logger = logging.getLogger(__name__)
 
 __description__ = """ test case for module vector """
 
 
-sift10k = DatasetSift10K(logger)
+sift10k = DatasetSift10K()
 xb = sift10k.get_database()
 xq = sift10k.get_queries()
 gt = sift10k.get_groundtruth()
@@ -77,7 +73,6 @@ def create(router_url, store_type="MemoryOnly"):
 
 class TestConfig:
     def setup_class(self):
-        self.logger = logger
         self.xb = xb
 
     # prepare

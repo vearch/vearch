@@ -18,20 +18,16 @@
 import requests
 import json
 import pytest
-import logging
 from utils.vearch_utils import *
 from utils.data_utils import *
 import datetime
-
-logging.basicConfig()
-logger = logging.getLogger(__name__)
 
 __description__ = """ test case for module partition """
 
 
 class TestPartitionEmptySpaceMemorySize:
     def setup_class(self):
-        self.logger = logger
+        pass
 
     def test_prepare_db(self):
         logger.info(create_db(router_url, db_name))
@@ -101,7 +97,7 @@ class TestPartitionEmptySpaceMemorySize:
 
 class TestPartitionSmallDataMemorySize:
     def setup_class(self):
-        self.logger = logger
+        pass
 
     def test_prepare_db(self):
         logger.info(create_db(router_url, db_name))
@@ -175,7 +171,7 @@ class TestPartitionSmallDataMemorySize:
 
 class TestPartitionRule:
     def setup_class(self):
-        self.logger = logger
+        pass
 
     def test_prepare_db(self):
         logger.info(create_db(router_url, db_name))
@@ -240,15 +236,15 @@ class TestPartitionRule:
         response = create_space(router_url, db_name, space_config)
         logger.info(response.json())
         assert response.json()["code"] == 0
-        add_date(db_name, space_name, 0, 10, 100, embedding_size, "str", logger)
+        add_date(db_name, space_name, 0, 10, 100, embedding_size, "str")
 
-        response = describe_space(logger, router_url, db_name, space_name)
+        response = describe_space(router_url, db_name, space_name)
         logger.info(response.json())
         assert response.json()["code"] == 0
 
         assert get_partitions_doc_num("p1") == 10 * 100
 
-        waiting_index_finish(logger, 10 * 100, 1)
+        waiting_index_finish(10 * 100, 1)
 
         for i in range(1000):
             query_dict = {
@@ -271,7 +267,7 @@ class TestPartitionRule:
         logger.info(response.json())
         assert response.json()["code"] == 0
 
-        response = describe_space(logger, router_url, db_name, space_name)
+        response = describe_space(router_url, db_name, space_name)
         logger.info(response.json())
         assert response.json()["code"] == 0
 
@@ -302,24 +298,24 @@ class TestPartitionRule:
         logger.info(response.json())
         assert response.json()["code"] == 0
 
-        add_date(db_name, space_name, 0, 10, 100, embedding_size, "str", logger)
+        add_date(db_name, space_name, 0, 10, 100, embedding_size, "str")
 
-        response = describe_space(logger, router_url, db_name, space_name)
+        response = describe_space(router_url, db_name, space_name)
         logger.info(response.json())
         assert response.json()["code"] == 0
 
         assert get_partitions_doc_num("p1") == 10 * 100
 
-        waiting_index_finish(logger, 10 * 100, 1)
+        waiting_index_finish(10 * 100, 1)
 
         # _id is same and partition field is same
-        add_date(db_name, space_name, 0, 10, 100, embedding_size, "str", logger)
+        add_date(db_name, space_name, 0, 10, 100, embedding_size, "str")
 
         assert get_partitions_doc_num("p1") == 10 * 100
 
         # _id is same but partition field is different
         add_date(
-            db_name, space_name, 0, 10, 100, embedding_size, "str", logger, delta=1
+            db_name, space_name, 0, 10, 100, embedding_size, "str", delta=1
         )
 
         assert get_partitions_doc_num("p2") == 10 * 100
@@ -357,9 +353,9 @@ class TestPartitionRule:
             assert days == results
 
         # _id is different but partition field is same
-        add_date(db_name, space_name, 10, 20, 100, embedding_size, "random", logger)
+        add_date(db_name, space_name, 10, 20, 100, embedding_size, "random")
 
-        waiting_index_finish(logger, 10 * 100 * 2, 1)
+        waiting_index_finish(10 * 100 * 2, 1)
 
         assert get_space_num() == 3 * 10 * 100
 
@@ -378,7 +374,7 @@ class TestPartitionRule:
             assert len(rs.json()["data"]["documents"]) == 1
             assert rs.json()["data"]["documents"][0]["field_float"] == float(i)
 
-        response = describe_space(logger, router_url, db_name, space_name)
+        response = describe_space(router_url, db_name, space_name)
         logger.info(response.json())
         assert response.json()["code"] == 0
 
@@ -393,7 +389,7 @@ class TestPartitionRule:
 
 class TestPartitionRuleWithWeek:
     def setup_class(self):
-        self.logger = logger
+        pass
 
     def test_prepare_db(self):
         logger.info(create_db(router_url, db_name))
@@ -459,24 +455,24 @@ class TestPartitionRuleWithWeek:
         logger.info(response.json())
         assert response.json()["code"] == 0
 
-        add_date(db_name, space_name, 0, 10, 100, embedding_size, "str", logger)
+        add_date(db_name, space_name, 0, 10, 100, embedding_size, "str")
 
-        response = describe_space(logger, router_url, db_name, space_name)
+        response = describe_space(router_url, db_name, space_name)
         logger.info(response.json())
         assert response.json()["code"] == 0
 
         assert get_partitions_doc_num("p1") == 10 * 100
 
-        waiting_index_finish(logger, 10 * 100, 1)
+        waiting_index_finish(10 * 100, 1)
 
         # _id is same and partition field is same
-        add_date(db_name, space_name, 0, 10, 100, embedding_size, "str", logger)
+        add_date(db_name, space_name, 0, 10, 100, embedding_size, "str")
 
         assert get_partitions_doc_num("p1") == 10 * 100
 
         # _id is same but partition field value is different, range is same
         add_date(
-            db_name, space_name, 0, 10, 100, embedding_size, "str", logger, delta=1
+            db_name, space_name, 0, 10, 100, embedding_size, "str", delta=1
         )
 
         assert get_partitions_doc_num("p1") == 10 * 100
@@ -484,15 +480,15 @@ class TestPartitionRuleWithWeek:
         assert get_space_num() == 1 * 10 * 100
 
         # _id is different but partition field is same
-        add_date(db_name, space_name, 10, 20, 100, embedding_size, "random", logger)
+        add_date(db_name, space_name, 10, 20, 100, embedding_size, "random")
 
-        waiting_index_finish(logger, 10 * 100 * 2, 1)
+        waiting_index_finish(10 * 100 * 2, 1)
 
         assert get_partitions_doc_num("p1") == 20 * 100
 
         assert get_space_num() == 2 * 10 * 100
 
-        response = describe_space(logger, router_url, db_name, space_name)
+        response = describe_space(router_url, db_name, space_name)
         logger.info(response.json())
         assert response.json()["code"] == 0
 
@@ -507,7 +503,7 @@ class TestPartitionRuleWithWeek:
 
 class TestPartitionRuleBadCase:
     def setup_class(self):
-        self.logger = logger
+        pass
 
     def test_prepare_db(self):
         logger.info(create_db(router_url, db_name))
@@ -675,11 +671,11 @@ class TestPartitionRuleBadCase:
         response = create_space(router_url, db_name, space_config)
         logger.info(response.json())
         assert response.json()["code"] == 0
-        add_date(db_name, space_name, 0, 10, 100, embedding_size, "str", logger)
+        add_date(db_name, space_name, 0, 10, 100, embedding_size, "str")
 
-        waiting_index_finish(logger, 10 * 100, 1)
+        waiting_index_finish(10 * 100, 1)
 
-        response = describe_space(logger, router_url, db_name, space_name)
+        response = describe_space(router_url, db_name, space_name)
         logger.info(response.json())
         assert response.json()["code"] == 0
 

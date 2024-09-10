@@ -18,17 +18,13 @@
 import requests
 import json
 import pytest
-import logging
 from utils.vearch_utils import *
 from utils.data_utils import *
-
-logging.basicConfig()
-logger = logging.getLogger(__name__)
 
 __description__ = """ test case for module resource limit """
 
 
-sift10k = DatasetSift10K(logger)
+sift10k = DatasetSift10K()
 xb = sift10k.get_database()
 xq = sift10k.get_queries()
 gt = sift10k.get_groundtruth()
@@ -36,7 +32,7 @@ gt = sift10k.get_groundtruth()
 
 class TestResourceLimit:
     def setup_class(self):
-        self.logger = logger
+        pass
 
     def test_empty_cluster_update_limit(self):
         response = server_resource_limit(router_url, resource_exhausted=True)

@@ -16,12 +16,8 @@
 # -*- coding: UTF-8 -*-
 
 import pytest
-import logging
 from utils.vearch_utils import *
 from utils.data_utils import *
-
-logging.basicConfig()
-logger = logging.getLogger(__name__)
 
 __description__ = """ test case for index hnsw """
 
@@ -66,7 +62,7 @@ def create(router_url, embedding_size, nlinks=32, efConstruction=120, metric_typ
 
 
 def query(
-    do_efSearch_check, efSearch, metric_type, metric_is_same, batch, xq, gt, k, logger
+    do_efSearch_check, efSearch, metric_type, metric_is_same, batch, xq, gt, k
 ):
     query_dict = {
         "vectors": [],
@@ -92,7 +88,7 @@ def query(
         if metric_type == "":
             query_dict["index_params"].pop("metric_type")
 
-    avarage, recalls = evaluate(xq, gt, k, batch, query_dict, logger)
+    avarage, recalls = evaluate(xq, gt, k, batch, query_dict)
     result = (
         "batch: %d, efSearch: %d, do_efSearch_check: %d, metric_type: %s, avg: %.2f ms, "
         % (batch, efSearch, do_efSearch_check, metric_type, avarage)
@@ -124,7 +120,7 @@ def benchmark(nlinks, efConstruction, metric_type, xb, xq, gt):
     if total - total_batch * batch_size:
         add(total - total_batch * batch_size, 1, xb[total_batch * batch_size:])
 
-    waiting_index_finish(logger, total)
+    waiting_index_finish(total)
 
     if metric_type == "L2":
         for do_efSearch_check in [1, 0, -1]:
@@ -143,7 +139,6 @@ def benchmark(nlinks, efConstruction, metric_type, xb, xq, gt):
                             xq,
                             gt,
                             k,
-                            logger,
                         )
     else:
         for do_efSearch_check in [-1]:
@@ -162,13 +157,12 @@ def benchmark(nlinks, efConstruction, metric_type, xb, xq, gt):
                             xq,
                             gt,
                             k,
-                            logger,
                         )
 
     destroy(router_url, db_name, space_name)
 
 
-sift10k = DatasetSift10K(logger)
+sift10k = DatasetSift10K()
 xb = sift10k.get_database()
 xq = sift10k.get_queries()[:100]
 gt = sift10k.get_groundtruth()[:100]
@@ -185,7 +179,7 @@ def test_vearch_index_hnsw(nlinks: int, efConstruction: int):
     benchmark(nlinks, efConstruction, "L2", xb, xq, gt)
 
 
-glove25 = DatasetGlove25(logger)
+glove25 = DatasetGlove25()
 glove_xb = glove25.get_database()
 glove_xq = glove25.get_queries()
 glove_gt = glove25.get_groundtruth()

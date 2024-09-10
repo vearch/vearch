@@ -6,9 +6,6 @@ import requests
 import json
 from utils.vearch_utils import *
 
-logging.basicConfig()
-logger = logging.getLogger(__name__)
-
 __description__ = """ test case for vearch """
 
 

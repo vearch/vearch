@@ -18,17 +18,13 @@
 import requests
 import json
 import pytest
-import logging
 from utils.vearch_utils import *
 from utils.data_utils import *
-
-logging.basicConfig()
-logger = logging.getLogger(__name__)
 
 __description__ = """ test case for document query """
 
 
-sift10k = DatasetSift10K(logger)
+sift10k = DatasetSift10K()
 xb = sift10k.get_database()
 xq = sift10k.get_queries()
 gt = sift10k.get_groundtruth()
@@ -94,13 +90,13 @@ def check(total, bulk, full_field, query_type, xb):
         },
     ]
 
-    create_for_document_test(logger, router_url, embedding_size, properties)
+    create_for_document_test(router_url, embedding_size, properties)
 
     add(total_batch, batch_size, xb, with_id, full_field)
 
     logger.info("%s doc_num: %d" % (space_name, get_space_num()))
 
-    query_interface(logger, total_batch, batch_size, xb, full_field, seed, query_type)
+    query_interface(total_batch, batch_size, xb, full_field, seed, query_type)
 
     destroy(router_url, db_name, space_name)
 
@@ -124,12 +120,11 @@ def test_vearch_document_query(bulk: bool, full_field: bool, query_type: str):
 
 class TestDocumentQueryMultiPartition:
     def setup_class(self):
-        self.logger = logger
         self.xb = xb
 
     # prepare for badcase
     def test_prepare_cluster_multi_partition(self):
-        prepare_cluster_for_document_test(self.logger, 100, self.xb, 2)
+        prepare_cluster_for_document_test(100, self.xb, 2)
 
     def test_destroy_cluster_multi_partition(self):
         destroy(router_url, db_name, space_name)
@@ -137,12 +132,11 @@ class TestDocumentQueryMultiPartition:
 
 class TestDocumentQueryBadCase:
     def setup_class(self):
-        self.logger = logger
         self.xb = xb
 
     # prepare for badcase
     def test_prepare_cluster_badcase(self):
-        prepare_cluster_for_document_test(self.logger, 100, self.xb)
+        prepare_cluster_for_document_test(100, self.xb)
 
     @pytest.mark.parametrize(
         ["index", "wrong_type"],
@@ -172,7 +166,7 @@ class TestDocumentQueryBadCase:
     def test_document_query_badcase(self, index, wrong_type):
         wrong_parameters = [False for i in range(20)]
         wrong_parameters[index] = True
-        query_error(self.logger, 1, 1, self.xb, "query", wrong_parameters)
+        query_error(1, 1, self.xb, "query", wrong_parameters)
 
     def test_prepare_add_for_badcase(self):
         add(1, 100, self.xb, with_id=True, full_field=True)
@@ -192,7 +186,7 @@ class TestDocumentQueryBadCase:
         total_batch = 1
         batch_size = 2
         query_error(
-            self.logger, total_batch, batch_size, self.xb, "query", wrong_parameters
+            total_batch, batch_size, self.xb, "query", wrong_parameters
         )
 
     # destroy for badcase
@@ -203,12 +197,11 @@ class TestDocumentQueryBadCase:
 
 class TestDocumentQueryOnSpecifyPartition:
     def setup_class(self):
-        self.logger = logger
         self.xb = xb
 
     # prepare for badcase
     def test_prepare_cluster(self):
-        prepare_cluster_for_document_test(self.logger, 100, self.xb)
+        prepare_cluster_for_document_test(100, self.xb)
 
     def test_prepare_add(self):
         batch_size = 100
@@ -216,7 +209,7 @@ class TestDocumentQueryOnSpecifyPartition:
         total = int(batch_size * total_batch)
         add(total_batch, batch_size, self.xb, with_id=True, full_field=True)
 
-        waiting_index_finish(logger, total, 1)
+        waiting_index_finish(total, 1)
 
         partition_ids = get_partition(router_url, db_name, space_name)
         assert len(partition_ids) == 1
