@@ -460,7 +460,7 @@ func (r *routerRequest) searchFromPartition(ctx context.Context, partitionID ent
 	responseDoc := &response.SearchDocResult{}
 	defer func() {
 		if r := recover(); r != nil {
-			msg := fmt.Sprintf("[Recover] partitionID: [%v], err: [%s]", partitionID, cast.ToString(r))
+			msg := fmt.Sprintf("searchFromPartition partitionID: [%v], err: [%s]", partitionID, cast.ToString(r))
 			err := &vearchpb.Error{Code: vearchpb.ErrorEnum_RECOVER, Msg: msg}
 			head := &vearchpb.ResponseHead{Err: err}
 			searchResponse := &vearchpb.SearchResponse{Head: head}
@@ -522,9 +522,16 @@ func (r *routerRequest) searchFromPartition(ctx context.Context, partitionID ent
 
 	faultyNodeNum := r.replicasFaultyNum(partition.Replicas)
 	retryTime := 0
-
+	var retry_err error
+	if len(partition.Replicas) <= faultyNodeNum {
+		msg := fmt.Sprintf("nodeID %v is faulty, replica_num=%d, faultyNodeNum=%d", nodeID, len(partition.Replicas), faultyNodeNum)
+		log.Error(msg)
+		retry_err = fmt.Errorf(msg)
+	}
 	for len(partition.Replicas) > faultyNodeNum && retryTime < len(partition.Replicas) {
 		if r.client.PS().TestFaulty(nodeID) {
+			log.Error("nodeID %v partitionID: %d is faulty, retryTime: %d, len(partition.Replicas)=%d, faultyNodeNum: %d", nodeID, partitionID, retryTime, len(partition.Replicas), faultyNodeNum)
+			retry_err = fmt.Errorf("nodeID %v partitionID: %d is faulty", nodeID, partitionID)
 			nodeID = GetNodeIdsByClientType(clientType, partition, serverCache, r.client)
 			faultyNodeNum = r.replicasFaultyNum(partition.Replicas)
 			retryTime++
@@ -617,18 +624,33 @@ func (r *routerRequest) searchFromPartition(ctx context.Context, partitionID ent
 			}
 		}
 		rpcStart = time.Now()
-		err := rpcClient.Execute(ctx, UnaryHandler, pd, replyPartition)
+		retry_err = rpcClient.Execute(ctx, UnaryHandler, pd, replyPartition)
 		rpcEnd = time.Now()
-		if err == nil {
+		if retry_err == nil {
 			break
 		}
 
+		log.Error("nodeID %v partitionID: %d rpc err [%v], retryTime: %d, len(partition.Replicas)=%d, faultyNodeNum: %d", nodeID, partitionID, retry_err, retryTime, len(partition.Replicas), faultyNodeNum)
 		r.client.PS().AddFaulty(nodeID, time.Second*30)
 		nodeID = GetNodeIdsByClientType(clientType, partition, serverCache, r.client)
-		log.Error("nodeID %v rpc err [%v]", nodeID, err)
 
 		faultyNodeNum = r.replicasFaultyNum(partition.Replicas)
 		retryTime++
+	}
+
+	if retry_err != nil {
+		var err *vearchpb.Error
+		if vErr, ok := retry_err.(*vearchpb.VearchErr); ok {
+			err = &vearchpb.Error{Code: vErr.GetError().Code, Msg: retry_err.Error()}
+		} else {
+			err = &vearchpb.Error{Code: vearchpb.ErrorEnum_INTERNAL_ERROR, Msg: retry_err.Error()}
+		}
+		head := &vearchpb.ResponseHead{Err: err}
+		searchResponse := &vearchpb.SearchResponse{Head: head}
+		pd.SearchResponse = searchResponse
+		responseDoc.PartitionData = pd
+		respChain <- responseDoc
+		return
 	}
 
 	sortFieldMap := pd.SearchRequest.SortFieldMap
@@ -748,7 +770,12 @@ func (r *routerRequest) SearchFieldSortExecute(sortOrder sortorder.SortOrder) *v
 	var searchResponse *vearchpb.SearchResponse
 
 	mergeStartTime := time.Now()
+	var final_err *vearchpb.Error
 	for r := range respChain {
+		if r != nil && r.PartitionData.Err != nil {
+			final_err = r.PartitionData.Err
+			continue
+		}
 		if result == nil && r != nil {
 			searchResponse = r.PartitionData.SearchResponse
 			if searchResponse != nil && searchResponse.Results != nil && len(searchResponse.Results) > 0 {
@@ -808,9 +835,8 @@ func (r *routerRequest) SearchFieldSortExecute(sortOrder sortorder.SortOrder) *v
 	}
 
 	if searchResponse == nil {
-		err := &vearchpb.Error{Code: vearchpb.ErrorEnum_ROUTER_CALL_PS_RPC_ERR, Msg: "search result is null"}
 		searchResponse = &vearchpb.SearchResponse{}
-		responseHead := &vearchpb.ResponseHead{Err: err}
+		responseHead := &vearchpb.ResponseHead{Err: final_err}
 		searchResponse.Head = responseHead
 	}
 	mergeAndSort := time.Since(mergeStartTime).Seconds() * 1000
