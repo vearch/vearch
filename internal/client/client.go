@@ -523,20 +523,12 @@ func (r *routerRequest) searchFromPartition(ctx context.Context, partitionID ent
 	faultyNodeNum := r.replicasFaultyNum(partition.Replicas)
 	retryTime := 0
 	var retry_err error
-	if len(partition.Replicas) <= faultyNodeNum {
-		msg := fmt.Sprintf("nodeID %v is faulty, replica_num=%d, faultyNodeNum=%d", nodeID, len(partition.Replicas), faultyNodeNum)
+	if len(partition.Replicas) <= faultyNodeNum || nodeID == 0 {
+		msg := fmt.Sprintf("nodeID %v partitionID: %d is faulty, replica_num=%d, faultyNodeNum=%d", nodeID, partitionID, len(partition.Replicas), faultyNodeNum)
 		log.Error(msg)
 		retry_err = fmt.Errorf(msg)
 	}
 	for len(partition.Replicas) > faultyNodeNum && retryTime < len(partition.Replicas) {
-		if r.client.PS().TestFaulty(nodeID) {
-			log.Error("nodeID %v partitionID: %d is faulty, retryTime: %d, len(partition.Replicas)=%d, faultyNodeNum: %d", nodeID, partitionID, retryTime, len(partition.Replicas), faultyNodeNum)
-			retry_err = fmt.Errorf("nodeID %v partitionID: %d is faulty", nodeID, partitionID)
-			nodeID = GetNodeIdsByClientType(clientType, partition, serverCache, r.client)
-			faultyNodeNum = r.replicasFaultyNum(partition.Replicas)
-			retryTime++
-			continue
-		}
 		nodeIdEnd := time.Now()
 		if trace {
 			getNodeIdTime := nodeIdEnd.Sub(getPartitionEnd).Seconds() * 1000
@@ -631,7 +623,11 @@ func (r *routerRequest) searchFromPartition(ctx context.Context, partitionID ent
 		}
 
 		log.Error("nodeID %v partitionID: %d rpc err [%v], retryTime: %d, len(partition.Replicas)=%d, faultyNodeNum: %d", nodeID, partitionID, retry_err, retryTime, len(partition.Replicas), faultyNodeNum)
-		r.client.PS().AddFaulty(nodeID, time.Second*30)
+		if strings.Contains(retry_err.Error(), "connect: connection refused") {
+			r.client.PS().AddFaulty(nodeID, time.Second*30)
+		} else {
+			break
+		}
 		nodeID = GetNodeIdsByClientType(clientType, partition, serverCache, r.client)
 
 		faultyNodeNum = r.replicasFaultyNum(partition.Replicas)
@@ -856,7 +852,7 @@ func (r *routerRequest) queryFromPartition(ctx context.Context, partitionID enti
 	responseDoc := &response.SearchDocResult{}
 	defer func() {
 		if r := recover(); r != nil {
-			msg := fmt.Sprintf("[Recover] partitionID: [%v], err: [%s]", partitionID, cast.ToString(r))
+			msg := fmt.Sprintf("queryFromPartition partitionID: [%v], err: [%s]", partitionID, cast.ToString(r))
 			err := &vearchpb.Error{Code: vearchpb.ErrorEnum_RECOVER, Msg: msg}
 			head := &vearchpb.ResponseHead{Err: err}
 			searchResponse := &vearchpb.SearchResponse{Head: head}
@@ -901,14 +897,14 @@ func (r *routerRequest) queryFromPartition(ctx context.Context, partitionID enti
 	nodeID := GetNodeIdsByClientType(clientType, partition, servers, r.client)
 
 	faultyNodeNum := r.replicasFaultyNum(partition.Replicas)
-
-	for len(partition.Replicas) > faultyNodeNum {
-		if r.client.PS().TestFaulty(nodeID) {
-			nodeID = GetNodeIdsByClientType(clientType, partition, servers, r.client)
-			faultyNodeNum = r.replicasFaultyNum(partition.Replicas)
-			continue
-		}
-
+	retryTime := 0
+	var retry_err error
+	if len(partition.Replicas) <= faultyNodeNum || nodeID == 0 {
+		msg := fmt.Sprintf("nodeID %v partitionID: %d is faulty, replica_num=%d, faultyNodeNum=%d", nodeID, partitionID, len(partition.Replicas), faultyNodeNum)
+		log.Error(msg)
+		retry_err = fmt.Errorf(msg)
+	}
+	for len(partition.Replicas) > faultyNodeNum && retryTime < len(partition.Replicas) {
 		rpcClient := r.client.PS().GetOrCreateRPCClient(ctx, nodeID)
 		if rpcClient == nil {
 			err := &vearchpb.Error{Code: vearchpb.ErrorEnum_ROUTER_NO_PS_CLIENT, Msg: "no ps client by nodeID:" + fmt.Sprint(nodeID)}
@@ -920,20 +916,36 @@ func (r *routerRequest) queryFromPartition(ctx context.Context, partitionID enti
 			return
 		}
 
-		err := rpcClient.Execute(ctx, UnaryHandler, pd, replyPartition)
-		if err == nil {
+		retry_err = rpcClient.Execute(ctx, UnaryHandler, pd, replyPartition)
+		if retry_err == nil {
 			break
 		}
 
-		if strings.Contains(err.Error(), "connect: connection refused") {
+		log.Error("nodeID %v partitionID: %d rpc err [%v], retryTime: %d, len(partition.Replicas)=%d, faultyNodeNum: %d", nodeID, partitionID, retry_err, retryTime, len(partition.Replicas), faultyNodeNum)
+		if strings.Contains(retry_err.Error(), "connect: connection refused") {
 			r.client.PS().AddFaulty(nodeID, time.Second*30)
-			nodeID = GetNodeIdsByClientType(clientType, partition, servers, r.client)
 		} else {
-			log.Error("rpc err [%v], nodeID %v", err, nodeID)
-			r.client.PS().AddFaulty(nodeID, time.Second*5)
 			break
 		}
+		nodeID = GetNodeIdsByClientType(clientType, partition, servers, r.client)
+
 		faultyNodeNum = r.replicasFaultyNum(partition.Replicas)
+		retryTime++
+	}
+
+	if retry_err != nil {
+		var err *vearchpb.Error
+		if vErr, ok := retry_err.(*vearchpb.VearchErr); ok {
+			err = &vearchpb.Error{Code: vErr.GetError().Code, Msg: retry_err.Error()}
+		} else {
+			err = &vearchpb.Error{Code: vearchpb.ErrorEnum_INTERNAL_ERROR, Msg: retry_err.Error()}
+		}
+		head := &vearchpb.ResponseHead{Err: err}
+		searchResponse := &vearchpb.SearchResponse{Head: head}
+		pd.SearchResponse = searchResponse
+		responseDoc.PartitionData = pd
+		respChain <- responseDoc
+		return
 	}
 
 	sortFieldMap := pd.QueryRequest.SortFieldMap
@@ -985,7 +997,12 @@ func (r *routerRequest) QueryFieldSortExecute(sortOrder sortorder.SortOrder) *ve
 	var searchResponse *vearchpb.SearchResponse
 	var head vearchpb.ResponseHead
 
+	var final_err *vearchpb.Error
 	for r := range respChain {
+		if r != nil && r.PartitionData.Err != nil {
+			final_err = r.PartitionData.Err
+			continue
+		}
 		if result == nil && r != nil {
 			searchResponse = r.PartitionData.SearchResponse
 			if searchResponse != nil && searchResponse.Head != nil && searchResponse.Head.Err != nil {
@@ -1018,11 +1035,9 @@ func (r *routerRequest) QueryFieldSortExecute(sortOrder sortorder.SortOrder) *ve
 	}
 
 	if searchResponse == nil {
-		err := &vearchpb.Error{Code: vearchpb.ErrorEnum_ROUTER_CALL_PS_RPC_ERR, Msg: "query result is null"}
 		searchResponse = &vearchpb.SearchResponse{}
-		responseHead := &vearchpb.ResponseHead{Err: err}
+		responseHead := &vearchpb.ResponseHead{Err: final_err}
 		searchResponse.Head = responseHead
-		return searchResponse
 	}
 
 	if len(result) == 0 {
@@ -1193,12 +1208,18 @@ func GetNodeIdsByClientType(clientType string, partition *entity.Partition, serv
 		noLeaderIDs := make([]entity.NodeID, 0)
 		for _, nodeID := range partition.Replicas {
 			_, serverExist := servers.Get(cast.ToString(nodeID))
+			if !serverExist {
+				continue
+			}
+			if client.PS().TestFaulty(nodeID) {
+				continue
+			}
 			if config.Conf().Global.RaftConsistent {
-				if serverExist && partition.ReStatusMap[nodeID] == entity.ReplicasOK && nodeID != partition.LeaderID {
+				if partition.ReStatusMap[nodeID] == entity.ReplicasOK && nodeID != partition.LeaderID {
 					noLeaderIDs = append(noLeaderIDs, nodeID)
 				}
 			} else {
-				if serverExist && nodeID != partition.LeaderID {
+				if nodeID != partition.LeaderID {
 					noLeaderIDs = append(noLeaderIDs, nodeID)
 				}
 			}
@@ -1209,6 +1230,9 @@ func GetNodeIdsByClientType(clientType string, partition *entity.Partition, serv
 		for _, nodeID := range partition.Replicas {
 			_, serverExist := servers.Get(cast.ToString(nodeID))
 			if !serverExist {
+				continue
+			}
+			if client.PS().TestFaulty(nodeID) {
 				continue
 			}
 			if config.Conf().Global.RaftConsistent {
@@ -1228,6 +1252,9 @@ func GetNodeIdsByClientType(clientType string, partition *entity.Partition, serv
 		for _, nodeID := range partition.Replicas {
 			_, serverExist := servers.Get(cast.ToString(nodeID))
 			if !serverExist {
+				continue
+			}
+			if client.PS().TestFaulty(nodeID) {
 				continue
 			}
 			if config.Conf().Global.RaftConsistent {
@@ -1265,14 +1292,18 @@ func GetNodeIdsByClientType(clientType string, partition *entity.Partition, serv
 		randIDs := make([]entity.NodeID, 0)
 		for _, nodeID := range partition.Replicas {
 			_, serverExist := servers.Get(cast.ToString(nodeID))
+			if !serverExist {
+				continue
+			}
+			if client.PS().TestFaulty(nodeID) {
+				continue
+			}
 			if config.Conf().Global.RaftConsistent {
-				if serverExist && partition.ReStatusMap[nodeID] == entity.ReplicasOK {
+				if partition.ReStatusMap[nodeID] == entity.ReplicasOK {
 					randIDs = append(randIDs, nodeID)
 				}
 			} else {
-				if serverExist {
-					randIDs = append(randIDs, nodeID)
-				}
+				randIDs = append(randIDs, nodeID)
 			}
 		}
 		nodeId = replicaRoundRobin.Next(partition.Id, randIDs)

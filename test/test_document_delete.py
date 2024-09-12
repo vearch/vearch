@@ -149,10 +149,12 @@ class TestDocumentDeleteBadCase:
             [17, "wrong_document_id_of_partition"],
             [18, "wrong_document_id_of_partition_next"],
             [19, "wrong_document_id_with_invalid_character"],
+            [20, "wrong_timeout_param"],
+            [21, "timeout"],
         ],
     )
     def test_vearch_document_delete_badcase(self, index, wrong_type):
-        wrong_parameters = [False for i in range(20)]
+        wrong_parameters = [False for i in range(22)]
         wrong_parameters[index] = True
         query_error(1, 1, self.xb, "delete", wrong_parameters)
 

@@ -1,5 +1,5 @@
 # in this dir run pytest 
 
 ```
-pytest -x --log-cli-level=INFO
+pytest test_vearch.py -x --log-cli-level=INFO
 ```

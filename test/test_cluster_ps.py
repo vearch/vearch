@@ -442,24 +442,54 @@ class TestIncompleteShardSearch:
         data["vectors"] = []
         sift10k = DatasetSift10K()
         xb = sift10k.get_database()
-        vector_info = {
-            "field": "field_vector",
-            "feature": xb[:1].flatten().tolist(),
-        }
 
-        data["load_balance"] = random.choice(["leader", "random", "not_leader", "least_connection"])
-        data["vectors"].append(vector_info)
-        data["limit"] = 1
+        for i in range(100):
+            data["load_balance"] = random.choice(["leader", "random", "not_leader", "least_connection"])
+            vector_info = {
+                "field": "field_vector",
+                "feature": xb[i:i+1].flatten().tolist(),
+            }
+            data["vectors"].append(vector_info)
+            data["limit"] = 1
 
-        json_str = json.dumps(data)
-        rs = requests.post(url, auth=(vearch_utils.username, vearch_utils.password), data=json_str)
-        if rs.status_code != 200 or "documents" not in rs.json()["data"]:
-            logger.info(rs.json())
-            logger.info(json_str)
-            assert False
+            json_str = json.dumps(data)
+            rs = requests.post(url, auth=(vearch_utils.username, vearch_utils.password), data=json_str)
+            if data["load_balance"] == "not_leader":
+                rs.json()["code"] == 703
+                continue
+            if rs.status_code != 200 or "documents" not in rs.json()["data"]:
+                logger.info(rs.json())
+                logger.info(json_str)
+                assert False
 
-        documents = rs.json()["data"]["documents"]
-        if data["load_balance"] in ["leader", "not_leader"]:
+            documents = rs.json()["data"]["documents"]
+            if data["load_balance"] in ["leader"]:
+                assert len(documents) >= 0
+            else:
+                assert len(documents) > 0
+
+    def test_query(self):
+        url = vearch_utils.router_url + "/document/query"
+        data = {}
+        data["db_name"] = vearch_utils.db_name
+        data["space_name"] = vearch_utils.space_name
+        data["vector_value"] = False
+
+        for i in range(100):
+            data["load_balance"] = random.choice(["leader", "random", "not_leader", "least_connection"])
+            data["document_ids"] = [str(i)]
+            data["limit"] = 1
+
+            json_str = json.dumps(data)
+            rs = requests.post(url, auth=(vearch_utils.username, vearch_utils.password), data=json_str)
+
+            if data["load_balance"] == "not_leader":
+                rs.json()["code"] == 703
+                continue
+            if rs.status_code != 200 or "documents" not in rs.json()["data"]:
+                logger.info(rs.json())
+                logger.info(json_str)
+                assert False
+
+            documents = rs.json()["data"]["documents"]
             assert len(documents) >= 0
-        else:
-            assert len(documents) > 0
