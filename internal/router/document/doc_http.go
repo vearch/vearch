@@ -319,7 +319,7 @@ func setRequestHead(params netutil.UriParams, r *http.Request) (head *vearchpb.R
 	return
 }
 
-func setRequestHeadFromGin(c *gin.Context) *vearchpb.RequestHead {
+func setRequestHeadFromGin(c *gin.Context) (*vearchpb.RequestHead, error) {
 	head := &vearchpb.RequestHead{
 		DbName:    c.Param(URLParamDbName),
 		SpaceName: c.Param(URLParamSpaceName),
@@ -335,20 +335,25 @@ func setRequestHeadFromGin(c *gin.Context) *vearchpb.RequestHead {
 	if timeout, ok := head.Params["timeout"]; ok {
 		var err error
 		if head.TimeOutMs, err = strconv.ParseInt(timeout, 10, 64); err != nil {
-			log.Warnf("timeout[%s] param parse to int failed, err: %s", timeout, err.Error())
+			msg := fmt.Sprintf("timeout[%s] param parse to int failed, err: %s", timeout, err.Error())
+			log.Error(msg)
+			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf(msg))
 		}
 	}
 
-	return head
+	return head, nil
 }
 
 // handleConfigTrace config trace switch
 func (handler *DocumentHandler) handleConfigTrace(c *gin.Context) {
 	startTime := time.Now()
 	defer monitor.Profiler("handleConfigTrace", startTime)
-	args := &vearchpb.GetRequest{}
-	args.Head = setRequestHeadFromGin(c)
-
+	var err error
+	_, err = setRequestHeadFromGin(c)
+	if err != nil {
+		response.New(c).JsonError(errors.NewErrInternal(err))
+		return
+	}
 	trace, err := configTraceParse(c.Request)
 	if err != nil {
 		response.New(c).JsonError(errors.NewErrInternal(err))
@@ -372,10 +377,14 @@ func (handler *DocumentHandler) handleDocumentUpsert(c *gin.Context) {
 	defer span.Finish()
 
 	args := &vearchpb.BulkRequest{}
-	args.Head = setRequestHeadFromGin(c)
-
+	var err error
+	args.Head, err = setRequestHeadFromGin(c)
+	if err != nil {
+		response.New(c).JsonError(errors.NewErrInternal(err))
+		return
+	}
 	docRequest := &request.DocumentRequest{}
-	err := c.ShouldBindJSON(docRequest)
+	err = c.ShouldBindJSON(docRequest)
 	if err != nil {
 		response.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
@@ -413,8 +422,12 @@ func (handler *DocumentHandler) handleDocumentQuery(c *gin.Context) {
 	defer span.Finish()
 
 	args := &vearchpb.QueryRequest{}
-	args.Head = setRequestHeadFromGin(c)
-
+	var err error
+	args.Head, err = setRequestHeadFromGin(c)
+	if err != nil {
+		response.New(c).JsonError(errors.NewErrInternal(err))
+		return
+	}
 	trace := config.Trace
 	if trace_info, ok := args.Head.Params["trace"]; ok {
 		if trace_info == "true" {
@@ -423,7 +436,7 @@ func (handler *DocumentHandler) handleDocumentQuery(c *gin.Context) {
 	}
 
 	searchDoc := &request.SearchDocumentRequest{}
-	err := c.ShouldBindJSON(searchDoc)
+	err = c.ShouldBindJSON(searchDoc)
 	if err != nil {
 		response.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
@@ -485,7 +498,12 @@ func (handler *DocumentHandler) handleDocumentQuery(c *gin.Context) {
 
 func (handler *DocumentHandler) handleDocumentGet(c *gin.Context, searchDoc *request.SearchDocumentRequest, space *entity.Space) {
 	args := &vearchpb.GetRequest{}
-	args.Head = setRequestHeadFromGin(c)
+	var err error
+	args.Head, err = setRequestHeadFromGin(c)
+	if err != nil {
+		response.New(c).JsonError(errors.NewErrInternal(err))
+		return
+	}
 	args.Head.DbName = searchDoc.DbName
 	args.Head.SpaceName = searchDoc.SpaceName
 	args.PrimaryKeys = *searchDoc.DocumentIds
@@ -532,10 +550,14 @@ func (handler *DocumentHandler) handleDocumentSearch(c *gin.Context) {
 	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), operateName)
 	defer span.Finish()
 	args := &vearchpb.SearchRequest{}
-	args.Head = setRequestHeadFromGin(c)
-
+	var err error
+	args.Head, err = setRequestHeadFromGin(c)
+	if err != nil {
+		response.New(c).JsonError(errors.NewErrInternal(err))
+		return
+	}
 	searchDoc := &request.SearchDocumentRequest{}
-	err := c.ShouldBindJSON(searchDoc)
+	err = c.ShouldBindJSON(searchDoc)
 	if err != nil {
 		response.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
@@ -593,7 +615,12 @@ func (handler *DocumentHandler) handleDocumentDelete(c *gin.Context) {
 	startTime := time.Now()
 	defer monitor.Profiler("handleDocumentDelete", startTime)
 	args := &vearchpb.QueryRequest{}
-	args.Head = setRequestHeadFromGin(c)
+	var err error
+	args.Head, err = setRequestHeadFromGin(c)
+	if err != nil {
+		response.New(c).JsonError(errors.NewErrInternal(err))
+		return
+	}
 	args.Head.Params["queryOnlyId"] = "true"
 
 	trace := config.Trace
@@ -604,7 +631,7 @@ func (handler *DocumentHandler) handleDocumentDelete(c *gin.Context) {
 	}
 
 	searchDoc := &request.SearchDocumentRequest{}
-	err := c.ShouldBindJSON(searchDoc)
+	err = c.ShouldBindJSON(searchDoc)
 	if err != nil {
 		response.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
@@ -667,10 +694,14 @@ func (handler *DocumentHandler) handleIndexFlush(c *gin.Context) {
 	defer monitor.Profiler("handleIndexFlush", startTime)
 
 	args := &vearchpb.FlushRequest{}
-	args.Head = setRequestHeadFromGin(c)
-
+	var err error
+	args.Head, err = setRequestHeadFromGin(c)
+	if err != nil {
+		response.New(c).JsonError(errors.NewErrInternal(err))
+		return
+	}
 	indexRequest := &request.IndexRequest{}
-	err := c.ShouldBindJSON(indexRequest)
+	err = c.ShouldBindJSON(indexRequest)
 	if err != nil {
 		response.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
@@ -694,10 +725,14 @@ func (handler *DocumentHandler) handleIndexForceMerge(c *gin.Context) {
 	startTime := time.Now()
 	defer monitor.Profiler("handleIndexForceMerge", startTime)
 	args := &vearchpb.ForceMergeRequest{}
-	args.Head = setRequestHeadFromGin(c)
-
+	var err error
+	args.Head, err = setRequestHeadFromGin(c)
+	if err != nil {
+		response.New(c).JsonError(errors.NewErrInternal(err))
+		return
+	}
 	indexRequest := &request.IndexRequest{}
-	err := c.ShouldBindJSON(indexRequest)
+	err = c.ShouldBindJSON(indexRequest)
 	if err != nil {
 		response.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
@@ -723,10 +758,14 @@ func (handler *DocumentHandler) handleIndexRebuild(c *gin.Context) {
 	startTime := time.Now()
 	defer monitor.Profiler("handleIndexRebuild", startTime)
 	args := &vearchpb.IndexRequest{}
-	args.Head = setRequestHeadFromGin(c)
-
+	var err error
+	args.Head, err = setRequestHeadFromGin(c)
+	if err != nil {
+		response.New(c).JsonError(errors.NewErrInternal(err))
+		return
+	}
 	indexRequest := &request.IndexRequest{}
-	err := c.ShouldBindJSON(indexRequest)
+	err = c.ShouldBindJSON(indexRequest)
 	if err != nil {
 		response.New(c).JsonError(errors.NewErrBadRequest(err))
 		return

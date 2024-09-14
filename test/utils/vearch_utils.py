@@ -696,6 +696,8 @@ def process_query_error_data(items):
         wrong_document_id_of_partition,
         wrong_document_id_of_partition_next,
         wrong_document_id_with_invalid_character,
+        wrong_timeout_param,
+        timeout
     ) = items[5]
 
     max_document_ids_length = 501
@@ -790,6 +792,14 @@ def process_query_error_data(items):
         partition_ids = get_partition(router_url, db_name, space_name)
         partition_id = partition_ids[0]
         data["partition_id"] = partition_id
+
+    if wrong_timeout_param:
+        url = url + "?timeout=10.5"
+        data["document_ids"] = ["0"]
+
+    if timeout and interface == "query":
+        url = url + "?timeout=1"
+        data["document_ids"] = [str(i) for i in range(100)]
 
     json_str = json.dumps(data)
 

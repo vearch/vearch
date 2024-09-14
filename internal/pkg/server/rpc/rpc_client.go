@@ -111,11 +111,10 @@ func (r *RpcClient) Execute(ctx context.Context, servicePath string, args interf
 			md = make(map[string]string)
 		}
 		if endTime, ok := ctx.Value(entity.RPC_TIME_OUT).(time.Time); ok {
-			timeout := int64(time.Until(endTime) / time.Millisecond)
+			timeout := int64((time.Until(endTime) + time.Millisecond - 1) / time.Millisecond)
 			if timeout < 1 {
-				messageID := ctx.Value(entity.MessageID).(string)
-				msg := fmt.Sprintf("messageID[%s]: timeout when execute rpc, the max num of concurrency is [%d]", messageID, r.concurrentNum)
-				err = vearchpb.NewError(vearchpb.ErrorEnum_TIMEOUT, errors.New("timeout"))
+				msg := fmt.Sprintf("timeout[%d] is too small", timeout)
+				err = vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, errors.New(msg))
 				log.Errorf(msg)
 				return
 			}
@@ -128,7 +127,12 @@ func (r *RpcClient) Execute(ctx context.Context, servicePath string, args interf
 		cli := r.clientPool.Get().(*client.OneClient)
 		defer r.clientPool.Put(cli)
 		if err = cli.Call(ctx, servicePath, serviceMethod, args, reply); err != nil {
-			err = vearchpb.NewError(vearchpb.ErrorEnum_CALL_RPCCLIENT_FAILED, err)
+			log.Error("call %s err: %v", servicePath+serviceMethod, err.Error())
+			if errors.Is(err, context.DeadlineExceeded) {
+				err = vearchpb.NewError(vearchpb.ErrorEnum_TIMEOUT, nil)
+			} else {
+				err = vearchpb.NewError(vearchpb.ErrorEnum_CALL_RPCCLIENT_FAILED, err)
+			}
 		}
 		return
 	}

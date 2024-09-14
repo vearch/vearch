@@ -238,6 +238,8 @@ def process_search_error_data(items):
         empty_vector,
         wrong_range_filter_name,
         wrong_term_filter_name,
+        wrong_timeout_param,
+        timeout
     ] = items[4]
 
     if wrong_db:
@@ -327,6 +329,18 @@ def process_search_error_data(items):
     if empty_vector:
         data["vectors"] = []
 
+    if wrong_timeout_param:
+        url = url + "?timeout=10.5"
+
+    if timeout:
+        url = url + "?timeout=1"
+        data["vectors"] = []
+        vector_info = {
+            "field": "field_vector",
+            "feature": features[:batch_size].flatten().tolist(),
+        }
+        data["vectors"].append(vector_info)
+
     json_str = json.dumps(data)
     logger.info(json_str)
 
@@ -335,10 +349,14 @@ def process_search_error_data(items):
     )
     logger.info(rs.json())
 
-    if "data" in rs.json():
-        pass  # TODO
+    if "code" in rs.json():
+        assert rs.json()["code"] != 0
     else:
         assert rs.status_code != 200
+
+    if timeout:
+        # waiting for faulty node expired
+        time.sleep(60)
 
 
 def search_error(total, batch_size, xb, wrong_parameters: dict):
@@ -377,10 +395,12 @@ class TestDocumentSearchBadCase:
             [9, "empty_vector"],
             [10, "wrong_range_filter_name"],
             [11, "wrong_term_filter_name"],
+            [12, "wrong_timeout_param"],
+            [13, "timeout"],
         ],
     )
     def test_vearch_document_search_badcase(self, index, wrong_type):
-        wrong_parameters = [False for i in range(12)]
+        wrong_parameters = [False for i in range(14)]
         wrong_parameters[index] = True
         search_error(1, 1, self.xb, wrong_parameters)
 

@@ -141,7 +141,7 @@ func (handler *UnaryHandler) Execute(ctx context.Context, req *vearchpb.Partitio
 		reply.PartitionID = req.PartitionID
 		reply.MessageID = req.MessageID
 		reply.Items = req.Items
-		msg := fmt.Sprintf("This request processing timed out[%dms]", timeout)
+		msg := fmt.Sprintf("request time out[%dms]", timeout)
 		reply.Err = vearchpb.NewError(vearchpb.ErrorEnum_TIMEOUT, errors.New(msg)).GetError()
 		log.Error(msg)
 		return
@@ -168,8 +168,9 @@ func (handler *UnaryHandler) execute(ctx context.Context, req *vearchpb.Partitio
 	select {
 	case <-ctx.Done():
 		// if this context is timeout, return immediately
-		msg := fmt.Sprintf("This request waitting timed out, the server can only deal [%d] request at same time.", handler.server.concurrentNum)
+		msg := fmt.Sprintf("request for partition: %d time out, the server can only deal [%d] request at same time.", req.PartitionID, handler.server.concurrentNum)
 		log.Error(msg)
+		req.Err = vearchpb.NewError(vearchpb.ErrorEnum_TIMEOUT, nil).GetError()
 		return
 	default:
 		if handler.server == nil {
