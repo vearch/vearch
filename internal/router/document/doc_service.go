@@ -182,18 +182,18 @@ func (docService *docService) query(ctx context.Context, args *vearchpb.QueryReq
 	return searchResponse
 }
 
-func (docService *docService) search(ctx context.Context, args *vearchpb.SearchRequest) *vearchpb.SearchResponse {
-	ctx, cancel := setTimeOut(ctx, args.Head)
+func (docService *docService) search(ctx context.Context, searchReq *vearchpb.SearchRequest) *vearchpb.SearchResponse {
+	ctx, cancel := setTimeOut(ctx, searchReq.Head)
 	defer cancel()
 	request := client.NewRouterRequest(ctx, docService.client)
-	request.SetMsgID().SetMethod(client.SearchHandler).SetHead(args.Head).SetSpace().SearchByPartitions(args)
+	request.SetMsgID().SetMethod(client.SearchHandler).SetHead(searchReq.Head).SetSpace().SearchByPartitions(searchReq)
 	if request.Err != nil {
 		return &vearchpb.SearchResponse{Head: setErrHead(request.Err)}
 	}
 
 	sortOrder := make([]sortorder.Sort, 0)
-	if args.SortFields != nil && len(args.SortFields) > 0 {
-		for _, sortF := range args.SortFields {
+	if searchReq.SortFields != nil && len(searchReq.SortFields) > 0 {
+		for _, sortF := range searchReq.SortFields {
 			sortOrder = append(sortOrder, &sortorder.SortField{Field: sortF.Field, Desc: sortF.Type})
 		}
 	}

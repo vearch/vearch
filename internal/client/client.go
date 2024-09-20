@@ -781,47 +781,27 @@ func (r *routerRequest) SearchFieldSortExecute(sortOrder sortorder.SortOrder) *v
 			}
 		}
 
-		sortValue := r.SortValueMap
-		for PKey, sortValue := range sortValue {
-			sortValueMap[PKey] = sortValue
+		for pKey, sortValue := range r.SortValueMap {
+			sortValueMap[pKey] = sortValue
 		}
-		var err error
-		if err = AddMergeResultArr(result, r.PartitionData.SearchResponse.Results); err != nil {
-			log.Error("msearch AddMergeResultArr error:", err)
-		}
-	}
 
-	if len(result) > 1 {
-		var wg sync.WaitGroup
-		respChain := make(chan map[string]*vearchpb.SearchResult, len(result))
-		for i, resp := range result {
-			wg.Add(1)
-			index := strconv.Itoa(i)
-			high := len(resp.ResultItems) - 1
-			go func(result *vearchpb.SearchResult, sortValueMap map[string][]sortorder.SortValue, low, high int, so sortorder.SortOrder, index string) {
-				quickSort(result.ResultItems, sortValueMap, low, high, so, index)
-				sortMap := make(map[string]*vearchpb.SearchResult)
-				sortMap[index] = result
-				respChain <- sortMap
-				wg.Done()
-			}(resp, sortValueMap, 0, high, sortOrder, index)
+		if len(result) != len(r.PartitionData.SearchResponse.Results) {
+			log.Error("dest length:[%d] not equal src length:[%d]", len(result), len(r.PartitionData.SearchResponse.Results))
 		}
-		wg.Wait()
-		close(respChain)
-		for resp := range respChain {
-			for indexStr, resu := range resp {
-				index, _ := strconv.Atoi(indexStr)
-				result[index] = resu
+
+		if len(result) <= len(r.PartitionData.SearchResponse.Results) {
+			for i := range result {
+				AddMergeSort(result[i], r.PartitionData.SearchResponse.Results[i], sortOrder[0].GetSortOrder())
+			}
+		} else {
+			for i := range r.PartitionData.SearchResponse.Results {
+				AddMergeSort(result[i], r.PartitionData.SearchResponse.Results[0], sortOrder[0].GetSortOrder())
 			}
 		}
-	} else {
-		for i, resp := range result {
-			index := strconv.Itoa(i)
-			quickSort(resp.ResultItems, sortValueMap, 0, len(resp.ResultItems)-1, sortOrder, index)
-		}
 	}
 
-	for _, resp := range result {
+	for i, resp := range result {
+		quickSort(resp.ResultItems, sortValueMap, 0, len(resp.ResultItems)-1, sortOrder, strconv.Itoa(i))
 		if resp.ResultItems != nil && len(resp.ResultItems) > 0 && searchReq.TopN > 0 {
 			len := len(resp.ResultItems)
 			if int32(len) > searchReq.TopN {
@@ -1471,6 +1451,72 @@ func AddMerge(sr *vearchpb.SearchResult, other *vearchpb.SearchResult) {
 
 	if len(sr.ResultItems) > 0 || len(other.ResultItems) > 0 {
 		sr.ResultItems = append(sr.ResultItems, other.ResultItems...)
+	}
+}
+
+func mergeSortedArrays(arr1, arr2 []*vearchpb.ResultItem, topN int, desc bool) []*vearchpb.ResultItem {
+	m, n := len(arr1), len(arr2)
+	merged := make([]*vearchpb.ResultItem, 0, m+n)
+
+	i, j := 0, 0
+	if desc {
+		for i < m && j < n {
+			if arr1[i].Score > arr2[j].Score {
+				merged = append(merged, arr1[i])
+				i++
+			} else {
+				merged = append(merged, arr2[j])
+				j++
+			}
+		}
+	} else {
+		for i < m && j < n {
+			if arr1[i].Score < arr2[j].Score {
+				merged = append(merged, arr1[i])
+				i++
+			} else {
+				merged = append(merged, arr2[j])
+				j++
+			}
+		}
+	}
+
+	// Append remaining elements from arr1
+	for i < m {
+		merged = append(merged, arr1[i])
+		i++
+	}
+
+	// Append remaining elements from arr2
+	for j < n {
+		merged = append(merged, arr2[j])
+		j++
+	}
+
+	if len(merged) > topN {
+		return merged[:topN]
+	}
+
+	return merged
+}
+
+func AddMergeSort(sr *vearchpb.SearchResult, other *vearchpb.SearchResult, desc bool) {
+	Merge(sr.Status, other.Status)
+
+	sr.TotalHits += other.TotalHits
+	if other.MaxScore > sr.MaxScore {
+		sr.MaxScore = other.MaxScore
+	}
+
+	if other.MaxTook > sr.MaxTook {
+		sr.MaxTook = other.MaxTook
+		sr.MaxTookId = other.MaxTookId
+	}
+
+	sr.Timeout = sr.Timeout && other.Timeout
+
+	if len(sr.ResultItems) > 0 || len(other.ResultItems) > 0 {
+		sr.ResultItems = mergeSortedArrays(sr.ResultItems, other.ResultItems, len(sr.ResultItems), desc)
 	}
 }
 

@@ -128,7 +128,7 @@ func GetAllPartitions(datas []string) []entity.PartitionID {
 
 	retVal := make([]entity.PartitionID, 0, len(ids))
 	for id := range ids {
-		if v, err := strconv.ParseUint(id, 10, 64); err == nil {
+		if v, err := strconv.ParseUint(id, 10, 32); err == nil {
 			retVal = append(retVal, uint32(v))
 		}
 	}

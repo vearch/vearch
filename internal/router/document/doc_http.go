@@ -549,9 +549,9 @@ func (handler *DocumentHandler) handleDocumentSearch(c *gin.Context) {
 	defer monitor.Profiler(operateName, startTime)
 	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), operateName)
 	defer span.Finish()
-	args := &vearchpb.SearchRequest{}
+	searchReq := &vearchpb.SearchRequest{}
 	var err error
-	args.Head, err = setRequestHeadFromGin(c)
+	searchReq.Head, err = setRequestHeadFromGin(c)
 	if err != nil {
 		response.New(c).JsonError(errors.NewErrInternal(err))
 		return
@@ -562,40 +562,40 @@ func (handler *DocumentHandler) handleDocumentSearch(c *gin.Context) {
 		response.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
 	}
-	args.Head.DbName = searchDoc.DbName
-	args.Head.SpaceName = searchDoc.SpaceName
+	searchReq.Head.DbName = searchDoc.DbName
+	searchReq.Head.SpaceName = searchDoc.SpaceName
 
 	trace := config.Trace
-	if trace_info, ok := args.Head.Params["trace"]; ok {
+	if trace_info, ok := searchReq.Head.Params["trace"]; ok {
 		if trace_info == "true" {
 			trace = true
 		}
 	}
 
 	getSpaceStart := time.Now()
-	space, err := handler.docService.getSpace(c.Request.Context(), args.Head)
+	space, err := handler.docService.getSpace(c.Request.Context(), searchReq.Head)
 	if err != nil {
 		response.New(c).JsonError(errors.NewErrInternal(err))
 		return
 	}
 	// update space name because maybe is alias name
-	searchDoc.SpaceName = args.Head.SpaceName
+	searchDoc.SpaceName = searchReq.Head.SpaceName
 	getSpaceCost := time.Since(getSpaceStart)
 
-	err = requestToPb(searchDoc, space, args)
+	err = requestToPb(searchDoc, space, searchReq)
 	if err != nil {
 		response.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
 	}
 
-	if args.VecFields == nil {
+	if searchReq.VecFields == nil {
 		err := vearchpb.NewError(vearchpb.ErrorEnum_SEARCH_INVALID_PARAMS_SHOULD_HAVE_VECTOR_FIELD, nil)
 		response.New(c).JsonError(errors.NewErrInternal(err))
 		return
 	}
 
 	serviceStart := time.Now()
-	searchResp := handler.docService.search(ctx, args)
+	searchResp := handler.docService.search(ctx, searchReq)
 	serviceCost := time.Since(serviceStart)
 
 	result, err := documentSearchResponse(searchResp.Results, searchResp.Head, space)

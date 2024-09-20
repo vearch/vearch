@@ -661,10 +661,9 @@ func queryRequestToPb(searchDoc *request.SearchDocumentRequest, space *entity.Sp
 				spaceProKeyMap, _ = entity.UnmarshalPropertyJSON(space.Fields)
 			}
 			for fieldName, property := range spaceProKeyMap {
-				if property.Type != "" && strings.Compare(property.Type, "vector") != 0 {
+				if property.Type != "vector" {
 					queryReq.Fields = append(queryReq.Fields, fieldName)
-				}
-				if property.Type != "" && strings.Compare(property.Type, "vector") == 0 {
+				} else {
 					vectorFieldArr = append(vectorFieldArr, fieldName)
 				}
 			}
@@ -696,8 +695,8 @@ func queryRequestToPb(searchDoc *request.SearchDocumentRequest, space *entity.Sp
 	}
 
 	queryFieldMap := make(map[string]string)
-	for _, feild := range queryReq.Fields {
-		queryFieldMap[feild] = feild
+	for _, field := range queryReq.Fields {
+		queryFieldMap[field] = field
 	}
 
 	sortOrder, err := searchDoc.SortOrder()
@@ -774,7 +773,6 @@ func requestToPb(searchDoc *request.SearchDocumentRequest, space *entity.Space, 
 	searchReq.Fields = searchDoc.Fields
 	searchReq.IsBruteSearch = searchDoc.IsBruteSearch
 
-	metricType := ""
 	if searchDoc.IndexParams != nil {
 		searchReq.IndexParams = string(searchDoc.IndexParams)
 	}
@@ -799,10 +797,9 @@ func requestToPb(searchDoc *request.SearchDocumentRequest, space *entity.Space, 
 				spaceProKeyMap, _ = entity.UnmarshalPropertyJSON(space.Fields)
 			}
 			for fieldName, property := range spaceProKeyMap {
-				if property.Type != "" && strings.Compare(property.Type, "vector") != 0 {
+				if property.Type != "vector" {
 					searchReq.Fields = append(searchReq.Fields, fieldName)
-				}
-				if property.Type != "" && strings.Compare(property.Type, "vector") == 0 {
+				} else {
 					vectorFieldArr = append(vectorFieldArr, fieldName)
 				}
 			}
@@ -843,8 +840,18 @@ func requestToPb(searchDoc *request.SearchDocumentRequest, space *entity.Space, 
 		return err
 	}
 
+	metricType := ""
+	indexParams := &entity.IndexParams{}
+
+	if searchReq.IndexParams != "" {
+		err := vjson.Unmarshal([]byte(searchReq.IndexParams), indexParams)
+		if err != nil {
+			return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("unmarshal err:[%s] , searchReq.IndexParams:[%s]", err.Error(), string(searchReq.IndexParams)))
+		}
+		metricType = indexParams.MetricType
+	}
+
 	if metricType == "" && space != nil && space.Index != nil {
-		indexParams := &entity.IndexParams{}
 		err := vjson.Unmarshal(space.Index.Params, indexParams)
 		if err != nil {
 			return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("unmarshal err:[%s] , space.Index.IndexParams:[%s]", err.Error(), string(space.Index.Params)))
@@ -852,7 +859,7 @@ func requestToPb(searchDoc *request.SearchDocumentRequest, space *entity.Space, 
 		metricType = indexParams.MetricType
 	}
 
-	if metricType != "" && metricType == "L2" {
+	if metricType == "L2" {
 		sortOrder = sortorder.SortOrder{&sortorder.SortScore{Desc: false}}
 	}
 	spaceProMap := space.SpaceProperties
