@@ -45,12 +45,15 @@ struct TableStruct_errors_2eproto {
   static const uint32_t offsets[];
 };
 extern const ::PROTOBUF_NAMESPACE_ID::internal::DescriptorTable descriptor_table_errors_2eproto;
+namespace vearchpb {
 class Error;
 struct ErrorDefaultTypeInternal;
 extern ErrorDefaultTypeInternal _Error_default_instance_;
+}  // namespace vearchpb
 PROTOBUF_NAMESPACE_OPEN
-template<> ::Error* Arena::CreateMaybeMessage<::Error>(Arena*);
+template<> ::vearchpb::Error* Arena::CreateMaybeMessage<::vearchpb::Error>(Arena*);
 PROTOBUF_NAMESPACE_CLOSE
+namespace vearchpb {
 
 enum ErrorEnum : int {
   SUCCESS = 0,
@@ -136,7 +139,7 @@ inline bool ErrorEnum_Parse(
 // ===================================================================
 
 class Error final :
-    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:Error) */ {
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:vearchpb.Error) */ {
  public:
   inline Error() : Error(nullptr) {}
   ~Error() override;
@@ -239,7 +242,7 @@ class Error final :
   private:
   friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
   static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "Error";
+    return "vearchpb.Error";
   }
   protected:
   explicit Error(::PROTOBUF_NAMESPACE_ID::Arena* arena,
@@ -273,16 +276,16 @@ class Error final :
   std::string* _internal_mutable_msg();
   public:
 
-  // .ErrorEnum code = 1;
+  // .vearchpb.ErrorEnum code = 1;
   void clear_code();
-  ::ErrorEnum code() const;
-  void set_code(::ErrorEnum value);
+  ::vearchpb::ErrorEnum code() const;
+  void set_code(::vearchpb::ErrorEnum value);
   private:
-  ::ErrorEnum _internal_code() const;
-  void _internal_set_code(::ErrorEnum value);
+  ::vearchpb::ErrorEnum _internal_code() const;
+  void _internal_set_code(::vearchpb::ErrorEnum value);
   public:
 
-  // @@protoc_insertion_point(class_scope:Error)
+  // @@protoc_insertion_point(class_scope:vearchpb.Error)
  private:
   class _Internal;
 
@@ -308,24 +311,24 @@ class Error final :
 #endif  // __GNUC__
 // Error
 
-// .ErrorEnum code = 1;
+// .vearchpb.ErrorEnum code = 1;
 inline void Error::clear_code() {
   _impl_.code_ = 0;
 }
-inline ::ErrorEnum Error::_internal_code() const {
-  return static_cast< ::ErrorEnum >(_impl_.code_);
+inline ::vearchpb::ErrorEnum Error::_internal_code() const {
+  return static_cast< ::vearchpb::ErrorEnum >(_impl_.code_);
 }
-inline ::ErrorEnum Error::code() const {
-  // @@protoc_insertion_point(field_get:Error.code)
+inline ::vearchpb::ErrorEnum Error::code() const {
+  // @@protoc_insertion_point(field_get:vearchpb.Error.code)
   return _internal_code();
 }
-inline void Error::_internal_set_code(::ErrorEnum value) {
+inline void Error::_internal_set_code(::vearchpb::ErrorEnum value) {
   
   _impl_.code_ = value;
 }
-inline void Error::set_code(::ErrorEnum value) {
+inline void Error::set_code(::vearchpb::ErrorEnum value) {
   _internal_set_code(value);
-  // @@protoc_insertion_point(field_set:Error.code)
+  // @@protoc_insertion_point(field_set:vearchpb.Error.code)
 }
 
 // string msg = 2;
@@ -333,7 +336,7 @@ inline void Error::clear_msg() {
   _impl_.msg_.ClearToEmpty();
 }
 inline const std::string& Error::msg() const {
-  // @@protoc_insertion_point(field_get:Error.msg)
+  // @@protoc_insertion_point(field_get:vearchpb.Error.msg)
   return _internal_msg();
 }
 template <typename ArgT0, typename... ArgT>
@@ -341,11 +344,11 @@ inline PROTOBUF_ALWAYS_INLINE
 void Error::set_msg(ArgT0&& arg0, ArgT... args) {
  
  _impl_.msg_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
-  // @@protoc_insertion_point(field_set:Error.msg)
+  // @@protoc_insertion_point(field_set:vearchpb.Error.msg)
 }
 inline std::string* Error::mutable_msg() {
   std::string* _s = _internal_mutable_msg();
-  // @@protoc_insertion_point(field_mutable:Error.msg)
+  // @@protoc_insertion_point(field_mutable:vearchpb.Error.msg)
   return _s;
 }
 inline const std::string& Error::_internal_msg() const {
@@ -360,7 +363,7 @@ inline std::string* Error::_internal_mutable_msg() {
   return _impl_.msg_.Mutable(GetArenaForAllocation());
 }
 inline std::string* Error::release_msg() {
-  // @@protoc_insertion_point(field_release:Error.msg)
+  // @@protoc_insertion_point(field_release:vearchpb.Error.msg)
   return _impl_.msg_.Release();
 }
 inline void Error::set_allocated_msg(std::string* msg) {
@@ -375,7 +378,7 @@ inline void Error::set_allocated_msg(std::string* msg) {
     _impl_.msg_.Set("", GetArenaForAllocation());
   }
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  // @@protoc_insertion_point(field_set_allocated:Error.msg)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.Error.msg)
 }
 
 #ifdef __GNUC__
@@ -384,13 +387,14 @@ inline void Error::set_allocated_msg(std::string* msg) {
 
 // @@protoc_insertion_point(namespace_scope)
 
+}  // namespace vearchpb
 
 PROTOBUF_NAMESPACE_OPEN
 
-template <> struct is_proto_enum< ::ErrorEnum> : ::std::true_type {};
+template <> struct is_proto_enum< ::vearchpb::ErrorEnum> : ::std::true_type {};
 template <>
-inline const EnumDescriptor* GetEnumDescriptor< ::ErrorEnum>() {
-  return ::ErrorEnum_descriptor();
+inline const EnumDescriptor* GetEnumDescriptor< ::vearchpb::ErrorEnum>() {
+  return ::vearchpb::ErrorEnum_descriptor();
 }
 
 PROTOBUF_NAMESPACE_CLOSE

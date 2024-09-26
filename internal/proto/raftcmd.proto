@@ -6,6 +6,7 @@ import "router_grpc.proto";
 
 option go_package = "./vearchpb";
 option optimize_for = SPEED;
+package vearchpb;
 
 enum OpType {
   CREATE = 0;

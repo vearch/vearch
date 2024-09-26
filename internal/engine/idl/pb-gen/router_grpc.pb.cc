@@ -20,6 +20,7 @@ PROTOBUF_PRAGMA_INIT_SEG
 namespace _pb = ::PROTOBUF_NAMESPACE_ID;
 namespace _pbi = _pb::internal;
 
+namespace vearchpb {
 PROTOBUF_CONSTEXPR RequestHead_ParamsEntry_DoNotUse::RequestHead_ParamsEntry_DoNotUse(
     ::_pbi::ConstantInitialized) {}
 struct RequestHead_ParamsEntry_DoNotUseDefaultTypeInternal {
@@ -487,474 +488,487 @@ struct SearchStatusDefaultTypeInternal {
   };
 };
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SearchStatusDefaultTypeInternal _SearchStatus_default_instance_;
+}  // namespace vearchpb
 static ::_pb::Metadata file_level_metadata_router_5fgrpc_2eproto[30];
 static const ::_pb::EnumDescriptor* file_level_enum_descriptors_router_5fgrpc_2eproto[1];
 static constexpr ::_pb::ServiceDescriptor const** file_level_service_descriptors_router_5fgrpc_2eproto = nullptr;
 
 const uint32_t TableStruct_router_5fgrpc_2eproto::offsets[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) = {
-  PROTOBUF_FIELD_OFFSET(::RequestHead_ParamsEntry_DoNotUse, _has_bits_),
-  PROTOBUF_FIELD_OFFSET(::RequestHead_ParamsEntry_DoNotUse, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::RequestHead_ParamsEntry_DoNotUse, _has_bits_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::RequestHead_ParamsEntry_DoNotUse, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::RequestHead_ParamsEntry_DoNotUse, key_),
-  PROTOBUF_FIELD_OFFSET(::RequestHead_ParamsEntry_DoNotUse, value_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::RequestHead_ParamsEntry_DoNotUse, key_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::RequestHead_ParamsEntry_DoNotUse, value_),
   0,
   1,
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::RequestHead, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::RequestHead, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::RequestHead, _impl_.time_out_ms_),
-  PROTOBUF_FIELD_OFFSET(::RequestHead, _impl_.user_name_),
-  PROTOBUF_FIELD_OFFSET(::RequestHead, _impl_.password_),
-  PROTOBUF_FIELD_OFFSET(::RequestHead, _impl_.db_name_),
-  PROTOBUF_FIELD_OFFSET(::RequestHead, _impl_.space_name_),
-  PROTOBUF_FIELD_OFFSET(::RequestHead, _impl_.client_type_),
-  PROTOBUF_FIELD_OFFSET(::RequestHead, _impl_.params_),
-  PROTOBUF_FIELD_OFFSET(::ResponseHead_ParamsEntry_DoNotUse, _has_bits_),
-  PROTOBUF_FIELD_OFFSET(::ResponseHead_ParamsEntry_DoNotUse, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::RequestHead, _impl_.time_out_ms_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::RequestHead, _impl_.user_name_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::RequestHead, _impl_.password_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::RequestHead, _impl_.db_name_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::RequestHead, _impl_.space_name_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::RequestHead, _impl_.client_type_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::RequestHead, _impl_.params_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::ResponseHead_ParamsEntry_DoNotUse, _has_bits_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::ResponseHead_ParamsEntry_DoNotUse, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::ResponseHead_ParamsEntry_DoNotUse, key_),
-  PROTOBUF_FIELD_OFFSET(::ResponseHead_ParamsEntry_DoNotUse, value_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::ResponseHead_ParamsEntry_DoNotUse, key_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::ResponseHead_ParamsEntry_DoNotUse, value_),
   0,
   1,
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::ResponseHead, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::ResponseHead, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::ResponseHead, _impl_.err_),
-  PROTOBUF_FIELD_OFFSET(::ResponseHead, _impl_.params_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::ResponseHead, _impl_.err_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::ResponseHead, _impl_.params_),
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::GetRequest, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::GetRequest, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::GetRequest, _impl_.head_),
-  PROTOBUF_FIELD_OFFSET(::GetRequest, _impl_.primary_keys_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::GetRequest, _impl_.head_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::GetRequest, _impl_.primary_keys_),
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::DeleteRequest, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::DeleteRequest, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::DeleteRequest, _impl_.head_),
-  PROTOBUF_FIELD_OFFSET(::DeleteRequest, _impl_.primary_keys_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::DeleteRequest, _impl_.head_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::DeleteRequest, _impl_.primary_keys_),
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::BulkRequest, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::BulkRequest, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::BulkRequest, _impl_.head_),
-  PROTOBUF_FIELD_OFFSET(::BulkRequest, _impl_.docs_),
-  PROTOBUF_FIELD_OFFSET(::BulkRequest, _impl_.partitions_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::BulkRequest, _impl_.head_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::BulkRequest, _impl_.docs_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::BulkRequest, _impl_.partitions_),
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::ForceMergeRequest, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::ForceMergeRequest, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::ForceMergeRequest, _impl_.head_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::ForceMergeRequest, _impl_.head_),
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::FlushRequest, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::FlushRequest, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::FlushRequest, _impl_.head_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::FlushRequest, _impl_.head_),
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::IndexRequest, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::IndexRequest, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::IndexRequest, _impl_.head_),
-  PROTOBUF_FIELD_OFFSET(::IndexRequest, _impl_.drop_before_rebuild_),
-  PROTOBUF_FIELD_OFFSET(::IndexRequest, _impl_.limit_cpu_),
-  PROTOBUF_FIELD_OFFSET(::IndexRequest, _impl_.describe_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::IndexRequest, _impl_.head_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::IndexRequest, _impl_.drop_before_rebuild_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::IndexRequest, _impl_.limit_cpu_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::IndexRequest, _impl_.describe_),
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::GetResponse, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::GetResponse, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::GetResponse, _impl_.head_),
-  PROTOBUF_FIELD_OFFSET(::GetResponse, _impl_.items_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::GetResponse, _impl_.head_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::GetResponse, _impl_.items_),
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::DeleteResponse, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::DeleteResponse, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::DeleteResponse, _impl_.head_),
-  PROTOBUF_FIELD_OFFSET(::DeleteResponse, _impl_.items_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::DeleteResponse, _impl_.head_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::DeleteResponse, _impl_.items_),
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::BulkResponse, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::BulkResponse, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::BulkResponse, _impl_.head_),
-  PROTOBUF_FIELD_OFFSET(::BulkResponse, _impl_.items_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::BulkResponse, _impl_.head_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::BulkResponse, _impl_.items_),
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::ForceMergeResponse, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::ForceMergeResponse, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::ForceMergeResponse, _impl_.head_),
-  PROTOBUF_FIELD_OFFSET(::ForceMergeResponse, _impl_.shards_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::ForceMergeResponse, _impl_.head_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::ForceMergeResponse, _impl_.shards_),
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::DelByQueryeResponse, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::DelByQueryeResponse, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::DelByQueryeResponse, _impl_.head_),
-  PROTOBUF_FIELD_OFFSET(::DelByQueryeResponse, _impl_.delnum_),
-  PROTOBUF_FIELD_OFFSET(::DelByQueryeResponse, _impl_.ids_str_),
-  PROTOBUF_FIELD_OFFSET(::DelByQueryeResponse, _impl_.ids_long_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::DelByQueryeResponse, _impl_.head_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::DelByQueryeResponse, _impl_.delnum_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::DelByQueryeResponse, _impl_.ids_str_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::DelByQueryeResponse, _impl_.ids_long_),
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::FlushResponse, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::FlushResponse, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::FlushResponse, _impl_.head_),
-  PROTOBUF_FIELD_OFFSET(::FlushResponse, _impl_.shards_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::FlushResponse, _impl_.head_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::FlushResponse, _impl_.shards_),
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::IndexResponse, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::IndexResponse, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::IndexResponse, _impl_.head_),
-  PROTOBUF_FIELD_OFFSET(::IndexResponse, _impl_.shards_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::IndexResponse, _impl_.head_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::IndexResponse, _impl_.shards_),
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::TermFilter, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::TermFilter, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::TermFilter, _impl_.field_),
-  PROTOBUF_FIELD_OFFSET(::TermFilter, _impl_.value_),
-  PROTOBUF_FIELD_OFFSET(::TermFilter, _impl_.is_union_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::TermFilter, _impl_.field_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::TermFilter, _impl_.value_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::TermFilter, _impl_.is_union_),
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::RangeFilter, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::RangeFilter, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::RangeFilter, _impl_.field_),
-  PROTOBUF_FIELD_OFFSET(::RangeFilter, _impl_.lower_value_),
-  PROTOBUF_FIELD_OFFSET(::RangeFilter, _impl_.upper_value_),
-  PROTOBUF_FIELD_OFFSET(::RangeFilter, _impl_.include_lower_),
-  PROTOBUF_FIELD_OFFSET(::RangeFilter, _impl_.include_upper_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::RangeFilter, _impl_.field_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::RangeFilter, _impl_.lower_value_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::RangeFilter, _impl_.upper_value_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::RangeFilter, _impl_.include_lower_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::RangeFilter, _impl_.include_upper_),
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::SortField, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::SortField, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::SortField, _impl_.field_),
-  PROTOBUF_FIELD_OFFSET(::SortField, _impl_.type_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::SortField, _impl_.field_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::SortField, _impl_.type_),
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::VectorQuery, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::VectorQuery, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::VectorQuery, _impl_.name_),
-  PROTOBUF_FIELD_OFFSET(::VectorQuery, _impl_.value_),
-  PROTOBUF_FIELD_OFFSET(::VectorQuery, _impl_.min_score_),
-  PROTOBUF_FIELD_OFFSET(::VectorQuery, _impl_.max_score_),
-  PROTOBUF_FIELD_OFFSET(::VectorQuery, _impl_.format_),
-  PROTOBUF_FIELD_OFFSET(::VectorQuery, _impl_.index_type_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::VectorQuery, _impl_.name_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::VectorQuery, _impl_.value_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::VectorQuery, _impl_.min_score_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::VectorQuery, _impl_.max_score_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::VectorQuery, _impl_.format_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::VectorQuery, _impl_.index_type_),
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::IndexParameters, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::IndexParameters, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::IndexParameters, _impl_.metric_type_),
-  PROTOBUF_FIELD_OFFSET(::IndexParameters, _impl_.nprobe_),
-  PROTOBUF_FIELD_OFFSET(::QueryRequest_SortFieldMapEntry_DoNotUse, _has_bits_),
-  PROTOBUF_FIELD_OFFSET(::QueryRequest_SortFieldMapEntry_DoNotUse, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::IndexParameters, _impl_.metric_type_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::IndexParameters, _impl_.nprobe_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::QueryRequest_SortFieldMapEntry_DoNotUse, _has_bits_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::QueryRequest_SortFieldMapEntry_DoNotUse, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::QueryRequest_SortFieldMapEntry_DoNotUse, key_),
-  PROTOBUF_FIELD_OFFSET(::QueryRequest_SortFieldMapEntry_DoNotUse, value_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::QueryRequest_SortFieldMapEntry_DoNotUse, key_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::QueryRequest_SortFieldMapEntry_DoNotUse, value_),
   0,
   1,
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::QueryRequest, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::QueryRequest, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::QueryRequest, _impl_.head_),
-  PROTOBUF_FIELD_OFFSET(::QueryRequest, _impl_.document_ids_),
-  PROTOBUF_FIELD_OFFSET(::QueryRequest, _impl_.partition_id_),
-  PROTOBUF_FIELD_OFFSET(::QueryRequest, _impl_.next_),
-  PROTOBUF_FIELD_OFFSET(::QueryRequest, _impl_.range_filters_),
-  PROTOBUF_FIELD_OFFSET(::QueryRequest, _impl_.term_filters_),
-  PROTOBUF_FIELD_OFFSET(::QueryRequest, _impl_.fields_),
-  PROTOBUF_FIELD_OFFSET(::QueryRequest, _impl_.is_vector_value_),
-  PROTOBUF_FIELD_OFFSET(::QueryRequest, _impl_.limit_),
-  PROTOBUF_FIELD_OFFSET(::QueryRequest, _impl_.page_size_),
-  PROTOBUF_FIELD_OFFSET(::QueryRequest, _impl_.load_balance_),
-  PROTOBUF_FIELD_OFFSET(::QueryRequest, _impl_.sort_field_map_),
-  PROTOBUF_FIELD_OFFSET(::QueryRequest, _impl_.sort_fields_),
-  PROTOBUF_FIELD_OFFSET(::QueryRequest, _impl_.trace_),
-  PROTOBUF_FIELD_OFFSET(::SearchRequest_SortFieldMapEntry_DoNotUse, _has_bits_),
-  PROTOBUF_FIELD_OFFSET(::SearchRequest_SortFieldMapEntry_DoNotUse, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::QueryRequest, _impl_.head_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::QueryRequest, _impl_.document_ids_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::QueryRequest, _impl_.partition_id_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::QueryRequest, _impl_.next_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::QueryRequest, _impl_.range_filters_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::QueryRequest, _impl_.term_filters_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::QueryRequest, _impl_.fields_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::QueryRequest, _impl_.is_vector_value_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::QueryRequest, _impl_.limit_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::QueryRequest, _impl_.page_size_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::QueryRequest, _impl_.load_balance_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::QueryRequest, _impl_.sort_field_map_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::QueryRequest, _impl_.sort_fields_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::QueryRequest, _impl_.trace_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::SearchRequest_SortFieldMapEntry_DoNotUse, _has_bits_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::SearchRequest_SortFieldMapEntry_DoNotUse, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::SearchRequest_SortFieldMapEntry_DoNotUse, key_),
-  PROTOBUF_FIELD_OFFSET(::SearchRequest_SortFieldMapEntry_DoNotUse, value_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::SearchRequest_SortFieldMapEntry_DoNotUse, key_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::SearchRequest_SortFieldMapEntry_DoNotUse, value_),
   0,
   1,
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::SearchRequest, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::SearchRequest, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::SearchRequest, _impl_.head_),
-  PROTOBUF_FIELD_OFFSET(::SearchRequest, _impl_.req_num_),
-  PROTOBUF_FIELD_OFFSET(::SearchRequest, _impl_.topn_),
-  PROTOBUF_FIELD_OFFSET(::SearchRequest, _impl_.is_brute_search_),
-  PROTOBUF_FIELD_OFFSET(::SearchRequest, _impl_.vec_fields_),
-  PROTOBUF_FIELD_OFFSET(::SearchRequest, _impl_.fields_),
-  PROTOBUF_FIELD_OFFSET(::SearchRequest, _impl_.range_filters_),
-  PROTOBUF_FIELD_OFFSET(::SearchRequest, _impl_.term_filters_),
-  PROTOBUF_FIELD_OFFSET(::SearchRequest, _impl_.index_params_),
-  PROTOBUF_FIELD_OFFSET(::SearchRequest, _impl_.multi_vector_rank_),
-  PROTOBUF_FIELD_OFFSET(::SearchRequest, _impl_.l2_sqrt_),
-  PROTOBUF_FIELD_OFFSET(::SearchRequest, _impl_.is_vector_value_),
-  PROTOBUF_FIELD_OFFSET(::SearchRequest, _impl_.sort_field_map_),
-  PROTOBUF_FIELD_OFFSET(::SearchRequest, _impl_.sort_fields_),
-  PROTOBUF_FIELD_OFFSET(::SearchRequest, _impl_.ranker_),
-  PROTOBUF_FIELD_OFFSET(::SearchRequest, _impl_.trace_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::SearchRequest, _impl_.head_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::SearchRequest, _impl_.req_num_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::SearchRequest, _impl_.topn_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::SearchRequest, _impl_.is_brute_search_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::SearchRequest, _impl_.vec_fields_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::SearchRequest, _impl_.fields_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::SearchRequest, _impl_.range_filters_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::SearchRequest, _impl_.term_filters_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::SearchRequest, _impl_.index_params_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::SearchRequest, _impl_.multi_vector_rank_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::SearchRequest, _impl_.l2_sqrt_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::SearchRequest, _impl_.is_vector_value_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::SearchRequest, _impl_.sort_field_map_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::SearchRequest, _impl_.sort_fields_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::SearchRequest, _impl_.ranker_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::SearchRequest, _impl_.trace_),
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::ResultItem, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::ResultItem, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::ResultItem, _impl_.score_),
-  PROTOBUF_FIELD_OFFSET(::ResultItem, _impl_.fields_),
-  PROTOBUF_FIELD_OFFSET(::ResultItem, _impl_.p_key_),
-  PROTOBUF_FIELD_OFFSET(::ResultItem, _impl_.source_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::ResultItem, _impl_.score_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::ResultItem, _impl_.fields_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::ResultItem, _impl_.p_key_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::ResultItem, _impl_.source_),
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::SearchResult, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::SearchResult, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::SearchResult, _impl_.total_hits_),
-  PROTOBUF_FIELD_OFFSET(::SearchResult, _impl_.max_score_),
-  PROTOBUF_FIELD_OFFSET(::SearchResult, _impl_.max_took_),
-  PROTOBUF_FIELD_OFFSET(::SearchResult, _impl_.max_took_id_),
-  PROTOBUF_FIELD_OFFSET(::SearchResult, _impl_.status_),
-  PROTOBUF_FIELD_OFFSET(::SearchResult, _impl_.msg_),
-  PROTOBUF_FIELD_OFFSET(::SearchResult, _impl_.result_items_),
-  PROTOBUF_FIELD_OFFSET(::SearchResult, _impl_.pid_),
-  PROTOBUF_FIELD_OFFSET(::SearchResult, _impl_.timeout_),
-  PROTOBUF_FIELD_OFFSET(::SearchResult, _impl_.topn_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::SearchResult, _impl_.total_hits_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::SearchResult, _impl_.max_score_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::SearchResult, _impl_.max_took_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::SearchResult, _impl_.max_took_id_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::SearchResult, _impl_.status_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::SearchResult, _impl_.msg_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::SearchResult, _impl_.result_items_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::SearchResult, _impl_.pid_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::SearchResult, _impl_.timeout_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::SearchResult, _impl_.topn_),
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::SearchResponse, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::SearchResponse, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::SearchResponse, _impl_.head_),
-  PROTOBUF_FIELD_OFFSET(::SearchResponse, _impl_.results_),
-  PROTOBUF_FIELD_OFFSET(::SearchResponse, _impl_.timeout_),
-  PROTOBUF_FIELD_OFFSET(::SearchResponse, _impl_.flatbytes_),
-  PROTOBUF_FIELD_OFFSET(::SearchResponse, _impl_.top_size_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::SearchResponse, _impl_.head_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::SearchResponse, _impl_.results_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::SearchResponse, _impl_.timeout_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::SearchResponse, _impl_.flatbytes_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::SearchResponse, _impl_.top_size_),
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::SearchStatus, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::SearchStatus, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::SearchStatus, _impl_.total_),
-  PROTOBUF_FIELD_OFFSET(::SearchStatus, _impl_.failed_),
-  PROTOBUF_FIELD_OFFSET(::SearchStatus, _impl_.successful_),
-  PROTOBUF_FIELD_OFFSET(::SearchStatus, _impl_.msg_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::SearchStatus, _impl_.total_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::SearchStatus, _impl_.failed_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::SearchStatus, _impl_.successful_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::SearchStatus, _impl_.msg_),
 };
 static const ::_pbi::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) = {
-  { 0, 8, -1, sizeof(::RequestHead_ParamsEntry_DoNotUse)},
-  { 10, -1, -1, sizeof(::RequestHead)},
-  { 23, 31, -1, sizeof(::ResponseHead_ParamsEntry_DoNotUse)},
-  { 33, -1, -1, sizeof(::ResponseHead)},
-  { 41, -1, -1, sizeof(::GetRequest)},
-  { 49, -1, -1, sizeof(::DeleteRequest)},
-  { 57, -1, -1, sizeof(::BulkRequest)},
-  { 66, -1, -1, sizeof(::ForceMergeRequest)},
-  { 73, -1, -1, sizeof(::FlushRequest)},
-  { 80, -1, -1, sizeof(::IndexRequest)},
-  { 90, -1, -1, sizeof(::GetResponse)},
-  { 98, -1, -1, sizeof(::DeleteResponse)},
-  { 106, -1, -1, sizeof(::BulkResponse)},
-  { 114, -1, -1, sizeof(::ForceMergeResponse)},
-  { 122, -1, -1, sizeof(::DelByQueryeResponse)},
-  { 132, -1, -1, sizeof(::FlushResponse)},
-  { 140, -1, -1, sizeof(::IndexResponse)},
-  { 148, -1, -1, sizeof(::TermFilter)},
-  { 157, -1, -1, sizeof(::RangeFilter)},
-  { 168, -1, -1, sizeof(::SortField)},
-  { 176, -1, -1, sizeof(::VectorQuery)},
-  { 188, -1, -1, sizeof(::IndexParameters)},
-  { 196, 204, -1, sizeof(::QueryRequest_SortFieldMapEntry_DoNotUse)},
-  { 206, -1, -1, sizeof(::QueryRequest)},
-  { 226, 234, -1, sizeof(::SearchRequest_SortFieldMapEntry_DoNotUse)},
-  { 236, -1, -1, sizeof(::SearchRequest)},
-  { 258, -1, -1, sizeof(::ResultItem)},
-  { 268, -1, -1, sizeof(::SearchResult)},
-  { 284, -1, -1, sizeof(::SearchResponse)},
-  { 295, -1, -1, sizeof(::SearchStatus)},
+  { 0, 8, -1, sizeof(::vearchpb::RequestHead_ParamsEntry_DoNotUse)},
+  { 10, -1, -1, sizeof(::vearchpb::RequestHead)},
+  { 23, 31, -1, sizeof(::vearchpb::ResponseHead_ParamsEntry_DoNotUse)},
+  { 33, -1, -1, sizeof(::vearchpb::ResponseHead)},
+  { 41, -1, -1, sizeof(::vearchpb::GetRequest)},
+  { 49, -1, -1, sizeof(::vearchpb::DeleteRequest)},
+  { 57, -1, -1, sizeof(::vearchpb::BulkRequest)},
+  { 66, -1, -1, sizeof(::vearchpb::ForceMergeRequest)},
+  { 73, -1, -1, sizeof(::vearchpb::FlushRequest)},
+  { 80, -1, -1, sizeof(::vearchpb::IndexRequest)},
+  { 90, -1, -1, sizeof(::vearchpb::GetResponse)},
+  { 98, -1, -1, sizeof(::vearchpb::DeleteResponse)},
+  { 106, -1, -1, sizeof(::vearchpb::BulkResponse)},
+  { 114, -1, -1, sizeof(::vearchpb::ForceMergeResponse)},
+  { 122, -1, -1, sizeof(::vearchpb::DelByQueryeResponse)},
+  { 132, -1, -1, sizeof(::vearchpb::FlushResponse)},
+  { 140, -1, -1, sizeof(::vearchpb::IndexResponse)},
+  { 148, -1, -1, sizeof(::vearchpb::TermFilter)},
+  { 157, -1, -1, sizeof(::vearchpb::RangeFilter)},
+  { 168, -1, -1, sizeof(::vearchpb::SortField)},
+  { 176, -1, -1, sizeof(::vearchpb::VectorQuery)},
+  { 188, -1, -1, sizeof(::vearchpb::IndexParameters)},
+  { 196, 204, -1, sizeof(::vearchpb::QueryRequest_SortFieldMapEntry_DoNotUse)},
+  { 206, -1, -1, sizeof(::vearchpb::QueryRequest)},
+  { 226, 234, -1, sizeof(::vearchpb::SearchRequest_SortFieldMapEntry_DoNotUse)},
+  { 236, -1, -1, sizeof(::vearchpb::SearchRequest)},
+  { 258, -1, -1, sizeof(::vearchpb::ResultItem)},
+  { 268, -1, -1, sizeof(::vearchpb::SearchResult)},
+  { 284, -1, -1, sizeof(::vearchpb::SearchResponse)},
+  { 295, -1, -1, sizeof(::vearchpb::SearchStatus)},
 };
 
 static const ::_pb::Message* const file_default_instances[] = {
-  &::_RequestHead_ParamsEntry_DoNotUse_default_instance_._instance,
-  &::_RequestHead_default_instance_._instance,
-  &::_ResponseHead_ParamsEntry_DoNotUse_default_instance_._instance,
-  &::_ResponseHead_default_instance_._instance,
-  &::_GetRequest_default_instance_._instance,
-  &::_DeleteRequest_default_instance_._instance,
-  &::_BulkRequest_default_instance_._instance,
-  &::_ForceMergeRequest_default_instance_._instance,
-  &::_FlushRequest_default_instance_._instance,
-  &::_IndexRequest_default_instance_._instance,
-  &::_GetResponse_default_instance_._instance,
-  &::_DeleteResponse_default_instance_._instance,
-  &::_BulkResponse_default_instance_._instance,
-  &::_ForceMergeResponse_default_instance_._instance,
-  &::_DelByQueryeResponse_default_instance_._instance,
-  &::_FlushResponse_default_instance_._instance,
-  &::_IndexResponse_default_instance_._instance,
-  &::_TermFilter_default_instance_._instance,
-  &::_RangeFilter_default_instance_._instance,
-  &::_SortField_default_instance_._instance,
-  &::_VectorQuery_default_instance_._instance,
-  &::_IndexParameters_default_instance_._instance,
-  &::_QueryRequest_SortFieldMapEntry_DoNotUse_default_instance_._instance,
-  &::_QueryRequest_default_instance_._instance,
-  &::_SearchRequest_SortFieldMapEntry_DoNotUse_default_instance_._instance,
-  &::_SearchRequest_default_instance_._instance,
-  &::_ResultItem_default_instance_._instance,
-  &::_SearchResult_default_instance_._instance,
-  &::_SearchResponse_default_instance_._instance,
-  &::_SearchStatus_default_instance_._instance,
+  &::vearchpb::_RequestHead_ParamsEntry_DoNotUse_default_instance_._instance,
+  &::vearchpb::_RequestHead_default_instance_._instance,
+  &::vearchpb::_ResponseHead_ParamsEntry_DoNotUse_default_instance_._instance,
+  &::vearchpb::_ResponseHead_default_instance_._instance,
+  &::vearchpb::_GetRequest_default_instance_._instance,
+  &::vearchpb::_DeleteRequest_default_instance_._instance,
+  &::vearchpb::_BulkRequest_default_instance_._instance,
+  &::vearchpb::_ForceMergeRequest_default_instance_._instance,
+  &::vearchpb::_FlushRequest_default_instance_._instance,
+  &::vearchpb::_IndexRequest_default_instance_._instance,
+  &::vearchpb::_GetResponse_default_instance_._instance,
+  &::vearchpb::_DeleteResponse_default_instance_._instance,
+  &::vearchpb::_BulkResponse_default_instance_._instance,
+  &::vearchpb::_ForceMergeResponse_default_instance_._instance,
+  &::vearchpb::_DelByQueryeResponse_default_instance_._instance,
+  &::vearchpb::_FlushResponse_default_instance_._instance,
+  &::vearchpb::_IndexResponse_default_instance_._instance,
+  &::vearchpb::_TermFilter_default_instance_._instance,
+  &::vearchpb::_RangeFilter_default_instance_._instance,
+  &::vearchpb::_SortField_default_instance_._instance,
+  &::vearchpb::_VectorQuery_default_instance_._instance,
+  &::vearchpb::_IndexParameters_default_instance_._instance,
+  &::vearchpb::_QueryRequest_SortFieldMapEntry_DoNotUse_default_instance_._instance,
+  &::vearchpb::_QueryRequest_default_instance_._instance,
+  &::vearchpb::_SearchRequest_SortFieldMapEntry_DoNotUse_default_instance_._instance,
+  &::vearchpb::_SearchRequest_default_instance_._instance,
+  &::vearchpb::_ResultItem_default_instance_._instance,
+  &::vearchpb::_SearchResult_default_instance_._instance,
+  &::vearchpb::_SearchResponse_default_instance_._instance,
+  &::vearchpb::_SearchStatus_default_instance_._instance,
 };
 
 const char descriptor_table_protodef_router_5fgrpc_2eproto[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) =
-  "\n\021router_grpc.proto\032\020data_model.proto\032\014e"
-  "rrors.proto\"\332\001\n\013RequestHead\022\023\n\013time_out_"
-  "ms\030\001 \001(\003\022\021\n\tuser_name\030\002 \001(\t\022\020\n\010password\030"
-  "\003 \001(\t\022\017\n\007db_name\030\004 \001(\t\022\022\n\nspace_name\030\005 \001"
-  "(\t\022\023\n\013client_type\030\006 \001(\t\022(\n\006params\030\007 \003(\0132"
-  "\030.RequestHead.ParamsEntry\032-\n\013ParamsEntry"
-  "\022\013\n\003key\030\001 \001(\t\022\r\n\005value\030\002 \001(\t:\0028\001\"}\n\014Resp"
-  "onseHead\022\023\n\003err\030\001 \001(\0132\006.Error\022)\n\006params\030"
-  "\002 \003(\0132\031.ResponseHead.ParamsEntry\032-\n\013Para"
-  "msEntry\022\013\n\003key\030\001 \001(\t\022\r\n\005value\030\002 \001(\t:\0028\001\""
-  ">\n\nGetRequest\022\032\n\004head\030\001 \001(\0132\014.RequestHea"
-  "d\022\024\n\014primary_keys\030\002 \003(\t\"A\n\rDeleteRequest"
-  "\022\032\n\004head\030\001 \001(\0132\014.RequestHead\022\024\n\014primary_"
-  "keys\030\002 \003(\t\"V\n\013BulkRequest\022\032\n\004head\030\001 \001(\0132"
-  "\014.RequestHead\022\027\n\004docs\030\002 \003(\0132\t.Document\022\022"
-  "\n\npartitions\030\003 \003(\r\"/\n\021ForceMergeRequest\022"
-  "\032\n\004head\030\001 \001(\0132\014.RequestHead\"*\n\014FlushRequ"
-  "est\022\032\n\004head\030\001 \001(\0132\014.RequestHead\"l\n\014Index"
-  "Request\022\032\n\004head\030\001 \001(\0132\014.RequestHead\022\033\n\023d"
-  "rop_before_rebuild\030\002 \001(\003\022\021\n\tlimit_cpu\030\003 "
-  "\001(\003\022\020\n\010describe\030\004 \001(\003\"@\n\013GetResponse\022\033\n\004"
-  "head\030\001 \001(\0132\r.ResponseHead\022\024\n\005items\030\002 \003(\013"
-  "2\005.Item\"C\n\016DeleteResponse\022\033\n\004head\030\001 \001(\0132"
-  "\r.ResponseHead\022\024\n\005items\030\002 \003(\0132\005.Item\"A\n\014"
-  "BulkResponse\022\033\n\004head\030\001 \001(\0132\r.ResponseHea"
-  "d\022\024\n\005items\030\002 \003(\0132\005.Item\"P\n\022ForceMergeRes"
-  "ponse\022\033\n\004head\030\001 \001(\0132\r.ResponseHead\022\035\n\006sh"
-  "ards\030\002 \001(\0132\r.SearchStatus\"e\n\023DelByQuerye"
-  "Response\022\033\n\004head\030\001 \001(\0132\r.ResponseHead\022\016\n"
-  "\006DelNum\030\002 \001(\005\022\017\n\007ids_str\030\003 \003(\t\022\020\n\010ids_lo"
-  "ng\030\004 \003(\003\"K\n\rFlushResponse\022\033\n\004head\030\001 \001(\0132"
-  "\r.ResponseHead\022\035\n\006shards\030\002 \001(\0132\r.SearchS"
-  "tatus\"K\n\rIndexResponse\022\033\n\004head\030\001 \001(\0132\r.R"
-  "esponseHead\022\035\n\006shards\030\002 \001(\0132\r.SearchStat"
-  "us\"<\n\nTermFilter\022\r\n\005field\030\001 \001(\t\022\r\n\005value"
-  "\030\002 \001(\014\022\020\n\010is_union\030\003 \001(\005\"t\n\013RangeFilter\022"
-  "\r\n\005field\030\001 \001(\t\022\023\n\013lower_value\030\002 \001(\014\022\023\n\013u"
-  "pper_value\030\003 \001(\014\022\025\n\rinclude_lower\030\004 \001(\010\022"
-  "\025\n\rinclude_upper\030\005 \001(\010\"(\n\tSortField\022\r\n\005f"
-  "ield\030\001 \001(\t\022\014\n\004type\030\002 \001(\010\"t\n\013VectorQuery\022"
-  "\014\n\004name\030\001 \001(\t\022\r\n\005value\030\002 \001(\014\022\021\n\tmin_scor"
-  "e\030\003 \001(\001\022\021\n\tmax_score\030\004 \001(\001\022\016\n\006format\030\005 \001"
-  "(\t\022\022\n\nindex_type\030\006 \001(\t\"\213\001\n\017IndexParamete"
-  "rs\0228\n\013metric_type\030\001 \001(\0162#.IndexParameter"
-  "s.DistanceMetricType\022\016\n\006nprobe\030\002 \001(\005\".\n\022"
-  "DistanceMetricType\022\020\n\014InnerProduct\020\000\022\006\n\002"
-  "L2\020\001\"\253\003\n\014QueryRequest\022\032\n\004head\030\001 \001(\0132\014.Re"
-  "questHead\022\024\n\014document_ids\030\002 \003(\t\022\024\n\014parti"
-  "tion_id\030\003 \001(\005\022\014\n\004next\030\004 \001(\010\022#\n\rrange_fil"
-  "ters\030\005 \003(\0132\014.RangeFilter\022!\n\014term_filters"
-  "\030\006 \003(\0132\013.TermFilter\022\016\n\006fields\030\007 \003(\t\022\027\n\017i"
-  "s_vector_value\030\010 \001(\010\022\r\n\005limit\030\t \001(\005\022\021\n\tp"
-  "age_size\030\n \001(\005\022\024\n\014load_balance\030\013 \001(\t\0227\n\016"
-  "sort_field_map\030\014 \003(\0132\037.QueryRequest.Sort"
-  "FieldMapEntry\022\037\n\013sort_fields\030\r \003(\0132\n.Sor"
-  "tField\022\r\n\005trace\030\016 \001(\010\0323\n\021SortFieldMapEnt"
-  "ry\022\013\n\003key\030\001 \001(\t\022\r\n\005value\030\002 \001(\t:\0028\001\"\347\003\n\rS"
-  "earchRequest\022\032\n\004head\030\001 \001(\0132\014.RequestHead"
-  "\022\017\n\007req_num\030\002 \001(\005\022\014\n\004topN\030\003 \001(\005\022\027\n\017is_br"
-  "ute_search\030\004 \001(\005\022 \n\nvec_fields\030\005 \003(\0132\014.V"
-  "ectorQuery\022\016\n\006fields\030\006 \003(\t\022#\n\rrange_filt"
-  "ers\030\007 \003(\0132\014.RangeFilter\022!\n\014term_filters\030"
-  "\010 \003(\0132\013.TermFilter\022\024\n\014index_params\030\t \001(\t"
-  "\022\031\n\021multi_vector_rank\030\n \001(\005\022\017\n\007l2_sqrt\030\013"
-  " \001(\010\022\027\n\017is_vector_value\030\014 \001(\010\0228\n\016sort_fi"
-  "eld_map\030\r \003(\0132 .SearchRequest.SortFieldM"
-  "apEntry\022\037\n\013sort_fields\030\016 \003(\0132\n.SortField"
-  "\022\016\n\006ranker\030\017 \001(\t\022\r\n\005trace\030\020 \001(\010\0323\n\021SortF"
-  "ieldMapEntry\022\013\n\003key\030\001 \001(\t\022\r\n\005value\030\002 \001(\t"
-  ":\0028\001\"R\n\nResultItem\022\r\n\005score\030\001 \001(\001\022\026\n\006fie"
-  "lds\030\002 \003(\0132\006.Field\022\r\n\005p_key\030\003 \001(\t\022\016\n\006sour"
-  "ce\030\004 \001(\014\"\327\001\n\014SearchResult\022\022\n\ntotal_hits\030"
-  "\001 \001(\005\022\021\n\tmax_score\030\002 \001(\001\022\020\n\010max_took\030\003 \001"
-  "(\003\022\023\n\013max_took_id\030\004 \001(\r\022\035\n\006status\030\005 \001(\0132"
-  "\r.SearchStatus\022\013\n\003msg\030\006 \001(\t\022!\n\014result_it"
-  "ems\030\007 \003(\0132\013.ResultItem\022\013\n\003pID\030\010 \001(\r\022\017\n\007t"
-  "imeout\030\t \001(\010\022\014\n\004topN\030\n \001(\005\"\203\001\n\016SearchRes"
-  "ponse\022\033\n\004head\030\001 \001(\0132\r.ResponseHead\022\036\n\007re"
-  "sults\030\002 \003(\0132\r.SearchResult\022\017\n\007timeout\030\003 "
-  "\001(\010\022\021\n\tFlatBytes\030\004 \001(\014\022\020\n\010top_size\030\005 \001(\005"
-  "\"N\n\014SearchStatus\022\r\n\005total\030\001 \001(\005\022\016\n\006faile"
-  "d\030\002 \001(\005\022\022\n\nsuccessful\030\003 \001(\005\022\013\n\003msg\030\004 \001(\t"
-  "2\212\002\n\021RouterGRPCService\022\"\n\003Get\022\013.GetReque"
-  "st\032\014.GetResponse\"\000\022+\n\006Delete\022\016.DeleteReq"
-  "uest\032\017.DeleteResponse\"\000\022+\n\006Search\022\016.Sear"
-  "chRequest\032\017.SearchResponse\"\000\022%\n\004Bulk\022\014.B"
-  "ulkRequest\032\r.BulkResponse\"\000\022\037\n\005Space\022\014.R"
-  "equestHead\032\006.Table\"\000\022/\n\nSearchByID\022\016.Sea"
-  "rchRequest\032\017.SearchResponse\"\000B\016H\001Z\n./vea"
-  "rchpbb\006proto3"
+  "\n\021router_grpc.proto\022\010vearchpb\032\020data_mode"
+  "l.proto\032\014errors.proto\"\343\001\n\013RequestHead\022\023\n"
+  "\013time_out_ms\030\001 \001(\003\022\021\n\tuser_name\030\002 \001(\t\022\020\n"
+  "\010password\030\003 \001(\t\022\017\n\007db_name\030\004 \001(\t\022\022\n\nspac"
+  "e_name\030\005 \001(\t\022\023\n\013client_type\030\006 \001(\t\0221\n\006par"
+  "ams\030\007 \003(\0132!.vearchpb.RequestHead.ParamsE"
+  "ntry\032-\n\013ParamsEntry\022\013\n\003key\030\001 \001(\t\022\r\n\005valu"
+  "e\030\002 \001(\t:\0028\001\"\217\001\n\014ResponseHead\022\034\n\003err\030\001 \001("
+  "\0132\017.vearchpb.Error\0222\n\006params\030\002 \003(\0132\".vea"
+  "rchpb.ResponseHead.ParamsEntry\032-\n\013Params"
+  "Entry\022\013\n\003key\030\001 \001(\t\022\r\n\005value\030\002 \001(\t:\0028\001\"G\n"
+  "\nGetRequest\022#\n\004head\030\001 \001(\0132\025.vearchpb.Req"
+  "uestHead\022\024\n\014primary_keys\030\002 \003(\t\"J\n\rDelete"
+  "Request\022#\n\004head\030\001 \001(\0132\025.vearchpb.Request"
+  "Head\022\024\n\014primary_keys\030\002 \003(\t\"h\n\013BulkReques"
+  "t\022#\n\004head\030\001 \001(\0132\025.vearchpb.RequestHead\022 "
+  "\n\004docs\030\002 \003(\0132\022.vearchpb.Document\022\022\n\npart"
+  "itions\030\003 \003(\r\"8\n\021ForceMergeRequest\022#\n\004hea"
+  "d\030\001 \001(\0132\025.vearchpb.RequestHead\"3\n\014FlushR"
+  "equest\022#\n\004head\030\001 \001(\0132\025.vearchpb.RequestH"
+  "ead\"u\n\014IndexRequest\022#\n\004head\030\001 \001(\0132\025.vear"
+  "chpb.RequestHead\022\033\n\023drop_before_rebuild\030"
+  "\002 \001(\003\022\021\n\tlimit_cpu\030\003 \001(\003\022\020\n\010describe\030\004 \001"
+  "(\003\"R\n\013GetResponse\022$\n\004head\030\001 \001(\0132\026.vearch"
+  "pb.ResponseHead\022\035\n\005items\030\002 \003(\0132\016.vearchp"
+  "b.Item\"U\n\016DeleteResponse\022$\n\004head\030\001 \001(\0132\026"
+  ".vearchpb.ResponseHead\022\035\n\005items\030\002 \003(\0132\016."
+  "vearchpb.Item\"S\n\014BulkResponse\022$\n\004head\030\001 "
+  "\001(\0132\026.vearchpb.ResponseHead\022\035\n\005items\030\002 \003"
+  "(\0132\016.vearchpb.Item\"b\n\022ForceMergeResponse"
+  "\022$\n\004head\030\001 \001(\0132\026.vearchpb.ResponseHead\022&"
+  "\n\006shards\030\002 \001(\0132\026.vearchpb.SearchStatus\"n"
+  "\n\023DelByQueryeResponse\022$\n\004head\030\001 \001(\0132\026.ve"
+  "archpb.ResponseHead\022\016\n\006DelNum\030\002 \001(\005\022\017\n\007i"
+  "ds_str\030\003 \003(\t\022\020\n\010ids_long\030\004 \003(\003\"]\n\rFlushR"
+  "esponse\022$\n\004head\030\001 \001(\0132\026.vearchpb.Respons"
+  "eHead\022&\n\006shards\030\002 \001(\0132\026.vearchpb.SearchS"
+  "tatus\"]\n\rIndexResponse\022$\n\004head\030\001 \001(\0132\026.v"
+  "earchpb.ResponseHead\022&\n\006shards\030\002 \001(\0132\026.v"
+  "earchpb.SearchStatus\"<\n\nTermFilter\022\r\n\005fi"
+  "eld\030\001 \001(\t\022\r\n\005value\030\002 \001(\014\022\020\n\010is_union\030\003 \001"
+  "(\005\"t\n\013RangeFilter\022\r\n\005field\030\001 \001(\t\022\023\n\013lowe"
+  "r_value\030\002 \001(\014\022\023\n\013upper_value\030\003 \001(\014\022\025\n\rin"
+  "clude_lower\030\004 \001(\010\022\025\n\rinclude_upper\030\005 \001(\010"
+  "\"(\n\tSortField\022\r\n\005field\030\001 \001(\t\022\014\n\004type\030\002 \001"
+  "(\010\"t\n\013VectorQuery\022\014\n\004name\030\001 \001(\t\022\r\n\005value"
+  "\030\002 \001(\014\022\021\n\tmin_score\030\003 \001(\001\022\021\n\tmax_score\030\004"
+  " \001(\001\022\016\n\006format\030\005 \001(\t\022\022\n\nindex_type\030\006 \001(\t"
+  "\"\224\001\n\017IndexParameters\022A\n\013metric_type\030\001 \001("
+  "\0162,.vearchpb.IndexParameters.DistanceMet"
+  "ricType\022\016\n\006nprobe\030\002 \001(\005\".\n\022DistanceMetri"
+  "cType\022\020\n\014InnerProduct\020\000\022\006\n\002L2\020\001\"\330\003\n\014Quer"
+  "yRequest\022#\n\004head\030\001 \001(\0132\025.vearchpb.Reques"
+  "tHead\022\024\n\014document_ids\030\002 \003(\t\022\024\n\014partition"
+  "_id\030\003 \001(\005\022\014\n\004next\030\004 \001(\010\022,\n\rrange_filters"
+  "\030\005 \003(\0132\025.vearchpb.RangeFilter\022*\n\014term_fi"
+  "lters\030\006 \003(\0132\024.vearchpb.TermFilter\022\016\n\006fie"
+  "lds\030\007 \003(\t\022\027\n\017is_vector_value\030\010 \001(\010\022\r\n\005li"
+  "mit\030\t \001(\005\022\021\n\tpage_size\030\n \001(\005\022\024\n\014load_bal"
+  "ance\030\013 \001(\t\022@\n\016sort_field_map\030\014 \003(\0132(.vea"
+  "rchpb.QueryRequest.SortFieldMapEntry\022(\n\013"
+  "sort_fields\030\r \003(\0132\023.vearchpb.SortField\022\r"
+  "\n\005trace\030\016 \001(\010\0323\n\021SortFieldMapEntry\022\013\n\003ke"
+  "y\030\001 \001(\t\022\r\n\005value\030\002 \001(\t:\0028\001\"\235\004\n\rSearchReq"
+  "uest\022#\n\004head\030\001 \001(\0132\025.vearchpb.RequestHea"
+  "d\022\017\n\007req_num\030\002 \001(\005\022\014\n\004topN\030\003 \001(\005\022\027\n\017is_b"
+  "rute_search\030\004 \001(\005\022)\n\nvec_fields\030\005 \003(\0132\025."
+  "vearchpb.VectorQuery\022\016\n\006fields\030\006 \003(\t\022,\n\r"
+  "range_filters\030\007 \003(\0132\025.vearchpb.RangeFilt"
+  "er\022*\n\014term_filters\030\010 \003(\0132\024.vearchpb.Term"
+  "Filter\022\024\n\014index_params\030\t \001(\t\022\031\n\021multi_ve"
+  "ctor_rank\030\n \001(\005\022\017\n\007l2_sqrt\030\013 \001(\010\022\027\n\017is_v"
+  "ector_value\030\014 \001(\010\022A\n\016sort_field_map\030\r \003("
+  "\0132).vearchpb.SearchRequest.SortFieldMapE"
+  "ntry\022(\n\013sort_fields\030\016 \003(\0132\023.vearchpb.Sor"
+  "tField\022\016\n\006ranker\030\017 \001(\t\022\r\n\005trace\030\020 \001(\010\0323\n"
+  "\021SortFieldMapEntry\022\013\n\003key\030\001 \001(\t\022\r\n\005value"
+  "\030\002 \001(\t:\0028\001\"[\n\nResultItem\022\r\n\005score\030\001 \001(\001\022"
+  "\037\n\006fields\030\002 \003(\0132\017.vearchpb.Field\022\r\n\005p_ke"
+  "y\030\003 \001(\t\022\016\n\006source\030\004 \001(\014\"\351\001\n\014SearchResult"
+  "\022\022\n\ntotal_hits\030\001 \001(\005\022\021\n\tmax_score\030\002 \001(\001\022"
+  "\020\n\010max_took\030\003 \001(\003\022\023\n\013max_took_id\030\004 \001(\r\022&"
+  "\n\006status\030\005 \001(\0132\026.vearchpb.SearchStatus\022\013"
+  "\n\003msg\030\006 \001(\t\022*\n\014result_items\030\007 \003(\0132\024.vear"
+  "chpb.ResultItem\022\013\n\003pID\030\010 \001(\r\022\017\n\007timeout\030"
+  "\t \001(\010\022\014\n\004topN\030\n \001(\005\"\225\001\n\016SearchResponse\022$"
+  "\n\004head\030\001 \001(\0132\026.vearchpb.ResponseHead\022\'\n\007"
+  "results\030\002 \003(\0132\026.vearchpb.SearchResult\022\017\n"
+  "\007timeout\030\003 \001(\010\022\021\n\tFlatBytes\030\004 \001(\014\022\020\n\010top"
+  "_size\030\005 \001(\005\"N\n\014SearchStatus\022\r\n\005total\030\001 \001"
+  "(\005\022\016\n\006failed\030\002 \001(\005\022\022\n\nsuccessful\030\003 \001(\005\022\013"
+  "\n\003msg\030\004 \001(\t2\366\002\n\021RouterGRPCService\0224\n\003Get"
+  "\022\024.vearchpb.GetRequest\032\025.vearchpb.GetRes"
+  "ponse\"\000\022=\n\006Delete\022\027.vearchpb.DeleteReque"
+  "st\032\030.vearchpb.DeleteResponse\"\000\022=\n\006Search"
+  "\022\027.vearchpb.SearchRequest\032\030.vearchpb.Sea"
+  "rchResponse\"\000\0227\n\004Bulk\022\025.vearchpb.BulkReq"
+  "uest\032\026.vearchpb.BulkResponse\"\000\0221\n\005Space\022"
+  "\025.vearchpb.RequestHead\032\017.vearchpb.Table\""
+  "\000\022A\n\nSearchByID\022\027.vearchpb.SearchRequest"
+  "\032\030.vearchpb.SearchResponse\"\000B\016H\001Z\n./vear"
+  "chpbb\006proto3"
   ;
 static const ::_pbi::DescriptorTable* const descriptor_table_router_5fgrpc_2eproto_deps[2] = {
   &::descriptor_table_data_5fmodel_2eproto,
@@ -962,7 +976,7 @@ static const ::_pbi::DescriptorTable* const descriptor_table_router_5fgrpc_2epro
 };
 static ::_pbi::once_flag descriptor_table_router_5fgrpc_2eproto_once;
 const ::_pbi::DescriptorTable descriptor_table_router_5fgrpc_2eproto = {
-    false, false, 3573, descriptor_table_protodef_router_5fgrpc_2eproto,
+    false, false, 4052, descriptor_table_protodef_router_5fgrpc_2eproto,
     "router_grpc.proto",
     &descriptor_table_router_5fgrpc_2eproto_once, descriptor_table_router_5fgrpc_2eproto_deps, 2, 30,
     schemas, file_default_instances, TableStruct_router_5fgrpc_2eproto::offsets,
@@ -975,6 +989,7 @@ PROTOBUF_ATTRIBUTE_WEAK const ::_pbi::DescriptorTable* descriptor_table_router_5
 
 // Force running AddDescriptors() at dynamic initialization time.
 PROTOBUF_ATTRIBUTE_INIT_PRIORITY2 static ::_pbi::AddDescriptorsRunner dynamic_init_dummy_router_5fgrpc_2eproto(&descriptor_table_router_5fgrpc_2eproto);
+namespace vearchpb {
 const ::PROTOBUF_NAMESPACE_ID::EnumDescriptor* IndexParameters_DistanceMetricType_descriptor() {
   ::PROTOBUF_NAMESPACE_ID::internal::AssignDescriptors(&descriptor_table_router_5fgrpc_2eproto);
   return file_level_enum_descriptors_router_5fgrpc_2eproto[0];
@@ -1024,7 +1039,7 @@ RequestHead::RequestHead(::PROTOBUF_NAMESPACE_ID::Arena* arena,
   if (arena != nullptr && !is_message_owned) {
     arena->OwnCustomDestructor(this, &RequestHead::ArenaDtor);
   }
-  // @@protoc_insertion_point(arena_constructor:RequestHead)
+  // @@protoc_insertion_point(arena_constructor:vearchpb.RequestHead)
 }
 RequestHead::RequestHead(const RequestHead& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -1082,7 +1097,7 @@ RequestHead::RequestHead(const RequestHead& from)
       _this->GetArenaForAllocation());
   }
   _this->_impl_.time_out_ms_ = from._impl_.time_out_ms_;
-  // @@protoc_insertion_point(copy_constructor:RequestHead)
+  // @@protoc_insertion_point(copy_constructor:vearchpb.RequestHead)
 }
 
 inline void RequestHead::SharedCtor(
@@ -1122,7 +1137,7 @@ inline void RequestHead::SharedCtor(
 }
 
 RequestHead::~RequestHead() {
-  // @@protoc_insertion_point(destructor:RequestHead)
+  // @@protoc_insertion_point(destructor:vearchpb.RequestHead)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     ArenaDtor(this);
@@ -1151,7 +1166,7 @@ void RequestHead::SetCachedSize(int size) const {
 }
 
 void RequestHead::Clear() {
-// @@protoc_insertion_point(message_clear_start:RequestHead)
+// @@protoc_insertion_point(message_clear_start:vearchpb.RequestHead)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -1186,7 +1201,7 @@ const char* RequestHead::_InternalParse(const char* ptr, ::_pbi::ParseContext* c
           auto str = _internal_mutable_user_name();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "RequestHead.user_name"));
+          CHK_(::_pbi::VerifyUTF8(str, "vearchpb.RequestHead.user_name"));
         } else
           goto handle_unusual;
         continue;
@@ -1196,7 +1211,7 @@ const char* RequestHead::_InternalParse(const char* ptr, ::_pbi::ParseContext* c
           auto str = _internal_mutable_password();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "RequestHead.password"));
+          CHK_(::_pbi::VerifyUTF8(str, "vearchpb.RequestHead.password"));
         } else
           goto handle_unusual;
         continue;
@@ -1206,7 +1221,7 @@ const char* RequestHead::_InternalParse(const char* ptr, ::_pbi::ParseContext* c
           auto str = _internal_mutable_db_name();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "RequestHead.db_name"));
+          CHK_(::_pbi::VerifyUTF8(str, "vearchpb.RequestHead.db_name"));
         } else
           goto handle_unusual;
         continue;
@@ -1216,7 +1231,7 @@ const char* RequestHead::_InternalParse(const char* ptr, ::_pbi::ParseContext* c
           auto str = _internal_mutable_space_name();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "RequestHead.space_name"));
+          CHK_(::_pbi::VerifyUTF8(str, "vearchpb.RequestHead.space_name"));
         } else
           goto handle_unusual;
         continue;
@@ -1226,7 +1241,7 @@ const char* RequestHead::_InternalParse(const char* ptr, ::_pbi::ParseContext* c
           auto str = _internal_mutable_client_type();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "RequestHead.client_type"));
+          CHK_(::_pbi::VerifyUTF8(str, "vearchpb.RequestHead.client_type"));
         } else
           goto handle_unusual;
         continue;
@@ -1268,7 +1283,7 @@ failure:
 
 uint8_t* RequestHead::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:RequestHead)
+  // @@protoc_insertion_point(serialize_to_array_start:vearchpb.RequestHead)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
@@ -1283,7 +1298,7 @@ uint8_t* RequestHead::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_user_name().data(), static_cast<int>(this->_internal_user_name().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "RequestHead.user_name");
+      "vearchpb.RequestHead.user_name");
     target = stream->WriteStringMaybeAliased(
         2, this->_internal_user_name(), target);
   }
@@ -1293,7 +1308,7 @@ uint8_t* RequestHead::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_password().data(), static_cast<int>(this->_internal_password().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "RequestHead.password");
+      "vearchpb.RequestHead.password");
     target = stream->WriteStringMaybeAliased(
         3, this->_internal_password(), target);
   }
@@ -1303,7 +1318,7 @@ uint8_t* RequestHead::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_db_name().data(), static_cast<int>(this->_internal_db_name().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "RequestHead.db_name");
+      "vearchpb.RequestHead.db_name");
     target = stream->WriteStringMaybeAliased(
         4, this->_internal_db_name(), target);
   }
@@ -1313,7 +1328,7 @@ uint8_t* RequestHead::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_space_name().data(), static_cast<int>(this->_internal_space_name().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "RequestHead.space_name");
+      "vearchpb.RequestHead.space_name");
     target = stream->WriteStringMaybeAliased(
         5, this->_internal_space_name(), target);
   }
@@ -1323,7 +1338,7 @@ uint8_t* RequestHead::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_client_type().data(), static_cast<int>(this->_internal_client_type().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "RequestHead.client_type");
+      "vearchpb.RequestHead.client_type");
     target = stream->WriteStringMaybeAliased(
         6, this->_internal_client_type(), target);
   }
@@ -1338,11 +1353,11 @@ uint8_t* RequestHead::_InternalSerialize(
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
         entry.first.data(), static_cast<int>(entry.first.length()),
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-        "RequestHead.ParamsEntry.key");
+        "vearchpb.RequestHead.ParamsEntry.key");
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
         entry.second.data(), static_cast<int>(entry.second.length()),
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-        "RequestHead.ParamsEntry.value");
+        "vearchpb.RequestHead.ParamsEntry.value");
     };
 
     if (stream->IsSerializationDeterministic() && map_field.size() > 1) {
@@ -1362,12 +1377,12 @@ uint8_t* RequestHead::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:RequestHead)
+  // @@protoc_insertion_point(serialize_to_array_end:vearchpb.RequestHead)
   return target;
 }
 
 size_t RequestHead::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:RequestHead)
+// @@protoc_insertion_point(message_byte_size_start:vearchpb.RequestHead)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
@@ -1436,7 +1451,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*RequestHead::GetClassData() co
 void RequestHead::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<RequestHead*>(&to_msg);
   auto& from = static_cast<const RequestHead&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:RequestHead)
+  // @@protoc_insertion_point(class_specific_merge_from_start:vearchpb.RequestHead)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
@@ -1464,7 +1479,7 @@ void RequestHead::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PR
 }
 
 void RequestHead::CopyFrom(const RequestHead& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:RequestHead)
+// @@protoc_insertion_point(class_specific_copy_from_start:vearchpb.RequestHead)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -1527,10 +1542,10 @@ void ResponseHead_ParamsEntry_DoNotUse::MergeFrom(const ResponseHead_ParamsEntry
 
 class ResponseHead::_Internal {
  public:
-  static const ::Error& err(const ResponseHead* msg);
+  static const ::vearchpb::Error& err(const ResponseHead* msg);
 };
 
-const ::Error&
+const ::vearchpb::Error&
 ResponseHead::_Internal::err(const ResponseHead* msg) {
   return *msg->_impl_.err_;
 }
@@ -1547,7 +1562,7 @@ ResponseHead::ResponseHead(::PROTOBUF_NAMESPACE_ID::Arena* arena,
   if (arena != nullptr && !is_message_owned) {
     arena->OwnCustomDestructor(this, &ResponseHead::ArenaDtor);
   }
-  // @@protoc_insertion_point(arena_constructor:ResponseHead)
+  // @@protoc_insertion_point(arena_constructor:vearchpb.ResponseHead)
 }
 ResponseHead::ResponseHead(const ResponseHead& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -1560,9 +1575,9 @@ ResponseHead::ResponseHead(const ResponseHead& from)
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
   _this->_impl_.params_.MergeFrom(from._impl_.params_);
   if (from._internal_has_err()) {
-    _this->_impl_.err_ = new ::Error(*from._impl_.err_);
+    _this->_impl_.err_ = new ::vearchpb::Error(*from._impl_.err_);
   }
-  // @@protoc_insertion_point(copy_constructor:ResponseHead)
+  // @@protoc_insertion_point(copy_constructor:vearchpb.ResponseHead)
 }
 
 inline void ResponseHead::SharedCtor(
@@ -1577,7 +1592,7 @@ inline void ResponseHead::SharedCtor(
 }
 
 ResponseHead::~ResponseHead() {
-  // @@protoc_insertion_point(destructor:ResponseHead)
+  // @@protoc_insertion_point(destructor:vearchpb.ResponseHead)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     ArenaDtor(this);
@@ -1602,7 +1617,7 @@ void ResponseHead::SetCachedSize(int size) const {
 }
 
 void ResponseHead::Clear() {
-// @@protoc_insertion_point(message_clear_start:ResponseHead)
+// @@protoc_insertion_point(message_clear_start:vearchpb.ResponseHead)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -1621,7 +1636,7 @@ const char* ResponseHead::_InternalParse(const char* ptr, ::_pbi::ParseContext* 
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // .Error err = 1;
+      // .vearchpb.Error err = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
           ptr = ctx->ParseMessage(_internal_mutable_err(), ptr);
@@ -1667,11 +1682,11 @@ failure:
 
 uint8_t* ResponseHead::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:ResponseHead)
+  // @@protoc_insertion_point(serialize_to_array_start:vearchpb.ResponseHead)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // .Error err = 1;
+  // .vearchpb.Error err = 1;
   if (this->_internal_has_err()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(1, _Internal::err(this),
@@ -1688,11 +1703,11 @@ uint8_t* ResponseHead::_InternalSerialize(
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
         entry.first.data(), static_cast<int>(entry.first.length()),
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-        "ResponseHead.ParamsEntry.key");
+        "vearchpb.ResponseHead.ParamsEntry.key");
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
         entry.second.data(), static_cast<int>(entry.second.length()),
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-        "ResponseHead.ParamsEntry.value");
+        "vearchpb.ResponseHead.ParamsEntry.value");
     };
 
     if (stream->IsSerializationDeterministic() && map_field.size() > 1) {
@@ -1712,12 +1727,12 @@ uint8_t* ResponseHead::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:ResponseHead)
+  // @@protoc_insertion_point(serialize_to_array_end:vearchpb.ResponseHead)
   return target;
 }
 
 size_t ResponseHead::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:ResponseHead)
+// @@protoc_insertion_point(message_byte_size_start:vearchpb.ResponseHead)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
@@ -1733,7 +1748,7 @@ size_t ResponseHead::ByteSizeLong() const {
     total_size += ResponseHead_ParamsEntry_DoNotUse::Funcs::ByteSizeLong(it->first, it->second);
   }
 
-  // .Error err = 1;
+  // .vearchpb.Error err = 1;
   if (this->_internal_has_err()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
@@ -1753,21 +1768,21 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*ResponseHead::GetClassData() c
 void ResponseHead::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<ResponseHead*>(&to_msg);
   auto& from = static_cast<const ResponseHead&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:ResponseHead)
+  // @@protoc_insertion_point(class_specific_merge_from_start:vearchpb.ResponseHead)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
   _this->_impl_.params_.MergeFrom(from._impl_.params_);
   if (from._internal_has_err()) {
-    _this->_internal_mutable_err()->::Error::MergeFrom(
+    _this->_internal_mutable_err()->::vearchpb::Error::MergeFrom(
         from._internal_err());
   }
   _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
 
 void ResponseHead::CopyFrom(const ResponseHead& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:ResponseHead)
+// @@protoc_insertion_point(class_specific_copy_from_start:vearchpb.ResponseHead)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -1794,10 +1809,10 @@ void ResponseHead::InternalSwap(ResponseHead* other) {
 
 class GetRequest::_Internal {
  public:
-  static const ::RequestHead& head(const GetRequest* msg);
+  static const ::vearchpb::RequestHead& head(const GetRequest* msg);
 };
 
-const ::RequestHead&
+const ::vearchpb::RequestHead&
 GetRequest::_Internal::head(const GetRequest* msg) {
   return *msg->_impl_.head_;
 }
@@ -1805,7 +1820,7 @@ GetRequest::GetRequest(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:GetRequest)
+  // @@protoc_insertion_point(arena_constructor:vearchpb.GetRequest)
 }
 GetRequest::GetRequest(const GetRequest& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -1817,9 +1832,9 @@ GetRequest::GetRequest(const GetRequest& from)
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
   if (from._internal_has_head()) {
-    _this->_impl_.head_ = new ::RequestHead(*from._impl_.head_);
+    _this->_impl_.head_ = new ::vearchpb::RequestHead(*from._impl_.head_);
   }
-  // @@protoc_insertion_point(copy_constructor:GetRequest)
+  // @@protoc_insertion_point(copy_constructor:vearchpb.GetRequest)
 }
 
 inline void GetRequest::SharedCtor(
@@ -1834,7 +1849,7 @@ inline void GetRequest::SharedCtor(
 }
 
 GetRequest::~GetRequest() {
-  // @@protoc_insertion_point(destructor:GetRequest)
+  // @@protoc_insertion_point(destructor:vearchpb.GetRequest)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -1853,7 +1868,7 @@ void GetRequest::SetCachedSize(int size) const {
 }
 
 void GetRequest::Clear() {
-// @@protoc_insertion_point(message_clear_start:GetRequest)
+// @@protoc_insertion_point(message_clear_start:vearchpb.GetRequest)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -1872,7 +1887,7 @@ const char* GetRequest::_InternalParse(const char* ptr, ::_pbi::ParseContext* ct
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // .RequestHead head = 1;
+      // .vearchpb.RequestHead head = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
           ptr = ctx->ParseMessage(_internal_mutable_head(), ptr);
@@ -1889,7 +1904,7 @@ const char* GetRequest::_InternalParse(const char* ptr, ::_pbi::ParseContext* ct
             auto str = _internal_add_primary_keys();
             ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
             CHK_(ptr);
-            CHK_(::_pbi::VerifyUTF8(str, "GetRequest.primary_keys"));
+            CHK_(::_pbi::VerifyUTF8(str, "vearchpb.GetRequest.primary_keys"));
             if (!ctx->DataAvailable(ptr)) break;
           } while (::PROTOBUF_NAMESPACE_ID::internal::ExpectTag<18>(ptr));
         } else
@@ -1920,11 +1935,11 @@ failure:
 
 uint8_t* GetRequest::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:GetRequest)
+  // @@protoc_insertion_point(serialize_to_array_start:vearchpb.GetRequest)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // .RequestHead head = 1;
+  // .vearchpb.RequestHead head = 1;
   if (this->_internal_has_head()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(1, _Internal::head(this),
@@ -1937,7 +1952,7 @@ uint8_t* GetRequest::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       s.data(), static_cast<int>(s.length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "GetRequest.primary_keys");
+      "vearchpb.GetRequest.primary_keys");
     target = stream->WriteString(2, s, target);
   }
 
@@ -1945,12 +1960,12 @@ uint8_t* GetRequest::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:GetRequest)
+  // @@protoc_insertion_point(serialize_to_array_end:vearchpb.GetRequest)
   return target;
 }
 
 size_t GetRequest::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:GetRequest)
+// @@protoc_insertion_point(message_byte_size_start:vearchpb.GetRequest)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
@@ -1965,7 +1980,7 @@ size_t GetRequest::ByteSizeLong() const {
       _impl_.primary_keys_.Get(i));
   }
 
-  // .RequestHead head = 1;
+  // .vearchpb.RequestHead head = 1;
   if (this->_internal_has_head()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
@@ -1985,21 +2000,21 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*GetRequest::GetClassData() con
 void GetRequest::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<GetRequest*>(&to_msg);
   auto& from = static_cast<const GetRequest&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:GetRequest)
+  // @@protoc_insertion_point(class_specific_merge_from_start:vearchpb.GetRequest)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
   _this->_impl_.primary_keys_.MergeFrom(from._impl_.primary_keys_);
   if (from._internal_has_head()) {
-    _this->_internal_mutable_head()->::RequestHead::MergeFrom(
+    _this->_internal_mutable_head()->::vearchpb::RequestHead::MergeFrom(
         from._internal_head());
   }
   _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
 
 void GetRequest::CopyFrom(const GetRequest& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:GetRequest)
+// @@protoc_insertion_point(class_specific_copy_from_start:vearchpb.GetRequest)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -2026,10 +2041,10 @@ void GetRequest::InternalSwap(GetRequest* other) {
 
 class DeleteRequest::_Internal {
  public:
-  static const ::RequestHead& head(const DeleteRequest* msg);
+  static const ::vearchpb::RequestHead& head(const DeleteRequest* msg);
 };
 
-const ::RequestHead&
+const ::vearchpb::RequestHead&
 DeleteRequest::_Internal::head(const DeleteRequest* msg) {
   return *msg->_impl_.head_;
 }
@@ -2037,7 +2052,7 @@ DeleteRequest::DeleteRequest(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:DeleteRequest)
+  // @@protoc_insertion_point(arena_constructor:vearchpb.DeleteRequest)
 }
 DeleteRequest::DeleteRequest(const DeleteRequest& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -2049,9 +2064,9 @@ DeleteRequest::DeleteRequest(const DeleteRequest& from)
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
   if (from._internal_has_head()) {
-    _this->_impl_.head_ = new ::RequestHead(*from._impl_.head_);
+    _this->_impl_.head_ = new ::vearchpb::RequestHead(*from._impl_.head_);
   }
-  // @@protoc_insertion_point(copy_constructor:DeleteRequest)
+  // @@protoc_insertion_point(copy_constructor:vearchpb.DeleteRequest)
 }
 
 inline void DeleteRequest::SharedCtor(
@@ -2066,7 +2081,7 @@ inline void DeleteRequest::SharedCtor(
 }
 
 DeleteRequest::~DeleteRequest() {
-  // @@protoc_insertion_point(destructor:DeleteRequest)
+  // @@protoc_insertion_point(destructor:vearchpb.DeleteRequest)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -2085,7 +2100,7 @@ void DeleteRequest::SetCachedSize(int size) const {
 }
 
 void DeleteRequest::Clear() {
-// @@protoc_insertion_point(message_clear_start:DeleteRequest)
+// @@protoc_insertion_point(message_clear_start:vearchpb.DeleteRequest)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -2104,7 +2119,7 @@ const char* DeleteRequest::_InternalParse(const char* ptr, ::_pbi::ParseContext*
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // .RequestHead head = 1;
+      // .vearchpb.RequestHead head = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
           ptr = ctx->ParseMessage(_internal_mutable_head(), ptr);
@@ -2121,7 +2136,7 @@ const char* DeleteRequest::_InternalParse(const char* ptr, ::_pbi::ParseContext*
             auto str = _internal_add_primary_keys();
             ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
             CHK_(ptr);
-            CHK_(::_pbi::VerifyUTF8(str, "DeleteRequest.primary_keys"));
+            CHK_(::_pbi::VerifyUTF8(str, "vearchpb.DeleteRequest.primary_keys"));
             if (!ctx->DataAvailable(ptr)) break;
           } while (::PROTOBUF_NAMESPACE_ID::internal::ExpectTag<18>(ptr));
         } else
@@ -2152,11 +2167,11 @@ failure:
 
 uint8_t* DeleteRequest::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:DeleteRequest)
+  // @@protoc_insertion_point(serialize_to_array_start:vearchpb.DeleteRequest)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // .RequestHead head = 1;
+  // .vearchpb.RequestHead head = 1;
   if (this->_internal_has_head()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(1, _Internal::head(this),
@@ -2169,7 +2184,7 @@ uint8_t* DeleteRequest::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       s.data(), static_cast<int>(s.length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "DeleteRequest.primary_keys");
+      "vearchpb.DeleteRequest.primary_keys");
     target = stream->WriteString(2, s, target);
   }
 
@@ -2177,12 +2192,12 @@ uint8_t* DeleteRequest::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:DeleteRequest)
+  // @@protoc_insertion_point(serialize_to_array_end:vearchpb.DeleteRequest)
   return target;
 }
 
 size_t DeleteRequest::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:DeleteRequest)
+// @@protoc_insertion_point(message_byte_size_start:vearchpb.DeleteRequest)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
@@ -2197,7 +2212,7 @@ size_t DeleteRequest::ByteSizeLong() const {
       _impl_.primary_keys_.Get(i));
   }
 
-  // .RequestHead head = 1;
+  // .vearchpb.RequestHead head = 1;
   if (this->_internal_has_head()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
@@ -2217,21 +2232,21 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*DeleteRequest::GetClassData() 
 void DeleteRequest::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<DeleteRequest*>(&to_msg);
   auto& from = static_cast<const DeleteRequest&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:DeleteRequest)
+  // @@protoc_insertion_point(class_specific_merge_from_start:vearchpb.DeleteRequest)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
   _this->_impl_.primary_keys_.MergeFrom(from._impl_.primary_keys_);
   if (from._internal_has_head()) {
-    _this->_internal_mutable_head()->::RequestHead::MergeFrom(
+    _this->_internal_mutable_head()->::vearchpb::RequestHead::MergeFrom(
         from._internal_head());
   }
   _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
 
 void DeleteRequest::CopyFrom(const DeleteRequest& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:DeleteRequest)
+// @@protoc_insertion_point(class_specific_copy_from_start:vearchpb.DeleteRequest)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -2258,10 +2273,10 @@ void DeleteRequest::InternalSwap(DeleteRequest* other) {
 
 class BulkRequest::_Internal {
  public:
-  static const ::RequestHead& head(const BulkRequest* msg);
+  static const ::vearchpb::RequestHead& head(const BulkRequest* msg);
 };
 
-const ::RequestHead&
+const ::vearchpb::RequestHead&
 BulkRequest::_Internal::head(const BulkRequest* msg) {
   return *msg->_impl_.head_;
 }
@@ -2272,7 +2287,7 @@ BulkRequest::BulkRequest(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:BulkRequest)
+  // @@protoc_insertion_point(arena_constructor:vearchpb.BulkRequest)
 }
 BulkRequest::BulkRequest(const BulkRequest& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -2286,9 +2301,9 @@ BulkRequest::BulkRequest(const BulkRequest& from)
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
   if (from._internal_has_head()) {
-    _this->_impl_.head_ = new ::RequestHead(*from._impl_.head_);
+    _this->_impl_.head_ = new ::vearchpb::RequestHead(*from._impl_.head_);
   }
-  // @@protoc_insertion_point(copy_constructor:BulkRequest)
+  // @@protoc_insertion_point(copy_constructor:vearchpb.BulkRequest)
 }
 
 inline void BulkRequest::SharedCtor(
@@ -2305,7 +2320,7 @@ inline void BulkRequest::SharedCtor(
 }
 
 BulkRequest::~BulkRequest() {
-  // @@protoc_insertion_point(destructor:BulkRequest)
+  // @@protoc_insertion_point(destructor:vearchpb.BulkRequest)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -2325,7 +2340,7 @@ void BulkRequest::SetCachedSize(int size) const {
 }
 
 void BulkRequest::Clear() {
-// @@protoc_insertion_point(message_clear_start:BulkRequest)
+// @@protoc_insertion_point(message_clear_start:vearchpb.BulkRequest)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -2345,7 +2360,7 @@ const char* BulkRequest::_InternalParse(const char* ptr, ::_pbi::ParseContext* c
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // .RequestHead head = 1;
+      // .vearchpb.RequestHead head = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
           ptr = ctx->ParseMessage(_internal_mutable_head(), ptr);
@@ -2353,7 +2368,7 @@ const char* BulkRequest::_InternalParse(const char* ptr, ::_pbi::ParseContext* c
         } else
           goto handle_unusual;
         continue;
-      // repeated .Document docs = 2;
+      // repeated .vearchpb.Document docs = 2;
       case 2:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
           ptr -= 1;
@@ -2402,18 +2417,18 @@ failure:
 
 uint8_t* BulkRequest::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:BulkRequest)
+  // @@protoc_insertion_point(serialize_to_array_start:vearchpb.BulkRequest)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // .RequestHead head = 1;
+  // .vearchpb.RequestHead head = 1;
   if (this->_internal_has_head()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(1, _Internal::head(this),
         _Internal::head(this).GetCachedSize(), target, stream);
   }
 
-  // repeated .Document docs = 2;
+  // repeated .vearchpb.Document docs = 2;
   for (unsigned i = 0,
       n = static_cast<unsigned>(this->_internal_docs_size()); i < n; i++) {
     const auto& repfield = this->_internal_docs(i);
@@ -2434,19 +2449,19 @@ uint8_t* BulkRequest::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:BulkRequest)
+  // @@protoc_insertion_point(serialize_to_array_end:vearchpb.BulkRequest)
   return target;
 }
 
 size_t BulkRequest::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:BulkRequest)
+// @@protoc_insertion_point(message_byte_size_start:vearchpb.BulkRequest)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // repeated .Document docs = 2;
+  // repeated .vearchpb.Document docs = 2;
   total_size += 1UL * this->_internal_docs_size();
   for (const auto& msg : this->_impl_.docs_) {
     total_size +=
@@ -2467,7 +2482,7 @@ size_t BulkRequest::ByteSizeLong() const {
     total_size += data_size;
   }
 
-  // .RequestHead head = 1;
+  // .vearchpb.RequestHead head = 1;
   if (this->_internal_has_head()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
@@ -2487,7 +2502,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*BulkRequest::GetClassData() co
 void BulkRequest::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<BulkRequest*>(&to_msg);
   auto& from = static_cast<const BulkRequest&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:BulkRequest)
+  // @@protoc_insertion_point(class_specific_merge_from_start:vearchpb.BulkRequest)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
@@ -2495,14 +2510,14 @@ void BulkRequest::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PR
   _this->_impl_.docs_.MergeFrom(from._impl_.docs_);
   _this->_impl_.partitions_.MergeFrom(from._impl_.partitions_);
   if (from._internal_has_head()) {
-    _this->_internal_mutable_head()->::RequestHead::MergeFrom(
+    _this->_internal_mutable_head()->::vearchpb::RequestHead::MergeFrom(
         from._internal_head());
   }
   _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
 
 void BulkRequest::CopyFrom(const BulkRequest& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:BulkRequest)
+// @@protoc_insertion_point(class_specific_copy_from_start:vearchpb.BulkRequest)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -2530,10 +2545,10 @@ void BulkRequest::InternalSwap(BulkRequest* other) {
 
 class ForceMergeRequest::_Internal {
  public:
-  static const ::RequestHead& head(const ForceMergeRequest* msg);
+  static const ::vearchpb::RequestHead& head(const ForceMergeRequest* msg);
 };
 
-const ::RequestHead&
+const ::vearchpb::RequestHead&
 ForceMergeRequest::_Internal::head(const ForceMergeRequest* msg) {
   return *msg->_impl_.head_;
 }
@@ -2541,7 +2556,7 @@ ForceMergeRequest::ForceMergeRequest(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:ForceMergeRequest)
+  // @@protoc_insertion_point(arena_constructor:vearchpb.ForceMergeRequest)
 }
 ForceMergeRequest::ForceMergeRequest(const ForceMergeRequest& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -2552,9 +2567,9 @@ ForceMergeRequest::ForceMergeRequest(const ForceMergeRequest& from)
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
   if (from._internal_has_head()) {
-    _this->_impl_.head_ = new ::RequestHead(*from._impl_.head_);
+    _this->_impl_.head_ = new ::vearchpb::RequestHead(*from._impl_.head_);
   }
-  // @@protoc_insertion_point(copy_constructor:ForceMergeRequest)
+  // @@protoc_insertion_point(copy_constructor:vearchpb.ForceMergeRequest)
 }
 
 inline void ForceMergeRequest::SharedCtor(
@@ -2568,7 +2583,7 @@ inline void ForceMergeRequest::SharedCtor(
 }
 
 ForceMergeRequest::~ForceMergeRequest() {
-  // @@protoc_insertion_point(destructor:ForceMergeRequest)
+  // @@protoc_insertion_point(destructor:vearchpb.ForceMergeRequest)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -2586,7 +2601,7 @@ void ForceMergeRequest::SetCachedSize(int size) const {
 }
 
 void ForceMergeRequest::Clear() {
-// @@protoc_insertion_point(message_clear_start:ForceMergeRequest)
+// @@protoc_insertion_point(message_clear_start:vearchpb.ForceMergeRequest)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -2604,7 +2619,7 @@ const char* ForceMergeRequest::_InternalParse(const char* ptr, ::_pbi::ParseCont
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // .RequestHead head = 1;
+      // .vearchpb.RequestHead head = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
           ptr = ctx->ParseMessage(_internal_mutable_head(), ptr);
@@ -2637,11 +2652,11 @@ failure:
 
 uint8_t* ForceMergeRequest::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:ForceMergeRequest)
+  // @@protoc_insertion_point(serialize_to_array_start:vearchpb.ForceMergeRequest)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // .RequestHead head = 1;
+  // .vearchpb.RequestHead head = 1;
   if (this->_internal_has_head()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(1, _Internal::head(this),
@@ -2652,19 +2667,19 @@ uint8_t* ForceMergeRequest::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:ForceMergeRequest)
+  // @@protoc_insertion_point(serialize_to_array_end:vearchpb.ForceMergeRequest)
   return target;
 }
 
 size_t ForceMergeRequest::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:ForceMergeRequest)
+// @@protoc_insertion_point(message_byte_size_start:vearchpb.ForceMergeRequest)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // .RequestHead head = 1;
+  // .vearchpb.RequestHead head = 1;
   if (this->_internal_has_head()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
@@ -2684,20 +2699,20 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*ForceMergeRequest::GetClassDat
 void ForceMergeRequest::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<ForceMergeRequest*>(&to_msg);
   auto& from = static_cast<const ForceMergeRequest&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:ForceMergeRequest)
+  // @@protoc_insertion_point(class_specific_merge_from_start:vearchpb.ForceMergeRequest)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
   if (from._internal_has_head()) {
-    _this->_internal_mutable_head()->::RequestHead::MergeFrom(
+    _this->_internal_mutable_head()->::vearchpb::RequestHead::MergeFrom(
         from._internal_head());
   }
   _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
 
 void ForceMergeRequest::CopyFrom(const ForceMergeRequest& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:ForceMergeRequest)
+// @@protoc_insertion_point(class_specific_copy_from_start:vearchpb.ForceMergeRequest)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -2723,10 +2738,10 @@ void ForceMergeRequest::InternalSwap(ForceMergeRequest* other) {
 
 class FlushRequest::_Internal {
  public:
-  static const ::RequestHead& head(const FlushRequest* msg);
+  static const ::vearchpb::RequestHead& head(const FlushRequest* msg);
 };
 
-const ::RequestHead&
+const ::vearchpb::RequestHead&
 FlushRequest::_Internal::head(const FlushRequest* msg) {
   return *msg->_impl_.head_;
 }
@@ -2734,7 +2749,7 @@ FlushRequest::FlushRequest(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:FlushRequest)
+  // @@protoc_insertion_point(arena_constructor:vearchpb.FlushRequest)
 }
 FlushRequest::FlushRequest(const FlushRequest& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -2745,9 +2760,9 @@ FlushRequest::FlushRequest(const FlushRequest& from)
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
   if (from._internal_has_head()) {
-    _this->_impl_.head_ = new ::RequestHead(*from._impl_.head_);
+    _this->_impl_.head_ = new ::vearchpb::RequestHead(*from._impl_.head_);
   }
-  // @@protoc_insertion_point(copy_constructor:FlushRequest)
+  // @@protoc_insertion_point(copy_constructor:vearchpb.FlushRequest)
 }
 
 inline void FlushRequest::SharedCtor(
@@ -2761,7 +2776,7 @@ inline void FlushRequest::SharedCtor(
 }
 
 FlushRequest::~FlushRequest() {
-  // @@protoc_insertion_point(destructor:FlushRequest)
+  // @@protoc_insertion_point(destructor:vearchpb.FlushRequest)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -2779,7 +2794,7 @@ void FlushRequest::SetCachedSize(int size) const {
 }
 
 void FlushRequest::Clear() {
-// @@protoc_insertion_point(message_clear_start:FlushRequest)
+// @@protoc_insertion_point(message_clear_start:vearchpb.FlushRequest)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -2797,7 +2812,7 @@ const char* FlushRequest::_InternalParse(const char* ptr, ::_pbi::ParseContext* 
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // .RequestHead head = 1;
+      // .vearchpb.RequestHead head = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
           ptr = ctx->ParseMessage(_internal_mutable_head(), ptr);
@@ -2830,11 +2845,11 @@ failure:
 
 uint8_t* FlushRequest::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:FlushRequest)
+  // @@protoc_insertion_point(serialize_to_array_start:vearchpb.FlushRequest)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // .RequestHead head = 1;
+  // .vearchpb.RequestHead head = 1;
   if (this->_internal_has_head()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(1, _Internal::head(this),
@@ -2845,19 +2860,19 @@ uint8_t* FlushRequest::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:FlushRequest)
+  // @@protoc_insertion_point(serialize_to_array_end:vearchpb.FlushRequest)
   return target;
 }
 
 size_t FlushRequest::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:FlushRequest)
+// @@protoc_insertion_point(message_byte_size_start:vearchpb.FlushRequest)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // .RequestHead head = 1;
+  // .vearchpb.RequestHead head = 1;
   if (this->_internal_has_head()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
@@ -2877,20 +2892,20 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*FlushRequest::GetClassData() c
 void FlushRequest::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<FlushRequest*>(&to_msg);
   auto& from = static_cast<const FlushRequest&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:FlushRequest)
+  // @@protoc_insertion_point(class_specific_merge_from_start:vearchpb.FlushRequest)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
   if (from._internal_has_head()) {
-    _this->_internal_mutable_head()->::RequestHead::MergeFrom(
+    _this->_internal_mutable_head()->::vearchpb::RequestHead::MergeFrom(
         from._internal_head());
   }
   _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
 
 void FlushRequest::CopyFrom(const FlushRequest& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:FlushRequest)
+// @@protoc_insertion_point(class_specific_copy_from_start:vearchpb.FlushRequest)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -2916,10 +2931,10 @@ void FlushRequest::InternalSwap(FlushRequest* other) {
 
 class IndexRequest::_Internal {
  public:
-  static const ::RequestHead& head(const IndexRequest* msg);
+  static const ::vearchpb::RequestHead& head(const IndexRequest* msg);
 };
 
-const ::RequestHead&
+const ::vearchpb::RequestHead&
 IndexRequest::_Internal::head(const IndexRequest* msg) {
   return *msg->_impl_.head_;
 }
@@ -2927,7 +2942,7 @@ IndexRequest::IndexRequest(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:IndexRequest)
+  // @@protoc_insertion_point(arena_constructor:vearchpb.IndexRequest)
 }
 IndexRequest::IndexRequest(const IndexRequest& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -2941,12 +2956,12 @@ IndexRequest::IndexRequest(const IndexRequest& from)
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
   if (from._internal_has_head()) {
-    _this->_impl_.head_ = new ::RequestHead(*from._impl_.head_);
+    _this->_impl_.head_ = new ::vearchpb::RequestHead(*from._impl_.head_);
   }
   ::memcpy(&_impl_.drop_before_rebuild_, &from._impl_.drop_before_rebuild_,
     static_cast<size_t>(reinterpret_cast<char*>(&_impl_.describe_) -
     reinterpret_cast<char*>(&_impl_.drop_before_rebuild_)) + sizeof(_impl_.describe_));
-  // @@protoc_insertion_point(copy_constructor:IndexRequest)
+  // @@protoc_insertion_point(copy_constructor:vearchpb.IndexRequest)
 }
 
 inline void IndexRequest::SharedCtor(
@@ -2963,7 +2978,7 @@ inline void IndexRequest::SharedCtor(
 }
 
 IndexRequest::~IndexRequest() {
-  // @@protoc_insertion_point(destructor:IndexRequest)
+  // @@protoc_insertion_point(destructor:vearchpb.IndexRequest)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -2981,7 +2996,7 @@ void IndexRequest::SetCachedSize(int size) const {
 }
 
 void IndexRequest::Clear() {
-// @@protoc_insertion_point(message_clear_start:IndexRequest)
+// @@protoc_insertion_point(message_clear_start:vearchpb.IndexRequest)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -3002,7 +3017,7 @@ const char* IndexRequest::_InternalParse(const char* ptr, ::_pbi::ParseContext* 
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // .RequestHead head = 1;
+      // .vearchpb.RequestHead head = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
           ptr = ctx->ParseMessage(_internal_mutable_head(), ptr);
@@ -3059,11 +3074,11 @@ failure:
 
 uint8_t* IndexRequest::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:IndexRequest)
+  // @@protoc_insertion_point(serialize_to_array_start:vearchpb.IndexRequest)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // .RequestHead head = 1;
+  // .vearchpb.RequestHead head = 1;
   if (this->_internal_has_head()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(1, _Internal::head(this),
@@ -3092,19 +3107,19 @@ uint8_t* IndexRequest::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:IndexRequest)
+  // @@protoc_insertion_point(serialize_to_array_end:vearchpb.IndexRequest)
   return target;
 }
 
 size_t IndexRequest::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:IndexRequest)
+// @@protoc_insertion_point(message_byte_size_start:vearchpb.IndexRequest)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // .RequestHead head = 1;
+  // .vearchpb.RequestHead head = 1;
   if (this->_internal_has_head()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
@@ -3139,13 +3154,13 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*IndexRequest::GetClassData() c
 void IndexRequest::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<IndexRequest*>(&to_msg);
   auto& from = static_cast<const IndexRequest&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:IndexRequest)
+  // @@protoc_insertion_point(class_specific_merge_from_start:vearchpb.IndexRequest)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
   if (from._internal_has_head()) {
-    _this->_internal_mutable_head()->::RequestHead::MergeFrom(
+    _this->_internal_mutable_head()->::vearchpb::RequestHead::MergeFrom(
         from._internal_head());
   }
   if (from._internal_drop_before_rebuild() != 0) {
@@ -3161,7 +3176,7 @@ void IndexRequest::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::P
 }
 
 void IndexRequest::CopyFrom(const IndexRequest& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:IndexRequest)
+// @@protoc_insertion_point(class_specific_copy_from_start:vearchpb.IndexRequest)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -3192,10 +3207,10 @@ void IndexRequest::InternalSwap(IndexRequest* other) {
 
 class GetResponse::_Internal {
  public:
-  static const ::ResponseHead& head(const GetResponse* msg);
+  static const ::vearchpb::ResponseHead& head(const GetResponse* msg);
 };
 
-const ::ResponseHead&
+const ::vearchpb::ResponseHead&
 GetResponse::_Internal::head(const GetResponse* msg) {
   return *msg->_impl_.head_;
 }
@@ -3206,7 +3221,7 @@ GetResponse::GetResponse(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:GetResponse)
+  // @@protoc_insertion_point(arena_constructor:vearchpb.GetResponse)
 }
 GetResponse::GetResponse(const GetResponse& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -3218,9 +3233,9 @@ GetResponse::GetResponse(const GetResponse& from)
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
   if (from._internal_has_head()) {
-    _this->_impl_.head_ = new ::ResponseHead(*from._impl_.head_);
+    _this->_impl_.head_ = new ::vearchpb::ResponseHead(*from._impl_.head_);
   }
-  // @@protoc_insertion_point(copy_constructor:GetResponse)
+  // @@protoc_insertion_point(copy_constructor:vearchpb.GetResponse)
 }
 
 inline void GetResponse::SharedCtor(
@@ -3235,7 +3250,7 @@ inline void GetResponse::SharedCtor(
 }
 
 GetResponse::~GetResponse() {
-  // @@protoc_insertion_point(destructor:GetResponse)
+  // @@protoc_insertion_point(destructor:vearchpb.GetResponse)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -3254,7 +3269,7 @@ void GetResponse::SetCachedSize(int size) const {
 }
 
 void GetResponse::Clear() {
-// @@protoc_insertion_point(message_clear_start:GetResponse)
+// @@protoc_insertion_point(message_clear_start:vearchpb.GetResponse)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -3273,7 +3288,7 @@ const char* GetResponse::_InternalParse(const char* ptr, ::_pbi::ParseContext* c
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // .ResponseHead head = 1;
+      // .vearchpb.ResponseHead head = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
           ptr = ctx->ParseMessage(_internal_mutable_head(), ptr);
@@ -3281,7 +3296,7 @@ const char* GetResponse::_InternalParse(const char* ptr, ::_pbi::ParseContext* c
         } else
           goto handle_unusual;
         continue;
-      // repeated .Item items = 2;
+      // repeated .vearchpb.Item items = 2;
       case 2:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
           ptr -= 1;
@@ -3319,18 +3334,18 @@ failure:
 
 uint8_t* GetResponse::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:GetResponse)
+  // @@protoc_insertion_point(serialize_to_array_start:vearchpb.GetResponse)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // .ResponseHead head = 1;
+  // .vearchpb.ResponseHead head = 1;
   if (this->_internal_has_head()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(1, _Internal::head(this),
         _Internal::head(this).GetCachedSize(), target, stream);
   }
 
-  // repeated .Item items = 2;
+  // repeated .vearchpb.Item items = 2;
   for (unsigned i = 0,
       n = static_cast<unsigned>(this->_internal_items_size()); i < n; i++) {
     const auto& repfield = this->_internal_items(i);
@@ -3342,26 +3357,26 @@ uint8_t* GetResponse::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:GetResponse)
+  // @@protoc_insertion_point(serialize_to_array_end:vearchpb.GetResponse)
   return target;
 }
 
 size_t GetResponse::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:GetResponse)
+// @@protoc_insertion_point(message_byte_size_start:vearchpb.GetResponse)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // repeated .Item items = 2;
+  // repeated .vearchpb.Item items = 2;
   total_size += 1UL * this->_internal_items_size();
   for (const auto& msg : this->_impl_.items_) {
     total_size +=
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(msg);
   }
 
-  // .ResponseHead head = 1;
+  // .vearchpb.ResponseHead head = 1;
   if (this->_internal_has_head()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
@@ -3381,21 +3396,21 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*GetResponse::GetClassData() co
 void GetResponse::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<GetResponse*>(&to_msg);
   auto& from = static_cast<const GetResponse&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:GetResponse)
+  // @@protoc_insertion_point(class_specific_merge_from_start:vearchpb.GetResponse)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
   _this->_impl_.items_.MergeFrom(from._impl_.items_);
   if (from._internal_has_head()) {
-    _this->_internal_mutable_head()->::ResponseHead::MergeFrom(
+    _this->_internal_mutable_head()->::vearchpb::ResponseHead::MergeFrom(
         from._internal_head());
   }
   _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
 
 void GetResponse::CopyFrom(const GetResponse& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:GetResponse)
+// @@protoc_insertion_point(class_specific_copy_from_start:vearchpb.GetResponse)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -3422,10 +3437,10 @@ void GetResponse::InternalSwap(GetResponse* other) {
 
 class DeleteResponse::_Internal {
  public:
-  static const ::ResponseHead& head(const DeleteResponse* msg);
+  static const ::vearchpb::ResponseHead& head(const DeleteResponse* msg);
 };
 
-const ::ResponseHead&
+const ::vearchpb::ResponseHead&
 DeleteResponse::_Internal::head(const DeleteResponse* msg) {
   return *msg->_impl_.head_;
 }
@@ -3436,7 +3451,7 @@ DeleteResponse::DeleteResponse(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:DeleteResponse)
+  // @@protoc_insertion_point(arena_constructor:vearchpb.DeleteResponse)
 }
 DeleteResponse::DeleteResponse(const DeleteResponse& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -3448,9 +3463,9 @@ DeleteResponse::DeleteResponse(const DeleteResponse& from)
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
   if (from._internal_has_head()) {
-    _this->_impl_.head_ = new ::ResponseHead(*from._impl_.head_);
+    _this->_impl_.head_ = new ::vearchpb::ResponseHead(*from._impl_.head_);
   }
-  // @@protoc_insertion_point(copy_constructor:DeleteResponse)
+  // @@protoc_insertion_point(copy_constructor:vearchpb.DeleteResponse)
 }
 
 inline void DeleteResponse::SharedCtor(
@@ -3465,7 +3480,7 @@ inline void DeleteResponse::SharedCtor(
 }
 
 DeleteResponse::~DeleteResponse() {
-  // @@protoc_insertion_point(destructor:DeleteResponse)
+  // @@protoc_insertion_point(destructor:vearchpb.DeleteResponse)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -3484,7 +3499,7 @@ void DeleteResponse::SetCachedSize(int size) const {
 }
 
 void DeleteResponse::Clear() {
-// @@protoc_insertion_point(message_clear_start:DeleteResponse)
+// @@protoc_insertion_point(message_clear_start:vearchpb.DeleteResponse)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -3503,7 +3518,7 @@ const char* DeleteResponse::_InternalParse(const char* ptr, ::_pbi::ParseContext
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // .ResponseHead head = 1;
+      // .vearchpb.ResponseHead head = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
           ptr = ctx->ParseMessage(_internal_mutable_head(), ptr);
@@ -3511,7 +3526,7 @@ const char* DeleteResponse::_InternalParse(const char* ptr, ::_pbi::ParseContext
         } else
           goto handle_unusual;
         continue;
-      // repeated .Item items = 2;
+      // repeated .vearchpb.Item items = 2;
       case 2:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
           ptr -= 1;
@@ -3549,18 +3564,18 @@ failure:
 
 uint8_t* DeleteResponse::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:DeleteResponse)
+  // @@protoc_insertion_point(serialize_to_array_start:vearchpb.DeleteResponse)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // .ResponseHead head = 1;
+  // .vearchpb.ResponseHead head = 1;
   if (this->_internal_has_head()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(1, _Internal::head(this),
         _Internal::head(this).GetCachedSize(), target, stream);
   }
 
-  // repeated .Item items = 2;
+  // repeated .vearchpb.Item items = 2;
   for (unsigned i = 0,
       n = static_cast<unsigned>(this->_internal_items_size()); i < n; i++) {
     const auto& repfield = this->_internal_items(i);
@@ -3572,26 +3587,26 @@ uint8_t* DeleteResponse::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:DeleteResponse)
+  // @@protoc_insertion_point(serialize_to_array_end:vearchpb.DeleteResponse)
   return target;
 }
 
 size_t DeleteResponse::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:DeleteResponse)
+// @@protoc_insertion_point(message_byte_size_start:vearchpb.DeleteResponse)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // repeated .Item items = 2;
+  // repeated .vearchpb.Item items = 2;
   total_size += 1UL * this->_internal_items_size();
   for (const auto& msg : this->_impl_.items_) {
     total_size +=
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(msg);
   }
 
-  // .ResponseHead head = 1;
+  // .vearchpb.ResponseHead head = 1;
   if (this->_internal_has_head()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
@@ -3611,21 +3626,21 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*DeleteResponse::GetClassData()
 void DeleteResponse::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<DeleteResponse*>(&to_msg);
   auto& from = static_cast<const DeleteResponse&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:DeleteResponse)
+  // @@protoc_insertion_point(class_specific_merge_from_start:vearchpb.DeleteResponse)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
   _this->_impl_.items_.MergeFrom(from._impl_.items_);
   if (from._internal_has_head()) {
-    _this->_internal_mutable_head()->::ResponseHead::MergeFrom(
+    _this->_internal_mutable_head()->::vearchpb::ResponseHead::MergeFrom(
         from._internal_head());
   }
   _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
 
 void DeleteResponse::CopyFrom(const DeleteResponse& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:DeleteResponse)
+// @@protoc_insertion_point(class_specific_copy_from_start:vearchpb.DeleteResponse)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -3652,10 +3667,10 @@ void DeleteResponse::InternalSwap(DeleteResponse* other) {
 
 class BulkResponse::_Internal {
  public:
-  static const ::ResponseHead& head(const BulkResponse* msg);
+  static const ::vearchpb::ResponseHead& head(const BulkResponse* msg);
 };
 
-const ::ResponseHead&
+const ::vearchpb::ResponseHead&
 BulkResponse::_Internal::head(const BulkResponse* msg) {
   return *msg->_impl_.head_;
 }
@@ -3666,7 +3681,7 @@ BulkResponse::BulkResponse(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:BulkResponse)
+  // @@protoc_insertion_point(arena_constructor:vearchpb.BulkResponse)
 }
 BulkResponse::BulkResponse(const BulkResponse& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -3678,9 +3693,9 @@ BulkResponse::BulkResponse(const BulkResponse& from)
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
   if (from._internal_has_head()) {
-    _this->_impl_.head_ = new ::ResponseHead(*from._impl_.head_);
+    _this->_impl_.head_ = new ::vearchpb::ResponseHead(*from._impl_.head_);
   }
-  // @@protoc_insertion_point(copy_constructor:BulkResponse)
+  // @@protoc_insertion_point(copy_constructor:vearchpb.BulkResponse)
 }
 
 inline void BulkResponse::SharedCtor(
@@ -3695,7 +3710,7 @@ inline void BulkResponse::SharedCtor(
 }
 
 BulkResponse::~BulkResponse() {
-  // @@protoc_insertion_point(destructor:BulkResponse)
+  // @@protoc_insertion_point(destructor:vearchpb.BulkResponse)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -3714,7 +3729,7 @@ void BulkResponse::SetCachedSize(int size) const {
 }
 
 void BulkResponse::Clear() {
-// @@protoc_insertion_point(message_clear_start:BulkResponse)
+// @@protoc_insertion_point(message_clear_start:vearchpb.BulkResponse)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -3733,7 +3748,7 @@ const char* BulkResponse::_InternalParse(const char* ptr, ::_pbi::ParseContext* 
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // .ResponseHead head = 1;
+      // .vearchpb.ResponseHead head = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
           ptr = ctx->ParseMessage(_internal_mutable_head(), ptr);
@@ -3741,7 +3756,7 @@ const char* BulkResponse::_InternalParse(const char* ptr, ::_pbi::ParseContext* 
         } else
           goto handle_unusual;
         continue;
-      // repeated .Item items = 2;
+      // repeated .vearchpb.Item items = 2;
       case 2:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
           ptr -= 1;
@@ -3779,18 +3794,18 @@ failure:
 
 uint8_t* BulkResponse::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:BulkResponse)
+  // @@protoc_insertion_point(serialize_to_array_start:vearchpb.BulkResponse)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // .ResponseHead head = 1;
+  // .vearchpb.ResponseHead head = 1;
   if (this->_internal_has_head()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(1, _Internal::head(this),
         _Internal::head(this).GetCachedSize(), target, stream);
   }
 
-  // repeated .Item items = 2;
+  // repeated .vearchpb.Item items = 2;
   for (unsigned i = 0,
       n = static_cast<unsigned>(this->_internal_items_size()); i < n; i++) {
     const auto& repfield = this->_internal_items(i);
@@ -3802,26 +3817,26 @@ uint8_t* BulkResponse::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:BulkResponse)
+  // @@protoc_insertion_point(serialize_to_array_end:vearchpb.BulkResponse)
   return target;
 }
 
 size_t BulkResponse::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:BulkResponse)
+// @@protoc_insertion_point(message_byte_size_start:vearchpb.BulkResponse)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // repeated .Item items = 2;
+  // repeated .vearchpb.Item items = 2;
   total_size += 1UL * this->_internal_items_size();
   for (const auto& msg : this->_impl_.items_) {
     total_size +=
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(msg);
   }
 
-  // .ResponseHead head = 1;
+  // .vearchpb.ResponseHead head = 1;
   if (this->_internal_has_head()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
@@ -3841,21 +3856,21 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*BulkResponse::GetClassData() c
 void BulkResponse::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<BulkResponse*>(&to_msg);
   auto& from = static_cast<const BulkResponse&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:BulkResponse)
+  // @@protoc_insertion_point(class_specific_merge_from_start:vearchpb.BulkResponse)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
   _this->_impl_.items_.MergeFrom(from._impl_.items_);
   if (from._internal_has_head()) {
-    _this->_internal_mutable_head()->::ResponseHead::MergeFrom(
+    _this->_internal_mutable_head()->::vearchpb::ResponseHead::MergeFrom(
         from._internal_head());
   }
   _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
 
 void BulkResponse::CopyFrom(const BulkResponse& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:BulkResponse)
+// @@protoc_insertion_point(class_specific_copy_from_start:vearchpb.BulkResponse)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -3882,15 +3897,15 @@ void BulkResponse::InternalSwap(BulkResponse* other) {
 
 class ForceMergeResponse::_Internal {
  public:
-  static const ::ResponseHead& head(const ForceMergeResponse* msg);
-  static const ::SearchStatus& shards(const ForceMergeResponse* msg);
+  static const ::vearchpb::ResponseHead& head(const ForceMergeResponse* msg);
+  static const ::vearchpb::SearchStatus& shards(const ForceMergeResponse* msg);
 };
 
-const ::ResponseHead&
+const ::vearchpb::ResponseHead&
 ForceMergeResponse::_Internal::head(const ForceMergeResponse* msg) {
   return *msg->_impl_.head_;
 }
-const ::SearchStatus&
+const ::vearchpb::SearchStatus&
 ForceMergeResponse::_Internal::shards(const ForceMergeResponse* msg) {
   return *msg->_impl_.shards_;
 }
@@ -3898,7 +3913,7 @@ ForceMergeResponse::ForceMergeResponse(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:ForceMergeResponse)
+  // @@protoc_insertion_point(arena_constructor:vearchpb.ForceMergeResponse)
 }
 ForceMergeResponse::ForceMergeResponse(const ForceMergeResponse& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -3910,12 +3925,12 @@ ForceMergeResponse::ForceMergeResponse(const ForceMergeResponse& from)
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
   if (from._internal_has_head()) {
-    _this->_impl_.head_ = new ::ResponseHead(*from._impl_.head_);
+    _this->_impl_.head_ = new ::vearchpb::ResponseHead(*from._impl_.head_);
   }
   if (from._internal_has_shards()) {
-    _this->_impl_.shards_ = new ::SearchStatus(*from._impl_.shards_);
+    _this->_impl_.shards_ = new ::vearchpb::SearchStatus(*from._impl_.shards_);
   }
-  // @@protoc_insertion_point(copy_constructor:ForceMergeResponse)
+  // @@protoc_insertion_point(copy_constructor:vearchpb.ForceMergeResponse)
 }
 
 inline void ForceMergeResponse::SharedCtor(
@@ -3930,7 +3945,7 @@ inline void ForceMergeResponse::SharedCtor(
 }
 
 ForceMergeResponse::~ForceMergeResponse() {
-  // @@protoc_insertion_point(destructor:ForceMergeResponse)
+  // @@protoc_insertion_point(destructor:vearchpb.ForceMergeResponse)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -3949,7 +3964,7 @@ void ForceMergeResponse::SetCachedSize(int size) const {
 }
 
 void ForceMergeResponse::Clear() {
-// @@protoc_insertion_point(message_clear_start:ForceMergeResponse)
+// @@protoc_insertion_point(message_clear_start:vearchpb.ForceMergeResponse)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -3971,7 +3986,7 @@ const char* ForceMergeResponse::_InternalParse(const char* ptr, ::_pbi::ParseCon
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // .ResponseHead head = 1;
+      // .vearchpb.ResponseHead head = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
           ptr = ctx->ParseMessage(_internal_mutable_head(), ptr);
@@ -3979,7 +3994,7 @@ const char* ForceMergeResponse::_InternalParse(const char* ptr, ::_pbi::ParseCon
         } else
           goto handle_unusual;
         continue;
-      // .SearchStatus shards = 2;
+      // .vearchpb.SearchStatus shards = 2;
       case 2:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
           ptr = ctx->ParseMessage(_internal_mutable_shards(), ptr);
@@ -4012,18 +4027,18 @@ failure:
 
 uint8_t* ForceMergeResponse::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:ForceMergeResponse)
+  // @@protoc_insertion_point(serialize_to_array_start:vearchpb.ForceMergeResponse)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // .ResponseHead head = 1;
+  // .vearchpb.ResponseHead head = 1;
   if (this->_internal_has_head()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(1, _Internal::head(this),
         _Internal::head(this).GetCachedSize(), target, stream);
   }
 
-  // .SearchStatus shards = 2;
+  // .vearchpb.SearchStatus shards = 2;
   if (this->_internal_has_shards()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(2, _Internal::shards(this),
@@ -4034,26 +4049,26 @@ uint8_t* ForceMergeResponse::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:ForceMergeResponse)
+  // @@protoc_insertion_point(serialize_to_array_end:vearchpb.ForceMergeResponse)
   return target;
 }
 
 size_t ForceMergeResponse::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:ForceMergeResponse)
+// @@protoc_insertion_point(message_byte_size_start:vearchpb.ForceMergeResponse)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // .ResponseHead head = 1;
+  // .vearchpb.ResponseHead head = 1;
   if (this->_internal_has_head()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
         *_impl_.head_);
   }
 
-  // .SearchStatus shards = 2;
+  // .vearchpb.SearchStatus shards = 2;
   if (this->_internal_has_shards()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
@@ -4073,24 +4088,24 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*ForceMergeResponse::GetClassDa
 void ForceMergeResponse::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<ForceMergeResponse*>(&to_msg);
   auto& from = static_cast<const ForceMergeResponse&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:ForceMergeResponse)
+  // @@protoc_insertion_point(class_specific_merge_from_start:vearchpb.ForceMergeResponse)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
   if (from._internal_has_head()) {
-    _this->_internal_mutable_head()->::ResponseHead::MergeFrom(
+    _this->_internal_mutable_head()->::vearchpb::ResponseHead::MergeFrom(
         from._internal_head());
   }
   if (from._internal_has_shards()) {
-    _this->_internal_mutable_shards()->::SearchStatus::MergeFrom(
+    _this->_internal_mutable_shards()->::vearchpb::SearchStatus::MergeFrom(
         from._internal_shards());
   }
   _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
 
 void ForceMergeResponse::CopyFrom(const ForceMergeResponse& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:ForceMergeResponse)
+// @@protoc_insertion_point(class_specific_copy_from_start:vearchpb.ForceMergeResponse)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -4121,10 +4136,10 @@ void ForceMergeResponse::InternalSwap(ForceMergeResponse* other) {
 
 class DelByQueryeResponse::_Internal {
  public:
-  static const ::ResponseHead& head(const DelByQueryeResponse* msg);
+  static const ::vearchpb::ResponseHead& head(const DelByQueryeResponse* msg);
 };
 
-const ::ResponseHead&
+const ::vearchpb::ResponseHead&
 DelByQueryeResponse::_Internal::head(const DelByQueryeResponse* msg) {
   return *msg->_impl_.head_;
 }
@@ -4132,7 +4147,7 @@ DelByQueryeResponse::DelByQueryeResponse(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:DelByQueryeResponse)
+  // @@protoc_insertion_point(arena_constructor:vearchpb.DelByQueryeResponse)
 }
 DelByQueryeResponse::DelByQueryeResponse(const DelByQueryeResponse& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -4147,10 +4162,10 @@ DelByQueryeResponse::DelByQueryeResponse(const DelByQueryeResponse& from)
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
   if (from._internal_has_head()) {
-    _this->_impl_.head_ = new ::ResponseHead(*from._impl_.head_);
+    _this->_impl_.head_ = new ::vearchpb::ResponseHead(*from._impl_.head_);
   }
   _this->_impl_.delnum_ = from._impl_.delnum_;
-  // @@protoc_insertion_point(copy_constructor:DelByQueryeResponse)
+  // @@protoc_insertion_point(copy_constructor:vearchpb.DelByQueryeResponse)
 }
 
 inline void DelByQueryeResponse::SharedCtor(
@@ -4168,7 +4183,7 @@ inline void DelByQueryeResponse::SharedCtor(
 }
 
 DelByQueryeResponse::~DelByQueryeResponse() {
-  // @@protoc_insertion_point(destructor:DelByQueryeResponse)
+  // @@protoc_insertion_point(destructor:vearchpb.DelByQueryeResponse)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -4188,7 +4203,7 @@ void DelByQueryeResponse::SetCachedSize(int size) const {
 }
 
 void DelByQueryeResponse::Clear() {
-// @@protoc_insertion_point(message_clear_start:DelByQueryeResponse)
+// @@protoc_insertion_point(message_clear_start:vearchpb.DelByQueryeResponse)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -4209,7 +4224,7 @@ const char* DelByQueryeResponse::_InternalParse(const char* ptr, ::_pbi::ParseCo
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // .ResponseHead head = 1;
+      // .vearchpb.ResponseHead head = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
           ptr = ctx->ParseMessage(_internal_mutable_head(), ptr);
@@ -4234,7 +4249,7 @@ const char* DelByQueryeResponse::_InternalParse(const char* ptr, ::_pbi::ParseCo
             auto str = _internal_add_ids_str();
             ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
             CHK_(ptr);
-            CHK_(::_pbi::VerifyUTF8(str, "DelByQueryeResponse.ids_str"));
+            CHK_(::_pbi::VerifyUTF8(str, "vearchpb.DelByQueryeResponse.ids_str"));
             if (!ctx->DataAvailable(ptr)) break;
           } while (::PROTOBUF_NAMESPACE_ID::internal::ExpectTag<26>(ptr));
         } else
@@ -4276,11 +4291,11 @@ failure:
 
 uint8_t* DelByQueryeResponse::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:DelByQueryeResponse)
+  // @@protoc_insertion_point(serialize_to_array_start:vearchpb.DelByQueryeResponse)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // .ResponseHead head = 1;
+  // .vearchpb.ResponseHead head = 1;
   if (this->_internal_has_head()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(1, _Internal::head(this),
@@ -4299,7 +4314,7 @@ uint8_t* DelByQueryeResponse::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       s.data(), static_cast<int>(s.length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "DelByQueryeResponse.ids_str");
+      "vearchpb.DelByQueryeResponse.ids_str");
     target = stream->WriteString(3, s, target);
   }
 
@@ -4316,12 +4331,12 @@ uint8_t* DelByQueryeResponse::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:DelByQueryeResponse)
+  // @@protoc_insertion_point(serialize_to_array_end:vearchpb.DelByQueryeResponse)
   return target;
 }
 
 size_t DelByQueryeResponse::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:DelByQueryeResponse)
+// @@protoc_insertion_point(message_byte_size_start:vearchpb.DelByQueryeResponse)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
@@ -4350,7 +4365,7 @@ size_t DelByQueryeResponse::ByteSizeLong() const {
     total_size += data_size;
   }
 
-  // .ResponseHead head = 1;
+  // .vearchpb.ResponseHead head = 1;
   if (this->_internal_has_head()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
@@ -4375,7 +4390,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*DelByQueryeResponse::GetClassD
 void DelByQueryeResponse::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<DelByQueryeResponse*>(&to_msg);
   auto& from = static_cast<const DelByQueryeResponse&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:DelByQueryeResponse)
+  // @@protoc_insertion_point(class_specific_merge_from_start:vearchpb.DelByQueryeResponse)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
@@ -4383,7 +4398,7 @@ void DelByQueryeResponse::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, co
   _this->_impl_.ids_str_.MergeFrom(from._impl_.ids_str_);
   _this->_impl_.ids_long_.MergeFrom(from._impl_.ids_long_);
   if (from._internal_has_head()) {
-    _this->_internal_mutable_head()->::ResponseHead::MergeFrom(
+    _this->_internal_mutable_head()->::vearchpb::ResponseHead::MergeFrom(
         from._internal_head());
   }
   if (from._internal_delnum() != 0) {
@@ -4393,7 +4408,7 @@ void DelByQueryeResponse::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, co
 }
 
 void DelByQueryeResponse::CopyFrom(const DelByQueryeResponse& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:DelByQueryeResponse)
+// @@protoc_insertion_point(class_specific_copy_from_start:vearchpb.DelByQueryeResponse)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -4426,15 +4441,15 @@ void DelByQueryeResponse::InternalSwap(DelByQueryeResponse* other) {
 
 class FlushResponse::_Internal {
  public:
-  static const ::ResponseHead& head(const FlushResponse* msg);
-  static const ::SearchStatus& shards(const FlushResponse* msg);
+  static const ::vearchpb::ResponseHead& head(const FlushResponse* msg);
+  static const ::vearchpb::SearchStatus& shards(const FlushResponse* msg);
 };
 
-const ::ResponseHead&
+const ::vearchpb::ResponseHead&
 FlushResponse::_Internal::head(const FlushResponse* msg) {
   return *msg->_impl_.head_;
 }
-const ::SearchStatus&
+const ::vearchpb::SearchStatus&
 FlushResponse::_Internal::shards(const FlushResponse* msg) {
   return *msg->_impl_.shards_;
 }
@@ -4442,7 +4457,7 @@ FlushResponse::FlushResponse(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:FlushResponse)
+  // @@protoc_insertion_point(arena_constructor:vearchpb.FlushResponse)
 }
 FlushResponse::FlushResponse(const FlushResponse& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -4454,12 +4469,12 @@ FlushResponse::FlushResponse(const FlushResponse& from)
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
   if (from._internal_has_head()) {
-    _this->_impl_.head_ = new ::ResponseHead(*from._impl_.head_);
+    _this->_impl_.head_ = new ::vearchpb::ResponseHead(*from._impl_.head_);
   }
   if (from._internal_has_shards()) {
-    _this->_impl_.shards_ = new ::SearchStatus(*from._impl_.shards_);
+    _this->_impl_.shards_ = new ::vearchpb::SearchStatus(*from._impl_.shards_);
   }
-  // @@protoc_insertion_point(copy_constructor:FlushResponse)
+  // @@protoc_insertion_point(copy_constructor:vearchpb.FlushResponse)
 }
 
 inline void FlushResponse::SharedCtor(
@@ -4474,7 +4489,7 @@ inline void FlushResponse::SharedCtor(
 }
 
 FlushResponse::~FlushResponse() {
-  // @@protoc_insertion_point(destructor:FlushResponse)
+  // @@protoc_insertion_point(destructor:vearchpb.FlushResponse)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -4493,7 +4508,7 @@ void FlushResponse::SetCachedSize(int size) const {
 }
 
 void FlushResponse::Clear() {
-// @@protoc_insertion_point(message_clear_start:FlushResponse)
+// @@protoc_insertion_point(message_clear_start:vearchpb.FlushResponse)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -4515,7 +4530,7 @@ const char* FlushResponse::_InternalParse(const char* ptr, ::_pbi::ParseContext*
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // .ResponseHead head = 1;
+      // .vearchpb.ResponseHead head = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
           ptr = ctx->ParseMessage(_internal_mutable_head(), ptr);
@@ -4523,7 +4538,7 @@ const char* FlushResponse::_InternalParse(const char* ptr, ::_pbi::ParseContext*
         } else
           goto handle_unusual;
         continue;
-      // .SearchStatus shards = 2;
+      // .vearchpb.SearchStatus shards = 2;
       case 2:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
           ptr = ctx->ParseMessage(_internal_mutable_shards(), ptr);
@@ -4556,18 +4571,18 @@ failure:
 
 uint8_t* FlushResponse::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:FlushResponse)
+  // @@protoc_insertion_point(serialize_to_array_start:vearchpb.FlushResponse)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // .ResponseHead head = 1;
+  // .vearchpb.ResponseHead head = 1;
   if (this->_internal_has_head()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(1, _Internal::head(this),
         _Internal::head(this).GetCachedSize(), target, stream);
   }
 
-  // .SearchStatus shards = 2;
+  // .vearchpb.SearchStatus shards = 2;
   if (this->_internal_has_shards()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(2, _Internal::shards(this),
@@ -4578,26 +4593,26 @@ uint8_t* FlushResponse::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:FlushResponse)
+  // @@protoc_insertion_point(serialize_to_array_end:vearchpb.FlushResponse)
   return target;
 }
 
 size_t FlushResponse::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:FlushResponse)
+// @@protoc_insertion_point(message_byte_size_start:vearchpb.FlushResponse)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // .ResponseHead head = 1;
+  // .vearchpb.ResponseHead head = 1;
   if (this->_internal_has_head()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
         *_impl_.head_);
   }
 
-  // .SearchStatus shards = 2;
+  // .vearchpb.SearchStatus shards = 2;
   if (this->_internal_has_shards()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
@@ -4617,24 +4632,24 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*FlushResponse::GetClassData() 
 void FlushResponse::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<FlushResponse*>(&to_msg);
   auto& from = static_cast<const FlushResponse&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:FlushResponse)
+  // @@protoc_insertion_point(class_specific_merge_from_start:vearchpb.FlushResponse)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
   if (from._internal_has_head()) {
-    _this->_internal_mutable_head()->::ResponseHead::MergeFrom(
+    _this->_internal_mutable_head()->::vearchpb::ResponseHead::MergeFrom(
         from._internal_head());
   }
   if (from._internal_has_shards()) {
-    _this->_internal_mutable_shards()->::SearchStatus::MergeFrom(
+    _this->_internal_mutable_shards()->::vearchpb::SearchStatus::MergeFrom(
         from._internal_shards());
   }
   _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
 
 void FlushResponse::CopyFrom(const FlushResponse& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:FlushResponse)
+// @@protoc_insertion_point(class_specific_copy_from_start:vearchpb.FlushResponse)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -4665,15 +4680,15 @@ void FlushResponse::InternalSwap(FlushResponse* other) {
 
 class IndexResponse::_Internal {
  public:
-  static const ::ResponseHead& head(const IndexResponse* msg);
-  static const ::SearchStatus& shards(const IndexResponse* msg);
+  static const ::vearchpb::ResponseHead& head(const IndexResponse* msg);
+  static const ::vearchpb::SearchStatus& shards(const IndexResponse* msg);
 };
 
-const ::ResponseHead&
+const ::vearchpb::ResponseHead&
 IndexResponse::_Internal::head(const IndexResponse* msg) {
   return *msg->_impl_.head_;
 }
-const ::SearchStatus&
+const ::vearchpb::SearchStatus&
 IndexResponse::_Internal::shards(const IndexResponse* msg) {
   return *msg->_impl_.shards_;
 }
@@ -4681,7 +4696,7 @@ IndexResponse::IndexResponse(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:IndexResponse)
+  // @@protoc_insertion_point(arena_constructor:vearchpb.IndexResponse)
 }
 IndexResponse::IndexResponse(const IndexResponse& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -4693,12 +4708,12 @@ IndexResponse::IndexResponse(const IndexResponse& from)
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
   if (from._internal_has_head()) {
-    _this->_impl_.head_ = new ::ResponseHead(*from._impl_.head_);
+    _this->_impl_.head_ = new ::vearchpb::ResponseHead(*from._impl_.head_);
   }
   if (from._internal_has_shards()) {
-    _this->_impl_.shards_ = new ::SearchStatus(*from._impl_.shards_);
+    _this->_impl_.shards_ = new ::vearchpb::SearchStatus(*from._impl_.shards_);
   }
-  // @@protoc_insertion_point(copy_constructor:IndexResponse)
+  // @@protoc_insertion_point(copy_constructor:vearchpb.IndexResponse)
 }
 
 inline void IndexResponse::SharedCtor(
@@ -4713,7 +4728,7 @@ inline void IndexResponse::SharedCtor(
 }
 
 IndexResponse::~IndexResponse() {
-  // @@protoc_insertion_point(destructor:IndexResponse)
+  // @@protoc_insertion_point(destructor:vearchpb.IndexResponse)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -4732,7 +4747,7 @@ void IndexResponse::SetCachedSize(int size) const {
 }
 
 void IndexResponse::Clear() {
-// @@protoc_insertion_point(message_clear_start:IndexResponse)
+// @@protoc_insertion_point(message_clear_start:vearchpb.IndexResponse)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -4754,7 +4769,7 @@ const char* IndexResponse::_InternalParse(const char* ptr, ::_pbi::ParseContext*
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // .ResponseHead head = 1;
+      // .vearchpb.ResponseHead head = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
           ptr = ctx->ParseMessage(_internal_mutable_head(), ptr);
@@ -4762,7 +4777,7 @@ const char* IndexResponse::_InternalParse(const char* ptr, ::_pbi::ParseContext*
         } else
           goto handle_unusual;
         continue;
-      // .SearchStatus shards = 2;
+      // .vearchpb.SearchStatus shards = 2;
       case 2:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
           ptr = ctx->ParseMessage(_internal_mutable_shards(), ptr);
@@ -4795,18 +4810,18 @@ failure:
 
 uint8_t* IndexResponse::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:IndexResponse)
+  // @@protoc_insertion_point(serialize_to_array_start:vearchpb.IndexResponse)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // .ResponseHead head = 1;
+  // .vearchpb.ResponseHead head = 1;
   if (this->_internal_has_head()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(1, _Internal::head(this),
         _Internal::head(this).GetCachedSize(), target, stream);
   }
 
-  // .SearchStatus shards = 2;
+  // .vearchpb.SearchStatus shards = 2;
   if (this->_internal_has_shards()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(2, _Internal::shards(this),
@@ -4817,26 +4832,26 @@ uint8_t* IndexResponse::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:IndexResponse)
+  // @@protoc_insertion_point(serialize_to_array_end:vearchpb.IndexResponse)
   return target;
 }
 
 size_t IndexResponse::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:IndexResponse)
+// @@protoc_insertion_point(message_byte_size_start:vearchpb.IndexResponse)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // .ResponseHead head = 1;
+  // .vearchpb.ResponseHead head = 1;
   if (this->_internal_has_head()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
         *_impl_.head_);
   }
 
-  // .SearchStatus shards = 2;
+  // .vearchpb.SearchStatus shards = 2;
   if (this->_internal_has_shards()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
@@ -4856,24 +4871,24 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*IndexResponse::GetClassData() 
 void IndexResponse::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<IndexResponse*>(&to_msg);
   auto& from = static_cast<const IndexResponse&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:IndexResponse)
+  // @@protoc_insertion_point(class_specific_merge_from_start:vearchpb.IndexResponse)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
   if (from._internal_has_head()) {
-    _this->_internal_mutable_head()->::ResponseHead::MergeFrom(
+    _this->_internal_mutable_head()->::vearchpb::ResponseHead::MergeFrom(
         from._internal_head());
   }
   if (from._internal_has_shards()) {
-    _this->_internal_mutable_shards()->::SearchStatus::MergeFrom(
+    _this->_internal_mutable_shards()->::vearchpb::SearchStatus::MergeFrom(
         from._internal_shards());
   }
   _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
 
 void IndexResponse::CopyFrom(const IndexResponse& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:IndexResponse)
+// @@protoc_insertion_point(class_specific_copy_from_start:vearchpb.IndexResponse)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -4910,7 +4925,7 @@ TermFilter::TermFilter(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:TermFilter)
+  // @@protoc_insertion_point(arena_constructor:vearchpb.TermFilter)
 }
 TermFilter::TermFilter(const TermFilter& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -4939,7 +4954,7 @@ TermFilter::TermFilter(const TermFilter& from)
       _this->GetArenaForAllocation());
   }
   _this->_impl_.is_union_ = from._impl_.is_union_;
-  // @@protoc_insertion_point(copy_constructor:TermFilter)
+  // @@protoc_insertion_point(copy_constructor:vearchpb.TermFilter)
 }
 
 inline void TermFilter::SharedCtor(
@@ -4963,7 +4978,7 @@ inline void TermFilter::SharedCtor(
 }
 
 TermFilter::~TermFilter() {
-  // @@protoc_insertion_point(destructor:TermFilter)
+  // @@protoc_insertion_point(destructor:vearchpb.TermFilter)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -4982,7 +4997,7 @@ void TermFilter::SetCachedSize(int size) const {
 }
 
 void TermFilter::Clear() {
-// @@protoc_insertion_point(message_clear_start:TermFilter)
+// @@protoc_insertion_point(message_clear_start:vearchpb.TermFilter)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -5005,7 +5020,7 @@ const char* TermFilter::_InternalParse(const char* ptr, ::_pbi::ParseContext* ct
           auto str = _internal_mutable_field();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "TermFilter.field"));
+          CHK_(::_pbi::VerifyUTF8(str, "vearchpb.TermFilter.field"));
         } else
           goto handle_unusual;
         continue;
@@ -5051,7 +5066,7 @@ failure:
 
 uint8_t* TermFilter::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:TermFilter)
+  // @@protoc_insertion_point(serialize_to_array_start:vearchpb.TermFilter)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
@@ -5060,7 +5075,7 @@ uint8_t* TermFilter::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_field().data(), static_cast<int>(this->_internal_field().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "TermFilter.field");
+      "vearchpb.TermFilter.field");
     target = stream->WriteStringMaybeAliased(
         1, this->_internal_field(), target);
   }
@@ -5081,12 +5096,12 @@ uint8_t* TermFilter::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:TermFilter)
+  // @@protoc_insertion_point(serialize_to_array_end:vearchpb.TermFilter)
   return target;
 }
 
 size_t TermFilter::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:TermFilter)
+// @@protoc_insertion_point(message_byte_size_start:vearchpb.TermFilter)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
@@ -5125,7 +5140,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*TermFilter::GetClassData() con
 void TermFilter::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<TermFilter*>(&to_msg);
   auto& from = static_cast<const TermFilter&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:TermFilter)
+  // @@protoc_insertion_point(class_specific_merge_from_start:vearchpb.TermFilter)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
@@ -5143,7 +5158,7 @@ void TermFilter::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PRO
 }
 
 void TermFilter::CopyFrom(const TermFilter& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:TermFilter)
+// @@protoc_insertion_point(class_specific_copy_from_start:vearchpb.TermFilter)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -5185,7 +5200,7 @@ RangeFilter::RangeFilter(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:RangeFilter)
+  // @@protoc_insertion_point(arena_constructor:vearchpb.RangeFilter)
 }
 RangeFilter::RangeFilter(const RangeFilter& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -5226,7 +5241,7 @@ RangeFilter::RangeFilter(const RangeFilter& from)
   ::memcpy(&_impl_.include_lower_, &from._impl_.include_lower_,
     static_cast<size_t>(reinterpret_cast<char*>(&_impl_.include_upper_) -
     reinterpret_cast<char*>(&_impl_.include_lower_)) + sizeof(_impl_.include_upper_));
-  // @@protoc_insertion_point(copy_constructor:RangeFilter)
+  // @@protoc_insertion_point(copy_constructor:vearchpb.RangeFilter)
 }
 
 inline void RangeFilter::SharedCtor(
@@ -5256,7 +5271,7 @@ inline void RangeFilter::SharedCtor(
 }
 
 RangeFilter::~RangeFilter() {
-  // @@protoc_insertion_point(destructor:RangeFilter)
+  // @@protoc_insertion_point(destructor:vearchpb.RangeFilter)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -5276,7 +5291,7 @@ void RangeFilter::SetCachedSize(int size) const {
 }
 
 void RangeFilter::Clear() {
-// @@protoc_insertion_point(message_clear_start:RangeFilter)
+// @@protoc_insertion_point(message_clear_start:vearchpb.RangeFilter)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -5302,7 +5317,7 @@ const char* RangeFilter::_InternalParse(const char* ptr, ::_pbi::ParseContext* c
           auto str = _internal_mutable_field();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "RangeFilter.field"));
+          CHK_(::_pbi::VerifyUTF8(str, "vearchpb.RangeFilter.field"));
         } else
           goto handle_unusual;
         continue;
@@ -5365,7 +5380,7 @@ failure:
 
 uint8_t* RangeFilter::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:RangeFilter)
+  // @@protoc_insertion_point(serialize_to_array_start:vearchpb.RangeFilter)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
@@ -5374,7 +5389,7 @@ uint8_t* RangeFilter::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_field().data(), static_cast<int>(this->_internal_field().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "RangeFilter.field");
+      "vearchpb.RangeFilter.field");
     target = stream->WriteStringMaybeAliased(
         1, this->_internal_field(), target);
   }
@@ -5407,12 +5422,12 @@ uint8_t* RangeFilter::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:RangeFilter)
+  // @@protoc_insertion_point(serialize_to_array_end:vearchpb.RangeFilter)
   return target;
 }
 
 size_t RangeFilter::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:RangeFilter)
+// @@protoc_insertion_point(message_byte_size_start:vearchpb.RangeFilter)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
@@ -5463,7 +5478,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*RangeFilter::GetClassData() co
 void RangeFilter::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<RangeFilter*>(&to_msg);
   auto& from = static_cast<const RangeFilter&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:RangeFilter)
+  // @@protoc_insertion_point(class_specific_merge_from_start:vearchpb.RangeFilter)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
@@ -5487,7 +5502,7 @@ void RangeFilter::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PR
 }
 
 void RangeFilter::CopyFrom(const RangeFilter& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:RangeFilter)
+// @@protoc_insertion_point(class_specific_copy_from_start:vearchpb.RangeFilter)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -5538,7 +5553,7 @@ SortField::SortField(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:SortField)
+  // @@protoc_insertion_point(arena_constructor:vearchpb.SortField)
 }
 SortField::SortField(const SortField& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -5558,7 +5573,7 @@ SortField::SortField(const SortField& from)
       _this->GetArenaForAllocation());
   }
   _this->_impl_.type_ = from._impl_.type_;
-  // @@protoc_insertion_point(copy_constructor:SortField)
+  // @@protoc_insertion_point(copy_constructor:vearchpb.SortField)
 }
 
 inline void SortField::SharedCtor(
@@ -5577,7 +5592,7 @@ inline void SortField::SharedCtor(
 }
 
 SortField::~SortField() {
-  // @@protoc_insertion_point(destructor:SortField)
+  // @@protoc_insertion_point(destructor:vearchpb.SortField)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -5595,7 +5610,7 @@ void SortField::SetCachedSize(int size) const {
 }
 
 void SortField::Clear() {
-// @@protoc_insertion_point(message_clear_start:SortField)
+// @@protoc_insertion_point(message_clear_start:vearchpb.SortField)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -5617,7 +5632,7 @@ const char* SortField::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx
           auto str = _internal_mutable_field();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "SortField.field"));
+          CHK_(::_pbi::VerifyUTF8(str, "vearchpb.SortField.field"));
         } else
           goto handle_unusual;
         continue;
@@ -5654,7 +5669,7 @@ failure:
 
 uint8_t* SortField::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:SortField)
+  // @@protoc_insertion_point(serialize_to_array_start:vearchpb.SortField)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
@@ -5663,7 +5678,7 @@ uint8_t* SortField::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_field().data(), static_cast<int>(this->_internal_field().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "SortField.field");
+      "vearchpb.SortField.field");
     target = stream->WriteStringMaybeAliased(
         1, this->_internal_field(), target);
   }
@@ -5678,12 +5693,12 @@ uint8_t* SortField::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:SortField)
+  // @@protoc_insertion_point(serialize_to_array_end:vearchpb.SortField)
   return target;
 }
 
 size_t SortField::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:SortField)
+// @@protoc_insertion_point(message_byte_size_start:vearchpb.SortField)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
@@ -5715,7 +5730,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*SortField::GetClassData() cons
 void SortField::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<SortField*>(&to_msg);
   auto& from = static_cast<const SortField&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:SortField)
+  // @@protoc_insertion_point(class_specific_merge_from_start:vearchpb.SortField)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
@@ -5730,7 +5745,7 @@ void SortField::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROT
 }
 
 void SortField::CopyFrom(const SortField& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:SortField)
+// @@protoc_insertion_point(class_specific_copy_from_start:vearchpb.SortField)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -5768,7 +5783,7 @@ VectorQuery::VectorQuery(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:VectorQuery)
+  // @@protoc_insertion_point(arena_constructor:vearchpb.VectorQuery)
 }
 VectorQuery::VectorQuery(const VectorQuery& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -5818,7 +5833,7 @@ VectorQuery::VectorQuery(const VectorQuery& from)
   ::memcpy(&_impl_.min_score_, &from._impl_.min_score_,
     static_cast<size_t>(reinterpret_cast<char*>(&_impl_.max_score_) -
     reinterpret_cast<char*>(&_impl_.min_score_)) + sizeof(_impl_.max_score_));
-  // @@protoc_insertion_point(copy_constructor:VectorQuery)
+  // @@protoc_insertion_point(copy_constructor:vearchpb.VectorQuery)
 }
 
 inline void VectorQuery::SharedCtor(
@@ -5853,7 +5868,7 @@ inline void VectorQuery::SharedCtor(
 }
 
 VectorQuery::~VectorQuery() {
-  // @@protoc_insertion_point(destructor:VectorQuery)
+  // @@protoc_insertion_point(destructor:vearchpb.VectorQuery)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -5874,7 +5889,7 @@ void VectorQuery::SetCachedSize(int size) const {
 }
 
 void VectorQuery::Clear() {
-// @@protoc_insertion_point(message_clear_start:VectorQuery)
+// @@protoc_insertion_point(message_clear_start:vearchpb.VectorQuery)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -5901,7 +5916,7 @@ const char* VectorQuery::_InternalParse(const char* ptr, ::_pbi::ParseContext* c
           auto str = _internal_mutable_name();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "VectorQuery.name"));
+          CHK_(::_pbi::VerifyUTF8(str, "vearchpb.VectorQuery.name"));
         } else
           goto handle_unusual;
         continue;
@@ -5936,7 +5951,7 @@ const char* VectorQuery::_InternalParse(const char* ptr, ::_pbi::ParseContext* c
           auto str = _internal_mutable_format();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "VectorQuery.format"));
+          CHK_(::_pbi::VerifyUTF8(str, "vearchpb.VectorQuery.format"));
         } else
           goto handle_unusual;
         continue;
@@ -5946,7 +5961,7 @@ const char* VectorQuery::_InternalParse(const char* ptr, ::_pbi::ParseContext* c
           auto str = _internal_mutable_index_type();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "VectorQuery.index_type"));
+          CHK_(::_pbi::VerifyUTF8(str, "vearchpb.VectorQuery.index_type"));
         } else
           goto handle_unusual;
         continue;
@@ -5975,7 +5990,7 @@ failure:
 
 uint8_t* VectorQuery::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:VectorQuery)
+  // @@protoc_insertion_point(serialize_to_array_start:vearchpb.VectorQuery)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
@@ -5984,7 +5999,7 @@ uint8_t* VectorQuery::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_name().data(), static_cast<int>(this->_internal_name().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "VectorQuery.name");
+      "vearchpb.VectorQuery.name");
     target = stream->WriteStringMaybeAliased(
         1, this->_internal_name(), target);
   }
@@ -6020,7 +6035,7 @@ uint8_t* VectorQuery::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_format().data(), static_cast<int>(this->_internal_format().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "VectorQuery.format");
+      "vearchpb.VectorQuery.format");
     target = stream->WriteStringMaybeAliased(
         5, this->_internal_format(), target);
   }
@@ -6030,7 +6045,7 @@ uint8_t* VectorQuery::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_index_type().data(), static_cast<int>(this->_internal_index_type().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "VectorQuery.index_type");
+      "vearchpb.VectorQuery.index_type");
     target = stream->WriteStringMaybeAliased(
         6, this->_internal_index_type(), target);
   }
@@ -6039,12 +6054,12 @@ uint8_t* VectorQuery::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:VectorQuery)
+  // @@protoc_insertion_point(serialize_to_array_end:vearchpb.VectorQuery)
   return target;
 }
 
 size_t VectorQuery::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:VectorQuery)
+// @@protoc_insertion_point(message_byte_size_start:vearchpb.VectorQuery)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
@@ -6110,7 +6125,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*VectorQuery::GetClassData() co
 void VectorQuery::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<VectorQuery*>(&to_msg);
   auto& from = static_cast<const VectorQuery&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:VectorQuery)
+  // @@protoc_insertion_point(class_specific_merge_from_start:vearchpb.VectorQuery)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
@@ -6145,7 +6160,7 @@ void VectorQuery::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PR
 }
 
 void VectorQuery::CopyFrom(const VectorQuery& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:VectorQuery)
+// @@protoc_insertion_point(class_specific_copy_from_start:vearchpb.VectorQuery)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -6200,7 +6215,7 @@ IndexParameters::IndexParameters(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:IndexParameters)
+  // @@protoc_insertion_point(arena_constructor:vearchpb.IndexParameters)
 }
 IndexParameters::IndexParameters(const IndexParameters& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -6214,7 +6229,7 @@ IndexParameters::IndexParameters(const IndexParameters& from)
   ::memcpy(&_impl_.metric_type_, &from._impl_.metric_type_,
     static_cast<size_t>(reinterpret_cast<char*>(&_impl_.nprobe_) -
     reinterpret_cast<char*>(&_impl_.metric_type_)) + sizeof(_impl_.nprobe_));
-  // @@protoc_insertion_point(copy_constructor:IndexParameters)
+  // @@protoc_insertion_point(copy_constructor:vearchpb.IndexParameters)
 }
 
 inline void IndexParameters::SharedCtor(
@@ -6229,7 +6244,7 @@ inline void IndexParameters::SharedCtor(
 }
 
 IndexParameters::~IndexParameters() {
-  // @@protoc_insertion_point(destructor:IndexParameters)
+  // @@protoc_insertion_point(destructor:vearchpb.IndexParameters)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -6246,7 +6261,7 @@ void IndexParameters::SetCachedSize(int size) const {
 }
 
 void IndexParameters::Clear() {
-// @@protoc_insertion_point(message_clear_start:IndexParameters)
+// @@protoc_insertion_point(message_clear_start:vearchpb.IndexParameters)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -6263,12 +6278,12 @@ const char* IndexParameters::_InternalParse(const char* ptr, ::_pbi::ParseContex
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // .IndexParameters.DistanceMetricType metric_type = 1;
+      // .vearchpb.IndexParameters.DistanceMetricType metric_type = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 8)) {
           uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
           CHK_(ptr);
-          _internal_set_metric_type(static_cast<::IndexParameters_DistanceMetricType>(val));
+          _internal_set_metric_type(static_cast<::vearchpb::IndexParameters_DistanceMetricType>(val));
         } else
           goto handle_unusual;
         continue;
@@ -6305,11 +6320,11 @@ failure:
 
 uint8_t* IndexParameters::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:IndexParameters)
+  // @@protoc_insertion_point(serialize_to_array_start:vearchpb.IndexParameters)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // .IndexParameters.DistanceMetricType metric_type = 1;
+  // .vearchpb.IndexParameters.DistanceMetricType metric_type = 1;
   if (this->_internal_metric_type() != 0) {
     target = stream->EnsureSpace(target);
     target = ::_pbi::WireFormatLite::WriteEnumToArray(
@@ -6326,19 +6341,19 @@ uint8_t* IndexParameters::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:IndexParameters)
+  // @@protoc_insertion_point(serialize_to_array_end:vearchpb.IndexParameters)
   return target;
 }
 
 size_t IndexParameters::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:IndexParameters)
+// @@protoc_insertion_point(message_byte_size_start:vearchpb.IndexParameters)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // .IndexParameters.DistanceMetricType metric_type = 1;
+  // .vearchpb.IndexParameters.DistanceMetricType metric_type = 1;
   if (this->_internal_metric_type() != 0) {
     total_size += 1 +
       ::_pbi::WireFormatLite::EnumSize(this->_internal_metric_type());
@@ -6362,7 +6377,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*IndexParameters::GetClassData(
 void IndexParameters::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<IndexParameters*>(&to_msg);
   auto& from = static_cast<const IndexParameters&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:IndexParameters)
+  // @@protoc_insertion_point(class_specific_merge_from_start:vearchpb.IndexParameters)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
@@ -6377,7 +6392,7 @@ void IndexParameters::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const 
 }
 
 void IndexParameters::CopyFrom(const IndexParameters& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:IndexParameters)
+// @@protoc_insertion_point(class_specific_copy_from_start:vearchpb.IndexParameters)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -6422,10 +6437,10 @@ void QueryRequest_SortFieldMapEntry_DoNotUse::MergeFrom(const QueryRequest_SortF
 
 class QueryRequest::_Internal {
  public:
-  static const ::RequestHead& head(const QueryRequest* msg);
+  static const ::vearchpb::RequestHead& head(const QueryRequest* msg);
 };
 
-const ::RequestHead&
+const ::vearchpb::RequestHead&
 QueryRequest::_Internal::head(const QueryRequest* msg) {
   return *msg->_impl_.head_;
 }
@@ -6436,7 +6451,7 @@ QueryRequest::QueryRequest(::PROTOBUF_NAMESPACE_ID::Arena* arena,
   if (arena != nullptr && !is_message_owned) {
     arena->OwnCustomDestructor(this, &QueryRequest::ArenaDtor);
   }
-  // @@protoc_insertion_point(arena_constructor:QueryRequest)
+  // @@protoc_insertion_point(arena_constructor:vearchpb.QueryRequest)
 }
 QueryRequest::QueryRequest(const QueryRequest& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -6469,12 +6484,12 @@ QueryRequest::QueryRequest(const QueryRequest& from)
       _this->GetArenaForAllocation());
   }
   if (from._internal_has_head()) {
-    _this->_impl_.head_ = new ::RequestHead(*from._impl_.head_);
+    _this->_impl_.head_ = new ::vearchpb::RequestHead(*from._impl_.head_);
   }
   ::memcpy(&_impl_.partition_id_, &from._impl_.partition_id_,
     static_cast<size_t>(reinterpret_cast<char*>(&_impl_.page_size_) -
     reinterpret_cast<char*>(&_impl_.partition_id_)) + sizeof(_impl_.page_size_));
-  // @@protoc_insertion_point(copy_constructor:QueryRequest)
+  // @@protoc_insertion_point(copy_constructor:vearchpb.QueryRequest)
 }
 
 inline void QueryRequest::SharedCtor(
@@ -6505,7 +6520,7 @@ inline void QueryRequest::SharedCtor(
 }
 
 QueryRequest::~QueryRequest() {
-  // @@protoc_insertion_point(destructor:QueryRequest)
+  // @@protoc_insertion_point(destructor:vearchpb.QueryRequest)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     ArenaDtor(this);
@@ -6536,7 +6551,7 @@ void QueryRequest::SetCachedSize(int size) const {
 }
 
 void QueryRequest::Clear() {
-// @@protoc_insertion_point(message_clear_start:QueryRequest)
+// @@protoc_insertion_point(message_clear_start:vearchpb.QueryRequest)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -6564,7 +6579,7 @@ const char* QueryRequest::_InternalParse(const char* ptr, ::_pbi::ParseContext* 
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // .RequestHead head = 1;
+      // .vearchpb.RequestHead head = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
           ptr = ctx->ParseMessage(_internal_mutable_head(), ptr);
@@ -6581,7 +6596,7 @@ const char* QueryRequest::_InternalParse(const char* ptr, ::_pbi::ParseContext* 
             auto str = _internal_add_document_ids();
             ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
             CHK_(ptr);
-            CHK_(::_pbi::VerifyUTF8(str, "QueryRequest.document_ids"));
+            CHK_(::_pbi::VerifyUTF8(str, "vearchpb.QueryRequest.document_ids"));
             if (!ctx->DataAvailable(ptr)) break;
           } while (::PROTOBUF_NAMESPACE_ID::internal::ExpectTag<18>(ptr));
         } else
@@ -6603,7 +6618,7 @@ const char* QueryRequest::_InternalParse(const char* ptr, ::_pbi::ParseContext* 
         } else
           goto handle_unusual;
         continue;
-      // repeated .RangeFilter range_filters = 5;
+      // repeated .vearchpb.RangeFilter range_filters = 5;
       case 5:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 42)) {
           ptr -= 1;
@@ -6616,7 +6631,7 @@ const char* QueryRequest::_InternalParse(const char* ptr, ::_pbi::ParseContext* 
         } else
           goto handle_unusual;
         continue;
-      // repeated .TermFilter term_filters = 6;
+      // repeated .vearchpb.TermFilter term_filters = 6;
       case 6:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 50)) {
           ptr -= 1;
@@ -6638,7 +6653,7 @@ const char* QueryRequest::_InternalParse(const char* ptr, ::_pbi::ParseContext* 
             auto str = _internal_add_fields();
             ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
             CHK_(ptr);
-            CHK_(::_pbi::VerifyUTF8(str, "QueryRequest.fields"));
+            CHK_(::_pbi::VerifyUTF8(str, "vearchpb.QueryRequest.fields"));
             if (!ctx->DataAvailable(ptr)) break;
           } while (::PROTOBUF_NAMESPACE_ID::internal::ExpectTag<58>(ptr));
         } else
@@ -6674,7 +6689,7 @@ const char* QueryRequest::_InternalParse(const char* ptr, ::_pbi::ParseContext* 
           auto str = _internal_mutable_load_balance();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "QueryRequest.load_balance"));
+          CHK_(::_pbi::VerifyUTF8(str, "vearchpb.QueryRequest.load_balance"));
         } else
           goto handle_unusual;
         continue;
@@ -6691,7 +6706,7 @@ const char* QueryRequest::_InternalParse(const char* ptr, ::_pbi::ParseContext* 
         } else
           goto handle_unusual;
         continue;
-      // repeated .SortField sort_fields = 13;
+      // repeated .vearchpb.SortField sort_fields = 13;
       case 13:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 106)) {
           ptr -= 1;
@@ -6737,11 +6752,11 @@ failure:
 
 uint8_t* QueryRequest::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:QueryRequest)
+  // @@protoc_insertion_point(serialize_to_array_start:vearchpb.QueryRequest)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // .RequestHead head = 1;
+  // .vearchpb.RequestHead head = 1;
   if (this->_internal_has_head()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(1, _Internal::head(this),
@@ -6754,7 +6769,7 @@ uint8_t* QueryRequest::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       s.data(), static_cast<int>(s.length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "QueryRequest.document_ids");
+      "vearchpb.QueryRequest.document_ids");
     target = stream->WriteString(2, s, target);
   }
 
@@ -6770,7 +6785,7 @@ uint8_t* QueryRequest::_InternalSerialize(
     target = ::_pbi::WireFormatLite::WriteBoolToArray(4, this->_internal_next(), target);
   }
 
-  // repeated .RangeFilter range_filters = 5;
+  // repeated .vearchpb.RangeFilter range_filters = 5;
   for (unsigned i = 0,
       n = static_cast<unsigned>(this->_internal_range_filters_size()); i < n; i++) {
     const auto& repfield = this->_internal_range_filters(i);
@@ -6778,7 +6793,7 @@ uint8_t* QueryRequest::_InternalSerialize(
         InternalWriteMessage(5, repfield, repfield.GetCachedSize(), target, stream);
   }
 
-  // repeated .TermFilter term_filters = 6;
+  // repeated .vearchpb.TermFilter term_filters = 6;
   for (unsigned i = 0,
       n = static_cast<unsigned>(this->_internal_term_filters_size()); i < n; i++) {
     const auto& repfield = this->_internal_term_filters(i);
@@ -6792,7 +6807,7 @@ uint8_t* QueryRequest::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       s.data(), static_cast<int>(s.length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "QueryRequest.fields");
+      "vearchpb.QueryRequest.fields");
     target = stream->WriteString(7, s, target);
   }
 
@@ -6819,7 +6834,7 @@ uint8_t* QueryRequest::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_load_balance().data(), static_cast<int>(this->_internal_load_balance().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "QueryRequest.load_balance");
+      "vearchpb.QueryRequest.load_balance");
     target = stream->WriteStringMaybeAliased(
         11, this->_internal_load_balance(), target);
   }
@@ -6834,11 +6849,11 @@ uint8_t* QueryRequest::_InternalSerialize(
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
         entry.first.data(), static_cast<int>(entry.first.length()),
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-        "QueryRequest.SortFieldMapEntry.key");
+        "vearchpb.QueryRequest.SortFieldMapEntry.key");
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
         entry.second.data(), static_cast<int>(entry.second.length()),
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-        "QueryRequest.SortFieldMapEntry.value");
+        "vearchpb.QueryRequest.SortFieldMapEntry.value");
     };
 
     if (stream->IsSerializationDeterministic() && map_field.size() > 1) {
@@ -6854,7 +6869,7 @@ uint8_t* QueryRequest::_InternalSerialize(
     }
   }
 
-  // repeated .SortField sort_fields = 13;
+  // repeated .vearchpb.SortField sort_fields = 13;
   for (unsigned i = 0,
       n = static_cast<unsigned>(this->_internal_sort_fields_size()); i < n; i++) {
     const auto& repfield = this->_internal_sort_fields(i);
@@ -6872,12 +6887,12 @@ uint8_t* QueryRequest::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:QueryRequest)
+  // @@protoc_insertion_point(serialize_to_array_end:vearchpb.QueryRequest)
   return target;
 }
 
 size_t QueryRequest::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:QueryRequest)
+// @@protoc_insertion_point(message_byte_size_start:vearchpb.QueryRequest)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
@@ -6892,14 +6907,14 @@ size_t QueryRequest::ByteSizeLong() const {
       _impl_.document_ids_.Get(i));
   }
 
-  // repeated .RangeFilter range_filters = 5;
+  // repeated .vearchpb.RangeFilter range_filters = 5;
   total_size += 1UL * this->_internal_range_filters_size();
   for (const auto& msg : this->_impl_.range_filters_) {
     total_size +=
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(msg);
   }
 
-  // repeated .TermFilter term_filters = 6;
+  // repeated .vearchpb.TermFilter term_filters = 6;
   total_size += 1UL * this->_internal_term_filters_size();
   for (const auto& msg : this->_impl_.term_filters_) {
     total_size +=
@@ -6923,7 +6938,7 @@ size_t QueryRequest::ByteSizeLong() const {
     total_size += QueryRequest_SortFieldMapEntry_DoNotUse::Funcs::ByteSizeLong(it->first, it->second);
   }
 
-  // repeated .SortField sort_fields = 13;
+  // repeated .vearchpb.SortField sort_fields = 13;
   total_size += 1UL * this->_internal_sort_fields_size();
   for (const auto& msg : this->_impl_.sort_fields_) {
     total_size +=
@@ -6937,7 +6952,7 @@ size_t QueryRequest::ByteSizeLong() const {
         this->_internal_load_balance());
   }
 
-  // .RequestHead head = 1;
+  // .vearchpb.RequestHead head = 1;
   if (this->_internal_has_head()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
@@ -6987,7 +7002,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*QueryRequest::GetClassData() c
 void QueryRequest::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<QueryRequest*>(&to_msg);
   auto& from = static_cast<const QueryRequest&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:QueryRequest)
+  // @@protoc_insertion_point(class_specific_merge_from_start:vearchpb.QueryRequest)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
@@ -7002,7 +7017,7 @@ void QueryRequest::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::P
     _this->_internal_set_load_balance(from._internal_load_balance());
   }
   if (from._internal_has_head()) {
-    _this->_internal_mutable_head()->::RequestHead::MergeFrom(
+    _this->_internal_mutable_head()->::vearchpb::RequestHead::MergeFrom(
         from._internal_head());
   }
   if (from._internal_partition_id() != 0) {
@@ -7027,7 +7042,7 @@ void QueryRequest::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::P
 }
 
 void QueryRequest::CopyFrom(const QueryRequest& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:QueryRequest)
+// @@protoc_insertion_point(class_specific_copy_from_start:vearchpb.QueryRequest)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -7084,10 +7099,10 @@ void SearchRequest_SortFieldMapEntry_DoNotUse::MergeFrom(const SearchRequest_Sor
 
 class SearchRequest::_Internal {
  public:
-  static const ::RequestHead& head(const SearchRequest* msg);
+  static const ::vearchpb::RequestHead& head(const SearchRequest* msg);
 };
 
-const ::RequestHead&
+const ::vearchpb::RequestHead&
 SearchRequest::_Internal::head(const SearchRequest* msg) {
   return *msg->_impl_.head_;
 }
@@ -7098,7 +7113,7 @@ SearchRequest::SearchRequest(::PROTOBUF_NAMESPACE_ID::Arena* arena,
   if (arena != nullptr && !is_message_owned) {
     arena->OwnCustomDestructor(this, &SearchRequest::ArenaDtor);
   }
-  // @@protoc_insertion_point(arena_constructor:SearchRequest)
+  // @@protoc_insertion_point(arena_constructor:vearchpb.SearchRequest)
 }
 SearchRequest::SearchRequest(const SearchRequest& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -7141,12 +7156,12 @@ SearchRequest::SearchRequest(const SearchRequest& from)
       _this->GetArenaForAllocation());
   }
   if (from._internal_has_head()) {
-    _this->_impl_.head_ = new ::RequestHead(*from._impl_.head_);
+    _this->_impl_.head_ = new ::vearchpb::RequestHead(*from._impl_.head_);
   }
   ::memcpy(&_impl_.req_num_, &from._impl_.req_num_,
     static_cast<size_t>(reinterpret_cast<char*>(&_impl_.trace_) -
     reinterpret_cast<char*>(&_impl_.req_num_)) + sizeof(_impl_.trace_));
-  // @@protoc_insertion_point(copy_constructor:SearchRequest)
+  // @@protoc_insertion_point(copy_constructor:vearchpb.SearchRequest)
 }
 
 inline void SearchRequest::SharedCtor(
@@ -7183,7 +7198,7 @@ inline void SearchRequest::SharedCtor(
 }
 
 SearchRequest::~SearchRequest() {
-  // @@protoc_insertion_point(destructor:SearchRequest)
+  // @@protoc_insertion_point(destructor:vearchpb.SearchRequest)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     ArenaDtor(this);
@@ -7215,7 +7230,7 @@ void SearchRequest::SetCachedSize(int size) const {
 }
 
 void SearchRequest::Clear() {
-// @@protoc_insertion_point(message_clear_start:SearchRequest)
+// @@protoc_insertion_point(message_clear_start:vearchpb.SearchRequest)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -7244,7 +7259,7 @@ const char* SearchRequest::_InternalParse(const char* ptr, ::_pbi::ParseContext*
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // .RequestHead head = 1;
+      // .vearchpb.RequestHead head = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
           ptr = ctx->ParseMessage(_internal_mutable_head(), ptr);
@@ -7276,7 +7291,7 @@ const char* SearchRequest::_InternalParse(const char* ptr, ::_pbi::ParseContext*
         } else
           goto handle_unusual;
         continue;
-      // repeated .VectorQuery vec_fields = 5;
+      // repeated .vearchpb.VectorQuery vec_fields = 5;
       case 5:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 42)) {
           ptr -= 1;
@@ -7298,13 +7313,13 @@ const char* SearchRequest::_InternalParse(const char* ptr, ::_pbi::ParseContext*
             auto str = _internal_add_fields();
             ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
             CHK_(ptr);
-            CHK_(::_pbi::VerifyUTF8(str, "SearchRequest.fields"));
+            CHK_(::_pbi::VerifyUTF8(str, "vearchpb.SearchRequest.fields"));
             if (!ctx->DataAvailable(ptr)) break;
           } while (::PROTOBUF_NAMESPACE_ID::internal::ExpectTag<50>(ptr));
         } else
           goto handle_unusual;
         continue;
-      // repeated .RangeFilter range_filters = 7;
+      // repeated .vearchpb.RangeFilter range_filters = 7;
       case 7:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 58)) {
           ptr -= 1;
@@ -7317,7 +7332,7 @@ const char* SearchRequest::_InternalParse(const char* ptr, ::_pbi::ParseContext*
         } else
           goto handle_unusual;
         continue;
-      // repeated .TermFilter term_filters = 8;
+      // repeated .vearchpb.TermFilter term_filters = 8;
       case 8:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 66)) {
           ptr -= 1;
@@ -7336,7 +7351,7 @@ const char* SearchRequest::_InternalParse(const char* ptr, ::_pbi::ParseContext*
           auto str = _internal_mutable_index_params();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "SearchRequest.index_params"));
+          CHK_(::_pbi::VerifyUTF8(str, "vearchpb.SearchRequest.index_params"));
         } else
           goto handle_unusual;
         continue;
@@ -7377,7 +7392,7 @@ const char* SearchRequest::_InternalParse(const char* ptr, ::_pbi::ParseContext*
         } else
           goto handle_unusual;
         continue;
-      // repeated .SortField sort_fields = 14;
+      // repeated .vearchpb.SortField sort_fields = 14;
       case 14:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 114)) {
           ptr -= 1;
@@ -7396,7 +7411,7 @@ const char* SearchRequest::_InternalParse(const char* ptr, ::_pbi::ParseContext*
           auto str = _internal_mutable_ranker();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "SearchRequest.ranker"));
+          CHK_(::_pbi::VerifyUTF8(str, "vearchpb.SearchRequest.ranker"));
         } else
           goto handle_unusual;
         continue;
@@ -7433,11 +7448,11 @@ failure:
 
 uint8_t* SearchRequest::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:SearchRequest)
+  // @@protoc_insertion_point(serialize_to_array_start:vearchpb.SearchRequest)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // .RequestHead head = 1;
+  // .vearchpb.RequestHead head = 1;
   if (this->_internal_has_head()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(1, _Internal::head(this),
@@ -7462,7 +7477,7 @@ uint8_t* SearchRequest::_InternalSerialize(
     target = ::_pbi::WireFormatLite::WriteInt32ToArray(4, this->_internal_is_brute_search(), target);
   }
 
-  // repeated .VectorQuery vec_fields = 5;
+  // repeated .vearchpb.VectorQuery vec_fields = 5;
   for (unsigned i = 0,
       n = static_cast<unsigned>(this->_internal_vec_fields_size()); i < n; i++) {
     const auto& repfield = this->_internal_vec_fields(i);
@@ -7476,11 +7491,11 @@ uint8_t* SearchRequest::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       s.data(), static_cast<int>(s.length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "SearchRequest.fields");
+      "vearchpb.SearchRequest.fields");
     target = stream->WriteString(6, s, target);
   }
 
-  // repeated .RangeFilter range_filters = 7;
+  // repeated .vearchpb.RangeFilter range_filters = 7;
   for (unsigned i = 0,
       n = static_cast<unsigned>(this->_internal_range_filters_size()); i < n; i++) {
     const auto& repfield = this->_internal_range_filters(i);
@@ -7488,7 +7503,7 @@ uint8_t* SearchRequest::_InternalSerialize(
         InternalWriteMessage(7, repfield, repfield.GetCachedSize(), target, stream);
   }
 
-  // repeated .TermFilter term_filters = 8;
+  // repeated .vearchpb.TermFilter term_filters = 8;
   for (unsigned i = 0,
       n = static_cast<unsigned>(this->_internal_term_filters_size()); i < n; i++) {
     const auto& repfield = this->_internal_term_filters(i);
@@ -7501,7 +7516,7 @@ uint8_t* SearchRequest::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_index_params().data(), static_cast<int>(this->_internal_index_params().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "SearchRequest.index_params");
+      "vearchpb.SearchRequest.index_params");
     target = stream->WriteStringMaybeAliased(
         9, this->_internal_index_params(), target);
   }
@@ -7534,11 +7549,11 @@ uint8_t* SearchRequest::_InternalSerialize(
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
         entry.first.data(), static_cast<int>(entry.first.length()),
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-        "SearchRequest.SortFieldMapEntry.key");
+        "vearchpb.SearchRequest.SortFieldMapEntry.key");
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
         entry.second.data(), static_cast<int>(entry.second.length()),
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-        "SearchRequest.SortFieldMapEntry.value");
+        "vearchpb.SearchRequest.SortFieldMapEntry.value");
     };
 
     if (stream->IsSerializationDeterministic() && map_field.size() > 1) {
@@ -7554,7 +7569,7 @@ uint8_t* SearchRequest::_InternalSerialize(
     }
   }
 
-  // repeated .SortField sort_fields = 14;
+  // repeated .vearchpb.SortField sort_fields = 14;
   for (unsigned i = 0,
       n = static_cast<unsigned>(this->_internal_sort_fields_size()); i < n; i++) {
     const auto& repfield = this->_internal_sort_fields(i);
@@ -7567,7 +7582,7 @@ uint8_t* SearchRequest::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_ranker().data(), static_cast<int>(this->_internal_ranker().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "SearchRequest.ranker");
+      "vearchpb.SearchRequest.ranker");
     target = stream->WriteStringMaybeAliased(
         15, this->_internal_ranker(), target);
   }
@@ -7582,19 +7597,19 @@ uint8_t* SearchRequest::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:SearchRequest)
+  // @@protoc_insertion_point(serialize_to_array_end:vearchpb.SearchRequest)
   return target;
 }
 
 size_t SearchRequest::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:SearchRequest)
+// @@protoc_insertion_point(message_byte_size_start:vearchpb.SearchRequest)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // repeated .VectorQuery vec_fields = 5;
+  // repeated .vearchpb.VectorQuery vec_fields = 5;
   total_size += 1UL * this->_internal_vec_fields_size();
   for (const auto& msg : this->_impl_.vec_fields_) {
     total_size +=
@@ -7609,14 +7624,14 @@ size_t SearchRequest::ByteSizeLong() const {
       _impl_.fields_.Get(i));
   }
 
-  // repeated .RangeFilter range_filters = 7;
+  // repeated .vearchpb.RangeFilter range_filters = 7;
   total_size += 1UL * this->_internal_range_filters_size();
   for (const auto& msg : this->_impl_.range_filters_) {
     total_size +=
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(msg);
   }
 
-  // repeated .TermFilter term_filters = 8;
+  // repeated .vearchpb.TermFilter term_filters = 8;
   total_size += 1UL * this->_internal_term_filters_size();
   for (const auto& msg : this->_impl_.term_filters_) {
     total_size +=
@@ -7632,7 +7647,7 @@ size_t SearchRequest::ByteSizeLong() const {
     total_size += SearchRequest_SortFieldMapEntry_DoNotUse::Funcs::ByteSizeLong(it->first, it->second);
   }
 
-  // repeated .SortField sort_fields = 14;
+  // repeated .vearchpb.SortField sort_fields = 14;
   total_size += 1UL * this->_internal_sort_fields_size();
   for (const auto& msg : this->_impl_.sort_fields_) {
     total_size +=
@@ -7653,7 +7668,7 @@ size_t SearchRequest::ByteSizeLong() const {
         this->_internal_ranker());
   }
 
-  // .RequestHead head = 1;
+  // .vearchpb.RequestHead head = 1;
   if (this->_internal_has_head()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
@@ -7708,7 +7723,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*SearchRequest::GetClassData() 
 void SearchRequest::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<SearchRequest*>(&to_msg);
   auto& from = static_cast<const SearchRequest&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:SearchRequest)
+  // @@protoc_insertion_point(class_specific_merge_from_start:vearchpb.SearchRequest)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
@@ -7726,7 +7741,7 @@ void SearchRequest::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::
     _this->_internal_set_ranker(from._internal_ranker());
   }
   if (from._internal_has_head()) {
-    _this->_internal_mutable_head()->::RequestHead::MergeFrom(
+    _this->_internal_mutable_head()->::vearchpb::RequestHead::MergeFrom(
         from._internal_head());
   }
   if (from._internal_req_num() != 0) {
@@ -7754,7 +7769,7 @@ void SearchRequest::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::
 }
 
 void SearchRequest::CopyFrom(const SearchRequest& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:SearchRequest)
+// @@protoc_insertion_point(class_specific_copy_from_start:vearchpb.SearchRequest)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -7810,7 +7825,7 @@ ResultItem::ResultItem(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:ResultItem)
+  // @@protoc_insertion_point(arena_constructor:vearchpb.ResultItem)
 }
 ResultItem::ResultItem(const ResultItem& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -7840,7 +7855,7 @@ ResultItem::ResultItem(const ResultItem& from)
       _this->GetArenaForAllocation());
   }
   _this->_impl_.score_ = from._impl_.score_;
-  // @@protoc_insertion_point(copy_constructor:ResultItem)
+  // @@protoc_insertion_point(copy_constructor:vearchpb.ResultItem)
 }
 
 inline void ResultItem::SharedCtor(
@@ -7865,7 +7880,7 @@ inline void ResultItem::SharedCtor(
 }
 
 ResultItem::~ResultItem() {
-  // @@protoc_insertion_point(destructor:ResultItem)
+  // @@protoc_insertion_point(destructor:vearchpb.ResultItem)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -7885,7 +7900,7 @@ void ResultItem::SetCachedSize(int size) const {
 }
 
 void ResultItem::Clear() {
-// @@protoc_insertion_point(message_clear_start:ResultItem)
+// @@protoc_insertion_point(message_clear_start:vearchpb.ResultItem)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -7911,7 +7926,7 @@ const char* ResultItem::_InternalParse(const char* ptr, ::_pbi::ParseContext* ct
         } else
           goto handle_unusual;
         continue;
-      // repeated .Field fields = 2;
+      // repeated .vearchpb.Field fields = 2;
       case 2:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
           ptr -= 1;
@@ -7930,7 +7945,7 @@ const char* ResultItem::_InternalParse(const char* ptr, ::_pbi::ParseContext* ct
           auto str = _internal_mutable_p_key();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "ResultItem.p_key"));
+          CHK_(::_pbi::VerifyUTF8(str, "vearchpb.ResultItem.p_key"));
         } else
           goto handle_unusual;
         continue;
@@ -7968,7 +7983,7 @@ failure:
 
 uint8_t* ResultItem::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:ResultItem)
+  // @@protoc_insertion_point(serialize_to_array_start:vearchpb.ResultItem)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
@@ -7982,7 +7997,7 @@ uint8_t* ResultItem::_InternalSerialize(
     target = ::_pbi::WireFormatLite::WriteDoubleToArray(1, this->_internal_score(), target);
   }
 
-  // repeated .Field fields = 2;
+  // repeated .vearchpb.Field fields = 2;
   for (unsigned i = 0,
       n = static_cast<unsigned>(this->_internal_fields_size()); i < n; i++) {
     const auto& repfield = this->_internal_fields(i);
@@ -7995,7 +8010,7 @@ uint8_t* ResultItem::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_p_key().data(), static_cast<int>(this->_internal_p_key().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "ResultItem.p_key");
+      "vearchpb.ResultItem.p_key");
     target = stream->WriteStringMaybeAliased(
         3, this->_internal_p_key(), target);
   }
@@ -8010,19 +8025,19 @@ uint8_t* ResultItem::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:ResultItem)
+  // @@protoc_insertion_point(serialize_to_array_end:vearchpb.ResultItem)
   return target;
 }
 
 size_t ResultItem::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:ResultItem)
+// @@protoc_insertion_point(message_byte_size_start:vearchpb.ResultItem)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // repeated .Field fields = 2;
+  // repeated .vearchpb.Field fields = 2;
   total_size += 1UL * this->_internal_fields_size();
   for (const auto& msg : this->_impl_.fields_) {
     total_size +=
@@ -8065,7 +8080,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*ResultItem::GetClassData() con
 void ResultItem::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<ResultItem*>(&to_msg);
   auto& from = static_cast<const ResultItem&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:ResultItem)
+  // @@protoc_insertion_point(class_specific_merge_from_start:vearchpb.ResultItem)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
@@ -8088,7 +8103,7 @@ void ResultItem::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PRO
 }
 
 void ResultItem::CopyFrom(const ResultItem& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:ResultItem)
+// @@protoc_insertion_point(class_specific_copy_from_start:vearchpb.ResultItem)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -8125,10 +8140,10 @@ void ResultItem::InternalSwap(ResultItem* other) {
 
 class SearchResult::_Internal {
  public:
-  static const ::SearchStatus& status(const SearchResult* msg);
+  static const ::vearchpb::SearchStatus& status(const SearchResult* msg);
 };
 
-const ::SearchStatus&
+const ::vearchpb::SearchStatus&
 SearchResult::_Internal::status(const SearchResult* msg) {
   return *msg->_impl_.status_;
 }
@@ -8136,7 +8151,7 @@ SearchResult::SearchResult(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:SearchResult)
+  // @@protoc_insertion_point(arena_constructor:vearchpb.SearchResult)
 }
 SearchResult::SearchResult(const SearchResult& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -8164,12 +8179,12 @@ SearchResult::SearchResult(const SearchResult& from)
       _this->GetArenaForAllocation());
   }
   if (from._internal_has_status()) {
-    _this->_impl_.status_ = new ::SearchStatus(*from._impl_.status_);
+    _this->_impl_.status_ = new ::vearchpb::SearchStatus(*from._impl_.status_);
   }
   ::memcpy(&_impl_.max_score_, &from._impl_.max_score_,
     static_cast<size_t>(reinterpret_cast<char*>(&_impl_.topn_) -
     reinterpret_cast<char*>(&_impl_.max_score_)) + sizeof(_impl_.topn_));
-  // @@protoc_insertion_point(copy_constructor:SearchResult)
+  // @@protoc_insertion_point(copy_constructor:vearchpb.SearchResult)
 }
 
 inline void SearchResult::SharedCtor(
@@ -8196,7 +8211,7 @@ inline void SearchResult::SharedCtor(
 }
 
 SearchResult::~SearchResult() {
-  // @@protoc_insertion_point(destructor:SearchResult)
+  // @@protoc_insertion_point(destructor:vearchpb.SearchResult)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -8216,7 +8231,7 @@ void SearchResult::SetCachedSize(int size) const {
 }
 
 void SearchResult::Clear() {
-// @@protoc_insertion_point(message_clear_start:SearchResult)
+// @@protoc_insertion_point(message_clear_start:vearchpb.SearchResult)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -8271,7 +8286,7 @@ const char* SearchResult::_InternalParse(const char* ptr, ::_pbi::ParseContext* 
         } else
           goto handle_unusual;
         continue;
-      // .SearchStatus status = 5;
+      // .vearchpb.SearchStatus status = 5;
       case 5:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 42)) {
           ptr = ctx->ParseMessage(_internal_mutable_status(), ptr);
@@ -8285,11 +8300,11 @@ const char* SearchResult::_InternalParse(const char* ptr, ::_pbi::ParseContext* 
           auto str = _internal_mutable_msg();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "SearchResult.msg"));
+          CHK_(::_pbi::VerifyUTF8(str, "vearchpb.SearchResult.msg"));
         } else
           goto handle_unusual;
         continue;
-      // repeated .ResultItem result_items = 7;
+      // repeated .vearchpb.ResultItem result_items = 7;
       case 7:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 58)) {
           ptr -= 1;
@@ -8351,7 +8366,7 @@ failure:
 
 uint8_t* SearchResult::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:SearchResult)
+  // @@protoc_insertion_point(serialize_to_array_start:vearchpb.SearchResult)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
@@ -8383,7 +8398,7 @@ uint8_t* SearchResult::_InternalSerialize(
     target = ::_pbi::WireFormatLite::WriteUInt32ToArray(4, this->_internal_max_took_id(), target);
   }
 
-  // .SearchStatus status = 5;
+  // .vearchpb.SearchStatus status = 5;
   if (this->_internal_has_status()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(5, _Internal::status(this),
@@ -8395,12 +8410,12 @@ uint8_t* SearchResult::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_msg().data(), static_cast<int>(this->_internal_msg().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "SearchResult.msg");
+      "vearchpb.SearchResult.msg");
     target = stream->WriteStringMaybeAliased(
         6, this->_internal_msg(), target);
   }
 
-  // repeated .ResultItem result_items = 7;
+  // repeated .vearchpb.ResultItem result_items = 7;
   for (unsigned i = 0,
       n = static_cast<unsigned>(this->_internal_result_items_size()); i < n; i++) {
     const auto& repfield = this->_internal_result_items(i);
@@ -8430,19 +8445,19 @@ uint8_t* SearchResult::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:SearchResult)
+  // @@protoc_insertion_point(serialize_to_array_end:vearchpb.SearchResult)
   return target;
 }
 
 size_t SearchResult::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:SearchResult)
+// @@protoc_insertion_point(message_byte_size_start:vearchpb.SearchResult)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // repeated .ResultItem result_items = 7;
+  // repeated .vearchpb.ResultItem result_items = 7;
   total_size += 1UL * this->_internal_result_items_size();
   for (const auto& msg : this->_impl_.result_items_) {
     total_size +=
@@ -8456,7 +8471,7 @@ size_t SearchResult::ByteSizeLong() const {
         this->_internal_msg());
   }
 
-  // .SearchStatus status = 5;
+  // .vearchpb.SearchStatus status = 5;
   if (this->_internal_has_status()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
@@ -8515,7 +8530,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*SearchResult::GetClassData() c
 void SearchResult::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<SearchResult*>(&to_msg);
   auto& from = static_cast<const SearchResult&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:SearchResult)
+  // @@protoc_insertion_point(class_specific_merge_from_start:vearchpb.SearchResult)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
@@ -8525,7 +8540,7 @@ void SearchResult::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::P
     _this->_internal_set_msg(from._internal_msg());
   }
   if (from._internal_has_status()) {
-    _this->_internal_mutable_status()->::SearchStatus::MergeFrom(
+    _this->_internal_mutable_status()->::vearchpb::SearchStatus::MergeFrom(
         from._internal_status());
   }
   static_assert(sizeof(uint64_t) == sizeof(double), "Code assumes uint64_t and double are the same size.");
@@ -8557,7 +8572,7 @@ void SearchResult::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::P
 }
 
 void SearchResult::CopyFrom(const SearchResult& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:SearchResult)
+// @@protoc_insertion_point(class_specific_copy_from_start:vearchpb.SearchResult)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -8595,10 +8610,10 @@ void SearchResult::InternalSwap(SearchResult* other) {
 
 class SearchResponse::_Internal {
  public:
-  static const ::ResponseHead& head(const SearchResponse* msg);
+  static const ::vearchpb::ResponseHead& head(const SearchResponse* msg);
 };
 
-const ::ResponseHead&
+const ::vearchpb::ResponseHead&
 SearchResponse::_Internal::head(const SearchResponse* msg) {
   return *msg->_impl_.head_;
 }
@@ -8606,7 +8621,7 @@ SearchResponse::SearchResponse(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:SearchResponse)
+  // @@protoc_insertion_point(arena_constructor:vearchpb.SearchResponse)
 }
 SearchResponse::SearchResponse(const SearchResponse& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -8629,12 +8644,12 @@ SearchResponse::SearchResponse(const SearchResponse& from)
       _this->GetArenaForAllocation());
   }
   if (from._internal_has_head()) {
-    _this->_impl_.head_ = new ::ResponseHead(*from._impl_.head_);
+    _this->_impl_.head_ = new ::vearchpb::ResponseHead(*from._impl_.head_);
   }
   ::memcpy(&_impl_.timeout_, &from._impl_.timeout_,
     static_cast<size_t>(reinterpret_cast<char*>(&_impl_.top_size_) -
     reinterpret_cast<char*>(&_impl_.timeout_)) + sizeof(_impl_.top_size_));
-  // @@protoc_insertion_point(copy_constructor:SearchResponse)
+  // @@protoc_insertion_point(copy_constructor:vearchpb.SearchResponse)
 }
 
 inline void SearchResponse::SharedCtor(
@@ -8656,7 +8671,7 @@ inline void SearchResponse::SharedCtor(
 }
 
 SearchResponse::~SearchResponse() {
-  // @@protoc_insertion_point(destructor:SearchResponse)
+  // @@protoc_insertion_point(destructor:vearchpb.SearchResponse)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -8676,7 +8691,7 @@ void SearchResponse::SetCachedSize(int size) const {
 }
 
 void SearchResponse::Clear() {
-// @@protoc_insertion_point(message_clear_start:SearchResponse)
+// @@protoc_insertion_point(message_clear_start:vearchpb.SearchResponse)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -8699,7 +8714,7 @@ const char* SearchResponse::_InternalParse(const char* ptr, ::_pbi::ParseContext
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // .ResponseHead head = 1;
+      // .vearchpb.ResponseHead head = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
           ptr = ctx->ParseMessage(_internal_mutable_head(), ptr);
@@ -8707,7 +8722,7 @@ const char* SearchResponse::_InternalParse(const char* ptr, ::_pbi::ParseContext
         } else
           goto handle_unusual;
         continue;
-      // repeated .SearchResult results = 2;
+      // repeated .vearchpb.SearchResult results = 2;
       case 2:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
           ptr -= 1;
@@ -8770,18 +8785,18 @@ failure:
 
 uint8_t* SearchResponse::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:SearchResponse)
+  // @@protoc_insertion_point(serialize_to_array_start:vearchpb.SearchResponse)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // .ResponseHead head = 1;
+  // .vearchpb.ResponseHead head = 1;
   if (this->_internal_has_head()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(1, _Internal::head(this),
         _Internal::head(this).GetCachedSize(), target, stream);
   }
 
-  // repeated .SearchResult results = 2;
+  // repeated .vearchpb.SearchResult results = 2;
   for (unsigned i = 0,
       n = static_cast<unsigned>(this->_internal_results_size()); i < n; i++) {
     const auto& repfield = this->_internal_results(i);
@@ -8811,19 +8826,19 @@ uint8_t* SearchResponse::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:SearchResponse)
+  // @@protoc_insertion_point(serialize_to_array_end:vearchpb.SearchResponse)
   return target;
 }
 
 size_t SearchResponse::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:SearchResponse)
+// @@protoc_insertion_point(message_byte_size_start:vearchpb.SearchResponse)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // repeated .SearchResult results = 2;
+  // repeated .vearchpb.SearchResult results = 2;
   total_size += 1UL * this->_internal_results_size();
   for (const auto& msg : this->_impl_.results_) {
     total_size +=
@@ -8837,7 +8852,7 @@ size_t SearchResponse::ByteSizeLong() const {
         this->_internal_flatbytes());
   }
 
-  // .ResponseHead head = 1;
+  // .vearchpb.ResponseHead head = 1;
   if (this->_internal_has_head()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
@@ -8867,7 +8882,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*SearchResponse::GetClassData()
 void SearchResponse::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<SearchResponse*>(&to_msg);
   auto& from = static_cast<const SearchResponse&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:SearchResponse)
+  // @@protoc_insertion_point(class_specific_merge_from_start:vearchpb.SearchResponse)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
@@ -8877,7 +8892,7 @@ void SearchResponse::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const :
     _this->_internal_set_flatbytes(from._internal_flatbytes());
   }
   if (from._internal_has_head()) {
-    _this->_internal_mutable_head()->::ResponseHead::MergeFrom(
+    _this->_internal_mutable_head()->::vearchpb::ResponseHead::MergeFrom(
         from._internal_head());
   }
   if (from._internal_timeout() != 0) {
@@ -8890,7 +8905,7 @@ void SearchResponse::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const :
 }
 
 void SearchResponse::CopyFrom(const SearchResponse& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:SearchResponse)
+// @@protoc_insertion_point(class_specific_copy_from_start:vearchpb.SearchResponse)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -8934,7 +8949,7 @@ SearchStatus::SearchStatus(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:SearchStatus)
+  // @@protoc_insertion_point(arena_constructor:vearchpb.SearchStatus)
 }
 SearchStatus::SearchStatus(const SearchStatus& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -8958,7 +8973,7 @@ SearchStatus::SearchStatus(const SearchStatus& from)
   ::memcpy(&_impl_.total_, &from._impl_.total_,
     static_cast<size_t>(reinterpret_cast<char*>(&_impl_.successful_) -
     reinterpret_cast<char*>(&_impl_.total_)) + sizeof(_impl_.successful_));
-  // @@protoc_insertion_point(copy_constructor:SearchStatus)
+  // @@protoc_insertion_point(copy_constructor:vearchpb.SearchStatus)
 }
 
 inline void SearchStatus::SharedCtor(
@@ -8979,7 +8994,7 @@ inline void SearchStatus::SharedCtor(
 }
 
 SearchStatus::~SearchStatus() {
-  // @@protoc_insertion_point(destructor:SearchStatus)
+  // @@protoc_insertion_point(destructor:vearchpb.SearchStatus)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -8997,7 +9012,7 @@ void SearchStatus::SetCachedSize(int size) const {
 }
 
 void SearchStatus::Clear() {
-// @@protoc_insertion_point(message_clear_start:SearchStatus)
+// @@protoc_insertion_point(message_clear_start:vearchpb.SearchStatus)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -9045,7 +9060,7 @@ const char* SearchStatus::_InternalParse(const char* ptr, ::_pbi::ParseContext* 
           auto str = _internal_mutable_msg();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "SearchStatus.msg"));
+          CHK_(::_pbi::VerifyUTF8(str, "vearchpb.SearchStatus.msg"));
         } else
           goto handle_unusual;
         continue;
@@ -9074,7 +9089,7 @@ failure:
 
 uint8_t* SearchStatus::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:SearchStatus)
+  // @@protoc_insertion_point(serialize_to_array_start:vearchpb.SearchStatus)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
@@ -9101,7 +9116,7 @@ uint8_t* SearchStatus::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_msg().data(), static_cast<int>(this->_internal_msg().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "SearchStatus.msg");
+      "vearchpb.SearchStatus.msg");
     target = stream->WriteStringMaybeAliased(
         4, this->_internal_msg(), target);
   }
@@ -9110,12 +9125,12 @@ uint8_t* SearchStatus::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:SearchStatus)
+  // @@protoc_insertion_point(serialize_to_array_end:vearchpb.SearchStatus)
   return target;
 }
 
 size_t SearchStatus::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:SearchStatus)
+// @@protoc_insertion_point(message_byte_size_start:vearchpb.SearchStatus)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
@@ -9157,7 +9172,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*SearchStatus::GetClassData() c
 void SearchStatus::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<SearchStatus*>(&to_msg);
   auto& from = static_cast<const SearchStatus&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:SearchStatus)
+  // @@protoc_insertion_point(class_specific_merge_from_start:vearchpb.SearchStatus)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
@@ -9178,7 +9193,7 @@ void SearchStatus::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::P
 }
 
 void SearchStatus::CopyFrom(const SearchStatus& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:SearchStatus)
+// @@protoc_insertion_point(class_specific_copy_from_start:vearchpb.SearchStatus)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -9212,126 +9227,127 @@ void SearchStatus::InternalSwap(SearchStatus* other) {
 }
 
 // @@protoc_insertion_point(namespace_scope)
+}  // namespace vearchpb
 PROTOBUF_NAMESPACE_OPEN
-template<> PROTOBUF_NOINLINE ::RequestHead_ParamsEntry_DoNotUse*
-Arena::CreateMaybeMessage< ::RequestHead_ParamsEntry_DoNotUse >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::RequestHead_ParamsEntry_DoNotUse >(arena);
+template<> PROTOBUF_NOINLINE ::vearchpb::RequestHead_ParamsEntry_DoNotUse*
+Arena::CreateMaybeMessage< ::vearchpb::RequestHead_ParamsEntry_DoNotUse >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::vearchpb::RequestHead_ParamsEntry_DoNotUse >(arena);
 }
-template<> PROTOBUF_NOINLINE ::RequestHead*
-Arena::CreateMaybeMessage< ::RequestHead >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::RequestHead >(arena);
+template<> PROTOBUF_NOINLINE ::vearchpb::RequestHead*
+Arena::CreateMaybeMessage< ::vearchpb::RequestHead >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::vearchpb::RequestHead >(arena);
 }
-template<> PROTOBUF_NOINLINE ::ResponseHead_ParamsEntry_DoNotUse*
-Arena::CreateMaybeMessage< ::ResponseHead_ParamsEntry_DoNotUse >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::ResponseHead_ParamsEntry_DoNotUse >(arena);
+template<> PROTOBUF_NOINLINE ::vearchpb::ResponseHead_ParamsEntry_DoNotUse*
+Arena::CreateMaybeMessage< ::vearchpb::ResponseHead_ParamsEntry_DoNotUse >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::vearchpb::ResponseHead_ParamsEntry_DoNotUse >(arena);
 }
-template<> PROTOBUF_NOINLINE ::ResponseHead*
-Arena::CreateMaybeMessage< ::ResponseHead >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::ResponseHead >(arena);
+template<> PROTOBUF_NOINLINE ::vearchpb::ResponseHead*
+Arena::CreateMaybeMessage< ::vearchpb::ResponseHead >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::vearchpb::ResponseHead >(arena);
 }
-template<> PROTOBUF_NOINLINE ::GetRequest*
-Arena::CreateMaybeMessage< ::GetRequest >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::GetRequest >(arena);
+template<> PROTOBUF_NOINLINE ::vearchpb::GetRequest*
+Arena::CreateMaybeMessage< ::vearchpb::GetRequest >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::vearchpb::GetRequest >(arena);
 }
-template<> PROTOBUF_NOINLINE ::DeleteRequest*
-Arena::CreateMaybeMessage< ::DeleteRequest >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::DeleteRequest >(arena);
+template<> PROTOBUF_NOINLINE ::vearchpb::DeleteRequest*
+Arena::CreateMaybeMessage< ::vearchpb::DeleteRequest >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::vearchpb::DeleteRequest >(arena);
 }
-template<> PROTOBUF_NOINLINE ::BulkRequest*
-Arena::CreateMaybeMessage< ::BulkRequest >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::BulkRequest >(arena);
+template<> PROTOBUF_NOINLINE ::vearchpb::BulkRequest*
+Arena::CreateMaybeMessage< ::vearchpb::BulkRequest >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::vearchpb::BulkRequest >(arena);
 }
-template<> PROTOBUF_NOINLINE ::ForceMergeRequest*
-Arena::CreateMaybeMessage< ::ForceMergeRequest >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::ForceMergeRequest >(arena);
+template<> PROTOBUF_NOINLINE ::vearchpb::ForceMergeRequest*
+Arena::CreateMaybeMessage< ::vearchpb::ForceMergeRequest >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::vearchpb::ForceMergeRequest >(arena);
 }
-template<> PROTOBUF_NOINLINE ::FlushRequest*
-Arena::CreateMaybeMessage< ::FlushRequest >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::FlushRequest >(arena);
+template<> PROTOBUF_NOINLINE ::vearchpb::FlushRequest*
+Arena::CreateMaybeMessage< ::vearchpb::FlushRequest >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::vearchpb::FlushRequest >(arena);
 }
-template<> PROTOBUF_NOINLINE ::IndexRequest*
-Arena::CreateMaybeMessage< ::IndexRequest >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::IndexRequest >(arena);
+template<> PROTOBUF_NOINLINE ::vearchpb::IndexRequest*
+Arena::CreateMaybeMessage< ::vearchpb::IndexRequest >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::vearchpb::IndexRequest >(arena);
 }
-template<> PROTOBUF_NOINLINE ::GetResponse*
-Arena::CreateMaybeMessage< ::GetResponse >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::GetResponse >(arena);
+template<> PROTOBUF_NOINLINE ::vearchpb::GetResponse*
+Arena::CreateMaybeMessage< ::vearchpb::GetResponse >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::vearchpb::GetResponse >(arena);
 }
-template<> PROTOBUF_NOINLINE ::DeleteResponse*
-Arena::CreateMaybeMessage< ::DeleteResponse >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::DeleteResponse >(arena);
+template<> PROTOBUF_NOINLINE ::vearchpb::DeleteResponse*
+Arena::CreateMaybeMessage< ::vearchpb::DeleteResponse >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::vearchpb::DeleteResponse >(arena);
 }
-template<> PROTOBUF_NOINLINE ::BulkResponse*
-Arena::CreateMaybeMessage< ::BulkResponse >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::BulkResponse >(arena);
+template<> PROTOBUF_NOINLINE ::vearchpb::BulkResponse*
+Arena::CreateMaybeMessage< ::vearchpb::BulkResponse >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::vearchpb::BulkResponse >(arena);
 }
-template<> PROTOBUF_NOINLINE ::ForceMergeResponse*
-Arena::CreateMaybeMessage< ::ForceMergeResponse >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::ForceMergeResponse >(arena);
+template<> PROTOBUF_NOINLINE ::vearchpb::ForceMergeResponse*
+Arena::CreateMaybeMessage< ::vearchpb::ForceMergeResponse >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::vearchpb::ForceMergeResponse >(arena);
 }
-template<> PROTOBUF_NOINLINE ::DelByQueryeResponse*
-Arena::CreateMaybeMessage< ::DelByQueryeResponse >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::DelByQueryeResponse >(arena);
+template<> PROTOBUF_NOINLINE ::vearchpb::DelByQueryeResponse*
+Arena::CreateMaybeMessage< ::vearchpb::DelByQueryeResponse >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::vearchpb::DelByQueryeResponse >(arena);
 }
-template<> PROTOBUF_NOINLINE ::FlushResponse*
-Arena::CreateMaybeMessage< ::FlushResponse >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::FlushResponse >(arena);
+template<> PROTOBUF_NOINLINE ::vearchpb::FlushResponse*
+Arena::CreateMaybeMessage< ::vearchpb::FlushResponse >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::vearchpb::FlushResponse >(arena);
 }
-template<> PROTOBUF_NOINLINE ::IndexResponse*
-Arena::CreateMaybeMessage< ::IndexResponse >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::IndexResponse >(arena);
+template<> PROTOBUF_NOINLINE ::vearchpb::IndexResponse*
+Arena::CreateMaybeMessage< ::vearchpb::IndexResponse >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::vearchpb::IndexResponse >(arena);
 }
-template<> PROTOBUF_NOINLINE ::TermFilter*
-Arena::CreateMaybeMessage< ::TermFilter >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::TermFilter >(arena);
+template<> PROTOBUF_NOINLINE ::vearchpb::TermFilter*
+Arena::CreateMaybeMessage< ::vearchpb::TermFilter >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::vearchpb::TermFilter >(arena);
 }
-template<> PROTOBUF_NOINLINE ::RangeFilter*
-Arena::CreateMaybeMessage< ::RangeFilter >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::RangeFilter >(arena);
+template<> PROTOBUF_NOINLINE ::vearchpb::RangeFilter*
+Arena::CreateMaybeMessage< ::vearchpb::RangeFilter >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::vearchpb::RangeFilter >(arena);
 }
-template<> PROTOBUF_NOINLINE ::SortField*
-Arena::CreateMaybeMessage< ::SortField >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::SortField >(arena);
+template<> PROTOBUF_NOINLINE ::vearchpb::SortField*
+Arena::CreateMaybeMessage< ::vearchpb::SortField >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::vearchpb::SortField >(arena);
 }
-template<> PROTOBUF_NOINLINE ::VectorQuery*
-Arena::CreateMaybeMessage< ::VectorQuery >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::VectorQuery >(arena);
+template<> PROTOBUF_NOINLINE ::vearchpb::VectorQuery*
+Arena::CreateMaybeMessage< ::vearchpb::VectorQuery >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::vearchpb::VectorQuery >(arena);
 }
-template<> PROTOBUF_NOINLINE ::IndexParameters*
-Arena::CreateMaybeMessage< ::IndexParameters >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::IndexParameters >(arena);
+template<> PROTOBUF_NOINLINE ::vearchpb::IndexParameters*
+Arena::CreateMaybeMessage< ::vearchpb::IndexParameters >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::vearchpb::IndexParameters >(arena);
 }
-template<> PROTOBUF_NOINLINE ::QueryRequest_SortFieldMapEntry_DoNotUse*
-Arena::CreateMaybeMessage< ::QueryRequest_SortFieldMapEntry_DoNotUse >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::QueryRequest_SortFieldMapEntry_DoNotUse >(arena);
+template<> PROTOBUF_NOINLINE ::vearchpb::QueryRequest_SortFieldMapEntry_DoNotUse*
+Arena::CreateMaybeMessage< ::vearchpb::QueryRequest_SortFieldMapEntry_DoNotUse >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::vearchpb::QueryRequest_SortFieldMapEntry_DoNotUse >(arena);
 }
-template<> PROTOBUF_NOINLINE ::QueryRequest*
-Arena::CreateMaybeMessage< ::QueryRequest >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::QueryRequest >(arena);
+template<> PROTOBUF_NOINLINE ::vearchpb::QueryRequest*
+Arena::CreateMaybeMessage< ::vearchpb::QueryRequest >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::vearchpb::QueryRequest >(arena);
 }
-template<> PROTOBUF_NOINLINE ::SearchRequest_SortFieldMapEntry_DoNotUse*
-Arena::CreateMaybeMessage< ::SearchRequest_SortFieldMapEntry_DoNotUse >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::SearchRequest_SortFieldMapEntry_DoNotUse >(arena);
+template<> PROTOBUF_NOINLINE ::vearchpb::SearchRequest_SortFieldMapEntry_DoNotUse*
+Arena::CreateMaybeMessage< ::vearchpb::SearchRequest_SortFieldMapEntry_DoNotUse >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::vearchpb::SearchRequest_SortFieldMapEntry_DoNotUse >(arena);
 }
-template<> PROTOBUF_NOINLINE ::SearchRequest*
-Arena::CreateMaybeMessage< ::SearchRequest >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::SearchRequest >(arena);
+template<> PROTOBUF_NOINLINE ::vearchpb::SearchRequest*
+Arena::CreateMaybeMessage< ::vearchpb::SearchRequest >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::vearchpb::SearchRequest >(arena);
 }
-template<> PROTOBUF_NOINLINE ::ResultItem*
-Arena::CreateMaybeMessage< ::ResultItem >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::ResultItem >(arena);
+template<> PROTOBUF_NOINLINE ::vearchpb::ResultItem*
+Arena::CreateMaybeMessage< ::vearchpb::ResultItem >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::vearchpb::ResultItem >(arena);
 }
-template<> PROTOBUF_NOINLINE ::SearchResult*
-Arena::CreateMaybeMessage< ::SearchResult >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::SearchResult >(arena);
+template<> PROTOBUF_NOINLINE ::vearchpb::SearchResult*
+Arena::CreateMaybeMessage< ::vearchpb::SearchResult >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::vearchpb::SearchResult >(arena);
 }
-template<> PROTOBUF_NOINLINE ::SearchResponse*
-Arena::CreateMaybeMessage< ::SearchResponse >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::SearchResponse >(arena);
+template<> PROTOBUF_NOINLINE ::vearchpb::SearchResponse*
+Arena::CreateMaybeMessage< ::vearchpb::SearchResponse >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::vearchpb::SearchResponse >(arena);
 }
-template<> PROTOBUF_NOINLINE ::SearchStatus*
-Arena::CreateMaybeMessage< ::SearchStatus >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::SearchStatus >(arena);
+template<> PROTOBUF_NOINLINE ::vearchpb::SearchStatus*
+Arena::CreateMaybeMessage< ::vearchpb::SearchStatus >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::vearchpb::SearchStatus >(arena);
 }
 PROTOBUF_NAMESPACE_CLOSE
 

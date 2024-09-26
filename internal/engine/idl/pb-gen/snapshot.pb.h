@@ -45,12 +45,15 @@ struct TableStruct_snapshot_2eproto {
   static const uint32_t offsets[];
 };
 extern const ::PROTOBUF_NAMESPACE_ID::internal::DescriptorTable descriptor_table_snapshot_2eproto;
+namespace vearchpb {
 class SnapshotMsg;
 struct SnapshotMsgDefaultTypeInternal;
 extern SnapshotMsgDefaultTypeInternal _SnapshotMsg_default_instance_;
+}  // namespace vearchpb
 PROTOBUF_NAMESPACE_OPEN
-template<> ::SnapshotMsg* Arena::CreateMaybeMessage<::SnapshotMsg>(Arena*);
+template<> ::vearchpb::SnapshotMsg* Arena::CreateMaybeMessage<::vearchpb::SnapshotMsg>(Arena*);
 PROTOBUF_NAMESPACE_CLOSE
+namespace vearchpb {
 
 enum SnapshotStatus : int {
   UnUse = 0,
@@ -82,7 +85,7 @@ inline bool SnapshotStatus_Parse(
 // ===================================================================
 
 class SnapshotMsg final :
-    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:SnapshotMsg) */ {
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:vearchpb.SnapshotMsg) */ {
  public:
   inline SnapshotMsg() : SnapshotMsg(nullptr) {}
   ~SnapshotMsg() override;
@@ -185,7 +188,7 @@ class SnapshotMsg final :
   private:
   friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
   static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "SnapshotMsg";
+    return "vearchpb.SnapshotMsg";
   }
   protected:
   explicit SnapshotMsg(::PROTOBUF_NAMESPACE_ID::Arena* arena,
@@ -234,16 +237,16 @@ class SnapshotMsg final :
   std::string* _internal_mutable_data();
   public:
 
-  // .SnapshotStatus status = 3;
+  // .vearchpb.SnapshotStatus status = 3;
   void clear_status();
-  ::SnapshotStatus status() const;
-  void set_status(::SnapshotStatus value);
+  ::vearchpb::SnapshotStatus status() const;
+  void set_status(::vearchpb::SnapshotStatus value);
   private:
-  ::SnapshotStatus _internal_status() const;
-  void _internal_set_status(::SnapshotStatus value);
+  ::vearchpb::SnapshotStatus _internal_status() const;
+  void _internal_set_status(::vearchpb::SnapshotStatus value);
   public:
 
-  // @@protoc_insertion_point(class_scope:SnapshotMsg)
+  // @@protoc_insertion_point(class_scope:vearchpb.SnapshotMsg)
  private:
   class _Internal;
 
@@ -275,7 +278,7 @@ inline void SnapshotMsg::clear_file_name() {
   _impl_.file_name_.ClearToEmpty();
 }
 inline const std::string& SnapshotMsg::file_name() const {
-  // @@protoc_insertion_point(field_get:SnapshotMsg.file_name)
+  // @@protoc_insertion_point(field_get:vearchpb.SnapshotMsg.file_name)
   return _internal_file_name();
 }
 template <typename ArgT0, typename... ArgT>
@@ -283,11 +286,11 @@ inline PROTOBUF_ALWAYS_INLINE
 void SnapshotMsg::set_file_name(ArgT0&& arg0, ArgT... args) {
  
  _impl_.file_name_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
-  // @@protoc_insertion_point(field_set:SnapshotMsg.file_name)
+  // @@protoc_insertion_point(field_set:vearchpb.SnapshotMsg.file_name)
 }
 inline std::string* SnapshotMsg::mutable_file_name() {
   std::string* _s = _internal_mutable_file_name();
-  // @@protoc_insertion_point(field_mutable:SnapshotMsg.file_name)
+  // @@protoc_insertion_point(field_mutable:vearchpb.SnapshotMsg.file_name)
   return _s;
 }
 inline const std::string& SnapshotMsg::_internal_file_name() const {
@@ -302,7 +305,7 @@ inline std::string* SnapshotMsg::_internal_mutable_file_name() {
   return _impl_.file_name_.Mutable(GetArenaForAllocation());
 }
 inline std::string* SnapshotMsg::release_file_name() {
-  // @@protoc_insertion_point(field_release:SnapshotMsg.file_name)
+  // @@protoc_insertion_point(field_release:vearchpb.SnapshotMsg.file_name)
   return _impl_.file_name_.Release();
 }
 inline void SnapshotMsg::set_allocated_file_name(std::string* file_name) {
@@ -317,7 +320,7 @@ inline void SnapshotMsg::set_allocated_file_name(std::string* file_name) {
     _impl_.file_name_.Set("", GetArenaForAllocation());
   }
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  // @@protoc_insertion_point(field_set_allocated:SnapshotMsg.file_name)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.SnapshotMsg.file_name)
 }
 
 // bytes data = 2;
@@ -325,7 +328,7 @@ inline void SnapshotMsg::clear_data() {
   _impl_.data_.ClearToEmpty();
 }
 inline const std::string& SnapshotMsg::data() const {
-  // @@protoc_insertion_point(field_get:SnapshotMsg.data)
+  // @@protoc_insertion_point(field_get:vearchpb.SnapshotMsg.data)
   return _internal_data();
 }
 template <typename ArgT0, typename... ArgT>
@@ -333,11 +336,11 @@ inline PROTOBUF_ALWAYS_INLINE
 void SnapshotMsg::set_data(ArgT0&& arg0, ArgT... args) {
  
  _impl_.data_.SetBytes(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
-  // @@protoc_insertion_point(field_set:SnapshotMsg.data)
+  // @@protoc_insertion_point(field_set:vearchpb.SnapshotMsg.data)
 }
 inline std::string* SnapshotMsg::mutable_data() {
   std::string* _s = _internal_mutable_data();
-  // @@protoc_insertion_point(field_mutable:SnapshotMsg.data)
+  // @@protoc_insertion_point(field_mutable:vearchpb.SnapshotMsg.data)
   return _s;
 }
 inline const std::string& SnapshotMsg::_internal_data() const {
@@ -352,7 +355,7 @@ inline std::string* SnapshotMsg::_internal_mutable_data() {
   return _impl_.data_.Mutable(GetArenaForAllocation());
 }
 inline std::string* SnapshotMsg::release_data() {
-  // @@protoc_insertion_point(field_release:SnapshotMsg.data)
+  // @@protoc_insertion_point(field_release:vearchpb.SnapshotMsg.data)
   return _impl_.data_.Release();
 }
 inline void SnapshotMsg::set_allocated_data(std::string* data) {
@@ -367,27 +370,27 @@ inline void SnapshotMsg::set_allocated_data(std::string* data) {
     _impl_.data_.Set("", GetArenaForAllocation());
   }
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  // @@protoc_insertion_point(field_set_allocated:SnapshotMsg.data)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.SnapshotMsg.data)
 }
 
-// .SnapshotStatus status = 3;
+// .vearchpb.SnapshotStatus status = 3;
 inline void SnapshotMsg::clear_status() {
   _impl_.status_ = 0;
 }
-inline ::SnapshotStatus SnapshotMsg::_internal_status() const {
-  return static_cast< ::SnapshotStatus >(_impl_.status_);
+inline ::vearchpb::SnapshotStatus SnapshotMsg::_internal_status() const {
+  return static_cast< ::vearchpb::SnapshotStatus >(_impl_.status_);
 }
-inline ::SnapshotStatus SnapshotMsg::status() const {
-  // @@protoc_insertion_point(field_get:SnapshotMsg.status)
+inline ::vearchpb::SnapshotStatus SnapshotMsg::status() const {
+  // @@protoc_insertion_point(field_get:vearchpb.SnapshotMsg.status)
   return _internal_status();
 }
-inline void SnapshotMsg::_internal_set_status(::SnapshotStatus value) {
+inline void SnapshotMsg::_internal_set_status(::vearchpb::SnapshotStatus value) {
   
   _impl_.status_ = value;
 }
-inline void SnapshotMsg::set_status(::SnapshotStatus value) {
+inline void SnapshotMsg::set_status(::vearchpb::SnapshotStatus value) {
   _internal_set_status(value);
-  // @@protoc_insertion_point(field_set:SnapshotMsg.status)
+  // @@protoc_insertion_point(field_set:vearchpb.SnapshotMsg.status)
 }
 
 #ifdef __GNUC__
@@ -396,13 +399,14 @@ inline void SnapshotMsg::set_status(::SnapshotStatus value) {
 
 // @@protoc_insertion_point(namespace_scope)
 
+}  // namespace vearchpb
 
 PROTOBUF_NAMESPACE_OPEN
 
-template <> struct is_proto_enum< ::SnapshotStatus> : ::std::true_type {};
+template <> struct is_proto_enum< ::vearchpb::SnapshotStatus> : ::std::true_type {};
 template <>
-inline const EnumDescriptor* GetEnumDescriptor< ::SnapshotStatus>() {
-  return ::SnapshotStatus_descriptor();
+inline const EnumDescriptor* GetEnumDescriptor< ::vearchpb::SnapshotStatus>() {
+  return ::vearchpb::SnapshotStatus_descriptor();
 }
 
 PROTOBUF_NAMESPACE_CLOSE

@@ -20,6 +20,7 @@ PROTOBUF_PRAGMA_INIT_SEG
 namespace _pb = ::PROTOBUF_NAMESPACE_ID;
 namespace _pbi = _pb::internal;
 
+namespace vearchpb {
 PROTOBUF_CONSTEXPR PartitionData::PartitionData(
     ::_pbi::ConstantInitialized): _impl_{
     /*decltype(_impl_.items_)*/{}
@@ -104,106 +105,110 @@ struct SnapDataDefaultTypeInternal {
   };
 };
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SnapDataDefaultTypeInternal _SnapData_default_instance_;
+}  // namespace vearchpb
 static ::_pb::Metadata file_level_metadata_raftcmd_2eproto[5];
 static const ::_pb::EnumDescriptor* file_level_enum_descriptors_raftcmd_2eproto[2];
 static constexpr ::_pb::ServiceDescriptor const** file_level_service_descriptors_raftcmd_2eproto = nullptr;
 
 const uint32_t TableStruct_raftcmd_2eproto::offsets[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) = {
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::PartitionData, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::PartitionData, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::PartitionData, _impl_.type_),
-  PROTOBUF_FIELD_OFFSET(::PartitionData, _impl_.partitionid_),
-  PROTOBUF_FIELD_OFFSET(::PartitionData, _impl_.messageid_),
-  PROTOBUF_FIELD_OFFSET(::PartitionData, _impl_.items_),
-  PROTOBUF_FIELD_OFFSET(::PartitionData, _impl_.search_request_),
-  PROTOBUF_FIELD_OFFSET(::PartitionData, _impl_.search_response_),
-  PROTOBUF_FIELD_OFFSET(::PartitionData, _impl_.data_),
-  PROTOBUF_FIELD_OFFSET(::PartitionData, _impl_.err_),
-  PROTOBUF_FIELD_OFFSET(::PartitionData, _impl_.del_by_query_response_),
-  PROTOBUF_FIELD_OFFSET(::PartitionData, _impl_.index_request_),
-  PROTOBUF_FIELD_OFFSET(::PartitionData, _impl_.index_response_),
-  PROTOBUF_FIELD_OFFSET(::PartitionData, _impl_.query_request_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::PartitionData, _impl_.type_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::PartitionData, _impl_.partitionid_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::PartitionData, _impl_.messageid_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::PartitionData, _impl_.items_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::PartitionData, _impl_.search_request_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::PartitionData, _impl_.search_response_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::PartitionData, _impl_.data_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::PartitionData, _impl_.err_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::PartitionData, _impl_.del_by_query_response_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::PartitionData, _impl_.index_request_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::PartitionData, _impl_.index_response_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::PartitionData, _impl_.query_request_),
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::UpdateSpace, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::UpdateSpace, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::UpdateSpace, _impl_.space_),
-  PROTOBUF_FIELD_OFFSET(::UpdateSpace, _impl_.version_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::UpdateSpace, _impl_.space_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::UpdateSpace, _impl_.version_),
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::DocCmd, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::DocCmd, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::DocCmd, _impl_.type_),
-  PROTOBUF_FIELD_OFFSET(::DocCmd, _impl_.version_),
-  PROTOBUF_FIELD_OFFSET(::DocCmd, _impl_.slot_),
-  PROTOBUF_FIELD_OFFSET(::DocCmd, _impl_.doc_),
-  PROTOBUF_FIELD_OFFSET(::DocCmd, _impl_.docs_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::DocCmd, _impl_.type_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::DocCmd, _impl_.version_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::DocCmd, _impl_.slot_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::DocCmd, _impl_.doc_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::DocCmd, _impl_.docs_),
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::RaftCommand, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::RaftCommand, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::RaftCommand, _impl_.type_),
-  PROTOBUF_FIELD_OFFSET(::RaftCommand, _impl_.write_command_),
-  PROTOBUF_FIELD_OFFSET(::RaftCommand, _impl_.update_space_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::RaftCommand, _impl_.type_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::RaftCommand, _impl_.write_command_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::RaftCommand, _impl_.update_space_),
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::SnapData, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::SnapData, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::SnapData, _impl_.key_),
-  PROTOBUF_FIELD_OFFSET(::SnapData, _impl_.value_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::SnapData, _impl_.key_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::SnapData, _impl_.value_),
 };
 static const ::_pbi::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) = {
-  { 0, -1, -1, sizeof(::PartitionData)},
-  { 18, -1, -1, sizeof(::UpdateSpace)},
-  { 26, -1, -1, sizeof(::DocCmd)},
-  { 37, -1, -1, sizeof(::RaftCommand)},
-  { 46, -1, -1, sizeof(::SnapData)},
+  { 0, -1, -1, sizeof(::vearchpb::PartitionData)},
+  { 18, -1, -1, sizeof(::vearchpb::UpdateSpace)},
+  { 26, -1, -1, sizeof(::vearchpb::DocCmd)},
+  { 37, -1, -1, sizeof(::vearchpb::RaftCommand)},
+  { 46, -1, -1, sizeof(::vearchpb::SnapData)},
 };
 
 static const ::_pb::Message* const file_default_instances[] = {
-  &::_PartitionData_default_instance_._instance,
-  &::_UpdateSpace_default_instance_._instance,
-  &::_DocCmd_default_instance_._instance,
-  &::_RaftCommand_default_instance_._instance,
-  &::_SnapData_default_instance_._instance,
+  &::vearchpb::_PartitionData_default_instance_._instance,
+  &::vearchpb::_UpdateSpace_default_instance_._instance,
+  &::vearchpb::_DocCmd_default_instance_._instance,
+  &::vearchpb::_RaftCommand_default_instance_._instance,
+  &::vearchpb::_SnapData_default_instance_._instance,
 };
 
 const char descriptor_table_protodef_raftcmd_2eproto[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) =
-  "\n\rraftcmd.proto\032\014errors.proto\032\020data_mode"
-  "l.proto\032\021router_grpc.proto\"\202\003\n\rPartition"
-  "Data\022\025\n\004type\030\001 \001(\0162\007.OpType\022\023\n\013partition"
-  "ID\030\002 \001(\r\022\021\n\tmessageID\030\003 \001(\t\022\024\n\005items\030\004 \003"
-  "(\0132\005.Item\022&\n\016search_request\030\005 \001(\0132\016.Sear"
-  "chRequest\022(\n\017search_response\030\006 \001(\0132\017.Sea"
-  "rchResponse\022\014\n\004data\030\007 \001(\014\022\023\n\003err\030\010 \001(\0132\006"
-  ".Error\0223\n\025del_by_query_response\030\t \001(\0132\024."
-  "DelByQueryeResponse\022$\n\rindex_request\030\n \001"
-  "(\0132\r.IndexRequest\022&\n\016index_response\030\013 \001("
-  "\0132\016.IndexResponse\022$\n\rquery_request\030\014 \001(\013"
-  "2\r.QueryRequest\"-\n\013UpdateSpace\022\r\n\005Space\030"
-  "\001 \001(\014\022\017\n\007version\030\002 \001(\004\"Y\n\006DocCmd\022\025\n\004type"
-  "\030\001 \001(\0162\007.OpType\022\017\n\007version\030\003 \001(\003\022\014\n\004slot"
-  "\030\005 \001(\r\022\013\n\003doc\030\007 \001(\014\022\014\n\004docs\030\010 \003(\014\"i\n\013Raf"
-  "tCommand\022\026\n\004type\030\001 \001(\0162\010.CmdType\022\036\n\rwrit"
-  "e_command\030\002 \001(\0132\007.DocCmd\022\"\n\014update_space"
-  "\030\003 \001(\0132\014.UpdateSpace\"&\n\010SnapData\022\013\n\003key\030"
-  "\001 \001(\014\022\r\n\005value\030\002 \001(\014*\?\n\006OpType\022\n\n\006CREATE"
-  "\020\000\022\n\n\006DELETE\020\001\022\010\n\004BULK\020\002\022\007\n\003GET\020\003\022\n\n\006SEA"
-  "RCH\020\004*\?\n\007CmdType\022\t\n\005WRITE\020\000\022\017\n\013UPDATESPA"
-  "CE\020\001\022\t\n\005FLUSH\020\002\022\r\n\tSEARCHDEL\020\003B\016H\001Z\n./ve"
-  "archpbb\006proto3"
+  "\n\rraftcmd.proto\022\010vearchpb\032\014errors.proto\032"
+  "\020data_model.proto\032\021router_grpc.proto\"\323\003\n"
+  "\rPartitionData\022\036\n\004type\030\001 \001(\0162\020.vearchpb."
+  "OpType\022\023\n\013partitionID\030\002 \001(\r\022\021\n\tmessageID"
+  "\030\003 \001(\t\022\035\n\005items\030\004 \003(\0132\016.vearchpb.Item\022/\n"
+  "\016search_request\030\005 \001(\0132\027.vearchpb.SearchR"
+  "equest\0221\n\017search_response\030\006 \001(\0132\030.vearch"
+  "pb.SearchResponse\022\014\n\004data\030\007 \001(\014\022\034\n\003err\030\010"
+  " \001(\0132\017.vearchpb.Error\022<\n\025del_by_query_re"
+  "sponse\030\t \001(\0132\035.vearchpb.DelByQueryeRespo"
+  "nse\022-\n\rindex_request\030\n \001(\0132\026.vearchpb.In"
+  "dexRequest\022/\n\016index_response\030\013 \001(\0132\027.vea"
+  "rchpb.IndexResponse\022-\n\rquery_request\030\014 \001"
+  "(\0132\026.vearchpb.QueryRequest\"-\n\013UpdateSpac"
+  "e\022\r\n\005Space\030\001 \001(\014\022\017\n\007version\030\002 \001(\004\"b\n\006Doc"
+  "Cmd\022\036\n\004type\030\001 \001(\0162\020.vearchpb.OpType\022\017\n\007v"
+  "ersion\030\003 \001(\003\022\014\n\004slot\030\005 \001(\r\022\013\n\003doc\030\007 \001(\014\022"
+  "\014\n\004docs\030\010 \003(\014\"\204\001\n\013RaftCommand\022\037\n\004type\030\001 "
+  "\001(\0162\021.vearchpb.CmdType\022\'\n\rwrite_command\030"
+  "\002 \001(\0132\020.vearchpb.DocCmd\022+\n\014update_space\030"
+  "\003 \001(\0132\025.vearchpb.UpdateSpace\"&\n\010SnapData"
+  "\022\013\n\003key\030\001 \001(\014\022\r\n\005value\030\002 \001(\014*\?\n\006OpType\022\n"
+  "\n\006CREATE\020\000\022\n\n\006DELETE\020\001\022\010\n\004BULK\020\002\022\007\n\003GET\020"
+  "\003\022\n\n\006SEARCH\020\004*\?\n\007CmdType\022\t\n\005WRITE\020\000\022\017\n\013U"
+  "PDATESPACE\020\001\022\t\n\005FLUSH\020\002\022\r\n\tSEARCHDEL\020\003B\016"
+  "H\001Z\n./vearchpbb\006proto3"
   ;
 static const ::_pbi::DescriptorTable* const descriptor_table_raftcmd_2eproto_deps[3] = {
   &::descriptor_table_data_5fmodel_2eproto,
@@ -212,7 +217,7 @@ static const ::_pbi::DescriptorTable* const descriptor_table_raftcmd_2eproto_dep
 };
 static ::_pbi::once_flag descriptor_table_raftcmd_2eproto_once;
 const ::_pbi::DescriptorTable descriptor_table_raftcmd_2eproto = {
-    false, false, 894, descriptor_table_protodef_raftcmd_2eproto,
+    false, false, 1022, descriptor_table_protodef_raftcmd_2eproto,
     "raftcmd.proto",
     &descriptor_table_raftcmd_2eproto_once, descriptor_table_raftcmd_2eproto_deps, 3, 5,
     schemas, file_default_instances, TableStruct_raftcmd_2eproto::offsets,
@@ -225,6 +230,7 @@ PROTOBUF_ATTRIBUTE_WEAK const ::_pbi::DescriptorTable* descriptor_table_raftcmd_
 
 // Force running AddDescriptors() at dynamic initialization time.
 PROTOBUF_ATTRIBUTE_INIT_PRIORITY2 static ::_pbi::AddDescriptorsRunner dynamic_init_dummy_raftcmd_2eproto(&descriptor_table_raftcmd_2eproto);
+namespace vearchpb {
 const ::PROTOBUF_NAMESPACE_ID::EnumDescriptor* OpType_descriptor() {
   ::PROTOBUF_NAMESPACE_ID::internal::AssignDescriptors(&descriptor_table_raftcmd_2eproto);
   return file_level_enum_descriptors_raftcmd_2eproto[0];
@@ -263,40 +269,40 @@ bool CmdType_IsValid(int value) {
 
 class PartitionData::_Internal {
  public:
-  static const ::SearchRequest& search_request(const PartitionData* msg);
-  static const ::SearchResponse& search_response(const PartitionData* msg);
-  static const ::Error& err(const PartitionData* msg);
-  static const ::DelByQueryeResponse& del_by_query_response(const PartitionData* msg);
-  static const ::IndexRequest& index_request(const PartitionData* msg);
-  static const ::IndexResponse& index_response(const PartitionData* msg);
-  static const ::QueryRequest& query_request(const PartitionData* msg);
+  static const ::vearchpb::SearchRequest& search_request(const PartitionData* msg);
+  static const ::vearchpb::SearchResponse& search_response(const PartitionData* msg);
+  static const ::vearchpb::Error& err(const PartitionData* msg);
+  static const ::vearchpb::DelByQueryeResponse& del_by_query_response(const PartitionData* msg);
+  static const ::vearchpb::IndexRequest& index_request(const PartitionData* msg);
+  static const ::vearchpb::IndexResponse& index_response(const PartitionData* msg);
+  static const ::vearchpb::QueryRequest& query_request(const PartitionData* msg);
 };
 
-const ::SearchRequest&
+const ::vearchpb::SearchRequest&
 PartitionData::_Internal::search_request(const PartitionData* msg) {
   return *msg->_impl_.search_request_;
 }
-const ::SearchResponse&
+const ::vearchpb::SearchResponse&
 PartitionData::_Internal::search_response(const PartitionData* msg) {
   return *msg->_impl_.search_response_;
 }
-const ::Error&
+const ::vearchpb::Error&
 PartitionData::_Internal::err(const PartitionData* msg) {
   return *msg->_impl_.err_;
 }
-const ::DelByQueryeResponse&
+const ::vearchpb::DelByQueryeResponse&
 PartitionData::_Internal::del_by_query_response(const PartitionData* msg) {
   return *msg->_impl_.del_by_query_response_;
 }
-const ::IndexRequest&
+const ::vearchpb::IndexRequest&
 PartitionData::_Internal::index_request(const PartitionData* msg) {
   return *msg->_impl_.index_request_;
 }
-const ::IndexResponse&
+const ::vearchpb::IndexResponse&
 PartitionData::_Internal::index_response(const PartitionData* msg) {
   return *msg->_impl_.index_response_;
 }
-const ::QueryRequest&
+const ::vearchpb::QueryRequest&
 PartitionData::_Internal::query_request(const PartitionData* msg) {
   return *msg->_impl_.query_request_;
 }
@@ -349,7 +355,7 @@ PartitionData::PartitionData(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:PartitionData)
+  // @@protoc_insertion_point(arena_constructor:vearchpb.PartitionData)
 }
 PartitionData::PartitionData(const PartitionData& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -387,30 +393,30 @@ PartitionData::PartitionData(const PartitionData& from)
       _this->GetArenaForAllocation());
   }
   if (from._internal_has_search_request()) {
-    _this->_impl_.search_request_ = new ::SearchRequest(*from._impl_.search_request_);
+    _this->_impl_.search_request_ = new ::vearchpb::SearchRequest(*from._impl_.search_request_);
   }
   if (from._internal_has_search_response()) {
-    _this->_impl_.search_response_ = new ::SearchResponse(*from._impl_.search_response_);
+    _this->_impl_.search_response_ = new ::vearchpb::SearchResponse(*from._impl_.search_response_);
   }
   if (from._internal_has_err()) {
-    _this->_impl_.err_ = new ::Error(*from._impl_.err_);
+    _this->_impl_.err_ = new ::vearchpb::Error(*from._impl_.err_);
   }
   if (from._internal_has_del_by_query_response()) {
-    _this->_impl_.del_by_query_response_ = new ::DelByQueryeResponse(*from._impl_.del_by_query_response_);
+    _this->_impl_.del_by_query_response_ = new ::vearchpb::DelByQueryeResponse(*from._impl_.del_by_query_response_);
   }
   if (from._internal_has_index_request()) {
-    _this->_impl_.index_request_ = new ::IndexRequest(*from._impl_.index_request_);
+    _this->_impl_.index_request_ = new ::vearchpb::IndexRequest(*from._impl_.index_request_);
   }
   if (from._internal_has_index_response()) {
-    _this->_impl_.index_response_ = new ::IndexResponse(*from._impl_.index_response_);
+    _this->_impl_.index_response_ = new ::vearchpb::IndexResponse(*from._impl_.index_response_);
   }
   if (from._internal_has_query_request()) {
-    _this->_impl_.query_request_ = new ::QueryRequest(*from._impl_.query_request_);
+    _this->_impl_.query_request_ = new ::vearchpb::QueryRequest(*from._impl_.query_request_);
   }
   ::memcpy(&_impl_.type_, &from._impl_.type_,
     static_cast<size_t>(reinterpret_cast<char*>(&_impl_.partitionid_) -
     reinterpret_cast<char*>(&_impl_.type_)) + sizeof(_impl_.partitionid_));
-  // @@protoc_insertion_point(copy_constructor:PartitionData)
+  // @@protoc_insertion_point(copy_constructor:vearchpb.PartitionData)
 }
 
 inline void PartitionData::SharedCtor(
@@ -443,7 +449,7 @@ inline void PartitionData::SharedCtor(
 }
 
 PartitionData::~PartitionData() {
-  // @@protoc_insertion_point(destructor:PartitionData)
+  // @@protoc_insertion_point(destructor:vearchpb.PartitionData)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -470,7 +476,7 @@ void PartitionData::SetCachedSize(int size) const {
 }
 
 void PartitionData::Clear() {
-// @@protoc_insertion_point(message_clear_start:PartitionData)
+// @@protoc_insertion_point(message_clear_start:vearchpb.PartitionData)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -518,12 +524,12 @@ const char* PartitionData::_InternalParse(const char* ptr, ::_pbi::ParseContext*
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // .OpType type = 1;
+      // .vearchpb.OpType type = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 8)) {
           uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
           CHK_(ptr);
-          _internal_set_type(static_cast<::OpType>(val));
+          _internal_set_type(static_cast<::vearchpb::OpType>(val));
         } else
           goto handle_unusual;
         continue;
@@ -541,11 +547,11 @@ const char* PartitionData::_InternalParse(const char* ptr, ::_pbi::ParseContext*
           auto str = _internal_mutable_messageid();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "PartitionData.messageID"));
+          CHK_(::_pbi::VerifyUTF8(str, "vearchpb.PartitionData.messageID"));
         } else
           goto handle_unusual;
         continue;
-      // repeated .Item items = 4;
+      // repeated .vearchpb.Item items = 4;
       case 4:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 34)) {
           ptr -= 1;
@@ -558,7 +564,7 @@ const char* PartitionData::_InternalParse(const char* ptr, ::_pbi::ParseContext*
         } else
           goto handle_unusual;
         continue;
-      // .SearchRequest search_request = 5;
+      // .vearchpb.SearchRequest search_request = 5;
       case 5:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 42)) {
           ptr = ctx->ParseMessage(_internal_mutable_search_request(), ptr);
@@ -566,7 +572,7 @@ const char* PartitionData::_InternalParse(const char* ptr, ::_pbi::ParseContext*
         } else
           goto handle_unusual;
         continue;
-      // .SearchResponse search_response = 6;
+      // .vearchpb.SearchResponse search_response = 6;
       case 6:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 50)) {
           ptr = ctx->ParseMessage(_internal_mutable_search_response(), ptr);
@@ -583,7 +589,7 @@ const char* PartitionData::_InternalParse(const char* ptr, ::_pbi::ParseContext*
         } else
           goto handle_unusual;
         continue;
-      // .Error err = 8;
+      // .vearchpb.Error err = 8;
       case 8:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 66)) {
           ptr = ctx->ParseMessage(_internal_mutable_err(), ptr);
@@ -591,7 +597,7 @@ const char* PartitionData::_InternalParse(const char* ptr, ::_pbi::ParseContext*
         } else
           goto handle_unusual;
         continue;
-      // .DelByQueryeResponse del_by_query_response = 9;
+      // .vearchpb.DelByQueryeResponse del_by_query_response = 9;
       case 9:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 74)) {
           ptr = ctx->ParseMessage(_internal_mutable_del_by_query_response(), ptr);
@@ -599,7 +605,7 @@ const char* PartitionData::_InternalParse(const char* ptr, ::_pbi::ParseContext*
         } else
           goto handle_unusual;
         continue;
-      // .IndexRequest index_request = 10;
+      // .vearchpb.IndexRequest index_request = 10;
       case 10:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 82)) {
           ptr = ctx->ParseMessage(_internal_mutable_index_request(), ptr);
@@ -607,7 +613,7 @@ const char* PartitionData::_InternalParse(const char* ptr, ::_pbi::ParseContext*
         } else
           goto handle_unusual;
         continue;
-      // .IndexResponse index_response = 11;
+      // .vearchpb.IndexResponse index_response = 11;
       case 11:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 90)) {
           ptr = ctx->ParseMessage(_internal_mutable_index_response(), ptr);
@@ -615,7 +621,7 @@ const char* PartitionData::_InternalParse(const char* ptr, ::_pbi::ParseContext*
         } else
           goto handle_unusual;
         continue;
-      // .QueryRequest query_request = 12;
+      // .vearchpb.QueryRequest query_request = 12;
       case 12:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 98)) {
           ptr = ctx->ParseMessage(_internal_mutable_query_request(), ptr);
@@ -648,11 +654,11 @@ failure:
 
 uint8_t* PartitionData::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:PartitionData)
+  // @@protoc_insertion_point(serialize_to_array_start:vearchpb.PartitionData)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // .OpType type = 1;
+  // .vearchpb.OpType type = 1;
   if (this->_internal_type() != 0) {
     target = stream->EnsureSpace(target);
     target = ::_pbi::WireFormatLite::WriteEnumToArray(
@@ -670,12 +676,12 @@ uint8_t* PartitionData::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_messageid().data(), static_cast<int>(this->_internal_messageid().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "PartitionData.messageID");
+      "vearchpb.PartitionData.messageID");
     target = stream->WriteStringMaybeAliased(
         3, this->_internal_messageid(), target);
   }
 
-  // repeated .Item items = 4;
+  // repeated .vearchpb.Item items = 4;
   for (unsigned i = 0,
       n = static_cast<unsigned>(this->_internal_items_size()); i < n; i++) {
     const auto& repfield = this->_internal_items(i);
@@ -683,14 +689,14 @@ uint8_t* PartitionData::_InternalSerialize(
         InternalWriteMessage(4, repfield, repfield.GetCachedSize(), target, stream);
   }
 
-  // .SearchRequest search_request = 5;
+  // .vearchpb.SearchRequest search_request = 5;
   if (this->_internal_has_search_request()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(5, _Internal::search_request(this),
         _Internal::search_request(this).GetCachedSize(), target, stream);
   }
 
-  // .SearchResponse search_response = 6;
+  // .vearchpb.SearchResponse search_response = 6;
   if (this->_internal_has_search_response()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(6, _Internal::search_response(this),
@@ -703,35 +709,35 @@ uint8_t* PartitionData::_InternalSerialize(
         7, this->_internal_data(), target);
   }
 
-  // .Error err = 8;
+  // .vearchpb.Error err = 8;
   if (this->_internal_has_err()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(8, _Internal::err(this),
         _Internal::err(this).GetCachedSize(), target, stream);
   }
 
-  // .DelByQueryeResponse del_by_query_response = 9;
+  // .vearchpb.DelByQueryeResponse del_by_query_response = 9;
   if (this->_internal_has_del_by_query_response()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(9, _Internal::del_by_query_response(this),
         _Internal::del_by_query_response(this).GetCachedSize(), target, stream);
   }
 
-  // .IndexRequest index_request = 10;
+  // .vearchpb.IndexRequest index_request = 10;
   if (this->_internal_has_index_request()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(10, _Internal::index_request(this),
         _Internal::index_request(this).GetCachedSize(), target, stream);
   }
 
-  // .IndexResponse index_response = 11;
+  // .vearchpb.IndexResponse index_response = 11;
   if (this->_internal_has_index_response()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(11, _Internal::index_response(this),
         _Internal::index_response(this).GetCachedSize(), target, stream);
   }
 
-  // .QueryRequest query_request = 12;
+  // .vearchpb.QueryRequest query_request = 12;
   if (this->_internal_has_query_request()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(12, _Internal::query_request(this),
@@ -742,19 +748,19 @@ uint8_t* PartitionData::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:PartitionData)
+  // @@protoc_insertion_point(serialize_to_array_end:vearchpb.PartitionData)
   return target;
 }
 
 size_t PartitionData::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:PartitionData)
+// @@protoc_insertion_point(message_byte_size_start:vearchpb.PartitionData)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // repeated .Item items = 4;
+  // repeated .vearchpb.Item items = 4;
   total_size += 1UL * this->_internal_items_size();
   for (const auto& msg : this->_impl_.items_) {
     total_size +=
@@ -775,56 +781,56 @@ size_t PartitionData::ByteSizeLong() const {
         this->_internal_data());
   }
 
-  // .SearchRequest search_request = 5;
+  // .vearchpb.SearchRequest search_request = 5;
   if (this->_internal_has_search_request()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
         *_impl_.search_request_);
   }
 
-  // .SearchResponse search_response = 6;
+  // .vearchpb.SearchResponse search_response = 6;
   if (this->_internal_has_search_response()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
         *_impl_.search_response_);
   }
 
-  // .Error err = 8;
+  // .vearchpb.Error err = 8;
   if (this->_internal_has_err()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
         *_impl_.err_);
   }
 
-  // .DelByQueryeResponse del_by_query_response = 9;
+  // .vearchpb.DelByQueryeResponse del_by_query_response = 9;
   if (this->_internal_has_del_by_query_response()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
         *_impl_.del_by_query_response_);
   }
 
-  // .IndexRequest index_request = 10;
+  // .vearchpb.IndexRequest index_request = 10;
   if (this->_internal_has_index_request()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
         *_impl_.index_request_);
   }
 
-  // .IndexResponse index_response = 11;
+  // .vearchpb.IndexResponse index_response = 11;
   if (this->_internal_has_index_response()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
         *_impl_.index_response_);
   }
 
-  // .QueryRequest query_request = 12;
+  // .vearchpb.QueryRequest query_request = 12;
   if (this->_internal_has_query_request()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
         *_impl_.query_request_);
   }
 
-  // .OpType type = 1;
+  // .vearchpb.OpType type = 1;
   if (this->_internal_type() != 0) {
     total_size += 1 +
       ::_pbi::WireFormatLite::EnumSize(this->_internal_type());
@@ -848,7 +854,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*PartitionData::GetClassData() 
 void PartitionData::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<PartitionData*>(&to_msg);
   auto& from = static_cast<const PartitionData&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:PartitionData)
+  // @@protoc_insertion_point(class_specific_merge_from_start:vearchpb.PartitionData)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
@@ -861,31 +867,31 @@ void PartitionData::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::
     _this->_internal_set_data(from._internal_data());
   }
   if (from._internal_has_search_request()) {
-    _this->_internal_mutable_search_request()->::SearchRequest::MergeFrom(
+    _this->_internal_mutable_search_request()->::vearchpb::SearchRequest::MergeFrom(
         from._internal_search_request());
   }
   if (from._internal_has_search_response()) {
-    _this->_internal_mutable_search_response()->::SearchResponse::MergeFrom(
+    _this->_internal_mutable_search_response()->::vearchpb::SearchResponse::MergeFrom(
         from._internal_search_response());
   }
   if (from._internal_has_err()) {
-    _this->_internal_mutable_err()->::Error::MergeFrom(
+    _this->_internal_mutable_err()->::vearchpb::Error::MergeFrom(
         from._internal_err());
   }
   if (from._internal_has_del_by_query_response()) {
-    _this->_internal_mutable_del_by_query_response()->::DelByQueryeResponse::MergeFrom(
+    _this->_internal_mutable_del_by_query_response()->::vearchpb::DelByQueryeResponse::MergeFrom(
         from._internal_del_by_query_response());
   }
   if (from._internal_has_index_request()) {
-    _this->_internal_mutable_index_request()->::IndexRequest::MergeFrom(
+    _this->_internal_mutable_index_request()->::vearchpb::IndexRequest::MergeFrom(
         from._internal_index_request());
   }
   if (from._internal_has_index_response()) {
-    _this->_internal_mutable_index_response()->::IndexResponse::MergeFrom(
+    _this->_internal_mutable_index_response()->::vearchpb::IndexResponse::MergeFrom(
         from._internal_index_response());
   }
   if (from._internal_has_query_request()) {
-    _this->_internal_mutable_query_request()->::QueryRequest::MergeFrom(
+    _this->_internal_mutable_query_request()->::vearchpb::QueryRequest::MergeFrom(
         from._internal_query_request());
   }
   if (from._internal_type() != 0) {
@@ -898,7 +904,7 @@ void PartitionData::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::
 }
 
 void PartitionData::CopyFrom(const PartitionData& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:PartitionData)
+// @@protoc_insertion_point(class_specific_copy_from_start:vearchpb.PartitionData)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -946,7 +952,7 @@ UpdateSpace::UpdateSpace(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:UpdateSpace)
+  // @@protoc_insertion_point(arena_constructor:vearchpb.UpdateSpace)
 }
 UpdateSpace::UpdateSpace(const UpdateSpace& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -966,7 +972,7 @@ UpdateSpace::UpdateSpace(const UpdateSpace& from)
       _this->GetArenaForAllocation());
   }
   _this->_impl_.version_ = from._impl_.version_;
-  // @@protoc_insertion_point(copy_constructor:UpdateSpace)
+  // @@protoc_insertion_point(copy_constructor:vearchpb.UpdateSpace)
 }
 
 inline void UpdateSpace::SharedCtor(
@@ -985,7 +991,7 @@ inline void UpdateSpace::SharedCtor(
 }
 
 UpdateSpace::~UpdateSpace() {
-  // @@protoc_insertion_point(destructor:UpdateSpace)
+  // @@protoc_insertion_point(destructor:vearchpb.UpdateSpace)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -1003,7 +1009,7 @@ void UpdateSpace::SetCachedSize(int size) const {
 }
 
 void UpdateSpace::Clear() {
-// @@protoc_insertion_point(message_clear_start:UpdateSpace)
+// @@protoc_insertion_point(message_clear_start:vearchpb.UpdateSpace)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -1061,7 +1067,7 @@ failure:
 
 uint8_t* UpdateSpace::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:UpdateSpace)
+  // @@protoc_insertion_point(serialize_to_array_start:vearchpb.UpdateSpace)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
@@ -1081,12 +1087,12 @@ uint8_t* UpdateSpace::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:UpdateSpace)
+  // @@protoc_insertion_point(serialize_to_array_end:vearchpb.UpdateSpace)
   return target;
 }
 
 size_t UpdateSpace::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:UpdateSpace)
+// @@protoc_insertion_point(message_byte_size_start:vearchpb.UpdateSpace)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
@@ -1118,7 +1124,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*UpdateSpace::GetClassData() co
 void UpdateSpace::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<UpdateSpace*>(&to_msg);
   auto& from = static_cast<const UpdateSpace&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:UpdateSpace)
+  // @@protoc_insertion_point(class_specific_merge_from_start:vearchpb.UpdateSpace)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
@@ -1133,7 +1139,7 @@ void UpdateSpace::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PR
 }
 
 void UpdateSpace::CopyFrom(const UpdateSpace& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:UpdateSpace)
+// @@protoc_insertion_point(class_specific_copy_from_start:vearchpb.UpdateSpace)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -1171,7 +1177,7 @@ DocCmd::DocCmd(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:DocCmd)
+  // @@protoc_insertion_point(arena_constructor:vearchpb.DocCmd)
 }
 DocCmd::DocCmd(const DocCmd& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -1196,7 +1202,7 @@ DocCmd::DocCmd(const DocCmd& from)
   ::memcpy(&_impl_.version_, &from._impl_.version_,
     static_cast<size_t>(reinterpret_cast<char*>(&_impl_.slot_) -
     reinterpret_cast<char*>(&_impl_.version_)) + sizeof(_impl_.slot_));
-  // @@protoc_insertion_point(copy_constructor:DocCmd)
+  // @@protoc_insertion_point(copy_constructor:vearchpb.DocCmd)
 }
 
 inline void DocCmd::SharedCtor(
@@ -1218,7 +1224,7 @@ inline void DocCmd::SharedCtor(
 }
 
 DocCmd::~DocCmd() {
-  // @@protoc_insertion_point(destructor:DocCmd)
+  // @@protoc_insertion_point(destructor:vearchpb.DocCmd)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -1237,7 +1243,7 @@ void DocCmd::SetCachedSize(int size) const {
 }
 
 void DocCmd::Clear() {
-// @@protoc_insertion_point(message_clear_start:DocCmd)
+// @@protoc_insertion_point(message_clear_start:vearchpb.DocCmd)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -1256,12 +1262,12 @@ const char* DocCmd::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // .OpType type = 1;
+      // .vearchpb.OpType type = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 8)) {
           uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
           CHK_(ptr);
-          _internal_set_type(static_cast<::OpType>(val));
+          _internal_set_type(static_cast<::vearchpb::OpType>(val));
         } else
           goto handle_unusual;
         continue;
@@ -1329,11 +1335,11 @@ failure:
 
 uint8_t* DocCmd::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:DocCmd)
+  // @@protoc_insertion_point(serialize_to_array_start:vearchpb.DocCmd)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // .OpType type = 1;
+  // .vearchpb.OpType type = 1;
   if (this->_internal_type() != 0) {
     target = stream->EnsureSpace(target);
     target = ::_pbi::WireFormatLite::WriteEnumToArray(
@@ -1368,12 +1374,12 @@ uint8_t* DocCmd::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:DocCmd)
+  // @@protoc_insertion_point(serialize_to_array_end:vearchpb.DocCmd)
   return target;
 }
 
 size_t DocCmd::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:DocCmd)
+// @@protoc_insertion_point(message_byte_size_start:vearchpb.DocCmd)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
@@ -1400,7 +1406,7 @@ size_t DocCmd::ByteSizeLong() const {
     total_size += ::_pbi::WireFormatLite::Int64SizePlusOne(this->_internal_version());
   }
 
-  // .OpType type = 1;
+  // .vearchpb.OpType type = 1;
   if (this->_internal_type() != 0) {
     total_size += 1 +
       ::_pbi::WireFormatLite::EnumSize(this->_internal_type());
@@ -1424,7 +1430,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*DocCmd::GetClassData() const {
 void DocCmd::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<DocCmd*>(&to_msg);
   auto& from = static_cast<const DocCmd&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:DocCmd)
+  // @@protoc_insertion_point(class_specific_merge_from_start:vearchpb.DocCmd)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
@@ -1446,7 +1452,7 @@ void DocCmd::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBU
 }
 
 void DocCmd::CopyFrom(const DocCmd& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:DocCmd)
+// @@protoc_insertion_point(class_specific_copy_from_start:vearchpb.DocCmd)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -1484,15 +1490,15 @@ void DocCmd::InternalSwap(DocCmd* other) {
 
 class RaftCommand::_Internal {
  public:
-  static const ::DocCmd& write_command(const RaftCommand* msg);
-  static const ::UpdateSpace& update_space(const RaftCommand* msg);
+  static const ::vearchpb::DocCmd& write_command(const RaftCommand* msg);
+  static const ::vearchpb::UpdateSpace& update_space(const RaftCommand* msg);
 };
 
-const ::DocCmd&
+const ::vearchpb::DocCmd&
 RaftCommand::_Internal::write_command(const RaftCommand* msg) {
   return *msg->_impl_.write_command_;
 }
-const ::UpdateSpace&
+const ::vearchpb::UpdateSpace&
 RaftCommand::_Internal::update_space(const RaftCommand* msg) {
   return *msg->_impl_.update_space_;
 }
@@ -1500,7 +1506,7 @@ RaftCommand::RaftCommand(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:RaftCommand)
+  // @@protoc_insertion_point(arena_constructor:vearchpb.RaftCommand)
 }
 RaftCommand::RaftCommand(const RaftCommand& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -1513,13 +1519,13 @@ RaftCommand::RaftCommand(const RaftCommand& from)
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
   if (from._internal_has_write_command()) {
-    _this->_impl_.write_command_ = new ::DocCmd(*from._impl_.write_command_);
+    _this->_impl_.write_command_ = new ::vearchpb::DocCmd(*from._impl_.write_command_);
   }
   if (from._internal_has_update_space()) {
-    _this->_impl_.update_space_ = new ::UpdateSpace(*from._impl_.update_space_);
+    _this->_impl_.update_space_ = new ::vearchpb::UpdateSpace(*from._impl_.update_space_);
   }
   _this->_impl_.type_ = from._impl_.type_;
-  // @@protoc_insertion_point(copy_constructor:RaftCommand)
+  // @@protoc_insertion_point(copy_constructor:vearchpb.RaftCommand)
 }
 
 inline void RaftCommand::SharedCtor(
@@ -1535,7 +1541,7 @@ inline void RaftCommand::SharedCtor(
 }
 
 RaftCommand::~RaftCommand() {
-  // @@protoc_insertion_point(destructor:RaftCommand)
+  // @@protoc_insertion_point(destructor:vearchpb.RaftCommand)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -1554,7 +1560,7 @@ void RaftCommand::SetCachedSize(int size) const {
 }
 
 void RaftCommand::Clear() {
-// @@protoc_insertion_point(message_clear_start:RaftCommand)
+// @@protoc_insertion_point(message_clear_start:vearchpb.RaftCommand)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -1577,16 +1583,16 @@ const char* RaftCommand::_InternalParse(const char* ptr, ::_pbi::ParseContext* c
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // .CmdType type = 1;
+      // .vearchpb.CmdType type = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 8)) {
           uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
           CHK_(ptr);
-          _internal_set_type(static_cast<::CmdType>(val));
+          _internal_set_type(static_cast<::vearchpb::CmdType>(val));
         } else
           goto handle_unusual;
         continue;
-      // .DocCmd write_command = 2;
+      // .vearchpb.DocCmd write_command = 2;
       case 2:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
           ptr = ctx->ParseMessage(_internal_mutable_write_command(), ptr);
@@ -1594,7 +1600,7 @@ const char* RaftCommand::_InternalParse(const char* ptr, ::_pbi::ParseContext* c
         } else
           goto handle_unusual;
         continue;
-      // .UpdateSpace update_space = 3;
+      // .vearchpb.UpdateSpace update_space = 3;
       case 3:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 26)) {
           ptr = ctx->ParseMessage(_internal_mutable_update_space(), ptr);
@@ -1627,25 +1633,25 @@ failure:
 
 uint8_t* RaftCommand::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:RaftCommand)
+  // @@protoc_insertion_point(serialize_to_array_start:vearchpb.RaftCommand)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // .CmdType type = 1;
+  // .vearchpb.CmdType type = 1;
   if (this->_internal_type() != 0) {
     target = stream->EnsureSpace(target);
     target = ::_pbi::WireFormatLite::WriteEnumToArray(
       1, this->_internal_type(), target);
   }
 
-  // .DocCmd write_command = 2;
+  // .vearchpb.DocCmd write_command = 2;
   if (this->_internal_has_write_command()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(2, _Internal::write_command(this),
         _Internal::write_command(this).GetCachedSize(), target, stream);
   }
 
-  // .UpdateSpace update_space = 3;
+  // .vearchpb.UpdateSpace update_space = 3;
   if (this->_internal_has_update_space()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(3, _Internal::update_space(this),
@@ -1656,33 +1662,33 @@ uint8_t* RaftCommand::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:RaftCommand)
+  // @@protoc_insertion_point(serialize_to_array_end:vearchpb.RaftCommand)
   return target;
 }
 
 size_t RaftCommand::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:RaftCommand)
+// @@protoc_insertion_point(message_byte_size_start:vearchpb.RaftCommand)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // .DocCmd write_command = 2;
+  // .vearchpb.DocCmd write_command = 2;
   if (this->_internal_has_write_command()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
         *_impl_.write_command_);
   }
 
-  // .UpdateSpace update_space = 3;
+  // .vearchpb.UpdateSpace update_space = 3;
   if (this->_internal_has_update_space()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
         *_impl_.update_space_);
   }
 
-  // .CmdType type = 1;
+  // .vearchpb.CmdType type = 1;
   if (this->_internal_type() != 0) {
     total_size += 1 +
       ::_pbi::WireFormatLite::EnumSize(this->_internal_type());
@@ -1701,17 +1707,17 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*RaftCommand::GetClassData() co
 void RaftCommand::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<RaftCommand*>(&to_msg);
   auto& from = static_cast<const RaftCommand&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:RaftCommand)
+  // @@protoc_insertion_point(class_specific_merge_from_start:vearchpb.RaftCommand)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
   if (from._internal_has_write_command()) {
-    _this->_internal_mutable_write_command()->::DocCmd::MergeFrom(
+    _this->_internal_mutable_write_command()->::vearchpb::DocCmd::MergeFrom(
         from._internal_write_command());
   }
   if (from._internal_has_update_space()) {
-    _this->_internal_mutable_update_space()->::UpdateSpace::MergeFrom(
+    _this->_internal_mutable_update_space()->::vearchpb::UpdateSpace::MergeFrom(
         from._internal_update_space());
   }
   if (from._internal_type() != 0) {
@@ -1721,7 +1727,7 @@ void RaftCommand::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PR
 }
 
 void RaftCommand::CopyFrom(const RaftCommand& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:RaftCommand)
+// @@protoc_insertion_point(class_specific_copy_from_start:vearchpb.RaftCommand)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -1758,7 +1764,7 @@ SnapData::SnapData(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:SnapData)
+  // @@protoc_insertion_point(arena_constructor:vearchpb.SnapData)
 }
 SnapData::SnapData(const SnapData& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -1785,7 +1791,7 @@ SnapData::SnapData(const SnapData& from)
     _this->_impl_.value_.Set(from._internal_value(), 
       _this->GetArenaForAllocation());
   }
-  // @@protoc_insertion_point(copy_constructor:SnapData)
+  // @@protoc_insertion_point(copy_constructor:vearchpb.SnapData)
 }
 
 inline void SnapData::SharedCtor(
@@ -1808,7 +1814,7 @@ inline void SnapData::SharedCtor(
 }
 
 SnapData::~SnapData() {
-  // @@protoc_insertion_point(destructor:SnapData)
+  // @@protoc_insertion_point(destructor:vearchpb.SnapData)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -1827,7 +1833,7 @@ void SnapData::SetCachedSize(int size) const {
 }
 
 void SnapData::Clear() {
-// @@protoc_insertion_point(message_clear_start:SnapData)
+// @@protoc_insertion_point(message_clear_start:vearchpb.SnapData)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -1886,7 +1892,7 @@ failure:
 
 uint8_t* SnapData::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:SnapData)
+  // @@protoc_insertion_point(serialize_to_array_start:vearchpb.SnapData)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
@@ -1906,12 +1912,12 @@ uint8_t* SnapData::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:SnapData)
+  // @@protoc_insertion_point(serialize_to_array_end:vearchpb.SnapData)
   return target;
 }
 
 size_t SnapData::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:SnapData)
+// @@protoc_insertion_point(message_byte_size_start:vearchpb.SnapData)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
@@ -1945,7 +1951,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*SnapData::GetClassData() const
 void SnapData::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<SnapData*>(&to_msg);
   auto& from = static_cast<const SnapData&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:SnapData)
+  // @@protoc_insertion_point(class_specific_merge_from_start:vearchpb.SnapData)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
@@ -1960,7 +1966,7 @@ void SnapData::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTO
 }
 
 void SnapData::CopyFrom(const SnapData& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:SnapData)
+// @@protoc_insertion_point(class_specific_copy_from_start:vearchpb.SnapData)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -1992,26 +1998,27 @@ void SnapData::InternalSwap(SnapData* other) {
 }
 
 // @@protoc_insertion_point(namespace_scope)
+}  // namespace vearchpb
 PROTOBUF_NAMESPACE_OPEN
-template<> PROTOBUF_NOINLINE ::PartitionData*
-Arena::CreateMaybeMessage< ::PartitionData >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::PartitionData >(arena);
+template<> PROTOBUF_NOINLINE ::vearchpb::PartitionData*
+Arena::CreateMaybeMessage< ::vearchpb::PartitionData >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::vearchpb::PartitionData >(arena);
 }
-template<> PROTOBUF_NOINLINE ::UpdateSpace*
-Arena::CreateMaybeMessage< ::UpdateSpace >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::UpdateSpace >(arena);
+template<> PROTOBUF_NOINLINE ::vearchpb::UpdateSpace*
+Arena::CreateMaybeMessage< ::vearchpb::UpdateSpace >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::vearchpb::UpdateSpace >(arena);
 }
-template<> PROTOBUF_NOINLINE ::DocCmd*
-Arena::CreateMaybeMessage< ::DocCmd >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::DocCmd >(arena);
+template<> PROTOBUF_NOINLINE ::vearchpb::DocCmd*
+Arena::CreateMaybeMessage< ::vearchpb::DocCmd >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::vearchpb::DocCmd >(arena);
 }
-template<> PROTOBUF_NOINLINE ::RaftCommand*
-Arena::CreateMaybeMessage< ::RaftCommand >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::RaftCommand >(arena);
+template<> PROTOBUF_NOINLINE ::vearchpb::RaftCommand*
+Arena::CreateMaybeMessage< ::vearchpb::RaftCommand >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::vearchpb::RaftCommand >(arena);
 }
-template<> PROTOBUF_NOINLINE ::SnapData*
-Arena::CreateMaybeMessage< ::SnapData >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::SnapData >(arena);
+template<> PROTOBUF_NOINLINE ::vearchpb::SnapData*
+Arena::CreateMaybeMessage< ::vearchpb::SnapData >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::vearchpb::SnapData >(arena);
 }
 PROTOBUF_NAMESPACE_CLOSE
 

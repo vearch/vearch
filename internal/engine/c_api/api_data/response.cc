@@ -7,7 +7,11 @@
 
 #include "response.h"
 
+#include <limits>
+
 #include "doc.h"
+#include "idl/pb-gen/data_model.pb.h"
+#include "idl/pb-gen/router_grpc.pb.h"
 #include "table/table.h"
 #include "util/log.h"
 #include "util/utils.h"
@@ -50,19 +54,21 @@ int Response::Serialize(const std::string &space_name,
   std::map<std::string, int> attr_idx;
   Table *table = static_cast<Table *>(table_);
   VectorManager *vector_mgr = static_cast<VectorManager *>(vector_mgr_);
-  flatbuffers::FlatBufferBuilder builder;
+  vearchpb::SearchResponse pbResponse;
+  pbResponse.set_timeout(false);
   // empty result
   if (table == nullptr || vector_mgr == nullptr) {
     LOG(DEBUG) << "nullptr: table=" << table << ", vector_mgr=" << vector_mgr;
-    std::vector<flatbuffers::Offset<gamma_api::SearchResult>> search_results;
-    auto result_vec = builder.CreateVector(search_results);
 
-    auto res = gamma_api::CreateResponse(builder, result_vec);
-    builder.Finish(res);
-
-    *out_len = builder.GetSize();
+    pbResponse.set_top_size(0);
+    std::string serialized;
+    if (!pbResponse.SerializeToString(&serialized)) {
+      LOG(ERROR) << "failed to serialize " << serialized.size();
+      return -1;
+    }
+    *out_len = serialized.size();
     *out = (char *)malloc(*out_len * sizeof(char));
-    memcpy(*out, (char *)builder.GetBufferPointer(), *out_len);
+    memcpy(*out, (char *)serialized.data(), *out_len);
     return 0;
   }
   const auto &attr_idx_map = table->FieldMap();
@@ -83,53 +89,57 @@ int Response::Serialize(const std::string &space_name,
     attr_idx = attr_idx_map;
   }
 
-  std::vector<flatbuffers::Offset<gamma_api::SearchResult>> search_results;
   for (int i = 0; i < req_num_; ++i) {
-    std::vector<flatbuffers::Offset<gamma_api::ResultItem>> result_items;
+    auto *pbRes = pbResponse.add_results();
+    vearchpb::SearchStatus *search_status = new vearchpb::SearchStatus();
+    search_status->set_total(gamma_results_[i].total);
+    search_status->set_msg("Success");
+    search_status->set_successful(gamma_results_[i].total);
+    search_status->set_failed(0);
+    pbRes->set_allocated_status(search_status);
+
+    double max_score = std::numeric_limits<double>::lowest();
     for (int j = 0; j < gamma_results_[i].results_count; ++j) {
       VectorDoc *vec_doc = gamma_results_[i].docs[j];
       int docid = vec_doc->docid;
       double score = vec_doc->score;
+
+      auto *item = pbRes->add_result_items();
+      item->set_score(score);
+      max_score = std::max(max_score, score);
+
       std::vector<flatbuffers::Offset<gamma_api::Attribute>> attributes;
       for (auto &it : attr_idx) {
         std::vector<uint8_t> val;
         table->GetFieldRawValue(docid, it.second, val);
-
-        attributes.emplace_back(
-            gamma_api::CreateAttribute(builder, builder.CreateString(it.first),
-                                       builder.CreateVector(val)));
+        auto *field = item->add_fields();
+        field->set_name(it.first);
+        field->set_value(std::string(val.begin(), val.end()));
       }
       for (uint32_t k = 0; k < vec_fields.size(); ++k) {
         std::vector<uint8_t> vec;
         if (vector_mgr->GetDocVector(docid, vec_fields[k], vec) == 0) {
-          attributes.emplace_back(gamma_api::CreateAttribute(
-              builder, builder.CreateString(vec_fields[k]),
-              builder.CreateVector(vec)));
+          auto *field = item->add_fields();
+          field->set_name(vec_fields[k]);
+          field->set_value(std::string(vec.begin(), vec.end()));
         }
       }
-
-      result_items.emplace_back(gamma_api::CreateResultItem(
-          builder, score, builder.CreateVector(attributes)));
     }
 
     std::string str_msg = status.ToString();
-    auto item_vec = builder.CreateVector(result_items);
-    auto msg = builder.CreateString(str_msg);
-
-    vearch::status::Code result_code =
-        static_cast<vearch::status::Code>(status.code());
-    auto results = gamma_api::CreateSearchResult(
-        builder, gamma_results_[i].total, result_code, msg, item_vec);
-    search_results.push_back(results);
+    pbRes->set_msg(str_msg);
+    pbRes->set_max_score(max_score);
+    pbRes->set_timeout(false);
   }
 
-  auto result_vec = builder.CreateVector(search_results);
-  auto res = gamma_api::CreateResponse(builder, result_vec);
-  builder.Finish(res);
-
-  *out_len = builder.GetSize();
+  std::string serialized;
+  if (!pbResponse.SerializeToString(&serialized)) {
+    LOG(ERROR) << "failed to serialize " << serialized;
+    return -1;
+  }
+  *out_len = serialized.size();
   *out = (char *)malloc(*out_len * sizeof(char));
-  memcpy(*out, (char *)builder.GetBufferPointer(), *out_len);
+  memcpy(*out, (char *)serialized.data(), *out_len);
   delete[] gamma_results_;
   gamma_results_ = nullptr;
 #ifdef PERFORMANCE_TESTING

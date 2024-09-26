@@ -48,6 +48,7 @@ struct TableStruct_raftcmd_2eproto {
   static const uint32_t offsets[];
 };
 extern const ::PROTOBUF_NAMESPACE_ID::internal::DescriptorTable descriptor_table_raftcmd_2eproto;
+namespace vearchpb {
 class DocCmd;
 struct DocCmdDefaultTypeInternal;
 extern DocCmdDefaultTypeInternal _DocCmd_default_instance_;
@@ -63,13 +64,15 @@ extern SnapDataDefaultTypeInternal _SnapData_default_instance_;
 class UpdateSpace;
 struct UpdateSpaceDefaultTypeInternal;
 extern UpdateSpaceDefaultTypeInternal _UpdateSpace_default_instance_;
+}  // namespace vearchpb
 PROTOBUF_NAMESPACE_OPEN
-template<> ::DocCmd* Arena::CreateMaybeMessage<::DocCmd>(Arena*);
-template<> ::PartitionData* Arena::CreateMaybeMessage<::PartitionData>(Arena*);
-template<> ::RaftCommand* Arena::CreateMaybeMessage<::RaftCommand>(Arena*);
-template<> ::SnapData* Arena::CreateMaybeMessage<::SnapData>(Arena*);
-template<> ::UpdateSpace* Arena::CreateMaybeMessage<::UpdateSpace>(Arena*);
+template<> ::vearchpb::DocCmd* Arena::CreateMaybeMessage<::vearchpb::DocCmd>(Arena*);
+template<> ::vearchpb::PartitionData* Arena::CreateMaybeMessage<::vearchpb::PartitionData>(Arena*);
+template<> ::vearchpb::RaftCommand* Arena::CreateMaybeMessage<::vearchpb::RaftCommand>(Arena*);
+template<> ::vearchpb::SnapData* Arena::CreateMaybeMessage<::vearchpb::SnapData>(Arena*);
+template<> ::vearchpb::UpdateSpace* Arena::CreateMaybeMessage<::vearchpb::UpdateSpace>(Arena*);
 PROTOBUF_NAMESPACE_CLOSE
+namespace vearchpb {
 
 enum OpType : int {
   CREATE = 0,
@@ -129,7 +132,7 @@ inline bool CmdType_Parse(
 // ===================================================================
 
 class PartitionData final :
-    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:PartitionData) */ {
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:vearchpb.PartitionData) */ {
  public:
   inline PartitionData() : PartitionData(nullptr) {}
   ~PartitionData() override;
@@ -232,7 +235,7 @@ class PartitionData final :
   private:
   friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
   static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "PartitionData";
+    return "vearchpb.PartitionData";
   }
   protected:
   explicit PartitionData(::PROTOBUF_NAMESPACE_ID::Arena* arena,
@@ -262,22 +265,22 @@ class PartitionData final :
     kTypeFieldNumber = 1,
     kPartitionIDFieldNumber = 2,
   };
-  // repeated .Item items = 4;
+  // repeated .vearchpb.Item items = 4;
   int items_size() const;
   private:
   int _internal_items_size() const;
   public:
   void clear_items();
-  ::Item* mutable_items(int index);
-  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::Item >*
+  ::vearchpb::Item* mutable_items(int index);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::Item >*
       mutable_items();
   private:
-  const ::Item& _internal_items(int index) const;
-  ::Item* _internal_add_items();
+  const ::vearchpb::Item& _internal_items(int index) const;
+  ::vearchpb::Item* _internal_add_items();
   public:
-  const ::Item& items(int index) const;
-  ::Item* add_items();
-  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::Item >&
+  const ::vearchpb::Item& items(int index) const;
+  ::vearchpb::Item* add_items();
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::Item >&
       items() const;
 
   // string messageID = 3;
@@ -308,139 +311,139 @@ class PartitionData final :
   std::string* _internal_mutable_data();
   public:
 
-  // .SearchRequest search_request = 5;
+  // .vearchpb.SearchRequest search_request = 5;
   bool has_search_request() const;
   private:
   bool _internal_has_search_request() const;
   public:
   void clear_search_request();
-  const ::SearchRequest& search_request() const;
-  PROTOBUF_NODISCARD ::SearchRequest* release_search_request();
-  ::SearchRequest* mutable_search_request();
-  void set_allocated_search_request(::SearchRequest* search_request);
+  const ::vearchpb::SearchRequest& search_request() const;
+  PROTOBUF_NODISCARD ::vearchpb::SearchRequest* release_search_request();
+  ::vearchpb::SearchRequest* mutable_search_request();
+  void set_allocated_search_request(::vearchpb::SearchRequest* search_request);
   private:
-  const ::SearchRequest& _internal_search_request() const;
-  ::SearchRequest* _internal_mutable_search_request();
+  const ::vearchpb::SearchRequest& _internal_search_request() const;
+  ::vearchpb::SearchRequest* _internal_mutable_search_request();
   public:
   void unsafe_arena_set_allocated_search_request(
-      ::SearchRequest* search_request);
-  ::SearchRequest* unsafe_arena_release_search_request();
+      ::vearchpb::SearchRequest* search_request);
+  ::vearchpb::SearchRequest* unsafe_arena_release_search_request();
 
-  // .SearchResponse search_response = 6;
+  // .vearchpb.SearchResponse search_response = 6;
   bool has_search_response() const;
   private:
   bool _internal_has_search_response() const;
   public:
   void clear_search_response();
-  const ::SearchResponse& search_response() const;
-  PROTOBUF_NODISCARD ::SearchResponse* release_search_response();
-  ::SearchResponse* mutable_search_response();
-  void set_allocated_search_response(::SearchResponse* search_response);
+  const ::vearchpb::SearchResponse& search_response() const;
+  PROTOBUF_NODISCARD ::vearchpb::SearchResponse* release_search_response();
+  ::vearchpb::SearchResponse* mutable_search_response();
+  void set_allocated_search_response(::vearchpb::SearchResponse* search_response);
   private:
-  const ::SearchResponse& _internal_search_response() const;
-  ::SearchResponse* _internal_mutable_search_response();
+  const ::vearchpb::SearchResponse& _internal_search_response() const;
+  ::vearchpb::SearchResponse* _internal_mutable_search_response();
   public:
   void unsafe_arena_set_allocated_search_response(
-      ::SearchResponse* search_response);
-  ::SearchResponse* unsafe_arena_release_search_response();
+      ::vearchpb::SearchResponse* search_response);
+  ::vearchpb::SearchResponse* unsafe_arena_release_search_response();
 
-  // .Error err = 8;
+  // .vearchpb.Error err = 8;
   bool has_err() const;
   private:
   bool _internal_has_err() const;
   public:
   void clear_err();
-  const ::Error& err() const;
-  PROTOBUF_NODISCARD ::Error* release_err();
-  ::Error* mutable_err();
-  void set_allocated_err(::Error* err);
+  const ::vearchpb::Error& err() const;
+  PROTOBUF_NODISCARD ::vearchpb::Error* release_err();
+  ::vearchpb::Error* mutable_err();
+  void set_allocated_err(::vearchpb::Error* err);
   private:
-  const ::Error& _internal_err() const;
-  ::Error* _internal_mutable_err();
+  const ::vearchpb::Error& _internal_err() const;
+  ::vearchpb::Error* _internal_mutable_err();
   public:
   void unsafe_arena_set_allocated_err(
-      ::Error* err);
-  ::Error* unsafe_arena_release_err();
+      ::vearchpb::Error* err);
+  ::vearchpb::Error* unsafe_arena_release_err();
 
-  // .DelByQueryeResponse del_by_query_response = 9;
+  // .vearchpb.DelByQueryeResponse del_by_query_response = 9;
   bool has_del_by_query_response() const;
   private:
   bool _internal_has_del_by_query_response() const;
   public:
   void clear_del_by_query_response();
-  const ::DelByQueryeResponse& del_by_query_response() const;
-  PROTOBUF_NODISCARD ::DelByQueryeResponse* release_del_by_query_response();
-  ::DelByQueryeResponse* mutable_del_by_query_response();
-  void set_allocated_del_by_query_response(::DelByQueryeResponse* del_by_query_response);
+  const ::vearchpb::DelByQueryeResponse& del_by_query_response() const;
+  PROTOBUF_NODISCARD ::vearchpb::DelByQueryeResponse* release_del_by_query_response();
+  ::vearchpb::DelByQueryeResponse* mutable_del_by_query_response();
+  void set_allocated_del_by_query_response(::vearchpb::DelByQueryeResponse* del_by_query_response);
   private:
-  const ::DelByQueryeResponse& _internal_del_by_query_response() const;
-  ::DelByQueryeResponse* _internal_mutable_del_by_query_response();
+  const ::vearchpb::DelByQueryeResponse& _internal_del_by_query_response() const;
+  ::vearchpb::DelByQueryeResponse* _internal_mutable_del_by_query_response();
   public:
   void unsafe_arena_set_allocated_del_by_query_response(
-      ::DelByQueryeResponse* del_by_query_response);
-  ::DelByQueryeResponse* unsafe_arena_release_del_by_query_response();
+      ::vearchpb::DelByQueryeResponse* del_by_query_response);
+  ::vearchpb::DelByQueryeResponse* unsafe_arena_release_del_by_query_response();
 
-  // .IndexRequest index_request = 10;
+  // .vearchpb.IndexRequest index_request = 10;
   bool has_index_request() const;
   private:
   bool _internal_has_index_request() const;
   public:
   void clear_index_request();
-  const ::IndexRequest& index_request() const;
-  PROTOBUF_NODISCARD ::IndexRequest* release_index_request();
-  ::IndexRequest* mutable_index_request();
-  void set_allocated_index_request(::IndexRequest* index_request);
+  const ::vearchpb::IndexRequest& index_request() const;
+  PROTOBUF_NODISCARD ::vearchpb::IndexRequest* release_index_request();
+  ::vearchpb::IndexRequest* mutable_index_request();
+  void set_allocated_index_request(::vearchpb::IndexRequest* index_request);
   private:
-  const ::IndexRequest& _internal_index_request() const;
-  ::IndexRequest* _internal_mutable_index_request();
+  const ::vearchpb::IndexRequest& _internal_index_request() const;
+  ::vearchpb::IndexRequest* _internal_mutable_index_request();
   public:
   void unsafe_arena_set_allocated_index_request(
-      ::IndexRequest* index_request);
-  ::IndexRequest* unsafe_arena_release_index_request();
+      ::vearchpb::IndexRequest* index_request);
+  ::vearchpb::IndexRequest* unsafe_arena_release_index_request();
 
-  // .IndexResponse index_response = 11;
+  // .vearchpb.IndexResponse index_response = 11;
   bool has_index_response() const;
   private:
   bool _internal_has_index_response() const;
   public:
   void clear_index_response();
-  const ::IndexResponse& index_response() const;
-  PROTOBUF_NODISCARD ::IndexResponse* release_index_response();
-  ::IndexResponse* mutable_index_response();
-  void set_allocated_index_response(::IndexResponse* index_response);
+  const ::vearchpb::IndexResponse& index_response() const;
+  PROTOBUF_NODISCARD ::vearchpb::IndexResponse* release_index_response();
+  ::vearchpb::IndexResponse* mutable_index_response();
+  void set_allocated_index_response(::vearchpb::IndexResponse* index_response);
   private:
-  const ::IndexResponse& _internal_index_response() const;
-  ::IndexResponse* _internal_mutable_index_response();
+  const ::vearchpb::IndexResponse& _internal_index_response() const;
+  ::vearchpb::IndexResponse* _internal_mutable_index_response();
   public:
   void unsafe_arena_set_allocated_index_response(
-      ::IndexResponse* index_response);
-  ::IndexResponse* unsafe_arena_release_index_response();
+      ::vearchpb::IndexResponse* index_response);
+  ::vearchpb::IndexResponse* unsafe_arena_release_index_response();
 
-  // .QueryRequest query_request = 12;
+  // .vearchpb.QueryRequest query_request = 12;
   bool has_query_request() const;
   private:
   bool _internal_has_query_request() const;
   public:
   void clear_query_request();
-  const ::QueryRequest& query_request() const;
-  PROTOBUF_NODISCARD ::QueryRequest* release_query_request();
-  ::QueryRequest* mutable_query_request();
-  void set_allocated_query_request(::QueryRequest* query_request);
+  const ::vearchpb::QueryRequest& query_request() const;
+  PROTOBUF_NODISCARD ::vearchpb::QueryRequest* release_query_request();
+  ::vearchpb::QueryRequest* mutable_query_request();
+  void set_allocated_query_request(::vearchpb::QueryRequest* query_request);
   private:
-  const ::QueryRequest& _internal_query_request() const;
-  ::QueryRequest* _internal_mutable_query_request();
+  const ::vearchpb::QueryRequest& _internal_query_request() const;
+  ::vearchpb::QueryRequest* _internal_mutable_query_request();
   public:
   void unsafe_arena_set_allocated_query_request(
-      ::QueryRequest* query_request);
-  ::QueryRequest* unsafe_arena_release_query_request();
+      ::vearchpb::QueryRequest* query_request);
+  ::vearchpb::QueryRequest* unsafe_arena_release_query_request();
 
-  // .OpType type = 1;
+  // .vearchpb.OpType type = 1;
   void clear_type();
-  ::OpType type() const;
-  void set_type(::OpType value);
+  ::vearchpb::OpType type() const;
+  void set_type(::vearchpb::OpType value);
   private:
-  ::OpType _internal_type() const;
-  void _internal_set_type(::OpType value);
+  ::vearchpb::OpType _internal_type() const;
+  void _internal_set_type(::vearchpb::OpType value);
   public:
 
   // uint32 partitionID = 2;
@@ -452,7 +455,7 @@ class PartitionData final :
   void _internal_set_partitionid(uint32_t value);
   public:
 
-  // @@protoc_insertion_point(class_scope:PartitionData)
+  // @@protoc_insertion_point(class_scope:vearchpb.PartitionData)
  private:
   class _Internal;
 
@@ -460,16 +463,16 @@ class PartitionData final :
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
   struct Impl_ {
-    ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::Item > items_;
+    ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::Item > items_;
     ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr messageid_;
     ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr data_;
-    ::SearchRequest* search_request_;
-    ::SearchResponse* search_response_;
-    ::Error* err_;
-    ::DelByQueryeResponse* del_by_query_response_;
-    ::IndexRequest* index_request_;
-    ::IndexResponse* index_response_;
-    ::QueryRequest* query_request_;
+    ::vearchpb::SearchRequest* search_request_;
+    ::vearchpb::SearchResponse* search_response_;
+    ::vearchpb::Error* err_;
+    ::vearchpb::DelByQueryeResponse* del_by_query_response_;
+    ::vearchpb::IndexRequest* index_request_;
+    ::vearchpb::IndexResponse* index_response_;
+    ::vearchpb::QueryRequest* query_request_;
     int type_;
     uint32_t partitionid_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
@@ -480,7 +483,7 @@ class PartitionData final :
 // -------------------------------------------------------------------
 
 class UpdateSpace final :
-    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:UpdateSpace) */ {
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:vearchpb.UpdateSpace) */ {
  public:
   inline UpdateSpace() : UpdateSpace(nullptr) {}
   ~UpdateSpace() override;
@@ -583,7 +586,7 @@ class UpdateSpace final :
   private:
   friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
   static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "UpdateSpace";
+    return "vearchpb.UpdateSpace";
   }
   protected:
   explicit UpdateSpace(::PROTOBUF_NAMESPACE_ID::Arena* arena,
@@ -626,7 +629,7 @@ class UpdateSpace final :
   void _internal_set_version(uint64_t value);
   public:
 
-  // @@protoc_insertion_point(class_scope:UpdateSpace)
+  // @@protoc_insertion_point(class_scope:vearchpb.UpdateSpace)
  private:
   class _Internal;
 
@@ -644,7 +647,7 @@ class UpdateSpace final :
 // -------------------------------------------------------------------
 
 class DocCmd final :
-    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:DocCmd) */ {
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:vearchpb.DocCmd) */ {
  public:
   inline DocCmd() : DocCmd(nullptr) {}
   ~DocCmd() override;
@@ -747,7 +750,7 @@ class DocCmd final :
   private:
   friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
   static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "DocCmd";
+    return "vearchpb.DocCmd";
   }
   protected:
   explicit DocCmd(::PROTOBUF_NAMESPACE_ID::Arena* arena,
@@ -817,13 +820,13 @@ class DocCmd final :
   void _internal_set_version(int64_t value);
   public:
 
-  // .OpType type = 1;
+  // .vearchpb.OpType type = 1;
   void clear_type();
-  ::OpType type() const;
-  void set_type(::OpType value);
+  ::vearchpb::OpType type() const;
+  void set_type(::vearchpb::OpType value);
   private:
-  ::OpType _internal_type() const;
-  void _internal_set_type(::OpType value);
+  ::vearchpb::OpType _internal_type() const;
+  void _internal_set_type(::vearchpb::OpType value);
   public:
 
   // uint32 slot = 5;
@@ -835,7 +838,7 @@ class DocCmd final :
   void _internal_set_slot(uint32_t value);
   public:
 
-  // @@protoc_insertion_point(class_scope:DocCmd)
+  // @@protoc_insertion_point(class_scope:vearchpb.DocCmd)
  private:
   class _Internal;
 
@@ -856,7 +859,7 @@ class DocCmd final :
 // -------------------------------------------------------------------
 
 class RaftCommand final :
-    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:RaftCommand) */ {
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:vearchpb.RaftCommand) */ {
  public:
   inline RaftCommand() : RaftCommand(nullptr) {}
   ~RaftCommand() override;
@@ -959,7 +962,7 @@ class RaftCommand final :
   private:
   friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
   static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "RaftCommand";
+    return "vearchpb.RaftCommand";
   }
   protected:
   explicit RaftCommand(::PROTOBUF_NAMESPACE_ID::Arena* arena,
@@ -980,52 +983,52 @@ class RaftCommand final :
     kUpdateSpaceFieldNumber = 3,
     kTypeFieldNumber = 1,
   };
-  // .DocCmd write_command = 2;
+  // .vearchpb.DocCmd write_command = 2;
   bool has_write_command() const;
   private:
   bool _internal_has_write_command() const;
   public:
   void clear_write_command();
-  const ::DocCmd& write_command() const;
-  PROTOBUF_NODISCARD ::DocCmd* release_write_command();
-  ::DocCmd* mutable_write_command();
-  void set_allocated_write_command(::DocCmd* write_command);
+  const ::vearchpb::DocCmd& write_command() const;
+  PROTOBUF_NODISCARD ::vearchpb::DocCmd* release_write_command();
+  ::vearchpb::DocCmd* mutable_write_command();
+  void set_allocated_write_command(::vearchpb::DocCmd* write_command);
   private:
-  const ::DocCmd& _internal_write_command() const;
-  ::DocCmd* _internal_mutable_write_command();
+  const ::vearchpb::DocCmd& _internal_write_command() const;
+  ::vearchpb::DocCmd* _internal_mutable_write_command();
   public:
   void unsafe_arena_set_allocated_write_command(
-      ::DocCmd* write_command);
-  ::DocCmd* unsafe_arena_release_write_command();
+      ::vearchpb::DocCmd* write_command);
+  ::vearchpb::DocCmd* unsafe_arena_release_write_command();
 
-  // .UpdateSpace update_space = 3;
+  // .vearchpb.UpdateSpace update_space = 3;
   bool has_update_space() const;
   private:
   bool _internal_has_update_space() const;
   public:
   void clear_update_space();
-  const ::UpdateSpace& update_space() const;
-  PROTOBUF_NODISCARD ::UpdateSpace* release_update_space();
-  ::UpdateSpace* mutable_update_space();
-  void set_allocated_update_space(::UpdateSpace* update_space);
+  const ::vearchpb::UpdateSpace& update_space() const;
+  PROTOBUF_NODISCARD ::vearchpb::UpdateSpace* release_update_space();
+  ::vearchpb::UpdateSpace* mutable_update_space();
+  void set_allocated_update_space(::vearchpb::UpdateSpace* update_space);
   private:
-  const ::UpdateSpace& _internal_update_space() const;
-  ::UpdateSpace* _internal_mutable_update_space();
+  const ::vearchpb::UpdateSpace& _internal_update_space() const;
+  ::vearchpb::UpdateSpace* _internal_mutable_update_space();
   public:
   void unsafe_arena_set_allocated_update_space(
-      ::UpdateSpace* update_space);
-  ::UpdateSpace* unsafe_arena_release_update_space();
+      ::vearchpb::UpdateSpace* update_space);
+  ::vearchpb::UpdateSpace* unsafe_arena_release_update_space();
 
-  // .CmdType type = 1;
+  // .vearchpb.CmdType type = 1;
   void clear_type();
-  ::CmdType type() const;
-  void set_type(::CmdType value);
+  ::vearchpb::CmdType type() const;
+  void set_type(::vearchpb::CmdType value);
   private:
-  ::CmdType _internal_type() const;
-  void _internal_set_type(::CmdType value);
+  ::vearchpb::CmdType _internal_type() const;
+  void _internal_set_type(::vearchpb::CmdType value);
   public:
 
-  // @@protoc_insertion_point(class_scope:RaftCommand)
+  // @@protoc_insertion_point(class_scope:vearchpb.RaftCommand)
  private:
   class _Internal;
 
@@ -1033,8 +1036,8 @@ class RaftCommand final :
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
   struct Impl_ {
-    ::DocCmd* write_command_;
-    ::UpdateSpace* update_space_;
+    ::vearchpb::DocCmd* write_command_;
+    ::vearchpb::UpdateSpace* update_space_;
     int type_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
@@ -1044,7 +1047,7 @@ class RaftCommand final :
 // -------------------------------------------------------------------
 
 class SnapData final :
-    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:SnapData) */ {
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:vearchpb.SnapData) */ {
  public:
   inline SnapData() : SnapData(nullptr) {}
   ~SnapData() override;
@@ -1147,7 +1150,7 @@ class SnapData final :
   private:
   friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
   static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "SnapData";
+    return "vearchpb.SnapData";
   }
   protected:
   explicit SnapData(::PROTOBUF_NAMESPACE_ID::Arena* arena,
@@ -1195,7 +1198,7 @@ class SnapData final :
   std::string* _internal_mutable_value();
   public:
 
-  // @@protoc_insertion_point(class_scope:SnapData)
+  // @@protoc_insertion_point(class_scope:vearchpb.SnapData)
  private:
   class _Internal;
 
@@ -1221,24 +1224,24 @@ class SnapData final :
 #endif  // __GNUC__
 // PartitionData
 
-// .OpType type = 1;
+// .vearchpb.OpType type = 1;
 inline void PartitionData::clear_type() {
   _impl_.type_ = 0;
 }
-inline ::OpType PartitionData::_internal_type() const {
-  return static_cast< ::OpType >(_impl_.type_);
+inline ::vearchpb::OpType PartitionData::_internal_type() const {
+  return static_cast< ::vearchpb::OpType >(_impl_.type_);
 }
-inline ::OpType PartitionData::type() const {
-  // @@protoc_insertion_point(field_get:PartitionData.type)
+inline ::vearchpb::OpType PartitionData::type() const {
+  // @@protoc_insertion_point(field_get:vearchpb.PartitionData.type)
   return _internal_type();
 }
-inline void PartitionData::_internal_set_type(::OpType value) {
+inline void PartitionData::_internal_set_type(::vearchpb::OpType value) {
   
   _impl_.type_ = value;
 }
-inline void PartitionData::set_type(::OpType value) {
+inline void PartitionData::set_type(::vearchpb::OpType value) {
   _internal_set_type(value);
-  // @@protoc_insertion_point(field_set:PartitionData.type)
+  // @@protoc_insertion_point(field_set:vearchpb.PartitionData.type)
 }
 
 // uint32 partitionID = 2;
@@ -1249,7 +1252,7 @@ inline uint32_t PartitionData::_internal_partitionid() const {
   return _impl_.partitionid_;
 }
 inline uint32_t PartitionData::partitionid() const {
-  // @@protoc_insertion_point(field_get:PartitionData.partitionID)
+  // @@protoc_insertion_point(field_get:vearchpb.PartitionData.partitionID)
   return _internal_partitionid();
 }
 inline void PartitionData::_internal_set_partitionid(uint32_t value) {
@@ -1258,7 +1261,7 @@ inline void PartitionData::_internal_set_partitionid(uint32_t value) {
 }
 inline void PartitionData::set_partitionid(uint32_t value) {
   _internal_set_partitionid(value);
-  // @@protoc_insertion_point(field_set:PartitionData.partitionID)
+  // @@protoc_insertion_point(field_set:vearchpb.PartitionData.partitionID)
 }
 
 // string messageID = 3;
@@ -1266,7 +1269,7 @@ inline void PartitionData::clear_messageid() {
   _impl_.messageid_.ClearToEmpty();
 }
 inline const std::string& PartitionData::messageid() const {
-  // @@protoc_insertion_point(field_get:PartitionData.messageID)
+  // @@protoc_insertion_point(field_get:vearchpb.PartitionData.messageID)
   return _internal_messageid();
 }
 template <typename ArgT0, typename... ArgT>
@@ -1274,11 +1277,11 @@ inline PROTOBUF_ALWAYS_INLINE
 void PartitionData::set_messageid(ArgT0&& arg0, ArgT... args) {
  
  _impl_.messageid_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
-  // @@protoc_insertion_point(field_set:PartitionData.messageID)
+  // @@protoc_insertion_point(field_set:vearchpb.PartitionData.messageID)
 }
 inline std::string* PartitionData::mutable_messageid() {
   std::string* _s = _internal_mutable_messageid();
-  // @@protoc_insertion_point(field_mutable:PartitionData.messageID)
+  // @@protoc_insertion_point(field_mutable:vearchpb.PartitionData.messageID)
   return _s;
 }
 inline const std::string& PartitionData::_internal_messageid() const {
@@ -1293,7 +1296,7 @@ inline std::string* PartitionData::_internal_mutable_messageid() {
   return _impl_.messageid_.Mutable(GetArenaForAllocation());
 }
 inline std::string* PartitionData::release_messageid() {
-  // @@protoc_insertion_point(field_release:PartitionData.messageID)
+  // @@protoc_insertion_point(field_release:vearchpb.PartitionData.messageID)
   return _impl_.messageid_.Release();
 }
 inline void PartitionData::set_allocated_messageid(std::string* messageid) {
@@ -1308,64 +1311,64 @@ inline void PartitionData::set_allocated_messageid(std::string* messageid) {
     _impl_.messageid_.Set("", GetArenaForAllocation());
   }
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  // @@protoc_insertion_point(field_set_allocated:PartitionData.messageID)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.PartitionData.messageID)
 }
 
-// repeated .Item items = 4;
+// repeated .vearchpb.Item items = 4;
 inline int PartitionData::_internal_items_size() const {
   return _impl_.items_.size();
 }
 inline int PartitionData::items_size() const {
   return _internal_items_size();
 }
-inline ::Item* PartitionData::mutable_items(int index) {
-  // @@protoc_insertion_point(field_mutable:PartitionData.items)
+inline ::vearchpb::Item* PartitionData::mutable_items(int index) {
+  // @@protoc_insertion_point(field_mutable:vearchpb.PartitionData.items)
   return _impl_.items_.Mutable(index);
 }
-inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::Item >*
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::Item >*
 PartitionData::mutable_items() {
-  // @@protoc_insertion_point(field_mutable_list:PartitionData.items)
+  // @@protoc_insertion_point(field_mutable_list:vearchpb.PartitionData.items)
   return &_impl_.items_;
 }
-inline const ::Item& PartitionData::_internal_items(int index) const {
+inline const ::vearchpb::Item& PartitionData::_internal_items(int index) const {
   return _impl_.items_.Get(index);
 }
-inline const ::Item& PartitionData::items(int index) const {
-  // @@protoc_insertion_point(field_get:PartitionData.items)
+inline const ::vearchpb::Item& PartitionData::items(int index) const {
+  // @@protoc_insertion_point(field_get:vearchpb.PartitionData.items)
   return _internal_items(index);
 }
-inline ::Item* PartitionData::_internal_add_items() {
+inline ::vearchpb::Item* PartitionData::_internal_add_items() {
   return _impl_.items_.Add();
 }
-inline ::Item* PartitionData::add_items() {
-  ::Item* _add = _internal_add_items();
-  // @@protoc_insertion_point(field_add:PartitionData.items)
+inline ::vearchpb::Item* PartitionData::add_items() {
+  ::vearchpb::Item* _add = _internal_add_items();
+  // @@protoc_insertion_point(field_add:vearchpb.PartitionData.items)
   return _add;
 }
-inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::Item >&
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::Item >&
 PartitionData::items() const {
-  // @@protoc_insertion_point(field_list:PartitionData.items)
+  // @@protoc_insertion_point(field_list:vearchpb.PartitionData.items)
   return _impl_.items_;
 }
 
-// .SearchRequest search_request = 5;
+// .vearchpb.SearchRequest search_request = 5;
 inline bool PartitionData::_internal_has_search_request() const {
   return this != internal_default_instance() && _impl_.search_request_ != nullptr;
 }
 inline bool PartitionData::has_search_request() const {
   return _internal_has_search_request();
 }
-inline const ::SearchRequest& PartitionData::_internal_search_request() const {
-  const ::SearchRequest* p = _impl_.search_request_;
-  return p != nullptr ? *p : reinterpret_cast<const ::SearchRequest&>(
-      ::_SearchRequest_default_instance_);
+inline const ::vearchpb::SearchRequest& PartitionData::_internal_search_request() const {
+  const ::vearchpb::SearchRequest* p = _impl_.search_request_;
+  return p != nullptr ? *p : reinterpret_cast<const ::vearchpb::SearchRequest&>(
+      ::vearchpb::_SearchRequest_default_instance_);
 }
-inline const ::SearchRequest& PartitionData::search_request() const {
-  // @@protoc_insertion_point(field_get:PartitionData.search_request)
+inline const ::vearchpb::SearchRequest& PartitionData::search_request() const {
+  // @@protoc_insertion_point(field_get:vearchpb.PartitionData.search_request)
   return _internal_search_request();
 }
 inline void PartitionData::unsafe_arena_set_allocated_search_request(
-    ::SearchRequest* search_request) {
+    ::vearchpb::SearchRequest* search_request) {
   if (GetArenaForAllocation() == nullptr) {
     delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.search_request_);
   }
@@ -1375,11 +1378,11 @@ inline void PartitionData::unsafe_arena_set_allocated_search_request(
   } else {
     
   }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:PartitionData.search_request)
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:vearchpb.PartitionData.search_request)
 }
-inline ::SearchRequest* PartitionData::release_search_request() {
+inline ::vearchpb::SearchRequest* PartitionData::release_search_request() {
   
-  ::SearchRequest* temp = _impl_.search_request_;
+  ::vearchpb::SearchRequest* temp = _impl_.search_request_;
   _impl_.search_request_ = nullptr;
 #ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
   auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
@@ -1392,27 +1395,27 @@ inline ::SearchRequest* PartitionData::release_search_request() {
 #endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
   return temp;
 }
-inline ::SearchRequest* PartitionData::unsafe_arena_release_search_request() {
-  // @@protoc_insertion_point(field_release:PartitionData.search_request)
+inline ::vearchpb::SearchRequest* PartitionData::unsafe_arena_release_search_request() {
+  // @@protoc_insertion_point(field_release:vearchpb.PartitionData.search_request)
   
-  ::SearchRequest* temp = _impl_.search_request_;
+  ::vearchpb::SearchRequest* temp = _impl_.search_request_;
   _impl_.search_request_ = nullptr;
   return temp;
 }
-inline ::SearchRequest* PartitionData::_internal_mutable_search_request() {
+inline ::vearchpb::SearchRequest* PartitionData::_internal_mutable_search_request() {
   
   if (_impl_.search_request_ == nullptr) {
-    auto* p = CreateMaybeMessage<::SearchRequest>(GetArenaForAllocation());
+    auto* p = CreateMaybeMessage<::vearchpb::SearchRequest>(GetArenaForAllocation());
     _impl_.search_request_ = p;
   }
   return _impl_.search_request_;
 }
-inline ::SearchRequest* PartitionData::mutable_search_request() {
-  ::SearchRequest* _msg = _internal_mutable_search_request();
-  // @@protoc_insertion_point(field_mutable:PartitionData.search_request)
+inline ::vearchpb::SearchRequest* PartitionData::mutable_search_request() {
+  ::vearchpb::SearchRequest* _msg = _internal_mutable_search_request();
+  // @@protoc_insertion_point(field_mutable:vearchpb.PartitionData.search_request)
   return _msg;
 }
-inline void PartitionData::set_allocated_search_request(::SearchRequest* search_request) {
+inline void PartitionData::set_allocated_search_request(::vearchpb::SearchRequest* search_request) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   if (message_arena == nullptr) {
     delete reinterpret_cast< ::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.search_request_);
@@ -1430,27 +1433,27 @@ inline void PartitionData::set_allocated_search_request(::SearchRequest* search_
     
   }
   _impl_.search_request_ = search_request;
-  // @@protoc_insertion_point(field_set_allocated:PartitionData.search_request)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.PartitionData.search_request)
 }
 
-// .SearchResponse search_response = 6;
+// .vearchpb.SearchResponse search_response = 6;
 inline bool PartitionData::_internal_has_search_response() const {
   return this != internal_default_instance() && _impl_.search_response_ != nullptr;
 }
 inline bool PartitionData::has_search_response() const {
   return _internal_has_search_response();
 }
-inline const ::SearchResponse& PartitionData::_internal_search_response() const {
-  const ::SearchResponse* p = _impl_.search_response_;
-  return p != nullptr ? *p : reinterpret_cast<const ::SearchResponse&>(
-      ::_SearchResponse_default_instance_);
+inline const ::vearchpb::SearchResponse& PartitionData::_internal_search_response() const {
+  const ::vearchpb::SearchResponse* p = _impl_.search_response_;
+  return p != nullptr ? *p : reinterpret_cast<const ::vearchpb::SearchResponse&>(
+      ::vearchpb::_SearchResponse_default_instance_);
 }
-inline const ::SearchResponse& PartitionData::search_response() const {
-  // @@protoc_insertion_point(field_get:PartitionData.search_response)
+inline const ::vearchpb::SearchResponse& PartitionData::search_response() const {
+  // @@protoc_insertion_point(field_get:vearchpb.PartitionData.search_response)
   return _internal_search_response();
 }
 inline void PartitionData::unsafe_arena_set_allocated_search_response(
-    ::SearchResponse* search_response) {
+    ::vearchpb::SearchResponse* search_response) {
   if (GetArenaForAllocation() == nullptr) {
     delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.search_response_);
   }
@@ -1460,11 +1463,11 @@ inline void PartitionData::unsafe_arena_set_allocated_search_response(
   } else {
     
   }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:PartitionData.search_response)
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:vearchpb.PartitionData.search_response)
 }
-inline ::SearchResponse* PartitionData::release_search_response() {
+inline ::vearchpb::SearchResponse* PartitionData::release_search_response() {
   
-  ::SearchResponse* temp = _impl_.search_response_;
+  ::vearchpb::SearchResponse* temp = _impl_.search_response_;
   _impl_.search_response_ = nullptr;
 #ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
   auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
@@ -1477,27 +1480,27 @@ inline ::SearchResponse* PartitionData::release_search_response() {
 #endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
   return temp;
 }
-inline ::SearchResponse* PartitionData::unsafe_arena_release_search_response() {
-  // @@protoc_insertion_point(field_release:PartitionData.search_response)
+inline ::vearchpb::SearchResponse* PartitionData::unsafe_arena_release_search_response() {
+  // @@protoc_insertion_point(field_release:vearchpb.PartitionData.search_response)
   
-  ::SearchResponse* temp = _impl_.search_response_;
+  ::vearchpb::SearchResponse* temp = _impl_.search_response_;
   _impl_.search_response_ = nullptr;
   return temp;
 }
-inline ::SearchResponse* PartitionData::_internal_mutable_search_response() {
+inline ::vearchpb::SearchResponse* PartitionData::_internal_mutable_search_response() {
   
   if (_impl_.search_response_ == nullptr) {
-    auto* p = CreateMaybeMessage<::SearchResponse>(GetArenaForAllocation());
+    auto* p = CreateMaybeMessage<::vearchpb::SearchResponse>(GetArenaForAllocation());
     _impl_.search_response_ = p;
   }
   return _impl_.search_response_;
 }
-inline ::SearchResponse* PartitionData::mutable_search_response() {
-  ::SearchResponse* _msg = _internal_mutable_search_response();
-  // @@protoc_insertion_point(field_mutable:PartitionData.search_response)
+inline ::vearchpb::SearchResponse* PartitionData::mutable_search_response() {
+  ::vearchpb::SearchResponse* _msg = _internal_mutable_search_response();
+  // @@protoc_insertion_point(field_mutable:vearchpb.PartitionData.search_response)
   return _msg;
 }
-inline void PartitionData::set_allocated_search_response(::SearchResponse* search_response) {
+inline void PartitionData::set_allocated_search_response(::vearchpb::SearchResponse* search_response) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   if (message_arena == nullptr) {
     delete reinterpret_cast< ::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.search_response_);
@@ -1515,7 +1518,7 @@ inline void PartitionData::set_allocated_search_response(::SearchResponse* searc
     
   }
   _impl_.search_response_ = search_response;
-  // @@protoc_insertion_point(field_set_allocated:PartitionData.search_response)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.PartitionData.search_response)
 }
 
 // bytes data = 7;
@@ -1523,7 +1526,7 @@ inline void PartitionData::clear_data() {
   _impl_.data_.ClearToEmpty();
 }
 inline const std::string& PartitionData::data() const {
-  // @@protoc_insertion_point(field_get:PartitionData.data)
+  // @@protoc_insertion_point(field_get:vearchpb.PartitionData.data)
   return _internal_data();
 }
 template <typename ArgT0, typename... ArgT>
@@ -1531,11 +1534,11 @@ inline PROTOBUF_ALWAYS_INLINE
 void PartitionData::set_data(ArgT0&& arg0, ArgT... args) {
  
  _impl_.data_.SetBytes(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
-  // @@protoc_insertion_point(field_set:PartitionData.data)
+  // @@protoc_insertion_point(field_set:vearchpb.PartitionData.data)
 }
 inline std::string* PartitionData::mutable_data() {
   std::string* _s = _internal_mutable_data();
-  // @@protoc_insertion_point(field_mutable:PartitionData.data)
+  // @@protoc_insertion_point(field_mutable:vearchpb.PartitionData.data)
   return _s;
 }
 inline const std::string& PartitionData::_internal_data() const {
@@ -1550,7 +1553,7 @@ inline std::string* PartitionData::_internal_mutable_data() {
   return _impl_.data_.Mutable(GetArenaForAllocation());
 }
 inline std::string* PartitionData::release_data() {
-  // @@protoc_insertion_point(field_release:PartitionData.data)
+  // @@protoc_insertion_point(field_release:vearchpb.PartitionData.data)
   return _impl_.data_.Release();
 }
 inline void PartitionData::set_allocated_data(std::string* data) {
@@ -1565,27 +1568,27 @@ inline void PartitionData::set_allocated_data(std::string* data) {
     _impl_.data_.Set("", GetArenaForAllocation());
   }
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  // @@protoc_insertion_point(field_set_allocated:PartitionData.data)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.PartitionData.data)
 }
 
-// .Error err = 8;
+// .vearchpb.Error err = 8;
 inline bool PartitionData::_internal_has_err() const {
   return this != internal_default_instance() && _impl_.err_ != nullptr;
 }
 inline bool PartitionData::has_err() const {
   return _internal_has_err();
 }
-inline const ::Error& PartitionData::_internal_err() const {
-  const ::Error* p = _impl_.err_;
-  return p != nullptr ? *p : reinterpret_cast<const ::Error&>(
-      ::_Error_default_instance_);
+inline const ::vearchpb::Error& PartitionData::_internal_err() const {
+  const ::vearchpb::Error* p = _impl_.err_;
+  return p != nullptr ? *p : reinterpret_cast<const ::vearchpb::Error&>(
+      ::vearchpb::_Error_default_instance_);
 }
-inline const ::Error& PartitionData::err() const {
-  // @@protoc_insertion_point(field_get:PartitionData.err)
+inline const ::vearchpb::Error& PartitionData::err() const {
+  // @@protoc_insertion_point(field_get:vearchpb.PartitionData.err)
   return _internal_err();
 }
 inline void PartitionData::unsafe_arena_set_allocated_err(
-    ::Error* err) {
+    ::vearchpb::Error* err) {
   if (GetArenaForAllocation() == nullptr) {
     delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.err_);
   }
@@ -1595,11 +1598,11 @@ inline void PartitionData::unsafe_arena_set_allocated_err(
   } else {
     
   }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:PartitionData.err)
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:vearchpb.PartitionData.err)
 }
-inline ::Error* PartitionData::release_err() {
+inline ::vearchpb::Error* PartitionData::release_err() {
   
-  ::Error* temp = _impl_.err_;
+  ::vearchpb::Error* temp = _impl_.err_;
   _impl_.err_ = nullptr;
 #ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
   auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
@@ -1612,27 +1615,27 @@ inline ::Error* PartitionData::release_err() {
 #endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
   return temp;
 }
-inline ::Error* PartitionData::unsafe_arena_release_err() {
-  // @@protoc_insertion_point(field_release:PartitionData.err)
+inline ::vearchpb::Error* PartitionData::unsafe_arena_release_err() {
+  // @@protoc_insertion_point(field_release:vearchpb.PartitionData.err)
   
-  ::Error* temp = _impl_.err_;
+  ::vearchpb::Error* temp = _impl_.err_;
   _impl_.err_ = nullptr;
   return temp;
 }
-inline ::Error* PartitionData::_internal_mutable_err() {
+inline ::vearchpb::Error* PartitionData::_internal_mutable_err() {
   
   if (_impl_.err_ == nullptr) {
-    auto* p = CreateMaybeMessage<::Error>(GetArenaForAllocation());
+    auto* p = CreateMaybeMessage<::vearchpb::Error>(GetArenaForAllocation());
     _impl_.err_ = p;
   }
   return _impl_.err_;
 }
-inline ::Error* PartitionData::mutable_err() {
-  ::Error* _msg = _internal_mutable_err();
-  // @@protoc_insertion_point(field_mutable:PartitionData.err)
+inline ::vearchpb::Error* PartitionData::mutable_err() {
+  ::vearchpb::Error* _msg = _internal_mutable_err();
+  // @@protoc_insertion_point(field_mutable:vearchpb.PartitionData.err)
   return _msg;
 }
-inline void PartitionData::set_allocated_err(::Error* err) {
+inline void PartitionData::set_allocated_err(::vearchpb::Error* err) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   if (message_arena == nullptr) {
     delete reinterpret_cast< ::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.err_);
@@ -1650,27 +1653,27 @@ inline void PartitionData::set_allocated_err(::Error* err) {
     
   }
   _impl_.err_ = err;
-  // @@protoc_insertion_point(field_set_allocated:PartitionData.err)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.PartitionData.err)
 }
 
-// .DelByQueryeResponse del_by_query_response = 9;
+// .vearchpb.DelByQueryeResponse del_by_query_response = 9;
 inline bool PartitionData::_internal_has_del_by_query_response() const {
   return this != internal_default_instance() && _impl_.del_by_query_response_ != nullptr;
 }
 inline bool PartitionData::has_del_by_query_response() const {
   return _internal_has_del_by_query_response();
 }
-inline const ::DelByQueryeResponse& PartitionData::_internal_del_by_query_response() const {
-  const ::DelByQueryeResponse* p = _impl_.del_by_query_response_;
-  return p != nullptr ? *p : reinterpret_cast<const ::DelByQueryeResponse&>(
-      ::_DelByQueryeResponse_default_instance_);
+inline const ::vearchpb::DelByQueryeResponse& PartitionData::_internal_del_by_query_response() const {
+  const ::vearchpb::DelByQueryeResponse* p = _impl_.del_by_query_response_;
+  return p != nullptr ? *p : reinterpret_cast<const ::vearchpb::DelByQueryeResponse&>(
+      ::vearchpb::_DelByQueryeResponse_default_instance_);
 }
-inline const ::DelByQueryeResponse& PartitionData::del_by_query_response() const {
-  // @@protoc_insertion_point(field_get:PartitionData.del_by_query_response)
+inline const ::vearchpb::DelByQueryeResponse& PartitionData::del_by_query_response() const {
+  // @@protoc_insertion_point(field_get:vearchpb.PartitionData.del_by_query_response)
   return _internal_del_by_query_response();
 }
 inline void PartitionData::unsafe_arena_set_allocated_del_by_query_response(
-    ::DelByQueryeResponse* del_by_query_response) {
+    ::vearchpb::DelByQueryeResponse* del_by_query_response) {
   if (GetArenaForAllocation() == nullptr) {
     delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.del_by_query_response_);
   }
@@ -1680,11 +1683,11 @@ inline void PartitionData::unsafe_arena_set_allocated_del_by_query_response(
   } else {
     
   }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:PartitionData.del_by_query_response)
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:vearchpb.PartitionData.del_by_query_response)
 }
-inline ::DelByQueryeResponse* PartitionData::release_del_by_query_response() {
+inline ::vearchpb::DelByQueryeResponse* PartitionData::release_del_by_query_response() {
   
-  ::DelByQueryeResponse* temp = _impl_.del_by_query_response_;
+  ::vearchpb::DelByQueryeResponse* temp = _impl_.del_by_query_response_;
   _impl_.del_by_query_response_ = nullptr;
 #ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
   auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
@@ -1697,27 +1700,27 @@ inline ::DelByQueryeResponse* PartitionData::release_del_by_query_response() {
 #endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
   return temp;
 }
-inline ::DelByQueryeResponse* PartitionData::unsafe_arena_release_del_by_query_response() {
-  // @@protoc_insertion_point(field_release:PartitionData.del_by_query_response)
+inline ::vearchpb::DelByQueryeResponse* PartitionData::unsafe_arena_release_del_by_query_response() {
+  // @@protoc_insertion_point(field_release:vearchpb.PartitionData.del_by_query_response)
   
-  ::DelByQueryeResponse* temp = _impl_.del_by_query_response_;
+  ::vearchpb::DelByQueryeResponse* temp = _impl_.del_by_query_response_;
   _impl_.del_by_query_response_ = nullptr;
   return temp;
 }
-inline ::DelByQueryeResponse* PartitionData::_internal_mutable_del_by_query_response() {
+inline ::vearchpb::DelByQueryeResponse* PartitionData::_internal_mutable_del_by_query_response() {
   
   if (_impl_.del_by_query_response_ == nullptr) {
-    auto* p = CreateMaybeMessage<::DelByQueryeResponse>(GetArenaForAllocation());
+    auto* p = CreateMaybeMessage<::vearchpb::DelByQueryeResponse>(GetArenaForAllocation());
     _impl_.del_by_query_response_ = p;
   }
   return _impl_.del_by_query_response_;
 }
-inline ::DelByQueryeResponse* PartitionData::mutable_del_by_query_response() {
-  ::DelByQueryeResponse* _msg = _internal_mutable_del_by_query_response();
-  // @@protoc_insertion_point(field_mutable:PartitionData.del_by_query_response)
+inline ::vearchpb::DelByQueryeResponse* PartitionData::mutable_del_by_query_response() {
+  ::vearchpb::DelByQueryeResponse* _msg = _internal_mutable_del_by_query_response();
+  // @@protoc_insertion_point(field_mutable:vearchpb.PartitionData.del_by_query_response)
   return _msg;
 }
-inline void PartitionData::set_allocated_del_by_query_response(::DelByQueryeResponse* del_by_query_response) {
+inline void PartitionData::set_allocated_del_by_query_response(::vearchpb::DelByQueryeResponse* del_by_query_response) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   if (message_arena == nullptr) {
     delete reinterpret_cast< ::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.del_by_query_response_);
@@ -1735,27 +1738,27 @@ inline void PartitionData::set_allocated_del_by_query_response(::DelByQueryeResp
     
   }
   _impl_.del_by_query_response_ = del_by_query_response;
-  // @@protoc_insertion_point(field_set_allocated:PartitionData.del_by_query_response)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.PartitionData.del_by_query_response)
 }
 
-// .IndexRequest index_request = 10;
+// .vearchpb.IndexRequest index_request = 10;
 inline bool PartitionData::_internal_has_index_request() const {
   return this != internal_default_instance() && _impl_.index_request_ != nullptr;
 }
 inline bool PartitionData::has_index_request() const {
   return _internal_has_index_request();
 }
-inline const ::IndexRequest& PartitionData::_internal_index_request() const {
-  const ::IndexRequest* p = _impl_.index_request_;
-  return p != nullptr ? *p : reinterpret_cast<const ::IndexRequest&>(
-      ::_IndexRequest_default_instance_);
+inline const ::vearchpb::IndexRequest& PartitionData::_internal_index_request() const {
+  const ::vearchpb::IndexRequest* p = _impl_.index_request_;
+  return p != nullptr ? *p : reinterpret_cast<const ::vearchpb::IndexRequest&>(
+      ::vearchpb::_IndexRequest_default_instance_);
 }
-inline const ::IndexRequest& PartitionData::index_request() const {
-  // @@protoc_insertion_point(field_get:PartitionData.index_request)
+inline const ::vearchpb::IndexRequest& PartitionData::index_request() const {
+  // @@protoc_insertion_point(field_get:vearchpb.PartitionData.index_request)
   return _internal_index_request();
 }
 inline void PartitionData::unsafe_arena_set_allocated_index_request(
-    ::IndexRequest* index_request) {
+    ::vearchpb::IndexRequest* index_request) {
   if (GetArenaForAllocation() == nullptr) {
     delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.index_request_);
   }
@@ -1765,11 +1768,11 @@ inline void PartitionData::unsafe_arena_set_allocated_index_request(
   } else {
     
   }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:PartitionData.index_request)
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:vearchpb.PartitionData.index_request)
 }
-inline ::IndexRequest* PartitionData::release_index_request() {
+inline ::vearchpb::IndexRequest* PartitionData::release_index_request() {
   
-  ::IndexRequest* temp = _impl_.index_request_;
+  ::vearchpb::IndexRequest* temp = _impl_.index_request_;
   _impl_.index_request_ = nullptr;
 #ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
   auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
@@ -1782,27 +1785,27 @@ inline ::IndexRequest* PartitionData::release_index_request() {
 #endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
   return temp;
 }
-inline ::IndexRequest* PartitionData::unsafe_arena_release_index_request() {
-  // @@protoc_insertion_point(field_release:PartitionData.index_request)
+inline ::vearchpb::IndexRequest* PartitionData::unsafe_arena_release_index_request() {
+  // @@protoc_insertion_point(field_release:vearchpb.PartitionData.index_request)
   
-  ::IndexRequest* temp = _impl_.index_request_;
+  ::vearchpb::IndexRequest* temp = _impl_.index_request_;
   _impl_.index_request_ = nullptr;
   return temp;
 }
-inline ::IndexRequest* PartitionData::_internal_mutable_index_request() {
+inline ::vearchpb::IndexRequest* PartitionData::_internal_mutable_index_request() {
   
   if (_impl_.index_request_ == nullptr) {
-    auto* p = CreateMaybeMessage<::IndexRequest>(GetArenaForAllocation());
+    auto* p = CreateMaybeMessage<::vearchpb::IndexRequest>(GetArenaForAllocation());
     _impl_.index_request_ = p;
   }
   return _impl_.index_request_;
 }
-inline ::IndexRequest* PartitionData::mutable_index_request() {
-  ::IndexRequest* _msg = _internal_mutable_index_request();
-  // @@protoc_insertion_point(field_mutable:PartitionData.index_request)
+inline ::vearchpb::IndexRequest* PartitionData::mutable_index_request() {
+  ::vearchpb::IndexRequest* _msg = _internal_mutable_index_request();
+  // @@protoc_insertion_point(field_mutable:vearchpb.PartitionData.index_request)
   return _msg;
 }
-inline void PartitionData::set_allocated_index_request(::IndexRequest* index_request) {
+inline void PartitionData::set_allocated_index_request(::vearchpb::IndexRequest* index_request) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   if (message_arena == nullptr) {
     delete reinterpret_cast< ::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.index_request_);
@@ -1820,27 +1823,27 @@ inline void PartitionData::set_allocated_index_request(::IndexRequest* index_req
     
   }
   _impl_.index_request_ = index_request;
-  // @@protoc_insertion_point(field_set_allocated:PartitionData.index_request)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.PartitionData.index_request)
 }
 
-// .IndexResponse index_response = 11;
+// .vearchpb.IndexResponse index_response = 11;
 inline bool PartitionData::_internal_has_index_response() const {
   return this != internal_default_instance() && _impl_.index_response_ != nullptr;
 }
 inline bool PartitionData::has_index_response() const {
   return _internal_has_index_response();
 }
-inline const ::IndexResponse& PartitionData::_internal_index_response() const {
-  const ::IndexResponse* p = _impl_.index_response_;
-  return p != nullptr ? *p : reinterpret_cast<const ::IndexResponse&>(
-      ::_IndexResponse_default_instance_);
+inline const ::vearchpb::IndexResponse& PartitionData::_internal_index_response() const {
+  const ::vearchpb::IndexResponse* p = _impl_.index_response_;
+  return p != nullptr ? *p : reinterpret_cast<const ::vearchpb::IndexResponse&>(
+      ::vearchpb::_IndexResponse_default_instance_);
 }
-inline const ::IndexResponse& PartitionData::index_response() const {
-  // @@protoc_insertion_point(field_get:PartitionData.index_response)
+inline const ::vearchpb::IndexResponse& PartitionData::index_response() const {
+  // @@protoc_insertion_point(field_get:vearchpb.PartitionData.index_response)
   return _internal_index_response();
 }
 inline void PartitionData::unsafe_arena_set_allocated_index_response(
-    ::IndexResponse* index_response) {
+    ::vearchpb::IndexResponse* index_response) {
   if (GetArenaForAllocation() == nullptr) {
     delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.index_response_);
   }
@@ -1850,11 +1853,11 @@ inline void PartitionData::unsafe_arena_set_allocated_index_response(
   } else {
     
   }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:PartitionData.index_response)
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:vearchpb.PartitionData.index_response)
 }
-inline ::IndexResponse* PartitionData::release_index_response() {
+inline ::vearchpb::IndexResponse* PartitionData::release_index_response() {
   
-  ::IndexResponse* temp = _impl_.index_response_;
+  ::vearchpb::IndexResponse* temp = _impl_.index_response_;
   _impl_.index_response_ = nullptr;
 #ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
   auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
@@ -1867,27 +1870,27 @@ inline ::IndexResponse* PartitionData::release_index_response() {
 #endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
   return temp;
 }
-inline ::IndexResponse* PartitionData::unsafe_arena_release_index_response() {
-  // @@protoc_insertion_point(field_release:PartitionData.index_response)
+inline ::vearchpb::IndexResponse* PartitionData::unsafe_arena_release_index_response() {
+  // @@protoc_insertion_point(field_release:vearchpb.PartitionData.index_response)
   
-  ::IndexResponse* temp = _impl_.index_response_;
+  ::vearchpb::IndexResponse* temp = _impl_.index_response_;
   _impl_.index_response_ = nullptr;
   return temp;
 }
-inline ::IndexResponse* PartitionData::_internal_mutable_index_response() {
+inline ::vearchpb::IndexResponse* PartitionData::_internal_mutable_index_response() {
   
   if (_impl_.index_response_ == nullptr) {
-    auto* p = CreateMaybeMessage<::IndexResponse>(GetArenaForAllocation());
+    auto* p = CreateMaybeMessage<::vearchpb::IndexResponse>(GetArenaForAllocation());
     _impl_.index_response_ = p;
   }
   return _impl_.index_response_;
 }
-inline ::IndexResponse* PartitionData::mutable_index_response() {
-  ::IndexResponse* _msg = _internal_mutable_index_response();
-  // @@protoc_insertion_point(field_mutable:PartitionData.index_response)
+inline ::vearchpb::IndexResponse* PartitionData::mutable_index_response() {
+  ::vearchpb::IndexResponse* _msg = _internal_mutable_index_response();
+  // @@protoc_insertion_point(field_mutable:vearchpb.PartitionData.index_response)
   return _msg;
 }
-inline void PartitionData::set_allocated_index_response(::IndexResponse* index_response) {
+inline void PartitionData::set_allocated_index_response(::vearchpb::IndexResponse* index_response) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   if (message_arena == nullptr) {
     delete reinterpret_cast< ::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.index_response_);
@@ -1905,27 +1908,27 @@ inline void PartitionData::set_allocated_index_response(::IndexResponse* index_r
     
   }
   _impl_.index_response_ = index_response;
-  // @@protoc_insertion_point(field_set_allocated:PartitionData.index_response)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.PartitionData.index_response)
 }
 
-// .QueryRequest query_request = 12;
+// .vearchpb.QueryRequest query_request = 12;
 inline bool PartitionData::_internal_has_query_request() const {
   return this != internal_default_instance() && _impl_.query_request_ != nullptr;
 }
 inline bool PartitionData::has_query_request() const {
   return _internal_has_query_request();
 }
-inline const ::QueryRequest& PartitionData::_internal_query_request() const {
-  const ::QueryRequest* p = _impl_.query_request_;
-  return p != nullptr ? *p : reinterpret_cast<const ::QueryRequest&>(
-      ::_QueryRequest_default_instance_);
+inline const ::vearchpb::QueryRequest& PartitionData::_internal_query_request() const {
+  const ::vearchpb::QueryRequest* p = _impl_.query_request_;
+  return p != nullptr ? *p : reinterpret_cast<const ::vearchpb::QueryRequest&>(
+      ::vearchpb::_QueryRequest_default_instance_);
 }
-inline const ::QueryRequest& PartitionData::query_request() const {
-  // @@protoc_insertion_point(field_get:PartitionData.query_request)
+inline const ::vearchpb::QueryRequest& PartitionData::query_request() const {
+  // @@protoc_insertion_point(field_get:vearchpb.PartitionData.query_request)
   return _internal_query_request();
 }
 inline void PartitionData::unsafe_arena_set_allocated_query_request(
-    ::QueryRequest* query_request) {
+    ::vearchpb::QueryRequest* query_request) {
   if (GetArenaForAllocation() == nullptr) {
     delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.query_request_);
   }
@@ -1935,11 +1938,11 @@ inline void PartitionData::unsafe_arena_set_allocated_query_request(
   } else {
     
   }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:PartitionData.query_request)
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:vearchpb.PartitionData.query_request)
 }
-inline ::QueryRequest* PartitionData::release_query_request() {
+inline ::vearchpb::QueryRequest* PartitionData::release_query_request() {
   
-  ::QueryRequest* temp = _impl_.query_request_;
+  ::vearchpb::QueryRequest* temp = _impl_.query_request_;
   _impl_.query_request_ = nullptr;
 #ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
   auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
@@ -1952,27 +1955,27 @@ inline ::QueryRequest* PartitionData::release_query_request() {
 #endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
   return temp;
 }
-inline ::QueryRequest* PartitionData::unsafe_arena_release_query_request() {
-  // @@protoc_insertion_point(field_release:PartitionData.query_request)
+inline ::vearchpb::QueryRequest* PartitionData::unsafe_arena_release_query_request() {
+  // @@protoc_insertion_point(field_release:vearchpb.PartitionData.query_request)
   
-  ::QueryRequest* temp = _impl_.query_request_;
+  ::vearchpb::QueryRequest* temp = _impl_.query_request_;
   _impl_.query_request_ = nullptr;
   return temp;
 }
-inline ::QueryRequest* PartitionData::_internal_mutable_query_request() {
+inline ::vearchpb::QueryRequest* PartitionData::_internal_mutable_query_request() {
   
   if (_impl_.query_request_ == nullptr) {
-    auto* p = CreateMaybeMessage<::QueryRequest>(GetArenaForAllocation());
+    auto* p = CreateMaybeMessage<::vearchpb::QueryRequest>(GetArenaForAllocation());
     _impl_.query_request_ = p;
   }
   return _impl_.query_request_;
 }
-inline ::QueryRequest* PartitionData::mutable_query_request() {
-  ::QueryRequest* _msg = _internal_mutable_query_request();
-  // @@protoc_insertion_point(field_mutable:PartitionData.query_request)
+inline ::vearchpb::QueryRequest* PartitionData::mutable_query_request() {
+  ::vearchpb::QueryRequest* _msg = _internal_mutable_query_request();
+  // @@protoc_insertion_point(field_mutable:vearchpb.PartitionData.query_request)
   return _msg;
 }
-inline void PartitionData::set_allocated_query_request(::QueryRequest* query_request) {
+inline void PartitionData::set_allocated_query_request(::vearchpb::QueryRequest* query_request) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   if (message_arena == nullptr) {
     delete reinterpret_cast< ::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.query_request_);
@@ -1990,7 +1993,7 @@ inline void PartitionData::set_allocated_query_request(::QueryRequest* query_req
     
   }
   _impl_.query_request_ = query_request;
-  // @@protoc_insertion_point(field_set_allocated:PartitionData.query_request)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.PartitionData.query_request)
 }
 
 // -------------------------------------------------------------------
@@ -2002,7 +2005,7 @@ inline void UpdateSpace::clear_space() {
   _impl_.space_.ClearToEmpty();
 }
 inline const std::string& UpdateSpace::space() const {
-  // @@protoc_insertion_point(field_get:UpdateSpace.Space)
+  // @@protoc_insertion_point(field_get:vearchpb.UpdateSpace.Space)
   return _internal_space();
 }
 template <typename ArgT0, typename... ArgT>
@@ -2010,11 +2013,11 @@ inline PROTOBUF_ALWAYS_INLINE
 void UpdateSpace::set_space(ArgT0&& arg0, ArgT... args) {
  
  _impl_.space_.SetBytes(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
-  // @@protoc_insertion_point(field_set:UpdateSpace.Space)
+  // @@protoc_insertion_point(field_set:vearchpb.UpdateSpace.Space)
 }
 inline std::string* UpdateSpace::mutable_space() {
   std::string* _s = _internal_mutable_space();
-  // @@protoc_insertion_point(field_mutable:UpdateSpace.Space)
+  // @@protoc_insertion_point(field_mutable:vearchpb.UpdateSpace.Space)
   return _s;
 }
 inline const std::string& UpdateSpace::_internal_space() const {
@@ -2029,7 +2032,7 @@ inline std::string* UpdateSpace::_internal_mutable_space() {
   return _impl_.space_.Mutable(GetArenaForAllocation());
 }
 inline std::string* UpdateSpace::release_space() {
-  // @@protoc_insertion_point(field_release:UpdateSpace.Space)
+  // @@protoc_insertion_point(field_release:vearchpb.UpdateSpace.Space)
   return _impl_.space_.Release();
 }
 inline void UpdateSpace::set_allocated_space(std::string* space) {
@@ -2044,7 +2047,7 @@ inline void UpdateSpace::set_allocated_space(std::string* space) {
     _impl_.space_.Set("", GetArenaForAllocation());
   }
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  // @@protoc_insertion_point(field_set_allocated:UpdateSpace.Space)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.UpdateSpace.Space)
 }
 
 // uint64 version = 2;
@@ -2055,7 +2058,7 @@ inline uint64_t UpdateSpace::_internal_version() const {
   return _impl_.version_;
 }
 inline uint64_t UpdateSpace::version() const {
-  // @@protoc_insertion_point(field_get:UpdateSpace.version)
+  // @@protoc_insertion_point(field_get:vearchpb.UpdateSpace.version)
   return _internal_version();
 }
 inline void UpdateSpace::_internal_set_version(uint64_t value) {
@@ -2064,31 +2067,31 @@ inline void UpdateSpace::_internal_set_version(uint64_t value) {
 }
 inline void UpdateSpace::set_version(uint64_t value) {
   _internal_set_version(value);
-  // @@protoc_insertion_point(field_set:UpdateSpace.version)
+  // @@protoc_insertion_point(field_set:vearchpb.UpdateSpace.version)
 }
 
 // -------------------------------------------------------------------
 
 // DocCmd
 
-// .OpType type = 1;
+// .vearchpb.OpType type = 1;
 inline void DocCmd::clear_type() {
   _impl_.type_ = 0;
 }
-inline ::OpType DocCmd::_internal_type() const {
-  return static_cast< ::OpType >(_impl_.type_);
+inline ::vearchpb::OpType DocCmd::_internal_type() const {
+  return static_cast< ::vearchpb::OpType >(_impl_.type_);
 }
-inline ::OpType DocCmd::type() const {
-  // @@protoc_insertion_point(field_get:DocCmd.type)
+inline ::vearchpb::OpType DocCmd::type() const {
+  // @@protoc_insertion_point(field_get:vearchpb.DocCmd.type)
   return _internal_type();
 }
-inline void DocCmd::_internal_set_type(::OpType value) {
+inline void DocCmd::_internal_set_type(::vearchpb::OpType value) {
   
   _impl_.type_ = value;
 }
-inline void DocCmd::set_type(::OpType value) {
+inline void DocCmd::set_type(::vearchpb::OpType value) {
   _internal_set_type(value);
-  // @@protoc_insertion_point(field_set:DocCmd.type)
+  // @@protoc_insertion_point(field_set:vearchpb.DocCmd.type)
 }
 
 // int64 version = 3;
@@ -2099,7 +2102,7 @@ inline int64_t DocCmd::_internal_version() const {
   return _impl_.version_;
 }
 inline int64_t DocCmd::version() const {
-  // @@protoc_insertion_point(field_get:DocCmd.version)
+  // @@protoc_insertion_point(field_get:vearchpb.DocCmd.version)
   return _internal_version();
 }
 inline void DocCmd::_internal_set_version(int64_t value) {
@@ -2108,7 +2111,7 @@ inline void DocCmd::_internal_set_version(int64_t value) {
 }
 inline void DocCmd::set_version(int64_t value) {
   _internal_set_version(value);
-  // @@protoc_insertion_point(field_set:DocCmd.version)
+  // @@protoc_insertion_point(field_set:vearchpb.DocCmd.version)
 }
 
 // uint32 slot = 5;
@@ -2119,7 +2122,7 @@ inline uint32_t DocCmd::_internal_slot() const {
   return _impl_.slot_;
 }
 inline uint32_t DocCmd::slot() const {
-  // @@protoc_insertion_point(field_get:DocCmd.slot)
+  // @@protoc_insertion_point(field_get:vearchpb.DocCmd.slot)
   return _internal_slot();
 }
 inline void DocCmd::_internal_set_slot(uint32_t value) {
@@ -2128,7 +2131,7 @@ inline void DocCmd::_internal_set_slot(uint32_t value) {
 }
 inline void DocCmd::set_slot(uint32_t value) {
   _internal_set_slot(value);
-  // @@protoc_insertion_point(field_set:DocCmd.slot)
+  // @@protoc_insertion_point(field_set:vearchpb.DocCmd.slot)
 }
 
 // bytes doc = 7;
@@ -2136,7 +2139,7 @@ inline void DocCmd::clear_doc() {
   _impl_.doc_.ClearToEmpty();
 }
 inline const std::string& DocCmd::doc() const {
-  // @@protoc_insertion_point(field_get:DocCmd.doc)
+  // @@protoc_insertion_point(field_get:vearchpb.DocCmd.doc)
   return _internal_doc();
 }
 template <typename ArgT0, typename... ArgT>
@@ -2144,11 +2147,11 @@ inline PROTOBUF_ALWAYS_INLINE
 void DocCmd::set_doc(ArgT0&& arg0, ArgT... args) {
  
  _impl_.doc_.SetBytes(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
-  // @@protoc_insertion_point(field_set:DocCmd.doc)
+  // @@protoc_insertion_point(field_set:vearchpb.DocCmd.doc)
 }
 inline std::string* DocCmd::mutable_doc() {
   std::string* _s = _internal_mutable_doc();
-  // @@protoc_insertion_point(field_mutable:DocCmd.doc)
+  // @@protoc_insertion_point(field_mutable:vearchpb.DocCmd.doc)
   return _s;
 }
 inline const std::string& DocCmd::_internal_doc() const {
@@ -2163,7 +2166,7 @@ inline std::string* DocCmd::_internal_mutable_doc() {
   return _impl_.doc_.Mutable(GetArenaForAllocation());
 }
 inline std::string* DocCmd::release_doc() {
-  // @@protoc_insertion_point(field_release:DocCmd.doc)
+  // @@protoc_insertion_point(field_release:vearchpb.DocCmd.doc)
   return _impl_.doc_.Release();
 }
 inline void DocCmd::set_allocated_doc(std::string* doc) {
@@ -2178,7 +2181,7 @@ inline void DocCmd::set_allocated_doc(std::string* doc) {
     _impl_.doc_.Set("", GetArenaForAllocation());
   }
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  // @@protoc_insertion_point(field_set_allocated:DocCmd.doc)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.DocCmd.doc)
 }
 
 // repeated bytes docs = 8;
@@ -2193,66 +2196,66 @@ inline void DocCmd::clear_docs() {
 }
 inline std::string* DocCmd::add_docs() {
   std::string* _s = _internal_add_docs();
-  // @@protoc_insertion_point(field_add_mutable:DocCmd.docs)
+  // @@protoc_insertion_point(field_add_mutable:vearchpb.DocCmd.docs)
   return _s;
 }
 inline const std::string& DocCmd::_internal_docs(int index) const {
   return _impl_.docs_.Get(index);
 }
 inline const std::string& DocCmd::docs(int index) const {
-  // @@protoc_insertion_point(field_get:DocCmd.docs)
+  // @@protoc_insertion_point(field_get:vearchpb.DocCmd.docs)
   return _internal_docs(index);
 }
 inline std::string* DocCmd::mutable_docs(int index) {
-  // @@protoc_insertion_point(field_mutable:DocCmd.docs)
+  // @@protoc_insertion_point(field_mutable:vearchpb.DocCmd.docs)
   return _impl_.docs_.Mutable(index);
 }
 inline void DocCmd::set_docs(int index, const std::string& value) {
   _impl_.docs_.Mutable(index)->assign(value);
-  // @@protoc_insertion_point(field_set:DocCmd.docs)
+  // @@protoc_insertion_point(field_set:vearchpb.DocCmd.docs)
 }
 inline void DocCmd::set_docs(int index, std::string&& value) {
   _impl_.docs_.Mutable(index)->assign(std::move(value));
-  // @@protoc_insertion_point(field_set:DocCmd.docs)
+  // @@protoc_insertion_point(field_set:vearchpb.DocCmd.docs)
 }
 inline void DocCmd::set_docs(int index, const char* value) {
   GOOGLE_DCHECK(value != nullptr);
   _impl_.docs_.Mutable(index)->assign(value);
-  // @@protoc_insertion_point(field_set_char:DocCmd.docs)
+  // @@protoc_insertion_point(field_set_char:vearchpb.DocCmd.docs)
 }
 inline void DocCmd::set_docs(int index, const void* value, size_t size) {
   _impl_.docs_.Mutable(index)->assign(
     reinterpret_cast<const char*>(value), size);
-  // @@protoc_insertion_point(field_set_pointer:DocCmd.docs)
+  // @@protoc_insertion_point(field_set_pointer:vearchpb.DocCmd.docs)
 }
 inline std::string* DocCmd::_internal_add_docs() {
   return _impl_.docs_.Add();
 }
 inline void DocCmd::add_docs(const std::string& value) {
   _impl_.docs_.Add()->assign(value);
-  // @@protoc_insertion_point(field_add:DocCmd.docs)
+  // @@protoc_insertion_point(field_add:vearchpb.DocCmd.docs)
 }
 inline void DocCmd::add_docs(std::string&& value) {
   _impl_.docs_.Add(std::move(value));
-  // @@protoc_insertion_point(field_add:DocCmd.docs)
+  // @@protoc_insertion_point(field_add:vearchpb.DocCmd.docs)
 }
 inline void DocCmd::add_docs(const char* value) {
   GOOGLE_DCHECK(value != nullptr);
   _impl_.docs_.Add()->assign(value);
-  // @@protoc_insertion_point(field_add_char:DocCmd.docs)
+  // @@protoc_insertion_point(field_add_char:vearchpb.DocCmd.docs)
 }
 inline void DocCmd::add_docs(const void* value, size_t size) {
   _impl_.docs_.Add()->assign(reinterpret_cast<const char*>(value), size);
-  // @@protoc_insertion_point(field_add_pointer:DocCmd.docs)
+  // @@protoc_insertion_point(field_add_pointer:vearchpb.DocCmd.docs)
 }
 inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>&
 DocCmd::docs() const {
-  // @@protoc_insertion_point(field_list:DocCmd.docs)
+  // @@protoc_insertion_point(field_list:vearchpb.DocCmd.docs)
   return _impl_.docs_;
 }
 inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>*
 DocCmd::mutable_docs() {
-  // @@protoc_insertion_point(field_mutable_list:DocCmd.docs)
+  // @@protoc_insertion_point(field_mutable_list:vearchpb.DocCmd.docs)
   return &_impl_.docs_;
 }
 
@@ -2260,27 +2263,27 @@ DocCmd::mutable_docs() {
 
 // RaftCommand
 
-// .CmdType type = 1;
+// .vearchpb.CmdType type = 1;
 inline void RaftCommand::clear_type() {
   _impl_.type_ = 0;
 }
-inline ::CmdType RaftCommand::_internal_type() const {
-  return static_cast< ::CmdType >(_impl_.type_);
+inline ::vearchpb::CmdType RaftCommand::_internal_type() const {
+  return static_cast< ::vearchpb::CmdType >(_impl_.type_);
 }
-inline ::CmdType RaftCommand::type() const {
-  // @@protoc_insertion_point(field_get:RaftCommand.type)
+inline ::vearchpb::CmdType RaftCommand::type() const {
+  // @@protoc_insertion_point(field_get:vearchpb.RaftCommand.type)
   return _internal_type();
 }
-inline void RaftCommand::_internal_set_type(::CmdType value) {
+inline void RaftCommand::_internal_set_type(::vearchpb::CmdType value) {
   
   _impl_.type_ = value;
 }
-inline void RaftCommand::set_type(::CmdType value) {
+inline void RaftCommand::set_type(::vearchpb::CmdType value) {
   _internal_set_type(value);
-  // @@protoc_insertion_point(field_set:RaftCommand.type)
+  // @@protoc_insertion_point(field_set:vearchpb.RaftCommand.type)
 }
 
-// .DocCmd write_command = 2;
+// .vearchpb.DocCmd write_command = 2;
 inline bool RaftCommand::_internal_has_write_command() const {
   return this != internal_default_instance() && _impl_.write_command_ != nullptr;
 }
@@ -2293,17 +2296,17 @@ inline void RaftCommand::clear_write_command() {
   }
   _impl_.write_command_ = nullptr;
 }
-inline const ::DocCmd& RaftCommand::_internal_write_command() const {
-  const ::DocCmd* p = _impl_.write_command_;
-  return p != nullptr ? *p : reinterpret_cast<const ::DocCmd&>(
-      ::_DocCmd_default_instance_);
+inline const ::vearchpb::DocCmd& RaftCommand::_internal_write_command() const {
+  const ::vearchpb::DocCmd* p = _impl_.write_command_;
+  return p != nullptr ? *p : reinterpret_cast<const ::vearchpb::DocCmd&>(
+      ::vearchpb::_DocCmd_default_instance_);
 }
-inline const ::DocCmd& RaftCommand::write_command() const {
-  // @@protoc_insertion_point(field_get:RaftCommand.write_command)
+inline const ::vearchpb::DocCmd& RaftCommand::write_command() const {
+  // @@protoc_insertion_point(field_get:vearchpb.RaftCommand.write_command)
   return _internal_write_command();
 }
 inline void RaftCommand::unsafe_arena_set_allocated_write_command(
-    ::DocCmd* write_command) {
+    ::vearchpb::DocCmd* write_command) {
   if (GetArenaForAllocation() == nullptr) {
     delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.write_command_);
   }
@@ -2313,11 +2316,11 @@ inline void RaftCommand::unsafe_arena_set_allocated_write_command(
   } else {
     
   }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:RaftCommand.write_command)
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:vearchpb.RaftCommand.write_command)
 }
-inline ::DocCmd* RaftCommand::release_write_command() {
+inline ::vearchpb::DocCmd* RaftCommand::release_write_command() {
   
-  ::DocCmd* temp = _impl_.write_command_;
+  ::vearchpb::DocCmd* temp = _impl_.write_command_;
   _impl_.write_command_ = nullptr;
 #ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
   auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
@@ -2330,27 +2333,27 @@ inline ::DocCmd* RaftCommand::release_write_command() {
 #endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
   return temp;
 }
-inline ::DocCmd* RaftCommand::unsafe_arena_release_write_command() {
-  // @@protoc_insertion_point(field_release:RaftCommand.write_command)
+inline ::vearchpb::DocCmd* RaftCommand::unsafe_arena_release_write_command() {
+  // @@protoc_insertion_point(field_release:vearchpb.RaftCommand.write_command)
   
-  ::DocCmd* temp = _impl_.write_command_;
+  ::vearchpb::DocCmd* temp = _impl_.write_command_;
   _impl_.write_command_ = nullptr;
   return temp;
 }
-inline ::DocCmd* RaftCommand::_internal_mutable_write_command() {
+inline ::vearchpb::DocCmd* RaftCommand::_internal_mutable_write_command() {
   
   if (_impl_.write_command_ == nullptr) {
-    auto* p = CreateMaybeMessage<::DocCmd>(GetArenaForAllocation());
+    auto* p = CreateMaybeMessage<::vearchpb::DocCmd>(GetArenaForAllocation());
     _impl_.write_command_ = p;
   }
   return _impl_.write_command_;
 }
-inline ::DocCmd* RaftCommand::mutable_write_command() {
-  ::DocCmd* _msg = _internal_mutable_write_command();
-  // @@protoc_insertion_point(field_mutable:RaftCommand.write_command)
+inline ::vearchpb::DocCmd* RaftCommand::mutable_write_command() {
+  ::vearchpb::DocCmd* _msg = _internal_mutable_write_command();
+  // @@protoc_insertion_point(field_mutable:vearchpb.RaftCommand.write_command)
   return _msg;
 }
-inline void RaftCommand::set_allocated_write_command(::DocCmd* write_command) {
+inline void RaftCommand::set_allocated_write_command(::vearchpb::DocCmd* write_command) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   if (message_arena == nullptr) {
     delete _impl_.write_command_;
@@ -2367,10 +2370,10 @@ inline void RaftCommand::set_allocated_write_command(::DocCmd* write_command) {
     
   }
   _impl_.write_command_ = write_command;
-  // @@protoc_insertion_point(field_set_allocated:RaftCommand.write_command)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.RaftCommand.write_command)
 }
 
-// .UpdateSpace update_space = 3;
+// .vearchpb.UpdateSpace update_space = 3;
 inline bool RaftCommand::_internal_has_update_space() const {
   return this != internal_default_instance() && _impl_.update_space_ != nullptr;
 }
@@ -2383,17 +2386,17 @@ inline void RaftCommand::clear_update_space() {
   }
   _impl_.update_space_ = nullptr;
 }
-inline const ::UpdateSpace& RaftCommand::_internal_update_space() const {
-  const ::UpdateSpace* p = _impl_.update_space_;
-  return p != nullptr ? *p : reinterpret_cast<const ::UpdateSpace&>(
-      ::_UpdateSpace_default_instance_);
+inline const ::vearchpb::UpdateSpace& RaftCommand::_internal_update_space() const {
+  const ::vearchpb::UpdateSpace* p = _impl_.update_space_;
+  return p != nullptr ? *p : reinterpret_cast<const ::vearchpb::UpdateSpace&>(
+      ::vearchpb::_UpdateSpace_default_instance_);
 }
-inline const ::UpdateSpace& RaftCommand::update_space() const {
-  // @@protoc_insertion_point(field_get:RaftCommand.update_space)
+inline const ::vearchpb::UpdateSpace& RaftCommand::update_space() const {
+  // @@protoc_insertion_point(field_get:vearchpb.RaftCommand.update_space)
   return _internal_update_space();
 }
 inline void RaftCommand::unsafe_arena_set_allocated_update_space(
-    ::UpdateSpace* update_space) {
+    ::vearchpb::UpdateSpace* update_space) {
   if (GetArenaForAllocation() == nullptr) {
     delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.update_space_);
   }
@@ -2403,11 +2406,11 @@ inline void RaftCommand::unsafe_arena_set_allocated_update_space(
   } else {
     
   }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:RaftCommand.update_space)
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:vearchpb.RaftCommand.update_space)
 }
-inline ::UpdateSpace* RaftCommand::release_update_space() {
+inline ::vearchpb::UpdateSpace* RaftCommand::release_update_space() {
   
-  ::UpdateSpace* temp = _impl_.update_space_;
+  ::vearchpb::UpdateSpace* temp = _impl_.update_space_;
   _impl_.update_space_ = nullptr;
 #ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
   auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
@@ -2420,27 +2423,27 @@ inline ::UpdateSpace* RaftCommand::release_update_space() {
 #endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
   return temp;
 }
-inline ::UpdateSpace* RaftCommand::unsafe_arena_release_update_space() {
-  // @@protoc_insertion_point(field_release:RaftCommand.update_space)
+inline ::vearchpb::UpdateSpace* RaftCommand::unsafe_arena_release_update_space() {
+  // @@protoc_insertion_point(field_release:vearchpb.RaftCommand.update_space)
   
-  ::UpdateSpace* temp = _impl_.update_space_;
+  ::vearchpb::UpdateSpace* temp = _impl_.update_space_;
   _impl_.update_space_ = nullptr;
   return temp;
 }
-inline ::UpdateSpace* RaftCommand::_internal_mutable_update_space() {
+inline ::vearchpb::UpdateSpace* RaftCommand::_internal_mutable_update_space() {
   
   if (_impl_.update_space_ == nullptr) {
-    auto* p = CreateMaybeMessage<::UpdateSpace>(GetArenaForAllocation());
+    auto* p = CreateMaybeMessage<::vearchpb::UpdateSpace>(GetArenaForAllocation());
     _impl_.update_space_ = p;
   }
   return _impl_.update_space_;
 }
-inline ::UpdateSpace* RaftCommand::mutable_update_space() {
-  ::UpdateSpace* _msg = _internal_mutable_update_space();
-  // @@protoc_insertion_point(field_mutable:RaftCommand.update_space)
+inline ::vearchpb::UpdateSpace* RaftCommand::mutable_update_space() {
+  ::vearchpb::UpdateSpace* _msg = _internal_mutable_update_space();
+  // @@protoc_insertion_point(field_mutable:vearchpb.RaftCommand.update_space)
   return _msg;
 }
-inline void RaftCommand::set_allocated_update_space(::UpdateSpace* update_space) {
+inline void RaftCommand::set_allocated_update_space(::vearchpb::UpdateSpace* update_space) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   if (message_arena == nullptr) {
     delete _impl_.update_space_;
@@ -2457,7 +2460,7 @@ inline void RaftCommand::set_allocated_update_space(::UpdateSpace* update_space)
     
   }
   _impl_.update_space_ = update_space;
-  // @@protoc_insertion_point(field_set_allocated:RaftCommand.update_space)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.RaftCommand.update_space)
 }
 
 // -------------------------------------------------------------------
@@ -2469,7 +2472,7 @@ inline void SnapData::clear_key() {
   _impl_.key_.ClearToEmpty();
 }
 inline const std::string& SnapData::key() const {
-  // @@protoc_insertion_point(field_get:SnapData.key)
+  // @@protoc_insertion_point(field_get:vearchpb.SnapData.key)
   return _internal_key();
 }
 template <typename ArgT0, typename... ArgT>
@@ -2477,11 +2480,11 @@ inline PROTOBUF_ALWAYS_INLINE
 void SnapData::set_key(ArgT0&& arg0, ArgT... args) {
  
  _impl_.key_.SetBytes(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
-  // @@protoc_insertion_point(field_set:SnapData.key)
+  // @@protoc_insertion_point(field_set:vearchpb.SnapData.key)
 }
 inline std::string* SnapData::mutable_key() {
   std::string* _s = _internal_mutable_key();
-  // @@protoc_insertion_point(field_mutable:SnapData.key)
+  // @@protoc_insertion_point(field_mutable:vearchpb.SnapData.key)
   return _s;
 }
 inline const std::string& SnapData::_internal_key() const {
@@ -2496,7 +2499,7 @@ inline std::string* SnapData::_internal_mutable_key() {
   return _impl_.key_.Mutable(GetArenaForAllocation());
 }
 inline std::string* SnapData::release_key() {
-  // @@protoc_insertion_point(field_release:SnapData.key)
+  // @@protoc_insertion_point(field_release:vearchpb.SnapData.key)
   return _impl_.key_.Release();
 }
 inline void SnapData::set_allocated_key(std::string* key) {
@@ -2511,7 +2514,7 @@ inline void SnapData::set_allocated_key(std::string* key) {
     _impl_.key_.Set("", GetArenaForAllocation());
   }
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  // @@protoc_insertion_point(field_set_allocated:SnapData.key)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.SnapData.key)
 }
 
 // bytes value = 2;
@@ -2519,7 +2522,7 @@ inline void SnapData::clear_value() {
   _impl_.value_.ClearToEmpty();
 }
 inline const std::string& SnapData::value() const {
-  // @@protoc_insertion_point(field_get:SnapData.value)
+  // @@protoc_insertion_point(field_get:vearchpb.SnapData.value)
   return _internal_value();
 }
 template <typename ArgT0, typename... ArgT>
@@ -2527,11 +2530,11 @@ inline PROTOBUF_ALWAYS_INLINE
 void SnapData::set_value(ArgT0&& arg0, ArgT... args) {
  
  _impl_.value_.SetBytes(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
-  // @@protoc_insertion_point(field_set:SnapData.value)
+  // @@protoc_insertion_point(field_set:vearchpb.SnapData.value)
 }
 inline std::string* SnapData::mutable_value() {
   std::string* _s = _internal_mutable_value();
-  // @@protoc_insertion_point(field_mutable:SnapData.value)
+  // @@protoc_insertion_point(field_mutable:vearchpb.SnapData.value)
   return _s;
 }
 inline const std::string& SnapData::_internal_value() const {
@@ -2546,7 +2549,7 @@ inline std::string* SnapData::_internal_mutable_value() {
   return _impl_.value_.Mutable(GetArenaForAllocation());
 }
 inline std::string* SnapData::release_value() {
-  // @@protoc_insertion_point(field_release:SnapData.value)
+  // @@protoc_insertion_point(field_release:vearchpb.SnapData.value)
   return _impl_.value_.Release();
 }
 inline void SnapData::set_allocated_value(std::string* value) {
@@ -2561,7 +2564,7 @@ inline void SnapData::set_allocated_value(std::string* value) {
     _impl_.value_.Set("", GetArenaForAllocation());
   }
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  // @@protoc_insertion_point(field_set_allocated:SnapData.value)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.SnapData.value)
 }
 
 #ifdef __GNUC__
@@ -2578,18 +2581,19 @@ inline void SnapData::set_allocated_value(std::string* value) {
 
 // @@protoc_insertion_point(namespace_scope)
 
+}  // namespace vearchpb
 
 PROTOBUF_NAMESPACE_OPEN
 
-template <> struct is_proto_enum< ::OpType> : ::std::true_type {};
+template <> struct is_proto_enum< ::vearchpb::OpType> : ::std::true_type {};
 template <>
-inline const EnumDescriptor* GetEnumDescriptor< ::OpType>() {
-  return ::OpType_descriptor();
+inline const EnumDescriptor* GetEnumDescriptor< ::vearchpb::OpType>() {
+  return ::vearchpb::OpType_descriptor();
 }
-template <> struct is_proto_enum< ::CmdType> : ::std::true_type {};
+template <> struct is_proto_enum< ::vearchpb::CmdType> : ::std::true_type {};
 template <>
-inline const EnumDescriptor* GetEnumDescriptor< ::CmdType>() {
-  return ::CmdType_descriptor();
+inline const EnumDescriptor* GetEnumDescriptor< ::vearchpb::CmdType>() {
+  return ::vearchpb::CmdType_descriptor();
 }
 
 PROTOBUF_NAMESPACE_CLOSE

@@ -3,6 +3,7 @@ syntax = "proto3";
 
 option optimize_for = SPEED;
 option go_package = "./vearchpb";
+package vearchpb;
 
 enum ErrorEnum {
   // basic 0-99

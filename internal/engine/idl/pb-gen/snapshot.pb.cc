@@ -20,6 +20,7 @@ PROTOBUF_PRAGMA_INIT_SEG
 namespace _pb = ::PROTOBUF_NAMESPACE_ID;
 namespace _pbi = _pb::internal;
 
+namespace vearchpb {
 PROTOBUF_CONSTEXPR SnapshotMsg::SnapshotMsg(
     ::_pbi::ConstantInitialized): _impl_{
     /*decltype(_impl_.file_name_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
@@ -35,39 +36,41 @@ struct SnapshotMsgDefaultTypeInternal {
   };
 };
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SnapshotMsgDefaultTypeInternal _SnapshotMsg_default_instance_;
+}  // namespace vearchpb
 static ::_pb::Metadata file_level_metadata_snapshot_2eproto[1];
 static const ::_pb::EnumDescriptor* file_level_enum_descriptors_snapshot_2eproto[1];
 static constexpr ::_pb::ServiceDescriptor const** file_level_service_descriptors_snapshot_2eproto = nullptr;
 
 const uint32_t TableStruct_snapshot_2eproto::offsets[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) = {
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::SnapshotMsg, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::SnapshotMsg, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::SnapshotMsg, _impl_.file_name_),
-  PROTOBUF_FIELD_OFFSET(::SnapshotMsg, _impl_.data_),
-  PROTOBUF_FIELD_OFFSET(::SnapshotMsg, _impl_.status_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::SnapshotMsg, _impl_.file_name_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::SnapshotMsg, _impl_.data_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::SnapshotMsg, _impl_.status_),
 };
 static const ::_pbi::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) = {
-  { 0, -1, -1, sizeof(::SnapshotMsg)},
+  { 0, -1, -1, sizeof(::vearchpb::SnapshotMsg)},
 };
 
 static const ::_pb::Message* const file_default_instances[] = {
-  &::_SnapshotMsg_default_instance_._instance,
+  &::vearchpb::_SnapshotMsg_default_instance_._instance,
 };
 
 const char descriptor_table_protodef_snapshot_2eproto[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) =
-  "\n\016snapshot.proto\"O\n\013SnapshotMsg\022\021\n\tfile_"
-  "name\030\001 \001(\t\022\014\n\004data\030\002 \001(\014\022\037\n\006status\030\003 \001(\016"
-  "2\017.SnapshotStatus*\?\n\016SnapshotStatus\022\t\n\005U"
-  "nUse\020\000\022\t\n\005Start\020\001\022\013\n\007Running\020\002\022\n\n\006Finish"
-  "\020\003B\016H\001Z\n./vearchpbb\006proto3"
+  "\n\016snapshot.proto\022\010vearchpb\"X\n\013SnapshotMs"
+  "g\022\021\n\tfile_name\030\001 \001(\t\022\014\n\004data\030\002 \001(\014\022(\n\006st"
+  "atus\030\003 \001(\0162\030.vearchpb.SnapshotStatus*\?\n\016"
+  "SnapshotStatus\022\t\n\005UnUse\020\000\022\t\n\005Start\020\001\022\013\n\007"
+  "Running\020\002\022\n\n\006Finish\020\003B\016H\001Z\n./vearchpbb\006p"
+  "roto3"
   ;
 static ::_pbi::once_flag descriptor_table_snapshot_2eproto_once;
 const ::_pbi::DescriptorTable descriptor_table_snapshot_2eproto = {
-    false, false, 186, descriptor_table_protodef_snapshot_2eproto,
+    false, false, 205, descriptor_table_protodef_snapshot_2eproto,
     "snapshot.proto",
     &descriptor_table_snapshot_2eproto_once, nullptr, 0, 1,
     schemas, file_default_instances, TableStruct_snapshot_2eproto::offsets,
@@ -80,6 +83,7 @@ PROTOBUF_ATTRIBUTE_WEAK const ::_pbi::DescriptorTable* descriptor_table_snapshot
 
 // Force running AddDescriptors() at dynamic initialization time.
 PROTOBUF_ATTRIBUTE_INIT_PRIORITY2 static ::_pbi::AddDescriptorsRunner dynamic_init_dummy_snapshot_2eproto(&descriptor_table_snapshot_2eproto);
+namespace vearchpb {
 const ::PROTOBUF_NAMESPACE_ID::EnumDescriptor* SnapshotStatus_descriptor() {
   ::PROTOBUF_NAMESPACE_ID::internal::AssignDescriptors(&descriptor_table_snapshot_2eproto);
   return file_level_enum_descriptors_snapshot_2eproto[0];
@@ -107,7 +111,7 @@ SnapshotMsg::SnapshotMsg(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:SnapshotMsg)
+  // @@protoc_insertion_point(arena_constructor:vearchpb.SnapshotMsg)
 }
 SnapshotMsg::SnapshotMsg(const SnapshotMsg& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -136,7 +140,7 @@ SnapshotMsg::SnapshotMsg(const SnapshotMsg& from)
       _this->GetArenaForAllocation());
   }
   _this->_impl_.status_ = from._impl_.status_;
-  // @@protoc_insertion_point(copy_constructor:SnapshotMsg)
+  // @@protoc_insertion_point(copy_constructor:vearchpb.SnapshotMsg)
 }
 
 inline void SnapshotMsg::SharedCtor(
@@ -160,7 +164,7 @@ inline void SnapshotMsg::SharedCtor(
 }
 
 SnapshotMsg::~SnapshotMsg() {
-  // @@protoc_insertion_point(destructor:SnapshotMsg)
+  // @@protoc_insertion_point(destructor:vearchpb.SnapshotMsg)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -179,7 +183,7 @@ void SnapshotMsg::SetCachedSize(int size) const {
 }
 
 void SnapshotMsg::Clear() {
-// @@protoc_insertion_point(message_clear_start:SnapshotMsg)
+// @@protoc_insertion_point(message_clear_start:vearchpb.SnapshotMsg)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -202,7 +206,7 @@ const char* SnapshotMsg::_InternalParse(const char* ptr, ::_pbi::ParseContext* c
           auto str = _internal_mutable_file_name();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "SnapshotMsg.file_name"));
+          CHK_(::_pbi::VerifyUTF8(str, "vearchpb.SnapshotMsg.file_name"));
         } else
           goto handle_unusual;
         continue;
@@ -215,12 +219,12 @@ const char* SnapshotMsg::_InternalParse(const char* ptr, ::_pbi::ParseContext* c
         } else
           goto handle_unusual;
         continue;
-      // .SnapshotStatus status = 3;
+      // .vearchpb.SnapshotStatus status = 3;
       case 3:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 24)) {
           uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
           CHK_(ptr);
-          _internal_set_status(static_cast<::SnapshotStatus>(val));
+          _internal_set_status(static_cast<::vearchpb::SnapshotStatus>(val));
         } else
           goto handle_unusual;
         continue;
@@ -249,7 +253,7 @@ failure:
 
 uint8_t* SnapshotMsg::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:SnapshotMsg)
+  // @@protoc_insertion_point(serialize_to_array_start:vearchpb.SnapshotMsg)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
@@ -258,7 +262,7 @@ uint8_t* SnapshotMsg::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_file_name().data(), static_cast<int>(this->_internal_file_name().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "SnapshotMsg.file_name");
+      "vearchpb.SnapshotMsg.file_name");
     target = stream->WriteStringMaybeAliased(
         1, this->_internal_file_name(), target);
   }
@@ -269,7 +273,7 @@ uint8_t* SnapshotMsg::_InternalSerialize(
         2, this->_internal_data(), target);
   }
 
-  // .SnapshotStatus status = 3;
+  // .vearchpb.SnapshotStatus status = 3;
   if (this->_internal_status() != 0) {
     target = stream->EnsureSpace(target);
     target = ::_pbi::WireFormatLite::WriteEnumToArray(
@@ -280,12 +284,12 @@ uint8_t* SnapshotMsg::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:SnapshotMsg)
+  // @@protoc_insertion_point(serialize_to_array_end:vearchpb.SnapshotMsg)
   return target;
 }
 
 size_t SnapshotMsg::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:SnapshotMsg)
+// @@protoc_insertion_point(message_byte_size_start:vearchpb.SnapshotMsg)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
@@ -306,7 +310,7 @@ size_t SnapshotMsg::ByteSizeLong() const {
         this->_internal_data());
   }
 
-  // .SnapshotStatus status = 3;
+  // .vearchpb.SnapshotStatus status = 3;
   if (this->_internal_status() != 0) {
     total_size += 1 +
       ::_pbi::WireFormatLite::EnumSize(this->_internal_status());
@@ -325,7 +329,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*SnapshotMsg::GetClassData() co
 void SnapshotMsg::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<SnapshotMsg*>(&to_msg);
   auto& from = static_cast<const SnapshotMsg&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:SnapshotMsg)
+  // @@protoc_insertion_point(class_specific_merge_from_start:vearchpb.SnapshotMsg)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
@@ -343,7 +347,7 @@ void SnapshotMsg::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PR
 }
 
 void SnapshotMsg::CopyFrom(const SnapshotMsg& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:SnapshotMsg)
+// @@protoc_insertion_point(class_specific_copy_from_start:vearchpb.SnapshotMsg)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -376,10 +380,11 @@ void SnapshotMsg::InternalSwap(SnapshotMsg* other) {
 }
 
 // @@protoc_insertion_point(namespace_scope)
+}  // namespace vearchpb
 PROTOBUF_NAMESPACE_OPEN
-template<> PROTOBUF_NOINLINE ::SnapshotMsg*
-Arena::CreateMaybeMessage< ::SnapshotMsg >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::SnapshotMsg >(arena);
+template<> PROTOBUF_NOINLINE ::vearchpb::SnapshotMsg*
+Arena::CreateMaybeMessage< ::vearchpb::SnapshotMsg >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::vearchpb::SnapshotMsg >(arena);
 }
 PROTOBUF_NAMESPACE_CLOSE
 

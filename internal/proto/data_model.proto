@@ -4,6 +4,7 @@ import "errors.proto";
 
 option optimize_for = SPEED;
 option go_package = "./vearchpb";
+package vearchpb;
 
 enum FieldType {
   INT = 0;

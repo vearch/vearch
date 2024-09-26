@@ -20,6 +20,7 @@ PROTOBUF_PRAGMA_INIT_SEG
 namespace _pb = ::PROTOBUF_NAMESPACE_ID;
 namespace _pbi = _pb::internal;
 
+namespace vearchpb {
 PROTOBUF_CONSTEXPR Error::Error(
     ::_pbi::ConstantInitialized): _impl_{
     /*decltype(_impl_.msg_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
@@ -34,80 +35,81 @@ struct ErrorDefaultTypeInternal {
   };
 };
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ErrorDefaultTypeInternal _Error_default_instance_;
+}  // namespace vearchpb
 static ::_pb::Metadata file_level_metadata_errors_2eproto[1];
 static const ::_pb::EnumDescriptor* file_level_enum_descriptors_errors_2eproto[1];
 static constexpr ::_pb::ServiceDescriptor const** file_level_service_descriptors_errors_2eproto = nullptr;
 
 const uint32_t TableStruct_errors_2eproto::offsets[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) = {
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::Error, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::Error, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::Error, _impl_.code_),
-  PROTOBUF_FIELD_OFFSET(::Error, _impl_.msg_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::Error, _impl_.code_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::Error, _impl_.msg_),
 };
 static const ::_pbi::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) = {
-  { 0, -1, -1, sizeof(::Error)},
+  { 0, -1, -1, sizeof(::vearchpb::Error)},
 };
 
 static const ::_pb::Message* const file_default_instances[] = {
-  &::_Error_default_instance_._instance,
+  &::vearchpb::_Error_default_instance_._instance,
 };
 
 const char descriptor_table_protodef_errors_2eproto[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) =
-  "\n\014errors.proto\".\n\005Error\022\030\n\004code\030\001 \001(\0162\n."
-  "ErrorEnum\022\013\n\003msg\030\002 \001(\t*\333\r\n\tErrorEnum\022\013\n\007"
-  "SUCCESS\020\000\022\022\n\016INTERNAL_ERROR\020\001\022\021\n\rUNKNOWN"
-  "_ERROR\020\002\022\031\n\025AUTHENTICATION_FAILED\020\003\022\013\n\007R"
-  "ECOVER\020\004\022\013\n\007TIMEOUT\020\005\022\017\n\013PARAM_ERROR\020\006\022\020"
-  "\n\014CONFIG_ERROR\020\007\022\037\n\033MASTER_PS_NOT_ENOUGH"
-  "_SELECT\020d\022\027\n\023ROUTER_NO_PS_CLIENT\020x\022\032\n\026RO"
-  "UTER_CALL_PS_RPC_ERR\020y\022\024\n\017PARTITION_EXIS"
-  "T\020\214\001\022\030\n\023PARTITION_NOT_EXIST\020\215\001\022\031\n\024PARTIT"
-  "ION_NOT_LEADER\020\216\001\022\030\n\023PARTITION_NO_LEADER"
-  "\020\217\001\022\031\n\024PARTITION_IS_INVALID\020\220\001\022\030\n\023PARTIT"
-  "ION_IS_CLOSED\020\221\001\022!\n\034PARTITION_RESOURCE_E"
-  "XHAUSTED\020\222\001\022\037\n\032PARTITION_SERVER_NOT_EXIS"
-  "T\020\240\001\022\033\n\026PARTITION_SERVER_ERROR\020\241\001\022\023\n\016USE"
-  "R_NOT_EXIST\020\264\001\022\017\n\nUSER_EXIST\020\265\001\022\023\n\016ROLE_"
-  "NOT_EXIST\020\276\001\022\017\n\nROLE_EXIST\020\277\001\022\021\n\014DB_NOT_"
-  "EXIST\020\310\001\022\r\n\010DB_EXIST\020\311\001\022\021\n\014DB_NOT_EMPTY\020"
-  "\312\001\022\020\n\013SPACE_EXIST\020\334\001\022\024\n\017SPACE_NOT_EXIST\020"
-  "\335\001\022\024\n\017ALIAS_NOT_EXIST\020\360\001\022\020\n\013ALIAS_EXIST\020"
-  "\361\001\022\027\n\022DOCUMENT_NOT_EXIST\020\204\002\022\033\n\026PRIMARY_K"
-  "EY_IS_INVALID\020\205\002\022\035\n\030FILTER_OPERATOR_TYPE"
-  "_ERR\020\254\002\022\'\n\"FILTER_CONDITION_OPERATOR_TYP"
-  "E_ERR\020\255\002\022\032\n\025UPSERT_INVALID_PARAMS\020\220\003\022\037\n\032"
-  "DELETE_BY_QUERY_SERACH_ERR\020\244\003\022#\n\036DELETE_"
-  "BY_QUERY_SEARCH_ID_IS_0\020\245\003\0227\n2DELETE_INV"
-  "ALID_PARAMS_SHOULD_NOT_HAVE_VECTOR_FIELD"
-  "\020\246\003\0227\n2DELETE_INVALID_PARAMS_BOTH_DOCUME"
-  "NT_IDS_AND_VECTOR\020\247\003\022<\n7DELETE_INVALID_P"
-  "ARAMS_LENGTH_OF_DOCUMENT_IDS_BEYOND_500\020"
-  "\250\003\022D\n\?DELETE_INVALID_PARAMS_SHOULD_HAVE_"
-  "ONE_OF_DOCUMENT_IDS_OR_FILTER\020\251\003\022\025\n\020QUER"
-  "Y_ENGINE_ERR\020\270\003\022;\n6QUERY_INVALID_PARAMS_"
-  "LENGTH_OF_DOCUMENT_IDS_BEYOND_500\020\271\003\022C\n>"
-  "QUERY_INVALID_PARAMS_SHOULD_HAVE_ONE_OF_"
-  "DOCUMENT_IDS_OR_FILTER\020\272\003\0226\n1QUERY_INVAL"
-  "ID_PARAMS_SHOULD_NOT_HAVE_VECTOR_FIELD\020\273"
-  "\003\0226\n1QUERY_INVALID_PARAMS_BOTH_DOCUMENT_"
-  "IDS_AND_FILTER\020\274\003\022\035\n\030QUERY_RESPONSE_PARS"
-  "E_ERR\020\275\003\0223\n.SEARCH_INVALID_PARAMS_SHOULD"
-  "_HAVE_VECTOR_FIELD\020\314\003\022\026\n\021SEARCH_ENGINE_E"
-  "RR\020\315\003\022\036\n\031SEARCH_RESPONSE_PARSE_ERR\020\316\003\022 \n"
-  "\033FORCE_MERGE_BUILD_INDEX_ERR\020\364\003\022\016\n\tFLUSH"
-  "_ERR\020\330\004\022\030\n\023SERVICE_UNAVAILABLE\020\274\005\022\024\n\017RPC"
-  "_PARAM_ERROR\020\275\005\022\031\n\024METHOD_NOT_IMPLEMENT\020"
-  "\276\005\022\034\n\027CREATE_RPCCLIENT_FAILED\020\277\005\022\032\n\025CALL"
-  "_RPCCLIENT_FAILED\020\300\005B\016H\001Z\n./vearchpbb\006pr"
-  "oto3"
+  "\n\014errors.proto\022\010vearchpb\"7\n\005Error\022!\n\004cod"
+  "e\030\001 \001(\0162\023.vearchpb.ErrorEnum\022\013\n\003msg\030\002 \001("
+  "\t*\333\r\n\tErrorEnum\022\013\n\007SUCCESS\020\000\022\022\n\016INTERNAL"
+  "_ERROR\020\001\022\021\n\rUNKNOWN_ERROR\020\002\022\031\n\025AUTHENTIC"
+  "ATION_FAILED\020\003\022\013\n\007RECOVER\020\004\022\013\n\007TIMEOUT\020\005"
+  "\022\017\n\013PARAM_ERROR\020\006\022\020\n\014CONFIG_ERROR\020\007\022\037\n\033M"
+  "ASTER_PS_NOT_ENOUGH_SELECT\020d\022\027\n\023ROUTER_N"
+  "O_PS_CLIENT\020x\022\032\n\026ROUTER_CALL_PS_RPC_ERR\020"
+  "y\022\024\n\017PARTITION_EXIST\020\214\001\022\030\n\023PARTITION_NOT"
+  "_EXIST\020\215\001\022\031\n\024PARTITION_NOT_LEADER\020\216\001\022\030\n\023"
+  "PARTITION_NO_LEADER\020\217\001\022\031\n\024PARTITION_IS_I"
+  "NVALID\020\220\001\022\030\n\023PARTITION_IS_CLOSED\020\221\001\022!\n\034P"
+  "ARTITION_RESOURCE_EXHAUSTED\020\222\001\022\037\n\032PARTIT"
+  "ION_SERVER_NOT_EXIST\020\240\001\022\033\n\026PARTITION_SER"
+  "VER_ERROR\020\241\001\022\023\n\016USER_NOT_EXIST\020\264\001\022\017\n\nUSE"
+  "R_EXIST\020\265\001\022\023\n\016ROLE_NOT_EXIST\020\276\001\022\017\n\nROLE_"
+  "EXIST\020\277\001\022\021\n\014DB_NOT_EXIST\020\310\001\022\r\n\010DB_EXIST\020"
+  "\311\001\022\021\n\014DB_NOT_EMPTY\020\312\001\022\020\n\013SPACE_EXIST\020\334\001\022"
+  "\024\n\017SPACE_NOT_EXIST\020\335\001\022\024\n\017ALIAS_NOT_EXIST"
+  "\020\360\001\022\020\n\013ALIAS_EXIST\020\361\001\022\027\n\022DOCUMENT_NOT_EX"
+  "IST\020\204\002\022\033\n\026PRIMARY_KEY_IS_INVALID\020\205\002\022\035\n\030F"
+  "ILTER_OPERATOR_TYPE_ERR\020\254\002\022\'\n\"FILTER_CON"
+  "DITION_OPERATOR_TYPE_ERR\020\255\002\022\032\n\025UPSERT_IN"
+  "VALID_PARAMS\020\220\003\022\037\n\032DELETE_BY_QUERY_SERAC"
+  "H_ERR\020\244\003\022#\n\036DELETE_BY_QUERY_SEARCH_ID_IS"
+  "_0\020\245\003\0227\n2DELETE_INVALID_PARAMS_SHOULD_NO"
+  "T_HAVE_VECTOR_FIELD\020\246\003\0227\n2DELETE_INVALID"
+  "_PARAMS_BOTH_DOCUMENT_IDS_AND_VECTOR\020\247\003\022"
+  "<\n7DELETE_INVALID_PARAMS_LENGTH_OF_DOCUM"
+  "ENT_IDS_BEYOND_500\020\250\003\022D\n\?DELETE_INVALID_"
+  "PARAMS_SHOULD_HAVE_ONE_OF_DOCUMENT_IDS_O"
+  "R_FILTER\020\251\003\022\025\n\020QUERY_ENGINE_ERR\020\270\003\022;\n6QU"
+  "ERY_INVALID_PARAMS_LENGTH_OF_DOCUMENT_ID"
+  "S_BEYOND_500\020\271\003\022C\n>QUERY_INVALID_PARAMS_"
+  "SHOULD_HAVE_ONE_OF_DOCUMENT_IDS_OR_FILTE"
+  "R\020\272\003\0226\n1QUERY_INVALID_PARAMS_SHOULD_NOT_"
+  "HAVE_VECTOR_FIELD\020\273\003\0226\n1QUERY_INVALID_PA"
+  "RAMS_BOTH_DOCUMENT_IDS_AND_FILTER\020\274\003\022\035\n\030"
+  "QUERY_RESPONSE_PARSE_ERR\020\275\003\0223\n.SEARCH_IN"
+  "VALID_PARAMS_SHOULD_HAVE_VECTOR_FIELD\020\314\003"
+  "\022\026\n\021SEARCH_ENGINE_ERR\020\315\003\022\036\n\031SEARCH_RESPO"
+  "NSE_PARSE_ERR\020\316\003\022 \n\033FORCE_MERGE_BUILD_IN"
+  "DEX_ERR\020\364\003\022\016\n\tFLUSH_ERR\020\330\004\022\030\n\023SERVICE_UN"
+  "AVAILABLE\020\274\005\022\024\n\017RPC_PARAM_ERROR\020\275\005\022\031\n\024ME"
+  "THOD_NOT_IMPLEMENT\020\276\005\022\034\n\027CREATE_RPCCLIEN"
+  "T_FAILED\020\277\005\022\032\n\025CALL_RPCCLIENT_FAILED\020\300\005B"
+  "\016H\001Z\n./vearchpbb\006proto3"
   ;
 static ::_pbi::once_flag descriptor_table_errors_2eproto_once;
 const ::_pbi::DescriptorTable descriptor_table_errors_2eproto = {
-    false, false, 1844, descriptor_table_protodef_errors_2eproto,
+    false, false, 1863, descriptor_table_protodef_errors_2eproto,
     "errors.proto",
     &descriptor_table_errors_2eproto_once, nullptr, 0, 1,
     schemas, file_default_instances, TableStruct_errors_2eproto::offsets,
@@ -120,6 +122,7 @@ PROTOBUF_ATTRIBUTE_WEAK const ::_pbi::DescriptorTable* descriptor_table_errors_2
 
 // Force running AddDescriptors() at dynamic initialization time.
 PROTOBUF_ATTRIBUTE_INIT_PRIORITY2 static ::_pbi::AddDescriptorsRunner dynamic_init_dummy_errors_2eproto(&descriptor_table_errors_2eproto);
+namespace vearchpb {
 const ::PROTOBUF_NAMESPACE_ID::EnumDescriptor* ErrorEnum_descriptor() {
   ::PROTOBUF_NAMESPACE_ID::internal::AssignDescriptors(&descriptor_table_errors_2eproto);
   return file_level_enum_descriptors_errors_2eproto[0];
@@ -201,7 +204,7 @@ Error::Error(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:Error)
+  // @@protoc_insertion_point(arena_constructor:vearchpb.Error)
 }
 Error::Error(const Error& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -221,7 +224,7 @@ Error::Error(const Error& from)
       _this->GetArenaForAllocation());
   }
   _this->_impl_.code_ = from._impl_.code_;
-  // @@protoc_insertion_point(copy_constructor:Error)
+  // @@protoc_insertion_point(copy_constructor:vearchpb.Error)
 }
 
 inline void Error::SharedCtor(
@@ -240,7 +243,7 @@ inline void Error::SharedCtor(
 }
 
 Error::~Error() {
-  // @@protoc_insertion_point(destructor:Error)
+  // @@protoc_insertion_point(destructor:vearchpb.Error)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -258,7 +261,7 @@ void Error::SetCachedSize(int size) const {
 }
 
 void Error::Clear() {
-// @@protoc_insertion_point(message_clear_start:Error)
+// @@protoc_insertion_point(message_clear_start:vearchpb.Error)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -274,12 +277,12 @@ const char* Error::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // .ErrorEnum code = 1;
+      // .vearchpb.ErrorEnum code = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 8)) {
           uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
           CHK_(ptr);
-          _internal_set_code(static_cast<::ErrorEnum>(val));
+          _internal_set_code(static_cast<::vearchpb::ErrorEnum>(val));
         } else
           goto handle_unusual;
         continue;
@@ -289,7 +292,7 @@ const char* Error::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
           auto str = _internal_mutable_msg();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "Error.msg"));
+          CHK_(::_pbi::VerifyUTF8(str, "vearchpb.Error.msg"));
         } else
           goto handle_unusual;
         continue;
@@ -318,11 +321,11 @@ failure:
 
 uint8_t* Error::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:Error)
+  // @@protoc_insertion_point(serialize_to_array_start:vearchpb.Error)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // .ErrorEnum code = 1;
+  // .vearchpb.ErrorEnum code = 1;
   if (this->_internal_code() != 0) {
     target = stream->EnsureSpace(target);
     target = ::_pbi::WireFormatLite::WriteEnumToArray(
@@ -334,7 +337,7 @@ uint8_t* Error::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_msg().data(), static_cast<int>(this->_internal_msg().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "Error.msg");
+      "vearchpb.Error.msg");
     target = stream->WriteStringMaybeAliased(
         2, this->_internal_msg(), target);
   }
@@ -343,12 +346,12 @@ uint8_t* Error::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:Error)
+  // @@protoc_insertion_point(serialize_to_array_end:vearchpb.Error)
   return target;
 }
 
 size_t Error::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:Error)
+// @@protoc_insertion_point(message_byte_size_start:vearchpb.Error)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
@@ -362,7 +365,7 @@ size_t Error::ByteSizeLong() const {
         this->_internal_msg());
   }
 
-  // .ErrorEnum code = 1;
+  // .vearchpb.ErrorEnum code = 1;
   if (this->_internal_code() != 0) {
     total_size += 1 +
       ::_pbi::WireFormatLite::EnumSize(this->_internal_code());
@@ -381,7 +384,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*Error::GetClassData() const { 
 void Error::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<Error*>(&to_msg);
   auto& from = static_cast<const Error&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:Error)
+  // @@protoc_insertion_point(class_specific_merge_from_start:vearchpb.Error)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
@@ -396,7 +399,7 @@ void Error::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF
 }
 
 void Error::CopyFrom(const Error& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:Error)
+// @@protoc_insertion_point(class_specific_copy_from_start:vearchpb.Error)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -425,10 +428,11 @@ void Error::InternalSwap(Error* other) {
 }
 
 // @@protoc_insertion_point(namespace_scope)
+}  // namespace vearchpb
 PROTOBUF_NAMESPACE_OPEN
-template<> PROTOBUF_NOINLINE ::Error*
-Arena::CreateMaybeMessage< ::Error >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::Error >(arena);
+template<> PROTOBUF_NOINLINE ::vearchpb::Error*
+Arena::CreateMaybeMessage< ::vearchpb::Error >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::vearchpb::Error >(arena);
 }
 PROTOBUF_NAMESPACE_CLOSE
 

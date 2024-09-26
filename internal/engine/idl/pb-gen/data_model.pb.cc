@@ -20,6 +20,7 @@ PROTOBUF_PRAGMA_INIT_SEG
 namespace _pb = ::PROTOBUF_NAMESPACE_ID;
 namespace _pbi = _pb::internal;
 
+namespace vearchpb {
 PROTOBUF_CONSTEXPR Field::Field(
     ::_pbi::ConstantInitialized): _impl_{
     /*decltype(_impl_.name_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
@@ -154,159 +155,163 @@ struct DBDefaultTypeInternal {
   };
 };
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 DBDefaultTypeInternal _DB_default_instance_;
+}  // namespace vearchpb
 static ::_pb::Metadata file_level_metadata_data_5fmodel_2eproto[9];
 static const ::_pb::EnumDescriptor* file_level_enum_descriptors_data_5fmodel_2eproto[4];
 static constexpr ::_pb::ServiceDescriptor const** file_level_service_descriptors_data_5fmodel_2eproto = nullptr;
 
 const uint32_t TableStruct_data_5fmodel_2eproto::offsets[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) = {
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::Field, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::Field, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::Field, _impl_.name_),
-  PROTOBUF_FIELD_OFFSET(::Field, _impl_.type_),
-  PROTOBUF_FIELD_OFFSET(::Field, _impl_.value_),
-  PROTOBUF_FIELD_OFFSET(::Field, _impl_.option_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::Field, _impl_.name_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::Field, _impl_.type_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::Field, _impl_.value_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::Field, _impl_.option_),
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::Document, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::Document, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::Document, _impl_.p_key_),
-  PROTOBUF_FIELD_OFFSET(::Document, _impl_.fields_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::Document, _impl_.p_key_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::Document, _impl_.fields_),
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::Item, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::Item, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::Item, _impl_.err_),
-  PROTOBUF_FIELD_OFFSET(::Item, _impl_.doc_),
-  PROTOBUF_FIELD_OFFSET(::Item, _impl_.msg_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::Item, _impl_.err_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::Item, _impl_.doc_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::Item, _impl_.msg_),
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::VectorMetaInfo, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::VectorMetaInfo, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::VectorMetaInfo, _impl_.dimension_),
-  PROTOBUF_FIELD_OFFSET(::VectorMetaInfo, _impl_.value_type_),
-  PROTOBUF_FIELD_OFFSET(::VectorMetaInfo, _impl_.store_type_),
-  PROTOBUF_FIELD_OFFSET(::VectorMetaInfo, _impl_.store_param_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::VectorMetaInfo, _impl_.dimension_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::VectorMetaInfo, _impl_.value_type_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::VectorMetaInfo, _impl_.store_type_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::VectorMetaInfo, _impl_.store_param_),
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::FieldMetaInfo, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::FieldMetaInfo, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::FieldMetaInfo, _impl_.name_),
-  PROTOBUF_FIELD_OFFSET(::FieldMetaInfo, _impl_.data_type_),
-  PROTOBUF_FIELD_OFFSET(::FieldMetaInfo, _impl_.is_index_),
-  PROTOBUF_FIELD_OFFSET(::FieldMetaInfo, _impl_.vector_meta_info_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::FieldMetaInfo, _impl_.name_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::FieldMetaInfo, _impl_.data_type_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::FieldMetaInfo, _impl_.is_index_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::FieldMetaInfo, _impl_.vector_meta_info_),
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::TableMetaInfo, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::TableMetaInfo, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::TableMetaInfo, _impl_.primary_key_name_),
-  PROTOBUF_FIELD_OFFSET(::TableMetaInfo, _impl_.primary_key_type_),
-  PROTOBUF_FIELD_OFFSET(::TableMetaInfo, _impl_.partitions_num_),
-  PROTOBUF_FIELD_OFFSET(::TableMetaInfo, _impl_.replicas_num_),
-  PROTOBUF_FIELD_OFFSET(::TableMetaInfo, _impl_.field_meta_info_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::TableMetaInfo, _impl_.primary_key_name_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::TableMetaInfo, _impl_.primary_key_type_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::TableMetaInfo, _impl_.partitions_num_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::TableMetaInfo, _impl_.replicas_num_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::TableMetaInfo, _impl_.field_meta_info_),
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::Table, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::Table, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::Table, _impl_.name_),
-  PROTOBUF_FIELD_OFFSET(::Table, _impl_.table_meta_info_),
-  PROTOBUF_FIELD_OFFSET(::DB_UserPasswordPairEntry_DoNotUse, _has_bits_),
-  PROTOBUF_FIELD_OFFSET(::DB_UserPasswordPairEntry_DoNotUse, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::Table, _impl_.name_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::Table, _impl_.table_meta_info_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::DB_UserPasswordPairEntry_DoNotUse, _has_bits_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::DB_UserPasswordPairEntry_DoNotUse, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::DB_UserPasswordPairEntry_DoNotUse, key_),
-  PROTOBUF_FIELD_OFFSET(::DB_UserPasswordPairEntry_DoNotUse, value_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::DB_UserPasswordPairEntry_DoNotUse, key_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::DB_UserPasswordPairEntry_DoNotUse, value_),
   0,
   1,
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::DB, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::DB, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::DB, _impl_.name_),
-  PROTOBUF_FIELD_OFFSET(::DB, _impl_.tables_),
-  PROTOBUF_FIELD_OFFSET(::DB, _impl_.user_password_pair_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::DB, _impl_.name_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::DB, _impl_.tables_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::DB, _impl_.user_password_pair_),
 };
 static const ::_pbi::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) = {
-  { 0, -1, -1, sizeof(::Field)},
-  { 10, -1, -1, sizeof(::Document)},
-  { 18, -1, -1, sizeof(::Item)},
-  { 27, -1, -1, sizeof(::VectorMetaInfo)},
-  { 37, -1, -1, sizeof(::FieldMetaInfo)},
-  { 47, -1, -1, sizeof(::TableMetaInfo)},
-  { 58, -1, -1, sizeof(::Table)},
-  { 66, 74, -1, sizeof(::DB_UserPasswordPairEntry_DoNotUse)},
-  { 76, -1, -1, sizeof(::DB)},
+  { 0, -1, -1, sizeof(::vearchpb::Field)},
+  { 10, -1, -1, sizeof(::vearchpb::Document)},
+  { 18, -1, -1, sizeof(::vearchpb::Item)},
+  { 27, -1, -1, sizeof(::vearchpb::VectorMetaInfo)},
+  { 37, -1, -1, sizeof(::vearchpb::FieldMetaInfo)},
+  { 47, -1, -1, sizeof(::vearchpb::TableMetaInfo)},
+  { 58, -1, -1, sizeof(::vearchpb::Table)},
+  { 66, 74, -1, sizeof(::vearchpb::DB_UserPasswordPairEntry_DoNotUse)},
+  { 76, -1, -1, sizeof(::vearchpb::DB)},
 };
 
 static const ::_pb::Message* const file_default_instances[] = {
-  &::_Field_default_instance_._instance,
-  &::_Document_default_instance_._instance,
-  &::_Item_default_instance_._instance,
-  &::_VectorMetaInfo_default_instance_._instance,
-  &::_FieldMetaInfo_default_instance_._instance,
-  &::_TableMetaInfo_default_instance_._instance,
-  &::_Table_default_instance_._instance,
-  &::_DB_UserPasswordPairEntry_DoNotUse_default_instance_._instance,
-  &::_DB_default_instance_._instance,
+  &::vearchpb::_Field_default_instance_._instance,
+  &::vearchpb::_Document_default_instance_._instance,
+  &::vearchpb::_Item_default_instance_._instance,
+  &::vearchpb::_VectorMetaInfo_default_instance_._instance,
+  &::vearchpb::_FieldMetaInfo_default_instance_._instance,
+  &::vearchpb::_TableMetaInfo_default_instance_._instance,
+  &::vearchpb::_Table_default_instance_._instance,
+  &::vearchpb::_DB_UserPasswordPairEntry_DoNotUse_default_instance_._instance,
+  &::vearchpb::_DB_default_instance_._instance,
 };
 
 const char descriptor_table_protodef_data_5fmodel_2eproto[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) =
-  "\n\020data_model.proto\032\014errors.proto\"\\\n\005Fiel"
-  "d\022\014\n\004name\030\001 \001(\t\022\030\n\004type\030\002 \001(\0162\n.FieldTyp"
-  "e\022\r\n\005value\030\003 \001(\014\022\034\n\006option\030\004 \001(\0162\014.Field"
-  "Option\"1\n\010Document\022\r\n\005p_key\030\001 \001(\t\022\026\n\006fie"
-  "lds\030\002 \003(\0132\006.Field\"@\n\004Item\022\023\n\003err\030\001 \001(\0132\006"
-  ".Error\022\026\n\003doc\030\002 \001(\0132\t.Document\022\013\n\003msg\030\003 "
-  "\001(\t\"\343\001\n\016VectorMetaInfo\022\021\n\tdimension\030\001 \001("
-  "\005\022-\n\nvalue_type\030\002 \001(\0162\031.VectorMetaInfo.V"
-  "alueType\022-\n\nstore_type\030\003 \001(\0162\031.VectorMet"
-  "aInfo.StoreType\022\023\n\013store_param\030\004 \001(\t\"!\n\t"
-  "ValueType\022\t\n\005FLOAT\020\000\022\t\n\005UINT8\020\001\"(\n\tStore"
-  "Type\022\016\n\nMEMORYONLY\020\000\022\013\n\007ROCKSDB\020\001\"y\n\rFie"
-  "ldMetaInfo\022\014\n\004name\030\001 \001(\t\022\035\n\tdata_type\030\002 "
-  "\001(\0162\n.FieldType\022\020\n\010is_index\030\003 \001(\010\022)\n\020vec"
-  "tor_meta_info\030\004 \001(\0132\017.VectorMetaInfo\"\246\001\n"
-  "\rTableMetaInfo\022\030\n\020primary_key_name\030\001 \001(\t"
-  "\022$\n\020primary_key_type\030\002 \001(\0162\n.FieldType\022\026"
-  "\n\016partitions_num\030\003 \001(\005\022\024\n\014replicas_num\030\004"
-  " \001(\005\022\'\n\017field_meta_info\030\005 \003(\0132\016.FieldMet"
-  "aInfo\">\n\005Table\022\014\n\004name\030\001 \001(\t\022\'\n\017table_me"
-  "ta_info\030\002 \001(\0132\016.TableMetaInfo\"\232\001\n\002DB\022\014\n\004"
-  "name\030\001 \001(\t\022\026\n\006tables\030\002 \003(\0132\006.Table\0225\n\022us"
-  "er_password_pair\030\003 \003(\0132\031.DB.UserPassword"
-  "PairEntry\0327\n\025UserPasswordPairEntry\022\013\n\003ke"
-  "y\030\001 \001(\t\022\r\n\005value\030\002 \001(\t:\0028\001*r\n\tFieldType\022"
-  "\007\n\003INT\020\000\022\010\n\004LONG\020\001\022\t\n\005FLOAT\020\002\022\n\n\006DOUBLE\020"
-  "\003\022\n\n\006STRING\020\004\022\n\n\006VECTOR\020\005\022\010\n\004BOOL\020\006\022\010\n\004D"
-  "ATE\020\007\022\017\n\013STRINGARRAY\020\010*\"\n\013FieldOption\022\010\n"
-  "\004Null\020\000\022\t\n\005Index\020\001B\016H\001Z\n./vearchpbb\006prot"
-  "o3"
+  "\n\020data_model.proto\022\010vearchpb\032\014errors.pro"
+  "to\"n\n\005Field\022\014\n\004name\030\001 \001(\t\022!\n\004type\030\002 \001(\0162"
+  "\023.vearchpb.FieldType\022\r\n\005value\030\003 \001(\014\022%\n\006o"
+  "ption\030\004 \001(\0162\025.vearchpb.FieldOption\":\n\010Do"
+  "cument\022\r\n\005p_key\030\001 \001(\t\022\037\n\006fields\030\002 \003(\0132\017."
+  "vearchpb.Field\"R\n\004Item\022\034\n\003err\030\001 \001(\0132\017.ve"
+  "archpb.Error\022\037\n\003doc\030\002 \001(\0132\022.vearchpb.Doc"
+  "ument\022\013\n\003msg\030\003 \001(\t\"\365\001\n\016VectorMetaInfo\022\021\n"
+  "\tdimension\030\001 \001(\005\0226\n\nvalue_type\030\002 \001(\0162\".v"
+  "earchpb.VectorMetaInfo.ValueType\0226\n\nstor"
+  "e_type\030\003 \001(\0162\".vearchpb.VectorMetaInfo.S"
+  "toreType\022\023\n\013store_param\030\004 \001(\t\"!\n\tValueTy"
+  "pe\022\t\n\005FLOAT\020\000\022\t\n\005UINT8\020\001\"(\n\tStoreType\022\016\n"
+  "\nMEMORYONLY\020\000\022\013\n\007ROCKSDB\020\001\"\213\001\n\rFieldMeta"
+  "Info\022\014\n\004name\030\001 \001(\t\022&\n\tdata_type\030\002 \001(\0162\023."
+  "vearchpb.FieldType\022\020\n\010is_index\030\003 \001(\010\0222\n\020"
+  "vector_meta_info\030\004 \001(\0132\030.vearchpb.Vector"
+  "MetaInfo\"\270\001\n\rTableMetaInfo\022\030\n\020primary_ke"
+  "y_name\030\001 \001(\t\022-\n\020primary_key_type\030\002 \001(\0162\023"
+  ".vearchpb.FieldType\022\026\n\016partitions_num\030\003 "
+  "\001(\005\022\024\n\014replicas_num\030\004 \001(\005\0220\n\017field_meta_"
+  "info\030\005 \003(\0132\027.vearchpb.FieldMetaInfo\"G\n\005T"
+  "able\022\014\n\004name\030\001 \001(\t\0220\n\017table_meta_info\030\002 "
+  "\001(\0132\027.vearchpb.TableMetaInfo\"\254\001\n\002DB\022\014\n\004n"
+  "ame\030\001 \001(\t\022\037\n\006tables\030\002 \003(\0132\017.vearchpb.Tab"
+  "le\022>\n\022user_password_pair\030\003 \003(\0132\".vearchp"
+  "b.DB.UserPasswordPairEntry\0327\n\025UserPasswo"
+  "rdPairEntry\022\013\n\003key\030\001 \001(\t\022\r\n\005value\030\002 \001(\t:"
+  "\0028\001*r\n\tFieldType\022\007\n\003INT\020\000\022\010\n\004LONG\020\001\022\t\n\005F"
+  "LOAT\020\002\022\n\n\006DOUBLE\020\003\022\n\n\006STRING\020\004\022\n\n\006VECTOR"
+  "\020\005\022\010\n\004BOOL\020\006\022\010\n\004DATE\020\007\022\017\n\013STRINGARRAY\020\010*"
+  "\"\n\013FieldOption\022\010\n\004Null\020\000\022\t\n\005Index\020\001B\016H\001Z"
+  "\n./vearchpbb\006proto3"
   ;
 static const ::_pbi::DescriptorTable* const descriptor_table_data_5fmodel_2eproto_deps[1] = {
   &::descriptor_table_errors_2eproto,
 };
 static ::_pbi::once_flag descriptor_table_data_5fmodel_2eproto_once;
 const ::_pbi::DescriptorTable descriptor_table_data_5fmodel_2eproto = {
-    false, false, 1162, descriptor_table_protodef_data_5fmodel_2eproto,
+    false, false, 1299, descriptor_table_protodef_data_5fmodel_2eproto,
     "data_model.proto",
     &descriptor_table_data_5fmodel_2eproto_once, descriptor_table_data_5fmodel_2eproto_deps, 1, 9,
     schemas, file_default_instances, TableStruct_data_5fmodel_2eproto::offsets,
@@ -319,6 +324,7 @@ PROTOBUF_ATTRIBUTE_WEAK const ::_pbi::DescriptorTable* descriptor_table_data_5fm
 
 // Force running AddDescriptors() at dynamic initialization time.
 PROTOBUF_ATTRIBUTE_INIT_PRIORITY2 static ::_pbi::AddDescriptorsRunner dynamic_init_dummy_data_5fmodel_2eproto(&descriptor_table_data_5fmodel_2eproto);
+namespace vearchpb {
 const ::PROTOBUF_NAMESPACE_ID::EnumDescriptor* VectorMetaInfo_ValueType_descriptor() {
   ::PROTOBUF_NAMESPACE_ID::internal::AssignDescriptors(&descriptor_table_data_5fmodel_2eproto);
   return file_level_enum_descriptors_data_5fmodel_2eproto[0];
@@ -407,7 +413,7 @@ Field::Field(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:Field)
+  // @@protoc_insertion_point(arena_constructor:vearchpb.Field)
 }
 Field::Field(const Field& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -439,7 +445,7 @@ Field::Field(const Field& from)
   ::memcpy(&_impl_.type_, &from._impl_.type_,
     static_cast<size_t>(reinterpret_cast<char*>(&_impl_.option_) -
     reinterpret_cast<char*>(&_impl_.type_)) + sizeof(_impl_.option_));
-  // @@protoc_insertion_point(copy_constructor:Field)
+  // @@protoc_insertion_point(copy_constructor:vearchpb.Field)
 }
 
 inline void Field::SharedCtor(
@@ -464,7 +470,7 @@ inline void Field::SharedCtor(
 }
 
 Field::~Field() {
-  // @@protoc_insertion_point(destructor:Field)
+  // @@protoc_insertion_point(destructor:vearchpb.Field)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -483,7 +489,7 @@ void Field::SetCachedSize(int size) const {
 }
 
 void Field::Clear() {
-// @@protoc_insertion_point(message_clear_start:Field)
+// @@protoc_insertion_point(message_clear_start:vearchpb.Field)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -508,16 +514,16 @@ const char* Field::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
           auto str = _internal_mutable_name();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "Field.name"));
+          CHK_(::_pbi::VerifyUTF8(str, "vearchpb.Field.name"));
         } else
           goto handle_unusual;
         continue;
-      // .FieldType type = 2;
+      // .vearchpb.FieldType type = 2;
       case 2:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 16)) {
           uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
           CHK_(ptr);
-          _internal_set_type(static_cast<::FieldType>(val));
+          _internal_set_type(static_cast<::vearchpb::FieldType>(val));
         } else
           goto handle_unusual;
         continue;
@@ -530,12 +536,12 @@ const char* Field::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
         } else
           goto handle_unusual;
         continue;
-      // .FieldOption option = 4;
+      // .vearchpb.FieldOption option = 4;
       case 4:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 32)) {
           uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
           CHK_(ptr);
-          _internal_set_option(static_cast<::FieldOption>(val));
+          _internal_set_option(static_cast<::vearchpb::FieldOption>(val));
         } else
           goto handle_unusual;
         continue;
@@ -564,7 +570,7 @@ failure:
 
 uint8_t* Field::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:Field)
+  // @@protoc_insertion_point(serialize_to_array_start:vearchpb.Field)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
@@ -573,12 +579,12 @@ uint8_t* Field::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_name().data(), static_cast<int>(this->_internal_name().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "Field.name");
+      "vearchpb.Field.name");
     target = stream->WriteStringMaybeAliased(
         1, this->_internal_name(), target);
   }
 
-  // .FieldType type = 2;
+  // .vearchpb.FieldType type = 2;
   if (this->_internal_type() != 0) {
     target = stream->EnsureSpace(target);
     target = ::_pbi::WireFormatLite::WriteEnumToArray(
@@ -591,7 +597,7 @@ uint8_t* Field::_InternalSerialize(
         3, this->_internal_value(), target);
   }
 
-  // .FieldOption option = 4;
+  // .vearchpb.FieldOption option = 4;
   if (this->_internal_option() != 0) {
     target = stream->EnsureSpace(target);
     target = ::_pbi::WireFormatLite::WriteEnumToArray(
@@ -602,12 +608,12 @@ uint8_t* Field::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:Field)
+  // @@protoc_insertion_point(serialize_to_array_end:vearchpb.Field)
   return target;
 }
 
 size_t Field::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:Field)
+// @@protoc_insertion_point(message_byte_size_start:vearchpb.Field)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
@@ -628,13 +634,13 @@ size_t Field::ByteSizeLong() const {
         this->_internal_value());
   }
 
-  // .FieldType type = 2;
+  // .vearchpb.FieldType type = 2;
   if (this->_internal_type() != 0) {
     total_size += 1 +
       ::_pbi::WireFormatLite::EnumSize(this->_internal_type());
   }
 
-  // .FieldOption option = 4;
+  // .vearchpb.FieldOption option = 4;
   if (this->_internal_option() != 0) {
     total_size += 1 +
       ::_pbi::WireFormatLite::EnumSize(this->_internal_option());
@@ -653,7 +659,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*Field::GetClassData() const { 
 void Field::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<Field*>(&to_msg);
   auto& from = static_cast<const Field&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:Field)
+  // @@protoc_insertion_point(class_specific_merge_from_start:vearchpb.Field)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
@@ -674,7 +680,7 @@ void Field::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF
 }
 
 void Field::CopyFrom(const Field& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:Field)
+// @@protoc_insertion_point(class_specific_copy_from_start:vearchpb.Field)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -721,7 +727,7 @@ Document::Document(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:Document)
+  // @@protoc_insertion_point(arena_constructor:vearchpb.Document)
 }
 Document::Document(const Document& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -740,7 +746,7 @@ Document::Document(const Document& from)
     _this->_impl_.p_key_.Set(from._internal_p_key(), 
       _this->GetArenaForAllocation());
   }
-  // @@protoc_insertion_point(copy_constructor:Document)
+  // @@protoc_insertion_point(copy_constructor:vearchpb.Document)
 }
 
 inline void Document::SharedCtor(
@@ -759,7 +765,7 @@ inline void Document::SharedCtor(
 }
 
 Document::~Document() {
-  // @@protoc_insertion_point(destructor:Document)
+  // @@protoc_insertion_point(destructor:vearchpb.Document)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -778,7 +784,7 @@ void Document::SetCachedSize(int size) const {
 }
 
 void Document::Clear() {
-// @@protoc_insertion_point(message_clear_start:Document)
+// @@protoc_insertion_point(message_clear_start:vearchpb.Document)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -800,11 +806,11 @@ const char* Document::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx)
           auto str = _internal_mutable_p_key();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "Document.p_key"));
+          CHK_(::_pbi::VerifyUTF8(str, "vearchpb.Document.p_key"));
         } else
           goto handle_unusual;
         continue;
-      // repeated .Field fields = 2;
+      // repeated .vearchpb.Field fields = 2;
       case 2:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
           ptr -= 1;
@@ -842,7 +848,7 @@ failure:
 
 uint8_t* Document::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:Document)
+  // @@protoc_insertion_point(serialize_to_array_start:vearchpb.Document)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
@@ -851,12 +857,12 @@ uint8_t* Document::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_p_key().data(), static_cast<int>(this->_internal_p_key().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "Document.p_key");
+      "vearchpb.Document.p_key");
     target = stream->WriteStringMaybeAliased(
         1, this->_internal_p_key(), target);
   }
 
-  // repeated .Field fields = 2;
+  // repeated .vearchpb.Field fields = 2;
   for (unsigned i = 0,
       n = static_cast<unsigned>(this->_internal_fields_size()); i < n; i++) {
     const auto& repfield = this->_internal_fields(i);
@@ -868,19 +874,19 @@ uint8_t* Document::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:Document)
+  // @@protoc_insertion_point(serialize_to_array_end:vearchpb.Document)
   return target;
 }
 
 size_t Document::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:Document)
+// @@protoc_insertion_point(message_byte_size_start:vearchpb.Document)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // repeated .Field fields = 2;
+  // repeated .vearchpb.Field fields = 2;
   total_size += 1UL * this->_internal_fields_size();
   for (const auto& msg : this->_impl_.fields_) {
     total_size +=
@@ -907,7 +913,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*Document::GetClassData() const
 void Document::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<Document*>(&to_msg);
   auto& from = static_cast<const Document&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:Document)
+  // @@protoc_insertion_point(class_specific_merge_from_start:vearchpb.Document)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
@@ -920,7 +926,7 @@ void Document::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTO
 }
 
 void Document::CopyFrom(const Document& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:Document)
+// @@protoc_insertion_point(class_specific_copy_from_start:vearchpb.Document)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -952,15 +958,15 @@ void Document::InternalSwap(Document* other) {
 
 class Item::_Internal {
  public:
-  static const ::Error& err(const Item* msg);
-  static const ::Document& doc(const Item* msg);
+  static const ::vearchpb::Error& err(const Item* msg);
+  static const ::vearchpb::Document& doc(const Item* msg);
 };
 
-const ::Error&
+const ::vearchpb::Error&
 Item::_Internal::err(const Item* msg) {
   return *msg->_impl_.err_;
 }
-const ::Document&
+const ::vearchpb::Document&
 Item::_Internal::doc(const Item* msg) {
   return *msg->_impl_.doc_;
 }
@@ -974,7 +980,7 @@ Item::Item(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:Item)
+  // @@protoc_insertion_point(arena_constructor:vearchpb.Item)
 }
 Item::Item(const Item& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -995,12 +1001,12 @@ Item::Item(const Item& from)
       _this->GetArenaForAllocation());
   }
   if (from._internal_has_err()) {
-    _this->_impl_.err_ = new ::Error(*from._impl_.err_);
+    _this->_impl_.err_ = new ::vearchpb::Error(*from._impl_.err_);
   }
   if (from._internal_has_doc()) {
-    _this->_impl_.doc_ = new ::Document(*from._impl_.doc_);
+    _this->_impl_.doc_ = new ::vearchpb::Document(*from._impl_.doc_);
   }
-  // @@protoc_insertion_point(copy_constructor:Item)
+  // @@protoc_insertion_point(copy_constructor:vearchpb.Item)
 }
 
 inline void Item::SharedCtor(
@@ -1020,7 +1026,7 @@ inline void Item::SharedCtor(
 }
 
 Item::~Item() {
-  // @@protoc_insertion_point(destructor:Item)
+  // @@protoc_insertion_point(destructor:vearchpb.Item)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -1040,7 +1046,7 @@ void Item::SetCachedSize(int size) const {
 }
 
 void Item::Clear() {
-// @@protoc_insertion_point(message_clear_start:Item)
+// @@protoc_insertion_point(message_clear_start:vearchpb.Item)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -1063,7 +1069,7 @@ const char* Item::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // .Error err = 1;
+      // .vearchpb.Error err = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
           ptr = ctx->ParseMessage(_internal_mutable_err(), ptr);
@@ -1071,7 +1077,7 @@ const char* Item::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
         } else
           goto handle_unusual;
         continue;
-      // .Document doc = 2;
+      // .vearchpb.Document doc = 2;
       case 2:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
           ptr = ctx->ParseMessage(_internal_mutable_doc(), ptr);
@@ -1085,7 +1091,7 @@ const char* Item::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
           auto str = _internal_mutable_msg();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "Item.msg"));
+          CHK_(::_pbi::VerifyUTF8(str, "vearchpb.Item.msg"));
         } else
           goto handle_unusual;
         continue;
@@ -1114,18 +1120,18 @@ failure:
 
 uint8_t* Item::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:Item)
+  // @@protoc_insertion_point(serialize_to_array_start:vearchpb.Item)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // .Error err = 1;
+  // .vearchpb.Error err = 1;
   if (this->_internal_has_err()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(1, _Internal::err(this),
         _Internal::err(this).GetCachedSize(), target, stream);
   }
 
-  // .Document doc = 2;
+  // .vearchpb.Document doc = 2;
   if (this->_internal_has_doc()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(2, _Internal::doc(this),
@@ -1137,7 +1143,7 @@ uint8_t* Item::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_msg().data(), static_cast<int>(this->_internal_msg().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "Item.msg");
+      "vearchpb.Item.msg");
     target = stream->WriteStringMaybeAliased(
         3, this->_internal_msg(), target);
   }
@@ -1146,12 +1152,12 @@ uint8_t* Item::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:Item)
+  // @@protoc_insertion_point(serialize_to_array_end:vearchpb.Item)
   return target;
 }
 
 size_t Item::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:Item)
+// @@protoc_insertion_point(message_byte_size_start:vearchpb.Item)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
@@ -1165,14 +1171,14 @@ size_t Item::ByteSizeLong() const {
         this->_internal_msg());
   }
 
-  // .Error err = 1;
+  // .vearchpb.Error err = 1;
   if (this->_internal_has_err()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
         *_impl_.err_);
   }
 
-  // .Document doc = 2;
+  // .vearchpb.Document doc = 2;
   if (this->_internal_has_doc()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
@@ -1192,7 +1198,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*Item::GetClassData() const { r
 void Item::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<Item*>(&to_msg);
   auto& from = static_cast<const Item&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:Item)
+  // @@protoc_insertion_point(class_specific_merge_from_start:vearchpb.Item)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
@@ -1201,18 +1207,18 @@ void Item::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_
     _this->_internal_set_msg(from._internal_msg());
   }
   if (from._internal_has_err()) {
-    _this->_internal_mutable_err()->::Error::MergeFrom(
+    _this->_internal_mutable_err()->::vearchpb::Error::MergeFrom(
         from._internal_err());
   }
   if (from._internal_has_doc()) {
-    _this->_internal_mutable_doc()->::Document::MergeFrom(
+    _this->_internal_mutable_doc()->::vearchpb::Document::MergeFrom(
         from._internal_doc());
   }
   _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
 
 void Item::CopyFrom(const Item& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:Item)
+// @@protoc_insertion_point(class_specific_copy_from_start:vearchpb.Item)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -1255,7 +1261,7 @@ VectorMetaInfo::VectorMetaInfo(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:VectorMetaInfo)
+  // @@protoc_insertion_point(arena_constructor:vearchpb.VectorMetaInfo)
 }
 VectorMetaInfo::VectorMetaInfo(const VectorMetaInfo& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -1279,7 +1285,7 @@ VectorMetaInfo::VectorMetaInfo(const VectorMetaInfo& from)
   ::memcpy(&_impl_.dimension_, &from._impl_.dimension_,
     static_cast<size_t>(reinterpret_cast<char*>(&_impl_.store_type_) -
     reinterpret_cast<char*>(&_impl_.dimension_)) + sizeof(_impl_.store_type_));
-  // @@protoc_insertion_point(copy_constructor:VectorMetaInfo)
+  // @@protoc_insertion_point(copy_constructor:vearchpb.VectorMetaInfo)
 }
 
 inline void VectorMetaInfo::SharedCtor(
@@ -1300,7 +1306,7 @@ inline void VectorMetaInfo::SharedCtor(
 }
 
 VectorMetaInfo::~VectorMetaInfo() {
-  // @@protoc_insertion_point(destructor:VectorMetaInfo)
+  // @@protoc_insertion_point(destructor:vearchpb.VectorMetaInfo)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -1318,7 +1324,7 @@ void VectorMetaInfo::SetCachedSize(int size) const {
 }
 
 void VectorMetaInfo::Clear() {
-// @@protoc_insertion_point(message_clear_start:VectorMetaInfo)
+// @@protoc_insertion_point(message_clear_start:vearchpb.VectorMetaInfo)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -1344,21 +1350,21 @@ const char* VectorMetaInfo::_InternalParse(const char* ptr, ::_pbi::ParseContext
         } else
           goto handle_unusual;
         continue;
-      // .VectorMetaInfo.ValueType value_type = 2;
+      // .vearchpb.VectorMetaInfo.ValueType value_type = 2;
       case 2:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 16)) {
           uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
           CHK_(ptr);
-          _internal_set_value_type(static_cast<::VectorMetaInfo_ValueType>(val));
+          _internal_set_value_type(static_cast<::vearchpb::VectorMetaInfo_ValueType>(val));
         } else
           goto handle_unusual;
         continue;
-      // .VectorMetaInfo.StoreType store_type = 3;
+      // .vearchpb.VectorMetaInfo.StoreType store_type = 3;
       case 3:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 24)) {
           uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
           CHK_(ptr);
-          _internal_set_store_type(static_cast<::VectorMetaInfo_StoreType>(val));
+          _internal_set_store_type(static_cast<::vearchpb::VectorMetaInfo_StoreType>(val));
         } else
           goto handle_unusual;
         continue;
@@ -1368,7 +1374,7 @@ const char* VectorMetaInfo::_InternalParse(const char* ptr, ::_pbi::ParseContext
           auto str = _internal_mutable_store_param();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "VectorMetaInfo.store_param"));
+          CHK_(::_pbi::VerifyUTF8(str, "vearchpb.VectorMetaInfo.store_param"));
         } else
           goto handle_unusual;
         continue;
@@ -1397,7 +1403,7 @@ failure:
 
 uint8_t* VectorMetaInfo::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:VectorMetaInfo)
+  // @@protoc_insertion_point(serialize_to_array_start:vearchpb.VectorMetaInfo)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
@@ -1407,14 +1413,14 @@ uint8_t* VectorMetaInfo::_InternalSerialize(
     target = ::_pbi::WireFormatLite::WriteInt32ToArray(1, this->_internal_dimension(), target);
   }
 
-  // .VectorMetaInfo.ValueType value_type = 2;
+  // .vearchpb.VectorMetaInfo.ValueType value_type = 2;
   if (this->_internal_value_type() != 0) {
     target = stream->EnsureSpace(target);
     target = ::_pbi::WireFormatLite::WriteEnumToArray(
       2, this->_internal_value_type(), target);
   }
 
-  // .VectorMetaInfo.StoreType store_type = 3;
+  // .vearchpb.VectorMetaInfo.StoreType store_type = 3;
   if (this->_internal_store_type() != 0) {
     target = stream->EnsureSpace(target);
     target = ::_pbi::WireFormatLite::WriteEnumToArray(
@@ -1426,7 +1432,7 @@ uint8_t* VectorMetaInfo::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_store_param().data(), static_cast<int>(this->_internal_store_param().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "VectorMetaInfo.store_param");
+      "vearchpb.VectorMetaInfo.store_param");
     target = stream->WriteStringMaybeAliased(
         4, this->_internal_store_param(), target);
   }
@@ -1435,12 +1441,12 @@ uint8_t* VectorMetaInfo::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:VectorMetaInfo)
+  // @@protoc_insertion_point(serialize_to_array_end:vearchpb.VectorMetaInfo)
   return target;
 }
 
 size_t VectorMetaInfo::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:VectorMetaInfo)
+// @@protoc_insertion_point(message_byte_size_start:vearchpb.VectorMetaInfo)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
@@ -1459,13 +1465,13 @@ size_t VectorMetaInfo::ByteSizeLong() const {
     total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(this->_internal_dimension());
   }
 
-  // .VectorMetaInfo.ValueType value_type = 2;
+  // .vearchpb.VectorMetaInfo.ValueType value_type = 2;
   if (this->_internal_value_type() != 0) {
     total_size += 1 +
       ::_pbi::WireFormatLite::EnumSize(this->_internal_value_type());
   }
 
-  // .VectorMetaInfo.StoreType store_type = 3;
+  // .vearchpb.VectorMetaInfo.StoreType store_type = 3;
   if (this->_internal_store_type() != 0) {
     total_size += 1 +
       ::_pbi::WireFormatLite::EnumSize(this->_internal_store_type());
@@ -1484,7 +1490,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*VectorMetaInfo::GetClassData()
 void VectorMetaInfo::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<VectorMetaInfo*>(&to_msg);
   auto& from = static_cast<const VectorMetaInfo&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:VectorMetaInfo)
+  // @@protoc_insertion_point(class_specific_merge_from_start:vearchpb.VectorMetaInfo)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
@@ -1505,7 +1511,7 @@ void VectorMetaInfo::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const :
 }
 
 void VectorMetaInfo::CopyFrom(const VectorMetaInfo& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:VectorMetaInfo)
+// @@protoc_insertion_point(class_specific_copy_from_start:vearchpb.VectorMetaInfo)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -1542,10 +1548,10 @@ void VectorMetaInfo::InternalSwap(VectorMetaInfo* other) {
 
 class FieldMetaInfo::_Internal {
  public:
-  static const ::VectorMetaInfo& vector_meta_info(const FieldMetaInfo* msg);
+  static const ::vearchpb::VectorMetaInfo& vector_meta_info(const FieldMetaInfo* msg);
 };
 
-const ::VectorMetaInfo&
+const ::vearchpb::VectorMetaInfo&
 FieldMetaInfo::_Internal::vector_meta_info(const FieldMetaInfo* msg) {
   return *msg->_impl_.vector_meta_info_;
 }
@@ -1553,7 +1559,7 @@ FieldMetaInfo::FieldMetaInfo(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:FieldMetaInfo)
+  // @@protoc_insertion_point(arena_constructor:vearchpb.FieldMetaInfo)
 }
 FieldMetaInfo::FieldMetaInfo(const FieldMetaInfo& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -1575,12 +1581,12 @@ FieldMetaInfo::FieldMetaInfo(const FieldMetaInfo& from)
       _this->GetArenaForAllocation());
   }
   if (from._internal_has_vector_meta_info()) {
-    _this->_impl_.vector_meta_info_ = new ::VectorMetaInfo(*from._impl_.vector_meta_info_);
+    _this->_impl_.vector_meta_info_ = new ::vearchpb::VectorMetaInfo(*from._impl_.vector_meta_info_);
   }
   ::memcpy(&_impl_.data_type_, &from._impl_.data_type_,
     static_cast<size_t>(reinterpret_cast<char*>(&_impl_.is_index_) -
     reinterpret_cast<char*>(&_impl_.data_type_)) + sizeof(_impl_.is_index_));
-  // @@protoc_insertion_point(copy_constructor:FieldMetaInfo)
+  // @@protoc_insertion_point(copy_constructor:vearchpb.FieldMetaInfo)
 }
 
 inline void FieldMetaInfo::SharedCtor(
@@ -1601,7 +1607,7 @@ inline void FieldMetaInfo::SharedCtor(
 }
 
 FieldMetaInfo::~FieldMetaInfo() {
-  // @@protoc_insertion_point(destructor:FieldMetaInfo)
+  // @@protoc_insertion_point(destructor:vearchpb.FieldMetaInfo)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -1620,7 +1626,7 @@ void FieldMetaInfo::SetCachedSize(int size) const {
 }
 
 void FieldMetaInfo::Clear() {
-// @@protoc_insertion_point(message_clear_start:FieldMetaInfo)
+// @@protoc_insertion_point(message_clear_start:vearchpb.FieldMetaInfo)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -1648,16 +1654,16 @@ const char* FieldMetaInfo::_InternalParse(const char* ptr, ::_pbi::ParseContext*
           auto str = _internal_mutable_name();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "FieldMetaInfo.name"));
+          CHK_(::_pbi::VerifyUTF8(str, "vearchpb.FieldMetaInfo.name"));
         } else
           goto handle_unusual;
         continue;
-      // .FieldType data_type = 2;
+      // .vearchpb.FieldType data_type = 2;
       case 2:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 16)) {
           uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
           CHK_(ptr);
-          _internal_set_data_type(static_cast<::FieldType>(val));
+          _internal_set_data_type(static_cast<::vearchpb::FieldType>(val));
         } else
           goto handle_unusual;
         continue;
@@ -1669,7 +1675,7 @@ const char* FieldMetaInfo::_InternalParse(const char* ptr, ::_pbi::ParseContext*
         } else
           goto handle_unusual;
         continue;
-      // .VectorMetaInfo vector_meta_info = 4;
+      // .vearchpb.VectorMetaInfo vector_meta_info = 4;
       case 4:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 34)) {
           ptr = ctx->ParseMessage(_internal_mutable_vector_meta_info(), ptr);
@@ -1702,7 +1708,7 @@ failure:
 
 uint8_t* FieldMetaInfo::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:FieldMetaInfo)
+  // @@protoc_insertion_point(serialize_to_array_start:vearchpb.FieldMetaInfo)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
@@ -1711,12 +1717,12 @@ uint8_t* FieldMetaInfo::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_name().data(), static_cast<int>(this->_internal_name().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "FieldMetaInfo.name");
+      "vearchpb.FieldMetaInfo.name");
     target = stream->WriteStringMaybeAliased(
         1, this->_internal_name(), target);
   }
 
-  // .FieldType data_type = 2;
+  // .vearchpb.FieldType data_type = 2;
   if (this->_internal_data_type() != 0) {
     target = stream->EnsureSpace(target);
     target = ::_pbi::WireFormatLite::WriteEnumToArray(
@@ -1729,7 +1735,7 @@ uint8_t* FieldMetaInfo::_InternalSerialize(
     target = ::_pbi::WireFormatLite::WriteBoolToArray(3, this->_internal_is_index(), target);
   }
 
-  // .VectorMetaInfo vector_meta_info = 4;
+  // .vearchpb.VectorMetaInfo vector_meta_info = 4;
   if (this->_internal_has_vector_meta_info()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(4, _Internal::vector_meta_info(this),
@@ -1740,12 +1746,12 @@ uint8_t* FieldMetaInfo::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:FieldMetaInfo)
+  // @@protoc_insertion_point(serialize_to_array_end:vearchpb.FieldMetaInfo)
   return target;
 }
 
 size_t FieldMetaInfo::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:FieldMetaInfo)
+// @@protoc_insertion_point(message_byte_size_start:vearchpb.FieldMetaInfo)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
@@ -1759,14 +1765,14 @@ size_t FieldMetaInfo::ByteSizeLong() const {
         this->_internal_name());
   }
 
-  // .VectorMetaInfo vector_meta_info = 4;
+  // .vearchpb.VectorMetaInfo vector_meta_info = 4;
   if (this->_internal_has_vector_meta_info()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
         *_impl_.vector_meta_info_);
   }
 
-  // .FieldType data_type = 2;
+  // .vearchpb.FieldType data_type = 2;
   if (this->_internal_data_type() != 0) {
     total_size += 1 +
       ::_pbi::WireFormatLite::EnumSize(this->_internal_data_type());
@@ -1790,7 +1796,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*FieldMetaInfo::GetClassData() 
 void FieldMetaInfo::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<FieldMetaInfo*>(&to_msg);
   auto& from = static_cast<const FieldMetaInfo&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:FieldMetaInfo)
+  // @@protoc_insertion_point(class_specific_merge_from_start:vearchpb.FieldMetaInfo)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
@@ -1799,7 +1805,7 @@ void FieldMetaInfo::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::
     _this->_internal_set_name(from._internal_name());
   }
   if (from._internal_has_vector_meta_info()) {
-    _this->_internal_mutable_vector_meta_info()->::VectorMetaInfo::MergeFrom(
+    _this->_internal_mutable_vector_meta_info()->::vearchpb::VectorMetaInfo::MergeFrom(
         from._internal_vector_meta_info());
   }
   if (from._internal_data_type() != 0) {
@@ -1812,7 +1818,7 @@ void FieldMetaInfo::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::
 }
 
 void FieldMetaInfo::CopyFrom(const FieldMetaInfo& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:FieldMetaInfo)
+// @@protoc_insertion_point(class_specific_copy_from_start:vearchpb.FieldMetaInfo)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -1855,7 +1861,7 @@ TableMetaInfo::TableMetaInfo(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:TableMetaInfo)
+  // @@protoc_insertion_point(arena_constructor:vearchpb.TableMetaInfo)
 }
 TableMetaInfo::TableMetaInfo(const TableMetaInfo& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -1880,7 +1886,7 @@ TableMetaInfo::TableMetaInfo(const TableMetaInfo& from)
   ::memcpy(&_impl_.primary_key_type_, &from._impl_.primary_key_type_,
     static_cast<size_t>(reinterpret_cast<char*>(&_impl_.replicas_num_) -
     reinterpret_cast<char*>(&_impl_.primary_key_type_)) + sizeof(_impl_.replicas_num_));
-  // @@protoc_insertion_point(copy_constructor:TableMetaInfo)
+  // @@protoc_insertion_point(copy_constructor:vearchpb.TableMetaInfo)
 }
 
 inline void TableMetaInfo::SharedCtor(
@@ -1902,7 +1908,7 @@ inline void TableMetaInfo::SharedCtor(
 }
 
 TableMetaInfo::~TableMetaInfo() {
-  // @@protoc_insertion_point(destructor:TableMetaInfo)
+  // @@protoc_insertion_point(destructor:vearchpb.TableMetaInfo)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -1921,7 +1927,7 @@ void TableMetaInfo::SetCachedSize(int size) const {
 }
 
 void TableMetaInfo::Clear() {
-// @@protoc_insertion_point(message_clear_start:TableMetaInfo)
+// @@protoc_insertion_point(message_clear_start:vearchpb.TableMetaInfo)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -1946,16 +1952,16 @@ const char* TableMetaInfo::_InternalParse(const char* ptr, ::_pbi::ParseContext*
           auto str = _internal_mutable_primary_key_name();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "TableMetaInfo.primary_key_name"));
+          CHK_(::_pbi::VerifyUTF8(str, "vearchpb.TableMetaInfo.primary_key_name"));
         } else
           goto handle_unusual;
         continue;
-      // .FieldType primary_key_type = 2;
+      // .vearchpb.FieldType primary_key_type = 2;
       case 2:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 16)) {
           uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
           CHK_(ptr);
-          _internal_set_primary_key_type(static_cast<::FieldType>(val));
+          _internal_set_primary_key_type(static_cast<::vearchpb::FieldType>(val));
         } else
           goto handle_unusual;
         continue;
@@ -1975,7 +1981,7 @@ const char* TableMetaInfo::_InternalParse(const char* ptr, ::_pbi::ParseContext*
         } else
           goto handle_unusual;
         continue;
-      // repeated .FieldMetaInfo field_meta_info = 5;
+      // repeated .vearchpb.FieldMetaInfo field_meta_info = 5;
       case 5:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 42)) {
           ptr -= 1;
@@ -2013,7 +2019,7 @@ failure:
 
 uint8_t* TableMetaInfo::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:TableMetaInfo)
+  // @@protoc_insertion_point(serialize_to_array_start:vearchpb.TableMetaInfo)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
@@ -2022,12 +2028,12 @@ uint8_t* TableMetaInfo::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_primary_key_name().data(), static_cast<int>(this->_internal_primary_key_name().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "TableMetaInfo.primary_key_name");
+      "vearchpb.TableMetaInfo.primary_key_name");
     target = stream->WriteStringMaybeAliased(
         1, this->_internal_primary_key_name(), target);
   }
 
-  // .FieldType primary_key_type = 2;
+  // .vearchpb.FieldType primary_key_type = 2;
   if (this->_internal_primary_key_type() != 0) {
     target = stream->EnsureSpace(target);
     target = ::_pbi::WireFormatLite::WriteEnumToArray(
@@ -2046,7 +2052,7 @@ uint8_t* TableMetaInfo::_InternalSerialize(
     target = ::_pbi::WireFormatLite::WriteInt32ToArray(4, this->_internal_replicas_num(), target);
   }
 
-  // repeated .FieldMetaInfo field_meta_info = 5;
+  // repeated .vearchpb.FieldMetaInfo field_meta_info = 5;
   for (unsigned i = 0,
       n = static_cast<unsigned>(this->_internal_field_meta_info_size()); i < n; i++) {
     const auto& repfield = this->_internal_field_meta_info(i);
@@ -2058,19 +2064,19 @@ uint8_t* TableMetaInfo::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:TableMetaInfo)
+  // @@protoc_insertion_point(serialize_to_array_end:vearchpb.TableMetaInfo)
   return target;
 }
 
 size_t TableMetaInfo::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:TableMetaInfo)
+// @@protoc_insertion_point(message_byte_size_start:vearchpb.TableMetaInfo)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // repeated .FieldMetaInfo field_meta_info = 5;
+  // repeated .vearchpb.FieldMetaInfo field_meta_info = 5;
   total_size += 1UL * this->_internal_field_meta_info_size();
   for (const auto& msg : this->_impl_.field_meta_info_) {
     total_size +=
@@ -2084,7 +2090,7 @@ size_t TableMetaInfo::ByteSizeLong() const {
         this->_internal_primary_key_name());
   }
 
-  // .FieldType primary_key_type = 2;
+  // .vearchpb.FieldType primary_key_type = 2;
   if (this->_internal_primary_key_type() != 0) {
     total_size += 1 +
       ::_pbi::WireFormatLite::EnumSize(this->_internal_primary_key_type());
@@ -2113,7 +2119,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*TableMetaInfo::GetClassData() 
 void TableMetaInfo::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<TableMetaInfo*>(&to_msg);
   auto& from = static_cast<const TableMetaInfo&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:TableMetaInfo)
+  // @@protoc_insertion_point(class_specific_merge_from_start:vearchpb.TableMetaInfo)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
@@ -2135,7 +2141,7 @@ void TableMetaInfo::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::
 }
 
 void TableMetaInfo::CopyFrom(const TableMetaInfo& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:TableMetaInfo)
+// @@protoc_insertion_point(class_specific_copy_from_start:vearchpb.TableMetaInfo)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -2173,10 +2179,10 @@ void TableMetaInfo::InternalSwap(TableMetaInfo* other) {
 
 class Table::_Internal {
  public:
-  static const ::TableMetaInfo& table_meta_info(const Table* msg);
+  static const ::vearchpb::TableMetaInfo& table_meta_info(const Table* msg);
 };
 
-const ::TableMetaInfo&
+const ::vearchpb::TableMetaInfo&
 Table::_Internal::table_meta_info(const Table* msg) {
   return *msg->_impl_.table_meta_info_;
 }
@@ -2184,7 +2190,7 @@ Table::Table(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:Table)
+  // @@protoc_insertion_point(arena_constructor:vearchpb.Table)
 }
 Table::Table(const Table& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -2204,9 +2210,9 @@ Table::Table(const Table& from)
       _this->GetArenaForAllocation());
   }
   if (from._internal_has_table_meta_info()) {
-    _this->_impl_.table_meta_info_ = new ::TableMetaInfo(*from._impl_.table_meta_info_);
+    _this->_impl_.table_meta_info_ = new ::vearchpb::TableMetaInfo(*from._impl_.table_meta_info_);
   }
-  // @@protoc_insertion_point(copy_constructor:Table)
+  // @@protoc_insertion_point(copy_constructor:vearchpb.Table)
 }
 
 inline void Table::SharedCtor(
@@ -2225,7 +2231,7 @@ inline void Table::SharedCtor(
 }
 
 Table::~Table() {
-  // @@protoc_insertion_point(destructor:Table)
+  // @@protoc_insertion_point(destructor:vearchpb.Table)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -2244,7 +2250,7 @@ void Table::SetCachedSize(int size) const {
 }
 
 void Table::Clear() {
-// @@protoc_insertion_point(message_clear_start:Table)
+// @@protoc_insertion_point(message_clear_start:vearchpb.Table)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -2269,11 +2275,11 @@ const char* Table::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
           auto str = _internal_mutable_name();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "Table.name"));
+          CHK_(::_pbi::VerifyUTF8(str, "vearchpb.Table.name"));
         } else
           goto handle_unusual;
         continue;
-      // .TableMetaInfo table_meta_info = 2;
+      // .vearchpb.TableMetaInfo table_meta_info = 2;
       case 2:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
           ptr = ctx->ParseMessage(_internal_mutable_table_meta_info(), ptr);
@@ -2306,7 +2312,7 @@ failure:
 
 uint8_t* Table::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:Table)
+  // @@protoc_insertion_point(serialize_to_array_start:vearchpb.Table)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
@@ -2315,12 +2321,12 @@ uint8_t* Table::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_name().data(), static_cast<int>(this->_internal_name().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "Table.name");
+      "vearchpb.Table.name");
     target = stream->WriteStringMaybeAliased(
         1, this->_internal_name(), target);
   }
 
-  // .TableMetaInfo table_meta_info = 2;
+  // .vearchpb.TableMetaInfo table_meta_info = 2;
   if (this->_internal_has_table_meta_info()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(2, _Internal::table_meta_info(this),
@@ -2331,12 +2337,12 @@ uint8_t* Table::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:Table)
+  // @@protoc_insertion_point(serialize_to_array_end:vearchpb.Table)
   return target;
 }
 
 size_t Table::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:Table)
+// @@protoc_insertion_point(message_byte_size_start:vearchpb.Table)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
@@ -2350,7 +2356,7 @@ size_t Table::ByteSizeLong() const {
         this->_internal_name());
   }
 
-  // .TableMetaInfo table_meta_info = 2;
+  // .vearchpb.TableMetaInfo table_meta_info = 2;
   if (this->_internal_has_table_meta_info()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
@@ -2370,7 +2376,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*Table::GetClassData() const { 
 void Table::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<Table*>(&to_msg);
   auto& from = static_cast<const Table&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:Table)
+  // @@protoc_insertion_point(class_specific_merge_from_start:vearchpb.Table)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
@@ -2379,14 +2385,14 @@ void Table::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF
     _this->_internal_set_name(from._internal_name());
   }
   if (from._internal_has_table_meta_info()) {
-    _this->_internal_mutable_table_meta_info()->::TableMetaInfo::MergeFrom(
+    _this->_internal_mutable_table_meta_info()->::vearchpb::TableMetaInfo::MergeFrom(
         from._internal_table_meta_info());
   }
   _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
 
 void Table::CopyFrom(const Table& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:Table)
+// @@protoc_insertion_point(class_specific_copy_from_start:vearchpb.Table)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -2441,7 +2447,7 @@ DB::DB(::PROTOBUF_NAMESPACE_ID::Arena* arena,
   if (arena != nullptr && !is_message_owned) {
     arena->OwnCustomDestructor(this, &DB::ArenaDtor);
   }
-  // @@protoc_insertion_point(arena_constructor:DB)
+  // @@protoc_insertion_point(arena_constructor:vearchpb.DB)
 }
 DB::DB(const DB& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -2462,7 +2468,7 @@ DB::DB(const DB& from)
     _this->_impl_.name_.Set(from._internal_name(), 
       _this->GetArenaForAllocation());
   }
-  // @@protoc_insertion_point(copy_constructor:DB)
+  // @@protoc_insertion_point(copy_constructor:vearchpb.DB)
 }
 
 inline void DB::SharedCtor(
@@ -2482,7 +2488,7 @@ inline void DB::SharedCtor(
 }
 
 DB::~DB() {
-  // @@protoc_insertion_point(destructor:DB)
+  // @@protoc_insertion_point(destructor:vearchpb.DB)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     ArenaDtor(this);
@@ -2508,7 +2514,7 @@ void DB::SetCachedSize(int size) const {
 }
 
 void DB::Clear() {
-// @@protoc_insertion_point(message_clear_start:DB)
+// @@protoc_insertion_point(message_clear_start:vearchpb.DB)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -2531,11 +2537,11 @@ const char* DB::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
           auto str = _internal_mutable_name();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "DB.name"));
+          CHK_(::_pbi::VerifyUTF8(str, "vearchpb.DB.name"));
         } else
           goto handle_unusual;
         continue;
-      // repeated .Table tables = 2;
+      // repeated .vearchpb.Table tables = 2;
       case 2:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
           ptr -= 1;
@@ -2586,7 +2592,7 @@ failure:
 
 uint8_t* DB::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:DB)
+  // @@protoc_insertion_point(serialize_to_array_start:vearchpb.DB)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
@@ -2595,12 +2601,12 @@ uint8_t* DB::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_name().data(), static_cast<int>(this->_internal_name().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "DB.name");
+      "vearchpb.DB.name");
     target = stream->WriteStringMaybeAliased(
         1, this->_internal_name(), target);
   }
 
-  // repeated .Table tables = 2;
+  // repeated .vearchpb.Table tables = 2;
   for (unsigned i = 0,
       n = static_cast<unsigned>(this->_internal_tables_size()); i < n; i++) {
     const auto& repfield = this->_internal_tables(i);
@@ -2618,11 +2624,11 @@ uint8_t* DB::_InternalSerialize(
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
         entry.first.data(), static_cast<int>(entry.first.length()),
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-        "DB.UserPasswordPairEntry.key");
+        "vearchpb.DB.UserPasswordPairEntry.key");
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
         entry.second.data(), static_cast<int>(entry.second.length()),
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-        "DB.UserPasswordPairEntry.value");
+        "vearchpb.DB.UserPasswordPairEntry.value");
     };
 
     if (stream->IsSerializationDeterministic() && map_field.size() > 1) {
@@ -2642,19 +2648,19 @@ uint8_t* DB::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:DB)
+  // @@protoc_insertion_point(serialize_to_array_end:vearchpb.DB)
   return target;
 }
 
 size_t DB::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:DB)
+// @@protoc_insertion_point(message_byte_size_start:vearchpb.DB)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // repeated .Table tables = 2;
+  // repeated .vearchpb.Table tables = 2;
   total_size += 1UL * this->_internal_tables_size();
   for (const auto& msg : this->_impl_.tables_) {
     total_size +=
@@ -2690,7 +2696,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*DB::GetClassData() const { ret
 void DB::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<DB*>(&to_msg);
   auto& from = static_cast<const DB&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:DB)
+  // @@protoc_insertion_point(class_specific_merge_from_start:vearchpb.DB)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
@@ -2704,7 +2710,7 @@ void DB::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NA
 }
 
 void DB::CopyFrom(const DB& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:DB)
+// @@protoc_insertion_point(class_specific_copy_from_start:vearchpb.DB)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -2734,42 +2740,43 @@ void DB::InternalSwap(DB* other) {
 }
 
 // @@protoc_insertion_point(namespace_scope)
+}  // namespace vearchpb
 PROTOBUF_NAMESPACE_OPEN
-template<> PROTOBUF_NOINLINE ::Field*
-Arena::CreateMaybeMessage< ::Field >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::Field >(arena);
+template<> PROTOBUF_NOINLINE ::vearchpb::Field*
+Arena::CreateMaybeMessage< ::vearchpb::Field >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::vearchpb::Field >(arena);
 }
-template<> PROTOBUF_NOINLINE ::Document*
-Arena::CreateMaybeMessage< ::Document >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::Document >(arena);
+template<> PROTOBUF_NOINLINE ::vearchpb::Document*
+Arena::CreateMaybeMessage< ::vearchpb::Document >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::vearchpb::Document >(arena);
 }
-template<> PROTOBUF_NOINLINE ::Item*
-Arena::CreateMaybeMessage< ::Item >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::Item >(arena);
+template<> PROTOBUF_NOINLINE ::vearchpb::Item*
+Arena::CreateMaybeMessage< ::vearchpb::Item >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::vearchpb::Item >(arena);
 }
-template<> PROTOBUF_NOINLINE ::VectorMetaInfo*
-Arena::CreateMaybeMessage< ::VectorMetaInfo >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::VectorMetaInfo >(arena);
+template<> PROTOBUF_NOINLINE ::vearchpb::VectorMetaInfo*
+Arena::CreateMaybeMessage< ::vearchpb::VectorMetaInfo >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::vearchpb::VectorMetaInfo >(arena);
 }
-template<> PROTOBUF_NOINLINE ::FieldMetaInfo*
-Arena::CreateMaybeMessage< ::FieldMetaInfo >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::FieldMetaInfo >(arena);
+template<> PROTOBUF_NOINLINE ::vearchpb::FieldMetaInfo*
+Arena::CreateMaybeMessage< ::vearchpb::FieldMetaInfo >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::vearchpb::FieldMetaInfo >(arena);
 }
-template<> PROTOBUF_NOINLINE ::TableMetaInfo*
-Arena::CreateMaybeMessage< ::TableMetaInfo >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::TableMetaInfo >(arena);
+template<> PROTOBUF_NOINLINE ::vearchpb::TableMetaInfo*
+Arena::CreateMaybeMessage< ::vearchpb::TableMetaInfo >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::vearchpb::TableMetaInfo >(arena);
 }
-template<> PROTOBUF_NOINLINE ::Table*
-Arena::CreateMaybeMessage< ::Table >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::Table >(arena);
+template<> PROTOBUF_NOINLINE ::vearchpb::Table*
+Arena::CreateMaybeMessage< ::vearchpb::Table >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::vearchpb::Table >(arena);
 }
-template<> PROTOBUF_NOINLINE ::DB_UserPasswordPairEntry_DoNotUse*
-Arena::CreateMaybeMessage< ::DB_UserPasswordPairEntry_DoNotUse >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::DB_UserPasswordPairEntry_DoNotUse >(arena);
+template<> PROTOBUF_NOINLINE ::vearchpb::DB_UserPasswordPairEntry_DoNotUse*
+Arena::CreateMaybeMessage< ::vearchpb::DB_UserPasswordPairEntry_DoNotUse >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::vearchpb::DB_UserPasswordPairEntry_DoNotUse >(arena);
 }
-template<> PROTOBUF_NOINLINE ::DB*
-Arena::CreateMaybeMessage< ::DB >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::DB >(arena);
+template<> PROTOBUF_NOINLINE ::vearchpb::DB*
+Arena::CreateMaybeMessage< ::vearchpb::DB >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::vearchpb::DB >(arena);
 }
 PROTOBUF_NAMESPACE_CLOSE
 

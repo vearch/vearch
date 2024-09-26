@@ -670,7 +670,9 @@ func (r *routerRequest) searchFromPartition(ctx context.Context, partitionID ent
 		flatBytes := searchResponse.FlatBytes
 		if flatBytes != nil {
 			deSerializeStartTime := time.Now()
-			gamma.DeSerialize(flatBytes, searchResponse)
+			sr := &vearchpb.SearchResponse{}
+			gamma.DeSerialize(flatBytes, sr)
+			searchResponse.Results = sr.Results
 			deSerializeEndTime := time.Now()
 			if trace {
 				deSerialize := deSerializeEndTime.Sub(deSerializeStartTime).Seconds() * 1000

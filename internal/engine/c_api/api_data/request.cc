@@ -15,7 +15,7 @@ namespace vearch {
 int Request::Serialize(char **out, int *out_len) { return 0; }
 
 void Request::Deserialize(const char *data, int len) {
-  SearchRequest sr;
+  vearchpb::SearchRequest sr;
   bool parse_success = sr.ParseFromString(std::string(data, len));
   if (not parse_success) {
     LOG(ERROR) << "parse search request failed";
@@ -152,7 +152,7 @@ int Request::SetRanker(std::string params, int weight_num) {
 int QueryRequest::Serialize(char **out, int *out_len) { return 0; }
 
 void QueryRequest::Deserialize(const char *data, int len) {
-  ::QueryRequest qr;
+  vearchpb::QueryRequest qr;
   bool parse_success = qr.ParseFromString(std::string(data, len));
   if (not parse_success) {
     LOG(ERROR) << "parse query request failed";

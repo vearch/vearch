@@ -10,7 +10,9 @@ package gamma
 import (
 	flatbuffers "github.com/google/flatbuffers/go"
 	"github.com/vearch/vearch/v3/internal/engine/idl/fbs-gen/go/gamma_api"
+	"github.com/vearch/vearch/v3/internal/pkg/log"
 	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
+	"google.golang.org/protobuf/proto"
 )
 
 type SearchResultCode uint8
@@ -144,49 +146,7 @@ func (response *Response) DeSerialize(buffer []byte) {
 }
 
 func DeSerialize(buffer []byte, resp *vearchpb.SearchResponse) {
-	gammaResponse := gamma_api.GetRootAsResponse(buffer, 0)
-	for i := 0; i < gammaResponse.ResultsLength(); i++ {
-		var result gamma_api.SearchResult
-		respResult := vearchpb.SearchResult{}
-		respResult.Timeout = false
-		gammaResponse.Results(&result, i)
-		respResult.TotalHits = result.Total()
-		status := vearchpb.SearchStatus{}
-		status.Total = 1
-		switch SearchResultCode(result.ResultCode()) {
-		case SUCCESS:
-			status.Successful = 1
-			status.Failed = 0
-		default:
-			status.Successful = 0
-			status.Failed = 1
-		}
-		respResult.Status = &status
-		respResult.Msg = string(result.Msg())
-		var maxScore float64 = -1
-
-		for j := 0; j < result.ResultItemsLength(); j++ {
-			var item gamma_api.ResultItem
-			result.ResultItems(&item, j)
-
-			if maxScore < item.Score() {
-				maxScore = item.Score()
-			}
-			resultItem := vearchpb.ResultItem{}
-			resultItem.Score = item.Score()
-
-			for k := 0; k < item.AttributesLength(); k++ {
-				var attrs gamma_api.Attribute
-				item.Attributes(&attrs, k)
-				field := vearchpb.Field{}
-				field.Name = string(attrs.Name())
-				field.Value = attrs.ValueBytes()
-				resultItem.Fields = append(resultItem.Fields, &field)
-			}
-			respResult.ResultItems = append(respResult.ResultItems, &resultItem)
-		}
-
-		respResult.MaxScore = maxScore
-		resp.Results = append(resp.Results, &respResult)
+	if err := proto.Unmarshal(buffer, resp); err != nil {
+		log.Error("Failed to parse field: %v", err)
 	}
 }

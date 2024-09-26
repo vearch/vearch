@@ -49,6 +49,7 @@ struct TableStruct_data_5fmodel_2eproto {
   static const uint32_t offsets[];
 };
 extern const ::PROTOBUF_NAMESPACE_ID::internal::DescriptorTable descriptor_table_data_5fmodel_2eproto;
+namespace vearchpb {
 class DB;
 struct DBDefaultTypeInternal;
 extern DBDefaultTypeInternal _DB_default_instance_;
@@ -76,17 +77,19 @@ extern TableMetaInfoDefaultTypeInternal _TableMetaInfo_default_instance_;
 class VectorMetaInfo;
 struct VectorMetaInfoDefaultTypeInternal;
 extern VectorMetaInfoDefaultTypeInternal _VectorMetaInfo_default_instance_;
+}  // namespace vearchpb
 PROTOBUF_NAMESPACE_OPEN
-template<> ::DB* Arena::CreateMaybeMessage<::DB>(Arena*);
-template<> ::DB_UserPasswordPairEntry_DoNotUse* Arena::CreateMaybeMessage<::DB_UserPasswordPairEntry_DoNotUse>(Arena*);
-template<> ::Document* Arena::CreateMaybeMessage<::Document>(Arena*);
-template<> ::Field* Arena::CreateMaybeMessage<::Field>(Arena*);
-template<> ::FieldMetaInfo* Arena::CreateMaybeMessage<::FieldMetaInfo>(Arena*);
-template<> ::Item* Arena::CreateMaybeMessage<::Item>(Arena*);
-template<> ::Table* Arena::CreateMaybeMessage<::Table>(Arena*);
-template<> ::TableMetaInfo* Arena::CreateMaybeMessage<::TableMetaInfo>(Arena*);
-template<> ::VectorMetaInfo* Arena::CreateMaybeMessage<::VectorMetaInfo>(Arena*);
+template<> ::vearchpb::DB* Arena::CreateMaybeMessage<::vearchpb::DB>(Arena*);
+template<> ::vearchpb::DB_UserPasswordPairEntry_DoNotUse* Arena::CreateMaybeMessage<::vearchpb::DB_UserPasswordPairEntry_DoNotUse>(Arena*);
+template<> ::vearchpb::Document* Arena::CreateMaybeMessage<::vearchpb::Document>(Arena*);
+template<> ::vearchpb::Field* Arena::CreateMaybeMessage<::vearchpb::Field>(Arena*);
+template<> ::vearchpb::FieldMetaInfo* Arena::CreateMaybeMessage<::vearchpb::FieldMetaInfo>(Arena*);
+template<> ::vearchpb::Item* Arena::CreateMaybeMessage<::vearchpb::Item>(Arena*);
+template<> ::vearchpb::Table* Arena::CreateMaybeMessage<::vearchpb::Table>(Arena*);
+template<> ::vearchpb::TableMetaInfo* Arena::CreateMaybeMessage<::vearchpb::TableMetaInfo>(Arena*);
+template<> ::vearchpb::VectorMetaInfo* Arena::CreateMaybeMessage<::vearchpb::VectorMetaInfo>(Arena*);
 PROTOBUF_NAMESPACE_CLOSE
+namespace vearchpb {
 
 enum VectorMetaInfo_ValueType : int {
   VectorMetaInfo_ValueType_FLOAT = 0,
@@ -198,7 +201,7 @@ inline bool FieldOption_Parse(
 // ===================================================================
 
 class Field final :
-    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:Field) */ {
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:vearchpb.Field) */ {
  public:
   inline Field() : Field(nullptr) {}
   ~Field() override;
@@ -301,7 +304,7 @@ class Field final :
   private:
   friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
   static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "Field";
+    return "vearchpb.Field";
   }
   protected:
   explicit Field(::PROTOBUF_NAMESPACE_ID::Arena* arena,
@@ -351,25 +354,25 @@ class Field final :
   std::string* _internal_mutable_value();
   public:
 
-  // .FieldType type = 2;
+  // .vearchpb.FieldType type = 2;
   void clear_type();
-  ::FieldType type() const;
-  void set_type(::FieldType value);
+  ::vearchpb::FieldType type() const;
+  void set_type(::vearchpb::FieldType value);
   private:
-  ::FieldType _internal_type() const;
-  void _internal_set_type(::FieldType value);
+  ::vearchpb::FieldType _internal_type() const;
+  void _internal_set_type(::vearchpb::FieldType value);
   public:
 
-  // .FieldOption option = 4;
+  // .vearchpb.FieldOption option = 4;
   void clear_option();
-  ::FieldOption option() const;
-  void set_option(::FieldOption value);
+  ::vearchpb::FieldOption option() const;
+  void set_option(::vearchpb::FieldOption value);
   private:
-  ::FieldOption _internal_option() const;
-  void _internal_set_option(::FieldOption value);
+  ::vearchpb::FieldOption _internal_option() const;
+  void _internal_set_option(::vearchpb::FieldOption value);
   public:
 
-  // @@protoc_insertion_point(class_scope:Field)
+  // @@protoc_insertion_point(class_scope:vearchpb.Field)
  private:
   class _Internal;
 
@@ -389,7 +392,7 @@ class Field final :
 // -------------------------------------------------------------------
 
 class Document final :
-    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:Document) */ {
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:vearchpb.Document) */ {
  public:
   inline Document() : Document(nullptr) {}
   ~Document() override;
@@ -492,7 +495,7 @@ class Document final :
   private:
   friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
   static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "Document";
+    return "vearchpb.Document";
   }
   protected:
   explicit Document(::PROTOBUF_NAMESPACE_ID::Arena* arena,
@@ -512,22 +515,22 @@ class Document final :
     kFieldsFieldNumber = 2,
     kPKeyFieldNumber = 1,
   };
-  // repeated .Field fields = 2;
+  // repeated .vearchpb.Field fields = 2;
   int fields_size() const;
   private:
   int _internal_fields_size() const;
   public:
   void clear_fields();
-  ::Field* mutable_fields(int index);
-  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::Field >*
+  ::vearchpb::Field* mutable_fields(int index);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::Field >*
       mutable_fields();
   private:
-  const ::Field& _internal_fields(int index) const;
-  ::Field* _internal_add_fields();
+  const ::vearchpb::Field& _internal_fields(int index) const;
+  ::vearchpb::Field* _internal_add_fields();
   public:
-  const ::Field& fields(int index) const;
-  ::Field* add_fields();
-  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::Field >&
+  const ::vearchpb::Field& fields(int index) const;
+  ::vearchpb::Field* add_fields();
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::Field >&
       fields() const;
 
   // string p_key = 1;
@@ -544,7 +547,7 @@ class Document final :
   std::string* _internal_mutable_p_key();
   public:
 
-  // @@protoc_insertion_point(class_scope:Document)
+  // @@protoc_insertion_point(class_scope:vearchpb.Document)
  private:
   class _Internal;
 
@@ -552,7 +555,7 @@ class Document final :
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
   struct Impl_ {
-    ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::Field > fields_;
+    ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::Field > fields_;
     ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr p_key_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
@@ -562,7 +565,7 @@ class Document final :
 // -------------------------------------------------------------------
 
 class Item final :
-    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:Item) */ {
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:vearchpb.Item) */ {
  public:
   inline Item() : Item(nullptr) {}
   ~Item() override;
@@ -665,7 +668,7 @@ class Item final :
   private:
   friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
   static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "Item";
+    return "vearchpb.Item";
   }
   protected:
   explicit Item(::PROTOBUF_NAMESPACE_ID::Arena* arena,
@@ -700,43 +703,43 @@ class Item final :
   std::string* _internal_mutable_msg();
   public:
 
-  // .Error err = 1;
+  // .vearchpb.Error err = 1;
   bool has_err() const;
   private:
   bool _internal_has_err() const;
   public:
   void clear_err();
-  const ::Error& err() const;
-  PROTOBUF_NODISCARD ::Error* release_err();
-  ::Error* mutable_err();
-  void set_allocated_err(::Error* err);
+  const ::vearchpb::Error& err() const;
+  PROTOBUF_NODISCARD ::vearchpb::Error* release_err();
+  ::vearchpb::Error* mutable_err();
+  void set_allocated_err(::vearchpb::Error* err);
   private:
-  const ::Error& _internal_err() const;
-  ::Error* _internal_mutable_err();
+  const ::vearchpb::Error& _internal_err() const;
+  ::vearchpb::Error* _internal_mutable_err();
   public:
   void unsafe_arena_set_allocated_err(
-      ::Error* err);
-  ::Error* unsafe_arena_release_err();
+      ::vearchpb::Error* err);
+  ::vearchpb::Error* unsafe_arena_release_err();
 
-  // .Document doc = 2;
+  // .vearchpb.Document doc = 2;
   bool has_doc() const;
   private:
   bool _internal_has_doc() const;
   public:
   void clear_doc();
-  const ::Document& doc() const;
-  PROTOBUF_NODISCARD ::Document* release_doc();
-  ::Document* mutable_doc();
-  void set_allocated_doc(::Document* doc);
+  const ::vearchpb::Document& doc() const;
+  PROTOBUF_NODISCARD ::vearchpb::Document* release_doc();
+  ::vearchpb::Document* mutable_doc();
+  void set_allocated_doc(::vearchpb::Document* doc);
   private:
-  const ::Document& _internal_doc() const;
-  ::Document* _internal_mutable_doc();
+  const ::vearchpb::Document& _internal_doc() const;
+  ::vearchpb::Document* _internal_mutable_doc();
   public:
   void unsafe_arena_set_allocated_doc(
-      ::Document* doc);
-  ::Document* unsafe_arena_release_doc();
+      ::vearchpb::Document* doc);
+  ::vearchpb::Document* unsafe_arena_release_doc();
 
-  // @@protoc_insertion_point(class_scope:Item)
+  // @@protoc_insertion_point(class_scope:vearchpb.Item)
  private:
   class _Internal;
 
@@ -745,8 +748,8 @@ class Item final :
   typedef void DestructorSkippable_;
   struct Impl_ {
     ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr msg_;
-    ::Error* err_;
-    ::Document* doc_;
+    ::vearchpb::Error* err_;
+    ::vearchpb::Document* doc_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
   union { Impl_ _impl_; };
@@ -755,7 +758,7 @@ class Item final :
 // -------------------------------------------------------------------
 
 class VectorMetaInfo final :
-    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:VectorMetaInfo) */ {
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:vearchpb.VectorMetaInfo) */ {
  public:
   inline VectorMetaInfo() : VectorMetaInfo(nullptr) {}
   ~VectorMetaInfo() override;
@@ -858,7 +861,7 @@ class VectorMetaInfo final :
   private:
   friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
   static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "VectorMetaInfo";
+    return "vearchpb.VectorMetaInfo";
   }
   protected:
   explicit VectorMetaInfo(::PROTOBUF_NAMESPACE_ID::Arena* arena,
@@ -963,25 +966,25 @@ class VectorMetaInfo final :
   void _internal_set_dimension(int32_t value);
   public:
 
-  // .VectorMetaInfo.ValueType value_type = 2;
+  // .vearchpb.VectorMetaInfo.ValueType value_type = 2;
   void clear_value_type();
-  ::VectorMetaInfo_ValueType value_type() const;
-  void set_value_type(::VectorMetaInfo_ValueType value);
+  ::vearchpb::VectorMetaInfo_ValueType value_type() const;
+  void set_value_type(::vearchpb::VectorMetaInfo_ValueType value);
   private:
-  ::VectorMetaInfo_ValueType _internal_value_type() const;
-  void _internal_set_value_type(::VectorMetaInfo_ValueType value);
+  ::vearchpb::VectorMetaInfo_ValueType _internal_value_type() const;
+  void _internal_set_value_type(::vearchpb::VectorMetaInfo_ValueType value);
   public:
 
-  // .VectorMetaInfo.StoreType store_type = 3;
+  // .vearchpb.VectorMetaInfo.StoreType store_type = 3;
   void clear_store_type();
-  ::VectorMetaInfo_StoreType store_type() const;
-  void set_store_type(::VectorMetaInfo_StoreType value);
+  ::vearchpb::VectorMetaInfo_StoreType store_type() const;
+  void set_store_type(::vearchpb::VectorMetaInfo_StoreType value);
   private:
-  ::VectorMetaInfo_StoreType _internal_store_type() const;
-  void _internal_set_store_type(::VectorMetaInfo_StoreType value);
+  ::vearchpb::VectorMetaInfo_StoreType _internal_store_type() const;
+  void _internal_set_store_type(::vearchpb::VectorMetaInfo_StoreType value);
   public:
 
-  // @@protoc_insertion_point(class_scope:VectorMetaInfo)
+  // @@protoc_insertion_point(class_scope:vearchpb.VectorMetaInfo)
  private:
   class _Internal;
 
@@ -1001,7 +1004,7 @@ class VectorMetaInfo final :
 // -------------------------------------------------------------------
 
 class FieldMetaInfo final :
-    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:FieldMetaInfo) */ {
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:vearchpb.FieldMetaInfo) */ {
  public:
   inline FieldMetaInfo() : FieldMetaInfo(nullptr) {}
   ~FieldMetaInfo() override;
@@ -1104,7 +1107,7 @@ class FieldMetaInfo final :
   private:
   friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
   static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "FieldMetaInfo";
+    return "vearchpb.FieldMetaInfo";
   }
   protected:
   explicit FieldMetaInfo(::PROTOBUF_NAMESPACE_ID::Arena* arena,
@@ -1140,31 +1143,31 @@ class FieldMetaInfo final :
   std::string* _internal_mutable_name();
   public:
 
-  // .VectorMetaInfo vector_meta_info = 4;
+  // .vearchpb.VectorMetaInfo vector_meta_info = 4;
   bool has_vector_meta_info() const;
   private:
   bool _internal_has_vector_meta_info() const;
   public:
   void clear_vector_meta_info();
-  const ::VectorMetaInfo& vector_meta_info() const;
-  PROTOBUF_NODISCARD ::VectorMetaInfo* release_vector_meta_info();
-  ::VectorMetaInfo* mutable_vector_meta_info();
-  void set_allocated_vector_meta_info(::VectorMetaInfo* vector_meta_info);
+  const ::vearchpb::VectorMetaInfo& vector_meta_info() const;
+  PROTOBUF_NODISCARD ::vearchpb::VectorMetaInfo* release_vector_meta_info();
+  ::vearchpb::VectorMetaInfo* mutable_vector_meta_info();
+  void set_allocated_vector_meta_info(::vearchpb::VectorMetaInfo* vector_meta_info);
   private:
-  const ::VectorMetaInfo& _internal_vector_meta_info() const;
-  ::VectorMetaInfo* _internal_mutable_vector_meta_info();
+  const ::vearchpb::VectorMetaInfo& _internal_vector_meta_info() const;
+  ::vearchpb::VectorMetaInfo* _internal_mutable_vector_meta_info();
   public:
   void unsafe_arena_set_allocated_vector_meta_info(
-      ::VectorMetaInfo* vector_meta_info);
-  ::VectorMetaInfo* unsafe_arena_release_vector_meta_info();
+      ::vearchpb::VectorMetaInfo* vector_meta_info);
+  ::vearchpb::VectorMetaInfo* unsafe_arena_release_vector_meta_info();
 
-  // .FieldType data_type = 2;
+  // .vearchpb.FieldType data_type = 2;
   void clear_data_type();
-  ::FieldType data_type() const;
-  void set_data_type(::FieldType value);
+  ::vearchpb::FieldType data_type() const;
+  void set_data_type(::vearchpb::FieldType value);
   private:
-  ::FieldType _internal_data_type() const;
-  void _internal_set_data_type(::FieldType value);
+  ::vearchpb::FieldType _internal_data_type() const;
+  void _internal_set_data_type(::vearchpb::FieldType value);
   public:
 
   // bool is_index = 3;
@@ -1176,7 +1179,7 @@ class FieldMetaInfo final :
   void _internal_set_is_index(bool value);
   public:
 
-  // @@protoc_insertion_point(class_scope:FieldMetaInfo)
+  // @@protoc_insertion_point(class_scope:vearchpb.FieldMetaInfo)
  private:
   class _Internal;
 
@@ -1185,7 +1188,7 @@ class FieldMetaInfo final :
   typedef void DestructorSkippable_;
   struct Impl_ {
     ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr name_;
-    ::VectorMetaInfo* vector_meta_info_;
+    ::vearchpb::VectorMetaInfo* vector_meta_info_;
     int data_type_;
     bool is_index_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
@@ -1196,7 +1199,7 @@ class FieldMetaInfo final :
 // -------------------------------------------------------------------
 
 class TableMetaInfo final :
-    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:TableMetaInfo) */ {
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:vearchpb.TableMetaInfo) */ {
  public:
   inline TableMetaInfo() : TableMetaInfo(nullptr) {}
   ~TableMetaInfo() override;
@@ -1299,7 +1302,7 @@ class TableMetaInfo final :
   private:
   friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
   static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "TableMetaInfo";
+    return "vearchpb.TableMetaInfo";
   }
   protected:
   explicit TableMetaInfo(::PROTOBUF_NAMESPACE_ID::Arena* arena,
@@ -1322,22 +1325,22 @@ class TableMetaInfo final :
     kPartitionsNumFieldNumber = 3,
     kReplicasNumFieldNumber = 4,
   };
-  // repeated .FieldMetaInfo field_meta_info = 5;
+  // repeated .vearchpb.FieldMetaInfo field_meta_info = 5;
   int field_meta_info_size() const;
   private:
   int _internal_field_meta_info_size() const;
   public:
   void clear_field_meta_info();
-  ::FieldMetaInfo* mutable_field_meta_info(int index);
-  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::FieldMetaInfo >*
+  ::vearchpb::FieldMetaInfo* mutable_field_meta_info(int index);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::FieldMetaInfo >*
       mutable_field_meta_info();
   private:
-  const ::FieldMetaInfo& _internal_field_meta_info(int index) const;
-  ::FieldMetaInfo* _internal_add_field_meta_info();
+  const ::vearchpb::FieldMetaInfo& _internal_field_meta_info(int index) const;
+  ::vearchpb::FieldMetaInfo* _internal_add_field_meta_info();
   public:
-  const ::FieldMetaInfo& field_meta_info(int index) const;
-  ::FieldMetaInfo* add_field_meta_info();
-  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::FieldMetaInfo >&
+  const ::vearchpb::FieldMetaInfo& field_meta_info(int index) const;
+  ::vearchpb::FieldMetaInfo* add_field_meta_info();
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::FieldMetaInfo >&
       field_meta_info() const;
 
   // string primary_key_name = 1;
@@ -1354,13 +1357,13 @@ class TableMetaInfo final :
   std::string* _internal_mutable_primary_key_name();
   public:
 
-  // .FieldType primary_key_type = 2;
+  // .vearchpb.FieldType primary_key_type = 2;
   void clear_primary_key_type();
-  ::FieldType primary_key_type() const;
-  void set_primary_key_type(::FieldType value);
+  ::vearchpb::FieldType primary_key_type() const;
+  void set_primary_key_type(::vearchpb::FieldType value);
   private:
-  ::FieldType _internal_primary_key_type() const;
-  void _internal_set_primary_key_type(::FieldType value);
+  ::vearchpb::FieldType _internal_primary_key_type() const;
+  void _internal_set_primary_key_type(::vearchpb::FieldType value);
   public:
 
   // int32 partitions_num = 3;
@@ -1381,7 +1384,7 @@ class TableMetaInfo final :
   void _internal_set_replicas_num(int32_t value);
   public:
 
-  // @@protoc_insertion_point(class_scope:TableMetaInfo)
+  // @@protoc_insertion_point(class_scope:vearchpb.TableMetaInfo)
  private:
   class _Internal;
 
@@ -1389,7 +1392,7 @@ class TableMetaInfo final :
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
   struct Impl_ {
-    ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::FieldMetaInfo > field_meta_info_;
+    ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::FieldMetaInfo > field_meta_info_;
     ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr primary_key_name_;
     int primary_key_type_;
     int32_t partitions_num_;
@@ -1402,7 +1405,7 @@ class TableMetaInfo final :
 // -------------------------------------------------------------------
 
 class Table final :
-    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:Table) */ {
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:vearchpb.Table) */ {
  public:
   inline Table() : Table(nullptr) {}
   ~Table() override;
@@ -1505,7 +1508,7 @@ class Table final :
   private:
   friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
   static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "Table";
+    return "vearchpb.Table";
   }
   protected:
   explicit Table(::PROTOBUF_NAMESPACE_ID::Arena* arena,
@@ -1539,25 +1542,25 @@ class Table final :
   std::string* _internal_mutable_name();
   public:
 
-  // .TableMetaInfo table_meta_info = 2;
+  // .vearchpb.TableMetaInfo table_meta_info = 2;
   bool has_table_meta_info() const;
   private:
   bool _internal_has_table_meta_info() const;
   public:
   void clear_table_meta_info();
-  const ::TableMetaInfo& table_meta_info() const;
-  PROTOBUF_NODISCARD ::TableMetaInfo* release_table_meta_info();
-  ::TableMetaInfo* mutable_table_meta_info();
-  void set_allocated_table_meta_info(::TableMetaInfo* table_meta_info);
+  const ::vearchpb::TableMetaInfo& table_meta_info() const;
+  PROTOBUF_NODISCARD ::vearchpb::TableMetaInfo* release_table_meta_info();
+  ::vearchpb::TableMetaInfo* mutable_table_meta_info();
+  void set_allocated_table_meta_info(::vearchpb::TableMetaInfo* table_meta_info);
   private:
-  const ::TableMetaInfo& _internal_table_meta_info() const;
-  ::TableMetaInfo* _internal_mutable_table_meta_info();
+  const ::vearchpb::TableMetaInfo& _internal_table_meta_info() const;
+  ::vearchpb::TableMetaInfo* _internal_mutable_table_meta_info();
   public:
   void unsafe_arena_set_allocated_table_meta_info(
-      ::TableMetaInfo* table_meta_info);
-  ::TableMetaInfo* unsafe_arena_release_table_meta_info();
+      ::vearchpb::TableMetaInfo* table_meta_info);
+  ::vearchpb::TableMetaInfo* unsafe_arena_release_table_meta_info();
 
-  // @@protoc_insertion_point(class_scope:Table)
+  // @@protoc_insertion_point(class_scope:vearchpb.Table)
  private:
   class _Internal;
 
@@ -1566,7 +1569,7 @@ class Table final :
   typedef void DestructorSkippable_;
   struct Impl_ {
     ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr name_;
-    ::TableMetaInfo* table_meta_info_;
+    ::vearchpb::TableMetaInfo* table_meta_info_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
   union { Impl_ _impl_; };
@@ -1590,10 +1593,10 @@ public:
   void MergeFrom(const DB_UserPasswordPairEntry_DoNotUse& other);
   static const DB_UserPasswordPairEntry_DoNotUse* internal_default_instance() { return reinterpret_cast<const DB_UserPasswordPairEntry_DoNotUse*>(&_DB_UserPasswordPairEntry_DoNotUse_default_instance_); }
   static bool ValidateKey(std::string* s) {
-    return ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(s->data(), static_cast<int>(s->size()), ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::PARSE, "DB.UserPasswordPairEntry.key");
+    return ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(s->data(), static_cast<int>(s->size()), ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::PARSE, "vearchpb.DB.UserPasswordPairEntry.key");
  }
   static bool ValidateValue(std::string* s) {
-    return ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(s->data(), static_cast<int>(s->size()), ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::PARSE, "DB.UserPasswordPairEntry.value");
+    return ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(s->data(), static_cast<int>(s->size()), ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::PARSE, "vearchpb.DB.UserPasswordPairEntry.value");
  }
   using ::PROTOBUF_NAMESPACE_ID::Message::MergeFrom;
   ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadata() const final;
@@ -1603,7 +1606,7 @@ public:
 // -------------------------------------------------------------------
 
 class DB final :
-    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:DB) */ {
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:vearchpb.DB) */ {
  public:
   inline DB() : DB(nullptr) {}
   ~DB() override;
@@ -1706,7 +1709,7 @@ class DB final :
   private:
   friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
   static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "DB";
+    return "vearchpb.DB";
   }
   protected:
   explicit DB(::PROTOBUF_NAMESPACE_ID::Arena* arena,
@@ -1730,22 +1733,22 @@ class DB final :
     kUserPasswordPairFieldNumber = 3,
     kNameFieldNumber = 1,
   };
-  // repeated .Table tables = 2;
+  // repeated .vearchpb.Table tables = 2;
   int tables_size() const;
   private:
   int _internal_tables_size() const;
   public:
   void clear_tables();
-  ::Table* mutable_tables(int index);
-  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::Table >*
+  ::vearchpb::Table* mutable_tables(int index);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::Table >*
       mutable_tables();
   private:
-  const ::Table& _internal_tables(int index) const;
-  ::Table* _internal_add_tables();
+  const ::vearchpb::Table& _internal_tables(int index) const;
+  ::vearchpb::Table* _internal_add_tables();
   public:
-  const ::Table& tables(int index) const;
-  ::Table* add_tables();
-  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::Table >&
+  const ::vearchpb::Table& tables(int index) const;
+  ::vearchpb::Table* add_tables();
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::Table >&
       tables() const;
 
   // map<string, string> user_password_pair = 3;
@@ -1779,7 +1782,7 @@ class DB final :
   std::string* _internal_mutable_name();
   public:
 
-  // @@protoc_insertion_point(class_scope:DB)
+  // @@protoc_insertion_point(class_scope:vearchpb.DB)
  private:
   class _Internal;
 
@@ -1787,7 +1790,7 @@ class DB final :
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
   struct Impl_ {
-    ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::Table > tables_;
+    ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::Table > tables_;
     ::PROTOBUF_NAMESPACE_ID::internal::MapField<
         DB_UserPasswordPairEntry_DoNotUse,
         std::string, std::string,
@@ -1815,7 +1818,7 @@ inline void Field::clear_name() {
   _impl_.name_.ClearToEmpty();
 }
 inline const std::string& Field::name() const {
-  // @@protoc_insertion_point(field_get:Field.name)
+  // @@protoc_insertion_point(field_get:vearchpb.Field.name)
   return _internal_name();
 }
 template <typename ArgT0, typename... ArgT>
@@ -1823,11 +1826,11 @@ inline PROTOBUF_ALWAYS_INLINE
 void Field::set_name(ArgT0&& arg0, ArgT... args) {
  
  _impl_.name_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
-  // @@protoc_insertion_point(field_set:Field.name)
+  // @@protoc_insertion_point(field_set:vearchpb.Field.name)
 }
 inline std::string* Field::mutable_name() {
   std::string* _s = _internal_mutable_name();
-  // @@protoc_insertion_point(field_mutable:Field.name)
+  // @@protoc_insertion_point(field_mutable:vearchpb.Field.name)
   return _s;
 }
 inline const std::string& Field::_internal_name() const {
@@ -1842,7 +1845,7 @@ inline std::string* Field::_internal_mutable_name() {
   return _impl_.name_.Mutable(GetArenaForAllocation());
 }
 inline std::string* Field::release_name() {
-  // @@protoc_insertion_point(field_release:Field.name)
+  // @@protoc_insertion_point(field_release:vearchpb.Field.name)
   return _impl_.name_.Release();
 }
 inline void Field::set_allocated_name(std::string* name) {
@@ -1857,27 +1860,27 @@ inline void Field::set_allocated_name(std::string* name) {
     _impl_.name_.Set("", GetArenaForAllocation());
   }
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  // @@protoc_insertion_point(field_set_allocated:Field.name)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.Field.name)
 }
 
-// .FieldType type = 2;
+// .vearchpb.FieldType type = 2;
 inline void Field::clear_type() {
   _impl_.type_ = 0;
 }
-inline ::FieldType Field::_internal_type() const {
-  return static_cast< ::FieldType >(_impl_.type_);
+inline ::vearchpb::FieldType Field::_internal_type() const {
+  return static_cast< ::vearchpb::FieldType >(_impl_.type_);
 }
-inline ::FieldType Field::type() const {
-  // @@protoc_insertion_point(field_get:Field.type)
+inline ::vearchpb::FieldType Field::type() const {
+  // @@protoc_insertion_point(field_get:vearchpb.Field.type)
   return _internal_type();
 }
-inline void Field::_internal_set_type(::FieldType value) {
+inline void Field::_internal_set_type(::vearchpb::FieldType value) {
   
   _impl_.type_ = value;
 }
-inline void Field::set_type(::FieldType value) {
+inline void Field::set_type(::vearchpb::FieldType value) {
   _internal_set_type(value);
-  // @@protoc_insertion_point(field_set:Field.type)
+  // @@protoc_insertion_point(field_set:vearchpb.Field.type)
 }
 
 // bytes value = 3;
@@ -1885,7 +1888,7 @@ inline void Field::clear_value() {
   _impl_.value_.ClearToEmpty();
 }
 inline const std::string& Field::value() const {
-  // @@protoc_insertion_point(field_get:Field.value)
+  // @@protoc_insertion_point(field_get:vearchpb.Field.value)
   return _internal_value();
 }
 template <typename ArgT0, typename... ArgT>
@@ -1893,11 +1896,11 @@ inline PROTOBUF_ALWAYS_INLINE
 void Field::set_value(ArgT0&& arg0, ArgT... args) {
  
  _impl_.value_.SetBytes(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
-  // @@protoc_insertion_point(field_set:Field.value)
+  // @@protoc_insertion_point(field_set:vearchpb.Field.value)
 }
 inline std::string* Field::mutable_value() {
   std::string* _s = _internal_mutable_value();
-  // @@protoc_insertion_point(field_mutable:Field.value)
+  // @@protoc_insertion_point(field_mutable:vearchpb.Field.value)
   return _s;
 }
 inline const std::string& Field::_internal_value() const {
@@ -1912,7 +1915,7 @@ inline std::string* Field::_internal_mutable_value() {
   return _impl_.value_.Mutable(GetArenaForAllocation());
 }
 inline std::string* Field::release_value() {
-  // @@protoc_insertion_point(field_release:Field.value)
+  // @@protoc_insertion_point(field_release:vearchpb.Field.value)
   return _impl_.value_.Release();
 }
 inline void Field::set_allocated_value(std::string* value) {
@@ -1927,27 +1930,27 @@ inline void Field::set_allocated_value(std::string* value) {
     _impl_.value_.Set("", GetArenaForAllocation());
   }
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  // @@protoc_insertion_point(field_set_allocated:Field.value)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.Field.value)
 }
 
-// .FieldOption option = 4;
+// .vearchpb.FieldOption option = 4;
 inline void Field::clear_option() {
   _impl_.option_ = 0;
 }
-inline ::FieldOption Field::_internal_option() const {
-  return static_cast< ::FieldOption >(_impl_.option_);
+inline ::vearchpb::FieldOption Field::_internal_option() const {
+  return static_cast< ::vearchpb::FieldOption >(_impl_.option_);
 }
-inline ::FieldOption Field::option() const {
-  // @@protoc_insertion_point(field_get:Field.option)
+inline ::vearchpb::FieldOption Field::option() const {
+  // @@protoc_insertion_point(field_get:vearchpb.Field.option)
   return _internal_option();
 }
-inline void Field::_internal_set_option(::FieldOption value) {
+inline void Field::_internal_set_option(::vearchpb::FieldOption value) {
   
   _impl_.option_ = value;
 }
-inline void Field::set_option(::FieldOption value) {
+inline void Field::set_option(::vearchpb::FieldOption value) {
   _internal_set_option(value);
-  // @@protoc_insertion_point(field_set:Field.option)
+  // @@protoc_insertion_point(field_set:vearchpb.Field.option)
 }
 
 // -------------------------------------------------------------------
@@ -1959,7 +1962,7 @@ inline void Document::clear_p_key() {
   _impl_.p_key_.ClearToEmpty();
 }
 inline const std::string& Document::p_key() const {
-  // @@protoc_insertion_point(field_get:Document.p_key)
+  // @@protoc_insertion_point(field_get:vearchpb.Document.p_key)
   return _internal_p_key();
 }
 template <typename ArgT0, typename... ArgT>
@@ -1967,11 +1970,11 @@ inline PROTOBUF_ALWAYS_INLINE
 void Document::set_p_key(ArgT0&& arg0, ArgT... args) {
  
  _impl_.p_key_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
-  // @@protoc_insertion_point(field_set:Document.p_key)
+  // @@protoc_insertion_point(field_set:vearchpb.Document.p_key)
 }
 inline std::string* Document::mutable_p_key() {
   std::string* _s = _internal_mutable_p_key();
-  // @@protoc_insertion_point(field_mutable:Document.p_key)
+  // @@protoc_insertion_point(field_mutable:vearchpb.Document.p_key)
   return _s;
 }
 inline const std::string& Document::_internal_p_key() const {
@@ -1986,7 +1989,7 @@ inline std::string* Document::_internal_mutable_p_key() {
   return _impl_.p_key_.Mutable(GetArenaForAllocation());
 }
 inline std::string* Document::release_p_key() {
-  // @@protoc_insertion_point(field_release:Document.p_key)
+  // @@protoc_insertion_point(field_release:vearchpb.Document.p_key)
   return _impl_.p_key_.Release();
 }
 inline void Document::set_allocated_p_key(std::string* p_key) {
@@ -2001,10 +2004,10 @@ inline void Document::set_allocated_p_key(std::string* p_key) {
     _impl_.p_key_.Set("", GetArenaForAllocation());
   }
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  // @@protoc_insertion_point(field_set_allocated:Document.p_key)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.Document.p_key)
 }
 
-// repeated .Field fields = 2;
+// repeated .vearchpb.Field fields = 2;
 inline int Document::_internal_fields_size() const {
   return _impl_.fields_.size();
 }
@@ -2014,33 +2017,33 @@ inline int Document::fields_size() const {
 inline void Document::clear_fields() {
   _impl_.fields_.Clear();
 }
-inline ::Field* Document::mutable_fields(int index) {
-  // @@protoc_insertion_point(field_mutable:Document.fields)
+inline ::vearchpb::Field* Document::mutable_fields(int index) {
+  // @@protoc_insertion_point(field_mutable:vearchpb.Document.fields)
   return _impl_.fields_.Mutable(index);
 }
-inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::Field >*
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::Field >*
 Document::mutable_fields() {
-  // @@protoc_insertion_point(field_mutable_list:Document.fields)
+  // @@protoc_insertion_point(field_mutable_list:vearchpb.Document.fields)
   return &_impl_.fields_;
 }
-inline const ::Field& Document::_internal_fields(int index) const {
+inline const ::vearchpb::Field& Document::_internal_fields(int index) const {
   return _impl_.fields_.Get(index);
 }
-inline const ::Field& Document::fields(int index) const {
-  // @@protoc_insertion_point(field_get:Document.fields)
+inline const ::vearchpb::Field& Document::fields(int index) const {
+  // @@protoc_insertion_point(field_get:vearchpb.Document.fields)
   return _internal_fields(index);
 }
-inline ::Field* Document::_internal_add_fields() {
+inline ::vearchpb::Field* Document::_internal_add_fields() {
   return _impl_.fields_.Add();
 }
-inline ::Field* Document::add_fields() {
-  ::Field* _add = _internal_add_fields();
-  // @@protoc_insertion_point(field_add:Document.fields)
+inline ::vearchpb::Field* Document::add_fields() {
+  ::vearchpb::Field* _add = _internal_add_fields();
+  // @@protoc_insertion_point(field_add:vearchpb.Document.fields)
   return _add;
 }
-inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::Field >&
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::Field >&
 Document::fields() const {
-  // @@protoc_insertion_point(field_list:Document.fields)
+  // @@protoc_insertion_point(field_list:vearchpb.Document.fields)
   return _impl_.fields_;
 }
 
@@ -2048,24 +2051,24 @@ Document::fields() const {
 
 // Item
 
-// .Error err = 1;
+// .vearchpb.Error err = 1;
 inline bool Item::_internal_has_err() const {
   return this != internal_default_instance() && _impl_.err_ != nullptr;
 }
 inline bool Item::has_err() const {
   return _internal_has_err();
 }
-inline const ::Error& Item::_internal_err() const {
-  const ::Error* p = _impl_.err_;
-  return p != nullptr ? *p : reinterpret_cast<const ::Error&>(
-      ::_Error_default_instance_);
+inline const ::vearchpb::Error& Item::_internal_err() const {
+  const ::vearchpb::Error* p = _impl_.err_;
+  return p != nullptr ? *p : reinterpret_cast<const ::vearchpb::Error&>(
+      ::vearchpb::_Error_default_instance_);
 }
-inline const ::Error& Item::err() const {
-  // @@protoc_insertion_point(field_get:Item.err)
+inline const ::vearchpb::Error& Item::err() const {
+  // @@protoc_insertion_point(field_get:vearchpb.Item.err)
   return _internal_err();
 }
 inline void Item::unsafe_arena_set_allocated_err(
-    ::Error* err) {
+    ::vearchpb::Error* err) {
   if (GetArenaForAllocation() == nullptr) {
     delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.err_);
   }
@@ -2075,11 +2078,11 @@ inline void Item::unsafe_arena_set_allocated_err(
   } else {
     
   }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:Item.err)
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:vearchpb.Item.err)
 }
-inline ::Error* Item::release_err() {
+inline ::vearchpb::Error* Item::release_err() {
   
-  ::Error* temp = _impl_.err_;
+  ::vearchpb::Error* temp = _impl_.err_;
   _impl_.err_ = nullptr;
 #ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
   auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
@@ -2092,27 +2095,27 @@ inline ::Error* Item::release_err() {
 #endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
   return temp;
 }
-inline ::Error* Item::unsafe_arena_release_err() {
-  // @@protoc_insertion_point(field_release:Item.err)
+inline ::vearchpb::Error* Item::unsafe_arena_release_err() {
+  // @@protoc_insertion_point(field_release:vearchpb.Item.err)
   
-  ::Error* temp = _impl_.err_;
+  ::vearchpb::Error* temp = _impl_.err_;
   _impl_.err_ = nullptr;
   return temp;
 }
-inline ::Error* Item::_internal_mutable_err() {
+inline ::vearchpb::Error* Item::_internal_mutable_err() {
   
   if (_impl_.err_ == nullptr) {
-    auto* p = CreateMaybeMessage<::Error>(GetArenaForAllocation());
+    auto* p = CreateMaybeMessage<::vearchpb::Error>(GetArenaForAllocation());
     _impl_.err_ = p;
   }
   return _impl_.err_;
 }
-inline ::Error* Item::mutable_err() {
-  ::Error* _msg = _internal_mutable_err();
-  // @@protoc_insertion_point(field_mutable:Item.err)
+inline ::vearchpb::Error* Item::mutable_err() {
+  ::vearchpb::Error* _msg = _internal_mutable_err();
+  // @@protoc_insertion_point(field_mutable:vearchpb.Item.err)
   return _msg;
 }
-inline void Item::set_allocated_err(::Error* err) {
+inline void Item::set_allocated_err(::vearchpb::Error* err) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   if (message_arena == nullptr) {
     delete reinterpret_cast< ::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.err_);
@@ -2130,10 +2133,10 @@ inline void Item::set_allocated_err(::Error* err) {
     
   }
   _impl_.err_ = err;
-  // @@protoc_insertion_point(field_set_allocated:Item.err)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.Item.err)
 }
 
-// .Document doc = 2;
+// .vearchpb.Document doc = 2;
 inline bool Item::_internal_has_doc() const {
   return this != internal_default_instance() && _impl_.doc_ != nullptr;
 }
@@ -2146,17 +2149,17 @@ inline void Item::clear_doc() {
   }
   _impl_.doc_ = nullptr;
 }
-inline const ::Document& Item::_internal_doc() const {
-  const ::Document* p = _impl_.doc_;
-  return p != nullptr ? *p : reinterpret_cast<const ::Document&>(
-      ::_Document_default_instance_);
+inline const ::vearchpb::Document& Item::_internal_doc() const {
+  const ::vearchpb::Document* p = _impl_.doc_;
+  return p != nullptr ? *p : reinterpret_cast<const ::vearchpb::Document&>(
+      ::vearchpb::_Document_default_instance_);
 }
-inline const ::Document& Item::doc() const {
-  // @@protoc_insertion_point(field_get:Item.doc)
+inline const ::vearchpb::Document& Item::doc() const {
+  // @@protoc_insertion_point(field_get:vearchpb.Item.doc)
   return _internal_doc();
 }
 inline void Item::unsafe_arena_set_allocated_doc(
-    ::Document* doc) {
+    ::vearchpb::Document* doc) {
   if (GetArenaForAllocation() == nullptr) {
     delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.doc_);
   }
@@ -2166,11 +2169,11 @@ inline void Item::unsafe_arena_set_allocated_doc(
   } else {
     
   }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:Item.doc)
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:vearchpb.Item.doc)
 }
-inline ::Document* Item::release_doc() {
+inline ::vearchpb::Document* Item::release_doc() {
   
-  ::Document* temp = _impl_.doc_;
+  ::vearchpb::Document* temp = _impl_.doc_;
   _impl_.doc_ = nullptr;
 #ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
   auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
@@ -2183,27 +2186,27 @@ inline ::Document* Item::release_doc() {
 #endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
   return temp;
 }
-inline ::Document* Item::unsafe_arena_release_doc() {
-  // @@protoc_insertion_point(field_release:Item.doc)
+inline ::vearchpb::Document* Item::unsafe_arena_release_doc() {
+  // @@protoc_insertion_point(field_release:vearchpb.Item.doc)
   
-  ::Document* temp = _impl_.doc_;
+  ::vearchpb::Document* temp = _impl_.doc_;
   _impl_.doc_ = nullptr;
   return temp;
 }
-inline ::Document* Item::_internal_mutable_doc() {
+inline ::vearchpb::Document* Item::_internal_mutable_doc() {
   
   if (_impl_.doc_ == nullptr) {
-    auto* p = CreateMaybeMessage<::Document>(GetArenaForAllocation());
+    auto* p = CreateMaybeMessage<::vearchpb::Document>(GetArenaForAllocation());
     _impl_.doc_ = p;
   }
   return _impl_.doc_;
 }
-inline ::Document* Item::mutable_doc() {
-  ::Document* _msg = _internal_mutable_doc();
-  // @@protoc_insertion_point(field_mutable:Item.doc)
+inline ::vearchpb::Document* Item::mutable_doc() {
+  ::vearchpb::Document* _msg = _internal_mutable_doc();
+  // @@protoc_insertion_point(field_mutable:vearchpb.Item.doc)
   return _msg;
 }
-inline void Item::set_allocated_doc(::Document* doc) {
+inline void Item::set_allocated_doc(::vearchpb::Document* doc) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   if (message_arena == nullptr) {
     delete _impl_.doc_;
@@ -2220,7 +2223,7 @@ inline void Item::set_allocated_doc(::Document* doc) {
     
   }
   _impl_.doc_ = doc;
-  // @@protoc_insertion_point(field_set_allocated:Item.doc)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.Item.doc)
 }
 
 // string msg = 3;
@@ -2228,7 +2231,7 @@ inline void Item::clear_msg() {
   _impl_.msg_.ClearToEmpty();
 }
 inline const std::string& Item::msg() const {
-  // @@protoc_insertion_point(field_get:Item.msg)
+  // @@protoc_insertion_point(field_get:vearchpb.Item.msg)
   return _internal_msg();
 }
 template <typename ArgT0, typename... ArgT>
@@ -2236,11 +2239,11 @@ inline PROTOBUF_ALWAYS_INLINE
 void Item::set_msg(ArgT0&& arg0, ArgT... args) {
  
  _impl_.msg_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
-  // @@protoc_insertion_point(field_set:Item.msg)
+  // @@protoc_insertion_point(field_set:vearchpb.Item.msg)
 }
 inline std::string* Item::mutable_msg() {
   std::string* _s = _internal_mutable_msg();
-  // @@protoc_insertion_point(field_mutable:Item.msg)
+  // @@protoc_insertion_point(field_mutable:vearchpb.Item.msg)
   return _s;
 }
 inline const std::string& Item::_internal_msg() const {
@@ -2255,7 +2258,7 @@ inline std::string* Item::_internal_mutable_msg() {
   return _impl_.msg_.Mutable(GetArenaForAllocation());
 }
 inline std::string* Item::release_msg() {
-  // @@protoc_insertion_point(field_release:Item.msg)
+  // @@protoc_insertion_point(field_release:vearchpb.Item.msg)
   return _impl_.msg_.Release();
 }
 inline void Item::set_allocated_msg(std::string* msg) {
@@ -2270,7 +2273,7 @@ inline void Item::set_allocated_msg(std::string* msg) {
     _impl_.msg_.Set("", GetArenaForAllocation());
   }
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  // @@protoc_insertion_point(field_set_allocated:Item.msg)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.Item.msg)
 }
 
 // -------------------------------------------------------------------
@@ -2285,7 +2288,7 @@ inline int32_t VectorMetaInfo::_internal_dimension() const {
   return _impl_.dimension_;
 }
 inline int32_t VectorMetaInfo::dimension() const {
-  // @@protoc_insertion_point(field_get:VectorMetaInfo.dimension)
+  // @@protoc_insertion_point(field_get:vearchpb.VectorMetaInfo.dimension)
   return _internal_dimension();
 }
 inline void VectorMetaInfo::_internal_set_dimension(int32_t value) {
@@ -2294,47 +2297,47 @@ inline void VectorMetaInfo::_internal_set_dimension(int32_t value) {
 }
 inline void VectorMetaInfo::set_dimension(int32_t value) {
   _internal_set_dimension(value);
-  // @@protoc_insertion_point(field_set:VectorMetaInfo.dimension)
+  // @@protoc_insertion_point(field_set:vearchpb.VectorMetaInfo.dimension)
 }
 
-// .VectorMetaInfo.ValueType value_type = 2;
+// .vearchpb.VectorMetaInfo.ValueType value_type = 2;
 inline void VectorMetaInfo::clear_value_type() {
   _impl_.value_type_ = 0;
 }
-inline ::VectorMetaInfo_ValueType VectorMetaInfo::_internal_value_type() const {
-  return static_cast< ::VectorMetaInfo_ValueType >(_impl_.value_type_);
+inline ::vearchpb::VectorMetaInfo_ValueType VectorMetaInfo::_internal_value_type() const {
+  return static_cast< ::vearchpb::VectorMetaInfo_ValueType >(_impl_.value_type_);
 }
-inline ::VectorMetaInfo_ValueType VectorMetaInfo::value_type() const {
-  // @@protoc_insertion_point(field_get:VectorMetaInfo.value_type)
+inline ::vearchpb::VectorMetaInfo_ValueType VectorMetaInfo::value_type() const {
+  // @@protoc_insertion_point(field_get:vearchpb.VectorMetaInfo.value_type)
   return _internal_value_type();
 }
-inline void VectorMetaInfo::_internal_set_value_type(::VectorMetaInfo_ValueType value) {
+inline void VectorMetaInfo::_internal_set_value_type(::vearchpb::VectorMetaInfo_ValueType value) {
   
   _impl_.value_type_ = value;
 }
-inline void VectorMetaInfo::set_value_type(::VectorMetaInfo_ValueType value) {
+inline void VectorMetaInfo::set_value_type(::vearchpb::VectorMetaInfo_ValueType value) {
   _internal_set_value_type(value);
-  // @@protoc_insertion_point(field_set:VectorMetaInfo.value_type)
+  // @@protoc_insertion_point(field_set:vearchpb.VectorMetaInfo.value_type)
 }
 
-// .VectorMetaInfo.StoreType store_type = 3;
+// .vearchpb.VectorMetaInfo.StoreType store_type = 3;
 inline void VectorMetaInfo::clear_store_type() {
   _impl_.store_type_ = 0;
 }
-inline ::VectorMetaInfo_StoreType VectorMetaInfo::_internal_store_type() const {
-  return static_cast< ::VectorMetaInfo_StoreType >(_impl_.store_type_);
+inline ::vearchpb::VectorMetaInfo_StoreType VectorMetaInfo::_internal_store_type() const {
+  return static_cast< ::vearchpb::VectorMetaInfo_StoreType >(_impl_.store_type_);
 }
-inline ::VectorMetaInfo_StoreType VectorMetaInfo::store_type() const {
-  // @@protoc_insertion_point(field_get:VectorMetaInfo.store_type)
+inline ::vearchpb::VectorMetaInfo_StoreType VectorMetaInfo::store_type() const {
+  // @@protoc_insertion_point(field_get:vearchpb.VectorMetaInfo.store_type)
   return _internal_store_type();
 }
-inline void VectorMetaInfo::_internal_set_store_type(::VectorMetaInfo_StoreType value) {
+inline void VectorMetaInfo::_internal_set_store_type(::vearchpb::VectorMetaInfo_StoreType value) {
   
   _impl_.store_type_ = value;
 }
-inline void VectorMetaInfo::set_store_type(::VectorMetaInfo_StoreType value) {
+inline void VectorMetaInfo::set_store_type(::vearchpb::VectorMetaInfo_StoreType value) {
   _internal_set_store_type(value);
-  // @@protoc_insertion_point(field_set:VectorMetaInfo.store_type)
+  // @@protoc_insertion_point(field_set:vearchpb.VectorMetaInfo.store_type)
 }
 
 // string store_param = 4;
@@ -2342,7 +2345,7 @@ inline void VectorMetaInfo::clear_store_param() {
   _impl_.store_param_.ClearToEmpty();
 }
 inline const std::string& VectorMetaInfo::store_param() const {
-  // @@protoc_insertion_point(field_get:VectorMetaInfo.store_param)
+  // @@protoc_insertion_point(field_get:vearchpb.VectorMetaInfo.store_param)
   return _internal_store_param();
 }
 template <typename ArgT0, typename... ArgT>
@@ -2350,11 +2353,11 @@ inline PROTOBUF_ALWAYS_INLINE
 void VectorMetaInfo::set_store_param(ArgT0&& arg0, ArgT... args) {
  
  _impl_.store_param_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
-  // @@protoc_insertion_point(field_set:VectorMetaInfo.store_param)
+  // @@protoc_insertion_point(field_set:vearchpb.VectorMetaInfo.store_param)
 }
 inline std::string* VectorMetaInfo::mutable_store_param() {
   std::string* _s = _internal_mutable_store_param();
-  // @@protoc_insertion_point(field_mutable:VectorMetaInfo.store_param)
+  // @@protoc_insertion_point(field_mutable:vearchpb.VectorMetaInfo.store_param)
   return _s;
 }
 inline const std::string& VectorMetaInfo::_internal_store_param() const {
@@ -2369,7 +2372,7 @@ inline std::string* VectorMetaInfo::_internal_mutable_store_param() {
   return _impl_.store_param_.Mutable(GetArenaForAllocation());
 }
 inline std::string* VectorMetaInfo::release_store_param() {
-  // @@protoc_insertion_point(field_release:VectorMetaInfo.store_param)
+  // @@protoc_insertion_point(field_release:vearchpb.VectorMetaInfo.store_param)
   return _impl_.store_param_.Release();
 }
 inline void VectorMetaInfo::set_allocated_store_param(std::string* store_param) {
@@ -2384,7 +2387,7 @@ inline void VectorMetaInfo::set_allocated_store_param(std::string* store_param) 
     _impl_.store_param_.Set("", GetArenaForAllocation());
   }
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  // @@protoc_insertion_point(field_set_allocated:VectorMetaInfo.store_param)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.VectorMetaInfo.store_param)
 }
 
 // -------------------------------------------------------------------
@@ -2396,7 +2399,7 @@ inline void FieldMetaInfo::clear_name() {
   _impl_.name_.ClearToEmpty();
 }
 inline const std::string& FieldMetaInfo::name() const {
-  // @@protoc_insertion_point(field_get:FieldMetaInfo.name)
+  // @@protoc_insertion_point(field_get:vearchpb.FieldMetaInfo.name)
   return _internal_name();
 }
 template <typename ArgT0, typename... ArgT>
@@ -2404,11 +2407,11 @@ inline PROTOBUF_ALWAYS_INLINE
 void FieldMetaInfo::set_name(ArgT0&& arg0, ArgT... args) {
  
  _impl_.name_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
-  // @@protoc_insertion_point(field_set:FieldMetaInfo.name)
+  // @@protoc_insertion_point(field_set:vearchpb.FieldMetaInfo.name)
 }
 inline std::string* FieldMetaInfo::mutable_name() {
   std::string* _s = _internal_mutable_name();
-  // @@protoc_insertion_point(field_mutable:FieldMetaInfo.name)
+  // @@protoc_insertion_point(field_mutable:vearchpb.FieldMetaInfo.name)
   return _s;
 }
 inline const std::string& FieldMetaInfo::_internal_name() const {
@@ -2423,7 +2426,7 @@ inline std::string* FieldMetaInfo::_internal_mutable_name() {
   return _impl_.name_.Mutable(GetArenaForAllocation());
 }
 inline std::string* FieldMetaInfo::release_name() {
-  // @@protoc_insertion_point(field_release:FieldMetaInfo.name)
+  // @@protoc_insertion_point(field_release:vearchpb.FieldMetaInfo.name)
   return _impl_.name_.Release();
 }
 inline void FieldMetaInfo::set_allocated_name(std::string* name) {
@@ -2438,27 +2441,27 @@ inline void FieldMetaInfo::set_allocated_name(std::string* name) {
     _impl_.name_.Set("", GetArenaForAllocation());
   }
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  // @@protoc_insertion_point(field_set_allocated:FieldMetaInfo.name)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.FieldMetaInfo.name)
 }
 
-// .FieldType data_type = 2;
+// .vearchpb.FieldType data_type = 2;
 inline void FieldMetaInfo::clear_data_type() {
   _impl_.data_type_ = 0;
 }
-inline ::FieldType FieldMetaInfo::_internal_data_type() const {
-  return static_cast< ::FieldType >(_impl_.data_type_);
+inline ::vearchpb::FieldType FieldMetaInfo::_internal_data_type() const {
+  return static_cast< ::vearchpb::FieldType >(_impl_.data_type_);
 }
-inline ::FieldType FieldMetaInfo::data_type() const {
-  // @@protoc_insertion_point(field_get:FieldMetaInfo.data_type)
+inline ::vearchpb::FieldType FieldMetaInfo::data_type() const {
+  // @@protoc_insertion_point(field_get:vearchpb.FieldMetaInfo.data_type)
   return _internal_data_type();
 }
-inline void FieldMetaInfo::_internal_set_data_type(::FieldType value) {
+inline void FieldMetaInfo::_internal_set_data_type(::vearchpb::FieldType value) {
   
   _impl_.data_type_ = value;
 }
-inline void FieldMetaInfo::set_data_type(::FieldType value) {
+inline void FieldMetaInfo::set_data_type(::vearchpb::FieldType value) {
   _internal_set_data_type(value);
-  // @@protoc_insertion_point(field_set:FieldMetaInfo.data_type)
+  // @@protoc_insertion_point(field_set:vearchpb.FieldMetaInfo.data_type)
 }
 
 // bool is_index = 3;
@@ -2469,7 +2472,7 @@ inline bool FieldMetaInfo::_internal_is_index() const {
   return _impl_.is_index_;
 }
 inline bool FieldMetaInfo::is_index() const {
-  // @@protoc_insertion_point(field_get:FieldMetaInfo.is_index)
+  // @@protoc_insertion_point(field_get:vearchpb.FieldMetaInfo.is_index)
   return _internal_is_index();
 }
 inline void FieldMetaInfo::_internal_set_is_index(bool value) {
@@ -2478,10 +2481,10 @@ inline void FieldMetaInfo::_internal_set_is_index(bool value) {
 }
 inline void FieldMetaInfo::set_is_index(bool value) {
   _internal_set_is_index(value);
-  // @@protoc_insertion_point(field_set:FieldMetaInfo.is_index)
+  // @@protoc_insertion_point(field_set:vearchpb.FieldMetaInfo.is_index)
 }
 
-// .VectorMetaInfo vector_meta_info = 4;
+// .vearchpb.VectorMetaInfo vector_meta_info = 4;
 inline bool FieldMetaInfo::_internal_has_vector_meta_info() const {
   return this != internal_default_instance() && _impl_.vector_meta_info_ != nullptr;
 }
@@ -2494,17 +2497,17 @@ inline void FieldMetaInfo::clear_vector_meta_info() {
   }
   _impl_.vector_meta_info_ = nullptr;
 }
-inline const ::VectorMetaInfo& FieldMetaInfo::_internal_vector_meta_info() const {
-  const ::VectorMetaInfo* p = _impl_.vector_meta_info_;
-  return p != nullptr ? *p : reinterpret_cast<const ::VectorMetaInfo&>(
-      ::_VectorMetaInfo_default_instance_);
+inline const ::vearchpb::VectorMetaInfo& FieldMetaInfo::_internal_vector_meta_info() const {
+  const ::vearchpb::VectorMetaInfo* p = _impl_.vector_meta_info_;
+  return p != nullptr ? *p : reinterpret_cast<const ::vearchpb::VectorMetaInfo&>(
+      ::vearchpb::_VectorMetaInfo_default_instance_);
 }
-inline const ::VectorMetaInfo& FieldMetaInfo::vector_meta_info() const {
-  // @@protoc_insertion_point(field_get:FieldMetaInfo.vector_meta_info)
+inline const ::vearchpb::VectorMetaInfo& FieldMetaInfo::vector_meta_info() const {
+  // @@protoc_insertion_point(field_get:vearchpb.FieldMetaInfo.vector_meta_info)
   return _internal_vector_meta_info();
 }
 inline void FieldMetaInfo::unsafe_arena_set_allocated_vector_meta_info(
-    ::VectorMetaInfo* vector_meta_info) {
+    ::vearchpb::VectorMetaInfo* vector_meta_info) {
   if (GetArenaForAllocation() == nullptr) {
     delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.vector_meta_info_);
   }
@@ -2514,11 +2517,11 @@ inline void FieldMetaInfo::unsafe_arena_set_allocated_vector_meta_info(
   } else {
     
   }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:FieldMetaInfo.vector_meta_info)
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:vearchpb.FieldMetaInfo.vector_meta_info)
 }
-inline ::VectorMetaInfo* FieldMetaInfo::release_vector_meta_info() {
+inline ::vearchpb::VectorMetaInfo* FieldMetaInfo::release_vector_meta_info() {
   
-  ::VectorMetaInfo* temp = _impl_.vector_meta_info_;
+  ::vearchpb::VectorMetaInfo* temp = _impl_.vector_meta_info_;
   _impl_.vector_meta_info_ = nullptr;
 #ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
   auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
@@ -2531,27 +2534,27 @@ inline ::VectorMetaInfo* FieldMetaInfo::release_vector_meta_info() {
 #endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
   return temp;
 }
-inline ::VectorMetaInfo* FieldMetaInfo::unsafe_arena_release_vector_meta_info() {
-  // @@protoc_insertion_point(field_release:FieldMetaInfo.vector_meta_info)
+inline ::vearchpb::VectorMetaInfo* FieldMetaInfo::unsafe_arena_release_vector_meta_info() {
+  // @@protoc_insertion_point(field_release:vearchpb.FieldMetaInfo.vector_meta_info)
   
-  ::VectorMetaInfo* temp = _impl_.vector_meta_info_;
+  ::vearchpb::VectorMetaInfo* temp = _impl_.vector_meta_info_;
   _impl_.vector_meta_info_ = nullptr;
   return temp;
 }
-inline ::VectorMetaInfo* FieldMetaInfo::_internal_mutable_vector_meta_info() {
+inline ::vearchpb::VectorMetaInfo* FieldMetaInfo::_internal_mutable_vector_meta_info() {
   
   if (_impl_.vector_meta_info_ == nullptr) {
-    auto* p = CreateMaybeMessage<::VectorMetaInfo>(GetArenaForAllocation());
+    auto* p = CreateMaybeMessage<::vearchpb::VectorMetaInfo>(GetArenaForAllocation());
     _impl_.vector_meta_info_ = p;
   }
   return _impl_.vector_meta_info_;
 }
-inline ::VectorMetaInfo* FieldMetaInfo::mutable_vector_meta_info() {
-  ::VectorMetaInfo* _msg = _internal_mutable_vector_meta_info();
-  // @@protoc_insertion_point(field_mutable:FieldMetaInfo.vector_meta_info)
+inline ::vearchpb::VectorMetaInfo* FieldMetaInfo::mutable_vector_meta_info() {
+  ::vearchpb::VectorMetaInfo* _msg = _internal_mutable_vector_meta_info();
+  // @@protoc_insertion_point(field_mutable:vearchpb.FieldMetaInfo.vector_meta_info)
   return _msg;
 }
-inline void FieldMetaInfo::set_allocated_vector_meta_info(::VectorMetaInfo* vector_meta_info) {
+inline void FieldMetaInfo::set_allocated_vector_meta_info(::vearchpb::VectorMetaInfo* vector_meta_info) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   if (message_arena == nullptr) {
     delete _impl_.vector_meta_info_;
@@ -2568,7 +2571,7 @@ inline void FieldMetaInfo::set_allocated_vector_meta_info(::VectorMetaInfo* vect
     
   }
   _impl_.vector_meta_info_ = vector_meta_info;
-  // @@protoc_insertion_point(field_set_allocated:FieldMetaInfo.vector_meta_info)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.FieldMetaInfo.vector_meta_info)
 }
 
 // -------------------------------------------------------------------
@@ -2580,7 +2583,7 @@ inline void TableMetaInfo::clear_primary_key_name() {
   _impl_.primary_key_name_.ClearToEmpty();
 }
 inline const std::string& TableMetaInfo::primary_key_name() const {
-  // @@protoc_insertion_point(field_get:TableMetaInfo.primary_key_name)
+  // @@protoc_insertion_point(field_get:vearchpb.TableMetaInfo.primary_key_name)
   return _internal_primary_key_name();
 }
 template <typename ArgT0, typename... ArgT>
@@ -2588,11 +2591,11 @@ inline PROTOBUF_ALWAYS_INLINE
 void TableMetaInfo::set_primary_key_name(ArgT0&& arg0, ArgT... args) {
  
  _impl_.primary_key_name_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
-  // @@protoc_insertion_point(field_set:TableMetaInfo.primary_key_name)
+  // @@protoc_insertion_point(field_set:vearchpb.TableMetaInfo.primary_key_name)
 }
 inline std::string* TableMetaInfo::mutable_primary_key_name() {
   std::string* _s = _internal_mutable_primary_key_name();
-  // @@protoc_insertion_point(field_mutable:TableMetaInfo.primary_key_name)
+  // @@protoc_insertion_point(field_mutable:vearchpb.TableMetaInfo.primary_key_name)
   return _s;
 }
 inline const std::string& TableMetaInfo::_internal_primary_key_name() const {
@@ -2607,7 +2610,7 @@ inline std::string* TableMetaInfo::_internal_mutable_primary_key_name() {
   return _impl_.primary_key_name_.Mutable(GetArenaForAllocation());
 }
 inline std::string* TableMetaInfo::release_primary_key_name() {
-  // @@protoc_insertion_point(field_release:TableMetaInfo.primary_key_name)
+  // @@protoc_insertion_point(field_release:vearchpb.TableMetaInfo.primary_key_name)
   return _impl_.primary_key_name_.Release();
 }
 inline void TableMetaInfo::set_allocated_primary_key_name(std::string* primary_key_name) {
@@ -2622,27 +2625,27 @@ inline void TableMetaInfo::set_allocated_primary_key_name(std::string* primary_k
     _impl_.primary_key_name_.Set("", GetArenaForAllocation());
   }
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  // @@protoc_insertion_point(field_set_allocated:TableMetaInfo.primary_key_name)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.TableMetaInfo.primary_key_name)
 }
 
-// .FieldType primary_key_type = 2;
+// .vearchpb.FieldType primary_key_type = 2;
 inline void TableMetaInfo::clear_primary_key_type() {
   _impl_.primary_key_type_ = 0;
 }
-inline ::FieldType TableMetaInfo::_internal_primary_key_type() const {
-  return static_cast< ::FieldType >(_impl_.primary_key_type_);
+inline ::vearchpb::FieldType TableMetaInfo::_internal_primary_key_type() const {
+  return static_cast< ::vearchpb::FieldType >(_impl_.primary_key_type_);
 }
-inline ::FieldType TableMetaInfo::primary_key_type() const {
-  // @@protoc_insertion_point(field_get:TableMetaInfo.primary_key_type)
+inline ::vearchpb::FieldType TableMetaInfo::primary_key_type() const {
+  // @@protoc_insertion_point(field_get:vearchpb.TableMetaInfo.primary_key_type)
   return _internal_primary_key_type();
 }
-inline void TableMetaInfo::_internal_set_primary_key_type(::FieldType value) {
+inline void TableMetaInfo::_internal_set_primary_key_type(::vearchpb::FieldType value) {
   
   _impl_.primary_key_type_ = value;
 }
-inline void TableMetaInfo::set_primary_key_type(::FieldType value) {
+inline void TableMetaInfo::set_primary_key_type(::vearchpb::FieldType value) {
   _internal_set_primary_key_type(value);
-  // @@protoc_insertion_point(field_set:TableMetaInfo.primary_key_type)
+  // @@protoc_insertion_point(field_set:vearchpb.TableMetaInfo.primary_key_type)
 }
 
 // int32 partitions_num = 3;
@@ -2653,7 +2656,7 @@ inline int32_t TableMetaInfo::_internal_partitions_num() const {
   return _impl_.partitions_num_;
 }
 inline int32_t TableMetaInfo::partitions_num() const {
-  // @@protoc_insertion_point(field_get:TableMetaInfo.partitions_num)
+  // @@protoc_insertion_point(field_get:vearchpb.TableMetaInfo.partitions_num)
   return _internal_partitions_num();
 }
 inline void TableMetaInfo::_internal_set_partitions_num(int32_t value) {
@@ -2662,7 +2665,7 @@ inline void TableMetaInfo::_internal_set_partitions_num(int32_t value) {
 }
 inline void TableMetaInfo::set_partitions_num(int32_t value) {
   _internal_set_partitions_num(value);
-  // @@protoc_insertion_point(field_set:TableMetaInfo.partitions_num)
+  // @@protoc_insertion_point(field_set:vearchpb.TableMetaInfo.partitions_num)
 }
 
 // int32 replicas_num = 4;
@@ -2673,7 +2676,7 @@ inline int32_t TableMetaInfo::_internal_replicas_num() const {
   return _impl_.replicas_num_;
 }
 inline int32_t TableMetaInfo::replicas_num() const {
-  // @@protoc_insertion_point(field_get:TableMetaInfo.replicas_num)
+  // @@protoc_insertion_point(field_get:vearchpb.TableMetaInfo.replicas_num)
   return _internal_replicas_num();
 }
 inline void TableMetaInfo::_internal_set_replicas_num(int32_t value) {
@@ -2682,10 +2685,10 @@ inline void TableMetaInfo::_internal_set_replicas_num(int32_t value) {
 }
 inline void TableMetaInfo::set_replicas_num(int32_t value) {
   _internal_set_replicas_num(value);
-  // @@protoc_insertion_point(field_set:TableMetaInfo.replicas_num)
+  // @@protoc_insertion_point(field_set:vearchpb.TableMetaInfo.replicas_num)
 }
 
-// repeated .FieldMetaInfo field_meta_info = 5;
+// repeated .vearchpb.FieldMetaInfo field_meta_info = 5;
 inline int TableMetaInfo::_internal_field_meta_info_size() const {
   return _impl_.field_meta_info_.size();
 }
@@ -2695,33 +2698,33 @@ inline int TableMetaInfo::field_meta_info_size() const {
 inline void TableMetaInfo::clear_field_meta_info() {
   _impl_.field_meta_info_.Clear();
 }
-inline ::FieldMetaInfo* TableMetaInfo::mutable_field_meta_info(int index) {
-  // @@protoc_insertion_point(field_mutable:TableMetaInfo.field_meta_info)
+inline ::vearchpb::FieldMetaInfo* TableMetaInfo::mutable_field_meta_info(int index) {
+  // @@protoc_insertion_point(field_mutable:vearchpb.TableMetaInfo.field_meta_info)
   return _impl_.field_meta_info_.Mutable(index);
 }
-inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::FieldMetaInfo >*
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::FieldMetaInfo >*
 TableMetaInfo::mutable_field_meta_info() {
-  // @@protoc_insertion_point(field_mutable_list:TableMetaInfo.field_meta_info)
+  // @@protoc_insertion_point(field_mutable_list:vearchpb.TableMetaInfo.field_meta_info)
   return &_impl_.field_meta_info_;
 }
-inline const ::FieldMetaInfo& TableMetaInfo::_internal_field_meta_info(int index) const {
+inline const ::vearchpb::FieldMetaInfo& TableMetaInfo::_internal_field_meta_info(int index) const {
   return _impl_.field_meta_info_.Get(index);
 }
-inline const ::FieldMetaInfo& TableMetaInfo::field_meta_info(int index) const {
-  // @@protoc_insertion_point(field_get:TableMetaInfo.field_meta_info)
+inline const ::vearchpb::FieldMetaInfo& TableMetaInfo::field_meta_info(int index) const {
+  // @@protoc_insertion_point(field_get:vearchpb.TableMetaInfo.field_meta_info)
   return _internal_field_meta_info(index);
 }
-inline ::FieldMetaInfo* TableMetaInfo::_internal_add_field_meta_info() {
+inline ::vearchpb::FieldMetaInfo* TableMetaInfo::_internal_add_field_meta_info() {
   return _impl_.field_meta_info_.Add();
 }
-inline ::FieldMetaInfo* TableMetaInfo::add_field_meta_info() {
-  ::FieldMetaInfo* _add = _internal_add_field_meta_info();
-  // @@protoc_insertion_point(field_add:TableMetaInfo.field_meta_info)
+inline ::vearchpb::FieldMetaInfo* TableMetaInfo::add_field_meta_info() {
+  ::vearchpb::FieldMetaInfo* _add = _internal_add_field_meta_info();
+  // @@protoc_insertion_point(field_add:vearchpb.TableMetaInfo.field_meta_info)
   return _add;
 }
-inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::FieldMetaInfo >&
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::FieldMetaInfo >&
 TableMetaInfo::field_meta_info() const {
-  // @@protoc_insertion_point(field_list:TableMetaInfo.field_meta_info)
+  // @@protoc_insertion_point(field_list:vearchpb.TableMetaInfo.field_meta_info)
   return _impl_.field_meta_info_;
 }
 
@@ -2734,7 +2737,7 @@ inline void Table::clear_name() {
   _impl_.name_.ClearToEmpty();
 }
 inline const std::string& Table::name() const {
-  // @@protoc_insertion_point(field_get:Table.name)
+  // @@protoc_insertion_point(field_get:vearchpb.Table.name)
   return _internal_name();
 }
 template <typename ArgT0, typename... ArgT>
@@ -2742,11 +2745,11 @@ inline PROTOBUF_ALWAYS_INLINE
 void Table::set_name(ArgT0&& arg0, ArgT... args) {
  
  _impl_.name_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
-  // @@protoc_insertion_point(field_set:Table.name)
+  // @@protoc_insertion_point(field_set:vearchpb.Table.name)
 }
 inline std::string* Table::mutable_name() {
   std::string* _s = _internal_mutable_name();
-  // @@protoc_insertion_point(field_mutable:Table.name)
+  // @@protoc_insertion_point(field_mutable:vearchpb.Table.name)
   return _s;
 }
 inline const std::string& Table::_internal_name() const {
@@ -2761,7 +2764,7 @@ inline std::string* Table::_internal_mutable_name() {
   return _impl_.name_.Mutable(GetArenaForAllocation());
 }
 inline std::string* Table::release_name() {
-  // @@protoc_insertion_point(field_release:Table.name)
+  // @@protoc_insertion_point(field_release:vearchpb.Table.name)
   return _impl_.name_.Release();
 }
 inline void Table::set_allocated_name(std::string* name) {
@@ -2776,10 +2779,10 @@ inline void Table::set_allocated_name(std::string* name) {
     _impl_.name_.Set("", GetArenaForAllocation());
   }
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  // @@protoc_insertion_point(field_set_allocated:Table.name)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.Table.name)
 }
 
-// .TableMetaInfo table_meta_info = 2;
+// .vearchpb.TableMetaInfo table_meta_info = 2;
 inline bool Table::_internal_has_table_meta_info() const {
   return this != internal_default_instance() && _impl_.table_meta_info_ != nullptr;
 }
@@ -2792,17 +2795,17 @@ inline void Table::clear_table_meta_info() {
   }
   _impl_.table_meta_info_ = nullptr;
 }
-inline const ::TableMetaInfo& Table::_internal_table_meta_info() const {
-  const ::TableMetaInfo* p = _impl_.table_meta_info_;
-  return p != nullptr ? *p : reinterpret_cast<const ::TableMetaInfo&>(
-      ::_TableMetaInfo_default_instance_);
+inline const ::vearchpb::TableMetaInfo& Table::_internal_table_meta_info() const {
+  const ::vearchpb::TableMetaInfo* p = _impl_.table_meta_info_;
+  return p != nullptr ? *p : reinterpret_cast<const ::vearchpb::TableMetaInfo&>(
+      ::vearchpb::_TableMetaInfo_default_instance_);
 }
-inline const ::TableMetaInfo& Table::table_meta_info() const {
-  // @@protoc_insertion_point(field_get:Table.table_meta_info)
+inline const ::vearchpb::TableMetaInfo& Table::table_meta_info() const {
+  // @@protoc_insertion_point(field_get:vearchpb.Table.table_meta_info)
   return _internal_table_meta_info();
 }
 inline void Table::unsafe_arena_set_allocated_table_meta_info(
-    ::TableMetaInfo* table_meta_info) {
+    ::vearchpb::TableMetaInfo* table_meta_info) {
   if (GetArenaForAllocation() == nullptr) {
     delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.table_meta_info_);
   }
@@ -2812,11 +2815,11 @@ inline void Table::unsafe_arena_set_allocated_table_meta_info(
   } else {
     
   }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:Table.table_meta_info)
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:vearchpb.Table.table_meta_info)
 }
-inline ::TableMetaInfo* Table::release_table_meta_info() {
+inline ::vearchpb::TableMetaInfo* Table::release_table_meta_info() {
   
-  ::TableMetaInfo* temp = _impl_.table_meta_info_;
+  ::vearchpb::TableMetaInfo* temp = _impl_.table_meta_info_;
   _impl_.table_meta_info_ = nullptr;
 #ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
   auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
@@ -2829,27 +2832,27 @@ inline ::TableMetaInfo* Table::release_table_meta_info() {
 #endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
   return temp;
 }
-inline ::TableMetaInfo* Table::unsafe_arena_release_table_meta_info() {
-  // @@protoc_insertion_point(field_release:Table.table_meta_info)
+inline ::vearchpb::TableMetaInfo* Table::unsafe_arena_release_table_meta_info() {
+  // @@protoc_insertion_point(field_release:vearchpb.Table.table_meta_info)
   
-  ::TableMetaInfo* temp = _impl_.table_meta_info_;
+  ::vearchpb::TableMetaInfo* temp = _impl_.table_meta_info_;
   _impl_.table_meta_info_ = nullptr;
   return temp;
 }
-inline ::TableMetaInfo* Table::_internal_mutable_table_meta_info() {
+inline ::vearchpb::TableMetaInfo* Table::_internal_mutable_table_meta_info() {
   
   if (_impl_.table_meta_info_ == nullptr) {
-    auto* p = CreateMaybeMessage<::TableMetaInfo>(GetArenaForAllocation());
+    auto* p = CreateMaybeMessage<::vearchpb::TableMetaInfo>(GetArenaForAllocation());
     _impl_.table_meta_info_ = p;
   }
   return _impl_.table_meta_info_;
 }
-inline ::TableMetaInfo* Table::mutable_table_meta_info() {
-  ::TableMetaInfo* _msg = _internal_mutable_table_meta_info();
-  // @@protoc_insertion_point(field_mutable:Table.table_meta_info)
+inline ::vearchpb::TableMetaInfo* Table::mutable_table_meta_info() {
+  ::vearchpb::TableMetaInfo* _msg = _internal_mutable_table_meta_info();
+  // @@protoc_insertion_point(field_mutable:vearchpb.Table.table_meta_info)
   return _msg;
 }
-inline void Table::set_allocated_table_meta_info(::TableMetaInfo* table_meta_info) {
+inline void Table::set_allocated_table_meta_info(::vearchpb::TableMetaInfo* table_meta_info) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   if (message_arena == nullptr) {
     delete _impl_.table_meta_info_;
@@ -2866,7 +2869,7 @@ inline void Table::set_allocated_table_meta_info(::TableMetaInfo* table_meta_inf
     
   }
   _impl_.table_meta_info_ = table_meta_info;
-  // @@protoc_insertion_point(field_set_allocated:Table.table_meta_info)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.Table.table_meta_info)
 }
 
 // -------------------------------------------------------------------
@@ -2880,7 +2883,7 @@ inline void DB::clear_name() {
   _impl_.name_.ClearToEmpty();
 }
 inline const std::string& DB::name() const {
-  // @@protoc_insertion_point(field_get:DB.name)
+  // @@protoc_insertion_point(field_get:vearchpb.DB.name)
   return _internal_name();
 }
 template <typename ArgT0, typename... ArgT>
@@ -2888,11 +2891,11 @@ inline PROTOBUF_ALWAYS_INLINE
 void DB::set_name(ArgT0&& arg0, ArgT... args) {
  
  _impl_.name_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
-  // @@protoc_insertion_point(field_set:DB.name)
+  // @@protoc_insertion_point(field_set:vearchpb.DB.name)
 }
 inline std::string* DB::mutable_name() {
   std::string* _s = _internal_mutable_name();
-  // @@protoc_insertion_point(field_mutable:DB.name)
+  // @@protoc_insertion_point(field_mutable:vearchpb.DB.name)
   return _s;
 }
 inline const std::string& DB::_internal_name() const {
@@ -2907,7 +2910,7 @@ inline std::string* DB::_internal_mutable_name() {
   return _impl_.name_.Mutable(GetArenaForAllocation());
 }
 inline std::string* DB::release_name() {
-  // @@protoc_insertion_point(field_release:DB.name)
+  // @@protoc_insertion_point(field_release:vearchpb.DB.name)
   return _impl_.name_.Release();
 }
 inline void DB::set_allocated_name(std::string* name) {
@@ -2922,10 +2925,10 @@ inline void DB::set_allocated_name(std::string* name) {
     _impl_.name_.Set("", GetArenaForAllocation());
   }
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  // @@protoc_insertion_point(field_set_allocated:DB.name)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.DB.name)
 }
 
-// repeated .Table tables = 2;
+// repeated .vearchpb.Table tables = 2;
 inline int DB::_internal_tables_size() const {
   return _impl_.tables_.size();
 }
@@ -2935,33 +2938,33 @@ inline int DB::tables_size() const {
 inline void DB::clear_tables() {
   _impl_.tables_.Clear();
 }
-inline ::Table* DB::mutable_tables(int index) {
-  // @@protoc_insertion_point(field_mutable:DB.tables)
+inline ::vearchpb::Table* DB::mutable_tables(int index) {
+  // @@protoc_insertion_point(field_mutable:vearchpb.DB.tables)
   return _impl_.tables_.Mutable(index);
 }
-inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::Table >*
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::Table >*
 DB::mutable_tables() {
-  // @@protoc_insertion_point(field_mutable_list:DB.tables)
+  // @@protoc_insertion_point(field_mutable_list:vearchpb.DB.tables)
   return &_impl_.tables_;
 }
-inline const ::Table& DB::_internal_tables(int index) const {
+inline const ::vearchpb::Table& DB::_internal_tables(int index) const {
   return _impl_.tables_.Get(index);
 }
-inline const ::Table& DB::tables(int index) const {
-  // @@protoc_insertion_point(field_get:DB.tables)
+inline const ::vearchpb::Table& DB::tables(int index) const {
+  // @@protoc_insertion_point(field_get:vearchpb.DB.tables)
   return _internal_tables(index);
 }
-inline ::Table* DB::_internal_add_tables() {
+inline ::vearchpb::Table* DB::_internal_add_tables() {
   return _impl_.tables_.Add();
 }
-inline ::Table* DB::add_tables() {
-  ::Table* _add = _internal_add_tables();
-  // @@protoc_insertion_point(field_add:DB.tables)
+inline ::vearchpb::Table* DB::add_tables() {
+  ::vearchpb::Table* _add = _internal_add_tables();
+  // @@protoc_insertion_point(field_add:vearchpb.DB.tables)
   return _add;
 }
-inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::Table >&
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::Table >&
 DB::tables() const {
-  // @@protoc_insertion_point(field_list:DB.tables)
+  // @@protoc_insertion_point(field_list:vearchpb.DB.tables)
   return _impl_.tables_;
 }
 
@@ -2981,7 +2984,7 @@ DB::_internal_user_password_pair() const {
 }
 inline const ::PROTOBUF_NAMESPACE_ID::Map< std::string, std::string >&
 DB::user_password_pair() const {
-  // @@protoc_insertion_point(field_map:DB.user_password_pair)
+  // @@protoc_insertion_point(field_map:vearchpb.DB.user_password_pair)
   return _internal_user_password_pair();
 }
 inline ::PROTOBUF_NAMESPACE_ID::Map< std::string, std::string >*
@@ -2990,7 +2993,7 @@ DB::_internal_mutable_user_password_pair() {
 }
 inline ::PROTOBUF_NAMESPACE_ID::Map< std::string, std::string >*
 DB::mutable_user_password_pair() {
-  // @@protoc_insertion_point(field_mutable_map:DB.user_password_pair)
+  // @@protoc_insertion_point(field_mutable_map:vearchpb.DB.user_password_pair)
   return _internal_mutable_user_password_pair();
 }
 
@@ -3016,28 +3019,29 @@ DB::mutable_user_password_pair() {
 
 // @@protoc_insertion_point(namespace_scope)
 
+}  // namespace vearchpb
 
 PROTOBUF_NAMESPACE_OPEN
 
-template <> struct is_proto_enum< ::VectorMetaInfo_ValueType> : ::std::true_type {};
+template <> struct is_proto_enum< ::vearchpb::VectorMetaInfo_ValueType> : ::std::true_type {};
 template <>
-inline const EnumDescriptor* GetEnumDescriptor< ::VectorMetaInfo_ValueType>() {
-  return ::VectorMetaInfo_ValueType_descriptor();
+inline const EnumDescriptor* GetEnumDescriptor< ::vearchpb::VectorMetaInfo_ValueType>() {
+  return ::vearchpb::VectorMetaInfo_ValueType_descriptor();
 }
-template <> struct is_proto_enum< ::VectorMetaInfo_StoreType> : ::std::true_type {};
+template <> struct is_proto_enum< ::vearchpb::VectorMetaInfo_StoreType> : ::std::true_type {};
 template <>
-inline const EnumDescriptor* GetEnumDescriptor< ::VectorMetaInfo_StoreType>() {
-  return ::VectorMetaInfo_StoreType_descriptor();
+inline const EnumDescriptor* GetEnumDescriptor< ::vearchpb::VectorMetaInfo_StoreType>() {
+  return ::vearchpb::VectorMetaInfo_StoreType_descriptor();
 }
-template <> struct is_proto_enum< ::FieldType> : ::std::true_type {};
+template <> struct is_proto_enum< ::vearchpb::FieldType> : ::std::true_type {};
 template <>
-inline const EnumDescriptor* GetEnumDescriptor< ::FieldType>() {
-  return ::FieldType_descriptor();
+inline const EnumDescriptor* GetEnumDescriptor< ::vearchpb::FieldType>() {
+  return ::vearchpb::FieldType_descriptor();
 }
-template <> struct is_proto_enum< ::FieldOption> : ::std::true_type {};
+template <> struct is_proto_enum< ::vearchpb::FieldOption> : ::std::true_type {};
 template <>
-inline const EnumDescriptor* GetEnumDescriptor< ::FieldOption>() {
-  return ::FieldOption_descriptor();
+inline const EnumDescriptor* GetEnumDescriptor< ::vearchpb::FieldOption>() {
+  return ::vearchpb::FieldOption_descriptor();
 }
 
 PROTOBUF_NAMESPACE_CLOSE

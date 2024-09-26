@@ -2,6 +2,7 @@ syntax = "proto3";
 
 option optimize_for = SPEED;
 option go_package = "./vearchpb";
+package vearchpb;
 
 // snapshot msg
 message SnapshotMsg {

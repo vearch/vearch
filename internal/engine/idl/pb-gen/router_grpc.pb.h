@@ -50,6 +50,7 @@ struct TableStruct_router_5fgrpc_2eproto {
   static const uint32_t offsets[];
 };
 extern const ::PROTOBUF_NAMESPACE_ID::internal::DescriptorTable descriptor_table_router_5fgrpc_2eproto;
+namespace vearchpb {
 class BulkRequest;
 struct BulkRequestDefaultTypeInternal;
 extern BulkRequestDefaultTypeInternal _BulkRequest_default_instance_;
@@ -140,38 +141,40 @@ extern TermFilterDefaultTypeInternal _TermFilter_default_instance_;
 class VectorQuery;
 struct VectorQueryDefaultTypeInternal;
 extern VectorQueryDefaultTypeInternal _VectorQuery_default_instance_;
+}  // namespace vearchpb
 PROTOBUF_NAMESPACE_OPEN
-template<> ::BulkRequest* Arena::CreateMaybeMessage<::BulkRequest>(Arena*);
-template<> ::BulkResponse* Arena::CreateMaybeMessage<::BulkResponse>(Arena*);
-template<> ::DelByQueryeResponse* Arena::CreateMaybeMessage<::DelByQueryeResponse>(Arena*);
-template<> ::DeleteRequest* Arena::CreateMaybeMessage<::DeleteRequest>(Arena*);
-template<> ::DeleteResponse* Arena::CreateMaybeMessage<::DeleteResponse>(Arena*);
-template<> ::FlushRequest* Arena::CreateMaybeMessage<::FlushRequest>(Arena*);
-template<> ::FlushResponse* Arena::CreateMaybeMessage<::FlushResponse>(Arena*);
-template<> ::ForceMergeRequest* Arena::CreateMaybeMessage<::ForceMergeRequest>(Arena*);
-template<> ::ForceMergeResponse* Arena::CreateMaybeMessage<::ForceMergeResponse>(Arena*);
-template<> ::GetRequest* Arena::CreateMaybeMessage<::GetRequest>(Arena*);
-template<> ::GetResponse* Arena::CreateMaybeMessage<::GetResponse>(Arena*);
-template<> ::IndexParameters* Arena::CreateMaybeMessage<::IndexParameters>(Arena*);
-template<> ::IndexRequest* Arena::CreateMaybeMessage<::IndexRequest>(Arena*);
-template<> ::IndexResponse* Arena::CreateMaybeMessage<::IndexResponse>(Arena*);
-template<> ::QueryRequest* Arena::CreateMaybeMessage<::QueryRequest>(Arena*);
-template<> ::QueryRequest_SortFieldMapEntry_DoNotUse* Arena::CreateMaybeMessage<::QueryRequest_SortFieldMapEntry_DoNotUse>(Arena*);
-template<> ::RangeFilter* Arena::CreateMaybeMessage<::RangeFilter>(Arena*);
-template<> ::RequestHead* Arena::CreateMaybeMessage<::RequestHead>(Arena*);
-template<> ::RequestHead_ParamsEntry_DoNotUse* Arena::CreateMaybeMessage<::RequestHead_ParamsEntry_DoNotUse>(Arena*);
-template<> ::ResponseHead* Arena::CreateMaybeMessage<::ResponseHead>(Arena*);
-template<> ::ResponseHead_ParamsEntry_DoNotUse* Arena::CreateMaybeMessage<::ResponseHead_ParamsEntry_DoNotUse>(Arena*);
-template<> ::ResultItem* Arena::CreateMaybeMessage<::ResultItem>(Arena*);
-template<> ::SearchRequest* Arena::CreateMaybeMessage<::SearchRequest>(Arena*);
-template<> ::SearchRequest_SortFieldMapEntry_DoNotUse* Arena::CreateMaybeMessage<::SearchRequest_SortFieldMapEntry_DoNotUse>(Arena*);
-template<> ::SearchResponse* Arena::CreateMaybeMessage<::SearchResponse>(Arena*);
-template<> ::SearchResult* Arena::CreateMaybeMessage<::SearchResult>(Arena*);
-template<> ::SearchStatus* Arena::CreateMaybeMessage<::SearchStatus>(Arena*);
-template<> ::SortField* Arena::CreateMaybeMessage<::SortField>(Arena*);
-template<> ::TermFilter* Arena::CreateMaybeMessage<::TermFilter>(Arena*);
-template<> ::VectorQuery* Arena::CreateMaybeMessage<::VectorQuery>(Arena*);
+template<> ::vearchpb::BulkRequest* Arena::CreateMaybeMessage<::vearchpb::BulkRequest>(Arena*);
+template<> ::vearchpb::BulkResponse* Arena::CreateMaybeMessage<::vearchpb::BulkResponse>(Arena*);
+template<> ::vearchpb::DelByQueryeResponse* Arena::CreateMaybeMessage<::vearchpb::DelByQueryeResponse>(Arena*);
+template<> ::vearchpb::DeleteRequest* Arena::CreateMaybeMessage<::vearchpb::DeleteRequest>(Arena*);
+template<> ::vearchpb::DeleteResponse* Arena::CreateMaybeMessage<::vearchpb::DeleteResponse>(Arena*);
+template<> ::vearchpb::FlushRequest* Arena::CreateMaybeMessage<::vearchpb::FlushRequest>(Arena*);
+template<> ::vearchpb::FlushResponse* Arena::CreateMaybeMessage<::vearchpb::FlushResponse>(Arena*);
+template<> ::vearchpb::ForceMergeRequest* Arena::CreateMaybeMessage<::vearchpb::ForceMergeRequest>(Arena*);
+template<> ::vearchpb::ForceMergeResponse* Arena::CreateMaybeMessage<::vearchpb::ForceMergeResponse>(Arena*);
+template<> ::vearchpb::GetRequest* Arena::CreateMaybeMessage<::vearchpb::GetRequest>(Arena*);
+template<> ::vearchpb::GetResponse* Arena::CreateMaybeMessage<::vearchpb::GetResponse>(Arena*);
+template<> ::vearchpb::IndexParameters* Arena::CreateMaybeMessage<::vearchpb::IndexParameters>(Arena*);
+template<> ::vearchpb::IndexRequest* Arena::CreateMaybeMessage<::vearchpb::IndexRequest>(Arena*);
+template<> ::vearchpb::IndexResponse* Arena::CreateMaybeMessage<::vearchpb::IndexResponse>(Arena*);
+template<> ::vearchpb::QueryRequest* Arena::CreateMaybeMessage<::vearchpb::QueryRequest>(Arena*);
+template<> ::vearchpb::QueryRequest_SortFieldMapEntry_DoNotUse* Arena::CreateMaybeMessage<::vearchpb::QueryRequest_SortFieldMapEntry_DoNotUse>(Arena*);
+template<> ::vearchpb::RangeFilter* Arena::CreateMaybeMessage<::vearchpb::RangeFilter>(Arena*);
+template<> ::vearchpb::RequestHead* Arena::CreateMaybeMessage<::vearchpb::RequestHead>(Arena*);
+template<> ::vearchpb::RequestHead_ParamsEntry_DoNotUse* Arena::CreateMaybeMessage<::vearchpb::RequestHead_ParamsEntry_DoNotUse>(Arena*);
+template<> ::vearchpb::ResponseHead* Arena::CreateMaybeMessage<::vearchpb::ResponseHead>(Arena*);
+template<> ::vearchpb::ResponseHead_ParamsEntry_DoNotUse* Arena::CreateMaybeMessage<::vearchpb::ResponseHead_ParamsEntry_DoNotUse>(Arena*);
+template<> ::vearchpb::ResultItem* Arena::CreateMaybeMessage<::vearchpb::ResultItem>(Arena*);
+template<> ::vearchpb::SearchRequest* Arena::CreateMaybeMessage<::vearchpb::SearchRequest>(Arena*);
+template<> ::vearchpb::SearchRequest_SortFieldMapEntry_DoNotUse* Arena::CreateMaybeMessage<::vearchpb::SearchRequest_SortFieldMapEntry_DoNotUse>(Arena*);
+template<> ::vearchpb::SearchResponse* Arena::CreateMaybeMessage<::vearchpb::SearchResponse>(Arena*);
+template<> ::vearchpb::SearchResult* Arena::CreateMaybeMessage<::vearchpb::SearchResult>(Arena*);
+template<> ::vearchpb::SearchStatus* Arena::CreateMaybeMessage<::vearchpb::SearchStatus>(Arena*);
+template<> ::vearchpb::SortField* Arena::CreateMaybeMessage<::vearchpb::SortField>(Arena*);
+template<> ::vearchpb::TermFilter* Arena::CreateMaybeMessage<::vearchpb::TermFilter>(Arena*);
+template<> ::vearchpb::VectorQuery* Arena::CreateMaybeMessage<::vearchpb::VectorQuery>(Arena*);
 PROTOBUF_NAMESPACE_CLOSE
+namespace vearchpb {
 
 enum IndexParameters_DistanceMetricType : int {
   IndexParameters_DistanceMetricType_InnerProduct = 0,
@@ -216,10 +219,10 @@ public:
   void MergeFrom(const RequestHead_ParamsEntry_DoNotUse& other);
   static const RequestHead_ParamsEntry_DoNotUse* internal_default_instance() { return reinterpret_cast<const RequestHead_ParamsEntry_DoNotUse*>(&_RequestHead_ParamsEntry_DoNotUse_default_instance_); }
   static bool ValidateKey(std::string* s) {
-    return ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(s->data(), static_cast<int>(s->size()), ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::PARSE, "RequestHead.ParamsEntry.key");
+    return ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(s->data(), static_cast<int>(s->size()), ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::PARSE, "vearchpb.RequestHead.ParamsEntry.key");
  }
   static bool ValidateValue(std::string* s) {
-    return ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(s->data(), static_cast<int>(s->size()), ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::PARSE, "RequestHead.ParamsEntry.value");
+    return ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(s->data(), static_cast<int>(s->size()), ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::PARSE, "vearchpb.RequestHead.ParamsEntry.value");
  }
   using ::PROTOBUF_NAMESPACE_ID::Message::MergeFrom;
   ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadata() const final;
@@ -229,7 +232,7 @@ public:
 // -------------------------------------------------------------------
 
 class RequestHead final :
-    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:RequestHead) */ {
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:vearchpb.RequestHead) */ {
  public:
   inline RequestHead() : RequestHead(nullptr) {}
   ~RequestHead() override;
@@ -332,7 +335,7 @@ class RequestHead final :
   private:
   friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
   static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "RequestHead";
+    return "vearchpb.RequestHead";
   }
   protected:
   explicit RequestHead(::PROTOBUF_NAMESPACE_ID::Arena* arena,
@@ -456,7 +459,7 @@ class RequestHead final :
   void _internal_set_time_out_ms(int64_t value);
   public:
 
-  // @@protoc_insertion_point(class_scope:RequestHead)
+  // @@protoc_insertion_point(class_scope:vearchpb.RequestHead)
  private:
   class _Internal;
 
@@ -498,10 +501,10 @@ public:
   void MergeFrom(const ResponseHead_ParamsEntry_DoNotUse& other);
   static const ResponseHead_ParamsEntry_DoNotUse* internal_default_instance() { return reinterpret_cast<const ResponseHead_ParamsEntry_DoNotUse*>(&_ResponseHead_ParamsEntry_DoNotUse_default_instance_); }
   static bool ValidateKey(std::string* s) {
-    return ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(s->data(), static_cast<int>(s->size()), ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::PARSE, "ResponseHead.ParamsEntry.key");
+    return ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(s->data(), static_cast<int>(s->size()), ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::PARSE, "vearchpb.ResponseHead.ParamsEntry.key");
  }
   static bool ValidateValue(std::string* s) {
-    return ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(s->data(), static_cast<int>(s->size()), ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::PARSE, "ResponseHead.ParamsEntry.value");
+    return ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(s->data(), static_cast<int>(s->size()), ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::PARSE, "vearchpb.ResponseHead.ParamsEntry.value");
  }
   using ::PROTOBUF_NAMESPACE_ID::Message::MergeFrom;
   ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadata() const final;
@@ -511,7 +514,7 @@ public:
 // -------------------------------------------------------------------
 
 class ResponseHead final :
-    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:ResponseHead) */ {
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:vearchpb.ResponseHead) */ {
  public:
   inline ResponseHead() : ResponseHead(nullptr) {}
   ~ResponseHead() override;
@@ -614,7 +617,7 @@ class ResponseHead final :
   private:
   friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
   static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "ResponseHead";
+    return "vearchpb.ResponseHead";
   }
   protected:
   explicit ResponseHead(::PROTOBUF_NAMESPACE_ID::Arena* arena,
@@ -654,25 +657,25 @@ class ResponseHead final :
   ::PROTOBUF_NAMESPACE_ID::Map< std::string, std::string >*
       mutable_params();
 
-  // .Error err = 1;
+  // .vearchpb.Error err = 1;
   bool has_err() const;
   private:
   bool _internal_has_err() const;
   public:
   void clear_err();
-  const ::Error& err() const;
-  PROTOBUF_NODISCARD ::Error* release_err();
-  ::Error* mutable_err();
-  void set_allocated_err(::Error* err);
+  const ::vearchpb::Error& err() const;
+  PROTOBUF_NODISCARD ::vearchpb::Error* release_err();
+  ::vearchpb::Error* mutable_err();
+  void set_allocated_err(::vearchpb::Error* err);
   private:
-  const ::Error& _internal_err() const;
-  ::Error* _internal_mutable_err();
+  const ::vearchpb::Error& _internal_err() const;
+  ::vearchpb::Error* _internal_mutable_err();
   public:
   void unsafe_arena_set_allocated_err(
-      ::Error* err);
-  ::Error* unsafe_arena_release_err();
+      ::vearchpb::Error* err);
+  ::vearchpb::Error* unsafe_arena_release_err();
 
-  // @@protoc_insertion_point(class_scope:ResponseHead)
+  // @@protoc_insertion_point(class_scope:vearchpb.ResponseHead)
  private:
   class _Internal;
 
@@ -685,7 +688,7 @@ class ResponseHead final :
         std::string, std::string,
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::TYPE_STRING,
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::TYPE_STRING> params_;
-    ::Error* err_;
+    ::vearchpb::Error* err_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
   union { Impl_ _impl_; };
@@ -694,7 +697,7 @@ class ResponseHead final :
 // -------------------------------------------------------------------
 
 class GetRequest final :
-    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:GetRequest) */ {
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:vearchpb.GetRequest) */ {
  public:
   inline GetRequest() : GetRequest(nullptr) {}
   ~GetRequest() override;
@@ -797,7 +800,7 @@ class GetRequest final :
   private:
   friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
   static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "GetRequest";
+    return "vearchpb.GetRequest";
   }
   protected:
   explicit GetRequest(::PROTOBUF_NAMESPACE_ID::Arena* arena,
@@ -841,25 +844,25 @@ class GetRequest final :
   std::string* _internal_add_primary_keys();
   public:
 
-  // .RequestHead head = 1;
+  // .vearchpb.RequestHead head = 1;
   bool has_head() const;
   private:
   bool _internal_has_head() const;
   public:
   void clear_head();
-  const ::RequestHead& head() const;
-  PROTOBUF_NODISCARD ::RequestHead* release_head();
-  ::RequestHead* mutable_head();
-  void set_allocated_head(::RequestHead* head);
+  const ::vearchpb::RequestHead& head() const;
+  PROTOBUF_NODISCARD ::vearchpb::RequestHead* release_head();
+  ::vearchpb::RequestHead* mutable_head();
+  void set_allocated_head(::vearchpb::RequestHead* head);
   private:
-  const ::RequestHead& _internal_head() const;
-  ::RequestHead* _internal_mutable_head();
+  const ::vearchpb::RequestHead& _internal_head() const;
+  ::vearchpb::RequestHead* _internal_mutable_head();
   public:
   void unsafe_arena_set_allocated_head(
-      ::RequestHead* head);
-  ::RequestHead* unsafe_arena_release_head();
+      ::vearchpb::RequestHead* head);
+  ::vearchpb::RequestHead* unsafe_arena_release_head();
 
-  // @@protoc_insertion_point(class_scope:GetRequest)
+  // @@protoc_insertion_point(class_scope:vearchpb.GetRequest)
  private:
   class _Internal;
 
@@ -868,7 +871,7 @@ class GetRequest final :
   typedef void DestructorSkippable_;
   struct Impl_ {
     ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string> primary_keys_;
-    ::RequestHead* head_;
+    ::vearchpb::RequestHead* head_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
   union { Impl_ _impl_; };
@@ -877,7 +880,7 @@ class GetRequest final :
 // -------------------------------------------------------------------
 
 class DeleteRequest final :
-    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:DeleteRequest) */ {
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:vearchpb.DeleteRequest) */ {
  public:
   inline DeleteRequest() : DeleteRequest(nullptr) {}
   ~DeleteRequest() override;
@@ -980,7 +983,7 @@ class DeleteRequest final :
   private:
   friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
   static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "DeleteRequest";
+    return "vearchpb.DeleteRequest";
   }
   protected:
   explicit DeleteRequest(::PROTOBUF_NAMESPACE_ID::Arena* arena,
@@ -1024,25 +1027,25 @@ class DeleteRequest final :
   std::string* _internal_add_primary_keys();
   public:
 
-  // .RequestHead head = 1;
+  // .vearchpb.RequestHead head = 1;
   bool has_head() const;
   private:
   bool _internal_has_head() const;
   public:
   void clear_head();
-  const ::RequestHead& head() const;
-  PROTOBUF_NODISCARD ::RequestHead* release_head();
-  ::RequestHead* mutable_head();
-  void set_allocated_head(::RequestHead* head);
+  const ::vearchpb::RequestHead& head() const;
+  PROTOBUF_NODISCARD ::vearchpb::RequestHead* release_head();
+  ::vearchpb::RequestHead* mutable_head();
+  void set_allocated_head(::vearchpb::RequestHead* head);
   private:
-  const ::RequestHead& _internal_head() const;
-  ::RequestHead* _internal_mutable_head();
+  const ::vearchpb::RequestHead& _internal_head() const;
+  ::vearchpb::RequestHead* _internal_mutable_head();
   public:
   void unsafe_arena_set_allocated_head(
-      ::RequestHead* head);
-  ::RequestHead* unsafe_arena_release_head();
+      ::vearchpb::RequestHead* head);
+  ::vearchpb::RequestHead* unsafe_arena_release_head();
 
-  // @@protoc_insertion_point(class_scope:DeleteRequest)
+  // @@protoc_insertion_point(class_scope:vearchpb.DeleteRequest)
  private:
   class _Internal;
 
@@ -1051,7 +1054,7 @@ class DeleteRequest final :
   typedef void DestructorSkippable_;
   struct Impl_ {
     ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string> primary_keys_;
-    ::RequestHead* head_;
+    ::vearchpb::RequestHead* head_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
   union { Impl_ _impl_; };
@@ -1060,7 +1063,7 @@ class DeleteRequest final :
 // -------------------------------------------------------------------
 
 class BulkRequest final :
-    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:BulkRequest) */ {
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:vearchpb.BulkRequest) */ {
  public:
   inline BulkRequest() : BulkRequest(nullptr) {}
   ~BulkRequest() override;
@@ -1163,7 +1166,7 @@ class BulkRequest final :
   private:
   friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
   static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "BulkRequest";
+    return "vearchpb.BulkRequest";
   }
   protected:
   explicit BulkRequest(::PROTOBUF_NAMESPACE_ID::Arena* arena,
@@ -1184,22 +1187,22 @@ class BulkRequest final :
     kPartitionsFieldNumber = 3,
     kHeadFieldNumber = 1,
   };
-  // repeated .Document docs = 2;
+  // repeated .vearchpb.Document docs = 2;
   int docs_size() const;
   private:
   int _internal_docs_size() const;
   public:
   void clear_docs();
-  ::Document* mutable_docs(int index);
-  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::Document >*
+  ::vearchpb::Document* mutable_docs(int index);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::Document >*
       mutable_docs();
   private:
-  const ::Document& _internal_docs(int index) const;
-  ::Document* _internal_add_docs();
+  const ::vearchpb::Document& _internal_docs(int index) const;
+  ::vearchpb::Document* _internal_add_docs();
   public:
-  const ::Document& docs(int index) const;
-  ::Document* add_docs();
-  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::Document >&
+  const ::vearchpb::Document& docs(int index) const;
+  ::vearchpb::Document* add_docs();
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::Document >&
       docs() const;
 
   // repeated uint32 partitions = 3;
@@ -1224,25 +1227,25 @@ class BulkRequest final :
   ::PROTOBUF_NAMESPACE_ID::RepeatedField< uint32_t >*
       mutable_partitions();
 
-  // .RequestHead head = 1;
+  // .vearchpb.RequestHead head = 1;
   bool has_head() const;
   private:
   bool _internal_has_head() const;
   public:
   void clear_head();
-  const ::RequestHead& head() const;
-  PROTOBUF_NODISCARD ::RequestHead* release_head();
-  ::RequestHead* mutable_head();
-  void set_allocated_head(::RequestHead* head);
+  const ::vearchpb::RequestHead& head() const;
+  PROTOBUF_NODISCARD ::vearchpb::RequestHead* release_head();
+  ::vearchpb::RequestHead* mutable_head();
+  void set_allocated_head(::vearchpb::RequestHead* head);
   private:
-  const ::RequestHead& _internal_head() const;
-  ::RequestHead* _internal_mutable_head();
+  const ::vearchpb::RequestHead& _internal_head() const;
+  ::vearchpb::RequestHead* _internal_mutable_head();
   public:
   void unsafe_arena_set_allocated_head(
-      ::RequestHead* head);
-  ::RequestHead* unsafe_arena_release_head();
+      ::vearchpb::RequestHead* head);
+  ::vearchpb::RequestHead* unsafe_arena_release_head();
 
-  // @@protoc_insertion_point(class_scope:BulkRequest)
+  // @@protoc_insertion_point(class_scope:vearchpb.BulkRequest)
  private:
   class _Internal;
 
@@ -1250,10 +1253,10 @@ class BulkRequest final :
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
   struct Impl_ {
-    ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::Document > docs_;
+    ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::Document > docs_;
     ::PROTOBUF_NAMESPACE_ID::RepeatedField< uint32_t > partitions_;
     mutable std::atomic<int> _partitions_cached_byte_size_;
-    ::RequestHead* head_;
+    ::vearchpb::RequestHead* head_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
   union { Impl_ _impl_; };
@@ -1262,7 +1265,7 @@ class BulkRequest final :
 // -------------------------------------------------------------------
 
 class ForceMergeRequest final :
-    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:ForceMergeRequest) */ {
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:vearchpb.ForceMergeRequest) */ {
  public:
   inline ForceMergeRequest() : ForceMergeRequest(nullptr) {}
   ~ForceMergeRequest() override;
@@ -1365,7 +1368,7 @@ class ForceMergeRequest final :
   private:
   friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
   static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "ForceMergeRequest";
+    return "vearchpb.ForceMergeRequest";
   }
   protected:
   explicit ForceMergeRequest(::PROTOBUF_NAMESPACE_ID::Arena* arena,
@@ -1384,25 +1387,25 @@ class ForceMergeRequest final :
   enum : int {
     kHeadFieldNumber = 1,
   };
-  // .RequestHead head = 1;
+  // .vearchpb.RequestHead head = 1;
   bool has_head() const;
   private:
   bool _internal_has_head() const;
   public:
   void clear_head();
-  const ::RequestHead& head() const;
-  PROTOBUF_NODISCARD ::RequestHead* release_head();
-  ::RequestHead* mutable_head();
-  void set_allocated_head(::RequestHead* head);
+  const ::vearchpb::RequestHead& head() const;
+  PROTOBUF_NODISCARD ::vearchpb::RequestHead* release_head();
+  ::vearchpb::RequestHead* mutable_head();
+  void set_allocated_head(::vearchpb::RequestHead* head);
   private:
-  const ::RequestHead& _internal_head() const;
-  ::RequestHead* _internal_mutable_head();
+  const ::vearchpb::RequestHead& _internal_head() const;
+  ::vearchpb::RequestHead* _internal_mutable_head();
   public:
   void unsafe_arena_set_allocated_head(
-      ::RequestHead* head);
-  ::RequestHead* unsafe_arena_release_head();
+      ::vearchpb::RequestHead* head);
+  ::vearchpb::RequestHead* unsafe_arena_release_head();
 
-  // @@protoc_insertion_point(class_scope:ForceMergeRequest)
+  // @@protoc_insertion_point(class_scope:vearchpb.ForceMergeRequest)
  private:
   class _Internal;
 
@@ -1410,7 +1413,7 @@ class ForceMergeRequest final :
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
   struct Impl_ {
-    ::RequestHead* head_;
+    ::vearchpb::RequestHead* head_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
   union { Impl_ _impl_; };
@@ -1419,7 +1422,7 @@ class ForceMergeRequest final :
 // -------------------------------------------------------------------
 
 class FlushRequest final :
-    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:FlushRequest) */ {
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:vearchpb.FlushRequest) */ {
  public:
   inline FlushRequest() : FlushRequest(nullptr) {}
   ~FlushRequest() override;
@@ -1522,7 +1525,7 @@ class FlushRequest final :
   private:
   friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
   static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "FlushRequest";
+    return "vearchpb.FlushRequest";
   }
   protected:
   explicit FlushRequest(::PROTOBUF_NAMESPACE_ID::Arena* arena,
@@ -1541,25 +1544,25 @@ class FlushRequest final :
   enum : int {
     kHeadFieldNumber = 1,
   };
-  // .RequestHead head = 1;
+  // .vearchpb.RequestHead head = 1;
   bool has_head() const;
   private:
   bool _internal_has_head() const;
   public:
   void clear_head();
-  const ::RequestHead& head() const;
-  PROTOBUF_NODISCARD ::RequestHead* release_head();
-  ::RequestHead* mutable_head();
-  void set_allocated_head(::RequestHead* head);
+  const ::vearchpb::RequestHead& head() const;
+  PROTOBUF_NODISCARD ::vearchpb::RequestHead* release_head();
+  ::vearchpb::RequestHead* mutable_head();
+  void set_allocated_head(::vearchpb::RequestHead* head);
   private:
-  const ::RequestHead& _internal_head() const;
-  ::RequestHead* _internal_mutable_head();
+  const ::vearchpb::RequestHead& _internal_head() const;
+  ::vearchpb::RequestHead* _internal_mutable_head();
   public:
   void unsafe_arena_set_allocated_head(
-      ::RequestHead* head);
-  ::RequestHead* unsafe_arena_release_head();
+      ::vearchpb::RequestHead* head);
+  ::vearchpb::RequestHead* unsafe_arena_release_head();
 
-  // @@protoc_insertion_point(class_scope:FlushRequest)
+  // @@protoc_insertion_point(class_scope:vearchpb.FlushRequest)
  private:
   class _Internal;
 
@@ -1567,7 +1570,7 @@ class FlushRequest final :
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
   struct Impl_ {
-    ::RequestHead* head_;
+    ::vearchpb::RequestHead* head_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
   union { Impl_ _impl_; };
@@ -1576,7 +1579,7 @@ class FlushRequest final :
 // -------------------------------------------------------------------
 
 class IndexRequest final :
-    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:IndexRequest) */ {
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:vearchpb.IndexRequest) */ {
  public:
   inline IndexRequest() : IndexRequest(nullptr) {}
   ~IndexRequest() override;
@@ -1679,7 +1682,7 @@ class IndexRequest final :
   private:
   friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
   static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "IndexRequest";
+    return "vearchpb.IndexRequest";
   }
   protected:
   explicit IndexRequest(::PROTOBUF_NAMESPACE_ID::Arena* arena,
@@ -1701,23 +1704,23 @@ class IndexRequest final :
     kLimitCpuFieldNumber = 3,
     kDescribeFieldNumber = 4,
   };
-  // .RequestHead head = 1;
+  // .vearchpb.RequestHead head = 1;
   bool has_head() const;
   private:
   bool _internal_has_head() const;
   public:
   void clear_head();
-  const ::RequestHead& head() const;
-  PROTOBUF_NODISCARD ::RequestHead* release_head();
-  ::RequestHead* mutable_head();
-  void set_allocated_head(::RequestHead* head);
+  const ::vearchpb::RequestHead& head() const;
+  PROTOBUF_NODISCARD ::vearchpb::RequestHead* release_head();
+  ::vearchpb::RequestHead* mutable_head();
+  void set_allocated_head(::vearchpb::RequestHead* head);
   private:
-  const ::RequestHead& _internal_head() const;
-  ::RequestHead* _internal_mutable_head();
+  const ::vearchpb::RequestHead& _internal_head() const;
+  ::vearchpb::RequestHead* _internal_mutable_head();
   public:
   void unsafe_arena_set_allocated_head(
-      ::RequestHead* head);
-  ::RequestHead* unsafe_arena_release_head();
+      ::vearchpb::RequestHead* head);
+  ::vearchpb::RequestHead* unsafe_arena_release_head();
 
   // int64 drop_before_rebuild = 2;
   void clear_drop_before_rebuild();
@@ -1746,7 +1749,7 @@ class IndexRequest final :
   void _internal_set_describe(int64_t value);
   public:
 
-  // @@protoc_insertion_point(class_scope:IndexRequest)
+  // @@protoc_insertion_point(class_scope:vearchpb.IndexRequest)
  private:
   class _Internal;
 
@@ -1754,7 +1757,7 @@ class IndexRequest final :
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
   struct Impl_ {
-    ::RequestHead* head_;
+    ::vearchpb::RequestHead* head_;
     int64_t drop_before_rebuild_;
     int64_t limit_cpu_;
     int64_t describe_;
@@ -1766,7 +1769,7 @@ class IndexRequest final :
 // -------------------------------------------------------------------
 
 class GetResponse final :
-    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:GetResponse) */ {
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:vearchpb.GetResponse) */ {
  public:
   inline GetResponse() : GetResponse(nullptr) {}
   ~GetResponse() override;
@@ -1869,7 +1872,7 @@ class GetResponse final :
   private:
   friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
   static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "GetResponse";
+    return "vearchpb.GetResponse";
   }
   protected:
   explicit GetResponse(::PROTOBUF_NAMESPACE_ID::Arena* arena,
@@ -1889,43 +1892,43 @@ class GetResponse final :
     kItemsFieldNumber = 2,
     kHeadFieldNumber = 1,
   };
-  // repeated .Item items = 2;
+  // repeated .vearchpb.Item items = 2;
   int items_size() const;
   private:
   int _internal_items_size() const;
   public:
   void clear_items();
-  ::Item* mutable_items(int index);
-  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::Item >*
+  ::vearchpb::Item* mutable_items(int index);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::Item >*
       mutable_items();
   private:
-  const ::Item& _internal_items(int index) const;
-  ::Item* _internal_add_items();
+  const ::vearchpb::Item& _internal_items(int index) const;
+  ::vearchpb::Item* _internal_add_items();
   public:
-  const ::Item& items(int index) const;
-  ::Item* add_items();
-  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::Item >&
+  const ::vearchpb::Item& items(int index) const;
+  ::vearchpb::Item* add_items();
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::Item >&
       items() const;
 
-  // .ResponseHead head = 1;
+  // .vearchpb.ResponseHead head = 1;
   bool has_head() const;
   private:
   bool _internal_has_head() const;
   public:
   void clear_head();
-  const ::ResponseHead& head() const;
-  PROTOBUF_NODISCARD ::ResponseHead* release_head();
-  ::ResponseHead* mutable_head();
-  void set_allocated_head(::ResponseHead* head);
+  const ::vearchpb::ResponseHead& head() const;
+  PROTOBUF_NODISCARD ::vearchpb::ResponseHead* release_head();
+  ::vearchpb::ResponseHead* mutable_head();
+  void set_allocated_head(::vearchpb::ResponseHead* head);
   private:
-  const ::ResponseHead& _internal_head() const;
-  ::ResponseHead* _internal_mutable_head();
+  const ::vearchpb::ResponseHead& _internal_head() const;
+  ::vearchpb::ResponseHead* _internal_mutable_head();
   public:
   void unsafe_arena_set_allocated_head(
-      ::ResponseHead* head);
-  ::ResponseHead* unsafe_arena_release_head();
+      ::vearchpb::ResponseHead* head);
+  ::vearchpb::ResponseHead* unsafe_arena_release_head();
 
-  // @@protoc_insertion_point(class_scope:GetResponse)
+  // @@protoc_insertion_point(class_scope:vearchpb.GetResponse)
  private:
   class _Internal;
 
@@ -1933,8 +1936,8 @@ class GetResponse final :
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
   struct Impl_ {
-    ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::Item > items_;
-    ::ResponseHead* head_;
+    ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::Item > items_;
+    ::vearchpb::ResponseHead* head_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
   union { Impl_ _impl_; };
@@ -1943,7 +1946,7 @@ class GetResponse final :
 // -------------------------------------------------------------------
 
 class DeleteResponse final :
-    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:DeleteResponse) */ {
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:vearchpb.DeleteResponse) */ {
  public:
   inline DeleteResponse() : DeleteResponse(nullptr) {}
   ~DeleteResponse() override;
@@ -2046,7 +2049,7 @@ class DeleteResponse final :
   private:
   friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
   static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "DeleteResponse";
+    return "vearchpb.DeleteResponse";
   }
   protected:
   explicit DeleteResponse(::PROTOBUF_NAMESPACE_ID::Arena* arena,
@@ -2066,43 +2069,43 @@ class DeleteResponse final :
     kItemsFieldNumber = 2,
     kHeadFieldNumber = 1,
   };
-  // repeated .Item items = 2;
+  // repeated .vearchpb.Item items = 2;
   int items_size() const;
   private:
   int _internal_items_size() const;
   public:
   void clear_items();
-  ::Item* mutable_items(int index);
-  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::Item >*
+  ::vearchpb::Item* mutable_items(int index);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::Item >*
       mutable_items();
   private:
-  const ::Item& _internal_items(int index) const;
-  ::Item* _internal_add_items();
+  const ::vearchpb::Item& _internal_items(int index) const;
+  ::vearchpb::Item* _internal_add_items();
   public:
-  const ::Item& items(int index) const;
-  ::Item* add_items();
-  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::Item >&
+  const ::vearchpb::Item& items(int index) const;
+  ::vearchpb::Item* add_items();
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::Item >&
       items() const;
 
-  // .ResponseHead head = 1;
+  // .vearchpb.ResponseHead head = 1;
   bool has_head() const;
   private:
   bool _internal_has_head() const;
   public:
   void clear_head();
-  const ::ResponseHead& head() const;
-  PROTOBUF_NODISCARD ::ResponseHead* release_head();
-  ::ResponseHead* mutable_head();
-  void set_allocated_head(::ResponseHead* head);
+  const ::vearchpb::ResponseHead& head() const;
+  PROTOBUF_NODISCARD ::vearchpb::ResponseHead* release_head();
+  ::vearchpb::ResponseHead* mutable_head();
+  void set_allocated_head(::vearchpb::ResponseHead* head);
   private:
-  const ::ResponseHead& _internal_head() const;
-  ::ResponseHead* _internal_mutable_head();
+  const ::vearchpb::ResponseHead& _internal_head() const;
+  ::vearchpb::ResponseHead* _internal_mutable_head();
   public:
   void unsafe_arena_set_allocated_head(
-      ::ResponseHead* head);
-  ::ResponseHead* unsafe_arena_release_head();
+      ::vearchpb::ResponseHead* head);
+  ::vearchpb::ResponseHead* unsafe_arena_release_head();
 
-  // @@protoc_insertion_point(class_scope:DeleteResponse)
+  // @@protoc_insertion_point(class_scope:vearchpb.DeleteResponse)
  private:
   class _Internal;
 
@@ -2110,8 +2113,8 @@ class DeleteResponse final :
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
   struct Impl_ {
-    ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::Item > items_;
-    ::ResponseHead* head_;
+    ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::Item > items_;
+    ::vearchpb::ResponseHead* head_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
   union { Impl_ _impl_; };
@@ -2120,7 +2123,7 @@ class DeleteResponse final :
 // -------------------------------------------------------------------
 
 class BulkResponse final :
-    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:BulkResponse) */ {
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:vearchpb.BulkResponse) */ {
  public:
   inline BulkResponse() : BulkResponse(nullptr) {}
   ~BulkResponse() override;
@@ -2223,7 +2226,7 @@ class BulkResponse final :
   private:
   friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
   static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "BulkResponse";
+    return "vearchpb.BulkResponse";
   }
   protected:
   explicit BulkResponse(::PROTOBUF_NAMESPACE_ID::Arena* arena,
@@ -2243,43 +2246,43 @@ class BulkResponse final :
     kItemsFieldNumber = 2,
     kHeadFieldNumber = 1,
   };
-  // repeated .Item items = 2;
+  // repeated .vearchpb.Item items = 2;
   int items_size() const;
   private:
   int _internal_items_size() const;
   public:
   void clear_items();
-  ::Item* mutable_items(int index);
-  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::Item >*
+  ::vearchpb::Item* mutable_items(int index);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::Item >*
       mutable_items();
   private:
-  const ::Item& _internal_items(int index) const;
-  ::Item* _internal_add_items();
+  const ::vearchpb::Item& _internal_items(int index) const;
+  ::vearchpb::Item* _internal_add_items();
   public:
-  const ::Item& items(int index) const;
-  ::Item* add_items();
-  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::Item >&
+  const ::vearchpb::Item& items(int index) const;
+  ::vearchpb::Item* add_items();
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::Item >&
       items() const;
 
-  // .ResponseHead head = 1;
+  // .vearchpb.ResponseHead head = 1;
   bool has_head() const;
   private:
   bool _internal_has_head() const;
   public:
   void clear_head();
-  const ::ResponseHead& head() const;
-  PROTOBUF_NODISCARD ::ResponseHead* release_head();
-  ::ResponseHead* mutable_head();
-  void set_allocated_head(::ResponseHead* head);
+  const ::vearchpb::ResponseHead& head() const;
+  PROTOBUF_NODISCARD ::vearchpb::ResponseHead* release_head();
+  ::vearchpb::ResponseHead* mutable_head();
+  void set_allocated_head(::vearchpb::ResponseHead* head);
   private:
-  const ::ResponseHead& _internal_head() const;
-  ::ResponseHead* _internal_mutable_head();
+  const ::vearchpb::ResponseHead& _internal_head() const;
+  ::vearchpb::ResponseHead* _internal_mutable_head();
   public:
   void unsafe_arena_set_allocated_head(
-      ::ResponseHead* head);
-  ::ResponseHead* unsafe_arena_release_head();
+      ::vearchpb::ResponseHead* head);
+  ::vearchpb::ResponseHead* unsafe_arena_release_head();
 
-  // @@protoc_insertion_point(class_scope:BulkResponse)
+  // @@protoc_insertion_point(class_scope:vearchpb.BulkResponse)
  private:
   class _Internal;
 
@@ -2287,8 +2290,8 @@ class BulkResponse final :
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
   struct Impl_ {
-    ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::Item > items_;
-    ::ResponseHead* head_;
+    ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::Item > items_;
+    ::vearchpb::ResponseHead* head_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
   union { Impl_ _impl_; };
@@ -2297,7 +2300,7 @@ class BulkResponse final :
 // -------------------------------------------------------------------
 
 class ForceMergeResponse final :
-    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:ForceMergeResponse) */ {
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:vearchpb.ForceMergeResponse) */ {
  public:
   inline ForceMergeResponse() : ForceMergeResponse(nullptr) {}
   ~ForceMergeResponse() override;
@@ -2400,7 +2403,7 @@ class ForceMergeResponse final :
   private:
   friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
   static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "ForceMergeResponse";
+    return "vearchpb.ForceMergeResponse";
   }
   protected:
   explicit ForceMergeResponse(::PROTOBUF_NAMESPACE_ID::Arena* arena,
@@ -2420,43 +2423,43 @@ class ForceMergeResponse final :
     kHeadFieldNumber = 1,
     kShardsFieldNumber = 2,
   };
-  // .ResponseHead head = 1;
+  // .vearchpb.ResponseHead head = 1;
   bool has_head() const;
   private:
   bool _internal_has_head() const;
   public:
   void clear_head();
-  const ::ResponseHead& head() const;
-  PROTOBUF_NODISCARD ::ResponseHead* release_head();
-  ::ResponseHead* mutable_head();
-  void set_allocated_head(::ResponseHead* head);
+  const ::vearchpb::ResponseHead& head() const;
+  PROTOBUF_NODISCARD ::vearchpb::ResponseHead* release_head();
+  ::vearchpb::ResponseHead* mutable_head();
+  void set_allocated_head(::vearchpb::ResponseHead* head);
   private:
-  const ::ResponseHead& _internal_head() const;
-  ::ResponseHead* _internal_mutable_head();
+  const ::vearchpb::ResponseHead& _internal_head() const;
+  ::vearchpb::ResponseHead* _internal_mutable_head();
   public:
   void unsafe_arena_set_allocated_head(
-      ::ResponseHead* head);
-  ::ResponseHead* unsafe_arena_release_head();
+      ::vearchpb::ResponseHead* head);
+  ::vearchpb::ResponseHead* unsafe_arena_release_head();
 
-  // .SearchStatus shards = 2;
+  // .vearchpb.SearchStatus shards = 2;
   bool has_shards() const;
   private:
   bool _internal_has_shards() const;
   public:
   void clear_shards();
-  const ::SearchStatus& shards() const;
-  PROTOBUF_NODISCARD ::SearchStatus* release_shards();
-  ::SearchStatus* mutable_shards();
-  void set_allocated_shards(::SearchStatus* shards);
+  const ::vearchpb::SearchStatus& shards() const;
+  PROTOBUF_NODISCARD ::vearchpb::SearchStatus* release_shards();
+  ::vearchpb::SearchStatus* mutable_shards();
+  void set_allocated_shards(::vearchpb::SearchStatus* shards);
   private:
-  const ::SearchStatus& _internal_shards() const;
-  ::SearchStatus* _internal_mutable_shards();
+  const ::vearchpb::SearchStatus& _internal_shards() const;
+  ::vearchpb::SearchStatus* _internal_mutable_shards();
   public:
   void unsafe_arena_set_allocated_shards(
-      ::SearchStatus* shards);
-  ::SearchStatus* unsafe_arena_release_shards();
+      ::vearchpb::SearchStatus* shards);
+  ::vearchpb::SearchStatus* unsafe_arena_release_shards();
 
-  // @@protoc_insertion_point(class_scope:ForceMergeResponse)
+  // @@protoc_insertion_point(class_scope:vearchpb.ForceMergeResponse)
  private:
   class _Internal;
 
@@ -2464,8 +2467,8 @@ class ForceMergeResponse final :
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
   struct Impl_ {
-    ::ResponseHead* head_;
-    ::SearchStatus* shards_;
+    ::vearchpb::ResponseHead* head_;
+    ::vearchpb::SearchStatus* shards_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
   union { Impl_ _impl_; };
@@ -2474,7 +2477,7 @@ class ForceMergeResponse final :
 // -------------------------------------------------------------------
 
 class DelByQueryeResponse final :
-    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:DelByQueryeResponse) */ {
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:vearchpb.DelByQueryeResponse) */ {
  public:
   inline DelByQueryeResponse() : DelByQueryeResponse(nullptr) {}
   ~DelByQueryeResponse() override;
@@ -2577,7 +2580,7 @@ class DelByQueryeResponse final :
   private:
   friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
   static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "DelByQueryeResponse";
+    return "vearchpb.DelByQueryeResponse";
   }
   protected:
   explicit DelByQueryeResponse(::PROTOBUF_NAMESPACE_ID::Arena* arena,
@@ -2645,23 +2648,23 @@ class DelByQueryeResponse final :
   ::PROTOBUF_NAMESPACE_ID::RepeatedField< int64_t >*
       mutable_ids_long();
 
-  // .ResponseHead head = 1;
+  // .vearchpb.ResponseHead head = 1;
   bool has_head() const;
   private:
   bool _internal_has_head() const;
   public:
   void clear_head();
-  const ::ResponseHead& head() const;
-  PROTOBUF_NODISCARD ::ResponseHead* release_head();
-  ::ResponseHead* mutable_head();
-  void set_allocated_head(::ResponseHead* head);
+  const ::vearchpb::ResponseHead& head() const;
+  PROTOBUF_NODISCARD ::vearchpb::ResponseHead* release_head();
+  ::vearchpb::ResponseHead* mutable_head();
+  void set_allocated_head(::vearchpb::ResponseHead* head);
   private:
-  const ::ResponseHead& _internal_head() const;
-  ::ResponseHead* _internal_mutable_head();
+  const ::vearchpb::ResponseHead& _internal_head() const;
+  ::vearchpb::ResponseHead* _internal_mutable_head();
   public:
   void unsafe_arena_set_allocated_head(
-      ::ResponseHead* head);
-  ::ResponseHead* unsafe_arena_release_head();
+      ::vearchpb::ResponseHead* head);
+  ::vearchpb::ResponseHead* unsafe_arena_release_head();
 
   // int32 DelNum = 2;
   void clear_delnum();
@@ -2672,7 +2675,7 @@ class DelByQueryeResponse final :
   void _internal_set_delnum(int32_t value);
   public:
 
-  // @@protoc_insertion_point(class_scope:DelByQueryeResponse)
+  // @@protoc_insertion_point(class_scope:vearchpb.DelByQueryeResponse)
  private:
   class _Internal;
 
@@ -2683,7 +2686,7 @@ class DelByQueryeResponse final :
     ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string> ids_str_;
     ::PROTOBUF_NAMESPACE_ID::RepeatedField< int64_t > ids_long_;
     mutable std::atomic<int> _ids_long_cached_byte_size_;
-    ::ResponseHead* head_;
+    ::vearchpb::ResponseHead* head_;
     int32_t delnum_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
@@ -2693,7 +2696,7 @@ class DelByQueryeResponse final :
 // -------------------------------------------------------------------
 
 class FlushResponse final :
-    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:FlushResponse) */ {
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:vearchpb.FlushResponse) */ {
  public:
   inline FlushResponse() : FlushResponse(nullptr) {}
   ~FlushResponse() override;
@@ -2796,7 +2799,7 @@ class FlushResponse final :
   private:
   friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
   static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "FlushResponse";
+    return "vearchpb.FlushResponse";
   }
   protected:
   explicit FlushResponse(::PROTOBUF_NAMESPACE_ID::Arena* arena,
@@ -2816,43 +2819,43 @@ class FlushResponse final :
     kHeadFieldNumber = 1,
     kShardsFieldNumber = 2,
   };
-  // .ResponseHead head = 1;
+  // .vearchpb.ResponseHead head = 1;
   bool has_head() const;
   private:
   bool _internal_has_head() const;
   public:
   void clear_head();
-  const ::ResponseHead& head() const;
-  PROTOBUF_NODISCARD ::ResponseHead* release_head();
-  ::ResponseHead* mutable_head();
-  void set_allocated_head(::ResponseHead* head);
+  const ::vearchpb::ResponseHead& head() const;
+  PROTOBUF_NODISCARD ::vearchpb::ResponseHead* release_head();
+  ::vearchpb::ResponseHead* mutable_head();
+  void set_allocated_head(::vearchpb::ResponseHead* head);
   private:
-  const ::ResponseHead& _internal_head() const;
-  ::ResponseHead* _internal_mutable_head();
+  const ::vearchpb::ResponseHead& _internal_head() const;
+  ::vearchpb::ResponseHead* _internal_mutable_head();
   public:
   void unsafe_arena_set_allocated_head(
-      ::ResponseHead* head);
-  ::ResponseHead* unsafe_arena_release_head();
+      ::vearchpb::ResponseHead* head);
+  ::vearchpb::ResponseHead* unsafe_arena_release_head();
 
-  // .SearchStatus shards = 2;
+  // .vearchpb.SearchStatus shards = 2;
   bool has_shards() const;
   private:
   bool _internal_has_shards() const;
   public:
   void clear_shards();
-  const ::SearchStatus& shards() const;
-  PROTOBUF_NODISCARD ::SearchStatus* release_shards();
-  ::SearchStatus* mutable_shards();
-  void set_allocated_shards(::SearchStatus* shards);
+  const ::vearchpb::SearchStatus& shards() const;
+  PROTOBUF_NODISCARD ::vearchpb::SearchStatus* release_shards();
+  ::vearchpb::SearchStatus* mutable_shards();
+  void set_allocated_shards(::vearchpb::SearchStatus* shards);
   private:
-  const ::SearchStatus& _internal_shards() const;
-  ::SearchStatus* _internal_mutable_shards();
+  const ::vearchpb::SearchStatus& _internal_shards() const;
+  ::vearchpb::SearchStatus* _internal_mutable_shards();
   public:
   void unsafe_arena_set_allocated_shards(
-      ::SearchStatus* shards);
-  ::SearchStatus* unsafe_arena_release_shards();
+      ::vearchpb::SearchStatus* shards);
+  ::vearchpb::SearchStatus* unsafe_arena_release_shards();
 
-  // @@protoc_insertion_point(class_scope:FlushResponse)
+  // @@protoc_insertion_point(class_scope:vearchpb.FlushResponse)
  private:
   class _Internal;
 
@@ -2860,8 +2863,8 @@ class FlushResponse final :
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
   struct Impl_ {
-    ::ResponseHead* head_;
-    ::SearchStatus* shards_;
+    ::vearchpb::ResponseHead* head_;
+    ::vearchpb::SearchStatus* shards_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
   union { Impl_ _impl_; };
@@ -2870,7 +2873,7 @@ class FlushResponse final :
 // -------------------------------------------------------------------
 
 class IndexResponse final :
-    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:IndexResponse) */ {
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:vearchpb.IndexResponse) */ {
  public:
   inline IndexResponse() : IndexResponse(nullptr) {}
   ~IndexResponse() override;
@@ -2973,7 +2976,7 @@ class IndexResponse final :
   private:
   friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
   static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "IndexResponse";
+    return "vearchpb.IndexResponse";
   }
   protected:
   explicit IndexResponse(::PROTOBUF_NAMESPACE_ID::Arena* arena,
@@ -2993,43 +2996,43 @@ class IndexResponse final :
     kHeadFieldNumber = 1,
     kShardsFieldNumber = 2,
   };
-  // .ResponseHead head = 1;
+  // .vearchpb.ResponseHead head = 1;
   bool has_head() const;
   private:
   bool _internal_has_head() const;
   public:
   void clear_head();
-  const ::ResponseHead& head() const;
-  PROTOBUF_NODISCARD ::ResponseHead* release_head();
-  ::ResponseHead* mutable_head();
-  void set_allocated_head(::ResponseHead* head);
+  const ::vearchpb::ResponseHead& head() const;
+  PROTOBUF_NODISCARD ::vearchpb::ResponseHead* release_head();
+  ::vearchpb::ResponseHead* mutable_head();
+  void set_allocated_head(::vearchpb::ResponseHead* head);
   private:
-  const ::ResponseHead& _internal_head() const;
-  ::ResponseHead* _internal_mutable_head();
+  const ::vearchpb::ResponseHead& _internal_head() const;
+  ::vearchpb::ResponseHead* _internal_mutable_head();
   public:
   void unsafe_arena_set_allocated_head(
-      ::ResponseHead* head);
-  ::ResponseHead* unsafe_arena_release_head();
+      ::vearchpb::ResponseHead* head);
+  ::vearchpb::ResponseHead* unsafe_arena_release_head();
 
-  // .SearchStatus shards = 2;
+  // .vearchpb.SearchStatus shards = 2;
   bool has_shards() const;
   private:
   bool _internal_has_shards() const;
   public:
   void clear_shards();
-  const ::SearchStatus& shards() const;
-  PROTOBUF_NODISCARD ::SearchStatus* release_shards();
-  ::SearchStatus* mutable_shards();
-  void set_allocated_shards(::SearchStatus* shards);
+  const ::vearchpb::SearchStatus& shards() const;
+  PROTOBUF_NODISCARD ::vearchpb::SearchStatus* release_shards();
+  ::vearchpb::SearchStatus* mutable_shards();
+  void set_allocated_shards(::vearchpb::SearchStatus* shards);
   private:
-  const ::SearchStatus& _internal_shards() const;
-  ::SearchStatus* _internal_mutable_shards();
+  const ::vearchpb::SearchStatus& _internal_shards() const;
+  ::vearchpb::SearchStatus* _internal_mutable_shards();
   public:
   void unsafe_arena_set_allocated_shards(
-      ::SearchStatus* shards);
-  ::SearchStatus* unsafe_arena_release_shards();
+      ::vearchpb::SearchStatus* shards);
+  ::vearchpb::SearchStatus* unsafe_arena_release_shards();
 
-  // @@protoc_insertion_point(class_scope:IndexResponse)
+  // @@protoc_insertion_point(class_scope:vearchpb.IndexResponse)
  private:
   class _Internal;
 
@@ -3037,8 +3040,8 @@ class IndexResponse final :
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
   struct Impl_ {
-    ::ResponseHead* head_;
-    ::SearchStatus* shards_;
+    ::vearchpb::ResponseHead* head_;
+    ::vearchpb::SearchStatus* shards_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
   union { Impl_ _impl_; };
@@ -3047,7 +3050,7 @@ class IndexResponse final :
 // -------------------------------------------------------------------
 
 class TermFilter final :
-    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:TermFilter) */ {
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:vearchpb.TermFilter) */ {
  public:
   inline TermFilter() : TermFilter(nullptr) {}
   ~TermFilter() override;
@@ -3150,7 +3153,7 @@ class TermFilter final :
   private:
   friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
   static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "TermFilter";
+    return "vearchpb.TermFilter";
   }
   protected:
   explicit TermFilter(::PROTOBUF_NAMESPACE_ID::Arena* arena,
@@ -3208,7 +3211,7 @@ class TermFilter final :
   void _internal_set_is_union(int32_t value);
   public:
 
-  // @@protoc_insertion_point(class_scope:TermFilter)
+  // @@protoc_insertion_point(class_scope:vearchpb.TermFilter)
  private:
   class _Internal;
 
@@ -3227,7 +3230,7 @@ class TermFilter final :
 // -------------------------------------------------------------------
 
 class RangeFilter final :
-    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:RangeFilter) */ {
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:vearchpb.RangeFilter) */ {
  public:
   inline RangeFilter() : RangeFilter(nullptr) {}
   ~RangeFilter() override;
@@ -3330,7 +3333,7 @@ class RangeFilter final :
   private:
   friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
   static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "RangeFilter";
+    return "vearchpb.RangeFilter";
   }
   protected:
   explicit RangeFilter(::PROTOBUF_NAMESPACE_ID::Arena* arena,
@@ -3413,7 +3416,7 @@ class RangeFilter final :
   void _internal_set_include_upper(bool value);
   public:
 
-  // @@protoc_insertion_point(class_scope:RangeFilter)
+  // @@protoc_insertion_point(class_scope:vearchpb.RangeFilter)
  private:
   class _Internal;
 
@@ -3434,7 +3437,7 @@ class RangeFilter final :
 // -------------------------------------------------------------------
 
 class SortField final :
-    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:SortField) */ {
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:vearchpb.SortField) */ {
  public:
   inline SortField() : SortField(nullptr) {}
   ~SortField() override;
@@ -3537,7 +3540,7 @@ class SortField final :
   private:
   friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
   static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "SortField";
+    return "vearchpb.SortField";
   }
   protected:
   explicit SortField(::PROTOBUF_NAMESPACE_ID::Arena* arena,
@@ -3580,7 +3583,7 @@ class SortField final :
   void _internal_set_type(bool value);
   public:
 
-  // @@protoc_insertion_point(class_scope:SortField)
+  // @@protoc_insertion_point(class_scope:vearchpb.SortField)
  private:
   class _Internal;
 
@@ -3598,7 +3601,7 @@ class SortField final :
 // -------------------------------------------------------------------
 
 class VectorQuery final :
-    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:VectorQuery) */ {
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:vearchpb.VectorQuery) */ {
  public:
   inline VectorQuery() : VectorQuery(nullptr) {}
   ~VectorQuery() override;
@@ -3701,7 +3704,7 @@ class VectorQuery final :
   private:
   friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
   static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "VectorQuery";
+    return "vearchpb.VectorQuery";
   }
   protected:
   explicit VectorQuery(::PROTOBUF_NAMESPACE_ID::Arena* arena,
@@ -3799,7 +3802,7 @@ class VectorQuery final :
   void _internal_set_max_score(double value);
   public:
 
-  // @@protoc_insertion_point(class_scope:VectorQuery)
+  // @@protoc_insertion_point(class_scope:vearchpb.VectorQuery)
  private:
   class _Internal;
 
@@ -3821,7 +3824,7 @@ class VectorQuery final :
 // -------------------------------------------------------------------
 
 class IndexParameters final :
-    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:IndexParameters) */ {
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:vearchpb.IndexParameters) */ {
  public:
   inline IndexParameters() : IndexParameters(nullptr) {}
   ~IndexParameters() override;
@@ -3924,7 +3927,7 @@ class IndexParameters final :
   private:
   friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
   static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "IndexParameters";
+    return "vearchpb.IndexParameters";
   }
   protected:
   explicit IndexParameters(::PROTOBUF_NAMESPACE_ID::Arena* arena,
@@ -3974,13 +3977,13 @@ class IndexParameters final :
     kMetricTypeFieldNumber = 1,
     kNprobeFieldNumber = 2,
   };
-  // .IndexParameters.DistanceMetricType metric_type = 1;
+  // .vearchpb.IndexParameters.DistanceMetricType metric_type = 1;
   void clear_metric_type();
-  ::IndexParameters_DistanceMetricType metric_type() const;
-  void set_metric_type(::IndexParameters_DistanceMetricType value);
+  ::vearchpb::IndexParameters_DistanceMetricType metric_type() const;
+  void set_metric_type(::vearchpb::IndexParameters_DistanceMetricType value);
   private:
-  ::IndexParameters_DistanceMetricType _internal_metric_type() const;
-  void _internal_set_metric_type(::IndexParameters_DistanceMetricType value);
+  ::vearchpb::IndexParameters_DistanceMetricType _internal_metric_type() const;
+  void _internal_set_metric_type(::vearchpb::IndexParameters_DistanceMetricType value);
   public:
 
   // int32 nprobe = 2;
@@ -3992,7 +3995,7 @@ class IndexParameters final :
   void _internal_set_nprobe(int32_t value);
   public:
 
-  // @@protoc_insertion_point(class_scope:IndexParameters)
+  // @@protoc_insertion_point(class_scope:vearchpb.IndexParameters)
  private:
   class _Internal;
 
@@ -4025,10 +4028,10 @@ public:
   void MergeFrom(const QueryRequest_SortFieldMapEntry_DoNotUse& other);
   static const QueryRequest_SortFieldMapEntry_DoNotUse* internal_default_instance() { return reinterpret_cast<const QueryRequest_SortFieldMapEntry_DoNotUse*>(&_QueryRequest_SortFieldMapEntry_DoNotUse_default_instance_); }
   static bool ValidateKey(std::string* s) {
-    return ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(s->data(), static_cast<int>(s->size()), ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::PARSE, "QueryRequest.SortFieldMapEntry.key");
+    return ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(s->data(), static_cast<int>(s->size()), ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::PARSE, "vearchpb.QueryRequest.SortFieldMapEntry.key");
  }
   static bool ValidateValue(std::string* s) {
-    return ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(s->data(), static_cast<int>(s->size()), ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::PARSE, "QueryRequest.SortFieldMapEntry.value");
+    return ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(s->data(), static_cast<int>(s->size()), ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::PARSE, "vearchpb.QueryRequest.SortFieldMapEntry.value");
  }
   using ::PROTOBUF_NAMESPACE_ID::Message::MergeFrom;
   ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadata() const final;
@@ -4038,7 +4041,7 @@ public:
 // -------------------------------------------------------------------
 
 class QueryRequest final :
-    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:QueryRequest) */ {
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:vearchpb.QueryRequest) */ {
  public:
   inline QueryRequest() : QueryRequest(nullptr) {}
   ~QueryRequest() override;
@@ -4141,7 +4144,7 @@ class QueryRequest final :
   private:
   friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
   static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "QueryRequest";
+    return "vearchpb.QueryRequest";
   }
   protected:
   explicit QueryRequest(::PROTOBUF_NAMESPACE_ID::Arena* arena,
@@ -4200,40 +4203,40 @@ class QueryRequest final :
   std::string* _internal_add_document_ids();
   public:
 
-  // repeated .RangeFilter range_filters = 5;
+  // repeated .vearchpb.RangeFilter range_filters = 5;
   int range_filters_size() const;
   private:
   int _internal_range_filters_size() const;
   public:
   void clear_range_filters();
-  ::RangeFilter* mutable_range_filters(int index);
-  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::RangeFilter >*
+  ::vearchpb::RangeFilter* mutable_range_filters(int index);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::RangeFilter >*
       mutable_range_filters();
   private:
-  const ::RangeFilter& _internal_range_filters(int index) const;
-  ::RangeFilter* _internal_add_range_filters();
+  const ::vearchpb::RangeFilter& _internal_range_filters(int index) const;
+  ::vearchpb::RangeFilter* _internal_add_range_filters();
   public:
-  const ::RangeFilter& range_filters(int index) const;
-  ::RangeFilter* add_range_filters();
-  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::RangeFilter >&
+  const ::vearchpb::RangeFilter& range_filters(int index) const;
+  ::vearchpb::RangeFilter* add_range_filters();
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::RangeFilter >&
       range_filters() const;
 
-  // repeated .TermFilter term_filters = 6;
+  // repeated .vearchpb.TermFilter term_filters = 6;
   int term_filters_size() const;
   private:
   int _internal_term_filters_size() const;
   public:
   void clear_term_filters();
-  ::TermFilter* mutable_term_filters(int index);
-  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::TermFilter >*
+  ::vearchpb::TermFilter* mutable_term_filters(int index);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::TermFilter >*
       mutable_term_filters();
   private:
-  const ::TermFilter& _internal_term_filters(int index) const;
-  ::TermFilter* _internal_add_term_filters();
+  const ::vearchpb::TermFilter& _internal_term_filters(int index) const;
+  ::vearchpb::TermFilter* _internal_add_term_filters();
   public:
-  const ::TermFilter& term_filters(int index) const;
-  ::TermFilter* add_term_filters();
-  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::TermFilter >&
+  const ::vearchpb::TermFilter& term_filters(int index) const;
+  ::vearchpb::TermFilter* add_term_filters();
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::TermFilter >&
       term_filters() const;
 
   // repeated string fields = 7;
@@ -4277,22 +4280,22 @@ class QueryRequest final :
   ::PROTOBUF_NAMESPACE_ID::Map< std::string, std::string >*
       mutable_sort_field_map();
 
-  // repeated .SortField sort_fields = 13;
+  // repeated .vearchpb.SortField sort_fields = 13;
   int sort_fields_size() const;
   private:
   int _internal_sort_fields_size() const;
   public:
   void clear_sort_fields();
-  ::SortField* mutable_sort_fields(int index);
-  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::SortField >*
+  ::vearchpb::SortField* mutable_sort_fields(int index);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::SortField >*
       mutable_sort_fields();
   private:
-  const ::SortField& _internal_sort_fields(int index) const;
-  ::SortField* _internal_add_sort_fields();
+  const ::vearchpb::SortField& _internal_sort_fields(int index) const;
+  ::vearchpb::SortField* _internal_add_sort_fields();
   public:
-  const ::SortField& sort_fields(int index) const;
-  ::SortField* add_sort_fields();
-  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::SortField >&
+  const ::vearchpb::SortField& sort_fields(int index) const;
+  ::vearchpb::SortField* add_sort_fields();
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::SortField >&
       sort_fields() const;
 
   // string load_balance = 11;
@@ -4309,23 +4312,23 @@ class QueryRequest final :
   std::string* _internal_mutable_load_balance();
   public:
 
-  // .RequestHead head = 1;
+  // .vearchpb.RequestHead head = 1;
   bool has_head() const;
   private:
   bool _internal_has_head() const;
   public:
   void clear_head();
-  const ::RequestHead& head() const;
-  PROTOBUF_NODISCARD ::RequestHead* release_head();
-  ::RequestHead* mutable_head();
-  void set_allocated_head(::RequestHead* head);
+  const ::vearchpb::RequestHead& head() const;
+  PROTOBUF_NODISCARD ::vearchpb::RequestHead* release_head();
+  ::vearchpb::RequestHead* mutable_head();
+  void set_allocated_head(::vearchpb::RequestHead* head);
   private:
-  const ::RequestHead& _internal_head() const;
-  ::RequestHead* _internal_mutable_head();
+  const ::vearchpb::RequestHead& _internal_head() const;
+  ::vearchpb::RequestHead* _internal_mutable_head();
   public:
   void unsafe_arena_set_allocated_head(
-      ::RequestHead* head);
-  ::RequestHead* unsafe_arena_release_head();
+      ::vearchpb::RequestHead* head);
+  ::vearchpb::RequestHead* unsafe_arena_release_head();
 
   // int32 partition_id = 3;
   void clear_partition_id();
@@ -4381,7 +4384,7 @@ class QueryRequest final :
   void _internal_set_page_size(int32_t value);
   public:
 
-  // @@protoc_insertion_point(class_scope:QueryRequest)
+  // @@protoc_insertion_point(class_scope:vearchpb.QueryRequest)
  private:
   class _Internal;
 
@@ -4390,17 +4393,17 @@ class QueryRequest final :
   typedef void DestructorSkippable_;
   struct Impl_ {
     ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string> document_ids_;
-    ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::RangeFilter > range_filters_;
-    ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::TermFilter > term_filters_;
+    ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::RangeFilter > range_filters_;
+    ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::TermFilter > term_filters_;
     ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string> fields_;
     ::PROTOBUF_NAMESPACE_ID::internal::MapField<
         QueryRequest_SortFieldMapEntry_DoNotUse,
         std::string, std::string,
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::TYPE_STRING,
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::TYPE_STRING> sort_field_map_;
-    ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::SortField > sort_fields_;
+    ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::SortField > sort_fields_;
     ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr load_balance_;
-    ::RequestHead* head_;
+    ::vearchpb::RequestHead* head_;
     int32_t partition_id_;
     bool next_;
     bool is_vector_value_;
@@ -4430,10 +4433,10 @@ public:
   void MergeFrom(const SearchRequest_SortFieldMapEntry_DoNotUse& other);
   static const SearchRequest_SortFieldMapEntry_DoNotUse* internal_default_instance() { return reinterpret_cast<const SearchRequest_SortFieldMapEntry_DoNotUse*>(&_SearchRequest_SortFieldMapEntry_DoNotUse_default_instance_); }
   static bool ValidateKey(std::string* s) {
-    return ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(s->data(), static_cast<int>(s->size()), ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::PARSE, "SearchRequest.SortFieldMapEntry.key");
+    return ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(s->data(), static_cast<int>(s->size()), ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::PARSE, "vearchpb.SearchRequest.SortFieldMapEntry.key");
  }
   static bool ValidateValue(std::string* s) {
-    return ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(s->data(), static_cast<int>(s->size()), ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::PARSE, "SearchRequest.SortFieldMapEntry.value");
+    return ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(s->data(), static_cast<int>(s->size()), ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::PARSE, "vearchpb.SearchRequest.SortFieldMapEntry.value");
  }
   using ::PROTOBUF_NAMESPACE_ID::Message::MergeFrom;
   ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadata() const final;
@@ -4443,7 +4446,7 @@ public:
 // -------------------------------------------------------------------
 
 class SearchRequest final :
-    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:SearchRequest) */ {
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:vearchpb.SearchRequest) */ {
  public:
   inline SearchRequest() : SearchRequest(nullptr) {}
   ~SearchRequest() override;
@@ -4546,7 +4549,7 @@ class SearchRequest final :
   private:
   friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
   static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "SearchRequest";
+    return "vearchpb.SearchRequest";
   }
   protected:
   explicit SearchRequest(::PROTOBUF_NAMESPACE_ID::Arena* arena,
@@ -4583,22 +4586,22 @@ class SearchRequest final :
     kIsVectorValueFieldNumber = 12,
     kTraceFieldNumber = 16,
   };
-  // repeated .VectorQuery vec_fields = 5;
+  // repeated .vearchpb.VectorQuery vec_fields = 5;
   int vec_fields_size() const;
   private:
   int _internal_vec_fields_size() const;
   public:
   void clear_vec_fields();
-  ::VectorQuery* mutable_vec_fields(int index);
-  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::VectorQuery >*
+  ::vearchpb::VectorQuery* mutable_vec_fields(int index);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::VectorQuery >*
       mutable_vec_fields();
   private:
-  const ::VectorQuery& _internal_vec_fields(int index) const;
-  ::VectorQuery* _internal_add_vec_fields();
+  const ::vearchpb::VectorQuery& _internal_vec_fields(int index) const;
+  ::vearchpb::VectorQuery* _internal_add_vec_fields();
   public:
-  const ::VectorQuery& vec_fields(int index) const;
-  ::VectorQuery* add_vec_fields();
-  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::VectorQuery >&
+  const ::vearchpb::VectorQuery& vec_fields(int index) const;
+  ::vearchpb::VectorQuery* add_vec_fields();
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::VectorQuery >&
       vec_fields() const;
 
   // repeated string fields = 6;
@@ -4625,40 +4628,40 @@ class SearchRequest final :
   std::string* _internal_add_fields();
   public:
 
-  // repeated .RangeFilter range_filters = 7;
+  // repeated .vearchpb.RangeFilter range_filters = 7;
   int range_filters_size() const;
   private:
   int _internal_range_filters_size() const;
   public:
   void clear_range_filters();
-  ::RangeFilter* mutable_range_filters(int index);
-  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::RangeFilter >*
+  ::vearchpb::RangeFilter* mutable_range_filters(int index);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::RangeFilter >*
       mutable_range_filters();
   private:
-  const ::RangeFilter& _internal_range_filters(int index) const;
-  ::RangeFilter* _internal_add_range_filters();
+  const ::vearchpb::RangeFilter& _internal_range_filters(int index) const;
+  ::vearchpb::RangeFilter* _internal_add_range_filters();
   public:
-  const ::RangeFilter& range_filters(int index) const;
-  ::RangeFilter* add_range_filters();
-  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::RangeFilter >&
+  const ::vearchpb::RangeFilter& range_filters(int index) const;
+  ::vearchpb::RangeFilter* add_range_filters();
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::RangeFilter >&
       range_filters() const;
 
-  // repeated .TermFilter term_filters = 8;
+  // repeated .vearchpb.TermFilter term_filters = 8;
   int term_filters_size() const;
   private:
   int _internal_term_filters_size() const;
   public:
   void clear_term_filters();
-  ::TermFilter* mutable_term_filters(int index);
-  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::TermFilter >*
+  ::vearchpb::TermFilter* mutable_term_filters(int index);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::TermFilter >*
       mutable_term_filters();
   private:
-  const ::TermFilter& _internal_term_filters(int index) const;
-  ::TermFilter* _internal_add_term_filters();
+  const ::vearchpb::TermFilter& _internal_term_filters(int index) const;
+  ::vearchpb::TermFilter* _internal_add_term_filters();
   public:
-  const ::TermFilter& term_filters(int index) const;
-  ::TermFilter* add_term_filters();
-  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::TermFilter >&
+  const ::vearchpb::TermFilter& term_filters(int index) const;
+  ::vearchpb::TermFilter* add_term_filters();
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::TermFilter >&
       term_filters() const;
 
   // map<string, string> sort_field_map = 13;
@@ -4678,22 +4681,22 @@ class SearchRequest final :
   ::PROTOBUF_NAMESPACE_ID::Map< std::string, std::string >*
       mutable_sort_field_map();
 
-  // repeated .SortField sort_fields = 14;
+  // repeated .vearchpb.SortField sort_fields = 14;
   int sort_fields_size() const;
   private:
   int _internal_sort_fields_size() const;
   public:
   void clear_sort_fields();
-  ::SortField* mutable_sort_fields(int index);
-  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::SortField >*
+  ::vearchpb::SortField* mutable_sort_fields(int index);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::SortField >*
       mutable_sort_fields();
   private:
-  const ::SortField& _internal_sort_fields(int index) const;
-  ::SortField* _internal_add_sort_fields();
+  const ::vearchpb::SortField& _internal_sort_fields(int index) const;
+  ::vearchpb::SortField* _internal_add_sort_fields();
   public:
-  const ::SortField& sort_fields(int index) const;
-  ::SortField* add_sort_fields();
-  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::SortField >&
+  const ::vearchpb::SortField& sort_fields(int index) const;
+  ::vearchpb::SortField* add_sort_fields();
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::SortField >&
       sort_fields() const;
 
   // string index_params = 9;
@@ -4724,23 +4727,23 @@ class SearchRequest final :
   std::string* _internal_mutable_ranker();
   public:
 
-  // .RequestHead head = 1;
+  // .vearchpb.RequestHead head = 1;
   bool has_head() const;
   private:
   bool _internal_has_head() const;
   public:
   void clear_head();
-  const ::RequestHead& head() const;
-  PROTOBUF_NODISCARD ::RequestHead* release_head();
-  ::RequestHead* mutable_head();
-  void set_allocated_head(::RequestHead* head);
+  const ::vearchpb::RequestHead& head() const;
+  PROTOBUF_NODISCARD ::vearchpb::RequestHead* release_head();
+  ::vearchpb::RequestHead* mutable_head();
+  void set_allocated_head(::vearchpb::RequestHead* head);
   private:
-  const ::RequestHead& _internal_head() const;
-  ::RequestHead* _internal_mutable_head();
+  const ::vearchpb::RequestHead& _internal_head() const;
+  ::vearchpb::RequestHead* _internal_mutable_head();
   public:
   void unsafe_arena_set_allocated_head(
-      ::RequestHead* head);
-  ::RequestHead* unsafe_arena_release_head();
+      ::vearchpb::RequestHead* head);
+  ::vearchpb::RequestHead* unsafe_arena_release_head();
 
   // int32 req_num = 2;
   void clear_req_num();
@@ -4805,7 +4808,7 @@ class SearchRequest final :
   void _internal_set_trace(bool value);
   public:
 
-  // @@protoc_insertion_point(class_scope:SearchRequest)
+  // @@protoc_insertion_point(class_scope:vearchpb.SearchRequest)
  private:
   class _Internal;
 
@@ -4813,19 +4816,19 @@ class SearchRequest final :
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
   struct Impl_ {
-    ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::VectorQuery > vec_fields_;
+    ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::VectorQuery > vec_fields_;
     ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string> fields_;
-    ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::RangeFilter > range_filters_;
-    ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::TermFilter > term_filters_;
+    ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::RangeFilter > range_filters_;
+    ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::TermFilter > term_filters_;
     ::PROTOBUF_NAMESPACE_ID::internal::MapField<
         SearchRequest_SortFieldMapEntry_DoNotUse,
         std::string, std::string,
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::TYPE_STRING,
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::TYPE_STRING> sort_field_map_;
-    ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::SortField > sort_fields_;
+    ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::SortField > sort_fields_;
     ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr index_params_;
     ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr ranker_;
-    ::RequestHead* head_;
+    ::vearchpb::RequestHead* head_;
     int32_t req_num_;
     int32_t topn_;
     int32_t is_brute_search_;
@@ -4841,7 +4844,7 @@ class SearchRequest final :
 // -------------------------------------------------------------------
 
 class ResultItem final :
-    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:ResultItem) */ {
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:vearchpb.ResultItem) */ {
  public:
   inline ResultItem() : ResultItem(nullptr) {}
   ~ResultItem() override;
@@ -4944,7 +4947,7 @@ class ResultItem final :
   private:
   friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
   static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "ResultItem";
+    return "vearchpb.ResultItem";
   }
   protected:
   explicit ResultItem(::PROTOBUF_NAMESPACE_ID::Arena* arena,
@@ -4966,22 +4969,22 @@ class ResultItem final :
     kSourceFieldNumber = 4,
     kScoreFieldNumber = 1,
   };
-  // repeated .Field fields = 2;
+  // repeated .vearchpb.Field fields = 2;
   int fields_size() const;
   private:
   int _internal_fields_size() const;
   public:
   void clear_fields();
-  ::Field* mutable_fields(int index);
-  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::Field >*
+  ::vearchpb::Field* mutable_fields(int index);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::Field >*
       mutable_fields();
   private:
-  const ::Field& _internal_fields(int index) const;
-  ::Field* _internal_add_fields();
+  const ::vearchpb::Field& _internal_fields(int index) const;
+  ::vearchpb::Field* _internal_add_fields();
   public:
-  const ::Field& fields(int index) const;
-  ::Field* add_fields();
-  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::Field >&
+  const ::vearchpb::Field& fields(int index) const;
+  ::vearchpb::Field* add_fields();
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::Field >&
       fields() const;
 
   // string p_key = 3;
@@ -5021,7 +5024,7 @@ class ResultItem final :
   void _internal_set_score(double value);
   public:
 
-  // @@protoc_insertion_point(class_scope:ResultItem)
+  // @@protoc_insertion_point(class_scope:vearchpb.ResultItem)
  private:
   class _Internal;
 
@@ -5029,7 +5032,7 @@ class ResultItem final :
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
   struct Impl_ {
-    ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::Field > fields_;
+    ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::Field > fields_;
     ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr p_key_;
     ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr source_;
     double score_;
@@ -5041,7 +5044,7 @@ class ResultItem final :
 // -------------------------------------------------------------------
 
 class SearchResult final :
-    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:SearchResult) */ {
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:vearchpb.SearchResult) */ {
  public:
   inline SearchResult() : SearchResult(nullptr) {}
   ~SearchResult() override;
@@ -5144,7 +5147,7 @@ class SearchResult final :
   private:
   friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
   static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "SearchResult";
+    return "vearchpb.SearchResult";
   }
   protected:
   explicit SearchResult(::PROTOBUF_NAMESPACE_ID::Arena* arena,
@@ -5172,22 +5175,22 @@ class SearchResult final :
     kTimeoutFieldNumber = 9,
     kTopNFieldNumber = 10,
   };
-  // repeated .ResultItem result_items = 7;
+  // repeated .vearchpb.ResultItem result_items = 7;
   int result_items_size() const;
   private:
   int _internal_result_items_size() const;
   public:
   void clear_result_items();
-  ::ResultItem* mutable_result_items(int index);
-  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::ResultItem >*
+  ::vearchpb::ResultItem* mutable_result_items(int index);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::ResultItem >*
       mutable_result_items();
   private:
-  const ::ResultItem& _internal_result_items(int index) const;
-  ::ResultItem* _internal_add_result_items();
+  const ::vearchpb::ResultItem& _internal_result_items(int index) const;
+  ::vearchpb::ResultItem* _internal_add_result_items();
   public:
-  const ::ResultItem& result_items(int index) const;
-  ::ResultItem* add_result_items();
-  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::ResultItem >&
+  const ::vearchpb::ResultItem& result_items(int index) const;
+  ::vearchpb::ResultItem* add_result_items();
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::ResultItem >&
       result_items() const;
 
   // string msg = 6;
@@ -5204,23 +5207,23 @@ class SearchResult final :
   std::string* _internal_mutable_msg();
   public:
 
-  // .SearchStatus status = 5;
+  // .vearchpb.SearchStatus status = 5;
   bool has_status() const;
   private:
   bool _internal_has_status() const;
   public:
   void clear_status();
-  const ::SearchStatus& status() const;
-  PROTOBUF_NODISCARD ::SearchStatus* release_status();
-  ::SearchStatus* mutable_status();
-  void set_allocated_status(::SearchStatus* status);
+  const ::vearchpb::SearchStatus& status() const;
+  PROTOBUF_NODISCARD ::vearchpb::SearchStatus* release_status();
+  ::vearchpb::SearchStatus* mutable_status();
+  void set_allocated_status(::vearchpb::SearchStatus* status);
   private:
-  const ::SearchStatus& _internal_status() const;
-  ::SearchStatus* _internal_mutable_status();
+  const ::vearchpb::SearchStatus& _internal_status() const;
+  ::vearchpb::SearchStatus* _internal_mutable_status();
   public:
   void unsafe_arena_set_allocated_status(
-      ::SearchStatus* status);
-  ::SearchStatus* unsafe_arena_release_status();
+      ::vearchpb::SearchStatus* status);
+  ::vearchpb::SearchStatus* unsafe_arena_release_status();
 
   // double max_score = 2;
   void clear_max_score();
@@ -5285,7 +5288,7 @@ class SearchResult final :
   void _internal_set_topn(int32_t value);
   public:
 
-  // @@protoc_insertion_point(class_scope:SearchResult)
+  // @@protoc_insertion_point(class_scope:vearchpb.SearchResult)
  private:
   class _Internal;
 
@@ -5293,9 +5296,9 @@ class SearchResult final :
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
   struct Impl_ {
-    ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::ResultItem > result_items_;
+    ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::ResultItem > result_items_;
     ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr msg_;
-    ::SearchStatus* status_;
+    ::vearchpb::SearchStatus* status_;
     double max_score_;
     int32_t total_hits_;
     uint32_t max_took_id_;
@@ -5311,7 +5314,7 @@ class SearchResult final :
 // -------------------------------------------------------------------
 
 class SearchResponse final :
-    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:SearchResponse) */ {
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:vearchpb.SearchResponse) */ {
  public:
   inline SearchResponse() : SearchResponse(nullptr) {}
   ~SearchResponse() override;
@@ -5414,7 +5417,7 @@ class SearchResponse final :
   private:
   friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
   static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "SearchResponse";
+    return "vearchpb.SearchResponse";
   }
   protected:
   explicit SearchResponse(::PROTOBUF_NAMESPACE_ID::Arena* arena,
@@ -5437,22 +5440,22 @@ class SearchResponse final :
     kTimeoutFieldNumber = 3,
     kTopSizeFieldNumber = 5,
   };
-  // repeated .SearchResult results = 2;
+  // repeated .vearchpb.SearchResult results = 2;
   int results_size() const;
   private:
   int _internal_results_size() const;
   public:
   void clear_results();
-  ::SearchResult* mutable_results(int index);
-  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::SearchResult >*
+  ::vearchpb::SearchResult* mutable_results(int index);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::SearchResult >*
       mutable_results();
   private:
-  const ::SearchResult& _internal_results(int index) const;
-  ::SearchResult* _internal_add_results();
+  const ::vearchpb::SearchResult& _internal_results(int index) const;
+  ::vearchpb::SearchResult* _internal_add_results();
   public:
-  const ::SearchResult& results(int index) const;
-  ::SearchResult* add_results();
-  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::SearchResult >&
+  const ::vearchpb::SearchResult& results(int index) const;
+  ::vearchpb::SearchResult* add_results();
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::SearchResult >&
       results() const;
 
   // bytes FlatBytes = 4;
@@ -5469,23 +5472,23 @@ class SearchResponse final :
   std::string* _internal_mutable_flatbytes();
   public:
 
-  // .ResponseHead head = 1;
+  // .vearchpb.ResponseHead head = 1;
   bool has_head() const;
   private:
   bool _internal_has_head() const;
   public:
   void clear_head();
-  const ::ResponseHead& head() const;
-  PROTOBUF_NODISCARD ::ResponseHead* release_head();
-  ::ResponseHead* mutable_head();
-  void set_allocated_head(::ResponseHead* head);
+  const ::vearchpb::ResponseHead& head() const;
+  PROTOBUF_NODISCARD ::vearchpb::ResponseHead* release_head();
+  ::vearchpb::ResponseHead* mutable_head();
+  void set_allocated_head(::vearchpb::ResponseHead* head);
   private:
-  const ::ResponseHead& _internal_head() const;
-  ::ResponseHead* _internal_mutable_head();
+  const ::vearchpb::ResponseHead& _internal_head() const;
+  ::vearchpb::ResponseHead* _internal_mutable_head();
   public:
   void unsafe_arena_set_allocated_head(
-      ::ResponseHead* head);
-  ::ResponseHead* unsafe_arena_release_head();
+      ::vearchpb::ResponseHead* head);
+  ::vearchpb::ResponseHead* unsafe_arena_release_head();
 
   // bool timeout = 3;
   void clear_timeout();
@@ -5505,7 +5508,7 @@ class SearchResponse final :
   void _internal_set_top_size(int32_t value);
   public:
 
-  // @@protoc_insertion_point(class_scope:SearchResponse)
+  // @@protoc_insertion_point(class_scope:vearchpb.SearchResponse)
  private:
   class _Internal;
 
@@ -5513,9 +5516,9 @@ class SearchResponse final :
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
   struct Impl_ {
-    ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::SearchResult > results_;
+    ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::SearchResult > results_;
     ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr flatbytes_;
-    ::ResponseHead* head_;
+    ::vearchpb::ResponseHead* head_;
     bool timeout_;
     int32_t top_size_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
@@ -5526,7 +5529,7 @@ class SearchResponse final :
 // -------------------------------------------------------------------
 
 class SearchStatus final :
-    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:SearchStatus) */ {
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:vearchpb.SearchStatus) */ {
  public:
   inline SearchStatus() : SearchStatus(nullptr) {}
   ~SearchStatus() override;
@@ -5629,7 +5632,7 @@ class SearchStatus final :
   private:
   friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
   static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "SearchStatus";
+    return "vearchpb.SearchStatus";
   }
   protected:
   explicit SearchStatus(::PROTOBUF_NAMESPACE_ID::Arena* arena,
@@ -5692,7 +5695,7 @@ class SearchStatus final :
   void _internal_set_successful(int32_t value);
   public:
 
-  // @@protoc_insertion_point(class_scope:SearchStatus)
+  // @@protoc_insertion_point(class_scope:vearchpb.SearchStatus)
  private:
   class _Internal;
 
@@ -5730,7 +5733,7 @@ inline int64_t RequestHead::_internal_time_out_ms() const {
   return _impl_.time_out_ms_;
 }
 inline int64_t RequestHead::time_out_ms() const {
-  // @@protoc_insertion_point(field_get:RequestHead.time_out_ms)
+  // @@protoc_insertion_point(field_get:vearchpb.RequestHead.time_out_ms)
   return _internal_time_out_ms();
 }
 inline void RequestHead::_internal_set_time_out_ms(int64_t value) {
@@ -5739,7 +5742,7 @@ inline void RequestHead::_internal_set_time_out_ms(int64_t value) {
 }
 inline void RequestHead::set_time_out_ms(int64_t value) {
   _internal_set_time_out_ms(value);
-  // @@protoc_insertion_point(field_set:RequestHead.time_out_ms)
+  // @@protoc_insertion_point(field_set:vearchpb.RequestHead.time_out_ms)
 }
 
 // string user_name = 2;
@@ -5747,7 +5750,7 @@ inline void RequestHead::clear_user_name() {
   _impl_.user_name_.ClearToEmpty();
 }
 inline const std::string& RequestHead::user_name() const {
-  // @@protoc_insertion_point(field_get:RequestHead.user_name)
+  // @@protoc_insertion_point(field_get:vearchpb.RequestHead.user_name)
   return _internal_user_name();
 }
 template <typename ArgT0, typename... ArgT>
@@ -5755,11 +5758,11 @@ inline PROTOBUF_ALWAYS_INLINE
 void RequestHead::set_user_name(ArgT0&& arg0, ArgT... args) {
  
  _impl_.user_name_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
-  // @@protoc_insertion_point(field_set:RequestHead.user_name)
+  // @@protoc_insertion_point(field_set:vearchpb.RequestHead.user_name)
 }
 inline std::string* RequestHead::mutable_user_name() {
   std::string* _s = _internal_mutable_user_name();
-  // @@protoc_insertion_point(field_mutable:RequestHead.user_name)
+  // @@protoc_insertion_point(field_mutable:vearchpb.RequestHead.user_name)
   return _s;
 }
 inline const std::string& RequestHead::_internal_user_name() const {
@@ -5774,7 +5777,7 @@ inline std::string* RequestHead::_internal_mutable_user_name() {
   return _impl_.user_name_.Mutable(GetArenaForAllocation());
 }
 inline std::string* RequestHead::release_user_name() {
-  // @@protoc_insertion_point(field_release:RequestHead.user_name)
+  // @@protoc_insertion_point(field_release:vearchpb.RequestHead.user_name)
   return _impl_.user_name_.Release();
 }
 inline void RequestHead::set_allocated_user_name(std::string* user_name) {
@@ -5789,7 +5792,7 @@ inline void RequestHead::set_allocated_user_name(std::string* user_name) {
     _impl_.user_name_.Set("", GetArenaForAllocation());
   }
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  // @@protoc_insertion_point(field_set_allocated:RequestHead.user_name)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.RequestHead.user_name)
 }
 
 // string password = 3;
@@ -5797,7 +5800,7 @@ inline void RequestHead::clear_password() {
   _impl_.password_.ClearToEmpty();
 }
 inline const std::string& RequestHead::password() const {
-  // @@protoc_insertion_point(field_get:RequestHead.password)
+  // @@protoc_insertion_point(field_get:vearchpb.RequestHead.password)
   return _internal_password();
 }
 template <typename ArgT0, typename... ArgT>
@@ -5805,11 +5808,11 @@ inline PROTOBUF_ALWAYS_INLINE
 void RequestHead::set_password(ArgT0&& arg0, ArgT... args) {
  
  _impl_.password_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
-  // @@protoc_insertion_point(field_set:RequestHead.password)
+  // @@protoc_insertion_point(field_set:vearchpb.RequestHead.password)
 }
 inline std::string* RequestHead::mutable_password() {
   std::string* _s = _internal_mutable_password();
-  // @@protoc_insertion_point(field_mutable:RequestHead.password)
+  // @@protoc_insertion_point(field_mutable:vearchpb.RequestHead.password)
   return _s;
 }
 inline const std::string& RequestHead::_internal_password() const {
@@ -5824,7 +5827,7 @@ inline std::string* RequestHead::_internal_mutable_password() {
   return _impl_.password_.Mutable(GetArenaForAllocation());
 }
 inline std::string* RequestHead::release_password() {
-  // @@protoc_insertion_point(field_release:RequestHead.password)
+  // @@protoc_insertion_point(field_release:vearchpb.RequestHead.password)
   return _impl_.password_.Release();
 }
 inline void RequestHead::set_allocated_password(std::string* password) {
@@ -5839,7 +5842,7 @@ inline void RequestHead::set_allocated_password(std::string* password) {
     _impl_.password_.Set("", GetArenaForAllocation());
   }
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  // @@protoc_insertion_point(field_set_allocated:RequestHead.password)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.RequestHead.password)
 }
 
 // string db_name = 4;
@@ -5847,7 +5850,7 @@ inline void RequestHead::clear_db_name() {
   _impl_.db_name_.ClearToEmpty();
 }
 inline const std::string& RequestHead::db_name() const {
-  // @@protoc_insertion_point(field_get:RequestHead.db_name)
+  // @@protoc_insertion_point(field_get:vearchpb.RequestHead.db_name)
   return _internal_db_name();
 }
 template <typename ArgT0, typename... ArgT>
@@ -5855,11 +5858,11 @@ inline PROTOBUF_ALWAYS_INLINE
 void RequestHead::set_db_name(ArgT0&& arg0, ArgT... args) {
  
  _impl_.db_name_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
-  // @@protoc_insertion_point(field_set:RequestHead.db_name)
+  // @@protoc_insertion_point(field_set:vearchpb.RequestHead.db_name)
 }
 inline std::string* RequestHead::mutable_db_name() {
   std::string* _s = _internal_mutable_db_name();
-  // @@protoc_insertion_point(field_mutable:RequestHead.db_name)
+  // @@protoc_insertion_point(field_mutable:vearchpb.RequestHead.db_name)
   return _s;
 }
 inline const std::string& RequestHead::_internal_db_name() const {
@@ -5874,7 +5877,7 @@ inline std::string* RequestHead::_internal_mutable_db_name() {
   return _impl_.db_name_.Mutable(GetArenaForAllocation());
 }
 inline std::string* RequestHead::release_db_name() {
-  // @@protoc_insertion_point(field_release:RequestHead.db_name)
+  // @@protoc_insertion_point(field_release:vearchpb.RequestHead.db_name)
   return _impl_.db_name_.Release();
 }
 inline void RequestHead::set_allocated_db_name(std::string* db_name) {
@@ -5889,7 +5892,7 @@ inline void RequestHead::set_allocated_db_name(std::string* db_name) {
     _impl_.db_name_.Set("", GetArenaForAllocation());
   }
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  // @@protoc_insertion_point(field_set_allocated:RequestHead.db_name)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.RequestHead.db_name)
 }
 
 // string space_name = 5;
@@ -5897,7 +5900,7 @@ inline void RequestHead::clear_space_name() {
   _impl_.space_name_.ClearToEmpty();
 }
 inline const std::string& RequestHead::space_name() const {
-  // @@protoc_insertion_point(field_get:RequestHead.space_name)
+  // @@protoc_insertion_point(field_get:vearchpb.RequestHead.space_name)
   return _internal_space_name();
 }
 template <typename ArgT0, typename... ArgT>
@@ -5905,11 +5908,11 @@ inline PROTOBUF_ALWAYS_INLINE
 void RequestHead::set_space_name(ArgT0&& arg0, ArgT... args) {
  
  _impl_.space_name_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
-  // @@protoc_insertion_point(field_set:RequestHead.space_name)
+  // @@protoc_insertion_point(field_set:vearchpb.RequestHead.space_name)
 }
 inline std::string* RequestHead::mutable_space_name() {
   std::string* _s = _internal_mutable_space_name();
-  // @@protoc_insertion_point(field_mutable:RequestHead.space_name)
+  // @@protoc_insertion_point(field_mutable:vearchpb.RequestHead.space_name)
   return _s;
 }
 inline const std::string& RequestHead::_internal_space_name() const {
@@ -5924,7 +5927,7 @@ inline std::string* RequestHead::_internal_mutable_space_name() {
   return _impl_.space_name_.Mutable(GetArenaForAllocation());
 }
 inline std::string* RequestHead::release_space_name() {
-  // @@protoc_insertion_point(field_release:RequestHead.space_name)
+  // @@protoc_insertion_point(field_release:vearchpb.RequestHead.space_name)
   return _impl_.space_name_.Release();
 }
 inline void RequestHead::set_allocated_space_name(std::string* space_name) {
@@ -5939,7 +5942,7 @@ inline void RequestHead::set_allocated_space_name(std::string* space_name) {
     _impl_.space_name_.Set("", GetArenaForAllocation());
   }
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  // @@protoc_insertion_point(field_set_allocated:RequestHead.space_name)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.RequestHead.space_name)
 }
 
 // string client_type = 6;
@@ -5947,7 +5950,7 @@ inline void RequestHead::clear_client_type() {
   _impl_.client_type_.ClearToEmpty();
 }
 inline const std::string& RequestHead::client_type() const {
-  // @@protoc_insertion_point(field_get:RequestHead.client_type)
+  // @@protoc_insertion_point(field_get:vearchpb.RequestHead.client_type)
   return _internal_client_type();
 }
 template <typename ArgT0, typename... ArgT>
@@ -5955,11 +5958,11 @@ inline PROTOBUF_ALWAYS_INLINE
 void RequestHead::set_client_type(ArgT0&& arg0, ArgT... args) {
  
  _impl_.client_type_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
-  // @@protoc_insertion_point(field_set:RequestHead.client_type)
+  // @@protoc_insertion_point(field_set:vearchpb.RequestHead.client_type)
 }
 inline std::string* RequestHead::mutable_client_type() {
   std::string* _s = _internal_mutable_client_type();
-  // @@protoc_insertion_point(field_mutable:RequestHead.client_type)
+  // @@protoc_insertion_point(field_mutable:vearchpb.RequestHead.client_type)
   return _s;
 }
 inline const std::string& RequestHead::_internal_client_type() const {
@@ -5974,7 +5977,7 @@ inline std::string* RequestHead::_internal_mutable_client_type() {
   return _impl_.client_type_.Mutable(GetArenaForAllocation());
 }
 inline std::string* RequestHead::release_client_type() {
-  // @@protoc_insertion_point(field_release:RequestHead.client_type)
+  // @@protoc_insertion_point(field_release:vearchpb.RequestHead.client_type)
   return _impl_.client_type_.Release();
 }
 inline void RequestHead::set_allocated_client_type(std::string* client_type) {
@@ -5989,7 +5992,7 @@ inline void RequestHead::set_allocated_client_type(std::string* client_type) {
     _impl_.client_type_.Set("", GetArenaForAllocation());
   }
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  // @@protoc_insertion_point(field_set_allocated:RequestHead.client_type)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.RequestHead.client_type)
 }
 
 // map<string, string> params = 7;
@@ -6008,7 +6011,7 @@ RequestHead::_internal_params() const {
 }
 inline const ::PROTOBUF_NAMESPACE_ID::Map< std::string, std::string >&
 RequestHead::params() const {
-  // @@protoc_insertion_point(field_map:RequestHead.params)
+  // @@protoc_insertion_point(field_map:vearchpb.RequestHead.params)
   return _internal_params();
 }
 inline ::PROTOBUF_NAMESPACE_ID::Map< std::string, std::string >*
@@ -6017,7 +6020,7 @@ RequestHead::_internal_mutable_params() {
 }
 inline ::PROTOBUF_NAMESPACE_ID::Map< std::string, std::string >*
 RequestHead::mutable_params() {
-  // @@protoc_insertion_point(field_mutable_map:RequestHead.params)
+  // @@protoc_insertion_point(field_mutable_map:vearchpb.RequestHead.params)
   return _internal_mutable_params();
 }
 
@@ -6027,24 +6030,24 @@ RequestHead::mutable_params() {
 
 // ResponseHead
 
-// .Error err = 1;
+// .vearchpb.Error err = 1;
 inline bool ResponseHead::_internal_has_err() const {
   return this != internal_default_instance() && _impl_.err_ != nullptr;
 }
 inline bool ResponseHead::has_err() const {
   return _internal_has_err();
 }
-inline const ::Error& ResponseHead::_internal_err() const {
-  const ::Error* p = _impl_.err_;
-  return p != nullptr ? *p : reinterpret_cast<const ::Error&>(
-      ::_Error_default_instance_);
+inline const ::vearchpb::Error& ResponseHead::_internal_err() const {
+  const ::vearchpb::Error* p = _impl_.err_;
+  return p != nullptr ? *p : reinterpret_cast<const ::vearchpb::Error&>(
+      ::vearchpb::_Error_default_instance_);
 }
-inline const ::Error& ResponseHead::err() const {
-  // @@protoc_insertion_point(field_get:ResponseHead.err)
+inline const ::vearchpb::Error& ResponseHead::err() const {
+  // @@protoc_insertion_point(field_get:vearchpb.ResponseHead.err)
   return _internal_err();
 }
 inline void ResponseHead::unsafe_arena_set_allocated_err(
-    ::Error* err) {
+    ::vearchpb::Error* err) {
   if (GetArenaForAllocation() == nullptr) {
     delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.err_);
   }
@@ -6054,11 +6057,11 @@ inline void ResponseHead::unsafe_arena_set_allocated_err(
   } else {
     
   }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:ResponseHead.err)
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:vearchpb.ResponseHead.err)
 }
-inline ::Error* ResponseHead::release_err() {
+inline ::vearchpb::Error* ResponseHead::release_err() {
   
-  ::Error* temp = _impl_.err_;
+  ::vearchpb::Error* temp = _impl_.err_;
   _impl_.err_ = nullptr;
 #ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
   auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
@@ -6071,27 +6074,27 @@ inline ::Error* ResponseHead::release_err() {
 #endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
   return temp;
 }
-inline ::Error* ResponseHead::unsafe_arena_release_err() {
-  // @@protoc_insertion_point(field_release:ResponseHead.err)
+inline ::vearchpb::Error* ResponseHead::unsafe_arena_release_err() {
+  // @@protoc_insertion_point(field_release:vearchpb.ResponseHead.err)
   
-  ::Error* temp = _impl_.err_;
+  ::vearchpb::Error* temp = _impl_.err_;
   _impl_.err_ = nullptr;
   return temp;
 }
-inline ::Error* ResponseHead::_internal_mutable_err() {
+inline ::vearchpb::Error* ResponseHead::_internal_mutable_err() {
   
   if (_impl_.err_ == nullptr) {
-    auto* p = CreateMaybeMessage<::Error>(GetArenaForAllocation());
+    auto* p = CreateMaybeMessage<::vearchpb::Error>(GetArenaForAllocation());
     _impl_.err_ = p;
   }
   return _impl_.err_;
 }
-inline ::Error* ResponseHead::mutable_err() {
-  ::Error* _msg = _internal_mutable_err();
-  // @@protoc_insertion_point(field_mutable:ResponseHead.err)
+inline ::vearchpb::Error* ResponseHead::mutable_err() {
+  ::vearchpb::Error* _msg = _internal_mutable_err();
+  // @@protoc_insertion_point(field_mutable:vearchpb.ResponseHead.err)
   return _msg;
 }
-inline void ResponseHead::set_allocated_err(::Error* err) {
+inline void ResponseHead::set_allocated_err(::vearchpb::Error* err) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   if (message_arena == nullptr) {
     delete reinterpret_cast< ::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.err_);
@@ -6109,7 +6112,7 @@ inline void ResponseHead::set_allocated_err(::Error* err) {
     
   }
   _impl_.err_ = err;
-  // @@protoc_insertion_point(field_set_allocated:ResponseHead.err)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.ResponseHead.err)
 }
 
 // map<string, string> params = 2;
@@ -6128,7 +6131,7 @@ ResponseHead::_internal_params() const {
 }
 inline const ::PROTOBUF_NAMESPACE_ID::Map< std::string, std::string >&
 ResponseHead::params() const {
-  // @@protoc_insertion_point(field_map:ResponseHead.params)
+  // @@protoc_insertion_point(field_map:vearchpb.ResponseHead.params)
   return _internal_params();
 }
 inline ::PROTOBUF_NAMESPACE_ID::Map< std::string, std::string >*
@@ -6137,7 +6140,7 @@ ResponseHead::_internal_mutable_params() {
 }
 inline ::PROTOBUF_NAMESPACE_ID::Map< std::string, std::string >*
 ResponseHead::mutable_params() {
-  // @@protoc_insertion_point(field_mutable_map:ResponseHead.params)
+  // @@protoc_insertion_point(field_mutable_map:vearchpb.ResponseHead.params)
   return _internal_mutable_params();
 }
 
@@ -6145,7 +6148,7 @@ ResponseHead::mutable_params() {
 
 // GetRequest
 
-// .RequestHead head = 1;
+// .vearchpb.RequestHead head = 1;
 inline bool GetRequest::_internal_has_head() const {
   return this != internal_default_instance() && _impl_.head_ != nullptr;
 }
@@ -6158,17 +6161,17 @@ inline void GetRequest::clear_head() {
   }
   _impl_.head_ = nullptr;
 }
-inline const ::RequestHead& GetRequest::_internal_head() const {
-  const ::RequestHead* p = _impl_.head_;
-  return p != nullptr ? *p : reinterpret_cast<const ::RequestHead&>(
-      ::_RequestHead_default_instance_);
+inline const ::vearchpb::RequestHead& GetRequest::_internal_head() const {
+  const ::vearchpb::RequestHead* p = _impl_.head_;
+  return p != nullptr ? *p : reinterpret_cast<const ::vearchpb::RequestHead&>(
+      ::vearchpb::_RequestHead_default_instance_);
 }
-inline const ::RequestHead& GetRequest::head() const {
-  // @@protoc_insertion_point(field_get:GetRequest.head)
+inline const ::vearchpb::RequestHead& GetRequest::head() const {
+  // @@protoc_insertion_point(field_get:vearchpb.GetRequest.head)
   return _internal_head();
 }
 inline void GetRequest::unsafe_arena_set_allocated_head(
-    ::RequestHead* head) {
+    ::vearchpb::RequestHead* head) {
   if (GetArenaForAllocation() == nullptr) {
     delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.head_);
   }
@@ -6178,11 +6181,11 @@ inline void GetRequest::unsafe_arena_set_allocated_head(
   } else {
     
   }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:GetRequest.head)
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:vearchpb.GetRequest.head)
 }
-inline ::RequestHead* GetRequest::release_head() {
+inline ::vearchpb::RequestHead* GetRequest::release_head() {
   
-  ::RequestHead* temp = _impl_.head_;
+  ::vearchpb::RequestHead* temp = _impl_.head_;
   _impl_.head_ = nullptr;
 #ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
   auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
@@ -6195,27 +6198,27 @@ inline ::RequestHead* GetRequest::release_head() {
 #endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
   return temp;
 }
-inline ::RequestHead* GetRequest::unsafe_arena_release_head() {
-  // @@protoc_insertion_point(field_release:GetRequest.head)
+inline ::vearchpb::RequestHead* GetRequest::unsafe_arena_release_head() {
+  // @@protoc_insertion_point(field_release:vearchpb.GetRequest.head)
   
-  ::RequestHead* temp = _impl_.head_;
+  ::vearchpb::RequestHead* temp = _impl_.head_;
   _impl_.head_ = nullptr;
   return temp;
 }
-inline ::RequestHead* GetRequest::_internal_mutable_head() {
+inline ::vearchpb::RequestHead* GetRequest::_internal_mutable_head() {
   
   if (_impl_.head_ == nullptr) {
-    auto* p = CreateMaybeMessage<::RequestHead>(GetArenaForAllocation());
+    auto* p = CreateMaybeMessage<::vearchpb::RequestHead>(GetArenaForAllocation());
     _impl_.head_ = p;
   }
   return _impl_.head_;
 }
-inline ::RequestHead* GetRequest::mutable_head() {
-  ::RequestHead* _msg = _internal_mutable_head();
-  // @@protoc_insertion_point(field_mutable:GetRequest.head)
+inline ::vearchpb::RequestHead* GetRequest::mutable_head() {
+  ::vearchpb::RequestHead* _msg = _internal_mutable_head();
+  // @@protoc_insertion_point(field_mutable:vearchpb.GetRequest.head)
   return _msg;
 }
-inline void GetRequest::set_allocated_head(::RequestHead* head) {
+inline void GetRequest::set_allocated_head(::vearchpb::RequestHead* head) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   if (message_arena == nullptr) {
     delete _impl_.head_;
@@ -6232,7 +6235,7 @@ inline void GetRequest::set_allocated_head(::RequestHead* head) {
     
   }
   _impl_.head_ = head;
-  // @@protoc_insertion_point(field_set_allocated:GetRequest.head)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.GetRequest.head)
 }
 
 // repeated string primary_keys = 2;
@@ -6247,66 +6250,66 @@ inline void GetRequest::clear_primary_keys() {
 }
 inline std::string* GetRequest::add_primary_keys() {
   std::string* _s = _internal_add_primary_keys();
-  // @@protoc_insertion_point(field_add_mutable:GetRequest.primary_keys)
+  // @@protoc_insertion_point(field_add_mutable:vearchpb.GetRequest.primary_keys)
   return _s;
 }
 inline const std::string& GetRequest::_internal_primary_keys(int index) const {
   return _impl_.primary_keys_.Get(index);
 }
 inline const std::string& GetRequest::primary_keys(int index) const {
-  // @@protoc_insertion_point(field_get:GetRequest.primary_keys)
+  // @@protoc_insertion_point(field_get:vearchpb.GetRequest.primary_keys)
   return _internal_primary_keys(index);
 }
 inline std::string* GetRequest::mutable_primary_keys(int index) {
-  // @@protoc_insertion_point(field_mutable:GetRequest.primary_keys)
+  // @@protoc_insertion_point(field_mutable:vearchpb.GetRequest.primary_keys)
   return _impl_.primary_keys_.Mutable(index);
 }
 inline void GetRequest::set_primary_keys(int index, const std::string& value) {
   _impl_.primary_keys_.Mutable(index)->assign(value);
-  // @@protoc_insertion_point(field_set:GetRequest.primary_keys)
+  // @@protoc_insertion_point(field_set:vearchpb.GetRequest.primary_keys)
 }
 inline void GetRequest::set_primary_keys(int index, std::string&& value) {
   _impl_.primary_keys_.Mutable(index)->assign(std::move(value));
-  // @@protoc_insertion_point(field_set:GetRequest.primary_keys)
+  // @@protoc_insertion_point(field_set:vearchpb.GetRequest.primary_keys)
 }
 inline void GetRequest::set_primary_keys(int index, const char* value) {
   GOOGLE_DCHECK(value != nullptr);
   _impl_.primary_keys_.Mutable(index)->assign(value);
-  // @@protoc_insertion_point(field_set_char:GetRequest.primary_keys)
+  // @@protoc_insertion_point(field_set_char:vearchpb.GetRequest.primary_keys)
 }
 inline void GetRequest::set_primary_keys(int index, const char* value, size_t size) {
   _impl_.primary_keys_.Mutable(index)->assign(
     reinterpret_cast<const char*>(value), size);
-  // @@protoc_insertion_point(field_set_pointer:GetRequest.primary_keys)
+  // @@protoc_insertion_point(field_set_pointer:vearchpb.GetRequest.primary_keys)
 }
 inline std::string* GetRequest::_internal_add_primary_keys() {
   return _impl_.primary_keys_.Add();
 }
 inline void GetRequest::add_primary_keys(const std::string& value) {
   _impl_.primary_keys_.Add()->assign(value);
-  // @@protoc_insertion_point(field_add:GetRequest.primary_keys)
+  // @@protoc_insertion_point(field_add:vearchpb.GetRequest.primary_keys)
 }
 inline void GetRequest::add_primary_keys(std::string&& value) {
   _impl_.primary_keys_.Add(std::move(value));
-  // @@protoc_insertion_point(field_add:GetRequest.primary_keys)
+  // @@protoc_insertion_point(field_add:vearchpb.GetRequest.primary_keys)
 }
 inline void GetRequest::add_primary_keys(const char* value) {
   GOOGLE_DCHECK(value != nullptr);
   _impl_.primary_keys_.Add()->assign(value);
-  // @@protoc_insertion_point(field_add_char:GetRequest.primary_keys)
+  // @@protoc_insertion_point(field_add_char:vearchpb.GetRequest.primary_keys)
 }
 inline void GetRequest::add_primary_keys(const char* value, size_t size) {
   _impl_.primary_keys_.Add()->assign(reinterpret_cast<const char*>(value), size);
-  // @@protoc_insertion_point(field_add_pointer:GetRequest.primary_keys)
+  // @@protoc_insertion_point(field_add_pointer:vearchpb.GetRequest.primary_keys)
 }
 inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>&
 GetRequest::primary_keys() const {
-  // @@protoc_insertion_point(field_list:GetRequest.primary_keys)
+  // @@protoc_insertion_point(field_list:vearchpb.GetRequest.primary_keys)
   return _impl_.primary_keys_;
 }
 inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>*
 GetRequest::mutable_primary_keys() {
-  // @@protoc_insertion_point(field_mutable_list:GetRequest.primary_keys)
+  // @@protoc_insertion_point(field_mutable_list:vearchpb.GetRequest.primary_keys)
   return &_impl_.primary_keys_;
 }
 
@@ -6314,7 +6317,7 @@ GetRequest::mutable_primary_keys() {
 
 // DeleteRequest
 
-// .RequestHead head = 1;
+// .vearchpb.RequestHead head = 1;
 inline bool DeleteRequest::_internal_has_head() const {
   return this != internal_default_instance() && _impl_.head_ != nullptr;
 }
@@ -6327,17 +6330,17 @@ inline void DeleteRequest::clear_head() {
   }
   _impl_.head_ = nullptr;
 }
-inline const ::RequestHead& DeleteRequest::_internal_head() const {
-  const ::RequestHead* p = _impl_.head_;
-  return p != nullptr ? *p : reinterpret_cast<const ::RequestHead&>(
-      ::_RequestHead_default_instance_);
+inline const ::vearchpb::RequestHead& DeleteRequest::_internal_head() const {
+  const ::vearchpb::RequestHead* p = _impl_.head_;
+  return p != nullptr ? *p : reinterpret_cast<const ::vearchpb::RequestHead&>(
+      ::vearchpb::_RequestHead_default_instance_);
 }
-inline const ::RequestHead& DeleteRequest::head() const {
-  // @@protoc_insertion_point(field_get:DeleteRequest.head)
+inline const ::vearchpb::RequestHead& DeleteRequest::head() const {
+  // @@protoc_insertion_point(field_get:vearchpb.DeleteRequest.head)
   return _internal_head();
 }
 inline void DeleteRequest::unsafe_arena_set_allocated_head(
-    ::RequestHead* head) {
+    ::vearchpb::RequestHead* head) {
   if (GetArenaForAllocation() == nullptr) {
     delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.head_);
   }
@@ -6347,11 +6350,11 @@ inline void DeleteRequest::unsafe_arena_set_allocated_head(
   } else {
     
   }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:DeleteRequest.head)
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:vearchpb.DeleteRequest.head)
 }
-inline ::RequestHead* DeleteRequest::release_head() {
+inline ::vearchpb::RequestHead* DeleteRequest::release_head() {
   
-  ::RequestHead* temp = _impl_.head_;
+  ::vearchpb::RequestHead* temp = _impl_.head_;
   _impl_.head_ = nullptr;
 #ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
   auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
@@ -6364,27 +6367,27 @@ inline ::RequestHead* DeleteRequest::release_head() {
 #endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
   return temp;
 }
-inline ::RequestHead* DeleteRequest::unsafe_arena_release_head() {
-  // @@protoc_insertion_point(field_release:DeleteRequest.head)
+inline ::vearchpb::RequestHead* DeleteRequest::unsafe_arena_release_head() {
+  // @@protoc_insertion_point(field_release:vearchpb.DeleteRequest.head)
   
-  ::RequestHead* temp = _impl_.head_;
+  ::vearchpb::RequestHead* temp = _impl_.head_;
   _impl_.head_ = nullptr;
   return temp;
 }
-inline ::RequestHead* DeleteRequest::_internal_mutable_head() {
+inline ::vearchpb::RequestHead* DeleteRequest::_internal_mutable_head() {
   
   if (_impl_.head_ == nullptr) {
-    auto* p = CreateMaybeMessage<::RequestHead>(GetArenaForAllocation());
+    auto* p = CreateMaybeMessage<::vearchpb::RequestHead>(GetArenaForAllocation());
     _impl_.head_ = p;
   }
   return _impl_.head_;
 }
-inline ::RequestHead* DeleteRequest::mutable_head() {
-  ::RequestHead* _msg = _internal_mutable_head();
-  // @@protoc_insertion_point(field_mutable:DeleteRequest.head)
+inline ::vearchpb::RequestHead* DeleteRequest::mutable_head() {
+  ::vearchpb::RequestHead* _msg = _internal_mutable_head();
+  // @@protoc_insertion_point(field_mutable:vearchpb.DeleteRequest.head)
   return _msg;
 }
-inline void DeleteRequest::set_allocated_head(::RequestHead* head) {
+inline void DeleteRequest::set_allocated_head(::vearchpb::RequestHead* head) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   if (message_arena == nullptr) {
     delete _impl_.head_;
@@ -6401,7 +6404,7 @@ inline void DeleteRequest::set_allocated_head(::RequestHead* head) {
     
   }
   _impl_.head_ = head;
-  // @@protoc_insertion_point(field_set_allocated:DeleteRequest.head)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.DeleteRequest.head)
 }
 
 // repeated string primary_keys = 2;
@@ -6416,66 +6419,66 @@ inline void DeleteRequest::clear_primary_keys() {
 }
 inline std::string* DeleteRequest::add_primary_keys() {
   std::string* _s = _internal_add_primary_keys();
-  // @@protoc_insertion_point(field_add_mutable:DeleteRequest.primary_keys)
+  // @@protoc_insertion_point(field_add_mutable:vearchpb.DeleteRequest.primary_keys)
   return _s;
 }
 inline const std::string& DeleteRequest::_internal_primary_keys(int index) const {
   return _impl_.primary_keys_.Get(index);
 }
 inline const std::string& DeleteRequest::primary_keys(int index) const {
-  // @@protoc_insertion_point(field_get:DeleteRequest.primary_keys)
+  // @@protoc_insertion_point(field_get:vearchpb.DeleteRequest.primary_keys)
   return _internal_primary_keys(index);
 }
 inline std::string* DeleteRequest::mutable_primary_keys(int index) {
-  // @@protoc_insertion_point(field_mutable:DeleteRequest.primary_keys)
+  // @@protoc_insertion_point(field_mutable:vearchpb.DeleteRequest.primary_keys)
   return _impl_.primary_keys_.Mutable(index);
 }
 inline void DeleteRequest::set_primary_keys(int index, const std::string& value) {
   _impl_.primary_keys_.Mutable(index)->assign(value);
-  // @@protoc_insertion_point(field_set:DeleteRequest.primary_keys)
+  // @@protoc_insertion_point(field_set:vearchpb.DeleteRequest.primary_keys)
 }
 inline void DeleteRequest::set_primary_keys(int index, std::string&& value) {
   _impl_.primary_keys_.Mutable(index)->assign(std::move(value));
-  // @@protoc_insertion_point(field_set:DeleteRequest.primary_keys)
+  // @@protoc_insertion_point(field_set:vearchpb.DeleteRequest.primary_keys)
 }
 inline void DeleteRequest::set_primary_keys(int index, const char* value) {
   GOOGLE_DCHECK(value != nullptr);
   _impl_.primary_keys_.Mutable(index)->assign(value);
-  // @@protoc_insertion_point(field_set_char:DeleteRequest.primary_keys)
+  // @@protoc_insertion_point(field_set_char:vearchpb.DeleteRequest.primary_keys)
 }
 inline void DeleteRequest::set_primary_keys(int index, const char* value, size_t size) {
   _impl_.primary_keys_.Mutable(index)->assign(
     reinterpret_cast<const char*>(value), size);
-  // @@protoc_insertion_point(field_set_pointer:DeleteRequest.primary_keys)
+  // @@protoc_insertion_point(field_set_pointer:vearchpb.DeleteRequest.primary_keys)
 }
 inline std::string* DeleteRequest::_internal_add_primary_keys() {
   return _impl_.primary_keys_.Add();
 }
 inline void DeleteRequest::add_primary_keys(const std::string& value) {
   _impl_.primary_keys_.Add()->assign(value);
-  // @@protoc_insertion_point(field_add:DeleteRequest.primary_keys)
+  // @@protoc_insertion_point(field_add:vearchpb.DeleteRequest.primary_keys)
 }
 inline void DeleteRequest::add_primary_keys(std::string&& value) {
   _impl_.primary_keys_.Add(std::move(value));
-  // @@protoc_insertion_point(field_add:DeleteRequest.primary_keys)
+  // @@protoc_insertion_point(field_add:vearchpb.DeleteRequest.primary_keys)
 }
 inline void DeleteRequest::add_primary_keys(const char* value) {
   GOOGLE_DCHECK(value != nullptr);
   _impl_.primary_keys_.Add()->assign(value);
-  // @@protoc_insertion_point(field_add_char:DeleteRequest.primary_keys)
+  // @@protoc_insertion_point(field_add_char:vearchpb.DeleteRequest.primary_keys)
 }
 inline void DeleteRequest::add_primary_keys(const char* value, size_t size) {
   _impl_.primary_keys_.Add()->assign(reinterpret_cast<const char*>(value), size);
-  // @@protoc_insertion_point(field_add_pointer:DeleteRequest.primary_keys)
+  // @@protoc_insertion_point(field_add_pointer:vearchpb.DeleteRequest.primary_keys)
 }
 inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>&
 DeleteRequest::primary_keys() const {
-  // @@protoc_insertion_point(field_list:DeleteRequest.primary_keys)
+  // @@protoc_insertion_point(field_list:vearchpb.DeleteRequest.primary_keys)
   return _impl_.primary_keys_;
 }
 inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>*
 DeleteRequest::mutable_primary_keys() {
-  // @@protoc_insertion_point(field_mutable_list:DeleteRequest.primary_keys)
+  // @@protoc_insertion_point(field_mutable_list:vearchpb.DeleteRequest.primary_keys)
   return &_impl_.primary_keys_;
 }
 
@@ -6483,7 +6486,7 @@ DeleteRequest::mutable_primary_keys() {
 
 // BulkRequest
 
-// .RequestHead head = 1;
+// .vearchpb.RequestHead head = 1;
 inline bool BulkRequest::_internal_has_head() const {
   return this != internal_default_instance() && _impl_.head_ != nullptr;
 }
@@ -6496,17 +6499,17 @@ inline void BulkRequest::clear_head() {
   }
   _impl_.head_ = nullptr;
 }
-inline const ::RequestHead& BulkRequest::_internal_head() const {
-  const ::RequestHead* p = _impl_.head_;
-  return p != nullptr ? *p : reinterpret_cast<const ::RequestHead&>(
-      ::_RequestHead_default_instance_);
+inline const ::vearchpb::RequestHead& BulkRequest::_internal_head() const {
+  const ::vearchpb::RequestHead* p = _impl_.head_;
+  return p != nullptr ? *p : reinterpret_cast<const ::vearchpb::RequestHead&>(
+      ::vearchpb::_RequestHead_default_instance_);
 }
-inline const ::RequestHead& BulkRequest::head() const {
-  // @@protoc_insertion_point(field_get:BulkRequest.head)
+inline const ::vearchpb::RequestHead& BulkRequest::head() const {
+  // @@protoc_insertion_point(field_get:vearchpb.BulkRequest.head)
   return _internal_head();
 }
 inline void BulkRequest::unsafe_arena_set_allocated_head(
-    ::RequestHead* head) {
+    ::vearchpb::RequestHead* head) {
   if (GetArenaForAllocation() == nullptr) {
     delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.head_);
   }
@@ -6516,11 +6519,11 @@ inline void BulkRequest::unsafe_arena_set_allocated_head(
   } else {
     
   }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:BulkRequest.head)
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:vearchpb.BulkRequest.head)
 }
-inline ::RequestHead* BulkRequest::release_head() {
+inline ::vearchpb::RequestHead* BulkRequest::release_head() {
   
-  ::RequestHead* temp = _impl_.head_;
+  ::vearchpb::RequestHead* temp = _impl_.head_;
   _impl_.head_ = nullptr;
 #ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
   auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
@@ -6533,27 +6536,27 @@ inline ::RequestHead* BulkRequest::release_head() {
 #endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
   return temp;
 }
-inline ::RequestHead* BulkRequest::unsafe_arena_release_head() {
-  // @@protoc_insertion_point(field_release:BulkRequest.head)
+inline ::vearchpb::RequestHead* BulkRequest::unsafe_arena_release_head() {
+  // @@protoc_insertion_point(field_release:vearchpb.BulkRequest.head)
   
-  ::RequestHead* temp = _impl_.head_;
+  ::vearchpb::RequestHead* temp = _impl_.head_;
   _impl_.head_ = nullptr;
   return temp;
 }
-inline ::RequestHead* BulkRequest::_internal_mutable_head() {
+inline ::vearchpb::RequestHead* BulkRequest::_internal_mutable_head() {
   
   if (_impl_.head_ == nullptr) {
-    auto* p = CreateMaybeMessage<::RequestHead>(GetArenaForAllocation());
+    auto* p = CreateMaybeMessage<::vearchpb::RequestHead>(GetArenaForAllocation());
     _impl_.head_ = p;
   }
   return _impl_.head_;
 }
-inline ::RequestHead* BulkRequest::mutable_head() {
-  ::RequestHead* _msg = _internal_mutable_head();
-  // @@protoc_insertion_point(field_mutable:BulkRequest.head)
+inline ::vearchpb::RequestHead* BulkRequest::mutable_head() {
+  ::vearchpb::RequestHead* _msg = _internal_mutable_head();
+  // @@protoc_insertion_point(field_mutable:vearchpb.BulkRequest.head)
   return _msg;
 }
-inline void BulkRequest::set_allocated_head(::RequestHead* head) {
+inline void BulkRequest::set_allocated_head(::vearchpb::RequestHead* head) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   if (message_arena == nullptr) {
     delete _impl_.head_;
@@ -6570,43 +6573,43 @@ inline void BulkRequest::set_allocated_head(::RequestHead* head) {
     
   }
   _impl_.head_ = head;
-  // @@protoc_insertion_point(field_set_allocated:BulkRequest.head)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.BulkRequest.head)
 }
 
-// repeated .Document docs = 2;
+// repeated .vearchpb.Document docs = 2;
 inline int BulkRequest::_internal_docs_size() const {
   return _impl_.docs_.size();
 }
 inline int BulkRequest::docs_size() const {
   return _internal_docs_size();
 }
-inline ::Document* BulkRequest::mutable_docs(int index) {
-  // @@protoc_insertion_point(field_mutable:BulkRequest.docs)
+inline ::vearchpb::Document* BulkRequest::mutable_docs(int index) {
+  // @@protoc_insertion_point(field_mutable:vearchpb.BulkRequest.docs)
   return _impl_.docs_.Mutable(index);
 }
-inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::Document >*
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::Document >*
 BulkRequest::mutable_docs() {
-  // @@protoc_insertion_point(field_mutable_list:BulkRequest.docs)
+  // @@protoc_insertion_point(field_mutable_list:vearchpb.BulkRequest.docs)
   return &_impl_.docs_;
 }
-inline const ::Document& BulkRequest::_internal_docs(int index) const {
+inline const ::vearchpb::Document& BulkRequest::_internal_docs(int index) const {
   return _impl_.docs_.Get(index);
 }
-inline const ::Document& BulkRequest::docs(int index) const {
-  // @@protoc_insertion_point(field_get:BulkRequest.docs)
+inline const ::vearchpb::Document& BulkRequest::docs(int index) const {
+  // @@protoc_insertion_point(field_get:vearchpb.BulkRequest.docs)
   return _internal_docs(index);
 }
-inline ::Document* BulkRequest::_internal_add_docs() {
+inline ::vearchpb::Document* BulkRequest::_internal_add_docs() {
   return _impl_.docs_.Add();
 }
-inline ::Document* BulkRequest::add_docs() {
-  ::Document* _add = _internal_add_docs();
-  // @@protoc_insertion_point(field_add:BulkRequest.docs)
+inline ::vearchpb::Document* BulkRequest::add_docs() {
+  ::vearchpb::Document* _add = _internal_add_docs();
+  // @@protoc_insertion_point(field_add:vearchpb.BulkRequest.docs)
   return _add;
 }
-inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::Document >&
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::Document >&
 BulkRequest::docs() const {
-  // @@protoc_insertion_point(field_list:BulkRequest.docs)
+  // @@protoc_insertion_point(field_list:vearchpb.BulkRequest.docs)
   return _impl_.docs_;
 }
 
@@ -6624,19 +6627,19 @@ inline uint32_t BulkRequest::_internal_partitions(int index) const {
   return _impl_.partitions_.Get(index);
 }
 inline uint32_t BulkRequest::partitions(int index) const {
-  // @@protoc_insertion_point(field_get:BulkRequest.partitions)
+  // @@protoc_insertion_point(field_get:vearchpb.BulkRequest.partitions)
   return _internal_partitions(index);
 }
 inline void BulkRequest::set_partitions(int index, uint32_t value) {
   _impl_.partitions_.Set(index, value);
-  // @@protoc_insertion_point(field_set:BulkRequest.partitions)
+  // @@protoc_insertion_point(field_set:vearchpb.BulkRequest.partitions)
 }
 inline void BulkRequest::_internal_add_partitions(uint32_t value) {
   _impl_.partitions_.Add(value);
 }
 inline void BulkRequest::add_partitions(uint32_t value) {
   _internal_add_partitions(value);
-  // @@protoc_insertion_point(field_add:BulkRequest.partitions)
+  // @@protoc_insertion_point(field_add:vearchpb.BulkRequest.partitions)
 }
 inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< uint32_t >&
 BulkRequest::_internal_partitions() const {
@@ -6644,7 +6647,7 @@ BulkRequest::_internal_partitions() const {
 }
 inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< uint32_t >&
 BulkRequest::partitions() const {
-  // @@protoc_insertion_point(field_list:BulkRequest.partitions)
+  // @@protoc_insertion_point(field_list:vearchpb.BulkRequest.partitions)
   return _internal_partitions();
 }
 inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< uint32_t >*
@@ -6653,7 +6656,7 @@ BulkRequest::_internal_mutable_partitions() {
 }
 inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< uint32_t >*
 BulkRequest::mutable_partitions() {
-  // @@protoc_insertion_point(field_mutable_list:BulkRequest.partitions)
+  // @@protoc_insertion_point(field_mutable_list:vearchpb.BulkRequest.partitions)
   return _internal_mutable_partitions();
 }
 
@@ -6661,7 +6664,7 @@ BulkRequest::mutable_partitions() {
 
 // ForceMergeRequest
 
-// .RequestHead head = 1;
+// .vearchpb.RequestHead head = 1;
 inline bool ForceMergeRequest::_internal_has_head() const {
   return this != internal_default_instance() && _impl_.head_ != nullptr;
 }
@@ -6674,17 +6677,17 @@ inline void ForceMergeRequest::clear_head() {
   }
   _impl_.head_ = nullptr;
 }
-inline const ::RequestHead& ForceMergeRequest::_internal_head() const {
-  const ::RequestHead* p = _impl_.head_;
-  return p != nullptr ? *p : reinterpret_cast<const ::RequestHead&>(
-      ::_RequestHead_default_instance_);
+inline const ::vearchpb::RequestHead& ForceMergeRequest::_internal_head() const {
+  const ::vearchpb::RequestHead* p = _impl_.head_;
+  return p != nullptr ? *p : reinterpret_cast<const ::vearchpb::RequestHead&>(
+      ::vearchpb::_RequestHead_default_instance_);
 }
-inline const ::RequestHead& ForceMergeRequest::head() const {
-  // @@protoc_insertion_point(field_get:ForceMergeRequest.head)
+inline const ::vearchpb::RequestHead& ForceMergeRequest::head() const {
+  // @@protoc_insertion_point(field_get:vearchpb.ForceMergeRequest.head)
   return _internal_head();
 }
 inline void ForceMergeRequest::unsafe_arena_set_allocated_head(
-    ::RequestHead* head) {
+    ::vearchpb::RequestHead* head) {
   if (GetArenaForAllocation() == nullptr) {
     delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.head_);
   }
@@ -6694,11 +6697,11 @@ inline void ForceMergeRequest::unsafe_arena_set_allocated_head(
   } else {
     
   }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:ForceMergeRequest.head)
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:vearchpb.ForceMergeRequest.head)
 }
-inline ::RequestHead* ForceMergeRequest::release_head() {
+inline ::vearchpb::RequestHead* ForceMergeRequest::release_head() {
   
-  ::RequestHead* temp = _impl_.head_;
+  ::vearchpb::RequestHead* temp = _impl_.head_;
   _impl_.head_ = nullptr;
 #ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
   auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
@@ -6711,27 +6714,27 @@ inline ::RequestHead* ForceMergeRequest::release_head() {
 #endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
   return temp;
 }
-inline ::RequestHead* ForceMergeRequest::unsafe_arena_release_head() {
-  // @@protoc_insertion_point(field_release:ForceMergeRequest.head)
+inline ::vearchpb::RequestHead* ForceMergeRequest::unsafe_arena_release_head() {
+  // @@protoc_insertion_point(field_release:vearchpb.ForceMergeRequest.head)
   
-  ::RequestHead* temp = _impl_.head_;
+  ::vearchpb::RequestHead* temp = _impl_.head_;
   _impl_.head_ = nullptr;
   return temp;
 }
-inline ::RequestHead* ForceMergeRequest::_internal_mutable_head() {
+inline ::vearchpb::RequestHead* ForceMergeRequest::_internal_mutable_head() {
   
   if (_impl_.head_ == nullptr) {
-    auto* p = CreateMaybeMessage<::RequestHead>(GetArenaForAllocation());
+    auto* p = CreateMaybeMessage<::vearchpb::RequestHead>(GetArenaForAllocation());
     _impl_.head_ = p;
   }
   return _impl_.head_;
 }
-inline ::RequestHead* ForceMergeRequest::mutable_head() {
-  ::RequestHead* _msg = _internal_mutable_head();
-  // @@protoc_insertion_point(field_mutable:ForceMergeRequest.head)
+inline ::vearchpb::RequestHead* ForceMergeRequest::mutable_head() {
+  ::vearchpb::RequestHead* _msg = _internal_mutable_head();
+  // @@protoc_insertion_point(field_mutable:vearchpb.ForceMergeRequest.head)
   return _msg;
 }
-inline void ForceMergeRequest::set_allocated_head(::RequestHead* head) {
+inline void ForceMergeRequest::set_allocated_head(::vearchpb::RequestHead* head) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   if (message_arena == nullptr) {
     delete _impl_.head_;
@@ -6748,14 +6751,14 @@ inline void ForceMergeRequest::set_allocated_head(::RequestHead* head) {
     
   }
   _impl_.head_ = head;
-  // @@protoc_insertion_point(field_set_allocated:ForceMergeRequest.head)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.ForceMergeRequest.head)
 }
 
 // -------------------------------------------------------------------
 
 // FlushRequest
 
-// .RequestHead head = 1;
+// .vearchpb.RequestHead head = 1;
 inline bool FlushRequest::_internal_has_head() const {
   return this != internal_default_instance() && _impl_.head_ != nullptr;
 }
@@ -6768,17 +6771,17 @@ inline void FlushRequest::clear_head() {
   }
   _impl_.head_ = nullptr;
 }
-inline const ::RequestHead& FlushRequest::_internal_head() const {
-  const ::RequestHead* p = _impl_.head_;
-  return p != nullptr ? *p : reinterpret_cast<const ::RequestHead&>(
-      ::_RequestHead_default_instance_);
+inline const ::vearchpb::RequestHead& FlushRequest::_internal_head() const {
+  const ::vearchpb::RequestHead* p = _impl_.head_;
+  return p != nullptr ? *p : reinterpret_cast<const ::vearchpb::RequestHead&>(
+      ::vearchpb::_RequestHead_default_instance_);
 }
-inline const ::RequestHead& FlushRequest::head() const {
-  // @@protoc_insertion_point(field_get:FlushRequest.head)
+inline const ::vearchpb::RequestHead& FlushRequest::head() const {
+  // @@protoc_insertion_point(field_get:vearchpb.FlushRequest.head)
   return _internal_head();
 }
 inline void FlushRequest::unsafe_arena_set_allocated_head(
-    ::RequestHead* head) {
+    ::vearchpb::RequestHead* head) {
   if (GetArenaForAllocation() == nullptr) {
     delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.head_);
   }
@@ -6788,11 +6791,11 @@ inline void FlushRequest::unsafe_arena_set_allocated_head(
   } else {
     
   }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:FlushRequest.head)
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:vearchpb.FlushRequest.head)
 }
-inline ::RequestHead* FlushRequest::release_head() {
+inline ::vearchpb::RequestHead* FlushRequest::release_head() {
   
-  ::RequestHead* temp = _impl_.head_;
+  ::vearchpb::RequestHead* temp = _impl_.head_;
   _impl_.head_ = nullptr;
 #ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
   auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
@@ -6805,27 +6808,27 @@ inline ::RequestHead* FlushRequest::release_head() {
 #endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
   return temp;
 }
-inline ::RequestHead* FlushRequest::unsafe_arena_release_head() {
-  // @@protoc_insertion_point(field_release:FlushRequest.head)
+inline ::vearchpb::RequestHead* FlushRequest::unsafe_arena_release_head() {
+  // @@protoc_insertion_point(field_release:vearchpb.FlushRequest.head)
   
-  ::RequestHead* temp = _impl_.head_;
+  ::vearchpb::RequestHead* temp = _impl_.head_;
   _impl_.head_ = nullptr;
   return temp;
 }
-inline ::RequestHead* FlushRequest::_internal_mutable_head() {
+inline ::vearchpb::RequestHead* FlushRequest::_internal_mutable_head() {
   
   if (_impl_.head_ == nullptr) {
-    auto* p = CreateMaybeMessage<::RequestHead>(GetArenaForAllocation());
+    auto* p = CreateMaybeMessage<::vearchpb::RequestHead>(GetArenaForAllocation());
     _impl_.head_ = p;
   }
   return _impl_.head_;
 }
-inline ::RequestHead* FlushRequest::mutable_head() {
-  ::RequestHead* _msg = _internal_mutable_head();
-  // @@protoc_insertion_point(field_mutable:FlushRequest.head)
+inline ::vearchpb::RequestHead* FlushRequest::mutable_head() {
+  ::vearchpb::RequestHead* _msg = _internal_mutable_head();
+  // @@protoc_insertion_point(field_mutable:vearchpb.FlushRequest.head)
   return _msg;
 }
-inline void FlushRequest::set_allocated_head(::RequestHead* head) {
+inline void FlushRequest::set_allocated_head(::vearchpb::RequestHead* head) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   if (message_arena == nullptr) {
     delete _impl_.head_;
@@ -6842,14 +6845,14 @@ inline void FlushRequest::set_allocated_head(::RequestHead* head) {
     
   }
   _impl_.head_ = head;
-  // @@protoc_insertion_point(field_set_allocated:FlushRequest.head)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.FlushRequest.head)
 }
 
 // -------------------------------------------------------------------
 
 // IndexRequest
 
-// .RequestHead head = 1;
+// .vearchpb.RequestHead head = 1;
 inline bool IndexRequest::_internal_has_head() const {
   return this != internal_default_instance() && _impl_.head_ != nullptr;
 }
@@ -6862,17 +6865,17 @@ inline void IndexRequest::clear_head() {
   }
   _impl_.head_ = nullptr;
 }
-inline const ::RequestHead& IndexRequest::_internal_head() const {
-  const ::RequestHead* p = _impl_.head_;
-  return p != nullptr ? *p : reinterpret_cast<const ::RequestHead&>(
-      ::_RequestHead_default_instance_);
+inline const ::vearchpb::RequestHead& IndexRequest::_internal_head() const {
+  const ::vearchpb::RequestHead* p = _impl_.head_;
+  return p != nullptr ? *p : reinterpret_cast<const ::vearchpb::RequestHead&>(
+      ::vearchpb::_RequestHead_default_instance_);
 }
-inline const ::RequestHead& IndexRequest::head() const {
-  // @@protoc_insertion_point(field_get:IndexRequest.head)
+inline const ::vearchpb::RequestHead& IndexRequest::head() const {
+  // @@protoc_insertion_point(field_get:vearchpb.IndexRequest.head)
   return _internal_head();
 }
 inline void IndexRequest::unsafe_arena_set_allocated_head(
-    ::RequestHead* head) {
+    ::vearchpb::RequestHead* head) {
   if (GetArenaForAllocation() == nullptr) {
     delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.head_);
   }
@@ -6882,11 +6885,11 @@ inline void IndexRequest::unsafe_arena_set_allocated_head(
   } else {
     
   }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:IndexRequest.head)
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:vearchpb.IndexRequest.head)
 }
-inline ::RequestHead* IndexRequest::release_head() {
+inline ::vearchpb::RequestHead* IndexRequest::release_head() {
   
-  ::RequestHead* temp = _impl_.head_;
+  ::vearchpb::RequestHead* temp = _impl_.head_;
   _impl_.head_ = nullptr;
 #ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
   auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
@@ -6899,27 +6902,27 @@ inline ::RequestHead* IndexRequest::release_head() {
 #endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
   return temp;
 }
-inline ::RequestHead* IndexRequest::unsafe_arena_release_head() {
-  // @@protoc_insertion_point(field_release:IndexRequest.head)
+inline ::vearchpb::RequestHead* IndexRequest::unsafe_arena_release_head() {
+  // @@protoc_insertion_point(field_release:vearchpb.IndexRequest.head)
   
-  ::RequestHead* temp = _impl_.head_;
+  ::vearchpb::RequestHead* temp = _impl_.head_;
   _impl_.head_ = nullptr;
   return temp;
 }
-inline ::RequestHead* IndexRequest::_internal_mutable_head() {
+inline ::vearchpb::RequestHead* IndexRequest::_internal_mutable_head() {
   
   if (_impl_.head_ == nullptr) {
-    auto* p = CreateMaybeMessage<::RequestHead>(GetArenaForAllocation());
+    auto* p = CreateMaybeMessage<::vearchpb::RequestHead>(GetArenaForAllocation());
     _impl_.head_ = p;
   }
   return _impl_.head_;
 }
-inline ::RequestHead* IndexRequest::mutable_head() {
-  ::RequestHead* _msg = _internal_mutable_head();
-  // @@protoc_insertion_point(field_mutable:IndexRequest.head)
+inline ::vearchpb::RequestHead* IndexRequest::mutable_head() {
+  ::vearchpb::RequestHead* _msg = _internal_mutable_head();
+  // @@protoc_insertion_point(field_mutable:vearchpb.IndexRequest.head)
   return _msg;
 }
-inline void IndexRequest::set_allocated_head(::RequestHead* head) {
+inline void IndexRequest::set_allocated_head(::vearchpb::RequestHead* head) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   if (message_arena == nullptr) {
     delete _impl_.head_;
@@ -6936,7 +6939,7 @@ inline void IndexRequest::set_allocated_head(::RequestHead* head) {
     
   }
   _impl_.head_ = head;
-  // @@protoc_insertion_point(field_set_allocated:IndexRequest.head)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.IndexRequest.head)
 }
 
 // int64 drop_before_rebuild = 2;
@@ -6947,7 +6950,7 @@ inline int64_t IndexRequest::_internal_drop_before_rebuild() const {
   return _impl_.drop_before_rebuild_;
 }
 inline int64_t IndexRequest::drop_before_rebuild() const {
-  // @@protoc_insertion_point(field_get:IndexRequest.drop_before_rebuild)
+  // @@protoc_insertion_point(field_get:vearchpb.IndexRequest.drop_before_rebuild)
   return _internal_drop_before_rebuild();
 }
 inline void IndexRequest::_internal_set_drop_before_rebuild(int64_t value) {
@@ -6956,7 +6959,7 @@ inline void IndexRequest::_internal_set_drop_before_rebuild(int64_t value) {
 }
 inline void IndexRequest::set_drop_before_rebuild(int64_t value) {
   _internal_set_drop_before_rebuild(value);
-  // @@protoc_insertion_point(field_set:IndexRequest.drop_before_rebuild)
+  // @@protoc_insertion_point(field_set:vearchpb.IndexRequest.drop_before_rebuild)
 }
 
 // int64 limit_cpu = 3;
@@ -6967,7 +6970,7 @@ inline int64_t IndexRequest::_internal_limit_cpu() const {
   return _impl_.limit_cpu_;
 }
 inline int64_t IndexRequest::limit_cpu() const {
-  // @@protoc_insertion_point(field_get:IndexRequest.limit_cpu)
+  // @@protoc_insertion_point(field_get:vearchpb.IndexRequest.limit_cpu)
   return _internal_limit_cpu();
 }
 inline void IndexRequest::_internal_set_limit_cpu(int64_t value) {
@@ -6976,7 +6979,7 @@ inline void IndexRequest::_internal_set_limit_cpu(int64_t value) {
 }
 inline void IndexRequest::set_limit_cpu(int64_t value) {
   _internal_set_limit_cpu(value);
-  // @@protoc_insertion_point(field_set:IndexRequest.limit_cpu)
+  // @@protoc_insertion_point(field_set:vearchpb.IndexRequest.limit_cpu)
 }
 
 // int64 describe = 4;
@@ -6987,7 +6990,7 @@ inline int64_t IndexRequest::_internal_describe() const {
   return _impl_.describe_;
 }
 inline int64_t IndexRequest::describe() const {
-  // @@protoc_insertion_point(field_get:IndexRequest.describe)
+  // @@protoc_insertion_point(field_get:vearchpb.IndexRequest.describe)
   return _internal_describe();
 }
 inline void IndexRequest::_internal_set_describe(int64_t value) {
@@ -6996,14 +6999,14 @@ inline void IndexRequest::_internal_set_describe(int64_t value) {
 }
 inline void IndexRequest::set_describe(int64_t value) {
   _internal_set_describe(value);
-  // @@protoc_insertion_point(field_set:IndexRequest.describe)
+  // @@protoc_insertion_point(field_set:vearchpb.IndexRequest.describe)
 }
 
 // -------------------------------------------------------------------
 
 // GetResponse
 
-// .ResponseHead head = 1;
+// .vearchpb.ResponseHead head = 1;
 inline bool GetResponse::_internal_has_head() const {
   return this != internal_default_instance() && _impl_.head_ != nullptr;
 }
@@ -7016,17 +7019,17 @@ inline void GetResponse::clear_head() {
   }
   _impl_.head_ = nullptr;
 }
-inline const ::ResponseHead& GetResponse::_internal_head() const {
-  const ::ResponseHead* p = _impl_.head_;
-  return p != nullptr ? *p : reinterpret_cast<const ::ResponseHead&>(
-      ::_ResponseHead_default_instance_);
+inline const ::vearchpb::ResponseHead& GetResponse::_internal_head() const {
+  const ::vearchpb::ResponseHead* p = _impl_.head_;
+  return p != nullptr ? *p : reinterpret_cast<const ::vearchpb::ResponseHead&>(
+      ::vearchpb::_ResponseHead_default_instance_);
 }
-inline const ::ResponseHead& GetResponse::head() const {
-  // @@protoc_insertion_point(field_get:GetResponse.head)
+inline const ::vearchpb::ResponseHead& GetResponse::head() const {
+  // @@protoc_insertion_point(field_get:vearchpb.GetResponse.head)
   return _internal_head();
 }
 inline void GetResponse::unsafe_arena_set_allocated_head(
-    ::ResponseHead* head) {
+    ::vearchpb::ResponseHead* head) {
   if (GetArenaForAllocation() == nullptr) {
     delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.head_);
   }
@@ -7036,11 +7039,11 @@ inline void GetResponse::unsafe_arena_set_allocated_head(
   } else {
     
   }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:GetResponse.head)
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:vearchpb.GetResponse.head)
 }
-inline ::ResponseHead* GetResponse::release_head() {
+inline ::vearchpb::ResponseHead* GetResponse::release_head() {
   
-  ::ResponseHead* temp = _impl_.head_;
+  ::vearchpb::ResponseHead* temp = _impl_.head_;
   _impl_.head_ = nullptr;
 #ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
   auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
@@ -7053,27 +7056,27 @@ inline ::ResponseHead* GetResponse::release_head() {
 #endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
   return temp;
 }
-inline ::ResponseHead* GetResponse::unsafe_arena_release_head() {
-  // @@protoc_insertion_point(field_release:GetResponse.head)
+inline ::vearchpb::ResponseHead* GetResponse::unsafe_arena_release_head() {
+  // @@protoc_insertion_point(field_release:vearchpb.GetResponse.head)
   
-  ::ResponseHead* temp = _impl_.head_;
+  ::vearchpb::ResponseHead* temp = _impl_.head_;
   _impl_.head_ = nullptr;
   return temp;
 }
-inline ::ResponseHead* GetResponse::_internal_mutable_head() {
+inline ::vearchpb::ResponseHead* GetResponse::_internal_mutable_head() {
   
   if (_impl_.head_ == nullptr) {
-    auto* p = CreateMaybeMessage<::ResponseHead>(GetArenaForAllocation());
+    auto* p = CreateMaybeMessage<::vearchpb::ResponseHead>(GetArenaForAllocation());
     _impl_.head_ = p;
   }
   return _impl_.head_;
 }
-inline ::ResponseHead* GetResponse::mutable_head() {
-  ::ResponseHead* _msg = _internal_mutable_head();
-  // @@protoc_insertion_point(field_mutable:GetResponse.head)
+inline ::vearchpb::ResponseHead* GetResponse::mutable_head() {
+  ::vearchpb::ResponseHead* _msg = _internal_mutable_head();
+  // @@protoc_insertion_point(field_mutable:vearchpb.GetResponse.head)
   return _msg;
 }
-inline void GetResponse::set_allocated_head(::ResponseHead* head) {
+inline void GetResponse::set_allocated_head(::vearchpb::ResponseHead* head) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   if (message_arena == nullptr) {
     delete _impl_.head_;
@@ -7090,43 +7093,43 @@ inline void GetResponse::set_allocated_head(::ResponseHead* head) {
     
   }
   _impl_.head_ = head;
-  // @@protoc_insertion_point(field_set_allocated:GetResponse.head)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.GetResponse.head)
 }
 
-// repeated .Item items = 2;
+// repeated .vearchpb.Item items = 2;
 inline int GetResponse::_internal_items_size() const {
   return _impl_.items_.size();
 }
 inline int GetResponse::items_size() const {
   return _internal_items_size();
 }
-inline ::Item* GetResponse::mutable_items(int index) {
-  // @@protoc_insertion_point(field_mutable:GetResponse.items)
+inline ::vearchpb::Item* GetResponse::mutable_items(int index) {
+  // @@protoc_insertion_point(field_mutable:vearchpb.GetResponse.items)
   return _impl_.items_.Mutable(index);
 }
-inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::Item >*
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::Item >*
 GetResponse::mutable_items() {
-  // @@protoc_insertion_point(field_mutable_list:GetResponse.items)
+  // @@protoc_insertion_point(field_mutable_list:vearchpb.GetResponse.items)
   return &_impl_.items_;
 }
-inline const ::Item& GetResponse::_internal_items(int index) const {
+inline const ::vearchpb::Item& GetResponse::_internal_items(int index) const {
   return _impl_.items_.Get(index);
 }
-inline const ::Item& GetResponse::items(int index) const {
-  // @@protoc_insertion_point(field_get:GetResponse.items)
+inline const ::vearchpb::Item& GetResponse::items(int index) const {
+  // @@protoc_insertion_point(field_get:vearchpb.GetResponse.items)
   return _internal_items(index);
 }
-inline ::Item* GetResponse::_internal_add_items() {
+inline ::vearchpb::Item* GetResponse::_internal_add_items() {
   return _impl_.items_.Add();
 }
-inline ::Item* GetResponse::add_items() {
-  ::Item* _add = _internal_add_items();
-  // @@protoc_insertion_point(field_add:GetResponse.items)
+inline ::vearchpb::Item* GetResponse::add_items() {
+  ::vearchpb::Item* _add = _internal_add_items();
+  // @@protoc_insertion_point(field_add:vearchpb.GetResponse.items)
   return _add;
 }
-inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::Item >&
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::Item >&
 GetResponse::items() const {
-  // @@protoc_insertion_point(field_list:GetResponse.items)
+  // @@protoc_insertion_point(field_list:vearchpb.GetResponse.items)
   return _impl_.items_;
 }
 
@@ -7134,7 +7137,7 @@ GetResponse::items() const {
 
 // DeleteResponse
 
-// .ResponseHead head = 1;
+// .vearchpb.ResponseHead head = 1;
 inline bool DeleteResponse::_internal_has_head() const {
   return this != internal_default_instance() && _impl_.head_ != nullptr;
 }
@@ -7147,17 +7150,17 @@ inline void DeleteResponse::clear_head() {
   }
   _impl_.head_ = nullptr;
 }
-inline const ::ResponseHead& DeleteResponse::_internal_head() const {
-  const ::ResponseHead* p = _impl_.head_;
-  return p != nullptr ? *p : reinterpret_cast<const ::ResponseHead&>(
-      ::_ResponseHead_default_instance_);
+inline const ::vearchpb::ResponseHead& DeleteResponse::_internal_head() const {
+  const ::vearchpb::ResponseHead* p = _impl_.head_;
+  return p != nullptr ? *p : reinterpret_cast<const ::vearchpb::ResponseHead&>(
+      ::vearchpb::_ResponseHead_default_instance_);
 }
-inline const ::ResponseHead& DeleteResponse::head() const {
-  // @@protoc_insertion_point(field_get:DeleteResponse.head)
+inline const ::vearchpb::ResponseHead& DeleteResponse::head() const {
+  // @@protoc_insertion_point(field_get:vearchpb.DeleteResponse.head)
   return _internal_head();
 }
 inline void DeleteResponse::unsafe_arena_set_allocated_head(
-    ::ResponseHead* head) {
+    ::vearchpb::ResponseHead* head) {
   if (GetArenaForAllocation() == nullptr) {
     delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.head_);
   }
@@ -7167,11 +7170,11 @@ inline void DeleteResponse::unsafe_arena_set_allocated_head(
   } else {
     
   }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:DeleteResponse.head)
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:vearchpb.DeleteResponse.head)
 }
-inline ::ResponseHead* DeleteResponse::release_head() {
+inline ::vearchpb::ResponseHead* DeleteResponse::release_head() {
   
-  ::ResponseHead* temp = _impl_.head_;
+  ::vearchpb::ResponseHead* temp = _impl_.head_;
   _impl_.head_ = nullptr;
 #ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
   auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
@@ -7184,27 +7187,27 @@ inline ::ResponseHead* DeleteResponse::release_head() {
 #endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
   return temp;
 }
-inline ::ResponseHead* DeleteResponse::unsafe_arena_release_head() {
-  // @@protoc_insertion_point(field_release:DeleteResponse.head)
+inline ::vearchpb::ResponseHead* DeleteResponse::unsafe_arena_release_head() {
+  // @@protoc_insertion_point(field_release:vearchpb.DeleteResponse.head)
   
-  ::ResponseHead* temp = _impl_.head_;
+  ::vearchpb::ResponseHead* temp = _impl_.head_;
   _impl_.head_ = nullptr;
   return temp;
 }
-inline ::ResponseHead* DeleteResponse::_internal_mutable_head() {
+inline ::vearchpb::ResponseHead* DeleteResponse::_internal_mutable_head() {
   
   if (_impl_.head_ == nullptr) {
-    auto* p = CreateMaybeMessage<::ResponseHead>(GetArenaForAllocation());
+    auto* p = CreateMaybeMessage<::vearchpb::ResponseHead>(GetArenaForAllocation());
     _impl_.head_ = p;
   }
   return _impl_.head_;
 }
-inline ::ResponseHead* DeleteResponse::mutable_head() {
-  ::ResponseHead* _msg = _internal_mutable_head();
-  // @@protoc_insertion_point(field_mutable:DeleteResponse.head)
+inline ::vearchpb::ResponseHead* DeleteResponse::mutable_head() {
+  ::vearchpb::ResponseHead* _msg = _internal_mutable_head();
+  // @@protoc_insertion_point(field_mutable:vearchpb.DeleteResponse.head)
   return _msg;
 }
-inline void DeleteResponse::set_allocated_head(::ResponseHead* head) {
+inline void DeleteResponse::set_allocated_head(::vearchpb::ResponseHead* head) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   if (message_arena == nullptr) {
     delete _impl_.head_;
@@ -7221,43 +7224,43 @@ inline void DeleteResponse::set_allocated_head(::ResponseHead* head) {
     
   }
   _impl_.head_ = head;
-  // @@protoc_insertion_point(field_set_allocated:DeleteResponse.head)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.DeleteResponse.head)
 }
 
-// repeated .Item items = 2;
+// repeated .vearchpb.Item items = 2;
 inline int DeleteResponse::_internal_items_size() const {
   return _impl_.items_.size();
 }
 inline int DeleteResponse::items_size() const {
   return _internal_items_size();
 }
-inline ::Item* DeleteResponse::mutable_items(int index) {
-  // @@protoc_insertion_point(field_mutable:DeleteResponse.items)
+inline ::vearchpb::Item* DeleteResponse::mutable_items(int index) {
+  // @@protoc_insertion_point(field_mutable:vearchpb.DeleteResponse.items)
   return _impl_.items_.Mutable(index);
 }
-inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::Item >*
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::Item >*
 DeleteResponse::mutable_items() {
-  // @@protoc_insertion_point(field_mutable_list:DeleteResponse.items)
+  // @@protoc_insertion_point(field_mutable_list:vearchpb.DeleteResponse.items)
   return &_impl_.items_;
 }
-inline const ::Item& DeleteResponse::_internal_items(int index) const {
+inline const ::vearchpb::Item& DeleteResponse::_internal_items(int index) const {
   return _impl_.items_.Get(index);
 }
-inline const ::Item& DeleteResponse::items(int index) const {
-  // @@protoc_insertion_point(field_get:DeleteResponse.items)
+inline const ::vearchpb::Item& DeleteResponse::items(int index) const {
+  // @@protoc_insertion_point(field_get:vearchpb.DeleteResponse.items)
   return _internal_items(index);
 }
-inline ::Item* DeleteResponse::_internal_add_items() {
+inline ::vearchpb::Item* DeleteResponse::_internal_add_items() {
   return _impl_.items_.Add();
 }
-inline ::Item* DeleteResponse::add_items() {
-  ::Item* _add = _internal_add_items();
-  // @@protoc_insertion_point(field_add:DeleteResponse.items)
+inline ::vearchpb::Item* DeleteResponse::add_items() {
+  ::vearchpb::Item* _add = _internal_add_items();
+  // @@protoc_insertion_point(field_add:vearchpb.DeleteResponse.items)
   return _add;
 }
-inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::Item >&
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::Item >&
 DeleteResponse::items() const {
-  // @@protoc_insertion_point(field_list:DeleteResponse.items)
+  // @@protoc_insertion_point(field_list:vearchpb.DeleteResponse.items)
   return _impl_.items_;
 }
 
@@ -7265,7 +7268,7 @@ DeleteResponse::items() const {
 
 // BulkResponse
 
-// .ResponseHead head = 1;
+// .vearchpb.ResponseHead head = 1;
 inline bool BulkResponse::_internal_has_head() const {
   return this != internal_default_instance() && _impl_.head_ != nullptr;
 }
@@ -7278,17 +7281,17 @@ inline void BulkResponse::clear_head() {
   }
   _impl_.head_ = nullptr;
 }
-inline const ::ResponseHead& BulkResponse::_internal_head() const {
-  const ::ResponseHead* p = _impl_.head_;
-  return p != nullptr ? *p : reinterpret_cast<const ::ResponseHead&>(
-      ::_ResponseHead_default_instance_);
+inline const ::vearchpb::ResponseHead& BulkResponse::_internal_head() const {
+  const ::vearchpb::ResponseHead* p = _impl_.head_;
+  return p != nullptr ? *p : reinterpret_cast<const ::vearchpb::ResponseHead&>(
+      ::vearchpb::_ResponseHead_default_instance_);
 }
-inline const ::ResponseHead& BulkResponse::head() const {
-  // @@protoc_insertion_point(field_get:BulkResponse.head)
+inline const ::vearchpb::ResponseHead& BulkResponse::head() const {
+  // @@protoc_insertion_point(field_get:vearchpb.BulkResponse.head)
   return _internal_head();
 }
 inline void BulkResponse::unsafe_arena_set_allocated_head(
-    ::ResponseHead* head) {
+    ::vearchpb::ResponseHead* head) {
   if (GetArenaForAllocation() == nullptr) {
     delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.head_);
   }
@@ -7298,11 +7301,11 @@ inline void BulkResponse::unsafe_arena_set_allocated_head(
   } else {
     
   }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:BulkResponse.head)
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:vearchpb.BulkResponse.head)
 }
-inline ::ResponseHead* BulkResponse::release_head() {
+inline ::vearchpb::ResponseHead* BulkResponse::release_head() {
   
-  ::ResponseHead* temp = _impl_.head_;
+  ::vearchpb::ResponseHead* temp = _impl_.head_;
   _impl_.head_ = nullptr;
 #ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
   auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
@@ -7315,27 +7318,27 @@ inline ::ResponseHead* BulkResponse::release_head() {
 #endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
   return temp;
 }
-inline ::ResponseHead* BulkResponse::unsafe_arena_release_head() {
-  // @@protoc_insertion_point(field_release:BulkResponse.head)
+inline ::vearchpb::ResponseHead* BulkResponse::unsafe_arena_release_head() {
+  // @@protoc_insertion_point(field_release:vearchpb.BulkResponse.head)
   
-  ::ResponseHead* temp = _impl_.head_;
+  ::vearchpb::ResponseHead* temp = _impl_.head_;
   _impl_.head_ = nullptr;
   return temp;
 }
-inline ::ResponseHead* BulkResponse::_internal_mutable_head() {
+inline ::vearchpb::ResponseHead* BulkResponse::_internal_mutable_head() {
   
   if (_impl_.head_ == nullptr) {
-    auto* p = CreateMaybeMessage<::ResponseHead>(GetArenaForAllocation());
+    auto* p = CreateMaybeMessage<::vearchpb::ResponseHead>(GetArenaForAllocation());
     _impl_.head_ = p;
   }
   return _impl_.head_;
 }
-inline ::ResponseHead* BulkResponse::mutable_head() {
-  ::ResponseHead* _msg = _internal_mutable_head();
-  // @@protoc_insertion_point(field_mutable:BulkResponse.head)
+inline ::vearchpb::ResponseHead* BulkResponse::mutable_head() {
+  ::vearchpb::ResponseHead* _msg = _internal_mutable_head();
+  // @@protoc_insertion_point(field_mutable:vearchpb.BulkResponse.head)
   return _msg;
 }
-inline void BulkResponse::set_allocated_head(::ResponseHead* head) {
+inline void BulkResponse::set_allocated_head(::vearchpb::ResponseHead* head) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   if (message_arena == nullptr) {
     delete _impl_.head_;
@@ -7352,43 +7355,43 @@ inline void BulkResponse::set_allocated_head(::ResponseHead* head) {
     
   }
   _impl_.head_ = head;
-  // @@protoc_insertion_point(field_set_allocated:BulkResponse.head)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.BulkResponse.head)
 }
 
-// repeated .Item items = 2;
+// repeated .vearchpb.Item items = 2;
 inline int BulkResponse::_internal_items_size() const {
   return _impl_.items_.size();
 }
 inline int BulkResponse::items_size() const {
   return _internal_items_size();
 }
-inline ::Item* BulkResponse::mutable_items(int index) {
-  // @@protoc_insertion_point(field_mutable:BulkResponse.items)
+inline ::vearchpb::Item* BulkResponse::mutable_items(int index) {
+  // @@protoc_insertion_point(field_mutable:vearchpb.BulkResponse.items)
   return _impl_.items_.Mutable(index);
 }
-inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::Item >*
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::Item >*
 BulkResponse::mutable_items() {
-  // @@protoc_insertion_point(field_mutable_list:BulkResponse.items)
+  // @@protoc_insertion_point(field_mutable_list:vearchpb.BulkResponse.items)
   return &_impl_.items_;
 }
-inline const ::Item& BulkResponse::_internal_items(int index) const {
+inline const ::vearchpb::Item& BulkResponse::_internal_items(int index) const {
   return _impl_.items_.Get(index);
 }
-inline const ::Item& BulkResponse::items(int index) const {
-  // @@protoc_insertion_point(field_get:BulkResponse.items)
+inline const ::vearchpb::Item& BulkResponse::items(int index) const {
+  // @@protoc_insertion_point(field_get:vearchpb.BulkResponse.items)
   return _internal_items(index);
 }
-inline ::Item* BulkResponse::_internal_add_items() {
+inline ::vearchpb::Item* BulkResponse::_internal_add_items() {
   return _impl_.items_.Add();
 }
-inline ::Item* BulkResponse::add_items() {
-  ::Item* _add = _internal_add_items();
-  // @@protoc_insertion_point(field_add:BulkResponse.items)
+inline ::vearchpb::Item* BulkResponse::add_items() {
+  ::vearchpb::Item* _add = _internal_add_items();
+  // @@protoc_insertion_point(field_add:vearchpb.BulkResponse.items)
   return _add;
 }
-inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::Item >&
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::Item >&
 BulkResponse::items() const {
-  // @@protoc_insertion_point(field_list:BulkResponse.items)
+  // @@protoc_insertion_point(field_list:vearchpb.BulkResponse.items)
   return _impl_.items_;
 }
 
@@ -7396,7 +7399,7 @@ BulkResponse::items() const {
 
 // ForceMergeResponse
 
-// .ResponseHead head = 1;
+// .vearchpb.ResponseHead head = 1;
 inline bool ForceMergeResponse::_internal_has_head() const {
   return this != internal_default_instance() && _impl_.head_ != nullptr;
 }
@@ -7409,17 +7412,17 @@ inline void ForceMergeResponse::clear_head() {
   }
   _impl_.head_ = nullptr;
 }
-inline const ::ResponseHead& ForceMergeResponse::_internal_head() const {
-  const ::ResponseHead* p = _impl_.head_;
-  return p != nullptr ? *p : reinterpret_cast<const ::ResponseHead&>(
-      ::_ResponseHead_default_instance_);
+inline const ::vearchpb::ResponseHead& ForceMergeResponse::_internal_head() const {
+  const ::vearchpb::ResponseHead* p = _impl_.head_;
+  return p != nullptr ? *p : reinterpret_cast<const ::vearchpb::ResponseHead&>(
+      ::vearchpb::_ResponseHead_default_instance_);
 }
-inline const ::ResponseHead& ForceMergeResponse::head() const {
-  // @@protoc_insertion_point(field_get:ForceMergeResponse.head)
+inline const ::vearchpb::ResponseHead& ForceMergeResponse::head() const {
+  // @@protoc_insertion_point(field_get:vearchpb.ForceMergeResponse.head)
   return _internal_head();
 }
 inline void ForceMergeResponse::unsafe_arena_set_allocated_head(
-    ::ResponseHead* head) {
+    ::vearchpb::ResponseHead* head) {
   if (GetArenaForAllocation() == nullptr) {
     delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.head_);
   }
@@ -7429,11 +7432,11 @@ inline void ForceMergeResponse::unsafe_arena_set_allocated_head(
   } else {
     
   }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:ForceMergeResponse.head)
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:vearchpb.ForceMergeResponse.head)
 }
-inline ::ResponseHead* ForceMergeResponse::release_head() {
+inline ::vearchpb::ResponseHead* ForceMergeResponse::release_head() {
   
-  ::ResponseHead* temp = _impl_.head_;
+  ::vearchpb::ResponseHead* temp = _impl_.head_;
   _impl_.head_ = nullptr;
 #ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
   auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
@@ -7446,27 +7449,27 @@ inline ::ResponseHead* ForceMergeResponse::release_head() {
 #endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
   return temp;
 }
-inline ::ResponseHead* ForceMergeResponse::unsafe_arena_release_head() {
-  // @@protoc_insertion_point(field_release:ForceMergeResponse.head)
+inline ::vearchpb::ResponseHead* ForceMergeResponse::unsafe_arena_release_head() {
+  // @@protoc_insertion_point(field_release:vearchpb.ForceMergeResponse.head)
   
-  ::ResponseHead* temp = _impl_.head_;
+  ::vearchpb::ResponseHead* temp = _impl_.head_;
   _impl_.head_ = nullptr;
   return temp;
 }
-inline ::ResponseHead* ForceMergeResponse::_internal_mutable_head() {
+inline ::vearchpb::ResponseHead* ForceMergeResponse::_internal_mutable_head() {
   
   if (_impl_.head_ == nullptr) {
-    auto* p = CreateMaybeMessage<::ResponseHead>(GetArenaForAllocation());
+    auto* p = CreateMaybeMessage<::vearchpb::ResponseHead>(GetArenaForAllocation());
     _impl_.head_ = p;
   }
   return _impl_.head_;
 }
-inline ::ResponseHead* ForceMergeResponse::mutable_head() {
-  ::ResponseHead* _msg = _internal_mutable_head();
-  // @@protoc_insertion_point(field_mutable:ForceMergeResponse.head)
+inline ::vearchpb::ResponseHead* ForceMergeResponse::mutable_head() {
+  ::vearchpb::ResponseHead* _msg = _internal_mutable_head();
+  // @@protoc_insertion_point(field_mutable:vearchpb.ForceMergeResponse.head)
   return _msg;
 }
-inline void ForceMergeResponse::set_allocated_head(::ResponseHead* head) {
+inline void ForceMergeResponse::set_allocated_head(::vearchpb::ResponseHead* head) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   if (message_arena == nullptr) {
     delete _impl_.head_;
@@ -7483,10 +7486,10 @@ inline void ForceMergeResponse::set_allocated_head(::ResponseHead* head) {
     
   }
   _impl_.head_ = head;
-  // @@protoc_insertion_point(field_set_allocated:ForceMergeResponse.head)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.ForceMergeResponse.head)
 }
 
-// .SearchStatus shards = 2;
+// .vearchpb.SearchStatus shards = 2;
 inline bool ForceMergeResponse::_internal_has_shards() const {
   return this != internal_default_instance() && _impl_.shards_ != nullptr;
 }
@@ -7499,17 +7502,17 @@ inline void ForceMergeResponse::clear_shards() {
   }
   _impl_.shards_ = nullptr;
 }
-inline const ::SearchStatus& ForceMergeResponse::_internal_shards() const {
-  const ::SearchStatus* p = _impl_.shards_;
-  return p != nullptr ? *p : reinterpret_cast<const ::SearchStatus&>(
-      ::_SearchStatus_default_instance_);
+inline const ::vearchpb::SearchStatus& ForceMergeResponse::_internal_shards() const {
+  const ::vearchpb::SearchStatus* p = _impl_.shards_;
+  return p != nullptr ? *p : reinterpret_cast<const ::vearchpb::SearchStatus&>(
+      ::vearchpb::_SearchStatus_default_instance_);
 }
-inline const ::SearchStatus& ForceMergeResponse::shards() const {
-  // @@protoc_insertion_point(field_get:ForceMergeResponse.shards)
+inline const ::vearchpb::SearchStatus& ForceMergeResponse::shards() const {
+  // @@protoc_insertion_point(field_get:vearchpb.ForceMergeResponse.shards)
   return _internal_shards();
 }
 inline void ForceMergeResponse::unsafe_arena_set_allocated_shards(
-    ::SearchStatus* shards) {
+    ::vearchpb::SearchStatus* shards) {
   if (GetArenaForAllocation() == nullptr) {
     delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.shards_);
   }
@@ -7519,11 +7522,11 @@ inline void ForceMergeResponse::unsafe_arena_set_allocated_shards(
   } else {
     
   }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:ForceMergeResponse.shards)
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:vearchpb.ForceMergeResponse.shards)
 }
-inline ::SearchStatus* ForceMergeResponse::release_shards() {
+inline ::vearchpb::SearchStatus* ForceMergeResponse::release_shards() {
   
-  ::SearchStatus* temp = _impl_.shards_;
+  ::vearchpb::SearchStatus* temp = _impl_.shards_;
   _impl_.shards_ = nullptr;
 #ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
   auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
@@ -7536,27 +7539,27 @@ inline ::SearchStatus* ForceMergeResponse::release_shards() {
 #endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
   return temp;
 }
-inline ::SearchStatus* ForceMergeResponse::unsafe_arena_release_shards() {
-  // @@protoc_insertion_point(field_release:ForceMergeResponse.shards)
+inline ::vearchpb::SearchStatus* ForceMergeResponse::unsafe_arena_release_shards() {
+  // @@protoc_insertion_point(field_release:vearchpb.ForceMergeResponse.shards)
   
-  ::SearchStatus* temp = _impl_.shards_;
+  ::vearchpb::SearchStatus* temp = _impl_.shards_;
   _impl_.shards_ = nullptr;
   return temp;
 }
-inline ::SearchStatus* ForceMergeResponse::_internal_mutable_shards() {
+inline ::vearchpb::SearchStatus* ForceMergeResponse::_internal_mutable_shards() {
   
   if (_impl_.shards_ == nullptr) {
-    auto* p = CreateMaybeMessage<::SearchStatus>(GetArenaForAllocation());
+    auto* p = CreateMaybeMessage<::vearchpb::SearchStatus>(GetArenaForAllocation());
     _impl_.shards_ = p;
   }
   return _impl_.shards_;
 }
-inline ::SearchStatus* ForceMergeResponse::mutable_shards() {
-  ::SearchStatus* _msg = _internal_mutable_shards();
-  // @@protoc_insertion_point(field_mutable:ForceMergeResponse.shards)
+inline ::vearchpb::SearchStatus* ForceMergeResponse::mutable_shards() {
+  ::vearchpb::SearchStatus* _msg = _internal_mutable_shards();
+  // @@protoc_insertion_point(field_mutable:vearchpb.ForceMergeResponse.shards)
   return _msg;
 }
-inline void ForceMergeResponse::set_allocated_shards(::SearchStatus* shards) {
+inline void ForceMergeResponse::set_allocated_shards(::vearchpb::SearchStatus* shards) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   if (message_arena == nullptr) {
     delete _impl_.shards_;
@@ -7573,14 +7576,14 @@ inline void ForceMergeResponse::set_allocated_shards(::SearchStatus* shards) {
     
   }
   _impl_.shards_ = shards;
-  // @@protoc_insertion_point(field_set_allocated:ForceMergeResponse.shards)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.ForceMergeResponse.shards)
 }
 
 // -------------------------------------------------------------------
 
 // DelByQueryeResponse
 
-// .ResponseHead head = 1;
+// .vearchpb.ResponseHead head = 1;
 inline bool DelByQueryeResponse::_internal_has_head() const {
   return this != internal_default_instance() && _impl_.head_ != nullptr;
 }
@@ -7593,17 +7596,17 @@ inline void DelByQueryeResponse::clear_head() {
   }
   _impl_.head_ = nullptr;
 }
-inline const ::ResponseHead& DelByQueryeResponse::_internal_head() const {
-  const ::ResponseHead* p = _impl_.head_;
-  return p != nullptr ? *p : reinterpret_cast<const ::ResponseHead&>(
-      ::_ResponseHead_default_instance_);
+inline const ::vearchpb::ResponseHead& DelByQueryeResponse::_internal_head() const {
+  const ::vearchpb::ResponseHead* p = _impl_.head_;
+  return p != nullptr ? *p : reinterpret_cast<const ::vearchpb::ResponseHead&>(
+      ::vearchpb::_ResponseHead_default_instance_);
 }
-inline const ::ResponseHead& DelByQueryeResponse::head() const {
-  // @@protoc_insertion_point(field_get:DelByQueryeResponse.head)
+inline const ::vearchpb::ResponseHead& DelByQueryeResponse::head() const {
+  // @@protoc_insertion_point(field_get:vearchpb.DelByQueryeResponse.head)
   return _internal_head();
 }
 inline void DelByQueryeResponse::unsafe_arena_set_allocated_head(
-    ::ResponseHead* head) {
+    ::vearchpb::ResponseHead* head) {
   if (GetArenaForAllocation() == nullptr) {
     delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.head_);
   }
@@ -7613,11 +7616,11 @@ inline void DelByQueryeResponse::unsafe_arena_set_allocated_head(
   } else {
     
   }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:DelByQueryeResponse.head)
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:vearchpb.DelByQueryeResponse.head)
 }
-inline ::ResponseHead* DelByQueryeResponse::release_head() {
+inline ::vearchpb::ResponseHead* DelByQueryeResponse::release_head() {
   
-  ::ResponseHead* temp = _impl_.head_;
+  ::vearchpb::ResponseHead* temp = _impl_.head_;
   _impl_.head_ = nullptr;
 #ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
   auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
@@ -7630,27 +7633,27 @@ inline ::ResponseHead* DelByQueryeResponse::release_head() {
 #endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
   return temp;
 }
-inline ::ResponseHead* DelByQueryeResponse::unsafe_arena_release_head() {
-  // @@protoc_insertion_point(field_release:DelByQueryeResponse.head)
+inline ::vearchpb::ResponseHead* DelByQueryeResponse::unsafe_arena_release_head() {
+  // @@protoc_insertion_point(field_release:vearchpb.DelByQueryeResponse.head)
   
-  ::ResponseHead* temp = _impl_.head_;
+  ::vearchpb::ResponseHead* temp = _impl_.head_;
   _impl_.head_ = nullptr;
   return temp;
 }
-inline ::ResponseHead* DelByQueryeResponse::_internal_mutable_head() {
+inline ::vearchpb::ResponseHead* DelByQueryeResponse::_internal_mutable_head() {
   
   if (_impl_.head_ == nullptr) {
-    auto* p = CreateMaybeMessage<::ResponseHead>(GetArenaForAllocation());
+    auto* p = CreateMaybeMessage<::vearchpb::ResponseHead>(GetArenaForAllocation());
     _impl_.head_ = p;
   }
   return _impl_.head_;
 }
-inline ::ResponseHead* DelByQueryeResponse::mutable_head() {
-  ::ResponseHead* _msg = _internal_mutable_head();
-  // @@protoc_insertion_point(field_mutable:DelByQueryeResponse.head)
+inline ::vearchpb::ResponseHead* DelByQueryeResponse::mutable_head() {
+  ::vearchpb::ResponseHead* _msg = _internal_mutable_head();
+  // @@protoc_insertion_point(field_mutable:vearchpb.DelByQueryeResponse.head)
   return _msg;
 }
-inline void DelByQueryeResponse::set_allocated_head(::ResponseHead* head) {
+inline void DelByQueryeResponse::set_allocated_head(::vearchpb::ResponseHead* head) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   if (message_arena == nullptr) {
     delete _impl_.head_;
@@ -7667,7 +7670,7 @@ inline void DelByQueryeResponse::set_allocated_head(::ResponseHead* head) {
     
   }
   _impl_.head_ = head;
-  // @@protoc_insertion_point(field_set_allocated:DelByQueryeResponse.head)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.DelByQueryeResponse.head)
 }
 
 // int32 DelNum = 2;
@@ -7678,7 +7681,7 @@ inline int32_t DelByQueryeResponse::_internal_delnum() const {
   return _impl_.delnum_;
 }
 inline int32_t DelByQueryeResponse::delnum() const {
-  // @@protoc_insertion_point(field_get:DelByQueryeResponse.DelNum)
+  // @@protoc_insertion_point(field_get:vearchpb.DelByQueryeResponse.DelNum)
   return _internal_delnum();
 }
 inline void DelByQueryeResponse::_internal_set_delnum(int32_t value) {
@@ -7687,7 +7690,7 @@ inline void DelByQueryeResponse::_internal_set_delnum(int32_t value) {
 }
 inline void DelByQueryeResponse::set_delnum(int32_t value) {
   _internal_set_delnum(value);
-  // @@protoc_insertion_point(field_set:DelByQueryeResponse.DelNum)
+  // @@protoc_insertion_point(field_set:vearchpb.DelByQueryeResponse.DelNum)
 }
 
 // repeated string ids_str = 3;
@@ -7702,66 +7705,66 @@ inline void DelByQueryeResponse::clear_ids_str() {
 }
 inline std::string* DelByQueryeResponse::add_ids_str() {
   std::string* _s = _internal_add_ids_str();
-  // @@protoc_insertion_point(field_add_mutable:DelByQueryeResponse.ids_str)
+  // @@protoc_insertion_point(field_add_mutable:vearchpb.DelByQueryeResponse.ids_str)
   return _s;
 }
 inline const std::string& DelByQueryeResponse::_internal_ids_str(int index) const {
   return _impl_.ids_str_.Get(index);
 }
 inline const std::string& DelByQueryeResponse::ids_str(int index) const {
-  // @@protoc_insertion_point(field_get:DelByQueryeResponse.ids_str)
+  // @@protoc_insertion_point(field_get:vearchpb.DelByQueryeResponse.ids_str)
   return _internal_ids_str(index);
 }
 inline std::string* DelByQueryeResponse::mutable_ids_str(int index) {
-  // @@protoc_insertion_point(field_mutable:DelByQueryeResponse.ids_str)
+  // @@protoc_insertion_point(field_mutable:vearchpb.DelByQueryeResponse.ids_str)
   return _impl_.ids_str_.Mutable(index);
 }
 inline void DelByQueryeResponse::set_ids_str(int index, const std::string& value) {
   _impl_.ids_str_.Mutable(index)->assign(value);
-  // @@protoc_insertion_point(field_set:DelByQueryeResponse.ids_str)
+  // @@protoc_insertion_point(field_set:vearchpb.DelByQueryeResponse.ids_str)
 }
 inline void DelByQueryeResponse::set_ids_str(int index, std::string&& value) {
   _impl_.ids_str_.Mutable(index)->assign(std::move(value));
-  // @@protoc_insertion_point(field_set:DelByQueryeResponse.ids_str)
+  // @@protoc_insertion_point(field_set:vearchpb.DelByQueryeResponse.ids_str)
 }
 inline void DelByQueryeResponse::set_ids_str(int index, const char* value) {
   GOOGLE_DCHECK(value != nullptr);
   _impl_.ids_str_.Mutable(index)->assign(value);
-  // @@protoc_insertion_point(field_set_char:DelByQueryeResponse.ids_str)
+  // @@protoc_insertion_point(field_set_char:vearchpb.DelByQueryeResponse.ids_str)
 }
 inline void DelByQueryeResponse::set_ids_str(int index, const char* value, size_t size) {
   _impl_.ids_str_.Mutable(index)->assign(
     reinterpret_cast<const char*>(value), size);
-  // @@protoc_insertion_point(field_set_pointer:DelByQueryeResponse.ids_str)
+  // @@protoc_insertion_point(field_set_pointer:vearchpb.DelByQueryeResponse.ids_str)
 }
 inline std::string* DelByQueryeResponse::_internal_add_ids_str() {
   return _impl_.ids_str_.Add();
 }
 inline void DelByQueryeResponse::add_ids_str(const std::string& value) {
   _impl_.ids_str_.Add()->assign(value);
-  // @@protoc_insertion_point(field_add:DelByQueryeResponse.ids_str)
+  // @@protoc_insertion_point(field_add:vearchpb.DelByQueryeResponse.ids_str)
 }
 inline void DelByQueryeResponse::add_ids_str(std::string&& value) {
   _impl_.ids_str_.Add(std::move(value));
-  // @@protoc_insertion_point(field_add:DelByQueryeResponse.ids_str)
+  // @@protoc_insertion_point(field_add:vearchpb.DelByQueryeResponse.ids_str)
 }
 inline void DelByQueryeResponse::add_ids_str(const char* value) {
   GOOGLE_DCHECK(value != nullptr);
   _impl_.ids_str_.Add()->assign(value);
-  // @@protoc_insertion_point(field_add_char:DelByQueryeResponse.ids_str)
+  // @@protoc_insertion_point(field_add_char:vearchpb.DelByQueryeResponse.ids_str)
 }
 inline void DelByQueryeResponse::add_ids_str(const char* value, size_t size) {
   _impl_.ids_str_.Add()->assign(reinterpret_cast<const char*>(value), size);
-  // @@protoc_insertion_point(field_add_pointer:DelByQueryeResponse.ids_str)
+  // @@protoc_insertion_point(field_add_pointer:vearchpb.DelByQueryeResponse.ids_str)
 }
 inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>&
 DelByQueryeResponse::ids_str() const {
-  // @@protoc_insertion_point(field_list:DelByQueryeResponse.ids_str)
+  // @@protoc_insertion_point(field_list:vearchpb.DelByQueryeResponse.ids_str)
   return _impl_.ids_str_;
 }
 inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>*
 DelByQueryeResponse::mutable_ids_str() {
-  // @@protoc_insertion_point(field_mutable_list:DelByQueryeResponse.ids_str)
+  // @@protoc_insertion_point(field_mutable_list:vearchpb.DelByQueryeResponse.ids_str)
   return &_impl_.ids_str_;
 }
 
@@ -7779,19 +7782,19 @@ inline int64_t DelByQueryeResponse::_internal_ids_long(int index) const {
   return _impl_.ids_long_.Get(index);
 }
 inline int64_t DelByQueryeResponse::ids_long(int index) const {
-  // @@protoc_insertion_point(field_get:DelByQueryeResponse.ids_long)
+  // @@protoc_insertion_point(field_get:vearchpb.DelByQueryeResponse.ids_long)
   return _internal_ids_long(index);
 }
 inline void DelByQueryeResponse::set_ids_long(int index, int64_t value) {
   _impl_.ids_long_.Set(index, value);
-  // @@protoc_insertion_point(field_set:DelByQueryeResponse.ids_long)
+  // @@protoc_insertion_point(field_set:vearchpb.DelByQueryeResponse.ids_long)
 }
 inline void DelByQueryeResponse::_internal_add_ids_long(int64_t value) {
   _impl_.ids_long_.Add(value);
 }
 inline void DelByQueryeResponse::add_ids_long(int64_t value) {
   _internal_add_ids_long(value);
-  // @@protoc_insertion_point(field_add:DelByQueryeResponse.ids_long)
+  // @@protoc_insertion_point(field_add:vearchpb.DelByQueryeResponse.ids_long)
 }
 inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int64_t >&
 DelByQueryeResponse::_internal_ids_long() const {
@@ -7799,7 +7802,7 @@ DelByQueryeResponse::_internal_ids_long() const {
 }
 inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int64_t >&
 DelByQueryeResponse::ids_long() const {
-  // @@protoc_insertion_point(field_list:DelByQueryeResponse.ids_long)
+  // @@protoc_insertion_point(field_list:vearchpb.DelByQueryeResponse.ids_long)
   return _internal_ids_long();
 }
 inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< int64_t >*
@@ -7808,7 +7811,7 @@ DelByQueryeResponse::_internal_mutable_ids_long() {
 }
 inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< int64_t >*
 DelByQueryeResponse::mutable_ids_long() {
-  // @@protoc_insertion_point(field_mutable_list:DelByQueryeResponse.ids_long)
+  // @@protoc_insertion_point(field_mutable_list:vearchpb.DelByQueryeResponse.ids_long)
   return _internal_mutable_ids_long();
 }
 
@@ -7816,7 +7819,7 @@ DelByQueryeResponse::mutable_ids_long() {
 
 // FlushResponse
 
-// .ResponseHead head = 1;
+// .vearchpb.ResponseHead head = 1;
 inline bool FlushResponse::_internal_has_head() const {
   return this != internal_default_instance() && _impl_.head_ != nullptr;
 }
@@ -7829,17 +7832,17 @@ inline void FlushResponse::clear_head() {
   }
   _impl_.head_ = nullptr;
 }
-inline const ::ResponseHead& FlushResponse::_internal_head() const {
-  const ::ResponseHead* p = _impl_.head_;
-  return p != nullptr ? *p : reinterpret_cast<const ::ResponseHead&>(
-      ::_ResponseHead_default_instance_);
+inline const ::vearchpb::ResponseHead& FlushResponse::_internal_head() const {
+  const ::vearchpb::ResponseHead* p = _impl_.head_;
+  return p != nullptr ? *p : reinterpret_cast<const ::vearchpb::ResponseHead&>(
+      ::vearchpb::_ResponseHead_default_instance_);
 }
-inline const ::ResponseHead& FlushResponse::head() const {
-  // @@protoc_insertion_point(field_get:FlushResponse.head)
+inline const ::vearchpb::ResponseHead& FlushResponse::head() const {
+  // @@protoc_insertion_point(field_get:vearchpb.FlushResponse.head)
   return _internal_head();
 }
 inline void FlushResponse::unsafe_arena_set_allocated_head(
-    ::ResponseHead* head) {
+    ::vearchpb::ResponseHead* head) {
   if (GetArenaForAllocation() == nullptr) {
     delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.head_);
   }
@@ -7849,11 +7852,11 @@ inline void FlushResponse::unsafe_arena_set_allocated_head(
   } else {
     
   }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:FlushResponse.head)
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:vearchpb.FlushResponse.head)
 }
-inline ::ResponseHead* FlushResponse::release_head() {
+inline ::vearchpb::ResponseHead* FlushResponse::release_head() {
   
-  ::ResponseHead* temp = _impl_.head_;
+  ::vearchpb::ResponseHead* temp = _impl_.head_;
   _impl_.head_ = nullptr;
 #ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
   auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
@@ -7866,27 +7869,27 @@ inline ::ResponseHead* FlushResponse::release_head() {
 #endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
   return temp;
 }
-inline ::ResponseHead* FlushResponse::unsafe_arena_release_head() {
-  // @@protoc_insertion_point(field_release:FlushResponse.head)
+inline ::vearchpb::ResponseHead* FlushResponse::unsafe_arena_release_head() {
+  // @@protoc_insertion_point(field_release:vearchpb.FlushResponse.head)
   
-  ::ResponseHead* temp = _impl_.head_;
+  ::vearchpb::ResponseHead* temp = _impl_.head_;
   _impl_.head_ = nullptr;
   return temp;
 }
-inline ::ResponseHead* FlushResponse::_internal_mutable_head() {
+inline ::vearchpb::ResponseHead* FlushResponse::_internal_mutable_head() {
   
   if (_impl_.head_ == nullptr) {
-    auto* p = CreateMaybeMessage<::ResponseHead>(GetArenaForAllocation());
+    auto* p = CreateMaybeMessage<::vearchpb::ResponseHead>(GetArenaForAllocation());
     _impl_.head_ = p;
   }
   return _impl_.head_;
 }
-inline ::ResponseHead* FlushResponse::mutable_head() {
-  ::ResponseHead* _msg = _internal_mutable_head();
-  // @@protoc_insertion_point(field_mutable:FlushResponse.head)
+inline ::vearchpb::ResponseHead* FlushResponse::mutable_head() {
+  ::vearchpb::ResponseHead* _msg = _internal_mutable_head();
+  // @@protoc_insertion_point(field_mutable:vearchpb.FlushResponse.head)
   return _msg;
 }
-inline void FlushResponse::set_allocated_head(::ResponseHead* head) {
+inline void FlushResponse::set_allocated_head(::vearchpb::ResponseHead* head) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   if (message_arena == nullptr) {
     delete _impl_.head_;
@@ -7903,10 +7906,10 @@ inline void FlushResponse::set_allocated_head(::ResponseHead* head) {
     
   }
   _impl_.head_ = head;
-  // @@protoc_insertion_point(field_set_allocated:FlushResponse.head)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.FlushResponse.head)
 }
 
-// .SearchStatus shards = 2;
+// .vearchpb.SearchStatus shards = 2;
 inline bool FlushResponse::_internal_has_shards() const {
   return this != internal_default_instance() && _impl_.shards_ != nullptr;
 }
@@ -7919,17 +7922,17 @@ inline void FlushResponse::clear_shards() {
   }
   _impl_.shards_ = nullptr;
 }
-inline const ::SearchStatus& FlushResponse::_internal_shards() const {
-  const ::SearchStatus* p = _impl_.shards_;
-  return p != nullptr ? *p : reinterpret_cast<const ::SearchStatus&>(
-      ::_SearchStatus_default_instance_);
+inline const ::vearchpb::SearchStatus& FlushResponse::_internal_shards() const {
+  const ::vearchpb::SearchStatus* p = _impl_.shards_;
+  return p != nullptr ? *p : reinterpret_cast<const ::vearchpb::SearchStatus&>(
+      ::vearchpb::_SearchStatus_default_instance_);
 }
-inline const ::SearchStatus& FlushResponse::shards() const {
-  // @@protoc_insertion_point(field_get:FlushResponse.shards)
+inline const ::vearchpb::SearchStatus& FlushResponse::shards() const {
+  // @@protoc_insertion_point(field_get:vearchpb.FlushResponse.shards)
   return _internal_shards();
 }
 inline void FlushResponse::unsafe_arena_set_allocated_shards(
-    ::SearchStatus* shards) {
+    ::vearchpb::SearchStatus* shards) {
   if (GetArenaForAllocation() == nullptr) {
     delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.shards_);
   }
@@ -7939,11 +7942,11 @@ inline void FlushResponse::unsafe_arena_set_allocated_shards(
   } else {
     
   }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:FlushResponse.shards)
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:vearchpb.FlushResponse.shards)
 }
-inline ::SearchStatus* FlushResponse::release_shards() {
+inline ::vearchpb::SearchStatus* FlushResponse::release_shards() {
   
-  ::SearchStatus* temp = _impl_.shards_;
+  ::vearchpb::SearchStatus* temp = _impl_.shards_;
   _impl_.shards_ = nullptr;
 #ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
   auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
@@ -7956,27 +7959,27 @@ inline ::SearchStatus* FlushResponse::release_shards() {
 #endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
   return temp;
 }
-inline ::SearchStatus* FlushResponse::unsafe_arena_release_shards() {
-  // @@protoc_insertion_point(field_release:FlushResponse.shards)
+inline ::vearchpb::SearchStatus* FlushResponse::unsafe_arena_release_shards() {
+  // @@protoc_insertion_point(field_release:vearchpb.FlushResponse.shards)
   
-  ::SearchStatus* temp = _impl_.shards_;
+  ::vearchpb::SearchStatus* temp = _impl_.shards_;
   _impl_.shards_ = nullptr;
   return temp;
 }
-inline ::SearchStatus* FlushResponse::_internal_mutable_shards() {
+inline ::vearchpb::SearchStatus* FlushResponse::_internal_mutable_shards() {
   
   if (_impl_.shards_ == nullptr) {
-    auto* p = CreateMaybeMessage<::SearchStatus>(GetArenaForAllocation());
+    auto* p = CreateMaybeMessage<::vearchpb::SearchStatus>(GetArenaForAllocation());
     _impl_.shards_ = p;
   }
   return _impl_.shards_;
 }
-inline ::SearchStatus* FlushResponse::mutable_shards() {
-  ::SearchStatus* _msg = _internal_mutable_shards();
-  // @@protoc_insertion_point(field_mutable:FlushResponse.shards)
+inline ::vearchpb::SearchStatus* FlushResponse::mutable_shards() {
+  ::vearchpb::SearchStatus* _msg = _internal_mutable_shards();
+  // @@protoc_insertion_point(field_mutable:vearchpb.FlushResponse.shards)
   return _msg;
 }
-inline void FlushResponse::set_allocated_shards(::SearchStatus* shards) {
+inline void FlushResponse::set_allocated_shards(::vearchpb::SearchStatus* shards) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   if (message_arena == nullptr) {
     delete _impl_.shards_;
@@ -7993,14 +7996,14 @@ inline void FlushResponse::set_allocated_shards(::SearchStatus* shards) {
     
   }
   _impl_.shards_ = shards;
-  // @@protoc_insertion_point(field_set_allocated:FlushResponse.shards)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.FlushResponse.shards)
 }
 
 // -------------------------------------------------------------------
 
 // IndexResponse
 
-// .ResponseHead head = 1;
+// .vearchpb.ResponseHead head = 1;
 inline bool IndexResponse::_internal_has_head() const {
   return this != internal_default_instance() && _impl_.head_ != nullptr;
 }
@@ -8013,17 +8016,17 @@ inline void IndexResponse::clear_head() {
   }
   _impl_.head_ = nullptr;
 }
-inline const ::ResponseHead& IndexResponse::_internal_head() const {
-  const ::ResponseHead* p = _impl_.head_;
-  return p != nullptr ? *p : reinterpret_cast<const ::ResponseHead&>(
-      ::_ResponseHead_default_instance_);
+inline const ::vearchpb::ResponseHead& IndexResponse::_internal_head() const {
+  const ::vearchpb::ResponseHead* p = _impl_.head_;
+  return p != nullptr ? *p : reinterpret_cast<const ::vearchpb::ResponseHead&>(
+      ::vearchpb::_ResponseHead_default_instance_);
 }
-inline const ::ResponseHead& IndexResponse::head() const {
-  // @@protoc_insertion_point(field_get:IndexResponse.head)
+inline const ::vearchpb::ResponseHead& IndexResponse::head() const {
+  // @@protoc_insertion_point(field_get:vearchpb.IndexResponse.head)
   return _internal_head();
 }
 inline void IndexResponse::unsafe_arena_set_allocated_head(
-    ::ResponseHead* head) {
+    ::vearchpb::ResponseHead* head) {
   if (GetArenaForAllocation() == nullptr) {
     delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.head_);
   }
@@ -8033,11 +8036,11 @@ inline void IndexResponse::unsafe_arena_set_allocated_head(
   } else {
     
   }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:IndexResponse.head)
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:vearchpb.IndexResponse.head)
 }
-inline ::ResponseHead* IndexResponse::release_head() {
+inline ::vearchpb::ResponseHead* IndexResponse::release_head() {
   
-  ::ResponseHead* temp = _impl_.head_;
+  ::vearchpb::ResponseHead* temp = _impl_.head_;
   _impl_.head_ = nullptr;
 #ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
   auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
@@ -8050,27 +8053,27 @@ inline ::ResponseHead* IndexResponse::release_head() {
 #endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
   return temp;
 }
-inline ::ResponseHead* IndexResponse::unsafe_arena_release_head() {
-  // @@protoc_insertion_point(field_release:IndexResponse.head)
+inline ::vearchpb::ResponseHead* IndexResponse::unsafe_arena_release_head() {
+  // @@protoc_insertion_point(field_release:vearchpb.IndexResponse.head)
   
-  ::ResponseHead* temp = _impl_.head_;
+  ::vearchpb::ResponseHead* temp = _impl_.head_;
   _impl_.head_ = nullptr;
   return temp;
 }
-inline ::ResponseHead* IndexResponse::_internal_mutable_head() {
+inline ::vearchpb::ResponseHead* IndexResponse::_internal_mutable_head() {
   
   if (_impl_.head_ == nullptr) {
-    auto* p = CreateMaybeMessage<::ResponseHead>(GetArenaForAllocation());
+    auto* p = CreateMaybeMessage<::vearchpb::ResponseHead>(GetArenaForAllocation());
     _impl_.head_ = p;
   }
   return _impl_.head_;
 }
-inline ::ResponseHead* IndexResponse::mutable_head() {
-  ::ResponseHead* _msg = _internal_mutable_head();
-  // @@protoc_insertion_point(field_mutable:IndexResponse.head)
+inline ::vearchpb::ResponseHead* IndexResponse::mutable_head() {
+  ::vearchpb::ResponseHead* _msg = _internal_mutable_head();
+  // @@protoc_insertion_point(field_mutable:vearchpb.IndexResponse.head)
   return _msg;
 }
-inline void IndexResponse::set_allocated_head(::ResponseHead* head) {
+inline void IndexResponse::set_allocated_head(::vearchpb::ResponseHead* head) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   if (message_arena == nullptr) {
     delete _impl_.head_;
@@ -8087,10 +8090,10 @@ inline void IndexResponse::set_allocated_head(::ResponseHead* head) {
     
   }
   _impl_.head_ = head;
-  // @@protoc_insertion_point(field_set_allocated:IndexResponse.head)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.IndexResponse.head)
 }
 
-// .SearchStatus shards = 2;
+// .vearchpb.SearchStatus shards = 2;
 inline bool IndexResponse::_internal_has_shards() const {
   return this != internal_default_instance() && _impl_.shards_ != nullptr;
 }
@@ -8103,17 +8106,17 @@ inline void IndexResponse::clear_shards() {
   }
   _impl_.shards_ = nullptr;
 }
-inline const ::SearchStatus& IndexResponse::_internal_shards() const {
-  const ::SearchStatus* p = _impl_.shards_;
-  return p != nullptr ? *p : reinterpret_cast<const ::SearchStatus&>(
-      ::_SearchStatus_default_instance_);
+inline const ::vearchpb::SearchStatus& IndexResponse::_internal_shards() const {
+  const ::vearchpb::SearchStatus* p = _impl_.shards_;
+  return p != nullptr ? *p : reinterpret_cast<const ::vearchpb::SearchStatus&>(
+      ::vearchpb::_SearchStatus_default_instance_);
 }
-inline const ::SearchStatus& IndexResponse::shards() const {
-  // @@protoc_insertion_point(field_get:IndexResponse.shards)
+inline const ::vearchpb::SearchStatus& IndexResponse::shards() const {
+  // @@protoc_insertion_point(field_get:vearchpb.IndexResponse.shards)
   return _internal_shards();
 }
 inline void IndexResponse::unsafe_arena_set_allocated_shards(
-    ::SearchStatus* shards) {
+    ::vearchpb::SearchStatus* shards) {
   if (GetArenaForAllocation() == nullptr) {
     delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.shards_);
   }
@@ -8123,11 +8126,11 @@ inline void IndexResponse::unsafe_arena_set_allocated_shards(
   } else {
     
   }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:IndexResponse.shards)
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:vearchpb.IndexResponse.shards)
 }
-inline ::SearchStatus* IndexResponse::release_shards() {
+inline ::vearchpb::SearchStatus* IndexResponse::release_shards() {
   
-  ::SearchStatus* temp = _impl_.shards_;
+  ::vearchpb::SearchStatus* temp = _impl_.shards_;
   _impl_.shards_ = nullptr;
 #ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
   auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
@@ -8140,27 +8143,27 @@ inline ::SearchStatus* IndexResponse::release_shards() {
 #endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
   return temp;
 }
-inline ::SearchStatus* IndexResponse::unsafe_arena_release_shards() {
-  // @@protoc_insertion_point(field_release:IndexResponse.shards)
+inline ::vearchpb::SearchStatus* IndexResponse::unsafe_arena_release_shards() {
+  // @@protoc_insertion_point(field_release:vearchpb.IndexResponse.shards)
   
-  ::SearchStatus* temp = _impl_.shards_;
+  ::vearchpb::SearchStatus* temp = _impl_.shards_;
   _impl_.shards_ = nullptr;
   return temp;
 }
-inline ::SearchStatus* IndexResponse::_internal_mutable_shards() {
+inline ::vearchpb::SearchStatus* IndexResponse::_internal_mutable_shards() {
   
   if (_impl_.shards_ == nullptr) {
-    auto* p = CreateMaybeMessage<::SearchStatus>(GetArenaForAllocation());
+    auto* p = CreateMaybeMessage<::vearchpb::SearchStatus>(GetArenaForAllocation());
     _impl_.shards_ = p;
   }
   return _impl_.shards_;
 }
-inline ::SearchStatus* IndexResponse::mutable_shards() {
-  ::SearchStatus* _msg = _internal_mutable_shards();
-  // @@protoc_insertion_point(field_mutable:IndexResponse.shards)
+inline ::vearchpb::SearchStatus* IndexResponse::mutable_shards() {
+  ::vearchpb::SearchStatus* _msg = _internal_mutable_shards();
+  // @@protoc_insertion_point(field_mutable:vearchpb.IndexResponse.shards)
   return _msg;
 }
-inline void IndexResponse::set_allocated_shards(::SearchStatus* shards) {
+inline void IndexResponse::set_allocated_shards(::vearchpb::SearchStatus* shards) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   if (message_arena == nullptr) {
     delete _impl_.shards_;
@@ -8177,7 +8180,7 @@ inline void IndexResponse::set_allocated_shards(::SearchStatus* shards) {
     
   }
   _impl_.shards_ = shards;
-  // @@protoc_insertion_point(field_set_allocated:IndexResponse.shards)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.IndexResponse.shards)
 }
 
 // -------------------------------------------------------------------
@@ -8189,7 +8192,7 @@ inline void TermFilter::clear_field() {
   _impl_.field_.ClearToEmpty();
 }
 inline const std::string& TermFilter::field() const {
-  // @@protoc_insertion_point(field_get:TermFilter.field)
+  // @@protoc_insertion_point(field_get:vearchpb.TermFilter.field)
   return _internal_field();
 }
 template <typename ArgT0, typename... ArgT>
@@ -8197,11 +8200,11 @@ inline PROTOBUF_ALWAYS_INLINE
 void TermFilter::set_field(ArgT0&& arg0, ArgT... args) {
  
  _impl_.field_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
-  // @@protoc_insertion_point(field_set:TermFilter.field)
+  // @@protoc_insertion_point(field_set:vearchpb.TermFilter.field)
 }
 inline std::string* TermFilter::mutable_field() {
   std::string* _s = _internal_mutable_field();
-  // @@protoc_insertion_point(field_mutable:TermFilter.field)
+  // @@protoc_insertion_point(field_mutable:vearchpb.TermFilter.field)
   return _s;
 }
 inline const std::string& TermFilter::_internal_field() const {
@@ -8216,7 +8219,7 @@ inline std::string* TermFilter::_internal_mutable_field() {
   return _impl_.field_.Mutable(GetArenaForAllocation());
 }
 inline std::string* TermFilter::release_field() {
-  // @@protoc_insertion_point(field_release:TermFilter.field)
+  // @@protoc_insertion_point(field_release:vearchpb.TermFilter.field)
   return _impl_.field_.Release();
 }
 inline void TermFilter::set_allocated_field(std::string* field) {
@@ -8231,7 +8234,7 @@ inline void TermFilter::set_allocated_field(std::string* field) {
     _impl_.field_.Set("", GetArenaForAllocation());
   }
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  // @@protoc_insertion_point(field_set_allocated:TermFilter.field)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.TermFilter.field)
 }
 
 // bytes value = 2;
@@ -8239,7 +8242,7 @@ inline void TermFilter::clear_value() {
   _impl_.value_.ClearToEmpty();
 }
 inline const std::string& TermFilter::value() const {
-  // @@protoc_insertion_point(field_get:TermFilter.value)
+  // @@protoc_insertion_point(field_get:vearchpb.TermFilter.value)
   return _internal_value();
 }
 template <typename ArgT0, typename... ArgT>
@@ -8247,11 +8250,11 @@ inline PROTOBUF_ALWAYS_INLINE
 void TermFilter::set_value(ArgT0&& arg0, ArgT... args) {
  
  _impl_.value_.SetBytes(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
-  // @@protoc_insertion_point(field_set:TermFilter.value)
+  // @@protoc_insertion_point(field_set:vearchpb.TermFilter.value)
 }
 inline std::string* TermFilter::mutable_value() {
   std::string* _s = _internal_mutable_value();
-  // @@protoc_insertion_point(field_mutable:TermFilter.value)
+  // @@protoc_insertion_point(field_mutable:vearchpb.TermFilter.value)
   return _s;
 }
 inline const std::string& TermFilter::_internal_value() const {
@@ -8266,7 +8269,7 @@ inline std::string* TermFilter::_internal_mutable_value() {
   return _impl_.value_.Mutable(GetArenaForAllocation());
 }
 inline std::string* TermFilter::release_value() {
-  // @@protoc_insertion_point(field_release:TermFilter.value)
+  // @@protoc_insertion_point(field_release:vearchpb.TermFilter.value)
   return _impl_.value_.Release();
 }
 inline void TermFilter::set_allocated_value(std::string* value) {
@@ -8281,7 +8284,7 @@ inline void TermFilter::set_allocated_value(std::string* value) {
     _impl_.value_.Set("", GetArenaForAllocation());
   }
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  // @@protoc_insertion_point(field_set_allocated:TermFilter.value)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.TermFilter.value)
 }
 
 // int32 is_union = 3;
@@ -8292,7 +8295,7 @@ inline int32_t TermFilter::_internal_is_union() const {
   return _impl_.is_union_;
 }
 inline int32_t TermFilter::is_union() const {
-  // @@protoc_insertion_point(field_get:TermFilter.is_union)
+  // @@protoc_insertion_point(field_get:vearchpb.TermFilter.is_union)
   return _internal_is_union();
 }
 inline void TermFilter::_internal_set_is_union(int32_t value) {
@@ -8301,7 +8304,7 @@ inline void TermFilter::_internal_set_is_union(int32_t value) {
 }
 inline void TermFilter::set_is_union(int32_t value) {
   _internal_set_is_union(value);
-  // @@protoc_insertion_point(field_set:TermFilter.is_union)
+  // @@protoc_insertion_point(field_set:vearchpb.TermFilter.is_union)
 }
 
 // -------------------------------------------------------------------
@@ -8313,7 +8316,7 @@ inline void RangeFilter::clear_field() {
   _impl_.field_.ClearToEmpty();
 }
 inline const std::string& RangeFilter::field() const {
-  // @@protoc_insertion_point(field_get:RangeFilter.field)
+  // @@protoc_insertion_point(field_get:vearchpb.RangeFilter.field)
   return _internal_field();
 }
 template <typename ArgT0, typename... ArgT>
@@ -8321,11 +8324,11 @@ inline PROTOBUF_ALWAYS_INLINE
 void RangeFilter::set_field(ArgT0&& arg0, ArgT... args) {
  
  _impl_.field_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
-  // @@protoc_insertion_point(field_set:RangeFilter.field)
+  // @@protoc_insertion_point(field_set:vearchpb.RangeFilter.field)
 }
 inline std::string* RangeFilter::mutable_field() {
   std::string* _s = _internal_mutable_field();
-  // @@protoc_insertion_point(field_mutable:RangeFilter.field)
+  // @@protoc_insertion_point(field_mutable:vearchpb.RangeFilter.field)
   return _s;
 }
 inline const std::string& RangeFilter::_internal_field() const {
@@ -8340,7 +8343,7 @@ inline std::string* RangeFilter::_internal_mutable_field() {
   return _impl_.field_.Mutable(GetArenaForAllocation());
 }
 inline std::string* RangeFilter::release_field() {
-  // @@protoc_insertion_point(field_release:RangeFilter.field)
+  // @@protoc_insertion_point(field_release:vearchpb.RangeFilter.field)
   return _impl_.field_.Release();
 }
 inline void RangeFilter::set_allocated_field(std::string* field) {
@@ -8355,7 +8358,7 @@ inline void RangeFilter::set_allocated_field(std::string* field) {
     _impl_.field_.Set("", GetArenaForAllocation());
   }
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  // @@protoc_insertion_point(field_set_allocated:RangeFilter.field)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.RangeFilter.field)
 }
 
 // bytes lower_value = 2;
@@ -8363,7 +8366,7 @@ inline void RangeFilter::clear_lower_value() {
   _impl_.lower_value_.ClearToEmpty();
 }
 inline const std::string& RangeFilter::lower_value() const {
-  // @@protoc_insertion_point(field_get:RangeFilter.lower_value)
+  // @@protoc_insertion_point(field_get:vearchpb.RangeFilter.lower_value)
   return _internal_lower_value();
 }
 template <typename ArgT0, typename... ArgT>
@@ -8371,11 +8374,11 @@ inline PROTOBUF_ALWAYS_INLINE
 void RangeFilter::set_lower_value(ArgT0&& arg0, ArgT... args) {
  
  _impl_.lower_value_.SetBytes(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
-  // @@protoc_insertion_point(field_set:RangeFilter.lower_value)
+  // @@protoc_insertion_point(field_set:vearchpb.RangeFilter.lower_value)
 }
 inline std::string* RangeFilter::mutable_lower_value() {
   std::string* _s = _internal_mutable_lower_value();
-  // @@protoc_insertion_point(field_mutable:RangeFilter.lower_value)
+  // @@protoc_insertion_point(field_mutable:vearchpb.RangeFilter.lower_value)
   return _s;
 }
 inline const std::string& RangeFilter::_internal_lower_value() const {
@@ -8390,7 +8393,7 @@ inline std::string* RangeFilter::_internal_mutable_lower_value() {
   return _impl_.lower_value_.Mutable(GetArenaForAllocation());
 }
 inline std::string* RangeFilter::release_lower_value() {
-  // @@protoc_insertion_point(field_release:RangeFilter.lower_value)
+  // @@protoc_insertion_point(field_release:vearchpb.RangeFilter.lower_value)
   return _impl_.lower_value_.Release();
 }
 inline void RangeFilter::set_allocated_lower_value(std::string* lower_value) {
@@ -8405,7 +8408,7 @@ inline void RangeFilter::set_allocated_lower_value(std::string* lower_value) {
     _impl_.lower_value_.Set("", GetArenaForAllocation());
   }
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  // @@protoc_insertion_point(field_set_allocated:RangeFilter.lower_value)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.RangeFilter.lower_value)
 }
 
 // bytes upper_value = 3;
@@ -8413,7 +8416,7 @@ inline void RangeFilter::clear_upper_value() {
   _impl_.upper_value_.ClearToEmpty();
 }
 inline const std::string& RangeFilter::upper_value() const {
-  // @@protoc_insertion_point(field_get:RangeFilter.upper_value)
+  // @@protoc_insertion_point(field_get:vearchpb.RangeFilter.upper_value)
   return _internal_upper_value();
 }
 template <typename ArgT0, typename... ArgT>
@@ -8421,11 +8424,11 @@ inline PROTOBUF_ALWAYS_INLINE
 void RangeFilter::set_upper_value(ArgT0&& arg0, ArgT... args) {
  
  _impl_.upper_value_.SetBytes(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
-  // @@protoc_insertion_point(field_set:RangeFilter.upper_value)
+  // @@protoc_insertion_point(field_set:vearchpb.RangeFilter.upper_value)
 }
 inline std::string* RangeFilter::mutable_upper_value() {
   std::string* _s = _internal_mutable_upper_value();
-  // @@protoc_insertion_point(field_mutable:RangeFilter.upper_value)
+  // @@protoc_insertion_point(field_mutable:vearchpb.RangeFilter.upper_value)
   return _s;
 }
 inline const std::string& RangeFilter::_internal_upper_value() const {
@@ -8440,7 +8443,7 @@ inline std::string* RangeFilter::_internal_mutable_upper_value() {
   return _impl_.upper_value_.Mutable(GetArenaForAllocation());
 }
 inline std::string* RangeFilter::release_upper_value() {
-  // @@protoc_insertion_point(field_release:RangeFilter.upper_value)
+  // @@protoc_insertion_point(field_release:vearchpb.RangeFilter.upper_value)
   return _impl_.upper_value_.Release();
 }
 inline void RangeFilter::set_allocated_upper_value(std::string* upper_value) {
@@ -8455,7 +8458,7 @@ inline void RangeFilter::set_allocated_upper_value(std::string* upper_value) {
     _impl_.upper_value_.Set("", GetArenaForAllocation());
   }
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  // @@protoc_insertion_point(field_set_allocated:RangeFilter.upper_value)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.RangeFilter.upper_value)
 }
 
 // bool include_lower = 4;
@@ -8466,7 +8469,7 @@ inline bool RangeFilter::_internal_include_lower() const {
   return _impl_.include_lower_;
 }
 inline bool RangeFilter::include_lower() const {
-  // @@protoc_insertion_point(field_get:RangeFilter.include_lower)
+  // @@protoc_insertion_point(field_get:vearchpb.RangeFilter.include_lower)
   return _internal_include_lower();
 }
 inline void RangeFilter::_internal_set_include_lower(bool value) {
@@ -8475,7 +8478,7 @@ inline void RangeFilter::_internal_set_include_lower(bool value) {
 }
 inline void RangeFilter::set_include_lower(bool value) {
   _internal_set_include_lower(value);
-  // @@protoc_insertion_point(field_set:RangeFilter.include_lower)
+  // @@protoc_insertion_point(field_set:vearchpb.RangeFilter.include_lower)
 }
 
 // bool include_upper = 5;
@@ -8486,7 +8489,7 @@ inline bool RangeFilter::_internal_include_upper() const {
   return _impl_.include_upper_;
 }
 inline bool RangeFilter::include_upper() const {
-  // @@protoc_insertion_point(field_get:RangeFilter.include_upper)
+  // @@protoc_insertion_point(field_get:vearchpb.RangeFilter.include_upper)
   return _internal_include_upper();
 }
 inline void RangeFilter::_internal_set_include_upper(bool value) {
@@ -8495,7 +8498,7 @@ inline void RangeFilter::_internal_set_include_upper(bool value) {
 }
 inline void RangeFilter::set_include_upper(bool value) {
   _internal_set_include_upper(value);
-  // @@protoc_insertion_point(field_set:RangeFilter.include_upper)
+  // @@protoc_insertion_point(field_set:vearchpb.RangeFilter.include_upper)
 }
 
 // -------------------------------------------------------------------
@@ -8507,7 +8510,7 @@ inline void SortField::clear_field() {
   _impl_.field_.ClearToEmpty();
 }
 inline const std::string& SortField::field() const {
-  // @@protoc_insertion_point(field_get:SortField.field)
+  // @@protoc_insertion_point(field_get:vearchpb.SortField.field)
   return _internal_field();
 }
 template <typename ArgT0, typename... ArgT>
@@ -8515,11 +8518,11 @@ inline PROTOBUF_ALWAYS_INLINE
 void SortField::set_field(ArgT0&& arg0, ArgT... args) {
  
  _impl_.field_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
-  // @@protoc_insertion_point(field_set:SortField.field)
+  // @@protoc_insertion_point(field_set:vearchpb.SortField.field)
 }
 inline std::string* SortField::mutable_field() {
   std::string* _s = _internal_mutable_field();
-  // @@protoc_insertion_point(field_mutable:SortField.field)
+  // @@protoc_insertion_point(field_mutable:vearchpb.SortField.field)
   return _s;
 }
 inline const std::string& SortField::_internal_field() const {
@@ -8534,7 +8537,7 @@ inline std::string* SortField::_internal_mutable_field() {
   return _impl_.field_.Mutable(GetArenaForAllocation());
 }
 inline std::string* SortField::release_field() {
-  // @@protoc_insertion_point(field_release:SortField.field)
+  // @@protoc_insertion_point(field_release:vearchpb.SortField.field)
   return _impl_.field_.Release();
 }
 inline void SortField::set_allocated_field(std::string* field) {
@@ -8549,7 +8552,7 @@ inline void SortField::set_allocated_field(std::string* field) {
     _impl_.field_.Set("", GetArenaForAllocation());
   }
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  // @@protoc_insertion_point(field_set_allocated:SortField.field)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.SortField.field)
 }
 
 // bool type = 2;
@@ -8560,7 +8563,7 @@ inline bool SortField::_internal_type() const {
   return _impl_.type_;
 }
 inline bool SortField::type() const {
-  // @@protoc_insertion_point(field_get:SortField.type)
+  // @@protoc_insertion_point(field_get:vearchpb.SortField.type)
   return _internal_type();
 }
 inline void SortField::_internal_set_type(bool value) {
@@ -8569,7 +8572,7 @@ inline void SortField::_internal_set_type(bool value) {
 }
 inline void SortField::set_type(bool value) {
   _internal_set_type(value);
-  // @@protoc_insertion_point(field_set:SortField.type)
+  // @@protoc_insertion_point(field_set:vearchpb.SortField.type)
 }
 
 // -------------------------------------------------------------------
@@ -8581,7 +8584,7 @@ inline void VectorQuery::clear_name() {
   _impl_.name_.ClearToEmpty();
 }
 inline const std::string& VectorQuery::name() const {
-  // @@protoc_insertion_point(field_get:VectorQuery.name)
+  // @@protoc_insertion_point(field_get:vearchpb.VectorQuery.name)
   return _internal_name();
 }
 template <typename ArgT0, typename... ArgT>
@@ -8589,11 +8592,11 @@ inline PROTOBUF_ALWAYS_INLINE
 void VectorQuery::set_name(ArgT0&& arg0, ArgT... args) {
  
  _impl_.name_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
-  // @@protoc_insertion_point(field_set:VectorQuery.name)
+  // @@protoc_insertion_point(field_set:vearchpb.VectorQuery.name)
 }
 inline std::string* VectorQuery::mutable_name() {
   std::string* _s = _internal_mutable_name();
-  // @@protoc_insertion_point(field_mutable:VectorQuery.name)
+  // @@protoc_insertion_point(field_mutable:vearchpb.VectorQuery.name)
   return _s;
 }
 inline const std::string& VectorQuery::_internal_name() const {
@@ -8608,7 +8611,7 @@ inline std::string* VectorQuery::_internal_mutable_name() {
   return _impl_.name_.Mutable(GetArenaForAllocation());
 }
 inline std::string* VectorQuery::release_name() {
-  // @@protoc_insertion_point(field_release:VectorQuery.name)
+  // @@protoc_insertion_point(field_release:vearchpb.VectorQuery.name)
   return _impl_.name_.Release();
 }
 inline void VectorQuery::set_allocated_name(std::string* name) {
@@ -8623,7 +8626,7 @@ inline void VectorQuery::set_allocated_name(std::string* name) {
     _impl_.name_.Set("", GetArenaForAllocation());
   }
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  // @@protoc_insertion_point(field_set_allocated:VectorQuery.name)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.VectorQuery.name)
 }
 
 // bytes value = 2;
@@ -8631,7 +8634,7 @@ inline void VectorQuery::clear_value() {
   _impl_.value_.ClearToEmpty();
 }
 inline const std::string& VectorQuery::value() const {
-  // @@protoc_insertion_point(field_get:VectorQuery.value)
+  // @@protoc_insertion_point(field_get:vearchpb.VectorQuery.value)
   return _internal_value();
 }
 template <typename ArgT0, typename... ArgT>
@@ -8639,11 +8642,11 @@ inline PROTOBUF_ALWAYS_INLINE
 void VectorQuery::set_value(ArgT0&& arg0, ArgT... args) {
  
  _impl_.value_.SetBytes(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
-  // @@protoc_insertion_point(field_set:VectorQuery.value)
+  // @@protoc_insertion_point(field_set:vearchpb.VectorQuery.value)
 }
 inline std::string* VectorQuery::mutable_value() {
   std::string* _s = _internal_mutable_value();
-  // @@protoc_insertion_point(field_mutable:VectorQuery.value)
+  // @@protoc_insertion_point(field_mutable:vearchpb.VectorQuery.value)
   return _s;
 }
 inline const std::string& VectorQuery::_internal_value() const {
@@ -8658,7 +8661,7 @@ inline std::string* VectorQuery::_internal_mutable_value() {
   return _impl_.value_.Mutable(GetArenaForAllocation());
 }
 inline std::string* VectorQuery::release_value() {
-  // @@protoc_insertion_point(field_release:VectorQuery.value)
+  // @@protoc_insertion_point(field_release:vearchpb.VectorQuery.value)
   return _impl_.value_.Release();
 }
 inline void VectorQuery::set_allocated_value(std::string* value) {
@@ -8673,7 +8676,7 @@ inline void VectorQuery::set_allocated_value(std::string* value) {
     _impl_.value_.Set("", GetArenaForAllocation());
   }
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  // @@protoc_insertion_point(field_set_allocated:VectorQuery.value)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.VectorQuery.value)
 }
 
 // double min_score = 3;
@@ -8684,7 +8687,7 @@ inline double VectorQuery::_internal_min_score() const {
   return _impl_.min_score_;
 }
 inline double VectorQuery::min_score() const {
-  // @@protoc_insertion_point(field_get:VectorQuery.min_score)
+  // @@protoc_insertion_point(field_get:vearchpb.VectorQuery.min_score)
   return _internal_min_score();
 }
 inline void VectorQuery::_internal_set_min_score(double value) {
@@ -8693,7 +8696,7 @@ inline void VectorQuery::_internal_set_min_score(double value) {
 }
 inline void VectorQuery::set_min_score(double value) {
   _internal_set_min_score(value);
-  // @@protoc_insertion_point(field_set:VectorQuery.min_score)
+  // @@protoc_insertion_point(field_set:vearchpb.VectorQuery.min_score)
 }
 
 // double max_score = 4;
@@ -8704,7 +8707,7 @@ inline double VectorQuery::_internal_max_score() const {
   return _impl_.max_score_;
 }
 inline double VectorQuery::max_score() const {
-  // @@protoc_insertion_point(field_get:VectorQuery.max_score)
+  // @@protoc_insertion_point(field_get:vearchpb.VectorQuery.max_score)
   return _internal_max_score();
 }
 inline void VectorQuery::_internal_set_max_score(double value) {
@@ -8713,7 +8716,7 @@ inline void VectorQuery::_internal_set_max_score(double value) {
 }
 inline void VectorQuery::set_max_score(double value) {
   _internal_set_max_score(value);
-  // @@protoc_insertion_point(field_set:VectorQuery.max_score)
+  // @@protoc_insertion_point(field_set:vearchpb.VectorQuery.max_score)
 }
 
 // string format = 5;
@@ -8721,7 +8724,7 @@ inline void VectorQuery::clear_format() {
   _impl_.format_.ClearToEmpty();
 }
 inline const std::string& VectorQuery::format() const {
-  // @@protoc_insertion_point(field_get:VectorQuery.format)
+  // @@protoc_insertion_point(field_get:vearchpb.VectorQuery.format)
   return _internal_format();
 }
 template <typename ArgT0, typename... ArgT>
@@ -8729,11 +8732,11 @@ inline PROTOBUF_ALWAYS_INLINE
 void VectorQuery::set_format(ArgT0&& arg0, ArgT... args) {
  
  _impl_.format_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
-  // @@protoc_insertion_point(field_set:VectorQuery.format)
+  // @@protoc_insertion_point(field_set:vearchpb.VectorQuery.format)
 }
 inline std::string* VectorQuery::mutable_format() {
   std::string* _s = _internal_mutable_format();
-  // @@protoc_insertion_point(field_mutable:VectorQuery.format)
+  // @@protoc_insertion_point(field_mutable:vearchpb.VectorQuery.format)
   return _s;
 }
 inline const std::string& VectorQuery::_internal_format() const {
@@ -8748,7 +8751,7 @@ inline std::string* VectorQuery::_internal_mutable_format() {
   return _impl_.format_.Mutable(GetArenaForAllocation());
 }
 inline std::string* VectorQuery::release_format() {
-  // @@protoc_insertion_point(field_release:VectorQuery.format)
+  // @@protoc_insertion_point(field_release:vearchpb.VectorQuery.format)
   return _impl_.format_.Release();
 }
 inline void VectorQuery::set_allocated_format(std::string* format) {
@@ -8763,7 +8766,7 @@ inline void VectorQuery::set_allocated_format(std::string* format) {
     _impl_.format_.Set("", GetArenaForAllocation());
   }
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  // @@protoc_insertion_point(field_set_allocated:VectorQuery.format)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.VectorQuery.format)
 }
 
 // string index_type = 6;
@@ -8771,7 +8774,7 @@ inline void VectorQuery::clear_index_type() {
   _impl_.index_type_.ClearToEmpty();
 }
 inline const std::string& VectorQuery::index_type() const {
-  // @@protoc_insertion_point(field_get:VectorQuery.index_type)
+  // @@protoc_insertion_point(field_get:vearchpb.VectorQuery.index_type)
   return _internal_index_type();
 }
 template <typename ArgT0, typename... ArgT>
@@ -8779,11 +8782,11 @@ inline PROTOBUF_ALWAYS_INLINE
 void VectorQuery::set_index_type(ArgT0&& arg0, ArgT... args) {
  
  _impl_.index_type_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
-  // @@protoc_insertion_point(field_set:VectorQuery.index_type)
+  // @@protoc_insertion_point(field_set:vearchpb.VectorQuery.index_type)
 }
 inline std::string* VectorQuery::mutable_index_type() {
   std::string* _s = _internal_mutable_index_type();
-  // @@protoc_insertion_point(field_mutable:VectorQuery.index_type)
+  // @@protoc_insertion_point(field_mutable:vearchpb.VectorQuery.index_type)
   return _s;
 }
 inline const std::string& VectorQuery::_internal_index_type() const {
@@ -8798,7 +8801,7 @@ inline std::string* VectorQuery::_internal_mutable_index_type() {
   return _impl_.index_type_.Mutable(GetArenaForAllocation());
 }
 inline std::string* VectorQuery::release_index_type() {
-  // @@protoc_insertion_point(field_release:VectorQuery.index_type)
+  // @@protoc_insertion_point(field_release:vearchpb.VectorQuery.index_type)
   return _impl_.index_type_.Release();
 }
 inline void VectorQuery::set_allocated_index_type(std::string* index_type) {
@@ -8813,31 +8816,31 @@ inline void VectorQuery::set_allocated_index_type(std::string* index_type) {
     _impl_.index_type_.Set("", GetArenaForAllocation());
   }
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  // @@protoc_insertion_point(field_set_allocated:VectorQuery.index_type)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.VectorQuery.index_type)
 }
 
 // -------------------------------------------------------------------
 
 // IndexParameters
 
-// .IndexParameters.DistanceMetricType metric_type = 1;
+// .vearchpb.IndexParameters.DistanceMetricType metric_type = 1;
 inline void IndexParameters::clear_metric_type() {
   _impl_.metric_type_ = 0;
 }
-inline ::IndexParameters_DistanceMetricType IndexParameters::_internal_metric_type() const {
-  return static_cast< ::IndexParameters_DistanceMetricType >(_impl_.metric_type_);
+inline ::vearchpb::IndexParameters_DistanceMetricType IndexParameters::_internal_metric_type() const {
+  return static_cast< ::vearchpb::IndexParameters_DistanceMetricType >(_impl_.metric_type_);
 }
-inline ::IndexParameters_DistanceMetricType IndexParameters::metric_type() const {
-  // @@protoc_insertion_point(field_get:IndexParameters.metric_type)
+inline ::vearchpb::IndexParameters_DistanceMetricType IndexParameters::metric_type() const {
+  // @@protoc_insertion_point(field_get:vearchpb.IndexParameters.metric_type)
   return _internal_metric_type();
 }
-inline void IndexParameters::_internal_set_metric_type(::IndexParameters_DistanceMetricType value) {
+inline void IndexParameters::_internal_set_metric_type(::vearchpb::IndexParameters_DistanceMetricType value) {
   
   _impl_.metric_type_ = value;
 }
-inline void IndexParameters::set_metric_type(::IndexParameters_DistanceMetricType value) {
+inline void IndexParameters::set_metric_type(::vearchpb::IndexParameters_DistanceMetricType value) {
   _internal_set_metric_type(value);
-  // @@protoc_insertion_point(field_set:IndexParameters.metric_type)
+  // @@protoc_insertion_point(field_set:vearchpb.IndexParameters.metric_type)
 }
 
 // int32 nprobe = 2;
@@ -8848,7 +8851,7 @@ inline int32_t IndexParameters::_internal_nprobe() const {
   return _impl_.nprobe_;
 }
 inline int32_t IndexParameters::nprobe() const {
-  // @@protoc_insertion_point(field_get:IndexParameters.nprobe)
+  // @@protoc_insertion_point(field_get:vearchpb.IndexParameters.nprobe)
   return _internal_nprobe();
 }
 inline void IndexParameters::_internal_set_nprobe(int32_t value) {
@@ -8857,7 +8860,7 @@ inline void IndexParameters::_internal_set_nprobe(int32_t value) {
 }
 inline void IndexParameters::set_nprobe(int32_t value) {
   _internal_set_nprobe(value);
-  // @@protoc_insertion_point(field_set:IndexParameters.nprobe)
+  // @@protoc_insertion_point(field_set:vearchpb.IndexParameters.nprobe)
 }
 
 // -------------------------------------------------------------------
@@ -8866,7 +8869,7 @@ inline void IndexParameters::set_nprobe(int32_t value) {
 
 // QueryRequest
 
-// .RequestHead head = 1;
+// .vearchpb.RequestHead head = 1;
 inline bool QueryRequest::_internal_has_head() const {
   return this != internal_default_instance() && _impl_.head_ != nullptr;
 }
@@ -8879,17 +8882,17 @@ inline void QueryRequest::clear_head() {
   }
   _impl_.head_ = nullptr;
 }
-inline const ::RequestHead& QueryRequest::_internal_head() const {
-  const ::RequestHead* p = _impl_.head_;
-  return p != nullptr ? *p : reinterpret_cast<const ::RequestHead&>(
-      ::_RequestHead_default_instance_);
+inline const ::vearchpb::RequestHead& QueryRequest::_internal_head() const {
+  const ::vearchpb::RequestHead* p = _impl_.head_;
+  return p != nullptr ? *p : reinterpret_cast<const ::vearchpb::RequestHead&>(
+      ::vearchpb::_RequestHead_default_instance_);
 }
-inline const ::RequestHead& QueryRequest::head() const {
-  // @@protoc_insertion_point(field_get:QueryRequest.head)
+inline const ::vearchpb::RequestHead& QueryRequest::head() const {
+  // @@protoc_insertion_point(field_get:vearchpb.QueryRequest.head)
   return _internal_head();
 }
 inline void QueryRequest::unsafe_arena_set_allocated_head(
-    ::RequestHead* head) {
+    ::vearchpb::RequestHead* head) {
   if (GetArenaForAllocation() == nullptr) {
     delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.head_);
   }
@@ -8899,11 +8902,11 @@ inline void QueryRequest::unsafe_arena_set_allocated_head(
   } else {
     
   }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:QueryRequest.head)
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:vearchpb.QueryRequest.head)
 }
-inline ::RequestHead* QueryRequest::release_head() {
+inline ::vearchpb::RequestHead* QueryRequest::release_head() {
   
-  ::RequestHead* temp = _impl_.head_;
+  ::vearchpb::RequestHead* temp = _impl_.head_;
   _impl_.head_ = nullptr;
 #ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
   auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
@@ -8916,27 +8919,27 @@ inline ::RequestHead* QueryRequest::release_head() {
 #endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
   return temp;
 }
-inline ::RequestHead* QueryRequest::unsafe_arena_release_head() {
-  // @@protoc_insertion_point(field_release:QueryRequest.head)
+inline ::vearchpb::RequestHead* QueryRequest::unsafe_arena_release_head() {
+  // @@protoc_insertion_point(field_release:vearchpb.QueryRequest.head)
   
-  ::RequestHead* temp = _impl_.head_;
+  ::vearchpb::RequestHead* temp = _impl_.head_;
   _impl_.head_ = nullptr;
   return temp;
 }
-inline ::RequestHead* QueryRequest::_internal_mutable_head() {
+inline ::vearchpb::RequestHead* QueryRequest::_internal_mutable_head() {
   
   if (_impl_.head_ == nullptr) {
-    auto* p = CreateMaybeMessage<::RequestHead>(GetArenaForAllocation());
+    auto* p = CreateMaybeMessage<::vearchpb::RequestHead>(GetArenaForAllocation());
     _impl_.head_ = p;
   }
   return _impl_.head_;
 }
-inline ::RequestHead* QueryRequest::mutable_head() {
-  ::RequestHead* _msg = _internal_mutable_head();
-  // @@protoc_insertion_point(field_mutable:QueryRequest.head)
+inline ::vearchpb::RequestHead* QueryRequest::mutable_head() {
+  ::vearchpb::RequestHead* _msg = _internal_mutable_head();
+  // @@protoc_insertion_point(field_mutable:vearchpb.QueryRequest.head)
   return _msg;
 }
-inline void QueryRequest::set_allocated_head(::RequestHead* head) {
+inline void QueryRequest::set_allocated_head(::vearchpb::RequestHead* head) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   if (message_arena == nullptr) {
     delete _impl_.head_;
@@ -8953,7 +8956,7 @@ inline void QueryRequest::set_allocated_head(::RequestHead* head) {
     
   }
   _impl_.head_ = head;
-  // @@protoc_insertion_point(field_set_allocated:QueryRequest.head)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.QueryRequest.head)
 }
 
 // repeated string document_ids = 2;
@@ -8968,66 +8971,66 @@ inline void QueryRequest::clear_document_ids() {
 }
 inline std::string* QueryRequest::add_document_ids() {
   std::string* _s = _internal_add_document_ids();
-  // @@protoc_insertion_point(field_add_mutable:QueryRequest.document_ids)
+  // @@protoc_insertion_point(field_add_mutable:vearchpb.QueryRequest.document_ids)
   return _s;
 }
 inline const std::string& QueryRequest::_internal_document_ids(int index) const {
   return _impl_.document_ids_.Get(index);
 }
 inline const std::string& QueryRequest::document_ids(int index) const {
-  // @@protoc_insertion_point(field_get:QueryRequest.document_ids)
+  // @@protoc_insertion_point(field_get:vearchpb.QueryRequest.document_ids)
   return _internal_document_ids(index);
 }
 inline std::string* QueryRequest::mutable_document_ids(int index) {
-  // @@protoc_insertion_point(field_mutable:QueryRequest.document_ids)
+  // @@protoc_insertion_point(field_mutable:vearchpb.QueryRequest.document_ids)
   return _impl_.document_ids_.Mutable(index);
 }
 inline void QueryRequest::set_document_ids(int index, const std::string& value) {
   _impl_.document_ids_.Mutable(index)->assign(value);
-  // @@protoc_insertion_point(field_set:QueryRequest.document_ids)
+  // @@protoc_insertion_point(field_set:vearchpb.QueryRequest.document_ids)
 }
 inline void QueryRequest::set_document_ids(int index, std::string&& value) {
   _impl_.document_ids_.Mutable(index)->assign(std::move(value));
-  // @@protoc_insertion_point(field_set:QueryRequest.document_ids)
+  // @@protoc_insertion_point(field_set:vearchpb.QueryRequest.document_ids)
 }
 inline void QueryRequest::set_document_ids(int index, const char* value) {
   GOOGLE_DCHECK(value != nullptr);
   _impl_.document_ids_.Mutable(index)->assign(value);
-  // @@protoc_insertion_point(field_set_char:QueryRequest.document_ids)
+  // @@protoc_insertion_point(field_set_char:vearchpb.QueryRequest.document_ids)
 }
 inline void QueryRequest::set_document_ids(int index, const char* value, size_t size) {
   _impl_.document_ids_.Mutable(index)->assign(
     reinterpret_cast<const char*>(value), size);
-  // @@protoc_insertion_point(field_set_pointer:QueryRequest.document_ids)
+  // @@protoc_insertion_point(field_set_pointer:vearchpb.QueryRequest.document_ids)
 }
 inline std::string* QueryRequest::_internal_add_document_ids() {
   return _impl_.document_ids_.Add();
 }
 inline void QueryRequest::add_document_ids(const std::string& value) {
   _impl_.document_ids_.Add()->assign(value);
-  // @@protoc_insertion_point(field_add:QueryRequest.document_ids)
+  // @@protoc_insertion_point(field_add:vearchpb.QueryRequest.document_ids)
 }
 inline void QueryRequest::add_document_ids(std::string&& value) {
   _impl_.document_ids_.Add(std::move(value));
-  // @@protoc_insertion_point(field_add:QueryRequest.document_ids)
+  // @@protoc_insertion_point(field_add:vearchpb.QueryRequest.document_ids)
 }
 inline void QueryRequest::add_document_ids(const char* value) {
   GOOGLE_DCHECK(value != nullptr);
   _impl_.document_ids_.Add()->assign(value);
-  // @@protoc_insertion_point(field_add_char:QueryRequest.document_ids)
+  // @@protoc_insertion_point(field_add_char:vearchpb.QueryRequest.document_ids)
 }
 inline void QueryRequest::add_document_ids(const char* value, size_t size) {
   _impl_.document_ids_.Add()->assign(reinterpret_cast<const char*>(value), size);
-  // @@protoc_insertion_point(field_add_pointer:QueryRequest.document_ids)
+  // @@protoc_insertion_point(field_add_pointer:vearchpb.QueryRequest.document_ids)
 }
 inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>&
 QueryRequest::document_ids() const {
-  // @@protoc_insertion_point(field_list:QueryRequest.document_ids)
+  // @@protoc_insertion_point(field_list:vearchpb.QueryRequest.document_ids)
   return _impl_.document_ids_;
 }
 inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>*
 QueryRequest::mutable_document_ids() {
-  // @@protoc_insertion_point(field_mutable_list:QueryRequest.document_ids)
+  // @@protoc_insertion_point(field_mutable_list:vearchpb.QueryRequest.document_ids)
   return &_impl_.document_ids_;
 }
 
@@ -9039,7 +9042,7 @@ inline int32_t QueryRequest::_internal_partition_id() const {
   return _impl_.partition_id_;
 }
 inline int32_t QueryRequest::partition_id() const {
-  // @@protoc_insertion_point(field_get:QueryRequest.partition_id)
+  // @@protoc_insertion_point(field_get:vearchpb.QueryRequest.partition_id)
   return _internal_partition_id();
 }
 inline void QueryRequest::_internal_set_partition_id(int32_t value) {
@@ -9048,7 +9051,7 @@ inline void QueryRequest::_internal_set_partition_id(int32_t value) {
 }
 inline void QueryRequest::set_partition_id(int32_t value) {
   _internal_set_partition_id(value);
-  // @@protoc_insertion_point(field_set:QueryRequest.partition_id)
+  // @@protoc_insertion_point(field_set:vearchpb.QueryRequest.partition_id)
 }
 
 // bool next = 4;
@@ -9059,7 +9062,7 @@ inline bool QueryRequest::_internal_next() const {
   return _impl_.next_;
 }
 inline bool QueryRequest::next() const {
-  // @@protoc_insertion_point(field_get:QueryRequest.next)
+  // @@protoc_insertion_point(field_get:vearchpb.QueryRequest.next)
   return _internal_next();
 }
 inline void QueryRequest::_internal_set_next(bool value) {
@@ -9068,10 +9071,10 @@ inline void QueryRequest::_internal_set_next(bool value) {
 }
 inline void QueryRequest::set_next(bool value) {
   _internal_set_next(value);
-  // @@protoc_insertion_point(field_set:QueryRequest.next)
+  // @@protoc_insertion_point(field_set:vearchpb.QueryRequest.next)
 }
 
-// repeated .RangeFilter range_filters = 5;
+// repeated .vearchpb.RangeFilter range_filters = 5;
 inline int QueryRequest::_internal_range_filters_size() const {
   return _impl_.range_filters_.size();
 }
@@ -9081,37 +9084,37 @@ inline int QueryRequest::range_filters_size() const {
 inline void QueryRequest::clear_range_filters() {
   _impl_.range_filters_.Clear();
 }
-inline ::RangeFilter* QueryRequest::mutable_range_filters(int index) {
-  // @@protoc_insertion_point(field_mutable:QueryRequest.range_filters)
+inline ::vearchpb::RangeFilter* QueryRequest::mutable_range_filters(int index) {
+  // @@protoc_insertion_point(field_mutable:vearchpb.QueryRequest.range_filters)
   return _impl_.range_filters_.Mutable(index);
 }
-inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::RangeFilter >*
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::RangeFilter >*
 QueryRequest::mutable_range_filters() {
-  // @@protoc_insertion_point(field_mutable_list:QueryRequest.range_filters)
+  // @@protoc_insertion_point(field_mutable_list:vearchpb.QueryRequest.range_filters)
   return &_impl_.range_filters_;
 }
-inline const ::RangeFilter& QueryRequest::_internal_range_filters(int index) const {
+inline const ::vearchpb::RangeFilter& QueryRequest::_internal_range_filters(int index) const {
   return _impl_.range_filters_.Get(index);
 }
-inline const ::RangeFilter& QueryRequest::range_filters(int index) const {
-  // @@protoc_insertion_point(field_get:QueryRequest.range_filters)
+inline const ::vearchpb::RangeFilter& QueryRequest::range_filters(int index) const {
+  // @@protoc_insertion_point(field_get:vearchpb.QueryRequest.range_filters)
   return _internal_range_filters(index);
 }
-inline ::RangeFilter* QueryRequest::_internal_add_range_filters() {
+inline ::vearchpb::RangeFilter* QueryRequest::_internal_add_range_filters() {
   return _impl_.range_filters_.Add();
 }
-inline ::RangeFilter* QueryRequest::add_range_filters() {
-  ::RangeFilter* _add = _internal_add_range_filters();
-  // @@protoc_insertion_point(field_add:QueryRequest.range_filters)
+inline ::vearchpb::RangeFilter* QueryRequest::add_range_filters() {
+  ::vearchpb::RangeFilter* _add = _internal_add_range_filters();
+  // @@protoc_insertion_point(field_add:vearchpb.QueryRequest.range_filters)
   return _add;
 }
-inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::RangeFilter >&
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::RangeFilter >&
 QueryRequest::range_filters() const {
-  // @@protoc_insertion_point(field_list:QueryRequest.range_filters)
+  // @@protoc_insertion_point(field_list:vearchpb.QueryRequest.range_filters)
   return _impl_.range_filters_;
 }
 
-// repeated .TermFilter term_filters = 6;
+// repeated .vearchpb.TermFilter term_filters = 6;
 inline int QueryRequest::_internal_term_filters_size() const {
   return _impl_.term_filters_.size();
 }
@@ -9121,33 +9124,33 @@ inline int QueryRequest::term_filters_size() const {
 inline void QueryRequest::clear_term_filters() {
   _impl_.term_filters_.Clear();
 }
-inline ::TermFilter* QueryRequest::mutable_term_filters(int index) {
-  // @@protoc_insertion_point(field_mutable:QueryRequest.term_filters)
+inline ::vearchpb::TermFilter* QueryRequest::mutable_term_filters(int index) {
+  // @@protoc_insertion_point(field_mutable:vearchpb.QueryRequest.term_filters)
   return _impl_.term_filters_.Mutable(index);
 }
-inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::TermFilter >*
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::TermFilter >*
 QueryRequest::mutable_term_filters() {
-  // @@protoc_insertion_point(field_mutable_list:QueryRequest.term_filters)
+  // @@protoc_insertion_point(field_mutable_list:vearchpb.QueryRequest.term_filters)
   return &_impl_.term_filters_;
 }
-inline const ::TermFilter& QueryRequest::_internal_term_filters(int index) const {
+inline const ::vearchpb::TermFilter& QueryRequest::_internal_term_filters(int index) const {
   return _impl_.term_filters_.Get(index);
 }
-inline const ::TermFilter& QueryRequest::term_filters(int index) const {
-  // @@protoc_insertion_point(field_get:QueryRequest.term_filters)
+inline const ::vearchpb::TermFilter& QueryRequest::term_filters(int index) const {
+  // @@protoc_insertion_point(field_get:vearchpb.QueryRequest.term_filters)
   return _internal_term_filters(index);
 }
-inline ::TermFilter* QueryRequest::_internal_add_term_filters() {
+inline ::vearchpb::TermFilter* QueryRequest::_internal_add_term_filters() {
   return _impl_.term_filters_.Add();
 }
-inline ::TermFilter* QueryRequest::add_term_filters() {
-  ::TermFilter* _add = _internal_add_term_filters();
-  // @@protoc_insertion_point(field_add:QueryRequest.term_filters)
+inline ::vearchpb::TermFilter* QueryRequest::add_term_filters() {
+  ::vearchpb::TermFilter* _add = _internal_add_term_filters();
+  // @@protoc_insertion_point(field_add:vearchpb.QueryRequest.term_filters)
   return _add;
 }
-inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::TermFilter >&
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::TermFilter >&
 QueryRequest::term_filters() const {
-  // @@protoc_insertion_point(field_list:QueryRequest.term_filters)
+  // @@protoc_insertion_point(field_list:vearchpb.QueryRequest.term_filters)
   return _impl_.term_filters_;
 }
 
@@ -9163,66 +9166,66 @@ inline void QueryRequest::clear_fields() {
 }
 inline std::string* QueryRequest::add_fields() {
   std::string* _s = _internal_add_fields();
-  // @@protoc_insertion_point(field_add_mutable:QueryRequest.fields)
+  // @@protoc_insertion_point(field_add_mutable:vearchpb.QueryRequest.fields)
   return _s;
 }
 inline const std::string& QueryRequest::_internal_fields(int index) const {
   return _impl_.fields_.Get(index);
 }
 inline const std::string& QueryRequest::fields(int index) const {
-  // @@protoc_insertion_point(field_get:QueryRequest.fields)
+  // @@protoc_insertion_point(field_get:vearchpb.QueryRequest.fields)
   return _internal_fields(index);
 }
 inline std::string* QueryRequest::mutable_fields(int index) {
-  // @@protoc_insertion_point(field_mutable:QueryRequest.fields)
+  // @@protoc_insertion_point(field_mutable:vearchpb.QueryRequest.fields)
   return _impl_.fields_.Mutable(index);
 }
 inline void QueryRequest::set_fields(int index, const std::string& value) {
   _impl_.fields_.Mutable(index)->assign(value);
-  // @@protoc_insertion_point(field_set:QueryRequest.fields)
+  // @@protoc_insertion_point(field_set:vearchpb.QueryRequest.fields)
 }
 inline void QueryRequest::set_fields(int index, std::string&& value) {
   _impl_.fields_.Mutable(index)->assign(std::move(value));
-  // @@protoc_insertion_point(field_set:QueryRequest.fields)
+  // @@protoc_insertion_point(field_set:vearchpb.QueryRequest.fields)
 }
 inline void QueryRequest::set_fields(int index, const char* value) {
   GOOGLE_DCHECK(value != nullptr);
   _impl_.fields_.Mutable(index)->assign(value);
-  // @@protoc_insertion_point(field_set_char:QueryRequest.fields)
+  // @@protoc_insertion_point(field_set_char:vearchpb.QueryRequest.fields)
 }
 inline void QueryRequest::set_fields(int index, const char* value, size_t size) {
   _impl_.fields_.Mutable(index)->assign(
     reinterpret_cast<const char*>(value), size);
-  // @@protoc_insertion_point(field_set_pointer:QueryRequest.fields)
+  // @@protoc_insertion_point(field_set_pointer:vearchpb.QueryRequest.fields)
 }
 inline std::string* QueryRequest::_internal_add_fields() {
   return _impl_.fields_.Add();
 }
 inline void QueryRequest::add_fields(const std::string& value) {
   _impl_.fields_.Add()->assign(value);
-  // @@protoc_insertion_point(field_add:QueryRequest.fields)
+  // @@protoc_insertion_point(field_add:vearchpb.QueryRequest.fields)
 }
 inline void QueryRequest::add_fields(std::string&& value) {
   _impl_.fields_.Add(std::move(value));
-  // @@protoc_insertion_point(field_add:QueryRequest.fields)
+  // @@protoc_insertion_point(field_add:vearchpb.QueryRequest.fields)
 }
 inline void QueryRequest::add_fields(const char* value) {
   GOOGLE_DCHECK(value != nullptr);
   _impl_.fields_.Add()->assign(value);
-  // @@protoc_insertion_point(field_add_char:QueryRequest.fields)
+  // @@protoc_insertion_point(field_add_char:vearchpb.QueryRequest.fields)
 }
 inline void QueryRequest::add_fields(const char* value, size_t size) {
   _impl_.fields_.Add()->assign(reinterpret_cast<const char*>(value), size);
-  // @@protoc_insertion_point(field_add_pointer:QueryRequest.fields)
+  // @@protoc_insertion_point(field_add_pointer:vearchpb.QueryRequest.fields)
 }
 inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>&
 QueryRequest::fields() const {
-  // @@protoc_insertion_point(field_list:QueryRequest.fields)
+  // @@protoc_insertion_point(field_list:vearchpb.QueryRequest.fields)
   return _impl_.fields_;
 }
 inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>*
 QueryRequest::mutable_fields() {
-  // @@protoc_insertion_point(field_mutable_list:QueryRequest.fields)
+  // @@protoc_insertion_point(field_mutable_list:vearchpb.QueryRequest.fields)
   return &_impl_.fields_;
 }
 
@@ -9234,7 +9237,7 @@ inline bool QueryRequest::_internal_is_vector_value() const {
   return _impl_.is_vector_value_;
 }
 inline bool QueryRequest::is_vector_value() const {
-  // @@protoc_insertion_point(field_get:QueryRequest.is_vector_value)
+  // @@protoc_insertion_point(field_get:vearchpb.QueryRequest.is_vector_value)
   return _internal_is_vector_value();
 }
 inline void QueryRequest::_internal_set_is_vector_value(bool value) {
@@ -9243,7 +9246,7 @@ inline void QueryRequest::_internal_set_is_vector_value(bool value) {
 }
 inline void QueryRequest::set_is_vector_value(bool value) {
   _internal_set_is_vector_value(value);
-  // @@protoc_insertion_point(field_set:QueryRequest.is_vector_value)
+  // @@protoc_insertion_point(field_set:vearchpb.QueryRequest.is_vector_value)
 }
 
 // int32 limit = 9;
@@ -9254,7 +9257,7 @@ inline int32_t QueryRequest::_internal_limit() const {
   return _impl_.limit_;
 }
 inline int32_t QueryRequest::limit() const {
-  // @@protoc_insertion_point(field_get:QueryRequest.limit)
+  // @@protoc_insertion_point(field_get:vearchpb.QueryRequest.limit)
   return _internal_limit();
 }
 inline void QueryRequest::_internal_set_limit(int32_t value) {
@@ -9263,7 +9266,7 @@ inline void QueryRequest::_internal_set_limit(int32_t value) {
 }
 inline void QueryRequest::set_limit(int32_t value) {
   _internal_set_limit(value);
-  // @@protoc_insertion_point(field_set:QueryRequest.limit)
+  // @@protoc_insertion_point(field_set:vearchpb.QueryRequest.limit)
 }
 
 // int32 page_size = 10;
@@ -9274,7 +9277,7 @@ inline int32_t QueryRequest::_internal_page_size() const {
   return _impl_.page_size_;
 }
 inline int32_t QueryRequest::page_size() const {
-  // @@protoc_insertion_point(field_get:QueryRequest.page_size)
+  // @@protoc_insertion_point(field_get:vearchpb.QueryRequest.page_size)
   return _internal_page_size();
 }
 inline void QueryRequest::_internal_set_page_size(int32_t value) {
@@ -9283,7 +9286,7 @@ inline void QueryRequest::_internal_set_page_size(int32_t value) {
 }
 inline void QueryRequest::set_page_size(int32_t value) {
   _internal_set_page_size(value);
-  // @@protoc_insertion_point(field_set:QueryRequest.page_size)
+  // @@protoc_insertion_point(field_set:vearchpb.QueryRequest.page_size)
 }
 
 // string load_balance = 11;
@@ -9291,7 +9294,7 @@ inline void QueryRequest::clear_load_balance() {
   _impl_.load_balance_.ClearToEmpty();
 }
 inline const std::string& QueryRequest::load_balance() const {
-  // @@protoc_insertion_point(field_get:QueryRequest.load_balance)
+  // @@protoc_insertion_point(field_get:vearchpb.QueryRequest.load_balance)
   return _internal_load_balance();
 }
 template <typename ArgT0, typename... ArgT>
@@ -9299,11 +9302,11 @@ inline PROTOBUF_ALWAYS_INLINE
 void QueryRequest::set_load_balance(ArgT0&& arg0, ArgT... args) {
  
  _impl_.load_balance_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
-  // @@protoc_insertion_point(field_set:QueryRequest.load_balance)
+  // @@protoc_insertion_point(field_set:vearchpb.QueryRequest.load_balance)
 }
 inline std::string* QueryRequest::mutable_load_balance() {
   std::string* _s = _internal_mutable_load_balance();
-  // @@protoc_insertion_point(field_mutable:QueryRequest.load_balance)
+  // @@protoc_insertion_point(field_mutable:vearchpb.QueryRequest.load_balance)
   return _s;
 }
 inline const std::string& QueryRequest::_internal_load_balance() const {
@@ -9318,7 +9321,7 @@ inline std::string* QueryRequest::_internal_mutable_load_balance() {
   return _impl_.load_balance_.Mutable(GetArenaForAllocation());
 }
 inline std::string* QueryRequest::release_load_balance() {
-  // @@protoc_insertion_point(field_release:QueryRequest.load_balance)
+  // @@protoc_insertion_point(field_release:vearchpb.QueryRequest.load_balance)
   return _impl_.load_balance_.Release();
 }
 inline void QueryRequest::set_allocated_load_balance(std::string* load_balance) {
@@ -9333,7 +9336,7 @@ inline void QueryRequest::set_allocated_load_balance(std::string* load_balance) 
     _impl_.load_balance_.Set("", GetArenaForAllocation());
   }
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  // @@protoc_insertion_point(field_set_allocated:QueryRequest.load_balance)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.QueryRequest.load_balance)
 }
 
 // map<string, string> sort_field_map = 12;
@@ -9352,7 +9355,7 @@ QueryRequest::_internal_sort_field_map() const {
 }
 inline const ::PROTOBUF_NAMESPACE_ID::Map< std::string, std::string >&
 QueryRequest::sort_field_map() const {
-  // @@protoc_insertion_point(field_map:QueryRequest.sort_field_map)
+  // @@protoc_insertion_point(field_map:vearchpb.QueryRequest.sort_field_map)
   return _internal_sort_field_map();
 }
 inline ::PROTOBUF_NAMESPACE_ID::Map< std::string, std::string >*
@@ -9361,11 +9364,11 @@ QueryRequest::_internal_mutable_sort_field_map() {
 }
 inline ::PROTOBUF_NAMESPACE_ID::Map< std::string, std::string >*
 QueryRequest::mutable_sort_field_map() {
-  // @@protoc_insertion_point(field_mutable_map:QueryRequest.sort_field_map)
+  // @@protoc_insertion_point(field_mutable_map:vearchpb.QueryRequest.sort_field_map)
   return _internal_mutable_sort_field_map();
 }
 
-// repeated .SortField sort_fields = 13;
+// repeated .vearchpb.SortField sort_fields = 13;
 inline int QueryRequest::_internal_sort_fields_size() const {
   return _impl_.sort_fields_.size();
 }
@@ -9375,33 +9378,33 @@ inline int QueryRequest::sort_fields_size() const {
 inline void QueryRequest::clear_sort_fields() {
   _impl_.sort_fields_.Clear();
 }
-inline ::SortField* QueryRequest::mutable_sort_fields(int index) {
-  // @@protoc_insertion_point(field_mutable:QueryRequest.sort_fields)
+inline ::vearchpb::SortField* QueryRequest::mutable_sort_fields(int index) {
+  // @@protoc_insertion_point(field_mutable:vearchpb.QueryRequest.sort_fields)
   return _impl_.sort_fields_.Mutable(index);
 }
-inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::SortField >*
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::SortField >*
 QueryRequest::mutable_sort_fields() {
-  // @@protoc_insertion_point(field_mutable_list:QueryRequest.sort_fields)
+  // @@protoc_insertion_point(field_mutable_list:vearchpb.QueryRequest.sort_fields)
   return &_impl_.sort_fields_;
 }
-inline const ::SortField& QueryRequest::_internal_sort_fields(int index) const {
+inline const ::vearchpb::SortField& QueryRequest::_internal_sort_fields(int index) const {
   return _impl_.sort_fields_.Get(index);
 }
-inline const ::SortField& QueryRequest::sort_fields(int index) const {
-  // @@protoc_insertion_point(field_get:QueryRequest.sort_fields)
+inline const ::vearchpb::SortField& QueryRequest::sort_fields(int index) const {
+  // @@protoc_insertion_point(field_get:vearchpb.QueryRequest.sort_fields)
   return _internal_sort_fields(index);
 }
-inline ::SortField* QueryRequest::_internal_add_sort_fields() {
+inline ::vearchpb::SortField* QueryRequest::_internal_add_sort_fields() {
   return _impl_.sort_fields_.Add();
 }
-inline ::SortField* QueryRequest::add_sort_fields() {
-  ::SortField* _add = _internal_add_sort_fields();
-  // @@protoc_insertion_point(field_add:QueryRequest.sort_fields)
+inline ::vearchpb::SortField* QueryRequest::add_sort_fields() {
+  ::vearchpb::SortField* _add = _internal_add_sort_fields();
+  // @@protoc_insertion_point(field_add:vearchpb.QueryRequest.sort_fields)
   return _add;
 }
-inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::SortField >&
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::SortField >&
 QueryRequest::sort_fields() const {
-  // @@protoc_insertion_point(field_list:QueryRequest.sort_fields)
+  // @@protoc_insertion_point(field_list:vearchpb.QueryRequest.sort_fields)
   return _impl_.sort_fields_;
 }
 
@@ -9413,7 +9416,7 @@ inline bool QueryRequest::_internal_trace() const {
   return _impl_.trace_;
 }
 inline bool QueryRequest::trace() const {
-  // @@protoc_insertion_point(field_get:QueryRequest.trace)
+  // @@protoc_insertion_point(field_get:vearchpb.QueryRequest.trace)
   return _internal_trace();
 }
 inline void QueryRequest::_internal_set_trace(bool value) {
@@ -9422,7 +9425,7 @@ inline void QueryRequest::_internal_set_trace(bool value) {
 }
 inline void QueryRequest::set_trace(bool value) {
   _internal_set_trace(value);
-  // @@protoc_insertion_point(field_set:QueryRequest.trace)
+  // @@protoc_insertion_point(field_set:vearchpb.QueryRequest.trace)
 }
 
 // -------------------------------------------------------------------
@@ -9431,7 +9434,7 @@ inline void QueryRequest::set_trace(bool value) {
 
 // SearchRequest
 
-// .RequestHead head = 1;
+// .vearchpb.RequestHead head = 1;
 inline bool SearchRequest::_internal_has_head() const {
   return this != internal_default_instance() && _impl_.head_ != nullptr;
 }
@@ -9444,17 +9447,17 @@ inline void SearchRequest::clear_head() {
   }
   _impl_.head_ = nullptr;
 }
-inline const ::RequestHead& SearchRequest::_internal_head() const {
-  const ::RequestHead* p = _impl_.head_;
-  return p != nullptr ? *p : reinterpret_cast<const ::RequestHead&>(
-      ::_RequestHead_default_instance_);
+inline const ::vearchpb::RequestHead& SearchRequest::_internal_head() const {
+  const ::vearchpb::RequestHead* p = _impl_.head_;
+  return p != nullptr ? *p : reinterpret_cast<const ::vearchpb::RequestHead&>(
+      ::vearchpb::_RequestHead_default_instance_);
 }
-inline const ::RequestHead& SearchRequest::head() const {
-  // @@protoc_insertion_point(field_get:SearchRequest.head)
+inline const ::vearchpb::RequestHead& SearchRequest::head() const {
+  // @@protoc_insertion_point(field_get:vearchpb.SearchRequest.head)
   return _internal_head();
 }
 inline void SearchRequest::unsafe_arena_set_allocated_head(
-    ::RequestHead* head) {
+    ::vearchpb::RequestHead* head) {
   if (GetArenaForAllocation() == nullptr) {
     delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.head_);
   }
@@ -9464,11 +9467,11 @@ inline void SearchRequest::unsafe_arena_set_allocated_head(
   } else {
     
   }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:SearchRequest.head)
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:vearchpb.SearchRequest.head)
 }
-inline ::RequestHead* SearchRequest::release_head() {
+inline ::vearchpb::RequestHead* SearchRequest::release_head() {
   
-  ::RequestHead* temp = _impl_.head_;
+  ::vearchpb::RequestHead* temp = _impl_.head_;
   _impl_.head_ = nullptr;
 #ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
   auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
@@ -9481,27 +9484,27 @@ inline ::RequestHead* SearchRequest::release_head() {
 #endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
   return temp;
 }
-inline ::RequestHead* SearchRequest::unsafe_arena_release_head() {
-  // @@protoc_insertion_point(field_release:SearchRequest.head)
+inline ::vearchpb::RequestHead* SearchRequest::unsafe_arena_release_head() {
+  // @@protoc_insertion_point(field_release:vearchpb.SearchRequest.head)
   
-  ::RequestHead* temp = _impl_.head_;
+  ::vearchpb::RequestHead* temp = _impl_.head_;
   _impl_.head_ = nullptr;
   return temp;
 }
-inline ::RequestHead* SearchRequest::_internal_mutable_head() {
+inline ::vearchpb::RequestHead* SearchRequest::_internal_mutable_head() {
   
   if (_impl_.head_ == nullptr) {
-    auto* p = CreateMaybeMessage<::RequestHead>(GetArenaForAllocation());
+    auto* p = CreateMaybeMessage<::vearchpb::RequestHead>(GetArenaForAllocation());
     _impl_.head_ = p;
   }
   return _impl_.head_;
 }
-inline ::RequestHead* SearchRequest::mutable_head() {
-  ::RequestHead* _msg = _internal_mutable_head();
-  // @@protoc_insertion_point(field_mutable:SearchRequest.head)
+inline ::vearchpb::RequestHead* SearchRequest::mutable_head() {
+  ::vearchpb::RequestHead* _msg = _internal_mutable_head();
+  // @@protoc_insertion_point(field_mutable:vearchpb.SearchRequest.head)
   return _msg;
 }
-inline void SearchRequest::set_allocated_head(::RequestHead* head) {
+inline void SearchRequest::set_allocated_head(::vearchpb::RequestHead* head) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   if (message_arena == nullptr) {
     delete _impl_.head_;
@@ -9518,7 +9521,7 @@ inline void SearchRequest::set_allocated_head(::RequestHead* head) {
     
   }
   _impl_.head_ = head;
-  // @@protoc_insertion_point(field_set_allocated:SearchRequest.head)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.SearchRequest.head)
 }
 
 // int32 req_num = 2;
@@ -9529,7 +9532,7 @@ inline int32_t SearchRequest::_internal_req_num() const {
   return _impl_.req_num_;
 }
 inline int32_t SearchRequest::req_num() const {
-  // @@protoc_insertion_point(field_get:SearchRequest.req_num)
+  // @@protoc_insertion_point(field_get:vearchpb.SearchRequest.req_num)
   return _internal_req_num();
 }
 inline void SearchRequest::_internal_set_req_num(int32_t value) {
@@ -9538,7 +9541,7 @@ inline void SearchRequest::_internal_set_req_num(int32_t value) {
 }
 inline void SearchRequest::set_req_num(int32_t value) {
   _internal_set_req_num(value);
-  // @@protoc_insertion_point(field_set:SearchRequest.req_num)
+  // @@protoc_insertion_point(field_set:vearchpb.SearchRequest.req_num)
 }
 
 // int32 topN = 3;
@@ -9549,7 +9552,7 @@ inline int32_t SearchRequest::_internal_topn() const {
   return _impl_.topn_;
 }
 inline int32_t SearchRequest::topn() const {
-  // @@protoc_insertion_point(field_get:SearchRequest.topN)
+  // @@protoc_insertion_point(field_get:vearchpb.SearchRequest.topN)
   return _internal_topn();
 }
 inline void SearchRequest::_internal_set_topn(int32_t value) {
@@ -9558,7 +9561,7 @@ inline void SearchRequest::_internal_set_topn(int32_t value) {
 }
 inline void SearchRequest::set_topn(int32_t value) {
   _internal_set_topn(value);
-  // @@protoc_insertion_point(field_set:SearchRequest.topN)
+  // @@protoc_insertion_point(field_set:vearchpb.SearchRequest.topN)
 }
 
 // int32 is_brute_search = 4;
@@ -9569,7 +9572,7 @@ inline int32_t SearchRequest::_internal_is_brute_search() const {
   return _impl_.is_brute_search_;
 }
 inline int32_t SearchRequest::is_brute_search() const {
-  // @@protoc_insertion_point(field_get:SearchRequest.is_brute_search)
+  // @@protoc_insertion_point(field_get:vearchpb.SearchRequest.is_brute_search)
   return _internal_is_brute_search();
 }
 inline void SearchRequest::_internal_set_is_brute_search(int32_t value) {
@@ -9578,10 +9581,10 @@ inline void SearchRequest::_internal_set_is_brute_search(int32_t value) {
 }
 inline void SearchRequest::set_is_brute_search(int32_t value) {
   _internal_set_is_brute_search(value);
-  // @@protoc_insertion_point(field_set:SearchRequest.is_brute_search)
+  // @@protoc_insertion_point(field_set:vearchpb.SearchRequest.is_brute_search)
 }
 
-// repeated .VectorQuery vec_fields = 5;
+// repeated .vearchpb.VectorQuery vec_fields = 5;
 inline int SearchRequest::_internal_vec_fields_size() const {
   return _impl_.vec_fields_.size();
 }
@@ -9591,33 +9594,33 @@ inline int SearchRequest::vec_fields_size() const {
 inline void SearchRequest::clear_vec_fields() {
   _impl_.vec_fields_.Clear();
 }
-inline ::VectorQuery* SearchRequest::mutable_vec_fields(int index) {
-  // @@protoc_insertion_point(field_mutable:SearchRequest.vec_fields)
+inline ::vearchpb::VectorQuery* SearchRequest::mutable_vec_fields(int index) {
+  // @@protoc_insertion_point(field_mutable:vearchpb.SearchRequest.vec_fields)
   return _impl_.vec_fields_.Mutable(index);
 }
-inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::VectorQuery >*
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::VectorQuery >*
 SearchRequest::mutable_vec_fields() {
-  // @@protoc_insertion_point(field_mutable_list:SearchRequest.vec_fields)
+  // @@protoc_insertion_point(field_mutable_list:vearchpb.SearchRequest.vec_fields)
   return &_impl_.vec_fields_;
 }
-inline const ::VectorQuery& SearchRequest::_internal_vec_fields(int index) const {
+inline const ::vearchpb::VectorQuery& SearchRequest::_internal_vec_fields(int index) const {
   return _impl_.vec_fields_.Get(index);
 }
-inline const ::VectorQuery& SearchRequest::vec_fields(int index) const {
-  // @@protoc_insertion_point(field_get:SearchRequest.vec_fields)
+inline const ::vearchpb::VectorQuery& SearchRequest::vec_fields(int index) const {
+  // @@protoc_insertion_point(field_get:vearchpb.SearchRequest.vec_fields)
   return _internal_vec_fields(index);
 }
-inline ::VectorQuery* SearchRequest::_internal_add_vec_fields() {
+inline ::vearchpb::VectorQuery* SearchRequest::_internal_add_vec_fields() {
   return _impl_.vec_fields_.Add();
 }
-inline ::VectorQuery* SearchRequest::add_vec_fields() {
-  ::VectorQuery* _add = _internal_add_vec_fields();
-  // @@protoc_insertion_point(field_add:SearchRequest.vec_fields)
+inline ::vearchpb::VectorQuery* SearchRequest::add_vec_fields() {
+  ::vearchpb::VectorQuery* _add = _internal_add_vec_fields();
+  // @@protoc_insertion_point(field_add:vearchpb.SearchRequest.vec_fields)
   return _add;
 }
-inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::VectorQuery >&
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::VectorQuery >&
 SearchRequest::vec_fields() const {
-  // @@protoc_insertion_point(field_list:SearchRequest.vec_fields)
+  // @@protoc_insertion_point(field_list:vearchpb.SearchRequest.vec_fields)
   return _impl_.vec_fields_;
 }
 
@@ -9633,70 +9636,70 @@ inline void SearchRequest::clear_fields() {
 }
 inline std::string* SearchRequest::add_fields() {
   std::string* _s = _internal_add_fields();
-  // @@protoc_insertion_point(field_add_mutable:SearchRequest.fields)
+  // @@protoc_insertion_point(field_add_mutable:vearchpb.SearchRequest.fields)
   return _s;
 }
 inline const std::string& SearchRequest::_internal_fields(int index) const {
   return _impl_.fields_.Get(index);
 }
 inline const std::string& SearchRequest::fields(int index) const {
-  // @@protoc_insertion_point(field_get:SearchRequest.fields)
+  // @@protoc_insertion_point(field_get:vearchpb.SearchRequest.fields)
   return _internal_fields(index);
 }
 inline std::string* SearchRequest::mutable_fields(int index) {
-  // @@protoc_insertion_point(field_mutable:SearchRequest.fields)
+  // @@protoc_insertion_point(field_mutable:vearchpb.SearchRequest.fields)
   return _impl_.fields_.Mutable(index);
 }
 inline void SearchRequest::set_fields(int index, const std::string& value) {
   _impl_.fields_.Mutable(index)->assign(value);
-  // @@protoc_insertion_point(field_set:SearchRequest.fields)
+  // @@protoc_insertion_point(field_set:vearchpb.SearchRequest.fields)
 }
 inline void SearchRequest::set_fields(int index, std::string&& value) {
   _impl_.fields_.Mutable(index)->assign(std::move(value));
-  // @@protoc_insertion_point(field_set:SearchRequest.fields)
+  // @@protoc_insertion_point(field_set:vearchpb.SearchRequest.fields)
 }
 inline void SearchRequest::set_fields(int index, const char* value) {
   GOOGLE_DCHECK(value != nullptr);
   _impl_.fields_.Mutable(index)->assign(value);
-  // @@protoc_insertion_point(field_set_char:SearchRequest.fields)
+  // @@protoc_insertion_point(field_set_char:vearchpb.SearchRequest.fields)
 }
 inline void SearchRequest::set_fields(int index, const char* value, size_t size) {
   _impl_.fields_.Mutable(index)->assign(
     reinterpret_cast<const char*>(value), size);
-  // @@protoc_insertion_point(field_set_pointer:SearchRequest.fields)
+  // @@protoc_insertion_point(field_set_pointer:vearchpb.SearchRequest.fields)
 }
 inline std::string* SearchRequest::_internal_add_fields() {
   return _impl_.fields_.Add();
 }
 inline void SearchRequest::add_fields(const std::string& value) {
   _impl_.fields_.Add()->assign(value);
-  // @@protoc_insertion_point(field_add:SearchRequest.fields)
+  // @@protoc_insertion_point(field_add:vearchpb.SearchRequest.fields)
 }
 inline void SearchRequest::add_fields(std::string&& value) {
   _impl_.fields_.Add(std::move(value));
-  // @@protoc_insertion_point(field_add:SearchRequest.fields)
+  // @@protoc_insertion_point(field_add:vearchpb.SearchRequest.fields)
 }
 inline void SearchRequest::add_fields(const char* value) {
   GOOGLE_DCHECK(value != nullptr);
   _impl_.fields_.Add()->assign(value);
-  // @@protoc_insertion_point(field_add_char:SearchRequest.fields)
+  // @@protoc_insertion_point(field_add_char:vearchpb.SearchRequest.fields)
 }
 inline void SearchRequest::add_fields(const char* value, size_t size) {
   _impl_.fields_.Add()->assign(reinterpret_cast<const char*>(value), size);
-  // @@protoc_insertion_point(field_add_pointer:SearchRequest.fields)
+  // @@protoc_insertion_point(field_add_pointer:vearchpb.SearchRequest.fields)
 }
 inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>&
 SearchRequest::fields() const {
-  // @@protoc_insertion_point(field_list:SearchRequest.fields)
+  // @@protoc_insertion_point(field_list:vearchpb.SearchRequest.fields)
   return _impl_.fields_;
 }
 inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>*
 SearchRequest::mutable_fields() {
-  // @@protoc_insertion_point(field_mutable_list:SearchRequest.fields)
+  // @@protoc_insertion_point(field_mutable_list:vearchpb.SearchRequest.fields)
   return &_impl_.fields_;
 }
 
-// repeated .RangeFilter range_filters = 7;
+// repeated .vearchpb.RangeFilter range_filters = 7;
 inline int SearchRequest::_internal_range_filters_size() const {
   return _impl_.range_filters_.size();
 }
@@ -9706,37 +9709,37 @@ inline int SearchRequest::range_filters_size() const {
 inline void SearchRequest::clear_range_filters() {
   _impl_.range_filters_.Clear();
 }
-inline ::RangeFilter* SearchRequest::mutable_range_filters(int index) {
-  // @@protoc_insertion_point(field_mutable:SearchRequest.range_filters)
+inline ::vearchpb::RangeFilter* SearchRequest::mutable_range_filters(int index) {
+  // @@protoc_insertion_point(field_mutable:vearchpb.SearchRequest.range_filters)
   return _impl_.range_filters_.Mutable(index);
 }
-inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::RangeFilter >*
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::RangeFilter >*
 SearchRequest::mutable_range_filters() {
-  // @@protoc_insertion_point(field_mutable_list:SearchRequest.range_filters)
+  // @@protoc_insertion_point(field_mutable_list:vearchpb.SearchRequest.range_filters)
   return &_impl_.range_filters_;
 }
-inline const ::RangeFilter& SearchRequest::_internal_range_filters(int index) const {
+inline const ::vearchpb::RangeFilter& SearchRequest::_internal_range_filters(int index) const {
   return _impl_.range_filters_.Get(index);
 }
-inline const ::RangeFilter& SearchRequest::range_filters(int index) const {
-  // @@protoc_insertion_point(field_get:SearchRequest.range_filters)
+inline const ::vearchpb::RangeFilter& SearchRequest::range_filters(int index) const {
+  // @@protoc_insertion_point(field_get:vearchpb.SearchRequest.range_filters)
   return _internal_range_filters(index);
 }
-inline ::RangeFilter* SearchRequest::_internal_add_range_filters() {
+inline ::vearchpb::RangeFilter* SearchRequest::_internal_add_range_filters() {
   return _impl_.range_filters_.Add();
 }
-inline ::RangeFilter* SearchRequest::add_range_filters() {
-  ::RangeFilter* _add = _internal_add_range_filters();
-  // @@protoc_insertion_point(field_add:SearchRequest.range_filters)
+inline ::vearchpb::RangeFilter* SearchRequest::add_range_filters() {
+  ::vearchpb::RangeFilter* _add = _internal_add_range_filters();
+  // @@protoc_insertion_point(field_add:vearchpb.SearchRequest.range_filters)
   return _add;
 }
-inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::RangeFilter >&
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::RangeFilter >&
 SearchRequest::range_filters() const {
-  // @@protoc_insertion_point(field_list:SearchRequest.range_filters)
+  // @@protoc_insertion_point(field_list:vearchpb.SearchRequest.range_filters)
   return _impl_.range_filters_;
 }
 
-// repeated .TermFilter term_filters = 8;
+// repeated .vearchpb.TermFilter term_filters = 8;
 inline int SearchRequest::_internal_term_filters_size() const {
   return _impl_.term_filters_.size();
 }
@@ -9746,33 +9749,33 @@ inline int SearchRequest::term_filters_size() const {
 inline void SearchRequest::clear_term_filters() {
   _impl_.term_filters_.Clear();
 }
-inline ::TermFilter* SearchRequest::mutable_term_filters(int index) {
-  // @@protoc_insertion_point(field_mutable:SearchRequest.term_filters)
+inline ::vearchpb::TermFilter* SearchRequest::mutable_term_filters(int index) {
+  // @@protoc_insertion_point(field_mutable:vearchpb.SearchRequest.term_filters)
   return _impl_.term_filters_.Mutable(index);
 }
-inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::TermFilter >*
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::TermFilter >*
 SearchRequest::mutable_term_filters() {
-  // @@protoc_insertion_point(field_mutable_list:SearchRequest.term_filters)
+  // @@protoc_insertion_point(field_mutable_list:vearchpb.SearchRequest.term_filters)
   return &_impl_.term_filters_;
 }
-inline const ::TermFilter& SearchRequest::_internal_term_filters(int index) const {
+inline const ::vearchpb::TermFilter& SearchRequest::_internal_term_filters(int index) const {
   return _impl_.term_filters_.Get(index);
 }
-inline const ::TermFilter& SearchRequest::term_filters(int index) const {
-  // @@protoc_insertion_point(field_get:SearchRequest.term_filters)
+inline const ::vearchpb::TermFilter& SearchRequest::term_filters(int index) const {
+  // @@protoc_insertion_point(field_get:vearchpb.SearchRequest.term_filters)
   return _internal_term_filters(index);
 }
-inline ::TermFilter* SearchRequest::_internal_add_term_filters() {
+inline ::vearchpb::TermFilter* SearchRequest::_internal_add_term_filters() {
   return _impl_.term_filters_.Add();
 }
-inline ::TermFilter* SearchRequest::add_term_filters() {
-  ::TermFilter* _add = _internal_add_term_filters();
-  // @@protoc_insertion_point(field_add:SearchRequest.term_filters)
+inline ::vearchpb::TermFilter* SearchRequest::add_term_filters() {
+  ::vearchpb::TermFilter* _add = _internal_add_term_filters();
+  // @@protoc_insertion_point(field_add:vearchpb.SearchRequest.term_filters)
   return _add;
 }
-inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::TermFilter >&
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::TermFilter >&
 SearchRequest::term_filters() const {
-  // @@protoc_insertion_point(field_list:SearchRequest.term_filters)
+  // @@protoc_insertion_point(field_list:vearchpb.SearchRequest.term_filters)
   return _impl_.term_filters_;
 }
 
@@ -9781,7 +9784,7 @@ inline void SearchRequest::clear_index_params() {
   _impl_.index_params_.ClearToEmpty();
 }
 inline const std::string& SearchRequest::index_params() const {
-  // @@protoc_insertion_point(field_get:SearchRequest.index_params)
+  // @@protoc_insertion_point(field_get:vearchpb.SearchRequest.index_params)
   return _internal_index_params();
 }
 template <typename ArgT0, typename... ArgT>
@@ -9789,11 +9792,11 @@ inline PROTOBUF_ALWAYS_INLINE
 void SearchRequest::set_index_params(ArgT0&& arg0, ArgT... args) {
  
  _impl_.index_params_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
-  // @@protoc_insertion_point(field_set:SearchRequest.index_params)
+  // @@protoc_insertion_point(field_set:vearchpb.SearchRequest.index_params)
 }
 inline std::string* SearchRequest::mutable_index_params() {
   std::string* _s = _internal_mutable_index_params();
-  // @@protoc_insertion_point(field_mutable:SearchRequest.index_params)
+  // @@protoc_insertion_point(field_mutable:vearchpb.SearchRequest.index_params)
   return _s;
 }
 inline const std::string& SearchRequest::_internal_index_params() const {
@@ -9808,7 +9811,7 @@ inline std::string* SearchRequest::_internal_mutable_index_params() {
   return _impl_.index_params_.Mutable(GetArenaForAllocation());
 }
 inline std::string* SearchRequest::release_index_params() {
-  // @@protoc_insertion_point(field_release:SearchRequest.index_params)
+  // @@protoc_insertion_point(field_release:vearchpb.SearchRequest.index_params)
   return _impl_.index_params_.Release();
 }
 inline void SearchRequest::set_allocated_index_params(std::string* index_params) {
@@ -9823,7 +9826,7 @@ inline void SearchRequest::set_allocated_index_params(std::string* index_params)
     _impl_.index_params_.Set("", GetArenaForAllocation());
   }
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  // @@protoc_insertion_point(field_set_allocated:SearchRequest.index_params)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.SearchRequest.index_params)
 }
 
 // int32 multi_vector_rank = 10;
@@ -9834,7 +9837,7 @@ inline int32_t SearchRequest::_internal_multi_vector_rank() const {
   return _impl_.multi_vector_rank_;
 }
 inline int32_t SearchRequest::multi_vector_rank() const {
-  // @@protoc_insertion_point(field_get:SearchRequest.multi_vector_rank)
+  // @@protoc_insertion_point(field_get:vearchpb.SearchRequest.multi_vector_rank)
   return _internal_multi_vector_rank();
 }
 inline void SearchRequest::_internal_set_multi_vector_rank(int32_t value) {
@@ -9843,7 +9846,7 @@ inline void SearchRequest::_internal_set_multi_vector_rank(int32_t value) {
 }
 inline void SearchRequest::set_multi_vector_rank(int32_t value) {
   _internal_set_multi_vector_rank(value);
-  // @@protoc_insertion_point(field_set:SearchRequest.multi_vector_rank)
+  // @@protoc_insertion_point(field_set:vearchpb.SearchRequest.multi_vector_rank)
 }
 
 // bool l2_sqrt = 11;
@@ -9854,7 +9857,7 @@ inline bool SearchRequest::_internal_l2_sqrt() const {
   return _impl_.l2_sqrt_;
 }
 inline bool SearchRequest::l2_sqrt() const {
-  // @@protoc_insertion_point(field_get:SearchRequest.l2_sqrt)
+  // @@protoc_insertion_point(field_get:vearchpb.SearchRequest.l2_sqrt)
   return _internal_l2_sqrt();
 }
 inline void SearchRequest::_internal_set_l2_sqrt(bool value) {
@@ -9863,7 +9866,7 @@ inline void SearchRequest::_internal_set_l2_sqrt(bool value) {
 }
 inline void SearchRequest::set_l2_sqrt(bool value) {
   _internal_set_l2_sqrt(value);
-  // @@protoc_insertion_point(field_set:SearchRequest.l2_sqrt)
+  // @@protoc_insertion_point(field_set:vearchpb.SearchRequest.l2_sqrt)
 }
 
 // bool is_vector_value = 12;
@@ -9874,7 +9877,7 @@ inline bool SearchRequest::_internal_is_vector_value() const {
   return _impl_.is_vector_value_;
 }
 inline bool SearchRequest::is_vector_value() const {
-  // @@protoc_insertion_point(field_get:SearchRequest.is_vector_value)
+  // @@protoc_insertion_point(field_get:vearchpb.SearchRequest.is_vector_value)
   return _internal_is_vector_value();
 }
 inline void SearchRequest::_internal_set_is_vector_value(bool value) {
@@ -9883,7 +9886,7 @@ inline void SearchRequest::_internal_set_is_vector_value(bool value) {
 }
 inline void SearchRequest::set_is_vector_value(bool value) {
   _internal_set_is_vector_value(value);
-  // @@protoc_insertion_point(field_set:SearchRequest.is_vector_value)
+  // @@protoc_insertion_point(field_set:vearchpb.SearchRequest.is_vector_value)
 }
 
 // map<string, string> sort_field_map = 13;
@@ -9902,7 +9905,7 @@ SearchRequest::_internal_sort_field_map() const {
 }
 inline const ::PROTOBUF_NAMESPACE_ID::Map< std::string, std::string >&
 SearchRequest::sort_field_map() const {
-  // @@protoc_insertion_point(field_map:SearchRequest.sort_field_map)
+  // @@protoc_insertion_point(field_map:vearchpb.SearchRequest.sort_field_map)
   return _internal_sort_field_map();
 }
 inline ::PROTOBUF_NAMESPACE_ID::Map< std::string, std::string >*
@@ -9911,11 +9914,11 @@ SearchRequest::_internal_mutable_sort_field_map() {
 }
 inline ::PROTOBUF_NAMESPACE_ID::Map< std::string, std::string >*
 SearchRequest::mutable_sort_field_map() {
-  // @@protoc_insertion_point(field_mutable_map:SearchRequest.sort_field_map)
+  // @@protoc_insertion_point(field_mutable_map:vearchpb.SearchRequest.sort_field_map)
   return _internal_mutable_sort_field_map();
 }
 
-// repeated .SortField sort_fields = 14;
+// repeated .vearchpb.SortField sort_fields = 14;
 inline int SearchRequest::_internal_sort_fields_size() const {
   return _impl_.sort_fields_.size();
 }
@@ -9925,33 +9928,33 @@ inline int SearchRequest::sort_fields_size() const {
 inline void SearchRequest::clear_sort_fields() {
   _impl_.sort_fields_.Clear();
 }
-inline ::SortField* SearchRequest::mutable_sort_fields(int index) {
-  // @@protoc_insertion_point(field_mutable:SearchRequest.sort_fields)
+inline ::vearchpb::SortField* SearchRequest::mutable_sort_fields(int index) {
+  // @@protoc_insertion_point(field_mutable:vearchpb.SearchRequest.sort_fields)
   return _impl_.sort_fields_.Mutable(index);
 }
-inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::SortField >*
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::SortField >*
 SearchRequest::mutable_sort_fields() {
-  // @@protoc_insertion_point(field_mutable_list:SearchRequest.sort_fields)
+  // @@protoc_insertion_point(field_mutable_list:vearchpb.SearchRequest.sort_fields)
   return &_impl_.sort_fields_;
 }
-inline const ::SortField& SearchRequest::_internal_sort_fields(int index) const {
+inline const ::vearchpb::SortField& SearchRequest::_internal_sort_fields(int index) const {
   return _impl_.sort_fields_.Get(index);
 }
-inline const ::SortField& SearchRequest::sort_fields(int index) const {
-  // @@protoc_insertion_point(field_get:SearchRequest.sort_fields)
+inline const ::vearchpb::SortField& SearchRequest::sort_fields(int index) const {
+  // @@protoc_insertion_point(field_get:vearchpb.SearchRequest.sort_fields)
   return _internal_sort_fields(index);
 }
-inline ::SortField* SearchRequest::_internal_add_sort_fields() {
+inline ::vearchpb::SortField* SearchRequest::_internal_add_sort_fields() {
   return _impl_.sort_fields_.Add();
 }
-inline ::SortField* SearchRequest::add_sort_fields() {
-  ::SortField* _add = _internal_add_sort_fields();
-  // @@protoc_insertion_point(field_add:SearchRequest.sort_fields)
+inline ::vearchpb::SortField* SearchRequest::add_sort_fields() {
+  ::vearchpb::SortField* _add = _internal_add_sort_fields();
+  // @@protoc_insertion_point(field_add:vearchpb.SearchRequest.sort_fields)
   return _add;
 }
-inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::SortField >&
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::SortField >&
 SearchRequest::sort_fields() const {
-  // @@protoc_insertion_point(field_list:SearchRequest.sort_fields)
+  // @@protoc_insertion_point(field_list:vearchpb.SearchRequest.sort_fields)
   return _impl_.sort_fields_;
 }
 
@@ -9960,7 +9963,7 @@ inline void SearchRequest::clear_ranker() {
   _impl_.ranker_.ClearToEmpty();
 }
 inline const std::string& SearchRequest::ranker() const {
-  // @@protoc_insertion_point(field_get:SearchRequest.ranker)
+  // @@protoc_insertion_point(field_get:vearchpb.SearchRequest.ranker)
   return _internal_ranker();
 }
 template <typename ArgT0, typename... ArgT>
@@ -9968,11 +9971,11 @@ inline PROTOBUF_ALWAYS_INLINE
 void SearchRequest::set_ranker(ArgT0&& arg0, ArgT... args) {
  
  _impl_.ranker_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
-  // @@protoc_insertion_point(field_set:SearchRequest.ranker)
+  // @@protoc_insertion_point(field_set:vearchpb.SearchRequest.ranker)
 }
 inline std::string* SearchRequest::mutable_ranker() {
   std::string* _s = _internal_mutable_ranker();
-  // @@protoc_insertion_point(field_mutable:SearchRequest.ranker)
+  // @@protoc_insertion_point(field_mutable:vearchpb.SearchRequest.ranker)
   return _s;
 }
 inline const std::string& SearchRequest::_internal_ranker() const {
@@ -9987,7 +9990,7 @@ inline std::string* SearchRequest::_internal_mutable_ranker() {
   return _impl_.ranker_.Mutable(GetArenaForAllocation());
 }
 inline std::string* SearchRequest::release_ranker() {
-  // @@protoc_insertion_point(field_release:SearchRequest.ranker)
+  // @@protoc_insertion_point(field_release:vearchpb.SearchRequest.ranker)
   return _impl_.ranker_.Release();
 }
 inline void SearchRequest::set_allocated_ranker(std::string* ranker) {
@@ -10002,7 +10005,7 @@ inline void SearchRequest::set_allocated_ranker(std::string* ranker) {
     _impl_.ranker_.Set("", GetArenaForAllocation());
   }
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  // @@protoc_insertion_point(field_set_allocated:SearchRequest.ranker)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.SearchRequest.ranker)
 }
 
 // bool trace = 16;
@@ -10013,7 +10016,7 @@ inline bool SearchRequest::_internal_trace() const {
   return _impl_.trace_;
 }
 inline bool SearchRequest::trace() const {
-  // @@protoc_insertion_point(field_get:SearchRequest.trace)
+  // @@protoc_insertion_point(field_get:vearchpb.SearchRequest.trace)
   return _internal_trace();
 }
 inline void SearchRequest::_internal_set_trace(bool value) {
@@ -10022,7 +10025,7 @@ inline void SearchRequest::_internal_set_trace(bool value) {
 }
 inline void SearchRequest::set_trace(bool value) {
   _internal_set_trace(value);
-  // @@protoc_insertion_point(field_set:SearchRequest.trace)
+  // @@protoc_insertion_point(field_set:vearchpb.SearchRequest.trace)
 }
 
 // -------------------------------------------------------------------
@@ -10037,7 +10040,7 @@ inline double ResultItem::_internal_score() const {
   return _impl_.score_;
 }
 inline double ResultItem::score() const {
-  // @@protoc_insertion_point(field_get:ResultItem.score)
+  // @@protoc_insertion_point(field_get:vearchpb.ResultItem.score)
   return _internal_score();
 }
 inline void ResultItem::_internal_set_score(double value) {
@@ -10046,43 +10049,43 @@ inline void ResultItem::_internal_set_score(double value) {
 }
 inline void ResultItem::set_score(double value) {
   _internal_set_score(value);
-  // @@protoc_insertion_point(field_set:ResultItem.score)
+  // @@protoc_insertion_point(field_set:vearchpb.ResultItem.score)
 }
 
-// repeated .Field fields = 2;
+// repeated .vearchpb.Field fields = 2;
 inline int ResultItem::_internal_fields_size() const {
   return _impl_.fields_.size();
 }
 inline int ResultItem::fields_size() const {
   return _internal_fields_size();
 }
-inline ::Field* ResultItem::mutable_fields(int index) {
-  // @@protoc_insertion_point(field_mutable:ResultItem.fields)
+inline ::vearchpb::Field* ResultItem::mutable_fields(int index) {
+  // @@protoc_insertion_point(field_mutable:vearchpb.ResultItem.fields)
   return _impl_.fields_.Mutable(index);
 }
-inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::Field >*
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::Field >*
 ResultItem::mutable_fields() {
-  // @@protoc_insertion_point(field_mutable_list:ResultItem.fields)
+  // @@protoc_insertion_point(field_mutable_list:vearchpb.ResultItem.fields)
   return &_impl_.fields_;
 }
-inline const ::Field& ResultItem::_internal_fields(int index) const {
+inline const ::vearchpb::Field& ResultItem::_internal_fields(int index) const {
   return _impl_.fields_.Get(index);
 }
-inline const ::Field& ResultItem::fields(int index) const {
-  // @@protoc_insertion_point(field_get:ResultItem.fields)
+inline const ::vearchpb::Field& ResultItem::fields(int index) const {
+  // @@protoc_insertion_point(field_get:vearchpb.ResultItem.fields)
   return _internal_fields(index);
 }
-inline ::Field* ResultItem::_internal_add_fields() {
+inline ::vearchpb::Field* ResultItem::_internal_add_fields() {
   return _impl_.fields_.Add();
 }
-inline ::Field* ResultItem::add_fields() {
-  ::Field* _add = _internal_add_fields();
-  // @@protoc_insertion_point(field_add:ResultItem.fields)
+inline ::vearchpb::Field* ResultItem::add_fields() {
+  ::vearchpb::Field* _add = _internal_add_fields();
+  // @@protoc_insertion_point(field_add:vearchpb.ResultItem.fields)
   return _add;
 }
-inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::Field >&
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::Field >&
 ResultItem::fields() const {
-  // @@protoc_insertion_point(field_list:ResultItem.fields)
+  // @@protoc_insertion_point(field_list:vearchpb.ResultItem.fields)
   return _impl_.fields_;
 }
 
@@ -10091,7 +10094,7 @@ inline void ResultItem::clear_p_key() {
   _impl_.p_key_.ClearToEmpty();
 }
 inline const std::string& ResultItem::p_key() const {
-  // @@protoc_insertion_point(field_get:ResultItem.p_key)
+  // @@protoc_insertion_point(field_get:vearchpb.ResultItem.p_key)
   return _internal_p_key();
 }
 template <typename ArgT0, typename... ArgT>
@@ -10099,11 +10102,11 @@ inline PROTOBUF_ALWAYS_INLINE
 void ResultItem::set_p_key(ArgT0&& arg0, ArgT... args) {
  
  _impl_.p_key_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
-  // @@protoc_insertion_point(field_set:ResultItem.p_key)
+  // @@protoc_insertion_point(field_set:vearchpb.ResultItem.p_key)
 }
 inline std::string* ResultItem::mutable_p_key() {
   std::string* _s = _internal_mutable_p_key();
-  // @@protoc_insertion_point(field_mutable:ResultItem.p_key)
+  // @@protoc_insertion_point(field_mutable:vearchpb.ResultItem.p_key)
   return _s;
 }
 inline const std::string& ResultItem::_internal_p_key() const {
@@ -10118,7 +10121,7 @@ inline std::string* ResultItem::_internal_mutable_p_key() {
   return _impl_.p_key_.Mutable(GetArenaForAllocation());
 }
 inline std::string* ResultItem::release_p_key() {
-  // @@protoc_insertion_point(field_release:ResultItem.p_key)
+  // @@protoc_insertion_point(field_release:vearchpb.ResultItem.p_key)
   return _impl_.p_key_.Release();
 }
 inline void ResultItem::set_allocated_p_key(std::string* p_key) {
@@ -10133,7 +10136,7 @@ inline void ResultItem::set_allocated_p_key(std::string* p_key) {
     _impl_.p_key_.Set("", GetArenaForAllocation());
   }
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  // @@protoc_insertion_point(field_set_allocated:ResultItem.p_key)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.ResultItem.p_key)
 }
 
 // bytes source = 4;
@@ -10141,7 +10144,7 @@ inline void ResultItem::clear_source() {
   _impl_.source_.ClearToEmpty();
 }
 inline const std::string& ResultItem::source() const {
-  // @@protoc_insertion_point(field_get:ResultItem.source)
+  // @@protoc_insertion_point(field_get:vearchpb.ResultItem.source)
   return _internal_source();
 }
 template <typename ArgT0, typename... ArgT>
@@ -10149,11 +10152,11 @@ inline PROTOBUF_ALWAYS_INLINE
 void ResultItem::set_source(ArgT0&& arg0, ArgT... args) {
  
  _impl_.source_.SetBytes(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
-  // @@protoc_insertion_point(field_set:ResultItem.source)
+  // @@protoc_insertion_point(field_set:vearchpb.ResultItem.source)
 }
 inline std::string* ResultItem::mutable_source() {
   std::string* _s = _internal_mutable_source();
-  // @@protoc_insertion_point(field_mutable:ResultItem.source)
+  // @@protoc_insertion_point(field_mutable:vearchpb.ResultItem.source)
   return _s;
 }
 inline const std::string& ResultItem::_internal_source() const {
@@ -10168,7 +10171,7 @@ inline std::string* ResultItem::_internal_mutable_source() {
   return _impl_.source_.Mutable(GetArenaForAllocation());
 }
 inline std::string* ResultItem::release_source() {
-  // @@protoc_insertion_point(field_release:ResultItem.source)
+  // @@protoc_insertion_point(field_release:vearchpb.ResultItem.source)
   return _impl_.source_.Release();
 }
 inline void ResultItem::set_allocated_source(std::string* source) {
@@ -10183,7 +10186,7 @@ inline void ResultItem::set_allocated_source(std::string* source) {
     _impl_.source_.Set("", GetArenaForAllocation());
   }
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  // @@protoc_insertion_point(field_set_allocated:ResultItem.source)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.ResultItem.source)
 }
 
 // -------------------------------------------------------------------
@@ -10198,7 +10201,7 @@ inline int32_t SearchResult::_internal_total_hits() const {
   return _impl_.total_hits_;
 }
 inline int32_t SearchResult::total_hits() const {
-  // @@protoc_insertion_point(field_get:SearchResult.total_hits)
+  // @@protoc_insertion_point(field_get:vearchpb.SearchResult.total_hits)
   return _internal_total_hits();
 }
 inline void SearchResult::_internal_set_total_hits(int32_t value) {
@@ -10207,7 +10210,7 @@ inline void SearchResult::_internal_set_total_hits(int32_t value) {
 }
 inline void SearchResult::set_total_hits(int32_t value) {
   _internal_set_total_hits(value);
-  // @@protoc_insertion_point(field_set:SearchResult.total_hits)
+  // @@protoc_insertion_point(field_set:vearchpb.SearchResult.total_hits)
 }
 
 // double max_score = 2;
@@ -10218,7 +10221,7 @@ inline double SearchResult::_internal_max_score() const {
   return _impl_.max_score_;
 }
 inline double SearchResult::max_score() const {
-  // @@protoc_insertion_point(field_get:SearchResult.max_score)
+  // @@protoc_insertion_point(field_get:vearchpb.SearchResult.max_score)
   return _internal_max_score();
 }
 inline void SearchResult::_internal_set_max_score(double value) {
@@ -10227,7 +10230,7 @@ inline void SearchResult::_internal_set_max_score(double value) {
 }
 inline void SearchResult::set_max_score(double value) {
   _internal_set_max_score(value);
-  // @@protoc_insertion_point(field_set:SearchResult.max_score)
+  // @@protoc_insertion_point(field_set:vearchpb.SearchResult.max_score)
 }
 
 // int64 max_took = 3;
@@ -10238,7 +10241,7 @@ inline int64_t SearchResult::_internal_max_took() const {
   return _impl_.max_took_;
 }
 inline int64_t SearchResult::max_took() const {
-  // @@protoc_insertion_point(field_get:SearchResult.max_took)
+  // @@protoc_insertion_point(field_get:vearchpb.SearchResult.max_took)
   return _internal_max_took();
 }
 inline void SearchResult::_internal_set_max_took(int64_t value) {
@@ -10247,7 +10250,7 @@ inline void SearchResult::_internal_set_max_took(int64_t value) {
 }
 inline void SearchResult::set_max_took(int64_t value) {
   _internal_set_max_took(value);
-  // @@protoc_insertion_point(field_set:SearchResult.max_took)
+  // @@protoc_insertion_point(field_set:vearchpb.SearchResult.max_took)
 }
 
 // uint32 max_took_id = 4;
@@ -10258,7 +10261,7 @@ inline uint32_t SearchResult::_internal_max_took_id() const {
   return _impl_.max_took_id_;
 }
 inline uint32_t SearchResult::max_took_id() const {
-  // @@protoc_insertion_point(field_get:SearchResult.max_took_id)
+  // @@protoc_insertion_point(field_get:vearchpb.SearchResult.max_took_id)
   return _internal_max_took_id();
 }
 inline void SearchResult::_internal_set_max_took_id(uint32_t value) {
@@ -10267,10 +10270,10 @@ inline void SearchResult::_internal_set_max_took_id(uint32_t value) {
 }
 inline void SearchResult::set_max_took_id(uint32_t value) {
   _internal_set_max_took_id(value);
-  // @@protoc_insertion_point(field_set:SearchResult.max_took_id)
+  // @@protoc_insertion_point(field_set:vearchpb.SearchResult.max_took_id)
 }
 
-// .SearchStatus status = 5;
+// .vearchpb.SearchStatus status = 5;
 inline bool SearchResult::_internal_has_status() const {
   return this != internal_default_instance() && _impl_.status_ != nullptr;
 }
@@ -10283,17 +10286,17 @@ inline void SearchResult::clear_status() {
   }
   _impl_.status_ = nullptr;
 }
-inline const ::SearchStatus& SearchResult::_internal_status() const {
-  const ::SearchStatus* p = _impl_.status_;
-  return p != nullptr ? *p : reinterpret_cast<const ::SearchStatus&>(
-      ::_SearchStatus_default_instance_);
+inline const ::vearchpb::SearchStatus& SearchResult::_internal_status() const {
+  const ::vearchpb::SearchStatus* p = _impl_.status_;
+  return p != nullptr ? *p : reinterpret_cast<const ::vearchpb::SearchStatus&>(
+      ::vearchpb::_SearchStatus_default_instance_);
 }
-inline const ::SearchStatus& SearchResult::status() const {
-  // @@protoc_insertion_point(field_get:SearchResult.status)
+inline const ::vearchpb::SearchStatus& SearchResult::status() const {
+  // @@protoc_insertion_point(field_get:vearchpb.SearchResult.status)
   return _internal_status();
 }
 inline void SearchResult::unsafe_arena_set_allocated_status(
-    ::SearchStatus* status) {
+    ::vearchpb::SearchStatus* status) {
   if (GetArenaForAllocation() == nullptr) {
     delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.status_);
   }
@@ -10303,11 +10306,11 @@ inline void SearchResult::unsafe_arena_set_allocated_status(
   } else {
     
   }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:SearchResult.status)
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:vearchpb.SearchResult.status)
 }
-inline ::SearchStatus* SearchResult::release_status() {
+inline ::vearchpb::SearchStatus* SearchResult::release_status() {
   
-  ::SearchStatus* temp = _impl_.status_;
+  ::vearchpb::SearchStatus* temp = _impl_.status_;
   _impl_.status_ = nullptr;
 #ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
   auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
@@ -10320,27 +10323,27 @@ inline ::SearchStatus* SearchResult::release_status() {
 #endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
   return temp;
 }
-inline ::SearchStatus* SearchResult::unsafe_arena_release_status() {
-  // @@protoc_insertion_point(field_release:SearchResult.status)
+inline ::vearchpb::SearchStatus* SearchResult::unsafe_arena_release_status() {
+  // @@protoc_insertion_point(field_release:vearchpb.SearchResult.status)
   
-  ::SearchStatus* temp = _impl_.status_;
+  ::vearchpb::SearchStatus* temp = _impl_.status_;
   _impl_.status_ = nullptr;
   return temp;
 }
-inline ::SearchStatus* SearchResult::_internal_mutable_status() {
+inline ::vearchpb::SearchStatus* SearchResult::_internal_mutable_status() {
   
   if (_impl_.status_ == nullptr) {
-    auto* p = CreateMaybeMessage<::SearchStatus>(GetArenaForAllocation());
+    auto* p = CreateMaybeMessage<::vearchpb::SearchStatus>(GetArenaForAllocation());
     _impl_.status_ = p;
   }
   return _impl_.status_;
 }
-inline ::SearchStatus* SearchResult::mutable_status() {
-  ::SearchStatus* _msg = _internal_mutable_status();
-  // @@protoc_insertion_point(field_mutable:SearchResult.status)
+inline ::vearchpb::SearchStatus* SearchResult::mutable_status() {
+  ::vearchpb::SearchStatus* _msg = _internal_mutable_status();
+  // @@protoc_insertion_point(field_mutable:vearchpb.SearchResult.status)
   return _msg;
 }
-inline void SearchResult::set_allocated_status(::SearchStatus* status) {
+inline void SearchResult::set_allocated_status(::vearchpb::SearchStatus* status) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   if (message_arena == nullptr) {
     delete _impl_.status_;
@@ -10357,7 +10360,7 @@ inline void SearchResult::set_allocated_status(::SearchStatus* status) {
     
   }
   _impl_.status_ = status;
-  // @@protoc_insertion_point(field_set_allocated:SearchResult.status)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.SearchResult.status)
 }
 
 // string msg = 6;
@@ -10365,7 +10368,7 @@ inline void SearchResult::clear_msg() {
   _impl_.msg_.ClearToEmpty();
 }
 inline const std::string& SearchResult::msg() const {
-  // @@protoc_insertion_point(field_get:SearchResult.msg)
+  // @@protoc_insertion_point(field_get:vearchpb.SearchResult.msg)
   return _internal_msg();
 }
 template <typename ArgT0, typename... ArgT>
@@ -10373,11 +10376,11 @@ inline PROTOBUF_ALWAYS_INLINE
 void SearchResult::set_msg(ArgT0&& arg0, ArgT... args) {
  
  _impl_.msg_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
-  // @@protoc_insertion_point(field_set:SearchResult.msg)
+  // @@protoc_insertion_point(field_set:vearchpb.SearchResult.msg)
 }
 inline std::string* SearchResult::mutable_msg() {
   std::string* _s = _internal_mutable_msg();
-  // @@protoc_insertion_point(field_mutable:SearchResult.msg)
+  // @@protoc_insertion_point(field_mutable:vearchpb.SearchResult.msg)
   return _s;
 }
 inline const std::string& SearchResult::_internal_msg() const {
@@ -10392,7 +10395,7 @@ inline std::string* SearchResult::_internal_mutable_msg() {
   return _impl_.msg_.Mutable(GetArenaForAllocation());
 }
 inline std::string* SearchResult::release_msg() {
-  // @@protoc_insertion_point(field_release:SearchResult.msg)
+  // @@protoc_insertion_point(field_release:vearchpb.SearchResult.msg)
   return _impl_.msg_.Release();
 }
 inline void SearchResult::set_allocated_msg(std::string* msg) {
@@ -10407,10 +10410,10 @@ inline void SearchResult::set_allocated_msg(std::string* msg) {
     _impl_.msg_.Set("", GetArenaForAllocation());
   }
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  // @@protoc_insertion_point(field_set_allocated:SearchResult.msg)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.SearchResult.msg)
 }
 
-// repeated .ResultItem result_items = 7;
+// repeated .vearchpb.ResultItem result_items = 7;
 inline int SearchResult::_internal_result_items_size() const {
   return _impl_.result_items_.size();
 }
@@ -10420,33 +10423,33 @@ inline int SearchResult::result_items_size() const {
 inline void SearchResult::clear_result_items() {
   _impl_.result_items_.Clear();
 }
-inline ::ResultItem* SearchResult::mutable_result_items(int index) {
-  // @@protoc_insertion_point(field_mutable:SearchResult.result_items)
+inline ::vearchpb::ResultItem* SearchResult::mutable_result_items(int index) {
+  // @@protoc_insertion_point(field_mutable:vearchpb.SearchResult.result_items)
   return _impl_.result_items_.Mutable(index);
 }
-inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::ResultItem >*
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::ResultItem >*
 SearchResult::mutable_result_items() {
-  // @@protoc_insertion_point(field_mutable_list:SearchResult.result_items)
+  // @@protoc_insertion_point(field_mutable_list:vearchpb.SearchResult.result_items)
   return &_impl_.result_items_;
 }
-inline const ::ResultItem& SearchResult::_internal_result_items(int index) const {
+inline const ::vearchpb::ResultItem& SearchResult::_internal_result_items(int index) const {
   return _impl_.result_items_.Get(index);
 }
-inline const ::ResultItem& SearchResult::result_items(int index) const {
-  // @@protoc_insertion_point(field_get:SearchResult.result_items)
+inline const ::vearchpb::ResultItem& SearchResult::result_items(int index) const {
+  // @@protoc_insertion_point(field_get:vearchpb.SearchResult.result_items)
   return _internal_result_items(index);
 }
-inline ::ResultItem* SearchResult::_internal_add_result_items() {
+inline ::vearchpb::ResultItem* SearchResult::_internal_add_result_items() {
   return _impl_.result_items_.Add();
 }
-inline ::ResultItem* SearchResult::add_result_items() {
-  ::ResultItem* _add = _internal_add_result_items();
-  // @@protoc_insertion_point(field_add:SearchResult.result_items)
+inline ::vearchpb::ResultItem* SearchResult::add_result_items() {
+  ::vearchpb::ResultItem* _add = _internal_add_result_items();
+  // @@protoc_insertion_point(field_add:vearchpb.SearchResult.result_items)
   return _add;
 }
-inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::ResultItem >&
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::ResultItem >&
 SearchResult::result_items() const {
-  // @@protoc_insertion_point(field_list:SearchResult.result_items)
+  // @@protoc_insertion_point(field_list:vearchpb.SearchResult.result_items)
   return _impl_.result_items_;
 }
 
@@ -10458,7 +10461,7 @@ inline uint32_t SearchResult::_internal_pid() const {
   return _impl_.pid_;
 }
 inline uint32_t SearchResult::pid() const {
-  // @@protoc_insertion_point(field_get:SearchResult.pID)
+  // @@protoc_insertion_point(field_get:vearchpb.SearchResult.pID)
   return _internal_pid();
 }
 inline void SearchResult::_internal_set_pid(uint32_t value) {
@@ -10467,7 +10470,7 @@ inline void SearchResult::_internal_set_pid(uint32_t value) {
 }
 inline void SearchResult::set_pid(uint32_t value) {
   _internal_set_pid(value);
-  // @@protoc_insertion_point(field_set:SearchResult.pID)
+  // @@protoc_insertion_point(field_set:vearchpb.SearchResult.pID)
 }
 
 // bool timeout = 9;
@@ -10478,7 +10481,7 @@ inline bool SearchResult::_internal_timeout() const {
   return _impl_.timeout_;
 }
 inline bool SearchResult::timeout() const {
-  // @@protoc_insertion_point(field_get:SearchResult.timeout)
+  // @@protoc_insertion_point(field_get:vearchpb.SearchResult.timeout)
   return _internal_timeout();
 }
 inline void SearchResult::_internal_set_timeout(bool value) {
@@ -10487,7 +10490,7 @@ inline void SearchResult::_internal_set_timeout(bool value) {
 }
 inline void SearchResult::set_timeout(bool value) {
   _internal_set_timeout(value);
-  // @@protoc_insertion_point(field_set:SearchResult.timeout)
+  // @@protoc_insertion_point(field_set:vearchpb.SearchResult.timeout)
 }
 
 // int32 topN = 10;
@@ -10498,7 +10501,7 @@ inline int32_t SearchResult::_internal_topn() const {
   return _impl_.topn_;
 }
 inline int32_t SearchResult::topn() const {
-  // @@protoc_insertion_point(field_get:SearchResult.topN)
+  // @@protoc_insertion_point(field_get:vearchpb.SearchResult.topN)
   return _internal_topn();
 }
 inline void SearchResult::_internal_set_topn(int32_t value) {
@@ -10507,14 +10510,14 @@ inline void SearchResult::_internal_set_topn(int32_t value) {
 }
 inline void SearchResult::set_topn(int32_t value) {
   _internal_set_topn(value);
-  // @@protoc_insertion_point(field_set:SearchResult.topN)
+  // @@protoc_insertion_point(field_set:vearchpb.SearchResult.topN)
 }
 
 // -------------------------------------------------------------------
 
 // SearchResponse
 
-// .ResponseHead head = 1;
+// .vearchpb.ResponseHead head = 1;
 inline bool SearchResponse::_internal_has_head() const {
   return this != internal_default_instance() && _impl_.head_ != nullptr;
 }
@@ -10527,17 +10530,17 @@ inline void SearchResponse::clear_head() {
   }
   _impl_.head_ = nullptr;
 }
-inline const ::ResponseHead& SearchResponse::_internal_head() const {
-  const ::ResponseHead* p = _impl_.head_;
-  return p != nullptr ? *p : reinterpret_cast<const ::ResponseHead&>(
-      ::_ResponseHead_default_instance_);
+inline const ::vearchpb::ResponseHead& SearchResponse::_internal_head() const {
+  const ::vearchpb::ResponseHead* p = _impl_.head_;
+  return p != nullptr ? *p : reinterpret_cast<const ::vearchpb::ResponseHead&>(
+      ::vearchpb::_ResponseHead_default_instance_);
 }
-inline const ::ResponseHead& SearchResponse::head() const {
-  // @@protoc_insertion_point(field_get:SearchResponse.head)
+inline const ::vearchpb::ResponseHead& SearchResponse::head() const {
+  // @@protoc_insertion_point(field_get:vearchpb.SearchResponse.head)
   return _internal_head();
 }
 inline void SearchResponse::unsafe_arena_set_allocated_head(
-    ::ResponseHead* head) {
+    ::vearchpb::ResponseHead* head) {
   if (GetArenaForAllocation() == nullptr) {
     delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.head_);
   }
@@ -10547,11 +10550,11 @@ inline void SearchResponse::unsafe_arena_set_allocated_head(
   } else {
     
   }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:SearchResponse.head)
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:vearchpb.SearchResponse.head)
 }
-inline ::ResponseHead* SearchResponse::release_head() {
+inline ::vearchpb::ResponseHead* SearchResponse::release_head() {
   
-  ::ResponseHead* temp = _impl_.head_;
+  ::vearchpb::ResponseHead* temp = _impl_.head_;
   _impl_.head_ = nullptr;
 #ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
   auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
@@ -10564,27 +10567,27 @@ inline ::ResponseHead* SearchResponse::release_head() {
 #endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
   return temp;
 }
-inline ::ResponseHead* SearchResponse::unsafe_arena_release_head() {
-  // @@protoc_insertion_point(field_release:SearchResponse.head)
+inline ::vearchpb::ResponseHead* SearchResponse::unsafe_arena_release_head() {
+  // @@protoc_insertion_point(field_release:vearchpb.SearchResponse.head)
   
-  ::ResponseHead* temp = _impl_.head_;
+  ::vearchpb::ResponseHead* temp = _impl_.head_;
   _impl_.head_ = nullptr;
   return temp;
 }
-inline ::ResponseHead* SearchResponse::_internal_mutable_head() {
+inline ::vearchpb::ResponseHead* SearchResponse::_internal_mutable_head() {
   
   if (_impl_.head_ == nullptr) {
-    auto* p = CreateMaybeMessage<::ResponseHead>(GetArenaForAllocation());
+    auto* p = CreateMaybeMessage<::vearchpb::ResponseHead>(GetArenaForAllocation());
     _impl_.head_ = p;
   }
   return _impl_.head_;
 }
-inline ::ResponseHead* SearchResponse::mutable_head() {
-  ::ResponseHead* _msg = _internal_mutable_head();
-  // @@protoc_insertion_point(field_mutable:SearchResponse.head)
+inline ::vearchpb::ResponseHead* SearchResponse::mutable_head() {
+  ::vearchpb::ResponseHead* _msg = _internal_mutable_head();
+  // @@protoc_insertion_point(field_mutable:vearchpb.SearchResponse.head)
   return _msg;
 }
-inline void SearchResponse::set_allocated_head(::ResponseHead* head) {
+inline void SearchResponse::set_allocated_head(::vearchpb::ResponseHead* head) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   if (message_arena == nullptr) {
     delete _impl_.head_;
@@ -10601,10 +10604,10 @@ inline void SearchResponse::set_allocated_head(::ResponseHead* head) {
     
   }
   _impl_.head_ = head;
-  // @@protoc_insertion_point(field_set_allocated:SearchResponse.head)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.SearchResponse.head)
 }
 
-// repeated .SearchResult results = 2;
+// repeated .vearchpb.SearchResult results = 2;
 inline int SearchResponse::_internal_results_size() const {
   return _impl_.results_.size();
 }
@@ -10614,33 +10617,33 @@ inline int SearchResponse::results_size() const {
 inline void SearchResponse::clear_results() {
   _impl_.results_.Clear();
 }
-inline ::SearchResult* SearchResponse::mutable_results(int index) {
-  // @@protoc_insertion_point(field_mutable:SearchResponse.results)
+inline ::vearchpb::SearchResult* SearchResponse::mutable_results(int index) {
+  // @@protoc_insertion_point(field_mutable:vearchpb.SearchResponse.results)
   return _impl_.results_.Mutable(index);
 }
-inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::SearchResult >*
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::SearchResult >*
 SearchResponse::mutable_results() {
-  // @@protoc_insertion_point(field_mutable_list:SearchResponse.results)
+  // @@protoc_insertion_point(field_mutable_list:vearchpb.SearchResponse.results)
   return &_impl_.results_;
 }
-inline const ::SearchResult& SearchResponse::_internal_results(int index) const {
+inline const ::vearchpb::SearchResult& SearchResponse::_internal_results(int index) const {
   return _impl_.results_.Get(index);
 }
-inline const ::SearchResult& SearchResponse::results(int index) const {
-  // @@protoc_insertion_point(field_get:SearchResponse.results)
+inline const ::vearchpb::SearchResult& SearchResponse::results(int index) const {
+  // @@protoc_insertion_point(field_get:vearchpb.SearchResponse.results)
   return _internal_results(index);
 }
-inline ::SearchResult* SearchResponse::_internal_add_results() {
+inline ::vearchpb::SearchResult* SearchResponse::_internal_add_results() {
   return _impl_.results_.Add();
 }
-inline ::SearchResult* SearchResponse::add_results() {
-  ::SearchResult* _add = _internal_add_results();
-  // @@protoc_insertion_point(field_add:SearchResponse.results)
+inline ::vearchpb::SearchResult* SearchResponse::add_results() {
+  ::vearchpb::SearchResult* _add = _internal_add_results();
+  // @@protoc_insertion_point(field_add:vearchpb.SearchResponse.results)
   return _add;
 }
-inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::SearchResult >&
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::SearchResult >&
 SearchResponse::results() const {
-  // @@protoc_insertion_point(field_list:SearchResponse.results)
+  // @@protoc_insertion_point(field_list:vearchpb.SearchResponse.results)
   return _impl_.results_;
 }
 
@@ -10652,7 +10655,7 @@ inline bool SearchResponse::_internal_timeout() const {
   return _impl_.timeout_;
 }
 inline bool SearchResponse::timeout() const {
-  // @@protoc_insertion_point(field_get:SearchResponse.timeout)
+  // @@protoc_insertion_point(field_get:vearchpb.SearchResponse.timeout)
   return _internal_timeout();
 }
 inline void SearchResponse::_internal_set_timeout(bool value) {
@@ -10661,7 +10664,7 @@ inline void SearchResponse::_internal_set_timeout(bool value) {
 }
 inline void SearchResponse::set_timeout(bool value) {
   _internal_set_timeout(value);
-  // @@protoc_insertion_point(field_set:SearchResponse.timeout)
+  // @@protoc_insertion_point(field_set:vearchpb.SearchResponse.timeout)
 }
 
 // bytes FlatBytes = 4;
@@ -10669,7 +10672,7 @@ inline void SearchResponse::clear_flatbytes() {
   _impl_.flatbytes_.ClearToEmpty();
 }
 inline const std::string& SearchResponse::flatbytes() const {
-  // @@protoc_insertion_point(field_get:SearchResponse.FlatBytes)
+  // @@protoc_insertion_point(field_get:vearchpb.SearchResponse.FlatBytes)
   return _internal_flatbytes();
 }
 template <typename ArgT0, typename... ArgT>
@@ -10677,11 +10680,11 @@ inline PROTOBUF_ALWAYS_INLINE
 void SearchResponse::set_flatbytes(ArgT0&& arg0, ArgT... args) {
  
  _impl_.flatbytes_.SetBytes(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
-  // @@protoc_insertion_point(field_set:SearchResponse.FlatBytes)
+  // @@protoc_insertion_point(field_set:vearchpb.SearchResponse.FlatBytes)
 }
 inline std::string* SearchResponse::mutable_flatbytes() {
   std::string* _s = _internal_mutable_flatbytes();
-  // @@protoc_insertion_point(field_mutable:SearchResponse.FlatBytes)
+  // @@protoc_insertion_point(field_mutable:vearchpb.SearchResponse.FlatBytes)
   return _s;
 }
 inline const std::string& SearchResponse::_internal_flatbytes() const {
@@ -10696,7 +10699,7 @@ inline std::string* SearchResponse::_internal_mutable_flatbytes() {
   return _impl_.flatbytes_.Mutable(GetArenaForAllocation());
 }
 inline std::string* SearchResponse::release_flatbytes() {
-  // @@protoc_insertion_point(field_release:SearchResponse.FlatBytes)
+  // @@protoc_insertion_point(field_release:vearchpb.SearchResponse.FlatBytes)
   return _impl_.flatbytes_.Release();
 }
 inline void SearchResponse::set_allocated_flatbytes(std::string* flatbytes) {
@@ -10711,7 +10714,7 @@ inline void SearchResponse::set_allocated_flatbytes(std::string* flatbytes) {
     _impl_.flatbytes_.Set("", GetArenaForAllocation());
   }
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  // @@protoc_insertion_point(field_set_allocated:SearchResponse.FlatBytes)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.SearchResponse.FlatBytes)
 }
 
 // int32 top_size = 5;
@@ -10722,7 +10725,7 @@ inline int32_t SearchResponse::_internal_top_size() const {
   return _impl_.top_size_;
 }
 inline int32_t SearchResponse::top_size() const {
-  // @@protoc_insertion_point(field_get:SearchResponse.top_size)
+  // @@protoc_insertion_point(field_get:vearchpb.SearchResponse.top_size)
   return _internal_top_size();
 }
 inline void SearchResponse::_internal_set_top_size(int32_t value) {
@@ -10731,7 +10734,7 @@ inline void SearchResponse::_internal_set_top_size(int32_t value) {
 }
 inline void SearchResponse::set_top_size(int32_t value) {
   _internal_set_top_size(value);
-  // @@protoc_insertion_point(field_set:SearchResponse.top_size)
+  // @@protoc_insertion_point(field_set:vearchpb.SearchResponse.top_size)
 }
 
 // -------------------------------------------------------------------
@@ -10746,7 +10749,7 @@ inline int32_t SearchStatus::_internal_total() const {
   return _impl_.total_;
 }
 inline int32_t SearchStatus::total() const {
-  // @@protoc_insertion_point(field_get:SearchStatus.total)
+  // @@protoc_insertion_point(field_get:vearchpb.SearchStatus.total)
   return _internal_total();
 }
 inline void SearchStatus::_internal_set_total(int32_t value) {
@@ -10755,7 +10758,7 @@ inline void SearchStatus::_internal_set_total(int32_t value) {
 }
 inline void SearchStatus::set_total(int32_t value) {
   _internal_set_total(value);
-  // @@protoc_insertion_point(field_set:SearchStatus.total)
+  // @@protoc_insertion_point(field_set:vearchpb.SearchStatus.total)
 }
 
 // int32 failed = 2;
@@ -10766,7 +10769,7 @@ inline int32_t SearchStatus::_internal_failed() const {
   return _impl_.failed_;
 }
 inline int32_t SearchStatus::failed() const {
-  // @@protoc_insertion_point(field_get:SearchStatus.failed)
+  // @@protoc_insertion_point(field_get:vearchpb.SearchStatus.failed)
   return _internal_failed();
 }
 inline void SearchStatus::_internal_set_failed(int32_t value) {
@@ -10775,7 +10778,7 @@ inline void SearchStatus::_internal_set_failed(int32_t value) {
 }
 inline void SearchStatus::set_failed(int32_t value) {
   _internal_set_failed(value);
-  // @@protoc_insertion_point(field_set:SearchStatus.failed)
+  // @@protoc_insertion_point(field_set:vearchpb.SearchStatus.failed)
 }
 
 // int32 successful = 3;
@@ -10786,7 +10789,7 @@ inline int32_t SearchStatus::_internal_successful() const {
   return _impl_.successful_;
 }
 inline int32_t SearchStatus::successful() const {
-  // @@protoc_insertion_point(field_get:SearchStatus.successful)
+  // @@protoc_insertion_point(field_get:vearchpb.SearchStatus.successful)
   return _internal_successful();
 }
 inline void SearchStatus::_internal_set_successful(int32_t value) {
@@ -10795,7 +10798,7 @@ inline void SearchStatus::_internal_set_successful(int32_t value) {
 }
 inline void SearchStatus::set_successful(int32_t value) {
   _internal_set_successful(value);
-  // @@protoc_insertion_point(field_set:SearchStatus.successful)
+  // @@protoc_insertion_point(field_set:vearchpb.SearchStatus.successful)
 }
 
 // string msg = 4;
@@ -10803,7 +10806,7 @@ inline void SearchStatus::clear_msg() {
   _impl_.msg_.ClearToEmpty();
 }
 inline const std::string& SearchStatus::msg() const {
-  // @@protoc_insertion_point(field_get:SearchStatus.msg)
+  // @@protoc_insertion_point(field_get:vearchpb.SearchStatus.msg)
   return _internal_msg();
 }
 template <typename ArgT0, typename... ArgT>
@@ -10811,11 +10814,11 @@ inline PROTOBUF_ALWAYS_INLINE
 void SearchStatus::set_msg(ArgT0&& arg0, ArgT... args) {
  
  _impl_.msg_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
-  // @@protoc_insertion_point(field_set:SearchStatus.msg)
+  // @@protoc_insertion_point(field_set:vearchpb.SearchStatus.msg)
 }
 inline std::string* SearchStatus::mutable_msg() {
   std::string* _s = _internal_mutable_msg();
-  // @@protoc_insertion_point(field_mutable:SearchStatus.msg)
+  // @@protoc_insertion_point(field_mutable:vearchpb.SearchStatus.msg)
   return _s;
 }
 inline const std::string& SearchStatus::_internal_msg() const {
@@ -10830,7 +10833,7 @@ inline std::string* SearchStatus::_internal_mutable_msg() {
   return _impl_.msg_.Mutable(GetArenaForAllocation());
 }
 inline std::string* SearchStatus::release_msg() {
-  // @@protoc_insertion_point(field_release:SearchStatus.msg)
+  // @@protoc_insertion_point(field_release:vearchpb.SearchStatus.msg)
   return _impl_.msg_.Release();
 }
 inline void SearchStatus::set_allocated_msg(std::string* msg) {
@@ -10845,7 +10848,7 @@ inline void SearchStatus::set_allocated_msg(std::string* msg) {
     _impl_.msg_.Set("", GetArenaForAllocation());
   }
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  // @@protoc_insertion_point(field_set_allocated:SearchStatus.msg)
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.SearchStatus.msg)
 }
 
 #ifdef __GNUC__
@@ -10912,13 +10915,14 @@ inline void SearchStatus::set_allocated_msg(std::string* msg) {
 
 // @@protoc_insertion_point(namespace_scope)
 
+}  // namespace vearchpb
 
 PROTOBUF_NAMESPACE_OPEN
 
-template <> struct is_proto_enum< ::IndexParameters_DistanceMetricType> : ::std::true_type {};
+template <> struct is_proto_enum< ::vearchpb::IndexParameters_DistanceMetricType> : ::std::true_type {};
 template <>
-inline const EnumDescriptor* GetEnumDescriptor< ::IndexParameters_DistanceMetricType>() {
-  return ::IndexParameters_DistanceMetricType_descriptor();
+inline const EnumDescriptor* GetEnumDescriptor< ::vearchpb::IndexParameters_DistanceMetricType>() {
+  return ::vearchpb::IndexParameters_DistanceMetricType_descriptor();
 }
 
 PROTOBUF_NAMESPACE_CLOSE

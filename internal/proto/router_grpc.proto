@@ -5,6 +5,7 @@ import "errors.proto";
 
 option optimize_for = SPEED;
 option go_package = "./vearchpb";
+package vearchpb;
 
 service RouterGRPCService {
   rpc Get(GetRequest) returns (GetResponse) {}
@@ -179,8 +180,8 @@ message SearchRequest {
 message ResultItem {
   double score = 1;
   repeated Field fields = 2;
-  string p_key = 3;
-  bytes source = 4;
+  string p_key = 3; // not used
+  bytes source = 4; // not used
 }
 
 message SearchResult {
