@@ -1,31 +1,30 @@
-from vearch.core.space import Space
-from typing import List
-from vearch.core.client import client
-from vearch.result import Result, ResultStatus, get_result
-from vearch.const import DATABASE_URI, SPACE_URI, LIST_SPACE_URI, AUTH_KEY, CODE_DATABASE_NOT_EXIST, CODE_DB_EXIST, CODE_SUCCESS, MSG_NOT_EXIST
-from vearch.schema.space import SpaceSchema
-from vearch.exception import DatabaseException, VearchException
-from vearch.utils import CodeType, compute_sign_auth
-import requests
 import logging
-import json
+from typing import List
+
+from vearch.const import (
+    CODE_DATABASE_NOT_EXIST,
+    CODE_SUCCESS,
+    MSG_NOT_EXIST,
+)
+from vearch.core.client import RestClient
+from vearch.core.space import Space
+from vearch.exception import SpaceException, VearchException
+from vearch.result import Result
+from vearch.schema.space import SpaceSchema
+from vearch.utils import CodeType
 
 logger = logging.getLogger("vearch")
 
 
 class Database(object):
-    def __init__(self, name):
+    def __init__(self, name: str, client: RestClient):
         self.name = name
         self.client = client
 
     def exist(self) -> bool:
         try:
-            url_params = {"database_name": self.name}
-            url = self.client.host + DATABASE_URI % url_params
-            sign = compute_sign_auth(secret=self.client.token)
-            resp = requests.request(method="GET", url=url, auth=sign)
-            result = get_result(resp)
-            if result.code == CODE_SUCCESS:
+            result = self.client._get_db_detail(self.name)
+            if result.is_success():
                 return True
             else:
                 return False
@@ -39,32 +38,32 @@ class Database(object):
     def drop(self) -> Result:
         if self.exist():
             return self.client._drop_db(self.name)
-        return Result(code=ResultStatus.success)
+        return Result(code=CODE_SUCCESS)
 
     def list_spaces(self) -> List[Space]:
-        url_params = {"database_name": self.name}
-        url = self.client.host + (LIST_SPACE_URI % url_params)
-        sign = compute_sign_auth(secret=self.client.token)
-        resp = requests.request(method="GET", url=url, auth=sign)
-        return get_result(resp)
+        result = self.client._list_space(self.name)
+        spaces = []
+        if result.is_success():
+            space_datas = result.data
+            for space_data in space_datas:
+                space = Space(self.name, space_data["space_name"], self.client)
+                spaces.append(space)
+            return spaces
+        elif MSG_NOT_EXIST in result.msg:
+            return spaces
+        else:
+            raise SpaceException(
+                code=CodeType.LIST_SPACES, message="list space failed:" + result.msg
+            )
 
-    def space(self, name) -> Space:
+    def space(self, space_name: str) -> Space:
         if not self.exist():
             result = self.create()
-            if result.code == ResultStatus.success:
-                return Space(self.name, name)
+            if result.is_success():
+                return Space(self.name, space_name, self.client)
             else:
                 raise Exception("database not exist, and create error")
-        return Space(self.name, name)
+        return Space(self.name, space_name, self.client)
 
     def create_space(self, space: SpaceSchema) -> Result:
-        if not self.exist():
-            result = self.create()
-            if result.code != ResultStatus.success:
-                raise Exception("database not exist,and create error")
-        url_params = {"database_name": self.name, "space_name": space.name}
-        url = self.client.host + LIST_SPACE_URI % url_params
-        sign = compute_sign_auth(secret=self.client.token)
-        resp = requests.request(method="POST", url=url,
-                                data=json.dumps(space.dict()), auth=sign)
-        return get_result(resp)
+        return self.space(space.name).create(space)

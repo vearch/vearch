@@ -1,10 +1,9 @@
-from enum import IntEnum
-import re
 import logging
-import logging.handlers
 import logging.config
-import datetime
-import base64
+import logging.handlers
+import re
+from enum import IntEnum
+
 from requests.auth import HTTPBasicAuth
 
 LOG_LEVEL = "DEBUG"
@@ -123,7 +122,6 @@ class IndexType:
 
 
 class VectorInfo:
-
     def __init__(self, field_name, feature, min_score=-1, max_score=-1, weight=-1):
         self.field_name = field_name
         self.feature = feature

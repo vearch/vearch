@@ -1,3 +1,7 @@
+import logging
+from typing import List
+import json
+import pytest
 from vearch.config import Config
 from vearch.core.db import Database
 from vearch.core.space import Space
@@ -12,11 +16,8 @@ from vearch.exception import (
     SpaceException,
     DocumentException,
 )
-
-import logging
-from typing import List
-import json
-import pytest
+from vearch.core.client import RestClient
+from config import test_host_url
 
 logger = logging.getLogger("vearch_test")
 
@@ -24,10 +25,11 @@ database_name = "database_test"
 space_name = "book_info"
 space_name1 = "book_info1"
 
-db = Database(database_name)
+client = RestClient(host=test_host_url)
+db = Database(database_name, client)
 
-space_not = Space(database_name, space_name1)
-space = Space(database_name, space_name)
+space_not = Space(database_name, space_name1, client)
+space = Space(database_name, space_name, client)
 
 ids = []
 
@@ -63,8 +65,8 @@ def create_space_schema(space_name) -> SpaceSchema:
 
 def test_create_database():
     ret = db.create()
-    logger.info(ret.data)
-    assert ret.__dict__["code"] == 0
+    logger.debug(ret.data)
+    assert ret.code == 0
 
 
 def test_is_space_not_exist():
@@ -77,7 +79,7 @@ def test_is_space_not_exist():
 def test_create_space():
     ret = space.create(create_space_schema("book_info"))
     assert ret.code == 0
-    logger.info(ret.data)
+    logger.debug(ret.data)
     assert ret.data["name"] == "book_info"
 
 
@@ -103,7 +105,7 @@ def test_upsert_doc_data_field_missing():
         data.append(book_item)
     ret = space.upsert(data)
     assert ret.code != 0
-    logger.info(ret.msg)
+    logger.debug(ret.msg)
 
 
 def test_upsert_doc():
@@ -125,15 +127,13 @@ def test_upsert_doc():
     ret = space.upsert(data)
     assert ret.code == 0
     assert len(ret.get_document_ids()) >= 8
-    # logger.info(data)
     global ids
     ids = ret.get_document_ids()
-    logger.info(ids)
-
+    logger.debug(ids)
 
 def test_query_with_document_ids():
     ret = space.query(document_ids=ids)
-    logger.info(ret.documents)
+    logger.debug(ret.documents)
     assert ret.code == 0
     assert len(ret.documents) == 8
 
@@ -149,7 +149,7 @@ def test_search():
         ],
         limit=7,
     )
-    logger.info(ret.documents)
+    logger.debug(ret.documents)
     assert ret.code == 0
     assert len(ret.documents) == 1
     assert len(ret.documents[0]) == 7
@@ -161,8 +161,8 @@ def test_search_with_filter():
     feature = [random.uniform(0, 1) for _ in range(512)]
     vi = VectorInfo("book_character", feature)
     conditons = [
-        Condition(operator=">", fv=FieldValue(field="book_num", value=0)),
-        Condition(operator="<", fv=FieldValue(field="book_num", value=25)),
+        Condition(operator=">=", fv=FieldValue(field="book_num", value=9)),
+        Condition(operator="<=", fv=FieldValue(field="book_num", value=9)),
     ]
     filters = Filter(operator="AND", conditions=conditons)
     ret = space.search(
@@ -173,8 +173,7 @@ def test_search_with_filter():
         limit=7,
         trace=True,
     )
-    logger.info(ret.msg)
-    logger.info(ret.documents)
+    logger.debug(ret.documents)
     assert ret.code == 0
 
 
@@ -205,9 +204,9 @@ def test_delete_doc():
 
 def test_drop_space():
     ret = space.drop()
-    assert ret.__dict__["code"] == 0
+    assert ret.code == 0
 
 
 def test_drop_db():
     ret = db.drop()
-    assert ret.__dict__["code"] == 0
+    assert ret.code == 0

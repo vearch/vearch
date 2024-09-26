@@ -1,4 +1,9 @@
-from vearch.config import Config, DefaultConfig
+import logging
+from typing import List
+import json
+import pytest
+import time
+from vearch.config import Config
 from vearch.core.vearch import Vearch
 from vearch.schema.field import Field
 from vearch.schema.space import SpaceSchema
@@ -11,19 +16,15 @@ from vearch.exception import (
     SpaceException,
     DocumentException,
 )
-
-import logging
-from typing import List
-import json
-import pytest
+from vearch.core.client import RestClient
+from config import test_host_url
 
 logger = logging.getLogger("vearch_document_test")
 
 database_name = "database_document_test"
 space_name = "space_document_test"
 
-config = DefaultConfig
-vc = Vearch(config)
+vc = Vearch(Config(host=test_host_url))
 
 
 def create_space_schema(space_name) -> SpaceSchema:
@@ -83,7 +84,7 @@ def test_upsert_doc_data_field_missing():
 
     ur = vc.upsert(database_name, space_name, data)
     assert ur.code != 0
-    logger.info(ur.msg)
+    logger.debug(ur.msg)
 
 
 def test_upsert_doc() -> List:
@@ -107,13 +108,14 @@ def test_upsert_doc() -> List:
 
 
 def test_delete_doc():
+    time.sleep(1)
     conditons = [
         Condition(operator="<", fv=FieldValue(field="book_num", value=25)),
         Condition(operator=">", fv=FieldValue(field="book_num", value=12)),
     ]
     filters = Filter(operator="AND", conditions=conditons)
     ret = vc.delete(database_name, space_name, filter=filters)
-    logger.info(ret.document_ids)
+    logger.debug(ret.document_ids)
     assert ret is None or len(ret.document_ids) >= 0
 
 
@@ -124,7 +126,7 @@ def test_delete_doc_no_result():
     ]
     filters = Filter(operator="AND", conditions=conditons)
     ret = vc.delete(database_name, space_name, filter=filters)
-    logger.info(ret.msg)
+    assert len(ret.document_ids) == 0
 
 
 def test_query():
@@ -139,7 +141,7 @@ def test_query():
     ]
     filters = Filter(operator="AND", conditions=conditons)
     ret = vc.query(database_name, space_name, filter=filters)
-    logger.info(ret.documents)
+    logger.debug(ret.documents)
     assert len(ret.documents) >= 0
 
 
@@ -155,9 +157,7 @@ def test_query_no_result():
     ]
     filters = Filter(operator="AND", conditions=conditons)
     ret = vc.query(database_name, space_name, filter=filters)
-    logger.info(ret.documents)
-    assert ret.code == 0
-    logger.info(ret.msg)
+    assert ret.code == 0 and len(ret.documents) == 0
 
 
 def test_search():
@@ -193,7 +193,7 @@ def test_multi_search():
         limit=limit,
     )
     assert len(ret.documents) == 2
-    logger.info(ret.documents)
+    logger.debug(ret.documents)
     for document in ret.documents:
         assert len(document) == limit
 
@@ -215,8 +215,8 @@ def test_search_no_result():
         filter=filters,
         limit=7,
     )
-    logger.info(ret.msg)
-
+    logger.debug(ret.msg)
+    assert not ret.is_success()
 
 def test_drop_space():
     ret = vc.drop_space(database_name, space_name)

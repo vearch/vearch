@@ -1,4 +1,10 @@
-from vearch.config import Config, DefaultConfig
+import logging
+from typing import List
+import json
+import pytest
+import random
+import time
+from vearch.config import Config
 from vearch.core.vearch import Vearch
 from vearch.schema.field import Field
 from vearch.schema.space import SpaceSchema
@@ -20,14 +26,8 @@ from vearch.exception import (
     SpaceException,
     DocumentException,
 )
-
+from vearch.core.client import RestClient
 from config import test_host_url
-
-import logging
-from typing import List
-import json
-import pytest
-import random
 
 logger = logging.getLogger("vearch_test")
 
@@ -36,8 +36,8 @@ database_name1 = "database_test_not_exist"
 space_name = "book_info"
 space_name1 = "book_infonot_exist"
 
-config = Config(host=test_host_url, token="secret")
-vc = Vearch(config)
+
+vc = Vearch(Config(host=test_host_url))
 
 vi = VectorInfo("book_character", [random.uniform(0, 1) for _ in range(512)])
 conditons_search = [
@@ -246,8 +246,8 @@ class TestVearchBadcase(object):
             book_name_template[i],
             [random.uniform(0, 1) for _ in range(512)],
         ]
-    data_complete.append(book_item)
-    data_miss.append(book_item_m)
+        data_complete.append(book_item)
+        data_miss.append(book_item_m)
 
     @pytest.mark.parametrize(
         "database_name, space_name, data",
@@ -257,6 +257,7 @@ class TestVearchBadcase(object):
     )
     def test_upsert_doc(self, database_name, space_name, data) -> List:
         ret = vc.upsert(database_name, space_name, data)
+        logger.debug(f"upsert doc:{ret.document_ids}")
         assert ret.code == 0
 
     @pytest.mark.parametrize(
@@ -286,8 +287,9 @@ class TestVearchBadcase(object):
         ],
     )
     def test_delete_doc(self, database_name, space_name, ids, filters):
-
+        time.sleep(1)
         ret = vc.delete(database_name, space_name, ids, filter=filters)
+        logger.debug(f"delete doc:{ret.document_ids}")
         assert ret.code == 0
 
     conditons_query = [
@@ -311,6 +313,7 @@ class TestVearchBadcase(object):
     def test_query(self, database_name, space_name, ids, filters):
 
         ret = vc.query(database_name, space_name, ids, filters)
+        logger.debug(f"query doc:{ret.documents}")
         assert ret.code == 0
 
     @pytest.mark.parametrize(
@@ -350,6 +353,7 @@ class TestVearchBadcase(object):
             filter=filters,
             limit=limit,
         )
+        logger.debug(f"search doc:{ret.documents}")
         assert ret.code == 0
 
     @pytest.mark.parametrize(
