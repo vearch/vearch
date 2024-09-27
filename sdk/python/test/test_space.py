@@ -25,7 +25,7 @@ database_name = "database_test"
 space_name = "book_info"
 space_name1 = "book_info1"
 
-client = RestClient(host=test_host_url)
+client = RestClient(host=test_host_url, token="secret")
 db = Database(database_name, client)
 
 space_not = Space(database_name, space_name1, client)

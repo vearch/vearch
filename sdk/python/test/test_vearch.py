@@ -37,7 +37,7 @@ space_name = "book_info"
 space_name1 = "book_infonot_exist"
 
 
-vc = Vearch(Config(host=test_host_url))
+vc = Vearch(Config(host=test_host_url, token="secret"))
 
 vi = VectorInfo("book_character", [random.uniform(0, 1) for _ in range(512)])
 conditons_search = [

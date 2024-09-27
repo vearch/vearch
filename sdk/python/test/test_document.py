@@ -24,7 +24,7 @@ logger = logging.getLogger("vearch_document_test")
 database_name = "database_document_test"
 space_name = "space_document_test"
 
-vc = Vearch(Config(host=test_host_url))
+vc = Vearch(Config(host=test_host_url, token="secret"))
 
 
 def create_space_schema(space_name) -> SpaceSchema:

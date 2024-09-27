@@ -26,7 +26,7 @@ database_name1 = "database_test_db_not_exist"
 space_name = "book_info"
 space_name1 = "book_info1"
 
-client = RestClient(host=test_host_url)
+client = RestClient(host=test_host_url, token="secret")
 db = Database(database_name, client)
 db_not = Database(database_name1, client)
 
