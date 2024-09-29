@@ -2598,7 +2598,6 @@ class DelByQueryeResponse final :
 
   enum : int {
     kIdsStrFieldNumber = 3,
-    kIdsLongFieldNumber = 4,
     kHeadFieldNumber = 1,
     kDelNumFieldNumber = 2,
   };
@@ -2625,28 +2624,6 @@ class DelByQueryeResponse final :
   const std::string& _internal_ids_str(int index) const;
   std::string* _internal_add_ids_str();
   public:
-
-  // repeated int64 ids_long = 4;
-  int ids_long_size() const;
-  private:
-  int _internal_ids_long_size() const;
-  public:
-  void clear_ids_long();
-  private:
-  int64_t _internal_ids_long(int index) const;
-  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int64_t >&
-      _internal_ids_long() const;
-  void _internal_add_ids_long(int64_t value);
-  ::PROTOBUF_NAMESPACE_ID::RepeatedField< int64_t >*
-      _internal_mutable_ids_long();
-  public:
-  int64_t ids_long(int index) const;
-  void set_ids_long(int index, int64_t value);
-  void add_ids_long(int64_t value);
-  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int64_t >&
-      ids_long() const;
-  ::PROTOBUF_NAMESPACE_ID::RepeatedField< int64_t >*
-      mutable_ids_long();
 
   // .vearchpb.ResponseHead head = 1;
   bool has_head() const;
@@ -2684,8 +2661,6 @@ class DelByQueryeResponse final :
   typedef void DestructorSkippable_;
   struct Impl_ {
     ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string> ids_str_;
-    ::PROTOBUF_NAMESPACE_ID::RepeatedField< int64_t > ids_long_;
-    mutable std::atomic<int> _ids_long_cached_byte_size_;
     ::vearchpb::ResponseHead* head_;
     int32_t delnum_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
@@ -4966,7 +4941,6 @@ class ResultItem final :
   enum : int {
     kFieldsFieldNumber = 2,
     kPKeyFieldNumber = 3,
-    kSourceFieldNumber = 4,
     kScoreFieldNumber = 1,
   };
   // repeated .vearchpb.Field fields = 2;
@@ -5001,20 +4975,6 @@ class ResultItem final :
   std::string* _internal_mutable_p_key();
   public:
 
-  // bytes source = 4;
-  void clear_source();
-  const std::string& source() const;
-  template <typename ArgT0 = const std::string&, typename... ArgT>
-  void set_source(ArgT0&& arg0, ArgT... args);
-  std::string* mutable_source();
-  PROTOBUF_NODISCARD std::string* release_source();
-  void set_allocated_source(std::string* source);
-  private:
-  const std::string& _internal_source() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_source(const std::string& value);
-  std::string* _internal_mutable_source();
-  public:
-
   // double score = 1;
   void clear_score();
   double score() const;
@@ -5034,7 +4994,6 @@ class ResultItem final :
   struct Impl_ {
     ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::Field > fields_;
     ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr p_key_;
-    ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr source_;
     double score_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
@@ -5438,7 +5397,6 @@ class SearchResponse final :
     kFlatBytesFieldNumber = 4,
     kHeadFieldNumber = 1,
     kTimeoutFieldNumber = 3,
-    kTopSizeFieldNumber = 5,
   };
   // repeated .vearchpb.SearchResult results = 2;
   int results_size() const;
@@ -5499,15 +5457,6 @@ class SearchResponse final :
   void _internal_set_timeout(bool value);
   public:
 
-  // int32 top_size = 5;
-  void clear_top_size();
-  int32_t top_size() const;
-  void set_top_size(int32_t value);
-  private:
-  int32_t _internal_top_size() const;
-  void _internal_set_top_size(int32_t value);
-  public:
-
   // @@protoc_insertion_point(class_scope:vearchpb.SearchResponse)
  private:
   class _Internal;
@@ -5520,7 +5469,6 @@ class SearchResponse final :
     ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr flatbytes_;
     ::vearchpb::ResponseHead* head_;
     bool timeout_;
-    int32_t top_size_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
   union { Impl_ _impl_; };
@@ -7766,53 +7714,6 @@ inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>*
 DelByQueryeResponse::mutable_ids_str() {
   // @@protoc_insertion_point(field_mutable_list:vearchpb.DelByQueryeResponse.ids_str)
   return &_impl_.ids_str_;
-}
-
-// repeated int64 ids_long = 4;
-inline int DelByQueryeResponse::_internal_ids_long_size() const {
-  return _impl_.ids_long_.size();
-}
-inline int DelByQueryeResponse::ids_long_size() const {
-  return _internal_ids_long_size();
-}
-inline void DelByQueryeResponse::clear_ids_long() {
-  _impl_.ids_long_.Clear();
-}
-inline int64_t DelByQueryeResponse::_internal_ids_long(int index) const {
-  return _impl_.ids_long_.Get(index);
-}
-inline int64_t DelByQueryeResponse::ids_long(int index) const {
-  // @@protoc_insertion_point(field_get:vearchpb.DelByQueryeResponse.ids_long)
-  return _internal_ids_long(index);
-}
-inline void DelByQueryeResponse::set_ids_long(int index, int64_t value) {
-  _impl_.ids_long_.Set(index, value);
-  // @@protoc_insertion_point(field_set:vearchpb.DelByQueryeResponse.ids_long)
-}
-inline void DelByQueryeResponse::_internal_add_ids_long(int64_t value) {
-  _impl_.ids_long_.Add(value);
-}
-inline void DelByQueryeResponse::add_ids_long(int64_t value) {
-  _internal_add_ids_long(value);
-  // @@protoc_insertion_point(field_add:vearchpb.DelByQueryeResponse.ids_long)
-}
-inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int64_t >&
-DelByQueryeResponse::_internal_ids_long() const {
-  return _impl_.ids_long_;
-}
-inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int64_t >&
-DelByQueryeResponse::ids_long() const {
-  // @@protoc_insertion_point(field_list:vearchpb.DelByQueryeResponse.ids_long)
-  return _internal_ids_long();
-}
-inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< int64_t >*
-DelByQueryeResponse::_internal_mutable_ids_long() {
-  return &_impl_.ids_long_;
-}
-inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< int64_t >*
-DelByQueryeResponse::mutable_ids_long() {
-  // @@protoc_insertion_point(field_mutable_list:vearchpb.DelByQueryeResponse.ids_long)
-  return _internal_mutable_ids_long();
 }
 
 // -------------------------------------------------------------------
@@ -10139,56 +10040,6 @@ inline void ResultItem::set_allocated_p_key(std::string* p_key) {
   // @@protoc_insertion_point(field_set_allocated:vearchpb.ResultItem.p_key)
 }
 
-// bytes source = 4;
-inline void ResultItem::clear_source() {
-  _impl_.source_.ClearToEmpty();
-}
-inline const std::string& ResultItem::source() const {
-  // @@protoc_insertion_point(field_get:vearchpb.ResultItem.source)
-  return _internal_source();
-}
-template <typename ArgT0, typename... ArgT>
-inline PROTOBUF_ALWAYS_INLINE
-void ResultItem::set_source(ArgT0&& arg0, ArgT... args) {
- 
- _impl_.source_.SetBytes(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
-  // @@protoc_insertion_point(field_set:vearchpb.ResultItem.source)
-}
-inline std::string* ResultItem::mutable_source() {
-  std::string* _s = _internal_mutable_source();
-  // @@protoc_insertion_point(field_mutable:vearchpb.ResultItem.source)
-  return _s;
-}
-inline const std::string& ResultItem::_internal_source() const {
-  return _impl_.source_.Get();
-}
-inline void ResultItem::_internal_set_source(const std::string& value) {
-  
-  _impl_.source_.Set(value, GetArenaForAllocation());
-}
-inline std::string* ResultItem::_internal_mutable_source() {
-  
-  return _impl_.source_.Mutable(GetArenaForAllocation());
-}
-inline std::string* ResultItem::release_source() {
-  // @@protoc_insertion_point(field_release:vearchpb.ResultItem.source)
-  return _impl_.source_.Release();
-}
-inline void ResultItem::set_allocated_source(std::string* source) {
-  if (source != nullptr) {
-    
-  } else {
-    
-  }
-  _impl_.source_.SetAllocated(source, GetArenaForAllocation());
-#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  if (_impl_.source_.IsDefault()) {
-    _impl_.source_.Set("", GetArenaForAllocation());
-  }
-#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  // @@protoc_insertion_point(field_set_allocated:vearchpb.ResultItem.source)
-}
-
 // -------------------------------------------------------------------
 
 // SearchResult
@@ -10715,26 +10566,6 @@ inline void SearchResponse::set_allocated_flatbytes(std::string* flatbytes) {
   }
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
   // @@protoc_insertion_point(field_set_allocated:vearchpb.SearchResponse.FlatBytes)
-}
-
-// int32 top_size = 5;
-inline void SearchResponse::clear_top_size() {
-  _impl_.top_size_ = 0;
-}
-inline int32_t SearchResponse::_internal_top_size() const {
-  return _impl_.top_size_;
-}
-inline int32_t SearchResponse::top_size() const {
-  // @@protoc_insertion_point(field_get:vearchpb.SearchResponse.top_size)
-  return _internal_top_size();
-}
-inline void SearchResponse::_internal_set_top_size(int32_t value) {
-  
-  _impl_.top_size_ = value;
-}
-inline void SearchResponse::set_top_size(int32_t value) {
-  _internal_set_top_size(value);
-  // @@protoc_insertion_point(field_set:vearchpb.SearchResponse.top_size)
 }
 
 // -------------------------------------------------------------------

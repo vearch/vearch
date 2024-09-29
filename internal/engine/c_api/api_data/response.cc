@@ -60,7 +60,6 @@ int Response::Serialize(const std::string &space_name,
   if (table == nullptr || vector_mgr == nullptr) {
     LOG(DEBUG) << "nullptr: table=" << table << ", vector_mgr=" << vector_mgr;
 
-    pbResponse.set_top_size(0);
     std::string serialized;
     if (!pbResponse.SerializeToString(&serialized)) {
       LOG(ERROR) << "failed to serialize " << serialized.size();

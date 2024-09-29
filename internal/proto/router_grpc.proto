@@ -87,7 +87,6 @@ message DelByQueryeResponse {
   ResponseHead head = 1;
   int32 DelNum = 2;
   repeated string ids_str = 3;
-  repeated int64 ids_long = 4;
 }
 
 message FlushResponse {
@@ -180,8 +179,7 @@ message SearchRequest {
 message ResultItem {
   double score = 1;
   repeated Field fields = 2;
-  string p_key = 3; // not used
-  bytes source = 4; // not used
+  string p_key = 3;
 }
 
 message SearchResult {
@@ -202,7 +200,6 @@ message SearchResponse {
   repeated SearchResult results = 2;
   bool timeout = 3;
   bytes FlatBytes = 4;
-  int32 top_size = 5;
 }
 
 message SearchStatus {

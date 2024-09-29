@@ -21,7 +21,6 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/vearch/vearch/v3/internal/entity"
@@ -155,7 +154,7 @@ func documentQueryResponse(srs []*vearchpb.SearchResult, head *vearchpb.Response
 		response["total"] = len(srs[0].ResultItems)
 	}
 
-	documents := make([]json.RawMessage, 0)
+	documents := make([][]map[string]interface{}, 0)
 	if len(srs) > 1 {
 		return nil, vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("query result length should be one"))
 	}
@@ -169,11 +168,7 @@ func documentQueryResponse(srs []*vearchpb.SearchResult, head *vearchpb.Response
 			}
 			docMaps = append(docMaps, resultData)
 		}
-		data, err := vjson.Marshal(docMaps)
-		if err != nil {
-			return nil, vearchpb.NewError(vearchpb.ErrorEnum_QUERY_RESPONSE_PARSE_ERR, errors.New("get data err:"+err.Error()))
-		}
-		documents = append(documents, json.RawMessage(data))
+		documents = append(documents, docMaps)
 	}
 
 	if len(documents) > 0 {
@@ -194,56 +189,17 @@ func documentSearchResponse(srs []*vearchpb.SearchResult, head *vearchpb.Respons
 		}
 	}
 
-	documents := make([]json.RawMessage, 0)
-	if len(srs) > 1 {
-		var wg sync.WaitGroup
-		resp := make([][]byte, len(srs))
-		var final_err error
-		for i, sr := range srs {
-			wg.Add(1)
-			go func(sr *vearchpb.SearchResult, index int) {
-				defer wg.Done()
-				docMaps := make([]map[string]interface{}, 0)
-				for _, item := range sr.ResultItems {
-					result_data, err := GetDocSource(item, space, "search")
-					if err != nil {
-						final_err = vearchpb.NewError(vearchpb.ErrorEnum_QUERY_RESPONSE_PARSE_ERR, errors.New("get data err:"+err.Error()))
-						return
-					}
-					docMaps = append(docMaps, result_data)
-				}
-				if data, err := vjson.Marshal(docMaps); err != nil {
-					final_err = vearchpb.NewError(vearchpb.ErrorEnum_QUERY_RESPONSE_PARSE_ERR, errors.New("get data err:"+err.Error()))
-					return
-				} else {
-					resp[index] = json.RawMessage(data)
-				}
-			}(sr, i)
-		}
-
-		wg.Wait()
-		if final_err != nil {
-			return nil, final_err
-		}
-		for _, msg := range resp {
-			documents = append(documents, msg)
-		}
-	} else {
-		for _, sr := range srs {
-			docMaps := make([]map[string]interface{}, 0)
-			for _, item := range sr.ResultItems {
-				result_data, err := GetDocSource(item, space, "search")
-				if err != nil {
-					return nil, vearchpb.NewError(vearchpb.ErrorEnum_QUERY_RESPONSE_PARSE_ERR, errors.New("get data err:"+err.Error()))
-				}
-				docMaps = append(docMaps, result_data)
-			}
-			if data, err := vjson.Marshal(docMaps); err != nil {
+	documents := make([][]map[string]interface{}, 0)
+	for _, sr := range srs {
+		docMaps := make([]map[string]interface{}, 0)
+		for _, item := range sr.ResultItems {
+			result_data, err := GetDocSource(item, space, "search")
+			if err != nil {
 				return nil, vearchpb.NewError(vearchpb.ErrorEnum_QUERY_RESPONSE_PARSE_ERR, errors.New("get data err:"+err.Error()))
-			} else {
-				documents = append(documents, json.RawMessage(data))
 			}
+			docMaps = append(docMaps, result_data)
 		}
+		documents = append(documents, docMaps)
 	}
 	response["documents"] = documents
 	return response, nil
@@ -450,8 +406,6 @@ func deleteByQueryResult(resp *vearchpb.DelByQueryeResponse) (map[string]interfa
 
 	if resp.IdsStr != nil {
 		result["document_ids"] = resp.IdsStr
-	} else if resp.IdsLong != nil {
-		result["document_ids"] = resp.IdsLong
 	} else {
 		result["document_ids"] = []string{}
 	}
