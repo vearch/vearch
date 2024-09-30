@@ -31,12 +31,11 @@ type SignalHook struct {
 
 func NewSignalHook() *SignalHook {
 	s := &SignalHook{
-		sigsC: make(chan os.Signal),
+		sigsC: make(chan os.Signal, 1),
 		hooks: make([]func(), 0),
 		stopC: make(chan interface{}, 1),
 	}
-	// signal.Notify(s.sigsC, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGKILL)
-	signal.Notify(s.sigsC, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGKILL)
+	signal.Notify(s.sigsC, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 
 	return s
 }

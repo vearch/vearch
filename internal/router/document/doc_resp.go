@@ -57,7 +57,7 @@ func documentUpsertResponse(reply *vearchpb.BulkResponse) (map[string]interface{
 
 	response["total"] = total
 
-	documentIDs := make([]interface{}, 0)
+	documentIDs := make([]interface{}, 0, len(reply.Items))
 	for _, item := range reply.Items {
 		result := documentResultSerialize(item)
 		documentIDs = append(documentIDs, result)
@@ -117,7 +117,7 @@ func documentGetResponse(space *entity.Space, reply *vearchpb.GetResponse, retur
 	}
 	response["total"] = total
 
-	documents := []interface{}{}
+	documents := make([]map[string]interface{}, 0, len(reply.Items))
 	for _, item := range reply.Items {
 		doc := make(map[string]interface{})
 		doc["_id"] = item.Doc.PKey
@@ -154,13 +154,13 @@ func documentQueryResponse(srs []*vearchpb.SearchResult, head *vearchpb.Response
 		response["total"] = len(srs[0].ResultItems)
 	}
 
-	documents := make([][]map[string]interface{}, 0)
 	if len(srs) > 1 {
 		return nil, vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("query result length should be one"))
 	}
 
+	documents := make([][]map[string]interface{}, 0, len(srs))
 	for _, sr := range srs {
-		docMaps := make([]map[string]interface{}, 0)
+		docMaps := make([]map[string]interface{}, 0, len(sr.ResultItems))
 		for _, item := range sr.ResultItems {
 			resultData, err := GetDocSource(item, space, "query")
 			if err != nil {
@@ -189,9 +189,9 @@ func documentSearchResponse(srs []*vearchpb.SearchResult, head *vearchpb.Respons
 		}
 	}
 
-	documents := make([][]map[string]interface{}, 0)
+	documents := make([][]map[string]interface{}, 0, len(srs))
 	for _, sr := range srs {
-		docMaps := make([]map[string]interface{}, 0)
+		docMaps := make([]map[string]interface{}, 0, len(sr.ResultItems))
 		for _, item := range sr.ResultItems {
 			result_data, err := GetDocSource(item, space, "search")
 			if err != nil {

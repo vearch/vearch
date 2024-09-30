@@ -48,7 +48,7 @@ var (
 
 func init() {
 	flag.StringVar(&confPath, "conf", getDefaultConfigFile(), "vearch config path")
-	flag.StringVar(&masterName, "master", "", "vearch config for master name , is on local start two master must use it")
+	flag.StringVar(&masterName, "master", "", "vearch config for master name, is on local start two master must use it")
 }
 
 const (
@@ -59,6 +59,27 @@ const (
 	DefaultResourceName = "default"
 )
 
+func newProfileHttpServer(port uint16) {
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Error("start pprof server error: %v", r)
+			}
+		}()
+
+		for i := 0; i < 3; i++ {
+			err := http.ListenAndServe("0.0.0.0:"+cast.ToString(port), nil)
+			if err != nil {
+				log.Error(err.Error())
+				time.Sleep(10 * time.Second)
+			} else {
+				log.Info("start pprof server on port %d", port)
+				break
+			}
+		}
+	}()
+}
+
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
@@ -67,7 +88,7 @@ func main() {
 	flag.Parse()
 
 	if confPath == "" {
-		log.Error("Can not get the config file ,then exit the program!")
+		log.Error("can not get the config file, then exit the program!")
 		os.Exit(1)
 	}
 
@@ -90,7 +111,7 @@ func main() {
 
 	for _, a := range args {
 		if _, ok := tags[a]; !ok {
-			panic(fmt.Sprintf("not found tags: %s it only support [ps,router, master or all]", a))
+			panic(fmt.Sprintf("not found tags: %s it only support [ps, router, master or all]", a))
 		} else {
 			tags[a] = true
 		}
@@ -163,19 +184,8 @@ func main() {
 		}()
 
 		if port := config.Conf().Masters.Self().PprofPort; port > 0 {
-			go func() {
-				for i := 0; i < 3; i++ {
-					err := http.ListenAndServe("0.0.0.0:"+cast.ToString(port), nil)
-					if err != nil {
-						log.Error(err.Error())
-						time.Sleep(10 * time.Second)
-					} else {
-						break
-					}
-				}
-			}()
+			newProfileHttpServer(port)
 		}
-
 	}
 
 	// start ps
@@ -197,17 +207,7 @@ func main() {
 		}()
 
 		if port := config.Conf().PS.PprofPort; port > 0 {
-			go func() {
-				for i := 0; i < 3; i++ {
-					err := http.ListenAndServe("0.0.0.0:"+cast.ToString(port), nil)
-					if err != nil {
-						log.Error(err.Error())
-						time.Sleep(10 * time.Second)
-					} else {
-						break
-					}
-				}
-			}()
+			newProfileHttpServer(port)
 		}
 	}
 
@@ -232,17 +232,7 @@ func main() {
 		}()
 
 		if port := config.Conf().Router.PprofPort; port > 0 {
-			go func() {
-				for i := 0; i < 3; i++ {
-					err := http.ListenAndServe("0.0.0.0:"+cast.ToString(port), nil)
-					if err != nil {
-						log.Error(err.Error())
-						time.Sleep(10 * time.Second)
-					} else {
-						break
-					}
-				}
-			}()
+			newProfileHttpServer(port)
 		}
 	}
 
