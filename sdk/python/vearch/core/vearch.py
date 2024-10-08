@@ -88,7 +88,7 @@ class Vearch(object):
             result = self.client._get_space_detail(database_name, space_name)
             if result.is_success():
                 space_schema = SpaceSchema.from_dict(result.data)
-                return True, None, space_schema
+                return True, result, space_schema
             else:
                 return False, result, None
         except VearchException as e:

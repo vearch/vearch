@@ -54,4 +54,4 @@ jobs:
       run: |
         cd scripts/benchmarks
         python restful.py
-        python pysdk.py
+        python pysdk.py --task SEARCH

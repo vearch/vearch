@@ -178,7 +178,7 @@ class RestClient(object):
         if filter:
             req_body["filters"] = filter.dict()
 
-        sign = compute_sign_auth()
+        sign = compute_sign_auth(secret=self.token)
         resp = self.s.request(method="POST", url=url, json=req_body, auth=sign)
         return DeleteResult.parse_delete_result_from_response(resp)
 

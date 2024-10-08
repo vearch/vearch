@@ -63,6 +63,7 @@ class IvfPQIndex(Index):
         training_threshold: Optional[int] = None,
         bucket_init_size: int = 1000,
         bucket_max_size: int = 1280000,
+        nprobe: int = 80
     ):
         params = {
             "metric_type": metric_type,
@@ -73,6 +74,7 @@ class IvfPQIndex(Index):
             "training_threshold": training_threshold
             if training_threshold
             else int(ncentroids * 39),
+            "nprobe": nprobe
         }
         super().__init__(index_name, IndexType.IVFPQ, params)
 
@@ -87,6 +89,7 @@ class IvfFlatIndex(Index):
         metric_type: str,
         ncentroids: int,
         training_threshold: int = None,
+        nprobe: int = 80
     ):
         params = {
             "metric_type": metric_type,
@@ -94,6 +97,7 @@ class IvfFlatIndex(Index):
             "training_threshold": training_threshold
             if training_threshold
             else int(ncentroids * 39),
+            "nprobe": nprobe
         }
         super().__init__(index_name, IndexType.IVFFLAT, params)
 
@@ -122,9 +126,10 @@ class HNSWIndex(Index):
         metric_type: str,
         nlinks: int,
         efConstruction: int,
+        efSearch: int = 64
     ):
         params = dict(
-            metric_type=metric_type, nlinks=nlinks, efConstruction=efConstruction
+            metric_type=metric_type, nlinks=nlinks, efConstruction=efConstruction, efSearch=efSearch
         )
         super().__init__(index_name, IndexType.HNSW, params)
 
@@ -136,8 +141,9 @@ class GPUIvfPQIndex(Index):
         metric_type: str,
         ncentroids: int,
         nsubvector: int,
+        nprobe: int = 80
     ):
         params = dict(
-            metric_type=metric_type, ncentroids=ncentroids, nsubvector=nsubvector
+            metric_type=metric_type, ncentroids=ncentroids, nsubvector=nsubvector, nprobe=nprobe
         )
         super().__init__(index_name, IndexType.GPU_IVFPQ, params)

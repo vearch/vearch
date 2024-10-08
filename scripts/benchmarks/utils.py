@@ -625,6 +625,7 @@ def get_dataset_by_name(logger: logging, args: argparse.Namespace):
             ncentroids = int(args.nb / 39 / args.partition_num / 2)
         else:
             ncentroids = int(args.nb / 39 / args.partition_num)
+    nprobe = 80 if ncentroids > 80 else ncentroids // 2
 
     args.nq = dataset.get_queries().shape[0]
     params = {
@@ -633,6 +634,7 @@ def get_dataset_by_name(logger: logging, args: argparse.Namespace):
         "nsubvector": int(args.dimension / 4),
         "nlinks": 32,
         "efConstruction": 80,
+        "nprobe": nprobe
     }
     # TODO data type
 
