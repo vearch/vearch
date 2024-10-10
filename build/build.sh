@@ -67,8 +67,10 @@ function build_thirdparty() {
       wget -q ${ROCKSDB_URL} -O rocksdb.tar.gz
       tar -xzf rocksdb.tar.gz
       pushd rocksdb-9.2.1
-      CFLAGS="-O3 -fPIC" make shared_lib $COMPILE_THREAD_NUM
-      make shared_lib install
+      sed -i '/CFLAGS += -g/d' Makefile
+      sed -i '/CXXFLAGS += -g/d' Makefile
+      CFLAGS="-O3 -fPIC" CXXFLAGS="-O3 -fPIC" make static_lib $COMPILE_THREAD_NUM
+      make install
       popd
     fi
   fi

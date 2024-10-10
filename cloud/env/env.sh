@@ -31,12 +31,11 @@ if [ ! -f "rocksdb-v9.2.1.tar.gz" ]; then
 fi
 tar xf rocksdb.tar.gz
 cd /env/app/rocksdb-9.2.1
-make shared_lib -j4
+sed -i '/CFLAGS += -g/d' Makefile
+sed -i '/CXXFLAGS += -g/d' Makefile
+CFLAGS="-O3 -fPIC" CXXFLAGS="-O3 -fPIC" make static_lib -j4
 mkdir -p /env/app/rocksdb_install/lib
-cp librocksdb.so.9.2.1 /env/app/rocksdb_install/lib
-cd /env/app/rocksdb_install/lib
-ln -s librocksdb.so.9.2.1 librocksdb.so.9.2
-ln -s librocksdb.so.9.2 librocksdb.so
+cp librocksdb.a /env/app/rocksdb_install/lib
 cp -r /env/app/rocksdb-9.2.1/include /env/app/rocksdb_install/
 rm -rf /env/app/rocksdb-9.2.1 /env/app/rocksdb.tar.gz
 
