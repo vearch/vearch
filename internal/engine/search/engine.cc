@@ -1068,7 +1068,7 @@ int Engine::Load() {
     std::vector<std::string> items = utils::split(lines[1], " ");
     assert(items.size() == 2);
     int index_dump_num = (int)std::strtol(items[1].c_str(), nullptr, 10) + 1;
-    LOG(INFO) << space_name_ << "read index_dump_num=" << index_dump_num
+    LOG(INFO) << space_name_ << " read index_dump_num=" << index_dump_num
               << " from " << dump_done_file;
     delete[] buf;
     buf = nullptr;
@@ -1097,11 +1097,15 @@ int Engine::Load() {
   }
 
   int field_num = table_->FieldsNum();
-  for (int i = 0; i < max_docid_; ++i) {
-    for (int j = 0; j < field_num; ++j) {
-      field_range_index_->Add(i, j);
+  // add fields into field_range_index_ in multi-thread
+  std::thread t([=]() {
+    for (int i = 0; i < max_docid_; ++i) {
+      for (int j = 0; j < field_num; ++j) {
+        field_range_index_->Add(i, j);
+      }
     }
-  }
+  });
+  t.detach();
 
   delete_num_ = 0;
   for (int i = 0; i < max_docid_; ++i) {
@@ -1125,8 +1129,9 @@ int Engine::Load() {
     }
   }
   last_dump_dir_ = last_dir;
-  LOG(INFO) << "load engine success! " << space_name_ << " max docid=" << max_docid_
-            << ", delete_num=" << delete_num_ << ", load directory=" << last_dir
+  LOG(INFO) << "load engine success! " << space_name_
+            << " max docid=" << max_docid_ << ", delete_num=" << delete_num_
+            << ", load directory=" << last_dir
             << ", clean directorys(not done)="
             << utils::join(folders_not_done, ',');
   return 0;
