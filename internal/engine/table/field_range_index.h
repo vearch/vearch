@@ -102,7 +102,7 @@ class MultiFieldsRangeIndex {
   std::string path_;
   Table *table_;
   std::vector<FieldRangeIndex *> fields_;
-  pthread_rwlock_t rw_lock_;
+  pthread_rwlock_t *field_rw_locks_;
 };
 
 }  // namespace vearch

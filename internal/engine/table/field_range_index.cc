@@ -796,9 +796,11 @@ long FieldRangeIndex::ScanMemory(long &dense, long &sparse) {
 MultiFieldsRangeIndex::MultiFieldsRangeIndex(std::string &path, Table *table)
     : path_(path), table_(table), fields_(table->FieldsNum()) {
   std::fill(fields_.begin(), fields_.end(), nullptr);
-  int ret = pthread_rwlock_init(&rw_lock_, nullptr);
-  if (ret != 0) {
-    LOG(ERROR) << "init lock failed!";
+  field_rw_locks_ = new pthread_rwlock_t[fields_.size()];
+  for (size_t i = 0; i < fields_.size(); i++) {
+    if (pthread_rwlock_init(&field_rw_locks_[i], nullptr) != 0) {
+      LOG(ERROR) << "init lock failed!";
+    }
   }
 }
 
@@ -808,8 +810,9 @@ MultiFieldsRangeIndex::~MultiFieldsRangeIndex() {
       delete fields_[i];
       fields_[i] = nullptr;
     }
+    pthread_rwlock_destroy(&field_rw_locks_[i]);
   }
-  pthread_rwlock_destroy(&rw_lock_);
+  delete[] field_rw_locks_;
 }
 
 int MultiFieldsRangeIndex::Add(int docid, int field) {
@@ -817,10 +820,8 @@ int MultiFieldsRangeIndex::Add(int docid, int field) {
   if (index == nullptr) {
     return 0;
   }
-  FieldOperate field_op(FieldOperate::ADD, docid, field);
 
   int ret = AddDoc(docid, field);
-
   return ret;
 }
 
@@ -852,9 +853,9 @@ int MultiFieldsRangeIndex::AddDoc(int docid, int field) {
     LOG(ERROR) << "get doc " << docid << " failed";
     return ret;
   }
-  pthread_rwlock_wrlock(&rw_lock_);
+  pthread_rwlock_wrlock(&field_rw_locks_[field]);
   index->Add(key, docid);
-  pthread_rwlock_unlock(&rw_lock_);
+  pthread_rwlock_unlock(&field_rw_locks_[field]);
 
   return 0;
 }
@@ -865,9 +866,9 @@ int MultiFieldsRangeIndex::DeleteDoc(int docid, int field, std::string &key) {
     return 0;
   }
 
-  pthread_rwlock_wrlock(&rw_lock_);
+  pthread_rwlock_wrlock(&field_rw_locks_[field]);
   index->Delete(key, docid);
-  pthread_rwlock_unlock(&rw_lock_);
+  pthread_rwlock_unlock(&field_rw_locks_[field]);
 
   return 0;
 }
@@ -936,7 +937,7 @@ int MultiFieldsRangeIndex::Search(const std::vector<FilterInfo> &origin_filters,
         AdjustBoundary<long>(filter.upper_value, -1);
       }
     }
-    pthread_rwlock_rdlock(&rw_lock_);
+    pthread_rwlock_rdlock(&field_rw_locks_[filters[0].field]);
     int retval = index->Search(filter.lower_value, filter.upper_value, &result);
     if (retval > 0) {
       if (filter.is_union == FilterOperator::Not) {
@@ -946,7 +947,7 @@ int MultiFieldsRangeIndex::Search(const std::vector<FilterInfo> &origin_filters,
     } else if (filter.is_union == FilterOperator::Not) {
       retval = -1;
     }
-    pthread_rwlock_unlock(&rw_lock_);
+    pthread_rwlock_unlock(&field_rw_locks_[filters[0].field]);
     // result->Output();
     return retval;
   }
@@ -957,8 +958,8 @@ int MultiFieldsRangeIndex::Search(const std::vector<FilterInfo> &origin_filters,
   // record the shortest docid list
   int shortest_idx = -1, shortest = std::numeric_limits<int>::max();
 
-  pthread_rwlock_rdlock(&rw_lock_);
   for (int i = 0; i < fsize; ++i) {
+    pthread_rwlock_rdlock(&field_rw_locks_[filters[i].field]);
     auto &filter = filters[i];
 
     FieldRangeIndex *index = fields_[filter.field];
@@ -989,7 +990,7 @@ int MultiFieldsRangeIndex::Search(const std::vector<FilterInfo> &origin_filters,
       if (filter.is_union == FilterOperator::Not) {
         continue;
       }
-      pthread_rwlock_unlock(&rw_lock_);
+      pthread_rwlock_unlock(&field_rw_locks_[filters[i].field]);
       return 0;  // no intersection
     } else {
       if (filter.is_union == FilterOperator::Not) {
@@ -1004,14 +1005,13 @@ int MultiFieldsRangeIndex::Search(const std::vector<FilterInfo> &origin_filters,
         shortest_idx = results.size() - 1;
       }
     }
+    pthread_rwlock_unlock(&field_rw_locks_[filters[i].field]);
   }
 
   if (results.size() == 0) {
     if (out->Size() > 0) {
-      pthread_rwlock_unlock(&rw_lock_);
       return 1;
     }
-    pthread_rwlock_unlock(&rw_lock_);
     return -1;  // universal set
   }
 
@@ -1021,7 +1021,6 @@ int MultiFieldsRangeIndex::Search(const std::vector<FilterInfo> &origin_filters,
     out->Add(std::move(tmp));
   }
 
-  pthread_rwlock_unlock(&rw_lock_);
   return count;
 }
 

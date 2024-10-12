@@ -1099,8 +1099,9 @@ int Engine::Load() {
   int field_num = table_->FieldsNum();
   // add fields into field_range_index_ in multi-thread
   std::thread t([=]() {
-    for (int i = 0; i < max_docid_; ++i) {
-      for (int j = 0; j < field_num; ++j) {
+#pragma omp parallel for
+    for (int j = 0; j < field_num; ++j) {
+      for (int i = 0; i < max_docid_; ++i) {
         field_range_index_->Add(i, j);
       }
     }
