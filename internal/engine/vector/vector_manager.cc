@@ -817,22 +817,21 @@ int VectorManager::Load(const std::vector<std::string> &index_dirs,
 
   if (index_dirs.size() > 0) {
     for (const auto &[name, index] : vector_indexes_) {
-      int load_num;
+      int load_num = 0;
       Status status = index->Load(index_dirs[0], load_num);
       if (!status.ok()) {
-        LOG(ERROR) << "vector [" << name << "] load gamma index "
-                   << index_dirs[0] << " failed, load_num: " << load_num;
+        LOG(ERROR) << "vector [" << name << "] load index "
+                   << index_dirs[0] << " failed, num: " << load_num;
         return -1;
-      } else {
-        if (load_num > min_vec_num) {
-          LOG(ERROR) << "load vec_index_num=" << load_num
-                     << " > raw_vec_num=" << min_vec_num;
-          return -1;
-        }
-        index->indexed_count_ = load_num;
-        LOG(INFO) << "vector [" << name
-                  << "] load gamma index success and load_num=" << load_num;
       }
+      if (load_num > 0 && load_num > min_vec_num) {
+        LOG(ERROR) << "load vec_index_num=" << load_num
+                   << " > raw_vec_num=" << min_vec_num;
+        return -1;
+      }
+      index->indexed_count_ = load_num;
+      LOG(INFO) << "vector [" << name
+                << "] load index success, num=" << load_num;
     }
   }
   doc_num = min_vec_num;

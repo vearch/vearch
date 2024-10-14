@@ -44,6 +44,8 @@ class StorageManager {
 
   int Size() { return size_; }
 
+  int SetSize(size_t size);
+
   void GetCacheSize(size_t &cache_size);
 
   void AlterCacheSize(size_t cache_size);

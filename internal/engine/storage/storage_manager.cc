@@ -35,6 +35,19 @@ void StorageManager::Close() {
   LOG(INFO) << "db closed";
 }
 
+int StorageManager::SetSize(size_t size) {
+  size_ = size;
+  std::string key_str = "_total";
+  rocksdb::Status s = db_->Put(rocksdb::WriteOptions(), rocksdb::Slice(key_str),
+                               rocksdb::Slice(std::to_string(size_)));
+  if (!s.ok()) {
+    LOG(ERROR) << "rocksdb put error:" << s.ToString() << ", key=" << key_str;
+    return -1;
+  }
+
+  return 0;
+}
+
 void StorageManager::GetCacheSize(size_t &cache_size) {
   cache_size = table_options_.block_cache->GetCapacity();
   cache_size = cache_size / 1024 / 1024;
@@ -135,14 +148,9 @@ Status StorageManager::Add(int cf_id, int id, const uint8_t *value, int len) {
     return Status::IOError(msg.str());
   }
   size_++;
-  key_str = "_total";
-  s = db_->Put(rocksdb::WriteOptions(), rocksdb::Slice(key_str),
-               rocksdb::Slice(std::to_string(size_)));
-  if (!s.ok()) {
-    std::stringstream msg;
-    msg << "rocksdb put error:" << s.ToString() << ", key=" << key_str;
-    LOG(ERROR) << msg.str();
-    return Status::IOError(msg.str());
+
+  if (SetSize(size_) != 0) {
+    return Status::IOError("set size error");
   }
   return Status::OK();
 }

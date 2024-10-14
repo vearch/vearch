@@ -375,11 +375,12 @@ Status Engine::Query(QueryRequest &request, Response &response_results) {
         char *endptr;
         docid = strtol(document_ids[i].c_str(), &endptr, 10);
         if (*endptr != '\0' || docid < 0 || docid >= max_docid_) {
-          LOG(ERROR) << "document_id " << document_ids[i] << " is error, max_docid_ = " << max_docid_;
+          LOG(ERROR) << "document_id " << document_ids[i]
+                     << " is error, max_docid_ = " << max_docid_;
           continue;
         }
       } else {
-        ret = table_->GetDocIDByKey(document_ids[i], docid);
+        ret = table_->GetDocidByKey(document_ids[i], docid);
         if (ret != 0 || docid < 0) {
           continue;
         }
@@ -598,8 +599,8 @@ int Engine::AddOrUpdate(Doc &doc) {
 
   // add fields into table
   int docid = -1;
-  table_->GetDocIDByKey(key, docid);
-  if (docid == -1) {
+  table_->GetDocidByKey(key, docid);
+  if (docid == -1 || docid >= max_docid_) {
     int ret = table_->Add(key, fields_table, max_docid_);
     if (ret != 0) return -2;
     for (auto &[name, field] : fields_table) {
@@ -689,7 +690,7 @@ int Engine::Update(int doc_id,
 
 int Engine::Delete(std::string &key) {
   int docid = -1, ret = 0;
-  ret = table_->GetDocIDByKey(key, docid);
+  ret = table_->GetDocidByKey(key, docid);
   if (ret != 0 || docid < 0) return -1;
 
   if (docids_bitmap_->Test(docid)) {
@@ -716,7 +717,7 @@ int Engine::Delete(std::string &key) {
 
 int Engine::GetDoc(const std::string &key, Doc &doc) {
   int docid = -1, ret = 0;
-  ret = table_->GetDocIDByKey(key, docid);
+  ret = table_->GetDocidByKey(key, docid);
   if (ret != 0 || docid < 0) {
     LOG(DEBUG) << space_name_ << " GetDocIDbyKey [" << key << "] not found!";
     return -1;
@@ -729,7 +730,8 @@ int Engine::GetDoc(int docid, Doc &doc, bool next) {
   int ret = 0;
 
   if ((next ? docid < -1 : docid < 0) || docid >= max_docid_) {
-    LOG(ERROR) << space_name_ << " docid [" << docid << "] error, max_docid_ = " << max_docid_;
+    LOG(ERROR) << space_name_ << " docid [" << docid
+               << "] error, max_docid_ = " << max_docid_;
     return -1;
   }
 
@@ -740,7 +742,8 @@ int Engine::GetDoc(int docid, Doc &doc, bool next) {
       }
     }
     if (docid >= max_docid_) {
-      LOG(ERROR) << space_name_ << " docid [" << docid << "] is greater then max_docid " << max_docid_;
+      LOG(ERROR) << space_name_ << " docid [" << docid
+                 << "] is greater then max_docid " << max_docid_;
       return -1;
     }
   } else if (docids_bitmap_->Test(docid)) {
@@ -1037,7 +1040,7 @@ int Engine::Load() {
     std::string folder_path = dump_path_ + "/" + folder_name;
     std::string done_file = folder_path + "/dump.done";
     if (!utils::file_exist(done_file)) {
-      LOG(INFO) << "done file is not existed, skip it! path=" << done_file;
+      LOG(INFO) << done_file << " is not existed, skip it!";
       folders_not_done.push_back(folder_path);
       continue;
     }
@@ -1070,6 +1073,7 @@ int Engine::Load() {
     int index_dump_num = (int)std::strtol(items[1].c_str(), nullptr, 10) + 1;
     LOG(INFO) << space_name_ << " read index_dump_num=" << index_dump_num
               << " from " << dump_done_file;
+    storage_mgr_->SetSize(index_dump_num);
     delete[] buf;
     buf = nullptr;
   }

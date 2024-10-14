@@ -133,7 +133,7 @@ Status Table::AddField(const string &name, DataType ftype, bool is_index) {
   return Status::OK();
 }
 
-int Table::GetDocIDByKey(const std::string &key, int &docid) {
+int Table::GetDocidByKey(const std::string &key, int &docid) {
   std::string v;
   auto result = storage_mgr_->Get(key_cf_id_, key);
   if (!result.first.ok()) {
@@ -154,7 +154,7 @@ int Table::GetKeyByDocid(int docid, std::string &key) {
   GetFieldRawValue(docid, field_id, key);
 
   int check_docid;
-  GetDocIDByKey(key, check_docid);
+  GetDocidByKey(key, check_docid);
   if (check_docid != docid) {  // docid can be deleted.
     key = "";
     return -1;
@@ -283,7 +283,7 @@ long Table::GetMemoryBytes() {
 int Table::GetDocInfo(const std::string &key, Doc &doc,
                       const std::vector<std::string> &fields) {
   int doc_id = 0;
-  int ret = GetDocIDByKey(key, doc_id);
+  int ret = GetDocidByKey(key, doc_id);
   if (ret < 0) {
     return ret;
   }
