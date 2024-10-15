@@ -100,7 +100,7 @@ $ docker-compose --profile cluster up -d
 
 ![arc](assets/architecture.excalidraw.png)
 
-**Master**: Responsible for schema mananagement, cluster-level metadata, and resource coordination.
+**Master**: Responsible for schema management, cluster-level metadata, and resource coordination.
 
 **Router**: Provides RESTful API: `upsert`, `delete`, `search` and `query`; request routing, and result merging.
 
@@ -127,7 +127,7 @@ You can report bugs or ask questions in the [issues page](https://github.com/vea
 
 For public discussion of Vearch or for questions, you can also send email to vearch-maintainers@groups.io.
 
-Our slack : https://vearchwrokspace.slack.com
+Our slack : https://vearchworkspace.slack.com
 
 ## Known Users
 
