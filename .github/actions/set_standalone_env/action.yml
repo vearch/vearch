@@ -25,10 +25,7 @@ runs:
         docker network create vearch_network
         docker run -d --name minio -p 10000:9000 --network vearch_network minio/minio server test/oss_data
         pwd; ls -l
-        cd cloud
-        docker run ${{ matrix.docker-arch }} --privileged -i -v $(dirname "$PWD"):/vearch vearch/vearch-dev-env:latest /vearch/cloud/compile/compile.sh
-        cp -r ../build/bin compile/; cp -r ../build/lib compile/
-        docker build ${{ matrix.docker-arch }} -t vearch/vearch:latest .
+        docker build -f cloud/Dockerfile ${{ matrix.docker-arch }} -t vearch/vearch:latest .
 
     - name: Run Docker
       shell: bash

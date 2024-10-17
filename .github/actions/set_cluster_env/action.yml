@@ -21,18 +21,14 @@ runs:
   - name: Compile and Build
     shell: bash
     run: |
+      docker build -f cloud/Dockerfile ${{ matrix.docker-arch }} -t vearch/vearch:latest .
       cd cloud
-      docker run --name vearch-dev ${{ matrix.docker-arch }} --privileged -i -v $(dirname "$PWD"):/vearch vearch/vearch-dev-env:latest /vearch/cloud/compile/compile.sh
-      cp -r ../build/bin compile/; cp -r ../build/lib compile/
-      docker build ${{ matrix.docker-arch }} -t vearch/vearch:latest .
       cp ../config/config_cluster.toml .
       sed -i 's/resource_limit_rate = 0.85/resource_limit_rate = 0.98/' config_cluster.toml
       if [ "${{ matrix.docker-arch }}" == "--platform linux/arm64" ]; then
         echo "    rpc_timeout = 500" >> config_cluster.toml
       fi
       cat config_cluster.toml
-      docker rm vearch-dev
-      docker rmi vearch/vearch-dev-env:latest
 
   - name: Run docker-compose
     uses: hoverkraft-tech/compose-action@v2.0.1

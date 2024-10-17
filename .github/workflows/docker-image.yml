@@ -41,17 +41,10 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: compile
-        run: |
-          cd cloud
-          docker run --platform ${{ matrix.platform }} --privileged -i -v $(dirname "$PWD"):/vearch vearch/vearch-dev-env:latest /vearch/cloud/compile/compile.sh
-          cp -r ../build/bin compile/; cp -r ../build/lib compile/
-
       - name: Build and push by digest
         id: build
         uses: docker/build-push-action@v5
         with:
-          context: cloud
           file: cloud/Dockerfile
           platforms: ${{ matrix.platform }}
           labels: ${{ steps.meta.outputs.labels }}
