@@ -33,7 +33,6 @@ func ThrowError(err error) {
 func CatchError(err *error) {
 	if info := recover(); info != nil {
 		if log.IsDebugEnabled() {
-
 			debug.PrintStack()
 		}
 		tempErr := fmt.Errorf("CatchError is %v", info)

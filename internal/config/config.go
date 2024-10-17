@@ -292,11 +292,7 @@ func (config *Config) GetEmbed() (*embed.Config, error) {
 		if buf.Len() > 0 {
 			buf.WriteString(",")
 		}
-		buf.WriteString(m.Name)
-		buf.WriteString("=http://")
-		buf.WriteString(m.Address)
-		buf.WriteString(":")
-		buf.WriteString(cast.ToString(masterCfg.EtcdPeerPort))
+		buf.WriteString(fmt.Sprintf("%s=http://%s:%d", m.Name, m.Address, masterCfg.EtcdPeerPort))
 	}
 	cfg.InitialCluster = buf.String()
 

@@ -48,18 +48,6 @@ func NewServer(ctx context.Context) (*Server, error) {
 
 	addr := config.LocalCastAddr
 
-	// httpServerConfig := &netutil.ServerConfig{
-	// 	Name:         "HttpServer",
-	// 	Addr:         util.BuildAddr(addr, config.Conf().Router.Port),
-	// 	ConnLimit:    config.Conf().Router.ConnLimit,
-	// 	CloseTimeout: time.Duration(config.Conf().Router.CloseTimeout),
-	// }
-	// netutil.SetMode(netutil.RouterModeGorilla) //no need
-
-	// httpServer := netutil.NewServer(httpServerConfig)
-	// if !log.IsDebugEnabled() {
-	// 	gin.SetMode(gin.ReleaseMode)
-	// }
 	gin.SetMode(gin.ReleaseMode)
 	httpServer := gin.New()
 	if len(config.Conf().Router.AllowOrigins) > 0 {

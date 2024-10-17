@@ -59,7 +59,7 @@ func (s *Server) StartHeartbeatJob() {
 		ctx := context.Background()
 		keepaliveC, err := s.client.Master().KeepAlive(ctx, server)
 		if err != nil {
-			log.Error("KeepAlive err: ", err.Error())
+			log.Error("KeepAlive err: %v", err.Error())
 			return
 		}
 		lastPartitionIds = server.PartitionIds
@@ -76,10 +76,10 @@ func (s *Server) StartHeartbeatJob() {
 
 				server.PartitionIds = psutil.GetAllPartitions(config.Conf().GetDatas())
 				if number.EqualUint32(lastPartitionIds, server.PartitionIds) {
-					// log.Debug("PartitionIds not change, do nothing!")
+					// PartitionIds not change, do nothing
 					continue
 				}
-				log.Info("server.PartitionIds has changed, need to put server to topo again!, leaseId: [%d]", leaseId)
+				log.Info("server.PartitionIds has changed, need to put server to topo again! leaseId: [%d]", leaseId)
 
 				if err := s.client.Master().PutServerWithLeaseID(ctx, server, leaseId); err != nil {
 					log.Error("PutServerWithLeaseID[leaseId: %d] err:", leaseId, err.Error())

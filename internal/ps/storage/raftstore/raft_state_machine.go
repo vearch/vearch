@@ -46,9 +46,9 @@ func (s *Store) ReplicasStatusChange() bool {
 				if !statusChange {
 					statusChange = true
 				}
-				log.Debug("current nodeID is [%d],partitionID is [%d],commit is [%d],leader nodeID is [%d],"+
-					"leader commit is [%d]", nodeID, s.Partition.Id, rs.Commit, s.Partition.LeaderID, leaderCommit)
-				log.Debug("status change ,because nodeID [%d] statusChange .", nodeID)
+				log.Debug("current nodeID is [%d], partitionID is [%d], commit is [%d], leader nodeID is [%d], leader commit is [%d]",
+					nodeID, s.Partition.Id, rs.Commit, s.Partition.LeaderID, leaderCommit)
+				log.Debug("status change, because nodeID [%d] statusChange.", nodeID)
 				s.RsStatusMap.Store(nodeID, currentStatus)
 			}
 		} else {
@@ -56,9 +56,9 @@ func (s *Store) ReplicasStatusChange() bool {
 			if !statusChange {
 				statusChange = true
 			}
-			log.Debug("current nodeID is [%d],partitionID is [%d],commit is [%d],leader nodeID is [%d],"+
-				"leader commit is [%d]", nodeID, s.Partition.Id, rs.Commit, s.Partition.LeaderID, leaderCommit)
-			log.Debug("status change ,because nodeID [%d] not found .", nodeID)
+			log.Debug("current nodeID is [%d], partitionID is [%d], commit is [%d],leader nodeID is [%d], leader commit is [%d]",
+				nodeID, s.Partition.Id, rs.Commit, s.Partition.LeaderID, leaderCommit)
+			log.Debug("status change, because nodeID [%d] not found.", nodeID)
 			s.RsStatusMap.Store(nodeID, currentStatus)
 		}
 	}

@@ -1565,7 +1565,7 @@ func (r *routerRequest) CommonSetByPartitions(args *vearchpb.IndexRequest) *rout
 	for _, partitionInfo := range r.space.Partitions {
 		partitionID := partitionInfo.Id
 		if _, ok := sendMap[partitionID]; ok {
-			log.Error("db Id:%d , space Id:%d, have multiple partitionID:%d", partitionInfo.DBId, partitionInfo.SpaceId, partitionID)
+			log.Error("db Id:%d, space Id:%d, have multiple partitionID:%d", partitionInfo.DBId, partitionInfo.SpaceId, partitionID)
 		} else {
 			sendMap[partitionID] = &vearchpb.PartitionData{PartitionID: partitionID, MessageID: r.GetMsgID(), IndexRequest: args}
 		}

@@ -105,7 +105,7 @@ func (c *CreatePartitionHandler) Execute(ctx context.Context, req *vearchpb.Part
 		return vearchpb.NewError(vearchpb.ErrorEnum_RPC_PARAM_ERROR, err)
 	}
 	c.server.partitions.Range(func(key, value interface{}) bool {
-		fmt.Print(key, value)
+		log.Debug(key, value)
 		return true
 	})
 
@@ -337,7 +337,7 @@ func (ch *ChangeMemberHandler) Execute(ctx context.Context, req *vearchpb.Partit
 	return nil
 }
 
-// it when has happen , redirect some other to response and send err to status
+// redirect some other to response and send err to status when happen
 func psErrorChange(server *Server) handler.ErrorChangeFun {
 	return func(ctx context.Context, err error, req *vearchpb.PartitionData, reply *vearchpb.PartitionData) error {
 		if vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err).GetError().Code == vearchpb.ErrorEnum_PARTITION_NOT_LEADER || err == raft.ErrNotLeader {

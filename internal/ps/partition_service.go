@@ -182,8 +182,12 @@ func (s *Server) CreatePartition(ctx context.Context, space *entity.Space, pid e
 	} else {
 		for _, nodeId := range store.Partition.Replicas {
 			if server, err := s.client.Master().QueryServer(ctx, nodeId); err != nil {
-				log.Error("get server info err %s", err.Error())
-				return err
+				fs := s.client.Master().QueryFailServerByNodeID(ctx, nodeId)
+				if fs == nil {
+					log.Error("get server info err %s", err.Error())
+					return err
+				}
+				log.Warn("get nodeid: %d, failserver %+v", nodeId, fs)
 			} else {
 				s.raftResolver.AddNode(nodeId, server.Replica())
 			}

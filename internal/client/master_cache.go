@@ -398,7 +398,7 @@ func (cliCache *clientCache) startWSJob(ctx context.Context) error {
 
 // delete record
 func (cliCache *clientCache) serverDelete(ctx context.Context, server *entity.Server) error {
-	//mutex ensure only one master update the meta,the other just undate local cache
+	// mutex ensure only one master update the meta, others just update local cache
 	mutex := cliCache.mc.Client().Master().NewLock(ctx, entity.ClusterWatchServerKey, time.Second*188)
 	if getLock, err := mutex.TryLock(); getLock && err == nil {
 		defer func() {
@@ -432,7 +432,7 @@ func (cliCache *clientCache) serverDelete(ctx context.Context, server *entity.Se
 
 // record fail server
 func (cliCache *clientCache) serverPut(ctx context.Context, server *entity.Server) error {
-	//mutex ensure only one master update the meta,the other just undate local cache
+	// mutex ensure only one master update the meta, others just update local cache
 	mutex := cliCache.mc.Client().Master().NewLock(ctx, entity.ClusterWatchServerKey, time.Second*188)
 	if getLock, err := mutex.TryLock(); getLock && err == nil {
 		defer func() {
@@ -810,7 +810,7 @@ func (w *watcherJob) serverPut(value []byte) (e error) {
 	if err != nil {
 		panic(err)
 	}
-	// mutex ensure only one master update the meta, the other just undate local cache
+	// mutex ensure only one master update the meta, others just update local cache
 	mutex := w.masterClient.Client().Master().NewLock(w.ctx, entity.ClusterWatchServerKey, time.Second*188)
 	if getLock, err := mutex.TryLock(); getLock && err == nil {
 		defer func() {
@@ -827,20 +827,19 @@ func (w *watcherJob) serverPut(value []byte) (e error) {
 			if config.Conf().Global.AutoRecoverPs {
 				err = w.masterClient.RecoverByNewServer(w.ctx, server)
 				if err != nil {
-					log.Debug("auto recover is err %v,server is %+v", err, server)
+					log.Debug("auto recover err %v, server is %+v", err, server)
 				} else {
-					log.Info("recover is success, server is %+v", server)
+					log.Info("recover success, server is %+v", server)
 				}
 			}
 		} else {
 			// if failserver recover, then remove record
 			w.masterClient.TryRemoveFailServer(w.ctx, server)
 		}
-	} else {
-		log.Debug("get LOCK error, just update cache %+v ", server)
 	}
 	// update the cache
 	w.cache.Set(cacheServerKey(server.ID), server, cache.NoExpiration)
+	log.Debug("update cache %s: %+v ", cacheServerKey(server.ID), server)
 	return err
 }
 
@@ -848,18 +847,20 @@ func (w *watcherJob) serverPut(value []byte) (e error) {
 func (w *watcherJob) serverDelete(cacheKey string) (err error) {
 	// process panic
 	defer errutil.CatchError(&err)
-	nodeID := cast.ToUint64(strings.Split(cacheKey, "/")[2])
+	parts := strings.Split(cacheKey, "/")
+    nodeID := cast.ToUint64(parts[len(parts)-1])
 	// mutex ensure only one master update the meta, the other just update local cache
 	mutex := w.masterClient.Client().Master().NewLock(w.ctx, entity.ClusterWatchServerKey, time.Second*188)
 	if getLock, err := mutex.TryLock(); getLock && err == nil {
 		defer func() {
 			if err := mutex.Unlock(); err != nil {
-				log.Error("failed to unlock space,the Error is:%v ", err)
+				log.Error("failed to unlock space, the Error is:%v ", err)
 			}
 		}()
-		log.Debug("get LOCK success, record fail server %d ", nodeID)
+		log.Debug("get LOCK success, record fail server %d", nodeID)
 		get, found := w.cache.Get(cacheServerKey(nodeID))
 		if !found || get == nil {
+			log.Debug("node meta not found: %v, %v", found, get)
 			return nil
 		}
 		server := get.(*entity.Server)
@@ -876,13 +877,11 @@ func (w *watcherJob) serverDelete(cacheKey string) (err error) {
 		// put fail node info into etcd
 		err = w.masterClient.Put(w.ctx, key, value)
 		errutil.ThrowError(err)
-		log.Info("put failServer %s is success, value is %s", key, string(value))
-	} else {
-		log.Debug("get LOCK failed, just update cache %d", nodeID)
+		log.Info("put failServer %s: %s", key, string(value))
 	}
-	log.Info("remove node meta is success, nodeId is %d", nodeID)
 	// update the cache
 	w.cache.Delete(cacheServerKey(nodeID))
+	log.Info("remove node meta, nodeId is %d", nodeID)
 	return err
 }
 

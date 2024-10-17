@@ -118,7 +118,6 @@ func (store *EtcdStore) Create(ctx context.Context, key string, value []byte) er
 // if key already in , it will overwrite
 // if key is not in , it will put
 func (store *EtcdStore) CreateWithTTL(ctx context.Context, key string, value []byte, ttl time.Duration) error {
-
 	if ttl != 0 && int64(ttl.Seconds()) == 0 {
 		return fmt.Errorf("ttl time must gather 1 sencod")
 	}
@@ -202,7 +201,7 @@ func (store *EtcdStore) PrefixScan(ctx context.Context, prefix string) ([][]byte
 func (store *EtcdStore) Delete(ctx context.Context, key string) error {
 	resp, err := store.cli.Delete(ctx, key)
 	if err != nil {
-		return fmt.Errorf("Failed to delete %s from etcd store!, the error is :%s", key, err.Error())
+		return fmt.Errorf("failed to delete %s from etcd store, the error is :%s", key, err.Error())
 	}
 	if resp.Deleted != 1 {
 		return fmt.Errorf("key not exist error, key:%v", key)

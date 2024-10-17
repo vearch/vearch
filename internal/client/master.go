@@ -673,11 +673,11 @@ func (m *masterClient) RemoveNodeMeta(ctx context.Context, nodeID entity.NodeID)
 func (m *masterClient) TryRemoveFailServer(ctx context.Context, server *entity.Server) {
 	failServers, err := m.QueryAllFailServer(ctx)
 	if err != nil {
-		log.Error("QueryAllFailServer err %v ,failserver is %v", server.ID, err)
+		log.Error("QueryAllFailServer err %v, failserver is %v", err, server.ID)
 	}
 	for _, fs := range failServers {
 		if fs.ID == server.ID && fs.Node.Ip == server.Ip {
-			//delete failserver record
+			// delete failserver record
 			err := m.DeleteFailServerByNodeID(ctx, fs.ID)
 			if err != nil {
 				log.Error("Delete failserver is %+v, err %v.", fs, err)
@@ -691,23 +691,24 @@ func (m *masterClient) TryRemoveFailServer(ctx context.Context, server *entity.S
 // @description recover a fail server by a new server
 // @param server *entity.Server "new server info"
 func (client *masterClient) RecoverByNewServer(ctx context.Context, server *entity.Server) (e error) {
-	//process panic
 	defer errutil.CatchError(&e)
 	failServers, err := client.QueryAllFailServer(ctx)
 	errutil.ThrowError(err)
-	if len(failServers) > 0 {
-		fs := failServers[0]
-		if fs != nil {
-			rfs := &entity.RecoverFailServer{FailNodeAddr: fs.Node.Ip, NewNodeAddr: server.Ip}
-			log.Debug("begin recover %s", rfs)
-			// if auto recover, need remove node meta data
-			err := client.RemoveNodeMeta(ctx, fs.Node.ID)
-			errutil.ThrowError(err)
-			// recover fail server
-			err = client.RecoverFailServer(ctx, rfs)
-			errutil.ThrowError(err)
-			log.Info("Recover success, nodeID is %s .", fs.ID)
-		}
+	if len(failServers) == 0 {
+		return nil
+	}
+
+	fs := failServers[0]
+	if fs != nil {
+		rfs := &entity.RecoverFailServer{FailNodeAddr: fs.Node.Ip, NewNodeAddr: server.Ip}
+		log.Debug("begin recover %s", rfs)
+		// if auto recover, need remove node meta data
+		err := client.RemoveNodeMeta(ctx, fs.Node.ID)
+		errutil.ThrowError(err)
+		// recover fail server
+		err = client.RecoverFailServer(ctx, rfs)
+		errutil.ThrowError(err)
+		log.Info("Recover success, nodeID is %s .", fs.ID)
 	}
 	return nil
 }

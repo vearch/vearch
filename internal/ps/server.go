@@ -199,10 +199,10 @@ func (s *Server) register() (server *entity.Server) {
 	var err error
 
 	for i := 0; i < math.MaxInt32; i++ {
-		log.Info("to register master, nodeId:[%d], times : %d", s.nodeID, i)
+		log.Info("to register master, nodeId:[%d], times: %d", s.nodeID, i)
 		server, err = s.client.Master().Register(s.ctx, config.Conf().Global.Name, s.nodeID, 30*time.Second)
 		if err != nil {
-			log.Error("to register master error, nodeId:[%d], err : %s", s.nodeID, err.Error()) // some err need to stop ?
+			log.Error("to register master error, nodeId:[%d], err: %s", s.nodeID, err.Error()) // some err need to stop ?
 		} else if server == nil {
 			log.Error("not err return server is nil, nodeId:[%d]", s.nodeID)
 		} else {
@@ -226,7 +226,7 @@ func (s *Server) getRouterIPS(ctx context.Context) (routerIPS []string) {
 			panic(fmt.Errorf("query router ip exceed max retry time error"))
 		}
 		if routerIPS, err = s.client.Master().QueryRouter(ctx, config.Conf().Global.Name); err != nil {
-			log.Info("query router ip error error:[%v]", err)
+			log.Error("query router ip error error:[%v]", err)
 			panic(fmt.Errorf("query router ip error"))
 		}
 		if len(routerIPS) > 0 {
