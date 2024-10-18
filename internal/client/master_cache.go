@@ -848,7 +848,13 @@ func (w *watcherJob) serverDelete(cacheKey string) (err error) {
 	// process panic
 	defer errutil.CatchError(&err)
 	parts := strings.Split(cacheKey, "/")
-    nodeID := cast.ToUint64(parts[len(parts)-1])
+	if len(parts) == 0 {
+		return fmt.Errorf("cacheKey is invalid: %s", cacheKey)
+	}
+	nodeID := cast.ToUint64(parts[len(parts)-1])
+	if nodeID == 0 {
+		return fmt.Errorf("nodeID is invalid: %d", nodeID)
+	}
 	// mutex ensure only one master update the meta, the other just update local cache
 	mutex := w.masterClient.Client().Master().NewLock(w.ctx, entity.ClusterWatchServerKey, time.Second*188)
 	if getLock, err := mutex.TryLock(); getLock && err == nil {

@@ -105,7 +105,7 @@ func (c *CreatePartitionHandler) Execute(ctx context.Context, req *vearchpb.Part
 		return vearchpb.NewError(vearchpb.ErrorEnum_RPC_PARAM_ERROR, err)
 	}
 	c.server.partitions.Range(func(key, value interface{}) bool {
-		log.Debug(key, value)
+		log.Debug("key %v, value %v", key, value)
 		return true
 	})
 

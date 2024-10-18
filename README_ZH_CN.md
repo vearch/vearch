@@ -126,7 +126,7 @@ $ docker-compose --profile cluster up -d
 
 如需对 Vearch 进行公开讨论或提出问题，您还可以发送电子邮件至 vearch-maintainers@groups.io。
 
-slack：https://vearchwrokspace.slack.com
+slack：https://vearchworkspace.slack.com
 
 ## 用户
 
