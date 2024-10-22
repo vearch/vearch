@@ -2,6 +2,9 @@ networks:
   vearch_network_cluster:
     driver: bridge
     name: vearch_network_cluster
+    ipam:
+      config:
+        - subnet: 172.16.238.0/24
 
 services:
   standalone:
@@ -24,7 +27,10 @@ services:
     image: vearch/vearch:latest
     privileged: true
     networks:
-      - vearch_network_cluster
+      vearch_network_cluster:
+        ipv4_address: 172.16.238.10
+    ports:
+      - "8817:8817"
     volumes:
       - ${DOCKER_VOLUME_DIRECTORY:-.}/config_cluster.toml:/vearch/config.toml
     command: master
@@ -47,7 +53,8 @@ services:
     image: vearch/vearch:latest
     privileged: true
     networks:
-      - vearch_network_cluster
+      vearch_network_cluster:
+        ipv4_address: 172.16.238.11
     volumes:
       - ${DOCKER_VOLUME_DIRECTORY:-.}/config_cluster.toml:/vearch/config.toml
     command: master
@@ -70,7 +77,8 @@ services:
     image: vearch/vearch:latest
     privileged: true
     networks:
-      - vearch_network_cluster
+      vearch_network_cluster:
+        ipv4_address: 172.16.238.12
     volumes:
       - ${DOCKER_VOLUME_DIRECTORY:-.}/config_cluster.toml:/vearch/config.toml
     command: master
@@ -93,7 +101,8 @@ services:
     image: vearch/vearch:latest
     privileged: true
     networks:
-      - vearch_network_cluster
+      vearch_network_cluster:
+        ipv4_address: 172.16.238.13
     ports:
       - "9001:9001"
     volumes:
@@ -125,7 +134,8 @@ services:
     image: vearch/vearch:latest
     privileged: true
     networks:
-      - vearch_network_cluster
+      vearch_network_cluster:
+        ipv4_address: 172.16.238.14
     volumes:
       - ${DOCKER_VOLUME_DIRECTORY:-.}/config_cluster.toml:/vearch/config.toml
     command: router
@@ -154,7 +164,8 @@ services:
     container_name: vearch-ps1
     image: vearch/vearch:latest
     networks:
-      - vearch_network_cluster
+      vearch_network_cluster:
+        ipv4_address: 172.16.238.15
     volumes:
       - ${DOCKER_VOLUME_DIRECTORY:-.}/config_cluster.toml:/vearch/config.toml
     command: ps
@@ -170,7 +181,8 @@ services:
     container_name: vearch-ps2
     image: vearch/vearch:latest
     networks:
-      - vearch_network_cluster
+      vearch_network_cluster:
+        ipv4_address: 172.16.238.16
     volumes:
       - ${DOCKER_VOLUME_DIRECTORY:-.}/config_cluster.toml:/vearch/config.toml
     command: ps
@@ -186,7 +198,8 @@ services:
     container_name: vearch-ps3
     image: vearch/vearch:latest
     networks:
-      - vearch_network_cluster
+      vearch_network_cluster:
+        ipv4_address: 172.16.238.17
     volumes:
       - ${DOCKER_VOLUME_DIRECTORY:-.}/config_cluster.toml:/vearch/config.toml
     command: ps
@@ -197,3 +210,15 @@ services:
         condition: service_healthy
       router2:
         condition: service_healthy
+
+  ps4:
+    container_name: vearch-ps4
+    image: vearch/vearch:latest
+    networks:
+      vearch_network_cluster:
+        ipv4_address: 172.16.238.18
+    volumes:
+      - ${DOCKER_VOLUME_DIRECTORY:-.}/config_cluster.toml:/vearch/config.toml
+    command: ps
+    profiles:
+      - manual_startif

@@ -493,3 +493,21 @@ class TestIncompleteShardSearch:
 
             documents = rs.json()["data"]["documents"]
             assert len(documents) >= 0
+
+class TestFailServerPrepare:
+    def setup_class(self):
+        pass
+
+    def test_prepare_db(self):
+        response = vearch_utils.create_db(vearch_utils.router_url, vearch_utils.db_name)
+        logger.info(response.json())
+
+    @pytest.mark.parametrize(
+        ["embedding_size", "index_type"],
+        [
+            [128, "FLAT"],
+        ],
+    )
+    def test_prepare_data(self, embedding_size, index_type):
+        create_space(1, 3, embedding_size, index_type)
+        vearch_utils.add_embedding_size(vearch_utils.db_name, vearch_utils.space_name, 50, 100, embedding_size)

@@ -72,7 +72,7 @@ jobs:
         pytest test_vearch.py -x -k "test_vearch_basic_usage" --log-cli-level=INFO
         pytest test_cluster_master.py -x -k "TestClusterMasterPrepare" --log-cli-level=INFO
         pytest test_cluster_master.py -x -k "TestClusterMasterOperate" --log-cli-level=INFO
-        # prepare for tow master down
+        # prepare for 2 masters down
         pytest test_cluster_master.py -x -k "TestClusterMasterPrepare" --log-cli-level=INFO
         cd ../cloud && docker-compose stop master2
         cd ../test
@@ -146,4 +146,28 @@ jobs:
         sleep 60
         cd ../test
         pytest test_cluster_ps.py -x -k "TestClusterPartitionServerDestroy" --log-cli-level=INFO
-  
+
+    - name: Run tests for fail server
+      run: |
+        set -e
+        cd test
+        pytest test_cluster_ps.py -x -k "TestFailServerPrepare" --log-cli-level=INFO
+        cd .. && docker-compose -f cloud/docker-compose.yml stop ps1
+        docker-compose -f cloud/docker-compose.yml up ps4 -d
+        sleep 60
+        nodeID=$(curl -u root:secret http://127.0.0.1:8817/schedule/fail_server | jq -r '.data.fail_servers[0].nodeID')
+        curl -u root:secret http://127.0.0.1:8817/schedule/recover_server --data "{\"fail_node_id\": ${nodeID}, \"new_node_id\": 4, \"fail_node_addr\": \"172.16.238.15\", \"new_node_addr\": \"172.16.238.18\"}"
+        sleep 30
+        status=$(curl -u root:secret http://127.0.0.1:8817/cluster/health | jq -r '.data[0].spaces[0].status')
+        if [ "$status" != "green" ]; then
+          echo "Error: Status is not green. Status is $status."
+          exit 1
+        else
+          echo "Status is green."
+        fi
+        cd test && pytest test_cluster_ps.py -x -k "TestClusterPartitionServerDestroy" --log-cli-level=INFO
+        cd .. && docker-compose -f cloud/docker-compose.yml stop ps4
+
+    - name: Clean cluster
+      run: |
+        docker-compose -f cloud/docker-compose.yml --profile cluster down

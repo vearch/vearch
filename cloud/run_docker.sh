@@ -14,12 +14,12 @@ function get_version() {
 get_version
 
 echo "Build compile Environment"
-cd  env
-docker build -t vearch/vearch-dev-env:latest .
+cd cloud/env
+docker build -t vearch/vearch-dev-env:$VERSION .
 
-cd ..
+cd ../..
 echo "Build Vearch Image"
-docker build -f cloud/Dockerfile -t vearch/vearch:latest .
+docker build -f cloud/Dockerfile -t vearch/vearch:$VERSION .
 
 echo "Start service by all in one model"
 cp config/config.toml .
