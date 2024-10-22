@@ -216,7 +216,7 @@ func (s *Space) PartitionIdsByRangeField(value []byte, field_type vearchpb.Field
 
 func (index *Index) UnmarshalJSON(bs []byte) error {
 	if len(bs) == 0 {
-		return fmt.Errorf("space Index json.Unmarshal err: empty json")
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("space vector field index should not be empty"))
 	}
 	tempIndex := &struct {
 		Name   string          `json:"name,omitempty"`

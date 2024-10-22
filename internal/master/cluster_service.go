@@ -409,6 +409,9 @@ func (ms *masterService) createSpaceService(ctx context.Context, dbName string, 
 	if err != nil {
 		return err
 	}
+	if space.Index == nil {
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("space vector field index should not be empty"))
+	}
 	err = ms.Master().Create(ctx, entity.SpaceKey(space.DBId, space.Id), marshal)
 	if err != nil {
 		return err

@@ -851,7 +851,7 @@ func requestToPb(searchDoc *request.SearchDocumentRequest, space *entity.Space, 
 		metricType = indexParams.MetricType
 	}
 
-	if metricType == "" && space != nil && space.Index != nil {
+	if metricType == "" && space != nil && space.Index != nil && len(space.Index.Params) > 0 {
 		err := vjson.Unmarshal(space.Index.Params, indexParams)
 		if err != nil {
 			return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("unmarshal err:[%s] , space.Index.IndexParams:[%s]", err.Error(), string(space.Index.Params)))

@@ -440,10 +440,6 @@ func (ca *clusterAPI) createSpace(c *gin.Context) {
 	} else {
 		response.New(c).JsonSuccess(space)
 	}
-
-	if space.Index == nil {
-		space.Index = entity.NewDefaultIndex()
-	}
 }
 
 func (ca *clusterAPI) deleteSpace(c *gin.Context) {

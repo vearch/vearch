@@ -23,6 +23,11 @@ from utils.data_utils import *
 
 __description__ = """ test case for module space """
 
+sift10k = DatasetSift10K()
+xb = sift10k.get_database()
+xq = sift10k.get_queries()
+gt = sift10k.get_groundtruth()
+
 
 class TestSpaceCreate:
     def setup_class(self):
@@ -108,27 +113,6 @@ class TestSpaceCreate:
         response = drop_space(router_url, db_name, space_name)
         assert response.json()["code"] == 0
 
-    def test_vearch_space_create_bad_field_type(self):
-        embedding_size = 128
-        space_config = {
-            "name": space_name,
-            "partition_num": 1,
-            "replica_num": 1,
-            "fields": [
-                {"name": "field_string", "type": "unsupported"},
-                {
-                    "name": "field_vector",
-                    "type": "vector",
-                    "dimension": embedding_size,
-                    "index": {"name": "gamma", "type": "FLAT"},
-                },
-            ],
-        }
-
-        response = create_space(router_url, db_name, space_config)
-        logger.info(response.json())
-        assert response.json()["code"] != 0
-
     @pytest.mark.parametrize(
         ["index_type"],
         [["FLAT"], ["IVFPQ"], ["IVFFLAT"], ["HNSW"]],
@@ -151,19 +135,19 @@ class TestSpaceCreate:
                     },
                 },
                 {
-                    "name": "field_string_array",
-                    "type": "string",
+                    "name": "field_double",
+                    "type": "double",
                     "array": True,
                     "index": {
-                        "name": "field_float",
+                        "name": "field_double",
                         "type": "SCALAR",
                     },
                 },
                 {
-                    "name": "field_int_index",
-                    "type": "integer",
+                    "name": "field_long",
+                    "type": "long",
                     "index": {
-                        "name": "field_int_index",
+                        "name": "field_long_index",
                         "type": "SCALAR",
                     },
                 },
@@ -172,12 +156,6 @@ class TestSpaceCreate:
                     "type": "vector",
                     "dimension": embedding_size,
                     "index": {"name": "gamma", "type": index_type},
-                },
-                {
-                    "name": "field_vector_normal",
-                    "type": "vector",
-                    "dimension": int(embedding_size * 2),
-                    "format": "normalization",
                 },
             ],
         }
@@ -189,6 +167,28 @@ class TestSpaceCreate:
         response = describe_space(router_url, db_name, space_name)
         logger.info(response.json())
         assert response.json()["code"] == 0
+
+        total = 10
+        add(total, 1, xb, False, True)
+        time.sleep(3)
+
+        search_url = router_url + "/document/search"
+        data = {}
+        data["db_name"] = db_name
+        data["space_name"] = space_name
+        data["vectors"] = []
+        vector_info = {
+            "field": "field_vector",
+            "feature": xq[:1].flatten().tolist(),
+        }
+        data["vectors"].append(vector_info)
+        json_str = json.dumps(data)
+        response = requests.post(
+            search_url, auth=(username, password), data=json_str
+        )
+        logger.info(response.json())
+        assert len(response.json()["data"]["documents"]) == 1
+        assert len(response.json()["data"]["documents"][0]) == total
 
         response = drop_space(router_url, db_name, space_name)
         assert response.json()["code"] == 0
@@ -210,6 +210,11 @@ class TestSpaceCreate:
             [11, "bad nsubvector", "IVFPQ"],
             [12, "bad metric type", "FLAT"],
             [13, "bad nprobe", "IVFPQ"],
+            [14, "empty index", "IVFPQ"],
+            [15, "null index", "IVFPQ"],
+            [16, "unsupported field type", "IVFPQ"],
+            [17, "unsupported index type", "unsupported"],
+            [18, "empty index type", ""],
         ],
     )
     def test_vearch_space_create_badcase(self, wrong_index, wrong_type, index_type):
@@ -268,7 +273,6 @@ class TestSpaceCreate:
                     "type": "integer",
                     "index": {"name": "field_int_index", "type": "SCALAR"},
                 },
-                {"name": "field_vector", "type": "vector", "dimension": embedding_size},
                 {
                     "name": "field_vector_normal",
                     "type": "vector",
@@ -290,6 +294,13 @@ class TestSpaceCreate:
                 },
             ],
         }
+        if wrong_index == 14:
+            space_config["fields"][5]["index"] = {}
+        if wrong_index == 15:
+            space_config["fields"][5].pop("index")
+        if wrong_index == 16:
+            field_unspported = {"name": "field_string", "type": "unsupported"}
+            space_config["fields"].append(field_unspported)
 
         response = create_space(router_url, db_name, space_config)
         logger.info(response.json())
@@ -331,7 +342,6 @@ class TestSpaceCreate:
                     "type": "integer",
                     "index": {"name": "field_int_index", "type": "SCALAR"},
                 },
-                {"name": "field_vector", "type": "vector", "dimension": embedding_size},
                 {
                     "name": "field_vector_normal",
                     "type": "vector",
@@ -340,7 +350,7 @@ class TestSpaceCreate:
                     "index": {
                         "name": "gamma",
                         "type": "FLAT",
-                        "iparams": {
+                        "params": {
                             "metric_type": "InnerProduct",
                             "ncentroids": 2048,
                             "nsubvector": 32,
@@ -373,12 +383,6 @@ class TestSpaceCreate:
 
     def test_destroy_db(self):
         drop_db(router_url, db_name)
-
-
-sift10k = DatasetSift10K()
-xb = sift10k.get_database()
-xq = sift10k.get_queries()
-gt = sift10k.get_groundtruth()
 
 
 class TestSpaceExpansion:
