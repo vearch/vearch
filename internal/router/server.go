@@ -16,11 +16,13 @@ package router
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"net"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/v3/internal/client"
 	"github.com/vearch/vearch/v3/internal/config"
@@ -50,6 +52,24 @@ func NewServer(ctx context.Context) (*Server, error) {
 
 	gin.SetMode(gin.ReleaseMode)
 	httpServer := gin.New()
+	httpServer.Use(func(c *gin.Context) {
+		rid := c.GetHeader("X-Request-Id")
+		if rid == "" {
+			id, err := uuid.NewRandom()
+			if err != nil {
+				log.Error("generate request id failed, %v", err)
+				c.Next()
+				return
+			}
+			rid = id.String()
+			rid = base64.StdEncoding.EncodeToString([]byte(rid))[:10]
+			c.Request.Header.Add("X-Request-Id", rid)
+		}
+
+		// set request id to context
+		c.Header("X-Request-Id", rid)
+		c.Next()
+	})
 	if len(config.Conf().Router.AllowOrigins) > 0 {
 		corsConfig := cors.DefaultConfig()
 		corsConfig.AllowCredentials = true

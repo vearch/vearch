@@ -157,6 +157,7 @@ struct CStatus Search(void *engine, const char *request_str, int req_len,
   request.Deserialize(request_str, req_len);
 
   vearch::Response response(request.Trace());
+  response.SetRequestId(request.RequestId());
   vearch::Status status;
   status = static_cast<vearch::Engine *>(engine)->Search(request, response);
   struct CStatus cstatus;

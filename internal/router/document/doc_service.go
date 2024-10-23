@@ -57,7 +57,7 @@ func (docService *docService) getDocs(ctx context.Context, args *vearchpb.GetReq
 	defer cancel()
 	reply := &vearchpb.GetResponse{Head: newOkHead()}
 	request := client.NewRouterRequest(ctx, docService.client)
-	request.SetMsgID().SetMethod(client.GetDocsHandler).SetHead(args.Head).SetSpace().SetDocsByKey(args.PrimaryKeys).PartitionDocs()
+	request.SetMsgID(args.Head.Params["request_id"]).SetMethod(client.GetDocsHandler).SetHead(args.Head).SetSpace().SetDocsByKey(args.PrimaryKeys).PartitionDocs()
 	if request.Err != nil {
 		log.Errorf("getDoc args:[%v] error: [%s]", args, request.Err)
 		return &vearchpb.GetResponse{Head: setErrHead(request.Err)}
@@ -74,9 +74,9 @@ func (docService *docService) getDocsByPartition(ctx context.Context, args *vear
 	reply := &vearchpb.GetResponse{Head: newOkHead()}
 	request := client.NewRouterRequest(ctx, docService.client)
 	if next != nil && *next {
-		request.SetMsgID().SetMethod(client.GetNextDocsByPartitionHandler).SetHead(args.Head).SetSpace().SetDocsBySpecifyKey(args.PrimaryKeys).SetSendMap(partitionId)
+		request.SetMsgID(args.Head.Params["request_id"]).SetMethod(client.GetNextDocsByPartitionHandler).SetHead(args.Head).SetSpace().SetDocsBySpecifyKey(args.PrimaryKeys).SetSendMap(partitionId)
 	} else {
-		request.SetMsgID().SetMethod(client.GetDocsByPartitionHandler).SetHead(args.Head).SetSpace().SetDocsBySpecifyKey(args.PrimaryKeys).SetSendMap(partitionId)
+		request.SetMsgID(args.Head.Params["request_id"]).SetMethod(client.GetDocsByPartitionHandler).SetHead(args.Head).SetSpace().SetDocsBySpecifyKey(args.PrimaryKeys).SetSendMap(partitionId)
 	}
 	if request.Err != nil {
 		log.Errorf("getDoc args:[%v] error: [%s]", args, request.Err)
@@ -84,6 +84,7 @@ func (docService *docService) getDocsByPartition(ctx context.Context, args *vear
 	}
 	items := request.Execute()
 	reply.Head.Params = request.GetMD()
+	reply.Head.RequestId = args.Head.Params["request_id"]
 	reply.Items = items
 	return reply
 }
@@ -93,7 +94,7 @@ func (docService *docService) deleteDocs(ctx context.Context, args *vearchpb.Del
 	defer cancel()
 	reply := &vearchpb.DeleteResponse{Head: newOkHead()}
 	request := client.NewRouterRequest(ctx, docService.client)
-	request.SetMsgID().SetMethod(client.DeleteDocsHandler).SetHead(args.Head).SetSpace().SetDocsByKey(args.PrimaryKeys).SetDocsField().PartitionDocs()
+	request.SetMsgID(args.Head.Params["request_id"]).SetMethod(client.DeleteDocsHandler).SetHead(args.Head).SetSpace().SetDocsByKey(args.PrimaryKeys).SetDocsField().PartitionDocs()
 	if request.Err != nil {
 		log.Errorf("delete args:[%v] error: [%s]", args, request.Err)
 		return &vearchpb.DeleteResponse{Head: setErrHead(request.Err)}
@@ -109,7 +110,7 @@ func (docService *docService) bulk(ctx context.Context, args *vearchpb.BulkReque
 	defer cancel()
 	reply := &vearchpb.BulkResponse{Head: newOkHead()}
 	request := client.NewRouterRequest(ctx, docService.client)
-	request.SetMsgID().SetMethod(client.BatchHandler).SetHead(args.Head).SetSpace().SetDocs(args.Docs).SetDocsField().UpsertByPartitions(args.Partitions)
+	request.SetMsgID(args.Head.Params["request_id"]).SetMethod(client.BatchHandler).SetHead(args.Head).SetSpace().SetDocs(args.Docs).SetDocsField().UpsertByPartitions(args.Partitions)
 	if request.Err != nil {
 		log.Errorf("bulk args:[%v] error: [%s]", args, request.Err)
 		return &vearchpb.BulkResponse{Head: setErrHead(request.Err)}
@@ -156,7 +157,7 @@ func (docService *docService) query(ctx context.Context, args *vearchpb.QueryReq
 	ctx, cancel := setTimeOut(ctx, args.Head)
 	defer cancel()
 	request := client.NewRouterRequest(ctx, docService.client)
-	request.SetMsgID().SetMethod(client.QueryHandler).SetHead(args.Head).SetSpace().QueryByPartitions(args)
+	request.SetMsgID(args.Head.Params["request_id"]).SetMethod(client.QueryHandler).SetHead(args.Head).SetSpace().QueryByPartitions(args)
 	if request.Err != nil {
 		return &vearchpb.SearchResponse{Head: setErrHead(request.Err)}
 	}
@@ -186,7 +187,7 @@ func (docService *docService) search(ctx context.Context, searchReq *vearchpb.Se
 	ctx, cancel := setTimeOut(ctx, searchReq.Head)
 	defer cancel()
 	request := client.NewRouterRequest(ctx, docService.client)
-	request.SetMsgID().SetMethod(client.SearchHandler).SetHead(searchReq.Head).SetSpace().SearchByPartitions(searchReq)
+	request.SetMsgID(searchReq.Head.Params["request_id"]).SetMethod(client.SearchHandler).SetHead(searchReq.Head).SetSpace().SearchByPartitions(searchReq)
 	if request.Err != nil {
 		return &vearchpb.SearchResponse{Head: setErrHead(request.Err)}
 	}
@@ -214,7 +215,7 @@ func (docService *docService) search(ctx context.Context, searchReq *vearchpb.Se
 
 func (docService *docService) flush(ctx context.Context, args *vearchpb.FlushRequest) *vearchpb.FlushResponse {
 	request := client.NewRouterRequest(ctx, docService.client)
-	request.SetMsgID().SetMethod(client.FlushHandler).SetHead(args.Head).SetSpace().CommonByPartitions()
+	request.SetMsgID(args.Head.Params["request_id"]).SetMethod(client.FlushHandler).SetHead(args.Head).SetSpace().CommonByPartitions()
 	if request.Err != nil {
 		return &vearchpb.FlushResponse{Head: setErrHead(request.Err)}
 	}
@@ -236,7 +237,7 @@ func (docService *docService) flush(ctx context.Context, args *vearchpb.FlushReq
 
 func (docService *docService) forceMerge(ctx context.Context, args *vearchpb.ForceMergeRequest) *vearchpb.ForceMergeResponse {
 	request := client.NewRouterRequest(ctx, docService.client)
-	request.SetMsgID().SetMethod(client.ForceMergeHandler).SetHead(args.Head).SetSpace().CommonByPartitions()
+	request.SetMsgID(args.Head.Params["request_id"]).SetMethod(client.ForceMergeHandler).SetHead(args.Head).SetSpace().CommonByPartitions()
 	if request.Err != nil {
 		return &vearchpb.ForceMergeResponse{Head: setErrHead(request.Err)}
 	}
@@ -258,7 +259,7 @@ func (docService *docService) forceMerge(ctx context.Context, args *vearchpb.For
 
 func (docService *docService) rebuildIndex(ctx context.Context, args *vearchpb.IndexRequest) *vearchpb.IndexResponse {
 	request := client.NewRouterRequest(ctx, docService.client)
-	request.SetMsgID().SetMethod(client.RebuildIndexHandler).SetHead(args.Head).SetSpace().CommonSetByPartitions(args)
+	request.SetMsgID(args.Head.Params["request_id"]).SetMethod(client.RebuildIndexHandler).SetHead(args.Head).SetSpace().CommonSetByPartitions(args)
 	if request.Err != nil {
 		return &vearchpb.IndexResponse{Head: setErrHead(request.Err)}
 	}
@@ -280,7 +281,7 @@ func (docService *docService) rebuildIndex(ctx context.Context, args *vearchpb.I
 
 func (docService *docService) deleteByQuery(ctx context.Context, args *vearchpb.QueryRequest) *vearchpb.DelByQueryeResponse {
 	request := client.NewRouterRequest(ctx, docService.client)
-	request.SetMsgID().SetMethod(client.DeleteByQueryHandler).SetHead(args.Head).SetSpace().QueryByPartitions(args)
+	request.SetMsgID(args.Head.Params["request_id"]).SetMethod(client.DeleteByQueryHandler).SetHead(args.Head).SetSpace().QueryByPartitions(args)
 	if request.Err != nil {
 		return &vearchpb.DelByQueryeResponse{Head: setErrHead(request.Err)}
 	}

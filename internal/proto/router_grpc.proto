@@ -28,8 +28,9 @@ message RequestHead {
 }
 
 message ResponseHead {
-  Error err = 1;
-  map<string, string> params = 2;
+  string request_id = 1;
+  Error err = 2;
+  map<string, string> params = 3;
 }
 
 //*********************** doc query *********************** //

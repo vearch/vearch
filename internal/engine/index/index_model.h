@@ -45,7 +45,7 @@ class PerfTool {
   // Return perf summary
   const std::stringstream &OutputPerf() {
     cur_time = utils::getmillisecs();
-    perf_ss << " total cost [" << cur_time - start_time << "]ms ";
+    perf_ss << "total [" << cur_time - start_time << "]ms ";
     return perf_ss;
   }
 };

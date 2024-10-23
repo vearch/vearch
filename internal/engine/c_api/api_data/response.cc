@@ -21,30 +21,24 @@ namespace vearch {
 
 Response::Response() {
   response_ = nullptr;
-#ifdef PERFORMANCE_TESTING
   perf_tool_ = (void *)new PerfTool();
-#endif
 }
 
 Response::Response(bool trace) {
   response_ = nullptr;
-#ifdef PERFORMANCE_TESTING
   if (trace) {
     perf_tool_ = (void *)new PerfTool();
   } else {
     perf_tool_ = nullptr;
   }
-#endif
 }
 
 Response::~Response() {
-#ifdef PERFORMANCE_TESTING
   if (perf_tool_) {
     PerfTool *perf_tool = static_cast<PerfTool *>(perf_tool_);
     delete perf_tool;
     perf_tool_ = nullptr;
   }
-#endif
 }
 
 int Response::Serialize(const std::string &space_name,
@@ -141,13 +135,11 @@ int Response::Serialize(const std::string &space_name,
   memcpy(*out, (char *)serialized.data(), *out_len);
   delete[] gamma_results_;
   gamma_results_ = nullptr;
-#ifdef PERFORMANCE_TESTING
   if (perf_tool_) {
     PerfTool *perf_tool = static_cast<PerfTool *>(perf_tool_);
     perf_tool->Perf("serialize total");
-    LOG(TRACE) << space_name << " " << perf_tool->OutputPerf().str();
+    LOG(TRACE) << space_name << " " << request_id_ << perf_tool->OutputPerf().str();
   }
-#endif
   return 0;
 }
 
@@ -282,13 +274,11 @@ int Response::PackResults(std::vector<std::string> &fields_name) {
   }
   delete[] gamma_results_;
   gamma_results_ = nullptr;
-#ifdef PERFORMANCE_TESTING
   if (perf_tool_) {
     PerfTool *perf_tool = static_cast<PerfTool *>(perf_tool_);
     perf_tool->Perf("pack result total");
     LOG(TRACE) << perf_tool->OutputPerf().str();
   }
-#endif
   return 0;
 }
 

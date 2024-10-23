@@ -22,6 +22,11 @@ void Request::Deserialize(const char *data, int len) {
     return;
   }
 
+  auto it_request_id = sr.head().params().find("request_id");
+  if (it_request_id != sr.head().params().end()) {
+    request_id_ = it_request_id->second;
+  }
+
   req_num_ = sr.req_num();
   topn_ = sr.topn();
   brute_force_search_ = sr.is_brute_search();

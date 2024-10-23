@@ -265,25 +265,24 @@ Status Engine::Search(Request &request, Response &response_results) {
     return status;
   }
 
-  GammaQuery gamma_query;
-  gamma_query.vec_query = vec_fields;
+  GammaQuery query;
+  query.vec_query = vec_fields;
 
-  gamma_query.condition = new SearchCondition(
-      static_cast<PerfTool *>(response_results.GetPerTool()));
-  gamma_query.condition->topn = topn;
-  gamma_query.condition->multi_vector_rank =
+  query.condition = new SearchCondition(
+      static_cast<PerfTool *>(response_results.GetPerfTool()));
+  query.condition->topn = topn;
+  query.condition->multi_vector_rank =
       request.MultiVectorRank() == 1 ? true : false;
-  gamma_query.condition->brute_force_search = brute_force_search;
-  gamma_query.condition->l2_sqrt = request.L2Sqrt();
-  gamma_query.condition->index_params = request.IndexParams();
+  query.condition->brute_force_search = brute_force_search;
+  query.condition->l2_sqrt = request.L2Sqrt();
+  query.condition->index_params = request.IndexParams();
 
-  gamma_query.condition->range_filters = request.RangeFilters();
-  gamma_query.condition->term_filters = request.TermFilters();
-  gamma_query.condition->table = table_;
+  query.condition->range_filters = request.RangeFilters();
+  query.condition->term_filters = request.TermFilters();
+  query.condition->table = table_;
   if (request.Ranker()) {
-    gamma_query.condition->ranker =
-        dynamic_cast<WeightedRanker *>(request.Ranker());
-    if (gamma_query.condition->ranker == nullptr) {
+    query.condition->ranker = dynamic_cast<WeightedRanker *>(request.Ranker());
+    if (query.condition->ranker == nullptr) {
       std::string msg = "ranker error!";
       LOG(WARNING) << msg;
       for (int i = 0; i < req_num; ++i) {
@@ -295,10 +294,10 @@ Status Engine::Search(Request &request, Response &response_results) {
       RequestConcurrentController::GetInstance().Release(req_num);
       return Status::InvalidArgument();
     } else {
-      status = gamma_query.condition->ranker->Parse();
+      status = query.condition->ranker->Parse();
       if (!status.ok()) {
-        std::string msg = "ranker parse err, ranker: " +
-                          gamma_query.condition->ranker->ToString();
+        std::string msg =
+            "ranker parse err, ranker: " + query.condition->ranker->ToString();
         LOG(WARNING) << msg;
         RequestConcurrentController::GetInstance().Release(req_num);
         return status;
@@ -310,14 +309,12 @@ Status Engine::Search(Request &request, Response &response_results) {
   size_t range_filters_num = request.RangeFilters().size();
   size_t term_filters_num = request.TermFilters().size();
   if (range_filters_num > 0 || term_filters_num > 0) {
-    int num = MultiRangeQuery(request, gamma_query.condition, response_results,
+    int num = MultiRangeQuery(request, query.condition, response_results,
                               &range_query_result);
-#ifdef PERFORMANCE_TESTING
-    if (gamma_query.condition->GetPerfTool()) {
-      gamma_query.condition->GetPerfTool()->Perf("filter result num " +
-                                                 std::to_string(num));
+    if (query.condition->GetPerfTool()) {
+      query.condition->GetPerfTool()->Perf("filter result num " +
+                                           std::to_string(num));
     }
-#endif
     if (num == 0) {
       RequestConcurrentController::GetInstance().Release(req_num);
       return status;
@@ -333,7 +330,7 @@ Status Engine::Search(Request &request, Response &response_results) {
       gamma_results[i].total = doc_num;
     }
 
-    status = vec_manager_->Search(gamma_query, gamma_results);
+    status = vec_manager_->Search(query, gamma_results);
     if (!status.ok()) {
       std::string msg =
           space_name_ + " search error [" + status.ToString() + "]";
@@ -348,11 +345,9 @@ Status Engine::Search(Request &request, Response &response_results) {
       return status;
     }
 
-#ifdef PERFORMANCE_TESTING
-    if (gamma_query.condition->GetPerfTool()) {
-      gamma_query.condition->GetPerfTool()->Perf("search total");
+    if (query.condition->GetPerfTool()) {
+      query.condition->GetPerfTool()->Perf("search total");
     }
-#endif
     response_results.SetEngineInfo(table_, vec_manager_, gamma_results,
                                    req_num);
   }

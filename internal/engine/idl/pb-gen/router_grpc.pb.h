@@ -637,10 +637,11 @@ class ResponseHead final :
   // accessors -------------------------------------------------------
 
   enum : int {
-    kParamsFieldNumber = 2,
-    kErrFieldNumber = 1,
+    kParamsFieldNumber = 3,
+    kRequestIdFieldNumber = 1,
+    kErrFieldNumber = 2,
   };
-  // map<string, string> params = 2;
+  // map<string, string> params = 3;
   int params_size() const;
   private:
   int _internal_params_size() const;
@@ -657,7 +658,21 @@ class ResponseHead final :
   ::PROTOBUF_NAMESPACE_ID::Map< std::string, std::string >*
       mutable_params();
 
-  // .vearchpb.Error err = 1;
+  // string request_id = 1;
+  void clear_request_id();
+  const std::string& request_id() const;
+  template <typename ArgT0 = const std::string&, typename... ArgT>
+  void set_request_id(ArgT0&& arg0, ArgT... args);
+  std::string* mutable_request_id();
+  PROTOBUF_NODISCARD std::string* release_request_id();
+  void set_allocated_request_id(std::string* request_id);
+  private:
+  const std::string& _internal_request_id() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_request_id(const std::string& value);
+  std::string* _internal_mutable_request_id();
+  public:
+
+  // .vearchpb.Error err = 2;
   bool has_err() const;
   private:
   bool _internal_has_err() const;
@@ -688,6 +703,7 @@ class ResponseHead final :
         std::string, std::string,
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::TYPE_STRING,
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::TYPE_STRING> params_;
+    ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr request_id_;
     ::vearchpb::Error* err_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
@@ -5978,7 +5994,57 @@ RequestHead::mutable_params() {
 
 // ResponseHead
 
-// .vearchpb.Error err = 1;
+// string request_id = 1;
+inline void ResponseHead::clear_request_id() {
+  _impl_.request_id_.ClearToEmpty();
+}
+inline const std::string& ResponseHead::request_id() const {
+  // @@protoc_insertion_point(field_get:vearchpb.ResponseHead.request_id)
+  return _internal_request_id();
+}
+template <typename ArgT0, typename... ArgT>
+inline PROTOBUF_ALWAYS_INLINE
+void ResponseHead::set_request_id(ArgT0&& arg0, ArgT... args) {
+ 
+ _impl_.request_id_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
+  // @@protoc_insertion_point(field_set:vearchpb.ResponseHead.request_id)
+}
+inline std::string* ResponseHead::mutable_request_id() {
+  std::string* _s = _internal_mutable_request_id();
+  // @@protoc_insertion_point(field_mutable:vearchpb.ResponseHead.request_id)
+  return _s;
+}
+inline const std::string& ResponseHead::_internal_request_id() const {
+  return _impl_.request_id_.Get();
+}
+inline void ResponseHead::_internal_set_request_id(const std::string& value) {
+  
+  _impl_.request_id_.Set(value, GetArenaForAllocation());
+}
+inline std::string* ResponseHead::_internal_mutable_request_id() {
+  
+  return _impl_.request_id_.Mutable(GetArenaForAllocation());
+}
+inline std::string* ResponseHead::release_request_id() {
+  // @@protoc_insertion_point(field_release:vearchpb.ResponseHead.request_id)
+  return _impl_.request_id_.Release();
+}
+inline void ResponseHead::set_allocated_request_id(std::string* request_id) {
+  if (request_id != nullptr) {
+    
+  } else {
+    
+  }
+  _impl_.request_id_.SetAllocated(request_id, GetArenaForAllocation());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (_impl_.request_id_.IsDefault()) {
+    _impl_.request_id_.Set("", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.ResponseHead.request_id)
+}
+
+// .vearchpb.Error err = 2;
 inline bool ResponseHead::_internal_has_err() const {
   return this != internal_default_instance() && _impl_.err_ != nullptr;
 }
@@ -6063,7 +6129,7 @@ inline void ResponseHead::set_allocated_err(::vearchpb::Error* err) {
   // @@protoc_insertion_point(field_set_allocated:vearchpb.ResponseHead.err)
 }
 
-// map<string, string> params = 2;
+// map<string, string> params = 3;
 inline int ResponseHead::_internal_params_size() const {
   return _impl_.params_.size();
 }

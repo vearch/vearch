@@ -14,7 +14,6 @@
 
 package gammacb
 
-import "C"
 import (
 	"context"
 	"errors"

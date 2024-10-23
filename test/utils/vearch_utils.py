@@ -33,9 +33,6 @@ password = os.getenv("PASSWORD", "secret")
 
 __description__ = """ test utils for vearch """
 
-logging.basicConfig()
-logger = logging.getLogger(__name__)
-
 def process_add_data(items):
     url = router_url + "/document/upsert"
     data = {}
@@ -1686,3 +1683,14 @@ def server_resource_limit(
         logger.info(data)
     resp = requests.post(url, auth=(username, password), json=data)
     return resp
+
+def init_log():
+    log = logging.getLogger("test")
+    log.setLevel(logging.DEBUG)
+    console_handler = logging.StreamHandler()
+    formatter = logging.Formatter('%(asctime)s %(levelname)s %(filename)s:%(lineno)d %(message)s')
+    console_handler.setFormatter(formatter)
+    log.addHandler(console_handler)
+    return log
+
+logger = init_log()

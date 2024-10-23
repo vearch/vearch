@@ -133,8 +133,8 @@ func (r *routerRequest) GetMD() map[string]string {
 }
 
 // SetMsgID
-func (r *routerRequest) SetMsgID() *routerRequest {
-	r.md[MessageID] = uuid.NewString()
+func (r *routerRequest) SetMsgID(requstId string) *routerRequest {
+	r.md[MessageID] = requstId
 	return r
 }
 
@@ -481,7 +481,7 @@ func (r *routerRequest) searchFromPartition(ctx context.Context, partitionID ent
 	partition, e := r.client.Master().Cache().PartitionByCache(ctx, r.space.Name, partitionID)
 	if e != nil {
 		err := &vearchpb.Error{Code: vearchpb.ErrorEnum_ROUTER_NO_PS_CLIENT, Msg: "query partition cache err partitionID:" + fmt.Sprint(partitionID)}
-		head := &vearchpb.ResponseHead{Err: err}
+		head := &vearchpb.ResponseHead{Err: err, RequestId: pd.MessageID}
 		searchResponse := &vearchpb.SearchResponse{Head: head}
 		pd.SearchResponse = searchResponse
 		responseDoc.PartitionData = pd
@@ -768,15 +768,15 @@ func (r *routerRequest) SearchFieldSortExecute(sortOrder sortorder.SortOrder) *v
 	var searchResponse *vearchpb.SearchResponse
 
 	mergeStartTime := time.Now()
-	var final_err *vearchpb.Error
+	var finalErr *vearchpb.Error
 	for r := range respChain {
 		if r != nil && r.PartitionData.Err != nil {
-			final_err = r.PartitionData.Err
+			finalErr = r.PartitionData.Err
 			continue
 		}
 		if result == nil && r != nil {
 			searchResponse = r.PartitionData.SearchResponse
-			if searchResponse != nil && searchResponse.Results != nil && len(searchResponse.Results) > 0 {
+			if searchResponse != nil && len(searchResponse.Results) > 0 {
 				result = searchResponse.Results
 				sortValueMap = r.SortValueMap
 				continue
@@ -814,7 +814,7 @@ func (r *routerRequest) SearchFieldSortExecute(sortOrder sortorder.SortOrder) *v
 
 	if searchResponse == nil {
 		searchResponse = &vearchpb.SearchResponse{}
-		responseHead := &vearchpb.ResponseHead{Err: final_err}
+		responseHead := &vearchpb.ResponseHead{Err: finalErr}
 		searchResponse.Head = responseHead
 	}
 	mergeAndSort := time.Since(mergeStartTime).Seconds() * 1000
@@ -827,6 +827,7 @@ func (r *routerRequest) SearchFieldSortExecute(sortOrder sortorder.SortOrder) *v
 		searchResponse.Head.Params["searchExecute"] = searchExecuteStr
 	}
 	searchResponse.Results = result
+	searchResponse.Head.RequestId = r.GetMsgID()
 	return searchResponse
 }
 

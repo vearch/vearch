@@ -31,9 +31,10 @@ type Response struct {
 
 // http protocol
 type HttpReply struct {
-	Code int         `json:"code"`
-	Msg  string      `json:"msg,omitempty"`
-	Data interface{} `json:"data,omitempty"`
+	Code      int         `json:"code"`
+	RequestId string      `json:"request_id,omitempty"`
+	Msg       string      `json:"msg,omitempty"`
+	Data      interface{} `json:"data,omitempty"`
 }
 
 func New(ginContext *gin.Context) *Response {
@@ -65,9 +66,10 @@ func (r *Response) SendJsonBytes(bytes []byte) {
 
 func (r *Response) JsonSuccess(data interface{}) {
 	httpReply := &HttpReply{
-		Code: int(vearchpb.ErrorEnum_SUCCESS),
-		Msg:  "",
-		Data: data,
+		Code:      int(vearchpb.ErrorEnum_SUCCESS),
+		RequestId: r.ginContext.GetHeader("X-Request-Id"),
+		Msg:       "",
+		Data:      data,
 	}
 	r.SetHttpStatus(int64(http.StatusOK))
 	r.SendJson(httpReply)

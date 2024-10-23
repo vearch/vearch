@@ -341,6 +341,8 @@ func setRequestHeadFromGin(c *gin.Context) (*vearchpb.RequestHead, error) {
 		}
 	}
 
+	head.Params["request_id"] = c.GetHeader("X-Request-Id")
+
 	return head, nil
 }
 
@@ -606,8 +608,8 @@ func (handler *DocumentHandler) handleDocumentSearch(c *gin.Context) {
 	}
 	response.New(c).JsonSuccess(result)
 	if trace {
-		log.Trace("handleDocumentSearch total use :[%.4f] getSpace use :[%.4f] service use :[%.4f] detail use :[%v]",
-			time.Since(startTime).Seconds()*1000, getSpaceCost.Seconds()*1000, serviceCost.Seconds()*1000, searchResp.Head.Params)
+		log.Trace("handleDocumentSearch %s total: [%.4f] getSpace: [%.4f] service: [%.4f] detail: [%v]",
+			searchReq.Head.Params["request_id"], time.Since(startTime).Seconds()*1000, getSpaceCost.Seconds()*1000, serviceCost.Seconds()*1000, searchResp.Head.Params)
 	}
 }
 
