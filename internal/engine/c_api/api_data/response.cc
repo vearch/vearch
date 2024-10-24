@@ -39,6 +39,8 @@ Response::~Response() {
     delete perf_tool;
     perf_tool_ = nullptr;
   }
+  delete[] gamma_results_;
+  gamma_results_ = nullptr;
 }
 
 int Response::Serialize(const std::string &space_name,
@@ -137,8 +139,9 @@ int Response::Serialize(const std::string &space_name,
   gamma_results_ = nullptr;
   if (perf_tool_) {
     PerfTool *perf_tool = static_cast<PerfTool *>(perf_tool_);
-    perf_tool->Perf("serialize total");
-    LOG(TRACE) << space_name << " " << request_id_ << perf_tool->OutputPerf().str();
+    perf_tool->Perf("serialize");
+    LOG(TRACE) << space_name << " " << request_id_ << " "
+               << perf_tool->OutputPerf().str();
   }
   return 0;
 }
@@ -276,7 +279,7 @@ int Response::PackResults(std::vector<std::string> &fields_name) {
   gamma_results_ = nullptr;
   if (perf_tool_) {
     PerfTool *perf_tool = static_cast<PerfTool *>(perf_tool_);
-    perf_tool->Perf("pack result total");
+    perf_tool->Perf("pack results");
     LOG(TRACE) << perf_tool->OutputPerf().str();
   }
   return 0;

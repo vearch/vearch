@@ -144,10 +144,10 @@ func (s *Server) LoadPartition(ctx context.Context, pid entity.PartitionID, spac
 	}
 
 	// LoadPartition means start, should check resource and set it for partition as init
-	if resource_exhausted, err := os.CheckResource(store.RaftPath); err != nil {
+	if resourceExhausted, err := os.CheckResource(store.RaftPath); err != nil {
 		return nil, err
 	} else {
-		store.Partition.ResourceExhausted = resource_exhausted
+		store.Partition.ResourceExhausted = resourceExhausted
 	}
 
 	s.partitions.Store(pid, store)
@@ -165,10 +165,10 @@ func (s *Server) CreatePartition(ctx context.Context, space *entity.Space, pid e
 	}
 
 	// check resource
-	if resource_exhausted, err := os.CheckResource(store.RaftPath); err != nil {
+	if resourceExhausted, err := os.CheckResource(store.RaftPath); err != nil {
 		return err
 	} else {
-		if resource_exhausted {
+		if resourceExhausted {
 			return vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_RESOURCE_EXHAUSTED, nil)
 		}
 	}

@@ -62,7 +62,7 @@ int SetLogDictionary(const std::string &log_dir) {
   // To set GLOBAL configurations you may use
   el::Loggers::addFlag(el::LoggingFlag::StrictLogFileSizeCheck);
   defaultConf.setGlobally(el::ConfigurationType::Format,
-                          "%level %datetime %fbase:%line %msg");
+                          "%datetime %fbase:%line %msg");
   defaultConf.setGlobally(el::ConfigurationType::ToFile, "true");
   defaultConf.setGlobally(el::ConfigurationType::ToStandardOutput, "false");
   defaultConf.setGlobally(el::ConfigurationType::MaxLogFileSize,
