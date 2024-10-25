@@ -18,6 +18,7 @@ from vearch.exception import (
 )
 from vearch.core.client import RestClient
 from config import test_host_url
+from vearch.filter import RelationOperator
 
 logger = logging.getLogger("vearch_document_test")
 
@@ -34,6 +35,12 @@ def create_space_schema(space_name) -> SpaceSchema:
         desc="the name of book",
         index=ScalarIndex("book_name_idx"),
     )
+    book_authors = Field(
+        "book_authors",
+        DataType.STRING_ARRAY,
+        desc="the authors of book",
+        index=ScalarIndex("book_authors_idx"),
+    )
     book_num = Field(
         "book_num",
         DataType.INTEGER,
@@ -49,8 +56,14 @@ def create_space_schema(space_name) -> SpaceSchema:
     ractor_address = Field(
         "ractor_address", DataType.STRING, desc="the place of the book put"
     )
+    book_publish_time = Field(
+        "book_publish_time",
+        DataType.DATE,
+        desc="the publish time of book",
+        index=ScalarIndex("book_publish_time_idx"),
+    )
     space_schema = SpaceSchema(
-        space_name, fields=[book_name, book_num, book_vector, ractor_address]
+         space_name, fields=[book_name, book_authors, book_num, book_vector, ractor_address, book_publish_time]
     )
     return space_schema
 
@@ -97,9 +110,11 @@ def test_upsert_doc() -> List:
     for i in range(8):
         book_item = [
             "".join(random.choices(book_name_template, k=8)),
+            ["".join(random.choices(book_name_template, k=8)), "".join(random.choices(book_name_template, k=8))],
             num[i],
             [random.uniform(0, 1) for _ in range(512)],
             ractor[random.randint(0, 2)],
+            int(time.time())
         ]
         data.append(book_item)
         logger.debug(book_item)
@@ -144,6 +159,20 @@ def test_query():
     logger.debug(ret.documents)
     assert len(ret.documents) >= 0
 
+def test_query_not_in():
+    conditons = [
+        Condition(operator=">", fv=FieldValue(field="book_num", value=0)),
+        Condition(
+            operator=RelationOperator.NOT_IN,
+            fv=FieldValue(
+                field="book_name", value=["bpww57nu", "sykboivx", "edjn9542"]
+            ),
+        ),
+    ]
+    filters = Filter(operator="AND", conditions=conditons)
+    ret = vc.query(database_name, space_name, filter=filters)
+    logger.debug(ret.documents)
+    assert len(ret.documents) >= 0
 
 def test_query_no_result():
     conditons = [

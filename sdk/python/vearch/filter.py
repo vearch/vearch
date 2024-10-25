@@ -3,6 +3,7 @@ from typing import List, Union
 
 class RelationOperator:
     IN = "IN"
+    NOT_IN = "NOT IN"
     # TODO EQ = "="
     GT = ">"
     GE = ">="

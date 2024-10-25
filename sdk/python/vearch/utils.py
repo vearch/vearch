@@ -81,8 +81,9 @@ class DataType:
     FLOAT = "float"
     DOUBLE = "double"
     STRING = "string"
-    STRING_ARRAY = "string_array"
+    STRING_ARRAY = "stringArray"
     VECTOR = "vector"
+    DATE = "date"
     UNKNOWN = "unknown"
 
 
