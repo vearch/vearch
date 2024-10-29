@@ -27,7 +27,6 @@
 
 #include "hnswlib.h"
 #include "util/log.h"
-#include "util/thread_util.h"
 #include "visited_list_pool.h"
 
 namespace hnswlib {

@@ -454,7 +454,7 @@ func (bh *BackupHandler) Execute(ctx context.Context, req *vearchpb.PartitionDat
 		return
 	}
 
-	backupFileName := engineConfig.Path + "/backup/raw_data.json.zst"
+	backupFileName := *engineConfig.Path + "/backup/raw_data.json.zst"
 
 	minioClient, err := minio.New(backup.S3Param.EndPoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(backup.S3Param.AccessKey, backup.S3Param.SecretKey, ""),

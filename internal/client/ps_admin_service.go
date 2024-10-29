@@ -72,8 +72,8 @@ func GetEngineCfg(addr string, pid entity.PartitionID) (cfg *entity.EngineConfig
 	return nil, nil
 }
 
-func UpdateEngineCfg(addr string, cacheCfg *entity.EngineConfig, pid entity.PartitionID) error {
-	value, err := vjson.Marshal(cacheCfg)
+func UpdateEngineCfg(addr string, cfg *entity.EngineConfig, pid entity.PartitionID) error {
+	value, err := vjson.Marshal(cfg)
 	if err != nil {
 		return err
 	}

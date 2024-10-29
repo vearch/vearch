@@ -440,6 +440,17 @@ func (ca *clusterAPI) createSpace(c *gin.Context) {
 	} else {
 		response.New(c).JsonSuccess(space)
 	}
+	cfg, err := ca.masterService.GetEngineCfg(c, dbName, space.Name)
+	if err != nil {
+		log.Error("get engine config err: %s", err.Error())
+		response.New(c).JsonError(errors.NewErrInternal(err))
+	}
+
+	err = ca.masterService.updateEngineConfig(c, space, cfg)
+	if err != nil {
+		log.Error("update engine config err: %s", err.Error())
+		response.New(c).JsonError(errors.NewErrInternal(err))
+	}
 }
 
 func (ca *clusterAPI) deleteSpace(c *gin.Context) {
@@ -698,6 +709,18 @@ func (ca *clusterAPI) backupSpace(c *gin.Context) {
 		}
 		if err := ca.masterService.createSpaceService(c, dbName, space); err != nil {
 			log.Error("createSpaceService err: %v", err)
+			response.New(c).JsonError(errors.NewErrInternal(err))
+		}
+
+		cfg, err := ca.masterService.GetEngineCfg(c, dbName, spaceName)
+		if err != nil {
+			log.Error("get engine config err: %s", err.Error())
+			response.New(c).JsonError(errors.NewErrInternal(err))
+		}
+
+		err = ca.masterService.updateEngineConfig(c, space, cfg)
+		if err != nil {
+			log.Error("update engine config err: %s", err.Error())
 			response.New(c).JsonError(errors.NewErrInternal(err))
 		}
 	}

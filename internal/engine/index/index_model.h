@@ -11,7 +11,6 @@
 
 #include <vector>
 
-// #include "concurrentqueue/concurrentqueue.h"
 #include "reflector.h"
 #include "util/status.h"
 #include "util/utils.h"
@@ -31,6 +30,7 @@ class PerfTool {
   double cur_time;
   double start_time;
   std::stringstream perf_ss;
+  int long_search_time;
 
   // Record point of time with msg
   void Perf(const std::string &msg) { Perf(msg.c_str()); }
@@ -41,6 +41,8 @@ class PerfTool {
     cur_time = utils::getmillisecs();
     perf_ss << msg << " [" << cur_time - old_time << "]ms ";
   }
+
+  double Cost() { return utils::getmillisecs() - start_time; }
 
   // Return perf summary
   const std::stringstream &OutputPerf() {

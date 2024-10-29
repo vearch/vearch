@@ -14,6 +14,8 @@
 #include "raw_data.h"
 #include "util/status.h"
 
+class PerfTool;
+
 namespace vearch {
 
 enum class SearchResultCode : std::uint16_t {
@@ -74,7 +76,7 @@ class Response : public RawData {
   void SetEngineInfo(void *table, void *vector_mgr, GammaResult *gamma_results,
                      int req_num);
 
-  void *GetPerfTool() { return perf_tool_; }
+  PerfTool *GetPerfTool() { return perf_tool_; }
 
   int PackResults(std::vector<std::string> &fields_name);
 
@@ -89,7 +91,7 @@ class Response : public RawData {
   void *table_ = nullptr;
   void *vector_mgr_ = nullptr;
   int req_num_ = 0;
-  void *perf_tool_ = nullptr;
+  PerfTool *perf_tool_ = nullptr;
 };
 
 }  // namespace vearch

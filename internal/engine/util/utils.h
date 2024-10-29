@@ -50,8 +50,6 @@ int count_lines(const char *filename);
 
 void GenRandom(std::mt19937 &rng, unsigned *addr, unsigned size, unsigned N);
 
-double elapsed();
-
 double getmillisecs();
 
 int isFolderExist(const char *path);

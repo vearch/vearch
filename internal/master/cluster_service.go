@@ -39,7 +39,7 @@ import (
 	"go.etcd.io/etcd/client/v3/concurrency"
 )
 
-// masterService is used for master administrator purpose.It should not be used by router and partition server program
+// masterService is used for master administrator purpose. It should not used by router or partition server program
 type masterService struct {
 	*client.Client
 }
@@ -478,7 +478,7 @@ func (ms *masterService) createSpaceService(ctx context.Context, dbName string, 
 	bTrue := true
 	space.Enabled = &bTrue
 
-	//update version
+	// update version
 	err = ms.updateSpace(ctx, space)
 	if err != nil {
 		bFalse := false
@@ -654,6 +654,10 @@ func (ms *masterService) deleteSpaceService(ctx context.Context, dbName string, 
 				}
 			}
 		}
+	}
+	err = ms.Master().Delete(ctx, entity.SpaceKey(dbId, space.Id)+"/engine_config")
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -1284,8 +1288,14 @@ func (ms *masterService) GetEngineCfg(ctx context.Context, dbName, spaceName str
 
 	space, err := ms.Master().QuerySpaceByName(ctx, dbId, spaceName)
 	if err != nil {
-		errutil.ThrowError(err)
+		log.Error("query space %s/%s err: %s", dbName, spaceName, err.Error())
 	}
+	cfg, err = ms.getEngineConfig(ctx, space)
+
+	if err == nil {
+		return cfg, nil
+	}
+
 	// invoke all space nodeID
 	if space != nil && space.Partitions != nil {
 		for _, partition := range space.Partitions {
@@ -1308,7 +1318,7 @@ func (ms *masterService) GetEngineCfg(ctx context.Context, dbName, spaceName str
 	return nil, nil
 }
 
-func (ms *masterService) ModifyEngineCfg(ctx context.Context, dbName, spaceName string, cacheCfg *entity.EngineConfig) (err error) {
+func (ms *masterService) ModifyEngineCfg(ctx context.Context, dbName, spaceName string, cfg *entity.EngineConfig) (err error) {
 	defer errutil.CatchError(&err)
 	// get space info
 	dbId, err := ms.Master().QueryDBName2Id(ctx, dbName)
@@ -1330,17 +1340,23 @@ func (ms *masterService) ModifyEngineCfg(ctx context.Context, dbName, spaceName 
 					errutil.ThrowError(err)
 					// send rpc query
 					log.Debug("invoke nodeID [%+v],address [%+v]", partition.Id, server.RpcAddr())
-					err = client.UpdateEngineCfg(server.RpcAddr(), cacheCfg, partition.Id)
+					err = client.UpdateEngineCfg(server.RpcAddr(), cfg, partition.Id)
 					errutil.ThrowError(err)
 				}
 			}
 		}
 	}
+
+	err = ms.updateEngineConfig(ctx, space, cfg)
+	if err != nil {
+		log.Error("update engine config err: %s", err.Error())
+		return err
+	}
 	return nil
 }
 
 func (ms *masterService) updateSpaceService(ctx context.Context, dbName, spaceName string, temp *entity.Space) (*entity.Space, error) {
-	// it will lock cluster ,to create space
+	// it will lock cluster to create space
 	mutex := ms.Master().NewLock(ctx, entity.LockSpaceKey(dbName, spaceName), time.Second*300)
 	if err := mutex.Lock(); err != nil {
 		return nil, err
@@ -1462,7 +1478,7 @@ func (ms *masterService) updateSpaceService(ctx context.Context, dbName, spaceNa
 			server, space, p.Id)
 
 		if err := client.UpdatePartition(server.RpcAddr(), space, p.Id); err != nil {
-			log.Debug("UpdatePartition err is [%v]", err)
+			log.Error("UpdatePartition err is [%v]", err)
 			return nil, err
 		}
 	}
@@ -1471,9 +1487,9 @@ func (ms *masterService) updateSpaceService(ctx context.Context, dbName, spaceNa
 	space.Version--
 	if err := ms.updateSpace(ctx, space); err != nil {
 		return nil, err
-	} else {
-		return space, nil
 	}
+
+	return space, nil
 }
 
 func (ms *masterService) updateSpace(ctx context.Context, space *entity.Space) error {
@@ -1486,6 +1502,50 @@ func (ms *masterService) updateSpace(ctx context.Context, space *entity.Space) e
 		return err
 	}
 	if err = ms.Master().Update(ctx, entity.SpaceKey(space.DBId, space.Id), marshal); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (ms *masterService) getEngineConfig(ctx context.Context, space *entity.Space) (cfg *entity.EngineConfig, err error) {
+	marshal, err := ms.Master().Get(ctx, entity.SpaceKey(space.DBId, space.Id)+"/engine_config")
+	if err != nil {
+		return nil, err
+	}
+
+	cfg = &entity.EngineConfig{}
+	if err = vjson.Unmarshal(marshal, cfg); err != nil {
+		return nil, err
+	}
+
+	return cfg, err
+}
+
+func (ms *masterService) updateEngineConfig(ctx context.Context, space *entity.Space, cfg *entity.EngineConfig) error {
+	old_cfg, err := ms.getEngineConfig(ctx, space)
+	if err != nil {
+		log.Error("get engine config err: %s", err.Error())
+	}
+
+	new_cfg := cfg
+	if old_cfg != nil {
+		new_cfg = old_cfg
+		if cfg.EngineCacheSize != nil {
+			new_cfg.EngineCacheSize = cfg.EngineCacheSize
+		}
+		if cfg.LongSearchTime != nil {
+			new_cfg.LongSearchTime = cfg.LongSearchTime
+		}
+		if cfg.Path != nil {
+			new_cfg.Path = cfg.Path
+		}
+	}
+	marshal, err := vjson.Marshal(new_cfg)
+	if err != nil {
+		return err
+	}
+	if err = ms.Master().Update(ctx, entity.SpaceKey(space.DBId, space.Id)+"/engine_config", marshal); err != nil {
 		return err
 	}
 

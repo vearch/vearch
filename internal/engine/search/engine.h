@@ -121,6 +121,7 @@ class Engine {
 
   int max_docid_;
   int training_threshold_;
+  int long_search_time_;
 
   std::atomic<int> delete_num_;
 

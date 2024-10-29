@@ -107,12 +107,6 @@ void GenRandom(std::mt19937 &rng, unsigned *addr, unsigned size, unsigned N) {
   }
 }
 
-double elapsed() {
-  struct timeval tv;
-  gettimeofday(&tv, NULL);
-  return tv.tv_sec + tv.tv_usec * 1e-6;
-}
-
 double getmillisecs() {
   struct timeval tv;
   gettimeofday(&tv, 0);

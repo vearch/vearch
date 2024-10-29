@@ -21,13 +21,13 @@ namespace vearch {
 
 Response::Response() {
   response_ = nullptr;
-  perf_tool_ = (void *)new PerfTool();
+  perf_tool_ = new PerfTool();
 }
 
 Response::Response(bool trace) {
   response_ = nullptr;
   if (trace) {
-    perf_tool_ = (void *)new PerfTool();
+    perf_tool_ = new PerfTool();
   } else {
     perf_tool_ = nullptr;
   }
@@ -35,8 +35,7 @@ Response::Response(bool trace) {
 
 Response::~Response() {
   if (perf_tool_) {
-    PerfTool *perf_tool = static_cast<PerfTool *>(perf_tool_);
-    delete perf_tool;
+    delete perf_tool_;
     perf_tool_ = nullptr;
   }
   delete[] gamma_results_;
@@ -140,8 +139,13 @@ int Response::Serialize(const std::string &space_name,
   if (perf_tool_) {
     PerfTool *perf_tool = static_cast<PerfTool *>(perf_tool_);
     perf_tool->Perf("serialize");
-    LOG(TRACE) << space_name << " " << request_id_ << " "
-               << perf_tool->OutputPerf().str();
+    if (perf_tool->Cost() > perf_tool->long_search_time) {
+      LOG(WARNING) << space_name << " " << request_id_ << " "
+                   << perf_tool->OutputPerf().str();
+    } else {
+      LOG(TRACE) << space_name << " " << request_id_ << " "
+                 << perf_tool->OutputPerf().str();
+    }
   }
   return 0;
 }

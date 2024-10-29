@@ -160,7 +160,6 @@ class Node {
       data_sparse_ = (int *)malloc(capacity_ * sizeof(int));
     } else if (size_ >= capacity_) {
       capacity_ *= 2;
-      // LOG(INFO) << "Sparse capacity [" << capacity_ << "]";
       int *data = (int *)malloc(capacity_ * sizeof(int));
       for (int i = 0; i < size_; ++i) {
         data[i] = data_sparse_[i];
@@ -487,12 +486,10 @@ int FieldRangeIndex::Add(std::string &key, int value) {
   }
 
   bt_close(bt);
-#ifdef PERFORMANCE_TESTING
   add_num_ += 1;
   if (add_num_ % 10000 == 0) {
-    LOG(INFO) << "field index [" << name_ << "] add count: " << add_num_;
+    LOG(DEBUG) << "field index [" << name_ << "] add count: " << add_num_;
   }
-#endif  // PERFORMANCE_TESTING
   return 0;
 }
 
@@ -508,7 +505,7 @@ int FieldRangeIndex::Delete(std::string &key, int value) {
                    reinterpret_cast<unsigned char *>(&p_node), sizeof(Node *));
 
     if (ret < 0) {
-      LOG(WARNING) << "Cannot find docid [" << value << "] in range index";
+      LOG(DEBUG) << "cannot find docid [" << value << "] in range index";
       return;
     }
 
@@ -542,12 +539,10 @@ int FieldRangeIndex::Delete(std::string &key, int value) {
 
   bt_close(bt);
 
-#ifdef PERFORMANCE_TESTING
   delete_num_ += 1;
   if (delete_num_ % 10000 == 0) {
-    LOG(INFO) << "field index [" << name_ << "] delete count: " << delete_num_;
+    LOG(DEBUG) << "field index [" << name_ << "] delete count: " << delete_num_;
   }
-#endif  // PERFORMANCE_TESTING
 
   return 0;
 }
@@ -585,7 +580,7 @@ int FieldRangeIndex::Search(const std::string &lower, const std::string &upper,
     if (key->len == 2) {
       if (((uint16_t)((unsigned char)key->key[0]) << 8 |
            (unsigned char)key->key[1]) == 0xFFFF) {
-        LOG(INFO) << "met the lastkey " << lower << "-" << upper;
+        LOG(DEBUG) << "met the lastkey " << lower << "-" << upper;
       }
       break;
     }
@@ -672,9 +667,9 @@ int FieldRangeIndex::Search(const std::string &lower, const std::string &upper,
 
 #ifdef DEBUG
   double end = utils::getmillisecs();
-  LOG(INFO) << "bt cost [" << search_bt - start << "], resize cost ["
-            << end_resize - search_bt << "], assemble result ["
-            << end - end_resize << "], total [" << end - start << "]";
+  LOG(DEBUG) << "bt cost [" << search_bt - start << "], resize cost ["
+             << end_resize - search_bt << "], assemble result ["
+             << end - end_resize << "], total [" << end - start << "]";
 #endif
   return max_doc - min_doc + 1;
 }
@@ -701,7 +696,7 @@ int FieldRangeIndex::Search(const std::string &tags, RangeQueryResult *result) {
     bt_close(bt);
 
     if (ret < 0) {
-      LOG(WARNING) << "find node failed, key=" << item;
+      LOG(DEBUG) << "find node failed, key=" << item;
       continue;
     }
     if (p_node == nullptr) {
@@ -762,8 +757,8 @@ int FieldRangeIndex::Search(const std::string &tags, RangeQueryResult *result) {
 
 #ifdef DEBUG
   double end = utils::getmillisecs();
-  LOG(INFO) << "find node cost [" << fend - begin << "], merge cost ["
-            << end - mbegin << "], total [" << end - begin << "]";
+  LOG(DEBUG) << "find node cost [" << fend - begin << "], merge cost ["
+             << end - mbegin << "], total [" << end - begin << "]";
 #endif
   return total;
 }

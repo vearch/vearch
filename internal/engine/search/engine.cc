@@ -37,6 +37,8 @@ using json = nlohmann::json;
 
 namespace vearch {
 
+class PerfTool;
+
 bool RequestConcurrentController::Acquire(int req_num) {
 #ifndef __APPLE__
   int num = __sync_fetch_and_add(&cur_concurrent_num_, req_num);
@@ -129,6 +131,7 @@ Engine::Engine(const std::string &index_root_path,
 #ifdef PERFORMANCE_TESTING
   search_num_ = 0;
 #endif
+  long_search_time_ = 1000;
 }
 
 Engine::~Engine() {
@@ -265,11 +268,12 @@ Status Engine::Search(Request &request, Response &response_results) {
     return status;
   }
 
+  auto *perf_tool = response_results.GetPerfTool();
+  perf_tool->long_search_time = long_search_time_;
   GammaQuery query;
   query.vec_query = vec_fields;
 
-  query.condition = new SearchCondition(
-      static_cast<PerfTool *>(response_results.GetPerfTool()));
+  query.condition = new SearchCondition(response_results.GetPerfTool());
   query.condition->topn = topn;
   query.condition->multi_vector_rank =
       request.MultiVectorRank() == 1 ? true : false;
@@ -293,15 +297,15 @@ Status Engine::Search(Request &request, Response &response_results) {
       }
       RequestConcurrentController::GetInstance().Release(req_num);
       return Status::InvalidArgument();
-    } else {
-      status = query.condition->ranker->Parse();
-      if (!status.ok()) {
-        std::string msg =
-            "ranker parse err, ranker: " + query.condition->ranker->ToString();
-        LOG(WARNING) << msg;
-        RequestConcurrentController::GetInstance().Release(req_num);
-        return status;
-      }
+    }
+
+    status = query.condition->ranker->Parse();
+    if (!status.ok()) {
+      std::string msg =
+          " ranker parse err, ranker: " + query.condition->ranker->ToString();
+      LOG(WARNING) << request.RequestId() << msg;
+      RequestConcurrentController::GetInstance().Release(req_num);
+      return status;
     }
   }
 
@@ -431,7 +435,7 @@ Status Engine::Query(QueryRequest &request, Response &response_results) {
     if (num <= 0) {
       std::string msg =
           space_name_ + " no result: numeric filter return 0 result";
-      LOG(DEBUG) << msg;
+      LOG(TRACE) << request.RequestId() << " " << msg;
       SearchResult result;
       result.msg = msg;
       result.result_code = SearchResultCode::SUCCESS;
@@ -498,7 +502,7 @@ int Engine::MultiRangeQuery(Request &request, SearchCondition *condition,
   if (num == 0) {
     std::string msg =
         space_name_ + " no result: numeric filter return 0 result";
-    LOG(DEBUG) << msg;
+    LOG(TRACE) << request.RequestId() << " " << msg;
     for (int i = 0; i < request.ReqNum(); ++i) {
       SearchResult result;
       result.msg = msg;
@@ -558,7 +562,7 @@ Status Engine::CreateTable(TableInfo &table) {
 
   status = storage_mgr_->Init(cache_size);
   if (!status.ok()) {
-    LOG(ERROR) << "init gamma db error, ret=" << status.ToString();
+    LOG(ERROR) << "init error, ret=" << status.ToString();
     return status;
   }
 
@@ -604,7 +608,8 @@ int Engine::AddOrUpdate(Doc &doc) {
     }
   } else {
     if (Update(docid, fields_table, fields_vec)) {
-      LOG(DEBUG) << "update error, key=" << key << ", docid=" << docid;
+      LOG(DEBUG) << space_name_ << " update error, key=" << key
+                 << ", docid=" << docid;
       return -3;
     }
     is_dirty_ = true;
@@ -617,14 +622,15 @@ int Engine::AddOrUpdate(Doc &doc) {
   // add vectors by VectorManager
   ret = vec_manager_->AddToStore(max_docid_, fields_vec);
   if (ret != 0) {
-    LOG(ERROR) << "Add to store error max_docid [" << max_docid_
+    LOG(ERROR) << space_name_ << " add to store error max_docid [" << max_docid_
                << "] err=" << ret;
     return -4;
   }
   ++max_docid_;
   ret = docids_bitmap_->SetMaxID(max_docid_);
   if (ret != 0) {
-    LOG(ERROR) << "Bitmap set max_docid [" << max_docid_ << "] err= " << ret;
+    LOG(ERROR) << space_name_ << " Bitmap set max_docid [" << max_docid_
+               << "] err= " << ret;
     return -5;
   };
 
@@ -638,8 +644,8 @@ int Engine::AddOrUpdate(Doc &doc) {
 #ifdef PERFORMANCE_TESTING
   double end = utils::getmillisecs();
   if (max_docid_ % 10000 == 0) {
-    LOG(INFO) << space_name_ << " table cost [" << end_table - start
-              << "]ms, vec store cost [" << end - end_table << "]ms";
+    LOG(DEBUG) << space_name_ << " table cost [" << end_table - start
+               << "]ms, vec store cost [" << end - end_table << "]ms";
   }
 #endif
   is_dirty_ = true;
@@ -665,7 +671,7 @@ int Engine::Update(int doc_id,
   }
 
   if (table_->Update(fields_table, doc_id) != 0) {
-    LOG(DEBUG) << "table update error";
+    LOG(ERROR) << space_name_ << " table update error";
     return -1;
   }
 
@@ -677,7 +683,8 @@ int Engine::Update(int doc_id,
     field_range_index_->Add(doc_id, idx);
   }
 
-  LOG(DEBUG) << "update success! key=" << fields_table["_id"].value
+  LOG(DEBUG) << space_name_
+             << " update success, key=" << fields_table["_id"].value
              << ", doc_id=" << doc_id;
   is_dirty_ = true;
   return 0;
@@ -693,7 +700,7 @@ int Engine::Delete(std::string &key) {
   }
   ret = docids_bitmap_->Set(docid);
   if (ret) {
-    LOG(ERROR) << "bitmap set failed: ret=" << ret;
+    LOG(ERROR) << space_name_ << " bitmap set failed: ret=" << ret;
     return ret;
   }
   ++delete_num_;
@@ -786,7 +793,7 @@ int Engine::BuildIndex() {
   int running = __sync_fetch_and_add(&b_running_, 1);
   if (running) {
     if (vec_manager_->TrainIndex(vec_manager_->VectorIndexes()) != 0) {
-      LOG(ERROR) << "Create index failed!";
+      LOG(ERROR) << space_name_ << " create index failed!";
       return -1;
     }
     return 0;
@@ -812,10 +819,11 @@ int Engine::RebuildIndex(int drop_before_rebuild, int limit_cpu, int describe) {
     Status status =
         vec_manager_->CreateVectorIndexes(training_threshold_, vector_indexes);
     if (vec_manager_->TrainIndex(vector_indexes) != 0) {
-      LOG(ERROR) << "RebuildIndex TrainIndex failed!";
+      LOG(ERROR) << space_name_ << " RebuildIndex TrainIndex failed!";
       return -1;
     }
-    LOG(INFO) << "vector manager RebuildIndex TrainIndex success!";
+    LOG(INFO) << space_name_
+              << " vector manager RebuildIndex TrainIndex success!";
   }
 
   index_status_ = IndexStatus::UNINDEXED;
@@ -832,24 +840,26 @@ int Engine::RebuildIndex(int drop_before_rebuild, int limit_cpu, int describe) {
     Status status = vec_manager_->CreateVectorIndexes(
         training_threshold_, vec_manager_->VectorIndexes());
     if (!status.ok()) {
-      LOG(ERROR) << "RebuildIndex CreateVectorIndexes failed: "
+      LOG(ERROR) << space_name_ << " RebuildIndex CreateVectorIndexes failed: "
                  << status.ToString();
       vec_manager_->DestroyVectorIndexes();
       return ret;
     }
     if (vec_manager_->TrainIndex(vec_manager_->VectorIndexes()) != 0) {
-      LOG(ERROR) << "RebuildIndex TrainIndex failed!";
+      LOG(ERROR) << space_name_ << " RebuildIndex TrainIndex failed!";
       return -1;
     }
-    LOG(INFO) << "vector manager RebuildIndex TrainIndex success!";
+    LOG(INFO) << space_name_
+              << " vector manager RebuildIndex TrainIndex success!";
   } else {
     vec_manager_->SetVectorIndexes(vector_indexes);
-    LOG(INFO) << "vector manager SetVectorIndexes success!";
+    LOG(INFO) << space_name_ << " vector manager SetVectorIndexes success!";
   }
 
   ret = BuildIndex();
   if (ret) {
-    LOG(ERROR) << "ReBuildIndex BuildIndex failed, ret: " << ret;
+    LOG(ERROR) << space_name_
+               << " ReBuildIndex BuildIndex failed, ret: " << ret;
     return ret;
   }
 
@@ -858,12 +868,12 @@ int Engine::RebuildIndex(int drop_before_rebuild, int limit_cpu, int describe) {
 
 int Engine::Indexing() {
   if (vec_manager_->TrainIndex(vec_manager_->VectorIndexes()) != 0) {
-    LOG(ERROR) << "Create index failed!";
+    LOG(ERROR) << space_name_ << " create index failed!";
     b_running_ = 0;
     return -1;
   }
 
-  LOG(INFO) << "vector manager TrainIndex success!";
+  LOG(INFO) << space_name_ << " vector manager TrainIndex success!";
   int ret = 0;
   bool has_error = false;
   while (b_running_) {
@@ -882,7 +892,7 @@ int Engine::Indexing() {
     if (index_is_dirty == true) {
       is_dirty_ = true;
     }
-    usleep(1000 * 1000);  // sleep 5000ms
+    usleep(1000 * 1000);  // sleep 1000ms
   }
   running_cv_.notify_one();
   LOG(INFO) << space_name_ << " build index exited!";
@@ -1318,19 +1328,20 @@ void Engine::BacupThread(int command) {
 
     std::ifstream compressed_file(compressed_filename, std::ios::binary);
     if (!compressed_file.is_open()) {
-      LOG(ERROR) << "Failed to open file: " << compressed_filename;
+      LOG(ERROR) << space_name_
+                 << " failed to open file: " << compressed_filename;
       goto out;
     }
 
     ZSTD_DStream *const dstream = ZSTD_createDStream();
     if (dstream == NULL) {
-      LOG(ERROR) << "Failed to create ZSTD_DStream";
+      LOG(ERROR) << space_name_ << " failed to create ZSTD_DStream";
       goto out;
     }
 
     size_t const initResult = ZSTD_initDStream(dstream);
     if (ZSTD_isError(initResult)) {
-      LOG(ERROR) << "ZSTD_initDStream() error: "
+      LOG(ERROR) << space_name_ << " ZSTD_initDStream() error: "
                  << ZSTD_getErrorName(initResult);
       ZSTD_freeDStream(dstream);
       goto out;
@@ -1353,7 +1364,7 @@ void Engine::BacupThread(int command) {
         output.pos = 0;
         size_t const ret = ZSTD_decompressStream(dstream, &output, &input);
         if (ZSTD_isError(ret)) {
-          LOG(ERROR) << "ZSTD_decompressStream() error: "
+          LOG(ERROR) << space_name_ << " ZSTD_decompressStream() error: "
                      << ZSTD_getErrorName(ret);
           ZSTD_freeDStream(dstream);
           goto out;
@@ -1392,7 +1403,7 @@ void Engine::BacupThread(int command) {
     ZSTD_freeDStream(dstream);
 
     LOG(INFO) << space_name_ << " restored from [" << compressed_filename
-              << "] successfully!, max_docid_=" << max_docid_;
+              << "], max_docid_=" << max_docid_;
   }
 
 out:
@@ -1430,6 +1441,7 @@ int Engine::GetConfig(std::string &conf_str) {
   nlohmann::json j;
   j["engine_cache_size"] = table_cache_size;
   j["path"] = index_root_path_;
+  j["long_search_time"] = long_search_time_;
   conf_str = j.dump();
   return 0;
 }
@@ -1437,8 +1449,18 @@ int Engine::GetConfig(std::string &conf_str) {
 int Engine::SetConfig(std::string conf_str) {
   nlohmann::json j = nlohmann::json::parse(conf_str);
 
-  size_t table_cache_size = j["engine_cache_size"];
-  storage_mgr_->AlterCacheSize(table_cache_size);
+  if (j.contains("engine_cache_size")) {
+    size_t table_cache_size = j["engine_cache_size"];
+    storage_mgr_->AlterCacheSize(table_cache_size);
+  }
+
+  if (j.contains("path")) {
+    index_root_path_ = j["path"];
+  }
+
+  if (j.contains("long_search_time")) {
+    long_search_time_ = j["long_search_time"];
+  }
   return 0;
 }
 
