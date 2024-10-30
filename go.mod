@@ -4,7 +4,7 @@ go 1.22.0
 
 require (
 	github.com/BurntSushi/toml v1.1.0
-	github.com/bytedance/sonic v1.11.6
+	github.com/bytedance/sonic v1.12.3
 	github.com/caio/go-tdigest v3.1.0+incompatible
 	github.com/codahale/hdrhistogram v0.9.0
 	github.com/cubefs/cubefs v1.5.2-0.20230627111954-f55e96950618
@@ -32,7 +32,7 @@ require (
 	go.etcd.io/etcd/server/v3 v3.5.12
 	go.uber.org/atomic v1.9.0
 	golang.org/x/exp v0.0.0-20230713183714-613f0c0eb8a1
-	google.golang.org/grpc v1.64.0
+	google.golang.org/grpc v1.64.1
 	google.golang.org/protobuf v1.34.2
 	gotest.tools v2.1.1-0.20181001141646-317cc193f525+incompatible
 )
@@ -42,7 +42,7 @@ require (
 	github.com/apache/thrift v0.16.0 // indirect
 	github.com/armon/go-metrics v0.4.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
-	github.com/bytedance/sonic/loader v0.1.1 // indirect
+	github.com/bytedance/sonic/loader v0.2.0 // indirect
 	github.com/cenk/backoff v2.2.1+incompatible // indirect
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect

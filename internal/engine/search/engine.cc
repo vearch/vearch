@@ -269,7 +269,9 @@ Status Engine::Search(Request &request, Response &response_results) {
   }
 
   auto *perf_tool = response_results.GetPerfTool();
-  perf_tool->long_search_time = long_search_time_;
+  if (perf_tool) {
+    perf_tool->long_search_time = long_search_time_;
+  }
   GammaQuery query;
   query.vec_query = vec_fields;
 
