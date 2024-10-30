@@ -250,8 +250,8 @@ class TestAlias:
         assert response.json()["code"] == 0
 
     def test_destroy_db_and_space(self):
-        response = list_spaces(router_url, db_name)
-        for space in response.json()["data"]:
+        space_response = list_spaces(router_url, db_name)
+        for space in space_response.json()["data"]:
             response = create_alias(
                 router_url, "alias_name", db_name, space["space_name"])
             assert response.json()["code"] == 0

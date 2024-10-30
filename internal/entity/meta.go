@@ -35,6 +35,10 @@ func SpaceKey(dbID, spaceId int64) string {
 	return fmt.Sprintf("%s%d/%d", PrefixSpace, dbID, spaceId)
 }
 
+func SpaceConfigKey(dbID, spaceId int64) string {
+	return fmt.Sprintf("%s%d/%d", PrefixSpaceConfig, dbID, spaceId)
+}
+
 func PartitionKey(partitionID uint32) string {
 	return fmt.Sprintf("%s%d", PrefixPartition, partitionID)
 }
@@ -125,6 +129,7 @@ var (
 	PrefixLockCluster  = "/lock/cluster"
 	PrefixServer       = "/server/"
 	PrefixSpace        = "/space/"
+	PrefixSpaceConfig  = "/space_config/"
 	PrefixPartition    = "/partition/"
 	PrefixDataBase     = "/db/"
 	PrefixDataBaseBody = "/db/body/"
