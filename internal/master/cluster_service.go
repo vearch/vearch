@@ -655,7 +655,7 @@ func (ms *masterService) deleteSpaceService(ctx context.Context, dbName string, 
 			}
 		}
 	}
-	err = ms.Master().Delete(ctx, entity.SpaceKey(dbId, space.Id)+"/engine_config")
+	err = ms.Master().Delete(ctx, entity.SpaceConfigKey(dbId, space.Id))
 	if err != nil {
 		return err
 	}
@@ -1289,6 +1289,7 @@ func (ms *masterService) GetEngineCfg(ctx context.Context, dbName, spaceName str
 	space, err := ms.Master().QuerySpaceByName(ctx, dbId, spaceName)
 	if err != nil {
 		log.Error("query space %s/%s err: %s", dbName, spaceName, err.Error())
+		return nil, err
 	}
 	cfg, err = ms.getEngineConfig(ctx, space)
 
@@ -1315,7 +1316,7 @@ func (ms *masterService) GetEngineCfg(ctx context.Context, dbName, spaceName str
 			}
 		}
 	}
-	return nil, nil
+	return nil, fmt.Errorf("cannot get engine config")
 }
 
 func (ms *masterService) ModifyEngineCfg(ctx context.Context, dbName, spaceName string, cfg *entity.EngineConfig) (err error) {
@@ -1509,7 +1510,8 @@ func (ms *masterService) updateSpace(ctx context.Context, space *entity.Space) e
 }
 
 func (ms *masterService) getEngineConfig(ctx context.Context, space *entity.Space) (cfg *entity.EngineConfig, err error) {
-	marshal, err := ms.Master().Get(ctx, entity.SpaceKey(space.DBId, space.Id)+"/engine_config")
+	defer errutil.CatchError(&err)
+	marshal, err := ms.Master().Get(ctx, entity.SpaceConfigKey(space.DBId, space.Id))
 	if err != nil {
 		return nil, err
 	}
@@ -1545,7 +1547,7 @@ func (ms *masterService) updateEngineConfig(ctx context.Context, space *entity.S
 	if err != nil {
 		return err
 	}
-	if err = ms.Master().Update(ctx, entity.SpaceKey(space.DBId, space.Id)+"/engine_config", marshal); err != nil {
+	if err = ms.Master().Update(ctx, entity.SpaceConfigKey(space.DBId, space.Id), marshal); err != nil {
 		return err
 	}
 
