@@ -329,8 +329,8 @@ int GammaIndexHNSWLIB::AddVertices(size_t n0, size_t n, const float *x) {
 #ifdef PERFORMANCE_TESTING
   add_count_ += n;
   if (add_count_ >= 10000) {
-    LOG(INFO) << "adding elements on top of " << n0 << ", average add time "
-              << (utils::getmillisecs() - t0) / n << " ms";
+    LOG(DEBUG) << "adding elements on top of " << n0 << ", average add time "
+               << (utils::getmillisecs() - t0) / n << " ms";
     add_count_ = 0;
   }
 #endif  // PERFORMANCE_TESTING
@@ -439,8 +439,8 @@ int GammaIndexHNSWLIB::Update(const std::vector<int64_t> &ids,
     updatePoint((const void *)vecs[i], ids[i], 1.0);
   }
   updated_num_ += ids.size();
-  LOG(INFO) << "update index success! size=" << ids.size()
-            << ", total=" << updated_num_;
+  LOG(DEBUG) << "update index success! size=" << ids.size()
+             << ", total=" << updated_num_;
   return 0;
 }
 

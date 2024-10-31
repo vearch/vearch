@@ -190,7 +190,7 @@ Status GammaIVFPQIndex::Init(const std::string &model_parameters,
   // if nlist is very large,
   // the size of RTInvertIndex bucket should be smaller
   rt_invert_index_ptr_ = new realtime::RTInvertIndex(
-      this->nlist, this->code_size, raw_vec->VidMgr(), raw_vec->Bitmap(),
+      this->nlist, this->code_size, raw_vec->Bitmap(),
       ivfpq_param.bucket_init_size, ivfpq_param.bucket_max_size);
 
   if (this->invlists) {
@@ -208,8 +208,9 @@ Status GammaIVFPQIndex::Init(const std::string &model_parameters,
   if ((size_t)ivfpq_param.nprobe <= this->nlist) {
     this->nprobe = ivfpq_param.nprobe;
   } else {
-    std::string msg = "nprobe = " + std::to_string(ivfpq_param.nprobe) + 
-      " should less than ncentroids = " + std::to_string(this->nlist);
+    std::string msg =
+        "nprobe = " + std::to_string(ivfpq_param.nprobe) +
+        " should less than ncentroids = " + std::to_string(this->nlist);
     LOG(ERROR) << msg;
     return Status::ParamError(msg);
   }
@@ -228,12 +229,14 @@ RetrievalParameters *GammaIVFPQIndex::Parse(const std::string &parameters) {
   }
 
   std::string metric_type;
-  IVFPQRetrievalParameters *retrieval_params = new IVFPQRetrievalParameters(this->nprobe, metric_type_);
+  IVFPQRetrievalParameters *retrieval_params =
+      new IVFPQRetrievalParameters(this->nprobe, metric_type_);
   if (!jp.GetString("metric_type", metric_type)) {
     if (strcasecmp("L2", metric_type.c_str()) &&
         strcasecmp("InnerProduct", metric_type.c_str())) {
       LOG(ERROR) << "invalid metric_type = " << metric_type
-                 << ", so use default value " << (int)retrieval_params->GetDistanceComputeType();
+                 << ", so use default value "
+                 << (int)retrieval_params->GetDistanceComputeType();
     }
     if (!strcasecmp("L2", metric_type.c_str())) {
       retrieval_params->SetDistanceComputeType(DistanceComputeType::L2);
@@ -279,7 +282,7 @@ RetrievalParameters *GammaIVFPQIndex::Parse(const std::string &parameters) {
 
 int GammaIVFPQIndex::Indexing() {
   if (this->is_trained) {
-    LOG(INFO) << "gamma ivfpq index is already trained, skip indexing";
+    LOG(INFO) << "ivfpq index is already trained, skip indexing";
     return 0;
   }
   RawVector *raw_vec = dynamic_cast<RawVector *>(vector_);
@@ -398,8 +401,8 @@ int GammaIVFPQIndex::Update(const std::vector<int64_t> &ids,
     rt_invert_index_ptr_->Update(idx, ids[i], xcodes);
   }
   updated_num_ += ids.size();
-  LOG(INFO) << "update index success! size=" << ids.size()
-            << ", total=" << updated_num_;
+  LOG(DEBUG) << "update index success! size=" << ids.size()
+             << ", total=" << updated_num_;
 
   // now check id need to do compaction
   rt_invert_index_ptr_->CompactIfNeed();
@@ -472,8 +475,8 @@ bool GammaIVFPQIndex::Add(int n, const uint8_t *vec) {
   add_count_ += n;
   if (add_count_ >= 10000) {
     double t1 = faiss::getmillisecs();
-    LOG(INFO) << "Add time [" << (t1 - t0) / n << "]ms, count "
-              << indexed_vec_count_;
+    LOG(DEBUG) << "Add time [" << (t1 - t0) / n << "]ms, count "
+               << indexed_vec_count_;
     add_count_ = 0;
   }
 #endif
@@ -579,7 +582,7 @@ size_t scan_one_list(GammaInvertedListScanner *scanner, idx_t key,
     return 0;
   }
   if (key >= (idx_t)nlist) {
-    LOG(INFO) << "Invalid key=" << key << ", nlist=" << nlist;
+    LOG(WARNING) << "Invalid key=" << key << ", nlist=" << nlist;
     return 0;
   }
 

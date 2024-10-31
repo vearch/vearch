@@ -878,14 +878,14 @@ struct IVFPQModelParams {
 
   std::string ToString() {
     std::stringstream ss;
-    ss << "ncentroids =" << ncentroids << ", ";
-    ss << "nsubvector =" << nsubvector << ", ";
-    ss << "nbits_per_idx =" << nbits_per_idx << ", ";
-    ss << "nprobe =" << nprobe << ", ";
-    ss << "metric_type =" << (int)metric_type << ", ";
-    ss << "bucket_init_size =" << bucket_init_size << ", ";
-    ss << "bucket_max_size =" << bucket_max_size << ", ";
-    ss << "training_threshold = " << training_threshold;
+    ss << "ncentroids=" << ncentroids << ", ";
+    ss << "nsubvector=" << nsubvector << ", ";
+    ss << "nbits_per_idx=" << nbits_per_idx << ", ";
+    ss << "nprobe=" << nprobe << ", ";
+    ss << "metric_type=" << (int)metric_type << ", ";
+    ss << "bucket_init_size=" << bucket_init_size << ", ";
+    ss << "bucket_max_size=" << bucket_max_size << ", ";
+    ss << "training_threshold=" << training_threshold;
 
     if (has_hnsw) {
       ss << ", hnsw: nlinks=" << nlinks << ", ";

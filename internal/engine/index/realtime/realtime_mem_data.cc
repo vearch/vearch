@@ -26,7 +26,6 @@ RTInvertBucketData::RTInvertBucketData(RTInvertBucketData *other) {
   cur_bucket_keys_ = other->cur_bucket_keys_;
   bucket_extend_time_ = other->bucket_extend_time_;
   codes_array_ = other->codes_array_;
-  vid_mgr_ = other->vid_mgr_;
   docids_bitmap_ = other->docids_bitmap_;
   vid_bucket_no_pos_ = other->vid_bucket_no_pos_;
   deleted_nums_ = other->deleted_nums_;
@@ -35,15 +34,13 @@ RTInvertBucketData::RTInvertBucketData(RTInvertBucketData *other) {
   nids_ = other->nids_;
 }
 
-RTInvertBucketData::RTInvertBucketData(VIDMgr *vid_mgr,
-                                       bitmap::BitmapManager *docids_bitmap)
+RTInvertBucketData::RTInvertBucketData(bitmap::BitmapManager *docids_bitmap)
     : docids_bitmap_(docids_bitmap) {
   idx_array_ = nullptr;
   retrieve_idx_pos_ = nullptr;
   cur_bucket_keys_ = nullptr;
   bucket_extend_time_ = nullptr;
   codes_array_ = nullptr;
-  vid_mgr_ = vid_mgr;
   vid_bucket_no_pos_ = nullptr;
   deleted_nums_ = nullptr;
   compacted_num_ = 0;
@@ -98,8 +95,8 @@ void RTInvertBucketData::CompactOne(const size_t &bucket_no, long *&dst_idx,
                                     uint8_t *&dst_code, long *&src_idx,
                                     uint8_t *&src_code, int &pos,
                                     const size_t &code_bytes_per_vec) {
-  if (!(*src_idx & kDelIdxMask) && not docids_bitmap_->Test(vid_mgr_->VID2DocID(
-                                       *src_idx & kRecoverIdxMask))) {
+  if (!(*src_idx & kDelIdxMask) &&
+      not docids_bitmap_->Test(*src_idx & kRecoverIdxMask)) {
     *dst_idx = *src_idx;
     memcpy((void *)dst_code, (void *)(src_code), (size_t)code_bytes_per_vec);
     vid_bucket_no_pos_[*dst_idx] = bucket_no << 32 | pos++;
@@ -216,7 +213,7 @@ void RTInvertBucketData::ExtendIDs() {
   utils::AsyncWait(1000, func_free, old_array);
 }
 
-RealTimeMemData::RealTimeMemData(size_t buckets_num, VIDMgr *vid_mgr,
+RealTimeMemData::RealTimeMemData(size_t buckets_num,
                                  bitmap::BitmapManager *docids_bitmap,
                                  size_t bucket_keys, size_t bucket_keys_limit,
                                  size_t code_bytes_per_vec)
@@ -224,7 +221,6 @@ RealTimeMemData::RealTimeMemData(size_t buckets_num, VIDMgr *vid_mgr,
       bucket_keys_(bucket_keys),
       bucket_keys_limit_(bucket_keys_limit),
       code_bytes_per_vec_(code_bytes_per_vec),
-      vid_mgr_(vid_mgr),
       docids_bitmap_(docids_bitmap) {
   cur_invert_ptr_ = nullptr;
   extend_invert_ptr_ = nullptr;
@@ -253,8 +249,7 @@ RealTimeMemData::~RealTimeMemData() {
 
 bool RealTimeMemData::Init() {
   CHECK_DELETE(cur_invert_ptr_);
-  cur_invert_ptr_ =
-      new (std::nothrow) RTInvertBucketData(vid_mgr_, docids_bitmap_);
+  cur_invert_ptr_ = new (std::nothrow) RTInvertBucketData(docids_bitmap_);
   return cur_invert_ptr_ &&
          cur_invert_ptr_->Init(buckets_num_, bucket_keys_, code_bytes_per_vec_,
                                total_mem_bytes_);
@@ -289,8 +284,7 @@ bool RealTimeMemData::AddKeys(size_t list_no, size_t n, std::vector<long> &keys,
     }
     cur_invert_ptr_->vid_bucket_no_pos_[keys[i]] = list_no << 32 | retrive_pos;
     retrive_pos++;
-    if (cur_invert_ptr_->docids_bitmap_->Test(
-            cur_invert_ptr_->vid_mgr_->VID2DocID(keys[i]))) {
+    if (cur_invert_ptr_->docids_bitmap_->Test(keys[i])) {
       cur_invert_ptr_->Delete(keys[i]);
     }
   }

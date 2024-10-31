@@ -69,7 +69,7 @@ class RawVector : public VectorReader {
    *
    * @return 0 if successed
    */
-  int Init(std::string vec_name, bool multi_vids);
+  int Init(std::string vec_name);
 
   /** get the header of vectors, so it can access vecotors through the
    * header if dimension is known
@@ -146,7 +146,6 @@ class RawVector : public VectorReader {
 
   bool WithIO() { return meta_info_->with_io_; }
 
-  VIDMgr *VidMgr() const { return vid_mgr_; }
   bitmap::BitmapManager *Bitmap() { return docids_bitmap_; }
   long VectorByteSize() { return vector_byte_size_; }
   DumpConfig *GetDumpConfig();
@@ -173,7 +172,6 @@ class RawVector : public VectorReader {
   std::string desc_;      // description of this raw vector
   StoreParams store_params_;
   bitmap::BitmapManager *docids_bitmap_;
-  VIDMgr *vid_mgr_;
 };
 
 }  // namespace vearch

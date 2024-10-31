@@ -38,23 +38,20 @@ class RealTimeMemDataTest : public ::testing::Test {
       LOG(ERROR) << "Cannot create bitmap!";
       return;
     }
-    vid_mgr = new VIDMgr(false);
     bucket_keys = 100;
     bucket_keys_limit = bucket_keys * 10;
     code_byte_size = 64;
     M_ = code_byte_size;
     group_size_ = 4;
-    realtime_data = new realtime::RealTimeMemData(
-        buckets_num, vid_mgr, docids_bitmap, bucket_keys, bucket_keys_limit,
-        code_byte_size);
+    realtime_data =
+        new realtime::RealTimeMemData(buckets_num, docids_bitmap, bucket_keys,
+                                      bucket_keys_limit, code_byte_size);
     ASSERT_EQ(true, realtime_data->Init());
   }
 
   // You can define per-test tear-down logic as usual.
   virtual void TearDown() {
-    CHECK_DELETE(vid_mgr);
     CHECK_DELETE(realtime_data);
-    // CHECK_DELETE_ARRAY(vid2docid);
     CHECK_DELETE(docids_bitmap);
   }
 
@@ -100,8 +97,6 @@ class RealTimeMemDataTest : public ::testing::Test {
   int code_byte_size;
   int M_;
   int group_size_;
-  // int *vid2docid;
-  VIDMgr *vid_mgr;
   bitmap::BitmapManager *docids_bitmap;
   int max_vec_size;
   int buckets_num;
@@ -283,9 +278,9 @@ TEST_F(RealTimeMemDataTest, DumpLoad) {
   delete fw;
 
   // load
-  realtime::RealTimeMemData *new_realtime_data = new realtime::RealTimeMemData(
-      buckets_num, vid_mgr, docids_bitmap, bucket_keys, bucket_keys_limit,
-      code_byte_size);
+  realtime::RealTimeMemData *new_realtime_data =
+      new realtime::RealTimeMemData(buckets_num, docids_bitmap, bucket_keys,
+                                    bucket_keys_limit, code_byte_size);
   ASSERT_EQ(true, new_realtime_data->Init());
 
   rt_invert_index->cur_ptr_ = new_realtime_data;

@@ -28,7 +28,7 @@ const static long kRecoverIdxMask = ~kDelIdxMask;  // 0x7fffffffffffffff
 
 struct RTInvertBucketData {
   RTInvertBucketData(RTInvertBucketData *other);
-  RTInvertBucketData(VIDMgr *vid_mgr, bitmap::BitmapManager *docids_bitmap);
+  RTInvertBucketData(bitmap::BitmapManager *docids_bitmap);
 
   bool Init(const size_t &buckets_num, const size_t &bucket_keys,
             const size_t &code_bytes_per_vec,
@@ -58,7 +58,6 @@ struct RTInvertBucketData {
   uint8_t *bucket_extend_time_;
   uint8_t **codes_array_;
   // int *dump_latest_pos_;
-  VIDMgr *vid_mgr_;
   bitmap::BitmapManager *docids_bitmap_;
   std::atomic<long> *vid_bucket_no_pos_;
   std::atomic<int> *deleted_nums_;
@@ -69,8 +68,7 @@ struct RTInvertBucketData {
 
 struct RealTimeMemData {
  public:
-  RealTimeMemData(size_t buckets_num, VIDMgr *vid_mgr,
-                  bitmap::BitmapManager *docids_bitmap,
+  RealTimeMemData(size_t buckets_num, bitmap::BitmapManager *docids_bitmap,
                   size_t bucket_keys = 500, size_t bucket_keys_limit = 1000000,
                   size_t code_bytes_per_vec = 512 * sizeof(float));
   ~RealTimeMemData();
@@ -112,7 +110,6 @@ struct RealTimeMemData {
   size_t code_bytes_per_vec_;
   std::atomic<long> total_mem_bytes_;
 
-  VIDMgr *vid_mgr_;
   bitmap::BitmapManager *docids_bitmap_;
 };
 

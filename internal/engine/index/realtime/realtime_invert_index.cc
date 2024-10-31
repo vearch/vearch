@@ -13,14 +13,13 @@
 namespace vearch {
 namespace realtime {
 
-RTInvertIndex::RTInvertIndex(size_t nlist, size_t code_size, VIDMgr *vid_mgr,
+RTInvertIndex::RTInvertIndex(size_t nlist, size_t code_size,
                              bitmap::BitmapManager *docids_bitmap,
                              size_t bucket_keys, size_t bucket_keys_limit)
     : nlist_(nlist),
       code_size_(code_size),
       bucket_keys_(bucket_keys),
       bucket_keys_limit_(bucket_keys_limit),
-      vid_mgr_(vid_mgr),
       docids_bitmap_(docids_bitmap) {
   cur_ptr_ = nullptr;
 }
@@ -34,9 +33,8 @@ RTInvertIndex::~RTInvertIndex() {
 
 bool RTInvertIndex::Init() {
   CHECK_DELETE(cur_ptr_);
-  cur_ptr_ = new (std::nothrow)
-      RealTimeMemData(nlist_, vid_mgr_, docids_bitmap_, bucket_keys_,
-                      bucket_keys_limit_, code_size_);
+  cur_ptr_ = new (std::nothrow) RealTimeMemData(
+      nlist_, docids_bitmap_, bucket_keys_, bucket_keys_limit_, code_size_);
   if (nullptr == cur_ptr_) return false;
 
   if (!cur_ptr_->Init()) return false;

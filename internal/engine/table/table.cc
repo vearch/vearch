@@ -203,8 +203,8 @@ int Table::Add(const std::string &key,
   storage_mgr_->Add(cf_id_, docid, doc_value.data(), item_length_);
 
   if (docid % 10000 == 0) {
-    LOG(INFO) << name_ << " add item _id [" << key << "], num [" << docid
-              << "]";
+    LOG(DEBUG) << name_ << " add item _id [" << key << "], num [" << docid
+               << "]";
   }
   last_docid_ = docid;
   return 0;

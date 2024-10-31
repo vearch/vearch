@@ -58,6 +58,11 @@ struct VectorResult {
   }
 
   void init(int a, int b) {
+    if (dists || docids) {
+      LOG(WARNING) << "allocate memory repeatedly and release the old one";
+      return;
+    }
+
     n = a;
     topn = b;
     dists = new float[n * topn];
@@ -199,7 +204,13 @@ struct GammaResult {
   }
 
   void init(int n, std::string *vec_names, int vec_num) {
+    if (docs) {
+      LOG(WARNING) << "allocate memory repeatedly and release the old one";
+      return;
+    }
+
     topn = n;
+
     docs = new (std::nothrow) VectorDoc *[topn];
     assert(docs != nullptr);
 

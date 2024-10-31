@@ -68,10 +68,9 @@ Status VectorManager::SetVectorStoreType(std::string &index_type,
 }
 
 Status VectorManager::CreateRawVector(struct VectorInfo &vector_info,
-                                      std::string &index_type,
-                                      std::map<std::string, int> &vec_dups,
-                                      TableInfo &table, RawVector **vec,
-                                      int cf_id, StorageManager *storage_mgr) {
+                                      std::string &index_type, TableInfo &table,
+                                      RawVector **vec, int cf_id,
+                                      StorageManager *storage_mgr) {
   std::string &vec_name = vector_info.name;
   int dimension = vector_info.dimension;
 
@@ -116,8 +115,7 @@ Status VectorManager::CreateRawVector(struct VectorInfo &vector_info,
   }
   LOG(INFO) << "create raw vector success, vec_name[" << vec_name
             << "] store_type[" << store_type_str << "]";
-  bool multi_vids = vec_dups[vec_name] > 1 ? true : false;
-  int ret = (*vec)->Init(vec_name, multi_vids);
+  int ret = (*vec)->Init(vec_name);
   if (ret != 0) {
     std::stringstream msg;
     msg << "Raw vector " << vec_name << " init error, code [" << ret << "]!";
@@ -236,19 +234,7 @@ Status VectorManager::CreateVectorTable(TableInfo &table,
   Status status;
   if (table_created_) return Status::ParamError("table is created");
 
-  std::map<std::string, int> vec_dups;
-
   std::vector<struct VectorInfo> &vectors_infos = table.VectorInfos();
-
-  for (struct VectorInfo &vectors_info : vectors_infos) {
-    std::string &name = vectors_info.name;
-    auto it = vec_dups.find(name);
-    if (it == vec_dups.end()) {
-      vec_dups[name] = 1;
-    } else {
-      ++vec_dups[name];
-    }
-  }
 
   if (table.IndexType() != "") {
     index_types_.push_back(table.IndexType());
@@ -260,8 +246,8 @@ Status VectorManager::CreateVectorTable(TableInfo &table,
     RawVector *vec = nullptr;
     struct VectorInfo &vector_info = vectors_infos[i];
     std::string &vec_name = vector_info.name;
-    vec_status = CreateRawVector(vector_info, index_types_[0], vec_dups, table,
-                                 &vec, vector_cf_ids[i], storage_mgr);
+    vec_status = CreateRawVector(vector_info, index_types_[0], table, &vec,
+                                 vector_cf_ids[i], storage_mgr);
     if (!vec_status.ok()) {
       std::stringstream msg;
       msg << vec_name << " create vector failed:" << vec_status.ToString();
@@ -355,8 +341,8 @@ int VectorManager::Update(
 int VectorManager::Delete(int docid) {
   for (const auto &[name, index] : vector_indexes_) {
     std::vector<int64_t> vids;
-    RawVector *vector = dynamic_cast<RawVector *>(index->vector_);
-    vector->VidMgr()->DocID2VID(docid, vids);
+    vids.resize(1);
+    vids[0] = docid;
     if (0 != index->Delete(vids)) {
       LOG(ERROR) << "delete index from " << name << " failed! docid=" << docid;
       return -1;
@@ -454,7 +440,7 @@ int VectorManager::AddRTVecsToIndex(bool &index_is_dirty) {
     std::vector<int64_t> vids;
     int vid;
     while (index_model->updated_vids_.try_pop(vid)) {
-      if (raw_vec->Bitmap()->Test(raw_vec->VidMgr()->VID2DocID(vid))) continue;
+      if (raw_vec->Bitmap()->Test(vid)) continue;
       if (vid >= index_model->indexed_count_) {
         index_model->updated_vids_.push(vid);
         break;
@@ -492,13 +478,12 @@ int ParseSearchResult(int n, int k, VectorResult &result, IndexModel *index) {
       int64_t *docid = result.docids + i * k + j;
       if (docid[0] == -1) continue;
       int vector_id = (int)docid[0];
-      int real_docid = raw_vec->VidMgr()->VID2DocID(vector_id);
-      if (docid2count.find(real_docid) == docid2count.end()) {
+      if (docid2count.find(vector_id) == docid2count.end()) {
         int real_pos = i * k + pos;
-        result.docids[real_pos] = real_docid;
+        result.docids[real_pos] = vector_id;
         result.dists[real_pos] = result.dists[i * k + j];
         pos++;
-        docid2count[real_docid] = 1;
+        docid2count[vector_id] = 1;
       }
     }
     if (pos > 0) {
@@ -560,8 +545,10 @@ Status VectorManager::Search(GammaQuery &query, GammaResult *results) {
 
     query.condition->Init(vec_query.min_score, vec_query.max_score,
                           docids_bitmap_, raw_vec);
-    query.condition->retrieval_params_ =
-        index->Parse(query.condition->index_params);
+    if (query.condition->retrieval_params_ == nullptr) {
+      query.condition->retrieval_params_ =
+          index->Parse(query.condition->index_params);
+    }
     query.condition->metric_type =
         query.condition->retrieval_params_->GetDistanceComputeType();
 
@@ -697,10 +684,9 @@ int VectorManager::GetVector(
       LOG(ERROR) << "raw_vec is null!";
       return -1;
     }
-    int vid = raw_vec->VidMgr()->GetFirstVID(id);
 
     ScopeVector scope_vec;
-    raw_vec->GetVector(vid, scope_vec);
+    raw_vec->GetVector(id, scope_vec);
     const float *feature = (const float *)(scope_vec.Get());
     std::string str_vec;
     if (is_bytearray) {
@@ -737,10 +723,9 @@ int VectorManager::GetDocVector(int docid, std::string &field_name,
     LOG(ERROR) << "raw_vec is null!";
     return -1;
   }
-  int vid = raw_vec->VidMgr()->GetFirstVID(docid);
 
   ScopeVector scope_vec;
-  raw_vec->GetVector(vid, scope_vec);
+  raw_vec->GetVector(docid, scope_vec);
   const float *feature = (const float *)(scope_vec.Get());
 
   int d = raw_vec->MetaInfo()->Dimension();
@@ -777,8 +762,8 @@ int VectorManager::Dump(const std::string &path, int dump_docid,
   for (const auto &[name, vec] : raw_vectors_) {
     RawVector *raw_vector = dynamic_cast<RawVector *>(vec);
     if (raw_vector->WithIO()) {
-      int start = raw_vector->VidMgr()->GetFirstVID(dump_docid);
-      int end = raw_vector->VidMgr()->GetLastVID(max_docid);
+      int start = dump_docid;
+      int end = max_docid;
       Status status = raw_vector->Dump(start, end + 1);
       if (!status.ok()) {
         LOG(ERROR) << "vector " << name << " dump failed!";
@@ -820,8 +805,8 @@ int VectorManager::Load(const std::vector<std::string> &index_dirs,
       int load_num = 0;
       Status status = index->Load(index_dirs[0], load_num);
       if (!status.ok()) {
-        LOG(ERROR) << "vector [" << name << "] load index "
-                   << index_dirs[0] << " failed, num: " << load_num;
+        LOG(ERROR) << "vector [" << name << "] load index " << index_dirs[0]
+                   << " failed, num: " << load_num;
         return -1;
       }
       if (load_num > 0 && load_num > min_vec_num) {

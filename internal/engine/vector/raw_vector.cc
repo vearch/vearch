@@ -29,28 +29,18 @@ RawVector::RawVector(VectorMetaInfo *meta_info,
       store_params_(store_params),
       docids_bitmap_(docids_bitmap) {
   data_size_ = meta_info_->DataSize();
-  vid_mgr_ = nullptr;
 }
 
-RawVector::~RawVector() { CHECK_DELETE(vid_mgr_); }
+RawVector::~RawVector() {}
 
-int RawVector::Init(std::string vec_name, bool multi_vids) {
+int RawVector::Init(std::string vec_name) {
   desc_ += "raw vector=" + meta_info_->Name() + ", ";
-  if (multi_vids) {
-    LOG(ERROR) << "multi-vids is unsupported now";
-    return -1;
-  }
-
-  // vid2docid
-  vid_mgr_ = new VIDMgr(multi_vids);
-  vid_mgr_->Init(kInitSize, total_mem_bytes_);
 
   vector_byte_size_ = meta_info_->Dimension() * data_size_;
 
   if (InitStore(vec_name)) return -2;
 
   LOG(INFO) << "raw vector init success! name=" << meta_info_->Name()
-            << ", multi_vids=" << multi_vids
             << ", vector_byte_size=" << vector_byte_size_
             << ", dimension=" << meta_info_->Dimension();
   return 0;
@@ -83,7 +73,8 @@ int RawVector::Add(int docid, struct Field &field) {
     return -2;
   }
 
-  return vid_mgr_->Add(meta_info_->size_++, docid);
+  meta_info_->size_++;
+  return ret;
 }
 
 int RawVector::Add(int docid, float *data) {
@@ -92,11 +83,12 @@ int RawVector::Add(int docid, float *data) {
     LOG(ERROR) << "add to store error, docid=" << docid << ", ret=" << ret;
     return -2;
   }
-  return vid_mgr_->Add(meta_info_->size_++, docid);
+  meta_info_->size_++;
+  return ret;
 }
 
 int RawVector::Update(int docid, struct Field &field) {
-  if (vid_mgr_->MultiVids() || docid >= (int)meta_info_->Size()) {
+  if (docid >= (int)meta_info_->Size()) {
     return -1;
   }
 

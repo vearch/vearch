@@ -436,7 +436,7 @@ bool GammaVearchIndex::Add(int n, const uint8_t *vec) {
     add_count_ += n;
     if (add_count_ >= 10000) {
       double t1 = utils::getmillisecs();
-      LOG(INFO) << "vearch add time [" << (t1 - t0) / n << "]ms, count "
+      LOG(DEBUG) << "vearch add time [" << (t1 - t0) / n << "]ms, count "
                 << indexed_count_ + n;
       add_count_ = 0;
     }

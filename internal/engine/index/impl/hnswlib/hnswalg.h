@@ -18,11 +18,12 @@
 
 #pragma once
 
-#include <atomic>
-#include <random>
-#include <stdlib.h>
 #include <assert.h>
+#include <stdlib.h>
+
+#include <atomic>
 #include <list>
+#include <random>
 #include <unordered_set>
 
 #include "hnswlib.h"
@@ -44,8 +45,11 @@ class HierarchicalNSW : public AlgorithmInterface<dist_t> {
     loadIndex(location, s, max_elements);
   }
 
-  HierarchicalNSW(SpaceInterface<dist_t> *s, size_t max_elements, size_t M = 16, size_t ef_construction = 200, size_t random_seed = 100) :
-                link_list_locks_(max_elements), link_list_update_locks_(max_update_element_locks), element_levels_(max_elements) {
+  HierarchicalNSW(SpaceInterface<dist_t> *s, size_t max_elements, size_t M = 16,
+                  size_t ef_construction = 200, size_t random_seed = 100)
+      : link_list_locks_(max_elements),
+        link_list_update_locks_(max_update_element_locks),
+        element_levels_(max_elements) {
     max_elements_ = max_elements;
 
     num_deleted_ = 0;
@@ -55,19 +59,21 @@ class HierarchicalNSW : public AlgorithmInterface<dist_t> {
     M_ = M;
     maxM_ = M_;
     maxM0_ = M_ * 2;
-    ef_construction_ = std::max(ef_construction,M_);
+    ef_construction_ = std::max(ef_construction, M_);
     ef_ = 10;
 
     level_generator_.seed(random_seed);
     update_probability_generator_.seed(random_seed + 1);
 
     size_links_level0_ = maxM0_ * sizeof(tableint) + sizeof(linklistsizeint);
-    size_data_per_element_ = size_links_level0_ + data_size_ + sizeof(labeltype);
+    size_data_per_element_ =
+        size_links_level0_ + data_size_ + sizeof(labeltype);
     offsetData_ = size_links_level0_;
     label_offset_ = size_links_level0_ + data_size_;
     offsetLevel0_ = 0;
 
-    data_level0_memory_ = (char *) malloc(max_elements_ * size_data_per_element_);
+    data_level0_memory_ =
+        (char *)malloc(max_elements_ * size_data_per_element_);
     if (data_level0_memory_ == nullptr)
       throw std::runtime_error("Not enough memory");
 
@@ -75,14 +81,16 @@ class HierarchicalNSW : public AlgorithmInterface<dist_t> {
 
     visited_list_pool_ = new VisitedListPool(1, max_elements);
 
-    //initializations for special treatment of the first node
+    // initializations for special treatment of the first node
     enterpoint_node_ = -1;
     maxlevel_ = -1;
 
-    linkLists_ = (char **) malloc(sizeof(void *) * max_elements_);
+    linkLists_ = (char **)malloc(sizeof(void *) * max_elements_);
     if (linkLists_ == nullptr)
-      throw std::runtime_error("Not enough memory: HierarchicalNSW failed to allocate linklists");
-    size_links_per_element_ = maxM_ * sizeof(tableint) + sizeof(linklistsizeint);
+      throw std::runtime_error(
+          "Not enough memory: HierarchicalNSW failed to allocate linklists");
+    size_links_per_element_ =
+        maxM_ * sizeof(tableint) + sizeof(linklistsizeint);
     mult_ = 1 / log(1.0 * M_);
     revSize_ = 1.0 / mult_;
   }
@@ -214,8 +222,8 @@ class HierarchicalNSW : public AlgorithmInterface<dist_t> {
 
     while (!candidateSet.empty()) {
       std::pair<dist_t, tableint> curr_el_pair = candidateSet.top();
-      if ((-curr_el_pair.first) > lowerBound && top_candidates.size()
-          == ef_construction_) {
+      if ((-curr_el_pair.first) > lowerBound &&
+          top_candidates.size() == ef_construction_) {
         break;
       }
       candidateSet.pop();
@@ -398,7 +406,8 @@ class HierarchicalNSW : public AlgorithmInterface<dist_t> {
 
     visited_list_pool_->releaseVisitedList(vl);
     if (collect_metrics) {
-      LOG(TRACE) << "hops: " << metric_hops << ", computations=" << metric_distance_computations;
+      LOG(TRACE) << "hops: " << metric_hops
+                 << ", computations=" << metric_distance_computations;
     }
     return top_candidates;
   }
@@ -611,7 +620,9 @@ class HierarchicalNSW : public AlgorithmInterface<dist_t> {
 
   void resizeIndex(size_t new_max_elements) {
     pthread_rwlock_wrlock(&shared_mutex_);
-    LOG(INFO) << "hnsw resize new_max_elements=" << new_max_elements << ", realloc base layer size: " << new_max_elements * size_data_per_element_;
+    LOG(DEBUG) << "hnsw resize new_max_elements=" << new_max_elements
+               << ", realloc base layer size: "
+               << new_max_elements * size_data_per_element_;
     if (new_max_elements < cur_element_count)
       throw std::runtime_error(
           "Cannot resize, max element is less than the current number of "
@@ -625,15 +636,16 @@ class HierarchicalNSW : public AlgorithmInterface<dist_t> {
     std::vector<std::mutex>(new_max_elements).swap(link_list_locks_);
 
     // Reallocate base layer
-    char *data_level0_memory_new =
-        (char *)realloc(data_level0_memory_, new_max_elements * size_data_per_element_);
+    char *data_level0_memory_new = (char *)realloc(
+        data_level0_memory_, new_max_elements * size_data_per_element_);
     if (data_level0_memory_new == nullptr)
       throw std::runtime_error(
           "Not enough memory: resizeIndex failed to allocate base layer");
     data_level0_memory_ = data_level0_memory_new;
 
     // Reallocate all other layers
-    char **linkLists_new = (char **)realloc(linkLists_, sizeof(void *) * new_max_elements);
+    char **linkLists_new =
+        (char **)realloc(linkLists_, sizeof(void *) * new_max_elements);
     if (linkLists_new == nullptr)
       throw std::runtime_error(
           "Not enough memory: resizeIndex failed to allocate other layers");
@@ -661,7 +673,7 @@ class HierarchicalNSW : public AlgorithmInterface<dist_t> {
     writeBinaryPOD(output, M_);
     writeBinaryPOD(output, mult_);
     writeBinaryPOD(output, ef_construction_);
-    writeBinaryPOD(output, ef_); // addtional
+    writeBinaryPOD(output, ef_);  // addtional
 
     output.write(data_level0_memory_,
                  cur_element_count * size_data_per_element_);
@@ -705,7 +717,7 @@ class HierarchicalNSW : public AlgorithmInterface<dist_t> {
     readBinaryPOD(input, M_);
     readBinaryPOD(input, mult_);
     readBinaryPOD(input, ef_construction_);
-    readBinaryPOD(input, ef_); // addtional
+    readBinaryPOD(input, ef_);  // addtional
 
     vec_data_size_ = s->get_data_size();
     data_size_ = 0;
@@ -818,7 +830,7 @@ class HierarchicalNSW : public AlgorithmInterface<dist_t> {
   void markDelete(labeltype label) {
     auto search = label_lookup_.find(label);
     if (search == label_lookup_.end()) {
-      LOG(INFO) << label << " not found in label_lookup_";
+      LOG(DEBUG) << label << " not found in label_lookup_";
       return;
     }
     tableint internalId = search->second;
@@ -842,9 +854,10 @@ class HierarchicalNSW : public AlgorithmInterface<dist_t> {
   }
 
   /**
-   * Remove the deleted mark of the node, does NOT really change the current graph.
+   * Remove the deleted mark of the node, does NOT really change the current
+   * graph.
    * @param label
-  */
+   */
   void unmarkDelete(labeltype label) {
     auto search = label_lookup_.find(label);
     if (search == label_lookup_.end()) {
@@ -1218,22 +1231,22 @@ class HierarchicalNSW : public AlgorithmInterface<dist_t> {
     if (num_deleted_) {
       if (collect_metrics) {
         top_candidates = searchBaseLayerST<true, true>(
-          currObj, query_data, std::max(efSearch, k), efSearch,
-          do_efSearch_check, fstdistfunc, retrieval_context);
+            currObj, query_data, std::max(efSearch, k), efSearch,
+            do_efSearch_check, fstdistfunc, retrieval_context);
       } else {
         top_candidates = searchBaseLayerST<true, false>(
-          currObj, query_data, std::max(efSearch, k), efSearch,
-          do_efSearch_check, fstdistfunc, retrieval_context);
+            currObj, query_data, std::max(efSearch, k), efSearch,
+            do_efSearch_check, fstdistfunc, retrieval_context);
       }
     } else {
       if (collect_metrics) {
         top_candidates = searchBaseLayerST<false, true>(
-          currObj, query_data, std::max(efSearch, k), efSearch,
-          do_efSearch_check, fstdistfunc, retrieval_context);
+            currObj, query_data, std::max(efSearch, k), efSearch,
+            do_efSearch_check, fstdistfunc, retrieval_context);
       } else {
         top_candidates = searchBaseLayerST<false, false>(
-          currObj, query_data, std::max(efSearch, k), efSearch,
-          do_efSearch_check, fstdistfunc, retrieval_context);
+            currObj, query_data, std::max(efSearch, k), efSearch,
+            do_efSearch_check, fstdistfunc, retrieval_context);
       }
     }
 

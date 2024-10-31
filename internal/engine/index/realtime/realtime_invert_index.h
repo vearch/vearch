@@ -24,7 +24,7 @@ namespace realtime {
 struct RTInvertIndex {
  public:
   // bucket_keys should not be larger than bucket_keys_limit
-  RTInvertIndex(size_t nlist, size_t code_size, VIDMgr *vid_mgr,
+  RTInvertIndex(size_t nlist, size_t code_size,
                 bitmap::BitmapManager *docids_bitmap,
                 size_t bucket_keys = 10000, size_t bucket_keys_limit = 1000000);
 
@@ -55,7 +55,6 @@ struct RTInvertIndex {
   size_t code_size_;
   size_t bucket_keys_;
   size_t bucket_keys_limit_;
-  VIDMgr *vid_mgr_;
   bitmap::BitmapManager *docids_bitmap_;
 
   RealTimeMemData *cur_ptr_;

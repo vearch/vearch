@@ -1,10 +1,10 @@
 #ifdef OPT_IVFPQ_RELAYOUT
 #include "index/impl/relayout/gamma_index_io_relayout.h"
-#include "realtime/realtime_mem_data_relayout.h"
 #include "realtime/realtime_invert_index_relayout.h"
+#include "realtime/realtime_mem_data_relayout.h"
 #include "test.h"
-#include "util/utils.h"
 #include "util/bitmap_manager.h"
+#include "util/utils.h"
 
 using namespace std;
 using namespace vearch;
@@ -39,8 +39,7 @@ class RealTimeMemDataRelayoutTest : public ::testing::Test {
     if (docids_bitmap->Init(init_bitmap_size) != 0) {
       LOG(ERROR) << "Cannot create bitmap!";
       return;
-    }   
-    vid_mgr = new VIDMgr(false);
+    }
     bucket_keys = 100;
     bucket_keys_limit = bucket_keys * 10;
     code_byte_size = 64;
@@ -48,7 +47,7 @@ class RealTimeMemDataRelayoutTest : public ::testing::Test {
     M_ = code_byte_size;
     group_size_ = 4;
     realtime_data = new realtime::RealTimeMemDataRelayout(
-        buckets_num, vid_mgr, docids_bitmap, bucket_keys, bucket_keys_limit,
+        buckets_num, docids_bitmap, bucket_keys, bucket_keys_limit,
         code_byte_size);
     ASSERT_EQ(true, realtime_data->Init());
     cout << "relayout is set!" << endl;
@@ -57,9 +56,7 @@ class RealTimeMemDataRelayoutTest : public ::testing::Test {
 
   // You can define per-test tear-down logic as usual.
   virtual void TearDown() {
-    CHECK_DELETE(vid_mgr);
     CHECK_DELETE(realtime_data);
-    // CHECK_DELETE_ARRAY(vid2docid);
     CHECK_DELETE(docids_bitmap);
   }
 
@@ -105,8 +102,6 @@ class RealTimeMemDataRelayoutTest : public ::testing::Test {
   int code_byte_size;
   int M_;
   int group_size_;
-  // int *vid2docid;
-  VIDMgr *vid_mgr;
   bitmap::BitmapManager *docids_bitmap;
   int max_vec_size;
   int buckets_num;
@@ -204,7 +199,8 @@ TEST_F(RealTimeMemDataRelayoutTest, ExtendBucket) {
   CreateData(num, keys, codes, code_byte_size);
 
   // add bucket_keys codes
-  realtime::RTInvertBucketDataRelayout *old_invert_prt = realtime_data->cur_invert_ptr_;
+  realtime::RTInvertBucketDataRelayout *old_invert_prt =
+      realtime_data->cur_invert_ptr_;
   std::vector<long> keys1(keys.begin(), keys.begin() + bucket_keys);
   std::vector<uint8_t> codes1(codes.begin(),
                               codes.begin() + bucket_keys * code_byte_size);
@@ -287,9 +283,10 @@ TEST_F(RealTimeMemDataRelayoutTest, DumpLoad) {
   delete fw;
 
   // load
-  realtime::RealTimeMemDataRelayout *new_realtime_data = new realtime::RealTimeMemDataRelayout(
-      buckets_num, vid_mgr, docids_bitmap, bucket_keys, bucket_keys_limit,
-      code_byte_size);
+  realtime::RealTimeMemDataRelayout *new_realtime_data =
+      new realtime::RealTimeMemDataRelayout(buckets_num, docids_bitmap,
+                                            bucket_keys, bucket_keys_limit,
+                                            code_byte_size);
   ASSERT_EQ(true, new_realtime_data->Init());
   new_realtime_data->Relayout(M_, group_size_);
 
@@ -308,9 +305,9 @@ TEST_F(RealTimeMemDataRelayoutTest, DumpLoad) {
   ASSERT_EQ(expect_nums[0],
             new_realtime_data->cur_invert_ptr_->retrieve_idx_pos_[0]);
   ASSERT_EQ(100, new_realtime_data->cur_invert_ptr_->cur_bucket_keys_[0]);
-  ASSERT_EQ(nums[1],
-            new_realtime_data->cur_invert_ptr_->retrieve_idx_pos_[1]);
-  ASSERT_EQ(bucket_keys * 2, new_realtime_data->cur_invert_ptr_->cur_bucket_keys_[1]);
+  ASSERT_EQ(nums[1], new_realtime_data->cur_invert_ptr_->retrieve_idx_pos_[1]);
+  ASSERT_EQ(bucket_keys * 2,
+            new_realtime_data->cur_invert_ptr_->cur_bucket_keys_[1]);
   int vid = 0;
   for (int bno = 0; bno < 2; bno++) {
     vector<long> retrieve_keys(expect_nums[bno], 0);

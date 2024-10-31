@@ -262,7 +262,7 @@ GammaIVFPQGPUIndex::~GammaIVFPQGPUIndex() {
 }
 
 Status GammaIVFPQGPUIndex::Init(const std::string &model_parameters,
-                             int training_threshold) {
+                                int training_threshold) {
   IVFPQModelParams ivfpq_param;
   if (model_parameters != "") {
     Status status = ivfpq_param.Parse(model_parameters.c_str());
@@ -484,7 +484,7 @@ int GammaIVFPQGPUIndex::AddRTVecsToIndex() {
   std::vector<int64_t> vids;
   int vid;
   while (this->updated_vids_.try_pop(vid)) {
-    if (raw_vec->Bitmap()->Test(raw_vec->VidMgr()->VID2DocID(vid))) continue;
+    if (raw_vec->Bitmap()->Test(vid)) continue;
     if (vid >= this->indexed_count_) {
       this->updated_vids_.push(vid);
       break;
@@ -836,7 +836,7 @@ int GammaIVFPQGPUIndex::Search(RetrievalContext *retrieval_context, int n,
   // set filter
   auto is_filterable = [&](long vid) -> bool {
     RawVector *raw_vec = dynamic_cast<RawVector *>(vector_);
-    int docid = raw_vec->VidMgr()->VID2DocID(vid);
+    int docid = vid;
     return (retrieval_context->IsValid(vid) == false) ||
            (right_filter &&
             (FilteredByRangeFilter(condition, range_filter_types, docid) ||

@@ -173,7 +173,8 @@ RetrievalParameters *GammaIVFPQFastScanIndex::Parse(
   }
 
   std::string metric_type;
-  IVFPQRetrievalParameters *retrieval_params = new IVFPQRetrievalParameters(this->nprobe, metric_type_);
+  IVFPQRetrievalParameters *retrieval_params =
+      new IVFPQRetrievalParameters(this->nprobe, metric_type_);
   if (!jp.GetString("metric_type", metric_type)) {
     if (strcasecmp("L2", metric_type.c_str()) &&
         strcasecmp("InnerProduct", metric_type.c_str())) {
@@ -299,8 +300,8 @@ bool GammaIVFPQFastScanIndex::Add(int n, const uint8_t *vec) {
   add_count_ += n;
   if (add_count_ >= 10000) {
     double t1 = faiss::getmillisecs();
-    LOG(INFO) << "Add time [" << (t1 - t0) / n << "]ms, count "
-              << indexed_vec_count_;
+    LOG(DEBUG) << "Add time [" << (t1 - t0) / n << "]ms, count "
+               << indexed_vec_count_;
     // rt_invert_index_ptr_->PrintBucketSize();
     add_count_ = 0;
   }

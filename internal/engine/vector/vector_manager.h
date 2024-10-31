@@ -32,8 +32,7 @@ class VectorManager {
                             VectorStorageType &store_type);
 
   Status CreateRawVector(struct VectorInfo &vector_info,
-                         std::string &index_type,
-                         std::map<std::string, int> &vec_dups, TableInfo &table,
+                         std::string &index_type, TableInfo &table,
                          RawVector **vec, int cf_id,
                          StorageManager *storage_mgr);
 

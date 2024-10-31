@@ -196,8 +196,8 @@ Status GammaIndexIVFFlat::Init(const std::string &model_parameters,
   is_trained = false;
 
   rt_invert_index_ptr_ = new realtime::RTInvertIndex(
-      this->nlist, this->code_size, raw_vec->VidMgr(), raw_vec->Bitmap(),
-      params.bucket_init_size, params.bucket_max_size);
+      this->nlist, this->code_size, raw_vec->Bitmap(), params.bucket_init_size,
+      params.bucket_max_size);
 
   delete this->invlists;
   this->invlists = nullptr;
@@ -378,8 +378,8 @@ bool GammaIndexIVFFlat::Add(int n, const uint8_t *vec) {
   add_count_ += n;
   if (add_count_ >= 10000) {
     double t1 = faiss::getmillisecs();
-    LOG(INFO) << "Add time [" << (t1 - t0) / n << "]ms, count "
-              << indexed_vec_count_;
+    LOG(DEBUG) << "Add time [" << (t1 - t0) / n << "]ms, count "
+               << indexed_vec_count_;
     add_count_ = 0;
   }
 #endif
@@ -425,7 +425,8 @@ int GammaIndexIVFFlat::Search(RetrievalContext *retrieval_context, int n,
 
   utils::ScopeDeleter1<IVFFlatRetrievalParameters> del_params;
   if (retrieval_params == nullptr) {
-      retrieval_params = new IVFFlatRetrievalParameters(this->nprobe, metric_type_);
+    retrieval_params =
+        new IVFFlatRetrievalParameters(this->nprobe, metric_type_);
     del_params.set(retrieval_params);
   }
 
@@ -437,8 +438,8 @@ int GammaIndexIVFFlat::Search(RetrievalContext *retrieval_context, int n,
     retrieval_context->retrieval_params_ =
         new FlatRetrievalParameters(retrieval_params->ParallelOnQueries(),
                                     retrieval_params->GetDistanceComputeType());
-    int ret = GammaFLATIndex::Search(retrieval_context, n, rx, k,
-                           distances, labels);
+    int ret =
+        GammaFLATIndex::Search(retrieval_context, n, rx, k, distances, labels);
     return ret;
   }
   int nprobe = this->nprobe;
@@ -447,8 +448,8 @@ int GammaIndexIVFFlat::Search(RetrievalContext *retrieval_context, int n,
     nprobe = retrieval_params->Nprobe();
   } else {
     LOG(WARNING) << "nlist = " << this->nlist
-                  << ", nprobe = " << retrieval_params->Nprobe()
-                  << ", invalid, now use:" << this->nprobe;
+                 << ", nprobe = " << retrieval_params->Nprobe()
+                 << ", invalid, now use:" << this->nprobe;
   }
 #else
   int nprobe = this->nprobe;
@@ -477,7 +478,8 @@ void GammaIndexIVFFlat::search_preassigned(RetrievalContext *retrieval_context,
           retrieval_context->RetrievalParams());
   utils::ScopeDeleter1<IVFFlatRetrievalParameters> del_params;
   if (retrieval_params == nullptr) {
-    retrieval_params = new IVFFlatRetrievalParameters(this->nprobe, metric_type_);
+    retrieval_params =
+        new IVFFlatRetrievalParameters(this->nprobe, metric_type_);
     del_params.set(retrieval_params);
   }
 
