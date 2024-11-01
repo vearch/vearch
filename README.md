@@ -50,6 +50,8 @@ Vearch is a cloud-native distributed vector database for efficient similarity se
 
 - **[Langchaingo](sdk/integrations/langchaingo/vearch/README.md)**
 
+- **[LangChain4j](sdk/integrations/langchain4j/README.md)**
+
 ### Real world Demos
 
 - **[VisualSearch](docs/Quickstart.md)**: Vearch can be leveraged to build a complete visual search system to index billions of images. The image retrieval plugin for object detection and feature extraction is also required.

@@ -49,6 +49,8 @@ Vearch 是一个云原生分布式向量数据库，用于在 AI 应用程序中
 
 - **[Langchaingo](sdk/integrations/langchaingo/vearchREADME.md)**
 
+- **[LangChain4j](sdk/integrations/langchain4j/README.md)**
+
 ### 实际场景
 
 - **[图片检索插件](docs/Quickstart.md)**: Vearch 可用于构建完整的视觉搜索系统来索引数十亿张图像。 还需要用于对象检测和特征提取的图像检索插件。
