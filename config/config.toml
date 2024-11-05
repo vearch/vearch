@@ -16,7 +16,7 @@
     # tell Vearch whether it should manage it's own instance of etcd or not
     self_manage_etcd = false
     # automatically remove the failed node and recover when new nodes join
-    auto_recover_ps = false
+    auto_recover_ps = true
     # support access etcd basic auth,depend on self_manage_etcd = true
     support_etcd_auth = false
     # ensure leader-follow raft data synchronization is consistent

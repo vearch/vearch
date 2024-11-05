@@ -381,7 +381,7 @@ func (cliCache *clientCache) reloadServerCache(ctx context.Context, sync bool, i
 // if new server lose heart beat then will remove it from space meta
 // if empty new node join into, will try to recover the last fail server
 func (cliCache *clientCache) startWSJob(ctx context.Context) error {
-	log.Debug("to start job to watch server")
+	log.Debug("start job to watch server")
 	start := time.Now()
 	// init server
 	if err := cliCache.initServer(ctx); err != nil {
@@ -396,80 +396,12 @@ func (cliCache *clientCache) startWSJob(ctx context.Context) error {
 	return nil
 }
 
-// delete record
-func (cliCache *clientCache) serverDelete(ctx context.Context, server *entity.Server) error {
-	// mutex ensure only one master update the meta, others just update local cache
-	mutex := cliCache.mc.Client().Master().NewLock(ctx, entity.ClusterWatchServerKey, time.Second*188)
-	if getLock, err := mutex.TryLock(); getLock && err == nil {
-		defer func() {
-			if err := mutex.Unlock(); err != nil {
-				log.Error("failed to unlock space,the Error is:%v ", err)
-			}
-		}()
-		log.Debug("get LOCK success,process fail server %+v ", server)
-
-		//get failServer info
-		if len(server.PartitionIds) == 0 {
-			// recover failServer
-			// if the partition num of the newNode is empty, then recover data by it.
-			if config.Conf().Global.AutoRecoverPs {
-				err = cliCache.mc.RecoverByNewServer(ctx, server)
-				if err != nil {
-					log.Debug("auto recover is err %v,server is %+v", err, server)
-				} else {
-					log.Info("recover is success,server is %+v", server)
-				}
-			}
-		} else {
-			// if failserver recover,then remove record
-			cliCache.mc.TryRemoveFailServer(ctx, server)
-		}
-	} else {
-		log.Debug("get LOCK error,just update cache %+v ", server)
-	}
-	return nil
-}
-
-// record fail server
-func (cliCache *clientCache) serverPut(ctx context.Context, server *entity.Server) error {
-	// mutex ensure only one master update the meta, others just update local cache
-	mutex := cliCache.mc.Client().Master().NewLock(ctx, entity.ClusterWatchServerKey, time.Second*188)
-	if getLock, err := mutex.TryLock(); getLock && err == nil {
-		defer func() {
-			if err := mutex.Unlock(); err != nil {
-				log.Error("failed to unlock space,the Error is:%v ", err)
-			}
-		}()
-		log.Debug("get LOCK success,process fail server %+v ", server)
-
-		//get failServer info
-		if len(server.PartitionIds) == 0 {
-			// recover failServer
-			// if the partition num of the newNode is empty, then recover data by it.
-			if config.Conf().Global.AutoRecoverPs {
-				err = cliCache.mc.RecoverByNewServer(ctx, server)
-				if err != nil {
-					log.Debug("auto recover is err %v,server is %+v", err, server)
-				} else {
-					log.Info("recover is success,server is %+v", server)
-				}
-			}
-		} else {
-			// if failserver recover,then remove record
-			cliCache.mc.TryRemoveFailServer(ctx, server)
-		}
-	} else {
-		log.Debug("get LOCK error,just update cache %+v ", server)
-	}
-	return nil
-}
-
-// it will start cache
+// start cache job
 func (cliCache *clientCache) startCacheJob(ctx context.Context) error {
-	log.Info("to start cache job begin")
+	log.Info("start cache job")
 	start := time.Now()
 
-	//init user
+	// init user
 	if err := cliCache.initUser(ctx); err != nil {
 		return err
 	}
@@ -493,7 +425,7 @@ func (cliCache *clientCache) startCacheJob(ctx context.Context) error {
 	}
 	userJob.start()
 
-	//init space
+	// init space
 	if err := cliCache.initSpace(ctx); err != nil {
 		return err
 	}
@@ -544,7 +476,7 @@ func (cliCache *clientCache) startCacheJob(ctx context.Context) error {
 	}
 	spaceJob.start()
 
-	//init partition
+	// init partition
 	if err := cliCache.initPartition(ctx); err != nil {
 		return err
 	}
@@ -578,7 +510,7 @@ func (cliCache *clientCache) startCacheJob(ctx context.Context) error {
 	}
 	partitionJob.start()
 
-	//init server
+	// init server
 	if err := cliCache.initServer(ctx); err != nil {
 		return err
 	}
@@ -618,7 +550,7 @@ func (cliCache *clientCache) startCacheJob(ctx context.Context) error {
 	}
 	serverJob.start()
 
-	//init alias
+	// init alias
 	if err := cliCache.initAlias(ctx); err != nil {
 		return err
 	}
@@ -644,7 +576,7 @@ func (cliCache *clientCache) startCacheJob(ctx context.Context) error {
 	}
 	aliasJob.start()
 
-	//init role
+	// init role
 	if err := cliCache.initRole(ctx); err != nil {
 		return err
 	}
@@ -1041,5 +973,4 @@ func (wj *watcherJob) start() {
 			wj.wg.Wait()
 		}
 	}()
-
 }
