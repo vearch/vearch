@@ -35,9 +35,7 @@ MemoryRawVector::~MemoryRawVector() {
 }
 
 Status MemoryRawVector::Load(int vec_num) {
-  auto column_family = storage_mgr_->cf_handles_[cf_id_];
-  std::unique_ptr<rocksdb::Iterator> it(
-      storage_mgr_->db_->NewIterator(rocksdb::ReadOptions(), column_family));
+  std::unique_ptr<rocksdb::Iterator> it = storage_mgr_->NewIterator(cf_id_);
   string start_key;
   storage_mgr_->ToRowKey(0, start_key);
   it->Seek(rocksdb::Slice(start_key));
@@ -65,9 +63,7 @@ int MemoryRawVector::GetDiskVecNum(int &vec_num) {
   string key, value;
   for (int i = disk_vec_num; i >= 0; --i) {
     storage_mgr_->ToRowKey(i, key);
-    rocksdb::Status s = storage_mgr_->db_->Get(
-        rocksdb::ReadOptions(), storage_mgr_->cf_handles_[cf_id_],
-        rocksdb::Slice(key), &value);
+    Status s = storage_mgr_->Get(cf_id_, key, value);
     if (s.ok()) {
       vec_num = i + 1;
       LOG(INFO) << "In the disk rocksdb vec_num=" << vec_num;

@@ -99,7 +99,7 @@ func (s *Server) RangePartition(fun func(entity.PartitionID, PartitionStore)) {
 	})
 }
 
-// load partition for in disk
+// load partition from disk
 func (s *Server) LoadPartition(ctx context.Context, pid entity.PartitionID, spaces []*entity.Space) (PartitionStore, error) {
 	// space, err := psutil.LoadPartitionMeta(config.Conf().GetDataDirBySlot(config.PS, pid), pid)
 

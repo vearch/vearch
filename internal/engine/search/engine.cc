@@ -601,14 +601,7 @@ int Engine::AddOrUpdate(Doc &doc) {
   // add fields into table
   int docid = -1;
   table_->GetDocidByKey(key, docid);
-  if (docid == -1 || docid >= max_docid_) {
-    int ret = table_->Add(key, fields_table, max_docid_);
-    if (ret != 0) return -2;
-    for (auto &[name, field] : fields_table) {
-      int idx = table_->GetAttrIdx(field.name);
-      field_range_index_->Add(max_docid_, idx);
-    }
-  } else {
+  if (docid != -1 && docid < max_docid_) {
     if (Update(docid, fields_table, fields_vec)) {
       LOG(DEBUG) << space_name_ << " update error, key=" << key
                  << ", docid=" << docid;
@@ -617,10 +610,17 @@ int Engine::AddOrUpdate(Doc &doc) {
     is_dirty_ = true;
     return 0;
   }
+
+  int ret = table_->Add(key, fields_table, max_docid_);
+  if (ret != 0) return -2;
+  for (auto &[name, field] : fields_table) {
+    int idx = table_->GetAttrIdx(field.name);
+    field_range_index_->Add(max_docid_, idx);
+  }
 #ifdef PERFORMANCE_TESTING
   double end_table = utils::getmillisecs();
 #endif
-  int ret = 0;
+
   // add vectors by VectorManager
   ret = vec_manager_->AddToStore(max_docid_, fields_vec);
   if (ret != 0) {

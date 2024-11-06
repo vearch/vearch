@@ -245,6 +245,19 @@ std::pair<Status, std::string> StorageManager::Get(int cf_id,
   return {Status::OK(), std::move(value)};
 }
 
+Status StorageManager::Get(int cf_id, const std::string &key,
+                           std::string &value) {
+  rocksdb::Status s = db_->Get(rocksdb::ReadOptions(), cf_handles_[cf_id],
+                               rocksdb::Slice(key), &value);
+  if (!s.ok()) {
+    std::stringstream msg;
+    msg << "rocksdb get error:" << s.ToString() << " key=" << key;
+    return Status::IOError(msg.str());
+  }
+
+  return Status::OK();
+}
+
 Status StorageManager::GetString(int cf_id, int id, std::string &field_name,
                                  std::string &value) {
   std::string key_str;
@@ -260,6 +273,28 @@ Status StorageManager::GetString(int cf_id, int id, std::string &field_name,
   }
 
   return Status::OK();
+}
+
+std::vector<rocksdb::Status> StorageManager::MultiGet(
+    int cf_id, const std::vector<int64_t> &vids,
+    std::vector<std::string> &values) {
+  size_t k = vids.size();
+  std::vector<std::string> keys_data(k);
+  std::vector<rocksdb::Slice> keys;
+  std::vector<rocksdb::ColumnFamilyHandle *> column_families;
+  keys.reserve(k);
+  column_families.reserve(k);
+
+  for (size_t i = 0; i < k; i++) {
+    assert(vids[i] >= 0);
+    ToRowKey((int)vids[i], keys_data[i]);
+    keys.emplace_back(std::move(keys_data[i]));
+    column_families.emplace_back(cf_handles_[cf_id]);
+  }
+
+  std::vector<rocksdb::Status> statuses =
+      db_->MultiGet(rocksdb::ReadOptions(), column_families, keys, &values);
+  return statuses;
 }
 
 }  // namespace vearch

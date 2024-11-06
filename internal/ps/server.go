@@ -121,9 +121,16 @@ func (s *Server) Start() error {
 	mserver.SetIp(server.Ip, true)
 
 	// create raft server
+	retryTime := 0
 	s.raftServer, err = raftstore.StartRaftServer(nodeId, s.ip, s.raftResolver)
-	if err != nil {
-		log.Panic(fmt.Sprintf("ps StartRaftServer error :%v", err))
+	for err != nil {
+		log.Error("ps StartRaftServer error :%v", err)
+		if retryTime > maxTryTime {
+			log.Panic("ps StartRaftServer error :%v", err)
+		}
+		time.Sleep(5 * time.Second)
+		retryTime++
+		s.raftServer, err = raftstore.StartRaftServer(nodeId, s.ip, s.raftResolver)
 	}
 
 	// create and recover partitions

@@ -46,9 +46,7 @@ Status RocksDBRawVector::Load(int vec_num) {
   if (vec_num == 0) return Status::OK();
   std::string key, value;
   ToRowKey(vec_num - 1, key);
-  rocksdb::Status s = storage_mgr_->db_->Get(rocksdb::ReadOptions(),
-                                             storage_mgr_->cf_handles_[cf_id_],
-                                             rocksdb::Slice(key), &value);
+  Status s = storage_mgr_->Get(cf_id_, key, value);
   if (!s.ok()) {
     std::string msg = std::string("load vectors, get error:") + s.ToString() +
                       ", expected key=" + key;
@@ -113,30 +111,13 @@ int RocksDBRawVector::GetVector(long vid, const uint8_t *&vec,
 int RocksDBRawVector::Gets(const std::vector<int64_t> &vids,
                            ScopeVectors &vecs) const {
   size_t k = vids.size();
-  std::vector<std::string> keys_data(k);
-  std::vector<rocksdb::Slice> keys;
-  std::vector<rocksdb::ColumnFamilyHandle *> column_families;
-  keys.reserve(k);
-  column_families.reserve(k);
+
+  std::vector<std::string> values(k);
+  std::vector<rocksdb::Status> statuses =
+      storage_mgr_->MultiGet(cf_id_, vids, values);
+  assert(statuses.size() == k);
 
   size_t j = 0;
-  for (size_t i = 0; i < k; i++) {
-    if (vids[i] < 0) {
-      continue;
-    }
-    ToRowKey((int)vids[i], keys_data[i]);
-    keys.emplace_back(std::move(keys_data[i]));
-    column_families.emplace_back(storage_mgr_->cf_handles_[cf_id_]);
-    ++j;
-    // LOG(INFO) << "i=" << i << "key=" << keys[i].ToString();
-  }
-
-  std::vector<std::string> values(j);
-  std::vector<rocksdb::Status> statuses = storage_mgr_->db_->MultiGet(
-      rocksdb::ReadOptions(), column_families, keys, &values);
-  assert(statuses.size() == j);
-
-  j = 0;
   for (size_t i = 0; i < k; ++i) {
     if (vids[i] < 0) {
       vecs.Add(nullptr, true);
@@ -144,7 +125,7 @@ int RocksDBRawVector::Gets(const std::vector<int64_t> &vids,
     }
     if (!statuses[j].ok()) {
       LOG(ERROR) << "rocksdb multiget error:" << statuses[j].ToString()
-                 << ", key=" << keys[j].ToString();
+                 << ", vid=" << vids[j];
       return 2;
     }
     uint8_t *vector = new uint8_t[vector_byte_size_];
@@ -184,10 +165,8 @@ int RocksDBRawVector::UpdateToStore(int vid, uint8_t *v, int len) {
 
   std::string key;
   ToRowKey(vid, key);
-  rocksdb::Status s = storage_mgr_->db_->Put(
-      rocksdb::WriteOptions(), storage_mgr_->cf_handles_[cf_id_],
-      rocksdb::Slice(key),
-      rocksdb::Slice((const char *)v, this->vector_byte_size_));
+  std::string value = std::string((const char *)v, this->vector_byte_size_);
+  Status s = storage_mgr_->Put(cf_id_, key, value);
   if (!s.ok()) {
     LOG(ERROR) << "rocksdb update error:" << s.ToString() << ", key=" << key;
     return -1;
@@ -201,8 +180,7 @@ int RocksDBRawVector::GetVectorHeader(int start, int n, ScopeVectors &vecs,
     return -1;
   }
 
-  rocksdb::Iterator *it = storage_mgr_->db_->NewIterator(
-      rocksdb::ReadOptions(), storage_mgr_->cf_handles_[cf_id_]);
+  std::unique_ptr<rocksdb::Iterator> it = storage_mgr_->NewIterator(cf_id_);
   std::string start_key, end_key;
   ToRowKey(start, start_key);
   ToRowKey(start + n, end_key);
@@ -213,7 +191,6 @@ int RocksDBRawVector::GetVectorHeader(int start, int n, ScopeVectors &vecs,
   for (int c = 0; c < n; c++, it->Next()) {
     if (!it->Valid()) {
       LOG(ERROR) << "rocksdb iterator error, vid=" << start + c;
-      delete it;
       delete[] vectors;
       return -1;
     }
@@ -234,7 +211,6 @@ int RocksDBRawVector::GetVectorHeader(int start, int n, ScopeVectors &vecs,
 #endif
     dst += (size_t)dimension * data_size_;
   }
-  delete it;
   vecs.Add(vectors);
   lens.push_back(n);
   return 0;

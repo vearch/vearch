@@ -39,8 +39,19 @@ class StorageManager {
   std::pair<Status, std::string> Get(int cf_id, int id);
   std::pair<Status, std::string> Get(int cf_id, const std::string &key);
 
+  Status Get(int cf_id, const std::string &key, std::string &value);
+
   Status GetString(int cf_id, int id, std::string &field_name,
                    std::string &value);
+
+  std::vector<rocksdb::Status> MultiGet(int cf_id,
+                                        const std::vector<int64_t> &vids,
+                                        std::vector<std::string> &values);
+
+  std::unique_ptr<rocksdb::Iterator> NewIterator(int cf_id) {
+    return std::unique_ptr<rocksdb::Iterator>(
+        db_->NewIterator(rocksdb::ReadOptions(), cf_handles_[cf_id]));
+  }
 
   int Size() { return size_; }
 
@@ -63,7 +74,7 @@ class StorageManager {
     key_str.assign(data, length);
   }
 
-  //  private:
+ private:
   std::string root_path_;
   size_t size_;  // The total number of doc.
   rocksdb::DB *db_;
