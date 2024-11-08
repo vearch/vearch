@@ -16,7 +16,6 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -111,10 +110,10 @@ func main() {
 
 	for _, a := range args {
 		if _, ok := tags[a]; !ok {
-			panic(fmt.Sprintf("not found tags: %s it only support [ps, router, master or all]", a))
-		} else {
-			tags[a] = true
+			log.Error("not found tags: %s it only support [ps, router, master or all]", a)
+			os.Exit(1)
 		}
+		tags[a] = true
 	}
 
 	logName := strings.ToUpper(strings.Join(args, "-"))
@@ -122,11 +121,10 @@ func main() {
 	log.Regist(vearchlog.NewVearchLog(config.Conf().GetLogDir(), logName, config.Conf().GetLevel(), false))
 
 	log.Info("start server by version:[%s] commitID:[%s]", BuildVersion, CommitID)
-	log.Info("The Config File Is: %v", confPath)
+	log.Info("config file: %v", confPath)
 
 	entity.SetPrefixAndSequence(config.Conf().Global.Name)
 	log.Info("The cluster prefix is: %v", entity.PrefixEtcdClusterID)
-	log.Info("ResourceLimitRate: %f", config.Conf().Global.ResourceLimitRate)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -159,11 +157,13 @@ func main() {
 	// start master
 	if tags[masterTag] || tags[allTag] {
 		if err := config.Conf().CurrentByMasterNameDomainIp(masterName); err != nil {
-			log.Panic("CurrentByMasterNameDomainIp master error :%v", err)
+			log.Error("CurrentByMasterNameDomainIp master error: %v", err)
+			os.Exit(1)
 		}
 
 		if err := config.Conf().Validate(config.Master); err != nil {
-			log.Panic("validate master error :%v", err)
+			log.Error("validate master error: %v", err)
+			os.Exit(1)
 		}
 
 		self := config.Conf().Masters.Self()
@@ -172,14 +172,16 @@ func main() {
 
 		s, err := master.NewServer(ctx)
 		if err != nil {
-			log.Panic("new master error :%v", err)
+			log.Error("new master error: %v", err)
+			os.Exit(1)
 		}
 		sigsHook.AddSignalHook(func() {
 			s.Stop()
 		})
 		go func() {
 			if err := s.Start(); err != nil {
-				log.Panic("start master error :%v", err)
+				log.Error("start master error: %v", err)
+				os.Exit(1)
 			}
 		}()
 
@@ -191,7 +193,8 @@ func main() {
 	// start ps
 	if tags[psTag] || tags[allTag] {
 		if err := config.Conf().Validate(config.PS); err != nil {
-			log.Panic("validate ps error :%v", err)
+			log.Error("validate ps error: %v", err)
+			os.Exit(1)
 		}
 
 		server := ps.NewServer(ctx)
@@ -202,7 +205,8 @@ func main() {
 		})
 		go func() {
 			if err := server.Start(); err != nil {
-				log.Panic("start ps error :%v", err)
+				log.Error("start ps error: %v", err)
+				os.Exit(1)
 			}
 		}()
 
@@ -214,11 +218,13 @@ func main() {
 	// start router
 	if tags[routerTag] || tags[allTag] {
 		if err := config.Conf().Validate(config.Router); err != nil {
-			log.Panic("validate router error :%v", err)
+			log.Error("validate router error: %v", err)
+			os.Exit(1)
 		}
 		server, err := router.NewServer(ctx)
 		if err != nil {
-			log.Panic("new router error :%v", err)
+			log.Error("new router error: %v", err)
+			os.Exit(1)
 		}
 		models = append(models, "router")
 		sigsHook.AddSignalHook(func() {
@@ -227,7 +233,8 @@ func main() {
 		})
 		go func() {
 			if err := server.Start(); err != nil {
-				log.Panic("start router error :%v", err)
+				log.Error("start router error: %v", err)
+				os.Exit(1)
 			}
 		}()
 
@@ -255,7 +262,7 @@ func getDefaultConfigFile() (defaultConfigFile string) {
 		if ok, err := pathExists(path); ok {
 			return path
 		} else if err != nil {
-			log.Error("check path:%s err : %s", path, err.Error())
+			log.Error("check path: %s err: %s", path, err.Error())
 		}
 	}
 
@@ -265,7 +272,7 @@ func getDefaultConfigFile() (defaultConfigFile string) {
 		if ok, err := pathExists(path); ok {
 			return path
 		} else if err != nil {
-			log.Error("check path:%s err : %s", path, err.Error())
+			log.Error("check path: %s err: %s", path, err.Error())
 		}
 	}
 	return

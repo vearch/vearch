@@ -19,6 +19,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net"
+	"time"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -47,6 +48,13 @@ func NewServer(ctx context.Context) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	res, err := cli.Master().RegisterRouter(ctx, config.Conf().Global.Name, time.Duration(10*time.Second))
+	if err != nil {
+		return nil, err
+	}
+
+	log.Info("register router success, res: %s", res)
 
 	addr := config.LocalCastAddr
 

@@ -105,6 +105,7 @@ func SetPrefixAndSequence(cluster_id string) {
 	PrefixLockCluster = PrefixEtcdClusterID + PrefixLockCluster
 	PrefixServer = PrefixEtcdClusterID + PrefixServer
 	PrefixSpace = PrefixEtcdClusterID + PrefixSpace
+	PrefixSpaceConfig = PrefixEtcdClusterID + PrefixSpaceConfig
 	PrefixPartition = PrefixEtcdClusterID + PrefixPartition
 	PrefixDataBase = PrefixEtcdClusterID + PrefixDataBase
 	PrefixDataBaseBody = PrefixEtcdClusterID + PrefixDataBaseBody

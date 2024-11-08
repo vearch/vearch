@@ -242,14 +242,14 @@ func (ca *clusterAPI) health(c *gin.Context) {
 }
 
 func (ca *clusterAPI) handleClusterInfo(c *gin.Context) {
-	versionLayer := make(map[string]interface{})
-	versionLayer["build_version"] = config.GetBuildVersion()
-	versionLayer["build_time"] = config.GetBuildTime()
-	versionLayer["commit_id"] = config.GetCommitID()
-
-	layer := make(map[string]interface{})
-	layer["name"] = config.Conf().Global.Name
-	layer["version"] = versionLayer
+	layer := map[string]interface{}{
+		"name": config.Conf().Global.Name,
+		"version": map[string]interface{}{
+			"build_version": config.GetBuildVersion(),
+			"build_time":    config.GetBuildTime(),
+			"commit_id":     config.GetCommitID(),
+		},
+	}
 
 	response.New(c).JsonSuccess(layer)
 }

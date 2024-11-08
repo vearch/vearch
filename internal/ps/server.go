@@ -209,7 +209,7 @@ func (s *Server) register() (server *entity.Server) {
 		log.Info("to register master, nodeId:[%d], times: %d", s.nodeID, i)
 		server, err = s.client.Master().Register(s.ctx, config.Conf().Global.Name, s.nodeID, 30*time.Second)
 		if err != nil {
-			log.Error("to register master error, nodeId:[%d], err: %s", s.nodeID, err.Error()) // some err need to stop ?
+			log.Error("register master error, nodeId:[%d], err: %s", s.nodeID, err.Error()) // some err need to stop ?
 		} else if server == nil {
 			log.Error("not err return server is nil, nodeId:[%d]", s.nodeID)
 		} else {

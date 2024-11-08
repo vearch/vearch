@@ -16,6 +16,7 @@ package client
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -25,6 +26,7 @@ import (
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/v3/internal/config"
 	"github.com/vearch/vearch/v3/internal/entity"
+	httpResonse "github.com/vearch/vearch/v3/internal/entity/response"
 	"github.com/vearch/vearch/v3/internal/master/store"
 	"github.com/vearch/vearch/v3/internal/pkg/errutil"
 	"github.com/vearch/vearch/v3/internal/pkg/log"
@@ -559,18 +561,14 @@ func (m *masterClient) RegisterPartition(ctx context.Context, partition *entity.
 		masterServer.next()
 	}
 
-	jsonMap, err := vjson.ByteToJsonMap(response)
+	js := &httpResonse.HttpReply{}
+	err = vjson.Unmarshal(response, js)
 	if err != nil {
 		return err
 	}
 
-	code, err := jsonMap.GetJsonValIntE("code")
-	if err != nil {
-		return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("client master api register partiton parse response code error: %s", err.Error()))
-	}
-
-	if code != int(vearchpb.ErrorEnum_SUCCESS) {
-		return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("client master api register partiton parse response error, code: %d, msg: %s", code, jsonMap.GetJsonValStringOrDefault("msg", "")))
+	if js.Code != int(vearchpb.ErrorEnum_SUCCESS) {
+		return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("client master api register partiton parse response error, code: %d, msg: %s", js.Code, js.Msg))
 	}
 
 	return nil
@@ -722,32 +720,36 @@ func (client *masterClient) RecoverFailServer(ctx context.Context, rfs *entity.R
 	errutil.ThrowError(err)
 	response, err := client.HTTPRequest(ctx, http.MethodPost, "/schedule/recover_server", string(reqBody))
 	errutil.ThrowError(err)
-	jsonMap, err := vjson.ByteToJsonMap(response)
-	errutil.ThrowError(err)
-	_, err = jsonMap.GetJsonValIntE("code")
-	errutil.ThrowError(err)
-	return e
+	js := &httpResonse.HttpReply{}
+	err = vjson.Unmarshal(response, js)
+	if err != nil {
+		return err
+	}
+
+	if js.Code != int(vearchpb.ErrorEnum_SUCCESS) {
+		return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("client master api recover server error, code: %d, msg: %s", js.Code, js.Msg))
+	}
+	return nil
 }
 
 func parseRegisterData(response []byte) ([]byte, error) {
-	jsonMap, err := vjson.ByteToJsonMap(response)
+	js := &struct {
+		Code      int             `json:"code"`
+		RequestId string          `json:"request_id,omitempty"`
+		Msg       string          `json:"msg,omitempty"`
+		Data      json.RawMessage `json:"data,omitempty"`
+	}{}
+
+	err := json.Unmarshal(response, js)
 	if err != nil {
 		return nil, err
 	}
 
-	code, err := jsonMap.GetJsonValIntE("code")
-	if err != nil {
-		return nil, vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("client master api register parse response code error: %s", err.Error()))
+	if js.Code != int(vearchpb.ErrorEnum_SUCCESS) {
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("client master api register error, code: %d, msg: %s", js.Code, js.Msg))
 	}
 
-	if code != int(vearchpb.ErrorEnum_SUCCESS) {
-		return nil, vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("client master api register parse response error, code: %d, msg: %s", code, jsonMap.GetJsonValStringOrDefault("msg", "")))
-	}
-	data, err := jsonMap.GetJsonValBytes("data")
-	if err != nil {
-		return nil, vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("client master api register parse response data error: %s", err.Error()))
-	}
-	return data, nil
+	return js.Data, nil
 }
 
 var masterServer = &MasterServer{}
