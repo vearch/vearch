@@ -59,7 +59,7 @@ func (f *FieldMapping) UnmarshalJSON(data []byte) error {
 	switch tmp.Type {
 	case "text", "keyword", "string":
 		fieldMapping = NewStringFieldMapping("")
-	case "stringArray", "StringArray":
+	case "stringArray", "StringArray", "string_array":
 		fieldMapping = NewStringArrayMapping("")
 	case "date":
 		fieldMapping = NewDateFieldMapping("")

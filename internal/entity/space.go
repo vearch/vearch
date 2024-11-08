@@ -354,7 +354,7 @@ func UnmarshalPropertyJSON(propertity []byte) (map[string]*SpaceProperties, erro
 			sp.FieldType = vearchpb.FieldType_DOUBLE
 		case "boolean", "bool":
 			sp.FieldType = vearchpb.FieldType_BOOL
-		case "stringArray", "StringArray":
+		case "stringArray", "StringArray", "string_array":
 			sp.FieldType = vearchpb.FieldType_STRINGARRAY
 		case "vector":
 			sp.FieldType = vearchpb.FieldType_VECTOR

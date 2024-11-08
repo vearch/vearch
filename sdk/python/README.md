@@ -15,7 +15,7 @@ The following table shows Vearch versions and recommended PyVearch versions:
 
 | Vearch version | Recommended PyVearch version |
 |:--------------:|:----------------------------:|
-|      3.5.X     |             3.5.2            |
+|      3.5.X     |             3.5.3            |
 
 ## Installation
 
