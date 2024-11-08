@@ -498,13 +498,18 @@ func (m *masterClient) RegisterRouter(ctx context.Context, clusterName string, t
 	form.Add("clusterName", clusterName)
 
 	masterServer.reset()
+	timeStart := time.Now()
 	var response []byte
 	for {
 		query := netutil.NewQuery().SetHeader(Authorization, netutil.AuthEncrypt(Root, m.cfg.Global.Signkey))
 
 		keyNumber, err := masterServer.getKey()
 		if err != nil {
-			return "", err
+			if time.Since(timeStart) > timeout {
+				return "", err
+			}
+			masterServer.reset()
+			time.Sleep(1 * time.Second)
 		}
 		query.SetAddress(m.cfg.Masters[keyNumber].ApiUrl())
 		query.SetMethod(http.MethodPost)
