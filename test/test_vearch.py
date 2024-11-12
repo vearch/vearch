@@ -50,6 +50,16 @@ class VearchCase:
         logger.debug("cluster_health---\n" + json.dumps(response.json()))
         assert response.json()["code"] == 0
 
+    def test_memeber_list(self):
+        response = get_cluster_member_list(router_url)
+        logger.debug("cluster_health---\n" + json.dumps(response.json()))
+        assert response.json()["code"] == 0
+
+    def test_memeber_stats(self):
+        response = get_cluster_member_stats(router_url)
+        logger.debug("cluster_health---\n" + json.dumps(response.json()))
+        assert response.json()["code"] == 0
+
     def test_server(self):
         response = get_servers_status(router_url)
         logger.debug("list_server---\n" + json.dumps(response.json()))

@@ -52,6 +52,7 @@ const (
 	URLParamAliasName   = "alias_name"
 	URLParamUserName    = "user_name"
 	URLParamRoleName    = "role_name"
+	URLParamMemberId    = "member_id"
 )
 
 type DocumentHandler struct {
@@ -204,8 +205,12 @@ func (handler *DocumentHandler) proxyMaster(group *gin.RouterGroup) error {
 	// config handler
 	group.POST("/config/:"+URLParamDbName+"/:"+URLParamSpaceName, handler.handleMasterRequest)
 	group.GET("/config/:"+URLParamDbName+"/:"+URLParamSpaceName, handler.handleMasterRequest)
-	// schedule handler
 
+	// members handler
+	group.GET("/members", handler.handleMasterRequest)
+	group.GET("/members/stats", handler.handleMasterRequest)
+	group.DELETE("/members", handler.handleMasterRequest)
+	group.POST("/members", handler.handleMasterRequest)
 	return nil
 }
 

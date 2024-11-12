@@ -451,7 +451,10 @@ func (m *masterClient) Register(ctx context.Context, clusterName string, nodeID 
 	form.Add("clusterName", clusterName)
 	form.Add("nodeID", cast.ToString(nodeID))
 
-	masterServer.reset()
+	var masterServer = &MasterServer{}
+	ms := m.Config().GetMasters()
+	masterServer.init(len(ms))
+
 	var response []byte
 	for {
 		query := netutil.NewQuery().SetHeader(Authorization, netutil.AuthEncrypt(Root, m.cfg.Global.Signkey))
@@ -460,7 +463,7 @@ func (m *masterClient) Register(ctx context.Context, clusterName string, nodeID 
 		if err != nil {
 			return nil, err
 		}
-		query.SetAddress(m.cfg.Masters[keyNumber].ApiUrl())
+		query.SetAddress(ms[keyNumber].ApiUrl())
 
 		query.SetMethod(http.MethodPost)
 		query.SetQuery(form.Encode())
@@ -497,6 +500,10 @@ func (m *masterClient) RegisterRouter(ctx context.Context, clusterName string, t
 	form := url.Values{}
 	form.Add("clusterName", clusterName)
 
+	var masterServer = &MasterServer{}
+	ms := m.Config().GetMasters()
+	masterServer.init(len(ms))
+
 	masterServer.reset()
 	timeStart := time.Now()
 	var response []byte
@@ -511,7 +518,7 @@ func (m *masterClient) RegisterRouter(ctx context.Context, clusterName string, t
 			masterServer.reset()
 			time.Sleep(1 * time.Second)
 		}
-		query.SetAddress(m.cfg.Masters[keyNumber].ApiUrl())
+		query.SetAddress(ms[keyNumber].ApiUrl())
 		query.SetMethod(http.MethodPost)
 		query.SetQuery(form.Encode())
 		query.SetUrlPath("/register_router")
@@ -542,7 +549,10 @@ func (m *masterClient) RegisterPartition(ctx context.Context, partition *entity.
 		return err
 	}
 
-	masterServer.reset()
+	var masterServer = &MasterServer{}
+	ms := m.Config().GetMasters()
+	masterServer.init(len(ms))
+
 	var response []byte
 	for {
 		query := netutil.NewQuery().SetHeader(Authorization, netutil.AuthEncrypt(Root, m.cfg.Global.Signkey))
@@ -550,7 +560,7 @@ func (m *masterClient) RegisterPartition(ctx context.Context, partition *entity.
 		if err != nil {
 			return err
 		}
-		query.SetAddress(m.cfg.Masters[keyNumber].ApiUrl())
+		query.SetAddress(ms[keyNumber].ApiUrl())
 		query.SetMethod(http.MethodPost)
 		query.SetUrlPath("/register_partition")
 		query.SetReqBody(string(reqBody))
@@ -594,13 +604,16 @@ func (m *masterClient) HTTPRequest(ctx context.Context, method string, url strin
 	query.SetContentTypeJson()
 	query.SetTimeout(60)
 
-	masterServer.reset()
+	var masterServer = &MasterServer{}
+	ms := m.Config().GetMasters()
+	masterServer.init(len(ms))
+
 	for {
 		keyNumber, err := masterServer.getKey()
 		if err != nil {
 			panic(err)
 		}
-		query.SetAddress(m.cfg.Masters[keyNumber].ApiUrl())
+		query.SetAddress(ms[keyNumber].ApiUrl())
 		log.Debug("remote server url: %s, req body: %s", query.GetUrl(), string(reqBody))
 		response, err = query.Do()
 		log.Debug("remote server response: %v", string(response))
@@ -630,13 +643,16 @@ func (m *masterClient) ProxyHTTPRequest(method string, url string, reqBody strin
 	query.SetContentTypeJson()
 	query.SetTimeout(60)
 
-	masterServer.reset()
+	var masterServer = &MasterServer{}
+	ms := m.Config().GetMasters()
+	masterServer.init(len(ms))
+
 	for {
 		keyNumber, err := masterServer.getKey()
 		if err != nil {
 			panic(err)
 		}
-		query.SetAddress(m.cfg.Masters[keyNumber].ApiUrl())
+		query.SetAddress(ms[keyNumber].ApiUrl())
 		statusCode := 0
 		response, statusCode, err = query.ProxyDo()
 		log.Debug("remote server url:%s, req body:%s, response: %v, statusCode %d", query.GetUrl(), string(reqBody), string(response), statusCode)
@@ -737,6 +753,60 @@ func (client *masterClient) RecoverFailServer(ctx context.Context, rfs *entity.R
 	return nil
 }
 
+// master member changes, should update config
+func (client *masterClient) UpdateMasterConfig(ctx context.Context, masters config.Masters) error {
+	// update etcd clint endpoints
+	if err := client.MemberSync(ctx); err != nil {
+		msg := fmt.Sprintf("etcd client sync err: %s", err.Error())
+		log.Error(msg)
+		return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf(msg))
+	}
+	// update config
+	client.Config().SetMasters(masters)
+	// dump config
+	if err := config.DumpConfig(client.Config()); err != nil {
+		msg := fmt.Sprintf("dump config err: %s", err.Error())
+		log.Error(msg)
+		return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf(msg))
+	}
+	return nil
+}
+
+// check master member, if changed then update
+func (client *masterClient) CheckMasterConfig(ctx context.Context) error {
+	_, values, err := client.PrefixScan(ctx, entity.PrefixMasterMember)
+	if err != nil {
+		log.Error("get masters err:[%s]", err.Error())
+		return err
+	}
+	var masters config.Masters
+	for _, value := range values {
+		master := &config.MasterCfg{}
+		err := vjson.Unmarshal(value, master)
+		if err != nil {
+			log.Error("unmarshal master err [%s]", err.Error())
+			return err
+		}
+		masters = append(masters, master)
+	}
+
+	oldMaster := config.Conf().GetMasters()
+	if len(masters) < len(oldMaster) {
+		msg := fmt.Sprintf("master num[%d] is less than old master num:[%d]", len(masters), len(oldMaster))
+		log.Error(msg)
+		err := vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf(msg))
+		return err
+	}
+
+	if !config.MastersEqual(oldMaster, masters) {
+		if err := client.UpdateMasterConfig(ctx, masters); err != nil {
+			log.Error("update master config err: %s", err.Error())
+			return err
+		}
+	}
+	return nil
+}
+
 func parseRegisterData(response []byte) ([]byte, error) {
 	js := &struct {
 		Code      int             `json:"code"`
@@ -756,8 +826,6 @@ func parseRegisterData(response []byte) ([]byte, error) {
 
 	return js.Data, nil
 }
-
-var masterServer = &MasterServer{}
 
 // MasterServer the num of master
 type MasterServer struct {

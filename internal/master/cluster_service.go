@@ -36,6 +36,7 @@ import (
 	"github.com/vearch/vearch/v3/internal/pkg/vjson"
 	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
 	"github.com/vearch/vearch/v3/internal/ps/engine/mapping"
+	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/client/v3/concurrency"
 )
 
@@ -492,6 +493,7 @@ func (ms *masterService) createSpaceService(ctx context.Context, dbName string, 
 // create partitions for creating space
 func (ms *masterService) generatePartitionsInfo(servers []*entity.Server, serverPartitions map[int]int, replicaNum uint8, partition *entity.Partition) ([]string, error) {
 	address := make([]string, 0, replicaNum)
+	originReplicaNum := replicaNum
 	partition.Replicas = make([]entity.NodeID, 0, replicaNum)
 
 	kvList := make([]struct {
@@ -530,7 +532,7 @@ func (ms *masterService) generatePartitionsInfo(servers []*entity.Server, server
 	}
 
 	if replicaNum > 0 {
-		return nil, vearchpb.NewError(vearchpb.ErrorEnum_MASTER_PS_NOT_ENOUGH_SELECT, fmt.Errorf("need %d partition server but only got %d", len(partition.Replicas), len(address)))
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_MASTER_PS_NOT_ENOUGH_SELECT, fmt.Errorf("need %d partition server but only get %d", originReplicaNum, len(address)))
 	}
 
 	return address, nil
@@ -2471,4 +2473,60 @@ func (ms *masterService) statsService(ctx context.Context) ([]*mserver.ServerSta
 out:
 
 	return result, nil
+}
+
+func (ms *masterService) addMemberService(ctx context.Context, peerAddrs []string) (resp *clientv3.MemberAddResponse, err error) {
+	resp, err = ms.Master().MemberAdd(ctx, peerAddrs)
+	if err != nil {
+		log.Error("add masters member err:%s", err.Error())
+		return nil, err
+	}
+	return resp, nil
+}
+
+func (ms *masterService) removeMemberService(ctx context.Context, master *entity.MemberInfoRequest) (resp *clientv3.MemberRemoveResponse, err error) {
+	membersResp, err := ms.Master().MemberList(ctx)
+	if err != nil {
+		log.Error("master member list err:%s", err.Error())
+		return nil, err
+	}
+	if len(membersResp.Members) <= 1 {
+		msg := fmt.Sprintf("master member only have %d, cann't remove member now", len(membersResp.Members))
+		log.Error(msg)
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf(msg))
+	}
+
+	found := false
+	for _, member := range membersResp.Members {
+		if member.ID == master.ID && member.Name == master.Name {
+			found = true
+			break
+		}
+	}
+	if !found {
+		msg := fmt.Sprintf("master member name:%s id:%d not found", master.Name, master.ID)
+		log.Error(msg)
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf(msg))
+	}
+	resp, err = ms.Master().MemberRemove(ctx, master.ID)
+	if err != nil {
+		msg := fmt.Sprintf("remove master member err:%s", err.Error())
+		log.Error(msg)
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf(msg))
+	}
+
+	err = ms.Master().STM(context.Background(), func(stm concurrency.STM) error {
+		stm.Del(entity.MasterMemberKey(master.ID))
+		return nil
+	})
+	if err != nil {
+		log.Error("del masters err:%s", err.Error())
+		return nil, err
+	}
+	// TODO other master client should also do member sync
+	err = ms.Master().MemberSync(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
 }

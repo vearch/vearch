@@ -105,6 +105,10 @@ func (s *Server) StartHeartbeatJob() {
 					continue
 				}
 				leaseId = ka.ID
+				err := s.client.Master().CheckMasterConfig(ctx)
+				if err != nil {
+					log.Error("check master config err:[%s]", err.Error())
+				}
 				// log.Debugf("Receive keepalive, leaseId: %d, ttl:%d", ka.ID, ka.TTL)
 			}
 		}

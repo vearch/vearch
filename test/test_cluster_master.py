@@ -15,13 +15,12 @@
 
 # -*- coding: UTF-8 -*-
 
-import requests
-import json
 import pytest
 from utils.vearch_utils import *
 from utils.data_utils import *
 
 __description__ = """ test case for cluster master """
+
 
 class TestClusterMasterPrepare:
     def setup_class(self):
@@ -98,3 +97,97 @@ class TestClusterMasterOperateMetaData:
                 response = drop_space(router_url, db_name, space["space_name"])
                 assert response.json()["code"] == 0
             drop_db(router_url, db_name)
+
+
+class TestClusterChangeMasterMemberPrePare:
+    def setup_class(self):
+        pass
+
+    def test_prepare_db(self):
+        response = create_db(router_url, db_name)
+        logger.info(response.json())
+
+    @pytest.mark.parametrize(
+        ["embedding_size", "index_type"],
+        [
+            [128, "FLAT"],
+        ],
+    )
+    def test_vearch_space_create(self, embedding_size, index_type):
+        space_config = {
+            "name": space_name,
+            "partition_num": 3,
+            "replica_num": 3,
+            "fields": [
+                {"name": "field_int", "type": "integer"},
+                {"name": "field_long", "type": "long"},
+                {"name": "field_float", "type": "float"},
+                {"name": "field_double", "type": "double"},
+                {
+                    "name": "field_string",
+                    "type": "string",
+                    "index": {"name": "field_string", "type": "SCALAR"},
+                },
+                {
+                    "name": "field_vector",
+                    "type": "vector",
+                    "dimension": embedding_size,
+                    "index": {
+                        "name": "gamma",
+                        "type": index_type,
+                        "params": {
+                            "metric_type": "InnerProduct",
+                            "ncentroids": 2048,
+                            "nsubvector": int(embedding_size / 4),
+                            "nlinks": 32,
+                            "efConstruction": 100,
+                        },
+                    },
+                },
+            ],
+        }
+
+        response = create_space(router_url, db_name, space_config)
+        logger.info(response.json())
+
+
+class TestClusterMemberInfomation:
+    def setup_class(self):
+        pass
+
+    def test_master_member_infomation(self):
+        response = get_cluster_member_list(router_url)
+        logger.info(response.json())
+        assert response.json()["code"] == 0
+
+        response = get_cluster_member_stats(router_url)
+        logger.info(response.json())
+        assert response.json()["code"] == 0
+
+
+class TestClusterRemoveMasterMember:
+    def setup_class(self):
+        pass
+
+    def test_remove_member(self):
+        master_name = "m1"
+        id = 0
+        response = get_cluster_member_list(router_url)
+        for member in response.json()["data"]["members"]:
+            if member["name"] == master_name:
+                id = member["ID"]
+                break
+        response = remove_cluster_member(
+            router_url, member_id=id, master_name=master_name
+        )
+        logger.info(response.json())
+
+
+class TestClusterAddMasterMember:
+    def setup_class(self):
+        pass
+
+    def test_add_member(self):
+        peer_addrs = ["http://vearch-master4:2390"]
+        response = add_cluster_member(router_url, peer_addrs)
+        logger.info(response.json())

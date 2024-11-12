@@ -27,7 +27,9 @@ import (
 	"github.com/vearch/vearch/v3/internal/entity"
 	"github.com/vearch/vearch/v3/internal/pkg/errutil"
 	"github.com/vearch/vearch/v3/internal/pkg/log"
+	"github.com/vearch/vearch/v3/internal/pkg/vjson"
 	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
+	"go.etcd.io/etcd/client/v3/concurrency"
 	"go.etcd.io/etcd/server/v3/embed"
 	"go.etcd.io/etcd/server/v3/etcdserver"
 )
@@ -62,6 +64,16 @@ func NewServer(ctx context.Context) (*Server, error) {
 		}
 		server = &Server{etcCfg: cfg, ctx: ctx}
 	}
+
+	filePath := config.Conf().GetDataDir() + "/" + config.Conf().Global.Name + "_" + config.Conf().Masters.Self().Name + "_" + entity.RESTART
+	file, err := os.Create(filePath)
+	if err != nil {
+		log.Error("create master member %s restart file %s err: %v", config.Conf().Masters.Self().Name, filePath, err)
+		return nil, err
+	}
+	log.Debug("create master member %s restart file %s", config.Conf().Masters.Self().Name, filePath)
+	defer file.Close()
+
 	return server, nil
 }
 
@@ -154,6 +166,40 @@ func (s *Server) Start() (err error) {
 	err = s.WatchServerJob(s.ctx, s.client)
 	errutil.ThrowError(err)
 	log.Debug("start WatchServerJob success!")
+
+	master := config.Conf().GetMasters().Self()
+	resp, err := s.client.Master().MemberList(context.Background())
+	if err != nil {
+		return err
+	}
+
+	found := false
+	var ID uint64
+	for _, member := range resp.Members {
+		if member.Name == master.Name {
+			found = true
+			ID = member.ID
+			break
+		}
+	}
+	if !found {
+		msg := fmt.Sprintf("master member name:%s not found", master.Name)
+		log.Error(msg)
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf(msg))
+	}
+	err = s.client.Master().STM(context.Background(), func(stm concurrency.STM) error {
+		marshal, err := vjson.Marshal(master)
+		if err != nil {
+			return err
+		}
+		stm.Put(entity.MasterMemberKey(ID), string(marshal))
+		return nil
+	})
+	if err != nil {
+		log.Error("put master member name %s address %s err:%s", master.Name, master.Address, err.Error())
+		return err
+	}
+
 	if !config.Conf().Global.SelfManageEtcd {
 		return <-s.etcdServer.Err()
 	}

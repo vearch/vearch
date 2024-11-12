@@ -27,6 +27,7 @@ import (
 	"github.com/BurntSushi/toml"
 	"github.com/pkg/errors"
 	"github.com/spf13/cast"
+	"github.com/vearch/vearch/v3/internal/entity"
 	"github.com/vearch/vearch/v3/internal/pkg/log"
 	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
 	"go.etcd.io/etcd/server/v3/embed"
@@ -88,6 +89,7 @@ type Config struct {
 	Masters    Masters    `toml:"masters,omitempty" json:"masters"`
 	Router     *RouterCfg `toml:"router,omitempty" json:"router"`
 	PS         *PSCfg     `toml:"ps,omitempty" json:"ps"`
+	mu         *sync.RWMutex
 }
 
 // get etcd address config
@@ -108,7 +110,7 @@ func (con *Config) GetEtcdAddress() []string {
 		}
 	} else {
 		// manage etcd by vearch
-		ms := con.Masters
+		ms := con.GetMasters()
 		addrs := make([]string, len(ms))
 		for i, m := range ms {
 			addrs[i] = m.Address + ":" + cast.ToString(ms[i].EtcdClientPort)
@@ -149,6 +151,39 @@ func (c *Config) GetLogFileSize() int {
 	return c.Global.LogFileSize
 }
 
+func (c *Config) GetMasters() Masters {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	ms := make([]*MasterCfg, len(c.Masters))
+	copy(ms, c.Masters)
+	return ms
+}
+
+func (c *Config) SetMasters(newMasters Masters) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.Masters = newMasters
+}
+
+func MastersEqual(a, b Masters) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if !areMasterCfgsEqual(*a[i], *b[i]) {
+			return false
+		}
+	}
+	return true
+}
+
+func areMasterCfgsEqual(a, b MasterCfg) bool {
+	if a.Address != b.Address || a.Name != b.Name {
+		return false
+	}
+	return true
+}
+
 type Base struct {
 	Log         string   `toml:"log,omitempty" json:"log"`
 	Level       string   `toml:"level,omitempty" json:"level"`
@@ -170,6 +205,7 @@ type GlobalCfg struct {
 	LimitedDBNum      bool    `toml:"limited_db_num,omitempty" json:"limited_db_num"`
 	LimitedReplicaNum bool    `toml:"limited_replica_num,omitempty" json:"limited_replica_num"`
 	ResourceLimitRate float64 `toml:"resource_limit_rate,omitempty" json:"resource_limit_rate"`
+	Path              string  `toml:"path,omitempty" json:"path"`
 }
 
 type EtcdCfg struct {
@@ -217,7 +253,6 @@ type MasterCfg struct {
 	PprofPort      uint16 `toml:"pprof_port,omitempty" json:"pprof_port"`
 	MonitorPort    uint16 `toml:"monitor_port" json:"monitor_port"`
 	ClusterState   string `toml:"cluster_state,omitempty" json:"cluster_state"`
-	CheckRestart   bool   `toml:"check_restart,omitempty" json:"check_restart"`
 }
 
 func (m *MasterCfg) ApiUrl() string {
@@ -239,28 +274,14 @@ func (config *Config) GetEmbed() (*embed.Config, error) {
 	cfg.Name = masterCfg.Name
 	cfg.Dir = config.GetDataDir()
 	cfg.WalDir = ""
-	if masterCfg.CheckRestart {
-		filePath := cfg.Dir + "/restart.txt"
-		_, err := os.Stat(filePath)
-		if err == nil {
-			cfg.ClusterState = embed.ClusterStateFlagExisting
-		} else if os.IsNotExist(err) {
-			cfg.ClusterState = embed.ClusterStateFlagNew
-			file, err := os.Create(filePath)
-			if err != nil {
-				log.Error("create restart file err: %v", err)
-				return nil, err
-			}
-			defer file.Close()
-		} else {
-			log.Error("check restart err: %v", err)
-			return nil, err
-		}
-		log.Info("etcd init cluster state: [%v]", cfg.ClusterState)
-	} else {
+
+	filePath := cfg.Dir + "/" + config.Global.Name + "_" + masterCfg.Name + "_" + entity.RESTART
+	_, err := os.Stat(filePath)
+	if err == nil {
+		cfg.ClusterState = embed.ClusterStateFlagExisting
+	} else if os.IsNotExist(err) {
 		if masterCfg.ClusterState == "" {
 			cfg.ClusterState = embed.ClusterStateFlagNew
-			log.Info("etcd init cluster state: [%v]", cfg.ClusterState)
 		} else {
 			if !strings.EqualFold(masterCfg.ClusterState, embed.ClusterStateFlagNew) && !strings.EqualFold(masterCfg.ClusterState, embed.ClusterStateFlagExisting) {
 				cfg.ClusterState = embed.ClusterStateFlagNew
@@ -268,10 +289,10 @@ func (config *Config) GetEmbed() (*embed.Config, error) {
 					embed.ClusterStateFlagNew, embed.ClusterStateFlagExisting, embed.ClusterStateFlagNew)
 			} else {
 				cfg.ClusterState = masterCfg.ClusterState
-				log.Info("etcd init cluster state: [%v]", cfg.ClusterState)
 			}
 		}
 	}
+	log.Info("etcd init cluster state: [%v]", cfg.ClusterState)
 
 	cfg.EnablePprof = false
 	cfg.StrictReconfigCheck = true
@@ -374,6 +395,7 @@ type PSCfg struct {
 
 func InitConfig(path string) {
 	single = &Config{
+		mu: new(sync.RWMutex),
 		Global: &GlobalCfg{
 			ResourceLimitRate: 0.85,
 		},
@@ -383,13 +405,32 @@ func InitConfig(path string) {
 
 func LoadConfig(conf *Config, path string) {
 	if len(path) == 0 {
-		log.Error("configPath file is empty!")
+		log.Error("load config path is empty")
 		os.Exit(-1)
 	}
 	if _, err := toml.DecodeFile(path, conf); err != nil {
 		log.Error("decode:[%s] failed, err:[%s]", path, err.Error())
 		os.Exit(-1)
 	}
+	conf.Global.Path = path
+}
+
+func DumpConfig(conf *Config) error {
+	if len(conf.Global.Path) == 0 {
+		msg := "dump config path is empty"
+		log.Error(msg)
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf(msg))
+	}
+	fp, err := os.Create(conf.Global.Path)
+	if err != nil {
+		return err
+	}
+	defer fp.Close()
+	if err := toml.NewEncoder(fp).Encode(conf); err != nil {
+		log.Error("encode:[%s] failed, err:[%s]", conf.Global.Path, err.Error())
+		return err
+	}
+	return nil
 }
 
 // CurrentByMasterNameDomainIp find this machine domain.The main purpose of this function is to find the master from from multiple masters and set it‘s Field:self to true.
