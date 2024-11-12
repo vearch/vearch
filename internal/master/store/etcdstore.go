@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/vearch/vearch/v3/internal/config"
+	"go.etcd.io/etcd/api/v3/etcdserverpb"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/client/v3/concurrency"
 )
@@ -30,7 +31,6 @@ func init() {
 }
 
 type EtcdStore struct {
-	serverAddr []string
 	//cli is the etcd client
 	cli *clientv3.Client
 }
@@ -89,7 +89,7 @@ func NewEtcdStore(serverAddrs []string) (Store, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &EtcdStore{serverAddr: serverAddrs, cli: cli}, nil
+	return &EtcdStore{cli: cli}, nil
 }
 
 // put kv if already exits it will overwrite
@@ -233,4 +233,86 @@ func (store *EtcdStore) WatchPrefix(ctx context.Context, key string) (clientv3.W
 	}
 
 	return watcher, nil
+}
+
+func (store *EtcdStore) MemberList(ctx context.Context) (*clientv3.MemberListResponse, error) {
+	requestCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	return store.cli.MemberList(requestCtx)
+}
+
+func compareEndPoints(eps []string, members []*etcdserverpb.Member) bool {
+	memberAddrs := make(map[string]bool)
+	for _, member := range members {
+		for _, peerURL := range member.PeerURLs {
+			memberAddrs[peerURL] = true
+		}
+	}
+
+	for _, ep := range eps {
+		if !memberAddrs[ep] {
+			return false
+		}
+	}
+
+	return true
+}
+
+func (store *EtcdStore) MemberStatus(ctx context.Context) ([]*clientv3.StatusResponse, error) {
+	membersResp, err := store.cli.MemberList(ctx)
+	if err != nil {
+		return nil, err
+	}
+	eps := store.cli.Endpoints()
+	if compareEndPoints(eps, membersResp.Members) {
+		err := store.cli.Sync(ctx)
+		if err != nil {
+			return nil, err
+		}
+	}
+	eps = store.cli.Endpoints()
+	status := make([]*clientv3.StatusResponse, len(eps))
+
+	for i, ep := range eps {
+		requestCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+		defer cancel()
+
+		stat, err := store.cli.Status(requestCtx, ep)
+		if err != nil {
+			status[i] = &clientv3.StatusResponse{
+				Header: &etcdserverpb.ResponseHeader{
+					ClusterId: 0,
+					MemberId:  0,
+					Revision:  0,
+					RaftTerm:  0,
+				},
+				Version:          "0",
+				DbSizeInUse:      0,
+				Leader:           0,
+				RaftAppliedIndex: 0,
+				Errors:           []string{err.Error()},
+			}
+		} else {
+			status[i] = stat
+		}
+	}
+
+	return status, nil
+}
+
+func (store *EtcdStore) MemberAdd(ctx context.Context, peerAddrs []string) (*clientv3.MemberAddResponse, error) {
+	return store.cli.MemberAdd(ctx, peerAddrs)
+}
+
+func (store *EtcdStore) MemberRemove(ctx context.Context, id uint64) (*clientv3.MemberRemoveResponse, error) {
+	// TODO also remove persistence data
+	return store.cli.MemberRemove(ctx, id)
+}
+
+func (store *EtcdStore) Endpoints() []string {
+	return store.cli.Endpoints()
+}
+
+func (store *EtcdStore) MemberSync(ctx context.Context) error {
+	return store.cli.Sync(ctx)
 }

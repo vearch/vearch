@@ -33,6 +33,7 @@ password = os.getenv("PASSWORD", "secret")
 
 __description__ = """ test utils for vearch """
 
+
 def process_add_data(items):
     url = router_url + "/document/upsert"
     data = {}
@@ -694,7 +695,7 @@ def process_query_error_data(items):
         wrong_document_id_of_partition_next,
         wrong_document_id_with_invalid_character,
         wrong_timeout_param,
-        timeout
+        timeout,
     ) = items[5]
 
     max_document_ids_length = 501
@@ -1096,7 +1097,19 @@ def delete_interface(
         )
 
 
-def process_search_data(index, batch_size, features, full_field, with_filter, seed, query_type, alias_name = "", db_name = "", space_name = "", check = False):
+def process_search_data(
+    index,
+    batch_size,
+    features,
+    full_field,
+    with_filter,
+    seed,
+    query_type,
+    alias_name="",
+    db_name="",
+    space_name="",
+    check=False,
+):
     url = router_url + "/document/search?timeout=2000000"
     data = {}
     data["vector_value"] = True
@@ -1191,9 +1204,7 @@ def search_interface(
         )
 
 
-def create_for_document_test(
-    router_url, embedding_size, properties, partition_num=1
-):
+def create_for_document_test(router_url, embedding_size, properties, partition_num=1):
     space_config = {
         "name": space_name,
         "partition_num": partition_num,
@@ -1269,9 +1280,7 @@ def prepare_cluster_for_document_test(total, xb, partition_num=1):
         },
     ]
 
-    create_for_document_test(
-        router_url, embedding_size, properties, partition_num
-    )
+    create_for_document_test(router_url, embedding_size, properties, partition_num)
 
     add(total_batch, batch_size, xb, with_id, full_field)
 
@@ -1315,9 +1324,7 @@ def search(xq, k: int, batch: bool, query_dict: dict):
     url = router_url + "/document/search?timeout=2000000"
 
     field_ints = []
-    vector_dict = {
-        "vector": [{"field": "field_vector", "feature": []}]
-    }
+    vector_dict = {"vector": [{"field": "field_vector", "feature": []}]}
     if batch:
         vector_dict["vector"][0]["feature"] = xq.flatten().tolist()
         query_dict["vectors"] = vector_dict["vector"]
@@ -1468,6 +1475,32 @@ def get_cluster_stats(router_url: str):
 def get_cluster_health(router_url: str):
     url = f"{router_url}/cluster/health?detail=true"
     resp = requests.get(url, auth=(username, password))
+    return resp
+
+
+def get_cluster_member_list(router_url: str):
+    url = f"{router_url}/members"
+    resp = requests.get(url, auth=(username, password))
+    return resp
+
+
+def get_cluster_member_stats(router_url: str):
+    url = f"{router_url}/members/stats"
+    resp = requests.get(url, auth=(username, password))
+    return resp
+
+
+def remove_cluster_member(router_url: str, member_id: int, master_name: str):
+    url = f"{router_url}/members"
+    data = {"id": member_id, "name": master_name}
+    resp = requests.delete(url, auth=(username, password), json=data)
+    return resp
+
+
+def add_cluster_member(router_url: str, peer_addrs: list):
+    url = f"{router_url}/members"
+    data = {"peer_addrs": peer_addrs}
+    resp = requests.post(url, auth=(username, password), json=data)
     return resp
 
 
@@ -1684,13 +1717,17 @@ def server_resource_limit(
     resp = requests.post(url, auth=(username, password), json=data)
     return resp
 
+
 def init_log():
     log = logging.getLogger("test")
     log.setLevel(logging.DEBUG)
     console_handler = logging.StreamHandler()
-    formatter = logging.Formatter('%(asctime)s %(levelname)s %(filename)s:%(lineno)d %(message)s')
+    formatter = logging.Formatter(
+        "%(asctime)s %(levelname)s %(filename)s:%(lineno)d %(message)s"
+    )
     console_handler.setFormatter(formatter)
     log.addHandler(console_handler)
     return log
+
 
 logger = init_log()

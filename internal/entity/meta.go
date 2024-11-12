@@ -85,6 +85,10 @@ func AliasKey(aliasName string) string {
 	return fmt.Sprintf("%s%s", PrefixAlias, aliasName)
 }
 
+func MasterMemberKey(ID uint64) string {
+	return fmt.Sprintf("%s%d", PrefixMasterMember, ID)
+}
+
 func LockAliasKey(aliasName string) string {
 	return fmt.Sprintf("%s%s", PrefixLock, aliasName)
 }
@@ -113,6 +117,7 @@ func SetPrefixAndSequence(cluster_id string) {
 	PrefixRouter = PrefixEtcdClusterID + PrefixRouter
 	PrefixAlias = PrefixEtcdClusterID + PrefixAlias
 	PrefixRole = PrefixEtcdClusterID + PrefixRole
+	PrefixMasterMember = PrefixEtcdClusterID + PrefixMasterMember
 }
 
 // sids sequence key for etcd
@@ -142,6 +147,7 @@ var (
 	PrefixPartitionId  = "/id/partition"
 	PrefixAlias        = "/alias/"
 	PrefixRole         = "/role/"
+	PrefixMasterMember = "/member/"
 )
 
 var PrefixEtcdClusterID = "/vearch/default/"
@@ -175,3 +181,14 @@ type (
 	// node id for ps
 	NodeID = uint64
 )
+
+type AddMemberRequest struct {
+	PeerAddrs []string `json:"peer_addrs,omitempty"`
+}
+
+type MemberInfoRequest struct {
+	ID   uint64 `json:"id,omitempty"`
+	Name string `name:"id,omitempty"`
+}
+
+const RESTART = "restart.txt"

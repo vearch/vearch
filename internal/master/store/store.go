@@ -60,6 +60,12 @@ type Store interface {
 	//it to generate increment unique id
 	NewIDGenerate(ctx context.Context, key string, base int64, timeout time.Duration) (int64, error)
 	WatchPrefix(ctx context.Context, key string) (clientv3.WatchChan, error)
+	MemberList(ctx context.Context) (*clientv3.MemberListResponse, error)
+	MemberStatus(ctx context.Context) ([]*clientv3.StatusResponse, error)
+	MemberAdd(ctx context.Context, peerAddrs []string) (*clientv3.MemberAddResponse, error)
+	MemberRemove(ctx context.Context, id uint64) (*clientv3.MemberRemoveResponse, error)
+	Endpoints() []string
+	MemberSync(ctx context.Context) error
 }
 
 type WatcherJob interface {

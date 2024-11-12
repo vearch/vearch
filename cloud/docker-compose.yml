@@ -96,13 +96,26 @@ services:
       timeout: 5s
       retries: 3
 
+  master4:
+    container_name: vearch-master4
+    image: vearch/vearch:latest
+    privileged: true
+    networks:
+      vearch_network_cluster:
+        ipv4_address: 172.16.238.13
+    volumes:
+      - ${DOCKER_VOLUME_DIRECTORY:-.}/config_cluster.toml:/vearch/config.toml
+    command: master
+    profiles:
+      - manual_startif
+
   router1:
     container_name: vearch-router1
     image: vearch/vearch:latest
     privileged: true
     networks:
       vearch_network_cluster:
-        ipv4_address: 172.16.238.13
+        ipv4_address: 172.16.238.14
     ports:
       - "9001:9001"
     volumes:
@@ -135,7 +148,7 @@ services:
     privileged: true
     networks:
       vearch_network_cluster:
-        ipv4_address: 172.16.238.14
+        ipv4_address: 172.16.238.15
     volumes:
       - ${DOCKER_VOLUME_DIRECTORY:-.}/config_cluster.toml:/vearch/config.toml
     command: router
@@ -165,7 +178,7 @@ services:
     image: vearch/vearch:latest
     networks:
       vearch_network_cluster:
-        ipv4_address: 172.16.238.15
+        ipv4_address: 172.16.238.16
     volumes:
       - ${DOCKER_VOLUME_DIRECTORY:-.}/config_cluster.toml:/vearch/config.toml
     command: ps
@@ -182,7 +195,7 @@ services:
     image: vearch/vearch:latest
     networks:
       vearch_network_cluster:
-        ipv4_address: 172.16.238.16
+        ipv4_address: 172.16.238.17
     volumes:
       - ${DOCKER_VOLUME_DIRECTORY:-.}/config_cluster.toml:/vearch/config.toml
     command: ps
@@ -199,7 +212,7 @@ services:
     image: vearch/vearch:latest
     networks:
       vearch_network_cluster:
-        ipv4_address: 172.16.238.17
+        ipv4_address: 172.16.238.18
     volumes:
       - ${DOCKER_VOLUME_DIRECTORY:-.}/config_cluster.toml:/vearch/config.toml
     command: ps
@@ -216,7 +229,7 @@ services:
     image: vearch/vearch:latest
     networks:
       vearch_network_cluster:
-        ipv4_address: 172.16.238.18
+        ipv4_address: 172.16.238.19
     volumes:
       - ${DOCKER_VOLUME_DIRECTORY:-.}/config_cluster.toml:/vearch/config.toml
     command: ps

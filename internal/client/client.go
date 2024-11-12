@@ -80,7 +80,6 @@ func (client *Client) initMasterClient(conf *config.Config) error {
 	}
 
 	client.master = &masterClient{client: client, Store: etcdStore, cfg: conf}
-	masterServer.init(len(conf.Masters))
 	return nil
 }
 

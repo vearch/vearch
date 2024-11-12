@@ -49,6 +49,8 @@ const (
 	aliasName           = "alias_name"
 	userName            = "user_name"
 	roleName            = "role_name"
+	memberId            = "member_id"
+	peerAddrs           = "peer_addrs"
 	headerAuthKey       = "Authorization"
 	NodeID              = "node_id"
 	DefaultResourceName = "default"
@@ -211,8 +213,15 @@ func ExportToClusterHandler(router *gin.Engine, masterService *masterService, se
 	groupAuth.DELETE(fmt.Sprintf("/roles/:%s", roleName), c.deleteRole, dh.TimeOutEndHandler)
 	groupAuth.PUT("/roles", c.changeRolePrivilege, dh.TimeOutEndHandler)
 
+	// cluster handler
 	groupAuth.GET("/cluster/stats", c.stats, dh.TimeOutEndHandler)
 	groupAuth.GET("/cluster/health", c.health, dh.TimeOutEndHandler)
+
+	// members handler
+	groupAuth.GET("/members", c.getMembers, dh.TimeOutEndHandler)
+	groupAuth.GET("/members/stats", c.getMemberStatus, dh.TimeOutEndHandler)
+	groupAuth.DELETE("/members", c.deleteMember, dh.TimeOutEndHandler)
+	groupAuth.POST("/members", c.addMember, dh.TimeOutEndHandler)
 
 }
 
@@ -990,6 +999,57 @@ func (ca *clusterAPI) changeRolePrivilege(c *gin.Context) {
 	} else {
 		response.New(c).JsonSuccess(new_role)
 	}
+}
+
+func (ca *clusterAPI) getMembers(c *gin.Context) {
+	resp, err := ca.masterService.Client.Master().MemberList(context.Background())
+	if err != nil {
+		response.New(c).JsonError(errors.NewErrBadRequest(err))
+		return
+	}
+
+	response.New(c).JsonSuccess(resp)
+}
+
+func (ca *clusterAPI) getMemberStatus(c *gin.Context) {
+	resp, err := ca.masterService.Client.Master().MemberStatus(context.Background())
+	if err != nil {
+		response.New(c).JsonError(errors.NewErrBadRequest(err))
+		return
+	}
+
+	response.New(c).JsonSuccess(resp)
+}
+
+func (ca *clusterAPI) addMember(c *gin.Context) {
+	addMemberRequest := &entity.AddMemberRequest{}
+
+	if err := c.ShouldBindJSON(addMemberRequest); err != nil {
+		response.New(c).JsonError(errors.NewErrBadRequest(err))
+		return
+	}
+
+	resp, err := ca.masterService.addMemberService(c, addMemberRequest.PeerAddrs)
+	if err != nil {
+		response.New(c).JsonError(errors.NewErrInternal(err))
+		return
+	}
+	response.New(c).JsonSuccess(resp)
+}
+
+func (ca *clusterAPI) deleteMember(c *gin.Context) {
+	master := &entity.MemberInfoRequest{}
+	if err := c.ShouldBindJSON(master); err != nil {
+		response.New(c).JsonError(errors.NewErrBadRequest(err))
+		return
+	}
+	resp, err := ca.masterService.removeMemberService(c, master)
+	if err != nil {
+		response.New(c).JsonError(errors.NewErrInternal(err))
+		return
+	}
+
+	response.New(c).JsonSuccess(resp)
 }
 
 // get engine config

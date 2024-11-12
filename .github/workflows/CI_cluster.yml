@@ -164,7 +164,28 @@ jobs:
           echo "Status is green."
         fi
         cd test && pytest test_cluster_ps.py -x -k "TestClusterPartitionServerDestroy" --log-cli-level=INFO
-        cd .. && docker-compose -f cloud/docker-compose.yml stop ps4
+        cd .. && docker-compose -f cloud/docker-compose.yml down ps4
+        sleep 30
+        docker-compose -f cloud/docker-compose.yml start ps1
+        sleep 90 && docker ps
+
+    - name: Run tests for master replace member
+      run: |
+        cd test
+        pytest test_cluster_master.py -x -k "TestClusterChangeMasterMemberPrePare" --log-cli-level=INFO
+        docker-compose -f ../cloud/docker-compose.yml stop master1
+        pytest test_cluster_master.py -x -k "TestClusterMemberInfomation" --log-cli-level=INFO
+        sed -i 's/m1/m4/' ../cloud/config_cluster.toml
+        sed -i 's/vearch-master1/vearch-master4/' ../cloud/config_cluster.toml
+        sed -i 's/cluster_state = "new"/cluster_state = "existing"/g' ../cloud/config_cluster.toml
+        pytest test_cluster_master.py -x -k "TestClusterRemoveMasterMember" --log-cli-level=INFO
+        pytest test_cluster_master.py -x -k "TestClusterMemberInfomation" --log-cli-level=INFO
+        pytest test_cluster_master.py -x -k "TestClusterAddMasterMember" --log-cli-level=INFO
+        docker-compose -f ../cloud/docker-compose.yml up master4 -d
+        sleep 10
+        pytest test_cluster_master.py -x -k "TestClusterMemberInfomation" --log-cli-level=INFO
+        pytest test_cluster_master.py -x -k "TestClusterMasterOperate" --log-cli-level=INFO
+        pytest test_vearch.py -x -k "test_vearch_basic_usage" --log-cli-level=INFO
 
     - name: Clean cluster
       run: |

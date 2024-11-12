@@ -50,10 +50,10 @@ var (
 
 type clientCache struct {
 	sync.Map
-	mc                                                                                      *masterClient
-	cancel                                                                                  context.CancelFunc
-	lock                                                                                    sync.Mutex
-	userCache, spaceCache, spaceIDCache, partitionCache, serverCache, aliasCache, roleCache *cache.Cache
+	mc                                                                                                    *masterClient
+	cancel                                                                                                context.CancelFunc
+	lock                                                                                                  sync.Mutex
+	userCache, spaceCache, spaceIDCache, partitionCache, serverCache, aliasCache, roleCache, mastersCache *cache.Cache
 }
 
 func newClientCache(serverCtx context.Context, masterClient *masterClient) (*clientCache, error) {
@@ -69,6 +69,7 @@ func newClientCache(serverCtx context.Context, masterClient *masterClient) (*cli
 		serverCache:    cache.New(cache.NoExpiration, cache.NoExpiration),
 		aliasCache:     cache.New(cache.NoExpiration, cache.NoExpiration),
 		roleCache:      cache.New(cache.NoExpiration, cache.NoExpiration),
+		mastersCache:   cache.New(cache.NoExpiration, cache.NoExpiration),
 	}
 
 	if err := cc.startCacheJob(ctx); err != nil {
@@ -600,6 +601,33 @@ func (cliCache *clientCache) startCacheJob(ctx context.Context) error {
 	}
 	roleJob.start()
 
+	//init masters
+	if err := cliCache.initMasters(); err != nil {
+		return err
+	}
+	mastersJob := watcherJob{ctx: ctx, prefix: entity.PrefixMasterMember, masterClient: cliCache.mc, cache: cliCache.mastersCache,
+		put: func(value []byte) (err error) {
+			var master config.MasterCfg
+			if err := vjson.Unmarshal(value, &master); err != nil {
+				return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("put event masters cache err, can't unmarshal event value: %s, error: %s", string(value), err.Error()))
+			}
+			log.Debug("[%v] add to master cache.", master)
+			cliCache.mastersCache.Set(master.Address, master, cache.NoExpiration)
+			if err := cliCache.mc.CheckMasterConfig(ctx); err != nil {
+				log.Error("router update master config err: %s", err.Error())
+			}
+			return nil
+		},
+		delete: func(key string) (err error) {
+			masterSplit := strings.Split(key, "/")
+			masterAddress := masterSplit[len(masterSplit)-1]
+			log.Debug("[%s] delete from masters cache.", key)
+			cliCache.mastersCache.Delete(masterAddress)
+			return nil
+		},
+	}
+	mastersJob.start()
+
 	log.Info("cache inited ok use time %v", time.Since(start))
 
 	return nil
@@ -902,6 +930,11 @@ func (cliCache *clientCache) initRole(ctx context.Context) error {
 			log.Error(err.Error())
 		}
 	}
+	return nil
+}
+
+func (cliCache *clientCache) initMasters() error {
+	log.Info("init master cache")
 	return nil
 }
 
