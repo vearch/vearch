@@ -183,7 +183,7 @@ jobs:
         cd test && pytest test_cluster_ps.py -x -k "TestClusterPartitionServerDestroy" --log-cli-level=INFO
         cd .. && docker-compose -f cloud/docker-compose.yml down ps4
         sleep 30
-        docker-compose -f cloud/docker-compose.yml start ps1
+        docker-compose -f cloud/docker-compose.yml restart ps1
         sleep 90 && docker ps
 
     - name: Run tests for master replace member

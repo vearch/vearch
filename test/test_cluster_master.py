@@ -29,6 +29,7 @@ class TestClusterMasterPrepare:
     def test_prepare_db(self):
         response = create_db(router_url, db_name)
         logger.info(response.json())
+        assert response.json()["code"] == 0
 
     @pytest.mark.parametrize(
         ["embedding_size", "index_type"],
@@ -72,6 +73,7 @@ class TestClusterMasterPrepare:
 
         response = create_space(router_url, db_name, space_config)
         logger.info(response.json())
+        assert response.json()["code"] == 0
 
 
 class TestClusterMasterOperateDocument:
@@ -106,6 +108,7 @@ class TestClusterChangeMasterMemberPrePare:
     def test_prepare_db(self):
         response = create_db(router_url, db_name)
         logger.info(response.json())
+        assert response.json()["code"] == 0
 
     @pytest.mark.parametrize(
         ["embedding_size", "index_type"],
@@ -149,6 +152,7 @@ class TestClusterChangeMasterMemberPrePare:
 
         response = create_space(router_url, db_name, space_config)
         logger.info(response.json())
+        assert response.json()["code"] == 0
 
 
 class TestClusterMemberInfomation:
