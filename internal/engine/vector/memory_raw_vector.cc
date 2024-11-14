@@ -34,12 +34,11 @@ MemoryRawVector::~MemoryRawVector() {
   CHECK_DELETE_ARRAY(segments_);
 }
 
-Status MemoryRawVector::Load(int vec_num) {
+Status MemoryRawVector::Load(int64_t vec_num) {
   std::unique_ptr<rocksdb::Iterator> it = storage_mgr_->NewIterator(cf_id_);
-  string start_key;
-  storage_mgr_->ToRowKey(0, start_key);
+  string start_key = utils::ToRowKey(0);
   it->Seek(rocksdb::Slice(start_key));
-  for (int c = 0; c < vec_num; c++, it->Next()) {
+  for (auto c = 0; c < vec_num; c++, it->Next()) {
     if (!it->Valid()) {
       std::string msg = std::string("load vectors error, expected num=") +
                         std::to_string(vec_num) +
@@ -57,12 +56,12 @@ Status MemoryRawVector::Load(int vec_num) {
   return Status::OK();
 }
 
-int MemoryRawVector::GetDiskVecNum(int &vec_num) {
+int MemoryRawVector::GetDiskVecNum(int64_t &vec_num) {
   if (vec_num <= 0) return 0;
   int disk_vec_num = vec_num - 1;
   string key, value;
-  for (int i = disk_vec_num; i >= 0; --i) {
-    storage_mgr_->ToRowKey(i, key);
+  for (int64_t i = disk_vec_num; i >= 0; --i) {
+    key = utils::ToRowKey(i);
     Status s = storage_mgr_->Get(cf_id_, key, value);
     if (s.ok()) {
       vec_num = i + 1;
@@ -104,7 +103,7 @@ int MemoryRawVector::AddToMem(uint8_t *v, int len) {
 
 int MemoryRawVector::ExtendSegments() {
   if (nsegments_ >= kMaxSegments) {
-    LOG(ERROR) << this->desc_ << "segment number can't be > " << kMaxSegments;
+    LOG(ERROR) << this->desc_ << " segment number can't be > " << kMaxSegments;
     return -1;
   }
   segments_[nsegments_] =
@@ -112,7 +111,7 @@ int MemoryRawVector::ExtendSegments() {
   current_segment_ = segments_[nsegments_];
   if (current_segment_ == nullptr) {
     LOG(ERROR) << this->desc_
-               << "malloc new segment failed, segment num=" << nsegments_
+               << " malloc new segment failed, segment num=" << nsegments_
                << ", segment size=" << segment_size_;
     return -1;
   }
@@ -122,9 +121,9 @@ int MemoryRawVector::ExtendSegments() {
   return 0;
 }
 
-int MemoryRawVector::GetVectorHeader(int start, int n, ScopeVectors &vecs,
+int MemoryRawVector::GetVectorHeader(int64_t start, int n, ScopeVectors &vecs,
                                      std::vector<int> &lens) {
-  if (start + n > (int)meta_info_->Size()) return -1;
+  if (start + n > meta_info_->Size()) return -1;
 
   while (n) {
     uint8_t *vec = segments_[start / segment_size_] +
@@ -141,7 +140,7 @@ int MemoryRawVector::GetVectorHeader(int start, int n, ScopeVectors &vecs,
   return 0;
 }
 
-int MemoryRawVector::UpdateToStore(int vid, uint8_t *v, int len) {
+int MemoryRawVector::UpdateToStore(int64_t vid, uint8_t *v, int len) {
   memcpy((void *)(segments_[vid / segment_size_] +
                   (size_t)vid % segment_size_ * vector_byte_size_),
          (void *)v, vector_byte_size_);
@@ -151,7 +150,7 @@ int MemoryRawVector::UpdateToStore(int vid, uint8_t *v, int len) {
   return 0;
 }
 
-int MemoryRawVector::GetVector(long vid, const uint8_t *&vec,
+int MemoryRawVector::GetVector(int64_t vid, const uint8_t *&vec,
                                bool &deletable) const {
   vec = segments_[vid / segment_size_] +
         (size_t)vid % segment_size_ * vector_byte_size_;
@@ -160,7 +159,7 @@ int MemoryRawVector::GetVector(long vid, const uint8_t *&vec,
   return 0;
 }
 
-uint8_t *MemoryRawVector::GetFromMem(long vid) const {
+uint8_t *MemoryRawVector::GetFromMem(int64_t vid) const {
   return segments_[vid / segment_size_] +
          (size_t)vid % segment_size_ * vector_byte_size_;
 }

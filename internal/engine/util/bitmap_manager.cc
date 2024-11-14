@@ -91,7 +91,7 @@ int BitmapManager::SetDumpFilePath(const std::string &fpath) {
   return -1;
 }
 
-int BitmapManager::Dump(uint32_t begin_bit_id, uint32_t bit_len) {
+int BitmapManager::Dump(int64_t begin_bit_id, int64_t bit_len) {
   if (bit_len == 0) bit_len = size_;
 
   if (begin_bit_id < 0 || bit_len < 0 || begin_bit_id + bit_len > size_) {
@@ -100,16 +100,16 @@ int BitmapManager::Dump(uint32_t begin_bit_id, uint32_t bit_len) {
     return -1;
   }
 
-  uint32_t begin_bytes = begin_bit_id >> 3;
-  uint32_t end_bytes = (begin_bit_id + bit_len - 1) >> 3;
-  uint32_t dump_bytes = end_bytes - begin_bytes + 1;
+  int64_t begin_bytes = begin_bit_id >> 3;
+  int64_t end_bytes = (begin_bit_id + bit_len - 1) >> 3;
+  int64_t dump_bytes = end_bytes - begin_bytes + 1;
   int ret = 0;
 
   if (fd_ != -1) {
-    uint32_t written_bytes = 0;
+    int64_t written_bytes = 0;
     int i = 0;
     while (written_bytes < dump_bytes) {
-      uint32_t bytes =
+      int64_t bytes =
           pwrite(fd_, bitmap_.get() + begin_bytes + written_bytes,
                  dump_bytes - written_bytes, begin_bytes + written_bytes);
       written_bytes += bytes;
@@ -126,7 +126,7 @@ int BitmapManager::Dump(uint32_t begin_bit_id, uint32_t bit_len) {
   return ret;
 }
 
-int BitmapManager::Load(uint32_t bit_len) {
+int BitmapManager::Load(int64_t bit_len) {
   if (bit_len == 0) bit_len = size_;
 
   if (bit_len < 0 || bit_len > size_) {
@@ -135,16 +135,16 @@ int BitmapManager::Load(uint32_t bit_len) {
     return -1;
   }
 
-  uint32_t begin_bytes = 0;
-  uint32_t end_bytes = (bit_len - 1) >> 3;
-  uint32_t load_bytes = end_bytes - begin_bytes + 1;
+  int64_t begin_bytes = 0;
+  int64_t end_bytes = (bit_len - 1) >> 3;
+  int64_t load_bytes = end_bytes - begin_bytes + 1;
   int ret = 0;
   if (fd_ != -1) {
-    uint32_t read_bytes = 0;
+    int64_t read_bytes = 0;
     int i = 0;
     while (read_bytes < load_bytes) {
-      uint32_t bytes = pread(fd_, bitmap_.get() + begin_bytes + read_bytes,
-                             load_bytes - read_bytes, begin_bytes + read_bytes);
+      int64_t bytes = pread(fd_, bitmap_.get() + begin_bytes + read_bytes,
+                            load_bytes - read_bytes, begin_bytes + read_bytes);
       read_bytes += bytes;
       if (++i >= 1000) {
         LOG(ERROR) << "load bitmap is not complate, load_bytes=" << read_bytes;
@@ -166,7 +166,7 @@ uint32_t BitmapManager::FileBytesSize() {
   return 0;
 }
 
-int BitmapManager::Set(uint32_t bit_id) {
+int BitmapManager::Set(int64_t bit_id) {
   if (bit_id >= 0 && bit_id < size_ && bitmap_ != nullptr) {
     bitmap_[bit_id >> 3] |= (0x1 << (bit_id & 0x7));
     return 0;
@@ -174,7 +174,7 @@ int BitmapManager::Set(uint32_t bit_id) {
   return -1;
 }
 
-int BitmapManager::Unset(uint32_t bit_id) {
+int BitmapManager::Unset(int64_t bit_id) {
   if (bit_id >= 0 && bit_id < size_ && bitmap_ != nullptr) {
     bitmap_[bit_id >> 3] &= ~(0x1 << (bit_id & 0x7));
     return 0;
@@ -182,14 +182,14 @@ int BitmapManager::Unset(uint32_t bit_id) {
   return -1;
 }
 
-bool BitmapManager::Test(uint32_t bit_id) {
+bool BitmapManager::Test(int64_t bit_id) {
   if (bit_id >= 0 && bit_id < size_ && bitmap_ != nullptr) {
     return (bitmap_[bit_id >> 3] & (0x1 << (bit_id & 0x7)));
   }
   return false;
 }
 
-int BitmapManager::SetMaxID(uint32_t bit_id) {
+int BitmapManager::SetMaxID(int64_t bit_id) {
   if (size_ > bit_id) return 0;
 
   uint32_t old_bytes_count = (size_ >> 3) + 1;
@@ -321,11 +321,11 @@ int RocksdbBitmapManager::SetDumpFilePath(const std::string &fpath) {
   return -1;
 }
 
-int RocksdbBitmapManager::Dump(uint32_t begin_bit_id, uint32_t bit_len) {
+int RocksdbBitmapManager::Dump(int64_t begin_bit_id, int64_t bit_len) {
   return 0;
 }
 
-int RocksdbBitmapManager::Load(uint32_t bit_len) {
+int RocksdbBitmapManager::Load(int64_t bit_len) {
   if (bit_len == 0) bit_len = size_;
 
   if (bit_len < 0 || bit_len > size_) {
@@ -334,9 +334,9 @@ int RocksdbBitmapManager::Load(uint32_t bit_len) {
     return -1;
   }
   int load_num = 0;
-  for (uint32_t i = 0; i < bit_len; i += kBitmapSegmentBits) {
+  for (int64_t i = 0; i < bit_len; i += kBitmapSegmentBits) {
     std::string key, value;
-    ToRowKey(i, key);
+    key = utils::ToRowKey(i);
     rocksdb::Status s =
         db_->Get(rocksdb::ReadOptions(), rocksdb::Slice(key), &value);
     if (s.ok()) {
@@ -353,19 +353,12 @@ int RocksdbBitmapManager::Load(uint32_t bit_len) {
 
 uint32_t RocksdbBitmapManager::FileBytesSize() { return 0; }
 
-void RocksdbBitmapManager::ToRowKey(uint32_t bit_id, std::string &key) {
-  // max length:6 because (2^32 -1) / 1024 / 8 = 524287
-  char data[7];
-  snprintf(data, 7, "%06d", bit_id / kBitmapSegmentBits);
-  key.assign(data, 7);
-}
-
-int RocksdbBitmapManager::Set(uint32_t bit_id) {
+int RocksdbBitmapManager::Set(int64_t bit_id) {
   if (bit_id >= 0 && bit_id < size_ && bitmap_ != nullptr) {
     bitmap_[bit_id >> 3] |= (0x1 << (bit_id & 0x7));
 
     std::string key, value;
-    ToRowKey(bit_id, key);
+    key = utils::ToRowKey(bit_id);
 
     rocksdb::Status s = db_->Put(
         rocksdb::WriteOptions(), rocksdb::Slice(key),
@@ -385,12 +378,12 @@ int RocksdbBitmapManager::Set(uint32_t bit_id) {
   return -1;
 }
 
-int RocksdbBitmapManager::Unset(uint32_t bit_id) {
+int RocksdbBitmapManager::Unset(int64_t bit_id) {
   if (bit_id >= 0 && bit_id < size_ && bitmap_ != nullptr) {
     bitmap_[bit_id >> 3] &= ~(0x1 << (bit_id & 0x7));
 
     std::string key, value;
-    ToRowKey(bit_id, key);
+    key = utils::ToRowKey(bit_id);
 
     rocksdb::Status s = db_->Put(
         rocksdb::WriteOptions(), rocksdb::Slice(key),
@@ -410,14 +403,14 @@ int RocksdbBitmapManager::Unset(uint32_t bit_id) {
   return -1;
 }
 
-bool RocksdbBitmapManager::Test(uint32_t bit_id) {
+bool RocksdbBitmapManager::Test(int64_t bit_id) {
   if (bit_id >= 0 && bit_id < size_ && bitmap_ != nullptr) {
     return (bitmap_[bit_id >> 3] & (0x1 << (bit_id & 0x7)));
   }
   return false;
 }
 
-int RocksdbBitmapManager::SetMaxID(uint32_t bit_id) {
+int RocksdbBitmapManager::SetMaxID(int64_t bit_id) {
   if (size_ > bit_id) return 0;
 
   size_t new_size = size_ * 2;

@@ -25,21 +25,24 @@ class MemoryRawVector : public RawVector {
 
   int AddToStore(uint8_t *v, int len) override;
 
-  int GetVectorHeader(int start, int n, ScopeVectors &vecs,
+  int GetVectorHeader(int64_t start, int n, ScopeVectors &vecs,
                       std::vector<int> &lens) override;
 
-  int UpdateToStore(int vid, uint8_t *v, int len) override;
+  int UpdateToStore(int64_t vid, uint8_t *v, int len) override;
 
-  uint8_t *GetFromMem(long vid) const;
+  uint8_t *GetFromMem(int64_t vid) const;
 
   int AddToMem(uint8_t *v, int len);
 
-  Status Load(int vec_num) override;
-  int GetDiskVecNum(int &vec_num) override;
-  Status Dump(int start_vid, int end_vid) override { return Status::OK(); };
+  Status Load(int64_t vec_num) override;
+  int GetDiskVecNum(int64_t &vec_num) override;
+  Status Dump(int64_t start_vid, int64_t end_vid) override {
+    return Status::OK();
+  };
 
  protected:
-  int GetVector(long vid, const uint8_t *&vec, bool &deleteable) const override;
+  int GetVector(int64_t vid, const uint8_t *&vec,
+                bool &deleteable) const override;
 
  private:
   int ExtendSegments();

@@ -467,7 +467,7 @@ Status GammaIVFPQFastScanIndex::Dump(const std::string &dir) {
 }
 
 Status GammaIVFPQFastScanIndex::Load(const std::string &index_dir,
-                                     int &load_num) {
+                                     int64_t &load_num) {
   load_num = 0;
   return Status::OK();
 }

@@ -196,4 +196,6 @@ struct ScopeDeleter1 {
   ~ScopeDeleter1() { delete ptr; }
 };
 
+std::string ToRowKey(int64_t key);
+
 }  // namespace utils

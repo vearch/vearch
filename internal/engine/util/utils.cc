@@ -7,6 +7,7 @@
 
 #include "utils.h"
 
+#include <arpa/inet.h>
 #include <dirent.h>
 #include <string.h>
 #include <sys/time.h>
@@ -496,6 +497,12 @@ size_t FileIO::Write(const void *data, size_t size, size_t m) {
 
 size_t FileIO::Read(void *data, size_t size, size_t m) {
   return fread(data, size, m, fp);
+}
+
+std::string ToRowKey(int64_t key) {
+  int64_t be64_value = htobe64(key);  // convert to big-endian
+  return std::string(reinterpret_cast<const char *>(&be64_value),
+                     sizeof(be64_value));
 }
 
 }  // namespace utils

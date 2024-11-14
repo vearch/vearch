@@ -447,7 +447,7 @@ int GammaIVFPQGPUIndex::AddRTVecsToIndex() {
                       1;
 
     for (int i = 0; i < index_count; i++) {
-      int start_docid = cpu_index_->indexed_vec_count_;
+      int64_t start_docid = cpu_index_->indexed_vec_count_;
       size_t count_per_index =
           (i == (index_count - 1) ? total_stored_vecs - start_docid
                                   : MAX_NUM_PER_INDEX);
@@ -528,7 +528,7 @@ Status GammaIVFPQGPUIndex::Dump(const string &dir) {
   return cpu_index_->Dump(dir);
 }
 
-Status GammaIVFPQGPUIndex::Load(const string &index_dir, int &load_num) {
+Status GammaIVFPQGPUIndex::Load(const string &index_dir, int64_t &load_num) {
   Status ret = cpu_index_->Load(index_dir, load_num);
   is_trained_ = cpu_index_->is_trained;
   d_ = cpu_index_->d_;

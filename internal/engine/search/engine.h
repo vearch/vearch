@@ -119,7 +119,7 @@ class Engine {
   Table *table_;
   VectorManager *vec_manager_;
 
-  int max_docid_;
+  int64_t max_docid_;
   int training_threshold_;
   int long_search_time_;
 

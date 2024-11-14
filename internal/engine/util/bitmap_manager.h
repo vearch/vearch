@@ -26,19 +26,19 @@ class BitmapManager {
 
   virtual int SetDumpFilePath(const std::string &fpath);
 
-  virtual int Dump(uint32_t begin_bit_id = 0, uint32_t bit_len = 0);
+  virtual int Dump(int64_t begin_bit_id = 0, int64_t bit_len = 0);
 
-  virtual int Load(uint32_t bit_len = 0);
+  virtual int Load(int64_t bit_len = 0);
 
   virtual uint32_t FileBytesSize();
 
   bool IsLoad() { return is_load_; }
 
-  virtual int Set(uint32_t bit_id);
+  virtual int Set(int64_t bit_id);
 
-  virtual int Unset(uint32_t bit_id);
+  virtual int Unset(int64_t bit_id);
 
-  virtual bool Test(uint32_t bit_id);
+  virtual bool Test(int64_t bit_id);
 
   virtual uint32_t BitSize() { return size_; }
 
@@ -46,7 +46,7 @@ class BitmapManager {
 
   virtual uint32_t BytesSize() { return (size_ >> 3) + 1; }
 
-  virtual int SetMaxID(uint32_t bit_id);
+  virtual int SetMaxID(int64_t bit_id);
 
   std::shared_ptr<char[]> bitmap_;
   uint32_t size_;
@@ -70,21 +70,19 @@ class RocksdbBitmapManager : public BitmapManager {
 
   virtual int SetDumpFilePath(const std::string &fpath);
 
-  virtual int Dump(uint32_t begin_bit_id = 0, uint32_t bit_len = 0);
+  virtual int Dump(int64_t begin_bit_id = 0, int64_t bit_len = 0);
 
-  virtual int Load(uint32_t bit_len = 0);
+  virtual int Load(int64_t bit_len = 0);
 
   virtual uint32_t FileBytesSize();
 
-  virtual int Set(uint32_t bit_id);
+  virtual int Set(int64_t bit_id);
 
-  virtual int Unset(uint32_t bit_id);
+  virtual int Unset(int64_t bit_id);
 
-  virtual bool Test(uint32_t bit_id);
+  virtual bool Test(int64_t bit_id);
 
-  virtual int SetMaxID(uint32_t bit_id);
-
-  virtual void ToRowKey(uint32_t bit_id, std::string &key);
+  virtual int SetMaxID(int64_t bit_id);
 
   rocksdb::DB *db_;
   bool should_load_;

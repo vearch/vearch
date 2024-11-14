@@ -147,7 +147,7 @@ Status IndexIVFFlat::dump(const std::string &dir) {
   return Dump(dir);
 }
 
-Status IndexIVFFlat::load(const std::string &dir, int &load_num) {
+Status IndexIVFFlat::load(const std::string &dir, int64_t &load_num) {
   std::string index_param_file_path = dir + "/index_param_file.txt";
   long file_size = utils::get_file_size(index_param_file_path);
   char index_param_str[file_size];
@@ -285,7 +285,7 @@ Status IndexIVFPQ::dump(const std::string &dir) {
   return Dump(dir);
 }
 
-Status IndexIVFPQ::load(const std::string &dir, int &load_num) {
+Status IndexIVFPQ::load(const std::string &dir, int64_t &load_num) {
   std::string index_param_file_path = dir + "/index_param_file.txt";
   long file_size = utils::get_file_size(index_param_file_path);
   char index_param_str[file_size];

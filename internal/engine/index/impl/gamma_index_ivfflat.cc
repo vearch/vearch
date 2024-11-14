@@ -410,7 +410,7 @@ int GammaIndexIVFFlat::Update(const std::vector<int64_t> &ids,
 }
 
 int GammaIndexIVFFlat::Delete(const std::vector<int64_t> &ids) {
-  std::vector<int> vids(ids.begin(), ids.end());
+  std::vector<int64_t> vids(ids.begin(), ids.end());
   rt_invert_index_ptr_->Delete(vids.data(), vids.size());
   return 0;
 }
@@ -701,7 +701,7 @@ Status GammaIndexIVFFlat::Dump(const std::string &dir) {
   return Status::OK();
 };
 
-Status GammaIndexIVFFlat::Load(const std::string &dir, int &load_num) {
+Status GammaIndexIVFFlat::Load(const std::string &dir, int64_t &load_num) {
   std::string index_name = vector_->MetaInfo()->AbsoluteName();
   std::string index_file = dir + "/" + index_name + "/ivfflat.index";
   if (!utils::file_exist(index_file)) {
@@ -718,7 +718,7 @@ Status GammaIndexIVFFlat::Load(const std::string &dir, int &load_num) {
   IndexIVFFlat *ivfl = static_cast<IndexIVFFlat *>(this);
   vearch::read_ivf_header(ivfl, f, nullptr);  // not legacy
 
-  int indexed_vec_count = 0;
+  int64_t indexed_vec_count = 0;
   Status status = ReadInvertedLists(f, rt_invert_index_ptr_, indexed_vec_count);
   if (status.code() == status::kIndexError) {
     indexed_vec_count_ = 0;

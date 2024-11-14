@@ -322,7 +322,7 @@ int GammaFLATIndex::Update(const std::vector<idx_t> &ids,
 
 Status GammaFLATIndex::Dump(const std::string &dir) { return Status::OK(); }
 
-Status GammaFLATIndex::Load(const std::string &index_dir, int &load_num) {
+Status GammaFLATIndex::Load(const std::string &index_dir, int64_t &load_num) {
   load_num = 0;
   return Status::OK();
 }

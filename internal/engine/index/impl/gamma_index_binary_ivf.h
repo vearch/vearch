@@ -96,7 +96,7 @@ class GammaIndexBinaryIVF : public IndexModel, faiss::IndexBinaryIVF {
   long GetTotalMemBytes() override;
 
   Status Dump(const std::string &dir) override { return Status::OK(); }
-  Status Load(const std::string &index_dir, int &load_num) override {
+  Status Load(const std::string &index_dir, int64_t &load_num) override {
     load_num = 0;
     return Status::OK();
   }
@@ -124,11 +124,11 @@ class GammaIndexBinaryIVF : public IndexModel, faiss::IndexBinaryIVF {
   virtual GammaBinaryInvertedListScanner *get_GammaInvertedListScanner(
       bool store_pairs = false) const;
 
-  int indexed_vec_count_;
+  int64_t indexed_vec_count_;
   realtime::RTInvertIndex *rt_invert_index_ptr_;
 
 #ifdef PERFORMANCE_TESTING
-  int add_count_;
+  int64_t add_count_;
 #endif
 };
 }  // namespace vearch

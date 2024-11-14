@@ -69,7 +69,8 @@ bool RTInvertIndex::AddKeys(std::map<int, std::vector<long>> &new_keys,
   return true;
 }
 
-int RTInvertIndex::Update(int bucket_no, int vid, std::vector<uint8_t> &codes) {
+int RTInvertIndex::Update(int bucket_no, int64_t vid,
+                          std::vector<uint8_t> &codes) {
   return cur_ptr_->Update(bucket_no, vid, codes);
 }
 
@@ -83,7 +84,7 @@ void RTInvertIndex::PrintBucketSize() { cur_ptr_->PrintBucketSize(); }
 
 int RTInvertIndex::CompactIfNeed() { return cur_ptr_->CompactIfNeed(); }
 
-int RTInvertIndex::Delete(int *vids, int n) {
+int RTInvertIndex::Delete(int64_t *vids, int n) {
   return cur_ptr_->Delete(vids, n);
 }
 

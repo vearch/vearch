@@ -91,7 +91,7 @@ class GammaFLATIndex : public IndexModel {
 
   Status Dump(const std::string &dir) override;
 
-  Status Load(const std::string &index_dir, int &load_num) override;
+  Status Load(const std::string &index_dir, int64_t &load_num) override;
 
   DistanceComputeType metric_type_;
 

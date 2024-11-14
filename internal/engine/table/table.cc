@@ -43,8 +43,8 @@ Table::~Table() {
   LOG(INFO) << "Table " << name_ << " deleted.";
 }
 
-int Table::Load(int &num) {
-  int doc_num = num;
+int Table::Load(int64_t &num) {
+  int64_t doc_num = num;
   LOG(INFO) << "Load doc_num [" << doc_num << "] truncate to [" << num << "]";
 
   const auto &iter = attr_idx_map_.find(key_field_name_);
@@ -133,7 +133,7 @@ Status Table::AddField(const string &name, DataType ftype, bool is_index) {
   return Status::OK();
 }
 
-int Table::GetDocidByKey(const std::string &key, int &docid) {
+int Table::GetDocidByKey(const std::string &key, int64_t &docid) {
   std::string v;
   auto result = storage_mgr_->Get(key_cf_id_, key);
   if (!result.first.ok()) {
@@ -144,7 +144,7 @@ int Table::GetDocidByKey(const std::string &key, int &docid) {
   return 0;
 }
 
-int Table::GetKeyByDocid(int docid, std::string &key) {
+int Table::GetKeyByDocid(int64_t docid, std::string &key) {
   if (docid > last_docid_) {
     LOG(ERROR) << name_ << " doc [" << docid << "] in front of [" << last_docid_
                << "]";
@@ -153,7 +153,7 @@ int Table::GetKeyByDocid(int docid, std::string &key) {
   int field_id = attr_idx_map_[key_field_name_];
   GetFieldRawValue(docid, field_id, key);
 
-  int check_docid;
+  int64_t check_docid;
   GetDocidByKey(key, check_docid);
   if (check_docid != docid) {  // docid can be deleted.
     key = "";
@@ -164,7 +164,7 @@ int Table::GetKeyByDocid(int docid, std::string &key) {
 
 int Table::Add(const std::string &key,
                const std::unordered_map<std::string, struct Field> &fields,
-               int docid) {
+               int64_t docid) {
   if (key.empty()) {
     LOG(ERROR) << name_ << " add item error : _id is null!";
     return -3;
@@ -211,7 +211,7 @@ int Table::Add(const std::string &key,
 }
 
 int Table::Update(const std::unordered_map<std::string, struct Field> &fields,
-                  int docid) {
+                  int64_t docid) {
   if (fields.size() == 0) return 0;
 
   auto result = storage_mgr_->Get(cf_id_, docid);
@@ -282,7 +282,7 @@ long Table::GetMemoryBytes() {
 
 int Table::GetDocInfo(const std::string &key, Doc &doc,
                       const std::vector<std::string> &fields) {
-  int doc_id = 0;
+  int64_t doc_id = 0;
   int ret = GetDocidByKey(key, doc_id);
   if (ret < 0) {
     return ret;
@@ -290,7 +290,7 @@ int Table::GetDocInfo(const std::string &key, Doc &doc,
   return GetDocInfo(doc_id, doc, fields);
 }
 
-int Table::GetDocInfo(const int docid, Doc &doc,
+int Table::GetDocInfo(const int64_t docid, Doc &doc,
                       const std::vector<std::string> &fields) {
   if (docid > last_docid_) {
     LOG(ERROR) << "doc [" << docid << "] in front of [" << last_docid_ << "]";
@@ -324,7 +324,7 @@ int Table::GetDocInfo(const int docid, Doc &doc,
   return 0;
 }
 
-int Table::GetFieldRawValue(int docid, const std::string &field_name,
+int Table::GetFieldRawValue(int64_t docid, const std::string &field_name,
                             std::string &value) {
   const auto iter = attr_idx_map_.find(field_name);
   if (iter == attr_idx_map_.end()) {
@@ -335,7 +335,7 @@ int Table::GetFieldRawValue(int docid, const std::string &field_name,
   return 0;
 }
 
-int Table::GetFieldRawValue(int docid, int field_id, std::string &value) {
+int Table::GetFieldRawValue(int64_t docid, int field_id, std::string &value) {
   if ((docid < 0) or (field_id < 0 || field_id >= field_num_)) return -1;
 
   const auto iter = idx_attr_map_.find(field_id);
@@ -365,7 +365,7 @@ int Table::GetFieldRawValue(int docid, int field_id, std::string &value) {
   return 0;
 }
 
-int Table::GetFieldRawValue(int docid, int field_id,
+int Table::GetFieldRawValue(int64_t docid, int field_id,
                             std::vector<uint8_t> &value) {
   if ((docid < 0) or (field_id < 0 || field_id >= field_num_)) return -1;
 
@@ -428,8 +428,8 @@ int Table::GetAttrIdx(const std::string &field) const {
   return (iter != attr_idx_map_.end()) ? iter->second : -1;
 }
 
-int Table::GetStorageManagerSize() {
-  int table_doc_num = 0;
+int64_t Table::GetStorageManagerSize() {
+  int64_t table_doc_num = 0;
   if (storage_mgr_) {
     table_doc_num = storage_mgr_->Size();
   }

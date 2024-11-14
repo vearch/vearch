@@ -26,10 +26,10 @@ RocksDBRawVector::RocksDBRawVector(VectorMetaInfo *meta_info,
 
 RocksDBRawVector::~RocksDBRawVector() {}
 
-int RocksDBRawVector::GetDiskVecNum(int &vec_num) {
+int RocksDBRawVector::GetDiskVecNum(int64_t &vec_num) {
   if (vec_num <= 0) return 0;
-  int max_id_in_disk = vec_num - 1;
-  for (int i = max_id_in_disk; i >= 0; --i) {
+  auto max_id_in_disk = vec_num - 1;
+  for (auto i = max_id_in_disk; i >= 0; --i) {
     auto result = storage_mgr_->Get(cf_id_, i);
     if (result.first.ok()) {
       vec_num = i + 1;
@@ -42,10 +42,11 @@ int RocksDBRawVector::GetDiskVecNum(int &vec_num) {
   return 0;
 }
 
-Status RocksDBRawVector::Load(int vec_num) {
+Status RocksDBRawVector::Load(int64_t vec_num) {
   if (vec_num == 0) return Status::OK();
+
   std::string key, value;
-  ToRowKey(vec_num - 1, key);
+  key = utils::ToRowKey(vec_num - 1);
   Status s = storage_mgr_->Get(cf_id_, key, value);
   if (!s.ok()) {
     std::string msg = std::string("load vectors, get error:") + s.ToString() +
@@ -89,9 +90,9 @@ int RocksDBRawVector::InitStore(std::string &vec_name) {
   return 0;
 }
 
-int RocksDBRawVector::GetVector(long vid, const uint8_t *&vec,
+int RocksDBRawVector::GetVector(int64_t vid, const uint8_t *&vec,
                                 bool &deletable) const {
-  if ((size_t)vid >= meta_info_->Size() || vid < 0) {
+  if (vid >= meta_info_->Size() || vid < 0) {
     return 1;
   }
   auto result = storage_mgr_->Get(cf_id_, vid);
@@ -159,12 +160,11 @@ size_t RocksDBRawVector::GetStoreMemUsage() {
   return 0;
 }
 
-int RocksDBRawVector::UpdateToStore(int vid, uint8_t *v, int len) {
+int RocksDBRawVector::UpdateToStore(int64_t vid, uint8_t *v, int len) {
   if (v == nullptr || len != meta_info_->Dimension() * meta_info_->DataSize())
     return -1;
 
-  std::string key;
-  ToRowKey(vid, key);
+  std::string key = utils::ToRowKey(vid);
   std::string value = std::string((const char *)v, this->vector_byte_size_);
   Status s = storage_mgr_->Put(cf_id_, key, value);
   if (!s.ok()) {
@@ -174,16 +174,16 @@ int RocksDBRawVector::UpdateToStore(int vid, uint8_t *v, int len) {
   return 0;
 }
 
-int RocksDBRawVector::GetVectorHeader(int start, int n, ScopeVectors &vecs,
+int RocksDBRawVector::GetVectorHeader(int64_t start, int n, ScopeVectors &vecs,
                                       std::vector<int> &lens) {
-  if (start < 0 || (size_t)start + n > meta_info_->Size()) {
+  if (start < 0 || start + n > meta_info_->Size()) {
     return -1;
   }
 
   std::unique_ptr<rocksdb::Iterator> it = storage_mgr_->NewIterator(cf_id_);
   std::string start_key, end_key;
-  ToRowKey(start, start_key);
-  ToRowKey(start + n, end_key);
+  start_key = utils::ToRowKey(start);
+  end_key = utils::ToRowKey(start + n);
   it->Seek(rocksdb::Slice(start_key));
   int dimension = meta_info_->Dimension();
   uint8_t *vectors = new uint8_t[(uint64_t)dimension * n * data_size_];
@@ -201,8 +201,7 @@ int RocksDBRawVector::GetVectorHeader(int start, int n, ScopeVectors &vecs,
     memcpy(dst, vstr.c_str(), vector_byte_size_);
 
 #ifdef DEBUG
-    std::string expect_key;
-    ToRowKey(c + start, expect_key);
+    std::string expect_key = utils::ToRowKey(c + start);
     std::string key = it->key().ToString();
     if (key != expect_key) {
       LOG(ERROR) << "vid=" << c + start << ", invalid key=" << key
@@ -214,12 +213,6 @@ int RocksDBRawVector::GetVectorHeader(int start, int n, ScopeVectors &vecs,
   vecs.Add(vectors);
   lens.push_back(n);
   return 0;
-}
-
-void RocksDBRawVector::ToRowKey(int vid, std::string &key) const {
-  char data[11];
-  snprintf(data, 11, "%010d", vid);
-  key.assign(data, 10);
 }
 
 }  // namespace vearch

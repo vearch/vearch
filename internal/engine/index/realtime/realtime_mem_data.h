@@ -41,7 +41,7 @@ struct RTInvertBucketData {
 
   bool CompactBucket(const size_t &bucket_no, const size_t &code_bytes_per_vec);
 
-  void Delete(int vid);
+  void Delete(int64_t vid);
   void ExtendIDs();
 
  private:
@@ -78,7 +78,7 @@ struct RealTimeMemData {
   bool AddKeys(size_t list_no, size_t n, std::vector<long> &keys,
                std::vector<uint8_t> &keys_codes);
 
-  int Update(int bucket_no, int vid, std::vector<uint8_t> &codes);
+  int Update(int bucket_no, int64_t vid, std::vector<uint8_t> &codes);
 
   void FreeOldData(long *idx, uint8_t *codes, RTInvertBucketData *invert,
                    long size);
@@ -98,7 +98,7 @@ struct RealTimeMemData {
   int CompactIfNeed();
   bool Compactable(int bucket_no);
   bool CompactBucket(int bucket_no);
-  int Delete(int *vids, int n);
+  int Delete(int64_t *vids, int n);
 
   RTInvertBucketData *cur_invert_ptr_;
   RTInvertBucketData *extend_invert_ptr_;

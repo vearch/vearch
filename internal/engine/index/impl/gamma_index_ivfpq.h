@@ -946,7 +946,7 @@ struct GammaIVFPQIndex : GammaFLATIndex, faiss::IndexIVFPQ {
 
   Status Dump(const std::string &dir) override;
 
-  Status Load(const std::string &index_dir, int &load_num) override;
+  Status Load(const std::string &index_dir, int64_t &load_num) override;
 
   virtual void copy_subset_to(faiss::IndexIVF &other, int subset_type, idx_t a1,
                               idx_t a2) const override;
@@ -959,7 +959,7 @@ struct GammaIVFPQIndex : GammaFLATIndex, faiss::IndexIVFPQ {
 
   void Describe() override;
 
-  int indexed_vec_count_;
+  int64_t indexed_vec_count_;
   realtime::RTInvertIndex *rt_invert_index_ptr_;
   bool compaction_;
   size_t compact_bucket_no_;

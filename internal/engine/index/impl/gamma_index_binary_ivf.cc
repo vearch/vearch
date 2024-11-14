@@ -102,7 +102,7 @@ Status GammaIndexBinaryIVF::Init(const std::string &model_parameters,
   verbose = false;
 
   int bucket_keys =
-      std::max(1000, this->training_threshold_ / binary_param.ncentroids);
+      std::max(1000L, this->training_threshold_ / binary_param.ncentroids);
   rt_invert_index_ptr_ = new realtime::RTInvertIndex(
       this->nlist, this->code_size, raw_vec->Bitmap(), bucket_keys, 1280000);
   // default is true in faiss
@@ -194,7 +194,7 @@ bool GammaIndexBinaryIVF::Add(int n, const uint8_t *vec) {
   if (add_count_ >= 100000) {
     double t1 = faiss::getmillisecs();
     LOG(DEBUG) << "Add time [" << (t1 - t0) / n << "]ms, count "
-              << indexed_vec_count_;
+               << indexed_vec_count_;
     rt_invert_index_ptr_->PrintBucketSize();
     add_count_ = 0;
   }
@@ -271,7 +271,7 @@ long GammaIndexBinaryIVF::GetTotalMemBytes() {
 }
 
 int GammaIndexBinaryIVF::Delete(const std::vector<int64_t> &ids) {
-  std::vector<int> vids(ids.begin(), ids.end());
+  std::vector<int64_t> vids(ids.begin(), ids.end());
   int ret = rt_invert_index_ptr_->Delete(vids.data(), ids.size());
   return ret;
 }

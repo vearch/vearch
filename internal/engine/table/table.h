@@ -56,7 +56,7 @@ class Table {
    */
   int Add(const std::string &key,
           const std::unordered_map<std::string, struct Field> &fields,
-          int docid);
+          int64_t docid);
 
   /** update a doc
    *
@@ -65,7 +65,7 @@ class Table {
    * @return 0 if successed
    */
   int Update(const std::unordered_map<std::string, struct Field> &fields,
-             int docid);
+             int64_t docid);
 
   std::unordered_map<std::string, bool> CheckFieldIsEqual(
       const std::unordered_map<std::string, Field> &fields, int docid);
@@ -78,9 +78,9 @@ class Table {
    * @param docid output, the docid to key
    * @return 0 if successed, -1 key not found
    */
-  int GetDocidByKey(const std::string &key, int &docid);
+  int GetDocidByKey(const std::string &key, int64_t &docid);
 
-  int GetKeyByDocid(int docid, std::string &key);
+  int GetKeyByDocid(int64_t docid, std::string &key);
 
   /** dump datas to disk
    *
@@ -92,15 +92,16 @@ class Table {
 
   int GetDocInfo(const std::string &key, Doc &doc,
                  const std::vector<std::string> &fields);
-  int GetDocInfo(const int docid, Doc &doc,
+  int GetDocInfo(const int64_t docid, Doc &doc,
                  const std::vector<std::string> &fields);
 
-  int GetFieldRawValue(int docid, const std::string &field_name,
+  int GetFieldRawValue(int64_t docid, const std::string &field_name,
                        std::string &value);
 
-  int GetFieldRawValue(int docid, int field_id, std::string &value);
+  int GetFieldRawValue(int64_t docid, int field_id, std::string &value);
 
-  int GetFieldRawValue(int docid, int field_id, std::vector<uint8_t> &value);
+  int GetFieldRawValue(int64_t docid, int field_id,
+                       std::vector<uint8_t> &value);
 
   int GetFieldType(const std::string &field, DataType &type);
 
@@ -116,7 +117,7 @@ class Table {
 
   const std::string &GetKeyFieldName() { return key_field_name_; }
 
-  int Load(int &doc_num);
+  int Load(int64_t &doc_num);
 
   int FieldsNum() { return attrs_.size(); }
 
@@ -124,9 +125,9 @@ class Table {
 
   DumpConfig *GetDumpConfig() { return table_params_; }
 
-  int GetStorageManagerSize();
+  int64_t GetStorageManagerSize();
 
-  int last_docid_;
+  int64_t last_docid_;
 
  private:
   int FTypeSize(DataType fType);

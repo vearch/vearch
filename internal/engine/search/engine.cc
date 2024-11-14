@@ -371,7 +371,8 @@ Status Engine::Query(QueryRequest &request, Response &response_results) {
     gamma_result->init(document_ids.size(), nullptr, 0);
 
     for (size_t i = 0; i < document_ids.size(); i++) {
-      int docid = -1, ret = 0;
+      int64_t docid = -1;
+      int ret = 0;
       if (request.PartitionId() > 0) {
         char *endptr;
         docid = strtol(document_ids[i].c_str(), &endptr, 10);
@@ -599,7 +600,7 @@ int Engine::AddOrUpdate(Doc &doc) {
   std::string &key = doc.Key();
 
   // add fields into table
-  int docid = -1;
+  int64_t docid = -1;
   table_->GetDocidByKey(key, docid);
   if (docid != -1 && docid < max_docid_) {
     if (Update(docid, fields_table, fields_vec)) {
@@ -693,7 +694,8 @@ int Engine::Update(int doc_id,
 }
 
 int Engine::Delete(std::string &key) {
-  int docid = -1, ret = 0;
+  int64_t docid = -1;
+  int ret = 0;
   ret = table_->GetDocidByKey(key, docid);
   if (ret != 0 || docid < 0) return -1;
 
@@ -720,8 +722,8 @@ int Engine::Delete(std::string &key) {
 }
 
 int Engine::GetDoc(const std::string &key, Doc &doc) {
-  int docid = -1, ret = 0;
-  ret = table_->GetDocidByKey(key, docid);
+  int64_t docid = -1;
+  int ret = table_->GetDocidByKey(key, docid);
   if (ret != 0 || docid < 0) {
     LOG(DEBUG) << space_name_ << " GetDocIDbyKey [" << key << "] not found!";
     return -1;
@@ -1164,7 +1166,7 @@ int Engine::LoadFromFaiss() {
   }
   index_status_ = INDEXED;
 
-  int load_num;
+  int64_t load_num;
   Status status = index->Load("files", load_num);
   if (!status.ok()) {
     LOG(ERROR) << space_name_ << " vector [faiss] load gamma index failed!";
@@ -1176,7 +1178,7 @@ int Engine::LoadFromFaiss() {
   size_t mmap_size = load_num * sizeof(float) * d;
   float *feature =
       (float *)mmap(NULL, mmap_size, PROT_READ, MAP_PRIVATE, fd, 0);
-  for (int i = 0; i < load_num; ++i) {
+  for (int64_t i = 0; i < load_num; ++i) {
     Doc doc;
     Field field;
     field.name = "_id";
@@ -1186,8 +1188,7 @@ int Engine::LoadFromFaiss() {
     doc.AddField(std::move(field));
     field.name = "faiss";
     field.datatype = DataType::VECTOR;
-    field.value =
-        std::string((char *)(feature + (uint64_t)i * d), d * sizeof(float));
+    field.value = std::string((char *)(feature + i * d), d * sizeof(float));
     doc.AddField(std::move(field));
     AddOrUpdate(doc);
   }

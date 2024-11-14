@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <sstream>
+#include <memory>
 #include <utility>
 #include <vector>
 
@@ -24,24 +24,24 @@ class StorageManager {
   ~StorageManager();
   Status Init(int cache_size);
 
-  Status Add(int cf_id, int id, const uint8_t *value, int len);
+  Status Add(int cf_id, int64_t id, const uint8_t *value, int len);
 
-  Status AddString(int cf_id, int id, std::string field_name, const char *value,
-                   int len);
+  Status AddString(int cf_id, int64_t id, std::string field_name,
+                   const char *value, int len);
 
-  Status Update(int cf_id, int id, uint8_t *value, int len);
+  Status Update(int cf_id, int64_t id, uint8_t *value, int len);
   Status Put(int cf_id, const std::string &key, std::string &value);
   Status Delete(int cf_id, const std::string &key);
 
-  Status UpdateString(int cf_id, int id, std::string field_name,
+  Status UpdateString(int cf_id, int64_t id, std::string field_name,
                       const char *value, int len);
 
-  std::pair<Status, std::string> Get(int cf_id, int id);
+  std::pair<Status, std::string> Get(int cf_id, int64_t id);
   std::pair<Status, std::string> Get(int cf_id, const std::string &key);
 
   Status Get(int cf_id, const std::string &key, std::string &value);
 
-  Status GetString(int cf_id, int id, std::string &field_name,
+  Status GetString(int cf_id, int64_t id, std::string &field_name,
                    std::string &value);
 
   std::vector<rocksdb::Status> MultiGet(int cf_id,
@@ -53,9 +53,9 @@ class StorageManager {
         db_->NewIterator(rocksdb::ReadOptions(), cf_handles_[cf_id]));
   }
 
-  int Size() { return size_; }
+  int64_t Size() { return size_; }
 
-  int SetSize(size_t size);
+  int SetSize(int64_t size);
 
   void GetCacheSize(size_t &cache_size);
 
@@ -68,16 +68,11 @@ class StorageManager {
         rocksdb::ColumnFamilyDescriptor(name, rocksdb::ColumnFamilyOptions()));
     return column_families_.size() - 1;
   }
-  void ToRowKey(int key, std::string &key_str) {
-    char data[12];
-    int length = snprintf(data, 12, "%010d", key);
-    key_str.assign(data, length);
-  }
 
  private:
   std::string root_path_;
-  size_t size_;  // The total number of doc.
-  rocksdb::DB *db_;
+  int64_t size_;  // The total number of doc.
+  std::unique_ptr<rocksdb::DB> db_;
   rocksdb::BlockBasedTableOptions table_options_;
   std::vector<rocksdb::ColumnFamilyDescriptor> column_families_;
   std::vector<rocksdb::ColumnFamilyHandle *> cf_handles_;

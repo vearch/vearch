@@ -183,7 +183,7 @@ bool RTInvertBucketData::ExtendBucketMem(const size_t &bucket_no,
   return true;
 }
 
-void RTInvertBucketData::Delete(int vid) {
+void RTInvertBucketData::Delete(int64_t vid) {
   long bucket_no_pos = vid_bucket_no_pos_[vid];
   if (bucket_no_pos == -1) return;  // do nothing
   int bucket_no = bucket_no_pos >> 32;
@@ -295,9 +295,9 @@ bool RealTimeMemData::AddKeys(size_t list_no, size_t n, std::vector<long> &keys,
   return true;
 }
 
-int RealTimeMemData::Update(int bucket_no, int vid,
+int RealTimeMemData::Update(int bucket_no, int64_t vid,
                             std::vector<uint8_t> &codes) {
-  if ((size_t)vid >= cur_invert_ptr_->nids_) return 0;
+  if (vid >= (int64_t)cur_invert_ptr_->nids_) return 0;
   long bucket_no_pos = cur_invert_ptr_->vid_bucket_no_pos_[vid];
   if (bucket_no_pos == -1) return 0;  // do nothing
   int old_bucket_no = bucket_no_pos >> 32;
@@ -319,10 +319,10 @@ int RealTimeMemData::Update(int bucket_no, int vid,
   return AddKeys(bucket_no, 1, keys, codes);
 }
 
-int RealTimeMemData::Delete(int *vids, int n) {
+int RealTimeMemData::Delete(int64_t *vids, int n) {
   for (int i = 0; i < n; i++) {
     RTInvertBucketData *invert_ptr = cur_invert_ptr_;
-    if ((int)invert_ptr->nids_ > vids[i]) invert_ptr->Delete(vids[i]);
+    if ((int64_t)invert_ptr->nids_ > vids[i]) invert_ptr->Delete(vids[i]);
   }
   return 0;
 }

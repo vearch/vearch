@@ -46,7 +46,7 @@ int RawVector::Init(std::string vec_name) {
   return 0;
 }
 
-int RawVector::GetVector(long vid, ScopeVector &vec) const {
+int RawVector::GetVector(int64_t vid, ScopeVector &vec) const {
   return GetVector(vid, vec.ptr_, vec.deletable_);
 }
 
@@ -62,7 +62,7 @@ int RawVector::Gets(const std::vector<int64_t> &vids,
   return 0;
 }
 
-int RawVector::Add(int docid, struct Field &field) {
+int RawVector::Add(int64_t docid, struct Field &field) {
   if (field.value.size() != (size_t)data_size_ * meta_info_->Dimension()) {
     LOG(ERROR) << "Doc [" << docid << "] len [" << field.value.size() << "]";
     return -1;
@@ -77,7 +77,7 @@ int RawVector::Add(int docid, struct Field &field) {
   return ret;
 }
 
-int RawVector::Add(int docid, float *data) {
+int RawVector::Add(int64_t docid, float *data) {
   int ret = AddToStore((uint8_t *)data, data_size_ * meta_info_->Dimension());
   if (ret) {
     LOG(ERROR) << "add to store error, docid=" << docid << ", ret=" << ret;
@@ -87,12 +87,12 @@ int RawVector::Add(int docid, float *data) {
   return ret;
 }
 
-int RawVector::Update(int docid, struct Field &field) {
+int RawVector::Update(int64_t docid, struct Field &field) {
   if (docid >= (int)meta_info_->Size()) {
     return -1;
   }
 
-  int vid = docid;
+  int64_t vid = docid;
 
   if (field.value.size() / data_size_ <= 0) {
     LOG(ERROR) << "Doc [" << docid << "] len " << field.value.size() << "]";

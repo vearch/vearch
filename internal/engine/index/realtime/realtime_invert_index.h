@@ -38,7 +38,7 @@ struct RTInvertIndex {
   bool AddKeys(std::map<int, std::vector<long>> &new_keys,
                std::map<int, std::vector<uint8_t>> &new_codes);
 
-  int Update(int bucket_no, int vid, std::vector<uint8_t> &codes);
+  int Update(int bucket_no, int64_t vid, std::vector<uint8_t> &codes);
 
   bool GetIvtList(const size_t &bucket_no, long *&ivt_list, size_t &ivt_size,
                   uint8_t *&ivt_codes_list);
@@ -49,7 +49,7 @@ struct RTInvertIndex {
 
   void PrintBucketSize();
   int CompactIfNeed();
-  int Delete(int *vids, int n);
+  int Delete(int64_t *vids, int n);
 
   size_t nlist_;
   size_t code_size_;

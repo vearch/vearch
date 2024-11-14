@@ -80,7 +80,7 @@ class RawVector : public VectorReader {
    * @param m[out] the real number of vectors(0 < m <= n)
    * @return success: 0
    */
-  virtual int GetVectorHeader(int start, int n, ScopeVectors &vec,
+  virtual int GetVectorHeader(int64_t start, int n, ScopeVectors &vec,
                               std::vector<int> &lens) = 0;
 
   /** dump vectors and sources to disk file
@@ -102,7 +102,7 @@ class RawVector : public VectorReader {
    * @param id  vector id
    * @return    vector if successed, null if failed
    */
-  int GetVector(long vid, ScopeVector &vec) const;
+  int GetVector(int64_t vid, ScopeVector &vec) const;
 
   /** get vectors by vecotor id list
    *
@@ -120,11 +120,11 @@ class RawVector : public VectorReader {
    * source(string)
    * @return 0 if successed
    */
-  int Add(int docid, struct Field &field);
+  int Add(int64_t docid, struct Field &field);
 
-  int Add(int docid, float *data);
+  int Add(int64_t docid, float *data);
 
-  int Update(int docid, struct Field &field);
+  int Update(int64_t docid, struct Field &field);
 
   virtual size_t GetStoreMemUsage() { return 0; }
 
@@ -137,12 +137,12 @@ class RawVector : public VectorReader {
    */
   virtual int AddToStore(uint8_t *v, int len) = 0;
 
-  virtual int UpdateToStore(int vid, uint8_t *v, int len) = 0;
+  virtual int UpdateToStore(int64_t vid, uint8_t *v, int len) = 0;
 
   // [start_vid, end_vid)
-  virtual Status Dump(int start_vid, int end_vid) = 0;
-  virtual int GetDiskVecNum(int &vec_num) = 0;
-  virtual Status Load(int vec_num) = 0;
+  virtual Status Dump(int64_t start_vid, int64_t end_vid) = 0;
+  virtual int GetDiskVecNum(int64_t &vec_num) = 0;
+  virtual Status Load(int64_t vec_num) = 0;
 
   bool WithIO() { return meta_info_->with_io_; }
 
@@ -159,7 +159,7 @@ class RawVector : public VectorReader {
    * @param id vector id
    * @return vector if successed, null if failed
    */
-  virtual int GetVector(long vid, const uint8_t *&vec,
+  virtual int GetVector(int64_t vid, const uint8_t *&vec,
                         bool &deletable) const = 0;
 
   virtual int InitStore(std::string &vec_name) = 0;

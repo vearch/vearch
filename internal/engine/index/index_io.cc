@@ -142,7 +142,7 @@ int WriteInvertedLists(faiss::IOWriter *f,
 
 Status ReadInvertedLists(faiss::IOReader *f,
                          realtime::RTInvertIndex *rt_invert_index,
-                         int &indexed_vec_count) {
+                         int64_t &indexed_vec_count) {
   realtime::RealTimeMemData *rt_data = rt_invert_index->cur_ptr_;
   uint32_t h;
   size_t buckets_num = 0, code_bytes = 0;
@@ -177,7 +177,7 @@ Status ReadInvertedLists(faiss::IOReader *f,
     READANDCHECK(codes, sizes[bno] * rt_data->code_bytes_per_vec_);
     READANDCHECK(ids, sizes[bno]);
 
-    for (int pos = 0; pos < (int)sizes[bno]; pos++) {
+    for (int64_t pos = 0; pos < (int64_t)sizes[bno]; pos++) {
       if (ids[pos] & realtime::kDelIdxMask) {
         rt_data->cur_invert_ptr_->deleted_nums_[bno]++;
         continue;

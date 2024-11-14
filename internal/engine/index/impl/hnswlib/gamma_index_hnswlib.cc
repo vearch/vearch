@@ -209,7 +209,7 @@ Status GammaIndexHNSWLIB::Init(const std::string &model_parameters,
 
   cur_element_count = 0;
 
-  visited_list_pool_ = new VisitedListPool(1, max_elements_);
+  visited_list_pool_ = std::make_shared<VisitedListPool>(1, max_elements_);
 
   // initializations for special treatment of the first node
   enterpoint_node_ = -1;
@@ -475,7 +475,7 @@ Status GammaIndexHNSWLIB::Dump(const std::string &dir) {
   return Status::OK();
 }
 
-Status GammaIndexHNSWLIB::Load(const std::string &index_dir, int &load_num) {
+Status GammaIndexHNSWLIB::Load(const std::string &index_dir, int64_t &load_num) {
   std::string index_name = vector_->MetaInfo()->AbsoluteName();
   std::string index_file = index_dir + "/" + index_name + "/hnswlib.index";
   if (!utils::file_exist(index_file)) {

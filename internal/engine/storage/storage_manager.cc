@@ -30,12 +30,11 @@ void StorageManager::Close() {
   for (auto handle : cf_handles_) {
     db_->DestroyColumnFamilyHandle(handle);
   }
-  delete db_;
-  db_ = nullptr;
+  db_.reset();
   LOG(INFO) << "db closed";
 }
 
-int StorageManager::SetSize(size_t size) {
+int StorageManager::SetSize(int64_t size) {
   size_ = size;
   std::string key_str = "_total";
   rocksdb::Status s = db_->Put(rocksdb::WriteOptions(), rocksdb::Slice(key_str),
@@ -84,7 +83,9 @@ Status StorageManager::Init(int cache_size) {
     rocksdb::Options options;
     options.create_if_missing = true;
     // create db
-    s = rocksdb::DB::Open(options, root_path_, &db_);
+    rocksdb::DB *db;
+    s = rocksdb::DB::Open(options, root_path_, &db);
+    db_.reset(db);
     if (!s.ok()) {
       std::string msg = std::string("open rocks db error: ") + s.ToString();
       LOG(ERROR) << msg;
@@ -106,13 +107,14 @@ Status StorageManager::Init(int cache_size) {
       }
     }
 
-    delete db_;
-    db_ = nullptr;
+    db_.reset();
   }
 
   // open DB
+  rocksdb::DB *db;
   s = rocksdb::DB::Open(options, root_path_, column_families_, &cf_handles_,
-                        &db_);
+                        &db);
+  db_.reset(db);
   if (!s.ok()) {
     std::string msg = std::string("open rocks db error: ") + s.ToString();
     LOG(ERROR) << msg;
@@ -134,9 +136,9 @@ Status StorageManager::Init(int cache_size) {
   return Status::OK();
 }
 
-Status StorageManager::Add(int cf_id, int id, const uint8_t *value, int len) {
-  std::string key_str;
-  ToRowKey(id, key_str);
+Status StorageManager::Add(int cf_id, int64_t id, const uint8_t *value,
+                           int len) {
+  std::string key_str = utils::ToRowKey(id);
 
   rocksdb::Status s =
       db_->Put(rocksdb::WriteOptions(), cf_handles_[cf_id],
@@ -155,10 +157,9 @@ Status StorageManager::Add(int cf_id, int id, const uint8_t *value, int len) {
   return Status::OK();
 }
 
-Status StorageManager::AddString(int cf_id, int id, std::string field_name,
+Status StorageManager::AddString(int cf_id, int64_t id, std::string field_name,
                                  const char *value, int len) {
-  std::string key_str;
-  ToRowKey(id, key_str);
+  std::string key_str = utils::ToRowKey(id);
   key_str = field_name + ":" + key_str;
 
   rocksdb::Status s =
@@ -173,9 +174,8 @@ Status StorageManager::AddString(int cf_id, int id, std::string field_name,
   return Status::OK();
 }
 
-Status StorageManager::Update(int cf_id, int id, uint8_t *value, int len) {
-  std::string key_str;
-  ToRowKey(id, key_str);
+Status StorageManager::Update(int cf_id, int64_t id, uint8_t *value, int len) {
+  std::string key_str = utils::ToRowKey(id);
 
   rocksdb::Status s =
       db_->Put(rocksdb::WriteOptions(), cf_handles_[cf_id],
@@ -212,14 +212,15 @@ Status StorageManager::Delete(int cf_id, const std::string &key) {
   return Status::OK();
 }
 
-Status StorageManager::UpdateString(int cf_id, int id, std::string field_name,
-                                    const char *value, int len) {
+Status StorageManager::UpdateString(int cf_id, int64_t id,
+                                    std::string field_name, const char *value,
+                                    int len) {
   return AddString(cf_id, id, field_name, value, len);
 }
 
-std::pair<Status, std::string> StorageManager::Get(int cf_id, int id) {
+std::pair<Status, std::string> StorageManager::Get(int cf_id, int64_t id) {
   std::string key, value;
-  ToRowKey((int)id, key);
+  key = utils::ToRowKey(id);
   rocksdb::Status s = db_->Get(rocksdb::ReadOptions(), cf_handles_[cf_id],
                                rocksdb::Slice(key), &value);
   if (!s.ok()) {
@@ -258,10 +259,9 @@ Status StorageManager::Get(int cf_id, const std::string &key,
   return Status::OK();
 }
 
-Status StorageManager::GetString(int cf_id, int id, std::string &field_name,
+Status StorageManager::GetString(int cf_id, int64_t id, std::string &field_name,
                                  std::string &value) {
-  std::string key_str;
-  ToRowKey(id, key_str);
+  std::string key_str = utils::ToRowKey(id);
   key_str = field_name + ":" + key_str;
 
   rocksdb::Status s = db_->Get(rocksdb::ReadOptions(), cf_handles_[cf_id],
@@ -287,7 +287,7 @@ std::vector<rocksdb::Status> StorageManager::MultiGet(
 
   for (size_t i = 0; i < k; i++) {
     assert(vids[i] >= 0);
-    ToRowKey((int)vids[i], keys_data[i]);
+    keys_data[i] = utils::ToRowKey(vids[i]);
     keys.emplace_back(std::move(keys_data[i]));
     column_families.emplace_back(cf_handles_[cf_id]);
   }

@@ -300,7 +300,7 @@ struct GammaIVFPQFastScanIndex : GammaFLATIndex, faiss::IndexIVFPQFastScan {
 
   Status Dump(const std::string &dir) override;
 
-  Status Load(const std::string &index_dir, int &load_num) override;
+  Status Load(const std::string &index_dir, int64_t &load_num) override;
 
   int Delete(const std::vector<int64_t> &ids) override;
 

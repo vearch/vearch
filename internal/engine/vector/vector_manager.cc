@@ -326,11 +326,10 @@ int VectorManager::Update(
     int ret = raw_vector->Update(docid, field);
     if (ret) return ret;
 
-    int vid = docid;  // TODO docid to vid
     for (std::string &index_type : index_types_) {
       auto it = vector_indexes_.find(IndexName(name, index_type));
       if (it != vector_indexes_.end()) {
-        it->second->updated_vids_.push(vid);
+        it->second->updated_vids_.push(docid);
       }
     }
   }
@@ -338,7 +337,7 @@ int VectorManager::Update(
   return 0;
 }
 
-int VectorManager::Delete(int docid) {
+int VectorManager::Delete(int64_t docid) {
   for (const auto &[name, index] : vector_indexes_) {
     std::vector<int64_t> vids;
     vids.resize(1);
@@ -386,7 +385,7 @@ int VectorManager::AddRTVecsToIndex(bool &index_is_dirty) {
           (total_stored_vecs - indexed_vec_count) / MAX_NUM_PER_INDEX + 1;
 
       for (int i = 0; i < index_count; i++) {
-        int start_docid = index_model->indexed_count_;
+        int64_t start_docid = index_model->indexed_count_;
         size_t count_per_index =
             (i == (index_count - 1) ? total_stored_vecs - start_docid
                                     : MAX_NUM_PER_INDEX);
@@ -438,7 +437,7 @@ int VectorManager::AddRTVecsToIndex(bool &index_is_dirty) {
       }
     }
     std::vector<int64_t> vids;
-    int vid;
+    int64_t vid;
     while (index_model->updated_vids_.try_pop(vid)) {
       if (raw_vec->Bitmap()->Test(vid)) continue;
       if (vid >= index_model->indexed_count_) {
@@ -748,8 +747,8 @@ void VectorManager::GetTotalMemBytes(long &index_total_mem_bytes,
   }
 }
 
-int VectorManager::Dump(const std::string &path, int dump_docid,
-                        int max_docid) {
+int VectorManager::Dump(const std::string &path, int64_t dump_docid,
+                        int64_t max_docid) {
   for (const auto &[name, index] : vector_indexes_) {
     Status status = index->Dump(path);
     if (!status.ok()) {
@@ -762,8 +761,8 @@ int VectorManager::Dump(const std::string &path, int dump_docid,
   for (const auto &[name, vec] : raw_vectors_) {
     RawVector *raw_vector = dynamic_cast<RawVector *>(vec);
     if (raw_vector->WithIO()) {
-      int start = dump_docid;
-      int end = max_docid;
+      auto start = dump_docid;
+      auto end = max_docid;
       Status status = raw_vector->Dump(start, end + 1);
       if (!status.ok()) {
         LOG(ERROR) << "vector " << name << " dump failed!";
@@ -777,11 +776,11 @@ int VectorManager::Dump(const std::string &path, int dump_docid,
 }
 
 int VectorManager::Load(const std::vector<std::string> &index_dirs,
-                        int &doc_num) {
-  int min_vec_num = doc_num;
+                        int64_t &doc_num) {
+  auto min_vec_num = doc_num;
   for (const auto &[name, vec] : raw_vectors_) {
     if (vec->WithIO()) {
-      int vector_num = min_vec_num;
+      auto vector_num = min_vec_num;
       vec->GetDiskVecNum(vector_num);
       if (vector_num < min_vec_num) min_vec_num = vector_num;
     }
@@ -802,7 +801,7 @@ int VectorManager::Load(const std::vector<std::string> &index_dirs,
 
   if (index_dirs.size() > 0) {
     for (const auto &[name, index] : vector_indexes_) {
-      int load_num = 0;
+      int64_t load_num = 0;
       Status status = index->Load(index_dirs[0], load_num);
       if (!status.ok()) {
         LOG(ERROR) << "vector [" << name << "] load index " << index_dirs[0]

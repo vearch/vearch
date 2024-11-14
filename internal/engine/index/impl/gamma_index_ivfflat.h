@@ -142,7 +142,7 @@ struct GammaIndexIVFFlat : faiss::IndexIVFFlat, public GammaFLATIndex {
   long GetTotalMemBytes() override { return 0; };
 
   Status Dump(const std::string &dir) override;
-  Status Load(const std::string &dir, int &load_num) override;
+  Status Load(const std::string &dir, int64_t &load_num) override;
 
   void train(int64_t n, const float *x) override {
     faiss::IndexIVFFlat::train(n, x);

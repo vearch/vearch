@@ -60,7 +60,7 @@ class Index {
 
   virtual Status dump(const std::string &dir) { return Status::OK(); };
 
-  virtual Status load(const std::string &dir, int &load_num) {
+  virtual Status load(const std::string &dir, int64_t &load_num) {
     load_num = 0;
     return Status::OK();
   };
@@ -96,7 +96,7 @@ class IndexIVFFlat : public GammaIndexIVFFlat, public Index {
 
   Status dump(const std::string &dir) override;
 
-  Status load(const std::string &dir, int &load_num) override;
+  Status load(const std::string &dir, int64_t &load_num) override;
 };
 
 #ifdef OPT_IVFPQ_RELAYOUT
@@ -123,7 +123,7 @@ class IndexIVFPQ : public GammaIVFPQIndex, public Index {
 
   Status dump(const std::string &dir) override;
 
-  Status load(const std::string &dir, int &load_num) override;
+  Status load(const std::string &dir, int64_t &load_num) override;
 };
 
 #ifdef USE_SCANN

@@ -25,23 +25,23 @@ class RocksDBRawVector : public RawVector {
   /* RawVector */
   int InitStore(std::string &vec_name) override;
   int AddToStore(uint8_t *v, int len) override;
-  int GetVectorHeader(int start, int n, ScopeVectors &vecs,
+  int GetVectorHeader(int64_t start, int n, ScopeVectors &vecs,
                       std::vector<int> &lens) override;
-  int UpdateToStore(int vid, uint8_t *v, int len) override;
+  int UpdateToStore(int64_t vid, uint8_t *v, int len) override;
 
   size_t GetStoreMemUsage() override;
 
   int Gets(const std::vector<int64_t> &vids, ScopeVectors &vecs) const override;
 
-  Status Dump(int start_vid, int end_vid) override { return Status::OK(); };
-  int GetDiskVecNum(int &vec_num) override;
-  Status Load(int vec_num) override;
+  Status Dump(int64_t start_vid, int64_t end_vid) override {
+    return Status::OK();
+  };
+  int GetDiskVecNum(int64_t &vec_num) override;
+  Status Load(int64_t vec_num) override;
 
  protected:
-  int GetVector(long vid, const uint8_t *&vec, bool &deletable) const override;
-
- private:
-  void ToRowKey(int vid, std::string &key) const;
+  int GetVector(int64_t vid, const uint8_t *&vec,
+                bool &deletable) const override;
 
  private:
   rocksdb::BlockBasedTableOptions table_options_;

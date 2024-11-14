@@ -90,7 +90,7 @@ struct GammaIndexHNSWLIB : public GammaFLATIndex,
 
   Status Dump(const std::string &dir) override;
 
-  Status Load(const std::string &index_dir, int &load_num) override;
+  Status Load(const std::string &index_dir, int64_t &load_num) override;
 
   /*
   virtual char *getDataByInternalId(tableint internal_id) const override {
@@ -104,9 +104,9 @@ struct GammaIndexHNSWLIB : public GammaFLATIndex,
     return (char *)raw_vec_->GetFromMem(internal_id);
   }
 
-  int indexed_vec_count_;
-  int updated_num_;
-  int deleted_num_;
+  int64_t indexed_vec_count_;
+  int64_t updated_num_;
+  int64_t deleted_num_;
 
   int d;
   int ntotal;

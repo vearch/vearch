@@ -366,7 +366,7 @@ static float *compute_residuals(const faiss::Index *quantizer, long n,
 }
 
 int GammaIVFPQIndex::Delete(const std::vector<int64_t> &ids) {
-  std::vector<int> vids(ids.begin(), ids.end());
+  std::vector<int64_t> vids(ids.begin(), ids.end());
   rt_invert_index_ptr_->Delete(vids.data(), ids.size());
   return 0;
 }
@@ -965,7 +965,7 @@ Status GammaIVFPQIndex::Dump(const std::string &dir) {
   return Status::OK();
 }
 
-Status GammaIVFPQIndex::Load(const std::string &index_dir, int &load_num) {
+Status GammaIVFPQIndex::Load(const std::string &index_dir, int64_t &load_num) {
   std::string index_name = vector_->MetaInfo()->AbsoluteName();
   std::string index_file = index_dir + "/" + index_name + "/ivfpq.index";
   if (!utils::file_exist(index_file)) {

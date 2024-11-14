@@ -137,7 +137,7 @@ class VectorMetaInfo {
 
   VectorValueType DataType() { return data_type_; }
 
-  size_t Size() { return size_; }
+  int64_t Size() { return size_; }
 
   long MemBytes() { return mem_bytes_; }
 
@@ -152,7 +152,7 @@ class VectorMetaInfo {
   std::string name_;           // vector name
   int dimension_;              // vector dimension
   VectorValueType data_type_;  // vector data type
-  size_t size_;                // vector number
+  int64_t size_;               // vector number
   long mem_bytes_;             // memory usage
   int data_size_;              // each vector element size(byte)
   int version_;
@@ -307,15 +307,15 @@ class IndexModel {
    * @param load_num   load doc num
    * @return load number(>=0) if successed
    */
-  virtual vearch::Status Load(const std::string &dir, int &load_num) = 0;
+  virtual vearch::Status Load(const std::string &dir, int64_t &load_num) = 0;
 
   virtual void train(int64_t n, const float *x) {}
 
   virtual void Describe() {}
 
   VectorReader *vector_;
-  tbb::concurrent_bounded_queue<int> updated_vids_;
+  tbb::concurrent_bounded_queue<int64_t> updated_vids_;
   // warining: indexed_count_ is only used by framework, sub-class cann't use it
-  int indexed_count_;
-  int training_threshold_;
+  int64_t indexed_count_;
+  int64_t training_threshold_;
 };

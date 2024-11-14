@@ -78,8 +78,8 @@ class VectorManager {
   void GetTotalMemBytes(long &index_total_mem_bytes,
                         long &vector_total_mem_bytes);
 
-  int Dump(const std::string &path, int dump_docid, int max_docid);
-  int Load(const std::vector<std::string> &path, int &doc_num);
+  int Dump(const std::string &path, int64_t dump_docid, int64_t max_docid);
+  int Load(const std::vector<std::string> &path, int64_t &doc_num);
 
   bool Contains(std::string &field_name);
 
@@ -93,7 +93,7 @@ class VectorManager {
     return vector_indexes_;
   }
 
-  int Delete(int docid);
+  int Delete(int64_t docid);
 
   std::map<std::string, RawVector *> RawVectors() { return raw_vectors_; }
   std::map<std::string, IndexModel *> IndexModels() { return vector_indexes_; }
