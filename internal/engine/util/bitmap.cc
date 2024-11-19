@@ -12,7 +12,7 @@
 
 namespace bitmap {
 
-int create(char *&bitmap, int &bytes_count, int size) {
+int create(char *&bitmap, int64_t &bytes_count, int64_t size) {
   bytes_count = (size >> 3) + 1;
   bitmap = (char *)malloc(bytes_count);
   if (!bitmap) {
@@ -22,12 +22,14 @@ int create(char *&bitmap, int &bytes_count, int size) {
   return 0;
 }
 
-bool test(const char *bitmap, int id) {
+bool test(const char *bitmap, int64_t id) {
   return (bitmap[id >> 3] & (0x1 << (id & 0x7)));
 }
 
-void set(char *bitmap, int id) { bitmap[id >> 3] |= (0x1 << (id & 0x7)); }
+void set(char *bitmap, int64_t id) { bitmap[id >> 3] |= (0x1 << (id & 0x7)); }
 
-void unset(char *bitmap, int id) { bitmap[id >> 3] &= ~(0x1 << (id & 0x7)); }
+void unset(char *bitmap, int64_t id) {
+  bitmap[id >> 3] &= ~(0x1 << (id & 0x7));
+}
 
 }  // namespace bitmap

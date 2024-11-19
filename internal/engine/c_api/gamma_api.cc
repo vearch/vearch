@@ -10,6 +10,7 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 
+#include <atomic>
 #include <chrono>
 #include <iostream>
 #include <sstream>
@@ -26,14 +27,14 @@
 
 INITIALIZE_EASYLOGGINGPP
 
-static int log_dir_flag = 0;
+static std::atomic<int> log_dir_flag(0);
 
 int SetLogDictionary(const std::string &log_dir);
 
 void *Init(const char *config_str, int len) {
   nlohmann::json j = nlohmann::json::parse(std::string(config_str, len));
 
-  int flag = __sync_fetch_and_add(&log_dir_flag, 1);
+  int flag = log_dir_flag.fetch_add(1);
 
   if (flag == 0) {
     const std::string &log_dir = j["log_dir"];
@@ -43,19 +44,22 @@ void *Init(const char *config_str, int len) {
   const std::string &path = j["path"];
   vearch::Engine *engine = vearch::Engine::GetInstance(path, j["space_name"]);
   if (engine == nullptr) {
-    LOG(ERROR) << "Engine init faild!";
+    LOG(ERROR) << "Engine init failed!";
     return nullptr;
   }
 
   vearch::RequestConcurrentController::GetInstance();
-  LOG(INFO) << j["space_name"] << " init successed!";
+  LOG(INFO) << j["space_name"] << " init succeeded!";
   return static_cast<void *>(engine);
 }
 
 int SetLogDictionary(const std::string &log_dir) {
   const std::string &dir = log_dir;
   if (!utils::isFolderExist(dir.c_str())) {
-    mkdir(dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+    if (mkdir(dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) != 0) {
+      LOG(ERROR) << "Failed to create directory: " << dir;
+      return -1;
+    }
   }
 
   el::Configurations defaultConf;

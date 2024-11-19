@@ -48,7 +48,7 @@ class RangeQueryResult {
     bitmap_ = nullptr;
   }
 
-  bool Has(int doc) const {
+  bool Has(int64_t doc) const {
     if (b_not_in_) {
       if (doc < min_ || doc > max_) {
         return true;
@@ -67,10 +67,10 @@ class RangeQueryResult {
   /**
    * @return docID in order, -1 for the end
    */
-  int Next() const {
+  int64_t Next() const {
     next_++;
 
-    int size = max_aligned_ - min_aligned_ + 1;
+    int64_t size = max_aligned_ - min_aligned_ + 1;
     while (next_ < size && not bitmap::test(bitmap_, next_)) {
       next_++;
     }
@@ -78,17 +78,17 @@ class RangeQueryResult {
       return -1;
     }
 
-    int doc = next_ + min_aligned_;
+    int64_t doc = next_ + min_aligned_;
     return doc;
   }
 
   /**
    * @return size of docID list
    */
-  int Size() const { return n_doc_; }
+  int64_t Size() const { return n_doc_; }
 
   void Clear() {
-    min_ = std::numeric_limits<int>::max();
+    min_ = std::numeric_limits<int64_t>::max();
     max_ = 0;
     next_ = -1;
     n_doc_ = -1;
@@ -99,7 +99,7 @@ class RangeQueryResult {
     b_not_in_ = false;
   }
 
-  void SetRange(int x, int y) {
+  void SetRange(int64_t x, int64_t y) {
     min_ = std::min(min_, x);
     max_ = std::max(max_, y);
     min_aligned_ = (min_ / 8) * 8;
@@ -107,7 +107,7 @@ class RangeQueryResult {
   }
 
   void Resize() {
-    int n = max_aligned_ - min_aligned_ + 1;
+    int64_t n = max_aligned_ - min_aligned_ + 1;
     if (n <= 0) {
       LOG(ERROR) << "max_aligned_ " << max_aligned_ << " min_aligned_ "
                  << min_aligned_ << " max_ " << max_ << " min_ " << min_;
@@ -118,24 +118,24 @@ class RangeQueryResult {
       bitmap_ = nullptr;
     }
 
-    int bytes_count = -1;
+    int64_t bytes_count = -1;
     if (bitmap::create(bitmap_, bytes_count, n) != 0) {
       LOG(ERROR) << "Cannot create bitmap!";
       return;
     }
   }
 
-  void Set(int pos) { bitmap::set(bitmap_, pos); }
+  void Set(int64_t pos) { bitmap::set(bitmap_, pos); }
 
-  int Min() const { return min_; }
-  int Max() const { return max_; }
+  int64_t Min() const { return min_; }
+  int64_t Max() const { return max_; }
 
-  int MinAligned() { return min_aligned_; }
-  int MaxAligned() { return max_aligned_; }
+  int64_t MinAligned() { return min_aligned_; }
+  int64_t MaxAligned() { return max_aligned_; }
 
   char *&Ref() { return bitmap_; }
 
-  void SetDocNum(int num) { n_doc_ = num; }
+  void SetDocNum(int64_t num) { n_doc_ = num; }
 
   void SetNotIn(bool b_not_in) { b_not_in_ = b_not_in; }
 
@@ -144,17 +144,17 @@ class RangeQueryResult {
   /**
    * @return sorted docIDs
    */
-  std::vector<int> ToDocs() const;  // WARNING: build dynamically
+  std::vector<int64_t> ToDocs() const;  // WARNING: build dynamically
   void Output();
 
  private:
-  int min_;
-  int max_;
-  int min_aligned_;
-  int max_aligned_;
+  int64_t min_;
+  int64_t max_;
+  int64_t min_aligned_;
+  int64_t max_aligned_;
 
-  mutable int next_;
-  mutable int n_doc_;
+  mutable int64_t next_;
+  mutable int64_t n_doc_;
 
   char *bitmap_;
   bool b_not_in_;
@@ -168,7 +168,7 @@ class MultiRangeQueryResults {
   ~MultiRangeQueryResults() { Clear(); }
 
   // Take full advantage of multi-core while recalling
-  bool Has(int doc) const {
+  bool Has(int64_t doc) const {
     if (all_results_.size() == 0) {
       return false;
     }
@@ -182,7 +182,7 @@ class MultiRangeQueryResults {
 
   void Clear() {
     min_ = 0;
-    max_ = std::numeric_limits<int>::max();
+    max_ = std::numeric_limits<int64_t>::max();
     all_results_.clear();
   }
 
@@ -200,19 +200,19 @@ class MultiRangeQueryResults {
     all_results_.emplace_back(std::move(result));
   }
 
-  int Min() const { return min_; }
-  int Max() const { return max_; }
+  int64_t Min() const { return min_; }
+  int64_t Max() const { return max_; }
 
   /** WARNING: build dynamically
    * @return sorted docIDs
    */
-  std::vector<int> ToDocs() const;
+  std::vector<int64_t> ToDocs() const;
 
   const RangeQueryResult *GetAllResult() const { return &all_results_[0]; }
 
  private:
-  int min_;
-  int max_;
+  int64_t min_;
+  int64_t max_;
 
   std::vector<RangeQueryResult> all_results_;
 };

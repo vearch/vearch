@@ -297,7 +297,7 @@ TEST_F(GammaTest, LOAD_FAISS_INDEX) {
   InitEngine(opt);
   DumpFaissIndex(opt);
   CreateFaissTable(opt);
-  int bitmap_bytes_size = 0;
+  int64_t bitmap_bytes_size = 0;
   ret = bitmap::create(opt.docids_bitmap_, bitmap_bytes_size, opt.max_doc_size);
   if (ret != 0) {
     LOG(ERROR) << "Create bitmap failed!";

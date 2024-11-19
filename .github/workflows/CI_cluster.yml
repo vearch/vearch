@@ -33,7 +33,17 @@ jobs:
         docker run -d --name minio -p 10000:9000 --network vearch_network_cluster minio/minio server test/oss_data
         wget -q https://dl.min.io/client/mc/release/linux-amd64/mc
         chmod +x mc
-        ./mc alias set myminio http://127.0.0.1:10000 minioadmin minioadmin
+        ./mc alias set myminio http://127.0.0.1:10000 minioadmin minioadmin || true
+        retry=0
+        while [ $? -ne 0 ]; do
+          retry=$((retry+1))
+          if [ $retry -gt 10 ]; then
+            echo "Failed to set minio alias."
+            exit 1
+          fi
+          sleep 5
+          ./mc alias set myminio http://127.0.0.1:10000 minioadmin minioadmin || true
+        done
         ./mc mb myminio/test
 
     - name: Run Python tests

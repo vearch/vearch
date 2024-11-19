@@ -27,78 +27,31 @@ typedef struct {
   FilterOperator is_union;
 } FilterInfo;
 
-class FieldOperate {
- public:
-  typedef enum { ADD, DELETE } operate_type;
-
-  explicit FieldOperate(operate_type type, int doc_id, int field_id)
-      : type(type), doc_id(doc_id), field_id(field_id) {}
-
-  FieldOperate() {}
-
-  FieldOperate(const FieldOperate &other)
-      : type(other.type),
-        doc_id(other.doc_id),
-        field_id(other.field_id),
-        value(other.value) {}
-
-  FieldOperate(FieldOperate &&other) noexcept
-      : type(other.type),
-        doc_id(other.doc_id),
-        field_id(other.field_id),
-        value(std::move(other.value)) {}
-
-  FieldOperate &operator=(const FieldOperate &other) {
-    if (this != &other) {
-      type = other.type;
-      doc_id = other.doc_id;
-      field_id = other.field_id;
-      value = other.value;
-    }
-    return *this;
-  }
-
-  FieldOperate &operator=(FieldOperate &&other) noexcept {
-    if (this != &other) {
-      type = other.type;
-      doc_id = other.doc_id;
-      field_id = other.field_id;
-      value = std::move(other.value);
-    }
-    return *this;
-  }
-
-  operate_type type;
-  int doc_id;
-  int field_id;
-  std::string value;
-};
-
 class FieldRangeIndex;
 class MultiFieldsRangeIndex {
  public:
   MultiFieldsRangeIndex(std::string &path, Table *table);
   ~MultiFieldsRangeIndex();
 
-  int Add(int docid, int field);
+  int Add(int64_t docid, int field);
 
-  int Delete(int docid, int field);
+  int Delete(int64_t docid, int field);
 
   int AddField(int field, enum DataType field_type, std::string &name);
 
-  int Search(const std::vector<FilterInfo> &origin_filters,
-             MultiRangeQueryResults *out);
+  int64_t Search(const std::vector<FilterInfo> &origin_filters,
+                 MultiRangeQueryResults *out);
 
   // for debug
   long MemorySize(long &dense, long &sparse);
 
  private:
-  int Intersect(std::vector<RangeQueryResult> &results, int shortest_idx,
-                RangeQueryResult *out);
+  int64_t Intersect(std::vector<RangeQueryResult> &results,
+                    int64_t shortest_idx, RangeQueryResult *out);
 
-  int AddDoc(int docid, int field);
+  int AddDoc(int64_t docid, int field);
 
-  int DeleteDoc(int docid, int field, std::string &key);
+  int DeleteDoc(int64_t docid, int field, std::string &key);
   std::string path_;
   Table *table_;
   std::vector<FieldRangeIndex *> fields_;

@@ -9,13 +9,13 @@
 
 namespace vearch {
 
-std::vector<int> RangeQueryResult::ToDocs() const {
+std::vector<int64_t> RangeQueryResult::ToDocs() const {
   if (n_doc_ >= 0) {
-    std::vector<int> docIDs(n_doc_);
-    int j = 0;
+    std::vector<int64_t> docIDs(n_doc_);
+    int64_t j = 0;
 
-    int n = max_aligned_ - min_aligned_ + 1;
-    for (int i = 0; i < n; i++) {
+    int64_t n = max_aligned_ - min_aligned_ + 1;
+    for (int64_t i = 0; i < n; i++) {
       if (bitmap::test(bitmap_, i)) {
         docIDs[j++] = i + min_aligned_;
       }
@@ -24,16 +24,16 @@ std::vector<int> RangeQueryResult::ToDocs() const {
     assert(j == n_doc_);
     return docIDs;
   } else {
-    std::vector<int> docIDs;
-    int n = max_aligned_ - min_aligned_ + 1;
+    std::vector<int64_t> docIDs;
+    int64_t n = max_aligned_ - min_aligned_ + 1;
 
-    for (int i = 0; i < n; i++) {
+    for (int64_t i = 0; i < n; i++) {
       if (bitmap::test(bitmap_, i)) {
         docIDs.emplace_back(i + min_aligned_);
       }
     }
 
-    n_doc_ = static_cast<int>(docIDs.size());
+    n_doc_ = static_cast<int64_t>(docIDs.size());
     return docIDs;
   }
 }
@@ -41,8 +41,8 @@ std::vector<int> RangeQueryResult::ToDocs() const {
 void RangeQueryResult::Output() {
   std::stringstream ss;
   ss << "bitmap = [";
-  int n = max_aligned_ - min_aligned_ + 1;
-  for (int i = 0; i < n; i++) {
+  int64_t n = max_aligned_ - min_aligned_ + 1;
+  for (int64_t i = 0; i < n; i++) {
     if (bitmap::test(bitmap_, i)) {
       ss << " " << i;
     }
@@ -51,11 +51,11 @@ void RangeQueryResult::Output() {
   LOG(INFO) << ss.str();
 }
 
-std::vector<int> MultiRangeQueryResults::ToDocs() const {
-  std::vector<int> docIDs;
+std::vector<int64_t> MultiRangeQueryResults::ToDocs() const {
+  std::vector<int64_t> docIDs;
 
   for (auto &result : all_results_) {
-    for (int id = min_; id <= max_; id++) {
+    for (int64_t id = min_; id <= max_; id++) {
       if (result.Has(id)) {
         docIDs.emplace_back(id);
       }

@@ -779,7 +779,7 @@ void InitEngine(struct Options &opt) {
   opt.add_doc_num =
       opt.add_doc_num > opt.max_doc_size ? opt.max_doc_size : opt.add_doc_num;
 
-  int bitmap_bytes_size = 0;
+  int64_t bitmap_bytes_size = 0;
   int ret =
       bitmap::create(opt.docids_bitmap_, bitmap_bytes_size, opt.max_doc_size);
   ASSERT_EQ(ret, 0);

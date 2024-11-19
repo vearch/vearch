@@ -34,18 +34,16 @@ namespace vearch {
 
 class Node {
  public:
-  Node() {
-    size_ = 0;
-    data_dense_ = nullptr;
-    data_sparse_ = nullptr;
-    min_ = std::numeric_limits<int>::max();
-    min_aligned_ = std::numeric_limits<int>::max();
-    max_ = -1;
-    max_aligned_ = -1;
-    capacity_ = 0;
-    type_ = Sparse;
-    n_extend_ = 0;
-  }
+  Node()
+      : min_(std::numeric_limits<int64_t>::max()),
+        max_(-1),
+        min_aligned_(std::numeric_limits<int64_t>::max()),
+        max_aligned_(-1),
+        type_(Sparse),
+        capacity_(0),
+        size_(0),
+        data_dense_(nullptr),
+        data_sparse_(nullptr) {}
 
   ~Node() {
     if (type_ == Dense) {
@@ -63,7 +61,7 @@ class Node {
 
   typedef enum NodeType { Dense, Sparse } NodeType;
 
-  int AddDense(int val) {
+  int AddDense(int64_t val) {
     int op_len = sizeof(BM_OPERATE_TYPE) * 8;
 
     if (size_ == 0) {
@@ -71,7 +69,7 @@ class Node {
       max_ = val;
       min_aligned_ = (val / op_len) * op_len;
       max_aligned_ = (val / op_len + 1) * op_len - 1;
-      int bytes_count = -1;
+      int64_t bytes_count = -1;
 
       if (bitmap::create(data_dense_, bytes_count,
                          max_aligned_ - min_aligned_ + 1) != 0) {
@@ -85,13 +83,13 @@ class Node {
 
     if (val < min_aligned_) {
       char *data = nullptr;
-      int min_aligned = (val / op_len) * op_len;
+      int64_t min_aligned = (val / op_len) * op_len;
 
       // LOG(INFO) << "Dense lower min_aligned_ [" << min_aligned_ << "],
       // min_aligned ["
       //           << min_aligned << "] max_aligned_ [" << max_aligned_ << "]";
 
-      int bytes_count = -1;
+      int64_t bytes_count = -1;
       if (bitmap::create(data, bytes_count, max_aligned_ - min_aligned + 1) !=
           0) {
         LOG(ERROR) << "Cannot create bitmap!";
@@ -101,7 +99,7 @@ class Node {
       BM_OPERATE_TYPE *op_data_dst = (BM_OPERATE_TYPE *)data;
       BM_OPERATE_TYPE *op_data_ori = (BM_OPERATE_TYPE *)data_dense_;
 
-      for (int i = 0; i < (max_aligned_ - min_aligned_ + 1) / op_len; ++i) {
+      for (int64_t i = 0; i < (max_aligned_ - min_aligned_ + 1) / op_len; ++i) {
         op_data_dst[i + (min_aligned_ - min_aligned) / op_len] = op_data_ori[i];
       }
 
@@ -114,7 +112,7 @@ class Node {
       // double k = 1 + exp(-1 * n_extend_ + 1);
       char *data = nullptr;
       // 2X spare space to speed up insert
-      int max_aligned = (val / op_len + 1) * op_len * 2 - 1;
+      int64_t max_aligned = (val / op_len + 1) * op_len * 2 - 1;
 
       // LOG(INFO) << "Dense upper min_aligned_ [" << min_aligned_ << "],
       // max_aligned ["
@@ -123,7 +121,7 @@ class Node {
       //           << size_ << "] val [" << val << "] min [" << min_ << "] max
       //           [" << max_ << "]";
 
-      int bytes_count = -1;
+      int64_t bytes_count = -1;
       if (bitmap::create(data, bytes_count, max_aligned - min_aligned_ + 1) !=
           0) {
         LOG(ERROR) << "Cannot create bitmap!";
@@ -133,7 +131,7 @@ class Node {
       BM_OPERATE_TYPE *op_data_dst = (BM_OPERATE_TYPE *)data;
       BM_OPERATE_TYPE *op_data_ori = (BM_OPERATE_TYPE *)data_dense_;
 
-      for (int i = 0; i < (max_aligned_ - min_aligned_ + 1) / op_len; ++i) {
+      for (int64_t i = 0; i < (max_aligned_ - min_aligned_ + 1) / op_len; ++i) {
         op_data_dst[i] = op_data_ori[i];
       }
 
@@ -152,16 +150,16 @@ class Node {
     return 0;
   }
 
-  int AddSparse(int val) {
+  int AddSparse(int64_t val) {
     int op_len = sizeof(BM_OPERATE_TYPE) * 8;
 
     if (capacity_ == 0) {
       capacity_ = 1;
-      data_sparse_ = (int *)malloc(capacity_ * sizeof(int));
+      data_sparse_ = (int64_t *)malloc(capacity_ * sizeof(int64_t));
     } else if (size_ >= capacity_) {
       capacity_ *= 2;
-      int *data = (int *)malloc(capacity_ * sizeof(int));
-      for (int i = 0; i < size_; ++i) {
+      int64_t *data = (int64_t *)malloc(capacity_ * sizeof(int64_t));
+      for (int64_t i = 0; i < size_; ++i) {
         data[i] = data_sparse_[i];
       }
 
@@ -182,8 +180,8 @@ class Node {
     return 0;
   }
 
-  int Add(int val) {
-    int offset = max_ - min_;
+  int Add(int64_t val) {
+    int64_t offset = max_ - min_;
     double density = (size_ * 1.) / offset;
 
     if (type_ == Dense) {
@@ -206,10 +204,10 @@ class Node {
   }
 
   int ConvertToSparse() {
-    data_sparse_ = (int *)malloc(size_ * sizeof(int));
-    int offset = max_aligned_ - min_aligned_ + 1;
-    int idx = 0;
-    for (int i = 0; i < offset; ++i) {
+    data_sparse_ = (int64_t *)malloc(size_ * sizeof(int64_t));
+    int64_t offset = max_aligned_ - min_aligned_ + 1;
+    int64_t idx = 0;
+    for (int64_t i = 0; i < offset; ++i) {
       if (bitmap::test(data_dense_, i)) {
         if (idx >= size_) {
           LOG(WARNING) << "idx [" << idx << "] size [" << size_ << "] i [" << i
@@ -234,15 +232,15 @@ class Node {
   }
 
   int ConvertToDense() {
-    int bytes_count = -1;
+    int64_t bytes_count = -1;
     if (bitmap::create(data_dense_, bytes_count,
                        max_aligned_ - min_aligned_ + 1) != 0) {
       LOG(ERROR) << "Cannot create bitmap!";
       return -1;
     }
 
-    for (int i = 0; i < size_; ++i) {
-      int val = data_sparse_[i];
+    for (int64_t i = 0; i < size_; ++i) {
+      int64_t val = data_sparse_[i];
       if (val < min_aligned_ || val > max_aligned_) {
         LOG(WARNING) << "val [" << val << "] size [" << size_ << "] i [" << i
                      << "]";
@@ -257,8 +255,8 @@ class Node {
     return 0;
   }
 
-  int DeleteDense(int val) {
-    int pos = val - min_aligned_;
+  int DeleteDense(int64_t val) {
+    int64_t pos = val - min_aligned_;
     if (pos < 0 || val > max_aligned_) {
       LOG(DEBUG) << "Cannot find [" << val << "]";
       return -1;
@@ -268,8 +266,8 @@ class Node {
     return 0;
   }
 
-  int DeleteSparse(int val) {
-    int i = 0;
+  int DeleteSparse(int64_t val) {
+    int64_t i = 0;
     for (; i < size_; ++i) {
       if (data_sparse_[i] == val) {
         break;
@@ -280,7 +278,7 @@ class Node {
       LOG(DEBUG) << "Cannot find [" << val << "]";
       return -1;
     }
-    for (int j = i; j < size_ - 1; ++j) {
+    for (int64_t j = i; j < size_ - 1; ++j) {
       data_sparse_[j] = data_sparse_[j + 1];
     }
 
@@ -288,7 +286,7 @@ class Node {
     return 0;
   }
 
-  int Delete(int val) {
+  int Delete(int64_t val) {
     if (type_ == Dense) {
       return DeleteDense(val);
     } else {
@@ -296,40 +294,38 @@ class Node {
     }
   }
 
-  int Min() { return min_; }
-  int Max() { return max_; }
+  int64_t Min() { return min_; }
+  int64_t Max() { return max_; }
 
-  int MinAligned() { return min_aligned_; }
-  int MaxAligned() { return max_aligned_; }
+  int64_t MinAligned() { return min_aligned_; }
+  int64_t MaxAligned() { return max_aligned_; }
 
-  int Size() { return size_; }
+  int64_t Size() { return size_; }
   NodeType Type() { return type_; }
 
   char *DataDense() { return data_dense_; }
-  int *DataSparse() { return data_sparse_; }
+  int64_t *DataSparse() { return data_sparse_; }
 
   // for debug
   void MemorySize(long &dense, long &sparse) {
     if (type_ == Dense) {
       dense += (max_aligned_ - min_aligned_) / 8;
     } else {
-      sparse += capacity_ * sizeof(int);
+      sparse += capacity_ * sizeof(int64_t);
     }
   }
 
  private:
-  int min_;
-  int max_;
-  int min_aligned_;
-  int max_aligned_;
+  int64_t min_;
+  int64_t max_;
+  int64_t min_aligned_;
+  int64_t max_aligned_;
 
   NodeType type_;
-  int capacity_;  // for sparse node
-  int size_;
+  int64_t capacity_;  // for sparse node
+  int64_t size_;
   char *data_dense_;
-  int *data_sparse_;
-
-  int n_extend_;
+  int64_t *data_sparse_;
 };
 
 typedef struct BTreeParameters {
@@ -344,14 +340,14 @@ class FieldRangeIndex {
                   BTreeParameters &bt_param, std::string &name);
   ~FieldRangeIndex();
 
-  int Add(std::string &key, int value);
+  int Add(std::string &key, int64_t value);
 
-  int Delete(std::string &key, int value);
+  int Delete(std::string &key, int64_t value);
 
-  int Search(const std::string &low, const std::string &high,
-             RangeQueryResult *result);
+  int64_t Search(const std::string &low, const std::string &high,
+                 RangeQueryResult *result);
 
-  int Search(const std::string &tags, RangeQueryResult *result);
+  int64_t Search(const std::string &tags, RangeQueryResult *result);
 
   bool IsNumeric() { return is_numeric_; }
 
@@ -430,18 +426,18 @@ FieldRangeIndex::~FieldRangeIndex() {
   }
 }
 
+/**
+ * Reverse the byte order of the input array and store the result in the output
+ * array. This function also adds 0x80 to the first byte of the output array.
+ */
 static int ReverseEndian(const unsigned char *in, unsigned char *out,
                          uint len) {
-  for (uint i = 0; i < len; ++i) {
-    out[i] = in[len - i - 1];
-  }
-
-  unsigned char N = 0x80;
-  out[0] += N;
+  std::reverse_copy(in, in + len, out);
+  out[0] += 0x80;
   return 0;
 }
 
-int FieldRangeIndex::Add(std::string &key, int value) {
+int FieldRangeIndex::Add(std::string &key, int64_t value) {
   BtDb *bt = bt_open(main_mgr_);
   size_t key_len = key.size();
   std::vector<unsigned char> key2(key_len);
@@ -493,7 +489,7 @@ int FieldRangeIndex::Add(std::string &key, int value) {
   return 0;
 }
 
-int FieldRangeIndex::Delete(std::string &key, int value) {
+int FieldRangeIndex::Delete(std::string &key, int64_t value) {
   BtDb *bt = bt_open(main_mgr_);
   size_t key_len = key.size();
   std::vector<unsigned char> key2(key_len);
@@ -547,8 +543,9 @@ int FieldRangeIndex::Delete(std::string &key, int value) {
   return 0;
 }
 
-int FieldRangeIndex::Search(const std::string &lower, const std::string &upper,
-                            RangeQueryResult *result) {
+int64_t FieldRangeIndex::Search(const std::string &lower,
+                                const std::string &upper,
+                                RangeQueryResult *result) {
   if (!is_numeric_) {
     return Search(lower, result);
   }
@@ -568,10 +565,10 @@ int FieldRangeIndex::Search(const std::string &lower, const std::string &upper,
 
   std::vector<Node *> lists;
 
-  int min_doc = std::numeric_limits<int>::max();
-  int min_aligned = std::numeric_limits<int>::max();
-  int max_doc = 0;
-  int max_aligned = 0;
+  int64_t min_doc = std::numeric_limits<int64_t>::max();
+  int64_t min_aligned = std::numeric_limits<int64_t>::max();
+  int64_t max_doc = 0;
+  int64_t max_aligned = 0;
   uint slot = bt_startkey(bt, key_l.data(), lower_len);
   while (slot) {
     BtKey *key = bt_key(bt, slot);
@@ -619,18 +616,18 @@ int FieldRangeIndex::Search(const std::string &lower, const std::string &upper,
 #endif
 
   auto &bitmap = result->Ref();
-  int list_size = lists.size();
+  auto list_size = lists.size();
 
-  int total = 0;
+  int64_t total = 0;
 
   int op_len = sizeof(BM_OPERATE_TYPE) * 8;
-  for (int i = 0; i < list_size; ++i) {
+  for (size_t i = 0; i < list_size; ++i) {
     Node *list = lists[i];
     Node::NodeType node_type = list->Type();
     if (node_type == Node::NodeType::Dense) {
       char *data = list->DataDense();
-      int min = list->MinAligned();
-      int max = list->MaxAligned();
+      int64_t min = list->MinAligned();
+      int64_t max = list->MaxAligned();
 
       if (min < min_aligned || max > max_aligned) {
         continue;
@@ -641,15 +638,15 @@ int FieldRangeIndex::Search(const std::string &lower, const std::string &upper,
       BM_OPERATE_TYPE *op_data_dst =
           reinterpret_cast<BM_OPERATE_TYPE *>(bitmap);
       BM_OPERATE_TYPE *op_data_ori = reinterpret_cast<BM_OPERATE_TYPE *>(data);
-      int offset = (min - min_aligned) / op_len;
-      for (int j = 0; j < (max - min + 1) / op_len; ++j) {
+      int64_t offset = (min - min_aligned) / op_len;
+      for (int64_t j = 0; j < (max - min + 1) / op_len; ++j) {
         op_data_dst[j + offset] |= op_data_ori[j];
       }
     } else {
-      int *data = list->DataSparse();
-      int min = list->Min();
-      int max = list->Max();
-      int size = list->Size();
+      auto *data = list->DataSparse();
+      int64_t min = list->Min();
+      int64_t max = list->Max();
+      int64_t size = list->Size();
 
       if (min < min_doc || max > max_doc) {
         continue;
@@ -657,7 +654,7 @@ int FieldRangeIndex::Search(const std::string &lower, const std::string &upper,
 
       total += list->Size();
 
-      for (int j = 0; j < size; ++j) {
+      for (int64_t j = 0; j < size; ++j) {
         bitmap::set(bitmap, data[j] - min_aligned);
       }
     }
@@ -674,7 +671,8 @@ int FieldRangeIndex::Search(const std::string &lower, const std::string &upper,
   return max_doc - min_doc + 1;
 }
 
-int FieldRangeIndex::Search(const std::string &tags, RangeQueryResult *result) {
+int64_t FieldRangeIndex::Search(const std::string &tags,
+                                RangeQueryResult *result) {
   std::vector<std::string> items = utils::split(tags, kDelim_);
   std::vector<Node *> nodes(items.size());
   int op_len = sizeof(BM_OPERATE_TYPE) * 8;
@@ -709,8 +707,8 @@ int FieldRangeIndex::Search(const std::string &tags, RangeQueryResult *result) {
   double fend = utils::getmillisecs();
 #endif
 
-  int min_doc = std::numeric_limits<int>::max();
-  int max_doc = 0;
+  int64_t min_doc = std::numeric_limits<int64_t>::max();
+  int64_t max_doc = 0;
   for (Node *node : nodes) {
     if (node == nullptr || node->Size() <= 0) continue;
     min_doc = std::min(min_doc, node->MinAligned());
@@ -721,7 +719,7 @@ int FieldRangeIndex::Search(const std::string &tags, RangeQueryResult *result) {
     return 0;
   }
 
-  int total = 0;
+  int64_t total = 0;
   result->SetRange(min_doc, max_doc);
   result->Resize();
   char *&bitmap = result->Ref();
@@ -730,23 +728,23 @@ int FieldRangeIndex::Search(const std::string &tags, RangeQueryResult *result) {
 #endif
   for (Node *node : nodes) {
     if (node == nullptr) continue;
-    int min_aligned = node->MinAligned();
-    int max_aligned = node->MaxAligned();
+    auto min_aligned = node->MinAligned();
+    auto max_aligned = node->MaxAligned();
     if (node->Type() == Node::NodeType::Dense) {
       char *data = node->DataDense();
       BM_OPERATE_TYPE *op_data_dst =
           reinterpret_cast<BM_OPERATE_TYPE *>(bitmap);
       BM_OPERATE_TYPE *op_data_ori = reinterpret_cast<BM_OPERATE_TYPE *>(data);
 
-      int offset = (min_aligned - min_doc) / op_len;
-      for (int j = 0; j < (max_aligned - min_aligned + 1) / op_len; ++j) {
+      auto offset = (min_aligned - min_doc) / op_len;
+      for (int64_t j = 0; j < (max_aligned - min_aligned + 1) / op_len; ++j) {
         op_data_dst[j + offset] |= op_data_ori[j];
       }
     } else {
-      int *data = node->DataSparse();
-      int size = node->Size();
+      auto *data = node->DataSparse();
+      auto size = node->Size();
 
-      for (int j = 0; j < size; ++j) {
+      for (int64_t j = 0; j < size; ++j) {
         bitmap::set(bitmap, data[j] - min_doc);
       }
     }
@@ -810,7 +808,7 @@ MultiFieldsRangeIndex::~MultiFieldsRangeIndex() {
   delete[] field_rw_locks_;
 }
 
-int MultiFieldsRangeIndex::Add(int docid, int field) {
+int MultiFieldsRangeIndex::Add(int64_t docid, int field) {
   FieldRangeIndex *index = fields_[field];
   if (index == nullptr) {
     return 0;
@@ -820,23 +818,23 @@ int MultiFieldsRangeIndex::Add(int docid, int field) {
   return ret;
 }
 
-int MultiFieldsRangeIndex::Delete(int docid, int field) {
+int MultiFieldsRangeIndex::Delete(int64_t docid, int field) {
   FieldRangeIndex *index = fields_[field];
   if (index == nullptr) {
     return 0;
   }
-  FieldOperate field_op(FieldOperate::DELETE, docid, field);
-  int ret = table_->GetFieldRawValue(docid, field, field_op.value);
+  std::string value;
+  int ret = table_->GetFieldRawValue(docid, field, value);
   if (ret != 0) {
     return ret;
   }
 
-  ret = DeleteDoc(docid, field, field_op.value);
+  ret = DeleteDoc(docid, field, value);
 
   return ret;
 }
 
-int MultiFieldsRangeIndex::AddDoc(int docid, int field) {
+int MultiFieldsRangeIndex::AddDoc(int64_t docid, int field) {
   FieldRangeIndex *index = fields_[field];
   if (index == nullptr) {
     return 0;
@@ -855,7 +853,8 @@ int MultiFieldsRangeIndex::AddDoc(int docid, int field) {
   return 0;
 }
 
-int MultiFieldsRangeIndex::DeleteDoc(int docid, int field, std::string &key) {
+int MultiFieldsRangeIndex::DeleteDoc(int64_t docid, int field,
+                                     std::string &key) {
   FieldRangeIndex *index = fields_[field];
   if (index == nullptr) {
     return 0;
@@ -882,8 +881,9 @@ static void AdjustBoundary(std::string &boundary, int offset) {
   }
 }
 
-int MultiFieldsRangeIndex::Search(const std::vector<FilterInfo> &origin_filters,
-                                  MultiRangeQueryResults *out) {
+int64_t MultiFieldsRangeIndex::Search(
+    const std::vector<FilterInfo> &origin_filters,
+    MultiRangeQueryResults *out) {
   out->Clear();
 
   std::vector<FilterInfo> filters;
@@ -910,7 +910,7 @@ int MultiFieldsRangeIndex::Search(const std::vector<FilterInfo> &origin_filters,
     filters.push_back(filter);
   }
 
-  int fsize = filters.size();
+  auto fsize = filters.size();
 
   if (fsize == 1) {
     auto &filter = filters[0];
@@ -933,7 +933,8 @@ int MultiFieldsRangeIndex::Search(const std::vector<FilterInfo> &origin_filters,
       }
     }
     pthread_rwlock_rdlock(&field_rw_locks_[filters[0].field]);
-    int retval = index->Search(filter.lower_value, filter.upper_value, &result);
+    int64_t retval =
+        index->Search(filter.lower_value, filter.upper_value, &result);
     if (retval > 0) {
       if (filter.is_union == FilterOperator::Not) {
         result.SetNotIn(true);
@@ -951,9 +952,9 @@ int MultiFieldsRangeIndex::Search(const std::vector<FilterInfo> &origin_filters,
   results.reserve(fsize);
 
   // record the shortest docid list
-  int shortest_idx = -1, shortest = std::numeric_limits<int>::max();
+  int64_t shortest_idx = -1, shortest = std::numeric_limits<int64_t>::max();
 
-  for (int i = 0; i < fsize; ++i) {
+  for (size_t i = 0; i < fsize; ++i) {
     pthread_rwlock_rdlock(&field_rw_locks_[filters[i].field]);
     auto &filter = filters[i];
 
@@ -978,7 +979,8 @@ int MultiFieldsRangeIndex::Search(const std::vector<FilterInfo> &origin_filters,
       }
     }
     RangeQueryResult result;
-    int num = index->Search(filter.lower_value, filter.upper_value, &result);
+    int64_t num =
+        index->Search(filter.lower_value, filter.upper_value, &result);
     if (num < 0) {
       ;
     } else if (num == 0) {
@@ -1011,7 +1013,7 @@ int MultiFieldsRangeIndex::Search(const std::vector<FilterInfo> &origin_filters,
   }
 
   RangeQueryResult tmp;
-  int count = Intersect(results, shortest_idx, &tmp);
+  auto count = Intersect(results, shortest_idx, &tmp);
   if (count > 0) {
     out->Add(std::move(tmp));
   }
@@ -1019,12 +1021,13 @@ int MultiFieldsRangeIndex::Search(const std::vector<FilterInfo> &origin_filters,
   return count;
 }
 
-int MultiFieldsRangeIndex::Intersect(std::vector<RangeQueryResult> &results,
-                                     int shortest_idx, RangeQueryResult *out) {
-  int min_doc = std::numeric_limits<int>::min();
-  int max_doc = std::numeric_limits<int>::max();
+int64_t MultiFieldsRangeIndex::Intersect(std::vector<RangeQueryResult> &results,
+                                         int64_t shortest_idx,
+                                         RangeQueryResult *out) {
+  int64_t min_doc = std::numeric_limits<int64_t>::min();
+  int64_t max_doc = std::numeric_limits<int64_t>::max();
 
-  int total = results[0].Size();
+  int64_t total = results[0].Size();
 
   // results[0].Output();
 
@@ -1058,11 +1061,11 @@ int MultiFieldsRangeIndex::Intersect(std::vector<RangeQueryResult> &results,
   // calculate the intersection with the shortest doc chain.
   {
     char *data = results[shortest_idx].Ref();
-    int min_doc_shortest = results[shortest_idx].MinAligned();
-    int offset = (min_doc - min_doc_shortest) / op_len;
+    int64_t min_doc_shortest = results[shortest_idx].MinAligned();
+    int64_t offset = (min_doc - min_doc_shortest) / op_len;
 
     BM_OPERATE_TYPE *op_data_ori = (BM_OPERATE_TYPE *)data;
-    for (int j = 0; j < (max_doc - min_doc + 1) / op_len; ++j) {
+    for (int64_t j = 0; j < (max_doc - min_doc + 1) / op_len; ++j) {
       op_data_dst[j] = op_data_ori[j + offset];
     }
   }
@@ -1073,28 +1076,28 @@ int MultiFieldsRangeIndex::Intersect(std::vector<RangeQueryResult> &results,
     }
     char *data = results[i].Ref();
     BM_OPERATE_TYPE *op_data_ori = (BM_OPERATE_TYPE *)data;
-    int min = results[i].MinAligned();
-    int max = results[i].MaxAligned();
+    int64_t min = results[i].MinAligned();
+    int64_t max = results[i].MaxAligned();
 
     if (min < min_doc) {
-      int offset = (min_doc - min) / op_len;
+      int64_t offset = (min_doc - min) / op_len;
       if (max > max_doc) {
-        for (int k = 0; k < (max_doc - min_doc + 1) / op_len; ++k) {
+        for (int64_t k = 0; k < (max_doc - min_doc + 1) / op_len; ++k) {
           op_data_dst[k] &= op_data_ori[k + offset];
         }
       } else {
-        for (int k = 0; k < (max - min_doc + 1) / op_len; ++k) {
+        for (int64_t k = 0; k < (max - min_doc + 1) / op_len; ++k) {
           op_data_dst[k] &= op_data_ori[k + offset];
         }
       }
     } else {
-      int offset = (min - min_doc) / op_len;
+      int64_t offset = (min - min_doc) / op_len;
       if (max > max_doc) {
-        for (int k = 0; k < (max_doc - min_doc + 1) / op_len; ++k) {
+        for (int64_t k = 0; k < (max_doc - min_doc + 1) / op_len; ++k) {
           op_data_dst[k + offset] &= op_data_ori[k];
         }
       } else {
-        for (int k = 0; k < (max - min_doc + 1) / op_len; ++k) {
+        for (int64_t k = 0; k < (max - min_doc + 1) / op_len; ++k) {
           op_data_dst[k + offset] &= op_data_ori[k];
         }
       }
