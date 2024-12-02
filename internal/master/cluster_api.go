@@ -222,7 +222,6 @@ func ExportToClusterHandler(router *gin.Engine, masterService *masterService, se
 	groupAuth.GET("/members/stats", c.getMemberStatus, dh.TimeOutEndHandler)
 	groupAuth.DELETE("/members", c.deleteMember, dh.TimeOutEndHandler)
 	groupAuth.POST("/members", c.addMember, dh.TimeOutEndHandler)
-
 }
 
 // got every partition servers system info

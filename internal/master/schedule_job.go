@@ -101,7 +101,6 @@ func walkServers(masterServer *Server, servers []*entity.Server) {
 var errSkipJob = errors.New("skip job")
 
 func CleanTask(masterServer *Server) {
-
 	var err = masterServer.client.Master().STM(masterServer.ctx, func(stm concurrency.STM) error {
 		timeBytes := stm.Get(entity.ClusterCleanJobKey)
 		if len(timeBytes) == 0 {

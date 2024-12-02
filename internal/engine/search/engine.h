@@ -105,7 +105,7 @@ class Engine {
                       Response &response_results,
                       MultiRangeQueryResults *range_query_result);
 
-  void BacupThread(int command);
+  void BackupThread(int command);
 
  private:
   std::string index_root_path_;

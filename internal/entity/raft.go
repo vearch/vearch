@@ -67,7 +67,6 @@ type RecoverFailServer struct {
 	NewNodeAddr  string `json:"new_node_addr"`
 }
 
-// RecoverFailServer use for recover fail server
 type DBModify struct {
 	DbName    string               `json:"db_name"`
 	SpaceName string               `json:"space_name"`

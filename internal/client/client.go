@@ -296,8 +296,8 @@ func (r *routerRequest) UpsertByPartitions(partitions []uint32) *routerRequest {
 					if len(pids) == 1 {
 						partitionID = pids[0]
 					} else {
-						random_index := murmur3.Sum32WithSeed([]byte(doc.PKey), 0) % uint32(len(pids))
-						partitionID = pids[random_index]
+						hash_index := murmur3.Sum32WithSeed([]byte(doc.PKey), 0) % uint32(len(pids))
+						partitionID = pids[hash_index]
 					}
 					break
 				}
@@ -323,8 +323,8 @@ func (r *routerRequest) UpsertByPartitions(partitions []uint32) *routerRequest {
 			if len(partitions) == 0 {
 				partitionID = r.space.PartitionId(murmur3.Sum32WithSeed([]byte(doc.PKey), 0))
 			} else {
-				random_index := murmur3.Sum32WithSeed([]byte(doc.PKey), 0) % uint32(len(partitions))
-				partitionID = partitions[random_index]
+				hash_index := murmur3.Sum32WithSeed([]byte(doc.PKey), 0) % uint32(len(partitions))
+				partitionID = partitions[hash_index]
 			}
 			item := &vearchpb.Item{Doc: doc}
 			if d, ok := dataMap[partitionID]; ok {
@@ -470,11 +470,15 @@ func (r *routerRequest) searchFromPartition(ctx context.Context, partitionID ent
 	}()
 
 	trace := config.Trace
-	partitionIDstr := strconv.FormatUint(uint64(partitionID), 10)
 	if trace_info, ok := pd.SearchRequest.Head.Params["trace"]; ok {
 		if trace_info == "true" {
 			trace = true
 		}
+	}
+
+	var partitionIDstr string
+	if trace {
+		partitionIDstr = strconv.FormatUint(uint64(partitionID), 10)
 	}
 
 	partition, e := r.client.Master().Cache().PartitionByCache(ctx, r.space.Name, partitionID)
@@ -1073,25 +1077,25 @@ func quickSort(items []*vearchpb.ResultItem, sortValueMap map[string][]sortorder
 	}
 }
 
-func partition(arr []*vearchpb.ResultItem, sortValueMap map[string][]sortorder.SortValue, low, high int, so sortorder.SortOrder, index string) int {
-	var pivot = arr[low]
+func partition(items []*vearchpb.ResultItem, sortValueMap map[string][]sortorder.SortValue, low, high int, so sortorder.SortOrder, index string) int {
+	var pivot = items[low]
 	var pivotSort = sortValueMap[pivot.PKey+"_"+index]
 	var i = low
 	var j = high
 	for i < j {
-		for so.Compare(sortValueMap[arr[j].PKey+"_"+index], pivotSort) >= 0 && j > low {
+		for so.Compare(sortValueMap[items[j].PKey+"_"+index], pivotSort) >= 0 && j > low {
 			j--
 		}
 
-		for so.Compare(sortValueMap[arr[i].PKey+"_"+index], pivotSort) <= 0 && i < high {
+		for so.Compare(sortValueMap[items[i].PKey+"_"+index], pivotSort) <= 0 && i < high {
 			i++
 		}
 		if i < j {
-			arr[i], arr[j] = arr[j], arr[i]
+			items[i], items[j] = items[j], items[i]
 		}
 	}
 
-	arr[low], arr[j] = arr[j], pivot
+	items[low], items[j] = items[j], pivot
 	return j
 }
 

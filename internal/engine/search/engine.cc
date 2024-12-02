@@ -1204,14 +1204,14 @@ Status vearch::Engine::Backup(int command) {
 
   backup_status_.store(-1);
   auto func_backup =
-      std::bind(&Engine::BacupThread, this, std::placeholders::_1);
+      std::bind(&Engine::BackupThread, this, std::placeholders::_1);
   backup_thread_ = std::thread(func_backup, command);
   backup_thread_.detach();
 
   return Status::OK();
 }
 
-void Engine::BacupThread(int command) {
+void Engine::BackupThread(int command) {
   std::string backup_path = index_root_path_ + "/backup";
   utils::make_dir(backup_path.c_str());
 

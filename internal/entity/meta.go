@@ -157,7 +157,9 @@ var PrefixEtcdClusterID = "/vearch/default/"
 const ClusterCleanJobKey = "/cluster/cleanjob"
 
 // ClusterWatchServerKey for server job lock
-const ClusterWatchServerKey = "watch/server"
+const ClusterWatchServerKeyPut = "watch/server/put"
+const ClusterWatchServerKeyDelete = "watch/server/delete"
+const ClusterWatchServerKeyScan = "watch/server/scan"
 
 // rpc time out, default 10 * 1000 ms
 type CTX_KEY string

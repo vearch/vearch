@@ -219,16 +219,14 @@ Status StorageManager::UpdateString(int cf_id, int64_t id,
 }
 
 std::pair<Status, std::string> StorageManager::Get(int cf_id, int64_t id) {
-  std::string key, value;
-  key = utils::ToRowKey(id);
+  std::string value;
   rocksdb::Status s = db_->Get(rocksdb::ReadOptions(), cf_handles_[cf_id],
-                               rocksdb::Slice(key), &value);
+                               rocksdb::Slice(utils::ToRowKey(id)), &value);
   if (!s.ok()) {
-    std::stringstream msg;
-    msg << "rocksdb get error:" << s.ToString() << " key=" << key;
-    return {Status::IOError(msg.str()), std::string()};
+    return {Status::IOError("rocksdb get error: " + s.ToString() +
+                            " key=" + utils::ToRowKey(id)),
+            std::string()};
   }
-
   return {Status::OK(), std::move(value)};
 }
 
@@ -279,7 +277,6 @@ std::vector<rocksdb::Status> StorageManager::MultiGet(
     int cf_id, const std::vector<int64_t> &vids,
     std::vector<std::string> &values) {
   size_t k = vids.size();
-  std::vector<std::string> keys_data(k);
   std::vector<rocksdb::Slice> keys;
   std::vector<rocksdb::ColumnFamilyHandle *> column_families;
   keys.reserve(k);
@@ -287,8 +284,7 @@ std::vector<rocksdb::Status> StorageManager::MultiGet(
 
   for (size_t i = 0; i < k; i++) {
     assert(vids[i] >= 0);
-    keys_data[i] = utils::ToRowKey(vids[i]);
-    keys.emplace_back(std::move(keys_data[i]));
+    keys.emplace_back(utils::ToRowKey(vids[i]));
     column_families.emplace_back(cf_handles_[cf_id]);
   }
 

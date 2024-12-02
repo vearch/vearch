@@ -56,6 +56,32 @@ func (s *Server) StartHeartbeatJob() {
 		}
 
 		server.PartitionIds = psutil.GetAllPartitions(config.Conf().GetDatas())
+		for _, pid := range server.PartitionIds {
+			log.Info("partition id: %d", pid)
+			partition, err := s.client.Master().QueryPartition(context.Background(), pid)
+			if err != nil {
+				log.Error("QueryPartition err: %v", err.Error())
+				continue
+			}
+			if partition == nil {
+				log.Error("QueryPartition partition is nil")
+				continue
+			}
+
+			bFound := false
+			for _, nodeId := range partition.Replicas {
+				if nodeId == s.nodeID {
+					bFound = true
+					break
+				}
+			}
+
+			if !bFound {
+				log.Error("partition %d not found in replicas", pid)
+				path := config.Conf().GetDataDirBySlot(config.PS, pid)
+				psutil.ClearPartition(path, pid)
+			}
+		}
 		ctx := context.Background()
 		keepaliveC, err := s.client.Master().KeepAlive(ctx, server)
 		if err != nil {

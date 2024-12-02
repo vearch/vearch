@@ -532,17 +532,19 @@ func configTraceParse(r *http.Request) (printSwitch bool, err error) {
 	return temp.Trace, nil
 }
 
-func documentParse(ctx context.Context, handler *DocumentHandler, r *http.Request, docRequest *request.DocumentRequest, space *entity.Space, args *vearchpb.BulkRequest) (err error) {
+func documentParse(ctx context.Context, handler *DocumentHandler, r *http.Request, docRequest *request.DocumentRequest, space *entity.Space, args *vearchpb.BulkRequest) error {
 	spaceProperties := space.SpaceProperties
 	if spaceProperties == nil {
 		spaceProperties, _ = entity.UnmarshalPropertyJSON(space.Fields)
 	}
+
 	vectorFieldNum := 0
 	for _, value := range spaceProperties {
 		if value.FieldType == vearchpb.FieldType_VECTOR {
-			vectorFieldNum += 1
+			vectorFieldNum++
 		}
 	}
+
 	if docRequest.Partitions != nil && len(*docRequest.Partitions) != 0 {
 		// check partition
 		for _, pid := range *docRequest.Partitions {
@@ -559,7 +561,8 @@ func documentParse(ctx context.Context, handler *DocumentHandler, r *http.Reques
 		}
 		args.Partitions = *docRequest.Partitions
 	}
-	docs := make([]*vearchpb.Document, 0)
+
+	docs := make([]*vearchpb.Document, 0, len(docRequest.Documents))
 	for _, docJson := range docRequest.Documents {
 		jsonMap, err := vjson.ByteToJsonMap(docJson)
 		if err != nil {
@@ -574,18 +577,13 @@ func documentParse(ctx context.Context, handler *DocumentHandler, r *http.Reques
 
 		if haveVector != vectorFieldNum {
 			if primaryKey == "" {
-				err = vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("vector field num:%d is not equal to vector num of space fields:%d and document_id is empty", haveVector, vectorFieldNum))
-				return err
+				return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("vector field num:%d is not equal to vector num of space fields:%d and document_id is empty", haveVector, vectorFieldNum))
 			}
-			arg := &vearchpb.QueryRequest{}
-			uriParams := make(map[string]string)
-			uriParams["db_name"] = args.Head.DbName
-			uriParams["space_name"] = args.Head.SpaceName
-			uriParams["_id"] = primaryKey
-			uriParamsMap := netutil.NewMockUriParams(uriParams)
-			arg.Head = setRequestHead(uriParamsMap, r)
-			arg.DocumentIds = make([]string, 1)
-			arg.DocumentIds[0] = primaryKey
+
+			arg := &vearchpb.QueryRequest{
+				Head:        setRequestHead(netutil.NewMockUriParams(map[string]string{"db_name": args.Head.DbName, "space_name": args.Head.SpaceName, "_id": primaryKey}), r),
+				DocumentIds: []string{primaryKey},
+			}
 			reply := handler.docService.query(ctx, arg)
 
 			result, err := documentQueryResponse(reply.Results, reply.Head, space)
@@ -593,23 +591,18 @@ func documentParse(ctx context.Context, handler *DocumentHandler, r *http.Reques
 				return err
 			}
 
-			err = vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("vector field num:%d is not equal to vector num of space fields:%d and document_id not exist so can't update", haveVector, vectorFieldNum))
-			if reply == nil || reply.Results == nil || len(reply.Results) != 1 {
-				return err
-			}
-
-			if result["total"] != 1 {
-				return err
+			if reply == nil || reply.Results == nil || len(reply.Results) != 1 || result["total"] != 1 {
+				return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("vector field num:%d is not equal to vector num of space fields:%d and document_id not exist so can't update", haveVector, vectorFieldNum))
 			}
 		}
-		doc := &vearchpb.Document{PKey: primaryKey, Fields: fields}
 
-		docs = append(docs, doc)
+		docs = append(docs, &vearchpb.Document{PKey: primaryKey, Fields: fields})
 	}
+
+	if len(docs) == 0 {
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("empty documents, should set at least one document"))
+	}
+
 	args.Docs = docs
-	if len(args.Docs) == 0 {
-		err = vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("empty documents, should set at least one document"))
-		return err
-	}
 	return nil
 }

@@ -123,6 +123,7 @@
     raft_truncate_count = 500000
     # when behind leader this value, will stop the server for search
     raft_diff_count = 10000
+    replica_auto_recover_time = 1800 # second
     pprof_port = 6060
     # if set true, this ps only use in db meta config
     private = false

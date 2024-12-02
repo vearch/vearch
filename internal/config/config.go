@@ -385,6 +385,7 @@ type PSCfg struct {
 	RaftSnapConcurrency    int    `toml:"raft_snap_concurrency" json:"raft-snap-concurrency"`
 	RaftTruncateCount      int64  `toml:"raft_truncate_count" json:"raft_truncate_count"`
 	RaftDiffCount          uint64 `toml:"raft_diff_count" json:"raft_diff_count"`
+	ReplicaAutoRecoverTime int64  `toml:"replica_auto_recover_time" json:"replica_auto_recover_time"`
 	PprofPort              uint16 `toml:"pprof_port" json:"pprof_port"`
 	Private                bool   `toml:"private" json:"private"`                         //this ps is private if true you must set machine by dbConfig
 	FlushTimeInterval      uint32 `toml:"flush_time_interval" json:"flush_time_interval"` // seconds
@@ -398,6 +399,9 @@ func InitConfig(path string) {
 		mu: new(sync.RWMutex),
 		Global: &GlobalCfg{
 			ResourceLimitRate: 0.85,
+		},
+		PS: &PSCfg{
+			ReplicaAutoRecoverTime: -1,
 		},
 	}
 	LoadConfig(single, path)

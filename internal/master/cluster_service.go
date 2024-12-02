@@ -328,7 +328,7 @@ func (ms *masterService) createSpaceService(ctx context.Context, dbName string, 
 		return err
 	}
 
-	//generate space id
+	// generate space id
 	spaceID, err := ms.Master().NewIDGenerate(ctx, entity.SpaceIdSequence, 1, 5*time.Second)
 	if err != nil {
 		return err
@@ -499,13 +499,15 @@ func (ms *masterService) generatePartitionsInfo(servers []*entity.Server, server
 	kvList := make([]struct {
 		index  int
 		length int
-	}, 0, len(serverPartitions))
+	}, len(serverPartitions))
 
+	i := 0
 	for k, v := range serverPartitions {
-		kvList = append(kvList, struct {
+		kvList[i] = struct {
 			index  int
 			length int
-		}{index: k, length: v})
+		}{index: k, length: v}
+		i++
 	}
 
 	sort.Slice(kvList, func(i, j int) bool {
@@ -561,9 +563,9 @@ func (ms *masterService) filterAndSortServer(ctx context.Context, space *entity.
 
 	serverIndex := make(map[entity.NodeID]int)
 
-	if psMap == nil { //means only use public
+	if psMap == nil { // If psMap is nil, only use public servers
 		for i, s := range servers {
-			// only resourceName equal can use
+			// Only use servers with the same resource name
 			if s.ResourceName != space.ResourceName {
 				continue
 			}
@@ -572,9 +574,9 @@ func (ms *masterService) filterAndSortServer(ctx context.Context, space *entity.
 				serverIndex[s.ID] = i
 			}
 		}
-	} else { // only use define
+	} else { // If psMap is not nil, only use defined servers
 		for i, s := range servers {
-			// only resourceName equal can use
+			// Only use servers with the same resource name
 			if s.ResourceName != space.ResourceName {
 				psMap[s.Ip] = false
 				continue
@@ -1415,13 +1417,13 @@ func (ms *masterService) updateSpaceService(ctx context.Context, dbName, spaceNa
 	space.Partitions = temp.Partitions
 
 	if temp.Fields != nil && len(temp.Fields) > 0 {
-		//parse old space
+		// parse old space
 		oldFieldMap, err := mapping.SchemaMap(space.Fields)
 		if err != nil {
 			return nil, err
 		}
 
-		//parse new space
+		// parse new space
 		newFieldMap, err := mapping.SchemaMap(temp.Fields)
 		if err != nil {
 			return nil, err
@@ -1437,7 +1439,7 @@ func (ms *masterService) updateSpaceService(ctx context.Context, dbName, spaceNa
 		}
 
 		if len(newFieldMap) > 0 {
-			log.Info("change schema for space: %s , change fields : %d , value is :[%s]", space.Name, len(newFieldMap), string(temp.Fields))
+			log.Info("change schema for space: %s, change fields: %d, value is: [%s]", space.Name, len(newFieldMap), string(temp.Fields))
 
 			schema, err := mapping.MergeSchema(space.Fields, temp.Fields)
 			if err != nil {
@@ -1446,7 +1448,6 @@ func (ms *masterService) updateSpaceService(ctx context.Context, dbName, spaceNa
 
 			space.Fields = schema
 		}
-
 	}
 
 	// notify all partitions
@@ -1477,7 +1478,7 @@ func (ms *masterService) updateSpaceService(ctx context.Context, dbName, spaceNa
 			return nil, err
 		}
 
-		log.Debug("update partition server is [%+v],space is [%+v], pid is [%+v]",
+		log.Debug("update partition server is [%+v], space is [%+v], pid is [%+v]",
 			server, space, p.Id)
 
 		if err := client.UpdatePartition(server.RpcAddr(), space, p.Id); err != nil {
@@ -2032,9 +2033,22 @@ func (ms *masterService) ChangeMember(ctx context.Context, cm *entity.ChangeMemb
 		spacePartition.Replicas = tempIDs
 	}
 
+	retryTimes := 10
 	masterNode, err := ms.Master().QueryServer(ctx, partition.LeaderID)
-	if err != nil {
-		return err
+	for err != nil {
+		partition, err = ms.Master().QueryPartition(ctx, cm.PartitionID)
+		if err != nil {
+			log.Error(err)
+			return err
+		}
+		masterNode, err = ms.Master().QueryServer(ctx, partition.LeaderID)
+		if err != nil {
+			retryTimes--
+			if retryTimes == 0 {
+				return err
+			}
+			time.Sleep(10 * time.Second)
+		}
 	}
 	log.Info("masterNode is [%+v], cm is [%+v] ", masterNode, cm)
 
@@ -2098,10 +2112,10 @@ func (ms *masterService) ChangeMembers(ctx context.Context, cms *entity.ChangeMe
 func (ms *masterService) RecoverFailServer(ctx context.Context, rs *entity.RecoverFailServer) (e error) {
 	// panic process
 	defer errutil.CatchError(&e)
-	// get failserver info
+	// get fail server info
 	targetFailServer := ms.Master().QueryServerByIPAddr(ctx, rs.FailNodeAddr)
 	log.Debug("targetFailServer is %s", targetFailServer)
-	// get newserver info
+	// get new server info
 	newServer := ms.Master().QueryServerByIPAddr(ctx, rs.NewNodeAddr)
 	log.Debug("newServer is %s", newServer)
 	if newServer.ID <= 0 || targetFailServer.ID <= 0 {

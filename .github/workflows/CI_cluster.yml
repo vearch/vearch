@@ -182,7 +182,7 @@ jobs:
         fi
         docker-compose -f cloud/docker-compose.yml up ps4 -d
         docker-compose -f cloud/docker-compose.yml restart router1
-        sleep 60
+        sleep 120
         status=$(curl -u root:secret http://127.0.0.1:8817/cluster/health | jq -r '.data[0].spaces[0].status')
         if [ "$status" != "green" ]; then
           echo "Error: Status is not green. Status is $status."
@@ -196,6 +196,32 @@ jobs:
         docker-compose -f cloud/docker-compose.yml restart ps1
         sleep 90 && docker ps
 
+    - name: Run tests for auto recover replica
+      run: |
+        cd test
+        pytest test_cluster_ps.py -x -k "TestFailServerPrepare" --log-cli-level=INFO
+        cd .. && docker-compose -f cloud/docker-compose.yml up ps4 -d
+        sleep 10
+        docker-compose -f cloud/docker-compose.yml stop ps1
+        sleep 240
+        docker-compose -f cloud/docker-compose.yml start ps1
+        sleep 60
+        status=$(curl -s -L -u root:secret http://127.0.0.1:8817/servers 2>/dev/null | jq -r '.data.servers[] | select(.server.ip == "172.16.238.16") | .partitions | length == 0')
+        if [ "$status" != "true" ]; then
+          echo "Error: ps1 partitions num should be 0."
+          exit 1
+        fi
+        status=$(curl -u root:secret http://127.0.0.1:8817/cluster/health | jq -r '.data[0].spaces[0].status')
+        if [ "$status" != "green" ]; then
+          echo "Error: Status is not green. Status is $status."
+          exit 1
+        else
+          echo "Status is green."
+        fi
+        cd test && pytest test_cluster_ps.py -x -k "TestClusterPartitionServerDestroy" --log-cli-level=INFO
+        cd .. && docker-compose -f cloud/docker-compose.yml down ps4
+        sleep 60 && docker ps
+  
     - name: Run tests for master replace member
       run: |
         cd test

@@ -255,7 +255,7 @@ func (m *masterClient) QueryFailServerByNodeID(ctx context.Context, nodeID uint6
 	}
 	fs := &entity.FailServer{}
 	if err := vjson.Unmarshal(bytesArr, fs); err != nil {
-		log.Error("unmarshl FailServer err: %s,nodeId is %d", err.Error(), nodeID)
+		log.Error("unmarshal FailServer err: %s, nodeId is %d", err.Error(), nodeID)
 		return nil
 	}
 	return fs
@@ -274,7 +274,7 @@ func (m *masterClient) QueryServerByIPAddr(ctx context.Context, IPAddr string) *
 		}
 	}
 
-	//get all server
+	// get all server
 	servers, err := m.QueryServers(ctx)
 	for _, server := range servers {
 		if server.Ip == IPAddr {
@@ -312,8 +312,15 @@ func (m *masterClient) QueryFailServerByKey(ctx context.Context, prefix string) 
 }
 
 // put fail server info into etcd
-func (m *masterClient) PutFailServerByKey(ctx context.Context, key string, value []byte) error {
-	err := m.Put(ctx, key, value)
+func (m *masterClient) PutFailServerByID(ctx context.Context, ID uint64, server *entity.Server) error {
+	failServer := &entity.FailServer{ID: ID, TimeStamp: time.Now().Unix()}
+	failServer.Node = server
+	value, err := json.Marshal(failServer)
+	if err != nil {
+		return err
+	}
+	key := entity.FailServerKey(server.ID)
+	err = m.Put(ctx, key, value)
 	return err
 }
 
@@ -622,7 +629,7 @@ func (m *masterClient) HTTPRequest(ctx context.Context, method string, url strin
 		}
 		e = err
 
-		log.Debug("remove server err: %v", err)
+		log.Error("remote server err: %v", err)
 		masterServer.next()
 	}
 	return response, e
