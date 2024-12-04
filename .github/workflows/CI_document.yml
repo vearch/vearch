@@ -10,15 +10,16 @@ on:
 jobs:
   document-tasks:
     strategy:
+      fail-fast: false
       matrix:
         # avoid pytest -k mix with IVFFLAT, so flat as BFFLAT
         index-type: ["BFFLAT", "IVFFLAT", "IVFPQ", "HNSW"]
-        platform: [amd64, arm64]
+        platform: [linux/amd64, linux/arm64]
         include:
-          - platform: amd64
+          - platform: linux/amd64
             runs-on: ubuntu-latest
             docker-arch: ""
-          - platform: arm64
+          - platform: linux/arm64
             runs-on: ubuntu-latest
             docker-arch: "--platform linux/arm64"
 

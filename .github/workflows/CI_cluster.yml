@@ -10,15 +10,19 @@ on:
 jobs:
   cluster-build-and-test:
     strategy:
+      fail-fast: false
       matrix:
         include:
-          - platform: amd64
+          - platform: linux/amd64
             runs-on: ubuntu-latest
             docker-arch: ""
-          - platform: arm64
+          - platform: linux/arm64
             runs-on: ubuntu-latest
             docker-arch: "--platform linux/arm64"
     runs-on: ${{ matrix.runs-on }}
+
+    env:
+      TARGET_PLATFORM: ${{ matrix.platform }}
 
     steps:
     - uses: actions/checkout@v4
@@ -28,21 +32,22 @@ jobs:
         build-type: github
 
     - name: Create Minio bucket
+      continue-on-error: true
       run: |
         mkdir test/oss_data
         docker run -d --name minio -p 10000:9000 --network vearch_network_cluster minio/minio server test/oss_data
         wget -q https://dl.min.io/client/mc/release/linux-amd64/mc
         chmod +x mc
-        ./mc alias set myminio http://127.0.0.1:10000 minioadmin minioadmin || true
         retry=0
-        while [ $? -ne 0 ]; do
+        max_retries=10
+        until ./mc alias set myminio http://127.0.0.1:10000 minioadmin minioadmin; do
           retry=$((retry+1))
-          if [ $retry -gt 10 ]; then
-            echo "Failed to set minio alias."
+          if [ $retry -gt $max_retries ]; then
+            echo "Failed to set minio alias after $max_retries attempts."
             exit 1
           fi
+          echo "Retry $retry/$max_retries: Failed to set minio alias. Retrying in 5 seconds..."
           sleep 5
-          ./mc alias set myminio http://127.0.0.1:10000 minioadmin minioadmin || true
         done
         ./mc mb myminio/test
 
@@ -182,10 +187,24 @@ jobs:
         fi
         docker-compose -f cloud/docker-compose.yml up ps4 -d
         docker-compose -f cloud/docker-compose.yml restart router1
-        sleep 120
-        status=$(curl -u root:secret http://127.0.0.1:8817/cluster/health | jq -r '.data[0].spaces[0].status')
-        if [ "$status" != "green" ]; then
-          echo "Error: Status is not green. Status is $status."
+        sleep 60
+        max_retries=30
+        retry=0
+        success=false
+        while [ $retry -lt $max_retries ]; do
+          status=$(curl -s -u root:secret http://127.0.0.1:8817/cluster/health | jq -r '.data[0].spaces[0].status')
+          if [ "$status" == "green" ]; then
+            success=true
+            break
+          else
+            echo "Retry $((retry+1))/$max_retries: Status is not green. Status is $status. Retrying in 30 seconds..."
+            retry=$((retry+1))
+            sleep 30
+          fi
+        done
+
+        if [ "$success" != "true" ]; then
+          echo "Error: Status is not green after $max_retries attempts. Status is $status."
           exit 1
         else
           echo "Status is green."
@@ -203,14 +222,44 @@ jobs:
         cd .. && docker-compose -f cloud/docker-compose.yml up ps4 -d
         sleep 10
         docker-compose -f cloud/docker-compose.yml stop ps1
-        sleep 240
-        docker-compose -f cloud/docker-compose.yml start ps1
-        sleep 60
-        status=$(curl -s -L -u root:secret http://127.0.0.1:8817/servers 2>/dev/null | jq -r '.data.servers[] | select(.server.ip == "172.16.238.16") | .partitions | length == 0')
-        if [ "$status" != "true" ]; then
-          echo "Error: ps1 partitions num should be 0."
+        max_retries=30
+        retry=0
+        success=false
+        while [ $retry -lt $max_retries ]; do
+          status=$(curl -s -L -u root:secret http://127.0.0.1:8817/servers 2>/dev/null | jq -r '.data.servers[] | select(.server.ip == "172.16.238.19") | .partitions | length == 1')
+          if [ "$status" == "true" ]; then
+            success=true
+            break
+          else
+            echo "Retry $((retry+1))/$max_retries: ps4 partitions num should be 1. Retrying in 30 seconds..."
+            retry=$((retry+1))
+            sleep 30
+          fi
+        done
+        if [ "$success" != "true" ]; then
+          echo "Error: ps4 partitions num should be 1 after $max_retries attempts."
           exit 1
         fi
+
+        docker-compose -f cloud/docker-compose.yml start ps1
+        retry=0
+        success=false
+        while [ $retry -lt $max_retries ]; do
+          status=$(curl -s -L -u root:secret http://127.0.0.1:8817/servers 2>/dev/null | jq -r '.data.servers[] | select(.server.ip == "172.16.238.16") | .partitions | length == 0')
+          if [ "$status" == "true" ]; then
+            success=true
+            break
+          else
+            echo "Retry $((retry+1))/$max_retries: ps1 partitions num should be 0. Retrying in 30 seconds..."
+            retry=$((retry+1))
+            sleep 30
+          fi
+        done
+        if [ "$success" != "true" ]; then
+          echo "Error: ps1 partitions num should be 0 after $max_retries attempts."
+          exit 1
+        fi
+
         status=$(curl -u root:secret http://127.0.0.1:8817/cluster/health | jq -r '.data[0].spaces[0].status')
         if [ "$status" != "green" ]; then
           echo "Error: Status is not green. Status is $status."

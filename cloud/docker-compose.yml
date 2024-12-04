@@ -10,6 +10,7 @@ services:
   standalone:
     container_name: vearch-standalone
     image: vearch/vearch:latest
+    platform: ${TARGET_PLATFORM}
     privileged: true
     networks:
       - vearch_network_cluster
@@ -25,6 +26,7 @@ services:
   master1:
     container_name: vearch-master1
     image: vearch/vearch:latest
+    platform: ${TARGET_PLATFORM}
     privileged: true
     networks:
       vearch_network_cluster:
@@ -51,6 +53,7 @@ services:
   master2:
     container_name: vearch-master2
     image: vearch/vearch:latest
+    platform: ${TARGET_PLATFORM}
     privileged: true
     networks:
       vearch_network_cluster:
@@ -75,6 +78,7 @@ services:
   master3:
     container_name: vearch-master3
     image: vearch/vearch:latest
+    platform: ${TARGET_PLATFORM}
     privileged: true
     networks:
       vearch_network_cluster:
@@ -99,6 +103,7 @@ services:
   master4:
     container_name: vearch-master4
     image: vearch/vearch:latest
+    platform: ${TARGET_PLATFORM}
     privileged: true
     networks:
       vearch_network_cluster:
@@ -112,6 +117,7 @@ services:
   router1:
     container_name: vearch-router1
     image: vearch/vearch:latest
+    platform: ${TARGET_PLATFORM}
     privileged: true
     networks:
       vearch_network_cluster:
@@ -145,6 +151,7 @@ services:
   router2:
     container_name: vearch-router2
     image: vearch/vearch:latest
+    platform: ${TARGET_PLATFORM}
     privileged: true
     networks:
       vearch_network_cluster:
@@ -176,6 +183,7 @@ services:
   ps1:
     container_name: vearch-ps1
     image: vearch/vearch:latest
+    platform: ${TARGET_PLATFORM}
     networks:
       vearch_network_cluster:
         ipv4_address: 172.16.238.16
@@ -193,6 +201,7 @@ services:
   ps2:
     container_name: vearch-ps2
     image: vearch/vearch:latest
+    platform: ${TARGET_PLATFORM}
     networks:
       vearch_network_cluster:
         ipv4_address: 172.16.238.17
@@ -210,6 +219,7 @@ services:
   ps3:
     container_name: vearch-ps3
     image: vearch/vearch:latest
+    platform: ${TARGET_PLATFORM}
     networks:
       vearch_network_cluster:
         ipv4_address: 172.16.238.18
@@ -227,6 +237,7 @@ services:
   ps4:
     container_name: vearch-ps4
     image: vearch/vearch:latest
+    platform: ${TARGET_PLATFORM}
     networks:
       vearch_network_cluster:
         ipv4_address: 172.16.238.19
