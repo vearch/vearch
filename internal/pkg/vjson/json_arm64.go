@@ -18,6 +18,8 @@ package vjson
 
 import (
 	"encoding/json"
+
+	"github.com/bytedance/sonic"
 )
 
 // Marshal marshal v into valid JSON
@@ -26,7 +28,7 @@ func Marshal(v interface{}) ([]byte, error) {
 		return m.MarshalJSON()
 	}
 
-	return json.Marshal(v)
+	return sonic.Marshal(v)
 }
 
 // Unmarshal unmarshal a JSON data to v
@@ -35,5 +37,5 @@ func Unmarshal(data []byte, v interface{}) error {
 		return m.UnmarshalJSON(data)
 	}
 
-	return json.Unmarshal(data, v)
+	return sonic.Unmarshal(data, v)
 }

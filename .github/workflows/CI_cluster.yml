@@ -104,6 +104,8 @@ jobs:
         cd ../test
         pytest test_cluster_master.py -x -k "TestClusterMasterOperate" --log-cli-level=INFO
         pytest test_vearch.py -x -k "test_vearch_basic_usage" --log-cli-level=INFO
+        curl -s -L -u root:secret http://127.0.0.1:8817/servers | jq
+        curl -s -L -u root:secret http://127.0.0.1:8817/cluster/health?detail=true | jq
 
     - name: Run tests for restart ps
       run: |
@@ -118,6 +120,8 @@ jobs:
         pytest test_cluster_ps.py -x -k "TestClusterPartitionServerCheckSpace" --log-cli-level=INFO
         pytest test_cluster_ps.py -x -k "TestClusterPartitionServerDestroy" --log-cli-level=INFO
         pytest test_cluster_ps.py -k "TestClusterPartitionChange" --log-cli-level=INFO
+        curl -s -L -u root:secret http://127.0.0.1:8817/servers | jq
+        curl -s -L -u root:secret http://127.0.0.1:8817/cluster/health?detail=true | jq
 
     - name: Run tests for faulty ps
       run: |
@@ -141,6 +145,8 @@ jobs:
         sleep 60
         cd ../test
         pytest test_cluster_ps.py -x -k "TestClusterPartitionServerDestroy" --log-cli-level=INFO
+        curl -s -L -u root:secret http://127.0.0.1:8817/servers | jq
+        curl -s -L -u root:secret http://127.0.0.1:8817/cluster/health?detail=true | jq
 
     - name: Run tests for incomplete shared
       run: |
@@ -161,6 +167,8 @@ jobs:
         sleep 60
         cd ../test
         pytest test_cluster_ps.py -x -k "TestClusterPartitionServerDestroy" --log-cli-level=INFO
+        curl -s -L -u root:secret http://127.0.0.1:8817/servers | jq
+        curl -s -L -u root:secret http://127.0.0.1:8817/cluster/health?detail=true | jq
 
     - name: Run tests for fail server
       run: |
@@ -209,29 +217,33 @@ jobs:
         else
           echo "Status is green."
         fi
-        cd test && pytest test_cluster_ps.py -x -k "TestClusterPartitionServerDestroy" --log-cli-level=INFO
-        cd .. && docker-compose -f cloud/docker-compose.yml down ps4
-        sleep 30
         docker-compose -f cloud/docker-compose.yml restart ps1
-        sleep 90 && docker ps
+        sleep 60
+        cd test && pytest test_cluster_ps.py -x -k "TestClusterPartitionServerDestroy" --log-cli-level=INFO
+        cd .. && docker-compose -f cloud/docker-compose.yml stop ps4
+        sleep 30 && docker ps
+        curl -s -L -u root:secret http://127.0.0.1:8817/servers | jq
+        curl -s -L -u root:secret http://127.0.0.1:8817/cluster/health?detail=true | jq
 
     - name: Run tests for auto recover replica
       run: |
         cd test
         pytest test_cluster_ps.py -x -k "TestFailServerPrepare" --log-cli-level=INFO
-        cd .. && docker-compose -f cloud/docker-compose.yml up ps4 -d
-        sleep 10
+        cd .. && docker-compose -f cloud/docker-compose.yml start ps4
         docker-compose -f cloud/docker-compose.yml stop ps1
         max_retries=30
         retry=0
         success=false
         while [ $retry -lt $max_retries ]; do
-          status=$(curl -s -L -u root:secret http://127.0.0.1:8817/servers 2>/dev/null | jq -r '.data.servers[] | select(.server.ip == "172.16.238.19") | .partitions | length == 1')
+          servers=$(curl -s -L -u root:secret http://127.0.0.1:8817/servers)
+          status=$(echo $servers | jq -r '.data.servers[] | select(.server.ip == "172.16.238.19") | .partitions | length == 1')
           if [ "$status" == "true" ]; then
             success=true
+            echo $servers | jq
             break
           else
             echo "Retry $((retry+1))/$max_retries: ps4 partitions num should be 1. Retrying in 30 seconds..."
+            echo $servers
             retry=$((retry+1))
             sleep 30
           fi
@@ -245,12 +257,15 @@ jobs:
         retry=0
         success=false
         while [ $retry -lt $max_retries ]; do
-          status=$(curl -s -L -u root:secret http://127.0.0.1:8817/servers 2>/dev/null | jq -r '.data.servers[] | select(.server.ip == "172.16.238.16") | .partitions | length == 0')
+          servers=$(curl -s -L -u root:secret http://127.0.0.1:8817/servers)
+          status=$(echo $servers | jq -r '.data.servers[] | select(.server.ip == "172.16.238.16") | .partitions | length == 0')
           if [ "$status" == "true" ]; then
             success=true
+            echo $servers | jq
             break
           else
             echo "Retry $((retry+1))/$max_retries: ps1 partitions num should be 0. Retrying in 30 seconds..."
+            echo $servers
             retry=$((retry+1))
             sleep 30
           fi
@@ -268,8 +283,10 @@ jobs:
           echo "Status is green."
         fi
         cd test && pytest test_cluster_ps.py -x -k "TestClusterPartitionServerDestroy" --log-cli-level=INFO
-        cd .. && docker-compose -f cloud/docker-compose.yml down ps4
+        cd .. && docker-compose -f cloud/docker-compose.yml stop ps4
         sleep 60 && docker ps
+        curl -s -L -u root:secret http://127.0.0.1:8817/servers | jq
+        curl -s -L -u root:secret http://127.0.0.1:8817/cluster/health?detail=true | jq
   
     - name: Run tests for master replace member
       run: |

@@ -1013,6 +1013,11 @@ func (wj *watcherJob) start() {
 				}
 			}()
 
+			recoverTime := int64(1800)
+			if config.Conf().PS.ReplicaAutoRecoverTime > 0 {
+				recoverTime = config.Conf().PS.ReplicaAutoRecoverTime
+			}
+
 			wj.wg.Add(1)
 			go func() {
 				defer func() {
@@ -1038,16 +1043,17 @@ func (wj *watcherJob) start() {
 					time.Sleep(60 * time.Second)
 					mutex := wj.masterClient.Client().Master().NewLock(wj.ctx, entity.ClusterWatchServerKeyScan, time.Second*188)
 					if getLock, err := mutex.TryLock(); getLock && err == nil {
-						defer func() {
+						unlock := func() {
 							if err := mutex.Unlock(); err != nil {
 								log.Error("failed to unlock space, the Error is:%v ", err)
 							}
-						}()
+						}
 
 						fs, err := wj.masterClient.QueryAllFailServer(wj.ctx)
 						if err != nil {
 							log.Error("query all fail server err: %v", err)
 							time.Sleep(1 * time.Second)
+							unlock()
 							continue
 						}
 
@@ -1056,10 +1062,7 @@ func (wj *watcherJob) start() {
 								continue
 							}
 
-							recoverTime := int64(1800)
-							if config.Conf().PS.ReplicaAutoRecoverTime > 0 {
-								recoverTime = config.Conf().PS.ReplicaAutoRecoverTime
-							}
+							recoveredPid := make([]entity.PartitionID, 0)
 							if time.Now().Unix()-failServer.TimeStamp > recoverTime {
 								log.Debug("failServer %v is dead, try to recover replicas", *failServer)
 
@@ -1174,8 +1177,13 @@ func (wj *watcherJob) start() {
 										continue
 									}
 
-									failServer.Node.PartitionIds = removePartitionID(failServer.Node.PartitionIds, failPid)
+									recoveredPid = append(recoveredPid, failPid)
 								}
+
+								for _, pid := range recoveredPid {
+									failServer.Node.PartitionIds = removePartitionID(failServer.Node.PartitionIds, pid)
+								}
+
 								err = wj.masterClient.DeleteFailServerByNodeID(wj.ctx, failServer.ID)
 								if err != nil {
 									log.Error("remove failServer %v err: %v", *failServer, err)
@@ -1188,6 +1196,7 @@ func (wj *watcherJob) start() {
 								}
 							}
 						}
+						unlock()
 					}
 				}
 			}()

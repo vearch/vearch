@@ -34,7 +34,7 @@ jobs:
     - name: Run test task for ${{ matrix.index-type }} with ${{ matrix.platform }}
       run: |
         cd test
-        if [[ "${{ matrix.index-type }}" == "ivfpq" && "${{ matrix.platform }}" == "arm64" ]]; then
+        if [[ "${{ matrix.index-type }}" == "ivfpq" && "${{ matrix.platform }}" == "linux/arm64" ]]; then
           pytest test_vector_index_${{ matrix.index-type }}.py -k "test_vearch_index_ivfpq_without_nsubvector or test_vearch_index_ivfpq_ip" -x --log-cli-level=INFO
         else
           pytest test_vector_index_${{ matrix.index-type }}.py -x --log-cli-level=INFO
