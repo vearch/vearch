@@ -50,6 +50,7 @@ var (
 	MinNcentroids               = 1
 	MaxNcentroids               = 262144
 	DefaultTrainingThreshold    = 0
+	MinTrainingThreshold        = 256
 	DefaultMaxPointsPerCentroid = 256
 	DefaultMinPointsPerCentroid = 39
 )
@@ -270,6 +271,13 @@ func (index *Index) UnmarshalJSON(bs []byte) error {
 			if indexParams.TrainingThreshold != 0 {
 				if indexParams.TrainingThreshold < indexParams.Ncentroids {
 					return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf(tempIndex.Type+" training_threshold:[%d] should more than ncentroids:[%d]", indexParams.TrainingThreshold, indexParams.Ncentroids))
+				}
+				if indexParams.TrainingThreshold < MinTrainingThreshold {
+					return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf(tempIndex.Type+" training_threshold:[%d] should more than [%d]", indexParams.TrainingThreshold, MinTrainingThreshold))
+				}
+			} else {
+				if indexParams.Ncentroids != 0 && indexParams.Ncentroids*DefaultMinPointsPerCentroid < MinTrainingThreshold {
+					return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf(tempIndex.Type+" training_threshold:[%d] should more than [%d]", indexParams.TrainingThreshold, MinTrainingThreshold))
 				}
 			}
 			if indexParams.Nprobe != 0 && indexParams.Nprobe > indexParams.Ncentroids {

@@ -183,9 +183,7 @@ class TestSpaceCreate:
         }
         data["vectors"].append(vector_info)
         json_str = json.dumps(data)
-        response = requests.post(
-            search_url, auth=(username, password), data=json_str
-        )
+        response = requests.post(search_url, auth=(username, password), data=json_str)
         logger.info(response.json())
         assert len(response.json()["data"]["documents"]) == 1
         assert len(response.json()["data"]["documents"][0]) == total
@@ -215,6 +213,8 @@ class TestSpaceCreate:
             [16, "unsupported field type", "IVFPQ"],
             [17, "unsupported index type", "unsupported"],
             [18, "empty index type", ""],
+            [19, "less than min_training_threshold", "IVFPQ"],
+            [20, "less than min_training_threshold", "IVFFLAT"],
         ],
     )
     def test_vearch_space_create_badcase(self, wrong_index, wrong_type, index_type):
@@ -250,6 +250,10 @@ class TestSpaceCreate:
         nprobe = 80
         if wrong_index == 13:
             nprobe = 99999
+        if wrong_index == 19 or wrong_index == 20:
+            ncentroids = 10
+            training_threshold = 100
+            nprobe = 1
         space_config = {
             "name": create_space_name,
             "partition_num": 1,
@@ -372,9 +376,7 @@ class TestSpaceCreate:
             describe_db_name = "wrong_db"
         if wrong_index == 1:
             describe_space_name = "wrong_space"
-        response = describe_space(
-            router_url, describe_db_name, describe_space_name
-        )
+        response = describe_space(router_url, describe_db_name, describe_space_name)
         logger.info(response.json())
         assert response.json()["code"] != 0
 
