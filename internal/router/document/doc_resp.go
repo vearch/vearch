@@ -50,6 +50,10 @@ func documentUpsertResponse(reply *vearchpb.BulkResponse) (map[string]interface{
 
 	var total int64
 	for _, item := range reply.Items {
+		if item == nil {
+			log.Warn("item is nil, maybe duplicate id")
+			continue
+		}
 		if item.Err == nil || (item.Err.Msg == "success" && item.Err.Code == vearchpb.ErrorEnum_SUCCESS) {
 			total++
 		}

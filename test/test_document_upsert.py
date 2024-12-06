@@ -276,3 +276,82 @@ class TestDocumentUpsertBadCase:
     # destroy for badcase
     def test_destroy_cluster_badcase(self):
         destroy(router_url, db_name, space_name)
+
+
+class TestDocumentUpsertDuplicate:
+    def setup_class(self):
+        self.xb = xb
+
+    # prepare for badcase
+    def test_prepare_cluster_duplicate(self):
+        embedding_size = xb.shape[1]
+
+        properties = {}
+        properties["fields"] = [
+            {"name": "field_int", "type": "integer"},
+            {"name": "field_long", "type": "long"},
+            {"name": "field_float", "type": "float"},
+            {"name": "field_double", "type": "double"},
+            {
+                "name": "field_string",
+                "type": "string",
+                "index": {"name": "field_string", "type": "SCALAR"},
+            },
+            {"name": "field_string1", "type": "string"},
+            {
+                "name": "field_vector",
+                "type": "vector",
+                "index": {
+                    "name": "gamma",
+                    "type": "FLAT",
+                    "params": {
+                        "metric_type": "L2",
+                    },
+                },
+                "dimension": embedding_size,
+                "store_type": "MemoryOnly",
+                # "format": "normalization"
+            },
+        ]
+
+        create_for_document_test(router_url, embedding_size, properties)
+
+    def test_vearch_document_upsert_duplicate(self):
+        batch_size = 1
+        total = 1
+        url = router_url + "/document/upsert"
+        data = {}
+        data["db_name"] = db_name
+        data["space_name"] = space_name
+        data["documents"] = []
+
+        for j in range(2):
+            param_dict = {}
+            param_dict["_id"] = "00001"
+            param_dict["field_int"] = j
+            param_dict["field_vector"] = xb[j].tolist()
+            param_dict["field_long"] = param_dict["field_int"]
+            param_dict["field_float"] = float(param_dict["field_int"])
+            param_dict["field_double"] = float(param_dict["field_int"])
+            param_dict["field_string"] = str(param_dict["field_int"])
+            data["documents"].append(param_dict)
+
+        for j in range(2, 3):
+            param_dict = {}
+            param_dict["_id"] = "0000" + str(j)
+            param_dict["field_int"] = j
+            param_dict["field_vector"] = xb[j].tolist()
+            param_dict["field_long"] = param_dict["field_int"]
+            param_dict["field_float"] = float(param_dict["field_int"])
+            param_dict["field_double"] = float(param_dict["field_int"])
+            param_dict["field_string"] = str(param_dict["field_int"])
+            data["documents"].append(param_dict)
+
+        rs = requests.post(url, auth=(username, password), json=data)
+        logger.info(rs.json())
+        assert rs.json()["code"] == 0
+        assert get_space_num() == 2
+
+    # destroy for badcase
+    def test_destroy_cluster_duplicate(self):
+        destroy(router_url, db_name, space_name)
