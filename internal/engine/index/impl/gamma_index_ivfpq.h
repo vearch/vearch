@@ -595,8 +595,9 @@ struct GammaIVFPQScanner : IVFPQScannerT<idx_t, METRIC_TYPE, PQDecoder>,
         dis += tab[decoder.decode()];
         tab += this->pq.ksub;
       }
-
-      res.add(j, dis);
+      if (retrieval_context_->IsSimilarScoreValid(dis)) {
+        res.add(j, dis);
+      }
     }
   }
 
