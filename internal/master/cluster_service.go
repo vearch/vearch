@@ -392,7 +392,7 @@ func (ms *masterService) createSpaceService(ctx context.Context, dbName string, 
 	}
 
 	if int(space.ReplicaNum) > len(serverPartitions) {
-		return fmt.Errorf("not enough PS, need replica %d but only has %d",
+		return fmt.Errorf("not enough partition servers, need %d replicas but only have %d",
 			int(space.ReplicaNum), len(serverPartitions))
 	}
 
@@ -418,10 +418,10 @@ func (ms *masterService) createSpaceService(ctx context.Context, dbName string, 
 		return err
 	}
 
-	// peek servers for space
+	// pick servers for space
 	var pAddrs [][]string
 	for i := 0; i < len(space.Partitions); i++ {
-		if addrs, err := ms.generatePartitionsInfo(servers, serverPartitions, space.ReplicaNum, space.Partitions[i]); err != nil {
+		if addrs, err := ms.selectServersForPartition(servers, serverPartitions, space.ReplicaNum, space.Partitions[i]); err != nil {
 			return err
 		} else {
 			pAddrs = append(pAddrs, addrs)
@@ -490,8 +490,22 @@ func (ms *masterService) createSpaceService(ctx context.Context, dbName string, 
 	return nil
 }
 
-// create partitions for creating space
-func (ms *masterService) generatePartitionsInfo(servers []*entity.Server, serverPartitions map[int]int, replicaNum uint8, partition *entity.Partition) ([]string, error) {
+
+// selectServersForPartition selects servers for a partition based on the given criteria.
+// It ensures that the servers with the fewest replicas are chosen and applies anti-affinity by zone if configured.
+//
+// Parameters:
+// - servers: A slice of pointers to Server entities representing available servers.
+// - serverPartitions: A map where the key is the server index and the value is the number of partitions on that server.
+// - replicaNum: The number of replicas needed for the partition.
+// - partition: A pointer to the Partition entity that needs to be assigned servers.
+//
+// Returns:
+// - A slice of strings containing the addresses of the selected servers.
+// - An error if the required number of servers could not be selected.
+//
+// The function considers the anti-affinity strategy configured in the master service to avoid placing replicas in the same zone.
+func (ms *masterService) selectServersForPartition(servers []*entity.Server, serverPartitions map[int]int, replicaNum uint8, partition *entity.Partition) ([]string, error) {
 	address := make([]string, 0, replicaNum)
 	originReplicaNum := replicaNum
 	partition.Replicas = make([]entity.NodeID, 0, replicaNum)
@@ -514,16 +528,39 @@ func (ms *masterService) generatePartitionsInfo(servers []*entity.Server, server
 		return kvList[i].length < kvList[j].length
 	})
 
-	// find the servers with the fewest replicas
+	zoneCount := make(map[string]int)
+
+	antiAffinity := ms.Master().Client().Master().Config().PS.ReplicaAntiAffinityStrategy
+	// find the servers with the fewest replicas and apply anti-affinity by zone
 	for _, kv := range kvList {
 		addr := servers[kv.index].RpcAddr()
 		ID := servers[kv.index].ID
+		var zone string
+
+		switch antiAffinity {
+		case 1:
+			zone = servers[kv.index].HostIp
+		case 2:
+			zone = servers[kv.index].HostRack
+		case 3:
+			zone = servers[kv.index].HostZone
+		default:
+			zone = ""
+		}
 
 		if !client.IsLive(addr) {
 			serverPartitions[kv.index] = kv.length
 			continue
 		}
-		serverPartitions[kv.index] = serverPartitions[kv.index] + 1
+
+		if zone != "" && zoneCount[zone] > 0 {
+			continue
+		}
+
+		serverPartitions[kv.index]++
+		if zone != "" {
+			zoneCount[zone]++
+		}
 		address = append(address, addr)
 		partition.Replicas = append(partition.Replicas, ID)
 
@@ -534,7 +571,7 @@ func (ms *masterService) generatePartitionsInfo(servers []*entity.Server, server
 	}
 
 	if replicaNum > 0 {
-		return nil, vearchpb.NewError(vearchpb.ErrorEnum_MASTER_PS_NOT_ENOUGH_SELECT, fmt.Errorf("need %d partition server but only get %d", originReplicaNum, len(address)))
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_MASTER_PS_NOT_ENOUGH_SELECT, fmt.Errorf("need %d partition servers but only got %d", originReplicaNum, len(address)))
 	}
 
 	return address, nil
@@ -1742,10 +1779,10 @@ func (ms *masterService) updateSpaceResourceService(ctx context.Context, spaceRe
 			int(space.ReplicaNum), len(serverPartitions))
 	}
 
-	//peak servers for space
+	// pick servers for space
 	var paddrs [][]string
 	for i := 0; i < len(partitions); i++ {
-		if addrs, err := ms.generatePartitionsInfo(servers, serverPartitions, space.ReplicaNum, partitions[i]); err != nil {
+		if addrs, err := ms.selectServersForPartition(servers, serverPartitions, space.ReplicaNum, partitions[i]); err != nil {
 			return nil, err
 		} else {
 			paddrs = append(paddrs, addrs)
@@ -1917,10 +1954,10 @@ func (ms *masterService) updateSpacePartitonRuleService(ctx context.Context, spa
 		}
 		log.Debug("updateSpacePartitionrule partition rule %v, add rule %v", space.PartitionRule, spaceResource.PartitionRule)
 
-		//peak servers for space
+		// pick servers for space
 		var paddrs [][]string
 		for i := 0; i < len(partitions); i++ {
-			if addrs, err := ms.generatePartitionsInfo(servers, serverPartitions, space.ReplicaNum, partitions[i]); err != nil {
+			if addrs, err := ms.selectServersForPartition(servers, serverPartitions, space.ReplicaNum, partitions[i]); err != nil {
 				return nil, err
 			} else {
 				paddrs = append(paddrs, addrs)
@@ -2014,7 +2051,7 @@ func (ms *masterService) ChangeMember(ctx context.Context, cm *entity.ChangeMemb
 
 	spacePartition := space.GetPartition(cm.PartitionID)
 
-	if cm.Method != 1 {
+	if cm.Method != proto.ConfRemoveNode {
 		for _, nodeID := range spacePartition.Replicas {
 			if nodeID == cm.NodeID {
 				log.Error("partition:[%d] already on server:[%d] in replicas:[%v], space:%v", cm.PartitionID, cm.NodeID, spacePartition.Replicas, space)
@@ -2175,6 +2212,16 @@ func (ms *masterService) DBServers(ctx context.Context, dbName string) (servers 
 	return servers, nil
 }
 
+// Check if partition.Id is in s.PartitionIds
+func isPartitionIdInSlice[T comparable](partitionId T, partitionIds []T) (bool, int) {
+	for i, v := range partitionIds {
+		if v == partitionId {
+			return true, i
+		}
+	}
+	return false, -1
+}
+
 // change replicas, add or delete
 func (ms *masterService) ChangeReplica(ctx context.Context, dbModify *entity.DBModify) (e error) {
 	// panic process
@@ -2188,32 +2235,32 @@ func (ms *masterService) ChangeReplica(ctx context.Context, dbModify *entity.DBM
 	space, err := ms.Master().QuerySpaceByName(ctx, dbID, dbModify.SpaceName)
 	errutil.ThrowError(err)
 	if dbModify.Method == proto.ConfAddNode && (int(space.ReplicaNum)+1) > len(servers) {
-		err := vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("ReplicaNum [%d] is exceed server size [%d]",
+		err := vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("ReplicaNum [%d] exceeds server size [%d]",
 			int(space.ReplicaNum)+1, len(servers)))
 		return err
 	}
 	// change space replicas of partition, add or delete one
 	changeServer := make([]*entity.ChangeMember, 0)
 	for _, partition := range space.Partitions {
-		// sort servers，low to high
+		// sort servers, low to high
 		sort.Slice(servers, func(i, j int) bool {
 			return len(servers[i].PartitionIds) < len(servers[j].PartitionIds)
 		})
 		// change server
 		for _, s := range servers {
 			if dbModify.Method == proto.ConfAddNode {
-				exist, _ := number.IsExistSlice(s.ID, partition.Replicas)
+				exist, _ := isPartitionIdInSlice(s.ID, partition.Replicas)
 				if !exist {
-					// server don't contain this partition, then create it
+					// server doesn't contain this partition, then create it
 					cm := &entity.ChangeMember{PartitionID: partition.Id, NodeID: s.ID, Method: dbModify.Method}
 					changeServer = append(changeServer, cm)
 					s.PartitionIds = append(s.PartitionIds, partition.Id)
 					break
 				}
 			} else if dbModify.Method == proto.ConfRemoveNode {
-				exist, index := number.IsExistSlice(partition.Id, s.PartitionIds)
+				exist, index := isPartitionIdInSlice(partition.Id, s.PartitionIds)
 				if exist {
-					// server contain this partition, then remove it
+					// server contains this partition, then remove it
 					cm := &entity.ChangeMember{PartitionID: partition.Id, NodeID: s.ID, Method: dbModify.Method}
 					changeServer = append(changeServer, cm)
 					s.PartitionIds = append(s.PartitionIds[:index], s.PartitionIds[index+1:]...)
@@ -2222,23 +2269,23 @@ func (ms *masterService) ChangeReplica(ctx context.Context, dbModify *entity.DBM
 			}
 		}
 	}
-	log.Info("need change partition is [%+v] ", vjson.ToJsonString(changeServer))
+	log.Info("need to change partition is [%+v] ", vjson.ToJsonString(changeServer))
 	// sleep time
 	sleepTime := config.Conf().PS.RaftHeartbeatInterval
 	// change partition
 	for _, cm := range changeServer {
 		if e = ms.ChangeMember(ctx, cm); e != nil {
-			info := fmt.Sprintf("change partition member [%+v] failed, err is %s ", cm, e)
+			info := fmt.Sprintf("changing partition member [%+v] failed, error is %s ", cm, e)
 			log.Error(info)
 			panic(fmt.Errorf(info))
 		}
-		log.Info("change partition member [%+v] success ", cm)
+		log.Info("changing partition member [%+v] succeeded ", cm)
 		if dbModify.Method == proto.ConfRemoveNode {
 			time.Sleep(time.Duration(sleepTime*10) * time.Millisecond)
-			log.Info("remove partition sleep [%+d] Millisecond time", sleepTime)
+			log.Info("remove partition sleep [%+d] milliseconds", sleepTime)
 		}
 	}
-	log.Info("all change partition member success")
+	log.Info("all partition member changes succeeded")
 
 	// update space ReplicaNum, it will lock cluster, to create space
 	mutex := ms.Master().NewLock(ctx, entity.LockSpaceKey(dbModify.DbName, dbModify.SpaceName), time.Second*300)
@@ -2247,7 +2294,7 @@ func (ms *masterService) ChangeReplica(ctx context.Context, dbModify *entity.DBM
 	}
 	defer func() {
 		if err := mutex.Unlock(); err != nil {
-			log.Error("failed to unlock space,the Error is:%v ", err)
+			log.Error("failed to unlock space, the error is: %v ", err)
 		}
 	}()
 	space, err = ms.Master().QuerySpaceByName(ctx, dbID, dbModify.SpaceName)
@@ -2258,7 +2305,7 @@ func (ms *masterService) ChangeReplica(ctx context.Context, dbModify *entity.DBM
 		space.ReplicaNum = space.ReplicaNum - 1
 	}
 	err = ms.updateSpace(ctx, space)
-	log.Info("updateSpace space [%+v] success", space)
+	log.Info("updateSpace space [%+v] succeeded", space)
 	errutil.ThrowError(err)
 	return e
 }

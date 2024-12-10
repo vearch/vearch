@@ -16,15 +16,31 @@ package ps
 
 import (
 	"context"
+	"os"
+	"slices"
 	"time"
 
 	"github.com/vearch/vearch/v3/internal/config"
 	"github.com/vearch/vearch/v3/internal/entity"
 	"github.com/vearch/vearch/v3/internal/pkg/log"
-	"github.com/vearch/vearch/v3/internal/pkg/number"
 	"github.com/vearch/vearch/v3/internal/ps/psutil"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
+
+func equalUint32(a, b []uint32) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	slices.Sort(a)
+	slices.Sort(b)
+	// Compare the sorted slices
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
 
 // this job for heartbeat master 1m once
 func (s *Server) StartHeartbeatJob() {
@@ -35,6 +51,9 @@ func (s *Server) StartHeartbeatJob() {
 		server := &entity.Server{
 			ID:                s.nodeID,
 			Ip:                s.ip,
+			HostIp:            os.Getenv("VEARCH_HOST_IP"),
+			HostRack:          os.Getenv("VEARCH_HOST_RACK"),
+			HostZone:          os.Getenv("VEARCH_HOST_ZONE"),
 			ResourceName:      config.Conf().Global.ResourceName,
 			RpcPort:           config.Conf().PS.RpcPort,
 			RaftHeartbeatPort: config.Conf().PS.RaftHeartbeatPort,
@@ -101,7 +120,7 @@ func (s *Server) StartHeartbeatJob() {
 				}
 
 				server.PartitionIds = psutil.GetAllPartitions(config.Conf().GetDatas())
-				if number.EqualUint32(lastPartitionIds, server.PartitionIds) {
+				if equalUint32(lastPartitionIds, server.PartitionIds) {
 					// PartitionIds not change, do nothing
 					continue
 				}

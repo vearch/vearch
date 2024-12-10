@@ -94,7 +94,7 @@ jobs:
         pytest test_cluster_master.py -x -k "TestClusterMasterOperate" --log-cli-level=INFO
         # all down
         cd ../cloud && docker-compose stop master3
-        sleep 120
+        sleep 60
         cd ../test
         pytest test_cluster_master.py -x -k "TestClusterMasterOperate" --log-cli-level=INFO
         cd ../cloud
@@ -104,6 +104,9 @@ jobs:
         cd ../test
         pytest test_cluster_master.py -x -k "TestClusterMasterOperate" --log-cli-level=INFO
         pytest test_vearch.py -x -k "test_vearch_basic_usage" --log-cli-level=INFO
+        sleep 10
+        curl -s -L -u root:secret http://127.0.0.1:8817/schedule/clean_task
+        sleep 10
         curl -s -L -u root:secret http://127.0.0.1:8817/servers | jq
         curl -s -L -u root:secret http://127.0.0.1:8817/cluster/health?detail=true | jq
 
@@ -119,7 +122,15 @@ jobs:
         pytest test_cluster_ps.py -x -k "TestClusterPartitionServerRecover" --log-cli-level=INFO
         pytest test_cluster_ps.py -x -k "TestClusterPartitionServerCheckSpace" --log-cli-level=INFO
         pytest test_cluster_ps.py -x -k "TestClusterPartitionServerDestroy" --log-cli-level=INFO
+        sleep 10
+
+        db_num=$(curl -s -L -u root:secret http://127.0.0.1:8817/dbs | jq '.data | length')
+        if [ "$db_num" -ne 0 ]; then
+          echo "db is not empty"
+          exit 1
+        fi
         pytest test_cluster_ps.py -k "TestClusterPartitionChange" --log-cli-level=INFO
+        sleep 10
         curl -s -L -u root:secret http://127.0.0.1:8817/servers | jq
         curl -s -L -u root:secret http://127.0.0.1:8817/cluster/health?detail=true | jq
 
@@ -145,6 +156,15 @@ jobs:
         sleep 60
         cd ../test
         pytest test_cluster_ps.py -x -k "TestClusterPartitionServerDestroy" --log-cli-level=INFO
+        sleep 10
+
+        db_num=$(curl -s -L -u root:secret http://127.0.0.1:8817/dbs | jq '.data | length')
+        if [ "$db_num" -ne 0 ]; then
+          echo "db is not empty"
+          exit 1
+        fi
+        curl -s -L -u root:secret http://127.0.0.1:8817/schedule/clean_task
+        sleep 10
         curl -s -L -u root:secret http://127.0.0.1:8817/servers | jq
         curl -s -L -u root:secret http://127.0.0.1:8817/cluster/health?detail=true | jq
 
@@ -167,6 +187,15 @@ jobs:
         sleep 60
         cd ../test
         pytest test_cluster_ps.py -x -k "TestClusterPartitionServerDestroy" --log-cli-level=INFO
+        sleep 10
+
+        db_num=$(curl -s -L -u root:secret http://127.0.0.1:8817/dbs | jq '.data | length')
+        if [ "$db_num" -ne 0 ]; then
+          echo "db is not empty"
+          exit 1
+        fi
+        curl -s -L -u root:secret http://127.0.0.1:8817/schedule/clean_task
+        sleep 10
         curl -s -L -u root:secret http://127.0.0.1:8817/servers | jq
         curl -s -L -u root:secret http://127.0.0.1:8817/cluster/health?detail=true | jq
 
@@ -220,8 +249,17 @@ jobs:
         docker-compose -f cloud/docker-compose.yml restart ps1
         sleep 60
         cd test && pytest test_cluster_ps.py -x -k "TestClusterPartitionServerDestroy" --log-cli-level=INFO
+        sleep 10
+
+        db_num=$(curl -s -L -u root:secret http://127.0.0.1:8817/dbs | jq '.data | length')
+        if [ "$db_num" -ne 0 ]; then
+          echo "db is not empty"
+          exit 1
+        fi
         cd .. && docker-compose -f cloud/docker-compose.yml stop ps4
         sleep 30 && docker ps
+        curl -s -L -u root:secret http://127.0.0.1:8817/schedule/clean_task
+        sleep 10
         curl -s -L -u root:secret http://127.0.0.1:8817/servers | jq
         curl -s -L -u root:secret http://127.0.0.1:8817/cluster/health?detail=true | jq
 
@@ -283,8 +321,93 @@ jobs:
           echo "Status is green."
         fi
         cd test && pytest test_cluster_ps.py -x -k "TestClusterPartitionServerDestroy" --log-cli-level=INFO
+        sleep 10
+
+        db_num=$(curl -s -L -u root:secret http://127.0.0.1:8817/dbs | jq '.data | length')
+        if [ "$db_num" -ne 0 ]; then
+          echo "db is not empty"
+          exit 1
+        fi
         cd .. && docker-compose -f cloud/docker-compose.yml stop ps4
         sleep 60 && docker ps
+        curl -s -L -u root:secret http://127.0.0.1:8817/schedule/clean_task
+        sleep 10
+        curl -s -L -u root:secret http://127.0.0.1:8817/servers | jq
+        curl -s -L -u root:secret http://127.0.0.1:8817/cluster/health?detail=true | jq
+
+    - name: Run tests for replica anti_affinity strategy
+      run: |
+        anti_affinity=1
+
+        docker-compose -f cloud/docker-compose.yml start ps4
+        docker-compose -f cloud/docker-compose.yml up ps5 -d
+        while [ $anti_affinity -lt 4 ]; do
+          echo "replica_anti_affinity_strategy = $anti_affinity"
+          sed -i "s/replica_anti_affinity_strategy = 0/replica_anti_affinity_strategy = $anti_affinity/" cloud/config_cluster.toml
+          cat cloud/config_cluster.toml
+
+          for master in master1 master2 master3; do
+            docker-compose -f cloud/docker-compose.yml restart $master
+          done
+
+          for ps in ps1 ps2 ps3 ps4 ps5; do
+            docker-compose -f cloud/docker-compose.yml restart $ps
+          done
+
+          sleep 20
+          cd test
+          max_retries=10
+          retry=0
+          while [ $retry -lt $max_retries ]; do
+            pytest test_cluster_ps.py -x -k "TestAntiAffinity" --log-cli-level=INFO
+            servers=$(curl -s -L -u root:secret http://127.0.0.1:8817/servers)
+            status_ps4=$(echo $servers | jq -r '.data.servers[] | select(.server.ip == "172.16.238.19") | .server.p_ids | length == 1')
+            status_ps5=$(echo $servers | jq -r '.data.servers[] | select(.server.ip == "172.16.238.20") | .server.p_ids | length == 1')
+            if [ "$status_ps4" == "true" ] && [ "$status_ps5" == "true" ]; then
+              echo $servers | jq
+              echo "ps4 and ps5 partitions num should not be 1 together."
+              exit 1
+            fi
+            retry=$((retry+1))
+            pytest test_cluster_ps.py -x -k "TestClusterPartitionServerDestroy" --log-cli-level=INFO
+            sleep 5
+            db_num=$(curl -s -L -u root:secret http://127.0.0.1:8817/dbs | jq '.data | length')
+            if [ "$db_num" -ne 0 ]; then
+              echo "db is not empty"
+              exit 1
+            fi
+          done
+
+          pytest test_cluster_ps.py -x -k "TestFailAntiAffinity" --log-cli-level=INFO
+
+          db_num=$(curl -s -L -u root:secret http://127.0.0.1:8817/dbs | jq '.data | length')
+          if [ "$db_num" -ne 0 ]; then
+            echo "db is not empty"
+            exit 1
+          fi
+
+          cd ..
+          sed -i "s/replica_anti_affinity_strategy = $anti_affinity/replica_anti_affinity_strategy = 0/" cloud/config_cluster.toml
+          anti_affinity=$((anti_affinity+1))
+        done
+
+        sleep 10
+
+        for master in master1 master2 master3; do
+          docker-compose -f cloud/docker-compose.yml restart $master
+        done
+
+        for ps in ps1 ps2 ps3 ps4 ps5; do
+          docker-compose -f cloud/docker-compose.yml restart $ps
+        done
+
+        sleep 30
+        curl -s -L -u root:secret http://127.0.0.1:8817/schedule/clean_task
+        sleep 10
+
+        docker-compose -f cloud/docker-compose.yml stop ps4
+        docker-compose -f cloud/docker-compose.yml stop ps5
+        sleep 30
         curl -s -L -u root:secret http://127.0.0.1:8817/servers | jq
         curl -s -L -u root:secret http://127.0.0.1:8817/cluster/health?detail=true | jq
   
@@ -308,4 +431,8 @@ jobs:
 
     - name: Clean cluster
       run: |
+        docker-compose -f cloud/docker-compose.yml --profile cluster stop
+        docker-compose -f cloud/docker-compose.yml stop master4
+        docker-compose -f cloud/docker-compose.yml down ps4
+        docker-compose -f cloud/docker-compose.yml down ps5
         docker-compose -f cloud/docker-compose.yml --profile cluster down

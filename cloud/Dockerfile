@@ -27,10 +27,8 @@ COPY --from=builder /vearch/build/bin /vearch/bin/
 COPY --from=builder /vearch/build/lib /vearch/lib/
 COPY --from=builder /lib64/libopenblas.so /lib64/
 
-COPY cloud/start.sh /vearch/start.sh
-COPY cloud/restart.sh /vearch/restart.sh
+ENV LD_LIBRARY_PATH=/vearch/lib/:$LD_LIBRARY_PATH
+RUN microdnf install -y dnf && dnf --enablerepo=crb install -y libgomp lapack libzstd tbb cronie procps
 
-RUN chmod +x /vearch/start.sh && chmod +x /vearch/restart.sh && \
-    microdnf install -y dnf && dnf --enablerepo=crb install -y libgomp lapack libzstd tbb cronie procps
-
-ENTRYPOINT ["/vearch/start.sh"]
+ENTRYPOINT ["/vearch/bin/vearch", "-conf", "/vearch/config.toml"]
+CMD ["all"]

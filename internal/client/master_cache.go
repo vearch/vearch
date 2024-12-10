@@ -1018,6 +1018,7 @@ func (wj *watcherJob) start() {
 				recoverTime = config.Conf().PS.ReplicaAutoRecoverTime
 			}
 
+			antiAffinity := config.Conf().PS.ReplicaAntiAffinityStrategy
 			wj.wg.Add(1)
 			go func() {
 				defer func() {
@@ -1066,6 +1067,18 @@ func (wj *watcherJob) start() {
 							if time.Now().Unix()-failServer.TimeStamp > recoverTime {
 								log.Debug("failServer %v is dead, try to recover replicas", *failServer)
 
+								var zone string
+
+								switch antiAffinity {
+								case 1:
+									zone = failServer.Node.HostIp
+								case 2:
+									zone = failServer.Node.HostRack
+								case 3:
+									zone = failServer.Node.HostZone
+								default:
+									zone = ""
+								}
 								for _, failPid := range failServer.Node.PartitionIds {
 									// get partition
 									partition, err := wj.masterClient.QueryPartition(wj.ctx, failPid)
@@ -1097,6 +1110,25 @@ func (wj *watcherJob) start() {
 									for _, server := range servers {
 										if server.ID == failServer.ID {
 											continue
+										}
+
+										if zone != "" {
+											var destZone string
+
+											switch antiAffinity {
+											case 1:
+												destZone = server.HostIp
+											case 2:
+												destZone = server.HostRack
+											case 3:
+												destZone = server.HostZone
+											default:
+												destZone = ""
+											}
+
+											if destZone == zone {
+												continue
+											}
 										}
 
 										bFound := false

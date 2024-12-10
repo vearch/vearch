@@ -34,6 +34,9 @@ type Server struct {
 	RaftHeartbeatPort uint16        `json:"raft_heartbeat_port"`
 	RaftReplicatePort uint16        `json:"raft_replicate_port"`
 	Ip                string        `json:"ip,omitempty"`
+	HostIp            string        `json:"host_ip,omitempty"`
+	HostRack          string        `json:"host_rack,omitempty"`
+	HostZone          string        `json:"host_zone,omitempty"`
 	PartitionIds      []PartitionID `json:"p_ids,omitempty"`
 	Spaces            []*Space
 	Size              uint64        `json:"size,omitempty"`

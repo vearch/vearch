@@ -26,6 +26,10 @@ services:
   master1:
     container_name: vearch-master1
     image: vearch/vearch:latest
+    environment:
+      - VEARCH_HOST_IP=172.20.238.10
+      - VEARCH_HOST_RACK=rack1
+      - VEARCH_HOST_ZONE=zone1
     platform: ${TARGET_PLATFORM}
     privileged: true
     networks:
@@ -53,6 +57,10 @@ services:
   master2:
     container_name: vearch-master2
     image: vearch/vearch:latest
+    environment:
+      - VEARCH_HOST_IP=172.20.238.11
+      - VEARCH_HOST_RACK=rack2
+      - VEARCH_HOST_ZONE=zone2
     platform: ${TARGET_PLATFORM}
     privileged: true
     networks:
@@ -78,6 +86,10 @@ services:
   master3:
     container_name: vearch-master3
     image: vearch/vearch:latest
+    environment:
+      - VEARCH_HOST_IP=172.20.238.12
+      - VEARCH_HOST_RACK=rack3
+      - VEARCH_HOST_ZONE=zone3
     platform: ${TARGET_PLATFORM}
     privileged: true
     networks:
@@ -103,6 +115,10 @@ services:
   master4:
     container_name: vearch-master4
     image: vearch/vearch:latest
+    environment:
+      - VEARCH_HOST_IP=172.20.238.13
+      - VEARCH_HOST_RACK=rack4
+      - VEARCH_HOST_ZONE=zone4
     platform: ${TARGET_PLATFORM}
     privileged: true
     networks:
@@ -117,6 +133,10 @@ services:
   router1:
     container_name: vearch-router1
     image: vearch/vearch:latest
+    environment:
+      - VEARCH_HOST_IP=172.20.238.14
+      - VEARCH_HOST_RACK=rack5
+      - VEARCH_HOST_ZONE=zone5
     platform: ${TARGET_PLATFORM}
     privileged: true
     networks:
@@ -151,6 +171,10 @@ services:
   router2:
     container_name: vearch-router2
     image: vearch/vearch:latest
+    environment:
+      - VEARCH_HOST_IP=172.20.238.15
+      - VEARCH_HOST_RACK=rack6
+      - VEARCH_HOST_ZONE=zone6
     platform: ${TARGET_PLATFORM}
     privileged: true
     networks:
@@ -183,6 +207,10 @@ services:
   ps1:
     container_name: vearch-ps1
     image: vearch/vearch:latest
+    environment:
+      - VEARCH_HOST_IP=172.20.238.16
+      - VEARCH_HOST_RACK=rack7
+      - VEARCH_HOST_ZONE=zone7
     platform: ${TARGET_PLATFORM}
     networks:
       vearch_network_cluster:
@@ -201,6 +229,10 @@ services:
   ps2:
     container_name: vearch-ps2
     image: vearch/vearch:latest
+    environment:
+      - VEARCH_HOST_IP=172.20.238.17
+      - VEARCH_HOST_RACK=rack8
+      - VEARCH_HOST_ZONE=zone8
     platform: ${TARGET_PLATFORM}
     networks:
       vearch_network_cluster:
@@ -219,6 +251,10 @@ services:
   ps3:
     container_name: vearch-ps3
     image: vearch/vearch:latest
+    environment:
+      - VEARCH_HOST_IP=172.20.238.18
+      - VEARCH_HOST_RACK=rack9
+      - VEARCH_HOST_ZONE=zone9
     platform: ${TARGET_PLATFORM}
     networks:
       vearch_network_cluster:
@@ -237,10 +273,31 @@ services:
   ps4:
     container_name: vearch-ps4
     image: vearch/vearch:latest
+    environment:
+      - VEARCH_HOST_IP=172.20.238.19
+      - VEARCH_HOST_RACK=rack10
+      - VEARCH_HOST_ZONE=zone10
     platform: ${TARGET_PLATFORM}
     networks:
       vearch_network_cluster:
         ipv4_address: 172.16.238.19
+    volumes:
+      - ${DOCKER_VOLUME_DIRECTORY:-.}/config_cluster.toml:/vearch/config.toml
+    command: ps
+    profiles:
+      - manual_startif
+
+  ps5:
+    container_name: vearch-ps5
+    image: vearch/vearch:latest
+    environment:
+      - VEARCH_HOST_IP=172.20.238.19
+      - VEARCH_HOST_RACK=rack10
+      - VEARCH_HOST_ZONE=zone10
+    platform: ${TARGET_PLATFORM}
+    networks:
+      vearch_network_cluster:
+        ipv4_address: 172.16.238.20
     volumes:
       - ${DOCKER_VOLUME_DIRECTORY:-.}/config_cluster.toml:/vearch/config.toml
     command: ps

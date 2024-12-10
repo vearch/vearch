@@ -375,23 +375,24 @@ func (routerCfg *RouterCfg) ApiUrl(keyNumber int) string {
 }
 
 type PSCfg struct {
-	RpcPort                uint16 `toml:"rpc_port,omitempty" json:"rpc_port"`
-	PsHeartbeatTimeout     int    `toml:"ps_heartbeat_timeout" json:"ps_heartbeat_timeout"`
-	RaftHeartbeatPort      uint16 `toml:"raft_heartbeat_port,omitempty" json:"raft_heartbeat_port"`
-	RaftReplicatePort      uint16 `toml:"raft_replicate_port,omitempty" json:"raft_replicate_port"`
-	RaftHeartbeatInterval  int    `toml:"heartbeat_interval" json:"heartbeat-interval"`
-	RaftRetainLogs         uint64 `toml:"raft_retain_logs" json:"raft-retain-logs"`
-	RaftReplicaConcurrency int    `toml:"raft_replica_concurrency" json:"raft-replica-concurrency"`
-	RaftSnapConcurrency    int    `toml:"raft_snap_concurrency" json:"raft-snap-concurrency"`
-	RaftTruncateCount      int64  `toml:"raft_truncate_count" json:"raft_truncate_count"`
-	RaftDiffCount          uint64 `toml:"raft_diff_count" json:"raft_diff_count"`
-	ReplicaAutoRecoverTime int64  `toml:"replica_auto_recover_time" json:"replica_auto_recover_time"`
-	PprofPort              uint16 `toml:"pprof_port" json:"pprof_port"`
-	Private                bool   `toml:"private" json:"private"`                         //this ps is private if true you must set machine by dbConfig
-	FlushTimeInterval      uint32 `toml:"flush_time_interval" json:"flush_time_interval"` // seconds
-	FlushCountThreshold    uint32 `toml:"flush_count_threshold" json:"flush_count_threshold"`
-	ConcurrentNum          int    `toml:"concurrent_num" json:"concurrent_num"`
-	RpcTimeOut             int    `toml:"rpc_timeout" json:"rpc_timeout"`
+	RpcPort                     uint16 `toml:"rpc_port,omitempty" json:"rpc_port"`
+	PsHeartbeatTimeout          int    `toml:"ps_heartbeat_timeout" json:"ps_heartbeat_timeout"`
+	RaftHeartbeatPort           uint16 `toml:"raft_heartbeat_port,omitempty" json:"raft_heartbeat_port"`
+	RaftReplicatePort           uint16 `toml:"raft_replicate_port,omitempty" json:"raft_replicate_port"`
+	RaftHeartbeatInterval       int    `toml:"heartbeat_interval" json:"heartbeat-interval"`
+	RaftRetainLogs              uint64 `toml:"raft_retain_logs" json:"raft-retain-logs"`
+	RaftReplicaConcurrency      int    `toml:"raft_replica_concurrency" json:"raft-replica-concurrency"`
+	RaftSnapConcurrency         int    `toml:"raft_snap_concurrency" json:"raft-snap-concurrency"`
+	RaftTruncateCount           int64  `toml:"raft_truncate_count" json:"raft_truncate_count"`
+	RaftDiffCount               uint64 `toml:"raft_diff_count" json:"raft_diff_count"`
+	ReplicaAutoRecoverTime      int64  `toml:"replica_auto_recover_time" json:"replica_auto_recover_time"`
+	ReplicaAntiAffinityStrategy int    `toml:"replica_anti_affinity_strategy" json:"replica_anti_affinity_strategy"` // 0: no anti-affinity, 1: by HostIp, 2: by HostRack, 3: by HostZone
+	PprofPort                   uint16 `toml:"pprof_port" json:"pprof_port"`
+	Private                     bool   `toml:"private" json:"private"`                         //this ps is private if true you must set machine by dbConfig
+	FlushTimeInterval           uint32 `toml:"flush_time_interval" json:"flush_time_interval"` // seconds
+	FlushCountThreshold         uint32 `toml:"flush_count_threshold" json:"flush_count_threshold"`
+	ConcurrentNum               int    `toml:"concurrent_num" json:"concurrent_num"`
+	RpcTimeOut                  int    `toml:"rpc_timeout" json:"rpc_timeout"`
 }
 
 func InitConfig(path string) {

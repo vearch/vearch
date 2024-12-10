@@ -124,6 +124,7 @@
     # when behind leader this value, will stop the server for search
     raft_diff_count = 10000
     replica_auto_recover_time = 1800 # second
+    replica_anti_affinity_strategy = 0 # 0: no anti-affinity, 1: by HostIp, 2: by HostRack, 3: by HostZone
     pprof_port = 6060
     # if set true, this ps only use in db meta config
     private = false

@@ -15,10 +15,12 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
@@ -29,7 +31,6 @@ import (
 	"github.com/vearch/vearch/v3/internal/master"
 	"github.com/vearch/vearch/v3/internal/pkg/log"
 	"github.com/vearch/vearch/v3/internal/pkg/metrics/mserver"
-	tigos "github.com/vearch/vearch/v3/internal/pkg/runtime/os"
 	"github.com/vearch/vearch/v3/internal/pkg/signals"
 	"github.com/vearch/vearch/v3/internal/pkg/tracer"
 	"github.com/vearch/vearch/v3/internal/pkg/vearchlog"
@@ -257,8 +258,8 @@ func main() {
 }
 
 func getDefaultConfigFile() (defaultConfigFile string) {
-	if currentExePath, err := tigos.GetCurrentPath(); err == nil {
-		path := currentExePath + "config/config.toml"
+	if currentExePath, err := getCurrentPath(); err == nil {
+		path := filepath.Join(currentExePath, "config", "config.toml")
 		if ok, err := pathExists(path); ok {
 			return path
 		} else if err != nil {
@@ -266,9 +267,9 @@ func getDefaultConfigFile() (defaultConfigFile string) {
 		}
 	}
 
-	if sourceCodeFileName, err := tigos.GetCurrentSourceCodePath(); nil == err {
-		lastIndex := strings.LastIndex(sourceCodeFileName, "/")
-		path := sourceCodeFileName[0:lastIndex+1] + "config/config.toml"
+	if sourceCodeFileName, err := getCurrentSourceCodePath(); err == nil {
+		lastIndex := strings.LastIndex(sourceCodeFileName, string(os.PathSeparator))
+		path := filepath.Join(sourceCodeFileName[:lastIndex+1], "config", "config.toml")
 		if ok, err := pathExists(path); ok {
 			return path
 		} else if err != nil {
@@ -276,6 +277,27 @@ func getDefaultConfigFile() (defaultConfigFile string) {
 		}
 	}
 	return
+}
+
+func getCurrentPath() (string, error) {
+	_, file, _, ok := runtime.Caller(1)
+	if !ok {
+		return "", errors.New("cannot get current path")
+	}
+	path, err := filepath.Abs(file)
+	if err != nil {
+		return "", err
+	}
+	dir := filepath.Dir(path)
+	return dir, nil
+}
+
+func getCurrentSourceCodePath() (string, error) {
+	_, file, _, ok := runtime.Caller(1)
+	if !ok {
+		return "", errors.New("cannot get current source code path")
+	}
+	return file, nil
 }
 
 func pathExists(path string) (bool, error) {
