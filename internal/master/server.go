@@ -16,11 +16,13 @@ package master
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/v3/internal/client"
 	"github.com/vearch/vearch/v3/internal/config"
@@ -124,16 +126,34 @@ func (s *Server) Start() (err error) {
 
 	// start http server
 
-	engine := gin.New()
+	httpServer := gin.New()
+	httpServer.Use(func(c *gin.Context) {
+		rid := c.GetHeader("X-Request-Id")
+		if rid == "" {
+			id, err := uuid.NewRandom()
+			if err != nil {
+				log.Error("generate request id failed, %v", err)
+				c.Next()
+				return
+			}
+			rid = id.String()
+			rid = base64.StdEncoding.EncodeToString([]byte(rid))[:10]
+			c.Request.Header.Add("X-Request-Id", rid)
+		}
 
-	ExportToClusterHandler(engine, service, s)
+		// set request id to context
+		c.Header("X-Request-Id", rid)
+		c.Next()
+	})
 
-	ExportToMonitorHandler(engine, monitorService)
+	ExportToClusterHandler(httpServer, service, s)
+
+	ExportToMonitorHandler(httpServer, monitorService)
 
 	//register monitor
 
 	go func() {
-		if err := engine.Run(":" + cast.ToString(config.Conf().Masters.Self().ApiPort)); err != nil {
+		if err := httpServer.Run(":" + cast.ToString(config.Conf().Masters.Self().ApiPort)); err != nil {
 			panic(err)
 		}
 	}()

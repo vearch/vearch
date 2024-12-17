@@ -38,7 +38,7 @@ type Server struct {
 	HostRack          string        `json:"host_rack,omitempty"`
 	HostZone          string        `json:"host_zone,omitempty"`
 	PartitionIds      []PartitionID `json:"p_ids,omitempty"`
-	Spaces            []*Space
+	Spaces            []*Space      `json:"spaces,omitempty"`
 	Size              uint64        `json:"size,omitempty"`
 	Private           bool          `json:"private"`
 	Version           *BuildVersion `json:"version"`

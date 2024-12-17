@@ -290,6 +290,7 @@ jobs:
           echo "Error: ps4 partitions num should be 1 after $max_retries attempts."
           exit 1
         fi
+        sleep 10
 
         docker-compose -f cloud/docker-compose.yml start ps1
         retry=0
