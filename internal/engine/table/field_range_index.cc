@@ -800,8 +800,10 @@ MultiFieldsRangeIndex::MultiFieldsRangeIndex(std::string &path, Table *table)
 MultiFieldsRangeIndex::~MultiFieldsRangeIndex() {
   for (size_t i = 0; i < fields_.size(); i++) {
     if (fields_[i]) {
+      pthread_rwlock_wrlock(&field_rw_locks_[i]);
       delete fields_[i];
       fields_[i] = nullptr;
+      pthread_rwlock_unlock(&field_rw_locks_[i]);
     }
     pthread_rwlock_destroy(&field_rw_locks_[i]);
   }
@@ -960,6 +962,7 @@ int64_t MultiFieldsRangeIndex::Search(
 
     FieldRangeIndex *index = fields_[filter.field];
     if (index == nullptr || filter.field < 0) {
+      pthread_rwlock_unlock(&field_rw_locks_[filters[i].field]);
       continue;
     }
 
@@ -985,6 +988,7 @@ int64_t MultiFieldsRangeIndex::Search(
       ;
     } else if (num == 0) {
       if (filter.is_union == FilterOperator::Not) {
+        pthread_rwlock_unlock(&field_rw_locks_[filters[i].field]);
         continue;
       }
       pthread_rwlock_unlock(&field_rw_locks_[filters[i].field]);
@@ -993,6 +997,7 @@ int64_t MultiFieldsRangeIndex::Search(
       if (filter.is_union == FilterOperator::Not) {
         result.SetNotIn(true);
         out->Add(std::move(result));
+        pthread_rwlock_unlock(&field_rw_locks_[filters[i].field]);
         continue;
       }
       results.emplace_back(std::move(result));

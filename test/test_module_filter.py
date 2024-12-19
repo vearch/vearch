@@ -260,6 +260,17 @@ def process_get_data_by_filter(items):
             },
         ]
         data["filters"]["conditions"].extend(term_filter)
+    elif mode == "Hybrid":
+        prepare_filter_bound(data["filters"]["conditions"], index,
+                             batch_size, full_field, ">=", "<")
+        term_filter = [
+            {
+                "field": "field_string",
+                "operator": "NOT IN",
+                "value": [str(index * batch_size), str((index + 1) * batch_size)]
+            },
+        ]
+        data["filters"]["conditions"].extend(term_filter)
     data["limit"] = batch_size
 
     json_str = json.dumps(data)
@@ -332,6 +343,10 @@ def process_get_data_by_filter(items):
     elif mode == "NOT IN":
         for doc in documents:
             assert (doc["field_string"] != str(index) and doc["field_string"] != str(index + 1))
+    elif mode == "Hybrid":
+        for doc in documents:
+            assert (doc["field_string"] != str(index) and doc["field_string"] != str(index + 1))
+            assert (doc["field_int"] == index or doc["field_int"] == index + 1)
 
 
 def query_by_filter_interface(total, full_field, mode: str):
@@ -464,6 +479,7 @@ def check(total, full_field, xb, mode: str):
     [True, "[valid_value, upper_bound]"],
     [True, "IN"],
     [True, "NOT IN"],
+    [True, "Hybrid"],
 ])
 def test_module_filter(full_field: bool, mode: str):
     check(100, full_field, xb, mode)
