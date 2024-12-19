@@ -962,6 +962,7 @@ int64_t MultiFieldsRangeIndex::Search(
 
     FieldRangeIndex *index = fields_[filter.field];
     if (index == nullptr || filter.field < 0) {
+      pthread_rwlock_unlock(&field_rw_locks_[filters[i].field]);
       continue;
     }
 
@@ -987,6 +988,7 @@ int64_t MultiFieldsRangeIndex::Search(
       ;
     } else if (num == 0) {
       if (filter.is_union == FilterOperator::Not) {
+        pthread_rwlock_unlock(&field_rw_locks_[filters[i].field]);
         continue;
       }
       pthread_rwlock_unlock(&field_rw_locks_[filters[i].field]);
@@ -995,6 +997,7 @@ int64_t MultiFieldsRangeIndex::Search(
       if (filter.is_union == FilterOperator::Not) {
         result.SetNotIn(true);
         out->Add(std::move(result));
+        pthread_rwlock_unlock(&field_rw_locks_[filters[i].field]);
         continue;
       }
       results.emplace_back(std::move(result));
