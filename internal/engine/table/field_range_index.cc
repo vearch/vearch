@@ -807,8 +807,10 @@ MultiFieldsRangeIndex::MultiFieldsRangeIndex(std::string &path, Table *table)
 MultiFieldsRangeIndex::~MultiFieldsRangeIndex() {
   for (size_t i = 0; i < fields_.size(); i++) {
     if (fields_[i]) {
+      pthread_rwlock_wrlock(&field_rw_locks_[i]);
       delete fields_[i];
       fields_[i] = nullptr;
+      pthread_rwlock_unlock(&field_rw_locks_[i]);
     }
     pthread_rwlock_destroy(&field_rw_locks_[i]);
   }

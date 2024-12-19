@@ -598,10 +598,12 @@ int Engine::AddOrUpdate(Doc &doc) {
   if (docid == -1 || docid >= max_docid_) {
     int ret = table_->Add(key, fields_table, max_docid_);
     if (ret != 0) return -2;
-    for (auto &[name, field] : fields_table) {
-      int idx = table_->GetAttrIdx(field.name);
-      field_range_index_->Add(max_docid_, idx);
-    }
+#pragma omp parallel for
+for (size_t i = 0; i < fields_table.size(); ++i) {
+  auto it = std::next(fields_table.begin(), i);
+  int idx = table_->GetAttrIdx(it->second.name);
+  field_range_index_->Add(max_docid_, idx);
+}
   } else {
     if (Update(docid, fields_table, fields_vec)) {
       LOG(DEBUG) << "update error, key=" << key << ", docid=" << docid;
@@ -669,11 +671,13 @@ int Engine::Update(int doc_id,
     return -1;
   }
 
-  for (auto &[name, field] : fields_table) {
-    if (is_equal[name]) {
+#pragma omp parallel for
+  for (size_t i = 0; i < fields_table.size(); ++i) {
+    auto it = std::next(fields_table.begin(), i);
+    if (is_equal[it->first]) {
       continue;
     }
-    int idx = table_->GetAttrIdx(field.name);
+    int idx = table_->GetAttrIdx(it->second.name);
     field_range_index_->Add(doc_id, idx);
   }
 
