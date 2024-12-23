@@ -19,6 +19,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -38,7 +39,6 @@ import (
 	"github.com/vearch/vearch/v3/internal/pkg/errutil"
 	"github.com/vearch/vearch/v3/internal/pkg/log"
 	"github.com/vearch/vearch/v3/internal/pkg/netutil"
-	"github.com/vearch/vearch/v3/internal/pkg/server/vearchhttp"
 	"github.com/vearch/vearch/v3/internal/pkg/vjson"
 )
 
@@ -59,7 +59,6 @@ const (
 type clusterAPI struct {
 	router        *gin.Engine
 	masterService *masterService
-	dh            *vearchhttp.BaseHandler
 	server        *Server
 }
 
@@ -128,100 +127,161 @@ func BasicAuthMiddleware(masterService *masterService) gin.HandlerFunc {
 	}
 }
 
-func ExportToClusterHandler(router *gin.Engine, masterService *masterService, server *Server) {
-	dh := vearchhttp.NewBaseHandler(30)
+func TimeoutMiddleware(defaultTimeout time.Duration) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		timeoutStr := c.Query("timeout")
+		var timeout time.Duration
+		if timeoutStr != "" {
+			if t, err := strconv.Atoi(timeoutStr); err == nil {
+				timeout = time.Duration(t) * time.Millisecond
+			} else {
+				msg := fmt.Sprintf("timeout[%s] param parse to int failed, err: %s", timeout, err.Error())
+				log.Error(msg)
+				response.New(c).JsonError(errors.NewErrBadRequest(fmt.Errorf(msg)))
+				c.Abort()
+				return
+			}
+		} else {
+			timeout = defaultTimeout
+		}
+		ctx, cancel := context.WithTimeout(c.Request.Context(), timeout)
+		defer cancel()
 
-	c := &clusterAPI{router: router, masterService: masterService, dh: dh, server: server}
+		c.Request = c.Request.WithContext(ctx)
+		done := make(chan struct{})
+
+		go func() {
+			c.Next()
+			close(done)
+		}()
+
+		select {
+		case <-ctx.Done():
+			response.New(c).JsonError(errors.NewErrUnprocessable(fmt.Errorf("timeout")))
+			c.Abort()
+		case <-done:
+		}
+	}
+}
+
+func RecoveryMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		defer func() {
+			if r := recover(); r != nil {
+				var msg string
+				switch r := r.(type) {
+				case error:
+					msg = r.Error()
+				default:
+					if str, err := cast.ToStringE(r); err != nil {
+						msg = "Server internal error "
+					} else {
+						msg = str
+					}
+				}
+				log.Error(msg)
+
+				c.JSON(http.StatusInternalServerError, map[string]string{"message": msg})
+				c.Abort()
+			}
+		}()
+	}
+}
+
+func ExportToClusterHandler(router *gin.Engine, masterService *masterService, server *Server) {
+	c := &clusterAPI{router: router, masterService: masterService, server: server}
+	router.Use(RecoveryMiddleware())
+	router.Use(TimeoutMiddleware(10 * time.Second))
 
 	var groupAuth *gin.RouterGroup
-	var group *gin.RouterGroup = router.Group("", dh.PaincHandler, dh.TimeOutHandler)
+	var group *gin.RouterGroup = router.Group("")
 	if !config.Conf().Global.SkipAuth {
-		groupAuth = router.Group("", dh.PaincHandler, dh.TimeOutHandler, BasicAuthMiddleware(masterService))
+		groupAuth = router.Group("", BasicAuthMiddleware(masterService))
 	} else {
-		groupAuth = router.Group("", dh.PaincHandler, dh.TimeOutHandler)
+		groupAuth = router.Group("")
 	}
 
-	group.GET("/", c.handleClusterInfo, dh.TimeOutEndHandler)
+	group.GET("/", c.handleClusterInfo)
 
 	// cluster handler
-	groupAuth.GET("/clean_lock", c.cleanLock, dh.TimeOutEndHandler)
+	groupAuth.GET("/clean_lock", c.cleanLock)
 
 	// servers handler
-	groupAuth.GET("/servers", c.serverList, dh.TimeOutEndHandler)
+	groupAuth.GET("/servers", c.serverList)
 
 	// router  handler
-	groupAuth.GET("/routers", c.routerList, dh.TimeOutEndHandler)
+	groupAuth.GET("/routers", c.routerList)
 
 	// partition register, use internal so no need to auth
-	group.POST("/register", c.register, dh.TimeOutEndHandler)
-	group.POST("/register_partition", c.registerPartition, dh.TimeOutEndHandler)
-	group.POST("/register_router", c.registerRouter, dh.TimeOutEndHandler)
+	group.POST("/register", c.register)
+	group.POST("/register_partition", c.registerPartition)
+	group.POST("/register_router", c.registerRouter)
 
 	// db handler
-	groupAuth.POST(fmt.Sprintf("/dbs/:%s", dbName), c.createDB, dh.TimeOutEndHandler)
-	groupAuth.GET(fmt.Sprintf("/dbs/:%s", dbName), c.getDB, dh.TimeOutEndHandler)
-	groupAuth.GET("/dbs", c.getDB, dh.TimeOutEndHandler)
-	groupAuth.DELETE(fmt.Sprintf("/dbs/:%s", dbName), c.deleteDB, dh.TimeOutEndHandler)
-	groupAuth.PUT(fmt.Sprintf("/dbs/:%s", dbName), c.modifyDB, dh.TimeOutEndHandler)
+	groupAuth.POST(fmt.Sprintf("/dbs/:%s", dbName), c.createDB)
+	groupAuth.GET(fmt.Sprintf("/dbs/:%s", dbName), c.getDB)
+	groupAuth.GET("/dbs", c.getDB)
+	groupAuth.DELETE(fmt.Sprintf("/dbs/:%s", dbName), c.deleteDB)
+	groupAuth.PUT(fmt.Sprintf("/dbs/:%s", dbName), c.modifyDB)
 
 	// space handler
-	groupAuth.POST(fmt.Sprintf("/dbs/:%s/spaces", dbName), c.createSpace, dh.TimeOutEndHandler)
-	groupAuth.GET(fmt.Sprintf("/dbs/:%s/spaces/:%s", dbName, spaceName), c.getSpace, dh.TimeOutEndHandler)
-	groupAuth.GET(fmt.Sprintf("/dbs/:%s/spaces", dbName), c.getSpace, dh.TimeOutEndHandler)
-	groupAuth.DELETE(fmt.Sprintf("/dbs/:%s/spaces/:%s", dbName, spaceName), c.deleteSpace, dh.TimeOutEndHandler)
-	// group.PUT(fmt.Sprintf("/dbs/:%s/spaces/:%s", dbName, spaceName), c.updateSpace, dh.TimeOutEndHandler)
-	groupAuth.PUT(fmt.Sprintf("/dbs/:%s/spaces/:%s", dbName, spaceName), c.updateSpaceResource, dh.TimeOutEndHandler)
-	groupAuth.POST(fmt.Sprintf("/backup/dbs/:%s/spaces/:%s", dbName, spaceName), c.backupSpace, dh.TimeOutEndHandler)
+	groupAuth.POST(fmt.Sprintf("/dbs/:%s/spaces", dbName), c.createSpace)
+	groupAuth.GET(fmt.Sprintf("/dbs/:%s/spaces/:%s", dbName, spaceName), c.getSpace)
+	groupAuth.GET(fmt.Sprintf("/dbs/:%s/spaces", dbName), c.getSpace)
+	groupAuth.DELETE(fmt.Sprintf("/dbs/:%s/spaces/:%s", dbName, spaceName), c.deleteSpace)
+	// group.PUT(fmt.Sprintf("/dbs/:%s/spaces/:%s", dbName, spaceName), c.updateSpace)
+	groupAuth.PUT(fmt.Sprintf("/dbs/:%s/spaces/:%s", dbName, spaceName), c.updateSpaceResource)
+	groupAuth.POST(fmt.Sprintf("/backup/dbs/:%s/spaces/:%s", dbName, spaceName), c.backupSpace)
 
 	// modify engine config handler
-	groupAuth.POST("/config/:"+dbName+"/:"+spaceName, c.modifyEngineCfg, dh.TimeOutEndHandler)
-	groupAuth.GET("/config/:"+dbName+"/:"+spaceName, c.getEngineCfg, dh.TimeOutEndHandler)
+	groupAuth.POST("/config/:"+dbName+"/:"+spaceName, c.modifyEngineCfg)
+	groupAuth.GET("/config/:"+dbName+"/:"+spaceName, c.getEngineCfg)
 
 	// partition handler
-	groupAuth.GET("/partitions", c.partitionList, dh.TimeOutEndHandler)
-	groupAuth.POST("/partitions/change_member", c.changeMember, dh.TimeOutEndHandler)
-	groupAuth.POST("/partitions/resource_limit", c.ResourceLimit, dh.TimeOutEndHandler)
+	groupAuth.GET("/partitions", c.partitionList)
+	groupAuth.POST("/partitions/change_member", c.changeMember)
+	groupAuth.POST("/partitions/resource_limit", c.ResourceLimit)
 
 	// schedule
-	groupAuth.POST("/schedule/recover_server", c.RecoverFailServer, dh.TimeOutEndHandler)
-	groupAuth.POST("/schedule/change_replicas", c.ChangeReplicas, dh.TimeOutEndHandler)
-	groupAuth.GET("/schedule/fail_server", c.FailServerList, dh.TimeOutEndHandler)
-	groupAuth.DELETE("/schedule/fail_server/:"+NodeID, c.FailServerClear, dh.TimeOutEndHandler)
-	groupAuth.GET("/schedule/clean_task", c.CleanTask, dh.TimeOutEndHandler)
+	groupAuth.POST("/schedule/recover_server", c.RecoverFailServer)
+	groupAuth.POST("/schedule/change_replicas", c.ChangeReplicas)
+	groupAuth.GET("/schedule/fail_server", c.FailServerList)
+	groupAuth.DELETE("/schedule/fail_server/:"+NodeID, c.FailServerClear)
+	groupAuth.GET("/schedule/clean_task", c.CleanTask)
 
 	// remove server metadata
-	groupAuth.POST("/meta/remove_server", c.RemoveServerMeta, dh.TimeOutEndHandler)
+	groupAuth.POST("/meta/remove_server", c.RemoveServerMeta)
 
 	// alias handler
-	groupAuth.POST(fmt.Sprintf("/alias/:%s/dbs/:%s/spaces/:%s", aliasName, dbName, spaceName), c.createAlias, dh.TimeOutEndHandler)
-	groupAuth.GET(fmt.Sprintf("/alias/:%s", aliasName), c.getAlias, dh.TimeOutEndHandler)
-	groupAuth.GET("/alias", c.getAlias, dh.TimeOutEndHandler)
-	groupAuth.DELETE(fmt.Sprintf("/alias/:%s", aliasName), c.deleteAlias, dh.TimeOutEndHandler)
-	groupAuth.PUT(fmt.Sprintf("/alias/:%s/dbs/:%s/spaces/:%s", aliasName, dbName, spaceName), c.modifyAlias, dh.TimeOutEndHandler)
+	groupAuth.POST(fmt.Sprintf("/alias/:%s/dbs/:%s/spaces/:%s", aliasName, dbName, spaceName), c.createAlias)
+	groupAuth.GET(fmt.Sprintf("/alias/:%s", aliasName), c.getAlias)
+	groupAuth.GET("/alias", c.getAlias)
+	groupAuth.DELETE(fmt.Sprintf("/alias/:%s", aliasName), c.deleteAlias)
+	groupAuth.PUT(fmt.Sprintf("/alias/:%s/dbs/:%s/spaces/:%s", aliasName, dbName, spaceName), c.modifyAlias)
 
 	// user handler
-	groupAuth.POST("/users", c.createUser, dh.TimeOutEndHandler)
-	groupAuth.GET(fmt.Sprintf("/users/:%s", userName), c.getUser, dh.TimeOutEndHandler)
-	groupAuth.GET("/users", c.getUser, dh.TimeOutEndHandler)
-	groupAuth.DELETE(fmt.Sprintf("/users/:%s", userName), c.deleteUser, dh.TimeOutEndHandler)
-	groupAuth.PUT("/users", c.updateUser, dh.TimeOutEndHandler)
+	groupAuth.POST("/users", c.createUser)
+	groupAuth.GET(fmt.Sprintf("/users/:%s", userName), c.getUser)
+	groupAuth.GET("/users", c.getUser)
+	groupAuth.DELETE(fmt.Sprintf("/users/:%s", userName), c.deleteUser)
+	groupAuth.PUT("/users", c.updateUser)
 
 	// role handler
-	groupAuth.POST("/roles", c.createRole, dh.TimeOutEndHandler)
-	groupAuth.GET(fmt.Sprintf("/roles/:%s", roleName), c.getRole, dh.TimeOutEndHandler)
-	groupAuth.GET("/roles", c.getRole, dh.TimeOutEndHandler)
-	groupAuth.DELETE(fmt.Sprintf("/roles/:%s", roleName), c.deleteRole, dh.TimeOutEndHandler)
-	groupAuth.PUT("/roles", c.changeRolePrivilege, dh.TimeOutEndHandler)
+	groupAuth.POST("/roles", c.createRole)
+	groupAuth.GET(fmt.Sprintf("/roles/:%s", roleName), c.getRole)
+	groupAuth.GET("/roles", c.getRole)
+	groupAuth.DELETE(fmt.Sprintf("/roles/:%s", roleName), c.deleteRole)
+	groupAuth.PUT("/roles", c.changeRolePrivilege)
 
 	// cluster handler
-	groupAuth.GET("/cluster/stats", c.stats, dh.TimeOutEndHandler)
-	groupAuth.GET("/cluster/health", c.health, dh.TimeOutEndHandler)
+	groupAuth.GET("/cluster/stats", c.stats)
+	groupAuth.GET("/cluster/health", c.health)
 
 	// members handler
-	groupAuth.GET("/members", c.getMembers, dh.TimeOutEndHandler)
-	groupAuth.GET("/members/stats", c.getMemberStatus, dh.TimeOutEndHandler)
-	groupAuth.DELETE("/members", c.deleteMember, dh.TimeOutEndHandler)
-	groupAuth.POST("/members", c.addMember, dh.TimeOutEndHandler)
+	groupAuth.GET("/members", c.getMembers)
+	groupAuth.GET("/members/stats", c.getMemberStatus)
+	groupAuth.DELETE("/members", c.deleteMember)
+	groupAuth.POST("/members", c.addMember)
 }
 
 // got every partition servers system info
@@ -389,13 +449,12 @@ func (ca *clusterAPI) getDB(c *gin.Context) {
 }
 
 func (ca *clusterAPI) modifyDB(c *gin.Context) {
-	ctx, _ := c.Get(vearchhttp.Ctx)
 	dbModify := &entity.DBModify{}
 	if err := c.ShouldBindJSON(dbModify); err != nil {
 		response.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
 	}
-	if db, err := ca.masterService.updateDBIpList(ctx.(context.Context), dbModify); err != nil {
+	if db, err := ca.masterService.updateDBIpList(c.Request.Context(), dbModify); err != nil {
 		response.New(c).JsonError(errors.NewErrInternal(err))
 	} else {
 		response.New(c).JsonSuccess(db)
@@ -1152,9 +1211,7 @@ func (ca *clusterAPI) partitionList(c *gin.Context) {
 
 // list fail servers
 func (cluster *clusterAPI) FailServerList(c *gin.Context) {
-	ctx, _ := c.Get(vearchhttp.Ctx)
-
-	failServers, err := cluster.masterService.Master().QueryAllFailServer(ctx.(context.Context))
+	failServers, err := cluster.masterService.Master().QueryAllFailServer(c.Request.Context())
 
 	if err != nil {
 		response.New(c).JsonError(errors.NewErrNotFound(err))
@@ -1165,7 +1222,6 @@ func (cluster *clusterAPI) FailServerList(c *gin.Context) {
 
 // clear fail server by nodeID
 func (cluster *clusterAPI) FailServerClear(c *gin.Context) {
-	ctx, _ := c.Get(vearchhttp.Ctx)
 	nodeID := c.Param(NodeID)
 	if nodeID == "" {
 		response.New(c).JsonError(errors.NewErrBadRequest(fmt.Errorf("param err must has nodeId")))
@@ -1176,7 +1232,7 @@ func (cluster *clusterAPI) FailServerClear(c *gin.Context) {
 		response.New(c).JsonError(errors.NewErrBadRequest(fmt.Errorf("nodeId err")))
 		return
 	}
-	err = cluster.masterService.Master().DeleteFailServerByNodeID(ctx.(context.Context), id)
+	err = cluster.masterService.Master().DeleteFailServerByNodeID(c.Request.Context(), id)
 	if err != nil {
 		response.New(c).JsonError(errors.NewErrNotFound(err))
 		return
@@ -1192,7 +1248,6 @@ func (cluster *clusterAPI) CleanTask(c *gin.Context) {
 
 // remove etcd meta about the nodeID
 func (cluster *clusterAPI) RemoveServerMeta(c *gin.Context) {
-	ctx, _ := c.Get(vearchhttp.Ctx)
 	rfs := &entity.RecoverFailServer{}
 	if err := c.ShouldBindJSON(rfs); err != nil {
 		response.New(c).JsonError(errors.NewErrBadRequest(err))
@@ -1210,11 +1265,11 @@ func (cluster *clusterAPI) RemoveServerMeta(c *gin.Context) {
 	// get failServer
 	var failServer *entity.FailServer
 	if nodeID > 0 {
-		failServer = cluster.masterService.Master().QueryFailServerByNodeID(ctx.(context.Context), nodeID)
+		failServer = cluster.masterService.Master().QueryFailServerByNodeID(c.Request.Context(), nodeID)
 	}
 	// if nodeId can't get server info
 	if failServer == nil && ipAdd != "" {
-		failServer = cluster.masterService.Master().QueryServerByIPAddr(ctx.(context.Context), ipAdd)
+		failServer = cluster.masterService.Master().QueryServerByIPAddr(c.Request.Context(), ipAdd)
 	}
 	// get all partition
 	if failServer != nil && failServer.Node != nil {
@@ -1225,7 +1280,7 @@ func (cluster *clusterAPI) RemoveServerMeta(c *gin.Context) {
 			cm.PartitionID = pid
 			cm.Method = proto.ConfRemoveNode
 			log.Debug("begin ChangeMember %+v", cm)
-			err := cluster.masterService.ChangeMember(ctx.(context.Context), cm)
+			err := cluster.masterService.ChangeMember(c.Request.Context(), cm)
 			if err != nil {
 				log.Error("ChangePartitionMember [%+v] err is %s", cm, err.Error())
 				response.New(c).JsonError(errors.NewErrInternal(err))
@@ -1241,7 +1296,6 @@ func (cluster *clusterAPI) RemoveServerMeta(c *gin.Context) {
 
 // recover the failserver by a newserver
 func (cluster *clusterAPI) RecoverFailServer(c *gin.Context) {
-	ctx, _ := c.Get(vearchhttp.Ctx)
 	rs := &entity.RecoverFailServer{}
 	if err := c.ShouldBindJSON(rs); err != nil {
 		response.New(c).JsonError(errors.NewErrBadRequest(err))
@@ -1249,7 +1303,7 @@ func (cluster *clusterAPI) RecoverFailServer(c *gin.Context) {
 	}
 	rsStr := vjson.ToJsonString(rs)
 	log.Info("RecoverFailServer is %s,", rsStr)
-	if err := cluster.masterService.RecoverFailServer(ctx.(context.Context), rs); err != nil {
+	if err := cluster.masterService.RecoverFailServer(c.Request.Context(), rs); err != nil {
 		response.New(c).JsonError(errors.NewErrInternal(fmt.Errorf("%s failed recover, err is %v", rsStr, err)))
 	} else {
 		response.New(c).JsonSuccess(fmt.Sprintf("%s success recover!", rsStr))
@@ -1258,7 +1312,6 @@ func (cluster *clusterAPI) RecoverFailServer(c *gin.Context) {
 
 // change replicas by dbname and spaceName
 func (cluster *clusterAPI) ChangeReplicas(c *gin.Context) {
-	ctx, _ := c.Get(vearchhttp.Ctx)
 	dbModify := &entity.DBModify{}
 	if err := c.ShouldBindJSON(dbModify); err != nil {
 		response.New(c).JsonError(errors.NewErrBadRequest(err))
@@ -1274,7 +1327,7 @@ func (cluster *clusterAPI) ChangeReplicas(c *gin.Context) {
 	if dbModify.DbName == "" || dbModify.SpaceName == "" {
 		response.New(c).JsonError(errors.NewErrBadRequest(fmt.Errorf("dbModify info incorrect [%s]", dbStr)))
 	}
-	if err := cluster.masterService.ChangeReplica(ctx.(context.Context), dbModify); err != nil {
+	if err := cluster.masterService.ChangeReplica(c.Request.Context(), dbModify); err != nil {
 		response.New(c).JsonError(errors.NewErrInternal(fmt.Errorf("[%s] failed ChangeReplicas,err is %v", dbStr, err)))
 	} else {
 		response.New(c).JsonSuccess(fmt.Sprintf("[%s] success ChangeReplicas!", dbStr))

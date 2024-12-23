@@ -605,7 +605,7 @@ func (cliCache *clientCache) startCacheJob(ctx context.Context) error {
 	}
 	roleJob.start()
 
-	//init masters
+	// init masters
 	if err := cliCache.initMasters(); err != nil {
 		return err
 	}
@@ -1167,7 +1167,7 @@ func (wj *watcherJob) start() {
 										log.Error("%v", err)
 										continue
 									}
-									response, err := wj.masterClient.HTTPRequest(wj.ctx, http.MethodPost, "/partitions/change_member", string(reqBody))
+									response, err := wj.masterClient.HTTPRequest(wj.ctx, http.MethodPost, "/partitions/change_member?timeout=60000", string(reqBody))
 									if err != nil {
 										log.Error("%s: %v", string(reqBody), err)
 										continue
@@ -1193,7 +1193,7 @@ func (wj *watcherJob) start() {
 										log.Error("%v", err)
 										continue
 									}
-									response, err = wj.masterClient.HTTPRequest(wj.ctx, http.MethodPost, "/partitions/change_member", string(reqBody))
+									response, err = wj.masterClient.HTTPRequest(wj.ctx, http.MethodPost, "/partitions/change_member?timeout=60000", string(reqBody))
 									if err != nil {
 										log.Error("%v", err)
 										continue

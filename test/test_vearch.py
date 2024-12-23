@@ -437,7 +437,7 @@ class VearchCase:
     def test_documentDeleteByDocumentIds(self):
         logger.info("documentDeleteByDocumentIds")
         headers = {"content-type": "application/json"}
-        url = router_url + "/document/delete?trace=true"
+        url = router_url + "/document/delete?trace=true&timeout=30000"
         with open(fileData, "r") as dataLine1:
             for i, dataLine in zip(range(add_num), dataLine1):
                 idStr = dataLine.split(",", 1)[0].replace("{", "")
@@ -453,7 +453,7 @@ class VearchCase:
                     headers=headers,
                     data=json.dumps(data),
                 )
-                logger.debug("insertNoID:" + response.text)
+                logger.debug("deleteNoID:" + response.text)
                 assert response.status_code == 200
 
     def test_documentDeleteByFilter(self):

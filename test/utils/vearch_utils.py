@@ -164,7 +164,7 @@ def add_string_array(
 
 
 def process_add_embedding_size_data(items):
-    url = router_url + "/document/upsert"
+    url = router_url + "/document/upsert?timeout=30000"
     data = {}
     data["documents"] = []
 
@@ -188,18 +188,24 @@ def process_add_embedding_size_data(items):
         data["documents"].append(param_dict)
 
     rs = requests.post(url, auth=(username, password), json=data)
+    logger.debug(rs.text)
     assert rs.json()["code"] >= 0
     return rs
 
 
-def add_embedding_size(db_name, space_name, total, batch_size, embedding_size):
-    pool = ThreadPool()
+def add_embedding_size(db_name, space_name, total, batch_size, embedding_size, max_workers=10):
+    pool = ThreadPool(processes=max_workers)
     total_data = []
     for i in range(total):
         total_data.append((db_name, space_name, i, batch_size, embedding_size))
-    results = pool.map(process_add_embedding_size_data, total_data)
+
+    results = []
+    for i, result in enumerate(pool.imap(process_add_embedding_size_data, total_data)):
+        results.append(result)
+
     pool.close()
     pool.join()
+    return results
 
 
 def process_add_date_data(items):
@@ -1014,7 +1020,7 @@ def query_interface(
 
 
 def process_delete_data(items):
-    url = router_url + "/document/delete"
+    url = router_url + "/document/delete?timeout=300000"
     data = {}
 
     index = items[0]

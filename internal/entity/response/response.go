@@ -77,8 +77,9 @@ func (r *Response) JsonSuccess(data interface{}) {
 
 func (r *Response) SuccessDelete() {
 	httpReply := &HttpReply{
-		Code: int(vearchpb.ErrorEnum_SUCCESS),
-		Msg:  "",
+		Code:      int(vearchpb.ErrorEnum_SUCCESS),
+		RequestId: r.ginContext.GetHeader("X-Request-Id"),
+		Msg:       "",
 	}
 	r.SetHttpStatus(int64(http.StatusOK))
 	r.SendJson(httpReply)
@@ -86,8 +87,9 @@ func (r *Response) SuccessDelete() {
 
 func (r *Response) JsonError(err *errors.ErrRequest) {
 	httpReply := &HttpReply{
-		Code: err.Code(),
-		Msg:  err.Msg(),
+		Code:      err.Code(),
+		RequestId: r.ginContext.GetHeader("X-Request-Id"),
+		Msg:       err.Msg(),
 	}
 	r.SetHttpStatus(int64(err.HttpCode()))
 	r.SendJson(httpReply)

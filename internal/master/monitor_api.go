@@ -18,17 +18,14 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/vearch/vearch/v3/internal/config"
 	"github.com/vearch/vearch/v3/internal/monitor"
-	"github.com/vearch/vearch/v3/internal/pkg/server/vearchhttp"
 )
 
 type monitorApi struct {
 	router         *gin.Engine
 	monitorService *monitorService
-	dh             *vearchhttp.BaseHandler
 }
 
 func ExportToMonitorHandler(router *gin.Engine, monitorService *monitorService) {
-
 	monitor.Register(monitorService.Client, monitorService.etcdServer, config.Conf().Masters.Self().MonitorPort)
 	// monitorService.Register()
 }

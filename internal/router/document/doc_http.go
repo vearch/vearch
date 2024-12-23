@@ -20,12 +20,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/opentracing/opentracing-go"
 	"github.com/vearch/vearch/v3/internal/client"
 	"github.com/vearch/vearch/v3/internal/config"
@@ -33,6 +31,7 @@ import (
 	"github.com/vearch/vearch/v3/internal/entity/errors"
 	"github.com/vearch/vearch/v3/internal/entity/request"
 	"github.com/vearch/vearch/v3/internal/entity/response"
+	"github.com/vearch/vearch/v3/internal/master"
 	"github.com/vearch/vearch/v3/internal/monitor"
 	"github.com/vearch/vearch/v3/internal/pkg/log"
 	"github.com/vearch/vearch/v3/internal/pkg/netutil"
@@ -53,6 +52,7 @@ const (
 	URLParamUserName    = "user_name"
 	URLParamRoleName    = "role_name"
 	URLParamMemberId    = "member_id"
+	defaultTimeout      = 10 * time.Second
 )
 
 type DocumentHandler struct {
@@ -137,15 +137,16 @@ func ExportDocumentHandler(httpServer *gin.Engine, client *client.Client) {
 	var group *gin.RouterGroup
 	var groupProxy *gin.RouterGroup
 	if !config.Conf().Global.SkipAuth {
-		group = documentHandler.httpServer.Group("", documentHandler.handleTimeout, BasicAuthMiddleware(documentHandler.docService))
+		group = documentHandler.httpServer.Group("", BasicAuthMiddleware(documentHandler.docService))
 		// auth by master
-		groupProxy = documentHandler.httpServer.Group("", documentHandler.handleTimeout)
+		groupProxy = documentHandler.httpServer.Group("")
 	} else {
-		group = documentHandler.httpServer.Group("", documentHandler.handleTimeout)
-		groupProxy = documentHandler.httpServer.Group("", documentHandler.handleTimeout)
+		group = documentHandler.httpServer.Group("")
+		groupProxy = documentHandler.httpServer.Group("")
 	}
 
 	documentHandler.proxyMaster(groupProxy)
+	group.Use(master.TimeoutMiddleware(defaultTimeout))
 	// open router api
 	if err := documentHandler.ExportInterfacesToServer(group); err != nil {
 		panic(err)
@@ -263,11 +264,6 @@ func (handler *DocumentHandler) ExportInterfacesToServer(group *gin.RouterGroup)
 	return nil
 }
 
-func (handler *DocumentHandler) handleTimeout(c *gin.Context) {
-	messageID := uuid.NewString()
-	c.Set(entity.MessageID, messageID)
-}
-
 func (handler *DocumentHandler) handleRouterInfo(c *gin.Context) {
 	versionLayer := make(map[string]interface{})
 	versionLayer["build_version"] = config.GetBuildVersion()
@@ -315,12 +311,6 @@ func setRequestHead(params netutil.UriParams, r *http.Request) (head *vearchpb.R
 	head.DbName = params.ByName(URLParamDbName)
 	head.SpaceName = params.ByName(URLParamSpaceName)
 	head.Params = netutil.GetUrlQuery(r)
-	if timeout, ok := head.Params["timeout"]; ok {
-		var err error
-		if head.TimeOutMs, err = strconv.ParseInt(timeout, 10, 64); err != nil {
-			log.Warnf("timeout[%s] param parse to int failed, err: %s", timeout, err.Error())
-		}
-	}
 	return
 }
 
@@ -334,15 +324,6 @@ func setRequestHeadFromGin(c *gin.Context) (*vearchpb.RequestHead, error) {
 	for k, v := range c.Request.URL.Query() {
 		if len(v) > 0 {
 			head.Params[k] = v[0]
-		}
-	}
-
-	if timeout, ok := head.Params["timeout"]; ok {
-		var err error
-		if head.TimeOutMs, err = strconv.ParseInt(timeout, 10, 64); err != nil {
-			msg := fmt.Sprintf("timeout[%s] param parse to int failed, err: %s", timeout, err.Error())
-			log.Error(msg)
-			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf(msg))
 		}
 	}
 

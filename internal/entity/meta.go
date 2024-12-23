@@ -166,7 +166,6 @@ type CTX_KEY string
 
 var (
 	RPC_TIME_OUT CTX_KEY = "rpc_timeout"
-	MessageID            = "messageID"
 )
 
 type (

@@ -215,7 +215,7 @@ jobs:
         else
           echo "Status is yellow."
         fi
-        router_status=$(curl -u root:secret http://172.16.238.14:9001 || true)
+        router_status=$(curl -s -u root:secret http://172.16.238.14:9001 || true)
         if [ $? != 7 ]; then
           echo "Router status is not OK. Status is $router_status."
         else
@@ -269,11 +269,12 @@ jobs:
         pytest test_cluster_ps.py -x -k "TestFailServerPrepare" --log-cli-level=INFO
         cd .. && docker-compose -f cloud/docker-compose.yml start ps4
         docker-compose -f cloud/docker-compose.yml stop ps1
+        sleep 30
         max_retries=30
         retry=0
         success=false
         while [ $retry -lt $max_retries ]; do
-          servers=$(curl -s -L -u root:secret http://127.0.0.1:8817/servers)
+          servers=$(curl -s -L -u root:secret http://127.0.0.1:8817/servers?timeout=30000)
           status=$(echo $servers | jq -r '.data.servers[] | select(.server.ip == "172.16.238.19") | .partitions | length == 1')
           if [ "$status" == "true" ]; then
             success=true
@@ -290,7 +291,7 @@ jobs:
           echo "Error: ps4 partitions num should be 1 after $max_retries attempts."
           exit 1
         fi
-        sleep 10
+        sleep 30
 
         docker-compose -f cloud/docker-compose.yml start ps1
         retry=0
