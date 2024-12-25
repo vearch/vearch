@@ -490,7 +490,6 @@ func (ms *masterService) createSpaceService(ctx context.Context, dbName string, 
 	return nil
 }
 
-
 // selectServersForPartition selects servers for a partition based on the given criteria.
 // It ensures that the servers with the fewest replicas are chosen and applies anti-affinity by zone if configured.
 //
@@ -722,30 +721,45 @@ func (ms *masterService) queryDBs(ctx context.Context) ([]*entity.DB, error) {
 	return dbs, err
 }
 
-func (ms *masterService) describeSpaceService(ctx context.Context, space *entity.Space, spaceInfo *entity.SpaceInfo, detail_info bool) error {
+func (ms *masterService) describeSpaceService(ctx context.Context, space *entity.Space, spaceInfo *entity.SpaceInfo, detail_info bool) (int, error) {
 	spaceStatus := 0
 	color := []string{"green", "yellow", "red"}
 	spaceInfo.Errors = make([]string, 0)
+
+	// check partition num in meta data
+	if len(space.Partitions) != int(space.PartitionNum) {
+		spaceInfo.Errors = append(spaceInfo.Errors, fmt.Sprintf("space: [%s] partitions length:[%d] not equal to partition num:[%d]", space.Name, len(space.Partitions), space.PartitionNum))
+		spaceStatus = 2
+	}
+
 	for _, spacePartition := range space.Partitions {
 		p, err := ms.Master().QueryPartition(ctx, spacePartition.Id)
+		pStatus := 0
+
 		if err != nil {
-			spaceInfo.Errors = append(spaceInfo.Errors, fmt.Sprintf("partition:[%d] not found in space: [%s]", spacePartition.Id, space.Name))
+			spaceInfo.Errors = append(spaceInfo.Errors, fmt.Sprintf("partition:[%d] in space: [%s] not found in meta data", spacePartition.Id, space.Name))
+			pStatus = 2
+			if pStatus > spaceStatus {
+				spaceStatus = pStatus
+			}
 			continue
 		}
 
-		pStatus := 0
-
 		nodeID := p.LeaderID
 		if nodeID == 0 {
-			spaceInfo.Errors = append(spaceInfo.Errors, fmt.Sprintf("partition:[%d] no leader in space: [%s]", spacePartition.Id, space.Name))
-			pStatus = 2
-			nodeID = p.Replicas[0]
+			log.Error("partition:[%d] in space: [%s] leaderID is 0", spacePartition.Id, space.Name)
+			if len(p.Replicas) > 0 {
+				nodeID = p.Replicas[0]
+			}
 		}
 
 		server, err := ms.Master().QueryServer(ctx, nodeID)
 		if err != nil {
-			spaceInfo.Errors = append(spaceInfo.Errors, fmt.Sprintf("server:[%d] not found in space: [%s] , partition:[%d]", nodeID, space.Name, spacePartition.Id))
+			spaceInfo.Errors = append(spaceInfo.Errors, fmt.Sprintf("space: [%s] partition:[%d], server:[%d] not found", space.Name, spacePartition.Id, nodeID))
 			pStatus = 2
+			if pStatus > spaceStatus {
+				spaceStatus = pStatus
+			}
 			continue
 		}
 
@@ -769,6 +783,46 @@ func (ms *masterService) describeSpaceService(ctx context.Context, space *entity
 			}
 		}
 
+		if partitionInfo.RaftStatus != nil {
+			if partitionInfo.RaftStatus.Leader == 0 {
+				spaceInfo.Errors = append(spaceInfo.Errors, fmt.Sprintf("partition:[%d] in space:[%s] has no leader", spacePartition.Id, space.Name))
+				pStatus = 2
+			} else {
+				if len(partitionInfo.RaftStatus.Replicas) != int(space.ReplicaNum) {
+					spaceInfo.Errors = append(spaceInfo.Errors, fmt.Sprintf("partition:[%d] in space:[%s] replicas: [%d] is not equal to replicaNum: [%d]", spacePartition.Id, space.Name, len(partitionInfo.RaftStatus.Replicas), space.ReplicaNum))
+					pStatus = 2
+				} else {
+					replicaStateProbeNum := 0
+					leaderId := 0
+					for nodeID, replica := range partitionInfo.RaftStatus.Replicas {
+						// TODO FIXME: when leader changed, the unreachableNodeIDnre state may still be ReplicaStateProbe
+						isNodeUnreachable := false
+						for _, unreachableNodeID := range partitionInfo.Unreachable {
+							if nodeID == unreachableNodeID {
+								isNodeUnreachable = true
+								break
+							}
+						}
+						if isNodeUnreachable {
+							continue
+						}
+						if replica.State == entity.ReplicaStateProbe {
+							replicaStateProbeNum += 1
+							leaderId = int(nodeID)
+						}
+					}
+					if replicaStateProbeNum != 1 {
+						spaceInfo.Errors = append(spaceInfo.Errors, fmt.Sprintf("partition:[%d] in space:[%s] have [%d] leader", spacePartition.Id, space.Name, replicaStateProbeNum))
+						pStatus = 2
+					}
+					if leaderId != int(partitionInfo.RaftStatus.Leader) {
+						spaceInfo.Errors = append(spaceInfo.Errors, fmt.Sprintf("partition:[%d] in space:[%s] leader: [%d] is not equal to raft leader: [%d]", spacePartition.Id, space.Name, leaderId, partitionInfo.RaftStatus.Leader))
+						pStatus = 2
+					}
+				}
+			}
+		}
+
 		//this must from space.Partitions
 		partitionInfo.PartitionID = spacePartition.Id
 		partitionInfo.Name = spacePartition.Name
@@ -784,13 +838,22 @@ func (ms *masterService) describeSpaceService(ctx context.Context, space *entity
 			spaceStatus = pStatus
 		}
 	}
+
+	if len(spaceInfo.Errors) == 0 {
+		// some partition lost
+		if len(spaceInfo.Partitions) != space.PartitionNum {
+			spaceInfo.Errors = append(spaceInfo.Errors, fmt.Sprintf("space: [%s] partitions length:[%d] not equal to partition num:[%d]", space.Name, len(spaceInfo.Partitions), space.PartitionNum))
+			spaceStatus = 2
+		}
+	}
+
 	docNum := uint64(0)
 	for _, p := range spaceInfo.Partitions {
 		docNum += cast.ToUint64(p.DocNum)
 	}
 	spaceInfo.Status = color[spaceStatus]
 	spaceInfo.DocNum = docNum
-	return nil
+	return spaceStatus, nil
 }
 
 // createAliasService keys "/alias/alias_name:alias"
@@ -2348,9 +2411,10 @@ func (ms *masterService) partitionInfo(ctx context.Context, dbName string, space
 
 	color := []string{"green", "yellow", "red"}
 
-	var errors []string
-
-	spaceNames := strings.Split(spaceName, ",")
+	spaceNames := make([]string, 0)
+	if spaceName != "" {
+		spaceNames = strings.Split(spaceName, ",")
+	}
 
 	detail_info := false
 	if detail == "true" {
@@ -2360,129 +2424,84 @@ func (ms *masterService) partitionInfo(ctx context.Context, dbName string, space
 	resultInsideDbs := make([]map[string]interface{}, 0)
 	for i := range dbNames {
 		dbName := dbNames[i]
+		var errors []string
+
+		resultDb := make(map[string]interface{})
+		resultDb["db_name"] = dbName
 
 		dbId, err := ms.Master().QueryDBName2Id(ctx, dbName)
 		if err != nil {
-			errors = append(errors, dbName+" find dbID err: "+err.Error())
+			errors = append(errors, "db: "+dbName+" find dbID err: "+err.Error())
+			resultDb["errors"] = errors
+			resultInsideDbs = append(resultInsideDbs, resultDb)
 			continue
 		}
 
 		spaces, err := ms.Master().QuerySpaces(ctx, dbId)
 		if err != nil {
-			errors = append(errors, dbName+" find space err: "+err.Error())
+			errors = append(errors, "db: "+dbName+" find spaces err: "+err.Error())
+			resultDb["errors"] = errors
+			resultInsideDbs = append(resultInsideDbs, resultDb)
 			continue
 		}
 
 		dbStatus := 0
 
-		resultInsideSpaces := make([]map[string]interface{}, 0, len(spaces))
-		for _, space := range spaces {
-			spaceName := space.Name
+		resultInsideSpaces := make([]*entity.SpaceInfo, 0, len(spaces))
+		if len(spaceNames) == 0 {
+			for _, space := range spaces {
+				spaceName := space.Name
 
-			if len(spaceNames) > 1 || spaceNames[0] != "" { //filter spaceName by user define
-				var index = -1
+				spaceInfo := &entity.SpaceInfo{Name: spaceName, DbName: dbName, ReplicaNum: space.ReplicaNum, PartitionNum: space.PartitionNum}
+				spaceStatus, err := ms.describeSpaceService(ctx, space, spaceInfo, detail_info)
+				if err != nil {
+					log.Error(err.Error())
+					errors = append(errors, "db: "+dbName+" space: "+spaceName+" describe err: "+err.Error())
+					continue
+				}
+				resultInsideSpaces = append(resultInsideSpaces, spaceInfo)
 
-				for i, name := range spaceNames {
-					if name == spaceName {
+				if spaceStatus > dbStatus {
+					dbStatus = spaceStatus
+				}
+			}
+		} else {
+			for _, spaceName := range spaceNames {
+				index := -1
+				for i, space := range spaces {
+					if space.Name == spaceName {
 						index = i
 						break
 					}
 				}
 
 				if index < 0 {
-					continue
-				}
-			}
-
-			spaceStatus := 0
-			resultInsidePartition := make([]*entity.PartitionInfo, 0)
-			for _, spacePartition := range space.Partitions {
-				p, err := ms.Master().QueryPartition(ctx, spacePartition.Id)
-				if err != nil {
-					errors = append(errors, fmt.Sprintf("partition:[%d] not found in space: [%s]", spacePartition.Id, spaceName))
+					msg := fmt.Sprintf("db: %s space: %s not found", dbName, spaceName)
+					errors = append(errors, msg)
 					continue
 				}
 
-				pStatus := 0
-
-				nodeID := p.LeaderID
-				if nodeID == 0 {
-					errors = append(errors, fmt.Sprintf("partition:[%d] no leader in space: [%s]", spacePartition.Id, spaceName))
-					pStatus = 2
-					nodeID = p.Replicas[0]
-				}
-
-				server, err := ms.Master().QueryServer(ctx, nodeID)
+				spaceInfo := &entity.SpaceInfo{Name: spaceName, DbName: dbName, ReplicaNum: spaces[index].ReplicaNum, PartitionNum: spaces[index].PartitionNum}
+				spaceStatus, err := ms.describeSpaceService(ctx, spaces[index], spaceInfo, detail_info)
 				if err != nil {
-					errors = append(errors, fmt.Sprintf("server:[%d] not found in space: [%s], partition:[%d]", nodeID, spaceName, spacePartition.Id))
-					pStatus = 2
+					log.Error(err.Error())
+					errors = append(errors, "db: "+dbName+" space: "+spaceName+" describe err: "+err.Error())
 					continue
 				}
+				resultInsideSpaces = append(resultInsideSpaces, spaceInfo)
 
-				partitionInfo, err := client.PartitionInfo(server.RpcAddr(), p.Id, detail_info)
-				if err != nil {
-					errors = append(errors, fmt.Sprintf("query space:[%s] server:[%d] partition:[%d] info err :[%s]", spaceName, nodeID, spacePartition.Id, err.Error()))
-					partitionInfo = &entity.PartitionInfo{}
-					pStatus = 2
-				} else {
-					if len(partitionInfo.Unreachable) > 0 {
-						pStatus = 1
-					}
+				if spaceStatus > dbStatus {
+					dbStatus = spaceStatus
 				}
-
-				replicasStatus := make(map[entity.NodeID]string)
-				for nodeID, status := range p.ReStatusMap {
-					if status == entity.ReplicasOK {
-						replicasStatus[nodeID] = "ReplicasOK"
-					} else {
-						replicasStatus[nodeID] = "ReplicasNotReady"
-					}
-				}
-
-				//this must from space.Partitions
-				partitionInfo.PartitionID = spacePartition.Id
-				partitionInfo.Color = color[pStatus]
-				partitionInfo.ReplicaNum = len(p.Replicas)
-				partitionInfo.Ip = server.Ip
-				partitionInfo.NodeID = server.ID
-				partitionInfo.RepStatus = replicasStatus
-
-				resultInsidePartition = append(resultInsidePartition, partitionInfo)
-
-				if pStatus > spaceStatus {
-					spaceStatus = pStatus
-				}
-			}
-
-			docNum := uint64(0)
-			size := int64(0)
-			for _, p := range resultInsidePartition {
-				docNum += cast.ToUint64(p.DocNum)
-				size += cast.ToInt64(p.Size)
-			}
-			resultSpace := make(map[string]interface{})
-			resultSpace["name"] = spaceName
-			resultSpace["partition_num"] = len(resultInsidePartition)
-			resultSpace["replica_num"] = int(space.ReplicaNum)
-			resultSpace["doc_num"] = docNum
-			resultSpace["size"] = size
-			resultSpace["partitions"] = resultInsidePartition
-			resultSpace["status"] = color[spaceStatus]
-			resultInsideSpaces = append(resultInsideSpaces, resultSpace)
-
-			if spaceStatus > dbStatus {
-				dbStatus = spaceStatus
 			}
 		}
 
 		docNum := uint64(0)
+		// TODO: get size
 		size := int64(0)
 		for _, s := range resultInsideSpaces {
-			docNum += cast.ToUint64(s["doc_num"])
-			size += cast.ToInt64(s["size"])
+			docNum += cast.ToUint64(s.DocNum)
 		}
-		resultDb := make(map[string]interface{})
-		resultDb["db_name"] = dbName
 		resultDb["space_num"] = len(spaces)
 		resultDb["doc_num"] = docNum
 		resultDb["size"] = size

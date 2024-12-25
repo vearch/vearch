@@ -90,7 +90,8 @@ type SpaceSchema struct {
 }
 
 type SpaceInfo struct {
-	SpaceName     string           `json:"space_name"`
+	SpaceName     string           `json:"space_name,omitempty"`
+	Name          string           `json:"name,omitempty"` // for compitable with old version before v3.5.5, cluster health api use it
 	DbName        string           `json:"db_name"`
 	DocNum        uint64           `json:"doc_num"`
 	PartitionNum  int              `json:"partition_num"`

@@ -562,7 +562,7 @@ func (ca *clusterAPI) getSpace(c *gin.Context) {
 			spaceInfo.PartitionNum = space.PartitionNum
 			spaceInfo.ReplicaNum = space.ReplicaNum
 			spaceInfo.PartitionRule = space.PartitionRule
-			if err := ca.masterService.describeSpaceService(c, space, spaceInfo, detail_info); err != nil {
+			if _, err := ca.masterService.describeSpaceService(c, space, spaceInfo, detail_info); err != nil {
 				response.New(c).JsonError(errors.NewErrInternal(err))
 			} else {
 				response.New(c).JsonSuccess(spaceInfo)
@@ -583,7 +583,7 @@ func (ca *clusterAPI) getSpace(c *gin.Context) {
 				spaceInfo.PartitionNum = space.PartitionNum
 				spaceInfo.ReplicaNum = space.ReplicaNum
 				spaceInfo.PartitionRule = space.PartitionRule
-				if err := ca.masterService.describeSpaceService(c, space, spaceInfo, detail_info); err != nil {
+				if _, err := ca.masterService.describeSpaceService(c, space, spaceInfo, detail_info); err != nil {
 					response.New(c).JsonError(errors.NewErrInternal(err))
 					return
 				} else {

@@ -193,7 +193,9 @@ def process_add_embedding_size_data(items):
     return rs
 
 
-def add_embedding_size(db_name, space_name, total, batch_size, embedding_size, max_workers=10):
+def add_embedding_size(
+    db_name, space_name, total, batch_size, embedding_size, max_workers=10
+):
     pool = ThreadPool(processes=max_workers)
     total_data = []
     for i in range(total):
@@ -1478,8 +1480,18 @@ def get_cluster_stats(router_url: str):
     return resp
 
 
-def get_cluster_health(router_url: str):
-    url = f"{router_url}/cluster/health?detail=true"
+def get_cluster_health(
+    router_url: str, db_name: str = "", space_name: str = "", detail: bool = True
+):
+    url = f"{router_url}/cluster/health"
+    if detail:
+        url = url + "?detail=true"
+    else:
+        url = url + "?detail=false"
+    if db_name != "":
+        url = url + "&db=" + db_name
+    if space_name != "":
+        url = url + "&space=" + space_name
     resp = requests.get(url, auth=(username, password))
     return resp
 

@@ -116,6 +116,14 @@ jobs:
         pytest test_cluster_ps.py -k "TestClusterPartitionServerAdd" -x --log-cli-level=INFO
         cd ../cloud
         docker-compose stop ps1
+        curl -s -L -u root:secret http://127.0.0.1:8817/cluster/health?detail=true | jq
+        status=$(curl -s -L -u root:secret http://127.0.0.1:8817/cluster/health?detail=true\&timeout=1000000 | jq -r '.data[0].status')
+        if [ "$status" != "yellow" ]; then
+          echo "Error: Status is not yellow. Status is $status."
+          exit 1
+        else
+          echo "Status is yellow."
+        fi
         sleep 30
         docker-compose start ps1
         cd ../test
@@ -141,10 +149,32 @@ jobs:
         pytest test_cluster_ps.py -x -k "TestClusterFaultyPartitionServerGetMetaData" --log-cli-level=INFO
         cd ../cloud
         docker-compose stop ps1
+        curl -s -L -u root:secret http://127.0.0.1:8817/cluster/health?detail=true | jq
+        status=$(curl -s -L -u root:secret http://127.0.0.1:8817/cluster/health?detail=true\&timeout=1000000 | jq -r '.data[0].status')
+        if [ "$status" != "yellow" ]; then
+          echo "Error: Status is not yellow. Status is $status."
+          exit 1
+        else
+          echo "Status is yellow."
+        fi
         cd ../test
         pytest test_cluster_ps.py -x -k "TestClusterFaultyPartitionServerPrepareData" --log-cli-level=INFO
         pytest test_cluster_ps.py -x -k "TestClusterFaultyPartitionServerGetMetaData" --log-cli-level=INFO
         cd ../cloud && docker-compose stop ps2
+        status=$(curl -s -L -u root:secret http://127.0.0.1:8817/cluster/health?detail=true\&timeout=1000000 | jq -r '.data[0].status')
+        if [ "$status" != "red" ]; then
+          echo "Error: Status is not red. Status is $status."
+          exit 1
+        else
+          echo "Status is red."
+        fi
+        errors=$(curl -s -L -u root:secret http://127.0.0.1:8817/cluster/health?detail=true\&timeout=1000000 | jq -r '.data[0].spaces[].errors[] | select(contains("leader"))')
+        if [ -z "$errors" ]; then
+          echo "Error: errors is $errors."
+          exit 1
+        else
+          echo "$errors"
+        fi
         cd ../test
         # TODO remove sleep
         sleep 60
@@ -166,7 +196,7 @@ jobs:
         curl -s -L -u root:secret http://127.0.0.1:8817/schedule/clean_task
         sleep 10
         curl -s -L -u root:secret http://127.0.0.1:8817/servers | jq
-        curl -s -L -u root:secret http://127.0.0.1:8817/cluster/health?detail=true | jq
+        curl -s -L -u root:secret http://127.0.0.1:8817/cluster/health?detail=true\&timeout=1000000 | jq
 
     - name: Run tests for incomplete shared
       run: |
@@ -174,6 +204,22 @@ jobs:
         pytest test_cluster_ps.py -x -k "TestIncompleteShardPrepare" --log-cli-level=INFO
         cd ../cloud
         docker-compose stop ps1
+        status=$(curl -s -L -u root:secret http://127.0.0.1:8817/cluster/health?detail=true\&timeout=1000000 | jq -r '.data[0].status')
+        if [ "$status" != "red" ]; then
+          echo "Error: Status is not red. Status is $status."
+          exit 1
+        else
+          echo "Status is red."
+        fi
+        curl -s -L -u root:secret http://127.0.0.1:8817/cluster/health?detail=true\&timeout=1000000 | jq
+        errors=$(curl -s -L -u root:secret http://127.0.0.1:8817/cluster/health?detail=true\&timeout=1000000 | jq -r '.data[0].spaces[].errors[] | select(contains("call_rpcclient_failed"))')
+        errors2=$(curl -s -L -u root:secret http://127.0.0.1:8817/cluster/health?detail=true\&timeout=1000000 | jq -r '.data[0].spaces[].errors[] | select(contains("not found"))')
+        if [ -z "$errors" ] && [ -z "$errors2" ]; then
+          echo "Error: errors=$errors and errors2=$errors2."
+          exit 1
+        else
+          echo "errors=$errors and errors2=$errors2"
+        fi
         docker-compose stop ps2
         cd ../test
         # TODO remove sleep
@@ -181,6 +227,7 @@ jobs:
         pytest test_cluster_ps.py -x -k "TestIncompleteShardSearch" --log-cli-level=INFO
         cd ../cloud
         docker-compose stop ps3
+        curl -s -L -u root:secret http://127.0.0.1:8817/cluster/health?detail=true | jq
         docker-compose start ps1
         docker-compose start ps2
         docker-compose start ps3

@@ -88,6 +88,52 @@ class TestVearchClusterMonitor:
         logger.info(response.json())
         assert response.json()["code"] == 0
 
+    def test_health_without_detail(self):
+        response = get_cluster_health(router_url, detail=False)
+        logger.info(response.json())
+        assert response.json()["code"] == 0
+
+    def test_health_with_db_space(self):
+        response = get_cluster_health(
+            router_url, db_name=db_name, space_name=space_name
+        )
+        logger.info(response.json())
+        assert response.json()["code"] == 0
+
+    def test_health_with_wrong_db(self):
+        response = get_cluster_health(router_url, db_name="vearch")
+        logger.info(response.json())
+        assert response.json()["code"] == 0
+
+    def test_health_with_wrong_dbs(self):
+        response = get_cluster_health(router_url, db_name="vearch,vearch1")
+        logger.info(response.json())
+        assert response.json()["code"] == 0
+
+    def test_health_with_wrong_and_good_db(self):
+        response = get_cluster_health(router_url, db_name=db_name + ",vearch1")
+        logger.info(response.json())
+        assert response.json()["code"] == 0
+
+    def test_health_with_wrong_space(self):
+        response = get_cluster_health(router_url, db_name=db_name, space_name="vearch")
+        logger.info(response.json())
+        assert response.json()["code"] == 0
+
+    def test_health_with_wrong_spaces(self):
+        response = get_cluster_health(
+            router_url, db_name=db_name, space_name="vearch,vearch1"
+        )
+        logger.info(response.json())
+        assert response.json()["code"] == 0
+
+    def test_health_with_wrong_and_good_space(self):
+        response = get_cluster_health(
+            router_url, db_name=db_name, space_name=space_name + ",vearch1"
+        )
+        logger.info(response.json())
+        assert response.json()["code"] == 0
+
     def test_destroy_db(self):
         response = list_spaces(router_url, db_name)
         logger.info(response.json())

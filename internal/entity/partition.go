@@ -279,3 +279,8 @@ type List struct {
 	Name   string   `json:"name"`
 	Values []string `json:"values"`
 }
+
+const (
+	ReplicaStateProbe     = "ReplicaStateProbe"
+	ReplicaStateReplicate = "ReplicaStateReplicate"
+)
