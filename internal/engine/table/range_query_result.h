@@ -53,14 +53,12 @@ class RangeQueryResult {
       if (doc < min_ || doc > max_) {
         return true;
       }
-      doc -= min_aligned_;
-      return !bitmap::test(bitmap_, doc);
+      return !bitmap::test(bitmap_, doc - min_aligned_);
     } else {
       if (doc < min_ || doc > max_) {
         return false;
       }
-      doc -= min_aligned_;
-      return bitmap::test(bitmap_, doc);
+      return bitmap::test(bitmap_, doc - min_aligned_);
     }
   }
 
@@ -141,12 +139,6 @@ class RangeQueryResult {
 
   bool NotIn() { return b_not_in_; }
 
-  /**
-   * @return sorted docIDs
-   */
-  std::vector<int64_t> ToDocs() const;  // WARNING: build dynamically
-  void Output();
-
  private:
   int64_t min_;
   int64_t max_;
@@ -180,40 +172,15 @@ class MultiRangeQueryResults {
     return ret;
   }
 
-  void Clear() {
-    min_ = 0;
-    max_ = std::numeric_limits<int64_t>::max();
-    all_results_.clear();
-  }
+  void Clear() { all_results_.clear(); }
 
- public:
   size_t Size() { return all_results_.size(); }
+
   void Add(RangeQueryResult &&result) {
-    // the maximum of the minimum(s)
-    if (result.Min() > min_) {
-      min_ = result.Min();
-    }
-    // the minimum of the maximum(s)
-    if (result.Max() < max_) {
-      max_ = result.Max();
-    }
     all_results_.emplace_back(std::move(result));
   }
 
-  int64_t Min() const { return min_; }
-  int64_t Max() const { return max_; }
-
-  /** WARNING: build dynamically
-   * @return sorted docIDs
-   */
-  std::vector<int64_t> ToDocs() const;
-
-  const RangeQueryResult *GetAllResult() const { return &all_results_[0]; }
-
  private:
-  int64_t min_;
-  int64_t max_;
-
   std::vector<RangeQueryResult> all_results_;
 };
 

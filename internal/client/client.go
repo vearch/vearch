@@ -1300,7 +1300,7 @@ func GetNodeIdsByClientType(clientType string, partition *entity.Partition, serv
 func GetSortOrder(doc *vearchpb.ResultItem, space *entity.Space, sortFieldMap map[string]string, sortFields []*vearchpb.SortField) ([]sortorder.SortValue, string, error) {
 	sortValues := make([]sortorder.SortValue, len(sortFields))
 
-	if sortFieldMap != nil && sortFieldMap[mapping.ScoreField] != "" {
+	if sortFieldMap[mapping.ScoreField] != "" {
 		for i, v := range sortFields {
 			if v.Field == mapping.ScoreField {
 				sortValues[i] = &sortorder.FloatSortValue{
@@ -1324,7 +1324,7 @@ func GetSortOrder(doc *vearchpb.ResultItem, space *entity.Space, sortFieldMap ma
 		switch name {
 		case mapping.IdField:
 			pKey = string(fv.Value)
-			if sortFieldMap != nil && sortFieldMap[name] != "" {
+			if sortFieldMap[name] != "" {
 				for i, v := range sortFields {
 					if v.Field == name {
 						sortValues[i] = &sortorder.StringSortValue{
@@ -1344,7 +1344,7 @@ func GetSortOrder(doc *vearchpb.ResultItem, space *entity.Space, sortFieldMap ma
 			switch field.FieldType {
 			case vearchpb.FieldType_STRING:
 				tempValue := string(fv.Value)
-				if sortFieldMap != nil && sortFieldMap[name] != "" {
+				if sortFieldMap[name] != "" {
 					for i, v := range sortFields {
 						if v.Field == name {
 							sortValues[i] = &sortorder.StringSortValue{
@@ -1357,7 +1357,7 @@ func GetSortOrder(doc *vearchpb.ResultItem, space *entity.Space, sortFieldMap ma
 				}
 			case vearchpb.FieldType_INT:
 				intVal := cbbytes.Bytes2Int32(fv.Value)
-				if sortFieldMap != nil && sortFieldMap[name] != "" {
+				if sortFieldMap[name] != "" {
 					for i, v := range sortFields {
 						if v.Field == name {
 							sortValues[i] = &sortorder.IntSortValue{
@@ -1370,7 +1370,7 @@ func GetSortOrder(doc *vearchpb.ResultItem, space *entity.Space, sortFieldMap ma
 				}
 			case vearchpb.FieldType_LONG:
 				longVal := cbbytes.Bytes2Int(fv.Value)
-				if sortFieldMap != nil && sortFieldMap[name] != "" {
+				if sortFieldMap[name] != "" {
 					for i, v := range sortFields {
 						if v.Field == name {
 							sortValues[i] = &sortorder.IntSortValue{
@@ -1384,7 +1384,7 @@ func GetSortOrder(doc *vearchpb.ResultItem, space *entity.Space, sortFieldMap ma
 			case vearchpb.FieldType_FLOAT:
 				floatVal := cbbytes.ByteToFloat64(fv.Value)
 
-				if sortFieldMap != nil && sortFieldMap[name] != "" {
+				if sortFieldMap[name] != "" {
 					for i, v := range sortFields {
 						if v.Field == name {
 							sortValues[i] = &sortorder.FloatSortValue{
@@ -1397,7 +1397,7 @@ func GetSortOrder(doc *vearchpb.ResultItem, space *entity.Space, sortFieldMap ma
 				}
 			case vearchpb.FieldType_DOUBLE:
 				floatVal := cbbytes.ByteToFloat64(fv.Value)
-				if sortFieldMap != nil && sortFieldMap[name] != "" {
+				if sortFieldMap[name] != "" {
 					for i, v := range sortFields {
 						if v.Field == name {
 							sortValues[i] = &sortorder.FloatSortValue{

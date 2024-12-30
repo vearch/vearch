@@ -107,23 +107,21 @@ def prepare_filter_bound(conditions, index, batch_size, full_field, left, right)
         conditions.extend(range_filter)
 
 
-def process_get_data_by_filter(items):
-    url = router_url + "/document/query"
-    data = {}
-    data["db_name"] = db_name
-    data["space_name"] = space_name
-    data["vector_value"] = False
-
-    index = items[0]
+def process_get_data_by_filter(index: int, full_field: bool, mode: str, total: int):
+    url = f"{router_url}/document/query"
     batch_size = 1
-    full_field = items[1]
-    mode = items[2]
-    total = items[3]
-
-    data["filters"] = {
-        "operator": "AND",
-        "conditions": []
+    
+    data = {
+        "db_name": db_name,
+        "space_name": space_name,
+        "vector_value": False,
+        "filters": {
+            "operator": "AND",
+            "conditions": []
+        },
+        "limit": batch_size
     }
+
     if mode == "[]":
         prepare_filter_bound(data["filters"]["conditions"], index,
                              batch_size, full_field, ">=", "<=")
@@ -260,7 +258,7 @@ def process_get_data_by_filter(items):
             },
         ]
         data["filters"]["conditions"].extend(term_filter)
-    elif mode == "Hybrid":
+    elif mode == "Hybrid range NOT IN":
         prepare_filter_bound(data["filters"]["conditions"], index,
                              batch_size, full_field, ">=", "<")
         term_filter = [
@@ -271,6 +269,52 @@ def process_get_data_by_filter(items):
             },
         ]
         data["filters"]["conditions"].extend(term_filter)
+    elif mode == "Hybrid range IN":
+        prepare_filter_bound(data["filters"]["conditions"], index,
+                            batch_size, full_field, ">=", "<")
+        term_filter = [
+            {
+                "field": "field_string",
+                "operator": "IN",
+                "value": [str(index * batch_size), str((index + 1) * batch_size)]
+            },
+        ]
+        data["filters"]["conditions"].extend(term_filter)
+    elif mode == "Hybrid IN NOT IN":
+        in_filter = [
+            {
+                "field": "field_string",
+                "operator": "IN",
+                "value": [str(index * batch_size)]
+            }
+        ]
+        not_in_filter = [
+            {
+                "field": "field_string2",
+                "operator": "NOT IN",
+                "value": [str(index * batch_size)]
+            }
+        ]
+        data["filters"]["conditions"].extend(in_filter)
+        data["filters"]["conditions"].extend(not_in_filter)
+    elif mode == "No result":
+        term_filter = [
+            {
+                "field": "field_string",
+                "operator": "IN",
+                "value": [str(index * batch_size), str((index + 1) * batch_size)]
+            },
+        ]
+        term_filter2 = [
+            {
+                "field": "field_string2",
+                "operator": "IN",
+                "value": [str((index - 1) * batch_size)]
+            }
+        ]
+        data["filters"]["conditions"].extend(term_filter)
+        data["filters"]["conditions"].extend(term_filter2)
+
     data["limit"] = batch_size
 
     json_str = json.dumps(data)
@@ -343,15 +387,25 @@ def process_get_data_by_filter(items):
     elif mode == "NOT IN":
         for doc in documents:
             assert (doc["field_string"] != str(index) and doc["field_string"] != str(index + 1))
-    elif mode == "Hybrid":
+    elif mode == "Hybrid range NOT IN":
         for doc in documents:
             assert (doc["field_string"] != str(index) and doc["field_string"] != str(index + 1))
             assert (doc["field_int"] == index or doc["field_int"] == index + 1)
+    elif mode == "Hybrid range IN":
+        for doc in documents:
+            assert (doc["field_string"] == str(index) or doc["field_string"] == str(index + 1))
+            assert (doc["field_int"] == index)
+    elif mode == "Hybrid IN NOT IN":
+        for doc in documents:
+            assert doc["field_string"] == str(index * batch_size)
+            assert doc["field_string2"] != str(index * batch_size)
+    elif mode == "No result":
+        assert len(documents) == 0
 
 
 def query_by_filter_interface(total, full_field, mode: str):
     for i in range(total):
-        process_get_data_by_filter((i, full_field, mode, total))
+        process_get_data_by_filter(i, full_field, mode, total)
     logger.info("query_by_filter_interface finished")
 
 
@@ -421,6 +475,14 @@ def check(total, full_field, xb, mode: str):
             },
         },
         {
+            "name": "field_string2",
+            "type": "string",
+            "index": {
+                "name": "field_string2",
+                "type": "SCALAR",
+            },
+        },
+        {
             "name": "field_vector",
             "type": "vector",
             "index": {
@@ -438,7 +500,14 @@ def check(total, full_field, xb, mode: str):
 
     create(router_url, properties)
 
-    add(total_batch, 1, xb, with_id, full_field)
+    add(
+        total=total_batch, 
+        batch_size=1, 
+        xb=xb, 
+        with_id=with_id, 
+        full_field=full_field, 
+        has_string2=True
+    )
 
     logger.info("%s doc_num: %d" % (space_name, get_space_num()))
 
@@ -448,8 +517,8 @@ def check(total, full_field, xb, mode: str):
 
     assert get_space_num() == 0
     for i in range(total):
-        process_add_data((i, batch_size, xb[i * batch_size : (i + 1) * batch_size], with_id, full_field, 1, "", []))
-        process_get_data_by_filter((i, full_field, "[)", total))
+        process_add_data((i, batch_size, xb[i * batch_size : (i + 1) * batch_size], with_id, full_field, 1, "", [], False))
+        process_get_data_by_filter(i, full_field, "[)", total)
         assert get_space_num() == i + 1
 
     for i in range(total):
@@ -479,7 +548,10 @@ def check(total, full_field, xb, mode: str):
     [True, "[valid_value, upper_bound]"],
     [True, "IN"],
     [True, "NOT IN"],
-    [True, "Hybrid"],
+    [True, "Hybrid range NOT IN"],
+    [True, "Hybrid range IN"],
+    [True, "Hybrid IN NOT IN"],
+    [True, "No result"],
 ])
 def test_module_filter(full_field: bool, mode: str):
     check(100, full_field, xb, mode)

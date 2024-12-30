@@ -272,7 +272,7 @@ func processProperty(docVal *DocVal, v *fastjson.Value, indexType string, pro *e
 	}
 
 	if v.Type() == fastjson.TypeNull {
-		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("field name [%s]  type is null", fieldName))
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("field name [%s] type is null", fieldName))
 	}
 
 	field := &vearchpb.Field{Name: fieldName}

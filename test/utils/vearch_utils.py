@@ -48,6 +48,7 @@ def process_add_data(items):
     seed = items[5]
     alias_name = items[6]
     partitions = items[7]
+    has_string2 = items[8]
     if len(partitions) > 0:
         data["partitions"] = partitions
     if alias_name != "":
@@ -63,6 +64,8 @@ def process_add_data(items):
             param_dict["field_float"] = float(param_dict["field_int"])
             param_dict["field_double"] = float(param_dict["field_int"])
             param_dict["field_string"] = str(param_dict["field_int"])
+            if has_string2:
+                param_dict["field_string2"] = str(param_dict["field_int"] + 1)
         data["documents"].append(param_dict)
 
     rs = requests.post(url, auth=(username, password), json=data)
@@ -79,6 +82,7 @@ def add(
     seed=1,
     alias_name="",
     partitions=[],
+    has_string2=False,
 ):
     pool = ThreadPool()
     total_data = []
@@ -93,6 +97,7 @@ def add(
                 seed,
                 alias_name,
                 partitions,
+                has_string2,
             )
         )
     results = pool.map(process_add_data, total_data)

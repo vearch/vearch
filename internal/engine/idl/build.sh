@@ -1,6 +1,6 @@
 #!/bin/bash
 
-BASE_PATH=$(pwd)
+BASE_PATH=$(realpath $(dirname "$0"))
 FBS_GEN_PATH=fbs-gen
 
 THIRD_PARTY=$BASE_PATH/../third_party
