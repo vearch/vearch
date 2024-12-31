@@ -792,10 +792,6 @@ func requestToPb(searchDoc *request.SearchDocumentRequest, space *entity.Space, 
 		vectorFieldArr := make([]string, 0)
 		if searchReq.Fields == nil || len(searchReq.Fields) == 0 {
 			searchReq.Fields = make([]string, 0)
-			spaceProKeyMap := space.SpaceProperties
-			if spaceProKeyMap == nil {
-				spaceProKeyMap, _ = entity.UnmarshalPropertyJSON(space.Fields)
-			}
 			for fieldName, property := range spaceProKeyMap {
 				if property.Type != "vector" {
 					searchReq.Fields = append(searchReq.Fields, fieldName)

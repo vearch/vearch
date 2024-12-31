@@ -554,8 +554,8 @@ func (handler *DocumentHandler) handleDocumentSearch(c *gin.Context) {
 	searchReq.Head.SpaceName = searchDoc.SpaceName
 
 	trace := config.Trace
-	if trace_info, ok := searchReq.Head.Params["trace"]; ok {
-		if trace_info == "true" {
+	if bTrace, ok := searchReq.Head.Params["trace"]; ok {
+		if bTrace == "true" {
 			trace = true
 		}
 	}

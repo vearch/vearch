@@ -116,7 +116,7 @@ func (handler *UnaryHandler) Execute(ctx context.Context, req *vearchpb.Partitio
 		timeout = int(time.Until(deadline).Seconds() * 1000)
 	}
 	if s, ok := reqMap[string(entity.RPC_TIME_OUT)]; ok {
-		if t, ok := strconv.Atoi(s); ok == nil {
+		if t, err := strconv.Atoi(s); err == nil {
 			if t > 0 {
 				timeout = t
 			}
@@ -125,14 +125,14 @@ func (handler *UnaryHandler) Execute(ctx context.Context, req *vearchpb.Partitio
 	delayTime := time.Duration(timeout) * time.Millisecond
 	ctx, cancel := context.WithTimeout(ctx, delayTime)
 	defer cancel()
-	stopCh := make(chan struct{})
+	doneCh := make(chan struct{})
 
 	go func(ctx context.Context, req *vearchpb.PartitionData) {
 		handler.execute(ctx, req)
-		close(stopCh)
+		close(doneCh)
 	}(ctx, req)
 	select {
-	case <-stopCh:
+	case <-doneCh:
 		reply.PartitionID = req.PartitionID
 		reply.MessageID = req.MessageID
 		reply.Items = req.Items
@@ -341,11 +341,22 @@ func query(ctx context.Context, store PartitionStore, request *vearchpb.QueryReq
 }
 
 func search(ctx context.Context, store PartitionStore, request *vearchpb.SearchRequest, response *vearchpb.SearchResponse) {
+	defer func() {
+		if r := recover(); r != nil {
+			response.Head.Err = &vearchpb.Error{
+				Code: vearchpb.ErrorEnum_INTERNAL_ERROR,
+				Msg:  cast.ToString(r),
+			}
+		}
+	}()
+
 	startTime := time.Now()
 	if err := store.Search(ctx, request, response); err != nil {
 		log.Error("search doc failed, err: [%s]", err.Error())
 		response.Head.Err = vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err).GetError()
+		return
 	}
+
 	partitionIDstr := strconv.FormatUint(uint64(store.GetEngine().GetPartitionID()), 10)
 	storeSearch := (time.Since(startTime).Seconds()) * 1000
 	storeSearchStr := strconv.FormatFloat(storeSearch, 'f', 4, 64)
@@ -356,11 +367,6 @@ func search(ctx context.Context, store PartitionStore, request *vearchpb.SearchR
 		costTimeMap := make(map[string]string)
 		costTimeMap["storeSearch_"+partitionIDstr] = storeSearchStr
 	}
-	defer func() {
-		if r := recover(); r != nil {
-			response.Head.Err = &vearchpb.Error{Code: vearchpb.ErrorEnum_INTERNAL_ERROR, Msg: cast.ToString(r)}
-		}
-	}()
 }
 
 func forceMerge(store PartitionStore) *vearchpb.Error {

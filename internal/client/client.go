@@ -737,8 +737,8 @@ func (r *routerRequest) SearchFieldSortExecute(sortOrder sortorder.SortOrder) *v
 		if pData.SearchRequest == nil {
 			continue
 		}
-		if trace_info, ok := pData.SearchRequest.Head.Params["trace"]; ok {
-			if trace_info == "true" {
+		if bTrace, ok := pData.SearchRequest.Head.Params["trace"]; ok {
+			if bTrace == "true" {
 				trace = true
 				break
 			}

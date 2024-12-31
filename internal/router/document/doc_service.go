@@ -38,7 +38,7 @@ func newDocService(client *client.Client) *docService {
 	}
 }
 
-func setTimeOut(ctx context.Context, head *vearchpb.RequestHead) (context.Context, context.CancelFunc) {
+func setTimeout(ctx context.Context, head *vearchpb.RequestHead) (context.Context, context.CancelFunc) {
 	timeout := defaultRpcTimeOut
 	if config.Conf().Router.RpcTimeOut > 0 {
 		timeout = int64(config.Conf().Router.RpcTimeOut)
@@ -53,7 +53,7 @@ func setTimeOut(ctx context.Context, head *vearchpb.RequestHead) (context.Contex
 }
 
 func (docService *docService) getDocs(ctx context.Context, args *vearchpb.GetRequest) *vearchpb.GetResponse {
-	ctx, cancel := setTimeOut(ctx, args.Head)
+	ctx, cancel := setTimeout(ctx, args.Head)
 	defer cancel()
 	reply := &vearchpb.GetResponse{Head: newOkHead()}
 	request := client.NewRouterRequest(ctx, docService.client)
