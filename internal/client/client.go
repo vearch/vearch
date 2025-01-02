@@ -796,11 +796,11 @@ func (r *routerRequest) SearchFieldSortExecute(sortOrder sortorder.SortOrder) *v
 
 		if len(result) <= len(r.PartitionData.SearchResponse.Results) {
 			for i := range result {
-				AddMergeSort(result[i], r.PartitionData.SearchResponse.Results[i], sortOrder[0].GetSortOrder())
+				AddMergeSort(result[i], r.PartitionData.SearchResponse.Results[i], int(searchReq.TopN), sortOrder[0].GetSortOrder())
 			}
 		} else {
 			for i := range r.PartitionData.SearchResponse.Results {
-				AddMergeSort(result[i], r.PartitionData.SearchResponse.Results[0], sortOrder[0].GetSortOrder())
+				AddMergeSort(result[i], r.PartitionData.SearchResponse.Results[0], int(searchReq.TopN), sortOrder[0].GetSortOrder())
 			}
 		}
 	}
@@ -1464,6 +1464,21 @@ func mergeSortedArrays(arr1, arr2 []*vearchpb.ResultItem, topN int, desc bool) [
 	m, n := len(arr1), len(arr2)
 	merged := make([]*vearchpb.ResultItem, 0, m+n)
 
+	if m == 0 {
+		if topN > 0 && n > topN {
+			return arr2[:topN]
+		} else {
+			return arr2
+		}
+	}
+	if n == 0 {
+		if topN > 0 && m > topN {
+			return arr1[:topN]
+		} else {
+			return arr1
+		}
+	}
+
 	i, j := 0, 0
 	if desc {
 		for i < m && j < n {
@@ -1506,7 +1521,7 @@ func mergeSortedArrays(arr1, arr2 []*vearchpb.ResultItem, topN int, desc bool) [
 	return merged
 }
 
-func AddMergeSort(sr *vearchpb.SearchResult, other *vearchpb.SearchResult, desc bool) {
+func AddMergeSort(sr *vearchpb.SearchResult, other *vearchpb.SearchResult, topN int, desc bool) {
 	Merge(sr.Status, other.Status)
 
 	sr.TotalHits += other.TotalHits
@@ -1522,7 +1537,7 @@ func AddMergeSort(sr *vearchpb.SearchResult, other *vearchpb.SearchResult, desc 
 	sr.Timeout = sr.Timeout && other.Timeout
 
 	if len(sr.ResultItems) > 0 || len(other.ResultItems) > 0 {
-		sr.ResultItems = mergeSortedArrays(sr.ResultItems, other.ResultItems, len(sr.ResultItems), desc)
+		sr.ResultItems = mergeSortedArrays(sr.ResultItems, other.ResultItems, topN, desc)
 	}
 }
 

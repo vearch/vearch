@@ -187,9 +187,7 @@ class TestDocumentQueryBadCase:
         wrong_parameters[index] = True
         total_batch = 1
         batch_size = 2
-        query_error(
-            total_batch, batch_size, self.xb, "query", wrong_parameters
-        )
+        query_error(total_batch, batch_size, self.xb, "query", wrong_parameters)
 
     # destroy for badcase
 
@@ -257,5 +255,132 @@ class TestDocumentQueryOnSpecifyPartition:
             assert len(response.json()["data"]["documents"]) == 1
             assert response.json()["data"]["documents"][0]["_docid"] == str(i + 1)
 
+    def test_destroy_cluster(self):
+        destroy(router_url, db_name, space_name)
+
+
+class TestDocumentQueryEmptyShard:
+    def setup_class(self):
+        self.xb = xb
+
+    # prepare for cluster
+    def test_prepare_cluster(self):
+        embedding_size = self.xb.shape[1]
+        properties = {}
+        properties["fields"] = [
+            {
+                "name": "field_int",
+                "type": "integer",
+                "index": {
+                    "name": "field_int",
+                    "type": "SCALAR",
+                },
+            },
+            {
+                "name": "field_long",
+                "type": "long",
+            },
+            {
+                "name": "field_float",
+                "type": "float",
+            },
+            {
+                "name": "field_double",
+                "type": "double",
+                "index": {
+                    "name": "field_double",
+                    "type": "SCALAR",
+                },
+            },
+            {
+                "name": "field_string",
+                "type": "string",
+                "index": {
+                    "name": "field_string",
+                    "type": "SCALAR",
+                },
+            },
+            {
+                "name": "field_vector",
+                "type": "vector",
+                "index": {
+                    "name": "gamma",
+                    "type": "FLAT",
+                    "params": {
+                        "metric_type": "L2",
+                    },
+                },
+                "dimension": embedding_size,
+                "store_type": "MemoryOnly",
+                # "format": "normalization"
+            },
+        ]
+        create_for_document_test(router_url, embedding_size, properties, 5)
+
+    def test_vearch_document_query(self):
+        total_batch = 1
+        batch_size = 1
+        with_id = False
+        full_field = True
+
+        data = {}
+        data["db_name"] = db_name
+        data["space_name"] = space_name
+        data["limit"] = 10
+        data["filters"] = {
+            "operator": "AND",
+            "conditions": [
+                {
+                    "field": "field_int",
+                    "operator": ">=",
+                    "value": 0,
+                },
+            ],
+        }
+
+        json_str = json.dumps(data)
+        url = router_url + "/document/query"
+
+        rs = requests.post(url, auth=(username, password), data=json_str)
+        assert rs.json()["code"] == 0
+        # hava result
+        assert rs.json()["data"]["total"] == 0
+
+        add(total_batch, batch_size, xb, with_id, full_field)
+
+        rs = requests.post(url, auth=(username, password), data=json_str)
+        assert rs.json()["code"] == 0
+        # hava result
+        assert rs.json()["data"]["total"] == 1
+
+        add(total_batch, batch_size, xb, with_id, full_field)
+
+        rs = requests.post(url, auth=(username, password), data=json_str)
+        assert rs.json()["code"] == 0
+        # hava result
+        assert rs.json()["data"]["total"] == 2
+
+        add(total_batch, batch_size, xb, with_id, full_field)
+
+        rs = requests.post(url, auth=(username, password), data=json_str)
+        assert rs.json()["code"] == 0
+        # hava result
+        assert rs.json()["data"]["total"] == 3
+
+        add(total_batch, batch_size, xb, with_id, full_field)
+
+        rs = requests.post(url, auth=(username, password), data=json_str)
+        assert rs.json()["code"] == 0
+        # hava result
+        assert rs.json()["data"]["total"] == 4
+
+        add(total_batch, batch_size, xb, with_id, full_field)
+
+        rs = requests.post(url, auth=(username, password), data=json_str)
+        assert rs.json()["code"] == 0
+        # hava result
+        assert rs.json()["data"]["total"] == 5
+
+    # destroy
     def test_destroy_cluster(self):
         destroy(router_url, db_name, space_name)

@@ -537,3 +537,126 @@ class TestDocumentSearchBadCase:
     # destroy for badcase
     def test_destroy_cluster_badcase(self):
         destroy(router_url, db_name, space_name)
+
+
+class TestDocumentSearchEmptyShard:
+    def setup_class(self):
+        self.xb = xb
+
+    # prepare for cluster
+    def test_prepare_cluster(self):
+        embedding_size = self.xb.shape[1]
+        properties = {}
+        properties["fields"] = [
+            {
+                "name": "field_int",
+                "type": "integer",
+                "index": {
+                    "name": "field_int",
+                    "type": "SCALAR",
+                },
+            },
+            {
+                "name": "field_long",
+                "type": "long",
+            },
+            {
+                "name": "field_float",
+                "type": "float",
+            },
+            {
+                "name": "field_double",
+                "type": "double",
+                "index": {
+                    "name": "field_double",
+                    "type": "SCALAR",
+                },
+            },
+            {
+                "name": "field_string",
+                "type": "string",
+                "index": {
+                    "name": "field_string",
+                    "type": "SCALAR",
+                },
+            },
+            {
+                "name": "field_vector",
+                "type": "vector",
+                "index": {
+                    "name": "gamma",
+                    "type": "FLAT",
+                    "params": {
+                        "metric_type": "L2",
+                    },
+                },
+                "dimension": embedding_size,
+                "store_type": "MemoryOnly",
+                # "format": "normalization"
+            },
+        ]
+        create_for_document_test(router_url, embedding_size, properties, 5)
+
+    def test_vearch_document_search(self):
+        total_batch = 1
+        batch_size = 1
+        with_id = False
+        full_field = True
+
+        data = {}
+        data["db_name"] = db_name
+        data["space_name"] = space_name
+        data["limit"] = 10
+        data["vectors"] = []
+        vector_info = {
+            "field": "field_vector",
+            "feature": xb[:1].flatten().tolist(),
+        }
+        data["vectors"].append(vector_info)
+
+        json_str = json.dumps(data)
+        url = router_url + "/document/search"
+
+        rs = requests.post(url, auth=(username, password), data=json_str)
+        assert rs.json()["code"] == 0
+        # hava result
+        assert len(rs.json()["data"]["documents"][0]) == 0
+
+        add(total_batch, batch_size, xb, with_id, full_field)
+
+        rs = requests.post(url, auth=(username, password), data=json_str)
+        assert rs.json()["code"] == 0
+        # hava result
+        assert len(rs.json()["data"]["documents"][0]) == 1
+
+        add(total_batch, batch_size, xb, with_id, full_field)
+
+        rs = requests.post(url, auth=(username, password), data=json_str)
+        assert rs.json()["code"] == 0
+        # hava result
+        assert len(rs.json()["data"]["documents"][0]) == 2
+
+        add(total_batch, batch_size, xb, with_id, full_field)
+
+        rs = requests.post(url, auth=(username, password), data=json_str)
+        assert rs.json()["code"] == 0
+        # hava result
+        assert len(rs.json()["data"]["documents"][0]) == 3
+
+        add(total_batch, batch_size, xb, with_id, full_field)
+
+        rs = requests.post(url, auth=(username, password), data=json_str)
+        assert rs.json()["code"] == 0
+        # hava result
+        assert len(rs.json()["data"]["documents"][0]) == 4
+
+        add(total_batch, batch_size, xb, with_id, full_field)
+
+        rs = requests.post(url, auth=(username, password), data=json_str)
+        assert rs.json()["code"] == 0
+        # hava result
+        assert len(rs.json()["data"]["documents"][0]) == 5
+
+    # destroy
+    def test_destroy_cluster(self):
+        destroy(router_url, db_name, space_name)
