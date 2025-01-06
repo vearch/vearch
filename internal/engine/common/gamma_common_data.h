@@ -89,11 +89,10 @@ class SearchCondition : public RetrievalContext {
     return (score <= max_score) && (score >= min_score);
   };
 
-  bool IsValid(int id) const override {
+  bool IsValid(int64_t id) const override {
 #ifndef FAISSLIKE_INDEX
-    int docid = id;
-    if ((range_query_result != nullptr && not range_query_result->Has(docid)) ||
-        docids_bitmap->Test(docid) == true) {
+    if ((range_query_result != nullptr && not range_query_result->Has(id)) ||
+        docids_bitmap->Test(id)) {
       return false;
     }
 #endif

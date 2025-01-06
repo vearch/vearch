@@ -19,11 +19,14 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"os"
 	"sort"
 	"strings"
 	"time"
 
 	"github.com/cubefs/cubefs/depends/tiglabs/raft/proto"
+	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/pkg/errors"
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/v3/internal/client"
@@ -1658,7 +1661,140 @@ func (ms *masterService) updateEngineConfig(ctx context.Context, space *entity.S
 }
 
 func (ms *masterService) BackupSpace(ctx context.Context, dbName, spaceName string, backup *entity.BackupSpace) (err error) {
-	defer errutil.CatchError(&err)
+	clusterName := config.Conf().Global.Name
+
+	if backup.Command == "create" {
+		dbID, err := ms.Master().QueryDBName2Id(ctx, dbName)
+		if err != nil {
+			return err
+		}
+
+		space, err := ms.Master().QuerySpaceByName(ctx, dbID, spaceName)
+		if err != nil {
+			return err
+		}
+
+		spaceJson, err := vjson.Marshal(space)
+		if err != nil {
+			log.Error("vjson.Marshal err: %v", err)
+		}
+
+		backupFileName := space.Name + ".schema"
+
+		err = os.WriteFile(backupFileName, spaceJson, 0644)
+		if err != nil {
+			err := fmt.Errorf("error writing to file: %v", err)
+			log.Error(err)
+			return err
+		}
+
+		minioClient, err := minio.New(backup.S3Param.EndPoint, &minio.Options{
+			Creds:  credentials.NewStaticV4(backup.S3Param.AccessKey, backup.S3Param.SecretKey, ""),
+			Secure: backup.S3Param.UseSSL,
+		})
+		if err != nil {
+			err = fmt.Errorf("failed to create minio client: %+v", err)
+			log.Error(err)
+			return err
+		}
+		bucketName := backup.S3Param.BucketName
+		objectName := fmt.Sprintf("%s/%s/%s/%s.schema", clusterName, dbName, space.Name, space.Name)
+		_, err = minioClient.FPutObject(context.Background(), bucketName, objectName, backupFileName, minio.PutObjectOptions{ContentType: "application/octet-stream"})
+		if err != nil {
+			err = fmt.Errorf("failed to backup space: %+v", err)
+			log.Error(err)
+			return err
+		}
+		log.Info("backup schema success, file is [%s]", backupFileName)
+		os.Remove(backupFileName)
+	} else if backup.Command == "restore" {
+		dbID, err := ms.Master().QueryDBName2Id(ctx, dbName)
+		if err != nil {
+			return err
+		}
+
+		_, err = ms.Master().QuerySpaceByName(ctx, dbID, spaceName)
+		if err == nil {
+			err = fmt.Errorf("space duplicate")
+			return err
+		}
+		minioClient, err := minio.New(backup.S3Param.EndPoint, &minio.Options{
+			Creds:  credentials.NewStaticV4(backup.S3Param.AccessKey, backup.S3Param.SecretKey, ""),
+			Secure: backup.S3Param.UseSSL,
+		})
+		if err != nil {
+			err := fmt.Errorf("failed to create minio client: %+v", err)
+			log.Error(err)
+			return err
+		}
+
+		backupFileName := spaceName + ".schema"
+		bucketName := backup.S3Param.BucketName
+		objectName := fmt.Sprintf("%s/%s/%s/%s.schema", clusterName, dbName, spaceName, spaceName)
+		err = minioClient.FGetObject(ctx, bucketName, objectName, backupFileName, minio.GetObjectOptions{})
+		if err != nil {
+			err := fmt.Errorf("failed to download file from S3: %+v", err)
+			log.Error(err)
+			return err
+		}
+		defer os.Remove(backupFileName)
+		log.Info("downloaded backup file from S3: %s", backupFileName)
+
+		spaceJson, err := os.ReadFile(backupFileName)
+		if err != nil {
+			err := fmt.Errorf("error read file:%v", err)
+			log.Error(err)
+			return err
+		}
+
+		log.Debug("%s", spaceJson)
+		space := &entity.Space{}
+		err = vjson.Unmarshal(spaceJson, space)
+		if err != nil {
+			err := fmt.Errorf("unmarshal file: %v", err)
+			log.Error(err)
+			return err
+		}
+
+		partitionNum := len(space.Partitions)
+		space.Partitions = make([]*entity.Partition, 0)
+
+		objectCh := minioClient.ListObjects(ctx, bucketName, minio.ListObjectsOptions{
+			Recursive: true,
+		})
+
+		patitionMap := make(map[string]string, 0)
+		for object := range objectCh {
+			if object.Err != nil {
+				fmt.Println(object.Err)
+				continue
+			}
+			if strings.HasSuffix(object.Key, ".json.zst") {
+				patitionMap[object.Key] = object.Key
+			}
+		}
+
+		if len(patitionMap) != partitionNum {
+			err = fmt.Errorf("oss partition num %d not equal schema %d", len(patitionMap), partitionNum)
+			return err
+		}
+		if err := ms.createSpaceService(ctx, dbName, space); err != nil {
+			log.Error("createSpaceService err: %v", err)
+			return err
+		}
+
+		cfg, err := ms.GetEngineCfg(ctx, dbName, spaceName)
+		if err != nil {
+			log.Error("get engine config err: %s", err.Error())
+			return err
+		}
+
+		err = ms.updateEngineConfig(ctx, space, cfg)
+		if err != nil {
+			log.Error("update engine config err: %s", err.Error())
+			return err
+		}
+	}
 	// get space info
 	dbId, err := ms.Master().QueryDBName2Id(ctx, dbName)
 	if err != nil {

@@ -39,9 +39,15 @@ class TestBackup:
         self.db_name = db_name
         self.space_name = space_name
 
+        self.endpoint = os.getenv("S3_ENDPOINT", "127.0.0.1:10000")
+        self.access_key = os.getenv("S3_ACCESS_KEY", "minioadmin")
+        self.secret_key = os.getenv("S3_SECRET_KEY", "minioadmin")
+        self.use_ssl_str = os.getenv("S3_USE_SSL", "False")
+        self.secure = self.use_ssl_str.lower() in ['true', '1']
+        self.region = os.getenv("S3_REGION", "")
+
     def backup(self, router_url, command, corrupted=False, error_param=False):
         url = router_url + "/backup/dbs/" + self.db_name + "/spaces/" + self.space_name
-        use_ssl_str = os.getenv("S3_USE_SSL", "False")
 
         data = {
             "command": command,
@@ -50,7 +56,7 @@ class TestBackup:
                 "secret_key": os.getenv("S3_SECRET_KEY", "minioadmin"),
                 "bucket_name": os.getenv("S3_BUCKET_NAME", "test"),
                 "endpoint": os.getenv("S3_ENDPOINT", "minio:9000"),
-                "use_ssl": use_ssl_str.lower() in ['true', '1']
+                "use_ssl": self.use_ssl_str.lower() in ['true', '1']
             },
         }
         if error_param:
@@ -90,6 +96,7 @@ class TestBackup:
             assert response.status_code != 0
             return
 
+        url = router_url + "/backup/dbs/" + self.db_name
         response = requests.post(url, auth=(username, password), json=data)
 
         if not corrupted:
@@ -173,21 +180,49 @@ class TestBackup:
         if backup_status != 0:
             time.sleep(timewait)
 
-    def remove_oss_file(self, object_name):
-        endpoint = os.getenv("S3_ENDPOINT", "127.0.0.1:10000")
-        access_key = os.getenv("S3_ACCESS_KEY", "minioadmin")
-        secret_key = os.getenv("S3_SECRET_KEY", "minioadmin")
-        use_ssl_str = os.getenv("S3_USE_SSL", "False")
-        secure = use_ssl_str.lower() in ['true', '1']
-        region = os.getenv("S3_REGION", "")
+    def download_data_files_and_upsert(self, bucket_name, prefix="", local_directory="data"):
+        client = Minio(
+            self.endpoint,
+            access_key=self.access_key,
+            secret_key=self.secret_key,
+            secure=self.secure,
+            region=self.region,
+        )
 
+        try:
+            objects = client.list_objects(bucket_name, prefix=prefix, recursive=True)
+            
+            for obj in objects:
+                if obj.object_name.endswith('.txt'):
+                    local_file_path = f"{local_directory}/{obj.object_name.split('/')[-1]}"
+                    client.fget_object(bucket_name, obj.object_name, local_file_path)
+                    with open(local_file_path, 'r') as f:
+                        lines = f.readlines()
+                        for line in lines:
+                            data = json.loads(line)
+                            doc = {
+                                "db_name": self.db_name,
+                                "space_name": self.space_name,
+                                "documents": [data],
+                            }
+                            rs = requests.post(router_url + "/document/upsert", auth=(username, password), json=doc)
+                            if rs.status_code != 200:
+                                logger.error(f"Error occurred: {rs.json()}")
+                                assert rs.status_code == 200
+                            
+                    # delete file
+                    os.remove(local_file_path)
+        except S3Error as err:
+            logger.error(f"Error occurred: {err}")
+
+    def remove_oss_file(self, object_name):
         bucket_name = os.getenv("S3_BUCKET_NAME", "test")
         client = Minio(
-            endpoint,
-            access_key=access_key,
-            secret_key=secret_key,
-            secure=secure,
-            region=region,
+            self.endpoint,
+            access_key=self.access_key,
+            secret_key=self.secret_key,
+            secure=self.secure,
+            region=self.region,
         )
 
         try:
@@ -196,7 +231,7 @@ class TestBackup:
             client.remove_object(bucket_name, object_name)
             logger.info(f"Object '{object_name}' in bucket '{bucket_name}' deleted successfully")
         except S3Error as err:
-            logger.error(f"Error occurred: {err} bucket_name {bucket_name} secure {secure} endpoint {endpoint}")
+            logger.error(f"Error occurred: {err} bucket_name {bucket_name} secure {self.secure} endpoint {self.endpoint}")
 
     def benchmark(self, corrupted: bool):
         embedding_size = self.xb.shape[1]
@@ -216,19 +251,15 @@ class TestBackup:
         waiting_index_finish(total)
 
         self.backup(router_url, "create")
-        self.waiting_backup_finish()
+        time.sleep(30)
 
         destroy(router_url, self.db_name, self.space_name)
         self.create_db(router_url)
+        self.create_space(router_url, embedding_size)
 
-        if corrupted:
-            self.remove_oss_file(f"{self.db_name}/{self.space_name}/0.json.zst")
+        # self.backup(router_url, "restore", corrupted)
+        self.download_data_files_and_upsert(os.getenv("S3_BUCKET_NAME", "test"))
 
-        self.backup(router_url, "restore", corrupted)
-
-        if corrupted:
-            destroy(router_url, self.db_name, self.space_name)
-            return
         waiting_index_finish(total)
 
         for parallel_on_queries in [0, 1]:

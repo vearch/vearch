@@ -98,7 +98,7 @@ class RetrievalContext {
   RetrievalParameters *RetrievalParams() { return retrieval_params_; }
 
   // ID valid filter
-  virtual bool IsValid(int id) const = 0;
+  virtual bool IsValid(int64_t id) const = 0;
 
   // Score filter
   virtual bool IsSimilarScoreValid(float score) const = 0;

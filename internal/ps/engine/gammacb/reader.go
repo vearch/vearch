@@ -54,7 +54,7 @@ func (ri *readerImpl) GetDoc(ctx context.Context, doc *vearchpb.Document, getByD
 		if next && docId < -1 {
 			return vearchpb.NewError(vearchpb.ErrorEnum_PRIMARY_KEY_IS_INVALID, fmt.Errorf("docid: [%s] less than -1 with next as true", doc.PKey))
 		}
-		if docId < 0 {
+		if !next && docId < 0 {
 			return vearchpb.NewError(vearchpb.ErrorEnum_PRIMARY_KEY_IS_INVALID, fmt.Errorf("docid: [%s] less than 0", doc.PKey))
 		}
 		docID = int(docId)

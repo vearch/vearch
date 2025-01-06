@@ -19,7 +19,7 @@ import (
 
 	"github.com/vearch/vearch/v3/internal/entity"
 	"github.com/vearch/vearch/v3/internal/pkg/log"
-	"github.com/vearch/vearch/v3/internal/pkg/runtime/os"
+	vearch_os "github.com/vearch/vearch/v3/internal/pkg/runtime/os"
 	"github.com/vearch/vearch/v3/internal/pkg/vearchlog"
 	"github.com/vearch/vearch/v3/internal/pkg/vjson"
 	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
@@ -87,7 +87,7 @@ func (s *Store) Write(ctx context.Context, request *vearchpb.DocCmd) (err error)
 		s.Partition.AddNum += int64(len(request.Docs))
 		if s.Partition.AddNum >= 50000 {
 			s.Partition.AddNum = 0
-			s.Partition.ResourceExhausted, err = os.CheckResource(s.RaftPath)
+			s.Partition.ResourceExhausted, err = vearch_os.CheckResource(s.RaftPath)
 			if s.Partition.ResourceExhausted {
 				return err
 			}
@@ -132,7 +132,7 @@ func (s *Store) Flush(ctx context.Context) error {
 		return err
 	}
 
-	s.Partition.ResourceExhausted, err = os.CheckResource(s.RaftPath)
+	s.Partition.ResourceExhausted, err = vearch_os.CheckResource(s.RaftPath)
 	if err != nil {
 		log.Warn(err.Error())
 	}

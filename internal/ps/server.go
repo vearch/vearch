@@ -62,6 +62,7 @@ type Server struct {
 	concurrent      chan bool
 	concurrentNum   int
 	rpcTimeOut      int
+	backupStatus    map[uint32]int
 }
 
 // NewServer creates a server instance
@@ -83,6 +84,7 @@ func NewServer(ctx context.Context) *Server {
 		s.concurrentNum = config.Conf().PS.ConcurrentNum
 	}
 	s.concurrent = make(chan bool, s.concurrentNum)
+	s.backupStatus = make(map[uint32]int)
 
 	s.rpcTimeOut = defaultRpcTimeOut
 	if config.Conf().PS.RpcTimeOut > 0 {

@@ -18,21 +18,24 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
+	"os"
 
 	"github.com/cubefs/cubefs/depends/tiglabs/raft"
 	"github.com/cubefs/cubefs/depends/tiglabs/raft/proto"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/vearch/vearch/v3/internal/client"
+	"github.com/vearch/vearch/v3/internal/config"
 	"github.com/vearch/vearch/v3/internal/entity"
+
 	"github.com/vearch/vearch/v3/internal/pkg/errutil"
 	"github.com/vearch/vearch/v3/internal/pkg/log"
 	"github.com/vearch/vearch/v3/internal/pkg/metrics/mserver"
-	"github.com/vearch/vearch/v3/internal/pkg/runtime/os"
+	vearch_os "github.com/vearch/vearch/v3/internal/pkg/runtime/os"
 	"github.com/vearch/vearch/v3/internal/pkg/server/rpc/handler"
 	"github.com/vearch/vearch/v3/internal/pkg/vjson"
 	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
+	"github.com/vearch/vearch/v3/internal/router/document"
 )
 
 func ExportToRpcAdminHandler(server *Server) {
@@ -422,16 +425,16 @@ func (bh *BackupHandler) Execute(ctx context.Context, req *vearchpb.PartitionDat
 		return vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_IS_INVALID, fmt.Errorf("partition (%v), engine is nil ", req.PartitionID))
 	}
 
-	status := &entity.EngineStatus{}
-	err = e.GetEngineStatus(status)
+	// status := &entity.EngineStatus{}
+	// err = e.GetEngineStatus(status)
 
-	if err != nil {
-		log.Error("get engine status error [%+v]", err)
-		return
-	}
-	if status.BackupStatus != 0 {
-		return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("backup status %d", status.BackupStatus))
-	}
+	// if err != nil {
+	// 	log.Error("get engine status error [%+v]", err)
+	// 	return
+	// }
+	// if status.BackupStatus != 0 {
+	// 	return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("backup status %d", status.BackupStatus))
+	// }
 
 	backup := new(entity.BackupSpace)
 	if err := vjson.Unmarshal(req.Data, backup); err != nil {
@@ -454,7 +457,7 @@ func (bh *BackupHandler) Execute(ctx context.Context, req *vearchpb.PartitionDat
 		return
 	}
 
-	backupFileName := *engineConfig.Path + "/backup/raw_data.json.zst"
+	backupFileName := ""
 
 	minioClient, err := minio.New(backup.S3Param.EndPoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(backup.S3Param.AccessKey, backup.S3Param.SecretKey, ""),
@@ -465,17 +468,27 @@ func (bh *BackupHandler) Execute(ctx context.Context, req *vearchpb.PartitionDat
 		return
 	}
 	bucketName := backup.S3Param.BucketName
-	objectName := fmt.Sprintf("%s/%s/%d.json.zst", dbName, space.Name, backup.Part)
-	log.Info("objectName %s", objectName)
+	objectName := fmt.Sprintf("%s/%s/%d_%d.txt", dbName, space.Name, req.PartitionID, backup.Part)
 
+	clusterName := config.Conf().Global.Name
 	if backup.Command == "create" {
-		err = e.BackupSpace(backup.Command)
-		if err != nil {
-			log.Error("backup error [%+v]", err)
-			return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err)
+		// if backup dir not exist, create it
+		if _, err = os.Stat(fmt.Sprintf("%s/backup", *engineConfig.Path)); os.IsNotExist(err) {
+			err = os.Mkdir(fmt.Sprintf("%s/backup", *engineConfig.Path), 0644)
+			if err != nil {
+				log.Error("failed to create backup dir: %s", err)
+				return
+			}
 		}
-
+		if bh.server.backupStatus[req.PartitionID] != 0 {
+			return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("backup status %d", bh.server.backupStatus[req.PartitionID]))
+		}
 		go func() {
+			bh.server.backupStatus[req.PartitionID] = 1
+			defer func() {
+				bh.server.backupStatus[req.PartitionID] = 0
+			}()
+
 			status := &entity.EngineStatus{}
 			err = e.GetEngineStatus(status)
 
@@ -485,12 +498,75 @@ func (bh *BackupHandler) Execute(ctx context.Context, req *vearchpb.PartitionDat
 			}
 			for status.BackupStatus != 0 {
 				log.Debug("status.BackupStatus %d", status.BackupStatus)
-				time.Sleep(2 * time.Second)
-				status = &entity.EngineStatus{}
-				err = e.GetEngineStatus(status)
+				return
+			}
+			fileName := fmt.Sprintf("%d_%d.txt", req.PartitionID, backup.Part)
+			objectName := fmt.Sprintf("%s/%s/%s/%s", clusterName, dbName, space.Name, fileName)
+			doneName := fmt.Sprintf("%s/%s/%s/%d.done", clusterName, dbName, space.Name, req.PartitionID)
+			backupFileName = fmt.Sprintf("%s/backup/%s", *engineConfig.Path, fileName)
+			file, err := os.OpenFile(backupFileName, os.O_APPEND|os.O_TRUNC|os.O_CREATE|os.O_WRONLY, 0644)
+			if err != nil {
+				log.Error("failed to open file: %s", err)
+				return
+			}
+			defer file.Close()
+			nextDocid := int32(-1)
+			total := 0
+			for {
+				doc := &vearchpb.Document{
+					PKey: fmt.Sprintf("%d", nextDocid),
+				}
+				err := partitonStore.GetDocument(ctx, true, doc, true, true)
 				if err != nil {
-					log.Error("get engine status error [%+v]", err)
-					return
+					log.Error("get document error [%+v]", err)
+					break
+				}
+
+				docOut := make(map[string]interface{})
+				docOut["_id"] = doc.PKey
+
+				if len(doc.Fields) > 0 {
+					returnFieldsMap := make(map[string]string)
+					nextDocid, _ = document.DocFieldSerialize(doc, &space, returnFieldsMap, true, docOut)
+				}
+				value, err := vjson.Marshal(docOut)
+				if err != nil {
+					log.Error("marshal document error [%+v]", err)
+					break
+				}
+
+				_, err = file.WriteString(string(value) + "\n")
+				if err != nil {
+					log.Error("failed to write to file: %s", err)
+					break
+				}
+				total++
+				if total%1000000 == 0 {
+					log.Info("write %d documents", total)
+					file.Close()
+
+					_, err = minioClient.FPutObject(context.Background(), bucketName, objectName, backupFileName, minio.PutObjectOptions{ContentType: "application/octet-stream"})
+					if err != nil {
+						log.Error("failed to backup space: %+v", err)
+						return
+					}
+					log.Info("backup success, file is [%s]", backupFileName)
+					// remove old file
+					err = os.Remove(backupFileName)
+					if err != nil {
+						log.Error("failed to remove file: %s", err)
+						return
+					}
+
+					backup.Part++
+					fileName = fmt.Sprintf("%d_%d.txt", req.PartitionID, backup.Part)
+					objectName = fmt.Sprintf("%s/%s/%s", dbName, space.Name, fileName)
+					backupFileName = fmt.Sprintf("%s/backup/%s", *engineConfig.Path, fileName)
+					file, err = os.OpenFile(backupFileName, os.O_APPEND|os.O_TRUNC|os.O_CREATE|os.O_WRONLY, 0644)
+					if err != nil {
+						log.Error("failed to open file: %s", err)
+						return
+					}
 				}
 			}
 
@@ -499,7 +575,31 @@ func (bh *BackupHandler) Execute(ctx context.Context, req *vearchpb.PartitionDat
 				log.Error("failed to backup space: %+v", err)
 				return
 			}
+
+			doneFile := fmt.Sprintf("%s/backup/done_%d", *engineConfig.Path, req.PartitionID)
+			if err := os.WriteFile(doneFile, []byte(fmt.Sprintf("%d", total)), 0644); err != nil {
+				log.Error("failed to create done file: %s", err)
+				return
+			}
+
+			_, err = minioClient.FPutObject(context.Background(), bucketName, doneName, doneFile, minio.PutObjectOptions{ContentType: "application/octet-stream"})
+			if err != nil {
+				log.Error("failed to upload done file: %+v", err)
+				os.Remove(doneFile)
+				return
+			}
+
+			if err := os.Remove(doneFile); err != nil {
+				log.Error("failed to remove done file: %s", err)
+				return
+			}
 			log.Info("backup success, file is [%s]", backupFileName)
+
+			err = os.Remove(backupFileName)
+			if err != nil {
+				log.Error("failed to remove file: %s", err)
+				return
+			}
 		}()
 	} else if backup.Command == "restore" {
 		go func() {
@@ -543,7 +643,7 @@ func (rlh *ResourceLimitHandler) Execute(ctx context.Context, req *vearchpb.Part
 	if resourceLimit.ResourceExhausted != nil {
 		partitonStore.GetPartition().ResourceExhausted = *resourceLimit.ResourceExhausted
 	} else {
-		if resource_exhausted, err := os.CheckResource(partitonStore.GetPartition().Path); err != nil {
+		if resource_exhausted, err := vearch_os.CheckResource(partitonStore.GetPartition().Path); err != nil {
 			return err
 		} else {
 			partitonStore.GetPartition().ResourceExhausted = resource_exhausted
