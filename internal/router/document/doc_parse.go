@@ -211,19 +211,32 @@ func processPropertyObjectVectorOther(feature []*fastjson.Value, pathString stri
 	return field, nil
 }
 
-func processPropertyArrayVectorString(vs []*fastjson.Value, pathString string, pro *entity.SpaceProperties) (*vearchpb.Field, error) {
+func processPropertyArrayVectorString(vs []*fastjson.Value, fieldName string, pro *entity.SpaceProperties) (*vearchpb.Field, error) {
 	buffer := bytes.Buffer{}
+	isIndex := false
+	if pro.Index != nil {
+		isIndex = true
+	}
+
 	for i, vv := range vs {
-		if stringBytes, err := vv.StringBytes(); err != nil {
+		stringBytes, err := vv.StringBytes()
+		if err != nil {
 			return nil, err
-		} else {
-			buffer.Write(stringBytes)
-			if i < len(vs)-1 {
-				buffer.WriteRune('\001')
-			}
+		}
+		if isIndex && len(stringBytes) > maxIndexedStrLen {
+			err := vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("string field %s indexed, length should less than %d", fieldName, maxIndexedStrLen))
+			return nil, err
+		} else if len(stringBytes) > maxStrLen {
+			err = vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("string field %s length should less than %d", fieldName, maxStrLen))
+			return nil, err
+		}
+
+		buffer.Write(stringBytes)
+		if i < len(vs)-1 {
+			buffer.WriteRune('\001')
 		}
 	}
-	field, err := processString(pro, pathString, buffer.String())
+	field, err := processString(pro, fieldName, buffer.String())
 	if err != nil {
 		return nil, err
 	}
@@ -334,17 +347,7 @@ func processString(pro *entity.SpaceProperties, fieldName, val string) (*vearchp
 			field, err = processField(fieldName, vearchpb.FieldType_STRING, []byte(val), opt)
 		}
 	case vearchpb.FieldType_STRINGARRAY:
-		isIndex := false
-		if pro.Index != nil {
-			isIndex = true
-		}
-		if isIndex && len(val) > maxIndexedStrLen {
-			err = vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("string field %s indexed, length should less than %d", fieldName, maxIndexedStrLen))
-		} else if len(val) > maxStrLen {
-			err = vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("string field %s length should less than %d", fieldName, maxStrLen))
-		} else {
-			field, err = processField(fieldName, vearchpb.FieldType_STRINGARRAY, []byte(val), opt)
-		}
+		field, err = processField(fieldName, vearchpb.FieldType_STRINGARRAY, []byte(val), opt)
 	case vearchpb.FieldType_DATE:
 		// UTC time
 		var f time.Time

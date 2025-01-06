@@ -483,6 +483,14 @@ def check(total, full_field, xb, mode: str):
             },
         },
         {
+            "name": "field_string_array",
+            "type": "string_array",
+            "index": {
+                "name": "field_string_array",
+                "type": "SCALAR",
+            },
+        },
+        {
             "name": "field_vector",
             "type": "vector",
             "index": {
@@ -534,6 +542,28 @@ def check(total, full_field, xb, mode: str):
 
         for future in futures:
             future.result()
+    
+    url = router_url + "/document/upsert"
+    data = {}
+    data["db_name"] = db_name
+    data["space_name"] = space_name
+    data["documents"] = []
+    param_dict = {}
+    param_dict["_id"] = "0"
+    param_dict["field_int"] = "0"
+    param_dict["field_vector"] = xb[0 : 1].tolist()[0]
+    param_dict["field_long"] = param_dict["field_int"]
+    param_dict["field_float"] = float(param_dict["field_int"])
+    param_dict["field_double"] = float(param_dict["field_int"])
+    param_dict["field_string_array"] = [str(i) for i in range(1024)]
+    data["documents"].append(param_dict)
+    rs = requests.post(url, auth=(username, password), json=data)
+    assert rs.json()["code"] == 0
+
+    param_dict["field_string_array"] = [''.join(str(i) for i in range(1024))]
+    rs = requests.post(url, auth=(username, password), json=data)
+    assert rs.json()["code"] != 0
+
     destroy(router_url, db_name, space_name)
 
 
