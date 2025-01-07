@@ -36,7 +36,6 @@ import (
 	"github.com/vearch/vearch/v3/internal/pkg/log"
 	"github.com/vearch/vearch/v3/internal/pkg/server/rpc/handler"
 	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
-	"github.com/vearch/vearch/v3/internal/ps/engine/mapping"
 	"go.uber.org/atomic"
 )
 
@@ -261,7 +260,7 @@ func deleteDocs(ctx context.Context, store PartitionStore, items []*vearchpb.Ite
 				}
 			}()
 			if len(item.Doc.Fields) != 1 {
-				msg := fmt.Sprintf("fileds of doc can only have one field--[%s] when delete", mapping.IdField)
+				msg := fmt.Sprintf("fileds of doc can only have one field--[%s] when delete", entity.IdField)
 				item.Err = &vearchpb.Error{Code: vearchpb.ErrorEnum_INTERNAL_ERROR, Msg: msg}
 				return
 			}
@@ -430,7 +429,7 @@ func deleteByQuery(ctx context.Context, store PartitionStore, req *vearchpb.Quer
 			for _, fv := range doc.Fields {
 				name := fv.Name
 				switch name {
-				case mapping.IdField:
+				case entity.IdField:
 					value = fv.Value
 					pKey = string(fv.Value)
 				}

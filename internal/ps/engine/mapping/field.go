@@ -22,11 +22,6 @@ import (
 	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
 )
 
-const (
-	IdField    = "_id"
-	ScoreField = "_score"
-)
-
 type FieldMapping struct {
 	Name string
 	FieldMappingI

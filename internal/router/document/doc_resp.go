@@ -28,7 +28,6 @@ import (
 	"github.com/vearch/vearch/v3/internal/pkg/log"
 	"github.com/vearch/vearch/v3/internal/pkg/vjson"
 	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
-	"github.com/vearch/vearch/v3/internal/ps/engine/mapping"
 )
 
 func documentUpsertResponse(reply *vearchpb.BulkResponse) (map[string]interface{}, error) {
@@ -218,7 +217,8 @@ func DocFieldSerialize(doc *vearchpb.Document, space *entity.Space, returnFields
 	nextDocid = -1
 	for _, fv := range doc.Fields {
 		name := fv.Name
-		if name == mapping.IdField && len(returnFieldsMap) == 0 {
+
+		if name == entity.IdField && len(returnFieldsMap) == 0 {
 			docOut[name] = string(fv.Value)
 			continue
 		}
@@ -297,7 +297,7 @@ func GetDocSource(doc *vearchpb.ResultItem, space *entity.Space, from string) (m
 	for _, fv := range doc.Fields {
 		name := fv.Name
 		switch name {
-		case mapping.IdField:
+		case entity.IdField:
 			pKey = string(fv.Value)
 		default:
 			field := spaceProperties[name]
@@ -353,9 +353,9 @@ func GetDocSource(doc *vearchpb.ResultItem, space *entity.Space, from string) (m
 			}
 		}
 	}
-	source[mapping.IdField] = pKey
+	source[entity.IdField] = pKey
 	if from == "search" {
-		source[mapping.ScoreField] = doc.Score
+		source[entity.ScoreField] = doc.Score
 	}
 
 	return source, nil

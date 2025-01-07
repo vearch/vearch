@@ -544,7 +544,6 @@ Status Engine::CreateTable(TableInfo &table) {
     std::string msg =
         space_name_ + " cannot create VectorTable: " + status.ToString();
     LOG(ERROR) << msg;
-    vec_manager_->Close();
     this->Close();
     return Status::ParamError(msg);
   }
@@ -552,20 +551,22 @@ Status Engine::CreateTable(TableInfo &table) {
   int table_cf_id = storage_mgr_->CreateColumnFamily("table");
 
   table_ = new Table(space_name_, storage_mgr_, table_cf_id);
-
   status = table_->CreateTable(table, docids_bitmap_);
+  if (!status.ok()) {
+    std::string msg = space_name_ + " cannot create table, err: " + status.ToString();
+    LOG(ERROR) << msg;
+    this->Close();
+    return Status::ParamError(msg);
+  }
+
   training_threshold_ = table.TrainingThreshold();
   LOG(INFO) << space_name_
             << " init training_threshold=" << training_threshold_;
-  if (!status.ok()) {
-    std::string msg = space_name_ + " cannot create table!";
-    LOG(ERROR) << msg;
-    return Status::ParamError(msg);
-  }
 
   status = storage_mgr_->Init(cache_size);
   if (!status.ok()) {
     LOG(ERROR) << "init error, ret=" << status.ToString();
+    this->Close();
     return status;
   }
 
@@ -575,6 +576,7 @@ Status Engine::CreateTable(TableInfo &table) {
   if ((nullptr == field_range_index_) || (AddNumIndexFields() < 0)) {
     std::string msg = "add numeric index fields error!";
     LOG(ERROR) << msg;
+    this->Close();
     return Status::ParamError(msg);
   }
 

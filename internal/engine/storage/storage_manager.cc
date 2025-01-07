@@ -28,7 +28,12 @@ StorageManager::~StorageManager() { Close(); }
 
 void StorageManager::Close() {
   for (auto handle : cf_handles_) {
-    db_->DestroyColumnFamilyHandle(handle);
+    if (handle) {
+      auto s = db_->DestroyColumnFamilyHandle(handle);
+      if (!s.ok()) {
+        LOG(ERROR) << "DestroyColumnFamilyHandle error: " << s.ToString();
+      }
+    }
   }
   db_.reset();
   LOG(INFO) << "db closed";

@@ -43,7 +43,6 @@ import (
 	vmap "github.com/vearch/vearch/v3/internal/pkg/map"
 	"github.com/vearch/vearch/v3/internal/pkg/number"
 	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
-	"github.com/vearch/vearch/v3/internal/ps/engine/mapping"
 	"github.com/vearch/vearch/v3/internal/ps/engine/sortorder"
 )
 
@@ -202,7 +201,7 @@ func (r *routerRequest) SetDocsField() *routerRequest {
 			return r
 		}
 		doc.PKey = key
-		field := &vearchpb.Field{Name: mapping.IdField}
+		field := &vearchpb.Field{Name: entity.IdField}
 
 		field.Value = []byte(doc.PKey)
 		field.Type = vearchpb.FieldType_STRING
@@ -1300,12 +1299,12 @@ func GetNodeIdsByClientType(clientType string, partition *entity.Partition, serv
 func GetSortOrder(doc *vearchpb.ResultItem, space *entity.Space, sortFieldMap map[string]string, sortFields []*vearchpb.SortField) ([]sortorder.SortValue, string, error) {
 	sortValues := make([]sortorder.SortValue, len(sortFields))
 
-	if sortFieldMap[mapping.ScoreField] != "" {
+	if sortFieldMap[entity.ScoreField] != "" {
 		for i, v := range sortFields {
-			if v.Field == mapping.ScoreField {
+			if v.Field == entity.ScoreField {
 				sortValues[i] = &sortorder.FloatSortValue{
 					Val:      doc.Score,
-					SortName: mapping.ScoreField,
+					SortName: entity.ScoreField,
 				}
 				break
 			}
@@ -1322,7 +1321,7 @@ func GetSortOrder(doc *vearchpb.ResultItem, space *entity.Space, sortFieldMap ma
 	for _, fv := range doc.Fields {
 		name := fv.Name
 		switch name {
-		case mapping.IdField:
+		case entity.IdField:
 			pKey = string(fv.Value)
 			if sortFieldMap[name] != "" {
 				for i, v := range sortFields {

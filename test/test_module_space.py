@@ -215,6 +215,10 @@ class TestSpaceCreate:
             [18, "empty index type", ""],
             [19, "less than min_training_threshold", "IVFPQ"],
             [20, "less than min_training_threshold", "IVFFLAT"],
+            [21, "specify field _id", "FLAT"],
+            [22, "duplicate field", "FLAT"],
+            [23, "specify field _score", "FLAT"],
+            [24, "empty field name", "FLAT"],
         ],
     )
     def test_vearch_space_create_badcase(self, wrong_index, wrong_type, index_type):
@@ -305,6 +309,18 @@ class TestSpaceCreate:
         if wrong_index == 16:
             field_unspported = {"name": "field_string", "type": "unsupported"}
             space_config["fields"].append(field_unspported)
+        if wrong_index == 21:
+            field_primary_key = {"name": "_id", "type": "string"}
+            space_config["fields"].append(field_primary_key)
+        if wrong_index == 22:
+            field_duplicate = {"name": "field_string", "type": "keyword"}
+            space_config["fields"].append(field_duplicate)
+        if wrong_index == 23:
+            field_socre = {"name": "_score", "type": "keyword"}
+            space_config["fields"].append(field_socre)
+        if wrong_index == 24:
+            field_empty_name = {"name": "", "type": "keyword"}
+            space_config["fields"].append(field_empty_name)
 
         response = create_space(router_url, db_name, space_config)
         logger.info(response.json())

@@ -13,7 +13,7 @@
 // permissions and limitations under the License.
 package sortorder
 
-import "github.com/vearch/vearch/v3/internal/ps/engine/mapping"
+import "github.com/vearch/vearch/v3/internal/entity"
 
 type SortScore struct {
 	Desc bool
@@ -27,7 +27,7 @@ func (s *SortScore) Compare(i, j SortValue) int {
 	return c
 }
 func (s *SortScore) SortField() string {
-	return mapping.ScoreField
+	return entity.ScoreField
 }
 func (s *SortScore) GetSortOrder() bool {
 	return s.Desc

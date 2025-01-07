@@ -188,6 +188,8 @@ func Execute(addr, servicePath string, args *vearchpb.PartitionData, reply *vear
 		if err == nil {
 			return nil
 		}
+		log.Error("%s retry %d, PartitionID: %d, PartitionRpcAddr: %s", servicePath, i, args.PartitionID, err.Error())
+
 		if reply.Err != nil && reply.Err.Code == vearchpb.ErrorEnum_PARTITION_NO_LEADER {
 			sleepTime = 2 * sleepTime
 			time.Sleep(sleepTime)

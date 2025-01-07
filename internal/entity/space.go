@@ -26,6 +26,11 @@ import (
 )
 
 const (
+	IdField    = "_id"
+	ScoreField = "_score"
+)
+
+const (
 	FieldOption_Null        vearchpb.FieldOption = 0
 	FieldOption_Index       vearchpb.FieldOption = 1
 	FieldOption_Index_False vearchpb.FieldOption = 2
@@ -342,8 +347,24 @@ func UnmarshalPropertyJSON(propertity []byte) (map[string]*SpaceProperties, erro
 		log.Error(err)
 		return nil, err
 	}
+	names := make(map[string]bool)
 
 	for _, data := range tmp {
+		if data.Name == "" {
+			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("field name can not be empty"))
+		}
+		if data.Name == IdField {
+			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("field name can not be %s", IdField))
+		}
+		if data.Name == ScoreField {
+			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("field name can not be %s", ScoreField))
+		}
+		if _, ok := names[data.Name]; ok {
+			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("field name can not be duplicate"))
+		} else {
+			names[data.Name] = true
+		}
+
 		sp := &SpaceProperties{}
 		isVector := false
 		sp.Type = data.Type

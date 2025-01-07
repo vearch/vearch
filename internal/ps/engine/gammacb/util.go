@@ -19,6 +19,7 @@ import (
 
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/v3/internal/engine/sdk/go/gamma"
+	"github.com/vearch/vearch/v3/internal/entity"
 	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
 	"github.com/vearch/vearch/v3/internal/ps/engine/mapping"
 )
@@ -38,7 +39,7 @@ func mapping2Table(cfg EngineConfig, m *mapping.IndexMapping) (*gamma.Table, err
 		IndexParams: indexParams,
 	}
 
-	fieldInfo := gamma.FieldInfo{Name: mapping.IdField, DataType: gamma.STRING, IsIndex: false}
+	fieldInfo := gamma.FieldInfo{Name: entity.IdField, DataType: gamma.STRING, IsIndex: false}
 	table.Fields = append(table.Fields, fieldInfo)
 
 	err := m.SortRangeField(func(key string, value *mapping.DocumentMapping) error {

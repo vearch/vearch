@@ -38,6 +38,7 @@ Table::Table(const string &space_name, StorageManager *storage_mgr, int cf_id)
 
 Table::~Table() {
   bitmap_mgr_ = nullptr;
+  storage_mgr_ = nullptr;
   CHECK_DELETE(table_params_);
 
   LOG(INFO) << "Table " << name_ << " deleted.";

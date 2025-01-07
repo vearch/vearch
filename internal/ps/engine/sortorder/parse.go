@@ -18,7 +18,7 @@ import (
 	"errors"
 	"reflect"
 
-	"github.com/vearch/vearch/v3/internal/ps/engine/mapping"
+	"github.com/vearch/vearch/v3/internal/entity"
 )
 
 var defaultSort = SortOrder{&SortScore{Desc: true}}
@@ -39,10 +39,10 @@ func parseSort(s interface{}) (Sort, error) {
 	typ := val.Type()
 	switch typ.Kind() {
 	case reflect.String:
-		if val.String() == mapping.ScoreField {
+		if val.String() == entity.ScoreField {
 			return &SortScore{Desc: true}, nil
-		} else if val.String() == mapping.IdField {
-			return &SortField{Field: mapping.IdField, Desc: false}, nil
+		} else if val.String() == entity.IdField {
+			return &SortField{Field: entity.IdField, Desc: false}, nil
 		} else {
 			return &SortField{Field: val.String(), Desc: true}, nil
 		}

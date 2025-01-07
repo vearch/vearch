@@ -28,7 +28,6 @@ import (
 	"github.com/vearch/vearch/v3/internal/pkg/log"
 	"github.com/vearch/vearch/v3/internal/pkg/vjson"
 	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
-	"github.com/vearch/vearch/v3/internal/ps/engine/mapping"
 	"github.com/vearch/vearch/v3/internal/ps/engine/sortorder"
 )
 
@@ -647,7 +646,7 @@ func queryRequestToPb(searchDoc *request.SearchDocumentRequest, space *entity.Sp
 	}
 
 	if queryReq.Head.Params != nil && queryReq.Head.Params["queryOnlyId"] != "" {
-		queryReq.Fields = []string{mapping.IdField}
+		queryReq.Fields = []string{entity.IdField}
 	} else {
 		spaceProKeyMap := space.SpaceProperties
 		if spaceProKeyMap == nil {
@@ -667,10 +666,10 @@ func queryRequestToPb(searchDoc *request.SearchDocumentRequest, space *entity.Sp
 					vectorFieldArr = append(vectorFieldArr, fieldName)
 				}
 			}
-			queryReq.Fields = append(queryReq.Fields, mapping.IdField)
+			queryReq.Fields = append(queryReq.Fields, entity.IdField)
 		} else {
 			for _, field := range queryReq.Fields {
-				if field != mapping.IdField {
+				if field != entity.IdField {
 					if spaceProKeyMap[field] == nil {
 						return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("field [%s] is not exist in the space", field))
 					}
@@ -685,13 +684,13 @@ func queryRequestToPb(searchDoc *request.SearchDocumentRequest, space *entity.Sp
 
 	hasID := false
 	for _, f := range queryReq.Fields {
-		if f == mapping.IdField {
+		if f == entity.IdField {
 			hasID = true
 		}
 	}
 
 	if !hasID {
-		queryReq.Fields = append(queryReq.Fields, mapping.IdField)
+		queryReq.Fields = append(queryReq.Fields, entity.IdField)
 	}
 
 	queryFieldMap := make(map[string]string)
@@ -783,7 +782,7 @@ func requestToPb(searchDoc *request.SearchDocumentRequest, space *entity.Space, 
 	}
 
 	if searchReq.Head.Params != nil && searchReq.Head.Params["queryOnlyId"] != "" {
-		searchReq.Fields = []string{mapping.IdField}
+		searchReq.Fields = []string{entity.IdField}
 	} else {
 		spaceProKeyMap := space.SpaceProperties
 		if spaceProKeyMap == nil {
@@ -799,10 +798,10 @@ func requestToPb(searchDoc *request.SearchDocumentRequest, space *entity.Space, 
 					vectorFieldArr = append(vectorFieldArr, fieldName)
 				}
 			}
-			searchReq.Fields = append(searchReq.Fields, mapping.IdField)
+			searchReq.Fields = append(searchReq.Fields, entity.IdField)
 		} else {
 			for _, field := range searchReq.Fields {
-				if field != mapping.IdField {
+				if field != entity.IdField {
 					if spaceProKeyMap[field] == nil {
 						return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("field [%s] is not exist in the space", field))
 					}
@@ -817,13 +816,13 @@ func requestToPb(searchDoc *request.SearchDocumentRequest, space *entity.Space, 
 
 	hasID := false
 	for _, f := range searchReq.Fields {
-		if f == mapping.IdField {
+		if f == entity.IdField {
 			hasID = true
 		}
 	}
 
 	if !hasID {
-		searchReq.Fields = append(searchReq.Fields, mapping.IdField)
+		searchReq.Fields = append(searchReq.Fields, entity.IdField)
 	}
 
 	queryFieldMap := make(map[string]string)

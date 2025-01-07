@@ -66,10 +66,10 @@ func New(cfg EngineConfig) (engine.Engine, error) {
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	table, e := mapping2Table(cfg, indexMapping)
 	if e != nil {
-		cancel()
 		return nil, e
 	}
 
@@ -86,7 +86,7 @@ func New(cfg EngineConfig) (engine.Engine, error) {
 	configJson, _ := vjson.Marshal(&config)
 	engineInstance := gamma.Init(configJson)
 	if engineInstance == nil {
-		cancel()
+		log.Error("gamma engine init err [%s]", config.SpaceName)
 		return nil, vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("init engine err"))
 	}
 
@@ -108,7 +108,7 @@ func New(cfg EngineConfig) (engine.Engine, error) {
 
 	startTime := time.Now()
 	if status := gamma.CreateTable(ge.gamma, table); status.Code != 0 {
-		log.Error("create table [%s] err [%s] cost time: [%v]", cfg.Space.Name, status.Msg, time.Since(startTime).Seconds())
+		log.Error("create table [%s] err [%s] cost time: [%v]", config.SpaceName, status.Msg, time.Since(startTime).Seconds())
 		ge.Close()
 		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("create engine table err:[%s]", status.Msg))
 	}
@@ -291,18 +291,18 @@ func (ge *gammaEngine) Close() {
 			time.Sleep(3 * time.Second)
 			i++
 			if ge.counter.Get() > 0 {
-				log.Info("wait stop gamma engine times:[%d]", i)
+				log.Info("wait stop gamma engine pid:[%d] times:[%d]", ge.partitionID, i)
 				continue
 			}
 			start, flakeUUID := time.Now(), uuid.NewString()
-			log.Info("to close gamma engine begin token:[%s]", flakeUUID)
+			log.Info("to close gamma engine pid:[%d] begin token:[%s]", ge.partitionID, flakeUUID)
 			if resp := gamma.Close(enginePtr); resp != 0 {
-				log.Error("to close gamma engine fail:[%d]", resp)
+				log.Error("to close gamma engine pid:[%d] fail:[%d]", ge.partitionID, resp)
 			} else {
-				log.Info("to close gamma engine success:[%d]", resp)
+				log.Info("to close gamma engine pid:[%d] success:[%d]", ge.partitionID, resp)
 			}
 			ge.hasClosed = true
-			log.Info("to close gamma engine end token:[%s] use time:[%d]", flakeUUID, time.Since(start))
+			log.Info("to close gamma engine pid:[%d] end token:[%s] use time:[%d]", ge.partitionID, flakeUUID, time.Since(start))
 			break
 		}
 	}(enginePtr)
