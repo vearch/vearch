@@ -670,7 +670,7 @@ Status VectorManager::Search(GammaQuery &query, GammaResult *results) {
 
 int VectorManager::GetVector(
     const std::vector<std::pair<std::string, int>> &fields_ids,
-    std::vector<std::string> &vec, bool is_bytearray) {
+    std::vector<std::string> &vec) {
   for (const auto &pair : fields_ids) {
     const std::string &field = pair.first;
     const int id = pair.second;
@@ -685,28 +685,13 @@ int VectorManager::GetVector(
     }
 
     ScopeVector scope_vec;
-    raw_vec->GetVector(id, scope_vec);
-    const float *feature = (const float *)(scope_vec.Get());
-    std::string str_vec;
-    if (is_bytearray) {
-      int d = raw_vec->MetaInfo()->Dimension();
-      int d_byte = d * raw_vec->MetaInfo()->DataSize();
-      str_vec = std::string((const char *)feature, d_byte);
-    } else {
-      VectorValueType data_type = raw_vec->MetaInfo()->DataType();
-      if (data_type == VectorValueType::FLOAT) {
-        const float *feature_float = reinterpret_cast<const float *>(feature);
-        for (int i = 0; i < raw_vec->MetaInfo()->Dimension(); ++i) {
-          str_vec += std::to_string(feature_float[i]) + ",";
-        }
-      } else if (data_type == VectorValueType::BINARY) {
-        for (int i = 0; i < raw_vec->MetaInfo()->Dimension(); ++i) {
-          str_vec += std::to_string(feature[i]) + ",";
-        }
-      }
-      str_vec.pop_back();
+    int ret = raw_vec->GetVector(id, scope_vec);
+    if (ret != 0) {
+      return ret;
     }
-    vec.emplace_back(std::move(str_vec));
+    int d = raw_vec->MetaInfo()->Dimension();
+    int d_byte = d * raw_vec->MetaInfo()->DataSize();
+    vec.emplace_back(std::string((const char *)scope_vec.Get(), d_byte));
   }
   return 0;
 }
@@ -724,7 +709,10 @@ int VectorManager::GetDocVector(int docid, std::string &field_name,
   }
 
   ScopeVector scope_vec;
-  raw_vec->GetVector(docid, scope_vec);
+  int ret = raw_vec->GetVector(docid, scope_vec);
+  if (ret != 0) {
+    return ret;
+  }
   const float *feature = (const float *)(scope_vec.Get());
 
   int d = raw_vec->MetaInfo()->Dimension();

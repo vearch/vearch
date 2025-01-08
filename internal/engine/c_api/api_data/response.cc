@@ -102,21 +102,30 @@ int Response::Serialize(const std::string &space_name,
       item->set_score(score);
       max_score = std::max(max_score, score);
 
+      int ret = 0;
       std::vector<flatbuffers::Offset<gamma_api::Attribute>> attributes;
       for (auto &it : attr_idx) {
         std::vector<uint8_t> val;
-        table->GetFieldRawValue(docid, it.second, val);
+        ret = table->GetFieldRawValue(docid, it.second, val);
+        if (ret) {
+          break;
+        }
         auto *field = item->add_fields();
         field->set_name(it.first);
         field->set_value(std::string(val.begin(), val.end()));
       }
       for (uint32_t k = 0; k < vec_fields.size(); ++k) {
         std::vector<uint8_t> vec;
-        if (vector_mgr->GetDocVector(docid, vec_fields[k], vec) == 0) {
-          auto *field = item->add_fields();
-          field->set_name(vec_fields[k]);
-          field->set_value(std::string(vec.begin(), vec.end()));
+        ret = vector_mgr->GetDocVector(docid, vec_fields[k], vec);
+        if (ret) {
+          break;
         }
+        auto *field = item->add_fields();
+        field->set_name(vec_fields[k]);
+        field->set_value(std::string(vec.begin(), vec.end()));
+      }
+      if (ret) {
+        item->set_score(std::numeric_limits<double>::lowest());
       }
     }
 
@@ -235,7 +244,7 @@ int Response::PackResultItem(const VectorDoc *vec_doc,
     }
 
     std::vector<std::string> vec;
-    int ret = vector_mgr->GetVector(vec_fields_ids, vec, true);
+    int ret = vector_mgr->GetVector(vec_fields_ids, vec);
 
     table->GetDocInfo(docid, doc, table_fields);
 

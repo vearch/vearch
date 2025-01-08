@@ -388,7 +388,10 @@ int Table::GetFieldRawValue(int64_t docid, int field_id,
 
     std::string field_name = iter->second;
     std::string str;
-    storage_mgr_->GetString(cf_id_, docid, field_name, str);
+    auto status = storage_mgr_->GetString(cf_id_, docid, field_name, str);
+    if (!status.ok()) {
+      return status.code();
+    }
     value.resize(str.size());
     memcpy(value.data(), str.c_str(), str.size());
   } else {
