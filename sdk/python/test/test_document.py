@@ -63,7 +63,16 @@ def create_space_schema(space_name) -> SpaceSchema:
         index=ScalarIndex("book_publish_time_idx"),
     )
     space_schema = SpaceSchema(
-         space_name, fields=[book_name, book_authors, book_num, book_vector, ractor_address, book_publish_time]
+        space_name,
+        fields=[
+            book_name,
+            book_authors,
+            book_num,
+            book_vector,
+            ractor_address,
+            book_publish_time,
+        ],
+        replica_num=1,
     )
     return space_schema
 
@@ -110,11 +119,14 @@ def test_upsert_doc() -> List:
     for i in range(8):
         book_item = [
             "".join(random.choices(book_name_template, k=8)),
-            ["".join(random.choices(book_name_template, k=8)), "".join(random.choices(book_name_template, k=8))],
+            [
+                "".join(random.choices(book_name_template, k=8)),
+                "".join(random.choices(book_name_template, k=8)),
+            ],
             num[i],
             [random.uniform(0, 1) for _ in range(512)],
             ractor[random.randint(0, 2)],
-            int(time.time())
+            int(time.time()),
         ]
         data.append(book_item)
         logger.debug(book_item)
@@ -159,6 +171,7 @@ def test_query():
     logger.debug(ret.documents)
     assert len(ret.documents) >= 0
 
+
 def test_query_not_in():
     conditons = [
         Condition(operator=">", fv=FieldValue(field="book_num", value=0)),
@@ -173,6 +186,7 @@ def test_query_not_in():
     ret = vc.query(database_name, space_name, filter=filters)
     logger.debug(ret.documents)
     assert len(ret.documents) >= 0
+
 
 def test_query_no_result():
     conditons = [
@@ -246,6 +260,7 @@ def test_search_no_result():
     )
     logger.debug(ret.msg)
     assert not ret.is_success()
+
 
 def test_drop_space():
     ret = vc.drop_space(database_name, space_name)

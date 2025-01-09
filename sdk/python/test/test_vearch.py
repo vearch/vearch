@@ -130,6 +130,7 @@ class TestVearchBadcase(object):
                             dimension=512,
                         ),
                     ],
+                    replica_num=1,
                 ),
             ),
             (
@@ -148,6 +149,7 @@ class TestVearchBadcase(object):
                             dimension=512,
                         ),
                     ],
+                    replica_num=1,
                 ),
             ),
             # ("database_test_v",SpaceSchema("book_info_biivf", [book_name, book_num, Field("book_character", DataType.VECTOR, BinaryIvfIndex("book_vec_idx", 2048), dimension=512)])),
@@ -165,6 +167,7 @@ class TestVearchBadcase(object):
                             dimension=512,
                         ),
                     ],
+                    replica_num=1,
                 ),
             ),
             (
@@ -181,6 +184,7 @@ class TestVearchBadcase(object):
                             dimension=512,
                         ),
                     ],
+                    replica_num=1,
                 ),
             ),
         ],

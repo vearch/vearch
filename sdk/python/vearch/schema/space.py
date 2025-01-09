@@ -15,7 +15,7 @@ class SpaceSchema:
         fields: List[Field],
         description: str = "",
         partition_num: int = 1,
-        replication_num: int = 3,
+        replica_num: int = 3,
     ):
         """
 
@@ -29,7 +29,7 @@ class SpaceSchema:
         self.fields = fields
         self.description = description
         self.partition_num = partition_num
-        self.replication_num = replication_num
+        self.replica_num = replica_num
         self._check_valid()
 
     def _check_valid(self):
@@ -50,7 +50,7 @@ class SpaceSchema:
             "name": self.name,
             "desc": self.description,
             "partition_num": self.partition_num,
-            "replication_num": self.replication_num,
+            "replica_num": self.replica_num,
         }
 
         space_schema["fields"] = [field.__dict__() for field in self.fields]
@@ -69,5 +69,5 @@ class SpaceSchema:
             fields=fields,
             description=data_dict.get("desc", ""),
             partition_num=data_dict.get("partition_num"),
-            replication_num=data_dict.get("replica_num"),
+            replica_num=data_dict.get("replica_num"),
         )

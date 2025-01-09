@@ -30,6 +30,7 @@ client = RestClient(host=test_host_url, token="secret")
 db = Database(database_name, client)
 db_not = Database(database_name1, client)
 
+
 def test_is_database_not_exist():
     ret = db_not.exist()
     assert ret == False
@@ -70,7 +71,9 @@ def create_space_schema(space_name) -> SpaceSchema:
         "ractor_address", DataType.STRING, desc="the place of the book put"
     )
     space_schema = SpaceSchema(
-        space_name, fields=[book_name, book_num, book_vector, ractor_address]
+        space_name,
+        fields=[book_name, book_num, book_vector, ractor_address],
+        replica_num=1,
     )
     return space_schema
 
