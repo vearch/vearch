@@ -488,7 +488,7 @@ func (ca *clusterAPI) createSpace(c *gin.Context) {
 		return
 	}
 	if space.ReplicaNum <= 0 {
-		space.ReplicaNum = 1
+		space.ReplicaNum = 3
 	}
 
 	// check index name is ok

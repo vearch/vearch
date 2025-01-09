@@ -49,11 +49,12 @@ class TestClusterPartitionServerAdd:
         ],
     )
     def test_vearch_space_create(self, embedding_size, index_type):
-        space_name_each = vearch_utils.space_name + "smalldata" + str(embedding_size) + index_type
+        space_name_each = (
+            vearch_utils.space_name + "smalldata" + str(embedding_size) + index_type
+        )
         space_config = {
             "name": space_name_each,
             "partition_num": 2,
-            "replica_num": 3,
             "fields": [
                 {"name": "field_int", "type": "integer"},
                 {"name": "field_long", "type": "long"},
@@ -84,10 +85,16 @@ class TestClusterPartitionServerAdd:
             ],
         }
 
-        response = vearch_utils.create_space(vearch_utils.router_url, vearch_utils.db_name, space_config)
+        response = vearch_utils.create_space(
+            vearch_utils.router_url, vearch_utils.db_name, space_config
+        )
         logger.info(response.json())
+        # default now should be 3
+        assert response.json()["data"]["replica_num"] == 3
 
-        vearch_utils.add_embedding_size(vearch_utils.db_name, space_name_each, 50, 100, embedding_size)
+        vearch_utils.add_embedding_size(
+            vearch_utils.db_name, space_name_each, 50, 100, embedding_size
+        )
 
         vearch_utils.delete_interface(
             10,
@@ -97,10 +104,13 @@ class TestClusterPartitionServerAdd:
             delete_space_name=space_name_each,
         )
 
+
 def waitfor_leader_status():
     leader_status = 0
     while leader_status == 0:
-        response = vearch_utils.list_spaces(vearch_utils.router_url, vearch_utils.db_name)
+        response = vearch_utils.list_spaces(
+            vearch_utils.router_url, vearch_utils.db_name
+        )
         for space in response.json()["data"]:
             for partition in space["partitions"]:
                 leader_status = partition["raft_status"]["Leader"]
@@ -110,6 +120,7 @@ def waitfor_leader_status():
                 break
         time.sleep(15)
     return leader_status
+
 
 class TestClusterPartitionServerRecover:
     def test_ps_recover(self):
@@ -122,12 +133,17 @@ class TestClusterPartitionServerRecover:
 
         leader_status = waitfor_leader_status()
         logger.info(leader_status)
-        response = vearch_utils.list_spaces(vearch_utils.router_url, vearch_utils.db_name)
+        response = vearch_utils.list_spaces(
+            vearch_utils.router_url, vearch_utils.db_name
+        )
         logger.info(response.json())
+
 
 class TestClusterPartitionServerCheckSpace:
     def test_check_space(self):
-        response = vearch_utils.list_spaces(vearch_utils.router_url, vearch_utils.db_name)
+        response = vearch_utils.list_spaces(
+            vearch_utils.router_url, vearch_utils.db_name
+        )
         logger.info(response.json())
         for space in response.json()["data"]:
             assert space["doc_num"] == 4000
@@ -138,19 +154,27 @@ class TestClusterPartitionServerDestroy:
         leader_status = waitfor_leader_status()
         logger.info(leader_status)
 
-        response = vearch_utils.list_spaces(vearch_utils.router_url, vearch_utils.db_name)
+        response = vearch_utils.list_spaces(
+            vearch_utils.router_url, vearch_utils.db_name
+        )
         while response == None:
             time.sleep(10)
-            response = vearch_utils.list_spaces(vearch_utils.router_url, vearch_utils.db_name)
-        
+            response = vearch_utils.list_spaces(
+                vearch_utils.router_url, vearch_utils.db_name
+            )
+
         logger.info(response.text)
         assert response.json()["code"] == 0
 
         while len(response.json()["data"]) == 0:
             time.sleep(10)
-            response = vearch_utils.list_spaces(vearch_utils.router_url, vearch_utils.db_name)
+            response = vearch_utils.list_spaces(
+                vearch_utils.router_url, vearch_utils.db_name
+            )
         for space in response.json()["data"]:
-            response = vearch_utils.drop_space(vearch_utils.router_url, vearch_utils.db_name, space["space_name"])
+            response = vearch_utils.drop_space(
+                vearch_utils.router_url, vearch_utils.db_name, space["space_name"]
+            )
             assert response.json()["code"] == 0
         vearch_utils.drop_db(vearch_utils.router_url, vearch_utils.db_name)
 
@@ -204,10 +228,14 @@ class TestClusterPartitionChange:
             ],
         }
 
-        response = vearch_utils.create_space(vearch_utils.router_url, vearch_utils.db_name, space_config)
+        response = vearch_utils.create_space(
+            vearch_utils.router_url, vearch_utils.db_name, space_config
+        )
         logger.info(response.json())
 
-        vearch_utils.add_embedding_size(vearch_utils.db_name, vearch_utils.space_name, 50, 100, embedding_size)
+        vearch_utils.add_embedding_size(
+            vearch_utils.db_name, vearch_utils.space_name, 50, 100, embedding_size
+        )
 
         vearch_utils.delete_interface(
             10,
@@ -218,7 +246,9 @@ class TestClusterPartitionChange:
         )
 
     def test_check_space(self):
-        response = vearch_utils.list_spaces(vearch_utils.router_url, vearch_utils.db_name)
+        response = vearch_utils.list_spaces(
+            vearch_utils.router_url, vearch_utils.db_name
+        )
         logger.info(response.json())
         for space in response.json()["data"]:
             assert space["doc_num"] == 4000
@@ -226,7 +256,12 @@ class TestClusterPartitionChange:
     def test_change_partition(self):
         pids = []
         nodes = [1, 2, 3]
-        response = vearch_utils.get_space(vearch_utils.router_url, vearch_utils.db_name, vearch_utils.space_name, detail=True)
+        response = vearch_utils.get_space(
+            vearch_utils.router_url,
+            vearch_utils.db_name,
+            vearch_utils.space_name,
+            detail=True,
+        )
         logger.info(response.json())
         target_node = 0
         nums = {}
@@ -238,7 +273,9 @@ class TestClusterPartitionChange:
         # add partitons
         logger.info(pids)
         logger.info(target_node)
-        response = vearch_utils.change_partitons(vearch_utils.router_url, pids, target_node, 0)
+        response = vearch_utils.change_partitons(
+            vearch_utils.router_url, pids, target_node, 0
+        )
         logger.info(response.json())
         assert response.json()["code"] == 0
         response = vearch_utils.get_servers_status(vearch_utils.router_url)
@@ -255,19 +292,26 @@ class TestClusterPartitionChange:
                 break
 
         # delete partitions
-        response = vearch_utils.change_partitons(vearch_utils.router_url, pids, target_node, 1)
+        response = vearch_utils.change_partitons(
+            vearch_utils.router_url, pids, target_node, 1
+        )
         logger.info(response.json())
         assert response.json()["code"] == 0
         response = vearch_utils.get_servers_status(vearch_utils.router_url)
         logger.info(response.json())
 
     def test_destroy_db(self):
-        response = vearch_utils.list_spaces(vearch_utils.router_url, vearch_utils.db_name)
+        response = vearch_utils.list_spaces(
+            vearch_utils.router_url, vearch_utils.db_name
+        )
         assert response.json()["code"] == 0
         for space in response.json()["data"]:
-            response = vearch_utils.drop_space(vearch_utils.router_url, vearch_utils.db_name, space["space_name"])
+            response = vearch_utils.drop_space(
+                vearch_utils.router_url, vearch_utils.db_name, space["space_name"]
+            )
             assert response.json()["code"] == 0
         vearch_utils.drop_db(vearch_utils.router_url, vearch_utils.db_name)
+
 
 def create_space(partition_num, replica_num, embedding_size, index_type):
     space_config = {
@@ -303,9 +347,12 @@ def create_space(partition_num, replica_num, embedding_size, index_type):
         ],
     }
 
-    response = vearch_utils.create_space(vearch_utils.router_url, vearch_utils.db_name, space_config)
+    response = vearch_utils.create_space(
+        vearch_utils.router_url, vearch_utils.db_name, space_config
+    )
     logger.info(response.json())
     return response
+
 
 class TestClusterFaultyPartitionServerCreateSpace:
     def setup_class(self):
@@ -336,7 +383,9 @@ class TestClusterFaultyPartitionServerPrepareData:
         ],
     )
     def test_prepare_data(self, embedding_size, index_type):
-        vearch_utils.add_embedding_size(vearch_utils.db_name, vearch_utils.space_name, 50, 100, embedding_size)
+        vearch_utils.add_embedding_size(
+            vearch_utils.db_name, vearch_utils.space_name, 50, 100, embedding_size
+        )
 
 
 class TestClusterFaultyPartitionServerSearch:
@@ -348,21 +397,30 @@ class TestClusterFaultyPartitionServerSearch:
         xb = sift10k.get_database()
         vearch_utils.search_interface(10, 100, xb, True)
 
+
 class TestClusterFaultyPartitionServerGetMetaData:
     def test_list_space(self):
-        response = vearch_utils.list_spaces(vearch_utils.router_url, vearch_utils.db_name)
+        response = vearch_utils.list_spaces(
+            vearch_utils.router_url, vearch_utils.db_name
+        )
         while response == None:
             time.sleep(10)
-            response = vearch_utils.list_spaces(vearch_utils.router_url, vearch_utils.db_name)
+            response = vearch_utils.list_spaces(
+                vearch_utils.router_url, vearch_utils.db_name
+            )
 
         logger.info(response.text)
         assert response.json()["code"] == 0
 
         while len(response.json()["data"]) == 0:
             time.sleep(10)
-            response = vearch_utils.list_spaces(vearch_utils.router_url, vearch_utils.db_name)
+            response = vearch_utils.list_spaces(
+                vearch_utils.router_url, vearch_utils.db_name
+            )
         for space in response.json()["data"]:
-            response = vearch_utils.get_space(vearch_utils.router_url, vearch_utils.db_name, space["space_name"])
+            response = vearch_utils.get_space(
+                vearch_utils.router_url, vearch_utils.db_name, space["space_name"]
+            )
             assert response.json()["code"] == 0
 
     def test_vearch_usage_read_metadata(self):
@@ -386,7 +444,9 @@ class TestClusterFaultyPartitionServerGetMetaData:
         logger.debug("list_server---\n" + json.dumps(response.json()))
         assert response.json()["code"] == 0
 
-        response = vearch_utils.get_space(vearch_utils.router_url, vearch_utils.db_name, vearch_utils.space_name)
+        response = vearch_utils.get_space(
+            vearch_utils.router_url, vearch_utils.db_name, vearch_utils.space_name
+        )
         logger.info("get_space---\n" + json.dumps(response.json()))
         assert response.json()["code"] == 0
 
@@ -402,9 +462,12 @@ class TestClusterFaultyPartitionServerGetMetaData:
         logger.debug("db_search---\n" + json.dumps(response.json()))
         assert response.json()["code"] == 0
 
-        response = vearch_utils.list_spaces(vearch_utils.router_url, vearch_utils.db_name)
+        response = vearch_utils.list_spaces(
+            vearch_utils.router_url, vearch_utils.db_name
+        )
         logger.debug("list_space---\n" + json.dumps(response.json()))
         assert response.json()["code"] == 0
+
 
 class TestIncompleteShardPrepare:
     def setup_class(self):
@@ -422,7 +485,9 @@ class TestIncompleteShardPrepare:
     )
     def test_prepare_data(self, embedding_size, index_type):
         create_space(3, 1, embedding_size, index_type)
-        vearch_utils.add_embedding_size(vearch_utils.db_name, vearch_utils.space_name, 50, 100, embedding_size)
+        vearch_utils.add_embedding_size(
+            vearch_utils.db_name, vearch_utils.space_name, 50, 100, embedding_size
+        )
 
 
 class TestIncompleteShardSearch:
@@ -445,16 +510,20 @@ class TestIncompleteShardSearch:
         xb = sift10k.get_database()
 
         for i in range(100):
-            data["load_balance"] = random.choice(["leader", "random", "not_leader", "least_connection"])
+            data["load_balance"] = random.choice(
+                ["leader", "random", "not_leader", "least_connection"]
+            )
             vector_info = {
                 "field": "field_vector",
-                "feature": xb[i:i+1].flatten().tolist(),
+                "feature": xb[i : i + 1].flatten().tolist(),
             }
             data["vectors"].append(vector_info)
             data["limit"] = 1
 
             json_str = json.dumps(data)
-            rs = requests.post(url, auth=(vearch_utils.username, vearch_utils.password), data=json_str)
+            rs = requests.post(
+                url, auth=(vearch_utils.username, vearch_utils.password), data=json_str
+            )
             if data["load_balance"] == "not_leader":
                 rs.json()["code"] == 703
                 continue
@@ -477,12 +546,16 @@ class TestIncompleteShardSearch:
         data["vector_value"] = False
 
         for i in range(100):
-            data["load_balance"] = random.choice(["leader", "random", "not_leader", "least_connection"])
+            data["load_balance"] = random.choice(
+                ["leader", "random", "not_leader", "least_connection"]
+            )
             data["document_ids"] = [str(i)]
             data["limit"] = 1
 
             json_str = json.dumps(data)
-            rs = requests.post(url, auth=(vearch_utils.username, vearch_utils.password), data=json_str)
+            rs = requests.post(
+                url, auth=(vearch_utils.username, vearch_utils.password), data=json_str
+            )
 
             if data["load_balance"] == "not_leader":
                 rs.json()["code"] == 703
@@ -494,6 +567,7 @@ class TestIncompleteShardSearch:
 
             documents = rs.json()["data"]["documents"]
             assert len(documents) >= 0
+
 
 class TestFailServerPrepare:
     def setup_class(self):
@@ -511,7 +585,10 @@ class TestFailServerPrepare:
     )
     def test_prepare_data(self, embedding_size, index_type):
         create_space(1, 3, embedding_size, index_type)
-        vearch_utils.add_embedding_size(vearch_utils.db_name, vearch_utils.space_name, 50, 100, embedding_size)
+        vearch_utils.add_embedding_size(
+            vearch_utils.db_name, vearch_utils.space_name, 50, 100, embedding_size
+        )
+
 
 class TestAntiAffinity:
     def setup_class(self):
@@ -529,6 +606,7 @@ class TestAntiAffinity:
     )
     def test_prepare_data(self, embedding_size, index_type):
         create_space(1, 4, embedding_size, index_type)
+
 
 class TestFailAntiAffinity:
     def setup_class(self):
