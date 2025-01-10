@@ -140,7 +140,7 @@ def create_db_and_space(args: argparse.Namespace):
             field_vector,
         ],
         partition_num=args.partition_num,
-        replication_num=args.replica_num,
+        replica_num=args.replica_num,
     )
 
     ret = vc.create_space(args.db, space_schema)

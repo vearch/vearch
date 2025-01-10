@@ -86,7 +86,7 @@ def test_create_space():
 
 
 def test_create_space_with_replica():
-    ret = space.create(create_space_schema("book_info_replica", replica_num=3))
+    ret = space.create(create_space_schema("book_info_replica", replica_num=6))
     assert ret.code != 0
     logger.debug(ret.msg)
 
