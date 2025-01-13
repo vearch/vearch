@@ -438,7 +438,6 @@ Status Engine::Query(QueryRequest &request, Response &response_results) {
     if (num <= 0) {
       std::string msg =
           space_name_ + " no result: numeric filter return 0 result";
-      LOG(TRACE) << request.RequestId() << " " << msg;
       SearchResult result;
       result.msg = msg;
       result.result_code = SearchResultCode::SUCCESS;
@@ -553,7 +552,8 @@ Status Engine::CreateTable(TableInfo &table) {
   table_ = new Table(space_name_, storage_mgr_, table_cf_id);
   status = table_->CreateTable(table, docids_bitmap_);
   if (!status.ok()) {
-    std::string msg = space_name_ + " cannot create table, err: " + status.ToString();
+    std::string msg =
+        space_name_ + " cannot create table, err: " + status.ToString();
     LOG(ERROR) << msg;
     this->Close();
     return Status::ParamError(msg);
@@ -687,10 +687,6 @@ int Engine::Update(int doc_id,
     int idx = table_->GetAttrIdx(field.name);
     field_range_index_->Add(doc_id, idx);
   }
-
-  LOG(DEBUG) << space_name_
-             << " update success, key=" << fields_table["_id"].value
-             << ", doc_id=" << doc_id;
   is_dirty_ = true;
   return 0;
 }

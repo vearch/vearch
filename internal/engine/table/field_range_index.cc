@@ -694,7 +694,6 @@ int64_t FieldRangeIndex::Search(const std::string &tags,
     bt_close(bt);
 
     if (ret < 0) {
-      LOG(DEBUG) << "find node failed, key=" << item;
       continue;
     }
     if (p_node == nullptr) {
