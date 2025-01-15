@@ -142,6 +142,35 @@ jobs:
         curl -s -L -u root:secret http://127.0.0.1:8817/servers | jq
         curl -s -L -u root:secret http://127.0.0.1:8817/cluster/health?detail=true | jq
 
+    - name: Run tests for upsert with faulty ps
+      run: |
+        cd test
+        pytest test_cluster_ps.py -k "TestFailServerUpsertPrepare" -x --log-cli-level=INFO
+        cd ../cloud
+        docker-compose stop ps1
+        sleep 30
+        status=$(curl -s -L -u root:secret http://127.0.0.1:8817/cluster/health?detail=true\&timeout=1000000 | jq -r '.data[0].status')
+        if [ "$status" != "yellow" ]; then
+          echo "Error: Status is not yellow. Status is $status."
+          exit 1
+        else
+          echo "Status is yellow."
+        fi
+        cd ../test
+        pytest test_cluster_ps.py -k "TestFailServerUpsertDocument" -x --log-cli-level=INFO
+        cd ../cloud
+        docker-compose start ps1
+        cd ../test
+        sleep 30
+        pytest test_cluster_ps.py -x -k "TestFailServerUpsertDestroy" --log-cli-level=INFO
+        sleep 10
+        db_num=$(curl -s -L -u root:secret http://127.0.0.1:8817/dbs | jq '.data | length')
+        if [ "$db_num" -ne 0 ]; then
+          echo "db is not empty"
+          exit 1
+        fi
+        curl -s -L -u root:secret http://127.0.0.1:8817/cluster/health?detail=true | jq
+
     - name: Run tests for faulty ps
       run: |
         cd test

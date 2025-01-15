@@ -164,13 +164,12 @@ def update(total, bulk, full_field, xb):
 
     create_for_document_test(router_url, embedding_size, properties)
 
-    add(total_batch, batch_size, xb, with_id, full_field)
+    for i in range(5):
+        add(total_batch, batch_size, xb, with_id, full_field, i)
 
-    query_interface(total_batch, batch_size, xb, full_field)
+        add(total_batch, batch_size, xb, with_id, full_field, i, has_vector=False)
 
-    add(total_batch, batch_size, xb, with_id, full_field, 2)
-
-    query_interface(total_batch, batch_size, xb, full_field, 2)
+        query_interface(total_batch, batch_size, xb, full_field, i)
 
     destroy(router_url, db_name, space_name)
 

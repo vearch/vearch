@@ -35,6 +35,7 @@ import (
 	"github.com/vearch/vearch/v3/internal/config"
 	"github.com/vearch/vearch/v3/internal/engine/sdk/go/gamma"
 	"github.com/vearch/vearch/v3/internal/entity"
+	"github.com/vearch/vearch/v3/internal/entity/request"
 	"github.com/vearch/vearch/v3/internal/entity/response"
 	"github.com/vearch/vearch/v3/internal/master/store"
 	"github.com/vearch/vearch/v3/internal/pkg/algorithm"
@@ -1187,9 +1188,9 @@ var replicaRoundRobin = algorithm.NewRoundRobin[entity.PartitionID, entity.NodeI
 func GetNodeIdsByClientType(clientType string, partition *entity.Partition, servers *cache.Cache, client *Client) entity.NodeID {
 	nodeId := uint64(0)
 	switch clientType {
-	case "leader":
+	case request.Leader:
 		nodeId = partition.LeaderID
-	case "not_leader":
+	case request.NotLeader:
 		noLeaderIDs := make([]entity.NodeID, 0)
 		for _, nodeID := range partition.Replicas {
 			_, serverExist := servers.Get(cast.ToString(nodeID))
@@ -1210,7 +1211,7 @@ func GetNodeIdsByClientType(clientType string, partition *entity.Partition, serv
 			}
 		}
 		nodeId = replicaRoundRobin.Next(partition.Id, noLeaderIDs)
-	case "random", "":
+	case request.Random, "":
 		randIDs := make([]entity.NodeID, 0)
 		for _, nodeID := range partition.Replicas {
 			_, serverExist := servers.Get(cast.ToString(nodeID))
@@ -1229,7 +1230,7 @@ func GetNodeIdsByClientType(clientType string, partition *entity.Partition, serv
 			}
 		}
 		nodeId = replicaRoundRobin.Next(partition.Id, randIDs)
-	case "least_connection":
+	case request.LeastConnection:
 		leastId := uint64(0)
 		most := 1<<32 - 1
 		least := -1

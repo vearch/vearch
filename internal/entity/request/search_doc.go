@@ -28,6 +28,13 @@ var (
 	QueryVector    string = "vector"
 )
 
+var (
+	Leader          string = "leader"
+	NotLeader       string = "not_leader"
+	LeastConnection string = "least_connection"
+	Random          string = "random"
+)
+
 type DocumentRequest struct {
 	Documents  []json.RawMessage     `json:"documents,omitempty"`
 	DbName     string                `json:"db_name,omitempty"`
