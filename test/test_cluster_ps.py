@@ -626,3 +626,48 @@ class TestFailAntiAffinity:
         response = create_space(1, 5, embedding_size, index_type)
         assert response.json()["code"] != 0
         vearch_utils.drop_db(vearch_utils.router_url, vearch_utils.db_name)
+
+
+class TestFailServerUpsertPrepare:
+    def setup_class(self):
+        self.embedding_size = 128
+
+    def test_prepare_db(self):
+        response = vearch_utils.create_db(vearch_utils.router_url, vearch_utils.db_name)
+        logger.info(response.json())
+
+        create_space(1, 3, self.embedding_size, "FLAT")
+
+
+class TestFailServerUpsertDocument:
+    def setup_class(self):
+        self.embedding_size = 128
+
+    def test_fail_upsert(self):
+        # upsert
+        vearch_utils.add_embedding_size(
+            vearch_utils.db_name, vearch_utils.space_name, 10, 100, self.embedding_size
+        )
+
+        # update
+        for i in range(10):
+            vearch_utils.add_embedding_size(
+                vearch_utils.db_name, vearch_utils.space_name, 10, 100, 0
+            )
+
+
+class TestFailServerUpsertDestroy:
+    def setup_class(self):
+        pass
+
+    def test_destroy_db(self):
+        response = vearch_utils.list_spaces(
+            vearch_utils.router_url, vearch_utils.db_name
+        )
+        assert response.json()["code"] == 0
+        for space in response.json()["data"]:
+            response = vearch_utils.drop_space(
+                vearch_utils.router_url, vearch_utils.db_name, space["space_name"]
+            )
+            assert response.json()["code"] == 0
+        vearch_utils.drop_db(vearch_utils.router_url, vearch_utils.db_name)

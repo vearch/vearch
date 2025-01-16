@@ -525,7 +525,7 @@ def check(total, full_field, xb, mode: str):
 
     assert get_space_num() == 0
     for i in range(total):
-        process_add_data((i, batch_size, xb[i * batch_size : (i + 1) * batch_size], with_id, full_field, 1, "", [], False))
+        process_add_data((i, batch_size, xb[i * batch_size : (i + 1) * batch_size], with_id, full_field, 1, "", [], False, True))
         process_get_data_by_filter(i, full_field, "[)", total)
         assert get_space_num() == i + 1
 
