@@ -458,10 +458,8 @@ func (handler *DocumentHandler) handleDocumentQuery(c *gin.Context) {
 			response.New(c).JsonError(errors.NewErrUnprocessable(err))
 			return
 		}
-		if searchDoc.PartitionId != nil {
-			handler.handleDocumentGet(c, searchDoc, space)
-			return
-		}
+		handler.handleDocumentGet(c, searchDoc, space)
+		return
 	} else {
 		if args.TermFilters == nil && args.RangeFilters == nil {
 			err := vearchpb.NewError(vearchpb.ErrorEnum_QUERY_INVALID_PARAMS_SHOULD_HAVE_ONE_OF_DOCUMENT_IDS_OR_FILTER, nil)
@@ -502,26 +500,27 @@ func (handler *DocumentHandler) handleDocumentGet(c *gin.Context, searchDoc *req
 		queryFieldsParam = arrayToMap(searchDoc.Fields)
 	}
 
-	if searchDoc.PartitionId == nil {
-		err := vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("get docs by partition should set partition_id"))
-		response.New(c).JsonError(errors.NewErrBadRequest(err))
-		return
-	}
-
-	found := false
-	for _, partition := range space.Partitions {
-		if partition.Id == *searchDoc.PartitionId {
-			found = true
-			break
+	if searchDoc.PartitionId != nil {
+		found := false
+		for _, partition := range space.Partitions {
+			if partition.Id == *searchDoc.PartitionId {
+				found = true
+				break
+			}
+		}
+		if !found {
+			err := vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("partition_id %d not belong to space %s", *searchDoc.PartitionId, space.Name))
+			response.New(c).JsonError(errors.NewErrBadRequest(err))
+			return
 		}
 	}
-	if !found {
-		err := vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("partition_id %d not belong to space %s", *searchDoc.PartitionId, space.Name))
-		response.New(c).JsonError(errors.NewErrBadRequest(err))
-		return
-	}
 
-	reply := handler.docService.getDocsByPartition(c.Request.Context(), args, *searchDoc.PartitionId, searchDoc.Next)
+	var reply *vearchpb.GetResponse
+	if searchDoc.PartitionId != nil {
+		reply = handler.docService.getDocsByPartition(c.Request.Context(), args, *searchDoc.PartitionId, searchDoc.Next)
+	} else {
+		reply = handler.docService.getDocs(c.Request.Context(), args)
+	}
 
 	if result, err := documentGetResponse(space, reply, queryFieldsParam, searchDoc.VectorValue); err != nil {
 		response.New(c).JsonError(errors.NewErrInternal(err))

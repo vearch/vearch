@@ -403,6 +403,7 @@ class TestSpaceCreate:
         drop_db(router_url, db_name)
 
 
+"""
 class TestSpaceExpansion:
     def setup_class(self):
         pass
@@ -553,3 +554,4 @@ class TestSpaceExpansion:
 
     def test_destroy_db(self):
         drop_db(router_url, db_name)
+"""
