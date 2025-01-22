@@ -109,6 +109,7 @@ class TestSpaceCreate:
         response = describe_space(router_url, db_name, space_name)
         logger.info(response.json())
         assert response.json()["code"] == 0
+        assert "errors" not in response.json()["data"]
 
         response = drop_space(router_url, db_name, space_name)
         assert response.json()["code"] == 0
@@ -469,6 +470,7 @@ class TestSpaceExpansion:
         response = describe_space(router_url, db_name, space_name)
         logger.info(response.json())
         assert response.json()["code"] == 0
+        assert "errors" not in response.json()["data"]
 
     def test_document_operation(self):
         # add aggin

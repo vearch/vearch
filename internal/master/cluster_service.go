@@ -730,9 +730,20 @@ func (ms *masterService) describeSpaceService(ctx context.Context, space *entity
 	spaceInfo.Errors = make([]string, 0)
 
 	// check partition num in meta data
-	if len(space.Partitions) != int(space.PartitionNum) {
-		spaceInfo.Errors = append(spaceInfo.Errors, fmt.Sprintf("space: [%s] partitions length:[%d] not equal to partition num:[%d]", space.Name, len(space.Partitions), space.PartitionNum))
-		spaceStatus = 2
+	if space.PartitionRule != nil {
+		if len(space.Partitions) != int(space.PartitionNum*space.PartitionRule.Partitions) {
+			msg := fmt.Sprintf("space: [%s] partitions length:[%d] not equal to partition num:[%d] * PartitionRule.Partitions: [%d]", space.Name, len(space.Partitions), space.PartitionNum, space.PartitionRule.Partitions)
+			spaceInfo.Errors = append(spaceInfo.Errors, msg)
+			log.Error(msg)
+			spaceStatus = 2
+		}
+	} else {
+		if len(space.Partitions) != int(space.PartitionNum) {
+			msg := fmt.Sprintf("space: [%s] partitions length:[%d] not equal to partition num:[%d]", space.Name, len(space.Partitions), space.PartitionNum)
+			spaceInfo.Errors = append(spaceInfo.Errors, msg)
+			log.Error(msg)
+			spaceStatus = 2
+		}
 	}
 
 	for _, spacePartition := range space.Partitions {
@@ -740,7 +751,9 @@ func (ms *masterService) describeSpaceService(ctx context.Context, space *entity
 		pStatus := 0
 
 		if err != nil {
-			spaceInfo.Errors = append(spaceInfo.Errors, fmt.Sprintf("partition:[%d] in space: [%s] not found in meta data", spacePartition.Id, space.Name))
+			msg := fmt.Sprintf("partition:[%d] in space: [%s] not found in meta data", spacePartition.Id, space.Name)
+			spaceInfo.Errors = append(spaceInfo.Errors, msg)
+			log.Error(msg)
 			pStatus = 2
 			if pStatus > spaceStatus {
 				spaceStatus = pStatus
@@ -758,7 +771,9 @@ func (ms *masterService) describeSpaceService(ctx context.Context, space *entity
 
 		server, err := ms.Master().QueryServer(ctx, nodeID)
 		if err != nil {
-			spaceInfo.Errors = append(spaceInfo.Errors, fmt.Sprintf("space: [%s] partition:[%d], server:[%d] not found", space.Name, spacePartition.Id, nodeID))
+			msg := fmt.Sprintf("space: [%s] partition:[%d], server:[%d] not found", space.Name, spacePartition.Id, nodeID)
+			spaceInfo.Errors = append(spaceInfo.Errors, msg)
+			log.Error(msg)
 			pStatus = 2
 			if pStatus > spaceStatus {
 				spaceStatus = pStatus
@@ -768,7 +783,9 @@ func (ms *masterService) describeSpaceService(ctx context.Context, space *entity
 
 		partitionInfo, err := client.PartitionInfo(server.RpcAddr(), p.Id, detail_info)
 		if err != nil {
-			spaceInfo.Errors = append(spaceInfo.Errors, fmt.Sprintf("query space:[%s] server:[%d] partition:[%d] info err :[%s]", space.Name, nodeID, spacePartition.Id, err.Error()))
+			msg := fmt.Sprintf("query space:[%s] server:[%d] partition:[%d] info err :[%s]", space.Name, nodeID, spacePartition.Id, err.Error())
+			spaceInfo.Errors = append(spaceInfo.Errors, msg)
+			log.Error(msg)
 			partitionInfo = &entity.PartitionInfo{}
 			pStatus = 2
 		} else {
@@ -788,11 +805,15 @@ func (ms *masterService) describeSpaceService(ctx context.Context, space *entity
 
 		if partitionInfo.RaftStatus != nil {
 			if partitionInfo.RaftStatus.Leader == 0 {
-				spaceInfo.Errors = append(spaceInfo.Errors, fmt.Sprintf("partition:[%d] in space:[%s] has no leader", spacePartition.Id, space.Name))
+				msg := fmt.Sprintf("partition:[%d] in space:[%s] has no leader", spacePartition.Id, space.Name)
+				spaceInfo.Errors = append(spaceInfo.Errors, msg)
+				log.Error(msg)
 				pStatus = 2
 			} else {
 				if len(partitionInfo.RaftStatus.Replicas) != int(space.ReplicaNum) {
-					spaceInfo.Errors = append(spaceInfo.Errors, fmt.Sprintf("partition:[%d] in space:[%s] replicas: [%d] is not equal to replicaNum: [%d]", spacePartition.Id, space.Name, len(partitionInfo.RaftStatus.Replicas), space.ReplicaNum))
+					msg := fmt.Sprintf("partition:[%d] in space:[%s] replicas: [%d] is not equal to replicaNum: [%d]", spacePartition.Id, space.Name, len(partitionInfo.RaftStatus.Replicas), space.ReplicaNum)
+					spaceInfo.Errors = append(spaceInfo.Errors, msg)
+					log.Error(msg)
 					pStatus = 2
 				} else {
 					replicaStateProbeNum := 0
@@ -815,11 +836,15 @@ func (ms *masterService) describeSpaceService(ctx context.Context, space *entity
 						}
 					}
 					if replicaStateProbeNum != 1 {
-						spaceInfo.Errors = append(spaceInfo.Errors, fmt.Sprintf("partition:[%d] in space:[%s] have [%d] leader", spacePartition.Id, space.Name, replicaStateProbeNum))
+						msg := fmt.Sprintf("partition:[%d] in space:[%s] have [%d] leader", spacePartition.Id, space.Name, replicaStateProbeNum)
+						spaceInfo.Errors = append(spaceInfo.Errors, msg)
+						log.Error(msg)
 						pStatus = 2
 					}
 					if leaderId != int(partitionInfo.RaftStatus.Leader) {
-						spaceInfo.Errors = append(spaceInfo.Errors, fmt.Sprintf("partition:[%d] in space:[%s] leader: [%d] is not equal to raft leader: [%d]", spacePartition.Id, space.Name, leaderId, partitionInfo.RaftStatus.Leader))
+						msg := fmt.Sprintf("partition:[%d] in space:[%s] leader: [%d] is not equal to raft leader: [%d]", spacePartition.Id, space.Name, leaderId, partitionInfo.RaftStatus.Leader)
+						spaceInfo.Errors = append(spaceInfo.Errors, msg)
+						log.Error(msg)
 						pStatus = 2
 					}
 				}
@@ -839,14 +864,6 @@ func (ms *masterService) describeSpaceService(ctx context.Context, space *entity
 
 		if pStatus > spaceStatus {
 			spaceStatus = pStatus
-		}
-	}
-
-	if len(spaceInfo.Errors) == 0 {
-		// some partition lost
-		if len(spaceInfo.Partitions) != space.PartitionNum {
-			spaceInfo.Errors = append(spaceInfo.Errors, fmt.Sprintf("space: [%s] partitions length:[%d] not equal to partition num:[%d]", space.Name, len(spaceInfo.Partitions), space.PartitionNum))
-			spaceStatus = 2
 		}
 	}
 

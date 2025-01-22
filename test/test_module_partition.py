@@ -270,6 +270,7 @@ class TestPartitionRule:
         response = describe_space(router_url, db_name, space_name)
         logger.info(response.json())
         assert response.json()["code"] == 0
+        assert "errors" not in response.json()["data"]
 
         assert get_space_num() == 0
 
@@ -303,6 +304,7 @@ class TestPartitionRule:
         response = describe_space(router_url, db_name, space_name)
         logger.info(response.json())
         assert response.json()["code"] == 0
+        assert "errors" not in response.json()["data"]
 
         assert get_partitions_doc_num("p1") == 10 * 100
 
@@ -361,7 +363,7 @@ class TestPartitionRule:
             url = router_url + "/document/query?trace=true"
             json_str = json.dumps(query_dict)
             rs = requests.post(url, auth=(username, password), data=json_str)
-            logger.info(rs.json())
+            # logger.info(rs.json())
             assert rs.json()["code"] == 0
             assert len(rs.json()["data"]["documents"]) == 1
             if rs.json()["data"]["total"] == 0:
@@ -413,6 +415,7 @@ class TestPartitionRule:
         response = describe_space(router_url, db_name, space_name)
         logger.info(response.json())
         assert response.json()["code"] == 0
+        assert "errors" not in response.json()["data"]
 
     def test_destroy_db(self):
         response = list_spaces(router_url, db_name)

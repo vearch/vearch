@@ -122,6 +122,43 @@ class TestStringArrayField:
             assert rs.status_code == 200
             assert len(rs.json()["data"]["documents"][0]["field_string_array"]) == 2
 
+        for i in range(100):
+            query_dict = {
+                "document_ids": [str(i)],
+                "limit": 1,
+                "db_name": db_name,
+                "space_name": space_name,
+                "get_by_query": True,
+            }
+            url = router_url + "/document/query?trace=true"
+            json_str = json.dumps(query_dict)
+            rs = requests.post(url, auth=(username, password), data=json_str)
+            # logger.info(rs.json())
+            assert rs.status_code == 200
+            assert len(rs.json()["data"]["documents"][0]["field_string_array"]) == 2
+
+            query_dict["document_ids"] = []
+            query_dict["filters"] = {
+                "operator": "AND",
+                "conditions": [
+                    {
+                        "field": "field_string_array",
+                        "operator": "IN",
+                        "value": [str(i)],
+                    },
+                    {
+                        "field": "field_string_array",
+                        "operator": "IN",
+                        "value": [str(i + 1000)],
+                    },
+                ],
+            }
+            json_str = json.dumps(query_dict)
+            rs = requests.post(url, auth=(username, password), data=json_str)
+            # logger.info(rs.json())
+            assert rs.status_code == 200
+            assert len(rs.json()["data"]["documents"][0]["field_string_array"]) == 2
+
     # destroy
     def test_destroy_cluster(self):
         destroy(router_url, db_name, space_name)
@@ -185,9 +222,7 @@ class TestDateField:
         )
         assert get_space_num() == int(total_batch * batch_size)
 
-        add_date(
-            db_name, space_name, 1, 2, batch_size, embedding_size, "timestamp"
-        )
+        add_date(db_name, space_name, 1, 2, batch_size, embedding_size, "timestamp")
         assert get_space_num() == int(total_batch * batch_size * 2)
 
     def test_query_date(self):
@@ -216,6 +251,44 @@ class TestDateField:
                 "limit": 1,
                 "db_name": db_name,
                 "space_name": space_name,
+            }
+            url = router_url + "/document/query?trace=true"
+            json_str = json.dumps(query_dict)
+            rs = requests.post(url, auth=(username, password), data=json_str)
+            logger.info(rs.json())
+            assert rs.status_code == 200
+            dt = datetime.datetime.strptime(
+                rs.json()["data"]["documents"][0]["field_date"], "%Y-%m-%dT%H:%M:%S%z"
+            )
+            date_str = dt.strftime("%Y-%m-%d")
+            assert date_str == today_str
+
+        for i in range(100):
+            query_dict = {
+                "document_ids": [str(i)],
+                "limit": 1,
+                "db_name": db_name,
+                "space_name": space_name,
+                "get_by_query": True,
+            }
+            url = router_url + "/document/query?trace=true"
+            json_str = json.dumps(query_dict)
+            rs = requests.post(url, auth=(username, password), data=json_str)
+            logger.info(rs.json())
+            assert rs.status_code == 200
+            dt = datetime.datetime.strptime(
+                rs.json()["data"]["documents"][0]["field_date"], "%Y-%m-%dT%H:%M:%S%z"
+            )
+            date_str = dt.strftime("%Y-%m-%d")
+            assert date_str == today_str
+
+        for i in range(100, 200):
+            query_dict = {
+                "document_ids": [str(i)],
+                "limit": 1,
+                "db_name": db_name,
+                "space_name": space_name,
+                "get_by_query": True,
             }
             url = router_url + "/document/query?trace=true"
             json_str = json.dumps(query_dict)
