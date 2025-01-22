@@ -932,6 +932,7 @@ def process_query_data(items):
         query_type == "by_partition"
         or query_type == "by_partition_next"
         or query_type == "by_ids"
+        or query_type == "by_ids_hash"
     ):
         data["document_ids"] = []
         if query_type == "by_partition_next" and batch_size > 1:
@@ -956,6 +957,9 @@ def process_query_data(items):
         )
         data["limit"] = batch_size
 
+    if query_type == "by_ids_hash":
+        data["get_by_hash"] = True
+
     json_str = json.dumps(data)
     rs = requests.post(url, auth=(username, password), data=json_str)
 
@@ -978,13 +982,17 @@ def process_query_data(items):
     for j in range(batch_size):
         value = int(documents[j]["_id"])
         logger.debug(documents[j])
-        if query_type == "by_ids" or query_type == "by_filter":
+        if (
+            query_type == "by_ids"
+            or query_type == "by_filter"
+            or query_type == "by_ids_hash"
+        ):
             assert value == index * batch_size + j
         if query_type == "by_partition_next":
             assert documents[j]["_docid"] == str(index * batch_size + j + 1)
 
         assert documents[j]["field_int"] == value * seed
-        if query_type == "by_ids" and check_vector:
+        if (query_type == "by_ids" or query_type == "by_ids_hash") and check_vector:
             assert documents[j]["field_vector"] == features[j].tolist()
         if full_field:
             assert documents[j]["field_long"] == value * seed

@@ -403,7 +403,6 @@ class TestSpaceCreate:
         drop_db(router_url, db_name)
 
 
-"""
 class TestSpaceExpansion:
     def setup_class(self):
         pass
@@ -537,6 +536,22 @@ class TestSpaceExpansion:
                 field_int = i % 100
             assert response.json()["data"]["documents"][0]["field_int"] == field_int
 
+        query_dict["get_by_hash"] = True
+        for i in range(len(document_ids)):
+            query_dict["document_ids"] = [document_ids[i]]
+            json_str = json.dumps(query_dict)
+            response = requests.post(
+                query_url, auth=(username, password), data=json_str
+            )
+            assert len(response.json()["data"]["documents"]) == 1
+            field_int = i
+            if i >= 100:
+                field_int = i % 100
+            if response.json()["data"]["total"] == 0:
+                assert response.json()["data"]["documents"][0]["code"] == 404
+            else:
+                assert response.json()["data"]["documents"][0]["field_int"] == field_int
+
         # add again, Each shard will have roughly half of the data
         add(total_batch, batch_size, xb, False, True)
         waiting_index_finish(total * 3, 1)
@@ -554,4 +569,3 @@ class TestSpaceExpansion:
 
     def test_destroy_db(self):
         drop_db(router_url, db_name)
-"""

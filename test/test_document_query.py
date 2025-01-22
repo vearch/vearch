@@ -105,10 +105,12 @@ def check(total, bulk, full_field, query_type, xb):
     ["bulk", "full_field", "query_type"],
     [
         [True, True, "by_ids"],
+        [True, True, "by_ids_hash"],
         [True, True, "by_filter"],
         [True, True, "by_partition"],
         [True, True, "by_partition_next"],
         [False, True, "by_ids"],
+        [False, True, "by_ids_hash"],
         [False, True, "by_filter"],
         [False, True, "by_partition"],
         [False, True, "by_partition_next"],

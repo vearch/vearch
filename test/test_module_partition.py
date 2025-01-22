@@ -314,9 +314,7 @@ class TestPartitionRule:
         assert get_partitions_doc_num("p1") == 10 * 100
 
         # _id is same but partition field is different
-        add_date(
-            db_name, space_name, 0, 10, 100, embedding_size, "str", delta=1
-        )
+        add_date(db_name, space_name, 0, 10, 100, embedding_size, "str", delta=1)
 
         assert get_partitions_doc_num("p2") == 10 * 100
 
@@ -352,6 +350,25 @@ class TestPartitionRule:
             results.sort()
             assert days == results
 
+        for i in range(1000):
+            query_dict = {
+                "document_ids": [str(i)],
+                "limit": 2,
+                "db_name": db_name,
+                "space_name": space_name,
+                "get_by_hash": True,
+            }
+            url = router_url + "/document/query?trace=true"
+            json_str = json.dumps(query_dict)
+            rs = requests.post(url, auth=(username, password), data=json_str)
+            logger.info(rs.json())
+            assert rs.json()["code"] == 0
+            assert len(rs.json()["data"]["documents"]) == 1
+            if rs.json()["data"]["total"] == 0:
+                assert rs.json()["data"]["documents"][0]["code"] == 404
+            else:
+                assert rs.json()["data"]["documents"][0]["field_float"] == float(i)
+
         # _id is different but partition field is same
         add_date(db_name, space_name, 10, 20, 100, embedding_size, "random")
 
@@ -373,6 +390,25 @@ class TestPartitionRule:
             assert rs.json()["code"] == 0
             assert len(rs.json()["data"]["documents"]) == 1
             assert rs.json()["data"]["documents"][0]["field_float"] == float(i)
+
+        for i in range(1000, 2000):
+            query_dict = {
+                "document_ids": [str(i)],
+                "limit": 2,
+                "db_name": db_name,
+                "space_name": space_name,
+                "get_by_hash": True,
+            }
+            url = router_url + "/document/query?trace=true"
+            json_str = json.dumps(query_dict)
+            rs = requests.post(url, auth=(username, password), data=json_str)
+            # logger.info(rs.json())
+            assert rs.json()["code"] == 0
+            assert len(rs.json()["data"]["documents"]) == 1
+            if rs.json()["data"]["total"] == 0:
+                assert rs.json()["data"]["documents"][0]["code"] == 404
+            else:
+                assert rs.json()["data"]["documents"][0]["field_float"] == float(i)
 
         response = describe_space(router_url, db_name, space_name)
         logger.info(response.json())
@@ -471,9 +507,7 @@ class TestPartitionRuleWithWeek:
         assert get_partitions_doc_num("p1") == 10 * 100
 
         # _id is same but partition field value is different, range is same
-        add_date(
-            db_name, space_name, 0, 10, 100, embedding_size, "str", delta=1
-        )
+        add_date(db_name, space_name, 0, 10, 100, embedding_size, "str", delta=1)
 
         assert get_partitions_doc_num("p1") == 10 * 100
 
@@ -735,7 +769,7 @@ class TestPartitionRuleBadCase:
         ],
     )
     def test_drop_partitions_badcase(self, wrong_index, bad_type):
-        db= db_name
+        db = db_name
         space = space_name
         partition_name = "p0"
         operator_type = "DROP"
@@ -774,7 +808,7 @@ class TestPartitionRuleBadCase:
         day_after_3 = today + datetime.timedelta(days=3)
         day_after_tomorrow = today + datetime.timedelta(days=2)
         operator_type = "ADD"
-        db= db_name
+        db = db_name
         space = space_name
 
         rule = {

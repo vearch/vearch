@@ -458,8 +458,10 @@ func (handler *DocumentHandler) handleDocumentQuery(c *gin.Context) {
 			response.New(c).JsonError(errors.NewErrUnprocessable(err))
 			return
 		}
-		handler.handleDocumentGet(c, searchDoc, space)
-		return
+		if searchDoc.GetByHash || searchDoc.PartitionId != nil {
+			handler.handleDocumentGet(c, searchDoc, space)
+			return
+		}
 	} else {
 		if args.TermFilters == nil && args.RangeFilters == nil {
 			err := vearchpb.NewError(vearchpb.ErrorEnum_QUERY_INVALID_PARAMS_SHOULD_HAVE_ONE_OF_DOCUMENT_IDS_OR_FILTER, nil)

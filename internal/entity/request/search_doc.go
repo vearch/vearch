@@ -83,6 +83,7 @@ type SearchDocumentRequest struct {
 	PartitionId   *uint32           `json:"partition_id,omitempty"`
 	Next          *bool             `json:"next,omitempty"`
 	Ranker        json.RawMessage   `json:"ranker,omitempty"`
+	GetByHash     bool              `json:"get_by_hash,omitempty"`
 	sortOrder     sortorder.SortOrder
 }
 
