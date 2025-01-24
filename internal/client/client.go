@@ -420,17 +420,27 @@ func (r *routerRequest) Execute() []*vearchpb.Item {
 	wg.Wait()
 	close(respChain)
 
-	docIndexMap := make(map[string]int, len(r.docs))
+	docIndexMap := make(map[string][]int, len(r.docs))
 	for i, doc := range r.docs {
-		docIndexMap[doc.PKey] = i
+		docIndexMap[doc.PKey] = append(docIndexMap[doc.PKey], i)
 	}
 
 	items := make([]*vearchpb.Item, len(r.docs))
 	for resp := range respChain {
 		setPartitionErr(resp)
 		for _, item := range resp.Items {
+			if item == nil || item.Doc == nil {
+				log.Error("item or doc is nil")
+				continue
+			}
 			realIndex := docIndexMap[item.Doc.PKey]
-			items[realIndex] = item
+			if len(realIndex) == 1 {
+				items[realIndex[0]] = item
+			} else {
+				for _, index := range realIndex {
+					items[index] = item
+				}
+			}
 		}
 	}
 	return items

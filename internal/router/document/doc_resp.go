@@ -74,7 +74,7 @@ func documentUpsertResponse(reply *vearchpb.BulkResponse) (map[string]interface{
 func documentResultSerialize(item *vearchpb.Item) map[string]interface{} {
 	result := make(map[string]interface{})
 	if item == nil {
-		result["msg"] = "duplicate id"
+		result["msg"] = "item is nil"
 		result["code"] = http.StatusInternalServerError
 		return result
 	}
@@ -110,11 +110,13 @@ func documentGetResponse(space *entity.Space, reply *vearchpb.GetResponse, retur
 
 	var total int64
 	for _, item := range reply.Items {
-		if item.Doc.Fields != nil {
-			total += 1
-		} else {
-			if item.Err.Msg == "success" && item.Err.Code == vearchpb.ErrorEnum_SUCCESS {
+		if item != nil && item.Doc != nil {
+			if item.Doc.Fields != nil {
 				total += 1
+			} else {
+				if item.Err.Msg == "success" && item.Err.Code == vearchpb.ErrorEnum_SUCCESS {
+					total += 1
+				}
 			}
 		}
 	}
@@ -123,6 +125,13 @@ func documentGetResponse(space *entity.Space, reply *vearchpb.GetResponse, retur
 	documents := make([]map[string]interface{}, 0, len(reply.Items))
 	for _, item := range reply.Items {
 		doc := make(map[string]interface{})
+
+		if item == nil {
+			doc["code"] = http.StatusInternalServerError
+			doc["msg"] = "item is nil"
+			documents = append(documents, doc)
+			continue
+		}
 		doc["_id"] = item.Doc.PKey
 
 		if item.Err != nil {

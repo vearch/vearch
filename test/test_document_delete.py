@@ -168,10 +168,12 @@ class TestDocumentDeleteBadCase:
             [1, "params_just_one_wrong"],
             [2, "return_both_wrong"],
             [3, "return_just_one_wrong"],
+            [4, "duplicate_ids"],
+            [5, "duplicate_ids_by_hash"],
         ],
     )
     def test_vearch_document_delete_multiple_badcase(self, index: int, wrong_type: str):
-        wrong_parameters = [False for i in range(4)]
+        wrong_parameters = [False for i in range(6)]
         wrong_parameters[index] = True
         total_batch = 1
         batch_size = 2

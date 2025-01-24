@@ -349,6 +349,8 @@ class TestDocumentUpsertDuplicate:
         rs = requests.post(url, auth=(username, password), json=data)
         logger.info(rs.json())
         assert rs.json()["code"] == 0
+        assert len(rs.json()["data"]["document_ids"]) == 3
+        assert rs.json()["data"]["total"] == 3
         assert get_space_num() == 2
 
     # destroy for badcase
