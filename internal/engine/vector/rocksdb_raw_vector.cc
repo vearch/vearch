@@ -81,7 +81,7 @@ int RocksDBRawVector::InitStore(std::string &vec_name) {
   // // open DB
   // rocksdb::Status s = rocksdb::DB::Open(options, db_path, &db_);
   // if (!s.ok()) {
-  //   LOG(ERROR) << "open rocks db error: " << s.ToString();
+  //   LOG(ERROR) << "open rocksdb error: " << s.ToString();
   //   return -1;
   // }
   // LOG(INFO) << "rocks raw vector init success! name=" << meta_info_->Name()

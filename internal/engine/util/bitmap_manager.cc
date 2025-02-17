@@ -22,6 +22,15 @@
 
 namespace bitmap {
 
+static std::string ToRowKey(uint32_t bit_id) {
+  // max length:6 because (2^32 -1) / 1024 / 8 = 524287
+  std::string key;
+  char data[7];
+  snprintf(data, 7, "%06d", bit_id / kBitmapSegmentBits);
+  key.assign(data, 7);
+  return key;
+}
+
 BitmapManager::BitmapManager() {
   bitmap_ = nullptr;
   size_ = 0;
@@ -313,7 +322,7 @@ int RocksdbBitmapManager::SetDumpFilePath(const std::string &fpath) {
     // open DB
     rocksdb::Status s = rocksdb::DB::Open(options, fpath, &db_);
     if (!s.ok()) {
-      LOG(ERROR) << "open rocks db error: " << s.ToString();
+      LOG(ERROR) << "open rocksdb error: " << s.ToString();
       return -2;
     }
     return 0;
@@ -336,7 +345,7 @@ int RocksdbBitmapManager::Load(int64_t bit_len) {
   int64_t load_num = 0;
   for (int64_t i = 0; i < bit_len; i += kBitmapSegmentBits) {
     std::string key, value;
-    key = utils::ToRowKey(i / kBitmapSegmentBits);
+    key = ToRowKey(i);
     rocksdb::Status s =
         db_->Get(rocksdb::ReadOptions(), rocksdb::Slice(key), &value);
     if (s.ok()) {
@@ -358,7 +367,7 @@ int RocksdbBitmapManager::Set(int64_t bit_id) {
     bitmap_[bit_id >> 3] |= (0x1 << (bit_id & 0x7));
 
     std::string key, value;
-    key = utils::ToRowKey(bit_id / kBitmapSegmentBits);
+    key = ToRowKey(bit_id);
 
     rocksdb::Status s = db_->Put(
         rocksdb::WriteOptions(), rocksdb::Slice(key),
@@ -383,7 +392,7 @@ int RocksdbBitmapManager::Unset(int64_t bit_id) {
     bitmap_[bit_id >> 3] &= ~(0x1 << (bit_id & 0x7));
 
     std::string key, value;
-    key = utils::ToRowKey(bit_id / kBitmapSegmentBits);
+    key = ToRowKey(bit_id);
 
     rocksdb::Status s = db_->Put(
         rocksdb::WriteOptions(), rocksdb::Slice(key),

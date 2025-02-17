@@ -774,6 +774,8 @@ int VectorManager::Load(const std::vector<std::string> &index_dirs,
     }
   }
 
+  LOG(INFO) << "vector_mgr load min_vec_num=" << min_vec_num;
+
   for (const auto &[name, vec] : raw_vectors_) {
     if (vec->WithIO()) {
       // TODO: doc num to vector num

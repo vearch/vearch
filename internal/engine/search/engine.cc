@@ -450,14 +450,16 @@ Status Engine::Query(QueryRequest &request, Response &response_results) {
   GammaResult *gamma_result = new GammaResult[1];
   gamma_result->init(topn, nullptr, 0);
 
-  for (int docid = 0; docid < max_docid_; docid++) {
-    if (range_query_result.Has(docid) && !docids_bitmap_->Test(docid)) {
-      gamma_result->total++;
-      if (gamma_result->results_count < topn) {
-        gamma_result->docs[(gamma_result->results_count)++]->docid = docid;
-      } else {
-        break;
-      }
+  std::vector<uint64_t> docids = range_query_result.GetDocIDs(topn);
+  for (int docid : docids) {
+    if (docids_bitmap_->Test(docid)) {
+      continue;
+    }
+    gamma_result->total++;
+    if (gamma_result->results_count < topn) {
+      gamma_result->docs[(gamma_result->results_count)++]->docid = docid;
+    } else {
+      break;
     }
   }
   response_results.SetEngineInfo(table_, vec_manager_, gamma_result, 1);
@@ -563,21 +565,19 @@ Status Engine::CreateTable(TableInfo &table) {
   LOG(INFO) << space_name_
             << " init training_threshold=" << training_threshold_;
 
-  status = storage_mgr_->Init(cache_size);
-  if (!status.ok()) {
-    LOG(ERROR) << "init error, ret=" << status.ToString();
-    this->Close();
-    return status;
-  }
-
-  std::string scalar_index_path = index_root_path_ + "/scalar_index";
-  utils::make_dir(scalar_index_path.c_str());
-  field_range_index_ = new MultiFieldsRangeIndex(scalar_index_path, table_);
+  field_range_index_ = new MultiFieldsRangeIndex(table_, storage_mgr_);
   if ((nullptr == field_range_index_) || (AddNumIndexFields() < 0)) {
     std::string msg = "add numeric index fields error!";
     LOG(ERROR) << msg;
     this->Close();
     return Status::ParamError(msg);
+  }
+
+  status = storage_mgr_->Init(cache_size);
+  if (!status.ok()) {
+    LOG(ERROR) << "init error, ret=" << status.ToString();
+    this->Close();
+    return status;
   }
 
   std::string table_name = table.Name();
@@ -618,7 +618,7 @@ int Engine::AddOrUpdate(Doc &doc) {
   if (ret != 0) return -2;
   for (auto &[name, field] : fields_table) {
     int idx = table_->GetAttrIdx(field.name);
-    field_range_index_->Add(max_docid_, idx);
+    field_range_index_->AddDoc(max_docid_, idx);
   }
 #ifdef PERFORMANCE_TESTING
   double end_table = utils::getmillisecs();
@@ -685,7 +685,7 @@ int Engine::Update(int doc_id,
       continue;
     }
     int idx = table_->GetAttrIdx(field.name);
-    field_range_index_->Add(doc_id, idx);
+    field_range_index_->AddDoc(doc_id, idx);
   }
   is_dirty_ = true;
   return 0;
@@ -706,7 +706,11 @@ int Engine::Delete(std::string &key) {
     return ret;
   }
   ++delete_num_;
-  docids_bitmap_->Dump(docid, 1);
+  ret = docids_bitmap_->Dump(docid, 1);
+  if (ret) {
+    LOG(ERROR) << space_name_ << " bitmap dump failed: ret=" << ret;
+    return ret;
+  }
   const auto &name_to_idx = table_->FieldMap();
   for (const auto &ite : name_to_idx) {
     field_range_index_->Delete(docid, ite.second);
@@ -1107,17 +1111,23 @@ int Engine::Load() {
     return ret;
   }
 
-  int field_num = table_->FieldsNum();
-  // add fields into field_range_index_ in multi-thread
-  std::thread t([=]() {
+  if (field_range_index_->DocCount() <= 0) {
+    int field_num = table_->FieldsNum();
+    // add fields into field_range_index_ in multi-thread
+    std::thread t([=]() {
 #pragma omp parallel for
-    for (int j = 0; j < field_num; ++j) {
-      for (int i = 0; i < max_docid_; ++i) {
-        field_range_index_->Add(i, j);
+      for (int j = 0; j < field_num; ++j) {
+        for (int i = 0; i < max_docid_; ++i) {
+          field_range_index_->AddDoc(i, j);
+          if (i % 10000 == 0) {
+            LOG(DEBUG) << space_name_ << " load field_range_index_ [" << j
+                       << "] docid [" << i << "]";
+          }
+        }
       }
-    }
-  });
-  t.detach();
+    });
+    t.detach();
+  }
 
   delete_num_ = 0;
   for (int i = 0; i < max_docid_; ++i) {
@@ -1416,6 +1426,7 @@ int Engine::AddNumIndexFields() {
   std::map<std::string, enum DataType> attr_type;
   retvals = table_->GetAttrType(attr_type);
 
+  field_range_index_->Init();
   std::map<std::string, bool> attr_index;
   retvals = table_->GetAttrIsIndex(attr_index);
   for (const auto &it : attr_type) {

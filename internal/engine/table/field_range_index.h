@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "range_query_result.h"
+#include "storage/storage_manager.h"
 #include "table.h"
 
 namespace vearch {
@@ -30,10 +31,12 @@ typedef struct {
 class FieldRangeIndex;
 class MultiFieldsRangeIndex {
  public:
-  MultiFieldsRangeIndex(std::string &path, Table *table);
+  MultiFieldsRangeIndex(Table *table, StorageManager *storage_mgr);
   ~MultiFieldsRangeIndex();
 
-  int Add(int64_t docid, int field);
+  int Init();
+
+  int AddDoc(int64_t docid, int field);
 
   int Delete(int64_t docid, int field);
 
@@ -42,20 +45,32 @@ class MultiFieldsRangeIndex {
   int64_t Search(const std::vector<FilterInfo> &origin_filters,
                  MultiRangeQueryResults *out);
 
-  // for debug
-  long MemorySize(long &dense, long &sparse);
+  int64_t DocCount() {
+    int64_t doc_count = 0;
+    auto &db = storage_mgr_->GetDB();
+    rocksdb::ColumnFamilyHandle *cf_handler =
+        storage_mgr_->GetColumnFamilyHandle(cf_id_);
+
+    uint64_t count = 0;
+    bool success =
+        db->GetIntProperty(cf_handler, "rocksdb.estimate-num-keys", &count);
+    if (!success) {
+      LOG(ERROR) << "Failed to get CF size";
+      return -1;
+    }
+    doc_count += count;
+    LOG(INFO) << "Total doc count: " << doc_count;
+    return doc_count;
+  }
 
  private:
-  int64_t Intersect(std::vector<RangeQueryResult> &results,
-                    int64_t shortest_idx, RangeQueryResult *out);
-
-  int AddDoc(int64_t docid, int field);
-
   int DeleteDoc(int64_t docid, int field, std::string &key);
-  std::string path_;
+
   Table *table_;
-  std::vector<FieldRangeIndex *> fields_;
+  std::vector<std::unique_ptr<FieldRangeIndex>> fields_;
   pthread_rwlock_t *field_rw_locks_;
+  StorageManager *storage_mgr_;
+  int cf_id_;
 };
 
 }  // namespace vearch

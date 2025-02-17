@@ -8,7 +8,6 @@
 #pragma once
 
 #include <memory>
-#include <utility>
 #include <vector>
 
 #include "rocksdb/db.h"
@@ -67,6 +66,12 @@ class StorageManager {
     column_families_.push_back(
         rocksdb::ColumnFamilyDescriptor(name, rocksdb::ColumnFamilyOptions()));
     return column_families_.size() - 1;
+  }
+
+  std::unique_ptr<rocksdb::DB> &GetDB() { return db_; }
+
+  rocksdb::ColumnFamilyHandle *GetColumnFamilyHandle(int cf_id) {
+    return cf_handles_[cf_id];
   }
 
  private:

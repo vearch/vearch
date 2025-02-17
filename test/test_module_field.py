@@ -107,12 +107,7 @@ class TestStringArrayField:
                     {
                         "field": "field_string_array",
                         "operator": "IN",
-                        "value": [str(i)],
-                    },
-                    {
-                        "field": "field_string_array",
-                        "operator": "IN",
-                        "value": [str(i + 1000)],
+                        "value": [str(i), str(i + 1000)],
                     },
                 ],
             }

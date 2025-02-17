@@ -117,7 +117,7 @@ int MemoryRawVector::ExtendSegments() {
   }
   curr_idx_in_seg_ = 0;
   ++nsegments_;
-  LOG(INFO) << "extend segment sucess! nsegments=" << nsegments_;
+  LOG(DEBUG) << "extend segment sucess! nsegments=" << nsegments_;
   return 0;
 }
 

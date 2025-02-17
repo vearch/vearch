@@ -499,10 +499,45 @@ size_t FileIO::Read(void *data, size_t size, size_t m) {
   return fread(data, size, m, fp);
 }
 
-std::string ToRowKey(int64_t key) {
+std::string ToRowKey64(int64_t key) {
   int64_t be64_value = htobe64(key);  // convert to big-endian
   return std::string(reinterpret_cast<const char *>(&be64_value),
                      sizeof(be64_value));
+}
+
+// for v3.6.0
+// std::string ToRowKey(int32_t key) {
+//   int32_t be32_value = htobe32(key);  // convert to big-endian
+//   return std::string(reinterpret_cast<const char *>(&be32_value),
+//                      sizeof(be32_value));
+// }
+
+std::string ToRowKey(int32_t key) {
+  char data[12];
+  std::string key_str;
+  int length = snprintf(data, 12, "%010d", key);
+  key_str.assign(data, length);
+  return key_str;
+}
+
+int64_t FromRowKey64(const std::string &key) {
+  if (key.size() != sizeof(int64_t)) {
+    return -1;
+  }
+  int64_t be64_value;
+  memcpy(&be64_value, key.data(), sizeof(be64_value));
+  be64_value = be64toh(be64_value);  // convert to host-endian
+  return be64_value;
+}
+
+int32_t FromRowKey(const std::string &key) {
+  if (key.size() != sizeof(int32_t)) {
+    return -1;
+  }
+  int32_t be32_value;
+  memcpy(&be32_value, key.data(), sizeof(be32_value));
+  be32_value = be32toh(be32_value);  // convert to host-endian
+  return be32_value;
 }
 
 }  // namespace utils

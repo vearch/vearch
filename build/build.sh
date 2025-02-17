@@ -82,6 +82,17 @@ function build_thirdparty() {
     ./configure && make -j4 && make install
     popd
   fi
+
+
+  if [[ ! -f "/usr/local/lib64/libroaring.a" ]]; then
+    wget -q https://github.com/RoaringBitmap/CRoaring/archive/refs/tags/v4.2.1.tar.gz
+    tar xf v4.2.1.tar.gz
+    pushd CRoaring-4.2.1
+    mkdir build && pushd build
+    cmake ../ -B ./ -DCMAKE_CXX_STANDARD=17 -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+    make -j4 && make install
+    popd && popd
+  fi
 }
 
 function build_engine() {

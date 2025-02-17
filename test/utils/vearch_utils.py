@@ -586,7 +586,7 @@ def prepare_filter(filter, index, batch_size, seed, full_field):
             },
             {
                 "field": "field_float",
-                "operator": ">",
+                "operator": ">=",
                 "value": float(index * batch_size * seed),
             },
             {
@@ -596,7 +596,7 @@ def prepare_filter(filter, index, batch_size, seed, full_field):
             },
             {
                 "field": "field_double",
-                "operator": ">",
+                "operator": ">=",
                 "value": float(index * batch_size * seed),
             },
             {

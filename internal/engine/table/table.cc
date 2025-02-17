@@ -46,7 +46,8 @@ Table::~Table() {
 
 int Table::Load(int64_t &num) {
   int64_t doc_num = num;
-  LOG(INFO) << "Load doc_num [" << doc_num << "] truncate to [" << num << "]";
+  LOG(INFO) << name_ << " load doc_num [" << doc_num << "] truncate to [" << num
+            << "]";
 
   const auto &iter = attr_idx_map_.find(key_field_name_);
   if (iter == attr_idx_map_.end()) {
@@ -91,7 +92,7 @@ Status Table::CreateTable(TableInfo &table, bitmap::BitmapManager *bitmap_mgr) {
   table_params_ = new TableParams("table");
   table_created_ = true;
   LOG(INFO) << "Create table " << name_
-            << " success! item length=" << item_length_
+            << " success, item length=" << item_length_
             << ", field num=" << (int)field_num_;
 
   return Status::OK();
@@ -273,6 +274,23 @@ std::unordered_map<std::string, bool> Table::CheckFieldIsEqual(
 }
 
 int Table::Delete(std::string &key) {
+  int64_t docid = 0;
+  int ret = GetDocidByKey(key, docid);
+  if (ret < 0) {
+    return ret;
+  }
+
+  union {
+    int64_t docid;
+    char key[8];
+  } u;
+
+  u.docid = docid;
+  ret = storage_mgr_->Delete(cf_id_, u.key).code();
+  if (ret != 0) {
+    return ret;
+  }
+
   return storage_mgr_->Delete(key_cf_id_, key).code();
 }
 

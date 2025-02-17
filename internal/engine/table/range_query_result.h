@@ -7,152 +7,100 @@
 
 #pragma once
 
-#include <cassert>
-#include <iostream>
-#include <limits>
+#include <roaring/roaring64map.hh>
 #include <string>
 #include <vector>
 
-#include "util/bitmap.h"
 #include "util/log.h"
-
-#define BM_OPERATE_TYPE long
 
 namespace vearch {
 
 // do intersection immediately
 class RangeQueryResult {
  public:
-  RangeQueryResult() {
-    bitmap_ = nullptr;
-    Clear();
-  }
+  RangeQueryResult() { Clear(); }
 
-  RangeQueryResult(RangeQueryResult &&other) { *this = std::move(other); }
+  RangeQueryResult(RangeQueryResult&& other) noexcept
+      : b_not_in_(other.b_not_in_), doc_bitmap_(std::move(other.doc_bitmap_)) {}
 
-  RangeQueryResult &operator=(RangeQueryResult &&other) {
-    min_ = other.min_;
-    max_ = other.max_;
-    min_aligned_ = other.min_aligned_;
-    max_aligned_ = other.max_aligned_;
-    next_ = other.next_;
-    n_doc_ = other.n_doc_;
-    bitmap_ = other.bitmap_;
-    other.bitmap_ = nullptr;
-    b_not_in_ = other.b_not_in_;
+  RangeQueryResult& operator=(RangeQueryResult&& other) noexcept {
+    if (this != &other) {
+      b_not_in_ = other.b_not_in_;
+      doc_bitmap_ = std::move(other.doc_bitmap_);
+    }
     return *this;
   }
 
-  ~RangeQueryResult() {
-    free(bitmap_);
-    bitmap_ = nullptr;
+  ~RangeQueryResult() {}
+
+  void Intersection(const RangeQueryResult& other) {
+    doc_bitmap_ &= other.doc_bitmap_;
+  }
+
+  void IntersectionWithNotIn(const RangeQueryResult& other) {
+    if (b_not_in_) {
+      doc_bitmap_ &= other.doc_bitmap_;
+    } else {
+      doc_bitmap_ -= other.doc_bitmap_;
+    }
+  }
+
+  void Union(const RangeQueryResult& other) {
+    doc_bitmap_ |= other.doc_bitmap_;
+  }
+
+  void UnionWithNotIn(const RangeQueryResult& other) {
+    if (b_not_in_) {
+      doc_bitmap_ |= other.doc_bitmap_;
+    } else {
+      doc_bitmap_ -= other.doc_bitmap_;
+    }
   }
 
   bool Has(int64_t doc) const {
     if (b_not_in_) {
-      if (doc < min_ || doc > max_) {
-        return true;
-      }
-      return !bitmap::test(bitmap_, doc - min_aligned_);
+      return !doc_bitmap_.contains(static_cast<uint64_t>(doc));
     } else {
-      if (doc < min_ || doc > max_) {
-        return false;
-      }
-      return bitmap::test(bitmap_, doc - min_aligned_);
+      return doc_bitmap_.contains(static_cast<uint64_t>(doc));
     }
   }
 
-  /**
-   * @return docID in order, -1 for the end
-   */
-  int64_t Next() const {
-    next_++;
+  int64_t Cardinality() const { return doc_bitmap_.cardinality(); }
 
-    int64_t size = max_aligned_ - min_aligned_ + 1;
-    while (next_ < size && not bitmap::test(bitmap_, next_)) {
-      next_++;
-    }
-    if (next_ >= size) {
-      return -1;
+  std::vector<uint64_t> GetDocIDs(size_t topn) const {
+    std::vector<uint64_t> doc_ids;
+    if (b_not_in_) {
+      LOG(WARNING) << "NOT IN operation is not supported in GetDocIDs";
+      return doc_ids;
     }
 
-    int64_t doc = next_ + min_aligned_;
-    return doc;
+    doc_ids.reserve(
+        doc_bitmap_.cardinality() > topn ? topn : doc_bitmap_.cardinality());
+
+    for (uint64_t doc_id : doc_bitmap_) {
+      doc_ids.push_back(doc_id);
+    }
+
+    return doc_ids;
   }
-
-  /**
-   * @return size of docID list
-   */
-  int64_t Size() const { return n_doc_; }
 
   void Clear() {
-    min_ = std::numeric_limits<int64_t>::max();
-    max_ = 0;
-    next_ = -1;
-    n_doc_ = -1;
-    if (bitmap_ != nullptr) {
-      free(bitmap_);
-      bitmap_ = nullptr;
-    }
     b_not_in_ = false;
+    doc_bitmap_.clear();
   }
 
-  void SetRange(int64_t x, int64_t y) {
-    min_ = std::min(min_, x);
-    max_ = std::max(max_, y);
-    min_aligned_ = (min_ / 8) * 8;
-    max_aligned_ = (max_ / 8 + 1) * 8 - 1;
-  }
-
-  void Resize() {
-    int64_t n = max_aligned_ - min_aligned_ + 1;
-    if (n <= 0) {
-      LOG(ERROR) << "max_aligned_ " << max_aligned_ << " min_aligned_ "
-                 << min_aligned_ << " max_ " << max_ << " min_ " << min_;
-    }
-    assert(n > 0);
-    if (bitmap_ != nullptr) {
-      free(bitmap_);
-      bitmap_ = nullptr;
-    }
-
-    int64_t bytes_count = -1;
-    if (bitmap::create(bitmap_, bytes_count, n) != 0) {
-      LOG(ERROR) << "Cannot create bitmap!";
-      return;
-    }
-  }
-
-  void Set(int64_t pos) { bitmap::set(bitmap_, pos); }
-
-  int64_t Min() const { return min_; }
-  int64_t Max() const { return max_; }
-
-  int64_t MinAligned() { return min_aligned_; }
-  int64_t MaxAligned() { return max_aligned_; }
-
-  char *&Ref() { return bitmap_; }
-
-  void SetDocNum(int64_t num) { n_doc_ = num; }
+  void Add(int64_t doc) { doc_bitmap_.add(static_cast<uint64_t>(doc)); }
 
   void SetNotIn(bool b_not_in) { b_not_in_ = b_not_in; }
 
   bool NotIn() { return b_not_in_; }
 
  private:
-  int64_t min_;
-  int64_t max_;
-  int64_t min_aligned_;
-  int64_t max_aligned_;
-
-  mutable int64_t next_;
-  mutable int64_t n_doc_;
-
-  char *bitmap_;
   bool b_not_in_;
+
+  roaring::Roaring64Map doc_bitmap_;
 };
 
-// do intersection lazily
 class MultiRangeQueryResults {
  public:
   MultiRangeQueryResults() { Clear(); }
@@ -165,7 +113,7 @@ class MultiRangeQueryResults {
       return false;
     }
     bool ret = true;
-    for (auto &result : all_results_) {
+    for (auto& result : all_results_) {
       ret = ret && result.Has(doc);
       if (not ret) break;
     }
@@ -176,8 +124,33 @@ class MultiRangeQueryResults {
 
   size_t Size() { return all_results_.size(); }
 
-  void Add(RangeQueryResult &&result) {
+  void Add(RangeQueryResult&& result) {
     all_results_.emplace_back(std::move(result));
+  }
+
+  std::vector<uint64_t> GetDocIDs(size_t topn) const {
+    std::vector<uint64_t> doc_ids;
+    if (all_results_.size() == 0) {
+      return doc_ids;
+    }
+
+    doc_ids = all_results_[0].GetDocIDs(topn);
+    if (doc_ids.size() >= topn) {
+      return doc_ids;
+    }
+
+    for (size_t i = 1; i < all_results_.size(); ++i) {
+      std::vector<uint64_t> tmp_doc_ids = all_results_[i].GetDocIDs(topn);
+      std::vector<uint64_t> new_doc_ids;
+      std::set_intersection(doc_ids.begin(), doc_ids.end(), tmp_doc_ids.begin(),
+                            tmp_doc_ids.end(), std::back_inserter(new_doc_ids));
+      doc_ids = new_doc_ids;
+      if (doc_ids.size() >= topn) {
+        break;
+      }
+    }
+
+    return doc_ids;
   }
 
  private:

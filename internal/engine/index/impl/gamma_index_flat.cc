@@ -134,7 +134,7 @@ int GammaFLATIndex::Search(RetrievalContext *retrieval_context, int n,
           retrieval_context->RetrievalParams());
   utils::ScopeDeleter1<FlatRetrievalParameters> del_params;
   if (retrieval_params == nullptr) {
-      retrieval_params = new FlatRetrievalParameters(true, metric_type_);
+    retrieval_params = new FlatRetrievalParameters(true, metric_type_);
     del_params.set(retrieval_params);
   }
 

@@ -75,6 +75,7 @@ set(COMMON_LIBRARIES
     -ltbb
     -lzstd
     -lprotobuf
+    -lroaring
 )
 
 find_package(MKL)

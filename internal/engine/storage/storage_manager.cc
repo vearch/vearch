@@ -81,10 +81,72 @@ Status StorageManager::Init(int cache_size) {
   options.create_if_missing = true;
   rocksdb::Status s;
 
-  std::vector<std::string> cf_names;
-  s = rocksdb::DB::ListColumnFamilies(options, root_path_, &cf_names);
+  std::vector<std::string> existing_cfs;
+  s = rocksdb::DB::ListColumnFamilies(options, root_path_, &existing_cfs);
 
-  if (!s.ok()) {
+  if (s.ok()) {
+    LOG(INFO) << "existing cfs: ";
+
+    for (const auto &cf_name : existing_cfs) {
+      if (cf_name == rocksdb::kDefaultColumnFamilyName) {
+        continue;
+      }
+      // if column_families_ does not contain cf_name, add it
+      if (std::find_if(column_families_.begin(), column_families_.end(),
+                       [&cf_name](const rocksdb::ColumnFamilyDescriptor &cf) {
+                         return cf.name == cf_name;
+                       }) == column_families_.end()) {
+        column_families_.emplace_back(cf_name, rocksdb::ColumnFamilyOptions());
+        LOG(INFO) << "add cf: " << cf_name;
+      }
+    }
+
+    std::vector<std::string> cfs_to_create;
+
+    for (const auto &cf_desc : column_families_) {
+      if (std::find(existing_cfs.begin(), existing_cfs.end(), cf_desc.name) ==
+          existing_cfs.end()) {
+        cfs_to_create.push_back(cf_desc.name);
+        LOG(INFO) << "cf to create: " << cf_desc.name;
+      }
+    }
+
+    rocksdb::DB *db;
+    std::vector<rocksdb::ColumnFamilyDescriptor> column_families;
+    for (const auto &cf_name : existing_cfs) {
+      column_families.emplace_back(cf_name, rocksdb::ColumnFamilyOptions());
+      LOG(INFO) << "existing cf: " << cf_name;
+    }
+    s = rocksdb::DB::Open(options, root_path_, column_families, &cf_handles_,
+                          &db);
+    db_.reset(db);
+
+    if (s.ok() && !cfs_to_create.empty()) {
+      // create column family
+      for (const auto &cf_name : cfs_to_create) {
+        if (cf_name == rocksdb::kDefaultColumnFamilyName) {
+          continue;
+        }
+        rocksdb::ColumnFamilyHandle *cf_handle;
+        s = db_->CreateColumnFamily(rocksdb::ColumnFamilyOptions(), cf_name,
+                                    &cf_handle);
+        if (!s.ok()) {
+          LOG(ERROR) << "create cf failed: " << cf_name
+                     << ", error: " << s.ToString();
+        } else {
+          cf_handles_.push_back(cf_handle);
+          LOG(INFO) << "create cf: " << cf_name;
+        }
+      }
+    } else if (!s.ok()) {
+      LOG(ERROR) << "open db error: " << s.ToString();
+      return Status::IOError(s.ToString());
+    }
+
+    cf_handles_.clear();
+    db_.reset();
+  } else {
+    LOG(INFO) << "no existing cfs, create all";
     rocksdb::Options options;
     options.create_if_missing = true;
     // create db
@@ -92,7 +154,7 @@ Status StorageManager::Init(int cache_size) {
     s = rocksdb::DB::Open(options, root_path_, &db);
     db_.reset(db);
     if (!s.ok()) {
-      std::string msg = std::string("open rocks db error: ") + s.ToString();
+      std::string msg = std::string("open rocksdb error: ") + s.ToString();
       LOG(ERROR) << msg;
       return Status::IOError(msg);
     }
@@ -121,7 +183,7 @@ Status StorageManager::Init(int cache_size) {
                         &db);
   db_.reset(db);
   if (!s.ok()) {
-    std::string msg = std::string("open rocks db error: ") + s.ToString();
+    std::string msg = std::string("open rocksdb error: ") + s.ToString();
     LOG(ERROR) << msg;
     return Status::IOError(msg);
   }
