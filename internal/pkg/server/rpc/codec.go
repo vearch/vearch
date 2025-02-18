@@ -17,11 +17,10 @@ package server
 import (
 	"bytes"
 
-	"github.com/gogo/protobuf/proto"
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/v3/internal/pkg/log"
 	"github.com/vmihailenco/msgpack"
-	pb "google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 type MsgpackCodec struct {
@@ -59,12 +58,8 @@ func (c PBCodec) Encode(i interface{}) ([]byte, error) {
 		}
 	}()
 
-	if m, ok := i.(proto.Marshaler); ok {
-		return m.Marshal()
-	}
-
-	if m, ok := i.(pb.Message); ok {
-		return pb.Marshal(m)
+	if m, ok := i.(proto.Message); ok {
+		return proto.Marshal(m)
 	}
 
 	var buf bytes.Buffer
@@ -80,12 +75,8 @@ func (c PBCodec) Decode(data []byte, i interface{}) error {
 		}
 	}()
 
-	if m, ok := i.(proto.Unmarshaler); ok {
-		return m.Unmarshal(data)
-	}
-
-	if m, ok := i.(pb.Message); ok {
-		return pb.Unmarshal(data, m)
+	if m, ok := i.(proto.Message); ok {
+		return proto.Unmarshal(data, m)
 	}
 
 	return msgpack.NewDecoder(bytes.NewBuffer(data)).UseJSONTag(true).Decode(i)

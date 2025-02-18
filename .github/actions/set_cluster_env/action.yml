@@ -49,4 +49,4 @@ runs:
     shell: bash
     run: |
       python -m pip install --upgrade pip setuptools wheel
-      pip install requests pytest wheel pandas numpy minio h5py pyyaml psutil
+      pip install requests pytest wheel pandas numpy minio h5py pyyaml psutil tqdm

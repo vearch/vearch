@@ -25,7 +25,7 @@ import (
 // A registry can have label pairs that will be applied to all its metrics when exported.
 type Registry struct {
 	sync.RWMutex
-	labels  []LabelPair
+	labels  []*LabelPair
 	metrics []Metric
 }
 
@@ -44,7 +44,7 @@ func NewRegistry() *Registry {
 func (r *Registry) AddLabel(name, value string) {
 	r.Lock()
 	r.labels = append(r.labels,
-		LabelPair{
+		&LabelPair{
 			Name:  ExportedLabel(name),
 			Value: value,
 		})
@@ -52,7 +52,7 @@ func (r *Registry) AddLabel(name, value string) {
 }
 
 // GetLabels return the label/value pairs of registry.
-func (r *Registry) GetLabels() (labels []LabelPair) {
+func (r *Registry) GetLabels() (labels []*LabelPair) {
 	r.RLock()
 	labels = r.labels[:]
 	r.RUnlock()

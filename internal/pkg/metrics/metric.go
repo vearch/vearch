@@ -39,7 +39,7 @@ type Metric interface {
 // AddLabel adds a label/value pair for this metric.
 func (m *Metadata) AddLabel(name, value string) {
 	m.Labels = append(m.Labels,
-		LabelPair{
+		&LabelPair{
 			Name:  ExportedLabel(name),
 			Value: value,
 		})

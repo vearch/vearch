@@ -33,7 +33,7 @@ func NewErrServerStatus(ip string, err error) *ServerStats {
 }
 
 // stats machine infos
-func newServerStats(ip string, lables []metrics.LabelPair, ss *metricServer) *ServerStats {
+func newServerStats(ip string, lables []*metrics.LabelPair, ss *metricServer) *ServerStats {
 	return &ServerStats{
 		Ip:     ip,
 		Labels: lables,
@@ -49,7 +49,7 @@ func newServerStats(ip string, lables []metrics.LabelPair, ss *metricServer) *Se
 type ServerStats struct {
 	Status         int64                   `json:"status"`
 	Ip             string                  `json:"ip"`
-	Labels         []metrics.LabelPair     `json:"labels"`
+	Labels         []*metrics.LabelPair    `json:"labels"`
 	Mem            *MemStats               `json:"mem,omitempty"`
 	Swap           *SwapStats              `json:"swap,omitempty"`
 	Fs             *FsStats                `json:"fs,omitempty"`

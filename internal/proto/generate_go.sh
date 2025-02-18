@@ -47,5 +47,6 @@ fi
 
 export PATH=$PATH:$GOPATH/bin
 protoc --go_out=$proto_dir *.proto
+pushd ../pkg/metrics && protoc --go_out=. *.proto && popd
 protoc --cpp_out=../engine/idl/pb-gen data_model.proto errors.proto router_grpc.proto
 exit $?

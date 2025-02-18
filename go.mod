@@ -10,7 +10,6 @@ require (
 	github.com/cubefs/cubefs v1.5.2-0.20230627111954-f55e96950618
 	github.com/gin-contrib/cors v1.6.0
 	github.com/gin-gonic/gin v1.9.1
-	github.com/gogo/protobuf v1.3.2
 	github.com/google/flatbuffers v23.5.26+incompatible
 	github.com/google/uuid v1.6.0
 	github.com/minio/minio-go/v7 v7.0.70
@@ -72,6 +71,7 @@ require (
 	github.com/go-redis/redis/v8 v8.11.5 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0 // indirect
 	github.com/goccy/go-json v0.10.2 // indirect
+	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang-jwt/jwt/v4 v4.4.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.4 // indirect

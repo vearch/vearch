@@ -52,7 +52,7 @@ func (e *MemoryExporter) DumpRegistry(registrys []*metrics.Registry) {
 				}
 				familys[name] = family
 			}
-			family.Metrics = append(family.Metrics, *m)
+			family.Metrics = append(family.Metrics, m)
 		})
 	}
 
@@ -95,21 +95,21 @@ func (e *MemoryExporter) PrintText(out io.Writer) error {
 				if m.Counter == nil {
 					return fmt.Errorf("expected counter in metric %s %v", name, m)
 				}
-				err = WriteSample(name, &m, "", "", m.Counter.Value, out)
+				err = WriteSample(name, m, "", "", m.Counter.Value, out)
 
 			case metrics.MetricType_COUNTERRATE:
 				if m.CounterRate == nil {
 					return fmt.Errorf("expected counter-rate in metric %s %v", name, m)
 				}
-				err = WriteSample(name+"-total", &m, "", "", m.CounterRate.TotalValue, out)
-				err = WriteSample(name+"-window", &m, "", "", m.CounterRate.WindowValue, out)
-				err = WriteSample(name+"-avg", &m, "", "", m.CounterRate.AvgValue, out)
+				err = WriteSample(name+"-total", m, "", "", m.CounterRate.TotalValue, out)
+				err = WriteSample(name+"-window", m, "", "", m.CounterRate.WindowValue, out)
+				err = WriteSample(name+"-avg", m, "", "", m.CounterRate.AvgValue, out)
 
 			case metrics.MetricType_GAUGE:
 				if m.Gauge == nil {
 					return fmt.Errorf("expected gauge in metric %s %v", name, m)
 				}
-				err = WriteSample(name, &m, "", "", m.Gauge.Value, out)
+				err = WriteSample(name, m, "", "", m.Gauge.Value, out)
 
 			case metrics.MetricType_HISTOGRAM:
 				if m.Histogram == nil {
@@ -117,7 +117,7 @@ func (e *MemoryExporter) PrintText(out io.Writer) error {
 				}
 
 				for _, p := range m.Histogram.Pts {
-					if err = WriteSample(name+p.Name, &m, "", "", p.Value, out); err != nil {
+					if err = WriteSample(name+p.Name, m, "", "", p.Value, out); err != nil {
 						return err
 					}
 				}

@@ -94,7 +94,7 @@ func (h *Histogram) ExportMetric() *metrics.MetricData {
 	window := cloneHistogram(h.window.current())
 	h.Unlock()
 
-	hist := &metrics.HistogramData{Buckets: make([]metrics.Bucket, 0, len(bars))}
+	hist := &metrics.HistogramData{Buckets: make([]*metrics.Bucket, 0, len(bars))}
 	for _, bar := range bars {
 		if bar.Count == 0 {
 			continue
@@ -103,14 +103,14 @@ func (h *Histogram) ExportMetric() *metrics.MetricData {
 		upperBound := float64(bar.To)
 		hist.SampleSum += upperBound * float64(bar.Count)
 		hist.SampleCount += uint64(bar.Count)
-		hist.Buckets = append(hist.Buckets, metrics.Bucket{
+		hist.Buckets = append(hist.Buckets, &metrics.Bucket{
 			CumulativeCount: hist.SampleCount,
 			UpperBound:      upperBound,
 		})
 	}
 
 	for _, pt := range histogramPercentile {
-		hist.Pts = append(hist.Pts, metrics.Percentile{Name: pt.Name, Unit: pt.Unit, Value: float64(window.ValueAtQuantile(pt.Unit))})
+		hist.Pts = append(hist.Pts, &metrics.Percentile{Name: pt.Name, Unit: pt.Unit, Value: float64(window.ValueAtQuantile(pt.Unit))})
 	}
 
 	return &metrics.MetricData{

@@ -1152,6 +1152,9 @@ int Engine::Load() {
 #pragma omp parallel for
       for (int j = 0; j < field_num; ++j) {
         for (int i = 0; i < max_docid_; ++i) {
+          if (docids_bitmap_->Test(i)) {
+            continue;
+          }
           field_range_index_->AddDoc(i, j);
           if (i % 10000 == 0) {
             LOG(DEBUG) << space_name_ << " load field_range_index_ [" << j

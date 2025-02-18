@@ -67,7 +67,7 @@ func WriteSample(name string, m *metrics.MetricData, labelName, labelValue strin
 
 // LabelPairsToText converts a slice of LabelPair plus the explicitly given additional label pair into text format and writes it to 'out'.
 // escaped as required by the text format, and enclosed in '{...}'.
-func LabelPairsToText(labels []metrics.LabelPair, additionalName, additionalValue string, out io.Writer) error {
+func LabelPairsToText(labels []*metrics.LabelPair, additionalName, additionalValue string, out io.Writer) error {
 	if len(labels) == 0 && additionalName == "" {
 		return nil
 	}

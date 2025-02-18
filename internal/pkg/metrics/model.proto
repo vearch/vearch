@@ -1,22 +1,8 @@
 syntax = "proto3";
 
-import "github.com/gogo/protobuf/gogoproto/gogo.proto";
-
-option go_package = "metrics";
-
+option go_package = "../metrics";
 option optimize_for = SPEED;
-option (gogoproto.marshaler_all)        = true;
-option (gogoproto.sizer_all)            = true;
-option (gogoproto.unmarshaler_all)      = true;
-option (gogoproto.goproto_stringer_all) = true;
-option (gogoproto.gostring_all)         = false;
-option (gogoproto.stringer_all)         = false;
-option (gogoproto.equal_all)            = false;
-option (gogoproto.verbose_equal_all)    = false;
-option (gogoproto.populate_all)         = false;
-option (gogoproto.testgen_all)          = false;
-option (gogoproto.benchgen_all)         = false;
-option (gogoproto.goproto_getters_all)  = false;
+package metrics;
 
 // MetricType describes the type of metric.
 enum MetricType{
@@ -53,10 +39,10 @@ message LabelPair {
 
 // Metadata holds metadata about a metric.
 message Metadata {
-    string name               = 1 ;
-    string help               = 2 ;
-    Unit unit                 = 3 ;
-    repeated LabelPair labels = 4 [(gogoproto.nullable) = false];
+    string name               = 1;
+    string help               = 2;
+    Unit unit                 = 3;
+    repeated LabelPair labels = 4;
 }
 
 // MetricFamily contains a list of metrics with the same name (a metric with multiple labels).
@@ -64,7 +50,7 @@ message MetricFamily {
     string name                 = 1;
     string help                 = 2;
     MetricType type             = 3;
-    repeated MetricData metrics = 4 [(gogoproto.nullable) = false];
+    repeated MetricData metrics = 4;
 }
 
 // MetricData holds exported data of metrics
@@ -73,7 +59,7 @@ message MetricData {
     CounterRateData counter_rate  = 2;
     GaugeData  gauge              = 3;
     HistogramData histogram       = 4;
-    repeated LabelPair labels     = 5 [(gogoproto.nullable) = false];
+    repeated LabelPair labels     = 5;
     Unit unit                     = 6;
     int64 TimestampNs             = 7;
 }
@@ -95,8 +81,8 @@ message GaugeData {
 message HistogramData {
     uint64 sample_count     = 1;
     double sample_sum       = 2;
-    repeated Bucket buckets = 3 [(gogoproto.nullable) = false];
-    repeated Percentile pts = 4 [(gogoproto.nullable) = false];
+    repeated Bucket buckets = 3;
+    repeated Percentile pts = 4;
 }
 
 message Bucket {
