@@ -83,7 +83,8 @@ func (s *Store) Apply(command []byte, index uint64) (resp interface{}, err error
 	raftCmd := &vearchpb.RaftCommand{}
 
 	if err = vjson.Unmarshal(command, raftCmd); err != nil {
-		panic(err)
+		log.Error(err)
+		return nil, err
 	}
 
 	resp = s.innerApply(index, raftCmd)

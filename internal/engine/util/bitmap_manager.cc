@@ -277,7 +277,7 @@ int RocksdbBitmapManager::Init(int64_t bit_size, const std::string &fpath,
     }
   }
 
-  uint32_t bytes_count = (size_ >> 3) + 1;
+  uint32_t bytes_count = ((size_ / kBitmapSegmentBits) + 1) * kBitmapSegmentBytes;
   if (bitmap) {
     bitmap_ = bitmap;
   } else {
@@ -414,7 +414,8 @@ int RocksdbBitmapManager::Unset(int64_t bit_id) {
 
 bool RocksdbBitmapManager::Test(int64_t bit_id) {
   if (bit_id >= 0 && bit_id < size_ && bitmap_ != nullptr) {
-    return (bitmap_[bit_id >> 3] & (0x1 << (bit_id & 0x7)));
+    auto temp = bitmap_;
+    return (temp[bit_id >> 3] & (0x1 << (bit_id & 0x7)));
   }
   return false;
 }
@@ -424,8 +425,10 @@ int RocksdbBitmapManager::SetMaxID(int64_t bit_id) {
 
   size_t new_size = size_ * 2;
   std::string value = std::to_string(new_size);
+  rocksdb::WriteOptions write_options;
+  write_options.sync = true;
   rocksdb::Status s =
-      db_->Put(rocksdb::WriteOptions(), rocksdb::Slice(kBitmapSizeKey),
+      db_->Put(write_options, rocksdb::Slice(kBitmapSizeKey),
                rocksdb::Slice(value));
   if (!s.ok()) {
     LOG(ERROR) << "rocksdb set bitmap size error:" << s.ToString()
@@ -433,9 +436,9 @@ int RocksdbBitmapManager::SetMaxID(int64_t bit_id) {
     return s.code();
   }
 
-  int64_t old_bytes_count = (size_ >> 3) + 1;
+  int64_t old_bytes_count = ((size_ / kBitmapSegmentBits) + 1) * kBitmapSegmentBytes;
   size_ = new_size;
-  int64_t bytes_count = (size_ >> 3) + 1;
+  int64_t bytes_count = ((size_ / kBitmapSegmentBits) + 1) * kBitmapSegmentBytes;
 
   auto new_bitmap = std::shared_ptr<char[]>(
       new char[bytes_count], [](char *p) -> void { delete[] p; });

@@ -51,6 +51,9 @@ class Engine {
 
   int GetDoc(int docid, Doc &doc, bool next = false);
 
+  Status CheckDoc(std::unordered_map<std::string, struct Field> &fields_table,
+                  std::unordered_map<std::string, struct Field> &fields_vec);
+
   /**
    * blocking to build index
    * @return 0 if exited

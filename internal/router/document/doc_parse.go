@@ -582,24 +582,6 @@ func documentParse(ctx context.Context, handler *DocumentHandler, r *http.Reques
 			if primaryKey == "" {
 				return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("vector field num:%d is not equal to vector num of space fields:%d and document_id is empty", haveVector, vectorFieldNum))
 			}
-
-			// TODO check in gamma engine
-			arg := &vearchpb.QueryRequest{
-				Head:        setRequestHead(netutil.NewMockUriParams(map[string]string{"db_name": args.Head.DbName, "space_name": args.Head.SpaceName, "_id": primaryKey}), r),
-				DocumentIds: []string{primaryKey},
-				LoadBalance: request.Leader,
-				Fields:      []string{entity.IdField},
-			}
-			reply := handler.docService.query(ctx, arg)
-
-			result, err := documentQueryResponse(reply.Results, reply.Head, space)
-			if err != nil {
-				return err
-			}
-
-			if reply == nil || reply.Results == nil || len(reply.Results) != 1 || result["total"] != 1 {
-				return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("vector field num:%d is not equal to vector num of space fields:%d and document_id not exist so can't update", haveVector, vectorFieldNum))
-			}
 		}
 
 		docs = append(docs, &vearchpb.Document{PKey: primaryKey, Fields: fields})

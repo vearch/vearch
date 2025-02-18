@@ -45,8 +45,9 @@ Table::~Table() {
 }
 
 int Table::Load(int64_t &num) {
-  int64_t doc_num = num;
-  LOG(INFO) << name_ << " load doc_num [" << doc_num << "] truncate to [" << num
+  int64_t max_doc_id = num - 1;
+  int64_t doc_id = -1;
+  LOG(INFO) << "Wanted load doc_num [" << num << "], doc_id [" << max_doc_id
             << "]";
 
   const auto &iter = attr_idx_map_.find(key_field_name_);
@@ -55,8 +56,17 @@ int Table::Load(int64_t &num) {
     return -1;
   }
 
-  LOG(INFO) << name_ << " load successed! doc num [" << doc_num << "]";
-  last_docid_ = doc_num - 1;
+  if (max_doc_id <= -1) return 0;
+  for (int64_t i = max_doc_id; i >= -1; --i) {
+    auto result = storage_mgr_->Get(cf_id_, i);
+    if (result.first.ok()) {
+      doc_id = i;
+      break;
+    }
+  }
+
+  last_docid_ = doc_id;
+  LOG(INFO) << name_ << " load successed! doc num [" << doc_id + 1 << "], last docid [" << last_docid_ << "]";
   return 0;
 }
 
@@ -460,4 +470,17 @@ int64_t Table::GetStorageManagerSize() {
   return table_doc_num;
 }
 
+int Table::SetStorageManagerSize(int64_t doc_num) {
+  int ret = 0;
+  if (storage_mgr_) {
+    ret = storage_mgr_->SetSize(doc_num);
+    if (ret != 0) {
+      LOG(ERROR) << name_ << " set doc_num=" << doc_num
+                 << " in table storage_mgr failed!, last_docid_=" << last_docid_;
+    } else {
+      return 0;
+    }
+  }
+  return ret;
+}
 }  // namespace vearch

@@ -606,16 +606,26 @@ int Engine::AddOrUpdate(Doc &doc) {
   table_->GetDocidByKey(key, docid);
   if (docid != -1 && docid < max_docid_) {
     if (Update(docid, fields_table, fields_vec)) {
-      LOG(DEBUG) << space_name_ << " update error, key=" << key
+      LOG(ERROR) << space_name_ << " update error, key=" << key
                  << ", docid=" << docid;
-      return -3;
+      return -1;
     }
     is_dirty_ = true;
     return 0;
+  } else if (docid >= max_docid_) {
+    LOG(ERROR) << space_name_ << " add error, key=" << key
+                << ", max_docid_=" << max_docid_ << ", docid=" << docid;
+    return -2;
+  } else if (docid == -1) {
+    Status status = CheckDoc(fields_table, fields_vec);
+    if (!status.ok()) {
+      LOG(ERROR) << space_name_ << " add error, key=" << key << " err: " << status.ToString();
+      return -3;
+    }
   }
 
   int ret = table_->Add(key, fields_table, max_docid_);
-  if (ret != 0) return -2;
+  if (ret != 0) return -4;
   for (auto &[name, field] : fields_table) {
     int idx = table_->GetAttrIdx(field.name);
     field_range_index_->AddDoc(max_docid_, idx);
@@ -629,14 +639,20 @@ int Engine::AddOrUpdate(Doc &doc) {
   if (ret != 0) {
     LOG(ERROR) << space_name_ << " add to store error max_docid [" << max_docid_
                << "] err=" << ret;
-    return -4;
+    return -5;
   }
   ++max_docid_;
+  ret = table_->SetStorageManagerSize(max_docid_);
+  if (ret != 0) {
+    LOG(ERROR) << space_name_ << " table_ set max_docid [" << max_docid_
+               << "] err= " << ret;
+    return -6;
+  };
   ret = docids_bitmap_->SetMaxID(max_docid_);
   if (ret != 0) {
     LOG(ERROR) << space_name_ << " Bitmap set max_docid [" << max_docid_
                << "] err= " << ret;
-    return -5;
+    return -7;
   };
 
   if (not b_running_ and index_status_ == UNINDEXED) {
@@ -650,11 +666,49 @@ int Engine::AddOrUpdate(Doc &doc) {
   double end = utils::getmillisecs();
   if (max_docid_ % 10000 == 0) {
     LOG(DEBUG) << space_name_ << " table cost [" << end_table - start
-               << "]ms, vec store cost [" << end - end_table << "]ms";
+               << "]ms, vec store cost [" << end - end_table << "]ms, max_docid_="
+               << max_docid_;
   }
 #endif
   is_dirty_ = true;
   return 0;
+}
+
+Status Engine::CheckDoc(std::unordered_map<std::string, struct Field> &fields_table,
+                        std::unordered_map<std::string, struct Field> &fields_vec) {
+  for (auto &[name, field] : fields_table) {
+    auto it = table_->FieldMap().find(name);
+    if (it == table_->FieldMap().end()) {
+      std::string msg = "Check doc err: cannot find numerical field [" + name + "]";
+      return Status::ParamError(msg);
+    }
+  }
+
+  if (fields_vec.size() != vec_manager_->RawVectors().size()) {
+    std::string msg =  "Check doc err: vector fields length [" + std::to_string(fields_vec.size())
+               + "] not equal to raw_vectors length = " + std::to_string(vec_manager_->RawVectors().size());
+    return Status::ParamError(msg);
+  }
+  for (auto &[name, field] : fields_vec) {
+    auto it = vec_manager_->RawVectors().find(name);
+    if (it == vec_manager_->RawVectors().end()) {
+      std::string msg = "Check doc err: cannot find raw vector [" + name + "]";
+      return Status::ParamError(msg);
+    }
+
+    RawVector *raw_vector = it->second;
+    size_t element_size =
+        raw_vector->MetaInfo()->DataType() == VectorValueType::BINARY
+            ? sizeof(char)
+            : sizeof(float);
+    if ((size_t)raw_vector->MetaInfo()->Dimension() !=
+        field.value.size() / element_size) {
+      std::string msg = "Check doc err: vector field " + name + " invalid field value len=" + std::to_string(field.value.size())
+                + ", dimension=" + std::to_string(raw_vector->MetaInfo()->Dimension());
+      return Status::ParamError(msg);
+    }
+  }
+  return Status::OK();
 }
 
 int Engine::Update(int doc_id,
@@ -727,7 +781,6 @@ int Engine::GetDoc(const std::string &key, Doc &doc) {
   int64_t docid = -1;
   int ret = table_->GetDocidByKey(key, docid);
   if (ret != 0 || docid < 0) {
-    LOG(DEBUG) << space_name_ << " GetDocIDbyKey [" << key << "] not found!";
     return -1;
   }
 
@@ -755,7 +808,6 @@ int Engine::GetDoc(int docid, Doc &doc, bool next) {
       return -1;
     }
   } else if (docids_bitmap_->Test(docid)) {
-    LOG(DEBUG) << space_name_ << " docid [" << docid << "] is deleted!";
     return -1;
   }
   std::vector<std::string> index_names;
@@ -1043,6 +1095,8 @@ int Engine::Load() {
               << " create table from local success, table name=" << table_name;
   }
 
+  int64_t doc_num = table_->GetStorageManagerSize();
+
   std::vector<std::pair<std::time_t, std::string>> folders_tm;
   std::vector<std::string> folders = utils::ls_folder(dump_path_);
   std::vector<std::string> folders_not_done;
@@ -1065,32 +1119,6 @@ int Engine::Load() {
                const std::pair<std::time_t, std::string> &b) {
               return a.first < b.first;
             });
-  if (folders_tm.size() > 0) {
-    std::string dump_done_file =
-        folders_tm[folders_tm.size() - 1].second + "/dump.done";
-    utils::FileIO fio(dump_done_file);
-    if (fio.Open("r")) {
-      LOG(ERROR) << space_name_ << " cannot read from file " << dump_done_file;
-      return -1;
-    }
-    long fsize = utils::get_file_size(dump_done_file);
-    char *buf = new char[fsize];
-    fio.Read(buf, 1, fsize);
-    std::string buf_str(buf, fsize);
-    std::vector<std::string> lines = utils::split(buf_str, "\n");
-    assert(lines.size() == 2);
-    std::vector<std::string> items = utils::split(lines[1], " ");
-    assert(items.size() == 2);
-    int index_dump_num = (int)std::strtol(items[1].c_str(), nullptr, 10) + 1;
-    LOG(INFO) << space_name_ << " read index_dump_num=" << index_dump_num
-              << " from " << dump_done_file;
-    storage_mgr_->SetSize(index_dump_num);
-    delete[] buf;
-    buf = nullptr;
-  }
-
-  max_docid_ = table_->GetStorageManagerSize();
-
   std::string last_dir = "";
   std::vector<std::string> dirs;
   if (folders_tm.size() > 0) {
@@ -1098,18 +1126,24 @@ int Engine::Load() {
     LOG(INFO) << "Loading from " << last_dir;
     dirs.push_back(last_dir);
   }
-  int ret = vec_manager_->Load(dirs, max_docid_);
+  int ret = vec_manager_->Load(dirs, doc_num);
   if (ret != 0) {
     LOG(ERROR) << space_name_ << " load vector error, ret=" << ret
                << ", path=" << last_dir;
     return ret;
   }
 
-  ret = table_->Load(max_docid_);
+  ret = table_->Load(doc_num);
   if (ret != 0) {
     LOG(ERROR) << space_name_ << " load profile error, ret=" << ret;
     return ret;
   }
+  ret = table_->SetStorageManagerSize(doc_num);
+  if (ret != 0) {
+    LOG(ERROR) << space_name_ << " set table size error, ret=" << ret;
+    return ret;
+  }
+  max_docid_ = doc_num;
 
   if (field_range_index_->DocCount() <= 0) {
     int field_num = table_->FieldsNum();

@@ -216,11 +216,7 @@ Status StorageManager::Add(int cf_id, int64_t id, const uint8_t *value,
     LOG(ERROR) << msg.str();
     return Status::IOError(msg.str());
   }
-  size_++;
 
-  if (SetSize(size_) != 0) {
-    return Status::IOError("set size error");
-  }
   return Status::OK();
 }
 

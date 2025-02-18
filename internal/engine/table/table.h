@@ -119,6 +119,10 @@ class Table {
 
   int Load(int64_t &doc_num);
 
+  int64_t Size()  { return last_docid_ + 1; }
+
+  int SetStorageManagerSize(int64_t doc_num);
+
   int FieldsNum() { return attrs_.size(); }
 
   const std::map<std::string, int> &FieldMap() { return attr_idx_map_; }

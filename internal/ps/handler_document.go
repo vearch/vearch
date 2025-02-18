@@ -238,7 +238,6 @@ func getDocuments(ctx context.Context, store PartitionStore, items []*vearchpb.I
 	for _, item := range items {
 		if e := store.GetDocument(ctx, true, item.Doc, getByDocId, next); e != nil {
 			msg := fmt.Sprintf("GetDocument failed, key: [%s], err: [%s]", item.Doc.PKey, e.Error())
-			log.Error("%s", msg)
 			if vearchErr, ok := e.(*vearchpb.VearchErr); ok {
 				item.Err = vearchErr.GetError()
 			} else {
@@ -260,7 +259,7 @@ func deleteDocs(ctx context.Context, store PartitionStore, items []*vearchpb.Ite
 				}
 			}()
 			if len(item.Doc.Fields) != 1 {
-				msg := fmt.Sprintf("fileds of doc can only have one field--[%s] when delete", entity.IdField)
+				msg := fmt.Sprintf("fileds of doc can only have one field [%s] when delete", entity.IdField)
 				item.Err = &vearchpb.Error{Code: vearchpb.ErrorEnum_INTERNAL_ERROR, Msg: msg}
 				return
 			}
@@ -305,13 +304,21 @@ func bulk(ctx context.Context, store PartitionStore, items []*vearchpb.Item) {
 		}
 		return
 	}
-
 	msgs := strings.Split(vErr.GetError().Msg, ",")
 	for i, msg := range msgs {
-		if code, _ := strconv.Atoi(msg); code == 0 {
-			// log.Debugf("add doc success, %s", msg)
+		errInfo := strings.Split(msg, ":")
+		var codeInfo string
+		if len(errInfo) == 2 {
+			codeInfo = errInfo[1]
 		} else {
-			items[i].Err = vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, errors.New(msg)).GetError()
+			codeInfo = msg
+		}
+		code, codeErr := strconv.Atoi(codeInfo)
+		if codeErr == nil {
+			if code != 0 {
+				errMsg := fmt.Sprintf("add doc failed, err code %d", code)
+				items[i].Err = vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, errors.New(errMsg)).GetError()
+			}
 		}
 	}
 }
@@ -420,7 +427,6 @@ func deleteByQuery(ctx context.Context, store PartitionStore, req *vearchpb.Quer
 	docs := make([]*vearchpb.Item, 0)
 	for _, result := range results {
 		if result == nil || result.ResultItems == nil || len(result.ResultItems) == 0 {
-			log.Error("query id is 0")
 			continue
 		}
 		for _, doc := range result.ResultItems {

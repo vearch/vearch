@@ -291,6 +291,8 @@ int VectorManager::AddToStore(
     int docid, std::unordered_map<std::string, struct Field> &fields) {
   int ret = 0;
   if (fields.size() != raw_vectors_.size()) {
+    LOG(ERROR) << "Add to store error: vector fields length [" << fields.size()
+               << "] not equal to raw_vectors_ length = " << raw_vectors_.size();
     return -1;
   }
   for (auto &[name, field] : fields) {
@@ -770,6 +772,7 @@ int VectorManager::Load(const std::vector<std::string> &index_dirs,
     if (vec->WithIO()) {
       auto vector_num = min_vec_num;
       vec->GetDiskVecNum(vector_num);
+      LOG(INFO) << name << " load vec_num=" << vector_num;
       if (vector_num < min_vec_num) min_vec_num = vector_num;
     }
   }
@@ -779,7 +782,7 @@ int VectorManager::Load(const std::vector<std::string> &index_dirs,
   for (const auto &[name, vec] : raw_vectors_) {
     if (vec->WithIO()) {
       // TODO: doc num to vector num
-      int vec_num = min_vec_num;
+      int64_t vec_num = min_vec_num;
       Status status = vec->Load(vec_num);
       if (!status.ok()) {
         LOG(ERROR) << "vector [" << name << "] load failed!";
@@ -809,7 +812,7 @@ int VectorManager::Load(const std::vector<std::string> &index_dirs,
     }
   }
   doc_num = min_vec_num;
-  LOG(INFO) << "vector_mgr load vec_num=" << doc_num;
+  LOG(INFO) << "vector_mgr load vec_num=" << min_vec_num;
   return 0;
 }
 
