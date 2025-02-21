@@ -66,7 +66,8 @@ int Table::Load(int64_t &num) {
   }
 
   last_docid_ = doc_id;
-  LOG(INFO) << name_ << " load successed! doc num [" << doc_id + 1 << "], last docid [" << last_docid_ << "]";
+  LOG(INFO) << name_ << " load successed! doc num [" << doc_id + 1
+            << "], last docid [" << last_docid_ << "]";
   return 0;
 }
 
@@ -150,6 +151,14 @@ int Table::GetDocidByKey(const std::string &key, int64_t &docid) {
   auto result = storage_mgr_->Get(key_cf_id_, key);
   if (!result.first.ok()) {
     return result.first.code();
+  }
+
+  // docid is int32_t
+  if (result.second.size() == sizeof(int32_t)) {
+    int32_t docid32;
+    memcpy(&docid32, result.second.data(), sizeof(docid32));
+    docid = docid32;
+    return 0;
   }
 
   memcpy(&docid, result.second.data(), sizeof(docid));
@@ -476,7 +485,8 @@ int Table::SetStorageManagerSize(int64_t doc_num) {
     ret = storage_mgr_->SetSize(doc_num);
     if (ret != 0) {
       LOG(ERROR) << name_ << " set doc_num=" << doc_num
-                 << " in table storage_mgr failed!, last_docid_=" << last_docid_;
+                 << " in table storage_mgr failed!, last_docid_="
+                 << last_docid_;
     } else {
       return 0;
     }

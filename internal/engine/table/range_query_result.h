@@ -8,6 +8,7 @@
 #pragma once
 
 #include <roaring/roaring64map.hh>
+#include <shared_mutex>
 #include <string>
 #include <vector>
 
@@ -34,10 +35,12 @@ class RangeQueryResult {
   ~RangeQueryResult() {}
 
   void Intersection(const RangeQueryResult& other) {
+    std::unique_lock<std::shared_mutex> lock(mutex_);
     doc_bitmap_ &= other.doc_bitmap_;
   }
 
   void IntersectionWithNotIn(const RangeQueryResult& other) {
+    std::unique_lock<std::shared_mutex> lock(mutex_);
     if (b_not_in_) {
       doc_bitmap_ &= other.doc_bitmap_;
     } else {
@@ -46,10 +49,12 @@ class RangeQueryResult {
   }
 
   void Union(const RangeQueryResult& other) {
+    std::unique_lock<std::shared_mutex> lock(mutex_);
     doc_bitmap_ |= other.doc_bitmap_;
   }
 
   void UnionWithNotIn(const RangeQueryResult& other) {
+    std::unique_lock<std::shared_mutex> lock(mutex_);
     if (b_not_in_) {
       doc_bitmap_ |= other.doc_bitmap_;
     } else {
@@ -58,6 +63,7 @@ class RangeQueryResult {
   }
 
   bool Has(int64_t doc) const {
+    std::shared_lock<std::shared_mutex> lock(mutex_);
     if (b_not_in_) {
       return !doc_bitmap_.contains(static_cast<uint64_t>(doc));
     } else {
@@ -65,9 +71,13 @@ class RangeQueryResult {
     }
   }
 
-  int64_t Cardinality() const { return doc_bitmap_.cardinality(); }
+  int64_t Cardinality() const {
+    std::unique_lock<std::shared_mutex> lock(mutex_);
+    return doc_bitmap_.cardinality();
+  }
 
   std::vector<uint64_t> GetDocIDs(size_t topn) const {
+    std::unique_lock<std::shared_mutex> lock(mutex_);
     std::vector<uint64_t> doc_ids;
     if (b_not_in_) {
       LOG(WARNING) << "NOT IN operation is not supported in GetDocIDs";
@@ -85,11 +95,15 @@ class RangeQueryResult {
   }
 
   void Clear() {
+    std::unique_lock<std::shared_mutex> lock(mutex_);
     b_not_in_ = false;
     doc_bitmap_.clear();
   }
 
-  void Add(int64_t doc) { doc_bitmap_.add(static_cast<uint64_t>(doc)); }
+  void Add(int64_t doc) {
+    std::unique_lock<std::shared_mutex> lock(mutex_);
+    doc_bitmap_.add(static_cast<uint64_t>(doc));
+  }
 
   void SetNotIn(bool b_not_in) { b_not_in_ = b_not_in; }
 
@@ -97,8 +111,8 @@ class RangeQueryResult {
 
  private:
   bool b_not_in_;
-
   roaring::Roaring64Map doc_bitmap_;
+  mutable std::shared_mutex mutex_;
 };
 
 class MultiRangeQueryResults {

@@ -270,7 +270,7 @@ int64_t MultiFieldsRangeIndex::Search(
   RangeQueryResult result;
   RangeQueryResult result_not_in;
   result_not_in.SetNotIn(true);
-  int64_t retval = 0;
+  std::atomic<int64_t> retval{0};
 
   for (size_t i = 0; i < fsize; ++i) {
     RangeQueryResult result_tmp;
@@ -308,10 +308,11 @@ int64_t MultiFieldsRangeIndex::Search(
         storage_mgr_->GetColumnFamilyHandle(cf_id_);
     std::string value;
     rocksdb::ReadOptions read_options;
-    std::unique_ptr<rocksdb::Iterator> it(
-        db->NewIterator(read_options, cf_handler));
 
     if (fields_[filter.field]->IsNumeric()) {
+      std::unique_ptr<rocksdb::Iterator> it(
+          db->NewIterator(read_options, cf_handler));
+
       std::string lower_key, upper_key;
       lower_key = ToRowKey(filter.field) + "_" +
                   FloatingToSortableStr(filter.lower_value) + "_";
@@ -341,7 +342,13 @@ int64_t MultiFieldsRangeIndex::Search(
       } else {
         items.push_back(filter.lower_value);
       }
-      for (std::string &item : items) {
+
+#pragma omp parallel for if (items.size() >= 10) schedule(dynamic)
+      for (size_t i = 0; i < items.size(); i++) {
+        std::string item = items[i];
+        std::unique_ptr<rocksdb::Iterator> it(
+            db->NewIterator(read_options, cf_handler));
+
         std::string prefix = ToRowKey(filter.field) + "_" + item + "_";
         size_t prefix_len = prefix.length();
 
@@ -380,6 +387,132 @@ int64_t MultiFieldsRangeIndex::Search(
   }
 
   out->Add(std::move(result));
+  return retval;
+}
+
+int64_t MultiFieldsRangeIndex::Query(
+    const std::vector<FilterInfo> &origin_filters, std::vector<int64_t> &docids,
+    size_t topn) {
+  std::vector<FilterInfo> filters;
+
+  for (const auto &filter : origin_filters) {
+    if ((size_t)filter.field >= fields_.size()) {
+      LOG(ERROR) << "field index is out of range, field=" << filter.field;
+      return -1;
+    }
+
+    if ((filter.is_union == FilterOperator::And) &&
+        fields_[filter.field]->DataType() == DataType::STRING) {
+      // type is string and operator is "and", split this filter
+      std::vector<std::string> items = utils::split(filter.lower_value, kDelim);
+      for (std::string &item : items) {
+        FilterInfo f = filter;
+        f.lower_value = item;
+        filters.push_back(f);
+      }
+      continue;
+    }
+    filters.push_back(filter);
+  }
+
+  auto fsize = filters.size();
+
+  std::atomic<int64_t> retval{0};
+
+  for (size_t i = 0; i < fsize; ++i) {
+    auto &filter = filters[i];
+
+    if (not filter.include_lower) {
+      if (fields_[filter.field]->DataType() == DataType::INT) {
+        AdjustBoundary<int>(filter.lower_value, 1);
+      } else if (fields_[filter.field]->DataType() == DataType::LONG) {
+        AdjustBoundary<long>(filter.lower_value, 1);
+      } else if (fields_[filter.field]->DataType() == DataType::FLOAT) {
+        AdjustBoundary<float>(filter.lower_value, 1);
+      } else if (fields_[filter.field]->DataType() == DataType::DOUBLE) {
+        AdjustBoundary<double>(filter.lower_value, 1);
+      }
+    }
+
+    if (not filter.include_upper) {
+      if (fields_[filter.field]->DataType() == DataType::INT) {
+        AdjustBoundary<int>(filter.upper_value, -1);
+      } else if (fields_[filter.field]->DataType() == DataType::LONG) {
+        AdjustBoundary<long>(filter.upper_value, -1);
+      } else if (fields_[filter.field]->DataType() == DataType::FLOAT) {
+        AdjustBoundary<float>(filter.upper_value, -1);
+      } else if (fields_[filter.field]->DataType() == DataType::DOUBLE) {
+        AdjustBoundary<double>(filter.upper_value, -1);
+      }
+    }
+
+    auto &db = storage_mgr_->GetDB();
+    rocksdb::ColumnFamilyHandle *cf_handler =
+        storage_mgr_->GetColumnFamilyHandle(cf_id_);
+    std::string value;
+    rocksdb::ReadOptions read_options;
+
+    if (fields_[filter.field]->IsNumeric()) {
+      std::unique_ptr<rocksdb::Iterator> it(
+          db->NewIterator(read_options, cf_handler));
+
+      std::string lower_key, upper_key;
+      lower_key = ToRowKey(filter.field) + "_" +
+                  FloatingToSortableStr(filter.lower_value) + "_";
+      upper_key = ToRowKey(filter.field) + "_" +
+                  FloatingToSortableStr(filter.upper_value) + "_";
+
+      size_t prefix_len = lower_key.length();
+      for (it->Seek(lower_key); it->Valid(); it->Next()) {
+        std::string key = it->key().ToString();
+        key = key.substr(0, prefix_len);
+        if (key > upper_key) {
+          break;
+        }
+        key = it->key().ToString();
+        int64_t docid = utils::FromRowKey64(key.substr(key.length() - 8, 8));
+        if (filter.is_union != FilterOperator::Not) {
+          docids.push_back(docid);
+          if (docids.size() >= topn) {
+            return retval;
+          }
+        }
+        retval++;
+      }
+    } else {
+      std::vector<std::string> items;
+      if (fields_[filter.field]->DataType() == DataType::STRING) {
+        items = utils::split(filter.lower_value, kDelim);
+      } else {
+        items.push_back(filter.lower_value);
+      }
+
+      for (size_t i = 0; i < items.size(); i++) {
+        std::string item = items[i];
+        std::unique_ptr<rocksdb::Iterator> it(
+            db->NewIterator(read_options, cf_handler));
+
+        std::string prefix = ToRowKey(filter.field) + "_" + item + "_";
+        size_t prefix_len = prefix.length();
+
+        for (it->Seek(prefix);
+             it->Valid() && it->key().starts_with(prefix) &&
+             it->key().size() == prefix_len + 8;  // 8 is the length of docid
+             it->Next()) {
+          std::string key = it->key().ToString();
+          int64_t docid = utils::FromRowKey64(key.substr(key.length() - 8, 8));
+          if (filter.is_union != FilterOperator::Not) {
+            docids.push_back(docid);
+            if (docids.size() >= topn) {
+              return retval;
+            }
+          }
+          retval++;
+        }
+      }
+    }
+  }
+
   return retval;
 }
 

@@ -397,6 +397,10 @@ Status Engine::Query(QueryRequest &request, Response &response_results) {
     return status;
   }
 
+  int topn = request.TopN();
+  std::vector<int64_t> docids;
+  docids.reserve(topn);
+
   MultiRangeQueryResults range_query_result;
   size_t range_filters_num = request.RangeFilters().size();
   size_t term_filters_num = request.TermFilters().size();
@@ -433,7 +437,7 @@ Status Engine::Query(QueryRequest &request, Response &response_results) {
       ++idx;
     }
 
-    int num = field_range_index_->Search(filters, &range_query_result);
+    int num = field_range_index_->Query(filters, docids, (size_t)topn);
 
     if (num <= 0) {
       std::string msg =
@@ -446,11 +450,9 @@ Status Engine::Query(QueryRequest &request, Response &response_results) {
     }
   }
 
-  int topn = request.TopN();
   GammaResult *gamma_result = new GammaResult[1];
   gamma_result->init(topn, nullptr, 0);
 
-  std::vector<uint64_t> docids = range_query_result.GetDocIDs(topn);
   for (int docid : docids) {
     if (docids_bitmap_->Test(docid)) {
       continue;
@@ -614,12 +616,13 @@ int Engine::AddOrUpdate(Doc &doc) {
     return 0;
   } else if (docid >= max_docid_) {
     LOG(ERROR) << space_name_ << " add error, key=" << key
-                << ", max_docid_=" << max_docid_ << ", docid=" << docid;
+               << ", max_docid_=" << max_docid_ << ", docid=" << docid;
     return -2;
   } else if (docid == -1) {
     Status status = CheckDoc(fields_table, fields_vec);
     if (!status.ok()) {
-      LOG(ERROR) << space_name_ << " add error, key=" << key << " err: " << status.ToString();
+      LOG(ERROR) << space_name_ << " add error, key=" << key
+                 << " err: " << status.ToString();
       return -3;
     }
   }
@@ -666,27 +669,31 @@ int Engine::AddOrUpdate(Doc &doc) {
   double end = utils::getmillisecs();
   if (max_docid_ % 10000 == 0) {
     LOG(DEBUG) << space_name_ << " table cost [" << end_table - start
-               << "]ms, vec store cost [" << end - end_table << "]ms, max_docid_="
-               << max_docid_;
+               << "]ms, vec store cost [" << end - end_table
+               << "]ms, max_docid_=" << max_docid_;
   }
 #endif
   is_dirty_ = true;
   return 0;
 }
 
-Status Engine::CheckDoc(std::unordered_map<std::string, struct Field> &fields_table,
-                        std::unordered_map<std::string, struct Field> &fields_vec) {
+Status Engine::CheckDoc(
+    std::unordered_map<std::string, struct Field> &fields_table,
+    std::unordered_map<std::string, struct Field> &fields_vec) {
   for (auto &[name, field] : fields_table) {
     auto it = table_->FieldMap().find(name);
     if (it == table_->FieldMap().end()) {
-      std::string msg = "Check doc err: cannot find numerical field [" + name + "]";
+      std::string msg =
+          "Check doc err: cannot find numerical field [" + name + "]";
       return Status::ParamError(msg);
     }
   }
 
   if (fields_vec.size() != vec_manager_->RawVectors().size()) {
-    std::string msg =  "Check doc err: vector fields length [" + std::to_string(fields_vec.size())
-               + "] not equal to raw_vectors length = " + std::to_string(vec_manager_->RawVectors().size());
+    std::string msg = "Check doc err: vector fields length [" +
+                      std::to_string(fields_vec.size()) +
+                      "] not equal to raw_vectors length = " +
+                      std::to_string(vec_manager_->RawVectors().size());
     return Status::ParamError(msg);
   }
   for (auto &[name, field] : fields_vec) {
@@ -703,8 +710,10 @@ Status Engine::CheckDoc(std::unordered_map<std::string, struct Field> &fields_ta
             : sizeof(float);
     if ((size_t)raw_vector->MetaInfo()->Dimension() !=
         field.value.size() / element_size) {
-      std::string msg = "Check doc err: vector field " + name + " invalid field value len=" + std::to_string(field.value.size())
-                + ", dimension=" + std::to_string(raw_vector->MetaInfo()->Dimension());
+      std::string msg =
+          "Check doc err: vector field " + name +
+          " invalid field value len=" + std::to_string(field.value.size()) +
+          ", dimension=" + std::to_string(raw_vector->MetaInfo()->Dimension());
       return Status::ParamError(msg);
     }
   }

@@ -45,6 +45,9 @@ class MultiFieldsRangeIndex {
   int64_t Search(const std::vector<FilterInfo> &origin_filters,
                  MultiRangeQueryResults *out);
 
+  int64_t Query(const std::vector<FilterInfo> &origin_filters,
+                std::vector<int64_t> &docids, size_t topn);
+
   int64_t DocCount() {
     int64_t doc_count = 0;
     auto &db = storage_mgr_->GetDB();
