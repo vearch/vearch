@@ -17,7 +17,7 @@ package vmap
 import (
 	"testing"
 
-	"gotest.tools/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMergeMap(t *testing.T) {
@@ -38,10 +38,9 @@ func TestMergeMap(t *testing.T) {
 
 	MergeMap(dest, src)
 
-	assert.DeepEqual(t, dest["xxx"], 123)
-	assert.DeepEqual(t, dest["a2"], src["a2"])
-	assert.DeepEqual(t, dest["sub"].(map[string]interface{})["a2"], src["sub"].(map[string]interface{})["a2"])
-
+	require.Equal(t, dest["xxx"], 123)
+	require.Equal(t, dest["a2"], src["a2"])
+	require.Equal(t, dest["sub"].(map[string]interface{})["a2"], src["sub"].(map[string]interface{})["a2"])
 }
 
 func TestMergeMapDiffType(t *testing.T) {
@@ -61,8 +60,7 @@ func TestMergeMapDiffType(t *testing.T) {
 
 	MergeMap(dist, src)
 
-	assert.DeepEqual(t, dist["sub"], src["sub"])
-
+	require.Equal(t, dist["sub"], src["sub"])
 }
 
 func TestMergeMapOtherType(t *testing.T) {
@@ -84,8 +82,7 @@ func TestMergeMapOtherType(t *testing.T) {
 
 	MergeMap(dist, src)
 
-	assert.DeepEqual(t, dist["sub"], src["sub"])
-
+	require.Equal(t, dist["sub"], src["sub"])
 }
 
 func TestMergeMapOtherType2(t *testing.T) {
@@ -106,6 +103,5 @@ func TestMergeMapOtherType2(t *testing.T) {
 
 	MergeMap(dist, src)
 
-	assert.DeepEqual(t, dist["sub"], src["sub"])
-
+	require.Equal(t, dist["sub"], src["sub"])
 }

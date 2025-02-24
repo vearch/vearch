@@ -46,7 +46,7 @@ class MultiFieldsRangeIndex {
                  MultiRangeQueryResults *out);
 
   int64_t Query(const std::vector<FilterInfo> &origin_filters,
-                std::vector<int64_t> &docids, size_t topn);
+                std::vector<uint64_t> &docids, size_t topn);
 
   int64_t DocCount() {
     int64_t doc_count = 0;
@@ -71,7 +71,6 @@ class MultiFieldsRangeIndex {
 
   Table *table_;
   std::vector<std::unique_ptr<FieldRangeIndex>> fields_;
-  pthread_rwlock_t *field_rw_locks_;
   StorageManager *storage_mgr_;
   int cf_id_;
 };

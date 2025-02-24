@@ -109,20 +109,9 @@ MultiFieldsRangeIndex::MultiFieldsRangeIndex(Table *table,
                                              StorageManager *storage_mgr)
     : table_(table), fields_(table->FieldsNum()), storage_mgr_(storage_mgr) {
   std::fill(fields_.begin(), fields_.end(), nullptr);
-  field_rw_locks_ = new pthread_rwlock_t[fields_.size()];
-  for (size_t i = 0; i < fields_.size(); i++) {
-    if (pthread_rwlock_init(&field_rw_locks_[i], nullptr) != 0) {
-      LOG(ERROR) << "init lock failed!";
-    }
-  }
 }
 
-MultiFieldsRangeIndex::~MultiFieldsRangeIndex() {
-  for (size_t i = 0; i < fields_.size(); i++) {
-    pthread_rwlock_destroy(&field_rw_locks_[i]);
-  }
-  delete[] field_rw_locks_;
-}
+MultiFieldsRangeIndex::~MultiFieldsRangeIndex() {}
 
 int MultiFieldsRangeIndex::Delete(int64_t docid, int field) {
   if (fields_[field] == nullptr) {
@@ -343,7 +332,6 @@ int64_t MultiFieldsRangeIndex::Search(
         items.push_back(filter.lower_value);
       }
 
-#pragma omp parallel for if (items.size() >= 10) schedule(dynamic)
       for (size_t i = 0; i < items.size(); i++) {
         std::string item = items[i];
         std::unique_ptr<rocksdb::Iterator> it(
@@ -391,128 +379,22 @@ int64_t MultiFieldsRangeIndex::Search(
 }
 
 int64_t MultiFieldsRangeIndex::Query(
-    const std::vector<FilterInfo> &origin_filters, std::vector<int64_t> &docids,
-    size_t topn) {
-  std::vector<FilterInfo> filters;
-
-  for (const auto &filter : origin_filters) {
-    if ((size_t)filter.field >= fields_.size()) {
-      LOG(ERROR) << "field index is out of range, field=" << filter.field;
+    const std::vector<FilterInfo> &origin_filters,
+    std::vector<uint64_t> &docids, size_t topn) {
+  for (auto filter : origin_filters) {
+    if (filter.is_union == FilterOperator::Not) {
+      LOG(ERROR) << "Not operator is not supported in Query";
       return -1;
     }
-
-    if ((filter.is_union == FilterOperator::And) &&
-        fields_[filter.field]->DataType() == DataType::STRING) {
-      // type is string and operator is "and", split this filter
-      std::vector<std::string> items = utils::split(filter.lower_value, kDelim);
-      for (std::string &item : items) {
-        FilterInfo f = filter;
-        f.lower_value = item;
-        filters.push_back(f);
-      }
-      continue;
-    }
-    filters.push_back(filter);
   }
 
-  auto fsize = filters.size();
-
-  std::atomic<int64_t> retval{0};
-
-  for (size_t i = 0; i < fsize; ++i) {
-    auto &filter = filters[i];
-
-    if (not filter.include_lower) {
-      if (fields_[filter.field]->DataType() == DataType::INT) {
-        AdjustBoundary<int>(filter.lower_value, 1);
-      } else if (fields_[filter.field]->DataType() == DataType::LONG) {
-        AdjustBoundary<long>(filter.lower_value, 1);
-      } else if (fields_[filter.field]->DataType() == DataType::FLOAT) {
-        AdjustBoundary<float>(filter.lower_value, 1);
-      } else if (fields_[filter.field]->DataType() == DataType::DOUBLE) {
-        AdjustBoundary<double>(filter.lower_value, 1);
-      }
-    }
-
-    if (not filter.include_upper) {
-      if (fields_[filter.field]->DataType() == DataType::INT) {
-        AdjustBoundary<int>(filter.upper_value, -1);
-      } else if (fields_[filter.field]->DataType() == DataType::LONG) {
-        AdjustBoundary<long>(filter.upper_value, -1);
-      } else if (fields_[filter.field]->DataType() == DataType::FLOAT) {
-        AdjustBoundary<float>(filter.upper_value, -1);
-      } else if (fields_[filter.field]->DataType() == DataType::DOUBLE) {
-        AdjustBoundary<double>(filter.upper_value, -1);
-      }
-    }
-
-    auto &db = storage_mgr_->GetDB();
-    rocksdb::ColumnFamilyHandle *cf_handler =
-        storage_mgr_->GetColumnFamilyHandle(cf_id_);
-    std::string value;
-    rocksdb::ReadOptions read_options;
-
-    if (fields_[filter.field]->IsNumeric()) {
-      std::unique_ptr<rocksdb::Iterator> it(
-          db->NewIterator(read_options, cf_handler));
-
-      std::string lower_key, upper_key;
-      lower_key = ToRowKey(filter.field) + "_" +
-                  FloatingToSortableStr(filter.lower_value) + "_";
-      upper_key = ToRowKey(filter.field) + "_" +
-                  FloatingToSortableStr(filter.upper_value) + "_";
-
-      size_t prefix_len = lower_key.length();
-      for (it->Seek(lower_key); it->Valid(); it->Next()) {
-        std::string key = it->key().ToString();
-        key = key.substr(0, prefix_len);
-        if (key > upper_key) {
-          break;
-        }
-        key = it->key().ToString();
-        int64_t docid = utils::FromRowKey64(key.substr(key.length() - 8, 8));
-        if (filter.is_union != FilterOperator::Not) {
-          docids.push_back(docid);
-          if (docids.size() >= topn) {
-            return retval;
-          }
-        }
-        retval++;
-      }
-    } else {
-      std::vector<std::string> items;
-      if (fields_[filter.field]->DataType() == DataType::STRING) {
-        items = utils::split(filter.lower_value, kDelim);
-      } else {
-        items.push_back(filter.lower_value);
-      }
-
-      for (size_t i = 0; i < items.size(); i++) {
-        std::string item = items[i];
-        std::unique_ptr<rocksdb::Iterator> it(
-            db->NewIterator(read_options, cf_handler));
-
-        std::string prefix = ToRowKey(filter.field) + "_" + item + "_";
-        size_t prefix_len = prefix.length();
-
-        for (it->Seek(prefix);
-             it->Valid() && it->key().starts_with(prefix) &&
-             it->key().size() == prefix_len + 8;  // 8 is the length of docid
-             it->Next()) {
-          std::string key = it->key().ToString();
-          int64_t docid = utils::FromRowKey64(key.substr(key.length() - 8, 8));
-          if (filter.is_union != FilterOperator::Not) {
-            docids.push_back(docid);
-            if (docids.size() >= topn) {
-              return retval;
-            }
-          }
-          retval++;
-        }
-      }
-    }
+  MultiRangeQueryResults range_query_result;
+  int64_t retval = Search(origin_filters, &range_query_result);
+  if (retval <= 0) {
+    return retval;
   }
 
+  docids = range_query_result.GetDocIDs(topn);
   return retval;
 }
 

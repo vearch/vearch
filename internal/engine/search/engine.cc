@@ -398,7 +398,7 @@ Status Engine::Query(QueryRequest &request, Response &response_results) {
   }
 
   int topn = request.TopN();
-  std::vector<int64_t> docids;
+  std::vector<uint64_t> docids;
   docids.reserve(topn);
 
   MultiRangeQueryResults range_query_result;
@@ -453,7 +453,7 @@ Status Engine::Query(QueryRequest &request, Response &response_results) {
   GammaResult *gamma_result = new GammaResult[1];
   gamma_result->init(topn, nullptr, 0);
 
-  for (int docid : docids) {
+  for (int64_t docid : docids) {
     if (docids_bitmap_->Test(docid)) {
       continue;
     }
