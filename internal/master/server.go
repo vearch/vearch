@@ -165,12 +165,12 @@ func (s *Server) Start() (err error) {
 		Password: &config.Conf().Global.Signkey,
 		RoleName: &root,
 	}
-	if _, err := service.queryUserService(s.ctx, userInfo.Name, true); err != nil {
+	if _, err := service.User().QueryUser(s.ctx, service.Role(), userInfo.Name, true); err != nil {
 		log.Debug("query root user : %s", err.Error())
-		if err := service.createUserService(s.ctx, userInfo, false); err != nil {
+		if err := service.User().CreateUser(s.ctx, service.Role(), userInfo, false); err != nil {
 			log.Debug("create root user : %s", err.Error())
 			// check again
-			_, err := service.queryUserService(s.ctx, userInfo.Name, true)
+			_, err := service.User().QueryUser(s.ctx, service.Role(), userInfo.Name, true)
 			if err != nil {
 				log.Error("query root user : %s", err.Error())
 				panic(err)

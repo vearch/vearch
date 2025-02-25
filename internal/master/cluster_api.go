@@ -92,7 +92,7 @@ func BasicAuthMiddleware(masterService *masterService) gin.HandlerFunc {
 			return
 		}
 
-		user, err := masterService.queryUserWithPasswordService(c, credentials[0], true)
+		user, err := masterService.Role().QueryUserWithPassword(c, credentials[0], true)
 		if err != nil {
 			ferr := fmt.Errorf("auth header user %s is invalid", credentials[0])
 			response.New(c).JsonError(errors.NewErrUnauthorized(ferr))
@@ -106,7 +106,7 @@ func BasicAuthMiddleware(masterService *masterService) gin.HandlerFunc {
 			return
 		}
 
-		role, err := masterService.queryRoleService(c, user.Role.Name)
+		role, err := masterService.Role().QueryRole(c, user.Role.Name)
 		if err != nil {
 			response.New(c).JsonError(errors.NewErrUnauthorized(err))
 			c.Abort()
@@ -284,7 +284,7 @@ func ExportToClusterHandler(router *gin.Engine, masterService *masterService, se
 
 // got every partition servers system info
 func (ca *clusterAPI) stats(c *gin.Context) {
-	list, err := ca.masterService.statsService(c)
+	list, err := ca.masterService.Server().Stats(c)
 	if err != nil {
 		response.New(c).JsonError(errors.NewErrInternal(err))
 		return
@@ -298,7 +298,7 @@ func (ca *clusterAPI) health(c *gin.Context) {
 	spaceName := c.Query("space")
 	detail := c.Query("detail")
 
-	result, err := ca.masterService.partitionInfo(c, dbName, spaceName, detail)
+	result, err := ca.masterService.Partition().PartitionInfo(c, ca.masterService.DB(), ca.masterService.Space(), dbName, spaceName, detail)
 	if err != nil {
 		response.New(c).JsonError(errors.NewErrInternal(err))
 		return
@@ -356,13 +356,13 @@ func (ca *clusterAPI) register(c *gin.Context) {
 	}
 
 	// if node id is already existed, return failed
-	if err := ca.masterService.IsExistNode(c, nodeID, ip); err != nil {
+	if err := ca.masterService.Server().IsExistNode(c, nodeID, ip); err != nil {
 		log.Debug("nodeID[%d] exist %v", nodeID, err)
 		response.New(c).JsonError(errors.NewErrUnprocessable(err))
 		return
 	}
 
-	server, err := ca.masterService.registerServerService(c, ip, nodeID)
+	server, err := ca.masterService.Server().RegisterServer(c, ip, nodeID)
 	if err != nil {
 		response.New(c).JsonError(errors.NewErrInternal(err))
 		return
@@ -396,7 +396,7 @@ func (ca *clusterAPI) registerPartition(c *gin.Context) {
 
 	partition.UpdateTime = time.Now().UnixNano()
 
-	if err := ca.masterService.registerPartitionService(c, partition); err != nil {
+	if err := ca.masterService.Partition().RegisterPartition(c, partition); err != nil {
 		response.New(c).JsonError(errors.NewErrInternal(err))
 	} else {
 		response.New(c).JsonSuccess(nil)
@@ -411,7 +411,7 @@ func (ca *clusterAPI) createDB(c *gin.Context) {
 
 	log.Debug("create db: %s", db.Name)
 
-	if err := ca.masterService.createDBService(c, db); err != nil {
+	if err := ca.masterService.DB().CreateDB(c, db); err != nil {
 		response.New(c).JsonError(errors.NewErrInternal(err))
 	} else {
 		response.New(c).JsonSuccess(db)
@@ -422,7 +422,7 @@ func (ca *clusterAPI) deleteDB(c *gin.Context) {
 	log.Debug("delete db, db: %s", c.Param(dbName))
 	db := c.Param(dbName)
 
-	if err := ca.masterService.deleteDBService(c, db); err != nil {
+	if err := ca.masterService.DB().DeleteDB(c, db); err != nil {
 		response.New(c).JsonError(errors.NewErrInternal(err))
 	} else {
 		response.New(c).SuccessDelete()
@@ -432,13 +432,13 @@ func (ca *clusterAPI) deleteDB(c *gin.Context) {
 func (ca *clusterAPI) getDB(c *gin.Context) {
 	db := c.Param(dbName)
 	if db == "" {
-		if dbs, err := ca.masterService.queryDBs(c); err != nil {
+		if dbs, err := ca.masterService.DB().QueryDBs(c); err != nil {
 			response.New(c).JsonError(errors.NewErrNotFound(err))
 		} else {
 			response.New(c).JsonSuccess(dbs)
 		}
 	} else {
-		if db, err := ca.masterService.queryDBService(c, db); err != nil {
+		if db, err := ca.masterService.DB().QueryDB(c, db); err != nil {
 			response.New(c).JsonError(errors.NewErrNotFound(err))
 		} else {
 			response.New(c).JsonSuccess(db)
@@ -452,7 +452,7 @@ func (ca *clusterAPI) modifyDB(c *gin.Context) {
 		response.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
 	}
-	if db, err := ca.masterService.updateDBIpList(c.Request.Context(), dbModify); err != nil {
+	if db, err := ca.masterService.DB().UpdateDBIpList(c.Request.Context(), dbModify); err != nil {
 		response.New(c).JsonError(errors.NewErrInternal(err))
 	} else {
 		response.New(c).JsonSuccess(db)
@@ -499,20 +499,20 @@ func (ca *clusterAPI) createSpace(c *gin.Context) {
 
 	space.Version = 1 // first start with 1
 
-	if err := ca.masterService.createSpaceService(c, dbName, space); err != nil {
-		log.Error("createSpaceService err: %v", err)
+	if err := ca.masterService.Space().CreateSpace(c, ca.masterService.DB(), dbName, space); err != nil {
+		log.Error("createSpace err: %v", err)
 		response.New(c).JsonError(errors.NewErrInternal(err))
 		return
 	}
 
-	cfg, err := ca.masterService.GetEngineCfg(c, dbName, space.Name)
+	cfg, err := ca.masterService.Config().GetEngineCfg(c, dbName, space.Name)
 	if err != nil {
 		log.Error("get engine config err: %s", err.Error())
 		response.New(c).JsonError(errors.NewErrInternal(err))
 		return
 	}
 
-	err = ca.masterService.updateEngineConfig(c, space, cfg)
+	err = ca.masterService.Config().UpdateEngineConfig(c, space, cfg)
 	if err != nil {
 		log.Error("update engine config err: %s", err.Error())
 		response.New(c).JsonError(errors.NewErrInternal(err))
@@ -526,7 +526,7 @@ func (ca *clusterAPI) deleteSpace(c *gin.Context) {
 	dbName := c.Param(dbName)
 	spaceName := c.Param(spaceName)
 
-	if err := ca.masterService.deleteSpaceService(c, dbName, spaceName); err != nil {
+	if err := ca.masterService.Space().DeleteSpace(c, ca.masterService.Alias(), dbName, spaceName); err != nil {
 		response.New(c).JsonError(errors.NewErrInternal(err))
 	} else {
 		response.New(c).SuccessDelete()
@@ -560,7 +560,7 @@ func (ca *clusterAPI) getSpace(c *gin.Context) {
 			spaceInfo.PartitionNum = space.PartitionNum
 			spaceInfo.ReplicaNum = space.ReplicaNum
 			spaceInfo.PartitionRule = space.PartitionRule
-			if _, err := ca.masterService.describeSpaceService(c, space, spaceInfo, detail_info); err != nil {
+			if _, err := ca.masterService.Space().DescribeSpace(c, space, spaceInfo, detail_info); err != nil {
 				response.New(c).JsonError(errors.NewErrInternal(err))
 				return
 			} else {
@@ -582,7 +582,7 @@ func (ca *clusterAPI) getSpace(c *gin.Context) {
 				spaceInfo.PartitionNum = space.PartitionNum
 				spaceInfo.ReplicaNum = space.ReplicaNum
 				spaceInfo.PartitionRule = space.PartitionRule
-				if _, err := ca.masterService.describeSpaceService(c, space, spaceInfo, detail_info); err != nil {
+				if _, err := ca.masterService.Space().DescribeSpace(c, space, spaceInfo, detail_info); err != nil {
 					response.New(c).JsonError(errors.NewErrInternal(err))
 					return
 				} else {
@@ -605,7 +605,7 @@ func (ca *clusterAPI) updateSpace(c *gin.Context) {
 		return
 	}
 
-	if spaceResult, err := ca.masterService.updateSpaceService(c, dbName, spaceName, space); err != nil {
+	if spaceResult, err := ca.masterService.Space().UpdateSpace(c, dbName, spaceName, space); err != nil {
 		response.New(c).JsonError(errors.NewErrInternal(err))
 	} else {
 		response.New(c).JsonSuccess(spaceResult)
@@ -628,7 +628,7 @@ func (ca *clusterAPI) updateSpaceResource(c *gin.Context) {
 
 	log.Debug("updateSpaceResource %v", space)
 
-	if spaceResult, err := ca.masterService.updateSpaceResourceService(c, space); err != nil {
+	if spaceResult, err := ca.masterService.Space().UpdateSpaceResource(c, ca.masterService.DB(), space); err != nil {
 		response.New(c).JsonError(errors.NewErrInternal(err))
 	} else {
 		response.New(c).JsonSuccess(spaceResult)
@@ -662,7 +662,7 @@ func (ca *clusterAPI) backupDb(c *gin.Context) {
 		return
 	}
 	for _, space := range spaces {
-		err = ca.masterService.BackupSpace(c, dbName, space.Name, backup)
+		err = ca.masterService.Backup().BackupSpace(c, ca.masterService.DB(), ca.masterService.Space(), ca.masterService.Config(), dbName, space.Name, backup)
 		if err != nil {
 			err = fmt.Errorf("backup space %s failed, err: %s", space.Name, err.Error())
 			response.New(c).JsonError(errors.NewErrInternal(err))
@@ -692,7 +692,7 @@ func (ca *clusterAPI) backupSpace(c *gin.Context) {
 		return
 	}
 
-	err = ca.masterService.BackupSpace(c, dbName, spaceName, backup)
+	err = ca.masterService.Backup().BackupSpace(c, ca.masterService.DB(), ca.masterService.Space(), ca.masterService.Config(), dbName, spaceName, backup)
 	if err != nil {
 		response.New(c).JsonError(errors.NewErrInternal(err))
 		return
@@ -707,7 +707,7 @@ func (ca *clusterAPI) ResourceLimit(c *gin.Context) {
 		response.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
 	}
-	if err := ca.masterService.ResourceLimitService(c, resourceLimit); err != nil {
+	if err := ca.masterService.Server().ResourceLimitService(c, ca.masterService.DB(), resourceLimit); err != nil {
 		response.New(c).JsonError(errors.NewErrInternal(err))
 		return
 	} else {
@@ -733,7 +733,7 @@ func (ca *clusterAPI) createAlias(c *gin.Context) {
 
 	log.Debug("create alias: %s, dbName: %s, spaceName: %s", aliasName, dbName, spaceName)
 
-	if err := ca.masterService.createAliasService(c, alias); err != nil {
+	if err := ca.masterService.Alias().CreateAlias(c, alias); err != nil {
 		response.New(c).JsonError(errors.NewErrInternal(err))
 		return
 	} else {
@@ -745,7 +745,7 @@ func (ca *clusterAPI) deleteAlias(c *gin.Context) {
 	log.Debug("delete alias: %s", c.Param(aliasName))
 	aliasName := c.Param(aliasName)
 
-	if err := ca.masterService.deleteAliasService(c, aliasName); err != nil {
+	if err := ca.masterService.Alias().DeleteAlias(c, aliasName); err != nil {
 		response.New(c).JsonError(errors.NewErrInternal(err))
 		return
 	} else {
@@ -756,14 +756,14 @@ func (ca *clusterAPI) deleteAlias(c *gin.Context) {
 func (ca *clusterAPI) getAlias(c *gin.Context) {
 	aliasName := c.Param(aliasName)
 	if aliasName == "" {
-		if alias, err := ca.masterService.queryAllAlias(c); err != nil {
+		if alias, err := ca.masterService.Alias().QueryAllAlias(c); err != nil {
 			response.New(c).JsonError(errors.NewErrNotFound(err))
 			return
 		} else {
 			response.New(c).JsonSuccess(alias)
 		}
 	} else {
-		if alias, err := ca.masterService.queryAliasService(c, aliasName); err != nil {
+		if alias, err := ca.masterService.Alias().QueryAlias(c, aliasName); err != nil {
 			response.New(c).JsonError(errors.NewErrNotFound(err))
 			return
 		} else {
@@ -791,7 +791,7 @@ func (ca *clusterAPI) modifyAlias(c *gin.Context) {
 		DbName:    dbName,
 		SpaceName: spaceName,
 	}
-	if err := ca.masterService.updateAliasService(c, alias); err != nil {
+	if err := ca.masterService.Alias().UpdateAlias(c, alias); err != nil {
 		response.New(c).JsonError(errors.NewErrInternal(err))
 		return
 	} else {
@@ -810,7 +810,7 @@ func (ca *clusterAPI) createUser(c *gin.Context) {
 
 	log.Debug("create user: %s", user.Name)
 
-	if err := ca.masterService.createUserService(c, user, true); err != nil {
+	if err := ca.masterService.User().CreateUser(c, ca.masterService.Role(), user, true); err != nil {
 		response.New(c).JsonError(errors.NewErrInternal(err))
 		return
 	} else {
@@ -824,7 +824,7 @@ func (ca *clusterAPI) deleteUser(c *gin.Context) {
 	log.Debug("delete user: %s", c.Param(userName))
 	name := c.Param(userName)
 
-	if err := ca.masterService.deleteUserService(c, name); err != nil {
+	if err := ca.masterService.User().DeleteUser(c, ca.masterService.Role(), name); err != nil {
 		response.New(c).JsonError(errors.NewErrInternal(err))
 		return
 	} else {
@@ -835,14 +835,14 @@ func (ca *clusterAPI) deleteUser(c *gin.Context) {
 func (ca *clusterAPI) getUser(c *gin.Context) {
 	name := c.Param(userName)
 	if name == "" {
-		if users, err := ca.masterService.queryAllUser(c); err != nil {
+		if users, err := ca.masterService.User().QueryAllUser(c, ca.masterService.Role()); err != nil {
 			response.New(c).JsonError(errors.NewErrNotFound(err))
 			return
 		} else {
 			response.New(c).JsonSuccess(users)
 		}
 	} else {
-		if user, err := ca.masterService.queryUserService(c, name, true); err != nil {
+		if user, err := ca.masterService.User().QueryUser(c, ca.masterService.Role(), name, true); err != nil {
 			response.New(c).JsonError(errors.NewErrNotFound(err))
 			return
 		} else {
@@ -894,7 +894,7 @@ func (ca *clusterAPI) updateUser(c *gin.Context) {
 		auth_user = credentials[0]
 	}
 
-	if err := ca.masterService.updateUserService(c, user, auth_user); err != nil {
+	if err := ca.masterService.User().UpdateUser(c, ca.masterService.Role(), user, auth_user); err != nil {
 		response.New(c).JsonError(errors.NewErrInternal(err))
 	} else {
 		response.New(c).JsonSuccess(user)
@@ -912,7 +912,7 @@ func (ca *clusterAPI) createRole(c *gin.Context) {
 
 	log.Debug("create role: %s", role.Name)
 
-	if err := ca.masterService.createRoleService(c, role); err != nil {
+	if err := ca.masterService.Role().CreateRole(c, role); err != nil {
 		response.New(c).JsonError(errors.NewErrInternal(err))
 	} else {
 		response.New(c).JsonSuccess(role)
@@ -923,7 +923,7 @@ func (ca *clusterAPI) deleteRole(c *gin.Context) {
 	log.Debug("delete role: %s", c.Param(roleName))
 	name := c.Param(roleName)
 
-	if err := ca.masterService.deleteRoleService(c, name); err != nil {
+	if err := ca.masterService.Role().DeleteRole(c, name); err != nil {
 		response.New(c).JsonError(errors.NewErrInternal(err))
 	} else {
 		response.New(c).SuccessDelete()
@@ -933,13 +933,13 @@ func (ca *clusterAPI) deleteRole(c *gin.Context) {
 func (ca *clusterAPI) getRole(c *gin.Context) {
 	name := c.Param(roleName)
 	if name == "" {
-		if roles, err := ca.masterService.queryAllRole(c); err != nil {
+		if roles, err := ca.masterService.Role().QueryAllRole(c); err != nil {
 			response.New(c).JsonError(errors.NewErrNotFound(err))
 		} else {
 			response.New(c).JsonSuccess(roles)
 		}
 	} else {
-		if role, err := ca.masterService.queryRoleService(c, name); err != nil {
+		if role, err := ca.masterService.Role().QueryRole(c, name); err != nil {
 			response.New(c).JsonError(errors.NewErrNotFound(err))
 		} else {
 			response.New(c).JsonSuccess(role)
@@ -957,7 +957,7 @@ func (ca *clusterAPI) changeRolePrivilege(c *gin.Context) {
 	}
 	log.Debug("update role: %s privilege", role.Name)
 
-	if new_role, err := ca.masterService.changeRolePrivilegeService(c, role); err != nil {
+	if new_role, err := ca.masterService.Role().ChangeRolePrivilege(c, role); err != nil {
 		response.New(c).JsonError(errors.NewErrInternal(err))
 	} else {
 		response.New(c).JsonSuccess(new_role)
@@ -992,7 +992,7 @@ func (ca *clusterAPI) addMember(c *gin.Context) {
 		return
 	}
 
-	resp, err := ca.masterService.addMemberService(c, addMemberRequest.PeerAddrs)
+	resp, err := ca.masterService.Member().AddMember(c, addMemberRequest.PeerAddrs)
 	if err != nil {
 		response.New(c).JsonError(errors.NewErrInternal(err))
 		return
@@ -1006,7 +1006,7 @@ func (ca *clusterAPI) deleteMember(c *gin.Context) {
 		response.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
 	}
-	resp, err := ca.masterService.removeMemberService(c, master)
+	resp, err := ca.masterService.Member().RemoveMember(c, master)
 	if err != nil {
 		response.New(c).JsonError(errors.NewErrInternal(err))
 		return
@@ -1022,7 +1022,7 @@ func (ca *clusterAPI) getEngineCfg(c *gin.Context) {
 	dbName := c.Param(dbName)
 	spaceName := c.Param(spaceName)
 	errutil.ThrowError(err)
-	if cfg, err := ca.masterService.GetEngineCfg(c, dbName, spaceName); err != nil {
+	if cfg, err := ca.masterService.Config().GetEngineCfg(c, dbName, spaceName); err != nil {
 		response.New(c).JsonError(errors.NewErrNotFound(err))
 	} else {
 		response.New(c).JsonSuccess(cfg)
@@ -1042,7 +1042,7 @@ func (ca *clusterAPI) modifyEngineCfg(c *gin.Context) {
 		return
 	}
 
-	if err := ca.masterService.ModifyEngineCfg(c, dbName, spaceName, cacheCfg); err != nil {
+	if err := ca.masterService.Config().ModifyEngineCfg(c, dbName, spaceName, cacheCfg); err != nil {
 		response.New(c).JsonError(errors.NewErrInternal(err))
 	} else {
 		response.New(c).JsonSuccess(cacheCfg)
@@ -1185,7 +1185,7 @@ func (cluster *clusterAPI) RemoveServerMeta(c *gin.Context) {
 			cm.PartitionID = pid
 			cm.Method = proto.ConfRemoveNode
 			log.Debug("begin ChangeMember %+v", cm)
-			err := cluster.masterService.ChangeMember(c.Request.Context(), cm)
+			err := cluster.masterService.Member().ChangeMember(c.Request.Context(), cluster.masterService.Space(), cm)
 			if err != nil {
 				log.Error("ChangePartitionMember [%+v] err is %s", cm, err.Error())
 				response.New(c).JsonError(errors.NewErrInternal(err))
@@ -1208,7 +1208,7 @@ func (cluster *clusterAPI) RecoverFailServer(c *gin.Context) {
 	}
 	rsStr := vjson.ToJsonString(rs)
 	log.Info("RecoverFailServer is %s,", rsStr)
-	if err := cluster.masterService.RecoverFailServer(c.Request.Context(), rs); err != nil {
+	if err := cluster.masterService.Server().RecoverFailServer(c.Request.Context(), cluster.masterService.Space(), cluster.masterService.Member(), rs); err != nil {
 		response.New(c).JsonError(errors.NewErrInternal(fmt.Errorf("%s failed recover, err is %v", rsStr, err)))
 	} else {
 		response.New(c).JsonSuccess(fmt.Sprintf("%s success recover!", rsStr))
@@ -1233,7 +1233,7 @@ func (cluster *clusterAPI) ChangeReplicas(c *gin.Context) {
 		response.New(c).JsonError(errors.NewErrBadRequest(fmt.Errorf("dbModify info incorrect [%s]", dbStr)))
 		return
 	}
-	if err := cluster.masterService.ChangeReplica(c.Request.Context(), dbModify); err != nil {
+	if err := cluster.masterService.Member().ChangeReplica(c.Request.Context(), cluster.masterService.DB(), cluster.masterService.Space(), dbModify); err != nil {
 		response.New(c).JsonError(errors.NewErrInternal(fmt.Errorf("[%s] failed ChangeReplicas,err is %v", dbStr, err)))
 	} else {
 		response.New(c).JsonSuccess(fmt.Sprintf("[%s] success ChangeReplicas!", dbStr))
@@ -1247,7 +1247,7 @@ func (ca *clusterAPI) changeMember(c *gin.Context) {
 		response.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
 	}
-	if err := ca.masterService.ChangeMembers(c, cm); err != nil {
+	if err := ca.masterService.Member().ChangeMembers(c, ca.masterService.Space(), cm); err != nil {
 		response.New(c).JsonError(errors.NewErrInternal(err))
 	} else {
 		response.New(c).JsonSuccess(nil)

@@ -68,7 +68,7 @@ func (ms *monitorService) monitorCallBack(masterMonitor *monitoring.MasterMonito
 	}
 	masterMonitor.ServerNum.Set(float64(len(servers)))
 
-	dbs, err := ms.masterService.queryDBs(ctx)
+	dbs, err := ms.masterService.DB().QueryDBs(ctx)
 	if err != nil {
 		log.Error("got db by prefix err:[%s]", err.Error())
 	}
