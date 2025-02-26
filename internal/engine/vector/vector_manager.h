@@ -95,8 +95,8 @@ class VectorManager {
 
   int Delete(int64_t docid);
 
-  std::map<std::string, RawVector *> RawVectors() { return raw_vectors_; }
-  std::map<std::string, IndexModel *> IndexModels() { return vector_indexes_; }
+  std::map<std::string, RawVector *> &RawVectors() { return raw_vectors_; }
+  std::map<std::string, IndexModel *> &IndexModels() { return vector_indexes_; }
 
   int MinIndexedNum();
 

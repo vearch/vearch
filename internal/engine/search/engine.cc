@@ -689,16 +689,17 @@ Status Engine::CheckDoc(
     }
   }
 
-  if (fields_vec.size() != vec_manager_->RawVectors().size()) {
+  const auto &raw_vectors = vec_manager_->RawVectors();
+  if (fields_vec.size() != raw_vectors.size()) {
     std::string msg = "Check doc err: vector fields length [" +
                       std::to_string(fields_vec.size()) +
                       "] not equal to raw_vectors length = " +
-                      std::to_string(vec_manager_->RawVectors().size());
+                      std::to_string(raw_vectors.size());
     return Status::ParamError(msg);
   }
   for (auto &[name, field] : fields_vec) {
-    auto it = vec_manager_->RawVectors().find(name);
-    if (it == vec_manager_->RawVectors().end()) {
+    auto it = raw_vectors.find(name);
+    if (it == raw_vectors.end()) {
       std::string msg = "Check doc err: cannot find raw vector [" + name + "]";
       return Status::ParamError(msg);
     }
@@ -1377,7 +1378,7 @@ void Engine::BackupThread(int command) {
     std::map<std::string, DataType> attr_type_map;
     table_->GetAttrType(attr_type_map);
 
-    auto raw_vectors = vec_manager_->RawVectors();
+    const auto &raw_vectors = vec_manager_->RawVectors();
     std::unordered_set<std::string> raw_vector_name;
     for (auto &[name, v] : raw_vectors) {
       raw_vector_name.insert(name);
