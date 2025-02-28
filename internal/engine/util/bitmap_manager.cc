@@ -414,11 +414,12 @@ int RocksdbBitmapManager::Unset(int64_t bit_id) {
 
 bool RocksdbBitmapManager::Test(int64_t bit_id) {
   if (bit_id >= 0 && bit_id < size_ && bitmap_ != nullptr) {
-    auto temp = bitmap_;
-    return (temp[bit_id >> 3] & (0x1 << (bit_id & 0x7)));
+    return (bitmap_[bit_id >> 3] & (0x1 << (bit_id & 0x7)));
   }
   return false;
 }
+
+void FreeOldSharedPtr(std::shared_ptr<char []> temp) { temp.reset(); }
 
 int RocksdbBitmapManager::SetMaxID(int64_t bit_id) {
   if (size_ > bit_id) return 0;
@@ -450,7 +451,13 @@ int RocksdbBitmapManager::SetMaxID(int64_t bit_id) {
   if (bitmap_) {
     memcpy(new_bitmap.get(), bitmap_.get(), old_bytes_count);
   }
+  auto temp = bitmap_;
   bitmap_ = new_bitmap;
+
+  // delay free
+  std::function<void(std::shared_ptr<char []>)> func_free =
+      std::bind(&FreeOldSharedPtr, std::placeholders::_1);
+  utils::AsyncWait(3000, func_free, temp);
 
   LOG(INFO) << "Current bitmap size [" << size_ << "]";
 
