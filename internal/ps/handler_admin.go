@@ -560,7 +560,7 @@ func (bh *BackupHandler) Execute(ctx context.Context, req *vearchpb.PartitionDat
 
 					backup.Part++
 					fileName = fmt.Sprintf("%d_%d.txt", req.PartitionID, backup.Part)
-					objectName = fmt.Sprintf("%s/%s/%s", dbName, space.Name, fileName)
+					objectName = fmt.Sprintf("%s/%s/%s/%s", clusterName, dbName, space.Name, fileName)
 					backupFileName = fmt.Sprintf("%s/backup/%s", *engineConfig.Path, fileName)
 					file, err = os.OpenFile(backupFileName, os.O_APPEND|os.O_TRUNC|os.O_CREATE|os.O_WRONLY, 0644)
 					if err != nil {
