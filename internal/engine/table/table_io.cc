@@ -69,38 +69,55 @@ int TableSchemaIO::Write(TableInfo &table) {
 }
 
 int TableSchemaIO::Read(std::string &name, TableInfo &table) {
-  std::string schema_str;
   std::ifstream schema_file(file_path, std::ios::ate);
-  std::streamsize size = schema_file.tellg();
-  schema_file.seekg(0, std::ios::beg);
-  schema_file.read((char *)schema_str.c_str(), size);
-  nlohmann::json j;
-  j = nlohmann::json::parse(schema_str);
-  std::string table_name = j["name"];
-  table.SetName(table_name);
-  table.SetTrainingThreshold(j["training_threshold"]);
-  for (auto &f : j["fields"]) {
-    struct FieldInfo fi;
-    fi.name = f["name"];
-    fi.data_type = f["data_type"];
-    fi.is_index = f["is_index"];
-    table.AddField(fi);
-  }
-  for (auto &v : j["vectors"]) {
-    struct VectorInfo vi;
-    vi.name = v["name"];
-    vi.data_type = v["data_type"];
-    vi.is_index = v["is_index"];
-    vi.dimension = v["dimension"];
-    vi.store_type = v["store_type"];
-    vi.store_param = v["store_param"];
-    table.AddVectorInfo(vi);
+  if (!schema_file.is_open()) {
+    LOG(ERROR) << "Failed to open schema file: " << file_path;
+    return -1;
   }
 
-  std::string index_type = j["index_type"];
-  table.SetIndexType(index_type);
-  std::string index_params = j["index_params"];
-  table.SetIndexParams(index_params);
+  std::streamsize size = schema_file.tellg();
+  if (size <= 0) {
+    LOG(ERROR) << "Empty schema file: " << file_path;
+    return -1;
+  }
+
+  schema_file.seekg(0, std::ios::beg);
+  std::string schema_str(size, '\0');
+  schema_file.read(&schema_str[0], size);
+  schema_file.close();
+  LOG(DEBUG) << "schema_str=" << schema_str;
+
+  try {
+    nlohmann::json j = nlohmann::json::parse(schema_str);
+    table.SetName(name);
+    table.SetTrainingThreshold(j["training_threshold"]);
+    for (auto &f : j["fields"]) {
+      struct FieldInfo fi;
+      fi.name = f["name"];
+      fi.data_type = f["data_type"];
+      fi.is_index = f["is_index"];
+      table.AddField(fi);
+    }
+    for (auto &v : j["vectors"]) {
+      struct VectorInfo vi;
+      vi.name = v["name"];
+      vi.data_type = v["data_type"];
+      vi.is_index = v["is_index"];
+      vi.dimension = v["dimension"];
+      vi.store_type = v["store_type"];
+      vi.store_param = v["store_param"];
+      table.AddVectorInfo(vi);
+    }
+
+    std::string index_type = j["index_type"];
+    table.SetIndexType(index_type);
+    std::string index_params = j["index_params"];
+    table.SetIndexParams(index_params);
+  } catch (const nlohmann::json::exception &e) {
+    LOG(ERROR) << "JSON parse error: " << e.what()
+               << ", content: " << schema_str;
+    return -1;
+  }
   return 0;
 }
 

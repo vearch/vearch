@@ -89,7 +89,7 @@ func UpdateEngineCfg(addr string, cfg *entity.EngineConfig, pid entity.Partition
 	return nil
 }
 
-func BackupSpace(addr string, backup *entity.BackupSpace, pid entity.PartitionID) error {
+func BackupSpace(addr string, backup *entity.BackupSpaceRequest, pid entity.PartitionID) error {
 	value, err := vjson.Marshal(backup)
 	if err != nil {
 		return err

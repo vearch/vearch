@@ -993,10 +993,10 @@ func (r *routerRequest) QueryFieldSortExecute(sortOrder sortorder.SortOrder) *ve
 	var searchResponse *vearchpb.SearchResponse
 	var head vearchpb.ResponseHead
 
-	var final_err *vearchpb.Error
+	var finalErr *vearchpb.Error
 	for r := range respChain {
 		if r != nil && r.PartitionData.Err != nil {
-			final_err = r.PartitionData.Err
+			finalErr = r.PartitionData.Err
 			continue
 		}
 		if result == nil && r != nil {
@@ -1032,7 +1032,7 @@ func (r *routerRequest) QueryFieldSortExecute(sortOrder sortorder.SortOrder) *ve
 
 	if searchResponse == nil {
 		searchResponse = &vearchpb.SearchResponse{}
-		responseHead := &vearchpb.ResponseHead{Err: final_err}
+		responseHead := &vearchpb.ResponseHead{Err: finalErr}
 		searchResponse.Head = responseHead
 	}
 

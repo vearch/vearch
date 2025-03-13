@@ -232,7 +232,7 @@ func (cliCache *clientCache) reloadSpaceCache(ctx context.Context, sync bool, db
 	fun := func() error {
 		log.Info("to reload db:[%s] space:[%s]", db, spaceName)
 
-		dbID, err := cliCache.mc.QueryDBName2Id(ctx, db)
+		dbID, err := cliCache.mc.QueryDBName2ID(ctx, db)
 		if err != nil {
 			return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("can not found db by name:[%s] err:[%s]", db, err.Error()))
 		}

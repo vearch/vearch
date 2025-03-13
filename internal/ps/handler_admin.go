@@ -19,6 +19,11 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
+	"regexp"
+	"strconv"
+	"strings"
+	"time"
 
 	"github.com/cubefs/cubefs/depends/tiglabs/raft"
 	"github.com/cubefs/cubefs/depends/tiglabs/raft/proto"
@@ -28,12 +33,11 @@ import (
 	"github.com/vearch/vearch/v3/internal/config"
 	"github.com/vearch/vearch/v3/internal/entity"
 
-	"github.com/vearch/vearch/v3/internal/pkg/errutil"
 	"github.com/vearch/vearch/v3/internal/pkg/log"
 	"github.com/vearch/vearch/v3/internal/pkg/metrics/mserver"
 	vearch_os "github.com/vearch/vearch/v3/internal/pkg/runtime/os"
 	"github.com/vearch/vearch/v3/internal/pkg/server/rpc/handler"
-	"github.com/vearch/vearch/v3/internal/pkg/vjson"
+	json "github.com/vearch/vearch/v3/internal/pkg/vjson"
 	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
 	"github.com/vearch/vearch/v3/internal/router/document"
 )
@@ -102,12 +106,12 @@ type CreatePartitionHandler struct {
 func (c *CreatePartitionHandler) Execute(ctx context.Context, req *vearchpb.PartitionData, reply *vearchpb.PartitionData) error {
 	reply.Err = &vearchpb.Error{Code: vearchpb.ErrorEnum_SUCCESS}
 	space := new(entity.Space)
-	err := vjson.Unmarshal(req.Data, space)
+	err := json.Unmarshal(req.Data, space)
 	if err != nil {
 		log.Error("Create partition failed, err: [%s]", err.Error())
 		return vearchpb.NewError(vearchpb.ErrorEnum_RPC_PARAM_ERROR, err)
 	}
-	c.server.partitions.Range(func(key, value interface{}) bool {
+	c.server.partitions.Range(func(key, value any) bool {
 		log.Debug("key %v, value %v", key, value)
 		return true
 	})
@@ -152,7 +156,7 @@ func (handler *UpdatePartitionHandler) Execute(ctx context.Context, req *vearchp
 	reply.Err = &vearchpb.Error{Code: vearchpb.ErrorEnum_SUCCESS}
 
 	space := new(entity.Space)
-	if err := vjson.Unmarshal(req.Data, space); err != nil {
+	if err := json.Unmarshal(req.Data, space); err != nil {
 		return vearchpb.NewError(vearchpb.ErrorEnum_RPC_PARAM_ERROR, err)
 	}
 
@@ -228,8 +232,8 @@ func (pih *PartitionInfoHandler) Execute(ctx context.Context, req *vearchpb.Part
 
 		pis = append(pis, value)
 	}
-	if reply.Data, err = vjson.Marshal(pis); err != nil {
-		log.Error("marshal partition info failed, err: [%v]", err)
+	if reply.Data, err = json.Marshal(pis); err != nil {
+		log.Error("Marshal partition info failed, err: [%v]", err)
 		return err
 	}
 	return nil
@@ -280,8 +284,8 @@ func (sh *StatsHandler) Execute(ctx context.Context, req *vearchpb.PartitionData
 		pi.RaftStatus = store.Status()
 	})
 
-	if values, err := vjson.Marshal(stats); err != nil {
-		log.Error("marshal partition info failed, err: [%v]", err)
+	if values, err := json.Marshal(stats); err != nil {
+		log.Error("Marshal partition info failed, err: [%v]", err)
 		return err
 	} else {
 		reply.Data = values
@@ -297,7 +301,7 @@ func (ch *ChangeMemberHandler) Execute(ctx context.Context, req *vearchpb.Partit
 	reply.Err = &vearchpb.Error{Code: vearchpb.ErrorEnum_SUCCESS}
 
 	reqObj := new(entity.ChangeMember)
-	if err := vjson.Unmarshal(req.Data, reqObj); err != nil {
+	if err := json.Unmarshal(req.Data, reqObj); err != nil {
 		return err
 	}
 
@@ -317,12 +321,12 @@ func (ch *ChangeMemberHandler) Execute(ctx context.Context, req *vearchpb.Partit
 		failServer := ch.server.client.Master().QueryFailServerByNodeID(ctx, reqObj.NodeID)
 		if failServer != nil && failServer.Node != nil {
 			server = failServer.Node
-			log.Debug("get server by failserver record %v.", server)
+			log.Debug("Get server by failserver record %v.", server)
 			err = nil
 		}
 	}
 	if err != nil {
-		log.Error("get server info err %s", err.Error())
+		log.Error("Get server info err %s", err.Error())
 		return err
 	}
 
@@ -354,9 +358,9 @@ func psErrorChange(server *Server) handler.ErrorChangeFun {
 			if id == 0 {
 				reply.Err = &vearchpb.Error{Code: vearchpb.ErrorEnum_PARTITION_NO_LEADER}
 			} else {
-				bytes, err := vjson.Marshal(server.raftResolver.ToReplica(id))
+				bytes, err := json.Marshal(server.raftResolver.ToReplica(id))
 				if err != nil {
-					log.Error("find raft resolver err[%s]", err.Error())
+					log.Error("Find raft resolver err[%s]", err.Error())
 					return err
 				}
 				reply.Err = &vearchpb.Error{Code: vearchpb.ErrorEnum_PARTITION_NOT_LEADER, Msg: string(bytes)}
@@ -373,13 +377,12 @@ type EngineCfgHandler struct {
 }
 
 func (ch *EngineCfgHandler) Execute(ctx context.Context, req *vearchpb.PartitionData, reply *vearchpb.PartitionData) (err error) {
-	defer errutil.CatchError(&err)
 	reply.Err = &vearchpb.Error{Code: vearchpb.ErrorEnum_SUCCESS}
 	// get store engine
-	log.Debug("request pid [%+v]", req.PartitionID)
+	log.Debug("Request pid [%+v]", req.PartitionID)
 	partitonStore := ch.server.GetPartition(req.PartitionID)
 	if partitonStore == nil {
-		log.Debug("partitonStore is nil.")
+		log.Debug("PartitonStore is nil.")
 		return vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_IS_INVALID, fmt.Errorf("partition (%v), partitonStore is nil ", req.PartitionID))
 	}
 	engine := partitonStore.GetEngine()
@@ -389,17 +392,17 @@ func (ch *EngineCfgHandler) Execute(ctx context.Context, req *vearchpb.Partition
 	if req.Type == vearchpb.OpType_CREATE {
 		err := engine.SetEngineCfg(req.Data)
 		if err != nil {
-			log.Debug("cache info set error [%+v]", err)
+			log.Debug("Cache info set error [%+v]", err)
 		}
 	} else if req.Type == vearchpb.OpType_GET {
 		// invoke c interface
-		log.Debug("invoke cfg info is get")
+		log.Debug("Invoke cfg info is get")
 		cfg := &entity.EngineConfig{}
 		err := engine.GetEngineCfg(cfg)
 		if err != nil {
-			log.Debug("cache info set error [%+v]", err)
+			log.Debug("Cache info set error [%+v]", err)
 		}
-		data, _ := vjson.Marshal(cfg)
+		data, _ := json.Marshal(cfg)
 		reply.Data = data
 	}
 	return nil
@@ -409,39 +412,424 @@ type BackupHandler struct {
 	server *Server
 }
 
+const (
+	forceUploadPattern = `(.*\.log|CURRENT|MANIFEST-.*|OPTIONS-.*)`
+)
+
+func (bh *BackupHandler) syncBackupFiles(ctx context.Context, minioClient *minio.Client, bucketName, backupPath, s3Path string) error {
+	forceUploadRegex, err := regexp.Compile(forceUploadPattern)
+	if err != nil {
+		return fmt.Errorf("invalid force upload pattern: %v", err)
+	}
+
+	// Get local file list by walking through the backup directory
+	localFiles := make(map[string]os.FileInfo)
+	err = filepath.Walk(backupPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		// Only store non-directory files
+		if !info.IsDir() {
+			relPath, _ := filepath.Rel(backupPath, path)
+			localFiles[relPath] = info
+		}
+		return nil
+	})
+	if err != nil {
+		log.Error("Failed to walk backup directory: %v", err)
+		return err
+	}
+
+	// Get S3 object list by listing objects in the S3 bucket
+	s3Files := make(map[string]minio.ObjectInfo)
+	objectCh := minioClient.ListObjects(ctx, bucketName, minio.ListObjectsOptions{
+		Prefix:    s3Path,
+		Recursive: true,
+	})
+	for object := range objectCh {
+		if object.Err != nil {
+			log.Error("Failed to list S3 objects: %v", object.Err)
+			continue
+		}
+		relPath := strings.TrimPrefix(object.Key, s3Path+"/")
+		s3Files[relPath] = object
+	}
+
+	// Upload files that exist locally but not in S3
+	for localPath := range localFiles {
+		isForceUpload := forceUploadRegex.MatchString(localPath)
+		if _, exists := s3Files[localPath]; isForceUpload || !exists {
+			fullPath := filepath.Join(backupPath, localPath)
+			objectName := filepath.Join(s3Path, localPath)
+
+			_, err := minioClient.FPutObject(ctx, bucketName, objectName, fullPath,
+				minio.PutObjectOptions{ContentType: "application/octet-stream"})
+			if err != nil {
+				log.Error("Failed to upload file %s to S3: %v", localPath, err)
+				continue
+			}
+			log.Info("Uploaded file to S3: %s", localPath)
+		}
+	}
+
+	// Delete files that exist in S3 but not locally
+	for file := range s3Files {
+		if _, exists := localFiles[file]; !exists {
+			err := minioClient.RemoveObject(ctx, bucketName,
+				filepath.Join(s3Path, file), minio.RemoveObjectOptions{})
+			if err != nil {
+				log.Error("failed to remove S3 file %s: %v", file, err)
+				continue
+			}
+			log.Info("Removed file from S3: %s", file)
+		}
+	}
+
+	return nil
+}
+
+type S3PathBuilder struct {
+	clusterName string
+}
+
+func NewS3PathBuilder(clusterName string) *S3PathBuilder {
+	return &S3PathBuilder{
+		clusterName: clusterName,
+	}
+}
+
+func (b *S3PathBuilder) BuildObjectPath(parts ...string) string {
+	allParts := make([]string, 0, len(parts)+1)
+	allParts = append(allParts, b.clusterName)
+
+	for _, part := range parts {
+		if part != "" {
+			allParts = append(allParts, part)
+		}
+	}
+
+	return filepath.ToSlash(filepath.Join(allParts...))
+}
+
+func (b *S3PathBuilder) BuildBackupPath(dbName, spaceName string, backupID, pid uint32) string {
+	return b.BuildObjectPath("backup", dbName, spaceName, fmt.Sprintf("%d/%d", backupID, pid))
+}
+
+func (b *S3PathBuilder) BuildExportPath(dbName, spaceName string, backupID int, fileName string) string {
+	return b.BuildObjectPath("export", dbName, spaceName, strconv.Itoa(backupID), fileName)
+}
+
+func (bh *BackupHandler) export(ctx context.Context, pid uint32, backup *entity.BackupSpaceRequest, minioClient *minio.Client, dbName string, path string) {
+	pathBuilder := NewS3PathBuilder(config.Conf().Global.Name)
+
+	// if export dir not exist, create it
+	if _, err := os.Stat(fmt.Sprintf("%s/export", path)); os.IsNotExist(err) {
+		err = os.Mkdir(fmt.Sprintf("%s/export", path), 0644)
+		if err != nil {
+			log.Error("Failed to create export dir: %s", err)
+			return
+		}
+	}
+
+	partitonStore := bh.server.GetPartition(pid)
+	if partitonStore == nil {
+		log.Error("PartitonStore is nil.")
+		return
+	}
+	space := partitonStore.GetSpace()
+
+	bh.server.backupStatus[pid] = 1
+	defer func() {
+		bh.server.backupStatus[pid] = 0
+	}()
+
+	part := 0
+	fileName := fmt.Sprintf("%d_%d.txt", backup.Part, part)
+	objectName := pathBuilder.BuildExportPath(dbName, space.Name, backup.BackupID, fileName)
+	doneName := pathBuilder.BuildExportPath(dbName, space.Name, backup.BackupID, fmt.Sprintf("%d.done", backup.Part))
+	backupFileName := filepath.Join(path, "export", fileName)
+	file, err := os.OpenFile(backupFileName, os.O_APPEND|os.O_TRUNC|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		log.Error("Failed to open file: %s", err)
+		return
+	}
+	defer file.Close()
+	nextDocid := int32(-1)
+	total := 0
+	for {
+		doc := &vearchpb.Document{
+			PKey: fmt.Sprintf("%d", nextDocid),
+		}
+		err := partitonStore.GetDocument(ctx, true, doc, true, true)
+		if err != nil {
+			log.Error("Get document error [%+v]", err)
+			break
+		}
+
+		docOut := make(map[string]any)
+		docOut["_id"] = doc.PKey
+
+		if len(doc.Fields) > 0 {
+			returnFieldsMap := make(map[string]string)
+			nextDocid, _ = document.DocFieldSerialize(doc, &space, returnFieldsMap, true, docOut)
+		}
+		value, err := json.Marshal(docOut)
+		if err != nil {
+			log.Error("Marshal document error [%+v]", err)
+			break
+		}
+
+		_, err = file.WriteString(string(value) + "\n")
+		if err != nil {
+			log.Error("Failed to write to file: %s", err)
+			break
+		}
+		total++
+		if total%1000000 == 0 {
+			log.Info("Write %d documents", total)
+			file.Close()
+
+			_, err = minioClient.FPutObject(ctx, backup.S3Param.BucketName, objectName, backupFileName, minio.PutObjectOptions{ContentType: "application/octet-stream"})
+			if err != nil {
+				log.Error("Failed to backup space: %+v", err)
+				return
+			}
+			log.Info("Backup success, file is [%s]", backupFileName)
+			// remove old file
+			err = os.Remove(backupFileName)
+			if err != nil {
+				log.Error("Failed to remove file: %s", err)
+				return
+			}
+
+			part++
+			fileName = fmt.Sprintf("%d_%d.txt", backup.Part, part)
+			objectName = pathBuilder.BuildExportPath(dbName, space.Name, backup.BackupID, fileName)
+			backupFileName = filepath.Join(path, "export", fileName)
+			file, err = os.OpenFile(backupFileName, os.O_APPEND|os.O_TRUNC|os.O_CREATE|os.O_WRONLY, 0644)
+			if err != nil {
+				log.Error("Failed to open file: %s", err)
+				return
+			}
+		}
+	}
+
+	_, err = minioClient.FPutObject(ctx, backup.S3Param.BucketName, objectName, backupFileName, minio.PutObjectOptions{ContentType: "application/octet-stream"})
+	if err != nil {
+		log.Error("Failed to backup space: %+v", err)
+		return
+	}
+
+	doneFile := fmt.Sprintf("%s/export/done_%d", path, backup.Part)
+	if err := os.WriteFile(doneFile, fmt.Appendf(nil, "%d", total), 0644); err != nil {
+		log.Error("Failed to create done file: %s", err)
+		return
+	}
+
+	_, err = minioClient.FPutObject(ctx, backup.S3Param.BucketName, doneName, doneFile, minio.PutObjectOptions{ContentType: "application/octet-stream"})
+	if err != nil {
+		log.Error("Failed to upload done file: %+v", err)
+		os.Remove(doneFile)
+		return
+	}
+
+	if err := os.Remove(doneFile); err != nil {
+		log.Error("Failed to remove done file: %s", err)
+		return
+	}
+	log.Info("Backup success, file is [%s]", backupFileName)
+
+	err = os.Remove(backupFileName)
+	if err != nil {
+		log.Error("Failed to remove file: %s", err)
+		return
+	}
+}
+
+func (bh *BackupHandler) create(ctx context.Context, pid uint32, backup *entity.BackupSpaceRequest, minioClient *minio.Client, dbName, spaceName string, path string) {
+	pathBuilder := NewS3PathBuilder(config.Conf().Global.Name)
+
+	bh.server.backupStatus[pid] = 1
+	defer func() {
+		bh.server.backupStatus[pid] = 0
+	}()
+
+	pathes := []string{
+		"data",
+		"bitmap",
+	}
+
+	for _, p := range pathes {
+		backupLocalPath := strings.Join([]string{
+			path, "backup", p,
+		}, "/")
+
+		s3Path := pathBuilder.BuildBackupPath(dbName, spaceName, uint32(backup.BackupID), backup.Part) + "/" + p
+		if err := bh.syncBackupFiles(ctx, minioClient, backup.S3Param.BucketName, backupLocalPath, s3Path); err != nil {
+			log.Error("Failed to sync backup files: %v", err)
+			return
+		}
+	}
+
+	remoteFiles := []string{
+		fmt.Sprintf("%s-%d.schema", spaceName, backup.Part),
+	}
+	localFiles := []string{
+		fmt.Sprintf("%s-%d.schema", spaceName, pid),
+	}
+	for i, file := range remoteFiles {
+		backupLocalPath := strings.Join([]string{
+			path, localFiles[i],
+		}, "/")
+
+		s3Path := pathBuilder.BuildBackupPath(dbName, spaceName, uint32(backup.BackupID), backup.Part) + "/" + file
+		_, err := minioClient.FPutObject(ctx, backup.S3Param.BucketName, s3Path, backupLocalPath,
+			minio.PutObjectOptions{ContentType: "application/octet-stream"})
+		if err != nil {
+			log.Error("Failed to upload file %s to S3: %v", backupLocalPath, err)
+			continue
+		}
+	}
+
+	log.Info("Backup success")
+}
+
+func (bh *BackupHandler) downloadDirectory(ctx context.Context, minioClient *minio.Client, bucketName, s3Path, localPath string) error {
+	if err := os.MkdirAll(localPath, 0755); err != nil {
+		return fmt.Errorf("can't mkdir: %v", err)
+	}
+
+	opts := minio.ListObjectsOptions{
+		Prefix:    s3Path,
+		Recursive: true,
+	}
+
+	objChan := minioClient.ListObjects(ctx, bucketName, opts)
+	for obj := range objChan {
+		if obj.Err != nil {
+			log.Error("List objects failed: %v", obj.Err)
+			continue
+		}
+
+		if strings.HasSuffix(obj.Key, "/") {
+			continue
+		}
+
+		relPath := strings.TrimPrefix(obj.Key, s3Path+"/")
+		destPath := filepath.Join(localPath, relPath)
+
+		if err := os.MkdirAll(filepath.Dir(destPath), 0755); err != nil {
+			log.Error("Create dir failed %s: %v", filepath.Dir(destPath), err)
+			continue
+		}
+
+		if err := minioClient.FGetObject(ctx, bucketName, obj.Key, destPath, minio.GetObjectOptions{}); err != nil {
+			log.Error("Failed to download file %s: %v", obj.Key, err)
+			continue
+		}
+
+		log.Debug("Downloaded: %s", relPath)
+	}
+
+	return nil
+}
+
+func (bh *BackupHandler) restore(ctx context.Context, pid uint32, backup *entity.BackupSpaceRequest, minioClient *minio.Client, dbName, spaceName string, path string) {
+	pathBuilder := NewS3PathBuilder(config.Conf().Global.Name)
+
+	engine := bh.server.GetPartition(pid).GetEngine()
+	if engine == nil {
+		log.Error("Engine is nil")
+		return
+	}
+
+	engine.Close()
+	times := 0
+	for hasClosed := engine.HasClosed(); !hasClosed; hasClosed = engine.HasClosed() {
+		log.Debug("Wait engine close")
+		time.Sleep(time.Second * 10)
+		times += 1
+		if times > 10 {
+			log.Error("Engine close timeout")
+			return
+		}
+	}
+	bh.server.backupStatus[pid] = 1
+	defer func() {
+		bh.server.backupStatus[pid] = 0
+	}()
+
+	pathes := []string{
+		"data",
+		"bitmap",
+	}
+
+	for _, p := range pathes {
+		os.RemoveAll(filepath.Join(path, p))
+		os.Mkdir(filepath.Join(path, p), 0644)
+
+		localPath := strings.Join([]string{
+			path, p,
+		}, "/")
+
+		s3Path := pathBuilder.BuildBackupPath(dbName, spaceName, uint32(backup.BackupID), backup.Part) + "/" + p
+		// Get directory from s3
+		if err := bh.downloadDirectory(ctx, minioClient, backup.S3Param.BucketName, s3Path, localPath); err != nil {
+			log.Error("Failed to download backup files: %v", err)
+			return
+		}
+	}
+
+	remoteFiles := []string{
+		fmt.Sprintf("%s-%d.schema", spaceName, backup.Part),
+	}
+
+	localFiles := []string{
+		fmt.Sprintf("%s-%d.schema", spaceName, pid),
+	}
+
+	for i, file := range remoteFiles {
+		localPath := strings.Join([]string{
+			path, localFiles[i],
+		}, "/")
+		s3Path := pathBuilder.BuildBackupPath(dbName, spaceName, uint32(backup.BackupID), backup.Part) + "/" + file
+		err := minioClient.FGetObject(ctx, backup.S3Param.BucketName, s3Path, localPath, minio.GetObjectOptions{})
+		if err != nil {
+			log.Error("Failed to download file %s: %v", file, err)
+			return
+		}
+	}
+
+	err := engine.Load()
+	if err != nil {
+		log.Error("Reload partition error:[%v]", err)
+		return
+	}
+	log.Info("Restore success")
+}
+
 func (bh *BackupHandler) Execute(ctx context.Context, req *vearchpb.PartitionData, reply *vearchpb.PartitionData) (err error) {
-	defer errutil.CatchError(&err)
 	reply.Err = &vearchpb.Error{Code: vearchpb.ErrorEnum_SUCCESS}
 	// get store engine
-	log.Debug("request pid [%+v]", req.PartitionID)
+	pid := req.PartitionID
+	log.Debug("Request pid [%+v]", pid)
 
-	partitonStore := bh.server.GetPartition(req.PartitionID)
+	partitonStore := bh.server.GetPartition(pid)
 	if partitonStore == nil {
-		log.Debug("partitonStore is nil.")
-		return vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_IS_INVALID, fmt.Errorf("partition (%v), partitonStore is nil ", req.PartitionID))
+		log.Debug("PartitonStore is nil.")
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_IS_INVALID, fmt.Errorf("partition (%v), partitonStore is nil ", pid))
 	}
 	e := partitonStore.GetEngine()
 	if e == nil {
-		return vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_IS_INVALID, fmt.Errorf("partition (%v), engine is nil ", req.PartitionID))
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_IS_INVALID, fmt.Errorf("partition (%v), engine is nil ", pid))
 	}
 
-	// status := &entity.EngineStatus{}
-	// err = e.GetEngineStatus(status)
-
-	// if err != nil {
-	// 	log.Error("get engine status error [%+v]", err)
-	// 	return
-	// }
-	// if status.BackupStatus != 0 {
-	// 	return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("backup status %d", status.BackupStatus))
-	// }
-
-	backup := new(entity.BackupSpace)
-	if err := vjson.Unmarshal(req.Data, backup); err != nil {
-		errutil.ThrowError(err)
-		return err
+	backup := new(entity.BackupSpaceRequest)
+	if err := json.Unmarshal(req.Data, backup); err != nil {
+		log.Error("Unmarshal backup data error [%+v]", err)
+		return vearchpb.NewError(vearchpb.ErrorEnum_RPC_PARAM_ERROR, err)
 	}
-	if backup.Command != "create" && backup.Command != "restore" {
+	if backup.Command != "create" && backup.Command != "restore" && backup.Command != "export" && backup.Command != "list" {
 		return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("unknow command %s", backup.Command))
 	}
 	space := partitonStore.GetSpace()
@@ -453,169 +841,61 @@ func (bh *BackupHandler) Execute(ctx context.Context, req *vearchpb.PartitionDat
 	engineConfig := entity.EngineConfig{}
 	err = e.GetEngineCfg(&engineConfig)
 	if err != nil {
-		log.Error("get engine config error [%+v]", err)
-		return
+		log.Error("Get engine config error [%+v]", err)
+		return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("get engine config error: %s", err.Error()))
 	}
-
-	backupFileName := ""
 
 	minioClient, err := minio.New(backup.S3Param.EndPoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(backup.S3Param.AccessKey, backup.S3Param.SecretKey, ""),
 		Secure: backup.S3Param.UseSSL,
 	})
 	if err != nil {
-		log.Error("failed to create minio client: %+v", err)
-		return
+		log.Error("Failed to create minio client: %+v", err)
+		return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("failed to create minio client: %s", err.Error()))
 	}
-	bucketName := backup.S3Param.BucketName
-	objectName := fmt.Sprintf("%s/%s/%d_%d.txt", dbName, space.Name, req.PartitionID, backup.Part)
 
-	clusterName := config.Conf().Global.Name
-	if backup.Command == "create" {
-		// if backup dir not exist, create it
-		if _, err = os.Stat(fmt.Sprintf("%s/backup", *engineConfig.Path)); os.IsNotExist(err) {
-			err = os.Mkdir(fmt.Sprintf("%s/backup", *engineConfig.Path), 0644)
-			if err != nil {
-				log.Error("failed to create backup dir: %s", err)
-				return
-			}
-		}
-		if bh.server.backupStatus[req.PartitionID] != 0 {
-			return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("backup status %d", bh.server.backupStatus[req.PartitionID]))
-		}
+	if bh.server.backupStatus[pid] != 0 {
+		return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("backup status %d", bh.server.backupStatus[req.PartitionID]))
+	}
+
+	if backup.Command == "export" {
 		go func() {
-			bh.server.backupStatus[req.PartitionID] = 1
-			defer func() {
-				bh.server.backupStatus[req.PartitionID] = 0
-			}()
-
 			status := &entity.EngineStatus{}
-			err = e.GetEngineStatus(status)
+			err := e.GetEngineStatus(status)
 
 			if err != nil {
-				log.Error("get engine status error [%+v]", err)
+				log.Error("Get engine status error [%+v]", err)
 				return
 			}
 			for status.BackupStatus != 0 {
-				log.Debug("status.BackupStatus %d", status.BackupStatus)
+				log.Debug("Status.BackupStatus %d", status.BackupStatus)
 				return
 			}
-			fileName := fmt.Sprintf("%d_%d.txt", req.PartitionID, backup.Part)
-			objectName := fmt.Sprintf("%s/%s/%s/%s", clusterName, dbName, space.Name, fileName)
-			doneName := fmt.Sprintf("%s/%s/%s/%d.done", clusterName, dbName, space.Name, req.PartitionID)
-			backupFileName = fmt.Sprintf("%s/backup/%s", *engineConfig.Path, fileName)
-			file, err := os.OpenFile(backupFileName, os.O_APPEND|os.O_TRUNC|os.O_CREATE|os.O_WRONLY, 0644)
+			bh.export(ctx, pid, backup, minioClient, dbName, *engineConfig.Path)
+		}()
+	} else if backup.Command == "create" {
+		go func() {
+			status := &entity.EngineStatus{}
+			err := e.GetEngineStatus(status)
+
 			if err != nil {
-				log.Error("failed to open file: %s", err)
+				log.Error("Get engine status error [%+v]", err)
 				return
 			}
-			defer file.Close()
-			nextDocid := int32(-1)
-			total := 0
-			for {
-				doc := &vearchpb.Document{
-					PKey: fmt.Sprintf("%d", nextDocid),
-				}
-				err := partitonStore.GetDocument(ctx, true, doc, true, true)
-				if err != nil {
-					log.Error("get document error [%+v]", err)
-					break
-				}
-
-				docOut := make(map[string]interface{})
-				docOut["_id"] = doc.PKey
-
-				if len(doc.Fields) > 0 {
-					returnFieldsMap := make(map[string]string)
-					nextDocid, _ = document.DocFieldSerialize(doc, &space, returnFieldsMap, true, docOut)
-				}
-				value, err := vjson.Marshal(docOut)
-				if err != nil {
-					log.Error("marshal document error [%+v]", err)
-					break
-				}
-
-				_, err = file.WriteString(string(value) + "\n")
-				if err != nil {
-					log.Error("failed to write to file: %s", err)
-					break
-				}
-				total++
-				if total%1000000 == 0 {
-					log.Info("write %d documents", total)
-					file.Close()
-
-					_, err = minioClient.FPutObject(context.Background(), bucketName, objectName, backupFileName, minio.PutObjectOptions{ContentType: "application/octet-stream"})
-					if err != nil {
-						log.Error("failed to backup space: %+v", err)
-						return
-					}
-					log.Info("backup success, file is [%s]", backupFileName)
-					// remove old file
-					err = os.Remove(backupFileName)
-					if err != nil {
-						log.Error("failed to remove file: %s", err)
-						return
-					}
-
-					backup.Part++
-					fileName = fmt.Sprintf("%d_%d.txt", req.PartitionID, backup.Part)
-					objectName = fmt.Sprintf("%s/%s/%s/%s", clusterName, dbName, space.Name, fileName)
-					backupFileName = fmt.Sprintf("%s/backup/%s", *engineConfig.Path, fileName)
-					file, err = os.OpenFile(backupFileName, os.O_APPEND|os.O_TRUNC|os.O_CREATE|os.O_WRONLY, 0644)
-					if err != nil {
-						log.Error("failed to open file: %s", err)
-						return
-					}
-				}
+			for status.BackupStatus != 0 {
+				log.Debug("Status.BackupStatus %d", status.BackupStatus)
+				return
 			}
-
-			_, err = minioClient.FPutObject(context.Background(), bucketName, objectName, backupFileName, minio.PutObjectOptions{ContentType: "application/octet-stream"})
+			err = e.BackupSpace(backup.Command)
 			if err != nil {
-				log.Error("failed to backup space: %+v", err)
+				log.Error("Failed to backup space: %+v", err)
 				return
 			}
-
-			doneFile := fmt.Sprintf("%s/backup/done_%d", *engineConfig.Path, req.PartitionID)
-			if err := os.WriteFile(doneFile, []byte(fmt.Sprintf("%d", total)), 0644); err != nil {
-				log.Error("failed to create done file: %s", err)
-				return
-			}
-
-			_, err = minioClient.FPutObject(context.Background(), bucketName, doneName, doneFile, minio.PutObjectOptions{ContentType: "application/octet-stream"})
-			if err != nil {
-				log.Error("failed to upload done file: %+v", err)
-				os.Remove(doneFile)
-				return
-			}
-
-			if err := os.Remove(doneFile); err != nil {
-				log.Error("failed to remove done file: %s", err)
-				return
-			}
-			log.Info("backup success, file is [%s]", backupFileName)
-
-			err = os.Remove(backupFileName)
-			if err != nil {
-				log.Error("failed to remove file: %s", err)
-				return
-			}
+			bh.create(ctx, pid, backup, minioClient, dbName, space.Name, *engineConfig.Path)
 		}()
 	} else if backup.Command == "restore" {
 		go func() {
-			err = minioClient.FGetObject(context.Background(), bucketName, objectName, backupFileName, minio.GetObjectOptions{})
-			if err != nil {
-				log.Error("failed to download file from S3: %+v", err)
-				return
-			}
-			log.Info("downloaded backup file from S3: %s", backupFileName)
-
-			err = e.BackupSpace(backup.Command)
-			if err != nil {
-				log.Error("failed to restore space: %+v", err)
-				return
-			}
-			log.Info("space restored successfully")
+			bh.restore(ctx, pid, backup, minioClient, dbName, space.Name, *engineConfig.Path)
 		}()
 	}
 	return nil
@@ -626,17 +906,16 @@ type ResourceLimitHandler struct {
 }
 
 func (rlh *ResourceLimitHandler) Execute(ctx context.Context, req *vearchpb.PartitionData, reply *vearchpb.PartitionData) (err error) {
-	defer errutil.CatchError(&err)
 	reply.Err = &vearchpb.Error{Code: vearchpb.ErrorEnum_SUCCESS}
 
 	partitonStore := rlh.server.GetPartition(req.PartitionID)
 	if partitonStore == nil {
-		log.Debug("partitonStore is nil, pid %d not found", req.PartitionID)
+		log.Debug("PartitonStore is nil, pid %d not found", req.PartitionID)
 		return nil
 	}
 
 	resourceLimit := new(entity.ResourceLimit)
-	if err := vjson.Unmarshal(req.Data, resourceLimit); err != nil {
+	if err := json.Unmarshal(req.Data, resourceLimit); err != nil {
 		return err
 	}
 	// check resource or set
@@ -649,6 +928,6 @@ func (rlh *ResourceLimitHandler) Execute(ctx context.Context, req *vearchpb.Part
 			partitonStore.GetPartition().ResourceExhausted = resource_exhausted
 		}
 	}
-	log.Debug("partition %d set ResourceExhausted as %v", req.PartitionID, partitonStore.GetPartition().ResourceExhausted)
+	log.Debug("Partition %d set ResourceExhausted as %v", req.PartitionID, partitonStore.GetPartition().ResourceExhausted)
 	return nil
 }

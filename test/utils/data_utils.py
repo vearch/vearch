@@ -218,25 +218,26 @@ class DatasetSift10K(Dataset):
         self.download()
 
     def download(self):
-        # dirname = "local/texmex/corpus/"
-        # filename = "siftsmall.tar.gz"
-        # host = get_ftp_ip(self.url)
-        # if (
-        #     download_from_irisa(host, dirname, self.basedir, filename)
-        #     == False
-        # ):
-        #     return
-        # untar(filename, self.basedir, "siftsmall")
-        filename = "v0.0.1.tar.gz"
-        download_from_github("https://github.com/vearch/sift/archive/refs/tags/v0.0.1.tar.gz", "datasets", filename)
+        dirname = "local/texmex/corpus/"
+        filename = "siftsmall.tar.gz"
+        host = get_ftp_ip(self.url)
+        if (
+            download_from_irisa(host, dirname, self.basedir, filename)
+            == False
+        ):
+            return
+        untar(filename, self.basedir, "siftsmall")
 
-        untar(filename, "datasets", "v0.0.1")
-        shutil.move("datasets/sift-0.0.1/siftsmall.tar.gz", "datasets/siftsmall.tar.gz")
+        # filename = "v0.0.1.tar.gz"
+        # download_from_github("https://github.com/vearch/sift/archive/refs/tags/v0.0.1.tar.gz", "datasets", filename)
+
+        # untar(filename, "datasets", "v0.0.1")
+        # shutil.move("datasets/sift-0.0.1/siftsmall.tar.gz", "datasets/siftsmall.tar.gz")
         # remove the extracted files
-        shutil.rmtree("datasets/sift-0.0.1")
+        # shutil.rmtree("datasets/sift-0.0.1")
         # remove v0.0.1
-        os.remove("datasets/v0.0.1.tar.gz")
-        untar("siftsmall.tar.gz", "./datasets", "siftsmall")
+        # os.remove("datasets/v0.0.1.tar.gz")
+        # untar("siftsmall.tar.gz", "./datasets", "siftsmall")
 
     def get_database(self):
         return fvecs_read(self.basedir + "siftsmall/siftsmall_base.fvecs")

@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"unsafe"
 
+	"github.com/vearch/vearch/v3/internal/entity"
 	"github.com/vearch/vearch/v3/internal/pkg/vjson"
 )
 
@@ -211,10 +212,16 @@ func GetEngineCfg(engine unsafe.Pointer) (configJson []byte) {
 func BackupSpace(engine unsafe.Pointer, command string) *Status {
 	var c int
 	if command == "create" {
-		c = 0
+		c = entity.Create
 	} else if command == "restore" {
-		c = 1
+		c = entity.Restore
+	} else {
+		return &Status{
+			Code: -1,
+			Msg:  "command not support",
+		}
 	}
+
 	cstatus := C.Backup(engine, C.int(c))
 
 	status := &Status{

@@ -23,7 +23,7 @@ import (
 )
 
 // Marshal marshal v into valid JSON
-func Marshal(v interface{}) ([]byte, error) {
+func Marshal(v any) ([]byte, error) {
 	if m, ok := v.(json.Marshaler); ok {
 		return m.MarshalJSON()
 	}
@@ -32,7 +32,7 @@ func Marshal(v interface{}) ([]byte, error) {
 }
 
 // Unmarshal unmarshal a JSON data to v
-func Unmarshal(data []byte, v interface{}) error {
+func Unmarshal(data []byte, v any) error {
 	if m, ok := v.(json.Unmarshaler); ok {
 		return m.UnmarshalJSON(data)
 	}

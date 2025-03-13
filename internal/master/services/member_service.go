@@ -231,7 +231,7 @@ func (s *MemberService) ChangeReplica(ctx context.Context, dbService *DBService,
 	servers, err := dbService.DBServers(ctx, dbModify.DbName)
 	errutil.ThrowError(err)
 	// generate change servers
-	dbID, err := mc.QueryDBName2Id(ctx, dbModify.DbName)
+	dbID, err := mc.QueryDBName2ID(ctx, dbModify.DbName)
 	errutil.ThrowError(err)
 	space, err := mc.QuerySpaceByName(ctx, dbID, dbModify.SpaceName)
 	errutil.ThrowError(err)
@@ -270,7 +270,9 @@ func (s *MemberService) ChangeReplica(ctx context.Context, dbService *DBService,
 			}
 		}
 	}
-	log.Info("need to change partition is [%+v] ", json.ToJsonString(changeServer))
+
+	changeServerStr, _ := json.Marshal(changeServer)
+	log.Info("need to change partition is [%+v] ", changeServerStr)
 	// sleep time
 	sleepTime := config.Conf().PS.RaftHeartbeatInterval
 	// change partition

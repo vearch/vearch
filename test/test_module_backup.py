@@ -45,12 +45,14 @@ class TestBackup:
         self.use_ssl_str = os.getenv("S3_USE_SSL", "False")
         self.secure = self.use_ssl_str.lower() in ['true', '1']
         self.region = os.getenv("S3_REGION", "")
+        self.cluster_name = os.getenv("CLUSTER_NAME", "vearch")
 
     def backup(self, router_url, command, corrupted=False, error_param=False):
         url = router_url + "/backup/dbs/" + self.db_name + "/spaces/" + self.space_name
 
         data = {
             "command": command,
+            "backup_id": 1,
             "s3_param": {
                 "access_key": os.getenv("S3_ACCESS_KEY", "minioadmin"),
                 "secret_key": os.getenv("S3_SECRET_KEY", "minioadmin"),
@@ -87,7 +89,7 @@ class TestBackup:
             assert response.status_code != 0
 
             # test space not exist
-            url = router_url + "/backup/dbs/" + self.db_name + "/spaces/" + "error_space"
+            url = router_url + "/backup/dbs/" + self.db_name + "/spaces/error_space"
             response = requests.post(url, auth=(username, password), json=data)
             assert response.status_code != 0
 
@@ -96,13 +98,11 @@ class TestBackup:
             assert response.status_code != 0
             return
 
-        url = router_url + "/backup/dbs/" + self.db_name
+        url = router_url + "/backup/dbs/" + self.db_name + "/spaces/" + self.space_name
         response = requests.post(url, auth=(username, password), json=data)
 
-        if not corrupted:
-            assert response.json()["code"] == 0
-        else:
-            assert response.json()["code"] != 0
+        assert response.json()["code"] == 0
+        return response.json()["data"]["backup_id"]
 
     def create_db(self, router_url):
         response = create_db(router_url, self.db_name)
@@ -180,7 +180,7 @@ class TestBackup:
         if backup_status != 0:
             time.sleep(timewait)
 
-    def download_data_files_and_upsert(self, bucket_name, prefix="", local_directory="data"):
+    def download_data_files_and_upsert(self, bucket_name, backup_id="", local_directory="data"):
         client = Minio(
             self.endpoint,
             access_key=self.access_key,
@@ -190,7 +190,7 @@ class TestBackup:
         )
 
         try:
-            objects = client.list_objects(bucket_name, prefix=prefix, recursive=True)
+            objects = client.list_objects(bucket_name, prefix=f"{self.cluster_name}/export/ts_db/ts_space/{backup_id}", recursive=True)
             
             for obj in objects:
                 if obj.object_name.endswith('.txt'):
@@ -215,7 +215,14 @@ class TestBackup:
         except S3Error as err:
             logger.error(f"Error occurred: {err}")
 
-    def remove_oss_file(self, object_name):
+    def remove_oss_files(self, prefix, recursive=False):
+        """
+        Remove an object or recursively delete all objects with a given prefix
+        
+        Args:
+            prefix (str): Object name or prefix to delete
+            recursive (bool): If True, delete all objects starting with prefix
+        """
         bucket_name = os.getenv("S3_BUCKET_NAME", "test")
         client = Minio(
             self.endpoint,
@@ -227,13 +234,36 @@ class TestBackup:
 
         try:
             found = client.bucket_exists(bucket_name)
-            logger.info(f"{bucket_name} {found}")
-            client.remove_object(bucket_name, object_name)
-            logger.info(f"Object '{object_name}' in bucket '{bucket_name}' deleted successfully")
+            logger.info(f"Bucket {bucket_name} exists: {found}")
+            
+            if recursive:
+                # List all objects with the prefix
+                objects = client.list_objects(bucket_name, prefix=prefix, recursive=True)
+                object_names = []
+                for obj in objects:
+                    object_names.append(obj.object_name)
+                    
+                if not object_names:
+                    logger.info(f"No objects found with prefix '{prefix}' in bucket '{bucket_name}'")
+                    return
+
+                for name in object_names:
+                    try:
+                        client.remove_object(bucket_name, name)
+                        logger.debug(f"Deleted object '{name}'")
+                    except Exception as e:
+                        logger.error(f"Error removing object '{name}': {e}")
+                
+                logger.info(f"Successfully processed {len(object_names)} objects with prefix '{prefix}'")
+            else:
+                # Delete single object
+                client.remove_object(bucket_name, prefix)
+                logger.info(f"Object '{prefix}' deleted successfully")
+                
         except S3Error as err:
             logger.error(f"Error occurred: {err} bucket_name {bucket_name} secure {self.secure} endpoint {self.endpoint}")
 
-    def benchmark(self, corrupted: bool):
+    def benchmark(self, command: str, corrupted: bool):
         embedding_size = self.xb.shape[1]
         batch_size = 100
         k = 100
@@ -250,15 +280,19 @@ class TestBackup:
 
         waiting_index_finish(total)
 
-        self.backup(router_url, "create")
+        backup_id = self.backup(router_url, command)
         time.sleep(30)
 
         destroy(router_url, self.db_name, self.space_name)
+        time.sleep(30)
         self.create_db(router_url)
-        self.create_space(router_url, embedding_size)
 
-        # self.backup(router_url, "restore", corrupted)
-        self.download_data_files_and_upsert(os.getenv("S3_BUCKET_NAME", "test"))
+        if command == "export":
+            self.create_space(router_url, embedding_size)
+            self.download_data_files_and_upsert(os.getenv("S3_BUCKET_NAME", "test"), backup_id)
+        else:
+            self.backup(router_url, "restore", corrupted)
+            time.sleep(30)
 
         waiting_index_finish(total)
 
@@ -286,13 +320,17 @@ class TestBackup:
             assert self.compare_doc(doc, origin_doc)
 
         destroy(router_url, self.db_name, self.space_name)
+        # remove backup files
+        self.remove_oss_files(f"{self.cluster_name}/", recursive=True)
 
-    @pytest.mark.parametrize(["corrupted_data"], [
-        [False],
-        [True],
+    @pytest.mark.parametrize(["command", "corrupted_data"], [
+        ["export", False],
+        ["export", True],
+        ["create", False],
+        ["create", True],
     ])
-    def test_vearch_backup(self, corrupted_data: bool):
-        self.benchmark(corrupted_data)
+    def test_vearch_backup(self, command: str, corrupted_data: bool):
+        self.benchmark(command, corrupted_data)
 
 
     def test_error_params(self):
@@ -312,6 +350,6 @@ class TestBackup:
 
         waiting_index_finish(total)
 
-        self.backup(router_url, "create", error_param=True)
+        self.backup(router_url, "export", error_param=True)
 
         destroy(router_url, self.db_name, self.space_name)

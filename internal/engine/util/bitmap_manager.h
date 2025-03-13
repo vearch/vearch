@@ -30,6 +30,8 @@ class BitmapManager {
 
   virtual int Load(int64_t bit_len = 0);
 
+  virtual vearch::Status Backup(const std::string &path);
+
   virtual int64_t FileBytesSize();
 
   bool IsLoad() { return is_load_; }
@@ -73,6 +75,8 @@ class RocksdbBitmapManager : public BitmapManager {
   virtual int Dump(int64_t begin_bit_id = 0, int64_t bit_len = 0);
 
   virtual int Load(int64_t bit_len = 0);
+
+  virtual vearch::Status Backup(const std::string &path);
 
   virtual int64_t FileBytesSize();
 

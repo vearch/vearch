@@ -124,16 +124,22 @@ type SpaceDescribeRequest struct {
 	Detail    *bool  `json:"detail"`
 }
 
-type BackupSpace struct {
-	Command string `json:"command,omitempty"`
-	Part    int    `json:"part"`
-	S3Param struct {
+type BackupSpaceRequest struct {
+	Command  string      `json:"command,omitempty"`
+	BackupID int         `json:"backup_id,omitempty"`
+	Part     PartitionID `json:"part"`
+	S3Param  struct {
 		BucketName string `json:"bucket_name"`
 		EndPoint   string `json:"endpoint"`
 		AccessKey  string `json:"access_key"`
 		SecretKey  string `json:"secret_key"`
 		UseSSL     bool   `json:"use_ssl"`
 	} `json:"s3_param,omitempty"`
+}
+
+type BackupSpaceResponse struct {
+	BackupID  int   `json:"backup_id,omitempty"`
+	BackupIDs []int `json:"backup_ids,omitempty"`
 }
 
 type SpaceProperties struct {

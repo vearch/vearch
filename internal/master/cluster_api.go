@@ -36,7 +36,7 @@ import (
 	"github.com/vearch/vearch/v3/internal/pkg/errutil"
 	"github.com/vearch/vearch/v3/internal/pkg/log"
 	"github.com/vearch/vearch/v3/internal/pkg/netutil"
-	"github.com/vearch/vearch/v3/internal/pkg/vjson"
+	json "github.com/vearch/vearch/v3/internal/pkg/vjson"
 )
 
 const (
@@ -308,9 +308,9 @@ func (ca *clusterAPI) health(c *gin.Context) {
 }
 
 func (ca *clusterAPI) handleClusterInfo(c *gin.Context) {
-	layer := map[string]interface{}{
+	layer := map[string]any{
 		"name": config.Conf().Global.Name,
-		"version": map[string]interface{}{
+		"version": map[string]any{
 			"build_version": config.GetBuildVersion(),
 			"build_time":    config.GetBuildTime(),
 			"commit_id":     config.GetCommitID(),
@@ -542,7 +542,7 @@ func (ca *clusterAPI) getSpace(c *gin.Context) {
 		detail_info = true
 	}
 
-	dbID, err := ca.masterService.Master().QueryDBName2Id(c, dbName)
+	dbID, err := ca.masterService.Master().QueryDBName2ID(c, dbName)
 	if err != nil {
 		response.New(c).JsonError(errors.NewErrNotFound(err))
 		return
@@ -645,7 +645,7 @@ func (ca *clusterAPI) backupDb(c *gin.Context) {
 		return
 	}
 
-	dbID, err := ca.masterService.Master().QueryDBName2Id(c, dbName)
+	dbID, err := ca.masterService.Master().QueryDBName2ID(c, dbName)
 	if err != nil {
 		response.New(c).JsonError(errors.NewErrInternal(err))
 		return
@@ -655,26 +655,27 @@ func (ca *clusterAPI) backupDb(c *gin.Context) {
 		response.New(c).JsonError(errors.NewErrInternal(err))
 		return
 	}
-	backup := &entity.BackupSpace{}
-	err = vjson.Unmarshal(data, backup)
+	backup := &entity.BackupSpaceRequest{}
+	err = json.Unmarshal(data, backup)
 	if err != nil {
 		response.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
 	}
+
+	res := &entity.BackupSpaceResponse{}
 	for _, space := range spaces {
-		err = ca.masterService.Backup().BackupSpace(c, ca.masterService.DB(), ca.masterService.Space(), ca.masterService.Config(), dbName, space.Name, backup)
+		res, err = ca.masterService.Backup().BackupSpace(c, ca.masterService.DB(), ca.masterService.Space(), ca.masterService.Config(), dbName, space.Name, backup)
 		if err != nil {
 			err = fmt.Errorf("backup space %s failed, err: %s", space.Name, err.Error())
 			response.New(c).JsonError(errors.NewErrInternal(err))
 			return
 		}
 	}
-	response.New(c).JsonSuccess(backup)
+	response.New(c).JsonSuccess(res)
 }
 
 func (ca *clusterAPI) backupSpace(c *gin.Context) {
 	var err error
-	defer errutil.CatchError(&err)
 	dbName := c.Param(dbName)
 	spaceName := c.Param(spaceName)
 	data, err := io.ReadAll(c.Request.Body)
@@ -683,21 +684,22 @@ func (ca *clusterAPI) backupSpace(c *gin.Context) {
 		return
 	}
 
-	errutil.ThrowError(err)
 	log.Debug("engine config json data is [%+v]", string(data))
-	backup := &entity.BackupSpace{}
-	err = vjson.Unmarshal(data, backup)
+	backup := &entity.BackupSpaceRequest{}
+	err = json.Unmarshal(data, backup)
 	if err != nil {
 		response.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
 	}
 
-	err = ca.masterService.Backup().BackupSpace(c, ca.masterService.DB(), ca.masterService.Space(), ca.masterService.Config(), dbName, spaceName, backup)
+	res := &entity.BackupSpaceResponse{}
+
+	res, err = ca.masterService.Backup().BackupSpace(c, ca.masterService.DB(), ca.masterService.Space(), ca.masterService.Config(), dbName, spaceName, backup)
 	if err != nil {
 		response.New(c).JsonError(errors.NewErrInternal(err))
 		return
 	} else {
-		response.New(c).JsonSuccess(backup)
+		response.New(c).JsonSuccess(res)
 	}
 }
 
@@ -719,7 +721,7 @@ func (ca *clusterAPI) createAlias(c *gin.Context) {
 	aliasName := c.Param(aliasName)
 	dbName := c.Param(dbName)
 	spaceName := c.Param(spaceName)
-	dbID, err := ca.masterService.Master().QueryDBName2Id(c, dbName)
+	dbID, err := ca.masterService.Master().QueryDBName2ID(c, dbName)
 	if err != nil {
 		response.New(c).JsonError(errors.NewErrUnprocessable(err))
 		return
@@ -776,7 +778,7 @@ func (ca *clusterAPI) modifyAlias(c *gin.Context) {
 	aliasName := c.Param(aliasName)
 	dbName := c.Param(dbName)
 	spaceName := c.Param(spaceName)
-	dbID, err := ca.masterService.Master().QueryDBName2Id(c, dbName)
+	dbID, err := ca.masterService.Master().QueryDBName2ID(c, dbName)
 	if err != nil {
 		response.New(c).JsonError(errors.NewErrNotFound(err))
 		return
@@ -1017,11 +1019,8 @@ func (ca *clusterAPI) deleteMember(c *gin.Context) {
 
 // get engine config
 func (ca *clusterAPI) getEngineCfg(c *gin.Context) {
-	var err error
-	defer errutil.CatchError(&err)
 	dbName := c.Param(dbName)
 	spaceName := c.Param(spaceName)
-	errutil.ThrowError(err)
 	if cfg, err := ca.masterService.Config().GetEngineCfg(c, dbName, spaceName); err != nil {
 		response.New(c).JsonError(errors.NewErrNotFound(err))
 	} else {
@@ -1077,10 +1076,10 @@ func (ca *clusterAPI) serverList(c *gin.Context) {
 		servers = temps
 	}
 
-	serverInfos := make([]map[string]interface{}, 0, len(servers))
+	serverInfos := make([]map[string]any, 0, len(servers))
 
 	for _, server := range servers {
-		serverInfo := make(map[string]interface{})
+		serverInfo := make(map[string]any)
 		serverInfo["server"] = server
 
 		partitionInfos, err := client.PartitionInfos(server.RpcAddr())
@@ -1092,7 +1091,7 @@ func (ca *clusterAPI) serverList(c *gin.Context) {
 		serverInfos = append(serverInfos, serverInfo)
 	}
 
-	response.New(c).JsonSuccess(map[string]interface{}{"servers": serverInfos, "count": len(servers)})
+	response.New(c).JsonSuccess(map[string]any{"servers": serverInfos, "count": len(servers)})
 }
 
 // routerList list router
@@ -1122,7 +1121,7 @@ func (cluster *clusterAPI) FailServerList(c *gin.Context) {
 		response.New(c).JsonError(errors.NewErrNotFound(err))
 		return
 	}
-	response.New(c).JsonSuccess(map[string]interface{}{"fail_servers": failServers, "count": len(failServers)})
+	response.New(c).JsonSuccess(map[string]any{"fail_servers": failServers, "count": len(failServers)})
 }
 
 // clear fail server by nodeID
@@ -1142,7 +1141,7 @@ func (cluster *clusterAPI) FailServerClear(c *gin.Context) {
 		response.New(c).JsonError(errors.NewErrNotFound(err))
 		return
 	}
-	response.New(c).JsonSuccess(map[string]interface{}{"nodeID": nodeID})
+	response.New(c).JsonSuccess(map[string]any{"nodeID": nodeID})
 }
 
 // clear task
@@ -1206,7 +1205,12 @@ func (cluster *clusterAPI) RecoverFailServer(c *gin.Context) {
 		response.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
 	}
-	rsStr := vjson.ToJsonString(rs)
+
+	rsStr, err := json.Marshal(rs)
+	if err != nil {
+		response.New(c).JsonError(errors.NewErrBadRequest(err))
+		return
+	}
 	log.Info("RecoverFailServer is %s,", rsStr)
 	if err := cluster.masterService.Server().RecoverFailServer(c.Request.Context(), cluster.masterService.Space(), cluster.masterService.Member(), rs); err != nil {
 		response.New(c).JsonError(errors.NewErrInternal(fmt.Errorf("%s failed recover, err is %v", rsStr, err)))
@@ -1222,7 +1226,7 @@ func (cluster *clusterAPI) ChangeReplicas(c *gin.Context) {
 		response.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
 	}
-	dbByte, err := vjson.Marshal(dbModify)
+	dbByte, err := json.Marshal(dbModify)
 	if err != nil {
 		response.New(c).JsonError(errors.NewErrBadRequest(err))
 		return

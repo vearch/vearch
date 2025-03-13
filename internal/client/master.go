@@ -99,8 +99,8 @@ func (m *masterClient) QueryDBId2Name(ctx context.Context, id int64) (string, er
 	return string(bytes), nil
 }
 
-// QueryDBName2Id query db id from etcd by key /db/name/{db name}
-func (m *masterClient) QueryDBName2Id(ctx context.Context, name string) (int64, error) {
+// QueryDBName2ID query db id from etcd by key /db/name/{db name}
+func (m *masterClient) QueryDBName2ID(ctx context.Context, name string) (int64, error) {
 	if bytes, err := m.Get(ctx, entity.DBKeyName(name)); err != nil {
 		return -1, err
 	} else if bytes == nil {

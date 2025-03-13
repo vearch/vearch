@@ -191,7 +191,7 @@ func (s *ServerService) ResourceLimitService(ctx context.Context, dbService *DBS
 
 	mc := s.client.Master()
 	for _, dbName := range dbNames {
-		dbID, err := mc.QueryDBName2Id(ctx, dbName)
+		dbID, err := mc.QueryDBName2ID(ctx, dbName)
 		if err != nil {
 			return err
 		}

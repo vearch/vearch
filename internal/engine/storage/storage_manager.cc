@@ -8,6 +8,8 @@
 #include "storage_manager.h"
 
 #include <rocksdb/advanced_cache.h>
+#include <rocksdb/options.h>
+#include <rocksdb/utilities/checkpoint.h>
 
 #include <sstream>
 
@@ -357,6 +359,32 @@ std::vector<rocksdb::Status> StorageManager::MultiGet(
   std::vector<rocksdb::Status> statuses =
       db_->MultiGet(rocksdb::ReadOptions(), column_families, keys, &values);
   return statuses;
+}
+
+Status StorageManager::Backup(const std::string &path) {
+  std::unique_ptr<rocksdb::Checkpoint> checkpoint;
+  rocksdb::Checkpoint *tmp_checkpoint;
+  rocksdb::Status s;
+  std::string backup_path = path + "/data";
+
+  s = rocksdb::DestroyDB(backup_path, rocksdb::Options());
+  if (!s.ok()) {
+    LOG(ERROR) << "Failed to destroy backup: " << s.ToString();
+    return Status::IOError(s.ToString());
+  }
+
+  s = rocksdb::Checkpoint::Create(db_.get(), &tmp_checkpoint);
+  if (!s.ok()) {
+    LOG(ERROR) << "Failed to create checkpoint: " << s.ToString();
+    return Status::IOError(s.ToString());
+  }
+  checkpoint.reset(tmp_checkpoint);
+  s = checkpoint->CreateCheckpoint(backup_path);
+  if (!s.ok()) {
+    LOG(ERROR) << "Failed to create backup: " << s.ToString();
+    return Status::IOError(s.ToString());
+  }
+  return Status::OK();
 }
 
 }  // namespace vearch

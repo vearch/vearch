@@ -16,7 +16,6 @@ package gammacb
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"reflect"
@@ -32,7 +31,7 @@ import (
 	"github.com/vearch/vearch/v3/internal/pkg/atomic"
 	"github.com/vearch/vearch/v3/internal/pkg/log"
 	"github.com/vearch/vearch/v3/internal/pkg/vearchlog"
-	"github.com/vearch/vearch/v3/internal/pkg/vjson"
+	json "github.com/vearch/vearch/v3/internal/pkg/vjson"
 	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
 	"github.com/vearch/vearch/v3/internal/ps/engine"
 	"github.com/vearch/vearch/v3/internal/ps/engine/mapping"
@@ -83,7 +82,7 @@ func New(cfg EngineConfig) (engine.Engine, error) {
 		LogDir:    config.Conf().GetLogDir(),
 	}
 
-	configJson, _ := vjson.Marshal(&config)
+	configJson, _ := json.Marshal(&config)
 	engineInstance := gamma.Init(configJson)
 	if engineInstance == nil {
 		log.Error("gamma engine init err [%s]", config.SpaceName)
@@ -223,7 +222,7 @@ func (ge *gammaEngine) IndexInfo() (int, int, int) {
 
 func (ge *gammaEngine) GetEngineStatus(status *entity.EngineStatus) error {
 	ges := gamma.GetEngineStatus(ge.gamma)
-	if err := vjson.Unmarshal([]byte(ges), status); err != nil {
+	if err := json.Unmarshal([]byte(ges), status); err != nil {
 		return err
 	}
 	return nil
@@ -277,6 +276,42 @@ func (ge *gammaEngine) RebuildIndex(drop_before_rebuild int, limit_cpu int, desc
 	return nil
 }
 
+func (ge *gammaEngine) Load() error {
+	indexLocker.Lock()
+	defer indexLocker.Unlock()
+	ge.counter.Incr()
+	defer ge.counter.Decr()
+	cfg := EngineConfig{
+		Path:        ge.path,
+		Space:       ge.space,
+		PartitionID: ge.partitionID,
+	}
+	config := struct {
+		Path      string `json:"path"`
+		SpaceName string `json:"space_name"`
+		LogDir    string `json:"log_dir"`
+	}{
+		Path:      cfg.Path,
+		SpaceName: cfg.Space.Name + "-" + cast.ToString(cfg.PartitionID),
+		LogDir:    config.Conf().GetLogDir(),
+	}
+
+	configJson, _ := json.Marshal(&config)
+	engineInstance := gamma.Init(configJson)
+	if engineInstance == nil {
+		log.Error("gamma engine init err [%s]", config.SpaceName)
+		return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("init engine err"))
+	}
+	code := gamma.Load(engineInstance)
+	if code != 0 {
+		vearchlog.LogErrNotNil(fmt.Errorf("load data err code:[%d]", code))
+		ge.Close()
+		return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("load data err code:[%d]", code))
+	}
+	ge.gamma = engineInstance
+	return nil
+}
+
 func (ge *gammaEngine) HasClosed() bool {
 	return ge.hasClosed
 }
@@ -315,7 +350,7 @@ func (ge *gammaEngine) SetEngineCfg(configJson []byte) error {
 
 func (ge *gammaEngine) GetEngineCfg(config *entity.EngineConfig) error {
 	configJson := gamma.GetEngineCfg(ge.gamma)
-	return vjson.Unmarshal(configJson, config)
+	return json.Unmarshal(configJson, config)
 }
 
 func (ge *gammaEngine) BackupSpace(command string) error {

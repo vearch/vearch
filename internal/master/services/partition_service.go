@@ -72,7 +72,7 @@ func (s *PartitionService) PartitionInfo(ctx context.Context, db *DBService, spa
 		resultDb := make(map[string]interface{})
 		resultDb["db_name"] = dbName
 
-		dbId, err := mc.QueryDBName2Id(ctx, dbName)
+		dbId, err := mc.QueryDBName2ID(ctx, dbName)
 		if err != nil {
 			errors = append(errors, "db: "+dbName+" find dbID err: "+err.Error())
 			resultDb["errors"] = errors

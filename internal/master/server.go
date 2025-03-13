@@ -27,7 +27,6 @@ import (
 	"github.com/vearch/vearch/v3/internal/client"
 	"github.com/vearch/vearch/v3/internal/config"
 	"github.com/vearch/vearch/v3/internal/entity"
-	"github.com/vearch/vearch/v3/internal/pkg/errutil"
 	"github.com/vearch/vearch/v3/internal/pkg/log"
 	"github.com/vearch/vearch/v3/internal/pkg/vjson"
 	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
@@ -80,9 +79,7 @@ func NewServer(ctx context.Context) (*Server, error) {
 }
 
 func (s *Server) Start() (err error) {
-	//process panic
-	defer errutil.CatchError(&err)
-	//start api server
+	// start api server
 	log.Debug("master start ...")
 
 	// if vearch manage etcd then start it
@@ -150,8 +147,7 @@ func (s *Server) Start() (err error) {
 
 	ExportToMonitorHandler(httpServer, monitorService)
 
-	//register monitor
-
+	// register monitor
 	go func() {
 		if err := httpServer.Run(":" + cast.ToString(config.Conf().Masters.Self().ApiPort)); err != nil {
 			panic(err)
@@ -184,7 +180,10 @@ func (s *Server) Start() (err error) {
 
 	// start watch server
 	err = s.WatchServerJob(s.ctx, s.client)
-	errutil.ThrowError(err)
+	if err != nil {
+		log.Error("start WatchServerJob failed, err: %v", err)
+		os.Exit(1)
+	}
 	log.Debug("start WatchServerJob success!")
 
 	master := config.Conf().GetMasters().Self()

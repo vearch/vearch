@@ -18,7 +18,6 @@ import (
 	"time"
 
 	"github.com/cubefs/cubefs/depends/tiglabs/raft/proto"
-	"github.com/vearch/vearch/v3/internal/pkg/errutil"
 	"github.com/vearch/vearch/v3/internal/pkg/log"
 )
 
@@ -29,9 +28,8 @@ func (s *Store) Snapshot() (proto.Snapshot, error) {
 
 // ApplySnapshot implements the raft interface.
 func (s *Store) ApplySnapshot(peers []proto.Peer, iter proto.SnapIterator) (err error) {
-	defer errutil.CatchError(&err)
 	s.Engine.Close()
-	log.Debug("close engine")
+	log.Debug("Close engine")
 	i := 0
 	// wait engine close
 	for {
@@ -40,22 +38,27 @@ func (s *Store) ApplySnapshot(peers []proto.Peer, iter proto.SnapIterator) (err 
 		}
 		time.Sleep(1 * time.Second)
 		i++
-		log.Debug("wait stop engine times:[%d]", i)
+		log.Debug("Wait stop engine times:[%d]", i)
 	}
-	log.Debug("engine has stop, begin remove engine data.")
+	log.Debug("Engine has stop, begin remove engine data.")
 	// remove engine data dir
 	err = s.RemoveDataPath()
-	errutil.ThrowError(err)
-	log.Debug("remove engine data path")
+	if err != nil {
+		log.Error("Remove engine data error:[%v]", err)
+		return err
+	}
+	log.Debug("Remove engine data path")
 	// apply snapshot
 	err = s.GetEngine().ApplySnapshot(peers, iter)
-	if err == nil {
-		log.Debug("store info is [%+v]", s)
-	} else {
-		errutil.ThrowError(err)
+	if err != nil {
+		log.Error("Apply snapshot error:[%v]", err)
 	}
+	log.Debug("Store info is [%+v]", s)
 	err = s.ReBuildEngine()
-	log.Debug("rebuild engine after store info is [%+v]", s)
-	errutil.ThrowError(err)
+	if err != nil {
+		log.Error("Rebuild engine error:[%v]", err)
+		return err
+	}
+	log.Debug("Rebuild engine after store info is [%+v]", s)
 	return err
 }

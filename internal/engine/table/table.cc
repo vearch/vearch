@@ -31,13 +31,11 @@ Table::Table(const string &space_name, StorageManager *storage_mgr, int cf_id)
 
   table_created_ = false;
   last_docid_ = -1;
-  bitmap_mgr_ = nullptr;
   table_params_ = nullptr;
   key_field_name_ = "_id";
 }
 
 Table::~Table() {
-  bitmap_mgr_ = nullptr;
   storage_mgr_ = nullptr;
   CHECK_DELETE(table_params_);
 
@@ -71,11 +69,10 @@ int Table::Load(int64_t &num) {
   return 0;
 }
 
-Status Table::CreateTable(TableInfo &table, bitmap::BitmapManager *bitmap_mgr) {
+Status Table::CreateTable(TableInfo &table) {
   if (table_created_) {
     return Status::IOError();
   }
-  bitmap_mgr_ = bitmap_mgr;
   name_ = table.Name();
   std::vector<struct FieldInfo> &fields = table.Fields();
 

@@ -55,7 +55,7 @@ func NewSpaceService(client *client.Client) *SpaceService {
 
 func (s *SpaceService) CreateSpace(ctx context.Context, dbs *DBService, dbName string, space *entity.Space) (err error) {
 	mc := s.client.Master()
-	if space.DBId, err = mc.QueryDBName2Id(ctx, dbName); err != nil {
+	if space.DBId, err = mc.QueryDBName2ID(ctx, dbName); err != nil {
 		log.Error("find DbId according to DbName:%v failed, error: %v", dbName, err)
 		return err
 	}
@@ -88,7 +88,9 @@ func (s *SpaceService) CreateSpace(ctx context.Context, dbs *DBService, dbName s
 		return vearchpb.NewError(vearchpb.ErrorEnum_SPACE_EXIST, nil)
 	}
 
-	log.Info("create space, db: %s, spaceName: %s, space :[%s]", dbName, space.Name, json.ToJsonString(space))
+	spaceStr, _ := json.Marshal(space)
+
+	log.Info("create space, db: %s, spaceName: %s, space :[%s]", dbName, space.Name, spaceStr)
 
 	// find all servers for create space
 	servers, err := mc.QueryServers(ctx)
@@ -121,7 +123,7 @@ func (s *SpaceService) CreateSpace(ctx context.Context, dbs *DBService, dbName s
 			return err
 		}
 		width := math.MaxUint32 / (space.PartitionNum * space.PartitionRule.Partitions)
-		for i := 0; i < space.PartitionNum*space.PartitionRule.Partitions; i++ {
+		for i := range space.PartitionNum * space.PartitionRule.Partitions {
 			partitionID, err := mc.NewIDGenerate(ctx, entity.PartitionIdSequence, 1, 5*time.Second)
 
 			if err != nil {
@@ -138,7 +140,7 @@ func (s *SpaceService) CreateSpace(ctx context.Context, dbs *DBService, dbName s
 		}
 	} else {
 		width := math.MaxUint32 / space.PartitionNum
-		for i := 0; i < space.PartitionNum; i++ {
+		for i := range space.PartitionNum {
 			partitionID, err := mc.NewIDGenerate(ctx, entity.PartitionIdSequence, 1, 5*time.Second)
 
 			if err != nil {
@@ -188,7 +190,7 @@ func (s *SpaceService) CreateSpace(ctx context.Context, dbs *DBService, dbName s
 
 	// pick servers for space
 	var pAddrs [][]string
-	for i := 0; i < len(space.Partitions); i++ {
+	for i := range space.Partitions {
 		if addrs, err := s.selectServersForPartition(servers, serverPartitions, space.ReplicaNum, space.Partitions[i]); err != nil {
 			return err
 		} else {
@@ -218,7 +220,7 @@ func (s *SpaceService) CreateSpace(ctx context.Context, dbs *DBService, dbName s
 	}
 
 	// check all partition is ok
-	for i := 0; i < len(space.Partitions); i++ {
+	for i := range space.Partitions {
 		v := 0
 		for {
 			v++
@@ -260,7 +262,7 @@ func (s *SpaceService) CreateSpace(ctx context.Context, dbs *DBService, dbName s
 
 func (s *SpaceService) DeleteSpace(ctx context.Context, as *AliasService, dbName, spaceName string) error {
 	mc := s.client.Master()
-	dbId, err := mc.QueryDBName2Id(ctx, dbName)
+	dbId, err := mc.QueryDBName2ID(ctx, dbName)
 	if err != nil {
 		return err
 	}
@@ -553,7 +555,7 @@ func (s *SpaceService) UpdateSpaceResource(ctx context.Context, dbs *DBService, 
 		}
 	}()
 
-	dbId, err := mc.QueryDBName2Id(ctx, spaceResource.DbName)
+	dbId, err := mc.QueryDBName2ID(ctx, spaceResource.DbName)
 	if err != nil {
 		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("failed to find database id according database name:%v,the Error is:%v ", spaceResource.DbName, err))
 	}
@@ -966,7 +968,7 @@ func (s *SpaceService) UpdateSpace(ctx context.Context, dbName, spaceName string
 		}
 	}()
 
-	dbId, err := mc.QueryDBName2Id(ctx, dbName)
+	dbId, err := mc.QueryDBName2ID(ctx, dbName)
 	if err != nil {
 		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("failed to find database id according database name:%v,the Error is:%v ", dbName, err))
 	}

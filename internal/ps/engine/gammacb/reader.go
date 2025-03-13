@@ -25,7 +25,6 @@ import (
 	"github.com/vearch/vearch/v3/internal/engine/sdk/go/gamma"
 	"github.com/vearch/vearch/v3/internal/entity"
 	"github.com/vearch/vearch/v3/internal/pkg/log"
-	"github.com/vearch/vearch/v3/internal/pkg/vearchlog"
 	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
 	"github.com/vearch/vearch/v3/internal/ps/engine"
 	"google.golang.org/protobuf/proto"
@@ -101,7 +100,7 @@ func (ri *readerImpl) DocCount(ctx context.Context) (uint64, error) {
 
 	gammaEngine := ri.engine.gamma
 	if gammaEngine == nil {
-		return 0, vearchlog.LogErrAndReturn(vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_IS_CLOSED, nil))
+		return 0, vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_IS_CLOSED, nil)
 	}
 
 	status := &entity.EngineStatus{}
@@ -116,7 +115,7 @@ func (ri *readerImpl) Capacity(ctx context.Context) (int64, error) {
 
 	gammaEngine := ri.engine.gamma
 	if gammaEngine == nil {
-		return 0, vearchlog.LogErrAndReturn(vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_IS_CLOSED, nil))
+		return 0, vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_IS_CLOSED, nil)
 	}
 
 	var status gamma.MemoryInfo

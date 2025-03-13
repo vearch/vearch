@@ -147,7 +147,7 @@ func (s *DBService) QueryDB(ctx context.Context, dbName string) (db *entity.DB, 
 	db = &entity.DB{}
 	if number.IsNum(dbName) {
 		id = cast.ToInt64(dbName)
-	} else if id, err = mc.QueryDBName2Id(ctx, dbName); err != nil {
+	} else if id, err = mc.QueryDBName2ID(ctx, dbName); err != nil {
 		return nil, err
 	}
 
@@ -195,7 +195,7 @@ func (s *DBService) UpdateDBIpList(ctx context.Context, dbModify *entity.DBModif
 	mc := s.client.Master()
 	if number.IsNum(dbModify.DbName) {
 		id = cast.ToInt64(dbModify.DbName)
-	} else if id, err = mc.QueryDBName2Id(ctx, dbModify.DbName); err != nil {
+	} else if id, err = mc.QueryDBName2ID(ctx, dbModify.DbName); err != nil {
 		return nil, err
 	}
 	bs, err := mc.Get(ctx, entity.DBKeyBody(id))

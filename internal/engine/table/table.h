@@ -14,11 +14,7 @@
 #include "c_api/api_data/doc.h"
 #include "c_api/api_data/table.h"
 #include "io/io_common.h"
-#include "rocksdb/db.h"
-#include "rocksdb/options.h"
-#include "rocksdb/table.h"
 #include "storage/storage_manager.h"
-#include "util/bitmap_manager.h"
 #include "util/log.h"
 
 namespace vearch {
@@ -45,7 +41,7 @@ class Table {
    * @param table  table definition
    * @return Status::OK() if successed
    */
-  Status CreateTable(TableInfo &table, bitmap::BitmapManager *bitmap_mgr);
+  Status CreateTable(TableInfo &table);
 
   /** add a doc to table
    *
@@ -119,7 +115,7 @@ class Table {
 
   int Load(int64_t &doc_num);
 
-  int64_t Size()  { return last_docid_ + 1; }
+  int64_t Size() { return last_docid_ + 1; }
 
   int SetStorageManagerSize(int64_t doc_num);
 
@@ -155,7 +151,6 @@ class Table {
 
   bool table_created_;
 
-  bitmap::BitmapManager *bitmap_mgr_;
   TableParams *table_params_;
   StorageManager *storage_mgr_;
   int cf_id_;

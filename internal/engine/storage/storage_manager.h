@@ -74,6 +74,8 @@ class StorageManager {
     return cf_handles_[cf_id];
   }
 
+  Status Backup(const std::string &path);
+
  private:
   std::string root_path_;
   int64_t size_;  // The total number of doc.

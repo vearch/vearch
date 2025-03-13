@@ -13,7 +13,6 @@
 #include <sys/mman.h>
 #include <time.h>
 #include <unistd.h>
-#include <zstd.h>
 
 #include <chrono>
 #include <cstring>
@@ -554,7 +553,7 @@ Status Engine::CreateTable(TableInfo &table) {
   int table_cf_id = storage_mgr_->CreateColumnFamily("table");
 
   table_ = new Table(space_name_, storage_mgr_, table_cf_id);
-  status = table_->CreateTable(table, docids_bitmap_);
+  status = table_->CreateTable(table);
   if (!status.ok()) {
     std::string msg =
         space_name_ + " cannot create table, err: " + status.ToString();
@@ -1075,7 +1074,8 @@ int Engine::CreateTableFromLocal(std::string &table_name) {
       assert(begin != std::string::npos);
       begin += 1;
       table_name = file_path.substr(begin, pos - begin);
-      LOG(INFO) << space_name_ << " local table name=" << table_name;
+      LOG(INFO) << space_name_ << " local table name=" << table_name
+                << " path=" << file_path;
       TableSchemaIO tio(file_path);
       TableInfo table;
       if (tio.Read(table_name, table)) {
@@ -1261,7 +1261,7 @@ Status vearch::Engine::Backup(int command) {
   auto func_backup =
       std::bind(&Engine::BackupThread, this, std::placeholders::_1);
   backup_thread_ = std::thread(func_backup, command);
-  backup_thread_.detach();
+  backup_thread_.join();
 
   return Status::OK();
 }
@@ -1270,201 +1270,25 @@ void Engine::BackupThread(int command) {
   std::string backup_path = index_root_path_ + "/backup";
   utils::make_dir(backup_path.c_str());
 
-  const std::string raw_filename = backup_path + "/raw_data.json";
-  const std::string compressed_filename = raw_filename + ".zst";
-
   // create
   if (command == 0) {
     backup_status_.store(1);
-    std::ofstream raw_file(compressed_filename, std::ios::binary);
-    if (!raw_file.is_open()) {
-      LOG(ERROR) << "Failed to open file: " << compressed_filename;
-      goto out;
+    Status status = storage_mgr_->Backup(backup_path);
+    if (!status.ok()) {
+      LOG(ERROR) << space_name_ << " storage backup failed!";
+      backup_status_.store(0);
+      return;
     }
-    ZSTD_CStream *const cstream = ZSTD_createCStream();
-    if (cstream == NULL) {
-      LOG(ERROR) << "Failed to create ZSTD_CStream";
-      goto out;
-    }
-
-    size_t const initResult = ZSTD_initCStream(cstream, 1);
-    if (ZSTD_isError(initResult)) {
-      LOG(ERROR) << "ZSTD_initCStream() error: "
-                 << ZSTD_getErrorName(initResult);
-      ZSTD_freeCStream(cstream);
-      goto out;
+    status = docids_bitmap_->Backup(backup_path);
+    if (!status.ok()) {
+      LOG(ERROR) << space_name_ << " bitmap backup failed!";
+      backup_status_.store(0);
+      return;
     }
 
-    size_t const bufferSize = ZSTD_DStreamInSize();
-    std::vector<std::string> index_names;
-    vec_manager_->VectorNames(index_names);
-    int ret = 0;
-    for (int docid = 0; docid < max_docid_; docid++) {
-      if (docids_bitmap_->Test(docid)) {
-        continue;
-      }
-
-      Doc doc;
-      std::vector<std::string> table_fields;
-      ret = table_->GetDocInfo(docid, doc, table_fields);
-      if (ret != 0) {
-        LOG(ERROR) << "get doc info failed " << docid;
-        continue;
-      }
-
-      std::vector<std::pair<std::string, int>> vec_fields_ids;
-      for (size_t i = 0; i < index_names.size(); ++i) {
-        vec_fields_ids.emplace_back(std::make_pair(index_names[i], docid));
-      }
-
-      std::vector<std::string> vec;
-      ret = vec_manager_->GetVector(vec_fields_ids, vec);
-      if (ret == 0 && vec.size() == vec_fields_ids.size()) {
-        for (size_t i = 0; i < index_names.size(); ++i) {
-          struct Field field;
-          field.name = index_names[i];
-          field.datatype = DataType::VECTOR;
-          field.value = vec[i];
-          doc.AddField(field);
-        }
-      }
-
-      std::string json = doc.ToJson() + "\n";
-      ZSTD_inBuffer input = {json.data(), json.size(), 0};
-      while (input.pos < input.size) {
-        std::vector<char> buffer(bufferSize);
-        ZSTD_outBuffer output = {buffer.data(), buffer.size(), 0};
-        size_t const advance = ZSTD_compressStream(cstream, &output, &input);
-        if (ZSTD_isError(advance)) {
-          LOG(ERROR) << "ZSTD_compressStream() error: "
-                     << ZSTD_getErrorName(advance);
-          ZSTD_freeCStream(cstream);
-          goto out;
-        }
-        raw_file.write(buffer.data(), output.pos);
-      }
-    }
-
-    std::vector<char> buffer(bufferSize);
-    ZSTD_outBuffer output = {buffer.data(), buffer.size(), 0};
-    size_t remaining;
-    do {
-      remaining = ZSTD_endStream(cstream, &output);
-      if (ZSTD_isError(remaining)) {
-        LOG(ERROR) << "ZSTD_endStream() error: "
-                   << ZSTD_getErrorName(remaining);
-        ZSTD_freeCStream(cstream);
-        goto out;
-      }
-      raw_file.write(buffer.data(), output.pos);
-      output.pos = 0;
-    } while (remaining != 0);
-
-    raw_file.write(buffer.data(), output.pos);
-
-    raw_file.close();
-    if (raw_file.fail()) {
-      LOG(ERROR) << "Failed to close file: " << compressed_filename;
-      ZSTD_freeCStream(cstream);
-      goto out;
-    }
-
-    ZSTD_freeCStream(cstream);
-
-    LOG(INFO) << space_name_ << " backup to [" << compressed_filename
-              << "] success!";
-  } else if (command == 1) {  // restore
-    backup_status_.store(2);
-    std::map<std::string, DataType> attr_type_map;
-    table_->GetAttrType(attr_type_map);
-
-    const auto &raw_vectors = vec_manager_->RawVectors();
-    std::unordered_set<std::string> raw_vector_name;
-    for (auto &[name, v] : raw_vectors) {
-      raw_vector_name.insert(name);
-    }
-
-    std::ifstream compressed_file(compressed_filename, std::ios::binary);
-    if (!compressed_file.is_open()) {
-      LOG(ERROR) << space_name_
-                 << " failed to open file: " << compressed_filename;
-      goto out;
-    }
-
-    ZSTD_DStream *const dstream = ZSTD_createDStream();
-    if (dstream == NULL) {
-      LOG(ERROR) << space_name_ << " failed to create ZSTD_DStream";
-      goto out;
-    }
-
-    size_t const initResult = ZSTD_initDStream(dstream);
-    if (ZSTD_isError(initResult)) {
-      LOG(ERROR) << space_name_ << " ZSTD_initDStream() error: "
-                 << ZSTD_getErrorName(initResult);
-      ZSTD_freeDStream(dstream);
-      goto out;
-    }
-
-    size_t const bufferSize = ZSTD_DStreamOutSize();
-    std::vector<char> inBuffer(bufferSize);
-    std::vector<char> outBuffer(bufferSize);
-    ZSTD_inBuffer input = {inBuffer.data(), 0, 0};
-    ZSTD_outBuffer output = {outBuffer.data(), bufferSize, 0};
-    std::string decompressed_data;
-    std::string line;
-
-    while (compressed_file.good()) {
-      compressed_file.read(inBuffer.data(), bufferSize);
-      input.size = compressed_file.gcount();
-      input.pos = 0;
-
-      while (input.pos < input.size) {
-        output.pos = 0;
-        size_t const ret = ZSTD_decompressStream(dstream, &output, &input);
-        if (ZSTD_isError(ret)) {
-          LOG(ERROR) << space_name_ << " ZSTD_decompressStream() error: "
-                     << ZSTD_getErrorName(ret);
-          ZSTD_freeDStream(dstream);
-          goto out;
-        }
-
-        decompressed_data.append(outBuffer.data(), output.pos);
-
-        // process the decompressed data line by line
-        std::stringstream ss(decompressed_data);
-        while (std::getline(ss, line, '\n')) {
-          if (!ss.eof()) {
-            Doc doc;
-            doc.FromJson(line, attr_type_map, raw_vector_name);
-            AddOrUpdate(doc);
-          } else {
-            // if this is the last incomplete line, then save it back to
-            // decompressed_data
-            decompressed_data = line;
-          }
-        }
-      }
-    }
-
-    // handle the potentially remaining last line
-    if (!decompressed_data.empty()) {
-      std::stringstream ss(decompressed_data);
-      while (std::getline(ss, line, '\n')) {
-        if (!ss.eof()) {
-          Doc doc;
-          doc.FromJson(line, attr_type_map, raw_vector_name);
-          AddOrUpdate(doc);
-        }
-      }
-    }
-
-    ZSTD_freeDStream(dstream);
-
-    LOG(INFO) << space_name_ << " restored from [" << compressed_filename
-              << "], max_docid_=" << max_docid_;
+    LOG(INFO) << space_name_ << " backup success!";
   }
 
-out:
   backup_status_.store(0);
 }
 

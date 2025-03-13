@@ -284,3 +284,8 @@ const (
 	ReplicaStateProbe     = "ReplicaStateProbe"
 	ReplicaStateReplicate = "ReplicaStateReplicate"
 )
+
+const (
+	Create  = 0
+	Restore = 1
+)

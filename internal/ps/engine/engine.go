@@ -63,6 +63,7 @@ type Engine interface {
 	Optimize() error
 	RebuildIndex(int, int, int) error
 	Rebuild(int, int, int) error
+	Load() error
 	IndexInfo() (int, int, int)
 	GetEngineStatus(status *entity.EngineStatus) error
 	Close()

@@ -8,6 +8,8 @@
 #include "util/bitmap_manager.h"
 
 #include <fcntl.h>
+#include <rocksdb/options.h>
+#include <rocksdb/utilities/checkpoint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -167,6 +169,10 @@ int BitmapManager::Load(int64_t bit_len) {
   return ret;
 }
 
+vearch::Status BitmapManager::Backup(const std::string &path) {
+  return vearch::Status::OK();
+}
+
 int64_t BitmapManager::FileBytesSize() {
   if (fd_ != -1) {
     int64_t len = lseek(fd_, 0, SEEK_END);
@@ -277,7 +283,8 @@ int RocksdbBitmapManager::Init(int64_t bit_size, const std::string &fpath,
     }
   }
 
-  uint32_t bytes_count = ((size_ / kBitmapSegmentBits) + 1) * kBitmapSegmentBytes;
+  uint32_t bytes_count =
+      ((size_ / kBitmapSegmentBits) + 1) * kBitmapSegmentBytes;
   if (bitmap) {
     bitmap_ = bitmap;
   } else {
@@ -360,6 +367,32 @@ int RocksdbBitmapManager::Load(int64_t bit_len) {
   return 0;
 }
 
+vearch::Status RocksdbBitmapManager::Backup(const std::string &path) {
+  std::unique_ptr<rocksdb::Checkpoint> checkpoint;
+  rocksdb::Checkpoint *tmp_checkpoint;
+  rocksdb::Status s;
+  std::string backup_path = path + "/bitmap";
+
+  s = rocksdb::DestroyDB(backup_path, rocksdb::Options());
+  if (!s.ok()) {
+    LOG(ERROR) << "Failed to destroy backup: " << s.ToString();
+    return vearch::Status::IOError(s.ToString());
+  }
+
+  s = rocksdb::Checkpoint::Create(db_, &tmp_checkpoint);
+  if (!s.ok()) {
+    LOG(ERROR) << "Failed to create checkpoint: " << s.ToString();
+    return vearch::Status::IOError(s.ToString());
+  }
+  checkpoint.reset(tmp_checkpoint);
+  s = checkpoint->CreateCheckpoint(backup_path);
+  if (!s.ok()) {
+    LOG(ERROR) << "Failed to create backup: " << s.ToString();
+    return vearch::Status::IOError(s.ToString());
+  }
+  return vearch::Status::OK();
+}
+
 int64_t RocksdbBitmapManager::FileBytesSize() { return 0; }
 
 int RocksdbBitmapManager::Set(int64_t bit_id) {
@@ -419,7 +452,7 @@ bool RocksdbBitmapManager::Test(int64_t bit_id) {
   return false;
 }
 
-void FreeOldSharedPtr(std::shared_ptr<char []> temp) { temp.reset(); }
+void FreeOldSharedPtr(std::shared_ptr<char[]> temp) { temp.reset(); }
 
 int RocksdbBitmapManager::SetMaxID(int64_t bit_id) {
   if (size_ > bit_id) return 0;
@@ -428,18 +461,19 @@ int RocksdbBitmapManager::SetMaxID(int64_t bit_id) {
   std::string value = std::to_string(new_size);
   rocksdb::WriteOptions write_options;
   write_options.sync = true;
-  rocksdb::Status s =
-      db_->Put(write_options, rocksdb::Slice(kBitmapSizeKey),
-               rocksdb::Slice(value));
+  rocksdb::Status s = db_->Put(write_options, rocksdb::Slice(kBitmapSizeKey),
+                               rocksdb::Slice(value));
   if (!s.ok()) {
     LOG(ERROR) << "rocksdb set bitmap size error:" << s.ToString()
                << ", key=" << kBitmapSizeKey << ", value=" << value;
     return s.code();
   }
 
-  int64_t old_bytes_count = ((size_ / kBitmapSegmentBits) + 1) * kBitmapSegmentBytes;
+  int64_t old_bytes_count =
+      ((size_ / kBitmapSegmentBits) + 1) * kBitmapSegmentBytes;
   size_ = new_size;
-  int64_t bytes_count = ((size_ / kBitmapSegmentBits) + 1) * kBitmapSegmentBytes;
+  int64_t bytes_count =
+      ((size_ / kBitmapSegmentBits) + 1) * kBitmapSegmentBytes;
 
   auto new_bitmap = std::shared_ptr<char[]>(
       new char[bytes_count], [](char *p) -> void { delete[] p; });
@@ -455,7 +489,7 @@ int RocksdbBitmapManager::SetMaxID(int64_t bit_id) {
   bitmap_ = new_bitmap;
 
   // delay free
-  std::function<void(std::shared_ptr<char []>)> func_free =
+  std::function<void(std::shared_ptr<char[]>)> func_free =
       std::bind(&FreeOldSharedPtr, std::placeholders::_1);
   utils::AsyncWait(3000, func_free, temp);
 
