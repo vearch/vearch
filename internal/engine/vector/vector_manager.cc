@@ -22,14 +22,21 @@ static bool L2Cmp(const VectorDoc *a, const VectorDoc *b) {
 
 VectorManager::VectorManager(const VectorStorageType &store_type,
                              bitmap::BitmapManager *docids_bitmap,
-                             const std::string &root_path)
+                             const std::string &root_path, std::string &desc)
     : default_store_type_(store_type),
       docids_bitmap_(docids_bitmap),
       root_path_(root_path) {
   table_created_ = false;
+  desc_ = desc + " ";
 }
 
-VectorManager::~VectorManager() { Close(); }
+VectorManager::~VectorManager() {
+  Close();
+  int ret = pthread_rwlock_destroy(&index_rwmutex_);
+  if (0 != ret) {
+    LOG(ERROR) << "destory read write lock error, ret=" << ret;
+  }
+}
 
 Status VectorManager::SetVectorStoreType(std::string &index_type,
                                          std::string &store_type_str,
@@ -93,7 +100,7 @@ Status VectorManager::CreateRawVector(struct VectorInfo &vector_info,
   }
 
   VectorMetaInfo *meta_info =
-      new VectorMetaInfo(vec_name, dimension, value_type);
+      new VectorMetaInfo(vec_name, dimension, value_type, 0, desc_);
 
   StoreParams store_params(meta_info->AbsoluteName());
   if (store_param != "") {
@@ -110,15 +117,15 @@ Status VectorManager::CreateRawVector(struct VectorInfo &vector_info,
                                   docids_bitmap_, cf_id, storage_mgr);
 
   if ((*vec) == nullptr) {
-    LOG(ERROR) << "create raw vector error";
-    return Status::IOError("create raw vector error");
+    LOG(ERROR) << desc_ << "create raw vector error";
+    return Status::IOError(desc_ + "create raw vector error");
   }
-  LOG(INFO) << "create raw vector success, vec_name[" << vec_name
+  LOG(INFO) << desc_ << "create raw vector success, vec_name[" << vec_name
             << "] store_type[" << store_type_str << "]";
   int ret = (*vec)->Init(vec_name);
   if (ret != 0) {
     std::stringstream msg;
-    msg << "Raw vector " << vec_name << " init error, code [" << ret << "]!";
+    msg << desc_ << "raw vector " << vec_name << " init error, code [" << ret << "]!";
     LOG(ERROR) << msg.str();
     delete (*vec);
     return Status::IOError(msg.str());
@@ -133,7 +140,7 @@ void VectorManager::DestroyRawVectors() {
     }
   }
   raw_vectors_.clear();
-  LOG(INFO) << "Raw vector cleared.";
+  LOG(INFO) << desc_ << "raw vector cleared.";
 }
 
 Status VectorManager::CreateVectorIndex(
@@ -141,14 +148,14 @@ Status VectorManager::CreateVectorIndex(
     int training_threshold, bool destroy_vec,
     std::map<std::string, IndexModel *> &vector_indexes) {
   std::string vec_name = vec->MetaInfo()->Name();
-  LOG(INFO) << "Create index model [" << index_type
+  LOG(INFO) << desc_ << "create index model [" << index_type
             << "] for vector: " << vec_name;
 
   IndexModel *index_model =
       dynamic_cast<IndexModel *>(reflector().GetNewIndex(index_type));
   if (index_model == nullptr) {
     std::stringstream msg;
-    msg << "Cannot get model=" << index_type << ", vec_name=" << vec_name;
+    msg << desc_ << "cannot get model=" << index_type << ", vec_name=" << vec_name;
     LOG(ERROR) << msg.str();
     if (destroy_vec) {
       delete vec;
@@ -160,7 +167,7 @@ Status VectorManager::CreateVectorIndex(
 
   Status status = index_model->Init(index_params, training_threshold);
   if (!status.ok()) {
-    LOG(ERROR) << "gamma index init " << vec_name << " error!";
+    LOG(ERROR)  << desc_ << "gamma index init " << vec_name << " error!";
     if (destroy_vec) {
       delete vec;
       raw_vectors_[vec_name] = nullptr;
@@ -178,22 +185,26 @@ Status VectorManager::CreateVectorIndex(
 }
 
 void VectorManager::DestroyVectorIndexes() {
+  pthread_rwlock_wrlock(&index_rwmutex_);
   for (const auto &[name, index] : vector_indexes_) {
     if (index != nullptr) {
       delete index;
     }
   }
   vector_indexes_.clear();
-  LOG(INFO) << "Vector indexes cleared.";
+  pthread_rwlock_unlock(&index_rwmutex_);
+  LOG(INFO)  << desc_ << "vector indexes cleared.";
 }
 
 void VectorManager::DescribeVectorIndexes() {
-  LOG(INFO) << " show vector indexes detail informations";
+  LOG(INFO) << desc_ << " show vector indexes detail informations";
+  pthread_rwlock_rdlock(&index_rwmutex_);
   for (const auto &[name, index] : vector_indexes_) {
     if (index != nullptr) {
       index->Describe();
     }
   }
+  pthread_rwlock_unlock(&index_rwmutex_);
 }
 
 Status VectorManager::CreateVectorIndexes(
@@ -208,7 +219,7 @@ Status VectorManager::CreateVectorIndexes(
             CreateVectorIndex(index_types_[i], index_params_[i], index,
                               training_threshold, false, vector_indexes);
         if (!status.ok()) {
-          LOG(ERROR) << vec_name
+          LOG(ERROR) << desc_ << vec_name
                      << " create index failed: " << status.ToString();
           return status;
         }
@@ -218,20 +229,60 @@ Status VectorManager::CreateVectorIndexes(
   return Status::OK();
 }
 
-void VectorManager::SetVectorIndexes(
+void VectorManager::ReSetVectorIndexes(
     std::map<std::string, IndexModel *> &rebuild_vector_indexes) {
+  pthread_rwlock_wrlock(&index_rwmutex_);
+  for (const auto &[name, index] : vector_indexes_) {
+    if (index != nullptr) {
+      delete index;
+    }
+  }
+  vector_indexes_.clear();
+
   for (const auto &[name, index] : rebuild_vector_indexes) {
     if (index != nullptr) {
       vector_indexes_[name] = index;
-      LOG(INFO) << "Set " << name << " index";
+      LOG(INFO) << desc_ << "set " << name << " index";
     }
   }
+  pthread_rwlock_unlock(&index_rwmutex_);
+}
+
+Status VectorManager::ReCreateVectorIndexes(int training_threshold) {
+  pthread_rwlock_wrlock(&index_rwmutex_);
+  for (const auto &[name, index] : vector_indexes_) {
+    if (index != nullptr) {
+      delete index;
+    }
+  }
+  vector_indexes_.clear();
+
+  Status status = CreateVectorIndexes(
+    training_threshold, vector_indexes_);
+  if (!status.ok()) {
+    LOG(ERROR) << desc_ << "CreateVectorIndexes failed: "
+              << status.ToString();
+
+    for (const auto &[name, index] : vector_indexes_) {
+      if (index != nullptr) {
+        delete index;
+      }
+    }
+    vector_indexes_.clear();
+  }
+  pthread_rwlock_unlock(&index_rwmutex_);
+  return status;
 }
 
 Status VectorManager::CreateVectorTable(TableInfo &table,
                                         std::vector<int> &vector_cf_ids,
                                         StorageManager *storage_mgr) {
   Status status;
+  int ret = pthread_rwlock_init(&index_rwmutex_, NULL);
+  if (ret != 0) {
+    LOG(ERROR) << desc_ << "init read-write lock error, ret=" << ret;
+    return Status::ParamError("create vector read-write lock error");
+  }
   if (table_created_) return Status::ParamError("table is created");
 
   std::vector<struct VectorInfo> &vectors_infos = table.VectorInfos();
@@ -250,7 +301,7 @@ Status VectorManager::CreateVectorTable(TableInfo &table,
                                  vector_cf_ids[i], storage_mgr);
     if (!vec_status.ok()) {
       std::stringstream msg;
-      msg << vec_name << " create vector failed:" << vec_status.ToString();
+      msg << desc_ << vec_name << " create vector failed:" << vec_status.ToString();
       LOG(ERROR) << msg.str();
       status = Status::ParamError(msg.str());
       return status;
@@ -259,7 +310,7 @@ Status VectorManager::CreateVectorTable(TableInfo &table,
     raw_vectors_[vec_name] = vec;
 
     if (vector_info.is_index == false) {
-      LOG(INFO) << vec_name << " need not to indexed!";
+      LOG(INFO) << desc_ << vec_name << " need not to indexed!";
       continue;
     }
 
@@ -268,7 +319,7 @@ Status VectorManager::CreateVectorTable(TableInfo &table,
           CreateVectorIndex(index_types_[i], index_params_[i], vec,
                             table.TrainingThreshold(), true, vector_indexes_);
       if (!status.ok()) {
-        LOG(ERROR) << vec_name << " create index failed: " << status.ToString();
+        LOG(ERROR) << desc_ << vec_name << " create index failed: " << status.ToString();
         return status;
       }
       // update TrainingThreshold when TrainingThreshold = 0
@@ -282,7 +333,7 @@ Status VectorManager::CreateVectorTable(TableInfo &table,
     }
   }
   table_created_ = true;
-  LOG(INFO) << "create vectors and indexes success! models="
+  LOG(INFO) << desc_ << "create vectors and indexes success! models="
             << utils::join(index_types_, ',');
   return Status::OK();
 }
@@ -291,13 +342,13 @@ int VectorManager::AddToStore(
     int docid, std::unordered_map<std::string, struct Field> &fields) {
   int ret = 0;
   if (fields.size() != raw_vectors_.size()) {
-    LOG(ERROR) << "Add to store error: vector fields length [" << fields.size()
+    LOG(ERROR) << desc_ << "add to store error: vector fields length [" << fields.size()
                << "] not equal to raw_vectors_ length = " << raw_vectors_.size();
     return -1;
   }
   for (auto &[name, field] : fields) {
     if (raw_vectors_.find(name) == raw_vectors_.end()) {
-      LOG(ERROR) << "Cannot find raw vector [" << name << "]";
+      LOG(ERROR) << desc_ << "cannot find raw vector [" << name << "]";
       continue;
     }
     ret = raw_vectors_[name]->Add(docid, field);
@@ -320,7 +371,7 @@ int VectorManager::Update(
             : sizeof(float);
     if ((size_t)raw_vector->MetaInfo()->Dimension() !=
         field.value.size() / element_size) {
-      LOG(ERROR) << "invalid field value len=" << field.value.size()
+      LOG(ERROR) << desc_ << name << " invalid field value len=" << field.value.size()
                  << ", dimension=" << raw_vector->MetaInfo()->Dimension();
       return -1;
     }
@@ -328,27 +379,38 @@ int VectorManager::Update(
     int ret = raw_vector->Update(docid, field);
     if (ret) return ret;
 
+    pthread_rwlock_rdlock(&index_rwmutex_);
     for (std::string &index_type : index_types_) {
       auto it = vector_indexes_.find(IndexName(name, index_type));
       if (it != vector_indexes_.end()) {
         it->second->updated_vids_.push(docid);
       }
     }
+    pthread_rwlock_unlock(&index_rwmutex_);
   }
 
   return 0;
 }
 
 int VectorManager::Delete(int64_t docid) {
+  for (const auto &[name, vec] : raw_vectors_) {
+    if (0 != vec->Delete(docid)) {
+      LOG(ERROR) << desc_ << "delete vector from " << name << " failed! docid=" << docid;
+      return -1;
+    }
+  }
+  pthread_rwlock_rdlock(&index_rwmutex_);
   for (const auto &[name, index] : vector_indexes_) {
     std::vector<int64_t> vids;
     vids.resize(1);
     vids[0] = docid;
     if (0 != index->Delete(vids)) {
-      LOG(ERROR) << "delete index from " << name << " failed! docid=" << docid;
-      return -1;
+      LOG(ERROR) << desc_ << "delete index from " << name << " failed! docid=" << docid;
+      pthread_rwlock_unlock(&index_rwmutex_);
+      return -2;
     }
   }
+  pthread_rwlock_unlock(&index_rwmutex_);
   return 0;
 }
 
@@ -358,7 +420,7 @@ int VectorManager::TrainIndex(
   for (const auto &[name, index] : vector_indexes) {
     if (index->Indexing() != 0) {
       ret = -1;
-      LOG(ERROR) << "vector table " << name << " indexing failed!";
+      LOG(ERROR) << desc_ << "vector table " << name << " indexing failed!";
     }
   }
   return ret;
@@ -367,13 +429,14 @@ int VectorManager::TrainIndex(
 int VectorManager::AddRTVecsToIndex(bool &index_is_dirty) {
   int ret = 0;
   index_is_dirty = false;
+  pthread_rwlock_rdlock(&index_rwmutex_);
   for (const auto &[name, index_model] : vector_indexes_) {
     RawVector *raw_vec = dynamic_cast<RawVector *>(index_model->vector_);
     int total_stored_vecs = raw_vec->MetaInfo()->Size();
     int indexed_vec_count = index_model->indexed_count_;
 
     if (indexed_vec_count > total_stored_vecs) {
-      LOG(ERROR) << "internal error : indexed_vec_count=" << indexed_vec_count
+      LOG(ERROR) << desc_ << "internal error : indexed_vec_count=" << indexed_vec_count
                  << " should not greater than total_stored_vecs="
                  << total_stored_vecs;
       ret = -1;
@@ -393,41 +456,45 @@ int VectorManager::AddRTVecsToIndex(bool &index_is_dirty) {
                                     : MAX_NUM_PER_INDEX);
         if (count_per_index == 0) break;
 
-        std::vector<int> lens;
-        ScopeVectors vector_head;
-        raw_vec->GetVectorHeader(start_docid, count_per_index, vector_head,
-                                 lens);
+        std::vector<int64_t> vids(count_per_index);
+        std::iota(vids.begin(), vids.end(), start_docid);
+        ScopeVectors vecs;
+        int ret = raw_vec->Gets(vids, vecs);
+        if (ret) {
+          LOG(ERROR) << desc_ << "get vectors from docid " << start_docid << " err: ret="
+                     << ret;
+          continue;
+        }
+        if (vids.size() != count_per_index || vecs.Size() != count_per_index) {
+          LOG(ERROR) << desc_ << "get vectors from docid " << start_docid << " err: "
+                     << "vids.size()=" << vids.size()
+                     << ", vecs.size()=" << vecs.Size();
+          continue;
+        }
         const uint8_t *add_vec = nullptr;
         utils::ScopeDeleter1<uint8_t> del_vec;
 
-        if (lens.size() == 1) {
-          add_vec = vector_head.Get(0);
+        int raw_d = raw_vec->MetaInfo()->Dimension();
+        if (raw_vec->MetaInfo()->DataType() == VectorValueType::BINARY) {
+          add_vec = new uint8_t[raw_d * count_per_index];
         } else {
-          int raw_d = raw_vec->MetaInfo()->Dimension();
-          if (raw_vec->MetaInfo()->DataType() == VectorValueType::BINARY) {
-            add_vec = new uint8_t[raw_d * count_per_index];
-          } else {
-            add_vec = new uint8_t[raw_d * count_per_index * sizeof(float)];
-          }
-          del_vec.set(add_vec);
-          size_t offset = 0;
-          size_t element_size =
-              raw_vec->MetaInfo()->DataType() == VectorValueType::BINARY
-                  ? sizeof(char)
-                  : sizeof(float);
-          for (size_t i = 0; i < vector_head.Size(); ++i) {
-            memcpy((void *)(add_vec + offset), (void *)vector_head.Get(i),
-                   element_size * raw_d * lens[i]);
-
-            if (raw_vec->MetaInfo()->DataType() == VectorValueType::BINARY) {
-              offset += raw_d * lens[i];
-            } else {
-              offset += sizeof(float) * raw_d * lens[i];
-            }
-          }
+          add_vec = new uint8_t[raw_d * count_per_index * sizeof(float)];
         }
+        del_vec.set(add_vec);
+        size_t element_size =
+            raw_vec->MetaInfo()->DataType() == VectorValueType::BINARY
+                ? sizeof(char)
+                : sizeof(float);
+        for (size_t i = 0; i < vecs.Size(); ++i) {
+          if (vecs.Get(i) == nullptr) {
+            continue;
+          }
+          memcpy((void *)(add_vec + i * element_size * raw_d), (void *)vecs.Get(i),
+                  element_size * raw_d);
+        }
+
         if (!index_model->Add(count_per_index, add_vec)) {
-          LOG(ERROR) << "add index from docid " << start_docid << " error!";
+          LOG(ERROR) << desc_ << "add index from docid " << start_docid << " error!";
           ret = -2;
         } else {
           index_model->indexed_count_ += count_per_index;
@@ -453,16 +520,18 @@ int VectorManager::AddRTVecsToIndex(bool &index_is_dirty) {
     if (vids.size() == 0) continue;
     ScopeVectors scope_vecs;
     if (raw_vec->Gets(vids, scope_vecs)) {
-      LOG(ERROR) << "get update vector error!";
+      LOG(ERROR) << desc_ << "get update vector error!";
       ret = -3;
+      pthread_rwlock_unlock(&index_rwmutex_);
       return ret;
     }
     if (index_model->Update(vids, scope_vecs.Get())) {
-      LOG(ERROR) << "update index error!";
+      LOG(ERROR) << desc_ << "update index error!";
       ret = -4;
     }
     index_is_dirty = true;
   }
+  pthread_rwlock_unlock(&index_rwmutex_);
   return ret;
 }
 
@@ -518,12 +587,16 @@ Status VectorManager::Search(GammaQuery &query, GammaResult *results) {
       index_type = vec_query.index_type;
     }
     index_name = IndexName(name, index_type);
+
+    pthread_rwlock_rdlock(&index_rwmutex_);
+
     std::map<std::string, IndexModel *>::iterator iter =
         vector_indexes_.find(index_name);
     if (iter == vector_indexes_.end()) {
       std::string err =
-          "Query name " + index_name + " not exist in created vector table";
+          "Query name " + index_name + " not exist in created vector table " + desc_;
       LOG(ERROR) << err;
+      pthread_rwlock_unlock(&index_rwmutex_);
       return Status::InvalidArgument(err);
     }
 
@@ -539,6 +612,7 @@ Status VectorManager::Search(GammaQuery &query, GammaResult *results) {
     if (n <= 0) {
       std::string err = "Search n shouldn't less than 0!";
       LOG(ERROR) << err;
+      pthread_rwlock_unlock(&index_rwmutex_);
       return Status::InvalidArgument(err);
     }
 
@@ -560,15 +634,16 @@ Status VectorManager::Search(GammaQuery &query, GammaResult *results) {
                                 all_vector_results[i].docids);
 
     if (ret_vec != 0) {
-      std::string err = "faild search of query " + index_name;
+      std::string err = desc_ + "faild search of query " + index_name;
       LOG(ERROR) << err;
+      pthread_rwlock_unlock(&index_rwmutex_);
       return Status::InvalidArgument(err);
     }
     if (query.condition->sort_by_docid) {
       ParseSearchResult(n, query.condition->topn, all_vector_results[i], index);
       all_vector_results[i].sort_by_docid();
     }
-
+    pthread_rwlock_unlock(&index_rwmutex_);
 #ifdef PERFORMANCE_TESTING
     if (query.condition->GetPerfTool()) {
       std::string msg;
@@ -682,13 +757,14 @@ int VectorManager::GetVector(
     }
     RawVector *raw_vec = iter->second;
     if (raw_vec == nullptr) {
-      LOG(ERROR) << "raw_vec is null!";
+      LOG(ERROR) << desc_ << "raw_vec is null!";
       return -1;
     }
 
     ScopeVector scope_vec;
     int ret = raw_vec->GetVector(id, scope_vec);
     if (ret != 0) {
+      LOG(ERROR) << desc_ << "get vector err: " << ret;
       return ret;
     }
     int d = raw_vec->MetaInfo()->Dimension();
@@ -706,7 +782,7 @@ int VectorManager::GetDocVector(int docid, std::string &field_name,
   }
   RawVector *raw_vec = iter->second;
   if (raw_vec == nullptr) {
-    LOG(ERROR) << "raw_vec is null!";
+    LOG(ERROR) << desc_ << "raw_vec is null!";
     return -1;
   }
 
@@ -716,6 +792,10 @@ int VectorManager::GetDocVector(int docid, std::string &field_name,
     return ret;
   }
   const float *feature = (const float *)(scope_vec.Get());
+  if (feature == nullptr) {
+    LOG(ERROR) << desc_ << "vector is null!";
+    return -1;
+  }
 
   int d = raw_vec->MetaInfo()->Dimension();
   int d_byte = d * raw_vec->MetaInfo()->DataSize();
@@ -728,9 +808,11 @@ int VectorManager::GetDocVector(int docid, std::string &field_name,
 
 void VectorManager::GetTotalMemBytes(long &index_total_mem_bytes,
                                      long &vector_total_mem_bytes) {
+  pthread_rwlock_rdlock(&index_rwmutex_);
   for (const auto &iter : vector_indexes_) {
     index_total_mem_bytes += iter.second->GetTotalMemBytes();
   }
+  pthread_rwlock_unlock(&index_rwmutex_);
 
   for (const auto &iter : raw_vectors_) {
     vector_total_mem_bytes += iter.second->GetTotalMemBytes();
@@ -739,14 +821,16 @@ void VectorManager::GetTotalMemBytes(long &index_total_mem_bytes,
 
 int VectorManager::Dump(const std::string &path, int64_t dump_docid,
                         int64_t max_docid) {
+  pthread_rwlock_rdlock(&index_rwmutex_);
   for (const auto &[name, index] : vector_indexes_) {
     Status status = index->Dump(path);
     if (!status.ok()) {
-      LOG(ERROR) << "vector " << name << " dump gamma index failed!";
+      LOG(ERROR) << desc_ << "vector " << name << " dump gamma index failed!";
       return status.code();
     }
-    LOG(INFO) << "vector " << name << " dump gamma index success!";
+    LOG(INFO) << desc_ << "vector " << name << " dump gamma index success!";
   }
+  pthread_rwlock_unlock(&index_rwmutex_);
 
   for (const auto &[name, vec] : raw_vectors_) {
     RawVector *raw_vector = dynamic_cast<RawVector *>(vec);
@@ -755,10 +839,10 @@ int VectorManager::Dump(const std::string &path, int64_t dump_docid,
       auto end = max_docid;
       Status status = raw_vector->Dump(start, end + 1);
       if (!status.ok()) {
-        LOG(ERROR) << "vector " << name << " dump failed!";
+        LOG(ERROR) << desc_ << "vector " << name << " dump failed!";
         return status.code();
       }
-      LOG(INFO) << "vector " << name << " dump success!";
+      LOG(INFO) << desc_ << "vector " << name << " dump success!";
     }
   }
 
@@ -772,23 +856,23 @@ int VectorManager::Load(const std::vector<std::string> &index_dirs,
     if (vec->WithIO()) {
       auto vector_num = min_vec_num;
       vec->GetDiskVecNum(vector_num);
-      LOG(INFO) << name << " load vec_num=" << vector_num;
+      LOG(INFO) << desc_ << name << " load vec_num=" << vector_num;
       if (vector_num < min_vec_num) min_vec_num = vector_num;
     }
   }
 
-  LOG(INFO) << "vector_mgr load min_vec_num=" << min_vec_num;
+  LOG(INFO) << desc_ << "vector_mgr load min_vec_num=" << min_vec_num;
 
   for (const auto &[name, vec] : raw_vectors_) {
     if (vec->WithIO()) {
       // TODO: doc num to vector num
-      int64_t vec_num = min_vec_num;
+      int64_t vec_num = doc_num;
       Status status = vec->Load(vec_num);
       if (!status.ok()) {
-        LOG(ERROR) << "vector [" << name << "] load failed!";
+        LOG(ERROR) << desc_ << "vector [" << name << "] load failed!";
         return status.code();
       }
-      LOG(INFO) << "vector [" << name << "] load success!";
+      LOG(INFO) << desc_ << "vector [" << name << "] load success!";
     }
   }
 
@@ -797,22 +881,21 @@ int VectorManager::Load(const std::vector<std::string> &index_dirs,
       int64_t load_num = 0;
       Status status = index->Load(index_dirs[0], load_num);
       if (!status.ok()) {
-        LOG(ERROR) << "vector [" << name << "] load index " << index_dirs[0]
+        LOG(ERROR) << desc_ << "vector [" << name << "] load index " << index_dirs[0]
                    << " failed, num: " << load_num;
         return -1;
       }
-      if (load_num > 0 && load_num > min_vec_num) {
-        LOG(ERROR) << "load vec_index_num=" << load_num
-                   << " > raw_vec_num=" << min_vec_num;
+      if (load_num > 0 && load_num > doc_num) {
+        LOG(ERROR) << desc_ << "load vec_index_num=" << load_num
+                   << " > raw_vec_num=" << doc_num;
         return -1;
       }
       index->indexed_count_ = load_num;
-      LOG(INFO) << "vector [" << name
+      LOG(INFO) << desc_ << "vector [" << name
                 << "] load index success, num=" << load_num;
     }
   }
-  doc_num = min_vec_num;
-  LOG(INFO) << "vector_mgr load vec_num=" << min_vec_num;
+  LOG(INFO) << desc_ << "vector_mgr load vec_num=" << doc_num;
   return 0;
 }
 
@@ -825,16 +908,34 @@ void VectorManager::Close() {
 
   DestroyVectorIndexes();
 
-  LOG(INFO) << "VectorManager closed.";
+  LOG(INFO) << desc_ << "VectorManager closed.";
+}
+
+Status VectorManager::CompactVector() {
+  for (const auto &[name, vec] : raw_vectors_) {
+    RawVector *raw_vector = dynamic_cast<RawVector *>(vec);
+    if (raw_vector->CompactIfNeed()) {
+      Status status = raw_vector->Compact();
+      if (!status.ok()) {
+        LOG(ERROR) << desc_ << "vector " << name << " dump failed!";
+        return status;
+      }
+      LOG(INFO) << desc_ << "vector " << name << " dump success!";
+    }
+  }
+
+  return Status::OK();
 }
 
 int VectorManager::MinIndexedNum() {
   int min = 0;
+  pthread_rwlock_rdlock(&index_rwmutex_);
   for (const auto &[name, index] : vector_indexes_) {
     if (index != nullptr && (index->indexed_count_ < min || min == 0)) {
       min = index->indexed_count_;
     }
   }
+  pthread_rwlock_unlock(&index_rwmutex_);
   return min;
 }
 

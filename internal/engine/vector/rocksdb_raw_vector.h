@@ -21,12 +21,19 @@ class RocksDBRawVector : public RawVector {
   RocksDBRawVector(VectorMetaInfo *meta_info, const StoreParams &store_params,
                    bitmap::BitmapManager *docids_bitmap,
                    StorageManager *storage_mgr, int cf_id);
+
   ~RocksDBRawVector();
+
   /* RawVector */
   int InitStore(std::string &vec_name) override;
+
   int AddToStore(uint8_t *v, int len) override;
+
+  int DeleteFromStore(int64_t vid) override;
+
   int GetVectorHeader(int64_t start, int n, ScopeVectors &vecs,
                       std::vector<int> &lens) override;
+
   int UpdateToStore(int64_t vid, uint8_t *v, int len) override;
 
   size_t GetStoreMemUsage() override;
@@ -36,7 +43,9 @@ class RocksDBRawVector : public RawVector {
   Status Dump(int64_t start_vid, int64_t end_vid) override {
     return Status::OK();
   };
+
   int GetDiskVecNum(int64_t &vec_num) override;
+
   Status Load(int64_t vec_num) override;
 
  protected:

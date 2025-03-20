@@ -22,6 +22,7 @@ RocksDBRawVector::RocksDBRawVector(VectorMetaInfo *meta_info,
     : RawVector(meta_info, docids_bitmap, store_params) {
   storage_mgr_ = storage_mgr;
   cf_id_ = cf_id;
+  compact_if_need_ = false;
 }
 
 RocksDBRawVector::~RocksDBRawVector() {}
@@ -33,29 +34,19 @@ int RocksDBRawVector::GetDiskVecNum(int64_t &vec_num) {
     auto result = storage_mgr_->Get(cf_id_, i);
     if (result.first.ok()) {
       vec_num = i + 1;
-      LOG(INFO) << "In the disk rocksdb vec_num=" << vec_num;
+      LOG(INFO) << desc_ << "in the disk rocksdb vec_num=" << vec_num;
       return 0;
     }
   }
   vec_num = 0;
-  LOG(INFO) << "In the disk rocksdb vec_num=" << vec_num;
+  LOG(INFO) << desc_ << "in the disk rocksdb vec_num=" << vec_num;
   return 0;
 }
 
 Status RocksDBRawVector::Load(int64_t vec_num) {
   if (vec_num == 0) return Status::OK();
-
-  std::string key, value;
-  key = utils::ToRowKey(vec_num - 1);
-  Status s = storage_mgr_->Get(cf_id_, key, value);
-  if (!s.ok()) {
-    std::string msg = std::string("load vectors, get error:") + s.ToString() +
-                      ", expected key=" + key;
-    LOG(ERROR) << msg;
-    return Status::IOError(msg);
-  }
   MetaInfo()->size_ = vec_num;
-  LOG(INFO) << "rocksdb load success! vec_num=" << vec_num;
+  LOG(INFO) << desc_ << "rocksdb load success! vec_num=" << vec_num;
   return Status::OK();
 }
 
@@ -97,13 +88,18 @@ int RocksDBRawVector::GetVector(int64_t vid, const uint8_t *&vec,
   }
   auto result = storage_mgr_->Get(cf_id_, vid);
   if (!result.first.ok()) {
-    LOG(ERROR) << "rocksdb get error:" << result.first.ToString()
+    LOG(ERROR) << desc_ << "rocksdb get error:" << result.first.ToString()
                << ", vid=" << vid;
     return result.first.code();
   }
   vec = new uint8_t[vector_byte_size_];
-  assert((size_t)vector_byte_size_ == result.second.size());
-  memcpy((void *)vec, result.second.c_str(), vector_byte_size_);
+  if ((size_t)vector_byte_size_ == result.second.size()) {
+    memcpy((void *)vec, result.second.c_str(), vector_byte_size_);
+  } else {
+    LOG(ERROR) << desc_ << "rocksdb get error: invalid vector size="
+               << result.second.size() << ", expect=" << vector_byte_size_;
+    return 2;
+  }
 
   deletable = true;
   return 0;
@@ -116,25 +112,30 @@ int RocksDBRawVector::Gets(const std::vector<int64_t> &vids,
   std::vector<std::string> values(k);
   std::vector<rocksdb::Status> statuses =
       storage_mgr_->MultiGet(cf_id_, vids, values);
-  assert(statuses.size() == k);
+  if (statuses.size() != k) {
+    LOG(ERROR) << desc_ << "rocksdb multiget error: statuses size=" << statuses.size()
+               << ", vids size=" << k;
+    return 1;
+  }
 
-  size_t j = 0;
   for (size_t i = 0; i < k; ++i) {
     if (vids[i] < 0) {
       vecs.Add(nullptr, true);
       continue;
     }
-    if (!statuses[j].ok()) {
-      LOG(ERROR) << "rocksdb multiget error:" << statuses[j].ToString()
-                 << ", vid=" << vids[j];
-      return 2;
+    if (!statuses[i].ok()) {
+      vecs.Add(nullptr, true);
+      continue;
     }
     uint8_t *vector = new uint8_t[vector_byte_size_];
-    assert((size_t)vector_byte_size_ == values[j].size());
-    memcpy(vector, values[j].c_str(), vector_byte_size_);
-
+    if ((size_t)vector_byte_size_ != values[i].size()) {
+      LOG(ERROR) << desc_ << "rocksdb multiget error: invalid vector size="
+                 << values[i].size() << ", expect=" << vector_byte_size_;
+      vecs.Add(nullptr, true);
+      continue;  
+    }
+    memcpy(vector, values[i].c_str(), vector_byte_size_);
     vecs.Add(vector, true);
-    ++j;
   }
   return 0;
 }
@@ -168,12 +169,23 @@ int RocksDBRawVector::UpdateToStore(int64_t vid, uint8_t *v, int len) {
   std::string value = std::string((const char *)v, this->vector_byte_size_);
   Status s = storage_mgr_->Put(cf_id_, key, value);
   if (!s.ok()) {
-    LOG(ERROR) << "rocksdb update error:" << s.ToString() << ", key=" << key;
+    LOG(ERROR) << desc_ << "rocksdb update error:" << s.ToString() << ", key=" << key;
     return -1;
   }
   return 0;
 }
 
+int RocksDBRawVector::DeleteFromStore(int64_t vid) {
+  std::string key = utils::ToRowKey(vid);
+  Status s = storage_mgr_->Delete(cf_id_, key);
+  if (!s.ok()) {
+    LOG(ERROR) << desc_ << "rocksdb update error:" << s.ToString() << ", key=" << key;
+    return -1;
+  }
+  return 0;
+}
+
+// get n valid vectors from start
 int RocksDBRawVector::GetVectorHeader(int64_t start, int n, ScopeVectors &vecs,
                                       std::vector<int> &lens) {
   if (start < 0 || start + n > meta_info_->Size()) {
@@ -183,22 +195,32 @@ int RocksDBRawVector::GetVectorHeader(int64_t start, int n, ScopeVectors &vecs,
   std::unique_ptr<rocksdb::Iterator> it = storage_mgr_->NewIterator(cf_id_);
   std::string start_key, end_key;
   start_key = utils::ToRowKey(start);
-  end_key = utils::ToRowKey(start + n);
+  end_key = utils::ToRowKey(meta_info_->Size());
   it->Seek(rocksdb::Slice(start_key));
   int dimension = meta_info_->Dimension();
   uint8_t *vectors = new uint8_t[(uint64_t)dimension * n * data_size_];
   uint8_t *dst = vectors;
-  for (int c = 0; c < n; c++, it->Next()) {
+  int c = 0;
+  for (; c < n; c++, it->Next()) {
+    rocksdb::Slice current_key = it->key();
+    if (current_key.compare(end_key) >= 0) {
+        break;
+    }
     if (!it->Valid()) {
-      LOG(ERROR) << "rocksdb iterator error, vid=" << start + c;
-      delete[] vectors;
-      return -1;
+      LOG(WARNING) << desc_ << "rocksdb iterator error, current_key=" << current_key.ToString()
+                   << ", start_key=" << start_key << ", end_key=" << end_key << ", c=" << c;
+      break;
     }
 
     rocksdb::Slice value = it->value();
     std::string vstr = value.ToString();
-    assert((size_t)vector_byte_size_ == vstr.size());
-    memcpy(dst, vstr.c_str(), vector_byte_size_);
+    if((size_t)vector_byte_size_ == vstr.size()) {
+      memcpy(dst, vstr.c_str(), vector_byte_size_);
+    } else {
+      LOG(ERROR) << desc_ << "rocksdb get error: invalid vector size="
+                 << vstr.size() << ", expect=" << vector_byte_size_;
+      continue;
+    }
 
 #ifdef DEBUG
     std::string expect_key = utils::ToRowKey(c + start);
@@ -211,7 +233,7 @@ int RocksDBRawVector::GetVectorHeader(int64_t start, int n, ScopeVectors &vecs,
     dst += (size_t)dimension * data_size_;
   }
   vecs.Add(vectors);
-  lens.push_back(n);
+  lens.push_back(c);
   return 0;
 }
 

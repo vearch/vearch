@@ -25,6 +25,8 @@ class MemoryRawVector : public RawVector {
 
   int AddToStore(uint8_t *v, int len) override;
 
+  int DeleteFromStore(int64_t vid) override;
+
   int GetVectorHeader(int64_t start, int n, ScopeVectors &vecs,
                       std::vector<int> &lens) override;
 
@@ -32,13 +34,19 @@ class MemoryRawVector : public RawVector {
 
   uint8_t *GetFromMem(int64_t vid) const;
 
-  int AddToMem(uint8_t *v, int len);
+  int AddToMem(int64_t vid, uint8_t *v, int len);
 
   Status Load(int64_t vec_num) override;
+
   int GetDiskVecNum(int64_t &vec_num) override;
+
   Status Dump(int64_t start_vid, int64_t end_vid) override {
     return Status::OK();
   };
+
+  Status Compact() override;
+
+  bool Compactable(int segment_no);
 
  protected:
   int GetVector(int64_t vid, const uint8_t *&vec,
@@ -50,8 +58,10 @@ class MemoryRawVector : public RawVector {
   uint8_t **segments_;
   int nsegments_;
   int segment_size_;
-  uint8_t *current_segment_;
   int curr_idx_in_seg_;
+  float compact_ratio_;
+  std::atomic<uint32_t> *segment_deleted_nums_;
+  std::atomic<uint32_t> *segment_nums_;
 };
 
 }  // namespace vearch

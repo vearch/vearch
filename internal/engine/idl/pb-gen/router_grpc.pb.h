@@ -1719,6 +1719,7 @@ class IndexRequest final :
     kDropBeforeRebuildFieldNumber = 2,
     kLimitCpuFieldNumber = 3,
     kDescribeFieldNumber = 4,
+    kPartitionIdFieldNumber = 5,
   };
   // .vearchpb.RequestHead head = 1;
   bool has_head() const;
@@ -1765,6 +1766,15 @@ class IndexRequest final :
   void _internal_set_describe(int64_t value);
   public:
 
+  // uint32 partition_id = 5;
+  void clear_partition_id();
+  uint32_t partition_id() const;
+  void set_partition_id(uint32_t value);
+  private:
+  uint32_t _internal_partition_id() const;
+  void _internal_set_partition_id(uint32_t value);
+  public:
+
   // @@protoc_insertion_point(class_scope:vearchpb.IndexRequest)
  private:
   class _Internal;
@@ -1777,6 +1787,7 @@ class IndexRequest final :
     int64_t drop_before_rebuild_;
     int64_t limit_cpu_;
     int64_t describe_;
+    uint32_t partition_id_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
   union { Impl_ _impl_; };
@@ -7014,6 +7025,26 @@ inline void IndexRequest::_internal_set_describe(int64_t value) {
 inline void IndexRequest::set_describe(int64_t value) {
   _internal_set_describe(value);
   // @@protoc_insertion_point(field_set:vearchpb.IndexRequest.describe)
+}
+
+// uint32 partition_id = 5;
+inline void IndexRequest::clear_partition_id() {
+  _impl_.partition_id_ = 0u;
+}
+inline uint32_t IndexRequest::_internal_partition_id() const {
+  return _impl_.partition_id_;
+}
+inline uint32_t IndexRequest::partition_id() const {
+  // @@protoc_insertion_point(field_get:vearchpb.IndexRequest.partition_id)
+  return _internal_partition_id();
+}
+inline void IndexRequest::_internal_set_partition_id(uint32_t value) {
+  
+  _impl_.partition_id_ = value;
+}
+inline void IndexRequest::set_partition_id(uint32_t value) {
+  _internal_set_partition_id(value);
+  // @@protoc_insertion_point(field_set:vearchpb.IndexRequest.partition_id)
 }
 
 // -------------------------------------------------------------------

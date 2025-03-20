@@ -202,12 +202,10 @@ func (ge *gammaEngine) Optimize() error {
 
 func (ge *gammaEngine) Rebuild(drop_before_rebuild int, limit_cpu int, describe int) error {
 	go func() {
-		log.Info("RebuildIndex index:[%d] begin", ge.partitionID)
 		if e := ge.RebuildIndex(drop_before_rebuild, limit_cpu, describe); e != nil {
 			log.Error("RebuildIndex index:[%d] has err %v", ge.partitionID, e.Error())
 			return
 		}
-		log.Info("RebuildIndex index:[%d] end", ge.partitionID)
 	}()
 	return nil
 }
@@ -269,7 +267,7 @@ func (ge *gammaEngine) RebuildIndex(drop_before_rebuild int, limit_cpu int, desc
 			log.Error("RebuildIndex:[%d] err response code:[%d]", ge.partitionID, rc)
 		} else {
 			endTime := time.Now()
-			log.Info("RebuildIndex cost:[%f],rc :[%d]", (endTime.Sub(startTime).Seconds())*1000, rc)
+			log.Info("RebuildIndex:[%d] cost:[%f],ret :[%d]", ge.partitionID, (endTime.Sub(startTime).Seconds())*1000, rc)
 		}
 	}()
 

@@ -24,7 +24,8 @@ class VectorManager {
  public:
   VectorManager(const VectorStorageType &store_type,
                 bitmap::BitmapManager *docids_bitmap,
-                const std::string &root_path);
+                const std::string &root_path,
+                std::string &desc);
   ~VectorManager();
 
   Status SetVectorStoreType(std::string &index_type,
@@ -51,8 +52,10 @@ class VectorManager {
       int training_threshold,
       std::map<std::string, IndexModel *> &vector_indexes);
 
-  void SetVectorIndexes(
+  void ReSetVectorIndexes(
       std::map<std::string, IndexModel *> &rebuild_vector_indexes);
+
+  Status ReCreateVectorIndexes(int training_threshold);
 
   Status CreateVectorTable(TableInfo &table, std::vector<int> &vector_cf_ids,
                            StorageManager *storage_mgr);
@@ -96,6 +99,7 @@ class VectorManager {
   int Delete(int64_t docid);
 
   std::map<std::string, RawVector *> &RawVectors() { return raw_vectors_; }
+
   std::map<std::string, IndexModel *> &IndexModels() { return vector_indexes_; }
 
   int MinIndexedNum();
@@ -103,6 +107,8 @@ class VectorManager {
   bitmap::BitmapManager *Bitmap() { return docids_bitmap_; };
 
   void Close();  // release all resource
+
+  Status CompactVector();
 
  private:
   inline std::string IndexName(const std::string &field_name,
@@ -115,11 +121,13 @@ class VectorManager {
   bitmap::BitmapManager *docids_bitmap_;
   bool table_created_;
   std::string root_path_;
+  std::string desc_;
 
   std::map<std::string, RawVector *> raw_vectors_;
   std::map<std::string, IndexModel *> vector_indexes_;
   std::vector<std::string> index_types_;
   std::vector<std::string> index_params_;
+  pthread_rwlock_t index_rwmutex_;
 };
 
 }  // namespace vearch

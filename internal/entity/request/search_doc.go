@@ -48,6 +48,7 @@ type IndexRequest struct {
 	DropBeforeRebuild bool   `json:"drop_before_rebuild,omitempty"`
 	LimitCPU          int    `json:"limit_cpu,omitempty"`
 	Describe          int    `json:"describe,omitempty"`
+	PartitionId       uint32 `json:"partition_id,omitempty"`
 }
 
 type Condition struct {

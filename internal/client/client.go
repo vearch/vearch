@@ -1591,14 +1591,19 @@ func (r *routerRequest) CommonSetByPartitions(args *vearchpb.IndexRequest) *rout
 		return r
 	}
 	sendMap := make(map[entity.PartitionID]*vearchpb.PartitionData)
-	for _, partitionInfo := range r.space.Partitions {
-		partitionID := partitionInfo.Id
-		if _, ok := sendMap[partitionID]; ok {
-			log.Error("db Id:%d, space Id:%d, have multiple partitionID:%d", partitionInfo.DBId, partitionInfo.SpaceId, partitionID)
-		} else {
-			sendMap[partitionID] = &vearchpb.PartitionData{PartitionID: partitionID, MessageID: r.GetMsgID(), IndexRequest: args}
+	if args.PartitionId != 0 {
+		sendMap[args.PartitionId] = &vearchpb.PartitionData{PartitionID: args.PartitionId, MessageID: r.GetMsgID(), IndexRequest: args}
+	} else {
+		for _, partitionInfo := range r.space.Partitions {
+			partitionID := partitionInfo.Id
+			if _, ok := sendMap[partitionID]; ok {
+				log.Error("db Id:%d, space Id:%d, have multiple partitionID:%d", partitionInfo.DBId, partitionInfo.SpaceId, partitionID)
+			} else {
+				sendMap[partitionID] = &vearchpb.PartitionData{PartitionID: partitionID, MessageID: r.GetMsgID(), IndexRequest: args}
+			}
 		}
 	}
+
 	r.sendMap = sendMap
 	return r
 }

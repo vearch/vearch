@@ -32,7 +32,7 @@ def create(router_url, properties):
         "name": space_name,
         "partition_num": 1,
         "replica_num": 1,
-        "fields": properties["fields"]
+        "fields": properties["fields"],
     }
     response = create_db(router_url, db_name)
     logger.info(response.json())
@@ -49,59 +49,47 @@ gt = sift10k.get_groundtruth()
 def prepare_filter_bound(conditions, index, batch_size, full_field, left, right):
     if full_field:
         range_filter = [
-            {
-                "field": "field_int",
-                "operator": left,
-                "value": index * batch_size
-            },
+            {"field": "field_int", "operator": left, "value": index * batch_size},
             {
                 "field": "field_int",
                 "operator": right,
-                "value": (index + 1) * batch_size
+                "value": (index + 1) * batch_size,
             },
-            {
-                "field": "field_long",
-                "operator": left,
-                "value": index * batch_size
-            },
+            {"field": "field_long", "operator": left, "value": index * batch_size},
             {
                 "field": "field_long",
                 "operator": right,
-                "value": (index + 1) * batch_size
+                "value": (index + 1) * batch_size,
             },
             {
                 "field": "field_float",
                 "operator": left,
-                "value": float(index * batch_size)
+                "value": float(index * batch_size),
             },
             {
                 "field": "field_float",
                 "operator": right,
-                "value": float((index + 1) * batch_size)
+                "value": float((index + 1) * batch_size),
             },
             {
                 "field": "field_double",
                 "operator": left,
-                "value": float(index * batch_size)
+                "value": float(index * batch_size),
             },
             {
                 "field": "field_double",
                 "operator": right,
-                "value": float((index + 1) * batch_size)
+                "value": float((index + 1) * batch_size),
             },
         ]
         conditions.extend(range_filter)
     else:
         range_filter = [
-            {
-                "field": "field_int",
-                "operator": left,
-                "value": index * batch_size
-            },
+            {"field": "field_int", "operator": left, "value": index * batch_size},
             {
                 "field": "field_int",
                 "operator": right,
-                "value": (index + 1) * batch_size
+                "value": (index + 1) * batch_size,
             },
         ]
         conditions.extend(range_filter)
@@ -110,134 +98,87 @@ def prepare_filter_bound(conditions, index, batch_size, full_field, left, right)
 def process_get_data_by_filter(index: int, full_field: bool, mode: str, total: int):
     url = f"{router_url}/document/query"
     batch_size = 1
-    
+
     data = {
         "db_name": db_name,
         "space_name": space_name,
         "vector_value": False,
-        "filters": {
-            "operator": "AND",
-            "conditions": []
-        },
-        "limit": batch_size
+        "filters": {"operator": "AND", "conditions": []},
+        "limit": batch_size,
     }
 
     if mode == "[]":
-        prepare_filter_bound(data["filters"]["conditions"], index,
-                             batch_size, full_field, ">=", "<=")
+        prepare_filter_bound(
+            data["filters"]["conditions"], index, batch_size, full_field, ">=", "<="
+        )
     elif mode == "[)":
-        prepare_filter_bound(data["filters"]["conditions"], index,
-                             batch_size, full_field, ">=", "<")
+        prepare_filter_bound(
+            data["filters"]["conditions"], index, batch_size, full_field, ">=", "<"
+        )
     elif mode == "(]":
-        prepare_filter_bound(data["filters"]["conditions"], index,
-                             batch_size, full_field, ">", "<=")
+        prepare_filter_bound(
+            data["filters"]["conditions"], index, batch_size, full_field, ">", "<="
+        )
     elif mode == "()":
-        prepare_filter_bound(data["filters"]["conditions"], index,
-                             batch_size, full_field, ">", "<")
+        prepare_filter_bound(
+            data["filters"]["conditions"], index, batch_size, full_field, ">", "<"
+        )
     elif mode == "upper_outbound":
         range_filter = [
-            {
-                "field": "field_int",
-                "operator": ">=",
-                "value": 2**31 - 1
-            },
-            {
-                "field": "field_long",
-                "operator": ">=",
-                "value": 2**63 - 1
-            },
+            {"field": "field_int", "operator": ">=", "value": 2**31 - 1},
+            {"field": "field_long", "operator": ">=", "value": 2**63 - 1},
             {
                 "field": "field_double",
                 "operator": ">=",
-                "value": sys.float_info.max - 1
+                "value": sys.float_info.max - 1,
             },
         ]
         data["filters"]["conditions"].extend(range_filter)
     elif mode == "lower_outbound":
         range_filter = [
-            {
-                "field": "field_int",
-                "operator": "<=",
-                "value": -2**31 + 1
-            },
-            {
-                "field": "field_long",
-                "operator": "<=",
-                "value": -2**63 + 1
-            },
+            {"field": "field_int", "operator": "<=", "value": -(2**31) + 1},
+            {"field": "field_long", "operator": "<=", "value": -(2**63) + 1},
             {
                 "field": "field_double",
                 "operator": "<=",
-                "value": -sys.float_info.max + 1
+                "value": -sys.float_info.max + 1,
             },
         ]
         data["filters"]["conditions"].extend(range_filter)
     elif mode == "[lower_bound, valid_value]":
         range_filter = [
-            {
-                "field": "field_int",
-                "operator": ">=",
-                "value": -2**31 + 1
-            },
-            {
-                "field": "field_int",
-                "operator": "<=",
-                "value": (index + 1) * batch_size
-            },
-            {
-                "field": "field_long",
-                "operator": ">=",
-                "value": -2**63 + 1
-            },
+            {"field": "field_int", "operator": ">=", "value": -(2**31) + 1},
+            {"field": "field_int", "operator": "<=", "value": (index + 1) * batch_size},
+            {"field": "field_long", "operator": ">=", "value": -(2**63) + 1},
             {
                 "field": "field_long",
                 "operator": "<=",
-                "value": (index + 1) * batch_size
+                "value": (index + 1) * batch_size,
             },
             {
                 "field": "field_double",
                 "operator": ">=",
-                "value": -sys.float_info.max + 1
+                "value": -sys.float_info.max + 1,
             },
             {
                 "field": "field_double",
                 "operator": "<=",
-                "value": (index + 1) * batch_size
+                "value": (index + 1) * batch_size,
             },
         ]
         data["filters"]["conditions"].extend(range_filter)
     elif mode == "[valid_value, upper_bound]":
         range_filter = [
-            {
-                "field": "field_int",
-                "operator": "<=",
-                "value": 2**31 - 1
-            },
-            {
-                "field": "field_int",
-                "operator": ">=",
-                "value": index * batch_size
-            },
-            {
-                "field": "field_long",
-                "operator": "<=",
-                "value": 2**63 - 1
-            },
-            {
-                "field": "field_long",
-                "operator": ">=",
-                "value": index * batch_size
-            },
+            {"field": "field_int", "operator": "<=", "value": 2**31 - 1},
+            {"field": "field_int", "operator": ">=", "value": index * batch_size},
+            {"field": "field_long", "operator": "<=", "value": 2**63 - 1},
+            {"field": "field_long", "operator": ">=", "value": index * batch_size},
             {
                 "field": "field_double",
                 "operator": "<=",
-                "value": sys.float_info.max - 1
+                "value": sys.float_info.max - 1,
             },
-            {
-                "field": "field_double",
-                "operator": ">=",
-                "value": index * batch_size
-            },
+            {"field": "field_double", "operator": ">=", "value": index * batch_size},
         ]
         data["filters"]["conditions"].extend(range_filter)
     elif mode == "IN":
@@ -245,7 +186,7 @@ def process_get_data_by_filter(index: int, full_field: bool, mode: str, total: i
             {
                 "field": "field_string",
                 "operator": "IN",
-                "value": [str(index * batch_size), str((index + 1) * batch_size)]
+                "value": [str(index * batch_size), str((index + 1) * batch_size)],
             },
         ]
         data["filters"]["conditions"].extend(term_filter)
@@ -254,29 +195,31 @@ def process_get_data_by_filter(index: int, full_field: bool, mode: str, total: i
             {
                 "field": "field_string",
                 "operator": "NOT IN",
-                "value": [str(index * batch_size), str((index + 1) * batch_size)]
+                "value": [str(index * batch_size), str((index + 1) * batch_size)],
             },
         ]
         data["filters"]["conditions"].extend(term_filter)
     elif mode == "Hybrid range NOT IN":
-        prepare_filter_bound(data["filters"]["conditions"], index,
-                             batch_size, full_field, ">=", "<")
+        prepare_filter_bound(
+            data["filters"]["conditions"], index, batch_size, full_field, ">=", "<"
+        )
         term_filter = [
             {
                 "field": "field_string",
                 "operator": "NOT IN",
-                "value": [str(index * batch_size), str((index + 1) * batch_size)]
+                "value": [str(index * batch_size), str((index + 1) * batch_size)],
             },
         ]
         data["filters"]["conditions"].extend(term_filter)
     elif mode == "Hybrid range IN":
-        prepare_filter_bound(data["filters"]["conditions"], index,
-                            batch_size, full_field, ">=", "<")
+        prepare_filter_bound(
+            data["filters"]["conditions"], index, batch_size, full_field, ">=", "<"
+        )
         term_filter = [
             {
                 "field": "field_string",
                 "operator": "IN",
-                "value": [str(index * batch_size), str((index + 1) * batch_size)]
+                "value": [str(index * batch_size), str((index + 1) * batch_size)],
             },
         ]
         data["filters"]["conditions"].extend(term_filter)
@@ -285,14 +228,14 @@ def process_get_data_by_filter(index: int, full_field: bool, mode: str, total: i
             {
                 "field": "field_string",
                 "operator": "IN",
-                "value": [str(index * batch_size)]
+                "value": [str(index * batch_size)],
             }
         ]
         not_in_filter = [
             {
                 "field": "field_string2",
                 "operator": "NOT IN",
-                "value": [str(index * batch_size)]
+                "value": [str(index * batch_size)],
             }
         ]
         data["filters"]["conditions"].extend(in_filter)
@@ -302,14 +245,14 @@ def process_get_data_by_filter(index: int, full_field: bool, mode: str, total: i
             {
                 "field": "field_string",
                 "operator": "IN",
-                "value": [str(index * batch_size), str((index + 1) * batch_size)]
+                "value": [str(index * batch_size), str((index + 1) * batch_size)],
             },
         ]
         term_filter2 = [
             {
                 "field": "field_string2",
                 "operator": "IN",
-                "value": [str((index - 1) * batch_size)]
+                "value": [str((index - 1) * batch_size)],
             }
         ]
         data["filters"]["conditions"].extend(term_filter)
@@ -331,23 +274,33 @@ def process_get_data_by_filter(index: int, full_field: bool, mode: str, total: i
 
     if mode == "[]":
         assert len(documents) == batch_size
-        assert rs.text.find("\"total\":" + str(batch_size)) >= 0
+        assert rs.text.find('"total":' + str(batch_size)) >= 0
 
         for j in range(batch_size):
             value = int(index)
             logger.debug(value)
             logger.debug(documents[j])
-            assert documents[j]["field_int"] == value or documents[j]["field_int"] == value + 1
+            assert (
+                documents[j]["field_int"] == value
+                or documents[j]["field_int"] == value + 1
+            )
 
             if full_field:
-                assert documents[j]["field_long"] == value or documents[j]["field_long"] == value + 1
-                assert documents[j]["field_float"] == float(
-                    value) or documents[j]["field_float"] == float(value) + 1
-                assert documents[j]["field_double"] == float(
-                    value) or documents[j]["field_double"] == float(value) + 1
+                assert (
+                    documents[j]["field_long"] == value
+                    or documents[j]["field_long"] == value + 1
+                )
+                assert (
+                    documents[j]["field_float"] == float(value)
+                    or documents[j]["field_float"] == float(value) + 1
+                )
+                assert (
+                    documents[j]["field_double"] == float(value)
+                    or documents[j]["field_double"] == float(value) + 1
+                )
     elif mode == "[)":
         assert len(documents) == batch_size
-        assert rs.text.find("\"total\":" + str(batch_size)) >= 0
+        assert rs.text.find('"total":' + str(batch_size)) >= 0
 
         for j in range(batch_size):
             value = int(index)
@@ -361,7 +314,7 @@ def process_get_data_by_filter(index: int, full_field: bool, mode: str, total: i
                 assert documents[j]["field_double"] == float(value)
     elif mode == "(]" and index != total - 1:
         assert len(documents) == batch_size
-        assert rs.text.find("\"total\":" + str(batch_size)) >= 0
+        assert rs.text.find('"total":' + str(batch_size)) >= 0
 
         for j in range(batch_size):
             value = int(index) + 1
@@ -375,26 +328,34 @@ def process_get_data_by_filter(index: int, full_field: bool, mode: str, total: i
                 assert documents[j]["field_double"] == float(value)
     elif mode == "()":
         assert len(documents) == 0
-        assert rs.text.find("\"total\":" + str(0)) >= 0
+        assert rs.text.find('"total":' + str(0)) >= 0
     elif mode == "upper_outbound" or mode == "lower_outbound":
         assert len(documents) == 0
-        assert rs.text.find("\"total\":" + str(0)) >= 0
+        assert rs.text.find('"total":' + str(0)) >= 0
     elif mode == "[lower_bound, valid_value]" or mode == "[valid_value, upper_bound]":
         assert len(documents) > 0
     elif mode == "IN":
         for doc in documents:
-            assert (doc["field_string"] == str(index) or doc["field_string"] == str(index + 1))
+            assert doc["field_string"] == str(index) or doc["field_string"] == str(
+                index + 1
+            )
     elif mode == "NOT IN":
         for doc in documents:
-            assert (doc["field_string"] != str(index) and doc["field_string"] != str(index + 1))
+            assert doc["field_string"] != str(index) and doc["field_string"] != str(
+                index + 1
+            )
     elif mode == "Hybrid range NOT IN":
         for doc in documents:
-            assert (doc["field_string"] != str(index) and doc["field_string"] != str(index + 1))
-            assert (doc["field_int"] == index or doc["field_int"] == index + 1)
+            assert doc["field_string"] != str(index) and doc["field_string"] != str(
+                index + 1
+            )
+            assert doc["field_int"] == index or doc["field_int"] == index + 1
     elif mode == "Hybrid range IN":
         for doc in documents:
-            assert (doc["field_string"] == str(index) or doc["field_string"] == str(index + 1))
-            assert (doc["field_int"] == index)
+            assert doc["field_string"] == str(index) or doc["field_string"] == str(
+                index + 1
+            )
+            assert doc["field_int"] == index
     elif mode == "Hybrid IN NOT IN":
         for doc in documents:
             assert doc["field_string"] == str(index * batch_size)
@@ -420,6 +381,7 @@ def parallel_filter(id, total_batch, full_field: bool, mode: str):
     finally:
         logger.info(f"Thread {id}: exited")
 
+
 def check(total, full_field, xb, mode: str):
     dim = xb.shape[1]
     batch_size = 1
@@ -429,8 +391,10 @@ def check(total, full_field, xb, mode: str):
     total_batch = int(total / batch_size)
     with_id = True
 
-    logger.info("dataset num: %d, total_batch: %d, dimension: %d, search num: %d, topK: %d" % (
-        total, total_batch, dim, xq.shape[0], k))
+    logger.info(
+        "dataset num: %d, total_batch: %d, dimension: %d, search num: %d, topK: %d"
+        % (total, total_batch, dim, xq.shape[0], k)
+    )
 
     properties = {}
     properties["fields"] = [
@@ -498,23 +462,23 @@ def check(total, full_field, xb, mode: str):
                 "type": "FLAT",
                 "params": {
                     "metric_type": "L2",
-                }
+                },
             },
             "dimension": dim,
             "store_type": "MemoryOnly",
             # "format": "normalization"
-        }
+        },
     ]
 
     create(router_url, properties)
 
     add(
-        total=total_batch, 
-        batch_size=1, 
-        xb=xb, 
-        with_id=with_id, 
-        full_field=full_field, 
-        has_string2=True
+        total=total_batch,
+        batch_size=1,
+        xb=xb,
+        with_id=with_id,
+        full_field=full_field,
+        has_string2=True,
     )
 
     logger.info("%s doc_num: %d" % (space_name, get_space_num()))
@@ -525,7 +489,22 @@ def check(total, full_field, xb, mode: str):
 
     assert get_space_num() == 0
     for i in range(total):
-        process_add_data((i, batch_size, xb[i * batch_size : (i + 1) * batch_size], with_id, full_field, 1, "", [], False, True))
+        process_add_data(
+            (
+                i,
+                batch_size,
+                xb[i * batch_size : (i + 1) * batch_size],
+                with_id,
+                full_field,
+                1,
+                "",
+                [],
+                False,
+                True,
+                db_name,
+                space_name,
+            )
+        )
         process_get_data_by_filter(i, full_field, "[)", total)
         assert get_space_num() == i + 1
 
@@ -535,14 +514,20 @@ def check(total, full_field, xb, mode: str):
         )
         assert get_space_num() == total - i - 1
 
-    with ThreadPoolExecutor(max_workers=10, thread_name_prefix="non_daemon_thread") as executor:
-        partial_parallel_filter = functools.partial(parallel_filter, total_batch=total_batch, full_field=full_field, mode=mode)
+    with ThreadPoolExecutor(
+        max_workers=10, thread_name_prefix="non_daemon_thread"
+    ) as executor:
+        partial_parallel_filter = functools.partial(
+            parallel_filter, total_batch=total_batch, full_field=full_field, mode=mode
+        )
         args_array = [(index,) for index in range(10)]
-        futures = [executor.submit(partial_parallel_filter, *args) for args in args_array]
+        futures = [
+            executor.submit(partial_parallel_filter, *args) for args in args_array
+        ]
 
         for future in futures:
             future.result()
-    
+
     url = router_url + "/document/upsert"
     data = {}
     data["db_name"] = db_name
@@ -551,7 +536,7 @@ def check(total, full_field, xb, mode: str):
     param_dict = {}
     param_dict["_id"] = "0"
     param_dict["field_int"] = "0"
-    param_dict["field_vector"] = xb[0 : 1].tolist()[0]
+    param_dict["field_vector"] = xb[0:1].tolist()[0]
     param_dict["field_long"] = param_dict["field_int"]
     param_dict["field_float"] = float(param_dict["field_int"])
     param_dict["field_double"] = float(param_dict["field_int"])
@@ -560,28 +545,31 @@ def check(total, full_field, xb, mode: str):
     rs = requests.post(url, auth=(username, password), json=data)
     assert rs.json()["code"] == 0
 
-    param_dict["field_string_array"] = [''.join(str(i) for i in range(1024))]
+    param_dict["field_string_array"] = ["".join(str(i) for i in range(1024))]
     rs = requests.post(url, auth=(username, password), json=data)
     assert rs.json()["code"] != 0
 
     destroy(router_url, db_name, space_name)
 
 
-@pytest.mark.parametrize(["full_field", "mode"], [
-    [True, "()"],
-    [True, "[]"],
-    [True, "(]"],
-    [True, "[)"],
-    [True, "upper_outbound"],
-    [True, "lower_outbound"],
-    [True, "[lower_bound, valid_value]"],
-    [True, "[valid_value, upper_bound]"],
-    [True, "IN"],
-    [True, "NOT IN"],
-    [True, "Hybrid range NOT IN"],
-    [True, "Hybrid range IN"],
-    [True, "Hybrid IN NOT IN"],
-    [True, "No result"],
-])
+@pytest.mark.parametrize(
+    ["full_field", "mode"],
+    [
+        [True, "()"],
+        [True, "[]"],
+        [True, "(]"],
+        [True, "[)"],
+        [True, "upper_outbound"],
+        [True, "lower_outbound"],
+        [True, "[lower_bound, valid_value]"],
+        [True, "[valid_value, upper_bound]"],
+        [True, "IN"],
+        [True, "NOT IN"],
+        [True, "Hybrid range NOT IN"],
+        [True, "Hybrid range IN"],
+        [True, "Hybrid IN NOT IN"],
+        [True, "No result"],
+    ],
+)
 def test_module_filter(full_field: bool, mode: str):
     check(100, full_field, xb, mode)

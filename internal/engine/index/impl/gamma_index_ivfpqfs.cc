@@ -347,7 +347,13 @@ void compute_dis(int k, const float *xi, float *simi, idx_t *idxi,
   for (int j = 0; j < recall_num; j++) {
     if (recall_idxi[j] == -1) continue;
     float dis = 0;
+    if (scope_vecs.Get(j) == nullptr) {
+      continue;
+    }
     const float *vec = reinterpret_cast<const float *>(scope_vecs.Get(j));
+    if (vec == nullptr) {
+      continue;
+    }
     if (metric_type == faiss::METRIC_INNER_PRODUCT) {
       dis = faiss::fvec_inner_product(xi, vec, raw_d);
     } else {

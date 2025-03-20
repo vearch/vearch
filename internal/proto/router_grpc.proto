@@ -60,6 +60,7 @@ message IndexRequest {
   int64 drop_before_rebuild = 2;
   int64 limit_cpu = 3;
   int64 describe = 4;
+  uint32 partition_id = 5;
 }
 
 //*********************** doc result *********************** //

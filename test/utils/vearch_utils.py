@@ -37,8 +37,7 @@ __description__ = """ test utils for vearch """
 def process_add_data(items):
     url = router_url + "/document/upsert"
     data = {}
-    data["db_name"] = db_name
-    data["space_name"] = space_name
+
     data["documents"] = []
     index = items[0]
     batch_size = items[1]
@@ -50,6 +49,12 @@ def process_add_data(items):
     partitions = items[7]
     has_string2 = items[8]
     has_vector = items[9]
+    db_name = items[10]
+    space_name = items[11]
+
+    data["db_name"] = db_name
+    data["space_name"] = space_name
+
     if len(partitions) > 0:
         data["partitions"] = partitions
     if alias_name != "":
@@ -71,7 +76,9 @@ def process_add_data(items):
         data["documents"].append(param_dict)
 
     rs = requests.post(url, auth=(username, password), json=data)
-    # logger.info(rs.json())
+    if rs.json()["code"] != 0:
+        logger.info(rs.json())
+
     assert rs.json()["code"] == 0
 
 
@@ -86,6 +93,8 @@ def add(
     partitions=[],
     has_string2=False,
     has_vector=True,
+    db_name=db_name,
+    space_name=space_name,
 ):
     pool = ThreadPool()
     total_data = []
@@ -102,6 +111,8 @@ def add(
                 partitions,
                 has_string2,
                 has_vector,
+                db_name,
+                space_name,
             )
         )
     results = pool.map(process_add_data, total_data)
@@ -1348,7 +1359,7 @@ def prepare_cluster_for_document_test(total, xb, partition_num=1):
     query_interface(total_batch, batch_size, xb, full_field, seed, "by_ids")
 
 
-def waiting_index_finish(total, timewait=5):
+def waiting_index_finish(total, timewait=5, space_name=space_name):
     url = router_url + "/dbs/" + db_name + "/spaces/" + space_name
     num = 0
     while num < total:
@@ -1633,9 +1644,21 @@ def describe_space(router_url: str, db_name: str, space_name: str):
         logger.error(e)
 
 
-def index_rebuild(router_url: str, db_name: str, space_name: str):
+def index_rebuild(
+    router_url: str,
+    db_name: str,
+    space_name: str,
+    drop_before_rebuild: bool = True,
+    partition_id: int = 0,
+):
     url = f"{router_url}/index/rebuild"
-    data = {"db_name": db_name, "space_name": space_name, "drop_before_rebuild": True}
+    data = {
+        "db_name": db_name,
+        "space_name": space_name,
+        "drop_before_rebuild": drop_before_rebuild,
+        "partition_id": partition_id,
+    }
+    logger.info(data)
     resp = requests.post(url, auth=(username, password), json=data)
     return resp
 

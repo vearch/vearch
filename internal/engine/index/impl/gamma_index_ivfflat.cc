@@ -318,8 +318,15 @@ int GammaIndexIVFFlat::Indexing() {
   int raw_d = raw_vec->MetaInfo()->Dimension();
   const uint8_t *train_raw_vec = nullptr;
   utils::ScopeDeleter1<uint8_t> del_train_raw_vec;
+  size_t n_get = 0;
   if (lens.size() == 1) {
     train_raw_vec = headers.Get(0);
+    n_get = lens[0];
+    if (num > n_get) {
+      LOG(ERROR) << "training vector get count [" << n_get
+                 << "] less then training_threshold[" << num << "], failed!";
+      return -2;
+    }
   } else {
     train_raw_vec = new uint8_t[raw_d * num * sizeof(float)];
     del_train_raw_vec.set(train_raw_vec);
@@ -330,8 +337,9 @@ int GammaIndexIVFFlat::Indexing() {
       offset += sizeof(float) * raw_d * lens[i];
     }
   }
+  LOG(INFO) << "train vector wanted num=" << num << ", real num=" << n_get;
 
-  IndexIVFFlat::train(num, (const float *)train_raw_vec);
+  IndexIVFFlat::train(n_get, (const float *)train_raw_vec);
 
   LOG(INFO) << "train successed!";
   return 0;
@@ -341,6 +349,9 @@ bool GammaIndexIVFFlat::Add(int n, const uint8_t *vec) {
 #ifdef PERFORMANCE_TESTING
   double t0 = faiss::getmillisecs();
 #endif
+  if (not is_trained) {
+    return 0;
+  }
   std::map<int, std::vector<long>> new_keys;
   std::map<int, std::vector<uint8_t>> new_codes;
 
@@ -356,30 +367,41 @@ bool GammaIndexIVFFlat::Add(int n, const uint8_t *vec) {
   faiss::ScopeDeleter<uint8_t> del_xcodes(xcodes);
 
   long vid = indexed_vec_count_;
+  int n_add = 0;
+  RawVector *raw_vec = dynamic_cast<RawVector *>(vector_);
   for (int i = 0; i < n; i++) {
     long key = idx[i];
-    assert(key < (long)nlist);
-    if (key < 0) {
+    if (key >= (long)nlist) {
+      LOG(WARNING) << "ivfflat add invalid key=" << key << ", vid=" << vid + i;
       continue;
     }
+    if (raw_vec->Bitmap()->Test(vid + i)) {
+      continue;
+    }
+    if (key < 0) {
+      LOG(WARNING) << "ivfflat add invalid key=" << key << ", vid=" << vid + i;
+      key = vid % nlist;
+    }
     uint8_t *code = (uint8_t *)vec + this->code_size * i;
-    new_keys[key].push_back(vid++);
+    new_keys[key].push_back(vid + i);
     size_t ofs = new_codes[key].size();
     new_codes[key].resize(ofs + code_size);
     memcpy((void *)(new_codes[key].data() + ofs), (void *)code, code_size);
+    n_add +=1;
   }
 
   /* stage 2 : add invert info to invert index */
   if (!rt_invert_index_ptr_->AddKeys(new_keys, new_codes)) {
     return false;
   }
-  indexed_vec_count_ = vid;
+  indexed_vec_count_ += n;
 #ifdef PERFORMANCE_TESTING
   add_count_ += n;
   if (add_count_ >= 10000) {
     double t1 = faiss::getmillisecs();
     LOG(DEBUG) << "Add time [" << (t1 - t0) / n << "]ms, count "
-               << indexed_vec_count_;
+               << indexed_vec_count_ << " wanted n=" << n
+               << " real add=" << n_add;
     add_count_ = 0;
   }
 #endif
@@ -392,24 +414,43 @@ void GammaIndexIVFFlat::Describe() {
 
 int GammaIndexIVFFlat::Update(const std::vector<int64_t> &ids,
                               const std::vector<const uint8_t *> &vecs) {
+  if (not is_trained) {
+    return 0;
+  }
+  int n_update = 0;
   for (size_t i = 0; i < ids.size(); i++) {
+    if (ids[i] < 0) {
+      LOG(WARNING) << "ivfflat update invalid id=" << ids[i];
+      continue;
+    }
+    if (vecs[i] == nullptr) {
+      continue;
+    }
     const float *vec = reinterpret_cast<const float *>(vecs[i]);
+    if (vec == nullptr) {
+      continue;
+    }
     idx_t idx = -1;
     quantizer->assign(1, vec, &idx);
     std::vector<uint8_t> code;
     code.resize(this->code_size);
     memcpy(code.data(), (void *)vec, this->code_size);
     rt_invert_index_ptr_->Update(idx, ids[i], code);
+    n_update++;
   }
-  updated_num_ += ids.size();
-  LOG(INFO) << "update index success! size=" << ids.size()
-            << ", total=" << updated_num_;
+  updated_num_ += n_update;
+  LOG(DEBUG) << "update index success! size=" << ids.size()
+             << ", n_update=" << n_update << ", updated_num="
+             << updated_num_;
   // now check id need to do compaction
   rt_invert_index_ptr_->CompactIfNeed();
   return 0;
 }
 
 int GammaIndexIVFFlat::Delete(const std::vector<int64_t> &ids) {
+  if (not is_trained) {
+    return 0;
+  }
   std::vector<int64_t> vids(ids.begin(), ids.end());
   rt_invert_index_ptr_->Delete(vids.data(), vids.size());
   return 0;

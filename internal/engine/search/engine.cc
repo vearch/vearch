@@ -254,7 +254,7 @@ Status Engine::Search(Request &request, Response &response_results) {
   if (vec_fields_num > 0 && (not brute_force_search) &&
       (index_status_ != IndexStatus::INDEXED) &&
       (max_docid_ > brute_force_search_threshold)) {
-    std::string msg = "index not trained!";
+    std::string msg = space_name_ +  " index not trained!";
     LOG(WARNING) << msg;
     for (int i = 0; i < req_num; ++i) {
       SearchResult result;
@@ -531,7 +531,7 @@ Status Engine::CreateTable(TableInfo &table) {
   std::vector<int> vector_cf_ids;
 
   vec_manager_ = new VectorManager(VectorStorageType::RocksDB, docids_bitmap_,
-                                   index_root_path_);
+                                   index_root_path_, space_name_);
   {
     std::vector<struct VectorInfo> &vectors_infos = table.VectorInfos();
 
@@ -658,7 +658,7 @@ int Engine::AddOrUpdate(Doc &doc) {
   };
 
   if (not b_running_ and index_status_ == UNINDEXED) {
-    if (max_docid_ >= training_threshold_) {
+    if (max_docid_ - delete_num_ >= training_threshold_) {
       LOG(INFO) << space_name_ << " begin indexing. training_threshold="
                 << training_threshold_;
       this->BuildIndex();
@@ -859,10 +859,7 @@ int Engine::GetDoc(int docid, Doc &doc, bool next) {
 int Engine::BuildIndex() {
   int running = __sync_fetch_and_add(&b_running_, 1);
   if (running) {
-    if (vec_manager_->TrainIndex(vec_manager_->VectorIndexes()) != 0) {
-      LOG(ERROR) << space_name_ << " create index failed!";
-      return -1;
-    }
+    LOG(INFO) << space_name_ << " start build index!";
     return 0;
   }
 
@@ -872,28 +869,18 @@ int Engine::BuildIndex() {
   return 0;
 }
 
-// TODO set limit for cpu and should to avoid using vector indexes on the same
-// time
+// TODO set limit for cpu
 int Engine::RebuildIndex(int drop_before_rebuild, int limit_cpu, int describe) {
   int ret = 0;
+  if (!b_running_ || index_status_ == IndexStatus::UNINDEXED) {
+    LOG(INFO) << space_name_ << " index not trained, no need to rebuild!";
+    return ret;
+  }
   if (describe) {
     vec_manager_->DescribeVectorIndexes();
     return ret;
   }
-  std::map<std::string, IndexModel *> vector_indexes;
 
-  if (!drop_before_rebuild) {
-    Status status =
-        vec_manager_->CreateVectorIndexes(training_threshold_, vector_indexes);
-    if (vec_manager_->TrainIndex(vector_indexes) != 0) {
-      LOG(ERROR) << space_name_ << " RebuildIndex TrainIndex failed!";
-      return -1;
-    }
-    LOG(INFO) << space_name_
-              << " vector manager RebuildIndex TrainIndex success!";
-  }
-
-  index_status_ = IndexStatus::UNINDEXED;
   if (b_running_) {
     b_running_ = 0;
     std::mutex running_mutex;
@@ -901,35 +888,55 @@ int Engine::RebuildIndex(int drop_before_rebuild, int limit_cpu, int describe) {
     running_cv_.wait(lk);
   }
 
-  vec_manager_->DestroyVectorIndexes();
-
-  if (drop_before_rebuild) {
+  if (!drop_before_rebuild) {
+    std::map<std::string, IndexModel *> vector_indexes;
     Status status = vec_manager_->CreateVectorIndexes(
-        training_threshold_, vec_manager_->VectorIndexes());
+        training_threshold_, vector_indexes);
     if (!status.ok()) {
       LOG(ERROR) << space_name_ << " RebuildIndex CreateVectorIndexes failed: "
                  << status.ToString();
       vec_manager_->DestroyVectorIndexes();
       return ret;
     }
-    if (vec_manager_->TrainIndex(vec_manager_->VectorIndexes()) != 0) {
-      LOG(ERROR) << space_name_ << " RebuildIndex TrainIndex failed!";
-      return -1;
+
+    if (not b_running_ && max_docid_ - delete_num_ > training_threshold_) {
+      ret = vec_manager_->TrainIndex(vector_indexes);
+      if (ret) {
+        LOG(ERROR) << space_name_ << " RebuildIndex TrainIndex failed ,ret="
+                   << ret;
+        index_status_ = IndexStatus::UNINDEXED;
+        return -1;
+      }
     }
-    LOG(INFO) << space_name_
-              << " vector manager RebuildIndex TrainIndex success!";
+
+    vec_manager_->ReSetVectorIndexes(vector_indexes);
   } else {
-    vec_manager_->SetVectorIndexes(vector_indexes);
-    LOG(INFO) << space_name_ << " vector manager SetVectorIndexes success!";
+    Status status = vec_manager_->ReCreateVectorIndexes(training_threshold_);
+    if (!status.ok()) {
+      LOG(ERROR) << space_name_ << " RebuildIndex ReCreateVectorIndexes failed: "
+                << status.ToString();
+      vec_manager_->DestroyVectorIndexes();
+      return ret;
+    }
+    index_status_ = IndexStatus::UNINDEXED;
   }
 
-  ret = BuildIndex();
-  if (ret) {
-    LOG(ERROR) << space_name_
-               << " ReBuildIndex BuildIndex failed, ret: " << ret;
-    return ret;
+  if (not b_running_ && max_docid_ - delete_num_ >= training_threshold_) {
+    ret = BuildIndex();
+    if (ret) {
+      LOG(ERROR) << space_name_
+                << " ReBuildIndex BuildIndex failed, ret: " << ret;
+      return ret;
+    }
   }
 
+  Status status = vec_manager_->CompactVector();
+  if (!status.ok()) {
+    LOG(ERROR) << space_name_ << "compact vector error: " << status.ToString();
+    return -1;
+  }
+
+  LOG(INFO) << space_name_ << " vector manager RebuildIndex success!";
   return 0;
 }
 
@@ -1184,7 +1191,7 @@ int Engine::Load() {
   }
 
   if (not b_running_ and index_status_ == UNINDEXED) {
-    if (max_docid_ >= training_threshold_) {
+    if (max_docid_ - delete_num_ >= training_threshold_) {
       LOG(INFO) << space_name_ << " begin indexing. training_threshold="
                 << training_threshold_;
       this->BuildIndex();

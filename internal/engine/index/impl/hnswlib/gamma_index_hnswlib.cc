@@ -321,16 +321,21 @@ int GammaIndexHNSWLIB::AddVertices(size_t n0, size_t n, const float *x) {
   int threads_num = n < (size_t)(omp_get_max_threads() - 1)
                         ? n
                         : (size_t)(omp_get_max_threads() - 1);
-
-#pragma omp parallel for schedule(dynamic) num_threads(threads_num)
+  int n_add = 0;
+#pragma omp parallel for schedule(dynamic) num_threads(threads_num) reduction(+ : n_add)
   for (size_t i = 0; i < n; ++i) {
+    if (raw_vec_->Bitmap()->Test(n0 + i)) {
+      continue;
+    }
     addPoint((const void *)(x + i * d), n0 + i);
+    n_add += 1;
   }
 #ifdef PERFORMANCE_TESTING
   add_count_ += n;
   if (add_count_ >= 10000) {
     LOG(DEBUG) << "adding elements on top of " << n0 << ", average add time "
-               << (utils::getmillisecs() - t0) / n << " ms";
+               << (utils::getmillisecs() - t0) / n << " ms" << ", wanted n=" << n
+               << ", real add=" << n_add;
     add_count_ = 0;
   }
 #endif  // PERFORMANCE_TESTING
@@ -430,33 +435,47 @@ long GammaIndexHNSWLIB::GetTotalMemBytes() {
 int GammaIndexHNSWLIB::Update(const std::vector<int64_t> &ids,
                               const std::vector<const uint8_t *> &vecs) {
   std::unique_lock<std::mutex> templock(dump_mutex_);
+  int n_update = 0;
   for (size_t i = 0; i < ids.size(); i++) {
+    if (ids[i] < 0) {
+      LOG(ERROR) << "hnsw update invalid id=" << ids[i];
+      continue;
+    }
+    if (vecs[i] == nullptr) {
+      continue;
+    }
     if (indexed_vec_count_ <= ids[i]) {
-      LOG(WARNING) << "index not build so can't update, id[" << ids[i]
-                   << "] >= indexed_vec_count[" << indexed_vec_count_ << "]";
       continue;
     }
     updatePoint((const void *)vecs[i], ids[i], 1.0);
+    n_update++;
   }
-  updated_num_ += ids.size();
-  LOG(DEBUG) << "update index success! size=" << ids.size()
-             << ", total=" << updated_num_;
+  updated_num_ += n_update;
+  if (updated_num_ % 10000 == 0) {
+    LOG(DEBUG) << "update index success! size=" << ids.size()
+               << ", n_update=" << n_update << ", updated_num="
+               << updated_num_;
+  }
   return 0;
 }
 
 int GammaIndexHNSWLIB::Delete(const std::vector<int64_t> &ids) {
   std::unique_lock<std::mutex> templock(dump_mutex_);
   for (size_t i = 0; i < ids.size(); i++) {
+    if (ids[i] < 0) {
+      LOG(WARNING) << "hnsw delete invalid id=" << ids[i];
+      continue;
+    }
     if (indexed_vec_count_ <= ids[i]) {
-      LOG(WARNING) << "index not build so can't delete, id[" << ids[i]
-                   << "] >= indexed_vec_count[" << indexed_vec_count_ << "]";
       continue;
     }
     markDelete(ids[i]);
   }
   deleted_num_ += ids.size();
-  LOG(DEBUG) << "delete index success! size=" << ids.size()
-             << ", total=" << deleted_num_;
+  if (deleted_num_ % 10000 == 0) {
+    LOG(DEBUG) << "delete index success! size=" << ids.size()
+               << ", total=" << deleted_num_;
+  }
   return 0;
 }
 

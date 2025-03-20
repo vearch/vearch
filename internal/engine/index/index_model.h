@@ -113,13 +113,14 @@ class RetrievalContext {
 class VectorMetaInfo {
  public:
   VectorMetaInfo(const std::string &name, int dimension,
-                 const VectorValueType &type, int version = 0)
+                 const VectorValueType &type, int version = 0, std::string desc = "")
       : name_(name),
         dimension_(dimension),
         data_type_(type),
         size_(0),
         mem_bytes_(0),
-        version_(version) {
+        version_(version),
+        desc_(desc) {
     if (data_type_ == VectorValueType::FLOAT) {
       data_size_ = sizeof(float);
     } else if (data_type_ == VectorValueType::BINARY) {
@@ -132,6 +133,8 @@ class VectorMetaInfo {
   ~VectorMetaInfo() {}
 
   std::string &Name() { return name_; }
+
+  std::string &Desc() { return desc_; }
 
   int Dimension() { return dimension_; }
 
@@ -157,6 +160,7 @@ class VectorMetaInfo {
   int data_size_;              // each vector element size(byte)
   int version_;
   bool with_io_ = true;
+  std::string desc_;
 };
 
 /** Scoped raw vectors (for automatic deallocation)
@@ -228,6 +232,8 @@ class IndexModel {
     vector_ = nullptr;
     indexed_count_ = 0;
     training_threshold_ = 0;
+    name_ = "";
+    desc_ = "";
   }
 
   virtual ~IndexModel() {}
@@ -313,9 +319,16 @@ class IndexModel {
 
   virtual void Describe() {}
 
+  std::string &Name() { return name_; }
+
+  std::string &Desc() { return desc_; }
+
   VectorReader *vector_;
   tbb::concurrent_bounded_queue<int64_t> updated_vids_;
   // warining: indexed_count_ is only used by framework, sub-class cann't use it
   int64_t indexed_count_;
   int64_t training_threshold_;
+  // TODO SET NAME AND DESC
+  std::string name_;
+  std::string desc_;
 };

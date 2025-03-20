@@ -29,12 +29,13 @@ RawVector::RawVector(VectorMetaInfo *meta_info,
       store_params_(store_params),
       docids_bitmap_(docids_bitmap) {
   data_size_ = meta_info_->DataSize();
+  compact_if_need_ = false;
 }
 
 RawVector::~RawVector() {}
 
 int RawVector::Init(std::string vec_name) {
-  desc_ += "raw vector=" + meta_info_->Name() + ", ";
+  desc_ += "raw vector=" + meta_info_->Desc() + meta_info_->Name() + ", ";
 
   vector_byte_size_ = meta_info_->Dimension() * data_size_;
 
@@ -84,6 +85,15 @@ int RawVector::Add(int64_t docid, float *data) {
     return -2;
   }
   meta_info_->size_++;
+  return ret;
+}
+
+int RawVector::Delete(int64_t docid) {
+  int ret = DeleteFromStore(docid);
+  if (ret) {
+    LOG(ERROR) << "delete from store error, docid=" << docid << ", ret=" << ret;
+    return -1;
+  }
   return ret;
 }
 

@@ -124,7 +124,11 @@ class RawVector : public VectorReader {
 
   int Add(int64_t docid, float *data);
 
+  int Delete(int64_t docid);
+
   int Update(int64_t docid, struct Field &field);
+
+  virtual Status Compact() { return Status::OK(); }
 
   virtual size_t GetStoreMemUsage() { return 0; }
 
@@ -137,6 +141,8 @@ class RawVector : public VectorReader {
    */
   virtual int AddToStore(uint8_t *v, int len) = 0;
 
+  virtual int DeleteFromStore(int64_t docid) = 0;
+
   virtual int UpdateToStore(int64_t vid, uint8_t *v, int len) = 0;
 
   // [start_vid, end_vid)
@@ -146,8 +152,12 @@ class RawVector : public VectorReader {
 
   bool WithIO() { return meta_info_->with_io_; }
 
+  bool CompactIfNeed() { return compact_if_need_; }
+
   bitmap::BitmapManager *Bitmap() { return docids_bitmap_; }
+
   long VectorByteSize() { return vector_byte_size_; }
+
   DumpConfig *GetDumpConfig();
 
   StorageManager *storage_mgr_;
@@ -172,6 +182,7 @@ class RawVector : public VectorReader {
   std::string desc_;      // description of this raw vector
   StoreParams store_params_;
   bitmap::BitmapManager *docids_bitmap_;
+  bool compact_if_need_;
 };
 
 }  // namespace vearch

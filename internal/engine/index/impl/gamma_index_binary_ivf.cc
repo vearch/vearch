@@ -164,13 +164,16 @@ bool GammaIndexBinaryIVF::Add(int n, const uint8_t *vec) {
 
   size_t n_add = 0;
   long vid = indexed_vec_count_;
+  RawVector *raw_vec = dynamic_cast<RawVector *>(vector_);
   for (int i = 0; i < n; i++) {
     long list_no = idx[i];
     assert(list_no < (long)nlist);
     if (list_no < 0) {
       continue;
     }
-
+    if (raw_vec->Bitmap()->Test(vid)) {
+      continue;
+    }
     // long id = (long)(indexed_vec_count_++);
     const uint8_t *code = vec + i * code_size;
 
@@ -183,18 +186,19 @@ bool GammaIndexBinaryIVF::Add(int n, const uint8_t *vec) {
     n_add++;
   }
 
-  ntotal += n_add;
+  ntotal += n;
 
   if (!rt_invert_index_ptr_->AddKeys(new_keys, new_codes)) {
     return false;
   }
-  indexed_vec_count_ = vid;
+  indexed_vec_count_ += n;
 #ifdef PERFORMANCE_TESTING
   add_count_ += n;
   if (add_count_ >= 100000) {
     double t1 = faiss::getmillisecs();
     LOG(DEBUG) << "Add time [" << (t1 - t0) / n << "]ms, count "
-               << indexed_vec_count_;
+               << indexed_vec_count_ << " wanted n=" << n
+               << " real add=" << n_add;
     rt_invert_index_ptr_->PrintBucketSize();
     add_count_ = 0;
   }

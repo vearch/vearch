@@ -770,11 +770,31 @@ func (handler *DocumentHandler) handleIndexRebuild(c *gin.Context) {
 	}
 	args.LimitCpu = int64(indexRequest.LimitCPU)
 	args.Describe = int64(indexRequest.Describe)
+	args.PartitionId = indexRequest.PartitionId
 
-	_, err = handler.docService.getSpace(c.Request.Context(), args.Head)
+	space, err := handler.docService.getSpace(c.Request.Context(), args.Head)
 	if err != nil {
 		response.New(c).JsonError(errors.NewErrInternal(err))
 		return
+	}
+	if space == nil {
+		err := vearchpb.NewError(vearchpb.ErrorEnum_SPACE_NOT_EXIST, nil)
+		response.New(c).JsonError(errors.NewErrBadRequest(err))
+		return
+	}
+	if args.PartitionId > 0 {
+		found := false
+		for _, partition := range space.Partitions {
+			if partition.Id == args.PartitionId {
+				found = true
+				break
+			}
+		}
+		if !found {
+			err := vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("partition_id %d not belong to space %s", args.PartitionId, space.Name))
+			response.New(c).JsonError(errors.NewErrBadRequest(err))
+			return
+		}
 	}
 
 	indexResponse := handler.docService.rebuildIndex(c.Request.Context(), args)
