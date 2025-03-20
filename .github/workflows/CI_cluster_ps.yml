@@ -1,0 +1,350 @@
+name: CI Cluster PS
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+  workflow_dispatch:
+
+jobs:
+  cluster-build-and-test:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            runs-on: ubuntu-latest
+            docker-arch: ""
+          - platform: linux/arm64
+            runs-on: ubuntu-latest
+            docker-arch: "--platform linux/arm64"
+    runs-on: ${{ matrix.runs-on }}
+
+    env:
+      TARGET_PLATFORM: ${{ matrix.platform }}
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set cluster env
+      uses: ./.github/actions/set_cluster_env
+      with:
+        build-type: github
+
+    - name: Install Docker Compose
+      run: |
+        sudo curl -L "https://github.com/docker/compose/releases/download/$(curl -s https://api.github.com/repos/docker/compose/releases/latest | grep -oP '"tag_name": "\K(.*)(?=")')/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+        sudo chmod +x /usr/local/bin/docker-compose
+
+    - name: Run tests for restart ps
+      run: |
+        cd test
+        pytest test_cluster_ps.py -k "TestClusterPartitionServerAdd" -x --log-cli-level=INFO
+        cd ../cloud
+        docker-compose stop ps1
+        curl -s -L -u root:secret http://127.0.0.1:8817/cluster/health?detail=true | jq
+        sleep 30
+        status=$(curl -s -L -u root:secret http://127.0.0.1:8817/cluster/health?detail=true\&timeout=1000000 | jq -r '.data[0].status')
+        if [ "$status" != "yellow" ]; then
+          echo "Error: Status is not yellow. Status is $status."
+          exit 1
+        else
+          echo "Status is yellow."
+        fi
+        sleep 30
+        docker-compose start ps1
+        cd ../test
+        pytest test_cluster_ps.py -x -k "TestClusterPartitionServerRecover" --log-cli-level=INFO
+        pytest test_cluster_ps.py -x -k "TestClusterPartitionServerCheckSpace" --log-cli-level=INFO
+        pytest test_cluster_ps.py -x -k "TestClusterPartitionServerDestroy" --log-cli-level=INFO
+        sleep 10
+        db_num=$(curl -s -L -u root:secret http://127.0.0.1:8817/dbs | jq '.data | length')
+        if [ "$db_num" -ne 0 ]; then
+          echo "db is not empty"
+          exit 1
+        fi
+        pytest test_cluster_ps.py -k "TestClusterPartitionChange" --log-cli-level=INFO
+        sleep 10
+        curl -s -L -u root:secret http://127.0.0.1:8817/servers | jq
+        curl -s -L -u root:secret http://127.0.0.1:8817/cluster/health?detail=true | jq
+
+    - name: Run tests for upsert with faulty ps
+      run: |
+        cd test
+        pytest test_cluster_ps.py -k "TestFailServerUpsertPrepare" -x --log-cli-level=INFO
+        cd ../cloud
+        docker-compose stop ps1
+        sleep 30
+        status=$(curl -s -L -u root:secret http://127.0.0.1:8817/cluster/health?detail=true\&timeout=1000000 | jq -r '.data[0].status')
+        if [ "$status" != "yellow" ]; then
+          echo "Error: Status is not yellow. Status is $status."
+          exit 1
+        else
+          echo "Status is yellow."
+        fi
+        cd ../test
+        pytest test_cluster_ps.py -k "TestFailServerUpsertDocument" -x --log-cli-level=INFO
+        cd ../cloud
+        docker-compose start ps1
+        cd ../test
+        sleep 30
+        pytest test_cluster_ps.py -x -k "TestFailServerUpsertDestroy" --log-cli-level=INFO
+        sleep 10
+        db_num=$(curl -s -L -u root:secret http://127.0.0.1:8817/dbs | jq '.data | length')
+        if [ "$db_num" -ne 0 ]; then
+          echo "db is not empty"
+          exit 1
+        fi
+        curl -s -L -u root:secret http://127.0.0.1:8817/cluster/health?detail=true | jq
+
+    - name: Run tests for faulty ps
+      run: |
+        cd test
+        pytest test_cluster_ps.py -x -k "TestClusterFaultyPartitionServerCreateSpace" --log-cli-level=INFO
+        pytest test_cluster_ps.py -x -k "TestClusterFaultyPartitionServerGetMetaData" --log-cli-level=INFO
+        cd ../cloud
+        docker-compose stop ps1
+        curl -s -L -u root:secret http://127.0.0.1:8817/cluster/health?detail=true | jq
+        sleep 30
+        status=$(curl -s -L -u root:secret http://127.0.0.1:8817/cluster/health?detail=true\&timeout=1000000 | jq -r '.data[0].status')
+        if [ "$status" != "yellow" ]; then
+          echo "Error: Status is not yellow. Status is $status."
+          exit 1
+        else
+          echo "Status is yellow."
+        fi
+        cd ../test
+        pytest test_cluster_ps.py -x -k "TestClusterFaultyPartitionServerPrepareData" --log-cli-level=INFO
+        pytest test_cluster_ps.py -x -k "TestClusterFaultyPartitionServerGetMetaData" --log-cli-level=INFO
+        cd ../cloud && docker-compose stop ps2
+        sleep 30
+        status=$(curl -s -L -u root:secret http://127.0.0.1:8817/cluster/health?detail=true\&timeout=1000000 | jq -r '.data[0].status')
+        if [ "$status" != "red" ]; then
+          echo "Error: Status is not red. Status is $status."
+          exit 1
+        else
+          echo "Status is red."
+        fi
+        sleep 30
+        errors=$(curl -s -L -u root:secret http://127.0.0.1:8817/cluster/health?detail=true\&timeout=1000000 | jq -r '.data[0].spaces[].errors[] | select(contains("leader"))')
+        if [ -z "$errors" ]; then
+          echo "Error: errors is $errors."
+          exit 1
+        else
+          echo "$errors"
+        fi
+        cd ../test
+        # TODO remove sleep
+        sleep 60
+        pytest test_cluster_ps.py -x -k "TestClusterFaultyPartitionServerSearch" --log-cli-level=INFO
+        pytest test_cluster_ps.py -x -k "TestClusterFaultyPartitionServerGetMetaData" --log-cli-level=INFO
+        cd ../cloud
+        docker-compose start ps1
+        docker-compose start ps2
+        sleep 60
+        cd ../test
+        pytest test_cluster_ps.py -x -k "TestClusterPartitionServerDestroy" --log-cli-level=INFO
+        sleep 10
+
+        db_num=$(curl -s -L -u root:secret http://127.0.0.1:8817/dbs | jq '.data | length')
+        if [ "$db_num" -ne 0 ]; then
+          echo "db is not empty"
+          exit 1
+        fi
+        curl -s -L -u root:secret http://127.0.0.1:8817/schedule/clean_task
+        sleep 10
+        curl -s -L -u root:secret http://127.0.0.1:8817/servers | jq
+        curl -s -L -u root:secret http://127.0.0.1:8817/cluster/health?detail=true\&timeout=1000000 | jq
+
+    - name: Run tests for incomplete shared
+      run: |
+        cd test
+        pytest test_cluster_ps.py -x -k "TestIncompleteShardPrepare" --log-cli-level=INFO
+        cd ../cloud
+        docker-compose stop ps1
+        curl -s -L -u root:secret http://127.0.0.1:8817/cluster/health?detail=true\&timeout=1000000 | jq
+        sleep 30
+        status=$(curl -s -L -u root:secret http://127.0.0.1:8817/cluster/health?detail=true\&timeout=1000000 | jq -r '.data[0].status')
+        if [ "$status" != "red" ]; then
+          echo "Error: Status is not red. Status is $status."
+          exit 1
+        else
+          echo "Status is red."
+        fi
+        errors=$(curl -s -L -u root:secret http://127.0.0.1:8817/cluster/health?detail=true\&timeout=1000000 | jq -r '.data[0].spaces[].errors[] | select(contains("call_rpcclient_failed"))')
+        errors2=$(curl -s -L -u root:secret http://127.0.0.1:8817/cluster/health?detail=true\&timeout=1000000 | jq -r '.data[0].spaces[].errors[] | select(contains("not found"))')
+        if [ -z "$errors" ] && [ -z "$errors2" ]; then
+          echo "Error: errors=$errors and errors2=$errors2."
+          exit 1
+        else
+          echo "errors=$errors and errors2=$errors2"
+        fi
+        docker-compose stop ps2
+        cd ../test
+        # TODO remove sleep
+        sleep 60
+        pytest test_cluster_ps.py -x -k "TestIncompleteShardSearch" --log-cli-level=INFO
+        cd ../cloud
+        docker-compose stop ps3
+        curl -s -L -u root:secret http://127.0.0.1:8817/cluster/health?detail=true | jq
+        docker-compose start ps1
+        docker-compose start ps2
+        docker-compose start ps3
+        sleep 60
+        cd ../test
+        pytest test_cluster_ps.py -x -k "TestClusterPartitionServerDestroy" --log-cli-level=INFO
+        sleep 10
+
+        db_num=$(curl -s -L -u root:secret http://127.0.0.1:8817/dbs | jq '.data | length')
+        if [ "$db_num" -ne 0 ]; then
+          echo "db is not empty"
+          exit 1
+        fi
+        curl -s -L -u root:secret http://127.0.0.1:8817/schedule/clean_task
+        sleep 10
+        curl -s -L -u root:secret http://127.0.0.1:8817/servers | jq
+        curl -s -L -u root:secret http://127.0.0.1:8817/cluster/health?detail=true | jq
+
+    - name: Run tests for fail server
+      run: |
+        cd test
+        pytest test_cluster_ps.py -x -k "TestFailServerPrepare" --log-cli-level=INFO
+        sed -i 's/name = "vearch"/name = "test"/' ../cloud/config_cluster.toml
+        cd .. && docker-compose -f cloud/docker-compose.yml restart ps1
+        docker-compose -f cloud/docker-compose.yml restart router1
+        sed -i 's/name = "test"/name = "vearch"/' cloud/config_cluster.toml
+        sleep 60
+        status=$(curl -u root:secret http://127.0.0.1:8817/cluster/health | jq -r '.data[0].spaces[0].status')
+        if [ "$status" != "yellow" ]; then
+          echo "Error: Status is not yellow. Status is $status."
+          exit 1
+        else
+          echo "Status is yellow."
+        fi
+        router_status=$(curl -s -u root:secret http://172.16.238.14:9001 || true)
+        if [ $? != 7 ]; then
+          echo "Router status is not OK. Status is $router_status."
+        else
+          echo "Router is OK. Status is $router_status."
+          exit 1
+        fi
+        docker-compose -f cloud/docker-compose.yml up ps4 -d
+        docker-compose -f cloud/docker-compose.yml restart router1
+        sleep 60
+        max_retries=30
+        retry=0
+        success=false
+        while [ $retry -lt $max_retries ]; do
+          status=$(curl -s -u root:secret http://127.0.0.1:8817/cluster/health | jq -r '.data[0].spaces[0].status')
+          if [ "$status" == "green" ]; then
+            success=true
+            break
+          else
+            echo "Retry $((retry+1))/$max_retries: Status is not green. Status is $status. Retrying in 30 seconds..."
+            retry=$((retry+1))
+            sleep 30
+          fi
+        done
+
+        if [ "$success" != "true" ]; then
+          echo "Error: Status is not green after $max_retries attempts. Status is $status."
+          exit 1
+        else
+          echo "Status is green."
+        fi
+        docker-compose -f cloud/docker-compose.yml restart ps1
+        sleep 60
+        cd test && pytest test_cluster_ps.py -x -k "TestClusterPartitionServerDestroy" --log-cli-level=INFO
+        sleep 10
+
+        db_num=$(curl -s -L -u root:secret http://127.0.0.1:8817/dbs | jq '.data | length')
+        if [ "$db_num" -ne 0 ]; then
+          echo "db is not empty"
+          exit 1
+        fi
+        cd .. && docker-compose -f cloud/docker-compose.yml stop ps4
+        sleep 30 && docker ps
+        curl -s -L -u root:secret http://127.0.0.1:8817/schedule/clean_task
+        sleep 10
+        curl -s -L -u root:secret http://127.0.0.1:8817/servers | jq
+        curl -s -L -u root:secret http://127.0.0.1:8817/cluster/health?detail=true | jq
+
+    - name: Run tests for auto recover replica
+      run: |
+        cd test
+        pytest test_cluster_ps.py -x -k "TestFailServerPrepare" --log-cli-level=INFO
+        cd .. && docker-compose -f cloud/docker-compose.yml start ps4
+        docker-compose -f cloud/docker-compose.yml stop ps1
+        sleep 30
+        max_retries=30
+        retry=0
+        success=false
+        while [ $retry -lt $max_retries ]; do
+          servers=$(curl -s -L -u root:secret http://127.0.0.1:8817/servers?timeout=30000)
+          status=$(echo $servers | jq -r '.data.servers[] | select(.server.ip == "172.16.238.19") | .partitions | length == 1')
+          if [ "$status" == "true" ]; then
+            success=true
+            echo $servers | jq
+            break
+          else
+            echo "Retry $((retry+1))/$max_retries: ps4 partitions num should be 1. Retrying in 30 seconds..."
+            echo $servers
+            retry=$((retry+1))
+            sleep 30
+          fi
+        done
+        if [ "$success" != "true" ]; then
+          echo "Error: ps4 partitions num should be 1 after $max_retries attempts."
+          exit 1
+        fi
+        sleep 30
+
+        docker-compose -f cloud/docker-compose.yml start ps1
+        retry=0
+        success=false
+        while [ $retry -lt $max_retries ]; do
+          servers=$(curl -s -L -u root:secret http://127.0.0.1:8817/servers)
+          status=$(echo $servers | jq -r '.data.servers[] | select(.server.ip == "172.16.238.16") | .partitions | length == 0')
+          if [ "$status" == "true" ]; then
+            success=true
+            echo $servers | jq
+            break
+          else
+            echo "Retry $((retry+1))/$max_retries: ps1 partitions num should be 0. Retrying in 30 seconds..."
+            echo $servers
+            retry=$((retry+1))
+            sleep 30
+          fi
+        done
+        if [ "$success" != "true" ]; then
+          echo "Error: ps1 partitions num should be 0 after $max_retries attempts."
+          exit 1
+        fi
+
+        status=$(curl -u root:secret http://127.0.0.1:8817/cluster/health | jq -r '.data[0].spaces[0].status')
+        if [ "$status" != "green" ]; then
+          echo "Error: Status is not green. Status is $status."
+          exit 1
+        else
+          echo "Status is green."
+        fi
+        cd test && pytest test_cluster_ps.py -x -k "TestClusterPartitionServerDestroy" --log-cli-level=INFO
+        sleep 10
+
+        db_num=$(curl -s -L -u root:secret http://127.0.0.1:8817/dbs | jq '.data | length')
+        if [ "$db_num" -ne 0 ]; then
+          echo "db is not empty"
+          exit 1
+        fi
+        cd .. && docker-compose -f cloud/docker-compose.yml stop ps4
+        sleep 60 && docker ps
+        curl -s -L -u root:secret http://127.0.0.1:8817/schedule/clean_task
+        sleep 10
+        curl -s -L -u root:secret http://127.0.0.1:8817/servers | jq
+        curl -s -L -u root:secret http://127.0.0.1:8817/cluster/health?detail=true | jq
+  
+    - name: Clean cluster
+      run: |
+        docker-compose -f cloud/docker-compose.yml --profile cluster stop
+        docker-compose -f cloud/docker-compose.yml down ps4
+        docker-compose -f cloud/docker-compose.yml --profile cluster down

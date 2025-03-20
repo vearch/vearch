@@ -1,0 +1,198 @@
+name: CI Cluster Master
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+  workflow_dispatch:
+
+jobs:
+  cluster-build-and-test:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            runs-on: ubuntu-latest
+            docker-arch: ""
+          - platform: linux/arm64
+            runs-on: ubuntu-latest
+            docker-arch: "--platform linux/arm64"
+    runs-on: ${{ matrix.runs-on }}
+
+    env:
+      TARGET_PLATFORM: ${{ matrix.platform }}
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set cluster env
+      uses: ./.github/actions/set_cluster_env
+      with:
+        build-type: github
+
+    - name: Install Docker Compose
+      run: |
+        sudo curl -L "https://github.com/docker/compose/releases/download/$(curl -s https://api.github.com/repos/docker/compose/releases/latest | grep -oP '"tag_name": "\K(.*)(?=")')/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+        sudo chmod +x /usr/local/bin/docker-compose
+
+    - name: Run tests for master down and restart
+      run: |
+        cd cloud
+        docker-compose stop master1
+        cd ../test
+        pytest test_vearch.py -x -k "test_vearch_basic_usage" --log-cli-level=INFO
+        pytest test_cluster_master.py -x -k "TestClusterMasterPrepare" --log-cli-level=INFO
+        pytest test_cluster_master.py -x -k "TestClusterMasterOperate" --log-cli-level=INFO
+        # prepare for 2 masters down
+        pytest test_cluster_master.py -x -k "TestClusterMasterPrepare" --log-cli-level=INFO
+        cd ../cloud && docker-compose stop master2
+        cd ../test
+        pytest test_cluster_master.py -x -k "TestClusterMasterOperate" --log-cli-level=INFO
+        # all down
+        cd ../cloud && docker-compose stop master3
+        sleep 60
+        cd ../test
+        pytest test_cluster_master.py -x -k "TestClusterMasterOperate" --log-cli-level=INFO
+        cd ../cloud
+        docker-compose start master1 && sleep 30 && docker ps
+        docker-compose start master2 && sleep 30 && docker ps
+        docker-compose start master3 && sleep 90 && docker ps
+        cd ../test
+        pytest test_cluster_master.py -x -k "TestClusterMasterOperate" --log-cli-level=INFO
+        pytest test_vearch.py -x -k "test_vearch_basic_usage" --log-cli-level=INFO
+        sleep 10
+        curl -s -L -u root:secret http://127.0.0.1:8817/schedule/clean_task
+        sleep 10
+        curl -s -L -u root:secret http://127.0.0.1:8817/servers | jq
+        curl -s -L -u root:secret http://127.0.0.1:8817/cluster/health?detail=true | jq
+
+    - name: Run tests for replica anti_affinity strategy
+      run: |
+        anti_affinity=1
+
+        docker-compose -f cloud/docker-compose.yml start ps4
+        docker-compose -f cloud/docker-compose.yml up ps5 -d
+        while [ $anti_affinity -lt 4 ]; do
+          echo "replica_anti_affinity_strategy = $anti_affinity"
+          sed -i "s/replica_anti_affinity_strategy = 0/replica_anti_affinity_strategy = $anti_affinity/" cloud/config_cluster.toml
+          cat cloud/config_cluster.toml
+
+          for master in master1 master2 master3; do
+            docker-compose -f cloud/docker-compose.yml restart $master
+          done
+
+          sleep 30
+          max_retries=3
+          retry=0
+          while [ $retry -lt $max_retries ]; do
+            curl -s -L -u root:secret http://127.0.0.1:8817/members/stats?timeout=100000 | jq
+            member_num=$(curl -s -L -u root:secret http://127.0.0.1:8817/members/stats?timeout=100000 | jq '.data | length')
+            if [ "$member_num" -ne 3 ]; then
+              retry=$((retry+1))
+              echo "master members should be 3"
+              sleep 30
+            else
+              break
+            fi
+          done
+
+          for ps in ps1 ps2 ps3 ps4 ps5; do
+            docker-compose -f cloud/docker-compose.yml restart $ps
+          done
+
+          sleep 20
+          retry=0
+          while [ $retry -lt $max_retries ]; do
+            curl -s -L -u root:secret http://127.0.0.1:8817/servers?timeout=100000 | jq
+            server_num=$(curl -s -L -u root:secret http://127.0.0.1:8817/servers?timeout=100000 | jq '.data | length')
+              if [ "$server_num" -ne 5 ]; then
+                retry=$((retry+1))
+                echo "server should be 5"
+                sleep 30
+              else
+                break
+              fi
+          done
+  
+          cd test
+          max_retries=10
+          retry=0
+          while [ $retry -lt $max_retries ]; do
+            pytest test_cluster_ps.py -x -k "TestAntiAffinity" --log-cli-level=INFO
+            servers=$(curl -s -L -u root:secret http://127.0.0.1:8817/servers)
+            status_ps4=$(echo $servers | jq -r '.data.servers[] | select(.server.ip == "172.16.238.19") | .server.p_ids | length == 1')
+            status_ps5=$(echo $servers | jq -r '.data.servers[] | select(.server.ip == "172.16.238.20") | .server.p_ids | length == 1')
+            if [ "$status_ps4" == "true" ] && [ "$status_ps5" == "true" ]; then
+              echo $servers | jq
+              echo "ps4 and ps5 partitions num should not be 1 together."
+              exit 1
+            fi
+            retry=$((retry+1))
+            pytest test_cluster_ps.py -x -k "TestClusterPartitionServerDestroy" --log-cli-level=INFO
+            sleep 5
+            db_num=$(curl -s -L -u root:secret http://127.0.0.1:8817/dbs | jq '.data | length')
+            if [ "$db_num" -ne 0 ]; then
+              echo "db is not empty"
+              exit 1
+            fi
+          done
+
+          pytest test_cluster_ps.py -x -k "TestFailAntiAffinity" --log-cli-level=INFO
+
+          db_num=$(curl -s -L -u root:secret http://127.0.0.1:8817/dbs | jq '.data | length')
+          if [ "$db_num" -ne 0 ]; then
+            echo "db is not empty"
+            exit 1
+          fi
+
+          cd ..
+          sed -i "s/replica_anti_affinity_strategy = $anti_affinity/replica_anti_affinity_strategy = 0/" cloud/config_cluster.toml
+          anti_affinity=$((anti_affinity+1))
+        done
+
+        sleep 10
+
+        for master in master1 master2 master3; do
+          docker-compose -f cloud/docker-compose.yml restart $master
+        done
+
+        for ps in ps1 ps2 ps3 ps4 ps5; do
+          docker-compose -f cloud/docker-compose.yml restart $ps
+        done
+
+        sleep 30
+        curl -s -L -u root:secret http://127.0.0.1:8817/schedule/clean_task
+        sleep 10
+
+        docker-compose -f cloud/docker-compose.yml stop ps4
+        docker-compose -f cloud/docker-compose.yml stop ps5
+        sleep 30
+        curl -s -L -u root:secret http://127.0.0.1:8817/servers | jq
+        curl -s -L -u root:secret http://127.0.0.1:8817/cluster/health?detail=true | jq
+  
+    - name: Run tests for master replace member
+      run: |
+        cd test
+        pytest test_cluster_master.py -x -k "TestClusterChangeMasterMemberPrePare" --log-cli-level=INFO
+        docker-compose -f ../cloud/docker-compose.yml stop master1
+        pytest test_cluster_master.py -x -k "TestClusterMemberInfomation" --log-cli-level=INFO
+        sed -i 's/m1/m4/' ../cloud/config_cluster.toml
+        sed -i 's/vearch-master1/vearch-master4/' ../cloud/config_cluster.toml
+        sed -i 's/cluster_state = "new"/cluster_state = "existing"/g' ../cloud/config_cluster.toml
+        pytest test_cluster_master.py -x -k "TestClusterRemoveMasterMember" --log-cli-level=INFO
+        pytest test_cluster_master.py -x -k "TestClusterMemberInfomation" --log-cli-level=INFO
+        pytest test_cluster_master.py -x -k "TestClusterAddMasterMember" --log-cli-level=INFO
+        docker-compose -f ../cloud/docker-compose.yml up master4 -d
+        sleep 10
+        pytest test_cluster_master.py -x -k "TestClusterMemberInfomation" --log-cli-level=INFO
+        pytest test_cluster_master.py -x -k "TestClusterMasterOperate" --log-cli-level=INFO
+        pytest test_vearch.py -x -k "test_vearch_basic_usage" --log-cli-level=INFO
+
+    - name: Clean cluster
+      run: |
+        docker-compose -f cloud/docker-compose.yml --profile cluster stop
+        docker-compose -f cloud/docker-compose.yml stop master4
+        docker-compose -f cloud/docker-compose.yml down ps4
+        docker-compose -f cloud/docker-compose.yml down ps5
+        docker-compose -f cloud/docker-compose.yml --profile cluster down
