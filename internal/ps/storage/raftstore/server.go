@@ -101,7 +101,7 @@ func (r *RaftResolver) AddNode(id entity.NodeID, replica *entity.Replica) {
 	ref.rpcAddr = replica.RpcAddr
 	obj, _ := r.nodes.LoadOrStore(id, ref)
 	log.Debug("RaftResolver AddNode(), nodeId: [%d], nodeRef:[%v], obj:[%v]", id, ref, obj)
-	r.nodes.Range(func(key, value interface{}) bool {
+	r.nodes.Range(func(key, value any) bool {
 		log.Debug("r.nodes, key: [%v], value: [%v]", key, value)
 		return true
 	})

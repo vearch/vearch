@@ -17,8 +17,8 @@ package mapping
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
-	vmap "github.com/vearch/vearch/v3/internal/pkg/map"
 	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
 )
 
@@ -98,6 +98,54 @@ func parseMappingProperties(prefix string, result map[string]FieldMappingI, dms 
 	return nil
 }
 
+// make map to level 1 example map[a][b]=1  it wil map[a.b]=1
+func DrawMap(maps map[string]any, split string) map[string]any {
+	newMap := make(map[string]any)
+	drawMap(newMap, maps, "", split)
+	return newMap
+}
+
+func drawMap(result, maps map[string]any, prefix, split string) {
+	newPrefix := prefix
+	for k, v := range maps {
+
+		if prefix == "" {
+			newPrefix = k
+		} else {
+			newPrefix = prefix + split + k
+		}
+
+		switch v := v.(type) {
+		case map[string]any:
+			drawMap(result, v, newPrefix, split)
+		default:
+			result[newPrefix] = v
+		}
+	}
+}
+
+// make map to level 1 example map[a.b]=1 it will map[a][b]=1
+func assembleMap(maps map[string]any, split string) map[string]any {
+	newMap := make(map[string]any)
+
+	for k, v := range maps {
+		split := strings.Split(k, split)
+
+		var temp any
+		pre := newMap
+		for i := range len(split) - 1 {
+			temp = pre[split[i]]
+			if temp == nil {
+				temp = make(map[string]any)
+				pre[split[i]] = temp.(map[string]any)
+			}
+			pre = temp.(map[string]any)
+		}
+		pre[split[len(split)-1]] = v
+	}
+	return newMap
+}
+
 // merge two schema to a new one
 func MergeSchema(old, new []byte) ([]byte, error) {
 	newSchemaMap := make(map[string]interface{})
@@ -105,14 +153,14 @@ func MergeSchema(old, new []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	newSchemaMap = vmap.DrawMap(newSchemaMap, ".")
+	newSchemaMap = DrawMap(newSchemaMap, ".")
 
 	oldSchemaMap := make(map[string]interface{})
 	err = json.Unmarshal([]byte(old), &oldSchemaMap)
 	if err != nil {
 		return nil, err
 	}
-	oldSchemaMap = vmap.DrawMap(oldSchemaMap, ".")
+	oldSchemaMap = DrawMap(oldSchemaMap, ".")
 
 	for ok, ov := range oldSchemaMap {
 		if nv := newSchemaMap[ok]; nv != nil && nv != ov {
@@ -122,7 +170,7 @@ func MergeSchema(old, new []byte) ([]byte, error) {
 		}
 	}
 
-	newSchemaMap = vmap.AssembleMap(newSchemaMap, ".")
+	newSchemaMap = assembleMap(newSchemaMap, ".")
 	bytes, err := json.Marshal(newSchemaMap)
 	if err != nil {
 		return nil, err

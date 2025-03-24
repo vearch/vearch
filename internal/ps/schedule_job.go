@@ -27,19 +27,30 @@ import (
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
-func equalUint32(a, b []uint32) bool {
-	if len(a) != len(b) {
-		return false
+func comparePartitionIDs(oldIDs, newIDs []uint32) (bool, []uint32, []uint32) {
+	if len(oldIDs) != len(newIDs) {
+		return false, nil, nil
 	}
-	slices.Sort(a)
-	slices.Sort(b)
-	// Compare the sorted slices
-	for i := range a {
-		if a[i] != b[i] {
-			return false
+
+	oldMap := make(map[uint32]struct{}, len(oldIDs))
+	for _, id := range oldIDs {
+		oldMap[id] = struct{}{}
+	}
+
+	added := make([]uint32, 0)
+	for _, id := range newIDs {
+		if _, exists := oldMap[id]; !exists {
+			added = append(added, id)
 		}
+		delete(oldMap, id)
 	}
-	return true
+
+	removed := make([]uint32, 0, len(oldMap))
+	for id := range oldMap {
+		removed = append(removed, id)
+	}
+
+	return len(added) == 0 && len(removed) == 0, added, removed
 }
 
 // this job for heartbeat master 1m once
@@ -47,7 +58,11 @@ func (s *Server) StartHeartbeatJob() {
 	s.wg.Add(1)
 	go func() {
 		defer s.wg.Done()
-
+		const (
+			checkInterval  = 5 * time.Second
+			reconnectDelay = 2 * time.Second
+			maxRetries     = 5
+		)
 		server := &entity.Server{
 			ID:                s.nodeID,
 			Ip:                s.ip,
@@ -87,13 +102,7 @@ func (s *Server) StartHeartbeatJob() {
 				continue
 			}
 
-			bFound := false
-			for _, nodeId := range partition.Replicas {
-				if nodeId == s.nodeID {
-					bFound = true
-					break
-				}
-			}
+			bFound := slices.Contains(partition.Replicas, s.nodeID)
 
 			if !bFound {
 				log.Error("partition %d not found in replicas", pid)
@@ -110,59 +119,95 @@ func (s *Server) StartHeartbeatJob() {
 		lastPartitionIds = server.PartitionIds
 
 		go func() {
+			ticker := time.NewTicker(checkInterval)
+			defer ticker.Stop()
+
+			retries := 0
+
 			for {
-				time.Sleep(1 * time.Second)
-				s.raftResolver.RangeNodes(s.UpdateResolver)
+				select {
+				case <-ticker.C:
+					s.raftResolver.RangeNodes(s.updateResolver)
 
-				if leaseId == 0 {
-					log.Info("leaseId == 0, continue...")
-					continue
+					if leaseId == 0 {
+						continue
+					}
+
+					newPartitionIds := psutil.GetAllPartitions(config.Conf().GetDatas())
+
+					equal, added, removed := comparePartitionIDs(lastPartitionIds, newPartitionIds)
+					if equal {
+						continue
+					}
+
+					if len(added) > 0 {
+						log.Info("Partitions added: %v", added)
+					}
+					if len(removed) > 0 {
+						log.Info("Partitions removed: %v", removed)
+					}
+
+					server.PartitionIds = newPartitionIds
+					err := s.client.Master().PutServerWithLeaseID(ctx, server, leaseId)
+					if err != nil {
+						retries++
+						log.Error("Failed to update server info (attempt %d/%d): %v", retries, maxRetries, err)
+						if retries >= maxRetries {
+							leaseId = 0
+							retries = 0
+							log.Warn("Max retries reached, forcing lease renewal")
+							continue
+						}
+					} else {
+						retries = 0
+						lastPartitionIds = newPartitionIds
+						log.Info("Server partition info updated successfully, new count: %d", len(newPartitionIds))
+					}
+
+				case <-ctx.Done():
+					log.Info("Partition monitor stopped")
+					return
 				}
-
-				server.PartitionIds = psutil.GetAllPartitions(config.Conf().GetDatas())
-				if equalUint32(lastPartitionIds, server.PartitionIds) {
-					// PartitionIds not change, do nothing
-					continue
-				}
-				log.Info("server.PartitionIds has changed, need to put server to topo again! leaseId: [%d]", leaseId)
-
-				if err := s.client.Master().PutServerWithLeaseID(ctx, server, leaseId); err != nil {
-					log.Error("PutServerWithLeaseID[leaseId: %d] err:", leaseId, err.Error())
-				}
-
-				lastPartitionIds = server.PartitionIds
 			}
+
 		}()
 
 		for {
 			select {
 			case <-ctx.Done():
-				log.Error("keep alive ctx done, this ps will can not be found by master!")
+				log.Info("Heartbeat job terminated")
 				return
 			case ka, ok := <-keepaliveC:
 				if !ok {
-					log.Warn("keep alive channel closed! this ps will connect to master two seconds later.")
-					time.Sleep(2 * time.Second)
-					keepaliveC, err = s.client.Master().KeepAlive(ctx, server)
+					log.Warn("Keepalive channel closed, reconnecting in %v...", reconnectDelay)
+					time.Sleep(reconnectDelay)
+
+					newCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+					defer cancel()
+					keepaliveC, err = s.client.Master().KeepAlive(newCtx, server)
 					if err != nil {
-						log.Warnf("KeepAlive err: %s", err.Error())
+						log.Error("Failed to reestablish keepalive: %v", err)
+						leaseId = 0
 					}
 					continue
 				}
+
+				oldLeaseId := leaseId
 				leaseId = ka.ID
-				err := s.client.Master().CheckMasterConfig(ctx)
-				if err != nil {
-					log.Error("check master config err:[%s]", err.Error())
+
+				if oldLeaseId != leaseId {
+					log.Info("Lease ID updated: %d -> %d (TTL: %d)", oldLeaseId, leaseId, ka.TTL)
 				}
-				// log.Debugf("Receive keepalive, leaseId: %d, ttl:%d", ka.ID, ka.TTL)
+				if err := s.client.Master().CheckMasterConfig(ctx); err != nil {
+					log.Error("Master config check failed: %v", err)
+				}
 			}
 		}
 	}()
 }
 
-func (s *Server) UpdateResolver(key, value interface{}) bool {
+func (s *Server) updateResolver(key, value any) bool {
 	id, _ := key.(entity.NodeID)
-	// log.Debugf("update resolver: id: [%v], err: [%v]", id, err)
 	if server, err := s.client.Master().QueryServer(context.Background(), id); err != nil {
 		log.Error("partition recovery get server info err: %s", err.Error())
 	} else {

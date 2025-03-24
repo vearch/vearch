@@ -183,7 +183,7 @@ func (r *rpcClient) GetConcurrent() int {
 func Execute(addr, servicePath string, args *vearchpb.PartitionData, reply *vearchpb.PartitionData) (err error) {
 	ctx := context.Background()
 	sleepTime := baseSleepTime
-	for i := 0; i < adaptRetry; i++ {
+	for i := range adaptRetry {
 		err = execute(ctx, addr, servicePath, args, reply)
 		if err == nil {
 			return nil

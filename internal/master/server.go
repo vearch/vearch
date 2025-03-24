@@ -27,6 +27,7 @@ import (
 	"github.com/vearch/vearch/v3/internal/client"
 	"github.com/vearch/vearch/v3/internal/config"
 	"github.com/vearch/vearch/v3/internal/entity"
+	"github.com/vearch/vearch/v3/internal/monitor"
 	"github.com/vearch/vearch/v3/internal/pkg/log"
 	"github.com/vearch/vearch/v3/internal/pkg/vjson"
 	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
@@ -145,7 +146,8 @@ func (s *Server) Start() (err error) {
 
 	ExportToClusterHandler(httpServer, service, s)
 
-	ExportToMonitorHandler(httpServer, monitorService)
+	monitor.Register(monitorService.Client, monitorService.etcdServer, config.Conf().Masters.Self().MonitorPort)
+	// monitorService.Register()
 
 	// register monitor
 	go func() {

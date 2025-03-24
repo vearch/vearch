@@ -22,6 +22,8 @@ import (
 	"sort"
 	"time"
 
+	"slices"
+
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/v3/internal/client"
 	"github.com/vearch/vearch/v3/internal/entity"
@@ -424,14 +426,7 @@ func (s *SpaceService) DescribeSpace(ctx context.Context, space *entity.Space, s
 					leaderId := 0
 					for nodeID, replica := range partitionInfo.RaftStatus.Replicas {
 						// TODO FIXME: when leader changed, the unreachableNodeIDnre state may still be ReplicaStateProbe
-						isNodeUnreachable := false
-						for _, unreachableNodeID := range partitionInfo.Unreachable {
-							if nodeID == unreachableNodeID {
-								isNodeUnreachable = true
-								break
-							}
-						}
-						if isNodeUnreachable {
+						if slices.Contains(partitionInfo.Unreachable, nodeID) {
 							continue
 						}
 						if replica.State == entity.ReplicaStateProbe {
@@ -616,7 +611,7 @@ func (s *SpaceService) UpdateSpaceResource(ctx context.Context, dbs *DBService, 
 
 	// pick servers for space
 	var paddrs [][]string
-	for i := 0; i < len(partitions); i++ {
+	for i := range partitions {
 		if addrs, err := s.selectServersForPartition(servers, serverPartitions, space.ReplicaNum, partitions[i]); err != nil {
 			return nil, err
 		} else {
@@ -632,7 +627,7 @@ func (s *SpaceService) UpdateSpaceResource(ctx context.Context, dbs *DBService, 
 
 	var errChain = make(chan error, 1)
 	// send create partition for new
-	for i := 0; i < len(partitions); i++ {
+	for i := range partitions {
 		go func(addrs []string, partition *entity.Partition) {
 			//send request for all server
 			defer func() {
@@ -681,7 +676,7 @@ func (s *SpaceService) UpdateSpaceResource(ctx context.Context, dbs *DBService, 
 
 	//update space
 	width := math.MaxUint32 / space.PartitionNum
-	for i := 0; i < space.PartitionNum; i++ {
+	for i := range space.PartitionNum {
 		space.Partitions[i].Slot = entity.SlotID(i * width)
 	}
 	log.Debug("updateSpacePartitionNum space version %d, partition_num %d", space.Version, space.PartitionNum)

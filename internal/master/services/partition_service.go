@@ -34,7 +34,7 @@ func NewPartitionService(client *client.Client) *PartitionService {
 	return &PartitionService{client: client}
 }
 
-func (s *PartitionService) PartitionInfo(ctx context.Context, db *DBService, spaceService *SpaceService, dbName string, spaceName string, detail string) ([]map[string]interface{}, error) {
+func (s *PartitionService) PartitionInfo(ctx context.Context, db *DBService, spaceService *SpaceService, dbName string, spaceName string, detail string) ([]map[string]any, error) {
 	dbNames := make([]string, 0)
 	if dbName != "" {
 		dbNames = strings.Split(dbName, ",")
@@ -64,12 +64,12 @@ func (s *PartitionService) PartitionInfo(ctx context.Context, db *DBService, spa
 	}
 
 	mc := s.client.Master()
-	resultInsideDbs := make([]map[string]interface{}, 0)
+	resultInsideDbs := make([]map[string]any, 0)
 	for i := range dbNames {
 		dbName := dbNames[i]
 		var errors []string
 
-		resultDb := make(map[string]interface{})
+		resultDb := make(map[string]any)
 		resultDb["db_name"] = dbName
 
 		dbId, err := mc.QueryDBName2ID(ctx, dbName)

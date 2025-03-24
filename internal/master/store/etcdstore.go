@@ -119,7 +119,7 @@ func (store *EtcdStore) Create(ctx context.Context, key string, value []byte) er
 // if key is not in , it will put
 func (store *EtcdStore) CreateWithTTL(ctx context.Context, key string, value []byte, ttl time.Duration) error {
 	if ttl != 0 && int64(ttl.Seconds()) == 0 {
-		return fmt.Errorf("ttl time must gather 1 sencod")
+		return fmt.Errorf("ttl time must greater than 1 second")
 	}
 
 	grant, err := store.cli.Grant(ctx, int64(ttl.Seconds()))
@@ -133,7 +133,7 @@ func (store *EtcdStore) CreateWithTTL(ctx context.Context, key string, value []b
 
 func (store *EtcdStore) KeepAlive(ctx context.Context, key string, value []byte, ttl time.Duration) (<-chan *clientv3.LeaseKeepAliveResponse, error) {
 	if ttl != 0 && int64(ttl.Seconds()) == 0 {
-		return nil, fmt.Errorf("ttl time must gather 1 sencod")
+		return nil, fmt.Errorf("ttl time must greater than 1 second")
 	}
 
 	grant, err := store.cli.Grant(ctx, int64(ttl.Seconds()))
@@ -155,7 +155,7 @@ func (store *EtcdStore) KeepAlive(ctx context.Context, key string, value []byte,
 
 func (store *EtcdStore) PutWithLeaseId(ctx context.Context, key string, value []byte, ttl time.Duration, leaseId clientv3.LeaseID) error {
 	if ttl != 0 && int64(ttl.Seconds()) == 0 {
-		return fmt.Errorf("ttl time must gather 1 sencod")
+		return fmt.Errorf("ttl time must greater than 1 second")
 	}
 
 	_, err := store.cli.Put(ctx, key, string(value), clientv3.WithLease(leaseId))

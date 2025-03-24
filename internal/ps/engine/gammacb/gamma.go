@@ -30,7 +30,6 @@ import (
 	"github.com/vearch/vearch/v3/internal/entity"
 	"github.com/vearch/vearch/v3/internal/pkg/atomic"
 	"github.com/vearch/vearch/v3/internal/pkg/log"
-	"github.com/vearch/vearch/v3/internal/pkg/vearchlog"
 	json "github.com/vearch/vearch/v3/internal/pkg/vjson"
 	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
 	"github.com/vearch/vearch/v3/internal/ps/engine"
@@ -122,7 +121,7 @@ func New(cfg EngineConfig) (engine.Engine, error) {
 	if len(infos) > 0 {
 		code := gamma.Load(ge.gamma)
 		if code != 0 {
-			vearchlog.LogErrNotNil(fmt.Errorf("load data err code:[%d]", code))
+			log.Error("load data err code:[%d]", code)
 			ge.Close()
 			return nil, vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("load data err code:[%d]", code))
 		}
@@ -233,7 +232,8 @@ func (ge *gammaEngine) BuildIndex() error {
 	defer ge.counter.Decr()
 	gammaEngine := ge.gamma
 	if gammaEngine == nil {
-		return vearchlog.LogErrAndReturn(vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_IS_CLOSED, nil))
+		log.Error("gammaEngine is nil")
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_IS_CLOSED, nil)
 	}
 
 	// UNINDEXED = 0, INDEXING, INDEXED
@@ -257,7 +257,8 @@ func (ge *gammaEngine) RebuildIndex(drop_before_rebuild int, limit_cpu int, desc
 	defer ge.counter.Decr()
 	gammaEngine := ge.gamma
 	if gammaEngine == nil {
-		return vearchlog.LogErrAndReturn(vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_IS_CLOSED, nil))
+		log.Error("gammaEngine is nil")
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_IS_CLOSED, nil)
 	}
 
 	// UNINDEXED = 0, INDEXING, INDEXED
@@ -302,7 +303,7 @@ func (ge *gammaEngine) Load() error {
 	}
 	code := gamma.Load(engineInstance)
 	if code != 0 {
-		vearchlog.LogErrNotNil(fmt.Errorf("load data err code:[%d]", code))
+		log.Error("load data err code:[%d]", code)
 		ge.Close()
 		return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("load data err code:[%d]", code))
 	}

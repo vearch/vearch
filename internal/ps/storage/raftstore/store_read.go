@@ -19,7 +19,6 @@ import (
 
 	"github.com/vearch/vearch/v3/internal/entity"
 	"github.com/vearch/vearch/v3/internal/pkg/log"
-	"github.com/vearch/vearch/v3/internal/pkg/vearchlog"
 	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
 )
 
@@ -35,7 +34,7 @@ func (s *Store) checkReadable(readLeader bool) error {
 	status := s.Partition.GetStatus()
 
 	if status == entity.PA_CLOSED {
-		return vearchlog.LogErrAndReturn(vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_IS_CLOSED, nil))
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_IS_CLOSED, nil)
 	}
 
 	if status == entity.PA_INVALID {

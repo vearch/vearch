@@ -17,6 +17,8 @@ import (
 	"context"
 	"errors"
 	"flag"
+	"fmt"
+	"io"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -26,13 +28,14 @@ import (
 	"time"
 
 	"github.com/spf13/cast"
+	jaeger "github.com/uber/jaeger-client-go"
+	jaegerConfig "github.com/uber/jaeger-client-go/config"
 	"github.com/vearch/vearch/v3/internal/config"
 	"github.com/vearch/vearch/v3/internal/entity"
 	"github.com/vearch/vearch/v3/internal/master"
 	"github.com/vearch/vearch/v3/internal/pkg/log"
 	"github.com/vearch/vearch/v3/internal/pkg/metrics/mserver"
 	"github.com/vearch/vearch/v3/internal/pkg/signals"
-	"github.com/vearch/vearch/v3/internal/pkg/tracer"
 	"github.com/vearch/vearch/v3/internal/pkg/vearchlog"
 	"github.com/vearch/vearch/v3/internal/ps"
 	"github.com/vearch/vearch/v3/internal/router"
@@ -80,6 +83,28 @@ func newProfileHttpServer(port uint16) {
 	}()
 }
 
+// initJaeger returns an instance of Jaeger Tracer that samples 100% of traces and logs all spans to stdout.
+func initJaeger(service string, c *config.TracerCfg) io.Closer {
+	cfg := &jaegerConfig.Configuration{
+		ServiceName: service,
+		Sampler: &jaegerConfig.SamplerConfig{
+			Type:  c.SampleType,
+			Param: c.SampleParam,
+		},
+		Reporter: &jaegerConfig.ReporterConfig{
+			LocalAgentHostPort:         c.Host,
+			LogSpans:                   false,
+			DisableAttemptReconnecting: false,
+			AttemptReconnectInterval:   1 * time.Minute,
+		},
+	}
+	closer, err := cfg.InitGlobalTracer(service, jaegerConfig.Logger(jaeger.StdLogger))
+	if err != nil {
+		panic(fmt.Sprintf("ERROR: cannot init Jaeger: %v\n", err))
+	}
+	return closer
+}
+
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
@@ -99,7 +124,7 @@ func main() {
 	}
 
 	if config.Conf().TracerCfg != nil {
-		closer := tracer.InitJaeger(config.Conf().Global.Name, config.Conf().TracerCfg)
+		closer := initJaeger(config.Conf().Global.Name, config.Conf().TracerCfg)
 		defer closer.Close()
 	}
 	args := flag.Args()
@@ -202,7 +227,12 @@ func main() {
 
 		models = append(models, "ps")
 		sigsHook.AddSignalHook(func() {
-			vearchlog.CloseIfNotNil(server)
+			if server != nil {
+				err := server.Close()
+				if err != nil {
+					log.Error("close ps error: %v", err)
+				}
+			}
 		})
 		go func() {
 			if err := server.Start(); err != nil {

@@ -16,16 +16,26 @@ package raftstore
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/cubefs/cubefs/depends/tiglabs/raft"
 	"github.com/cubefs/cubefs/depends/tiglabs/raft/proto"
 	"github.com/vearch/vearch/v3/internal/config"
 	"github.com/vearch/vearch/v3/internal/entity"
 	"github.com/vearch/vearch/v3/internal/pkg/log"
-	"github.com/vearch/vearch/v3/internal/pkg/vjson"
+	json "github.com/vearch/vearch/v3/internal/pkg/vjson"
 	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
 	"github.com/vearch/vearch/v3/internal/ps/psutil"
 )
+
+func copySyncMap(original *sync.Map) *sync.Map {
+	copy := &sync.Map{}
+	original.Range(func(key, value any) bool {
+		copy.Store(key, value)
+		return true
+	})
+	return copy
+}
 
 // replicas status,behind leader or equal leader
 func (s *Store) ReplicasStatusChange() bool {
@@ -79,40 +89,39 @@ func (s *Store) ReplicasStatusChange() bool {
 }
 
 // Apply implements the raft interface.
-func (s *Store) Apply(command []byte, index uint64) (resp interface{}, err error) {
+func (s *Store) Apply(command []byte, index uint64) (resp any, err error) {
 	raftCmd := &vearchpb.RaftCommand{}
 
-	if err = vjson.Unmarshal(command, raftCmd); err != nil {
+	if err = json.Unmarshal(command, raftCmd); err != nil {
 		log.Error(err)
 		return nil, err
 	}
 
 	resp = s.innerApply(index, raftCmd)
-
-	// if follow after leader this value,means can't offer server
-	// just leader check
+	// When RaftConsistent is enabled, we need to monitor follower progress
+	// to ensure they're not lagging too far behind the leader.
+	// Only the leader performs this check as it has visibility of all replicas.
 	if config.Conf().Global.RaftConsistent {
-		if s.IsLeader() {
-			if s.ReplicasStatusChange() {
-				partitionStatus := &ReplicasStatusEntry{
-					NodeID:      s.NodeID,
-					PartitionID: s.Partition.Id,
-					ReStatusMap: s.RsStatusMap,
-				}
-				log.Debug("reStatus change, leader nodeId [%d]", s.Partition.LeaderID)
-				for key, value := range s.Status().Replicas {
-					log.Debug("reStatus change, nodeId [%d], commit [%d]", key, value.Commit)
-				}
-				// send message,stop search server
-				s.RsStatusC <- partitionStatus
+		if s.IsLeader() && s.ReplicasStatusChange() {
+			partitionStatus := &ReplicasStatusEntry{
+				NodeID:      s.NodeID,
+				PartitionID: s.Partition.Id,
+				ReStatusMap: *copySyncMap(&s.RsStatusMap),
 			}
+			log.Debug("reStatus change, leader nodeId [%d]", s.Partition.LeaderID)
+			for key, value := range s.Status().Replicas {
+				log.Debug("reStatus change, nodeId [%d], commit [%d]", key, value.Commit)
+			}
+			// Notify the status watcher about the change
+			// This channel is consumed by search handler to determine query routing
+			s.RsStatusC <- partitionStatus
 		}
 	}
 	return resp, nil
 }
 
 // Apply implements the raft interface.
-func (s *Store) innerApply(index uint64, raftCmd *vearchpb.RaftCommand) interface{} {
+func (s *Store) innerApply(index uint64, raftCmd *vearchpb.RaftCommand) any {
 	resp := new(RaftApplyResponse)
 	switch raftCmd.Type {
 	case vearchpb.CmdType_WRITE:
@@ -139,7 +148,7 @@ func (s *Store) updateSchemaBySpace(spaceBytes []byte) (rap *RaftApplyResponse) 
 	rap = new(RaftApplyResponse)
 
 	space := &entity.Space{}
-	err := vjson.Unmarshal(spaceBytes, space)
+	err := json.Unmarshal(spaceBytes, space)
 	if err != nil {
 		return rap.SetErr(err)
 	}

@@ -29,7 +29,6 @@ import (
 	"github.com/vearch/vearch/v3/internal/engine/sdk/go/gamma"
 	"github.com/vearch/vearch/v3/internal/pkg/fileutil"
 	"github.com/vearch/vearch/v3/internal/pkg/log"
-	"github.com/vearch/vearch/v3/internal/pkg/vearchlog"
 	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
 	"github.com/vearch/vearch/v3/internal/ps/engine"
 )
@@ -89,7 +88,8 @@ func (wi *writerImpl) Flush(ctx context.Context, sn int64) error {
 
 	gammaEngine := wi.engine.gamma
 	if gammaEngine == nil {
-		return vearchlog.LogErrAndReturn(vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_IS_CLOSED, nil))
+		log.Error("gammaEngine is nil")
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_IS_CLOSED, nil)
 	}
 
 	wi.engine.lock.Lock()
@@ -113,7 +113,8 @@ func (wi *writerImpl) Commit(ctx context.Context, snx int64) (chan error, error)
 
 	gammaEngine := wi.engine.gamma
 	if gammaEngine == nil {
-		return nil, vearchlog.LogErrAndReturn(vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_IS_CLOSED, nil))
+		log.Error("gammaEngine is nil")
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_IS_CLOSED, nil)
 	}
 
 	flushC := make(chan error, 1)
@@ -142,7 +143,8 @@ func (wi *writerImpl) Commit(ctx context.Context, snx int64) (chan error, error)
 		log.Info("begin dump data for gamma")
 
 		if code := gamma.Dump(gammaEngine); code != 0 {
-			fc <- vearchlog.LogErrAndReturn(fmt.Errorf("dump index err response code :[%d]", code))
+			log.Error("dump index err response code :[%d]", code)
+			fc <- fmt.Errorf("dump index err response code :[%d]", code)
 		} else {
 			fileName := filepath.Join(wi.engine.path, indexSn)
 			err := fileutil.WriteFileAtomic(fileName, []byte(string(strconv.FormatInt(sn, 10))), os.ModePerm)

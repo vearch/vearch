@@ -96,7 +96,7 @@ func ByteToVectorForFloat32(bs []byte) ([]float32, error) {
 func ByteToVectorBinary(bs []byte, dimension int) ([]int32, error) {
 	featureLength := int(dimension / 8)
 	result := make([]int32, featureLength)
-	for i := 0; i < featureLength; i++ {
+	for i := range featureLength {
 		result[i] = int32(bs[i])
 	}
 	return result, nil
@@ -112,7 +112,7 @@ func FloatArrayByte(fa []float32) (code []byte, err error) {
 
 func UInt8ArrayByte(in []uint8) (code []byte, err error) {
 	buf := &bytes.Buffer{}
-	for i := 0; i < len(in); i++ {
+	for i := range in {
 		if err = binary.Write(buf, binary.LittleEndian, in[i]); err != nil {
 			return nil, err
 		}
@@ -123,7 +123,7 @@ func UInt8ArrayByte(in []uint8) (code []byte, err error) {
 func UInt8ArrayToByteArray(in []uint8) (code []byte, err error) {
 	uint8Lenth := len(in)
 	var byteArr = make([]byte, uint8Lenth)
-	for i := 0; i < uint8Lenth; i++ {
+	for i := range uint8Lenth {
 		unit8Value := in[i]
 		if unit8Value > 255 {
 			return nil, fmt.Errorf("byte value overflows byte constant :%v", unit8Value)
@@ -135,7 +135,7 @@ func UInt8ArrayToByteArray(in []uint8) (code []byte, err error) {
 
 func FloatArray(fa []float32) (code string, err error) {
 	buf := &bytes.Buffer{}
-	for i := 0; i < len(fa); i++ {
+	for i := range fa {
 		if err = binary.Write(buf, binary.LittleEndian, fa[i]); err != nil {
 			return "", err
 		}
@@ -174,10 +174,6 @@ func UInt32ToByte(v uint32) []byte {
 	return bs
 }
 
-func ByteToUInt32(bs []byte) uint32 {
-	return binary.LittleEndian.Uint32(bs)
-}
-
 func Int64ToByte(v int64) []byte {
 	bs, _ := ValueToByte(v)
 	return bs
@@ -200,7 +196,7 @@ func ArrayByteFloat(bs []byte) (result []float32) {
 	length := len(bs) / 4
 	result = make([]float32, length)
 
-	for i := 0; i < len(result); i++ {
+	for i := range result {
 		result[i] = math.Float32frombits(binary.LittleEndian.Uint32(bs[i*4 : (i+1)*4]))
 	}
 	return result
@@ -260,7 +256,7 @@ func ByteToUInt8Array(bytes []byte) ([]uint8, error) {
 	num := len(bytes) / 4
 
 	result := make([]uint8, num)
-	for i := 0; i < num; i++ {
+	for i := range num {
 		result[i] = uint8(binary.LittleEndian.Uint32(bytes[i*4:]))
 	}
 	return result, nil

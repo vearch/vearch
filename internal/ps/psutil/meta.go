@@ -89,7 +89,7 @@ func readMeta(cluster, metaPath string) entity.NodeID {
 func createMeta(client *client.Client, cluster, metaPath string) entity.NodeID {
 	var id int64
 	var err error
-	for i := 0; i < 180; i++ {
+	for range 180 {
 		id, err = client.Master().NewIDGenerate(context.Background(), entity.NodeIdSequence, 1, 3*time.Second)
 		if err == nil {
 			break

@@ -20,7 +20,6 @@ import (
 	"github.com/vearch/vearch/v3/internal/entity"
 	"github.com/vearch/vearch/v3/internal/pkg/log"
 	vearch_os "github.com/vearch/vearch/v3/internal/pkg/runtime/os"
-	"github.com/vearch/vearch/v3/internal/pkg/vearchlog"
 	"github.com/vearch/vearch/v3/internal/pkg/vjson"
 	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
 )
@@ -166,14 +165,18 @@ func (s *Store) Flush(ctx context.Context) error {
 func (s *Store) checkWritable() error {
 	switch s.Partition.GetStatus() {
 	case entity.PA_INVALID:
-		return vearchlog.LogErrAndReturn(vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_IS_INVALID, nil))
+		log.Error("checkWritable status: %d , err: %v", s.Partition.GetStatus(), vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_IS_INVALID, nil).Error())
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_IS_INVALID, nil)
 	case entity.PA_CLOSED:
-		return vearchlog.LogErrAndReturn(vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_IS_CLOSED, nil))
+		log.Error("checkWritable status: %d , err: %v", s.Partition.GetStatus(), vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_IS_CLOSED, nil).Error())
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_IS_CLOSED, nil)
 	case entity.PA_READONLY:
-		return vearchlog.LogErrAndReturn(vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_NOT_LEADER, nil))
+		log.Error("checkWritable status: %d , err: %v", s.Partition.GetStatus(), vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_NOT_LEADER, nil).Error())
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_NOT_LEADER, nil)
 	case entity.PA_READWRITE:
 		return nil
 	default:
-		return vearchlog.LogErrAndReturn(vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, nil))
+		log.Error("checkWritable status: %d , err: %v", s.Partition.GetStatus(), vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, nil).Error())
+		return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, nil)
 	}
 }

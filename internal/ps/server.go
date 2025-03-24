@@ -327,7 +327,7 @@ func (s *Server) changeReplicas(pStatus *raftstore.ReplicasStatusEntry) {
 		partition.ReStatusMap = make(map[uint64]uint32)
 	}
 
-	pStatus.ReStatusMap.Range(func(key, value interface{}) bool {
+	pStatus.ReStatusMap.Range(func(key, value any) bool {
 		partition.ReStatusMap[key.(uint64)] = value.(uint32)
 		return true
 	})

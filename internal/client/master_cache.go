@@ -33,7 +33,6 @@ import (
 	httpResonse "github.com/vearch/vearch/v3/internal/entity/response"
 	"github.com/vearch/vearch/v3/internal/pkg/errutil"
 	"github.com/vearch/vearch/v3/internal/pkg/log"
-	"github.com/vearch/vearch/v3/internal/pkg/vearchlog"
 	"github.com/vearch/vearch/v3/internal/pkg/vjson"
 	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
 	"go.etcd.io/etcd/api/v3/mvccpb"
@@ -148,7 +147,10 @@ func (cliCache *clientCache) reloadUserCache(ctx context.Context, sync bool, use
 	if _, ok := userReloadWorkder.LoadOrStore(userName, struct{}{}); !ok {
 		go func() {
 			defer userReloadWorkder.Delete(userName)
-			vearchlog.FunIfNotNil(fun)
+			err := fun()
+			if err != nil {
+				log.Error("reload user cache err:[%s]", err.Error())
+			}
 		}()
 	}
 	return nil
@@ -192,7 +194,10 @@ func (cliCache *clientCache) reloadRoleCache(ctx context.Context, sync bool, rol
 	if _, ok := roleReloadWorkder.LoadOrStore(roleName, struct{}{}); !ok {
 		go func() {
 			defer roleReloadWorkder.Delete(roleName)
-			vearchlog.FunIfNotNil(fun)
+			err := fun()
+			if err != nil {
+				log.Error("reload role cache err:[%s]", err.Error())
+			}
 		}()
 	}
 	return nil
@@ -208,7 +213,10 @@ func (cliCache *clientCache) SpaceByCache(ctx context.Context, db, space string)
 	}
 
 	err := cliCache.reloadSpaceCache(ctx, false, db, space)
-	vearchlog.LogErrNotNil(err)
+	if err != nil {
+		log.Error("reload space cache err:[%s]", err.Error())
+		return nil, err
+	}
 
 	if err != nil {
 		return nil, fmt.Errorf("db:[%s] space:[%s] err:[%s]", db, space,
@@ -262,14 +270,17 @@ func (cliCache *clientCache) reloadSpaceCache(ctx context.Context, sync bool, db
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
-				vearchlog.LogErrNotNil(fmt.Errorf(cast.ToString(r)))
+				log.Error("reload space cache err:[%s]", cast.ToString(r))
 			}
 		}()
 		if key == "" {
 			return
 		}
 		defer spaceReloadWorkder.Delete(key)
-		vearchlog.FunIfNotNil(fun)
+		err := fun()
+		if err != nil {
+			log.Error("reload space cache err:[%s]", err.Error())
+		}
 	}()
 	return nil
 }
@@ -322,7 +333,10 @@ func (cliCache *clientCache) reloadPartitionCache(ctx context.Context, sync bool
 		}
 		go func() {
 			defer partitionReloadWorkder.Delete(key)
-			vearchlog.FunIfNotNil(fun)
+			err := fun()
+			if err != nil {
+				log.Error("reload partition cache err:[%s]", err.Error())
+			}
 		}()
 	}
 
@@ -376,7 +390,10 @@ func (cliCache *clientCache) reloadServerCache(ctx context.Context, sync bool, i
 	}
 	go func() {
 		defer serverReloadWorkder.Delete(key)
-		vearchlog.FunIfNotNil(fun)
+		err := fun()
+		if err != nil {
+			log.Error("reload server cache err:[%s]", err.Error())
+		}
 	}()
 
 	return nil

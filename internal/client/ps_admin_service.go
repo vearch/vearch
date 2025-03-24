@@ -199,6 +199,7 @@ func _partitionsInfo(addr string, pid entity.PartitionID, detail_info bool) (val
 	reply := new(vearchpb.PartitionData)
 	err = Execute(addr, PartitionInfoHandler, args, reply)
 	if err != nil {
+		log.Error("Execute partition info failed, err: [%v]", err)
 		return nil, err
 	}
 
