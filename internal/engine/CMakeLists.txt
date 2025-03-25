@@ -11,13 +11,6 @@ option(BUILD_FAISSLIKE_INDEX "Build faisslike index" off)
 option(BUILD_RELAYOUT "Build relayout index" off)
 option(ENABLE_COVERAGE "Use gcov" off)
 option(BUILD_PYTHON_SDK "Build python sdk" off)
-option(BUILD_THREAD_NUM "Build faiss thread num" 4)
-
-
-exec_program(
-    "bash"
-    ${CMAKE_CURRENT_SOURCE_DIR}/third_party
-    ARGS "build.sh" ${BUILD_WITH_GPU} ${BUILD_THREAD_NUM})
 
 #ENV VARs
 set(THIRDPARTY ${CMAKE_CURRENT_SOURCE_DIR}/third_party)
@@ -55,20 +48,12 @@ include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${THIRDPARTY}
     ${BTREE}
-    ${THIRDPARTY}/faiss/include
     ${RocksDB_INCLUDE_DIR}
 )
 
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/third_party/faiss/lib64")
-    link_directories(
-        ${CMAKE_CURRENT_SOURCE_DIR}/third_party/faiss/lib64
-        ${CMAKE_CURRENT_SOURCE_DIR}/index/impl/relayout
-    )
-else()
-    link_directories(
-        ${CMAKE_CURRENT_SOURCE_DIR}/third_party/faiss/lib
-    )
-endif()
+link_directories(
+    ${CMAKE_CURRENT_SOURCE_DIR}/index/impl/relayout
+)
 
 set(COMMON_LIBRARIES
     ${RocksDB_LIB}

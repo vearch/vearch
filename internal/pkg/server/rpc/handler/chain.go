@@ -17,9 +17,9 @@ package handler
 import (
 	"context"
 	"errors"
+	"fmt"
 	"runtime/debug"
 
-	"github.com/spf13/cast"
 	"github.com/vearch/vearch/v3/internal/pkg/log"
 	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
 )
@@ -35,12 +35,12 @@ type PanicHandler int
 
 func (PanicHandler) Execute(ctx context.Context, req *vearchpb.PartitionData, reply *vearchpb.PartitionData) error {
 	if r := recover(); r != nil {
-		log.Error("panic error, and the error is :%v", r)
-		log.Error(string(debug.Stack()))
-		return vearchpb.NewError(vearchpb.ErrorEnum_RECOVER, errors.New(cast.ToString(r)))
+		log.Error("panic error: %v\n%s", r, string(debug.Stack()))
+		return vearchpb.NewError(vearchpb.ErrorEnum_RECOVER, errors.New(fmt.Sprint(r)))
 	}
 	return nil
 }
+
 func NewChain(name string, paincChain RpcHander, errChange ErrorChangeFun, handlers ...RpcHander) *Chain {
 	return &Chain{Name: name, panicChain: paincChain, errchange: errChange, chain: handlers}
 }

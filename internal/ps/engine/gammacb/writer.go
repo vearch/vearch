@@ -25,7 +25,6 @@ import (
 	"runtime/debug"
 	"strconv"
 
-	"github.com/spf13/cast"
 	"github.com/vearch/vearch/v3/internal/engine/sdk/go/gamma"
 	"github.com/vearch/vearch/v3/internal/pkg/fileutil"
 	"github.com/vearch/vearch/v3/internal/pkg/log"
@@ -47,7 +46,7 @@ func (wi *writerImpl) Write(ctx context.Context, doc *vearchpb.DocCmd) (err erro
 
 	defer func() {
 		if r := recover(); r != nil {
-			err = vearchpb.NewError(vearchpb.ErrorEnum_RECOVER, fmt.Errorf(" %s", cast.ToString(r)))
+			err = vearchpb.NewError(vearchpb.ErrorEnum_RECOVER, fmt.Errorf("%v", r))
 		}
 	}()
 	wi.engine.counter.Incr()
@@ -134,9 +133,8 @@ func (wi *writerImpl) Commit(ctx context.Context, snx int64) (chan error, error)
 			wi.running = false
 			wi.engine.lock.Unlock()
 
-			if i := recover(); i != nil {
-				log.Error(string(debug.Stack()))
-				log.Error(cast.ToString(i))
+			if r := recover(); r != nil {
+				log.Error("commit panic error: %v\n%s", r, string(debug.Stack()))
 			}
 		}()
 

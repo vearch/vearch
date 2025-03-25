@@ -559,12 +559,12 @@ func parseTerm(tm map[string]*Term, proMap map[string]*entity.SpaceProperties) (
 		}
 
 		buf := bytes.Buffer{}
-		var v interface{}
+		var v any
 		err := vjson.Unmarshal(rv.Value, &v)
 		if err != nil {
 			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("unmarshal [%s] err %s", string(rv.Value), err.Error()))
 		}
-		if ia, ok := v.([]interface{}); ok {
+		if ia, ok := v.([]any); ok {
 			for i, obj := range ia {
 				buf.WriteString(cast.ToString(obj))
 				if i != len(ia)-1 {

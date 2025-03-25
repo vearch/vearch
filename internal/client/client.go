@@ -380,7 +380,7 @@ func (r *routerRequest) Execute() []*vearchpb.Item {
 			replyPartition := new(vearchpb.PartitionData)
 			defer func() {
 				if r := recover(); r != nil {
-					d.Err = &vearchpb.Error{Code: vearchpb.ErrorEnum_RECOVER, Msg: fmt.Sprintf("[Recover] partitionID: [%v], err: [%s]", pid, cast.ToString(r))}
+					d.Err = &vearchpb.Error{Code: vearchpb.ErrorEnum_RECOVER, Msg: fmt.Sprintf("[Recover] partitionID: [%v], err: [%v]", pid, r)}
 					respChain <- d
 				}
 			}()
@@ -476,7 +476,7 @@ func (r *routerRequest) searchFromPartition(ctx context.Context, partitionID ent
 	responseDoc := &response.SearchDocResult{}
 	defer func() {
 		if r := recover(); r != nil {
-			msg := fmt.Sprintf("searchFromPartition partitionID: [%v], err: [%s]", partitionID, cast.ToString(r))
+			msg := fmt.Sprintf("searchFromPartition partitionID: [%v], err: [%v]", partitionID, r)
 			err := &vearchpb.Error{Code: vearchpb.ErrorEnum_RECOVER, Msg: msg}
 			head := &vearchpb.ResponseHead{Err: err}
 			searchResponse := &vearchpb.SearchResponse{Head: head}
@@ -855,7 +855,7 @@ func (r *routerRequest) queryFromPartition(ctx context.Context, partitionID enti
 	responseDoc := &response.SearchDocResult{}
 	defer func() {
 		if r := recover(); r != nil {
-			msg := fmt.Sprintf("queryFromPartition partitionID: [%v], err: [%s]", partitionID, cast.ToString(r))
+			msg := fmt.Sprintf("queryFromPartition partitionID: [%v], err: [%v]", partitionID, r)
 			err := &vearchpb.Error{Code: vearchpb.ErrorEnum_RECOVER, Msg: msg}
 			head := &vearchpb.ResponseHead{Err: err}
 			searchResponse := &vearchpb.SearchResponse{Head: head}
@@ -1653,7 +1653,7 @@ func (r *routerRequest) ForceMergeExecute() *vearchpb.ForceMergeResponse {
 			replyPartition := new(vearchpb.PartitionData)
 			defer func() {
 				if r := recover(); r != nil {
-					d.Err = &vearchpb.Error{Code: vearchpb.ErrorEnum_RECOVER, Msg: fmt.Sprintf("[Recover] partitionID: [%v], err: [%s]", pid, cast.ToString(r))}
+					d.Err = &vearchpb.Error{Code: vearchpb.ErrorEnum_RECOVER, Msg: fmt.Sprintf("[Recover] partitionID: [%v], err: [%v]", pid, r)}
 					respChain <- d
 				}
 			}()
@@ -1699,7 +1699,7 @@ func (r *routerRequest) RebuildIndexExecute() *vearchpb.IndexResponse {
 			replyPartition := new(vearchpb.PartitionData)
 			defer func() {
 				if r := recover(); r != nil {
-					d.Err = &vearchpb.Error{Code: vearchpb.ErrorEnum_RECOVER, Msg: fmt.Sprintf("[Recover] partitionID: [%v], err: [%s]", pid, cast.ToString(r))}
+					d.Err = &vearchpb.Error{Code: vearchpb.ErrorEnum_RECOVER, Msg: fmt.Sprintf("[Recover] partitionID: [%v], err: [%v]", pid, r)}
 					respChain <- d
 				}
 			}()
@@ -1745,7 +1745,7 @@ func (r *routerRequest) FlushExecute() *vearchpb.FlushResponse {
 			replyPartition := new(vearchpb.PartitionData)
 			defer func() {
 				if r := recover(); r != nil {
-					d.Err = &vearchpb.Error{Code: vearchpb.ErrorEnum_RECOVER, Msg: fmt.Sprintf("[Recover] partitionID: [%v], err: [%s]", pid, cast.ToString(r))}
+					d.Err = &vearchpb.Error{Code: vearchpb.ErrorEnum_RECOVER, Msg: fmt.Sprintf("[Recover] partitionID: [%v], err: [%v]", pid, r)}
 					respChain <- d
 				}
 			}()
@@ -1866,8 +1866,8 @@ func (r *routerRequest) DelByQueryeExecute() *vearchpb.DelByQueryeResponse {
 			replyPartition := new(vearchpb.PartitionData)
 			defer func() {
 				if r := recover(); r != nil {
-					log.Error("recover info: %s", cast.ToString(r))
-					d.Err = &vearchpb.Error{Code: vearchpb.ErrorEnum_RECOVER, Msg: fmt.Sprintf("[Recover] partitionID: [%v], err: [%s]", pid, cast.ToString(r))}
+					log.Error("recover info: %v", r)
+					d.Err = &vearchpb.Error{Code: vearchpb.ErrorEnum_RECOVER, Msg: fmt.Sprintf("[Recover] partitionID: [%v], err: [%v]", pid, r)}
 					respChain <- d
 				}
 			}()

@@ -17,7 +17,6 @@ package server
 import (
 	"bytes"
 
-	"github.com/spf13/cast"
 	"github.com/vearch/vearch/v3/internal/pkg/log"
 	"github.com/vmihailenco/msgpack"
 	"google.golang.org/protobuf/proto"
@@ -26,19 +25,19 @@ import (
 type MsgpackCodec struct {
 }
 
-func (c *MsgpackCodec) Decode(data []byte, i interface{}) error {
+func (c *MsgpackCodec) Decode(data []byte, i any) error {
 	defer func() {
 		if r := recover(); r != nil {
-			log.Error(cast.ToString(r))
+			log.Error("msgpack decode error: %v", r)
 		}
 	}()
 	return msgpack.NewDecoder(bytes.NewBuffer(data)).UseJSONTag(true).Decode(i)
 }
 
-func (c *MsgpackCodec) Encode(i interface{}) ([]byte, error) {
+func (c *MsgpackCodec) Encode(i any) ([]byte, error) {
 	defer func() {
 		if r := recover(); r != nil {
-			log.Error(cast.ToString(r))
+			log.Error("msgpack encode error: %v", r)
 		}
 	}()
 	var buf bytes.Buffer
@@ -51,10 +50,10 @@ func (c *MsgpackCodec) Encode(i interface{}) ([]byte, error) {
 type PBCodec struct{}
 
 // Encode encodes an object into slice of bytes.
-func (c PBCodec) Encode(i interface{}) ([]byte, error) {
+func (c PBCodec) Encode(i any) ([]byte, error) {
 	defer func() {
 		if r := recover(); r != nil {
-			log.Error(cast.ToString(r))
+			log.Error("pbcodec encode error: %v", r)
 		}
 	}()
 
@@ -68,10 +67,10 @@ func (c PBCodec) Encode(i interface{}) ([]byte, error) {
 }
 
 // Decode decodes an object from slice of bytes.
-func (c PBCodec) Decode(data []byte, i interface{}) error {
+func (c PBCodec) Decode(data []byte, i any) error {
 	defer func() {
 		if r := recover(); r != nil {
-			log.Error(cast.ToString(r))
+			log.Error("pbcodec decode error: %v", r)
 		}
 	}()
 

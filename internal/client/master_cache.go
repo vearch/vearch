@@ -270,7 +270,7 @@ func (cliCache *clientCache) reloadSpaceCache(ctx context.Context, sync bool, db
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
-				log.Error("reload space cache err:[%s]", cast.ToString(r))
+				log.Error("reload space cache err:[%v]", r)
 			}
 		}()
 		if key == "" {

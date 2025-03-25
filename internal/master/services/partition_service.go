@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/spf13/cast"
 	"github.com/vearch/vearch/v3/internal/client"
 	"github.com/vearch/vearch/v3/internal/entity"
 	"github.com/vearch/vearch/v3/internal/pkg/log"
@@ -143,7 +142,7 @@ func (s *PartitionService) PartitionInfo(ctx context.Context, db *DBService, spa
 		// TODO: get size
 		size := int64(0)
 		for _, s := range resultInsideSpaces {
-			docNum += cast.ToUint64(s.DocNum)
+			docNum += s.DocNum
 		}
 		resultDb["space_num"] = len(spaces)
 		resultDb["doc_num"] = docNum

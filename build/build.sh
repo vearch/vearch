@@ -83,7 +83,6 @@ function build_thirdparty() {
     popd
   fi
 
-
   if [[ ! -f "/usr/local/lib64/libroaring.a" ]]; then
     wget -q https://github.com/RoaringBitmap/CRoaring/archive/refs/tags/v4.2.1.tar.gz
     tar xf v4.2.1.tar.gz
@@ -93,6 +92,29 @@ function build_thirdparty() {
     make -j4 && make install
     popd && popd
   fi
+
+  if [[ ! -f "/usr/local/lib64/libfaiss.a" ]]; then
+    wget -q https://github.com/facebookresearch/faiss/archive/refs/tags/v1.7.1.tar.gz
+    tar xf v1.7.1.tar.gz
+    pushd faiss-1.7.1
+    if [ -z $MKLROOT ]; then
+      OS_NAME=$(uname)
+      ARCH=$(arch)
+      if [ ${OS_NAME} == "Darwin" ]; then
+        cmake -DFAISS_ENABLE_GPU=OFF -DOpenMP_CXX_FLAGS="-Xpreprocessor -fopenmp -I/usr/local/opt/libomp/include" -DOpenMP_CXX_LIB_NAMES="libomp" -DOpenMP_libomp_LIBRARY="/usr/local/opt/libomp/lib" -DFAISS_ENABLE_PYTHON=OFF -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Release -DFAISS_OPT_LEVEL=avx2 -B build .
+      elif [ ${ARCH} == "aarch64" -o ${ARCH} == "AARCH64" ]; then
+        cmake -DFAISS_ENABLE_GPU=OFF -DFAISS_ENABLE_PYTHON=OFF -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Release -B build .
+      else
+        cmake -DFAISS_ENABLE_GPU=OFF -DFAISS_ENABLE_PYTHON=OFF -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Release -DFAISS_OPT_LEVEL=avx2 -B build .
+      fi
+    else
+      cmake -DFAISS_ENABLE_GPU=OFF -DFAISS_ENABLE_PYTHON=OFF -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Release -DFAISS_OPT_LEVEL=avx2 -DBLA_VENDOR=Intel10_64_dyn -DMKL_LIBRARIES=$MKLROOT/lib/intel64 -B build .
+    fi
+
+    make -C build faiss && make -C build install
+    popd
+  fi
+
 }
 
 function build_engine() {
