@@ -284,6 +284,7 @@ Status Engine::Search(Request &request, Response &response_results) {
 
   query.condition->range_filters = request.RangeFilters();
   query.condition->term_filters = request.TermFilters();
+  query.condition->filter_operator = request.FilterOperator();
   query.condition->table = table_;
   if (request.Ranker()) {
     query.condition->ranker = dynamic_cast<WeightedRanker *>(request.Ranker());
@@ -436,7 +437,7 @@ Status Engine::Query(QueryRequest &request, Response &response_results) {
       ++idx;
     }
 
-    int num = field_range_index_->Query(filters, docids, (size_t)topn);
+    int num = field_range_index_->Query(static_cast<FilterOperator>(request.FilterOperator()), filters, docids, (size_t)topn);
 
     if (num <= 0) {
       std::string msg =
@@ -502,7 +503,7 @@ int Engine::MultiRangeQuery(Request &request, SearchCondition *condition,
     ++idx;
   }
 
-  int num = field_range_index_->Search(filters, range_query_result);
+  int num = field_range_index_->Search(static_cast<FilterOperator>(request.FilterOperator()), filters, range_query_result);
 
   if (num == 0) {
     std::string msg =

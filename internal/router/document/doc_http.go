@@ -448,7 +448,7 @@ func (handler *DocumentHandler) handleDocumentQuery(c *gin.Context) {
 	}
 
 	if searchDoc.DocumentIds != nil && len(*searchDoc.DocumentIds) != 0 {
-		if args.TermFilters != nil || args.RangeFilters != nil {
+		if args.TableFilter != nil && (args.TableFilter.TermFilters != nil || args.TableFilter.RangeFilters != nil) {
 			err := vearchpb.NewError(vearchpb.ErrorEnum_QUERY_INVALID_PARAMS_BOTH_DOCUMENT_IDS_AND_FILTER, nil)
 			response.New(c).JsonError(errors.NewErrBadRequest(err))
 			return
@@ -463,7 +463,7 @@ func (handler *DocumentHandler) handleDocumentQuery(c *gin.Context) {
 			return
 		}
 	} else {
-		if args.TermFilters == nil && args.RangeFilters == nil {
+		if args.TableFilter == nil || (args.TableFilter.TermFilters == nil && args.TableFilter.RangeFilters == nil) {
 			err := vearchpb.NewError(vearchpb.ErrorEnum_QUERY_INVALID_PARAMS_SHOULD_HAVE_ONE_OF_DOCUMENT_IDS_OR_FILTER, nil)
 			response.New(c).JsonError(errors.NewErrBadRequest(err))
 			return
@@ -644,7 +644,7 @@ func (handler *DocumentHandler) handleDocumentDelete(c *gin.Context) {
 	}
 
 	if searchDoc.DocumentIds != nil && len(*searchDoc.DocumentIds) != 0 {
-		if args.TermFilters != nil || args.RangeFilters != nil {
+		if args.TableFilter != nil && (args.TableFilter.TermFilters != nil || args.TableFilter.RangeFilters != nil) {
 			err := vearchpb.NewError(vearchpb.ErrorEnum_DELETE_INVALID_PARAMS_BOTH_DOCUMENT_IDS_AND_VECTOR, nil)
 			response.New(c).JsonError(errors.NewErrBadRequest(err))
 			return
@@ -655,7 +655,7 @@ func (handler *DocumentHandler) handleDocumentDelete(c *gin.Context) {
 			return
 		}
 	} else {
-		if args.TermFilters == nil && args.RangeFilters == nil {
+		if args.TableFilter == nil || (args.TableFilter.TermFilters == nil && args.TableFilter.RangeFilters == nil) {
 			err := vearchpb.NewError(vearchpb.ErrorEnum_DELETE_INVALID_PARAMS_SHOULD_HAVE_ONE_OF_DOCUMENT_IDS_OR_FILTER, nil)
 			response.New(c).JsonError(errors.NewErrBadRequest(err))
 			return

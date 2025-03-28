@@ -181,6 +181,25 @@ def process_get_data_by_filter(index: int, full_field: bool, mode: str, total: i
             {"field": "field_double", "operator": ">=", "value": index * batch_size},
         ]
         data["filters"]["conditions"].extend(range_filter)
+    elif mode == "=" :
+        range_filter = [
+            {
+                "field": "field_int",
+                "operator": "=",
+                "value": index * batch_size
+            },
+            {
+                "field": "field_long",
+                "operator": "=",
+                "value": index * batch_size
+            },
+            {
+                "field": "field_double",
+                "operator": "=",
+                "value": index * batch_size
+            },
+        ]
+        data["filters"]["conditions"].extend(range_filter)
     elif mode == "IN":
         term_filter = [
             {
@@ -257,6 +276,53 @@ def process_get_data_by_filter(index: int, full_field: bool, mode: str, total: i
         ]
         data["filters"]["conditions"].extend(term_filter)
         data["filters"]["conditions"].extend(term_filter2)
+    elif mode == "Hybrid And range":
+        range_filter = [
+            {
+                "field": "field_int",
+                "operator": "<=",
+                "value": index * batch_size
+            },
+            {
+                "field": "field_int",
+                "operator": ">=",
+                "value": (index + 1) * batch_size
+            }
+        ]
+        data["filters"]["conditions"].extend(range_filter)
+    elif mode == "Hybrid Or range":
+        data["filters"]["operator"] = "OR"
+        range_filter = [
+            {
+                "field": "field_int",
+                "operator": "<=",
+                "value": index * batch_size
+            },
+            {
+                "field": "field_int",
+                "operator": ">=",
+                "value": (index + 1) * batch_size
+            }
+        ]
+        data["filters"]["conditions"].extend(range_filter)
+    elif mode == "Hybrid Or range NOT IN":
+        data["filters"]["operator"] = "OR"
+        range_filter = [
+            {
+                "field": "field_int",
+                "operator": "=",
+                "value": index * batch_size
+            }
+        ]
+        term_filter = [
+            {
+                "field": "field_string",
+                "operator": "NOT IN",
+                "value": [str(index * batch_size)]
+            }
+        ]
+        data["filters"]["conditions"].extend(range_filter)
+        data["filters"]["conditions"].extend(term_filter)
 
     data["limit"] = batch_size
 
@@ -326,6 +392,20 @@ def process_get_data_by_filter(index: int, full_field: bool, mode: str, total: i
                 assert documents[j]["field_long"] == value
                 assert documents[j]["field_float"] == float(value)
                 assert documents[j]["field_double"] == float(value)
+    elif mode == "=" :
+        assert len(documents) == batch_size
+        assert rs.text.find("\"total\":" + str(batch_size)) >= 0
+
+        for j in range(batch_size):
+            value = int(index)
+            logger.debug(value)
+            logger.debug(documents[j])
+            assert documents[j]["field_int"] == value
+
+            if full_field:
+                assert documents[j]["field_long"] == value
+                assert documents[j]["field_float"] == float(value)
+                assert documents[j]["field_double"] == float(value)
     elif mode == "()":
         assert len(documents) == 0
         assert rs.text.find('"total":' + str(0)) >= 0
@@ -362,6 +442,12 @@ def process_get_data_by_filter(index: int, full_field: bool, mode: str, total: i
             assert doc["field_string2"] != str(index * batch_size)
     elif mode == "No result":
         assert len(documents) == 0
+    elif mode == "Hybrid And range":
+        assert len(documents) == 0
+    elif mode == "Hybrid Or range":
+        assert len(documents) > 0
+    elif mode == "Hybrid Or range NOT IN":
+        assert len(documents) > 0
 
 
 def query_by_filter_interface(total, full_field, mode: str):
@@ -553,7 +639,7 @@ def check(total, full_field, xb, mode: str):
 
 
 @pytest.mark.parametrize(
-    ["full_field", "mode"],
+    ["full_field", "mode"], 
     [
         [True, "()"],
         [True, "[]"],
@@ -563,11 +649,15 @@ def check(total, full_field, xb, mode: str):
         [True, "lower_outbound"],
         [True, "[lower_bound, valid_value]"],
         [True, "[valid_value, upper_bound]"],
+        [True, "="],
         [True, "IN"],
         [True, "NOT IN"],
         [True, "Hybrid range NOT IN"],
         [True, "Hybrid range IN"],
         [True, "Hybrid IN NOT IN"],
+        [True, "Hybrid And range"],
+        [True, "Hybrid Or range"],
+        [True, "Hybrid Or range NOT IN"],
         [True, "No result"],
     ],
 )

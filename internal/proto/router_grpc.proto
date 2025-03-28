@@ -117,6 +117,12 @@ message RangeFilter {
   bool include_upper = 5;
 }
 
+message TableFilter {
+  int32 operator = 1;
+  repeated RangeFilter range_filters = 2;
+  repeated TermFilter term_filters = 3;
+}
+
 message SortField {
   string field = 1;
   bool type = 2;
@@ -145,16 +151,15 @@ message QueryRequest {
   repeated string document_ids = 2;
   int32 partition_id = 3;
   bool next = 4;
-  repeated RangeFilter range_filters = 5;
-  repeated TermFilter term_filters = 6;
-  repeated string fields = 7;
-  bool is_vector_value = 8;
-  int32 limit = 9;
-  int32 page_size = 10;
-  string load_balance = 11;
-  map<string, string> sort_field_map = 12;
-  repeated SortField sort_fields = 13;
-  bool trace = 14;
+  TableFilter table_filter = 5;
+  repeated string fields = 6;
+  bool is_vector_value = 7;
+  int32 limit = 8;
+  int32 page_size = 9;
+  string load_balance = 10;
+  map<string, string> sort_field_map = 11;
+  repeated SortField sort_fields = 12;
+  bool trace = 13;
 }
 
 message SearchRequest {
@@ -164,16 +169,15 @@ message SearchRequest {
   int32 is_brute_search = 4;
   repeated VectorQuery vec_fields = 5;
   repeated string fields = 6;
-  repeated RangeFilter range_filters = 7;
-  repeated TermFilter term_filters = 8;
-  string index_params = 9;
-  int32 multi_vector_rank = 10;
-  bool l2_sqrt = 11;
-  bool is_vector_value = 12;
-  map<string, string> sort_field_map = 13;
-  repeated SortField sort_fields = 14;
-  string ranker = 15;
-  bool trace = 16;
+  TableFilter table_filter = 7;
+  string index_params = 8;
+  int32 multi_vector_rank = 9;
+  bool l2_sqrt = 10;
+  bool is_vector_value = 11;
+  map<string, string> sort_field_map = 12;
+  repeated SortField sort_fields = 13;
+  string ranker = 14;
+  bool trace = 15;
 }
 
 //*********************** Search response *********************** //
