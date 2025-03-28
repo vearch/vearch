@@ -135,6 +135,9 @@ extern SearchStatusDefaultTypeInternal _SearchStatus_default_instance_;
 class SortField;
 struct SortFieldDefaultTypeInternal;
 extern SortFieldDefaultTypeInternal _SortField_default_instance_;
+class TableFilter;
+struct TableFilterDefaultTypeInternal;
+extern TableFilterDefaultTypeInternal _TableFilter_default_instance_;
 class TermFilter;
 struct TermFilterDefaultTypeInternal;
 extern TermFilterDefaultTypeInternal _TermFilter_default_instance_;
@@ -171,6 +174,7 @@ template<> ::vearchpb::SearchResponse* Arena::CreateMaybeMessage<::vearchpb::Sea
 template<> ::vearchpb::SearchResult* Arena::CreateMaybeMessage<::vearchpb::SearchResult>(Arena*);
 template<> ::vearchpb::SearchStatus* Arena::CreateMaybeMessage<::vearchpb::SearchStatus>(Arena*);
 template<> ::vearchpb::SortField* Arena::CreateMaybeMessage<::vearchpb::SortField>(Arena*);
+template<> ::vearchpb::TableFilter* Arena::CreateMaybeMessage<::vearchpb::TableFilter>(Arena*);
 template<> ::vearchpb::TermFilter* Arena::CreateMaybeMessage<::vearchpb::TermFilter>(Arena*);
 template<> ::vearchpb::VectorQuery* Arena::CreateMaybeMessage<::vearchpb::VectorQuery>(Arena*);
 PROTOBUF_NAMESPACE_CLOSE
@@ -3438,6 +3442,194 @@ class RangeFilter final :
 };
 // -------------------------------------------------------------------
 
+class TableFilter final :
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:vearchpb.TableFilter) */ {
+ public:
+  inline TableFilter() : TableFilter(nullptr) {}
+  ~TableFilter() override;
+  explicit PROTOBUF_CONSTEXPR TableFilter(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+
+  TableFilter(const TableFilter& from);
+  TableFilter(TableFilter&& from) noexcept
+    : TableFilter() {
+    *this = ::std::move(from);
+  }
+
+  inline TableFilter& operator=(const TableFilter& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline TableFilter& operator=(TableFilter&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetOwningArena() == from.GetOwningArena()
+  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
+        && GetOwningArena() != nullptr
+  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Reflection* GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const TableFilter& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const TableFilter* internal_default_instance() {
+    return reinterpret_cast<const TableFilter*>(
+               &_TableFilter_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    19;
+
+  friend void swap(TableFilter& a, TableFilter& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(TableFilter* other) {
+    if (other == this) return;
+  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() != nullptr &&
+        GetOwningArena() == other->GetOwningArena()) {
+   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() == other->GetOwningArena()) {
+  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(TableFilter* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  TableFilter* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<TableFilter>(arena);
+  }
+  using ::PROTOBUF_NAMESPACE_ID::Message::CopyFrom;
+  void CopyFrom(const TableFilter& from);
+  using ::PROTOBUF_NAMESPACE_ID::Message::MergeFrom;
+  void MergeFrom( const TableFilter& from) {
+    TableFilter::MergeImpl(*this, from);
+  }
+  private:
+  static void MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg);
+  public:
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  uint8_t* _InternalSerialize(
+      uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::PROTOBUF_NAMESPACE_ID::Arena* arena, bool is_message_owned);
+  void SharedDtor();
+  void SetCachedSize(int size) const final;
+  void InternalSwap(TableFilter* other);
+
+  private:
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "vearchpb.TableFilter";
+  }
+  protected:
+  explicit TableFilter(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                       bool is_message_owned = false);
+  public:
+
+  static const ClassData _class_data_;
+  const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*GetClassData() const final;
+
+  ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadata() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kRangeFiltersFieldNumber = 2,
+    kTermFiltersFieldNumber = 3,
+    kOperatorFieldNumber = 1,
+  };
+  // repeated .vearchpb.RangeFilter range_filters = 2;
+  int range_filters_size() const;
+  private:
+  int _internal_range_filters_size() const;
+  public:
+  void clear_range_filters();
+  ::vearchpb::RangeFilter* mutable_range_filters(int index);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::RangeFilter >*
+      mutable_range_filters();
+  private:
+  const ::vearchpb::RangeFilter& _internal_range_filters(int index) const;
+  ::vearchpb::RangeFilter* _internal_add_range_filters();
+  public:
+  const ::vearchpb::RangeFilter& range_filters(int index) const;
+  ::vearchpb::RangeFilter* add_range_filters();
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::RangeFilter >&
+      range_filters() const;
+
+  // repeated .vearchpb.TermFilter term_filters = 3;
+  int term_filters_size() const;
+  private:
+  int _internal_term_filters_size() const;
+  public:
+  void clear_term_filters();
+  ::vearchpb::TermFilter* mutable_term_filters(int index);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::TermFilter >*
+      mutable_term_filters();
+  private:
+  const ::vearchpb::TermFilter& _internal_term_filters(int index) const;
+  ::vearchpb::TermFilter* _internal_add_term_filters();
+  public:
+  const ::vearchpb::TermFilter& term_filters(int index) const;
+  ::vearchpb::TermFilter* add_term_filters();
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::TermFilter >&
+      term_filters() const;
+
+  // int32 operator = 1;
+  void clear_operator_();
+  int32_t operator_() const;
+  void set_operator_(int32_t value);
+  private:
+  int32_t _internal_operator_() const;
+  void _internal_set_operator_(int32_t value);
+  public:
+
+  // @@protoc_insertion_point(class_scope:vearchpb.TableFilter)
+ private:
+  class _Internal;
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  struct Impl_ {
+    ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::RangeFilter > range_filters_;
+    ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::TermFilter > term_filters_;
+    int32_t operator__;
+    mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_router_5fgrpc_2eproto;
+};
+// -------------------------------------------------------------------
+
 class SortField final :
     public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:vearchpb.SortField) */ {
  public:
@@ -3486,7 +3678,7 @@ class SortField final :
                &_SortField_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    19;
+    20;
 
   friend void swap(SortField& a, SortField& b) {
     a.Swap(&b);
@@ -3650,7 +3842,7 @@ class VectorQuery final :
                &_VectorQuery_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    20;
+    21;
 
   friend void swap(VectorQuery& a, VectorQuery& b) {
     a.Swap(&b);
@@ -3873,7 +4065,7 @@ class IndexParameters final :
                &_IndexParameters_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    21;
+    22;
 
   friend void swap(IndexParameters& a, IndexParameters& b) {
     a.Swap(&b);
@@ -4090,7 +4282,7 @@ class QueryRequest final :
                &_QueryRequest_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    23;
+    24;
 
   friend void swap(QueryRequest& a, QueryRequest& b) {
     a.Swap(&b);
@@ -4167,19 +4359,18 @@ class QueryRequest final :
 
   enum : int {
     kDocumentIdsFieldNumber = 2,
-    kRangeFiltersFieldNumber = 5,
-    kTermFiltersFieldNumber = 6,
-    kFieldsFieldNumber = 7,
-    kSortFieldMapFieldNumber = 12,
-    kSortFieldsFieldNumber = 13,
-    kLoadBalanceFieldNumber = 11,
+    kFieldsFieldNumber = 6,
+    kSortFieldMapFieldNumber = 11,
+    kSortFieldsFieldNumber = 12,
+    kLoadBalanceFieldNumber = 10,
     kHeadFieldNumber = 1,
+    kTableFilterFieldNumber = 5,
     kPartitionIdFieldNumber = 3,
+    kLimitFieldNumber = 8,
     kNextFieldNumber = 4,
-    kIsVectorValueFieldNumber = 8,
-    kTraceFieldNumber = 14,
-    kLimitFieldNumber = 9,
-    kPageSizeFieldNumber = 10,
+    kIsVectorValueFieldNumber = 7,
+    kTraceFieldNumber = 13,
+    kPageSizeFieldNumber = 9,
   };
   // repeated string document_ids = 2;
   int document_ids_size() const;
@@ -4205,43 +4396,7 @@ class QueryRequest final :
   std::string* _internal_add_document_ids();
   public:
 
-  // repeated .vearchpb.RangeFilter range_filters = 5;
-  int range_filters_size() const;
-  private:
-  int _internal_range_filters_size() const;
-  public:
-  void clear_range_filters();
-  ::vearchpb::RangeFilter* mutable_range_filters(int index);
-  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::RangeFilter >*
-      mutable_range_filters();
-  private:
-  const ::vearchpb::RangeFilter& _internal_range_filters(int index) const;
-  ::vearchpb::RangeFilter* _internal_add_range_filters();
-  public:
-  const ::vearchpb::RangeFilter& range_filters(int index) const;
-  ::vearchpb::RangeFilter* add_range_filters();
-  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::RangeFilter >&
-      range_filters() const;
-
-  // repeated .vearchpb.TermFilter term_filters = 6;
-  int term_filters_size() const;
-  private:
-  int _internal_term_filters_size() const;
-  public:
-  void clear_term_filters();
-  ::vearchpb::TermFilter* mutable_term_filters(int index);
-  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::TermFilter >*
-      mutable_term_filters();
-  private:
-  const ::vearchpb::TermFilter& _internal_term_filters(int index) const;
-  ::vearchpb::TermFilter* _internal_add_term_filters();
-  public:
-  const ::vearchpb::TermFilter& term_filters(int index) const;
-  ::vearchpb::TermFilter* add_term_filters();
-  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::TermFilter >&
-      term_filters() const;
-
-  // repeated string fields = 7;
+  // repeated string fields = 6;
   int fields_size() const;
   private:
   int _internal_fields_size() const;
@@ -4265,7 +4420,7 @@ class QueryRequest final :
   std::string* _internal_add_fields();
   public:
 
-  // map<string, string> sort_field_map = 12;
+  // map<string, string> sort_field_map = 11;
   int sort_field_map_size() const;
   private:
   int _internal_sort_field_map_size() const;
@@ -4282,7 +4437,7 @@ class QueryRequest final :
   ::PROTOBUF_NAMESPACE_ID::Map< std::string, std::string >*
       mutable_sort_field_map();
 
-  // repeated .vearchpb.SortField sort_fields = 13;
+  // repeated .vearchpb.SortField sort_fields = 12;
   int sort_fields_size() const;
   private:
   int _internal_sort_fields_size() const;
@@ -4300,7 +4455,7 @@ class QueryRequest final :
   const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::SortField >&
       sort_fields() const;
 
-  // string load_balance = 11;
+  // string load_balance = 10;
   void clear_load_balance();
   const std::string& load_balance() const;
   template <typename ArgT0 = const std::string&, typename... ArgT>
@@ -4332,6 +4487,24 @@ class QueryRequest final :
       ::vearchpb::RequestHead* head);
   ::vearchpb::RequestHead* unsafe_arena_release_head();
 
+  // .vearchpb.TableFilter table_filter = 5;
+  bool has_table_filter() const;
+  private:
+  bool _internal_has_table_filter() const;
+  public:
+  void clear_table_filter();
+  const ::vearchpb::TableFilter& table_filter() const;
+  PROTOBUF_NODISCARD ::vearchpb::TableFilter* release_table_filter();
+  ::vearchpb::TableFilter* mutable_table_filter();
+  void set_allocated_table_filter(::vearchpb::TableFilter* table_filter);
+  private:
+  const ::vearchpb::TableFilter& _internal_table_filter() const;
+  ::vearchpb::TableFilter* _internal_mutable_table_filter();
+  public:
+  void unsafe_arena_set_allocated_table_filter(
+      ::vearchpb::TableFilter* table_filter);
+  ::vearchpb::TableFilter* unsafe_arena_release_table_filter();
+
   // int32 partition_id = 3;
   void clear_partition_id();
   int32_t partition_id() const;
@@ -4339,6 +4512,15 @@ class QueryRequest final :
   private:
   int32_t _internal_partition_id() const;
   void _internal_set_partition_id(int32_t value);
+  public:
+
+  // int32 limit = 8;
+  void clear_limit();
+  int32_t limit() const;
+  void set_limit(int32_t value);
+  private:
+  int32_t _internal_limit() const;
+  void _internal_set_limit(int32_t value);
   public:
 
   // bool next = 4;
@@ -4350,7 +4532,7 @@ class QueryRequest final :
   void _internal_set_next(bool value);
   public:
 
-  // bool is_vector_value = 8;
+  // bool is_vector_value = 7;
   void clear_is_vector_value();
   bool is_vector_value() const;
   void set_is_vector_value(bool value);
@@ -4359,7 +4541,7 @@ class QueryRequest final :
   void _internal_set_is_vector_value(bool value);
   public:
 
-  // bool trace = 14;
+  // bool trace = 13;
   void clear_trace();
   bool trace() const;
   void set_trace(bool value);
@@ -4368,16 +4550,7 @@ class QueryRequest final :
   void _internal_set_trace(bool value);
   public:
 
-  // int32 limit = 9;
-  void clear_limit();
-  int32_t limit() const;
-  void set_limit(int32_t value);
-  private:
-  int32_t _internal_limit() const;
-  void _internal_set_limit(int32_t value);
-  public:
-
-  // int32 page_size = 10;
+  // int32 page_size = 9;
   void clear_page_size();
   int32_t page_size() const;
   void set_page_size(int32_t value);
@@ -4395,8 +4568,6 @@ class QueryRequest final :
   typedef void DestructorSkippable_;
   struct Impl_ {
     ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string> document_ids_;
-    ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::RangeFilter > range_filters_;
-    ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::TermFilter > term_filters_;
     ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string> fields_;
     ::PROTOBUF_NAMESPACE_ID::internal::MapField<
         QueryRequest_SortFieldMapEntry_DoNotUse,
@@ -4406,11 +4577,12 @@ class QueryRequest final :
     ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::SortField > sort_fields_;
     ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr load_balance_;
     ::vearchpb::RequestHead* head_;
+    ::vearchpb::TableFilter* table_filter_;
     int32_t partition_id_;
+    int32_t limit_;
     bool next_;
     bool is_vector_value_;
     bool trace_;
-    int32_t limit_;
     int32_t page_size_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
@@ -4495,7 +4667,7 @@ class SearchRequest final :
                &_SearchRequest_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    25;
+    26;
 
   friend void swap(SearchRequest& a, SearchRequest& b) {
     a.Swap(&b);
@@ -4573,20 +4745,19 @@ class SearchRequest final :
   enum : int {
     kVecFieldsFieldNumber = 5,
     kFieldsFieldNumber = 6,
-    kRangeFiltersFieldNumber = 7,
-    kTermFiltersFieldNumber = 8,
-    kSortFieldMapFieldNumber = 13,
-    kSortFieldsFieldNumber = 14,
-    kIndexParamsFieldNumber = 9,
-    kRankerFieldNumber = 15,
+    kSortFieldMapFieldNumber = 12,
+    kSortFieldsFieldNumber = 13,
+    kIndexParamsFieldNumber = 8,
+    kRankerFieldNumber = 14,
     kHeadFieldNumber = 1,
+    kTableFilterFieldNumber = 7,
     kReqNumFieldNumber = 2,
     kTopNFieldNumber = 3,
     kIsBruteSearchFieldNumber = 4,
-    kMultiVectorRankFieldNumber = 10,
-    kL2SqrtFieldNumber = 11,
-    kIsVectorValueFieldNumber = 12,
-    kTraceFieldNumber = 16,
+    kMultiVectorRankFieldNumber = 9,
+    kL2SqrtFieldNumber = 10,
+    kIsVectorValueFieldNumber = 11,
+    kTraceFieldNumber = 15,
   };
   // repeated .vearchpb.VectorQuery vec_fields = 5;
   int vec_fields_size() const;
@@ -4630,43 +4801,7 @@ class SearchRequest final :
   std::string* _internal_add_fields();
   public:
 
-  // repeated .vearchpb.RangeFilter range_filters = 7;
-  int range_filters_size() const;
-  private:
-  int _internal_range_filters_size() const;
-  public:
-  void clear_range_filters();
-  ::vearchpb::RangeFilter* mutable_range_filters(int index);
-  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::RangeFilter >*
-      mutable_range_filters();
-  private:
-  const ::vearchpb::RangeFilter& _internal_range_filters(int index) const;
-  ::vearchpb::RangeFilter* _internal_add_range_filters();
-  public:
-  const ::vearchpb::RangeFilter& range_filters(int index) const;
-  ::vearchpb::RangeFilter* add_range_filters();
-  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::RangeFilter >&
-      range_filters() const;
-
-  // repeated .vearchpb.TermFilter term_filters = 8;
-  int term_filters_size() const;
-  private:
-  int _internal_term_filters_size() const;
-  public:
-  void clear_term_filters();
-  ::vearchpb::TermFilter* mutable_term_filters(int index);
-  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::TermFilter >*
-      mutable_term_filters();
-  private:
-  const ::vearchpb::TermFilter& _internal_term_filters(int index) const;
-  ::vearchpb::TermFilter* _internal_add_term_filters();
-  public:
-  const ::vearchpb::TermFilter& term_filters(int index) const;
-  ::vearchpb::TermFilter* add_term_filters();
-  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::TermFilter >&
-      term_filters() const;
-
-  // map<string, string> sort_field_map = 13;
+  // map<string, string> sort_field_map = 12;
   int sort_field_map_size() const;
   private:
   int _internal_sort_field_map_size() const;
@@ -4683,7 +4818,7 @@ class SearchRequest final :
   ::PROTOBUF_NAMESPACE_ID::Map< std::string, std::string >*
       mutable_sort_field_map();
 
-  // repeated .vearchpb.SortField sort_fields = 14;
+  // repeated .vearchpb.SortField sort_fields = 13;
   int sort_fields_size() const;
   private:
   int _internal_sort_fields_size() const;
@@ -4701,7 +4836,7 @@ class SearchRequest final :
   const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::SortField >&
       sort_fields() const;
 
-  // string index_params = 9;
+  // string index_params = 8;
   void clear_index_params();
   const std::string& index_params() const;
   template <typename ArgT0 = const std::string&, typename... ArgT>
@@ -4715,7 +4850,7 @@ class SearchRequest final :
   std::string* _internal_mutable_index_params();
   public:
 
-  // string ranker = 15;
+  // string ranker = 14;
   void clear_ranker();
   const std::string& ranker() const;
   template <typename ArgT0 = const std::string&, typename... ArgT>
@@ -4747,6 +4882,24 @@ class SearchRequest final :
       ::vearchpb::RequestHead* head);
   ::vearchpb::RequestHead* unsafe_arena_release_head();
 
+  // .vearchpb.TableFilter table_filter = 7;
+  bool has_table_filter() const;
+  private:
+  bool _internal_has_table_filter() const;
+  public:
+  void clear_table_filter();
+  const ::vearchpb::TableFilter& table_filter() const;
+  PROTOBUF_NODISCARD ::vearchpb::TableFilter* release_table_filter();
+  ::vearchpb::TableFilter* mutable_table_filter();
+  void set_allocated_table_filter(::vearchpb::TableFilter* table_filter);
+  private:
+  const ::vearchpb::TableFilter& _internal_table_filter() const;
+  ::vearchpb::TableFilter* _internal_mutable_table_filter();
+  public:
+  void unsafe_arena_set_allocated_table_filter(
+      ::vearchpb::TableFilter* table_filter);
+  ::vearchpb::TableFilter* unsafe_arena_release_table_filter();
+
   // int32 req_num = 2;
   void clear_req_num();
   int32_t req_num() const;
@@ -4774,7 +4927,7 @@ class SearchRequest final :
   void _internal_set_is_brute_search(int32_t value);
   public:
 
-  // int32 multi_vector_rank = 10;
+  // int32 multi_vector_rank = 9;
   void clear_multi_vector_rank();
   int32_t multi_vector_rank() const;
   void set_multi_vector_rank(int32_t value);
@@ -4783,7 +4936,7 @@ class SearchRequest final :
   void _internal_set_multi_vector_rank(int32_t value);
   public:
 
-  // bool l2_sqrt = 11;
+  // bool l2_sqrt = 10;
   void clear_l2_sqrt();
   bool l2_sqrt() const;
   void set_l2_sqrt(bool value);
@@ -4792,7 +4945,7 @@ class SearchRequest final :
   void _internal_set_l2_sqrt(bool value);
   public:
 
-  // bool is_vector_value = 12;
+  // bool is_vector_value = 11;
   void clear_is_vector_value();
   bool is_vector_value() const;
   void set_is_vector_value(bool value);
@@ -4801,7 +4954,7 @@ class SearchRequest final :
   void _internal_set_is_vector_value(bool value);
   public:
 
-  // bool trace = 16;
+  // bool trace = 15;
   void clear_trace();
   bool trace() const;
   void set_trace(bool value);
@@ -4820,8 +4973,6 @@ class SearchRequest final :
   struct Impl_ {
     ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::VectorQuery > vec_fields_;
     ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string> fields_;
-    ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::RangeFilter > range_filters_;
-    ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::TermFilter > term_filters_;
     ::PROTOBUF_NAMESPACE_ID::internal::MapField<
         SearchRequest_SortFieldMapEntry_DoNotUse,
         std::string, std::string,
@@ -4831,6 +4982,7 @@ class SearchRequest final :
     ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr index_params_;
     ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr ranker_;
     ::vearchpb::RequestHead* head_;
+    ::vearchpb::TableFilter* table_filter_;
     int32_t req_num_;
     int32_t topn_;
     int32_t is_brute_search_;
@@ -4893,7 +5045,7 @@ class ResultItem final :
                &_ResultItem_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    26;
+    27;
 
   friend void swap(ResultItem& a, ResultItem& b) {
     a.Swap(&b);
@@ -5077,7 +5229,7 @@ class SearchResult final :
                &_SearchResult_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    27;
+    28;
 
   friend void swap(SearchResult& a, SearchResult& b) {
     a.Swap(&b);
@@ -5347,7 +5499,7 @@ class SearchResponse final :
                &_SearchResponse_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    28;
+    29;
 
   friend void swap(SearchResponse& a, SearchResponse& b) {
     a.Swap(&b);
@@ -5551,7 +5703,7 @@ class SearchStatus final :
                &_SearchStatus_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    29;
+    30;
 
   friend void swap(SearchStatus& a, SearchStatus& b) {
     a.Swap(&b);
@@ -8501,6 +8653,110 @@ inline void RangeFilter::set_include_upper(bool value) {
 
 // -------------------------------------------------------------------
 
+// TableFilter
+
+// int32 operator = 1;
+inline void TableFilter::clear_operator_() {
+  _impl_.operator__ = 0;
+}
+inline int32_t TableFilter::_internal_operator_() const {
+  return _impl_.operator__;
+}
+inline int32_t TableFilter::operator_() const {
+  // @@protoc_insertion_point(field_get:vearchpb.TableFilter.operator)
+  return _internal_operator_();
+}
+inline void TableFilter::_internal_set_operator_(int32_t value) {
+  
+  _impl_.operator__ = value;
+}
+inline void TableFilter::set_operator_(int32_t value) {
+  _internal_set_operator_(value);
+  // @@protoc_insertion_point(field_set:vearchpb.TableFilter.operator)
+}
+
+// repeated .vearchpb.RangeFilter range_filters = 2;
+inline int TableFilter::_internal_range_filters_size() const {
+  return _impl_.range_filters_.size();
+}
+inline int TableFilter::range_filters_size() const {
+  return _internal_range_filters_size();
+}
+inline void TableFilter::clear_range_filters() {
+  _impl_.range_filters_.Clear();
+}
+inline ::vearchpb::RangeFilter* TableFilter::mutable_range_filters(int index) {
+  // @@protoc_insertion_point(field_mutable:vearchpb.TableFilter.range_filters)
+  return _impl_.range_filters_.Mutable(index);
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::RangeFilter >*
+TableFilter::mutable_range_filters() {
+  // @@protoc_insertion_point(field_mutable_list:vearchpb.TableFilter.range_filters)
+  return &_impl_.range_filters_;
+}
+inline const ::vearchpb::RangeFilter& TableFilter::_internal_range_filters(int index) const {
+  return _impl_.range_filters_.Get(index);
+}
+inline const ::vearchpb::RangeFilter& TableFilter::range_filters(int index) const {
+  // @@protoc_insertion_point(field_get:vearchpb.TableFilter.range_filters)
+  return _internal_range_filters(index);
+}
+inline ::vearchpb::RangeFilter* TableFilter::_internal_add_range_filters() {
+  return _impl_.range_filters_.Add();
+}
+inline ::vearchpb::RangeFilter* TableFilter::add_range_filters() {
+  ::vearchpb::RangeFilter* _add = _internal_add_range_filters();
+  // @@protoc_insertion_point(field_add:vearchpb.TableFilter.range_filters)
+  return _add;
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::RangeFilter >&
+TableFilter::range_filters() const {
+  // @@protoc_insertion_point(field_list:vearchpb.TableFilter.range_filters)
+  return _impl_.range_filters_;
+}
+
+// repeated .vearchpb.TermFilter term_filters = 3;
+inline int TableFilter::_internal_term_filters_size() const {
+  return _impl_.term_filters_.size();
+}
+inline int TableFilter::term_filters_size() const {
+  return _internal_term_filters_size();
+}
+inline void TableFilter::clear_term_filters() {
+  _impl_.term_filters_.Clear();
+}
+inline ::vearchpb::TermFilter* TableFilter::mutable_term_filters(int index) {
+  // @@protoc_insertion_point(field_mutable:vearchpb.TableFilter.term_filters)
+  return _impl_.term_filters_.Mutable(index);
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::TermFilter >*
+TableFilter::mutable_term_filters() {
+  // @@protoc_insertion_point(field_mutable_list:vearchpb.TableFilter.term_filters)
+  return &_impl_.term_filters_;
+}
+inline const ::vearchpb::TermFilter& TableFilter::_internal_term_filters(int index) const {
+  return _impl_.term_filters_.Get(index);
+}
+inline const ::vearchpb::TermFilter& TableFilter::term_filters(int index) const {
+  // @@protoc_insertion_point(field_get:vearchpb.TableFilter.term_filters)
+  return _internal_term_filters(index);
+}
+inline ::vearchpb::TermFilter* TableFilter::_internal_add_term_filters() {
+  return _impl_.term_filters_.Add();
+}
+inline ::vearchpb::TermFilter* TableFilter::add_term_filters() {
+  ::vearchpb::TermFilter* _add = _internal_add_term_filters();
+  // @@protoc_insertion_point(field_add:vearchpb.TableFilter.term_filters)
+  return _add;
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::TermFilter >&
+TableFilter::term_filters() const {
+  // @@protoc_insertion_point(field_list:vearchpb.TableFilter.term_filters)
+  return _impl_.term_filters_;
+}
+
+// -------------------------------------------------------------------
+
 // SortField
 
 // string field = 1;
@@ -9072,87 +9328,97 @@ inline void QueryRequest::set_next(bool value) {
   // @@protoc_insertion_point(field_set:vearchpb.QueryRequest.next)
 }
 
-// repeated .vearchpb.RangeFilter range_filters = 5;
-inline int QueryRequest::_internal_range_filters_size() const {
-  return _impl_.range_filters_.size();
+// .vearchpb.TableFilter table_filter = 5;
+inline bool QueryRequest::_internal_has_table_filter() const {
+  return this != internal_default_instance() && _impl_.table_filter_ != nullptr;
 }
-inline int QueryRequest::range_filters_size() const {
-  return _internal_range_filters_size();
+inline bool QueryRequest::has_table_filter() const {
+  return _internal_has_table_filter();
 }
-inline void QueryRequest::clear_range_filters() {
-  _impl_.range_filters_.Clear();
+inline void QueryRequest::clear_table_filter() {
+  if (GetArenaForAllocation() == nullptr && _impl_.table_filter_ != nullptr) {
+    delete _impl_.table_filter_;
+  }
+  _impl_.table_filter_ = nullptr;
 }
-inline ::vearchpb::RangeFilter* QueryRequest::mutable_range_filters(int index) {
-  // @@protoc_insertion_point(field_mutable:vearchpb.QueryRequest.range_filters)
-  return _impl_.range_filters_.Mutable(index);
+inline const ::vearchpb::TableFilter& QueryRequest::_internal_table_filter() const {
+  const ::vearchpb::TableFilter* p = _impl_.table_filter_;
+  return p != nullptr ? *p : reinterpret_cast<const ::vearchpb::TableFilter&>(
+      ::vearchpb::_TableFilter_default_instance_);
 }
-inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::RangeFilter >*
-QueryRequest::mutable_range_filters() {
-  // @@protoc_insertion_point(field_mutable_list:vearchpb.QueryRequest.range_filters)
-  return &_impl_.range_filters_;
+inline const ::vearchpb::TableFilter& QueryRequest::table_filter() const {
+  // @@protoc_insertion_point(field_get:vearchpb.QueryRequest.table_filter)
+  return _internal_table_filter();
 }
-inline const ::vearchpb::RangeFilter& QueryRequest::_internal_range_filters(int index) const {
-  return _impl_.range_filters_.Get(index);
+inline void QueryRequest::unsafe_arena_set_allocated_table_filter(
+    ::vearchpb::TableFilter* table_filter) {
+  if (GetArenaForAllocation() == nullptr) {
+    delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.table_filter_);
+  }
+  _impl_.table_filter_ = table_filter;
+  if (table_filter) {
+    
+  } else {
+    
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:vearchpb.QueryRequest.table_filter)
 }
-inline const ::vearchpb::RangeFilter& QueryRequest::range_filters(int index) const {
-  // @@protoc_insertion_point(field_get:vearchpb.QueryRequest.range_filters)
-  return _internal_range_filters(index);
+inline ::vearchpb::TableFilter* QueryRequest::release_table_filter() {
+  
+  ::vearchpb::TableFilter* temp = _impl_.table_filter_;
+  _impl_.table_filter_ = nullptr;
+#ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
+  auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
+  temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  if (GetArenaForAllocation() == nullptr) { delete old; }
+#else  // PROTOBUF_FORCE_COPY_IN_RELEASE
+  if (GetArenaForAllocation() != nullptr) {
+    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  }
+#endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
+  return temp;
 }
-inline ::vearchpb::RangeFilter* QueryRequest::_internal_add_range_filters() {
-  return _impl_.range_filters_.Add();
+inline ::vearchpb::TableFilter* QueryRequest::unsafe_arena_release_table_filter() {
+  // @@protoc_insertion_point(field_release:vearchpb.QueryRequest.table_filter)
+  
+  ::vearchpb::TableFilter* temp = _impl_.table_filter_;
+  _impl_.table_filter_ = nullptr;
+  return temp;
 }
-inline ::vearchpb::RangeFilter* QueryRequest::add_range_filters() {
-  ::vearchpb::RangeFilter* _add = _internal_add_range_filters();
-  // @@protoc_insertion_point(field_add:vearchpb.QueryRequest.range_filters)
-  return _add;
+inline ::vearchpb::TableFilter* QueryRequest::_internal_mutable_table_filter() {
+  
+  if (_impl_.table_filter_ == nullptr) {
+    auto* p = CreateMaybeMessage<::vearchpb::TableFilter>(GetArenaForAllocation());
+    _impl_.table_filter_ = p;
+  }
+  return _impl_.table_filter_;
 }
-inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::RangeFilter >&
-QueryRequest::range_filters() const {
-  // @@protoc_insertion_point(field_list:vearchpb.QueryRequest.range_filters)
-  return _impl_.range_filters_;
+inline ::vearchpb::TableFilter* QueryRequest::mutable_table_filter() {
+  ::vearchpb::TableFilter* _msg = _internal_mutable_table_filter();
+  // @@protoc_insertion_point(field_mutable:vearchpb.QueryRequest.table_filter)
+  return _msg;
+}
+inline void QueryRequest::set_allocated_table_filter(::vearchpb::TableFilter* table_filter) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
+  if (message_arena == nullptr) {
+    delete _impl_.table_filter_;
+  }
+  if (table_filter) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+        ::PROTOBUF_NAMESPACE_ID::Arena::InternalGetOwningArena(table_filter);
+    if (message_arena != submessage_arena) {
+      table_filter = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, table_filter, submessage_arena);
+    }
+    
+  } else {
+    
+  }
+  _impl_.table_filter_ = table_filter;
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.QueryRequest.table_filter)
 }
 
-// repeated .vearchpb.TermFilter term_filters = 6;
-inline int QueryRequest::_internal_term_filters_size() const {
-  return _impl_.term_filters_.size();
-}
-inline int QueryRequest::term_filters_size() const {
-  return _internal_term_filters_size();
-}
-inline void QueryRequest::clear_term_filters() {
-  _impl_.term_filters_.Clear();
-}
-inline ::vearchpb::TermFilter* QueryRequest::mutable_term_filters(int index) {
-  // @@protoc_insertion_point(field_mutable:vearchpb.QueryRequest.term_filters)
-  return _impl_.term_filters_.Mutable(index);
-}
-inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::TermFilter >*
-QueryRequest::mutable_term_filters() {
-  // @@protoc_insertion_point(field_mutable_list:vearchpb.QueryRequest.term_filters)
-  return &_impl_.term_filters_;
-}
-inline const ::vearchpb::TermFilter& QueryRequest::_internal_term_filters(int index) const {
-  return _impl_.term_filters_.Get(index);
-}
-inline const ::vearchpb::TermFilter& QueryRequest::term_filters(int index) const {
-  // @@protoc_insertion_point(field_get:vearchpb.QueryRequest.term_filters)
-  return _internal_term_filters(index);
-}
-inline ::vearchpb::TermFilter* QueryRequest::_internal_add_term_filters() {
-  return _impl_.term_filters_.Add();
-}
-inline ::vearchpb::TermFilter* QueryRequest::add_term_filters() {
-  ::vearchpb::TermFilter* _add = _internal_add_term_filters();
-  // @@protoc_insertion_point(field_add:vearchpb.QueryRequest.term_filters)
-  return _add;
-}
-inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::TermFilter >&
-QueryRequest::term_filters() const {
-  // @@protoc_insertion_point(field_list:vearchpb.QueryRequest.term_filters)
-  return _impl_.term_filters_;
-}
-
-// repeated string fields = 7;
+// repeated string fields = 6;
 inline int QueryRequest::_internal_fields_size() const {
   return _impl_.fields_.size();
 }
@@ -9227,7 +9493,7 @@ QueryRequest::mutable_fields() {
   return &_impl_.fields_;
 }
 
-// bool is_vector_value = 8;
+// bool is_vector_value = 7;
 inline void QueryRequest::clear_is_vector_value() {
   _impl_.is_vector_value_ = false;
 }
@@ -9247,7 +9513,7 @@ inline void QueryRequest::set_is_vector_value(bool value) {
   // @@protoc_insertion_point(field_set:vearchpb.QueryRequest.is_vector_value)
 }
 
-// int32 limit = 9;
+// int32 limit = 8;
 inline void QueryRequest::clear_limit() {
   _impl_.limit_ = 0;
 }
@@ -9267,7 +9533,7 @@ inline void QueryRequest::set_limit(int32_t value) {
   // @@protoc_insertion_point(field_set:vearchpb.QueryRequest.limit)
 }
 
-// int32 page_size = 10;
+// int32 page_size = 9;
 inline void QueryRequest::clear_page_size() {
   _impl_.page_size_ = 0;
 }
@@ -9287,7 +9553,7 @@ inline void QueryRequest::set_page_size(int32_t value) {
   // @@protoc_insertion_point(field_set:vearchpb.QueryRequest.page_size)
 }
 
-// string load_balance = 11;
+// string load_balance = 10;
 inline void QueryRequest::clear_load_balance() {
   _impl_.load_balance_.ClearToEmpty();
 }
@@ -9337,7 +9603,7 @@ inline void QueryRequest::set_allocated_load_balance(std::string* load_balance) 
   // @@protoc_insertion_point(field_set_allocated:vearchpb.QueryRequest.load_balance)
 }
 
-// map<string, string> sort_field_map = 12;
+// map<string, string> sort_field_map = 11;
 inline int QueryRequest::_internal_sort_field_map_size() const {
   return _impl_.sort_field_map_.size();
 }
@@ -9366,7 +9632,7 @@ QueryRequest::mutable_sort_field_map() {
   return _internal_mutable_sort_field_map();
 }
 
-// repeated .vearchpb.SortField sort_fields = 13;
+// repeated .vearchpb.SortField sort_fields = 12;
 inline int QueryRequest::_internal_sort_fields_size() const {
   return _impl_.sort_fields_.size();
 }
@@ -9406,7 +9672,7 @@ QueryRequest::sort_fields() const {
   return _impl_.sort_fields_;
 }
 
-// bool trace = 14;
+// bool trace = 13;
 inline void QueryRequest::clear_trace() {
   _impl_.trace_ = false;
 }
@@ -9697,87 +9963,97 @@ SearchRequest::mutable_fields() {
   return &_impl_.fields_;
 }
 
-// repeated .vearchpb.RangeFilter range_filters = 7;
-inline int SearchRequest::_internal_range_filters_size() const {
-  return _impl_.range_filters_.size();
+// .vearchpb.TableFilter table_filter = 7;
+inline bool SearchRequest::_internal_has_table_filter() const {
+  return this != internal_default_instance() && _impl_.table_filter_ != nullptr;
 }
-inline int SearchRequest::range_filters_size() const {
-  return _internal_range_filters_size();
+inline bool SearchRequest::has_table_filter() const {
+  return _internal_has_table_filter();
 }
-inline void SearchRequest::clear_range_filters() {
-  _impl_.range_filters_.Clear();
+inline void SearchRequest::clear_table_filter() {
+  if (GetArenaForAllocation() == nullptr && _impl_.table_filter_ != nullptr) {
+    delete _impl_.table_filter_;
+  }
+  _impl_.table_filter_ = nullptr;
 }
-inline ::vearchpb::RangeFilter* SearchRequest::mutable_range_filters(int index) {
-  // @@protoc_insertion_point(field_mutable:vearchpb.SearchRequest.range_filters)
-  return _impl_.range_filters_.Mutable(index);
+inline const ::vearchpb::TableFilter& SearchRequest::_internal_table_filter() const {
+  const ::vearchpb::TableFilter* p = _impl_.table_filter_;
+  return p != nullptr ? *p : reinterpret_cast<const ::vearchpb::TableFilter&>(
+      ::vearchpb::_TableFilter_default_instance_);
 }
-inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::RangeFilter >*
-SearchRequest::mutable_range_filters() {
-  // @@protoc_insertion_point(field_mutable_list:vearchpb.SearchRequest.range_filters)
-  return &_impl_.range_filters_;
+inline const ::vearchpb::TableFilter& SearchRequest::table_filter() const {
+  // @@protoc_insertion_point(field_get:vearchpb.SearchRequest.table_filter)
+  return _internal_table_filter();
 }
-inline const ::vearchpb::RangeFilter& SearchRequest::_internal_range_filters(int index) const {
-  return _impl_.range_filters_.Get(index);
+inline void SearchRequest::unsafe_arena_set_allocated_table_filter(
+    ::vearchpb::TableFilter* table_filter) {
+  if (GetArenaForAllocation() == nullptr) {
+    delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.table_filter_);
+  }
+  _impl_.table_filter_ = table_filter;
+  if (table_filter) {
+    
+  } else {
+    
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:vearchpb.SearchRequest.table_filter)
 }
-inline const ::vearchpb::RangeFilter& SearchRequest::range_filters(int index) const {
-  // @@protoc_insertion_point(field_get:vearchpb.SearchRequest.range_filters)
-  return _internal_range_filters(index);
+inline ::vearchpb::TableFilter* SearchRequest::release_table_filter() {
+  
+  ::vearchpb::TableFilter* temp = _impl_.table_filter_;
+  _impl_.table_filter_ = nullptr;
+#ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
+  auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
+  temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  if (GetArenaForAllocation() == nullptr) { delete old; }
+#else  // PROTOBUF_FORCE_COPY_IN_RELEASE
+  if (GetArenaForAllocation() != nullptr) {
+    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  }
+#endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
+  return temp;
 }
-inline ::vearchpb::RangeFilter* SearchRequest::_internal_add_range_filters() {
-  return _impl_.range_filters_.Add();
+inline ::vearchpb::TableFilter* SearchRequest::unsafe_arena_release_table_filter() {
+  // @@protoc_insertion_point(field_release:vearchpb.SearchRequest.table_filter)
+  
+  ::vearchpb::TableFilter* temp = _impl_.table_filter_;
+  _impl_.table_filter_ = nullptr;
+  return temp;
 }
-inline ::vearchpb::RangeFilter* SearchRequest::add_range_filters() {
-  ::vearchpb::RangeFilter* _add = _internal_add_range_filters();
-  // @@protoc_insertion_point(field_add:vearchpb.SearchRequest.range_filters)
-  return _add;
+inline ::vearchpb::TableFilter* SearchRequest::_internal_mutable_table_filter() {
+  
+  if (_impl_.table_filter_ == nullptr) {
+    auto* p = CreateMaybeMessage<::vearchpb::TableFilter>(GetArenaForAllocation());
+    _impl_.table_filter_ = p;
+  }
+  return _impl_.table_filter_;
 }
-inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::RangeFilter >&
-SearchRequest::range_filters() const {
-  // @@protoc_insertion_point(field_list:vearchpb.SearchRequest.range_filters)
-  return _impl_.range_filters_;
+inline ::vearchpb::TableFilter* SearchRequest::mutable_table_filter() {
+  ::vearchpb::TableFilter* _msg = _internal_mutable_table_filter();
+  // @@protoc_insertion_point(field_mutable:vearchpb.SearchRequest.table_filter)
+  return _msg;
+}
+inline void SearchRequest::set_allocated_table_filter(::vearchpb::TableFilter* table_filter) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
+  if (message_arena == nullptr) {
+    delete _impl_.table_filter_;
+  }
+  if (table_filter) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+        ::PROTOBUF_NAMESPACE_ID::Arena::InternalGetOwningArena(table_filter);
+    if (message_arena != submessage_arena) {
+      table_filter = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, table_filter, submessage_arena);
+    }
+    
+  } else {
+    
+  }
+  _impl_.table_filter_ = table_filter;
+  // @@protoc_insertion_point(field_set_allocated:vearchpb.SearchRequest.table_filter)
 }
 
-// repeated .vearchpb.TermFilter term_filters = 8;
-inline int SearchRequest::_internal_term_filters_size() const {
-  return _impl_.term_filters_.size();
-}
-inline int SearchRequest::term_filters_size() const {
-  return _internal_term_filters_size();
-}
-inline void SearchRequest::clear_term_filters() {
-  _impl_.term_filters_.Clear();
-}
-inline ::vearchpb::TermFilter* SearchRequest::mutable_term_filters(int index) {
-  // @@protoc_insertion_point(field_mutable:vearchpb.SearchRequest.term_filters)
-  return _impl_.term_filters_.Mutable(index);
-}
-inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::TermFilter >*
-SearchRequest::mutable_term_filters() {
-  // @@protoc_insertion_point(field_mutable_list:vearchpb.SearchRequest.term_filters)
-  return &_impl_.term_filters_;
-}
-inline const ::vearchpb::TermFilter& SearchRequest::_internal_term_filters(int index) const {
-  return _impl_.term_filters_.Get(index);
-}
-inline const ::vearchpb::TermFilter& SearchRequest::term_filters(int index) const {
-  // @@protoc_insertion_point(field_get:vearchpb.SearchRequest.term_filters)
-  return _internal_term_filters(index);
-}
-inline ::vearchpb::TermFilter* SearchRequest::_internal_add_term_filters() {
-  return _impl_.term_filters_.Add();
-}
-inline ::vearchpb::TermFilter* SearchRequest::add_term_filters() {
-  ::vearchpb::TermFilter* _add = _internal_add_term_filters();
-  // @@protoc_insertion_point(field_add:vearchpb.SearchRequest.term_filters)
-  return _add;
-}
-inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::TermFilter >&
-SearchRequest::term_filters() const {
-  // @@protoc_insertion_point(field_list:vearchpb.SearchRequest.term_filters)
-  return _impl_.term_filters_;
-}
-
-// string index_params = 9;
+// string index_params = 8;
 inline void SearchRequest::clear_index_params() {
   _impl_.index_params_.ClearToEmpty();
 }
@@ -9827,7 +10103,7 @@ inline void SearchRequest::set_allocated_index_params(std::string* index_params)
   // @@protoc_insertion_point(field_set_allocated:vearchpb.SearchRequest.index_params)
 }
 
-// int32 multi_vector_rank = 10;
+// int32 multi_vector_rank = 9;
 inline void SearchRequest::clear_multi_vector_rank() {
   _impl_.multi_vector_rank_ = 0;
 }
@@ -9847,7 +10123,7 @@ inline void SearchRequest::set_multi_vector_rank(int32_t value) {
   // @@protoc_insertion_point(field_set:vearchpb.SearchRequest.multi_vector_rank)
 }
 
-// bool l2_sqrt = 11;
+// bool l2_sqrt = 10;
 inline void SearchRequest::clear_l2_sqrt() {
   _impl_.l2_sqrt_ = false;
 }
@@ -9867,7 +10143,7 @@ inline void SearchRequest::set_l2_sqrt(bool value) {
   // @@protoc_insertion_point(field_set:vearchpb.SearchRequest.l2_sqrt)
 }
 
-// bool is_vector_value = 12;
+// bool is_vector_value = 11;
 inline void SearchRequest::clear_is_vector_value() {
   _impl_.is_vector_value_ = false;
 }
@@ -9887,7 +10163,7 @@ inline void SearchRequest::set_is_vector_value(bool value) {
   // @@protoc_insertion_point(field_set:vearchpb.SearchRequest.is_vector_value)
 }
 
-// map<string, string> sort_field_map = 13;
+// map<string, string> sort_field_map = 12;
 inline int SearchRequest::_internal_sort_field_map_size() const {
   return _impl_.sort_field_map_.size();
 }
@@ -9916,7 +10192,7 @@ SearchRequest::mutable_sort_field_map() {
   return _internal_mutable_sort_field_map();
 }
 
-// repeated .vearchpb.SortField sort_fields = 14;
+// repeated .vearchpb.SortField sort_fields = 13;
 inline int SearchRequest::_internal_sort_fields_size() const {
   return _impl_.sort_fields_.size();
 }
@@ -9956,7 +10232,7 @@ SearchRequest::sort_fields() const {
   return _impl_.sort_fields_;
 }
 
-// string ranker = 15;
+// string ranker = 14;
 inline void SearchRequest::clear_ranker() {
   _impl_.ranker_.ClearToEmpty();
 }
@@ -10006,7 +10282,7 @@ inline void SearchRequest::set_allocated_ranker(std::string* ranker) {
   // @@protoc_insertion_point(field_set_allocated:vearchpb.SearchRequest.ranker)
 }
 
-// bool trace = 16;
+// bool trace = 15;
 inline void SearchRequest::clear_trace() {
   _impl_.trace_ = false;
 }
@@ -10782,6 +11058,8 @@ inline void SearchStatus::set_allocated_msg(std::string* msg) {
 #ifdef __GNUC__
   #pragma GCC diagnostic pop
 #endif  // __GNUC__
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 // -------------------------------------------------------------------

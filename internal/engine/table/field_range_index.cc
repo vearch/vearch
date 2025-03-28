@@ -228,6 +228,7 @@ static void AdjustBoundary(std::string &boundary, int offset) {
 }
 
 int64_t MultiFieldsRangeIndex::Search(
+    FilterOperator query_filter_operator,
     const std::vector<FilterInfo> &origin_filters,
     MultiRangeQueryResults *out) {
   out->Clear();
@@ -258,6 +259,9 @@ int64_t MultiFieldsRangeIndex::Search(
 
   RangeQueryResult result;
   RangeQueryResult result_not_in;
+  bool first_result = true;
+  bool first_result_not_in = true;
+  bool have_not_in = false;
   result_not_in.SetNotIn(true);
   std::atomic<int64_t> retval{0};
 
@@ -332,6 +336,9 @@ int64_t MultiFieldsRangeIndex::Search(
         items.push_back(filter.lower_value);
       }
 
+      if (filter.is_union == FilterOperator::Not)
+        have_not_in = true;
+
       for (size_t i = 0; i < items.size(); i++) {
         std::string item = items[i];
         std::unique_ptr<rocksdb::Iterator> it(
@@ -355,23 +362,49 @@ int64_t MultiFieldsRangeIndex::Search(
         }
       }
     }
-    if (i == 0) {
-      result = std::move(result_tmp);
-    } else {
-      result.Intersection(result_tmp);
-    }
 
-    if (i == 0) {
-      result_not_in = std::move(result_not_in);
+    if (filter.is_union != FilterOperator::Not) {
+      if (first_result) {
+        result = std::move(result_tmp);
+        first_result = false;
+      } else {
+        if (query_filter_operator == FilterOperator::And) {
+          result.Intersection(result_tmp);
+        } else if (query_filter_operator == FilterOperator::Or) {
+          result.Union(result_tmp);
+        }
+      }
     } else {
-      result_not_in.Intersection(result_not_in);
+      if (first_result_not_in) {
+        result_not_in = std::move(result_not_in_tmp);
+        first_result_not_in = false;
+      } else {
+        if (query_filter_operator == FilterOperator::And) {
+          result_not_in.Union(result_not_in_tmp);
+        } else if (query_filter_operator == FilterOperator::Or) {
+          result_not_in.Intersection(result_not_in_tmp);
+        }
+      }
     }
   }
 
-  if (result_not_in.Cardinality() > 0 && result.Cardinality() > 0) {
-    result.IntersectionWithNotIn(result_not_in);
-  } else if (result_not_in.Cardinality() > 0) {
-    result = std::move(result_not_in);
+  if (have_not_in)
+  {
+    RangeQueryResult all_result;
+    all_result.AddRange(0, storage_mgr_->Size());
+    all_result.IntersectionWithNotIn(result_not_in);
+
+    if (query_filter_operator == FilterOperator::And && first_result)
+    {
+      result = std::move(all_result);
+    }
+    else if (query_filter_operator == FilterOperator::And) {
+      result.IntersectionWithNotIn(result_not_in);
+    }
+    else if (query_filter_operator == FilterOperator::Or) {
+      result.Union(all_result);
+    }
+    retval = result.Cardinality();
   }
 
   out->Add(std::move(result));
@@ -379,17 +412,11 @@ int64_t MultiFieldsRangeIndex::Search(
 }
 
 int64_t MultiFieldsRangeIndex::Query(
+    FilterOperator query_filter_operator,
     const std::vector<FilterInfo> &origin_filters,
     std::vector<uint64_t> &docids, size_t topn) {
-  for (auto filter : origin_filters) {
-    if (filter.is_union == FilterOperator::Not) {
-      LOG(ERROR) << "Not operator is not supported in Query";
-      return -1;
-    }
-  }
-
   MultiRangeQueryResults range_query_result;
-  int64_t retval = Search(origin_filters, &range_query_result);
+  int64_t retval = Search(query_filter_operator, origin_filters, &range_query_result);
   if (retval <= 0) {
     return retval;
   }

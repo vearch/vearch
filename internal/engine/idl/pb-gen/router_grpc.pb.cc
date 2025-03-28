@@ -295,6 +295,21 @@ struct RangeFilterDefaultTypeInternal {
   };
 };
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 RangeFilterDefaultTypeInternal _RangeFilter_default_instance_;
+PROTOBUF_CONSTEXPR TableFilter::TableFilter(
+    ::_pbi::ConstantInitialized): _impl_{
+    /*decltype(_impl_.range_filters_)*/{}
+  , /*decltype(_impl_.term_filters_)*/{}
+  , /*decltype(_impl_.operator__)*/0
+  , /*decltype(_impl_._cached_size_)*/{}} {}
+struct TableFilterDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR TableFilterDefaultTypeInternal()
+      : _instance(::_pbi::ConstantInitialized{}) {}
+  ~TableFilterDefaultTypeInternal() {}
+  union {
+    TableFilter _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 TableFilterDefaultTypeInternal _TableFilter_default_instance_;
 PROTOBUF_CONSTEXPR SortField::SortField(
     ::_pbi::ConstantInitialized): _impl_{
     /*decltype(_impl_.field_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
@@ -355,18 +370,17 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORIT
 PROTOBUF_CONSTEXPR QueryRequest::QueryRequest(
     ::_pbi::ConstantInitialized): _impl_{
     /*decltype(_impl_.document_ids_)*/{}
-  , /*decltype(_impl_.range_filters_)*/{}
-  , /*decltype(_impl_.term_filters_)*/{}
   , /*decltype(_impl_.fields_)*/{}
   , /*decltype(_impl_.sort_field_map_)*/{::_pbi::ConstantInitialized()}
   , /*decltype(_impl_.sort_fields_)*/{}
   , /*decltype(_impl_.load_balance_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
   , /*decltype(_impl_.head_)*/nullptr
+  , /*decltype(_impl_.table_filter_)*/nullptr
   , /*decltype(_impl_.partition_id_)*/0
+  , /*decltype(_impl_.limit_)*/0
   , /*decltype(_impl_.next_)*/false
   , /*decltype(_impl_.is_vector_value_)*/false
   , /*decltype(_impl_.trace_)*/false
-  , /*decltype(_impl_.limit_)*/0
   , /*decltype(_impl_.page_size_)*/0
   , /*decltype(_impl_._cached_size_)*/{}} {}
 struct QueryRequestDefaultTypeInternal {
@@ -393,13 +407,12 @@ PROTOBUF_CONSTEXPR SearchRequest::SearchRequest(
     ::_pbi::ConstantInitialized): _impl_{
     /*decltype(_impl_.vec_fields_)*/{}
   , /*decltype(_impl_.fields_)*/{}
-  , /*decltype(_impl_.range_filters_)*/{}
-  , /*decltype(_impl_.term_filters_)*/{}
   , /*decltype(_impl_.sort_field_map_)*/{::_pbi::ConstantInitialized()}
   , /*decltype(_impl_.sort_fields_)*/{}
   , /*decltype(_impl_.index_params_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
   , /*decltype(_impl_.ranker_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
   , /*decltype(_impl_.head_)*/nullptr
+  , /*decltype(_impl_.table_filter_)*/nullptr
   , /*decltype(_impl_.req_num_)*/0
   , /*decltype(_impl_.topn_)*/0
   , /*decltype(_impl_.is_brute_search_)*/0
@@ -487,7 +500,7 @@ struct SearchStatusDefaultTypeInternal {
 };
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SearchStatusDefaultTypeInternal _SearchStatus_default_instance_;
 }  // namespace vearchpb
-static ::_pb::Metadata file_level_metadata_router_5fgrpc_2eproto[30];
+static ::_pb::Metadata file_level_metadata_router_5fgrpc_2eproto[31];
 static const ::_pb::EnumDescriptor* file_level_enum_descriptors_router_5fgrpc_2eproto[1];
 static constexpr ::_pb::ServiceDescriptor const** file_level_service_descriptors_router_5fgrpc_2eproto = nullptr;
 
@@ -662,6 +675,15 @@ const uint32_t TableStruct_router_5fgrpc_2eproto::offsets[] PROTOBUF_SECTION_VAR
   PROTOBUF_FIELD_OFFSET(::vearchpb::RangeFilter, _impl_.include_lower_),
   PROTOBUF_FIELD_OFFSET(::vearchpb::RangeFilter, _impl_.include_upper_),
   ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::vearchpb::TableFilter, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::vearchpb::TableFilter, _impl_.operator__),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::TableFilter, _impl_.range_filters_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::TableFilter, _impl_.term_filters_),
+  ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::vearchpb::SortField, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
@@ -709,8 +731,7 @@ const uint32_t TableStruct_router_5fgrpc_2eproto::offsets[] PROTOBUF_SECTION_VAR
   PROTOBUF_FIELD_OFFSET(::vearchpb::QueryRequest, _impl_.document_ids_),
   PROTOBUF_FIELD_OFFSET(::vearchpb::QueryRequest, _impl_.partition_id_),
   PROTOBUF_FIELD_OFFSET(::vearchpb::QueryRequest, _impl_.next_),
-  PROTOBUF_FIELD_OFFSET(::vearchpb::QueryRequest, _impl_.range_filters_),
-  PROTOBUF_FIELD_OFFSET(::vearchpb::QueryRequest, _impl_.term_filters_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::QueryRequest, _impl_.table_filter_),
   PROTOBUF_FIELD_OFFSET(::vearchpb::QueryRequest, _impl_.fields_),
   PROTOBUF_FIELD_OFFSET(::vearchpb::QueryRequest, _impl_.is_vector_value_),
   PROTOBUF_FIELD_OFFSET(::vearchpb::QueryRequest, _impl_.limit_),
@@ -741,8 +762,7 @@ const uint32_t TableStruct_router_5fgrpc_2eproto::offsets[] PROTOBUF_SECTION_VAR
   PROTOBUF_FIELD_OFFSET(::vearchpb::SearchRequest, _impl_.is_brute_search_),
   PROTOBUF_FIELD_OFFSET(::vearchpb::SearchRequest, _impl_.vec_fields_),
   PROTOBUF_FIELD_OFFSET(::vearchpb::SearchRequest, _impl_.fields_),
-  PROTOBUF_FIELD_OFFSET(::vearchpb::SearchRequest, _impl_.range_filters_),
-  PROTOBUF_FIELD_OFFSET(::vearchpb::SearchRequest, _impl_.term_filters_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::SearchRequest, _impl_.table_filter_),
   PROTOBUF_FIELD_OFFSET(::vearchpb::SearchRequest, _impl_.index_params_),
   PROTOBUF_FIELD_OFFSET(::vearchpb::SearchRequest, _impl_.multi_vector_rank_),
   PROTOBUF_FIELD_OFFSET(::vearchpb::SearchRequest, _impl_.l2_sqrt_),
@@ -817,17 +837,18 @@ static const ::_pbi::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protode
   { 141, -1, -1, sizeof(::vearchpb::IndexResponse)},
   { 149, -1, -1, sizeof(::vearchpb::TermFilter)},
   { 158, -1, -1, sizeof(::vearchpb::RangeFilter)},
-  { 169, -1, -1, sizeof(::vearchpb::SortField)},
-  { 177, -1, -1, sizeof(::vearchpb::VectorQuery)},
-  { 189, -1, -1, sizeof(::vearchpb::IndexParameters)},
-  { 197, 205, -1, sizeof(::vearchpb::QueryRequest_SortFieldMapEntry_DoNotUse)},
-  { 207, -1, -1, sizeof(::vearchpb::QueryRequest)},
-  { 227, 235, -1, sizeof(::vearchpb::SearchRequest_SortFieldMapEntry_DoNotUse)},
-  { 237, -1, -1, sizeof(::vearchpb::SearchRequest)},
-  { 259, -1, -1, sizeof(::vearchpb::ResultItem)},
-  { 268, -1, -1, sizeof(::vearchpb::SearchResult)},
-  { 284, -1, -1, sizeof(::vearchpb::SearchResponse)},
-  { 294, -1, -1, sizeof(::vearchpb::SearchStatus)},
+  { 169, -1, -1, sizeof(::vearchpb::TableFilter)},
+  { 178, -1, -1, sizeof(::vearchpb::SortField)},
+  { 186, -1, -1, sizeof(::vearchpb::VectorQuery)},
+  { 198, -1, -1, sizeof(::vearchpb::IndexParameters)},
+  { 206, 214, -1, sizeof(::vearchpb::QueryRequest_SortFieldMapEntry_DoNotUse)},
+  { 216, -1, -1, sizeof(::vearchpb::QueryRequest)},
+  { 235, 243, -1, sizeof(::vearchpb::SearchRequest_SortFieldMapEntry_DoNotUse)},
+  { 245, -1, -1, sizeof(::vearchpb::SearchRequest)},
+  { 266, -1, -1, sizeof(::vearchpb::ResultItem)},
+  { 275, -1, -1, sizeof(::vearchpb::SearchResult)},
+  { 291, -1, -1, sizeof(::vearchpb::SearchResponse)},
+  { 301, -1, -1, sizeof(::vearchpb::SearchStatus)},
 };
 
 static const ::_pb::Message* const file_default_instances[] = {
@@ -850,6 +871,7 @@ static const ::_pb::Message* const file_default_instances[] = {
   &::vearchpb::_IndexResponse_default_instance_._instance,
   &::vearchpb::_TermFilter_default_instance_._instance,
   &::vearchpb::_RangeFilter_default_instance_._instance,
+  &::vearchpb::_TableFilter_default_instance_._instance,
   &::vearchpb::_SortField_default_instance_._instance,
   &::vearchpb::_VectorQuery_default_instance_._instance,
   &::vearchpb::_IndexParameters_default_instance_._instance,
@@ -908,64 +930,64 @@ const char descriptor_table_protodef_router_5fgrpc_2eproto[] PROTOBUF_SECTION_VA
   "lue\030\002 \001(\014\022\020\n\010is_union\030\003 \001(\005\"t\n\013RangeFilt"
   "er\022\r\n\005field\030\001 \001(\t\022\023\n\013lower_value\030\002 \001(\014\022\023"
   "\n\013upper_value\030\003 \001(\014\022\025\n\rinclude_lower\030\004 \001"
-  "(\010\022\025\n\rinclude_upper\030\005 \001(\010\"(\n\tSortField\022\r"
-  "\n\005field\030\001 \001(\t\022\014\n\004type\030\002 \001(\010\"t\n\013VectorQue"
-  "ry\022\014\n\004name\030\001 \001(\t\022\r\n\005value\030\002 \001(\014\022\021\n\tmin_s"
-  "core\030\003 \001(\001\022\021\n\tmax_score\030\004 \001(\001\022\016\n\006format\030"
-  "\005 \001(\t\022\022\n\nindex_type\030\006 \001(\t\"\224\001\n\017IndexParam"
-  "eters\022A\n\013metric_type\030\001 \001(\0162,.vearchpb.In"
-  "dexParameters.DistanceMetricType\022\016\n\006npro"
-  "be\030\002 \001(\005\".\n\022DistanceMetricType\022\020\n\014InnerP"
-  "roduct\020\000\022\006\n\002L2\020\001\"\330\003\n\014QueryRequest\022#\n\004hea"
-  "d\030\001 \001(\0132\025.vearchpb.RequestHead\022\024\n\014docume"
-  "nt_ids\030\002 \003(\t\022\024\n\014partition_id\030\003 \001(\005\022\014\n\004ne"
-  "xt\030\004 \001(\010\022,\n\rrange_filters\030\005 \003(\0132\025.vearch"
-  "pb.RangeFilter\022*\n\014term_filters\030\006 \003(\0132\024.v"
-  "earchpb.TermFilter\022\016\n\006fields\030\007 \003(\t\022\027\n\017is"
-  "_vector_value\030\010 \001(\010\022\r\n\005limit\030\t \001(\005\022\021\n\tpa"
-  "ge_size\030\n \001(\005\022\024\n\014load_balance\030\013 \001(\t\022@\n\016s"
-  "ort_field_map\030\014 \003(\0132(.vearchpb.QueryRequ"
-  "est.SortFieldMapEntry\022(\n\013sort_fields\030\r \003"
-  "(\0132\023.vearchpb.SortField\022\r\n\005trace\030\016 \001(\010\0323"
-  "\n\021SortFieldMapEntry\022\013\n\003key\030\001 \001(\t\022\r\n\005valu"
-  "e\030\002 \001(\t:\0028\001\"\235\004\n\rSearchRequest\022#\n\004head\030\001 "
-  "\001(\0132\025.vearchpb.RequestHead\022\017\n\007req_num\030\002 "
-  "\001(\005\022\014\n\004topN\030\003 \001(\005\022\027\n\017is_brute_search\030\004 \001"
-  "(\005\022)\n\nvec_fields\030\005 \003(\0132\025.vearchpb.Vector"
-  "Query\022\016\n\006fields\030\006 \003(\t\022,\n\rrange_filters\030\007"
-  " \003(\0132\025.vearchpb.RangeFilter\022*\n\014term_filt"
-  "ers\030\010 \003(\0132\024.vearchpb.TermFilter\022\024\n\014index"
-  "_params\030\t \001(\t\022\031\n\021multi_vector_rank\030\n \001(\005"
-  "\022\017\n\007l2_sqrt\030\013 \001(\010\022\027\n\017is_vector_value\030\014 \001"
-  "(\010\022A\n\016sort_field_map\030\r \003(\0132).vearchpb.Se"
-  "archRequest.SortFieldMapEntry\022(\n\013sort_fi"
-  "elds\030\016 \003(\0132\023.vearchpb.SortField\022\016\n\006ranke"
-  "r\030\017 \001(\t\022\r\n\005trace\030\020 \001(\010\0323\n\021SortFieldMapEn"
-  "try\022\013\n\003key\030\001 \001(\t\022\r\n\005value\030\002 \001(\t:\0028\001\"K\n\nR"
-  "esultItem\022\r\n\005score\030\001 \001(\001\022\037\n\006fields\030\002 \003(\013"
-  "2\017.vearchpb.Field\022\r\n\005p_key\030\003 \001(\t\"\351\001\n\014Sea"
-  "rchResult\022\022\n\ntotal_hits\030\001 \001(\005\022\021\n\tmax_sco"
-  "re\030\002 \001(\001\022\020\n\010max_took\030\003 \001(\003\022\023\n\013max_took_i"
-  "d\030\004 \001(\r\022&\n\006status\030\005 \001(\0132\026.vearchpb.Searc"
-  "hStatus\022\013\n\003msg\030\006 \001(\t\022*\n\014result_items\030\007 \003"
-  "(\0132\024.vearchpb.ResultItem\022\013\n\003pID\030\010 \001(\r\022\017\n"
-  "\007timeout\030\t \001(\010\022\014\n\004topN\030\n \001(\005\"\203\001\n\016SearchR"
-  "esponse\022$\n\004head\030\001 \001(\0132\026.vearchpb.Respons"
-  "eHead\022\'\n\007results\030\002 \003(\0132\026.vearchpb.Search"
-  "Result\022\017\n\007timeout\030\003 \001(\010\022\021\n\tFlatBytes\030\004 \001"
-  "(\014\"N\n\014SearchStatus\022\r\n\005total\030\001 \001(\005\022\016\n\006fai"
-  "led\030\002 \001(\005\022\022\n\nsuccessful\030\003 \001(\005\022\013\n\003msg\030\004 \001"
-  "(\t2\366\002\n\021RouterGRPCService\0224\n\003Get\022\024.vearch"
-  "pb.GetRequest\032\025.vearchpb.GetResponse\"\000\022="
-  "\n\006Delete\022\027.vearchpb.DeleteRequest\032\030.vear"
-  "chpb.DeleteResponse\"\000\022=\n\006Search\022\027.vearch"
-  "pb.SearchRequest\032\030.vearchpb.SearchRespon"
-  "se\"\000\0227\n\004Bulk\022\025.vearchpb.BulkRequest\032\026.ve"
-  "archpb.BulkResponse\"\000\0221\n\005Space\022\025.vearchp"
-  "b.RequestHead\032\017.vearchpb.Table\"\000\022A\n\nSear"
-  "chByID\022\027.vearchpb.SearchRequest\032\030.vearch"
-  "pb.SearchResponse\"\000B\016H\001Z\n./vearchpbb\006pro"
-  "to3"
+  "(\010\022\025\n\rinclude_upper\030\005 \001(\010\"y\n\013TableFilter"
+  "\022\020\n\010operator\030\001 \001(\005\022,\n\rrange_filters\030\002 \003("
+  "\0132\025.vearchpb.RangeFilter\022*\n\014term_filters"
+  "\030\003 \003(\0132\024.vearchpb.TermFilter\"(\n\tSortFiel"
+  "d\022\r\n\005field\030\001 \001(\t\022\014\n\004type\030\002 \001(\010\"t\n\013Vector"
+  "Query\022\014\n\004name\030\001 \001(\t\022\r\n\005value\030\002 \001(\014\022\021\n\tmi"
+  "n_score\030\003 \001(\001\022\021\n\tmax_score\030\004 \001(\001\022\016\n\006form"
+  "at\030\005 \001(\t\022\022\n\nindex_type\030\006 \001(\t\"\224\001\n\017IndexPa"
+  "rameters\022A\n\013metric_type\030\001 \001(\0162,.vearchpb"
+  ".IndexParameters.DistanceMetricType\022\016\n\006n"
+  "probe\030\002 \001(\005\".\n\022DistanceMetricType\022\020\n\014Inn"
+  "erProduct\020\000\022\006\n\002L2\020\001\"\253\003\n\014QueryRequest\022#\n\004"
+  "head\030\001 \001(\0132\025.vearchpb.RequestHead\022\024\n\014doc"
+  "ument_ids\030\002 \003(\t\022\024\n\014partition_id\030\003 \001(\005\022\014\n"
+  "\004next\030\004 \001(\010\022+\n\014table_filter\030\005 \001(\0132\025.vear"
+  "chpb.TableFilter\022\016\n\006fields\030\006 \003(\t\022\027\n\017is_v"
+  "ector_value\030\007 \001(\010\022\r\n\005limit\030\010 \001(\005\022\021\n\tpage"
+  "_size\030\t \001(\005\022\024\n\014load_balance\030\n \001(\t\022@\n\016sor"
+  "t_field_map\030\013 \003(\0132(.vearchpb.QueryReques"
+  "t.SortFieldMapEntry\022(\n\013sort_fields\030\014 \003(\013"
+  "2\023.vearchpb.SortField\022\r\n\005trace\030\r \001(\010\0323\n\021"
+  "SortFieldMapEntry\022\013\n\003key\030\001 \001(\t\022\r\n\005value\030"
+  "\002 \001(\t:\0028\001\"\360\003\n\rSearchRequest\022#\n\004head\030\001 \001("
+  "\0132\025.vearchpb.RequestHead\022\017\n\007req_num\030\002 \001("
+  "\005\022\014\n\004topN\030\003 \001(\005\022\027\n\017is_brute_search\030\004 \001(\005"
+  "\022)\n\nvec_fields\030\005 \003(\0132\025.vearchpb.VectorQu"
+  "ery\022\016\n\006fields\030\006 \003(\t\022+\n\014table_filter\030\007 \001("
+  "\0132\025.vearchpb.TableFilter\022\024\n\014index_params"
+  "\030\010 \001(\t\022\031\n\021multi_vector_rank\030\t \001(\005\022\017\n\007l2_"
+  "sqrt\030\n \001(\010\022\027\n\017is_vector_value\030\013 \001(\010\022A\n\016s"
+  "ort_field_map\030\014 \003(\0132).vearchpb.SearchReq"
+  "uest.SortFieldMapEntry\022(\n\013sort_fields\030\r "
+  "\003(\0132\023.vearchpb.SortField\022\016\n\006ranker\030\016 \001(\t"
+  "\022\r\n\005trace\030\017 \001(\010\0323\n\021SortFieldMapEntry\022\013\n\003"
+  "key\030\001 \001(\t\022\r\n\005value\030\002 \001(\t:\0028\001\"K\n\nResultIt"
+  "em\022\r\n\005score\030\001 \001(\001\022\037\n\006fields\030\002 \003(\0132\017.vear"
+  "chpb.Field\022\r\n\005p_key\030\003 \001(\t\"\351\001\n\014SearchResu"
+  "lt\022\022\n\ntotal_hits\030\001 \001(\005\022\021\n\tmax_score\030\002 \001("
+  "\001\022\020\n\010max_took\030\003 \001(\003\022\023\n\013max_took_id\030\004 \001(\r"
+  "\022&\n\006status\030\005 \001(\0132\026.vearchpb.SearchStatus"
+  "\022\013\n\003msg\030\006 \001(\t\022*\n\014result_items\030\007 \003(\0132\024.ve"
+  "archpb.ResultItem\022\013\n\003pID\030\010 \001(\r\022\017\n\007timeou"
+  "t\030\t \001(\010\022\014\n\004topN\030\n \001(\005\"\203\001\n\016SearchResponse"
+  "\022$\n\004head\030\001 \001(\0132\026.vearchpb.ResponseHead\022\'"
+  "\n\007results\030\002 \003(\0132\026.vearchpb.SearchResult\022"
+  "\017\n\007timeout\030\003 \001(\010\022\021\n\tFlatBytes\030\004 \001(\014\"N\n\014S"
+  "earchStatus\022\r\n\005total\030\001 \001(\005\022\016\n\006failed\030\002 \001"
+  "(\005\022\022\n\nsuccessful\030\003 \001(\005\022\013\n\003msg\030\004 \001(\t2\366\002\n\021"
+  "RouterGRPCService\0224\n\003Get\022\024.vearchpb.GetR"
+  "equest\032\025.vearchpb.GetResponse\"\000\022=\n\006Delet"
+  "e\022\027.vearchpb.DeleteRequest\032\030.vearchpb.De"
+  "leteResponse\"\000\022=\n\006Search\022\027.vearchpb.Sear"
+  "chRequest\032\030.vearchpb.SearchResponse\"\000\0227\n"
+  "\004Bulk\022\025.vearchpb.BulkRequest\032\026.vearchpb."
+  "BulkResponse\"\000\0221\n\005Space\022\025.vearchpb.Reque"
+  "stHead\032\017.vearchpb.Table\"\000\022A\n\nSearchByID\022"
+  "\027.vearchpb.SearchRequest\032\030.vearchpb.Sear"
+  "chResponse\"\000B\016H\001Z\n./vearchpbb\006proto3"
   ;
 static const ::_pbi::DescriptorTable* const descriptor_table_router_5fgrpc_2eproto_deps[2] = {
   &::descriptor_table_data_5fmodel_2eproto,
@@ -973,9 +995,9 @@ static const ::_pbi::DescriptorTable* const descriptor_table_router_5fgrpc_2epro
 };
 static ::_pbi::once_flag descriptor_table_router_5fgrpc_2eproto_once;
 const ::_pbi::DescriptorTable descriptor_table_router_5fgrpc_2eproto = {
-    false, false, 4043, descriptor_table_protodef_router_5fgrpc_2eproto,
+    false, false, 4076, descriptor_table_protodef_router_5fgrpc_2eproto,
     "router_grpc.proto",
-    &descriptor_table_router_5fgrpc_2eproto_once, descriptor_table_router_5fgrpc_2eproto_deps, 2, 30,
+    &descriptor_table_router_5fgrpc_2eproto_once, descriptor_table_router_5fgrpc_2eproto_deps, 2, 31,
     schemas, file_default_instances, TableStruct_router_5fgrpc_2eproto::offsets,
     file_level_metadata_router_5fgrpc_2eproto, file_level_enum_descriptors_router_5fgrpc_2eproto,
     file_level_service_descriptors_router_5fgrpc_2eproto,
@@ -5576,6 +5598,252 @@ void RangeFilter::InternalSwap(RangeFilter* other) {
 
 // ===================================================================
 
+class TableFilter::_Internal {
+ public:
+};
+
+TableFilter::TableFilter(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
+  SharedCtor(arena, is_message_owned);
+  // @@protoc_insertion_point(arena_constructor:vearchpb.TableFilter)
+}
+TableFilter::TableFilter(const TableFilter& from)
+  : ::PROTOBUF_NAMESPACE_ID::Message() {
+  TableFilter* const _this = this; (void)_this;
+  new (&_impl_) Impl_{
+      decltype(_impl_.range_filters_){from._impl_.range_filters_}
+    , decltype(_impl_.term_filters_){from._impl_.term_filters_}
+    , decltype(_impl_.operator__){}
+    , /*decltype(_impl_._cached_size_)*/{}};
+
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  _this->_impl_.operator__ = from._impl_.operator__;
+  // @@protoc_insertion_point(copy_constructor:vearchpb.TableFilter)
+}
+
+inline void TableFilter::SharedCtor(
+    ::_pb::Arena* arena, bool is_message_owned) {
+  (void)arena;
+  (void)is_message_owned;
+  new (&_impl_) Impl_{
+      decltype(_impl_.range_filters_){arena}
+    , decltype(_impl_.term_filters_){arena}
+    , decltype(_impl_.operator__){0}
+    , /*decltype(_impl_._cached_size_)*/{}
+  };
+}
+
+TableFilter::~TableFilter() {
+  // @@protoc_insertion_point(destructor:vearchpb.TableFilter)
+  if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
+  (void)arena;
+    return;
+  }
+  SharedDtor();
+}
+
+inline void TableFilter::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+  _impl_.range_filters_.~RepeatedPtrField();
+  _impl_.term_filters_.~RepeatedPtrField();
+}
+
+void TableFilter::SetCachedSize(int size) const {
+  _impl_._cached_size_.Set(size);
+}
+
+void TableFilter::Clear() {
+// @@protoc_insertion_point(message_clear_start:vearchpb.TableFilter)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  _impl_.range_filters_.Clear();
+  _impl_.term_filters_.Clear();
+  _impl_.operator__ = 0;
+  _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
+}
+
+const char* TableFilter::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::_pbi::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // int32 operator = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 8)) {
+          _impl_.operator__ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // repeated .vearchpb.RangeFilter range_filters = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
+          ptr -= 1;
+          do {
+            ptr += 1;
+            ptr = ctx->ParseMessage(_internal_add_range_filters(), ptr);
+            CHK_(ptr);
+            if (!ctx->DataAvailable(ptr)) break;
+          } while (::PROTOBUF_NAMESPACE_ID::internal::ExpectTag<18>(ptr));
+        } else
+          goto handle_unusual;
+        continue;
+      // repeated .vearchpb.TermFilter term_filters = 3;
+      case 3:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 26)) {
+          ptr -= 1;
+          do {
+            ptr += 1;
+            ptr = ctx->ParseMessage(_internal_add_term_filters(), ptr);
+            CHK_(ptr);
+            if (!ctx->DataAvailable(ptr)) break;
+          } while (::PROTOBUF_NAMESPACE_ID::internal::ExpectTag<26>(ptr));
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* TableFilter::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:vearchpb.TableFilter)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // int32 operator = 1;
+  if (this->_internal_operator_() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteInt32ToArray(1, this->_internal_operator_(), target);
+  }
+
+  // repeated .vearchpb.RangeFilter range_filters = 2;
+  for (unsigned i = 0,
+      n = static_cast<unsigned>(this->_internal_range_filters_size()); i < n; i++) {
+    const auto& repfield = this->_internal_range_filters(i);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+        InternalWriteMessage(2, repfield, repfield.GetCachedSize(), target, stream);
+  }
+
+  // repeated .vearchpb.TermFilter term_filters = 3;
+  for (unsigned i = 0,
+      n = static_cast<unsigned>(this->_internal_term_filters_size()); i < n; i++) {
+    const auto& repfield = this->_internal_term_filters(i);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+        InternalWriteMessage(3, repfield, repfield.GetCachedSize(), target, stream);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+        _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:vearchpb.TableFilter)
+  return target;
+}
+
+size_t TableFilter::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:vearchpb.TableFilter)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // repeated .vearchpb.RangeFilter range_filters = 2;
+  total_size += 1UL * this->_internal_range_filters_size();
+  for (const auto& msg : this->_impl_.range_filters_) {
+    total_size +=
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(msg);
+  }
+
+  // repeated .vearchpb.TermFilter term_filters = 3;
+  total_size += 1UL * this->_internal_term_filters_size();
+  for (const auto& msg : this->_impl_.term_filters_) {
+    total_size +=
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(msg);
+  }
+
+  // int32 operator = 1;
+  if (this->_internal_operator_() != 0) {
+    total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(this->_internal_operator_());
+  }
+
+  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
+}
+
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData TableFilter::_class_data_ = {
+    ::PROTOBUF_NAMESPACE_ID::Message::CopyWithSourceCheck,
+    TableFilter::MergeImpl
+};
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*TableFilter::GetClassData() const { return &_class_data_; }
+
+
+void TableFilter::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
+  auto* const _this = static_cast<TableFilter*>(&to_msg);
+  auto& from = static_cast<const TableFilter&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:vearchpb.TableFilter)
+  GOOGLE_DCHECK_NE(&from, _this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  _this->_impl_.range_filters_.MergeFrom(from._impl_.range_filters_);
+  _this->_impl_.term_filters_.MergeFrom(from._impl_.term_filters_);
+  if (from._internal_operator_() != 0) {
+    _this->_internal_set_operator_(from._internal_operator_());
+  }
+  _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void TableFilter::CopyFrom(const TableFilter& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:vearchpb.TableFilter)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool TableFilter::IsInitialized() const {
+  return true;
+}
+
+void TableFilter::InternalSwap(TableFilter* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  _impl_.range_filters_.InternalSwap(&other->_impl_.range_filters_);
+  _impl_.term_filters_.InternalSwap(&other->_impl_.term_filters_);
+  swap(_impl_.operator__, other->_impl_.operator__);
+}
+
+::PROTOBUF_NAMESPACE_ID::Metadata TableFilter::GetMetadata() const {
+  return ::_pbi::AssignDescriptors(
+      &descriptor_table_router_5fgrpc_2eproto_getter, &descriptor_table_router_5fgrpc_2eproto_once,
+      file_level_metadata_router_5fgrpc_2eproto[19]);
+}
+
+// ===================================================================
+
 class SortField::_Internal {
  public:
 };
@@ -5801,7 +6069,7 @@ void SortField::InternalSwap(SortField* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata SortField::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_router_5fgrpc_2eproto_getter, &descriptor_table_router_5fgrpc_2eproto_once,
-      file_level_metadata_router_5fgrpc_2eproto[19]);
+      file_level_metadata_router_5fgrpc_2eproto[20]);
 }
 
 // ===================================================================
@@ -6233,7 +6501,7 @@ void VectorQuery::InternalSwap(VectorQuery* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata VectorQuery::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_router_5fgrpc_2eproto_getter, &descriptor_table_router_5fgrpc_2eproto_once,
-      file_level_metadata_router_5fgrpc_2eproto[20]);
+      file_level_metadata_router_5fgrpc_2eproto[21]);
 }
 
 // ===================================================================
@@ -6447,7 +6715,7 @@ void IndexParameters::InternalSwap(IndexParameters* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata IndexParameters::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_router_5fgrpc_2eproto_getter, &descriptor_table_router_5fgrpc_2eproto_once,
-      file_level_metadata_router_5fgrpc_2eproto[21]);
+      file_level_metadata_router_5fgrpc_2eproto[22]);
 }
 
 // ===================================================================
@@ -6461,7 +6729,7 @@ void QueryRequest_SortFieldMapEntry_DoNotUse::MergeFrom(const QueryRequest_SortF
 ::PROTOBUF_NAMESPACE_ID::Metadata QueryRequest_SortFieldMapEntry_DoNotUse::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_router_5fgrpc_2eproto_getter, &descriptor_table_router_5fgrpc_2eproto_once,
-      file_level_metadata_router_5fgrpc_2eproto[22]);
+      file_level_metadata_router_5fgrpc_2eproto[23]);
 }
 
 // ===================================================================
@@ -6469,11 +6737,16 @@ void QueryRequest_SortFieldMapEntry_DoNotUse::MergeFrom(const QueryRequest_SortF
 class QueryRequest::_Internal {
  public:
   static const ::vearchpb::RequestHead& head(const QueryRequest* msg);
+  static const ::vearchpb::TableFilter& table_filter(const QueryRequest* msg);
 };
 
 const ::vearchpb::RequestHead&
 QueryRequest::_Internal::head(const QueryRequest* msg) {
   return *msg->_impl_.head_;
+}
+const ::vearchpb::TableFilter&
+QueryRequest::_Internal::table_filter(const QueryRequest* msg) {
+  return *msg->_impl_.table_filter_;
 }
 QueryRequest::QueryRequest(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
@@ -6489,18 +6762,17 @@ QueryRequest::QueryRequest(const QueryRequest& from)
   QueryRequest* const _this = this; (void)_this;
   new (&_impl_) Impl_{
       decltype(_impl_.document_ids_){from._impl_.document_ids_}
-    , decltype(_impl_.range_filters_){from._impl_.range_filters_}
-    , decltype(_impl_.term_filters_){from._impl_.term_filters_}
     , decltype(_impl_.fields_){from._impl_.fields_}
     , /*decltype(_impl_.sort_field_map_)*/{}
     , decltype(_impl_.sort_fields_){from._impl_.sort_fields_}
     , decltype(_impl_.load_balance_){}
     , decltype(_impl_.head_){nullptr}
+    , decltype(_impl_.table_filter_){nullptr}
     , decltype(_impl_.partition_id_){}
+    , decltype(_impl_.limit_){}
     , decltype(_impl_.next_){}
     , decltype(_impl_.is_vector_value_){}
     , decltype(_impl_.trace_){}
-    , decltype(_impl_.limit_){}
     , decltype(_impl_.page_size_){}
     , /*decltype(_impl_._cached_size_)*/{}};
 
@@ -6517,6 +6789,9 @@ QueryRequest::QueryRequest(const QueryRequest& from)
   if (from._internal_has_head()) {
     _this->_impl_.head_ = new ::vearchpb::RequestHead(*from._impl_.head_);
   }
+  if (from._internal_has_table_filter()) {
+    _this->_impl_.table_filter_ = new ::vearchpb::TableFilter(*from._impl_.table_filter_);
+  }
   ::memcpy(&_impl_.partition_id_, &from._impl_.partition_id_,
     static_cast<size_t>(reinterpret_cast<char*>(&_impl_.page_size_) -
     reinterpret_cast<char*>(&_impl_.partition_id_)) + sizeof(_impl_.page_size_));
@@ -6529,18 +6804,17 @@ inline void QueryRequest::SharedCtor(
   (void)is_message_owned;
   new (&_impl_) Impl_{
       decltype(_impl_.document_ids_){arena}
-    , decltype(_impl_.range_filters_){arena}
-    , decltype(_impl_.term_filters_){arena}
     , decltype(_impl_.fields_){arena}
     , /*decltype(_impl_.sort_field_map_)*/{::_pbi::ArenaInitialized(), arena}
     , decltype(_impl_.sort_fields_){arena}
     , decltype(_impl_.load_balance_){}
     , decltype(_impl_.head_){nullptr}
+    , decltype(_impl_.table_filter_){nullptr}
     , decltype(_impl_.partition_id_){0}
+    , decltype(_impl_.limit_){0}
     , decltype(_impl_.next_){false}
     , decltype(_impl_.is_vector_value_){false}
     , decltype(_impl_.trace_){false}
-    , decltype(_impl_.limit_){0}
     , decltype(_impl_.page_size_){0}
     , /*decltype(_impl_._cached_size_)*/{}
   };
@@ -6563,14 +6837,13 @@ QueryRequest::~QueryRequest() {
 inline void QueryRequest::SharedDtor() {
   GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
   _impl_.document_ids_.~RepeatedPtrField();
-  _impl_.range_filters_.~RepeatedPtrField();
-  _impl_.term_filters_.~RepeatedPtrField();
   _impl_.fields_.~RepeatedPtrField();
   _impl_.sort_field_map_.Destruct();
   _impl_.sort_field_map_.~MapField();
   _impl_.sort_fields_.~RepeatedPtrField();
   _impl_.load_balance_.Destroy();
   if (this != internal_default_instance()) delete _impl_.head_;
+  if (this != internal_default_instance()) delete _impl_.table_filter_;
 }
 
 void QueryRequest::ArenaDtor(void* object) {
@@ -6588,8 +6861,6 @@ void QueryRequest::Clear() {
   (void) cached_has_bits;
 
   _impl_.document_ids_.Clear();
-  _impl_.range_filters_.Clear();
-  _impl_.term_filters_.Clear();
   _impl_.fields_.Clear();
   _impl_.sort_field_map_.Clear();
   _impl_.sort_fields_.Clear();
@@ -6598,6 +6869,10 @@ void QueryRequest::Clear() {
     delete _impl_.head_;
   }
   _impl_.head_ = nullptr;
+  if (GetArenaForAllocation() == nullptr && _impl_.table_filter_ != nullptr) {
+    delete _impl_.table_filter_;
+  }
+  _impl_.table_filter_ = nullptr;
   ::memset(&_impl_.partition_id_, 0, static_cast<size_t>(
       reinterpret_cast<char*>(&_impl_.page_size_) -
       reinterpret_cast<char*>(&_impl_.partition_id_)) + sizeof(_impl_.page_size_));
@@ -6649,35 +6924,17 @@ const char* QueryRequest::_InternalParse(const char* ptr, ::_pbi::ParseContext* 
         } else
           goto handle_unusual;
         continue;
-      // repeated .vearchpb.RangeFilter range_filters = 5;
+      // .vearchpb.TableFilter table_filter = 5;
       case 5:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 42)) {
-          ptr -= 1;
-          do {
-            ptr += 1;
-            ptr = ctx->ParseMessage(_internal_add_range_filters(), ptr);
-            CHK_(ptr);
-            if (!ctx->DataAvailable(ptr)) break;
-          } while (::PROTOBUF_NAMESPACE_ID::internal::ExpectTag<42>(ptr));
+          ptr = ctx->ParseMessage(_internal_mutable_table_filter(), ptr);
+          CHK_(ptr);
         } else
           goto handle_unusual;
         continue;
-      // repeated .vearchpb.TermFilter term_filters = 6;
+      // repeated string fields = 6;
       case 6:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 50)) {
-          ptr -= 1;
-          do {
-            ptr += 1;
-            ptr = ctx->ParseMessage(_internal_add_term_filters(), ptr);
-            CHK_(ptr);
-            if (!ctx->DataAvailable(ptr)) break;
-          } while (::PROTOBUF_NAMESPACE_ID::internal::ExpectTag<50>(ptr));
-        } else
-          goto handle_unusual;
-        continue;
-      // repeated string fields = 7;
-      case 7:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 58)) {
           ptr -= 1;
           do {
             ptr += 1;
@@ -6686,37 +6943,37 @@ const char* QueryRequest::_InternalParse(const char* ptr, ::_pbi::ParseContext* 
             CHK_(ptr);
             CHK_(::_pbi::VerifyUTF8(str, "vearchpb.QueryRequest.fields"));
             if (!ctx->DataAvailable(ptr)) break;
-          } while (::PROTOBUF_NAMESPACE_ID::internal::ExpectTag<58>(ptr));
+          } while (::PROTOBUF_NAMESPACE_ID::internal::ExpectTag<50>(ptr));
         } else
           goto handle_unusual;
         continue;
-      // bool is_vector_value = 8;
-      case 8:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 64)) {
+      // bool is_vector_value = 7;
+      case 7:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 56)) {
           _impl_.is_vector_value_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
           CHK_(ptr);
         } else
           goto handle_unusual;
         continue;
-      // int32 limit = 9;
-      case 9:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 72)) {
+      // int32 limit = 8;
+      case 8:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 64)) {
           _impl_.limit_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
           CHK_(ptr);
         } else
           goto handle_unusual;
         continue;
-      // int32 page_size = 10;
-      case 10:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 80)) {
+      // int32 page_size = 9;
+      case 9:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 72)) {
           _impl_.page_size_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
           CHK_(ptr);
         } else
           goto handle_unusual;
         continue;
-      // string load_balance = 11;
-      case 11:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 90)) {
+      // string load_balance = 10;
+      case 10:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 82)) {
           auto str = _internal_mutable_load_balance();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
@@ -6724,35 +6981,35 @@ const char* QueryRequest::_InternalParse(const char* ptr, ::_pbi::ParseContext* 
         } else
           goto handle_unusual;
         continue;
-      // map<string, string> sort_field_map = 12;
-      case 12:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 98)) {
+      // map<string, string> sort_field_map = 11;
+      case 11:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 90)) {
           ptr -= 1;
           do {
             ptr += 1;
             ptr = ctx->ParseMessage(&_impl_.sort_field_map_, ptr);
             CHK_(ptr);
             if (!ctx->DataAvailable(ptr)) break;
-          } while (::PROTOBUF_NAMESPACE_ID::internal::ExpectTag<98>(ptr));
+          } while (::PROTOBUF_NAMESPACE_ID::internal::ExpectTag<90>(ptr));
         } else
           goto handle_unusual;
         continue;
-      // repeated .vearchpb.SortField sort_fields = 13;
-      case 13:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 106)) {
+      // repeated .vearchpb.SortField sort_fields = 12;
+      case 12:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 98)) {
           ptr -= 1;
           do {
             ptr += 1;
             ptr = ctx->ParseMessage(_internal_add_sort_fields(), ptr);
             CHK_(ptr);
             if (!ctx->DataAvailable(ptr)) break;
-          } while (::PROTOBUF_NAMESPACE_ID::internal::ExpectTag<106>(ptr));
+          } while (::PROTOBUF_NAMESPACE_ID::internal::ExpectTag<98>(ptr));
         } else
           goto handle_unusual;
         continue;
-      // bool trace = 14;
-      case 14:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 112)) {
+      // bool trace = 13;
+      case 13:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 104)) {
           _impl_.trace_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
           CHK_(ptr);
         } else
@@ -6816,61 +7073,52 @@ uint8_t* QueryRequest::_InternalSerialize(
     target = ::_pbi::WireFormatLite::WriteBoolToArray(4, this->_internal_next(), target);
   }
 
-  // repeated .vearchpb.RangeFilter range_filters = 5;
-  for (unsigned i = 0,
-      n = static_cast<unsigned>(this->_internal_range_filters_size()); i < n; i++) {
-    const auto& repfield = this->_internal_range_filters(i);
+  // .vearchpb.TableFilter table_filter = 5;
+  if (this->_internal_has_table_filter()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
-        InternalWriteMessage(5, repfield, repfield.GetCachedSize(), target, stream);
+      InternalWriteMessage(5, _Internal::table_filter(this),
+        _Internal::table_filter(this).GetCachedSize(), target, stream);
   }
 
-  // repeated .vearchpb.TermFilter term_filters = 6;
-  for (unsigned i = 0,
-      n = static_cast<unsigned>(this->_internal_term_filters_size()); i < n; i++) {
-    const auto& repfield = this->_internal_term_filters(i);
-    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
-        InternalWriteMessage(6, repfield, repfield.GetCachedSize(), target, stream);
-  }
-
-  // repeated string fields = 7;
+  // repeated string fields = 6;
   for (int i = 0, n = this->_internal_fields_size(); i < n; i++) {
     const auto& s = this->_internal_fields(i);
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       s.data(), static_cast<int>(s.length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
       "vearchpb.QueryRequest.fields");
-    target = stream->WriteString(7, s, target);
+    target = stream->WriteString(6, s, target);
   }
 
-  // bool is_vector_value = 8;
+  // bool is_vector_value = 7;
   if (this->_internal_is_vector_value() != 0) {
     target = stream->EnsureSpace(target);
-    target = ::_pbi::WireFormatLite::WriteBoolToArray(8, this->_internal_is_vector_value(), target);
+    target = ::_pbi::WireFormatLite::WriteBoolToArray(7, this->_internal_is_vector_value(), target);
   }
 
-  // int32 limit = 9;
+  // int32 limit = 8;
   if (this->_internal_limit() != 0) {
     target = stream->EnsureSpace(target);
-    target = ::_pbi::WireFormatLite::WriteInt32ToArray(9, this->_internal_limit(), target);
+    target = ::_pbi::WireFormatLite::WriteInt32ToArray(8, this->_internal_limit(), target);
   }
 
-  // int32 page_size = 10;
+  // int32 page_size = 9;
   if (this->_internal_page_size() != 0) {
     target = stream->EnsureSpace(target);
-    target = ::_pbi::WireFormatLite::WriteInt32ToArray(10, this->_internal_page_size(), target);
+    target = ::_pbi::WireFormatLite::WriteInt32ToArray(9, this->_internal_page_size(), target);
   }
 
-  // string load_balance = 11;
+  // string load_balance = 10;
   if (!this->_internal_load_balance().empty()) {
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_load_balance().data(), static_cast<int>(this->_internal_load_balance().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
       "vearchpb.QueryRequest.load_balance");
     target = stream->WriteStringMaybeAliased(
-        11, this->_internal_load_balance(), target);
+        10, this->_internal_load_balance(), target);
   }
 
-  // map<string, string> sort_field_map = 12;
+  // map<string, string> sort_field_map = 11;
   if (!this->_internal_sort_field_map().empty()) {
     using MapType = ::_pb::Map<std::string, std::string>;
     using WireHelper = QueryRequest_SortFieldMapEntry_DoNotUse::Funcs;
@@ -6889,29 +7137,29 @@ uint8_t* QueryRequest::_InternalSerialize(
 
     if (stream->IsSerializationDeterministic() && map_field.size() > 1) {
       for (const auto& entry : ::_pbi::MapSorterPtr<MapType>(map_field)) {
-        target = WireHelper::InternalSerialize(12, entry.first, entry.second, target, stream);
+        target = WireHelper::InternalSerialize(11, entry.first, entry.second, target, stream);
         check_utf8(entry);
       }
     } else {
       for (const auto& entry : map_field) {
-        target = WireHelper::InternalSerialize(12, entry.first, entry.second, target, stream);
+        target = WireHelper::InternalSerialize(11, entry.first, entry.second, target, stream);
         check_utf8(entry);
       }
     }
   }
 
-  // repeated .vearchpb.SortField sort_fields = 13;
+  // repeated .vearchpb.SortField sort_fields = 12;
   for (unsigned i = 0,
       n = static_cast<unsigned>(this->_internal_sort_fields_size()); i < n; i++) {
     const auto& repfield = this->_internal_sort_fields(i);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
-        InternalWriteMessage(13, repfield, repfield.GetCachedSize(), target, stream);
+        InternalWriteMessage(12, repfield, repfield.GetCachedSize(), target, stream);
   }
 
-  // bool trace = 14;
+  // bool trace = 13;
   if (this->_internal_trace() != 0) {
     target = stream->EnsureSpace(target);
-    target = ::_pbi::WireFormatLite::WriteBoolToArray(14, this->_internal_trace(), target);
+    target = ::_pbi::WireFormatLite::WriteBoolToArray(13, this->_internal_trace(), target);
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
@@ -6938,21 +7186,7 @@ size_t QueryRequest::ByteSizeLong() const {
       _impl_.document_ids_.Get(i));
   }
 
-  // repeated .vearchpb.RangeFilter range_filters = 5;
-  total_size += 1UL * this->_internal_range_filters_size();
-  for (const auto& msg : this->_impl_.range_filters_) {
-    total_size +=
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(msg);
-  }
-
-  // repeated .vearchpb.TermFilter term_filters = 6;
-  total_size += 1UL * this->_internal_term_filters_size();
-  for (const auto& msg : this->_impl_.term_filters_) {
-    total_size +=
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(msg);
-  }
-
-  // repeated string fields = 7;
+  // repeated string fields = 6;
   total_size += 1 *
       ::PROTOBUF_NAMESPACE_ID::internal::FromIntSize(_impl_.fields_.size());
   for (int i = 0, n = _impl_.fields_.size(); i < n; i++) {
@@ -6960,7 +7194,7 @@ size_t QueryRequest::ByteSizeLong() const {
       _impl_.fields_.Get(i));
   }
 
-  // map<string, string> sort_field_map = 12;
+  // map<string, string> sort_field_map = 11;
   total_size += 1 *
       ::PROTOBUF_NAMESPACE_ID::internal::FromIntSize(this->_internal_sort_field_map_size());
   for (::PROTOBUF_NAMESPACE_ID::Map< std::string, std::string >::const_iterator
@@ -6969,14 +7203,14 @@ size_t QueryRequest::ByteSizeLong() const {
     total_size += QueryRequest_SortFieldMapEntry_DoNotUse::Funcs::ByteSizeLong(it->first, it->second);
   }
 
-  // repeated .vearchpb.SortField sort_fields = 13;
+  // repeated .vearchpb.SortField sort_fields = 12;
   total_size += 1UL * this->_internal_sort_fields_size();
   for (const auto& msg : this->_impl_.sort_fields_) {
     total_size +=
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(msg);
   }
 
-  // string load_balance = 11;
+  // string load_balance = 10;
   if (!this->_internal_load_balance().empty()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
@@ -6990,9 +7224,21 @@ size_t QueryRequest::ByteSizeLong() const {
         *_impl_.head_);
   }
 
+  // .vearchpb.TableFilter table_filter = 5;
+  if (this->_internal_has_table_filter()) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+        *_impl_.table_filter_);
+  }
+
   // int32 partition_id = 3;
   if (this->_internal_partition_id() != 0) {
     total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(this->_internal_partition_id());
+  }
+
+  // int32 limit = 8;
+  if (this->_internal_limit() != 0) {
+    total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(this->_internal_limit());
   }
 
   // bool next = 4;
@@ -7000,22 +7246,17 @@ size_t QueryRequest::ByteSizeLong() const {
     total_size += 1 + 1;
   }
 
-  // bool is_vector_value = 8;
+  // bool is_vector_value = 7;
   if (this->_internal_is_vector_value() != 0) {
     total_size += 1 + 1;
   }
 
-  // bool trace = 14;
+  // bool trace = 13;
   if (this->_internal_trace() != 0) {
     total_size += 1 + 1;
   }
 
-  // int32 limit = 9;
-  if (this->_internal_limit() != 0) {
-    total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(this->_internal_limit());
-  }
-
-  // int32 page_size = 10;
+  // int32 page_size = 9;
   if (this->_internal_page_size() != 0) {
     total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(this->_internal_page_size());
   }
@@ -7039,8 +7280,6 @@ void QueryRequest::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::P
   (void) cached_has_bits;
 
   _this->_impl_.document_ids_.MergeFrom(from._impl_.document_ids_);
-  _this->_impl_.range_filters_.MergeFrom(from._impl_.range_filters_);
-  _this->_impl_.term_filters_.MergeFrom(from._impl_.term_filters_);
   _this->_impl_.fields_.MergeFrom(from._impl_.fields_);
   _this->_impl_.sort_field_map_.MergeFrom(from._impl_.sort_field_map_);
   _this->_impl_.sort_fields_.MergeFrom(from._impl_.sort_fields_);
@@ -7051,8 +7290,15 @@ void QueryRequest::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::P
     _this->_internal_mutable_head()->::vearchpb::RequestHead::MergeFrom(
         from._internal_head());
   }
+  if (from._internal_has_table_filter()) {
+    _this->_internal_mutable_table_filter()->::vearchpb::TableFilter::MergeFrom(
+        from._internal_table_filter());
+  }
   if (from._internal_partition_id() != 0) {
     _this->_internal_set_partition_id(from._internal_partition_id());
+  }
+  if (from._internal_limit() != 0) {
+    _this->_internal_set_limit(from._internal_limit());
   }
   if (from._internal_next() != 0) {
     _this->_internal_set_next(from._internal_next());
@@ -7062,9 +7308,6 @@ void QueryRequest::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::P
   }
   if (from._internal_trace() != 0) {
     _this->_internal_set_trace(from._internal_trace());
-  }
-  if (from._internal_limit() != 0) {
-    _this->_internal_set_limit(from._internal_limit());
   }
   if (from._internal_page_size() != 0) {
     _this->_internal_set_page_size(from._internal_page_size());
@@ -7089,8 +7332,6 @@ void QueryRequest::InternalSwap(QueryRequest* other) {
   auto* rhs_arena = other->GetArenaForAllocation();
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   _impl_.document_ids_.InternalSwap(&other->_impl_.document_ids_);
-  _impl_.range_filters_.InternalSwap(&other->_impl_.range_filters_);
-  _impl_.term_filters_.InternalSwap(&other->_impl_.term_filters_);
   _impl_.fields_.InternalSwap(&other->_impl_.fields_);
   _impl_.sort_field_map_.InternalSwap(&other->_impl_.sort_field_map_);
   _impl_.sort_fields_.InternalSwap(&other->_impl_.sort_fields_);
@@ -7109,7 +7350,7 @@ void QueryRequest::InternalSwap(QueryRequest* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata QueryRequest::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_router_5fgrpc_2eproto_getter, &descriptor_table_router_5fgrpc_2eproto_once,
-      file_level_metadata_router_5fgrpc_2eproto[23]);
+      file_level_metadata_router_5fgrpc_2eproto[24]);
 }
 
 // ===================================================================
@@ -7123,7 +7364,7 @@ void SearchRequest_SortFieldMapEntry_DoNotUse::MergeFrom(const SearchRequest_Sor
 ::PROTOBUF_NAMESPACE_ID::Metadata SearchRequest_SortFieldMapEntry_DoNotUse::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_router_5fgrpc_2eproto_getter, &descriptor_table_router_5fgrpc_2eproto_once,
-      file_level_metadata_router_5fgrpc_2eproto[24]);
+      file_level_metadata_router_5fgrpc_2eproto[25]);
 }
 
 // ===================================================================
@@ -7131,11 +7372,16 @@ void SearchRequest_SortFieldMapEntry_DoNotUse::MergeFrom(const SearchRequest_Sor
 class SearchRequest::_Internal {
  public:
   static const ::vearchpb::RequestHead& head(const SearchRequest* msg);
+  static const ::vearchpb::TableFilter& table_filter(const SearchRequest* msg);
 };
 
 const ::vearchpb::RequestHead&
 SearchRequest::_Internal::head(const SearchRequest* msg) {
   return *msg->_impl_.head_;
+}
+const ::vearchpb::TableFilter&
+SearchRequest::_Internal::table_filter(const SearchRequest* msg) {
+  return *msg->_impl_.table_filter_;
 }
 SearchRequest::SearchRequest(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
@@ -7152,13 +7398,12 @@ SearchRequest::SearchRequest(const SearchRequest& from)
   new (&_impl_) Impl_{
       decltype(_impl_.vec_fields_){from._impl_.vec_fields_}
     , decltype(_impl_.fields_){from._impl_.fields_}
-    , decltype(_impl_.range_filters_){from._impl_.range_filters_}
-    , decltype(_impl_.term_filters_){from._impl_.term_filters_}
     , /*decltype(_impl_.sort_field_map_)*/{}
     , decltype(_impl_.sort_fields_){from._impl_.sort_fields_}
     , decltype(_impl_.index_params_){}
     , decltype(_impl_.ranker_){}
     , decltype(_impl_.head_){nullptr}
+    , decltype(_impl_.table_filter_){nullptr}
     , decltype(_impl_.req_num_){}
     , decltype(_impl_.topn_){}
     , decltype(_impl_.is_brute_search_){}
@@ -7189,6 +7434,9 @@ SearchRequest::SearchRequest(const SearchRequest& from)
   if (from._internal_has_head()) {
     _this->_impl_.head_ = new ::vearchpb::RequestHead(*from._impl_.head_);
   }
+  if (from._internal_has_table_filter()) {
+    _this->_impl_.table_filter_ = new ::vearchpb::TableFilter(*from._impl_.table_filter_);
+  }
   ::memcpy(&_impl_.req_num_, &from._impl_.req_num_,
     static_cast<size_t>(reinterpret_cast<char*>(&_impl_.trace_) -
     reinterpret_cast<char*>(&_impl_.req_num_)) + sizeof(_impl_.trace_));
@@ -7202,13 +7450,12 @@ inline void SearchRequest::SharedCtor(
   new (&_impl_) Impl_{
       decltype(_impl_.vec_fields_){arena}
     , decltype(_impl_.fields_){arena}
-    , decltype(_impl_.range_filters_){arena}
-    , decltype(_impl_.term_filters_){arena}
     , /*decltype(_impl_.sort_field_map_)*/{::_pbi::ArenaInitialized(), arena}
     , decltype(_impl_.sort_fields_){arena}
     , decltype(_impl_.index_params_){}
     , decltype(_impl_.ranker_){}
     , decltype(_impl_.head_){nullptr}
+    , decltype(_impl_.table_filter_){nullptr}
     , decltype(_impl_.req_num_){0}
     , decltype(_impl_.topn_){0}
     , decltype(_impl_.is_brute_search_){0}
@@ -7242,14 +7489,13 @@ inline void SearchRequest::SharedDtor() {
   GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
   _impl_.vec_fields_.~RepeatedPtrField();
   _impl_.fields_.~RepeatedPtrField();
-  _impl_.range_filters_.~RepeatedPtrField();
-  _impl_.term_filters_.~RepeatedPtrField();
   _impl_.sort_field_map_.Destruct();
   _impl_.sort_field_map_.~MapField();
   _impl_.sort_fields_.~RepeatedPtrField();
   _impl_.index_params_.Destroy();
   _impl_.ranker_.Destroy();
   if (this != internal_default_instance()) delete _impl_.head_;
+  if (this != internal_default_instance()) delete _impl_.table_filter_;
 }
 
 void SearchRequest::ArenaDtor(void* object) {
@@ -7268,8 +7514,6 @@ void SearchRequest::Clear() {
 
   _impl_.vec_fields_.Clear();
   _impl_.fields_.Clear();
-  _impl_.range_filters_.Clear();
-  _impl_.term_filters_.Clear();
   _impl_.sort_field_map_.Clear();
   _impl_.sort_fields_.Clear();
   _impl_.index_params_.ClearToEmpty();
@@ -7278,6 +7522,10 @@ void SearchRequest::Clear() {
     delete _impl_.head_;
   }
   _impl_.head_ = nullptr;
+  if (GetArenaForAllocation() == nullptr && _impl_.table_filter_ != nullptr) {
+    delete _impl_.table_filter_;
+  }
+  _impl_.table_filter_ = nullptr;
   ::memset(&_impl_.req_num_, 0, static_cast<size_t>(
       reinterpret_cast<char*>(&_impl_.trace_) -
       reinterpret_cast<char*>(&_impl_.req_num_)) + sizeof(_impl_.trace_));
@@ -7350,35 +7598,17 @@ const char* SearchRequest::_InternalParse(const char* ptr, ::_pbi::ParseContext*
         } else
           goto handle_unusual;
         continue;
-      // repeated .vearchpb.RangeFilter range_filters = 7;
+      // .vearchpb.TableFilter table_filter = 7;
       case 7:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 58)) {
-          ptr -= 1;
-          do {
-            ptr += 1;
-            ptr = ctx->ParseMessage(_internal_add_range_filters(), ptr);
-            CHK_(ptr);
-            if (!ctx->DataAvailable(ptr)) break;
-          } while (::PROTOBUF_NAMESPACE_ID::internal::ExpectTag<58>(ptr));
+          ptr = ctx->ParseMessage(_internal_mutable_table_filter(), ptr);
+          CHK_(ptr);
         } else
           goto handle_unusual;
         continue;
-      // repeated .vearchpb.TermFilter term_filters = 8;
+      // string index_params = 8;
       case 8:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 66)) {
-          ptr -= 1;
-          do {
-            ptr += 1;
-            ptr = ctx->ParseMessage(_internal_add_term_filters(), ptr);
-            CHK_(ptr);
-            if (!ctx->DataAvailable(ptr)) break;
-          } while (::PROTOBUF_NAMESPACE_ID::internal::ExpectTag<66>(ptr));
-        } else
-          goto handle_unusual;
-        continue;
-      // string index_params = 9;
-      case 9:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 74)) {
           auto str = _internal_mutable_index_params();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
@@ -7386,59 +7616,59 @@ const char* SearchRequest::_InternalParse(const char* ptr, ::_pbi::ParseContext*
         } else
           goto handle_unusual;
         continue;
-      // int32 multi_vector_rank = 10;
-      case 10:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 80)) {
+      // int32 multi_vector_rank = 9;
+      case 9:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 72)) {
           _impl_.multi_vector_rank_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
           CHK_(ptr);
         } else
           goto handle_unusual;
         continue;
-      // bool l2_sqrt = 11;
-      case 11:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 88)) {
+      // bool l2_sqrt = 10;
+      case 10:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 80)) {
           _impl_.l2_sqrt_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
           CHK_(ptr);
         } else
           goto handle_unusual;
         continue;
-      // bool is_vector_value = 12;
-      case 12:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 96)) {
+      // bool is_vector_value = 11;
+      case 11:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 88)) {
           _impl_.is_vector_value_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
           CHK_(ptr);
         } else
           goto handle_unusual;
         continue;
-      // map<string, string> sort_field_map = 13;
-      case 13:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 106)) {
+      // map<string, string> sort_field_map = 12;
+      case 12:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 98)) {
           ptr -= 1;
           do {
             ptr += 1;
             ptr = ctx->ParseMessage(&_impl_.sort_field_map_, ptr);
             CHK_(ptr);
             if (!ctx->DataAvailable(ptr)) break;
-          } while (::PROTOBUF_NAMESPACE_ID::internal::ExpectTag<106>(ptr));
+          } while (::PROTOBUF_NAMESPACE_ID::internal::ExpectTag<98>(ptr));
         } else
           goto handle_unusual;
         continue;
-      // repeated .vearchpb.SortField sort_fields = 14;
-      case 14:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 114)) {
+      // repeated .vearchpb.SortField sort_fields = 13;
+      case 13:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 106)) {
           ptr -= 1;
           do {
             ptr += 1;
             ptr = ctx->ParseMessage(_internal_add_sort_fields(), ptr);
             CHK_(ptr);
             if (!ctx->DataAvailable(ptr)) break;
-          } while (::PROTOBUF_NAMESPACE_ID::internal::ExpectTag<114>(ptr));
+          } while (::PROTOBUF_NAMESPACE_ID::internal::ExpectTag<106>(ptr));
         } else
           goto handle_unusual;
         continue;
-      // string ranker = 15;
-      case 15:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 122)) {
+      // string ranker = 14;
+      case 14:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 114)) {
           auto str = _internal_mutable_ranker();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
@@ -7446,9 +7676,9 @@ const char* SearchRequest::_InternalParse(const char* ptr, ::_pbi::ParseContext*
         } else
           goto handle_unusual;
         continue;
-      // bool trace = 16;
-      case 16:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 128)) {
+      // bool trace = 15;
+      case 15:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 120)) {
           _impl_.trace_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
           CHK_(ptr);
         } else
@@ -7526,51 +7756,42 @@ uint8_t* SearchRequest::_InternalSerialize(
     target = stream->WriteString(6, s, target);
   }
 
-  // repeated .vearchpb.RangeFilter range_filters = 7;
-  for (unsigned i = 0,
-      n = static_cast<unsigned>(this->_internal_range_filters_size()); i < n; i++) {
-    const auto& repfield = this->_internal_range_filters(i);
+  // .vearchpb.TableFilter table_filter = 7;
+  if (this->_internal_has_table_filter()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
-        InternalWriteMessage(7, repfield, repfield.GetCachedSize(), target, stream);
+      InternalWriteMessage(7, _Internal::table_filter(this),
+        _Internal::table_filter(this).GetCachedSize(), target, stream);
   }
 
-  // repeated .vearchpb.TermFilter term_filters = 8;
-  for (unsigned i = 0,
-      n = static_cast<unsigned>(this->_internal_term_filters_size()); i < n; i++) {
-    const auto& repfield = this->_internal_term_filters(i);
-    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
-        InternalWriteMessage(8, repfield, repfield.GetCachedSize(), target, stream);
-  }
-
-  // string index_params = 9;
+  // string index_params = 8;
   if (!this->_internal_index_params().empty()) {
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_index_params().data(), static_cast<int>(this->_internal_index_params().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
       "vearchpb.SearchRequest.index_params");
     target = stream->WriteStringMaybeAliased(
-        9, this->_internal_index_params(), target);
+        8, this->_internal_index_params(), target);
   }
 
-  // int32 multi_vector_rank = 10;
+  // int32 multi_vector_rank = 9;
   if (this->_internal_multi_vector_rank() != 0) {
     target = stream->EnsureSpace(target);
-    target = ::_pbi::WireFormatLite::WriteInt32ToArray(10, this->_internal_multi_vector_rank(), target);
+    target = ::_pbi::WireFormatLite::WriteInt32ToArray(9, this->_internal_multi_vector_rank(), target);
   }
 
-  // bool l2_sqrt = 11;
+  // bool l2_sqrt = 10;
   if (this->_internal_l2_sqrt() != 0) {
     target = stream->EnsureSpace(target);
-    target = ::_pbi::WireFormatLite::WriteBoolToArray(11, this->_internal_l2_sqrt(), target);
+    target = ::_pbi::WireFormatLite::WriteBoolToArray(10, this->_internal_l2_sqrt(), target);
   }
 
-  // bool is_vector_value = 12;
+  // bool is_vector_value = 11;
   if (this->_internal_is_vector_value() != 0) {
     target = stream->EnsureSpace(target);
-    target = ::_pbi::WireFormatLite::WriteBoolToArray(12, this->_internal_is_vector_value(), target);
+    target = ::_pbi::WireFormatLite::WriteBoolToArray(11, this->_internal_is_vector_value(), target);
   }
 
-  // map<string, string> sort_field_map = 13;
+  // map<string, string> sort_field_map = 12;
   if (!this->_internal_sort_field_map().empty()) {
     using MapType = ::_pb::Map<std::string, std::string>;
     using WireHelper = SearchRequest_SortFieldMapEntry_DoNotUse::Funcs;
@@ -7589,39 +7810,39 @@ uint8_t* SearchRequest::_InternalSerialize(
 
     if (stream->IsSerializationDeterministic() && map_field.size() > 1) {
       for (const auto& entry : ::_pbi::MapSorterPtr<MapType>(map_field)) {
-        target = WireHelper::InternalSerialize(13, entry.first, entry.second, target, stream);
+        target = WireHelper::InternalSerialize(12, entry.first, entry.second, target, stream);
         check_utf8(entry);
       }
     } else {
       for (const auto& entry : map_field) {
-        target = WireHelper::InternalSerialize(13, entry.first, entry.second, target, stream);
+        target = WireHelper::InternalSerialize(12, entry.first, entry.second, target, stream);
         check_utf8(entry);
       }
     }
   }
 
-  // repeated .vearchpb.SortField sort_fields = 14;
+  // repeated .vearchpb.SortField sort_fields = 13;
   for (unsigned i = 0,
       n = static_cast<unsigned>(this->_internal_sort_fields_size()); i < n; i++) {
     const auto& repfield = this->_internal_sort_fields(i);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
-        InternalWriteMessage(14, repfield, repfield.GetCachedSize(), target, stream);
+        InternalWriteMessage(13, repfield, repfield.GetCachedSize(), target, stream);
   }
 
-  // string ranker = 15;
+  // string ranker = 14;
   if (!this->_internal_ranker().empty()) {
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_ranker().data(), static_cast<int>(this->_internal_ranker().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
       "vearchpb.SearchRequest.ranker");
     target = stream->WriteStringMaybeAliased(
-        15, this->_internal_ranker(), target);
+        14, this->_internal_ranker(), target);
   }
 
-  // bool trace = 16;
+  // bool trace = 15;
   if (this->_internal_trace() != 0) {
     target = stream->EnsureSpace(target);
-    target = ::_pbi::WireFormatLite::WriteBoolToArray(16, this->_internal_trace(), target);
+    target = ::_pbi::WireFormatLite::WriteBoolToArray(15, this->_internal_trace(), target);
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
@@ -7655,21 +7876,7 @@ size_t SearchRequest::ByteSizeLong() const {
       _impl_.fields_.Get(i));
   }
 
-  // repeated .vearchpb.RangeFilter range_filters = 7;
-  total_size += 1UL * this->_internal_range_filters_size();
-  for (const auto& msg : this->_impl_.range_filters_) {
-    total_size +=
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(msg);
-  }
-
-  // repeated .vearchpb.TermFilter term_filters = 8;
-  total_size += 1UL * this->_internal_term_filters_size();
-  for (const auto& msg : this->_impl_.term_filters_) {
-    total_size +=
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(msg);
-  }
-
-  // map<string, string> sort_field_map = 13;
+  // map<string, string> sort_field_map = 12;
   total_size += 1 *
       ::PROTOBUF_NAMESPACE_ID::internal::FromIntSize(this->_internal_sort_field_map_size());
   for (::PROTOBUF_NAMESPACE_ID::Map< std::string, std::string >::const_iterator
@@ -7678,21 +7885,21 @@ size_t SearchRequest::ByteSizeLong() const {
     total_size += SearchRequest_SortFieldMapEntry_DoNotUse::Funcs::ByteSizeLong(it->first, it->second);
   }
 
-  // repeated .vearchpb.SortField sort_fields = 14;
+  // repeated .vearchpb.SortField sort_fields = 13;
   total_size += 1UL * this->_internal_sort_fields_size();
   for (const auto& msg : this->_impl_.sort_fields_) {
     total_size +=
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(msg);
   }
 
-  // string index_params = 9;
+  // string index_params = 8;
   if (!this->_internal_index_params().empty()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
         this->_internal_index_params());
   }
 
-  // string ranker = 15;
+  // string ranker = 14;
   if (!this->_internal_ranker().empty()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
@@ -7704,6 +7911,13 @@ size_t SearchRequest::ByteSizeLong() const {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
         *_impl_.head_);
+  }
+
+  // .vearchpb.TableFilter table_filter = 7;
+  if (this->_internal_has_table_filter()) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+        *_impl_.table_filter_);
   }
 
   // int32 req_num = 2;
@@ -7721,24 +7935,24 @@ size_t SearchRequest::ByteSizeLong() const {
     total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(this->_internal_is_brute_search());
   }
 
-  // int32 multi_vector_rank = 10;
+  // int32 multi_vector_rank = 9;
   if (this->_internal_multi_vector_rank() != 0) {
     total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(this->_internal_multi_vector_rank());
   }
 
-  // bool l2_sqrt = 11;
+  // bool l2_sqrt = 10;
   if (this->_internal_l2_sqrt() != 0) {
     total_size += 1 + 1;
   }
 
-  // bool is_vector_value = 12;
+  // bool is_vector_value = 11;
   if (this->_internal_is_vector_value() != 0) {
     total_size += 1 + 1;
   }
 
-  // bool trace = 16;
+  // bool trace = 15;
   if (this->_internal_trace() != 0) {
-    total_size += 2 + 1;
+    total_size += 1 + 1;
   }
 
   return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
@@ -7761,8 +7975,6 @@ void SearchRequest::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::
 
   _this->_impl_.vec_fields_.MergeFrom(from._impl_.vec_fields_);
   _this->_impl_.fields_.MergeFrom(from._impl_.fields_);
-  _this->_impl_.range_filters_.MergeFrom(from._impl_.range_filters_);
-  _this->_impl_.term_filters_.MergeFrom(from._impl_.term_filters_);
   _this->_impl_.sort_field_map_.MergeFrom(from._impl_.sort_field_map_);
   _this->_impl_.sort_fields_.MergeFrom(from._impl_.sort_fields_);
   if (!from._internal_index_params().empty()) {
@@ -7774,6 +7986,10 @@ void SearchRequest::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::
   if (from._internal_has_head()) {
     _this->_internal_mutable_head()->::vearchpb::RequestHead::MergeFrom(
         from._internal_head());
+  }
+  if (from._internal_has_table_filter()) {
+    _this->_internal_mutable_table_filter()->::vearchpb::TableFilter::MergeFrom(
+        from._internal_table_filter());
   }
   if (from._internal_req_num() != 0) {
     _this->_internal_set_req_num(from._internal_req_num());
@@ -7817,8 +8033,6 @@ void SearchRequest::InternalSwap(SearchRequest* other) {
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   _impl_.vec_fields_.InternalSwap(&other->_impl_.vec_fields_);
   _impl_.fields_.InternalSwap(&other->_impl_.fields_);
-  _impl_.range_filters_.InternalSwap(&other->_impl_.range_filters_);
-  _impl_.term_filters_.InternalSwap(&other->_impl_.term_filters_);
   _impl_.sort_field_map_.InternalSwap(&other->_impl_.sort_field_map_);
   _impl_.sort_fields_.InternalSwap(&other->_impl_.sort_fields_);
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
@@ -7840,7 +8054,7 @@ void SearchRequest::InternalSwap(SearchRequest* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata SearchRequest::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_router_5fgrpc_2eproto_getter, &descriptor_table_router_5fgrpc_2eproto_once,
-      file_level_metadata_router_5fgrpc_2eproto[25]);
+      file_level_metadata_router_5fgrpc_2eproto[26]);
 }
 
 // ===================================================================
@@ -8119,7 +8333,7 @@ void ResultItem::InternalSwap(ResultItem* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata ResultItem::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_router_5fgrpc_2eproto_getter, &descriptor_table_router_5fgrpc_2eproto_once,
-      file_level_metadata_router_5fgrpc_2eproto[26]);
+      file_level_metadata_router_5fgrpc_2eproto[27]);
 }
 
 // ===================================================================
@@ -8589,7 +8803,7 @@ void SearchResult::InternalSwap(SearchResult* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata SearchResult::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_router_5fgrpc_2eproto_getter, &descriptor_table_router_5fgrpc_2eproto_once,
-      file_level_metadata_router_5fgrpc_2eproto[27]);
+      file_level_metadata_router_5fgrpc_2eproto[28]);
 }
 
 // ===================================================================
@@ -8894,7 +9108,7 @@ void SearchResponse::InternalSwap(SearchResponse* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata SearchResponse::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_router_5fgrpc_2eproto_getter, &descriptor_table_router_5fgrpc_2eproto_once,
-      file_level_metadata_router_5fgrpc_2eproto[28]);
+      file_level_metadata_router_5fgrpc_2eproto[29]);
 }
 
 // ===================================================================
@@ -9181,7 +9395,7 @@ void SearchStatus::InternalSwap(SearchStatus* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata SearchStatus::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_router_5fgrpc_2eproto_getter, &descriptor_table_router_5fgrpc_2eproto_once,
-      file_level_metadata_router_5fgrpc_2eproto[29]);
+      file_level_metadata_router_5fgrpc_2eproto[30]);
 }
 
 // @@protoc_insertion_point(namespace_scope)
@@ -9262,6 +9476,10 @@ Arena::CreateMaybeMessage< ::vearchpb::TermFilter >(Arena* arena) {
 template<> PROTOBUF_NOINLINE ::vearchpb::RangeFilter*
 Arena::CreateMaybeMessage< ::vearchpb::RangeFilter >(Arena* arena) {
   return Arena::CreateMessageInternal< ::vearchpb::RangeFilter >(arena);
+}
+template<> PROTOBUF_NOINLINE ::vearchpb::TableFilter*
+Arena::CreateMaybeMessage< ::vearchpb::TableFilter >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::vearchpb::TableFilter >(arena);
 }
 template<> PROTOBUF_NOINLINE ::vearchpb::SortField*
 Arena::CreateMaybeMessage< ::vearchpb::SortField >(Arena* arena) {
