@@ -902,7 +902,7 @@ func parseRangeForAnd(rangeCondition []*request.Condition, docField *entity.Spac
 
 		min, max = minNum, maxNum
 	case vearchpb.FieldType_DATE:
-		var minNum, maxNum int64
+		var minNum, maxNum int64 = math.MinInt64, math.MaxInt64
 		var curNum int64
 
 		for _, rc := range rangeCondition {
