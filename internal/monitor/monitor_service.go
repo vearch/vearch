@@ -39,6 +39,7 @@ import (
 var (
 	once           sync.Once
 	metricRegistry = prometheus.NewRegistry()
+	collector      *MonitorService
 )
 
 type MonitorService struct {
@@ -46,20 +47,20 @@ type MonitorService struct {
 	masterClient *client.Client
 	etcdServer   *etcdserver.EtcdServer
 
-	requestDuration *prometheus.HistogramVec
-	requestCount    *prometheus.CounterVec
+	RequestDuration *prometheus.HistogramVec
+	RequestCount    *prometheus.CounterVec
 
-	serverCount    prometheus.Gauge
-	dbCount        prometheus.Gauge
-	spaceCount     prometheus.Gauge
-	clusterHealth  prometheus.Gauge
-	partitionCount prometheus.Gauge
+	serverCount    *prometheus.GaugeVec
+	dbCount        *prometheus.GaugeVec
+	spaceCount     *prometheus.GaugeVec
+	partitionCount *prometheus.GaugeVec
 
 	spaceDocs     *prometheus.GaugeVec
 	spaceSize     *prometheus.GaugeVec
 	partitionDocs *prometheus.GaugeVec
 	partitionSize *prometheus.GaugeVec
 	leaderCount   *prometheus.GaugeVec
+	clusterHealth *prometheus.GaugeVec
 
 	diskTotal       *prometheus.GaugeVec
 	diskFree        *prometheus.GaugeVec
@@ -70,7 +71,7 @@ type MonitorService struct {
 
 func Register(masterClient *client.Client, etcdServer *etcdserver.EtcdServer, monitorPort uint16) {
 	once.Do(func() {
-		collector := newMetricCollector(masterClient, etcdServer)
+		collector = newMetricCollector(masterClient, etcdServer)
 		metricRegistry.MustRegister(collector)
 
 		http.Handle("/metrics", promhttp.HandlerFor(
@@ -94,12 +95,17 @@ func Register(masterClient *client.Client, etcdServer *etcdserver.EtcdServer, mo
 	})
 }
 
+func Profiler(key string, startTime time.Time) {
+	collector.RequestDuration.WithLabelValues(config.Conf().Global.Name, key).Observe(float64(time.Since(startTime).Milliseconds()))
+	collector.RequestCount.WithLabelValues(config.Conf().Global.Name, key).Add(float64(1))
+}
+
 func newMetricCollector(masterClient *client.Client, etcdServer *etcdserver.EtcdServer) *MonitorService {
 	return &MonitorService{
 		masterClient: masterClient,
 		etcdServer:   etcdServer,
 
-		requestDuration: prometheus.NewHistogramVec(
+		RequestDuration: prometheus.NewHistogramVec(
 			prometheus.HistogramOpts{
 				Name:    "vearch_request_duration_milliseconds",
 				Help:    "Vearch API request durations in milliseconds",
@@ -108,7 +114,7 @@ func newMetricCollector(masterClient *client.Client, etcdServer *etcdserver.Etcd
 			[]string{"cluster", "api"},
 		),
 
-		requestCount: prometheus.NewCounterVec(
+		RequestCount: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "vearch_request_count",
 				Help: "Total number of Vearch API requests",
@@ -116,35 +122,40 @@ func newMetricCollector(masterClient *client.Client, etcdServer *etcdserver.Etcd
 			[]string{"cluster", "api"},
 		),
 
-		serverCount: prometheus.NewGauge(
+		serverCount: prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Name: "vearch_server_count",
 				Help: "Number of Vearch servers",
 			},
+			[]string{"cluster"},
 		),
-		dbCount: prometheus.NewGauge(
+		dbCount: prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Name: "vearch_db_count",
 				Help: "Number of Vearch databases",
 			},
+			[]string{"cluster"},
 		),
-		spaceCount: prometheus.NewGauge(
+		spaceCount: prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Name: "vearch_space_count",
 				Help: "Number of Vearch spaces",
 			},
+			[]string{"cluster"},
 		),
-		clusterHealth: prometheus.NewGauge(
+		clusterHealth: prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Name: "vearch_cluster_health",
 				Help: "Vearch cluster health (0=healthy, 0.5=warning, 1=unhealthy)",
 			},
+			[]string{"cluster", "db", "space"},
 		),
-		partitionCount: prometheus.NewGauge(
+		partitionCount: prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Name: "vearch_partition_count",
 				Help: "Number of Vearch partitions",
 			},
+			[]string{"cluster"},
 		),
 
 		spaceDocs: prometheus.NewGaugeVec(
@@ -152,14 +163,14 @@ func newMetricCollector(masterClient *client.Client, etcdServer *etcdserver.Etcd
 				Name: "vearch_space_documents",
 				Help: "Number of documents in Vearch space",
 			},
-			[]string{"db", "space"},
+			[]string{"cluster", "db", "space"},
 		),
 		spaceSize: prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Name: "vearch_space_size_bytes",
 				Help: "Size of Vearch space in bytes",
 			},
-			[]string{"db", "space"},
+			[]string{"cluster", "db", "space"},
 		),
 		partitionDocs: prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
@@ -188,42 +199,42 @@ func newMetricCollector(masterClient *client.Client, etcdServer *etcdserver.Etcd
 				Name: "vearch_disk_total_bytes",
 				Help: "Total disk space in bytes",
 			},
-			[]string{"ip"},
+			[]string{"instance"},
 		),
 		diskFree: prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Name: "vearch_disk_free_bytes",
 				Help: "Free disk space in bytes",
 			},
-			[]string{"ip"},
+			[]string{"instance"},
 		),
 		diskUsed: prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Name: "vearch_disk_used_bytes",
 				Help: "Used disk space in bytes",
 			},
-			[]string{"ip"},
+			[]string{"instance"},
 		),
 		diskUsedPercent: prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Name: "vearch_disk_used_percent",
 				Help: "Percentage of disk space used",
 			},
-			[]string{"ip"},
+			[]string{"instance"},
 		),
 		cpuUsage: prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Name: "vearch_cpu_usage",
 				Help: "CPU usage (1 - idle percent)",
 			},
-			[]string{"node_type", "ip"},
+			[]string{"node_type", "instance"},
 		),
 	}
 }
 
 func (ms *MonitorService) Describe(ch chan<- *prometheus.Desc) {
-	ms.requestDuration.Describe(ch)
-	ms.requestCount.Describe(ch)
+	ms.RequestDuration.Describe(ch)
+	ms.RequestCount.Describe(ch)
 
 	ms.serverCount.Describe(ch)
 	ms.dbCount.Describe(ch)
@@ -301,29 +312,14 @@ func (ms *MonitorService) Collect(ch chan<- prometheus.Metric) {
 		}
 	}()
 
+	clusterName := config.Conf().Global.Name
 	ms.mutex.Lock()
 	defer ms.mutex.Unlock()
 
-	// Update request metrics
-	metrics := SliceMetric()
-	if len(metrics) == 0 {
-		// No request statistics, add an empty metric
-		ms.requestDuration.WithLabelValues("nil", "nil").Observe(0)
-	} else {
-		for _, element := range metrics {
-			histogram := ms.requestDuration.WithLabelValues(config.Conf().Global.Name, element.Name)
-
-			count := element.Digest.Count()
-			if count > 0 {
-				histogram.Observe(element.Sum / float64(count))
-				ms.requestCount.WithLabelValues(config.Conf().Global.Name, element.Name).Add(float64(count))
-			}
-		}
-	}
+	ms.RequestDuration.Collect(ch)
+	ms.RequestCount.Collect(ch)
 
 	if !ms.isMaster() {
-		ms.requestDuration.Collect(ch)
-		ms.requestCount.Collect(ch)
 		return
 	}
 
@@ -337,14 +333,14 @@ func (ms *MonitorService) Collect(ch chan<- prometheus.Metric) {
 	if err != nil {
 		log.Error("Failed to query servers: %s", err.Error())
 	} else {
-		ms.serverCount.Set(float64(len(servers)))
+		ms.serverCount.WithLabelValues(clusterName).Set(float64(len(servers)))
 	}
 
 	dbs, err := ms.masterClient.Master().QueryDBs(ctx)
 	if err != nil {
 		log.Error("Failed to query databases: %s", err.Error())
 	} else {
-		ms.dbCount.Set(float64(len(dbs)))
+		ms.dbCount.WithLabelValues(clusterName).Set(float64(len(dbs)))
 	}
 
 	spacePartitionIDMap := make(map[entity.PartitionID]*entity.Space)
@@ -352,7 +348,7 @@ func (ms *MonitorService) Collect(ch chan<- prometheus.Metric) {
 	if err != nil {
 		log.Error("Failed to query spaces: %s", err.Error())
 	} else {
-		ms.spaceCount.Set(float64(len(spaces)))
+		ms.spaceCount.WithLabelValues(clusterName).Set(float64(len(spaces)))
 
 		for _, s := range spaces {
 			for _, p := range s.Partitions {
@@ -364,21 +360,22 @@ func (ms *MonitorService) Collect(ch chan<- prometheus.Metric) {
 	partitionService := services.NewPartitionService(ms.masterClient)
 	dbService := services.NewDBService(ms.masterClient)
 	spaceService := services.NewSpaceService(ms.masterClient)
-	health, err := partitionService.PartitionInfo(ctx, dbService, spaceService, "", "", "")
+	health, err := partitionService.PartitionInfo(ctx, dbService, spaceService, "", "", "true")
 	if err != nil {
 		log.Error("Failed to get partition info: %s", err.Error())
 	} else {
 		clusterHealth := 0.0
 		for _, h := range health {
-			if h["status"] == "red" {
-				clusterHealth = 1.0
-				break
-			} else if h["status"] == "yellow" {
-				clusterHealth = 0.5
+			spaces := h["spaces"].([]*entity.SpaceInfo)
+			for _, s := range spaces {
+				if s.Status == "red" {
+					clusterHealth = 1.0
+				} else if s.Status == "yellow" {
+					clusterHealth = 0.5
+				}
+				ms.clusterHealth.WithLabelValues(clusterName, s.DbName, s.Name).Set(clusterHealth)
 			}
 		}
-		log.Debug("Cluster health: %f", clusterHealth)
-		ms.clusterHealth.Set(clusterHealth)
 	}
 
 	result := collectServerStats(ctx, servers)
@@ -423,7 +420,7 @@ func (ms *MonitorService) Collect(ch chan<- prometheus.Metric) {
 		ms.leaderCount.WithLabelValues(s.Ip).Set(leaderNum)
 	}
 
-	ms.partitionCount.Set(float64(partitionNum))
+	ms.partitionCount.WithLabelValues(clusterName).Set(float64(partitionNum))
 
 	dbMap := make(map[entity.DBID]string)
 	for _, db := range dbs {
@@ -434,20 +431,18 @@ func (ms *MonitorService) Collect(ch chan<- prometheus.Metric) {
 		if space == nil {
 			continue
 		}
-		ms.spaceDocs.WithLabelValues(dbMap[space.DBId], space.Name).Set(float64(value))
+		ms.spaceDocs.WithLabelValues(clusterName, dbMap[space.DBId], space.Name).Set(float64(value))
 	}
 
 	for space, value := range sizeMap {
 		if space == nil {
 			continue
 		}
-		ms.spaceSize.WithLabelValues(dbMap[space.DBId], space.Name).Set(float64(value))
+		ms.spaceSize.WithLabelValues(clusterName, dbMap[space.DBId], space.Name).Set(float64(value))
 	}
 
 	ms.cpuUsage.WithLabelValues("master", ip).Set(1.0 - stats.Cpu.IdlePercent)
 
-	ms.requestDuration.Collect(ch)
-	ms.requestCount.Collect(ch)
 	ms.serverCount.Collect(ch)
 	ms.dbCount.Collect(ch)
 	ms.spaceCount.Collect(ch)
