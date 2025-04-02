@@ -69,6 +69,7 @@ class SearchCondition : public RetrievalContext {
 
   MultiRangeQueryResults *range_query_result;
 
+  int filter_operator;
   std::vector<struct RangeFilter> range_filters;
   std::vector<struct TermFilter> term_filters;
 

@@ -47,6 +47,11 @@ const (
 	TermOperatorNOTIN int32 = 2
 )
 
+const (
+	FilterOperatorAnd int32 = 0
+	FilterOperatorOr  int32 = 1
+)
+
 type VectorQuery struct {
 	Field        string          `json:"field"`
 	FeatureData  json.RawMessage `json:"feature"`
@@ -60,21 +65,15 @@ type VectorQuery struct {
 	IndexType    string          `json:"index_type"`
 }
 
-type Range struct {
-	Gt  json.RawMessage
-	Gte json.RawMessage
-	Lt  json.RawMessage
-	Lte json.RawMessage
-}
-
 type Term struct {
 	Value    json.RawMessage
 	Operator int32
 }
 
-func parseFilter(filters *request.Filter, space *entity.Space) ([]*vearchpb.RangeFilter, []*vearchpb.TermFilter, error) {
+func parseFilter(filters *request.Filter, space *entity.Space) ([]*vearchpb.RangeFilter, []*vearchpb.TermFilter, int32, error) {
 	rfs := make([]*vearchpb.RangeFilter, 0)
 	tfs := make([]*vearchpb.TermFilter, 0)
+	var operator = FilterOperatorAnd
 
 	var err error
 
@@ -82,112 +81,72 @@ func parseFilter(filters *request.Filter, space *entity.Space) ([]*vearchpb.Rang
 	if proMap == nil {
 		proMap, err = entity.UnmarshalPropertyJSON(space.Fields)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, operator, err
 		}
 	}
 
 	if filters != nil {
-		if filters.Operator != "AND" {
-			return nil, nil, vearchpb.NewError(vearchpb.ErrorEnum_FILTER_OPERATOR_TYPE_ERR, nil)
+		if filters.Operator == "AND" {
+			operator = FilterOperatorAnd
+		} else if filters.Operator == "OR" {
+			operator = FilterOperatorOr
+		} else {
+			return nil, nil, operator, vearchpb.NewError(vearchpb.ErrorEnum_FILTER_OPERATOR_TYPE_ERR, nil)
 		}
-		rangeConditionMap := make(map[string]*Range)
-		termConditionMap := make(map[string]*Term)
+		rangeConditionMap := make(map[string][]*request.Condition)
+		termConditionMap := make(map[string][]*Term)
 		for _, condition := range filters.Conditions {
-			if condition.Operator == "<" {
-				cm, ok := rangeConditionMap[condition.Field]
-				if !ok {
-					cm = &Range{
-						Lt: condition.Value,
-					}
-					rangeConditionMap[condition.Field] = cm
-				} else {
-					cm.Lt = condition.Value
-				}
-			} else if condition.Operator == "<=" {
-				cm, ok := rangeConditionMap[condition.Field]
-				if !ok {
-					cm = &Range{
-						Lte: condition.Value,
-					}
-					rangeConditionMap[condition.Field] = cm
-				} else {
-					cm.Lte = condition.Value
-				}
-			} else if condition.Operator == ">" {
-				cm, ok := rangeConditionMap[condition.Field]
-				if !ok {
-					cm = &Range{
-						Gt: condition.Value,
-					}
-					rangeConditionMap[condition.Field] = cm
-				} else {
-					cm.Gt = condition.Value
-				}
-			} else if condition.Operator == ">=" {
-				cm, ok := rangeConditionMap[condition.Field]
-				if !ok {
-					cm = &Range{
-						Gte: condition.Value,
-					}
-					rangeConditionMap[condition.Field] = cm
-				} else {
-					cm.Gte = condition.Value
-				}
+			if condition.Operator == "<" || condition.Operator == "<=" ||
+				condition.Operator == ">" || condition.Operator == ">=" ||
+				condition.Operator == "=" {
+				rangeConditionMap[condition.Field] = append(rangeConditionMap[condition.Field], &condition)
 			} else if condition.Operator == "IN" {
 				tmp := make([]string, 0)
 				err := json.Unmarshal(condition.Value, &tmp)
 				if err != nil {
 					log.Error(err)
-					return nil, nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, err)
+					return nil, nil, operator, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, err)
 				}
-				tm, ok := termConditionMap[condition.Field]
-				if !ok {
-					tm = &Term{
-						Value:    condition.Value,
-						Operator: TermOperatorIN,
-					}
-					termConditionMap[condition.Field] = tm
-				} else {
-					tm.Value = condition.Value
+
+				tm := &Term{
+					Value:    condition.Value,
+					Operator: TermOperatorIN,
 				}
+				termConditionMap[condition.Field] = append(termConditionMap[condition.Field], tm)
 			} else if condition.Operator == "NOT IN" {
 				tmp := make([]string, 0)
 				err := json.Unmarshal(condition.Value, &tmp)
 				if err != nil {
 					log.Error(err)
-					return nil, nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, err)
+					return nil, nil, operator, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, err)
 				}
-				tm, ok := termConditionMap[condition.Field]
-				if !ok {
-					tm = &Term{
-						Value:    condition.Value,
-						Operator: TermOperatorNOTIN,
-					}
-					termConditionMap[condition.Field] = tm
-				} else {
-					tm.Value = condition.Value
+
+				tm := &Term{
+					Value:    condition.Value,
+					Operator: TermOperatorNOTIN,
 				}
+				termConditionMap[condition.Field] = append(termConditionMap[condition.Field], tm)
 			} else {
-				return nil, nil, vearchpb.NewError(vearchpb.ErrorEnum_FILTER_CONDITION_OPERATOR_TYPE_ERR, nil)
+				return nil, nil, operator, vearchpb.NewError(vearchpb.ErrorEnum_FILTER_CONDITION_OPERATOR_TYPE_ERR, nil)
 			}
 		}
-		filter, err := parseRange(rangeConditionMap, proMap)
+		filter, err := parseRange(filters.Operator, rangeConditionMap, proMap)
 		if err != nil {
-			return nil, nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("parseRange err %s", err.Error()))
+			return nil, nil, operator, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("parseRange err %s", err.Error()))
 		}
 		if len(filter) != 0 {
 			rfs = append(rfs, filter...)
 		}
 		tmFilter, err := parseTerm(termConditionMap, proMap)
 		if err != nil {
-			return nil, nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("parseTerm err %s", err.Error()))
+			return nil, nil, operator, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("parseTerm err %s", err.Error()))
 		}
 		if len(tmFilter) != 0 {
 			tfs = append(tfs, tmFilter...)
 		}
 	}
 
-	return rfs, tfs, nil
+	return rfs, tfs, operator, nil
 }
 
 func parseSearch(vectors []json.RawMessage, filters *request.Filter, req *vearchpb.SearchRequest, space *entity.Space) error {
@@ -206,7 +165,7 @@ func parseSearch(vectors []json.RawMessage, filters *request.Filter, req *vearch
 		req.VecFields = vqs
 	}
 
-	rfs, tfs, err := parseFilter(filters, space)
+	rfs, tfs, operator, err := parseFilter(filters, space)
 	if err != nil {
 		return err
 	}
@@ -216,6 +175,7 @@ func parseSearch(vectors []json.RawMessage, filters *request.Filter, req *vearch
 	if len(tfs) > 0 {
 		req.TermFilters = tfs
 	}
+	req.Operator = operator
 
 	if reqNum <= 0 {
 		reqNum = 1
@@ -338,15 +298,696 @@ func parseVectors(reqNum int, vqs []*vearchpb.VectorQuery, tmpArr []json.RawMess
 	return reqNum, vqs, nil
 }
 
-func parseRange(rangeConditionMap map[string]*Range, proMap map[string]*entity.SpaceProperties) ([]*vearchpb.RangeFilter, error) {
+func parseRangeForOr(rangeCondition []*request.Condition, docField *entity.SpaceProperties, field string) ([]*vearchpb.RangeFilter, error) {
 	var (
-		min, max                   interface{}
-		minInclusive, maxInclusive bool
+		left, right                   []interface{}
+		leftInclusive, rightInclusive []bool
 	)
 
 	rangeFilters := make([]*vearchpb.RangeFilter, 0)
 
-	for field, rv := range rangeConditionMap {
+	switch docField.FieldType {
+	case vearchpb.FieldType_INT:
+		var leftMin, leftMax int32 = math.MinInt32, math.MinInt32
+		var rightMin, rightMax int32 = math.MaxInt32, math.MaxInt32
+		var leftMaxInclusive, rightMinInclusive bool = false, false
+		var curNum int32
+		var equals []int32
+
+		for _, rc := range rangeCondition {
+			err := vjson.Unmarshal(rc.Value, &curNum)
+			if err != nil {
+				return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("INT %s Unmarshal err %s", string(rc.Value), err.Error()))
+			}
+
+			switch rc.Operator {
+			case ">=":
+				if curNum <= rightMin {
+					rightMin = curNum
+					rightMinInclusive = true
+				}
+			case ">":
+				if curNum < rightMin {
+					rightMin = curNum
+					rightMinInclusive = false
+				}
+			case "=":
+				equals = append(equals, curNum)
+			case "<=":
+				if curNum >= leftMax {
+					leftMax = curNum
+					leftMaxInclusive = true
+				}
+			case "<":
+				if curNum > leftMax {
+					leftMax = curNum
+					leftMaxInclusive = false
+				}
+			}
+		}
+
+		for _, eqval := range equals {
+			if eqval < leftMax || eqval > rightMin {
+				continue
+			} else if eqval == leftMax {
+				leftMaxInclusive = true
+			} else if eqval == rightMin {
+				rightMinInclusive = true
+			} else {
+				left = append(left, eqval)
+				right = append(right, eqval)
+				leftInclusive = append(leftInclusive, true)
+				rightInclusive = append(rightInclusive, true)
+			}
+		}
+
+		if (leftMax > rightMin) || (leftMax == rightMin && (leftMaxInclusive || rightMinInclusive)) {
+			left = append(left, leftMin)
+			right = append(right, rightMax)
+			leftInclusive = append(leftInclusive, true)
+			rightInclusive = append(rightInclusive, true)
+		} else {
+			if leftMin < leftMax || leftMaxInclusive {
+
+				left = append(left, leftMin)
+				right = append(right, leftMax)
+				leftInclusive = append(leftInclusive, true)
+				rightInclusive = append(rightInclusive, leftMaxInclusive)
+			}
+			if rightMin < rightMax || rightMinInclusive {
+				left = append(left, rightMin)
+				right = append(right, rightMax)
+				leftInclusive = append(leftInclusive, rightMinInclusive)
+				rightInclusive = append(rightInclusive, true)
+			}
+		}
+	case vearchpb.FieldType_LONG:
+		var leftMin, leftMax int64 = math.MinInt64, math.MinInt64
+		var rightMin, rightMax int64 = math.MaxInt64, math.MaxInt64
+		var leftMaxInclusive, rightMinInclusive bool = false, false
+		var curNum int64
+		var equals []int64
+
+		for _, rc := range rangeCondition {
+			err := vjson.Unmarshal(rc.Value, &curNum)
+			if err != nil {
+				return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("LONG %s Unmarshal err %s", string(rc.Value), err.Error()))
+			}
+
+			switch rc.Operator {
+			case ">=":
+				if curNum <= rightMin {
+					rightMin = curNum
+					rightMinInclusive = true
+				}
+			case ">":
+				if curNum < rightMin {
+					rightMin = curNum
+					rightMinInclusive = false
+				}
+			case "=":
+				equals = append(equals, curNum)
+			case "<=":
+				if curNum >= leftMax {
+					leftMax = curNum
+					leftMaxInclusive = true
+				}
+			case "<":
+				if curNum > leftMax {
+					leftMax = curNum
+					leftMaxInclusive = false
+				}
+			}
+		}
+
+		for _, eqval := range equals {
+			if eqval < leftMax || eqval > rightMin {
+				continue
+			} else if eqval == leftMax {
+				leftMaxInclusive = true
+			} else if eqval == rightMin {
+				rightMinInclusive = true
+			} else {
+				left = append(left, eqval)
+				right = append(right, eqval)
+				leftInclusive = append(leftInclusive, true)
+				rightInclusive = append(rightInclusive, true)
+			}
+		}
+
+		if (leftMax > rightMin) || (leftMax == rightMin && (leftMaxInclusive || rightMinInclusive)) {
+			left = append(left, leftMin)
+			right = append(right, rightMax)
+			leftInclusive = append(leftInclusive, true)
+			rightInclusive = append(rightInclusive, true)
+		} else {
+			if leftMin < leftMax || leftMaxInclusive {
+
+				left = append(left, leftMin)
+				right = append(right, leftMax)
+				leftInclusive = append(leftInclusive, true)
+				rightInclusive = append(rightInclusive, leftMaxInclusive)
+			}
+			if rightMin < rightMax || rightMinInclusive {
+				left = append(left, rightMin)
+				right = append(right, rightMax)
+				leftInclusive = append(leftInclusive, rightMinInclusive)
+				rightInclusive = append(rightInclusive, true)
+			}
+		}
+	case vearchpb.FieldType_FLOAT:
+		var leftMin, leftMax float32 = -math.MaxFloat32, -math.MaxFloat32
+		var rightMin, rightMax float32 = math.MaxFloat32, math.MaxFloat32
+		var leftMaxInclusive, rightMinInclusive bool = false, false
+		var curNum float32
+		var equals []float32
+
+		for _, rc := range rangeCondition {
+			err := vjson.Unmarshal(rc.Value, &curNum)
+			if err != nil {
+				return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("FLOAT %s Unmarshal err %s", string(rc.Value), err.Error()))
+			}
+
+			switch rc.Operator {
+			case ">=":
+				if curNum <= rightMin {
+					rightMin = curNum
+					rightMinInclusive = true
+				}
+			case ">":
+				if curNum < rightMin {
+					rightMin = curNum
+					rightMinInclusive = false
+				}
+			case "=":
+				equals = append(equals, curNum)
+			case "<=":
+				if curNum >= leftMax {
+					leftMax = curNum
+					leftMaxInclusive = true
+				}
+			case "<":
+				if curNum > leftMax {
+					leftMax = curNum
+					leftMaxInclusive = false
+				}
+			}
+		}
+
+		for _, eqval := range equals {
+			if eqval < leftMax || eqval > rightMin {
+				continue
+			} else if eqval == leftMax {
+				leftMaxInclusive = true
+			} else if eqval == rightMin {
+				rightMinInclusive = true
+			} else {
+				left = append(left, eqval)
+				right = append(right, eqval)
+				leftInclusive = append(leftInclusive, true)
+				rightInclusive = append(rightInclusive, true)
+			}
+		}
+
+		if (leftMax > rightMin) || (leftMax == rightMin && (leftMaxInclusive || rightMinInclusive)) {
+			left = append(left, leftMin)
+			right = append(right, rightMax)
+			leftInclusive = append(leftInclusive, true)
+			rightInclusive = append(rightInclusive, true)
+		} else {
+			if leftMin < leftMax || leftMaxInclusive {
+
+				left = append(left, leftMin)
+				right = append(right, leftMax)
+				leftInclusive = append(leftInclusive, true)
+				rightInclusive = append(rightInclusive, leftMaxInclusive)
+			}
+			if rightMin < rightMax || rightMinInclusive {
+				left = append(left, rightMin)
+				right = append(right, rightMax)
+				leftInclusive = append(leftInclusive, rightMinInclusive)
+				rightInclusive = append(rightInclusive, true)
+			}
+		}
+	case vearchpb.FieldType_DOUBLE:
+		var leftMin, leftMax float64 = -math.MaxFloat64, -math.MaxFloat64
+		var rightMin, rightMax float64 = math.MaxFloat64, math.MaxFloat64
+		var leftMaxInclusive, rightMinInclusive bool = false, false
+		var curNum float64
+		var equals []float64
+
+		for _, rc := range rangeCondition {
+			err := vjson.Unmarshal(rc.Value, &curNum)
+			if err != nil {
+				return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("FLOAT64 %s Unmarshal err %s", string(rc.Value), err.Error()))
+			}
+
+			switch rc.Operator {
+			case ">=":
+				if curNum <= rightMin {
+					rightMin = curNum
+					rightMinInclusive = true
+				}
+			case ">":
+				if curNum < rightMin {
+					rightMin = curNum
+					rightMinInclusive = false
+				}
+			case "=":
+				equals = append(equals, curNum)
+			case "<=":
+				if curNum >= leftMax {
+					leftMax = curNum
+					leftMaxInclusive = true
+				}
+			case "<":
+				if curNum > leftMax {
+					leftMax = curNum
+					leftMaxInclusive = false
+				}
+			}
+		}
+
+		for _, eqval := range equals {
+			if eqval < leftMax || eqval > rightMin {
+				continue
+			} else if eqval == leftMax {
+				leftMaxInclusive = true
+			} else if eqval == rightMin {
+				rightMinInclusive = true
+			} else {
+				left = append(left, eqval)
+				right = append(right, eqval)
+				leftInclusive = append(leftInclusive, true)
+				rightInclusive = append(rightInclusive, true)
+			}
+		}
+
+		if (leftMax > rightMin) || (leftMax == rightMin && (leftMaxInclusive || rightMinInclusive)) {
+			left = append(left, leftMin)
+			right = append(right, rightMax)
+			leftInclusive = append(leftInclusive, true)
+			rightInclusive = append(rightInclusive, true)
+		} else {
+			if leftMin < leftMax || leftMaxInclusive {
+
+				left = append(left, leftMin)
+				right = append(right, leftMax)
+				leftInclusive = append(leftInclusive, true)
+				rightInclusive = append(rightInclusive, leftMaxInclusive)
+			}
+			if rightMin < rightMax || rightMinInclusive {
+				left = append(left, rightMin)
+				right = append(right, rightMax)
+				leftInclusive = append(leftInclusive, rightMinInclusive)
+				rightInclusive = append(rightInclusive, true)
+			}
+		}
+	case vearchpb.FieldType_DATE:
+		var leftMin, leftMax int64 = math.MinInt64, math.MinInt64
+		var rightMin, rightMax int64 = math.MaxInt64, math.MaxInt64
+		var leftMaxInclusive, rightMinInclusive bool = false, false
+		var curNum int64
+		var equals []int64
+
+		for _, rc := range rangeCondition {
+			err := vjson.Unmarshal(rc.Value, &curNum)
+			if err != nil {
+				var dateStr string
+				new_err := json.Unmarshal(rc.Value, &dateStr)
+				if new_err != nil {
+					return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("date %s Unmarshal err %s", string(rc.Value), err.Error()))
+				}
+				f, err := cast.ToTimeE(dateStr)
+				if err != nil {
+					return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("date %s Unmarshal err %s", string(rc.Value), err.Error()))
+				}
+				curNum = f.UnixNano()
+			} else {
+				curNum = curNum * 1e9
+			}
+
+			switch rc.Operator {
+			case ">=":
+				if curNum <= rightMin {
+					rightMin = curNum
+					rightMinInclusive = true
+				}
+			case ">":
+				if curNum < rightMin {
+					rightMin = curNum
+					rightMinInclusive = false
+				}
+			case "=":
+				equals = append(equals, curNum)
+			case "<=":
+				if curNum >= leftMax {
+					leftMax = curNum
+					leftMaxInclusive = true
+				}
+			case "<":
+				if curNum > leftMax {
+					leftMax = curNum
+					leftMaxInclusive = false
+				}
+			}
+		}
+
+		for _, eqval := range equals {
+			if eqval < leftMax || eqval > rightMin {
+				continue
+			} else if eqval == leftMax {
+				leftMaxInclusive = true
+			} else if eqval == rightMin {
+				rightMinInclusive = true
+			} else {
+				left = append(left, eqval)
+				right = append(right, eqval)
+				leftInclusive = append(leftInclusive, true)
+				rightInclusive = append(rightInclusive, true)
+			}
+		}
+
+		if (leftMax > rightMin) || (leftMax == rightMin && (leftMaxInclusive || rightMinInclusive)) {
+			left = append(left, leftMin)
+			right = append(right, rightMax)
+			leftInclusive = append(leftInclusive, true)
+			rightInclusive = append(rightInclusive, true)
+		} else {
+			if leftMin < leftMax || leftMaxInclusive {
+
+				left = append(left, leftMin)
+				right = append(right, leftMax)
+				leftInclusive = append(leftInclusive, true)
+				rightInclusive = append(rightInclusive, leftMaxInclusive)
+			}
+			if rightMin < rightMax || rightMinInclusive {
+				left = append(left, rightMin)
+				right = append(right, rightMax)
+				leftInclusive = append(leftInclusive, rightMinInclusive)
+				rightInclusive = append(rightInclusive, true)
+			}
+		}
+	}
+
+	for i, start := range left {
+		var minByte, maxByte []byte
+
+		minByte, err := cbbytes.ValueToByte(start)
+		if err != nil {
+			return nil, err
+		}
+
+		maxByte, err = cbbytes.ValueToByte(right[i])
+		if err != nil {
+			return nil, err
+		}
+
+		if minByte == nil || maxByte == nil {
+			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("range filter param is null or have not gte lte"))
+		}
+
+		rangeFilter := &vearchpb.RangeFilter{
+			Field:        field,
+			LowerValue:   minByte,
+			UpperValue:   maxByte,
+			IncludeLower: leftInclusive[i],
+			IncludeUpper: rightInclusive[i],
+		}
+
+		rangeFilters = append(rangeFilters, rangeFilter)
+	}
+
+	return rangeFilters, nil
+}
+
+func parseRangeForAnd(rangeCondition []*request.Condition, docField *entity.SpaceProperties, field string) (*vearchpb.RangeFilter, error) {
+	var (
+		min, max                   interface{}
+		minInclusive, maxInclusive bool = true, true
+	)
+
+	switch docField.FieldType {
+	case vearchpb.FieldType_INT:
+		var minNum, maxNum int32 = math.MinInt32, math.MaxInt32
+		var curNum int32
+
+		for _, rc := range rangeCondition {
+			err := vjson.Unmarshal(rc.Value, &curNum)
+			if err != nil {
+				return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("INT %s Unmarshal err %s", string(rc.Value), err.Error()))
+			}
+			switch rc.Operator {
+			case ">=":
+				if curNum > minNum {
+					minNum = curNum
+					minInclusive = true
+				}
+			case ">":
+				if curNum >= minNum {
+					minNum = curNum
+					minInclusive = false
+				}
+			case "=":
+				if curNum > minNum {
+					minNum = curNum
+					minInclusive = true
+				}
+				if curNum < maxNum {
+					maxNum = curNum
+					maxInclusive = true
+				}
+			case "<=":
+				if curNum < maxNum {
+					maxNum = curNum
+					maxInclusive = true
+				}
+			case "<":
+				if curNum <= maxNum {
+					maxNum = curNum
+					maxInclusive = false
+				}
+			}
+		}
+
+		min, max = minNum, maxNum
+	case vearchpb.FieldType_LONG:
+		var minNum, maxNum int64 = math.MinInt64, math.MaxInt64
+		var curNum int64
+
+		for _, rc := range rangeCondition {
+			err := vjson.Unmarshal(rc.Value, &curNum)
+			if err != nil {
+				return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("LONG %s Unmarshal err %s", string(rc.Value), err.Error()))
+			}
+			switch rc.Operator {
+			case ">=":
+				if curNum > minNum {
+					minNum = curNum
+					minInclusive = true
+				}
+			case ">":
+				if curNum >= minNum {
+					minNum = curNum
+					minInclusive = false
+				}
+			case "=":
+				if curNum > minNum {
+					minNum = curNum
+					minInclusive = true
+				}
+				if curNum < maxNum {
+					maxNum = curNum
+					maxInclusive = true
+				}
+			case "<=":
+				if curNum < maxNum {
+					maxNum = curNum
+					maxInclusive = true
+				}
+			case "<":
+				if curNum <= maxNum {
+					maxNum = curNum
+					maxInclusive = false
+				}
+			}
+		}
+
+		min, max = minNum, maxNum
+	case vearchpb.FieldType_FLOAT:
+		var minNum, maxNum float32 = -math.MaxFloat32, math.MaxFloat32
+		var curNum float32
+
+		for _, rc := range rangeCondition {
+			err := vjson.Unmarshal(rc.Value, &curNum)
+			if err != nil {
+				return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("FLOAT %s Unmarshal err %s", string(rc.Value), err.Error()))
+			}
+			switch rc.Operator {
+			case ">=":
+				if curNum > minNum {
+					minNum = curNum
+					minInclusive = true
+				}
+			case ">":
+				if curNum >= minNum {
+					minNum = curNum
+					minInclusive = false
+				}
+			case "=":
+				if curNum > minNum {
+					minNum = curNum
+					minInclusive = true
+				}
+				if curNum < maxNum {
+					maxNum = curNum
+					maxInclusive = true
+				}
+			case "<=":
+				if curNum < maxNum {
+					maxNum = curNum
+					maxInclusive = true
+				}
+			case "<":
+				if curNum <= maxNum {
+					maxNum = curNum
+					maxInclusive = false
+				}
+			}
+		}
+
+		min, max = minNum, maxNum
+	case vearchpb.FieldType_DOUBLE:
+		var minNum, maxNum float64 = -math.MaxFloat64, math.MaxFloat64
+		var curNum float64
+
+		for _, rc := range rangeCondition {
+			err := vjson.Unmarshal(rc.Value, &curNum)
+			if err != nil {
+				return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("FLOAT64 %s Unmarshal err %s", string(rc.Value), err.Error()))
+			}
+			switch rc.Operator {
+			case ">=":
+				if curNum > minNum {
+					minNum = curNum
+					minInclusive = true
+				}
+			case ">":
+				if curNum >= minNum {
+					minNum = curNum
+					minInclusive = false
+				}
+			case "=":
+				if curNum > minNum {
+					minNum = curNum
+					minInclusive = true
+				}
+				if curNum < maxNum {
+					maxNum = curNum
+					maxInclusive = true
+				}
+			case "<=":
+				if curNum < maxNum {
+					maxNum = curNum
+					maxInclusive = true
+				}
+			case "<":
+				if curNum <= maxNum {
+					maxNum = curNum
+					maxInclusive = false
+				}
+			}
+		}
+
+		min, max = minNum, maxNum
+	case vearchpb.FieldType_DATE:
+		var minNum, maxNum int64 = math.MinInt64, math.MaxInt64
+		var curNum int64
+
+		for _, rc := range rangeCondition {
+			err := vjson.Unmarshal(rc.Value, &curNum)
+			if err != nil {
+				var dateStr string
+				new_err := json.Unmarshal(rc.Value, &dateStr)
+				if new_err != nil {
+					return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("date %s Unmarshal err %s", string(rc.Value), err.Error()))
+				}
+				f, err := cast.ToTimeE(dateStr)
+				if err != nil {
+					return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("date %s Unmarshal err %s", string(rc.Value), err.Error()))
+				}
+				curNum = f.UnixNano()
+			} else {
+				curNum = curNum * 1e9
+			}
+
+			switch rc.Operator {
+			case ">=":
+				if curNum > minNum {
+					minNum = curNum
+					minInclusive = true
+				}
+			case ">":
+				if curNum >= minNum {
+					minNum = curNum
+					minInclusive = false
+				}
+			case "=":
+				if curNum > minNum {
+					minNum = curNum
+					minInclusive = true
+				}
+				if curNum < maxNum {
+					maxNum = curNum
+					maxInclusive = true
+				}
+			case "<=":
+				if curNum < maxNum {
+					maxNum = curNum
+					maxInclusive = true
+				}
+			case "<":
+				if curNum <= maxNum {
+					maxNum = curNum
+					maxInclusive = false
+				}
+			}
+		}
+
+		min, max = minNum, maxNum
+	}
+
+	var minByte, maxByte []byte
+
+	minByte, err := cbbytes.ValueToByte(min)
+	if err != nil {
+		return nil, err
+	}
+
+	maxByte, err = cbbytes.ValueToByte(max)
+	if err != nil {
+		return nil, err
+	}
+
+	if minByte == nil || maxByte == nil {
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("range filter param is null or have not gte lte"))
+	}
+
+	rangeFilter := &vearchpb.RangeFilter{
+		Field:        field,
+		LowerValue:   minByte,
+		UpperValue:   maxByte,
+		IncludeLower: minInclusive,
+		IncludeUpper: maxInclusive,
+	}
+	return rangeFilter, nil
+}
+
+func parseRange(operator string, rangeConditionMap map[string][]*request.Condition, proMap map[string]*entity.SpaceProperties) ([]*vearchpb.RangeFilter, error) {
+
+	rangeFilters := make([]*vearchpb.RangeFilter, 0)
+
+	for field, rcs := range rangeConditionMap {
 		docField := proMap[field]
 
 		if docField == nil {
@@ -361,189 +1002,28 @@ func parseRange(rangeConditionMap map[string]*Range, proMap map[string]*entity.S
 			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("field:[%s] not set index", field))
 		}
 
-		var start, end json.RawMessage
-
-		if rv.Gte != nil {
-			minInclusive = true
-			start = rv.Gte
-		} else if rv.Gt != nil {
-			minInclusive = false
-			start = rv.Gt
+		if operator == "AND" {
+			rangeFilter, err := parseRangeForAnd(rcs, docField, field)
+			if err != nil {
+				return nil, err
+			}
+			rangeFilters = append(rangeFilters, rangeFilter)
+		} else if operator == "OR" {
+			rangeFilter, err := parseRangeForOr(rcs, docField, field)
+			if err != nil {
+				return nil, err
+			}
+			rangeFilters = append(rangeFilters, rangeFilter...)
 		}
-
-		if rv.Lte != nil {
-			maxInclusive = true
-			end = rv.Lte
-		} else if rv.Lt != nil {
-			maxInclusive = false
-			end = rv.Lt
-		}
-
-		switch docField.FieldType {
-		case vearchpb.FieldType_INT:
-			var minNum, maxNum int32
-
-			if start != nil {
-				err := vjson.Unmarshal(start, &minNum)
-				if err != nil {
-					return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("INT %s Unmarshal err %s", string(start), err.Error()))
-				}
-			} else {
-				minNum = math.MinInt32
-			}
-
-			if end != nil {
-				err := vjson.Unmarshal(end, &maxNum)
-				if err != nil {
-					return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("INT %s Unmarshal err %s", string(end), err.Error()))
-				}
-			} else {
-				maxNum = math.MaxInt32
-			}
-
-			min, max = minNum, maxNum
-		case vearchpb.FieldType_LONG:
-			var minNum, maxNum int64
-
-			if start != nil {
-				err := vjson.Unmarshal(start, &minNum)
-				if err != nil {
-					return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("LONG %s Unmarshal err %s", string(start), err.Error()))
-				}
-			} else {
-				minNum = math.MinInt64
-			}
-
-			if end != nil {
-				err := vjson.Unmarshal(end, &maxNum)
-				if err != nil {
-					return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("LONG %s Unmarshal err %s", string(end), err.Error()))
-				}
-			} else {
-				maxNum = math.MaxInt64
-			}
-
-			min, max = minNum, maxNum
-		case vearchpb.FieldType_FLOAT:
-			var minNum, maxNum float32
-
-			if start != nil {
-				err := vjson.Unmarshal(start, &minNum)
-				if err != nil {
-					return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("FLOAT %s Unmarshal err %s", string(start), err.Error()))
-				}
-			} else {
-				minNum = -math.MaxFloat32
-			}
-
-			if end != nil {
-				err := vjson.Unmarshal(end, &maxNum)
-				if err != nil {
-					return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("FLOAT %s Unmarshal err %s", string(end), err.Error()))
-				}
-			} else {
-				maxNum = math.MaxFloat32
-			}
-
-			min, max = minNum, maxNum
-		case vearchpb.FieldType_DOUBLE:
-			var minNum, maxNum float64
-
-			if start != nil {
-				err := vjson.Unmarshal(start, &minNum)
-				if err != nil {
-					return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("FLOAT64 %s Unmarshal err %s", string(start), err.Error()))
-				}
-			} else {
-				minNum = -math.MaxFloat64
-			}
-
-			if end != nil {
-				err := vjson.Unmarshal(end, &maxNum)
-				if err != nil {
-					return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("FLOAT64 %s Unmarshal err %s", string(end), err.Error()))
-				}
-			} else {
-				maxNum = math.MaxFloat64
-			}
-
-			min, max = minNum, maxNum
-		case vearchpb.FieldType_DATE:
-			var minNum, maxNum int64
-			if start != nil {
-				err := vjson.Unmarshal(start, &minNum)
-				if err != nil {
-					var dateStr string
-					new_err := json.Unmarshal(start, &dateStr)
-					if new_err != nil {
-						return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("date %s Unmarshal err %s", string(start), err.Error()))
-					}
-					f, err := cast.ToTimeE(dateStr)
-					if err != nil {
-						return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("date %s Unmarshal err %s", string(start), err.Error()))
-					}
-					minNum = f.UnixNano()
-				} else {
-					minNum = minNum * 1e9
-				}
-			} else {
-				minNum = math.MinInt64
-			}
-
-			if end != nil {
-				err := vjson.Unmarshal(end, &maxNum)
-				if err != nil {
-					var dateStr string
-					if err := json.Unmarshal(start, &dateStr); err != nil {
-						return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("date %s Unmarshal err %s", string(start), err.Error()))
-					}
-					f, err := cast.ToTimeE(dateStr)
-					if err != nil {
-						return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("date %s Unmarshal err %s", string(start), err.Error()))
-					}
-					maxNum = f.UnixNano()
-				} else {
-					maxNum = maxNum * 1e9
-				}
-			} else {
-				maxNum = math.MaxInt64
-			}
-			min, max = minNum, maxNum
-		}
-
-		var minByte, maxByte []byte
-
-		minByte, err := cbbytes.ValueToByte(min)
-		if err != nil {
-			return nil, err
-		}
-
-		maxByte, err = cbbytes.ValueToByte(max)
-		if err != nil {
-			return nil, err
-		}
-
-		if minByte == nil || maxByte == nil {
-			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("range filter param is null or have not gte lte"))
-		}
-
-		rangeFilter := vearchpb.RangeFilter{
-			Field:        field,
-			LowerValue:   minByte,
-			UpperValue:   maxByte,
-			IncludeLower: minInclusive,
-			IncludeUpper: maxInclusive,
-		}
-		rangeFilters = append(rangeFilters, &rangeFilter)
 	}
 
 	return rangeFilters, nil
 }
 
-func parseTerm(tm map[string]*Term, proMap map[string]*entity.SpaceProperties) ([]*vearchpb.TermFilter, error) {
+func parseTerm(tm map[string][]*Term, proMap map[string]*entity.SpaceProperties) ([]*vearchpb.TermFilter, error) {
 	termFilters := make([]*vearchpb.TermFilter, 0)
 
-	for field, rv := range tm {
+	for field, rvs := range tm {
 		fd := proMap[field]
 
 		if fd == nil {
@@ -558,29 +1038,32 @@ func parseTerm(tm map[string]*Term, proMap map[string]*entity.SpaceProperties) (
 			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("field:[%s] not set index, please check space", field))
 		}
 
-		buf := bytes.Buffer{}
-		var v any
-		err := vjson.Unmarshal(rv.Value, &v)
-		if err != nil {
-			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("unmarshal [%s] err %s", string(rv.Value), err.Error()))
-		}
-		if ia, ok := v.([]any); ok {
-			for i, obj := range ia {
-				buf.WriteString(cast.ToString(obj))
-				if i != len(ia)-1 {
-					buf.WriteRune('\001')
-				}
+		for _, rv := range rvs {
+			buf := bytes.Buffer{}
+			var v any
+			err := vjson.Unmarshal(rv.Value, &v)
+			if err != nil {
+				return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("unmarshal [%s] err %s", string(rv.Value), err.Error()))
 			}
-		} else {
-			buf.WriteString(cast.ToString(rv.Value))
-		}
 
-		termFilter := vearchpb.TermFilter{
-			Field:   field,
-			Value:   buf.Bytes(),
-			IsUnion: rv.Operator,
+			if ia, ok := v.([]any); ok {
+				for i, obj := range ia {
+					buf.WriteString(cast.ToString(obj))
+					if i != len(ia)-1 {
+						buf.WriteRune('\001')
+					}
+				}
+			} else {
+				buf.WriteString(cast.ToString(rv.Value))
+			}
+
+			termFilter := vearchpb.TermFilter{
+				Field:   field,
+				Value:   buf.Bytes(),
+				IsUnion: rv.Operator,
+			}
+			termFilters = append(termFilters, &termFilter)
 		}
-		termFilters = append(termFilters, &termFilter)
 	}
 
 	return termFilters, nil
@@ -736,7 +1219,7 @@ func queryRequestToPb(searchDoc *request.SearchDocumentRequest, space *entity.Sp
 	queryReq.SortFieldMap = sortFieldMap
 
 	if searchDoc.Filters != nil {
-		rfs, tfs, err := parseFilter(searchDoc.Filters, space)
+		rfs, tfs, operator, err := parseFilter(searchDoc.Filters, space)
 		if err != nil {
 			return err
 		}
@@ -746,6 +1229,7 @@ func queryRequestToPb(searchDoc *request.SearchDocumentRequest, space *entity.Sp
 		if len(tfs) > 0 {
 			queryReq.TermFilters = tfs
 		}
+		queryReq.Operator = operator
 	}
 	if searchDoc.DocumentIds != nil && len(*searchDoc.DocumentIds) > 0 {
 		queryReq.DocumentIds = *searchDoc.DocumentIds

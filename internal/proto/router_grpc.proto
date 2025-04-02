@@ -155,6 +155,7 @@ message QueryRequest {
   map<string, string> sort_field_map = 12;
   repeated SortField sort_fields = 13;
   bool trace = 14;
+  int32 operator = 15;
 }
 
 message SearchRequest {
@@ -174,6 +175,7 @@ message SearchRequest {
   repeated SortField sort_fields = 14;
   string ranker = 15;
   bool trace = 16;
+  int32 operator = 17;
 }
 
 //*********************** Search response *********************** //

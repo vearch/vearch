@@ -42,10 +42,10 @@ class MultiFieldsRangeIndex {
 
   int AddField(int field, enum DataType field_type, std::string &name);
 
-  int64_t Search(const std::vector<FilterInfo> &origin_filters,
+  int64_t Search(FilterOperator query_filter_operator, const std::vector<FilterInfo> &origin_filters,
                  MultiRangeQueryResults *out);
 
-  int64_t Query(const std::vector<FilterInfo> &origin_filters,
+  int64_t Query(FilterOperator query_filter_operator, const std::vector<FilterInfo> &origin_filters,
                 std::vector<uint64_t> &docids, size_t topn);
 
   int64_t DocCount() {

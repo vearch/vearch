@@ -48,7 +48,7 @@ void Request::Deserialize(const char *data, int len) {
     fields_.emplace_back(fbs_field);
   }
 
-  for (int i = 0; i < sr.range_filters().size(); i++) {
+  for (int i = 0; i < sr.range_filters_size(); i++) {
     auto fbs_range_filter = sr.range_filters(i);
     struct RangeFilter range_filter;
     range_filter.field = fbs_range_filter.field();
@@ -60,7 +60,7 @@ void Request::Deserialize(const char *data, int len) {
     range_filters_.emplace_back(range_filter);
   }
 
-  for (int i = 0; i < sr.term_filters().size(); i++) {
+  for (int i = 0; i < sr.term_filters_size(); i++) {
     auto fbs_term_filter = sr.term_filters(i);
     struct TermFilter term_filter;
     term_filter.field = fbs_term_filter.field();
@@ -70,6 +70,7 @@ void Request::Deserialize(const char *data, int len) {
     term_filters_.emplace_back(term_filter);
   }
 
+  filter_operator_ = sr.operator_();
   index_params_ = sr.index_params();
   multi_vector_rank_ = sr.multi_vector_rank();
   l2_sqrt_ = sr.l2_sqrt();
@@ -119,6 +120,8 @@ std::vector<struct RangeFilter> &Request::RangeFilters() {
 }
 
 std::vector<struct TermFilter> &Request::TermFilters() { return term_filters_; }
+
+int Request::FilterOperator() { return filter_operator_; }
 
 const std::string &Request::IndexParams() { return index_params_; }
 
@@ -175,7 +178,7 @@ void QueryRequest::Deserialize(const char *data, int len) {
     fields_.emplace_back(fbs_field);
   }
 
-  for (int i = 0; i < qr.range_filters().size(); i++) {
+  for (int i = 0; i < qr.range_filters_size(); i++) {
     auto fbs_range_filter = qr.range_filters(i);
     struct RangeFilter range_filter;
     range_filter.field = fbs_range_filter.field();
@@ -187,7 +190,7 @@ void QueryRequest::Deserialize(const char *data, int len) {
     range_filters_.emplace_back(range_filter);
   }
 
-  for (int i = 0; i < qr.term_filters().size(); i++) {
+  for (int i = 0; i < qr.term_filters_size(); i++) {
     auto fbs_term_filter = qr.term_filters(i);
     struct TermFilter term_filter;
     term_filter.field = fbs_term_filter.field();
@@ -197,6 +200,7 @@ void QueryRequest::Deserialize(const char *data, int len) {
     term_filters_.emplace_back(term_filter);
   }
 
+  filter_operator_ = qr.operator_();
   partition_id_ = qr.partition_id();
 }
 
@@ -215,6 +219,8 @@ std::vector<struct RangeFilter> &QueryRequest::RangeFilters() {
 std::vector<struct TermFilter> &QueryRequest::TermFilters() {
   return term_filters_;
 }
+
+int QueryRequest::FilterOperator() { return filter_operator_; }
 
 int QueryRequest::PartitionId() { return partition_id_; }
 
