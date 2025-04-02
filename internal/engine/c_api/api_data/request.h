@@ -65,6 +65,7 @@ class Request : public RawData {
   void SetIndexParams(const std::string &index_params);
 
   int MultiVectorRank();
+  int FilterOperator();
 
   void SetMultiVectorRank(int multi_vector_rank);
 
@@ -91,6 +92,7 @@ class Request : public RawData {
 
   std::vector<struct RangeFilter> range_filters_;
   std::vector<struct TermFilter> term_filters_;
+  int filter_operator_;
 
   std::string index_params_;
   int multi_vector_rank_;
@@ -120,6 +122,7 @@ class QueryRequest : public RawData {
   std::vector<struct RangeFilter> &RangeFilters();
 
   std::vector<struct TermFilter> &TermFilters();
+  int FilterOperator();
   int PartitionId();
 
   void SetPartitionId(int partition_id);
@@ -131,6 +134,7 @@ class QueryRequest : public RawData {
   std::vector<std::string> fields_;
   std::vector<struct RangeFilter> range_filters_;
   std::vector<struct TermFilter> term_filters_;
+  int filter_operator_;
   int partition_id_;
   int topn_;
 };

@@ -181,6 +181,25 @@ def process_get_data_by_filter(index: int, full_field: bool, mode: str, total: i
             {"field": "field_double", "operator": ">=", "value": index * batch_size},
         ]
         data["filters"]["conditions"].extend(range_filter)
+    elif mode == "=" :
+        range_filter = [
+            {
+                "field": "field_int",
+                "operator": "=",
+                "value": index * batch_size
+            },
+            {
+                "field": "field_long",
+                "operator": "=",
+                "value": index * batch_size
+            },
+            {
+                "field": "field_double",
+                "operator": "=",
+                "value": index * batch_size
+            },
+        ]
+        data["filters"]["conditions"].extend(range_filter)
     elif mode == "IN":
         term_filter = [
             {
@@ -200,9 +219,13 @@ def process_get_data_by_filter(index: int, full_field: bool, mode: str, total: i
         ]
         data["filters"]["conditions"].extend(term_filter)
     elif mode == "Hybrid range NOT IN":
-        prepare_filter_bound(
-            data["filters"]["conditions"], index, batch_size, full_field, ">=", "<"
-        )
+        range_filter = [
+            {
+                "field": "field_int",
+                "operator": ">=",
+                "value": index * batch_size
+            }
+        ]
         term_filter = [
             {
                 "field": "field_string",
@@ -210,6 +233,7 @@ def process_get_data_by_filter(index: int, full_field: bool, mode: str, total: i
                 "value": [str(index * batch_size), str((index + 1) * batch_size)],
             },
         ]
+        data["filters"]["conditions"].extend(range_filter)
         data["filters"]["conditions"].extend(term_filter)
     elif mode == "Hybrid range IN":
         prepare_filter_bound(
@@ -257,20 +281,74 @@ def process_get_data_by_filter(index: int, full_field: bool, mode: str, total: i
         ]
         data["filters"]["conditions"].extend(term_filter)
         data["filters"]["conditions"].extend(term_filter2)
+    elif mode == "Hybrid And range":
+        range_filter = [
+            {
+                "field": "field_int",
+                "operator": "<=",
+                "value": index * batch_size
+            },
+            {
+                "field": "field_int",
+                "operator": ">=",
+                "value": (index + 1) * batch_size
+            }
+        ]
+        data["filters"]["conditions"].extend(range_filter)
+    elif mode == "Hybrid Or range":
+        data["filters"]["operator"] = "OR"
+        range_filter = [
+            {
+                "field": "field_int",
+                "operator": "<=",
+                "value": index * batch_size
+            },
+            {
+                "field": "field_int",
+                "operator": ">=",
+                "value": (index + 1) * batch_size
+            }
+        ]
+        data["filters"]["conditions"].extend(range_filter)
+    elif mode == "Hybrid Or range NOT IN":
+        data["filters"]["operator"] = "OR"
+        range_filter = [
+            {
+                "field": "field_int",
+                "operator": "=",
+                "value": index * batch_size
+            }
+        ]
+        term_filter = [
+            {
+                "field": "field_string",
+                "operator": "NOT IN",
+                "value": [str(index * batch_size)]
+            }
+        ]
+        data["filters"]["conditions"].extend(range_filter)
+        data["filters"]["conditions"].extend(term_filter)
+    elif mode == "Wrong operator":
+        data["filters"]["operator"] = "NOT"
+        prepare_filter_bound(
+            data["filters"]["conditions"], index, batch_size, full_field, ">=", "<"
+        )
 
     data["limit"] = batch_size
 
     json_str = json.dumps(data)
     rs = requests.post(url, auth=(username, password), data=json_str)
-    if rs.status_code != 200 or "documents" not in rs.json()["data"]:
+    if mode == "Wrong operator":
+        assert rs.status_code != 200
+    elif rs.status_code != 200 or "documents" not in rs.json()["data"]:
         logger.info(rs.json())
         logger.info(json_str)
         assert False
-
-    documents = rs.json()["data"]["documents"]
-    if len(documents) != batch_size:
-        logger.debug("len(documents) = " + str(len(documents)))
-        logger.debug(json_str)
+    else:
+        documents = rs.json()["data"]["documents"]
+        if len(documents) != batch_size:
+            logger.debug("len(documents) = " + str(len(documents)))
+            logger.debug(json_str)
 
     if mode == "[]":
         assert len(documents) == batch_size
@@ -326,6 +404,20 @@ def process_get_data_by_filter(index: int, full_field: bool, mode: str, total: i
                 assert documents[j]["field_long"] == value
                 assert documents[j]["field_float"] == float(value)
                 assert documents[j]["field_double"] == float(value)
+    elif mode == "=" :
+        assert len(documents) == batch_size
+        assert rs.text.find("\"total\":" + str(batch_size)) >= 0
+
+        for j in range(batch_size):
+            value = int(index)
+            logger.debug(value)
+            logger.debug(documents[j])
+            assert documents[j]["field_int"] == value
+
+            if full_field:
+                assert documents[j]["field_long"] == value
+                assert documents[j]["field_float"] == float(value)
+                assert documents[j]["field_double"] == float(value)
     elif mode == "()":
         assert len(documents) == 0
         assert rs.text.find('"total":' + str(0)) >= 0
@@ -340,6 +432,7 @@ def process_get_data_by_filter(index: int, full_field: bool, mode: str, total: i
                 index + 1
             )
     elif mode == "NOT IN":
+        assert len(documents) > 0
         for doc in documents:
             assert doc["field_string"] != str(index) and doc["field_string"] != str(
                 index + 1
@@ -349,8 +442,9 @@ def process_get_data_by_filter(index: int, full_field: bool, mode: str, total: i
             assert doc["field_string"] != str(index) and doc["field_string"] != str(
                 index + 1
             )
-            assert doc["field_int"] == index or doc["field_int"] == index + 1
+            assert doc["field_int"] > index + 1
     elif mode == "Hybrid range IN":
+        assert len(documents) > 0
         for doc in documents:
             assert doc["field_string"] == str(index) or doc["field_string"] == str(
                 index + 1
@@ -362,6 +456,12 @@ def process_get_data_by_filter(index: int, full_field: bool, mode: str, total: i
             assert doc["field_string2"] != str(index * batch_size)
     elif mode == "No result":
         assert len(documents) == 0
+    elif mode == "Hybrid And range":
+        assert len(documents) == 0
+    elif mode == "Hybrid Or range":
+        assert len(documents) > 0
+    elif mode == "Hybrid Or range NOT IN":
+        assert len(documents) > 0
 
 
 def query_by_filter_interface(total, full_field, mode: str):
@@ -553,7 +653,7 @@ def check(total, full_field, xb, mode: str):
 
 
 @pytest.mark.parametrize(
-    ["full_field", "mode"],
+    ["full_field", "mode"], 
     [
         [True, "()"],
         [True, "[]"],
@@ -563,12 +663,17 @@ def check(total, full_field, xb, mode: str):
         [True, "lower_outbound"],
         [True, "[lower_bound, valid_value]"],
         [True, "[valid_value, upper_bound]"],
+        [True, "="],
         [True, "IN"],
         [True, "NOT IN"],
         [True, "Hybrid range NOT IN"],
         [True, "Hybrid range IN"],
         [True, "Hybrid IN NOT IN"],
+        [True, "Hybrid And range"],
+        [True, "Hybrid Or range"],
+        [True, "Hybrid Or range NOT IN"],
         [True, "No result"],
+        [True, "Wrong operator"]
     ],
 )
 def test_module_filter(full_field: bool, mode: str):

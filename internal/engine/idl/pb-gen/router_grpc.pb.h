@@ -4180,6 +4180,7 @@ class QueryRequest final :
     kTraceFieldNumber = 14,
     kLimitFieldNumber = 9,
     kPageSizeFieldNumber = 10,
+    kOperatorFieldNumber = 15,
   };
   // repeated string document_ids = 2;
   int document_ids_size() const;
@@ -4386,6 +4387,15 @@ class QueryRequest final :
   void _internal_set_page_size(int32_t value);
   public:
 
+  // int32 operator = 15;
+  void clear_operator_();
+  int32_t operator_() const;
+  void set_operator_(int32_t value);
+  private:
+  int32_t _internal_operator_() const;
+  void _internal_set_operator_(int32_t value);
+  public:
+
   // @@protoc_insertion_point(class_scope:vearchpb.QueryRequest)
  private:
   class _Internal;
@@ -4412,6 +4422,7 @@ class QueryRequest final :
     bool trace_;
     int32_t limit_;
     int32_t page_size_;
+    int32_t operator__;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
   union { Impl_ _impl_; };
@@ -4587,6 +4598,7 @@ class SearchRequest final :
     kL2SqrtFieldNumber = 11,
     kIsVectorValueFieldNumber = 12,
     kTraceFieldNumber = 16,
+    kOperatorFieldNumber = 17,
   };
   // repeated .vearchpb.VectorQuery vec_fields = 5;
   int vec_fields_size() const;
@@ -4810,6 +4822,15 @@ class SearchRequest final :
   void _internal_set_trace(bool value);
   public:
 
+  // int32 operator = 17;
+  void clear_operator_();
+  int32_t operator_() const;
+  void set_operator_(int32_t value);
+  private:
+  int32_t _internal_operator_() const;
+  void _internal_set_operator_(int32_t value);
+  public:
+
   // @@protoc_insertion_point(class_scope:vearchpb.SearchRequest)
  private:
   class _Internal;
@@ -4838,6 +4859,7 @@ class SearchRequest final :
     bool l2_sqrt_;
     bool is_vector_value_;
     bool trace_;
+    int32_t operator__;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
   union { Impl_ _impl_; };
@@ -9426,6 +9448,26 @@ inline void QueryRequest::set_trace(bool value) {
   // @@protoc_insertion_point(field_set:vearchpb.QueryRequest.trace)
 }
 
+// int32 operator = 15;
+inline void QueryRequest::clear_operator_() {
+  _impl_.operator__ = 0;
+}
+inline int32_t QueryRequest::_internal_operator_() const {
+  return _impl_.operator__;
+}
+inline int32_t QueryRequest::operator_() const {
+  // @@protoc_insertion_point(field_get:vearchpb.QueryRequest.operator)
+  return _internal_operator_();
+}
+inline void QueryRequest::_internal_set_operator_(int32_t value) {
+  
+  _impl_.operator__ = value;
+}
+inline void QueryRequest::set_operator_(int32_t value) {
+  _internal_set_operator_(value);
+  // @@protoc_insertion_point(field_set:vearchpb.QueryRequest.operator)
+}
+
 // -------------------------------------------------------------------
 
 // -------------------------------------------------------------------
@@ -10024,6 +10066,26 @@ inline void SearchRequest::_internal_set_trace(bool value) {
 inline void SearchRequest::set_trace(bool value) {
   _internal_set_trace(value);
   // @@protoc_insertion_point(field_set:vearchpb.SearchRequest.trace)
+}
+
+// int32 operator = 17;
+inline void SearchRequest::clear_operator_() {
+  _impl_.operator__ = 0;
+}
+inline int32_t SearchRequest::_internal_operator_() const {
+  return _impl_.operator__;
+}
+inline int32_t SearchRequest::operator_() const {
+  // @@protoc_insertion_point(field_get:vearchpb.SearchRequest.operator)
+  return _internal_operator_();
+}
+inline void SearchRequest::_internal_set_operator_(int32_t value) {
+  
+  _impl_.operator__ = value;
+}
+inline void SearchRequest::set_operator_(int32_t value) {
+  _internal_set_operator_(value);
+  // @@protoc_insertion_point(field_set:vearchpb.SearchRequest.operator)
 }
 
 // -------------------------------------------------------------------
