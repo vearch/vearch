@@ -96,6 +96,11 @@ func Register(masterClient *client.Client, etcdServer *etcdserver.EtcdServer, mo
 }
 
 func Profiler(key string, startTime time.Time) {
+	if collector == nil || collector.RequestDuration == nil || collector.RequestCount == nil {
+		log.Warn("Monitoring system not initialized, metrics will not be recorded")
+		return
+	}
+
 	collector.RequestDuration.WithLabelValues(config.Conf().Global.Name, key).Observe(float64(time.Since(startTime).Milliseconds()))
 	collector.RequestCount.WithLabelValues(config.Conf().Global.Name, key).Add(float64(1))
 }
