@@ -336,8 +336,9 @@ int64_t MultiFieldsRangeIndex::Search(
         items.push_back(filter.lower_value);
       }
 
-      if (filter.is_union == FilterOperator::Not)
+      if (filter.is_union == FilterOperator::Not) {
         have_not_in = true;
+      }
 
       for (size_t i = 0; i < items.size(); i++) {
         std::string item = items[i];
@@ -388,20 +389,16 @@ int64_t MultiFieldsRangeIndex::Search(
     }
   }
 
-  if (have_not_in)
-  {
+  if (have_not_in) {
     RangeQueryResult all_result;
     all_result.AddRange(0, storage_mgr_->Size());
     all_result.IntersectionWithNotIn(result_not_in);
 
-    if (query_filter_operator == FilterOperator::And && first_result)
-    {
+    if (query_filter_operator == FilterOperator::And && first_result) {
       result = std::move(all_result);
-    }
-    else if (query_filter_operator == FilterOperator::And) {
+    } else if (query_filter_operator == FilterOperator::And) {
       result.IntersectionWithNotIn(result_not_in);
-    }
-    else if (query_filter_operator == FilterOperator::Or) {
+    } else if (query_filter_operator == FilterOperator::Or) {
       result.Union(all_result);
     }
     retval = result.Cardinality();
@@ -416,7 +413,8 @@ int64_t MultiFieldsRangeIndex::Query(
     const std::vector<FilterInfo> &origin_filters,
     std::vector<uint64_t> &docids, size_t topn) {
   MultiRangeQueryResults range_query_result;
-  int64_t retval = Search(query_filter_operator, origin_filters, &range_query_result);
+  int64_t retval =
+      Search(query_filter_operator, origin_filters, &range_query_result);
   if (retval <= 0) {
     return retval;
   }

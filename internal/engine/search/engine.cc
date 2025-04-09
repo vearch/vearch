@@ -254,7 +254,7 @@ Status Engine::Search(Request &request, Response &response_results) {
   if (vec_fields_num > 0 && (not brute_force_search) &&
       (index_status_ != IndexStatus::INDEXED) &&
       (max_docid_ > brute_force_search_threshold)) {
-    std::string msg = space_name_ +  " index not trained!";
+    std::string msg = space_name_ + " index not trained!";
     LOG(WARNING) << msg;
     for (int i = 0; i < req_num; ++i) {
       SearchResult result;
@@ -437,7 +437,9 @@ Status Engine::Query(QueryRequest &request, Response &response_results) {
       ++idx;
     }
 
-    int num = field_range_index_->Query(static_cast<FilterOperator>(request.FilterOperator()), filters, docids, (size_t)topn);
+    int num = field_range_index_->Query(
+        static_cast<FilterOperator>(request.FilterOperator()), filters, docids,
+        (size_t)topn);
 
     if (num <= 0) {
       std::string msg =
@@ -503,7 +505,9 @@ int Engine::MultiRangeQuery(Request &request, SearchCondition *condition,
     ++idx;
   }
 
-  int num = field_range_index_->Search(static_cast<FilterOperator>(request.FilterOperator()), filters, range_query_result);
+  int num = field_range_index_->Search(
+      static_cast<FilterOperator>(request.FilterOperator()), filters,
+      range_query_result);
 
   if (num == 0) {
     std::string msg =
@@ -891,8 +895,8 @@ int Engine::RebuildIndex(int drop_before_rebuild, int limit_cpu, int describe) {
 
   if (!drop_before_rebuild) {
     std::map<std::string, IndexModel *> vector_indexes;
-    Status status = vec_manager_->CreateVectorIndexes(
-        training_threshold_, vector_indexes);
+    Status status =
+        vec_manager_->CreateVectorIndexes(training_threshold_, vector_indexes);
     if (!status.ok()) {
       LOG(ERROR) << space_name_ << " RebuildIndex CreateVectorIndexes failed: "
                  << status.ToString();
@@ -903,8 +907,8 @@ int Engine::RebuildIndex(int drop_before_rebuild, int limit_cpu, int describe) {
     if (not b_running_ && max_docid_ - delete_num_ > training_threshold_) {
       ret = vec_manager_->TrainIndex(vector_indexes);
       if (ret) {
-        LOG(ERROR) << space_name_ << " RebuildIndex TrainIndex failed ,ret="
-                   << ret;
+        LOG(ERROR) << space_name_
+                   << " RebuildIndex TrainIndex failed ,ret=" << ret;
         index_status_ = IndexStatus::UNINDEXED;
         return -1;
       }
@@ -914,8 +918,9 @@ int Engine::RebuildIndex(int drop_before_rebuild, int limit_cpu, int describe) {
   } else {
     Status status = vec_manager_->ReCreateVectorIndexes(training_threshold_);
     if (!status.ok()) {
-      LOG(ERROR) << space_name_ << " RebuildIndex ReCreateVectorIndexes failed: "
-                << status.ToString();
+      LOG(ERROR) << space_name_
+                 << " RebuildIndex ReCreateVectorIndexes failed: "
+                 << status.ToString();
       vec_manager_->DestroyVectorIndexes();
       return ret;
     }
@@ -926,7 +931,7 @@ int Engine::RebuildIndex(int drop_before_rebuild, int limit_cpu, int describe) {
     ret = BuildIndex();
     if (ret) {
       LOG(ERROR) << space_name_
-                << " ReBuildIndex BuildIndex failed, ret: " << ret;
+                 << " ReBuildIndex BuildIndex failed, ret: " << ret;
       return ret;
     }
   }

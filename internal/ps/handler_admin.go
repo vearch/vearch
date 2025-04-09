@@ -27,6 +27,7 @@ import (
 
 	"github.com/cubefs/cubefs/depends/tiglabs/raft"
 	"github.com/cubefs/cubefs/depends/tiglabs/raft/proto"
+	"github.com/klauspost/compress/zstd"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/vearch/vearch/v3/internal/client"
@@ -522,10 +523,9 @@ func (b *S3PathBuilder) BuildExportPath(dbName, spaceName string, backupID int, 
 func (bh *BackupHandler) export(ctx context.Context, pid uint32, backup *entity.BackupSpaceRequest, minioClient *minio.Client, dbName string, path string) {
 	pathBuilder := NewS3PathBuilder(config.Conf().Global.Name)
 
-	// if export dir not exist, create it
-	if _, err := os.Stat(fmt.Sprintf("%s/export", path)); os.IsNotExist(err) {
-		err = os.Mkdir(fmt.Sprintf("%s/export", path), 0644)
-		if err != nil {
+	exportDir := fmt.Sprintf("%s/export", path)
+	if _, err := os.Stat(exportDir); os.IsNotExist(err) {
+		if err = os.Mkdir(exportDir, 0644); err != nil {
 			log.Error("Failed to create export dir: %s", err)
 			return
 		}
@@ -544,18 +544,38 @@ func (bh *BackupHandler) export(ctx context.Context, pid uint32, backup *entity.
 	}()
 
 	part := 0
-	fileName := fmt.Sprintf("%d_%d.txt", backup.Part, part)
+	fileName := fmt.Sprintf("%d_%d.zst", backup.Part, part)
 	objectName := pathBuilder.BuildExportPath(dbName, space.Name, backup.BackupID, fileName)
 	doneName := pathBuilder.BuildExportPath(dbName, space.Name, backup.BackupID, fmt.Sprintf("%d.done", backup.Part))
-	backupFileName := filepath.Join(path, "export", fileName)
-	file, err := os.OpenFile(backupFileName, os.O_APPEND|os.O_TRUNC|os.O_CREATE|os.O_WRONLY, 0644)
+	backupFileName := filepath.Join(exportDir, fileName)
+
+	file, err := os.Create(backupFileName)
 	if err != nil {
-		log.Error("Failed to open file: %s", err)
+		log.Error("Failed to create file: %s", err)
 		return
 	}
-	defer file.Close()
+
+	zw, err := zstd.NewWriter(file,
+		zstd.WithEncoderLevel(zstd.SpeedDefault),
+		zstd.WithEncoderConcurrency(2))
+	if err != nil {
+		log.Error("Failed to create zstd writer: %s", err)
+		file.Close()
+		return
+	}
+
 	nextDocid := int32(-1)
 	total := 0
+
+	defer func() {
+		if zw != nil {
+			zw.Close()
+		}
+		if file != nil {
+			file.Close()
+		}
+	}()
+
 	for {
 		doc := &vearchpb.Document{
 			PKey: fmt.Sprintf("%d", nextDocid),
@@ -573,60 +593,96 @@ func (bh *BackupHandler) export(ctx context.Context, pid uint32, backup *entity.
 			returnFieldsMap := make(map[string]string)
 			nextDocid, _ = document.DocFieldSerialize(doc, &space, returnFieldsMap, true, docOut)
 		}
+
 		value, err := json.Marshal(docOut)
 		if err != nil {
 			log.Error("Marshal document error [%+v]", err)
 			break
 		}
 
-		_, err = file.WriteString(string(value) + "\n")
-		if err != nil {
-			log.Error("Failed to write to file: %s", err)
+		if _, err = zw.Write(value); err != nil {
+			log.Error("Failed to write to compressor: %s", err)
 			break
 		}
-		total++
-		if total%1000000 == 0 {
-			log.Info("Write %d documents", total)
-			file.Close()
 
-			_, err = minioClient.FPutObject(ctx, backup.S3Param.BucketName, objectName, backupFileName, minio.PutObjectOptions{ContentType: "application/octet-stream"})
+		if _, err = zw.Write([]byte("\n")); err != nil {
+			log.Error("Failed to write newline: %s", err)
+			break
+		}
+
+		total++
+
+		if total%1000000 == 0 {
+			log.Info("Compressed %d documents", total)
+
+			zw.Close()
+			zw = nil
+			file.Close()
+			file = nil
+
+			_, err = minioClient.FPutObject(ctx, backup.S3Param.BucketName, objectName, backupFileName,
+				minio.PutObjectOptions{ContentType: "application/zstd"})
 			if err != nil {
-				log.Error("Failed to backup space: %+v", err)
+				log.Error("Failed to upload backup file: %+v", err)
 				return
 			}
 			log.Info("Backup success, file is [%s]", backupFileName)
+
 			// remove old file
-			err = os.Remove(backupFileName)
-			if err != nil {
+			if err = os.Remove(backupFileName); err != nil {
 				log.Error("Failed to remove file: %s", err)
 				return
 			}
 
 			part++
-			fileName = fmt.Sprintf("%d_%d.txt", backup.Part, part)
+			fileName = fmt.Sprintf("%d_%d.zst", backup.Part, part)
 			objectName = pathBuilder.BuildExportPath(dbName, space.Name, backup.BackupID, fileName)
-			backupFileName = filepath.Join(path, "export", fileName)
-			file, err = os.OpenFile(backupFileName, os.O_APPEND|os.O_TRUNC|os.O_CREATE|os.O_WRONLY, 0644)
+			backupFileName = filepath.Join(exportDir, fileName)
+
+			file, err = os.Create(backupFileName)
 			if err != nil {
-				log.Error("Failed to open file: %s", err)
+				log.Error("Failed to create file: %s", err)
+				return
+			}
+
+			zw, err = zstd.NewWriter(file,
+				zstd.WithEncoderLevel(zstd.SpeedDefault),
+				zstd.WithEncoderConcurrency(2))
+			if err != nil {
+				log.Error("Failed to create zstd writer: %s", err)
+				file.Close()
+				file = nil
 				return
 			}
 		}
 	}
 
-	_, err = minioClient.FPutObject(ctx, backup.S3Param.BucketName, objectName, backupFileName, minio.PutObjectOptions{ContentType: "application/octet-stream"})
-	if err != nil {
-		log.Error("Failed to backup space: %+v", err)
-		return
+	if zw != nil {
+		zw.Close()
+		zw = nil
+	}
+	if file != nil {
+		file.Close()
+		file = nil
 	}
 
-	doneFile := fmt.Sprintf("%s/export/done_%d", path, backup.Part)
+	if total%1000000 != 0 {
+		_, err = minioClient.FPutObject(ctx, backup.S3Param.BucketName, objectName, backupFileName,
+			minio.PutObjectOptions{ContentType: "application/zstd"})
+		if err != nil {
+			log.Error("Failed to upload backup file: %+v", err)
+			return
+		}
+	}
+
+	doneFile := fmt.Sprintf("%s/done_%d", exportDir, backup.Part)
 	if err := os.WriteFile(doneFile, fmt.Appendf(nil, "%d", total), 0644); err != nil {
 		log.Error("Failed to create done file: %s", err)
 		return
 	}
 
-	_, err = minioClient.FPutObject(ctx, backup.S3Param.BucketName, doneName, doneFile, minio.PutObjectOptions{ContentType: "application/octet-stream"})
+	_, err = minioClient.FPutObject(ctx, backup.S3Param.BucketName, doneName, doneFile,
+		minio.PutObjectOptions{ContentType: "text/plain"})
 	if err != nil {
 		log.Error("Failed to upload done file: %+v", err)
 		os.Remove(doneFile)
@@ -635,15 +691,13 @@ func (bh *BackupHandler) export(ctx context.Context, pid uint32, backup *entity.
 
 	if err := os.Remove(doneFile); err != nil {
 		log.Error("Failed to remove done file: %s", err)
-		return
 	}
-	log.Info("Backup success, file is [%s]", backupFileName)
 
-	err = os.Remove(backupFileName)
-	if err != nil {
-		log.Error("Failed to remove file: %s", err)
-		return
+	if err := os.Remove(backupFileName); err != nil {
+		log.Error("Failed to remove backup file: %s", err)
 	}
+
+	log.Info("Export completed successfully. Total documents: %d", total)
 }
 
 func (bh *BackupHandler) create(ctx context.Context, pid uint32, backup *entity.BackupSpaceRequest, minioClient *minio.Client, dbName, spaceName string, path string) {

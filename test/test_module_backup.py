@@ -23,6 +23,7 @@ from minio import Minio
 from minio.error import S3Error
 from utils.vearch_utils import *
 from utils.data_utils import *
+import zstandard as zstd
 
 
 __description__ = """ test case for module backup """
@@ -180,6 +181,12 @@ class TestBackup:
         if backup_status != 0:
             time.sleep(timewait)
 
+    def decompress_file(self, input_path, output_path):
+        with open(input_path, 'rb') as input_file:
+            with open(output_path, 'wb') as output_file:
+                decompressor = zstd.ZstdDecompressor()
+                decompressor.copy_stream(input_file, output_file)
+
     def download_data_files_and_upsert(self, bucket_name, backup_id="", local_directory="data"):
         client = Minio(
             self.endpoint,
@@ -190,13 +197,19 @@ class TestBackup:
         )
 
         try:
+            logger.info(f"Bucket {bucket_name} exists: {client.bucket_exists(bucket_name)} backup_id {backup_id}")
             objects = client.list_objects(bucket_name, prefix=f"{self.cluster_name}/export/ts_db/ts_space/{backup_id}", recursive=True)
             
             for obj in objects:
-                if obj.object_name.endswith('.txt'):
+                logger.info(f"Object name: {obj.object_name}")
+                if obj.object_name.endswith('.zst'):
                     local_file_path = f"{local_directory}/{obj.object_name.split('/')[-1]}"
                     client.fget_object(bucket_name, obj.object_name, local_file_path)
-                    with open(local_file_path, 'r') as f:
+                    # uncompress the file
+                    uncompressed_file_path = local_file_path.replace('.zst', '.txt')
+                    self.decompress_file(local_file_path, uncompressed_file_path)
+                    # read the uncompressed file and upsert data
+                    with open(uncompressed_file_path, 'r') as f:
                         lines = f.readlines()
                         for line in lines:
                             data = json.loads(line)
@@ -212,6 +225,7 @@ class TestBackup:
                             
                     # delete file
                     os.remove(local_file_path)
+                    os.remove(uncompressed_file_path)
         except S3Error as err:
             logger.error(f"Error occurred: {err}")
 
@@ -288,9 +302,11 @@ class TestBackup:
         self.create_db(router_url)
 
         if command == "export":
+            logger.info("export data")
             self.create_space(router_url, embedding_size)
             self.download_data_files_and_upsert(os.getenv("S3_BUCKET_NAME", "test"), backup_id)
         else:
+            logger.info("restore data")
             self.backup(router_url, "restore", corrupted)
             time.sleep(30)
 

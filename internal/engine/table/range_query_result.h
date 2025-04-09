@@ -91,7 +91,8 @@ class RangeQueryResult {
 
   void Add(int64_t doc) { doc_bitmap_.add(static_cast<uint64_t>(doc)); }
   void AddRange(int64_t mindoc, int64_t maxdoc) {
-    doc_bitmap_.addRange(static_cast<uint64_t>(mindoc), static_cast<uint64_t>(maxdoc));
+    doc_bitmap_.addRange(static_cast<uint64_t>(mindoc),
+                         static_cast<uint64_t>(maxdoc));
   }
 
   void SetNotIn(bool b_not_in) { b_not_in_ = b_not_in; }
