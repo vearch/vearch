@@ -870,7 +870,7 @@ func (bh *BackupHandler) Execute(ctx context.Context, req *vearchpb.PartitionDat
 
 	partitonStore := bh.server.GetPartition(pid)
 	if partitonStore == nil {
-		log.Debug("PartitonStore is nil.")
+		log.Error("PartitonStore %d is nil.", pid)
 		return vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_IS_INVALID, fmt.Errorf("partition (%v), partitonStore is nil ", pid))
 	}
 	e := partitonStore.GetEngine()
