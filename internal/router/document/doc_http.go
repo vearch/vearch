@@ -52,6 +52,7 @@ const (
 	URLParamUserName    = "user_name"
 	URLParamRoleName    = "role_name"
 	URLParamMemberId    = "member_id"
+	NodeID              = "node_id"
 	defaultTimeout      = 10 * time.Second
 )
 
@@ -161,6 +162,16 @@ func (handler *DocumentHandler) proxyMaster(group *gin.RouterGroup) error {
 	group.GET("/partitions", handler.handleMasterRequest)
 	group.POST("/partitions/change_member", handler.handleMasterRequest)
 	group.POST("/partitions/resource_limit", handler.handleMasterRequest)
+
+	// schedule
+	group.POST("/schedule/recover_server", handler.handleMasterRequest)
+	group.POST("/schedule/change_replicas", handler.handleMasterRequest)
+	group.GET("/schedule/fail_server", handler.handleMasterRequest)
+	group.DELETE("/schedule/fail_server/:"+NodeID, handler.handleMasterRequest)
+	group.GET("/schedule/clean_task", handler.handleMasterRequest)
+
+	// remove server metadata
+	group.POST("/meta/remove_server", handler.handleMasterRequest)
 
 	group.GET("/routers", handler.handleMasterRequest)
 
