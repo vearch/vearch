@@ -129,6 +129,7 @@ type BackupSpaceRequest struct {
 	BackupID int         `json:"backup_id,omitempty"`
 	Part     PartitionID `json:"part"`
 	S3Param  struct {
+		Region     string `json:"region"`
 		BucketName string `json:"bucket_name"`
 		EndPoint   string `json:"endpoint"`
 		AccessKey  string `json:"access_key"`

@@ -74,6 +74,7 @@ func (s *BackupService) backupSchema(ctx context.Context, dbName, spaceName stri
 	minioClient, err := minio.New(backup.S3Param.EndPoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(backup.S3Param.AccessKey, backup.S3Param.SecretKey, ""),
 		Secure: backup.S3Param.UseSSL,
+		Region: backup.S3Param.Region,
 	})
 	if err != nil {
 		err = fmt.Errorf("failed to create minio client: %+v", err)
@@ -120,6 +121,7 @@ func (s *BackupService) restoreSchema(ctx context.Context, dbService *DBService,
 	minioClient, err := minio.New(backup.S3Param.EndPoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(backup.S3Param.AccessKey, backup.S3Param.SecretKey, ""),
 		Secure: backup.S3Param.UseSSL,
+		Region: backup.S3Param.Region,
 	})
 	if err != nil {
 		err := fmt.Errorf("failed to create minio client: %+v", err)
@@ -247,6 +249,7 @@ func (s *BackupService) BackupSpace(ctx context.Context, dbService *DBService, s
 	minioClient, err := minio.New(req.S3Param.EndPoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(req.S3Param.AccessKey, req.S3Param.SecretKey, ""),
 		Secure: req.S3Param.UseSSL,
+		Region: req.S3Param.Region,
 	})
 	if err != nil {
 		err := fmt.Errorf("failed to create minio client: %+v", err)

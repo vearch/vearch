@@ -902,6 +902,7 @@ func (bh *BackupHandler) Execute(ctx context.Context, req *vearchpb.PartitionDat
 	minioClient, err := minio.New(backup.S3Param.EndPoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(backup.S3Param.AccessKey, backup.S3Param.SecretKey, ""),
 		Secure: backup.S3Param.UseSSL,
+		Region: backup.S3Param.Region,
 	})
 	if err != nil {
 		log.Error("Failed to create minio client: %+v", err)
