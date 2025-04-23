@@ -145,6 +145,10 @@ Status StorageManager::Init(int cache_size) {
       return Status::IOError(s.ToString());
     }
 
+    for (auto cf_handle : cf_handles_) {
+      db_->DestroyColumnFamilyHandle(cf_handle);
+    }
+
     cf_handles_.clear();
     db_.reset();
   } else {
