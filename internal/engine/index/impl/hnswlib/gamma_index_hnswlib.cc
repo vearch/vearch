@@ -19,7 +19,7 @@
 
 namespace vearch {
 
-using idx_t = faiss::Index::idx_t;
+using idx_t = faiss::idx_t;
 
 struct HNSWLIBModelParams {
   int nlinks;             // link number for hnsw graph

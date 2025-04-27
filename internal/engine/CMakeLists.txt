@@ -11,6 +11,8 @@ option(BUILD_FAISSLIKE_INDEX "Build faisslike index" off)
 option(BUILD_RELAYOUT "Build relayout index" off)
 option(ENABLE_COVERAGE "Use gcov" off)
 option(BUILD_PYTHON_SDK "Build python sdk" off)
+# Valid values are "generic", "avx2", "avx512"
+option(BUILD_GAMMA_OPT_LEVEL "Build opt level" "avx2")
 
 #ENV VARs
 set(THIRDPARTY ${CMAKE_CURRENT_SOURCE_DIR}/third_party)
@@ -29,12 +31,17 @@ if(APPLE)
 endif()
 
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm|ARM|aarch64|AARCH64")
+    set(BUILD_GAMMA_OPT_LEVEL "generic")
+endif()
+
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm|ARM|aarch64|AARCH64")
     set(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -std=c++17 -fopenmp -D_FILE_OFFSET_BITS=64 -D_LARGE_FILE -DOPEN_CORE -O0 -w -g3 -gdwarf-2")
     set(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -std=c++17 -fPIC -Wall -O3 -fopenmp -D_FILE_OFFSET_BITS=64 -D_LARGE_FILE -Werror=narrowing -Wno-deprecated")
 else()
-    set(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -std=c++17 -mavx2 -msse4 -mpopcnt -fopenmp -D_FILE_OFFSET_BITS=64 -D_LARGE_FILE -DOPEN_CORE -O0 -w -g3 -gdwarf-2")
-    set(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -std=c++17 -fPIC -m64 -Wall -O3 -mavx2 -msse4 -mpopcnt -fopenmp -D_FILE_OFFSET_BITS=64 -D_LARGE_FILE -Werror=narrowing -Wno-deprecated")
+    set(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -std=c++17 -fopenmp -D_FILE_OFFSET_BITS=64 -D_LARGE_FILE -DOPEN_CORE -O0 -w -g3 -gdwarf-2")
+    set(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -std=c++17 -fPIC -m64 -Wall -O3 -fopenmp -D_FILE_OFFSET_BITS=64 -D_LARGE_FILE -Werror=narrowing -Wno-deprecated")
 endif()
+
 
 if(NOT DEFINED ENV{ROCKSDB_HOME})
     message(FATAL_ERROR "RocksDB home isn't set! ")
@@ -55,7 +62,71 @@ link_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/index/impl/relayout
 )
 
+#ADDITIONAL SOURCE DIR
+file(GLOB_RECURSE ALL_SOURCES
+     "${CMAKE_CURRENT_SOURCE_DIR}/*.cc"
+     "${CMAKE_CURRENT_SOURCE_DIR}/*.c"
+)
+list(FILTER ALL_SOURCES EXCLUDE REGEX "${CMAKE_CURRENT_SOURCE_DIR}/third_party/scann-1.2.1/.*")
+list(FILTER ALL_SOURCES EXCLUDE REGEX "${CMAKE_CURRENT_SOURCE_DIR}/third_party/flatbuffers-*")
+list(FILTER ALL_SOURCES EXCLUDE REGEX "${CMAKE_CURRENT_SOURCE_DIR}/tests/.*")
+list(FILTER ALL_SOURCES EXCLUDE REGEX "${CMAKE_CURRENT_SOURCE_DIR}/tools/.*")
+
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/index/impl/relayout/CMakeLists.txt")
+    if(NOT APPLE)
+        add_definitions(-DOPT_IVFPQ_RELAYOUT)
+        add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/index/impl/relayout)
+        include_directories(${RELAYOUT_INCLUDE})
+    endif()
+endif()
+
+if(NOT BUILD_WITH_GPU)
+    list(FILTER ALL_SOURCES EXCLUDE REGEX "${CMAKE_CURRENT_SOURCE_DIR}/index/impl/gpu/.*")
+endif()
+
+set(LIB_SRCS ${ALL_SOURCES} ${RELAYOUT_SRCS})
+
+add_library(gamma SHARED ${LIB_SRCS})
+
+add_library(gamma_avx2 SHARED ${LIB_SRCS})
+if(NOT BUILD_GAMMA_OPT_LEVEL STREQUAL "avx2" AND NOT BUILD_GAMMA_OPT_LEVEL STREQUAL "avx512")
+  set_target_properties(gamma_avx2 PROPERTIES EXCLUDE_FROM_ALL TRUE)
+endif()
+if(NOT WIN32)
+  target_compile_options(gamma_avx2 PRIVATE $<$<OR:$<COMPILE_LANGUAGE:CXX>,$<COMPILE_LANGUAGE:C>>:-mavx2 -mfma -mf16c -mpopcnt>)
+else()
+  target_compile_options(gamma_avx2 PRIVATE $<$<OR:$<COMPILE_LANGUAGE:CXX>,$<COMPILE_LANGUAGE:C>>:/arch:AVX2>)
+  add_compile_options(/bigobj)
+endif()
+
+add_library(gamma_avx512 SHARED ${LIB_SRCS})
+if(NOT BUILD_GAMMA_OPT_LEVEL STREQUAL "avx512")
+  set_target_properties(gamma_avx512 PROPERTIES EXCLUDE_FROM_ALL TRUE)
+endif()
+if(NOT WIN32)
+  target_compile_options(gamma_avx512 PRIVATE $<$<OR:$<COMPILE_LANGUAGE:CXX>,$<COMPILE_LANGUAGE:C>>:-mavx2 -mfma -mf16c -mavx512f -mavx512cd -mavx512vl -mavx512dq -mavx512bw -mpopcnt>)
+else()
+  target_compile_options(gamma_avx512 PRIVATE $<$<OR:$<COMPILE_LANGUAGE:CXX>,$<COMPILE_LANGUAGE:C>>:/arch:AVX512>)
+  add_compile_options(/bigobj)
+endif()
+
 set(COMMON_LIBRARIES
+    ${RocksDB_LIB}
+    -ltbb
+    -lzstd
+    -lprotobuf
+    -lroaring
+)
+
+set(COMMON_LIBRARIES_AVX2
+    ${RocksDB_LIB}
+    -ltbb
+    -lzstd
+    -lprotobuf
+    -lroaring
+)
+
+set(COMMON_LIBRARIES_AVX512
     ${RocksDB_LIB}
     -ltbb
     -lzstd
@@ -66,15 +137,42 @@ set(COMMON_LIBRARIES
 find_package(MKL)
 
 if (MKL_FOUND)
-    list(APPEND COMMON_LIBRARIES ${MKL_LIBRARIES})
+    if(BUILD_GAMMA_OPT_LEVEL STREQUAL "avx512")
+        list(APPEND COMMON_LIBRARIES_AVX512 ${MKL_LIBRARIES})
+        list(APPEND COMMON_LIBRARIES_AVX2 ${MKL_LIBRARIES})
+        list(APPEND COMMON_LIBRARIES ${MKL_LIBRARIES})
+    elseif(BUILD_GAMMA_OPT_LEVEL STREQUAL "avx2")
+        list(APPEND COMMON_LIBRARIES_AVX2 ${MKL_LIBRARIES})
+        list(APPEND COMMON_LIBRARIES ${MKL_LIBRARIES})
+    elseif(BUILD_GAMMA_OPT_LEVEL STREQUAL "generic")
+        list(APPEND COMMON_LIBRARIES ${MKL_LIBRARIES})
+    endif()
 else()
-    list(APPEND COMMON_LIBRARIES -lopenblas)
+    if(BUILD_GAMMA_OPT_LEVEL STREQUAL "avx512")
+        list(APPEND COMMON_LIBRARIES_AVX512 -lopenblas)
+        list(APPEND COMMON_LIBRARIES_AVX2 -lopenblas)
+        list(APPEND COMMON_LIBRARIES -lopenblas)
+    elseif(BUILD_GAMMA_OPT_LEVEL STREQUAL "avx2")
+        list(APPEND COMMON_LIBRARIES_AVX2 -lopenblas)
+        list(APPEND COMMON_LIBRARIES -lopenblas)
+    elseif(BUILD_GAMMA_OPT_LEVEL STREQUAL "generic")
+        list(APPEND COMMON_LIBRARIES -lopenblas)
+    endif()
 endif()
 
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm|ARM|aarch64|AARCH64")
     list(APPEND COMMON_LIBRARIES -lfaiss)
 else()
-    list(APPEND COMMON_LIBRARIES -lfaiss_avx2)
+    if(BUILD_GAMMA_OPT_LEVEL STREQUAL "avx512")
+        list(APPEND COMMON_LIBRARIES_AVX512 -lfaiss_avx512)
+        list(APPEND COMMON_LIBRARIES_AVX2 -lfaiss_avx2)
+        list(APPEND COMMON_LIBRARIES -lfaiss)
+    elseif(BUILD_GAMMA_OPT_LEVEL STREQUAL "avx2")
+        list(APPEND COMMON_LIBRARIES_AVX2 -lfaiss_avx2)
+        list(APPEND COMMON_LIBRARIES -lfaiss)
+    elseif(BUILD_GAMMA_OPT_LEVEL STREQUAL "generic")
+        list(APPEND COMMON_LIBRARIES -lfaiss)
+    endif()
 endif()
 
 set(LIBRARIES ${COMMON_LIBRARIES})
@@ -89,16 +187,6 @@ if(BUILD_FAISSLIKE_INDEX)
     add_definitions(-DFAISSLIKE_INDEX)
     MESSAGE(STATUS "BUILD_FAISSLIKE_INDEX=ON")
 endif(BUILD_FAISSLIKE_INDEX)
-
-#ADDITIONAL SOURCE DIR
-file(GLOB_RECURSE ALL_SOURCES
-     "${CMAKE_CURRENT_SOURCE_DIR}/*.cc"
-     "${CMAKE_CURRENT_SOURCE_DIR}/*.c"
-)
-list(FILTER ALL_SOURCES EXCLUDE REGEX "${CMAKE_CURRENT_SOURCE_DIR}/third_party/scann-1.2.1/.*")
-list(FILTER ALL_SOURCES EXCLUDE REGEX "${CMAKE_CURRENT_SOURCE_DIR}/third_party/flatbuffers-*")
-list(FILTER ALL_SOURCES EXCLUDE REGEX "${CMAKE_CURRENT_SOURCE_DIR}/tests/.*")
-list(FILTER ALL_SOURCES EXCLUDE REGEX "${CMAKE_CURRENT_SOURCE_DIR}/tools/.*")
 
 add_definitions(-DHAVE_NETINET_IN_H)
 add_definitions(-DFINTEGER=int)
@@ -126,15 +214,10 @@ if(PERFORMANCE_TESTING STREQUAL "ON")
     add_definitions(-DPERFORMANCE_TESTING) 
 endif()
 
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/index/impl/relayout/CMakeLists.txt")
-    if(NOT APPLE)
-        add_definitions(-DOPT_IVFPQ_RELAYOUT)
-        add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/index/impl/relayout)
-        include_directories(${RELAYOUT_INCLUDE})
-    endif()
+if(BUILD_PYTHON_SDK)
+    message(STATUS "FOR PYTHON SDK BUILD")
+    add_definitions(-DPYTHON_SDK)
 endif()
-
-set(LIB_SRCS ${ALL_SOURCES} ${RELAYOUT_SRCS})
 
 if(BUILD_WITH_GPU)
     message(STATUS "With GPU")
@@ -177,12 +260,25 @@ if(BUILD_WITH_GPU)
     ${LAPACK}
     )
 else()
-    list(FILTER LIB_SRCS EXCLUDE REGEX "${CMAKE_CURRENT_SOURCE_DIR}/index/impl/gpu/.*")
-    add_library(gamma SHARED ${LIB_SRCS})
+    message(STATUS "With Generic" ${LIBRARIES})
     target_link_libraries(gamma ${LIBRARIES})
-
+    if(BUILD_GAMMA_OPT_LEVEL STREQUAL "avx512")
+        message(STATUS "With AVX512" ${COMMON_LIBRARIES_AVX512})
+        target_link_libraries(gamma_avx512 ${COMMON_LIBRARIES_AVX512})
+        message(STATUS "With AVX2" ${COMMON_LIBRARIES_AVX2})
+        target_link_libraries(gamma_avx2 ${COMMON_LIBRARIES_AVX2})
+    elseif(BUILD_GAMMA_OPT_LEVEL STREQUAL "avx2")
+        message(STATUS "With AVX2" ${COMMON_LIBRARIES_AVX2})
+        target_link_libraries(gamma_avx2 ${COMMON_LIBRARIES_AVX2})
+    endif()
     if(BUILD_RELAYOUT)
         target_link_libraries(gamma -lrelayout)
+        if(BUILD_GAMMA_OPT_LEVEL STREQUAL "avx512")
+            target_link_libraries(gamma_avx512 -lrelayout)
+            target_link_libraries(gamma_avx2 -lrelayout)
+        elseif(BUILD_GAMMA_OPT_LEVEL STREQUAL "avx2")
+            target_link_libraries(gamma_avx2 -lrelayout)
+        endif()
     endif()
 endif()
 
@@ -202,17 +298,38 @@ if(BUILD_WITH_SCANN)
         ${LIBRARIES}
         -lscannapi
         ${CMAKE_CURRENT_SOURCE_DIR}/third_party/scann/lib/libscannapi.so)
+    if(BUILD_GAMMA_OPT_LEVEL STREQUAL "avx512")
+        target_link_libraries(gamma_avx512 ${COMMON_LIBRARIES_AVX512} -lscannapi
+        ${CMAKE_CURRENT_SOURCE_DIR}/third_party/scann/lib/libscannapi.so)
+        target_link_libraries(gamma_avx2 ${COMMON_LIBRARIES_AVX2} -lscannapi
+        ${CMAKE_CURRENT_SOURCE_DIR}/third_party/scann/lib/libscannapi.so)
+    elseif(BUILD_GAMMA_OPT_LEVEL STREQUAL "avx2")
+        target_link_libraries(gamma_avx2 ${COMMON_LIBRARIES_AVX2} -lscannapi
+        ${CMAKE_CURRENT_SOURCE_DIR}/third_party/scann/lib/libscannapi.so)
+    endif()
 endif()
-
-if(BUILD_PYTHON_SDK)
-    message(STATUS "FOR PYTHON SDK BUILD")
-    add_definitions(-DPYTHON_SDK)
-endif()
-
 
 install(TARGETS gamma
-	LIBRARY	DESTINATION	lib 
-	ARCHIVE	DESTINATION	lib)
+    EXPORT gamma-targets
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    )
+if(BUILD_GAMMA_OPT_LEVEL STREQUAL "avx2")
+    install(TARGETS gamma_avx2
+        EXPORT gamma-targets
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    )
+endif()
+if(BUILD_GAMMA_OPT_LEVEL STREQUAL "avx512")
+    install(TARGETS gamma_avx2 gamma_avx512
+        EXPORT gamma-targets
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    )
+endif()
 
 install(FILES ${GAMMA_C_API}/gamma_api.h DESTINATION include/gamma)
 set(INSTALL_INCLUDE_DIRS

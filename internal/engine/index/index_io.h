@@ -59,6 +59,12 @@ namespace vearch {
     READANDCHECK((vec).data(), size);                   \
   }
 
+#define READ1_DUMMY(x_type) \
+{                       \
+    x_type x = {};      \
+    READ1(x);           \
+}
+
 /****************************************************************
  * Write
  *****************************************************************/
@@ -72,7 +78,7 @@ void read_index_header(faiss::Index *idx, faiss::IOReader *f);
 void read_direct_map(faiss::DirectMap *dm, faiss::IOReader *f);
 void read_ivf_header(
     faiss::IndexIVF *ivf, faiss::IOReader *f,
-    std::vector<std::vector<faiss::Index::idx_t>> *ids = nullptr);
+    std::vector<std::vector<faiss::idx_t>> *ids = nullptr);
 void read_hnsw(faiss::HNSW *hnsw, faiss::IOReader *f);
 void read_opq(faiss::VectorTransform *vt, faiss::IOReader *f);
 
@@ -108,7 +114,7 @@ struct FileIOReader : faiss::IOReader {
     return fread(ptr, size, nitems, f);
   }
 
-  int fileno() override { return ::fileno(f); }
+  int fileno() { return ::fileno(f); }
 };
 
 struct FileIOWriter : faiss::IOWriter {
@@ -139,7 +145,7 @@ struct FileIOWriter : faiss::IOWriter {
   size_t operator()(const void *ptr, size_t size, size_t nitems) override {
     return fwrite(ptr, size, nitems, f);
   }
-  int fileno() override { return ::fileno(f); }
+  int fileno() { return ::fileno(f); }
 };
 
 int WriteInvertedLists(faiss::IOWriter *f,

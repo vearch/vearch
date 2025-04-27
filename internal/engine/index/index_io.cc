@@ -15,7 +15,7 @@ namespace vearch {
 void write_index_header(const faiss::Index *idx, faiss::IOWriter *f) {
   WRITE1(idx->d);
   WRITE1(idx->ntotal);
-  faiss::Index::idx_t dummy = 1 << 20;
+  faiss::idx_t dummy = 1 << 20;
   WRITE1(dummy);
   WRITE1(dummy);
   WRITE1(idx->is_trained);
@@ -28,7 +28,7 @@ void write_direct_map(const faiss::DirectMap *dm, faiss::IOWriter *f) {
   WRITE1(maintain_direct_map);
   WRITEVECTOR(dm->array);
   if (dm->type == faiss::DirectMap::Hashtable) {
-    using idx_t = faiss::Index::idx_t;
+    using idx_t = faiss::idx_t;
     std::vector<std::pair<idx_t, idx_t>> v;
     const std::unordered_map<idx_t, idx_t> &map = dm->hashtable;
     v.resize(map.size());
@@ -48,7 +48,7 @@ void write_ivf_header(const faiss::IndexIVF *ivf, faiss::IOWriter *f) {
 void read_index_header(faiss::Index *idx, faiss::IOReader *f) {
   READ1(idx->d);
   READ1(idx->ntotal);
-  faiss::Index::idx_t dummy;
+  faiss::idx_t dummy;
   READ1(dummy);
   READ1(dummy);
   READ1(idx->is_trained);
@@ -62,7 +62,7 @@ void read_direct_map(faiss::DirectMap *dm, faiss::IOReader *f) {
   dm->type = (faiss::DirectMap::Type)maintain_direct_map;
   READVECTOR(dm->array);
   if (dm->type == faiss::DirectMap::Hashtable) {
-    using idx_t = faiss::Index::idx_t;
+    using idx_t = faiss::idx_t;
     std::vector<std::pair<idx_t, idx_t>> v;
     READVECTOR(v);
     std::unordered_map<idx_t, idx_t> &map = dm->hashtable;
@@ -74,7 +74,7 @@ void read_direct_map(faiss::DirectMap *dm, faiss::IOReader *f) {
 }
 
 void read_ivf_header(faiss::IndexIVF *ivf, faiss::IOReader *f,
-                     std::vector<std::vector<faiss::Index::idx_t>> *ids) {
+                     std::vector<std::vector<faiss::idx_t>> *ids) {
   read_index_header(ivf, f);
   READ1(ivf->nlist);
   READ1(ivf->nprobe);
@@ -204,7 +204,11 @@ void write_hnsw(const faiss::HNSW *hnsw, faiss::IOWriter *f) {
   WRITE1(hnsw->max_level);
   WRITE1(hnsw->efConstruction);
   WRITE1(hnsw->efSearch);
-  WRITE1(hnsw->upper_beam);
+
+  // // deprecated field
+  // WRITE1(hnsw->upper_beam);
+  constexpr int tmp_upper_beam = 1;
+  WRITE1(tmp_upper_beam);
 }
 
 void read_hnsw(faiss::HNSW *hnsw, faiss::IOReader *f) {
@@ -218,7 +222,10 @@ void read_hnsw(faiss::HNSW *hnsw, faiss::IOReader *f) {
   READ1(hnsw->max_level);
   READ1(hnsw->efConstruction);
   READ1(hnsw->efSearch);
-  READ1(hnsw->upper_beam);
+
+  // // deprecated field
+  // READ1(hnsw->upper_beam);
+  READ1_DUMMY(int)
 }
 
 void write_opq(const faiss::VectorTransform *vt, faiss::IOWriter *f) {

@@ -356,7 +356,7 @@ bool GammaIndexIVFFlat::Add(int n, const uint8_t *vec) {
   std::map<int, std::vector<uint8_t>> new_codes;
 
   idx_t *idx;
-  faiss::ScopeDeleter<idx_t> del_idx;
+  utils::ScopeDeleter<idx_t> del_idx;
 
   idx_t *idx0 = new idx_t[n];
   quantizer->assign(n, (const float *)vec, idx0);
@@ -364,7 +364,7 @@ bool GammaIndexIVFFlat::Add(int n, const uint8_t *vec) {
   del_idx.set(idx);
 
   uint8_t *xcodes = new uint8_t[n * code_size];
-  faiss::ScopeDeleter<uint8_t> del_xcodes(xcodes);
+  utils::ScopeDeleter<uint8_t> del_xcodes(xcodes);
 
   long vid = indexed_vec_count_;
   int n_add = 0;
@@ -545,10 +545,9 @@ void GammaIndexIVFFlat::search_preassigned(RetrievalContext *retrieval_context,
 
 #pragma omp parallel if (do_parallel) reduction(+ : nlistv, ndis, nheap)
   {
-    GammaInvertedListScanner *scanner =
-        GetGammaInvertedListScanner(store_pairs, metric_type);
-    faiss::ScopeDeleter1<GammaInvertedListScanner> del(scanner);
-    scanner->set_search_context(retrieval_context);
+    faiss::InvertedListScanner *scanner =
+        GetGammaInvertedListScanner(store_pairs, nullptr, retrieval_context, metric_type);
+    utils::ScopeDeleter1<faiss::InvertedListScanner> del(scanner);
 
     /*****************************************************
      * Depending on parallel_mode, there are two possible ways
@@ -599,7 +598,7 @@ void GammaIndexIVFFlat::search_preassigned(RetrievalContext *retrieval_context,
       InvertedLists::ScopedCodes scodes(invlists, key);
 
       std::unique_ptr<InvertedLists::ScopedIds> sids;
-      const Index::idx_t *ids = nullptr;
+      const faiss::idx_t *ids = nullptr;
 
       if (!store_pairs) {
         sids.reset(new InvertedLists::ScopedIds(invlists, key));
@@ -787,19 +786,16 @@ Status GammaIndexIVFFlat::Load(const std::string &dir, int64_t &load_num) {
   return Status::OK();
 };
 
-GammaInvertedListScanner *GammaIndexIVFFlat::GetGammaInvertedListScanner(
-    bool store_pairs, faiss::MetricType metric_type) const {
-  if (metric_type == faiss::METRIC_INNER_PRODUCT) {
-    auto scanner = new GammaIVFFlatScanner1<faiss::METRIC_INNER_PRODUCT,
-                                            faiss::CMin<float, idx_t>>(this->d);
-    return scanner;
-  } else if (metric_type == faiss::METRIC_L2) {
-    auto scanner =
-        new GammaIVFFlatScanner1<faiss::METRIC_L2, faiss::CMax<float, idx_t>>(
-            this->d);
-    return scanner;
+faiss::InvertedListScanner *GammaIndexIVFFlat::GetGammaInvertedListScanner(
+  bool store_pairs,
+  const faiss::IDSelector* sel,
+  const RetrievalContext* retrieval_context,
+  faiss::MetricType metric_type) const {
+  if (sel) {
+    return get_InvertedListScanner1<true>(this, store_pairs, sel, retrieval_context, metric_type);
+  } else {
+    return get_InvertedListScanner1<false>(this, store_pairs, sel, retrieval_context, metric_type);
   }
-  return nullptr;
 }
 
 }  // namespace vearch

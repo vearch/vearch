@@ -64,34 +64,16 @@ GammaIVFPQIndex::~GammaIVFPQIndex() {
   CHECK_DELETE(model_param_);
 }
 
-GammaInvertedListScanner *GammaIVFPQIndex::GetInvertedListScanner(
-    bool store_pairs, faiss::MetricType metric_type) {
-  if (pq.nbits == 8) {
-    return GetGammaInvertedListScanner<faiss::PQDecoder8>(store_pairs,
-                                                          metric_type);
-  } else if (pq.nbits == 16) {
-    return GetGammaInvertedListScanner<faiss::PQDecoder16>(store_pairs,
-                                                           metric_type);
+faiss::InvertedListScanner *GammaIVFPQIndex::GetInvertedListScanner(
+    bool store_pairs,
+    const faiss::IDSelector* sel,
+    const RetrievalContext* retrieval_context,
+    faiss::MetricType metric_type,
+    size_t nbits) {
+  if (sel) {
+    return get_GammaInvertedListScanner2<true>(*this, store_pairs, sel, retrieval_context, metric_type, nbits);
   } else {
-    return GetGammaInvertedListScanner<faiss::PQDecoderGeneric>(store_pairs,
-                                                                metric_type);
-  }
-  return nullptr;
-}
-
-template <class PQDecoder>
-GammaInvertedListScanner *GammaIVFPQIndex::GetGammaInvertedListScanner(
-    bool store_pairs, faiss::MetricType metric_type) {
-  if (metric_type == faiss::METRIC_INNER_PRODUCT) {
-    auto scanner = new GammaIVFPQScanner<faiss::METRIC_INNER_PRODUCT,
-                                         faiss::CMin<float, idx_t>, PQDecoder>(
-        *this, store_pairs, 2);
-    return scanner;
-  } else if (metric_type == faiss::METRIC_L2) {
-    auto scanner =
-        new GammaIVFPQScanner<faiss::METRIC_L2, faiss::CMax<float, idx_t>,
-                              PQDecoder>(*this, store_pairs, 2);
-    return scanner;
+    return get_GammaInvertedListScanner2<false>(*this, store_pairs, sel, retrieval_context, metric_type, nbits);
   }
   return nullptr;
 }
@@ -614,7 +596,7 @@ int reorder_result(faiss::MetricType metric_type, int k, float *simi,
 
 // single list scan using the current scanner (with query
 // set porperly) and storing results in simi and idxi
-size_t scan_one_list(GammaInvertedListScanner *scanner, idx_t key,
+size_t scan_one_list(faiss::InvertedListScanner *scanner, idx_t key,
                      float coarse_dis_i, float *simi, idx_t *idxi, int k,
                      idx_t nlist, faiss::InvertedLists *invlists,
                      bool store_pairs) {
@@ -773,10 +755,9 @@ void GammaIVFPQIndex::search_preassigned(
 
 #pragma omp parallel if (do_parallel) reduction(+ : ndis)
   {
-    GammaInvertedListScanner *scanner =
-        GetInvertedListScanner(store_pairs, metric_type);
-    utils::ScopeDeleter1<GammaInvertedListScanner> del(scanner);
-    scanner->set_search_context(retrieval_context);
+    faiss::InvertedListScanner *scanner =
+        GetInvertedListScanner(store_pairs, nullptr, retrieval_context, metric_type, this->pq.nbits);
+    utils::ScopeDeleter1<faiss::InvertedListScanner> del(scanner);
 
     if (parallel_mode == 0) {  // parallelize over queries
 #pragma omp for

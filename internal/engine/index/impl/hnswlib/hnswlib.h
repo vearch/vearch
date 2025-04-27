@@ -23,7 +23,7 @@
 #ifdef __AVX__
 #define USE_AVX
 #ifdef __AVX512F__
-#define USE_AXV512
+#define USE_AVX512
 #endif
 #endif
 #endif

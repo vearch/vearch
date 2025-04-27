@@ -38,7 +38,6 @@
 #include "faiss/utils/hamming.h"
 #include "faiss/utils/utils.h"
 #include "gamma_index_flat.h"
-#include "gamma_scanner.h"
 #include "index/impl/gamma_index_ivfpq.h"
 #include "index/index_model.h"
 #include "index/realtime/realtime_invert_index.h"

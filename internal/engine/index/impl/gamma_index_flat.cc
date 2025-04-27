@@ -20,7 +20,7 @@
 #include "omp.h"
 #include "vector/memory_raw_vector.h"
 
-using idx_t = faiss::Index::idx_t;
+using idx_t = faiss::idx_t;
 
 namespace vearch {
 

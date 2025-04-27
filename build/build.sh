@@ -10,6 +10,7 @@ COMPILE_THREAD_NUM=-j4
 BUILD_GAMMA=ON
 BUILD_GAMMA_TEST=OFF
 BUILD_GAMMA_TYPE=Release
+BUILD_GAMMA_OPT_LEVEL=avx512
 
 # version value
 BUILD_VERSION="latest"
@@ -32,6 +33,10 @@ while getopts ":n:g:tdh" opt; do
     BUILD_GAMMA=$OPTARG
     echo "BUILD_GAMMA="$BUILD_GAMMA
     ;;
+  o)
+    BUILD_GAMMA_OPT_LEVEL=$OPTARG
+    echo "BUILD_GAMMA_OPT_LEVEL="$BUILD_GAMMA_OPT_LEVEL
+    ;;
   h)
     echo "[build options]"
     echo -e "\t-h\t\thelp"
@@ -39,6 +44,7 @@ while getopts ":n:g:tdh" opt; do
     echo -e "\t-g\t\tbuild gamma or not: [ON|OFF]"
     echo -e "\t-t\t\tbuild gamma test"
     echo -e "\t-d\t\tbuild gamma type=Debug"
+    echo -e "\t-o\t\tbuild gamma opt level=[generic|avx2|avx512]"
     exit 0
     ;;
   ?)
@@ -93,26 +99,28 @@ function build_thirdparty() {
     popd && popd
   fi
 
-  if [[ ! -f "/usr/local/lib64/libfaiss.a" ]]; then
-    wget -q https://github.com/facebookresearch/faiss/archive/refs/tags/v1.7.1.tar.gz
-    tar xf v1.7.1.tar.gz
-    pushd faiss-1.7.1
-    if [ -z $MKLROOT ]; then
-      OS_NAME=$(uname)
-      ARCH=$(arch)
-      if [ ${OS_NAME} == "Darwin" ]; then
-        cmake -DFAISS_ENABLE_GPU=OFF -DOpenMP_CXX_FLAGS="-Xpreprocessor -fopenmp -I/usr/local/opt/libomp/include" -DOpenMP_CXX_LIB_NAMES="libomp" -DOpenMP_libomp_LIBRARY="/usr/local/opt/libomp/lib" -DFAISS_ENABLE_PYTHON=OFF -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Release -DFAISS_OPT_LEVEL=avx2 -B build .
-      elif [ ${ARCH} == "aarch64" -o ${ARCH} == "AARCH64" ]; then
-        cmake -DFAISS_ENABLE_GPU=OFF -DFAISS_ENABLE_PYTHON=OFF -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Release -B build .
+  if [ ! -n "${FAISS_HOME}" ]; then
+    if [[ ! -f "/usr/local/lib64/libfaiss.a" ]]; then
+      wget -q https://github.com/facebookresearch/faiss/archive/refs/tags/v1.10.0.tar.gz
+      tar xf v1.10.0.tar.gz
+      pushd faiss-1.10.0
+      if [ -z $MKLROOT ]; then
+        OS_NAME=$(uname)
+        ARCH=$(arch)
+        if [ ${OS_NAME} == "Darwin" ]; then
+          cmake -DFAISS_ENABLE_GPU=OFF -DOpenMP_CXX_FLAGS="-Xpreprocessor -fopenmp -I/usr/local/opt/libomp/include" -DOpenMP_CXX_LIB_NAMES="libomp" -DOpenMP_libomp_LIBRARY="/usr/local/opt/libomp/lib" -DFAISS_ENABLE_PYTHON=OFF -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Release -DFAISS_OPT_LEVEL=avx2 -B build .
+        elif [ ${ARCH} == "aarch64" -o ${ARCH} == "AARCH64" ]; then
+          cmake -DFAISS_ENABLE_GPU=OFF -DFAISS_ENABLE_PYTHON=OFF -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Release -B build .
+        else
+          cmake -DFAISS_ENABLE_GPU=OFF -DFAISS_ENABLE_PYTHON=OFF -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Release -DFAISS_OPT_LEVEL=avx512 -B build .
+        fi
       else
-        cmake -DFAISS_ENABLE_GPU=OFF -DFAISS_ENABLE_PYTHON=OFF -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Release -DFAISS_OPT_LEVEL=avx2 -B build .
+        cmake -DFAISS_ENABLE_GPU=OFF -DFAISS_ENABLE_PYTHON=OFF -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Release -DFAISS_OPT_LEVEL=avx512 -DBLA_VENDOR=Intel10_64_dyn -DMKL_LIBRARIES=$MKLROOT/lib/intel64 -B build .
       fi
-    else
-      cmake -DFAISS_ENABLE_GPU=OFF -DFAISS_ENABLE_PYTHON=OFF -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Release -DFAISS_OPT_LEVEL=avx2 -DBLA_VENDOR=Intel10_64_dyn -DMKL_LIBRARIES=$MKLROOT/lib/intel64 -B build .
-    fi
 
-    make -C build faiss && make -C build install
-    popd
+      make -C build faiss && make -C build install
+      popd
+    fi
   fi
 
 }
@@ -121,7 +129,7 @@ function build_engine() {
   echo "build gamma"
   rm -rf ${GAMMAOUT} && mkdir -p $GAMMAOUT
   pushd $GAMMAOUT
-  cmake -DPERFORMANCE_TESTING=ON -DCMAKE_BUILD_TYPE=$BUILD_GAMMA_TYPE -DBUILD_TEST=$BUILD_GAMMA_TEST -DBUILD_THREAD_NUM=$COMPILE_THREAD_NUM $ROOT/internal/engine/
+  cmake -DPERFORMANCE_TESTING=ON -DCMAKE_BUILD_TYPE=$BUILD_GAMMA_TYPE -DBUILD_TEST=$BUILD_GAMMA_TEST -DBUILD_THREAD_NUM=$COMPILE_THREAD_NUM -DBUILD_GAMMA_OPT_LEVEL=$BUILD_GAMMA_OPT_LEVEL $ROOT/internal/engine/
   make $COMPILE_THREAD_NUM
   popd
 }

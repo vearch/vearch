@@ -60,7 +60,7 @@ struct RTInvertIndex {
   RealTimeMemData *cur_ptr_;
 };
 
-using idx_t = faiss::Index::idx_t;
+using idx_t = faiss::idx_t;
 struct RTInvertedLists : faiss::InvertedLists {
   RTInvertedLists(realtime::RTInvertIndex *rt_invert_index_ptr, size_t nlist,
                   size_t code_size);

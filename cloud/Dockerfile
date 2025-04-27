@@ -18,7 +18,7 @@ RUN microdnf install -y dnf && \
     mkdir -p /vearch/build/lib/ && \
     cp /env/app/rocksdb_install/lib/librocksdb.* /vearch/build/lib/ && \
     cp -r -p /usr/local/lib/libprotobuf.so* /vearch/build/lib/ && \
-    cp /vearch/build/gamma_build/libgamma.* /vearch/build/lib/ && \
+    cp /vearch/build/gamma_build/libgamma*.so /vearch/build/lib/ && \
     rm -rf /vearch/build/gamma_build
 
 FROM quay.io/centos/centos:stream9-minimal
@@ -26,6 +26,12 @@ FROM quay.io/centos/centos:stream9-minimal
 COPY --from=builder /vearch/build/bin /vearch/bin/
 COPY --from=builder /vearch/build/lib /vearch/lib/
 COPY --from=builder /lib64/libopenblas.so /lib64/
+
+RUN if [ "$(uname -m)" = "x86_64" ]; then \
+        echo "Setting gamma for x86_64"; \
+        rm -rf /vearch/lib/libgamma.so && \
+        ln -s /vearch/lib/libgamma_avx2.so /vearch/lib/libgamma.so; \
+    fi
 
 ENV LD_LIBRARY_PATH=/vearch/lib/:$LD_LIBRARY_PATH
 RUN microdnf install -y dnf && dnf --enablerepo=crb install -y libgomp lapack libzstd tbb cronie procps

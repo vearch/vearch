@@ -10,6 +10,9 @@
 #include "common/gamma_common_data.h"
 #include "faiss/IndexBinaryFlat.h"
 #include "faiss/utils/hamming.h"
+#include "faiss/impl/FaissAssert.h"
+#include <faiss/utils/sorting.h>
+#include <faiss/utils/utils.h>
 
 namespace vearch {
 
@@ -382,7 +385,7 @@ void GammaIndexBinaryIVF::search_knn_hamming_heap(
         size_t list_size = invlists->list_size(key);
         faiss::InvertedLists::ScopedCodes scodes(invlists, key);
         std::unique_ptr<faiss::InvertedLists::ScopedIds> sids;
-        const faiss::Index::idx_t *ids = nullptr;
+        const faiss::idx_t *ids = nullptr;
 
         if (!store_pairs) {
           sids.reset(new faiss::InvertedLists::ScopedIds(invlists, key));
@@ -465,10 +468,10 @@ GammaBinaryInvertedListScanner *select_IVFBinaryScannerL2(size_t code_size) {
 #undef HANDLE_CS
     default:
       if (code_size % 8 == 0) {
-        return new GammaIVFBinaryScannerL2<faiss::HammingComputerM8,
+        return new GammaIVFBinaryScannerL2<faiss::HammingComputer8,
                                            store_pairs>(code_size);
       } else if (code_size % 4 == 0) {
-        return new GammaIVFBinaryScannerL2<faiss::HammingComputerM4,
+        return new GammaIVFBinaryScannerL2<faiss::HammingComputer4,
                                            store_pairs>(code_size);
       } else {
         return new GammaIVFBinaryScannerL2<faiss::HammingComputerDefault,

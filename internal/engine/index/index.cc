@@ -416,8 +416,8 @@ vearch::Index *index_factory(int d, const char *description_in,
   faiss::Index *coarse_quantizer = nullptr;
   vearch::Index *index = nullptr;
 
-  faiss::ScopeDeleter1<faiss::Index> del_coarse_quantizer;
-  faiss::ScopeDeleter1<vearch::Index> del_index;
+  utils::ScopeDeleter1<faiss::Index> del_coarse_quantizer;
+  utils::ScopeDeleter1<vearch::Index> del_index;
 
   std::string description(description_in);
   char *ptr;
