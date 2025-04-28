@@ -30,27 +30,28 @@ Vearch is a cloud-native distributed vector database for efficient similarity se
 
 ### OpenAPIs
 
-- [Tutorial](https://vearch.github.io/tools#/)
+- [API Documentation](https://vearch.github.io/tools#/)
 
 ### SDK
 
-- **[Python SDK](sdk/python/README.md)**
+| SDK | Description |
+|-----|-------------|
+| [**Python SDK**](sdk/python/README.md) | Python client for Vearch |
+| [**Go SDK**](sdk/go/README.md) | Go client for Vearch |
+| [**Java SDK**](sdk/java/README.md) | Java client (under development) |
 
-- **[Go SDK](sdk/go/README.md)**
+## Usage Cases
 
-- **[Java SDK(under development)](sdk/java/README.md)**
+### Use Vearch as a Memory Backend
 
-## Usage cases
+Vearch integrates with popular AI frameworks:
 
-### Use Vearch as a memory backend
-
-- **[Langchain](sdk/integrations/langchain/README.md)**
-
-- **[LlamaIndex](sdk/integrations/llama-index/README.md)**
-
-- **[Langchaingo](sdk/integrations/langchaingo/vearch/README.md)**
-
-- **[LangChain4j](sdk/integrations/langchain4j/README.md)**
+| Framework | Integration |
+|-----------|-------------|
+| [**Langchain**](sdk/integrations/langchain/README.md) | Use Vearch as vector store in Langchain |
+| [**LlamaIndex**](sdk/integrations/llama-index/README.md) | Integrate with LlamaIndex for knowledge bases |
+| [**Langchaingo**](sdk/integrations/langchaingo/vearch/README.md) | Go implementation of Langchain with Vearch support |
+| [**LangChain4j**](sdk/integrations/langchain4j/README.md) | Java implementation with Vearch integration |
 
 ### Real world Demos
 
@@ -58,43 +59,33 @@ Vearch is a cloud-native distributed vector database for efficient similarity se
 
 ## Quick start
 
-**[Deploy vearch cluster on k8s](https://vearch.github.io/vearch-helm/)**
-
-**Add charts through the repo**
+**[Kubernetes Deployment](https://vearch.github.io/vearch-helm/)**
 
 ```
+# Via Helm Repository
 $ helm repo add vearch https://vearch.github.io/vearch-helm
 $ helm repo update && helm install my-release vearch/vearch
-```
 
-**Add charts from local**
-
-```
+# Or from Local Charts
 $ git clone https://github.com/vearch/vearch-helm.git && cd vearch-helm
 $ helm install my-release ./charts -f ./charts/values.yaml
 ```
 
-**Start by docker-compose**
-
-standalone mode
+**Docker Compose Deployment**
 
 ```
-$ cd cloud
-$ cp ../config/config.toml .
+# Standalone Mode
+$ cd cloud && cp ../config/config.toml .
 $ docker-compose --profile standalone up -d
-```
 
-cluster mode
-
-```
-$ cd cloud
-$ cp ../config/config_cluster.toml .
+# Cluster Mode
+$ cd cloud && cp ../config/config_cluster.toml .
 $ docker-compose --profile cluster up -d
 ```
 
-**Deploy by docker**: Quickly start with vearch docker image, please see [DeployByDocker](docs/DeployByDocker.md)
-
-**Compile by source code**: Quickly compile the source codes, please see [SourceCompileDeployment](docs/SourceCompileDeployment.md)
+**Other Deployment Methods**
+- **[DeployByDocker](docs/DeployByDocker.md)**: Deploy Vearch by Docker
+- **[SourceCompileDeployment](docs/SourceCompileDeployment.md)**: Compile Vearch from source code
 
 ## Components
 
@@ -108,10 +99,10 @@ $ docker-compose --profile cluster up -d
 
 **PartitionServer (PS)**: Hosts document partitions with raft-based replication. Gamma is the core vector search engine implemented based on [faiss](https://github.com/facebookresearch/faiss). It provides the ability of storing, indexing and retrieving the vectors and scalars.
 
-## Reference
+## Technical Reference
 
-Reference to cite when you use Vearch in a research paper:
-
+### Academic Citation
+When using Vearch in academic or research projects, please cite our paper:
 ```
 @misc{li2019design,
       title={The Design and Implementation of a Real Time Visual Search System on JD E-commerce Platform},
@@ -123,20 +114,26 @@ Reference to cite when you use Vearch in a research paper:
 }
 ```
 
-## Community
+## Community Support
 
-You can report bugs or ask questions in the [issues page](https://github.com/vearch/vearch/issues) of the repository.
+### Connect With Us
+Connect with the Vearch community through multiple channels:
 
-For public discussion of Vearch or for questions, you can also send email to vearch-maintainers@groups.io.
+- **GitHub Issues**: Report bugs or request features on our [issues page](https://github.com/vearch/vearch/issues)
+- **Email Discussion**: For public discussion or questions, contact us at [vearch-maintainers@groups.io](mailto:vearch-maintainers@groups.io)
+- **Slack Channel**: Join our community on [Slack](https://vearchworkspace.slack.com) for real-time discussions
 
-Our slack : https://vearchworkspace.slack.com
-
-## Known Users
-
-Welcome to register the company name in this issue: https://github.com/vearch/vearch/issues/230 (in order of registration)
-
-![Users](assets/company_logos/all.jpg)
+### Contribution
+We welcome contributions from the community! Check our contribution guidelines to get started.
 
 ## License
 
-Licensed under the Apache License, Version 2.0. For detail see [LICENSE and NOTICE](https://github.com/vearch/vearch/blob/master/LICENSE).
+Vearch is licensed under the [Apache License, Version 2.0](./LICENSE).
+
+For complete licensing details, please see [LICENSE and NOTICE](https://github.com/vearch/vearch/blob/master/LICENSE) in our repository.
+
+---
+
+<div align="center">
+  <small>© 2019 Vearch Contributors. All Rights Reserved.</small>
+</div>
