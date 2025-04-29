@@ -1,7 +1,3 @@
----
-sidebar_position: 24
----
-
 # Vearch
 
 https://github.com/vearch/vearch
