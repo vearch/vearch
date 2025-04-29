@@ -98,7 +98,7 @@ func parseFilter(filters *request.Filter, space *entity.Space) ([]*vearchpb.Rang
 		for _, condition := range filters.Conditions {
 			if condition.Operator == "<" || condition.Operator == "<=" ||
 				condition.Operator == ">" || condition.Operator == ">=" ||
-				condition.Operator == "=" {
+				condition.Operator == "=" || condition.Operator == "<>" {
 				rangeConditionMap[condition.Field] = append(rangeConditionMap[condition.Field], &condition)
 			} else if condition.Operator == "IN" {
 				tmp := make([]string, 0)
