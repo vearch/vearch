@@ -271,6 +271,9 @@ int64_t MultiFieldsRangeIndex::Search(
     result_not_in_tmp.SetNotIn(true);
 
     auto &filter = filters[i];
+    if (filter.is_union == FilterOperator::Not) {
+      have_not_in = true;
+    }
 
     if (not filter.include_lower) {
       if (fields_[filter.field]->DataType() == DataType::INT) {
@@ -334,10 +337,6 @@ int64_t MultiFieldsRangeIndex::Search(
         items = utils::split(filter.lower_value, kDelim);
       } else {
         items.push_back(filter.lower_value);
-      }
-
-      if (filter.is_union == FilterOperator::Not) {
-        have_not_in = true;
       }
 
       for (size_t i = 0; i < items.size(); i++) {

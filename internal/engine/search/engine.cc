@@ -423,6 +423,7 @@ Status Engine::Query(QueryRequest &request, Response &response_results) {
       filters[idx].upper_value = filter.upper_value;
       filters[idx].include_lower = filter.include_lower;
       filters[idx].include_upper = filter.include_upper;
+      filters[idx].is_union = static_cast<FilterOperator>(filter.is_union);
 
       ++idx;
     }
@@ -491,6 +492,7 @@ int Engine::MultiRangeQuery(Request &request, SearchCondition *condition,
     filters[idx].upper_value = filter.upper_value;
     filters[idx].include_lower = filter.include_lower;
     filters[idx].include_upper = filter.include_upper;
+    filters[idx].is_union = static_cast<FilterOperator>(filter.is_union);
 
     ++idx;
   }
