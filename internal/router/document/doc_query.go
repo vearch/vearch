@@ -98,7 +98,8 @@ func parseFilter(filters *request.Filter, space *entity.Space) ([]*vearchpb.Rang
 		for _, condition := range filters.Conditions {
 			if condition.Operator == "<" || condition.Operator == "<=" ||
 				condition.Operator == ">" || condition.Operator == ">=" ||
-				condition.Operator == "=" || condition.Operator == "<>" {
+				condition.Operator == "=" || condition.Operator == "<>" ||
+				condition.Operator == "!=" {
 				rangeConditionMap[condition.Field] = append(rangeConditionMap[condition.Field], &condition)
 			} else if condition.Operator == "IN" {
 				tmp := make([]string, 0)
@@ -375,7 +376,7 @@ func parseRangeForOr(rangeCondition []*request.Condition, docField *entity.Space
 					leftMax = curNum
 					leftMaxInclusive = false
 				}
-			case "<>":
+			case "<>", "!=":
 				rangeFilter.IsUnion = ConditionOperatorNOTIN
 
 				if rangeFilters, err = addRangeFilter(curNum, curNum, rangeFilter, rangeFilters); err != nil {
@@ -456,7 +457,7 @@ func parseRangeForOr(rangeCondition []*request.Condition, docField *entity.Space
 					leftMax = curNum
 					leftMaxInclusive = false
 				}
-			case "<>":
+			case "<>", "!=":
 				rangeFilter.IsUnion = ConditionOperatorNOTIN
 
 				if rangeFilters, err = addRangeFilter(curNum, curNum, rangeFilter, rangeFilters); err != nil {
@@ -537,7 +538,7 @@ func parseRangeForOr(rangeCondition []*request.Condition, docField *entity.Space
 					leftMax = curNum
 					leftMaxInclusive = false
 				}
-			case "<>":
+			case "<>", "!=":
 				rangeFilter.IsUnion = ConditionOperatorNOTIN
 
 				if rangeFilters, err = addRangeFilter(curNum, curNum, rangeFilter, rangeFilters); err != nil {
@@ -618,7 +619,7 @@ func parseRangeForOr(rangeCondition []*request.Condition, docField *entity.Space
 					leftMax = curNum
 					leftMaxInclusive = false
 				}
-			case "<>":
+			case "<>", "!=":
 				rangeFilter.IsUnion = ConditionOperatorNOTIN
 
 				if rangeFilters, err = addRangeFilter(curNum, curNum, rangeFilter, rangeFilters); err != nil {
@@ -710,7 +711,7 @@ func parseRangeForOr(rangeCondition []*request.Condition, docField *entity.Space
 					leftMax = curNum
 					leftMaxInclusive = false
 				}
-			case "<>":
+			case "<>", "!=":
 				rangeFilter.IsUnion = ConditionOperatorNOTIN
 
 				if rangeFilters, err = addRangeFilter(curNum, curNum, rangeFilter, rangeFilters); err != nil {
@@ -815,7 +816,7 @@ func parseRangeForAnd(rangeCondition []*request.Condition, docField *entity.Spac
 					maxNum = curNum
 					maxInclusive = false
 				}
-			case "<>":
+			case "<>", "!=":
 				rangeFilter.IsUnion = ConditionOperatorNOTIN
 
 				if rangeFilters, err = addRangeFilter(curNum, curNum, rangeFilter, rangeFilters); err != nil {
@@ -867,7 +868,7 @@ func parseRangeForAnd(rangeCondition []*request.Condition, docField *entity.Spac
 					maxNum = curNum
 					maxInclusive = false
 				}
-			case "<>":
+			case "<>", "!=":
 				rangeFilter.IsUnion = ConditionOperatorNOTIN
 
 				if rangeFilters, err = addRangeFilter(curNum, curNum, rangeFilter, rangeFilters); err != nil {
@@ -919,7 +920,7 @@ func parseRangeForAnd(rangeCondition []*request.Condition, docField *entity.Spac
 					maxNum = curNum
 					maxInclusive = false
 				}
-			case "<>":
+			case "<>", "!=":
 				rangeFilter.IsUnion = ConditionOperatorNOTIN
 
 				if rangeFilters, err = addRangeFilter(curNum, curNum, rangeFilter, rangeFilters); err != nil {
@@ -971,7 +972,7 @@ func parseRangeForAnd(rangeCondition []*request.Condition, docField *entity.Spac
 					maxNum = curNum
 					maxInclusive = false
 				}
-			case "<>":
+			case "<>", "!=":
 				rangeFilter.IsUnion = ConditionOperatorNOTIN
 
 				if rangeFilters, err = addRangeFilter(curNum, curNum, rangeFilter, rangeFilters); err != nil {
@@ -1035,7 +1036,7 @@ func parseRangeForAnd(rangeCondition []*request.Condition, docField *entity.Spac
 					maxNum = curNum
 					maxInclusive = false
 				}
-			case "<>":
+			case "<>", "!=":
 				rangeFilter.IsUnion = ConditionOperatorNOTIN
 
 				if rangeFilters, err = addRangeFilter(curNum, curNum, rangeFilter, rangeFilters); err != nil {
