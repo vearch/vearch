@@ -13,16 +13,18 @@
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
-        <langchain4j.version>0.35.0</langchain4j.version>
+        <langchain4j.version>1.0.0-beta3</langchain4j.version>
         <testcontainers.version>1.20.2</testcontainers.version>
         <slf4j.version>2.0.7</slf4j.version>
+        <awaitility.version>4.2.2</awaitility.version>
+        <assertj.version>3.27.3</assertj.version>
     </properties>
 
     <dependencies>
 
         <dependency>
             <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-vearch</artifactId>
+            <artifactId>langchain4j-community-vearch</artifactId>
         </dependency>
 
         <dependency>
@@ -42,6 +44,17 @@
             <version>${testcontainers.version}</version>
         </dependency>
 
+        <dependency>
+            <groupId>org.awaitility</groupId>
+            <artifactId>awaitility</artifactId>
+            <version>${awaitility.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+        </dependency>
+
     </dependencies>
 
     <dependencyManagement>
@@ -50,6 +63,22 @@
                 <groupId>dev.langchain4j</groupId>
                 <artifactId>langchain4j-bom</artifactId>
                 <version>${langchain4j.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-community-bom</artifactId>
+                <version>${langchain4j.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.assertj</groupId>
+                <artifactId>assertj-bom</artifactId>
+                <version>${assertj.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
