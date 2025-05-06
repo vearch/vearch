@@ -824,7 +824,7 @@ func parseRangeForAnd(rangeCondition []*request.Condition, docField *entity.Spac
 			}
 		}
 
-		if minNum == math.MinInt32 && maxNum == math.MaxInt32 && minInclusive && maxInclusive {
+		if len(rangeFilters) != 0 && minNum == math.MinInt32 && maxNum == math.MaxInt32 && minInclusive && maxInclusive {
 			return rangeFilters, err
 		}
 		min, max = minNum, maxNum
@@ -876,7 +876,7 @@ func parseRangeForAnd(rangeCondition []*request.Condition, docField *entity.Spac
 			}
 		}
 
-		if minNum == math.MinInt64 && maxNum == math.MaxInt64 && minInclusive && maxInclusive {
+		if len(rangeFilters) != 0 && minNum == math.MinInt64 && maxNum == math.MaxInt64 && minInclusive && maxInclusive {
 			return rangeFilters, err
 		}
 		min, max = minNum, maxNum
@@ -928,7 +928,7 @@ func parseRangeForAnd(rangeCondition []*request.Condition, docField *entity.Spac
 			}
 		}
 
-		if minNum == -math.MaxFloat32 && maxNum == math.MaxFloat32 && minInclusive && maxInclusive {
+		if len(rangeFilters) != 0 && minNum == -math.MaxFloat32 && maxNum == math.MaxFloat32 && minInclusive && maxInclusive {
 			return rangeFilters, err
 		}
 		min, max = minNum, maxNum
@@ -980,7 +980,7 @@ func parseRangeForAnd(rangeCondition []*request.Condition, docField *entity.Spac
 			}
 		}
 
-		if minNum == -math.MaxFloat64 && maxNum == math.MaxFloat64 && minInclusive && maxInclusive {
+		if len(rangeFilters) != 0 && minNum == -math.MaxFloat64 && maxNum == math.MaxFloat64 && minInclusive && maxInclusive {
 			return rangeFilters, err
 		}
 		min, max = minNum, maxNum
@@ -1044,7 +1044,7 @@ func parseRangeForAnd(rangeCondition []*request.Condition, docField *entity.Spac
 			}
 		}
 
-		if minNum == math.MinInt64 && maxNum == math.MaxInt64 && minInclusive && maxInclusive {
+		if len(rangeFilters) != 0 && minNum == math.MinInt64 && maxNum == math.MaxInt64 && minInclusive && maxInclusive {
 			return rangeFilters, err
 		}
 		min, max = minNum, maxNum
