@@ -200,6 +200,25 @@ def process_get_data_by_filter(index: int, full_field: bool, mode: str, total: i
             },
         ]
         data["filters"]["conditions"].extend(range_filter)
+    elif mode == "<>" :
+        range_filter = [
+            {
+                "field": "field_int",
+                "operator": "<>",
+                "value": index * batch_size
+            },
+            {
+                "field": "field_long",
+                "operator": "<>",
+                "value": index * batch_size
+            },
+            {
+                "field": "field_double",
+                "operator": "<>",
+                "value": index * batch_size
+            },
+        ]
+        data["filters"]["conditions"].extend(range_filter)
     elif mode == "IN":
         term_filter = [
             {
@@ -328,6 +347,35 @@ def process_get_data_by_filter(index: int, full_field: bool, mode: str, total: i
         ]
         data["filters"]["conditions"].extend(range_filter)
         data["filters"]["conditions"].extend(term_filter)
+    elif mode == "Hybrid And range NOT Equal":
+        range_filter = [
+            {
+                "field": "field_int",
+                "operator": "<>",
+                "value": index * batch_size
+            },
+            {
+                "field": "field_int",
+                "operator": ">=",
+                "value": index * batch_size
+            }
+        ]
+        data["filters"]["conditions"].extend(range_filter)
+    elif mode == "Hybrid Or range NOT Equal":
+        data["filters"]["operator"] = "OR"
+        range_filter = [
+            {
+                "field": "field_int",
+                "operator": "<>",
+                "value": index * batch_size
+            },
+            {
+                "field": "field_int",
+                "operator": ">=",
+                "value": index * batch_size
+            }
+        ]
+        data["filters"]["conditions"].extend(range_filter)
     elif mode == "Wrong operator":
         data["filters"]["operator"] = "NOT"
         prepare_filter_bound(
@@ -418,6 +466,20 @@ def process_get_data_by_filter(index: int, full_field: bool, mode: str, total: i
                 assert documents[j]["field_long"] == value
                 assert documents[j]["field_float"] == float(value)
                 assert documents[j]["field_double"] == float(value)
+    elif mode == "<>" :
+        assert len(documents) == batch_size
+        assert rs.text.find('"total":' + str(batch_size)) >= 0
+
+        for j in range(batch_size):
+            value = int(index)
+            logger.debug(value)
+            logger.debug(documents[j])
+            assert documents[j]["field_int"] != value
+
+            if full_field:
+                assert documents[j]["field_long"] != value
+                assert documents[j]["field_float"] != float(value)
+                assert documents[j]["field_double"] != float(value)
     elif mode == "()":
         assert len(documents) == 0
         assert rs.text.find('"total":' + str(0)) >= 0
@@ -460,9 +522,13 @@ def process_get_data_by_filter(index: int, full_field: bool, mode: str, total: i
         assert len(documents) == 0
     elif mode == "Hybrid Or range":
         assert len(documents) > 0
+    elif mode == "Hybrid And range NOT Equal":
+        for doc in documents:
+            assert doc["field_int"] > index
+    elif mode == "Hybrid Or range NOT Equal":
+        assert len(documents) > 0
     elif mode == "Hybrid Or range NOT IN":
         assert len(documents) > 0
-
 
 def query_by_filter_interface(total, full_field, mode: str):
     for i in range(total):
@@ -664,6 +730,7 @@ def check(total, full_field, xb, mode: str):
         [True, "[lower_bound, valid_value]"],
         [True, "[valid_value, upper_bound]"],
         [True, "="],
+        [True, "<>"],
         [True, "IN"],
         [True, "NOT IN"],
         [True, "Hybrid range NOT IN"],
@@ -672,6 +739,8 @@ def check(total, full_field, xb, mode: str):
         [True, "Hybrid And range"],
         [True, "Hybrid Or range"],
         [True, "Hybrid Or range NOT IN"],
+        [True, "Hybrid And range NOT Equal"],
+        [True, "Hybrid Or range NOT Equal"],
         [True, "No result"],
         [True, "Wrong operator"]
     ],
