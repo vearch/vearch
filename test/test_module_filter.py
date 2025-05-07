@@ -204,7 +204,7 @@ def process_get_data_by_filter(index: int, full_field: bool, mode: str, total: i
         range_filter = [
             {
                 "field": "field_int",
-                "operator": "<>",
+                "operator": "!=",
                 "value": index * batch_size
             },
             {

@@ -19,18 +19,16 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"net/http"
-	_ "net/http/pprof"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
 
-	"github.com/spf13/cast"
 	jaeger "github.com/uber/jaeger-client-go"
 	jaegerConfig "github.com/uber/jaeger-client-go/config"
 	"github.com/vearch/vearch/v3/internal/config"
+	"github.com/vearch/vearch/v3/internal/debugutil"
 	"github.com/vearch/vearch/v3/internal/entity"
 	"github.com/vearch/vearch/v3/internal/master"
 	"github.com/vearch/vearch/v3/internal/pkg/log"
@@ -61,27 +59,6 @@ const (
 	allTag              = "all"
 	DefaultResourceName = "default"
 )
-
-func newProfileHttpServer(port uint16) {
-	go func() {
-		defer func() {
-			if r := recover(); r != nil {
-				log.Error("start pprof server error: %v", r)
-			}
-		}()
-
-		for i := 0; i < 3; i++ {
-			err := http.ListenAndServe("0.0.0.0:"+cast.ToString(port), nil)
-			if err != nil {
-				log.Error(err.Error())
-				time.Sleep(10 * time.Second)
-			} else {
-				log.Info("start pprof server on port %d", port)
-				break
-			}
-		}
-	}()
-}
 
 // initJaeger returns an instance of Jaeger Tracer that samples 100% of traces and logs all spans to stdout.
 func initJaeger(service string, c *config.TracerCfg) io.Closer {
@@ -212,7 +189,7 @@ func main() {
 		}()
 
 		if port := config.Conf().Masters.Self().PprofPort; port > 0 {
-			newProfileHttpServer(port)
+			debugutil.StartUIPprofListener(int(port))
 		}
 	}
 
@@ -242,7 +219,7 @@ func main() {
 		}()
 
 		if port := config.Conf().PS.PprofPort; port > 0 {
-			newProfileHttpServer(port)
+			debugutil.StartUIPprofListener(int(port))
 		}
 	}
 
@@ -270,7 +247,7 @@ func main() {
 		}()
 
 		if port := config.Conf().Router.PprofPort; port > 0 {
-			newProfileHttpServer(port)
+			debugutil.StartUIPprofListener(int(port))
 		}
 	}
 
