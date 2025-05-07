@@ -43,8 +43,8 @@ const (
 )
 
 const (
-	TermOperatorIN    int32 = 1
-	TermOperatorNOTIN int32 = 2
+	ConditionOperatorIN    int32 = 1
+	ConditionOperatorNOTIN int32 = 2
 )
 
 const (
@@ -98,7 +98,8 @@ func parseFilter(filters *request.Filter, space *entity.Space) ([]*vearchpb.Rang
 		for _, condition := range filters.Conditions {
 			if condition.Operator == "<" || condition.Operator == "<=" ||
 				condition.Operator == ">" || condition.Operator == ">=" ||
-				condition.Operator == "=" {
+				condition.Operator == "=" || condition.Operator == "<>" ||
+				condition.Operator == "!=" {
 				rangeConditionMap[condition.Field] = append(rangeConditionMap[condition.Field], &condition)
 			} else if condition.Operator == "IN" {
 				tmp := make([]string, 0)
@@ -110,7 +111,7 @@ func parseFilter(filters *request.Filter, space *entity.Space) ([]*vearchpb.Rang
 
 				tm := &Term{
 					Value:    condition.Value,
-					Operator: TermOperatorIN,
+					Operator: ConditionOperatorIN,
 				}
 				termConditionMap[condition.Field] = append(termConditionMap[condition.Field], tm)
 			} else if condition.Operator == "NOT IN" {
@@ -123,7 +124,7 @@ func parseFilter(filters *request.Filter, space *entity.Space) ([]*vearchpb.Rang
 
 				tm := &Term{
 					Value:    condition.Value,
-					Operator: TermOperatorNOTIN,
+					Operator: ConditionOperatorNOTIN,
 				}
 				termConditionMap[condition.Field] = append(termConditionMap[condition.Field], tm)
 			} else {
@@ -298,19 +299,51 @@ func parseVectors(reqNum int, vqs []*vearchpb.VectorQuery, tmpArr []json.RawMess
 	return reqNum, vqs, nil
 }
 
+func addRangeFilter(min any, max any, rangeFilter *vearchpb.RangeFilter, rangeFilters []*vearchpb.RangeFilter) ([]*vearchpb.RangeFilter, error) {
+	minByte, err := cbbytes.ValueToByte(min)
+	if err != nil {
+		return nil, err
+	}
+
+	maxByte, err := cbbytes.ValueToByte(max)
+	if err != nil {
+		return nil, err
+	}
+
+	if minByte == nil || maxByte == nil {
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("range filter param is null or have not gte lte"))
+	}
+
+	newRangeFilter := &vearchpb.RangeFilter{
+		Field:        rangeFilter.Field,
+		LowerValue:   minByte,
+		UpperValue:   maxByte,
+		IncludeLower: rangeFilter.IncludeLower,
+		IncludeUpper: rangeFilter.IncludeUpper,
+		IsUnion:      rangeFilter.IsUnion,
+	}
+
+	rangeFilters = append(rangeFilters, newRangeFilter)
+	return rangeFilters, nil
+}
+
 func parseRangeForOr(rangeCondition []*request.Condition, docField *entity.SpaceProperties, field string) ([]*vearchpb.RangeFilter, error) {
 	var (
-		left, right                   []interface{}
-		leftInclusive, rightInclusive []bool
+		leftMaxInclusive, rightMinInclusive bool  = false, false
+		err                                 error = nil
 	)
 
 	rangeFilters := make([]*vearchpb.RangeFilter, 0)
+	rangeFilter := &vearchpb.RangeFilter{
+		Field:        field,
+		IncludeLower: true,
+		IncludeUpper: true,
+	}
 
 	switch docField.FieldType {
 	case vearchpb.FieldType_INT:
 		var leftMin, leftMax int32 = math.MinInt32, math.MinInt32
 		var rightMin, rightMax int32 = math.MaxInt32, math.MaxInt32
-		var leftMaxInclusive, rightMinInclusive bool = false, false
 		var curNum int32
 		var equals []int32
 
@@ -343,9 +376,16 @@ func parseRangeForOr(rangeCondition []*request.Condition, docField *entity.Space
 					leftMax = curNum
 					leftMaxInclusive = false
 				}
+			case "<>", "!=":
+				rangeFilter.IsUnion = ConditionOperatorNOTIN
+
+				if rangeFilters, err = addRangeFilter(curNum, curNum, rangeFilter, rangeFilters); err != nil {
+					return nil, err
+				}
 			}
 		}
 
+		rangeFilter.IsUnion = ConditionOperatorIN
 		for _, eqval := range equals {
 			if eqval < leftMax || eqval > rightMin {
 				continue
@@ -354,37 +394,37 @@ func parseRangeForOr(rangeCondition []*request.Condition, docField *entity.Space
 			} else if eqval == rightMin {
 				rightMinInclusive = true
 			} else {
-				left = append(left, eqval)
-				right = append(right, eqval)
-				leftInclusive = append(leftInclusive, true)
-				rightInclusive = append(rightInclusive, true)
+				if rangeFilters, err = addRangeFilter(eqval, eqval, rangeFilter, rangeFilters); err != nil {
+					return nil, err
+				}
 			}
 		}
 
 		if (leftMax > rightMin) || (leftMax == rightMin && (leftMaxInclusive || rightMinInclusive)) {
-			left = append(left, leftMin)
-			right = append(right, rightMax)
-			leftInclusive = append(leftInclusive, true)
-			rightInclusive = append(rightInclusive, true)
+			if rangeFilters, err = addRangeFilter(leftMin, rightMax, rangeFilter, rangeFilters); err != nil {
+				return nil, err
+			}
 		} else {
 			if leftMin < leftMax || leftMaxInclusive {
+				rangeFilter.IncludeLower = true
+				rangeFilter.IncludeUpper = leftMaxInclusive
 
-				left = append(left, leftMin)
-				right = append(right, leftMax)
-				leftInclusive = append(leftInclusive, true)
-				rightInclusive = append(rightInclusive, leftMaxInclusive)
+				if rangeFilters, err = addRangeFilter(leftMin, leftMax, rangeFilter, rangeFilters); err != nil {
+					return nil, err
+				}
 			}
 			if rightMin < rightMax || rightMinInclusive {
-				left = append(left, rightMin)
-				right = append(right, rightMax)
-				leftInclusive = append(leftInclusive, rightMinInclusive)
-				rightInclusive = append(rightInclusive, true)
+				rangeFilter.IncludeLower = rightMinInclusive
+				rangeFilter.IncludeUpper = true
+
+				if rangeFilters, err = addRangeFilter(rightMin, rightMax, rangeFilter, rangeFilters); err != nil {
+					return nil, err
+				}
 			}
 		}
 	case vearchpb.FieldType_LONG:
 		var leftMin, leftMax int64 = math.MinInt64, math.MinInt64
 		var rightMin, rightMax int64 = math.MaxInt64, math.MaxInt64
-		var leftMaxInclusive, rightMinInclusive bool = false, false
 		var curNum int64
 		var equals []int64
 
@@ -417,9 +457,16 @@ func parseRangeForOr(rangeCondition []*request.Condition, docField *entity.Space
 					leftMax = curNum
 					leftMaxInclusive = false
 				}
+			case "<>", "!=":
+				rangeFilter.IsUnion = ConditionOperatorNOTIN
+
+				if rangeFilters, err = addRangeFilter(curNum, curNum, rangeFilter, rangeFilters); err != nil {
+					return nil, err
+				}
 			}
 		}
 
+		rangeFilter.IsUnion = ConditionOperatorIN
 		for _, eqval := range equals {
 			if eqval < leftMax || eqval > rightMin {
 				continue
@@ -428,37 +475,37 @@ func parseRangeForOr(rangeCondition []*request.Condition, docField *entity.Space
 			} else if eqval == rightMin {
 				rightMinInclusive = true
 			} else {
-				left = append(left, eqval)
-				right = append(right, eqval)
-				leftInclusive = append(leftInclusive, true)
-				rightInclusive = append(rightInclusive, true)
+				if rangeFilters, err = addRangeFilter(eqval, eqval, rangeFilter, rangeFilters); err != nil {
+					return nil, err
+				}
 			}
 		}
 
 		if (leftMax > rightMin) || (leftMax == rightMin && (leftMaxInclusive || rightMinInclusive)) {
-			left = append(left, leftMin)
-			right = append(right, rightMax)
-			leftInclusive = append(leftInclusive, true)
-			rightInclusive = append(rightInclusive, true)
+			if rangeFilters, err = addRangeFilter(leftMin, rightMax, rangeFilter, rangeFilters); err != nil {
+				return nil, err
+			}
 		} else {
 			if leftMin < leftMax || leftMaxInclusive {
+				rangeFilter.IncludeLower = true
+				rangeFilter.IncludeUpper = leftMaxInclusive
 
-				left = append(left, leftMin)
-				right = append(right, leftMax)
-				leftInclusive = append(leftInclusive, true)
-				rightInclusive = append(rightInclusive, leftMaxInclusive)
+				if rangeFilters, err = addRangeFilter(leftMin, leftMax, rangeFilter, rangeFilters); err != nil {
+					return nil, err
+				}
 			}
 			if rightMin < rightMax || rightMinInclusive {
-				left = append(left, rightMin)
-				right = append(right, rightMax)
-				leftInclusive = append(leftInclusive, rightMinInclusive)
-				rightInclusive = append(rightInclusive, true)
+				rangeFilter.IncludeLower = rightMinInclusive
+				rangeFilter.IncludeUpper = true
+
+				if rangeFilters, err = addRangeFilter(rightMin, rightMax, rangeFilter, rangeFilters); err != nil {
+					return nil, err
+				}
 			}
 		}
 	case vearchpb.FieldType_FLOAT:
 		var leftMin, leftMax float32 = -math.MaxFloat32, -math.MaxFloat32
 		var rightMin, rightMax float32 = math.MaxFloat32, math.MaxFloat32
-		var leftMaxInclusive, rightMinInclusive bool = false, false
 		var curNum float32
 		var equals []float32
 
@@ -491,9 +538,16 @@ func parseRangeForOr(rangeCondition []*request.Condition, docField *entity.Space
 					leftMax = curNum
 					leftMaxInclusive = false
 				}
+			case "<>", "!=":
+				rangeFilter.IsUnion = ConditionOperatorNOTIN
+
+				if rangeFilters, err = addRangeFilter(curNum, curNum, rangeFilter, rangeFilters); err != nil {
+					return nil, err
+				}
 			}
 		}
 
+		rangeFilter.IsUnion = ConditionOperatorIN
 		for _, eqval := range equals {
 			if eqval < leftMax || eqval > rightMin {
 				continue
@@ -502,37 +556,37 @@ func parseRangeForOr(rangeCondition []*request.Condition, docField *entity.Space
 			} else if eqval == rightMin {
 				rightMinInclusive = true
 			} else {
-				left = append(left, eqval)
-				right = append(right, eqval)
-				leftInclusive = append(leftInclusive, true)
-				rightInclusive = append(rightInclusive, true)
+				if rangeFilters, err = addRangeFilter(eqval, eqval, rangeFilter, rangeFilters); err != nil {
+					return nil, err
+				}
 			}
 		}
 
 		if (leftMax > rightMin) || (leftMax == rightMin && (leftMaxInclusive || rightMinInclusive)) {
-			left = append(left, leftMin)
-			right = append(right, rightMax)
-			leftInclusive = append(leftInclusive, true)
-			rightInclusive = append(rightInclusive, true)
+			if rangeFilters, err = addRangeFilter(leftMin, rightMax, rangeFilter, rangeFilters); err != nil {
+				return nil, err
+			}
 		} else {
 			if leftMin < leftMax || leftMaxInclusive {
+				rangeFilter.IncludeLower = true
+				rangeFilter.IncludeUpper = leftMaxInclusive
 
-				left = append(left, leftMin)
-				right = append(right, leftMax)
-				leftInclusive = append(leftInclusive, true)
-				rightInclusive = append(rightInclusive, leftMaxInclusive)
+				if rangeFilters, err = addRangeFilter(leftMin, leftMax, rangeFilter, rangeFilters); err != nil {
+					return nil, err
+				}
 			}
 			if rightMin < rightMax || rightMinInclusive {
-				left = append(left, rightMin)
-				right = append(right, rightMax)
-				leftInclusive = append(leftInclusive, rightMinInclusive)
-				rightInclusive = append(rightInclusive, true)
+				rangeFilter.IncludeLower = rightMinInclusive
+				rangeFilter.IncludeUpper = true
+
+				if rangeFilters, err = addRangeFilter(rightMin, rightMax, rangeFilter, rangeFilters); err != nil {
+					return nil, err
+				}
 			}
 		}
 	case vearchpb.FieldType_DOUBLE:
 		var leftMin, leftMax float64 = -math.MaxFloat64, -math.MaxFloat64
 		var rightMin, rightMax float64 = math.MaxFloat64, math.MaxFloat64
-		var leftMaxInclusive, rightMinInclusive bool = false, false
 		var curNum float64
 		var equals []float64
 
@@ -565,9 +619,16 @@ func parseRangeForOr(rangeCondition []*request.Condition, docField *entity.Space
 					leftMax = curNum
 					leftMaxInclusive = false
 				}
+			case "<>", "!=":
+				rangeFilter.IsUnion = ConditionOperatorNOTIN
+
+				if rangeFilters, err = addRangeFilter(curNum, curNum, rangeFilter, rangeFilters); err != nil {
+					return nil, err
+				}
 			}
 		}
 
+		rangeFilter.IsUnion = ConditionOperatorIN
 		for _, eqval := range equals {
 			if eqval < leftMax || eqval > rightMin {
 				continue
@@ -576,37 +637,37 @@ func parseRangeForOr(rangeCondition []*request.Condition, docField *entity.Space
 			} else if eqval == rightMin {
 				rightMinInclusive = true
 			} else {
-				left = append(left, eqval)
-				right = append(right, eqval)
-				leftInclusive = append(leftInclusive, true)
-				rightInclusive = append(rightInclusive, true)
+				if rangeFilters, err = addRangeFilter(eqval, eqval, rangeFilter, rangeFilters); err != nil {
+					return nil, err
+				}
 			}
 		}
 
 		if (leftMax > rightMin) || (leftMax == rightMin && (leftMaxInclusive || rightMinInclusive)) {
-			left = append(left, leftMin)
-			right = append(right, rightMax)
-			leftInclusive = append(leftInclusive, true)
-			rightInclusive = append(rightInclusive, true)
+			if rangeFilters, err = addRangeFilter(leftMin, rightMax, rangeFilter, rangeFilters); err != nil {
+				return nil, err
+			}
 		} else {
 			if leftMin < leftMax || leftMaxInclusive {
+				rangeFilter.IncludeLower = true
+				rangeFilter.IncludeUpper = leftMaxInclusive
 
-				left = append(left, leftMin)
-				right = append(right, leftMax)
-				leftInclusive = append(leftInclusive, true)
-				rightInclusive = append(rightInclusive, leftMaxInclusive)
+				if rangeFilters, err = addRangeFilter(leftMin, leftMax, rangeFilter, rangeFilters); err != nil {
+					return nil, err
+				}
 			}
 			if rightMin < rightMax || rightMinInclusive {
-				left = append(left, rightMin)
-				right = append(right, rightMax)
-				leftInclusive = append(leftInclusive, rightMinInclusive)
-				rightInclusive = append(rightInclusive, true)
+				rangeFilter.IncludeLower = rightMinInclusive
+				rangeFilter.IncludeUpper = true
+
+				if rangeFilters, err = addRangeFilter(rightMin, rightMax, rangeFilter, rangeFilters); err != nil {
+					return nil, err
+				}
 			}
 		}
 	case vearchpb.FieldType_DATE:
 		var leftMin, leftMax int64 = math.MinInt64, math.MinInt64
 		var rightMin, rightMax int64 = math.MaxInt64, math.MaxInt64
-		var leftMaxInclusive, rightMinInclusive bool = false, false
 		var curNum int64
 		var equals []int64
 
@@ -650,9 +711,16 @@ func parseRangeForOr(rangeCondition []*request.Condition, docField *entity.Space
 					leftMax = curNum
 					leftMaxInclusive = false
 				}
+			case "<>", "!=":
+				rangeFilter.IsUnion = ConditionOperatorNOTIN
+
+				if rangeFilters, err = addRangeFilter(curNum, curNum, rangeFilter, rangeFilters); err != nil {
+					return nil, err
+				}
 			}
 		}
 
+		rangeFilter.IsUnion = ConditionOperatorIN
 		for _, eqval := range equals {
 			if eqval < leftMax || eqval > rightMin {
 				continue
@@ -661,71 +729,52 @@ func parseRangeForOr(rangeCondition []*request.Condition, docField *entity.Space
 			} else if eqval == rightMin {
 				rightMinInclusive = true
 			} else {
-				left = append(left, eqval)
-				right = append(right, eqval)
-				leftInclusive = append(leftInclusive, true)
-				rightInclusive = append(rightInclusive, true)
+				if rangeFilters, err = addRangeFilter(eqval, eqval, rangeFilter, rangeFilters); err != nil {
+					return nil, err
+				}
 			}
 		}
 
 		if (leftMax > rightMin) || (leftMax == rightMin && (leftMaxInclusive || rightMinInclusive)) {
-			left = append(left, leftMin)
-			right = append(right, rightMax)
-			leftInclusive = append(leftInclusive, true)
-			rightInclusive = append(rightInclusive, true)
+			if rangeFilters, err = addRangeFilter(leftMin, rightMax, rangeFilter, rangeFilters); err != nil {
+				return nil, err
+			}
 		} else {
 			if leftMin < leftMax || leftMaxInclusive {
+				rangeFilter.IncludeLower = true
+				rangeFilter.IncludeUpper = leftMaxInclusive
 
-				left = append(left, leftMin)
-				right = append(right, leftMax)
-				leftInclusive = append(leftInclusive, true)
-				rightInclusive = append(rightInclusive, leftMaxInclusive)
+				if rangeFilters, err = addRangeFilter(leftMin, leftMax, rangeFilter, rangeFilters); err != nil {
+					return nil, err
+				}
 			}
 			if rightMin < rightMax || rightMinInclusive {
-				left = append(left, rightMin)
-				right = append(right, rightMax)
-				leftInclusive = append(leftInclusive, rightMinInclusive)
-				rightInclusive = append(rightInclusive, true)
+				rangeFilter.IncludeLower = rightMinInclusive
+				rangeFilter.IncludeUpper = true
+
+				if rangeFilters, err = addRangeFilter(rightMin, rightMax, rangeFilter, rangeFilters); err != nil {
+					return nil, err
+				}
 			}
 		}
-	}
-
-	for i, start := range left {
-		var minByte, maxByte []byte
-
-		minByte, err := cbbytes.ValueToByte(start)
-		if err != nil {
-			return nil, err
-		}
-
-		maxByte, err = cbbytes.ValueToByte(right[i])
-		if err != nil {
-			return nil, err
-		}
-
-		if minByte == nil || maxByte == nil {
-			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("range filter param is null or have not gte lte"))
-		}
-
-		rangeFilter := &vearchpb.RangeFilter{
-			Field:        field,
-			LowerValue:   minByte,
-			UpperValue:   maxByte,
-			IncludeLower: leftInclusive[i],
-			IncludeUpper: rightInclusive[i],
-		}
-
-		rangeFilters = append(rangeFilters, rangeFilter)
 	}
 
 	return rangeFilters, nil
 }
 
-func parseRangeForAnd(rangeCondition []*request.Condition, docField *entity.SpaceProperties, field string) (*vearchpb.RangeFilter, error) {
+func parseRangeForAnd(rangeCondition []*request.Condition, docField *entity.SpaceProperties, field string) ([]*vearchpb.RangeFilter, error) {
 	var (
-		min, max                   interface{}
+		min, max                   any
 		minInclusive, maxInclusive bool = true, true
+		err                        error
 	)
+
+	rangeFilters := make([]*vearchpb.RangeFilter, 0)
+	rangeFilter := &vearchpb.RangeFilter{
+		Field:        field,
+		IncludeLower: true,
+		IncludeUpper: true,
+	}
 
 	switch docField.FieldType {
 	case vearchpb.FieldType_INT:
@@ -767,9 +816,18 @@ func parseRangeForAnd(rangeCondition []*request.Condition, docField *entity.Spac
 					maxNum = curNum
 					maxInclusive = false
 				}
+			case "<>", "!=":
+				rangeFilter.IsUnion = ConditionOperatorNOTIN
+
+				if rangeFilters, err = addRangeFilter(curNum, curNum, rangeFilter, rangeFilters); err != nil {
+					return nil, err
+				}
 			}
 		}
 
+		if len(rangeFilters) != 0 && minNum == math.MinInt32 && maxNum == math.MaxInt32 && minInclusive && maxInclusive {
+			return rangeFilters, err
+		}
 		min, max = minNum, maxNum
 	case vearchpb.FieldType_LONG:
 		var minNum, maxNum int64 = math.MinInt64, math.MaxInt64
@@ -810,9 +868,18 @@ func parseRangeForAnd(rangeCondition []*request.Condition, docField *entity.Spac
 					maxNum = curNum
 					maxInclusive = false
 				}
+			case "<>", "!=":
+				rangeFilter.IsUnion = ConditionOperatorNOTIN
+
+				if rangeFilters, err = addRangeFilter(curNum, curNum, rangeFilter, rangeFilters); err != nil {
+					return nil, err
+				}
 			}
 		}
 
+		if len(rangeFilters) != 0 && minNum == math.MinInt64 && maxNum == math.MaxInt64 && minInclusive && maxInclusive {
+			return rangeFilters, err
+		}
 		min, max = minNum, maxNum
 	case vearchpb.FieldType_FLOAT:
 		var minNum, maxNum float32 = -math.MaxFloat32, math.MaxFloat32
@@ -853,9 +920,18 @@ func parseRangeForAnd(rangeCondition []*request.Condition, docField *entity.Spac
 					maxNum = curNum
 					maxInclusive = false
 				}
+			case "<>", "!=":
+				rangeFilter.IsUnion = ConditionOperatorNOTIN
+
+				if rangeFilters, err = addRangeFilter(curNum, curNum, rangeFilter, rangeFilters); err != nil {
+					return nil, err
+				}
 			}
 		}
 
+		if len(rangeFilters) != 0 && minNum == -math.MaxFloat32 && maxNum == math.MaxFloat32 && minInclusive && maxInclusive {
+			return rangeFilters, err
+		}
 		min, max = minNum, maxNum
 	case vearchpb.FieldType_DOUBLE:
 		var minNum, maxNum float64 = -math.MaxFloat64, math.MaxFloat64
@@ -896,9 +972,18 @@ func parseRangeForAnd(rangeCondition []*request.Condition, docField *entity.Spac
 					maxNum = curNum
 					maxInclusive = false
 				}
+			case "<>", "!=":
+				rangeFilter.IsUnion = ConditionOperatorNOTIN
+
+				if rangeFilters, err = addRangeFilter(curNum, curNum, rangeFilter, rangeFilters); err != nil {
+					return nil, err
+				}
 			}
 		}
 
+		if len(rangeFilters) != 0 && minNum == -math.MaxFloat64 && maxNum == math.MaxFloat64 && minInclusive && maxInclusive {
+			return rangeFilters, err
+		}
 		min, max = minNum, maxNum
 	case vearchpb.FieldType_DATE:
 		var minNum, maxNum int64 = math.MinInt64, math.MaxInt64
@@ -951,36 +1036,30 @@ func parseRangeForAnd(rangeCondition []*request.Condition, docField *entity.Spac
 					maxNum = curNum
 					maxInclusive = false
 				}
+			case "<>", "!=":
+				rangeFilter.IsUnion = ConditionOperatorNOTIN
+
+				if rangeFilters, err = addRangeFilter(curNum, curNum, rangeFilter, rangeFilters); err != nil {
+					return nil, err
+				}
 			}
 		}
 
+		if len(rangeFilters) != 0 && minNum == math.MinInt64 && maxNum == math.MaxInt64 && minInclusive && maxInclusive {
+			return rangeFilters, err
+		}
 		min, max = minNum, maxNum
 	}
 
-	var minByte, maxByte []byte
+	rangeFilter.IsUnion = ConditionOperatorIN
+	rangeFilter.IncludeLower = minInclusive
+	rangeFilter.IncludeUpper = maxInclusive
 
-	minByte, err := cbbytes.ValueToByte(min)
-	if err != nil {
+	if rangeFilters, err = addRangeFilter(min, max, rangeFilter, rangeFilters); err != nil {
 		return nil, err
 	}
 
-	maxByte, err = cbbytes.ValueToByte(max)
-	if err != nil {
-		return nil, err
-	}
-
-	if minByte == nil || maxByte == nil {
-		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("range filter param is null or have not gte lte"))
-	}
-
-	rangeFilter := &vearchpb.RangeFilter{
-		Field:        field,
-		LowerValue:   minByte,
-		UpperValue:   maxByte,
-		IncludeLower: minInclusive,
-		IncludeUpper: maxInclusive,
-	}
-	return rangeFilter, nil
+	return rangeFilters, nil
 }
 
 func parseRange(operator string, rangeConditionMap map[string][]*request.Condition, proMap map[string]*entity.SpaceProperties) ([]*vearchpb.RangeFilter, error) {
@@ -1007,7 +1086,7 @@ func parseRange(operator string, rangeConditionMap map[string][]*request.Conditi
 			if err != nil {
 				return nil, err
 			}
-			rangeFilters = append(rangeFilters, rangeFilter)
+			rangeFilters = append(rangeFilters, rangeFilter...)
 		} else if operator == "OR" {
 			rangeFilter, err := parseRangeForOr(rcs, docField, field)
 			if err != nil {

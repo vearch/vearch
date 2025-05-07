@@ -56,6 +56,7 @@ void Request::Deserialize(const char *data, int len) {
     range_filter.upper_value = fbs_range_filter.upper_value();
     range_filter.include_lower = fbs_range_filter.include_lower();
     range_filter.include_upper = fbs_range_filter.include_upper();
+    range_filter.is_union = fbs_range_filter.is_union();
 
     range_filters_.emplace_back(range_filter);
   }
@@ -186,6 +187,7 @@ void QueryRequest::Deserialize(const char *data, int len) {
     range_filter.upper_value = fbs_range_filter.upper_value();
     range_filter.include_lower = fbs_range_filter.include_lower();
     range_filter.include_upper = fbs_range_filter.include_upper();
+    range_filter.is_union = fbs_range_filter.is_union();
 
     range_filters_.emplace_back(range_filter);
   }

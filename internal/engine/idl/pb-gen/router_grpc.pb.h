@@ -3357,6 +3357,7 @@ class RangeFilter final :
     kUpperValueFieldNumber = 3,
     kIncludeLowerFieldNumber = 4,
     kIncludeUpperFieldNumber = 5,
+    kIsUnionFieldNumber = 6,
   };
   // string field = 1;
   void clear_field();
@@ -3418,6 +3419,15 @@ class RangeFilter final :
   void _internal_set_include_upper(bool value);
   public:
 
+  // int32 is_union = 6;
+  void clear_is_union();
+  int32_t is_union() const;
+  void set_is_union(int32_t value);
+  private:
+  int32_t _internal_is_union() const;
+  void _internal_set_is_union(int32_t value);
+  public:
+
   // @@protoc_insertion_point(class_scope:vearchpb.RangeFilter)
  private:
   class _Internal;
@@ -3431,6 +3441,7 @@ class RangeFilter final :
     ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr upper_value_;
     bool include_lower_;
     bool include_upper_;
+    int32_t is_union_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
   union { Impl_ _impl_; };
@@ -8519,6 +8530,26 @@ inline void RangeFilter::_internal_set_include_upper(bool value) {
 inline void RangeFilter::set_include_upper(bool value) {
   _internal_set_include_upper(value);
   // @@protoc_insertion_point(field_set:vearchpb.RangeFilter.include_upper)
+}
+
+// int32 is_union = 6;
+inline void RangeFilter::clear_is_union() {
+  _impl_.is_union_ = 0;
+}
+inline int32_t RangeFilter::_internal_is_union() const {
+  return _impl_.is_union_;
+}
+inline int32_t RangeFilter::is_union() const {
+  // @@protoc_insertion_point(field_get:vearchpb.RangeFilter.is_union)
+  return _internal_is_union();
+}
+inline void RangeFilter::_internal_set_is_union(int32_t value) {
+  
+  _impl_.is_union_ = value;
+}
+inline void RangeFilter::set_is_union(int32_t value) {
+  _internal_set_is_union(value);
+  // @@protoc_insertion_point(field_set:vearchpb.RangeFilter.is_union)
 }
 
 // -------------------------------------------------------------------

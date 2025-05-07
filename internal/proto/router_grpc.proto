@@ -115,6 +115,7 @@ message RangeFilter {
   bytes upper_value = 3;
   bool include_lower = 4;
   bool include_upper = 5;
+  int32 is_union = 6;
 }
 
 message SortField {

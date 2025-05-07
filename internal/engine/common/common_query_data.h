@@ -23,6 +23,7 @@ struct RangeFilter {
   std::string upper_value;
   bool include_lower;
   bool include_upper;
+  int is_union;
 };
 
 struct VectorQuery {
