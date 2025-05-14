@@ -120,7 +120,7 @@ class TestQueryLimitConfig:
         assert rs.status_code == 200
         assert rs.json()["data"] == "false"
 
-	query_limit = {
+        query_limit = {
             "query_limit_config": True
         }
 
@@ -129,7 +129,7 @@ class TestQueryLimitConfig:
         assert rs.status_code == 200
         assert rs.json()["data"]["query_limit_config"] == True
 
-	query_limit = {
+        query_limit = {
             "query_limit_config": False
         }
         json_str = json.dumps(query_limit)
