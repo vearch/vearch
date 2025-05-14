@@ -37,6 +37,7 @@ import (
 	"github.com/vearch/vearch/v3/internal/pkg/log"
 	"github.com/vearch/vearch/v3/internal/pkg/netutil"
 	json "github.com/vearch/vearch/v3/internal/pkg/vjson"
+	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
 )
 
 const (
@@ -154,7 +155,11 @@ func TimeoutMiddleware(defaultTimeout time.Duration) gin.HandlerFunc {
 
 		select {
 		case <-ctx.Done():
-			response.New(c).JsonError(errors.NewErrUnprocessable(fmt.Errorf("timeout")))
+			c.JSON(http.StatusGatewayTimeout,
+				gin.H{
+					"request_id": c.GetHeader("X-Request-Id"),
+					"code":       vearchpb.ErrorEnum_TIMEOUT,
+					"msg":        "Request timeout"})
 			c.Abort()
 		case <-done:
 		}
