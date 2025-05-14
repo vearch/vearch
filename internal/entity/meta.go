@@ -118,6 +118,7 @@ func SetPrefixAndSequence(cluster_id string) {
 	PrefixAlias = PrefixEtcdClusterID + PrefixAlias
 	PrefixRole = PrefixEtcdClusterID + PrefixRole
 	PrefixMasterMember = PrefixEtcdClusterID + PrefixMasterMember
+	PrefixQueryLimit = PrefixEtcdClusterID + PrefixQueryLimit
 }
 
 // sids sequence key for etcd
@@ -148,6 +149,7 @@ var (
 	PrefixAlias        = "/alias/"
 	PrefixRole         = "/role/"
 	PrefixMasterMember = "/member/"
+	PrefixQueryLimit   = "/query_limit_config"
 )
 
 var PrefixEtcdClusterID = "/vearch/default/"

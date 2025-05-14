@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -36,6 +37,7 @@ import (
 	"github.com/vearch/vearch/v3/internal/pkg/log"
 	"github.com/vearch/vearch/v3/internal/pkg/netutil"
 	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
+	"golang.org/x/time/rate"
 )
 
 const (
@@ -120,6 +122,63 @@ func BasicAuthMiddleware(docService docService) gin.HandlerFunc {
 			response.New(c).JsonError(errors.NewErrUnauthorized(err))
 			c.Abort()
 			return
+		}
+
+		c.Next()
+	}
+}
+
+func HttpLimitMiddleware(docService docService) gin.HandlerFunc {
+	readLimiter := rate.NewLimiter(rate.Limit(rate.Inf), 0)
+	writeLimiter := rate.NewLimiter(rate.Limit(rate.Inf), 0)
+
+	return func(c *gin.Context) {
+		query_limit_str, err := docService.client.Master().GetQueryLimitCfg(c.Request.Context(), time.Duration(10*time.Second))
+		if err != nil {
+			msg := fmt.Sprintf("get query limit from master failed, %s", err.Error())
+			response.New(c).JsonError(errors.NewErrInternal(fmt.Errorf(msg)))
+			c.Abort()
+			return
+		}
+		if limit_required, err := strconv.ParseBool(query_limit_str); err == nil {
+			if limit_required && readLimiter.Limit() == rate.Inf {
+				writeLimiter.SetLimit(rate.Limit(8000))
+				writeLimiter.SetBurst(10000)
+				readLimiter.SetLimit(rate.Limit(8000))
+				readLimiter.SetBurst(10000)
+			} else if !limit_required && readLimiter.Limit() != rate.Inf {
+				writeLimiter.SetLimit(rate.Limit(rate.Inf))
+				writeLimiter.SetBurst(0)
+				readLimiter.SetLimit(rate.Limit(rate.Inf))
+				readLimiter.SetBurst(0)
+			}
+		} else {
+			msg := fmt.Sprintf("query_limit_config[%s] param parse to bool failed, err: %s", query_limit_str, err.Error())
+			log.Error(msg)
+			response.New(c).JsonError(errors.NewErrBadRequest(fmt.Errorf(msg)))
+			c.Abort()
+			return
+		}
+
+		requestURI := strings.TrimPrefix(c.Request.RequestURI, "/document/")
+
+		switch requestURI {
+		case "upsert", "delete":
+			if !writeLimiter.Allow() {
+				msg := fmt.Sprintf("write request too frequency, have reached limit %v", writeLimiter.Burst())
+				log.Error(msg)
+				response.New(c).JsonError(errors.NewErrInternal(fmt.Errorf(msg)))
+				c.Abort()
+				return
+			}
+		case "query", "search":
+			if !readLimiter.Allow() {
+				msg := fmt.Sprintf("read request too frequency, have reached limit %v, ", readLimiter.Burst())
+				log.Error(msg)
+				response.New(c).JsonError(errors.NewErrInternal(fmt.Errorf(msg)))
+				c.Abort()
+				return
+			}
 		}
 
 		c.Next()
@@ -219,6 +278,9 @@ func (handler *DocumentHandler) proxyMaster(group *gin.RouterGroup) error {
 	group.POST("/config/:"+URLParamDbName+"/:"+URLParamSpaceName, handler.handleMasterRequest)
 	group.GET("/config/:"+URLParamDbName+"/:"+URLParamSpaceName, handler.handleMasterRequest)
 
+	group.POST("/config/query_limit_config", handler.handleMasterRequest)
+	group.GET("/config/query_limit_config", handler.handleMasterRequest)
+
 	// members handler
 	group.GET("/members", handler.handleMasterRequest)
 	group.GET("/members/stats", handler.handleMasterRequest)
@@ -253,10 +315,13 @@ func (handler *DocumentHandler) ExportInterfacesToServer(group *gin.RouterGroup)
 	group.GET("/", handler.handleRouterInfo)
 
 	// document
-	group.POST("/document/upsert", handler.handleDocumentUpsert)
-	group.POST("/document/query", handler.handleDocumentQuery)
-	group.POST("/document/search", handler.handleDocumentSearch)
-	group.POST("/document/delete", handler.handleDocumentDelete)
+	groupdoc := group.Group("/document")
+	groupdoc.Use(HttpLimitMiddleware(handler.docService))
+
+	groupdoc.POST("/upsert", handler.handleDocumentUpsert)
+	groupdoc.POST("/query", handler.handleDocumentQuery)
+	groupdoc.POST("/search", handler.handleDocumentSearch)
+	groupdoc.POST("/delete", handler.handleDocumentDelete)
 
 	// index
 	group.POST("/index/flush", handler.handleIndexFlush)
