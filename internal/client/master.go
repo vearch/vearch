@@ -814,6 +814,52 @@ func (client *masterClient) CheckMasterConfig(ctx context.Context) error {
 	return nil
 }
 
+// get query limit config from master
+func (m *masterClient) GetQueryLimitCfg(ctx context.Context, timeout time.Duration) (res string, err error) {
+	var masterServer = &MasterServer{}
+	ms := m.Config().GetMasters()
+	masterServer.init(len(ms))
+
+	masterServer.reset()
+	timeStart := time.Now()
+	var response []byte
+	for {
+		query := netutil.NewQuery().SetHeader(Authorization, netutil.AuthEncrypt(Root, m.cfg.Global.Signkey))
+
+		keyNumber, err := masterServer.getKey()
+		if err != nil {
+			if time.Since(timeStart) > timeout {
+				return "", err
+			}
+			masterServer.reset()
+			time.Sleep(1 * time.Second)
+		}
+		query.SetAddress(ms[keyNumber].ApiUrl())
+		query.SetMethod(http.MethodGet)
+		query.SetUrlPath("/config/query_limit_config")
+		query.SetTimeout(60)
+		log.Debug("get query limit config from master: %s", query.GetUrl())
+		response, err = query.Do()
+		log.Debug("query limit configure response: %v", string(response))
+		if err == nil {
+			break
+		}
+		log.Debug("get query limit config err: %v", err)
+
+		masterServer.next()
+	}
+
+	js := &httpResonse.HttpReply{}
+	err = vjson.Unmarshal(response, js)
+	if err != nil {
+		return "", err
+	}
+
+	jsData, _ := js.Data.(string)
+
+	return jsData, nil
+}
+
 func parseRegisterData(response []byte) ([]byte, error) {
 	js := &struct {
 		Code      int             `json:"code"`
