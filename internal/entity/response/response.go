@@ -103,4 +103,3 @@ func (r *Response) JsonError(err *errors.ErrRequest) {
 	r.SetHttpStatus(int64(err.HttpCode()))
 	r.SendJson(httpReply)
 }
-

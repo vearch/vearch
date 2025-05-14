@@ -43,7 +43,6 @@ import (
 	"github.com/vearch/vearch/v3/internal/pkg/log"
 	"github.com/vearch/vearch/v3/internal/pkg/number"
 	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
-	"github.com/vearch/vearch/v3/internal/ps/engine/sortorder"
 )
 
 // Client include client of master and ps
@@ -471,7 +470,7 @@ func (r *routerRequest) replicasFaultyNum(replicas []uint64) int {
 	return faultyNodeNum
 }
 
-func (r *routerRequest) searchFromPartition(ctx context.Context, partitionID entity.PartitionID, pd *vearchpb.PartitionData, space *entity.Space, respChain chan *response.SearchDocResult, isNormal bool, normalField map[string]string) {
+func (r *routerRequest) searchFromPartition(ctx context.Context, partitionID entity.PartitionID, pd *vearchpb.PartitionData, space *entity.Space, respChain chan *response.SearchDocResult, isNormal bool, normalField map[string]string, desc bool) {
 	start := time.Now()
 	responseDoc := &response.SearchDocResult{}
 	defer func() {
@@ -669,9 +668,7 @@ func (r *routerRequest) searchFromPartition(ctx context.Context, partitionID ent
 		return
 	}
 
-	sortFieldMap := pd.SearchRequest.SortFieldMap
 	searchResponse := replyPartition.SearchResponse
-	sortValueMap := make(map[string][]sortorder.SortValue)
 	if searchResponse != nil {
 		if trace {
 			rpcExecute := rpcEnd.Sub(rpcStart).Seconds() * 1000
@@ -699,24 +696,6 @@ func (r *routerRequest) searchFromPartition(ctx context.Context, partitionID ent
 				deSerializeStr := strconv.FormatFloat(deSerialize, 'f', 4, 64)
 				searchResponse.Head.Params["deSerialize_"+partitionIDstr] = deSerializeStr
 			}
-			for i, searchResult := range searchResponse.Results {
-				for _, item := range searchResult.ResultItems {
-					sortValues, pkey, err := GetSortOrder(item, space, sortFieldMap, pd.SearchRequest.SortFields)
-					if err != nil {
-						err := &vearchpb.Error{Code: vearchpb.ErrorEnum_SEARCH_RESPONSE_PARSE_ERR, Msg: "router call ps rpc service err nodeID:" + fmt.Sprint(nodeID)}
-						replyPartition.SearchResponse.Head.Err = err
-					}
-					item.PKey = pkey
-					index := strconv.Itoa(i)
-					sortValueMap[item.PKey+"_"+index] = sortValues
-				}
-			}
-
-			if trace {
-				fieldParsingTime := time.Since(deSerializeEndTime).Seconds() * 1000
-				fieldParsingTimeStr := strconv.FormatFloat(fieldParsingTime, 'f', 4, 64)
-				searchResponse.Head.Params["fieldParsing_"+partitionIDstr] = fieldParsingTimeStr
-			}
 		}
 	}
 	if trace {
@@ -725,11 +704,11 @@ func (r *routerRequest) searchFromPartition(ctx context.Context, partitionID ent
 		searchResponse.Head.Params["searchFromPartition_"+partitionIDstr] = searchFromPartitionStr
 	}
 	responseDoc.PartitionData = replyPartition
-	responseDoc.SortValueMap = sortValueMap
+	responseDoc.Desc = desc
 	respChain <- responseDoc
 }
 
-func (r *routerRequest) SearchFieldSortExecute(sortOrder sortorder.SortOrder) *vearchpb.SearchResponse {
+func (r *routerRequest) SearchFieldSortExecute(desc bool) *vearchpb.SearchResponse {
 	startTime := time.Now()
 	var wg sync.WaitGroup
 	sendPartitionMap := r.sendMap
@@ -771,7 +750,7 @@ func (r *routerRequest) SearchFieldSortExecute(sortOrder sortorder.SortOrder) *v
 		c := context.WithValue(r.ctx, share.ReqMetaDataKey, copyMap(r.md))
 		go func(ctx context.Context, partitionID entity.PartitionID, pd *vearchpb.PartitionData, space *entity.Space, respChain chan *response.SearchDocResult, isNormal bool, normalField map[string]string) {
 			defer wg.Done()
-			r.searchFromPartition(ctx, partitionID, pd, space, respChain, isNormal, normalField)
+			r.searchFromPartition(ctx, partitionID, pd, space, respChain, isNormal, normalField, desc)
 		}(c, partitionID, pData, r.space, respChain, isNormal, normalField)
 	}
 	wg.Wait()
@@ -784,7 +763,6 @@ func (r *routerRequest) SearchFieldSortExecute(sortOrder sortorder.SortOrder) *v
 	}
 
 	var result []*vearchpb.SearchResult
-	var sortValueMap map[string][]sortorder.SortValue
 	var searchResponse *vearchpb.SearchResponse
 
 	mergeStartTime := time.Now()
@@ -798,13 +776,8 @@ func (r *routerRequest) SearchFieldSortExecute(sortOrder sortorder.SortOrder) *v
 			searchResponse = r.PartitionData.SearchResponse
 			if searchResponse != nil && len(searchResponse.Results) > 0 {
 				result = searchResponse.Results
-				sortValueMap = r.SortValueMap
 				continue
 			}
-		}
-
-		for pKey, sortValue := range r.SortValueMap {
-			sortValueMap[pKey] = sortValue
 		}
 
 		if len(result) != len(r.PartitionData.SearchResponse.Results) {
@@ -813,17 +786,17 @@ func (r *routerRequest) SearchFieldSortExecute(sortOrder sortorder.SortOrder) *v
 
 		if len(result) <= len(r.PartitionData.SearchResponse.Results) {
 			for i := range result {
-				AddMergeSort(result[i], r.PartitionData.SearchResponse.Results[i], int(searchReq.TopN), sortOrder[0].GetSortOrder())
+				AddMergeSort(result[i], r.PartitionData.SearchResponse.Results[i], int(searchReq.TopN), desc)
 			}
 		} else {
 			for i := range r.PartitionData.SearchResponse.Results {
-				AddMergeSort(result[i], r.PartitionData.SearchResponse.Results[0], int(searchReq.TopN), sortOrder[0].GetSortOrder())
+				AddMergeSort(result[i], r.PartitionData.SearchResponse.Results[0], int(searchReq.TopN), desc)
 			}
 		}
 	}
 
-	for i, resp := range result {
-		quickSort(resp.ResultItems, sortValueMap, 0, len(resp.ResultItems)-1, sortOrder, strconv.Itoa(i))
+	for _, resp := range result {
+		quickSort(resp.ResultItems, desc, 0, len(resp.ResultItems)-1)
 		if resp.ResultItems != nil && len(resp.ResultItems) > 0 && searchReq.TopN > 0 {
 			len := len(resp.ResultItems)
 			if int32(len) > searchReq.TopN {
@@ -951,33 +924,18 @@ func (r *routerRequest) queryFromPartition(ctx context.Context, partitionID enti
 		return
 	}
 
-	sortFieldMap := pd.QueryRequest.SortFieldMap
 	searchResponse := replyPartition.SearchResponse
-	sortValueMap := make(map[string][]sortorder.SortValue)
 	if searchResponse != nil {
 		flatBytes := searchResponse.FlatBytes
 		if flatBytes != nil {
 			gamma.DeSerialize(flatBytes, searchResponse)
-			for i, searchResult := range searchResponse.Results {
-				for _, item := range searchResult.ResultItems {
-					sortValues, pkey, err := GetSortOrder(item, space, sortFieldMap, pd.QueryRequest.SortFields)
-					if err != nil {
-						err := &vearchpb.Error{Code: vearchpb.ErrorEnum_QUERY_RESPONSE_PARSE_ERR, Msg: "router call ps rpc service err nodeID:" + fmt.Sprint(nodeID)}
-						replyPartition.SearchResponse.Head.Err = err
-					}
-					item.PKey = pkey
-					index := strconv.Itoa(i)
-					sortValueMap[item.PKey+"_"+index] = sortValues
-				}
-			}
 		}
 	}
 	responseDoc.PartitionData = replyPartition
-	responseDoc.SortValueMap = sortValueMap
 	respChain <- responseDoc
 }
 
-func (r *routerRequest) QueryFieldSortExecute(sortOrder sortorder.SortOrder) *vearchpb.SearchResponse {
+func (r *routerRequest) QueryFieldSortExecute() *vearchpb.SearchResponse {
 	var wg sync.WaitGroup
 	sendPartitionMap := r.sendMap
 
@@ -996,7 +954,6 @@ func (r *routerRequest) QueryFieldSortExecute(sortOrder sortorder.SortOrder) *ve
 	close(respChain)
 
 	var result []*vearchpb.SearchResult
-	var sortValueMap map[string][]sortorder.SortValue
 	var searchResponse *vearchpb.SearchResponse
 	var head vearchpb.ResponseHead
 
@@ -1014,14 +971,8 @@ func (r *routerRequest) QueryFieldSortExecute(sortOrder sortorder.SortOrder) *ve
 			}
 			if searchResponse != nil && searchResponse.Results != nil && len(searchResponse.Results) > 0 {
 				result = searchResponse.Results
-				sortValueMap = r.SortValueMap
 				continue
 			}
-		}
-
-		sortValue := r.SortValueMap
-		for PKey, sortValue := range sortValue {
-			sortValueMap[PKey] = sortValue
 		}
 
 		if err := AddMergeResultArr(result, r.PartitionData.SearchResponse.Results); err != nil {
@@ -1059,11 +1010,7 @@ func (r *routerRequest) QueryFieldSortExecute(sortOrder sortorder.SortOrder) *ve
 	}
 
 	if len(searchReq.DocumentIds) == 0 {
-		// query by filter, so order by sortField
-		for i, resp := range result {
-			index := strconv.Itoa(i)
-			quickSort(resp.ResultItems, sortValueMap, 0, len(resp.ResultItems)-1, sortOrder, index)
-
+		for _, resp := range result {
 			if resp.ResultItems != nil && len(resp.ResultItems) > 0 && searchReq.Limit > 0 {
 				len := len(resp.ResultItems)
 				if int32(len) > searchReq.Limit {
@@ -1077,6 +1024,13 @@ func (r *routerRequest) QueryFieldSortExecute(sortOrder sortorder.SortOrder) *ve
 		for i, name := range searchReq.DocumentIds {
 			orderMap[name] = i
 		}
+		for _, item := range result[0].ResultItems {
+			for _, field := range item.Fields {
+				if field != nil && field.Name == "_id" {
+					item.PKey = string(field.Value)
+				}
+			}
+		}
 		sort.Slice(result[0].ResultItems, func(i, j int) bool {
 			return orderMap[result[0].ResultItems[i].PKey] < orderMap[result[0].ResultItems[j].PKey]
 		})
@@ -1086,26 +1040,33 @@ func (r *routerRequest) QueryFieldSortExecute(sortOrder sortorder.SortOrder) *ve
 	return searchResponse
 }
 
-func quickSort(items []*vearchpb.ResultItem, sortValueMap map[string][]sortorder.SortValue, low, high int, so sortorder.SortOrder, index string) {
+func quickSort(items []*vearchpb.ResultItem, desc bool, low, high int) {
 	if low < high {
-		var pivot = partition(items, sortValueMap, low, high, so, index)
-		quickSort(items, sortValueMap, low, pivot, so, index)
-		quickSort(items, sortValueMap, pivot+1, high, so, index)
+		var pivot = partition(items, desc, low, high)
+		quickSort(items, desc, low, pivot)
+		quickSort(items, desc, pivot+1, high)
 	}
 }
 
-func partition(items []*vearchpb.ResultItem, sortValueMap map[string][]sortorder.SortValue, low, high int, so sortorder.SortOrder, index string) int {
+func partition(items []*vearchpb.ResultItem, desc bool, low, high int) int {
 	var pivot = items[low]
-	var pivotSort = sortValueMap[pivot.PKey+"_"+index]
 	var i = low
 	var j = high
 	for i < j {
-		for so.Compare(sortValueMap[items[j].PKey+"_"+index], pivotSort) >= 0 && j > low {
-			j--
-		}
-
-		for so.Compare(sortValueMap[items[i].PKey+"_"+index], pivotSort) <= 0 && i < high {
-			i++
+		if desc {
+			for j > low && items[j].Score <= pivot.Score {
+				j--
+			}
+			for i < high && items[i].Score > pivot.Score {
+				i++
+			}
+		} else {
+			for j > low && items[j].Score >= pivot.Score {
+				j--
+			}
+			for i < high && items[i].Score < pivot.Score {
+				i++
+			}
 		}
 		if i < j {
 			items[i], items[j] = items[j], items[i]
@@ -1336,131 +1297,6 @@ func GetNodeIdsByClientType(clientType string, partition *entity.Partition, serv
 		nodeId = replicaRoundRobin.Next(partition.Id, randIDs)
 	}
 	return nodeId
-}
-
-func GetSortOrder(doc *vearchpb.ResultItem, space *entity.Space, sortFieldMap map[string]string, sortFields []*vearchpb.SortField) ([]sortorder.SortValue, string, error) {
-	sortValues := make([]sortorder.SortValue, len(sortFields))
-
-	if sortFieldMap[entity.ScoreField] != "" {
-		for i, v := range sortFields {
-			if v.Field == entity.ScoreField {
-				sortValues[i] = &sortorder.FloatSortValue{
-					Val:      doc.Score,
-					SortName: entity.ScoreField,
-				}
-				break
-			}
-		}
-	}
-
-	spaceProperties := space.SpaceProperties
-	if spaceProperties == nil {
-		spacePro, _ := entity.UnmarshalPropertyJSON(space.Fields)
-		spaceProperties = spacePro
-	}
-	var pKey string
-
-	for _, fv := range doc.Fields {
-		name := fv.Name
-		switch name {
-		case entity.IdField:
-			pKey = string(fv.Value)
-			if sortFieldMap[name] != "" {
-				for i, v := range sortFields {
-					if v.Field == name {
-						sortValues[i] = &sortorder.StringSortValue{
-							Val:      pKey,
-							SortName: name,
-						}
-						break
-					}
-				}
-			}
-		default:
-			field := spaceProperties[name]
-			if field == nil {
-				log.Error("can not found mappping by field:[%s]", name)
-				continue
-			}
-			switch field.FieldType {
-			case vearchpb.FieldType_STRING:
-				tempValue := string(fv.Value)
-				if sortFieldMap[name] != "" {
-					for i, v := range sortFields {
-						if v.Field == name {
-							sortValues[i] = &sortorder.StringSortValue{
-								Val:      tempValue,
-								SortName: name,
-							}
-							break
-						}
-					}
-				}
-			case vearchpb.FieldType_INT:
-				intVal := cbbytes.Bytes2Int32(fv.Value)
-				if sortFieldMap[name] != "" {
-					for i, v := range sortFields {
-						if v.Field == name {
-							sortValues[i] = &sortorder.IntSortValue{
-								Val:      int64(intVal),
-								SortName: name,
-							}
-							break
-						}
-					}
-				}
-			case vearchpb.FieldType_LONG:
-				longVal := cbbytes.Bytes2Int(fv.Value)
-				if sortFieldMap[name] != "" {
-					for i, v := range sortFields {
-						if v.Field == name {
-							sortValues[i] = &sortorder.IntSortValue{
-								Val:      longVal,
-								SortName: name,
-							}
-							break
-						}
-					}
-				}
-			case vearchpb.FieldType_FLOAT:
-				floatVal := cbbytes.ByteToFloat64(fv.Value)
-
-				if sortFieldMap[name] != "" {
-					for i, v := range sortFields {
-						if v.Field == name {
-							sortValues[i] = &sortorder.FloatSortValue{
-								Val:      floatVal,
-								SortName: name,
-							}
-							break
-						}
-					}
-				}
-			case vearchpb.FieldType_DOUBLE:
-				floatVal := cbbytes.ByteToFloat64(fv.Value)
-				if sortFieldMap[name] != "" {
-					for i, v := range sortFields {
-						if v.Field == name {
-							sortValues[i] = &sortorder.FloatSortValue{
-								Val:      floatVal,
-								SortName: name,
-							}
-							break
-						}
-					}
-				}
-			case vearchpb.FieldType_BOOL:
-			case vearchpb.FieldType_STRINGARRAY:
-			case vearchpb.FieldType_DATE:
-			case vearchpb.FieldType_VECTOR:
-
-			default:
-				log.Warn("can not set value by type:[%v] ", field.FieldType)
-			}
-		}
-	}
-
-	return sortValues, pKey, nil
 }
 
 func AddMergeResultArr(dest []*vearchpb.SearchResult, src []*vearchpb.SearchResult) error {

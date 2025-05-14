@@ -21,7 +21,7 @@ import (
 
 type SearchDocResult struct {
 	PartitionData *vearchpb.PartitionData
-	SortValueMap  map[string][]sortorder.SortValue
+	Desc          bool
 	TopSizes      []int32
 }
 

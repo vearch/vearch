@@ -1270,7 +1270,6 @@ func queryRequestToPb(searchDoc *request.SearchDocumentRequest, space *entity.Sp
 		spacePro, _ := entity.UnmarshalPropertyJSON(space.Fields)
 		spaceProMap = spacePro
 	}
-	sortFieldMap := make(map[string]string)
 
 	sortFieldArr := make([]*vearchpb.SortField, 0, len(sortOrder))
 
@@ -1285,17 +1284,9 @@ func queryRequestToPb(searchDoc *request.SearchDocumentRequest, space *entity.Sp
 		if sortField != "_score" && sortField != "_id" && queryFieldMap[sortField] == "" {
 			queryReq.Fields = append(queryReq.Fields, sortField)
 		}
-
-		sortDesc := sort.GetSortOrder()
-		if sortDesc {
-			sortFieldMap[sortField] = "true"
-		} else {
-			sortFieldMap[sortField] = "false"
-		}
 	}
 
 	queryReq.SortFields = sortFieldArr
-	queryReq.SortFieldMap = sortFieldMap
 
 	if searchDoc.Filters != nil {
 		rfs, tfs, operator, err := parseFilter(searchDoc.Filters, space)
@@ -1425,7 +1416,6 @@ func requestToPb(searchDoc *request.SearchDocumentRequest, space *entity.Space, 
 		spacePro, _ := entity.UnmarshalPropertyJSON(space.Fields)
 		spaceProMap = spacePro
 	}
-	sortFieldMap := make(map[string]string)
 
 	sortFieldArr := make([]*vearchpb.SortField, 0, len(sortOrder))
 
@@ -1440,17 +1430,9 @@ func requestToPb(searchDoc *request.SearchDocumentRequest, space *entity.Space, 
 		if sortField != "_score" && sortField != "_id" && queryFieldMap[sortField] == "" {
 			searchReq.Fields = append(searchReq.Fields, sortField)
 		}
-
-		sortDesc := sort.GetSortOrder()
-		if sortDesc {
-			sortFieldMap[sortField] = "true"
-		} else {
-			sortFieldMap[sortField] = "false"
-		}
 	}
 
 	searchReq.SortFields = sortFieldArr
-	searchReq.SortFieldMap = sortFieldMap
 
 	err = parseSearch(searchDoc.Vectors, searchDoc.Filters, searchReq, space)
 	if err != nil {

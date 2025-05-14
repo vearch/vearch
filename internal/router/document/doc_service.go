@@ -154,13 +154,7 @@ func (docService *docService) query(ctx context.Context, args *vearchpb.QueryReq
 		return &vearchpb.SearchResponse{Head: setErrHead(request.Err)}
 	}
 
-	sortOrder := make([]sortorder.Sort, 0)
-	if args.SortFields != nil && len(args.SortFields) > 0 {
-		for _, sortF := range args.SortFields {
-			sortOrder = append(sortOrder, &sortorder.SortField{Field: sortF.Field, Desc: sortF.Type})
-		}
-	}
-	searchResponse := request.QueryFieldSortExecute(sortOrder)
+	searchResponse := request.QueryFieldSortExecute()
 
 	if searchResponse == nil {
 		return &vearchpb.SearchResponse{Head: setErrHead(request.Err)}
@@ -188,7 +182,9 @@ func (docService *docService) search(ctx context.Context, searchReq *vearchpb.Se
 			sortOrder = append(sortOrder, &sortorder.SortField{Field: sortF.Field, Desc: sortF.Type})
 		}
 	}
-	searchResponse := request.SearchFieldSortExecute(sortOrder)
+
+	desc := sortOrder[0].GetSortOrder()
+	searchResponse := request.SearchFieldSortExecute(desc)
 
 	if searchResponse == nil {
 		return &vearchpb.SearchResponse{Head: setErrHead(request.Err)}

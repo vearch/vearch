@@ -245,7 +245,7 @@ Status Engine::Search(Request &request, Response &response_results) {
       response_results.AddResults(std::move(result));
     }
     RequestConcurrentController::GetInstance().Release(req_num);
-    return Status::InvalidArgument();
+    return Status::InvalidArgument(msg);
   }
   bool brute_force_search = request.BruteForceSearch();
   std::vector<struct VectorQuery> &vec_fields = request.VecFields();
