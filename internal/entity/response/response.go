@@ -31,10 +31,10 @@ type Response struct {
 
 // http protocol
 type HttpReply struct {
-	Code      int         `json:"code"`
-	RequestId string      `json:"request_id,omitempty"`
-	Msg       string      `json:"msg,omitempty"`
-	Data      interface{} `json:"data,omitempty"`
+	Code      int    `json:"code"`
+	RequestId string `json:"request_id,omitempty"`
+	Msg       string `json:"msg,omitempty"`
+	Data      any    `json:"data,omitempty"`
 }
 
 func New(ginContext *gin.Context) *Response {
@@ -50,7 +50,16 @@ func (r *Response) SetHttpStatus(httpStatus int64) *Response {
 	return r
 }
 
-func (r *Response) SendJson(data interface{}) {
+func (r *Response) SendJson(data any) {
+	if r.ginContext.Request.Context().Err() != nil {
+		log.Warn("attempted to write response to canceled context")
+		return
+	}
+
+	if r.ginContext.Writer.Written() {
+		log.Warn("response already committed, cannot write JSON")
+		return
+	}
 	r.ginContext.JSON(int(r.httpStatus), data)
 }
 
@@ -64,7 +73,7 @@ func (r *Response) SendJsonBytes(bytes []byte) {
 	}
 }
 
-func (r *Response) JsonSuccess(data interface{}) {
+func (r *Response) JsonSuccess(data any) {
 	httpReply := &HttpReply{
 		Code:      int(vearchpb.ErrorEnum_SUCCESS),
 		RequestId: r.ginContext.GetHeader("X-Request-Id"),
@@ -94,3 +103,4 @@ func (r *Response) JsonError(err *errors.ErrRequest) {
 	r.SetHttpStatus(int64(err.HttpCode()))
 	r.SendJson(httpReply)
 }
+
