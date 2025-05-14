@@ -595,6 +595,10 @@ Status Engine::CreateTable(TableInfo &table) {
     LOG(ERROR) << "write table schema error, path=" << path;
   }
 
+  refresh_interval_ = table.RefreshInterval();
+  LOG(INFO) << space_name_
+            << " init refresh_interval=" << refresh_interval_;
+
   LOG(INFO) << "create table [" << table_name << "] success!";
   created_table_ = true;
   return Status::OK();
@@ -664,7 +668,7 @@ int Engine::AddOrUpdate(Doc &doc) {
     return -7;
   };
 
-  if (not b_running_ and index_status_ == UNINDEXED) {
+  if (this->refresh_interval_ >= 0 and not b_running_ and index_status_ == UNINDEXED) {
     if (max_docid_ - delete_num_ >= training_threshold_) {
       LOG(INFO) << space_name_ << " begin indexing. training_threshold="
                 << training_threshold_;
@@ -929,7 +933,7 @@ int Engine::RebuildIndex(int drop_before_rebuild, int limit_cpu, int describe) {
     index_status_ = IndexStatus::UNINDEXED;
   }
 
-  if (not b_running_ && max_docid_ - delete_num_ >= training_threshold_) {
+  if (this->refresh_interval_ >= 0 and not b_running_ && max_docid_ - delete_num_ >= training_threshold_) {
     ret = BuildIndex();
     if (ret) {
       LOG(ERROR) << space_name_
@@ -974,7 +978,9 @@ int Engine::Indexing() {
     if (index_is_dirty == true) {
       is_dirty_ = true;
     }
-    usleep(1000 * 1000);  // sleep 1000ms
+    if(this->refresh_interval_ > 0) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(refresh_interval_));
+    }
   }
   running_cv_.notify_one();
   LOG(INFO) << space_name_ << " build index exited!";
@@ -1198,7 +1204,7 @@ int Engine::Load() {
     }
   }
 
-  if (not b_running_ and index_status_ == UNINDEXED) {
+  if (this->refresh_interval_ >= 0 and not b_running_ and index_status_ == UNINDEXED) {
     if (max_docid_ - delete_num_ >= training_threshold_) {
       LOG(INFO) << space_name_ << " begin indexing. training_threshold="
                 << training_threshold_;
@@ -1340,6 +1346,7 @@ int Engine::GetConfig(std::string &conf_str) {
   j["engine_cache_size"] = table_cache_size;
   j["path"] = index_root_path_;
   j["long_search_time"] = long_search_time_;
+  j["refresh_interval"] = refresh_interval_;
   conf_str = j.dump();
   return 0;
 }
@@ -1358,6 +1365,12 @@ int Engine::SetConfig(std::string conf_str) {
 
   if (j.contains("long_search_time")) {
     long_search_time_ = j["long_search_time"];
+  }
+
+  if (j.contains("refresh_interval")) {
+    refresh_interval_ = j["refresh_interval"];
+    LOG(INFO) << space_name_
+      << " update refresh_interval=" << refresh_interval_;
   }
   return 0;
 }

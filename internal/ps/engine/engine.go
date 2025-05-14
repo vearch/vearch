@@ -76,7 +76,7 @@ type Engine interface {
 	GetPartitionID() entity.PartitionID
 
 	SetEngineCfg(configJson []byte) error
-	GetEngineCfg(config *entity.EngineConfig) error
+	GetEngineCfg(config *entity.SpaceConfig) error
 
 	BackupSpace(command string) error
 }

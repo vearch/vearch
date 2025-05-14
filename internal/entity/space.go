@@ -87,6 +87,18 @@ type Space struct {
 	Index           *Index                      `json:"index,omitempty"`
 	PartitionRule   *PartitionRule              `json:"partition_rule,omitempty"`
 	SpaceProperties map[string]*SpaceProperties `json:"space_properties"`
+	RefreshInterval int32                       `json:"refresh_interval,omitempty"`
+}
+
+// TODO separete space config and mapping
+// space_config/[dbId]/[spaceId]:[spaceConfigBody]
+type SpaceConfig struct {
+	Id              SpaceID `json:"id,omitempty"`
+	DBId            DBID    `json:"db_id,omitempty"`
+	EngineCacheSize *int64  `json:"engine_cache_size,omitempty"`
+	Path            *string `json:"path,omitempty"`
+	LongSearchTime  *int64  `json:"long_search_time,omitempty"`
+	RefreshInterval *int32  `json:"refresh_interval,omitempty"`
 }
 
 type SpaceSchema struct {

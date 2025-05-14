@@ -398,7 +398,7 @@ func (ch *EngineCfgHandler) Execute(ctx context.Context, req *vearchpb.Partition
 	} else if req.Type == vearchpb.OpType_GET {
 		// invoke c interface
 		log.Debug("Invoke cfg info is get")
-		cfg := &entity.EngineConfig{}
+		cfg := &entity.SpaceConfig{}
 		err := engine.GetEngineCfg(cfg)
 		if err != nil {
 			log.Debug("Cache info set error [%+v]", err)
@@ -892,7 +892,7 @@ func (bh *BackupHandler) Execute(ctx context.Context, req *vearchpb.PartitionDat
 		return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("find db by id err: %s, data: %d", err.Error(), space.DBId))
 	}
 
-	engineConfig := entity.EngineConfig{}
+	engineConfig := entity.SpaceConfig{}
 	err = e.GetEngineCfg(&engineConfig)
 	if err != nil {
 		log.Error("Get engine config error [%+v]", err)

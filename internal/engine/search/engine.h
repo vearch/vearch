@@ -143,6 +143,8 @@ class Engine {
 
   bool is_dirty_;
 
+  int refresh_interval_;
+
 #ifdef PERFORMANCE_TESTING
   std::atomic<uint64_t> search_num_;
 #endif

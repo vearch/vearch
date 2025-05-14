@@ -347,7 +347,7 @@ func (ge *gammaEngine) SetEngineCfg(configJson []byte) error {
 	return nil
 }
 
-func (ge *gammaEngine) GetEngineCfg(config *entity.EngineConfig) error {
+func (ge *gammaEngine) GetEngineCfg(config *entity.SpaceConfig) error {
 	configJson := gamma.GetEngineCfg(ge.gamma)
 	return json.Unmarshal(configJson, config)
 }

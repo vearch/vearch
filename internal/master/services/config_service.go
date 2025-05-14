@@ -32,7 +32,7 @@ func NewConfigService(client *client.Client) *ConfigService {
 	return &ConfigService{client: client}
 }
 
-func (s *ConfigService) GetEngineCfg(ctx context.Context, dbName, spaceName string) (cfg *entity.EngineConfig, err error) {
+func (s *ConfigService) GetSpaceConfigByName(ctx context.Context, dbName, spaceName string) (cfg *entity.SpaceConfig, err error) {
 	mc := s.client.Master()
 	// get space info
 	dbId, err := mc.QueryDBName2ID(ctx, dbName)
@@ -46,7 +46,7 @@ func (s *ConfigService) GetEngineCfg(ctx context.Context, dbName, spaceName stri
 		log.Error("query space %s/%s err: %s", dbName, spaceName, err.Error())
 		return nil, err
 	}
-	cfg, err = s.getEngineConfig(ctx, space)
+	cfg, err = s.getSpaceConfig(ctx, space)
 
 	if err == nil {
 		return cfg, nil
@@ -79,14 +79,14 @@ func (s *ConfigService) GetEngineCfg(ctx context.Context, dbName, spaceName stri
 	return nil, fmt.Errorf("cannot get engine config")
 }
 
-func (s *ConfigService) getEngineConfig(ctx context.Context, space *entity.Space) (cfg *entity.EngineConfig, err error) {
+func (s *ConfigService) getSpaceConfig(ctx context.Context, space *entity.Space) (cfg *entity.SpaceConfig, err error) {
 	mc := s.client.Master()
 	marshal, err := mc.Get(ctx, entity.SpaceConfigKey(space.DBId, space.Id))
 	if err != nil {
 		return nil, err
 	}
 
-	cfg = &entity.EngineConfig{}
+	cfg = &entity.SpaceConfig{}
 	if err = json.Unmarshal(marshal, cfg); err != nil {
 		return nil, err
 	}
@@ -94,10 +94,11 @@ func (s *ConfigService) getEngineConfig(ctx context.Context, space *entity.Space
 	return cfg, err
 }
 
-func (s *ConfigService) UpdateEngineConfig(ctx context.Context, space *entity.Space, cfg *entity.EngineConfig) error {
-	old_cfg, err := s.getEngineConfig(ctx, space)
+// UpdateSpaceConfig updates the space config of the given space in meta.
+func (s *ConfigService) UpdateSpaceConfig(ctx context.Context, space *entity.Space, cfg *entity.SpaceConfig) error {
+	old_cfg, err := s.getSpaceConfig(ctx, space)
 	if err != nil {
-		log.Error("get engine config err: %s", err.Error())
+		log.Error("get space config err: %s", err.Error())
 	}
 
 	new_cfg := cfg
@@ -112,6 +113,9 @@ func (s *ConfigService) UpdateEngineConfig(ctx context.Context, space *entity.Sp
 		if cfg.Path != nil {
 			new_cfg.Path = cfg.Path
 		}
+		if cfg.RefreshInterval != nil {
+			new_cfg.RefreshInterval = cfg.RefreshInterval
+		}
 	}
 	marshal, err := json.Marshal(new_cfg)
 	if err != nil {
@@ -125,7 +129,8 @@ func (s *ConfigService) UpdateEngineConfig(ctx context.Context, space *entity.Sp
 	return nil
 }
 
-func (s *ConfigService) ModifyEngineCfg(ctx context.Context, dbName, spaceName string, cfg *entity.EngineConfig) (err error) {
+// ModifySpaceConfig modifies the space config of the given space to servers and meta.
+func (s *ConfigService) ModifySpaceConfig(ctx context.Context, dbName, spaceName string, cfg *entity.SpaceConfig) (err error) {
 	mc := s.client.Master()
 	// get space info
 	dbId, err := mc.QueryDBName2ID(ctx, dbName)
@@ -161,10 +166,12 @@ func (s *ConfigService) ModifyEngineCfg(ctx context.Context, dbName, spaceName s
 			}
 		}
 	}
-
-	err = s.UpdateEngineConfig(ctx, space, cfg)
+	// Maintain compatibility with older versions
+	cfg.DBId = dbId
+	cfg.Id = space.Id
+	err = s.UpdateSpaceConfig(ctx, space, cfg)
 	if err != nil {
-		log.Error("update engine config err: %s", err.Error())
+		log.Error("update space config err: %s", err.Error())
 		return err
 	}
 	return nil

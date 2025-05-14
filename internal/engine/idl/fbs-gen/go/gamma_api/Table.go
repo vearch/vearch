@@ -90,8 +90,20 @@ func (rcv *Table) IndexParams() []byte {
 	return nil
 }
 
+func (rcv *Table) RefreshInterval() int32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(14))
+	if o != 0 {
+		return rcv._tab.GetInt32(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *Table) MutateRefreshInterval(n int32) bool {
+	return rcv._tab.MutateInt32Slot(14, n)
+}
+
 func TableStart(builder *flatbuffers.Builder) {
-	builder.StartObject(5)
+	builder.StartObject(6)
 }
 func TableAddName(builder *flatbuffers.Builder, name flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(name), 0)
@@ -113,6 +125,9 @@ func TableAddIndexType(builder *flatbuffers.Builder, indexType flatbuffers.UOffs
 }
 func TableAddIndexParams(builder *flatbuffers.Builder, indexParams flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(4, flatbuffers.UOffsetT(indexParams), 0)
+}
+func TableAddRefreshInterval(builder *flatbuffers.Builder, refreshInterval int32) {
+	builder.PrependInt32Slot(5, refreshInterval, 0)
 }
 func TableEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

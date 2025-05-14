@@ -23,6 +23,7 @@ table Table {
   vectors_info:[VectorInfo];
   index_type:string;     // IVFPQ, GPU, HNSW, BINARY
   index_params:string;
+  refresh_interval:int = 1000; // microseconds, default 1s
 }
 
 root_type Table;

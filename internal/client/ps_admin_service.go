@@ -49,7 +49,7 @@ func UpdatePartition(addr string, space *entity.Space, pid entity.PartitionID) e
 	return operatePartition(UpdatePartitionHandler, addr, space, pid)
 }
 
-func GetEngineCfg(addr string, pid entity.PartitionID) (cfg *entity.EngineConfig, err error) {
+func GetEngineCfg(addr string, pid entity.PartitionID) (cfg *entity.SpaceConfig, err error) {
 	args := &vearchpb.PartitionData{PartitionID: pid, Type: vearchpb.OpType_GET}
 	reply := new(vearchpb.PartitionData)
 	err = Execute(addr, EngineCfgHandler, args, reply)
@@ -59,7 +59,7 @@ func GetEngineCfg(addr string, pid entity.PartitionID) (cfg *entity.EngineConfig
 		return nil, vearchpb.NewError(reply.Err.Code, nil)
 	}
 	if reply.Data != nil {
-		cfg := &entity.EngineConfig{}
+		cfg := &entity.SpaceConfig{}
 		err = vjson.Unmarshal(reply.Data, cfg)
 		if err != nil {
 			return nil, err
@@ -72,7 +72,7 @@ func GetEngineCfg(addr string, pid entity.PartitionID) (cfg *entity.EngineConfig
 	return nil, nil
 }
 
-func UpdateEngineCfg(addr string, cfg *entity.EngineConfig, pid entity.PartitionID) error {
+func UpdateEngineCfg(addr string, cfg *entity.SpaceConfig, pid entity.PartitionID) error {
 	value, err := vjson.Marshal(cfg)
 	if err != nil {
 		return err

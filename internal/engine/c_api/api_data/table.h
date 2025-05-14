@@ -55,6 +55,10 @@ class TableInfo : public RawData {
 
   void SetTrainingThreshold(int training_threshold);
 
+  int RefreshInterval();
+
+  void SetRefreshInterval(int refresh_interval);
+
   std::string &IndexType();
 
   void SetIndexType(std::string &index_type);
@@ -77,6 +81,7 @@ class TableInfo : public RawData {
   int training_threshold_ = 0;
   std::string index_type_;
   std::string index_params_;
+  int refresh_interval_;
 };
 
 }  // namespace vearch

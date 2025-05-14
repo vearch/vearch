@@ -14,12 +14,6 @@
 
 package entity
 
-type EngineConfig struct {
-	EngineCacheSize *int64  `json:"engine_cache_size,omitempty"`
-	Path            *string `json:"path,omitempty"`
-	LongSearchTime  *int64  `json:"long_search_time,omitempty"`
-}
-
 type EngineStatus struct {
 	IndexStatus   int32 `json:"index_status,omitempty"`
 	BackupStatus  int32 `json:"backup_status,omitempty"`

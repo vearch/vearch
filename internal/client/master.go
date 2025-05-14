@@ -242,6 +242,40 @@ func (m *masterClient) QuerySpacesByKey(ctx context.Context, prefix string) ([]*
 	return spaces, err
 }
 
+// QuerySpaceConfigsByKey scan SpaceConfig by SpaceConfig prefix
+func (m *masterClient) QuerySpaceConfigsByKey(ctx context.Context, prefix string) ([]*entity.SpaceConfig, error) {
+	bytekeys, bytesSpaces, err := m.PrefixScan(ctx, prefix)
+	if err != nil {
+		return nil, err
+	}
+	spaceConfigs := make([]*entity.SpaceConfig, 0, len(bytesSpaces))
+	for i, bs := range bytesSpaces {
+		// Maintain compatibility with older versions
+		key := string(bytekeys[i])
+		spaceSplit := strings.Split(key, "/")
+		var spaceConfig = &entity.SpaceConfig{}
+		if len(spaceSplit) >= 3 {
+			dbIDStr := spaceSplit[len(spaceSplit)-2]
+			dbID := cast.ToInt64(dbIDStr)
+			spaceIDStr := spaceSplit[len(spaceSplit)-1]
+			spaceID := cast.ToInt64(spaceIDStr)
+			spaceConfig.Id = spaceID
+			spaceConfig.DBId = dbID
+			if err := vjson.Unmarshal(bs, spaceConfig); err != nil {
+				log.Error("unmarshl space config err: %s", err.Error())
+				continue
+			}
+		} else {
+			if err := vjson.Unmarshal(bs, spaceConfig); err != nil {
+				log.Error("unmarshl space config err: %s", err.Error())
+				continue
+			}
+		}
+		spaceConfigs = append(spaceConfigs, spaceConfig)
+	}
+	return spaceConfigs, err
+}
+
 // delete fail server by nodeID
 func (m *masterClient) DeleteFailServerByNodeID(ctx context.Context, nodeID uint64) error {
 	return m.Delete(ctx, entity.FailServerKey(nodeID))

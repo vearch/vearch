@@ -42,12 +42,13 @@ type FieldInfo struct {
 }
 
 type Table struct {
-	Name         string
-	Fields       []FieldInfo
-	VectorsInfos []VectorInfo
-	IndexType    string
-	IndexParams  string
-	table        *gamma_api.Table
+	Name            string
+	Fields          []FieldInfo
+	VectorsInfos    []VectorInfo
+	IndexType       string
+	IndexParams     string
+	RefreshInterval int32
+	table           *gamma_api.Table
 }
 
 func (table *Table) Serialize() []byte {
@@ -114,6 +115,7 @@ func (table *Table) Serialize() []byte {
 	gamma_api.TableAddVectorsInfo(builder, vecInfos)
 	gamma_api.TableAddIndexType(builder, indexType)
 	gamma_api.TableAddIndexParams(builder, indexParams)
+	gamma_api.TableAddRefreshInterval(builder, table.RefreshInterval)
 	builder.Finish(builder.EndObject())
 	return builder.FinishedBytes()
 }
@@ -144,4 +146,5 @@ func (table *Table) DeSerialize(buffer []byte) {
 
 	table.IndexType = string(table.table.IndexType())
 	table.IndexParams = string(table.table.IndexParams())
+	table.RefreshInterval = table.table.RefreshInterval()
 }

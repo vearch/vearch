@@ -34,9 +34,10 @@ func mapping2Table(cfg EngineConfig, m *mapping.IndexMapping) (*gamma.Table, err
 	}
 
 	table := &gamma.Table{
-		Name:        cfg.Space.Name + "-" + cast.ToString(cfg.PartitionID),
-		IndexType:   index.Type,
-		IndexParams: indexParams,
+		Name:            cfg.Space.Name + "-" + cast.ToString(cfg.PartitionID),
+		IndexType:       index.Type,
+		IndexParams:     indexParams,
+		RefreshInterval: cfg.Space.RefreshInterval,
 	}
 
 	fieldInfo := gamma.FieldInfo{Name: entity.IdField, DataType: gamma.STRING, IsIndex: false}

@@ -210,7 +210,8 @@ struct Table FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_FIELDS = 6,
     VT_VECTORS_INFO = 8,
     VT_INDEX_TYPE = 10,
-    VT_INDEX_PARAMS = 12
+    VT_INDEX_PARAMS = 12,
+    VT_REFRESH_INTERVAL = 14
   };
   const flatbuffers::String *name() const {
     return GetPointer<const flatbuffers::String *>(VT_NAME);
@@ -227,6 +228,9 @@ struct Table FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const flatbuffers::String *index_params() const {
     return GetPointer<const flatbuffers::String *>(VT_INDEX_PARAMS);
   }
+  int32_t refresh_interval() const {
+    return GetField<int32_t>(VT_REFRESH_INTERVAL, 0);
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyOffset(verifier, VT_NAME) &&
@@ -241,6 +245,7 @@ struct Table FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyString(index_type()) &&
            VerifyOffset(verifier, VT_INDEX_PARAMS) &&
            verifier.VerifyString(index_params()) &&
+           VerifyField<int32_t>(verifier, VT_REFRESH_INTERVAL) &&
            verifier.EndTable();
   }
 };
@@ -263,6 +268,9 @@ struct TableBuilder {
   void add_index_params(flatbuffers::Offset<flatbuffers::String> index_params) {
     fbb_.AddOffset(Table::VT_INDEX_PARAMS, index_params);
   }
+  void add_refresh_interval(int32_t refresh_interval) {
+    fbb_.AddElement<int32_t>(Table::VT_REFRESH_INTERVAL, refresh_interval, 0);
+  }
   explicit TableBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -281,8 +289,10 @@ inline flatbuffers::Offset<Table> CreateTable(
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<FieldInfo>>> fields = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<VectorInfo>>> vectors_info = 0,
     flatbuffers::Offset<flatbuffers::String> index_type = 0,
-    flatbuffers::Offset<flatbuffers::String> index_params = 0) {
+    flatbuffers::Offset<flatbuffers::String> index_params = 0,
+    int32_t refresh_interval = 0) {
   TableBuilder builder_(_fbb);
+  builder_.add_refresh_interval(refresh_interval);
   builder_.add_index_params(index_params);
   builder_.add_index_type(index_type);
   builder_.add_vectors_info(vectors_info);
@@ -297,7 +307,8 @@ inline flatbuffers::Offset<Table> CreateTableDirect(
     const std::vector<flatbuffers::Offset<FieldInfo>> *fields = nullptr,
     const std::vector<flatbuffers::Offset<VectorInfo>> *vectors_info = nullptr,
     const char *index_type = nullptr,
-    const char *index_params = nullptr) {
+    const char *index_params = nullptr,
+    int32_t refresh_interval = 0) {
   auto name__ = name ? _fbb.CreateString(name) : 0;
   auto fields__ = fields ? _fbb.CreateVector<flatbuffers::Offset<FieldInfo>>(*fields) : 0;
   auto vectors_info__ = vectors_info ? _fbb.CreateVector<flatbuffers::Offset<VectorInfo>>(*vectors_info) : 0;
@@ -309,7 +320,8 @@ inline flatbuffers::Offset<Table> CreateTableDirect(
       fields__,
       vectors_info__,
       index_type__,
-      index_params__);
+      index_params__,
+      refresh_interval);
 }
 
 inline const gamma_api::Table *GetTable(const void *buf) {

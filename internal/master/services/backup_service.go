@@ -184,15 +184,15 @@ func (s *BackupService) restoreSchema(ctx context.Context, dbService *DBService,
 		return res, err
 	}
 
-	cfg, err := configService.GetEngineCfg(ctx, dbName, spaceName)
+	cfg, err := configService.GetSpaceConfigByName(ctx, dbName, spaceName)
 	if err != nil {
-		log.Error("get engine config err: %s", err.Error())
+		log.Error("get space config err: %s", err.Error())
 		return res, err
 	}
 
-	err = configService.UpdateEngineConfig(ctx, space, cfg)
+	err = configService.UpdateSpaceConfig(ctx, space, cfg)
 	if err != nil {
-		log.Error("update engine config err: %s", err.Error())
+		log.Error("update space config err: %s", err.Error())
 		return res, err
 	}
 	return res, nil

@@ -237,8 +237,8 @@ func ExportToClusterHandler(router *gin.Engine, masterService *masterService, se
 	groupAuth.POST(fmt.Sprintf("/backup/dbs/:%s", dbName), c.backupDb)
 
 	// modify engine config handler
-	groupAuth.POST("/config/:"+dbName+"/:"+spaceName, c.modifyEngineCfg)
-	groupAuth.GET("/config/:"+dbName+"/:"+spaceName, c.getEngineCfg)
+	groupAuth.POST("/config/:"+dbName+"/:"+spaceName, c.modifySpaceConfig)
+	groupAuth.GET("/config/:"+dbName+"/:"+spaceName, c.getSpaceConfig)
 
 	// partition handler
 	groupAuth.GET("/partitions", c.partitionList)
@@ -469,7 +469,7 @@ func (ca *clusterAPI) createSpace(c *gin.Context) {
 
 	dbName := c.Param(dbName)
 
-	space := &entity.Space{}
+	space := &entity.Space{RefreshInterval: 1000} // default 1s
 	if err := c.ShouldBindJSON(space); err != nil {
 		body, _ := netutil.GetReqBody(c.Request)
 		log.Error("create space request: %s, err: %s", body, err.Error())
@@ -510,14 +510,15 @@ func (ca *clusterAPI) createSpace(c *gin.Context) {
 		return
 	}
 
-	cfg, err := ca.masterService.Config().GetEngineCfg(c, dbName, space.Name)
+	cfg, err := ca.masterService.Config().GetSpaceConfigByName(c, dbName, space.Name)
 	if err != nil {
 		log.Error("get engine config err: %s", err.Error())
 		response.New(c).JsonError(errors.NewErrInternal(err))
 		return
 	}
-
-	err = ca.masterService.Config().UpdateEngineConfig(c, space, cfg)
+	cfg.Id = space.Id
+	cfg.DBId = space.DBId
+	err = ca.masterService.Config().UpdateSpaceConfig(c, space, cfg)
 	if err != nil {
 		log.Error("update engine config err: %s", err.Error())
 		response.New(c).JsonError(errors.NewErrInternal(err))
@@ -1023,10 +1024,10 @@ func (ca *clusterAPI) deleteMember(c *gin.Context) {
 }
 
 // get engine config
-func (ca *clusterAPI) getEngineCfg(c *gin.Context) {
+func (ca *clusterAPI) getSpaceConfig(c *gin.Context) {
 	dbName := c.Param(dbName)
 	spaceName := c.Param(spaceName)
-	if cfg, err := ca.masterService.Config().GetEngineCfg(c, dbName, spaceName); err != nil {
+	if cfg, err := ca.masterService.Config().GetSpaceConfigByName(c, dbName, spaceName); err != nil {
 		response.New(c).JsonError(errors.NewErrNotFound(err))
 	} else {
 		response.New(c).JsonSuccess(cfg)
@@ -1034,22 +1035,22 @@ func (ca *clusterAPI) getEngineCfg(c *gin.Context) {
 }
 
 // modify engine config
-func (ca *clusterAPI) modifyEngineCfg(c *gin.Context) {
+func (ca *clusterAPI) modifySpaceConfig(c *gin.Context) {
 	var err error
 	defer errutil.CatchError(&err)
 	dbName := c.Param(dbName)
 	spaceName := c.Param(spaceName)
-	cacheCfg := &entity.EngineConfig{}
+	spaceCfg := &entity.SpaceConfig{}
 
-	if err := c.ShouldBindJSON(cacheCfg); err != nil {
+	if err := c.ShouldBindJSON(spaceCfg); err != nil {
 		response.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
 	}
 
-	if err := ca.masterService.Config().ModifyEngineCfg(c, dbName, spaceName, cacheCfg); err != nil {
+	if err := ca.masterService.Config().ModifySpaceConfig(c, dbName, spaceName, spaceCfg); err != nil {
 		response.New(c).JsonError(errors.NewErrInternal(err))
 	} else {
-		response.New(c).JsonSuccess(cacheCfg)
+		response.New(c).JsonSuccess(spaceCfg)
 	}
 }
 

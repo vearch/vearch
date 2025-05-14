@@ -49,7 +49,20 @@ func (s *ServerService) RegisterServer(ctx context.Context, ip string, nodeID en
 		return nil, err
 	}
 
+	spaceConfigs, err := mc.QuerySpaceConfigsByKey(ctx, entity.PrefixSpaceConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	configMap := make(map[entity.SpaceID]*entity.SpaceConfig)
+	for _, config := range spaceConfigs {
+		configMap[config.Id] = config
+	}
+
 	for _, s := range spaces {
+		if config, exists := configMap[s.Id]; exists {
+			s.RefreshInterval = *config.RefreshInterval
+		}
 		for _, p := range s.Partitions {
 			for _, id := range p.Replicas {
 				if nodeID == id {

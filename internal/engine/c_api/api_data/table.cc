@@ -36,7 +36,8 @@ int TableInfo::Serialize(char **out, int *out_len) {
                                       builder.CreateVector(field_info_vector),
                                       builder.CreateVector(vector_info_vector),
                                       builder.CreateString(index_type_),
-                                      builder.CreateString(index_params_));
+                                      builder.CreateString(index_params_),
+                                      refresh_interval_);
   builder.Finish(table);
   *out_len = builder.GetSize();
   *out = (char *)malloc(*out_len * sizeof(char));
@@ -83,6 +84,7 @@ void TableInfo::Deserialize(const char *data, int len) {
   if (training_threshold > 0) {
     training_threshold_ = training_threshold;
   }
+  refresh_interval_ = table_->refresh_interval();
 }
 
 std::string &TableInfo::Name() { return name_; }
@@ -107,6 +109,12 @@ int TableInfo::TrainingThreshold() { return training_threshold_; }
 
 void TableInfo::SetTrainingThreshold(int training_threshold) {
   training_threshold_ = training_threshold;
+}
+
+int TableInfo::RefreshInterval() { return refresh_interval_; }
+
+void TableInfo::SetRefreshInterval(int refresh_interval) {
+  refresh_interval_ = refresh_interval;
 }
 
 std::string &TableInfo::IndexType() { return index_type_; }
