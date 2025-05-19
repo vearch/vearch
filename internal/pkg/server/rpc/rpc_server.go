@@ -20,10 +20,13 @@ import (
 	"net"
 
 	"github.com/smallnest/rpcx/client"
+	rlog "github.com/smallnest/rpcx/log"
 	"github.com/smallnest/rpcx/protocol"
 	"github.com/smallnest/rpcx/server"
 	"github.com/smallnest/rpcx/share"
+	"github.com/vearch/vearch/v3/internal/config"
 	"github.com/vearch/vearch/v3/internal/pkg/server/rpc/handler"
+	"github.com/vearch/vearch/v3/internal/pkg/vearchlog"
 )
 
 // var serializeType = protocol.MsgPack
@@ -56,6 +59,8 @@ func (r *RpcServer) Run() error {
 		r.serverAddress = ""
 	}
 	r.server = server.NewServer()
+	vlog := vearchlog.NewVearchLog(config.Conf().GetLogDir(), "PS.RPC", vearchlog.WarnLogType, false)
+	rlog.SetLogger(vlog)
 	r.server.Plugins.Add(client.OpenTracingPlugin{})
 	go r.server.Serve("tcp", fmt.Sprintf("%s:%d", r.serverAddress, r.port))
 

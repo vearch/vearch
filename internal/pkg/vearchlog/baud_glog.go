@@ -115,14 +115,24 @@ const (
 	FATAL = int(fatalLog)
 )
 
+const (
+	DebugLogType string = "DEBUG"
+	TraceLogType string = "TRACE"
+	InfoLogType  string = "INFO"
+	WarnLogType  string = "WARN"
+	ErrorLogType string = "ERROR"
+	PanicLogType string = "PANIC"
+	FatalLogType string = "FATAL"
+)
+
 var severityName = []string{
-	debugLog:   "DEBUG",
-	traceLog:   "TRACE",
-	infoLog:    "INFO",
-	warningLog: "WARN",
-	errorLog:   "ERROR",
-	panicLog:   "PANIC",
-	fatalLog:   "FATAL",
+	debugLog:   DebugLogType,
+	traceLog:   TraceLogType,
+	infoLog:    InfoLogType,
+	warningLog: WarnLogType,
+	errorLog:   ErrorLogType,
+	panicLog:   PanicLogType,
+	fatalLog:   FatalLogType,
 }
 
 var severityLevelByte = [7][]byte{[]byte("DEBUG"), []byte("TRACE"), []byte("INFO"), []byte("WARN"), []byte("ERROR"), []byte("PANIC"), []byte("FATAL")}

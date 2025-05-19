@@ -30,143 +30,143 @@ type GoLog struct {
 	LevelCode string
 }
 
-func (this *GoLog) Flush() {
+func (gl *GoLog) Flush() {
 }
 
 func NewGoLog(lg *golog.Logger, l Level) Log {
 	return &GoLog{Logger: lg, L: l}
 }
 
-func (this *GoLog) IsDebugEnabled() bool {
-	return this.L == 0
+func (gl *GoLog) IsDebugEnabled() bool {
+	return gl.L == 0
 }
 
-func (this *GoLog) IsTraceEnabled() bool {
-	return this.L <= 1
+func (gl *GoLog) IsTraceEnabled() bool {
+	return gl.L <= 1
 }
 
-func (this *GoLog) IsInfoEnabled() bool {
-	return this.L <= 2
+func (gl *GoLog) IsInfoEnabled() bool {
+	return gl.L <= 2
 }
 
-func (this *GoLog) IsWarnEnabled() bool {
-	return this.L <= 3
+func (gl *GoLog) IsWarnEnabled() bool {
+	return gl.L <= 3
 }
 
-func (this *GoLog) Debugf(format string, args ...interface{}) {
-	if this.IsDebugEnabled() {
-		this.LevelCode = debug
-		this.write(format, args...)
+func (gl *GoLog) Debugf(format string, args ...interface{}) {
+	if gl.IsDebugEnabled() {
+		gl.LevelCode = debug
+		gl.write(format, args...)
 	}
 }
 
-func (this *GoLog) Tracef(format string, args ...interface{}) {
-	if this.IsTraceEnabled() {
-		this.LevelCode = trace
-		this.write(format, args...)
+func (gl *GoLog) Tracef(format string, args ...interface{}) {
+	if gl.IsTraceEnabled() {
+		gl.LevelCode = trace
+		gl.write(format, args...)
 	}
 }
 
-func (this *GoLog) Infof(format string, args ...interface{}) {
-	if this.IsInfoEnabled() {
-		this.LevelCode = info
-		this.write(format, args...)
+func (gl *GoLog) Infof(format string, args ...interface{}) {
+	if gl.IsInfoEnabled() {
+		gl.LevelCode = info
+		gl.write(format, args...)
 	}
 }
 
-func (this *GoLog) Warnf(format string, args ...interface{}) {
-	if this.IsWarnEnabled() {
-		this.LevelCode = warn
-		this.write(format, args...)
+func (gl *GoLog) Warnf(format string, args ...interface{}) {
+	if gl.IsWarnEnabled() {
+		gl.LevelCode = warn
+		gl.write(format, args...)
 	}
 }
 
-func (this *GoLog) Errorf(format string, args ...interface{}) {
-	this.LevelCode = err
-	this.write(format, args...)
+func (gl *GoLog) Errorf(format string, args ...interface{}) {
+	gl.LevelCode = err
+	gl.write(format, args...)
 }
 
-func (this *GoLog) write(format string, args ...interface{}) {
+func (gl *GoLog) write(format string, args ...interface{}) {
 	if len(args) == 0 {
-		_ = this.Output(4, this.LevelCode+format)
+		_ = gl.Output(4, gl.LevelCode+format)
 	} else {
-		_ = this.Output(4, fmt.Sprintf(this.LevelCode+format, args...))
+		_ = gl.Output(4, fmt.Sprintf(gl.LevelCode+format, args...))
 	}
 
 }
 
-func (this *GoLog) Fatalf(format string, args ...interface{}) {
-	this.LevelCode = err
-	this.write(format, args...)
+func (gl *GoLog) Fatalf(format string, args ...interface{}) {
+	gl.LevelCode = err
+	gl.write(format, args...)
 }
-func (this *GoLog) Panicf(format string, args ...interface{}) {
-	this.LevelCode = err
-	this.write(format, args...)
+func (gl *GoLog) Panicf(format string, args ...interface{}) {
+	gl.LevelCode = err
+	gl.write(format, args...)
 }
-func (this *GoLog) Error(args ...interface{}) {
-	this.LevelCode = err
+func (gl *GoLog) Error(args ...interface{}) {
+	gl.LevelCode = err
 	if len(args) <= 1 {
-		this.write(fmt.Sprint(args...))
+		gl.write(fmt.Sprint(args...))
 	} else {
 		format := args[0].(string)
-		this.write(format, args[1:]...)
+		gl.write(format, args[1:]...)
 	}
 }
-func (this *GoLog) Warn(args ...interface{}) {
-	this.LevelCode = warn
+func (gl *GoLog) Warn(args ...interface{}) {
+	gl.LevelCode = warn
 	if len(args) <= 1 {
-		this.write(fmt.Sprint(args...))
+		gl.write(fmt.Sprint(args...))
 	} else {
 		format := args[0].(string)
-		this.write(format, args[1:]...)
+		gl.write(format, args[1:]...)
 	}
 }
-func (this *GoLog) Info(args ...interface{}) {
-	this.LevelCode = info
+func (gl *GoLog) Info(args ...interface{}) {
+	gl.LevelCode = info
 	if len(args) <= 1 {
-		this.write(fmt.Sprint(args...))
+		gl.write(fmt.Sprint(args...))
 	} else {
 		format := args[0].(string)
-		this.write(format, args[1:]...)
-	}
-}
-
-func (this *GoLog) Trace(args ...interface{}) {
-	this.LevelCode = trace
-	if len(args) <= 1 {
-		this.write(fmt.Sprint(args...))
-	} else {
-		format := args[0].(string)
-		this.write(format, args[1:]...)
+		gl.write(format, args[1:]...)
 	}
 }
 
-func (this *GoLog) Debug(args ...interface{}) {
-	this.LevelCode = debug
+func (gl *GoLog) Trace(args ...interface{}) {
+	gl.LevelCode = trace
 	if len(args) <= 1 {
-		this.write(fmt.Sprint(args...))
+		gl.write(fmt.Sprint(args...))
 	} else {
 		format := args[0].(string)
-		this.write(format, args[1:]...)
+		gl.write(format, args[1:]...)
 	}
 }
 
-func (this *GoLog) Fatal(args ...interface{}) {
-	this.LevelCode = err
+func (gl *GoLog) Debug(args ...interface{}) {
+	gl.LevelCode = debug
 	if len(args) <= 1 {
-		this.write(fmt.Sprint(args...))
+		gl.write(fmt.Sprint(args...))
 	} else {
 		format := args[0].(string)
-		this.write(format, args[1:]...)
+		gl.write(format, args[1:]...)
 	}
 }
 
-func (this *GoLog) Panic(args ...interface{}) {
-	this.LevelCode = err
+func (gl *GoLog) Fatal(args ...interface{}) {
+	gl.LevelCode = err
 	if len(args) <= 1 {
-		this.write(fmt.Sprint(args...))
+		gl.write(fmt.Sprint(args...))
 	} else {
 		format := args[0].(string)
-		this.write(format, args[1:]...)
+		gl.write(format, args[1:]...)
+	}
+}
+
+func (gl *GoLog) Panic(args ...interface{}) {
+	gl.LevelCode = err
+	if len(args) <= 1 {
+		gl.write(fmt.Sprint(args...))
+	} else {
+		format := args[0].(string)
+		gl.write(format, args[1:]...)
 	}
 }

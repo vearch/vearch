@@ -23,12 +23,17 @@ import (
 	"time"
 
 	"github.com/cubefs/cubefs/depends/tiglabs/raft"
+	rlogger "github.com/cubefs/cubefs/depends/tiglabs/raft/logger"
 	"github.com/cubefs/cubefs/depends/tiglabs/raft/proto"
 	"github.com/cubefs/cubefs/depends/tiglabs/raft/storage/wal"
+
+	rlog "github.com/cubefs/cubefs/depends/tiglabs/raft/util/log"
 	"github.com/vearch/vearch/v3/internal/client"
 	"github.com/vearch/vearch/v3/internal/config"
 	"github.com/vearch/vearch/v3/internal/entity"
 	"github.com/vearch/vearch/v3/internal/pkg/log"
+
+	"github.com/vearch/vearch/v3/internal/pkg/vearchlog"
 	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
 	"github.com/vearch/vearch/v3/internal/ps/engine/gammacb"
 	"github.com/vearch/vearch/v3/internal/ps/psutil"
@@ -163,6 +168,12 @@ func (s *Store) Start() (err error) {
 		peer := proto.Peer{Type: proto.PeerNormal, ID: uint64(repl)}
 		raftConf.Peers = append(raftConf.Peers, peer)
 	}
+	raftLog, err := rlog.NewLog(config.Conf().GetLogDir(), "PS.RAFT", vearchlog.WarnLogType)
+	if err != nil {
+		s.Engine.Close()
+		return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("start partition[%d] open raft log error: %s", s.Partition.Id, err.Error()))
+	}
+	rlogger.SetLogger(raftLog)
 	if err = s.RaftServer.CreateRaft(raftConf); err != nil {
 		s.Engine.Close()
 		return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("start partition[%d] create raft error: %s", s.Partition.Id, err))
