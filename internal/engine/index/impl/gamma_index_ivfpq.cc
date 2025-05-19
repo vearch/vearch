@@ -643,13 +643,14 @@ void compute_dis(int k, const float *xi, float *simi, idx_t *idxi,
   if (rerank == true) {
     ScopeVectors scope_vecs;
     std::vector<idx_t> vids(recall_idxi, recall_idxi + recall_num);
-    if (vec->Gets(vids, scope_vecs)) {
-      LOG(ERROR) << "get raw vector failed";
+    int ret = vec->Gets(vids, scope_vecs);
+    if (ret != 0) {
+      LOG(ERROR) << "get raw vector failed, ret=" << ret;
       return;
     }
     int raw_d = vec->MetaInfo()->Dimension();
     for (int j = 0; j < recall_num; j++) {
-      if (recall_idxi[j] == -1) continue;
+      if (recall_idxi[j] < 0) continue;
       float dis = 0;
       if (scope_vecs.Get(j) == nullptr) {
         continue;

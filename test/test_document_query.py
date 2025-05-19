@@ -388,3 +388,174 @@ class TestDocumentQueryEmptyShard:
     # destroy
     def test_destroy_cluster(self):
         destroy(router_url, db_name, space_name)
+
+
+class TestDocumentQueryReturnFields:
+    def setup_class(self):
+        self.xb = xb
+
+    # prepare for cluster
+    def test_prepare_cluster(self):
+        embedding_size = self.xb.shape[1]
+        properties = {}
+        properties["fields"] = [
+            {
+                "name": "field_int",
+                "type": "integer",
+                "index": {
+                    "name": "field_int",
+                    "type": "SCALAR",
+                },
+            },
+            {
+                "name": "field_long",
+                "type": "long",
+            },
+            {
+                "name": "field_float",
+                "type": "float",
+            },
+            {
+                "name": "field_double",
+                "type": "double",
+                "index": {
+                    "name": "field_double",
+                    "type": "SCALAR",
+                },
+            },
+            {
+                "name": "field_string",
+                "type": "string",
+                "index": {
+                    "name": "field_string",
+                    "type": "SCALAR",
+                },
+            },
+            {
+                "name": "field_vector",
+                "type": "vector",
+                "index": {
+                    "name": "gamma",
+                    "type": "FLAT",
+                    "params": {
+                        "metric_type": "L2",
+                    },
+                },
+                "dimension": embedding_size,
+                "store_type": "MemoryOnly",
+                # "format": "normalization"
+            },
+        ]
+        create_for_document_test(router_url, embedding_size, properties, 5)
+
+    def test_vearch_document_query(self):
+        total_batch = 1
+        batch_size = 1
+        with_id = False
+        full_field = True
+
+        add(total_batch, batch_size, xb, with_id, full_field)
+
+        data = {}
+        data["db_name"] = db_name
+        data["space_name"] = space_name
+        data["limit"] = 10
+        data["filters"] = {
+            "operator": "AND",
+            "conditions": [
+                {
+                    "field": "field_int",
+                    "operator": ">=",
+                    "value": 0,
+                },
+            ],
+        }
+
+        url = router_url + "/document/query"
+
+        data["fields"] = []
+        json_str = json.dumps(data)
+        rs = requests.post(url, auth=(username, password), data=json_str)
+        assert rs.json()["code"] == 0
+        assert len(rs.json()["data"]["documents"][0]) == 6
+
+        data["fields"] = ["_id"]
+        json_str = json.dumps(data)
+        rs = requests.post(url, auth=(username, password), data=json_str)
+        assert rs.json()["code"] == 0
+        assert len(rs.json()["data"]["documents"][0]) == 1
+        for field in data["fields"]:
+            assert field in rs.json()["data"]["documents"][0]
+
+        data["fields"] = ["_id", "field_int"]
+        json_str = json.dumps(data)
+        rs = requests.post(url, auth=(username, password), data=json_str)
+        assert rs.json()["code"] == 0
+        assert len(rs.json()["data"]["documents"][0]) == 2
+        for field in data["fields"]:
+            assert field in rs.json()["data"]["documents"][0]
+
+        data["fields"] = ["field_int"]
+        json_str = json.dumps(data)
+        rs = requests.post(url, auth=(username, password), data=json_str)
+        assert rs.json()["code"] == 0
+        assert len(rs.json()["data"]["documents"][0]) == 2
+        for field in data["fields"]:
+            assert field in rs.json()["data"]["documents"][0]
+
+        data["fields"] = ["field_int", "field_long"]
+        json_str = json.dumps(data)
+        rs = requests.post(url, auth=(username, password), data=json_str)
+        assert rs.json()["code"] == 0
+        assert len(rs.json()["data"]["documents"][0]) == 3
+        for field in data["fields"]:
+            assert field in rs.json()["data"]["documents"][0]
+
+        data["fields"] = ["field_int", "field_long", "field_float"]
+        json_str = json.dumps(data)
+        rs = requests.post(url, auth=(username, password), data=json_str)
+        assert rs.json()["code"] == 0
+        assert len(rs.json()["data"]["documents"][0]) == 4
+        for field in data["fields"]:
+            assert field in rs.json()["data"]["documents"][0]
+
+        data["fields"] = ["field_int", "field_long", "field_float", "field_double"]
+        json_str = json.dumps(data)
+        rs = requests.post(url, auth=(username, password), data=json_str)
+        assert rs.json()["code"] == 0
+        assert len(rs.json()["data"]["documents"][0]) == 5
+        for field in data["fields"]:
+            assert field in rs.json()["data"]["documents"][0]
+
+        data["fields"] = [
+            "field_int",
+            "field_long",
+            "field_float",
+            "field_double",
+            "field_string",
+        ]
+        json_str = json.dumps(data)
+        rs = requests.post(url, auth=(username, password), data=json_str)
+        assert rs.json()["code"] == 0
+        assert len(rs.json()["data"]["documents"][0]) == 6
+        for field in data["fields"]:
+            assert field in rs.json()["data"]["documents"][0]
+
+        data["fields"] = [
+            "field_int",
+            "field_long",
+            "field_float",
+            "field_double",
+            "field_string",
+            "field_vector",
+        ]
+        json_str = json.dumps(data)
+        rs = requests.post(url, auth=(username, password), data=json_str)
+        assert rs.json()["code"] == 0
+        assert len(rs.json()["data"]["documents"][0]) == 7
+        for field in data["fields"]:
+            assert field in rs.json()["data"]["documents"][0]
+
+    # destroy
+    def test_destroy_cluster(self):
+        destroy(router_url, db_name, space_name)

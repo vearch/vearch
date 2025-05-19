@@ -345,6 +345,110 @@ def test_vearch_document_search_with_score_filter(index_type):
     destroy(router_url, db_name, space_name)
 
 
+@pytest.mark.parametrize(
+    ["index_type"],
+    [["IVFPQ"]],
+)
+def test_vearch_document_search_with_ivfpq_recall(index_type):
+    embedding_size = xb.shape[1]
+    batch_size = 100
+    k = 10
+    with_id = True
+    full_field = True
+    seed = 1
+    brute_force_search_threshold = 100
+    total_batch = 3
+
+    logger.info(
+        "dataset num: %d, total_batch: %d, dimension: %d, search num: %d, topK: %d"
+        % (brute_force_search_threshold, total_batch, embedding_size, xq.shape[0], k)
+    )
+
+    properties = {}
+    properties["fields"] = [
+        {
+            "name": "field_int",
+            "type": "integer",
+            "index": {"name": "field_int", "type": "SCALAR"},
+        },
+        {
+            "name": "field_long",
+            "type": "long",
+            "index": {"name": "field_long", "type": "SCALAR"},
+        },
+        {
+            "name": "field_float",
+            "type": "float",
+            "index": {"name": "field_float", "type": "SCALAR"},
+        },
+        {
+            "name": "field_double",
+            "type": "double",
+            "index": {"name": "field_double", "type": "SCALAR"},
+        },
+        {
+            "name": "field_string",
+            "type": "string",
+            "index": {"name": "field_string", "type": "SCALAR"},
+        },
+        {
+            "name": "field_vector",
+            "type": "vector",
+            "index": {
+                "name": "gamma",
+                "type": index_type,
+                "params": {
+                    "metric_type": "L2",
+                    "training_threshold": 3 * brute_force_search_threshold,
+                    "ncentroids": 2,
+                    "nprobe": 1,
+                },
+            },
+            "dimension": embedding_size,
+            # "format": "normalization"
+        },
+    ]
+
+    create_for_document_test(router_url, embedding_size, properties)
+
+    add(total_batch, batch_size, xb, with_id, full_field)
+    logger.info("%s doc_num: %d" % (space_name, get_space_num()))
+
+    waiting_index_finish(total_batch * batch_size, 1)
+
+    data = {}
+    data["db_name"] = db_name
+    data["space_name"] = space_name
+    data["vectors"] = []
+    vector_info = {
+        "field": "field_vector",
+        "feature": xb[:1].flatten().tolist(),
+    }
+    data["vectors"].append(vector_info)
+    data["index_params"] = {"nprobe": 2, "recall_num": 200}
+    data["limit"] = 100
+
+    json_str = json.dumps(data)
+    url = router_url + "/document/search"
+
+    rs = requests.post(url, auth=(username, password), data=json_str)
+    assert rs.json()["code"] == 0
+    # hava result
+    assert len(rs.json()["data"]["documents"][0]) == 100
+
+    total_batch = 2
+    delete_interface(total_batch, batch_size, full_field, seed, "by_ids")
+    logger.info("%s doc_num: %d" % (space_name, get_space_num()))
+    assert get_space_num() == 100
+
+    rs = requests.post(url, auth=(username, password), data=json_str)
+    assert rs.json()["code"] == 0
+    # hava result
+    assert len(rs.json()["data"]["documents"][0]) == 100
+
+    destroy(router_url, db_name, space_name)
+
+
 def process_search_error_data(items):
     data = {}
     data["db_name"] = db_name

@@ -354,7 +354,6 @@ std::vector<rocksdb::Status> StorageManager::MultiGet(
   column_families.reserve(k);
 
   for (size_t i = 0; i < k; i++) {
-    assert(vids[i] >= 0);
     keys_data[i] = utils::ToRowKey(vids[i]);
     keys.emplace_back(std::move(keys_data[i]));
     column_families.emplace_back(cf_handles_[cf_id]);
