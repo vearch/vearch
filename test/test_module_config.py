@@ -188,3 +188,37 @@ class TestConfigRefreshIntervalInital:
     # destroy
     def test_destroy_cluster(self):
         destroy(router_url, db_name, space_name)
+
+class TestQueryLimitConfig:
+    def setup_class(self):
+        self.xb = xb
+
+    # prepare
+    def test_prepare_cluster(self):
+        create(router_url, "MemoryOnly")
+
+    def test_modify_query_limit_config(self):
+        url = router_url + "/config/" + "query_limit_config"
+        rs = requests.get(url, auth=(username, password))
+        assert rs.status_code == 200
+        assert rs.json()["data"] == "false"
+
+        query_limit = {
+            "query_limit_config": True
+        }
+        json_str = json.dumps(query_limit)
+        rs = requests.post(url, auth=(username, password), data=json_str)
+        assert rs.status_code == 200
+        assert rs.json()["data"]["query_limit_config"] == True
+
+        query_limit = {
+            "query_limit_config": False
+        }
+        json_str = json.dumps(query_limit)
+        rs = requests.post(url, auth=(username, password), data=json_str)
+        assert rs.status_code == 200
+        assert rs.json()["data"]["query_limit_config"] == False
+
+    # destroy
+    def test_destroy_cluster(self):
+        destroy(router_url, db_name, space_name)

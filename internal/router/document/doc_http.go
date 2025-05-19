@@ -126,6 +126,20 @@ func BasicAuthMiddleware(docService docService) gin.HandlerFunc {
 	}
 }
 
+func HttpLimitMiddleware(docService docService) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if !entity.RWLimiter.Allow() {
+			msg := fmt.Sprintf("document request too frequency, have reached limit %d", entity.RWLimiter.Burst())
+			log.Error(msg)
+			response.New(c).JsonError(errors.NewErrInternal(fmt.Errorf(msg)))
+			c.Abort()
+			return
+		}
+
+		c.Next()
+	}
+}
+
 func ExportDocumentHandler(httpServer *gin.Engine, client *client.Client) {
 	docService := newDocService(client)
 
@@ -219,6 +233,9 @@ func (handler *DocumentHandler) proxyMaster(group *gin.RouterGroup) error {
 	group.POST("/config/:"+URLParamDbName+"/:"+URLParamSpaceName, handler.handleMasterRequest)
 	group.GET("/config/:"+URLParamDbName+"/:"+URLParamSpaceName, handler.handleMasterRequest)
 
+	group.POST("/config/query_limit_config", handler.handleMasterRequest)
+	group.GET("/config/query_limit_config", handler.handleMasterRequest)
+
 	// members handler
 	group.GET("/members", handler.handleMasterRequest)
 	group.GET("/members/stats", handler.handleMasterRequest)
@@ -253,10 +270,13 @@ func (handler *DocumentHandler) ExportInterfacesToServer(group *gin.RouterGroup)
 	group.GET("/", handler.handleRouterInfo)
 
 	// document
-	group.POST("/document/upsert", handler.handleDocumentUpsert)
-	group.POST("/document/query", handler.handleDocumentQuery)
-	group.POST("/document/search", handler.handleDocumentSearch)
-	group.POST("/document/delete", handler.handleDocumentDelete)
+	groupdoc := group.Group("/document")
+	groupdoc.Use(HttpLimitMiddleware(handler.docService))
+
+	groupdoc.POST("/upsert", handler.handleDocumentUpsert)
+	groupdoc.POST("/query", handler.handleDocumentQuery)
+	groupdoc.POST("/search", handler.handleDocumentSearch)
+	groupdoc.POST("/delete", handler.handleDocumentDelete)
 
 	// index
 	group.POST("/index/flush", handler.handleIndexFlush)

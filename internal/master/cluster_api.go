@@ -133,7 +133,7 @@ func TimeoutMiddleware(defaultTimeout time.Duration) gin.HandlerFunc {
 			if t, err := strconv.Atoi(timeoutStr); err == nil {
 				timeout = time.Duration(t) * time.Millisecond
 			} else {
-				msg := fmt.Sprintf("timeout[%s] param parse to int failed, err: %s", timeout, err.Error())
+				msg := fmt.Sprintf("timeout[%s] param parse to int failed, err: %s", timeoutStr, err.Error())
 				log.Error(msg)
 				response.New(c).JsonError(errors.NewErrBadRequest(fmt.Errorf(msg)))
 				c.Abort()
@@ -239,6 +239,10 @@ func ExportToClusterHandler(router *gin.Engine, masterService *masterService, se
 	// modify engine config handler
 	groupAuth.POST("/config/:"+dbName+"/:"+spaceName, c.modifySpaceConfig)
 	groupAuth.GET("/config/:"+dbName+"/:"+spaceName, c.getSpaceConfig)
+
+	//modify query limit enabled config handler
+	groupAuth.POST("/config/query_limit_config", c.modifyQueryLimitCfg)
+	groupAuth.GET("/config/query_limit_config", c.getQueryLimitCfg)
 
 	// partition handler
 	groupAuth.GET("/partitions", c.partitionList)
@@ -1261,5 +1265,35 @@ func (ca *clusterAPI) changeMember(c *gin.Context) {
 		response.New(c).JsonError(errors.NewErrInternal(err))
 	} else {
 		response.New(c).JsonSuccess(nil)
+	}
+}
+
+// get engine config
+func (ca *clusterAPI) getQueryLimitCfg(c *gin.Context) {
+	if query_limit, err := ca.masterService.Config().GetQueryLimitCfg(c); err != nil {
+		response.New(c).JsonError(errors.NewErrInternal(err))
+	} else {
+		response.New(c).JsonSuccess(query_limit)
+	}
+}
+
+// modify engine config
+func (ca *clusterAPI) modifyQueryLimitCfg(c *gin.Context) {
+	var err error
+	defer errutil.CatchError(&err)
+
+	temp := &struct {
+		Querylimited bool `json:"query_limit_config"`
+	}{}
+
+	if err := c.ShouldBindJSON(temp); err != nil {
+		response.New(c).JsonError(errors.NewErrBadRequest(err))
+		return
+	}
+
+	if err := ca.masterService.Config().ModifyQueryLimitCfg(c, temp.Querylimited); err != nil {
+		response.New(c).JsonError(errors.NewErrInternal(err))
+	} else {
+		response.New(c).JsonSuccess(temp)
 	}
 }

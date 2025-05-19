@@ -17,6 +17,7 @@ package services
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	"github.com/vearch/vearch/v3/internal/client"
 	"github.com/vearch/vearch/v3/internal/entity"
@@ -174,5 +175,26 @@ func (s *ConfigService) ModifySpaceConfig(ctx context.Context, dbName, spaceName
 		log.Error("update space config err: %s", err.Error())
 		return err
 	}
+	return nil
+}
+
+func (s *ConfigService) GetQueryLimitCfg(ctx context.Context) (string, error) {
+	mc := s.client.Master()
+	query_limit, err := mc.Get(ctx, entity.RouterConfigKey("query_limit_config"))
+	if err != nil {
+		return "", err
+	} else if query_limit == nil {
+		return "false", nil
+	}
+
+	return string(query_limit), nil
+}
+
+func (s *ConfigService) ModifyQueryLimitCfg(ctx context.Context, query_limit_enabled bool) (err error) {
+	mc := s.client.Master()
+	if err = mc.Update(ctx, entity.RouterConfigKey("query_limit_config"), []byte(strconv.FormatBool(query_limit_enabled))); err != nil {
+		return err
+	}
+
 	return nil
 }
