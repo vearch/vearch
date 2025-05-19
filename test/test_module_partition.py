@@ -239,8 +239,12 @@ class TestPartitionRule:
         add_date(db_name, space_name, 0, 10, 100, embedding_size, "str")
 
         response = describe_space(router_url, db_name, space_name)
-        logger.info(response.json())
+        # logger.info(response.json())
         assert response.json()["code"] == 0
+        assert len(response.json()["data"]["partitions"]) == 6
+        assert len(response.json()["data"]["partition_rule"]["ranges"]) == 3
+        for partition_range in response.json()["data"]["partition_rule"]["ranges"]:
+            assert partition_range["name"] in ["p0", "p1", "p2"]
 
         assert get_partitions_doc_num("p1") == 10 * 100
 
@@ -271,7 +275,10 @@ class TestPartitionRule:
         logger.info(response.json())
         assert response.json()["code"] == 0
         assert "errors" not in response.json()["data"]
-
+        assert len(response.json()["data"]["partitions"]) == 4
+        assert len(response.json()["data"]["partition_rule"]["ranges"]) == 2
+        for partition_range in response.json()["data"]["partition_rule"]["ranges"]:
+            assert partition_range["name"] != "p1"
         assert get_space_num() == 0
 
     def test_add_partitions(self):
@@ -298,13 +305,20 @@ class TestPartitionRule:
         )
         logger.info(response.json())
         assert response.json()["code"] == 0
+        assert len(response.json()["data"]["partitions"]) == 8
+        assert len(response.json()["data"]["partition_rule"]["ranges"]) == 4
+        for partition_range in response.json()["data"]["partition_rule"]["ranges"]:
+            assert partition_range["name"] in ["p0", "p1", "p2", "p3"]
 
         add_date(db_name, space_name, 0, 10, 100, embedding_size, "str")
 
         response = describe_space(router_url, db_name, space_name)
-        logger.info(response.json())
+        # logger.info(response.json())
         assert response.json()["code"] == 0
         assert "errors" not in response.json()["data"]
+        assert len(response.json()["data"]["partition_rule"]["ranges"]) == 4
+        for partition_range in response.json()["data"]["partition_rule"]["ranges"]:
+            assert partition_range["name"] in ["p0", "p1", "p2", "p3"]
 
         assert get_partitions_doc_num("p1") == 10 * 100
 
@@ -557,6 +571,13 @@ class TestPartitionRuleBadCase:
             [6, "partition ranges name has some"],
             [7, "partition ranges value has some"],
             [8, "partition ranges is empty"],
+            [9, "partition ranges name is empty"],
+            [10, "partition ranges value is empty"],
+            [11, "partition ranges name is not string"],
+            [12, "partition ranges value is not string"],
+            [13, "partition ranges value is not date"],
+            [14, "partition rule field is not date"],
+            [15, "partition rule field is not exist"],
         ],
     )
     def test_vearch_space_create_badcase(self, wrong_index, bad_type):
@@ -643,6 +664,40 @@ class TestPartitionRuleBadCase:
             ]
         if wrong_index == 8:
             space_config["partition_rule"]["ranges"] = []
+        if wrong_index == 9:
+            space_config["partition_rule"]["ranges"] = [
+                {"name": "", "value": today.strftime(date_format)},
+                {"name": "p1", "value": tomorrow.strftime(date_format)},
+                {"name": "p2", "value": day_after_tomorrow.strftime(date_format)},
+            ]
+        if wrong_index == 10:
+            space_config["partition_rule"]["ranges"] = [
+                {"name": "p0", "value": ""},
+                {"name": "p1", "value": tomorrow.strftime(date_format)},
+                {"name": "p2", "value": day_after_tomorrow.strftime(date_format)},
+            ]
+        if wrong_index == 11:
+            space_config["partition_rule"]["ranges"] = [
+                {"name": 0, "value": today.strftime(date_format)},
+                {"name": "p1", "value": tomorrow.strftime(date_format)},
+                {"name": "p2", "value": day_after_tomorrow.strftime(date_format)},
+            ]
+        if wrong_index == 12:
+            space_config["partition_rule"]["ranges"] = [
+                {"name": "p0", "value": 0},
+                {"name": "p1", "value": tomorrow.strftime(date_format)},
+                {"name": "p2", "value": day_after_tomorrow.strftime(date_format)},
+            ]
+        if wrong_index == 13:
+            space_config["partition_rule"]["ranges"] = [
+                {"name": "p0", "value": "today"},
+                {"name": "p1", "value": tomorrow.strftime(date_format)},
+                {"name": "p2", "value": day_after_tomorrow.strftime(date_format)},
+            ]
+        if wrong_index == 14:
+            space_config["fields"][5]["type"] = "string"
+        if wrong_index == 15:
+            space_config["partition_rule"]["field"] = "field_string"
 
         response = create_space(router_url, db_name, space_config)
         logger.info(response.json())
@@ -769,6 +824,7 @@ class TestPartitionRuleBadCase:
             [1, "partition type is not DROP"],
             [2, "db not exist"],
             [3, "space not exist"],
+            [4, "partition name is empty"],
         ],
     )
     def test_drop_partitions_badcase(self, wrong_index, bad_type):
@@ -784,6 +840,8 @@ class TestPartitionRuleBadCase:
             db = "p"
         if wrong_index == 3:
             space = "p"
+        if wrong_index == 4:
+            partition_name = ""
 
         response = update_space_partition_rule(
             router_url,
@@ -803,6 +861,13 @@ class TestPartitionRuleBadCase:
             [2, "partition range value exist"],
             [3, "db not exist"],
             [4, "space not exist"],
+            [5, "partition name is empty"],
+            [6, "partition range name is empty"],
+            [7, "partition range value is empty"],
+            [8, "partition range name is not string"],
+            [9, "partition range value is not string"],
+            [10, "partition range value is not date"],
+            [11, "partition range have two but one exist"],
         ],
     )
     def test_add_partitions_badcase(self, wrong_index, bad_type):
@@ -819,7 +884,6 @@ class TestPartitionRuleBadCase:
                 "type": "RANGE",
                 "ranges": [
                     {"name": "p3", "value": day_after_3.strftime(date_format)},
-                    {"name": "p0", "value": today.strftime(date_format)},
                 ],
             }
         }
@@ -836,6 +900,23 @@ class TestPartitionRuleBadCase:
             db = "p"
         if wrong_index == 4:
             space = "p"
+        if wrong_index == 5:
+            rule["partition_rule"]["ranges"][0]["name"] = ""
+        if wrong_index == 6:
+            rule["partition_rule"]["ranges"][0]["name"] = 0
+        if wrong_index == 7:
+            rule["partition_rule"]["ranges"][0]["value"] = ""
+        if wrong_index == 8:
+            rule["partition_rule"]["ranges"][0]["name"] = 0
+        if wrong_index == 9:
+            rule["partition_rule"]["ranges"][0]["value"] = 0
+        if wrong_index == 10:
+            rule["partition_rule"]["ranges"][0]["value"] = "today"
+        if wrong_index == 11:
+            rule["partition_rule"]["ranges"] = [
+                {"name": "p3", "value": day_after_3.strftime(date_format)},
+                {"name": "p0", "value": today.strftime(date_format)},
+            ]
 
         response = update_space_partition_rule(
             router_url,
@@ -843,6 +924,99 @@ class TestPartitionRuleBadCase:
             space,
             operator_type=operator_type,
             partition_rule=rule,
+        )
+        logger.info(response.json())
+        assert response.json()["code"] != 0
+
+    def test_destroy_db(self):
+        response = list_spaces(router_url, db_name)
+        logger.info(response.json())
+        for space in response.json()["data"]:
+            response = drop_space(router_url, db_name, space["space_name"])
+            logger.info(response)
+        drop_db(router_url, db_name)
+
+
+class TestPartitionRuleUpdateOnEmptyRule:
+    def setup_class(self):
+        pass
+
+    def test_prepare_db(self):
+        logger.info(create_db(router_url, db_name))
+
+    @pytest.mark.parametrize(
+        ["embedding_size", "index_type"],
+        [[128, "FLAT"]],
+    )
+    def test_vearch_space_create(self, embedding_size, index_type):
+        space_config = {
+            "name": space_name,
+            "partition_num": 2,
+            "replica_num": 1,
+            "fields": [
+                {"name": "field_int", "type": "integer"},
+                {"name": "field_long", "type": "long"},
+                {"name": "field_float", "type": "float"},
+                {"name": "field_double", "type": "double"},
+                {
+                    "name": "field_string",
+                    "type": "string",
+                    "index": {"name": "field_string", "type": "SCALAR"},
+                },
+                {
+                    "name": "field_date",
+                    "type": "date",
+                    "index": {"name": "field_date", "type": "SCALAR"},
+                },
+                {
+                    "name": "field_vector",
+                    "type": "vector",
+                    "dimension": embedding_size,
+                    "index": {
+                        "name": "gamma",
+                        "type": index_type,
+                        "params": {
+                            "metric_type": "InnerProduct",
+                            "ncentroids": 2048,
+                            "nsubvector": int(embedding_size / 4),
+                            "nlinks": 32,
+                            "efConstruction": 100,
+                        },
+                    },
+                    # "format": "normalization"
+                },
+            ],
+        }
+
+        response = create_space(router_url, db_name, space_config)
+        logger.info(response.json())
+        assert response.json()["code"] == 0
+
+    def test_drop_partitions(self):
+        response = update_space_partition_rule(
+            router_url, db_name, space_name, partition_name="p1", operator_type="DROP"
+        )
+        logger.info(response.json())
+        assert response.json()["code"] != 0
+
+    def test_add_partitions(self):
+        today = datetime.datetime.today().date()
+        tomorrow = today + datetime.timedelta(days=1)
+        date_format = "%Y-%m-%d"
+        day_after_3 = today + datetime.timedelta(days=3)
+
+        rule = {
+            "partition_rule": {
+                "type": "RANGE",
+                "ranges": [
+                    {"name": "p3", "value": day_after_3.strftime(date_format)},
+                    {"name": "p1", "value": tomorrow.strftime(date_format)},
+                ],
+            }
+        }
+
+        response = update_space_partition_rule(
+            router_url, db_name, space_name, operator_type="ADD", partition_rule=rule
         )
         logger.info(response.json())
         assert response.json()["code"] != 0

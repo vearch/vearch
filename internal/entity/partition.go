@@ -168,6 +168,9 @@ func (pr *PartitionRule) ValidateRange(space *Space) error {
 	valueMap := make(map[string]bool)
 
 	for _, r := range space.PartitionRule.Ranges {
+		if r.Name == "" {
+			return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("space partition rule range name %s is empty, ranges %v", r.Name, space.PartitionRule.Ranges))
+		}
 		if _, nameExists := nameMap[r.Name]; nameExists {
 			return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("space partition rule range name %s has same one, ranges %v", r.Name, space.PartitionRule.Ranges))
 		}
