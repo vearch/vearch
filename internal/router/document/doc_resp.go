@@ -234,6 +234,9 @@ func DocFieldSerialize(doc *vearchpb.Document, space *entity.Space, returnFields
 		if (returnFieldsMap[name] != "") || len(returnFieldsMap) == 0 {
 			field := spaceProperties[name]
 			if field == nil {
+				if name == entity.IdField {
+					continue
+				}
 				if name == "_docid" {
 					nextDocid = cbbytes.Bytes2Int32(fv.Value)
 					continue

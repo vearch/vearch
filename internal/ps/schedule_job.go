@@ -23,6 +23,7 @@ import (
 	"github.com/vearch/vearch/v3/internal/config"
 	"github.com/vearch/vearch/v3/internal/entity"
 	"github.com/vearch/vearch/v3/internal/pkg/log"
+	vearch_os "github.com/vearch/vearch/v3/internal/pkg/runtime/os"
 	"github.com/vearch/vearch/v3/internal/ps/psutil"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
@@ -59,7 +60,7 @@ func (s *Server) StartHeartbeatJob() {
 	go func() {
 		defer s.wg.Done()
 		const (
-			checkInterval  = 5 * time.Second
+			checkInterval  = 60 * time.Second
 			reconnectDelay = 2 * time.Second
 			maxRetries     = 5
 		)
@@ -89,8 +90,8 @@ func (s *Server) StartHeartbeatJob() {
 			return
 		}
 
-		server.PartitionIds = psutil.GetAllPartitions(config.Conf().GetDatas())
-		for _, pid := range server.PartitionIds {
+		pids := psutil.GetAllPartitions(config.Conf().GetDatas())
+		for _, pid := range pids {
 			log.Info("partition id: %d", pid)
 			partition, err := s.client.Master().QueryPartition(context.Background(), pid)
 			if err != nil {
@@ -98,7 +99,7 @@ func (s *Server) StartHeartbeatJob() {
 				continue
 			}
 			if partition == nil {
-				log.Error("QueryPartition partition is nil")
+				log.Error("QueryPartition partition id: %d is nil", pid)
 				continue
 			}
 
@@ -109,6 +110,7 @@ func (s *Server) StartHeartbeatJob() {
 				path := config.Conf().GetDataDirBySlot(config.PS, pid)
 				psutil.ClearPartition(path, pid)
 			}
+			server.PartitionIds = append(server.PartitionIds, pid)
 		}
 		ctx := context.Background()
 		keepaliveC, err := s.client.Master().KeepAlive(ctx, server)
@@ -127,13 +129,41 @@ func (s *Server) StartHeartbeatJob() {
 			for {
 				select {
 				case <-ticker.C:
+					newPartitionIds := psutil.GetAllPartitions(config.Conf().GetDatas())
+
+					// automatically check resource for partitions
+					resourceExhausted := false
+					if len(newPartitionIds) > 0 {
+						for _, pid := range newPartitionIds {
+							partitionStore := s.GetPartition(pid)
+							if partitionStore != nil {
+								partition := partitionStore.GetPartition()
+								if partition != nil {
+									resourceExhausted, err = vearch_os.CheckResource(partition.Path)
+									if err != nil {
+										log.Warn("CheckResource err: %s", err.Error())
+									}
+									break
+								}
+							}
+						}
+						for _, pid := range newPartitionIds {
+							partitionStore := s.GetPartition(pid)
+							if partitionStore != nil {
+								originResourceExhausted := partitionStore.GetPartition().ResourceExhausted
+								partitionStore.GetPartition().ResourceExhausted = resourceExhausted
+								if originResourceExhausted != resourceExhausted {
+									log.Debug("Partition %d resource exhausted status changed: %v -> %v", pid, originResourceExhausted, resourceExhausted)
+								}
+							}
+						}
+					}
+
 					s.raftResolver.RangeNodes(s.updateResolver)
 
 					if leaseId == 0 {
 						continue
 					}
-
-					newPartitionIds := psutil.GetAllPartitions(config.Conf().GetDatas())
 
 					equal, added, removed := comparePartitionIDs(lastPartitionIds, newPartitionIds)
 					if equal {

@@ -43,7 +43,6 @@ type RpcClient struct {
 }
 
 func NewRpcClient(serverAddress ...string) (*RpcClient, error) {
-	log.Debug("instance client by rpc %s", serverAddress[0])
 	var d client.ServiceDiscovery
 	if len(serverAddress) == 1 {
 		d, _ = client.NewPeer2PeerDiscovery("tcp@"+serverAddress[0], "")
@@ -56,7 +55,6 @@ func NewRpcClient(serverAddress ...string) (*RpcClient, error) {
 	}
 
 	clientPool := &pool.Pool{New: func() interface{} {
-		log.Debug("to instance client for server:[%s]", serverAddress)
 		oneclient := client.NewOneClient(client.Failfast, client.RandomSelect, d, ClientOption)
 		return oneclient
 	}}

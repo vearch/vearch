@@ -223,7 +223,7 @@ func (s *ServerService) ResourceLimitService(ctx context.Context, dbService *DBS
 		}
 	}
 
-	log.Debug("dbNames: %v, len(spaces): %d", dbNames, len(spaces))
+	log.Debug("ResourceLimitService dbNames: %v, len(spaces): %d", dbNames, len(spaces))
 	check := false
 	for _, space := range spaces {
 		for _, partition := range space.Partitions {
@@ -233,13 +233,16 @@ func (s *ServerService) ResourceLimitService(ctx context.Context, dbService *DBS
 				} else {
 					check = true
 					err = client.ResourceLimit(server.RpcAddr(), resourceLimit, partition.Id)
-					return err
+					if err != nil {
+						log.Error("ResourceLimit err: %s", err.Error())
+						continue
+					}
 				}
 			}
 		}
 	}
 	if !check {
-		return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("cluster is empty, no need to check resource limit"))
+		return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("target spaces is empty, no need to check resource limit"))
 	}
 
 	return nil

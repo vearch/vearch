@@ -63,7 +63,7 @@ class TestResourceLimit:
 
         space_config = {
             "name": space_name,
-            "partition_num": 1,
+            "partition_num": 5,
             "replica_num": 1,
             "fields": properties["fields"],
         }
@@ -100,19 +100,20 @@ class TestResourceLimit:
         assert response.json()["code"] == 0
 
     def test_upsert_document_with_resource_exhausted(self):
-        url = router_url + "/document/upsert"
-        data = {}
-        data["db_name"] = db_name
-        data["space_name"] = space_name
-        data["documents"] = []
-        param_dict = {}
-        param_dict["field_int"] = 1
-        param_dict["field_vector"] = [random.random() for i in range(0, 128)]
-        data["documents"].append(param_dict)
+        for i in range(0, 10):
+            url = router_url + "/document/upsert"
+            data = {}
+            data["db_name"] = db_name
+            data["space_name"] = space_name
+            data["documents"] = []
+            param_dict = {}
+            param_dict["field_int"] = 1
+            param_dict["field_vector"] = [random.random() for i in range(0, 128)]
+            data["documents"].append(param_dict)
 
-        response = requests.post(url, auth=(username, password), json=data)
-        logger.info(response.json())
-        assert response.json()["data"]["total"] == 0
+            response = requests.post(url, auth=(username, password), json=data)
+            logger.info(response.json())
+            assert response.json()["data"]["total"] == 0
 
     def test_resource_limit(self):
         # wait for etcd recode take effect
@@ -122,19 +123,20 @@ class TestResourceLimit:
         assert response.json()["code"] == 0
 
     def test_upsert_document_with_resource(self):
-        url = router_url + "/document/upsert"
-        data = {}
-        data["db_name"] = db_name
-        data["space_name"] = space_name
-        data["documents"] = []
-        param_dict = {}
-        param_dict["field_int"] = 1
-        param_dict["field_vector"] = [random.random() for i in range(0, 128)]
-        data["documents"].append(param_dict)
+        for i in range(0, 10):
+            url = router_url + "/document/upsert"
+            data = {}
+            data["db_name"] = db_name
+            data["space_name"] = space_name
+            data["documents"] = []
+            param_dict = {}
+            param_dict["field_int"] = 1
+            param_dict["field_vector"] = [random.random() for i in range(0, 128)]
+            data["documents"].append(param_dict)
 
-        response = requests.post(url, auth=(username, password), json=data)
-        logger.info(response.json())
-        assert response.json()["data"]["total"] == 1
+            response = requests.post(url, auth=(username, password), json=data)
+            logger.info(response.json())
+            assert response.json()["data"]["total"] == 1
 
     def test_destroy(self):
         drop_space(router_url, db_name, space_name)

@@ -107,7 +107,6 @@ func readProcMemory() (available, total uint64, err error) {
 func CheckResource(path string) (is bool, err error) {
 	var stat syscall.Statfs_t
 	err = syscall.Statfs(path, &stat)
-
 	if err != nil {
 		log.Error("syscall.Statfs %s err %v", path, err)
 		return false, nil
@@ -115,9 +114,9 @@ func CheckResource(path string) (is bool, err error) {
 
 	totalDisk := stat.Blocks * uint64(stat.Bsize) / 1024 / 1024
 	availDisk := stat.Bavail * uint64(stat.Bsize) / 1024 / 1024
-	log.Debug("path: %s, availDisk %dM, totalDisk %dM", path, availDisk, totalDisk)
 
 	if float64(availDisk)/float64(totalDisk) <= (1 - config.Conf().Global.ResourceLimitRate) {
+		log.Debug("path: %s, availDisk %dM, totalDisk %dM", path, availDisk, totalDisk)
 		return true, vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_RESOURCE_EXHAUSTED, fmt.Errorf("disk space not enough: total [%d]M, avail [%d]M", totalDisk, availDisk))
 	}
 
@@ -127,9 +126,6 @@ func CheckResource(path string) (is bool, err error) {
 	}
 
 	cgroupAvailableMemory, cgroupTotalMemory, err := readCgroupMemory()
-
-	log.Debug("total memory %dM, available memory %dM, cgroup total memory %dM, cgroup available memory %dM", totalMemory, availableMemory, cgroupTotalMemory, cgroupAvailableMemory)
-
 	if err == nil {
 		if cgroupTotalMemory < totalMemory {
 			totalMemory = cgroupTotalMemory
@@ -138,6 +134,7 @@ func CheckResource(path string) (is bool, err error) {
 	}
 
 	if float64(availableMemory)/float64(totalMemory) <= (1 - config.Conf().Global.ResourceLimitRate) {
+		log.Debug("total memory %dM, available memory %dM, cgroup total memory %dM, cgroup available memory %dM", totalMemory, availableMemory, cgroupTotalMemory, cgroupAvailableMemory)
 		return true, vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_RESOURCE_EXHAUSTED, fmt.Errorf("available memory not enough: total [%d]M, avail [%d]M", totalMemory, availableMemory))
 	}
 	return false, nil

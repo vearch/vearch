@@ -780,10 +780,6 @@ func (r *routerRequest) SearchFieldSortExecute(desc bool) *vearchpb.SearchRespon
 			}
 		}
 
-		if len(result) != len(r.PartitionData.SearchResponse.Results) {
-			log.Error("dest length:[%d] not equal src length:[%d]", len(result), len(r.PartitionData.SearchResponse.Results))
-		}
-
 		if len(result) <= len(r.PartitionData.SearchResponse.Results) {
 			for i := range result {
 				AddMergeSort(result[i], r.PartitionData.SearchResponse.Results[i], int(searchReq.TopN), desc)
@@ -1300,10 +1296,6 @@ func GetNodeIdsByClientType(clientType string, partition *entity.Partition, serv
 }
 
 func AddMergeResultArr(dest []*vearchpb.SearchResult, src []*vearchpb.SearchResult) error {
-	if len(dest) != len(src) {
-		log.Error("dest length:[%d] not equal src length:[%d]", len(dest), len(src))
-	}
-
 	if len(dest) <= len(src) {
 		for index := range dest {
 			AddMerge(dest[index], src[index])
