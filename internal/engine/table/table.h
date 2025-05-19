@@ -96,8 +96,10 @@ class Table {
 
   int GetFieldRawValue(int64_t docid, int field_id, std::string &value);
 
-  int GetFieldRawValue(int64_t docid, int field_id,
-                       std::vector<uint8_t> &value);
+  int GetFieldRawValue(int64_t docid, int field_id, std::vector<uint8_t> &value,
+                       uint8_t *doc_value = nullptr);
+
+  int GetRawValue(int64_t docid, std::vector<uint8_t> &value);
 
   int GetFieldType(const std::string &field, DataType &type);
 

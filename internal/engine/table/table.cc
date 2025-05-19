@@ -401,14 +401,16 @@ int Table::GetFieldRawValue(int64_t docid, int field_id, std::string &value) {
 }
 
 int Table::GetFieldRawValue(int64_t docid, int field_id,
-                            std::vector<uint8_t> &value) {
+                            std::vector<uint8_t> &value, uint8_t *doc_value) {
   if ((docid < 0) or (field_id < 0 || field_id >= field_num_)) return -1;
 
-  auto result = storage_mgr_->Get(cf_id_, docid);
-  if (!result.first.ok()) {
-    return result.first.code();
+  if (doc_value == nullptr) {
+    auto result = storage_mgr_->Get(cf_id_, docid);
+    if (!result.first.ok()) {
+      return result.first.code();
+    }
+    doc_value = (uint8_t *)result.second.data();
   }
-  const uint8_t *doc_value = (const uint8_t *)result.second.data();
 
   DataType data_type = attrs_[field_id];
   size_t offset = idx_attr_offset_[field_id];
@@ -434,6 +436,21 @@ int Table::GetFieldRawValue(int64_t docid, int field_id,
     memcpy(value.data(), doc_value + offset, value_len);
   }
 
+  return 0;
+}
+
+int Table::GetRawValue(int64_t docid, std::vector<uint8_t> &value) {
+  if (docid > last_docid_) {
+    LOG(ERROR) << name_ << " doc [" << docid << "] in front of [" << last_docid_
+               << "]";
+    return -1;
+  }
+  auto result = storage_mgr_->Get(cf_id_, docid);
+  if (!result.first.ok()) {
+    return result.first.code();
+  }
+  value.resize(item_length_);
+  memcpy(value.data(), result.second.data(), item_length_);
   return 0;
 }
 

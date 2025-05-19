@@ -85,7 +85,7 @@ int Response::Serialize(const std::string &space_name,
     auto *pbRes = pbResponse.add_results();
     vearchpb::SearchStatus *search_status = new vearchpb::SearchStatus();
     search_status->set_total(gamma_results_[i].total);
-    search_status->set_msg("Success");
+    search_status->set_msg("");
     search_status->set_successful(gamma_results_[i].total);
     search_status->set_failed(0);
     pbRes->set_allocated_status(search_status);
@@ -101,10 +101,17 @@ int Response::Serialize(const std::string &space_name,
       max_score = std::max(max_score, score);
 
       int ret = 0;
-      std::vector<flatbuffers::Offset<gamma_api::Attribute>> attributes;
+
+      std::vector<uint8_t> raw_val;
+      ret = table->GetRawValue(docid, raw_val);
+      if (ret) {
+        LOG(ERROR) << space_name << " " << request_id_ << " "
+                   << "GetRawValue failed, docid: " << docid;
+        break;
+      }
       for (auto &it : attr_idx) {
         std::vector<uint8_t> val;
-        ret = table->GetFieldRawValue(docid, it.second, val);
+        ret = table->GetFieldRawValue(docid, it.second, val, raw_val.data());
         if (ret) {
           break;
         }
