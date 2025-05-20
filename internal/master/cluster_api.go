@@ -1282,18 +1282,16 @@ func (ca *clusterAPI) modifyRequestLimitCfg(c *gin.Context) {
 	var err error
 	defer errutil.CatchError(&err)
 
-	temp := &struct {
-		RequestLimited bool `json:"request_limit_config"`
-	}{}
+	rlc := &entity.RouterLimitCfg{}
 
-	if err := c.ShouldBindJSON(temp); err != nil {
+	if err := c.ShouldBindJSON(rlc); err != nil {
 		response.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
 	}
 
-	if err := ca.masterService.Config().ModifyRequestLimitCfg(c, temp.RequestLimited); err != nil {
+	if err := ca.masterService.Config().ModifyRequestLimitCfg(c, rlc); err != nil {
 		response.New(c).JsonError(errors.NewErrInternal(err))
 	} else {
-		response.New(c).JsonSuccess(temp)
+		response.New(c).JsonSuccess(rlc)
 	}
 }

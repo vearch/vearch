@@ -17,7 +17,6 @@ package services
 import (
 	"context"
 	"fmt"
-	"strconv"
 
 	"github.com/vearch/vearch/v3/internal/client"
 	"github.com/vearch/vearch/v3/internal/entity"
@@ -178,21 +177,48 @@ func (s *ConfigService) ModifySpaceConfig(ctx context.Context, dbName, spaceName
 	return nil
 }
 
-func (s *ConfigService) GetRequestLimitCfg(ctx context.Context) (string, error) {
+func (s *ConfigService) GetRequestLimitCfg(ctx context.Context) (*entity.RouterLimitCfg, error) {
 	mc := s.client.Master()
-	request_limit, err := mc.Get(ctx, entity.RouterConfigKey("request_limit_config"))
+	marshal, err := mc.Get(ctx, entity.RouterConfigKey("request_limit_config"))
 	if err != nil {
-		return "", err
-	} else if request_limit == nil {
-		return "false", nil
+		return nil, err
 	}
 
-	return string(request_limit), nil
+	cfg := &entity.RouterLimitCfg{}
+	if err = json.Unmarshal(marshal, cfg); err != nil {
+		return nil, err
+	}
+
+	return cfg, nil
 }
 
-func (s *ConfigService) ModifyRequestLimitCfg(ctx context.Context, request_limit_enabled bool) (err error) {
+func (s *ConfigService) ModifyRequestLimitCfg(ctx context.Context, cfg *entity.RouterLimitCfg) (err error) {
+	old_cfg, err := s.GetRequestLimitCfg(ctx)
+	if err != nil {
+		log.Error("get router request limit config err: %s", err.Error())
+	}
+	new_cfg := cfg
+
+	if old_cfg != nil {
+		new_cfg = old_cfg
+
+		if cfg.RequestLimit != new_cfg.RequestLimit {
+			new_cfg.RequestLimit = cfg.RequestLimit
+		}
+		if cfg.RequestLimit && cfg.TotalReadLimit > 0 {
+			new_cfg.TotalReadLimit = cfg.TotalReadLimit
+		}
+		if cfg.RequestLimit && cfg.TotalWriteLimit > 0 {
+			new_cfg.TotalWriteLimit = cfg.TotalWriteLimit
+		}
+	}
+
+	marshal, err := json.Marshal(new_cfg)
+	if err != nil {
+		return err
+	}
 	mc := s.client.Master()
-	if err = mc.Update(ctx, entity.RouterConfigKey("request_limit_config"), []byte(strconv.FormatBool(request_limit_enabled))); err != nil {
+	if err = mc.Update(ctx, entity.RouterConfigKey("request_limit_config"), marshal); err != nil {
 		return err
 	}
 
