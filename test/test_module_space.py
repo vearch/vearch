@@ -454,6 +454,7 @@ class TestSpaceExpansion:
 
     def test_update_space_partition(self):
         response = update_space_partition(router_url, db_name, space_name, 2)
+        logger.info(response.json())
         assert response.json()["code"] == 0
         logger.info(response.json()["data"]["partitions"])
 

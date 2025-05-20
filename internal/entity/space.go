@@ -58,6 +58,7 @@ var (
 	MinTrainingThreshold        = 256
 	DefaultMaxPointsPerCentroid = 256
 	DefaultMinPointsPerCentroid = 39
+	DefaultRefreshInterval      = 1000 // 1s
 )
 
 type IndexParams struct {

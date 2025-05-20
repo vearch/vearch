@@ -564,13 +564,12 @@ func (s *SpaceService) UpdateSpaceResource(ctx context.Context, dbs *DBService, 
 		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("can not found space by name : %s", spaceResource.SpaceName))
 	}
 
-	if space.PartitionRule == nil || space.PartitionRule.Ranges == nil {
-		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("space: %s partition rule is empty", spaceResource.SpaceName))
-	}
-
 	if spaceResource.PartitionOperatorType != "" {
 		if spaceResource.PartitionOperatorType != entity.Add && spaceResource.PartitionOperatorType != entity.Drop {
 			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("partition operator type should be %s or %s, but is %s", entity.Add, entity.Drop, spaceResource.PartitionOperatorType))
+		}
+		if space.PartitionRule == nil || space.PartitionRule.Ranges == nil {
+			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("space: %s partition rule is empty", spaceResource.SpaceName))
 		}
 		return s.updateSpacePartitonRule(ctx, dbs, spaceResource, space)
 	}

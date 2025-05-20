@@ -61,7 +61,12 @@ func (s *ServerService) RegisterServer(ctx context.Context, ip string, nodeID en
 
 	for _, s := range spaces {
 		if config, exists := configMap[s.Id]; exists {
-			s.RefreshInterval = *config.RefreshInterval
+			// Maintain compatibility with older versions
+			if config.RefreshInterval == nil {
+				s.RefreshInterval = int32(entity.DefaultRefreshInterval)
+			} else {
+				s.RefreshInterval = *config.RefreshInterval
+			}
 		}
 		for _, p := range s.Partitions {
 			for _, id := range p.Replicas {
