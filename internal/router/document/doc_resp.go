@@ -30,7 +30,7 @@ import (
 	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
 )
 
-func documentUpsertResponse(reply *vearchpb.BulkResponse) (map[string]interface{}, error) {
+func documentUpsertResponse(reply *vearchpb.BulkResponse) (map[string]any, error) {
 	if reply == nil || reply.Items == nil || len(reply.Items) < 1 {
 		if reply.GetHead() != nil && reply.GetHead().Err != nil && reply.GetHead().Err.Code != vearchpb.ErrorEnum_SUCCESS {
 			err := reply.GetHead().Err
@@ -39,7 +39,7 @@ func documentUpsertResponse(reply *vearchpb.BulkResponse) (map[string]interface{
 		return nil, vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, nil)
 	}
 
-	response := make(map[string]interface{})
+	response := make(map[string]any)
 
 	if reply.Head != nil && reply.Head.Err != nil {
 		if reply.Head.Err.Code != vearchpb.ErrorEnum_SUCCESS {
@@ -60,7 +60,7 @@ func documentUpsertResponse(reply *vearchpb.BulkResponse) (map[string]interface{
 
 	response["total"] = total
 
-	documentIDs := make([]interface{}, 0, len(reply.Items))
+	documentIDs := make([]any, 0, len(reply.Items))
 	for _, item := range reply.Items {
 		result := documentResultSerialize(item)
 		documentIDs = append(documentIDs, result)
@@ -71,8 +71,8 @@ func documentUpsertResponse(reply *vearchpb.BulkResponse) (map[string]interface{
 	return response, nil
 }
 
-func documentResultSerialize(item *vearchpb.Item) map[string]interface{} {
-	result := make(map[string]interface{})
+func documentResultSerialize(item *vearchpb.Item) map[string]any {
+	result := make(map[string]any)
 	if item == nil {
 		result["msg"] = "item is nil"
 		result["code"] = http.StatusInternalServerError
@@ -91,7 +91,7 @@ func documentResultSerialize(item *vearchpb.Item) map[string]interface{} {
 	return result
 }
 
-func documentGetResponse(space *entity.Space, reply *vearchpb.GetResponse, returnFieldsMap map[string]string, vectorValue bool) (map[string]interface{}, error) {
+func documentGetResponse(space *entity.Space, reply *vearchpb.GetResponse, returnFieldsMap map[string]string, vectorValue bool) (map[string]any, error) {
 	if reply == nil || len(reply.Items) < 1 {
 		if reply.GetHead() != nil && reply.GetHead().Err != nil && reply.GetHead().Err.Code != vearchpb.ErrorEnum_SUCCESS {
 			err := reply.GetHead().Err
@@ -100,7 +100,7 @@ func documentGetResponse(space *entity.Space, reply *vearchpb.GetResponse, retur
 		return nil, vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, nil)
 	}
 
-	response := make(map[string]interface{})
+	response := make(map[string]any)
 
 	if reply.Head != nil && reply.Head.Err != nil {
 		if reply.Head.Err.Code != vearchpb.ErrorEnum_SUCCESS {
@@ -122,9 +122,9 @@ func documentGetResponse(space *entity.Space, reply *vearchpb.GetResponse, retur
 	}
 	response["total"] = total
 
-	documents := make([]map[string]interface{}, 0, len(reply.Items))
+	documents := make([]map[string]any, 0, len(reply.Items))
 	for _, item := range reply.Items {
-		doc := make(map[string]interface{})
+		doc := make(map[string]any)
 
 		if item == nil {
 			doc["code"] = http.StatusInternalServerError
@@ -151,8 +151,8 @@ func documentGetResponse(space *entity.Space, reply *vearchpb.GetResponse, retur
 	return response, nil
 }
 
-func documentQueryResponse(srs []*vearchpb.SearchResult, head *vearchpb.ResponseHead, space *entity.Space) (map[string]interface{}, error) {
-	response := make(map[string]interface{})
+func documentQueryResponse(srs []*vearchpb.SearchResult, head *vearchpb.ResponseHead, space *entity.Space) (map[string]any, error) {
+	response := make(map[string]any)
 
 	if head != nil && head.Err != nil {
 		if head.Err.Code != vearchpb.ErrorEnum_SUCCESS {
@@ -170,9 +170,9 @@ func documentQueryResponse(srs []*vearchpb.SearchResult, head *vearchpb.Response
 		return nil, vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("query result length should be one"))
 	}
 
-	documents := make([][]map[string]interface{}, 0, len(srs))
+	documents := make([][]map[string]any, 0, len(srs))
 	for _, sr := range srs {
-		docMaps := make([]map[string]interface{}, 0, len(sr.ResultItems))
+		docMaps := make([]map[string]any, 0, len(sr.ResultItems))
 		for _, item := range sr.ResultItems {
 			resultData, err := GetDocSource(item, space, "query")
 			if err != nil {
@@ -192,8 +192,8 @@ func documentQueryResponse(srs []*vearchpb.SearchResult, head *vearchpb.Response
 	return response, nil
 }
 
-func documentSearchResponse(srs []*vearchpb.SearchResult, head *vearchpb.ResponseHead, space *entity.Space) (map[string]interface{}, error) {
-	response := make(map[string]interface{})
+func documentSearchResponse(srs []*vearchpb.SearchResult, head *vearchpb.ResponseHead, space *entity.Space) (map[string]any, error) {
+	response := make(map[string]any)
 
 	if head != nil && head.Err != nil {
 		if head.Err.Code != vearchpb.ErrorEnum_SUCCESS {
@@ -201,9 +201,9 @@ func documentSearchResponse(srs []*vearchpb.SearchResult, head *vearchpb.Respons
 		}
 	}
 
-	documents := make([][]map[string]interface{}, 0, len(srs))
+	documents := make([][]map[string]any, 0, len(srs))
 	for _, sr := range srs {
-		docMaps := make([]map[string]interface{}, 0, len(sr.ResultItems))
+		docMaps := make([]map[string]any, 0, len(sr.ResultItems))
 		for _, item := range sr.ResultItems {
 			result_data, err := GetDocSource(item, space, "search")
 			if err != nil {
@@ -217,7 +217,7 @@ func documentSearchResponse(srs []*vearchpb.SearchResult, head *vearchpb.Respons
 	return response, nil
 }
 
-func DocFieldSerialize(doc *vearchpb.Document, space *entity.Space, returnFieldsMap map[string]string, vectorValue bool, docOut map[string]interface{}) (nextDocid int32, err error) {
+func DocFieldSerialize(doc *vearchpb.Document, space *entity.Space, returnFieldsMap map[string]string, vectorValue bool, docOut map[string]any) (nextDocid int32, err error) {
 	spaceProperties := space.SpaceProperties
 	if spaceProperties == nil {
 		spacePro, _ := entity.UnmarshalPropertyJSON(space.Fields)
@@ -297,8 +297,8 @@ func DocFieldSerialize(doc *vearchpb.Document, space *entity.Space, returnFields
 	return nextDocid, err
 }
 
-func GetDocSource(doc *vearchpb.ResultItem, space *entity.Space, from string) (map[string]interface{}, error) {
-	source := make(map[string]interface{})
+func GetDocSource(doc *vearchpb.ResultItem, space *entity.Space, from string) (map[string]any, error) {
+	source := make(map[string]any)
 	spaceProperties := space.SpaceProperties
 	if spaceProperties == nil {
 		spacePro, _ := entity.UnmarshalPropertyJSON(space.Fields)
@@ -374,7 +374,7 @@ func GetDocSource(doc *vearchpb.ResultItem, space *entity.Space, from string) (m
 }
 
 func ForceMergeToContent(shards *vearchpb.SearchStatus) ([]byte, error) {
-	response := map[string]interface{}{
+	response := map[string]any{
 		"_shards": shards,
 	}
 
@@ -382,15 +382,15 @@ func ForceMergeToContent(shards *vearchpb.SearchStatus) ([]byte, error) {
 }
 
 func FlushToContent(shards *vearchpb.SearchStatus) ([]byte, error) {
-	response := map[string]interface{}{
+	response := map[string]any{
 		"_shards": shards,
 	}
 
 	return vjson.Marshal(response)
 }
 
-func IndexResponseToContent(shards *vearchpb.SearchStatus) map[string]interface{} {
-	response := map[string]interface{}{
+func IndexResponseToContent(shards *vearchpb.SearchStatus) map[string]any {
+	response := map[string]any{
 		"_shards": shards,
 	}
 
@@ -398,11 +398,11 @@ func IndexResponseToContent(shards *vearchpb.SearchStatus) map[string]interface{
 }
 
 func SearchNullToContent(searchStatus *vearchpb.SearchStatus, took time.Duration) ([]byte, error) {
-	response := map[string]interface{}{
+	response := map[string]any{
 		"took":      int64(took) / 1e6,
 		"timed_out": false,
 		"_shards":   searchStatus,
-		"hits": map[string]interface{}{
+		"hits": map[string]any{
 			"total":     0,
 			"max_score": -1,
 		},
@@ -411,8 +411,8 @@ func SearchNullToContent(searchStatus *vearchpb.SearchStatus, took time.Duration
 	return vjson.Marshal(response)
 }
 
-func deleteByQueryResult(resp *vearchpb.DelByQueryeResponse) (map[string]interface{}, error) {
-	result := make(map[string]interface{})
+func deleteByQueryResult(resp *vearchpb.DelByQueryeResponse) (map[string]any, error) {
+	result := make(map[string]any)
 	if resp.Head != nil && resp.Head.Err != nil {
 		if resp.Head.Err.Code != vearchpb.ErrorEnum_SUCCESS {
 			return nil, vearchpb.NewError(resp.Head.Err.Code, nil)

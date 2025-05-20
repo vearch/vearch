@@ -209,8 +209,10 @@ jobs:
       run: |
         cd test
         pytest test_cluster_ps.py -x -k "TestFailServerPrepare" --log-cli-level=INFO
-        sed -i 's/name = "vearch"/name = "test"/' ../cloud/config_cluster.toml
-        cd .. && docker-compose -f cloud/docker-compose.yml restart ps1
+        cd .. && docker-compose -f cloud/docker-compose.yml stop ps1 && sleep 60
+        docker-compose -f cloud/docker-compose.yml start ps1 && sleep 60
+        sed -i 's/name = "vearch"/name = "test"/' cloud/config_cluster.toml
+        docker-compose -f cloud/docker-compose.yml restart ps1
         docker-compose -f cloud/docker-compose.yml restart router1
         sed -i 's/name = "test"/name = "vearch"/' cloud/config_cluster.toml
         sleep 60
@@ -273,7 +275,9 @@ jobs:
       run: |
         cd test
         pytest test_cluster_ps.py -x -k "TestFailServerPrepare" --log-cli-level=INFO
-        cd .. && docker-compose -f cloud/docker-compose.yml start ps4
+        cd .. && docker-compose -f cloud/docker-compose.yml stop ps1 && sleep 60
+        docker-compose -f cloud/docker-compose.yml start ps1 && sleep 60
+        docker-compose -f cloud/docker-compose.yml start ps4
         docker-compose -f cloud/docker-compose.yml stop ps1
         sleep 30
         max_retries=30

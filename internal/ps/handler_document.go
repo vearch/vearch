@@ -236,7 +236,7 @@ func (handler *UnaryHandler) execute(ctx context.Context, req *vearchpb.Partitio
 
 func getDocuments(ctx context.Context, store PartitionStore, items []*vearchpb.Item, getByDocId bool, next bool) {
 	for _, item := range items {
-		if e := store.GetDocument(ctx, true, item.Doc, getByDocId, next); e != nil {
+		if e := store.GetDocument(ctx, false, item.Doc, getByDocId, next); e != nil {
 			msg := fmt.Sprintf("GetDocument failed, key: [%s], err: [%s]", item.Doc.PKey, e.Error())
 			if vearchErr, ok := e.(*vearchpb.VearchErr); ok {
 				item.Err = vearchErr.GetError()

@@ -138,14 +138,14 @@ func (s *MemberService) ChangeMember(ctx context.Context, spaceService *SpaceSer
 	}
 
 	retryTimes := 10
-	masterNode, err := mc.QueryServer(ctx, partition.LeaderID)
+	psNode, err := mc.QueryServer(ctx, partition.LeaderID)
 	for err != nil {
 		partition, err = mc.QueryPartition(ctx, cm.PartitionID)
 		if err != nil {
 			log.Error(err)
 			return err
 		}
-		masterNode, err = mc.QueryServer(ctx, partition.LeaderID)
+		psNode, err = mc.QueryServer(ctx, partition.LeaderID)
 		if err != nil {
 			retryTimes--
 			if retryTimes == 0 {
@@ -154,7 +154,7 @@ func (s *MemberService) ChangeMember(ctx context.Context, spaceService *SpaceSer
 			time.Sleep(10 * time.Second)
 		}
 	}
-	log.Info("masterNode is [%+v], cm is [%+v] ", masterNode, cm)
+	log.Info("psNode is [%+v], cm is [%+v] ", psNode, cm)
 
 	var targetNode *entity.Server
 	targetNode, err = mc.QueryServer(ctx, cm.NodeID)
@@ -168,8 +168,8 @@ func (s *MemberService) ChangeMember(ctx context.Context, spaceService *SpaceSer
 	}
 	log.Info("targetNode is [%+v], cm is [%+v] ", targetNode, cm)
 
-	if !client.IsLive(masterNode.RpcAddr()) {
-		return vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_SERVER_ERROR, fmt.Errorf("server:[%d] addr:[%s] can not connect ", cm.NodeID, masterNode.RpcAddr()))
+	if !client.IsLive(psNode.RpcAddr()) {
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_SERVER_ERROR, fmt.Errorf("server:[%d] addr:[%s] can not connect ", cm.NodeID, psNode.RpcAddr()))
 	}
 
 	if cm.Method == proto.ConfAddNode && targetNode != nil {
@@ -182,7 +182,7 @@ func (s *MemberService) ChangeMember(ctx context.Context, spaceService *SpaceSer
 		return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("change member only support add:[%d] remove:[%d] not support:[%d]", proto.ConfAddNode, proto.ConfRemoveNode, cm.Method))
 	}
 
-	if err := client.ChangeMember(masterNode.RpcAddr(), cm); err != nil {
+	if err := client.ChangeMember(psNode.RpcAddr(), cm); err != nil {
 		return err
 	}
 	if cm.Method == proto.ConfRemoveNode && targetNode != nil && client.IsLive(targetNode.RpcAddr()) {

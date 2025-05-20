@@ -416,8 +416,26 @@ func (r *routerRequest) Execute() []*vearchpb.Item {
 			nodeID := partition.LeaderID
 			err := r.client.PS().GetOrCreateRPCClient(ctx, nodeID).Execute(ctx, UnaryHandler, d, replyPartition)
 			if err != nil {
-				d.Err = vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err).GetError()
-				respChain <- d
+				for _, nodeID := range partition.Replicas {
+					if nodeID == 0 {
+						continue
+					}
+					if r.client.PS().TestFaulty(nodeID) {
+						continue
+					}
+					replyPartition = new(vearchpb.PartitionData)
+					err = r.client.PS().GetOrCreateRPCClient(ctx, nodeID).Execute(ctx, UnaryHandler, d, replyPartition)
+					if err == nil {
+						break
+					}
+				}
+				if err != nil {
+					d.Err = vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err).GetError()
+					respChain <- d
+				} else {
+					d.Err = nil
+					respChain <- replyPartition
+				}
 			} else {
 				respChain <- replyPartition
 			}
@@ -478,8 +496,7 @@ func (r *routerRequest) searchFromPartition(ctx context.Context, partitionID ent
 			msg := fmt.Sprintf("searchFromPartition partitionID: [%v], err: [%v]", partitionID, r)
 			err := &vearchpb.Error{Code: vearchpb.ErrorEnum_RECOVER, Msg: msg}
 			head := &vearchpb.ResponseHead{Err: err}
-			searchResponse := &vearchpb.SearchResponse{Head: head}
-			pd.SearchResponse = searchResponse
+			pd.SearchResponse = &vearchpb.SearchResponse{Head: head}
 			responseDoc.PartitionData = pd
 			respChain <- responseDoc
 		}
@@ -500,9 +517,7 @@ func (r *routerRequest) searchFromPartition(ctx context.Context, partitionID ent
 	partition, e := r.client.Master().Cache().PartitionByCache(ctx, r.space.Name, partitionID)
 	if e != nil {
 		err := &vearchpb.Error{Code: vearchpb.ErrorEnum_ROUTER_NO_PS_CLIENT, Msg: "query partition cache err partitionID:" + fmt.Sprint(partitionID)}
-		head := &vearchpb.ResponseHead{Err: err, RequestId: pd.MessageID}
-		searchResponse := &vearchpb.SearchResponse{Head: head}
-		pd.SearchResponse = searchResponse
+		pd.SearchResponse = &vearchpb.SearchResponse{Head: &vearchpb.ResponseHead{Err: err, RequestId: pd.MessageID}}
 		responseDoc.PartitionData = pd
 		respChain <- responseDoc
 		return
@@ -563,9 +578,7 @@ func (r *routerRequest) searchFromPartition(ctx context.Context, partitionID ent
 		}
 		if rpcClient == nil {
 			err := &vearchpb.Error{Code: vearchpb.ErrorEnum_ROUTER_NO_PS_CLIENT, Msg: "no ps client by nodeID:" + fmt.Sprint(nodeID)}
-			head := &vearchpb.ResponseHead{Err: err}
-			searchResponse := &vearchpb.SearchResponse{Head: head}
-			pd.SearchResponse = searchResponse
+			pd.SearchResponse = &vearchpb.SearchResponse{Head: &vearchpb.ResponseHead{Err: err}}
 			responseDoc.PartitionData = pd
 			respChain <- responseDoc
 			return
@@ -660,9 +673,7 @@ func (r *routerRequest) searchFromPartition(ctx context.Context, partitionID ent
 		} else {
 			err = &vearchpb.Error{Code: vearchpb.ErrorEnum_INTERNAL_ERROR, Msg: retry_err.Error()}
 		}
-		head := &vearchpb.ResponseHead{Err: err}
-		searchResponse := &vearchpb.SearchResponse{Head: head}
-		pd.SearchResponse = searchResponse
+		pd.SearchResponse = &vearchpb.SearchResponse{Head: &vearchpb.ResponseHead{Err: err}}
 		responseDoc.PartitionData = pd
 		respChain <- responseDoc
 		return
@@ -1168,16 +1179,14 @@ func (r *routerRequest) SearchByPartitions(searchReq *vearchpb.SearchRequest) *r
 	if r.Err != nil {
 		return r
 	}
-	sendMap := make(map[entity.PartitionID]*vearchpb.PartitionData)
-	for _, partitionInfo := range r.space.Partitions {
-		partitionID := partitionInfo.Id
-		if _, ok := sendMap[partitionID]; ok {
-			log.Error("db Id:%d , space Id:%d, have multiple partitionID:%d", partitionInfo.DBId, partitionInfo.SpaceId, partitionID)
+	r.sendMap = make(map[entity.PartitionID]*vearchpb.PartitionData)
+	for _, p := range r.space.Partitions {
+		if _, ok := r.sendMap[p.Id]; ok {
+			log.Error("db Id:%d , space Id:%d, have multiple partitionID:%d", p.DBId, p.SpaceId, p.Id)
 			continue
 		}
-		sendMap[partitionID] = &vearchpb.PartitionData{PartitionID: partitionID, MessageID: r.GetMsgID(), SearchRequest: searchReq}
+		r.sendMap[p.Id] = &vearchpb.PartitionData{PartitionID: p.Id, MessageID: r.GetMsgID(), SearchRequest: searchReq}
 	}
-	r.sendMap = sendMap
 	return r
 }
 
@@ -1469,7 +1478,6 @@ func (r *routerRequest) CommonSetByPartitions(args *vearchpb.IndexRequest) *rout
 
 // ForceMergeExecute Execute request
 func (r *routerRequest) ForceMergeExecute() *vearchpb.ForceMergeResponse {
-	// ctx := context.WithValue(r.ctx, share.ReqMetaDataKey, r.md)
 	var wg sync.WaitGroup
 	partitionLen := len(r.sendMap)
 	respChain := make(chan *vearchpb.PartitionData, partitionLen)
@@ -1515,7 +1523,6 @@ func (r *routerRequest) ForceMergeExecute() *vearchpb.ForceMergeResponse {
 
 // RebuildIndexExecute Execute request
 func (r *routerRequest) RebuildIndexExecute() *vearchpb.IndexResponse {
-	// ctx := context.WithValue(r.ctx, share.ReqMetaDataKey, r.md)
 	var wg sync.WaitGroup
 	partitionLen := len(r.sendMap)
 	respChain := make(chan *vearchpb.PartitionData, partitionLen)
@@ -1561,7 +1568,6 @@ func (r *routerRequest) RebuildIndexExecute() *vearchpb.IndexResponse {
 
 // FlushExecute Execute request
 func (r *routerRequest) FlushExecute() *vearchpb.FlushResponse {
-	// ctx := context.WithValue(r.ctx, share.ReqMetaDataKey, r.md)
 	var wg sync.WaitGroup
 	partitionLen := len(r.sendMap)
 	respChain := make(chan *vearchpb.PartitionData, partitionLen)

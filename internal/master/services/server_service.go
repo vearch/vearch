@@ -46,11 +46,13 @@ func (s *ServerService) RegisterServer(ctx context.Context, ip string, nodeID en
 	mc := s.client.Master()
 	spaces, err := mc.QuerySpacesByKey(ctx, entity.PrefixSpace)
 	if err != nil {
+		log.Error("QuerySpacesByKey err: %s", err.Error())
 		return nil, err
 	}
 
 	spaceConfigs, err := mc.QuerySpaceConfigsByKey(ctx, entity.PrefixSpaceConfig)
 	if err != nil {
+		log.Error("QuerySpaceConfigsByKey err: %s", err.Error())
 		return nil, err
 	}
 
