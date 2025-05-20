@@ -241,8 +241,8 @@ func ExportToClusterHandler(router *gin.Engine, masterService *masterService, se
 	groupAuth.GET("/config/:"+dbName+"/:"+spaceName, c.getSpaceConfig)
 
 	//modify query limit enabled config handler
-	groupAuth.POST("/config/query_limit_config", c.modifyQueryLimitCfg)
-	groupAuth.GET("/config/query_limit_config", c.getQueryLimitCfg)
+	groupAuth.POST("/config/request_limit", c.modifyRequestLimitCfg)
+	groupAuth.GET("/config/request_limit", c.getRequestLimitCfg)
 
 	// partition handler
 	groupAuth.GET("/partitions", c.partitionList)
@@ -1269,21 +1269,21 @@ func (ca *clusterAPI) changeMember(c *gin.Context) {
 }
 
 // get engine config
-func (ca *clusterAPI) getQueryLimitCfg(c *gin.Context) {
-	if query_limit, err := ca.masterService.Config().GetQueryLimitCfg(c); err != nil {
+func (ca *clusterAPI) getRequestLimitCfg(c *gin.Context) {
+	if request_limit, err := ca.masterService.Config().GetRequestLimitCfg(c); err != nil {
 		response.New(c).JsonError(errors.NewErrInternal(err))
 	} else {
-		response.New(c).JsonSuccess(query_limit)
+		response.New(c).JsonSuccess(request_limit)
 	}
 }
 
 // modify engine config
-func (ca *clusterAPI) modifyQueryLimitCfg(c *gin.Context) {
+func (ca *clusterAPI) modifyRequestLimitCfg(c *gin.Context) {
 	var err error
 	defer errutil.CatchError(&err)
 
 	temp := &struct {
-		Querylimited bool `json:"query_limit_config"`
+		RequestLimited bool `json:"request_limit_config"`
 	}{}
 
 	if err := c.ShouldBindJSON(temp); err != nil {
@@ -1291,7 +1291,7 @@ func (ca *clusterAPI) modifyQueryLimitCfg(c *gin.Context) {
 		return
 	}
 
-	if err := ca.masterService.Config().ModifyQueryLimitCfg(c, temp.Querylimited); err != nil {
+	if err := ca.masterService.Config().ModifyRequestLimitCfg(c, temp.RequestLimited); err != nil {
 		response.New(c).JsonError(errors.NewErrInternal(err))
 	} else {
 		response.New(c).JsonSuccess(temp)

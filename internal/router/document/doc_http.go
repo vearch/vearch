@@ -233,8 +233,8 @@ func (handler *DocumentHandler) proxyMaster(group *gin.RouterGroup) error {
 	group.POST("/config/:"+URLParamDbName+"/:"+URLParamSpaceName, handler.handleMasterRequest)
 	group.GET("/config/:"+URLParamDbName+"/:"+URLParamSpaceName, handler.handleMasterRequest)
 
-	group.POST("/config/query_limit_config", handler.handleMasterRequest)
-	group.GET("/config/query_limit_config", handler.handleMasterRequest)
+	group.POST("/config/request_limit", handler.handleMasterRequest)
+	group.GET("/config/request_limit", handler.handleMasterRequest)
 
 	// members handler
 	group.GET("/members", handler.handleMasterRequest)

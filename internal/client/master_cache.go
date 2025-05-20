@@ -667,13 +667,13 @@ func (cliCache *clientCache) startCacheJob(ctx context.Context) error {
 
 				log.Debug("[%v] add to router cache.", ip)
 			} else {
-				query_limit, err := strconv.ParseBool(string(value))
+				request_limit, err := strconv.ParseBool(string(value))
 				if err != nil {
 					return err
 				}
-				cliCache.routerCache.Set("query_limit_config", query_limit, cache.NoExpiration)
-				entity.SetQueryLimit(query_limit)
-				log.Debug("router change query limit config [%v].", query_limit)
+				cliCache.routerCache.Set("request_limit_config", request_limit, cache.NoExpiration)
+				entity.SetRequestLimit(request_limit)
+				log.Debug("router change request limit config [%v].", request_limit)
 
 			}
 
@@ -691,9 +691,9 @@ func (cliCache *clientCache) startCacheJob(ctx context.Context) error {
 				}
 				log.Debug("delete router[%s] from router cache.", ip)
 			} else {
-				cliCache.routerCache.Delete("query_limit_config")
-				entity.SetQueryLimit(false)
-				log.Debug("delete query limit config from router cache.")
+				cliCache.routerCache.Delete("request_limit_config")
+				entity.SetRequestLimit(false)
+				log.Debug("delete request limit config from router cache.")
 			}
 
 			return nil
@@ -833,12 +833,12 @@ func (cliCache *clientCache) initRouter(ctx context.Context) error {
 			cliCache.roleCache.Add(cacheRouterIpKey(ip), ip, cache.NoExpiration)
 			entity.SetRouterCount(true)
 		} else {
-			query_limit, err := strconv.ParseBool(string(values[i]))
+			request_limit, err := strconv.ParseBool(string(values[i]))
 			if err != nil {
 				return err
 			}
-			cliCache.mastersCache.Add("query_limit_config", query_limit, cache.NoExpiration)
-			entity.SetQueryLimit(query_limit)
+			cliCache.mastersCache.Add("request_limit_config", request_limit, cache.NoExpiration)
+			entity.SetRequestLimit(request_limit)
 		}
 	}
 

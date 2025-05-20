@@ -178,21 +178,21 @@ func (s *ConfigService) ModifySpaceConfig(ctx context.Context, dbName, spaceName
 	return nil
 }
 
-func (s *ConfigService) GetQueryLimitCfg(ctx context.Context) (string, error) {
+func (s *ConfigService) GetRequestLimitCfg(ctx context.Context) (string, error) {
 	mc := s.client.Master()
-	query_limit, err := mc.Get(ctx, entity.RouterConfigKey("query_limit_config"))
+	request_limit, err := mc.Get(ctx, entity.RouterConfigKey("request_limit_config"))
 	if err != nil {
 		return "", err
-	} else if query_limit == nil {
+	} else if request_limit == nil {
 		return "false", nil
 	}
 
-	return string(query_limit), nil
+	return string(request_limit), nil
 }
 
-func (s *ConfigService) ModifyQueryLimitCfg(ctx context.Context, query_limit_enabled bool) (err error) {
+func (s *ConfigService) ModifyRequestLimitCfg(ctx context.Context, request_limit_enabled bool) (err error) {
 	mc := s.client.Master()
-	if err = mc.Update(ctx, entity.RouterConfigKey("query_limit_config"), []byte(strconv.FormatBool(query_limit_enabled))); err != nil {
+	if err = mc.Update(ctx, entity.RouterConfigKey("request_limit_config"), []byte(strconv.FormatBool(request_limit_enabled))); err != nil {
 		return err
 	}
 
