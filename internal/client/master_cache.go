@@ -668,7 +668,7 @@ func (cliCache *clientCache) startCacheJob(ctx context.Context) error {
 				log.Debug("[%v] add to router cache.", ip)
 			} else {
 				request_limit_cfg := &entity.RouterLimitCfg{}
-				if err := vjson.Unmarshal(value, &request_limit_cfg); err != nil {
+				if err := vjson.Unmarshal(value, request_limit_cfg); err != nil {
 					return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("put event router cache err, can't unmarshal event value: %s, error: %s", string(value), err.Error()))
 				}
 
@@ -694,7 +694,7 @@ func (cliCache *clientCache) startCacheJob(ctx context.Context) error {
 			} else {
 				cliCache.routerCache.Delete("request_limit_config")
 				request_limit_cfg := &entity.RouterLimitCfg{
-					RequestLimit: false,
+					RequestLimitEnabled: false,
 				}
 				entity.SetRequestLimit(request_limit_cfg)
 				log.Debug("delete request limit config from router cache.")
@@ -831,8 +831,8 @@ func (cliCache *clientCache) initRouter(ctx context.Context) error {
 		routerKey := strings.TrimPrefix(string(key), entity.PrefixRouter)
 		routerSplit := strings.Split(routerKey, "/")
 
-		klen := len(routerSplit)
-		if klen > 1 {
+		log.Info("routerSplit value [%v]", routerSplit)
+		if len(routerSplit) > 1 {
 			ip := string(values[i])
 			cliCache.roleCache.Add(cacheRouterIpKey(ip), ip, cache.NoExpiration)
 			entity.SetRouterCount(true)

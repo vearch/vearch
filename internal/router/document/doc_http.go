@@ -128,12 +128,25 @@ func BasicAuthMiddleware(docService docService) gin.HandlerFunc {
 
 func HttpLimitMiddleware(docService docService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if !entity.RWLimiter.Allow() {
-			msg := fmt.Sprintf("document request too frequency, have reached limit %d", entity.RWLimiter.Burst())
-			log.Error(msg)
-			response.New(c).JsonError(errors.NewErrInternal(fmt.Errorf(msg)))
-			c.Abort()
-			return
+		Request := strings.TrimPrefix(c.Request.RequestURI, "/document/")
+
+		switch Request {
+		case "upsert", "delete":
+			if !entity.WriteLimiter.Allow() {
+				msg := fmt.Sprintf("document write request too frequency, have reached limit %d", entity.WriteLimiter.Burst())
+				log.Error(msg)
+				response.New(c).JsonError(errors.NewErrInternal(fmt.Errorf(msg)))
+				c.Abort()
+				return
+			}
+		case "query", "search":
+			if !entity.ReadLimiter.Allow() {
+				msg := fmt.Sprintf("document read request too frequency, have reached limit %d", entity.ReadLimiter.Burst())
+				log.Error(msg)
+				response.New(c).JsonError(errors.NewErrInternal(fmt.Errorf(msg)))
+				c.Abort()
+				return
+			}
 		}
 
 		c.Next()

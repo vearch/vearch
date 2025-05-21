@@ -1279,9 +1279,6 @@ func (ca *clusterAPI) getRequestLimitCfg(c *gin.Context) {
 
 // modify engine config
 func (ca *clusterAPI) modifyRequestLimitCfg(c *gin.Context) {
-	var err error
-	defer errutil.CatchError(&err)
-
 	rlc := &entity.RouterLimitCfg{}
 
 	if err := c.ShouldBindJSON(rlc); err != nil {

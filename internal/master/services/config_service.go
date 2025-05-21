@@ -202,13 +202,13 @@ func (s *ConfigService) ModifyRequestLimitCfg(ctx context.Context, cfg *entity.R
 	if old_cfg != nil {
 		new_cfg = old_cfg
 
-		if cfg.RequestLimit != new_cfg.RequestLimit {
-			new_cfg.RequestLimit = cfg.RequestLimit
+		if cfg.RequestLimitEnabled != new_cfg.RequestLimitEnabled {
+			new_cfg.RequestLimitEnabled = cfg.RequestLimitEnabled
 		}
-		if cfg.RequestLimit && cfg.TotalReadLimit > 0 {
+		if cfg.RequestLimitEnabled && cfg.TotalReadLimit > 0 {
 			new_cfg.TotalReadLimit = cfg.TotalReadLimit
 		}
-		if cfg.RequestLimit && cfg.TotalWriteLimit > 0 {
+		if cfg.RequestLimitEnabled && cfg.TotalWriteLimit > 0 {
 			new_cfg.TotalWriteLimit = cfg.TotalWriteLimit
 		}
 	}

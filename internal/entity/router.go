@@ -3,9 +3,9 @@ package entity
 import "golang.org/x/time/rate"
 
 type RouterLimitCfg struct {
-	RequestLimit    bool    `json:"request_limit_enabled,omitempty"`
-	TotalReadLimit  float64 `json:"read_request_limit_count,omitempty"`
-	TotalWriteLimit float64 `json:"write_request_limit_count,omitempty"`
+	RequestLimitEnabled bool    `json:"request_limit_enabled"`
+	TotalReadLimit      float64 `json:"read_request_limit_count,omitempty"`
+	TotalWriteLimit     float64 `json:"write_request_limit_count,omitempty"`
 }
 type Router struct {
 	Count       float64
@@ -16,8 +16,6 @@ const (
 	DefaultReadRequestLimitCount  = 1000000.0
 	DefaultWriteRequestLimitCount = 1000000.0
 )
-
-var RouterCount float64 = 0.0
 
 var (
 	ReadLimiter  = rate.NewLimiter(rate.Limit(rate.Inf), 0)
@@ -30,19 +28,14 @@ var routerInfo = &Router{
 }
 
 func SetRequestLimit(router *RouterLimitCfg) {
-	if router.RequestLimit && routerInfo.Count > 0 {
-		var limit rate.Limit
+	if router.RequestLimitEnabled {
+		routerInfo.LimitConfig.RequestLimitEnabled = true
 
-		routerInfo.LimitConfig.RequestLimit = true
 		if router.TotalReadLimit > 0 {
 			routerInfo.LimitConfig.TotalReadLimit = router.TotalReadLimit
 		} else {
 			routerInfo.LimitConfig.TotalReadLimit = DefaultReadRequestLimitCount
 		}
-
-		limit = rate.Limit(routerInfo.LimitConfig.TotalReadLimit / routerInfo.Count)
-		ReadLimiter.SetLimit(limit)
-		ReadLimiter.SetBurst(int(limit * 1.1))
 
 		if router.TotalWriteLimit > 0 {
 			routerInfo.LimitConfig.TotalWriteLimit = router.TotalWriteLimit
@@ -51,11 +44,18 @@ func SetRequestLimit(router *RouterLimitCfg) {
 			routerInfo.LimitConfig.TotalWriteLimit = DefaultWriteRequestLimitCount
 		}
 
-		limit = rate.Limit(router.TotalWriteLimit / RouterCount)
-		WriteLimiter.SetLimit(limit)
-		WriteLimiter.SetBurst(int(limit * 1.1))
-	} else if !router.RequestLimit {
-		routerInfo.LimitConfig.RequestLimit = false
+		if routerInfo.Count > 0 {
+			var limit rate.Limit
+			limit = rate.Limit(routerInfo.LimitConfig.TotalReadLimit / routerInfo.Count)
+			ReadLimiter.SetLimit(limit)
+			ReadLimiter.SetBurst(int(limit * 1.1))
+
+			limit = rate.Limit(routerInfo.LimitConfig.TotalWriteLimit / routerInfo.Count)
+			WriteLimiter.SetLimit(limit)
+			WriteLimiter.SetBurst(int(limit * 1.1))
+		}
+	} else {
+		routerInfo.LimitConfig.RequestLimitEnabled = false
 		ReadLimiter.SetLimit(rate.Inf)
 		ReadLimiter.SetBurst(0)
 
@@ -71,7 +71,7 @@ func SetRouterCount(add bool) {
 		routerInfo.Count--
 	}
 
-	if routerInfo.LimitConfig.RequestLimit && routerInfo.Count > 0 {
+	if routerInfo.LimitConfig.RequestLimitEnabled && routerInfo.Count > 0 {
 		limit := rate.Limit(routerInfo.LimitConfig.TotalReadLimit / routerInfo.Count)
 		ReadLimiter.SetLimit(limit)
 		ReadLimiter.SetBurst(int(limit * 1.1))
