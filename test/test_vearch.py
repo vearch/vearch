@@ -369,7 +369,7 @@ class VearchCase:
                     "db_name": db_name,
                     "space_name": space_name,
                     "limit": 3,
-                    "is_brute_search": 1,
+                    "is_brute_search": 2,
                 }
 
                 response = requests.post(

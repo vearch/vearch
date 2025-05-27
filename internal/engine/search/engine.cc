@@ -247,14 +247,21 @@ Status Engine::Search(Request &request, Response &response_results) {
     RequestConcurrentController::GetInstance().Release(req_num);
     return Status::InvalidArgument(msg);
   }
-  bool brute_force_search = request.BruteForceSearch();
+  int brute_force_search = request.BruteForceSearch(); // 0: normal search, 1: brute force search, 2: auto
   std::vector<struct VectorQuery> &vec_fields = request.VecFields();
   size_t vec_fields_num = vec_fields.size();
 
-  if (vec_fields_num > 0 && (not brute_force_search) &&
+  if (vec_fields_num > 0 && brute_force_search == 2 && index_status_ != IndexStatus::INDEXED) {
+    brute_force_search = 1; // force to use brute force search
+  }
+
+  if (vec_fields_num > 0 && (brute_force_search == 0) &&
       (index_status_ != IndexStatus::INDEXED) &&
       (max_docid_ > brute_force_search_threshold)) {
-    std::string msg = space_name_ + " index not trained!";
+    std::string msg = space_name_ + " index not trained, " + 
+                      "brute_force_search is 0, max_docid_ = " +
+                      std::to_string(max_docid_) + ", threshold = " +
+                      std::to_string(brute_force_search_threshold);
     LOG(WARNING) << msg;
     for (int i = 0; i < req_num; ++i) {
       SearchResult result;

@@ -488,7 +488,7 @@ func (r *routerRequest) replicasFaultyNum(replicas []uint64) int {
 	return faultyNodeNum
 }
 
-func (r *routerRequest) searchFromPartition(ctx context.Context, partitionID entity.PartitionID, pd *vearchpb.PartitionData, space *entity.Space, respChain chan *response.SearchDocResult, isNormal bool, normalField map[string]string, desc bool) {
+func (r *routerRequest) searchFromPartition(ctx context.Context, partitionID entity.PartitionID, pd *vearchpb.PartitionData, respChain chan *response.SearchDocResult, isNormal bool, normalField map[string]string, desc bool) {
 	start := time.Now()
 	responseDoc := &response.SearchDocResult{}
 	defer func() {
@@ -586,7 +586,7 @@ func (r *routerRequest) searchFromPartition(ctx context.Context, partitionID ent
 
 		if isNormal && len(normalField) > 0 {
 			vectorQueryArr := pd.SearchRequest.VecFields
-			proMap := space.SpaceProperties
+			proMap := r.space.SpaceProperties
 			for _, query := range vectorQueryArr {
 				docField := proMap[query.Name]
 				if docField != nil {
@@ -759,10 +759,10 @@ func (r *routerRequest) SearchFieldSortExecute(desc bool) *vearchpb.SearchRespon
 		searchReq = pData.SearchRequest
 		wg.Add(1)
 		c := context.WithValue(r.ctx, share.ReqMetaDataKey, copyMap(r.md))
-		go func(ctx context.Context, partitionID entity.PartitionID, pd *vearchpb.PartitionData, space *entity.Space, respChain chan *response.SearchDocResult, isNormal bool, normalField map[string]string) {
+		go func(ctx context.Context, partitionID entity.PartitionID, pd *vearchpb.PartitionData, respChain chan *response.SearchDocResult, isNormal bool, normalField map[string]string) {
 			defer wg.Done()
-			r.searchFromPartition(ctx, partitionID, pd, space, respChain, isNormal, normalField, desc)
-		}(c, partitionID, pData, r.space, respChain, isNormal, normalField)
+			r.searchFromPartition(ctx, partitionID, pd, respChain, isNormal, normalField, desc)
+		}(c, partitionID, pData, respChain, isNormal, normalField)
 	}
 	wg.Wait()
 	close(respChain)
