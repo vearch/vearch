@@ -307,6 +307,7 @@ class TestBackup:
             self.download_data_files_and_upsert(os.getenv("S3_BUCKET_NAME", "test"), backup_id)
         else:
             logger.info("restore data")
+            time.sleep(10)
             self.backup(router_url, "restore", corrupted)
             time.sleep(30)
 
