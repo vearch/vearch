@@ -20,10 +20,8 @@ tar xf rocksdb.tar.gz
 cd /env/app/rocksdb-9.2.1
 sed -i '/CFLAGS += -g/d' Makefile
 sed -i '/CXXFLAGS += -g/d' Makefile
-CFLAGS="-O3 -fPIC" CXXFLAGS="-O3 -fPIC" make static_lib -j4
-mkdir -p /env/app/rocksdb_install/lib
-cp librocksdb.a /env/app/rocksdb_install/lib
-cp -r /env/app/rocksdb-9.2.1/include /env/app/rocksdb_install/
+CFLAGS="-O3 -fPIC" CXXFLAGS="-O3 -fPIC" make static_lib -j4 && make install
+
 cd /env/app
 
 if [[ ! -f "/usr/local/lib64/libroaring.a" ]]; then
@@ -54,6 +52,6 @@ if [[ ! -f "/usr/local/lib64/libfaiss.a" ]]; then
         cmake -DFAISS_ENABLE_GPU=OFF -DFAISS_ENABLE_PYTHON=OFF -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Release -DFAISS_OPT_LEVEL=avx512 -DBLA_VENDOR=Intel10_64_dyn -DMKL_LIBRARIES=$MKLROOT/lib/intel64 -B build .
     fi
 
-    make -C build faiss && make -C build install
+    make -C build faiss -j4 && make -C build install
     popd
 fi

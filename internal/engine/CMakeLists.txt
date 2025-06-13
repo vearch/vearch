@@ -16,7 +16,6 @@ option(BUILD_GAMMA_OPT_LEVEL "Build opt level" "avx2")
 
 #ENV VARs
 set(THIRDPARTY ${CMAKE_CURRENT_SOURCE_DIR}/third_party)
-set(BTREE ${CMAKE_CURRENT_SOURCE_DIR}/third_party/btree)
 set(GAMMA_C_API ${CMAKE_CURRENT_SOURCE_DIR}/c_api)
 
 if(APPLE)
@@ -42,20 +41,10 @@ else()
     set(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -std=c++17 -fPIC -m64 -Wall -O3 -fopenmp -D_FILE_OFFSET_BITS=64 -D_LARGE_FILE -Werror=narrowing -Wno-deprecated")
 endif()
 
-
-if(NOT DEFINED ENV{ROCKSDB_HOME})
-    message(FATAL_ERROR "RocksDB home isn't set! ")
-endif()
-
-message(STATUS "RocksDB home is set=$ENV{ROCKSDB_HOME}")
-find_package(RocksDB REQUIRED)
-
 #INCLUDE DIR
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${THIRDPARTY}
-    ${BTREE}
-    ${RocksDB_INCLUDE_DIR}
 )
 
 link_directories(
@@ -111,7 +100,7 @@ else()
 endif()
 
 set(COMMON_LIBRARIES
-    ${RocksDB_LIB}
+    -lrocksdb
     -ltbb
     -lzstd
     -lprotobuf
@@ -119,7 +108,7 @@ set(COMMON_LIBRARIES
 )
 
 set(COMMON_LIBRARIES_AVX2
-    ${RocksDB_LIB}
+    -lrocksdb
     -ltbb
     -lzstd
     -lprotobuf
@@ -127,7 +116,7 @@ set(COMMON_LIBRARIES_AVX2
 )
 
 set(COMMON_LIBRARIES_AVX512
-    ${RocksDB_LIB}
+    -lrocksdb
     -ltbb
     -lzstd
     -lprotobuf

@@ -54,8 +54,6 @@ while getopts ":n:g:tdh" opt; do
   esac
 done
 
-ROCKSDB_URL=https://github.com/facebook/rocksdb/archive/refs/tags/v9.2.1.tar.gz
-
 function get_version() {
   VEARCH_VERSION_MAJOR=$(cat ${ROOT}/VERSION | grep VEARCH_VERSION_MAJOR | awk -F' ' '{print $2}')
   VEARCH_VERSION_MINOR=$(cat ${ROOT}/VERSION | grep VEARCH_VERSION_MINOR | awk -F' ' '{print $2}')
@@ -63,66 +61,6 @@ function get_version() {
 
   BUILD_VERSION="v${VEARCH_VERSION_MAJOR}.${VEARCH_VERSION_MINOR}.${VEARCH_VERSION_PATCH}"
   echo "BUILD_VERSION="${BUILD_VERSION}
-}
-
-function build_thirdparty() {
-  if [ ! -n "${ROCKSDB_HOME}" ]; then
-    export ROCKSDB_HOME=/usr/local/include/rocksdb
-    if [ ! -d "${ROCKSDB_HOME}" ]; then
-      rm -rf rocksdb*
-      wget -q ${ROCKSDB_URL} -O rocksdb.tar.gz
-      tar -xzf rocksdb.tar.gz
-      pushd rocksdb-9.2.1
-      sed -i '/CFLAGS += -g/d' Makefile
-      sed -i '/CXXFLAGS += -g/d' Makefile
-      CFLAGS="-O3 -fPIC" CXXFLAGS="-O3 -fPIC" make static_lib $COMPILE_THREAD_NUM
-      make install
-      popd
-    fi
-  fi
-
-  if [[ ! -f "/usr/local/lib/libprotobuf.so" ]]; then
-    wget -q https://github.com/protocolbuffers/protobuf/releases/download/v21.0/protobuf-cpp-3.21.0.tar.gz
-    tar xf protobuf-cpp-3.21.0.tar.gz
-    pushd protobuf-3.21.0
-    ./configure && make -j4 && make install
-    popd
-  fi
-
-  if [[ ! -f "/usr/local/lib64/libroaring.a" ]]; then
-    wget -q https://github.com/RoaringBitmap/CRoaring/archive/refs/tags/v4.2.1.tar.gz
-    tar xf v4.2.1.tar.gz
-    pushd CRoaring-4.2.1
-    mkdir build && pushd build
-    cmake ../ -B ./ -DCMAKE_CXX_STANDARD=17 -DCMAKE_POSITION_INDEPENDENT_CODE=ON
-    make -j4 && make install
-    popd && popd
-  fi
-
-  if [ ! -n "${FAISS_HOME}" ]; then
-    if [[ ! -f "/usr/local/lib64/libfaiss.a" ]]; then
-      wget -q https://github.com/facebookresearch/faiss/archive/refs/tags/v1.10.0.tar.gz
-      tar xf v1.10.0.tar.gz
-      pushd faiss-1.10.0
-      if [ -z $MKLROOT ]; then
-        OS_NAME=$(uname)
-        ARCH=$(arch)
-        if [ ${OS_NAME} == "Darwin" ]; then
-          cmake -DFAISS_ENABLE_GPU=OFF -DOpenMP_CXX_FLAGS="-Xpreprocessor -fopenmp -I/usr/local/opt/libomp/include" -DOpenMP_CXX_LIB_NAMES="libomp" -DOpenMP_libomp_LIBRARY="/usr/local/opt/libomp/lib" -DFAISS_ENABLE_PYTHON=OFF -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Release -DFAISS_OPT_LEVEL=avx2 -B build .
-        elif [ ${ARCH} == "aarch64" -o ${ARCH} == "AARCH64" ]; then
-          cmake -DFAISS_ENABLE_GPU=OFF -DFAISS_ENABLE_PYTHON=OFF -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Release -B build .
-        else
-          cmake -DFAISS_ENABLE_GPU=OFF -DFAISS_ENABLE_PYTHON=OFF -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Release -DFAISS_OPT_LEVEL=avx512 -B build .
-        fi
-      else
-        cmake -DFAISS_ENABLE_GPU=OFF -DFAISS_ENABLE_PYTHON=OFF -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Release -DFAISS_OPT_LEVEL=avx512 -DBLA_VENDOR=Intel10_64_dyn -DMKL_LIBRARIES=$MKLROOT/lib/intel64 -B build .
-      fi
-
-      make -C build faiss && make -C build install
-      popd
-    fi
-  fi
-
 }
 
 function build_engine() {
@@ -146,7 +84,6 @@ function build_vearch() {
 
 get_version
 if [ $BUILD_GAMMA == "ON" ]; then
-  build_thirdparty
   build_engine
 fi
 build_vearch

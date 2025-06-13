@@ -1,14 +1,10 @@
 FROM vearch/vearch-dev-env:latest AS builder
 
-ENV ROCKSDB_HOME=/env/app/rocksdb_install
-ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ROCKSDB_HOME/lib
-
 WORKDIR /vearch
 COPY . .
 
-RUN microdnf install -y dnf && \
-    dnf install -y epel-release && \
-    dnf install -y wget make cmake automake git which libzstd-devel openssl-devel tbb-devel tar findutils gcc-c++ && \
+RUN dnf install -y epel-release && \
+    dnf install -y wget make cmake automake which libzstd-devel openssl-devel tbb-devel tar findutils gcc-c++ && \
     dnf --enablerepo=crb install -y blas-devel lapack-devel openblas-devel golang libuv && \
     mkdir -p /env/app/go/src/github.com/vearch && \
     ln -s /vearch /env/app/go/src/github.com/vearch && \
@@ -16,12 +12,11 @@ RUN microdnf install -y dnf && \
     cd /env/app/go/src/github.com/vearch/vearch/build && \
     ./build.sh && \
     mkdir -p /vearch/build/lib/ && \
-    cp /env/app/rocksdb_install/lib/librocksdb.* /vearch/build/lib/ && \
     cp -r -p /usr/local/lib/libprotobuf.so* /vearch/build/lib/ && \
     cp /vearch/build/gamma_build/libgamma*.so /vearch/build/lib/ && \
     rm -rf /vearch/build/gamma_build
 
-FROM quay.io/centos/centos:stream9-minimal
+FROM quay.io/centos/centos:stream9
 
 COPY --from=builder /vearch/build/bin /vearch/bin/
 COPY --from=builder /vearch/build/lib /vearch/lib/
@@ -34,7 +29,7 @@ RUN if [ "$(uname -m)" = "x86_64" ]; then \
     fi
 
 ENV LD_LIBRARY_PATH=/vearch/lib/:$LD_LIBRARY_PATH
-RUN microdnf install -y dnf && dnf --enablerepo=crb install -y libgomp lapack libzstd tbb cronie procps
+RUN dnf --enablerepo=crb install -y libgomp lapack libzstd tbb cronie procps
 
 ENTRYPOINT ["/vearch/bin/vearch", "-conf", "/vearch/config.toml"]
 CMD ["all"]
