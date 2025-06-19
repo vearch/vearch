@@ -8,6 +8,7 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"os/exec"
+	"strconv"
 	"time"
 
 	"github.com/vearch/vearch/v3/internal/pkg/log"
@@ -17,7 +18,12 @@ func CPUProfile(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 
-	if err := GetPerfSVGHtml(w, "profile"); err != nil {
+	seconds, err := strconv.ParseInt(r.FormValue("seconds"), 10, 32)
+	if err != nil || seconds <= 0 {
+		seconds = 5
+	}
+
+	if err := GetPerfSVGHtml(w, "profile", seconds); err != nil {
 		log.Error(err.Error())
 	}
 }
@@ -26,12 +32,18 @@ func HeapProfile(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if err := GetPerfSVGHtml(w, "heap"); err != nil {
+
+	seconds, err := strconv.ParseInt(r.FormValue("seconds"), 10, 32)
+	if err != nil || seconds <= 0 {
+		seconds = 5
+	}
+
+	if err := GetPerfSVGHtml(w, "heap", seconds); err != nil {
 		log.Error(err.Error())
 	}
 }
 
-func GetPerfSVGHtml(w io.Writer, name string) error {
+func GetPerfSVGHtml(w io.Writer, name string, interval int64) error {
 	suffix := time.Now().UnixNano()
 	perfDataFile := fmt.Sprintf("perf-%v.data", suffix)
 	perfUnfoldFile := fmt.Sprintf("perf-%v.unfold", suffix)
@@ -43,11 +55,11 @@ func GetPerfSVGHtml(w io.Writer, name string) error {
 	if name == "profile" {
 		cmdPerf = exec.Command("perf", "record", "-g",
 			"-p", fmt.Sprintf("%d", pid),
-			"-o", perfDataFile, "sleep", "30")
+			"-o", perfDataFile, "sleep", fmt.Sprintf("%d", interval))
 	} else {
 		cmdPerf = exec.Command("perf", "record", "-g", "-e",
 			"\"kmem:*\"", "-p", fmt.Sprintf("%d", pid),
-			"-o", perfDataFile, "sleep", "30")
+			"-o", perfDataFile, "sleep", fmt.Sprintf("%d", interval))
 	}
 	err := cmdPerf.Run()
 	if err != nil {
