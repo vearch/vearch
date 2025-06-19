@@ -176,3 +176,51 @@ func (s *ConfigService) ModifySpaceConfig(ctx context.Context, dbName, spaceName
 	}
 	return nil
 }
+
+func (s *ConfigService) GetRequestLimitCfg(ctx context.Context) (*entity.RouterLimitCfg, error) {
+	mc := s.client.Master()
+	marshal, err := mc.Get(ctx, entity.RouterConfigKey("request_limit_config"))
+	if err != nil {
+		return nil, err
+	}
+
+	cfg := &entity.RouterLimitCfg{}
+	if err = json.Unmarshal(marshal, cfg); err != nil {
+		return nil, err
+	}
+
+	return cfg, nil
+}
+
+func (s *ConfigService) ModifyRequestLimitCfg(ctx context.Context, cfg *entity.RouterLimitCfg) (err error) {
+	old_cfg, err := s.GetRequestLimitCfg(ctx)
+	if err != nil {
+		log.Error("get router request limit config err: %s", err.Error())
+	}
+	new_cfg := cfg
+
+	if old_cfg != nil {
+		new_cfg = old_cfg
+
+		if cfg.RequestLimitEnabled != new_cfg.RequestLimitEnabled {
+			new_cfg.RequestLimitEnabled = cfg.RequestLimitEnabled
+		}
+		if cfg.RequestLimitEnabled && cfg.TotalReadLimit > 0 {
+			new_cfg.TotalReadLimit = cfg.TotalReadLimit
+		}
+		if cfg.RequestLimitEnabled && cfg.TotalWriteLimit > 0 {
+			new_cfg.TotalWriteLimit = cfg.TotalWriteLimit
+		}
+	}
+
+	marshal, err := json.Marshal(new_cfg)
+	if err != nil {
+		return err
+	}
+	mc := s.client.Master()
+	if err = mc.Update(ctx, entity.RouterConfigKey("request_limit_config"), marshal); err != nil {
+		return err
+	}
+
+	return nil
+}

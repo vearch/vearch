@@ -188,3 +188,55 @@ class TestConfigRefreshIntervalInital:
     # destroy
     def test_destroy_cluster(self):
         destroy(router_url, db_name, space_name)
+
+class TestQueryLimitConfig:
+    def setup_class(self):
+        self.xb = xb
+
+    # prepare
+    def test_prepare_cluster(self):
+        create(router_url, "MemoryOnly")
+
+    def test_modify_query_limit_config(self):
+        url = router_url + "/config/" + "request_limit"
+
+        request_limit = {
+            "request_limit_enabled": True,
+            "write_request_limit_count": 0.5
+        }
+        json_str = json.dumps(request_limit)
+        rs = requests.post(url, auth=(username, password), data=json_str)
+        assert rs.status_code == 200
+        assert rs.json()["data"]["request_limit_enabled"] == True
+        assert rs.json()["data"]["write_request_limit_count"] == 0.5
+
+    def test_upsert_over_write_limit(self):
+        url = router_url + "/document/upsert"
+        data = {}
+        data["db_name"] = db_name
+        data["space_name"] = space_name
+        data["documents"] = []
+        param_dict = {}
+        param_dict["_id"] = "0"
+        param_dict["field_int"] = "0"
+        param_dict["field_vector"] = xb[0:1].tolist()[0]
+        param_dict["field_string_array"] = [str(i) for i in range(1024)]
+        data["documents"].append(param_dict)
+        rs = requests.post(url, auth=(username, password), json=data)
+        assert rs.json()["code"] != 0
+        assert rs.json()["msg"] == "document write request too frequency, have reached limit 0"
+
+    def test_reset_request_limit_config(self):
+        url = router_url + "/config/" + "request_limit"
+
+        request_limit = {
+            "request_limit_enabled": False
+        }
+        json_str = json.dumps(request_limit)
+        rs = requests.post(url, auth=(username, password), data=json_str)
+        assert rs.status_code == 200
+        assert rs.json()["data"]["request_limit_enabled"] == False
+
+    # destroy
+    def test_destroy_cluster(self):
+        destroy(router_url, db_name, space_name)

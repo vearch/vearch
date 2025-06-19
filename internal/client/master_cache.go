@@ -55,10 +55,10 @@ var (
 
 type clientCache struct {
 	sync.Map
-	mc                                                                                                    *masterClient
-	cancel                                                                                                context.CancelFunc
-	lock                                                                                                  sync.Mutex
-	userCache, spaceCache, spaceIDCache, partitionCache, serverCache, aliasCache, roleCache, mastersCache *cache.Cache
+	mc                                                                                                                 *masterClient
+	cancel                                                                                                             context.CancelFunc
+	lock                                                                                                               sync.Mutex
+	userCache, spaceCache, spaceIDCache, partitionCache, serverCache, aliasCache, roleCache, mastersCache, routerCache *cache.Cache
 }
 
 func newClientCache(serverCtx context.Context, masterClient *masterClient) (*clientCache, error) {
@@ -75,6 +75,7 @@ func newClientCache(serverCtx context.Context, masterClient *masterClient) (*cli
 		aliasCache:     cache.New(cache.NoExpiration, cache.NoExpiration),
 		roleCache:      cache.New(cache.NoExpiration, cache.NoExpiration),
 		mastersCache:   cache.New(cache.NoExpiration, cache.NoExpiration),
+		routerCache:    cache.New(cache.NoExpiration, cache.NoExpiration),
 	}
 
 	if err := cc.startCacheJob(ctx); err != nil {
@@ -109,6 +110,9 @@ func cacheSpaceKey(db, space string) string {
 
 func cacheServerKey(nodeID entity.NodeID) string {
 	return cast.ToString(nodeID)
+}
+func cacheRouterIpKey(ip string) string {
+	return "IP/" + ip
 }
 
 // find a user by cache
@@ -425,7 +429,7 @@ func (cliCache *clientCache) startCacheJob(ctx context.Context) error {
 		return err
 	}
 	userJob := watcherJob{ctx: ctx, prefix: entity.PrefixUser, masterClient: cliCache.mc, cache: cliCache.userCache,
-		put: func(value []byte) (err error) {
+		put: func(key, value []byte) (err error) {
 			user := &entity.User{}
 			if err := vjson.Unmarshal(value, user); err != nil {
 				return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("put event user cache err, can't unmarshal event value: %s, error: %s", string(value), err.Error()))
@@ -449,7 +453,7 @@ func (cliCache *clientCache) startCacheJob(ctx context.Context) error {
 		return err
 	}
 	spaceJob := watcherJob{ctx: ctx, prefix: entity.PrefixSpace, masterClient: cliCache.mc, cache: cliCache.spaceCache,
-		put: func(value []byte) (err error) {
+		put: func(key, value []byte) (err error) {
 			space := &entity.Space{}
 			if err := vjson.Unmarshal(value, space); err != nil {
 				return err
@@ -463,10 +467,10 @@ func (cliCache *clientCache) startCacheJob(ctx context.Context) error {
 			if err != nil {
 				return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("find db by id err: %s, data: %s", err.Error(), string(value)))
 			}
-			key := cacheSpaceKey(dbName, space.Name)
-			if oldValue, b := cliCache.spaceCache.Get(key); !b || space.Version > oldValue.(*entity.Space).Version {
+			ckey := cacheSpaceKey(dbName, space.Name)
+			if oldValue, b := cliCache.spaceCache.Get(ckey); !b || space.Version > oldValue.(*entity.Space).Version {
 				spaceCacheLock.Lock()
-				cliCache.spaceCache.Set(key, space, cache.NoExpiration)
+				cliCache.spaceCache.Set(ckey, space, cache.NoExpiration)
 				cliCache.spaceIDCache.Set(cast.ToString(space.Id), space, cache.NoExpiration)
 				log.Debug("space name [%s] , [%s], [%s] add to cache.",
 					space.Name, space.ResourceName, config.Conf().Global.ResourceName)
@@ -500,7 +504,7 @@ func (cliCache *clientCache) startCacheJob(ctx context.Context) error {
 		return err
 	}
 	partitionJob := watcherJob{ctx: ctx, prefix: entity.PrefixPartition, masterClient: cliCache.mc, cache: cliCache.partitionCache,
-		put: func(value []byte) (err error) {
+		put: func(key, value []byte) (err error) {
 			partition := &entity.Partition{}
 			if err = vjson.Unmarshal(value, partition); err != nil {
 				return
@@ -534,7 +538,7 @@ func (cliCache *clientCache) startCacheJob(ctx context.Context) error {
 		return err
 	}
 	serverJob := watcherJob{ctx: ctx, prefix: entity.PrefixServer, masterClient: cliCache.mc, cache: cliCache.serverCache,
-		put: func(value []byte) (err error) {
+		put: func(key, value []byte) (err error) {
 			defer errutil.CatchError(&err)
 			server := &entity.Server{}
 			if err := vjson.Unmarshal(value, server); err != nil {
@@ -574,7 +578,7 @@ func (cliCache *clientCache) startCacheJob(ctx context.Context) error {
 		return err
 	}
 	aliasJob := watcherJob{ctx: ctx, prefix: entity.PrefixAlias, masterClient: cliCache.mc, cache: cliCache.aliasCache,
-		put: func(value []byte) (err error) {
+		put: func(key, value []byte) (err error) {
 			defer errutil.CatchError(&err)
 			alias := &entity.Alias{}
 			if err := vjson.Unmarshal(value, alias); err != nil {
@@ -600,7 +604,7 @@ func (cliCache *clientCache) startCacheJob(ctx context.Context) error {
 		return err
 	}
 	roleJob := watcherJob{ctx: ctx, prefix: entity.PrefixRole, masterClient: cliCache.mc, cache: cliCache.roleCache,
-		put: func(value []byte) (err error) {
+		put: func(key, value []byte) (err error) {
 			role := &entity.Role{}
 			if err := vjson.Unmarshal(value, role); err != nil {
 				return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("put event role cache err, can't unmarshal event value: %s, error: %s", string(value), err.Error()))
@@ -624,7 +628,7 @@ func (cliCache *clientCache) startCacheJob(ctx context.Context) error {
 		return err
 	}
 	mastersJob := watcherJob{ctx: ctx, prefix: entity.PrefixMasterMember, masterClient: cliCache.mc, cache: cliCache.mastersCache,
-		put: func(value []byte) (err error) {
+		put: func(key, value []byte) (err error) {
 			var master config.MasterCfg
 			if err := vjson.Unmarshal(value, &master); err != nil {
 				return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("put event masters cache err, can't unmarshal event value: %s, error: %s", string(value), err.Error()))
@@ -646,6 +650,60 @@ func (cliCache *clientCache) startCacheJob(ctx context.Context) error {
 	}
 	mastersJob.start()
 
+	// init router
+	if err := cliCache.initRouter(ctx); err != nil {
+		return err
+	}
+	routersJob := watcherJob{ctx: ctx, prefix: entity.PrefixRouter, masterClient: cliCache.mc, cache: cliCache.routerCache,
+		put: func(key, value []byte) (err error) {
+			routerKey := strings.TrimPrefix(string(key), entity.PrefixRouter)
+			routerSplit := strings.Split(routerKey, "/")
+			if len(routerSplit) > 1 {
+				ip := string(value)
+				if _, exists := cliCache.routerCache.Get(cacheRouterIpKey(ip)); !exists {
+					cliCache.routerCache.Set(cacheRouterIpKey(ip), ip, cache.NoExpiration)
+					entity.SetRouterCount(true)
+				}
+
+				log.Debug("[%v] add to router cache.", ip)
+			} else {
+				request_limit_cfg := &entity.RouterLimitCfg{}
+				if err := vjson.Unmarshal(value, request_limit_cfg); err != nil {
+					return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("put event router cache err, can't unmarshal event value: %s, error: %s", string(value), err.Error()))
+				}
+
+				cliCache.routerCache.Set("request_limit_config", request_limit_cfg, cache.NoExpiration)
+				entity.SetRequestLimit(request_limit_cfg)
+				log.Debug("router change request limit config [%v].", request_limit_cfg)
+
+			}
+
+			return nil
+		},
+		delete: func(key string) (err error) {
+			routerKey := strings.TrimPrefix(string(key), entity.PrefixRouter)
+			routerSplit := strings.Split(routerKey, "/")
+			klen := len(routerSplit)
+			if klen > 1 {
+				ip := routerSplit[klen-1]
+				if _, exists := cliCache.routerCache.Get(cacheRouterIpKey(ip)); exists {
+					cliCache.routerCache.Delete(cacheRouterIpKey(ip))
+					entity.SetRouterCount(false)
+				}
+				log.Debug("delete router[%s] from router cache.", ip)
+			} else {
+				cliCache.routerCache.Delete("request_limit_config")
+				request_limit_cfg := &entity.RouterLimitCfg{
+					RequestLimitEnabled: false,
+				}
+				entity.SetRequestLimit(request_limit_cfg)
+				log.Debug("delete request limit config from router cache.")
+			}
+
+			return nil
+		},
+	}
+	routersJob.start()
 	log.Info("cache inited ok use time %v", time.Since(start))
 
 	return nil
@@ -762,6 +820,37 @@ func (cliCache *clientCache) initServer(ctx context.Context) error {
 	return nil
 }
 
+func (cliCache *clientCache) initRouter(ctx context.Context) error {
+	keys, values, err := cliCache.mc.PrefixScan(ctx, entity.PrefixRouter)
+	if err != nil {
+		log.Error("init router cache err , err:[%s]", err.Error())
+		return err
+	}
+
+	for i, key := range keys {
+		routerKey := strings.TrimPrefix(string(key), entity.PrefixRouter)
+		routerSplit := strings.Split(routerKey, "/")
+
+		log.Info("routerSplit value [%v]", routerSplit)
+		if len(routerSplit) > 1 {
+			ip := string(values[i])
+			cliCache.roleCache.Add(cacheRouterIpKey(ip), ip, cache.NoExpiration)
+			entity.SetRouterCount(true)
+		} else {
+			request_limit_cfg := &entity.RouterLimitCfg{}
+			err := vjson.Unmarshal(values[i], request_limit_cfg)
+			if err != nil {
+				log.Error("unmarshal router limit config cache err [%s]", err.Error())
+				continue
+			}
+			cliCache.mastersCache.Add("request_limit_config", request_limit_cfg, cache.NoExpiration)
+			entity.SetRequestLimit(request_limit_cfg)
+		}
+	}
+
+	return nil
+}
+
 func (cliCache *clientCache) DeleteSpaceCache(ctx context.Context, db, space string) {
 	spaceCacheLock.Lock()
 	cliCache.spaceCache.Delete(cacheSpaceKey(db, space))
@@ -774,12 +863,12 @@ type watcherJob struct {
 	masterClient *masterClient
 	wg           sync.WaitGroup
 	cache        *cache.Cache
-	put          func(value []byte) (err error)
+	put          func(key, value []byte) (err error)
 	delete       func(key string) (err error)
 }
 
 // watch /server/ put
-func (w *watcherJob) serverPut(value []byte) (e error) {
+func (w *watcherJob) serverPut(key, value []byte) (e error) {
 	// process panic
 	defer errutil.CatchError(&e)
 	// parse server info
@@ -1012,7 +1101,7 @@ func (wj *watcherJob) start() {
 					for _, event := range reps.Events {
 						switch event.Type {
 						case mvccpb.PUT:
-							err := wj.put(event.Kv.Value)
+							err := wj.put(event.Kv.Key, event.Kv.Value)
 							if err != nil {
 								log.Error("change cache %s, err: %s , content: %s", wj.prefix, err.Error(), string(event.Kv.Value))
 							}
