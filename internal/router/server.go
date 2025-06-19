@@ -129,9 +129,8 @@ func (server *Server) Start() error {
 	}
 	log.Debugf("Get router ip: [%s]", routerIP)
 	mserver.SetIp(routerIP, false)
-	if config.Conf().Router.RpcPort > 0 {
-		server.StartHeartbeatJob(fmt.Sprintf("%s:%d", routerIP, config.Conf().Router.RpcPort))
-	}
+
+	server.StartHeartbeatJob(routerIP)
 
 	if port := config.Conf().Router.MonitorPort; port > 0 {
 		monitor.Register(nil, nil, config.Conf().Router.MonitorPort)

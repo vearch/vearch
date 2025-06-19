@@ -81,6 +81,10 @@ func RouterKey(key, value string) string {
 	return fmt.Sprintf("%s%s/%s", PrefixRouter, key, value)
 }
 
+func RouterConfigKey(key string) string {
+	return fmt.Sprintf("%s%s", PrefixRouter, key)
+}
+
 func AliasKey(aliasName string) string {
 	return fmt.Sprintf("%s%s", PrefixAlias, aliasName)
 }
