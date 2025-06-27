@@ -81,7 +81,7 @@ class TableInfo : public RawData {
   int training_threshold_ = 0;
   std::string index_type_;
   std::string index_params_;
-  int refresh_interval_;
+  int refresh_interval_ = 0;
 };
 
 }  // namespace vearch

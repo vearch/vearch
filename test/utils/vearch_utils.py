@@ -1368,6 +1368,8 @@ def waiting_index_finish(total, timewait=5, space_name=space_name):
         partitions = response.json()["data"]["partitions"]
         for p in partitions:
             num += p["index_num"]
+        if num == 0:
+            logger.info("waiting index finish, num is 0, "+response.text)
         logger.info("index num: %d" % (num))
         time.sleep(timewait)
 

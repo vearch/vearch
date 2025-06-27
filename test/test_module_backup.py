@@ -99,7 +99,7 @@ class TestBackup:
             assert response.status_code != 0
             return
 
-        url = router_url + "/backup/dbs/" + self.db_name + "/spaces/" + self.space_name
+        url = router_url + "/backup/dbs/" + self.db_name + "/spaces/" + self.space_name + "?timeout=100000"
         response = requests.post(url, auth=(username, password), json=data)
 
         assert response.json()["code"] == 0
@@ -126,6 +126,7 @@ class TestBackup:
                     "type": "FLAT",
                     "params": {
                         "metric_type": "L2",
+                        "training_threshold": 1,
                     }
                 },
             }
@@ -309,9 +310,7 @@ class TestBackup:
             logger.info("restore data")
             time.sleep(10)
             self.backup(router_url, "restore", corrupted)
-            time.sleep(30)
-
-        waiting_index_finish(total)
+            waiting_index_finish(total)
 
         for parallel_on_queries in [0, 1]:
             self.query(parallel_on_queries, k)

@@ -30,10 +30,10 @@ import (
 	"github.com/klauspost/compress/zstd"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
+
 	"github.com/vearch/vearch/v3/internal/client"
 	"github.com/vearch/vearch/v3/internal/config"
 	"github.com/vearch/vearch/v3/internal/entity"
-
 	"github.com/vearch/vearch/v3/internal/pkg/log"
 	"github.com/vearch/vearch/v3/internal/pkg/metrics/mserver"
 	vearch_os "github.com/vearch/vearch/v3/internal/pkg/runtime/os"
@@ -43,49 +43,48 @@ import (
 	"github.com/vearch/vearch/v3/internal/router/document"
 )
 
+const (
+	forceUploadPattern = `(.*\.log|CURRENT|MANIFEST-.*|OPTIONS-.*)`
+	backupBatchSize    = 1000000
+	maxEngineCloseWait = 10
+)
+
+type handlerRegistration struct {
+	name              string
+	handler           handler.RpcHander
+	needPsErrorChange bool
+}
+
 func ExportToRpcAdminHandler(server *Server) {
 	initAdminHandler := &InitAdminHandler{server: server}
-
 	psErrorChange := psErrorChange(server)
 
-	if err := server.rpcServer.RegisterName(handler.NewChain(client.CreatePartitionHandler, handler.DefaultPanicHandler, nil, initAdminHandler, &CreatePartitionHandler{server: server}), ""); err != nil {
-		panic(err)
+	handlers := []handlerRegistration{
+		{client.CreatePartitionHandler, &CreatePartitionHandler{server: server}, false},
+		{client.DeletePartitionHandler, &DeletePartitionHandler{server: server}, true},
+		{client.DeleteReplicaHandler, &DeleteReplicaHandler{server: server}, true},
+		{client.UpdatePartitionHandler, &UpdatePartitionHandler{server: server}, true},
+		{client.IsLiveHandler, new(IsLiveHandler), false},
+		{client.PartitionInfoHandler, &PartitionInfoHandler{server: server}, false},
+		{client.StatsHandler, &StatsHandler{server: server}, false},
+		{client.ChangeMemberHandler, &ChangeMemberHandler{server: server}, false},
+		{client.EngineCfgHandler, &EngineCfgHandler{server: server}, false},
+		{client.BackupHandler, &BackupHandler{server: server}, false},
+		{client.ResourceLimitHandler, &ResourceLimitHandler{server: server}, false},
 	}
 
-	if err := server.rpcServer.RegisterName(handler.NewChain(client.DeletePartitionHandler, handler.DefaultPanicHandler, psErrorChange, initAdminHandler, &DeletePartitionHandler{server: server}), ""); err != nil {
-		panic(err)
-	}
+	for _, h := range handlers {
+		var errorHandler handler.ErrorChangeFun
+		if h.needPsErrorChange {
+			errorHandler = psErrorChange
+		}
 
-	if err := server.rpcServer.RegisterName(handler.NewChain(client.DeleteReplicaHandler, handler.DefaultPanicHandler, psErrorChange, initAdminHandler, &DeleteReplicaHandler{server: server}), ""); err != nil {
-		panic(err)
-	}
-
-	if err := server.rpcServer.RegisterName(handler.NewChain(client.UpdatePartitionHandler, handler.DefaultPanicHandler, psErrorChange, initAdminHandler, &UpdatePartitionHandler{server: server}), ""); err != nil {
-		panic(err)
-	}
-
-	if err := server.rpcServer.RegisterName(handler.NewChain(client.IsLiveHandler, handler.DefaultPanicHandler, nil, initAdminHandler, new(IsLiveHandler)), ""); err != nil {
-		panic(err)
-	}
-
-	if err := server.rpcServer.RegisterName(handler.NewChain(client.PartitionInfoHandler, handler.DefaultPanicHandler, nil, initAdminHandler, &PartitionInfoHandler{server: server}), ""); err != nil {
-		panic(err)
-	}
-
-	if err := server.rpcServer.RegisterName(handler.NewChain(client.StatsHandler, handler.DefaultPanicHandler, nil, initAdminHandler, &StatsHandler{server: server}), ""); err != nil {
-		panic(err)
-	}
-	if err := server.rpcServer.RegisterName(handler.NewChain(client.ChangeMemberHandler, handler.DefaultPanicHandler, nil, initAdminHandler, &ChangeMemberHandler{server: server}), ""); err != nil {
-		panic(err)
-	}
-	if err := server.rpcServer.RegisterName(handler.NewChain(client.EngineCfgHandler, handler.DefaultPanicHandler, nil, initAdminHandler, &EngineCfgHandler{server: server}), ""); err != nil {
-		panic(err)
-	}
-	if err := server.rpcServer.RegisterName(handler.NewChain(client.BackupHandler, handler.DefaultPanicHandler, nil, initAdminHandler, &BackupHandler{server: server}), ""); err != nil {
-		panic(err)
-	}
-	if err := server.rpcServer.RegisterName(handler.NewChain(client.ResourceLimitHandler, handler.DefaultPanicHandler, nil, initAdminHandler, &ResourceLimitHandler{server: server}), ""); err != nil {
-		panic(err)
+		if err := server.rpcServer.RegisterName(
+			handler.NewChain(h.name, handler.DefaultPanicHandler, errorHandler, initAdminHandler, h.handler),
+			"",
+		); err != nil {
+			log.Fatal("failed to register handler %s: %v", h.name, err)
+		}
 	}
 }
 
@@ -107,25 +106,23 @@ type CreatePartitionHandler struct {
 func (c *CreatePartitionHandler) Execute(ctx context.Context, req *vearchpb.PartitionData, reply *vearchpb.PartitionData) error {
 	reply.Err = &vearchpb.Error{Code: vearchpb.ErrorEnum_SUCCESS}
 	space := new(entity.Space)
-	err := json.Unmarshal(req.Data, space)
-	if err != nil {
-		log.Error("Create partition failed, err: [%s]", err.Error())
+	if err := json.Unmarshal(req.Data, space); err != nil {
+		log.Error("create partition failed to unmarshal space data: %v", err)
 		return vearchpb.NewError(vearchpb.ErrorEnum_RPC_PARAM_ERROR, err)
 	}
-	c.server.partitions.Range(func(key, value any) bool {
-		log.Debug("key %v, value %v", key, value)
-		return true
-	})
 
 	if partitionStore := c.server.GetPartition(req.PartitionID); partitionStore != nil {
+		log.Warnf("partition %d already exists", req.PartitionID)
 		return vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_EXIST, nil)
 	}
 
 	if err := c.server.CreatePartition(ctx, space, req.PartitionID); err != nil {
 		c.server.DeletePartition(req.PartitionID)
-		log.Error(err)
+		log.Error("failed to create partition %d: %v", req.PartitionID, err)
 		return err
 	}
+
+	log.Infof("successfully created partition %d", req.PartitionID)
 	return nil
 }
 
@@ -158,6 +155,7 @@ func (handler *UpdatePartitionHandler) Execute(ctx context.Context, req *vearchp
 
 	space := new(entity.Space)
 	if err := json.Unmarshal(req.Data, space); err != nil {
+		log.Error("failed to unmarshal space data: %v", err)
 		return vearchpb.NewError(vearchpb.ErrorEnum_RPC_PARAM_ERROR, err)
 	}
 
@@ -169,11 +167,12 @@ func (handler *UpdatePartitionHandler) Execute(ctx context.Context, req *vearchp
 		return vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_NOT_EXIST, errors.New(msg))
 	}
 
-	err := store.UpdateSpace(ctx, space)
-	if err != nil {
+	if err := store.UpdateSpace(ctx, space); err != nil {
+		log.Error("failed to update space for partition %d: %v", req.PartitionID, err)
 		return err
 	}
 
+	log.Infof("successfully updated partition %d", req.PartitionID)
 	return nil
 }
 
@@ -188,56 +187,77 @@ type PartitionInfoHandler struct {
 	server *Server
 }
 
-func (pih *PartitionInfoHandler) Execute(ctx context.Context, req *vearchpb.PartitionData, reply *vearchpb.PartitionData) (err error) {
+func (pih *PartitionInfoHandler) Execute(ctx context.Context, req *vearchpb.PartitionData, reply *vearchpb.PartitionData) error {
 	reply.Err = &vearchpb.Error{Code: vearchpb.ErrorEnum_SUCCESS}
 	pid := req.PartitionID
 
+	stores := pih.collectPartitionStores(pid)
+	pis, err := pih.buildPartitionInfos(stores, req.Type)
+	if err != nil {
+		log.Error("failed to build partition infos: %v", err)
+		return err
+	}
+
+	if reply.Data, err = json.Marshal(pis); err != nil {
+		log.Error("failed to marshal partition info: %v", err)
+		return err
+	}
+	return nil
+}
+
+func (pih *PartitionInfoHandler) collectPartitionStores(pid entity.PartitionID) []PartitionStore {
 	stores := make([]PartitionStore, 0, 1)
 
 	if pid != 0 {
-		store := pih.server.GetPartition(pid)
-		stores = append(stores, store)
+		if store := pih.server.GetPartition(pid); store != nil {
+			stores = append(stores, store)
+		}
 	} else {
 		pih.server.RangePartition(func(id entity.PartitionID, store PartitionStore) {
 			stores = append(stores, store)
 		})
 	}
 
-	pis := make([]*entity.PartitionInfo, 0, 1)
+	return stores
+}
+
+func (pih *PartitionInfoHandler) buildPartitionInfos(stores []PartitionStore, opType vearchpb.OpType) ([]*entity.PartitionInfo, error) {
+	pis := make([]*entity.PartitionInfo, 0, len(stores))
+
 	for _, store := range stores {
-		status := &entity.EngineStatus{}
-		err := store.GetEngine().GetEngineStatus(status)
+		pi, err := pih.buildPartitionInfo(store, opType)
 		if err != nil {
-			return err
+			return nil, err
 		}
-
-		value := &entity.PartitionInfo{}
-		value.PartitionID = store.GetPartition().Id
-		value.DocNum = uint64(status.DocNum)
-		value.Unreachable = store.GetUnreachable(uint64(store.GetPartition().Id))
-		value.Status = store.GetPartition().GetStatus()
-		value.IndexStatus = int(status.IndexStatus)
-		value.BackupStatus = int(status.BackupStatus)
-		value.IndexNum = int(status.MinIndexedNum)
-		value.MaxDocid = int(status.MaxDocid)
-		if req.Type == vearchpb.OpType_GET {
-			value.Path = store.GetPartition().Path
-			value.RaftStatus = store.Status()
-
-			// size, err := store.GetEngine().Reader().Capacity(ctx)
-			// if err != nil {
-			// 	return err
-			// }
-			// value.Size = size
-		}
-
-		pis = append(pis, value)
+		pis = append(pis, pi)
 	}
-	if reply.Data, err = json.Marshal(pis); err != nil {
-		log.Error("Marshal partition info failed, err: [%v]", err)
-		return err
+
+	return pis, nil
+}
+
+func (pih *PartitionInfoHandler) buildPartitionInfo(store PartitionStore, opType vearchpb.OpType) (*entity.PartitionInfo, error) {
+	status := &entity.EngineStatus{}
+	if err := store.GetEngine().GetEngineStatus(status); err != nil {
+		return nil, fmt.Errorf("failed to get engine status: %v", err)
 	}
-	return nil
+
+	value := &entity.PartitionInfo{
+		PartitionID:  store.GetPartition().Id,
+		DocNum:       uint64(status.DocNum),
+		Unreachable:  store.GetUnreachable(uint64(store.GetPartition().Id)),
+		Status:       store.GetPartition().GetStatus(),
+		IndexStatus:  int(status.IndexStatus),
+		BackupStatus: int(status.BackupStatus),
+		IndexNum:     int(status.MinIndexedNum),
+		MaxDocid:     int(status.MaxDocid),
+	}
+
+	if opType == vearchpb.OpType_GET {
+		value.Path = store.GetPartition().Path
+		value.RaftStatus = store.Status()
+	}
+
+	return value, nil
 }
 
 type StatsHandler struct {
@@ -268,7 +288,7 @@ func (sh *StatsHandler) Execute(ctx context.Context, req *vearchpb.PartitionData
 
 		// size, err := store.GetEngine().Reader().Capacity(ctx)
 		// if err != nil {
-		// 	err = fmt.Errorf("got capacity from engine err:[%s]", err.Error())
+		// 	err = fmt.Error("got capacity from engine err:[%s]", err.Error())
 		// 	pi.Error = err.Error()
 		// 	return
 		// }
@@ -286,7 +306,7 @@ func (sh *StatsHandler) Execute(ctx context.Context, req *vearchpb.PartitionData
 	})
 
 	if values, err := json.Marshal(stats); err != nil {
-		log.Error("Marshal partition info failed, err: [%v]", err)
+		log.Error("marshal partition info failed, err: [%v]", err)
 		return err
 	} else {
 		reply.Data = values
@@ -322,12 +342,12 @@ func (ch *ChangeMemberHandler) Execute(ctx context.Context, req *vearchpb.Partit
 		failServer := ch.server.client.Master().QueryFailServerByNodeID(ctx, reqObj.NodeID)
 		if failServer != nil && failServer.Node != nil {
 			server = failServer.Node
-			log.Debug("Get server by failserver record %v.", server)
+			log.Debug("get server by failserver record %v.", server)
 			err = nil
 		}
 	}
 	if err != nil {
-		log.Error("Get server info err %s", err.Error())
+		log.Error("get server info err %s", err.Error())
 		return err
 	}
 
@@ -348,29 +368,42 @@ func (ch *ChangeMemberHandler) Execute(ctx context.Context, req *vearchpb.Partit
 // redirect some other to response and send err to status when happen
 func psErrorChange(server *Server) handler.ErrorChangeFun {
 	return func(ctx context.Context, err error, req *vearchpb.PartitionData, reply *vearchpb.PartitionData) error {
-		if vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err).GetError().Code == vearchpb.ErrorEnum_PARTITION_NOT_LEADER || err == raft.ErrNotLeader {
-			store := server.GetPartition(req.PartitionID)
-			if store == nil {
-				msg := fmt.Sprintf("partition not found, partitionId:[%d], nodeID:[%d], node ip:[%s]", req.PartitionID, server.nodeID, server.ip)
-				log.Error("%s", msg)
-				return vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_NOT_EXIST, errors.New(msg))
-			}
-			id, _ := store.GetLeader()
-			if id == 0 {
-				reply.Err = &vearchpb.Error{Code: vearchpb.ErrorEnum_PARTITION_NO_LEADER}
-			} else {
-				bytes, err := json.Marshal(server.raftResolver.ToReplica(id))
-				if err != nil {
-					log.Error("Find raft resolver err[%s]", err.Error())
-					return err
-				}
-				reply.Err = &vearchpb.Error{Code: vearchpb.ErrorEnum_PARTITION_NOT_LEADER, Msg: string(bytes)}
-			}
-
-			return nil
+		if isPartitionNotLeaderError(err) {
+			return handlePartitionNotLeaderError(server, req, reply)
 		}
 		return err
 	}
+}
+
+func isPartitionNotLeaderError(err error) bool {
+	vearchErr := vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err)
+	return vearchErr.GetError().Code == vearchpb.ErrorEnum_PARTITION_NOT_LEADER || err == raft.ErrNotLeader
+}
+
+func handlePartitionNotLeaderError(server *Server, req *vearchpb.PartitionData, reply *vearchpb.PartitionData) error {
+	store := server.GetPartition(req.PartitionID)
+	if store == nil {
+		msg := fmt.Sprintf("partition not found, partitionId:[%d], nodeID:[%d], node ip:[%s]", req.PartitionID, server.nodeID, server.ip)
+		log.Error("%s", msg)
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_NOT_EXIST, errors.New(msg))
+	}
+
+	leaderID, _ := store.GetLeader()
+	if leaderID == 0 {
+		reply.Err = &vearchpb.Error{Code: vearchpb.ErrorEnum_PARTITION_NO_LEADER}
+	} else {
+		leaderInfo, err := json.Marshal(server.raftResolver.ToReplica(leaderID))
+		if err != nil {
+			log.Error("failed to marshal raft resolver info: %v", err)
+			return err
+		}
+		reply.Err = &vearchpb.Error{
+			Code: vearchpb.ErrorEnum_PARTITION_NOT_LEADER,
+			Msg:  string(leaderInfo),
+		}
+	}
+
+	return nil
 }
 
 type EngineCfgHandler struct {
@@ -380,10 +413,10 @@ type EngineCfgHandler struct {
 func (ch *EngineCfgHandler) Execute(ctx context.Context, req *vearchpb.PartitionData, reply *vearchpb.PartitionData) (err error) {
 	reply.Err = &vearchpb.Error{Code: vearchpb.ErrorEnum_SUCCESS}
 	// get store engine
-	log.Debug("Request pid [%+v]", req.PartitionID)
+	log.Debug("request pid [%+v]", req.PartitionID)
 	partitonStore := ch.server.GetPartition(req.PartitionID)
 	if partitonStore == nil {
-		log.Debug("PartitonStore is nil.")
+		log.Debug("partitonStore is nil.")
 		return vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_IS_INVALID, fmt.Errorf("partition (%v), partitonStore is nil ", req.PartitionID))
 	}
 	engine := partitonStore.GetEngine()
@@ -393,15 +426,14 @@ func (ch *EngineCfgHandler) Execute(ctx context.Context, req *vearchpb.Partition
 	if req.Type == vearchpb.OpType_CREATE {
 		err := engine.SetEngineCfg(req.Data)
 		if err != nil {
-			log.Debug("Cache info set error [%+v]", err)
+			log.Error("cache info set error [%+v]", err)
 		}
 	} else if req.Type == vearchpb.OpType_GET {
 		// invoke c interface
-		log.Debug("Invoke cfg info is get")
 		cfg := &entity.SpaceConfig{}
 		err := engine.GetEngineCfg(cfg)
 		if err != nil {
-			log.Debug("Cache info set error [%+v]", err)
+			log.Error("cache info set error [%+v]", err)
 		}
 		data, _ := json.Marshal(cfg)
 		reply.Data = data
@@ -412,10 +444,6 @@ func (ch *EngineCfgHandler) Execute(ctx context.Context, req *vearchpb.Partition
 type BackupHandler struct {
 	server *Server
 }
-
-const (
-	forceUploadPattern = `(.*\.log|CURRENT|MANIFEST-.*|OPTIONS-.*)`
-)
 
 func (bh *BackupHandler) syncBackupFiles(ctx context.Context, minioClient *minio.Client, bucketName, backupPath, s3Path string) error {
 	forceUploadRegex, err := regexp.Compile(forceUploadPattern)
@@ -437,7 +465,7 @@ func (bh *BackupHandler) syncBackupFiles(ctx context.Context, minioClient *minio
 		return nil
 	})
 	if err != nil {
-		log.Error("Failed to walk backup directory: %v", err)
+		log.Error("failed to walk backup directory: %v", err)
 		return err
 	}
 
@@ -449,7 +477,7 @@ func (bh *BackupHandler) syncBackupFiles(ctx context.Context, minioClient *minio
 	})
 	for object := range objectCh {
 		if object.Err != nil {
-			log.Error("Failed to list S3 objects: %v", object.Err)
+			log.Error("failed to list S3 objects: %v", object.Err)
 			continue
 		}
 		relPath := strings.TrimPrefix(object.Key, s3Path+"/")
@@ -466,10 +494,10 @@ func (bh *BackupHandler) syncBackupFiles(ctx context.Context, minioClient *minio
 			_, err := minioClient.FPutObject(ctx, bucketName, objectName, fullPath,
 				minio.PutObjectOptions{ContentType: "application/octet-stream"})
 			if err != nil {
-				log.Error("Failed to upload file %s to S3: %v", localPath, err)
+				log.Error("failed to upload file %s to S3: %v", localPath, err)
 				continue
 			}
-			log.Info("Uploaded file to S3: %s", localPath)
+			log.Info("uploaded file to S3: %s", localPath)
 		}
 	}
 
@@ -482,7 +510,7 @@ func (bh *BackupHandler) syncBackupFiles(ctx context.Context, minioClient *minio
 				log.Error("failed to remove S3 file %s: %v", file, err)
 				continue
 			}
-			log.Info("Removed file from S3: %s", file)
+			log.Info("removed file from S3: %s", file)
 		}
 	}
 
@@ -526,7 +554,7 @@ func (bh *BackupHandler) export(ctx context.Context, pid uint32, backup *entity.
 	exportDir := fmt.Sprintf("%s/export", path)
 	if _, err := os.Stat(exportDir); os.IsNotExist(err) {
 		if err = os.Mkdir(exportDir, 0644); err != nil {
-			log.Error("Failed to create export dir: %s", err)
+			log.Error("failed to create export dir: %s", err)
 			return
 		}
 	}
@@ -551,7 +579,7 @@ func (bh *BackupHandler) export(ctx context.Context, pid uint32, backup *entity.
 
 	file, err := os.Create(backupFileName)
 	if err != nil {
-		log.Error("Failed to create file: %s", err)
+		log.Error("failed to create file: %s", err)
 		return
 	}
 
@@ -559,7 +587,7 @@ func (bh *BackupHandler) export(ctx context.Context, pid uint32, backup *entity.
 		zstd.WithEncoderLevel(zstd.SpeedDefault),
 		zstd.WithEncoderConcurrency(2))
 	if err != nil {
-		log.Error("Failed to create zstd writer: %s", err)
+		log.Error("failed to create zstd writer: %s", err)
 		file.Close()
 		return
 	}
@@ -596,24 +624,24 @@ func (bh *BackupHandler) export(ctx context.Context, pid uint32, backup *entity.
 
 		value, err := json.Marshal(docOut)
 		if err != nil {
-			log.Error("Marshal document error [%+v]", err)
+			log.Error("marshal document error [%+v]", err)
 			break
 		}
 
 		if _, err = zw.Write(value); err != nil {
-			log.Error("Failed to write to compressor: %s", err)
+			log.Error("failed to write to compressor: %s", err)
 			break
 		}
 
 		if _, err = zw.Write([]byte("\n")); err != nil {
-			log.Error("Failed to write newline: %s", err)
+			log.Error("failed to write newline: %s", err)
 			break
 		}
 
 		total++
 
-		if total%1000000 == 0 {
-			log.Info("Compressed %d documents", total)
+		if total%backupBatchSize == 0 {
+			log.Info("compressed %d documents", total)
 
 			zw.Close()
 			zw = nil
@@ -623,14 +651,14 @@ func (bh *BackupHandler) export(ctx context.Context, pid uint32, backup *entity.
 			_, err = minioClient.FPutObject(ctx, backup.S3Param.BucketName, objectName, backupFileName,
 				minio.PutObjectOptions{ContentType: "application/zstd"})
 			if err != nil {
-				log.Error("Failed to upload backup file: %+v", err)
+				log.Error("failed to upload backup file: %+v", err)
 				return
 			}
-			log.Info("Backup success, file is [%s]", backupFileName)
+			log.Info("backup success, file is [%s]", backupFileName)
 
 			// remove old file
 			if err = os.Remove(backupFileName); err != nil {
-				log.Error("Failed to remove file: %s", err)
+				log.Error("failed to remove file: %s", err)
 				return
 			}
 
@@ -641,7 +669,7 @@ func (bh *BackupHandler) export(ctx context.Context, pid uint32, backup *entity.
 
 			file, err = os.Create(backupFileName)
 			if err != nil {
-				log.Error("Failed to create file: %s", err)
+				log.Error("failed to create file: %s", err)
 				return
 			}
 
@@ -649,7 +677,7 @@ func (bh *BackupHandler) export(ctx context.Context, pid uint32, backup *entity.
 				zstd.WithEncoderLevel(zstd.SpeedDefault),
 				zstd.WithEncoderConcurrency(2))
 			if err != nil {
-				log.Error("Failed to create zstd writer: %s", err)
+				log.Error("failed to create zstd writer: %s", err)
 				file.Close()
 				file = nil
 				return
@@ -666,38 +694,38 @@ func (bh *BackupHandler) export(ctx context.Context, pid uint32, backup *entity.
 		file = nil
 	}
 
-	if total%1000000 != 0 {
+	if total%backupBatchSize != 0 {
 		_, err = minioClient.FPutObject(ctx, backup.S3Param.BucketName, objectName, backupFileName,
 			minio.PutObjectOptions{ContentType: "application/zstd"})
 		if err != nil {
-			log.Error("Failed to upload backup file: %+v", err)
+			log.Error("failed to upload backup file: %+v", err)
 			return
 		}
 	}
 
 	doneFile := fmt.Sprintf("%s/done_%d", exportDir, backup.Part)
 	if err := os.WriteFile(doneFile, fmt.Appendf(nil, "%d", total), 0644); err != nil {
-		log.Error("Failed to create done file: %s", err)
+		log.Error("failed to create done file: %s", err)
 		return
 	}
 
 	_, err = minioClient.FPutObject(ctx, backup.S3Param.BucketName, doneName, doneFile,
 		minio.PutObjectOptions{ContentType: "text/plain"})
 	if err != nil {
-		log.Error("Failed to upload done file: %+v", err)
+		log.Error("failed to upload done file: %+v", err)
 		os.Remove(doneFile)
 		return
 	}
 
 	if err := os.Remove(doneFile); err != nil {
-		log.Error("Failed to remove done file: %s", err)
+		log.Error("failed to remove done file: %s", err)
 	}
 
 	if err := os.Remove(backupFileName); err != nil {
-		log.Error("Failed to remove backup file: %s", err)
+		log.Error("failed to remove backup file: %s", err)
 	}
 
-	log.Info("Export completed successfully. Total documents: %d", total)
+	log.Info("export completed successfully. Total documents: %d", total)
 }
 
 func (bh *BackupHandler) create(ctx context.Context, pid uint32, backup *entity.BackupSpaceRequest, minioClient *minio.Client, dbName, spaceName string, path string) {
@@ -720,7 +748,7 @@ func (bh *BackupHandler) create(ctx context.Context, pid uint32, backup *entity.
 
 		s3Path := pathBuilder.BuildBackupPath(dbName, spaceName, uint32(backup.BackupID), backup.Part) + "/" + p
 		if err := bh.syncBackupFiles(ctx, minioClient, backup.S3Param.BucketName, backupLocalPath, s3Path); err != nil {
-			log.Error("Failed to sync backup files: %v", err)
+			log.Error("failed to sync backup files: %v", err)
 			return
 		}
 	}
@@ -740,12 +768,12 @@ func (bh *BackupHandler) create(ctx context.Context, pid uint32, backup *entity.
 		_, err := minioClient.FPutObject(ctx, backup.S3Param.BucketName, s3Path, backupLocalPath,
 			minio.PutObjectOptions{ContentType: "application/octet-stream"})
 		if err != nil {
-			log.Error("Failed to upload file %s to S3: %v", backupLocalPath, err)
+			log.Error("failed to upload file %s to S3: %v", backupLocalPath, err)
 			continue
 		}
 	}
 
-	log.Info("Backup success")
+	log.Info("backup success")
 }
 
 func (bh *BackupHandler) downloadDirectory(ctx context.Context, minioClient *minio.Client, bucketName, s3Path, localPath string) error {
@@ -761,7 +789,7 @@ func (bh *BackupHandler) downloadDirectory(ctx context.Context, minioClient *min
 	objChan := minioClient.ListObjects(ctx, bucketName, opts)
 	for obj := range objChan {
 		if obj.Err != nil {
-			log.Error("List objects failed: %v", obj.Err)
+			log.Error("list objects failed: %v", obj.Err)
 			continue
 		}
 
@@ -773,16 +801,16 @@ func (bh *BackupHandler) downloadDirectory(ctx context.Context, minioClient *min
 		destPath := filepath.Join(localPath, relPath)
 
 		if err := os.MkdirAll(filepath.Dir(destPath), 0755); err != nil {
-			log.Error("Create dir failed %s: %v", filepath.Dir(destPath), err)
+			log.Error("create dir failed %s: %v", filepath.Dir(destPath), err)
 			continue
 		}
 
 		if err := minioClient.FGetObject(ctx, bucketName, obj.Key, destPath, minio.GetObjectOptions{}); err != nil {
-			log.Error("Failed to download file %s: %v", obj.Key, err)
+			log.Error("failed to download file %s: %v", obj.Key, err)
 			continue
 		}
 
-		log.Debug("Downloaded: %s", relPath)
+		log.Debug("downloaded: %s", relPath)
 	}
 
 	return nil
@@ -793,18 +821,18 @@ func (bh *BackupHandler) restore(ctx context.Context, pid uint32, backup *entity
 
 	engine := bh.server.GetPartition(pid).GetEngine()
 	if engine == nil {
-		log.Error("Engine is nil")
+		log.Error("engine is nil")
 		return
 	}
 
 	engine.Close()
 	times := 0
 	for hasClosed := engine.HasClosed(); !hasClosed; hasClosed = engine.HasClosed() {
-		log.Debug("Wait engine close")
+		log.Debug("wait engine close")
 		time.Sleep(time.Second * 10)
 		times += 1
-		if times > 10 {
-			log.Error("Engine close timeout")
+		if times > maxEngineCloseWait {
+			log.Error("engine close timeout")
 			return
 		}
 	}
@@ -829,7 +857,7 @@ func (bh *BackupHandler) restore(ctx context.Context, pid uint32, backup *entity
 		s3Path := pathBuilder.BuildBackupPath(dbName, spaceName, uint32(backup.BackupID), backup.Part) + "/" + p
 		// Get directory from s3
 		if err := bh.downloadDirectory(ctx, minioClient, backup.S3Param.BucketName, s3Path, localPath); err != nil {
-			log.Error("Failed to download backup files: %v", err)
+			log.Error("failed to download backup files: %v", err)
 			return
 		}
 	}
@@ -849,28 +877,28 @@ func (bh *BackupHandler) restore(ctx context.Context, pid uint32, backup *entity
 		s3Path := pathBuilder.BuildBackupPath(dbName, spaceName, uint32(backup.BackupID), backup.Part) + "/" + file
 		err := minioClient.FGetObject(ctx, backup.S3Param.BucketName, s3Path, localPath, minio.GetObjectOptions{})
 		if err != nil {
-			log.Error("Failed to download file %s: %v", file, err)
+			log.Error("failed to download file %s: %v", file, err)
 			return
 		}
 	}
 
 	err := engine.Load()
 	if err != nil {
-		log.Error("Reload partition error:[%v]", err)
+		log.Error("reload partition error:[%v]", err)
 		return
 	}
-	log.Info("Restore success")
+	log.Info("restore success")
 }
 
 func (bh *BackupHandler) Execute(ctx context.Context, req *vearchpb.PartitionData, reply *vearchpb.PartitionData) (err error) {
 	reply.Err = &vearchpb.Error{Code: vearchpb.ErrorEnum_SUCCESS}
 	// get store engine
 	pid := req.PartitionID
-	log.Debug("Request pid [%+v]", pid)
+	log.Debug("request pid [%+v]", pid)
 
 	partitonStore := bh.server.GetPartition(pid)
 	if partitonStore == nil {
-		log.Error("PartitonStore %d is nil.", pid)
+		log.Error("partitonStore %d is nil.", pid)
 		return vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_IS_INVALID, fmt.Errorf("partition (%v), partitonStore is nil ", pid))
 	}
 	e := partitonStore.GetEngine()
@@ -880,7 +908,7 @@ func (bh *BackupHandler) Execute(ctx context.Context, req *vearchpb.PartitionDat
 
 	backup := new(entity.BackupSpaceRequest)
 	if err := json.Unmarshal(req.Data, backup); err != nil {
-		log.Error("Unmarshal backup data error [%+v]", err)
+		log.Error("unmarshal backup data error [%+v]", err)
 		return vearchpb.NewError(vearchpb.ErrorEnum_RPC_PARAM_ERROR, err)
 	}
 	if backup.Command != "create" && backup.Command != "restore" && backup.Command != "export" && backup.Command != "list" {
@@ -905,7 +933,7 @@ func (bh *BackupHandler) Execute(ctx context.Context, req *vearchpb.PartitionDat
 		Region: backup.S3Param.Region,
 	})
 	if err != nil {
-		log.Error("Failed to create minio client: %+v", err)
+		log.Error("failed to create minio client: %+v", err)
 		return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("failed to create minio client: %s", err.Error()))
 	}
 
@@ -919,11 +947,11 @@ func (bh *BackupHandler) Execute(ctx context.Context, req *vearchpb.PartitionDat
 			err := e.GetEngineStatus(status)
 
 			if err != nil {
-				log.Error("Get engine status error [%+v]", err)
+				log.Error("get engine status error [%+v]", err)
 				return
 			}
 			for status.BackupStatus != 0 {
-				log.Debug("Status.BackupStatus %d", status.BackupStatus)
+				log.Debug("status.BackupStatus %d", status.BackupStatus)
 				return
 			}
 			bh.export(ctx, pid, backup, minioClient, dbName, *engineConfig.Path)
@@ -934,16 +962,16 @@ func (bh *BackupHandler) Execute(ctx context.Context, req *vearchpb.PartitionDat
 			err := e.GetEngineStatus(status)
 
 			if err != nil {
-				log.Error("Get engine status error [%+v]", err)
+				log.Error("get engine status error [%+v]", err)
 				return
 			}
 			for status.BackupStatus != 0 {
-				log.Debug("Status.BackupStatus %d", status.BackupStatus)
+				log.Debug("status.BackupStatus %d", status.BackupStatus)
 				return
 			}
 			err = e.BackupSpace(backup.Command)
 			if err != nil {
-				log.Error("Failed to backup space: %+v", err)
+				log.Error("failed to backup space: %+v", err)
 				return
 			}
 			bh.create(ctx, pid, backup, minioClient, dbName, space.Name, *engineConfig.Path)
@@ -965,7 +993,7 @@ func (rlh *ResourceLimitHandler) Execute(ctx context.Context, req *vearchpb.Part
 
 	partitonStore := rlh.server.GetPartition(req.PartitionID)
 	if partitonStore == nil {
-		log.Debug("PartitonStore is nil, pid %d not found", req.PartitionID)
+		log.Debug("partitonStore is nil, pid %d not found", req.PartitionID)
 		return nil
 	}
 
@@ -983,6 +1011,6 @@ func (rlh *ResourceLimitHandler) Execute(ctx context.Context, req *vearchpb.Part
 			partitonStore.GetPartition().ResourceExhausted = resource_exhausted
 		}
 	}
-	log.Debug("Partition %d set ResourceExhausted as %v", req.PartitionID, partitonStore.GetPartition().ResourceExhausted)
+	log.Debug("partition %d set ResourceExhausted as %v", req.PartitionID, partitonStore.GetPartition().ResourceExhausted)
 	return nil
 }

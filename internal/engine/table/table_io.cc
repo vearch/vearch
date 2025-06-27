@@ -20,6 +20,7 @@ TableSchemaIO::~TableSchemaIO() {}
 
 struct SchemaInfo {
   int training_threshold;
+  int refresh_interval;
   std::vector<struct FieldInfo> fields;
   std::vector<struct VectorInfo> vectors;
   std::string index_type;
@@ -29,6 +30,7 @@ struct SchemaInfo {
 int TableSchemaIO::Write(TableInfo &table) {
   SchemaInfo s{
       .training_threshold = table.TrainingThreshold(),
+      .refresh_interval = table.RefreshInterval(),
       .fields = table.Fields(),
       .vectors = table.VectorInfos(),
       .index_type = table.IndexType(),
@@ -37,6 +39,7 @@ int TableSchemaIO::Write(TableInfo &table) {
 
   nlohmann::json j;
   j["training_threshold"] = s.training_threshold;
+  j["refresh_interval"] = s.refresh_interval;
   for (auto &f : s.fields) {
     nlohmann::json jf;
     jf["name"] = f.name;
@@ -91,6 +94,7 @@ int TableSchemaIO::Read(std::string &name, TableInfo &table) {
     nlohmann::json j = nlohmann::json::parse(schema_str);
     table.SetName(name);
     table.SetTrainingThreshold(j["training_threshold"]);
+    table.SetRefreshInterval(j["refresh_interval"]);
     for (auto &f : j["fields"]) {
       struct FieldInfo fi;
       fi.name = f["name"];

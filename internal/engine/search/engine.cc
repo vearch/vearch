@@ -14,6 +14,7 @@
 #include <time.h>
 #include <unistd.h>
 
+#include <atomic>
 #include <chrono>
 #include <cstring>
 #include <fstream>
@@ -117,12 +118,13 @@ Engine::Engine(const std::string &index_root_path,
     : index_root_path_(index_root_path),
       space_name_(space_name),
       date_time_format_("%Y-%m-%d-%H:%M:%S"),
-      backup_status_(0) {
+      backup_status_(0),
+      refresh_interval_(1000) {
   table_ = nullptr;
   vec_manager_ = nullptr;
   index_status_ = IndexStatus::UNINDEXED;
   delete_num_ = 0;
-  b_running_ = 0;
+  indexing_state_.store(IndexingState::IDLE);
   is_dirty_ = false;
   field_range_index_ = nullptr;
   created_table_ = false;
@@ -134,11 +136,15 @@ Engine::Engine(const std::string &index_root_path,
 }
 
 Engine::~Engine() {
-  if (b_running_) {
-    b_running_ = 0;
-    std::mutex running_mutex;
-    std::unique_lock<std::mutex> lk(running_mutex);
-    running_cv_.wait(lk);
+  // Safely stop indexing if it's running
+  IndexingState expected = IndexingState::RUNNING;
+  if (indexing_state_.compare_exchange_strong(expected,
+                                              IndexingState::STOPPING)) {
+    LOG(INFO) << space_name_ << " stopping indexing process in destructor...";
+    if (!WaitForIndexingComplete(10000)) {  // Wait up to 10 seconds
+      LOG(WARNING) << space_name_
+                   << " timeout waiting for indexing to stop in destructor";
+    }
   }
 
   Close();
@@ -247,21 +253,24 @@ Status Engine::Search(Request &request, Response &response_results) {
     RequestConcurrentController::GetInstance().Release(req_num);
     return Status::InvalidArgument(msg);
   }
-  int brute_force_search = request.BruteForceSearch(); // 0: normal search, 1: brute force search, 2: auto
+  int brute_force_search =
+      request.BruteForceSearch();  // 0: normal search, 1: brute force search,
+                                   // 2: auto
   std::vector<struct VectorQuery> &vec_fields = request.VecFields();
   size_t vec_fields_num = vec_fields.size();
 
-  if (vec_fields_num > 0 && brute_force_search == 2 && index_status_ != IndexStatus::INDEXED) {
-    brute_force_search = 1; // force to use brute force search
+  if (vec_fields_num > 0 && brute_force_search == 2 &&
+      index_status_ != IndexStatus::INDEXED) {
+    brute_force_search = 1;  // force to use brute force search
   }
 
   if (vec_fields_num > 0 && (brute_force_search == 0) &&
       (index_status_ != IndexStatus::INDEXED) &&
       (max_docid_ > brute_force_search_threshold)) {
-    std::string msg = space_name_ + " index not trained, " + 
-                      "brute_force_search is 0, max_docid_ = " +
-                      std::to_string(max_docid_) + ", threshold = " +
-                      std::to_string(brute_force_search_threshold);
+    std::string msg =
+        space_name_ + " index not trained, " +
+        "brute_force_search is 0, max_docid_ = " + std::to_string(max_docid_) +
+        ", threshold = " + std::to_string(brute_force_search_threshold);
     LOG(WARNING) << msg;
     for (int i = 0; i < req_num; ++i) {
       SearchResult result;
@@ -603,8 +612,7 @@ Status Engine::CreateTable(TableInfo &table) {
   }
 
   refresh_interval_ = table.RefreshInterval();
-  LOG(INFO) << space_name_
-            << " init refresh_interval=" << refresh_interval_;
+  LOG(INFO) << space_name_ << " init refresh_interval=" << refresh_interval_;
 
   LOG(INFO) << "create table [" << table_name << "] success!";
   created_table_ = true;
@@ -675,7 +683,9 @@ int Engine::AddOrUpdate(Doc &doc) {
     return -7;
   };
 
-  if (this->refresh_interval_ >= 0 and not b_running_ and index_status_ == UNINDEXED) {
+  if (refresh_interval_ >= 0 and
+      indexing_state_.load() == IndexingState::IDLE and
+      index_status_ == UNINDEXED) {
     if (max_docid_ - delete_num_ >= training_threshold_) {
       LOG(INFO) << space_name_ << " begin indexing. training_threshold="
                 << training_threshold_;
@@ -875,12 +885,19 @@ int Engine::GetDoc(int docid, Doc &doc, bool next) {
 }
 
 int Engine::BuildIndex() {
-  int running = __sync_fetch_and_add(&b_running_, 1);
-  if (running) {
-    LOG(INFO) << space_name_ << " start build index!";
+  // Try to transition from IDLE to STARTING atomically
+  IndexingState expected = IndexingState::IDLE;
+  if (!indexing_state_.compare_exchange_strong(expected,
+                                               IndexingState::STARTING)) {
+    // Already in progress or stopping
+    LOG(INFO)
+        << space_name_
+        << " index building already in progress or stopping, current state: "
+        << static_cast<int>(expected);
     return 0;
   }
 
+  LOG(INFO) << space_name_ << " starting index build process...";
   auto func_indexing = std::bind(&Engine::Indexing, this);
   std::thread t(func_indexing);
   t.detach();
@@ -890,7 +907,8 @@ int Engine::BuildIndex() {
 // TODO set limit for cpu
 int Engine::RebuildIndex(int drop_before_rebuild, int limit_cpu, int describe) {
   int ret = 0;
-  if (!b_running_ || index_status_ == IndexStatus::UNINDEXED) {
+  if (indexing_state_.load() == IndexingState::IDLE ||
+      index_status_ == IndexStatus::UNINDEXED) {
     LOG(INFO) << space_name_ << " index not trained, no need to rebuild!";
     return ret;
   }
@@ -899,11 +917,30 @@ int Engine::RebuildIndex(int drop_before_rebuild, int limit_cpu, int describe) {
     return ret;
   }
 
-  if (b_running_) {
-    b_running_ = 0;
-    std::mutex running_mutex;
-    std::unique_lock<std::mutex> lk(running_mutex);
-    running_cv_.wait(lk);
+  // Stop current indexing process safely using compare_exchange
+  IndexingState expected = IndexingState::RUNNING;
+  if (indexing_state_.compare_exchange_strong(expected,
+                                              IndexingState::STOPPING)) {
+    LOG(INFO) << space_name_
+              << " stopping current indexing process for rebuild...";
+    if (WaitForIndexingComplete()) {
+      LOG(INFO) << space_name_
+                << " indexing process stopped, proceeding with rebuild";
+    } else {
+      LOG(WARNING)
+          << space_name_
+          << " timeout waiting for indexing to stop, proceeding anyway";
+    }
+  } else if (expected == IndexingState::STARTING) {
+    // Wait for starting to complete
+    LOG(INFO) << space_name_
+              << " waiting for indexing to start before stopping...";
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    expected = IndexingState::RUNNING;
+    if (indexing_state_.compare_exchange_strong(expected,
+                                                IndexingState::STOPPING)) {
+      WaitForIndexingComplete();
+    }
   }
 
   if (!drop_before_rebuild) {
@@ -917,7 +954,8 @@ int Engine::RebuildIndex(int drop_before_rebuild, int limit_cpu, int describe) {
       return ret;
     }
 
-    if (not b_running_ && max_docid_ - delete_num_ > training_threshold_) {
+    if (indexing_state_.load() == IndexingState::IDLE &&
+        max_docid_ - delete_num_ > training_threshold_) {
       ret = vec_manager_->TrainIndex(vector_indexes);
       if (ret) {
         LOG(ERROR) << space_name_
@@ -940,7 +978,9 @@ int Engine::RebuildIndex(int drop_before_rebuild, int limit_cpu, int describe) {
     index_status_ = IndexStatus::UNINDEXED;
   }
 
-  if (this->refresh_interval_ >= 0 and not b_running_ && max_docid_ - delete_num_ >= training_threshold_) {
+  if (refresh_interval_ >= 0 and
+      indexing_state_.load() == IndexingState::IDLE &&
+      max_docid_ - delete_num_ >= training_threshold_) {
     ret = BuildIndex();
     if (ret) {
       LOG(ERROR) << space_name_
@@ -960,16 +1000,30 @@ int Engine::RebuildIndex(int drop_before_rebuild, int limit_cpu, int describe) {
 }
 
 int Engine::Indexing() {
+  // Transition from STARTING to RUNNING
+  IndexingState expected = IndexingState::STARTING;
+  if (!indexing_state_.compare_exchange_strong(expected,
+                                               IndexingState::RUNNING)) {
+    LOG(ERROR) << space_name_
+               << " unexpected indexing state: " << static_cast<int>(expected);
+    indexing_state_.store(IndexingState::IDLE);
+    indexing_cv_.notify_all();
+    return -1;
+  }
+
   if (vec_manager_->TrainIndex(vec_manager_->VectorIndexes()) != 0) {
     LOG(ERROR) << space_name_ << " create index failed!";
-    b_running_ = 0;
+    indexing_state_.store(IndexingState::IDLE);
+    indexing_cv_.notify_all();
     return -1;
   }
 
   LOG(INFO) << space_name_ << " vector manager TrainIndex success!";
   int ret = 0;
   bool has_error = false;
-  while (b_running_) {
+
+  // Main indexing loop
+  while (indexing_state_.load() == IndexingState::RUNNING) {
     if (has_error) {
       usleep(5000 * 1000);  // sleep 5000ms
       continue;
@@ -985,16 +1039,38 @@ int Engine::Indexing() {
     if (index_is_dirty == true) {
       is_dirty_ = true;
     }
-    if(this->refresh_interval_ > 0) {
+    if (refresh_interval_ > 0) {
       std::this_thread::sleep_for(std::chrono::milliseconds(refresh_interval_));
     }
   }
-  running_cv_.notify_one();
+
+  // Clean up and notify waiters
+  indexing_state_.store(IndexingState::IDLE);
+  { std::lock_guard<std::mutex> lock(indexing_mutex_); }
+  indexing_cv_.notify_all();
+
   LOG(INFO) << space_name_ << " build index exited!";
   return ret;
 }
 
 int Engine::GetDocsNum() { return max_docid_ - delete_num_; }
+
+bool Engine::WaitForIndexingComplete(int timeout_ms) {
+  std::unique_lock<std::mutex> lk(indexing_mutex_);
+
+  if (timeout_ms < 0) {
+    // Wait indefinitely
+    indexing_cv_.wait(
+        lk, [this] { return indexing_state_.load() == IndexingState::IDLE; });
+    return true;
+  } else {
+    // Wait with timeout
+    auto timeout = std::chrono::milliseconds(timeout_ms);
+    return indexing_cv_.wait_for(lk, timeout, [this] {
+      return indexing_state_.load() == IndexingState::IDLE;
+    });
+  }
+}
 
 std::string Engine::EngineStatus() {
   nlohmann::json j;
@@ -1183,27 +1259,6 @@ int Engine::Load() {
   }
   max_docid_ = doc_num;
 
-  if (field_range_index_->DocCount() <= 0) {
-    int field_num = table_->FieldsNum();
-    // add fields into field_range_index_ in multi-thread
-    std::thread t([=]() {
-#pragma omp parallel for
-      for (int j = 0; j < field_num; ++j) {
-        for (int i = 0; i < max_docid_; ++i) {
-          if (docids_bitmap_->Test(i)) {
-            continue;
-          }
-          field_range_index_->AddDoc(i, j);
-          if (i % 10000 == 0) {
-            LOG(DEBUG) << space_name_ << " load field_range_index_ [" << j
-                       << "] docid [" << i << "]";
-          }
-        }
-      }
-    });
-    t.detach();
-  }
-
   delete_num_ = 0;
   for (int i = 0; i < max_docid_; ++i) {
     if (docids_bitmap_->Test(i)) {
@@ -1211,7 +1266,9 @@ int Engine::Load() {
     }
   }
 
-  if (this->refresh_interval_ >= 0 and not b_running_ and index_status_ == UNINDEXED) {
+  if (refresh_interval_ >= 0 and
+      indexing_state_.load() == IndexingState::IDLE and
+      index_status_ == UNINDEXED) {
     if (max_docid_ - delete_num_ >= training_threshold_) {
       LOG(INFO) << space_name_ << " begin indexing. training_threshold="
                 << training_threshold_;
@@ -1377,7 +1434,7 @@ int Engine::SetConfig(std::string conf_str) {
   if (j.contains("refresh_interval")) {
     refresh_interval_ = j["refresh_interval"];
     LOG(INFO) << space_name_
-      << " update refresh_interval=" << refresh_interval_;
+              << " update refresh_interval=" << refresh_interval_;
   }
   return 0;
 }

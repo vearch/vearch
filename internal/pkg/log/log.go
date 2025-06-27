@@ -1,3 +1,17 @@
+// Copyright 2019 The Vearch Authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+// implied. See the License for the specific language governing
+// permissions and limitations under the License.
+
 package log
 
 import (
@@ -14,26 +28,26 @@ type Log interface {
 
 	IsWarnEnabled() bool
 
-	Debug(v ...interface{})
-	Debugf(format string, v ...interface{})
+	Debug(v ...any)
+	Debugf(format string, v ...any)
 
-	Trace(v ...interface{})
-	Tracef(format string, v ...interface{})
+	Trace(v ...any)
+	Tracef(format string, v ...any)
 
-	Info(v ...interface{})
-	Infof(format string, v ...interface{})
+	Info(v ...any)
+	Infof(format string, v ...any)
 
-	Warn(v ...interface{})
-	Warnf(format string, v ...interface{})
+	Warn(v ...any)
+	Warnf(format string, v ...any)
 
-	Error(v ...interface{})
-	Errorf(format string, v ...interface{})
+	Error(v ...any)
+	Errorf(format string, v ...any)
 
-	Fatal(v ...interface{})
-	Fatalf(format string, v ...interface{})
+	Fatal(v ...any)
+	Fatalf(format string, v ...any)
 
-	Panic(v ...interface{})
-	Panicf(format string, v ...interface{})
+	Panic(v ...any)
+	Panicf(format string, v ...any)
 
 	//when system exit you should use it
 	Flush()
@@ -91,55 +105,55 @@ func IsWarnEnabled() bool {
 	return Get().IsWarnEnabled()
 }
 
-func Errorf(format string, args ...interface{}) {
+func Errorf(format string, args ...any) {
 	Get().Errorf(format, args...)
 }
 
-func Infof(format string, args ...interface{}) {
+func Infof(format string, args ...any) {
 	Get().Infof(format, args...)
 }
 
-func Debugf(format string, args ...interface{}) {
+func Debugf(format string, args ...any) {
 	Get().Debugf(format, args...)
 }
 
-func Tracef(format string, args ...interface{}) {
+func Tracef(format string, args ...any) {
 	Get().Tracef(format, args...)
 }
 
-func Warnf(format string, args ...interface{}) {
+func Warnf(format string, args ...any) {
 	Get().Warnf(format, args...)
 }
 
-func Fatalf(format string, args ...interface{}) {
+func Fatalf(format string, args ...any) {
 	Get().Fatalf(format, args...)
 }
-func Panicf(format string, args ...interface{}) {
+func Panicf(format string, args ...any) {
 	Get().Panicf(format, args...)
 }
 
-func Error(args ...interface{}) {
+func Error(args ...any) {
 	Get().Error(args...)
 }
-func Warn(args ...interface{}) {
+func Warn(args ...any) {
 	Get().Warn(args...)
 }
-func Info(args ...interface{}) {
+func Info(args ...any) {
 	Get().Info(args...)
 }
-func Debug(args ...interface{}) {
+func Debug(args ...any) {
 	Get().Debug(args...)
 }
 
-func Trace(args ...interface{}) {
+func Trace(args ...any) {
 	Get().Trace(args...)
 }
 
-func Fatal(args ...interface{}) {
+func Fatal(args ...any) {
 	Get().Fatal(args...)
 }
 
-func Panic(args ...interface{}) {
+func Panic(args ...any) {
 	Get().Panic(args...)
 }
 
