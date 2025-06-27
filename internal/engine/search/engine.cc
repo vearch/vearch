@@ -141,7 +141,7 @@ Engine::~Engine() {
   if (indexing_state_.compare_exchange_strong(expected,
                                               IndexingState::STOPPING)) {
     LOG(INFO) << space_name_ << " stopping indexing process in destructor...";
-    if (!WaitForIndexingComplete(10000)) {  // Wait up to 10 seconds
+    if (!WaitForIndexingComplete(-1)) {  // Wait up to -1 ms (indefinitely)
       LOG(WARNING) << space_name_
                    << " timeout waiting for indexing to stop in destructor";
     }
