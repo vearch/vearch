@@ -23,7 +23,6 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/google/uuid"
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/v3/internal/config"
 	"github.com/vearch/vearch/v3/internal/engine/sdk/go/gamma"
@@ -164,7 +163,7 @@ func (ge *gammaEngine) Writer() engine.Writer {
 }
 
 func (ge *gammaEngine) UpdateMapping(space *entity.Space) error {
-	var oldProperties, newProperties interface{}
+	var oldProperties, newProperties any
 
 	if err := json.Unmarshal([]byte(ge.space.Fields), &oldProperties); err != nil {
 		return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("unmarshal old space properties:[%s] has err:[%s] ", ge.space.Fields, err.Error()))
@@ -218,23 +217,30 @@ func (ge *gammaEngine) IndexInfo() (int, int, int) {
 }
 
 func (ge *gammaEngine) GetEngineStatus(status *entity.EngineStatus) error {
-	ges := gamma.GetEngineStatus(ge.gamma)
-	if err := json.Unmarshal([]byte(ges), status); err != nil {
+	enginePtr, err := ge.getEnginePtr()
+	if err != nil {
 		return err
+	}
+
+	ges := gamma.GetEngineStatus(enginePtr)
+	if err := json.Unmarshal([]byte(ges), status); err != nil {
+		return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR,
+			fmt.Errorf("unmarshal engine status failed: %v", err))
 	}
 	return nil
 }
 
 func (ge *gammaEngine) BuildIndex() error {
-	indexLocker.Lock()
-	defer indexLocker.Unlock()
 	ge.counter.Incr()
 	defer ge.counter.Decr()
 	gammaEngine := ge.gamma
-	if gammaEngine == nil {
-		log.Error("gammaEngine is nil")
+	if gammaEngine == nil || ge.hasClosed {
+		log.Error("gammaEngine is nil or closed, partition:[%d]", ge.partitionID)
 		return vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_IS_CLOSED, nil)
 	}
+
+	indexLocker.Lock()
+	defer indexLocker.Unlock()
 
 	// UNINDEXED = 0, INDEXING, INDEXED
 	go func() {
@@ -242,8 +248,8 @@ func (ge *gammaEngine) BuildIndex() error {
 		if rc := gamma.BuildIndex(gammaEngine); rc != 0 {
 			log.Error("build index:[%d] err response code:[%d]", ge.partitionID, rc)
 		} else {
-			endTime := time.Now()
-			log.Info("BuildIndex cost:[%f],rc :[%d]", (endTime.Sub(startTime).Seconds())*1000, rc)
+			log.Info("BuildIndex partition:[%d] cost:[%.2f]ms, rc:[%d]",
+				ge.partitionID, time.Since(startTime).Seconds()*1000, rc)
 		}
 	}()
 
@@ -251,24 +257,25 @@ func (ge *gammaEngine) BuildIndex() error {
 }
 
 func (ge *gammaEngine) RebuildIndex(drop_before_rebuild int, limit_cpu int, describe int) error {
-	indexLocker.Lock()
-	defer indexLocker.Unlock()
 	ge.counter.Incr()
 	defer ge.counter.Decr()
-	gammaEngine := ge.gamma
-	if gammaEngine == nil {
-		log.Error("gammaEngine is nil")
+
+	if ge.gamma == nil {
+		log.Error("gammaEngine is nil, partition:[%d]", ge.partitionID)
 		return vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_IS_CLOSED, nil)
 	}
+
+	indexLocker.Lock()
+	defer indexLocker.Unlock()
 
 	// UNINDEXED = 0, INDEXING, INDEXED
 	go func() {
 		startTime := time.Now()
-		if rc := gamma.RebuildIndex(gammaEngine, drop_before_rebuild, limit_cpu, describe); rc != 0 {
-			log.Error("RebuildIndex:[%d] err response code:[%d]", ge.partitionID, rc)
+		if rc := gamma.RebuildIndex(ge.gamma, drop_before_rebuild, limit_cpu, describe); rc != 0 {
+			log.Error("RebuildIndex partition:[%d] err response code:[%d]", ge.partitionID, rc)
 		} else {
-			endTime := time.Now()
-			log.Info("RebuildIndex:[%d] cost:[%f],ret :[%d]", ge.partitionID, (endTime.Sub(startTime).Seconds())*1000, rc)
+			log.Info("RebuildIndex partition:[%d] cost:[%.2f]ms, ret:[%d]",
+				ge.partitionID, time.Since(startTime).Seconds()*1000, rc)
 		}
 	}()
 
@@ -308,6 +315,7 @@ func (ge *gammaEngine) Load() error {
 		return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("load data err code:[%d]", code))
 	}
 	ge.gamma = engineInstance
+	ge.hasClosed = false
 	return nil
 }
 
@@ -320,42 +328,78 @@ func (ge *gammaEngine) Close() {
 	ge.gamma = nil
 	ge.cancel()
 	go func(enginePtr unsafe.Pointer) {
-		i := 0
-		for {
-			time.Sleep(3 * time.Second)
-			i++
-			if ge.counter.Get() > 0 {
-				log.Info("wait stop gamma engine pid:[%d] times:[%d]", ge.partitionID, i)
-				continue
-			}
-			start, flakeUUID := time.Now(), uuid.NewString()
-			log.Info("to close gamma engine pid:[%d] begin token:[%s]", ge.partitionID, flakeUUID)
-			if resp := gamma.Close(enginePtr); resp != 0 {
-				log.Error("to close gamma engine pid:[%d] fail:[%d]", ge.partitionID, resp)
-			} else {
-				log.Info("to close gamma engine pid:[%d] success:[%d]", ge.partitionID, resp)
-			}
-			ge.hasClosed = true
-			log.Info("to close gamma engine pid:[%d] end token:[%s] use time:[%d]", ge.partitionID, flakeUUID, time.Since(start))
-			break
+		if enginePtr == nil {
+			log.Warn("gamma engine already closed, partition:[%d]", ge.partitionID)
+			return
 		}
+
+		waitCount := 0
+		for ge.counter.Get() > 0 {
+			waitCount++
+			time.Sleep(100 * time.Millisecond)
+			if waitCount%30 == 0 {
+				log.Info("waiting for operations to complete, partition:[%d], count:[%d], wait times:[%d]",
+					ge.partitionID, ge.counter.Get(), waitCount)
+			}
+		}
+
+		start := time.Now()
+		log.Info("closing gamma engine partition:[%d] begin", ge.partitionID)
+
+		if resp := gamma.Close(enginePtr); resp != 0 {
+			log.Error("close gamma engine partition:[%d] failed:[%d]", ge.partitionID, resp)
+		} else {
+			log.Info("close gamma engine partition:[%d] success", ge.partitionID)
+		}
+
+		ge.hasClosed = true
+		log.Info("close gamma engine partition:[%d] end cost:[%v]", ge.partitionID, time.Since(start))
 	}(enginePtr)
 }
 
 func (ge *gammaEngine) SetEngineCfg(configJson []byte) error {
-	gamma.SetEngineCfg(ge.gamma, configJson)
+	enginePtr, err := ge.getEnginePtr()
+	if err != nil {
+		return err
+	}
+	gamma.SetEngineCfg(enginePtr, configJson)
 	return nil
 }
 
 func (ge *gammaEngine) GetEngineCfg(config *entity.SpaceConfig) error {
-	configJson := gamma.GetEngineCfg(ge.gamma)
+	enginePtr, err := ge.getEnginePtr()
+	if err != nil {
+		return err
+	}
+	configJson := gamma.GetEngineCfg(enginePtr)
 	return json.Unmarshal(configJson, config)
 }
 
 func (ge *gammaEngine) BackupSpace(command string) error {
-	status := gamma.BackupSpace(ge.gamma, command)
+	enginePtr, err := ge.getEnginePtr()
+	if err != nil {
+		return err
+	}
+	status := gamma.BackupSpace(enginePtr, command)
 	if status.Code != 0 {
 		return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("backup space err:[%s]", status.Msg))
 	}
 	return nil
+}
+
+func (ge *gammaEngine) getEnginePtr() (unsafe.Pointer, error) {
+	ge.lock.RLock()
+	defer ge.lock.RUnlock()
+
+	if ge.hasClosed {
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_IS_CLOSED,
+			fmt.Errorf("engine is closed, partition:[%d]", ge.partitionID))
+	}
+
+	if ge.gamma == nil {
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR,
+			fmt.Errorf("engine pointer is nil, partition:[%d]", ge.partitionID))
+	}
+
+	return ge.gamma, nil
 }

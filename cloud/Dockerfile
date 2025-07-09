@@ -3,8 +3,7 @@ FROM vearch/vearch-dev-env:latest AS builder
 WORKDIR /vearch
 COPY . .
 
-RUN dnf install -y epel-release && \
-    dnf install -y wget make cmake automake which libzstd-devel openssl-devel tbb-devel tar findutils gcc-c++ && \
+RUN dnf install -y wget make cmake automake which libzstd-devel openssl-devel tbb-devel gcc-c++ && \
     dnf --enablerepo=crb install -y blas-devel lapack-devel openblas-devel golang libuv && \
     mkdir -p /env/app/go/src/github.com/vearch && \
     ln -s /vearch /env/app/go/src/github.com/vearch && \
