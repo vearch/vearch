@@ -35,7 +35,7 @@ __description__ = """ test utils for vearch """
 
 
 def process_add_data(items):
-    url = router_url + "/document/upsert"
+    url = router_url + "/document/upsert?timeout=2000000"
     data = {}
 
     data["documents"] = []
@@ -77,7 +77,7 @@ def process_add_data(items):
 
     rs = requests.post(url, auth=(username, password), json=data)
     if rs.json()["code"] != 0:
-        logger.info(rs.json())
+        logger.error(rs.json())
 
     assert rs.json()["code"] == 0
 
@@ -1365,6 +1365,9 @@ def waiting_index_finish(total, timewait=5, space_name=space_name):
     while num < total:
         num = 0
         response = requests.get(url, auth=(username, password))
+        if response.json()["code"] != 0:
+            logger.error("waiting index finish, response code is not 0, " + response.text)
+            break
         partitions = response.json()["data"]["partitions"]
         for p in partitions:
             num += p["index_num"]
@@ -1475,7 +1478,7 @@ def destroy(router_url: str, db_name: str, space_name: str):
 
 
 def create_space(router_url: str, db_name: str, space_config: dict):
-    url = f"{router_url}/dbs/{db_name}/spaces"
+    url = f"{router_url}/dbs/{db_name}/spaces?timeout=1000000"
     resp = requests.post(url, auth=(username, password), json=space_config)
     return resp
 

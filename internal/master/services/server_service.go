@@ -65,9 +65,10 @@ func (s *ServerService) RegisterServer(ctx context.Context, ip string, nodeID en
 		if config, exists := configMap[s.Id]; exists {
 			// Maintain compatibility with older versions
 			if config.RefreshInterval == nil {
-				s.RefreshInterval = int32(entity.DefaultRefreshInterval)
+				defaultInterval := int32(entity.DefaultRefreshInterval)
+				s.RefreshInterval = &defaultInterval
 			} else {
-				s.RefreshInterval = *config.RefreshInterval
+				s.RefreshInterval = config.RefreshInterval
 			}
 		}
 		for _, p := range s.Partitions {

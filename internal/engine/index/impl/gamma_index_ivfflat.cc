@@ -371,11 +371,11 @@ bool GammaIndexIVFFlat::Add(int n, const uint8_t *vec) {
   RawVector *raw_vec = dynamic_cast<RawVector *>(vector_);
   for (int i = 0; i < n; i++) {
     long key = idx[i];
-    if (key >= (long)nlist) {
-      LOG(WARNING) << "ivfflat add invalid key=" << key << ", vid=" << vid + i;
+    if (raw_vec->Bitmap()->Test(vid + i)) {
       continue;
     }
-    if (raw_vec->Bitmap()->Test(vid + i)) {
+    if (key >= (long)nlist) {
+      LOG(WARNING) << "ivfflat add invalid key=" << key << ", vid=" << vid + i;
       continue;
     }
     if (key < 0) {

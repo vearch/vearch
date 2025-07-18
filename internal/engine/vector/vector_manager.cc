@@ -9,6 +9,7 @@
 
 #include "raw_vector_factory.h"
 #include "util/utils.h"
+#include "index/impl/hnswlib/gamma_index_hnswlib.h"
 
 namespace vearch {
 
@@ -822,10 +823,15 @@ void VectorManager::GetTotalMemBytes(long &index_total_mem_bytes,
 int VectorManager::Dump(const std::string &path, int64_t dump_docid,
                         int64_t max_docid) {
   pthread_rwlock_rdlock(&index_rwmutex_);
+  std::map<std::string, int64_t> vector_index_counts;
   for (const auto &[name, index] : vector_indexes_) {
+    std::string vec_name, index_type;
+    GetVectorNameAndIndexType(name, vec_name, index_type);
+    vector_index_counts[vec_name] = index->indexed_count_;
     Status status = index->Dump(path);
     if (!status.ok()) {
       LOG(ERROR) << desc_ << "vector " << name << " dump gamma index failed!";
+      pthread_rwlock_unlock(&index_rwmutex_);
       return status.code();
     }
     LOG(INFO) << desc_ << "vector " << name << " dump gamma index success!";
@@ -842,7 +848,19 @@ int VectorManager::Dump(const std::string &path, int64_t dump_docid,
         LOG(ERROR) << desc_ << "vector " << name << " dump failed!";
         return status.code();
       }
-      LOG(INFO) << desc_ << "vector " << name << " dump success!";
+      int64_t vector_index_count = 0;
+      if (vector_index_counts.find(name) != vector_index_counts.end()) {
+        vector_index_count = vector_index_counts[name];
+      }
+      status = raw_vector->SetVectorIndexCount(vector_index_count);
+      if (!status.ok()) {
+        LOG(ERROR) << desc_ << "vector " << name
+                   << " set vector index count failed!";
+        return status.code();
+      }
+      LOG(INFO) << desc_ << "vector " << name << " dump success, "
+                << "start=" << start << ", end=" << end
+                << ", vector_index_count=" << vector_index_count;
     }
   }
 
@@ -862,23 +880,85 @@ int VectorManager::Load(const std::vector<std::string> &index_dirs,
   }
 
   LOG(INFO) << desc_ << "vector_mgr load min_vec_num=" << min_vec_num;
-
+  std::unordered_map<std::string, bool> vecs_has_delete;
+  std::unordered_map<std::string, int64_t> vec_index_counts;
   for (const auto &[name, vec] : raw_vectors_) {
     if (vec->WithIO()) {
       // TODO: doc num to vector num
       int64_t vec_num = doc_num;
-      Status status = vec->Load(vec_num);
+      int64_t real_load_num = 0;
+      Status status = vec->Load(vec_num, real_load_num);
       if (!status.ok()) {
         LOG(ERROR) << desc_ << "vector [" << name << "] load failed!";
         return status.code();
       }
-      LOG(INFO) << desc_ << "vector [" << name << "] load success!";
+      int64_t vector_index_count = 0;
+      vec->GetVectorIndexCount(vector_index_count);
+      vec_index_counts[name] = vector_index_count;
+
+      LOG(INFO) << desc_ << "vector [" << name << "] load success, vec_num="
+                << vec_num << ", real_load_num=" << real_load_num << ", "
+                << "vector_index_count=" << vector_index_count;
+      if (real_load_num < vec_num) {
+        vecs_has_delete[name] = true;
+      } else if (real_load_num == vec_num) {
+        vecs_has_delete[name] = false;
+      } else {
+        LOG(ERROR) << desc_ << "vector [" << name
+                   << "] load num=" << real_load_num
+                   << " >= vec_num=" << vec_num;
+        return -1;
+      }
     }
   }
 
   if (index_dirs.size() > 0) {
     for (const auto &[name, index] : vector_indexes_) {
       int64_t load_num = 0;
+      std::string vec_name, index_type;
+      GetVectorNameAndIndexType(name, vec_name, index_type);
+
+      int64_t vector_index_count = 0;
+      if (vec_index_counts.find(vec_name) != vec_index_counts.end()) {
+        vector_index_count = vec_index_counts[vec_name];
+      } else {
+        LOG(ERROR) << desc_ << "vector index [" << name
+                   << "] not found in raw_vectors, vec_name="
+                   << vec_name << ", index_type=" << index_type;
+        return -1;
+      }
+      bool has_delete = false;
+      if (vecs_has_delete.find(vec_name) != vecs_has_delete.end()) {
+        if (vecs_has_delete[vec_name]) {
+          has_delete = true;
+        }
+      } else {
+        LOG(ERROR) << desc_ << "vector index [" << name
+                   << "] not found in raw_vectors, vec_name="
+                   << vec_name << ", index_type=" << index_type;
+        return -1;
+      }
+      // old version or don't dump vector_index_num
+      if (vector_index_count < 0) {
+        if (has_delete) {
+          LOG(INFO) << desc_ << "vector index [" << name
+                    << "] vector_index_count=" << vector_index_count
+                    << ", rebuild index";
+          continue;
+        }
+      }
+      GammaFLATIndex* flat_index = dynamic_cast<GammaFLATIndex*>(index);
+      if (flat_index != nullptr) {
+        GammaIndexHNSWLIB* hnsw_index = dynamic_cast<GammaIndexHNSWLIB*>(flat_index);
+        if (hnsw_index != nullptr) {
+          if (has_delete) {
+            LOG(INFO) << desc_ << "vector index [" << name
+                      << "] has delete, skip load index";
+            continue;
+          }
+        }
+      }
+
       Status status = index->Load(index_dirs[0], load_num);
       if (!status.ok()) {
         LOG(ERROR) << desc_ << "vector [" << name << "] load index " << index_dirs[0]
@@ -890,9 +970,15 @@ int VectorManager::Load(const std::vector<std::string> &index_dirs,
                    << " > raw_vec_num=" << doc_num;
         return -1;
       }
-      index->indexed_count_ = load_num;
+      if (has_delete) {
+        index->indexed_count_ = vector_index_count;
+      } else {
+        index->indexed_count_ = load_num;
+      }
       LOG(INFO) << desc_ << "vector [" << name
-                << "] load index success, num=" << load_num;
+                << "] load index success, load_num=" << load_num
+                << ", vec_index_count=" << vector_index_count
+                << ", has_delete=" << has_delete;
     }
   }
   LOG(INFO) << desc_ << "vector_mgr load vec_num=" << doc_num;

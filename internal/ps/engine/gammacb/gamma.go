@@ -270,6 +270,8 @@ func (ge *gammaEngine) RebuildIndex(drop_before_rebuild int, limit_cpu int, desc
 
 	// UNINDEXED = 0, INDEXING, INDEXED
 	go func() {
+		ge.counter.Incr()
+		defer ge.counter.Decr()
 		startTime := time.Now()
 		if rc := gamma.RebuildIndex(ge.gamma, drop_before_rebuild, limit_cpu, describe); rc != 0 {
 			log.Error("RebuildIndex partition:[%d] err response code:[%d]", ge.partitionID, rc)

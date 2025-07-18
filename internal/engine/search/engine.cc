@@ -907,13 +907,9 @@ int Engine::BuildIndex() {
 // TODO set limit for cpu
 int Engine::RebuildIndex(int drop_before_rebuild, int limit_cpu, int describe) {
   int ret = 0;
-  if (indexing_state_.load() == IndexingState::IDLE ||
+  if (indexing_state_.load() != IndexingState::RUNNING ||
       index_status_ == IndexStatus::UNINDEXED) {
-    LOG(INFO) << space_name_ << " index not trained, no need to rebuild!";
-    return ret;
-  }
-  if (describe) {
-    vec_manager_->DescribeVectorIndexes();
+    LOG(INFO) << space_name_ << " index not running, no need to rebuild!";
     return ret;
   }
 
@@ -941,6 +937,11 @@ int Engine::RebuildIndex(int drop_before_rebuild, int limit_cpu, int describe) {
                                                 IndexingState::STOPPING)) {
       WaitForIndexingComplete();
     }
+  }
+
+  if (describe) {
+    vec_manager_->DescribeVectorIndexes();
+    return ret;
   }
 
   if (!drop_before_rebuild) {

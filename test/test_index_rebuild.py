@@ -225,7 +225,9 @@ class TestIndexRebuildBase:
         }
 
         response = create_space(router_url, db_name, space_config)
-        logger.info(response)
+        logger.info(response.json())
+        assert response.json()["code"] == 0
+
         add(total_batch, batch_size, xb, with_id, full_field)
 
         waiting_index_finish(total)
@@ -338,7 +340,8 @@ class TestIndexRebuildWithDelete:
         }
 
         response = create_space(router_url, db_name, space_config)
-        logger.info(response)
+        logger.info(response.json())
+        assert response.json()["code"] == 0
 
         # do 3 times
         for i in range(3):
@@ -350,8 +353,8 @@ class TestIndexRebuildWithDelete:
                 full_field,
                 space_name=case_space_name,
             )
-
-            waiting_index_finish(total, space_name=case_space_name)
+            target = int(total / 2)
+            waiting_index_finish(target, space_name=case_space_name)
 
             check_delete(case_space_name, 1)
 
@@ -363,7 +366,7 @@ class TestIndexRebuildWithDelete:
             )
             logger.info(response.json())
 
-            waiting_index_finish(total, space_name=case_space_name)
+            waiting_index_finish(target, space_name=case_space_name)
 
             check_search(full_field, case_space_name)
 

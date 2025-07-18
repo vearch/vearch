@@ -54,6 +54,33 @@ int StorageManager::SetSize(int64_t size) {
   return 0;
 }
 
+Status StorageManager::SetVectorIndexCount(int64_t vector_index_count) {
+  std::string key_str = "_vector_index_count";
+  rocksdb::Status s = db_->Put(rocksdb::WriteOptions(), rocksdb::Slice(key_str),
+                               rocksdb::Slice(std::to_string(vector_index_count)));
+  if (!s.ok()) {
+    LOG(ERROR) << "rocksdb put error:" << s.ToString() << ", key=" << key_str;
+    return Status::IOError(s.ToString());
+  }
+
+  return Status::OK();
+}
+
+void StorageManager::GetVectorIndexCount(int64_t &vector_index_count) {
+  std::string key_str = "_vector_index_count";
+  std::string value;
+  rocksdb::Status s = db_->Get(rocksdb::ReadOptions(), rocksdb::Slice(key_str),
+                               &value);
+  if (s.ok()) {
+    vector_index_count = std::stoll(value);
+  } else if (s.IsNotFound()) {
+    vector_index_count = -1;
+  } else {
+    LOG(ERROR) << "rocksdb get error:" << s.ToString() << ", key=" << key_str;
+    vector_index_count = -2;
+  }
+}
+
 void StorageManager::GetCacheSize(size_t &cache_size) {
   cache_size = table_options_.block_cache->GetCapacity();
   cache_size = cache_size / 1024 / 1024;

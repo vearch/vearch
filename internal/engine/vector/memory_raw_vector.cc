@@ -34,9 +34,15 @@ MemoryRawVector::~MemoryRawVector() {
     CHECK_DELETE_ARRAY(segments_[i]);
   }
   CHECK_DELETE_ARRAY(segments_);
+  if (segment_deleted_nums_) {
+    CHECK_DELETE_ARRAY(segment_deleted_nums_);
+  }
+  if (segment_nums_) {
+    CHECK_DELETE_ARRAY(segment_nums_);
+  }
 }
 
-Status MemoryRawVector::Load(int64_t vec_num) {
+Status MemoryRawVector::Load(int64_t vec_num, int64_t &disk_vec_num) {
   std::unique_ptr<rocksdb::Iterator> it = storage_mgr_->NewIterator(cf_id_);
   string start_key = utils::ToRowKey(0);
   it->Seek(rocksdb::Slice(start_key));
@@ -59,6 +65,7 @@ Status MemoryRawVector::Load(int64_t vec_num) {
   }
 
   MetaInfo()->size_ = vec_num;
+  disk_vec_num = n_load;
   LOG(INFO)  << desc_ << "memory raw vector want to load [" << vec_num << "], real load ["
             << n_load << "]";
 
@@ -66,6 +73,7 @@ Status MemoryRawVector::Load(int64_t vec_num) {
 }
 
 int MemoryRawVector::GetDiskVecNum(int64_t &vec_num) {
+  int64_t origin_vec_num = vec_num;
   if (vec_num <= 0) return 0;
   int disk_vec_num = vec_num - 1;
   string key, value;
@@ -74,12 +82,14 @@ int MemoryRawVector::GetDiskVecNum(int64_t &vec_num) {
     Status s = storage_mgr_->Get(cf_id_, key, value);
     if (s.ok()) {
       vec_num = i + 1;
-      LOG(INFO)  << desc_ << "in the disk rocksdb vec_num=" << vec_num;
+      LOG(INFO) << desc_ << "in the disk rocksdb vec_num=" << vec_num
+                  << ", origin_vec_num=" << origin_vec_num;;
       return 0;
     }
   }
   vec_num = 0;
-  LOG(INFO)  << desc_ << "in the disk rocksdb vec_num=" << vec_num;
+  LOG(INFO) << desc_ << "in the disk rocksdb vec_num=" << vec_num
+            << ", origin_vec_num=" << origin_vec_num;
   return 0;
 }
 

@@ -344,14 +344,15 @@ int GammaIVFPQIndex::Indexing() {
 }
 
 static float *compute_residuals(const faiss::Index *quantizer, long n,
-                                const float *x, const idx_t *list_nos) {
+                                const float *x, const idx_t *list_nos, idx_t nlist) {
   size_t d = quantizer->d;
   float *residuals = new float[n * d];
   for (int i = 0; i < n; i++) {
-    if (list_nos[i] < 0)
+    if (list_nos[i] < 0 || list_nos[i] >= nlist) {
       memset(residuals + i * d, 0, sizeof(*residuals) * d);
-    else
+    } else {
       quantizer->compute_residual(x + i * d, residuals + i * d, list_nos[i]);
+    }
   }
   return residuals;
 }
@@ -400,7 +401,7 @@ int GammaIVFPQIndex::Update(const std::vector<int64_t> &ids,
     utils::ScopeDeleter<float> del_to_encode;
 
     if (by_residual) {
-      to_encode = compute_residuals(quantizer, 1, applied_vec, &idx);
+      to_encode = compute_residuals(quantizer, 1, applied_vec, &idx, nlist);
       del_to_encode.set(to_encode);
     } else {
       to_encode = applied_vec;
@@ -453,7 +454,7 @@ bool GammaIVFPQIndex::Add(int n, const uint8_t *vec) {
   utils::ScopeDeleter<float> del_to_encode;
 
   if (by_residual) {
-    to_encode = compute_residuals(quantizer, n, applied_vec, idx);
+    to_encode = compute_residuals(quantizer, n, applied_vec, idx, nlist);
     del_to_encode.set(to_encode);
   } else {
     to_encode = applied_vec;
@@ -465,11 +466,11 @@ bool GammaIVFPQIndex::Add(int n, const uint8_t *vec) {
   RawVector *raw_vec = dynamic_cast<RawVector *>(vector_);
   for (int i = 0; i < n; i++) {
     long key = idx[i];
-    if (key >= (long)nlist) {
-      LOG(WARNING) << "ivfpq add invalid key=" << key << ", vid=" << vid + i;
+    if (raw_vec->Bitmap()->Test(vid + i)) {
       continue;
     }
-    if (raw_vec->Bitmap()->Test(vid + i)) {
+    if (key >= (long)nlist) {
+      LOG(WARNING) << "ivfpq add invalid key=" << key << ", vid=" << vid + i;
       continue;
     }
     if (key < 0) {

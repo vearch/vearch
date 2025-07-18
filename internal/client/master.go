@@ -696,8 +696,9 @@ func (m *masterClient) ProxyHTTPRequest(method string, url string, reqBody strin
 		query.SetAddress(ms[keyNumber].ApiUrl())
 		statusCode := 0
 		response, statusCode, err = query.ProxyDo()
-		log.Debug("remote server url:%s, req body:%s, response: %v, statusCode %d", query.GetUrl(), string(reqBody), string(response), statusCode)
-
+		if statusCode == -1 {
+			log.Error("remote server url:%s, req body:%s, response: %v, statusCode %d", query.GetUrl(), string(reqBody), string(response), statusCode)
+		}
 		if statusCode != -1 {
 			e = err
 			break

@@ -88,7 +88,7 @@ type Space struct {
 	Index           *Index                      `json:"index,omitempty"`
 	PartitionRule   *PartitionRule              `json:"partition_rule,omitempty"`
 	SpaceProperties map[string]*SpaceProperties `json:"space_properties"`
-	RefreshInterval int32                       `json:"refresh_interval,omitempty"`
+	RefreshInterval *int32                      `json:"refresh_interval,omitempty"`
 }
 
 // TODO separete space config and mapping

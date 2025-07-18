@@ -116,6 +116,19 @@ class VectorManager {
     return field_name + "_" + index_type;
   }
 
+  inline void GetVectorNameAndIndexType(const std::string &index_name,
+                                        std::string &vec_name,
+                                        std::string &index_type) {
+    size_t pos = index_name.rfind('_');
+    if (pos == std::string::npos) {
+      LOG(ERROR) << desc_ << "Invalid index name format: " << index_name;
+      return;
+    }
+
+    vec_name = index_name.substr(0, pos);
+    index_type = index_name.substr(pos + 1);
+  }
+
  private:
   VectorStorageType default_store_type_;
   bitmap::BitmapManager *docids_bitmap_;

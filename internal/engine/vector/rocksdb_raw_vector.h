@@ -46,7 +46,7 @@ class RocksDBRawVector : public RawVector {
 
   int GetDiskVecNum(int64_t &vec_num) override;
 
-  Status Load(int64_t vec_num) override;
+  Status Load(int64_t vec_num, int64_t &disk_vec_num) override;
 
  protected:
   int GetVector(int64_t vid, const uint8_t *&vec,

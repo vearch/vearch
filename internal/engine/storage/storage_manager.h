@@ -56,6 +56,10 @@ class StorageManager {
 
   int SetSize(int64_t size);
 
+  Status SetVectorIndexCount(int64_t vector_index_count);
+
+  void GetVectorIndexCount(int64_t &vector_index_count);
+
   void GetCacheSize(size_t &cache_size);
 
   void AlterCacheSize(size_t cache_size);

@@ -36,7 +36,7 @@ class MemoryRawVector : public RawVector {
 
   int AddToMem(int64_t vid, uint8_t *v, int len);
 
-  Status Load(int64_t vec_num) override;
+  Status Load(int64_t vec_num, int64_t &disk_vec_num) override;
 
   int GetDiskVecNum(int64_t &vec_num) override;
 

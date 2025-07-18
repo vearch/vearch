@@ -43,9 +43,10 @@ int RocksDBRawVector::GetDiskVecNum(int64_t &vec_num) {
   return 0;
 }
 
-Status RocksDBRawVector::Load(int64_t vec_num) {
+Status RocksDBRawVector::Load(int64_t vec_num, int64_t &disk_vec_num) {
   if (vec_num == 0) return Status::OK();
   MetaInfo()->size_ = vec_num;
+  disk_vec_num = vec_num;
   LOG(INFO) << desc_ << "rocksdb load success! vec_num=" << vec_num;
   return Status::OK();
 }
