@@ -93,7 +93,7 @@ func (s *Server) GetPartition(id entity.PartitionID) (partition PartitionStore) 
 }
 
 func (s *Server) RangePartition(fun func(entity.PartitionID, PartitionStore)) {
-	s.partitions.Range(func(key, value interface{}) bool {
+	s.partitions.Range(func(key, value any) bool {
 		fun(key.(entity.PartitionID), value.(PartitionStore))
 		return true
 	})
@@ -101,11 +101,6 @@ func (s *Server) RangePartition(fun func(entity.PartitionID, PartitionStore)) {
 
 // load partition from disk
 func (s *Server) LoadPartition(ctx context.Context, pid entity.PartitionID, spaces []*entity.Space) (PartitionStore, error) {
-	// space, err := psutil.LoadPartitionMeta(config.Conf().GetDataDirBySlot(config.PS, pid), pid)
-
-	// if err != nil {
-	// 	return nil, err
-	// }
 	i := -1
 	for k, s := range spaces {
 		for _, p := range s.Partitions {
@@ -247,7 +242,7 @@ func (s *Server) DeletePartition(id entity.PartitionID) {
 
 func (s *Server) PartitionNum() int {
 	var count int
-	s.partitions.Range(func(key, value interface{}) bool {
+	s.partitions.Range(func(key, value any) bool {
 		count++
 		return true
 	})
@@ -256,7 +251,7 @@ func (s *Server) PartitionNum() int {
 
 func (s *Server) ClosePartitions() {
 	log.Info("ClosePartitions() invoked...")
-	s.partitions.Range(func(key, value interface{}) bool {
+	s.partitions.Range(func(key, value any) bool {
 		partition := value.(PartitionStore)
 		err := partition.Close()
 		if err != nil {
@@ -273,7 +268,7 @@ func (s *Server) recoverPartitions(pids []entity.PartitionID, spaces []*entity.S
 	ctx := context.Background()
 
 	// parallel execution recovery
-	for i := 0; i < len(pids); i++ {
+	for i := range pids {
 		idx := i
 		go func(pid entity.PartitionID) {
 			defer wg.Done()

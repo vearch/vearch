@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"math"
 	"sort"
+	"sync"
 	"time"
 
 	"slices"
@@ -56,8 +57,8 @@ func NewSpaceService(client *client.Client) *SpaceService {
 }
 
 func (s *SpaceService) CreateSpace(ctx context.Context, dbs *DBService, dbName string, space *entity.Space) (err error) {
-	mc := s.client.Master()
-	if space.DBId, err = mc.QueryDBName2ID(ctx, dbName); err != nil {
+	masterClient := s.client.Master()
+	if space.DBId, err = masterClient.QueryDBName2ID(ctx, dbName); err != nil {
 		log.Error("find DbId according to DbName:%v failed, error: %v", dbName, err)
 		return err
 	}
@@ -70,18 +71,18 @@ func (s *SpaceService) CreateSpace(ctx context.Context, dbs *DBService, dbName s
 	}
 
 	// it will lock cluster to create space
-	mutex := mc.NewLock(ctx, entity.LockSpaceKey(dbName, spaceName), time.Second*300)
-	if err = mutex.Lock(); err != nil {
+	spaceLock := masterClient.NewLock(ctx, entity.LockSpaceKey(dbName, spaceName), time.Second*300)
+	if err = spaceLock.Lock(); err != nil {
 		return err
 	}
 	defer func() {
-		if err := mutex.Unlock(); err != nil {
-			log.Error("unlock space err:[%s]", err.Error())
+		if unlockErr := spaceLock.Unlock(); unlockErr != nil {
+			log.Error("unlock space err:[%s]", unlockErr.Error())
 		}
 	}()
 
 	// spaces is existed
-	if _, err := mc.QuerySpaceByName(ctx, space.DBId, space.Name); err != nil {
+	if _, err := masterClient.QuerySpaceByName(ctx, space.DBId, space.Name); err != nil {
 		vErr := vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err)
 		if vErr.GetError().Code != vearchpb.ErrorEnum_SPACE_NOT_EXIST {
 			return vErr
@@ -95,13 +96,13 @@ func (s *SpaceService) CreateSpace(ctx context.Context, dbs *DBService, dbName s
 	log.Info("create space, db: %s, spaceName: %s, space :[%s]", dbName, space.Name, spaceStr)
 
 	// find all servers for create space
-	servers, err := mc.QueryServers(ctx)
+	servers, err := masterClient.QueryServers(ctx)
 	if err != nil {
 		return err
 	}
 
 	// generate space id
-	spaceID, err := mc.NewIDGenerate(ctx, entity.SpaceIdSequence, 1, 5*time.Second)
+	spaceID, err := masterClient.NewIDGenerate(ctx, entity.SpaceIdSequence, 1, 5*time.Second)
 	if err != nil {
 		return err
 	}
@@ -124,9 +125,9 @@ func (s *SpaceService) CreateSpace(ctx context.Context, dbs *DBService, dbName s
 		if err != nil {
 			return err
 		}
-		width := math.MaxUint32 / (space.PartitionNum * space.PartitionRule.Partitions)
+		slotWidth := math.MaxUint32 / (space.PartitionNum * space.PartitionRule.Partitions)
 		for i := range space.PartitionNum * space.PartitionRule.Partitions {
-			partitionID, err := mc.NewIDGenerate(ctx, entity.PartitionIdSequence, 1, 5*time.Second)
+			partitionID, err := masterClient.NewIDGenerate(ctx, entity.PartitionIdSequence, 1, 5*time.Second)
 
 			if err != nil {
 				return err
@@ -137,13 +138,13 @@ func (s *SpaceService) CreateSpace(ctx context.Context, dbs *DBService, dbName s
 				Name:    space.PartitionRule.Ranges[i/space.PartitionNum].Name,
 				SpaceId: space.Id,
 				DBId:    space.DBId,
-				Slot:    entity.SlotID(i * width),
+				Slot:    entity.SlotID(i * slotWidth),
 			})
 		}
 	} else {
-		width := math.MaxUint32 / space.PartitionNum
+		slotWidth := math.MaxUint32 / space.PartitionNum
 		for i := range space.PartitionNum {
-			partitionID, err := mc.NewIDGenerate(ctx, entity.PartitionIdSequence, 1, 5*time.Second)
+			partitionID, err := masterClient.NewIDGenerate(ctx, entity.PartitionIdSequence, 1, 5*time.Second)
 
 			if err != nil {
 				return err
@@ -153,7 +154,7 @@ func (s *SpaceService) CreateSpace(ctx context.Context, dbs *DBService, dbName s
 				Id:      entity.PartitionID(partitionID),
 				SpaceId: space.Id,
 				DBId:    space.DBId,
-				Slot:    entity.SlotID(i * width),
+				Slot:    entity.SlotID(i * slotWidth),
 			})
 		}
 	}
@@ -168,88 +169,51 @@ func (s *SpaceService) CreateSpace(ctx context.Context, dbs *DBService, dbName s
 			int(space.ReplicaNum), len(serverPartitions))
 	}
 
-	bFlase := false
-	space.Enabled = &bFlase
+	isSpaceDisabled := false
+	space.Enabled = &isSpaceDisabled
 	defer func() {
 		if !(*space.Enabled) { // remove the space if it is still not enabled
-			if e := mc.Delete(context.Background(), entity.SpaceKey(space.DBId, space.Id)); e != nil {
-				log.Error("to delete space err: %s", e.Error())
+			if deleteErr := masterClient.Delete(context.Background(), entity.SpaceKey(space.DBId, space.Id)); deleteErr != nil {
+				log.Error("to delete space err: %s", deleteErr.Error())
 			}
 		}
 	}()
 
-	marshal, err := json.Marshal(space)
+	marshaledSpace, err := json.Marshal(space)
 	if err != nil {
 		return err
 	}
 	if space.Index == nil {
 		return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("space vector field index should not be empty"))
 	}
-	err = mc.Create(ctx, entity.SpaceKey(space.DBId, space.Id), marshal)
+	err = masterClient.Create(ctx, entity.SpaceKey(space.DBId, space.Id), marshaledSpace)
 	if err != nil {
 		return err
 	}
 
 	// pick servers for space
-	var pAddrs [][]string
-	for i := range space.Partitions {
-		if addrs, err := s.selectServersForPartition(servers, serverPartitions, space.ReplicaNum, space.Partitions[i]); err != nil {
+	partitionServerAddresses := make([][]string, len(space.Partitions))
+	for partitionIndex := range space.Partitions {
+		if serverAddresses, err := s.selectServersForPartition(servers, serverPartitions, space.ReplicaNum, space.Partitions[partitionIndex]); err != nil {
 			return err
 		} else {
-			pAddrs = append(pAddrs, addrs)
+			partitionServerAddresses[partitionIndex] = serverAddresses
 		}
 	}
 
-	var errChain = make(chan error, 1)
+	errorChannel := make(chan error, len(space.Partitions))
 	// send create space request to partition server
-	for i := 0; i < len(space.Partitions); i++ {
-		go func(addrs []string, partition *entity.Partition) {
-			defer func() {
-				if r := recover(); r != nil {
-					err := vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("create partition err: %v", r))
-					errChain <- err
-					log.Error(err.Error())
-				}
-			}()
-			for _, addr := range addrs {
-				if err := client.CreatePartition(addr, space, partition.Id); err != nil {
-					err := vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("create partition err: %s", err.Error()))
-					errChain <- err
-					log.Error(err.Error())
-				}
-			}
-		}(pAddrs[i], space.Partitions[i])
+	for partitionIndex := range space.Partitions {
+		go s.createPartitionOnServers(partitionServerAddresses[partitionIndex], space.Partitions[partitionIndex], space, errorChannel)
 	}
 
 	// check all partition is ok
-	for i := range space.Partitions {
-		v := 0
-		for {
-			v++
-			select {
-			case err := <-errChain:
-				return err
-			case <-ctx.Done():
-				return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("create space has error"))
-			default:
-			}
-
-			partition, err := mc.QueryPartition(ctx, space.Partitions[i].Id)
-			if v%5 == 0 {
-				log.Debug("check the partition:%d status", space.Partitions[i].Id)
-			}
-			if err != nil && vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err).GetError().Code != vearchpb.ErrorEnum_PARTITION_NOT_EXIST {
-				return err
-			}
-			if partition != nil {
-				break
-			}
-			time.Sleep(50 * time.Millisecond)
-		}
+	if err := s.waitForPartitionsReady(ctx, masterClient, space.Partitions, errorChannel); err != nil {
+		return err
 	}
 
-	bTrue := true
-	space.Enabled = &bTrue
+	isSpaceEnabled := true
+	space.Enabled = &isSpaceEnabled
 
 	// update version
 	err = s.UpdateSpaceData(ctx, space)
@@ -263,13 +227,13 @@ func (s *SpaceService) CreateSpace(ctx context.Context, dbs *DBService, dbName s
 }
 
 func (s *SpaceService) DeleteSpace(ctx context.Context, as *AliasService, dbName, spaceName string) error {
-	mc := s.client.Master()
-	dbId, err := mc.QueryDBName2ID(ctx, dbName)
+	masterClient := s.client.Master()
+	databaseID, err := masterClient.QueryDBName2ID(ctx, dbName)
 	if err != nil {
 		return err
 	}
 
-	space, err := mc.QuerySpaceByName(ctx, dbId, spaceName)
+	space, err := masterClient.QuerySpaceByName(ctx, databaseID, spaceName)
 	if err != nil {
 		return err
 	}
@@ -277,33 +241,33 @@ func (s *SpaceService) DeleteSpace(ctx context.Context, as *AliasService, dbName
 		return nil
 	}
 
-	mutex := mc.NewLock(ctx, entity.LockSpaceKey(dbName, spaceName), time.Second*60)
-	if err = mutex.Lock(); err != nil {
+	spaceLock := masterClient.NewLock(ctx, entity.LockSpaceKey(dbName, spaceName), time.Second*60)
+	if err = spaceLock.Lock(); err != nil {
 		return err
 	}
 	defer func() {
-		if err := mutex.Unlock(); err != nil {
-			log.Error("unlock space err:[%s]", err.Error())
+		if unlockErr := spaceLock.Unlock(); unlockErr != nil {
+			log.Error("unlock space err:[%s]", unlockErr.Error())
 		}
 	}()
 	// delete key
-	err = mc.Delete(ctx, entity.SpaceKey(dbId, space.Id))
+	err = masterClient.Delete(ctx, entity.SpaceKey(databaseID, space.Id))
 	if err != nil {
 		return err
 	}
 
 	// delete parition and partitionKey
-	for _, p := range space.Partitions {
-		for _, replica := range p.Replicas {
-			if server, err := mc.QueryServer(ctx, replica); err != nil {
-				log.Error("query partition:[%d] for replica:[%s] has err:[%s]", p.Id, replica, err.Error())
+	for _, partition := range space.Partitions {
+		for _, replicaID := range partition.Replicas {
+			if server, err := masterClient.QueryServer(ctx, replicaID); err != nil {
+				log.Error("query partition:[%d] for replica:[%s] has err:[%s]", partition.Id, replicaID, err.Error())
 			} else {
-				if err := client.DeletePartition(server.RpcAddr(), p.Id); err != nil {
-					log.Error("delete partition:[%d] for server:[%s] has err:[%s]", p.Id, server.RpcAddr(), err.Error())
+				if err := client.DeletePartition(server.RpcAddr(), partition.Id); err != nil {
+					log.Error("delete partition:[%d] for server:[%s] has err:[%s]", partition.Id, server.RpcAddr(), err.Error())
 				}
 			}
 		}
-		err = mc.Delete(ctx, entity.PartitionKey(p.Id))
+		err = masterClient.Delete(ctx, entity.PartitionKey(partition.Id))
 		if err != nil {
 			return err
 		}
@@ -321,7 +285,7 @@ func (s *SpaceService) DeleteSpace(ctx context.Context, as *AliasService, dbName
 			}
 		}
 	}
-	err = mc.Delete(ctx, entity.SpaceConfigKey(dbId, space.Id))
+	err = masterClient.Delete(ctx, entity.SpaceConfigKey(databaseID, space.Id))
 	if err != nil {
 		return err
 	}
@@ -331,9 +295,9 @@ func (s *SpaceService) DeleteSpace(ctx context.Context, as *AliasService, dbName
 
 func (s *SpaceService) DescribeSpace(ctx context.Context, space *entity.Space, spaceInfo *entity.SpaceInfo, detail_info bool) (int, error) {
 	spaceStatus := 0
-	color := []string{"green", "yellow", "red"}
+	statusColors := []string{"green", "yellow", "red"}
 	spaceInfo.Errors = make([]string, 0)
-	mc := s.client.Master()
+	masterClient := s.client.Master()
 
 	// check partition num in meta data
 	if space.PartitionRule != nil {
@@ -353,55 +317,55 @@ func (s *SpaceService) DescribeSpace(ctx context.Context, space *entity.Space, s
 	}
 
 	for _, spacePartition := range space.Partitions {
-		p, err := mc.QueryPartition(ctx, spacePartition.Id)
-		pStatus := 0
+		partition, err := masterClient.QueryPartition(ctx, spacePartition.Id)
+		partitionStatus := 0
 
 		if err != nil {
 			msg := fmt.Sprintf("partition:[%d] in space: [%s] not found in meta data", spacePartition.Id, space.Name)
 			spaceInfo.Errors = append(spaceInfo.Errors, msg)
 			log.Error(msg)
-			pStatus = 2
-			if pStatus > spaceStatus {
-				spaceStatus = pStatus
+			partitionStatus = 2
+			if partitionStatus > spaceStatus {
+				spaceStatus = partitionStatus
 			}
 			continue
 		}
 
-		nodeID := p.LeaderID
+		nodeID := partition.LeaderID
 		if nodeID == 0 {
 			log.Error("partition:[%d] in space: [%s] leaderID is 0", spacePartition.Id, space.Name)
-			if len(p.Replicas) > 0 {
-				nodeID = p.Replicas[0]
+			if len(partition.Replicas) > 0 {
+				nodeID = partition.Replicas[0]
 			}
 		}
 
-		server, err := mc.QueryServer(ctx, nodeID)
+		server, err := masterClient.QueryServer(ctx, nodeID)
 		if err != nil {
 			msg := fmt.Sprintf("space: [%s] partition:[%d], server:[%d] not found", space.Name, spacePartition.Id, nodeID)
 			spaceInfo.Errors = append(spaceInfo.Errors, msg)
 			log.Error(msg)
-			pStatus = 2
-			if pStatus > spaceStatus {
-				spaceStatus = pStatus
+			partitionStatus = 2
+			if partitionStatus > spaceStatus {
+				spaceStatus = partitionStatus
 			}
 			continue
 		}
 
-		partitionInfo, err := client.PartitionInfo(server.RpcAddr(), p.Id, detail_info)
+		partitionInfo, err := client.PartitionInfo(server.RpcAddr(), partition.Id, detail_info)
 		if err != nil {
 			msg := fmt.Sprintf("query space:[%s] server:[%d] partition:[%d] info err :[%s]", space.Name, nodeID, spacePartition.Id, err.Error())
 			spaceInfo.Errors = append(spaceInfo.Errors, msg)
 			log.Error(msg)
 			partitionInfo = &entity.PartitionInfo{}
-			pStatus = 2
+			partitionStatus = 2
 		} else {
 			if len(partitionInfo.Unreachable) > 0 {
-				pStatus = 1
+				partitionStatus = 1
 			}
 		}
 
 		replicasStatus := make(map[entity.NodeID]string)
-		for nodeID, status := range p.ReStatusMap {
+		for nodeID, status := range partition.ReStatusMap {
 			if status == entity.ReplicasOK {
 				replicasStatus[nodeID] = "ReplicasOK"
 			} else {
@@ -411,19 +375,13 @@ func (s *SpaceService) DescribeSpace(ctx context.Context, space *entity.Space, s
 
 		if partitionInfo.RaftStatus != nil {
 			if partitionInfo.RaftStatus.Leader == 0 {
-				msg := fmt.Sprintf("partition:[%d] in space:[%s] has no leader", spacePartition.Id, space.Name)
-				spaceInfo.Errors = append(spaceInfo.Errors, msg)
-				log.Error(msg)
-				pStatus = 2
+				partitionStatus = s.addPartitionError(spaceInfo, 2, "partition:[%d] in space:[%s] has no leader", spacePartition.Id, space.Name)
 			} else {
 				if len(partitionInfo.RaftStatus.Replicas) != int(space.ReplicaNum) {
-					msg := fmt.Sprintf("partition:[%d] in space:[%s] replicas: [%d] is not equal to replicaNum: [%d]", spacePartition.Id, space.Name, len(partitionInfo.RaftStatus.Replicas), space.ReplicaNum)
-					spaceInfo.Errors = append(spaceInfo.Errors, msg)
-					log.Error(msg)
-					pStatus = 2
+					partitionStatus = s.addPartitionError(spaceInfo, 2, "partition:[%d] in space:[%s] replicas: [%d] is not equal to replicaNum: [%d]", spacePartition.Id, space.Name, len(partitionInfo.RaftStatus.Replicas), space.ReplicaNum)
 				} else {
 					replicaStateProbeNum := 0
-					leaderId := 0
+					leaderID := 0
 					for nodeID, replica := range partitionInfo.RaftStatus.Replicas {
 						// TODO FIXME: when leader changed, the unreachableNodeIDnre state may still be ReplicaStateProbe
 						if slices.Contains(partitionInfo.Unreachable, nodeID) {
@@ -431,290 +389,467 @@ func (s *SpaceService) DescribeSpace(ctx context.Context, space *entity.Space, s
 						}
 						if replica.State == entity.ReplicaStateProbe {
 							replicaStateProbeNum += 1
-							leaderId = int(nodeID)
+							leaderID = int(nodeID)
 						}
 					}
 					if replicaStateProbeNum != 1 {
-						msg := fmt.Sprintf("partition:[%d] in space:[%s] have [%d] leader", spacePartition.Id, space.Name, replicaStateProbeNum)
-						spaceInfo.Errors = append(spaceInfo.Errors, msg)
-						log.Error(msg)
-						pStatus = 2
+						partitionStatus = s.addPartitionError(spaceInfo, 2, "partition:[%d] in space:[%s] have [%d] leader", spacePartition.Id, space.Name, replicaStateProbeNum)
 					}
-					if leaderId != int(partitionInfo.RaftStatus.Leader) {
-						msg := fmt.Sprintf("partition:[%d] in space:[%s] leader: [%d] is not equal to raft leader: [%d]", spacePartition.Id, space.Name, leaderId, partitionInfo.RaftStatus.Leader)
-						spaceInfo.Errors = append(spaceInfo.Errors, msg)
-						log.Error(msg)
-						pStatus = 2
+					if leaderID != int(partitionInfo.RaftStatus.Leader) {
+						partitionStatus = s.addPartitionError(spaceInfo, 2, "partition:[%d] in space:[%s] leader: [%d] is not equal to raft leader: [%d]", spacePartition.Id, space.Name, leaderID, partitionInfo.RaftStatus.Leader)
 					}
 				}
 			}
 		}
 
-		//this must from space.Partitions
+		// this must from space.Partitions
 		partitionInfo.PartitionID = spacePartition.Id
 		partitionInfo.Name = spacePartition.Name
-		partitionInfo.Color = color[pStatus]
-		partitionInfo.ReplicaNum = len(p.Replicas)
+		partitionInfo.Color = statusColors[partitionStatus]
+		partitionInfo.ReplicaNum = len(partition.Replicas)
 		partitionInfo.Ip = server.Ip
 		partitionInfo.NodeID = server.ID
 		partitionInfo.RepStatus = replicasStatus
 
 		spaceInfo.Partitions = append(spaceInfo.Partitions, partitionInfo)
 
-		if pStatus > spaceStatus {
-			spaceStatus = pStatus
+		if partitionStatus > spaceStatus {
+			spaceStatus = partitionStatus
 		}
 	}
 
-	docNum := uint64(0)
-	for _, p := range spaceInfo.Partitions {
-		docNum += cast.ToUint64(p.DocNum)
+	totalDocuments := uint64(0)
+	for _, partitionInfo := range spaceInfo.Partitions {
+		totalDocuments += cast.ToUint64(partitionInfo.DocNum)
 	}
-	spaceInfo.Status = color[spaceStatus]
-	spaceInfo.DocNum = docNum
+	spaceInfo.Status = statusColors[spaceStatus]
+	spaceInfo.DocNum = totalDocuments
 	return spaceStatus, nil
 }
 
 func (s *SpaceService) filterAndSortServer(ctx context.Context, dbs *DBService, space *entity.Space, servers []*entity.Server) (map[int]int, error) {
-	db, err := dbs.QueryDB(ctx, cast.ToString(space.DBId))
+	database, err := dbs.QueryDB(ctx, cast.ToString(space.DBId))
 	if err != nil {
 		return nil, err
 	}
 
-	var psMap map[string]bool
-	if len(db.Ps) > 0 {
-		psMap = make(map[string]bool)
-		for _, ps := range db.Ps {
-			psMap[ps] = true
+	var allowedServersMap map[string]bool
+	if len(database.Ps) > 0 {
+		allowedServersMap = make(map[string]bool)
+		for _, serverIP := range database.Ps {
+			allowedServersMap[serverIP] = true
 		}
 	}
 
-	serverPartitions := make(map[int]int)
+	serverPartitionCounts := make(map[int]int)
 
-	mc := s.client.Master()
-	spaces, err := mc.QuerySpacesByKey(ctx, entity.PrefixSpace)
+	masterClient := s.client.Master()
+	allSpaces, err := masterClient.QuerySpacesByKey(ctx, entity.PrefixSpace)
 	if err != nil {
 		return nil, err
 	}
 
-	serverIndex := make(map[entity.NodeID]int)
+	serverIndexMap := make(map[entity.NodeID]int)
 
-	if psMap == nil { // If psMap is nil, only use public servers
-		for i, s := range servers {
+	if allowedServersMap == nil { // If allowedServersMap is nil, only use public servers
+		for serverIndex, server := range servers {
 			// Only use servers with the same resource name
-			if s.ResourceName != space.ResourceName {
+			if server.ResourceName != space.ResourceName {
 				continue
 			}
-			if !s.Private {
-				serverPartitions[i] = 0
-				serverIndex[s.ID] = i
+			if !server.Private {
+				serverPartitionCounts[serverIndex] = 0
+				serverIndexMap[server.ID] = serverIndex
 			}
 		}
-	} else { // If psMap is not nil, only use defined servers
-		for i, s := range servers {
+	} else { // If allowedServersMap is not nil, only use defined servers
+		for serverIndex, server := range servers {
 			// Only use servers with the same resource name
-			if s.ResourceName != space.ResourceName {
-				psMap[s.Ip] = false
+			if server.ResourceName != space.ResourceName {
+				allowedServersMap[server.Ip] = false
 				continue
 			}
-			if psMap[s.Ip] {
-				serverPartitions[i] = 0
-				serverIndex[s.ID] = i
+			if allowedServersMap[server.Ip] {
+				serverPartitionCounts[serverIndex] = 0
+				serverIndexMap[server.ID] = serverIndex
 			}
 		}
 	}
 
-	for _, space := range spaces {
-		for _, partition := range space.Partitions {
+	for _, spaceIterator := range allSpaces {
+		for _, partition := range spaceIterator.Partitions {
 			for _, nodeID := range partition.Replicas {
-				if index, ok := serverIndex[nodeID]; ok {
-					serverPartitions[index] = serverPartitions[index] + 1
+				if serverIndex, exists := serverIndexMap[nodeID]; exists {
+					serverPartitionCounts[serverIndex] = serverPartitionCounts[serverIndex] + 1
 				}
 			}
 		}
 	}
 
-	return serverPartitions, nil
+	return serverPartitionCounts, nil
 }
 
-func (s *SpaceService) UpdateSpaceResource(ctx context.Context, dbs *DBService, spaceResource *entity.SpacePartitionResource) (*entity.Space, error) {
-	// it will lock cluster, to update space
-	mc := s.client.Master()
-	mutex := mc.NewLock(ctx, entity.LockSpaceKey(spaceResource.DbName, spaceResource.SpaceName), time.Second*300)
-	if err := mutex.Lock(); err != nil {
+// UpdateSpace is a unified function that handles both space configuration updates and resource updates
+// It can handle:
+// 1. Configuration updates (name, enabled, fields) - when updateRequest contains space properties
+// 2. Partition number expansion - when updateRequest contains partition_num > current
+// 3. Partition rule operations - when updateRequest contains partition_operator_type
+func (s *SpaceService) UpdateSpace(ctx context.Context, dbs *DBService, dbName, spaceName string, updateRequest *entity.Space, op string) (*entity.Space, error) {
+	// Acquire distributed lock
+	masterClient := s.client.Master()
+	spaceLock := masterClient.NewLock(ctx, entity.LockSpaceKey(dbName, spaceName), time.Second*300)
+	if err := spaceLock.Lock(); err != nil {
 		return nil, err
 	}
 	defer func() {
-		if err := mutex.Unlock(); err != nil {
-			log.Error("failed to unlock space, the Error is:%v ", err)
+		if unlockErr := spaceLock.Unlock(); unlockErr != nil {
+			log.Error("failed to unlock space: %v", unlockErr)
 		}
 	}()
 
-	dbId, err := mc.QueryDBName2ID(ctx, spaceResource.DbName)
+	// Get current space
+	databaseID, err := masterClient.QueryDBName2ID(ctx, dbName)
 	if err != nil {
-		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("failed to find database id according database name:%v,the Error is:%v ", spaceResource.DbName, err))
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR,
+			fmt.Errorf("failed to find database id for %s: %v", dbName, err))
 	}
 
-	space, err := mc.QuerySpaceByName(ctx, dbId, spaceResource.SpaceName)
+	space, err := masterClient.QuerySpaceByName(ctx, databaseID, spaceName)
 	if err != nil {
-		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("failed to find space according space name:%v,the Error is:%v ", spaceResource.SpaceName, err))
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR,
+			fmt.Errorf("failed to find space %s: %v", spaceName, err))
 	}
 
 	if space == nil {
-		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("can not found space by name : %s", spaceResource.SpaceName))
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR,
+			fmt.Errorf("space not found: %s", spaceName))
 	}
 
-	if spaceResource.PartitionOperatorType != "" {
-		if spaceResource.PartitionOperatorType != entity.Add && spaceResource.PartitionOperatorType != entity.Drop {
-			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("partition operator type should be %s or %s, but is %s", entity.Add, entity.Drop, spaceResource.PartitionOperatorType))
+	if op == "config" {
+		return s.handleConfigurationUpdate(ctx, space, updateRequest)
+	}
+	if updateRequest.PartitionName != nil || updateRequest.PartitionOperatorType != nil || updateRequest.PartitionRule != nil || updateRequest.PartitionNum > 0 {
+		return s.handleResourceUpdate(ctx, dbs, space, updateRequest)
+	}
+	return s.handleConfigurationUpdate(ctx, space, updateRequest)
+}
+
+// handleResourceUpdate handles partition-related updates (expansion, rule operations)
+func (s *SpaceService) handleResourceUpdate(ctx context.Context, dbs *DBService, space *entity.Space, updateRequest *entity.Space) (*entity.Space, error) {
+	// Handle partition rule operations (Add/Drop)
+	if updateRequest.PartitionOperatorType != nil {
+		if *updateRequest.PartitionOperatorType != entity.Add && *updateRequest.PartitionOperatorType != entity.Drop {
+			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR,
+				fmt.Errorf("partition operator type should be %s or %s, but is %s",
+					entity.Add, entity.Drop, *updateRequest.PartitionOperatorType))
 		}
 		if space.PartitionRule == nil || space.PartitionRule.Ranges == nil {
-			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("space: %s partition rule is empty", spaceResource.SpaceName))
+			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR,
+				fmt.Errorf("space %s partition rule is empty", space.Name))
 		}
-		return s.updateSpacePartitonRule(ctx, dbs, spaceResource, space)
+		return s.updateSpacePartitonRule(ctx, dbs, *updateRequest.PartitionName, *updateRequest.PartitionOperatorType, updateRequest.PartitionRule, space)
 	}
 
-	// now only support update partition num
-	if space.PartitionNum >= spaceResource.PartitionNum {
-		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("paritition_num: %d now should greater than origin space partition_num: %d", spaceResource.PartitionNum, space.PartitionNum))
+	// Handle partition number expansion
+	if updateRequest.PartitionNum > 0 {
+		if space.PartitionNum >= updateRequest.PartitionNum {
+			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR,
+				fmt.Errorf("partition_num %d should be greater than current %d",
+					updateRequest.PartitionNum, space.PartitionNum))
+		}
+
+		return s.expandPartitions(ctx, dbs, space, uint32(updateRequest.PartitionNum))
 	}
 
-	partitions := make([]*entity.Partition, 0)
-	for i := space.PartitionNum; i < spaceResource.PartitionNum; i++ {
-		partitionID, err := mc.NewIDGenerate(ctx, entity.PartitionIdSequence, 1, 5*time.Second)
+	return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR,
+		fmt.Errorf("no valid resource update operation specified"))
+}
 
+// handleConfigurationUpdate handles space configuration updates (name, enabled, fields)
+func (s *SpaceService) handleConfigurationUpdate(ctx context.Context, space *entity.Space, temp *entity.Space) (*entity.Space, error) {
+	// Validate immutable properties
+	buff := bytes.Buffer{}
+	if temp.DBId != 0 && temp.DBId != space.DBId {
+		buff.WriteString("db_id not same ")
+	}
+	if temp.PartitionNum != 0 && temp.PartitionNum != space.PartitionNum {
+		buff.WriteString("partition_num can not change ")
+	}
+	if temp.ReplicaNum != 0 && temp.ReplicaNum != space.ReplicaNum {
+		buff.WriteString("replica_num can not change ")
+	}
+	if buff.String() != "" {
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf(buff.String()))
+	}
+
+	// Update mutable properties
+	if temp.Name != "" {
+		space.Name = temp.Name
+	}
+	if temp.Enabled != nil {
+		space.Enabled = temp.Enabled
+	}
+
+	if err := space.Validate(); err != nil {
+		return nil, err
+	}
+
+	space.Version++
+	if temp.Partitions != nil {
+		space.Partitions = temp.Partitions
+	}
+
+	// Handle schema updates (field additions)
+	if len(temp.Fields) > 0 {
+		if err := s.updateSpaceFields(space, temp.Fields); err != nil {
+			return nil, err
+		}
+	}
+
+	// Notify all partitions of configuration changes
+	if err := s.notifyPartitionsConfigUpdate(ctx, space); err != nil {
+		return nil, err
+	}
+
+	space.Version--
+	if err := s.UpdateSpaceData(ctx, space); err != nil {
+		return nil, err
+	}
+
+	return space, nil
+}
+
+// expandPartitions handles partition number expansion
+func (s *SpaceService) expandPartitions(ctx context.Context, dbs *DBService, space *entity.Space, newPartitionCount uint32) (*entity.Space, error) {
+	// Create new partitions
+	masterClient := s.client.Master()
+	newPartitions := make([]*entity.Partition, 0, int(newPartitionCount)-space.PartitionNum)
+	for partitionIndex := space.PartitionNum; partitionIndex < int(newPartitionCount); partitionIndex++ {
+		partitionID, err := masterClient.NewIDGenerate(ctx, entity.PartitionIdSequence, 1, 5*time.Second)
 		if err != nil {
 			return nil, err
 		}
 
-		partitions = append(partitions, &entity.Partition{
+		newPartitions = append(newPartitions, &entity.Partition{
 			Id:      entity.PartitionID(partitionID),
 			SpaceId: space.Id,
 			DBId:    space.DBId,
 		})
-		log.Debug("updateSpacePartitionNum Generate partition id %d", partitionID)
+		log.Debug("expandPartitions Generate partition id %d", partitionID)
 	}
 
-	// find all servers for update space partition
-	servers, err := mc.QueryServers(ctx)
+	// Get servers and validate
+	servers, err := masterClient.QueryServers(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	// will get all exist partition
-	serverPartitions, err := s.filterAndSortServer(ctx, dbs, space, servers)
+	serverPartitionCounts, err := s.filterAndSortServer(ctx, dbs, space, servers)
 	if err != nil {
 		return nil, err
 	}
 
-	if int(space.ReplicaNum) > len(serverPartitions) {
-		return nil, fmt.Errorf("not enough PS , need replica %d but only has %d",
-			int(space.ReplicaNum), len(serverPartitions))
+	if int(space.ReplicaNum) > len(serverPartitionCounts) {
+		return nil, fmt.Errorf("not enough PS, need replica %d but only has %d",
+			int(space.ReplicaNum), len(serverPartitionCounts))
 	}
 
-	// pick servers for space
-	var paddrs [][]string
-	for i := range partitions {
-		if addrs, err := s.selectServersForPartition(servers, serverPartitions, space.ReplicaNum, partitions[i]); err != nil {
+	// Pick servers for partitions
+	partitionServerAddresses := make([][]string, len(newPartitions))
+	for i := range newPartitions {
+		if addresses, err := s.selectServersForPartition(servers, serverPartitionCounts, space.ReplicaNum, newPartitions[i]); err != nil {
 			return nil, err
 		} else {
-			paddrs = append(paddrs, addrs)
+			partitionServerAddresses[i] = addresses
 		}
 	}
 
-	log.Debug("updateSpacePartitionNum origin paritionNum %d, serverPartitions %v, paddrs %v", space.PartitionNum, serverPartitions, paddrs)
+	log.Debug("expandPartitions origin partitionNum %d, serverPartitions %v, partitionServerAddresses %v",
+		space.PartitionNum, serverPartitionCounts, partitionServerAddresses)
 
-	// when create partition, new partition id will be stored in server partition cache
-	space.PartitionNum = spaceResource.PartitionNum
-	space.Partitions = append(space.Partitions, partitions...)
+	// Update space with new partitions
+	space.PartitionNum = int(newPartitionCount)
+	space.Partitions = append(space.Partitions, newPartitions...)
 
-	var errChain = make(chan error, 1)
-	// send create partition for new
-	for i := range partitions {
-		go func(addrs []string, partition *entity.Partition) {
-			//send request for all server
-			defer func() {
-				if r := recover(); r != nil {
-					err := vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("create partition err: %v ", r))
-					errChain <- err
-					log.Error(err.Error())
-				}
-			}()
-			for _, addr := range addrs {
-				if err := client.CreatePartition(addr, space, partition.Id); err != nil {
-					err := vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("create partition err: %s ", err.Error()))
-					errChain <- err
-					log.Error(err.Error())
-				}
-			}
-		}(paddrs[i], partitions[i])
+	// Create partitions on servers asynchronously
+	errorChannel := make(chan error, len(newPartitions))
+	for i := range newPartitions {
+		go s.createPartitionOnServers(partitionServerAddresses[i], newPartitions[i], space, errorChannel)
 	}
 
-	// check all partition is ok
-	for i := 0; i < len(partitions); i++ {
-		times := 0
-		for {
-			times++
-			select {
-			case err := <-errChain:
-				return nil, err
-			case <-ctx.Done():
-				return nil, vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("update space has error"))
-			default:
-			}
-
-			partition, err := mc.QueryPartition(ctx, partitions[i].Id)
-			if times%5 == 0 {
-				log.Debug("updateSpacePartitionNum check the partition:%d status", partitions[i].Id)
-			}
-			if err != nil && vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err).GetError().Code != vearchpb.ErrorEnum_PARTITION_NOT_EXIST {
-				return nil, err
-			}
-			if partition != nil {
-				break
-			}
-			time.Sleep(50 * time.Millisecond)
-		}
+	// Wait for all partitions to be created
+	if err := s.waitForPartitionsReady(ctx, masterClient, newPartitions, errorChannel); err != nil {
+		return nil, err
 	}
 
-	//update space
-	width := math.MaxUint32 / space.PartitionNum
-	for i := range space.PartitionNum {
-		space.Partitions[i].Slot = entity.SlotID(i * width)
+	// Update slot assignments
+	slotWidth := math.MaxUint32 / uint32(space.PartitionNum)
+	for partitionIndex := range space.PartitionNum {
+		space.Partitions[partitionIndex].Slot = entity.SlotID(uint32(partitionIndex) * slotWidth)
 	}
-	log.Debug("updateSpacePartitionNum space version %d, partition_num %d", space.Version, space.PartitionNum)
+
+	log.Debug("expandPartitions space version %d, partition_num %d", space.Version, space.PartitionNum)
 
 	if err := s.UpdateSpaceData(ctx, space); err != nil {
 		return nil, err
-	} else {
-		return space, nil
+	}
+
+	return space, nil
+}
+
+// updateSpaceFields handles field schema updates
+func (s *SpaceService) updateSpaceFields(space *entity.Space, newFields []byte) error {
+	// parse old space
+	oldFieldMap, err := mapping.SchemaMap(space.Fields)
+	if err != nil {
+		return err
+	}
+
+	// parse new space
+	newFieldMap, err := mapping.SchemaMap(newFields)
+	if err != nil {
+		return err
+	}
+
+	for fieldName, fieldValue := range oldFieldMap {
+		if newFieldValue, exists := newFieldMap[fieldName]; exists {
+			if !mapping.Equals(fieldValue, newFieldValue) {
+				return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR,
+					fmt.Errorf("not equals by field:[%s] old[%v] new[%v]", fieldName, fieldValue, newFieldValue))
+			}
+			delete(newFieldMap, fieldName)
+		}
+	}
+
+	if len(newFieldMap) > 0 {
+		log.Info("change schema for space: %s, change fields: %d, value is: [%s]",
+			space.Name, len(newFieldMap), string(newFields))
+
+		schema, err := mapping.MergeSchema(space.Fields, newFields)
+		if err != nil {
+			return err
+		}
+
+		space.Fields = schema
+	}
+
+	return nil
+}
+
+// notifyPartitionsConfigUpdate notifies all partitions of configuration changes
+func (s *SpaceService) notifyPartitionsConfigUpdate(ctx context.Context, space *entity.Space) error {
+	errorChannel := make(chan error, len(space.Partitions))
+	var waitGroup sync.WaitGroup
+
+	for _, partition := range space.Partitions {
+		waitGroup.Add(1)
+		go func(currentPartition *entity.Partition) {
+			defer waitGroup.Done()
+			if err := s.updateSinglePartition(ctx, space, currentPartition); err != nil {
+				errorChannel <- err
+			}
+		}(partition)
+	}
+
+	// Wait for all goroutines to complete
+	go func() {
+		waitGroup.Wait()
+		close(errorChannel)
+	}()
+
+	// Check for any errors
+	for err := range errorChannel {
+		if err != nil {
+			log.Error("UpdatePartition err: %v", err)
+			return err
+		}
+	}
+
+	return nil
+}
+
+// createPartitionOnServers creates a partition on all specified servers
+func (s *SpaceService) createPartitionOnServers(serverAddresses []string, partition *entity.Partition, space *entity.Space, errorChannel chan<- error) {
+	defer func() {
+		if recoveredError := recover(); recoveredError != nil {
+			err := vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR,
+				fmt.Errorf("create partition err: %v", recoveredError))
+			errorChannel <- err
+			log.Error(err.Error())
+		}
+	}()
+
+	for _, address := range serverAddresses {
+		if err := client.CreatePartition(address, space, partition.Id); err != nil {
+			err := vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR,
+				fmt.Errorf("create partition err: %s", err.Error()))
+			errorChannel <- err
+			log.Error(err.Error())
+			return
+		}
 	}
 }
 
-func (s *SpaceService) updateSpacePartitonRule(ctx context.Context, dbs *DBService, spaceResource *entity.SpacePartitionResource, space *entity.Space) (*entity.Space, error) {
-	mc := s.client.Master()
-	if spaceResource.PartitionOperatorType == entity.Drop {
-		if spaceResource.PartitionName == "" {
+// waitForPartitionsReady waits for all partitions to be created and ready
+func (s *SpaceService) waitForPartitionsReady(ctx context.Context, masterClient any, partitions []*entity.Partition, errorChannel <-chan error) error {
+	for partitionIndex := range partitions {
+		attemptCount := 0
+		for {
+			attemptCount++
+			select {
+			case err := <-errorChannel:
+				return err
+			case <-ctx.Done():
+				return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR,
+					fmt.Errorf("update space has error"))
+			default:
+			}
+
+			partition, err := masterClient.(interface {
+				QueryPartition(context.Context, entity.PartitionID) (*entity.Partition, error)
+			}).QueryPartition(ctx, partitions[partitionIndex].Id)
+			if attemptCount%5 == 0 {
+				log.Debug("waitForPartitionsReady check partition %d status", partitions[partitionIndex].Id)
+			}
+
+			if err != nil && vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err).GetError().Code != vearchpb.ErrorEnum_PARTITION_NOT_EXIST {
+				return err
+			}
+
+			if partition != nil {
+				break
+			}
+
+			time.Sleep(50 * time.Millisecond)
+		}
+	}
+	return nil
+}
+
+func (s *SpaceService) updateSpacePartitonRule(ctx context.Context, dbs *DBService, partitionName string, partitionOperatorType string, partitionRule *entity.PartitionRule, space *entity.Space) (*entity.Space, error) {
+	masterClient := s.client.Master()
+	if partitionOperatorType == entity.Drop {
+		if partitionName == "" {
 			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("partition name is empty"))
 		}
 		found := false
-		for _, range_rule := range space.PartitionRule.Ranges {
-			if range_rule.Name == spaceResource.PartitionName {
+		for _, rangeRule := range space.PartitionRule.Ranges {
+			if rangeRule.Name == partitionName {
 				found = true
 				break
 			}
 		}
 		if !found {
-			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("partition name %s not exist", spaceResource.PartitionName))
+			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("partition name %s not exist", partitionName))
 		}
-		new_partitions := make([]*entity.Partition, 0)
+		remainingPartitions := make([]*entity.Partition, 0)
 		for _, partition := range space.Partitions {
-			if partition.Name != spaceResource.PartitionName {
-				new_partitions = append(new_partitions, partition)
+			if partition.Name != partitionName {
+				remainingPartitions = append(remainingPartitions, partition)
 			} else {
 				// delete parition and partitionKey
 				for _, replica := range partition.Replicas {
-					if server, err := mc.QueryServer(ctx, replica); err != nil {
+					if server, err := masterClient.QueryServer(ctx, replica); err != nil {
 						log.Error("query partition:[%d] for replica:[%s] has err:[%s]", partition.Id, replica, err.Error())
 					} else {
 						if err := client.DeletePartition(server.RpcAddr(), partition.Id); err != nil {
@@ -722,33 +857,33 @@ func (s *SpaceService) updateSpacePartitonRule(ctx context.Context, dbs *DBServi
 						}
 					}
 				}
-				err := mc.Delete(ctx, entity.PartitionKey(partition.Id))
+				err := masterClient.Delete(ctx, entity.PartitionKey(partition.Id))
 				if err != nil {
 					return nil, err
 				}
 			}
 		}
-		space.Partitions = new_partitions
-		new_range_rules := make([]entity.Range, 0)
-		for _, range_rule := range space.PartitionRule.Ranges {
-			if range_rule.Name != spaceResource.PartitionName {
-				new_range_rules = append(new_range_rules, range_rule)
+		space.Partitions = remainingPartitions
+		remainingRangeRules := make([]entity.Range, 0)
+		for _, rangeRule := range space.PartitionRule.Ranges {
+			if rangeRule.Name != partitionName {
+				remainingRangeRules = append(remainingRangeRules, rangeRule)
 			}
 		}
-		space.PartitionRule.Ranges = new_range_rules
+		space.PartitionRule.Ranges = remainingRangeRules
 	}
 
-	if spaceResource.PartitionOperatorType == entity.Add {
-		if spaceResource.PartitionRule == nil {
+	if partitionOperatorType == entity.Add {
+		if partitionRule == nil {
 			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("partition rule is empty"))
 		}
-		_, err := space.PartitionRule.RangeIsSame(spaceResource.PartitionRule.Ranges)
+		_, err := space.PartitionRule.RangeIsSame(partitionRule.Ranges)
 		if err != nil {
 			return nil, err
 		}
 
 		// find all servers for update space partition
-		servers, err := mc.QueryServers(ctx)
+		servers, err := masterClient.QueryServers(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -764,85 +899,85 @@ func (s *SpaceService) updateSpacePartitonRule(ctx context.Context, dbs *DBServi
 				int(space.ReplicaNum), len(serverPartitions))
 		}
 
-		partitions := make([]*entity.Partition, 0)
-		for _, r := range spaceResource.PartitionRule.Ranges {
-			if r.Name == "" {
+		newPartitions := make([]*entity.Partition, 0)
+		for _, rangeRule := range partitionRule.Ranges {
+			if rangeRule.Name == "" {
 				return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("partition name is empty"))
 			}
 			for j := 0; j < space.PartitionNum; j++ {
-				partitionID, err := mc.NewIDGenerate(ctx, entity.PartitionIdSequence, 1, 5*time.Second)
+				partitionID, err := masterClient.NewIDGenerate(ctx, entity.PartitionIdSequence, 1, 5*time.Second)
 
 				if err != nil {
 					return nil, err
 				}
 
-				partitions = append(partitions, &entity.Partition{
+				newPartitions = append(newPartitions, &entity.Partition{
 					Id:      entity.PartitionID(partitionID),
-					Name:    r.Name,
+					Name:    rangeRule.Name,
 					SpaceId: space.Id,
 					DBId:    space.DBId,
 				})
 				log.Debug("updateSpacePartitionrule Generate partition id %d", partitionID)
 			}
 		}
-		space.PartitionRule.Ranges, err = space.PartitionRule.AddRanges(spaceResource.PartitionRule.Ranges)
+		space.PartitionRule.Ranges, err = space.PartitionRule.AddRanges(partitionRule.Ranges)
 		if err != nil {
 			return nil, err
 		}
-		log.Debug("updateSpacePartitionrule partition rule %v, add rule %v", space.PartitionRule, spaceResource.PartitionRule)
+		log.Debug("updateSpacePartitionrule partition rule %v, add rule %v", space.PartitionRule, partitionRule)
 
 		// pick servers for space
-		var paddrs [][]string
-		for i := 0; i < len(partitions); i++ {
-			if addrs, err := s.selectServersForPartition(servers, serverPartitions, space.ReplicaNum, partitions[i]); err != nil {
+		var partitionServerAddresses [][]string
+		for i := 0; i < len(newPartitions); i++ {
+			if addresses, err := s.selectServersForPartition(servers, serverPartitions, space.ReplicaNum, newPartitions[i]); err != nil {
 				return nil, err
 			} else {
-				paddrs = append(paddrs, addrs)
+				partitionServerAddresses = append(partitionServerAddresses, addresses)
 			}
 		}
 
-		log.Debug("updateSpacePartitionrule paritionNum %d, serverPartitions %v, paddrs %v", space.PartitionNum, serverPartitions, paddrs)
+		log.Debug("updateSpacePartitionrule paritionNum %d, serverPartitions %v, partitionServerAddresses %v", space.PartitionNum, serverPartitions, partitionServerAddresses)
 
 		// when create partition, new partition id will be stored in server partition cache
-		space.Partitions = append(space.Partitions, partitions...)
+		space.Partitions = append(space.Partitions, newPartitions...)
 
-		var errChain = make(chan error, 1)
+		var errorChannel = make(chan error, 1)
 		// send create partition for new
-		for i := 0; i < len(partitions); i++ {
-			go func(addrs []string, partition *entity.Partition) {
+		for i := 0; i < len(newPartitions); i++ {
+			go func(addresses []string, partition *entity.Partition) {
 				//send request for all server
 				defer func() {
-					if r := recover(); r != nil {
-						err := vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("create partition err: %v ", r))
-						errChain <- err
+					if recoveredError := recover(); recoveredError != nil {
+						err := vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("create partition err: %v ", recoveredError))
+						errorChannel <- err
 						log.Error(err.Error())
 					}
 				}()
-				for _, addr := range addrs {
-					if err := client.CreatePartition(addr, space, partition.Id); err != nil {
+				for _, address := range addresses {
+					if err := client.CreatePartition(address, space, partition.Id); err != nil {
 						err := vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("create partition err: %s ", err.Error()))
-						errChain <- err
+						errorChannel <- err
 						log.Error(err.Error())
 					}
 				}
-			}(paddrs[i], partitions[i])
+			}(partitionServerAddresses[i], newPartitions[i])
 		}
 		// check all partition is ok
-		for i := 0; i < len(partitions); i++ {
-			times := 0
+		for i := 0; i < len(newPartitions); i++ {
+			attemptCount := 0
 			for {
-				times++
+				attemptCount++
 				select {
-				case err := <-errChain:
+				case err := <-errorChannel:
 					return nil, err
 				case <-ctx.Done():
 					return nil, vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("update space has error"))
 				default:
 				}
 
-				partition, err := mc.QueryPartition(ctx, partitions[i].Id)
-				if times%5 == 0 {
-					log.Debug("updateSpacePartitionNum check the partition:%d status", partitions[i].Id)
+				partition, err := masterClient.QueryPartition(ctx, newPartitions[i].Id)
+				if attemptCount%5 == 0 {
+					log.Debug("updateSpacePartitionNum check the partition:%d status", newPartitions[i].Id)
 				}
 				if err != nil && vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err).GetError().Code != vearchpb.ErrorEnum_PARTITION_NOT_EXIST {
 					return nil, err
@@ -857,9 +992,9 @@ func (s *SpaceService) updateSpacePartitonRule(ctx context.Context, dbs *DBServi
 
 	space.PartitionRule.Partitions = len(space.PartitionRule.Ranges)
 	//update space
-	width := math.MaxUint32 / (space.PartitionNum * space.PartitionRule.Partitions)
+	slotWidth := math.MaxUint32 / (space.PartitionNum * space.PartitionRule.Partitions)
 	for i := 0; i < space.PartitionNum*space.PartitionRule.Partitions; i++ {
-		space.Partitions[i].Slot = entity.SlotID(i * width)
+		space.Partitions[i].Slot = entity.SlotID(i * slotWidth)
 	}
 
 	if err := s.UpdateSpaceData(ctx, space); err != nil {
@@ -874,8 +1009,8 @@ func (s *SpaceService) updateSpacePartitonRule(ctx context.Context, dbs *DBServi
 //
 // Parameters:
 // - servers: A slice of pointers to Server entities representing available servers.
-// - serverPartitions: A map where the key is the server index and the value is the number of partitions on that server.
-// - replicaNum: The number of replicas needed for the partition.
+// - serverPartitionCounts: A map where the key is the server index and the value is the number of partitions on that server.
+// - replicaCount: The number of replicas needed for the partition.
 // - partition: A pointer to the Partition entity that needs to be assigned servers.
 //
 // Returns:
@@ -883,214 +1018,112 @@ func (s *SpaceService) updateSpacePartitonRule(ctx context.Context, dbs *DBServi
 // - An error if the required number of servers could not be selected.
 //
 // The function considers the anti-affinity strategy configured in the master service to avoid placing replicas in the same zone.
-func (s *SpaceService) selectServersForPartition(servers []*entity.Server, serverPartitions map[int]int, replicaNum uint8, partition *entity.Partition) ([]string, error) {
-	address := make([]string, 0, replicaNum)
-	originReplicaNum := replicaNum
-	partition.Replicas = make([]entity.NodeID, 0, replicaNum)
+func (s *SpaceService) selectServersForPartition(servers []*entity.Server, serverPartitionCounts map[int]int, replicaCount uint8, partition *entity.Partition) ([]string, error) {
+	selectedAddresses := make([]string, 0, replicaCount)
+	originalReplicaCount := replicaCount
+	partition.Replicas = make([]entity.NodeID, 0, replicaCount)
 
-	kvList := make([]struct {
-		index  int
-		length int
-	}, len(serverPartitions))
+	serverCountPairs := make([]struct {
+		serverIndex    int
+		partitionCount int
+	}, len(serverPartitionCounts))
 
-	i := 0
-	for k, v := range serverPartitions {
-		kvList[i] = struct {
-			index  int
-			length int
-		}{index: k, length: v}
-		i++
+	pairIndex := 0
+	for serverIndex, partitionCount := range serverPartitionCounts {
+		serverCountPairs[pairIndex] = struct {
+			serverIndex    int
+			partitionCount int
+		}{serverIndex: serverIndex, partitionCount: partitionCount}
+		pairIndex++
 	}
 
-	sort.Slice(kvList, func(i, j int) bool {
-		return kvList[i].length < kvList[j].length
+	sort.Slice(serverCountPairs, func(i, j int) bool {
+		return serverCountPairs[i].partitionCount < serverCountPairs[j].partitionCount
 	})
 
-	zoneCount := make(map[string]int)
+	zoneUsageCount := make(map[string]int)
 
-	mc := s.client.Master()
-	antiAffinity := mc.Client().Master().Config().PS.ReplicaAntiAffinityStrategy
+	masterClient := s.client.Master()
+	antiAffinityStrategy := masterClient.Client().Master().Config().PS.ReplicaAntiAffinityStrategy
 	// find the servers with the fewest replicas and apply anti-affinity by zone
-	for _, kv := range kvList {
-		addr := servers[kv.index].RpcAddr()
-		ID := servers[kv.index].ID
-		var zone string
+	for _, pair := range serverCountPairs {
+		serverAddress := servers[pair.serverIndex].RpcAddr()
+		serverID := servers[pair.serverIndex].ID
+		var zoneIdentifier string
 
-		switch antiAffinity {
+		switch antiAffinityStrategy {
 		case 1:
-			zone = servers[kv.index].HostIp
+			zoneIdentifier = servers[pair.serverIndex].HostIp
 		case 2:
-			zone = servers[kv.index].HostRack
+			zoneIdentifier = servers[pair.serverIndex].HostRack
 		case 3:
-			zone = servers[kv.index].HostZone
+			zoneIdentifier = servers[pair.serverIndex].HostZone
 		default:
-			zone = ""
+			zoneIdentifier = ""
 		}
 
-		if !client.IsLive(addr) {
-			serverPartitions[kv.index] = kv.length
+		if !client.IsLive(serverAddress) {
+			serverPartitionCounts[pair.serverIndex] = pair.partitionCount
 			continue
 		}
 
-		if zone != "" && zoneCount[zone] > 0 {
+		if zoneIdentifier != "" && zoneUsageCount[zoneIdentifier] > 0 {
 			continue
 		}
 
-		serverPartitions[kv.index]++
-		if zone != "" {
-			zoneCount[zone]++
+		serverPartitionCounts[pair.serverIndex]++
+		if zoneIdentifier != "" {
+			zoneUsageCount[zoneIdentifier]++
 		}
-		address = append(address, addr)
-		partition.Replicas = append(partition.Replicas, ID)
+		selectedAddresses = append(selectedAddresses, serverAddress)
+		partition.Replicas = append(partition.Replicas, serverID)
 
-		replicaNum--
-		if replicaNum <= 0 {
+		replicaCount--
+		if replicaCount <= 0 {
 			break
 		}
 	}
 
-	if replicaNum > 0 {
-		return nil, vearchpb.NewError(vearchpb.ErrorEnum_MASTER_PS_NOT_ENOUGH_SELECT, fmt.Errorf("need %d partition servers but only got %d", originReplicaNum, len(address)))
+	if replicaCount > 0 {
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_MASTER_PS_NOT_ENOUGH_SELECT, fmt.Errorf("need %d partition servers but only got %d", originalReplicaCount, len(selectedAddresses)))
 	}
 
-	return address, nil
+	return selectedAddresses, nil
 }
 
-func (s *SpaceService) UpdateSpace(ctx context.Context, dbName, spaceName string, temp *entity.Space) (*entity.Space, error) {
-	// it will lock cluster to create space
-	mc := s.client.Master()
-	mutex := mc.NewLock(ctx, entity.LockSpaceKey(dbName, spaceName), time.Second*300)
-	if err := mutex.Lock(); err != nil {
-		return nil, err
-	}
-	defer func() {
-		if err := mutex.Unlock(); err != nil {
-			log.Error("failed to unlock space,the Error is:%v ", err)
-		}
-	}()
-
-	dbId, err := mc.QueryDBName2ID(ctx, dbName)
+// updateSinglePartition updates a single partition
+func (s *SpaceService) updateSinglePartition(ctx context.Context, space *entity.Space, partition *entity.Partition) error {
+	masterClient := s.client.Master()
+	partitionInfo, err := masterClient.QueryPartition(ctx, partition.Id)
 	if err != nil {
-		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("failed to find database id according database name:%v,the Error is:%v ", dbName, err))
+		return err
 	}
 
-	space, err := mc.QuerySpaceByName(ctx, dbId, spaceName)
+	server, err := masterClient.QueryServer(ctx, partitionInfo.LeaderID)
 	if err != nil {
-		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("failed to find space according space name:%v,the Error is:%v ", spaceName, err))
+		return err
 	}
 
-	if space == nil {
-		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("can not found space by name : %s", spaceName))
+	if !client.IsLive(server.RpcAddr()) {
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_IS_CLOSED,
+			fmt.Errorf("partition %s is shutdown", server.RpcAddr()))
 	}
 
-	buff := bytes.Buffer{}
-	if temp.DBId != 0 && temp.DBId != space.DBId {
-		buff.WriteString("db_id not same ")
+	log.Debug("update partition server: %+v, space: %+v, pid: %+v", server, space, partition.Id)
+
+	if err := client.UpdatePartition(server.RpcAddr(), space, partition.Id); err != nil {
+		return err
 	}
 
-	if temp.PartitionNum != 0 && temp.PartitionNum != space.PartitionNum {
-		buff.WriteString("partition_num can not change ")
-	}
-	if temp.ReplicaNum != 0 && temp.ReplicaNum != space.ReplicaNum {
-		buff.WriteString("replica_num can not change ")
-	}
-	if buff.String() != "" {
-		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf(buff.String()))
-	}
+	return nil
+}
 
-	if temp.Name != "" {
-		space.Name = temp.Name
-	}
-
-	if temp.Enabled != nil {
-		space.Enabled = temp.Enabled
-	}
-
-	if err := space.Validate(); err != nil {
-		return nil, err
-	}
-
-	space.Version++
-	space.Partitions = temp.Partitions
-
-	if temp.Fields != nil && len(temp.Fields) > 0 {
-		// parse old space
-		oldFieldMap, err := mapping.SchemaMap(space.Fields)
-		if err != nil {
-			return nil, err
-		}
-
-		// parse new space
-		newFieldMap, err := mapping.SchemaMap(temp.Fields)
-		if err != nil {
-			return nil, err
-		}
-
-		for k, v := range oldFieldMap {
-			if fm, ok := newFieldMap[k]; ok {
-				if !mapping.Equals(v, fm) {
-					return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("not equals by field:[%s] old[%v] new[%v]", k, v, fm))
-				}
-				delete(newFieldMap, k)
-			}
-		}
-
-		if len(newFieldMap) > 0 {
-			log.Info("change schema for space: %s, change fields: %d, value is: [%s]", space.Name, len(newFieldMap), string(temp.Fields))
-
-			schema, err := mapping.MergeSchema(space.Fields, temp.Fields)
-			if err != nil {
-				return nil, err
-			}
-
-			space.Fields = schema
-		}
-	}
-
-	// notify all partitions
-	for _, p := range space.Partitions {
-		partition, err := mc.QueryPartition(ctx, p.Id)
-		if err != nil {
-			return nil, err
-		}
-
-		server, err := mc.QueryServer(ctx, partition.LeaderID)
-		if err != nil {
-			return nil, err
-		}
-
-		if !client.IsLive(server.RpcAddr()) {
-			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_IS_CLOSED, fmt.Errorf("partition %s is shutdown", server.RpcAddr()))
-		}
-	}
-
-	for _, p := range space.Partitions {
-		partition, err := mc.QueryPartition(ctx, p.Id)
-		if err != nil {
-			return nil, err
-		}
-
-		server, err := mc.QueryServer(ctx, partition.LeaderID)
-		if err != nil {
-			return nil, err
-		}
-
-		log.Debug("update partition server is [%+v], space is [%+v], pid is [%+v]",
-			server, space, p.Id)
-
-		if err := client.UpdatePartition(server.RpcAddr(), space, p.Id); err != nil {
-			log.Error("UpdatePartition err is [%v]", err)
-			return nil, err
-		}
-	}
-
-	log.Debug("update space is [%+v]", space)
-	space.Version--
-	if err := s.UpdateSpaceData(ctx, space); err != nil {
-		return nil, err
-	}
-
-	return space, nil
+// addPartitionError adds an error to spaceInfo and returns the status
+func (s *SpaceService) addPartitionError(spaceInfo *entity.SpaceInfo, status int, format string, args ...any) int {
+	msg := fmt.Sprintf(format, args...)
+	spaceInfo.Errors = append(spaceInfo.Errors, msg)
+	log.Error(msg)
+	return status
 }
 
 func (s *SpaceService) UpdateSpaceData(ctx context.Context, space *entity.Space) error {
@@ -1098,12 +1131,14 @@ func (s *SpaceService) UpdateSpaceData(ctx context.Context, space *entity.Space)
 	if space.PartitionRule == nil {
 		space.PartitionNum = len(space.Partitions)
 	}
-	marshal, err := json.Marshal(space)
+	space.PartitionName = nil
+	space.PartitionOperatorType = nil
+	marshaledSpace, err := json.Marshal(space)
 	if err != nil {
 		return err
 	}
-	mc := s.client.Master()
-	if err = mc.Update(ctx, entity.SpaceKey(space.DBId, space.Id), marshal); err != nil {
+	masterClient := s.client.Master()
+	if err = masterClient.Update(ctx, entity.SpaceKey(space.DBId, space.Id), marshaledSpace); err != nil {
 		return err
 	}
 

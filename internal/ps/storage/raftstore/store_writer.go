@@ -21,7 +21,7 @@ import (
 	"github.com/vearch/vearch/v3/internal/entity"
 	"github.com/vearch/vearch/v3/internal/pkg/log"
 	vearch_os "github.com/vearch/vearch/v3/internal/pkg/runtime/os"
-	"github.com/vearch/vearch/v3/internal/pkg/vjson"
+	json "github.com/vearch/vearch/v3/internal/pkg/vjson"
 	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
 )
 
@@ -40,7 +40,7 @@ func (s *Store) UpdateSpace(ctx context.Context, space *entity.Space) error {
 		return err
 	}
 
-	bytes, err := vjson.Marshal(space)
+	bytes, err := json.Marshal(space)
 	if err != nil {
 		return err
 	}
@@ -54,7 +54,7 @@ func (s *Store) UpdateSpace(ctx context.Context, space *entity.Space) error {
 		},
 	}
 
-	data, err := vjson.Marshal(raftCmd)
+	data, err := json.Marshal(raftCmd)
 
 	if err != nil {
 		return err
@@ -99,7 +99,7 @@ func (s *Store) Write(ctx context.Context, request *vearchpb.DocCmd) (err error)
 		WriteCommand: request,
 	}
 
-	data, err := vjson.Marshal(raftCmd)
+	data, err := json.Marshal(raftCmd)
 	if err != nil {
 		return err
 	}
@@ -139,7 +139,7 @@ func (s *Store) Flush(ctx context.Context) error {
 	raftCmd := &vearchpb.RaftCommand{
 		Type: vearchpb.CmdType_FLUSH,
 	}
-	data, err := vjson.Marshal(raftCmd)
+	data, err := json.Marshal(raftCmd)
 	if err != nil {
 		return err
 	}

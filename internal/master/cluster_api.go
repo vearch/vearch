@@ -231,8 +231,7 @@ func ExportToClusterHandler(router *gin.Engine, masterService *masterService, se
 	groupAuth.GET(fmt.Sprintf("/dbs/:%s/spaces/:%s", dbName, spaceName), c.getSpace)
 	groupAuth.GET(fmt.Sprintf("/dbs/:%s/spaces", dbName), c.getSpace)
 	groupAuth.DELETE(fmt.Sprintf("/dbs/:%s/spaces/:%s", dbName, spaceName), c.deleteSpace)
-	// group.PUT(fmt.Sprintf("/dbs/:%s/spaces/:%s", dbName, spaceName), c.updateSpace)
-	groupAuth.PUT(fmt.Sprintf("/dbs/:%s/spaces/:%s", dbName, spaceName), c.updateSpaceResource)
+	groupAuth.PUT(fmt.Sprintf("/dbs/:%s/spaces/:%s", dbName, spaceName), c.updateSpace)
 	groupAuth.POST(fmt.Sprintf("/backup/dbs/:%s/spaces/:%s", dbName, spaceName), c.backupSpace)
 	groupAuth.POST(fmt.Sprintf("/backup/dbs/:%s", dbName), c.backupDb)
 
@@ -240,7 +239,7 @@ func ExportToClusterHandler(router *gin.Engine, masterService *masterService, se
 	groupAuth.POST("/config/:"+dbName+"/:"+spaceName, c.modifySpaceConfig)
 	groupAuth.GET("/config/:"+dbName+"/:"+spaceName, c.getSpaceConfig)
 
-	//modify query limit enabled config handler
+	// modify query limit enabled config handler
 	groupAuth.POST("/config/request_limit", c.modifyRequestLimitCfg)
 	groupAuth.GET("/config/request_limit", c.getRequestLimitCfg)
 
@@ -609,27 +608,8 @@ func (ca *clusterAPI) updateSpace(c *gin.Context) {
 	dbName := c.Param(dbName)
 	spaceName := c.Param(spaceName)
 
-	space := &entity.Space{Name: spaceName}
-
-	if err := c.ShouldBindJSON(space); err != nil {
-		response.New(c).JsonError(errors.NewErrBadRequest(err))
-		return
-	}
-
-	if spaceResult, err := ca.masterService.Space().UpdateSpace(c, dbName, spaceName, space); err != nil {
-		response.New(c).JsonError(errors.NewErrInternal(err))
-	} else {
-		response.New(c).JsonSuccess(spaceResult)
-	}
-}
-
-func (ca *clusterAPI) updateSpaceResource(c *gin.Context) {
-	dbName := c.Param(dbName)
-	spaceName := c.Param(spaceName)
-
-	space := &entity.SpacePartitionResource{
-		SpaceName: spaceName,
-		DbName:    dbName,
+	space := &entity.Space{
+		Name: spaceName,
 	}
 
 	if err := c.ShouldBindJSON(space); err != nil {
@@ -637,9 +617,9 @@ func (ca *clusterAPI) updateSpaceResource(c *gin.Context) {
 		return
 	}
 
-	log.Debug("updateSpaceResource %v", space)
+	log.Debug("updateSpace %v", space)
 
-	if spaceResult, err := ca.masterService.Space().UpdateSpaceResource(c, ca.masterService.DB(), space); err != nil {
+	if spaceResult, err := ca.masterService.Space().UpdateSpace(c, ca.masterService.DB(), dbName, spaceName, space, ""); err != nil {
 		response.New(c).JsonError(errors.NewErrInternal(err))
 	} else {
 		response.New(c).JsonSuccess(spaceResult)

@@ -74,21 +74,23 @@ type IndexParams struct {
 
 // space/[dbId]/[spaceId]:[spaceBody]
 type Space struct {
-	Id              SpaceID                     `json:"id,omitempty"`
-	Desc            string                      `json:"desc,omitempty"` //user setting
-	Name            string                      `json:"name,omitempty"` //user setting
-	ResourceName    string                      `toml:"resource_name,omitempty" json:"resource_name"`
-	Version         Version                     `json:"version,omitempty"`
-	DBId            DBID                        `json:"db_id,omitempty"`
-	Enabled         *bool                       `json:"enabled"`    //Enabled flag whether the space can work
-	Partitions      []*Partition                `json:"partitions"` // partitionids not sorted
-	PartitionNum    int                         `json:"partition_num"`
-	ReplicaNum      uint8                       `json:"replica_num"`
-	Fields          json.RawMessage             `json:"fields"`
-	Index           *Index                      `json:"index,omitempty"`
-	PartitionRule   *PartitionRule              `json:"partition_rule,omitempty"`
-	SpaceProperties map[string]*SpaceProperties `json:"space_properties"`
-	RefreshInterval *int32                      `json:"refresh_interval,omitempty"`
+	Id                    SpaceID                     `json:"id,omitempty"`
+	Desc                  string                      `json:"desc,omitempty"` // user setting
+	Name                  string                      `json:"name,omitempty"` // user setting
+	ResourceName          string                      `toml:"resource_name,omitempty" json:"resource_name"`
+	Version               Version                     `json:"version,omitempty"`
+	DBId                  DBID                        `json:"db_id,omitempty"`
+	Enabled               *bool                       `json:"enabled"`    // Enabled flag whether the space can work
+	Partitions            []*Partition                `json:"partitions"` // partitionids not sorted
+	PartitionNum          int                         `json:"partition_num"`
+	ReplicaNum            uint8                       `json:"replica_num"`
+	Fields                json.RawMessage             `json:"fields"`
+	Index                 *Index                      `json:"index,omitempty"`
+	PartitionRule         *PartitionRule              `json:"partition_rule,omitempty"`
+	SpaceProperties       map[string]*SpaceProperties `json:"space_properties"`
+	RefreshInterval       *int32                      `json:"refresh_interval,omitempty"`
+	PartitionName         *string                     `json:"partition_name,omitempty"` // partition name for partition rule
+	PartitionOperatorType *string                     `json:"operator_type,omitempty"`  // partition rule operator type
 }
 
 // TODO separete space config and mapping
@@ -119,22 +121,6 @@ type SpaceInfo struct {
 	Status        string           `json:"status,omitempty"`
 	Partitions    []*PartitionInfo `json:"partitions"`
 	Errors        []string         `json:"errors,omitempty"`
-}
-
-type SpacePartitionResource struct {
-	SpaceName             string         `json:"space_name"`
-	DbName                string         `json:"db_name"`
-	PartitionNum          int            `json:"partition_num,omitempty"`
-	ReplicaNum            uint8          `json:"replica_num,omitempty"`
-	PartitionRule         *PartitionRule `json:"partition_rule,omitempty"`
-	PartitionName         string         `json:"partition_name,omitempty"`
-	PartitionOperatorType string         `json:"operator_type,omitempty"`
-}
-
-type SpaceDescribeRequest struct {
-	SpaceName string `json:"space_name"`
-	DbName    string `json:"db_name"`
-	Detail    *bool  `json:"detail"`
 }
 
 type BackupSpaceRequest struct {

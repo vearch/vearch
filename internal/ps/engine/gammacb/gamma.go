@@ -43,7 +43,7 @@ type EngineConfig struct {
 	// Path is the data directory.
 	Path string
 	// ExtraOptions contains extension options using a json format ("{key1:value1,key2:value2}").
-	ExtraOptions map[string]interface{}
+	ExtraOptions map[string]any
 	// Schema
 	Space *entity.Space
 	// partitionID
@@ -162,22 +162,22 @@ func (ge *gammaEngine) Writer() engine.Writer {
 	return ge.writer
 }
 
-func (ge *gammaEngine) UpdateMapping(space *entity.Space) error {
-	var oldProperties, newProperties any
+func (ge *gammaEngine) UpdateMapping(updatedSpace *entity.Space) error {
+	var currentFieldProperties, updatedFieldProperties any
 
-	if err := json.Unmarshal([]byte(ge.space.Fields), &oldProperties); err != nil {
-		return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("unmarshal old space properties:[%s] has err:[%s] ", ge.space.Fields, err.Error()))
+	if err := json.Unmarshal([]byte(ge.space.Fields), &currentFieldProperties); err != nil {
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("unmarshal current space properties:[%s] has err:[%s] ", ge.space.Fields, err.Error()))
 	}
 
-	if err := json.Unmarshal([]byte(space.Fields), &newProperties); err != nil {
-		return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("unmarshal new space properties:[%s] has err :[%s]", space.Fields, err.Error()))
+	if err := json.Unmarshal([]byte(updatedSpace.Fields), &updatedFieldProperties); err != nil {
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("unmarshal updated space properties:[%s] has err :[%s]", updatedSpace.Fields, err.Error()))
 	}
 
-	if !reflect.DeepEqual(oldProperties, newProperties) {
-		return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("gamma engine not support "))
+	if !reflect.DeepEqual(currentFieldProperties, updatedFieldProperties) {
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("gamma engine does not support field mapping changes"))
 	}
 
-	ge.space = space
+	ge.space = updatedSpace
 
 	return nil
 }

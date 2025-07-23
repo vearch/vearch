@@ -207,7 +207,7 @@ func (s *Server) startChangeLeaderC() {
 func (s *Server) register() (server *entity.Server) {
 	var err error
 
-	for i := 0; i < math.MaxInt32; i++ {
+	for i := range math.MaxInt32 {
 		log.Info("registering master, nodeId: [%d], attempt: %d", s.nodeID, i)
 		server, err = s.client.Master().Register(s.ctx, config.Conf().Global.Name, s.nodeID, 30*time.Second)
 		if err != nil {

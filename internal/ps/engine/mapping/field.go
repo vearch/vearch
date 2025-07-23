@@ -79,7 +79,7 @@ func (f *FieldMapping) UnmarshalJSON(data []byte) error {
 			}
 			fieldMapping.(*VectortFieldMapping).StoreType = *tmp.StoreType
 		}
-		if tmp.StoreParam != nil && len(tmp.StoreParam) > 0 {
+		if len(tmp.StoreParam) > 0 {
 			fieldMapping.(*VectortFieldMapping).StoreParam = tmp.StoreParam
 		}
 

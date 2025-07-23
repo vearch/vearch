@@ -17,6 +17,7 @@ package services
 import (
 	"context"
 	"fmt"
+	"slices"
 	"sort"
 	"time"
 
@@ -119,11 +120,8 @@ func (s *MemberService) ChangeMember(ctx context.Context, spaceService *SpaceSer
 	spacePartition := space.GetPartition(cm.PartitionID)
 
 	if cm.Method != proto.ConfRemoveNode {
-		for _, nodeID := range spacePartition.Replicas {
-			if nodeID == cm.NodeID {
-				log.Error("partition:[%d] already on server:[%d] in replicas:[%v], space:%v", cm.PartitionID, cm.NodeID, spacePartition.Replicas, space)
-				return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("partition:[%d] already on server:[%d] in replicas:[%v]", cm.PartitionID, cm.NodeID, spacePartition.Replicas))
-			}
+		if slices.Contains(spacePartition.Replicas, cm.NodeID) {
+			return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("partition:[%d] already on server:[%d] in replicas:[%v]", cm.PartitionID, cm.NodeID, spacePartition.Replicas))
 		}
 		spacePartition.Replicas = append(spacePartition.Replicas, cm.NodeID)
 	} else {
@@ -191,7 +189,7 @@ func (s *MemberService) ChangeMember(ctx context.Context, spaceService *SpaceSer
 		}
 	}
 
-	if _, err := spaceService.UpdateSpace(ctx, dbName, space.Name, space); err != nil {
+	if _, err := spaceService.UpdateSpace(ctx, nil, dbName, space.Name, space, "config"); err != nil {
 		return err
 	}
 	log.Info("update space: %v", space)
@@ -302,9 +300,10 @@ func (s *MemberService) ChangeReplica(ctx context.Context, dbService *DBService,
 	}()
 	space, err = mc.QuerySpaceByName(ctx, dbID, dbModify.SpaceName)
 	errutil.ThrowError(err)
-	if dbModify.Method == proto.ConfAddNode {
+	switch dbModify.Method {
+	case proto.ConfAddNode:
 		space.ReplicaNum = space.ReplicaNum + 1
-	} else if dbModify.Method == proto.ConfRemoveNode {
+	case proto.ConfRemoveNode:
 		space.ReplicaNum = space.ReplicaNum - 1
 	}
 	err = spaceService.UpdateSpaceData(ctx, space)
