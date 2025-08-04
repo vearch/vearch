@@ -53,11 +53,8 @@ func SchemaMap(schema []byte) (map[string]FieldMappingI, error) {
 
 	result := make(map[string]FieldMappingI)
 
-	if err := parseMappingProperties("", result, dm.Properties); err != nil {
-		return nil, err
-	} else {
-		return result, nil
-	}
+	err = parseMappingProperties("", result, dm.Properties)
+	return result, err
 }
 
 func Equals(f1, f2 FieldMappingI) bool {
@@ -146,35 +143,65 @@ func assembleMap(maps map[string]any, split string) map[string]any {
 	return newMap
 }
 
-// merge two schema to a new one
-func MergeSchema(old, new []byte) ([]byte, error) {
-	newSchemaMap := make(map[string]interface{})
-	err := json.Unmarshal([]byte(new), &newSchemaMap)
-	if err != nil {
-		return nil, err
+func MergeSchemaArray(old, new []byte) ([]byte, error) {
+	// Parse new schema array
+	var newSchemaArray []map[string]any
+	if err := json.Unmarshal(new, &newSchemaArray); err != nil {
+		return nil, fmt.Errorf("failed to parse new schema as array: %v", err)
 	}
-	newSchemaMap = DrawMap(newSchemaMap, ".")
 
-	oldSchemaMap := make(map[string]interface{})
-	err = json.Unmarshal([]byte(old), &oldSchemaMap)
-	if err != nil {
-		return nil, err
+	// Parse old schema array
+	var oldSchemaArray []map[string]any
+	if err := json.Unmarshal(old, &oldSchemaArray); err != nil {
+		return nil, fmt.Errorf("failed to parse old schema as array: %v", err)
 	}
-	oldSchemaMap = DrawMap(oldSchemaMap, ".")
 
-	for ok, ov := range oldSchemaMap {
-		if nv := newSchemaMap[ok]; nv != nil && nv != ov {
-			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("not same save by key:%s values[%v, %v]", ok, ov, nv))
-		} else if nv == nil {
-			newSchemaMap[ok] = ov
+	// Convert arrays to maps with field names as keys for easier lookup and comparison
+	newFieldMap := make(map[string]map[string]any)
+	for _, field := range newSchemaArray {
+		if name, ok := field["name"].(string); ok {
+			newFieldMap[name] = field
 		}
 	}
 
-	newSchemaMap = assembleMap(newSchemaMap, ".")
-	bytes, err := json.Marshal(newSchemaMap)
-	if err != nil {
-		return nil, err
+	oldFieldMap := make(map[string]map[string]any)
+	for _, field := range oldSchemaArray {
+		if name, ok := field["name"].(string); ok {
+			oldFieldMap[name] = field
+		}
 	}
 
-	return bytes, nil
+	// Check for conflicts and merge
+	for fieldName, oldField := range oldFieldMap {
+		if newField, exists := newFieldMap[fieldName]; exists {
+			// Field exists in both schemas, check if they are the same
+			if !areFieldsEqual(oldField, newField) {
+				return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR,
+					fmt.Errorf("field conflict for %s: old=%v, new=%v", fieldName, oldField, newField))
+			}
+		} else {
+			// Old field not in new schema, add it
+			newFieldMap[fieldName] = oldField
+		}
+	}
+
+	// Convert merged map back to array
+	var resultArray []map[string]any
+	for _, field := range newFieldMap {
+		resultArray = append(resultArray, field)
+	}
+
+	return json.Marshal(resultArray)
+}
+
+// areFieldsEqual compares two fields for equality (ignoring index option differences)
+func areFieldsEqual(field1, field2 map[string]any) bool {
+	// Compare basic properties
+	basicFields := []string{"name", "type", "dimension", "store_type", "format"}
+	for _, key := range basicFields {
+		if field1[key] != field2[key] {
+			return false
+		}
+	}
+	return true
 }

@@ -54,7 +54,7 @@ func AddOrUpdateDocs(engine unsafe.Pointer, buffer [][]byte) []int32 {
 	num := len(buffer)
 	resultCode := make([]int32, num)
 
-	for i := 0; i < num; i++ {
+	for i := range num {
 		resultCode[i] = int32(C.AddOrUpdateDoc(engine, (*C.char)(unsafe.Pointer(&buffer[i][0])), C.int(len(buffer[i]))))
 	}
 	return resultCode
@@ -223,6 +223,44 @@ func BackupSpace(engine unsafe.Pointer, command string) *Status {
 	}
 
 	cstatus := C.Backup(engine, C.int(c))
+
+	status := &Status{
+		Code: int32(cstatus.code),
+		Msg:  C.GoString(cstatus.msg),
+	}
+	if status.Code != 0 {
+		C.free(unsafe.Pointer(cstatus.msg))
+	}
+	return status
+}
+
+// AddFieldIndexWithParams adds index for a field with specified index parameters
+// Note: This will use the new C API function when available
+func AddFieldIndexWithParams(engine unsafe.Pointer, fieldName string, indexType string, indexParams []byte) *Status {
+	fieldNameBytes := []byte(fieldName)
+	indexTypeBytes := []byte(indexType)
+	cstatus := C.AddFieldIndexWithParams(
+		engine,
+		(*C.char)(unsafe.Pointer(&fieldNameBytes[0])),
+		C.int(len(fieldNameBytes)),
+		(*C.char)(unsafe.Pointer(&indexTypeBytes[0])),
+		C.int(len(indexTypeBytes)),
+		(*C.char)(unsafe.Pointer(&indexParams[0])),
+		C.int(len(indexParams)))
+
+	status := &Status{
+		Code: int32(cstatus.code),
+		Msg:  C.GoString(cstatus.msg),
+	}
+	if status.Code != 0 {
+		C.free(unsafe.Pointer(cstatus.msg))
+	}
+	return status
+}
+
+func RemoveFieldIndex(engine unsafe.Pointer, fieldName string) *Status {
+	fieldNameBytes := []byte(fieldName)
+	cstatus := C.RemoveFieldIndex(engine, (*C.char)(unsafe.Pointer(&fieldNameBytes[0])), C.int(len(fieldNameBytes)))
 
 	status := &Status{
 		Code: int32(cstatus.code),

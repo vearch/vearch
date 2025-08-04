@@ -7,9 +7,9 @@
 
 #include "vector/vector_manager.h"
 
+#include "index/impl/hnswlib/gamma_index_hnswlib.h"
 #include "raw_vector_factory.h"
 #include "util/utils.h"
-#include "index/impl/hnswlib/gamma_index_hnswlib.h"
 
 namespace vearch {
 
@@ -39,10 +39,12 @@ VectorManager::~VectorManager() {
   }
 }
 
-Status VectorManager::SetVectorStoreType(std::string &index_type,
+Status VectorManager::SetVectorStoreType(std::string index_type,
                                          std::string &store_type_str,
                                          VectorStorageType &store_type) {
-  if (store_type_str != "") {
+  LOG(INFO) << "SetVectorStoreType, index_type=" << index_type
+            << ", store_type_str=" << store_type_str;
+  if (!store_type_str.empty() && store_type_str != "") {
     if (!strcasecmp("MemoryOnly", store_type_str.c_str())) {
       store_type = VectorStorageType::MemoryOnly;
     } else if (!strcasecmp("RocksDB", store_type_str.c_str())) {
@@ -53,9 +55,10 @@ Status VectorManager::SetVectorStoreType(std::string &index_type,
       LOG(WARNING) << msg.str();
       return Status::NotSupported(msg.str());
     }
+
     // ivfflat has raw vector data in index, so just use rocksdb to reduce
     // memory footprint
-    if (index_type == "IVFFLAT" &&
+    if (!index_type.empty() && index_type == "IVFFLAT" &&
         strcasecmp("RocksDB", store_type_str.c_str())) {
       std::stringstream msg;
       msg << "IVFFLAT should use RocksDB, now store_type = " << store_type_str;
@@ -64,7 +67,7 @@ Status VectorManager::SetVectorStoreType(std::string &index_type,
       return Status::ParamError(msg.str());
     }
   } else {
-    if (index_type == "HNSW" || index_type == "FLAT") {
+    if (!index_type.empty() && (index_type == "HNSW" || index_type == "FLAT")) {
       store_type = VectorStorageType::MemoryOnly;
       store_type_str = "MemoryOnly";
     } else {
@@ -76,7 +79,7 @@ Status VectorManager::SetVectorStoreType(std::string &index_type,
 }
 
 Status VectorManager::CreateRawVector(struct VectorInfo &vector_info,
-                                      std::string &index_type, TableInfo &table,
+                                      std::string index_type, TableInfo &table,
                                       RawVector **vec, int cf_id,
                                       StorageManager *storage_mgr) {
   std::string &vec_name = vector_info.name;
@@ -126,7 +129,8 @@ Status VectorManager::CreateRawVector(struct VectorInfo &vector_info,
   int ret = (*vec)->Init(vec_name);
   if (ret != 0) {
     std::stringstream msg;
-    msg << desc_ << "raw vector " << vec_name << " init error, code [" << ret << "]!";
+    msg << desc_ << "raw vector " << vec_name << " init error, code [" << ret
+        << "]!";
     LOG(ERROR) << msg.str();
     delete (*vec);
     return Status::IOError(msg.str());
@@ -156,7 +160,8 @@ Status VectorManager::CreateVectorIndex(
       dynamic_cast<IndexModel *>(reflector().GetNewIndex(index_type));
   if (index_model == nullptr) {
     std::stringstream msg;
-    msg << desc_ << "cannot get model=" << index_type << ", vec_name=" << vec_name;
+    msg << desc_ << "cannot get model=" << index_type
+        << ", vec_name=" << vec_name;
     LOG(ERROR) << msg.str();
     if (destroy_vec) {
       delete vec;
@@ -168,7 +173,7 @@ Status VectorManager::CreateVectorIndex(
 
   Status status = index_model->Init(index_params, training_threshold);
   if (!status.ok()) {
-    LOG(ERROR)  << desc_ << "gamma index init " << vec_name << " error!";
+    LOG(ERROR) << desc_ << "gamma index init " << vec_name << " error!";
     if (destroy_vec) {
       delete vec;
       raw_vectors_[vec_name] = nullptr;
@@ -185,7 +190,9 @@ Status VectorManager::CreateVectorIndex(
   return Status::OK();
 }
 
-void VectorManager::DestroyVectorIndexes() {
+void VectorManager::DestroyVectorIndexes() { DestroyVectorIndexes(""); }
+
+void VectorManager::DestroyVectorIndexes(const std::string &index_dir) {
   pthread_rwlock_wrlock(&index_rwmutex_);
   for (const auto &[name, index] : vector_indexes_) {
     if (index != nullptr) {
@@ -194,7 +201,70 @@ void VectorManager::DestroyVectorIndexes() {
   }
   vector_indexes_.clear();
   pthread_rwlock_unlock(&index_rwmutex_);
-  LOG(INFO)  << desc_ << "vector indexes cleared.";
+
+  // Delete index files from disk
+  std::string delete_dir = index_dir;
+  if (delete_dir.empty()) {
+    delete_dir = root_path_ + "/retrieval_model_index";
+  }
+
+  if (utils::remove_dir(delete_dir.c_str()) != 0) {
+    LOG(WARNING) << desc_ << "failed to remove index directory: " << delete_dir;
+  } else {
+    LOG(INFO) << desc_ << "removed index directory: " << delete_dir;
+  }
+
+  LOG(INFO) << desc_ << "vector indexes cleared.";
+}
+
+Status VectorManager::RemoveVectorIndex(const std::string &field_name) {
+  pthread_rwlock_wrlock(&index_rwmutex_);
+
+  // Find and remove all indexes related to this field
+  std::vector<std::string> indexes_to_remove;
+  for (const auto &[name, index] : vector_indexes_) {
+    std::string vec_name;
+    std::string index_type;
+    GetVectorNameAndIndexType(name, vec_name, index_type);
+
+    if (vec_name == field_name) {
+      indexes_to_remove.push_back(name);
+    }
+  }
+
+  // Remove the found indexes
+  for (const std::string &index_name : indexes_to_remove) {
+    auto it = vector_indexes_.find(index_name);
+    if (it != vector_indexes_.end()) {
+      if (it->second != nullptr) {
+        delete it->second;
+      }
+      vector_indexes_.erase(it);
+      LOG(INFO) << desc_ << "removed vector index: " << index_name;
+    }
+  }
+  index_types_.clear();
+  index_params_.clear();
+
+  pthread_rwlock_unlock(&index_rwmutex_);
+
+  // Delete index files from disk
+  std::string delete_dir = root_path_ + "/retrieval_model_index";
+
+  if (utils::remove_dir(delete_dir.c_str()) != 0) {
+    LOG(WARNING) << desc_ << "failed to remove index directory: " << delete_dir;
+  } else {
+    LOG(INFO) << desc_ << "removed index directory: " << delete_dir;
+  }
+
+  if (indexes_to_remove.empty()) {
+    LOG(WARNING) << desc_ << "no vector index found for field: " << field_name;
+    return Status::IOError("no vector index found for field: " + field_name);
+  }
+
+  LOG(INFO) << desc_ << "successfully removed " << indexes_to_remove.size()
+            << " vector index(es) for field: " << field_name;
+  return Status::OK();
 }
 
 void VectorManager::DescribeVectorIndexes() {
@@ -230,7 +300,7 @@ Status VectorManager::CreateVectorIndexes(
   return Status::OK();
 }
 
-void VectorManager::ReSetVectorIndexes(
+void VectorManager::ResetVectorIndexes(
     std::map<std::string, IndexModel *> &rebuild_vector_indexes) {
   pthread_rwlock_wrlock(&index_rwmutex_);
   for (const auto &[name, index] : vector_indexes_) {
@@ -258,11 +328,9 @@ Status VectorManager::ReCreateVectorIndexes(int training_threshold) {
   }
   vector_indexes_.clear();
 
-  Status status = CreateVectorIndexes(
-    training_threshold, vector_indexes_);
+  Status status = CreateVectorIndexes(training_threshold, vector_indexes_);
   if (!status.ok()) {
-    LOG(ERROR) << desc_ << "CreateVectorIndexes failed: "
-              << status.ToString();
+    LOG(ERROR) << desc_ << "CreateVectorIndexes failed: " << status.ToString();
 
     for (const auto &[name, index] : vector_indexes_) {
       if (index != nullptr) {
@@ -286,23 +354,28 @@ Status VectorManager::CreateVectorTable(TableInfo &table,
   }
   if (table_created_) return Status::ParamError("table is created");
 
-  std::vector<struct VectorInfo> &vectors_infos = table.VectorInfos();
-
   if (table.IndexType() != "") {
     index_types_.push_back(table.IndexType());
     index_params_.push_back(table.IndexParams());
   }
+
+  std::vector<struct VectorInfo> &vectors_infos = table.VectorInfos();
 
   for (size_t i = 0; i < vectors_infos.size(); i++) {
     Status vec_status;
     RawVector *vec = nullptr;
     struct VectorInfo &vector_info = vectors_infos[i];
     std::string &vec_name = vector_info.name;
-    vec_status = CreateRawVector(vector_info, index_types_[0], table, &vec,
+    std::string index_type;
+    if (index_types_.size() > 0) {
+      index_type = index_types_[0];
+    }
+    vec_status = CreateRawVector(vector_info, index_type, table, &vec,
                                  vector_cf_ids[i], storage_mgr);
     if (!vec_status.ok()) {
       std::stringstream msg;
-      msg << desc_ << vec_name << " create vector failed:" << vec_status.ToString();
+      msg << desc_ << vec_name
+          << " create vector failed:" << vec_status.ToString();
       LOG(ERROR) << msg.str();
       status = Status::ParamError(msg.str());
       return status;
@@ -320,7 +393,8 @@ Status VectorManager::CreateVectorTable(TableInfo &table,
           CreateVectorIndex(index_types_[i], index_params_[i], vec,
                             table.TrainingThreshold(), true, vector_indexes_);
       if (!status.ok()) {
-        LOG(ERROR) << desc_ << vec_name << " create index failed: " << status.ToString();
+        LOG(ERROR) << desc_ << vec_name
+                   << " create index failed: " << status.ToString();
         return status;
       }
       // update TrainingThreshold when TrainingThreshold = 0
@@ -343,8 +417,9 @@ int VectorManager::AddToStore(
     int docid, std::unordered_map<std::string, struct Field> &fields) {
   int ret = 0;
   if (fields.size() != raw_vectors_.size()) {
-    LOG(ERROR) << desc_ << "add to store error: vector fields length [" << fields.size()
-               << "] not equal to raw_vectors_ length = " << raw_vectors_.size();
+    LOG(ERROR) << desc_ << "add to store error: vector fields length ["
+               << fields.size() << "] not equal to raw_vectors_ length = "
+               << raw_vectors_.size();
     return -1;
   }
   for (auto &[name, field] : fields) {
@@ -372,7 +447,8 @@ int VectorManager::Update(
             : sizeof(float);
     if ((size_t)raw_vector->MetaInfo()->Dimension() !=
         field.value.size() / element_size) {
-      LOG(ERROR) << desc_ << name << " invalid field value len=" << field.value.size()
+      LOG(ERROR) << desc_ << name
+                 << " invalid field value len=" << field.value.size()
                  << ", dimension=" << raw_vector->MetaInfo()->Dimension();
       return -1;
     }
@@ -396,7 +472,8 @@ int VectorManager::Update(
 int VectorManager::Delete(int64_t docid) {
   for (const auto &[name, vec] : raw_vectors_) {
     if (0 != vec->Delete(docid)) {
-      LOG(ERROR) << desc_ << "delete vector from " << name << " failed! docid=" << docid;
+      LOG(ERROR) << desc_ << "delete vector from " << name
+                 << " failed! docid=" << docid;
       return -1;
     }
   }
@@ -406,7 +483,8 @@ int VectorManager::Delete(int64_t docid) {
     vids.resize(1);
     vids[0] = docid;
     if (0 != index->Delete(vids)) {
-      LOG(ERROR) << desc_ << "delete index from " << name << " failed! docid=" << docid;
+      LOG(ERROR) << desc_ << "delete index from " << name
+                 << " failed! docid=" << docid;
       pthread_rwlock_unlock(&index_rwmutex_);
       return -2;
     }
@@ -437,7 +515,8 @@ int VectorManager::AddRTVecsToIndex(bool &index_is_dirty) {
     int indexed_vec_count = index_model->indexed_count_;
 
     if (indexed_vec_count > total_stored_vecs) {
-      LOG(ERROR) << desc_ << "internal error : indexed_vec_count=" << indexed_vec_count
+      LOG(ERROR) << desc_
+                 << "internal error : indexed_vec_count=" << indexed_vec_count
                  << " should not greater than total_stored_vecs="
                  << total_stored_vecs;
       ret = -1;
@@ -462,12 +541,13 @@ int VectorManager::AddRTVecsToIndex(bool &index_is_dirty) {
         ScopeVectors vecs;
         int ret = raw_vec->Gets(vids, vecs);
         if (ret) {
-          LOG(ERROR) << desc_ << "get vectors from docid " << start_docid << " err: ret="
-                     << ret;
+          LOG(ERROR) << desc_ << "get vectors from docid " << start_docid
+                     << " err: ret=" << ret;
           continue;
         }
         if (vids.size() != count_per_index || vecs.Size() != count_per_index) {
-          LOG(ERROR) << desc_ << "get vectors from docid " << start_docid << " err: "
+          LOG(ERROR) << desc_ << "get vectors from docid " << start_docid
+                     << " err: "
                      << "vids.size()=" << vids.size()
                      << ", vecs.size()=" << vecs.Size();
           continue;
@@ -490,12 +570,13 @@ int VectorManager::AddRTVecsToIndex(bool &index_is_dirty) {
           if (vecs.Get(i) == nullptr) {
             continue;
           }
-          memcpy((void *)(add_vec + i * element_size * raw_d), (void *)vecs.Get(i),
-                  element_size * raw_d);
+          memcpy((void *)(add_vec + i * element_size * raw_d),
+                 (void *)vecs.Get(i), element_size * raw_d);
         }
 
         if (!index_model->Add(count_per_index, add_vec)) {
-          LOG(ERROR) << desc_ << "add index from docid " << start_docid << " error!";
+          LOG(ERROR) << desc_ << "add index from docid " << start_docid
+                     << " error!";
           ret = -2;
         } else {
           index_model->indexed_count_ += count_per_index;
@@ -583,6 +664,10 @@ Status VectorManager::Search(GammaQuery &query, GammaResult *results) {
     vec_names[i] = name;
 
     std::string index_name = name;
+    if (index_types_.size() == 0) {
+      std::string err = "No index type specified for vector query " + name;
+      return Status::InvalidArgument(err);
+    }
     std::string index_type = index_types_[0];
     if (index_types_.size() > 1 && vec_query.index_type != "") {
       index_type = vec_query.index_type;
@@ -594,8 +679,8 @@ Status VectorManager::Search(GammaQuery &query, GammaResult *results) {
     std::map<std::string, IndexModel *>::iterator iter =
         vector_indexes_.find(index_name);
     if (iter == vector_indexes_.end()) {
-      std::string err =
-          "Query name " + index_name + " not exist in created vector table " + desc_;
+      std::string err = "Query name " + index_name +
+                        " not exist in created vector table " + desc_;
       LOG(ERROR) << err;
       pthread_rwlock_unlock(&index_rwmutex_);
       return Status::InvalidArgument(err);
@@ -896,8 +981,9 @@ int VectorManager::Load(const std::vector<std::string> &index_dirs,
       vec->GetVectorIndexCount(vector_index_count);
       vec_index_counts[name] = vector_index_count;
 
-      LOG(INFO) << desc_ << "vector [" << name << "] load success, vec_num="
-                << vec_num << ", real_load_num=" << real_load_num << ", "
+      LOG(INFO) << desc_ << "vector [" << name
+                << "] load success, vec_num=" << vec_num
+                << ", real_load_num=" << real_load_num << ", "
                 << "vector_index_count=" << vector_index_count;
       if (real_load_num < vec_num) {
         vecs_has_delete[name] = true;
@@ -923,8 +1009,8 @@ int VectorManager::Load(const std::vector<std::string> &index_dirs,
         vector_index_count = vec_index_counts[vec_name];
       } else {
         LOG(ERROR) << desc_ << "vector index [" << name
-                   << "] not found in raw_vectors, vec_name="
-                   << vec_name << ", index_type=" << index_type;
+                   << "] not found in raw_vectors, vec_name=" << vec_name
+                   << ", index_type=" << index_type;
         return -1;
       }
       bool has_delete = false;
@@ -934,8 +1020,8 @@ int VectorManager::Load(const std::vector<std::string> &index_dirs,
         }
       } else {
         LOG(ERROR) << desc_ << "vector index [" << name
-                   << "] not found in raw_vectors, vec_name="
-                   << vec_name << ", index_type=" << index_type;
+                   << "] not found in raw_vectors, vec_name=" << vec_name
+                   << ", index_type=" << index_type;
         return -1;
       }
       // old version or don't dump vector_index_num
@@ -947,9 +1033,10 @@ int VectorManager::Load(const std::vector<std::string> &index_dirs,
           continue;
         }
       }
-      GammaFLATIndex* flat_index = dynamic_cast<GammaFLATIndex*>(index);
+      GammaFLATIndex *flat_index = dynamic_cast<GammaFLATIndex *>(index);
       if (flat_index != nullptr) {
-        GammaIndexHNSWLIB* hnsw_index = dynamic_cast<GammaIndexHNSWLIB*>(flat_index);
+        GammaIndexHNSWLIB *hnsw_index =
+            dynamic_cast<GammaIndexHNSWLIB *>(flat_index);
         if (hnsw_index != nullptr) {
           if (has_delete) {
             LOG(INFO) << desc_ << "vector index [" << name
@@ -961,8 +1048,8 @@ int VectorManager::Load(const std::vector<std::string> &index_dirs,
 
       Status status = index->Load(index_dirs[0], load_num);
       if (!status.ok()) {
-        LOG(ERROR) << desc_ << "vector [" << name << "] load index " << index_dirs[0]
-                   << " failed, num: " << load_num;
+        LOG(ERROR) << desc_ << "vector [" << name << "] load index "
+                   << index_dirs[0] << " failed, num: " << load_num;
         return -1;
       }
       if (load_num > 0 && load_num > doc_num) {
@@ -1011,6 +1098,20 @@ Status VectorManager::CompactVector() {
   }
 
   return Status::OK();
+}
+
+void VectorManager::ResetIndexTypesAndParams() {
+  index_types_.clear();
+  index_params_.clear();
+  LOG(INFO) << desc_ << "Reset index types and parameters";
+}
+
+void VectorManager::AddIndexTypeAndParam(const std::string &index_type,
+                                         const std::string &index_param) {
+  index_types_.push_back(index_type);
+  index_params_.push_back(index_param);
+  LOG(INFO) << desc_ << "Added index type: " << index_type
+            << ", index param: " << index_param;
 }
 
 int VectorManager::MinIndexedNum() {

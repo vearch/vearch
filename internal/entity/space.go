@@ -87,7 +87,7 @@ type Space struct {
 	Fields                json.RawMessage             `json:"fields"`
 	Index                 *Index                      `json:"index,omitempty"`
 	PartitionRule         *PartitionRule              `json:"partition_rule,omitempty"`
-	SpaceProperties       map[string]*SpaceProperties `json:"space_properties"`
+	SpaceProperties       map[string]*SpaceProperties `json:"space_properties,omitempty"`
 	RefreshInterval       *int32                      `json:"refresh_interval,omitempty"`
 	PartitionName         *string                     `json:"partition_name,omitempty"` // partition name for partition rule
 	PartitionOperatorType *string                     `json:"operator_type,omitempty"`  // partition rule operator type

@@ -150,6 +150,37 @@ int SetConfig(void *engine, const char *config_str, int len);
 int GetConfig(void *engine, char **config_str, int *len);
 
 struct CStatus Backup(void *engine, int command);
+
+/**
+ * @brief add index for a specific field with index parameters
+ *
+ * @param engine  search engine pointer
+ * @param field_name  field name to add index
+ * @param field_name_len  length of field name
+ * @param index_type  index type (e.g., "HNSW", "FLAT", "SCALAR")
+ * @param index_type_len  length of index type
+ * @param index_params  JSON string of index parameters
+ * @param index_params_len  length of index parameters
+ * @return struct Status
+ */
+struct CStatus AddFieldIndexWithParams(void *engine, const char *field_name,
+                                       int field_name_len,
+                                       const char *index_type,
+                                       int index_type_len,
+                                       const char *index_params,
+                                       int index_params_len);
+
+/**
+ * @brief remove index for a specific field
+ *
+ * @param engine  search engine pointer
+ * @param field_name  field name to remove index
+ * @param field_name_len  length of field name
+ * @return struct Status
+ */
+struct CStatus RemoveFieldIndex(void *engine, const char *field_name,
+                                int field_name_len);
+
 #ifdef __cplusplus
 }
 #endif

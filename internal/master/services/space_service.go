@@ -547,7 +547,7 @@ func (s *SpaceService) handleResourceUpdate(ctx context.Context, dbs *DBService,
 			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR,
 				fmt.Errorf("space %s partition rule is empty", space.Name))
 		}
-		return s.updateSpacePartitonRule(ctx, dbs, *updateRequest.PartitionName, *updateRequest.PartitionOperatorType, updateRequest.PartitionRule, space)
+		return s.updateSpacePartitonRule(ctx, dbs, updateRequest.PartitionName, *updateRequest.PartitionOperatorType, updateRequest.PartitionRule, space)
 	}
 
 	// Handle partition number expansion
@@ -598,25 +598,98 @@ func (s *SpaceService) handleConfigurationUpdate(ctx context.Context, space *ent
 	if temp.Partitions != nil {
 		space.Partitions = temp.Partitions
 	}
-
-	// Handle schema updates (field additions)
+	spaceProperties, err := entity.UnmarshalPropertyJSON(temp.Fields)
+	if err != nil {
+		return nil, err
+	}
+	// Handle schema updates (field additions and index changes)
+	hasIndexChanges := false
 	if len(temp.Fields) > 0 {
+		// Use spaceProperties to detect index changes more efficiently
+		if indexChanges, err := s.detectIndexChangesWithProperties(space, spaceProperties); err != nil {
+			return nil, err
+		} else if len(indexChanges) > 0 {
+			hasIndexChanges = true
+			log.Info("detected index changes for space: %s, changes: %v", space.Name, indexChanges)
+		}
+
 		if err := s.updateSpaceFields(space, temp.Fields); err != nil {
 			return nil, err
 		}
 	}
 
-	// Notify all partitions of configuration changes
-	if err := s.notifyPartitionsConfigUpdate(ctx, space); err != nil {
-		return nil, err
-	}
+	// For index changes, we need a two-phase approach:
+	// Phase 1: Update partitions first (they will handle index operations)
+	// Phase 2: Update etcd metadata only after successful partition updates
+	if hasIndexChanges {
+		// Phase 1: Notify partitions first - they will apply index changes
+		log.Info("phase 1: applying index changes to partitions for space: %s", space.Name)
+		if err := s.notifyPartitionsConfigUpdate(ctx, space); err != nil {
+			// Rollback the field changes if partition update fails
+			log.Error("failed to apply index changes to partitions, rolling back: %v", err)
+			return nil, err
+		}
 
-	space.Version--
-	if err := s.UpdateSpaceData(ctx, space); err != nil {
-		return nil, err
+		// Phase 2: Update etcd metadata after successful partition updates
+		log.Info("phase 2: updating etcd metadata for space: %s", space.Name)
+		space.Version--
+		if err := s.UpdateSpaceData(ctx, space); err != nil {
+			log.Error("failed to update etcd metadata after index changes: %v", err)
+			return nil, err
+		}
+	} else {
+		// For non-index changes, use the original flow
+		if err := s.notifyPartitionsConfigUpdate(ctx, space); err != nil {
+			return nil, err
+		}
+
+		space.Version--
+		if err := s.UpdateSpaceData(ctx, space); err != nil {
+			return nil, err
+		}
 	}
 
 	return space, nil
+}
+
+// detectIndexChangesWithProperties analyzes the field changes using SpaceProperties to identify index-related modifications
+// This is a more efficient approach compared to using mapping.SchemaMap
+func (s *SpaceService) detectIndexChangesWithProperties(space *entity.Space, newSpaceProperties map[string]*entity.SpaceProperties) ([]string, error) {
+	// Parse old space properties for comparison
+	oldSpaceProperties, err := entity.UnmarshalPropertyJSON(space.Fields)
+	if err != nil {
+		return nil, err
+	}
+
+	var indexChanges []string
+
+	// Check existing fields for index changes
+	for fieldName, oldProperty := range oldSpaceProperties {
+		if newProperty, exists := newSpaceProperties[fieldName]; exists {
+			oldIsIndexed := (oldProperty.Option & vearchpb.FieldOption_Index) != 0
+			newIsIndexed := (newProperty.Option & vearchpb.FieldOption_Index) != 0
+
+			if oldIsIndexed != newIsIndexed {
+				if newIsIndexed {
+					indexChanges = append(indexChanges, fmt.Sprintf("field:[%s] index enabled", fieldName))
+				} else {
+					indexChanges = append(indexChanges, fmt.Sprintf("field:[%s] index disabled", fieldName))
+				}
+			}
+		}
+	}
+
+	// Check new fields
+	for fieldName, newProperty := range newSpaceProperties {
+		if _, exists := oldSpaceProperties[fieldName]; !exists {
+			newIsIndexed := (newProperty.Option & vearchpb.FieldOption_Index) != 0
+			if newIsIndexed {
+				indexChanges = append(indexChanges, fmt.Sprintf("new indexed field:[%s] added", fieldName))
+			}
+		}
+	}
+
+	return indexChanges, nil
 }
 
 // expandPartitions handles partition number expansion
@@ -697,43 +770,147 @@ func (s *SpaceService) expandPartitions(ctx context.Context, dbs *DBService, spa
 	return space, nil
 }
 
-// updateSpaceFields handles field schema updates
+// updateSpaceFields handles field schema updates with index change detection using SpaceProperties
 func (s *SpaceService) updateSpaceFields(space *entity.Space, newFields []byte) error {
-	// parse old space
-	oldFieldMap, err := mapping.SchemaMap(space.Fields)
+	// Parse old and new space properties
+	oldSpaceProperties, err := entity.UnmarshalPropertyJSON(space.Fields)
 	if err != nil {
 		return err
 	}
 
-	// parse new space
-	newFieldMap, err := mapping.SchemaMap(newFields)
+	newSpaceProperties, err := entity.UnmarshalPropertyJSON(newFields)
 	if err != nil {
 		return err
 	}
 
-	for fieldName, fieldValue := range oldFieldMap {
-		if newFieldValue, exists := newFieldMap[fieldName]; exists {
-			if !mapping.Equals(fieldValue, newFieldValue) {
-				return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR,
-					fmt.Errorf("not equals by field:[%s] old[%v] new[%v]", fieldName, fieldValue, newFieldValue))
+	// Check existing fields for compatibility
+	for fieldName, oldProperty := range oldSpaceProperties {
+		if newProperty, exists := newSpaceProperties[fieldName]; exists {
+			// For existing fields, allow only index option changes
+			if !s.isOnlyIndexOptionChangeWithProperties(oldProperty, newProperty) {
+				if !s.arePropertiesEqual(oldProperty, newProperty) {
+					return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR,
+						fmt.Errorf("field:[%s] can only change index option, other properties cannot be modified", fieldName))
+				}
 			}
-			delete(newFieldMap, fieldName)
 		}
 	}
 
-	if len(newFieldMap) > 0 {
-		log.Info("change schema for space: %s, change fields: %d, value is: [%s]",
-			space.Name, len(newFieldMap), string(newFields))
+	// Count new fields
+	newFieldCount := 0
+	for fieldName := range newSpaceProperties {
+		if _, exists := oldSpaceProperties[fieldName]; !exists {
+			newFieldCount++
+		}
+	}
 
-		schema, err := mapping.MergeSchema(space.Fields, newFields)
+	// Update the schema with all changes (new fields + index changes)
+	if newFieldCount > 0 || s.hasIndexChanges(space.Fields, newFields) {
+		log.Info("updating schema for space: %s, new fields: %d, schema: [%s]",
+			space.Name, newFieldCount, string(newFields))
+
+		schema, err := mapping.MergeSchemaArray(space.Fields, newFields)
 		if err != nil {
 			return err
 		}
 
 		space.Fields = schema
+
+		// Update space.SpaceProperties
+		updatedSpaceProperties, err := entity.UnmarshalPropertyJSON(space.Fields)
+		if err != nil {
+			return err
+		}
+		space.SpaceProperties = updatedSpaceProperties
+
+		// Check if vector field has index, if not set space.Index to nil
+		space.Index = nil
+		for _, property := range updatedSpaceProperties {
+			if property.FieldType == vearchpb.FieldType_VECTOR && property.Index != nil {
+				space.Index = property.Index
+				break
+			}
+		}
 	}
 
 	return nil
+}
+
+// arePropertiesEqual compares two SpaceProperties ignoring the index option
+func (s *SpaceService) arePropertiesEqual(oldProperty, newProperty *entity.SpaceProperties) bool {
+	// Compare all fields except Option
+	if oldProperty.FieldType != newProperty.FieldType ||
+		oldProperty.Type != newProperty.Type ||
+		oldProperty.Dimension != newProperty.Dimension {
+		return false
+	}
+
+	// Compare optional string fields
+	if (oldProperty.Format == nil) != (newProperty.Format == nil) {
+		return false
+	}
+	if oldProperty.Format != nil && newProperty.Format != nil && *oldProperty.Format != *newProperty.Format {
+		return false
+	}
+
+	if (oldProperty.StoreType == nil) != (newProperty.StoreType == nil) {
+		return false
+	}
+	if oldProperty.StoreType != nil && newProperty.StoreType != nil && *oldProperty.StoreType != *newProperty.StoreType {
+		return false
+	}
+
+	return true
+}
+
+// isOnlyIndexOptionChangeWithProperties checks if the change between two properties is only the index option
+func (s *SpaceService) isOnlyIndexOptionChangeWithProperties(oldProperty, newProperty *entity.SpaceProperties) bool {
+	// Check if properties are equal except for the index option
+	if !s.arePropertiesEqual(oldProperty, newProperty) {
+		return false
+	}
+
+	// Check if only the index option differs
+	oldIsIndexed := (oldProperty.Option & vearchpb.FieldOption_Index) != 0
+	newIsIndexed := (newProperty.Option & vearchpb.FieldOption_Index) != 0
+
+	return oldIsIndexed != newIsIndexed
+}
+
+// hasIndexChanges checks if there are any index-related changes between old and new schemas using SpaceProperties
+func (s *SpaceService) hasIndexChanges(oldFields, newFields []byte) bool {
+	oldSpaceProperties, err := entity.UnmarshalPropertyJSON(oldFields)
+	if err != nil {
+		return false
+	}
+
+	newSpaceProperties, err := entity.UnmarshalPropertyJSON(newFields)
+	if err != nil {
+		return false
+	}
+
+	// Check existing fields for index changes
+	for fieldName, oldProperty := range oldSpaceProperties {
+		if newProperty, exists := newSpaceProperties[fieldName]; exists {
+			oldIsIndexed := (oldProperty.Option & vearchpb.FieldOption_Index) != 0
+			newIsIndexed := (newProperty.Option & vearchpb.FieldOption_Index) != 0
+			if oldIsIndexed != newIsIndexed {
+				return true
+			}
+		}
+	}
+
+	// Check new fields with index
+	for fieldName, newProperty := range newSpaceProperties {
+		if _, exists := oldSpaceProperties[fieldName]; !exists {
+			newIsIndexed := (newProperty.Option & vearchpb.FieldOption_Index) != 0
+			if newIsIndexed {
+				return true
+			}
+		}
+	}
+
+	return false
 }
 
 // notifyPartitionsConfigUpdate notifies all partitions of configuration changes
@@ -826,15 +1003,15 @@ func (s *SpaceService) waitForPartitionsReady(ctx context.Context, masterClient 
 	return nil
 }
 
-func (s *SpaceService) updateSpacePartitonRule(ctx context.Context, dbs *DBService, partitionName string, partitionOperatorType string, partitionRule *entity.PartitionRule, space *entity.Space) (*entity.Space, error) {
+func (s *SpaceService) updateSpacePartitonRule(ctx context.Context, dbs *DBService, partitionName *string, partitionOperatorType string, partitionRule *entity.PartitionRule, space *entity.Space) (*entity.Space, error) {
 	masterClient := s.client.Master()
 	if partitionOperatorType == entity.Drop {
-		if partitionName == "" {
+		if partitionName == nil || *partitionName == "" {
 			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("partition name is empty"))
 		}
 		found := false
 		for _, rangeRule := range space.PartitionRule.Ranges {
-			if rangeRule.Name == partitionName {
+			if rangeRule.Name == *partitionName {
 				found = true
 				break
 			}
@@ -844,7 +1021,7 @@ func (s *SpaceService) updateSpacePartitonRule(ctx context.Context, dbs *DBServi
 		}
 		remainingPartitions := make([]*entity.Partition, 0)
 		for _, partition := range space.Partitions {
-			if partition.Name != partitionName {
+			if partition.Name != *partitionName {
 				remainingPartitions = append(remainingPartitions, partition)
 			} else {
 				// delete parition and partitionKey
@@ -866,7 +1043,7 @@ func (s *SpaceService) updateSpacePartitonRule(ctx context.Context, dbs *DBServi
 		space.Partitions = remainingPartitions
 		remainingRangeRules := make([]entity.Range, 0)
 		for _, rangeRule := range space.PartitionRule.Ranges {
-			if rangeRule.Name != partitionName {
+			if rangeRule.Name != *partitionName {
 				remainingRangeRules = append(remainingRangeRules, rangeRule)
 			}
 		}

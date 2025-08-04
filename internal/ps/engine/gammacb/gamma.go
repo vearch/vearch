@@ -18,7 +18,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"reflect"
 	"sync"
 	"time"
 	"unsafe"
@@ -163,20 +162,145 @@ func (ge *gammaEngine) Writer() engine.Writer {
 }
 
 func (ge *gammaEngine) UpdateMapping(updatedSpace *entity.Space) error {
-	var currentFieldProperties, updatedFieldProperties any
+	// Parse current and updated space fields using SpaceProperties
+	currentSpaceProperties, err := entity.UnmarshalPropertyJSON(ge.space.Fields)
+	if err != nil {
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("unmarshal current space properties:[%s] has err:[%s]", ge.space.Fields, err.Error()))
+	}
+	log.Debug("current space properties: %v", currentSpaceProperties)
 
-	if err := json.Unmarshal([]byte(ge.space.Fields), &currentFieldProperties); err != nil {
-		return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("unmarshal current space properties:[%s] has err:[%s] ", ge.space.Fields, err.Error()))
+	updatedSpaceProperties, err := entity.UnmarshalPropertyJSON(updatedSpace.Fields)
+	if err != nil {
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("unmarshal updated space properties:[%s] has err:[%s]", updatedSpace.Fields, err.Error()))
+	}
+	log.Debug("updated space properties: %v", updatedSpaceProperties)
+
+	// Check for field changes and index option changes
+	needIndexRebuild := false
+	var indexChanges []string
+
+	// Check existing fields for changes
+	for fieldName, currentProperty := range currentSpaceProperties {
+		if updatedProperty, exists := updatedSpaceProperties[fieldName]; exists {
+			// Compare field types and basic properties
+			if currentProperty.FieldType != updatedProperty.FieldType {
+				return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR,
+					fmt.Errorf("field type change not supported for field:[%s]", fieldName))
+			}
+
+			// Check for index option changes
+			currentIsIndexed := (currentProperty.Option & vearchpb.FieldOption_Index) != 0
+			updatedIsIndexed := (updatedProperty.Option & vearchpb.FieldOption_Index) != 0
+			log.Debug("field:[%s] current indexed:[%t], updated indexed:[%t]", fieldName, currentIsIndexed, updatedIsIndexed)
+
+			if currentIsIndexed != updatedIsIndexed {
+				needIndexRebuild = true
+				if updatedIsIndexed {
+					indexChanges = append(indexChanges, fmt.Sprintf("field:[%s] index enabled", fieldName))
+				} else {
+					indexChanges = append(indexChanges, fmt.Sprintf("field:[%s] index disabled", fieldName))
+				}
+			}
+		} else {
+			// Field removed - not supported
+			return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR,
+				fmt.Errorf("field removal not supported for field:[%s]", fieldName))
+		}
 	}
 
-	if err := json.Unmarshal([]byte(updatedSpace.Fields), &updatedFieldProperties); err != nil {
-		return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("unmarshal updated space properties:[%s] has err :[%s]", updatedSpace.Fields, err.Error()))
+	// Check for new fields
+	for fieldName, updatedProperty := range updatedSpaceProperties {
+		if _, exists := currentSpaceProperties[fieldName]; !exists {
+			// New field added
+			isIndexed := (updatedProperty.Option & vearchpb.FieldOption_Index) != 0
+			if isIndexed {
+				needIndexRebuild = true
+				indexChanges = append(indexChanges, fmt.Sprintf("new indexed field:[%s] added", fieldName))
+			}
+		}
 	}
 
-	if !reflect.DeepEqual(currentFieldProperties, updatedFieldProperties) {
-		return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("gamma engine does not support field mapping changes"))
+	// Log changes
+	if len(indexChanges) > 0 {
+		log.Info("field index changes detected for space:[%s], partition:[%d]: %v",
+			ge.space.Name, ge.partitionID, indexChanges)
 	}
 
+	// If index changes are detected, apply targeted index operations
+	if needIndexRebuild {
+		log.Info("applying field index changes for space:[%s], partition:[%d]",
+			ge.space.Name, ge.partitionID)
+
+		// Update the index mapping first
+		newIndexMapping, err := mapping.Space2Mapping(updatedSpace)
+		if err != nil {
+			return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("failed to create new index mapping: %v", err))
+		}
+
+		// Apply targeted index changes synchronously to ensure consistency
+		// Use the original space properties for comparison during operations
+		for fieldName, currentProperty := range currentSpaceProperties {
+			updatedProperty, exists := updatedSpaceProperties[fieldName]
+			if !exists {
+				continue // Field removed, skip
+			}
+			currentIsIndexed := (currentProperty.Option & vearchpb.FieldOption_Index) != 0
+			updatedIsIndexed := (updatedProperty.Option & vearchpb.FieldOption_Index) != 0
+
+			if currentIsIndexed == updatedIsIndexed {
+				continue // No change in index status, skip
+			}
+
+			if updatedIsIndexed {
+				// Add index for this field
+				if err := ge.addFieldIndex(fieldName, updatedSpace); err != nil {
+					log.Error("failed to add index for field:[%s] in space:[%s], partition:[%d]: %v",
+						fieldName, ge.space.Name, ge.partitionID, err)
+					return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR,
+						fmt.Errorf("failed to add index for field %s: %v", fieldName, err))
+				} else {
+					log.Info("successfully added index for field:[%s] in space:[%s], partition:[%d]",
+						fieldName, ge.space.Name, ge.partitionID)
+				}
+			} else {
+				// Remove index for this field
+				if err := ge.removeFieldIndex(fieldName); err != nil {
+					log.Error("failed to remove index for field:[%s] in space:[%s], partition:[%d]: %v",
+						fieldName, ge.space.Name, ge.partitionID, err)
+					return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR,
+						fmt.Errorf("failed to remove index for field %s: %v", fieldName, err))
+				} else {
+					log.Info("successfully removed index for field:[%s] in space:[%s], partition:[%d]",
+						fieldName, ge.space.Name, ge.partitionID)
+				}
+			}
+		}
+
+		// Process new fields
+		for fieldName, updatedProperty := range updatedSpaceProperties {
+			if _, exists := currentSpaceProperties[fieldName]; !exists {
+				isIndexed := (updatedProperty.Option & vearchpb.FieldOption_Index) != 0
+				if isIndexed {
+					// Add index for new field
+					if err := ge.addFieldIndex(fieldName, updatedSpace); err != nil {
+						log.Error("failed to add index for new field:[%s] in space:[%s], partition:[%d]: %v",
+							fieldName, ge.space.Name, ge.partitionID, err)
+						return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR,
+							fmt.Errorf("failed to add index for new field %s: %v", fieldName, err))
+					} else {
+						log.Info("successfully added index for new field:[%s] in space:[%s], partition:[%d]",
+							fieldName, ge.space.Name, ge.partitionID)
+					}
+				}
+			}
+		}
+
+		// Update index mapping and space only after successful index operations
+		ge.indexMapping = newIndexMapping
+		log.Info("field index changes completed for space:[%s], partition:[%d]", ge.space.Name, ge.partitionID)
+	}
+
+	// Update the space after all operations are successful
 	ge.space = updatedSpace
 
 	return nil
@@ -201,7 +325,7 @@ func (ge *gammaEngine) Optimize() error {
 func (ge *gammaEngine) Rebuild(drop_before_rebuild int, limit_cpu int, describe int) error {
 	go func() {
 		if e := ge.RebuildIndex(drop_before_rebuild, limit_cpu, describe); e != nil {
-			log.Error("RebuildIndex index:[%d] has err %v", ge.partitionID, e.Error())
+			log.Error("rebuild index:[%d] has err %v", ge.partitionID, e.Error())
 			return
 		}
 	}()
@@ -248,7 +372,7 @@ func (ge *gammaEngine) BuildIndex() error {
 		if rc := gamma.BuildIndex(gammaEngine); rc != 0 {
 			log.Error("build index:[%d] err response code:[%d]", ge.partitionID, rc)
 		} else {
-			log.Info("BuildIndex partition:[%d] cost:[%.2f]ms, rc:[%d]",
+			log.Info("build index:[%d] cost:[%.2f]ms, rc:[%d]",
 				ge.partitionID, time.Since(startTime).Seconds()*1000, rc)
 		}
 	}()
@@ -274,9 +398,9 @@ func (ge *gammaEngine) RebuildIndex(drop_before_rebuild int, limit_cpu int, desc
 		defer ge.counter.Decr()
 		startTime := time.Now()
 		if rc := gamma.RebuildIndex(ge.gamma, drop_before_rebuild, limit_cpu, describe); rc != 0 {
-			log.Error("RebuildIndex partition:[%d] err response code:[%d]", ge.partitionID, rc)
+			log.Error("rebuild index partition:[%d] err response code:[%d]", ge.partitionID, rc)
 		} else {
-			log.Info("RebuildIndex partition:[%d] cost:[%.2f]ms, ret:[%d]",
+			log.Info("rebuild index partition:[%d] cost:[%.2f]ms, ret:[%d]",
 				ge.partitionID, time.Since(startTime).Seconds()*1000, rc)
 		}
 	}()
@@ -404,4 +528,73 @@ func (ge *gammaEngine) getEnginePtr() (unsafe.Pointer, error) {
 	}
 
 	return ge.gamma, nil
+}
+
+func (ge *gammaEngine) addFieldIndex(fieldName string, newSpace *entity.Space) error {
+	enginePtr, err := ge.getEnginePtr()
+	if err != nil {
+		return err
+	}
+
+	// Get field properties from current space to extract index parameters
+	spaceProperties, err := entity.UnmarshalPropertyJSON(newSpace.Fields)
+	if err != nil {
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR,
+			fmt.Errorf("failed to unmarshal space properties: %v", err))
+	}
+
+	fieldProperty, exists := spaceProperties[fieldName]
+	if !exists {
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR,
+			fmt.Errorf("field [%s] not found in space properties", fieldName))
+	}
+
+	// Extract index parameters
+	var indexType string
+	var indexParams []byte
+
+	if fieldProperty.Index != nil {
+		indexType = fieldProperty.Index.Type
+		indexParams = fieldProperty.Index.Params
+		log.Info("adding index for field:[%s] with type:[%s] and params:[%s] in partition:[%d]",
+			fieldName, indexType, string(indexParams), ge.partitionID)
+	} else {
+		// Use default index type based on field type
+		switch fieldProperty.FieldType {
+		case vearchpb.FieldType_VECTOR:
+			indexType = "FLAT" // default vector index type
+		case vearchpb.FieldType_STRING, vearchpb.FieldType_INT, vearchpb.FieldType_LONG, vearchpb.FieldType_FLOAT, vearchpb.FieldType_DOUBLE:
+			indexType = "SCALAR" // default scalar index type
+		default:
+			indexType = "SCALAR"
+		}
+		log.Info("adding index for field:[%s] with default type:[%s] in partition:[%d]",
+			fieldName, indexType, ge.partitionID)
+	}
+
+	// Use the new function that can handle index parameters
+	status := gamma.AddFieldIndexWithParams(enginePtr, fieldName, indexType, indexParams)
+	if status.Code != 0 {
+		return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR,
+			fmt.Errorf("add field index failed: %s", status.Msg))
+	}
+
+	log.Info("successfully added index for field:[%s] in partition:[%d]", fieldName, ge.partitionID)
+	return nil
+}
+
+func (ge *gammaEngine) removeFieldIndex(fieldName string) error {
+	enginePtr, err := ge.getEnginePtr()
+	if err != nil {
+		return err
+	}
+
+	status := gamma.RemoveFieldIndex(enginePtr, fieldName)
+	if status.Code != 0 {
+		return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR,
+			fmt.Errorf("remove field index failed: %s", status.Msg))
+	}
+
+	log.Info("successfully removed index for field:[%s] in partition:[%d]", fieldName, ge.partitionID)
+	return nil
 }

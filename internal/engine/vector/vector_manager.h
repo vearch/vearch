@@ -24,17 +24,14 @@ class VectorManager {
  public:
   VectorManager(const VectorStorageType &store_type,
                 bitmap::BitmapManager *docids_bitmap,
-                const std::string &root_path,
-                std::string &desc);
+                const std::string &root_path, std::string &desc);
   ~VectorManager();
 
-  Status SetVectorStoreType(std::string &index_type,
-                            std::string &store_type_str,
+  Status SetVectorStoreType(std::string index_type, std::string &store_type_str,
                             VectorStorageType &store_type);
 
-  Status CreateRawVector(struct VectorInfo &vector_info,
-                         std::string &index_type, TableInfo &table,
-                         RawVector **vec, int cf_id,
+  Status CreateRawVector(struct VectorInfo &vector_info, std::string index_type,
+                         TableInfo &table, RawVector **vec, int cf_id,
                          StorageManager *storage_mgr);
 
   void DestroyRawVectors();
@@ -45,6 +42,15 @@ class VectorManager {
                            std::map<std::string, IndexModel *> &vector_indexes);
 
   void DestroyVectorIndexes();
+  void DestroyVectorIndexes(const std::string &index_dir);
+
+  /**
+   * @brief Remove vector index for a specific field
+   *
+   * @param field_name  field name to remove index
+   * @return Status
+   */
+  Status RemoveVectorIndex(const std::string &field_name);
 
   void DescribeVectorIndexes();
 
@@ -52,7 +58,7 @@ class VectorManager {
       int training_threshold,
       std::map<std::string, IndexModel *> &vector_indexes);
 
-  void ReSetVectorIndexes(
+  void ResetVectorIndexes(
       std::map<std::string, IndexModel *> &rebuild_vector_indexes);
 
   Status ReCreateVectorIndexes(int training_threshold);
@@ -109,6 +115,20 @@ class VectorManager {
   void Close();  // release all resource
 
   Status CompactVector();
+
+  /**
+   * @brief Reset index types and index parameters
+   */
+  void ResetIndexTypesAndParams();
+
+  /**
+   * @brief Add index type and index parameter
+   *
+   * @param index_type  index type to add
+   * @param index_param index parameter to add
+   */
+  void AddIndexTypeAndParam(const std::string &index_type,
+                            const std::string &index_param);
 
  private:
   inline std::string IndexName(const std::string &field_name,

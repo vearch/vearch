@@ -224,12 +224,15 @@ func unmarshalArray[T any](data []byte, dimension int) ([]T, error) {
 
 func parseVectors(reqNum int, vqs []*vearchpb.VectorQuery, tmpArr []json.RawMessage, space *entity.Space) (int, []*vearchpb.VectorQuery, error) {
 	var err error
+	if space.Index == nil || space.Index.Type == "" {
+		return reqNum, vqs, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("space index type is empty"))
+	}
 	indexType := space.Index.Type
 	proMap := space.SpaceProperties
 	if proMap == nil {
 		proMap, _ = entity.UnmarshalPropertyJSON(space.Fields)
 	}
-	for i := 0; i < len(tmpArr); i++ {
+	for i := range tmpArr {
 		vqTemp := &VectorQuery{}
 		if err = vjson.Unmarshal(tmpArr[i], vqTemp); err != nil {
 			return reqNum, vqs, err
@@ -248,7 +251,7 @@ func parseVectors(reqNum int, vqs []*vearchpb.VectorQuery, tmpArr []json.RawMess
 			return reqNum, vqs, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("field:[%s] is not vector type", vqTemp.Field))
 		}
 
-		if vqTemp.FeatureData == nil || len(vqTemp.FeatureData) == 0 {
+		if len(vqTemp.FeatureData) == 0 {
 			return reqNum, vqs, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("vector embedding is null"))
 		}
 

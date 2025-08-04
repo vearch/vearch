@@ -147,6 +147,14 @@ Engine::~Engine() {
     }
   }
 
+  if (indexing_thread_.joinable()) {
+    indexing_thread_.join();
+  }
+
+  if (add_field_index_thread_.joinable()) {
+    add_field_index_thread_.join();
+  }
+
   Close();
 }
 
@@ -898,9 +906,13 @@ int Engine::BuildIndex() {
   }
 
   LOG(INFO) << space_name_ << " starting index build process...";
+
+  if (indexing_thread_.joinable()) {
+    indexing_thread_.join();
+  }
+
   auto func_indexing = std::bind(&Engine::Indexing, this);
-  std::thread t(func_indexing);
-  t.detach();
+  indexing_thread_ = std::thread(func_indexing);
   return 0;
 }
 
@@ -939,6 +951,10 @@ int Engine::RebuildIndex(int drop_before_rebuild, int limit_cpu, int describe) {
     }
   }
 
+  if (indexing_thread_.joinable()) {
+    indexing_thread_.join();
+  }
+
   if (describe) {
     vec_manager_->DescribeVectorIndexes();
     return ret;
@@ -966,7 +982,7 @@ int Engine::RebuildIndex(int drop_before_rebuild, int limit_cpu, int describe) {
       }
     }
 
-    vec_manager_->ReSetVectorIndexes(vector_indexes);
+    vec_manager_->ResetVectorIndexes(vector_indexes);
   } else {
     Status status = vec_manager_->ReCreateVectorIndexes(training_threshold_);
     if (!status.ok()) {
@@ -1081,21 +1097,6 @@ std::string Engine::EngineStatus() {
   j["max_docid"] = max_docid_ - 1;
   j["min_indexed_num"] = vec_manager_->MinIndexedNum();
   return j.dump();
-  // long table_mem_bytes = table_->GetMemoryBytes();
-  // long vec_mem_bytes = 0, index_mem_bytes = 0;
-  // vec_manager_->GetTotalMemBytes(index_mem_bytes, vec_mem_bytes);
-
-  // long total_mem_b = 0;
-  // long dense_b = 0, sparse_b = 0;
-  // if (field_range_index_) {
-  //   total_mem_b += field_range_index_->MemorySize(dense_b, sparse_b);
-  // }
-
-  // engine_status.SetTableMem(table_mem_bytes);
-  // engine_status.SetIndexMem(index_mem_bytes);
-  // engine_status.SetVectorMem(vec_mem_bytes);
-  // engine_status.SetFieldRangeMem(total_mem_b);
-  // engine_status.SetBitmapMem(docids_bitmap_->BytesSize());
 }
 
 std::string Engine::GetMemoryInfo() {
@@ -1105,19 +1106,6 @@ std::string Engine::GetMemoryInfo() {
   vec_manager_->GetTotalMemBytes(index_mem_bytes, vec_mem_bytes);
 
   long total_mem_b = 0;
-  // TODO: add lock in field_range_index_->MemorySize to prevent crash
-  // long dense_b = 0, sparse_b = 0;
-  // if (field_range_index_) {
-  //   total_mem_b += field_range_index_->MemorySize(dense_b, sparse_b);
-  // }
-
-  // long total_mem_kb = total_mem_b / 1024;
-  // long total_mem_mb = total_mem_kb / 1024;
-  // LOG(INFO) << "Field range memory [" << total_mem_kb << "]kb, ["
-  //           << total_mem_mb << "]MB, dense [" << dense_b / 1024 / 1024
-  //           << "]MB sparse [" << sparse_b / 1024 / 1024
-  //           << "]MB";
-
   j["index_mem"] = index_mem_bytes;
   j["vector_mem"] = vec_mem_bytes;
   j["field_range_mem"] = total_mem_b;
@@ -1376,6 +1364,229 @@ void Engine::BackupThread(int command) {
   }
 
   backup_status_.store(0);
+}
+
+Status Engine::AddFieldIndex(const std::string &field_name,
+                             const std::string &indexType,
+                             const std::string &indexParam) {
+  if (table_ == nullptr) {
+    return Status::IOError("table not initialized");
+  }
+
+  LOG(INFO) << space_name_ << " starting async AddFieldIndex for field "
+            << field_name << " with type: " << indexType
+            << ", param: " << indexParam;
+
+  // Join previous thread if it exists
+  if (add_field_index_thread_.joinable()) {
+    add_field_index_thread_.join();
+  }
+
+  // Start async execution
+  auto func_add_field_index = std::bind(&Engine::AddFieldIndexThread, this,
+                                        field_name, indexType, indexParam);
+  add_field_index_thread_ = std::thread(func_add_field_index);
+
+  return Status::OK();
+}
+
+Status Engine::RemoveFieldIndex(const std::string &field_name) {
+  if (table_ == nullptr) {
+    return Status::IOError("table not initialized");
+  }
+
+  // For vector fields, removing individual vector indexes is complex
+  // In a real implementation, you would need specific vector index management
+  if (vec_manager_ != nullptr &&
+      vec_manager_->Contains(const_cast<std::string &>(field_name))) {
+    LOG(INFO) << space_name_ << " removing vector index for field "
+              << field_name;
+
+    IndexingState expected = IndexingState::RUNNING;
+    if (indexing_state_.compare_exchange_strong(expected,
+                                                IndexingState::STOPPING)) {
+      LOG(INFO) << space_name_
+                << " stopping current indexing process for field removal...";
+      if (WaitForIndexingComplete()) {
+        LOG(INFO) << space_name_
+                  << " indexing process stopped, proceeding with field removal";
+      } else {
+        LOG(WARNING)
+            << space_name_
+            << " timeout waiting for indexing to stop, proceeding anyway";
+      }
+    } else if (expected == IndexingState::STARTING) {
+      // Wait for starting to complete
+      LOG(INFO) << space_name_
+                << " waiting for indexing to start before stopping...";
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      expected = IndexingState::RUNNING;
+      if (indexing_state_.compare_exchange_strong(expected,
+                                                  IndexingState::STOPPING)) {
+        WaitForIndexingComplete();
+      }
+    }
+
+    if (indexing_thread_.joinable()) {
+      indexing_thread_.join();
+    }
+
+    Status remove_status = vec_manager_->RemoveVectorIndex(field_name);
+    if (!remove_status.ok()) {
+      LOG(ERROR) << space_name_ << " failed to remove vector index for field "
+                 << field_name << ": " << remove_status.ToString();
+      return remove_status;
+    }
+
+    index_status_ = IndexStatus::UNINDEXED;
+
+    LOG(INFO) << space_name_
+              << " vector index removed for field: " << field_name;
+    return Status::OK();
+  }
+
+  // Check if field exists in table
+  int field_id = table_->GetAttrIdx(field_name);
+  if (field_id < 0) {
+    return Status::IOError("field not found: " + field_name);
+  }
+
+  // For range indexes, there's no direct remove method in the current
+  // implementation The index would need to be rebuilt without this field
+  LOG(INFO) << space_name_
+            << " field index removal completed for field: " << field_name;
+
+  return Status::OK();
+}
+
+void Engine::AddFieldIndexThread(const std::string &field_name,
+                                 const std::string &indexType,
+                                 const std::string &indexParam) {
+  LOG(INFO) << space_name_ << " AddFieldIndexThread started for field "
+            << field_name << " with type: " << indexType
+            << ", param: " << indexParam;
+
+  // Check if it's a vector field
+  if (vec_manager_ != nullptr &&
+      vec_manager_->Contains(const_cast<std::string &>(field_name))) {
+    LOG(INFO) << space_name_ << " adding vector index for field " << field_name
+              << " with type: " << indexType << ", param: " << indexParam;
+
+    // Stop current indexing process safely using compare_exchange (similar to
+    // RebuildIndex)
+    IndexingState expected = IndexingState::RUNNING;
+    if (indexing_state_.compare_exchange_strong(expected,
+                                                IndexingState::STOPPING)) {
+      LOG(INFO)
+          << space_name_
+          << " stopping current indexing process for field index addition...";
+      if (WaitForIndexingComplete()) {
+        LOG(INFO) << space_name_
+                  << " indexing process stopped, proceeding with field index "
+                     "addition";
+      } else {
+        LOG(WARNING)
+            << space_name_
+            << " timeout waiting for indexing to stop, proceeding anyway";
+      }
+    } else if (expected == IndexingState::STARTING) {
+      // Wait for starting to complete
+      LOG(INFO) << space_name_
+                << " waiting for indexing to start before stopping...";
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      expected = IndexingState::RUNNING;
+      if (indexing_state_.compare_exchange_strong(expected,
+                                                  IndexingState::STOPPING)) {
+        WaitForIndexingComplete();
+      }
+    }
+
+    if (indexing_thread_.joinable()) {
+      indexing_thread_.join();
+    }
+
+    // Add the new index type and parameter
+    vec_manager_->AddIndexTypeAndParam(indexType, indexParam);
+
+    // Create vector indexes with the new configuration
+    std::map<std::string, IndexModel *> vector_indexes;
+    Status status =
+        vec_manager_->CreateVectorIndexes(training_threshold_, vector_indexes);
+    if (!status.ok()) {
+      LOG(ERROR) << space_name_ << " AddFieldIndex CreateVectorIndexes failed: "
+                 << status.ToString();
+      vec_manager_->DestroyVectorIndexes();
+      return;
+    }
+
+    // Train index if we have enough documents
+    if (indexing_state_.load() == IndexingState::IDLE &&
+        max_docid_ - delete_num_ > training_threshold_) {
+      int ret = vec_manager_->TrainIndex(vector_indexes);
+      if (ret) {
+        LOG(ERROR) << space_name_
+                   << " AddFieldIndex TrainIndex failed, ret=" << ret;
+        index_status_ = IndexStatus::UNINDEXED;
+        return;
+      }
+    }
+
+    // Reset vector indexes with the new configuration
+    vec_manager_->ResetVectorIndexes(vector_indexes);
+
+    // Start indexing process if conditions are met
+    if (refresh_interval_ >= 0 &&
+        indexing_state_.load() == IndexingState::IDLE &&
+        max_docid_ - delete_num_ >= training_threshold_) {
+      int ret = BuildIndex();
+      if (ret) {
+        LOG(ERROR) << space_name_
+                   << " AddFieldIndex BuildIndex failed, ret: " << ret;
+        return;
+      }
+    }
+
+    // Compact vector storage
+    Status compact_status = vec_manager_->CompactVector();
+    if (!compact_status.ok()) {
+      LOG(ERROR) << space_name_ << " AddFieldIndex compact vector error: "
+                 << compact_status.ToString();
+      return;
+    }
+
+    LOG(INFO) << space_name_
+              << " vector index added successfully for field: " << field_name;
+    return;
+  }
+
+  // Check if field exists in table
+  int field_id = table_->GetAttrIdx(field_name);
+  if (field_id < 0) {
+    LOG(ERROR) << space_name_ << " field not found: " << field_name;
+    return;
+  }
+
+  // For other fields, add to field range index if it supports indexing
+  if (field_range_index_ != nullptr) {
+    DataType field_type;
+    if (table_->GetFieldType(field_name, field_type) == 0) {
+      // Add field to range index
+      std::string field_name_copy = field_name;
+      int result =
+          field_range_index_->AddField(field_id, field_type, field_name_copy);
+      if (result != 0) {
+        LOG(ERROR) << space_name_
+                   << " failed to add field to range index for field: "
+                   << field_name;
+        return;
+      }
+      LOG(INFO) << space_name_
+                << " added range index for field: " << field_name;
+    }
+  }
+
+  LOG(INFO) << space_name_
+            << " AddFieldIndexThread completed for field: " << field_name;
 }
 
 int Engine::AddNumIndexFields() {

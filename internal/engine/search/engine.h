@@ -74,7 +74,7 @@ class Engine {
   std::string GetMemoryInfo();
 
   IndexStatus GetIndexStatus() { return index_status_; }
-  
+
   // Wait for index building to complete (with optional timeout)
   bool WaitForIndexingComplete(int timeout_ms = -1);
 
@@ -83,6 +83,26 @@ class Engine {
   int LoadFromFaiss();
 
   Status Backup(int command);
+
+  /**
+   * @brief add index for a specific field
+   *
+   * @param field_name  field name to add index
+   * @param indexType  index type
+   * @param indexParam  index parameters
+   * @return Status
+   */
+  Status AddFieldIndex(const std::string &field_name,
+                       const std::string &indexType,
+                       const std::string &indexParam);
+
+  /**
+   * @brief remove index for a specific field
+   *
+   * @param field_name  field name to remove index
+   * @return Status
+   */
+  Status RemoveFieldIndex(const std::string &field_name);
 
   int GetDocsNum();
 
@@ -120,6 +140,10 @@ class Engine {
 
   void BackupThread(int command);
 
+  void AddFieldIndexThread(const std::string &field_name,
+                           const std::string &indexType,
+                           const std::string &indexParam);
+
  private:
   std::string index_root_path_;
   std::string dump_path_;
@@ -150,6 +174,8 @@ class Engine {
   std::string last_dump_dir_;  // it should be delete after next dump
   std::atomic<int> backup_status_;
   std::thread backup_thread_;
+  std::thread indexing_thread_;
+  std::thread add_field_index_thread_;
 
   bool created_table_;
 
