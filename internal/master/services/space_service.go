@@ -1017,7 +1017,7 @@ func (s *SpaceService) updateSpacePartitonRule(ctx context.Context, dbs *DBServi
 			}
 		}
 		if !found {
-			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("partition name %s not exist", partitionName))
+			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("partition name %s not exist", *partitionName))
 		}
 		remainingPartitions := make([]*entity.Partition, 0)
 		for _, partition := range space.Partitions {

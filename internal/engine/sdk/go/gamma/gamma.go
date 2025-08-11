@@ -211,11 +211,12 @@ func GetEngineCfg(engine unsafe.Pointer) (configJson []byte) {
 
 func BackupSpace(engine unsafe.Pointer, command string) *Status {
 	var c int
-	if command == "create" {
+	switch command {
+	case "create":
 		c = entity.Create
-	} else if command == "restore" {
+	case "restore":
 		c = entity.Restore
-	} else {
+	default:
 		return &Status{
 			Code: -1,
 			Msg:  "command not support",
@@ -235,10 +236,13 @@ func BackupSpace(engine unsafe.Pointer, command string) *Status {
 }
 
 // AddFieldIndexWithParams adds index for a field with specified index parameters
-// Note: This will use the new C API function when available
 func AddFieldIndexWithParams(engine unsafe.Pointer, fieldName string, indexType string, indexParams []byte) *Status {
 	fieldNameBytes := []byte(fieldName)
 	indexTypeBytes := []byte(indexType)
+	if len(indexParams) == 0 {
+		indexParams = []byte("{}") // Default to empty JSON object if no params provided
+	}
+
 	cstatus := C.AddFieldIndexWithParams(
 		engine,
 		(*C.char)(unsafe.Pointer(&fieldNameBytes[0])),

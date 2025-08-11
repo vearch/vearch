@@ -155,6 +155,10 @@ Engine::~Engine() {
     add_field_index_thread_.join();
   }
 
+  if (remove_field_index_thread_.joinable()) {
+    remove_field_index_thread_.join();
+  }
+
   Close();
 }
 
@@ -1395,66 +1399,18 @@ Status Engine::RemoveFieldIndex(const std::string &field_name) {
     return Status::IOError("table not initialized");
   }
 
-  // For vector fields, removing individual vector indexes is complex
-  // In a real implementation, you would need specific vector index management
-  if (vec_manager_ != nullptr &&
-      vec_manager_->Contains(const_cast<std::string &>(field_name))) {
-    LOG(INFO) << space_name_ << " removing vector index for field "
-              << field_name;
+  LOG(INFO) << space_name_ << " starting async RemoveFieldIndex for field "
+            << field_name;
 
-    IndexingState expected = IndexingState::RUNNING;
-    if (indexing_state_.compare_exchange_strong(expected,
-                                                IndexingState::STOPPING)) {
-      LOG(INFO) << space_name_
-                << " stopping current indexing process for field removal...";
-      if (WaitForIndexingComplete()) {
-        LOG(INFO) << space_name_
-                  << " indexing process stopped, proceeding with field removal";
-      } else {
-        LOG(WARNING)
-            << space_name_
-            << " timeout waiting for indexing to stop, proceeding anyway";
-      }
-    } else if (expected == IndexingState::STARTING) {
-      // Wait for starting to complete
-      LOG(INFO) << space_name_
-                << " waiting for indexing to start before stopping...";
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
-      expected = IndexingState::RUNNING;
-      if (indexing_state_.compare_exchange_strong(expected,
-                                                  IndexingState::STOPPING)) {
-        WaitForIndexingComplete();
-      }
-    }
-
-    if (indexing_thread_.joinable()) {
-      indexing_thread_.join();
-    }
-
-    Status remove_status = vec_manager_->RemoveVectorIndex(field_name);
-    if (!remove_status.ok()) {
-      LOG(ERROR) << space_name_ << " failed to remove vector index for field "
-                 << field_name << ": " << remove_status.ToString();
-      return remove_status;
-    }
-
-    index_status_ = IndexStatus::UNINDEXED;
-
-    LOG(INFO) << space_name_
-              << " vector index removed for field: " << field_name;
-    return Status::OK();
+  // Join previous thread if it exists
+  if (remove_field_index_thread_.joinable()) {
+    remove_field_index_thread_.join();
   }
 
-  // Check if field exists in table
-  int field_id = table_->GetAttrIdx(field_name);
-  if (field_id < 0) {
-    return Status::IOError("field not found: " + field_name);
-  }
-
-  // For range indexes, there's no direct remove method in the current
-  // implementation The index would need to be rebuilt without this field
-  LOG(INFO) << space_name_
-            << " field index removal completed for field: " << field_name;
+  // Start async execution
+  auto func_remove_field_index =
+      std::bind(&Engine::RemoveFieldIndexThread, this, field_name);
+  remove_field_index_thread_ = std::thread(func_remove_field_index);
 
   return Status::OK();
 }
@@ -1582,11 +1538,118 @@ void Engine::AddFieldIndexThread(const std::string &field_name,
       }
       LOG(INFO) << space_name_
                 << " added range index for field: " << field_name;
+
+      // Add index for all existing documents
+      LOG(INFO) << space_name_
+                << " building index for existing documents for field: "
+                << field_name;
+      for (int64_t docid = 0; docid < max_docid_; ++docid) {
+        if (!docids_bitmap_->Test(docid)) {  // Only for non-deleted documents
+          field_range_index_->AddDoc(docid, field_id);
+        }
+      }
+      LOG(INFO) << space_name_ << " completed building index for "
+                << (max_docid_ - delete_num_)
+                << " existing documents for field: " << field_name;
     }
   }
 
   LOG(INFO) << space_name_
             << " AddFieldIndexThread completed for field: " << field_name;
+}
+
+void Engine::RemoveFieldIndexThread(const std::string &field_name) {
+  LOG(INFO) << space_name_ << " RemoveFieldIndexThread started for field "
+            << field_name;
+
+  // Check if it's a vector field
+  if (vec_manager_ != nullptr &&
+      vec_manager_->Contains(const_cast<std::string &>(field_name))) {
+    LOG(INFO) << space_name_ << " removing vector index for field "
+              << field_name;
+
+    IndexingState expected = IndexingState::RUNNING;
+    if (indexing_state_.compare_exchange_strong(expected,
+                                                IndexingState::STOPPING)) {
+      LOG(INFO) << space_name_
+                << " stopping current indexing process for field removal...";
+      if (WaitForIndexingComplete()) {
+        LOG(INFO) << space_name_
+                  << " indexing process stopped, proceeding with field removal";
+      } else {
+        LOG(WARNING)
+            << space_name_
+            << " timeout waiting for indexing to stop, proceeding anyway";
+      }
+    } else if (expected == IndexingState::STARTING) {
+      // Wait for starting to complete
+      LOG(INFO) << space_name_
+                << " waiting for indexing to start before stopping...";
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      expected = IndexingState::RUNNING;
+      if (indexing_state_.compare_exchange_strong(expected,
+                                                  IndexingState::STOPPING)) {
+        WaitForIndexingComplete();
+      }
+    }
+
+    if (indexing_thread_.joinable()) {
+      indexing_thread_.join();
+    }
+
+    Status remove_status = vec_manager_->RemoveVectorIndex(field_name);
+    if (!remove_status.ok()) {
+      LOG(ERROR) << space_name_ << " failed to remove vector index for field "
+                 << field_name << ": " << remove_status.ToString();
+      return;
+    }
+
+    index_status_ = IndexStatus::UNINDEXED;
+
+    LOG(INFO) << space_name_
+              << " vector index removed for field: " << field_name;
+    return;
+  }
+
+  // Check if field exists in table
+  int field_id = table_->GetAttrIdx(field_name);
+  if (field_id < 0) {
+    LOG(ERROR) << space_name_ << " field not found: " << field_name;
+    return;
+  }
+
+  // For other fields, remove from field range index if it exists
+  if (field_range_index_ != nullptr) {
+    LOG(INFO) << space_name_
+              << " removing range index for field: " << field_name;
+
+    // Remove index for all existing documents
+    LOG(INFO) << space_name_
+              << " removing index from existing documents for field: "
+              << field_name;
+    for (int64_t docid = 0; docid < max_docid_; ++docid) {
+      if (!docids_bitmap_->Test(docid)) {  // Only for non-deleted documents
+        field_range_index_->Delete(docid, field_id);
+      }
+    }
+    LOG(INFO) << space_name_ << " completed removing index from "
+              << (max_docid_ - delete_num_)
+              << " existing documents for field: " << field_name;
+
+    // Remove field from range index
+    int result = field_range_index_->RemoveField(field_id);
+    if (result != 0) {
+      LOG(ERROR) << space_name_
+                 << " failed to remove field from range index for field: "
+                 << field_name;
+      return;
+    }
+    LOG(INFO) << space_name_
+              << " removed range index for field: " << field_name;
+  }
+
+  LOG(INFO) << space_name_
+            << " RemoveFieldIndexThread completed for field: " << field_name;
 }
 
 int Engine::AddNumIndexFields() {

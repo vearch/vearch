@@ -241,6 +241,11 @@ int64_t MultiFieldsRangeIndex::Search(
       return -1;
     }
 
+    // Skip if field has been removed
+    if (fields_[filter.field] == nullptr) {
+      continue;
+    }
+
     if ((filter.is_union == FilterOperator::And) &&
         fields_[filter.field]->DataType() == DataType::STRING) {
       // type is string and operator is "and", split this filter
@@ -271,30 +276,37 @@ int64_t MultiFieldsRangeIndex::Search(
     result_not_in_tmp.SetNotIn(true);
 
     auto &filter = filters[i];
+
+    // Get a shared_ptr copy to ensure the object stays alive during processing
+    auto field_index = fields_[filter.field];
+    if (field_index == nullptr) {
+      continue;
+    }
+
     if (filter.is_union == FilterOperator::Not) {
       have_not_in = true;
     }
 
     if (not filter.include_lower) {
-      if (fields_[filter.field]->DataType() == DataType::INT) {
+      if (field_index->DataType() == DataType::INT) {
         AdjustBoundary<int>(filter.lower_value, 1);
-      } else if (fields_[filter.field]->DataType() == DataType::LONG) {
+      } else if (field_index->DataType() == DataType::LONG) {
         AdjustBoundary<long>(filter.lower_value, 1);
-      } else if (fields_[filter.field]->DataType() == DataType::FLOAT) {
+      } else if (field_index->DataType() == DataType::FLOAT) {
         AdjustBoundary<float>(filter.lower_value, 1);
-      } else if (fields_[filter.field]->DataType() == DataType::DOUBLE) {
+      } else if (field_index->DataType() == DataType::DOUBLE) {
         AdjustBoundary<double>(filter.lower_value, 1);
       }
     }
 
     if (not filter.include_upper) {
-      if (fields_[filter.field]->DataType() == DataType::INT) {
+      if (field_index->DataType() == DataType::INT) {
         AdjustBoundary<int>(filter.upper_value, -1);
-      } else if (fields_[filter.field]->DataType() == DataType::LONG) {
+      } else if (field_index->DataType() == DataType::LONG) {
         AdjustBoundary<long>(filter.upper_value, -1);
-      } else if (fields_[filter.field]->DataType() == DataType::FLOAT) {
+      } else if (field_index->DataType() == DataType::FLOAT) {
         AdjustBoundary<float>(filter.upper_value, -1);
-      } else if (fields_[filter.field]->DataType() == DataType::DOUBLE) {
+      } else if (field_index->DataType() == DataType::DOUBLE) {
         AdjustBoundary<double>(filter.upper_value, -1);
       }
     }
@@ -305,7 +317,7 @@ int64_t MultiFieldsRangeIndex::Search(
     std::string value;
     rocksdb::ReadOptions read_options;
 
-    if (fields_[filter.field]->IsNumeric()) {
+    if (field_index->IsNumeric()) {
       std::unique_ptr<rocksdb::Iterator> it(
           db->NewIterator(read_options, cf_handler));
 
@@ -333,7 +345,7 @@ int64_t MultiFieldsRangeIndex::Search(
       }
     } else {
       std::vector<std::string> items;
-      if (fields_[filter.field]->DataType() == DataType::STRING) {
+      if (field_index->DataType() == DataType::STRING) {
         items = utils::split(filter.lower_value, kDelim);
       } else {
         items.push_back(filter.lower_value);
@@ -424,7 +436,16 @@ int64_t MultiFieldsRangeIndex::Query(
 
 int MultiFieldsRangeIndex::AddField(int field, enum DataType field_type,
                                     std::string &field_name) {
-  fields_[field] = std::make_unique<FieldRangeIndex>(field, field_type);
+  fields_[field] = std::make_shared<FieldRangeIndex>(field, field_type);
+  return 0;
+}
+
+int MultiFieldsRangeIndex::RemoveField(int field) {
+  if (field < 0 || field >= static_cast<int>(fields_.size())) {
+    return -1;  // Invalid field index
+  }
+  fields_[field].reset();  // This will delete the FieldRangeIndex object and
+                           // set to nullptr
   return 0;
 }
 

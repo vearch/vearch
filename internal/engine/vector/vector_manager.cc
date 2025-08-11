@@ -39,10 +39,10 @@ VectorManager::~VectorManager() {
   }
 }
 
-Status VectorManager::SetVectorStoreType(std::string index_type,
-                                         std::string &store_type_str,
-                                         VectorStorageType &store_type) {
-  LOG(INFO) << "SetVectorStoreType, index_type=" << index_type
+Status VectorManager::DetermineVectorStorageType(
+    std::string index_type, std::string &store_type_str,
+    VectorStorageType &store_type) {
+  LOG(INFO) << "DetermineVectorStorageType, index_type=" << index_type
             << ", store_type_str=" << store_type_str;
   if (!store_type_str.empty() && store_type_str != "") {
     if (!strcasecmp("MemoryOnly", store_type_str.c_str())) {
@@ -88,7 +88,8 @@ Status VectorManager::CreateRawVector(struct VectorInfo &vector_info,
   std::string &store_type_str = vector_info.store_type;
 
   VectorStorageType store_type = default_store_type_;
-  Status status = SetVectorStoreType(index_type, store_type_str, store_type);
+  Status status =
+      DetermineVectorStorageType(index_type, store_type_str, store_type);
   if (!status.ok()) {
     LOG(ERROR) << "set vector store type failed, store_type=" << store_type_str
                << ", index_type=" << index_type;

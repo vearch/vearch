@@ -27,8 +27,9 @@ class VectorManager {
                 const std::string &root_path, std::string &desc);
   ~VectorManager();
 
-  Status SetVectorStoreType(std::string index_type, std::string &store_type_str,
-                            VectorStorageType &store_type);
+  Status DetermineVectorStorageType(std::string index_type,
+                                    std::string &store_type_str,
+                                    VectorStorageType &store_type);
 
   Status CreateRawVector(struct VectorInfo &vector_info, std::string index_type,
                          TableInfo &table, RawVector **vec, int cf_id,

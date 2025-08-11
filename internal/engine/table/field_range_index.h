@@ -42,6 +42,8 @@ class MultiFieldsRangeIndex {
 
   int AddField(int field, enum DataType field_type, std::string &name);
 
+  int RemoveField(int field);
+
   int64_t Search(FilterOperator query_filter_operator,
                  const std::vector<FilterInfo> &origin_filters,
                  MultiRangeQueryResults *out);
@@ -72,7 +74,7 @@ class MultiFieldsRangeIndex {
   int DeleteDoc(int64_t docid, int field, std::string &key);
 
   Table *table_;
-  std::vector<std::unique_ptr<FieldRangeIndex>> fields_;
+  std::vector<std::shared_ptr<FieldRangeIndex>> fields_;
   StorageManager *storage_mgr_;
   int cf_id_;
 };

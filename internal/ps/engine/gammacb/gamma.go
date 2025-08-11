@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"runtime"
 	"sync"
 	"time"
 	"unsafe"
@@ -450,6 +451,11 @@ func (ge *gammaEngine) HasClosed() bool {
 }
 
 func (ge *gammaEngine) Close() {
+	// Print stack trace to show where Close is called from
+	buf := make([]byte, 4096)
+	n := runtime.Stack(buf, false)
+	log.Info("Close called for partition:[%d], stack trace:\n%s", ge.partitionID, string(buf[:n]))
+
 	enginePtr := ge.gamma
 	ge.gamma = nil
 	ge.cancel()

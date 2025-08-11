@@ -144,6 +144,8 @@ class Engine {
                            const std::string &indexType,
                            const std::string &indexParam);
 
+  void RemoveFieldIndexThread(const std::string &field_name);
+
  private:
   std::string index_root_path_;
   std::string dump_path_;
@@ -176,6 +178,7 @@ class Engine {
   std::thread backup_thread_;
   std::thread indexing_thread_;
   std::thread add_field_index_thread_;
+  std::thread remove_field_index_thread_;
 
   bool created_table_;
 

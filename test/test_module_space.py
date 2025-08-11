@@ -524,6 +524,330 @@ class TestSpaceCreate:
         response = drop_space(router_url, db_name, space_name)
         assert response.json()["code"] == 0
 
+    def test_vearch_space_dynamic_scalar_index_management(self):
+        """Test dynamic deletion and addition of scalar indexes"""
+        # Create space with scalar indexes
+        embedding_size = 128
+        space_config = {
+            "name": space_name,
+            "partition_num": 1,
+            "replica_num": 1,
+            "fields": [
+                {"name": "field_string", "type": "keyword"},
+                {
+                    "name": "field_int", 
+                    "type": "integer",
+                    "index": {
+                        "name": "field_int_index",
+                        "type": "SCALAR",
+                    },
+                },
+                {
+                    "name": "field_float", 
+                    "type": "float",
+                    "index": {
+                        "name": "field_float_index",
+                        "type": "SCALAR",
+                    },
+                },
+                {"name": "field_double", "type": "double"},  # No index initially
+                {
+                    "name": "field_vector",
+                    "type": "vector",
+                    "dimension": embedding_size,
+                    "index": {
+                        "name": "gamma",
+                        "type": "FLAT",
+                        "params": {
+                            "metric_type": "InnerProduct",
+                        },
+                    },
+                },
+            ],
+        }
+
+        response = create_space(router_url, db_name, space_config)
+        assert response.json()["code"] == 0
+        logger.info("Created space with scalar indexes")
+
+        # Add some documents with data for scalar field filtering
+        total = 100
+        documents = []
+        for i in range(total):
+            doc = {
+                "_id": str(i),
+                "field_string": f"string_{i}",
+                "field_int": i,
+                "field_float": float(i * 1.5),
+                "field_double": float(i * 2.5),
+                "field_vector": xb[i].tolist()[:embedding_size],
+            }
+            documents.append(doc)
+
+        # Batch upsert documents
+        upsert_url = f"{router_url}/document/upsert"
+        batch_data = {
+            "db_name": db_name,
+            "space_name": space_name,
+            "documents": documents,
+        }
+        response = requests.post(upsert_url, auth=(username, password), json=batch_data)
+        assert response.json()["code"] == 0
+        logger.info("Added documents with scalar field data")
+
+        waiting_index_finish(total)
+        time.sleep(3)
+
+        # Test search with scalar filter (should work with indexed fields)
+        search_url = router_url + "/document/search"
+        data = {
+            "db_name": db_name,
+            "space_name": space_name,
+            "vectors": [{
+                "field": "field_vector",
+                "feature": xq[0].tolist(),
+            }],
+            "filters": {
+                "operator": "AND",
+                "conditions": [
+                    {
+                        "field": "field_int",
+                        "operator": ">=",
+                        "value": 10
+                    },
+                    {
+                        "field": "field_int",
+                        "operator": "<=",
+                        "value": 20
+                    }
+                ]
+            }
+        }
+        response = requests.post(search_url, auth=(username, password), json=data)
+        logger.info("Initial search with int filter response: %s", response.json())
+        assert response.json()["code"] == 0
+        assert len(response.json()["data"]["documents"]) == 1
+        initial_results_count = len(response.json()["data"]["documents"][0])
+        assert initial_results_count > 0
+        logger.info("Successfully searched with scalar index filter")
+
+        # Test search with unindexed field (should fail with error code 6)
+        data_unindexed = {
+            "db_name": db_name,
+            "space_name": space_name,
+            "vectors": [{
+                "field": "field_vector",
+                "feature": xq[0].tolist(),
+            }],
+            "filters": {
+                "operator": "AND",
+                "conditions": [
+                    {
+                        "field": "field_double",  # This field has no index initially
+                        "operator": ">=",
+                        "value": 25.0
+                    },
+                    {
+                        "field": "field_double",
+                        "operator": "<=",
+                        "value": 50.0
+                    }
+                ]
+            }
+        }
+        response = requests.post(search_url, auth=(username, password), json=data_unindexed)
+        logger.info("Search with unindexed field response: %s", response.json())
+        assert response.json()["code"] == 6, f"Expected error code 6 for unindexed field, got {response.json()['code']}"
+        logger.info("Confirmed error code 6 for unindexed scalar field")
+
+        # Remove scalar index from field_int
+        update_space_config = {
+            "fields": [
+                {"name": "field_string", "type": "keyword"},
+                {
+                    "name": "field_int", 
+                    "type": "integer",
+                    # Remove index configuration to delete the scalar index
+                },
+                {
+                    "name": "field_float", 
+                    "type": "float",
+                    "index": {
+                        "name": "field_float_index",
+                        "type": "SCALAR",
+                    },
+                },
+                {"name": "field_double", "type": "double"},  # Still no index
+                {
+                    "name": "field_vector",
+                    "type": "vector",
+                    "dimension": embedding_size,
+                    "index": {
+                        "name": "gamma",
+                        "type": "FLAT",
+                        "params": {
+                            "metric_type": "InnerProduct",
+                        },
+                    },
+                },
+            ],
+        }
+
+        update_url = f"{router_url}/dbs/{db_name}/spaces/{space_name}"
+        response = requests.put(update_url, auth=(username, password), json=update_space_config)
+        logger.info("Update space response (remove int index): %s", response.json())
+        assert response.json()["code"] == 0
+        logger.info("Successfully removed field_int scalar index")
+
+        time.sleep(5)
+
+        # Test search with the same scalar filter (should fail for unindexed field)
+        response = requests.post(search_url, auth=(username, password), json=data)
+        logger.info("Search response after removing int index: %s", response.json())
+        # Search should fail with error code 6 when using scalar filter on unindexed field
+        assert response.json()["code"] == 6, f"Expected error code 6, got {response.json()['code']}"
+        logger.info("Confirmed search fails with error code 6 for unindexed scalar field")
+
+        # Add scalar index to field_double (previously unindexed)
+        add_index_config = {
+            "fields": [
+                {"name": "field_string", "type": "keyword"},
+                {
+                    "name": "field_int", 
+                    "type": "integer",
+                    # Still no index
+                },
+                {
+                    "name": "field_float", 
+                    "type": "float",
+                    "index": {
+                        "name": "field_float_index",
+                        "type": "SCALAR",
+                    },
+                },
+                {
+                    "name": "field_double", 
+                    "type": "double",
+                    "index": {
+                        "name": "field_double_index",
+                        "type": "SCALAR",
+                    },
+                },
+                {
+                    "name": "field_vector",
+                    "type": "vector",
+                    "dimension": embedding_size,
+                    "index": {
+                        "name": "gamma",
+                        "type": "FLAT",
+                        "params": {
+                            "metric_type": "InnerProduct",
+                        },
+                    },
+                },
+            ],
+        }
+
+        response = requests.put(update_url, auth=(username, password), json=add_index_config)
+        logger.info("Update space response (add double index): %s", response.json())
+        assert response.json()["code"] == 0
+        logger.info("Successfully added field_double scalar index")
+
+        time.sleep(10)  # Wait for index building
+
+        # Test search with new scalar filter on field_double
+        data_double_filter = {
+            "db_name": db_name,
+            "space_name": space_name,
+            "vectors": [{
+                "field": "field_vector",
+                "feature": xq[0].tolist(),
+            }],
+            "filters": {
+                "operator": "AND",
+                "conditions": [
+                    {
+                        "field": "field_double",
+                        "operator": ">=",
+                        "value": 25.0
+                    },
+                    {
+                        "field": "field_double",
+                        "operator": "<=",
+                        "value": 50.0
+                    }
+                ]
+            }
+        }
+        response = requests.post(search_url, auth=(username, password), json=data_double_filter)
+        logger.info("Search response with new double filter: %s", response.json())
+        assert response.json()["code"] == 0
+        assert len(response.json()["data"]["documents"]) == 1
+        assert len(response.json()["data"]["documents"][0]) > 0
+        logger.info("Successfully searched with newly added scalar index")
+
+        # Re-add scalar index to field_int
+        final_config = {
+            "fields": [
+                {"name": "field_string", "type": "keyword"},
+                {
+                    "name": "field_int", 
+                    "type": "integer",
+                    "index": {
+                        "name": "field_int_index",
+                        "type": "SCALAR",
+                    },
+                },
+                {
+                    "name": "field_float", 
+                    "type": "float",
+                    "index": {
+                        "name": "field_float_index",
+                        "type": "SCALAR",
+                    },
+                },
+                {
+                    "name": "field_double", 
+                    "type": "double",
+                    "index": {
+                        "name": "field_double_index",
+                        "type": "SCALAR",
+                    },
+                },
+                {
+                    "name": "field_vector",
+                    "type": "vector",
+                    "dimension": embedding_size,
+                    "index": {
+                        "name": "gamma",
+                        "type": "FLAT",
+                        "params": {
+                            "metric_type": "InnerProduct",
+                        },
+                    },
+                },
+            ],
+        }
+
+        response = requests.put(update_url, auth=(username, password), json=final_config)
+        logger.info("Update space response (re-add int index): %s", response.json())
+        assert response.json()["code"] == 0
+        logger.info("Successfully re-added field_int scalar index")
+
+        time.sleep(10)  # Wait for index building
+
+        # Test original search again to confirm it works
+        response = requests.post(search_url, auth=(username, password), json=data)
+        logger.info("Final search response with re-added int index: %s", response.json())
+        assert response.json()["code"] == 0
+        assert len(response.json()["data"]["documents"]) == 1
+        assert len(response.json()["data"]["documents"][0]) > 0
+        logger.info("Successfully searched after re-adding scalar index")
+
+        # Clean up by dropping the space
+        response = drop_space(router_url, db_name, space_name)
+        assert response.json()["code"] == 0
+
     def test_destroy_db(self):
         drop_db(router_url, db_name)
 
