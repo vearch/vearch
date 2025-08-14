@@ -55,9 +55,7 @@ int MultiFieldsRangeIndex::Init() {
 }
 
 /**
- * Convert floating point byte sequence to sortable string
- * Automatically determines whether it is float or double based on input byte
- * length
+ * Convert floating point byte sequence to sortable string (float/double)
  *
  * @param bytes Byte sequence of the floating point number
  * @return Sortable string
@@ -105,6 +103,58 @@ static std::string FloatingToSortableStr(const std::string &bytes) {
   }
 }
 
+/**
+ * Convert signed integer byte sequence to sortable string (int32)
+ */
+static std::string Int32ToSortableStr(const std::string &bytes) {
+  if (bytes.size() != sizeof(int32_t)) {
+    LOG(ERROR) << "Invalid int32 bytes length: " << bytes.size();
+    return bytes;
+  }
+  int32_t v;
+  memcpy(&v, bytes.data(), sizeof(v));
+  // Flip sign bit to get lexicographically sortable order
+  uint32_t u = static_cast<uint32_t>(v) ^ 0x80000000u;
+  uint32_t be = htobe32(u);
+  return std::string(reinterpret_cast<char *>(&be), sizeof(be));
+}
+
+/**
+ * Convert signed integer byte sequence to sortable string (int64 / date)
+ */
+static std::string Int64ToSortableStr(const std::string &bytes) {
+  if (bytes.size() != sizeof(int64_t)) {
+    LOG(ERROR) << "Invalid int64 bytes length: " << bytes.size();
+    return bytes;
+  }
+  int64_t v;
+  memcpy(&v, bytes.data(), sizeof(v));
+  // Flip sign bit to get lexicographically sortable order
+  uint64_t u = static_cast<uint64_t>(v) ^ 0x8000000000000000ULL;
+  uint64_t be = htobe64(u);
+  return std::string(reinterpret_cast<char *>(&be), sizeof(be));
+}
+
+/**
+ * Convert numeric bytes to sortable string by data type
+ */
+static std::string NumericToSortableStr(enum DataType type,
+                                        const std::string &bytes) {
+  switch (type) {
+    case DataType::INT:
+      return Int32ToSortableStr(bytes);
+    case DataType::LONG:
+    case DataType::DATE:
+      return Int64ToSortableStr(bytes);
+    case DataType::FLOAT:
+    case DataType::DOUBLE:
+      return FloatingToSortableStr(bytes);
+    default:
+      // For other types, keep original
+      return bytes;
+  }
+}
+
 MultiFieldsRangeIndex::MultiFieldsRangeIndex(Table *table,
                                              StorageManager *storage_mgr)
     : table_(table), fields_(table->FieldsNum()), storage_mgr_(storage_mgr) {
@@ -142,7 +192,8 @@ int MultiFieldsRangeIndex::AddDoc(int64_t docid, int field) {
   std::string key_str;
 
   if (fields_[field]->IsNumeric()) {
-    std::string key2_str = FloatingToSortableStr(key);
+    std::string key2_str =
+        NumericToSortableStr(fields_[field]->DataType(), key);
     key_str = GenLogicalKey(field, key2_str, docid);
   } else {
     key_str = GenLogicalKey(field, key, docid);
@@ -176,7 +227,8 @@ int MultiFieldsRangeIndex::DeleteDoc(int64_t docid, int field,
   std::string key_str;
 
   if (fields_[field]->IsNumeric()) {
-    std::string key2_str = FloatingToSortableStr(key);
+    std::string key2_str =
+        NumericToSortableStr(fields_[field]->DataType(), key);
     key_str = GenLogicalKey(field, key2_str, docid);
   } else {
     key_str = GenLogicalKey(field, key, docid);
@@ -322,10 +374,14 @@ int64_t MultiFieldsRangeIndex::Search(
           db->NewIterator(read_options, cf_handler));
 
       std::string lower_key, upper_key;
-      lower_key = ToRowKey(filter.field) + "_" +
-                  FloatingToSortableStr(filter.lower_value) + "_";
-      upper_key = ToRowKey(filter.field) + "_" +
-                  FloatingToSortableStr(filter.upper_value) + "_";
+      lower_key =
+          ToRowKey(filter.field) + "_" +
+          NumericToSortableStr(field_index->DataType(), filter.lower_value) +
+          "_";
+      upper_key =
+          ToRowKey(filter.field) + "_" +
+          NumericToSortableStr(field_index->DataType(), filter.upper_value) +
+          "_";
 
       size_t prefix_len = lower_key.length();
       for (it->Seek(lower_key); it->Valid(); it->Next()) {
@@ -423,6 +479,135 @@ int64_t MultiFieldsRangeIndex::Query(
     FilterOperator query_filter_operator,
     const std::vector<FilterInfo> &origin_filters,
     std::vector<uint64_t> &docids, size_t topn) {
+  docids.clear();
+  docids.reserve(topn);
+
+  // For simplified early termination, just collect results directly
+  // This is a simplified version that focuses on the most common case
+  std::vector<FilterInfo> filters;
+
+  for (const auto &filter : origin_filters) {
+    if ((size_t)filter.field >= fields_.size()) {
+      LOG(ERROR) << "field index is out of range, field=" << filter.field;
+      return -1;
+    }
+
+    // Skip if field has been removed
+    if (fields_[filter.field] == nullptr) {
+      continue;
+    }
+
+    if ((filter.is_union == FilterOperator::And) &&
+        fields_[filter.field]->DataType() == DataType::STRING) {
+      // type is string and operator is "and", split this filter
+      std::vector<std::string> items = utils::split(filter.lower_value, kDelim);
+      for (std::string &item : items) {
+        FilterInfo f = filter;
+        f.lower_value = item;
+        filters.push_back(f);
+      }
+      continue;
+    }
+    filters.push_back(filter);
+  }
+
+  // Simple early termination: for single filter cases, collect up to topn
+  if (filters.size() == 1 && filters[0].is_union != FilterOperator::Not) {
+    const auto &filter = filters[0];
+    auto field_index = fields_[filter.field];
+    if (field_index == nullptr) {
+      return 0;
+    }
+
+    auto &db = storage_mgr_->GetDB();
+    rocksdb::ColumnFamilyHandle *cf_handler =
+        storage_mgr_->GetColumnFamilyHandle(cf_id_);
+    rocksdb::ReadOptions read_options;
+
+    // Apply include/exclude boundary adjustments like in Search()
+    FilterInfo f = filter;
+    if (not f.include_lower) {
+      if (field_index->DataType() == DataType::INT) {
+        AdjustBoundary<int>(f.lower_value, 1);
+      } else if (field_index->DataType() == DataType::LONG ||
+                 field_index->DataType() == DataType::DATE) {
+        AdjustBoundary<long>(f.lower_value, 1);
+      } else if (field_index->DataType() == DataType::FLOAT) {
+        AdjustBoundary<float>(f.lower_value, 1);
+      } else if (field_index->DataType() == DataType::DOUBLE) {
+        AdjustBoundary<double>(f.lower_value, 1);
+      }
+    }
+    if (not f.include_upper) {
+      if (field_index->DataType() == DataType::INT) {
+        AdjustBoundary<int>(f.upper_value, -1);
+      } else if (field_index->DataType() == DataType::LONG ||
+                 field_index->DataType() == DataType::DATE) {
+        AdjustBoundary<long>(f.upper_value, -1);
+      } else if (field_index->DataType() == DataType::FLOAT) {
+        AdjustBoundary<float>(f.upper_value, -1);
+      } else if (field_index->DataType() == DataType::DOUBLE) {
+        AdjustBoundary<double>(f.upper_value, -1);
+      }
+    }
+
+    if (field_index->IsNumeric()) {
+      std::unique_ptr<rocksdb::Iterator> it(
+          db->NewIterator(read_options, cf_handler));
+
+      std::string lower_key, upper_key;
+      lower_key = ToRowKey(f.field) + "_" +
+                  NumericToSortableStr(field_index->DataType(), f.lower_value) +
+                  "_";
+      upper_key = ToRowKey(f.field) + "_" +
+                  NumericToSortableStr(field_index->DataType(), f.upper_value) +
+                  "_";
+
+      size_t prefix_len = lower_key.length();
+      for (it->Seek(lower_key); it->Valid() && docids.size() < topn;
+           it->Next()) {
+        std::string key = it->key().ToString();
+        key = key.substr(0, prefix_len);
+        if (key > upper_key) {
+          break;
+        }
+        key = it->key().ToString();
+        int64_t docid = utils::FromRowKey64(key.substr(key.length() - 8, 8));
+        docids.push_back(static_cast<uint64_t>(docid));
+      }
+    } else {
+      std::vector<std::string> items;
+      if (field_index->DataType() == DataType::STRING) {
+        items = utils::split(filter.lower_value, kDelim);
+      } else {
+        items.push_back(filter.lower_value);
+      }
+
+      for (const auto &item : items) {
+        if (docids.size() >= topn) break;
+
+        std::unique_ptr<rocksdb::Iterator> it(
+            db->NewIterator(read_options, cf_handler));
+
+        std::string prefix = ToRowKey(filter.field) + "_" + item + "_";
+        size_t prefix_len = prefix.length();
+
+        for (it->Seek(prefix);
+             it->Valid() && it->key().starts_with(prefix) &&
+             it->key().size() == prefix_len + 8 && docids.size() < topn;
+             it->Next()) {
+          std::string key = it->key().ToString();
+          int64_t docid = utils::FromRowKey64(key.substr(key.length() - 8, 8));
+          docids.push_back(static_cast<uint64_t>(docid));
+        }
+      }
+    }
+
+    return docids.size();
+  }
+
+  // For complex cases (multiple filters, NOT IN operations), fall back to
+  // regular search
   MultiRangeQueryResults range_query_result;
   int64_t retval =
       Search(query_filter_operator, origin_filters, &range_query_result);
@@ -431,7 +616,7 @@ int64_t MultiFieldsRangeIndex::Query(
   }
 
   docids = range_query_result.GetDocIDs(topn);
-  return retval;
+  return static_cast<int64_t>(docids.size());
 }
 
 int MultiFieldsRangeIndex::AddField(int field, enum DataType field_type,

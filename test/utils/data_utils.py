@@ -54,7 +54,12 @@ def download_from_irisa(host, dirname, local_dir, filename):
     ftp = FTP(host)
     ftp.login()
     ftp.set_pasv(True)
-    ftp.cwd(dirname)
+    try:
+        ftp.cwd(dirname)
+    except Exception as e:
+        logger.error("Failed to change directory on FTP server: %s" % e)
+        ftp.quit()
+        return False
 
     with open(local_dir + filename, "wb") as local_file:
         ftp.retrbinary("RETR " + filename, local_file.write)
@@ -225,19 +230,18 @@ class DatasetSift10K(Dataset):
             download_from_irisa(host, dirname, self.basedir, filename)
             == False
         ):
+            filename = "v0.0.1.tar.gz"
+            download_from_github("https://github.com/vearch/sift/archive/refs/tags/v0.0.1.tar.gz", "datasets", filename)
+
+            untar(filename, "datasets", "v0.0.1")
+            shutil.move("datasets/sift-0.0.1/siftsmall.tar.gz", "datasets/siftsmall.tar.gz")
+            # remove the extracted files
+            shutil.rmtree("datasets/sift-0.0.1")
+            # remove v0.0.1
+            os.remove("datasets/v0.0.1.tar.gz")
+            untar("siftsmall.tar.gz", "./datasets", "siftsmall")
             return
         untar(filename, self.basedir, "siftsmall")
-
-        # filename = "v0.0.1.tar.gz"
-        # download_from_github("https://github.com/vearch/sift/archive/refs/tags/v0.0.1.tar.gz", "datasets", filename)
-
-        # untar(filename, "datasets", "v0.0.1")
-        # shutil.move("datasets/sift-0.0.1/siftsmall.tar.gz", "datasets/siftsmall.tar.gz")
-        # remove the extracted files
-        # shutil.rmtree("datasets/sift-0.0.1")
-        # remove v0.0.1
-        # os.remove("datasets/v0.0.1.tar.gz")
-        # untar("siftsmall.tar.gz", "./datasets", "siftsmall")
 
     def get_database(self):
         return fvecs_read(self.basedir + "siftsmall/siftsmall_base.fvecs")
