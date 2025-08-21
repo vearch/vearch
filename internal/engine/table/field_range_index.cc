@@ -10,6 +10,8 @@
 #include <roaring/roaring.h>
 #include <string.h>
 
+#include <unordered_set>
+
 #include "util/log.h"
 #include "util/utils.h"
 
@@ -178,31 +180,46 @@ int MultiFieldsRangeIndex::Delete(int64_t docid, int field) {
   return ret;
 }
 
-int MultiFieldsRangeIndex::AddDoc(int64_t docid, int field) {
-  if (fields_[field] == nullptr) {
+int MultiFieldsRangeIndex::AddDoc(int64_t docid, int field_id) {
+  auto field = fields_[field_id];
+  if (field == nullptr) {
     return 0;
   }
 
   std::string key;
-  int ret = table_->GetFieldRawValue(docid, field, key);
+  int ret = table_->GetFieldRawValue(docid, field_id, key);
   if (ret != 0) {
     LOG(ERROR) << "get doc " << docid << " failed";
     return ret;
   }
   std::string key_str;
 
-  if (fields_[field]->IsNumeric()) {
-    std::string key2_str =
-        NumericToSortableStr(fields_[field]->DataType(), key);
-    key_str = GenLogicalKey(field, key2_str, docid);
-  } else {
-    key_str = GenLogicalKey(field, key, docid);
-  }
-
   auto &db = storage_mgr_->GetDB();
   rocksdb::ColumnFamilyHandle *cf_handler =
       storage_mgr_->GetColumnFamilyHandle(cf_id_);
   std::string null = "";
+
+  if (field->IsNumeric()) {
+    std::string key2_str = NumericToSortableStr(field->DataType(), key);
+    key_str = GenLogicalKey(field_id, key2_str, docid);
+  } else if (field->DataType() == DataType::STRINGARRAY) {
+    std::vector<std::string> keys = utils::split(key, kDelim);
+    for (const auto &k : keys) {
+      key_str = GenLogicalKey(field_id, k, docid);
+      rocksdb::Status s = db->Put(rocksdb::WriteOptions(), cf_handler,
+                                  rocksdb::Slice(key_str), null);
+      if (!s.ok()) {
+        std::stringstream msg;
+        msg << "rocksdb put error:" << s.ToString() << ", key=" << key_str;
+        LOG(ERROR) << msg.str();
+        return -1;
+      }
+    }
+    return 0;
+  } else {
+    key_str = GenLogicalKey(field_id, key, docid);
+  }
+
   rocksdb::Status s = db->Put(rocksdb::WriteOptions(), cf_handler,
                               rocksdb::Slice(key_str), null);
   if (!s.ok()) {
@@ -215,9 +232,10 @@ int MultiFieldsRangeIndex::AddDoc(int64_t docid, int field) {
   return 0;
 }
 
-int MultiFieldsRangeIndex::DeleteDoc(int64_t docid, int field,
+int MultiFieldsRangeIndex::DeleteDoc(int64_t docid, int field_id,
                                      std::string &key) {
-  if (fields_[field] == nullptr) {
+  auto field = fields_[field_id];
+  if (field == nullptr) {
     return 0;
   }
   auto &db = storage_mgr_->GetDB();
@@ -226,12 +244,25 @@ int MultiFieldsRangeIndex::DeleteDoc(int64_t docid, int field,
 
   std::string key_str;
 
-  if (fields_[field]->IsNumeric()) {
-    std::string key2_str =
-        NumericToSortableStr(fields_[field]->DataType(), key);
-    key_str = GenLogicalKey(field, key2_str, docid);
+  if (field->IsNumeric()) {
+    std::string key2_str = NumericToSortableStr(field->DataType(), key);
+    key_str = GenLogicalKey(field_id, key2_str, docid);
+  } else if (field->DataType() == DataType::STRINGARRAY) {
+    std::vector<std::string> keys = utils::split(key, kDelim);
+    for (const auto &k : keys) {
+      key_str = GenLogicalKey(field_id, k, docid);
+      rocksdb::Status s = db->Delete(rocksdb::WriteOptions(), cf_handler,
+                                     rocksdb::Slice(key_str));
+      if (!s.ok()) {
+        std::stringstream msg;
+        msg << "rocksdb delete error:" << s.ToString() << ", key=" << key_str;
+        LOG(ERROR) << msg.str();
+        return -1;
+      }
+    }
+    return 0;
   } else {
-    key_str = GenLogicalKey(field, key, docid);
+    key_str = GenLogicalKey(field_id, key, docid);
   }
 
   rocksdb::Status s =
@@ -293,22 +324,12 @@ int64_t MultiFieldsRangeIndex::Search(
       return -1;
     }
 
+    auto field = fields_[filter.field];
     // Skip if field has been removed
-    if (fields_[filter.field] == nullptr) {
+    if (field == nullptr) {
       continue;
     }
 
-    if ((filter.is_union == FilterOperator::And) &&
-        fields_[filter.field]->DataType() == DataType::STRING) {
-      // type is string and operator is "and", split this filter
-      std::vector<std::string> items = utils::split(filter.lower_value, kDelim);
-      for (std::string &item : items) {
-        FilterInfo f = filter;
-        f.lower_value = item;
-        filters.push_back(f);
-      }
-      continue;
-    }
     filters.push_back(filter);
   }
 
@@ -401,7 +422,8 @@ int64_t MultiFieldsRangeIndex::Search(
       }
     } else {
       std::vector<std::string> items;
-      if (field_index->DataType() == DataType::STRING) {
+      if (field_index->DataType() == DataType::STRING ||
+          field_index->DataType() == DataType::STRINGARRAY) {
         items = utils::split(filter.lower_value, kDelim);
       } else {
         items.push_back(filter.lower_value);
@@ -497,17 +519,6 @@ int64_t MultiFieldsRangeIndex::Query(
       continue;
     }
 
-    if ((filter.is_union == FilterOperator::And) &&
-        fields_[filter.field]->DataType() == DataType::STRING) {
-      // type is string and operator is "and", split this filter
-      std::vector<std::string> items = utils::split(filter.lower_value, kDelim);
-      for (std::string &item : items) {
-        FilterInfo f = filter;
-        f.lower_value = item;
-        filters.push_back(f);
-      }
-      continue;
-    }
     filters.push_back(filter);
   }
 
@@ -577,12 +588,14 @@ int64_t MultiFieldsRangeIndex::Query(
       }
     } else {
       std::vector<std::string> items;
-      if (field_index->DataType() == DataType::STRING) {
+      if (field_index->DataType() == DataType::STRING ||
+          field_index->DataType() == DataType::STRINGARRAY) {
         items = utils::split(filter.lower_value, kDelim);
       } else {
         items.push_back(filter.lower_value);
       }
 
+      std::unordered_set<uint64_t> seen_docids;
       for (const auto &item : items) {
         if (docids.size() >= topn) break;
 
@@ -598,7 +611,13 @@ int64_t MultiFieldsRangeIndex::Query(
              it->Next()) {
           std::string key = it->key().ToString();
           int64_t docid = utils::FromRowKey64(key.substr(key.length() - 8, 8));
-          docids.push_back(static_cast<uint64_t>(docid));
+          uint64_t docid_u64 = static_cast<uint64_t>(docid);
+
+          // Only add if not already seen
+          if (seen_docids.find(docid_u64) == seen_docids.end()) {
+            seen_docids.insert(docid_u64);
+            docids.push_back(docid_u64);
+          }
         }
       }
     }

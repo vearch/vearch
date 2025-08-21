@@ -718,6 +718,163 @@ def check(total, full_field, xb, mode: str):
     destroy(router_url, db_name, space_name)
 
 
+def test_string_array_filter():
+    """Test string_array field with IN operator"""
+    dim = xb.shape[1]
+    
+    # Create space with string_array field
+    properties = {}
+    properties["fields"] = [
+        {
+            "name": "field_string_array",
+            "type": "string_array",
+            "index": {
+                "name": "field_string_array",
+                "type": "SCALAR",
+            },
+        },
+        {
+            "name": "field_vector",
+            "type": "vector",
+            "index": {
+                "name": "name",
+                "type": "FLAT",
+                "params": {
+                    "metric_type": "L2",
+                },
+            },
+            "dimension": dim,
+            "store_type": "MemoryOnly",
+        },
+    ]
+
+    create(router_url, properties)
+
+    # Add 3 documents with different string_array values
+    url = router_url + "/document/upsert"
+    data = {
+        "db_name": db_name,
+        "space_name": space_name,
+        "documents": [
+            {
+                "_id": "1",
+                "field_string_array": ["1", "2", "3"],
+                "field_vector": xb[0].tolist()
+            },
+            {
+                "_id": "2", 
+                "field_string_array": ["2", "3"],
+                "field_vector": xb[1].tolist()
+            },
+            {
+                "_id": "3",
+                "field_string_array": ["3"],
+                "field_vector": xb[2].tolist()
+            }
+        ]
+    }
+    
+    rs = requests.post(url, auth=(username, password), json=data)
+    assert rs.json()["code"] == 0
+    logger.info(f"Added documents: {rs.json()}")
+
+    # Test IN ["1"] - should return only doc1
+    query_url = f"{router_url}/document/query"
+    query_data = {
+        "db_name": db_name,
+        "space_name": space_name,
+        "vector_value": False,
+        "filters": {
+            "operator": "AND",
+            "conditions": [
+                {
+                    "field": "field_string_array",
+                    "operator": "IN",
+                    "value": ["1"]
+                }
+            ]
+        },
+        "limit": 10
+    }
+    
+    rs = requests.post(query_url, auth=(username, password), json=query_data)
+    assert rs.status_code == 200
+    documents = rs.json()["data"]["documents"]
+    assert len(documents) == 1
+    assert documents[0]["_id"] == "1"
+    logger.info(f"IN ['1'] test passed: {documents}")
+
+    # Test IN ["2"] - should return doc1 and doc2
+    query_data["filters"]["conditions"][0]["value"] = ["2"]
+    rs = requests.post(query_url, auth=(username, password), json=query_data)
+    assert rs.status_code == 200
+    documents = rs.json()["data"]["documents"]
+    assert len(documents) == 2
+    doc_ids = [doc["_id"] for doc in documents]
+    assert "1" in doc_ids and "2" in doc_ids
+    logger.info(f"IN ['2'] test passed: {documents}")
+
+    # Test IN ["3"] - should return all 3 docs
+    query_data["filters"]["conditions"][0]["value"] = ["3"]
+    rs = requests.post(query_url, auth=(username, password), json=query_data)
+    assert rs.status_code == 200
+    documents = rs.json()["data"]["documents"]
+    assert len(documents) == 3
+    doc_ids = [doc["_id"] for doc in documents]
+    assert "1" in doc_ids and "2" in doc_ids and "3" in doc_ids
+    logger.info(f"IN ['3'] test passed: {documents}")
+
+    # Test IN ["2", "3"] - should return all 3 docs (doc1 has both 2 and 3, doc2 has both 2 and 3, doc3 has 3)
+    query_data["filters"]["conditions"][0]["value"] = ["2", "3"]
+    rs = requests.post(query_url, auth=(username, password), json=query_data)
+    assert rs.status_code == 200
+    documents = rs.json()["data"]["documents"]
+    assert len(documents) == 3
+    doc_ids = [doc["_id"] for doc in documents]
+    assert "1" in doc_ids and "2" in doc_ids and "3" in doc_ids
+    logger.info(f"IN ['2', '3'] test passed: {documents}")
+
+    # Test IN ["1", "2"] - should return doc1 and doc2
+    query_data["filters"]["conditions"][0]["value"] = ["1", "2"]
+    rs = requests.post(query_url, auth=(username, password), json=query_data)
+    assert rs.status_code == 200
+    documents = rs.json()["data"]["documents"]
+    assert len(documents) == 2
+    doc_ids = [doc["_id"] for doc in documents]
+    assert "1" in doc_ids and "2" in doc_ids
+    logger.info(f"IN ['1', '2'] test passed: {documents}")
+
+    # Test IN ["4"] - should return no docs
+    query_data["filters"]["conditions"][0]["value"] = ["4"]
+    rs = requests.post(query_url, auth=(username, password), json=query_data)
+    assert rs.status_code == 200
+    documents = rs.json()["data"]["documents"]
+    assert len(documents) == 0
+    logger.info(f"IN ['4'] test passed: {documents}")
+
+    # Test NOT IN ["1"] - should return doc2 and doc3
+    query_data["filters"]["conditions"][0]["operator"] = "NOT IN"
+    query_data["filters"]["conditions"][0]["value"] = ["1"]
+    rs = requests.post(query_url, auth=(username, password), json=query_data)
+    assert rs.status_code == 200
+    documents = rs.json()["data"]["documents"]
+    assert len(documents) == 2
+    doc_ids = [doc["_id"] for doc in documents]
+    assert "2" in doc_ids and "3" in doc_ids
+    logger.info(f"NOT IN ['1'] test passed: {documents}")
+
+    # Test NOT IN ["3"] - should return no docs (all docs contain "3")
+    query_data["filters"]["conditions"][0]["value"] = ["3"]
+    rs = requests.post(query_url, auth=(username, password), json=query_data)
+    assert rs.status_code == 200
+    documents = rs.json()["data"]["documents"]
+    assert len(documents) == 0
+    logger.info(f"NOT IN ['3'] test passed: {documents}")
+
+    destroy(router_url, db_name, space_name)
+    logger.info("String array filter tests completed successfully")
+
+
 @pytest.mark.parametrize(
     ["full_field", "mode"], 
     [

@@ -177,7 +177,7 @@ func (docService *docService) search(ctx context.Context, searchReq *vearchpb.Se
 	}
 
 	sortOrder := make([]sortorder.Sort, 0)
-	if searchReq.SortFields != nil && len(searchReq.SortFields) > 0 {
+	if len(searchReq.SortFields) > 0 {
 		for _, sortF := range searchReq.SortFields {
 			sortOrder = append(sortOrder, &sortorder.SortField{Field: sortF.Field, Desc: sortF.Type})
 		}
