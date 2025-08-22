@@ -25,6 +25,9 @@
 
 #include "cjson/cJSON.h"
 #include "common/gamma_common_data.h"
+#ifdef BUILD_WITH_GPU
+#include "index/impl/gpu/gamma_index_ivfpq_gpu.h"
+#endif
 #include "omp.h"
 #include "table/table_io.h"
 #include "third_party/nlohmann/json.hpp"
@@ -901,6 +904,17 @@ int Engine::BuildIndex() {
   IndexingState expected = IndexingState::IDLE;
   if (!indexing_state_.compare_exchange_strong(expected,
                                                IndexingState::STARTING)) {
+#ifdef BUILD_WITH_GPU
+    auto &indexes = vec_manager_->VectorIndexes();
+    for (auto &[name, index] : indexes) {
+      if (dynamic_cast<gamma_gpu::GammaIVFPQGPUIndex *>(index)) {
+        LOG(INFO) << space_name_ << " index [" << name
+                  << "] is a GammaIVFPQGPUIndex";
+        dynamic_cast<gamma_gpu::GammaIVFPQGPUIndex *>(index)->Indexing();
+        return 0;
+      }
+    }
+#endif
     // Already in progress or stopping
     LOG(INFO)
         << space_name_

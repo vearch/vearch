@@ -13,6 +13,7 @@
 #include <faiss/gpu/GpuClonerOptions.h>
 #include <faiss/gpu/GpuIndexIVFPQ.h>
 #include <faiss/gpu/StandardGpuResources.h>
+#include <faiss/gpu/impl/IndexUtils.h>
 #include <faiss/gpu/utils/DeviceUtils.h>
 #include <faiss/utils/Heap.h>
 #include <faiss/utils/utils.h>
@@ -23,6 +24,7 @@
 #include <fstream>
 #include <mutex>
 #include <set>
+#include <shared_mutex>
 #include <vector>
 
 #include "c_api/gamma_api.h"
@@ -338,11 +340,14 @@ RetrievalParameters *GammaIVFPQGPUIndex::Parse(const std::string &parameters) {
 
 faiss::Index *GammaIVFPQGPUIndex::CreateGPUIndex() {
   int ngpus = faiss::gpu::getNumDevices();
+  LOG(INFO) << "number of GPUs available: " << ngpus;
 
   vector<int> devs;
   for (int i = 0; i < ngpus; ++i) {
     devs.push_back(i);
   }
+
+  std::lock_guard<std::mutex> lock(cpu_mutex_);
 
   if (resources_.size() == 0) {
     for (int i : devs) {
@@ -368,7 +373,6 @@ faiss::Index *GammaIVFPQGPUIndex::CreateGPUIndex() {
   options->shard = true;
   options->shard_type = 1;
 
-  std::lock_guard<std::mutex> lock(cpu_mutex_);
   faiss::Index *gpu_index =
       gamma_index_cpu_to_gpu_multiple(resources_, devs, cpu_index_, options);
 
@@ -380,8 +384,7 @@ int GammaIVFPQGPUIndex::CreateSearchThread() {
   auto func_search = std::bind(&GammaIVFPQGPUIndex::GPUThread, this);
 
   gpu_threads_.push_back(std::thread(func_search));
-  gpu_threads_[0].detach();
-
+  gpu_threads_.back().detach();
   return 0;
 }
 
@@ -407,13 +410,12 @@ int GammaIVFPQGPUIndex::Indexing() {
     CreateSearchThread();
   }
 
-  faiss::Index *index = CreateGPUIndex();
+  {
+    std::unique_lock<std::shared_mutex> lock(gpu_index_mutex_);
+    delete gpu_index_;
+    gpu_index_ = CreateGPUIndex();
+  }
 
-  auto old_index = gpu_index_;
-  gpu_index_ = index;
-
-  std::this_thread::sleep_for(std::chrono::seconds(2));
-  delete old_index;
   LOG(INFO) << "GPU indexed.";
   return 0;
 }
@@ -482,7 +484,7 @@ int GammaIVFPQGPUIndex::AddRTVecsToIndex() {
   // sub-class
   this->indexed_count_ = cpu_index_->indexed_vec_count_;
   std::vector<int64_t> vids;
-  int vid;
+  int64_t vid;
   while (this->updated_vids_.try_pop(vid)) {
     if (raw_vec->Bitmap()->Test(vid)) continue;
     if (vid >= this->indexed_count_) {
@@ -537,9 +539,9 @@ Status GammaIVFPQGPUIndex::Load(const string &index_dir, int64_t &load_num) {
 }
 
 int GammaIVFPQGPUIndex::GPUThread() {
-  std::thread::id tid = std::this_thread::get_id();
   float *xx = new float[kMaxBatch * d_ * kMaxReqNum];
   size_t max_recallnum = (size_t)faiss::gpu::getMaxKSelection();
+  LOG(INFO) << "max_recallnum: " << max_recallnum;
   long *label = new long[kMaxBatch * max_recallnum * kMaxReqNum];
   float *dis = new float[kMaxBatch * max_recallnum * kMaxReqNum];
 
@@ -567,21 +569,24 @@ int GammaIVFPQGPUIndex::GPUThread() {
           cur += d_ * items[nprobe_ids.second[j]]->n_;
         }
 
-        int ngpus = faiss::gpu::getNumDevices();
-        if (ngpus > 1) {
-          auto indexShards = dynamic_cast<faiss::IndexShards *>(gpu_index_);
-          if (indexShards != nullptr) {
-            for (int j = 0; j < indexShards->count(); ++j) {
-              auto ivfpq =
-                  dynamic_cast<faiss::gpu::GpuIndexIVFPQ *>(indexShards->at(j));
-              ivfpq->setNumProbes(nprobe_ids.first);
+        {
+          std::shared_lock<std::shared_mutex> lock(gpu_index_mutex_);
+          int ngpus = faiss::gpu::getNumDevices();
+          if (ngpus > 1) {
+            auto indexShards = dynamic_cast<faiss::IndexShards *>(gpu_index_);
+            if (indexShards != nullptr) {
+              for (int j = 0; j < indexShards->count(); ++j) {
+                auto ivfpq = dynamic_cast<faiss::gpu::GpuIndexIVFPQ *>(
+                    indexShards->at(j));
+                ivfpq->nprobe = nprobe_ids.first;
+              }
             }
+          } else {
+            auto ivfpq = dynamic_cast<faiss::gpu::GpuIndexIVFPQ *>(gpu_index_);
+            if (ivfpq != nullptr) ivfpq->nprobe = nprobe_ids.first;
           }
-        } else {
-          auto ivfpq = dynamic_cast<faiss::gpu::GpuIndexIVFPQ *>(gpu_index_);
-          if (ivfpq != nullptr) ivfpq->setNumProbes(nprobe_ids.first);
+          gpu_index_->search(total, xx, recallnum, dis, label);
         }
-        gpu_index_->search(total, xx, recallnum, dis, label);
 
         cur = 0;
         for (size_t j = 0; j < nprobe_ids.second.size(); ++j) {
@@ -595,22 +600,25 @@ int GammaIVFPQGPUIndex::GPUThread() {
         }
       }
     } else if (size == 1) {
-      int ngpus = faiss::gpu::getNumDevices();
-      if (ngpus > 1) {
-        auto indexShards = dynamic_cast<faiss::IndexShards *>(gpu_index_);
-        if (indexShards != nullptr) {
-          for (int j = 0; j < indexShards->count(); ++j) {
-            auto ivfpq =
-                dynamic_cast<faiss::gpu::GpuIndexIVFPQ *>(indexShards->at(j));
-            ivfpq->setNumProbes(items[0]->nprobe_);
+      {
+        std::shared_lock<std::shared_mutex> lock(gpu_index_mutex_);
+        int ngpus = faiss::gpu::getNumDevices();
+        if (ngpus > 1) {
+          auto indexShards = dynamic_cast<faiss::IndexShards *>(gpu_index_);
+          if (indexShards != nullptr) {
+            for (int j = 0; j < indexShards->count(); ++j) {
+              auto ivfpq =
+                  dynamic_cast<faiss::gpu::GpuIndexIVFPQ *>(indexShards->at(j));
+              ivfpq->nprobe = items[0]->nprobe_;
+            }
           }
+        } else {
+          auto ivfpq = dynamic_cast<faiss::gpu::GpuIndexIVFPQ *>(gpu_index_);
+          if (ivfpq != nullptr) ivfpq->nprobe = items[0]->nprobe_;
         }
-      } else {
-        auto ivfpq = dynamic_cast<faiss::gpu::GpuIndexIVFPQ *>(gpu_index_);
-        if (ivfpq != nullptr) ivfpq->setNumProbes(items[0]->nprobe_);
+        gpu_index_->search(items[0]->n_, items[0]->x_, items[0]->k_,
+                           items[0]->dis_, items[0]->label_);
       }
-      gpu_index_->search(items[0]->n_, items[0]->x_, items[0]->k_,
-                         items[0]->dis_, items[0]->label_);
       items[0]->batch_size = size;
       items[0]->Notify();
     }
@@ -835,7 +843,6 @@ int GammaIVFPQGPUIndex::Search(RetrievalContext *retrieval_context, int n,
 
   // set filter
   auto is_filterable = [&](long vid) -> bool {
-    RawVector *raw_vec = dynamic_cast<RawVector *>(vector_);
     int docid = vid;
     return (retrieval_context->IsValid(vid) == false) ||
            (right_filter &&

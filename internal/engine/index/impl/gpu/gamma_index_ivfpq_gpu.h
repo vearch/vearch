@@ -7,6 +7,8 @@
 
 #pragma once
 
+#include <shared_mutex>
+
 #include "concurrentqueue/blockingconcurrentqueue.h"
 #include "faiss/Index.h"
 #include "gamma_gpu_cloner.h"
@@ -56,8 +58,6 @@ class GPURetrievalParameters : public RetrievalParameters {
 
 class GammaIVFPQGPUIndex : public IndexModel {
  public:
-  GammaIVFPQGPUIndex(VectorReader *vec, const std::string &model_parameters);
-
   GammaIVFPQGPUIndex();
 
   virtual ~GammaIVFPQGPUIndex();
@@ -114,6 +114,7 @@ class GammaIVFPQGPUIndex : public IndexModel {
   DistanceComputeType metric_type_;
   std::mutex cpu_mutex_;
   std::mutex indexing_mutex_;
+  std::shared_mutex gpu_index_mutex_;
 };
 
 }  // namespace gamma_gpu

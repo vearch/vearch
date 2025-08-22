@@ -69,7 +69,7 @@ void GammaToCPUCloner::merge_index(Index *dst, Index *src,
     auto ifl2 = dynamic_cast<const IndexFlat *>(src);
     FAISS_ASSERT(ifl2);
     FAISS_ASSERT(successive_ids);
-    ifl->add(ifl2->ntotal, ifl2->xb.data());
+    ifl->add(ifl2->ntotal, ifl2->get_xb());
   } else if (auto ifl = dynamic_cast<IndexIVFFlat *>(dst)) {
     auto ifl2 = dynamic_cast<IndexIVFFlat *>(src);
     FAISS_ASSERT(ifl2);
@@ -247,7 +247,7 @@ Index *GammaToGpuClonerMultiple::clone_Index_to_shards(
   for (int i = 0; i < n; i++) {
     res->add_shard(shards[i]);
   }
-  res->own_fields = true;
+  res->own_indices = true;
   // FAISS_ASSERT(index->indexed_vec_count_ == res->ntotal);
   return res;
 }
@@ -261,7 +261,7 @@ Index *GammaToGpuClonerMultiple::clone_Index(const GammaIVFPQIndex *index) {
     for (auto &sub_cloner : sub_cloners) {
       res->addIndex(sub_cloner.clone_Index(index));
     }
-    res->own_fields = true;
+    res->own_indices = true;
     return res;
   } else {
     return clone_Index_to_shards(index);

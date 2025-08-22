@@ -75,28 +75,30 @@ endif()
 
 set(LIB_SRCS ${ALL_SOURCES} ${RELAYOUT_SRCS})
 
-add_library(gamma SHARED ${LIB_SRCS})
+if(NOT BUILD_WITH_GPU)
+    add_library(gamma SHARED ${LIB_SRCS})
 
-add_library(gamma_avx2 SHARED ${LIB_SRCS})
-if(NOT BUILD_GAMMA_OPT_LEVEL STREQUAL "avx2" AND NOT BUILD_GAMMA_OPT_LEVEL STREQUAL "avx512")
-  set_target_properties(gamma_avx2 PROPERTIES EXCLUDE_FROM_ALL TRUE)
-endif()
-if(NOT WIN32)
-  target_compile_options(gamma_avx2 PRIVATE $<$<OR:$<COMPILE_LANGUAGE:CXX>,$<COMPILE_LANGUAGE:C>>:-mavx2 -mfma -mf16c -mpopcnt>)
-else()
-  target_compile_options(gamma_avx2 PRIVATE $<$<OR:$<COMPILE_LANGUAGE:CXX>,$<COMPILE_LANGUAGE:C>>:/arch:AVX2>)
-  add_compile_options(/bigobj)
-endif()
+    add_library(gamma_avx2 SHARED ${LIB_SRCS})
+    if(NOT BUILD_GAMMA_OPT_LEVEL STREQUAL "avx2" AND NOT BUILD_GAMMA_OPT_LEVEL STREQUAL "avx512")
+        set_target_properties(gamma_avx2 PROPERTIES EXCLUDE_FROM_ALL TRUE)
+    endif()
+    if(NOT WIN32)
+        target_compile_options(gamma_avx2 PRIVATE $<$<OR:$<COMPILE_LANGUAGE:CXX>,$<COMPILE_LANGUAGE:C>>:-mavx2 -mfma -mf16c -mpopcnt>)
+    else()
+        target_compile_options(gamma_avx2 PRIVATE $<$<OR:$<COMPILE_LANGUAGE:CXX>,$<COMPILE_LANGUAGE:C>>:/arch:AVX2>)
+        add_compile_options(/bigobj)
+    endif()
 
-add_library(gamma_avx512 SHARED ${LIB_SRCS})
-if(NOT BUILD_GAMMA_OPT_LEVEL STREQUAL "avx512")
-  set_target_properties(gamma_avx512 PROPERTIES EXCLUDE_FROM_ALL TRUE)
-endif()
-if(NOT WIN32)
-  target_compile_options(gamma_avx512 PRIVATE $<$<OR:$<COMPILE_LANGUAGE:CXX>,$<COMPILE_LANGUAGE:C>>:-mavx2 -mfma -mf16c -mavx512f -mavx512cd -mavx512vl -mavx512dq -mavx512bw -mpopcnt>)
-else()
-  target_compile_options(gamma_avx512 PRIVATE $<$<OR:$<COMPILE_LANGUAGE:CXX>,$<COMPILE_LANGUAGE:C>>:/arch:AVX512>)
-  add_compile_options(/bigobj)
+    add_library(gamma_avx512 SHARED ${LIB_SRCS})
+    if(NOT BUILD_GAMMA_OPT_LEVEL STREQUAL "avx512")
+        set_target_properties(gamma_avx512 PROPERTIES EXCLUDE_FROM_ALL TRUE)
+    endif()
+    if(NOT WIN32)
+        target_compile_options(gamma_avx512 PRIVATE $<$<OR:$<COMPILE_LANGUAGE:CXX>,$<COMPILE_LANGUAGE:C>>:-mavx2 -mfma -mf16c -mavx512f -mavx512cd -mavx512vl -mavx512dq -mavx512bw -mpopcnt>)
+    else()
+        target_compile_options(gamma_avx512 PRIVATE $<$<OR:$<COMPILE_LANGUAGE:CXX>,$<COMPILE_LANGUAGE:C>>:/arch:AVX512>)
+        add_compile_options(/bigobj)
+    endif()
 endif()
 
 set(COMMON_LIBRARIES
@@ -209,45 +211,58 @@ if(BUILD_PYTHON_SDK)
 endif()
 
 if(BUILD_WITH_GPU)
-    message(STATUS "With GPU")
-    add_definitions(-DBUILD_WITH_GPU) 
+    message(STATUS "With GPU (modern CUDA)")
+    add_definitions(-DBUILD_WITH_GPU)
     set(GAMMA_GPU ${CMAKE_CURRENT_SOURCE_DIR}/index/impl/gpu)
 
-    aux_source_directory(${GAMMA_GPU} ALL_SOURCES)
+    include(cmake/Modules/gpu/CUDA.cmake) # may flip BUILD_WITH_GPU OFF if toolkit missing
+    if(NOT BUILD_WITH_GPU)
+        message(STATUS "Falling back to CPU build because CUDA toolkit was not found")
+    endif()
+endif()
 
-    include(cmake/Modules/gpu/CUDA.cmake)
-    
-    file(GLOB_RECURSE FAISS_GPU_HEADERS ${GAMMA_GPU}/*.h)
-    file(GLOB_RECURSE FAISS_GPU_CPP ${GAMMA_GPU}/*.cpp)
-    file(GLOB_RECURSE FAISS_GPU_CC ${GAMMA_GPU}/*.cc)
-    file(GLOB_RECURSE FAISS_GPU_CUH ${GAMMA_GPU}/*.cuh)
-    file(GLOB_RECURSE FAISS_GPU_CU ${GAMMA_GPU}/*.cu)
+if(BUILD_WITH_GPU)
+    file(GLOB_RECURSE GAMMA_GPU_SOURCES
+        ${GAMMA_GPU}/*.h
+        ${GAMMA_GPU}/*.hpp
+        ${GAMMA_GPU}/*.cuh
+        ${GAMMA_GPU}/*.cu
+        ${GAMMA_GPU}/*.cpp
+        ${GAMMA_GPU}/*.cc)
 
-    include_directories(
-        ${GAMMA_GPU}
-        ${FAISS_INCLUDE_DIR}
-        ${CUDA_INCLUDE_DIRS}
+    # Remove any GPU .cc already present in LIB_SRCS to avoid duplication
+    list(FILTER LIB_SRCS EXCLUDE REGEX "${GAMMA_GPU}/.*\\.(cc|cpp|cu)$")
+
+    add_library(gamma SHARED ${LIB_SRCS} ${GAMMA_GPU_SOURCES})
+
+    target_include_directories(gamma
+        PRIVATE
+            ${GAMMA_GPU}
+            ${FAISS_INCLUDE_DIR}
     )
 
-    CUDA_ADD_LIBRARY(gamma SHARED 
-    ${FAISS_GPU_HEADERS}
-    ${FAISS_GPU_CPP}
-    ${FAISS_GPU_CC}
-    ${FAISS_GPU_CUH}
-    ${FAISS_GPU_CU}
-    ${LIB_SRCS})
+    # Apply CUDA compile options only to CUDA language sources
+    foreach(opt IN LISTS VEARCH_CUDA_COMPILE_OPTIONS)
+        target_compile_options(gamma PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:${opt}>)
+    endforeach()
 
-    find_library(CUDA_CUBLAS NAMES libcublas.so PATHS /usr/local/cuda/lib64)
-    find_library(CUDA_CUDART NAMES libcudart.so PATHS /usr/local/cuda/lib64)
-    find_library(BLAS NAMES libblas.so PATHS /usr/lib64 /usr/lib)
-    find_library(LAPACK NAMES liblapack.so PATHS /usr/lib64 /usr/lib)
-    target_link_libraries(gamma 
-    ${LIBRARIES}
-    ${CUDA_CUBLAS}
-    ${CUDA_CUDART}
-    ${BLAS}
-    ${LAPACK}
+    # Link imported CUDA toolkit targets (cudart always; cublas/curand if available)
+    if(TARGET CUDA::cublas)
+        set(_VEARCH_CUDA_LIBS CUDA::cublas)
+    endif()
+    if(TARGET CUDA::curand)
+        list(APPEND _VEARCH_CUDA_LIBS CUDA::curand)
+    endif()
+    list(APPEND _VEARCH_CUDA_LIBS CUDA::cudart)
+
+    target_link_libraries(gamma
+        PRIVATE
+            -lfaiss_gpu
+            ${LIBRARIES}
+            ${_VEARCH_CUDA_LIBS}
+            -lbz2
     )
+
 else()
     message(STATUS "With Generic" ${LIBRARIES})
     target_link_libraries(gamma ${LIBRARIES})
@@ -305,14 +320,14 @@ install(TARGETS gamma
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
     )
-if(BUILD_GAMMA_OPT_LEVEL STREQUAL "avx2")
+if(NOT BUILD_WITH_GPU AND BUILD_GAMMA_OPT_LEVEL STREQUAL "avx2")
     install(TARGETS gamma_avx2
         EXPORT gamma-targets
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     )
 endif()
-if(BUILD_GAMMA_OPT_LEVEL STREQUAL "avx512")
+if(NOT BUILD_WITH_GPU AND BUILD_GAMMA_OPT_LEVEL STREQUAL "avx512")
     install(TARGETS gamma_avx2 gamma_avx512
         EXPORT gamma-targets
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
