@@ -907,10 +907,10 @@ int Engine::BuildIndex() {
 #ifdef BUILD_WITH_GPU
     auto &indexes = vec_manager_->VectorIndexes();
     for (auto &[name, index] : indexes) {
-      if (dynamic_cast<gamma_gpu::GammaIVFPQGPUIndex *>(index)) {
+      if (dynamic_cast<gpu::GammaIVFPQGPUIndex *>(index)) {
         LOG(INFO) << space_name_ << " index [" << name
                   << "] is a GammaIVFPQGPUIndex";
-        dynamic_cast<gamma_gpu::GammaIVFPQGPUIndex *>(index)->Indexing();
+        dynamic_cast<gpu::GammaIVFPQGPUIndex *>(index)->Indexing();
         return 0;
       }
     }

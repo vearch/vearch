@@ -31,6 +31,7 @@
 #include <faiss/gpu/utils/DeviceUtils.h>
 #include <faiss/impl/FaissAssert.h>
 #include <faiss/index_io.h>
+#include <faiss/invlists/InvertedLists.h>
 
 #include <typeinfo>
 
@@ -57,7 +58,7 @@ using faiss::IndexSplitVectors;
 using faiss::ProductQuantizer;
 
 namespace vearch {
-namespace gamma_gpu {
+namespace gpu {
 
 /**********************************************************
  * Cloning to CPU
@@ -199,17 +200,17 @@ GammaToGpuClonerMultiple::GammaToGpuClonerMultiple(
 
 void GammaToGpuClonerMultiple::copy_ivf_shard(const GammaIVFPQIndex *index_ivf,
                                               IndexIVF *idx2, long n, long i) {
-  if (shard_type == 2) {
+  if (shard_type == faiss::InvertedLists::SUBSET_TYPE_ELEMENT_RANGE) {
     long i0 = i * index_ivf->ntotal / n;
     long i1 = (i + 1) * index_ivf->ntotal / n;
 
     if (verbose) printf("IndexShards shard %ld indices %ld:%ld\n", i, i0, i1);
-    index_ivf->copy_subset_to(*idx2, 2, i0, i1);
+    index_ivf->copy_subset_to(*idx2, shard_type, i0, i1);
     FAISS_ASSERT(idx2->ntotal == i1 - i0);
-  } else if (shard_type == 1) {
+  } else if (shard_type == faiss::InvertedLists::SUBSET_TYPE_ID_MOD) {
     if (verbose)
       printf("IndexShards shard %ld select modulo %ld = %ld\n", i, n, i);
-    index_ivf->copy_subset_to(*idx2, 1, n, i);
+    index_ivf->copy_subset_to(*idx2, shard_type, n, i);
   } else {
     FAISS_THROW_FMT("shard_type %d not implemented", shard_type);
   }
@@ -277,5 +278,5 @@ faiss::Index *gamma_index_cpu_to_gpu_multiple(
   return cl.clone_Index(index);
 }
 
-}  // namespace gamma_gpu
+}  // namespace gpu
 }  // namespace vearch

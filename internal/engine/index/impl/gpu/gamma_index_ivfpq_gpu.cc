@@ -30,73 +30,20 @@
 #include "c_api/gamma_api.h"
 #include "gamma_gpu_cloner.h"
 #include "index/impl/gamma_index_ivfpq.h"
+#include "third_party/nlohmann/json.hpp"
 #include "util/bitmap.h"
 
 using std::string;
 using std::vector;
 
 namespace vearch {
-namespace gamma_gpu {
+namespace gpu {
 
 namespace {
 const int kMaxBatch = 200;  // max search batch num
 const int kMaxReqNum = 200;
 const char *kDelim = "\001";
 }  // namespace
-
-template <typename T>
-class BlockingQueue {
- public:
-  BlockingQueue() : mutex_(), condvar_(), queue_() {}
-
-  void Put(const T &task) {
-    {
-      std::lock_guard<std::mutex> lock(mutex_);
-      queue_.push_back(task);
-    }
-    condvar_.notify_all();
-  }
-
-  T Take() {
-    std::unique_lock<std::mutex> lock(mutex_);
-    condvar_.wait(lock, [this] { return !queue_.empty(); });
-    assert(!queue_.empty());
-    T front(queue_.front());
-    queue_.pop_front();
-
-    return front;
-  }
-
-  T TakeBatch(vector<T> &vec, int &n) {
-    std::unique_lock<std::mutex> lock(mutex_);
-    condvar_.wait(lock, [this] { return !queue_.empty(); });
-    assert(!queue_.empty());
-
-    int i = 0;
-    while (!queue_.empty() && i < kMaxBatch) {
-      T front(queue_.front());
-      queue_.pop_front();
-      vec[i++] = front;
-    }
-    n = i;
-
-    return nullptr;
-  }
-
-  size_t Size() const {
-    std::lock_guard<std::mutex> lock(mutex_);
-    return queue_.size();
-  }
-
- private:
-  BlockingQueue(const BlockingQueue &);
-  BlockingQueue &operator=(const BlockingQueue &);
-
- private:
-  mutable std::mutex mutex_;
-  std::condition_variable condvar_;
-  std::list<T> queue_;
-};
 
 class GPUItem {
  public:
@@ -108,7 +55,6 @@ class GPUItem {
     label_ = label;
     nprobe_ = nprobe;
     done_ = false;
-    batch_size = 1;
   }
 
   void Notify() {
@@ -132,8 +78,6 @@ class GPUItem {
   long *label_;
   int nprobe_;
 
-  int batch_size;  // for perfomance test
-
  private:
   std::condition_variable cv_;
   std::mutex mtx_;
@@ -154,52 +98,55 @@ struct IVFPQModelParams {
   }
 
   Status Parse(const char *str) {
-    utils::JsonParser jp;
-    if (jp.Parse(str)) {
-      std::string msg =
-          std::string("parse IVFPQ retrieval parameters error: ") + str;
-      LOG(ERROR) << msg;
-      return Status::ParamError(msg);
+    nlohmann::json j;
+    try {
+      j = nlohmann::json::parse(str);
+    } catch (const nlohmann::json::parse_error &e) {
+      LOG(ERROR) << "failed to parse IVFPQ retrieval parameters: " << e.what();
+      return Status::ParamError("failed to parse IVFPQ retrieval parameters");
     }
 
     int ncentroids;
     int nsubvector;
     int nbits_per_idx;
 
-    // -1 as default
-    if (!jp.GetInt("ncentroids", ncentroids)) {
-      if (ncentroids < -1) {
+    if (j.contains("ncentroids")) {
+      ncentroids = j.value("ncentroids", 0);
+      if (ncentroids <= 0) {
         std::string msg =
             std::string("invalid ncentroids =") + std::to_string(ncentroids);
         LOG(ERROR) << msg;
         return Status::ParamError(msg);
       }
-      if (ncentroids > 0) this->ncentroids = ncentroids;
+      this->ncentroids = ncentroids;
     }
 
-    if (!jp.GetInt("nsubvector", nsubvector)) {
-      if (nsubvector < -1) {
+    if (j.contains("nsubvector")) {
+      nsubvector = j.value("nsubvector", 0);
+      if (nsubvector <= 0) {
         std::string msg =
             std::string("invalid nsubvector =") + std::to_string(nsubvector);
         LOG(ERROR) << msg;
         return Status::ParamError(msg);
       }
-      if (nsubvector > 0) this->nsubvector = nsubvector;
+      this->nsubvector = nsubvector;
     }
 
-    if (!jp.GetInt("nbits_per_idx", nbits_per_idx)) {
-      if (nbits_per_idx < -1) {
+    if (j.contains("nbits_per_idx")) {
+      nbits_per_idx = j.value("nbits_per_idx", 0);
+      if (nbits_per_idx <= 0) {
         std::string msg = std::string("invalid nbits_per_idx =") +
                           std::to_string(nbits_per_idx);
         LOG(ERROR) << msg;
         return Status::ParamError(msg);
       }
-      if (nbits_per_idx > 0) this->nbits_per_idx = nbits_per_idx;
+      this->nbits_per_idx = nbits_per_idx;
     }
 
     std::string metric_type;
 
-    if (!jp.GetString("metric_type", metric_type)) {
+    if (j.contains("metric_type")) {
+      metric_type = j.value("metric_type", "");
       if (strcasecmp("L2", metric_type.c_str()) &&
           strcasecmp("InnerProduct", metric_type.c_str())) {
         std::string msg = std::string("invalid metric_type = ") + metric_type;
@@ -240,12 +187,7 @@ struct IVFPQModelParams {
 
 REGISTER_INDEX(GPU, GammaIVFPQGPUIndex)
 
-GammaIVFPQGPUIndex::GammaIVFPQGPUIndex() : IndexModel() {
-  M_ = 0;
-  nbits_per_idx_ = 0;
-  tmp_mem_num_ = 0;
-  is_trained_ = false;
-}
+GammaIVFPQGPUIndex::GammaIVFPQGPUIndex() : IndexModel(), is_trained_(false) {}
 
 GammaIVFPQGPUIndex::~GammaIVFPQGPUIndex() {
   std::lock_guard<std::mutex> lock(indexing_mutex_);
@@ -281,8 +223,6 @@ Status GammaIVFPQGPUIndex::Init(const std::string &model_parameters,
   }
 
   this->nlist_ = ivfpq_param.ncentroids;
-  this->M_ = ivfpq_param.nsubvector;
-  this->nbits_per_idx_ = ivfpq_param.nbits_per_idx;
   this->nprobe_ = 80;
 
   metric_type_ = ivfpq_param.metric_type;
@@ -300,15 +240,18 @@ RetrievalParameters *GammaIVFPQGPUIndex::Parse(const std::string &parameters) {
     return new GPURetrievalParameters();
   }
 
-  utils::JsonParser jp;
-  if (jp.Parse(parameters.c_str())) {
-    LOG(ERROR) << "parse retrieval parameters error: " << parameters;
+  nlohmann::json j;
+  try {
+    j = nlohmann::json::parse(parameters);
+  } catch (const nlohmann::json::parse_error &e) {
+    LOG(ERROR) << "failed to parse IVFPQ retrieval parameters: " << e.what();
     return nullptr;
   }
 
   std::string metric_type;
   GPURetrievalParameters *retrieval_params = new GPURetrievalParameters();
-  if (!jp.GetString("metric_type", metric_type)) {
+  if (j.contains("metric_type")) {
+    metric_type = j.value("metric_type", "");
     if (strcasecmp("L2", metric_type.c_str()) &&
         strcasecmp("InnerProduct", metric_type.c_str())) {
       LOG(ERROR) << "invalid metric_type = " << metric_type
@@ -325,12 +268,14 @@ RetrievalParameters *GammaIVFPQGPUIndex::Parse(const std::string &parameters) {
 
   int recall_num;
   int nprobe;
-  if (!jp.GetInt("recall_num", recall_num)) {
+  if (j.contains("recall_num")) {
+    recall_num = j.value("recall_num", 0);
     if (recall_num > 0) {
       retrieval_params->SetRecallNum(recall_num);
     }
   }
-  if (!jp.GetInt("nprobe", nprobe)) {
+  if (j.contains("nprobe")) {
+    nprobe = j.value("nprobe", 0);
     if (nprobe > 0) {
       retrieval_params->SetNprobe(nprobe);
     }
@@ -358,25 +303,22 @@ faiss::Index *GammaIVFPQGPUIndex::CreateGPUIndex() {
     }
   }
 
-  faiss::gpu::GpuMultipleClonerOptions *options =
-      new faiss::gpu::GpuMultipleClonerOptions();
+  faiss::gpu::GpuMultipleClonerOptions options;
 
-  options->indicesOptions = faiss::gpu::INDICES_64_BIT;
-  options->useFloat16CoarseQuantizer = false;
-  options->useFloat16 = true;
-  options->usePrecomputed = false;
-  options->reserveVecs = 0;
-  options->storeTransposed = true;
-  options->verbose = true;
+  options.indicesOptions = faiss::gpu::INDICES_64_BIT;
+  options.useFloat16CoarseQuantizer = false;
+  options.useFloat16 = true;
+  options.usePrecomputed = false;
+  options.reserveVecs = 0;
+  options.storeTransposed = true;
+  options.verbose = true;
 
   // shard the index across GPUs
-  options->shard = true;
-  options->shard_type = 1;
+  options.shard = true;
+  options.shard_type = 1;
 
   faiss::Index *gpu_index =
-      gamma_index_cpu_to_gpu_multiple(resources_, devs, cpu_index_, options);
-
-  delete options;
+      gamma_index_cpu_to_gpu_multiple(resources_, devs, cpu_index_, &options);
   return gpu_index;
 }
 
@@ -594,7 +536,6 @@ int GammaIVFPQGPUIndex::GPUThread() {
                  recallnum * sizeof(float) * items[nprobe_ids.second[j]]->n_);
           memcpy(items[nprobe_ids.second[j]]->label_, label + cur,
                  recallnum * sizeof(long) * items[nprobe_ids.second[j]]->n_);
-          items[nprobe_ids.second[j]]->batch_size = nprobe_ids.second.size();
           cur += recallnum * items[nprobe_ids.second[j]]->n_;
           items[nprobe_ids.second[j]]->Notify();
         }
@@ -619,7 +560,6 @@ int GammaIVFPQGPUIndex::GPUThread() {
         gpu_index_->search(items[0]->n_, items[0]->x_, items[0]->k_,
                            items[0]->dis_, items[0]->label_);
       }
-      items[0]->batch_size = size;
       items[0]->Notify();
     }
   }
@@ -981,5 +921,5 @@ int GammaIVFPQGPUIndex::Search(RetrievalContext *retrieval_context, int n,
   return 0;
 }
 
-}  // namespace gamma_gpu
+}  // namespace gpu
 }  // namespace vearch

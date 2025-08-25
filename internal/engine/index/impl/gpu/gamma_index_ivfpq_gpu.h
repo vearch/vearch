@@ -20,7 +20,7 @@
 #include "vector/raw_vector.h"
 
 namespace vearch {
-namespace gamma_gpu {
+namespace gpu {
 
 class GPUItem;
 
@@ -93,8 +93,6 @@ class GammaIVFPQGPUIndex : public IndexModel {
   int CreateSearchThread();
 
   size_t nlist_;
-  size_t M_;
-  size_t nbits_per_idx_;
   int nprobe_;
 
   moodycamel::BlockingConcurrentQueue<GPUItem *> id_queue_;
@@ -102,7 +100,6 @@ class GammaIVFPQGPUIndex : public IndexModel {
   faiss::Index *gpu_index_;
   GammaIVFPQIndex *cpu_index_;
 
-  int tmp_mem_num_;
   std::vector<faiss::gpu::StandardGpuResources *> resources_;
   std::vector<std::thread> gpu_threads_;
 
@@ -117,5 +114,5 @@ class GammaIVFPQGPUIndex : public IndexModel {
   std::shared_mutex gpu_index_mutex_;
 };
 
-}  // namespace gamma_gpu
+}  // namespace gpu
 }  // namespace vearch
