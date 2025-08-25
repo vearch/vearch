@@ -1,10 +1,9 @@
 [package]
 name = "vearch-sdk-rs"
-version = "0.1.0"
-edition = "2021"
+version = "3.5.0"
+edition = "2025"
 description = "Rust SDK for Vearch vector database"
-license = "MIT"
-repository = "https://github.com/your-username/vearch-sdk-rs"
+license = "Apache-2.0"
 keywords = ["vearch", "vector", "database", "search", "ai"]
 categories = ["database-drivers", "api-bindings"]
 

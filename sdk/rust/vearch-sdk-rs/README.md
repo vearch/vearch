@@ -19,7 +19,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-vearch-sdk-rs = "0.1.0"
+vearch-sdk-rs = "3.5.0"
 tokio = { version = "1.0", features = ["full"] }
 ```
 
