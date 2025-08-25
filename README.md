@@ -34,11 +34,12 @@ Vearch is a cloud-native distributed vector database for efficient similarity se
 
 ### SDK
 
-| SDK | Description |
-|-----|-------------|
-| [**Python SDK**](sdk/python/README.md) | Python client for Vearch |
-| [**Go SDK**](sdk/go/README.md) | Go client for Vearch |
-| [**Java SDK**](sdk/java/README.md) | Java client (under development) |
+| SDK                                              | Description                    |
+|--------------------------------------------------|--------------------------------|
+| [**Python SDK**](sdk/python/README.md)           | Python client for Vearch       |
+| [**Go SDK**](sdk/go/README.md)                   | Go client for Vearch           |
+| [**Java SDK**](sdk/java/README.md)               | Java client (under development) |
+| [**Rust SDK**](sdk/rust/vearch-sdk-rs/README.md) | Rust client for Vearch         |
 
 ## Usage Cases
 
