@@ -54,7 +54,7 @@ Vearch Java SDK 提供了与 Vearch 服务交互的简单方式，使开发者�
 在项目的 `build.gradle` 文件中添加以下依赖：
 
 ```groovy
-implementation 'com.jd.vearch:fresh-vearch:1.0'
+implementation 'com.jd.vearch:vearch-java:3.5.0'
 ```
 
 ## 配置

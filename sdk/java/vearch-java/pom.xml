@@ -6,7 +6,7 @@
 
     <groupId>com.jd.vearch</groupId>
     <artifactId>vearch-java</artifactId>
-    <version>1.0</version>
+    <version>3.5.0</version>
 
     <properties>
         <maven.compiler.source>8</maven.compiler.source>
