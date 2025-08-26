@@ -45,7 +45,7 @@ Vearch Java SDK 提供了与 Vearch 服务交互的简单方式，使开发者�
 <dependency>
     <groupId>com.jd.vearch</groupId>
     <artifactId>vearch-java</artifactId>
-    <version>1.0</version>
+    <version>3.5.0</version>
 </dependency>
 ```
 

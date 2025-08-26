@@ -34,12 +34,12 @@ Vearch 是一个云原生分布式向量数据库，用于在 AI 应用程序中
 
 ### SDK
 
-| SDK                                                 | 描述                |
-|-----------------------------------------------------|-------------------|
-| [**Python SDK**](sdk/python/README.md)              | Vearch的Python客户端  |
-| [**Go SDK**](sdk/go/README.md)                      | Vearch的Go客户端      |
-| [**Java SDK**](sdk/java/README.md)                  | Vearch的Java客户端（开发中） |
-| [**Rust SDK**](sdk/rust/vearch-sdk-rs/README_zh.md) | Vearch 的Rust客户端   |
+| SDK                                                 | 描述               |
+|-----------------------------------------------------|------------------|
+| [**Python SDK**](sdk/python/README.md)              | Vearch的Python客户端 |
+| [**Go SDK**](sdk/go/README.md)                      | Vearch的Go客户端     |
+| [**Java SDK**](sdk/java/README.md)                  | Vearch的Java客户端   |
+| [**Rust SDK**](sdk/rust/vearch-sdk-rs/README_zh.md) | Vearch 的Rust客户端  |
 
 ## 使用案例
 
