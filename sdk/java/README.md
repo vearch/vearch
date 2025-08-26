@@ -48,6 +48,113 @@ Vearch Java SDK 提供了与 Vearch 服务交互的简单方式，使开发者�
     <version>3.5.0</version>
 </dependency>
 ```
+在项目的 `application.properties` 文件中添加vearch配置信息：
+
+```java
+vearch.databaseName = database_name
+vearch.spaceName = space_name
+vearch.userName = root
+vearch.token = *************
+vearch.baseUrl = http://***-***-vearch.vearch.jd.com
+```
+代码使用示例：
+```java
+注入配置信息
+ @Test
+public void createDB(){
+        DatabaseClient databaseClient = new DatabaseOperation(baseUrl, userName, userToken);
+        databaseClient.createDatabase("data_base");
+        }
+@Test
+public void searchByFeature(){
+        RagDataClient ragDataClient = new RagDataOperation(baseUrl, userName, userToken, databaseName);
+        String query = "";
+        log.info("[Tool] rag query : {}", query);
+        float[] embedding = this.embeddingModel.embed(query);
+        List<Float> embeddingList = (List) IntStream.range(0, embedding.length).mapToObj((i) -> embedding[i]).collect(Collectors.toList());
+
+        // 向量参数
+        FeatureVectors featureVectors = new FeatureVectors();
+        // 向量对应字段
+        featureVectors.setField("embedding");
+        // 向量
+        featureVectors.setFeature(embeddingList);
+        // 模糊检索阈值
+        featureVectors.setMinScore(0.8);
+
+        // 检索参数
+        SearchParam searchParam = new SearchParam();
+
+        // 向量索引参数
+        SearchIndexParam searchIndexParam = new SearchIndexParam();
+        // 计算类型
+        searchIndexParam.setMetricType("L2");
+        // 图遍历距离
+        searchIndexParam.setEfSearch(64);
+        // 0:桶间并行搜索 1:搜索间并行
+        searchIndexParam.setParallelOnQueries(0);
+        // 召回数
+        searchIndexParam.setRecallNum(3);
+        // 搜索桶数
+        searchIndexParam.setNprobe(20);
+        searchParam.setSearchIndexParam(searchIndexParam);
+
+        // 返回字段参数 默认返回id和score，以下为附加字段
+        ArrayList<String> callBackFields = new ArrayList<>();
+        callBackFields.add("documentId");
+        callBackFields.add("content");
+        callBackFields.add("metadata");
+        searchParam.setFields(callBackFields);
+
+        // 返回结果个数，等于召回数
+        searchParam.setLimit(3);
+
+        // todo 当前数据量不够，先走全量检索
+        searchParam.setIsBruteSearch(1);
+
+        log.info("[Tool] SimilaritySearch searchMap : {}", searchParam);
+
+        try {
+        // todo 目前先走客服表，后续可以通过模型传入参数选择搜索哪张表
+        String vearchResult = ragDataClient.searchDocumentByFeatures(spaceName, featureVectors, searchParam);
+        ObjectMapper objectMapper = new ObjectMapper();
+        // 忽略未知字段
+        objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        // 忽略空对象序列化错误
+        objectMapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
+
+        VearchQueryResponse vearchQueryResponse = objectMapper.readValue(vearchResult, VearchQueryResponse.class);
+        if(vearchQueryResponse.getCode() != 0){
+        log.error("[Tool] Vearch Search Error : {}",vearchQueryResponse.getMsg());
+        return ;
+        }
+
+        if(vearchQueryResponse.getData() == null){
+        log.error("[Tool] Vearch Search Error Response not exist : {}", vearchQueryResponse);
+        return;
+        }
+
+        List<RagDocument> ragDocuments = new ArrayList<>();
+        if(CollectionUtils.isEmpty(vearchQueryResponse.getData().getDocuments())){
+        log.error("[Tool] Vearch Search Error Documents not exist : {}", vearchQueryResponse);
+        return;
+        }
+
+        // documentsList 是一个二维数组
+        for (RagDocument ragDocument : vearchQueryResponse.getData().getDocuments().get(0)) {
+        ragDocuments.add(ragDocument);
+        }
+
+        // 打印元数据日志
+        log.info("[Tool] doSimilaritySearch result : {}", ragDocuments);
+
+        List<String> searchResult = ragDocuments.stream().map( docx -> docx.getContent()).toList();
+        return ;
+        } catch (Exception e) {
+        log.error("[Tool] Error during similarity search: {}", e.getMessage());
+        }
+        }
+```
 
 ### Gradle
 
