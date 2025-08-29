@@ -27,8 +27,8 @@ class Index:
         self._index_type = index_type
         self._params = params
 
-    def __dict__(self):
-        d = {
+    def to_dict(self):
+        d: Dict[str, Any] = {
             "name": self._index_name,
             "type": self._index_type,
         }
@@ -37,7 +37,7 @@ class Index:
         return d
 
     def dict(self):
-        return self.__dict__()
+        return self.to_dict()
 
     @classmethod
     def from_dict(cls, index_data: Dict) -> Index:
@@ -79,6 +79,8 @@ class IvfPQIndex(Index):
         super().__init__(index_name, IndexType.IVFPQ, params)
 
     def nsubvector(self):
+        if self._params is None:
+            return None
         return self._params["nsubvector"]
 
 
@@ -88,7 +90,7 @@ class IvfFlatIndex(Index):
         index_name: str,
         metric_type: str,
         ncentroids: int,
-        training_threshold: int = None,
+        training_threshold: Optional[int] = None,
         nprobe: int = 80
     ):
         params = {
@@ -147,3 +149,27 @@ class GPUIvfPQIndex(Index):
             metric_type=metric_type, ncentroids=ncentroids, nsubvector=nsubvector, nprobe=nprobe
         )
         super().__init__(index_name, IndexType.GPU_IVFPQ, params)
+
+
+class GPUIvfFlatIndex(Index):
+    def __init__(
+        self,
+        index_name: str,
+        metric_type: str,
+        ncentroids: int,
+        training_threshold: Optional[int] = None,
+        bucket_init_size: int = 1000,
+        bucket_max_size: int = 1280000,
+        nprobe: int = 80
+    ):
+        params = {
+            "metric_type": metric_type,
+            "ncentroids": ncentroids,
+            "bucket_init_size": bucket_init_size,
+            "bucket_max_size": bucket_max_size,
+            "training_threshold": training_threshold
+            if training_threshold
+            else int(ncentroids * 39),
+            "nprobe": nprobe
+        }
+        super().__init__(index_name, IndexType.GPU_IVFFLAT, params)

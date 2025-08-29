@@ -42,47 +42,7 @@ namespace gpu {
 namespace {
 const int kMaxBatch = 200;  // max search batch num
 const int kMaxReqNum = 200;
-const char *kDelim = "\001";
 }  // namespace
-
-class GPUItem {
- public:
-  GPUItem(int n, const float *x, int k, float *dis, long *label, int nprobe)
-      : x_(x) {
-    n_ = n;
-    k_ = k;
-    dis_ = dis;
-    label_ = label;
-    nprobe_ = nprobe;
-    done_ = false;
-  }
-
-  void Notify() {
-    done_ = true;
-    cv_.notify_one();
-  }
-
-  int WaitForDone() {
-    std::unique_lock<std::mutex> lck(mtx_);
-    while (not done_) {
-      cv_.wait_for(lck, std::chrono::seconds(1),
-                   [this]() -> bool { return done_; });
-    }
-    return 0;
-  }
-
-  int n_;
-  const float *x_;
-  float *dis_;
-  int k_;
-  long *label_;
-  int nprobe_;
-
- private:
-  std::condition_variable cv_;
-  std::mutex mtx_;
-  bool done_;
-};
 
 struct IVFPQModelParams {
   int ncentroids;     // coarse cluster center number
@@ -185,9 +145,9 @@ struct IVFPQModelParams {
   }
 };
 
-REGISTER_INDEX(GPU, GammaIVFPQGPUIndex)
+REGISTER_INDEX(GPU_IVFPQ, GammaIVFPQGPUIndex)
 
-GammaIVFPQGPUIndex::GammaIVFPQGPUIndex() : IndexModel(), is_trained_(false) {}
+GammaIVFPQGPUIndex::GammaIVFPQGPUIndex() {}
 
 GammaIVFPQGPUIndex::~GammaIVFPQGPUIndex() {
   std::lock_guard<std::mutex> lock(indexing_mutex_);
@@ -489,10 +449,10 @@ int GammaIVFPQGPUIndex::GPUThread() {
 
   while (not b_exited_) {
     int size = 0;
-    GPUItem *items[kMaxBatch];
+    GPUSearchItem *items[kMaxBatch];
 
     while (size == 0 && not b_exited_) {
-      size = id_queue_.wait_dequeue_bulk_timed(items, kMaxBatch, 1000);
+      size = search_queue_.wait_dequeue_bulk_timed(items, kMaxBatch, 1000);
     }
 
     if (size > 1) {
@@ -520,7 +480,7 @@ int GammaIVFPQGPUIndex::GPUThread() {
               for (int j = 0; j < indexShards->count(); ++j) {
                 auto ivfpq = dynamic_cast<faiss::gpu::GpuIndexIVFPQ *>(
                     indexShards->at(j));
-                ivfpq->nprobe = nprobe_ids.first;
+                if (ivfpq != nullptr) ivfpq->nprobe = nprobe_ids.first;
               }
             }
           } else {
@@ -550,7 +510,7 @@ int GammaIVFPQGPUIndex::GPUThread() {
             for (int j = 0; j < indexShards->count(); ++j) {
               auto ivfpq =
                   dynamic_cast<faiss::gpu::GpuIndexIVFPQ *>(indexShards->at(j));
-              ivfpq->nprobe = items[0]->nprobe_;
+              if (ivfpq != nullptr) ivfpq->nprobe = items[0]->nprobe_;
             }
           }
         } else {
@@ -571,161 +531,21 @@ int GammaIVFPQGPUIndex::GPUThread() {
   return 0;
 }
 
-namespace {
-
-int ParseFilters(SearchCondition *condition,
-                 vector<enum DataType> &range_filter_types,
-                 vector<vector<string>> &all_term_items) {
-  for (size_t i = 0; i < condition->range_filters.size(); ++i) {
-    auto range = condition->range_filters[i];
-
-    enum DataType type;
-    if (condition->table->GetFieldType(range.field, type)) {
-      LOG(ERROR) << "Can't get " << range.field << " data type";
-      return -1;
-    }
-
-    if (type == DataType::STRING || type == DataType::STRINGARRAY) {
-      LOG(ERROR) << range.field << " can't be range filter";
-      return -1;
-    }
-    range_filter_types[i] = type;
-  }
-
-  for (size_t i = 0; i < condition->term_filters.size(); ++i) {
-    auto term = condition->term_filters[i];
-
-    enum DataType type;
-    if (condition->table->GetFieldType(term.field, type)) {
-      LOG(ERROR) << "Can't get " << term.field << " data type";
-      return -1;
-    }
-
-    if (type != DataType::STRING && type != DataType::STRINGARRAY) {
-      LOG(ERROR) << term.field << " can't be term filter";
-      return -1;
-    }
-
-    vector<string> term_items = utils::split(term.value, kDelim);
-    all_term_items[i] = term_items;
-  }
-  return 0;
-}
-
-template <class T>
-bool IsInRange(Table *table, RangeFilter &range, long docid) {
-  T value = 0;
-  std::string field_value;
-  int field_id = table->GetAttrIdx(range.field);
-  table->GetFieldRawValue(docid, field_id, field_value);
-  memcpy(&value, field_value.c_str(), sizeof(value));
-
-  T lower_value, upper_value;
-  memcpy(&lower_value, range.lower_value.c_str(), range.lower_value.size());
-  memcpy(&upper_value, range.upper_value.c_str(), range.upper_value.size());
-
-  if (range.include_lower != 0 && range.include_upper != 0) {
-    if (value >= lower_value && value <= upper_value) return true;
-  } else if (range.include_lower != 0 && range.include_upper == 0) {
-    if (value >= lower_value && value < upper_value) return true;
-  } else if (range.include_lower == 0 && range.include_upper != 0) {
-    if (value > lower_value && value <= upper_value) return true;
-  } else {
-    if (value > lower_value && value < upper_value) return true;
-  }
-  return false;
-}
-
-bool FilteredByRangeFilter(SearchCondition *condition,
-                           vector<enum DataType> &range_filter_types,
-                           long docid) {
-  for (size_t i = 0; i < condition->range_filters.size(); ++i) {
-    auto range = condition->range_filters[i];
-
-    if (range_filter_types[i] == DataType::INT) {
-      if (!IsInRange<int>(condition->table, range, docid)) return true;
-    } else if (range_filter_types[i] == DataType::LONG) {
-      if (!IsInRange<long>(condition->table, range, docid)) return true;
-    } else if (range_filter_types[i] == DataType::FLOAT) {
-      if (!IsInRange<float>(condition->table, range, docid)) return true;
-    } else {
-      if (!IsInRange<double>(condition->table, range, docid)) return true;
-    }
-  }
-  return false;
-}
-
-bool FilteredByTermFilter(SearchCondition *condition,
-                          vector<vector<string>> &all_term_items, long docid) {
-  for (size_t i = 0; i < condition->term_filters.size(); ++i) {
-    auto term = condition->term_filters[i];
-
-    std::string field_value;
-    int field_id = condition->table->GetAttrIdx(term.field);
-    condition->table->GetFieldRawValue(docid, field_id, field_value);
-    vector<string> field_items;
-    if (field_value.size() >= 0)
-      field_items = utils::split(field_value, kDelim);
-
-    bool all_in_field_items;
-    if (term.is_union == static_cast<int>(FilterOperator::Or))
-      all_in_field_items = false;
-    else
-      all_in_field_items = true;
-
-    for (auto term_item : all_term_items[i]) {
-      bool in_field_items = false;
-      for (size_t j = 0; j < field_items.size(); j++) {
-        if (term_item == field_items[j]) {
-          in_field_items = true;
-          break;
-        }
-      }
-      if (term.is_union == static_cast<int>(FilterOperator::Or))
-        all_in_field_items |= in_field_items;
-      else
-        all_in_field_items &= in_field_items;
-    }
-    if (!all_in_field_items) return true;
-  }
-  return false;
-};
-
-}  // namespace
-
 int GammaIVFPQGPUIndex::Search(RetrievalContext *retrieval_context, int n,
                                const uint8_t *x, int k, float *distances,
                                long *labels) {
-  if (gpu_threads_.size() == 0) {
-    LOG(ERROR) << "gpu index not indexed!";
-    return -1;
-  }
+  return CommonSearch(retrieval_context, n, x, k, distances, labels, nprobe_,
+                      nlist_, true);  // IVFPQ supports rerank
+}
 
-  if (n > kMaxReqNum) {
-    LOG(ERROR) << "req num [" << n << "] should not larger than [" << kMaxReqNum
-               << "]";
-    return -1;
-  }
+GPURetrievalParameters *GammaIVFPQGPUIndex::CreateDefaultRetrievalParams(
+    int default_nprobe) {
+  return new GPURetrievalParameters(metric_type_);
+}
 
-  GPURetrievalParameters *retrieval_params =
-      dynamic_cast<GPURetrievalParameters *>(
-          retrieval_context->RetrievalParams());
-  utils::ScopeDeleter1<GPURetrievalParameters> del_params;
-  if (retrieval_params == nullptr) {
-    retrieval_params = new GPURetrievalParameters(metric_type_);
-    del_params.set(retrieval_params);
-  }
-  const float *xq = reinterpret_cast<const float *>(x);
-  if (xq == nullptr) {
-    LOG(ERROR) << "search feature is null";
-    return -1;
-  }
-
-  RawVector *raw_vec = dynamic_cast<RawVector *>(vector_);
-  int raw_d = raw_vec->MetaInfo()->Dimension();
-  const float *vec_q = xq;
-  int recall_num = retrieval_params->RecallNum();
-  bool rerank = recall_num > 0 ? true : false;
+int GammaIVFPQGPUIndex::GetRecallNum(GPURetrievalParameters *params, int k,
+                                     bool enable_rerank) {
+  int recall_num = params->RecallNum();
 
   int max_recallnum = faiss::gpu::getMaxKSelection();
   if (recall_num > max_recallnum) {
@@ -737,188 +557,21 @@ int GammaIVFPQGPUIndex::Search(RetrievalContext *retrieval_context, int n,
     recall_num = k;
   }
 
-  int nprobe = this->nprobe_;
-  if (retrieval_params->Nprobe() > 0 &&
-      (size_t)retrieval_params->Nprobe() <= this->nlist_ &&
-      retrieval_params->Nprobe() <= max_recallnum) {
-    nprobe = retrieval_params->Nprobe();
+  return recall_num;
+}
+
+int GammaIVFPQGPUIndex::GetNprobe(GPURetrievalParameters *params,
+                                  int default_nprobe, size_t nlist) {
+  int max_recallnum = faiss::gpu::getMaxKSelection();
+
+  if (params->Nprobe() > 0 && (size_t)params->Nprobe() <= nlist &&
+      params->Nprobe() <= max_recallnum) {
+    return params->Nprobe();
   } else {
-    LOG(WARNING) << "Error nprobe for search, so using default value:"
-                 << this->nprobe_;
+    LOG(WARNING) << "Error nprobe for search, so using default value: "
+                 << default_nprobe;
+    return default_nprobe;
   }
-
-  vector<float> D(n * max_recallnum);
-  vector<long> I(n * max_recallnum);
-
-#ifdef PERFORMANCE_TESTING
-  if (retrieval_context->GetPerfTool()) {
-    retrieval_context->GetPerfTool()->Perf("GPUSearch prepare");
-  }
-#endif
-  GPUItem *item = new GPUItem(n, vec_q, recall_num, D.data(), I.data(), nprobe);
-
-  id_queue_.enqueue(item);
-
-  item->WaitForDone();
-
-  delete item;
-
-#ifdef PERFORMANCE_TESTING
-  if (retrieval_context->GetPerfTool()) {
-    retrieval_context->GetPerfTool()->Perf("GPU thread");
-  }
-#endif
-
-  bool right_filter = false;
-  SearchCondition *condition =
-      dynamic_cast<SearchCondition *>(retrieval_context);
-
-  vector<enum DataType> range_filter_types(condition->range_filters.size());
-
-  vector<vector<string>> all_term_items(condition->term_filters.size());
-
-  if (!ParseFilters(condition, range_filter_types, all_term_items)) {
-    right_filter = true;
-  }
-
-  // set filter
-  auto is_filterable = [&](long vid) -> bool {
-    int docid = vid;
-    return (retrieval_context->IsValid(vid) == false) ||
-           (right_filter &&
-            (FilteredByRangeFilter(condition, range_filter_types, docid) ||
-             FilteredByTermFilter(condition, all_term_items, docid)));
-  };
-
-  using HeapForIP = faiss::CMin<float, idx_t>;
-  using HeapForL2 = faiss::CMax<float, idx_t>;
-
-  auto init_result = [&](int topk, float *simi, idx_t *idxi) {
-    if (retrieval_params->GetDistanceComputeType() ==
-        DistanceComputeType::INNER_PRODUCT) {
-      faiss::heap_heapify<HeapForIP>(topk, simi, idxi);
-    } else {
-      faiss::heap_heapify<HeapForL2>(topk, simi, idxi);
-    }
-  };
-
-  auto reorder_result = [&](int topk, float *simi, idx_t *idxi) {
-    if (retrieval_params->GetDistanceComputeType() ==
-        DistanceComputeType::INNER_PRODUCT) {
-      faiss::heap_reorder<HeapForIP>(topk, simi, idxi);
-    } else {
-      faiss::heap_reorder<HeapForL2>(topk, simi, idxi);
-    }
-  };
-
-  std::function<void(std::vector<const uint8_t *>)> compute_vec;
-
-  if (rerank == true) {
-    compute_vec = [&](std::vector<const uint8_t *> vecs) {
-      for (int i = 0; i < n; ++i) {
-        const float *xi = xq + i * d_;  // query
-
-        float *simi = distances + i * k;
-        long *idxi = labels + i * k;
-        init_result(k, simi, idxi);
-
-        for (int j = 0; j < recall_num; ++j) {
-          long vid = I[i * recall_num + j];
-          if (vid < 0) {
-            continue;
-          }
-
-          if (is_filterable(vid) == true) {
-            continue;
-          }
-          const float *vec =
-              reinterpret_cast<const float *>(vecs[i * recall_num + j]);
-          float dist = -1;
-          if (retrieval_params->GetDistanceComputeType() ==
-              DistanceComputeType::INNER_PRODUCT) {
-            dist = faiss::fvec_inner_product(xi, vec, raw_d);
-          } else {
-            dist = faiss::fvec_L2sqr(xi, vec, raw_d);
-          }
-
-          if (retrieval_context->IsSimilarScoreValid(dist) == true) {
-            if (retrieval_params->GetDistanceComputeType() ==
-                DistanceComputeType::INNER_PRODUCT) {
-              if (HeapForIP::cmp(simi[0], dist)) {
-                faiss::heap_pop<HeapForIP>(k, simi, idxi);
-                faiss::heap_push<HeapForIP>(k, simi, idxi, dist, vid);
-              }
-            } else {
-              if (HeapForL2::cmp(simi[0], dist)) {
-                faiss::heap_pop<HeapForL2>(k, simi, idxi);
-                faiss::heap_push<HeapForL2>(k, simi, idxi, dist, vid);
-              }
-            }
-          }
-        }
-        reorder_result(k, simi, idxi);
-      }  // parallel
-    };
-  } else {
-    compute_vec = [&](std::vector<const uint8_t *> vecs) {
-      for (int i = 0; i < n; ++i) {
-        float *simi = distances + i * k;
-        long *idxi = labels + i * k;
-        int idx = 0;
-        memset(simi, -1, sizeof(float) * k);
-        memset(idxi, -1, sizeof(long) * k);
-
-        for (int j = 0; j < recall_num; ++j) {
-          long vid = I[i * recall_num + j];
-          if (vid < 0) {
-            continue;
-          }
-
-          if (is_filterable(vid) == true) {
-            continue;
-          }
-
-          float dist = D[i * recall_num + j];
-
-          if (retrieval_context->IsSimilarScoreValid(dist) == true) {
-            simi[idx] = dist;
-            idxi[idx] = vid;
-            idx++;
-          }
-          if (idx >= k) break;
-        }
-      }
-    };
-  }
-
-  std::function<void()> compute_dis;
-
-  if (rerank == true) {
-    // calculate inner product for selected possible vectors
-    compute_dis = [&]() {
-      RawVector *raw_vec = dynamic_cast<RawVector *>(vector_);
-      ScopeVectors scope_vecs;
-      if (raw_vec->Gets(I, scope_vecs)) {
-        LOG(ERROR) << "get raw vector error!";
-        return;
-      }
-      compute_vec(scope_vecs.Get());
-    };
-  } else {
-    compute_dis = [&]() {
-      std::vector<const uint8_t *> vecs;
-      compute_vec(vecs);
-    };
-  }
-
-  compute_dis();
-
-#ifdef PERFORMANCE_TESTING
-  if (retrieval_context->GetPerfTool()) {
-    retrieval_context->GetPerfTool()->Perf("reorder");
-  }
-#endif
-  return 0;
 }
 
 }  // namespace gpu

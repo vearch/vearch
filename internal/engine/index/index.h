@@ -73,9 +73,9 @@ class Index {
 };
 
 #ifdef OPT_IVFPQ_RELAYOUT
-class IndexIVFFlat : public x86GammaIndexIVFFlat, public Index {
+class IndexIVFFlat : public x86GammaIVFFlatIndex, public Index {
 #else
-class IndexIVFFlat : public GammaIndexIVFFlat, public Index {
+class IndexIVFFlat : public GammaIVFFlatIndex, public Index {
 #endif
  public:
   IndexIVFFlat(faiss::Index *quantizer, size_t d, size_t nlist,

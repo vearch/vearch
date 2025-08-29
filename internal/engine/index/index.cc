@@ -107,7 +107,7 @@ Status IndexIVFFlat::init(const std::string &index_param) {
 
   vector_ = raw_vector_;
 
-  Status status = GammaIndexIVFFlat::Init(this->index_param, 100000);
+  Status status = GammaIVFFlatIndex::Init(this->index_param, 100000);
   if (!status.ok()) {
     LOG(ERROR) << "gamma index init " << vec_name << " error!";
     return status;

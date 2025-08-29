@@ -25,6 +25,7 @@
 
 #include <vector>
 
+#include "index/impl/gamma_index_ivfflat.h"
 #include "index/impl/gamma_index_ivfpq.h"
 
 namespace vearch {
@@ -52,6 +53,8 @@ struct GammaToGpuCloner : faiss::Cloner, GpuClonerOptions {
                    const GpuClonerOptions &options);
 
   Index *clone_Index(const Index *index) override;
+  Index *clone_Index(const GammaIVFPQIndex *index);
+  Index *clone_Index(const GammaIVFFlatIndex *index);
 };
 
 /// Cloner specialized for CPU -> multiple GPUs
@@ -68,10 +71,17 @@ struct GammaToGpuClonerMultiple : faiss::Cloner, GpuMultipleClonerOptions {
   void copy_ivf_shard(const GammaIVFPQIndex *index_ivf, IndexIVF *idx2, long n,
                       long i);
 
+  void copy_ivf_shard(const GammaIVFFlatIndex *index_ivf, IndexIVF *idx2,
+                      long n, long i);
+
   Index *clone_Index_to_shards(const GammaIVFPQIndex *index);
+  Index *clone_Index_to_shards(const GammaIVFFlatIndex *index);
 
   /// main function
   Index *clone_Index(const GammaIVFPQIndex *index);
+
+  /// main function
+  Index *clone_Index(const GammaIVFFlatIndex *index);
 
   /// main function
   Index *clone_Index(const faiss::Index *index) { return nullptr; };
@@ -85,9 +95,19 @@ faiss::Index *gamma_index_cpu_to_gpu(StandardGpuResources *resources,
                                      int device, const GammaIVFPQIndex *index,
                                      const GpuClonerOptions *options = nullptr);
 
+/// converts any CPU index that can be converted to GPU
+faiss::Index *gamma_index_cpu_to_gpu(StandardGpuResources *resources,
+                                     int device, const GammaIVFFlatIndex *index,
+                                     const GpuClonerOptions *options = nullptr);
+
 faiss::Index *gamma_index_cpu_to_gpu_multiple(
     std::vector<StandardGpuResources *> &resources, std::vector<int> &devices,
     const GammaIVFPQIndex *index,
+    const GpuMultipleClonerOptions *options = nullptr);
+
+faiss::Index *gamma_index_cpu_to_gpu_multiple(
+    std::vector<StandardGpuResources *> &resources, std::vector<int> &devices,
+    const GammaIVFFlatIndex *index,
     const GpuMultipleClonerOptions *options = nullptr);
 
 }  // namespace gpu

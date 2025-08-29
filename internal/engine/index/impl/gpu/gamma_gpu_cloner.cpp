@@ -35,6 +35,9 @@
 
 #include <typeinfo>
 
+#include "index/impl/gamma_index_ivfflat.h"
+#include "index/impl/gamma_index_ivfpq.h"
+
 using faiss::IndexFlat;
 using faiss::IndexIVFFlat;
 using faiss::IndexIVFPQ;
@@ -171,8 +174,70 @@ Index *GammaToGpuCloner::clone_Index(const Index *index) {
   }
 }
 
+Index *GammaToGpuCloner::clone_Index(const GammaIVFFlatIndex *index) {
+  if (verbose)
+    printf(
+        "  GammaIVFFlatIndex size %ld -> GpuIndexIVFFlat "
+        "indicesOptions=%d useFloat16=%d reserveVecs=%ld\n",
+        index->ntotal, indicesOptions, useFloat16CoarseQuantizer, reserveVecs);
+
+  faiss::gpu::GpuIndexIVFFlatConfig config;
+  config.device = device;
+  config.indicesOptions = indicesOptions;
+  config.flatConfig.useFloat16 = useFloat16CoarseQuantizer;
+  config.flatConfig.storeTransposed = storeTransposed;
+
+  GpuIndexIVFFlat *res = new GpuIndexIVFFlat(resources, index, config);
+
+  if (reserveVecs > 0 && index->ntotal == 0) {
+    res->reserveMemory(reserveVecs);
+  }
+
+  return res;
+}
+
+Index *GammaToGpuCloner::clone_Index(const GammaIVFPQIndex *index) {
+  if (verbose)
+    printf(
+        "  GammaIVFPQIndex size %ld -> GpuIndexIVFPQ "
+        "indicesOptions=%d usePrecomputed=%d useFloat16=%d reserveVecs=%ld\n",
+        index->ntotal, indicesOptions, usePrecomputed, useFloat16, reserveVecs);
+
+  faiss::gpu::GpuIndexIVFPQConfig config;
+  config.device = device;
+  config.indicesOptions = indicesOptions;
+  config.flatConfig.useFloat16 = useFloat16CoarseQuantizer;
+  config.flatConfig.storeTransposed = storeTransposed;
+  config.useFloat16LookupTables = useFloat16;
+  config.usePrecomputedTables = usePrecomputed;
+
+  GpuIndexIVFPQ *res = new GpuIndexIVFPQ(resources, index, config);
+
+  if (reserveVecs > 0 && index->ntotal == 0) {
+    res->reserveMemory(reserveVecs);
+  }
+
+  return res;
+}
+
 faiss::Index *gamma_index_cpu_to_gpu(StandardGpuResources *resources,
                                      int device, const faiss::Index *index,
+                                     const GpuClonerOptions *options) {
+  GpuClonerOptions defaults;
+  GammaToGpuCloner cl(resources, device, options ? *options : defaults);
+  return cl.clone_Index(index);
+}
+
+faiss::Index *gamma_index_cpu_to_gpu(StandardGpuResources *resources,
+                                     int device, const GammaIVFFlatIndex *index,
+                                     const GpuClonerOptions *options) {
+  GpuClonerOptions defaults;
+  GammaToGpuCloner cl(resources, device, options ? *options : defaults);
+  return cl.clone_Index(index);
+}
+
+faiss::Index *gamma_index_cpu_to_gpu(StandardGpuResources *resources,
+                                     int device, const GammaIVFPQIndex *index,
                                      const GpuClonerOptions *options) {
   GpuClonerOptions defaults;
   GammaToGpuCloner cl(resources, device, options ? *options : defaults);
@@ -205,12 +270,14 @@ void GammaToGpuClonerMultiple::copy_ivf_shard(const GammaIVFPQIndex *index_ivf,
     long i1 = (i + 1) * index_ivf->ntotal / n;
 
     if (verbose) printf("IndexShards shard %ld indices %ld:%ld\n", i, i0, i1);
-    index_ivf->copy_subset_to(*idx2, shard_type, i0, i1);
+    index_ivf->copy_subset_to(
+        *idx2, (faiss::InvertedLists::subset_type_t)shard_type, i0, i1);
     FAISS_ASSERT(idx2->ntotal == i1 - i0);
   } else if (shard_type == faiss::InvertedLists::SUBSET_TYPE_ID_MOD) {
     if (verbose)
       printf("IndexShards shard %ld select modulo %ld = %ld\n", i, n, i);
-    index_ivf->copy_subset_to(*idx2, shard_type, n, i);
+    index_ivf->copy_subset_to(
+        *idx2, (faiss::InvertedLists::subset_type_t)shard_type, n, i);
   } else {
     FAISS_THROW_FMT("shard_type %d not implemented", shard_type);
   }
@@ -269,9 +336,87 @@ Index *GammaToGpuClonerMultiple::clone_Index(const GammaIVFPQIndex *index) {
   }
 }
 
+void GammaToGpuClonerMultiple::copy_ivf_shard(
+    const GammaIVFFlatIndex *index_ivf, IndexIVF *idx2, long n, long i) {
+  if (shard_type == faiss::InvertedLists::SUBSET_TYPE_ELEMENT_RANGE) {
+    long i0 = i * index_ivf->ntotal / n;
+    long i1 = (i + 1) * index_ivf->ntotal / n;
+
+    if (verbose) printf("IndexShards shard %ld indices %ld:%ld\n", i, i0, i1);
+    index_ivf->copy_subset_to(
+        *idx2, (faiss::InvertedLists::subset_type_t)shard_type, i0, i1);
+    FAISS_ASSERT(idx2->ntotal == i1 - i0);
+  } else if (shard_type == faiss::InvertedLists::SUBSET_TYPE_ID_MOD) {
+    if (verbose)
+      printf("IndexShards shard %ld select modulo %ld = %ld\n", i, n, i);
+    index_ivf->copy_subset_to(
+        *idx2, (faiss::InvertedLists::subset_type_t)shard_type, n, i);
+  } else {
+    FAISS_THROW_FMT("shard_type %d not implemented", shard_type);
+  }
+}
+
+Index *GammaToGpuClonerMultiple::clone_Index_to_shards(
+    const GammaIVFFlatIndex *index) {
+  long n = sub_cloners.size();
+
+  auto index_ivfflat = index;
+  std::vector<faiss::Index *> shards(n);
+
+  for (long i = 0; i < n; i++) {
+    // make a shallow copy
+    if (reserveVecs) sub_cloners[i].reserveVecs = (reserveVecs + n - 1) / n;
+
+    if (index_ivfflat) {
+      faiss::IndexIVFFlat idx2(index_ivfflat->quantizer, index_ivfflat->d,
+                               index_ivfflat->nlist,
+                               index_ivfflat->metric_type);
+      idx2.nprobe = index_ivfflat->nprobe;
+      idx2.is_trained = index->is_trained;
+      copy_ivf_shard(index_ivfflat, &idx2, n, i);
+      shards[i] = sub_cloners[i].clone_Index(&idx2);
+    }
+  }
+
+  bool successive_ids = false;
+  faiss::IndexShards *res =
+      new faiss::IndexShards(index->d, true, successive_ids);
+
+  for (int i = 0; i < n; i++) {
+    res->add_shard(shards[i]);
+  }
+  res->own_indices = true;
+  return res;
+}
+
+Index *GammaToGpuClonerMultiple::clone_Index(const GammaIVFFlatIndex *index) {
+  long n = sub_cloners.size();
+  if (n == 1) return sub_cloners[0].clone_Index(index);
+
+  if (!shard) {
+    IndexReplicas *res = new IndexReplicas();
+    for (auto &sub_cloner : sub_cloners) {
+      res->addIndex(sub_cloner.clone_Index(index));
+    }
+    res->own_indices = true;
+    return res;
+  } else {
+    return clone_Index_to_shards(index);
+  }
+}
+
 faiss::Index *gamma_index_cpu_to_gpu_multiple(
     std::vector<StandardGpuResources *> &resources, std::vector<int> &devices,
     const GammaIVFPQIndex *index, const GpuMultipleClonerOptions *options) {
+  GpuMultipleClonerOptions defaults;
+  GammaToGpuClonerMultiple cl(resources, devices,
+                              options ? *options : defaults);
+  return cl.clone_Index(index);
+}
+
+faiss::Index *gamma_index_cpu_to_gpu_multiple(
+    std::vector<StandardGpuResources *> &resources, std::vector<int> &devices,
+    const GammaIVFFlatIndex *index, const GpuMultipleClonerOptions *options) {
   GpuMultipleClonerOptions defaults;
   GammaToGpuClonerMultiple cl(resources, devices,
                               options ? *options : defaults);

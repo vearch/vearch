@@ -17,6 +17,7 @@ package entity
 import (
 	"encoding/json"
 	"fmt"
+	"slices"
 	"time"
 	"unicode"
 
@@ -241,7 +242,7 @@ func (index *Index) UnmarshalJSON(bs []byte) error {
 	}
 
 	indexTypeMap := map[string]string{"IVFPQ": "IVFPQ", "IVFFLAT": "IVFFLAT", "BINARYIVF": "BINARYIVF", "FLAT": "FLAT",
-		"HNSW": "HNSW", "GPU": "GPU", "SSG": "SSG", "IVFPQ_RELAYOUT": "IVFPQ_RELAYOUT", "SCANN": "SCANN", "SCALAR": "SCALAR"}
+		"HNSW": "HNSW", "GPU_IVFPQ": "GPU_IVFPQ", "GPU_IVFFLAT": "GPU_IVFFLAT", "SSG": "SSG", "IVFPQ_RELAYOUT": "IVFPQ_RELAYOUT", "SCANN": "SCANN", "SCALAR": "SCALAR"}
 	if tempIndex.Type == "" {
 		return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("index type is null"))
 	}
@@ -250,7 +251,7 @@ func (index *Index) UnmarshalJSON(bs []byte) error {
 		return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("index type not support: %s", tempIndex.Type))
 	}
 
-	if tempIndex.Params != nil && len(tempIndex.Params) != 0 {
+	if len(tempIndex.Params) != 0 {
 		var indexParams IndexParams
 		if err := json.Unmarshal(tempIndex.Params, &indexParams); err != nil {
 			return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("index params:%s json.Unmarshal err :[%s]", tempIndex.Params, err.Error()))
@@ -273,7 +274,7 @@ func (index *Index) UnmarshalJSON(bs []byte) error {
 			}
 		} else if tempIndex.Type == "FLAT" {
 
-		} else if tempIndex.Type == "BINARYIVF" || tempIndex.Type == "IVFFLAT" || tempIndex.Type == "IVFPQ" || tempIndex.Type == "GPU" {
+		} else if slices.Contains([]string{"BINARYIVF", "IVFFLAT", "IVFPQ", "GPU_IVFPQ", "GPU_IVFFLAT"}, tempIndex.Type) {
 			if indexParams.Ncentroids != 0 {
 				if indexParams.Ncentroids < MinNcentroids || indexParams.Ncentroids > MaxNcentroids {
 					return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("index params ncentroids:%d should in [%d, %d]", indexParams.Ncentroids, MinNcentroids, MaxNcentroids))

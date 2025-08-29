@@ -91,8 +91,8 @@ void CPPSetNprobe(void *engine, int nprobe, std::string index_type) {
       index->nprobe = nprobe;
     }
   } else if (index_type == "IVFFLAT") {
-    vearch::GammaIndexIVFFlat *index =
-        dynamic_cast<vearch::GammaIndexIVFFlat *>(index_model);
+    vearch::GammaIVFFlatIndex *index =
+        dynamic_cast<vearch::GammaIVFFlatIndex *>(index_model);
     if (index) {
       index->nprobe = nprobe;
     }

@@ -18,6 +18,7 @@ from vearch.schema.index import (
     BinaryIvfIndex,
     FlatIndex,
     GPUIvfPQIndex,
+    GPUIvfFlatIndex,
 )
 from vearch.filter import Filter, Condition, FieldValue, Conditions
 from vearch.exception import (

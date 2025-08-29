@@ -65,15 +65,15 @@ GammaIVFPQIndex::~GammaIVFPQIndex() {
 }
 
 faiss::InvertedListScanner *GammaIVFPQIndex::GetInvertedListScanner(
-    bool store_pairs,
-    const faiss::IDSelector* sel,
-    const RetrievalContext* retrieval_context,
-    faiss::MetricType metric_type,
+    bool store_pairs, const faiss::IDSelector *sel,
+    const RetrievalContext *retrieval_context, faiss::MetricType metric_type,
     size_t nbits) {
   if (sel) {
-    return get_GammaInvertedListScanner2<true>(*this, store_pairs, sel, retrieval_context, metric_type, nbits);
+    return get_GammaInvertedListScanner2<true>(
+        *this, store_pairs, sel, retrieval_context, metric_type, nbits);
   } else {
-    return get_GammaInvertedListScanner2<false>(*this, store_pairs, sel, retrieval_context, metric_type, nbits);
+    return get_GammaInvertedListScanner2<false>(
+        *this, store_pairs, sel, retrieval_context, metric_type, nbits);
   }
   return nullptr;
 }
@@ -344,7 +344,8 @@ int GammaIVFPQIndex::Indexing() {
 }
 
 static float *compute_residuals(const faiss::Index *quantizer, long n,
-                                const float *x, const idx_t *list_nos, idx_t nlist) {
+                                const float *x, const idx_t *list_nos,
+                                idx_t nlist) {
   size_t d = quantizer->d;
   float *residuals = new float[n * d];
   for (int i = 0; i < n; i++) {
@@ -412,8 +413,7 @@ int GammaIVFPQIndex::Update(const std::vector<int64_t> &ids,
   }
   updated_num_ += n_update;
   LOG(DEBUG) << "update index success! size=" << ids.size()
-             << ", n_update=" << n_update << ", updated_num="
-             << updated_num_;
+             << ", n_update=" << n_update << ", updated_num=" << updated_num_;
 
   // now check id need to do compaction
   rt_invert_index_ptr_->CompactIfNeed();
@@ -757,8 +757,8 @@ void GammaIVFPQIndex::search_preassigned(
 
 #pragma omp parallel if (do_parallel) reduction(+ : ndis)
   {
-    faiss::InvertedListScanner *scanner =
-        GetInvertedListScanner(store_pairs, nullptr, retrieval_context, metric_type, this->pq.nbits);
+    faiss::InvertedListScanner *scanner = GetInvertedListScanner(
+        store_pairs, nullptr, retrieval_context, metric_type, this->pq.nbits);
     utils::ScopeDeleter1<faiss::InvertedListScanner> del(scanner);
 
     if (parallel_mode == 0) {  // parallelize over queries
@@ -889,8 +889,9 @@ void GammaIVFPQIndex::search_preassigned(
 #endif
 }  // namespace vearch
 
-void GammaIVFPQIndex::copy_subset_to(faiss::IndexIVF &other, int subset_type,
-                                     idx_t a1, idx_t a2) const {
+void GammaIVFPQIndex::copy_subset_to(
+    faiss::IndexIVF &other, faiss::InvertedLists::subset_type_t subset_type,
+    idx_t a1, idx_t a2) const {
   using ScopedIds = faiss::InvertedLists::ScopedIds;
   using ScopedCodes = faiss::InvertedLists::ScopedCodes;
   FAISS_THROW_IF_NOT(nlist == other.nlist);

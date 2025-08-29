@@ -12,6 +12,7 @@
 #include "concurrentqueue/blockingconcurrentqueue.h"
 #include "faiss/Index.h"
 #include "gamma_gpu_cloner.h"
+#include "gamma_gpu_search_base.h"
 #include "index/impl/gamma_index_ivfpq.h"
 #include "index/index_model.h"
 #include "table/field_range_index.h"
@@ -22,25 +23,19 @@
 namespace vearch {
 namespace gpu {
 
-class GPUItem;
-
-class GPURetrievalParameters : public RetrievalParameters {
+class GPURetrievalParameters : public GPURetrievalParametersBase {
  public:
-  GPURetrievalParameters() : RetrievalParameters() {
-    recall_num_ = 100;
-    nprobe_ = 80;
-  }
+  GPURetrievalParameters() : GPURetrievalParametersBase() { recall_num_ = 100; }
 
   GPURetrievalParameters(size_t recall_num, size_t nprobe,
-                         DistanceComputeType type) {
+                         DistanceComputeType type)
+      : GPURetrievalParametersBase(nprobe, type) {
     recall_num_ = recall_num;
-    nprobe_ = nprobe;
-    distance_compute_type_ = type;
   }
 
-  GPURetrievalParameters(DistanceComputeType type) {
+  GPURetrievalParameters(DistanceComputeType type)
+      : GPURetrievalParametersBase() {
     recall_num_ = 100;
-    nprobe_ = 80;
     distance_compute_type_ = type;
   }
 
@@ -48,27 +43,26 @@ class GPURetrievalParameters : public RetrievalParameters {
 
   int RecallNum() { return recall_num_; }
   void SetRecallNum(int recall_num) { recall_num_ = recall_num; }
-  int Nprobe() { return nprobe_; }
-  void SetNprobe(int nprobe) { nprobe_ = nprobe; }
 
  protected:
   int recall_num_;
-  int nprobe_;
 };
 
-class GammaIVFPQGPUIndex : public IndexModel {
+class GammaIVFPQGPUIndex
+    : public GammaGPUSearchBase<GammaIVFPQIndex, GPURetrievalParameters> {
  public:
   GammaIVFPQGPUIndex();
 
   virtual ~GammaIVFPQGPUIndex();
 
-  Status Init(const std::string &model_parameters, int training_threshold);
+  Status Init(const std::string &model_parameters,
+              int training_threshold) override;
 
-  RetrievalParameters *Parse(const std::string &parameters);
+  RetrievalParameters *Parse(const std::string &parameters) override;
 
   int Indexing() override;
 
-  int AddRTVecsToIndex();
+  int AddRTVecsToIndex() override;
 
   bool Add(int n, const uint8_t *vec) override;
 
@@ -85,33 +79,23 @@ class GammaIVFPQGPUIndex : public IndexModel {
   Status Dump(const std::string &dir) override;
   Status Load(const std::string &index_dir, int64_t &load_num) override;
 
+ protected:
+  // Implement abstract methods from GammaGPUIndexBase
+  faiss::Index *CreateGPUIndex() override;
+  int CreateSearchThread() override;
+  int GPUThread() override;
+
+  // Implement abstract methods from GammaGPUSearchBase
+  GPURetrievalParameters *CreateDefaultRetrievalParams(
+      int default_nprobe) override;
+  int GetRecallNum(GPURetrievalParameters *params, int k,
+                   bool enable_rerank) override;
+  int GetNprobe(GPURetrievalParameters *params, int default_nprobe,
+                size_t nlist) override;
+
  private:
-  int GPUThread();
-
-  faiss::Index *CreateGPUIndex();
-
-  int CreateSearchThread();
-
   size_t nlist_;
   int nprobe_;
-
-  moodycamel::BlockingConcurrentQueue<GPUItem *> id_queue_;
-
-  faiss::Index *gpu_index_;
-  GammaIVFPQIndex *cpu_index_;
-
-  std::vector<faiss::gpu::StandardGpuResources *> resources_;
-  std::vector<std::thread> gpu_threads_;
-
-  bool b_exited_;
-
-  bool is_trained_;
-
-  int d_;
-  DistanceComputeType metric_type_;
-  std::mutex cpu_mutex_;
-  std::mutex indexing_mutex_;
-  std::shared_mutex gpu_index_mutex_;
 };
 
 }  // namespace gpu

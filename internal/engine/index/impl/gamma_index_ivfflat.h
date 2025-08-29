@@ -21,12 +21,12 @@
 #pragma once
 
 #include <faiss/IndexIVFFlat.h>
-#include <faiss/utils/distances.h>
 #include <faiss/MetricType.h>
+#include <faiss/utils/distances.h>
 
+#include "gamma_index_flat.h"
 #include "index/realtime/realtime_invert_index.h"
 #include "util/status.h"
-#include "gamma_index_flat.h"
 
 namespace vearch {
 
@@ -35,12 +35,14 @@ using idx_t = faiss::idx_t;
 template <faiss::MetricType metric, class C, bool use_sel>
 struct GammaIVFFlatScanner : faiss::InvertedListScanner {
   size_t d;
-  const RetrievalContext* retrieval_context_;
-  GammaIVFFlatScanner(size_t d, bool store_pairs, const faiss::IDSelector* sel, 
-    const RetrievalContext* retrieval_context) : 
-    InvertedListScanner(store_pairs, sel), d(d), retrieval_context_(retrieval_context) {
-      keep_max = is_similarity_metric(metric);
-    }
+  const RetrievalContext *retrieval_context_;
+  GammaIVFFlatScanner(size_t d, bool store_pairs, const faiss::IDSelector *sel,
+                      const RetrievalContext *retrieval_context)
+      : InvertedListScanner(store_pairs, sel),
+        d(d),
+        retrieval_context_(retrieval_context) {
+    keep_max = is_similarity_metric(metric);
+  }
 
   const float *xi;
   void set_query(const float *query) override { this->xi = query; }
@@ -75,7 +77,7 @@ struct GammaIVFFlatScanner : faiss::InvertedListScanner {
                       ? faiss::fvec_inner_product(xi, yj, d)
                       : faiss::fvec_L2sqr(xi, yj, d);
       if (retrieval_context_->IsSimilarScoreValid(dis) &&
-        C::cmp(simi[0], dis)) {
+          C::cmp(simi[0], dis)) {
         int64_t id = store_pairs ? faiss::lo_build(list_no, j) : ids[j];
         faiss::heap_replace_top<C>(k, simi, idxi, dis, id);
         nup++;
@@ -86,23 +88,21 @@ struct GammaIVFFlatScanner : faiss::InvertedListScanner {
 };
 
 template <bool use_sel>
-faiss::InvertedListScanner* get_InvertedListScanner1(
-        const faiss::IndexIVFFlat* ivf,
-        bool store_pairs,
-        const faiss::IDSelector* sel,
-        const RetrievalContext* retrieval_context,
-        faiss::MetricType metric_type) {
-    if (metric_type == faiss::METRIC_INNER_PRODUCT) {
-        return new GammaIVFFlatScanner<
-                faiss::METRIC_INNER_PRODUCT,
-                faiss::CMin<float, int64_t>,
-                use_sel>(ivf->d, store_pairs, sel, retrieval_context);
-    } else if (metric_type == faiss::METRIC_L2) {
-        return new GammaIVFFlatScanner<faiss::METRIC_L2, faiss::CMax<float, int64_t>, use_sel>(
-                ivf->d, store_pairs, sel, retrieval_context);
-    } else {
-        FAISS_THROW_MSG("metric type not supported");
-    }
+faiss::InvertedListScanner *get_InvertedListScanner1(
+    const faiss::IndexIVFFlat *ivf, bool store_pairs,
+    const faiss::IDSelector *sel, const RetrievalContext *retrieval_context,
+    faiss::MetricType metric_type) {
+  if (metric_type == faiss::METRIC_INNER_PRODUCT) {
+    return new GammaIVFFlatScanner<faiss::METRIC_INNER_PRODUCT,
+                                   faiss::CMin<float, int64_t>, use_sel>(
+        ivf->d, store_pairs, sel, retrieval_context);
+  } else if (metric_type == faiss::METRIC_L2) {
+    return new GammaIVFFlatScanner<faiss::METRIC_L2,
+                                   faiss::CMax<float, int64_t>, use_sel>(
+        ivf->d, store_pairs, sel, retrieval_context);
+  } else {
+    FAISS_THROW_MSG("metric type not supported");
+  }
 }
 
 class IVFFlatRetrievalParameters : public RetrievalParameters {
@@ -144,9 +144,9 @@ class IVFFlatRetrievalParameters : public RetrievalParameters {
   int nprobe_;
 };
 
-struct GammaIndexIVFFlat : faiss::IndexIVFFlat, public GammaFLATIndex {
-  GammaIndexIVFFlat();
-  virtual ~GammaIndexIVFFlat();
+struct GammaIVFFlatIndex : faiss::IndexIVFFlat, public GammaFLATIndex {
+  GammaIVFFlatIndex();
+  virtual ~GammaIVFFlatIndex();
 
   void search_preassigned(RetrievalContext *retrieval_context, idx_t n,
                           const float *x, int k, const idx_t *keys,
@@ -177,12 +177,13 @@ struct GammaIndexIVFFlat : faiss::IndexIVFFlat, public GammaFLATIndex {
 
   void Describe() override;
 
+  int GetIndexedVecCount() const { return indexed_vec_count_; }
+
  private:
   faiss::InvertedListScanner *GetGammaInvertedListScanner(
-    bool store_pairs,
-    const faiss::IDSelector* sel,
-    const RetrievalContext * retrieval_context,
-    faiss::MetricType metric_type) const;
+      bool store_pairs, const faiss::IDSelector *sel,
+      const RetrievalContext *retrieval_context,
+      faiss::MetricType metric_type) const;
 
  protected:
   int indexed_vec_count_;

@@ -143,9 +143,9 @@ struct IVFFlatModelParams {
   }
 };
 
-REGISTER_INDEX(IVFFLAT, GammaIndexIVFFlat);
+REGISTER_INDEX(IVFFLAT, GammaIVFFlatIndex);
 
-GammaIndexIVFFlat::GammaIndexIVFFlat() {
+GammaIVFFlatIndex::GammaIVFFlatIndex() {
   indexed_vec_count_ = 0;
   updated_num_ = 0;
   rt_invert_index_ptr_ = nullptr;
@@ -154,13 +154,13 @@ GammaIndexIVFFlat::GammaIndexIVFFlat() {
 #endif
 }
 
-GammaIndexIVFFlat::~GammaIndexIVFFlat() {
+GammaIVFFlatIndex::~GammaIVFFlatIndex() {
   CHECK_DELETE(rt_invert_index_ptr_);
   CHECK_DELETE(invlists);
   CHECK_DELETE(quantizer);
 }
 
-Status GammaIndexIVFFlat::Init(const std::string &model_parameters,
+Status GammaIVFFlatIndex::Init(const std::string &model_parameters,
                                int training_threshold) {
   IVFFlatModelParams params;
   if (model_parameters != "") {
@@ -226,7 +226,7 @@ Status GammaIndexIVFFlat::Init(const std::string &model_parameters,
   return Status::OK();
 }
 
-RetrievalParameters *GammaIndexIVFFlat::Parse(const std::string &parameters) {
+RetrievalParameters *GammaIVFFlatIndex::Parse(const std::string &parameters) {
   if (parameters == "") {
     return new IVFFlatRetrievalParameters(this->nprobe, metric_type_);
   }
@@ -275,9 +275,9 @@ RetrievalParameters *GammaIndexIVFFlat::Parse(const std::string &parameters) {
   return retrieval_params;
 }
 
-int GammaIndexIVFFlat::Indexing() {
+int GammaIVFFlatIndex::Indexing() {
   if (this->is_trained) {
-    LOG(INFO) << "gamma GammaIndexIVFFlat is already trained, skip indexing";
+    LOG(INFO) << "gamma GammaIVFFlatIndex is already trained, skip indexing";
     return 0;
   }
   RawVector *raw_vec = dynamic_cast<RawVector *>(vector_);
@@ -345,7 +345,7 @@ int GammaIndexIVFFlat::Indexing() {
   return 0;
 }
 
-bool GammaIndexIVFFlat::Add(int n, const uint8_t *vec) {
+bool GammaIVFFlatIndex::Add(int n, const uint8_t *vec) {
 #ifdef PERFORMANCE_TESTING
   double t0 = faiss::getmillisecs();
 #endif
@@ -408,11 +408,11 @@ bool GammaIndexIVFFlat::Add(int n, const uint8_t *vec) {
   return true;
 }
 
-void GammaIndexIVFFlat::Describe() {
+void GammaIVFFlatIndex::Describe() {
   if (rt_invert_index_ptr_) rt_invert_index_ptr_->PrintBucketSize();
 }
 
-int GammaIndexIVFFlat::Update(const std::vector<int64_t> &ids,
+int GammaIVFFlatIndex::Update(const std::vector<int64_t> &ids,
                               const std::vector<const uint8_t *> &vecs) {
   if (not is_trained) {
     return 0;
@@ -447,7 +447,7 @@ int GammaIndexIVFFlat::Update(const std::vector<int64_t> &ids,
   return 0;
 }
 
-int GammaIndexIVFFlat::Delete(const std::vector<int64_t> &ids) {
+int GammaIVFFlatIndex::Delete(const std::vector<int64_t> &ids) {
   if (not is_trained) {
     return 0;
   }
@@ -456,7 +456,7 @@ int GammaIndexIVFFlat::Delete(const std::vector<int64_t> &ids) {
   return 0;
 }
 
-int GammaIndexIVFFlat::Search(RetrievalContext *retrieval_context, int n,
+int GammaIVFFlatIndex::Search(RetrievalContext *retrieval_context, int n,
                               const uint8_t *rx, int k, float *distances,
                               idx_t *labels) {
 #ifndef FAISSLIKE_INDEX
@@ -508,7 +508,7 @@ int GammaIndexIVFFlat::Search(RetrievalContext *retrieval_context, int n,
   return 0;
 }
 
-void GammaIndexIVFFlat::search_preassigned(RetrievalContext *retrieval_context,
+void GammaIVFFlatIndex::search_preassigned(RetrievalContext *retrieval_context,
                                            idx_t n, const float *x, int k,
                                            const idx_t *keys,
                                            const float *coarse_dis,
@@ -706,7 +706,7 @@ std::string IVFFlatToString(const faiss::IndexIVFFlat *ivfl) {
   return ss.str();
 }
 
-Status GammaIndexIVFFlat::Dump(const std::string &dir) {
+Status GammaIVFFlatIndex::Dump(const std::string &dir) {
   if (!this->is_trained) {
     LOG(INFO) << "gamma index is not trained, skip dumping";
     return Status::OK();
@@ -741,7 +741,7 @@ Status GammaIndexIVFFlat::Dump(const std::string &dir) {
   return Status::OK();
 };
 
-Status GammaIndexIVFFlat::Load(const std::string &dir, int64_t &load_num) {
+Status GammaIVFFlatIndex::Load(const std::string &dir, int64_t &load_num) {
   std::string index_name = vector_->MetaInfo()->AbsoluteName();
   std::string index_file = dir + "/" + index_name + "/ivfflat.index";
   if (!utils::file_exist(index_file)) {
@@ -786,7 +786,7 @@ Status GammaIndexIVFFlat::Load(const std::string &dir, int64_t &load_num) {
   return Status::OK();
 };
 
-faiss::InvertedListScanner *GammaIndexIVFFlat::GetGammaInvertedListScanner(
+faiss::InvertedListScanner *GammaIVFFlatIndex::GetGammaInvertedListScanner(
   bool store_pairs,
   const faiss::IDSelector* sel,
   const RetrievalContext* retrieval_context,
