@@ -47,7 +47,7 @@ func (s *DBService) CreateDB(ctx context.Context, db *entity.DB) (err error) {
 			return err
 		}
 		if len(bytesArr) >= 1 {
-			return fmt.Errorf("db num is limited to one and already have one db exists")
+			return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("db num is limited to one and already have one db exists"))
 		}
 	}
 
@@ -80,11 +80,11 @@ func (s *DBService) CreateDB(ctx context.Context, db *entity.DB) (err error) {
 		idKey, nameKey, bodyKey := mc.DBKeys(db.Id, db.Name)
 
 		if stm.Get(nameKey) != "" {
-			return fmt.Errorf("dbname %s is exists", db.Name)
+			return vearchpb.NewError(vearchpb.ErrorEnum_DB_EXIST, fmt.Errorf("dbname %s already exists", db.Name))
 		}
 
 		if stm.Get(idKey) != "" {
-			return fmt.Errorf("dbID %d is exists", db.Id)
+			return vearchpb.NewError(vearchpb.ErrorEnum_DB_EXIST, fmt.Errorf("dbID %d already exists", db.Id))
 		}
 		value, err := json.Marshal(db)
 		if err != nil {

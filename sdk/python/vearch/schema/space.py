@@ -45,7 +45,7 @@ class SpaceSchema:
                         field.dim % field.index.nsubvector() == 0
                     ), "IVFPQIndex vector dimention must be power of nsubvector"
 
-    def __dict__(self):
+    def to_dict(self):
         space_schema = {
             "name": self.name,
             "desc": self.description,
@@ -53,11 +53,11 @@ class SpaceSchema:
             "replica_num": self.replica_num,
         }
 
-        space_schema["fields"] = [field.__dict__() for field in self.fields]
+        space_schema["fields"] = [field.dict() for field in self.fields]
         return space_schema
 
     def dict(self):
-        return self.__dict__()
+        return self.to_dict()
 
     @classmethod
     def from_dict(cls, data_dict):

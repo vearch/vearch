@@ -26,6 +26,7 @@
 #include "cjson/cJSON.h"
 #include "common/gamma_common_data.h"
 #ifdef BUILD_WITH_GPU
+#include "index/impl/gpu/gamma_index_ivfflat_gpu.h"
 #include "index/impl/gpu/gamma_index_ivfpq_gpu.h"
 #endif
 #include "omp.h"
@@ -911,6 +912,11 @@ int Engine::BuildIndex() {
         LOG(INFO) << space_name_ << " index [" << name
                   << "] is a GammaIVFPQGPUIndex";
         dynamic_cast<gpu::GammaIVFPQGPUIndex *>(index)->Indexing();
+        return 0;
+      } else if (dynamic_cast<gpu::GammaIVFFlatGPUIndex *>(index)) {
+        LOG(INFO) << space_name_ << " index [" << name
+                  << "] is a GammaIVFFlatGPUIndex";
+        dynamic_cast<gpu::GammaIVFFlatGPUIndex *>(index)->Indexing();
         return 0;
       }
     }

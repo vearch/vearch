@@ -60,6 +60,33 @@ type clusterAPI struct {
 	server        *Server
 }
 
+// handleError handles different types of errors and returns appropriate HTTP responses
+func (ca *clusterAPI) handleError(c *gin.Context, err error) {
+	if err == nil {
+		return
+	}
+
+	// Check if it's a VearchErr and handle specific error types
+	if vErr, ok := err.(*vearchpb.VearchErr); ok {
+		switch vErr.GetError().Code {
+		case vearchpb.ErrorEnum_DB_EXIST, vearchpb.ErrorEnum_SPACE_EXIST, vearchpb.ErrorEnum_ALIAS_EXIST,
+			vearchpb.ErrorEnum_USER_EXIST, vearchpb.ErrorEnum_ROLE_EXIST:
+			response.New(c).JsonError(errors.NewErrUnprocessable(err))
+		case vearchpb.ErrorEnum_DB_NOT_EXIST, vearchpb.ErrorEnum_SPACE_NOT_EXIST, vearchpb.ErrorEnum_ALIAS_NOT_EXIST,
+			vearchpb.ErrorEnum_USER_NOT_EXIST, vearchpb.ErrorEnum_ROLE_NOT_EXIST, vearchpb.ErrorEnum_PARTITION_SERVER_NOT_EXIST:
+			response.New(c).JsonError(errors.NewErrNotFound(err))
+		case vearchpb.ErrorEnum_PARAM_ERROR, vearchpb.ErrorEnum_CONFIG_ERROR:
+			response.New(c).JsonError(errors.NewErrBadRequest(err))
+		case vearchpb.ErrorEnum_AUTHENTICATION_FAILED:
+			response.New(c).JsonError(errors.NewErrUnauthorized(err))
+		default:
+			response.New(c).JsonError(errors.NewErrInternal(err))
+		}
+	} else {
+		response.New(c).JsonError(errors.NewErrInternal(err))
+	}
+}
+
 func BasicAuthMiddleware(masterService *masterService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
@@ -420,7 +447,7 @@ func (ca *clusterAPI) createDB(c *gin.Context) {
 	log.Debug("create db: %s", db.Name)
 
 	if err := ca.masterService.DB().CreateDB(c, db); err != nil {
-		response.New(c).JsonError(errors.NewErrInternal(err))
+		ca.handleError(c, err)
 	} else {
 		response.New(c).JsonSuccess(db)
 	}
@@ -431,7 +458,7 @@ func (ca *clusterAPI) deleteDB(c *gin.Context) {
 	db := c.Param(dbName)
 
 	if err := ca.masterService.DB().DeleteDB(c, db); err != nil {
-		response.New(c).JsonError(errors.NewErrInternal(err))
+		ca.handleError(c, err)
 	} else {
 		response.New(c).SuccessDelete()
 	}
@@ -441,13 +468,13 @@ func (ca *clusterAPI) getDB(c *gin.Context) {
 	db := c.Param(dbName)
 	if db == "" {
 		if dbs, err := ca.masterService.DB().QueryDBs(c); err != nil {
-			response.New(c).JsonError(errors.NewErrNotFound(err))
+			ca.handleError(c, err)
 		} else {
 			response.New(c).JsonSuccess(dbs)
 		}
 	} else {
 		if db, err := ca.masterService.DB().QueryDB(c, db); err != nil {
-			response.New(c).JsonError(errors.NewErrNotFound(err))
+			ca.handleError(c, err)
 		} else {
 			response.New(c).JsonSuccess(db)
 		}
@@ -461,7 +488,7 @@ func (ca *clusterAPI) modifyDB(c *gin.Context) {
 		return
 	}
 	if db, err := ca.masterService.DB().UpdateDBIpList(c.Request.Context(), dbModify); err != nil {
-		response.New(c).JsonError(errors.NewErrInternal(err))
+		ca.handleError(c, err)
 	} else {
 		response.New(c).JsonSuccess(db)
 	}
@@ -510,14 +537,14 @@ func (ca *clusterAPI) createSpace(c *gin.Context) {
 
 	if err := ca.masterService.Space().CreateSpace(c, ca.masterService.DB(), dbName, space); err != nil {
 		log.Error("createSpace err: %v", err)
-		response.New(c).JsonError(errors.NewErrInternal(err))
+		ca.handleError(c, err)
 		return
 	}
 
 	cfg, err := ca.masterService.Config().GetSpaceConfigByName(c, dbName, space.Name)
 	if err != nil {
 		log.Error("get engine config err: %s", err.Error())
-		response.New(c).JsonError(errors.NewErrInternal(err))
+		ca.handleError(c, err)
 		return
 	}
 	cfg.Id = space.Id
@@ -525,7 +552,7 @@ func (ca *clusterAPI) createSpace(c *gin.Context) {
 	err = ca.masterService.Config().UpdateSpaceConfig(c, space, cfg)
 	if err != nil {
 		log.Error("update engine config err: %s", err.Error())
-		response.New(c).JsonError(errors.NewErrInternal(err))
+		ca.handleError(c, err)
 		return
 	}
 	response.New(c).JsonSuccess(space)

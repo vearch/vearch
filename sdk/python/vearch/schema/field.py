@@ -46,18 +46,18 @@ class Field:
             self.array = self._extra.get("array", False)
         assert name_valid_check(
             self.name
-        ), "field name must match ^([a-zA-Z]+)([a-z0-9A-Z]*[\-\_]{0,1}[a-z0-9A-Z]+)+"
+        ), r"field name must match ^([a-zA-Z]+)([a-z0-9A-Z]*[\-\_]{0,1}[a-z0-9A-Z]+)+"
 
-    def __dict__(self):
+    def to_dict(self):
         field_dict = {"name": self.name, "type": self.data_type, "desc": self.desc}
         if self.data_type == DataType.VECTOR:
             field_dict["dimension"] = self.dim
         if self.index:
-            field_dict["index"] = self.index.__dict__()
+            field_dict["index"] = self.index.dict()
         return field_dict
 
     def dict(self):
-        return self.__dict__()
+        return self.to_dict()
 
     @classmethod
     def from_dict(cls, field_data) -> Field:
