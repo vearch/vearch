@@ -66,7 +66,7 @@ class Field:
 
         name = field_data.pop("name")
         data_type = field_data.pop("type")
-        describe = field_data.pop("desc")
+        describe = field_data.pop("desc", "")
         return Field(
             name=name, data_type=data_type, index=index, desc=describe, **field_data
         )

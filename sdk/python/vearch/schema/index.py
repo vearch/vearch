@@ -143,10 +143,17 @@ class GPUIvfPQIndex(Index):
         metric_type: str,
         ncentroids: int,
         nsubvector: int,
+        training_threshold: Optional[int] = None,
         nprobe: int = 80
     ):
         params = dict(
-            metric_type=metric_type, ncentroids=ncentroids, nsubvector=nsubvector, nprobe=nprobe
+            metric_type=metric_type,
+            ncentroids=ncentroids,
+            nsubvector=nsubvector,
+            nprobe=nprobe,
+            training_threshold=training_threshold
+            if training_threshold
+            else int(ncentroids * 39),
         )
         super().__init__(index_name, IndexType.GPU_IVFPQ, params)
 
