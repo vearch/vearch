@@ -56,8 +56,9 @@ int StorageManager::SetSize(int64_t size) {
 
 Status StorageManager::SetVectorIndexCount(int64_t vector_index_count) {
   std::string key_str = "_vector_index_count";
-  rocksdb::Status s = db_->Put(rocksdb::WriteOptions(), rocksdb::Slice(key_str),
-                               rocksdb::Slice(std::to_string(vector_index_count)));
+  rocksdb::Status s =
+      db_->Put(rocksdb::WriteOptions(), rocksdb::Slice(key_str),
+               rocksdb::Slice(std::to_string(vector_index_count)));
   if (!s.ok()) {
     LOG(ERROR) << "rocksdb put error:" << s.ToString() << ", key=" << key_str;
     return Status::IOError(s.ToString());
@@ -69,8 +70,8 @@ Status StorageManager::SetVectorIndexCount(int64_t vector_index_count) {
 void StorageManager::GetVectorIndexCount(int64_t &vector_index_count) {
   std::string key_str = "_vector_index_count";
   std::string value;
-  rocksdb::Status s = db_->Get(rocksdb::ReadOptions(), rocksdb::Slice(key_str),
-                               &value);
+  rocksdb::Status s =
+      db_->Get(rocksdb::ReadOptions(), rocksdb::Slice(key_str), &value);
   if (s.ok()) {
     vector_index_count = std::stoll(value);
   } else if (s.IsNotFound()) {
@@ -303,6 +304,20 @@ Status StorageManager::Delete(int cf_id, const std::string &key) {
   rocksdb::Status s = db_->Delete(write_options, cf_handles_[cf_id], key);
   if (!s.ok()) {
     LOG(ERROR) << "delelte rocksdb failed: " << key << " " << s.ToString();
+    return Status::IOError(s.ToString());
+  }
+  return Status::OK();
+}
+
+Status StorageManager::DeleteString(int cf_id, int64_t id,
+                                    std::string field_name) {
+  std::string key_str = utils::ToRowKey(id);
+  key_str = field_name + ":" + key_str;
+
+  rocksdb::WriteOptions write_options;
+  rocksdb::Status s = db_->Delete(write_options, cf_handles_[cf_id], key_str);
+  if (!s.ok()) {
+    LOG(ERROR) << "delelte rocksdb failed: " << key_str << " " << s.ToString();
     return Status::IOError(s.ToString());
   }
   return Status::OK();

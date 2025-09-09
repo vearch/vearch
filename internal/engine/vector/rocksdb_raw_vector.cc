@@ -114,7 +114,8 @@ int RocksDBRawVector::Gets(const std::vector<int64_t> &vids,
   std::vector<rocksdb::Status> statuses =
       storage_mgr_->MultiGet(cf_id_, vids, values);
   if (statuses.size() != k) {
-    LOG(ERROR) << desc_ << "rocksdb multiget error: statuses size=" << statuses.size()
+    LOG(ERROR) << desc_
+               << "rocksdb multiget error: statuses size=" << statuses.size()
                << ", vids size=" << k;
     return 1;
   }
@@ -133,7 +134,7 @@ int RocksDBRawVector::Gets(const std::vector<int64_t> &vids,
       LOG(ERROR) << desc_ << "rocksdb multiget error: invalid vector size="
                  << values[i].size() << ", expect=" << vector_byte_size_;
       vecs.Add(nullptr, true);
-      continue;  
+      continue;
     }
     memcpy(vector, values[i].c_str(), vector_byte_size_);
     vecs.Add(vector, true);
@@ -166,11 +167,10 @@ int RocksDBRawVector::UpdateToStore(int64_t vid, uint8_t *v, int len) {
   if (v == nullptr || len != meta_info_->Dimension() * meta_info_->DataSize())
     return -1;
 
-  std::string key = utils::ToRowKey(vid);
-  std::string value = std::string((const char *)v, this->vector_byte_size_);
-  Status s = storage_mgr_->Put(cf_id_, key, value);
+  Status s = storage_mgr_->Add(cf_id_, vid, v, this->vector_byte_size_);
   if (!s.ok()) {
-    LOG(ERROR) << desc_ << "rocksdb update error:" << s.ToString() << ", key=" << key;
+    LOG(ERROR) << desc_ << "rocksdb update error:" << s.ToString()
+               << ", vid=" << vid;
     return -1;
   }
   return 0;
@@ -180,7 +180,8 @@ int RocksDBRawVector::DeleteFromStore(int64_t vid) {
   std::string key = utils::ToRowKey(vid);
   Status s = storage_mgr_->Delete(cf_id_, key);
   if (!s.ok()) {
-    LOG(ERROR) << desc_ << "rocksdb update error:" << s.ToString() << ", key=" << key;
+    LOG(ERROR) << desc_ << "rocksdb update error:" << s.ToString()
+               << ", vid=" << vid;
     return -1;
   }
   return 0;
@@ -205,21 +206,23 @@ int RocksDBRawVector::GetVectorHeader(int64_t start, int n, ScopeVectors &vecs,
   for (; c < n; c++, it->Next()) {
     rocksdb::Slice current_key = it->key();
     if (current_key.compare(end_key) >= 0) {
-        break;
+      break;
     }
     if (!it->Valid()) {
-      LOG(WARNING) << desc_ << "rocksdb iterator error, current_key=" << current_key.ToString()
-                   << ", start_key=" << start_key << ", end_key=" << end_key << ", c=" << c;
+      LOG(WARNING) << desc_ << "rocksdb iterator error, current_key="
+                   << current_key.ToString() << ", start_key=" << start_key
+                   << ", end_key=" << end_key << ", c=" << c;
       break;
     }
 
     rocksdb::Slice value = it->value();
     std::string vstr = value.ToString();
-    if((size_t)vector_byte_size_ == vstr.size()) {
+    if ((size_t)vector_byte_size_ == vstr.size()) {
       memcpy(dst, vstr.c_str(), vector_byte_size_);
     } else {
-      LOG(ERROR) << desc_ << "rocksdb get error: invalid vector size="
-                 << vstr.size() << ", expect=" << vector_byte_size_;
+      LOG(ERROR) << desc_
+                 << "rocksdb get error: invalid vector size=" << vstr.size()
+                 << ", expect=" << vector_byte_size_;
       continue;
     }
 

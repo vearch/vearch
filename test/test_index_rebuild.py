@@ -70,6 +70,8 @@ def check_search(full_field, case_space_name, times=5):
 
         for j in range(query_size):
             for document in documents[j]:
+                if document["_id"] == "":  # may be deleted
+                    continue
                 value = int(document["_id"])
                 assert document["field_int"] == value
                 if full_field:

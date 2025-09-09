@@ -296,15 +296,21 @@ int Table::Delete(std::string &key) {
     return ret;
   }
 
-  union {
-    int64_t docid;
-    char key[8];
-  } u;
-
-  u.docid = docid;
-  ret = storage_mgr_->Delete(cf_id_, u.key).code();
+  ret = storage_mgr_->Delete(cf_id_, key).code();
   if (ret != 0) {
     return ret;
+  }
+
+  for (size_t i = 0; i < attrs_.size(); i++) {
+    DataType data_type = attrs_[i];
+    if (data_type != DataType::STRING && data_type != DataType::STRINGARRAY) {
+      continue;
+    }
+
+    Status status = storage_mgr_->DeleteString(cf_id_, docid, idx_attr_map_[i]);
+    if (!status.ok()) {
+      return status.code();
+    }
   }
 
   return storage_mgr_->Delete(key_cf_id_, key).code();

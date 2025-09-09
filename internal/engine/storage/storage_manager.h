@@ -31,6 +31,7 @@ class StorageManager {
   Status Update(int cf_id, int64_t id, uint8_t *value, int len);
   Status Put(int cf_id, const std::string &key, std::string &value);
   Status Delete(int cf_id, const std::string &key);
+  Status DeleteString(int cf_id, int64_t id, std::string field_name);
 
   Status UpdateString(int cf_id, int64_t id, std::string field_name,
                       const char *value, int len);
