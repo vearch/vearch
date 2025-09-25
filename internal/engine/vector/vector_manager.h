@@ -134,13 +134,13 @@ class VectorManager {
  private:
   inline std::string IndexName(const std::string &field_name,
                                const std::string &index_type) {
-    return field_name + "_" + index_type;
+    return field_name + index_name_connector_ + index_type;
   }
 
   inline void GetVectorNameAndIndexType(const std::string &index_name,
                                         std::string &vec_name,
                                         std::string &index_type) {
-    size_t pos = index_name.rfind('_');
+    size_t pos = index_name.rfind(index_name_connector_);
     if (pos == std::string::npos) {
       LOG(ERROR) << desc_ << "Invalid index name format: " << index_name;
       return;
@@ -162,6 +162,7 @@ class VectorManager {
   std::vector<std::string> index_types_;
   std::vector<std::string> index_params_;
   pthread_rwlock_t index_rwmutex_;
+  const std::string index_name_connector_ = "::";
 };
 
 }  // namespace vearch
