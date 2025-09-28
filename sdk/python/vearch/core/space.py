@@ -60,7 +60,11 @@ class Space(object):
         return self.client._create_index(self.database_name, self.name, field, index)
 
     def upsert(self, data: Union[List, pd.DataFrame]) -> UpsertResult:
-        if not self._schema:
+        data_type, err_msg = self._check_data_type(data)
+        if data_type == UpsertDataType.ERROR:
+            return UpsertResult(CodeType.UPSERT_DOC, "data type has error: " + err_msg)
+
+        if not self._schema and data_type != UpsertDataType.LIST_MAP:
             has, schema = self.exist()
             if has:
                 self._schema = schema
@@ -70,30 +74,30 @@ class Space(object):
                     "space %s not exist, please create it first" % self.name,
                 )
 
-        data_type, err_msg = self._check_data_type(data)
+        if data_type != UpsertDataType.LIST_MAP:
+            data_type, err_msg = self._check_data_format(data)
 
-        if data_type == UpsertDataType.DATA_FRAME:
-            documents = []
-            for row in data.itertuples(index=False):
-                record = {field.name: row[field.name] for field in self._schema._fields}
-                documents.append(record)
+            if data_type == UpsertDataType.DATA_FRAME:
+                documents = []
+                for row in data.itertuples(index=False):
+                    record = {field.name: row[field.name] for field in self._schema._fields}
+                    documents.append(record)
 
-        elif data_type == UpsertDataType.LIST_MAP:
-            documents = data
-
-        elif data_type == UpsertDataType.LIST:
-            documents = []
-            for item in data:
-                record = {
-                    field.name: item[i] for i, field in enumerate(self._schema.fields)
-                }
-                documents.append(record)
+            elif data_type == UpsertDataType.LIST:
+                documents = []
+                for item in data:
+                    record = {
+                        field.name: item[i] for i, field in enumerate(self._schema.fields)
+                    }
+                    documents.append(record)
+            else:
+                return UpsertResult(CodeType.UPSERT_DOC, "data type has error: " + err_msg)
         else:
-            return UpsertResult(CodeType.UPSERT_DOC, "data type has error: " + err_msg)
+            documents = data
 
         return self.client._upsert(self.database_name, self.name, documents)
 
-    def _check_data_type(
+    def _check_data_format(
         self, data: Union[List, pd.DataFrame]
     ) -> Tuple[UpsertDataType, str]:
         if data is None or len(data) == 0:
@@ -124,6 +128,36 @@ class Space(object):
                 return (
                     UpsertDataType.ERROR,
                     "data item length should equal to space schema fields",
+                )
+        else:
+            return UpsertDataType.ERROR, "data type should be list or pandas.DataFrame"
+
+    def _check_data_type(
+        self, data: Union[List, pd.DataFrame]
+    ) -> Tuple[UpsertDataType, str]:
+        if data is None or len(data) == 0:
+            return UpsertDataType.ERROR, "data is null"
+
+        item_num = len(data)
+        item_dict_num = 0
+        item_list_num = 0
+        if isinstance(data, pd.DataFrame):
+            return UpsertDataType.DATA_FRAME, ""
+
+        elif isinstance(data, List):
+            for item in data:
+                if isinstance(item, dict):
+                    item_dict_num = item_dict_num + 1
+                if isinstance(item, list):
+                    item_list_num = item_list_num + 1
+            if item_num == item_dict_num:
+                return UpsertDataType.LIST_MAP, ""
+            elif item_num == item_list_num:
+                return UpsertDataType.LIST, ""
+            else:
+                return (
+                    UpsertDataType.ERROR,
+                    "data item should be all dict or all list",
                 )
         else:
             return UpsertDataType.ERROR, "data type should be list or pandas.DataFrame"
