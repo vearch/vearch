@@ -253,18 +253,17 @@ class TestAlias:
         space_response = list_spaces(router_url, db_name)
         for space in space_response.json()["data"]:
             response = create_alias(
-                router_url, "alias_name", db_name, space["space_name"])
+                router_url, "alias_name" + "_" +space["space_name"], db_name, space["space_name"])
             assert response.json()["code"] == 0
 
-            response = get_alias(router_url, "alias_name")
+            response = get_alias(router_url, "alias_name" + "_" +space["space_name"])
             logger.info(response.json())
             assert response.json()["code"] == 0
 
             response = drop_space(router_url, db_name, space["space_name"])
             assert response.json()["code"] == 0
 
-            # delete space should also delete correspond alias
-            response = get_alias(router_url, "alias_name")
+            response = get_alias(router_url, "alias_name" + "_" +space["space_name"])
             logger.info(response.json())
-            assert response.json()["code"] != 0
+            assert response.json()["code"] == 0
         drop_db(router_url, db_name)
