@@ -9,7 +9,6 @@
 
 #include <shared_mutex>
 
-#include "gamma_gpu_cloner.h"
 #include "gamma_gpu_search_base.h"
 #include "index/impl/gamma_index_ivfflat.h"
 #include "third_party/nlohmann/json.hpp"
@@ -136,6 +135,8 @@ class GammaIVFFlatGPUIndex
   RetrievalParameters *Parse(const std::string &parameters) override;
   int Indexing() override;
 
+  bool Add(int n, const uint8_t *vec) override;
+
   int Search(RetrievalContext *retrieval_context, int n, const uint8_t *x,
              int k, float *distances, long *labels);
 
@@ -143,7 +144,6 @@ class GammaIVFFlatGPUIndex
   // Implement abstract methods from GammaGPUIndexBase
   faiss::Index *CreateGPUIndex() override;
   int CreateSearchThread() override;
-  int AddRTVecsToIndex() override;
   int GPUThread() override;
 
   // Implement abstract methods from GammaGPUSearchBase

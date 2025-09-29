@@ -11,7 +11,6 @@
 
 #include "concurrentqueue/blockingconcurrentqueue.h"
 #include "faiss/Index.h"
-#include "gamma_gpu_cloner.h"
 #include "gamma_gpu_search_base.h"
 #include "index/impl/gamma_index_ivfpq.h"
 #include "index/index_model.h"
@@ -62,22 +61,10 @@ class GammaIVFPQGPUIndex
 
   int Indexing() override;
 
-  int AddRTVecsToIndex() override;
-
   bool Add(int n, const uint8_t *vec) override;
-
-  int Update(const std::vector<int64_t> &ids,
-             const std::vector<const uint8_t *> &vecs) override;
 
   int Search(RetrievalContext *retrieval_context, int n, const uint8_t *x,
              int k, float *distances, int64_t *labels);
-
-  int Delete(const std::vector<int64_t> &ids) override;
-
-  long GetTotalMemBytes() override;
-
-  Status Dump(const std::string &dir) override;
-  Status Load(const std::string &index_dir, int64_t &load_num) override;
 
  protected:
   // Implement abstract methods from GammaGPUIndexBase
@@ -96,6 +83,8 @@ class GammaIVFPQGPUIndex
  private:
   size_t nlist_;
   int nprobe_;
+  int nsubvector_;     // number of sub cluster center
+  int nbits_per_idx_;  // bit number of sub cluster center
 };
 
 }  // namespace gpu

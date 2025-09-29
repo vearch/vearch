@@ -28,7 +28,6 @@
 #include <vector>
 
 #include "c_api/gamma_api.h"
-#include "gamma_gpu_cloner.h"
 #include "index/impl/gamma_index_ivfpq.h"
 #include "third_party/nlohmann/json.hpp"
 #include "util/bitmap.h"
@@ -150,11 +149,9 @@ REGISTER_INDEX(GPU_IVFPQ, GammaIVFPQGPUIndex)
 GammaIVFPQGPUIndex::GammaIVFPQGPUIndex() {}
 
 GammaIVFPQGPUIndex::~GammaIVFPQGPUIndex() {
-  std::lock_guard<std::mutex> lock(indexing_mutex_);
+  std::unique_lock<std::shared_mutex> lock(gpu_index_mutex_);
   b_exited_ = true;
   std::this_thread::sleep_for(std::chrono::seconds(2));
-  delete cpu_index_;
-  cpu_index_ = nullptr;
   delete gpu_index_;
   gpu_index_ = nullptr;
 
@@ -174,6 +171,7 @@ Status GammaIVFPQGPUIndex::Init(const std::string &model_parameters,
   }
   LOG(INFO) << ivfpq_param.ToString();
   int d = vector_->MetaInfo()->Dimension();
+  d_ = d;
 
   if (d % ivfpq_param.nsubvector != 0) {
     this->d_ = (d / ivfpq_param.nsubvector + 1) * ivfpq_param.nsubvector;
@@ -184,15 +182,15 @@ Status GammaIVFPQGPUIndex::Init(const std::string &model_parameters,
 
   this->nlist_ = ivfpq_param.ncentroids;
   this->nprobe_ = 80;
+  this->nsubvector_ = ivfpq_param.nsubvector;
+  this->nbits_per_idx_ = ivfpq_param.nbits_per_idx;
 
   metric_type_ = ivfpq_param.metric_type;
 
   b_exited_ = false;
 
   gpu_index_ = nullptr;
-  cpu_index_ = new GammaIVFPQIndex();
-  cpu_index_->vector_ = vector_;
-  return cpu_index_->Init(model_parameters, training_threshold);
+  return Status::OK();
 }
 
 RetrievalParameters *GammaIVFPQGPUIndex::Parse(const std::string &parameters) {
@@ -244,15 +242,13 @@ RetrievalParameters *GammaIVFPQGPUIndex::Parse(const std::string &parameters) {
 }
 
 faiss::Index *GammaIVFPQGPUIndex::CreateGPUIndex() {
-  int ngpus = faiss::gpu::getNumDevices();
-  LOG(INFO) << "number of GPUs available: " << ngpus;
+  int num_gpus = faiss::gpu::getNumDevices();
+  LOG(INFO) << "number of GPUs available: " << num_gpus;
 
   vector<int> devs;
-  for (int i = 0; i < ngpus; ++i) {
+  for (int i = 0; i < num_gpus; ++i) {
     devs.push_back(i);
   }
-
-  std::lock_guard<std::mutex> lock(cpu_mutex_);
 
   if (resources_.size() == 0) {
     for (int i : devs) {
@@ -263,22 +259,25 @@ faiss::Index *GammaIVFPQGPUIndex::CreateGPUIndex() {
     }
   }
 
-  faiss::gpu::GpuMultipleClonerOptions options;
+  std::vector<faiss::Index *> gpu_indexes;
+  for (int i = 0; i < num_gpus; i++) {
+    faiss::gpu::GpuIndexIVFPQConfig config;
+    config.device = i;
 
-  options.indicesOptions = faiss::gpu::INDICES_64_BIT;
-  options.useFloat16CoarseQuantizer = false;
-  options.useFloat16 = true;
-  options.usePrecomputed = false;
-  options.reserveVecs = 0;
-  options.storeTransposed = true;
-  options.verbose = true;
+    auto gpu_index = new faiss::gpu::GpuIndexIVFPQ(
+        resources_[i], d_, nlist_, nsubvector_, nbits_per_idx_,
+        (faiss::MetricType)metric_type_, config);
+    gpu_indexes.push_back(gpu_index);
+  }
 
-  // shard the index across GPUs
-  options.shard = true;
-  options.shard_type = 1;
-
-  faiss::Index *gpu_index =
-      gamma_index_cpu_to_gpu_multiple(resources_, devs, cpu_index_, &options);
+  // faiss::IndexShards *multi_gpu_index = new faiss::IndexShards(d_, true);
+  faiss::IndexShards *multi_gpu_index = new faiss::IndexShards(d_);
+  multi_gpu_index->successive_ids = false;
+  multi_gpu_index->own_indices = true;
+  for (auto *idx : gpu_indexes) {
+    multi_gpu_index->add_shard(idx);
+  }
+  faiss::Index *gpu_index = multi_gpu_index;
   return gpu_index;
 }
 
@@ -291,31 +290,89 @@ int GammaIVFPQGPUIndex::CreateSearchThread() {
 }
 
 int GammaIVFPQGPUIndex::Indexing() {
-  std::lock_guard<std::mutex> lock(indexing_mutex_);
+  std::unique_lock<std::shared_mutex> lock(gpu_index_mutex_);
 
   LOG(INFO) << "GPU indexing";
 
-  if (not is_trained_) {
-    int ret = cpu_index_->Indexing();
-    if (ret != 0) {
-      return ret;
-    }
-    AddRTVecsToIndex();
+  if (is_trained_) {
+    std::unique_lock<std::shared_mutex> lock(gpu_index_mutex_);
+    is_trained_ = false;
+    delete gpu_index_;
+    indexed_count_ = 0;
+  }
+
+  if (!is_trained_) {
     gpu_index_ = CreateGPUIndex();
+    {
+      RawVector *raw_vec = dynamic_cast<RawVector *>(vector_);
+      size_t vectors_count = raw_vec->MetaInfo()->Size();
+
+      size_t num;
+      if ((size_t)training_threshold_ < nlist_) {
+        num = nlist_ * 39;
+        LOG(WARNING) << "Because training_threshold[" << training_threshold_
+                     << "] < ncentroids[" << nlist_
+                     << "], training_threshold becomes ncentroids * 39[" << num
+                     << "].";
+      } else if ((size_t)training_threshold_ <= nlist_ * 256) {
+        if ((size_t)training_threshold_ < nlist_ * 39) {
+          LOG(WARNING)
+              << "training_threshold[" << training_threshold_
+              << "] is too small. "
+              << "The appropriate range is [ncentroids * 39, ncentroids * 256]";
+        }
+        num = training_threshold_;
+      } else {
+        num = nlist_ * 256;
+        LOG(WARNING)
+            << "training_threshold[" << training_threshold_ << "] is too big. "
+            << "The appropriate range is [ncentroids * 39, ncentroids * 256]."
+            << "training_threshold becomes ncentroids * 256[" << num << "].";
+      }
+      if (num > vectors_count) {
+        LOG(ERROR) << "vector total count [" << vectors_count
+                   << "] less then training_threshold[" << num << "], failed!";
+        return -1;
+      }
+
+      ScopeVectors headers;
+      std::vector<int> lens;
+      raw_vec->GetVectorHeader(0, num, headers, lens);
+
+      // merge vectors
+      int raw_d = raw_vec->MetaInfo()->Dimension();
+      const uint8_t *train_raw_vec = nullptr;
+      utils::ScopeDeleter1<uint8_t> del_train_raw_vec;
+      size_t n_get = 0;
+      if (lens.size() == 1) {
+        train_raw_vec = headers.Get(0);
+        n_get = lens[0];
+        if (num > n_get) {
+          LOG(ERROR) << "training vector get count [" << n_get
+                     << "] less then training_threshold[" << num
+                     << "], failed!";
+          return -2;
+        }
+      } else {
+        train_raw_vec = new uint8_t[raw_d * num * sizeof(float)];
+        del_train_raw_vec.set(train_raw_vec);
+        size_t offset = 0;
+        for (size_t i = 0; i < headers.Size(); ++i) {
+          memcpy((void *)(train_raw_vec + offset), (void *)headers.Get(i),
+                 sizeof(float) * raw_d * lens[i]);
+          offset += sizeof(float) * raw_d * lens[i];
+        }
+      }
+      LOG(INFO) << "train vector wanted num=" << num << ", real num=" << n_get;
+
+      gpu_index_->train(n_get, reinterpret_cast<const float *>(train_raw_vec));
+    }
     CreateSearchThread();
     is_trained_ = true;
-    LOG(INFO) << "GPU indexed.";
-    return 0;
   }
 
   if (gpu_threads_.size() == 0) {
     CreateSearchThread();
-  }
-
-  {
-    std::unique_lock<std::shared_mutex> lock(gpu_index_mutex_);
-    delete gpu_index_;
-    gpu_index_ = CreateGPUIndex();
   }
 
   LOG(INFO) << "GPU indexed.";
@@ -323,187 +380,128 @@ int GammaIVFPQGPUIndex::Indexing() {
 }
 
 bool GammaIVFPQGPUIndex::Add(int n, const uint8_t *vec) {
-  std::lock_guard<std::mutex> lock(indexing_mutex_);
-  bool ret = cpu_index_->Add(n, vec);
-  return ret;
-}
+  std::unique_lock<std::shared_mutex> lock(gpu_index_mutex_);
 
-int GammaIVFPQGPUIndex::AddRTVecsToIndex() {
-  std::lock_guard<std::mutex> lock(cpu_mutex_);
-  int ret = 0;
-  RawVector *raw_vec = dynamic_cast<RawVector *>(cpu_index_->vector_);
-  int total_stored_vecs = raw_vec->MetaInfo()->Size();
-  if (cpu_index_->indexed_vec_count_ > total_stored_vecs) {
-    LOG(ERROR) << "internal error : indexed_vec_count="
-               << cpu_index_->indexed_vec_count_
-               << " should not greater than total_stored_vecs="
-               << total_stored_vecs;
-    ret = -1;
-  } else if (cpu_index_->indexed_vec_count_ == total_stored_vecs) {
-#ifdef DEBUG
-    LOG(INFO) << "no extra vectors existed for indexing";
-#endif
-    cpu_index_->rt_invert_index_ptr_->CompactIfNeed();
-  } else {
-    int MAX_NUM_PER_INDEX = 1000;
-    int index_count = (total_stored_vecs - cpu_index_->indexed_vec_count_) /
-                          MAX_NUM_PER_INDEX +
-                      1;
-
-    for (int i = 0; i < index_count; i++) {
-      int64_t start_docid = cpu_index_->indexed_vec_count_;
-      size_t count_per_index =
-          (i == (index_count - 1) ? total_stored_vecs - start_docid
-                                  : MAX_NUM_PER_INDEX);
-
-      ScopeVectors scope_vec;
-      std::vector<int> lens;
-      raw_vec->GetVectorHeader(start_docid, count_per_index, scope_vec, lens);
-
-      const uint8_t *add_vec = nullptr;
-      utils::ScopeDeleter1<uint8_t> del_vec;
-      if (lens.size() == 1) {
-        add_vec = scope_vec.Get(0);
-      } else {
-        int raw_d = raw_vec->MetaInfo()->Dimension();
-        add_vec = new uint8_t[raw_d * count_per_index * sizeof(float)];
-        del_vec.set(add_vec);
-        size_t offset = 0;
-        for (size_t i = 0; i < scope_vec.Size(); ++i) {
-          memcpy((void *)(add_vec + offset), (void *)scope_vec.Get(i),
-                 sizeof(float) * raw_d * lens[i]);
-          offset += sizeof(float) * raw_d * lens[i];
-        }
-      }
-      if (not cpu_index_->Add(count_per_index, add_vec)) {
-        LOG(ERROR) << "add index from docid " << start_docid << " error!";
-        ret = -2;
-      }
-    }
+  gpu_index_->add(n, reinterpret_cast<const float *>(vec));
+  vectors_added_since_last_log_ += n;
+  if (vectors_added_since_last_log_ >= 10000) {
+    LOG(DEBUG) << "GPU indexed count: " << indexed_count_;
+    vectors_added_since_last_log_ = 0;
   }
-
-  // warning: it's not recommended to access indexed_count_ and updated_vids_ in
-  // sub-class
-  this->indexed_count_ = cpu_index_->indexed_vec_count_;
-  std::vector<int64_t> vids;
-  int64_t vid;
-  while (this->updated_vids_.try_pop(vid)) {
-    if (raw_vec->Bitmap()->Test(vid)) continue;
-    if (vid >= this->indexed_count_) {
-      this->updated_vids_.push(vid);
-      break;
-    } else {
-      vids.push_back(vid);
-    }
-    if (vids.size() >= 20000) break;
-  }
-  if (vids.size() == 0) return 0;
-  ScopeVectors scope_vecs;
-  if (raw_vec->Gets(vids, scope_vecs)) {
-    LOG(ERROR) << "get update vector error!";
-    ret = -3;
-    return ret;
-  }
-  if (cpu_index_->Update(vids, scope_vecs.Get())) {
-    LOG(ERROR) << "update index error!";
-    ret = -4;
-  }
-
-  return ret;
-}
-
-int GammaIVFPQGPUIndex::Update(const std::vector<int64_t> &ids,
-                               const std::vector<const uint8_t *> &vecs) {
-  std::lock_guard<std::mutex> lock(indexing_mutex_);
-  int ret = cpu_index_->Update(ids, vecs);
-  return ret;
-}
-
-int GammaIVFPQGPUIndex::Delete(const std::vector<int64_t> &ids) {
-  std::lock_guard<std::mutex> lock(indexing_mutex_);
-  return cpu_index_->Delete(ids);
-}
-
-long GammaIVFPQGPUIndex::GetTotalMemBytes() {
-  return cpu_index_->GetTotalMemBytes();
-}
-
-Status GammaIVFPQGPUIndex::Dump(const string &dir) {
-  return cpu_index_->Dump(dir);
-}
-
-Status GammaIVFPQGPUIndex::Load(const string &index_dir, int64_t &load_num) {
-  Status ret = cpu_index_->Load(index_dir, load_num);
-  is_trained_ = cpu_index_->is_trained;
-  d_ = cpu_index_->d_;
-  metric_type_ = cpu_index_->metric_type_;
-  return ret;
+  return true;
 }
 
 int GammaIVFPQGPUIndex::GPUThread() {
   float *xx = new float[kMaxBatch * d_ * kMaxReqNum];
   size_t max_recallnum = (size_t)faiss::gpu::getMaxKSelection();
-  LOG(INFO) << "max_recallnum: " << max_recallnum;
   long *label = new long[kMaxBatch * max_recallnum * kMaxReqNum];
   float *dis = new float[kMaxBatch * max_recallnum * kMaxReqNum];
 
-  while (not b_exited_) {
+  thread_local std::vector<int> batch_offsets;
+  thread_local std::vector<int> result_offsets;
+  batch_offsets.reserve(kMaxBatch);
+  result_offsets.reserve(kMaxBatch);
+  int ngpus = faiss::gpu::getNumDevices();
+
+  while (!b_exited_) {
     int size = 0;
     GPUSearchItem *items[kMaxBatch];
 
-    while (size == 0 && not b_exited_) {
-      size = search_queue_.wait_dequeue_bulk_timed(items, kMaxBatch, 1000);
+    while (size == 0 && !b_exited_) {
+      size = search_queue_.wait_dequeue_bulk_timed(items, kMaxBatch, 100);
     }
 
     if (size > 1) {
-      std::map<int, std::vector<int>> nprobe_map;
+      std::unordered_map<int, std::vector<int>> nprobe_map;
+      nprobe_map.reserve(8);
+
       for (int i = 0; i < size; ++i) {
-        nprobe_map[items[i]->nprobe_].push_back(i);
+        nprobe_map[items[i]->nprobe_].emplace_back(i);
       }
 
-      for (auto nprobe_ids : nprobe_map) {
-        int recallnum = 0, cur = 0, total = 0;
+      for (auto &nprobe_ids : nprobe_map) {
+        if (nprobe_ids.second.empty()) continue;
+
+        // Pre-calculate total vectors and max k to reduce redundant computation
+        int recallnum = 0, total = 0;
+        batch_offsets.clear();
+        result_offsets.clear();
+
+        int data_offset = 0;
         for (size_t j = 0; j < nprobe_ids.second.size(); ++j) {
-          recallnum = std::max(recallnum, items[nprobe_ids.second[j]]->k_);
-          total += items[nprobe_ids.second[j]]->n_;
-          memcpy(xx + cur, items[nprobe_ids.second[j]]->x_,
-                 d_ * sizeof(float) * items[nprobe_ids.second[j]]->n_);
-          cur += d_ * items[nprobe_ids.second[j]]->n_;
+          int idx = nprobe_ids.second[j];
+          recallnum = std::max(recallnum, items[idx]->k_);
+          total += items[idx]->n_;
+          batch_offsets.push_back(data_offset);
+          data_offset += d_ * items[idx]->n_;
+        }
+
+        for (size_t j = 0; j < nprobe_ids.second.size(); ++j) {
+          int idx = nprobe_ids.second[j];
+          const size_t copy_size = d_ * sizeof(float) * items[idx]->n_;
+          std::memcpy(xx + batch_offsets[j], items[idx]->x_, copy_size);
         }
 
         {
           std::shared_lock<std::shared_mutex> lock(gpu_index_mutex_);
-          int ngpus = faiss::gpu::getNumDevices();
+          if (gpu_index_ == nullptr || b_exited_) {
+            LOG(WARNING) << "GPU index is null or exiting";
+            // Notify all items in this batch
+            for (size_t j = 0; j < nprobe_ids.second.size(); ++j) {
+              items[nprobe_ids.second[j]]->Notify();
+            }
+            continue;
+          }
+
           if (ngpus > 1) {
             auto indexShards = dynamic_cast<faiss::IndexShards *>(gpu_index_);
             if (indexShards != nullptr) {
               for (int j = 0; j < indexShards->count(); ++j) {
-                auto ivfpq = dynamic_cast<faiss::gpu::GpuIndexIVFPQ *>(
+                auto ivffpq = dynamic_cast<faiss::gpu::GpuIndexIVFPQ *>(
                     indexShards->at(j));
-                if (ivfpq != nullptr) ivfpq->nprobe = nprobe_ids.first;
+                if (ivffpq != nullptr) ivffpq->nprobe = nprobe_ids.first;
               }
             }
           } else {
-            auto ivfpq = dynamic_cast<faiss::gpu::GpuIndexIVFPQ *>(gpu_index_);
-            if (ivfpq != nullptr) ivfpq->nprobe = nprobe_ids.first;
+            auto ivffpq = dynamic_cast<faiss::gpu::GpuIndexIVFPQ *>(gpu_index_);
+            if (ivffpq != nullptr) ivffpq->nprobe = nprobe_ids.first;
           }
-          gpu_index_->search(total, xx, recallnum, dis, label);
+
+          try {
+            gpu_index_->search(total, xx, recallnum, dis, label);
+          } catch (const std::exception &e) {
+            LOG(ERROR) << "GPU batch search failed: " << e.what();
+            // Notify all items even on failure
+            for (size_t j = 0; j < nprobe_ids.second.size(); ++j) {
+              items[nprobe_ids.second[j]]->Notify();
+            }
+            continue;
+          }
         }
 
-        cur = 0;
+        int result_offset = 0;
         for (size_t j = 0; j < nprobe_ids.second.size(); ++j) {
-          memcpy(items[nprobe_ids.second[j]]->dis_, dis + cur,
-                 recallnum * sizeof(float) * items[nprobe_ids.second[j]]->n_);
-          memcpy(items[nprobe_ids.second[j]]->label_, label + cur,
-                 recallnum * sizeof(long) * items[nprobe_ids.second[j]]->n_);
-          cur += recallnum * items[nprobe_ids.second[j]]->n_;
-          items[nprobe_ids.second[j]]->Notify();
+          int idx = nprobe_ids.second[j];
+          const size_t dis_size = recallnum * sizeof(float) * items[idx]->n_;
+          const size_t label_size = recallnum * sizeof(long) * items[idx]->n_;
+
+          std::memcpy(items[idx]->dis_, dis + result_offset, dis_size);
+          std::memcpy(items[idx]->label_, label + result_offset, label_size);
+          result_offset += recallnum * items[idx]->n_;
+
+          // Notify immediately after copying results for this item
+          items[idx]->Notify();
         }
       }
     } else if (size == 1) {
-      {
+      try {
         std::shared_lock<std::shared_mutex> lock(gpu_index_mutex_);
-        int ngpus = faiss::gpu::getNumDevices();
+        if (gpu_index_ == nullptr || b_exited_) {
+          LOG(WARNING) << "GPU index is null or exiting";
+          items[0]->Notify();
+          continue;
+        }
+
         if (ngpus > 1) {
           auto indexShards = dynamic_cast<faiss::IndexShards *>(gpu_index_);
           if (indexShards != nullptr) {
@@ -517,8 +515,11 @@ int GammaIVFPQGPUIndex::GPUThread() {
           auto ivfpq = dynamic_cast<faiss::gpu::GpuIndexIVFPQ *>(gpu_index_);
           if (ivfpq != nullptr) ivfpq->nprobe = items[0]->nprobe_;
         }
+
         gpu_index_->search(items[0]->n_, items[0]->x_, items[0]->k_,
                            items[0]->dis_, items[0]->label_);
+      } catch (const std::exception &e) {
+        LOG(ERROR) << "GPU search failed: " << e.what();
       }
       items[0]->Notify();
     }
@@ -527,7 +528,7 @@ int GammaIVFPQGPUIndex::GPUThread() {
   delete[] xx;
   delete[] label;
   delete[] dis;
-  LOG(INFO) << "thread exit";
+  LOG(INFO) << "GPU thread exit";
   return 0;
 }
 

@@ -105,7 +105,6 @@ class GammaGPUIndexBase : public IndexModel {
   GammaGPUIndexBase()
       : IndexModel(),
         gpu_index_(nullptr),
-        cpu_index_(nullptr),
         b_exited_(false),
         is_trained_(false),
         d_(0) {}
@@ -116,83 +115,30 @@ class GammaGPUIndexBase : public IndexModel {
                       int training_threshold) override {
     b_exited_ = false;
     gpu_index_ = nullptr;
-    cpu_index_ = new CPUIndexType();
-    cpu_index_->vector_ = vector_;
-    return cpu_index_->Init(model_parameters, training_threshold);
+    return Status::OK();
   }
 
-  virtual int Indexing() override {
-    std::lock_guard<std::mutex> lock(indexing_mutex_);
-
-    LOG(INFO) << "GPU indexing";
-
-    if (!is_trained_) {
-      int ret = cpu_index_->Indexing();
-      if (ret != 0) {
-        LOG(ERROR) << "CPU indexing failed";
-        return ret;
-      }
-      AddRTVecsToIndex();
-      gpu_index_ = CreateGPUIndex();
-      CreateSearchThread();
-      is_trained_ = true;
-      LOG(INFO) << "GPU indexed.";
-      return 0;
-    }
-
-    if (gpu_threads_.size() == 0) {
-      CreateSearchThread();
-    }
-
-    {
-      std::unique_lock<std::shared_mutex> lock(gpu_index_mutex_);
-      delete gpu_index_;
-      gpu_index_ = CreateGPUIndex();
-    }
-
-    LOG(INFO) << "GPU indexed.";
-    return 0;
-  }
-
-  virtual bool Add(int n, const uint8_t *vec) override {
-    std::lock_guard<std::mutex> lock(indexing_mutex_);
-    return cpu_index_->Add(n, vec);
-  }
+  virtual int Indexing() override { return 0; }
 
   virtual int Update(const std::vector<int64_t> &ids,
                      const std::vector<const uint8_t *> &vecs) override {
-    std::lock_guard<std::mutex> lock(indexing_mutex_);
-    return cpu_index_->Update(ids, vecs);
+    return 0;
   }
 
-  virtual int Delete(const std::vector<int64_t> &ids) override {
-    std::lock_guard<std::mutex> lock(indexing_mutex_);
-    return cpu_index_->Delete(ids);
-  }
+  virtual int Delete(const std::vector<int64_t> &ids) override { return 0; }
 
-  virtual long GetTotalMemBytes() override {
-    return cpu_index_->GetTotalMemBytes();
-  }
+  virtual long GetTotalMemBytes() override { return 0; }
 
-  virtual Status Dump(const std::string &dir) override {
-    return cpu_index_->Dump(dir);
-  }
+  virtual Status Dump(const std::string &dir) override { return Status::OK(); }
 
   virtual Status Load(const std::string &index_dir,
                       int64_t &load_num) override {
-    Status ret = cpu_index_->Load(index_dir, load_num);
-    if (ret.ok()) {
-      is_trained_ = cpu_index_->is_trained;
-      d_ = cpu_index_->d;
-      metric_type_ = static_cast<GammaFLATIndex *>(cpu_index_)->metric_type_;
-    }
-    return ret;
+    return Status::OK();
   }
 
  protected:
   virtual faiss::Index *CreateGPUIndex() = 0;
   virtual int CreateSearchThread() = 0;
-  virtual int AddRTVecsToIndex() = 0;
   virtual int GPUThread() = 0;
 
   void InitGPUResources() {
@@ -216,12 +162,10 @@ class GammaGPUIndexBase : public IndexModel {
   }
 
   void Cleanup() {
-    std::lock_guard<std::mutex> lock(indexing_mutex_);
+    std::unique_lock<std::shared_mutex> lock(gpu_index_mutex_);
     b_exited_ = true;
     std::this_thread::sleep_for(std::chrono::seconds(2));
 
-    delete cpu_index_;
-    cpu_index_ = nullptr;
     delete gpu_index_;
     gpu_index_ = nullptr;
 
@@ -236,7 +180,6 @@ class GammaGPUIndexBase : public IndexModel {
 
   // GPU and CPU indices
   faiss::Index *gpu_index_;
-  CPUIndexType *cpu_index_;
 
   // GPU resources
   std::vector<StandardGpuResources *> resources_;
@@ -251,8 +194,9 @@ class GammaGPUIndexBase : public IndexModel {
 
   // Synchronization
   std::mutex cpu_mutex_;
-  std::mutex indexing_mutex_;
   std::shared_mutex gpu_index_mutex_;
+
+  int vectors_added_since_last_log_;
 
   // Constants
   static constexpr int kMaxBatch = 200;
