@@ -223,16 +223,18 @@ func (s *Server) DeletePartition(id entity.PartitionID) {
 				s.raftResolver.DeleteNode(r)
 			}
 			if err := partition.Destroy(); err != nil {
-				log.Error("delete partition[%v] fail cause: %v", id, err)
+				log.Error("delete partition[%v] on server[%d:%s] fail, err: %v", id, s.nodeID, s.ip, err)
 			}
 
 			if partition.GetPartition().GetStatus() == entity.PA_INVALID {
 				s.partitions.Delete(id)
 			}
 		}
+	} else {
+		log.Warn("partition[%d] not found on server[%d:%s]", id, s.nodeID, s.ip)
 	}
 
-	log.Info("delete partition:[%d] success", id)
+	log.Info("delete partition[%d] on server[%d:%s] success", id, s.nodeID, s.ip)
 
 	// delete partition cache
 	if _, ok := s.partitions.Load(id); ok {

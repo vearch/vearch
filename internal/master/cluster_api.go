@@ -186,7 +186,7 @@ func TimeoutMiddleware(defaultTimeout time.Duration) gin.HandlerFunc {
 				gin.H{
 					"request_id": c.GetHeader("X-Request-Id"),
 					"code":       vearchpb.ErrorEnum_TIMEOUT,
-					"msg":        "Request timeout"})
+					"msg":        "request timeout"})
 			c.Abort()
 		case <-done:
 		}
@@ -536,7 +536,7 @@ func (ca *clusterAPI) createSpace(c *gin.Context) {
 	space.Version = 1 // first start with 1
 
 	if err := ca.masterService.Space().CreateSpace(c, ca.masterService.DB(), dbName, space); err != nil {
-		log.Error("createSpace err: %v", err)
+		log.Error("createSpace db: %s, space: %s, space id: %d, err: %s", dbName, space.Name, space.Id, err.Error())
 		ca.handleError(c, err)
 		return
 	}

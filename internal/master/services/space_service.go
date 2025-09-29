@@ -209,6 +209,23 @@ func (s *SpaceService) CreateSpace(ctx context.Context, dbs *DBService, dbName s
 
 	// check all partition is ok
 	if err := s.waitForPartitionsReady(ctx, masterClient, space.Partitions, errorChannel); err != nil {
+		log.Error("wait for partition ready failed, space: %s, space id: %d, error: %v", space.Name, space.Id, err)
+		// delete partition and partitionKey
+		for _, partition := range space.Partitions {
+			for _, replicaID := range partition.Replicas {
+				if server, err := masterClient.QueryServer(ctx, replicaID); err != nil {
+					log.Error("query partition:[%d] for replica:[%d] has err:[%s]", partition.Id, replicaID, err.Error())
+				} else {
+					if err := client.DeletePartition(server.RpcAddr(), partition.Id); err != nil {
+						log.Error("delete partition:[%d] for server:[%s] has err:[%s]", partition.Id, server.RpcAddr(), err.Error())
+					}
+				}
+			}
+			err = masterClient.Delete(ctx, entity.PartitionKey(partition.Id))
+			if err != nil {
+				log.Error("delete partition key:[%s] has err:[%s]", entity.PartitionKey(partition.Id), err.Error())
+			}
+		}
 		return err
 	}
 
@@ -240,6 +257,7 @@ func (s *SpaceService) DeleteSpace(ctx context.Context, as *AliasService, dbName
 	if space == nil { // nil if it not exists
 		return nil
 	}
+	log.Info("delete space, db: %s, db id: %d, spaceName: %s, spaceId: %d", dbName, databaseID, space.Name, space.Id)
 
 	spaceLock := masterClient.NewLock(ctx, entity.LockSpaceKey(dbName, spaceName), time.Second*60)
 	if err = spaceLock.Lock(); err != nil {
@@ -256,11 +274,11 @@ func (s *SpaceService) DeleteSpace(ctx context.Context, as *AliasService, dbName
 		return err
 	}
 
-	// delete parition and partitionKey
+	// delete partition and partitionKey
 	for _, partition := range space.Partitions {
 		for _, replicaID := range partition.Replicas {
 			if server, err := masterClient.QueryServer(ctx, replicaID); err != nil {
-				log.Error("query partition:[%d] for replica:[%s] has err:[%s]", partition.Id, replicaID, err.Error())
+				log.Error("query partition:[%d] for replica:[%d] has err:[%s]", partition.Id, replicaID, err.Error())
 			} else {
 				if err := client.DeletePartition(server.RpcAddr(), partition.Id); err != nil {
 					log.Error("delete partition:[%d] for server:[%s] has err:[%s]", partition.Id, server.RpcAddr(), err.Error())
@@ -273,18 +291,6 @@ func (s *SpaceService) DeleteSpace(ctx context.Context, as *AliasService, dbName
 		}
 	}
 
-	// delete alias
-	if aliases, err := as.QueryAllAlias(ctx); err != nil {
-		return err
-	} else {
-		for _, alias := range aliases {
-			if alias.DbName == dbName && alias.SpaceName == spaceName {
-				if err := as.DeleteAlias(ctx, alias.Name); err != nil {
-					return err
-				}
-			}
-		}
-	}
 	err = masterClient.Delete(ctx, entity.SpaceConfigKey(databaseID, space.Id))
 	if err != nil {
 		return err
@@ -965,20 +971,45 @@ func (s *SpaceService) createPartitionOnServers(serverAddresses []string, partit
 			return
 		}
 	}
+	errorChannel <- nil
 }
 
 // waitForPartitionsReady waits for all partitions to be created and ready
 func (s *SpaceService) waitForPartitionsReady(ctx context.Context, masterClient any, partitions []*entity.Partition, errorChannel <-chan error) error {
+	var wg sync.WaitGroup
+	wg.Add(len(partitions))
+
+	var errors []error
+
+	go func() {
+		defer func() {
+			if recoveredError := recover(); recoveredError != nil {
+				log.Error("panic recovered in waitForPartitionsReady: %v", recoveredError)
+			}
+		}()
+
+		for err := range errorChannel {
+			if err != nil {
+				errors = append(errors, err)
+			}
+			wg.Done()
+		}
+	}()
+
+	wg.Wait()
+
+	if len(errors) > 0 {
+		return errors[0]
+	}
+
 	for partitionIndex := range partitions {
 		attemptCount := 0
 		for {
 			attemptCount++
 			select {
-			case err := <-errorChannel:
-				return err
 			case <-ctx.Done():
 				return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR,
-					fmt.Errorf("update space has error"))
+					fmt.Errorf("create space partition has error"))
 			default:
 			}
 
@@ -1024,7 +1055,7 @@ func (s *SpaceService) updateSpacePartitonRule(ctx context.Context, dbs *DBServi
 			if partition.Name != *partitionName {
 				remainingPartitions = append(remainingPartitions, partition)
 			} else {
-				// delete parition and partitionKey
+				// delete partition and partitionKey
 				for _, replica := range partition.Replicas {
 					if server, err := masterClient.QueryServer(ctx, replica); err != nil {
 						log.Error("query partition:[%d] for replica:[%s] has err:[%s]", partition.Id, replica, err.Error())

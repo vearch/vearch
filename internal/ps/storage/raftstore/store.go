@@ -206,6 +206,7 @@ func (s *Store) Close() error {
 // Destroy close partition store if it running currently and remove all data file from filesystem.
 func (s *Store) Destroy() (err error) {
 	if err = s.Close(); err != nil {
+		log.Error("close err : %s , Partition.Id: %d", err.Error(), s.Partition.Id)
 		return
 	}
 
