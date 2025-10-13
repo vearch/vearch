@@ -73,6 +73,11 @@ Status GammaIVFFlatGPUIndex::Init(const std::string &model_parameters,
   this->nprobe_ = params.nprobe;
   this->metric_type_ = params.metric_type;
 
+  if (training_threshold) {
+    training_threshold_ = training_threshold;
+  } else {
+    training_threshold_ = nlist_ * 256;
+  }
   // Call base class initialization
   return GammaGPUIndexBase<GammaIVFFlatIndex>::Init(model_parameters,
                                                     training_threshold);
@@ -181,7 +186,6 @@ int GammaIVFFlatGPUIndex::Indexing() {
   LOG(INFO) << "GPU indexing";
 
   if (is_trained_) {
-    std::unique_lock<std::shared_mutex> lock(gpu_index_mutex_);
     is_trained_ = false;
     delete gpu_index_;
     indexed_count_ = 0;
@@ -194,27 +198,21 @@ int GammaIVFFlatGPUIndex::Indexing() {
       size_t vectors_count = raw_vec->MetaInfo()->Size();
 
       size_t num;
-      if ((size_t)training_threshold_ < nlist_) {
-        num = nlist_ * 39;
-        LOG(WARNING) << "Because training_threshold[" << training_threshold_
-                     << "] < ncentroids[" << nlist_
-                     << "], training_threshold becomes ncentroids * 39[" << num
-                     << "].";
-      } else if ((size_t)training_threshold_ <= nlist_ * 256) {
-        if ((size_t)training_threshold_ < nlist_ * 39) {
-          LOG(WARNING)
-              << "training_threshold[" << training_threshold_
-              << "] is too small. "
-              << "The appropriate range is [ncentroids * 39, ncentroids * 256]";
-        }
-        num = training_threshold_;
+      if (vectors_count <= training_threshold_) {
+        num = vectors_count;
+        LOG(INFO) << "force merge all vectors for training, num=" << num;
       } else {
-        num = nlist_ * 256;
-        LOG(WARNING)
-            << "training_threshold[" << training_threshold_ << "] is too big. "
-            << "The appropriate range is [ncentroids * 39, ncentroids * 256]."
-            << "training_threshold becomes ncentroids * 256[" << num << "].";
+        if ((size_t)training_threshold_ < nlist_ * 39) {
+          num = nlist_ * 39;
+          LOG(WARNING) << "Because training_threshold[" << training_threshold_
+                       << "] < ncentroids[" << nlist_
+                       << "], training_threshold becomes ncentroids * 39[" << num
+                       << "].";
+        } else {
+          num = training_threshold_;
+        }
       }
+
       if (num > vectors_count) {
         LOG(ERROR) << "vector total count [" << vectors_count
                    << "] less then training_threshold[" << num << "], failed!";
@@ -233,7 +231,7 @@ int GammaIVFFlatGPUIndex::Indexing() {
       if (lens.size() == 1) {
         train_raw_vec = headers.Get(0);
         n_get = lens[0];
-        if (num > n_get) {
+        if (num > training_threshold_ && num > n_get) {
           LOG(ERROR) << "training vector get count [" << n_get
                      << "] less then training_threshold[" << num
                      << "], failed!";
@@ -253,7 +251,6 @@ int GammaIVFFlatGPUIndex::Indexing() {
 
       gpu_index_->train(n_get, reinterpret_cast<const float *>(train_raw_vec));
     }
-    CreateSearchThread();
     is_trained_ = true;
   }
 
@@ -268,7 +265,30 @@ int GammaIVFFlatGPUIndex::Indexing() {
 bool GammaIVFFlatGPUIndex::Add(int n, const uint8_t *vec) {
   std::unique_lock<std::shared_mutex> lock(gpu_index_mutex_);
 
-  gpu_index_->add(n, reinterpret_cast<const float *>(vec));
+  if (start_docid_ != indexed_count_) {
+    return false;
+  }
+
+  std::vector<long> new_keys;
+  std::vector<uint8_t> new_codes;
+  size_t code_size = d_ * sizeof(float);
+  long vid = indexed_count_;
+  int n_add = 0;
+  RawVector *raw_vec = dynamic_cast<RawVector *>(vector_);
+
+  for (int i = 0; i < n; i++) {
+    if (raw_vec->Bitmap()->Test(vid + i)) {
+      continue;
+    }
+    uint8_t *code = (uint8_t *)vec + code_size * i;
+    new_keys.push_back(vid + i);
+    size_t ofs = new_codes.size();
+    new_codes.resize(ofs + code_size);
+    memcpy((void *)(new_codes.data() + ofs), (void *)code, code_size);
+    n_add +=1;
+  }
+
+  gpu_index_->add_with_ids(n_add, reinterpret_cast<const float *>(new_codes.data()), new_keys.data());
   vectors_added_since_last_log_ += n;
   if (vectors_added_since_last_log_ >= 10000) {
     LOG(DEBUG) << "GPU indexed count: " << indexed_count_;
@@ -287,7 +307,6 @@ int GammaIVFFlatGPUIndex::GPUThread() {
   thread_local std::vector<int> result_offsets;
   batch_offsets.reserve(kMaxBatch);
   result_offsets.reserve(kMaxBatch);
-  int ngpus = faiss::gpu::getNumDevices();
 
   while (!b_exited_) {
     int size = 0;
@@ -339,19 +358,13 @@ int GammaIVFFlatGPUIndex::GPUThread() {
             continue;
           }
 
-          if (ngpus > 1) {
-            auto indexShards = dynamic_cast<faiss::IndexShards *>(gpu_index_);
-            if (indexShards != nullptr) {
-              for (int j = 0; j < indexShards->count(); ++j) {
-                auto ivfflat = dynamic_cast<faiss::gpu::GpuIndexIVFFlat *>(
-                    indexShards->at(j));
-                if (ivfflat != nullptr) ivfflat->nprobe = nprobe_ids.first;
-              }
+          auto indexShards = dynamic_cast<faiss::IndexShards *>(gpu_index_);
+          if (indexShards != nullptr) {
+            for (int j = 0; j < indexShards->count(); ++j) {
+              auto ivfflat = dynamic_cast<faiss::gpu::GpuIndexIVFFlat *>(
+                  indexShards->at(j));
+              if (ivfflat != nullptr) ivfflat->nprobe = nprobe_ids.first;
             }
-          } else {
-            auto ivfflat =
-                dynamic_cast<faiss::gpu::GpuIndexIVFFlat *>(gpu_index_);
-            if (ivfflat != nullptr) ivfflat->nprobe = nprobe_ids.first;
           }
 
           try {
@@ -389,19 +402,13 @@ int GammaIVFFlatGPUIndex::GPUThread() {
           continue;
         }
 
-        if (ngpus > 1) {
-          auto indexShards = dynamic_cast<faiss::IndexShards *>(gpu_index_);
-          if (indexShards != nullptr) {
-            for (int j = 0; j < indexShards->count(); ++j) {
-              auto ivfflat = dynamic_cast<faiss::gpu::GpuIndexIVFFlat *>(
-                  indexShards->at(j));
-              if (ivfflat != nullptr) ivfflat->nprobe = items[0]->nprobe_;
-            }
+        auto indexShards = dynamic_cast<faiss::IndexShards *>(gpu_index_);
+        if (indexShards != nullptr) {
+          for (int j = 0; j < indexShards->count(); ++j) {
+            auto ivfflat = dynamic_cast<faiss::gpu::GpuIndexIVFFlat *>(
+                indexShards->at(j));
+            if (ivfflat != nullptr) ivfflat->nprobe = items[0]->nprobe_;
           }
-        } else {
-          auto ivfflat =
-              dynamic_cast<faiss::gpu::GpuIndexIVFFlat *>(gpu_index_);
-          if (ivfflat != nullptr) ivfflat->nprobe = items[0]->nprobe_;
         }
 
         gpu_index_->search(items[0]->n_, items[0]->x_, items[0]->k_,

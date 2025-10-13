@@ -327,6 +327,7 @@ class IndexModel {
   tbb::concurrent_bounded_queue<int64_t> updated_vids_;
   // warining: indexed_count_ is only used by framework, sub-class cann't use it
   int64_t indexed_count_;
+  int64_t start_docid_;
   int64_t training_threshold_;
   // TODO SET NAME AND DESC
   std::string name_;

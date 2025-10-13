@@ -535,7 +535,7 @@ int VectorManager::AddRTVecsToIndex(bool &index_is_dirty) {
         size_t count_per_index =
             (i == (index_count - 1) ? total_stored_vecs - start_docid
                                     : MAX_NUM_PER_INDEX);
-        if (count_per_index == 0) break;
+        if (count_per_index == 0 || count_per_index > MAX_NUM_PER_INDEX || start_docid < indexed_vec_count) break;
 
         std::vector<int64_t> vids(count_per_index);
         std::iota(vids.begin(), vids.end(), start_docid);
@@ -575,7 +575,8 @@ int VectorManager::AddRTVecsToIndex(bool &index_is_dirty) {
                  (void *)vecs.Get(i), element_size * raw_d);
         }
 
-        if (!index_model->Add(count_per_index, add_vec)) {
+        index_model->start_docid_ = start_docid;
+        if (start_docid != index_model->indexed_count_ || !index_model->Add(count_per_index, add_vec)) {
           LOG(ERROR) << desc_ << "add index from docid " << start_docid
                      << " error!";
           ret = -2;
