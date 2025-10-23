@@ -109,7 +109,7 @@ Status GammaIVFPQIndex::Init(const std::string &model_parameters,
     // shouldn't less than max_points_per_centroid because of pq.train() when
     // nbit = 8 and ksub = 2^8
     training_threshold_ =
-        std::max((int)nlist * min_points_per_centroid, max_points_per_centroid);
+        std::max((int)nlist * default_points_per_centroid, max_points_per_centroid);
   }
   ivfpq_param.training_threshold = training_threshold_;
   LOG(INFO) << ivfpq_param.ToString();

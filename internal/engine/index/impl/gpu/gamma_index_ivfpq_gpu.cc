@@ -186,7 +186,11 @@ Status GammaIVFPQGPUIndex::Init(const std::string &model_parameters,
   this->nbits_per_idx_ = ivfpq_param.nbits_per_idx;
 
   metric_type_ = ivfpq_param.metric_type;
-
+  if (training_threshold) {
+    training_threshold_ = training_threshold;
+  } else {
+    training_threshold_ = nlist_ * max_points_per_centroid;
+  }
   b_exited_ = false;
 
   gpu_index_ = nullptr;

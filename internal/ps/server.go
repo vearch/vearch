@@ -39,7 +39,7 @@ import (
 const maxTryTime = 5
 
 var (
-	defaultConcurrentNum = 32
+	defaultConcurrentNum = 256
 	defaultRpcTimeOut    = 10 // 10 seconds
 )
 

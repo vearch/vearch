@@ -324,7 +324,20 @@ func bulk(ctx context.Context, store PartitionStore, items []*vearchpb.Item) {
 }
 
 func query(ctx context.Context, store PartitionStore, request *vearchpb.QueryRequest, response *vearchpb.SearchResponse) {
+	defer func() {
+		if r := recover(); r != nil {
+			response.Head.Err = &vearchpb.Error{Code: vearchpb.ErrorEnum_INTERNAL_ERROR, Msg: cast.ToString(r)}
+		}
+	}()
 	startTime := time.Now()
+	if response.Head == nil {
+		response.Head = &vearchpb.ResponseHead{
+			Params: make(map[string]string),
+		}
+	}
+	if response.Head.Params == nil {
+		response.Head.Params = make(map[string]string)
+	}
 	if err := store.Query(ctx, request, response); err != nil {
 		log.Error("query doc failed, err: [%s]", err.Error())
 		response.Head.Err = vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err).GetError()
@@ -333,17 +346,8 @@ func query(ctx context.Context, store PartitionStore, request *vearchpb.QueryReq
 	storeQuery := (time.Since(startTime).Seconds()) * 1000
 	storeQueryStr := strconv.FormatFloat(storeQuery, 'f', 4, 64)
 
-	if response.Head != nil && response.Head.Params != nil {
-		response.Head.Params["storeQuery_"+partitionIDstr] = storeQueryStr
-	} else {
-		costTimeMap := make(map[string]string)
-		costTimeMap["storeQuery"] = storeQueryStr
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			response.Head.Err = &vearchpb.Error{Code: vearchpb.ErrorEnum_INTERNAL_ERROR, Msg: cast.ToString(r)}
-		}
-	}()
+	response.Head.Params["storeQuery_"+partitionIDstr] = storeQueryStr
+
 }
 
 func search(ctx context.Context, store PartitionStore, request *vearchpb.SearchRequest, response *vearchpb.SearchResponse) {
@@ -356,6 +360,15 @@ func search(ctx context.Context, store PartitionStore, request *vearchpb.SearchR
 		}
 	}()
 
+	if response.Head == nil {
+		response.Head = &vearchpb.ResponseHead{
+			Params: make(map[string]string),
+		}
+	}
+	if response.Head.Params == nil {
+		response.Head.Params = make(map[string]string)
+	}
+
 	startTime := time.Now()
 	if err := store.Search(ctx, request, response); err != nil {
 		log.Error("search doc failed, err: [%s]", err.Error())
@@ -367,12 +380,7 @@ func search(ctx context.Context, store PartitionStore, request *vearchpb.SearchR
 	storeSearch := (time.Since(startTime).Seconds()) * 1000
 	storeSearchStr := strconv.FormatFloat(storeSearch, 'f', 4, 64)
 
-	if response.Head != nil && response.Head.Params != nil {
-		response.Head.Params["storeSearch_"+partitionIDstr] = storeSearchStr
-	} else {
-		costTimeMap := make(map[string]string)
-		costTimeMap["storeSearch_"+partitionIDstr] = storeSearchStr
-	}
+	response.Head.Params["storeSearch_"+partitionIDstr] = storeSearchStr
 }
 
 func forceMerge(store PartitionStore) *vearchpb.Error {

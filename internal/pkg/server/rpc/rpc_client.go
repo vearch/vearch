@@ -91,9 +91,8 @@ func (r *RpcClient) Execute(ctx context.Context, servicePath string, args interf
 	}()
 	select {
 	case <-ctx.Done():
-		msg := fmt.Sprintf("Too much concurrency causes time out, the max num of concurrency is [%d]", r.concurrentNum)
-		err = vearchpb.NewError(vearchpb.ErrorEnum_TIMEOUT, errors.New(msg))
-		log.Errorf(msg)
+		err = vearchpb.NewError(vearchpb.ErrorEnum_TIMEOUT, errors.New(ctx.Err().Error()))
+		log.Error("request id:%s, err:%v, the max num of concurrency is [%d], current concurrency is [%d]", reply.MessageID, ctx.Err().Error(), r.concurrentNum, len(r.concurrent))
 		return
 	default:
 		var (
@@ -113,7 +112,7 @@ func (r *RpcClient) Execute(ctx context.Context, servicePath string, args interf
 			if timeout < 1 {
 				msg := fmt.Sprintf("timeout[%d] is too small", timeout)
 				err = vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, errors.New(msg))
-				log.Errorf(msg)
+				log.Error(msg)
 				return
 			}
 			md[string(entity.RPC_TIME_OUT)] = strconv.FormatInt(int64(timeout), 10)

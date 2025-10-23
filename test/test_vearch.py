@@ -399,7 +399,7 @@ class VearchCase:
         assert response.status_code == 200
 
         # check result
-        url = router_url + "/document/query"
+        url = router_url + "/document/query?trace=true"
 
         data = {
             "db_name": db_name,

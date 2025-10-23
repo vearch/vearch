@@ -184,7 +184,7 @@ Status GammaIVFFlatIndex::Init(const std::string &model_parameters,
   if (training_threshold) {
     training_threshold_ = training_threshold;
   } else {
-    training_threshold_ = nlist * min_points_per_centroid;
+    training_threshold_ = nlist * default_points_per_centroid;
   }
   params.training_threshold = training_threshold_;
 

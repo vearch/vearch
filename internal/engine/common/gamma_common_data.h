@@ -22,6 +22,7 @@ namespace vearch {
 const float GAMMA_INDEX_RECALL_RATIO = 1.0f;
 
 const int min_points_per_centroid = 39;
+const int default_points_per_centroid = 100;
 const int max_points_per_centroid = 256;
 
 const int brute_force_search_threshold = 100;

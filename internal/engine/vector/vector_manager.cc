@@ -512,8 +512,8 @@ int VectorManager::AddRTVecsToIndex(bool &index_is_dirty) {
   pthread_rwlock_rdlock(&index_rwmutex_);
   for (const auto &[name, index_model] : vector_indexes_) {
     RawVector *raw_vec = dynamic_cast<RawVector *>(index_model->vector_);
-    int total_stored_vecs = raw_vec->MetaInfo()->Size();
-    int indexed_vec_count = index_model->indexed_count_;
+    int64_t total_stored_vecs = raw_vec->MetaInfo()->Size();
+    int64_t indexed_vec_count = index_model->indexed_count_;
 
     if (indexed_vec_count > total_stored_vecs) {
       LOG(ERROR) << desc_
@@ -526,7 +526,7 @@ int VectorManager::AddRTVecsToIndex(bool &index_is_dirty) {
       LOG(INFO) << "no extra vectors existed for indexing";
 #endif
     } else {
-      int MAX_NUM_PER_INDEX = 1000;
+      int64_t MAX_NUM_PER_INDEX = 1000;
       int index_count =
           (total_stored_vecs - indexed_vec_count) / MAX_NUM_PER_INDEX + 1;
 
@@ -535,7 +535,7 @@ int VectorManager::AddRTVecsToIndex(bool &index_is_dirty) {
         size_t count_per_index =
             (i == (index_count - 1) ? total_stored_vecs - start_docid
                                     : MAX_NUM_PER_INDEX);
-        if (count_per_index == 0 || count_per_index > MAX_NUM_PER_INDEX || start_docid < indexed_vec_count) break;
+        if (count_per_index == 0 || (int64_t)count_per_index > MAX_NUM_PER_INDEX || start_docid < indexed_vec_count) break;
 
         std::vector<int64_t> vids(count_per_index);
         std::iota(vids.begin(), vids.end(), start_docid);

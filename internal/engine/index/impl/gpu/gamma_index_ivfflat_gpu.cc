@@ -31,6 +31,7 @@
 #include "c_api/gamma_api.h"
 #include "util/bitmap.h"
 #include "util/utils.h"
+#include "common/gamma_common_data.h"
 
 using faiss::idx_t;
 using std::string;
@@ -76,7 +77,7 @@ Status GammaIVFFlatGPUIndex::Init(const std::string &model_parameters,
   if (training_threshold) {
     training_threshold_ = training_threshold;
   } else {
-    training_threshold_ = nlist_ * 256;
+    training_threshold_ = nlist_ * max_points_per_centroid;
   }
   // Call base class initialization
   return GammaGPUIndexBase<GammaIVFFlatIndex>::Init(model_parameters,

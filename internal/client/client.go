@@ -783,11 +783,29 @@ func (r *routerRequest) SearchFieldSortExecute(desc bool) *vearchpb.SearchRespon
 			finalErr = r.PartitionData.Err
 			continue
 		}
+		if r != nil && r.PartitionData != nil && r.PartitionData.SearchResponse != nil &&
+			r.PartitionData.SearchResponse.Head != nil {
+			if r.PartitionData.SearchResponse.Head.Err != nil {
+				continue
+			}
+		}
 		if result == nil && r != nil {
 			searchResponse = r.PartitionData.SearchResponse
 			if searchResponse != nil && len(searchResponse.Results) > 0 {
 				result = searchResponse.Results
 				continue
+			}
+		}
+
+		if trace {
+			if r != nil && r.PartitionData != nil && r.PartitionData.SearchResponse != nil &&
+				r.PartitionData.SearchResponse.Head != nil {
+				if searchResponse.Head == nil {
+					searchResponse.Head = &vearchpb.ResponseHead{Params: make(map[string]string)}
+				}
+				for key, value := range r.PartitionData.SearchResponse.Head.Params {
+					searchResponse.Head.Params[key] = value
+				}
 			}
 		}
 

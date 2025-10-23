@@ -632,6 +632,11 @@ func (handler *DocumentHandler) handleDocumentSearch(c *gin.Context) {
 	searchResp := handler.docService.search(ctx, searchReq)
 	serviceCost := time.Since(serviceStart)
 
+	var responseCostStart time.Time
+	var responseCost time.Duration
+	if trace {
+		responseCostStart = time.Now()
+	}
 	result, err := documentSearchResponse(searchResp.Results, searchResp.Head, space)
 
 	if err != nil {
@@ -640,8 +645,12 @@ func (handler *DocumentHandler) handleDocumentSearch(c *gin.Context) {
 	}
 	response.New(c).JsonSuccess(result)
 	if trace {
-		log.Trace("handleDocumentSearch %s total: [%.4f] getSpace: [%.4f] service: [%.4f] detail: [%v]",
-			searchReq.Head.Params["request_id"], time.Since(startTime).Seconds()*1000, getSpaceCost.Seconds()*1000, serviceCost.Seconds()*1000, searchResp.Head.Params)
+		responseCost = time.Since(responseCostStart)
+	}
+	if trace {
+		log.Trace("handleDocumentSearch %s total: [%.4f] getSpace: [%.4f] service: [%.4f] response: [%.4f] detail: [%v]",
+			searchReq.Head.Params["request_id"], time.Since(startTime).Seconds()*1000, getSpaceCost.Seconds()*1000,
+			serviceCost.Seconds()*1000, responseCost.Seconds()*1000, searchResp.Head.Params)
 	}
 }
 
