@@ -15,7 +15,7 @@ The following table shows Vearch versions and recommended PyVearch versions:
 
 | Vearch version | Recommended PyVearch version |
 |:--------------:|:----------------------------:|
-|      3.5.X     |             3.5.4            |
+|      3.5.X     |             3.5.5            |
 
 ## Installation
 
@@ -76,12 +76,43 @@ feature = [random.uniform(0, 1) for _ in range(512)]
 vi = VectorInfo("book_character", feature)
 ret = vc.search("database_test", "book_info",vector_infos=[vi, ],limit=7)
 print("search document", ret.documents)
+
+# single vector batch search
+n = 2
+feature = [random.uniform(0, 1) for _ in range(512 * n)]
+vi = VectorInfo("book_character", feature)
+ret = vc.search("database_test", "book_info",vector_infos=[vi, ],limit=7)
+print("search document", ret.documents)
+
+# multiple vector search
+feature = [random.uniform(0, 1) for _ in range(512)]
+vi1 = VectorInfo("book_character", feature)
+feature = [random.uniform(0, 1) for _ in range(512)]
+vi2 = VectorInfo("book_character", feature)
+ret = vc.search("database_test", "book_info",vector_infos=[vi1, vi2],limit=7)
+print("search document", ret.documents)
 ```
 
 ### Querying Documents
 
 ```python
 ret = vc.query("database_test", "book_info", document_ids)
+print(ret.documents)
+
+# by filter
+from vearch.filter import Filter, Condition, FieldValue, Conditions
+
+conditons = [
+    Condition(operator=">", fv=FieldValue(field="book_num", value=0)),
+    Condition(
+        operator="IN",
+        fv=FieldValue(
+            field="book_name", value=["Write"]
+        ),
+    ),
+]
+filters = Filter(operator="AND", conditions=conditons)
+ret = vc.query("database_test", "book_info", filter=filters)
 print(ret.documents)
 ```
 

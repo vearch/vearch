@@ -786,6 +786,7 @@ func (r *routerRequest) SearchFieldSortExecute(desc bool) *vearchpb.SearchRespon
 		if r != nil && r.PartitionData != nil && r.PartitionData.SearchResponse != nil &&
 			r.PartitionData.SearchResponse.Head != nil {
 			if r.PartitionData.SearchResponse.Head.Err != nil {
+				finalErr = r.PartitionData.SearchResponse.Head.Err
 				continue
 			}
 		}

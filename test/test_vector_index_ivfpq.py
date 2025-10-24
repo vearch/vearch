@@ -191,16 +191,19 @@ gt = sift10k.get_groundtruth()
 
 
 @pytest.mark.parametrize(
-    ["store_type", "ncentroids"],
+    ["store_type", "ncentroids", "training_threshold"],
     [
-        ["MemoryOnly", 128],
-        ["RocksDB", 128],
+        ["MemoryOnly", 128, 10000],
+        ["RocksDB", 128, 10000],
+        ["MemoryOnly", 128, 1000],
+        ["RocksDB", 128, 1000],
     ],
 )
-def test_vearch_index_ivfpq_without_nsubvector(store_type: str, ncentroids: int):
+def test_vearch_index_ivfpq_without_nsubvector(store_type: str, ncentroids: int, training_threshold: int):
     index_params = {}
     index_params["metric_type"] = "L2"
     index_params["ncentroids"] = ncentroids
+    index_params["training_threshold"] = training_threshold
     benchmark(store_type, index_params, xb, xq, gt)
 
 
