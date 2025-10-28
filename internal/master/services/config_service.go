@@ -116,6 +116,9 @@ func (s *ConfigService) UpdateSpaceConfig(ctx context.Context, space *entity.Spa
 		if cfg.RefreshInterval != nil {
 			new_cfg.RefreshInterval = cfg.RefreshInterval
 		}
+		if cfg.EnableIdCache != nil {
+			new_cfg.EnableIdCache = cfg.EnableIdCache
+		}
 	}
 	marshal, err := json.Marshal(new_cfg)
 	if err != nil {

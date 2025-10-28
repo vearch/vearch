@@ -1456,17 +1456,21 @@ func Compare(old float64, new float64) int {
 	}
 }
 
-func (r *routerRequest) CommonByPartitions() *routerRequest {
+func (r *routerRequest) CommonByPartitions(pid entity.PartitionID) *routerRequest {
 	if r.Err != nil {
 		return r
 	}
 	sendMap := make(map[entity.PartitionID]*vearchpb.PartitionData)
-	for _, partitionInfo := range r.space.Partitions {
-		partitionID := partitionInfo.Id
-		if _, ok := sendMap[partitionID]; ok {
-			log.Error("db Id:%d , space Id:%d, have multiple partitionID:%d", partitionInfo.DBId, partitionInfo.SpaceId, partitionID)
-		} else {
-			sendMap[partitionID] = &vearchpb.PartitionData{PartitionID: partitionID, MessageID: r.GetMsgID()}
+	if pid != 0 {
+		sendMap[pid] = &vearchpb.PartitionData{PartitionID: pid, MessageID: r.GetMsgID()}
+	} else {
+		for _, partitionInfo := range r.space.Partitions {
+			partitionID := partitionInfo.Id
+			if _, ok := sendMap[partitionID]; ok {
+				log.Error("db Id:%d , space Id:%d, have multiple partitionID:%d", partitionInfo.DBId, partitionInfo.SpaceId, partitionID)
+			} else {
+				sendMap[partitionID] = &vearchpb.PartitionData{PartitionID: partitionID, MessageID: r.GetMsgID()}
+			}
 		}
 	}
 	r.sendMap = sendMap

@@ -565,7 +565,7 @@ Status Engine::CreateTable(TableInfo &table) {
   Status status;
 
   storage_mgr_ = new StorageManager(index_root_path_ + "/data");
-  int cache_size = 512 * 1024 * 1024;  // unit : byte
+  size_t cache_size = 512 * 1024 * 1024;  // unit : byte
 
   std::vector<int> vector_cf_ids;
 
@@ -685,6 +685,7 @@ int Engine::AddOrUpdate(Doc &doc) {
                << "] err=" << ret;
     return -5;
   }
+
   ++max_docid_;
   ret = table_->SetStorageManagerSize(max_docid_);
   if (ret != 0) {
@@ -1279,6 +1280,11 @@ int Engine::Load() {
     }
   }
 
+  // load docid to _id value map
+  if (table_->GetEnableIdCache()) {
+    table_->LoadIdFromTable();
+  }
+
   if (refresh_interval_ >= 0 and
       indexing_state_.load() == IndexingState::IDLE and
       index_status_ == UNINDEXED) {
@@ -1706,6 +1712,7 @@ int Engine::GetConfig(std::string &conf_str) {
   j["path"] = index_root_path_;
   j["long_search_time"] = long_search_time_;
   j["refresh_interval"] = refresh_interval_;
+  j["enable_id_cache"] = table_->GetEnableIdCache();
   conf_str = j.dump();
   return 0;
 }
@@ -1730,6 +1737,15 @@ int Engine::SetConfig(std::string conf_str) {
     refresh_interval_ = j["refresh_interval"];
     LOG(INFO) << space_name_
               << " update refresh_interval=" << refresh_interval_;
+  }
+
+  if (j.contains("enable_id_cache")) {
+    bool enable_id_cache = j["enable_id_cache"];
+    if (enable_id_cache != table_->GetEnableIdCache()) {
+      table_->SetEnableIdCache(enable_id_cache);
+      LOG(INFO) << space_name_
+              << " update enable_id_cache=" << enable_id_cache;
+    }
   }
   return 0;
 }

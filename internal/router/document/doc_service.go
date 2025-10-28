@@ -201,7 +201,7 @@ func (docService *docService) search(ctx context.Context, searchReq *vearchpb.Se
 
 func (docService *docService) flush(ctx context.Context, args *vearchpb.FlushRequest) *vearchpb.FlushResponse {
 	request := client.NewRouterRequest(ctx, docService.client)
-	request.SetMsgID(args.Head.Params["request_id"]).SetMethod(client.FlushHandler).SetHead(args.Head).SetSpace().CommonByPartitions()
+	request.SetMsgID(args.Head.Params["request_id"]).SetMethod(client.FlushHandler).SetHead(args.Head).SetSpace().CommonByPartitions(0)
 	if request.Err != nil {
 		return &vearchpb.FlushResponse{Head: setErrHead(request.Err)}
 	}
@@ -223,7 +223,7 @@ func (docService *docService) flush(ctx context.Context, args *vearchpb.FlushReq
 
 func (docService *docService) forceMerge(ctx context.Context, args *vearchpb.ForceMergeRequest) *vearchpb.ForceMergeResponse {
 	request := client.NewRouterRequest(ctx, docService.client)
-	request.SetMsgID(args.Head.Params["request_id"]).SetMethod(client.ForceMergeHandler).SetHead(args.Head).SetSpace().CommonByPartitions()
+	request.SetMsgID(args.Head.Params["request_id"]).SetMethod(client.ForceMergeHandler).SetHead(args.Head).SetSpace().CommonByPartitions(args.PartitionId)
 	if request.Err != nil {
 		return &vearchpb.ForceMergeResponse{Head: setErrHead(request.Err)}
 	}

@@ -783,11 +783,31 @@ func (handler *DocumentHandler) handleIndexForceMerge(c *gin.Context) {
 
 	args.Head.DbName = indexRequest.DbName
 	args.Head.SpaceName = indexRequest.SpaceName
+	args.PartitionId = indexRequest.PartitionId
 
-	_, err = handler.docService.getSpace(c.Request.Context(), args.Head)
+	space, err := handler.docService.getSpace(c.Request.Context(), args.Head)
 	if err != nil {
 		response.New(c).JsonError(errors.NewErrInternal(err))
 		return
+	}
+	if space == nil {
+		err := vearchpb.NewError(vearchpb.ErrorEnum_SPACE_NOT_EXIST, nil)
+		response.New(c).JsonError(errors.NewErrBadRequest(err))
+		return
+	}
+	if args.PartitionId > 0 {
+		found := false
+		for _, partition := range space.Partitions {
+			if partition.Id == args.PartitionId {
+				found = true
+				break
+			}
+		}
+		if !found {
+			err := vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("partition_id %d not belong to space %s", args.PartitionId, space.Name))
+			response.New(c).JsonError(errors.NewErrBadRequest(err))
+			return
+		}
 	}
 
 	forceMergeResponse := handler.docService.forceMerge(c.Request.Context(), args)

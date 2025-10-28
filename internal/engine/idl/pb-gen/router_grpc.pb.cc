@@ -124,6 +124,7 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORIT
 PROTOBUF_CONSTEXPR ForceMergeRequest::ForceMergeRequest(
     ::_pbi::ConstantInitialized): _impl_{
     /*decltype(_impl_.head_)*/nullptr
+  , /*decltype(_impl_.partition_id_)*/0u
   , /*decltype(_impl_._cached_size_)*/{}} {}
 struct ForceMergeRequestDefaultTypeInternal {
   PROTOBUF_CONSTEXPR ForceMergeRequestDefaultTypeInternal()
@@ -569,6 +570,7 @@ const uint32_t TableStruct_router_5fgrpc_2eproto::offsets[] PROTOBUF_SECTION_VAR
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
   PROTOBUF_FIELD_OFFSET(::vearchpb::ForceMergeRequest, _impl_.head_),
+  PROTOBUF_FIELD_OFFSET(::vearchpb::ForceMergeRequest, _impl_.partition_id_),
   ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::vearchpb::FlushRequest, _internal_metadata_),
   ~0u,  // no _extensions_
@@ -812,28 +814,28 @@ static const ::_pbi::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protode
   { 50, -1, -1, sizeof(::vearchpb::DeleteRequest)},
   { 58, -1, -1, sizeof(::vearchpb::BulkRequest)},
   { 67, -1, -1, sizeof(::vearchpb::ForceMergeRequest)},
-  { 74, -1, -1, sizeof(::vearchpb::FlushRequest)},
-  { 81, -1, -1, sizeof(::vearchpb::IndexRequest)},
-  { 92, -1, -1, sizeof(::vearchpb::GetResponse)},
-  { 100, -1, -1, sizeof(::vearchpb::DeleteResponse)},
-  { 108, -1, -1, sizeof(::vearchpb::BulkResponse)},
-  { 116, -1, -1, sizeof(::vearchpb::ForceMergeResponse)},
-  { 124, -1, -1, sizeof(::vearchpb::DelByQueryeResponse)},
-  { 133, -1, -1, sizeof(::vearchpb::FlushResponse)},
-  { 141, -1, -1, sizeof(::vearchpb::IndexResponse)},
-  { 149, -1, -1, sizeof(::vearchpb::TermFilter)},
-  { 158, -1, -1, sizeof(::vearchpb::RangeFilter)},
-  { 170, -1, -1, sizeof(::vearchpb::SortField)},
-  { 178, -1, -1, sizeof(::vearchpb::VectorQuery)},
-  { 190, -1, -1, sizeof(::vearchpb::IndexParameters)},
-  { 198, 206, -1, sizeof(::vearchpb::QueryRequest_SortFieldMapEntry_DoNotUse)},
-  { 208, -1, -1, sizeof(::vearchpb::QueryRequest)},
-  { 229, 237, -1, sizeof(::vearchpb::SearchRequest_SortFieldMapEntry_DoNotUse)},
-  { 239, -1, -1, sizeof(::vearchpb::SearchRequest)},
-  { 262, -1, -1, sizeof(::vearchpb::ResultItem)},
-  { 271, -1, -1, sizeof(::vearchpb::SearchResult)},
-  { 287, -1, -1, sizeof(::vearchpb::SearchResponse)},
-  { 297, -1, -1, sizeof(::vearchpb::SearchStatus)},
+  { 75, -1, -1, sizeof(::vearchpb::FlushRequest)},
+  { 82, -1, -1, sizeof(::vearchpb::IndexRequest)},
+  { 93, -1, -1, sizeof(::vearchpb::GetResponse)},
+  { 101, -1, -1, sizeof(::vearchpb::DeleteResponse)},
+  { 109, -1, -1, sizeof(::vearchpb::BulkResponse)},
+  { 117, -1, -1, sizeof(::vearchpb::ForceMergeResponse)},
+  { 125, -1, -1, sizeof(::vearchpb::DelByQueryeResponse)},
+  { 134, -1, -1, sizeof(::vearchpb::FlushResponse)},
+  { 142, -1, -1, sizeof(::vearchpb::IndexResponse)},
+  { 150, -1, -1, sizeof(::vearchpb::TermFilter)},
+  { 159, -1, -1, sizeof(::vearchpb::RangeFilter)},
+  { 171, -1, -1, sizeof(::vearchpb::SortField)},
+  { 179, -1, -1, sizeof(::vearchpb::VectorQuery)},
+  { 191, -1, -1, sizeof(::vearchpb::IndexParameters)},
+  { 199, 207, -1, sizeof(::vearchpb::QueryRequest_SortFieldMapEntry_DoNotUse)},
+  { 209, -1, -1, sizeof(::vearchpb::QueryRequest)},
+  { 230, 238, -1, sizeof(::vearchpb::SearchRequest_SortFieldMapEntry_DoNotUse)},
+  { 240, -1, -1, sizeof(::vearchpb::SearchRequest)},
+  { 263, -1, -1, sizeof(::vearchpb::ResultItem)},
+  { 272, -1, -1, sizeof(::vearchpb::SearchResult)},
+  { 288, -1, -1, sizeof(::vearchpb::SearchResponse)},
+  { 298, -1, -1, sizeof(::vearchpb::SearchStatus)},
 };
 
 static const ::_pb::Message* const file_default_instances[] = {
@@ -887,92 +889,92 @@ const char descriptor_table_protodef_router_5fgrpc_2eproto[] PROTOBUF_SECTION_VA
   "\0132\025.vearchpb.RequestHead\022\024\n\014primary_keys"
   "\030\002 \003(\t\"h\n\013BulkRequest\022#\n\004head\030\001 \001(\0132\025.ve"
   "archpb.RequestHead\022 \n\004docs\030\002 \003(\0132\022.vearc"
-  "hpb.Document\022\022\n\npartitions\030\003 \003(\r\"8\n\021Forc"
+  "hpb.Document\022\022\n\npartitions\030\003 \003(\r\"N\n\021Forc"
   "eMergeRequest\022#\n\004head\030\001 \001(\0132\025.vearchpb.R"
-  "equestHead\"3\n\014FlushRequest\022#\n\004head\030\001 \001(\013"
-  "2\025.vearchpb.RequestHead\"\213\001\n\014IndexRequest"
-  "\022#\n\004head\030\001 \001(\0132\025.vearchpb.RequestHead\022\033\n"
-  "\023drop_before_rebuild\030\002 \001(\003\022\021\n\tlimit_cpu\030"
-  "\003 \001(\003\022\020\n\010describe\030\004 \001(\003\022\024\n\014partition_id\030"
-  "\005 \001(\r\"R\n\013GetResponse\022$\n\004head\030\001 \001(\0132\026.vea"
-  "rchpb.ResponseHead\022\035\n\005items\030\002 \003(\0132\016.vear"
-  "chpb.Item\"U\n\016DeleteResponse\022$\n\004head\030\001 \001("
-  "\0132\026.vearchpb.ResponseHead\022\035\n\005items\030\002 \003(\013"
-  "2\016.vearchpb.Item\"S\n\014BulkResponse\022$\n\004head"
-  "\030\001 \001(\0132\026.vearchpb.ResponseHead\022\035\n\005items\030"
-  "\002 \003(\0132\016.vearchpb.Item\"b\n\022ForceMergeRespo"
-  "nse\022$\n\004head\030\001 \001(\0132\026.vearchpb.ResponseHea"
-  "d\022&\n\006shards\030\002 \001(\0132\026.vearchpb.SearchStatu"
-  "s\"\\\n\023DelByQueryeResponse\022$\n\004head\030\001 \001(\0132\026"
-  ".vearchpb.ResponseHead\022\016\n\006DelNum\030\002 \001(\005\022\017"
-  "\n\007ids_str\030\003 \003(\t\"]\n\rFlushResponse\022$\n\004head"
-  "\030\001 \001(\0132\026.vearchpb.ResponseHead\022&\n\006shards"
-  "\030\002 \001(\0132\026.vearchpb.SearchStatus\"]\n\rIndexR"
-  "esponse\022$\n\004head\030\001 \001(\0132\026.vearchpb.Respons"
-  "eHead\022&\n\006shards\030\002 \001(\0132\026.vearchpb.SearchS"
-  "tatus\"<\n\nTermFilter\022\r\n\005field\030\001 \001(\t\022\r\n\005va"
-  "lue\030\002 \001(\014\022\020\n\010is_union\030\003 \001(\005\"\206\001\n\013RangeFil"
-  "ter\022\r\n\005field\030\001 \001(\t\022\023\n\013lower_value\030\002 \001(\014\022"
-  "\023\n\013upper_value\030\003 \001(\014\022\025\n\rinclude_lower\030\004 "
-  "\001(\010\022\025\n\rinclude_upper\030\005 \001(\010\022\020\n\010is_union\030\006"
-  " \001(\005\"(\n\tSortField\022\r\n\005field\030\001 \001(\t\022\014\n\004type"
-  "\030\002 \001(\010\"t\n\013VectorQuery\022\014\n\004name\030\001 \001(\t\022\r\n\005v"
-  "alue\030\002 \001(\014\022\021\n\tmin_score\030\003 \001(\001\022\021\n\tmax_sco"
-  "re\030\004 \001(\001\022\016\n\006format\030\005 \001(\t\022\022\n\nindex_type\030\006"
-  " \001(\t\"\224\001\n\017IndexParameters\022A\n\013metric_type\030"
-  "\001 \001(\0162,.vearchpb.IndexParameters.Distanc"
-  "eMetricType\022\016\n\006nprobe\030\002 \001(\005\".\n\022DistanceM"
-  "etricType\022\020\n\014InnerProduct\020\000\022\006\n\002L2\020\001\"\352\003\n\014"
-  "QueryRequest\022#\n\004head\030\001 \001(\0132\025.vearchpb.Re"
-  "questHead\022\024\n\014document_ids\030\002 \003(\t\022\024\n\014parti"
-  "tion_id\030\003 \001(\005\022\014\n\004next\030\004 \001(\010\022,\n\rrange_fil"
-  "ters\030\005 \003(\0132\025.vearchpb.RangeFilter\022*\n\014ter"
-  "m_filters\030\006 \003(\0132\024.vearchpb.TermFilter\022\016\n"
-  "\006fields\030\007 \003(\t\022\027\n\017is_vector_value\030\010 \001(\010\022\r"
-  "\n\005limit\030\t \001(\005\022\021\n\tpage_size\030\n \001(\005\022\024\n\014load"
-  "_balance\030\013 \001(\t\022@\n\016sort_field_map\030\014 \003(\0132("
-  ".vearchpb.QueryRequest.SortFieldMapEntry"
-  "\022(\n\013sort_fields\030\r \003(\0132\023.vearchpb.SortFie"
-  "ld\022\r\n\005trace\030\016 \001(\010\022\020\n\010operator\030\017 \001(\005\0323\n\021S"
-  "ortFieldMapEntry\022\013\n\003key\030\001 \001(\t\022\r\n\005value\030\002"
-  " \001(\t:\0028\001\"\257\004\n\rSearchRequest\022#\n\004head\030\001 \001(\013"
-  "2\025.vearchpb.RequestHead\022\017\n\007req_num\030\002 \001(\005"
-  "\022\014\n\004topN\030\003 \001(\005\022\027\n\017is_brute_search\030\004 \001(\005\022"
-  ")\n\nvec_fields\030\005 \003(\0132\025.vearchpb.VectorQue"
-  "ry\022\016\n\006fields\030\006 \003(\t\022,\n\rrange_filters\030\007 \003("
-  "\0132\025.vearchpb.RangeFilter\022*\n\014term_filters"
-  "\030\010 \003(\0132\024.vearchpb.TermFilter\022\024\n\014index_pa"
-  "rams\030\t \001(\t\022\031\n\021multi_vector_rank\030\n \001(\005\022\017\n"
-  "\007l2_sqrt\030\013 \001(\010\022\027\n\017is_vector_value\030\014 \001(\010\022"
-  "A\n\016sort_field_map\030\r \003(\0132).vearchpb.Searc"
-  "hRequest.SortFieldMapEntry\022(\n\013sort_field"
-  "s\030\016 \003(\0132\023.vearchpb.SortField\022\016\n\006ranker\030\017"
-  " \001(\t\022\r\n\005trace\030\020 \001(\010\022\020\n\010operator\030\021 \001(\005\0323\n"
-  "\021SortFieldMapEntry\022\013\n\003key\030\001 \001(\t\022\r\n\005value"
-  "\030\002 \001(\t:\0028\001\"K\n\nResultItem\022\r\n\005score\030\001 \001(\001\022"
-  "\037\n\006fields\030\002 \003(\0132\017.vearchpb.Field\022\r\n\005p_ke"
-  "y\030\003 \001(\t\"\351\001\n\014SearchResult\022\022\n\ntotal_hits\030\001"
-  " \001(\005\022\021\n\tmax_score\030\002 \001(\001\022\020\n\010max_took\030\003 \001("
-  "\003\022\023\n\013max_took_id\030\004 \001(\r\022&\n\006status\030\005 \001(\0132\026"
-  ".vearchpb.SearchStatus\022\013\n\003msg\030\006 \001(\t\022*\n\014r"
-  "esult_items\030\007 \003(\0132\024.vearchpb.ResultItem\022"
-  "\013\n\003pID\030\010 \001(\r\022\017\n\007timeout\030\t \001(\010\022\014\n\004topN\030\n "
-  "\001(\005\"\203\001\n\016SearchResponse\022$\n\004head\030\001 \001(\0132\026.v"
-  "earchpb.ResponseHead\022\'\n\007results\030\002 \003(\0132\026."
-  "vearchpb.SearchResult\022\017\n\007timeout\030\003 \001(\010\022\021"
-  "\n\tFlatBytes\030\004 \001(\014\"N\n\014SearchStatus\022\r\n\005tot"
-  "al\030\001 \001(\005\022\016\n\006failed\030\002 \001(\005\022\022\n\nsuccessful\030\003"
-  " \001(\005\022\013\n\003msg\030\004 \001(\t2\366\002\n\021RouterGRPCService\022"
-  "4\n\003Get\022\024.vearchpb.GetRequest\032\025.vearchpb."
-  "GetResponse\"\000\022=\n\006Delete\022\027.vearchpb.Delet"
-  "eRequest\032\030.vearchpb.DeleteResponse\"\000\022=\n\006"
-  "Search\022\027.vearchpb.SearchRequest\032\030.vearch"
-  "pb.SearchResponse\"\000\0227\n\004Bulk\022\025.vearchpb.B"
-  "ulkRequest\032\026.vearchpb.BulkResponse\"\000\0221\n\005"
-  "Space\022\025.vearchpb.RequestHead\032\017.vearchpb."
-  "Table\"\000\022A\n\nSearchByID\022\027.vearchpb.SearchR"
-  "equest\032\030.vearchpb.SearchResponse\"\000B\016H\001Z\n"
-  "./vearchpbb\006proto3"
+  "equestHead\022\024\n\014partition_id\030\002 \001(\r\"3\n\014Flus"
+  "hRequest\022#\n\004head\030\001 \001(\0132\025.vearchpb.Reques"
+  "tHead\"\213\001\n\014IndexRequest\022#\n\004head\030\001 \001(\0132\025.v"
+  "earchpb.RequestHead\022\033\n\023drop_before_rebui"
+  "ld\030\002 \001(\003\022\021\n\tlimit_cpu\030\003 \001(\003\022\020\n\010describe\030"
+  "\004 \001(\003\022\024\n\014partition_id\030\005 \001(\r\"R\n\013GetRespon"
+  "se\022$\n\004head\030\001 \001(\0132\026.vearchpb.ResponseHead"
+  "\022\035\n\005items\030\002 \003(\0132\016.vearchpb.Item\"U\n\016Delet"
+  "eResponse\022$\n\004head\030\001 \001(\0132\026.vearchpb.Respo"
+  "nseHead\022\035\n\005items\030\002 \003(\0132\016.vearchpb.Item\"S"
+  "\n\014BulkResponse\022$\n\004head\030\001 \001(\0132\026.vearchpb."
+  "ResponseHead\022\035\n\005items\030\002 \003(\0132\016.vearchpb.I"
+  "tem\"b\n\022ForceMergeResponse\022$\n\004head\030\001 \001(\0132"
+  "\026.vearchpb.ResponseHead\022&\n\006shards\030\002 \001(\0132"
+  "\026.vearchpb.SearchStatus\"\\\n\023DelByQueryeRe"
+  "sponse\022$\n\004head\030\001 \001(\0132\026.vearchpb.Response"
+  "Head\022\016\n\006DelNum\030\002 \001(\005\022\017\n\007ids_str\030\003 \003(\t\"]\n"
+  "\rFlushResponse\022$\n\004head\030\001 \001(\0132\026.vearchpb."
+  "ResponseHead\022&\n\006shards\030\002 \001(\0132\026.vearchpb."
+  "SearchStatus\"]\n\rIndexResponse\022$\n\004head\030\001 "
+  "\001(\0132\026.vearchpb.ResponseHead\022&\n\006shards\030\002 "
+  "\001(\0132\026.vearchpb.SearchStatus\"<\n\nTermFilte"
+  "r\022\r\n\005field\030\001 \001(\t\022\r\n\005value\030\002 \001(\014\022\020\n\010is_un"
+  "ion\030\003 \001(\005\"\206\001\n\013RangeFilter\022\r\n\005field\030\001 \001(\t"
+  "\022\023\n\013lower_value\030\002 \001(\014\022\023\n\013upper_value\030\003 \001"
+  "(\014\022\025\n\rinclude_lower\030\004 \001(\010\022\025\n\rinclude_upp"
+  "er\030\005 \001(\010\022\020\n\010is_union\030\006 \001(\005\"(\n\tSortField\022"
+  "\r\n\005field\030\001 \001(\t\022\014\n\004type\030\002 \001(\010\"t\n\013VectorQu"
+  "ery\022\014\n\004name\030\001 \001(\t\022\r\n\005value\030\002 \001(\014\022\021\n\tmin_"
+  "score\030\003 \001(\001\022\021\n\tmax_score\030\004 \001(\001\022\016\n\006format"
+  "\030\005 \001(\t\022\022\n\nindex_type\030\006 \001(\t\"\224\001\n\017IndexPara"
+  "meters\022A\n\013metric_type\030\001 \001(\0162,.vearchpb.I"
+  "ndexParameters.DistanceMetricType\022\016\n\006npr"
+  "obe\030\002 \001(\005\".\n\022DistanceMetricType\022\020\n\014Inner"
+  "Product\020\000\022\006\n\002L2\020\001\"\352\003\n\014QueryRequest\022#\n\004he"
+  "ad\030\001 \001(\0132\025.vearchpb.RequestHead\022\024\n\014docum"
+  "ent_ids\030\002 \003(\t\022\024\n\014partition_id\030\003 \001(\005\022\014\n\004n"
+  "ext\030\004 \001(\010\022,\n\rrange_filters\030\005 \003(\0132\025.vearc"
+  "hpb.RangeFilter\022*\n\014term_filters\030\006 \003(\0132\024."
+  "vearchpb.TermFilter\022\016\n\006fields\030\007 \003(\t\022\027\n\017i"
+  "s_vector_value\030\010 \001(\010\022\r\n\005limit\030\t \001(\005\022\021\n\tp"
+  "age_size\030\n \001(\005\022\024\n\014load_balance\030\013 \001(\t\022@\n\016"
+  "sort_field_map\030\014 \003(\0132(.vearchpb.QueryReq"
+  "uest.SortFieldMapEntry\022(\n\013sort_fields\030\r "
+  "\003(\0132\023.vearchpb.SortField\022\r\n\005trace\030\016 \001(\010\022"
+  "\020\n\010operator\030\017 \001(\005\0323\n\021SortFieldMapEntry\022\013"
+  "\n\003key\030\001 \001(\t\022\r\n\005value\030\002 \001(\t:\0028\001\"\257\004\n\rSearc"
+  "hRequest\022#\n\004head\030\001 \001(\0132\025.vearchpb.Reques"
+  "tHead\022\017\n\007req_num\030\002 \001(\005\022\014\n\004topN\030\003 \001(\005\022\027\n\017"
+  "is_brute_search\030\004 \001(\005\022)\n\nvec_fields\030\005 \003("
+  "\0132\025.vearchpb.VectorQuery\022\016\n\006fields\030\006 \003(\t"
+  "\022,\n\rrange_filters\030\007 \003(\0132\025.vearchpb.Range"
+  "Filter\022*\n\014term_filters\030\010 \003(\0132\024.vearchpb."
+  "TermFilter\022\024\n\014index_params\030\t \001(\t\022\031\n\021mult"
+  "i_vector_rank\030\n \001(\005\022\017\n\007l2_sqrt\030\013 \001(\010\022\027\n\017"
+  "is_vector_value\030\014 \001(\010\022A\n\016sort_field_map\030"
+  "\r \003(\0132).vearchpb.SearchRequest.SortField"
+  "MapEntry\022(\n\013sort_fields\030\016 \003(\0132\023.vearchpb"
+  ".SortField\022\016\n\006ranker\030\017 \001(\t\022\r\n\005trace\030\020 \001("
+  "\010\022\020\n\010operator\030\021 \001(\005\0323\n\021SortFieldMapEntry"
+  "\022\013\n\003key\030\001 \001(\t\022\r\n\005value\030\002 \001(\t:\0028\001\"K\n\nResu"
+  "ltItem\022\r\n\005score\030\001 \001(\001\022\037\n\006fields\030\002 \003(\0132\017."
+  "vearchpb.Field\022\r\n\005p_key\030\003 \001(\t\"\351\001\n\014Search"
+  "Result\022\022\n\ntotal_hits\030\001 \001(\005\022\021\n\tmax_score\030"
+  "\002 \001(\001\022\020\n\010max_took\030\003 \001(\003\022\023\n\013max_took_id\030\004"
+  " \001(\r\022&\n\006status\030\005 \001(\0132\026.vearchpb.SearchSt"
+  "atus\022\013\n\003msg\030\006 \001(\t\022*\n\014result_items\030\007 \003(\0132"
+  "\024.vearchpb.ResultItem\022\013\n\003pID\030\010 \001(\r\022\017\n\007ti"
+  "meout\030\t \001(\010\022\014\n\004topN\030\n \001(\005\"\203\001\n\016SearchResp"
+  "onse\022$\n\004head\030\001 \001(\0132\026.vearchpb.ResponseHe"
+  "ad\022\'\n\007results\030\002 \003(\0132\026.vearchpb.SearchRes"
+  "ult\022\017\n\007timeout\030\003 \001(\010\022\021\n\tFlatBytes\030\004 \001(\014\""
+  "N\n\014SearchStatus\022\r\n\005total\030\001 \001(\005\022\016\n\006failed"
+  "\030\002 \001(\005\022\022\n\nsuccessful\030\003 \001(\005\022\013\n\003msg\030\004 \001(\t2"
+  "\366\002\n\021RouterGRPCService\0224\n\003Get\022\024.vearchpb."
+  "GetRequest\032\025.vearchpb.GetResponse\"\000\022=\n\006D"
+  "elete\022\027.vearchpb.DeleteRequest\032\030.vearchp"
+  "b.DeleteResponse\"\000\022=\n\006Search\022\027.vearchpb."
+  "SearchRequest\032\030.vearchpb.SearchResponse\""
+  "\000\0227\n\004Bulk\022\025.vearchpb.BulkRequest\032\026.vearc"
+  "hpb.BulkResponse\"\000\0221\n\005Space\022\025.vearchpb.R"
+  "equestHead\032\017.vearchpb.Table\"\000\022A\n\nSearchB"
+  "yID\022\027.vearchpb.SearchRequest\032\030.vearchpb."
+  "SearchResponse\"\000B\016H\001Z\n./vearchpbb\006proto3"
   ;
 static const ::_pbi::DescriptorTable* const descriptor_table_router_5fgrpc_2eproto_deps[2] = {
   &::descriptor_table_data_5fmodel_2eproto,
@@ -980,7 +982,7 @@ static const ::_pbi::DescriptorTable* const descriptor_table_router_5fgrpc_2epro
 };
 static ::_pbi::once_flag descriptor_table_router_5fgrpc_2eproto_once;
 const ::_pbi::DescriptorTable descriptor_table_router_5fgrpc_2eproto = {
-    false, false, 4098, descriptor_table_protodef_router_5fgrpc_2eproto,
+    false, false, 4120, descriptor_table_protodef_router_5fgrpc_2eproto,
     "router_grpc.proto",
     &descriptor_table_router_5fgrpc_2eproto_once, descriptor_table_router_5fgrpc_2eproto_deps, 2, 30,
     schemas, file_default_instances, TableStruct_router_5fgrpc_2eproto::offsets,
@@ -2619,12 +2621,14 @@ ForceMergeRequest::ForceMergeRequest(const ForceMergeRequest& from)
   ForceMergeRequest* const _this = this; (void)_this;
   new (&_impl_) Impl_{
       decltype(_impl_.head_){nullptr}
+    , decltype(_impl_.partition_id_){}
     , /*decltype(_impl_._cached_size_)*/{}};
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
   if (from._internal_has_head()) {
     _this->_impl_.head_ = new ::vearchpb::RequestHead(*from._impl_.head_);
   }
+  _this->_impl_.partition_id_ = from._impl_.partition_id_;
   // @@protoc_insertion_point(copy_constructor:vearchpb.ForceMergeRequest)
 }
 
@@ -2634,6 +2638,7 @@ inline void ForceMergeRequest::SharedCtor(
   (void)is_message_owned;
   new (&_impl_) Impl_{
       decltype(_impl_.head_){nullptr}
+    , decltype(_impl_.partition_id_){0u}
     , /*decltype(_impl_._cached_size_)*/{}
   };
 }
@@ -2666,6 +2671,7 @@ void ForceMergeRequest::Clear() {
     delete _impl_.head_;
   }
   _impl_.head_ = nullptr;
+  _impl_.partition_id_ = 0u;
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
@@ -2679,6 +2685,14 @@ const char* ForceMergeRequest::_InternalParse(const char* ptr, ::_pbi::ParseCont
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
           ptr = ctx->ParseMessage(_internal_mutable_head(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // uint32 partition_id = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 16)) {
+          _impl_.partition_id_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
           CHK_(ptr);
         } else
           goto handle_unusual;
@@ -2719,6 +2733,12 @@ uint8_t* ForceMergeRequest::_InternalSerialize(
         _Internal::head(this).GetCachedSize(), target, stream);
   }
 
+  // uint32 partition_id = 2;
+  if (this->_internal_partition_id() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt32ToArray(2, this->_internal_partition_id(), target);
+  }
+
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
@@ -2740,6 +2760,11 @@ size_t ForceMergeRequest::ByteSizeLong() const {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
         *_impl_.head_);
+  }
+
+  // uint32 partition_id = 2;
+  if (this->_internal_partition_id() != 0) {
+    total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(this->_internal_partition_id());
   }
 
   return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
@@ -2764,6 +2789,9 @@ void ForceMergeRequest::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, cons
     _this->_internal_mutable_head()->::vearchpb::RequestHead::MergeFrom(
         from._internal_head());
   }
+  if (from._internal_partition_id() != 0) {
+    _this->_internal_set_partition_id(from._internal_partition_id());
+  }
   _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
 
@@ -2781,7 +2809,12 @@ bool ForceMergeRequest::IsInitialized() const {
 void ForceMergeRequest::InternalSwap(ForceMergeRequest* other) {
   using std::swap;
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
-  swap(_impl_.head_, other->_impl_.head_);
+  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(ForceMergeRequest, _impl_.partition_id_)
+      + sizeof(ForceMergeRequest::_impl_.partition_id_)
+      - PROTOBUF_FIELD_OFFSET(ForceMergeRequest, _impl_.head_)>(
+          reinterpret_cast<char*>(&_impl_.head_),
+          reinterpret_cast<char*>(&other->_impl_.head_));
 }
 
 ::PROTOBUF_NAMESPACE_ID::Metadata ForceMergeRequest::GetMetadata() const {

@@ -10,6 +10,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <tbb/concurrent_unordered_map.h>
 
 #include "c_api/api_data/doc.h"
 #include "c_api/api_data/table.h"
@@ -97,7 +98,7 @@ class Table {
   int GetFieldRawValue(int64_t docid, int field_id, std::string &value);
 
   int GetFieldRawValue(int64_t docid, int field_id, std::vector<uint8_t> &value,
-                       uint8_t *doc_value = nullptr);
+                       std::vector<uint8_t> &doc_value);
 
   int GetRawValue(int64_t docid, std::vector<uint8_t> &value);
 
@@ -115,6 +116,8 @@ class Table {
 
   const std::string &GetKeyFieldName() { return key_field_name_; }
 
+  int LoadIdFromTable();
+  int Load_id();
   int Load(int64_t &doc_num);
 
   int64_t Size() { return last_docid_ + 1; }
@@ -124,6 +127,10 @@ class Table {
   int FieldsNum() { return attrs_.size(); }
 
   const std::map<std::string, int> &FieldMap() { return attr_idx_map_; }
+  const tbb::concurrent_unordered_map<int64_t, std::string> &DocidMap() { return doc_id_map_; }
+
+  bool GetEnableIdCache() { return enable_id_cache_; }
+  void SetEnableIdCache(bool enabled);
 
   DumpConfig *GetDumpConfig() { return table_params_; }
 
@@ -142,6 +149,7 @@ class Table {
   int key_idx_;        // key postion
   std::string key_field_name_;
 
+  tbb::concurrent_unordered_map<int64_t, std::string> doc_id_map_;  // <doc_id, key>
   std::map<std::string, int> attr_offset_map_;  // <field_id, field_name>
 
   std::map<int, std::string> idx_attr_map_;        // <field_id, field_name>
@@ -157,6 +165,8 @@ class Table {
   StorageManager *storage_mgr_;
   int cf_id_;
   int key_cf_id_;
+  bool enable_id_cache_;
+  std::thread id_load_thread_;
 };
 
 }  // namespace vearch

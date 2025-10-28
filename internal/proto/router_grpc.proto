@@ -51,7 +51,10 @@ message BulkRequest {
   repeated uint32 partitions = 3;
 }
 
-message ForceMergeRequest { RequestHead head = 1; }
+message ForceMergeRequest {
+  RequestHead head = 1;
+  uint32 partition_id = 2;
+}
 
 message FlushRequest { RequestHead head = 1; }
 

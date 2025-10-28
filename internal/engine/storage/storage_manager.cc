@@ -92,7 +92,7 @@ void StorageManager::AlterCacheSize(size_t cache_size) {
   table_options_.block_cache->SetCapacity(cache_size);
 }
 
-Status StorageManager::Init(int cache_size) {
+Status StorageManager::Init(size_t cache_size) {
   if (utils::make_dir(root_path_.c_str())) {
     std::string msg = std::string("mkdir error, path=") + root_path_;
     LOG(ERROR) << msg;

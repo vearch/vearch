@@ -59,6 +59,10 @@ class TableInfo : public RawData {
 
   void SetRefreshInterval(int refresh_interval);
 
+  bool EnableIdCache();
+
+  void SetEnableIdCache(bool enable_id_cache);
+
   std::string &IndexType();
 
   void SetIndexType(std::string &index_type);
@@ -82,6 +86,7 @@ class TableInfo : public RawData {
   std::string index_type_;
   std::string index_params_;
   int refresh_interval_ = 0;
+  bool enable_id_cache_ = false;
 };
 
 }  // namespace vearch

@@ -500,7 +500,11 @@ func (ca *clusterAPI) createSpace(c *gin.Context) {
 	dbName := c.Param(dbName)
 	// set default refresh interval
 	refreshInterval := int32(entity.DefaultRefreshInterval)
-	space := &entity.Space{RefreshInterval: &refreshInterval}
+	enableIdCache := entity.DefaultEnableIdCache
+	space := &entity.Space{
+		RefreshInterval: &refreshInterval,
+		EnableIdCache:   &enableIdCache,
+	}
 	if err := c.ShouldBindJSON(space); err != nil {
 		body, _ := netutil.GetReqBody(c.Request)
 		log.Error("create space request: %s, err: %s", body, err.Error())
