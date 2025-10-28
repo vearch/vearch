@@ -84,9 +84,16 @@ class Table(object):
         o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(14))
         if o != 0:
             return self._tab.Get(flatbuffers.number_types.Int32Flags, o + self._tab.Pos)
-        return 0
+        return 1000
 
-def TableStart(builder): builder.StartObject(6)
+    # Table
+    def EnableIdCache(self):
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(16))
+        if o != 0:
+            return bool(self._tab.Get(flatbuffers.number_types.BoolFlags, o + self._tab.Pos))
+        return False
+
+def TableStart(builder): builder.StartObject(7)
 def TableAddName(builder, name): builder.PrependUOffsetTRelativeSlot(0, flatbuffers.number_types.UOffsetTFlags.py_type(name), 0)
 def TableAddFields(builder, fields): builder.PrependUOffsetTRelativeSlot(1, flatbuffers.number_types.UOffsetTFlags.py_type(fields), 0)
 def TableStartFieldsVector(builder, numElems): return builder.StartVector(4, numElems, 4)
@@ -94,5 +101,6 @@ def TableAddVectorsInfo(builder, vectorsInfo): builder.PrependUOffsetTRelativeSl
 def TableStartVectorsInfoVector(builder, numElems): return builder.StartVector(4, numElems, 4)
 def TableAddIndexType(builder, indexType): builder.PrependUOffsetTRelativeSlot(3, flatbuffers.number_types.UOffsetTFlags.py_type(indexType), 0)
 def TableAddIndexParams(builder, indexParams): builder.PrependUOffsetTRelativeSlot(4, flatbuffers.number_types.UOffsetTFlags.py_type(indexParams), 0)
-def TableAddRefreshInterval(builder, refreshInterval): builder.PrependInt32Slot(5, refreshInterval, 0)
+def TableAddRefreshInterval(builder, refreshInterval): builder.PrependInt32Slot(5, refreshInterval, 1000)
+def TableAddEnableIdCache(builder, enableIdCache): builder.PrependBoolSlot(6, enableIdCache, 0)
 def TableEnd(builder): return builder.EndObject()

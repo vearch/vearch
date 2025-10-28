@@ -85,6 +85,7 @@ void TableInfo::Deserialize(const char *data, int len) {
     training_threshold_ = training_threshold;
   }
   refresh_interval_ = table_->refresh_interval();
+  enable_id_cache_ = table_->enable_id_cache();
 }
 
 std::string &TableInfo::Name() { return name_; }
@@ -115,6 +116,12 @@ int TableInfo::RefreshInterval() { return refresh_interval_; }
 
 void TableInfo::SetRefreshInterval(int refresh_interval) {
   refresh_interval_ = refresh_interval;
+}
+
+bool TableInfo::EnableIdCache() { return enable_id_cache_; }
+
+void TableInfo::SetEnableIdCache(bool enable_id_cache) {
+  enable_id_cache_ = enable_id_cache;
 }
 
 std::string &TableInfo::IndexType() { return index_type_; }

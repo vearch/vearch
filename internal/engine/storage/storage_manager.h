@@ -21,7 +21,7 @@ class StorageManager {
  public:
   StorageManager(const std::string &root_path);
   ~StorageManager();
-  Status Init(int cache_size);
+  Status Init(size_t cache_size);
 
   Status Add(int cf_id, int64_t id, const uint8_t *value, int len);
 

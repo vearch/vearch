@@ -70,6 +70,12 @@ func (s *ServerService) RegisterServer(ctx context.Context, ip string, nodeID en
 			} else {
 				s.RefreshInterval = config.RefreshInterval
 			}
+			if config.EnableIdCache == nil {
+				defaultEnableIdCache := entity.DefaultEnableIdCache
+				s.EnableIdCache = &defaultEnableIdCache
+			} else {
+				s.EnableIdCache = config.EnableIdCache
+			}
 		}
 		for _, p := range s.Partitions {
 			for _, id := range p.Replicas {

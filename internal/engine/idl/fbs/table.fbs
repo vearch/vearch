@@ -24,6 +24,7 @@ table Table {
   index_type:string;     // IVFPQ, GPU, HNSW, BINARY
   index_params:string;
   refresh_interval:int = 1000; // microseconds, default 1s
+  enable_id_cache:bool;
 }
 
 root_type Table;

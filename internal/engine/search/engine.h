@@ -80,6 +80,7 @@ class Engine {
 
   int Dump();
   int Load();
+  int LoadIdFromTable();
   int LoadFromFaiss();
 
   Status Backup(int command);

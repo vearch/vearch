@@ -36,6 +36,9 @@ Table::Table(const string &space_name, StorageManager *storage_mgr, int cf_id)
 }
 
 Table::~Table() {
+  if (id_load_thread_.joinable()) {
+    id_load_thread_.join();
+  }
   storage_mgr_ = nullptr;
   CHECK_DELETE(table_params_);
 
@@ -55,7 +58,7 @@ int Table::Load(int64_t &num) {
   }
 
   if (max_doc_id <= -1) return 0;
-  for (int64_t i = max_doc_id; i >= -1; --i) {
+  for (int64_t i = max_doc_id; i >= 0; --i) {
     auto result = storage_mgr_->Get(cf_id_, i);
     if (result.first.ok()) {
       doc_id = i;
@@ -66,6 +69,35 @@ int Table::Load(int64_t &num) {
   last_docid_ = doc_id;
   LOG(INFO) << name_ << " load successed! doc num [" << doc_id + 1
             << "], last docid [" << last_docid_ << "]";
+  return 0;
+}
+
+int Table::Load_id() {
+  std::unique_ptr<rocksdb::Iterator> it = storage_mgr_->NewIterator(cf_id_);
+  int64_t max_doc_id = storage_mgr_->Size();
+
+  std::string key_prefix = key_field_name_ + ":";
+  std::string start_key = key_prefix + utils::ToRowKey(0);
+  std::string end_key = key_prefix + utils::ToRowKey(max_doc_id);
+
+  it->Seek(rocksdb::Slice(start_key));
+  for (; it->Valid(); it->Next()) {
+    rocksdb::Slice current_key = it->key();
+    if (current_key.compare(end_key) >= 0) {
+      break;
+    }
+
+    std::string docid_str = current_key.ToString().substr(key_prefix.size());
+    int64_t docid = utils::FromRowKey(docid_str);
+
+    if (docid < 0 || docid >= max_doc_id) {
+      break;
+    }
+
+    doc_id_map_[docid] = it->value().ToString();
+  }
+
+  LOG(INFO) << name_ << " load docid to key map successed!";
   return 0;
 }
 
@@ -98,6 +130,7 @@ Status Table::CreateTable(TableInfo &table) {
   key_cf_id_ = storage_mgr_->CreateColumnFamily("key_to_docid");
 
   table_params_ = new TableParams("table");
+  enable_id_cache_ = table.EnableIdCache();
   table_created_ = true;
   LOG(INFO) << "Create table " << name_
             << " success, item length=" << item_length_
@@ -220,6 +253,10 @@ int Table::Add(const std::string &key,
 
   storage_mgr_->Add(cf_id_, docid, doc_value.data(), item_length_);
 
+  if (enable_id_cache_) {
+    doc_id_map_[docid] = key;
+  }
+
   if (docid % 10000 == 0) {
     LOG(DEBUG) << name_ << " add item _id [" << key << "], num [" << docid
                << "]";
@@ -296,6 +333,7 @@ int Table::Delete(std::string &key) {
     return ret;
   }
 
+  doc_id_map_.unsafe_erase(docid);
   ret = storage_mgr_->Delete(cf_id_, key).code();
   if (ret != 0) {
     return ret;
@@ -407,16 +445,8 @@ int Table::GetFieldRawValue(int64_t docid, int field_id, std::string &value) {
 }
 
 int Table::GetFieldRawValue(int64_t docid, int field_id,
-                            std::vector<uint8_t> &value, uint8_t *doc_value) {
+                            std::vector<uint8_t> &value, std::vector<uint8_t> &doc_value) {
   if ((docid < 0) or (field_id < 0 || field_id >= field_num_)) return -1;
-
-  if (doc_value == nullptr) {
-    auto result = storage_mgr_->Get(cf_id_, docid);
-    if (!result.first.ok()) {
-      return result.first.code();
-    }
-    doc_value = (uint8_t *)result.second.data();
-  }
 
   DataType data_type = attrs_[field_id];
   size_t offset = idx_attr_offset_[field_id];
@@ -437,9 +467,17 @@ int Table::GetFieldRawValue(int64_t docid, int field_id,
     value.resize(str.size());
     memcpy(value.data(), str.c_str(), str.size());
   } else {
+    if (doc_value.size() == 0) {
+      auto result = storage_mgr_->Get(cf_id_, docid);
+      if (!result.first.ok()) {
+        return result.first.code();
+      }
+      doc_value.resize(item_length_);
+      memcpy(doc_value.data(), result.second.data(), item_length_);
+    }
     int value_len = FTypeSize(data_type);
     value.resize(value_len);
-    memcpy(value.data(), doc_value + offset, value_len);
+    memcpy(value.data(), doc_value.data() + offset, value_len);
   }
 
   return 0;
@@ -513,4 +551,28 @@ int Table::SetStorageManagerSize(int64_t doc_num) {
   }
   return ret;
 }
+
+int Table::LoadIdFromTable() {
+  if (id_load_thread_.joinable()) {
+    id_load_thread_.join();
+  }
+
+  auto func_load_id = std::bind(&Table::Load_id, this);
+  id_load_thread_ = std::thread(func_load_id);
+
+  return 0;
+}
+
+void Table::SetEnableIdCache(bool enabled) {
+  enable_id_cache_ = enabled;
+  if (enabled) {
+    LoadIdFromTable();
+  } else {
+    if (id_load_thread_.joinable()) {
+      id_load_thread_.join();
+    }
+    doc_id_map_.clear();
+  }
+}
+
 }  // namespace vearch

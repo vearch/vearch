@@ -60,6 +60,7 @@ var (
 	DefaultMaxPointsPerCentroid = 256
 	DefaultMinPointsPerCentroid = 39
 	DefaultRefreshInterval      = 1000 // 1s
+	DefaultEnableIdCache        = false
 )
 
 type IndexParams struct {
@@ -90,8 +91,9 @@ type Space struct {
 	PartitionRule         *PartitionRule              `json:"partition_rule,omitempty"`
 	SpaceProperties       map[string]*SpaceProperties `json:"space_properties,omitempty"`
 	RefreshInterval       *int32                      `json:"refresh_interval,omitempty"`
-	PartitionName         *string                     `json:"partition_name,omitempty"` // partition name for partition rule
-	PartitionOperatorType *string                     `json:"operator_type,omitempty"`  // partition rule operator type
+	PartitionName         *string                     `json:"partition_name,omitempty"`  // partition name for partition rule
+	PartitionOperatorType *string                     `json:"operator_type,omitempty"`   // partition rule operator type
+	EnableIdCache         *bool                       `json:"enable_id_cache,omitempty"` // whether enable map docid to _id value in cache
 }
 
 // TODO separete space config and mapping
@@ -103,6 +105,7 @@ type SpaceConfig struct {
 	Path            *string `json:"path,omitempty"`
 	LongSearchTime  *int64  `json:"long_search_time,omitempty"`
 	RefreshInterval *int32  `json:"refresh_interval,omitempty"`
+	EnableIdCache   *bool   `json:"enable_id_cache,omitempty"`
 }
 
 type SpaceSchema struct {

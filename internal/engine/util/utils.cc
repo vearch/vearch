@@ -531,13 +531,9 @@ int64_t FromRowKey64(const std::string &key) {
 }
 
 int32_t FromRowKey(const std::string &key) {
-  if (key.size() != sizeof(int32_t)) {
-    return -1;
-  }
-  int32_t be32_value;
-  memcpy(&be32_value, key.data(), sizeof(be32_value));
-  be32_value = be32toh(be32_value);  // convert to host-endian
-  return be32_value;
+  int32_t value = atoi(key.c_str());
+
+  return value;
 }
 
 }  // namespace utils

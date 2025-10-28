@@ -1402,6 +1402,7 @@ class ForceMergeRequest final :
 
   enum : int {
     kHeadFieldNumber = 1,
+    kPartitionIdFieldNumber = 2,
   };
   // .vearchpb.RequestHead head = 1;
   bool has_head() const;
@@ -1421,6 +1422,15 @@ class ForceMergeRequest final :
       ::vearchpb::RequestHead* head);
   ::vearchpb::RequestHead* unsafe_arena_release_head();
 
+  // uint32 partition_id = 2;
+  void clear_partition_id();
+  uint32_t partition_id() const;
+  void set_partition_id(uint32_t value);
+  private:
+  uint32_t _internal_partition_id() const;
+  void _internal_set_partition_id(uint32_t value);
+  public:
+
   // @@protoc_insertion_point(class_scope:vearchpb.ForceMergeRequest)
  private:
   class _Internal;
@@ -1430,6 +1440,7 @@ class ForceMergeRequest final :
   typedef void DestructorSkippable_;
   struct Impl_ {
     ::vearchpb::RequestHead* head_;
+    uint32_t partition_id_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
   union { Impl_ _impl_; };
@@ -6810,6 +6821,25 @@ inline void ForceMergeRequest::set_allocated_head(::vearchpb::RequestHead* head)
   }
   _impl_.head_ = head;
   // @@protoc_insertion_point(field_set_allocated:vearchpb.ForceMergeRequest.head)
+}
+
+// uint32 partition_id = 2;
+inline void ForceMergeRequest::clear_partition_id() {
+  _impl_.partition_id_ = 0u;
+}
+inline uint32_t ForceMergeRequest::_internal_partition_id() const {
+  return _impl_.partition_id_;
+}
+inline uint32_t ForceMergeRequest::partition_id() const {
+  // @@protoc_insertion_point(field_get:vearchpb.ForceMergeRequest.partition_id)
+  return _internal_partition_id();
+}
+inline void ForceMergeRequest::_internal_set_partition_id(uint32_t value) {
+  _impl_.partition_id_ = value;
+}
+inline void ForceMergeRequest::set_partition_id(uint32_t value) {
+  _internal_set_partition_id(value);
+  // @@protoc_insertion_point(field_set:vearchpb.ForceMergeRequest.partition_id)
 }
 
 // -------------------------------------------------------------------
