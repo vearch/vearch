@@ -133,6 +133,7 @@ Engine::Engine(const std::string &index_root_path,
   field_range_index_ = nullptr;
   created_table_ = false;
   docids_bitmap_ = nullptr;
+  storage_mgr_ = nullptr;
 #ifdef PERFORMANCE_TESTING
   search_num_ = 0;
 #endif
@@ -1120,21 +1121,35 @@ std::string Engine::EngineStatus() {
   j["backup_status"] = backup_status_.load();
   j["doc_num"] = GetDocsNum();
   j["max_docid"] = max_docid_ - 1;
-  j["min_indexed_num"] = vec_manager_->MinIndexedNum();
+  if (created_table_ && vec_manager_ != nullptr) {
+    j["min_indexed_num"] = vec_manager_->MinIndexedNum();
+  } else {
+    j["min_indexed_num"] = 0;
+  }
   return j.dump();
 }
 
 std::string Engine::GetMemoryInfo() {
   nlohmann::json j;
+  if (created_table_ && table_ != nullptr) {
   j["table_mem"] = table_->GetMemoryBytes();
+  } else {
+    j["table_mem"] = 0;
+  }
   long vec_mem_bytes = 0, index_mem_bytes = 0;
-  vec_manager_->GetTotalMemBytes(index_mem_bytes, vec_mem_bytes);
+  if (created_table_ && vec_manager_ != nullptr) {
+    vec_manager_->GetTotalMemBytes(index_mem_bytes, vec_mem_bytes);
+  }
 
   long total_mem_b = 0;
   j["index_mem"] = index_mem_bytes;
   j["vector_mem"] = vec_mem_bytes;
   j["field_range_mem"] = total_mem_b;
+  if (docids_bitmap_) {
   j["bitmap_mem"] = docids_bitmap_->BytesSize();
+  } else {
+    j["bitmap_mem"] = 0;
+  }
   return j.dump();
 }
 

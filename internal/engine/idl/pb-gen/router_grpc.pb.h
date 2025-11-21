@@ -6835,6 +6835,7 @@ inline uint32_t ForceMergeRequest::partition_id() const {
   return _internal_partition_id();
 }
 inline void ForceMergeRequest::_internal_set_partition_id(uint32_t value) {
+  
   _impl_.partition_id_ = value;
 }
 inline void ForceMergeRequest::set_partition_id(uint32_t value) {

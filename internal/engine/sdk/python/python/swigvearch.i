@@ -44,9 +44,18 @@ typedef int64_t size_t;
     return res;
   }
 
-  struct CStatus swigCreateTable(void *engine, unsigned char *pTable, int len) {
+  PyObject *swigCreateTable(void *engine, unsigned char *pTable, int len) {
     char *table_str = (char *)pTable;
-    return CreateTable(engine, table_str, len);
+    struct CStatus status = CreateTable(engine, table_str, len);
+    PyObject *py_status;
+
+    if (status.msg) {
+        py_status = Py_BuildValue("{s:i, s:s}", "code", status.code, "msg", status.msg);
+    } else {
+        py_status = Py_BuildValue("{s:i, s:s}", "code", status.code, "msg", "");
+    }
+
+    return py_status;
   }
 
   int swigAddOrUpdateDoc(void *engine, unsigned char *pDoc, int len) {
@@ -59,193 +68,97 @@ typedef int64_t size_t;
     return DeleteDoc(engine, doc_id, len);
   }
 
-  std::vector<unsigned char> swigGetEngineStatus(void *engine) {
+  PyObject *swigGetEngineStatus(void *engine) {
     char *status_str = NULL;
     int len = 0;
     GetEngineStatus(engine, &status_str, &len);
-    std::vector<unsigned char> vec_status(len);
-    memcpy(vec_status.data(), status_str, len);
+    if (status_str == NULL || len == 0) {
+      Py_RETURN_NONE;
+    }
+
+    PyObject *py_status = Py_BuildValue("s#", status_str, len);
     free(status_str);
-    status_str = NULL;
-    return vec_status;
+    return py_status;
   }
 
-  std::vector<unsigned char> swigGetMemoryInfo(void *engine) {
-    char *memory_info_str = NULL;
-    int len = 0;
-    GetMemoryInfo(engine, &memory_info_str, &len);
-    std::vector<unsigned char> vec_memory_info(len);
-    memcpy(vec_memory_info.data(), memory_info_str, len);
-    free(memory_info_str);
-    memory_info_str = NULL;
-    return vec_memory_info;
-  }
-
-  std::vector<unsigned char> swigGetDocByID(void *engine, char *docid,
-                                            int docid_len) {
-    char *doc_id = (char *)docid;
+  PyObject *swigGetDocByID(void *engine, unsigned char *docid, int docid_len) {
     char *doc_str = NULL;
     int len = 0;
-    int res = GetDocByID(engine, doc_id, docid_len, &doc_str, &len);
+    int res = GetDocByID(engine, (char *)docid, docid_len, &doc_str, &len);
     if (res == 0) {
-      std::vector<unsigned char> vec_doc(len);
-      memcpy(vec_doc.data(), doc_str, len);
+      PyObject *py_doc = Py_BuildValue("y#", doc_str, (Py_ssize_t)len);
       free(doc_str);
-      doc_str = NULL;
-      return vec_doc;
+      return py_doc;
     } else {
-      std::vector<unsigned char> vec_doc(1);
-      return vec_doc;
+      Py_RETURN_NONE;
     }
   }
 
-  std::vector<unsigned char> swigGetDocByDocID(void *engine, int docid) {
+  PyObject *swigGetDocByDocID(void *engine, int docid) {
     char *doc_str = NULL;
     int len = 0;
     int res = GetDocByDocID(engine, docid, false, &doc_str, &len);
     if (res == 0) {
-      std::vector<unsigned char> vec_doc(len);
-      memcpy(vec_doc.data(), doc_str, len);
+      PyObject *py_doc = Py_BuildValue("y#", doc_str, (Py_ssize_t)len);
       free(doc_str);
-      doc_str = NULL;
-      return vec_doc;
+      return py_doc;
     } else {
-      std::vector<unsigned char> vec_doc(1);
-      return vec_doc;
+      Py_RETURN_NONE;
     }
   }
-
-  int swigBuildIndex(void *engine) { return BuildIndex(engine); }
 
   int swigDump(void *engine) { return Dump(engine); }
 
   int swigLoad(void *engine) { return Load(engine); }
 
-  std::vector<unsigned char> swigSearch(void *engine, unsigned char *pRequest,
-                                        int req_len) {
+  PyObject *swigSearch(void *engine, unsigned char *pRequest, int req_len) {
     char *request_str = (char *)pRequest;
     char *response_str = NULL;
     int res_len = 0;
-    struct CStatus status =
-        Search(engine, request_str, req_len, &response_str, &res_len);
+    struct CStatus status = Search(engine, request_str, req_len, &response_str, &res_len);
     if (status.code == 0) {
       std::vector<unsigned char> vec_res(res_len);
       memcpy(vec_res.data(), response_str, res_len);
       free(response_str);
       response_str = NULL;
-      return vec_res;
+
+      PyObject *py_result = Py_BuildValue("{s:i, s:s, s:O}",
+                                          "code", status.code,
+                                          "msg", status.msg ? status.msg : "",
+                                          "data", Py_BuildValue("y#", vec_res.data(), vec_res.size()));
+      return py_result;
     } else {
-      std::vector<unsigned char> vec_res(1);
-      return vec_res;
+      PyObject *py_status = Py_BuildValue("{s:i, s:s, s:O}",
+                                          "code", status.code,
+                                          "msg", status.msg ? status.msg : "",
+                                          "data", Py_None);
+      return py_status;
     }
   }
 
-  vearch::Request *swigCreateRequest() { return new vearch::Request(); }
+  PyObject *swigQuery(void *engine, unsigned char *pRequest, int req_len) {
+    char *request_str = (char *)pRequest;
+    char *response_str = NULL;
+    int res_len = 0;
+    struct CStatus status = Query(engine, request_str, req_len, &response_str, &res_len);
+    if (status.code == 0) {
+      std::vector<unsigned char> vec_res(res_len);
+      memcpy(vec_res.data(), response_str, res_len);
+      free(response_str);
+      response_str = NULL;
 
-  void swigDeleteRequest(vearch::Request * request) {
-    if (request) {
-      delete request;
-      request = nullptr;
-    }
-  }
-
-  vearch::Response *swigCreateResponse() { return new vearch::Response(); }
-
-  void swigDeleteResponse(vearch::Response * response) {
-    if (response) {
-      delete response;
-      response = nullptr;
-    }
-  }
-
-  template <typename T>
-  T GetValueFromStringVector(std::vector<std::string> value, int index,
-                             int data_type) {
-    T real_value;
-    memcpy(&real_value, value[index].c_str(), value[index].size());
-    return real_value;
-  }
-
-  template <typename T>
-  std::vector<T> GetVectorFromStringVector(std::vector<std::string> value,
-                                           int index, int is_binary) {
-    std::vector<T> real_value;
-    if (is_binary) {
-      real_value.resize(value[index].size());
+      PyObject *py_result = Py_BuildValue("{s:i, s:s, s:O}",
+                                          "code", status.code,
+                                          "msg", status.msg ? status.msg : "",
+                                          "data", Py_BuildValue("y#", vec_res.data(), vec_res.size()));
+      return py_result;
     } else {
-      real_value.resize(value[index].size() / sizeof(float));
+      PyObject *py_status = Py_BuildValue("{s:i, s:s, s:O}",
+                                          "code", status.code,
+                                          "msg", status.msg ? status.msg : "",
+                                          "data", Py_None);
+      return py_status;
     }
-    memcpy(real_value.data(), value[index].c_str(), value[index].size());
-    return real_value;
-  }
-
-  template <typename T>
-  vearch::Field CreateScalarField(const std::string &name, const T &value,
-                                  int len, int data_type) {
-    vearch::Field field;
-    field.name = name;
-    if (data_type == DataType::STRING)
-      field.value = value;
-    else {
-      std::string value_str(len, '0');
-      memcpy(const_cast<char *>(value_str.c_str()), &value, len);
-      field.value = value_str;
-    }
-    field.datatype = (DataType)data_type;
-    return field;
-  }
-
-  vearch::Field CreateVectorField(const std::string &name, uint8_t *data,
-                                  int len, int data_type) {
-    vearch::Field field;
-    field.name = name;
-    field.value = std::string((char *)data, len);
-    field.datatype = (DataType)data_type;
-    return field;
-  }
-
-  vearch::Doc *swigCreateDoc() { return new vearch::Doc(); }
-
-  void swigDeleteDoc(vearch::Doc * doc) {
-    if (doc) {
-      delete doc;
-      doc = nullptr;
-    }
-  }
-
-  vearch::TermFilter CreateTermFilter(const std::string &name,
-                                      const std::string &value, int is_union) {
-    vearch::TermFilter term_filter;
-    term_filter.field = name;
-    term_filter.value = value;
-    term_filter.is_union = is_union;
-    return term_filter;
-  }
-
-  vearch::RangeFilter CreateRangeFilter(
-      const std::string &name, uint8_t *lower_value, int lower_value_len,
-      uint8_t *upper_value, int upper_value_len, int include_lower,
-      int include_upper) {
-    vearch::RangeFilter range_filter;
-    range_filter.field = name;
-    range_filter.lower_value =
-        std::string((char *)lower_value, lower_value_len);
-    range_filter.upper_value =
-        std::string((char *)upper_value, upper_value_len);
-    range_filter.include_lower = include_lower;
-    range_filter.include_upper = include_upper;
-    return range_filter;
-  }
-
-  vearch::VectorQuery CreateVectorQuery(
-      const std::string &name, float *data, int len, double min_score,
-      double max_score) {
-    vearch::VectorQuery vector_query;
-    vector_query.name = name;
-    vector_query.value = std::string((char *)data, len * sizeof(float));
-    vector_query.min_score = min_score;
-    vector_query.max_score = max_score;
-    return vector_query;
   }
 
   int swigSearchCPP(void *engine, vearch::Request *request,
@@ -256,11 +169,6 @@ typedef int64_t size_t;
   int swigAddOrUpdateDocCPP(void *engine, vearch::Doc *doc) {
     return CPPAddOrUpdateDoc(engine, doc);
   }
-
-  // int swigDelDocByQuery(void* engine, unsigned char *pRequest, int len){
-  //     char* request_str = (char*)pRequest;
-  //     return DelDocByQuery(engine, request_str, len);
-  // }
 
   unsigned char *swigGetVectorPtr(std::vector<unsigned char> & v) {
     return v.data();
@@ -301,24 +209,6 @@ class vector {
 %template(FloatVector) std::vector<float>;
 %template(DoubleVector) std::vector<double>;
 %template(StringVector) std::vector<std::string>;
-%template(SearchResultVector) std::vector<vearch::SearchResult>;
-%template(ResultItemVector) std::vector<vearch::ResultItem>;
-%template(DocVector) std::vector<vearch::Doc>;
-%template(FieldVector) std::vector<vearch::Field>;
-
-%template(CreateStringScalarField) CreateScalarField<std::string>;
-%template(CreateIntScalarField) CreateScalarField<int>;
-%template(CreateLongScalarField) CreateScalarField<long long>;
-%template(CreateFloatScalarField) CreateScalarField<float>;
-%template(CreateDouleScalarField) CreateScalarField<double>;
-
-%template(GetIntFromStringVector) GetValueFromStringVector<int>;
-%template(GetLongFromStringVector) GetValueFromStringVector<long long>;
-%template(GetFloatFromStringVector) GetValueFromStringVector<float>;
-%template(GetDoubleFromStringVector) GetValueFromStringVector<double>;
-
-%template(GetCharVectorFromStringVector) GetVectorFromStringVector<char>;
-%template(GetFloatVectorFromStringVector) GetVectorFromStringVector<float>;
 
 /*******************************************************************
  * Python specific: numpy array <-> C++ pointer interface

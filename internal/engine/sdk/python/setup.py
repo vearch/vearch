@@ -74,13 +74,14 @@ _swigvearch = Extension(
     ],
     extra_compile_args=[
         '-std=c++17', '-mavx2', '-mf16c', '-msse4', '-mpopcnt', '-m64',
-        '-Wno-sign-compare', '-fopenmp'
+        '-Wno-sign-compare', '-fopenmp', '-DPY_SSIZE_T_CLEAN'
     ]  + ([] if 'macos' in get_platform() else ['-DSWIGWORDSIZE64']),
     extra_link_args=(['-Xpreprocessor', '-fopenmp', '-lomp','-mlinker-version=450'] if 'darwin' == sys.platform else ['-fopenmp']),
     swig_opts=[
         '-v', '-c++', '-Doverride=', 
         '-I' + os.getenv('GAMMA_INCLUDE', abspath + '../../engine/'),
         '-I' + os.getenv('GAMMA_INCLUDE', abspath + '../../engine/') + '/third_party',
+        '-DPY_SSIZE_T_CLEAN'
     ] + ([] if 'macos' in get_platform() else ['-DSWIGWORDSIZE64'])
 )
 
@@ -102,8 +103,13 @@ setup(
         'build': CustomBuild,
         'build_ext': CustomBuildExt,
     },
-    install_requires=['numpy>=1.16.0', 'flatbuffers==1.12.0'],
-    package_dir={'vearch': 'python','vearch/gamma_api': 'python/gamma_api'},
-    packages=['vearch','vearch.gamma_api'],
+    install_requires=['numpy>=1.16.0', 'flatbuffers==25.9.23', 'protobuf==6.33.0'],
+    package_dir={
+        'vearch': 'python',
+        'vearch/gamma_api': 'python/gamma_api',
+        'vearch/schema': 'python/schema',
+        'vearch/request_api': 'python/request_api'
+    },
+    packages=['vearch','vearch.gamma_api', 'vearch.schema', 'vearch.request_api'],
     ext_modules=[_swigvearch]
 )

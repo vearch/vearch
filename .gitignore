@@ -46,9 +46,14 @@ sdk/python/pyvearch.egg-info
 sdk/python/*.whl
 
 #skip engine
-engine/third_party/faiss-1.7.1
-engine/sdk/python/demos/files/
-engine/sdk/python/demos/logs/
+internal/engine/third_party/faiss-1.7.1
+internal/engine/sdk/python/demos/files/
+internal/engine/sdk/python/demos/logs/
+internal/engine/sdk/python/logs/
+internal/engine/sdk/python/datas/
+internal/engine/sdk/python/data/
+internal/engine/sdk/python/tests/datasets
+internal/engine/sdk/python/datasets
 
 #skip examples
 examples/golang/basic_usage/basic_usage
