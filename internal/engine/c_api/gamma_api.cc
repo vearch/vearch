@@ -37,11 +37,24 @@ void *Init(const char *config_str, int len) {
   int flag = log_dir_flag.fetch_add(1);
 
   if (flag == 0) {
+    if (j.find("log_dir") == j.end()) {
+      LOG(ERROR) << "log_dir not found in config";
+      return nullptr;
+    }
     const std::string &log_dir = j["log_dir"];
     SetLogDictionary(log_dir);
   }
 
+  if (j.find("path") == j.end()) {
+    LOG(ERROR) << "path not found in config";
+    return nullptr;
+  }
   const std::string &path = j["path"];
+
+  if (j.find("space_name") == j.end()) {
+    LOG(WARNING) << "space_name not found in config";
+    j["space_name"] = "default";
+  }
   vearch::Engine *engine = vearch::Engine::GetInstance(path, j["space_name"]);
   if (engine == nullptr) {
     LOG(ERROR) << "engine init failed!";
@@ -49,7 +62,9 @@ void *Init(const char *config_str, int len) {
   }
 
   vearch::RequestConcurrentController::GetInstance();
-  LOG(INFO) << j["space_name"] << " init succeeded!";
+  LOG(INFO) << j["space_name"] << " init succeeded!"
+            << ", path=" << path
+            << ", log_dir=" << j["log_dir"];
   return static_cast<void *>(engine);
 }
 

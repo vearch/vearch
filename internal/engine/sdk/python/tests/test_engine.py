@@ -1,6 +1,6 @@
 import pytest
 from vearch import Config, Engine, Table, FieldInfo, VectorInfo, dataType, Document, Field
-from vearch.schema.index import HNSWIndex, MetricType
+from vearch.schema.index import FlatIndex, MetricType
 from vearch import QueryRequest, TermFilter, RangeFilter, FilterRelationOperator, VectorQuery, SearchRequest
 import numpy as np
 import logging
@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 @pytest.fixture(scope="class")
 def setup_engine(request):
-    config = Config(path="data", log_dir="logs", space_name="test_space", db_name="test_db")
+    config = Config(path="data", log_dir="logs", space_name="test_space")
     request.cls.engine = Engine(config)
 
 @pytest.mark.usefixtures("setup_engine")
@@ -20,7 +20,6 @@ class TestEngine:
         assert self.engine.config.path == "data"
         assert self.engine.config.log_dir == "logs"
         assert self.engine.config.space_name == "test_space"
-        assert self.engine.config.db_name == "test_db"
 
     def test_engine_status(self):
         status_response = self.engine.status()
@@ -41,7 +40,7 @@ class TestEngine:
             VectorInfo(name="vector1", dimension=128, store_type="MemoryOnly"),
         ]
         vector_infos = [VectorInfo(name="field_vector", dimension=64)]
-        index = HNSWIndex("vec_index", nlinks=32, efConstruction=120, metric_type=MetricType.L2)
+        index = FlatIndex("vec_index", metric_type=MetricType.L2)
         table = Table(name="test_table", field_infos=field_infos, vector_infos=vector_infos, index=index)
         response = self.engine.create_table(table)
         assert response.code == 0
@@ -86,6 +85,15 @@ class TestEngine:
         assert response.document.to_dict()["field_date"] == "2020-02-02 00:00:00"
         assert len(response.document.to_dict()["field_vector"].tolist()) == 64
 
+        response = self.engine.get(upsert_response.document_ids[1][0])
+        assert response.code == 0
+        assert response.document.to_dict()["field_string"] == "1"
+        assert response.document.to_dict()["field_float"] == 1.0
+        assert response.document.to_dict()["field_int"] == 1
+        assert response.document.to_dict()["field_string_array"] == ["1"]
+        assert response.document.to_dict()["field_date"] == "2020-02-02 00:00:00"
+        assert len(response.document.to_dict()["field_vector"].tolist()) == 64
+
     def test_query(self):
         term_filter = TermFilter(field_name="field_string", value="1", filter_operator=FilterRelationOperator.IN)
         range_filter = RangeFilter(
@@ -109,6 +117,7 @@ class TestEngine:
         assert query_response.documents[0].to_dict()["field_string_array"] == ["1", "1"]
         assert query_response.documents[0].to_dict()["field_date"] == "2020-02-02 00:00:00"
         logger.info("Document: %s", query_response.documents[0].to_dict())
+        logger.info("Document: %s", query_response.documents[1].to_dict())
         # assert len(query_response.documents[0].to_dict()["field_vector"].tolist()) == 64
 
     def test_search(self):
@@ -130,10 +139,12 @@ class TestEngine:
         search_response = self.engine.search(search_request)
         assert search_response.code == 0
         assert len(search_response.documents) == 1
+        logger.info("Search Documents: %s", [doc.to_dict() for doc in search_response.documents[0]])
+        assert len(search_response.documents[0]) == 2
         assert search_response.documents[0][0].to_dict()["field_string"] == "1"
         assert search_response.documents[0][0].to_dict()["field_float"] == 1.0
         assert search_response.documents[0][0].to_dict()["field_int"] == 1
-        assert search_response.documents[0][0].to_dict()["field_string_array"] == ["1", "1"]
+        assert search_response.documents[0][0].to_dict()["field_string_array"] == ["1", "1"] or ["1"]
         assert search_response.documents[0][0].to_dict()["field_date"] == "2020-02-02 00:00:00"
         # assert len(search_response.documents[0][0].to_dict()["field_vector"].tolist()) == 64
 

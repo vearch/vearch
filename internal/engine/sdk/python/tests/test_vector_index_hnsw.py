@@ -60,7 +60,7 @@ def test_index_hnsw():
             metric_type=MetricType.L2,
             nlinks=32,
             efConstruction=200,
-            efSearch=64
+            efSearch=128
         )
     )
     response = engine.create_table(table)

@@ -16,10 +16,10 @@ import json
 import time
 import uuid
 import os
-import subprocess
 import shutil
-from typing import List, Union
+from typing import List, Dict, Union, Optional
 from enum import Enum
+from copy import deepcopy
 
 import flatbuffers
 import numpy as np
@@ -66,8 +66,6 @@ type_map = {
 
 DELIMITER = "\001"
 
-np_datatype_map = {np.uint8: dataType.INT, np.float32: dataType.FLOAT}
-
 np_dtype_map = {
     dataType.INT: np.int32,
     dataType.DOUBLE: np.float64,
@@ -85,15 +83,15 @@ field_type_map = {
     "keyword": dataType.STRING,
 }
 
-vector_name_map = {
-    "Float": "float32",
-    "Byte": "uint8",
-    "UChar": "int8",
-    "Uint64": "uint64",
-    "Long": "int64",
-    "Int": "int32",
-    "Double": "float64",
-    "string": "String",
+data_type_map = {
+    dataType.STRING: "string",
+    dataType.LONG: "long",
+    dataType.FLOAT: "float",
+    dataType.VECTOR: "vector",
+    dataType.DOUBLE: "double",
+    dataType.INT: "integer",
+    dataType.DATE: "date",
+    dataType.STRINGARRAY: "string_array",
 }
 
 
@@ -112,43 +110,179 @@ def normalize_numpy_array(numpy_array):
     return (numpy_array, norm)
 
 
+class SpacePartition:
+    def __init__(
+        self,
+        id: int,
+        name: str,
+        space_id: int,
+        db_id: int,
+        partition_slot: int,
+        replicas: List[int],
+        resource_exhausted: bool
+    ):
+        self.id = id
+        self.name = name
+        self.space_id = space_id
+        self.db_id = db_id
+        self.partition_slot = partition_slot
+        self.replicas = replicas
+        self.resource_exhausted = resource_exhausted
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "name": self.name,
+            "space_id": self.space_id,
+            "db_id": self.db_id,
+            "partition_slot": self.partition_slot,
+            "replicas": self.replicas,
+            "resourceExhausted": self.resource_exhausted
+        }
+
+
+class SpaceField:
+    def __init__(
+        self,
+        name: str,
+        type: str,
+        index: Optional[Dict[str, Union[str, Dict[str, Union[str, int]]]]] = None,
+        dimension: Optional[int] = None
+    ):
+        self.name = name
+        self.type = type
+        self.index = index
+        self.dimension = dimension
+
+    def to_dict(self) -> dict:
+        field_dict = {
+            "name": self.name,
+            "type": self.type
+        }
+        if self.index:
+            field_dict["index"] = self.index
+        if self.dimension:
+            field_dict["dimension"] = self.dimension
+        return field_dict
+
+
+class SpaceSchema:
+    def __init__(
+        self,
+        id: int,
+        name: str,
+        resource_name: str,
+        version: int,
+        db_id: int,
+        enabled: bool,
+        partition_num: int,
+        replica_num: int,
+        fields: List[SpaceField],
+        refresh_interval: Optional[int] = None,
+        enable_id_cache: Optional[bool] = None
+    ):
+        self.id = id
+        self.name = name
+        self.resource_name = resource_name
+        self.version = version
+        self.db_id = db_id
+        self.enabled = enabled
+        self.partition_num = partition_num
+        self.replica_num = replica_num
+        self.fields = fields
+        self.refresh_interval = refresh_interval
+        self.enable_id_cache = enable_id_cache
+
+        self.partitions = [
+            SpacePartition(
+                id=i + 1,
+                name=f"{name}_partition_{i + 1}",
+                space_id=id,
+                db_id=db_id,
+                partition_slot=i,
+                replicas=[j for j in range(1, replica_num + 1)],
+                resource_exhausted=False
+            )
+            for i in range(partition_num)
+        ]
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "name": self.name,
+            "resource_name": self.resource_name,
+            "version": self.version,
+            "db_id": self.db_id,
+            "enabled": self.enabled,
+            "partition_num": self.partition_num,
+            "replica_num": self.replica_num,
+            "fields": [field.to_dict() for field in self.fields],
+            "refresh_interval": self.refresh_interval,
+            "enable_id_cache": self.enable_id_cache,
+            "partitions": [partition.to_dict() for partition in self.partitions]
+        }
+
+class BackupConfig:
+    def __init__(
+        self,
+        cluster_name: str = 'default',
+        cluster_id: int = 1,
+        db_name: str = 'default',
+        db_id: int = 1,
+        space_name: str = 'default',
+        partition_num: int = 1,
+        replica_num: int = 3,
+        backup_id: int = 1
+    ):
+        self.cluster_name = cluster_name
+        self.cluster_id = cluster_id
+        self.db_name = db_name
+        self.db_id = db_id
+        self.space_name = space_name
+        self.backup_id = backup_id
+        self.partition_num = partition_num
+        self.replica_num = replica_num
+
+    def to_dict(self):
+        return {
+            "cluster_name": self.cluster_name,
+            "cluster_id": self.cluster_id,
+            "db_name": self.db_name,
+            "db_id": self.db_id,
+            "space_name": self.space_name,
+            "backup_id": self.backup_id,
+            "partition_num": self.partition_num,
+            "replica_num": self.replica_num
+        }
+
 class Config:
     def __init__(
-            self,
-            path,
-            log_dir,
-            cluster_name='default',
-            db_name='default',
-            space_name='default',
-            backup_id=1,
-            is_backup_import: bool = False
-        ):
+        self,
+        path: str,
+        log_dir: str,
+        space_name: Optional[str] = None,
+        backup_config: Optional[BackupConfig] = None
+    ):
         if not path:
             raise ValueError("Config path cannot be empty")
         if not log_dir:
             raise ValueError("Config log_dir cannot be empty")
         self.path = path
         self.log_dir = log_dir
-        self.cluster_name = cluster_name
-        self.space_name = space_name
-        self.db_name = db_name
-        self.backup_id = backup_id
-        self.is_backup_import = is_backup_import
-
-        if self.is_backup_import:
-            self.path = f"{self.path}/{self.cluster_name}/backup/{self.db_name}/{self.space_name}/{self.backup_id}"
+        self.backup = backup_config
+        self.space_name = space_name or (backup_config.space_name if backup_config else "")
+        if self.backup and space_name:
+            self.backup.space_name = self.space_name
 
     def to_dict(self):
-        buf = {
+        config_dict = {
             "path": self.path,
             "log_dir": self.log_dir,
-            "cluster_name": self.cluster_name,
-            "space_name": self.space_name,
-            "db_name": self.db_name,
-            "backup_id": self.backup_id,
-            "is_backup_import": self.is_backup_import
+            "space_name": self.space_name
         }
-        return buf
+        if self.backup:
+            config_dict["backup"] = self.backup.to_dict()
+        return config_dict
 
 class VectorInfo:
     '''vector field info'''
@@ -229,7 +363,6 @@ class Table:
         if index is None or not isinstance(index, Index):
             raise ValueError("index must be an instance of Index and cannot be None")
 
-        # Check for duplicate field names and reserved names
         all_field_names = [f.name for f in field_infos] + [v.name for v in vector_infos]
         if len(all_field_names) != len(set(all_field_names)):
             raise ValueError("Field names must be unique")
@@ -244,6 +377,7 @@ class Table:
         self.index_type = index._index_type
         self.is_binaryivf_type = self.index_type == "BINARYIVF"
         self.index_params = index._params
+        self.index_name = index._index_name
         self.refresh_interval = refresh_interval
         self.enable_id_cache = enable_id_cache
 
@@ -275,7 +409,6 @@ class Table:
             fb_str_name = builder.CreateString(field_info.name)
             GammaFieldInfo.FieldInfoStart(builder)
             GammaFieldInfo.FieldInfoAddName(builder, fb_str_name)
-            # now engine treat date as long
             if field_info.data_type == dataType.DATE:
                 GammaFieldInfo.FieldInfoAddDataType(builder, dataType.LONG)
             else:
@@ -383,7 +516,6 @@ def convert_field_value_to_numpy_array(value, data_type):
     """
     Convert a field value to its numpy ndarray representation based on data_type.
     """
-    # Check if value matches the expected data_type
     if data_type == dataType.VECTOR:
         if isinstance(value, list):
             value = np.array(value, dtype=np.float32)
@@ -402,11 +534,9 @@ def convert_field_value_to_numpy_array(value, data_type):
     elif data_type == dataType.DATE:
         if isinstance(value, str):
             try:
-                # Try parsing as full datetime with seconds
                 value = int(time.mktime(time.strptime(value, "%Y-%m-%d %H:%M:%S")))
             except ValueError:
                 try:
-                    # Try parsing as date only
                     value = int(time.mktime(time.strptime(value, "%Y-%m-%d")))
                 except ValueError:
                     raise ValueError(
@@ -500,7 +630,6 @@ class Document:
             lstFieldData.append(GammaField.FieldEnd(builder))
 
         GammaDoc.DocStartFieldsVector(builder, len(lstFieldData))
-        # print(dir(builder))
         for j in reversed(range(len(lstFieldData))):
             builder.PrependUOffsetTRelative(lstFieldData[j])
         fields = builder.EndVector(len(lstFieldData))
@@ -520,7 +649,6 @@ class Document:
             if data_type == dataType.VECTOR:
                 value = convert_numpy_array_to_field_value(value, data_type, table)
             else:
-                # check whether hava date type field
                 field_info = next((field for field in table.field_infos if field.name == name), None)
                 if field_info:
                     data_type = field_info.data_type
@@ -553,7 +681,6 @@ class Document:
                 self.add_field(field)
                 continue
 
-            # Determine the data type from the table's field definitions
             field_info = next((field for field in table.field_infos if field.name == key), None)
             vector_info = next((vector for vector in table.vector_infos if vector.name == key), None)
             if field_info:
@@ -562,7 +689,6 @@ class Document:
                 data_type = dataType.VECTOR
             else:
                 raise ValueError(f"Unknown field '{key}' not found in table schema.")
-            # Create a Field object and add it to self.fields
             field = Field(name=key, value=value, data_type=data_type)
             self.add_field(field)
 
@@ -615,7 +741,6 @@ class RangeFilter:
         :param table: The table object containing field definitions.
         :param field_name: The name of the field to determine its type.
         """
-        # Determine the field type from the table schema
         field_info = next((field for field in table.field_infos if field.name == field_name), None)
         if not field_info:
             raise ValueError(f"Field '{field_name}' not found in table schema.")
@@ -639,7 +764,6 @@ class RangeFilter:
         :param table: The table object containing field definitions.
         :param field_name: The name of the field to determine its type.
         """
-        # Determine the field type from the table schema
         field_info = next((field for field in table.field_infos if field.name == field_name), None)
         if not field_info:
             raise ValueError(f"Field '{field_name}' not found in table schema.")
@@ -807,7 +931,6 @@ class QueryRequest:
         self.trace = trace
         self.operator = operator
 
-        # Ensure at least one of document_ids, range_filters, or term_filters is not empty
         if not self.document_ids and not self.range_filters and not self.term_filters:
             raise ValueError("At least one of 'document_ids', 'range_filters', or 'term_filters' must be provided.")
 
@@ -1136,7 +1259,6 @@ class QueryResponse(Response):
         for item in results[0].result_items:
             fields = []
             for field in item.fields:
-                # Determine the field type from the table schema
                 table_field = next((f for f in self.table.field_infos if f.name == field.name), None)
                 vector_field = next((v for v in self.table.vector_infos if v.name == field.name), None)
                 if vector_field:
@@ -1204,7 +1326,6 @@ class SearchResponse(Response):
             for item in result.result_items:
                 fields = []
                 for field in item.fields:
-                    # Determine the field type from the table schema
                     table_field = next((f for f in self.table.field_infos if f.name == field.name), None)
                     vector_field = next((v for v in self.table.vector_infos if v.name == field.name), None)
                     if vector_field:
@@ -1287,7 +1408,7 @@ class Engine:
 
     def __init__(self, config: Config):
         """Initialize the Vearch engine."""
-        self.config = config
+        self.config = deepcopy(config)
         self.init()
 
     def init(self):
@@ -1313,6 +1434,60 @@ class Engine:
         """
         return self.config
 
+    def copy_backup_table_schema(self):
+        """Copy the table schema to a backup location with a new name."""
+        schema_file = os.path.join(self.config.path, f"{self.table.name}.schema")
+        backup_schema_file = os.path.join(
+            self.config.path,
+            f"{self.config.backup.space_name}-{self.table.name}.schema"
+        )
+        shutil.copyfile(schema_file, backup_schema_file)
+
+    def create_backup_space_schema(self):
+        """Create a backup space schema file if it does not already exist."""
+        parent_dir = os.path.dirname(self.config.path)
+        schema_file = os.path.join(parent_dir, f"{self.config.space_name}.schema")
+
+        if os.path.exists(schema_file):
+            return  # Skip creation if the file already exists
+
+        space_schema = SpaceSchema(
+            id=1,  # will be recreated
+            name=self.config.backup.space_name if self.config.backup else "default",
+            resource_name="default",
+            version=1,
+            db_id=self.config.backup.db_id if self.config.backup else 1,
+            enabled=True,
+            partition_num=self.config.backup.partition_num if self.config.backup else 1,
+            replica_num=self.config.backup.replica_num if self.config.backup else 3,
+            fields=[
+                SpaceField(
+                    name=field.name,
+                    type=data_type_map[field.data_type],
+                    index={
+                        "name": f"{field.name}_idx",
+                        "type": "SCALAR"
+                    } if field.is_index else None,
+                ) for field in self.field_infos
+            ] + [
+                SpaceField(
+                    name=vector.name,
+                    type=data_type_map[dataType.VECTOR],
+                    index={
+                        "name": f"{vector.name}_idx",
+                        "type": self.table.index_type,
+                        "params": self.table.index_params
+                    },
+                    dimension=vector.dimension
+                ) for vector in self.table.vector_infos
+            ],
+            refresh_interval=self.table.refresh_interval,
+            enable_id_cache=self.table.enable_id_cache,
+        )
+
+        with open(schema_file, "w") as f:
+            f.write(json.dumps(space_schema.to_dict(), separators=(",", ":")))
+
     def create_table(
         self,
         table: Table
@@ -1321,13 +1496,31 @@ class Engine:
         table_info: table detail info
         return: Response object with code and message
         """
-        self.table = table
+        # Remove '_id' field if it exists in field_infos
+        self.field_infos = [field for field in table.field_infos if field.name != "_id"]
+
+        self.table = Table(
+            name=table.name,
+            field_infos=self.field_infos.copy(),
+            vector_infos=table.vector_infos.copy(),
+            index=Index(table.index_name, table.index_type, table.index_params),
+            refresh_interval=table.refresh_interval,
+            enable_id_cache=table.enable_id_cache
+        )
         table_buf = self.table.serialize()
         self.table_buf = table_buf
         np_table_buf = np.array(table_buf)
         ptableBuf = swig_ptr(np_table_buf)
         response = swigCreateTable(self.c_engine, ptableBuf, np_table_buf.shape[0])
-        return Response(code =response["code"], msg = response["msg"])
+
+        if self.config.backup:
+            if not self.table.name.isdigit():
+                self.close()
+                raise ValueError("When backup is enabled, the table name must be numeric.")
+            self.create_backup_space_schema()
+            self.copy_backup_table_schema()
+
+        return Response(code=response["code"], msg=response["msg"])
 
     def upsert(self, documents: List[Union[dict, Document]]) -> UpsertResponse:
         """add or update docs

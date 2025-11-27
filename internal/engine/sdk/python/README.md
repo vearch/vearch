@@ -167,6 +167,88 @@ status = engine.status()
 status = engine.close()
 ```
 
+### create backup for restore
+
+Before creating a backup, ensure that the backup directory is mounted to an S3-compatible storage.
+
+```python
+from vearch import Config, BackupConfig, Engine, Table, FieldInfo, VectorInfo, Document
+from vearch.schema.index import HNSWIndex, MetricType
+from vearch import dataType
+
+# Define backup configuration
+backup_config = BackupConfig(
+    cluster_name="test-token98",
+    cluster_id=10770,
+    db_name="db",
+    db_id=1,
+    space_name="test_s3_space",
+    partition_num=2,
+    replica_num=3,
+    backup_id=1
+)
+s3_path = "/mnt/cfs/"
+backup_path = f"{s3_path}{backup_config.cluster_name}_{backup_config.cluster_id}/backup/{backup_config.db_name}/{backup_config.space_name}/{backup_config.backup_id}/"
+
+# Create multiple engine instances for different partitions
+engines = []
+for partition_id in range(backup_config.partition_num):
+    config = Config(
+        path=backup_path + str(partition_id),
+        log_dir=str(partition_id) + "_logs",
+        backup_config=backup_config
+    )
+    engine = Engine(config)
+    engines.append(engine)
+
+# Define table schema
+field_infos = [
+    FieldInfo("field_long", dataType.LONG),
+    FieldInfo("field_string", dataType.STRING, True),
+    FieldInfo("field_float", dataType.FLOAT, True),
+    FieldInfo("field_double", dataType.DOUBLE, True),
+    FieldInfo("field_int", dataType.INT, True),
+    FieldInfo("field_string_array", dataType.STRINGARRAY, True),
+    FieldInfo("field_date", dataType.DATE, True)
+]
+vector_infos = [VectorInfo(name="field_vector", dimension=64)]
+index = HNSWIndex("vec_index", nlinks=32, efConstruction=120, metric_type=MetricType.L2)
+# set table name as partition id
+table = Table(name="0", field_infos=field_infos, vector_infos=vector_infos, index=index)
+
+# Create table in each engine instance
+for i, engine in enumerate(engines):
+    table.name = str(i)
+    response = engine.create_table(table)
+    print(response.to_dict())
+
+# Add or update documents in each partition
+import numpy as np
+for partition_id, engine in enumerate(engines):
+    features = np.random.rand(64).astype('float32')
+    datas = {
+        "field_long": partition_id,
+        "field_string": str(partition_id),
+        "field_float": float(partition_id),
+        "field_double": float(partition_id),
+        "field_int": partition_id,
+        "field_string_array": [str(partition_id)],
+        "field_date": "2020-02-02",
+        "field_vector": features
+    }
+    doc = Document(datas=datas)
+    doc.to_fields(table)
+    response = engine.upsert([doc])
+    print(response.to_dict())
+
+# Close engines after upsert
+for engine in engines:
+    engine.close()
+```
+
+This setup allows you to create backups for each partition and load pre-built SST files for offline construction.
+This way, you can quickly import data using the backup interface.
+
 ## Building source package
 
 if there is a custom built vearch library in the system, build source package
