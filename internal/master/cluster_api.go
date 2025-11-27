@@ -173,11 +173,29 @@ func TimeoutMiddleware(defaultTimeout time.Duration) gin.HandlerFunc {
 		defer cancel()
 
 		c.Request = c.Request.WithContext(ctx)
-		done := make(chan struct{})
+		resultCh := make(chan *response.Response, 1)
 
 		go func() {
 			c.Next()
-			close(done)
+			httpResponse, exist := c.Get("httpResponse")
+			var httpResp *response.Response
+			if exist && httpResponse != nil {
+				if _, ok := httpResponse.(*response.Response); ok {
+					httpResp = httpResponse.(*response.Response)
+				}
+			}
+
+			if httpResp == nil {
+				httpReply := &response.HttpReply{
+					Code:      int(vearchpb.ErrorEnum_INTERNAL_ERROR),
+					RequestId: c.GetHeader("X-Request-Id"),
+					Msg:       "get response data error",
+				}
+				res := &response.Response{}
+				res.SetHttpReply(httpReply)
+				res.SetHttpStatus(http.StatusInternalServerError)
+			}
+			resultCh <- httpResp
 		}()
 
 		select {
@@ -188,7 +206,8 @@ func TimeoutMiddleware(defaultTimeout time.Duration) gin.HandlerFunc {
 					"code":       vearchpb.ErrorEnum_TIMEOUT,
 					"msg":        "request timeout"})
 			c.Abort()
-		case <-done:
+		case res := <-resultCh:
+			c.JSON(int(res.GetHttpStatus()), res.GetHttpReply())
 		}
 	}
 }

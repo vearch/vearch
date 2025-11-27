@@ -27,6 +27,7 @@ import (
 type Response struct {
 	ginContext *gin.Context
 	httpStatus int64
+	httpReply  *HttpReply
 }
 
 // http protocol
@@ -50,7 +51,20 @@ func (r *Response) SetHttpStatus(httpStatus int64) *Response {
 	return r
 }
 
-func (r *Response) SendJson(data any) {
+func (r *Response) GetHttpStatus() int64 {
+	return r.httpStatus
+}
+
+func (r *Response) SetHttpReply(HttpReply *HttpReply) *Response {
+	r.httpReply = HttpReply
+	return r
+}
+
+func (r *Response) GetHttpReply() *HttpReply {
+	return r.httpReply
+}
+
+func (r *Response) SendJson() {
 	if r.ginContext.Request.Context().Err() != nil {
 		log.Warn("attempted to write response to canceled context")
 		return
@@ -60,7 +74,8 @@ func (r *Response) SendJson(data any) {
 		log.Warn("response already committed, cannot write JSON")
 		return
 	}
-	r.ginContext.JSON(int(r.httpStatus), data)
+
+	r.ginContext.Set("httpResponse", r)
 }
 
 func (r *Response) SendJsonBytes(bytes []byte) {
@@ -81,7 +96,8 @@ func (r *Response) JsonSuccess(data any) {
 		Data:      data,
 	}
 	r.SetHttpStatus(int64(http.StatusOK))
-	r.SendJson(httpReply)
+	r.SetHttpReply(httpReply)
+	r.SendJson()
 }
 
 func (r *Response) SuccessDelete() {
@@ -91,7 +107,8 @@ func (r *Response) SuccessDelete() {
 		Msg:       "",
 	}
 	r.SetHttpStatus(int64(http.StatusOK))
-	r.SendJson(httpReply)
+	r.SetHttpReply(httpReply)
+	r.SendJson()
 }
 
 func (r *Response) JsonError(err *errors.ErrRequest) {
@@ -101,5 +118,6 @@ func (r *Response) JsonError(err *errors.ErrRequest) {
 		Msg:       err.Msg(),
 	}
 	r.SetHttpStatus(int64(err.HttpCode()))
-	r.SendJson(httpReply)
+	r.SetHttpReply(httpReply)
+	r.SendJson()
 }
