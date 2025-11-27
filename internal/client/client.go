@@ -823,10 +823,23 @@ func (r *routerRequest) SearchFieldSortExecute(desc bool) *vearchpb.SearchRespon
 
 	for _, resp := range result {
 		quickSort(resp.ResultItems, desc, 0, len(resp.ResultItems)-1)
-		if resp.ResultItems != nil && len(resp.ResultItems) > 0 && searchReq.TopN > 0 {
-			len := len(resp.ResultItems)
-			if int32(len) > searchReq.TopN {
-				resp.ResultItems = resp.ResultItems[0:searchReq.TopN]
+		if len(resp.ResultItems) > 0 {
+			if searchReq.PageSize > 0 && searchReq.PageNum >= 1 {
+				start := searchReq.PageSize * (searchReq.PageNum - 1)
+				end := start + searchReq.PageSize
+
+				if int(start) >= len(resp.ResultItems) {
+					resp.ResultItems = nil
+				} else {
+					if int(end) > len(resp.ResultItems) {
+						end = int32(len(resp.ResultItems))
+					}
+					resp.ResultItems = resp.ResultItems[start:end]
+				}
+			} else if searchReq.TopN > 0 {
+				if len(resp.ResultItems) > int(searchReq.TopN) {
+					resp.ResultItems = resp.ResultItems[:searchReq.TopN]
+				}
 			}
 		}
 	}
@@ -1037,10 +1050,23 @@ func (r *routerRequest) QueryFieldSortExecute() *vearchpb.SearchResponse {
 
 	if len(searchReq.DocumentIds) == 0 {
 		for _, resp := range result {
-			if resp.ResultItems != nil && len(resp.ResultItems) > 0 && searchReq.Limit > 0 {
-				len := len(resp.ResultItems)
-				if int32(len) > searchReq.Limit {
-					resp.ResultItems = resp.ResultItems[0:searchReq.Limit]
+			if len(resp.ResultItems) > 0 {
+				if searchReq.PageSize > 0 && searchReq.PageNum >= 1 {
+					start := searchReq.PageSize * (searchReq.PageNum - 1)
+					end := start + searchReq.PageSize
+
+					if int(start) >= len(resp.ResultItems) {
+						resp.ResultItems = nil
+					} else {
+						if int(end) > len(resp.ResultItems) {
+							end = int32(len(resp.ResultItems))
+						}
+						resp.ResultItems = resp.ResultItems[start:end]
+					}
+				} else if searchReq.Limit > 0 {
+					if len(resp.ResultItems) > int(searchReq.Limit) {
+						resp.ResultItems = resp.ResultItems[:searchReq.Limit]
+					}
 				}
 			}
 		}

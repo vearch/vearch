@@ -81,6 +81,10 @@ class Request : public RawData {
 
   int SetRanker(std::string params, int weight_num);
 
+  int Offset();
+
+  void SetOffset(int offset);
+
  private:
   int req_num_;
   int topn_;
@@ -99,6 +103,7 @@ class Request : public RawData {
   bool l2_sqrt_;
   vearch::Ranker *ranker_;
   bool trace_;
+  int offset_;
 };
 
 class QueryRequest : public RawData {
@@ -127,6 +132,10 @@ class QueryRequest : public RawData {
 
   void SetPartitionId(int partition_id);
 
+  int Offset();
+
+  void SetOffset(int offset);
+
  private:
   int req_num_;
 
@@ -137,6 +146,7 @@ class QueryRequest : public RawData {
   int filter_operator_;
   int partition_id_;
   int topn_;
+  int offset_;
 };
 
 }  // namespace vearch

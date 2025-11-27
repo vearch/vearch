@@ -160,6 +160,8 @@ message QueryRequest {
   repeated SortField sort_fields = 13;
   bool trace = 14;
   int32 operator = 15;
+  int32 page_num = 16;
+  int32 offset = 17;
 }
 
 message SearchRequest {
@@ -180,6 +182,9 @@ message SearchRequest {
   string ranker = 15;
   bool trace = 16;
   int32 operator = 17;
+  int32 page_size = 18;
+  int32 page_num = 19;
+  int32 offset = 20;
 }
 
 //*********************** Search response *********************** //

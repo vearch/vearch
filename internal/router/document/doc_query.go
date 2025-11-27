@@ -1319,6 +1319,16 @@ func queryRequestToPb(searchDoc *request.SearchDocumentRequest, space *entity.Sp
 		return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("query limit[topN] is zero"))
 	}
 
+	if searchDoc.PageSize > 0 {
+		queryReq.PageSize = searchDoc.PageSize
+	}
+	if searchDoc.PageNum > 0 {
+		queryReq.PageNum = searchDoc.PageNum
+	}
+	if searchDoc.Offset > 0 {
+		queryReq.Offset = searchDoc.Offset
+	}
+
 	queryReq.Head.ClientType = searchDoc.LoadBalance
 	return nil
 }
@@ -1447,6 +1457,16 @@ func requestToPb(searchDoc *request.SearchDocumentRequest, space *entity.Space, 
 		if err != nil {
 			return err
 		}
+	}
+
+	if searchDoc.PageSize > 0 {
+		searchReq.PageSize = searchDoc.PageSize
+	}
+	if searchDoc.PageNum > 0 {
+		searchReq.PageNum = searchDoc.PageNum
+	}
+	if searchDoc.Offset > 0 {
+		searchReq.Offset = searchDoc.Offset
 	}
 
 	searchReq.Head.ClientType = searchDoc.LoadBalance

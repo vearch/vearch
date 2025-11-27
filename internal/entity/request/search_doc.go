@@ -85,6 +85,9 @@ type SearchDocumentRequest struct {
 	Next          *bool             `json:"next,omitempty"`
 	Ranker        json.RawMessage   `json:"ranker,omitempty"`
 	GetByHash     bool              `json:"get_by_hash,omitempty"`
+	PageSize      int32             `json:"page_size,omitempty"`
+	PageNum       int32             `json:"page_num,omitempty"`
+	Offset        int32             `json:"offset,omitempty"`
 	sortOrder     sortorder.SortOrder
 }
 

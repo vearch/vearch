@@ -319,6 +319,7 @@ Status Engine::Search(Request &request, Response &response_results) {
   query.condition->term_filters = request.TermFilters();
   query.condition->filter_operator = request.FilterOperator();
   query.condition->table = table_;
+  query.condition->offset = request.Offset();
   if (request.Ranker()) {
     query.condition->ranker = dynamic_cast<WeightedRanker *>(request.Ranker());
     if (query.condition->ranker == nullptr) {
@@ -473,7 +474,7 @@ Status Engine::Query(QueryRequest &request, Response &response_results) {
 
     int num = field_range_index_->Query(
         static_cast<FilterOperator>(request.FilterOperator()), filters, docids,
-        (size_t)topn);
+        (size_t)topn, (size_t)request.Offset());
 
     if (num <= 0) {
       std::string msg =

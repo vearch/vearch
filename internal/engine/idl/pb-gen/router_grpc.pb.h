@@ -4203,6 +4203,8 @@ class QueryRequest final :
     kLimitFieldNumber = 9,
     kPageSizeFieldNumber = 10,
     kOperatorFieldNumber = 15,
+    kPageNumFieldNumber = 16,
+    kOffsetFieldNumber = 17,
   };
   // repeated string document_ids = 2;
   int document_ids_size() const;
@@ -4418,6 +4420,24 @@ class QueryRequest final :
   void _internal_set_operator_(int32_t value);
   public:
 
+  // int32 page_num = 16;
+  void clear_page_num();
+  int32_t page_num() const;
+  void set_page_num(int32_t value);
+  private:
+  int32_t _internal_page_num() const;
+  void _internal_set_page_num(int32_t value);
+  public:
+
+  // int32 offset = 17;
+  void clear_offset();
+  int32_t offset() const;
+  void set_offset(int32_t value);
+  private:
+  int32_t _internal_offset() const;
+  void _internal_set_offset(int32_t value);
+  public:
+
   // @@protoc_insertion_point(class_scope:vearchpb.QueryRequest)
  private:
   class _Internal;
@@ -4445,6 +4465,8 @@ class QueryRequest final :
     int32_t limit_;
     int32_t page_size_;
     int32_t operator__;
+    int32_t page_num_;
+    int32_t offset_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
   union { Impl_ _impl_; };
@@ -4621,6 +4643,9 @@ class SearchRequest final :
     kIsVectorValueFieldNumber = 12,
     kTraceFieldNumber = 16,
     kOperatorFieldNumber = 17,
+    kPageSizeFieldNumber = 18,
+    kPageNumFieldNumber = 19,
+    kOffsetFieldNumber = 20,
   };
   // repeated .vearchpb.VectorQuery vec_fields = 5;
   int vec_fields_size() const;
@@ -4853,6 +4878,33 @@ class SearchRequest final :
   void _internal_set_operator_(int32_t value);
   public:
 
+  // int32 page_size = 18;
+  void clear_page_size();
+  int32_t page_size() const;
+  void set_page_size(int32_t value);
+  private:
+  int32_t _internal_page_size() const;
+  void _internal_set_page_size(int32_t value);
+  public:
+
+  // int32 page_num = 19;
+  void clear_page_num();
+  int32_t page_num() const;
+  void set_page_num(int32_t value);
+  private:
+  int32_t _internal_page_num() const;
+  void _internal_set_page_num(int32_t value);
+  public:
+
+  // int32 offset = 20;
+  void clear_offset();
+  int32_t offset() const;
+  void set_offset(int32_t value);
+  private:
+  int32_t _internal_offset() const;
+  void _internal_set_offset(int32_t value);
+  public:
+
   // @@protoc_insertion_point(class_scope:vearchpb.SearchRequest)
  private:
   class _Internal;
@@ -4882,6 +4934,9 @@ class SearchRequest final :
     bool is_vector_value_;
     bool trace_;
     int32_t operator__;
+    int32_t page_size_;
+    int32_t page_num_;
+    int32_t offset_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
   union { Impl_ _impl_; };
@@ -9530,6 +9585,46 @@ inline void QueryRequest::set_operator_(int32_t value) {
   // @@protoc_insertion_point(field_set:vearchpb.QueryRequest.operator)
 }
 
+// int32 page_num = 16;
+inline void QueryRequest::clear_page_num() {
+  _impl_.page_num_ = 0;
+}
+inline int32_t QueryRequest::_internal_page_num() const {
+  return _impl_.page_num_;
+}
+inline int32_t QueryRequest::page_num() const {
+  // @@protoc_insertion_point(field_get:vearchpb.QueryRequest.page_num)
+  return _internal_page_num();
+}
+inline void QueryRequest::_internal_set_page_num(int32_t value) {
+  
+  _impl_.page_num_ = value;
+}
+inline void QueryRequest::set_page_num(int32_t value) {
+  _internal_set_page_num(value);
+  // @@protoc_insertion_point(field_set:vearchpb.QueryRequest.page_num)
+}
+
+// int32 offset = 17;
+inline void QueryRequest::clear_offset() {
+  _impl_.offset_ = 0;
+}
+inline int32_t QueryRequest::_internal_offset() const {
+  return _impl_.offset_;
+}
+inline int32_t QueryRequest::offset() const {
+  // @@protoc_insertion_point(field_get:vearchpb.QueryRequest.offset)
+  return _internal_offset();
+}
+inline void QueryRequest::_internal_set_offset(int32_t value) {
+  
+  _impl_.offset_ = value;
+}
+inline void QueryRequest::set_offset(int32_t value) {
+  _internal_set_offset(value);
+  // @@protoc_insertion_point(field_set:vearchpb.QueryRequest.offset)
+}
+
 // -------------------------------------------------------------------
 
 // -------------------------------------------------------------------
@@ -10148,6 +10243,66 @@ inline void SearchRequest::_internal_set_operator_(int32_t value) {
 inline void SearchRequest::set_operator_(int32_t value) {
   _internal_set_operator_(value);
   // @@protoc_insertion_point(field_set:vearchpb.SearchRequest.operator)
+}
+
+// int32 page_size = 18;
+inline void SearchRequest::clear_page_size() {
+  _impl_.page_size_ = 0;
+}
+inline int32_t SearchRequest::_internal_page_size() const {
+  return _impl_.page_size_;
+}
+inline int32_t SearchRequest::page_size() const {
+  // @@protoc_insertion_point(field_get:vearchpb.SearchRequest.page_size)
+  return _internal_page_size();
+}
+inline void SearchRequest::_internal_set_page_size(int32_t value) {
+  
+  _impl_.page_size_ = value;
+}
+inline void SearchRequest::set_page_size(int32_t value) {
+  _internal_set_page_size(value);
+  // @@protoc_insertion_point(field_set:vearchpb.SearchRequest.page_size)
+}
+
+// int32 page_num = 19;
+inline void SearchRequest::clear_page_num() {
+  _impl_.page_num_ = 0;
+}
+inline int32_t SearchRequest::_internal_page_num() const {
+  return _impl_.page_num_;
+}
+inline int32_t SearchRequest::page_num() const {
+  // @@protoc_insertion_point(field_get:vearchpb.SearchRequest.page_num)
+  return _internal_page_num();
+}
+inline void SearchRequest::_internal_set_page_num(int32_t value) {
+  
+  _impl_.page_num_ = value;
+}
+inline void SearchRequest::set_page_num(int32_t value) {
+  _internal_set_page_num(value);
+  // @@protoc_insertion_point(field_set:vearchpb.SearchRequest.page_num)
+}
+
+// int32 offset = 20;
+inline void SearchRequest::clear_offset() {
+  _impl_.offset_ = 0;
+}
+inline int32_t SearchRequest::_internal_offset() const {
+  return _impl_.offset_;
+}
+inline int32_t SearchRequest::offset() const {
+  // @@protoc_insertion_point(field_get:vearchpb.SearchRequest.offset)
+  return _internal_offset();
+}
+inline void SearchRequest::_internal_set_offset(int32_t value) {
+  
+  _impl_.offset_ = value;
+}
+inline void SearchRequest::set_offset(int32_t value) {
+  _internal_set_offset(value);
+  // @@protoc_insertion_point(field_set:vearchpb.SearchRequest.offset)
 }
 
 // -------------------------------------------------------------------

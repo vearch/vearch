@@ -44,6 +44,7 @@ class SearchCondition : public RetrievalContext {
     perf_tool_ = perf_tool;
     table = nullptr;
     ranker = nullptr;
+    offset = 0;
   }
 
   SearchCondition(SearchCondition *condition) {
@@ -60,6 +61,7 @@ class SearchCondition : public RetrievalContext {
     term_filters = condition->term_filters;
     table = condition->table;
     ranker = condition->ranker;
+    offset = condition->offset;
   }
 
   ~SearchCondition() {
@@ -86,6 +88,7 @@ class SearchCondition : public RetrievalContext {
   float min_score;
   float max_score;
   Ranker *ranker;
+  int offset;
 
   bool IsSimilarScoreValid(float score) const override {
     return (score <= max_score) && (score >= min_score);

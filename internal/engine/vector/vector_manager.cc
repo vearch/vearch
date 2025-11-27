@@ -657,6 +657,7 @@ Status VectorManager::Search(GammaQuery &query, GammaResult *results) {
   size_t vec_num = query.vec_query.size();
   VectorResult all_vector_results[vec_num];
 
+  // if multi-vector query, sort by docid to facilitate subsequent merging
   query.condition->sort_by_docid = vec_num > 1 ? true : false;
   std::string vec_names[vec_num];
   for (size_t i = 0; i < vec_num; i++) {
@@ -704,7 +705,11 @@ Status VectorManager::Search(GammaQuery &query, GammaResult *results) {
       return Status::InvalidArgument(err);
     }
 
-    all_vector_results[i].init(n, query.condition->topn);
+    int topN = query.condition->topn + query.condition->offset;
+    if (query.condition->sort_by_docid) {
+      topN = query.condition->topn;
+    }
+    all_vector_results[i].init(n, topN);
 
     query.condition->Init(vec_query.min_score, vec_query.max_score,
                           docids_bitmap_, raw_vec);
@@ -717,7 +722,7 @@ Status VectorManager::Search(GammaQuery &query, GammaResult *results) {
 
     const uint8_t *x =
         reinterpret_cast<const uint8_t *>(vec_query.value.c_str());
-    int ret_vec = index->Search(query.condition, n, x, query.condition->topn,
+    int ret_vec = index->Search(query.condition, n, x, topN,
                                 all_vector_results[i].dists,
                                 all_vector_results[i].docids);
 
@@ -809,8 +814,8 @@ Status VectorManager::Search(GammaQuery &query, GammaResult *results) {
       results[i].total = all_vector_results[0].total[i] > 0
                              ? all_vector_results[0].total[i]
                              : results[i].total;
-      int pos = 0, topn = all_vector_results[0].topn;
-      for (int j = 0; j < topn; j++) {
+      int pos = 0, topn = all_vector_results[0].topn; // topn includes offset
+      for (int j = query.condition->offset; j < topn; j++) {
         int real_pos = i * topn + j;
         if (all_vector_results[0].docids[real_pos] == -1) continue;
         results[i].docs[pos]->docid = all_vector_results[0].docids[real_pos];

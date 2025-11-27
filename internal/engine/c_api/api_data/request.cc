@@ -80,6 +80,8 @@ void Request::Deserialize(const char *data, int len) {
   if (vec_fields_.size() > 1 && sr.ranker() != "") {
     ranker_ = new WeightedRanker(sr.ranker(), vec_fields_.size());
   }
+
+  offset_ = sr.offset();
 }
 
 int Request::ReqNum() { return req_num_; }
@@ -158,6 +160,12 @@ int Request::SetRanker(std::string params, int weight_num) {
   return 0;
 }
 
+int Request::Offset() { return offset_; }
+
+void Request::SetOffset(int offset) {
+  offset_ = offset;
+}
+
 int QueryRequest::Serialize(char **out, int *out_len) { return 0; }
 
 void QueryRequest::Deserialize(const char *data, int len) {
@@ -204,6 +212,7 @@ void QueryRequest::Deserialize(const char *data, int len) {
 
   filter_operator_ = qr.operator_();
   partition_id_ = qr.partition_id();
+  offset_ = qr.offset();
 }
 
 void QueryRequest::AddDocumentId(const std::string &document_id) {
@@ -228,6 +237,12 @@ int QueryRequest::PartitionId() { return partition_id_; }
 
 void QueryRequest::SetPartitionId(int partition_id) {
   partition_id_ = partition_id;
+}
+
+int QueryRequest::Offset() { return offset_; }
+
+void QueryRequest::SetOffset(int offset) {
+  offset_ = offset;
 }
 
 }  // namespace vearch

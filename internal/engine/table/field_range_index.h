@@ -50,7 +50,7 @@ class MultiFieldsRangeIndex {
 
   int64_t Query(FilterOperator query_filter_operator,
                 const std::vector<FilterInfo> &origin_filters,
-                std::vector<uint64_t> &docids, size_t topn);
+                std::vector<uint64_t> &docids, size_t topn, size_t offset);
 
   int64_t DocCount() {
     int64_t doc_count = 0;

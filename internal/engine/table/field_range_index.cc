@@ -500,7 +500,7 @@ int64_t MultiFieldsRangeIndex::Search(
 int64_t MultiFieldsRangeIndex::Query(
     FilterOperator query_filter_operator,
     const std::vector<FilterInfo> &origin_filters,
-    std::vector<uint64_t> &docids, size_t topn) {
+    std::vector<uint64_t> &docids, size_t topn, size_t offset) {
   docids.clear();
   docids.reserve(topn);
 
@@ -562,6 +562,8 @@ int64_t MultiFieldsRangeIndex::Query(
       }
     }
 
+    size_t original_offset = offset;
+
     if (field_index->IsNumeric()) {
       std::unique_ptr<rocksdb::Iterator> it(
           db->NewIterator(read_options, cf_handler));
@@ -581,6 +583,10 @@ int64_t MultiFieldsRangeIndex::Query(
         key = key.substr(0, prefix_len);
         if (key > upper_key) {
           break;
+        }
+        if (original_offset > 0) {
+          --original_offset;  // Skip the first 'offset' results
+          continue;
         }
         key = it->key().ToString();
         int64_t docid = utils::FromRowKey64(key.substr(key.length() - 8, 8));
@@ -615,8 +621,14 @@ int64_t MultiFieldsRangeIndex::Query(
 
           // Only add if not already seen
           if (seen_docids.find(docid_u64) == seen_docids.end()) {
-            seen_docids.insert(docid_u64);
-            docids.push_back(docid_u64);
+            // Skip the first 'offset' results
+            if (original_offset > 0) {
+              --original_offset;
+              continue;
+            } else {
+              seen_docids.insert(docid_u64);
+              docids.push_back(docid_u64);
+            }
           }
         }
       }
@@ -634,7 +646,14 @@ int64_t MultiFieldsRangeIndex::Query(
     return retval;
   }
 
-  docids = range_query_result.GetDocIDs(topn);
+  docids = range_query_result.GetDocIDs(topn + offset);
+  if (offset >= docids.size()) {
+    // If offset is greater than or equal to the size of docids, return an empty vector
+    docids.clear();
+  } else {
+    // Otherwise, erase the first 'offset' elements
+    docids.erase(docids.begin(), docids.begin() + offset);
+  }
   return static_cast<int64_t>(docids.size());
 }
 

@@ -939,3 +939,284 @@ class TestDocumentSearchReturnFields:
     # destroy
     def test_destroy_cluster(self):
         destroy(router_url, db_name, space_name)
+
+
+class TestDocumentSearchPagination:
+    def setup_class(self):
+        self.xb = xb
+
+    def test_prepare_cluster(self):
+        embedding_size = self.xb.shape[1]
+        properties = {}
+        properties["fields"] = [
+            {
+                "name": "field_int",
+                "type": "integer",
+                "index": {
+                    "name": "field_int",
+                    "type": "SCALAR",
+                },
+            },
+            {
+                "name": "field_long",
+                "type": "long",
+            },
+            {
+                "name": "field_float",
+                "type": "float",
+            },
+            {
+                "name": "field_double",
+                "type": "double",
+            },
+            {
+                "name": "field_string",
+                "type": "string",
+                "index": {
+                    "name": "field_string",
+                    "type": "SCALAR",
+                },
+            },
+            {
+                "name": "field_vector",
+                "type": "vector",
+                "index": {
+                    "name": "gamma",
+                    "type": "FLAT",
+                    "params": {
+                        "metric_type": "L2",
+                    },
+                },
+                "dimension": embedding_size,
+                "store_type": "MemoryOnly",
+            },
+        ]
+        create_for_document_test(router_url, embedding_size, properties)
+
+    def test_numberic_pagination(self):
+        total_batch = 10
+        batch_size = 10
+        total = total_batch * batch_size
+        add(total_batch, batch_size, self.xb, with_id=True, full_field=True)
+
+        data = {
+            "db_name": db_name,
+            "space_name": space_name,
+            "limit": 10,
+            "page_size": 5,
+            "page_num": 1,
+            "offset": 0,
+        }
+
+        data["filters"] = {
+            "operator": "AND",
+            "conditions": [
+                {
+                    "field": "field_int",
+                    "operator": ">=",
+                    "value": 0,
+                },
+            ],
+        }
+
+        data["vectors"] = []
+        vector_info = {
+            "field": "field_vector",
+            "feature": xb[:batch_size].flatten().tolist(),
+        }
+        data["vectors"].append(vector_info)
+
+        url = router_url + "/document/search"
+
+        # Test with initial offset
+        json_str = json.dumps(data)
+        response = requests.post(url, auth=(username, password), data=json_str)
+        assert response.status_code == 200
+        assert response.json()["code"] == 0
+        assert len(response.json()["data"]["documents"]) == batch_size
+        for documents in response.json()["data"]["documents"]:
+            assert len(documents) == 5
+
+        data["page_num"] = 2
+        json_str = json.dumps(data)
+        response = requests.post(url, auth=(username, password), data=json_str)
+        assert response.status_code == 200
+        assert response.json()["code"] == 0
+        assert len(response.json()["data"]["documents"]) == batch_size
+        for documents in response.json()["data"]["documents"]:
+            assert len(documents) == 5
+
+        data["offset"] = 5
+        data["page_num"] = 1
+        json_str = json.dumps(data)
+        response = requests.post(url, auth=(username, password), data=json_str)
+        assert response.status_code == 200
+        assert response.json()["code"] == 0
+        assert len(response.json()["data"]["documents"]) == batch_size
+        for documents in response.json()["data"]["documents"]:
+            assert len(documents) == 5
+
+        # Test offset in the middle
+        data["offset"] = 15
+        json_str = json.dumps(data)
+        response = requests.post(url, auth=(username, password), data=json_str)
+        assert response.status_code == 200
+        assert response.json()["code"] == 0
+        assert len(response.json()["data"]["documents"]) == batch_size
+        for documents in response.json()["data"]["documents"]:
+            assert len(documents) == 5
+
+        data["page_num"] = 2
+        json_str = json.dumps(data)
+        response = requests.post(url, auth=(username, password), data=json_str)
+        assert response.status_code == 200
+        assert response.json()["code"] == 0
+        assert len(response.json()["data"]["documents"]) == batch_size
+        for documents in response.json()["data"]["documents"]:
+            assert len(documents) == 5
+
+        # Test offset at the end
+        data["offset"] = total - 5
+        data["page_num"] = 1
+        json_str = json.dumps(data)
+        response = requests.post(url, auth=(username, password), data=json_str)
+        assert response.status_code == 200
+        assert response.json()["code"] == 0
+        assert len(response.json()["data"]["documents"]) == batch_size
+        for documents in response.json()["data"]["documents"]:
+            assert len(documents) == 5
+
+        # Test offset out of bounds
+        data["offset"] = total + 10
+        json_str = json.dumps(data)
+        response = requests.post(url, auth=(username, password), data=json_str)
+        assert response.status_code == 200
+        assert response.json()["code"] == 0
+        assert len(response.json()["data"]["documents"]) == batch_size
+        for documents in response.json()["data"]["documents"]:
+            assert len(documents) == 0
+
+        # Test offset half out of bounds
+        data["offset"] = total - 2
+        json_str = json.dumps(data)
+        response = requests.post(url, auth=(username, password), data=json_str)
+        assert response.status_code == 200
+        assert response.json()["code"] == 0
+        assert len(response.json()["data"]["documents"]) == batch_size
+        for documents in response.json()["data"]["documents"]:
+            assert len(documents) == 2
+
+    def test_string_pagination(self):
+        total_batch = 10
+        batch_size = 10
+        total = total_batch * batch_size
+
+        data = {
+            "db_name": db_name,
+            "space_name": space_name,
+            "limit": 10,
+            "page_size": 5,
+            "page_num": 1,
+            "offset": 0,
+        }
+
+        data["filters"] = {
+            "operator": "AND",
+            "conditions": [
+                {
+                    "field": "field_string",
+                    "operator": "IN",
+                    "value": [str(i) for i in range(0, total)],
+                },
+            ],
+        }
+
+        data["vectors"] = []
+        vector_info = {
+            "field": "field_vector",
+            "feature": xb[:batch_size].flatten().tolist(),
+        }
+        data["vectors"].append(vector_info)
+
+        url = router_url + "/document/search"
+
+        # Test with initial offset
+        json_str = json.dumps(data)
+        response = requests.post(url, auth=(username, password), data=json_str)
+        assert response.status_code == 200
+        assert response.json()["code"] == 0
+        assert len(response.json()["data"]["documents"]) == batch_size
+        for documents in response.json()["data"]["documents"]:
+            assert len(documents) == 5
+
+        data["page_num"] = 2
+        json_str = json.dumps(data)
+        response = requests.post(url, auth=(username, password), data=json_str)
+        assert response.status_code == 200
+        assert response.json()["code"] == 0
+        assert len(response.json()["data"]["documents"]) == batch_size
+        for documents in response.json()["data"]["documents"]:
+            assert len(documents) == 5
+
+        data["offset"] = 5
+        data["page_num"] = 1
+        json_str = json.dumps(data)
+        response = requests.post(url, auth=(username, password), data=json_str)
+        assert response.status_code == 200
+        assert response.json()["code"] == 0
+        assert len(response.json()["data"]["documents"]) == batch_size
+        for documents in response.json()["data"]["documents"]:
+            assert len(documents) == 5
+
+        # Test offset in the middle
+        data["offset"] = 15
+        json_str = json.dumps(data)
+        response = requests.post(url, auth=(username, password), data=json_str)
+        assert response.status_code == 200
+        assert response.json()["code"] == 0
+        assert len(response.json()["data"]["documents"]) == batch_size
+        for documents in response.json()["data"]["documents"]:
+            assert len(documents) == 5
+
+        data["page_num"] = 2
+        json_str = json.dumps(data)
+        response = requests.post(url, auth=(username, password), data=json_str)
+        assert response.status_code == 200
+        assert response.json()["code"] == 0
+        assert len(response.json()["data"]["documents"]) == batch_size
+        for documents in response.json()["data"]["documents"]:
+            assert len(documents) == 5
+
+        # Test offset at the end
+        data["offset"] = total - 5
+        data["page_num"] = 1
+        json_str = json.dumps(data)
+        response = requests.post(url, auth=(username, password), data=json_str)
+        assert response.status_code == 200
+        assert response.json()["code"] == 0
+        assert len(response.json()["data"]["documents"]) == batch_size
+        for documents in response.json()["data"]["documents"]:
+            assert len(documents) == 5
+
+        # Test offset out of bounds
+        data["offset"] = total + 10
+        json_str = json.dumps(data)
+        response = requests.post(url, auth=(username, password), data=json_str)
+        assert response.status_code == 200
+        assert response.json()["code"] == 0
+        assert len(response.json()["data"]["documents"]) == batch_size
+        for documents in response.json()["data"]["documents"]:
+            assert len(documents) == 0
+
+        # Test offset half out of bounds
+        data["offset"] = total - 2
+        json_str = json.dumps(data)
+        response = requests.post(url, auth=(username, password), data=json_str)
+        assert response.status_code == 200
+        assert response.json()["code"] == 0
+        assert len(response.json()["data"]["documents"]) == batch_size
+        for documents in response.json()["data"]["documents"]:
+            assert len(documents) == 2
+
+    def test_destroy_cluster(self):
+        destroy(router_url, db_name, space_name)
