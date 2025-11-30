@@ -88,6 +88,7 @@ func (r *Response) SendJsonBytes(bytes []byte) {
 	}
 }
 
+// response only called for handler which called after TimeoutMiddleware
 func (r *Response) JsonSuccess(data any) {
 	httpReply := &HttpReply{
 		Code:      int(vearchpb.ErrorEnum_SUCCESS),
@@ -100,6 +101,7 @@ func (r *Response) JsonSuccess(data any) {
 	r.SendJson()
 }
 
+// response only called for handler which called after TimeoutMiddleware
 func (r *Response) SuccessDelete() {
 	httpReply := &HttpReply{
 		Code:      int(vearchpb.ErrorEnum_SUCCESS),
@@ -111,6 +113,7 @@ func (r *Response) SuccessDelete() {
 	r.SendJson()
 }
 
+// response only called for handler which called after TimeoutMiddleware
 func (r *Response) JsonError(err *errors.ErrRequest) {
 	httpReply := &HttpReply{
 		Code:      err.Code(),
