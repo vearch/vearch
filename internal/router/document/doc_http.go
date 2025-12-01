@@ -162,19 +162,13 @@ func ExportDocumentHandler(httpServer *gin.Engine, client *client.Client) {
 		client:     client,
 	}
 
-	var group *gin.RouterGroup
-	var groupProxy *gin.RouterGroup
+	var group *gin.RouterGroup = documentHandler.httpServer.Group("", master.TimeoutMiddleware(defaultTimeout))
+	var groupProxy *gin.RouterGroup = documentHandler.httpServer.Group("")
 	if !config.Conf().Global.SkipAuth {
-		group = documentHandler.httpServer.Group("", BasicAuthMiddleware(documentHandler.docService))
-		// auth by master
-		groupProxy = documentHandler.httpServer.Group("")
-	} else {
-		group = documentHandler.httpServer.Group("")
-		groupProxy = documentHandler.httpServer.Group("")
+		group.Use(BasicAuthMiddleware(documentHandler.docService))
 	}
 
 	documentHandler.proxyMaster(groupProxy)
-	group.Use(master.TimeoutMiddleware(defaultTimeout))
 	// open router api
 	if err := documentHandler.ExportInterfacesToServer(group); err != nil {
 		panic(err)
@@ -261,7 +255,13 @@ func (handler *DocumentHandler) handleMasterRequest(c *gin.Context) {
 	method := c.Request.Method
 	bodyBytes, err := io.ReadAll(c.Request.Body)
 	if err != nil {
-		response.New(c).JsonError(errors.NewErrBadRequest(err))
+		res_err := errors.NewErrBadRequest(err)
+		c.JSON(res_err.HttpCode(), gin.H{
+			"code":       res_err.Code(),
+			"request_id": c.GetHeader("X-Request-Id"),
+			"msg":        res_err.Msg(),
+        })
+		//response.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
 	}
 	authHeader := c.GetHeader("Authorization")
@@ -271,7 +271,13 @@ func (handler *DocumentHandler) handleMasterRequest(c *gin.Context) {
 		if string(res) != "" {
 			response.New(c).SetHttpStatus(http.StatusInternalServerError).SendJsonBytes(res)
 		} else {
-			response.New(c).JsonError(errors.NewErrInternal(err))
+			res_err := errors.NewErrInternal(err)
+			c.JSON(res_err.HttpCode(), gin.H{
+				"code":       res_err.Code(),
+				"request_id": c.GetHeader("X-Request-Id"),
+				"msg":        res_err.Msg(),
+			})
+			//response.New(c).JsonError(errors.NewErrInternal(err))
 		}
 		return
 	}
