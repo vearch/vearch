@@ -26,6 +26,7 @@ class GammaGPUSearchBase : public GammaGPUIndexBase<CPUIndexType> {
   using GammaGPUIndexBase<CPUIndexType>::FilteredByRangeFilter;
   using GammaGPUIndexBase<CPUIndexType>::FilteredByTermFilter;
   using GammaGPUIndexBase<CPUIndexType>::kMaxReqNum;
+  using GammaGPUIndexBase<CPUIndexType>::kMaxRecallNum;
   using GammaGPUIndexBase<CPUIndexType>::search_queue_;
   using GammaGPUIndexBase<CPUIndexType>::gpu_threads_;
   using GammaGPUIndexBase<CPUIndexType>::d_;
@@ -72,6 +73,12 @@ class GammaGPUSearchBase : public GammaGPUIndexBase<CPUIndexType> {
     // Get recall number and rerank flag
     int recall_num = GetRecallNum(retrieval_params, k, enable_rerank);
     bool rerank = enable_rerank && (recall_num >= k);
+
+    if (recall_num > kMaxRecallNum) {
+      LOG(ERROR) << "topK num [" << recall_num << "] should not larger than ["
+                 << kMaxRecallNum << "]";
+      return -1;
+    }
 
     // Get nprobe
     int nprobe = GetNprobe(retrieval_params, default_nprobe, nlist);
