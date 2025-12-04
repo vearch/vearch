@@ -43,6 +43,7 @@ namespace gpu {
 namespace {
 const int kMaxBatch = 500;   // max search batch num (optimized from 200)
 const int kMaxReqNum = 500;  // max request num (optimized from 200)
+const int kMaxRecallNum = faiss::gpu::getMaxKSelection();// max recall num
 }  // namespace
 
 REGISTER_INDEX(GPU_IVFFLAT, GammaIVFFlatGPUIndex)
@@ -300,9 +301,8 @@ bool GammaIVFFlatGPUIndex::Add(int n, const uint8_t *vec) {
 
 int GammaIVFFlatGPUIndex::GPUThread() {
   float *xx = new float[kMaxBatch * d_ * kMaxReqNum];
-  size_t max_recallnum = (size_t)faiss::gpu::getMaxKSelection();
-  long *label = new long[kMaxBatch * max_recallnum * kMaxReqNum];
-  float *dis = new float[kMaxBatch * max_recallnum * kMaxReqNum];
+  long *label = new long[kMaxBatch * kMaxRecallNum * kMaxReqNum];
+  float *dis = new float[kMaxBatch * kMaxRecallNum * kMaxReqNum];
 
   thread_local std::vector<int> batch_offsets;
   thread_local std::vector<int> result_offsets;
@@ -383,8 +383,8 @@ int GammaIVFFlatGPUIndex::GPUThread() {
         int result_offset = 0;
         for (size_t j = 0; j < nprobe_ids.second.size(); ++j) {
           int idx = nprobe_ids.second[j];
-          const size_t dis_size = recallnum * sizeof(float) * items[idx]->n_;
-          const size_t label_size = recallnum * sizeof(long) * items[idx]->n_;
+          const size_t dis_size = sizeof(float) * items[idx]->n_ * items[idx]->k_;
+          const size_t label_size = sizeof(long) * items[idx]->n_ * items[idx]->k_;
 
           std::memcpy(items[idx]->dis_, dis + result_offset, dis_size);
           std::memcpy(items[idx]->label_, label + result_offset, label_size);

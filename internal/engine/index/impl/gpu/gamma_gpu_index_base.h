@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <faiss/Index.h>
+#include <faiss/gpu/impl/IndexUtils.h>
 #include <faiss/gpu/GpuClonerOptions.h>
 #include <faiss/gpu/StandardGpuResources.h>
 
@@ -199,8 +199,9 @@ class GammaGPUIndexBase : public IndexModel {
   int vectors_added_since_last_log_;
 
   // Constants
-  static constexpr int kMaxBatch = 200;
-  static constexpr int kMaxReqNum = 200;
+  static constexpr int kMaxBatch = 500;
+  static constexpr int kMaxReqNum = 500;
+  const int kMaxRecallNum = faiss::gpu::getMaxKSelection();
   static constexpr const char *kDelim = "\001";
 
  protected:
