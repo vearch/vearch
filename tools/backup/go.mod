@@ -1,6 +1,6 @@
 module github.com/vearch/vearch/tools/backup
 
-go 1.22
+go 1.23.0
 
 require (
 	github.com/bytedance/sonic v1.11.3
@@ -16,6 +16,6 @@ require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	golang.org/x/arch v0.0.0-20210923205945-b76863e36670 // indirect
-	golang.org/x/net v0.33.0 // indirect
-	golang.org/x/sys v0.28.0 // indirect
+	golang.org/x/net v0.38.0 // indirect
+	golang.org/x/sys v0.31.0 // indirect
 )
