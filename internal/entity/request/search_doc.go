@@ -29,10 +29,11 @@ var (
 )
 
 var (
-	Leader          string = "leader"
-	NotLeader       string = "not_leader"
-	LeastConnection string = "least_connection"
-	Random          string = "random"
+	Leader            string = "leader"
+	NotLeader         string = "not_leader"
+	LeastConnection   string = "least_connection"
+	Random            string = "random"
+	NearestConnection string = "nearest_connection"
 )
 
 type DocumentRequest struct {
