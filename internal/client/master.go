@@ -849,6 +849,26 @@ func (client *masterClient) CheckMasterConfig(ctx context.Context) error {
 	return nil
 }
 
+// check memory limit config, if changed then update
+func (m *masterClient) QueryMemoryLimitConfig(ctx context.Context) (*entity.MemoryLimitCfg, error) {
+	value, err := m.Get(ctx, entity.RouterConfigKey("memory_limit_config"))
+	if err != nil {
+		return nil, err
+	}
+
+	var memLimitConfig = &entity.MemoryLimitCfg{}
+	if value == nil {
+		memLimitConfig.MemoryLimitEnabled = true
+		memLimitConfig.RouterMemoryLimit = 90
+		memLimitConfig.PsMemoryLimit = 90
+	} else if err := vjson.Unmarshal(value, memLimitConfig); err != nil {
+		log.Error("unmarshl memory limit config err: %s", err.Error())
+		return nil, err
+	}
+
+	return memLimitConfig, err
+}
+
 func parseRegisterData(response []byte) ([]byte, error) {
 	js := &struct {
 		Code      int             `json:"code"`

@@ -18,12 +18,15 @@ import (
 	"context"
 	"os"
 	"slices"
+	"sync/atomic"
 	"time"
 
 	"github.com/vearch/vearch/v3/internal/config"
+	"github.com/vearch/vearch/v3/internal/engine/sdk/go/gamma"
 	"github.com/vearch/vearch/v3/internal/entity"
+	"github.com/vearch/vearch/v3/internal/entity/request"
 	"github.com/vearch/vearch/v3/internal/pkg/log"
-	vearch_os "github.com/vearch/vearch/v3/internal/pkg/runtime/os"
+	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
 	"github.com/vearch/vearch/v3/internal/ps/psutil"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
@@ -139,7 +142,7 @@ func (s *Server) StartHeartbeatJob() {
 							if partitionStore != nil {
 								partition := partitionStore.GetPartition()
 								if partition != nil {
-									resourceExhausted, err = vearch_os.CheckResource(partition.Path)
+									resourceExhausted, err = entity.CheckResource(partition.Path, config.Conf().Global.ResourceLimitRate)
 									if err != nil {
 										log.Warn("CheckResource err: %s", err.Error())
 									}
@@ -244,4 +247,37 @@ func (s *Server) updateResolver(key, value any) bool {
 		s.raftResolver.UpdateNode(id, server.Replica())
 	}
 	return true
+}
+
+func (s *Server) StartKillSlowRequestJob() {
+	s.wg.Add(1)
+	memoryLimitHandler := &MemoryLimitHandler{server: s}
+	memoryLimitHandler.Execute(s.ctx, new(vearchpb.PartitionData), new(vearchpb.PartitionData))
+	go func() {
+		defer s.wg.Done()
+
+		const checkInterval = 5 * time.Second
+		ticker := time.NewTicker(checkInterval)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-ticker.C:
+				if entity.ConfigInfo.MemoryLimitConfig.MemoryLimitEnabled && entity.CheckVirtualMemExceed(0) {
+					if elem := request.Rqueue.ReqList.Front(); elem != nil {
+						requestStatus, _ := elem.Value.(*request.RequestStatus)
+						if atomic.CompareAndSwapInt32(&requestStatus.Status, request.Running_1, request.MemoryExceeded) {
+							requestStatus.CancelFunc()
+						} else if atomic.CompareAndSwapInt32(&requestStatus.Status, request.Running_2, request.MemoryExceeded) {
+							requestStatus.CancelFunc()
+							gamma.SetKillStatus([]byte(requestStatus.Req.MessageID), int(requestStatus.Req.PartitionID), int(request.MemoryExceeded))
+						}
+					}
+				}
+			case <-s.ctx.Done():
+				log.Info("server request monitor stopped")
+				return
+			}
+		}
+	}()
 }

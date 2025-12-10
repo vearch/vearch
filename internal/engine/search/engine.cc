@@ -261,12 +261,12 @@ Status Engine::Search(Request &request, Response &response_results) {
   int topn = request.TopN();
   if (topn <= 0) {
     std::string msg = "limit[topN] is zero";
-    for (int i = 0; i < req_num; ++i) {
-      SearchResult result;
-      result.msg = msg;
-      result.result_code = SearchResultCode::SEARCH_ERROR;
-      response_results.AddResults(std::move(result));
-    }
+    // for (int i = 0; i < req_num; ++i) {
+    //   SearchResult result;
+    //   result.msg = msg;
+    //   result.result_code = SearchResultCode::SEARCH_ERROR;
+    //   response_results.AddResults(std::move(result));
+    // }
     RequestConcurrentController::GetInstance().Release(req_num);
     return Status::InvalidArgument(msg);
   }
@@ -289,12 +289,12 @@ Status Engine::Search(Request &request, Response &response_results) {
         "brute_force_search is 0, max_docid_ = " + std::to_string(max_docid_) +
         ", threshold = " + std::to_string(brute_force_search_threshold);
     LOG(WARNING) << msg;
-    for (int i = 0; i < req_num; ++i) {
-      SearchResult result;
-      result.msg = msg;
-      result.result_code = SearchResultCode::INDEX_NOT_TRAINED;
-      response_results.AddResults(std::move(result));
-    }
+    // for (int i = 0; i < req_num; ++i) {
+    //   SearchResult result;
+    //   result.msg = msg;
+    //   result.result_code = SearchResultCode::INDEX_NOT_TRAINED;
+    //   response_results.AddResults(std::move(result));
+    // }
     RequestConcurrentController::GetInstance().Release(req_num);
     status = Status::IndexNotTrained();
     return status;
@@ -325,12 +325,12 @@ Status Engine::Search(Request &request, Response &response_results) {
     if (query.condition->ranker == nullptr) {
       std::string msg = "ranker error!";
       LOG(WARNING) << msg;
-      for (int i = 0; i < req_num; ++i) {
-        SearchResult result;
-        result.msg = msg;
-        result.result_code = SearchResultCode::SEARCH_ERROR;
-        response_results.AddResults(std::move(result));
-      }
+      // for (int i = 0; i < req_num; ++i) {
+      //   SearchResult result;
+      //   result.msg = msg;
+      //   result.result_code = SearchResultCode::SEARCH_ERROR;
+      //   response_results.AddResults(std::move(result));
+      // }
       RequestConcurrentController::GetInstance().Release(req_num);
       return Status::InvalidArgument();
     }
@@ -349,14 +349,18 @@ Status Engine::Search(Request &request, Response &response_results) {
   size_t range_filters_num = request.RangeFilters().size();
   size_t term_filters_num = request.TermFilters().size();
   if (range_filters_num > 0 || term_filters_num > 0) {
-    int num = MultiRangeQuery(request, query.condition, response_results,
+    int64_t num = MultiRangeQuery(request, query.condition, response_results,
                               &range_query_result);
     if (query.condition->GetPerfTool()) {
       query.condition->GetPerfTool()->Perf("filter result num " +
                                            std::to_string(num));
     }
-    if (num == 0) {
+    if (num == int64_t(ResultStatus::ZERO) || num == int64_t(ResultStatus::INTERNAL_ERR)) {
       RequestConcurrentController::GetInstance().Release(req_num);
+      return status;
+    } else if (num == int64_t(ResultStatus::KILLED)) {
+      RequestConcurrentController::GetInstance().Release(req_num);
+      status = Status::MemoryExceeded();
       return status;
     }
   }
@@ -374,12 +378,12 @@ Status Engine::Search(Request &request, Response &response_results) {
     if (!status.ok()) {
       std::string msg =
           space_name_ + " search error [" + status.ToString() + "]";
-      for (int i = 0; i < req_num; ++i) {
-        SearchResult result;
-        result.msg = msg;
-        result.result_code = SearchResultCode::SEARCH_ERROR;
-        response_results.AddResults(std::move(result));
-      }
+      // for (int i = 0; i < req_num; ++i) {
+      //   SearchResult result;
+      //   result.msg = msg;
+      //   result.result_code = SearchResultCode::SEARCH_ERROR;
+      //   response_results.AddResults(std::move(result));
+      // }
       RequestConcurrentController::GetInstance().Release(req_num);
       delete[] gamma_results;
       return status;
@@ -405,6 +409,10 @@ Status Engine::Query(QueryRequest &request, Response &response_results) {
     gamma_result->init(document_ids.size(), nullptr, 0);
 
     for (size_t i = 0; i < document_ids.size(); i++) {
+      if (RequestContext::is_killed()) {
+        status = Status::MemoryExceeded();
+        break;
+      }
       int64_t docid = -1;
       int ret = 0;
       if (request.PartitionId() > 0) {
@@ -476,13 +484,16 @@ Status Engine::Query(QueryRequest &request, Response &response_results) {
         static_cast<FilterOperator>(request.FilterOperator()), filters, docids,
         (size_t)topn, (size_t)request.Offset());
 
-    if (num <= 0) {
+    if (num == int64_t(ResultStatus::ZERO) || num == int64_t(ResultStatus::INTERNAL_ERR)) {
       std::string msg =
           space_name_ + " no result: numeric filter return 0 result";
       SearchResult result;
       result.msg = msg;
       result.result_code = SearchResultCode::SUCCESS;
       response_results.AddResults(std::move(result));
+      return status;
+    } else if (num == int64_t(ResultStatus::KILLED)) {
+      status = Status::MemoryExceeded();
       return status;
     }
   }
@@ -491,6 +502,11 @@ Status Engine::Query(QueryRequest &request, Response &response_results) {
   gamma_result->init(topn, nullptr, 0);
 
   for (int64_t docid : docids) {
+    if (RequestContext::is_killed()) {
+      status = Status::MemoryExceeded();
+      break;
+    }
+
     if (docids_bitmap_->Test(docid)) {
       continue;
     }
@@ -505,7 +521,7 @@ Status Engine::Query(QueryRequest &request, Response &response_results) {
   return status;
 }
 
-int Engine::MultiRangeQuery(Request &request, SearchCondition *condition,
+int64_t Engine::MultiRangeQuery(Request &request, SearchCondition *condition,
                             Response &response_results,
                             MultiRangeQueryResults *range_query_result) {
   std::vector<FilterInfo> filters;
@@ -541,7 +557,7 @@ int Engine::MultiRangeQuery(Request &request, SearchCondition *condition,
     ++idx;
   }
 
-  int num = field_range_index_->Search(
+  int64_t num = field_range_index_->Search(
       static_cast<FilterOperator>(request.FilterOperator()), filters,
       range_query_result);
 

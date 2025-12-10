@@ -17,10 +17,12 @@ package entity
 import (
 	"fmt"
 	"sync"
+	"syscall"
 
 	"github.com/cubefs/cubefs/depends/tiglabs/raft"
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/v3/internal/pkg/log"
+	vearch_os "github.com/vearch/vearch/v3/internal/pkg/runtime/os"
 	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
 )
 
@@ -269,6 +271,46 @@ func (pr *PartitionRule) RangeIsSame(ranges []Range) (bool, error) {
 		if _, valueExists := valueMap[r.Value]; valueExists {
 			return true, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("space partition rule range value %s has same one, space ranges %v, add ranges %v", r.Value, pr.Ranges, ranges))
 		}
+	}
+	return false, nil
+}
+
+func CheckResource(path string, resourceLimitRate float64) (is bool, err error) {
+	var stat syscall.Statfs_t
+	err = syscall.Statfs(path, &stat)
+	if err != nil {
+		log.Error("syscall.Statfs %s err %v", path, err)
+		return false, nil
+	}
+
+	totalDisk := stat.Blocks * uint64(stat.Bsize) / 1024 / 1024
+	availDisk := stat.Bavail * uint64(stat.Bsize) / 1024 / 1024
+
+	if float64(availDisk)/float64(totalDisk) <= (1 - resourceLimitRate) {
+		log.Debug("path: %s, availDisk %dM, totalDisk %dM", path, availDisk, totalDisk)
+		return true, vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_RESOURCE_EXHAUSTED, fmt.Errorf("disk space not enough: total [%d]M, avail [%d]M", totalDisk, availDisk))
+	}
+
+	availableMemory, totalMemory, err := vearch_os.ReadProcMemory()
+	if err != nil {
+		// print error, continue check memory usage from cgroup
+		log.Error(err.Error())
+	}
+	availableMemory = availableMemory / 1024 / 1024
+	totalMemory = totalMemory / 1024 / 1024
+
+	cgroupAvailableMemory, cgroupTotalMemory, err := vearch_os.ReadCgroupMemory()
+	if err == nil {
+		// check memory usage with available cgroup memory limit, else continue with proc memory
+		if cgroupTotalMemory < totalMemory {
+			totalMemory = cgroupTotalMemory
+			availableMemory = cgroupAvailableMemory
+		}
+	}
+
+	if float64(availableMemory)/float64(totalMemory) <= (1 - resourceLimitRate) {
+		log.Debug("total memory %dM, available memory %dM, cgroup total memory %dM, cgroup available memory %dM", totalMemory, availableMemory, cgroupTotalMemory, cgroupAvailableMemory)
+		return true, vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_RESOURCE_EXHAUSTED, fmt.Errorf("available memory not enough: total [%d]M, avail [%d]M", totalMemory, availableMemory))
 	}
 	return false, nil
 }

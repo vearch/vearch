@@ -33,6 +33,7 @@ import (
 	"github.com/vearch/vearch/v3/internal/config"
 	"github.com/vearch/vearch/v3/internal/engine/sdk/go/gamma"
 	"github.com/vearch/vearch/v3/internal/entity"
+	"github.com/vearch/vearch/v3/internal/entity/request"
 	"github.com/vearch/vearch/v3/internal/pkg/log"
 	"github.com/vearch/vearch/v3/internal/pkg/server/rpc/handler"
 	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
@@ -126,6 +127,25 @@ func (handler *UnaryHandler) Execute(ctx context.Context, req *vearchpb.Partitio
 	defer cancel()
 	doneCh := make(chan struct{})
 
+	requestStatus := &request.RequestStatus{Req: req, Status: request.Running_1, CancelFunc: cancel}
+	requestId := request.RequestId{MessageId: req.MessageID, PartitionId: req.PartitionID}
+	if method == client.SearchHandler || method == client.QueryHandler {
+		request.Rqueue.Mutex.Lock()
+		elem := request.Rqueue.ReqList.PushBack(requestStatus)
+		request.Rqueue.ReqMap[requestId] = elem
+		request.Rqueue.Mutex.Unlock()
+	}
+	defer func() {
+		if method == client.SearchHandler || method == client.QueryHandler {
+			request.Rqueue.Mutex.Lock()
+			if elem := request.Rqueue.ReqMap[requestId]; elem != nil {
+				delete(request.Rqueue.ReqMap, requestId)
+				request.Rqueue.ReqList.Remove(elem)
+			}
+			request.Rqueue.Mutex.Unlock()
+		}
+	}()
+
 	go func(ctx context.Context, req *vearchpb.PartitionData) {
 		handler.execute(ctx, req)
 		close(doneCh)
@@ -164,73 +184,81 @@ func (handler *UnaryHandler) execute(ctx context.Context, req *vearchpb.Partitio
 		}
 	}()
 
-	handler.server.concurrent <- true
-	defer func() {
-		<-handler.server.concurrent
-	}()
 	select {
+	case handler.server.concurrent <- true:
+		defer func() {
+			<-handler.server.concurrent
+		}()
 	case <-ctx.Done():
-		// if this context is timeout, return immediately
-		msg := fmt.Sprintf("request for partition: %d time out, the server can only deal [%d] request at same time.", req.PartitionID, handler.server.concurrentNum)
-		log.Error(msg)
-		req.Err = vearchpb.NewError(vearchpb.ErrorEnum_TIMEOUT, nil).GetError()
-		return
-	default:
-		if handler.server == nil {
-			log.Info("%s", "ps server is nil")
-		}
-		store := handler.server.GetPartition(req.PartitionID)
-		if store == nil {
-			msg := fmt.Sprintf("partition not found, partitionId:[%d], nodeID:[%d], node ip:[%s]", req.PartitionID, handler.server.nodeID, handler.server.ip)
+		if ctx.Err() == context.DeadlineExceeded {
+			// if this context is timeout, return immediately
+			msg := fmt.Sprintf("request for partition: %d time out, the server can only deal [%d] request at same time.", req.PartitionID, handler.server.concurrentNum)
 			log.Error(msg)
-			req.Err = vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_NOT_EXIST, errors.New(msg)).GetError()
+			req.Err = vearchpb.NewError(vearchpb.ErrorEnum_TIMEOUT, nil).GetError()
+			return
+		} else {
+			msg := fmt.Sprintf("request for partition: %d have been canceled", req.PartitionID)
+			log.Error(msg)
+			req.Err = vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_SERVER_MEMORYEXCEED, nil).GetError()
 			return
 		}
-		var method string
-		reqMap := ctx.Value(share.ReqMetaDataKey).(map[string]string)
-		method, ok := reqMap[client.HandlerType]
-		if !ok {
-			err := fmt.Errorf("client type not support, key [%s]", client.HandlerType)
-			req.Err = vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err).GetError()
-			return
+	}
+
+	if handler.server == nil {
+		log.Info("%s", "ps server is nil")
+	}
+	store := handler.server.GetPartition(req.PartitionID)
+	if store == nil {
+		msg := fmt.Sprintf("partition not found, partitionId:[%d], nodeID:[%d], node ip:[%s]", req.PartitionID, handler.server.nodeID, handler.server.ip)
+		log.Error(msg)
+		req.Err = vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_NOT_EXIST, errors.New(msg)).GetError()
+		return
+	}
+
+	var method string
+	reqMap := ctx.Value(share.ReqMetaDataKey).(map[string]string)
+	method, ok := reqMap[client.HandlerType]
+	if !ok {
+		err := fmt.Errorf("client type not support, key [%s]", client.HandlerType)
+		req.Err = vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err).GetError()
+		return
+	}
+	switch method {
+	case client.GetDocsHandler:
+		getDocuments(ctx, store, req.Items, false, false)
+	case client.GetDocsByPartitionHandler:
+		getDocuments(ctx, store, req.Items, true, false)
+	case client.GetNextDocsByPartitionHandler:
+		getDocuments(ctx, store, req.Items, true, true)
+	case client.DeleteDocsHandler:
+		deleteDocs(ctx, store, req.Items)
+	case client.BatchHandler:
+		bulk(ctx, store, req.Items)
+	case client.SearchHandler:
+		if req.SearchResponse == nil {
+			req.SearchResponse = &vearchpb.SearchResponse{}
 		}
-		switch method {
-		case client.GetDocsHandler:
-			getDocuments(ctx, store, req.Items, false, false)
-		case client.GetDocsByPartitionHandler:
-			getDocuments(ctx, store, req.Items, true, false)
-		case client.GetNextDocsByPartitionHandler:
-			getDocuments(ctx, store, req.Items, true, true)
-		case client.DeleteDocsHandler:
-			deleteDocs(ctx, store, req.Items)
-		case client.BatchHandler:
-			bulk(ctx, store, req.Items)
-		case client.SearchHandler:
-			if req.SearchResponse == nil {
-				req.SearchResponse = &vearchpb.SearchResponse{}
-			}
-			search(ctx, store, req.SearchRequest, req.SearchResponse)
-		case client.QueryHandler:
-			if req.SearchResponse == nil {
-				req.SearchResponse = &vearchpb.SearchResponse{}
-			}
-			query(ctx, store, req.QueryRequest, req.SearchResponse)
-		case client.ForceMergeHandler:
-			req.Err = forceMerge(store)
-		case client.RebuildIndexHandler:
-			req.Err = rebuildIndex(store, req.IndexRequest)
-		case client.DeleteByQueryHandler:
-			if req.DelByQueryResponse == nil {
-				req.DelByQueryResponse = &vearchpb.DelByQueryeResponse{DelNum: 0}
-			}
-			deleteByQuery(ctx, store, req.QueryRequest, req.DelByQueryResponse)
-		case client.FlushHandler:
-			req.Err = flush(ctx, store)
-		default:
-			log.Error("method not found, method: [%s]", method)
-			req.Err = vearchpb.NewError(vearchpb.ErrorEnum_METHOD_NOT_IMPLEMENT, nil).GetError()
-			return
+		search(ctx, store, req.SearchRequest, req.SearchResponse)
+	case client.QueryHandler:
+		if req.SearchResponse == nil {
+			req.SearchResponse = &vearchpb.SearchResponse{}
 		}
+		query(ctx, store, req.QueryRequest, req.SearchResponse)
+	case client.ForceMergeHandler:
+		req.Err = forceMerge(store)
+	case client.RebuildIndexHandler:
+		req.Err = rebuildIndex(store, req.IndexRequest)
+	case client.DeleteByQueryHandler:
+		if req.DelByQueryResponse == nil {
+			req.DelByQueryResponse = &vearchpb.DelByQueryeResponse{DelNum: 0}
+		}
+		deleteByQuery(ctx, store, req.QueryRequest, req.DelByQueryResponse)
+	case client.FlushHandler:
+		req.Err = flush(ctx, store)
+	default:
+		log.Error("method not found, method: [%s]", method)
+		req.Err = vearchpb.NewError(vearchpb.ErrorEnum_METHOD_NOT_IMPLEMENT, nil).GetError()
+		return
 	}
 }
 
@@ -274,29 +302,49 @@ func deleteDocs(ctx context.Context, store PartitionStore, items []*vearchpb.Ite
 	wg.Wait()
 }
 
-func bulk(ctx context.Context, store PartitionStore, items []*vearchpb.Item) {
-	wg := sync.WaitGroup{}
-	docBytes := make([][]byte, len(items))
-	for i, item := range items {
-		wg.Add(1)
-		go func(item *vearchpb.Item, n int) {
-			defer wg.Done()
-			defer func() {
-				if r := recover(); r != nil {
-					item.Err = &vearchpb.Error{Code: vearchpb.ErrorEnum_INTERNAL_ERROR, Msg: cast.ToString(r)}
-				}
-			}()
-			docGamma := &gamma.Doc{Fields: item.Doc.Fields}
-			docBytes[n] = docGamma.Serialize()
-			item.Doc.Fields = nil
-			item.Err = vearchpb.NewError(vearchpb.ErrorEnum_SUCCESS, nil).GetError()
-		}(item, i)
+func estimatedDocSize(item *vearchpb.Item) int {
+	estimatedSize := 0
+	for _, field := range item.Doc.Fields {
+		size := len(field.Name) + len(field.Value) + 2
+		estimatedSize += (size + 3) &^ 3
 	}
-	wg.Wait()
-	docCmd := &vearchpb.DocCmd{Type: vearchpb.OpType_BULK, Docs: docBytes}
+	estimatedSize += 28*len(item.Doc.Fields) + 12 //flatbuffer stores fields offset, vtable offset,...
 
-	err := store.Write(ctx, docCmd)
-	vErr := vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err)
+	return estimatedSize
+}
+
+func bulk(ctx context.Context, store PartitionStore, items []*vearchpb.Item) {
+	var err error
+	var vErr *vearchpb.VearchErr
+	estimatedSize := estimatedDocSize(items[0])
+	if entity.CheckVirtualMemExceed(estimatedSize*len(items) + 24*len(items)) {
+		err = fmt.Errorf("canceled by memory circuit breaker")
+		vErr = vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, nil)
+	} else {
+		wg := sync.WaitGroup{}
+		docBytes := make([][]byte, len(items))
+		for i, item := range items {
+			wg.Add(1)
+			go func(item *vearchpb.Item, n int) {
+				defer wg.Done()
+				defer func() {
+					if r := recover(); r != nil {
+						item.Err = &vearchpb.Error{Code: vearchpb.ErrorEnum_INTERNAL_ERROR, Msg: cast.ToString(r)}
+					}
+				}()
+				docGamma := &gamma.Doc{Fields: item.Doc.Fields}
+				docBytes[n] = docGamma.Serialize()
+				item.Doc.Fields = nil
+				item.Err = vearchpb.NewError(vearchpb.ErrorEnum_SUCCESS, nil).GetError()
+			}(item, i)
+		}
+		wg.Wait()
+		docCmd := &vearchpb.DocCmd{Type: vearchpb.OpType_BULK, Docs: docBytes}
+
+		err = store.Write(ctx, docCmd)
+		vErr = vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err)
+	}
+
 	if vErr.GetError().Code != vearchpb.ErrorEnum_SUCCESS {
 		log.Error("Add doc failed, err: [%s]", err.Error())
 		for _, item := range items {
@@ -371,7 +419,10 @@ func search(ctx context.Context, store PartitionStore, request *vearchpb.SearchR
 
 	startTime := time.Now()
 	if err := store.Search(ctx, request, response); err != nil {
-		log.Error("search doc failed, err: [%s]", err.Error())
+		log.Error("search doc for partition %v failed, err: [%s]", store.GetEngine().GetPartitionID(), err.Error())
+		if response.Head == nil {
+			response.Head = &vearchpb.ResponseHead{}
+		}
 		response.Head.Err = vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err).GetError()
 		return
 	}

@@ -17,9 +17,13 @@ package gamma
 import "C"
 import (
 	"fmt"
+	"sync/atomic"
 	"unsafe"
 
+	"github.com/vearch/vearch/v3/internal/engine/idl/fbs-gen/go/gamma_api"
 	"github.com/vearch/vearch/v3/internal/entity"
+	"github.com/vearch/vearch/v3/internal/entity/request"
+	"github.com/vearch/vearch/v3/internal/pkg/log"
 	"github.com/vearch/vearch/v3/internal/pkg/vjson"
 )
 
@@ -153,44 +157,88 @@ func Load(engine unsafe.Pointer) int {
 	return int(C.Load(engine))
 }
 
-func Search(engine unsafe.Pointer, reqByte []byte) ([]byte, *Status) {
+func Search(engine unsafe.Pointer, reqByte []byte, message_id string, partition_id entity.PartitionID) ([]byte, *Status) {
 	var CBuffer *C.char
+	var respByte []byte
+	var status *Status
+	var requestStatus *request.RequestStatus
 	zero := 0
 	length := &zero
 
-	cstatus := C.Search(engine,
-		(*C.char)(unsafe.Pointer(&reqByte[0])), C.int(len(reqByte)),
-		(**C.char)(unsafe.Pointer(&CBuffer)),
-		(*C.int)(unsafe.Pointer(length)))
-	defer C.free(unsafe.Pointer(CBuffer))
-	respByte := C.GoBytes(unsafe.Pointer(CBuffer), C.int(*length))
-	status := &Status{
-		Code: int32(cstatus.code),
-		Msg:  C.GoString(cstatus.msg),
+	requestId := request.RequestId{MessageId: message_id, PartitionId: partition_id}
+	request.Rqueue.Mutex.RLock()
+	elem := request.Rqueue.ReqMap[requestId]
+	request.Rqueue.Mutex.RUnlock()
+
+	requestStatus = elem.Value.(*request.RequestStatus)
+	messageId := []byte(message_id)
+	if requestStatus == nil || atomic.CompareAndSwapInt32(&requestStatus.Status, request.Running_1, request.Running_2) {
+		cstatus := C.Search(engine,
+			(*C.char)(unsafe.Pointer(&reqByte[0])), C.int(len(reqByte)),
+			(**C.char)(unsafe.Pointer(&CBuffer)),
+			(*C.int)(unsafe.Pointer(length)))
+		defer C.free(unsafe.Pointer(CBuffer))
+		respByte = C.GoBytes(unsafe.Pointer(CBuffer), C.int(*length))
+		status = &Status{
+			Code: int32(cstatus.code),
+			Msg:  C.GoString(cstatus.msg),
+		}
+		if status.Code != 0 {
+			C.free(unsafe.Pointer(cstatus.msg))
+		}
+		atomic.CompareAndSwapInt32(&requestStatus.Status, request.Running_2, request.Running_1)
+		DeleteKillStatus(messageId, int(partition_id))
+	} else {
+		log.Debug("request cancel before search in engine")
+		status = &Status{
+			Code: int32(gamma_api.CodekMemoryExceeded),
+			Msg:  "request canceled",
+		}
 	}
-	if status.Code != 0 {
-		C.free(unsafe.Pointer(cstatus.msg))
-	}
+
 	return respByte, status
 }
 
-func Query(engine unsafe.Pointer, reqByte []byte) ([]byte, *Status) {
+func Query(engine unsafe.Pointer, reqByte []byte, message_id string, partition_id entity.PartitionID) ([]byte, *Status) {
 	var CBuffer *C.char
+	var respByte []byte
+	var status *Status
+	var requestStatus *request.RequestStatus
 	zero := 0
 	length := &zero
 
-	cstatus := C.Query(engine,
-		(*C.char)(unsafe.Pointer(&reqByte[0])), C.int(len(reqByte)),
-		(**C.char)(unsafe.Pointer(&CBuffer)),
-		(*C.int)(unsafe.Pointer(length)))
-	defer C.free(unsafe.Pointer(CBuffer))
-	respByte := C.GoBytes(unsafe.Pointer(CBuffer), C.int(*length))
-	status := &Status{
-		Code: int32(cstatus.code),
-		Msg:  C.GoString(cstatus.msg),
+	requestId := request.RequestId{MessageId: message_id, PartitionId: partition_id}
+	request.Rqueue.Mutex.RLock()
+	if elem := request.Rqueue.ReqMap[requestId]; elem != nil {
+		requestStatus = elem.Value.(*request.RequestStatus)
 	}
-	if status.Code != 0 {
-		C.free(unsafe.Pointer(cstatus.msg))
+	request.Rqueue.Mutex.RUnlock()
+
+	messageId := []byte(message_id)
+	if requestStatus == nil || atomic.CompareAndSwapInt32(&requestStatus.Status, request.Running_1, request.Running_2) {
+		cstatus := C.Query(engine,
+			(*C.char)(unsafe.Pointer(&reqByte[0])), C.int(len(reqByte)),
+			(**C.char)(unsafe.Pointer(&CBuffer)),
+			(*C.int)(unsafe.Pointer(length)))
+		defer C.free(unsafe.Pointer(CBuffer))
+
+		respByte = C.GoBytes(unsafe.Pointer(CBuffer), C.int(*length))
+		status = &Status{
+			Code: int32(cstatus.code),
+			Msg:  C.GoString(cstatus.msg),
+		}
+		if status.Code != 0 {
+			C.free(unsafe.Pointer(cstatus.msg))
+		}
+		if requestStatus != nil {
+			atomic.CompareAndSwapInt32(&requestStatus.Status, request.Running_2, request.Running_1)
+			DeleteKillStatus(messageId, int(partition_id))
+		}
+	} else {
+		status = &Status{
+			Code: int32(gamma_api.CodekMemoryExceeded),
+			Msg:  "request canceled",
+		}
 	}
 	return respByte, status
 }
@@ -274,4 +322,16 @@ func RemoveFieldIndex(engine unsafe.Pointer, fieldName string) *Status {
 		C.free(unsafe.Pointer(cstatus.msg))
 	}
 	return status
+}
+
+func SetMemoryLimitConfig(memory_limit int) {
+	C.SetMemoryLimitConfig(C.int(memory_limit))
+}
+
+func SetKillStatus(request_id []byte, partition_id int, reason int) {
+	C.SetKillStatus((*C.char)(unsafe.Pointer(&request_id[0])), C.int(partition_id), C.int(reason))
+}
+
+func DeleteKillStatus(request_id []byte, partition_id int) {
+	C.DeleteKillStatus((*C.char)(unsafe.Pointer(&request_id[0])), C.int(partition_id))
 }

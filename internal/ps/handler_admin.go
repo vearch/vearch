@@ -23,6 +23,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/cubefs/cubefs/depends/tiglabs/raft"
@@ -33,10 +34,11 @@ import (
 
 	"github.com/vearch/vearch/v3/internal/client"
 	"github.com/vearch/vearch/v3/internal/config"
+	"github.com/vearch/vearch/v3/internal/engine/sdk/go/gamma"
 	"github.com/vearch/vearch/v3/internal/entity"
+	"github.com/vearch/vearch/v3/internal/entity/request"
 	"github.com/vearch/vearch/v3/internal/pkg/log"
 	"github.com/vearch/vearch/v3/internal/pkg/metrics/mserver"
-	vearch_os "github.com/vearch/vearch/v3/internal/pkg/runtime/os"
 	"github.com/vearch/vearch/v3/internal/pkg/server/rpc/handler"
 	json "github.com/vearch/vearch/v3/internal/pkg/vjson"
 	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
@@ -71,6 +73,8 @@ func ExportToRpcAdminHandler(server *Server) {
 		{client.EngineCfgHandler, &EngineCfgHandler{server: server}, false},
 		{client.BackupHandler, &BackupHandler{server: server}, false},
 		{client.ResourceLimitHandler, &ResourceLimitHandler{server: server}, false},
+		{client.MemoryLimitHandler, &MemoryLimitHandler{server: server}, false},
+		{client.RequestCancelHandler, &RequestCancelHandler{server: server}, false},
 	}
 
 	for _, h := range handlers {
@@ -1005,7 +1009,7 @@ func (rlh *ResourceLimitHandler) Execute(ctx context.Context, req *vearchpb.Part
 	if resourceLimit.ResourceExhausted != nil {
 		partitonStore.GetPartition().ResourceExhausted = *resourceLimit.ResourceExhausted
 	} else {
-		if resource_exhausted, err := vearch_os.CheckResource(partitonStore.GetPartition().Path); err != nil {
+		if resource_exhausted, err := entity.CheckResource(partitonStore.GetPartition().Path, config.Conf().Global.ResourceLimitRate); err != nil {
 			return err
 		} else {
 			partitonStore.GetPartition().ResourceExhausted = resource_exhausted
@@ -1013,4 +1017,66 @@ func (rlh *ResourceLimitHandler) Execute(ctx context.Context, req *vearchpb.Part
 	}
 	log.Debug("partition %d set ResourceExhausted as %v", req.PartitionID, partitonStore.GetPartition().ResourceExhausted)
 	return nil
+}
+
+type MemoryLimitHandler struct {
+	server *Server
+}
+
+func (mlh *MemoryLimitHandler) Execute(ctx context.Context, req *vearchpb.PartitionData, reply *vearchpb.PartitionData) (err error) {
+	reply.Err = &vearchpb.Error{Code: vearchpb.ErrorEnum_SUCCESS}
+	var memLimitConfig *entity.MemoryLimitCfg
+
+	if req.Data == nil {
+		memLimitConfig, err = mlh.server.client.Master().QueryMemoryLimitConfig(ctx)
+		if err != nil {
+			log.Debug("get memory limit config error")
+			return err
+		}
+	} else {
+		memLimitConfig = new(entity.MemoryLimitCfg)
+		if err = json.Unmarshal(req.Data, memLimitConfig); err != nil {
+			return err
+		}
+	}
+
+	entity.SetMemoryLimit(memLimitConfig, false)
+	if memLimitConfig.MemoryLimitEnabled {
+		gamma.SetMemoryLimitConfig(memLimitConfig.PsMemoryLimit)
+	} else {
+		gamma.SetMemoryLimitConfig(0)
+	}
+	log.Debug("partition server set MemoryLimit config %v", memLimitConfig)
+
+	return err
+}
+
+type RequestCancelHandler struct {
+	server *Server
+}
+
+func (qch *RequestCancelHandler) Execute(ctx context.Context, req *vearchpb.PartitionData, reply *vearchpb.PartitionData) (err error) {
+	reply.Err = &vearchpb.Error{Code: vearchpb.ErrorEnum_SUCCESS}
+	var rStatus *request.RequestStatus
+
+	messageID := req.MessageID
+	requestId := request.RequestId{MessageId: messageID, PartitionId: req.PartitionID}
+
+	log.Debug("receive query cancel command, request_id: %v, partition_id: %d", messageID, req.PartitionID)
+
+	request.Rqueue.Mutex.RLock()
+	if elem := request.Rqueue.ReqMap[requestId]; elem != nil {
+		rStatus, _ = elem.Value.(*request.RequestStatus)
+	}
+	request.Rqueue.Mutex.RUnlock()
+
+	if atomic.CompareAndSwapInt32(&rStatus.Status, request.Running_1, request.MemoryExceeded) {
+		rStatus.CancelFunc()
+		return nil
+	} else if atomic.CompareAndSwapInt32(&rStatus.Status, request.Running_2, request.MemoryExceeded) {
+		rStatus.CancelFunc()
+		gamma.SetKillStatus([]byte(messageID), int(req.PartitionID), int(request.MemoryExceeded))
+	}
+
+	return err
 }

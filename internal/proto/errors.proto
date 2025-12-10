@@ -15,6 +15,7 @@ enum ErrorEnum {
   TIMEOUT = 5;
   PARAM_ERROR = 6;
   CONFIG_ERROR = 7;
+  CANCELED = 8;
 
   // cluster 100-199
   // master 100-119
@@ -23,6 +24,7 @@ enum ErrorEnum {
   // router 120-139
   ROUTER_NO_PS_CLIENT = 120;
   ROUTER_CALL_PS_RPC_ERR = 121;
+  ROUTER_MEMORY_EXCEEDED = 122;
 
   // partition server 140-159
   PARTITION_EXIST = 140;
@@ -36,6 +38,7 @@ enum ErrorEnum {
   // server 160-179
   PARTITION_SERVER_NOT_EXIST = 160;
   PARTITION_SERVER_ERROR = 161;
+  PARTITION_SERVER_MEMORYEXCEED = 162;
 
   // user 180-190
   USER_NOT_EXIST = 180;

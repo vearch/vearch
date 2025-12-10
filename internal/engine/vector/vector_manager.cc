@@ -629,6 +629,9 @@ int ParseSearchResult(int n, int k, VectorResult &result, IndexModel *index) {
     int pos = 0;
     std::map<int, int> docid2count;
     for (int j = 0; j < k; j++) {
+      if (RequestContext::is_killed()) {
+        return -2;
+      }
       int64_t *docid = result.docids + i * k + j;
       if (docid[0] == -1) continue;
       int vector_id = (int)docid[0];
@@ -661,6 +664,12 @@ Status VectorManager::Search(GammaQuery &query, GammaResult *results) {
   query.condition->sort_by_docid = vec_num > 1 ? true : false;
   std::string vec_names[vec_num];
   for (size_t i = 0; i < vec_num; i++) {
+    if (RequestContext::is_killed()) {
+      std::string err = "Search request killed due to memory limit exceed";
+      LOG(ERROR) << err;
+      return Status::MemoryExceeded(err);
+    }
+
     struct VectorQuery &vec_query = query.vec_query[i];
 
     std::string &name = vec_query.name;
@@ -726,14 +735,23 @@ Status VectorManager::Search(GammaQuery &query, GammaResult *results) {
                                 all_vector_results[i].dists,
                                 all_vector_results[i].docids);
 
-    if (ret_vec != 0) {
+    if (ret_vec == -1) {
       std::string err = desc_ + "faild search of query " + index_name;
       LOG(ERROR) << err;
       pthread_rwlock_unlock(&index_rwmutex_);
       return Status::InvalidArgument(err);
+    } else if (ret_vec == -2) {
+      pthread_rwlock_unlock(&index_rwmutex_);
+      return Status::MemoryExceeded();
     }
+
     if (query.condition->sort_by_docid) {
-      ParseSearchResult(n, query.condition->topn, all_vector_results[i], index);
+      int ret = ParseSearchResult(n, query.condition->topn, all_vector_results[i], index);
+      if (ret == -2) {
+        std::string err = "Search Request canceled";
+        pthread_rwlock_unlock(&index_rwmutex_);
+        return Status::MemoryExceeded(err);
+      }
       all_vector_results[i].sort_by_docid();
     }
     pthread_rwlock_unlock(&index_rwmutex_);
@@ -756,6 +774,9 @@ Status VectorManager::Search(GammaQuery &query, GammaResult *results) {
 
       while (start_docid < INT_MAX) {
         for (size_t j = 0; j < vec_num; j++) {
+          if (RequestContext::is_killed()) {
+            return Status::MemoryExceeded();
+          }
           float vec_dist = 0;
           int cur_docid = all_vector_results[j].seek(i, start_docid, vec_dist);
           if (cur_docid == start_docid) {
@@ -816,6 +837,9 @@ Status VectorManager::Search(GammaQuery &query, GammaResult *results) {
                              : results[i].total;
       int pos = 0, topn = all_vector_results[0].topn; // topn includes offset
       for (int j = query.condition->offset; j < topn; j++) {
+        if (RequestContext::is_killed()) {
+          return Status::MemoryExceeded();
+        }
         int real_pos = i * topn + j;
         if (all_vector_results[0].docids[real_pos] == -1) continue;
         results[i].docs[pos]->docid = all_vector_results[0].docids[real_pos];

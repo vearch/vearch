@@ -295,6 +295,10 @@ func ExportToClusterHandler(router *gin.Engine, masterService *masterService, se
 	groupAuth.POST("/config/request_limit", c.modifyRequestLimitCfg)
 	groupAuth.GET("/config/request_limit", c.getRequestLimitCfg)
 
+	//modify and get memory limit config handler
+	groupAuth.POST("/config/memory_limit", c.modifyMemoryLimitCfg)
+	groupAuth.GET("/config/memory_limit", c.getMemoryLimitCfg)
+
 	// partition handler
 	groupAuth.GET("/partitions", c.partitionList)
 	groupAuth.POST("/partitions/change_member", c.changeMember)
@@ -1316,7 +1320,7 @@ func (ca *clusterAPI) getRequestLimitCfg(c *gin.Context) {
 
 // modify engine config
 func (ca *clusterAPI) modifyRequestLimitCfg(c *gin.Context) {
-	rlc := &entity.RouterLimitCfg{}
+	rlc := &entity.RequestLimitCfg{}
 
 	if err := c.ShouldBindJSON(rlc); err != nil {
 		response.New(c).JsonError(errors.NewErrBadRequest(err))
@@ -1327,5 +1331,30 @@ func (ca *clusterAPI) modifyRequestLimitCfg(c *gin.Context) {
 		response.New(c).JsonError(errors.NewErrInternal(err))
 	} else {
 		response.New(c).JsonSuccess(rlc)
+	}
+}
+
+// get memory limite config
+func (ca *clusterAPI) getMemoryLimitCfg(c *gin.Context) {
+	if memory_limit, err := ca.masterService.Config().GetMemoryLimitCfg(c); err != nil {
+		response.New(c).JsonError(errors.NewErrInternal(err))
+	} else {
+		response.New(c).JsonSuccess(memory_limit)
+	}
+}
+
+// modify memory limit config
+func (ca *clusterAPI) modifyMemoryLimitCfg(c *gin.Context) {
+	mlc := &entity.MemoryLimitCfg{}
+
+	if err := c.ShouldBindJSON(mlc); err != nil {
+		response.New(c).JsonError(errors.NewErrBadRequest(err))
+		return
+	}
+
+	if err := ca.masterService.Config().ModifyMemoryLimitCfg(c, mlc); err != nil {
+		response.New(c).JsonError(errors.NewErrInternal(err))
+	} else {
+		response.New(c).JsonSuccess(mlc)
 	}
 }

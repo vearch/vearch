@@ -16,6 +16,22 @@
 
 package os
 
-func CheckResource(path string) (is bool, err error) {
-	return false, nil
+func ReadCgroupMemory() (available, limit uint64, err error) {
+	return 0, 0, nil
+}
+
+func ReadCgroupTotalMemory() (limit int64, err error) {
+	return -1, nil
+}
+
+func ReadProcMemory() (available, total uint64, err error) {
+	return 0, 0, nil
+}
+
+func GetSystemMemory() (total uint64, err error) {
+	return 0, nil
+}
+
+func GetMemoryUsage() (memoryUsage uint64, err error) {
+	return 0, nil
 }

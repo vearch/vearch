@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "c_api/api_data/doc.h"
+#include "c_api/api_data/request_context.h"
 #include "index/index_model.h"
 #include "io/io_common.h"
 #include "storage/storage_manager.h"

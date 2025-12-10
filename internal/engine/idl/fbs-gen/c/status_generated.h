@@ -18,10 +18,12 @@ enum Code {
   kIOError = 5,
   kBusy = 6,
   kTimedOut = 7,
-  kMaxCode = 8
+  kMemoryExceeded = 8,
+  kCanceled = 9,
+  kMaxCode = 10
 };
 
-inline const Code (&EnumValuesCode())[9] {
+inline const Code (&EnumValuesCode())[11] {
   static const Code values[] = {
     kOk,
     kNotFound,
@@ -31,6 +33,8 @@ inline const Code (&EnumValuesCode())[9] {
     kIOError,
     kBusy,
     kTimedOut,
+    kMemoryExceeded,
+    kCanceled,
     kMaxCode
   };
   return values;
@@ -46,6 +50,8 @@ inline const char * const *EnumNamesCode() {
     "kIOError",
     "kBusy",
     "kTimedOut",
+    "kMemoryExceeded",
+    "kCanceled",
     "kMaxCode",
     nullptr
   };

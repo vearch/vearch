@@ -36,6 +36,7 @@ import (
 	"github.com/vearch/vearch/v3/internal/pkg/log"
 	"github.com/vearch/vearch/v3/internal/pkg/netutil"
 	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
+	"github.com/vearch/vearch/v3/internal/router/document/gctuner"
 )
 
 const (
@@ -128,6 +129,14 @@ func BasicAuthMiddleware(docService docService) gin.HandlerFunc {
 
 func HttpLimitMiddleware(docService docService) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		if c.Request.ContentLength > 0 && gctuner.CheckMemoryLimitExceed(uint64(c.Request.ContentLength)) {
+			msg := fmt.Sprintf("memory usage have reached limit %d before execute request", entity.ConfigInfo.MemoryLimitConfig.RouterMemoryLimit)
+			log.Error(msg)
+			response.New(c).JsonError(errors.NewErrInternal(fmt.Errorf(msg)))
+			c.Abort()
+			return
+		}
+
 		Request := strings.TrimPrefix(c.Request.RequestURI, "/document/")
 
 		switch Request {
@@ -242,6 +251,9 @@ func (handler *DocumentHandler) proxyMaster(group *gin.RouterGroup) error {
 
 	group.POST("/config/request_limit", handler.handleMasterRequest)
 	group.GET("/config/request_limit", handler.handleMasterRequest)
+
+	group.POST("/config/memory_limit", handler.handleMasterRequest)
+	group.GET("/config/memory_limit", handler.handleMasterRequest)
 
 	// members handler
 	group.GET("/members", handler.handleMasterRequest)

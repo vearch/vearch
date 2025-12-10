@@ -19,6 +19,7 @@
 #include "api_data/doc.h"
 #include "api_data/response.h"
 #include "api_data/table.h"
+#include "memory/memoryManager.h"
 #include "search/engine.h"
 #include "third_party/nlohmann/json.hpp"
 #include "util/log.h"
@@ -173,13 +174,23 @@ int AddOrUpdateDoc(void *engine, const char *doc_str, int len) {
 struct CStatus Search(void *engine, const char *request_str, int req_len,
                       char **response_str, int *res_len) {
   vearch::Request request;
+  struct CStatus cstatus;
+  vearch::Status status;
+  if (vearch::MemoryManager::GetInstance().CheckMemoryUsageExceed(req_len)) {
+    status = vearch::Status::MemoryExceeded();
+    Status2CStatus(status, cstatus);
+    if (status.code() != 0) {
+      return cstatus;
+    }
+  }
+
   request.Deserialize(request_str, req_len);
+  vearch::RequestContext::ScopedContext req_context((vearch::RawData *)&request, request.ReqPartitionId());
 
   vearch::Response response(request.Trace());
   response.SetRequestId(request.RequestId());
-  vearch::Status status;
   status = static_cast<vearch::Engine *>(engine)->Search(request, response);
-  struct CStatus cstatus;
+  
   Status2CStatus(status, cstatus);
   if (status.code() != 0) {
     return cstatus;
@@ -194,12 +205,20 @@ struct CStatus Search(void *engine, const char *request_str, int req_len,
 struct CStatus Query(void *engine, const char *request_str, int req_len,
                      char **response_str, int *res_len) {
   vearch::QueryRequest request;
+  struct CStatus cstatus;
+  vearch::Status status;
+  if (vearch::MemoryManager::GetInstance().CheckMemoryUsageExceed(req_len)) {
+    status = vearch::Status::MemoryExceeded();
+    Status2CStatus(status, cstatus);
+    if (status.code() != 0) {
+      return cstatus;
+    }
+  }
   request.Deserialize(request_str, req_len);
+  vearch::RequestContext::ScopedContext req_context((vearch::RawData *)&request, request.ReqPartitionId());
 
   vearch::Response response(false);
-  vearch::Status status;
   status = static_cast<vearch::Engine *>(engine)->Query(request, response);
-  struct CStatus cstatus;
   Status2CStatus(status, cstatus);
   if (status.code() != 0) {
     return cstatus;
@@ -330,4 +349,26 @@ struct CStatus RemoveFieldIndex(void *engine, const char *field_name,
   struct CStatus cstatus;
   Status2CStatus(status, cstatus);
   return cstatus;
+}
+
+void SetMemoryLimitConfig(int memoryLimit) {
+  if (!vearch::MemoryManager::GetInstance().IsInitialized()) {
+        LOG(INFO) << "MemoryManager not initialized, initializing now...\n";
+        vearch::MemoryManager::GetInstance().SetMemoryLimitThreshold(memoryLimit);
+        vearch::MemoryManager::GetInstance().StartMonitoring(60);
+        return;
+  }
+
+  vearch::MemoryManager::GetInstance().SetMemoryLimitThreshold(memoryLimit);
+  vearch::MemoryManager::GetInstance().SetMemoryLimit();
+}
+
+void SetKillStatus(const char *request_id, int partition_id, int reason) {
+  vearch::RequestContext::set_kill_status(request_id, partition_id, reason);
+  return;
+}
+
+void DeleteKillStatus(const char *request_id, int partition_id) {
+  vearch::RequestContext::delete_kill_status(request_id, partition_id);
+  return;
 }

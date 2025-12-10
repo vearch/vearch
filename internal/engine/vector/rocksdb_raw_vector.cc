@@ -121,6 +121,10 @@ int RocksDBRawVector::Gets(const std::vector<int64_t> &vids,
   }
 
   for (size_t i = 0; i < k; ++i) {
+    if (RequestContext::is_killed()) {
+      return 1;
+    }
+
     if (vids[i] < 0) {
       vecs.Add(nullptr, true);
       continue;

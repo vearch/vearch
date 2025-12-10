@@ -9,5 +9,7 @@ enum Code : byte {
   kIOError = 5,
   kBusy = 6,
   kTimedOut = 7,
+  kMemoryExceeded = 8,
+  kCanceled = 9,
   kMaxCode
 }

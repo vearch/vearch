@@ -29,6 +29,7 @@ import (
 	"github.com/vearch/vearch/v3/internal/pkg/vjson"
 	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
 	"github.com/vearch/vearch/v3/internal/ps/engine/sortorder"
+	"github.com/vearch/vearch/v3/internal/router/document/gctuner"
 )
 
 const (
@@ -253,6 +254,10 @@ func parseVectors(reqNum int, vqs []*vearchpb.VectorQuery, tmpArr []json.RawMess
 
 		if len(vqTemp.FeatureData) == 0 {
 			return reqNum, vqs, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("vector embedding is null"))
+		}
+
+		if gctuner.CheckMemoryLimitExceed(uint64(len(vqTemp.FeatureData))) {
+			return reqNum, vqs, vearchpb.NewError(vearchpb.ErrorEnum_ROUTER_MEMORY_EXCEEDED, fmt.Errorf("vector embedding exceed memory limit"))
 		}
 
 		d := docField.Dimension

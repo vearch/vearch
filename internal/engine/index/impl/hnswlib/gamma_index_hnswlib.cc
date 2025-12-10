@@ -354,7 +354,7 @@ int GammaIndexHNSWLIB::Search(RetrievalContext *retrieval_context, int n,
   idx_t *idxs = reinterpret_cast<idx_t *>(labels);
   if (idxs == nullptr) {
     LOG(ERROR) << "search result'ids is null";
-    return -2;
+    return -1;
   }
 
   HNSWLIBRetrievalParameters *retrieval_params =
@@ -387,9 +387,16 @@ int GammaIndexHNSWLIB::Search(RetrievalContext *retrieval_context, int n,
   }
   int threads_num = n < omp_get_max_threads() ? n : omp_get_max_threads();
 
+  RawData *request = RequestContext::get_current_request();
+  int partition_id = RequestContext::get_partition_id();
+  if (RequestContext::is_killed()) {
+    return -2;
+  }
+
 #pragma omp parallel for schedule(dynamic) num_threads(threads_num)
   for (int i = 0; i < n; ++i) {
     int j = 0;
+    RequestContext::ScopedContext(request, partition_id);
 
     auto result = searchKnn(
         (const void *)(xq + i * d), k, fstdistfunc,
@@ -398,7 +405,7 @@ int GammaIndexHNSWLIB::Search(RetrievalContext *retrieval_context, int n,
 
     if (retrieval_params->GetDistanceComputeType() ==
         DistanceComputeType::INNER_PRODUCT) {
-      while (!result.empty()) {
+      while (!result.empty() && !RequestContext::is_killed()) {
         auto &top = result.top();
         idxs[i * k + k - j - 1] = top.second;
         distances[i * k + k - j - 1] = 1 - top.first;
@@ -406,7 +413,7 @@ int GammaIndexHNSWLIB::Search(RetrievalContext *retrieval_context, int n,
         result.pop();
       }
     } else {
-      while (!result.empty()) {
+      while (!result.empty() && !RequestContext::is_killed()) {
         auto &top = result.top();
         idxs[i * k + k - j - 1] = top.second;
         distances[i * k + k - j - 1] = top.first;
@@ -414,6 +421,10 @@ int GammaIndexHNSWLIB::Search(RetrievalContext *retrieval_context, int n,
         result.pop();
       }
     }
+  }
+
+  if (RequestContext::is_killed()) {
+    return -2;
   }
 
 #ifdef PERFORMANCE_TESTING

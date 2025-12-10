@@ -406,6 +406,9 @@ int64_t MultiFieldsRangeIndex::Search(
 
       size_t prefix_len = lower_key.length();
       for (it->Seek(lower_key); it->Valid(); it->Next()) {
+        if (RequestContext::is_killed()) {
+          return -2;
+        }
         std::string key = it->key().ToString();
         key = key.substr(0, prefix_len);
         if (key > upper_key) {
@@ -441,6 +444,9 @@ int64_t MultiFieldsRangeIndex::Search(
              it->Valid() && it->key().starts_with(prefix) &&
              it->key().size() == prefix_len + 8;  // 8 is the length of docid
              it->Next()) {
+          if (RequestContext::is_killed()) {
+            return -2;
+          }
           std::string key = it->key().ToString();
           int64_t docid = utils::FromRowKey64(key.substr(key.length() - 8, 8));
           if (filter.is_union == FilterOperator::Not) {

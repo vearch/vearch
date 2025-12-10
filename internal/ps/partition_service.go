@@ -21,9 +21,9 @@ import (
 
 	"github.com/cubefs/cubefs/depends/tiglabs/raft"
 	"github.com/cubefs/cubefs/depends/tiglabs/raft/proto"
+	"github.com/vearch/vearch/v3/internal/config"
 	"github.com/vearch/vearch/v3/internal/entity"
 	"github.com/vearch/vearch/v3/internal/pkg/log"
-	"github.com/vearch/vearch/v3/internal/pkg/runtime/os"
 	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
 	"github.com/vearch/vearch/v3/internal/ps/engine"
 	"github.com/vearch/vearch/v3/internal/ps/storage/raftstore"
@@ -139,7 +139,7 @@ func (s *Server) LoadPartition(ctx context.Context, pid entity.PartitionID, spac
 	}
 
 	// LoadPartition means start, should check resource and set it for partition as init
-	if resourceExhausted, err := os.CheckResource(store.RaftPath); err != nil {
+	if resourceExhausted, err := entity.CheckResource(store.RaftPath, config.Conf().Global.ResourceLimitRate); err != nil {
 		return nil, err
 	} else {
 		store.Partition.ResourceExhausted = resourceExhausted
@@ -160,7 +160,7 @@ func (s *Server) CreatePartition(ctx context.Context, space *entity.Space, pid e
 	}
 
 	// check resource
-	if resourceExhausted, err := os.CheckResource(store.RaftPath); err != nil {
+	if resourceExhausted, err := entity.CheckResource(store.RaftPath, config.Conf().Global.ResourceLimitRate); err != nil {
 		return err
 	} else {
 		if resourceExhausted {

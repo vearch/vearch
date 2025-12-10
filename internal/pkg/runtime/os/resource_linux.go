@@ -22,38 +22,27 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"syscall"
 
 	"github.com/shirou/gopsutil/process"
-	"github.com/vearch/vearch/v3/internal/config"
-	"github.com/vearch/vearch/v3/internal/pkg/log"
 	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
 )
 
-func readCgroupMemory() (available, limit uint64, err error) {
-	memoryLimitPath := "/sys/fs/cgroup/memory/memory.limit_in_bytes"
+func ReadCgroupMemory() (available, limit uint64, err error) {
+	limitInt64, err := ReadCgroupTotalMemory()
 
-	data, err := os.ReadFile(memoryLimitPath)
 	if err != nil {
-		return available, limit, vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("failed to read file: %v", err))
-	}
-
-	limitInt64, err := strconv.ParseInt(strings.TrimSpace(string(data)), 10, 64)
-	if err != nil {
-		return available, limit, vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("failed to convert value to int64: %v", err))
+		return available, limit, err
 	}
 
 	pid := os.Getpid()
 	p, err := process.NewProcess(int32(pid))
 	if err != nil {
-		fmt.Printf("Failed to get process: %v\n", err)
-		return
+		return available, limit, vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("failed to get process: %v", err))
 	}
 
 	memInfo, err := p.MemoryInfo()
 	if err != nil {
-		fmt.Printf("Failed to get memory info: %v\n", err)
-		return
+		return available, limit, vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("failed to get memory info: %v", err))
 	}
 
 	physicalMemory := memInfo.RSS
@@ -64,7 +53,23 @@ func readCgroupMemory() (available, limit uint64, err error) {
 	return available, limit, nil
 }
 
-func readProcMemory() (available, total uint64, err error) {
+func ReadCgroupTotalMemory() (limit int64, err error) {
+	memoryLimitPath := "/sys/fs/cgroup/memory/memory.limit_in_bytes"
+
+	data, err := os.ReadFile(memoryLimitPath)
+	if err != nil {
+		return limit, vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("failed to read file: %v", err))
+	}
+
+	limit, err = strconv.ParseInt(strings.TrimSpace(string(data)), 10, 64)
+	if err != nil {
+		return limit, vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("failed to convert value to int64: %v", err))
+	}
+
+	return limit, nil
+}
+
+func ReadProcMemory() (available, total uint64, err error) {
 	file, err := os.Open("/proc/meminfo")
 	if err != nil {
 		return 0, 0, err
@@ -79,22 +84,22 @@ func readProcMemory() (available, total uint64, err error) {
 			if len(fields) < 2 {
 				return 0, 0, fmt.Errorf("unexpected format in /proc/meminfo")
 			}
-			availableBytes, err := strconv.ParseUint(fields[1], 10, 64)
+			availableKBytes, err := strconv.ParseUint(fields[1], 10, 64)
 			if err != nil {
 				return 0, 0, err
 			}
-			available = availableBytes / 1024
+			available = availableKBytes * 1024
 		}
 		if strings.HasPrefix(line, "MemTotal:") {
 			fields := strings.Fields(line)
 			if len(fields) < 2 {
 				return 0, 0, fmt.Errorf("unexpected format in /proc/meminfo")
 			}
-			totalBytes, err := strconv.ParseUint(fields[1], 10, 64)
+			totalKBytes, err := strconv.ParseUint(fields[1], 10, 64)
 			if err != nil {
 				return 0, 0, err
 			}
-			total = totalBytes / 1024
+			total = totalKBytes * 1024
 		}
 	}
 
@@ -104,38 +109,35 @@ func readProcMemory() (available, total uint64, err error) {
 	return available, total, nil
 }
 
-func CheckResource(path string) (is bool, err error) {
-	var stat syscall.Statfs_t
-	err = syscall.Statfs(path, &stat)
+func GetSystemMemory() (total uint64, err error) {
+	_, total, err = ReadProcMemory()
 	if err != nil {
-		log.Error("syscall.Statfs %s err %v", path, err)
-		return false, nil
+		return 0, err
 	}
 
-	totalDisk := stat.Blocks * uint64(stat.Bsize) / 1024 / 1024
-	availDisk := stat.Bavail * uint64(stat.Bsize) / 1024 / 1024
+	CgroupMemoryLimit, err := ReadCgroupTotalMemory()
 
-	if float64(availDisk)/float64(totalDisk) <= (1 - config.Conf().Global.ResourceLimitRate) {
-		log.Debug("path: %s, availDisk %dM, totalDisk %dM", path, availDisk, totalDisk)
-		return true, vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_RESOURCE_EXHAUSTED, fmt.Errorf("disk space not enough: total [%d]M, avail [%d]M", totalDisk, availDisk))
-	}
-
-	availableMemory, totalMemory, err := readProcMemory()
 	if err != nil {
-		log.Error(err.Error())
+		return 0, err
+	} else if uint64(CgroupMemoryLimit) < total {
+		total = uint64(CgroupMemoryLimit)
+	}
+	return total, nil
+}
+
+func GetMemoryUsage() (memoryUsage uint64, err error) {
+	pid := os.Getpid()
+	p, err := process.NewProcess(int32(pid))
+	if err != nil {
+		return 0, fmt.Errorf("failed to get process: %v", err)
 	}
 
-	cgroupAvailableMemory, cgroupTotalMemory, err := readCgroupMemory()
-	if err == nil {
-		if cgroupTotalMemory < totalMemory {
-			totalMemory = cgroupTotalMemory
-			availableMemory = cgroupAvailableMemory
-		}
+	memInfo, err := p.MemoryInfo()
+	if err != nil {
+		return 0, fmt.Errorf("failed to get memory info: %v", err)
 	}
 
-	if float64(availableMemory)/float64(totalMemory) <= (1 - config.Conf().Global.ResourceLimitRate) {
-		log.Debug("total memory %dM, available memory %dM, cgroup total memory %dM, cgroup available memory %dM", totalMemory, availableMemory, cgroupTotalMemory, cgroupAvailableMemory)
-		return true, vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_RESOURCE_EXHAUSTED, fmt.Errorf("available memory not enough: total [%d]M, avail [%d]M", totalMemory, availableMemory))
-	}
-	return false, nil
+	memoryUsage = memInfo.RSS
+
+	return memoryUsage, nil
 }

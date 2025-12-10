@@ -565,6 +565,9 @@ int GammaIVFPQIndex::Search(RetrievalContext *retrieval_context, int n,
 
   search_preassigned(retrieval_context, n, xq, applied_xq, k, idx.get(),
                      coarse_dis.get(), distances, labels, nprobe, false);
+  if (RequestContext::is_killed()) {
+    return -2;
+  }
   return 0;
 }
 
@@ -651,6 +654,7 @@ void compute_dis(int k, const float *xi, float *simi, idx_t *idxi,
     }
     int raw_d = vec->MetaInfo()->Dimension();
     for (int j = 0; j < recall_num; j++) {
+      if (RequestContext::is_killed()) return;
       if (recall_idxi[j] < 0) continue;
       float dis = 0;
       if (scope_vecs.Get(j) == nullptr) {
@@ -755,124 +759,143 @@ void GammaIVFPQIndex::search_preassigned(
                                      : parallel_mode == 1 ? nprobe > 1
                                                           : nprobe * n > 1);
 
+  RawData *request = RequestContext::get_current_request();
+  int partition_id = RequestContext::get_partition_id();
+  if (RequestContext::is_killed()) {
+    return;
+  }
+
 #pragma omp parallel if (do_parallel) reduction(+ : ndis)
   {
     faiss::InvertedListScanner *scanner = GetInvertedListScanner(
         store_pairs, nullptr, retrieval_context, metric_type, this->pq.nbits);
     utils::ScopeDeleter1<faiss::InvertedListScanner> del(scanner);
 
+    RequestContext::ScopedContext(request, partition_id);
+
     if (parallel_mode == 0) {  // parallelize over queries
 #pragma omp for
       for (int i = 0; i < n; i++) {
-        // loop over queries
-        const float *xi = vec_applied_q + i * d;
-        scanner->set_query(xi);
-        float *simi = distances + i * k;
-        idx_t *idxi = labels + i * k;
-        init_result(metric_type, k, simi, idxi);
+        if (!RequestContext::is_killed()) {
+          // loop over queries
+          const float *xi = vec_applied_q + i * d;
+          scanner->set_query(xi);
+          float *simi = distances + i * k;
+          idx_t *idxi = labels + i * k;
+          init_result(metric_type, k, simi, idxi);
 
-        float *recall_simi = simi;
-        idx_t *recall_idxi = idxi;
+          float *recall_simi = simi;
+          idx_t *recall_idxi = idxi;
 
-        if (rerank) {
-          recall_simi = recall_distances + i * recall_num;
-          recall_idxi = recall_labels + i * recall_num;
-          init_result(metric_type, recall_num, recall_simi, recall_idxi);
-        }
+          if (rerank) {
+            recall_simi = recall_distances + i * recall_num;
+            recall_idxi = recall_labels + i * recall_num;
+            init_result(metric_type, recall_num, recall_simi, recall_idxi);
+          }
 
-        long nscan = 0;
+          long nscan = 0;
 
-        // loop over probes
-        for (int ik = 0; ik < nprobe; ik++) {
-          nscan += scan_one_list(scanner, keys[i * nprobe + ik],
+          // loop over probes
+          for (int ik = 0; ik < nprobe; ik++) {
+            if (RequestContext::is_killed()) {
+              break;
+            }
+            nscan += scan_one_list(scanner, keys[i * nprobe + ik],
                                  coarse_dis[i * nprobe + ik], recall_simi,
                                  recall_idxi, recall_num, this->nlist,
                                  this->invlists, store_pairs);
 
-          if (max_codes && nscan >= max_codes) break;
-        }
+            if (max_codes && nscan >= max_codes) break;
+          }
 
-        ndis += nscan;
-        compute_dis(k, vec_q + i * d, simi, idxi, recall_simi, recall_idxi,
+          ndis += nscan;
+          compute_dis(k, vec_q + i * d, simi, idxi, recall_simi, recall_idxi,
                     recall_num, rerank, metric_type, vector_,
                     retrieval_context);
+        }
       }       // parallel for
     } else {  // parallelize over inverted lists
       std::vector<idx_t> local_idx(recall_num);
       std::vector<float> local_dis(recall_num);
 
       for (int i = 0; i < n; i++) {
-        const float *xi = vec_applied_q + i * d;
-        scanner->set_query(xi);
+          const float *xi = vec_applied_q + i * d;
+          scanner->set_query(xi);
 
-        init_result(metric_type, recall_num, local_dis.data(),
-                    local_idx.data());
+          init_result(metric_type, recall_num, local_dis.data(),
+                      local_idx.data());
 
 #pragma omp for schedule(dynamic)
-        for (int ik = 0; ik < nprobe; ik++) {
-          size_t nscan = scan_one_list(
-              scanner, keys[i * nprobe + ik], coarse_dis[i * nprobe + ik],
-              local_dis.data(), local_idx.data(), recall_num, this->nlist,
-              this->invlists, store_pairs);
-          ndis += nscan;
-          // can't do the test on max_codes
-          if (retrieval_params->CollectMetrics()) {
-            LOG(TRACE) << "nscan: " << nscan << ", ik: " << ik << ", i: " << i;
+          for (int ik = 0; ik < nprobe; ik++) {
+            if (!RequestContext::is_killed()) {
+              size_t nscan = scan_one_list(
+                scanner, keys[i * nprobe + ik], coarse_dis[i * nprobe + ik],
+                local_dis.data(), local_idx.data(), recall_num, this->nlist,
+                this->invlists, store_pairs);
+              ndis += nscan;
+              // can't do the test on max_codes
+              if (retrieval_params->CollectMetrics()) {
+                LOG(TRACE) << "nscan: " << nscan << ", ik: " << ik << ", i: " << i;
+              }
+            }
           }
-        }
 
-        // merge thread-local results
+          // merge thread-local results
 
-        float *simi = distances + i * k;
-        idx_t *idxi = labels + i * k;
+          float *simi = distances + i * k;
+          idx_t *idxi = labels + i * k;
 
-        float *recall_simi = simi;
-        idx_t *recall_idxi = idxi;
+          float *recall_simi = simi;
+          idx_t *recall_idxi = idxi;
 
-        if (rerank) {
-          recall_simi = recall_distances + i * recall_num;
-          recall_idxi = recall_labels + i * recall_num;
-        }
+          if (rerank) {
+            recall_simi = recall_distances + i * recall_num;
+            recall_idxi = recall_labels + i * recall_num;
+          }
 
 #pragma omp single
-        {
-          init_result(metric_type, k, simi, idxi);
-          if (rerank) {
-            init_result(metric_type, recall_num, recall_simi, recall_idxi);
+          {
+            init_result(metric_type, k, simi, idxi);
+            if (rerank) {
+              init_result(metric_type, recall_num, recall_simi, recall_idxi);
+            }
           }
-        }
 
 #pragma omp barrier
 #pragma omp critical
-        {
-          if (metric_type == faiss::METRIC_INNER_PRODUCT) {
-            faiss::heap_addn<HeapForIP>(recall_num, recall_simi, recall_idxi,
-                                        local_dis.data(), local_idx.data(),
-                                        recall_num);
-          } else {
-            faiss::heap_addn<HeapForL2>(recall_num, recall_simi, recall_idxi,
-                                        local_dis.data(), local_idx.data(),
-                                        recall_num);
+          {
+            if (!RequestContext::is_killed()) {
+              if (metric_type == faiss::METRIC_INNER_PRODUCT) {
+                faiss::heap_addn<HeapForIP>(recall_num, recall_simi, recall_idxi,
+                                          local_dis.data(), local_idx.data(),
+                                          recall_num);
+              } else {
+                faiss::heap_addn<HeapForL2>(recall_num, recall_simi, recall_idxi,
+                                          local_dis.data(), local_idx.data(),
+                                          recall_num);
+              }
+            }
           }
-        }
 #pragma omp barrier
 #pragma omp single
-        {
+          {
 #ifdef PERFORMANCE_TESTING
-          if (retrieval_context->GetPerfTool()) {
-            retrieval_context->GetPerfTool()->Perf("coarse");
-          }
+            if (retrieval_context->GetPerfTool()) {
+              retrieval_context->GetPerfTool()->Perf("coarse");
+            }
 #endif
-          compute_dis(k, vec_q + i * d, simi, idxi, recall_simi, recall_idxi,
-                      recall_num, rerank, metric_type, vector_,
-                      retrieval_context);
+            if (!RequestContext::is_killed()) {
+              compute_dis(k, vec_q + i * d, simi, idxi, recall_simi, recall_idxi,
+                        recall_num, rerank, metric_type, vector_,
+                        retrieval_context);
+            }
 
 #ifdef PERFORMANCE_TESTING
-          if (retrieval_context->GetPerfTool()) {
-            retrieval_context->GetPerfTool()->Perf("reorder");
-          }
+            if (retrieval_context->GetPerfTool()) {
+              retrieval_context->GetPerfTool()->Perf("reorder");
+            }
 #endif
-        }
+          }
       }
     }
   }  // parallel

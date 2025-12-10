@@ -74,6 +74,8 @@ const (
 	PartitionInfoHandler   = "PartitionInfoHandler"
 	ChangeMemberHandler    = "ChangeMemberHandler"
 	EngineCfgHandler       = "EngineCfgHandler"
+	MemoryLimitHandler     = "MemoryLimitHandler"
+	RequestCancelHandler   = "RequestCancelHandler"
 )
 
 type psClient struct {

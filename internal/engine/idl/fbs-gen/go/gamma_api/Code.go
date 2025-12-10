@@ -12,7 +12,9 @@ const (
 	CodekIOError Code = 5
 	CodekBusy Code = 6
 	CodekTimedOut Code = 7
-	CodekMaxCode Code = 8
+	CodekMemoryExceeded Code = 8
+	CodekCanceled Code = 9
+	CodekMaxCode Code = 10
 )
 
 var EnumNamesCode = map[Code]string{
@@ -24,6 +26,8 @@ var EnumNamesCode = map[Code]string{
 	CodekIOError:"kIOError",
 	CodekBusy:"kBusy",
 	CodekTimedOut:"kTimedOut",
+	CodekMemoryExceeded:"kMemoryExceeded",
+	CodekCanceled:"kCanceled",
 	CodekMaxCode:"kMaxCode",
 }
 

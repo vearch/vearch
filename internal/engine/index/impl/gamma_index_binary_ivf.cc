@@ -320,6 +320,9 @@ int GammaIndexBinaryIVF::Search(RetrievalContext *retrieval_context, int n,
                      dists, ids, nprobe, false);
   for (int i = 0; i < n; i++) {
     for (int j = 0; j < k; j++) {
+      if (RequestContext::is_killed()) {
+        return -2;
+      }
       distances[i * k + j] = dists[i * k + j];
     }
   }
@@ -347,14 +350,22 @@ void GammaIndexBinaryIVF::search_knn_hamming_heap(
   using HeapForIP = faiss::CMin<int32_t, idx_t>;
   using HeapForL2 = faiss::CMax<int32_t, idx_t>;
 
+  RawData *request = RequestContext::get_current_request();
+  int partition_id = RequestContext::get_partition_id();
+
 #pragma omp parallel if (n > 1)
   {
     std::unique_ptr<GammaBinaryInvertedListScanner> scanner(
         get_GammaInvertedListScanner(store_pairs));
     scanner->set_search_context(retrieval_context);
 
+    RequestContext::ScopedContext(request, partition_id);
+
 #pragma omp for
     for (size_t i = 0; i < n; i++) {
+      if (RequestContext::is_killed()) {
+        continue;
+      }
       const uint8_t *xi = x + i * code_size;
       scanner->set_query(xi);
 
@@ -371,6 +382,7 @@ void GammaIndexBinaryIVF::search_knn_hamming_heap(
       size_t nscan = 0;
 
       for (long ik = 0; ik < nprobe; ik++) {
+        if (RequestContext::is_killed()) break;
         idx_t key = keysi[ik]; /* select the list  */
         if (key < 0) {
           // not enough centroids for multiprobe
@@ -434,6 +446,7 @@ struct GammaIVFBinaryScannerL2 : GammaBinaryInvertedListScanner {
 
     size_t nup = 0;
     for (size_t j = 0; j < n; j++, codes += code_size) {
+      if (RequestContext::is_killed()) break;
       idx_t id = store_pairs ? (list_no << 32 | j) : ids[j];
       if (retrieval_context_->IsValid(id) == false) {
         continue;

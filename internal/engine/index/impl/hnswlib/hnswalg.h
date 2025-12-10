@@ -333,6 +333,10 @@ class HierarchicalNSW : public AlgorithmInterface<dist_t> {
     while (!candidate_set.empty()) {
       std::pair<dist_t, tableint> current_node_pair = candidate_set.top();
 
+      if (vearch::RequestContext::is_killed()) {
+        break;
+      }
+
       if ((-current_node_pair.first) > lowerBound &&
           (top_candidates.size() == ef || has_deletions == false)) {
         break;
@@ -357,6 +361,9 @@ class HierarchicalNSW : public AlgorithmInterface<dist_t> {
 #endif
 
       for (size_t j = 1; j <= size; j++) {
+        if (vearch::RequestContext::is_killed()) {
+          break;
+        }
         int candidate_id = *(data + j);
 //                    if (candidate_id == 0) continue;
 #ifdef USE_SSE
@@ -1208,6 +1215,10 @@ class HierarchicalNSW : public AlgorithmInterface<dist_t> {
 
         tableint *datal = (tableint *)(data + 1);
         for (int i = 0; i < size; i++) {
+          if (vearch::RequestContext::is_killed()) {
+            pthread_rwlock_unlock(&shared_mutex_);
+            return result;
+          }
           tableint cand = datal[i];
           if (cand < 0 || cand > max_elements_)
             throw std::runtime_error("cand error");
@@ -1253,6 +1264,9 @@ class HierarchicalNSW : public AlgorithmInterface<dist_t> {
       top_candidates.pop();
     }
     while (top_candidates.size() > 0) {
+      if (vearch::RequestContext::is_killed()) {
+        break;
+      }
       std::pair<dist_t, tableint> rez = top_candidates.top();
       result.push(std::pair<dist_t, labeltype>(rez.first,
                                                getExternalLabel(rez.second)));

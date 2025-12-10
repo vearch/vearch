@@ -231,3 +231,24 @@ func ChangeMember(addr string, changeMember *entity.ChangeMember) error {
 	}
 	return nil
 }
+
+func operatePsMemLimitCfg(method, addr string, cfg *entity.MemoryLimitCfg) error {
+	bytes, e := vjson.Marshal(cfg)
+	if e != nil {
+		return e
+	}
+	args := &vearchpb.PartitionData{Data: bytes}
+	reply := new(vearchpb.PartitionData)
+	err := Execute(addr, method, args, reply)
+	if err != nil {
+		return err
+	}
+	if reply.Err.Code != vearchpb.ErrorEnum_SUCCESS {
+		return vearchpb.NewError(reply.Err.Code, nil)
+	}
+	return nil
+}
+
+func UpdateMemoryLimitCfg(addr string, cfg *entity.MemoryLimitCfg) error {
+	return operatePsMemLimitCfg(MemoryLimitHandler, addr, cfg)
+}
