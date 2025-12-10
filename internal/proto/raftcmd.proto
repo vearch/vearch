@@ -14,6 +14,8 @@ enum OpType {
   BULK = 2;
   GET = 3;
   SEARCH = 4;
+  CANCEL = 5;
+  MEMORYKILL = 6;
 }
 //*********************** Partition *********************** //
 

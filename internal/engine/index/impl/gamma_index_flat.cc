@@ -164,6 +164,12 @@ int GammaFLATIndex::Search(RetrievalContext *retrieval_context, int n,
   using HeapForIP = faiss::CMin<float, idx_t>;
   using HeapForL2 = faiss::CMax<float, idx_t>;
 
+  if (RequestContext::is_killed()) {
+    return -2;
+  }
+  std::string request_id = RequestContext::get_current_request()->RequestId();
+  int partition_id = RequestContext::get_partition_id();
+
   {
     // we must obtain the num of threads in *THE* parallel area.
     int num_threads = omp_get_max_threads();
@@ -194,6 +200,10 @@ int GammaFLATIndex::Search(RetrievalContext *retrieval_context, int n,
                            float *simi, idx_t *idxi, int k) {
       if (metric_type == faiss::METRIC_INNER_PRODUCT) {
         for (int vid = start_vid; vid < start_vid + nsearch; ++vid) {
+          if (RequestContext::is_killed(request_id, partition_id)) {
+            break;
+          }
+
           if (!retrieval_context->IsValid(vid)) {
             continue;
           }
@@ -217,6 +227,10 @@ int GammaFLATIndex::Search(RetrievalContext *retrieval_context, int n,
         }
       } else {
         for (int vid = start_vid; vid < start_vid + nsearch; ++vid) {
+          if (RequestContext::is_killed(request_id, partition_id)) {
+            break;
+          }
+
           if (!retrieval_context->IsValid(vid)) {
             continue;
           }
@@ -248,16 +262,18 @@ int GammaFLATIndex::Search(RetrievalContext *retrieval_context, int n,
     if (parallel_on_queries) {  // parallelize over queries
 #pragma omp parallel for schedule(dynamic) num_threads(threads_num)
       for (int i = 0; i < n; i++) {
-        const float *xi = xq + i * d;
+        if (!RequestContext::is_killed(request_id, partition_id)) {
+          const float *xi = xq + i * d;
 
-        float *simi = distances + i * k;
-        idx_t *idxi = (idx_t *)labels + i * k;
+          float *simi = distances + i * k;
+          idx_t *idxi = (idx_t *)labels + i * k;
 
-        init_result(k, simi, idxi);
+          init_result(k, simi, idxi);
 
-        search_impl(xi, 0, num_vectors, simi, idxi, k);
+          search_impl(xi, 0, num_vectors, simi, idxi, k);
 
-        reorder_result(k, simi, idxi);
+          reorder_result(k, simi, idxi);
+        }
       }
     } else {  // parallelize over vectors
 
@@ -273,36 +289,45 @@ int GammaFLATIndex::Search(RetrievalContext *retrieval_context, int n,
 
 #pragma omp parallel for schedule(dynamic)
         for (int ik = 0; ik < num_threads; ik++) {
-          std::vector<idx_t> local_idx(k);
-          std::vector<float> local_dis(k);
-          init_result(k, local_dis.data(), local_idx.data());
+          if (!RequestContext::is_killed(request_id, partition_id)) {
+            std::vector<idx_t> local_idx(k);
+            std::vector<float> local_dis(k);
+            init_result(k, local_dis.data(), local_idx.data());
 
-          size_t ny = num_vectors_per_thread;
+            size_t ny = num_vectors_per_thread;
 
-          if (ik == num_threads - 1) {
-            ny += num_vectors % num_threads;  // the rest
-          }
+            if (ik == num_threads - 1) {
+              ny += num_vectors % num_threads;  // the rest
+            }
 
-          int offset = ik * num_vectors_per_thread;
+            int offset = ik * num_vectors_per_thread;
 
-          search_impl(xi, offset, ny, local_dis.data(), local_idx.data(), k);
+            search_impl(xi, offset, ny, local_dis.data(), local_idx.data(), k);
 
 #pragma omp critical
-          {
-            if (metric_type == faiss::METRIC_INNER_PRODUCT) {
-              faiss::heap_addn<HeapForIP>(k, simi, idxi, local_dis.data(),
+            {
+              if (metric_type == faiss::METRIC_INNER_PRODUCT) {
+                faiss::heap_addn<HeapForIP>(k, simi, idxi, local_dis.data(),
                                           local_idx.data(), k);
-            } else {
-              faiss::heap_addn<HeapForL2>(k, simi, idxi, local_dis.data(),
+              } else {
+                faiss::heap_addn<HeapForL2>(k, simi, idxi, local_dis.data(),
                                           local_idx.data(), k);
+              }
             }
           }
+        }
+
+        if (RequestContext::is_killed(request_id, partition_id)) {
+          break;
         }
         reorder_result(k, simi, idxi);
       }
     }
   }  // parallel
 
+  if (RequestContext::is_killed(request_id, partition_id)) {
+    return -2;
+  }
 #ifdef PERFORMANCE_TESTING
   if (retrieval_context->GetPerfTool()) {
     std::string compute_msg = "flat compute ";

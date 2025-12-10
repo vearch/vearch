@@ -6,6 +6,7 @@
  */
 
 #include "memory_raw_vector.h"
+#include "memory/memoryManager.h"
 
 #include <unistd.h>
 
@@ -166,6 +167,12 @@ int MemoryRawVector::ExtendSegments() {
     LOG(ERROR) << this->desc_ << "segment number can't be > " << kMaxSegments;
     return -1;
   }
+
+  if (MemoryManager::GetInstance().CheckMemoryUsageExceed(segment_size_ * vector_byte_size_)) {
+    LOG(ERROR) << this->desc_ << "current memory usage exceed limit";
+    return -1;
+  }
+
   segments_[nsegments_] =
       new (std::nothrow) uint8_t[segment_size_ * vector_byte_size_];
   if (segments_[nsegments_] == nullptr) {

@@ -27,6 +27,12 @@ void Request::Deserialize(const char *data, int len) {
     request_id_ = it_request_id->second;
   }
 
+  auto it_partition_id = sr.head().params().find("partition_id");
+  if (it_partition_id != sr.head().params().end()) {
+    std::string partition_id = it_partition_id->second;
+    req_partition_id_ = std::stoi(partition_id);
+  }
+
   req_num_ = sr.req_num();
   topn_ = sr.topn();
   brute_force_search_ = sr.is_brute_search();
@@ -175,6 +181,18 @@ void QueryRequest::Deserialize(const char *data, int len) {
     LOG(ERROR) << "parse query request failed";
     return;
   }
+
+  auto it_request_id = qr.head().params().find("request_id");
+  if (it_request_id != qr.head().params().end()) {
+    request_id_ = it_request_id->second;
+  }
+
+  auto it_partition_id = qr.head().params().find("partition_id");
+  if (it_partition_id != qr.head().params().end()) {
+    std::string partition_id = it_partition_id->second;
+    req_partition_id_ = std::stoi(partition_id);
+  }
+
   topn_ = qr.limit();
 
   for (int i = 0; i < qr.document_ids().size(); i++) {

@@ -181,6 +181,11 @@ struct CStatus AddFieldIndexWithParams(void *engine, const char *field_name,
 struct CStatus RemoveFieldIndex(void *engine, const char *field_name,
                                 int field_name_len);
 
+void SetMemoryLimitConfig(int memory_limit);
+
+void SetKillStatus(const char *request_id, int partition_id, int reason);
+
+void DeleteKillStatus(const char *request_id, int partition_id);
 #ifdef __cplusplus
 }
 #endif

@@ -504,6 +504,9 @@ int GammaIVFFlatIndex::Search(RetrievalContext *retrieval_context, int n,
 
   search_preassigned(retrieval_context, n, x, k, idx.get(), coarse_dis.get(),
                      distances, labels, nprobe, false);
+  if (RequestContext::is_killed()) {
+    return -2;
+  }
 
   return 0;
 }
@@ -543,11 +546,19 @@ void GammaIVFFlatIndex::search_preassigned(RetrievalContext *retrieval_context,
   int pmode = retrieval_params->ParallelOnQueries() ? 0 : 1;
   bool do_parallel = pmode == 0 ? n > 1 : nprobe > 1;
 
+  if (RequestContext::is_killed()) {
+    return;
+  }
+  RawData *request = RequestContext::get_current_request();
+  int partition_id = RequestContext::get_partition_id();
+
 #pragma omp parallel if (do_parallel) reduction(+ : nlistv, ndis, nheap)
   {
     faiss::InvertedListScanner *scanner =
         GetGammaInvertedListScanner(store_pairs, nullptr, retrieval_context, metric_type);
     utils::ScopeDeleter1<faiss::InvertedListScanner> del(scanner);
+
+    RequestContext::ScopedContext(request, partition_id);
 
     /*****************************************************
      * Depending on parallel_mode, there are two possible ways
@@ -617,36 +628,41 @@ void GammaIVFFlatIndex::search_preassigned(RetrievalContext *retrieval_context,
     if (pmode == 0) {
 #pragma omp for
       for (idx_t i = 0; i < n; i++) {
-        if (interrupt) {
-          continue;
-        }
+        if (!RequestContext::is_killed()) {
+          if (interrupt) {
+            continue;
+          }
 
-        // loop over queries
-        scanner->set_query(x + i * d);
-        float *simi = distances + i * k;
-        idx_t *idxi = labels + i * k;
+          // loop over queries
+          scanner->set_query(x + i * d);
+          float *simi = distances + i * k;
+          idx_t *idxi = labels + i * k;
 
-        init_result(simi, idxi);
+          init_result(simi, idxi);
 
-        long nscan = 0;
+          long nscan = 0;
 
-        // loop over probes
-        for (idx_t ik = 0; ik < nprobe; ik++) {
-          nscan += scan_one_list(keys[i * nprobe + ik],
+          // loop over probes
+          for (idx_t ik = 0; ik < nprobe; ik++) {
+            if (RequestContext::is_killed()) {
+              break;
+            }
+            nscan += scan_one_list(keys[i * nprobe + ik],
                                  coarse_dis[i * nprobe + ik], simi, idxi);
 
-          if (max_codes && nscan >= max_codes) {
-            break;
+            if (max_codes && nscan >= max_codes) {
+              break;
+            }
           }
-        }
 
-        ndis += nscan;
-        reorder_result(simi, idxi);
+          ndis += nscan;
+
+          reorder_result(simi, idxi);
 
         // if (faiss::InterruptCallback::is_interrupted()) {
         //   interrupt = true;
         // }
-
+        }
       }  // parallel for
     } else if (pmode == 1) {
       std::vector<idx_t> local_idx(k);
@@ -658,6 +674,9 @@ void GammaIVFFlatIndex::search_preassigned(RetrievalContext *retrieval_context,
 
 #pragma omp for schedule(dynamic)
         for (idx_t ik = 0; ik < nprobe; ik++) {
+          if (RequestContext::is_killed()) {
+            continue;
+          }
           ndis +=
               scan_one_list(keys[i * nprobe + ik], coarse_dis[i * nprobe + ik],
                             local_dis.data(), local_idx.data());
@@ -674,17 +693,21 @@ void GammaIVFFlatIndex::search_preassigned(RetrievalContext *retrieval_context,
 #pragma omp barrier
 #pragma omp critical
         {
-          if (metric_type == METRIC_INNER_PRODUCT) {
-            heap_addn<HeapForIP>(k, simi, idxi, local_dis.data(),
-                                 local_idx.data(), k);
-          } else {
-            heap_addn<HeapForL2>(k, simi, idxi, local_dis.data(),
-                                 local_idx.data(), k);
+          if (!RequestContext::is_killed()) {
+            if (metric_type == METRIC_INNER_PRODUCT) {
+              heap_addn<HeapForIP>(k, simi, idxi, local_dis.data(),
+                                   local_idx.data(), k);
+            } else {
+              heap_addn<HeapForL2>(k, simi, idxi, local_dis.data(),
+                                   local_idx.data(), k);
+            }
           }
         }
 #pragma omp barrier
 #pragma omp single
-        reorder_result(simi, idxi);
+        if (!RequestContext::is_killed()) {
+          reorder_result(simi, idxi);
+        }
       }
     } else {
       FAISS_THROW_FMT("parallel_mode %d not supported\n", pmode);

@@ -19,6 +19,7 @@ static const char *msgs[static_cast<int>(Status::kMaxSubCode)] = {
     "Resource temporarily unavailable",  // kResourceExhausted
     "No space left on device",           // kNoSpace
     "No such file or directory",         // kPathNotFound
+    "Memory usage exceed",               // kMemoryExceeded
 };
 
 Status::Status(status::Code _code, SubCode _subcode, const std::string &msg,
@@ -64,6 +65,12 @@ std::string Status::ToString() const {
       break;
     case status::kTimedOut:
       type = "Operation timed out: ";
+      break;
+    case status::kCanceled:
+      type = "Operation canceled: ";
+      break;
+    case status::kMemoryExceeded:
+      type = "Memory exceed limit: ";
       break;
     case status::kMaxCode:
       assert(false);

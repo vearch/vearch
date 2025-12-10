@@ -22,6 +22,7 @@ import (
 	"path/filepath"
 	"strconv"
 
+	"github.com/vearch/vearch/v3/internal/engine/idl/fbs-gen/go/gamma_api"
 	"github.com/vearch/vearch/v3/internal/engine/sdk/go/gamma"
 	"github.com/vearch/vearch/v3/internal/entity"
 	"github.com/vearch/vearch/v3/internal/pkg/log"
@@ -152,18 +153,23 @@ func (ri *readerImpl) Search(ctx context.Context, request *vearchpb.SearchReques
 			request.Trace = true
 		}
 	}
+	request_id := request.Head.Params["request_id"]
+	request.Head.Params["partition_id"] = strconv.FormatInt(int64(ri.engine.partitionID), 10)
+
 	reqByte, err := proto.Marshal(request)
 	if err != nil {
 		return vearchpb.NewErrorInfo(vearchpb.ErrorEnum_SEARCH_ENGINE_ERR, err.Error())
 	}
-	respByte, status := gamma.Search(ri.engine.gamma, reqByte)
+	respByte, status := gamma.Search(ri.engine.gamma, reqByte, request_id, ri.engine.partitionID)
 	response.FlatBytes = respByte
 
 	if response.Head == nil {
 		responseHead := &vearchpb.ResponseHead{}
 		response.Head = responseHead
 	}
-	if status.Code != 0 {
+	if status.Code == int32(gamma_api.CodekMemoryExceeded) {
+		return vearchpb.NewErrorInfo(vearchpb.ErrorEnum_PARTITION_SERVER_MEMORYEXCEED, status.Msg)
+	} else if status.Code != 0 {
 		return vearchpb.NewErrorInfo(vearchpb.ErrorEnum_SEARCH_ENGINE_ERR, status.Msg)
 	}
 
@@ -188,19 +194,24 @@ func (ri *readerImpl) Query(ctx context.Context, request *vearchpb.QueryRequest,
 			request.Trace = true
 		}
 	}
+	request_id := request.Head.Params["request_id"]
+	request.Head.Params["partition_id"] = strconv.FormatInt(int64(ri.engine.partitionID), 10)
 
 	reqByte, err := proto.Marshal(request)
 	if err != nil {
 		return vearchpb.NewErrorInfo(vearchpb.ErrorEnum_SEARCH_ENGINE_ERR, err.Error())
 	}
-	respByte, status := gamma.Query(ri.engine.gamma, reqByte)
+	respByte, status := gamma.Query(ri.engine.gamma, reqByte, request_id, ri.engine.partitionID)
 	response.FlatBytes = respByte
+
 	if response.Head == nil {
 		responseHead := &vearchpb.ResponseHead{}
 		response.Head = responseHead
 	}
 
-	if status.Code != 0 {
+	if status.Code == int32(gamma_api.CodekMemoryExceeded) {
+		return vearchpb.NewErrorInfo(vearchpb.ErrorEnum_PARTITION_SERVER_MEMORYEXCEED, status.Msg)
+	} else if status.Code != 0 {
 		return vearchpb.NewErrorInfo(vearchpb.ErrorEnum_QUERY_ENGINE_ERR, status.Msg)
 	}
 

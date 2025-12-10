@@ -18,6 +18,7 @@
 namespace vearch {
 
 enum class FilterOperator : uint8_t { And = 0, Or, Not };
+enum class ResultStatus : int64_t { ZERO = 0, INTERNAL_ERR = -1, KILLED = -2 };
 
 typedef struct {
   int field;

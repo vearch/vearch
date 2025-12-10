@@ -31,6 +31,7 @@ class Status {
     kResourceExhausted = 3,
     kNoSpace = 4,
     kPathNotFound = 5,
+    kMemoryExceeded = 6,
     kMaxSubCode
   };
 
@@ -124,6 +125,22 @@ class Status {
   static Status PathNotFound(const std::string &msg,
                              const std::string &msg2 = std::string()) {
     return Status(status::kIOError, kPathNotFound, msg, msg2);
+  }
+
+  static Status MemoryExceeded(SubCode msg = kNone) {
+    return Status(status::kMemoryExceeded, msg);
+  }
+  static Status MemoryExceeded(const std::string &msg,
+                             const std::string &msg2 = std::string()) {
+    return Status(status::kMemoryExceeded, msg, msg2);
+  }
+
+  static Status RequestCanceled(SubCode msg = kNone) {
+    return Status(status::kCanceled, msg);
+  }
+  static Status RequestCanceled(const std::string &msg,
+                             const std::string &msg2 = std::string()) {
+    return Status(status::kCanceled, msg, msg2);
   }
 
   // Returns true iff the status indicates success.

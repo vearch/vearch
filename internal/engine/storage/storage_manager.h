@@ -10,6 +10,7 @@
 #include <memory>
 #include <vector>
 
+#include "c_api/api_data/request_context.h"
 #include "rocksdb/db.h"
 #include "rocksdb/options.h"
 #include "rocksdb/table.h"

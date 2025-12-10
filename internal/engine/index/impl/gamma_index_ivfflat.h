@@ -65,6 +65,10 @@ struct GammaIVFFlatScanner : faiss::InvertedListScanner {
     const float *list_vecs = (const float *)codes;
     size_t nup = 0;
     for (size_t j = 0; j < list_size; j++) {
+      if (RequestContext::is_killed()) {
+        break;
+      }
+
       if (ids[j] & realtime::kDelIdxMask) {
         continue;
       }

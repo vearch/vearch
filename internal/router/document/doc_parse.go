@@ -23,6 +23,7 @@ import (
 	"net/http"
 	"strings"
 	"time"
+	"unsafe"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cast"
@@ -34,6 +35,7 @@ import (
 	"github.com/vearch/vearch/v3/internal/pkg/netutil"
 	"github.com/vearch/vearch/v3/internal/pkg/vjson"
 	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
+	"github.com/vearch/vearch/v3/internal/router/document/gctuner"
 )
 
 const (
@@ -566,7 +568,7 @@ func documentParse(ctx context.Context, handler *DocumentHandler, r *http.Reques
 	}
 
 	docs := make([]*vearchpb.Document, 0, len(docRequest.Documents))
-	for _, docJson := range docRequest.Documents {
+	for i, docJson := range docRequest.Documents {
 		jsonMap, err := vjson.ByteToJsonMap(docJson)
 		if err != nil {
 			return err
@@ -581,6 +583,18 @@ func documentParse(ctx context.Context, handler *DocumentHandler, r *http.Reques
 		if haveVector != vectorFieldNum {
 			if primaryKey == "" {
 				return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("vector field num:%d is not equal to vector num of space fields:%d and document_id is empty", haveVector, vectorFieldNum))
+			}
+		}
+
+		if i == 0 {
+			var fieldSize int
+			for _, field := range fields {
+				fieldSize += int(unsafe.Sizeof(*field)) + len(field.Name) + len(field.Value)
+			}
+			docSize := unsafe.Sizeof(vearchpb.Document{}) + uintptr(len(fields))*unsafe.Sizeof(fields[0])
+			estimatedSize := (int(docSize) + len(primaryKey) + fieldSize) * len(docRequest.Documents)
+			if gctuner.CheckMemoryLimitExceed(uint64(estimatedSize)) {
+				return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("memory usage exceed limit"))
 			}
 		}
 

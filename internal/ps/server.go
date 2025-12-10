@@ -15,6 +15,7 @@
 package ps
 
 import (
+	"container/list"
 	"context"
 	"fmt"
 	"math"
@@ -26,6 +27,7 @@ import (
 	"github.com/vearch/vearch/v3/internal/client"
 	"github.com/vearch/vearch/v3/internal/config"
 	"github.com/vearch/vearch/v3/internal/entity"
+	"github.com/vearch/vearch/v3/internal/entity/request"
 	"github.com/vearch/vearch/v3/internal/pkg/errutil"
 	"github.com/vearch/vearch/v3/internal/pkg/log"
 	"github.com/vearch/vearch/v3/internal/pkg/metrics/mserver"
@@ -86,6 +88,9 @@ func NewServer(ctx context.Context) *Server {
 	s.concurrent = make(chan bool, s.concurrentNum)
 	s.backupStatus = make(map[uint32]int)
 
+	request.Rqueue.ReqList = list.New()
+	request.Rqueue.ReqMap = make(map[request.RequestId]*list.Element, s.concurrentNum)
+
 	s.rpcTimeOut = defaultRpcTimeOut
 	if config.Conf().PS.RpcTimeOut > 0 {
 		s.rpcTimeOut = config.Conf().PS.RpcTimeOut
@@ -143,6 +148,9 @@ func (s *Server) Start() error {
 
 	// start heartbeat job
 	s.StartHeartbeatJob()
+
+	//start memory limit monitor job
+	s.StartKillSlowRequestJob()
 
 	// start rpc server
 	if err = s.rpcServer.Run(); err != nil {

@@ -666,16 +666,25 @@ func (cliCache *clientCache) startCacheJob(ctx context.Context) error {
 				}
 
 				log.Debug("[%v] add to router cache.", ip)
-			} else {
-				request_limit_cfg := &entity.RouterLimitCfg{}
+			} else if routerSplit[0] == entity.RequestLimitConfigKey {
+				request_limit_cfg := &entity.RequestLimitCfg{}
 				if err := vjson.Unmarshal(value, request_limit_cfg); err != nil {
-					return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("put event router cache err, can't unmarshal event value: %s, error: %s", string(value), err.Error()))
+					return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("put event router cache err, can't unmarshal request limit value: %s, error: %s", string(value), err.Error()))
 				}
 
-				cliCache.routerCache.Set("request_limit_config", request_limit_cfg, cache.NoExpiration)
+				cliCache.routerCache.Set(entity.RequestLimitConfigKey, request_limit_cfg, cache.NoExpiration)
 				entity.SetRequestLimit(request_limit_cfg)
 				log.Debug("router change request limit config [%v].", request_limit_cfg)
 
+			} else if routerSplit[0] == entity.MemoryLimitConfigKey {
+				memory_limit_cfg := &entity.MemoryLimitCfg{}
+				if err := vjson.Unmarshal(value, memory_limit_cfg); err != nil {
+					return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("put event router cache err, can't unmarshal memory limit value: %s, error: %s", string(value), err.Error()))
+				}
+
+				cliCache.routerCache.Set(entity.MemoryLimitConfigKey, memory_limit_cfg, cache.NoExpiration)
+				entity.SetMemoryLimit(memory_limit_cfg, true)
+				log.Debug("router change memory limit config [%v].", memory_limit_cfg)
 			}
 
 			return nil
@@ -691,13 +700,20 @@ func (cliCache *clientCache) startCacheJob(ctx context.Context) error {
 					entity.SetRouterCount(false)
 				}
 				log.Debug("delete router[%s] from router cache.", ip)
-			} else {
-				cliCache.routerCache.Delete("request_limit_config")
-				request_limit_cfg := &entity.RouterLimitCfg{
+			} else if routerSplit[0] == entity.RequestLimitConfigKey {
+				cliCache.routerCache.Delete(entity.RequestLimitConfigKey)
+				request_limit_cfg := &entity.RequestLimitCfg{
 					RequestLimitEnabled: false,
 				}
 				entity.SetRequestLimit(request_limit_cfg)
 				log.Debug("delete request limit config from router cache.")
+			} else if routerSplit[0] == entity.MemoryLimitConfigKey {
+				cliCache.routerCache.Delete(entity.MemoryLimitConfigKey)
+				memory_limit_cfg := &entity.MemoryLimitCfg{
+					MemoryLimitEnabled: false,
+				}
+				entity.SetMemoryLimit(memory_limit_cfg, true)
+				log.Debug("delete memory limit config from router cache.")
 			}
 
 			return nil
@@ -836,15 +852,24 @@ func (cliCache *clientCache) initRouter(ctx context.Context) error {
 			ip := string(values[i])
 			cliCache.roleCache.Add(cacheRouterIpKey(ip), ip, cache.NoExpiration)
 			entity.SetRouterCount(true)
-		} else {
-			request_limit_cfg := &entity.RouterLimitCfg{}
+		} else if routerSplit[0] == entity.RequestLimitConfigKey {
+			request_limit_cfg := &entity.RequestLimitCfg{}
 			err := vjson.Unmarshal(values[i], request_limit_cfg)
 			if err != nil {
-				log.Error("unmarshal router limit config cache err [%s]", err.Error())
+				log.Error("unmarshal router request limit config cache err [%s]", err.Error())
 				continue
 			}
-			cliCache.mastersCache.Add("request_limit_config", request_limit_cfg, cache.NoExpiration)
+			cliCache.mastersCache.Add(entity.RequestLimitConfigKey, request_limit_cfg, cache.NoExpiration)
 			entity.SetRequestLimit(request_limit_cfg)
+		} else if routerSplit[0] == entity.MemoryLimitConfigKey {
+			memory_limit_cfg := &entity.MemoryLimitCfg{}
+			err := vjson.Unmarshal(values[i], memory_limit_cfg)
+			if err != nil {
+				log.Error("unmarshal router memory limit config cache err [%s]", err.Error())
+				continue
+			}
+			cliCache.mastersCache.Add(entity.MemoryLimitConfigKey, memory_limit_cfg, cache.NoExpiration)
+			entity.SetMemoryLimit(memory_limit_cfg, true)
 		}
 	}
 

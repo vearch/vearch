@@ -135,7 +135,7 @@ class Engine {
 
   int AddNumIndexFields();
 
-  int MultiRangeQuery(Request &request, SearchCondition *condition,
+  int64_t MultiRangeQuery(Request &request, SearchCondition *condition,
                       Response &response_results,
                       MultiRangeQueryResults *range_query_result);
 

@@ -11,5 +11,7 @@ class Code(object):
     kIOError = 5
     kBusy = 6
     kTimedOut = 7
-    kMaxCode = 8
+    kMemoryExceeded = 8
+    kCanceled = 9
+    kMaxCode = 10
 

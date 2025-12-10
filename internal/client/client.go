@@ -113,13 +113,14 @@ func NewRouterRequest(ctx context.Context, client *Client) *routerRequest {
 }
 
 type routerRequest struct {
-	ctx     context.Context
-	client  *Client
-	md      map[string]string
-	head    *vearchpb.RequestHead
-	docs    []*vearchpb.Document
-	space   *entity.Space
-	sendMap map[entity.PartitionID]*vearchpb.PartitionData
+	ctx       context.Context
+	client    *Client
+	md        map[string]string
+	head      *vearchpb.RequestHead
+	docs      []*vearchpb.Document
+	space     *entity.Space
+	sendMap   map[entity.PartitionID]*vearchpb.PartitionData
+	clientMap sync.Map
 	// Err if error else nil
 	Err error
 }
@@ -648,9 +649,13 @@ func (r *routerRequest) searchFromPartition(ctx context.Context, partitionID ent
 			}
 		}
 		rpcStart = time.Now()
-		retry_err = rpcClient.Execute(ctx, UnaryHandler, pd, replyPartition)
+		if r.Err == nil {
+			r.clientMap.Store(partitionID, nodeID)
+			retry_err = rpcClient.Execute(ctx, UnaryHandler, pd, replyPartition)
+			r.clientMap.Delete(partitionID)
+		}
 		rpcEnd = time.Now()
-		if retry_err == nil {
+		if retry_err == nil || r.Err != nil {
 			break
 		}
 
@@ -680,32 +685,40 @@ func (r *routerRequest) searchFromPartition(ctx context.Context, partitionID ent
 	}
 
 	searchResponse := replyPartition.SearchResponse
-	if searchResponse != nil {
-		if trace {
-			rpcExecute := rpcEnd.Sub(rpcStart).Seconds() * 1000
-			rpcExecuteStr := strconv.FormatFloat(rpcExecute, 'f', 4, 64)
-
-			if searchResponse.Head.Params != nil {
-				searchResponse.Head.Params["rpcExecute_"+partitionIDstr] = rpcExecuteStr
-			} else {
-				costTimeMap := make(map[string]string)
-				costTimeMap["rpcExecute_"+partitionIDstr] = rpcExecuteStr
-				responseHead := &vearchpb.ResponseHead{Params: costTimeMap}
-				searchResponse.Head = responseHead
-			}
-		}
-
-		flatBytes := searchResponse.FlatBytes
-		if flatBytes != nil {
-			deSerializeStartTime := time.Now()
-			sr := &vearchpb.SearchResponse{}
-			gamma.DeSerialize(flatBytes, sr)
-			searchResponse.Results = sr.Results
-			deSerializeEndTime := time.Now()
+	if r.Err == nil {
+		if searchResponse != nil && searchResponse.Head.Err != nil && searchResponse.Head.Err.GetCode() == vearchpb.ErrorEnum_PARTITION_SERVER_MEMORYEXCEED {
+			r.Err = vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_SERVER_MEMORYEXCEED, errors.New("request canceled"))
+			replyPartition.Err = searchResponse.Head.Err
+		} else if searchResponse != nil {
 			if trace {
-				deSerialize := deSerializeEndTime.Sub(deSerializeStartTime).Seconds() * 1000
-				deSerializeStr := strconv.FormatFloat(deSerialize, 'f', 4, 64)
-				searchResponse.Head.Params["deSerialize_"+partitionIDstr] = deSerializeStr
+				rpcExecute := rpcEnd.Sub(rpcStart).Seconds() * 1000
+				rpcExecuteStr := strconv.FormatFloat(rpcExecute, 'f', 4, 64)
+
+				if searchResponse.Head.Params != nil {
+					searchResponse.Head.Params["rpcExecute_"+partitionIDstr] = rpcExecuteStr
+				} else {
+					costTimeMap := make(map[string]string)
+					costTimeMap["rpcExecute_"+partitionIDstr] = rpcExecuteStr
+					responseHead := &vearchpb.ResponseHead{Params: costTimeMap}
+					searchResponse.Head = responseHead
+				}
+			}
+
+			flatBytes := searchResponse.FlatBytes
+			if entity.CheckVirtualMemExceed(len(flatBytes)) {
+				r.Err = vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_SERVER_MEMORYEXCEED, errors.New("request canceled"))
+				replyPartition.Err = &vearchpb.Error{Code: vearchpb.ErrorEnum_PARTITION_SERVER_MEMORYEXCEED, Msg: "request canceled"}
+			} else if flatBytes != nil {
+				deSerializeStartTime := time.Now()
+				sr := &vearchpb.SearchResponse{}
+				gamma.DeSerialize(flatBytes, sr)
+				searchResponse.Results = sr.Results
+				deSerializeEndTime := time.Now()
+				if trace {
+					deSerialize := deSerializeEndTime.Sub(deSerializeStartTime).Seconds() * 1000
+					deSerializeStr := strconv.FormatFloat(deSerialize, 'f', 4, 64)
+					searchResponse.Head.Params["deSerialize_"+partitionIDstr] = deSerializeStr
+				}
 			}
 		}
 	}
@@ -717,6 +730,30 @@ func (r *routerRequest) searchFromPartition(ctx context.Context, partitionID ent
 	responseDoc.PartitionData = replyPartition
 	responseDoc.Desc = desc
 	respChain <- responseDoc
+}
+
+func (r *routerRequest) CancelRequestFromPartition() {
+	sendPartitionMap := r.sendMap
+
+	for partitionId := range sendPartitionMap {
+		if value, ok := r.clientMap.Load(partitionId); ok {
+			go func(pid entity.PartitionID, value interface{}) {
+				defer func() {
+					if err := recover(); err != nil {
+						msg := fmt.Sprintf("CancelRequestFromPartition partitionID: [%v], err: [%v]", pid, err)
+						r.Err = vearchpb.NewError(vearchpb.ErrorEnum_RECOVER, errors.New(msg))
+					}
+				}()
+				nodeId, _ := value.(entity.NodeID)
+				requestPartition := &vearchpb.PartitionData{PartitionID: partitionId, MessageID: r.GetMsgID()}
+
+				rpcClient := r.client.PS().GetOrCreateRPCClient(r.ctx, nodeId)
+				if rpcClient != nil {
+					rpcClient.Execute(r.ctx, RequestCancelHandler, requestPartition, new(vearchpb.PartitionData))
+				}
+			}(partitionId, value)
+		}
+	}
 }
 
 func (r *routerRequest) SearchFieldSortExecute(desc bool) *vearchpb.SearchResponse {
@@ -764,103 +801,131 @@ func (r *routerRequest) SearchFieldSortExecute(desc bool) *vearchpb.SearchRespon
 			r.searchFromPartition(ctx, partitionID, pd, respChain, isNormal, normalField, desc)
 		}(c, partitionID, pData, respChain, isNormal, normalField)
 	}
-	wg.Wait()
-	close(respChain)
 
-	searchPartitionsStr := ""
-	if trace {
-		searchPartitions := time.Since(startSearchPartitonsTime).Seconds() * 1000
-		searchPartitionsStr = strconv.FormatFloat(searchPartitions, 'f', 4, 64)
-	}
-
-	var result []*vearchpb.SearchResult
 	var searchResponse *vearchpb.SearchResponse
-
-	mergeStartTime := time.Now()
-	var finalErr *vearchpb.Error
-	for r := range respChain {
-		if r != nil && r.PartitionData.Err != nil {
-			finalErr = r.PartitionData.Err
-			continue
-		}
-		if r != nil && r.PartitionData != nil && r.PartitionData.SearchResponse != nil &&
-			r.PartitionData.SearchResponse.Head != nil {
-			if r.PartitionData.SearchResponse.Head.Err != nil {
-				finalErr = r.PartitionData.SearchResponse.Head.Err
-				continue
+	doneCh := make(chan struct{})
+	go func() {
+		defer func() {
+			if err := recover(); err != nil {
+				msg := fmt.Sprintf("SearchFieldSortExecute merge result err: [%v]", err)
+				r.Err = vearchpb.NewError(vearchpb.ErrorEnum_RECOVER, errors.New(msg))
+				searchResponse = nil
 			}
-		}
-		if result == nil && r != nil {
-			searchResponse = r.PartitionData.SearchResponse
-			if searchResponse != nil && len(searchResponse.Results) > 0 {
-				result = searchResponse.Results
-				continue
-			}
-		}
+			close(doneCh)
+		}()
 
+		wg.Wait()
+		close(respChain)
+
+		searchPartitionsStr := ""
 		if trace {
-			if r != nil && r.PartitionData != nil && r.PartitionData.SearchResponse != nil &&
-				r.PartitionData.SearchResponse.Head != nil {
-				if searchResponse.Head == nil {
-					searchResponse.Head = &vearchpb.ResponseHead{Params: make(map[string]string)}
-				}
-				for key, value := range r.PartitionData.SearchResponse.Head.Params {
-					searchResponse.Head.Params[key] = value
-				}
-			}
+			searchPartitions := time.Since(startSearchPartitonsTime).Seconds() * 1000
+			searchPartitionsStr = strconv.FormatFloat(searchPartitions, 'f', 4, 64)
 		}
 
-		if len(result) <= len(r.PartitionData.SearchResponse.Results) {
-			for i := range result {
-				AddMergeSort(result[i], r.PartitionData.SearchResponse.Results[i], int(searchReq.TopN), desc)
-			}
-		} else {
-			for i := range r.PartitionData.SearchResponse.Results {
-				AddMergeSort(result[i], r.PartitionData.SearchResponse.Results[0], int(searchReq.TopN), desc)
-			}
-		}
-	}
+		if r.Err == nil {
+			var result []*vearchpb.SearchResult
 
-	for _, resp := range result {
-		quickSort(resp.ResultItems, desc, 0, len(resp.ResultItems)-1)
-		if len(resp.ResultItems) > 0 {
-			if searchReq.PageSize > 0 && searchReq.PageNum >= 1 {
-				start := searchReq.PageSize * (searchReq.PageNum - 1)
-				end := start + searchReq.PageSize
-
-				if int(start) >= len(resp.ResultItems) {
-					resp.ResultItems = nil
-				} else {
-					if int(end) > len(resp.ResultItems) {
-						end = int32(len(resp.ResultItems))
+			mergeStartTime := time.Now()
+			var finalErr *vearchpb.Error
+			for r := range respChain {
+				if r != nil && r.PartitionData.Err != nil {
+					finalErr = r.PartitionData.Err
+					continue
+				}
+				if r != nil && r.PartitionData != nil && r.PartitionData.SearchResponse != nil &&
+					r.PartitionData.SearchResponse.Head != nil {
+					if r.PartitionData.SearchResponse.Head.Err != nil {
+						finalErr = r.PartitionData.SearchResponse.Head.Err
+						continue
 					}
-					resp.ResultItems = resp.ResultItems[start:end]
 				}
-			} else if searchReq.TopN > 0 {
-				if len(resp.ResultItems) > int(searchReq.TopN) {
-					resp.ResultItems = resp.ResultItems[:searchReq.TopN]
+				if result == nil && r != nil {
+					searchResponse = r.PartitionData.SearchResponse
+					if searchResponse != nil && len(searchResponse.Results) > 0 {
+						result = searchResponse.Results
+						continue
+					}
+				}
+
+				if trace {
+					if r != nil && r.PartitionData != nil && r.PartitionData.SearchResponse != nil &&
+						r.PartitionData.SearchResponse.Head != nil {
+						if searchResponse.Head == nil {
+							searchResponse.Head = &vearchpb.ResponseHead{Params: make(map[string]string)}
+						}
+						for key, value := range r.PartitionData.SearchResponse.Head.Params {
+							searchResponse.Head.Params[key] = value
+						}
+					}
+				}
+
+				if len(result) <= len(r.PartitionData.SearchResponse.Results) {
+					for i := range result {
+						AddMergeSort(result[i], r.PartitionData.SearchResponse.Results[i], int(searchReq.TopN), desc)
+					}
+				} else {
+					for i := range r.PartitionData.SearchResponse.Results {
+						AddMergeSort(result[i], r.PartitionData.SearchResponse.Results[0], int(searchReq.TopN), desc)
+					}
 				}
 			}
+
+			for _, resp := range result {
+				quickSort(resp.ResultItems, desc, 0, len(resp.ResultItems)-1)
+				if len(resp.ResultItems) > 0 {
+					if searchReq.PageSize > 0 && searchReq.PageNum >= 1 {
+						start := searchReq.PageSize * (searchReq.PageNum - 1)
+						end := start + searchReq.PageSize
+
+						if int(start) >= len(resp.ResultItems) {
+							resp.ResultItems = nil
+						} else {
+							if int(end) > len(resp.ResultItems) {
+								end = int32(len(resp.ResultItems))
+							}
+							resp.ResultItems = resp.ResultItems[start:end]
+						}
+					} else if searchReq.TopN > 0 {
+						if len(resp.ResultItems) > int(searchReq.TopN) {
+							resp.ResultItems = resp.ResultItems[:searchReq.TopN]
+						}
+					}
+				}
+			}
+
+			if searchResponse == nil {
+				searchResponse = &vearchpb.SearchResponse{}
+				responseHead := &vearchpb.ResponseHead{Err: finalErr}
+				searchResponse.Head = responseHead
+			}
+			mergeAndSort := time.Since(mergeStartTime).Seconds() * 1000
+			mergeAndSortStr := strconv.FormatFloat(mergeAndSort, 'f', 4, 64)
+			if trace && searchResponse.Head != nil && searchResponse.Head.Params != nil {
+				searchResponse.Head.Params["mergeAndSort"] = mergeAndSortStr
+				searchResponse.Head.Params["searchPartitions"] = searchPartitionsStr
+				searchExecute := time.Since(startTime).Seconds() * 1000
+				searchExecuteStr := strconv.FormatFloat(searchExecute, 'f', 4, 64)
+				searchResponse.Head.Params["searchExecute"] = searchExecuteStr
+			}
+			searchResponse.Results = result
+			searchResponse.Head.RequestId = r.GetMsgID()
+		}
+	}()
+
+	canceled := false
+	for {
+		select {
+		case <-doneCh:
+			return searchResponse
+		default:
+		}
+
+		if r.Err != nil && !canceled {
+			r.CancelRequestFromPartition()
+			canceled = true
 		}
 	}
-
-	if searchResponse == nil {
-		searchResponse = &vearchpb.SearchResponse{}
-		responseHead := &vearchpb.ResponseHead{Err: finalErr}
-		searchResponse.Head = responseHead
-	}
-	mergeAndSort := time.Since(mergeStartTime).Seconds() * 1000
-	mergeAndSortStr := strconv.FormatFloat(mergeAndSort, 'f', 4, 64)
-	if trace && searchResponse.Head != nil && searchResponse.Head.Params != nil {
-		searchResponse.Head.Params["mergeAndSort"] = mergeAndSortStr
-		searchResponse.Head.Params["searchPartitions"] = searchPartitionsStr
-		searchExecute := time.Since(startTime).Seconds() * 1000
-		searchExecuteStr := strconv.FormatFloat(searchExecute, 'f', 4, 64)
-		searchResponse.Head.Params["searchExecute"] = searchExecuteStr
-	}
-	searchResponse.Results = result
-	searchResponse.Head.RequestId = r.GetMsgID()
-	return searchResponse
 }
 
 func (r *routerRequest) queryFromPartition(ctx context.Context, partitionID entity.PartitionID, pd *vearchpb.PartitionData, space *entity.Space, respChain chan *response.SearchDocResult) {
@@ -931,8 +996,12 @@ func (r *routerRequest) queryFromPartition(ctx context.Context, partitionID enti
 			return
 		}
 
-		retry_err = rpcClient.Execute(ctx, UnaryHandler, pd, replyPartition)
-		if retry_err == nil {
+		if r.Err == nil {
+			r.clientMap.Store(partitionID, nodeID)
+			retry_err = rpcClient.Execute(ctx, UnaryHandler, pd, replyPartition)
+			r.clientMap.Delete(partitionID)
+		}
+		if retry_err == nil || r.Err != nil {
 			break
 		}
 
@@ -963,11 +1032,20 @@ func (r *routerRequest) queryFromPartition(ctx context.Context, partitionID enti
 		return
 	}
 
-	searchResponse := replyPartition.SearchResponse
-	if searchResponse != nil {
-		flatBytes := searchResponse.FlatBytes
-		if flatBytes != nil {
-			gamma.DeSerialize(flatBytes, searchResponse)
+	if r.Err == nil {
+		searchResponse := replyPartition.SearchResponse
+		if searchResponse != nil && searchResponse.Head.Err != nil && searchResponse.Head.Err.GetCode() == vearchpb.ErrorEnum_PARTITION_SERVER_MEMORYEXCEED {
+			r.Err = vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_SERVER_MEMORYEXCEED, errors.New("request canceled"))
+			replyPartition.Err = searchResponse.Head.Err
+		}
+		if searchResponse != nil {
+			flatBytes := searchResponse.FlatBytes
+			if entity.CheckVirtualMemExceed(len(flatBytes)) {
+				r.Err = vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_SERVER_MEMORYEXCEED, errors.New("request canceled"))
+				replyPartition.Err = &vearchpb.Error{Code: vearchpb.ErrorEnum_PARTITION_SERVER_MEMORYEXCEED, Msg: "request canceled"}
+			} else if flatBytes != nil {
+				gamma.DeSerialize(flatBytes, searchResponse)
+			}
 		}
 	}
 	responseDoc.PartitionData = replyPartition
@@ -989,107 +1067,119 @@ func (r *routerRequest) QueryFieldSortExecute() *vearchpb.SearchResponse {
 			r.queryFromPartition(ctx, partitionID, pd, space, respChain)
 		}(c, partitionID, pData, r.space, respChain)
 	}
-	wg.Wait()
-	close(respChain)
 
-	var result []*vearchpb.SearchResult
 	var searchResponse *vearchpb.SearchResponse
-	var head vearchpb.ResponseHead
-
-	var finalErr *vearchpb.Error
-	for r := range respChain {
-		if r != nil && r.PartitionData.Err != nil {
-			finalErr = r.PartitionData.Err
-			continue
-		}
-		if result == nil && r != nil {
-			searchResponse = r.PartitionData.SearchResponse
-			if searchResponse != nil && searchResponse.Head != nil && searchResponse.Head.Err != nil {
-				head.Err = searchResponse.Head.Err
-				continue
+	doneCh := make(chan struct{})
+	go func() {
+		defer func() {
+			if err := recover(); err != nil {
+				msg := fmt.Sprintf("QueryFieldSortExecute merge result err: [%v]", err)
+				r.Err = vearchpb.NewError(vearchpb.ErrorEnum_RECOVER, errors.New(msg))
+				searchResponse = nil
 			}
-			if searchResponse != nil && searchResponse.Results != nil && len(searchResponse.Results) > 0 {
-				result = searchResponse.Results
-				continue
+			close(doneCh)
+		}()
+
+		wg.Wait()
+		close(respChain)
+
+		if r.Err == nil {
+			var result []*vearchpb.SearchResult
+			var head vearchpb.ResponseHead
+
+			var finalErr *vearchpb.Error
+			for r := range respChain {
+				if r != nil && r.PartitionData.Err != nil {
+					finalErr = r.PartitionData.Err
+					continue
+				}
+				if result == nil && r != nil {
+					searchResponse := r.PartitionData.SearchResponse
+					if searchResponse != nil && searchResponse.Head != nil && searchResponse.Head.Err != nil {
+						head.Err = searchResponse.Head.Err
+						continue
+					}
+					if searchResponse != nil && searchResponse.Results != nil && len(searchResponse.Results) > 0 {
+						result = searchResponse.Results
+						continue
+					}
+				}
+
+				if err := AddMergeResultArr(result, r.PartitionData.SearchResponse.Results); err != nil {
+					log.Error("query AddMergeResultArr error:", err)
+				}
 			}
-		}
 
-		if err := AddMergeResultArr(result, r.PartitionData.SearchResponse.Results); err != nil {
-			log.Error("query AddMergeResultArr error:", err)
-		}
-	}
+			searchResponse = &vearchpb.SearchResponse{}
+			responseHead := &vearchpb.ResponseHead{}
+			searchResponse.Head = responseHead
+			if result == nil && head.Err != nil {
+				err := &vearchpb.Error{Code: head.Err.Code, Msg: head.Err.Msg}
+				searchResponse.Head.Err = err
+			} else if finalErr != nil {
+				searchResponse.Head.Err = finalErr
+			} else if len(result) > 1 {
+				err := &vearchpb.Error{Code: vearchpb.ErrorEnum_PARAM_ERROR, Msg: "the document_ids of query should be a one-dimensional array"}
+				searchResponse.Head.Err = err
+			} else if len(result) == 1 {
+				if len(searchReq.DocumentIds) == 0 {
+					for _, resp := range result {
+						if len(resp.ResultItems) > 0 {
+							if searchReq.PageSize > 0 && searchReq.PageNum >= 1 {
+								start := searchReq.PageSize * (searchReq.PageNum - 1)
+								end := start + searchReq.PageSize
 
-	if result == nil && head.Err != nil {
-		err := &vearchpb.Error{Code: head.Err.Code, Msg: head.Err.Msg}
-		searchResponse = &vearchpb.SearchResponse{}
-		responseHead := &vearchpb.ResponseHead{Err: err}
-		searchResponse.Head = responseHead
-		return searchResponse
-	}
-
-	if searchResponse == nil {
-		searchResponse = &vearchpb.SearchResponse{}
-		responseHead := &vearchpb.ResponseHead{Err: finalErr}
-		searchResponse.Head = responseHead
-	}
-
-	if len(result) == 0 {
-		searchResponse = &vearchpb.SearchResponse{}
-		responseHead := &vearchpb.ResponseHead{}
-		searchResponse.Head = responseHead
-		return searchResponse
-	}
-
-	if len(result) > 1 {
-		err := &vearchpb.Error{Code: vearchpb.ErrorEnum_PARAM_ERROR, Msg: "the document_ids of query should be a one-dimensional array"}
-		searchResponse = &vearchpb.SearchResponse{}
-		responseHead := &vearchpb.ResponseHead{Err: err}
-		searchResponse.Head = responseHead
-		return searchResponse
-	}
-
-	if len(searchReq.DocumentIds) == 0 {
-		for _, resp := range result {
-			if len(resp.ResultItems) > 0 {
-				if searchReq.PageSize > 0 && searchReq.PageNum >= 1 {
-					start := searchReq.PageSize * (searchReq.PageNum - 1)
-					end := start + searchReq.PageSize
-
-					if int(start) >= len(resp.ResultItems) {
-						resp.ResultItems = nil
-					} else {
-						if int(end) > len(resp.ResultItems) {
-							end = int32(len(resp.ResultItems))
+								if int(start) >= len(resp.ResultItems) {
+									resp.ResultItems = nil
+								} else {
+									if int(end) > len(resp.ResultItems) {
+										end = int32(len(resp.ResultItems))
+									}
+									resp.ResultItems = resp.ResultItems[start:end]
+								}
+							} else if searchReq.Limit > 0 {
+								if len(resp.ResultItems) > int(searchReq.Limit) {
+									resp.ResultItems = resp.ResultItems[:searchReq.Limit]
+								}
+							}
 						}
-						resp.ResultItems = resp.ResultItems[start:end]
 					}
-				} else if searchReq.Limit > 0 {
-					if len(resp.ResultItems) > int(searchReq.Limit) {
-						resp.ResultItems = resp.ResultItems[:searchReq.Limit]
+				} else {
+					// order by document_ids
+					orderMap := make(map[string]int)
+					for i, name := range searchReq.DocumentIds {
+						orderMap[name] = i
 					}
+					for _, item := range result[0].ResultItems {
+						for _, field := range item.Fields {
+							if field != nil && field.Name == "_id" {
+								item.PKey = string(field.Value)
+							}
+						}
+					}
+					sort.Slice(result[0].ResultItems, func(i, j int) bool {
+						return orderMap[result[0].ResultItems[i].PKey] < orderMap[result[0].ResultItems[j].PKey]
+					})
 				}
 			}
+			searchResponse.Results = result
 		}
-	} else {
-		// order by document_ids
-		orderMap := make(map[string]int)
-		for i, name := range searchReq.DocumentIds {
-			orderMap[name] = i
-		}
-		for _, item := range result[0].ResultItems {
-			for _, field := range item.Fields {
-				if field != nil && field.Name == "_id" {
-					item.PKey = string(field.Value)
-				}
-			}
-		}
-		sort.Slice(result[0].ResultItems, func(i, j int) bool {
-			return orderMap[result[0].ResultItems[i].PKey] < orderMap[result[0].ResultItems[j].PKey]
-		})
-	}
+		close(doneCh)
+	}()
 
-	searchResponse.Results = result
-	return searchResponse
+	canceled := false
+	for {
+		select {
+		case <-doneCh:
+			return searchResponse
+		default:
+		}
+
+		if r.Err != nil && !canceled {
+			r.CancelRequestFromPartition()
+			canceled = true
+		}
+	}
 }
 
 func quickSort(items []*vearchpb.ResultItem, desc bool, low, high int) {

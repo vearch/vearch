@@ -12,6 +12,7 @@
 #include "doc.h"
 #include "idl/pb-gen/data_model.pb.h"
 #include "idl/pb-gen/router_grpc.pb.h"
+#include "memory/memoryManager.h"
 #include "table/table.h"
 #include "util/log.h"
 #include "util/utils.h"
@@ -51,16 +52,19 @@ int Response::Serialize(const std::string &space_name,
   VectorManager *vector_mgr = static_cast<VectorManager *>(vector_mgr_);
   vearchpb::SearchResponse pbResponse;
   pbResponse.set_timeout(false);
+
+  std::string serialized;
+  if (!pbResponse.SerializeToString(&serialized)) {
+    LOG(ERROR) << "failed to serialize " << serialized.size();
+    return -1;
+  }
+  
+  *out_len = serialized.size();
+  *out = (char *)malloc(*out_len * sizeof(char));
+  memcpy(*out, (char *)serialized.data(), *out_len);
+
   // empty result
   if (table == nullptr || vector_mgr == nullptr) {
-    std::string serialized;
-    if (!pbResponse.SerializeToString(&serialized)) {
-      LOG(ERROR) << "failed to serialize " << serialized.size();
-      return -1;
-    }
-    *out_len = serialized.size();
-    *out = (char *)malloc(*out_len * sizeof(char));
-    memcpy(*out, (char *)serialized.data(), *out_len);
     return 0;
   }
   const auto &attr_idx_map = table->FieldMap();
@@ -93,6 +97,10 @@ int Response::Serialize(const std::string &space_name,
 
     double max_score = std::numeric_limits<double>::lowest();
     for (int j = 0; j < gamma_results_[i].results_count; ++j) {
+      if (RequestContext::is_killed()) {
+        status = Status::MemoryExceeded();
+        return -1;
+      }
       VectorDoc *vec_doc = gamma_results_[i].docs[j];
       int docid = vec_doc->docid;
       double score = vec_doc->score;
@@ -153,7 +161,6 @@ int Response::Serialize(const std::string &space_name,
     pbRes->set_timeout(false);
   }
 
-  std::string serialized;
   if (!pbResponse.SerializeToString(&serialized)) {
     LOG(ERROR) << "failed to serialize " << serialized;
     return -1;
