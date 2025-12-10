@@ -1,6 +1,8 @@
 package entity
 
 import (
+	"os"
+
 	vearch_os "github.com/vearch/vearch/v3/internal/pkg/runtime/os"
 	"github.com/vearch/vearch/v3/internal/router/document/gctuner"
 	"golang.org/x/time/rate"
@@ -37,6 +39,10 @@ const (
 )
 
 var (
+	HostIp   = os.Getenv("VEARCH_HOST_IP")
+	HostRack = os.Getenv("VEARCH_HOST_RACK")
+	HostZone = os.Getenv("VEARCH_HOST_ZONE")
+
 	ReadLimiter  = rate.NewLimiter(rate.Limit(rate.Inf), 0)
 	WriteLimiter = rate.NewLimiter(rate.Limit(rate.Inf), 0)
 

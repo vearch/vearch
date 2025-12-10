@@ -1416,6 +1416,41 @@ func GetNodeIdsByClientType(clientType string, partition *entity.Partition, serv
 		} else {
 			nodeId = replicaRoundRobin.Next(partition.Id, randIDs)
 		}
+	case request.NearestConnection:
+		nearestId := make(map[string][]entity.NodeID, 0)
+		OTHER := "others"
+		for _, nodeID := range partition.Replicas {
+			var server *entity.Server
+			if get, serverExist := servers.Get(cast.ToString(nodeID)); !serverExist {
+				continue
+			} else {
+				server = get.(*entity.Server)
+			}
+
+			if client.PS().TestFaulty(nodeID) {
+				continue
+			}
+			if config.Conf().Global.RaftConsistent {
+				if partition.ReStatusMap[nodeID] == entity.ReplicasOK {
+					if server.HostZone == entity.HostZone {
+						nearestId[entity.HostZone] = append(nearestId[entity.HostZone], server.ID)
+					} else {
+						nearestId[OTHER] = append(nearestId[OTHER], server.ID)
+					}
+				}
+			} else {
+				if server.HostZone == entity.HostZone {
+					nearestId[entity.HostZone] = append(nearestId[entity.HostZone], server.ID)
+				} else {
+					nearestId[OTHER] = append(nearestId[OTHER], server.ID)
+				}
+			}
+		}
+		if len(nearestId[entity.HostZone]) > 0 {
+			nodeId = replicaRoundRobin.Next(partition.Id, nearestId[entity.HostZone])
+		} else {
+			nodeId = replicaRoundRobin.Next(partition.Id, nearestId[OTHER])
+		}
 	default:
 		randIDs := make([]entity.NodeID, 0)
 		for _, nodeID := range partition.Replicas {
