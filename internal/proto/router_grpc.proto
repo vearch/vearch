@@ -185,6 +185,7 @@ message SearchRequest {
   int32 page_size = 18;
   int32 page_num = 19;
   int32 offset = 20;
+  bool is_slow_search = 21;
 }
 
 //*********************** Search response *********************** //

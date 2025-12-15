@@ -103,7 +103,7 @@ type SpaceConfig struct {
 	DBId            DBID    `json:"db_id,omitempty"`
 	EngineCacheSize *int64  `json:"engine_cache_size,omitempty"`
 	Path            *string `json:"path,omitempty"`
-	LongSearchTime  *int64  `json:"long_search_time,omitempty"`
+	SlowSearchTime  *int64  `json:"slow_search_time,omitempty"` //previous name "long_search_time"
 	RefreshInterval *int32  `json:"refresh_interval,omitempty"`
 	EnableIdCache   *bool   `json:"enable_id_cache,omitempty"`
 }

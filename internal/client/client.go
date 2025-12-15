@@ -1164,7 +1164,6 @@ func (r *routerRequest) QueryFieldSortExecute() *vearchpb.SearchResponse {
 			}
 			searchResponse.Results = result
 		}
-		close(doneCh)
 	}()
 
 	canceled := false

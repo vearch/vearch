@@ -4642,6 +4642,7 @@ class SearchRequest final :
     kL2SqrtFieldNumber = 11,
     kIsVectorValueFieldNumber = 12,
     kTraceFieldNumber = 16,
+    kIsSlowSearchFieldNumber = 21,
     kOperatorFieldNumber = 17,
     kPageSizeFieldNumber = 18,
     kPageNumFieldNumber = 19,
@@ -4869,6 +4870,15 @@ class SearchRequest final :
   void _internal_set_trace(bool value);
   public:
 
+  // bool is_slow_search = 21;
+  void clear_is_slow_search();
+  bool is_slow_search() const;
+  void set_is_slow_search(bool value);
+  private:
+  bool _internal_is_slow_search() const;
+  void _internal_set_is_slow_search(bool value);
+  public:
+
   // int32 operator = 17;
   void clear_operator_();
   int32_t operator_() const;
@@ -4933,6 +4943,7 @@ class SearchRequest final :
     bool l2_sqrt_;
     bool is_vector_value_;
     bool trace_;
+    bool is_slow_search_;
     int32_t operator__;
     int32_t page_size_;
     int32_t page_num_;
@@ -10303,6 +10314,26 @@ inline void SearchRequest::_internal_set_offset(int32_t value) {
 inline void SearchRequest::set_offset(int32_t value) {
   _internal_set_offset(value);
   // @@protoc_insertion_point(field_set:vearchpb.SearchRequest.offset)
+}
+
+// bool is_slow_search = 21;
+inline void SearchRequest::clear_is_slow_search() {
+  _impl_.is_slow_search_ = false;
+}
+inline bool SearchRequest::_internal_is_slow_search() const {
+  return _impl_.is_slow_search_;
+}
+inline bool SearchRequest::is_slow_search() const {
+  // @@protoc_insertion_point(field_get:vearchpb.SearchRequest.is_slow_search)
+  return _internal_is_slow_search();
+}
+inline void SearchRequest::_internal_set_is_slow_search(bool value) {
+  
+  _impl_.is_slow_search_ = value;
+}
+inline void SearchRequest::set_is_slow_search(bool value) {
+  _internal_set_is_slow_search(value);
+  // @@protoc_insertion_point(field_set:vearchpb.SearchRequest.is_slow_search)
 }
 
 // -------------------------------------------------------------------

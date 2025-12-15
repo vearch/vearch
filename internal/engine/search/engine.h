@@ -161,7 +161,7 @@ class Engine {
 
   int64_t max_docid_;
   int training_threshold_;
-  int long_search_time_;
+  int slow_search_time_;
 
   std::atomic<int>
       delete_num_;  // Index building state management with atomic operations

@@ -255,6 +255,9 @@ func (handler *DocumentHandler) proxyMaster(group *gin.RouterGroup) error {
 	group.POST("/config/memory_limit", handler.handleMasterRequest)
 	group.GET("/config/memory_limit", handler.handleMasterRequest)
 
+	group.POST("/config/slow_search_isolation", handler.handleMasterRequest)
+	group.GET("/config/slow_search_isolation", handler.handleMasterRequest)
+
 	// members handler
 	group.GET("/members", handler.handleMasterRequest)
 	group.GET("/members/stats", handler.handleMasterRequest)

@@ -137,7 +137,7 @@ Engine::Engine(const std::string &index_root_path,
 #ifdef PERFORMANCE_TESTING
   search_num_ = 0;
 #endif
-  long_search_time_ = 1000;
+  slow_search_time_ = 1000;
 }
 
 Engine::~Engine() {
@@ -302,7 +302,7 @@ Status Engine::Search(Request &request, Response &response_results) {
 
   auto *perf_tool = response_results.GetPerfTool();
   if (perf_tool) {
-    perf_tool->long_search_time = long_search_time_;
+    perf_tool->slow_search_time = slow_search_time_;
   }
   GammaQuery query;
   query.vec_query = vec_fields;
@@ -1742,7 +1742,7 @@ int Engine::GetConfig(std::string &conf_str) {
   nlohmann::json j;
   j["engine_cache_size"] = table_cache_size;
   j["path"] = index_root_path_;
-  j["long_search_time"] = long_search_time_;
+  j["slow_search_time"] = slow_search_time_;
   j["refresh_interval"] = refresh_interval_;
   j["enable_id_cache"] = table_->GetEnableIdCache();
   conf_str = j.dump();
@@ -1761,8 +1761,8 @@ int Engine::SetConfig(std::string conf_str) {
     index_root_path_ = j["path"];
   }
 
-  if (j.contains("long_search_time")) {
-    long_search_time_ = j["long_search_time"];
+  if (j.contains("slow_search_time")) {
+    slow_search_time_ = j["slow_search_time"];
   }
 
   if (j.contains("refresh_interval")) {

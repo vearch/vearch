@@ -47,24 +47,26 @@ var (
 
 // Server partition server
 type Server struct {
-	mu              sync.RWMutex
-	nodeID          entity.NodeID // server id
-	ip              string
-	partitions      sync.Map
-	raftResolver    *raftstore.RaftResolver
-	raftServer      *raft.RaftServer
-	rpcServer       *rpc.RpcServer
-	client          *client.Client
-	ctx             context.Context
-	ctxCancel       context.CancelFunc
-	stopping        bool
-	wg              sync.WaitGroup
-	changeLeaderC   chan *changeLeaderEntry
-	replicasStatusC chan *raftstore.ReplicasStatusEntry
-	concurrent      chan bool
-	concurrentNum   int
-	rpcTimeOut      int
-	backupStatus    map[uint32]int
+	mu                       sync.RWMutex
+	nodeID                   entity.NodeID // server id
+	ip                       string
+	partitions               sync.Map
+	raftResolver             *raftstore.RaftResolver
+	raftServer               *raft.RaftServer
+	rpcServer                *rpc.RpcServer
+	client                   *client.Client
+	ctx                      context.Context
+	ctxCancel                context.CancelFunc
+	stopping                 bool
+	wg                       sync.WaitGroup
+	changeLeaderC            chan *changeLeaderEntry
+	replicasStatusC          chan *raftstore.ReplicasStatusEntry
+	read_request_concurrent  chan bool
+	write_request_concurrent chan bool
+	slow_search_concurrent   chan bool
+	concurrentNum            int
+	rpcTimeOut               int
+	backupStatus             map[uint32]int
 }
 
 // NewServer creates a server instance
@@ -85,7 +87,9 @@ func NewServer(ctx context.Context) *Server {
 	if config.Conf().PS.ConcurrentNum > 0 {
 		s.concurrentNum = config.Conf().PS.ConcurrentNum
 	}
-	s.concurrent = make(chan bool, s.concurrentNum)
+	s.read_request_concurrent = make(chan bool, s.concurrentNum)
+	s.write_request_concurrent = make(chan bool, s.concurrentNum)
+	s.slow_search_concurrent = make(chan bool, s.concurrentNum/4)
 	s.backupStatus = make(map[uint32]int)
 
 	request.Rqueue.ReqList = list.New()
