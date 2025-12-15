@@ -396,7 +396,10 @@ int GammaIndexHNSWLIB::Search(RetrievalContext *retrieval_context, int n,
 #pragma omp parallel for schedule(dynamic) num_threads(threads_num)
   for (int i = 0; i < n; ++i) {
     int j = 0;
-    RequestContext::ScopedContext(request, partition_id);
+
+    if (RequestContext::get_current_request() == nullptr) {
+      RequestContext::ScopedContext(request, partition_id);
+    }
 
     auto result = searchKnn(
         (const void *)(xq + i * d), k, fstdistfunc,

@@ -558,7 +558,9 @@ void GammaIVFFlatIndex::search_preassigned(RetrievalContext *retrieval_context,
         GetGammaInvertedListScanner(store_pairs, nullptr, retrieval_context, metric_type);
     utils::ScopeDeleter1<faiss::InvertedListScanner> del(scanner);
 
-    RequestContext::ScopedContext(request, partition_id);
+    if (RequestContext::get_current_request() == nullptr) {
+      RequestContext::ScopedContext(request, partition_id);
+    }
 
     /*****************************************************
      * Depending on parallel_mode, there are two possible ways
