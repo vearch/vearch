@@ -299,6 +299,9 @@ func ExportToClusterHandler(router *gin.Engine, masterService *masterService, se
 	groupAuth.POST("/config/memory_limit", c.modifyMemoryLimitCfg)
 	groupAuth.GET("/config/memory_limit", c.getMemoryLimitCfg)
 
+	group.POST("/config/slow_search_isolation", c.modifySlowSearchIsolationCfg)
+	group.GET("/config/slow_search_isolation", c.getSlowSearchIsolationCfg)
+
 	// partition handler
 	groupAuth.GET("/partitions", c.partitionList)
 	groupAuth.POST("/partitions/change_member", c.changeMember)
@@ -1356,5 +1359,30 @@ func (ca *clusterAPI) modifyMemoryLimitCfg(c *gin.Context) {
 		response.New(c).JsonError(errors.NewErrInternal(err))
 	} else {
 		response.New(c).JsonSuccess(mlc)
+	}
+}
+
+// get long search isolation config
+func (ca *clusterAPI) getSlowSearchIsolationCfg(c *gin.Context) {
+	if slow_search_isolation, err := ca.masterService.Config().GetSlowSearchIsolationCfg(c); err != nil {
+		response.New(c).JsonError(errors.NewErrInternal(err))
+	} else {
+		response.New(c).JsonSuccess(slow_search_isolation)
+	}
+}
+
+// modify long search isolation config
+func (ca *clusterAPI) modifySlowSearchIsolationCfg(c *gin.Context) {
+	lsc := &entity.SlowSearchIsolationCfg{}
+
+	if err := c.ShouldBindJSON(lsc); err != nil {
+		response.New(c).JsonError(errors.NewErrInternal(err))
+		return
+	}
+
+	if err := ca.masterService.Config().ModifySlowSearchIsolationCfg(c, lsc); err != nil {
+		response.New(c).JsonError(errors.NewErrInternal(err))
+	} else {
+		response.New(c).JsonSuccess(lsc)
 	}
 }

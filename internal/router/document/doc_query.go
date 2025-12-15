@@ -204,6 +204,24 @@ func parseRanker(data json.RawMessage, req *vearchpb.SearchRequest) error {
 	return nil
 }
 
+func parseSlowSearch(indexParams *entity.IndexParams, indexType string, req *vearchpb.SearchRequest) {
+	if req.TopN >= 500 {
+		req.IsSlowSearch = true
+		return
+	}
+
+	if indexParams != nil {
+		if (indexType == "IVFFLAT" || indexType == "IVFPQ") && indexParams.Nprobe >= indexParams.Ncentroids/10 {
+			req.IsSlowSearch = true
+			return
+		}
+	}
+
+	if len(req.RangeFilters)+len(req.TermFilters) >= 3 {
+		req.IsSlowSearch = true
+	}
+}
+
 func unmarshalArray[T any](data []byte, dimension int) ([]T, error) {
 	if len(data) < dimension {
 		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("vector embedding length [%d] err, should be:[%d]", len(data), dimension))
@@ -1418,12 +1436,19 @@ func requestToPb(searchDoc *request.SearchDocumentRequest, space *entity.Space, 
 		metricType = indexParams.MetricType
 	}
 
-	if metricType == "" && space != nil && space.Index != nil && len(space.Index.Params) > 0 {
-		err := vjson.Unmarshal(space.Index.Params, indexParams)
+	if space != nil && space.Index != nil && len(space.Index.Params) > 0 {
+		var spaceIndexParams entity.IndexParams
+		err := vjson.Unmarshal(space.Index.Params, &spaceIndexParams)
 		if err != nil {
 			return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("unmarshal err:[%s] , space.Index.IndexParams:[%s]", err.Error(), string(space.Index.Params)))
 		}
-		metricType = indexParams.MetricType
+		if metricType == "" {
+			metricType = spaceIndexParams.MetricType
+		}
+		if indexParams.Nprobe == 0 {
+			indexParams.Nprobe = spaceIndexParams.Nprobe
+		}
+		indexParams.Ncentroids = spaceIndexParams.Ncentroids
 	}
 
 	if metricType == "L2" {
@@ -1472,6 +1497,10 @@ func requestToPb(searchDoc *request.SearchDocumentRequest, space *entity.Space, 
 	}
 	if searchDoc.Offset > 0 {
 		searchReq.Offset = searchDoc.Offset
+	}
+
+	if entity.SlowSearchIsolationEnabled {
+		parseSlowSearch(indexParams, space.Index.Type, searchReq)
 	}
 
 	searchReq.Head.ClientType = searchDoc.LoadBalance

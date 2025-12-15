@@ -675,7 +675,6 @@ func (cliCache *clientCache) startCacheJob(ctx context.Context) error {
 				cliCache.routerCache.Set(entity.RequestLimitConfigKey, request_limit_cfg, cache.NoExpiration)
 				entity.SetRequestLimit(request_limit_cfg)
 				log.Debug("router change request limit config [%v].", request_limit_cfg)
-
 			} else if routerSplit[0] == entity.MemoryLimitConfigKey {
 				memory_limit_cfg := &entity.MemoryLimitCfg{}
 				if err := vjson.Unmarshal(value, memory_limit_cfg); err != nil {
@@ -685,6 +684,15 @@ func (cliCache *clientCache) startCacheJob(ctx context.Context) error {
 				cliCache.routerCache.Set(entity.MemoryLimitConfigKey, memory_limit_cfg, cache.NoExpiration)
 				entity.SetMemoryLimit(memory_limit_cfg, true)
 				log.Debug("router change memory limit config [%v].", memory_limit_cfg)
+			} else if routerSplit[0] == entity.SlowSearchIsolationKey {
+				slow_search_isolation := &entity.SlowSearchIsolationCfg{}
+				if err := vjson.Unmarshal(value, slow_search_isolation); err != nil {
+					return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("put event router cache err, can't unmarshal event value: %s, error: %s", string(value), err.Error()))
+				}
+
+				cliCache.routerCache.Set(entity.SlowSearchIsolationKey, slow_search_isolation, cache.NoExpiration)
+				entity.SetSlowSearchIsolation(slow_search_isolation)
+				log.Debug("router change slow search isolation config [%v].", slow_search_isolation)
 			}
 
 			return nil
@@ -714,6 +722,13 @@ func (cliCache *clientCache) startCacheJob(ctx context.Context) error {
 				}
 				entity.SetMemoryLimit(memory_limit_cfg, true)
 				log.Debug("delete memory limit config from router cache.")
+			} else if routerSplit[0] == entity.SlowSearchIsolationKey {
+				cliCache.routerCache.Delete(entity.SlowSearchIsolationKey)
+				slow_search_isolation := &entity.SlowSearchIsolationCfg{
+					SlowSearchIsolationEnabled: true,
+				}
+				entity.SetSlowSearchIsolation(slow_search_isolation)
+				log.Debug("delete slow search isolation config from router cache.")
 			}
 
 			return nil
@@ -847,10 +862,10 @@ func (cliCache *clientCache) initRouter(ctx context.Context) error {
 		routerKey := strings.TrimPrefix(string(key), entity.PrefixRouter)
 		routerSplit := strings.Split(routerKey, "/")
 
-		log.Info("routerSplit value [%v]", routerSplit)
+		log.Info("routerSplit value [%v], values [%v]", routerSplit, string(values[i]))
 		if len(routerSplit) > 1 {
 			ip := string(values[i])
-			cliCache.roleCache.Add(cacheRouterIpKey(ip), ip, cache.NoExpiration)
+			cliCache.routerCache.Add(cacheRouterIpKey(ip), ip, cache.NoExpiration)
 			entity.SetRouterCount(true)
 		} else if routerSplit[0] == entity.RequestLimitConfigKey {
 			request_limit_cfg := &entity.RequestLimitCfg{}
@@ -859,7 +874,7 @@ func (cliCache *clientCache) initRouter(ctx context.Context) error {
 				log.Error("unmarshal router request limit config cache err [%s]", err.Error())
 				continue
 			}
-			cliCache.mastersCache.Add(entity.RequestLimitConfigKey, request_limit_cfg, cache.NoExpiration)
+			cliCache.routerCache.Add(entity.RequestLimitConfigKey, request_limit_cfg, cache.NoExpiration)
 			entity.SetRequestLimit(request_limit_cfg)
 		} else if routerSplit[0] == entity.MemoryLimitConfigKey {
 			memory_limit_cfg := &entity.MemoryLimitCfg{}
@@ -868,8 +883,17 @@ func (cliCache *clientCache) initRouter(ctx context.Context) error {
 				log.Error("unmarshal router memory limit config cache err [%s]", err.Error())
 				continue
 			}
-			cliCache.mastersCache.Add(entity.MemoryLimitConfigKey, memory_limit_cfg, cache.NoExpiration)
+			cliCache.routerCache.Add(entity.MemoryLimitConfigKey, memory_limit_cfg, cache.NoExpiration)
 			entity.SetMemoryLimit(memory_limit_cfg, true)
+		} else if routerSplit[0] == entity.SlowSearchIsolationKey {
+			slow_search_isolation := &entity.SlowSearchIsolationCfg{}
+			err := vjson.Unmarshal(values[i], slow_search_isolation)
+			if err != nil {
+				log.Error("unmarshal slow search isolation config cache err [%s]", err.Error())
+				continue
+			}
+			cliCache.routerCache.Add(entity.SlowSearchIsolationKey, slow_search_isolation, cache.NoExpiration)
+			entity.SetSlowSearchIsolation(slow_search_isolation)
 		}
 	}
 

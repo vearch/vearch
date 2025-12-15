@@ -184,15 +184,39 @@ func (handler *UnaryHandler) execute(ctx context.Context, req *vearchpb.Partitio
 		}
 	}()
 
+	if handler.server == nil {
+		log.Info("%s", "ps server is nil")
+	}
+
+	var method string
+	reqMap := ctx.Value(share.ReqMetaDataKey).(map[string]string)
+	method, ok := reqMap[client.HandlerType]
+	if !ok {
+		err := fmt.Errorf("client type not support, key [%s]", client.HandlerType)
+		req.Err = vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err).GetError()
+		return
+	}
+
+	var concurrentCh chan bool
+	if req.SearchRequest != nil && req.SearchRequest.IsSlowSearch {
+		concurrentCh = handler.server.slow_search_concurrent
+	} else if method == client.QueryHandler || method == client.SearchHandler ||
+		method == client.GetDocsHandler || method == client.GetDocsByPartitionHandler ||
+		method == client.GetNextDocsByPartitionHandler {
+		concurrentCh = handler.server.read_request_concurrent
+	} else {
+		concurrentCh = handler.server.write_request_concurrent
+	}
+
 	select {
-	case handler.server.concurrent <- true:
+	case concurrentCh <- true:
 		defer func() {
-			<-handler.server.concurrent
+			<-concurrentCh
 		}()
 	case <-ctx.Done():
 		if ctx.Err() == context.DeadlineExceeded {
 			// if this context is timeout, return immediately
-			msg := fmt.Sprintf("request for partition: %d time out, the server can only deal [%d] request at same time.", req.PartitionID, handler.server.concurrentNum)
+			msg := fmt.Sprintf("request for partition: %d time out, the server can only deal [%d] request at same time.", req.PartitionID, cap(concurrentCh))
 			log.Error(msg)
 			req.Err = vearchpb.NewError(vearchpb.ErrorEnum_TIMEOUT, nil).GetError()
 			return
@@ -204,9 +228,6 @@ func (handler *UnaryHandler) execute(ctx context.Context, req *vearchpb.Partitio
 		}
 	}
 
-	if handler.server == nil {
-		log.Info("%s", "ps server is nil")
-	}
 	store := handler.server.GetPartition(req.PartitionID)
 	if store == nil {
 		msg := fmt.Sprintf("partition not found, partitionId:[%d], nodeID:[%d], node ip:[%s]", req.PartitionID, handler.server.nodeID, handler.server.ip)
@@ -215,14 +236,6 @@ func (handler *UnaryHandler) execute(ctx context.Context, req *vearchpb.Partitio
 		return
 	}
 
-	var method string
-	reqMap := ctx.Value(share.ReqMetaDataKey).(map[string]string)
-	method, ok := reqMap[client.HandlerType]
-	if !ok {
-		err := fmt.Errorf("client type not support, key [%s]", client.HandlerType)
-		req.Err = vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err).GetError()
-		return
-	}
 	switch method {
 	case client.GetDocsHandler:
 		getDocuments(ctx, store, req.Items, false, false)

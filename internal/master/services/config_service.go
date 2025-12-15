@@ -107,8 +107,8 @@ func (s *ConfigService) UpdateSpaceConfig(ctx context.Context, space *entity.Spa
 		if cfg.EngineCacheSize != nil {
 			new_cfg.EngineCacheSize = cfg.EngineCacheSize
 		}
-		if cfg.LongSearchTime != nil {
-			new_cfg.LongSearchTime = cfg.LongSearchTime
+		if cfg.SlowSearchTime != nil {
+			new_cfg.SlowSearchTime = cfg.SlowSearchTime
 		}
 		if cfg.Path != nil {
 			new_cfg.Path = cfg.Path
@@ -304,6 +304,41 @@ func (s *ConfigService) ModifyMemoryLimitCfg(ctx context.Context, cfg *entity.Me
 			}
 		}
 	} else {
+		return err
+	}
+
+	return nil
+}
+
+func (s *ConfigService) GetSlowSearchIsolationCfg(ctx context.Context) (*entity.SlowSearchIsolationCfg, error) {
+	mc := s.client.Master()
+	marshal, err := mc.Get(ctx, entity.RouterConfigKey(entity.SlowSearchIsolationKey))
+	if err != nil {
+		return nil, err
+	}
+
+	if marshal == nil {
+		cfg := &entity.SlowSearchIsolationCfg{
+			SlowSearchIsolationEnabled: true,
+		}
+		return cfg, nil
+	}
+
+	cfg := &entity.SlowSearchIsolationCfg{}
+	if err = json.Unmarshal(marshal, cfg); err != nil {
+		return nil, err
+	}
+
+	return cfg, nil
+}
+
+func (s *ConfigService) ModifySlowSearchIsolationCfg(ctx context.Context, cfg *entity.SlowSearchIsolationCfg) (err error) {
+	marshal, err := json.Marshal(cfg)
+	if err != nil {
+		return err
+	}
+	mc := s.client.Master()
+	if err = mc.Update(ctx, entity.RouterConfigKey(entity.SlowSearchIsolationKey), marshal); err != nil {
 		return err
 	}
 

@@ -173,7 +173,7 @@ int Response::Serialize(const std::string &space_name,
   if (perf_tool_) {
     PerfTool *perf_tool = static_cast<PerfTool *>(perf_tool_);
     perf_tool->Perf("serialize");
-    if (perf_tool->Cost() > perf_tool->long_search_time) {
+    if (perf_tool->Cost() > perf_tool->slow_search_time) {
       LOG(WARNING) << space_name << " " << request_id_ << " "
                    << perf_tool->OutputPerf().str();
     } else {

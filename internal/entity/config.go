@@ -9,9 +9,14 @@ import (
 )
 
 const (
-	RequestLimitConfigKey = "request_limit_config"
-	MemoryLimitConfigKey  = "memory_limit_config"
+	RequestLimitConfigKey  = "request_limit_config"
+	MemoryLimitConfigKey   = "memory_limit_config"
+	SlowSearchIsolationKey = "slow_search_isolation"
 )
+
+type SlowSearchIsolationCfg struct {
+	SlowSearchIsolationEnabled bool `json:"slow_search_isolation_enabled"`
+}
 
 type RequestLimitCfg struct {
 	RequestLimitEnabled bool    `json:"request_limit_enabled"`
@@ -45,6 +50,8 @@ var (
 
 	ReadLimiter  = rate.NewLimiter(rate.Limit(rate.Inf), 0)
 	WriteLimiter = rate.NewLimiter(rate.Limit(rate.Inf), 0)
+
+	SlowSearchIsolationEnabled = true
 
 	MemoryLimitUsage uint64
 	SystemMemory, _  = vearch_os.GetSystemMemory()
@@ -87,6 +94,7 @@ func SetRequestLimit(requestLimit *RequestLimitCfg) {
 		}
 	} else {
 		ConfigInfo.RequestLimitConfig.RequestLimitEnabled = false
+
 		ReadLimiter.SetLimit(rate.Inf)
 		ReadLimiter.SetBurst(0)
 
@@ -165,4 +173,12 @@ func CheckVirtualMemExceed(estimatedSize int) bool {
 	}
 
 	return false
+}
+
+func SetSlowSearchIsolation(cfg *SlowSearchIsolationCfg) {
+	if cfg.SlowSearchIsolationEnabled {
+		SlowSearchIsolationEnabled = true
+	} else {
+		SlowSearchIsolationEnabled = false
+	}
 }

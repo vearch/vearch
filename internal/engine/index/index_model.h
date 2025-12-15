@@ -30,7 +30,7 @@ class PerfTool {
   double cur_time;
   double start_time;
   std::stringstream perf_ss;
-  int long_search_time;
+  int slow_search_time;
 
   // Record point of time with msg
   void Perf(const std::string &msg) { Perf(msg.c_str()); }
