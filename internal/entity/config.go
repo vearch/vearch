@@ -41,6 +41,7 @@ const (
 	DefaultWriteRequestLimitCount   = 1000000.0
 	DefaultRouterMemoryLimitPercent = 90
 	DefaultPsMemoryLimitPercent     = 90
+	DefaultResourceLimitRate        = 0.9
 )
 
 var (

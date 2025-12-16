@@ -399,7 +399,7 @@ func InitConfig(path string) {
 	single = &Config{
 		mu: new(sync.RWMutex),
 		Global: &GlobalCfg{
-			ResourceLimitRate: 0.85,
+			ResourceLimitRate: entity.DefaultResourceLimitRate,
 		},
 		PS: &PSCfg{
 			ReplicaAutoRecoverTime: -1,

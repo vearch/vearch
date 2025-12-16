@@ -168,7 +168,6 @@ func TimeoutMiddleware(defaultTimeout time.Duration) gin.HandlerFunc {
 						"request_id": c.GetHeader("X-Request-Id"),
 						"code":       err.Code(),
 						"msg":        err.Msg()})
-				//response.New(c).JsonError(errors.NewErrBadRequest(fmt.Errorf(msg)))
 				c.Abort()
 				return
 			}

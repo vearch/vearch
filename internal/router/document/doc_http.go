@@ -275,8 +275,7 @@ func (handler *DocumentHandler) handleMasterRequest(c *gin.Context) {
 			"code":       res_err.Code(),
 			"request_id": c.GetHeader("X-Request-Id"),
 			"msg":        res_err.Msg(),
-        })
-		//response.New(c).JsonError(errors.NewErrBadRequest(err))
+		})
 		return
 	}
 	authHeader := c.GetHeader("Authorization")
@@ -292,7 +291,6 @@ func (handler *DocumentHandler) handleMasterRequest(c *gin.Context) {
 				"request_id": c.GetHeader("X-Request-Id"),
 				"msg":        res_err.Msg(),
 			})
-			//response.New(c).JsonError(errors.NewErrInternal(err))
 		}
 		return
 	}

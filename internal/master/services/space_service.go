@@ -221,9 +221,13 @@ func (s *SpaceService) CreateSpace(ctx context.Context, dbs *DBService, dbName s
 					}
 				}
 			}
-			err = masterClient.Delete(ctx, entity.PartitionKey(partition.Id))
-			if err != nil {
-				log.Error("delete partition key:[%s] has err:[%s]", entity.PartitionKey(partition.Id), err.Error())
+			if _, p_err := masterClient.QueryPartition(ctx, partition.Id); p_err != nil {
+				log.Info("query partition:[%d] has err: %s", partition.Id, p_err.Error())
+			} else {
+				d_err := masterClient.Delete(ctx, entity.PartitionKey(partition.Id))
+				if d_err != nil {
+					log.Error("delete partitionKey for partition:[%d] has err:[%s]", partition.Id, d_err.Error())
+				}
 			}
 		}
 		return err
