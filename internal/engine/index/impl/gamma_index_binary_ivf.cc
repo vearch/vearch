@@ -359,7 +359,9 @@ void GammaIndexBinaryIVF::search_knn_hamming_heap(
         get_GammaInvertedListScanner(store_pairs));
     scanner->set_search_context(retrieval_context);
 
-    RequestContext::ScopedContext(request, partition_id);
+    if (RequestContext::get_current_request() == nullptr) {
+      RequestContext::ScopedContext(request, partition_id);
+    }
 
 #pragma omp for
     for (size_t i = 0; i < n; i++) {

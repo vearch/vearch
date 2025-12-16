@@ -771,7 +771,9 @@ void GammaIVFPQIndex::search_preassigned(
         store_pairs, nullptr, retrieval_context, metric_type, this->pq.nbits);
     utils::ScopeDeleter1<faiss::InvertedListScanner> del(scanner);
 
-    RequestContext::ScopedContext(request, partition_id);
+    if (RequestContext::get_current_request() == nullptr) {
+      RequestContext::ScopedContext(request, partition_id);
+    }
 
     if (parallel_mode == 0) {  // parallelize over queries
 #pragma omp for
