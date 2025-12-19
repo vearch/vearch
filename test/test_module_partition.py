@@ -21,6 +21,7 @@ import pytest
 from utils.vearch_utils import *
 from utils.data_utils import *
 import datetime
+import random
 
 __description__ = """ test case for module partition """
 
@@ -1027,4 +1028,460 @@ class TestPartitionRuleUpdateOnEmptyRule:
         for space in response.json()["data"]:
             response = drop_space(router_url, db_name, space["space_name"])
             logger.info(response)
+        drop_db(router_url, db_name)
+
+
+class TestPartitionRuleWithPartitionName:
+    def setup_class(self):
+        pass
+
+    def test_prepare_db(self):
+        logger.info(create_db(router_url, db_name))
+
+    @pytest.mark.parametrize(
+        ["embedding_size", "index_type"],
+        [[128, "FLAT"]],
+    )
+    def test_vearch_space_create(self, embedding_size, index_type):
+        today = datetime.datetime.today().date()
+        tomorrow = today + datetime.timedelta(days=1)
+        day_after_tomorrow = today + datetime.timedelta(days=2)
+        date_format = "%Y-%m-%d"
+        space_config = {
+            "name": space_name,
+            "partition_num": 2,
+            "replica_num": 1,
+            "fields": [
+                {
+                    "name": "field_int",
+                    "type": "integer",
+                    "index": {
+                        "name": "field_int",
+                        "type": "SCALAR"
+                    },
+                },
+                {"name": "field_long", "type": "long"},
+                {"name": "field_float", "type": "float"},
+                {"name": "field_double", "type": "double"},
+                {
+                    "name": "field_string",
+                    "type": "string",
+                    "index": {"name": "field_string", "type": "SCALAR"},
+                },
+                {
+                    "name": "field_date",
+                    "type": "date",
+                    "index": {"name": "field_date", "type": "SCALAR"},
+                },
+                {
+                    "name": "field_vector",
+                    "type": "vector",
+                    "dimension": embedding_size,
+                    "index": {
+                        "name": "gamma",
+                        "type": index_type,
+                        "params": {
+                            "metric_type": "InnerProduct",
+                            "ncentroids": 2048,
+                            "nsubvector": int(embedding_size / 4),
+                            "nlinks": 32,
+                            "efConstruction": 100,
+                        },
+                    },
+                    # "format": "normalization"
+                },
+            ],
+            "partition_rule": {
+                "type": "RANGE",
+                "field": "field_date",
+                "ranges": [
+                    {"name": "p0", "value": today.strftime(date_format)},
+                    {"name": "p1", "value": tomorrow.strftime(date_format)},
+                    {"name": "p2", "value": day_after_tomorrow.strftime(date_format)},
+                ],
+            },
+        }
+
+        response = create_space(router_url, db_name, space_config)
+        logger.info(response.json())
+        assert response.json()["code"] == 0
+        add_date(db_name, space_name, 0, 10, 100, embedding_size, "str")
+
+        response = describe_space(router_url, db_name, space_name)
+        # logger.info(response.json())
+        assert response.json()["code"] == 0
+        assert len(response.json()["data"]["partitions"]) == 6
+        assert len(response.json()["data"]["partition_rule"]["ranges"]) == 3
+        for partition_range in response.json()["data"]["partition_rule"]["ranges"]:
+            assert partition_range["name"] in ["p0", "p1", "p2"]
+
+        assert get_partitions_doc_num("p1") == 10 * 100
+
+        waiting_index_finish(10 * 100, 1)
+
+        for i in range(1000):
+            query_dict = {
+                "document_ids": [str(i)],
+                "limit": 1,
+                "db_name": db_name,
+                "space_name": space_name
+            }
+            url = router_url + "/document/query?trace=true"
+            json_str = json.dumps(query_dict)
+            rs = requests.post(url, auth=(username, password), data=json_str)
+            # logger.info(rs.json())
+            assert rs.json()["code"] == 0
+            assert len(rs.json()["data"]["documents"]) == 1
+            assert rs.json()["data"]["documents"][0]["field_float"] == float(i)
+
+    def test_query_by_partition_names_basecase(self):
+        query_dict = {
+            "document_ids": ["0"],
+            "limit": 1,
+            "db_name": db_name,
+            "space_name": space_name,
+            "partition_names": ["p3"]
+        }
+        url = router_url + "/document/query?trace=true"
+        json_str = json.dumps(query_dict)
+        rs = requests.post(url, auth=(username, password), data=json_str)
+        # logger.info(rs.json())
+        assert rs.json()["code"] != 0
+
+        query_dict["partition_names"] = ["p0", "p4"]
+        url = router_url + "/document/query?trace=true"
+        json_str = json.dumps(query_dict)
+        rs = requests.post(url, auth=(username, password), data=json_str)
+        # logger.info(rs.json())
+        assert rs.json()["code"] != 0
+
+        query_dict["partition_names"] = ["p3", "p4"]
+        url = router_url + "/document/query?trace=true"
+        json_str = json.dumps(query_dict)
+        rs = requests.post(url, auth=(username, password), data=json_str)
+        # logger.info(rs.json())
+        assert rs.json()["code"] != 0
+
+        query_dict["partition_names"] = ["p0", "p1", "p4"]
+        url = router_url + "/document/query?trace=true"
+        json_str = json.dumps(query_dict)
+        rs = requests.post(url, auth=(username, password), data=json_str)
+        # logger.info(rs.json())
+        assert rs.json()["code"] != 0
+
+    def test_query_by_partition_names(self):
+        for i in range(1000):
+            query_dict = {
+                "document_ids": [str(i)],
+                "limit": 1,
+                "db_name": db_name,
+                "space_name": space_name,
+                "partition_names": ["p1"]
+            }
+            url = router_url + "/document/query?trace=true"
+            json_str = json.dumps(query_dict)
+            rs = requests.post(url, auth=(username, password), data=json_str)
+            # logger.info(rs.json())
+            assert rs.json()["code"] == 0
+            assert len(rs.json()["data"]["documents"]) == 1
+            assert rs.json()["data"]["documents"][0]["field_float"] == float(i)
+
+        for i in range(1000):
+            query_dict = {
+                "document_ids": [str(i)],
+                "limit": 1,
+                "db_name": db_name,
+                "space_name": space_name,
+                "partition_names": ["p0", "p1"]
+            }
+            url = router_url + "/document/query?trace=true"
+            json_str = json.dumps(query_dict)
+            rs = requests.post(url, auth=(username, password), data=json_str)
+            # logger.info(rs.json())
+            assert rs.json()["code"] == 0
+            assert len(rs.json()["data"]["documents"]) == 1
+            assert rs.json()["data"]["documents"][0]["field_float"] == float(i)
+
+        for i in range(1000):
+            query_dict = {
+                "document_ids": [str(i)],
+                "limit": 1,
+                "db_name": db_name,
+                "space_name": space_name,
+                "partition_names": ["p0"]
+            }
+            url = router_url + "/document/query?trace=true"
+            json_str = json.dumps(query_dict)
+            rs = requests.post(url, auth=(username, password), data=json_str)
+            # logger.info(rs.json())
+            assert rs.json()["code"] == 0
+            assert len(rs.json()["data"]["documents"]) == 0
+
+        for i in range(1000):
+            query_dict = {
+                "document_ids": [str(i)],
+                "limit": 1,
+                "db_name": db_name,
+                "space_name": space_name,
+                "partition_names": ["p0", "p2"]
+            }
+            url = router_url + "/document/query?trace=true"
+            json_str = json.dumps(query_dict)
+            rs = requests.post(url, auth=(username, password), data=json_str)
+            # logger.info(rs.json())
+            assert rs.json()["code"] == 0
+            assert len(rs.json()["data"]["documents"]) == 0
+
+        data = {}
+        data["db_name"] = db_name
+        data["space_name"] = space_name
+        data["limit"] = 10
+        data["filters"] = {
+            "operator": "AND",
+            "conditions": [
+                {
+                    "field": "field_int",
+                    "operator": ">=",
+                    "value": 0,
+                },
+            ],
+        }
+        data["partition_names"] = ["p1"]
+        url = router_url + "/document/query?trace=true"
+        json_str = json.dumps(data)
+        rs = requests.post(url, auth=(username, password), data=json_str)
+        # logger.info(rs.json())
+        assert rs.json()["code"] == 0
+        assert len(rs.json()["data"]["documents"]) == 10
+
+        data["partition_names"] = ["p0"]
+        url = router_url + "/document/query?trace=true"
+        json_str = json.dumps(data)
+        rs = requests.post(url, auth=(username, password), data=json_str)
+        # logger.info(rs.json())
+        assert rs.json()["code"] == 0
+        assert len(rs.json()["data"]["documents"]) == 0
+
+        data["partition_names"] = ["p0", "p2"]
+        url = router_url + "/document/query?trace=true"
+        json_str = json.dumps(data)
+        rs = requests.post(url, auth=(username, password), data=json_str)
+        # logger.info(rs.json())
+        assert rs.json()["code"] == 0
+        assert len(rs.json()["data"]["documents"]) == 0
+
+        data["partition_names"] = ["p1"]
+        url = router_url + "/document/query?trace=true"
+        json_str = json.dumps(data)
+        rs = requests.post(url, auth=(username, password), data=json_str)
+        # logger.info(rs.json())
+        assert rs.json()["code"] == 0
+        assert len(rs.json()["data"]["documents"]) == 10
+
+        data["partition_names"] = ["p0", "p1", "p2"]
+        url = router_url + "/document/query?trace=true"
+        json_str = json.dumps(data)
+        rs = requests.post(url, auth=(username, password), data=json_str)
+        # logger.info(rs.json())
+        assert rs.json()["code"] == 0
+        assert len(rs.json()["data"]["documents"]) == 10
+
+    def test_search_by_partition_names_basecase(self):
+        data = {}
+        data["db_name"] = db_name
+        data["space_name"] = space_name
+        data["limit"] = 10
+        data["vectors"] = []
+        vector_info = {
+            "field": "field_vector",
+            "feature": [random.uniform(0, 1) for _ in range(128)],
+        }
+        data["vectors"].append(vector_info)
+        url = router_url + "/document/search?trace=true"
+
+        data["partition_names"] = ["p3"]
+        json_str = json.dumps(data)
+        rs = requests.post(url, auth=(username, password), data=json_str)
+        # logger.info(rs.json())
+        assert rs.json()["code"] != 0
+
+        data["partition_names"] = ["p3, p4"]
+        url = router_url + "/document/search?trace=true"
+        json_str = json.dumps(data)
+        rs = requests.post(url, auth=(username, password), data=json_str)
+        # logger.info(rs.json())
+        assert rs.json()["code"] != 0
+
+        data["partition_names"] = ["p0", "p1", "p4"]
+        url = router_url + "/document/search?trace=true"
+        json_str = json.dumps(data)
+        rs = requests.post(url, auth=(username, password), data=json_str)
+        # logger.info(rs.json())
+        assert rs.json()["code"] != 0
+
+    def test_search_by_partition_names(self):
+        data = {}
+        data["db_name"] = db_name
+        data["space_name"] = space_name
+        data["limit"] = 10
+        data["vectors"] = []
+        vector_info = {
+            "field": "field_vector",
+            "feature": [random.uniform(0, 1) for _ in range(128)],
+        }
+        data["vectors"].append(vector_info)
+        url = router_url + "/document/search?trace=true"
+        json_str = json.dumps(data)
+        rs = requests.post(url, auth=(username, password), data=json_str)
+        # logger.info(rs.json())
+        assert rs.json()["code"] == 0
+        assert len(rs.json()["data"]["documents"]) == 1
+        assert len(rs.json()["data"]["documents"][0]) == 10
+
+        data["partition_names"] = ["p0"]
+        url = router_url + "/document/search?trace=true"
+        json_str = json.dumps(data)
+        rs = requests.post(url, auth=(username, password), data=json_str)
+        # logger.info(rs.json())
+        assert rs.json()["code"] == 0
+        assert len(rs.json()["data"]["documents"]) == 1
+        assert len(rs.json()["data"]["documents"][0]) == 0
+
+        data["partition_names"] = ["p0", "p2"]
+        url = router_url + "/document/search?trace=true"
+        json_str = json.dumps(data)
+        rs = requests.post(url, auth=(username, password), data=json_str)
+        # logger.info(rs.json())
+        assert rs.json()["code"] == 0
+        assert len(rs.json()["data"]["documents"]) == 1
+        assert len(rs.json()["data"]["documents"][0]) == 0
+
+        data["partition_names"] = ["p1"]
+        url = router_url + "/document/search?trace=true"
+        json_str = json.dumps(data)
+        rs = requests.post(url, auth=(username, password), data=json_str)
+        # logger.info(rs.json())
+        assert rs.json()["code"] == 0
+        assert len(rs.json()["data"]["documents"]) == 1
+        assert len(rs.json()["data"]["documents"][0]) == 10
+
+        data["partition_names"] = ["p0", "p1", "p2"]
+        url = router_url + "/document/search?trace=true"
+        json_str = json.dumps(data)
+        rs = requests.post(url, auth=(username, password), data=json_str)
+        # logger.info(rs.json())
+        assert rs.json()["code"] == 0
+        assert len(rs.json()["data"]["documents"]) == 1
+        assert len(rs.json()["data"]["documents"][0]) == 10
+
+    def test_destroy_db(self):
+        response = list_spaces(router_url, db_name)
+        logger.info(response.json())
+        for space in response.json()["data"]:
+            response = drop_space(router_url, db_name, space["space_name"])
+            logger.info(response.json())
+        drop_db(router_url, db_name)
+
+
+class TestPartitionNameWithoutPartitionRule:
+    def setup_class(self):
+        pass
+
+    def test_prepare_db(self):
+        logger.info(create_db(router_url, db_name))
+
+    @pytest.mark.parametrize(
+        ["embedding_size", "index_type"],
+        [[128, "FLAT"]],
+    )
+    def test_vearch_space_create(self, embedding_size, index_type):
+        space_config = {
+            "name": space_name,
+            "partition_num": 2,
+            "replica_num": 1,
+            "fields": [
+                {
+                    "name": "field_int",
+                    "type": "integer",
+                    "index": {
+                        "name": "field_int",
+                        "type": "SCALAR"
+                    },
+                },
+                {"name": "field_long", "type": "long"},
+                {"name": "field_float", "type": "float"},
+                {"name": "field_double", "type": "double"},
+                {
+                    "name": "field_string",
+                    "type": "string",
+                    "index": {"name": "field_string", "type": "SCALAR"},
+                },
+                {
+                    "name": "field_date",
+                    "type": "date",
+                    "index": {"name": "field_date", "type": "SCALAR"},
+                },
+                {
+                    "name": "field_vector",
+                    "type": "vector",
+                    "dimension": embedding_size,
+                    "index": {
+                        "name": "gamma",
+                        "type": index_type,
+                        "params": {
+                            "metric_type": "InnerProduct",
+                            "ncentroids": 2048,
+                            "nsubvector": int(embedding_size / 4),
+                            "nlinks": 32,
+                            "efConstruction": 100,
+                        },
+                    },
+                    # "format": "normalization"
+                },
+            ]
+        }
+
+        response = create_space(router_url, db_name, space_config)
+        logger.info(response.json())
+        assert response.json()["code"] == 0
+
+    def test_query_by_partition_names_basecase(self):
+        query_dict = {
+            "document_ids": ["0"],
+            "limit": 1,
+            "db_name": db_name,
+            "space_name": space_name,
+            "partition_names": ["p3"]
+        }
+        url = router_url + "/document/query?trace=true"
+        json_str = json.dumps(query_dict)
+        rs = requests.post(url, auth=(username, password), data=json_str)
+        # logger.info(rs.json())
+        assert rs.json()["code"] != 0
+
+    def test_search_by_partition_names_basecase(self):
+        data = {}
+        data["db_name"] = db_name
+        data["space_name"] = space_name
+        data["limit"] = 10
+        data["vectors"] = []
+        vector_info = {
+            "field": "field_vector",
+            "feature": [random.uniform(0, 1) for _ in range(128)],
+        }
+        data["vectors"].append(vector_info)
+        url = router_url + "/document/search?trace=true"
+
+        data["partition_names"] = ["p3"]
+        json_str = json.dumps(data)
+        rs = requests.post(url, auth=(username, password), data=json_str)
+        # logger.info(rs.json())
+        assert rs.json()["code"] != 0
+
+    def test_destroy_db(self):
+        response = list_spaces(router_url, db_name)
+        logger.info(response.json())
+        for space in response.json()["data"]:
+            response = drop_space(router_url, db_name, space["space_name"])
+            logger.info(response.json())
         drop_db(router_url, db_name)

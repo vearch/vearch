@@ -1352,6 +1352,22 @@ func queryRequestToPb(searchDoc *request.SearchDocumentRequest, space *entity.Sp
 		queryReq.Offset = searchDoc.Offset
 	}
 
+	if len(searchDoc.PartitionNames) > 0 {
+		if space.PartitionRule == nil {
+			return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("space partition rule is nil"))
+		}
+		exist_partition_names := make(map[string]bool)
+		for _, partition_range := range space.PartitionRule.Ranges {
+			exist_partition_names[partition_range.Name] = true
+		}
+		for _, pName := range searchDoc.PartitionNames {
+			if !exist_partition_names[pName] {
+				return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("partition name [%s] not in space partition rule", pName))
+			}
+		}
+		queryReq.PartitionNames = searchDoc.PartitionNames
+	}
+
 	queryReq.Head.ClientType = searchDoc.LoadBalance
 	return nil
 }
@@ -1501,6 +1517,22 @@ func requestToPb(searchDoc *request.SearchDocumentRequest, space *entity.Space, 
 
 	if entity.SlowSearchIsolationEnabled {
 		parseSlowSearch(indexParams, space.Index.Type, searchReq)
+	}
+
+	if len(searchDoc.PartitionNames) > 0 {
+		if space.PartitionRule == nil {
+			return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("space partition rule is nil"))
+		}
+		exist_partition_names := make(map[string]bool)
+		for _, partition_range := range space.PartitionRule.Ranges {
+			exist_partition_names[partition_range.Name] = true
+		}
+		for _, pName := range searchDoc.PartitionNames {
+			if !exist_partition_names[pName] {
+				return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("partition name [%s] not in space partition rule", pName))
+			}
+		}
+		searchReq.PartitionNames = searchDoc.PartitionNames
 	}
 
 	searchReq.Head.ClientType = searchDoc.LoadBalance

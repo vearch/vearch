@@ -69,27 +69,28 @@ type Ranker struct {
 }
 
 type SearchDocumentRequest struct {
-	Limit         int32             `json:"limit,omitempty"`
-	Fields        []string          `json:"fields,omitempty"`
-	Filters       *Filter           `json:"filters,omitempty"`
-	Vectors       []json.RawMessage `json:"vectors,omitempty"`
-	Sort          json.RawMessage   `json:"sort,omitempty"`
-	IndexParams   json.RawMessage   `json:"index_params,omitempty"`
-	L2Sqrt        bool              `json:"l2_sqrt,omitempty"`
-	VectorValue   bool              `json:"vector_value,omitempty"`
-	IsBruteSearch int32             `json:"is_brute_search"`
-	DbName        string            `json:"db_name,omitempty"`
-	SpaceName     string            `json:"space_name,omitempty"`
-	LoadBalance   string            `json:"load_balance"`
-	DocumentIds   *[]string         `json:"document_ids,omitempty"`
-	PartitionId   *uint32           `json:"partition_id,omitempty"`
-	Next          *bool             `json:"next,omitempty"`
-	Ranker        json.RawMessage   `json:"ranker,omitempty"`
-	GetByHash     bool              `json:"get_by_hash,omitempty"`
-	PageSize      int32             `json:"page_size,omitempty"`
-	PageNum       int32             `json:"page_num,omitempty"`
-	Offset        int32             `json:"offset,omitempty"`
-	sortOrder     sortorder.SortOrder
+	Limit          int32             `json:"limit,omitempty"`
+	Fields         []string          `json:"fields,omitempty"`
+	Filters        *Filter           `json:"filters,omitempty"`
+	Vectors        []json.RawMessage `json:"vectors,omitempty"`
+	Sort           json.RawMessage   `json:"sort,omitempty"`
+	IndexParams    json.RawMessage   `json:"index_params,omitempty"`
+	L2Sqrt         bool              `json:"l2_sqrt,omitempty"`
+	VectorValue    bool              `json:"vector_value,omitempty"`
+	IsBruteSearch  int32             `json:"is_brute_search"`
+	DbName         string            `json:"db_name,omitempty"`
+	SpaceName      string            `json:"space_name,omitempty"`
+	LoadBalance    string            `json:"load_balance"`
+	DocumentIds    *[]string         `json:"document_ids,omitempty"`
+	PartitionId    *uint32           `json:"partition_id,omitempty"`
+	Next           *bool             `json:"next,omitempty"`
+	Ranker         json.RawMessage   `json:"ranker,omitempty"`
+	GetByHash      bool              `json:"get_by_hash,omitempty"`
+	PageSize       int32             `json:"page_size,omitempty"`
+	PageNum        int32             `json:"page_num,omitempty"`
+	Offset         int32             `json:"offset,omitempty"`
+	PartitionNames []string          `json:"partition_names,omitempty"`
+	sortOrder      sortorder.SortOrder
 }
 
 func (s *SearchDocumentRequest) SortOrder() (sortorder.SortOrder, error) {

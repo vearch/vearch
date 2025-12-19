@@ -72,9 +72,9 @@ func (docService *docService) getDocsByPartition(ctx context.Context, args *vear
 	reply := &vearchpb.GetResponse{Head: newOkHead()}
 	request := client.NewRouterRequest(ctx, docService.client)
 	if next != nil && *next {
-		request.SetMsgID(args.Head.Params["request_id"]).SetMethod(client.GetNextDocsByPartitionHandler).SetHead(args.Head).SetSpace().SetDocsBySpecifyKey(args.PrimaryKeys).SetSendMap(partitionId)
+		request.SetMsgID(args.Head.Params["request_id"]).SetMethod(client.GetNextDocsByPartitionHandler).SetHead(args.Head).SetSpace().SetDocsBySpecifyKey(args.PrimaryKeys).PartitionDocsById(partitionId)
 	} else {
-		request.SetMsgID(args.Head.Params["request_id"]).SetMethod(client.GetDocsByPartitionHandler).SetHead(args.Head).SetSpace().SetDocsBySpecifyKey(args.PrimaryKeys).SetSendMap(partitionId)
+		request.SetMsgID(args.Head.Params["request_id"]).SetMethod(client.GetDocsByPartitionHandler).SetHead(args.Head).SetSpace().SetDocsBySpecifyKey(args.PrimaryKeys).PartitionDocsById(partitionId)
 	}
 	if request.Err != nil {
 		log.Errorf("getDoc args:[%v] error: [%s]", args, request.Err)

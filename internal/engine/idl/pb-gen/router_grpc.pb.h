@@ -4194,6 +4194,7 @@ class QueryRequest final :
     kFieldsFieldNumber = 7,
     kSortFieldMapFieldNumber = 12,
     kSortFieldsFieldNumber = 13,
+    kPartitionNamesFieldNumber = 18,
     kLoadBalanceFieldNumber = 11,
     kHeadFieldNumber = 1,
     kPartitionIdFieldNumber = 3,
@@ -4324,6 +4325,30 @@ class QueryRequest final :
   ::vearchpb::SortField* add_sort_fields();
   const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::SortField >&
       sort_fields() const;
+
+  // repeated string partition_names = 18;
+  int partition_names_size() const;
+  private:
+  int _internal_partition_names_size() const;
+  public:
+  void clear_partition_names();
+  const std::string& partition_names(int index) const;
+  std::string* mutable_partition_names(int index);
+  void set_partition_names(int index, const std::string& value);
+  void set_partition_names(int index, std::string&& value);
+  void set_partition_names(int index, const char* value);
+  void set_partition_names(int index, const char* value, size_t size);
+  std::string* add_partition_names();
+  void add_partition_names(const std::string& value);
+  void add_partition_names(std::string&& value);
+  void add_partition_names(const char* value);
+  void add_partition_names(const char* value, size_t size);
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>& partition_names() const;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>* mutable_partition_names();
+  private:
+  const std::string& _internal_partition_names(int index) const;
+  std::string* _internal_add_partition_names();
+  public:
 
   // string load_balance = 11;
   void clear_load_balance();
@@ -4456,6 +4481,7 @@ class QueryRequest final :
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::TYPE_STRING,
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::TYPE_STRING> sort_field_map_;
     ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::SortField > sort_fields_;
+    ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string> partition_names_;
     ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr load_balance_;
     ::vearchpb::RequestHead* head_;
     int32_t partition_id_;
@@ -4632,6 +4658,7 @@ class SearchRequest final :
     kTermFiltersFieldNumber = 8,
     kSortFieldMapFieldNumber = 13,
     kSortFieldsFieldNumber = 14,
+    kPartitionNamesFieldNumber = 22,
     kIndexParamsFieldNumber = 9,
     kRankerFieldNumber = 15,
     kHeadFieldNumber = 1,
@@ -4760,6 +4787,30 @@ class SearchRequest final :
   ::vearchpb::SortField* add_sort_fields();
   const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::SortField >&
       sort_fields() const;
+
+  // repeated string partition_names = 22;
+  int partition_names_size() const;
+  private:
+  int _internal_partition_names_size() const;
+  public:
+  void clear_partition_names();
+  const std::string& partition_names(int index) const;
+  std::string* mutable_partition_names(int index);
+  void set_partition_names(int index, const std::string& value);
+  void set_partition_names(int index, std::string&& value);
+  void set_partition_names(int index, const char* value);
+  void set_partition_names(int index, const char* value, size_t size);
+  std::string* add_partition_names();
+  void add_partition_names(const std::string& value);
+  void add_partition_names(std::string&& value);
+  void add_partition_names(const char* value);
+  void add_partition_names(const char* value, size_t size);
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>& partition_names() const;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>* mutable_partition_names();
+  private:
+  const std::string& _internal_partition_names(int index) const;
+  std::string* _internal_add_partition_names();
+  public:
 
   // string index_params = 9;
   void clear_index_params();
@@ -4933,6 +4984,7 @@ class SearchRequest final :
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::TYPE_STRING,
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::TYPE_STRING> sort_field_map_;
     ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::vearchpb::SortField > sort_fields_;
+    ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string> partition_names_;
     ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr index_params_;
     ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr ranker_;
     ::vearchpb::RequestHead* head_;
@@ -9636,6 +9688,81 @@ inline void QueryRequest::set_offset(int32_t value) {
   // @@protoc_insertion_point(field_set:vearchpb.QueryRequest.offset)
 }
 
+// repeated string partition_names = 18;
+inline int QueryRequest::_internal_partition_names_size() const {
+  return _impl_.partition_names_.size();
+}
+inline int QueryRequest::partition_names_size() const {
+  return _internal_partition_names_size();
+}
+inline void QueryRequest::clear_partition_names() {
+  _impl_.partition_names_.Clear();
+}
+inline std::string* QueryRequest::add_partition_names() {
+  std::string* _s = _internal_add_partition_names();
+  // @@protoc_insertion_point(field_add_mutable:vearchpb.QueryRequest.partition_names)
+  return _s;
+}
+inline const std::string& QueryRequest::_internal_partition_names(int index) const {
+  return _impl_.partition_names_.Get(index);
+}
+inline const std::string& QueryRequest::partition_names(int index) const {
+  // @@protoc_insertion_point(field_get:vearchpb.QueryRequest.partition_names)
+  return _internal_partition_names(index);
+}
+inline std::string* QueryRequest::mutable_partition_names(int index) {
+  // @@protoc_insertion_point(field_mutable:vearchpb.QueryRequest.partition_names)
+  return _impl_.partition_names_.Mutable(index);
+}
+inline void QueryRequest::set_partition_names(int index, const std::string& value) {
+  _impl_.partition_names_.Mutable(index)->assign(value);
+  // @@protoc_insertion_point(field_set:vearchpb.QueryRequest.partition_names)
+}
+inline void QueryRequest::set_partition_names(int index, std::string&& value) {
+  _impl_.partition_names_.Mutable(index)->assign(std::move(value));
+  // @@protoc_insertion_point(field_set:vearchpb.QueryRequest.partition_names)
+}
+inline void QueryRequest::set_partition_names(int index, const char* value) {
+  GOOGLE_DCHECK(value != nullptr);
+  _impl_.partition_names_.Mutable(index)->assign(value);
+  // @@protoc_insertion_point(field_set_char:vearchpb.QueryRequest.partition_names)
+}
+inline void QueryRequest::set_partition_names(int index, const char* value, size_t size) {
+  _impl_.partition_names_.Mutable(index)->assign(
+    reinterpret_cast<const char*>(value), size);
+  // @@protoc_insertion_point(field_set_pointer:vearchpb.QueryRequest.partition_names)
+}
+inline std::string* QueryRequest::_internal_add_partition_names() {
+  return _impl_.partition_names_.Add();
+}
+inline void QueryRequest::add_partition_names(const std::string& value) {
+  _impl_.partition_names_.Add()->assign(value);
+  // @@protoc_insertion_point(field_add:vearchpb.QueryRequest.partition_names)
+}
+inline void QueryRequest::add_partition_names(std::string&& value) {
+  _impl_.partition_names_.Add(std::move(value));
+  // @@protoc_insertion_point(field_add:vearchpb.QueryRequest.partition_names)
+}
+inline void QueryRequest::add_partition_names(const char* value) {
+  GOOGLE_DCHECK(value != nullptr);
+  _impl_.partition_names_.Add()->assign(value);
+  // @@protoc_insertion_point(field_add_char:vearchpb.QueryRequest.partition_names)
+}
+inline void QueryRequest::add_partition_names(const char* value, size_t size) {
+  _impl_.partition_names_.Add()->assign(reinterpret_cast<const char*>(value), size);
+  // @@protoc_insertion_point(field_add_pointer:vearchpb.QueryRequest.partition_names)
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>&
+QueryRequest::partition_names() const {
+  // @@protoc_insertion_point(field_list:vearchpb.QueryRequest.partition_names)
+  return _impl_.partition_names_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>*
+QueryRequest::mutable_partition_names() {
+  // @@protoc_insertion_point(field_mutable_list:vearchpb.QueryRequest.partition_names)
+  return &_impl_.partition_names_;
+}
+
 // -------------------------------------------------------------------
 
 // -------------------------------------------------------------------
@@ -10334,6 +10461,81 @@ inline void SearchRequest::_internal_set_is_slow_search(bool value) {
 inline void SearchRequest::set_is_slow_search(bool value) {
   _internal_set_is_slow_search(value);
   // @@protoc_insertion_point(field_set:vearchpb.SearchRequest.is_slow_search)
+}
+
+// repeated string partition_names = 22;
+inline int SearchRequest::_internal_partition_names_size() const {
+  return _impl_.partition_names_.size();
+}
+inline int SearchRequest::partition_names_size() const {
+  return _internal_partition_names_size();
+}
+inline void SearchRequest::clear_partition_names() {
+  _impl_.partition_names_.Clear();
+}
+inline std::string* SearchRequest::add_partition_names() {
+  std::string* _s = _internal_add_partition_names();
+  // @@protoc_insertion_point(field_add_mutable:vearchpb.SearchRequest.partition_names)
+  return _s;
+}
+inline const std::string& SearchRequest::_internal_partition_names(int index) const {
+  return _impl_.partition_names_.Get(index);
+}
+inline const std::string& SearchRequest::partition_names(int index) const {
+  // @@protoc_insertion_point(field_get:vearchpb.SearchRequest.partition_names)
+  return _internal_partition_names(index);
+}
+inline std::string* SearchRequest::mutable_partition_names(int index) {
+  // @@protoc_insertion_point(field_mutable:vearchpb.SearchRequest.partition_names)
+  return _impl_.partition_names_.Mutable(index);
+}
+inline void SearchRequest::set_partition_names(int index, const std::string& value) {
+  _impl_.partition_names_.Mutable(index)->assign(value);
+  // @@protoc_insertion_point(field_set:vearchpb.SearchRequest.partition_names)
+}
+inline void SearchRequest::set_partition_names(int index, std::string&& value) {
+  _impl_.partition_names_.Mutable(index)->assign(std::move(value));
+  // @@protoc_insertion_point(field_set:vearchpb.SearchRequest.partition_names)
+}
+inline void SearchRequest::set_partition_names(int index, const char* value) {
+  GOOGLE_DCHECK(value != nullptr);
+  _impl_.partition_names_.Mutable(index)->assign(value);
+  // @@protoc_insertion_point(field_set_char:vearchpb.SearchRequest.partition_names)
+}
+inline void SearchRequest::set_partition_names(int index, const char* value, size_t size) {
+  _impl_.partition_names_.Mutable(index)->assign(
+    reinterpret_cast<const char*>(value), size);
+  // @@protoc_insertion_point(field_set_pointer:vearchpb.SearchRequest.partition_names)
+}
+inline std::string* SearchRequest::_internal_add_partition_names() {
+  return _impl_.partition_names_.Add();
+}
+inline void SearchRequest::add_partition_names(const std::string& value) {
+  _impl_.partition_names_.Add()->assign(value);
+  // @@protoc_insertion_point(field_add:vearchpb.SearchRequest.partition_names)
+}
+inline void SearchRequest::add_partition_names(std::string&& value) {
+  _impl_.partition_names_.Add(std::move(value));
+  // @@protoc_insertion_point(field_add:vearchpb.SearchRequest.partition_names)
+}
+inline void SearchRequest::add_partition_names(const char* value) {
+  GOOGLE_DCHECK(value != nullptr);
+  _impl_.partition_names_.Add()->assign(value);
+  // @@protoc_insertion_point(field_add_char:vearchpb.SearchRequest.partition_names)
+}
+inline void SearchRequest::add_partition_names(const char* value, size_t size) {
+  _impl_.partition_names_.Add()->assign(reinterpret_cast<const char*>(value), size);
+  // @@protoc_insertion_point(field_add_pointer:vearchpb.SearchRequest.partition_names)
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>&
+SearchRequest::partition_names() const {
+  // @@protoc_insertion_point(field_list:vearchpb.SearchRequest.partition_names)
+  return _impl_.partition_names_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>*
+SearchRequest::mutable_partition_names() {
+  // @@protoc_insertion_point(field_mutable_list:vearchpb.SearchRequest.partition_names)
+  return &_impl_.partition_names_;
 }
 
 // -------------------------------------------------------------------

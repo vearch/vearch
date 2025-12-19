@@ -162,6 +162,7 @@ message QueryRequest {
   int32 operator = 15;
   int32 page_num = 16;
   int32 offset = 17;
+  repeated string partition_names = 18;
 }
 
 message SearchRequest {
@@ -186,6 +187,7 @@ message SearchRequest {
   int32 page_num = 19;
   int32 offset = 20;
   bool is_slow_search = 21;
+  repeated string partition_names = 22;
 }
 
 //*********************** Search response *********************** //

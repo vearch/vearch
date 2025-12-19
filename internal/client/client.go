@@ -252,7 +252,7 @@ func (r *routerRequest) PartitionDocs() *routerRequest {
 }
 
 // Docs in specify partition
-func (r *routerRequest) SetSendMap(partitionId uint32) *routerRequest {
+func (r *routerRequest) PartitionDocsById(partitionId uint32) *routerRequest {
 	if r.Err != nil {
 		return r
 	}
@@ -1270,8 +1270,20 @@ func (r *routerRequest) QueryByPartitions(queryReq *vearchpb.QueryRequest) *rout
 			sendMap[partitionID] = d
 		}
 	} else {
+		partition_names := make(map[string]bool)
+		if len(queryReq.PartitionNames) > 0 {
+			for _, pname := range queryReq.PartitionNames {
+				partition_names[pname] = true
+			}
+		}
 		for _, partitionInfo := range r.space.Partitions {
 			partitionID := partitionInfo.Id
+			if len(partition_names) > 0 {
+				if _, ok := partition_names[partitionInfo.Name]; !ok {
+					continue
+				}
+			}
+
 			if d, ok := sendMap[partitionID]; ok {
 				log.Error("db Id:%d , space Id:%d, have multiple partitionID:%d", partitionInfo.DBId, partitionInfo.SpaceId, partitionID)
 			} else {
@@ -1314,7 +1326,18 @@ func (r *routerRequest) SearchByPartitions(searchReq *vearchpb.SearchRequest) *r
 		return r
 	}
 	r.sendMap = make(map[entity.PartitionID]*vearchpb.PartitionData)
+	partition_names := make(map[string]bool)
+	if len(searchReq.PartitionNames) > 0 {
+		for _, pname := range searchReq.PartitionNames {
+			partition_names[pname] = true
+		}
+	}
 	for _, p := range r.space.Partitions {
+		if len(partition_names) > 0 {
+			if _, ok := partition_names[p.Name]; !ok {
+				continue
+			}
+		}
 		if _, ok := r.sendMap[p.Id]; ok {
 			log.Error("db Id:%d , space Id:%d, have multiple partitionID:%d", p.DBId, p.SpaceId, p.Id)
 			continue
