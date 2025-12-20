@@ -22,36 +22,67 @@ import (
 	"github.com/vearch/vearch/v3/internal/pkg/log"
 )
 
-const KeepAliveTime = 10
+const (
+	KeepAliveTime     = 10
+	MaxRetries        = 5
+	InitialBackoff    = 1 * time.Second
+	MaxBackoff        = 30 * time.Second
+	BackoffMultiplier = 2.0
+)
 
 // this job for heartbeat master 1m once
 func (s *Server) StartHeartbeatJob(addr string) {
 	go func() {
 		var key string = config.Conf().Global.Name
+		retries := 0
+		backoff := InitialBackoff
 
-		log.Debugf("register key: [%s], routerIP: [%s]", key, addr)
+		log.Info("Starting heartbeat job, key: [%s], routerIP: [%s]", key, addr)
 		keepaliveC, err := s.cli.Master().Store.KeepAlive(s.ctx, entity.RouterKey(key, addr), []byte(addr), time.Second*KeepAliveTime)
 		if err != nil {
-			log.Error("KeepAlive err: %s", err.Error())
+			log.Error("Initial KeepAlive failed: %s", err.Error())
 			return
 		}
 
 		for {
 			select {
 			case <-s.ctx.Done():
-				log.Error("keep alive ctx done!")
+				log.Info("Heartbeat job stopped by context")
 				return
 			case ka, ok := <-keepaliveC:
 				if !ok {
-					log.Error("keep alive channel closed!")
-					time.Sleep(2 * time.Second)
+					log.Warn("Keep alive channel closed, attempting to reconnect...")
+
+					// Check max retries
+					if retries >= MaxRetries {
+						log.Error("Max retries (%d) reached, stopping heartbeat job", MaxRetries)
+						return
+					}
+
+					// Exponential backoff
+					time.Sleep(backoff)
+
 					keepaliveC, err = s.cli.Master().Store.KeepAlive(s.ctx, entity.RouterKey(key, addr), []byte(addr), time.Second*KeepAliveTime)
 					if err != nil {
-						log.Errorf("KeepAlive err: %s", err.Error())
+						log.Error("KeepAlive reconnection failed (attempt %d/%d): %s", retries+1, MaxRetries, err.Error())
+						retries++
+						backoff = time.Duration(float64(backoff) * BackoffMultiplier)
+						if backoff > MaxBackoff {
+							backoff = MaxBackoff
+						}
+						continue
 					}
+
+					// Reconnection successful, reset counters
+					log.Info("KeepAlive reconnected successfully")
+					retries = 0
+					backoff = InitialBackoff
 					continue
 				}
-				log.Debugf("Receive keepalive, leaseId: %d, ttl:%d", ka.ID, ka.TTL)
+
+				// Normal keepalive response
+				log.Debugf("Received keepalive, leaseId: %d, ttl:%d", ka.ID, ka.TTL)
+				retries = 0 // Reset failure counter on successful keepalive
 			}
 		}
 	}()
