@@ -41,6 +41,7 @@ type Server struct {
 	httpServer *gin.Engine
 	rpcServer  *grpc.Server
 	cancelFunc context.CancelFunc
+	errChan    chan error
 }
 
 func NewServer(ctx context.Context) (*Server, error) {
@@ -88,16 +89,23 @@ func NewServer(ctx context.Context) (*Server, error) {
 
 	document.ExportDocumentHandler(httpServer, cli)
 
+	errChan := make(chan error, 1)
+
 	var rpcServer *grpc.Server
 	if config.Conf().Router.RpcPort > 0 {
 		lis, err := net.Listen("tcp", fmt.Sprintf("%s:%d", addr, config.Conf().Router.RpcPort))
 		if err != nil {
-			panic(fmt.Errorf("start rpc server failed to listen: %v", err))
+			return nil, fmt.Errorf("start rpc server failed to listen: %v", err)
 		}
 		rpcServer = grpc.NewServer()
 		go func() {
+			log.Info("Starting RPC server on port %d", config.Conf().Router.RpcPort)
 			if err := rpcServer.Serve(lis); err != nil {
-				panic(fmt.Errorf("start rpc server failed to start: %v", err))
+				log.Error("RPC server failed: %v", err)
+				select {
+				case errChan <- fmt.Errorf("rpc server error: %v", err):
+				default:
+				}
 			}
 		}()
 		// document.ExportRpcHandler(rpcServer, cli)
@@ -116,6 +124,7 @@ func NewServer(ctx context.Context) (*Server, error) {
 		cli:        cli,
 		cancelFunc: routerCancel,
 		rpcServer:  rpcServer,
+		errChan:    errChan,
 	}, nil
 }
 
@@ -145,10 +154,40 @@ func (server *Server) Start() error {
 }
 
 func (server *Server) Shutdown() {
-	server.cancelFunc()
 	log.Info("router shutdown... start")
-	if server.httpServer != nil {
-		server.httpServer = nil
+
+	// 1. 停止接收新请求
+	server.cancelFunc()
+
+	// 2. 优雅关闭RPC服务器
+	if server.rpcServer != nil {
+		done := make(chan struct{})
+		go func() {
+			server.rpcServer.GracefulStop()
+			close(done)
+		}()
+
+		select {
+		case <-done:
+			log.Info("RPC server stopped gracefully")
+		case <-time.After(30 * time.Second):
+			server.rpcServer.Stop()
+			log.Warn("RPC server force stopped after timeout")
+		}
 	}
+
+	// 3. 关闭错误channel
+	if server.errChan != nil {
+		close(server.errChan)
+	}
+
+	// 4. HTTP服务器会在Run方法返回后自动停止
+	// Gin的Run是阻塞的，当context取消时会停止
+
 	log.Info("router shutdown... end")
+}
+
+// GetErrorChan returns the error channel for monitoring server errors
+func (server *Server) GetErrorChan() <-chan error {
+	return server.errChan
 }
