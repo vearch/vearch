@@ -78,15 +78,18 @@ func parseJSON(path []string, v *fastjson.Value, space *entity.Space, proMap map
 	parseErr := fmt.Errorf("")
 
 	obj.Visit(func(key []byte, val *fastjson.Value) {
-		fieldName := string(key)
+		// Use unsafe to avoid memory allocation for string conversion
+		// This is safe because we only use fieldName for map lookup
+		fieldName := *(*string)(unsafe.Pointer(&key))
 		if fieldName == IDField {
 			return
 		}
 		pro, ok := proMap[fieldName]
 		if !ok {
 			haveNoField = true
-			errorField = fieldName
-			log.Warnf("unrecognizable field, %s is not found in space fields", fieldName)
+			// Need to make a copy here since errorField outlives the Visit callback
+			errorField = string(key)
+			log.Warnf("unrecognizable field, %s is not found in space fields", errorField)
 			return
 		}
 		if _, ok := FieldsIndex[fieldName]; ok {
@@ -95,9 +98,11 @@ func parseJSON(path []string, v *fastjson.Value, space *entity.Space, proMap map
 		}
 		docV := GetDocVal()
 		if docV == nil {
-			docV = &DocVal{FieldName: fieldName, Path: path}
+			// Need to make a copy here since FieldName outlives the Visit callback
+			docV = &DocVal{FieldName: string(key), Path: path}
 		} else {
-			docV.FieldName = fieldName
+			// Need to make a copy here since FieldName outlives the Visit callback
+			docV.FieldName = string(key)
 			docV.Path = path
 		}
 
@@ -106,7 +111,7 @@ func parseJSON(path []string, v *fastjson.Value, space *entity.Space, proMap map
 		}()
 		field, err := processProperty(docV, val, space.Index.Type, pro)
 		if err != nil {
-			log.Error("processProperty parse field:[%s] err: %v", fieldName, err)
+			log.Error("processProperty parse field:[%s] err: %v", docV.FieldName, err)
 			parseErr = err
 			return
 		}
