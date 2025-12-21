@@ -26,7 +26,12 @@ import (
 	"github.com/vearch/vearch/v3/internal/ps/engine/sortorder"
 )
 
-const defaultRpcTimeOut int64 = 10 * 1000 // 10 second
+const (
+	defaultRpcTimeOut   int64 = 10 * 1000  // 10 seconds for normal operations
+	bulkOperationTimeout int64 = 60 * 1000  // 60 seconds for bulk operations
+	indexOperationTimeout int64 = 300 * 1000 // 5 minutes for index operations
+	minTimeout           int64 = 1 * 1000    // 1 second minimum timeout
+)
 
 type docService struct {
 	client *client.Client
@@ -46,6 +51,47 @@ func setTimeout(ctx context.Context, head *vearchpb.RequestHead) (context.Contex
 	if head.TimeOutMs > 0 {
 		timeout = head.TimeOutMs
 	}
+	
+	// Enforce minimum timeout to prevent too small values
+	if timeout < minTimeout {
+		timeout = minTimeout
+	}
+	
+	t := time.Duration(timeout) * time.Millisecond
+	endTime := time.Now().Add(t)
+	ctx = context.WithValue(ctx, entity.RPC_TIME_OUT, endTime)
+	return context.WithTimeout(ctx, t)
+}
+
+// setTimeoutForOperation sets timeout based on operation type
+func setTimeoutForOperation(ctx context.Context, head *vearchpb.RequestHead, operationType string) (context.Context, context.CancelFunc) {
+	timeout := defaultRpcTimeOut
+	
+	// Set default timeout based on operation type
+	switch operationType {
+	case "bulk", "upsert":
+		timeout = bulkOperationTimeout
+	case "index", "rebuild", "forcemerge":
+		timeout = indexOperationTimeout
+	default:
+		timeout = defaultRpcTimeOut
+	}
+	
+	// Allow config to override
+	if config.Conf().Router.RpcTimeOut > 0 {
+		timeout = int64(config.Conf().Router.RpcTimeOut)
+	}
+	
+	// Request-specific timeout has highest priority
+	if head.TimeOutMs > 0 {
+		timeout = head.TimeOutMs
+	}
+	
+	// Enforce minimum timeout
+	if timeout < minTimeout {
+		timeout = minTimeout
+	}
+	
 	t := time.Duration(timeout) * time.Millisecond
 	endTime := time.Now().Add(t)
 	ctx = context.WithValue(ctx, entity.RPC_TIME_OUT, endTime)
@@ -106,7 +152,7 @@ func (docService *docService) deleteDocs(ctx context.Context, args *vearchpb.Del
 }
 
 func (docService *docService) bulk(ctx context.Context, args *vearchpb.BulkRequest) *vearchpb.BulkResponse {
-	ctx, cancel := setTimeout(ctx, args.Head)
+	ctx, cancel := setTimeoutForOperation(ctx, args.Head, "bulk")
 	defer cancel()
 	reply := &vearchpb.BulkResponse{Head: newOkHead()}
 	request := client.NewRouterRequest(ctx, docService.client)
@@ -210,6 +256,8 @@ func (docService *docService) search(ctx context.Context, searchReq *vearchpb.Se
 }
 
 func (docService *docService) flush(ctx context.Context, args *vearchpb.FlushRequest) *vearchpb.FlushResponse {
+	ctx, cancel := setTimeoutForOperation(ctx, args.Head, "index")
+	defer cancel()
 	request := client.NewRouterRequest(ctx, docService.client)
 	request.SetMsgID(args.Head.Params["request_id"]).SetMethod(client.FlushHandler).SetHead(args.Head).SetSpace().CommonByPartitions(0)
 	if request.Err != nil {
@@ -232,6 +280,8 @@ func (docService *docService) flush(ctx context.Context, args *vearchpb.FlushReq
 }
 
 func (docService *docService) forceMerge(ctx context.Context, args *vearchpb.ForceMergeRequest) *vearchpb.ForceMergeResponse {
+	ctx, cancel := setTimeoutForOperation(ctx, args.Head, "forcemerge")
+	defer cancel()
 	request := client.NewRouterRequest(ctx, docService.client)
 	request.SetMsgID(args.Head.Params["request_id"]).SetMethod(client.ForceMergeHandler).SetHead(args.Head).SetSpace().CommonByPartitions(args.PartitionId)
 	if request.Err != nil {
@@ -254,6 +304,8 @@ func (docService *docService) forceMerge(ctx context.Context, args *vearchpb.For
 }
 
 func (docService *docService) rebuildIndex(ctx context.Context, args *vearchpb.IndexRequest) *vearchpb.IndexResponse {
+	ctx, cancel := setTimeoutForOperation(ctx, args.Head, "rebuild")
+	defer cancel()
 	request := client.NewRouterRequest(ctx, docService.client)
 	request.SetMsgID(args.Head.Params["request_id"]).SetMethod(client.RebuildIndexHandler).SetHead(args.Head).SetSpace().CommonSetByPartitions(args)
 	if request.Err != nil {
