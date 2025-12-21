@@ -61,9 +61,10 @@ type DocumentHandler struct {
 	httpServer *gin.Engine
 	docService docService
 	client     *client.Client
+	authCache  *AuthCache
 }
 
-func BasicAuthMiddleware(docService docService) gin.HandlerFunc {
+func BasicAuthMiddleware(authCache *AuthCache) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
@@ -96,7 +97,8 @@ func BasicAuthMiddleware(docService docService) gin.HandlerFunc {
 			return
 		}
 
-		user, err := docService.getUser(c, credentials[0])
+		// Use cache for user lookup
+		user, err := authCache.GetUser(c, credentials[0])
 		if err != nil {
 			ferr := fmt.Errorf("auth header user %s is invalid", credentials[0])
 			response.New(c).JsonError(errors.NewErrUnauthorized(ferr))
@@ -109,7 +111,8 @@ func BasicAuthMiddleware(docService docService) gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		role, err := docService.getRole(c, *user.RoleName)
+		// Use cache for role lookup
+		role, err := authCache.GetRole(c, *user.RoleName)
 		if err != nil {
 			response.New(c).JsonError(errors.NewErrUnauthorized(err))
 			c.Abort()
@@ -164,17 +167,19 @@ func HttpLimitMiddleware(docService docService) gin.HandlerFunc {
 
 func ExportDocumentHandler(httpServer *gin.Engine, client *client.Client) {
 	docService := newDocService(client)
+	authCache := NewAuthCache(docService)
 
 	documentHandler := &DocumentHandler{
 		httpServer: httpServer,
 		docService: *docService,
 		client:     client,
+		authCache:  authCache,
 	}
 
 	var group *gin.RouterGroup = documentHandler.httpServer.Group("", master.TimeoutMiddleware(defaultTimeout))
 	var groupProxy *gin.RouterGroup = documentHandler.httpServer.Group("")
 	if !config.Conf().Global.SkipAuth {
-		group.Use(BasicAuthMiddleware(documentHandler.docService))
+		group.Use(BasicAuthMiddleware(authCache))
 	}
 
 	documentHandler.proxyMaster(groupProxy)
