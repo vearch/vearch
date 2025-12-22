@@ -42,7 +42,12 @@ const (
 	// key index field
 	IDField = "_id"
 
-	maxStrLen        = 65535
+	// maxStrLen is the maximum length for non-indexed string fields (64KB)
+	// This prevents excessive memory usage from very large string values
+	maxStrLen = 65535
+	
+	// maxIndexedStrLen is the maximum length for indexed string fields (1KB)
+	// Indexed fields are limited to ensure efficient indexing performance
 	maxIndexedStrLen = 1024
 )
 

@@ -55,6 +55,10 @@ const (
 	URLParamMemberId    = "member_id"
 	NodeID              = "node_id"
 	defaultTimeout      = 10 * time.Second
+	
+	// MaxDocumentIdsPerRequest limits the number of document IDs in a single request
+	// to prevent excessive memory usage and ensure reasonable response times
+	MaxDocumentIdsPerRequest = 500
 )
 
 type DocumentHandler struct {
@@ -521,7 +525,7 @@ func (handler *DocumentHandler) handleDocumentQuery(c *gin.Context) {
 			response.New(c).JsonError(errors.NewErrBadRequest(err))
 			return
 		}
-		if len(*searchDoc.DocumentIds) >= 500 {
+		if len(*searchDoc.DocumentIds) >= MaxDocumentIdsPerRequest {
 			err := vearchpb.NewError(vearchpb.ErrorEnum_QUERY_INVALID_PARAMS_LENGTH_OF_DOCUMENT_IDS_BEYOND_500, nil)
 			response.New(c).JsonError(errors.NewErrUnprocessable(err))
 			return
@@ -726,7 +730,7 @@ func (handler *DocumentHandler) handleDocumentDelete(c *gin.Context) {
 			response.New(c).JsonError(errors.NewErrBadRequest(err))
 			return
 		}
-		if len(*searchDoc.DocumentIds) >= 500 {
+		if len(*searchDoc.DocumentIds) >= MaxDocumentIdsPerRequest {
 			err := vearchpb.NewError(vearchpb.ErrorEnum_DELETE_INVALID_PARAMS_LENGTH_OF_DOCUMENT_IDS_BEYOND_500, nil)
 			response.New(c).JsonError(errors.NewErrBadRequest(err))
 			return

@@ -39,8 +39,19 @@ const (
 	UrlQueryVersion  = "version"
 	UrlQueryOpType   = "op_type"
 	UrlQueryTimeout  = "timeout"
-	DefaultSize      = 50
-	WeightedRanker   = "WeightedRanker"
+	
+	// DefaultSize is the default number of results to return when size is not specified
+	DefaultSize = 50
+	
+	// SlowSearchTopNThreshold marks a search as slow if TopN exceeds this value
+	// Large TopN values require more computation and memory
+	SlowSearchTopNThreshold = 500
+	
+	// SlowSearchFilterThreshold marks a search as slow if total filters exceed this value
+	// Multiple filters increase query complexity
+	SlowSearchFilterThreshold = 3
+	
+	WeightedRanker = "WeightedRanker"
 )
 
 const (
@@ -205,7 +216,7 @@ func parseRanker(data json.RawMessage, req *vearchpb.SearchRequest) error {
 }
 
 func parseSlowSearch(indexParams *entity.IndexParams, indexType string, req *vearchpb.SearchRequest) {
-	if req.TopN >= 500 {
+	if req.TopN >= SlowSearchTopNThreshold {
 		req.IsSlowSearch = true
 		return
 	}
@@ -217,7 +228,7 @@ func parseSlowSearch(indexParams *entity.IndexParams, indexType string, req *vea
 		}
 	}
 
-	if len(req.RangeFilters)+len(req.TermFilters) >= 3 {
+	if len(req.RangeFilters)+len(req.TermFilters) >= SlowSearchFilterThreshold {
 		req.IsSlowSearch = true
 	}
 }
