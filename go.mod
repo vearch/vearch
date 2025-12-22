@@ -6,7 +6,7 @@ require (
 	github.com/BurntSushi/toml v1.1.0
 	github.com/bytedance/sonic v1.12.3
 	github.com/codahale/hdrhistogram v0.9.0
-	github.com/cubefs/cubefs v1.5.2-0.20230627111954-f55e96950618
+	github.com/cubefs/cubefs v3.3.1+incompatible
 	github.com/gin-contrib/cors v1.6.0
 	github.com/gin-gonic/gin v1.9.1
 	github.com/google/flatbuffers v23.5.26+incompatible
@@ -74,7 +74,7 @@ require (
 	github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0 // indirect
 	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
-	github.com/golang-jwt/jwt/v4 v4.4.2 // indirect
+	github.com/golang-jwt/jwt/v4 v4.5.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
@@ -165,7 +165,7 @@ require (
 	go.uber.org/multierr v1.7.0 // indirect
 	go.uber.org/zap v1.19.1 // indirect
 	golang.org/x/arch v0.7.0 // indirect
-	golang.org/x/crypto v0.31.0 // indirect
+	golang.org/x/crypto v0.35.0 // indirect
 	golang.org/x/mod v0.17.0 // indirect
 	golang.org/x/net v0.26.0 // indirect
 	golang.org/x/sync v0.10.0 // indirect
