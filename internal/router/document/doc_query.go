@@ -39,18 +39,18 @@ const (
 	UrlQueryVersion  = "version"
 	UrlQueryOpType   = "op_type"
 	UrlQueryTimeout  = "timeout"
-	
+
 	// DefaultSize is the default number of results to return when size is not specified
 	DefaultSize = 50
-	
+
 	// SlowSearchTopNThreshold marks a search as slow if TopN exceeds this value
 	// Large TopN values require more computation and memory
 	SlowSearchTopNThreshold = 500
-	
+
 	// SlowSearchFilterThreshold marks a search as slow if total filters exceed this value
 	// Multiple filters increase query complexity
 	SlowSearchFilterThreshold = 3
-	
+
 	WeightedRanker = "WeightedRanker"
 )
 

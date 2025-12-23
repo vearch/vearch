@@ -27,10 +27,10 @@ import (
 )
 
 const (
-	defaultRpcTimeOut   int64 = 10 * 1000  // 10 seconds for normal operations
-	bulkOperationTimeout int64 = 60 * 1000  // 60 seconds for bulk operations
+	defaultRpcTimeOut     int64 = 10 * 1000  // 10 seconds for normal operations
+	bulkOperationTimeout  int64 = 60 * 1000  // 60 seconds for bulk operations
 	indexOperationTimeout int64 = 300 * 1000 // 5 minutes for index operations
-	minTimeout           int64 = 1 * 1000    // 1 second minimum timeout
+	minTimeout            int64 = 1 * 1000   // 1 second minimum timeout
 )
 
 type docService struct {
@@ -51,12 +51,12 @@ func setTimeout(ctx context.Context, head *vearchpb.RequestHead) (context.Contex
 	if head.TimeOutMs > 0 {
 		timeout = head.TimeOutMs
 	}
-	
+
 	// Enforce minimum timeout to prevent too small values
 	if timeout < minTimeout {
 		timeout = minTimeout
 	}
-	
+
 	t := time.Duration(timeout) * time.Millisecond
 	endTime := time.Now().Add(t)
 	ctx = context.WithValue(ctx, entity.RPC_TIME_OUT, endTime)
@@ -66,7 +66,7 @@ func setTimeout(ctx context.Context, head *vearchpb.RequestHead) (context.Contex
 // setTimeoutForOperation sets timeout based on operation type
 func setTimeoutForOperation(ctx context.Context, head *vearchpb.RequestHead, operationType string) (context.Context, context.CancelFunc) {
 	timeout := defaultRpcTimeOut
-	
+
 	// Set default timeout based on operation type
 	switch operationType {
 	case "bulk", "upsert":
@@ -76,22 +76,22 @@ func setTimeoutForOperation(ctx context.Context, head *vearchpb.RequestHead, ope
 	default:
 		timeout = defaultRpcTimeOut
 	}
-	
+
 	// Allow config to override
 	if config.Conf().Router.RpcTimeOut > 0 {
 		timeout = int64(config.Conf().Router.RpcTimeOut)
 	}
-	
+
 	// Request-specific timeout has highest priority
 	if head.TimeOutMs > 0 {
 		timeout = head.TimeOutMs
 	}
-	
+
 	// Enforce minimum timeout
 	if timeout < minTimeout {
 		timeout = minTimeout
 	}
-	
+
 	t := time.Duration(timeout) * time.Millisecond
 	endTime := time.Now().Add(t)
 	ctx = context.WithValue(ctx, entity.RPC_TIME_OUT, endTime)

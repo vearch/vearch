@@ -55,7 +55,7 @@ const (
 	URLParamMemberId    = "member_id"
 	NodeID              = "node_id"
 	defaultTimeout      = 10 * time.Second
-	
+
 	// MaxDocumentIdsPerRequest limits the number of document IDs in a single request
 	// to prevent excessive memory usage and ensure reasonable response times
 	MaxDocumentIdsPerRequest = 500
