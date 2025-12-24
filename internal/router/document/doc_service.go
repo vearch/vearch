@@ -101,16 +101,23 @@ func setTimeoutForOperation(ctx context.Context, head *vearchpb.RequestHead, ope
 func (docService *docService) getDocs(ctx context.Context, args *vearchpb.GetRequest) *vearchpb.GetResponse {
 	ctx, cancel := setTimeout(ctx, args.Head)
 	defer cancel()
+	
+	requestID := args.Head.Params["request_id"]
+	startTime := time.Now()
+	log.Debugf("[%s] getDocs started, keys count: %d", requestID, len(args.PrimaryKeys))
+	
 	reply := &vearchpb.GetResponse{Head: newOkHead()}
 	request := client.NewRouterRequest(ctx, docService.client)
 	request.SetMsgID(args.Head.Params["request_id"]).SetMethod(client.GetDocsHandler).SetHead(args.Head).SetSpace().SetDocsByKey(args.PrimaryKeys).PartitionDocs()
 	if request.Err != nil {
-		log.Errorf("getDoc args:[%v] error: [%s]", args, request.Err)
+		log.Errorf("[%s] getDocs failed: %v, duration: %v", requestID, request.Err, time.Since(startTime))
 		return &vearchpb.GetResponse{Head: setErrHead(request.Err)}
 	}
 	items := request.Execute()
 	reply.Head.Params = request.GetMD()
 	reply.Items = items
+	
+	log.Debugf("[%s] getDocs completed, items: %d, duration: %v", requestID, len(items), time.Since(startTime))
 	return reply
 }
 
@@ -138,31 +145,45 @@ func (docService *docService) getDocsByPartition(ctx context.Context, args *vear
 func (docService *docService) deleteDocs(ctx context.Context, args *vearchpb.DeleteRequest) *vearchpb.DeleteResponse {
 	ctx, cancel := setTimeout(ctx, args.Head)
 	defer cancel()
+	
+	requestID := args.Head.Params["request_id"]
+	startTime := time.Now()
+	log.Debugf("[%s] deleteDocs started, keys count: %d", requestID, len(args.PrimaryKeys))
+	
 	reply := &vearchpb.DeleteResponse{Head: newOkHead()}
 	request := client.NewRouterRequest(ctx, docService.client)
 	request.SetMsgID(args.Head.Params["request_id"]).SetMethod(client.DeleteDocsHandler).SetHead(args.Head).SetSpace().SetDocsByKey(args.PrimaryKeys).SetDocsField().PartitionDocs()
 	if request.Err != nil {
-		log.Errorf("delete args:[%v] error: [%s]", args, request.Err)
+		log.Errorf("[%s] deleteDocs failed: %v, duration: %v", requestID, request.Err, time.Since(startTime))
 		return &vearchpb.DeleteResponse{Head: setErrHead(request.Err)}
 	}
 	items := request.Execute()
 	reply.Head.Params = request.GetMD()
 	reply.Items = items
+	
+	log.Debugf("[%s] deleteDocs completed, items: %d, duration: %v", requestID, len(items), time.Since(startTime))
 	return reply
 }
 
 func (docService *docService) bulk(ctx context.Context, args *vearchpb.BulkRequest) *vearchpb.BulkResponse {
 	ctx, cancel := setTimeoutForOperation(ctx, args.Head, "bulk")
 	defer cancel()
+	
+	requestID := args.Head.Params["request_id"]
+	startTime := time.Now()
+	log.Debugf("[%s] bulk started, docs count: %d", requestID, len(args.Docs))
+	
 	reply := &vearchpb.BulkResponse{Head: newOkHead()}
 	request := client.NewRouterRequest(ctx, docService.client)
 	request.SetMsgID(args.Head.Params["request_id"]).SetMethod(client.BatchHandler).SetHead(args.Head).SetSpace().SetDocs(args.Docs).SetDocsField().UpsertByPartitions(args.Partitions)
 	if request.Err != nil {
-		log.Errorf("bulk args:[%v] error: [%s]", args, request.Err)
+		log.Errorf("[%s] bulk failed: %v, duration: %v", requestID, request.Err, time.Since(startTime))
 		return &vearchpb.BulkResponse{Head: setErrHead(request.Err)}
 	}
 	reply.Items = request.Execute()
 	reply.Head.Params = request.GetMD()
+	
+	log.Debugf("[%s] bulk completed, items: %d, duration: %v", requestID, len(reply.Items), time.Since(startTime))
 	return reply
 }
 
@@ -178,6 +199,17 @@ func setErrHead(err error) *vearchpb.ResponseHead {
 func newOkHead() *vearchpb.ResponseHead {
 	code := vearchpb.ErrorEnum_SUCCESS
 	return &vearchpb.ResponseHead{Err: vearchpb.NewError(code, nil).GetError()}
+}
+
+// ensureValidHead ensures response has valid head with error
+func ensureValidHead(head *vearchpb.ResponseHead) *vearchpb.ResponseHead {
+	if head == nil {
+		head = newOkHead()
+	}
+	if head.Err == nil {
+		head.Err = newOkHead().Err
+	}
+	return head
 }
 
 func (docService *docService) getSpace(ctx context.Context, head *vearchpb.RequestHead) (*entity.Space, error) {
@@ -209,17 +241,10 @@ func (docService *docService) query(ctx context.Context, args *vearchpb.QueryReq
 	}
 
 	searchResponse := request.QueryFieldSortExecute()
-
 	if searchResponse == nil {
 		return &vearchpb.SearchResponse{Head: setErrHead(request.Err)}
 	}
-	if searchResponse.Head == nil {
-		searchResponse.Head = newOkHead()
-	}
-	if searchResponse.Head.Err == nil {
-		searchResponse.Head.Err = newOkHead().Err
-	}
-
+	searchResponse.Head = ensureValidHead(searchResponse.Head)
 	return searchResponse
 }
 
@@ -245,13 +270,7 @@ func (docService *docService) search(ctx context.Context, searchReq *vearchpb.Se
 	if searchResponse == nil {
 		return &vearchpb.SearchResponse{Head: setErrHead(request.Err)}
 	}
-	if searchResponse.Head == nil {
-		searchResponse.Head = newOkHead()
-	}
-	if searchResponse.Head.Err == nil {
-		searchResponse.Head.Err = newOkHead().Err
-	}
-
+	searchResponse.Head = ensureValidHead(searchResponse.Head)
 	return searchResponse
 }
 
@@ -265,17 +284,10 @@ func (docService *docService) flush(ctx context.Context, args *vearchpb.FlushReq
 	}
 
 	flushResponse := request.FlushExecute()
-
 	if flushResponse == nil {
 		return &vearchpb.FlushResponse{Head: setErrHead(request.Err)}
 	}
-	if flushResponse.Head == nil {
-		flushResponse.Head = newOkHead()
-	}
-	if flushResponse.Head.Err == nil {
-		flushResponse.Head.Err = newOkHead().Err
-	}
-
+	flushResponse.Head = ensureValidHead(flushResponse.Head)
 	return flushResponse
 }
 
@@ -289,17 +301,10 @@ func (docService *docService) forceMerge(ctx context.Context, args *vearchpb.For
 	}
 
 	forceMergeResponse := request.ForceMergeExecute()
-
 	if forceMergeResponse == nil {
 		return &vearchpb.ForceMergeResponse{Head: setErrHead(request.Err)}
 	}
-	if forceMergeResponse.Head == nil {
-		forceMergeResponse.Head = newOkHead()
-	}
-	if forceMergeResponse.Head.Err == nil {
-		forceMergeResponse.Head.Err = newOkHead().Err
-	}
-
+	forceMergeResponse.Head = ensureValidHead(forceMergeResponse.Head)
 	return forceMergeResponse
 }
 
@@ -313,17 +318,10 @@ func (docService *docService) rebuildIndex(ctx context.Context, args *vearchpb.I
 	}
 
 	indexResponse := request.RebuildIndexExecute()
-
 	if indexResponse == nil {
 		return &vearchpb.IndexResponse{Head: setErrHead(request.Err)}
 	}
-	if indexResponse.Head == nil {
-		indexResponse.Head = newOkHead()
-	}
-	if indexResponse.Head.Err == nil {
-		indexResponse.Head.Err = newOkHead().Err
-	}
-
+	indexResponse.Head = ensureValidHead(indexResponse.Head)
 	return indexResponse
 }
 
