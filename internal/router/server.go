@@ -19,12 +19,12 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net"
+	"net/http"
 	"time"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/spf13/cast"
 	"github.com/vearch/vearch/v3/internal/client"
 	"github.com/vearch/vearch/v3/internal/config"
 	"github.com/vearch/vearch/v3/internal/monitor"
@@ -38,7 +38,8 @@ import (
 type Server struct {
 	ctx        context.Context
 	cli        *client.Client
-	httpServer *gin.Engine
+	httpServer *http.Server
+	ginEngine  *gin.Engine
 	rpcServer  *grpc.Server
 	cancelFunc context.CancelFunc
 	errChan    chan error
@@ -114,12 +115,13 @@ func NewServer(ctx context.Context) (*Server, error) {
 	routerCtx, routerCancel := context.WithCancel(ctx)
 	// start router cache
 	if err := cli.Master().FlushCacheJob(routerCtx); err != nil {
-		log.Error("Error in Start cache Job,Err:%v", err)
-		panic(err)
+		log.Error("Failed to start cache job: %v", err)
+		return nil, fmt.Errorf("failed to start cache job: %w", err)
 	}
 
 	return &Server{
-		httpServer: httpServer,
+		ginEngine:  httpServer,
+		httpServer: nil, // Will be set in Start()
 		ctx:        routerCtx,
 		cli:        cli,
 		cancelFunc: routerCancel,
@@ -134,7 +136,8 @@ func (server *Server) Start() error {
 	// get local IP addr
 	routerIP, err = netutil.GetLocalIP()
 	if err != nil {
-		panic(fmt.Sprintf("conn master failed, err: [%s]", err.Error()))
+		log.Error("Failed to get local IP: %v", err)
+		return fmt.Errorf("failed to get local IP: %w", err)
 	}
 	log.Debugf("Get router ip: [%s]", routerIP)
 	mserver.SetIp(routerIP, false)
@@ -145,7 +148,14 @@ func (server *Server) Start() error {
 		monitor.Register(nil, nil, config.Conf().Router.MonitorPort)
 	}
 
-	if err := server.httpServer.Run(cast.ToString(fmt.Sprintf("0.0.0.0:%d", config.Conf().Router.Port))); err != nil {
+	// Create HTTP server with graceful shutdown support
+	server.httpServer = &http.Server{
+		Addr:    fmt.Sprintf("0.0.0.0:%d", config.Conf().Router.Port),
+		Handler: server.ginEngine,
+	}
+
+	log.Info("Starting HTTP server on port %d", config.Conf().Router.Port)
+	if err := server.httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		return fmt.Errorf("fail to start http Server, %v", err)
 	}
 	log.Info("router exited!")
@@ -159,7 +169,19 @@ func (server *Server) Shutdown() {
 	// 1. 停止接收新请求
 	server.cancelFunc()
 
-	// 2. 优雅关闭RPC服务器
+	// 2. 优雅关闭HTTP服务器
+	if server.httpServer != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		if err := server.httpServer.Shutdown(ctx); err != nil {
+			log.Error("HTTP server shutdown error: %v", err)
+		} else {
+			log.Info("HTTP server stopped gracefully")
+		}
+	}
+
+	// 3. 优雅关闭RPC服务器
 	if server.rpcServer != nil {
 		done := make(chan struct{})
 		go func() {
@@ -176,13 +198,10 @@ func (server *Server) Shutdown() {
 		}
 	}
 
-	// 3. 关闭错误channel
+	// 4. 关闭错误channel
 	if server.errChan != nil {
 		close(server.errChan)
 	}
-
-	// 4. HTTP服务器会在Run方法返回后自动停止
-	// Gin的Run是阻塞的，当context取消时会停止
 
 	log.Info("router shutdown... end")
 }
