@@ -40,6 +40,8 @@ int TableSchemaIO::Write(TableInfo &table) {
   nlohmann::json j;
   j["training_threshold"] = s.training_threshold;
   j["refresh_interval"] = s.refresh_interval;
+  j["enable_id_cache"] = table.EnableIdCache();
+  j["enable_realtime"] = table.EnableRealtime();
   for (auto &f : s.fields) {
     nlohmann::json jf;
     jf["name"] = f.name;
@@ -93,8 +95,18 @@ int TableSchemaIO::Read(std::string &name, TableInfo &table) {
   try {
     nlohmann::json j = nlohmann::json::parse(schema_str);
     table.SetName(name);
-    table.SetTrainingThreshold(j["training_threshold"]);
-    table.SetRefreshInterval(j["refresh_interval"]);
+    if (j.contains("training_threshold")) {
+      table.SetTrainingThreshold(j["training_threshold"]);
+    }
+    if (j.contains("refresh_interval")) {
+      table.SetRefreshInterval(j["refresh_interval"]);
+    }
+    if (j.contains("enable_id_cache")) {
+      table.SetEnableIdCache(j["enable_id_cache"]);
+    }
+    if (j.contains("enable_realtime")) {
+      table.SetEnableRealtime(j["enable_realtime"]);
+    }
     for (auto &f : j["fields"]) {
       struct FieldInfo fi;
       fi.name = f["name"];

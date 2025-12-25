@@ -283,7 +283,7 @@ Status Engine::Search(Request &request, Response &response_results) {
 
   if (vec_fields_num > 0 && (brute_force_search == 0) &&
       (index_status_ != IndexStatus::INDEXED) &&
-      (max_docid_ > brute_force_search_threshold)) {
+      (max_docid_ > brute_force_search_threshold) && vec_manager_->GetEnableRealtime() == false) {
     std::string msg =
         space_name_ + " index not trained, " +
         "brute_force_search is 0, max_docid_ = " + std::to_string(max_docid_) +

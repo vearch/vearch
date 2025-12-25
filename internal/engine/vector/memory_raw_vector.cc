@@ -29,6 +29,8 @@ MemoryRawVector::MemoryRawVector(VectorMetaInfo *meta_info,
   curr_idx_in_seg_ = 0;
   compact_if_need_ = true;
   compact_ratio_ = 0.3;
+  segment_nums_ = nullptr;
+  segment_deleted_nums_ = nullptr;
 }
 
 MemoryRawVector::~MemoryRawVector() {

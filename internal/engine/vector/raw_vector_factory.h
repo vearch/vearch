@@ -11,6 +11,7 @@
 
 #include "common/gamma_common_data.h"
 #include "memory_raw_vector.h"
+#include "vector/memory_buffer_raw_vector.h"
 #include "raw_vector.h"
 #include "vector/rocksdb_raw_vector.h"
 
@@ -26,6 +27,10 @@ class RawVectorFactory {
     switch (type) {
       case VectorStorageType::MemoryOnly:
         raw_vector = new MemoryRawVector(meta_info, store_params, docids_bitmap,
+                                         storage_mgr, cf_id);
+        break;
+      case VectorStorageType::MemoryBuffer:
+        raw_vector = new MemoryBufferRawVector(meta_info, store_params, docids_bitmap,
                                          storage_mgr, cf_id);
         break;
       case VectorStorageType::RocksDB:

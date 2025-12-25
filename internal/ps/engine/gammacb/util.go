@@ -39,11 +39,15 @@ func mapping2Table(cfg EngineConfig, m *mapping.IndexMapping) (*gamma.Table, err
 	var refreshInterval int32
 	refreshInterval = int32(entity.DefaultRefreshInterval)
 	enableIdCache := entity.DefaultEnableIdCache
+	enableRealtime := entity.DefalutEnableRealtime
 	if cfg.Space.RefreshInterval != nil {
 		refreshInterval = *cfg.Space.RefreshInterval
 	}
 	if cfg.Space.EnableIdCache != nil {
 		enableIdCache = *cfg.Space.EnableIdCache
+	}
+	if cfg.Space.EnableRealtime != nil {
+		enableRealtime = *cfg.Space.EnableRealtime
 	}
 	table := &gamma.Table{
 		Name:            cfg.Space.Name + "-" + cast.ToString(cfg.PartitionID),
@@ -51,6 +55,7 @@ func mapping2Table(cfg EngineConfig, m *mapping.IndexMapping) (*gamma.Table, err
 		IndexParams:     indexParams,
 		RefreshInterval: refreshInterval,
 		EnableIdCache:   enableIdCache,
+		EnableRealtime:  enableRealtime,
 	}
 
 	fieldInfo := gamma.FieldInfo{Name: entity.IdField, DataType: gamma.STRING, IsIndex: false}

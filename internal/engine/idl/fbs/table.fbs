@@ -25,6 +25,7 @@ table Table {
   index_params:string;
   refresh_interval:int = 1000; // microseconds, default 1s
   enable_id_cache:bool;
+  enable_realtime:bool;
 }
 
 root_type Table;

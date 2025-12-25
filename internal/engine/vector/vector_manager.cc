@@ -8,6 +8,9 @@
 #include "vector/vector_manager.h"
 
 #include "index/impl/hnswlib/gamma_index_hnswlib.h"
+#include "index/impl/gamma_index_ivfflat.h"
+#include "index/impl/gamma_index_ivfpq.h"
+
 #include "raw_vector_factory.h"
 #include "util/utils.h"
 
@@ -29,6 +32,7 @@ VectorManager::VectorManager(const VectorStorageType &store_type,
       root_path_(root_path) {
   table_created_ = false;
   desc_ = desc + " ";
+  enable_realtime_ = false;
 }
 
 VectorManager::~VectorManager() {
@@ -49,6 +53,8 @@ Status VectorManager::DetermineVectorStorageType(
       store_type = VectorStorageType::MemoryOnly;
     } else if (!strcasecmp("RocksDB", store_type_str.c_str())) {
       store_type = VectorStorageType::RocksDB;
+    } else if (!strcasecmp("MemoryBuffer", store_type_str.c_str())) {
+      store_type = VectorStorageType::MemoryBuffer;
     } else {
       std::stringstream msg;
       msg << "NO support for store type " << store_type_str;
@@ -384,6 +390,36 @@ Status VectorManager::CreateVectorTable(TableInfo &table,
 
     raw_vectors_[vec_name] = vec;
 
+    if (table.EnableRealtime() && (index_type != "FLAT" || index_type != "GPU_IVFFLAT" || index_type != "GPU_IVFPQ")) {
+      enable_realtime_ = true;
+      VectorInfo rt_vector_info = vector_info;
+      rt_vector_info.store_type = "MemoryBuffer";
+      std::string flat_index_type = "FLAT";
+      RawVector *vec_buffer = nullptr;
+      vec_status = CreateRawVector(rt_vector_info, flat_index_type, table, &vec_buffer,
+                                  vector_cf_ids[i], storage_mgr);
+      if (!vec_status.ok()) {
+        std::stringstream msg;
+        msg << desc_ << vec_name
+        << " create vector buffer failed:" << vec_status.ToString();
+        LOG(ERROR) << msg.str();
+        status = Status::ParamError(msg.str());
+        return status;
+      }
+      vector_memory_buffers_[vec_name] = vec_buffer;
+
+      status =
+          CreateVectorIndex(flat_index_type, index_params_[i], vec_buffer,
+                            table.TrainingThreshold(), true, vector_memory_buffer_indexes_);
+      if (!status.ok()) {
+        LOG(ERROR) << desc_ << vec_name
+                   << " create index failed: " << status.ToString();
+        return status;
+      }
+      LOG(INFO) << desc_ << vec_name << " realtime is available! index_type=" << index_type;
+    } else {
+      LOG(INFO) << desc_ << vec_name << " realtime is disabled! index_type=" << index_type;
+    }
     if (vector_info.is_index == false) {
       LOG(INFO) << desc_ << vec_name << " need not to indexed!";
       continue;
@@ -426,10 +462,23 @@ int VectorManager::AddToStore(
   for (auto &[name, field] : fields) {
     if (raw_vectors_.find(name) == raw_vectors_.end()) {
       LOG(ERROR) << desc_ << "cannot find raw vector [" << name << "]";
-      continue;
+      return -2;
     }
     ret = raw_vectors_[name]->Add(docid, field);
     if (ret != 0) break;
+
+    if (enable_realtime_) {
+      if (vector_memory_buffers_.find(name) == vector_memory_buffers_.end()) {
+        LOG(ERROR) << desc_ << "cannot find raw vector buffer [" << name << "]";
+        return -3;
+      }
+      ret = vector_memory_buffers_[name]->Add(docid, field);
+      if (ret != 0) {
+        LOG(ERROR) << desc_ << "add to memory buffer vector failed, name=" << name << ", docid=" << docid;
+        break;
+      }
+    }
+
   }
   return ret;
 }
@@ -439,7 +488,8 @@ int VectorManager::Update(
   for (auto &[name, field] : fields) {
     auto it = raw_vectors_.find(name);
     if (it == raw_vectors_.end()) {
-      continue;
+      LOG(ERROR) << desc_ << "cannot find raw vector [" << name << "]";
+      return -1;
     }
     RawVector *raw_vector = it->second;
     size_t element_size =
@@ -451,11 +501,22 @@ int VectorManager::Update(
       LOG(ERROR) << desc_ << name
                  << " invalid field value len=" << field.value.size()
                  << ", dimension=" << raw_vector->MetaInfo()->Dimension();
-      return -1;
+      return -2;
     }
 
     int ret = raw_vector->Update(docid, field);
     if (ret) return ret;
+
+    if (enable_realtime_) {
+      auto buffer_it = vector_memory_buffers_.find(name);
+      if (buffer_it == vector_memory_buffers_.end()) {
+        LOG(ERROR) << desc_ << "cannot find raw vector buffer [" << name << "]";
+        return -3;
+      }
+
+      ret = buffer_it->second->Update(docid, field);
+      if (ret) return ret;
+    }
 
     pthread_rwlock_rdlock(&index_rwmutex_);
     for (std::string &index_type : index_types_) {
@@ -583,6 +644,18 @@ int VectorManager::AddRTVecsToIndex(bool &index_is_dirty) {
         } else {
           index_model->indexed_count_ += count_per_index;
           index_is_dirty = true;
+          if (enable_realtime_) {
+            auto vector_buffer_it = vector_memory_buffers_.find(name);
+            if (vector_buffer_it != vector_memory_buffers_.end()) {
+              RawVector *raw_vector_buffer = vector_buffer_it->second;
+              if (raw_vector_buffer != nullptr) {
+                MemoryBufferRawVector *memory_buffer = dynamic_cast<MemoryBufferRawVector *>(raw_vector_buffer);
+                if (memory_buffer != nullptr) {
+                  memory_buffer->SetStartSegmentId(index_model->indexed_count_);
+                }
+              }
+            }
+          }
         }
       }
       if (ret == 0) {
@@ -659,6 +732,7 @@ Status VectorManager::Search(GammaQuery &query, GammaResult *results) {
 
   size_t vec_num = query.vec_query.size();
   VectorResult all_vector_results[vec_num];
+  VectorResult all_vector_buffer_results[vec_num];
 
   // if multi-vector query, sort by docid to facilitate subsequent merging
   query.condition->sort_by_docid = vec_num > 1 ? true : false;
@@ -731,29 +805,79 @@ Status VectorManager::Search(GammaQuery &query, GammaResult *results) {
 
     const uint8_t *x =
         reinterpret_cast<const uint8_t *>(vec_query.value.c_str());
-    int ret_vec = index->Search(query.condition, n, x, topN,
-                                all_vector_results[i].dists,
-                                all_vector_results[i].docids);
-
-    if (ret_vec == -1) {
-      std::string err = desc_ + "faild search of query " + index_name;
-      LOG(ERROR) << err;
-      pthread_rwlock_unlock(&index_rwmutex_);
-      return Status::InvalidArgument(err);
-    } else if (ret_vec == -2) {
-      pthread_rwlock_unlock(&index_rwmutex_);
-      return Status::MemoryExceeded();
-    }
-
-    if (query.condition->sort_by_docid) {
-      int ret = ParseSearchResult(n, query.condition->topn, all_vector_results[i], index);
-      if (ret == -2) {
-        std::string err = "Search Request canceled";
-        pthread_rwlock_unlock(&index_rwmutex_);
-        return Status::MemoryExceeded(err);
+    bool only_search_realtime_buffer = false;
+    if (enable_realtime_ && index != nullptr) {
+      if (auto ivfpq_index = dynamic_cast<GammaIVFPQIndex *>(index)) {
+        only_search_realtime_buffer = !ivfpq_index->is_trained;
       }
-      all_vector_results[i].sort_by_docid();
+      if (auto ivfflat_index = dynamic_cast<GammaIVFFlatIndex *>(index)) {
+        only_search_realtime_buffer = !ivfflat_index->is_trained;
+      }
     }
+
+    // if index is not trained, only search in realtime buffer
+    if (!only_search_realtime_buffer) {
+      int ret_vec = index->Search(query.condition, n, x, topN,
+        all_vector_results[i].dists,
+        all_vector_results[i].docids);
+
+      if (ret_vec == -1) {
+        std::string err = desc_ + "faild search of query " + index_name;
+        LOG(ERROR) << err;
+        pthread_rwlock_unlock(&index_rwmutex_);
+        return Status::InvalidArgument(err);
+      } else if (ret_vec == -2) {
+        pthread_rwlock_unlock(&index_rwmutex_);
+        return Status::MemoryExceeded();
+      }
+
+      if (query.condition->sort_by_docid) {
+        int ret = ParseSearchResult(n, query.condition->topn, all_vector_results[i], index);
+        if (ret == -2) {
+          std::string err = "Search Request canceled";
+          pthread_rwlock_unlock(&index_rwmutex_);
+          return Status::MemoryExceeded(err);
+        }
+        all_vector_results[i].sort_by_docid();
+      }
+    }
+
+    if (enable_realtime_) {
+      all_vector_buffer_results[i].init(n, query.condition->topn);
+      std::string index_name = IndexName(name, "FLAT");
+      auto buffer_iter = vector_memory_buffer_indexes_.find(index_name);
+      if (buffer_iter != vector_memory_buffer_indexes_.end()) {
+        IndexModel *buffer_index = buffer_iter->second;
+        int ret_buffer = buffer_index->Search(
+            query.condition, n,
+            reinterpret_cast<const uint8_t *>(vec_query.value.c_str()),
+            query.condition->topn, all_vector_buffer_results[i].dists,
+            all_vector_buffer_results[i].docids);
+        if (ret_buffer == -1) {
+          std::string err = desc_ + "faild search of query " + index_name;
+          LOG(ERROR) << err;
+          pthread_rwlock_unlock(&index_rwmutex_);
+          return Status::InvalidArgument(err);
+        } else if (ret_buffer == -2) {
+          pthread_rwlock_unlock(&index_rwmutex_);
+          return Status::MemoryExceeded();
+        }
+
+        if (query.condition->sort_by_docid) {
+          int ret = ParseSearchResult(n, query.condition->topn, all_vector_results[i], index);
+          if (ret == -2) {
+            std::string err = "Search Request canceled";
+            pthread_rwlock_unlock(&index_rwmutex_);
+            return Status::MemoryExceeded(err);
+          }
+          all_vector_results[i].sort_by_docid();
+        }
+      } else {
+        LOG(ERROR) << desc_
+                   << "cannot find memory buffer index for " << index_name;
+      }
+    }
+
     pthread_rwlock_unlock(&index_rwmutex_);
 #ifdef PERFORMANCE_TESTING
     if (query.condition->GetPerfTool()) {
@@ -830,27 +954,110 @@ Status VectorManager::Search(GammaQuery &query, GammaResult *results) {
     }
   } else {
     for (int i = 0; i < n; i++) {
-      // double score = 0;
       results[i].init(query.condition->topn, vec_names, vec_num);
       results[i].total = all_vector_results[0].total[i] > 0
                              ? all_vector_results[0].total[i]
                              : results[i].total;
-      int pos = 0, topn = all_vector_results[0].topn; // topn includes offset
-      for (int j = query.condition->offset; j < topn; j++) {
-        if (RequestContext::is_killed()) {
-          return Status::MemoryExceeded();
+      // all_vector_results[0].topn may be larger than query.condition->topn because of offset
+      int pos = 0, topn = all_vector_results[0].topn, topn_buffer = all_vector_buffer_results[0].topn;
+      if (enable_realtime_) {
+        std::vector<std::pair<int64_t, double>> merged_results;
+        int pos1 = 0, pos2 = 0;
+        std::unordered_set<int64_t> added_docids;
+
+        // Merge two sorted arrays based on metric_type
+        while (pos1 < all_vector_results[0].topn && pos2 < all_vector_buffer_results[0].topn) {
+          int64_t docid1 = all_vector_results[0].docids[i * topn + pos1];
+          int64_t docid2 = all_vector_buffer_results[0].docids[i * topn_buffer + pos2];
+          double score1 = all_vector_results[0].dists[i * topn + pos1];
+          double score2 = all_vector_buffer_results[0].dists[i * topn_buffer + pos2];
+
+          if (docid1 == -1) {
+            pos1++;
+            continue;
+          }
+          if (docid2 == -1) {
+            pos2++;
+            continue;
+          }
+
+          // Compare scores based on metric_type
+          bool condition;
+          switch (query.condition->metric_type) {
+            case DistanceComputeType::INNER_PRODUCT:
+              condition = score1 >= score2; // Descending order for InnerProduct
+              break;
+            case DistanceComputeType::L2:
+              condition = score1 <= score2; // Ascending order for L2
+              break;
+            default:
+              LOG(ERROR) << "invalid metric_type=" << (int)query.condition->metric_type;
+              condition = true; // Default to avoid undefined behavior
+          }
+
+          if (condition) {
+            if (added_docids.find(docid1) == added_docids.end()) {
+              merged_results.emplace_back(docid1, score1);
+              added_docids.insert(docid1);
+            }
+            pos1++;
+          } else {
+            if (added_docids.find(docid2) == added_docids.end()) {
+              merged_results.emplace_back(docid2, score2);
+              added_docids.insert(docid2);
+            }
+            pos2++;
+          }
         }
-        int real_pos = i * topn + j;
-        if (all_vector_results[0].docids[real_pos] == -1) continue;
-        results[i].docs[pos]->docid = all_vector_results[0].docids[real_pos];
 
-        double score = all_vector_results[0].dists[real_pos];
+        // Add remaining elements from all_vector_results[0]
+        while (pos1 < all_vector_results[0].topn) {
+          int64_t docid = all_vector_results[0].docids[i * topn + pos1];
+          double score = all_vector_results[0].dists[i * topn + pos1];
+          if (docid != -1 && added_docids.find(docid) == added_docids.end()) {
+            merged_results.emplace_back(docid, score);
+            added_docids.insert(docid);
+          }
+          pos1++;
+        }
 
-        results[i].docs[pos]->fields[0].score = score;
-        results[i].docs[pos]->score = score;
-        pos++;
+        // Add remaining elements from all_vector_buffer_results[0]
+        while (pos2 < all_vector_buffer_results[0].topn) {
+          int64_t docid = all_vector_buffer_results[0].docids[i * topn_buffer + pos2];
+          double score = all_vector_buffer_results[0].dists[i * topn_buffer + pos2];
+          if (docid != -1 && added_docids.find(docid) == added_docids.end()) {
+            merged_results.emplace_back(docid, score);
+            added_docids.insert(docid);
+          }
+          pos2++;
+        }
+
+        int pos = 0;
+        for (const auto &[docid, score] : merged_results) {
+          if (pos >= query.condition->topn) break; // Limit to topn results
+          results[i].docs[pos]->docid = docid;
+          results[i].docs[pos]->fields[0].score = score;
+          results[i].docs[pos]->score = score;
+          pos++;
+        }
+        results[i].results_count = pos;
+      } else {
+        for (int j = query.condition->offset; j < topn; j++) {
+          if (RequestContext::is_killed()) {
+            return Status::MemoryExceeded();
+          }
+          int real_pos = i * topn + j;
+          if (all_vector_results[0].docids[real_pos] == -1) continue;
+          results[i].docs[pos]->docid = all_vector_results[0].docids[real_pos];
+
+          double score = all_vector_results[0].dists[real_pos];
+
+          results[i].docs[pos]->fields[0].score = score;
+          results[i].docs[pos]->score = score;
+          pos++;
+        }
+        results[i].results_count = pos;
       }
-      results[i].results_count = pos;
     }
   }
 
@@ -1025,6 +1232,31 @@ int VectorManager::Load(const std::vector<std::string> &index_dirs,
                    << "] load num=" << real_load_num
                    << " >= vec_num=" << vec_num;
         return -1;
+      }
+    }
+  }
+
+  if (enable_realtime_) {
+    for (const auto &[name, vec] : vector_memory_buffers_) {
+      int64_t vector_index_count = 0;
+      if (vec_index_counts.find(name) != vec_index_counts.end()) {
+        vector_index_count = vec_index_counts[name];
+      } else {
+        LOG(ERROR) << desc_ << "vector [" << name
+                   << "] not found in vector_memory_buffers_";
+        return -1;
+      }
+      MemoryBufferRawVector *memory_buffer =
+          dynamic_cast<MemoryBufferRawVector *>(vec);
+      if (memory_buffer == nullptr) {
+        LOG(ERROR) << desc_ << "vector memory buffer [" << name
+                   << "] dynamic cast failed!";
+        return -1;
+      }
+      Status status = memory_buffer->Load(vector_index_count, min_vec_num, doc_num);
+      if (!status.ok()) {
+        LOG(ERROR) << desc_ << "memory buffer vector [" << name << "] load failed!";
+        return status.code();
       }
     }
   }

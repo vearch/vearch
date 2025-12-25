@@ -49,6 +49,7 @@ type Table struct {
 	IndexParams     string
 	RefreshInterval int32
 	EnableIdCache   bool
+	EnableRealtime  bool
 	table           *gamma_api.Table
 }
 
@@ -118,6 +119,7 @@ func (table *Table) Serialize() []byte {
 	gamma_api.TableAddIndexParams(builder, indexParams)
 	gamma_api.TableAddRefreshInterval(builder, table.RefreshInterval)
 	gamma_api.TableAddEnableIdCache(builder, table.EnableIdCache)
+	gamma_api.TableAddEnableRealtime(builder, table.EnableRealtime)
 	builder.Finish(builder.EndObject())
 	return builder.FinishedBytes()
 }
@@ -150,4 +152,5 @@ func (table *Table) DeSerialize(buffer []byte) {
 	table.IndexParams = string(table.table.IndexParams())
 	table.RefreshInterval = table.table.RefreshInterval()
 	table.EnableIdCache = table.table.EnableIdCache()
+	table.EnableRealtime = table.table.EnableRealtime()
 }

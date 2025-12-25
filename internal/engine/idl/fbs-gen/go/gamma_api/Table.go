@@ -114,8 +114,20 @@ func (rcv *Table) MutateEnableIdCache(n bool) bool {
 	return rcv._tab.MutateBoolSlot(16, n)
 }
 
+func (rcv *Table) EnableRealtime() bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(18))
+	if o != 0 {
+		return rcv._tab.GetBool(o + rcv._tab.Pos)
+	}
+	return false
+}
+
+func (rcv *Table) MutateEnableRealtime(n bool) bool {
+	return rcv._tab.MutateBoolSlot(18, n)
+}
+
 func TableStart(builder *flatbuffers.Builder) {
-	builder.StartObject(7)
+	builder.StartObject(8)
 }
 func TableAddName(builder *flatbuffers.Builder, name flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(name), 0)
@@ -143,6 +155,9 @@ func TableAddRefreshInterval(builder *flatbuffers.Builder, refreshInterval int32
 }
 func TableAddEnableIdCache(builder *flatbuffers.Builder, enableIdCache bool) {
 	builder.PrependBoolSlot(6, enableIdCache, false)
+}
+func TableAddEnableRealtime(builder *flatbuffers.Builder, enableRealtime bool) {
+	builder.PrependBoolSlot(7, enableRealtime, false)
 }
 func TableEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

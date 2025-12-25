@@ -19,6 +19,7 @@
 
 #include "omp.h"
 #include "vector/memory_raw_vector.h"
+#include "vector/memory_buffer_raw_vector.h"
 
 using idx_t = faiss::idx_t;
 
@@ -152,6 +153,25 @@ int GammaFLATIndex::Search(RetrievalContext *retrieval_context, int n,
 
   int num_vectors = vector_->MetaInfo()->Size();
 
+  int start_offset_vid = 0;
+  auto memory_buf = dynamic_cast<MemoryBufferRawVector *>(raw_vec);
+  int start_segment_id = 0, end_segment_id = 0;
+  if (memory_buf != nullptr) {
+    start_segment_id = memory_buf->GetStartSegmentId();
+    end_segment_id = memory_buf->GetNsegments();
+    start_offset_vid = memory_buf->GetIndexedCount();
+    if (start_offset_vid >= num_vectors) {
+      return 0;
+    }
+    if (start_offset_vid < 0) {
+      start_offset_vid = 0;
+    }
+    for (int i = start_segment_id; i < end_segment_id; i++) {
+      memory_buf->IncrementSegmentRef(i);
+    }
+  }
+  num_vectors -= start_offset_vid;
+
   int d = vector_->MetaInfo()->Dimension();
 
   faiss::MetricType metric_type;
@@ -165,6 +185,11 @@ int GammaFLATIndex::Search(RetrievalContext *retrieval_context, int n,
   using HeapForL2 = faiss::CMax<float, idx_t>;
 
   if (RequestContext::is_killed()) {
+    if (memory_buf != nullptr) {
+      for (int i = start_segment_id; i < end_segment_id; i++) {
+        memory_buf->DecrementSegmentRef(i);
+      }
+    }
     return -2;
   }
   std::string request_id = RequestContext::get_current_request()->RequestId();
@@ -270,7 +295,7 @@ int GammaFLATIndex::Search(RetrievalContext *retrieval_context, int n,
 
           init_result(k, simi, idxi);
 
-          search_impl(xi, 0, num_vectors, simi, idxi, k);
+          search_impl(xi, start_offset_vid, num_vectors, simi, idxi, k);
 
           reorder_result(k, simi, idxi);
         }
@@ -300,7 +325,7 @@ int GammaFLATIndex::Search(RetrievalContext *retrieval_context, int n,
               ny += num_vectors % num_threads;  // the rest
             }
 
-            int offset = ik * num_vectors_per_thread;
+            int offset = start_offset_vid + ik * num_vectors_per_thread;
 
             search_impl(xi, offset, ny, local_dis.data(), local_idx.data(), k);
 
@@ -324,6 +349,12 @@ int GammaFLATIndex::Search(RetrievalContext *retrieval_context, int n,
       }
     }
   }  // parallel
+
+  if (memory_buf != nullptr) {
+    for (int i = start_segment_id; i < end_segment_id; i++) {
+      memory_buf->DecrementSegmentRef(i);
+    }
+  }
 
   if (RequestContext::is_killed(request_id, partition_id)) {
     return -2;

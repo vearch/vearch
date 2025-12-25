@@ -61,6 +61,7 @@ var (
 	DefaultMinPointsPerCentroid = 39
 	DefaultRefreshInterval      = 1000 // 1s
 	DefaultEnableIdCache        = false
+	DefalutEnableRealtime       = false
 )
 
 type IndexParams struct {
@@ -94,6 +95,7 @@ type Space struct {
 	PartitionName         *string                     `json:"partition_name,omitempty"`  // partition name for partition rule
 	PartitionOperatorType *string                     `json:"operator_type,omitempty"`   // partition rule operator type
 	EnableIdCache         *bool                       `json:"enable_id_cache,omitempty"` // whether enable map docid to _id value in cache
+	EnableRealtime        *bool                       `json:"enable_realtime,omitempty"` // whether enable realtime search
 }
 
 // TODO separete space config and mapping

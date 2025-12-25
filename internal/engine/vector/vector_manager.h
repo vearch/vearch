@@ -131,6 +131,8 @@ class VectorManager {
   void AddIndexTypeAndParam(const std::string &index_type,
                             const std::string &index_param);
 
+  bool GetEnableRealtime() { return enable_realtime_; }
+
  private:
   inline std::string IndexName(const std::string &field_name,
                                const std::string &index_type) {
@@ -159,6 +161,12 @@ class VectorManager {
 
   std::map<std::string, RawVector *> raw_vectors_;
   std::map<std::string, IndexModel *> vector_indexes_;
+  // vector memory buffer for realtime
+  std::map<std::string, RawVector *> vector_memory_buffers_;
+  // FLAT index
+  std::map<std::string, IndexModel *> vector_memory_buffer_indexes_;
+  bool enable_realtime_;
+
   std::vector<std::string> index_types_;
   std::vector<std::string> index_params_;
   pthread_rwlock_t index_rwmutex_;

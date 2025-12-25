@@ -51,6 +51,7 @@ def process_add_data(items):
     has_vector = items[9]
     db_name = items[10]
     space_name = items[11]
+    offset = items[12]
 
     data["db_name"] = db_name
     data["space_name"] = space_name
@@ -63,7 +64,7 @@ def process_add_data(items):
         param_dict = {}
         if with_id:
             param_dict["_id"] = str(index * batch_size + j)
-        param_dict["field_int"] = (index * batch_size + j) * seed
+        param_dict["field_int"] = (index * batch_size + j + offset) * seed
         if has_vector:
             param_dict["field_vector"] = features[j].tolist()
         if full_field:
@@ -95,6 +96,7 @@ def add(
     has_vector=True,
     db_name=db_name,
     space_name=space_name,
+    offset=0,
 ):
     pool = ThreadPool()
     total_data = []
@@ -113,6 +115,7 @@ def add(
                 has_vector,
                 db_name,
                 space_name,
+                offset
             )
         )
     results = pool.map(process_add_data, total_data)

@@ -15,6 +15,7 @@
 const static int MAX_VECTOR_NUM_PER_DOC = 10;
 const static int MAX_CACHE_SIZE = 1024 * 1024;  // M bytes, it is equal to 1T
 const static int kMaxSegments = 10000;
+const static int kMaxMemoryBufferSegments = 50000;
 
 class ScopeVector {
  public:
