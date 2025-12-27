@@ -41,13 +41,17 @@ const (
 // docService handles document CRUD operations and routing to partition servers.
 // It manages timeouts, space metadata, and request routing.
 type docService struct {
-	client *client.Client
+	client     *client.Client
+	spaceCache *SpaceCache
 }
 
 func newDocService(client *client.Client) *docService {
-	return &docService{
+	ds := &docService{
 		client: client,
 	}
+	// Initialize space cache
+	ds.spaceCache = NewSpaceCache(ds)
+	return ds
 }
 
 // setTimeout creates a context with timeout based on configuration and request parameters.
@@ -252,10 +256,28 @@ func ensureValidHead(head *vearchpb.ResponseHead) *vearchpb.ResponseHead {
 	return head
 }
 
+// getSpace retrieves space metadata using cache when available.
+// It first checks for alias, then uses the space cache to reduce Master load.
+//
+// Parameters:
+//   - ctx: Context for the request
+//   - head: Request header containing db name and space name
+//
+// Returns:
+//   - *entity.Space: The space object
+//   - error: Any error encountered during lookup
 func (docService *docService) getSpace(ctx context.Context, head *vearchpb.RequestHead) (*entity.Space, error) {
+	// Check for alias first
 	if alias, err := docService.client.Master().Cache().AliasByCache(ctx, head.SpaceName); err == nil {
 		head.SpaceName = alias.SpaceName
 	}
+	// Use space cache
+	return docService.spaceCache.GetSpace(ctx, head)
+}
+
+// getSpaceFromMaster retrieves space metadata directly from master server.
+// This is called by SpaceCache on cache miss. Do not call directly - use getSpace() instead.
+func (docService *docService) getSpaceFromMaster(ctx context.Context, head *vearchpb.RequestHead) (*entity.Space, error) {
 	return docService.client.Master().Cache().SpaceByCache(ctx, head.DbName, head.SpaceName)
 }
 

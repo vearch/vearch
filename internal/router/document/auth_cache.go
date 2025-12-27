@@ -43,6 +43,7 @@ type AuthCache struct {
 	users      sync.Map
 	roles      sync.Map
 	docService *docService
+	metrics    *MetricsRecorder
 }
 
 // NewAuthCache creates a new authentication cache and starts the cleanup goroutine.
@@ -55,6 +56,7 @@ type AuthCache struct {
 func NewAuthCache(docService *docService) *AuthCache {
 	cache := &AuthCache{
 		docService: docService,
+		metrics:    NewMetricsRecorder(),
 	}
 	// Start cleanup goroutine
 	go cache.cleanupExpired()
@@ -77,11 +79,15 @@ func (ac *AuthCache) GetUser(ctx context.Context, username string) (*entity.User
 	if cached, found := ac.users.Load(username); found {
 		entry := cached.(*cacheEntry)
 		if time.Now().Unix() < entry.expiration {
+			ac.metrics.RecordCacheLookup("user", true)
 			return entry.value.(*entity.User), nil
 		}
 		// Expired, remove it
 		ac.users.Delete(username)
 	}
+
+	// Cache miss
+	ac.metrics.RecordCacheLookup("user", false)
 
 	// Cache miss or expired, fetch from master
 	user, err := ac.docService.getUser(ctx, username)
@@ -114,11 +120,15 @@ func (ac *AuthCache) GetRole(ctx context.Context, roleName string) (*entity.Role
 	if cached, found := ac.roles.Load(roleName); found {
 		entry := cached.(*cacheEntry)
 		if time.Now().Unix() < entry.expiration {
+			ac.metrics.RecordCacheLookup("role", true)
 			return entry.value.(*entity.Role), nil
 		}
 		// Expired, remove it
 		ac.roles.Delete(roleName)
 	}
+
+	// Cache miss
+	ac.metrics.RecordCacheLookup("role", false)
 
 	// Cache miss or expired, fetch from master
 	role, err := ac.docService.getRole(ctx, roleName)
