@@ -22,15 +22,26 @@ import (
 	"github.com/vearch/vearch/v3/internal/pkg/log"
 )
 
+// Heartbeat configuration constants
 const (
-	KeepAliveTime     = 10
-	MaxRetries        = 5
-	InitialBackoff    = 1 * time.Second
-	MaxBackoff        = 30 * time.Second
+	// KeepAliveTime is the interval in seconds for sending keepalive messages to master
+	KeepAliveTime = 10
+	// MaxRetries is the maximum number of reconnection attempts before giving up
+	MaxRetries = 5
+	// InitialBackoff is the initial delay between reconnection attempts
+	InitialBackoff = 1 * time.Second
+	// MaxBackoff is the maximum delay between reconnection attempts
+	MaxBackoff = 30 * time.Second
+	// BackoffMultiplier is the factor by which backoff time increases after each retry
 	BackoffMultiplier = 2.0
 )
 
-// this job for heartbeat master 1m once
+// StartHeartbeatJob starts a background goroutine that maintains a keepalive connection
+// with the master server. It implements exponential backoff for reconnection attempts
+// and will stop after MaxRetries failed attempts.
+//
+// Parameters:
+//   - addr: The router's IP address to register with the master
 func (s *Server) StartHeartbeatJob(addr string) {
 	go func() {
 		var key string = config.Conf().Global.Name

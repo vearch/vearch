@@ -26,13 +26,20 @@ import (
 	"github.com/vearch/vearch/v3/internal/ps/engine/sortorder"
 )
 
+// Timeout constants for different types of operations
 const (
-	defaultRpcTimeOut     int64 = 10 * 1000  // 10 seconds for normal operations
-	bulkOperationTimeout  int64 = 60 * 1000  // 60 seconds for bulk operations
-	indexOperationTimeout int64 = 300 * 1000 // 5 minutes for index operations
-	minTimeout            int64 = 1 * 1000   // 1 second minimum timeout
+	// defaultRpcTimeOut is the default timeout for normal RPC operations (10 seconds)
+	defaultRpcTimeOut int64 = 10 * 1000
+	// bulkOperationTimeout is used for bulk upsert/delete operations (60 seconds)
+	bulkOperationTimeout int64 = 60 * 1000
+	// indexOperationTimeout is used for long-running index operations like rebuild (5 minutes)
+	indexOperationTimeout int64 = 300 * 1000
+	// minTimeout is the minimum allowed timeout to prevent too small values (1 second)
+	minTimeout int64 = 1 * 1000
 )
 
+// docService handles document CRUD operations and routing to partition servers.
+// It manages timeouts, space metadata, and request routing.
 type docService struct {
 	client *client.Client
 }
@@ -43,6 +50,17 @@ func newDocService(client *client.Client) *docService {
 	}
 }
 
+// setTimeout creates a context with timeout based on configuration and request parameters.
+// Priority: request.TimeOutMs > config.Router.RpcTimeOut > defaultRpcTimeOut
+// It enforces a minimum timeout of 1 second.
+//
+// Parameters:
+//   - ctx: Parent context
+//   - head: Request header containing optional timeout parameter
+//
+// Returns:
+//   - context.Context: New context with timeout
+//   - context.CancelFunc: Function to cancel the context
 func setTimeout(ctx context.Context, head *vearchpb.RequestHead) (context.Context, context.CancelFunc) {
 	timeout := defaultRpcTimeOut
 	if config.Conf().Router.RpcTimeOut > 0 {
@@ -63,7 +81,22 @@ func setTimeout(ctx context.Context, head *vearchpb.RequestHead) (context.Contex
 	return context.WithTimeout(ctx, t)
 }
 
-// setTimeoutForOperation sets timeout based on operation type
+// setTimeoutForOperation sets timeout based on the type of operation being performed.
+// Different operations have different default timeouts:
+//   - bulk/upsert: 60 seconds
+//   - index/rebuild/forcemerge: 5 minutes
+//   - default: 10 seconds
+//
+// Configuration and request-specific timeouts can override these defaults.
+//
+// Parameters:
+//   - ctx: Parent context
+//   - head: Request header containing optional timeout parameter
+//   - operationType: Type of operation ("bulk", "index", "rebuild", "forcemerge", etc.)
+//
+// Returns:
+//   - context.Context: New context with operation-specific timeout
+//   - context.CancelFunc: Function to cancel the context
 func setTimeoutForOperation(ctx context.Context, head *vearchpb.RequestHead, operationType string) (context.Context, context.CancelFunc) {
 	timeout := defaultRpcTimeOut
 
@@ -101,11 +134,11 @@ func setTimeoutForOperation(ctx context.Context, head *vearchpb.RequestHead, ope
 func (docService *docService) getDocs(ctx context.Context, args *vearchpb.GetRequest) *vearchpb.GetResponse {
 	ctx, cancel := setTimeout(ctx, args.Head)
 	defer cancel()
-	
+
 	requestID := args.Head.Params["request_id"]
 	startTime := time.Now()
 	log.Debugf("[%s] getDocs started, keys count: %d", requestID, len(args.PrimaryKeys))
-	
+
 	reply := &vearchpb.GetResponse{Head: newOkHead()}
 	request := client.NewRouterRequest(ctx, docService.client)
 	request.SetMsgID(args.Head.Params["request_id"]).SetMethod(client.GetDocsHandler).SetHead(args.Head).SetSpace().SetDocsByKey(args.PrimaryKeys).PartitionDocs()
@@ -116,7 +149,7 @@ func (docService *docService) getDocs(ctx context.Context, args *vearchpb.GetReq
 	items := request.Execute()
 	reply.Head.Params = request.GetMD()
 	reply.Items = items
-	
+
 	log.Debugf("[%s] getDocs completed, items: %d, duration: %v", requestID, len(items), time.Since(startTime))
 	return reply
 }
@@ -145,11 +178,11 @@ func (docService *docService) getDocsByPartition(ctx context.Context, args *vear
 func (docService *docService) deleteDocs(ctx context.Context, args *vearchpb.DeleteRequest) *vearchpb.DeleteResponse {
 	ctx, cancel := setTimeout(ctx, args.Head)
 	defer cancel()
-	
+
 	requestID := args.Head.Params["request_id"]
 	startTime := time.Now()
 	log.Debugf("[%s] deleteDocs started, keys count: %d", requestID, len(args.PrimaryKeys))
-	
+
 	reply := &vearchpb.DeleteResponse{Head: newOkHead()}
 	request := client.NewRouterRequest(ctx, docService.client)
 	request.SetMsgID(args.Head.Params["request_id"]).SetMethod(client.DeleteDocsHandler).SetHead(args.Head).SetSpace().SetDocsByKey(args.PrimaryKeys).SetDocsField().PartitionDocs()
@@ -160,7 +193,7 @@ func (docService *docService) deleteDocs(ctx context.Context, args *vearchpb.Del
 	items := request.Execute()
 	reply.Head.Params = request.GetMD()
 	reply.Items = items
-	
+
 	log.Debugf("[%s] deleteDocs completed, items: %d, duration: %v", requestID, len(items), time.Since(startTime))
 	return reply
 }
@@ -168,11 +201,11 @@ func (docService *docService) deleteDocs(ctx context.Context, args *vearchpb.Del
 func (docService *docService) bulk(ctx context.Context, args *vearchpb.BulkRequest) *vearchpb.BulkResponse {
 	ctx, cancel := setTimeoutForOperation(ctx, args.Head, "bulk")
 	defer cancel()
-	
+
 	requestID := args.Head.Params["request_id"]
 	startTime := time.Now()
 	log.Debugf("[%s] bulk started, docs count: %d", requestID, len(args.Docs))
-	
+
 	reply := &vearchpb.BulkResponse{Head: newOkHead()}
 	request := client.NewRouterRequest(ctx, docService.client)
 	request.SetMsgID(args.Head.Params["request_id"]).SetMethod(client.BatchHandler).SetHead(args.Head).SetSpace().SetDocs(args.Docs).SetDocsField().UpsertByPartitions(args.Partitions)
@@ -182,7 +215,7 @@ func (docService *docService) bulk(ctx context.Context, args *vearchpb.BulkReque
 	}
 	reply.Items = request.Execute()
 	reply.Head.Params = request.GetMD()
-	
+
 	log.Debugf("[%s] bulk completed, items: %d, duration: %v", requestID, len(reply.Items), time.Since(startTime))
 	return reply
 }
@@ -201,7 +234,14 @@ func newOkHead() *vearchpb.ResponseHead {
 	return &vearchpb.ResponseHead{Err: vearchpb.NewError(code, nil).GetError()}
 }
 
-// ensureValidHead ensures response has valid head with error
+// ensureValidHead ensures response has a valid head with error information.
+// If head is nil, creates a new OK head. If head.Err is nil, sets it to OK.
+//
+// Parameters:
+//   - head: Response head to validate
+//
+// Returns:
+//   - *vearchpb.ResponseHead: Valid response head with error field set
 func ensureValidHead(head *vearchpb.ResponseHead) *vearchpb.ResponseHead {
 	if head == nil {
 		head = newOkHead()

@@ -35,6 +35,9 @@ import (
 	"google.golang.org/grpc"
 )
 
+// Server represents the router server that handles HTTP and RPC requests.
+// It manages the lifecycle of both HTTP and gRPC servers, handles authentication,
+// and routes requests to appropriate partition servers.
 type Server struct {
 	ctx        context.Context
 	cli        *client.Client
@@ -45,7 +48,22 @@ type Server struct {
 	errChan    chan error
 }
 
+// NewServer creates and initializes a new router server instance.
+// It registers the router with the master, sets up HTTP and optionally RPC servers,
+// configures middleware, and starts background jobs.
+//
+// Parameters:
+//   - ctx: The parent context for server lifecycle management
+//
+// Returns:
+//   - *Server: The initialized server instance
+//   - error: Any error encountered during initialization
 func NewServer(ctx context.Context) (*Server, error) {
+	// Validate configuration
+	if err := validateConfig(config.Conf()); err != nil {
+		return nil, fmt.Errorf("invalid configuration: %w", err)
+	}
+
 	cli, err := client.NewClient(config.Conf())
 	if err != nil {
 		return nil, err
@@ -130,6 +148,12 @@ func NewServer(ctx context.Context) (*Server, error) {
 	}, nil
 }
 
+// Start begins serving HTTP requests and starts the heartbeat job.
+// This method blocks until the HTTP server is stopped.
+// It retrieves the local IP, starts monitoring if configured, and runs the HTTP server.
+//
+// Returns:
+//   - error: Any error that occurs during server startup or operation
 func (server *Server) Start() error {
 	var routerIP string
 	var err error
@@ -163,6 +187,10 @@ func (server *Server) Start() error {
 	return nil
 }
 
+// Shutdown gracefully stops the router server.
+// It stops accepting new requests, gracefully shuts down HTTP server with timeout,
+// stops RPC server, and closes error channel.
+// The shutdown process has a 30-second timeout for both HTTP and RPC servers.
 func (server *Server) Shutdown() {
 	log.Info("router shutdown... start")
 
@@ -206,7 +234,46 @@ func (server *Server) Shutdown() {
 	log.Info("router shutdown... end")
 }
 
-// GetErrorChan returns the error channel for monitoring server errors
+// GetErrorChan returns a read-only channel for monitoring server errors.
+// Errors from background goroutines (like RPC server) are sent to this channel.
+//
+// Returns:
+//   - <-chan error: A receive-only error channel
 func (server *Server) GetErrorChan() <-chan error {
 	return server.errChan
+}
+
+// validateConfig validates router configuration parameters.
+// It checks port numbers, timeouts, and other critical settings.
+//
+// Parameters:
+//   - cfg: The configuration to validate
+//
+// Returns:
+//   - error: Validation error if any parameter is invalid, nil otherwise
+func validateConfig(cfg *config.Config) error {
+	// Validate port numbers
+	if cfg.Router.Port <= 0 || cfg.Router.Port > 65535 {
+		return fmt.Errorf("invalid HTTP port: %d (must be 1-65535)", cfg.Router.Port)
+	}
+
+	if cfg.Router.RpcPort < 0 || cfg.Router.RpcPort > 65535 {
+		return fmt.Errorf("invalid RPC port: %d (must be 0-65535, 0 to disable)", cfg.Router.RpcPort)
+	}
+
+	if cfg.Router.MonitorPort < 0 || cfg.Router.MonitorPort > 65535 {
+		return fmt.Errorf("invalid monitor port: %d (must be 0-65535, 0 to disable)", cfg.Router.MonitorPort)
+	}
+
+	// Validate timeouts
+	if cfg.Router.RpcTimeOut < 0 {
+		return fmt.Errorf("invalid RPC timeout: %d (must be >= 0)", cfg.Router.RpcTimeOut)
+	}
+
+	// Validate router name
+	if cfg.Global.Name == "" {
+		return fmt.Errorf("router name cannot be empty")
+	}
+
+	return nil
 }

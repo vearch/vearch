@@ -22,22 +22,36 @@ import (
 	"github.com/vearch/vearch/v3/internal/entity"
 )
 
+// Authentication cache configuration
 const (
-	authCacheTTL     = 10 * time.Minute
+	// authCacheTTL is the time-to-live for cached user and role entries (10 minutes)
+	authCacheTTL = 10 * time.Minute
+	// authCacheCleanup is the interval for cleanup goroutine to run (20 minutes)
 	authCacheCleanup = 20 * time.Minute
 )
 
+// cacheEntry represents a cached value with expiration time
 type cacheEntry struct {
-	value      interface{}
-	expiration int64
+	value      interface{} // The cached user or role object
+	expiration int64       // Unix timestamp when this entry expires
 }
 
+// AuthCache provides thread-safe caching for user and role authentication data.
+// It reduces load on the master server by caching authentication information
+// with a configurable TTL. A background goroutine periodically cleans up expired entries.
 type AuthCache struct {
 	users      sync.Map
 	roles      sync.Map
 	docService *docService
 }
 
+// NewAuthCache creates a new authentication cache and starts the cleanup goroutine.
+//
+// Parameters:
+//   - docService: The document service used to fetch uncached data from master
+//
+// Returns:
+//   - *AuthCache: A new authentication cache instance
 func NewAuthCache(docService *docService) *AuthCache {
 	cache := &AuthCache{
 		docService: docService,
@@ -47,6 +61,17 @@ func NewAuthCache(docService *docService) *AuthCache {
 	return cache
 }
 
+// GetUser retrieves user information from cache or master server.
+// If the user is found in cache and not expired, returns immediately.
+// Otherwise, fetches from master and caches for future requests.
+//
+// Parameters:
+//   - ctx: Context for the request
+//   - username: The username to look up
+//
+// Returns:
+//   - *entity.User: The user object
+//   - error: Any error encountered during lookup
 func (ac *AuthCache) GetUser(ctx context.Context, username string) (*entity.User, error) {
 	// Check cache first
 	if cached, found := ac.users.Load(username); found {
@@ -73,6 +98,17 @@ func (ac *AuthCache) GetUser(ctx context.Context, username string) (*entity.User
 	return user, nil
 }
 
+// GetRole retrieves role information from cache or master server.
+// If the role is found in cache and not expired, returns immediately.
+// Otherwise, fetches from master and caches for future requests.
+//
+// Parameters:
+//   - ctx: Context for the request
+//   - roleName: The role name to look up
+//
+// Returns:
+//   - *entity.Role: The role object
+//   - error: Any error encountered during lookup
 func (ac *AuthCache) GetRole(ctx context.Context, roleName string) (*entity.Role, error) {
 	// Check cache first
 	if cached, found := ac.roles.Load(roleName); found {
@@ -99,14 +135,27 @@ func (ac *AuthCache) GetRole(ctx context.Context, roleName string) (*entity.Role
 	return role, nil
 }
 
+// InvalidateUser removes a user from the cache.
+// This should be called when user information is updated to force a refresh.
+//
+// Parameters:
+//   - username: The username to invalidate
 func (ac *AuthCache) InvalidateUser(username string) {
 	ac.users.Delete(username)
 }
 
+// InvalidateRole removes a role from the cache.
+// This should be called when role information is updated to force a refresh.
+//
+// Parameters:
+//   - roleName: The role name to invalidate
 func (ac *AuthCache) InvalidateRole(roleName string) {
 	ac.roles.Delete(roleName)
 }
 
+// cleanupExpired is a background goroutine that periodically removes expired cache entries.
+// It runs every authCacheCleanup interval (20 minutes) to prevent memory leaks from
+// accumulating expired entries.
 func (ac *AuthCache) cleanupExpired() {
 	ticker := time.NewTicker(authCacheCleanup)
 	defer ticker.Stop()
