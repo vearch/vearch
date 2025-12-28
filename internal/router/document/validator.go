@@ -35,7 +35,7 @@ const (
 var (
 	// fieldNamePattern defines valid field name pattern (alphanumeric, underscore, hyphen)
 	fieldNamePattern = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_-]*$`)
-	
+
 	// reservedFieldNames contains field names that cannot be used
 	reservedFieldNames = map[string]bool{
 		"_id":      true,
