@@ -279,6 +279,7 @@ func (s *Server) HandleRaftReplicaEvent(event *raftstore.RaftReplicaEvent) {
 		if node := s.raftResolver.GetNode(event.Replica.NodeID); node == nil { // if not found, get it from master
 			if server, err := s.client.Master().QueryServer(context.Background(), event.Replica.NodeID); err != nil {
 				log.Error("get server info error: %s", err.Error())
+				s.raftResolver.AddNode(event.Replica.NodeID, &entity.Replica{NodeID: event.Replica.NodeID})
 			} else {
 				s.raftResolver.AddNode(event.Replica.NodeID, server.Replica())
 			}
