@@ -34,6 +34,7 @@ import (
 	"github.com/vearch/vearch/v3/internal/engine/sdk/go/gamma"
 	"github.com/vearch/vearch/v3/internal/entity"
 	"github.com/vearch/vearch/v3/internal/entity/request"
+	"github.com/vearch/vearch/v3/internal/monitor"
 	"github.com/vearch/vearch/v3/internal/pkg/log"
 	"github.com/vearch/vearch/v3/internal/pkg/server/rpc/handler"
 	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
@@ -93,14 +94,27 @@ func cost(s string, t time.Time) {
 }
 
 func (handler *UnaryHandler) Execute(ctx context.Context, req *vearchpb.PartitionData, reply *vearchpb.PartitionData) (err error) {
+	startTime := time.Now()
+	operateName := ""
+	code := vearchpb.ErrorEnum_SUCCESS
+	ip := handler.server.ip
+	nodeID := handler.server.nodeID
+	partitionID := req.PartitionID
+	defer func() {
+		monitor.DataNodeProfiler(operateName, startTime, int(code), ip, uint32(nodeID), partitionID)
+	}()
+
 	var method string
 	reqMap := ctx.Value(share.ReqMetaDataKey).(map[string]string)
 	method, ok := reqMap[client.HandlerType]
 	if !ok {
 		msg := fmt.Sprintf("client type not found in matadata, key [%s]", client.HandlerType)
 		reply.Err = vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, errors.New(msg)).GetError()
+		code = vearchpb.ErrorEnum_INTERNAL_ERROR
 		return
 	}
+
+	operateName = method
 
 	if config.Trace {
 		defer cost("UnaryHandler: "+method, time.Now())
@@ -167,6 +181,7 @@ func (handler *UnaryHandler) Execute(ctx context.Context, req *vearchpb.Partitio
 		msg := fmt.Sprintf("request time out[%dms]", timeout)
 		reply.Err = vearchpb.NewError(vearchpb.ErrorEnum_TIMEOUT, errors.New(msg)).GetError()
 		log.Error(msg)
+		code = vearchpb.ErrorEnum_TIMEOUT
 		return
 	}
 }

@@ -28,6 +28,7 @@ import (
 	"github.com/vearch/vearch/v3/internal/config"
 	"github.com/vearch/vearch/v3/internal/entity"
 	"github.com/vearch/vearch/v3/internal/entity/request"
+	"github.com/vearch/vearch/v3/internal/monitor"
 	"github.com/vearch/vearch/v3/internal/pkg/errutil"
 	"github.com/vearch/vearch/v3/internal/pkg/log"
 	"github.com/vearch/vearch/v3/internal/pkg/metrics/mserver"
@@ -102,6 +103,10 @@ func NewServer(ctx context.Context) *Server {
 	s.ctx, s.ctxCancel = context.WithCancel(ctx)
 
 	s.rpcServer = rpc.NewRpcServer(config.LocalCastAddr, config.Conf().PS.RpcPort) // any port ???
+
+	if port := config.Conf().PS.MonitorPort; port > 0 {
+		monitor.Register(nil, nil, config.Conf().PS.MonitorPort)
+	}
 
 	return s
 }

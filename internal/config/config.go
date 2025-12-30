@@ -393,6 +393,7 @@ type PSCfg struct {
 	FlushCountThreshold         uint32 `toml:"flush_count_threshold" json:"flush_count_threshold"`
 	ConcurrentNum               int    `toml:"concurrent_num" json:"concurrent_num"`
 	RpcTimeOut                  int    `toml:"rpc_timeout" json:"rpc_timeout"`
+	MonitorPort                 uint16 `toml:"monitor_port" json:"monitor_port"`
 }
 
 func InitConfig(path string) {

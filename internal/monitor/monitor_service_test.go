@@ -47,7 +47,7 @@ func TestProfiler(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			Profiler(tt.args.key, tt.args.startTime)
+			Profiler(tt.args.key, tt.args.startTime, 200, "", "")
 		})
 	}
 }

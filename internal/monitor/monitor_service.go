@@ -17,6 +17,7 @@ package monitor
 import (
 	"context"
 	"errors"
+	"fmt"
 	"runtime"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -49,6 +50,9 @@ type MonitorService struct {
 
 	RequestDuration *prometheus.HistogramVec
 	RequestCount    *prometheus.CounterVec
+
+	DataNodeRequestDuration *prometheus.HistogramVec
+	DataNodeRequestCount    *prometheus.CounterVec
 
 	serverCount    *prometheus.GaugeVec
 	dbCount        *prometheus.GaugeVec
@@ -95,14 +99,37 @@ func Register(masterClient *client.Client, etcdServer *etcdserver.EtcdServer, mo
 	})
 }
 
-func Profiler(key string, startTime time.Time) {
+func Profiler(key string, startTime time.Time, httpCode int, dbName string, spaceName string) {
 	if collector == nil || collector.RequestDuration == nil || collector.RequestCount == nil {
 		log.Warn("Monitoring system not initialized, metrics will not be recorded")
 		return
 	}
 
-	collector.RequestDuration.WithLabelValues(config.Conf().Global.Name, key).Observe(float64(time.Since(startTime).Milliseconds()))
-	collector.RequestCount.WithLabelValues(config.Conf().Global.Name, key).Add(float64(1))
+	// Convert httpCode to string since WithLabelValues expects string arguments
+	httpCodeStr := fmt.Sprintf("%d", httpCode)
+
+	// Update WithLabelValues to include the new parameters
+	collector.RequestDuration.WithLabelValues(config.Conf().Global.Name, key, httpCodeStr, dbName, spaceName).Observe(float64(time.Since(startTime).Milliseconds()))
+	collector.RequestCount.WithLabelValues(config.Conf().Global.Name, key, httpCodeStr, dbName, spaceName).Add(float64(1))
+}
+
+func DataNodeProfiler(key string, startTime time.Time, code int, ip string, nodeID uint32, partitionID uint32) {
+	if collector == nil || collector.DataNodeRequestDuration == nil || collector.DataNodeRequestCount == nil {
+		log.Warn("Monitoring system not initialized, metrics will not be recorded")
+		return
+	}
+
+	codeStr := fmt.Sprintf("%d", code)
+	nodeIDStr := fmt.Sprintf("%d", nodeID)
+	partitionIDStr := fmt.Sprintf("%d", partitionID)
+
+	// some duration is too small, use microseconds to improve accuracy
+	durationMicroseconds := time.Since(startTime).Microseconds()
+	durationMilliseconds := float64(durationMicroseconds) / 1000.0
+
+	// Update WithLabelValues to include the new parameters
+	collector.DataNodeRequestDuration.WithLabelValues(config.Conf().Global.Name, key, codeStr, ip, nodeIDStr, partitionIDStr).Observe(durationMilliseconds)
+	collector.DataNodeRequestCount.WithLabelValues(config.Conf().Global.Name, key, codeStr, ip, nodeIDStr, partitionIDStr).Add(float64(1))
 }
 
 func newMetricCollector(masterClient *client.Client, etcdServer *etcdserver.EtcdServer) *MonitorService {
@@ -116,7 +143,7 @@ func newMetricCollector(masterClient *client.Client, etcdServer *etcdserver.Etcd
 				Help:    "Vearch API request durations in milliseconds",
 				Buckets: prometheus.ExponentialBuckets(1, 2, 15),
 			},
-			[]string{"cluster", "api"},
+			[]string{"cluster", "api", "http_code", "db", "space"},
 		),
 
 		RequestCount: prometheus.NewCounterVec(
@@ -124,7 +151,24 @@ func newMetricCollector(masterClient *client.Client, etcdServer *etcdserver.Etcd
 				Name: "vearch_request_count",
 				Help: "Total number of Vearch API requests",
 			},
-			[]string{"cluster", "api"},
+			[]string{"cluster", "api", "http_code", "db", "space"},
+		),
+
+		DataNodeRequestDuration: prometheus.NewHistogramVec(
+			prometheus.HistogramOpts{
+				Name:    "vearch_data_node_request_duration_milliseconds",
+				Help:    "Vearch Data Node API request durations in milliseconds",
+				Buckets: prometheus.ExponentialBuckets(1, 2, 15),
+			},
+			[]string{"cluster", "api", "code", "ip", "node_id", "partition_id"},
+		),
+
+		DataNodeRequestCount: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Name: "vearch_data_node_request_count",
+				Help: "Total number of Vearch Data Node API requests",
+			},
+			[]string{"cluster", "api", "code", "ip", "node_id", "partition_id"},
 		),
 
 		serverCount: prometheus.NewGaugeVec(
@@ -241,6 +285,9 @@ func (ms *MonitorService) Describe(ch chan<- *prometheus.Desc) {
 	ms.RequestDuration.Describe(ch)
 	ms.RequestCount.Describe(ch)
 
+	ms.DataNodeRequestDuration.Describe(ch)
+	ms.DataNodeRequestCount.Describe(ch)
+
 	ms.serverCount.Describe(ch)
 	ms.dbCount.Describe(ch)
 	ms.spaceCount.Describe(ch)
@@ -323,6 +370,9 @@ func (ms *MonitorService) Collect(ch chan<- prometheus.Metric) {
 
 	ms.RequestDuration.Collect(ch)
 	ms.RequestCount.Collect(ch)
+
+	ms.DataNodeRequestDuration.Collect(ch)
+	ms.DataNodeRequestCount.Collect(ch)
 
 	if !ms.isMaster() {
 		return

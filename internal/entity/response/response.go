@@ -89,7 +89,7 @@ func (r *Response) SendJsonBytes(bytes []byte) {
 }
 
 // response only called for handler which called after TimeoutMiddleware
-func (r *Response) JsonSuccess(data any) {
+func (r *Response) JsonSuccess(data any) int {
 	httpReply := &HttpReply{
 		Code:      int(vearchpb.ErrorEnum_SUCCESS),
 		RequestId: r.ginContext.GetHeader("X-Request-Id"),
@@ -99,10 +99,11 @@ func (r *Response) JsonSuccess(data any) {
 	r.SetHttpStatus(int64(http.StatusOK))
 	r.SetHttpReply(httpReply)
 	r.SendJson()
+	return http.StatusOK
 }
 
 // response only called for handler which called after TimeoutMiddleware
-func (r *Response) SuccessDelete() {
+func (r *Response) SuccessDelete() int {
 	httpReply := &HttpReply{
 		Code:      int(vearchpb.ErrorEnum_SUCCESS),
 		RequestId: r.ginContext.GetHeader("X-Request-Id"),
@@ -111,10 +112,11 @@ func (r *Response) SuccessDelete() {
 	r.SetHttpStatus(int64(http.StatusOK))
 	r.SetHttpReply(httpReply)
 	r.SendJson()
+	return http.StatusOK
 }
 
 // response only called for handler which called after TimeoutMiddleware
-func (r *Response) JsonError(err *errors.ErrRequest) {
+func (r *Response) JsonError(err *errors.ErrRequest) int {
 	httpReply := &HttpReply{
 		Code:      err.Code(),
 		RequestId: r.ginContext.GetHeader("X-Request-Id"),
@@ -123,4 +125,5 @@ func (r *Response) JsonError(err *errors.ErrRequest) {
 	r.SetHttpStatus(int64(err.HttpCode()))
 	r.SetHttpReply(httpReply)
 	r.SendJson()
+	return err.HttpCode()
 }

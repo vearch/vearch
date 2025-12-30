@@ -669,6 +669,7 @@ def check(total, full_field, xb, mode: str):
                 True,
                 db_name,
                 space_name,
+                0
             )
         )
         process_get_data_by_filter(i, full_field, "[)", total)

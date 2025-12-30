@@ -54,6 +54,7 @@ const (
 	URLParamRoleName    = "role_name"
 	URLParamMemberId    = "member_id"
 	NodeID              = "node_id"
+	URLParamRequestID   = "X-Request-Id"
 	defaultTimeout      = 10 * time.Second
 )
 
@@ -273,7 +274,7 @@ func (handler *DocumentHandler) handleMasterRequest(c *gin.Context) {
 		res_err := errors.NewErrBadRequest(err)
 		c.JSON(res_err.HttpCode(), gin.H{
 			"code":       res_err.Code(),
-			"request_id": c.GetHeader("X-Request-Id"),
+			"request_id": c.GetHeader(URLParamRequestID),
 			"msg":        res_err.Msg(),
 		})
 		return
@@ -288,7 +289,7 @@ func (handler *DocumentHandler) handleMasterRequest(c *gin.Context) {
 			res_err := errors.NewErrInternal(err)
 			c.JSON(res_err.HttpCode(), gin.H{
 				"code":       res_err.Code(),
-				"request_id": c.GetHeader("X-Request-Id"),
+				"request_id": c.GetHeader(URLParamRequestID),
 				"msg":        res_err.Msg(),
 			})
 		}
@@ -342,8 +343,16 @@ func (handler *DocumentHandler) handleRouterInfo(c *gin.Context) {
 }
 
 func (handler *DocumentHandler) cacheSpaceInfo(c *gin.Context) {
-	dbName := c.Param(URLParamDbName)
-	spaceName := c.Param(URLParamSpaceName)
+	startTime := time.Now()
+	operateName := "handleCacheUserInfo"
+	httpCode := http.StatusOK
+	dbName := ""
+	spaceName := ""
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
+	dbName = c.Param(URLParamDbName)
+	spaceName = c.Param(URLParamSpaceName)
 	if space, err := handler.client.Master().Cache().SpaceByCache(context.Background(), dbName, spaceName); err != nil {
 		response.New(c).JsonError(errors.NewErrInternal(err))
 	} else {
@@ -352,6 +361,14 @@ func (handler *DocumentHandler) cacheSpaceInfo(c *gin.Context) {
 }
 
 func (handler *DocumentHandler) cacheUserInfo(c *gin.Context) {
+	startTime := time.Now()
+	operateName := "handleCacheUserInfo"
+	httpCode := http.StatusOK
+	dbName := ""
+	spaceName := ""
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
 	userName := c.Param(URLParamUserName)
 	if space, err := handler.client.Master().Cache().UserByCache(context.Background(), userName); err != nil {
 		response.New(c).JsonError(errors.NewErrInternal(err))
@@ -361,6 +378,14 @@ func (handler *DocumentHandler) cacheUserInfo(c *gin.Context) {
 }
 
 func (handler *DocumentHandler) cacheRoleInfo(c *gin.Context) {
+	startTime := time.Now()
+	operateName := "handleCacheRoleInfo"
+	httpCode := http.StatusOK
+	dbName := ""
+	spaceName := ""
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
 	roleName := c.Param(URLParamRoleName)
 	if space, err := handler.client.Master().Cache().RoleByCache(context.Background(), roleName); err != nil {
 		response.New(c).JsonError(errors.NewErrInternal(err))
@@ -391,7 +416,7 @@ func setRequestHeadFromGin(c *gin.Context) (*vearchpb.RequestHead, error) {
 		}
 	}
 
-	head.Params["request_id"] = c.GetHeader("X-Request-Id")
+	head.Params["request_id"] = c.GetHeader(URLParamRequestID)
 
 	return head, nil
 }
@@ -399,32 +424,43 @@ func setRequestHeadFromGin(c *gin.Context) (*vearchpb.RequestHead, error) {
 // handleConfigTrace config trace switch
 func (handler *DocumentHandler) handleConfigTrace(c *gin.Context) {
 	startTime := time.Now()
-	defer monitor.Profiler("handleConfigTrace", startTime)
+	operateName := "handleConfigTrace"
+	httpCode := http.StatusOK
+	dbName := ""
+	spaceName := ""
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
 	var err error
 	_, err = setRequestHeadFromGin(c)
 	if err != nil {
-		response.New(c).JsonError(errors.NewErrInternal(err))
+		httpCode = response.New(c).JsonError(errors.NewErrInternal(err))
 		return
 	}
 	trace, err := configTraceParse(c.Request)
 	if err != nil {
-		response.New(c).JsonError(errors.NewErrInternal(err))
+		httpCode = response.New(c).JsonError(errors.NewErrInternal(err))
 		return
 	}
 
 	config.Trace = trace
 	if resultBytes, err := configTraceResponse(config.Trace); err != nil {
-		response.New(c).JsonError(errors.NewErrInternal(err))
+		httpCode = response.New(c).JsonError(errors.NewErrInternal(err))
 		return
 	} else {
-		response.New(c).JsonSuccess(resultBytes)
+		httpCode = response.New(c).JsonSuccess(resultBytes)
 	}
 }
 
 func (handler *DocumentHandler) handleDocumentUpsert(c *gin.Context) {
 	startTime := time.Now()
 	operateName := "handleDocumentUpsert"
-	defer monitor.Profiler(operateName, startTime)
+	httpCode := http.StatusOK
+	dbName := ""
+	spaceName := ""
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
 	span, _ := opentracing.StartSpanFromContext(c.Request.Context(), operateName)
 	defer span.Finish()
 
@@ -432,44 +468,53 @@ func (handler *DocumentHandler) handleDocumentUpsert(c *gin.Context) {
 	var err error
 	args.Head, err = setRequestHeadFromGin(c)
 	if err != nil {
-		response.New(c).JsonError(errors.NewErrInternal(err))
+		httpCode = response.New(c).JsonError(errors.NewErrInternal(err))
 		return
 	}
 	docRequest := &request.DocumentRequest{}
 	err = c.ShouldBindJSON(docRequest)
 	if err != nil {
-		response.New(c).JsonError(errors.NewErrBadRequest(err))
+		httpCode = response.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
 	}
 
-	dbName := docRequest.DbName
-	spaceName := docRequest.SpaceName
+	dbName = docRequest.DbName
+	spaceName = docRequest.SpaceName
+
 	args.Head.DbName = dbName
 	args.Head.SpaceName = spaceName
 	space, err := handler.docService.getSpace(c.Request.Context(), args.Head)
 	if err != nil {
-		response.New(c).JsonError(errors.NewErrInternal(err))
+		httpCode = response.New(c).JsonError(errors.NewErrInternal(err))
 		return
 	}
 
+	dbName = args.Head.DbName
+	spaceName = args.Head.SpaceName
+
 	err = documentParse(c.Request.Context(), handler, c.Request, docRequest, space, args)
 	if err != nil {
-		response.New(c).JsonError(errors.NewErrInternal(err))
+		httpCode = response.New(c).JsonError(errors.NewErrInternal(err))
 		return
 	}
 	reply := handler.docService.bulk(c.Request.Context(), args)
 	result, err := documentUpsertResponse(reply)
 	if err != nil {
-		response.New(c).JsonError(errors.NewErrUnprocessable(err))
+		httpCode = response.New(c).JsonError(errors.NewErrUnprocessable(err))
 		return
 	}
-	response.New(c).JsonSuccess(result)
+	httpCode = response.New(c).JsonSuccess(result)
 }
 
 func (handler *DocumentHandler) handleDocumentQuery(c *gin.Context) {
 	startTime := time.Now()
 	operateName := "handleDocumentQuery"
-	defer monitor.Profiler(operateName, startTime)
+	httpCode := http.StatusOK
+	dbName := ""
+	spaceName := ""
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
 	span, _ := opentracing.StartSpanFromContext(c.Request.Context(), operateName)
 	defer span.Finish()
 
@@ -477,7 +522,7 @@ func (handler *DocumentHandler) handleDocumentQuery(c *gin.Context) {
 	var err error
 	args.Head, err = setRequestHeadFromGin(c)
 	if err != nil {
-		response.New(c).JsonError(errors.NewErrInternal(err))
+		httpCode = response.New(c).JsonError(errors.NewErrInternal(err))
 		return
 	}
 	trace := config.Trace
@@ -490,7 +535,7 @@ func (handler *DocumentHandler) handleDocumentQuery(c *gin.Context) {
 	searchDoc := &request.SearchDocumentRequest{}
 	err = c.ShouldBindJSON(searchDoc)
 	if err != nil {
-		response.New(c).JsonError(errors.NewErrBadRequest(err))
+		httpCode = response.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
 	}
 	args.Head.DbName = searchDoc.DbName
@@ -498,37 +543,40 @@ func (handler *DocumentHandler) handleDocumentQuery(c *gin.Context) {
 
 	space, err := handler.docService.getSpace(c.Request.Context(), args.Head)
 	if err != nil {
-		response.New(c).JsonError(errors.NewErrInternal(err))
+		httpCode = response.New(c).JsonError(errors.NewErrInternal(err))
 		return
 	}
 	// update space name because maybe is alias name
 	searchDoc.SpaceName = args.Head.SpaceName
 
+	dbName = args.Head.DbName
+	spaceName = args.Head.SpaceName
+
 	err = queryRequestToPb(searchDoc, space, args)
 	if err != nil {
-		response.New(c).JsonError(errors.NewErrBadRequest(err))
+		httpCode = response.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
 	}
 
 	if searchDoc.DocumentIds != nil && len(*searchDoc.DocumentIds) != 0 {
 		if args.TermFilters != nil || args.RangeFilters != nil {
 			err := vearchpb.NewError(vearchpb.ErrorEnum_QUERY_INVALID_PARAMS_BOTH_DOCUMENT_IDS_AND_FILTER, nil)
-			response.New(c).JsonError(errors.NewErrBadRequest(err))
+			httpCode = response.New(c).JsonError(errors.NewErrBadRequest(err))
 			return
 		}
 		if len(*searchDoc.DocumentIds) >= 500 {
 			err := vearchpb.NewError(vearchpb.ErrorEnum_QUERY_INVALID_PARAMS_LENGTH_OF_DOCUMENT_IDS_BEYOND_500, nil)
-			response.New(c).JsonError(errors.NewErrUnprocessable(err))
+			httpCode = response.New(c).JsonError(errors.NewErrUnprocessable(err))
 			return
 		}
 		if searchDoc.GetByHash || searchDoc.PartitionId != nil {
-			handler.handleDocumentGet(c, searchDoc, space)
+			httpCode = handler.handleDocumentGet(c, searchDoc, space)
 			return
 		}
 	} else {
 		if args.TermFilters == nil && args.RangeFilters == nil {
 			err := vearchpb.NewError(vearchpb.ErrorEnum_QUERY_INVALID_PARAMS_SHOULD_HAVE_ONE_OF_DOCUMENT_IDS_OR_FILTER, nil)
-			response.New(c).JsonError(errors.NewErrBadRequest(err))
+			httpCode = response.New(c).JsonError(errors.NewErrBadRequest(err))
 			return
 		}
 	}
@@ -539,22 +587,22 @@ func (handler *DocumentHandler) handleDocumentQuery(c *gin.Context) {
 
 	result, err := documentQueryResponse(searchResp.Results, searchResp.Head, space)
 	if err != nil {
-		response.New(c).JsonError(errors.NewErrUnprocessable(err))
+		httpCode = response.New(c).JsonError(errors.NewErrUnprocessable(err))
 		return
 	}
-	response.New(c).JsonSuccess(result)
+	httpCode = response.New(c).JsonSuccess(result)
 	if trace {
 		log.Trace("handleDocumentQuery total use :[%.4f] service use :[%.4f] detail use :[%v]", time.Since(startTime).Seconds()*1000, serviceCost.Seconds()*1000, searchResp.Head.Params)
 	}
 }
 
-func (handler *DocumentHandler) handleDocumentGet(c *gin.Context, searchDoc *request.SearchDocumentRequest, space *entity.Space) {
+func (handler *DocumentHandler) handleDocumentGet(c *gin.Context, searchDoc *request.SearchDocumentRequest, space *entity.Space) int {
 	args := &vearchpb.GetRequest{}
 	var err error
 	args.Head, err = setRequestHeadFromGin(c)
 	if err != nil {
-		response.New(c).JsonError(errors.NewErrInternal(err))
-		return
+		httpCode := response.New(c).JsonError(errors.NewErrInternal(err))
+		return httpCode
 	}
 	args.Head.DbName = searchDoc.DbName
 	args.Head.SpaceName = searchDoc.SpaceName
@@ -575,8 +623,8 @@ func (handler *DocumentHandler) handleDocumentGet(c *gin.Context, searchDoc *req
 		}
 		if !found {
 			err := vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("partition_id %d not belong to space %s", *searchDoc.PartitionId, space.Name))
-			response.New(c).JsonError(errors.NewErrBadRequest(err))
-			return
+			httpCode := response.New(c).JsonError(errors.NewErrBadRequest(err))
+			return httpCode
 		}
 	}
 
@@ -588,31 +636,36 @@ func (handler *DocumentHandler) handleDocumentGet(c *gin.Context, searchDoc *req
 	}
 
 	if result, err := documentGetResponse(space, reply, queryFieldsParam, searchDoc.VectorValue); err != nil {
-		response.New(c).JsonError(errors.NewErrInternal(err))
-		return
+		httpCode := response.New(c).JsonError(errors.NewErrInternal(err))
+		return httpCode
 	} else {
-		response.New(c).JsonSuccess(result)
-		return
+		httpCode := response.New(c).JsonSuccess(result)
+		return httpCode
 	}
 }
 
 func (handler *DocumentHandler) handleDocumentSearch(c *gin.Context) {
 	startTime := time.Now()
 	operateName := "handleDocumentSearch"
-	defer monitor.Profiler(operateName, startTime)
+	httpCode := http.StatusOK
+	dbName := ""
+	spaceName := ""
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
 	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), operateName)
 	defer span.Finish()
 	searchReq := &vearchpb.SearchRequest{}
 	var err error
 	searchReq.Head, err = setRequestHeadFromGin(c)
 	if err != nil {
-		response.New(c).JsonError(errors.NewErrInternal(err))
+		httpCode = response.New(c).JsonError(errors.NewErrInternal(err))
 		return
 	}
 	searchDoc := &request.SearchDocumentRequest{}
 	err = c.ShouldBindJSON(searchDoc)
 	if err != nil {
-		response.New(c).JsonError(errors.NewErrBadRequest(err))
+		httpCode = response.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
 	}
 	searchReq.Head.DbName = searchDoc.DbName
@@ -628,22 +681,26 @@ func (handler *DocumentHandler) handleDocumentSearch(c *gin.Context) {
 	getSpaceStart := time.Now()
 	space, err := handler.docService.getSpace(c.Request.Context(), searchReq.Head)
 	if err != nil {
-		response.New(c).JsonError(errors.NewErrInternal(err))
+		httpCode = response.New(c).JsonError(errors.NewErrInternal(err))
 		return
 	}
 	// update space name because maybe is alias name
 	searchDoc.SpaceName = searchReq.Head.SpaceName
+
+	dbName = searchReq.Head.DbName
+	spaceName = searchReq.Head.SpaceName
+
 	getSpaceCost := time.Since(getSpaceStart)
 
 	err = requestToPb(searchDoc, space, searchReq)
 	if err != nil {
-		response.New(c).JsonError(errors.NewErrBadRequest(err))
+		httpCode = response.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
 	}
 
 	if searchReq.VecFields == nil {
 		err := vearchpb.NewError(vearchpb.ErrorEnum_SEARCH_INVALID_PARAMS_SHOULD_HAVE_VECTOR_FIELD, nil)
-		response.New(c).JsonError(errors.NewErrInternal(err))
+		httpCode = response.New(c).JsonError(errors.NewErrInternal(err))
 		return
 	}
 
@@ -659,10 +716,10 @@ func (handler *DocumentHandler) handleDocumentSearch(c *gin.Context) {
 	result, err := documentSearchResponse(searchResp.Results, searchResp.Head, space)
 
 	if err != nil {
-		response.New(c).JsonError(errors.NewErrInternal(err))
+		httpCode = response.New(c).JsonError(errors.NewErrInternal(err))
 		return
 	}
-	response.New(c).JsonSuccess(result)
+	httpCode = response.New(c).JsonSuccess(result)
 	if trace {
 		responseCost = time.Since(responseCostStart)
 	}
@@ -675,12 +732,18 @@ func (handler *DocumentHandler) handleDocumentSearch(c *gin.Context) {
 
 func (handler *DocumentHandler) handleDocumentDelete(c *gin.Context) {
 	startTime := time.Now()
-	defer monitor.Profiler("handleDocumentDelete", startTime)
+	operateName := "handleDocumentDelete"
+	httpCode := http.StatusOK
+	dbName := ""
+	spaceName := ""
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
 	args := &vearchpb.QueryRequest{}
 	var err error
 	args.Head, err = setRequestHeadFromGin(c)
 	if err != nil {
-		response.New(c).JsonError(errors.NewErrInternal(err))
+		httpCode = response.New(c).JsonError(errors.NewErrInternal(err))
 		return
 	}
 	args.Head.Params["queryOnlyId"] = "true"
@@ -695,7 +758,7 @@ func (handler *DocumentHandler) handleDocumentDelete(c *gin.Context) {
 	searchDoc := &request.SearchDocumentRequest{}
 	err = c.ShouldBindJSON(searchDoc)
 	if err != nil {
-		response.New(c).JsonError(errors.NewErrBadRequest(err))
+		httpCode = response.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
 	}
 	args.Head.DbName = searchDoc.DbName
@@ -703,33 +766,36 @@ func (handler *DocumentHandler) handleDocumentDelete(c *gin.Context) {
 
 	space, err := handler.docService.getSpace(c.Request.Context(), args.Head)
 	if err != nil {
-		response.New(c).JsonError(errors.NewErrInternal(err))
+		httpCode = response.New(c).JsonError(errors.NewErrInternal(err))
 		return
 	}
 	// update space name because maybe is alias name
 	searchDoc.SpaceName = args.Head.SpaceName
 
+	dbName = args.Head.DbName
+	spaceName = args.Head.SpaceName
+
 	err = queryRequestToPb(searchDoc, space, args)
 	if err != nil {
-		response.New(c).JsonError(errors.NewErrBadRequest(err))
+		httpCode = response.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
 	}
 
 	if searchDoc.DocumentIds != nil && len(*searchDoc.DocumentIds) != 0 {
 		if args.TermFilters != nil || args.RangeFilters != nil {
 			err := vearchpb.NewError(vearchpb.ErrorEnum_DELETE_INVALID_PARAMS_BOTH_DOCUMENT_IDS_AND_VECTOR, nil)
-			response.New(c).JsonError(errors.NewErrBadRequest(err))
+			httpCode = response.New(c).JsonError(errors.NewErrBadRequest(err))
 			return
 		}
 		if len(*searchDoc.DocumentIds) >= 500 {
 			err := vearchpb.NewError(vearchpb.ErrorEnum_DELETE_INVALID_PARAMS_LENGTH_OF_DOCUMENT_IDS_BEYOND_500, nil)
-			response.New(c).JsonError(errors.NewErrBadRequest(err))
+			httpCode = response.New(c).JsonError(errors.NewErrBadRequest(err))
 			return
 		}
 	} else {
 		if args.TermFilters == nil && args.RangeFilters == nil {
 			err := vearchpb.NewError(vearchpb.ErrorEnum_DELETE_INVALID_PARAMS_SHOULD_HAVE_ONE_OF_DOCUMENT_IDS_OR_FILTER, nil)
-			response.New(c).JsonError(errors.NewErrBadRequest(err))
+			httpCode = response.New(c).JsonError(errors.NewErrBadRequest(err))
 			return
 		}
 	}
@@ -739,11 +805,11 @@ func (handler *DocumentHandler) handleDocumentDelete(c *gin.Context) {
 
 	result, err := deleteByQueryResult(delByQueryResp)
 	if err != nil {
-		response.New(c).JsonError(errors.NewErrUnprocessable(err))
+		httpCode = response.New(c).JsonError(errors.NewErrUnprocessable(err))
 		return
 	}
 
-	response.New(c).JsonSuccess(result)
+	httpCode = response.New(c).JsonSuccess(result)
 	if trace {
 		log.Trace("handleDocumentDelete total use :[%.4f] service use :[%.4f]",
 			time.Since(startTime).Seconds()*1000, serviceCost.Seconds()*1000)
@@ -753,19 +819,25 @@ func (handler *DocumentHandler) handleDocumentDelete(c *gin.Context) {
 // handleIndexFlush
 func (handler *DocumentHandler) handleIndexFlush(c *gin.Context) {
 	startTime := time.Now()
-	defer monitor.Profiler("handleIndexFlush", startTime)
+	operateName := "handleIndexFlush"
+	httpCode := http.StatusOK
+	dbName := ""
+	spaceName := ""
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
 
 	args := &vearchpb.FlushRequest{}
 	var err error
 	args.Head, err = setRequestHeadFromGin(c)
 	if err != nil {
-		response.New(c).JsonError(errors.NewErrInternal(err))
+		httpCode = response.New(c).JsonError(errors.NewErrInternal(err))
 		return
 	}
 	indexRequest := &request.IndexRequest{}
 	err = c.ShouldBindJSON(indexRequest)
 	if err != nil {
-		response.New(c).JsonError(errors.NewErrBadRequest(err))
+		httpCode = response.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
 	}
 
@@ -774,29 +846,39 @@ func (handler *DocumentHandler) handleIndexFlush(c *gin.Context) {
 
 	_, err = handler.docService.getSpace(c.Request.Context(), args.Head)
 	if err != nil {
-		response.New(c).JsonError(errors.NewErrInternal(err))
+		httpCode = response.New(c).JsonError(errors.NewErrInternal(err))
 		return
 	}
+
+	dbName = args.Head.DbName
+	spaceName = args.Head.SpaceName
+
 	flushResponse := handler.docService.flush(c.Request.Context(), args)
 	result := IndexResponseToContent(flushResponse.Shards)
-	response.New(c).JsonSuccess(result)
+	httpCode = response.New(c).JsonSuccess(result)
 }
 
 // handleIndexForceMerge build index for gpu
 func (handler *DocumentHandler) handleIndexForceMerge(c *gin.Context) {
 	startTime := time.Now()
-	defer monitor.Profiler("handleIndexForceMerge", startTime)
+	operateName := "handleIndexForceMerge"
+	httpCode := http.StatusOK
+	dbName := ""
+	spaceName := ""
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
 	args := &vearchpb.ForceMergeRequest{}
 	var err error
 	args.Head, err = setRequestHeadFromGin(c)
 	if err != nil {
-		response.New(c).JsonError(errors.NewErrInternal(err))
+		httpCode = response.New(c).JsonError(errors.NewErrInternal(err))
 		return
 	}
 	indexRequest := &request.IndexRequest{}
 	err = c.ShouldBindJSON(indexRequest)
 	if err != nil {
-		response.New(c).JsonError(errors.NewErrBadRequest(err))
+		httpCode = response.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
 	}
 
@@ -806,14 +888,18 @@ func (handler *DocumentHandler) handleIndexForceMerge(c *gin.Context) {
 
 	space, err := handler.docService.getSpace(c.Request.Context(), args.Head)
 	if err != nil {
-		response.New(c).JsonError(errors.NewErrInternal(err))
+		httpCode = response.New(c).JsonError(errors.NewErrInternal(err))
 		return
 	}
 	if space == nil {
 		err := vearchpb.NewError(vearchpb.ErrorEnum_SPACE_NOT_EXIST, nil)
-		response.New(c).JsonError(errors.NewErrBadRequest(err))
+		httpCode = response.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
 	}
+
+	dbName = args.Head.DbName
+	spaceName = args.Head.SpaceName
+
 	if args.PartitionId > 0 {
 		found := false
 		for _, partition := range space.Partitions {
@@ -824,7 +910,7 @@ func (handler *DocumentHandler) handleIndexForceMerge(c *gin.Context) {
 		}
 		if !found {
 			err := vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("partition_id %d not belong to space %s", args.PartitionId, space.Name))
-			response.New(c).JsonError(errors.NewErrBadRequest(err))
+			httpCode = response.New(c).JsonError(errors.NewErrBadRequest(err))
 			return
 		}
 	}
@@ -832,24 +918,30 @@ func (handler *DocumentHandler) handleIndexForceMerge(c *gin.Context) {
 	forceMergeResponse := handler.docService.forceMerge(c.Request.Context(), args)
 	result := IndexResponseToContent(forceMergeResponse.Shards)
 
-	response.New(c).JsonSuccess(result)
+	httpCode = response.New(c).JsonSuccess(result)
 }
 
 // handleIndexRebuild rebuild index
 func (handler *DocumentHandler) handleIndexRebuild(c *gin.Context) {
 	startTime := time.Now()
-	defer monitor.Profiler("handleIndexRebuild", startTime)
+	operateName := "handleIndexRebuild"
+	httpCode := http.StatusOK
+	dbName := ""
+	spaceName := ""
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
 	args := &vearchpb.IndexRequest{}
 	var err error
 	args.Head, err = setRequestHeadFromGin(c)
 	if err != nil {
-		response.New(c).JsonError(errors.NewErrInternal(err))
+		httpCode = response.New(c).JsonError(errors.NewErrInternal(err))
 		return
 	}
 	indexRequest := &request.IndexRequest{}
 	err = c.ShouldBindJSON(indexRequest)
 	if err != nil {
-		response.New(c).JsonError(errors.NewErrBadRequest(err))
+		httpCode = response.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
 	}
 
@@ -866,12 +958,16 @@ func (handler *DocumentHandler) handleIndexRebuild(c *gin.Context) {
 
 	space, err := handler.docService.getSpace(c.Request.Context(), args.Head)
 	if err != nil {
-		response.New(c).JsonError(errors.NewErrInternal(err))
+		httpCode = response.New(c).JsonError(errors.NewErrInternal(err))
 		return
 	}
+
+	dbName = args.Head.DbName
+	spaceName = args.Head.SpaceName
+
 	if space == nil {
 		err := vearchpb.NewError(vearchpb.ErrorEnum_SPACE_NOT_EXIST, nil)
-		response.New(c).JsonError(errors.NewErrBadRequest(err))
+		httpCode = response.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
 	}
 	if args.PartitionId > 0 {
@@ -884,7 +980,7 @@ func (handler *DocumentHandler) handleIndexRebuild(c *gin.Context) {
 		}
 		if !found {
 			err := vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("partition_id %d not belong to space %s", args.PartitionId, space.Name))
-			response.New(c).JsonError(errors.NewErrBadRequest(err))
+			httpCode = response.New(c).JsonError(errors.NewErrBadRequest(err))
 			return
 		}
 	}
@@ -892,5 +988,5 @@ func (handler *DocumentHandler) handleIndexRebuild(c *gin.Context) {
 	indexResponse := handler.docService.rebuildIndex(c.Request.Context(), args)
 	result := IndexResponseToContent(indexResponse.Shards)
 
-	response.New(c).JsonSuccess(result)
+	httpCode = response.New(c).JsonSuccess(result)
 }

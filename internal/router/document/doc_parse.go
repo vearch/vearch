@@ -86,7 +86,7 @@ func parseJSON(path []string, v *fastjson.Value, space *entity.Space, proMap map
 		if !ok {
 			haveNoField = true
 			errorField = fieldName
-			log.Warnf("unrecognizable field, %s is not found in space fields", fieldName)
+			log.Warnf("unrecognizable field, %s is not found in space[%s] fields", fieldName, space.Name)
 			return
 		}
 		if _, ok := FieldsIndex[fieldName]; ok {
@@ -121,7 +121,7 @@ func parseJSON(path []string, v *fastjson.Value, space *entity.Space, proMap map
 	}
 
 	if haveNoField {
-		return nil, haveVector, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("unrecognizable field, %s is not found in space fields", errorField))
+		return nil, haveVector, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("unrecognizable field, %s is not found in space[%s] fields", errorField, space.Name))
 	}
 
 	return fields, haveVector, nil

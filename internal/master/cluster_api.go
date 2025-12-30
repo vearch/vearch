@@ -41,17 +41,20 @@ import (
 )
 
 const (
-	DB                  = "db"
-	dbName              = "db_name"
-	spaceName           = "space_name"
-	aliasName           = "alias_name"
-	userName            = "user_name"
-	roleName            = "role_name"
-	memberId            = "member_id"
-	peerAddrs           = "peer_addrs"
-	headerAuthKey       = "Authorization"
-	NodeID              = "node_id"
-	DefaultResourceName = "default"
+	paramDb             = "db"
+	paramSpace          = "space"
+	paramDetail         = "detail"
+	paramDbName         = "db_name"
+	paramSpaceName      = "space_name"
+	paramAliasName      = "alias_name"
+	paramUserName       = "user_name"
+	paramRoleName       = "role_name"
+	paramMemberId       = "member_id"
+	paramPeerAddrs      = "peer_addrs"
+	paramHeaderAuthKey  = "Authorization"
+	paramNodeID         = "node_id"
+	paramRequestID      = "X-Request-Id"
+	defaultResourceName = "default"
 )
 
 type clusterAPI struct {
@@ -61,9 +64,10 @@ type clusterAPI struct {
 }
 
 // handleError handles different types of errors and returns appropriate HTTP responses
-func (ca *clusterAPI) handleError(c *gin.Context, err error) {
+func (ca *clusterAPI) handleError(c *gin.Context, err error) int {
+	httpCode := http.StatusOK
 	if err == nil {
-		return
+		return httpCode
 	}
 
 	// Check if it's a VearchErr and handle specific error types
@@ -71,20 +75,21 @@ func (ca *clusterAPI) handleError(c *gin.Context, err error) {
 		switch vErr.GetError().Code {
 		case vearchpb.ErrorEnum_DB_EXIST, vearchpb.ErrorEnum_SPACE_EXIST, vearchpb.ErrorEnum_ALIAS_EXIST,
 			vearchpb.ErrorEnum_USER_EXIST, vearchpb.ErrorEnum_ROLE_EXIST:
-			response.New(c).JsonError(errors.NewErrUnprocessable(err))
+			httpCode = response.New(c).JsonError(errors.NewErrUnprocessable(err))
 		case vearchpb.ErrorEnum_DB_NOT_EXIST, vearchpb.ErrorEnum_SPACE_NOT_EXIST, vearchpb.ErrorEnum_ALIAS_NOT_EXIST,
 			vearchpb.ErrorEnum_USER_NOT_EXIST, vearchpb.ErrorEnum_ROLE_NOT_EXIST, vearchpb.ErrorEnum_PARTITION_SERVER_NOT_EXIST:
-			response.New(c).JsonError(errors.NewErrNotFound(err))
+			httpCode = response.New(c).JsonError(errors.NewErrNotFound(err))
 		case vearchpb.ErrorEnum_PARAM_ERROR, vearchpb.ErrorEnum_CONFIG_ERROR:
-			response.New(c).JsonError(errors.NewErrBadRequest(err))
+			httpCode = response.New(c).JsonError(errors.NewErrBadRequest(err))
 		case vearchpb.ErrorEnum_AUTHENTICATION_FAILED:
-			response.New(c).JsonError(errors.NewErrUnauthorized(err))
+			httpCode = response.New(c).JsonError(errors.NewErrUnauthorized(err))
 		default:
-			response.New(c).JsonError(errors.NewErrInternal(err))
+			httpCode = response.New(c).JsonError(errors.NewErrInternal(err))
 		}
 	} else {
-		response.New(c).JsonError(errors.NewErrInternal(err))
+		httpCode = response.New(c).JsonError(errors.NewErrInternal(err))
 	}
+	return httpCode
 }
 
 func BasicAuthMiddleware(masterService *masterService) gin.HandlerFunc {
@@ -165,7 +170,7 @@ func TimeoutMiddleware(defaultTimeout time.Duration) gin.HandlerFunc {
 				log.Error(msg)
 				c.JSON(err.HttpCode(),
 					gin.H{
-						"request_id": c.GetHeader("X-Request-Id"),
+						"request_id": c.GetHeader(paramRequestID),
 						"code":       err.Code(),
 						"msg":        err.Msg()})
 				c.Abort()
@@ -193,7 +198,7 @@ func TimeoutMiddleware(defaultTimeout time.Duration) gin.HandlerFunc {
 			if httpResp == nil {
 				httpReply := &response.HttpReply{
 					Code:      int(vearchpb.ErrorEnum_INTERNAL_ERROR),
-					RequestId: c.GetHeader("X-Request-Id"),
+					RequestId: c.GetHeader(paramRequestID),
 					Msg:       "get response data error",
 				}
 				res := &response.Response{}
@@ -207,7 +212,7 @@ func TimeoutMiddleware(defaultTimeout time.Duration) gin.HandlerFunc {
 		case <-ctx.Done():
 			c.JSON(http.StatusGatewayTimeout,
 				gin.H{
-					"request_id": c.GetHeader("X-Request-Id"),
+					"request_id": c.GetHeader(paramRequestID),
 					"code":       vearchpb.ErrorEnum_TIMEOUT,
 					"msg":        "request timeout"})
 			c.Abort()
@@ -271,24 +276,24 @@ func ExportToClusterHandler(router *gin.Engine, masterService *masterService, se
 	group.POST("/register_router", c.registerRouter)
 
 	// db handler
-	groupAuth.POST(fmt.Sprintf("/dbs/:%s", dbName), c.createDB)
-	groupAuth.GET(fmt.Sprintf("/dbs/:%s", dbName), c.getDB)
+	groupAuth.POST(fmt.Sprintf("/dbs/:%s", paramDbName), c.createDB)
+	groupAuth.GET(fmt.Sprintf("/dbs/:%s", paramDbName), c.getDB)
 	groupAuth.GET("/dbs", c.getDB)
-	groupAuth.DELETE(fmt.Sprintf("/dbs/:%s", dbName), c.deleteDB)
-	groupAuth.PUT(fmt.Sprintf("/dbs/:%s", dbName), c.modifyDB)
+	groupAuth.DELETE(fmt.Sprintf("/dbs/:%s", paramDbName), c.deleteDB)
+	groupAuth.PUT(fmt.Sprintf("/dbs/:%s", paramDbName), c.modifyDB)
 
 	// space handler
-	groupAuth.POST(fmt.Sprintf("/dbs/:%s/spaces", dbName), c.createSpace)
-	groupAuth.GET(fmt.Sprintf("/dbs/:%s/spaces/:%s", dbName, spaceName), c.getSpace)
-	groupAuth.GET(fmt.Sprintf("/dbs/:%s/spaces", dbName), c.getSpace)
-	groupAuth.DELETE(fmt.Sprintf("/dbs/:%s/spaces/:%s", dbName, spaceName), c.deleteSpace)
-	groupAuth.PUT(fmt.Sprintf("/dbs/:%s/spaces/:%s", dbName, spaceName), c.updateSpace)
-	groupAuth.POST(fmt.Sprintf("/backup/dbs/:%s/spaces/:%s", dbName, spaceName), c.backupSpace)
-	groupAuth.POST(fmt.Sprintf("/backup/dbs/:%s", dbName), c.backupDb)
+	groupAuth.POST(fmt.Sprintf("/dbs/:%s/spaces", paramDbName), c.createSpace)
+	groupAuth.GET(fmt.Sprintf("/dbs/:%s/spaces/:%s", paramDbName, paramSpaceName), c.getSpace)
+	groupAuth.GET(fmt.Sprintf("/dbs/:%s/spaces", paramDbName), c.getSpace)
+	groupAuth.DELETE(fmt.Sprintf("/dbs/:%s/spaces/:%s", paramDbName, paramSpaceName), c.deleteSpace)
+	groupAuth.PUT(fmt.Sprintf("/dbs/:%s/spaces/:%s", paramDbName, paramSpaceName), c.updateSpace)
+	groupAuth.POST(fmt.Sprintf("/backup/dbs/:%s/spaces/:%s", paramDbName, paramSpaceName), c.backupSpace)
+	groupAuth.POST(fmt.Sprintf("/backup/dbs/:%s", paramDbName), c.backupDb)
 
 	// modify engine config handler
-	groupAuth.POST("/config/:"+dbName+"/:"+spaceName, c.modifySpaceConfig)
-	groupAuth.GET("/config/:"+dbName+"/:"+spaceName, c.getSpaceConfig)
+	groupAuth.POST("/config/:"+paramDbName+"/:"+paramSpaceName, c.modifySpaceConfig)
+	groupAuth.GET("/config/:"+paramDbName+"/:"+paramSpaceName, c.getSpaceConfig)
 
 	// modify query limit enabled config handler
 	groupAuth.POST("/config/request_limit", c.modifyRequestLimitCfg)
@@ -310,31 +315,31 @@ func ExportToClusterHandler(router *gin.Engine, masterService *masterService, se
 	groupAuth.POST("/schedule/recover_server", c.RecoverFailServer)
 	groupAuth.POST("/schedule/change_replicas", c.ChangeReplicas)
 	groupAuth.GET("/schedule/fail_server", c.FailServerList)
-	groupAuth.DELETE("/schedule/fail_server/:"+NodeID, c.FailServerClear)
+	groupAuth.DELETE("/schedule/fail_server/:"+paramNodeID, c.FailServerClear)
 	groupAuth.GET("/schedule/clean_task", c.CleanTask)
 
 	// remove server metadata
 	groupAuth.POST("/meta/remove_server", c.RemoveServerMeta)
 
 	// alias handler
-	groupAuth.POST(fmt.Sprintf("/alias/:%s/dbs/:%s/spaces/:%s", aliasName, dbName, spaceName), c.createAlias)
-	groupAuth.GET(fmt.Sprintf("/alias/:%s", aliasName), c.getAlias)
+	groupAuth.POST(fmt.Sprintf("/alias/:%s/dbs/:%s/spaces/:%s", paramAliasName, paramDbName, paramSpaceName), c.createAlias)
+	groupAuth.GET(fmt.Sprintf("/alias/:%s", paramAliasName), c.getAlias)
 	groupAuth.GET("/alias", c.getAlias)
-	groupAuth.DELETE(fmt.Sprintf("/alias/:%s", aliasName), c.deleteAlias)
-	groupAuth.PUT(fmt.Sprintf("/alias/:%s/dbs/:%s/spaces/:%s", aliasName, dbName, spaceName), c.modifyAlias)
+	groupAuth.DELETE(fmt.Sprintf("/alias/:%s", paramAliasName), c.deleteAlias)
+	groupAuth.PUT(fmt.Sprintf("/alias/:%s/dbs/:%s/spaces/:%s", paramAliasName, paramDbName, paramSpaceName), c.modifyAlias)
 
 	// user handler
 	groupAuth.POST("/users", c.createUser)
-	groupAuth.GET(fmt.Sprintf("/users/:%s", userName), c.getUser)
+	groupAuth.GET(fmt.Sprintf("/users/:%s", paramUserName), c.getUser)
 	groupAuth.GET("/users", c.getUser)
-	groupAuth.DELETE(fmt.Sprintf("/users/:%s", userName), c.deleteUser)
+	groupAuth.DELETE(fmt.Sprintf("/users/:%s", paramUserName), c.deleteUser)
 	groupAuth.PUT("/users", c.updateUser)
 
 	// role handler
 	groupAuth.POST("/roles", c.createRole)
-	groupAuth.GET(fmt.Sprintf("/roles/:%s", roleName), c.getRole)
+	groupAuth.GET(fmt.Sprintf("/roles/:%s", paramRoleName), c.getRole)
 	groupAuth.GET("/roles", c.getRole)
-	groupAuth.DELETE(fmt.Sprintf("/roles/:%s", roleName), c.deleteRole)
+	groupAuth.DELETE(fmt.Sprintf("/roles/:%s", paramRoleName), c.deleteRole)
 	groupAuth.PUT("/roles", c.changeRolePrivilege)
 
 	// cluster handler
@@ -350,30 +355,54 @@ func ExportToClusterHandler(router *gin.Engine, masterService *masterService, se
 
 // got every partition servers system info
 func (ca *clusterAPI) stats(c *gin.Context) {
+	startTime := time.Now()
+	operateName := "handleClusterStats"
+	httpCode := http.StatusOK
+	dbName := ""
+	spaceName := ""
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
 	list, err := ca.masterService.Server().Stats(c)
 	if err != nil {
-		response.New(c).JsonError(errors.NewErrInternal(err))
+		httpCode = response.New(c).JsonError(errors.NewErrInternal(err))
 		return
 	}
-	response.New(c).JsonSuccess(list)
+	httpCode = response.New(c).JsonSuccess(list)
 }
 
 // cluster health in partition level
 func (ca *clusterAPI) health(c *gin.Context) {
-	dbName := c.Query("db")
-	spaceName := c.Query("space")
-	detail := c.Query("detail")
+	startTime := time.Now()
+	operateName := "handleClusterHealth"
+	httpCode := http.StatusOK
+	dbName := ""
+	spaceName := ""
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
+	dbName = c.Query(paramDb)
+	spaceName = c.Query(paramSpace)
+	detail := c.Query(paramDetail)
 
 	result, err := ca.masterService.Partition().PartitionInfo(c, ca.masterService.DB(), ca.masterService.Space(), dbName, spaceName, detail)
 	if err != nil {
-		response.New(c).JsonError(errors.NewErrInternal(err))
+		httpCode = response.New(c).JsonError(errors.NewErrInternal(err))
 		return
 	}
 
-	response.New(c).JsonSuccess(result)
+	httpCode = response.New(c).JsonSuccess(result)
 }
 
 func (ca *clusterAPI) handleClusterInfo(c *gin.Context) {
+	startTime := time.Now()
+	operateName := "handleClusterInfo"
+	httpCode := http.StatusOK
+	dbName := ""
+	spaceName := ""
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
 	layer := map[string]any{
 		"name": config.Conf().Global.Name,
 		"version": map[string]any{
@@ -383,152 +412,224 @@ func (ca *clusterAPI) handleClusterInfo(c *gin.Context) {
 		},
 	}
 
-	response.New(c).JsonSuccess(layer)
+	httpCode = response.New(c).JsonSuccess(layer)
 }
 
 // cleanLock lock for admin, when space locked, waring make sure not create space ing
 func (ca *clusterAPI) cleanLock(c *gin.Context) {
+	startTime := time.Now()
+	operateName := "handleCleanLock"
+	httpCode := http.StatusOK
+	dbName := ""
+	spaceName := ""
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
 	removed := make([]string, 0, 1)
 
 	if keys, _, err := ca.masterService.Master().Store.PrefixScan(c, entity.PrefixLock); err != nil {
-		response.New(c).JsonError(errors.NewErrBadRequest(err))
+		httpCode = response.New(c).JsonError(errors.NewErrBadRequest(err))
 	} else {
 		for _, key := range keys {
 			if err := ca.masterService.Master().Store.Delete(c, string(key)); err != nil {
-				response.New(c).JsonError(errors.NewErrInternal(err))
+				httpCode = response.New(c).JsonError(errors.NewErrInternal(err))
 				return
 			}
 			removed = append(removed, string(key))
 		}
-		response.New(c).JsonSuccess(removed)
+		httpCode = response.New(c).JsonSuccess(removed)
 	}
 }
 
 // for ps startup to register self and get ip response
 func (ca *clusterAPI) register(c *gin.Context) {
+	startTime := time.Now()
+	operateName := "handleRegisterPartitionServer"
+	httpCode := http.StatusOK
+	dbName := ""
+	spaceName := ""
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
 	ip := c.ClientIP()
 	log.Debug("register from: %v", ip)
 	clusterName := c.Query("clusterName")
 	nodeID := entity.NodeID(cast.ToInt64(c.Query("nodeID")))
 
 	if clusterName == "" || nodeID == 0 {
-		response.New(c).JsonError(errors.NewErrBadRequest(fmt.Errorf("param err must has clusterName AND nodeID")))
+		httpCode = response.New(c).JsonError(errors.NewErrBadRequest(fmt.Errorf("param err must has clusterName AND nodeID")))
 		return
 	}
 
 	if clusterName != config.Conf().Global.Name {
-		response.New(c).JsonError(errors.NewErrUnprocessable(fmt.Errorf("cluster name different, please check")))
+		httpCode = response.New(c).JsonError(errors.NewErrUnprocessable(fmt.Errorf("cluster[%s] name different, config cluster name is %s", clusterName, config.Conf().Global.Name)))
 		return
 	}
 
 	// if node id is already existed, return failed
 	if err := ca.masterService.Server().IsExistNode(c, nodeID, ip); err != nil {
 		log.Debug("nodeID[%d] exist %v", nodeID, err)
-		response.New(c).JsonError(errors.NewErrUnprocessable(err))
+		httpCode = response.New(c).JsonError(errors.NewErrUnprocessable(err))
 		return
 	}
 
 	server, err := ca.masterService.Server().RegisterServer(c, ip, nodeID)
 	if err != nil {
-		response.New(c).JsonError(errors.NewErrInternal(err))
+		httpCode = response.New(c).JsonError(errors.NewErrInternal(err))
 		return
 	}
 
-	response.New(c).JsonSuccess(server)
+	httpCode = response.New(c).JsonSuccess(server)
 }
 
 // for router startup to register self and get ip response
 func (ca *clusterAPI) registerRouter(c *gin.Context) {
+	startTime := time.Now()
+	operateName := "handleRegisterRouter"
+	httpCode := http.StatusOK
+	dbName := ""
+	spaceName := ""
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
 	ip := c.ClientIP()
 	log.Debug("register from: %s", ip)
 	clusterName := c.Query("clusterName")
 
 	if clusterName != config.Conf().Global.Name {
-		response.New(c).JsonError(errors.NewErrUnprocessable(fmt.Errorf("cluster name different, please check")))
+		httpCode = response.New(c).JsonError(errors.NewErrUnprocessable(fmt.Errorf("cluster name different, please check")))
 		return
 	}
 
-	response.New(c).JsonSuccess(ip)
+	httpCode = response.New(c).JsonSuccess(ip)
 }
 
 // when partition leader got it will register self to this api
 func (ca *clusterAPI) registerPartition(c *gin.Context) {
+	startTime := time.Now()
+	operateName := "handleRegisterPartition"
+	httpCode := http.StatusOK
+	dbName := ""
+	spaceName := ""
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
 	partition := &entity.Partition{}
 
 	if err := c.ShouldBindJSON(partition); err != nil {
-		response.New(c).JsonError(errors.NewErrBadRequest(err))
+		httpCode = response.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
 	}
 
 	partition.UpdateTime = time.Now().UnixNano()
 
 	if err := ca.masterService.Partition().RegisterPartition(c, partition); err != nil {
-		response.New(c).JsonError(errors.NewErrInternal(err))
+		httpCode = response.New(c).JsonError(errors.NewErrInternal(err))
 	} else {
-		response.New(c).JsonSuccess(nil)
+		httpCode = response.New(c).JsonSuccess(nil)
 	}
 }
 
 func (ca *clusterAPI) createDB(c *gin.Context) {
 	startTime := time.Now()
-	defer monitor.Profiler("createDB", startTime)
-	dbName := c.Param(dbName)
+	operateName := "handleCreateDB"
+	httpCode := http.StatusOK
+	dbName := ""
+	spaceName := ""
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
+	dbName = c.Param(paramDbName)
 	db := &entity.DB{Name: dbName}
 
 	log.Debug("create db: %s", db.Name)
 
 	if err := ca.masterService.DB().CreateDB(c, db); err != nil {
-		ca.handleError(c, err)
+		httpCode = ca.handleError(c, err)
 	} else {
-		response.New(c).JsonSuccess(db)
+		httpCode = response.New(c).JsonSuccess(db)
 	}
 }
 
 func (ca *clusterAPI) deleteDB(c *gin.Context) {
-	log.Debug("delete db, db: %s", c.Param(dbName))
-	db := c.Param(dbName)
+	startTime := time.Now()
+	operateName := "handleDeleteDB"
+	httpCode := http.StatusOK
+	dbName := ""
+	spaceName := ""
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
+	log.Debug("delete db, db: %s", c.Param(paramDbName))
+	dbName = c.Param(paramDbName)
 
-	if err := ca.masterService.DB().DeleteDB(c, db); err != nil {
-		ca.handleError(c, err)
+	if err := ca.masterService.DB().DeleteDB(c, dbName); err != nil {
+		httpCode = ca.handleError(c, err)
 	} else {
-		response.New(c).SuccessDelete()
+		httpCode = response.New(c).SuccessDelete()
 	}
 }
 
 func (ca *clusterAPI) getDB(c *gin.Context) {
-	db := c.Param(dbName)
-	if db == "" {
+	startTime := time.Now()
+	operateName := "handleGetDB"
+	httpCode := http.StatusOK
+	dbName := ""
+	spaceName := ""
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
+	dbName = c.Param(paramDbName)
+	if dbName == "" {
 		if dbs, err := ca.masterService.DB().QueryDBs(c); err != nil {
-			ca.handleError(c, err)
+			httpCode = ca.handleError(c, err)
 		} else {
-			response.New(c).JsonSuccess(dbs)
+			httpCode = response.New(c).JsonSuccess(dbs)
 		}
 	} else {
-		if db, err := ca.masterService.DB().QueryDB(c, db); err != nil {
-			ca.handleError(c, err)
+		if db, err := ca.masterService.DB().QueryDB(c, dbName); err != nil {
+			httpCode = ca.handleError(c, err)
 		} else {
-			response.New(c).JsonSuccess(db)
+			httpCode = response.New(c).JsonSuccess(db)
 		}
 	}
 }
 
 func (ca *clusterAPI) modifyDB(c *gin.Context) {
+	startTime := time.Now()
+	operateName := "handleModifyDB"
+	httpCode := http.StatusOK
+	dbName := ""
+	spaceName := ""
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
 	dbModify := &entity.DBModify{}
 	if err := c.ShouldBindJSON(dbModify); err != nil {
-		response.New(c).JsonError(errors.NewErrBadRequest(err))
+		httpCode = response.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
 	}
+	dbName = dbModify.DbName
+
 	if db, err := ca.masterService.DB().UpdateDBIpList(c.Request.Context(), dbModify); err != nil {
-		ca.handleError(c, err)
+		httpCode = ca.handleError(c, err)
 	} else {
-		response.New(c).JsonSuccess(db)
+		httpCode = response.New(c).JsonSuccess(db)
 	}
 }
 
 func (ca *clusterAPI) createSpace(c *gin.Context) {
-	log.Debug("create space, db: %s", c.Param(dbName))
+	startTime := time.Now()
+	operateName := "handleCreateSpace"
+	httpCode := http.StatusOK
+	dbName := ""
+	spaceName := ""
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
+	log.Debug("create space, db: %s", c.Param(paramDbName))
 
-	dbName := c.Param(dbName)
+	dbName = c.Param(paramDbName)
 	// set default refresh interval
 	refreshInterval := int32(entity.DefaultRefreshInterval)
 	enableIdCache := entity.DefaultEnableIdCache
@@ -540,13 +641,15 @@ func (ca *clusterAPI) createSpace(c *gin.Context) {
 	if err := c.ShouldBindJSON(space); err != nil {
 		body, _ := netutil.GetReqBody(c.Request)
 		log.Error("create space request: %s, err: %s", body, err.Error())
-		response.New(c).JsonError(errors.NewErrBadRequest(err))
+		httpCode = response.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
 	}
 
+	spaceName = space.Name
+
 	// set default resource name
 	if space.ResourceName == "" {
-		space.ResourceName = DefaultResourceName
+		space.ResourceName = defaultResourceName
 	}
 
 	if space.PartitionNum <= 0 {
@@ -556,7 +659,7 @@ func (ca *clusterAPI) createSpace(c *gin.Context) {
 	if config.Conf().Global.LimitedReplicaNum && space.ReplicaNum < 3 {
 		err := fmt.Errorf("LimitedReplicaNum is set and in order to ensure high availability replica should not be less than 3")
 		log.Error(err.Error())
-		response.New(c).JsonError(errors.NewErrBadRequest(err))
+		httpCode = response.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
 	}
 	if space.ReplicaNum <= 0 {
@@ -565,7 +668,7 @@ func (ca *clusterAPI) createSpace(c *gin.Context) {
 
 	// check index name is ok
 	if err := space.Validate(); err != nil {
-		response.New(c).JsonError(errors.NewErrBadRequest(err))
+		httpCode = response.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
 	}
 
@@ -573,14 +676,14 @@ func (ca *clusterAPI) createSpace(c *gin.Context) {
 
 	if err := ca.masterService.Space().CreateSpace(c, ca.masterService.DB(), dbName, space); err != nil {
 		log.Error("createSpace db: %s, space: %s, space id: %d, err: %s", dbName, space.Name, space.Id, err.Error())
-		ca.handleError(c, err)
+		httpCode = ca.handleError(c, err)
 		return
 	}
 
 	cfg, err := ca.masterService.Config().GetSpaceConfigByName(c, dbName, space.Name)
 	if err != nil {
 		log.Error("get engine config err: %s", err.Error())
-		ca.handleError(c, err)
+		httpCode = ca.handleError(c, err)
 		return
 	}
 	cfg.Id = space.Id
@@ -588,28 +691,44 @@ func (ca *clusterAPI) createSpace(c *gin.Context) {
 	err = ca.masterService.Config().UpdateSpaceConfig(c, space, cfg)
 	if err != nil {
 		log.Error("update engine config err: %s", err.Error())
-		ca.handleError(c, err)
+		httpCode = ca.handleError(c, err)
 		return
 	}
-	response.New(c).JsonSuccess(space)
+	httpCode = response.New(c).JsonSuccess(space)
 }
 
 func (ca *clusterAPI) deleteSpace(c *gin.Context) {
-	log.Debug("delete space, db: %s, space: %s", c.Param(dbName), c.Param(spaceName))
-	dbName := c.Param(dbName)
-	spaceName := c.Param(spaceName)
+	startTime := time.Now()
+	operateName := "handleDeleteSpace"
+	httpCode := http.StatusOK
+	dbName := ""
+	spaceName := ""
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
+	log.Debug("delete space, db: %s, space: %s", c.Param(paramDbName), c.Param(paramSpaceName))
+	dbName = c.Param(paramDbName)
+	spaceName = c.Param(paramSpaceName)
 
 	if err := ca.masterService.Space().DeleteSpace(c, ca.masterService.Alias(), dbName, spaceName); err != nil {
-		response.New(c).JsonError(errors.NewErrInternal(err))
+		httpCode = response.New(c).JsonError(errors.NewErrInternal(err))
 	} else {
-		response.New(c).SuccessDelete()
+		httpCode = response.New(c).SuccessDelete()
 	}
 }
 
 func (ca *clusterAPI) getSpace(c *gin.Context) {
-	dbName := c.Param(dbName)
-	spaceName := c.Param(spaceName)
-	detail := c.Query("detail")
+	startTime := time.Now()
+	operateName := "handleGetSpace"
+	httpCode := http.StatusOK
+	dbName := ""
+	spaceName := ""
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
+	dbName = c.Param(paramDbName)
+	spaceName = c.Param(paramSpaceName)
+	detail := c.Query(paramDetail)
 	detail_info := false
 	if detail == "true" {
 		detail_info = true
@@ -617,12 +736,12 @@ func (ca *clusterAPI) getSpace(c *gin.Context) {
 
 	dbID, err := ca.masterService.Master().QueryDBName2ID(c, dbName)
 	if err != nil {
-		response.New(c).JsonError(errors.NewErrNotFound(err))
+		httpCode = response.New(c).JsonError(errors.NewErrNotFound(err))
 		return
 	}
 	if spaceName != "" {
 		if space, err := ca.masterService.Master().QuerySpaceByName(c, dbID, spaceName); err != nil {
-			response.New(c).JsonError(errors.NewErrNotFound(err))
+			httpCode = response.New(c).JsonError(errors.NewErrNotFound(err))
 		} else {
 			spaceInfo := &entity.SpaceInfo{}
 			spaceInfo.DbName = dbName
@@ -634,15 +753,15 @@ func (ca *clusterAPI) getSpace(c *gin.Context) {
 			spaceInfo.ReplicaNum = space.ReplicaNum
 			spaceInfo.PartitionRule = space.PartitionRule
 			if _, err := ca.masterService.Space().DescribeSpace(c, space, spaceInfo, detail_info); err != nil {
-				response.New(c).JsonError(errors.NewErrInternal(err))
+				httpCode = response.New(c).JsonError(errors.NewErrInternal(err))
 				return
 			} else {
-				response.New(c).JsonSuccess(spaceInfo)
+				httpCode = response.New(c).JsonSuccess(spaceInfo)
 			}
 		}
 	} else {
 		if spaces, err := ca.masterService.Master().QuerySpaces(c, dbID); err != nil {
-			response.New(c).JsonError(errors.NewErrNotFound(err))
+			httpCode = response.New(c).JsonError(errors.NewErrNotFound(err))
 		} else {
 			spaceInfos := make([]*entity.SpaceInfo, 0, len(spaces))
 			for _, space := range spaces {
@@ -656,63 +775,79 @@ func (ca *clusterAPI) getSpace(c *gin.Context) {
 				spaceInfo.ReplicaNum = space.ReplicaNum
 				spaceInfo.PartitionRule = space.PartitionRule
 				if _, err := ca.masterService.Space().DescribeSpace(c, space, spaceInfo, detail_info); err != nil {
-					response.New(c).JsonError(errors.NewErrInternal(err))
+					httpCode = response.New(c).JsonError(errors.NewErrInternal(err))
 					return
 				} else {
 					spaceInfos = append(spaceInfos, spaceInfo)
 				}
 			}
-			response.New(c).JsonSuccess(spaceInfos)
+			httpCode = response.New(c).JsonSuccess(spaceInfos)
 		}
 	}
 }
 
 func (ca *clusterAPI) updateSpace(c *gin.Context) {
-	dbName := c.Param(dbName)
-	spaceName := c.Param(spaceName)
+	startTime := time.Now()
+	operateName := "handleUpdateSpace"
+	httpCode := http.StatusOK
+	dbName := ""
+	spaceName := ""
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
+	dbName = c.Param(paramDbName)
+	spaceName = c.Param(paramSpaceName)
 
 	space := &entity.Space{
 		Name: spaceName,
 	}
 
 	if err := c.ShouldBindJSON(space); err != nil {
-		response.New(c).JsonError(errors.NewErrBadRequest(err))
+		httpCode = response.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
 	}
 
 	log.Debug("updateSpace %+v", space)
 
 	if spaceResult, err := ca.masterService.Space().UpdateSpace(c, ca.masterService.DB(), dbName, spaceName, space, ""); err != nil {
-		response.New(c).JsonError(errors.NewErrInternal(err))
+		httpCode = response.New(c).JsonError(errors.NewErrInternal(err))
 	} else {
-		response.New(c).JsonSuccess(spaceResult)
+		httpCode = response.New(c).JsonSuccess(spaceResult)
 	}
 }
 
 func (ca *clusterAPI) backupDb(c *gin.Context) {
+	startTime := time.Now()
+	operateName := "handleBackupDB"
+	httpCode := http.StatusOK
+	dbName := ""
+	spaceName := ""
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
 	var err error
 	defer errutil.CatchError(&err)
-	dbName := c.Param(dbName)
+	dbName = c.Param(paramDbName)
 	data, err := io.ReadAll(c.Request.Body)
 	if err != nil {
-		response.New(c).JsonError(errors.NewErrBadRequest(err))
+		httpCode = response.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
 	}
 
 	dbID, err := ca.masterService.Master().QueryDBName2ID(c, dbName)
 	if err != nil {
-		response.New(c).JsonError(errors.NewErrInternal(err))
+		httpCode = response.New(c).JsonError(errors.NewErrInternal(err))
 		return
 	}
 	spaces, err := ca.masterService.Master().QuerySpaces(c, dbID)
 	if err != nil {
-		response.New(c).JsonError(errors.NewErrInternal(err))
+		httpCode = response.New(c).JsonError(errors.NewErrInternal(err))
 		return
 	}
 	backup := &entity.BackupSpaceRequest{}
 	err = json.Unmarshal(data, backup)
 	if err != nil {
-		response.New(c).JsonError(errors.NewErrBadRequest(err))
+		httpCode = response.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
 	}
 
@@ -721,20 +856,28 @@ func (ca *clusterAPI) backupDb(c *gin.Context) {
 		res, err = ca.masterService.Backup().BackupSpace(c, ca.masterService.DB(), ca.masterService.Space(), ca.masterService.Config(), dbName, space.Name, backup)
 		if err != nil {
 			err = fmt.Errorf("backup space %s failed, err: %s", space.Name, err.Error())
-			response.New(c).JsonError(errors.NewErrInternal(err))
+			httpCode = response.New(c).JsonError(errors.NewErrInternal(err))
 			return
 		}
 	}
-	response.New(c).JsonSuccess(res)
+	httpCode = response.New(c).JsonSuccess(res)
 }
 
 func (ca *clusterAPI) backupSpace(c *gin.Context) {
+	startTime := time.Now()
+	operateName := "handleBackupSpace"
+	httpCode := http.StatusOK
+	dbName := ""
+	spaceName := ""
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
 	var err error
-	dbName := c.Param(dbName)
-	spaceName := c.Param(spaceName)
+	dbName = c.Param(paramDbName)
+	spaceName = c.Param(paramSpaceName)
 	data, err := io.ReadAll(c.Request.Body)
 	if err != nil {
-		response.New(c).JsonError(errors.NewErrBadRequest(err))
+		httpCode = response.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
 	}
 
@@ -742,7 +885,7 @@ func (ca *clusterAPI) backupSpace(c *gin.Context) {
 	backup := &entity.BackupSpaceRequest{}
 	err = json.Unmarshal(data, backup)
 	if err != nil {
-		response.New(c).JsonError(errors.NewErrBadRequest(err))
+		httpCode = response.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
 	}
 
@@ -750,39 +893,62 @@ func (ca *clusterAPI) backupSpace(c *gin.Context) {
 
 	res, err = ca.masterService.Backup().BackupSpace(c, ca.masterService.DB(), ca.masterService.Space(), ca.masterService.Config(), dbName, spaceName, backup)
 	if err != nil {
-		response.New(c).JsonError(errors.NewErrInternal(err))
+		httpCode = response.New(c).JsonError(errors.NewErrInternal(err))
 		return
 	} else {
-		response.New(c).JsonSuccess(res)
+		httpCode = response.New(c).JsonSuccess(res)
 	}
 }
 
 func (ca *clusterAPI) ResourceLimit(c *gin.Context) {
+	startTime := time.Now()
+	operateName := "handleResourceLimit"
+	httpCode := http.StatusOK
+	dbName := ""
+	spaceName := ""
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
 	resourceLimit := &entity.ResourceLimit{}
 	if err := c.ShouldBindJSON(resourceLimit); err != nil {
 		response.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
 	}
+	if resourceLimit.DbName != nil {
+		dbName = *resourceLimit.DbName
+	}
+	if resourceLimit.SpaceName != nil {
+		spaceName = *resourceLimit.SpaceName
+	}
+
 	if err := ca.masterService.Server().ResourceLimitService(c, ca.masterService.DB(), resourceLimit); err != nil {
-		response.New(c).JsonError(errors.NewErrInternal(err))
+		httpCode = response.New(c).JsonError(errors.NewErrInternal(err))
 		return
 	} else {
-		response.New(c).JsonSuccess(resourceLimit)
+		httpCode = response.New(c).JsonSuccess(resourceLimit)
 	}
 }
 
 func (ca *clusterAPI) createAlias(c *gin.Context) {
-	aliasName := c.Param(aliasName)
-	dbName := c.Param(dbName)
-	spaceName := c.Param(spaceName)
+	startTime := time.Now()
+	operateName := "handleCreateAlias"
+	httpCode := http.StatusOK
+	dbName := ""
+	spaceName := ""
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
+	aliasName := c.Param(paramAliasName)
+	dbName = c.Param(paramDbName)
+	spaceName = c.Param(paramSpaceName)
 	dbID, err := ca.masterService.Master().QueryDBName2ID(c, dbName)
 	if err != nil {
-		response.New(c).JsonError(errors.NewErrUnprocessable(err))
+		httpCode = response.New(c).JsonError(errors.NewErrUnprocessable(err))
 		return
 	}
 
 	if _, err := ca.masterService.Master().QuerySpaceByName(c, dbID, spaceName); err != nil {
-		response.New(c).JsonError(errors.NewErrInternal(err))
+		httpCode = response.New(c).JsonError(errors.NewErrInternal(err))
 		return
 	}
 	alias := &entity.Alias{Name: aliasName, DbName: dbName, SpaceName: spaceName}
@@ -790,55 +956,79 @@ func (ca *clusterAPI) createAlias(c *gin.Context) {
 	log.Debug("create alias: %s, dbName: %s, spaceName: %s", aliasName, dbName, spaceName)
 
 	if err := ca.masterService.Alias().CreateAlias(c, alias); err != nil {
-		response.New(c).JsonError(errors.NewErrInternal(err))
+		httpCode = response.New(c).JsonError(errors.NewErrInternal(err))
 		return
 	} else {
-		response.New(c).JsonSuccess(alias)
+		httpCode = response.New(c).JsonSuccess(alias)
 	}
 }
 
 func (ca *clusterAPI) deleteAlias(c *gin.Context) {
-	log.Debug("delete alias: %s", c.Param(aliasName))
-	aliasName := c.Param(aliasName)
+	startTime := time.Now()
+	operateName := "handleDeleteAlias"
+	httpCode := http.StatusOK
+	dbName := ""
+	spaceName := ""
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
+	log.Debug("delete alias: %s", c.Param(paramAliasName))
+	aliasName := c.Param(paramAliasName)
 
 	if err := ca.masterService.Alias().DeleteAlias(c, aliasName); err != nil {
-		response.New(c).JsonError(errors.NewErrInternal(err))
+		httpCode = response.New(c).JsonError(errors.NewErrInternal(err))
 		return
 	} else {
-		response.New(c).SuccessDelete()
+		httpCode = response.New(c).SuccessDelete()
 	}
 }
 
 func (ca *clusterAPI) getAlias(c *gin.Context) {
-	aliasName := c.Param(aliasName)
+	startTime := time.Now()
+	operateName := "handleGetAlias"
+	httpCode := http.StatusOK
+	dbName := ""
+	spaceName := ""
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
+	aliasName := c.Param(paramAliasName)
 	if aliasName == "" {
 		if alias, err := ca.masterService.Alias().QueryAllAlias(c); err != nil {
-			response.New(c).JsonError(errors.NewErrNotFound(err))
+			httpCode = response.New(c).JsonError(errors.NewErrNotFound(err))
 			return
 		} else {
-			response.New(c).JsonSuccess(alias)
+			httpCode = response.New(c).JsonSuccess(alias)
 		}
 	} else {
 		if alias, err := ca.masterService.Alias().QueryAlias(c, aliasName); err != nil {
-			response.New(c).JsonError(errors.NewErrNotFound(err))
+			httpCode = response.New(c).JsonError(errors.NewErrNotFound(err))
 			return
 		} else {
-			response.New(c).JsonSuccess(alias)
+			httpCode = response.New(c).JsonSuccess(alias)
 		}
 	}
 }
 
 func (ca *clusterAPI) modifyAlias(c *gin.Context) {
-	aliasName := c.Param(aliasName)
-	dbName := c.Param(dbName)
-	spaceName := c.Param(spaceName)
+	startTime := time.Now()
+	operateName := "handleModifyAlias"
+	httpCode := http.StatusOK
+	dbName := ""
+	spaceName := ""
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
+	aliasName := c.Param(paramAliasName)
+	dbName = c.Param(paramDbName)
+	spaceName = c.Param(paramSpaceName)
 	dbID, err := ca.masterService.Master().QueryDBName2ID(c, dbName)
 	if err != nil {
-		response.New(c).JsonError(errors.NewErrNotFound(err))
+		httpCode = response.New(c).JsonError(errors.NewErrNotFound(err))
 		return
 	}
 	if _, err := ca.masterService.Master().QuerySpaceByName(c, dbID, spaceName); err != nil {
-		response.New(c).JsonError(errors.NewErrNotFound(err))
+		httpCode = response.New(c).JsonError(errors.NewErrNotFound(err))
 		return
 	}
 
@@ -848,71 +1038,103 @@ func (ca *clusterAPI) modifyAlias(c *gin.Context) {
 		SpaceName: spaceName,
 	}
 	if err := ca.masterService.Alias().UpdateAlias(c, alias); err != nil {
-		response.New(c).JsonError(errors.NewErrInternal(err))
+		httpCode = response.New(c).JsonError(errors.NewErrInternal(err))
 		return
 	} else {
-		response.New(c).JsonSuccess(alias)
+		httpCode = response.New(c).JsonSuccess(alias)
 	}
 }
 
 func (ca *clusterAPI) createUser(c *gin.Context) {
+	startTime := time.Now()
+	operateName := "handleCreateUser"
+	httpCode := http.StatusOK
+	dbName := ""
+	spaceName := ""
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
 	user := &entity.User{}
 	if err := c.ShouldBindJSON(user); err != nil {
 		body, _ := netutil.GetReqBody(c.Request)
 		log.Error("create space request: %s, err: %s", body, err.Error())
-		response.New(c).JsonError(errors.NewErrBadRequest(err))
+		httpCode = response.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
 	}
 
 	log.Debug("create user: %s", user.Name)
 
 	if err := ca.masterService.User().CreateUser(c, ca.masterService.Role(), user, true); err != nil {
-		response.New(c).JsonError(errors.NewErrInternal(err))
+		httpCode = response.New(c).JsonError(errors.NewErrInternal(err))
 		return
 	} else {
 		// just return user name
 		user_return := &entity.User{Name: user.Name}
-		response.New(c).JsonSuccess(user_return)
+		httpCode = response.New(c).JsonSuccess(user_return)
 	}
 }
 
 func (ca *clusterAPI) deleteUser(c *gin.Context) {
-	log.Debug("delete user: %s", c.Param(userName))
-	name := c.Param(userName)
+	startTime := time.Now()
+	operateName := "handleDeleteUser"
+	httpCode := http.StatusOK
+	dbName := ""
+	spaceName := ""
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
+	log.Debug("delete user: %s", c.Param(paramUserName))
+	name := c.Param(paramUserName)
 
 	if err := ca.masterService.User().DeleteUser(c, ca.masterService.Role(), name); err != nil {
-		response.New(c).JsonError(errors.NewErrInternal(err))
+		httpCode = response.New(c).JsonError(errors.NewErrInternal(err))
 		return
 	} else {
-		response.New(c).SuccessDelete()
+		httpCode = response.New(c).SuccessDelete()
 	}
 }
 
 func (ca *clusterAPI) getUser(c *gin.Context) {
-	name := c.Param(userName)
+	startTime := time.Now()
+	operateName := "handleGetUser"
+	httpCode := http.StatusOK
+	dbName := ""
+	spaceName := ""
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
+	name := c.Param(paramUserName)
 	if name == "" {
 		if users, err := ca.masterService.User().QueryAllUser(c, ca.masterService.Role()); err != nil {
-			response.New(c).JsonError(errors.NewErrNotFound(err))
+			httpCode = response.New(c).JsonError(errors.NewErrNotFound(err))
 			return
 		} else {
-			response.New(c).JsonSuccess(users)
+			httpCode = response.New(c).JsonSuccess(users)
 		}
 	} else {
 		if user, err := ca.masterService.User().QueryUser(c, ca.masterService.Role(), name, true); err != nil {
-			response.New(c).JsonError(errors.NewErrNotFound(err))
+			httpCode = response.New(c).JsonError(errors.NewErrNotFound(err))
 			return
 		} else {
-			response.New(c).JsonSuccess(user)
+			httpCode = response.New(c).JsonSuccess(user)
 		}
 	}
 }
 
 func (ca *clusterAPI) updateUser(c *gin.Context) {
+	startTime := time.Now()
+	operateName := "handleUpdateUser"
+	httpCode := http.StatusOK
+	dbName := ""
+	spaceName := ""
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
 	user := &entity.User{}
 	if err := c.ShouldBindJSON(user); err != nil {
 		body, _ := netutil.GetReqBody(c.Request)
 		log.Error("create space request: %s, err: %s", body, err.Error())
-		response.New(c).JsonError(errors.NewErrBadRequest(err))
+		httpCode = response.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
 	}
 	auth_user := ""
@@ -920,110 +1142,146 @@ func (ca *clusterAPI) updateUser(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
 			err := fmt.Errorf("auth header is empty")
-			response.New(c).JsonError(errors.NewErrUnauthorized(err))
-			c.Abort()
+			httpCode = response.New(c).JsonError(errors.NewErrUnauthorized(err))
 			return
 		}
 
 		parts := strings.SplitN(authHeader, " ", 2)
 		if len(parts) != 2 || parts[0] != "Basic" {
 			err := fmt.Errorf("auth header type is invalid")
-			response.New(c).JsonError(errors.NewErrUnauthorized(err))
-			c.Abort()
+			httpCode = response.New(c).JsonError(errors.NewErrUnauthorized(err))
 			return
 		}
 
 		decoded, err := base64.StdEncoding.DecodeString(parts[1])
 		if err != nil {
-			response.New(c).JsonError(errors.NewErrUnauthorized(err))
-			c.Abort()
+			httpCode = response.New(c).JsonError(errors.NewErrUnauthorized(err))
 			return
 		}
 
 		credentials := strings.SplitN(string(decoded), ":", 2)
 		if len(credentials) != 2 {
 			err := fmt.Errorf("auth header credentials is invalid")
-			response.New(c).JsonError(errors.NewErrUnauthorized(err))
-			c.Abort()
+			httpCode = response.New(c).JsonError(errors.NewErrUnauthorized(err))
 			return
 		}
 		auth_user = credentials[0]
 	}
 
 	if err := ca.masterService.User().UpdateUser(c, ca.masterService.Role(), user, auth_user); err != nil {
-		response.New(c).JsonError(errors.NewErrInternal(err))
+		httpCode = response.New(c).JsonError(errors.NewErrInternal(err))
 	} else {
-		response.New(c).JsonSuccess(user)
+		httpCode = response.New(c).JsonSuccess(user)
 	}
 }
 
 func (ca *clusterAPI) createRole(c *gin.Context) {
+	startTime := time.Now()
+	operateName := "handleCreateRole"
+	httpCode := http.StatusOK
+	dbName := ""
+	spaceName := ""
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
 	role := &entity.Role{}
 	if err := c.ShouldBindJSON(role); err != nil {
 		body, _ := netutil.GetReqBody(c.Request)
 		log.Error("create space request: %s, err: %s", body, err.Error())
-		response.New(c).JsonError(errors.NewErrBadRequest(err))
+		httpCode = response.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
 	}
 
 	log.Debug("create role: %s", role.Name)
 
 	if err := ca.masterService.Role().CreateRole(c, role); err != nil {
-		response.New(c).JsonError(errors.NewErrInternal(err))
+		httpCode = response.New(c).JsonError(errors.NewErrInternal(err))
 	} else {
-		response.New(c).JsonSuccess(role)
+		httpCode = response.New(c).JsonSuccess(role)
 	}
 }
 
 func (ca *clusterAPI) deleteRole(c *gin.Context) {
-	log.Debug("delete role: %s", c.Param(roleName))
-	name := c.Param(roleName)
+	startTime := time.Now()
+	operateName := "handleDeleteRole"
+	httpCode := http.StatusOK
+	dbName := ""
+	spaceName := ""
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
+	log.Debug("delete role: %s", c.Param(paramRoleName))
+	name := c.Param(paramRoleName)
 
 	if err := ca.masterService.Role().DeleteRole(c, name); err != nil {
-		response.New(c).JsonError(errors.NewErrInternal(err))
+		httpCode = response.New(c).JsonError(errors.NewErrInternal(err))
 	} else {
-		response.New(c).SuccessDelete()
+		httpCode = response.New(c).SuccessDelete()
 	}
 }
 
 func (ca *clusterAPI) getRole(c *gin.Context) {
-	name := c.Param(roleName)
+	startTime := time.Now()
+	operateName := "handleGetRole"
+	httpCode := http.StatusOK
+	dbName := ""
+	spaceName := ""
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
+	name := c.Param(paramRoleName)
 	if name == "" {
 		if roles, err := ca.masterService.Role().QueryAllRole(c); err != nil {
-			response.New(c).JsonError(errors.NewErrNotFound(err))
+			httpCode = response.New(c).JsonError(errors.NewErrNotFound(err))
 		} else {
-			response.New(c).JsonSuccess(roles)
+			httpCode = response.New(c).JsonSuccess(roles)
 		}
 	} else {
 		if role, err := ca.masterService.Role().QueryRole(c, name); err != nil {
-			response.New(c).JsonError(errors.NewErrNotFound(err))
+			httpCode = response.New(c).JsonError(errors.NewErrNotFound(err))
 		} else {
-			response.New(c).JsonSuccess(role)
+			httpCode = response.New(c).JsonSuccess(role)
 		}
 	}
 }
 
 func (ca *clusterAPI) changeRolePrivilege(c *gin.Context) {
+	startTime := time.Now()
+	operateName := "handleChangeRolePrivilege"
+	httpCode := http.StatusOK
+	dbName := ""
+	spaceName := ""
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
 	role := &entity.Role{}
 	if err := c.ShouldBindJSON(role); err != nil {
 		body, _ := netutil.GetReqBody(c.Request)
 		log.Error("create space request: %s, err: %s", body, err.Error())
-		response.New(c).JsonError(errors.NewErrBadRequest(err))
+		httpCode = response.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
 	}
 	log.Debug("update role: %s privilege", role.Name)
 
 	if new_role, err := ca.masterService.Role().ChangeRolePrivilege(c, role); err != nil {
-		response.New(c).JsonError(errors.NewErrInternal(err))
+		httpCode = response.New(c).JsonError(errors.NewErrInternal(err))
 	} else {
-		response.New(c).JsonSuccess(new_role)
+		httpCode = response.New(c).JsonSuccess(new_role)
 	}
 }
 
 func (ca *clusterAPI) getMembers(c *gin.Context) {
+	startTime := time.Now()
+	operateName := "handleGetMembers"
+	httpCode := http.StatusOK
+	dbName := ""
+	spaceName := ""
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
 	resp, err := ca.masterService.Client.Master().MemberList(context.Background())
 	if err != nil {
-		response.New(c).JsonError(errors.NewErrBadRequest(err))
+		httpCode = response.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
 	}
 
@@ -1031,83 +1289,133 @@ func (ca *clusterAPI) getMembers(c *gin.Context) {
 }
 
 func (ca *clusterAPI) getMemberStatus(c *gin.Context) {
+	startTime := time.Now()
+	operateName := "handleGetMemberStatus"
+	httpCode := http.StatusOK
+	dbName := ""
+	spaceName := ""
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
 	resp, err := ca.masterService.Client.Master().MemberStatus(context.Background())
 	if err != nil {
-		response.New(c).JsonError(errors.NewErrBadRequest(err))
+		httpCode = response.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
 	}
 
-	response.New(c).JsonSuccess(resp)
+	httpCode = response.New(c).JsonSuccess(resp)
 }
 
 func (ca *clusterAPI) addMember(c *gin.Context) {
+	startTime := time.Now()
+	operateName := "handleAddMember"
+	httpCode := http.StatusOK
+	dbName := ""
+	spaceName := ""
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
 	addMemberRequest := &entity.AddMemberRequest{}
 
 	if err := c.ShouldBindJSON(addMemberRequest); err != nil {
-		response.New(c).JsonError(errors.NewErrBadRequest(err))
+		httpCode = response.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
 	}
 
 	resp, err := ca.masterService.Member().AddMember(c, addMemberRequest.PeerAddrs)
 	if err != nil {
-		response.New(c).JsonError(errors.NewErrInternal(err))
+		httpCode = response.New(c).JsonError(errors.NewErrInternal(err))
 		return
 	}
-	response.New(c).JsonSuccess(resp)
+	httpCode = response.New(c).JsonSuccess(resp)
 }
 
 func (ca *clusterAPI) deleteMember(c *gin.Context) {
+	startTime := time.Now()
+	operateName := "handleDeleteMember"
+	httpCode := http.StatusOK
+	dbName := ""
+	spaceName := ""
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
 	master := &entity.MemberInfoRequest{}
 	if err := c.ShouldBindJSON(master); err != nil {
-		response.New(c).JsonError(errors.NewErrBadRequest(err))
+		httpCode = response.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
 	}
 	resp, err := ca.masterService.Member().RemoveMember(c, master)
 	if err != nil {
-		response.New(c).JsonError(errors.NewErrInternal(err))
+		httpCode = response.New(c).JsonError(errors.NewErrInternal(err))
 		return
 	}
 
-	response.New(c).JsonSuccess(resp)
+	httpCode = response.New(c).JsonSuccess(resp)
 }
 
 // get engine config
 func (ca *clusterAPI) getSpaceConfig(c *gin.Context) {
-	dbName := c.Param(dbName)
-	spaceName := c.Param(spaceName)
+	startTime := time.Now()
+	operateName := "handleGetSpaceConfig"
+	httpCode := http.StatusOK
+	dbName := ""
+	spaceName := ""
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
+	dbName = c.Param(paramDbName)
+	spaceName = c.Param(paramSpaceName)
 	if cfg, err := ca.masterService.Config().GetSpaceConfigByName(c, dbName, spaceName); err != nil {
-		response.New(c).JsonError(errors.NewErrNotFound(err))
+		httpCode = response.New(c).JsonError(errors.NewErrNotFound(err))
 	} else {
-		response.New(c).JsonSuccess(cfg)
+		httpCode = response.New(c).JsonSuccess(cfg)
 	}
 }
 
 // modify engine config
 func (ca *clusterAPI) modifySpaceConfig(c *gin.Context) {
+	startTime := time.Now()
+	operateName := "handleModifySpaceConfig"
+	httpCode := http.StatusOK
+	dbName := ""
+	spaceName := ""
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
 	var err error
 	defer errutil.CatchError(&err)
-	dbName := c.Param(dbName)
-	spaceName := c.Param(spaceName)
+	dbName = c.Param(paramDbName)
+	spaceName = c.Param(paramSpaceName)
 	spaceCfg := &entity.SpaceConfig{}
 
 	if err := c.ShouldBindJSON(spaceCfg); err != nil {
-		response.New(c).JsonError(errors.NewErrBadRequest(err))
+		httpCode = response.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
 	}
 
 	if err := ca.masterService.Config().ModifySpaceConfig(c, dbName, spaceName, spaceCfg); err != nil {
-		response.New(c).JsonError(errors.NewErrInternal(err))
+		httpCode = response.New(c).JsonError(errors.NewErrInternal(err))
 	} else {
-		response.New(c).JsonSuccess(spaceCfg)
+		httpCode = response.New(c).JsonSuccess(spaceCfg)
 	}
 }
 
 // serverList list servers
 func (ca *clusterAPI) serverList(c *gin.Context) {
+	startTime := time.Now()
+	operateName := "handleServerList"
+	httpCode := http.StatusOK
+	dbName := ""
+	spaceName := ""
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
+	var err error
+	defer errutil.CatchError(&err)
 	servers, err := ca.masterService.Master().QueryServers(c)
 
 	if err != nil {
-		response.New(c).JsonError(errors.NewErrNotFound(err))
+		httpCode = response.New(c).JsonError(errors.NewErrNotFound(err))
 		return
 	}
 
@@ -1145,70 +1453,118 @@ func (ca *clusterAPI) serverList(c *gin.Context) {
 		serverInfos = append(serverInfos, serverInfo)
 	}
 
-	response.New(c).JsonSuccess(map[string]any{"servers": serverInfos, "count": len(servers)})
+	httpCode = response.New(c).JsonSuccess(map[string]any{"servers": serverInfos, "count": len(servers)})
 }
 
 // routerList list router
 func (ca *clusterAPI) routerList(c *gin.Context) {
+	startTime := time.Now()
+	operateName := "handleRouterList"
+	httpCode := http.StatusOK
+	dbName := ""
+	spaceName := ""
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
 	if routerIPs, err := ca.masterService.Master().QueryRouter(c, config.Conf().Global.Name); err != nil {
-		response.New(c).JsonError(errors.NewErrNotFound(err))
+		httpCode = response.New(c).JsonError(errors.NewErrNotFound(err))
 	} else {
-		response.New(c).JsonSuccess(routerIPs)
+		httpCode = response.New(c).JsonSuccess(routerIPs)
 	}
 }
 
 // partitionList list partition
 func (ca *clusterAPI) partitionList(c *gin.Context) {
+	startTime := time.Now()
+	operateName := "handlePartitionList"
+	httpCode := http.StatusOK
+	dbName := ""
+	spaceName := ""
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
 	partitions, err := ca.masterService.Master().QueryPartitions(c)
 	if err != nil {
-		response.New(c).JsonError(errors.NewErrNotFound(err))
+		httpCode = response.New(c).JsonError(errors.NewErrNotFound(err))
 	} else {
-		response.New(c).JsonSuccess(partitions)
+		httpCode = response.New(c).JsonSuccess(partitions)
 	}
 }
 
 // list fail servers
 func (cluster *clusterAPI) FailServerList(c *gin.Context) {
+	startTime := time.Now()
+	operateName := "handleFailServerList"
+	httpCode := http.StatusOK
+	dbName := ""
+	spaceName := ""
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
 	failServers, err := cluster.masterService.Master().QueryAllFailServer(c.Request.Context())
 
 	if err != nil {
-		response.New(c).JsonError(errors.NewErrNotFound(err))
+		httpCode = response.New(c).JsonError(errors.NewErrNotFound(err))
 		return
 	}
-	response.New(c).JsonSuccess(map[string]any{"fail_servers": failServers, "count": len(failServers)})
+	httpCode = response.New(c).JsonSuccess(map[string]any{"fail_servers": failServers, "count": len(failServers)})
 }
 
 // clear fail server by nodeID
 func (cluster *clusterAPI) FailServerClear(c *gin.Context) {
-	nodeID := c.Param(NodeID)
+	startTime := time.Now()
+	operateName := "handleFailServerClear"
+	httpCode := http.StatusOK
+	dbName := ""
+	spaceName := ""
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
+	nodeID := c.Param(paramNodeID)
 	if nodeID == "" {
-		response.New(c).JsonError(errors.NewErrBadRequest(fmt.Errorf("param err must has nodeId")))
+		httpCode = response.New(c).JsonError(errors.NewErrBadRequest(fmt.Errorf("param err must has nodeId")))
 		return
 	}
 	id, err := strconv.ParseUint(nodeID, 10, 64)
 	if err != nil {
-		response.New(c).JsonError(errors.NewErrBadRequest(fmt.Errorf("nodeId err")))
+		httpCode = response.New(c).JsonError(errors.NewErrBadRequest(fmt.Errorf("nodeId err")))
 		return
 	}
 	err = cluster.masterService.Master().DeleteFailServerByNodeID(c.Request.Context(), id)
 	if err != nil {
-		response.New(c).JsonError(errors.NewErrNotFound(err))
+		httpCode = response.New(c).JsonError(errors.NewErrNotFound(err))
 		return
 	}
-	response.New(c).JsonSuccess(map[string]any{"nodeID": nodeID})
+	httpCode = response.New(c).JsonSuccess(map[string]any{"nodeID": nodeID})
 }
 
 // clear task
 func (cluster *clusterAPI) CleanTask(c *gin.Context) {
+	startTime := time.Now()
+	operateName := "handleCleanTask"
+	httpCode := http.StatusOK
+	dbName := ""
+	spaceName := ""
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
 	CleanTask(cluster.server)
-	response.New(c).JsonSuccess("clean task success!")
+	httpCode = response.New(c).JsonSuccess("clean task success!")
 }
 
 // remove etcd meta about the nodeID
 func (cluster *clusterAPI) RemoveServerMeta(c *gin.Context) {
+	startTime := time.Now()
+	operateName := "handleRemoveServerMeta"
+	httpCode := http.StatusOK
+	dbName := ""
+	spaceName := ""
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
 	rfs := &entity.RecoverFailServer{}
 	if err := c.ShouldBindJSON(rfs); err != nil {
-		response.New(c).JsonError(errors.NewErrBadRequest(err))
+		httpCode = response.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
 	}
 	// get nodeID
@@ -1216,7 +1572,7 @@ func (cluster *clusterAPI) RemoveServerMeta(c *gin.Context) {
 	// ipAddr
 	ipAdd := rfs.FailNodeAddr
 	if nodeID == 0 && ipAdd == "" {
-		response.New(c).JsonError(errors.NewErrBadRequest(fmt.Errorf("param err must has fail_node_id or fail_node_addr")))
+		httpCode = response.New(c).JsonError(errors.NewErrBadRequest(fmt.Errorf("param err must has fail_node_id or fail_node_addr")))
 		return
 	}
 	log.Debug("RemoveServerMeta info is %+v", rfs)
@@ -1241,148 +1597,223 @@ func (cluster *clusterAPI) RemoveServerMeta(c *gin.Context) {
 			err := cluster.masterService.Member().ChangeMember(c.Request.Context(), cluster.masterService.Space(), cm)
 			if err != nil {
 				log.Error("ChangePartitionMember [%+v] err is %s", cm, err.Error())
-				response.New(c).JsonError(errors.NewErrInternal(err))
+				httpCode = response.New(c).JsonError(errors.NewErrInternal(err))
 				return
 			}
 		}
 	} else {
-		response.New(c).JsonError(errors.NewErrInternal(fmt.Errorf("can't find server [%v]", failServer)))
+		httpCode = response.New(c).JsonError(errors.NewErrInternal(fmt.Errorf("can't find server [%v]", failServer)))
 		return
 	}
-	response.New(c).JsonSuccess(fmt.Sprintf("nodeid [%d], server [%v] remove node success!", nodeID, failServer))
+	httpCode = response.New(c).JsonSuccess(fmt.Sprintf("nodeid [%d], server [%v] remove node success!", nodeID, failServer))
 }
 
 // recover the failserver by a newserver
 func (cluster *clusterAPI) RecoverFailServer(c *gin.Context) {
+	startTime := time.Now()
+	operateName := "handleRecoverFailServer"
+	httpCode := http.StatusOK
+	dbName := ""
+	spaceName := ""
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
 	rs := &entity.RecoverFailServer{}
 	if err := c.ShouldBindJSON(rs); err != nil {
-		response.New(c).JsonError(errors.NewErrBadRequest(err))
+		httpCode = response.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
 	}
 
 	rsStr, err := json.Marshal(rs)
 	if err != nil {
-		response.New(c).JsonError(errors.NewErrBadRequest(err))
+		httpCode = response.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
 	}
 	log.Info("RecoverFailServer is %s,", rsStr)
 	if err := cluster.masterService.Server().RecoverFailServer(c.Request.Context(), cluster.masterService.Space(), cluster.masterService.Member(), rs); err != nil {
-		response.New(c).JsonError(errors.NewErrInternal(fmt.Errorf("%s failed recover, err is %v", rsStr, err)))
+		httpCode = response.New(c).JsonError(errors.NewErrInternal(fmt.Errorf("%s failed recover, err is %v", rsStr, err)))
 	} else {
-		response.New(c).JsonSuccess(fmt.Sprintf("%s success recover!", rsStr))
+		httpCode = response.New(c).JsonSuccess(fmt.Sprintf("%s success recover!", rsStr))
 	}
 }
 
 // change replicas by dbname and spaceName
 func (cluster *clusterAPI) ChangeReplicas(c *gin.Context) {
+	startTime := time.Now()
+	operateName := "handleChangeReplicas"
+	httpCode := http.StatusOK
+	dbName := ""
+	spaceName := ""
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
 	dbModify := &entity.DBModify{}
 	if err := c.ShouldBindJSON(dbModify); err != nil {
-		response.New(c).JsonError(errors.NewErrBadRequest(err))
+		httpCode = response.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
 	}
+	dbName = dbModify.DbName
+	spaceName = dbModify.SpaceName
+
 	dbByte, err := json.Marshal(dbModify)
 	if err != nil {
-		response.New(c).JsonError(errors.NewErrBadRequest(err))
+		httpCode = response.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
 	}
 	dbStr := string(dbByte)
 	log.Info("dbModify is %s", dbStr)
 	if dbModify.DbName == "" || dbModify.SpaceName == "" {
-		response.New(c).JsonError(errors.NewErrBadRequest(fmt.Errorf("dbModify info incorrect [%s]", dbStr)))
+		httpCode = response.New(c).JsonError(errors.NewErrBadRequest(fmt.Errorf("dbModify info incorrect [%s]", dbStr)))
 		return
 	}
 	if err := cluster.masterService.Member().ChangeReplica(c.Request.Context(), cluster.masterService.DB(), cluster.masterService.Space(), dbModify); err != nil {
-		response.New(c).JsonError(errors.NewErrInternal(fmt.Errorf("[%s] failed ChangeReplicas,err is %v", dbStr, err)))
+		httpCode = response.New(c).JsonError(errors.NewErrInternal(fmt.Errorf("[%s] failed ChangeReplicas,err is %v", dbStr, err)))
 	} else {
-		response.New(c).JsonSuccess(fmt.Sprintf("[%s] success ChangeReplicas!", dbStr))
+		httpCode = response.New(c).JsonSuccess(fmt.Sprintf("[%s] success ChangeReplicas!", dbStr))
 	}
 }
 
 func (ca *clusterAPI) changeMember(c *gin.Context) {
+	startTime := time.Now()
+	operateName := "handleChangeMember"
+	httpCode := http.StatusOK
+	dbName := ""
+	spaceName := ""
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
 	cm := &entity.ChangeMembers{}
 
 	if err := c.ShouldBindJSON(cm); err != nil {
-		response.New(c).JsonError(errors.NewErrBadRequest(err))
+		httpCode = response.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
 	}
 	if err := ca.masterService.Member().ChangeMembers(c, ca.masterService.Space(), cm); err != nil {
-		response.New(c).JsonError(errors.NewErrInternal(err))
+		httpCode = response.New(c).JsonError(errors.NewErrInternal(err))
 	} else {
-		response.New(c).JsonSuccess(nil)
+		httpCode = response.New(c).JsonSuccess(nil)
 	}
 }
 
 // get engine config
 func (ca *clusterAPI) getRequestLimitCfg(c *gin.Context) {
+	startTime := time.Now()
+	operateName := "handleGetRequestLimitCfg"
+	httpCode := http.StatusOK
+	dbName := ""
+	spaceName := ""
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
 	if request_limit, err := ca.masterService.Config().GetRequestLimitCfg(c); err != nil {
-		response.New(c).JsonError(errors.NewErrInternal(err))
+		httpCode = response.New(c).JsonError(errors.NewErrInternal(err))
 	} else {
-		response.New(c).JsonSuccess(request_limit)
+		httpCode = response.New(c).JsonSuccess(request_limit)
 	}
 }
 
 // modify engine config
 func (ca *clusterAPI) modifyRequestLimitCfg(c *gin.Context) {
+	startTime := time.Now()
+	operateName := "handleModifyRequestLimitCfg"
+	httpCode := http.StatusOK
+	dbName := ""
+	spaceName := ""
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
 	rlc := &entity.RequestLimitCfg{}
 
 	if err := c.ShouldBindJSON(rlc); err != nil {
-		response.New(c).JsonError(errors.NewErrBadRequest(err))
+		httpCode = response.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
 	}
 
 	if err := ca.masterService.Config().ModifyRequestLimitCfg(c, rlc); err != nil {
-		response.New(c).JsonError(errors.NewErrInternal(err))
+		httpCode = response.New(c).JsonError(errors.NewErrInternal(err))
 	} else {
-		response.New(c).JsonSuccess(rlc)
+		httpCode = response.New(c).JsonSuccess(rlc)
 	}
 }
 
 // get memory limite config
 func (ca *clusterAPI) getMemoryLimitCfg(c *gin.Context) {
+	startTime := time.Now()
+	operateName := "handleGetMemoryLimitCfg"
+	httpCode := http.StatusOK
+	dbName := ""
+	spaceName := ""
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
 	if memory_limit, err := ca.masterService.Config().GetMemoryLimitCfg(c); err != nil {
-		response.New(c).JsonError(errors.NewErrInternal(err))
+		httpCode = response.New(c).JsonError(errors.NewErrInternal(err))
 	} else {
-		response.New(c).JsonSuccess(memory_limit)
+		httpCode = response.New(c).JsonSuccess(memory_limit)
 	}
 }
 
 // modify memory limit config
 func (ca *clusterAPI) modifyMemoryLimitCfg(c *gin.Context) {
+	startTime := time.Now()
+	operateName := "handleModifyMemoryLimitCfg"
+	httpCode := http.StatusOK
+	dbName := ""
+	spaceName := ""
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
 	mlc := &entity.MemoryLimitCfg{}
 
 	if err := c.ShouldBindJSON(mlc); err != nil {
-		response.New(c).JsonError(errors.NewErrBadRequest(err))
+		httpCode = response.New(c).JsonError(errors.NewErrBadRequest(err))
 		return
 	}
 
 	if err := ca.masterService.Config().ModifyMemoryLimitCfg(c, mlc); err != nil {
-		response.New(c).JsonError(errors.NewErrInternal(err))
+		httpCode = response.New(c).JsonError(errors.NewErrInternal(err))
 	} else {
-		response.New(c).JsonSuccess(mlc)
+		httpCode = response.New(c).JsonSuccess(mlc)
 	}
 }
 
 // get long search isolation config
 func (ca *clusterAPI) getSlowSearchIsolationCfg(c *gin.Context) {
+	startTime := time.Now()
+	operateName := "handleGetSlowSearchIsolationCfg"
+	httpCode := http.StatusOK
+	dbName := ""
+	spaceName := ""
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
 	if slow_search_isolation, err := ca.masterService.Config().GetSlowSearchIsolationCfg(c); err != nil {
-		response.New(c).JsonError(errors.NewErrInternal(err))
+		httpCode = response.New(c).JsonError(errors.NewErrInternal(err))
 	} else {
-		response.New(c).JsonSuccess(slow_search_isolation)
+		httpCode = response.New(c).JsonSuccess(slow_search_isolation)
 	}
 }
 
 // modify long search isolation config
 func (ca *clusterAPI) modifySlowSearchIsolationCfg(c *gin.Context) {
+	startTime := time.Now()
+	operateName := "handleModifySlowSearchIsolationCfg"
+	httpCode := http.StatusOK
+	dbName := ""
+	spaceName := ""
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
 	lsc := &entity.SlowSearchIsolationCfg{}
 
 	if err := c.ShouldBindJSON(lsc); err != nil {
-		response.New(c).JsonError(errors.NewErrInternal(err))
+		httpCode = response.New(c).JsonError(errors.NewErrInternal(err))
 		return
 	}
 
 	if err := ca.masterService.Config().ModifySlowSearchIsolationCfg(c, lsc); err != nil {
-		response.New(c).JsonError(errors.NewErrInternal(err))
+		httpCode = response.New(c).JsonError(errors.NewErrInternal(err))
 	} else {
-		response.New(c).JsonSuccess(lsc)
+		httpCode = response.New(c).JsonSuccess(lsc)
 	}
 }
