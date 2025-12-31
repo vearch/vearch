@@ -129,6 +129,7 @@ func (s *Server) LoadPartition(ctx context.Context, pid entity.PartitionID, spac
 	for _, replica := range replicas {
 		if server, err := s.client.Master().QueryServer(context.Background(), replica); err != nil {
 			log.Error("partition recovery get server info err: %s", err.Error())
+			s.raftResolver.AddNode(replica, &entity.Replica{NodeID: replica})
 		} else {
 			s.raftResolver.AddNode(replica, server.Replica())
 		}
@@ -178,11 +179,19 @@ func (s *Server) CreatePartition(ctx context.Context, space *entity.Space, pid e
 		for _, nodeId := range store.Partition.Replicas {
 			if server, err := s.client.Master().QueryServer(ctx, nodeId); err != nil {
 				fs := s.client.Master().QueryFailServerByNodeID(ctx, nodeId)
+				var replica *entity.Replica
 				if fs == nil {
 					log.Error("get server info err %s", err.Error())
 					return err
 				}
 				log.Warn("get nodeid: %d, failserver %+v", nodeId, fs)
+				if fs.Node != nil {
+					replica = fs.Node.Replica()
+				} else {
+					replica = &entity.Replica{}
+				}
+				replica.NodeID = fs.ID
+				s.raftResolver.AddNode(nodeId, replica)
 			} else {
 				s.raftResolver.AddNode(nodeId, server.Replica())
 			}
