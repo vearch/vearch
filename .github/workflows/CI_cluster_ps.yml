@@ -126,7 +126,7 @@ jobs:
           echo "Status is red."
         fi
         sleep 30
-        errors=$(curl -s -L -u root:secret http://127.0.0.1:8817/cluster/health?detail=true\&timeout=1000000 | jq -r '.data[0].spaces[].errors[] | select(contains("leader"))')
+        errors=$(curl -s -L -u root:secret http://127.0.0.1:8817/cluster/health?detail=true\&timeout=1000000 | jq -r '.data[0].spaces[].errors[] | select(contains("leader") or contains("call_rpcclient_failed"))')
         if [ -z "$errors" ]; then
           echo "Error: errors is $errors."
           exit 1

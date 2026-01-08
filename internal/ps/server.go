@@ -316,6 +316,11 @@ func (s *Server) registerMaster(leader entity.NodeID, pid entity.PartitionID) {
 		return
 	}
 
+	if !s.raftServer.IsLeader(uint64(pid)) {
+		log.Debug("server %d is not leader of partition: [%d]", s.nodeID, pid)
+		return
+	}
+
 	partition := store.(PartitionStore).GetPartition()
 	partition.LeaderID = s.nodeID
 
