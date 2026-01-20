@@ -22,23 +22,23 @@
 namespace vearch {
 namespace gpu {
 
-class GPURetrievalParameters : public GPURetrievalParametersBase {
+class IVFPQGPURetrievalParameters : public GPURetrievalParametersBase {
  public:
-  GPURetrievalParameters() : GPURetrievalParametersBase() { recall_num_ = 100; }
+  IVFPQGPURetrievalParameters() : GPURetrievalParametersBase() { recall_num_ = 100; }
 
-  GPURetrievalParameters(size_t recall_num, size_t nprobe,
+  IVFPQGPURetrievalParameters(size_t recall_num, size_t nprobe,
                          DistanceComputeType type)
       : GPURetrievalParametersBase(nprobe, type) {
     recall_num_ = recall_num;
   }
 
-  GPURetrievalParameters(DistanceComputeType type)
+  IVFPQGPURetrievalParameters(DistanceComputeType type)
       : GPURetrievalParametersBase() {
     recall_num_ = 100;
     distance_compute_type_ = type;
   }
 
-  ~GPURetrievalParameters() {}
+  virtual ~IVFPQGPURetrievalParameters() = default;
 
   int RecallNum() { return recall_num_; }
   void SetRecallNum(int recall_num) { recall_num_ = recall_num; }
@@ -48,7 +48,7 @@ class GPURetrievalParameters : public GPURetrievalParametersBase {
 };
 
 class GammaIVFPQGPUIndex
-    : public GammaGPUSearchBase<GammaIVFPQIndex, GPURetrievalParameters> {
+    : public GammaGPUSearchBase<GammaIVFPQIndex, IVFPQGPURetrievalParameters> {
  public:
   GammaIVFPQGPUIndex();
 
@@ -73,11 +73,11 @@ class GammaIVFPQGPUIndex
   int GPUThread() override;
 
   // Implement abstract methods from GammaGPUSearchBase
-  GPURetrievalParameters *CreateDefaultRetrievalParams(
+  IVFPQGPURetrievalParameters *CreateDefaultRetrievalParams(
       int default_nprobe) override;
-  int GetRecallNum(GPURetrievalParameters *params, int k,
+  int GetRecallNum(IVFPQGPURetrievalParameters *params, int k,
                    bool enable_rerank) override;
-  int GetNprobe(GPURetrievalParameters *params, int default_nprobe,
+  int GetNprobe(IVFPQGPURetrievalParameters *params, int default_nprobe,
                 size_t nlist) override;
 
  private:

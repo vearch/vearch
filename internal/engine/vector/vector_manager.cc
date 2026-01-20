@@ -10,6 +10,10 @@
 #include "index/impl/hnswlib/gamma_index_hnswlib.h"
 #include "index/impl/gamma_index_ivfflat.h"
 #include "index/impl/gamma_index_ivfpq.h"
+#ifdef BUILD_WITH_GPU
+#include "index/impl/gpu/gamma_index_ivfflat_gpu.h"
+#include "index/impl/gpu/gamma_index_ivfpq_gpu.h"
+#endif
 
 #include "raw_vector_factory.h"
 #include "util/utils.h"
@@ -588,6 +592,11 @@ int VectorManager::AddRTVecsToIndex(bool &index_is_dirty) {
 #endif
     } else {
       int64_t MAX_NUM_PER_INDEX = 1000;
+#ifdef BUILD_WITH_GPU
+      if (dynamic_cast<gpu::GammaIVFPQGPUIndex *>(index_model) || dynamic_cast<gpu::GammaIVFFlatGPUIndex *>(index_model)) {
+        MAX_NUM_PER_INDEX = 100000;
+      }
+#endif
       int index_count =
           (total_stored_vecs - indexed_vec_count) / MAX_NUM_PER_INDEX + 1;
 
