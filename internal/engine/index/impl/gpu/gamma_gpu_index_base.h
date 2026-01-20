@@ -199,8 +199,8 @@ class GammaGPUIndexBase : public IndexModel {
   int vectors_added_since_last_log_;
 
   // Constants
-  static constexpr int kMaxBatch = 500;
-  static constexpr int kMaxReqNum = 500;
+  static constexpr int kMaxBatch = 512;
+  static constexpr int kMaxReqNum = 512;
   const int kMaxRecallNum = faiss::gpu::getMaxKSelection();
   static constexpr const char *kDelim = "\001";
 

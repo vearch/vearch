@@ -41,9 +41,9 @@ namespace vearch {
 namespace gpu {
 
 namespace {
-const int kMaxBatch = 500;   // max search batch num (optimized from 200)
-const int kMaxReqNum = 500;  // max request num (optimized from 200)
-const int kMaxRecallNum = faiss::gpu::getMaxKSelection();// max recall num
+const int kMaxBatch = 512;   // max search batch num (optimized from 200)
+const int kMaxReqNum = 512;  // max request num (optimized from 200)
+const int kMaxRecallNum = faiss::gpu::getMaxKSelection();// max recall num or max nprobe
 }  // namespace
 
 REGISTER_INDEX(GPU_IVFFLAT, GammaIVFFlatGPUIndex)
@@ -265,12 +265,6 @@ int GammaIVFFlatGPUIndex::Indexing() {
 }
 
 bool GammaIVFFlatGPUIndex::Add(int n, const uint8_t *vec) {
-  std::unique_lock<std::shared_mutex> lock(gpu_index_mutex_);
-
-  if (start_docid_ != indexed_count_) {
-    return false;
-  }
-
   std::vector<long> new_keys;
   std::vector<uint8_t> new_codes;
   size_t code_size = d_ * sizeof(float);
@@ -288,6 +282,12 @@ bool GammaIVFFlatGPUIndex::Add(int n, const uint8_t *vec) {
     new_codes.resize(ofs + code_size);
     memcpy((void *)(new_codes.data() + ofs), (void *)code, code_size);
     n_add +=1;
+  }
+
+  std::unique_lock<std::shared_mutex> lock(gpu_index_mutex_);
+
+  if (start_docid_ != indexed_count_) {
+    return false;
   }
 
   gpu_index_->add_with_ids(n_add, reinterpret_cast<const float *>(new_codes.data()), new_keys.data());
@@ -449,7 +449,8 @@ int GammaIVFFlatGPUIndex::GetRecallNum(IVFFlatGPURetrievalParameters *params,
 
 int GammaIVFFlatGPUIndex::GetNprobe(IVFFlatGPURetrievalParameters *params,
                                     int default_nprobe, size_t nlist) {
-  if (params->Nprobe() > 0 && (size_t)params->Nprobe() <= nlist) {
+  if (params->Nprobe() > 0 && (size_t)params->Nprobe() <= nlist &&
+      params->Nprobe() <= kMaxRecallNum) {
     return params->Nprobe();
   } else {
     LOG(WARNING) << "Error nprobe for search, so using default value: "
