@@ -201,9 +201,9 @@ func TimeoutMiddleware(defaultTimeout time.Duration) gin.HandlerFunc {
 					RequestId: c.GetHeader(paramRequestID),
 					Msg:       "get response data error",
 				}
-				res := &response.Response{}
-				res.SetHttpReply(httpReply)
-				res.SetHttpStatus(http.StatusInternalServerError)
+				httpResp = &response.Response{}
+				httpResp.SetHttpReply(httpReply)
+				httpResp.SetHttpStatus(http.StatusInternalServerError)
 			}
 			resultCh <- httpResp
 		}()
