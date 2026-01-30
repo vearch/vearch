@@ -44,6 +44,7 @@ const maxTryTime = 5
 var (
 	defaultConcurrentNum = 256
 	defaultRpcTimeOut    = 10 // 10 seconds
+	defaultMinotorPort   = 8818
 )
 
 // Server partition server
@@ -106,6 +107,8 @@ func NewServer(ctx context.Context) *Server {
 
 	if port := config.Conf().PS.MonitorPort; port > 0 {
 		monitor.Register(nil, nil, config.Conf().PS.MonitorPort)
+	} else {
+		monitor.Register(nil, nil, uint16(defaultMinotorPort))
 	}
 
 	return s

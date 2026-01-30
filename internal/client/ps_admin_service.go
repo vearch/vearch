@@ -15,6 +15,7 @@
 package client
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/vearch/vearch/v3/internal/entity"
@@ -181,6 +182,9 @@ func PartitionInfo(addr string, pid entity.PartitionID, detail_info bool) (value
 	if err != nil {
 		return nil, err
 	}
+	if len(infos) == 0 {
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_NOT_EXIST, fmt.Errorf("get partitionID: [%d] infos is nil", pid))
+	}
 	return infos[0], nil
 }
 
@@ -206,11 +210,14 @@ func _partitionsInfo(addr string, pid entity.PartitionID, detail_info bool) (val
 	if reply.Err.Code != vearchpb.ErrorEnum_SUCCESS {
 		return nil, vearchpb.NewError(reply.Err.Code, nil)
 	}
+	if reply.Data == nil {
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_NOT_EXIST, fmt.Errorf("get partitionID: [%d] reply data is nil", pid))
+	}
 	value = make([]*entity.PartitionInfo, 0, 1)
 	err = vjson.Unmarshal(reply.Data, &value)
 	if err != nil {
 		log.Error("Unmarshal partition info failed, err: [%v]", err)
-		return
+		return nil, err
 	}
 	return value, nil
 }
